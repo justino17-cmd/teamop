@@ -147,3 +147,5 @@ consignes écrits par un inconnu, chargés à chaque session d'un dépôt en pro
 venue d'ailleurs se RELIT (scripts compris : réseau, exécution, fichiers touchés), puis se RECOPIE dans `.claude/skills/` avec sa
 licence et une note de provenance — jamais une installation automatique, jamais `enabledPlugins`. Avant de proposer, chercher
 d'abord dans `.claude/skills/` : un skill du dépôt passe avant un skill générique (il connaît TeamOP).
+
+⛔ **Avant de recopier ce que ce skill a trouvé : `bash scripts/scanner-skills.sh <dossier>` puis la procédure du skill `scanner-skills`** (SkillSpector en `--no-llm`, relecture des scripts à la main, licence, provenance). Un résultat de `npx skills find` n'a été scanné par personne.

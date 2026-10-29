@@ -1,0 +1,26 @@
+# Évaluation des prompts des agents de la Tour qui écrivent à des clients ou qui décident
+# (Camille, Léa, Chloé, Victor, Hugo, Margaux) — voir LISEZMOI.md.
+#
+# ⛔ NE SE LANCE PAS À LA MAIN : `bash outils/promptfoo/lancer.sh` pose avant tout la coupure de la télémétrie,
+#    le garde-réseau (rien ne sort ailleurs qu'à Anthropic) et le dossier de travail hors du dépôt.
+description: "Agents de la Tour — non-régression des prompts (le VRAI prompt, fabriqué par server/agent-*.js)"
+
+# Le texte du « prompt » n'est qu'une étiquette : le fournisseur construit le vrai prompt à partir des variables du cas
+# (canal, agent, courriel ou message). Le vrai prompt est gardé dans les métadonnées de chaque résultat.
+prompts:
+  - "{{id}} · {{agent}} — {{titre}}"
+
+providers:
+  - id: file://fournisseur-teamop.js
+    label: teamop-agents
+
+# Les cas sont du JavaScript (cas/index.js) : les deux réponses simulées de chaque cas et leurs assertions vivent ensemble,
+# et le banc tests/test-3132.js les lit sans promptfoo.
+tests: file://cas/index.js
+
+# Aucune assertion « modèle » (llm-rubric, similar…) : elles appelleraient un autre fournisseur que Anthropic.
+# Toutes les assertions sont des fonctions de assertions.js.
+
+evaluateOptions:
+  maxConcurrency: 1
+  showProgressBar: false

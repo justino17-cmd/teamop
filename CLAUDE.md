@@ -2403,6 +2403,29 @@ manifeste de l'app). La pastille verte « OP » de la Tour n'est qu'un repère d
   OP GESTION ouvre donc une application **entièrement vide**. C'est peut-être ce qui est voulu —
   c'est une décision de produit, pas une correction à faire tout seul. Voir `REPRISE.md`.
 
+## Les skills tiers — on recopie, on scanne, on adapte
+
+Un skill est du texte qui dirige un agent (parfois des scripts), chargé à CHAQUE session d'un dépôt en production. Règle posée avec ECC et reprise pour toute source (Emil Kowalski, Vercel, Instagram, Trail of Bits, marketingskills) :
+on RECOPIE les pièces choisies dans `.claude/skills/`, après les avoir lues, avec leur licence (`.claude/skills/LICENSE-<source>`), une note de provenance (`PROVENANCE-<source>.md`) et un bloc « Adaptation TeamOP » en tête —
+**jamais** `enabledPlugins`, `./install.sh` ni `npx skills add`. Tout agent d'un skill tiers tourne en Sonnet.
+
+⛔ **AVANT TOUTE RECOPIE : `bash scripts/scanner-skills.sh <dossier>`** (SkillSpector de NVIDIA, **toujours `--no-llm`** — sans lui le contenu des fichiers part chez un tiers ; seuls des noms de paquets vont à `api.osv.dev`). Le script
+**n'installe rien** : s'il manque, il le dit et sort en **3, « AUCUN VERDICT »** — jamais en 0. Procédure complète : skill `scanner-skills`. Un scan réduit le risque, il ne l'annule pas : les scripts du skill se relisent à la main (réseau,
+exécution, identifiants, fichiers écrits), et un skill que le scanner juge réellement risqué ne s'installe pas.
+⚠️ **Au 28 octobre 2026 SkillSpector n'a jamais tourné ici** : le classifieur de permissions de la session a refusé son installation (code tiers) et ce refus n'a pas été contourné. Les notes de provenance de Trail of Bits et de
+marketingskills disent donc « relu à la main et balayé par un script maison » (`scripts/balayage-skills-grossier.py`, un substitut qui n'a ni score ni verdict). **Ne jamais écrire « scanné » avant un vrai scan** ; `tests/test-3140.js` exige l'aveu ou une ligne
+« Scanné par SkillSpector le JJ/MM/AAAA » avec son verdict. Installer le scanner est une décision de Justin (commande exacte dans le script).
+
+- **Trail of Bits** (CC-BY-SA-4.0 : mention d'origine, même licence pour les adaptations) : `differential-review`, `insecure-defaults` (réécrit en skill : l'original est un `Workflow` dont la vérification est en Opus), `supply-chain-risk-auditor`
+  (envoie noms et versions de paquets à huit services publics et **lit `gh auth token`** : on ne connecte pas `gh` pour l'occasion). `second-opinion` (envoie du code ailleurs) n'est PAS installé et ne l'est jamais.
+- **marketingskills** (MIT) : six skills **traduits et adaptés au droit français**, pas recopiés — `prospecting`, `cold-email`, `sales-enablement`, `customer-research`, `directory-submissions`, `lead-magnets`.
+  ⛔ La règle de la prospection est dans `.claude/skills/prospecting/references/droit-francais.md` (RGPD art. 14 et 21, CPCE L34-5, LCEN art. 20, CNIL) — **écrite de mémoire, non relue à la source** : à faire valider (Nina, puis l'agent `juriste` de la branche `agent/juriste` quand elle sera fusionnée, puis Justin)
+  avant une campagne d'ampleur. Ce qui y est tranché pour TeamOP : **jamais de SMS de prospection sans consentement** ; aucun agent n'appelle ni n'automatise LinkedIn ; pas de faux humain ni de faux « Re: » ; un refus est définitif (liste de suppression) ;
+  pas d'avis acheté ni récompensé ; la forme des courriels d'agents est celle du serveur (`server/agents-connaissance.js`). Les données de prospects sont des données réelles : dossier temporaire de la session, jamais dans le dépôt.
+- Douze skills de marketingskills étaient déjà là sans licence ni provenance (`copywriting`, `copy-editing`, `signup`, `onboarding`, `paywalls`, `churn-prevention`, `pricing`, `analytics`, `product-marketing`, `programmatic-seo`, `schema`, `seo-audit`) ;
+  certains sont en retard sur la source (voir `PROVENANCE-marketingskills.md`). `find-skills` cherche et propose, il n'installe pas.
+- **Les outils externes ne vont PAS dans le dépôt** (SkillSpector, promptfoo) : un script qui les lance, une doc, et la décision de les installer à Justin.
+
 ## Modèle et effort par agent
 
 Rien ne choisit le modèle tout seul : Claude Code ne regarde pas la difficulté d'une
