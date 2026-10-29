@@ -61,7 +61,7 @@ console.log('\n── 1303 · 2. l’écran ne promet plus un bouton ni un état
     function setHeader(t,s,a){ __r.titre=t; __r.sous=s; __r.action=a; } function $(){ return { set innerHTML(h){ __r.html=h; } }; }
     ${SA}`, Object.assign(ctx, { __r: rendu, localStorage: { getItem: () => null } }));
   vm.runInContext('var views={}; ' + MOD, ctx); vm.runInContext('views.modulesElan()', ctx);
-  vrai('l’écran se rend (la liste des rubriques mises de côté)', /pl-row/.test(rendu.html) && (rendu.html.match(/class="pl-row"/g) || []).length >= 8, rendu.html.length);
+  vrai('l’écran se rend (la liste des rubriques mises de côté)', /pl-row/.test(rendu.html) && (rendu.html.match(/class="pl-row"/g) || []).length >= 5, rendu.html.length);   // v780 : les rubriques regroupées (cache:1) vivent dans leur écran parent
   vrai('⛔⛔ plus de bouton « Afficher dans le menu / Masquer du menu » (il ne changeait rien)', !rendu.action && !/Afficher dans le menu|Masquer du menu|elan_aside/.test(rendu.html + (rendu.action || '')), rendu.action);
   vrai('⛔⛔ le sous-titre ne dit plus « Masqués — interface 100 % Organilog »', !/Masqués|Organilog/.test(rendu.sous + rendu.titre + rendu.html), rendu.sous);
   vrai('… le texte ne promet plus de « ré-afficher dans le menu »', !/ré-afficher|réafficher/.test(rendu.html), rendu.html.slice(0, 300));
