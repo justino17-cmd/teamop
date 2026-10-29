@@ -8235,6 +8235,19 @@ html[data-refonte] .field input[aria-invalid="true"]:focus,html[data-refonte] .f
 html[data-refonte] .field button[aria-invalid="true"],html[data-refonte] .field button[aria-invalid="true"]:focus{
   border-color:var(--red)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 24%,transparent)!important}
 .champ-manque-note{color:var(--red);font-size:12.5px;font-weight:600;line-height:1.35;margin:6px 0 0;padding:0 2px;box-sizing:border-box;flex:0 0 100%}
+/* ⛔ v780 — Justin, 29 octobre 2026, vidéo sous Windows (Edge) : la fiche d'une intervention laissait voir le planning et les
+   tuiles DESSOUS, on ne savait plus sur quoi on cliquait. La fenêtre plein écran était une vitre à 78 % : sans le flou (navigateur
+   qui ne l'applique pas, accélération matérielle coupée), c'est un calque transparent. Une fenêtre PLEIN ÉCRAN ne montre rien
+   derrière elle : elle est opaque, quel que soit le thème. Les petites fenêtres (carte) gardent leur verre. */
+html[data-theme] #modal.modal.full{ background-color:var(--bg,#F6F7F9)!important; background-image:none!important; -webkit-backdrop-filter:none!important; backdrop-filter:none!important; }
+html[data-theme="light"] #modal.modal.full{ background-color:#F6F7F9!important; }
+html[data-theme="dark"] #modal.modal.full{ background-color:#0F1A30!important; background-image:none!important; }
+/* ⛔ Même vidéo : en NUIT, la liste « Catégorie » s'ouvrait blanche, texte blanc — illisible. Une liste déroulante native suit le
+   `color-scheme` de son élément : on le donne, et des couleurs d'option explicites pour les navigateurs qui l'ignorent. */
+html[data-theme="dark"] select{ color-scheme:dark; }
+html[data-theme="dark"] select option, html[data-theme="dark"] select optgroup{ background-color:#14213A; color:#EEF2F8; }
+html[data-theme="light"] select{ color-scheme:light; }
+html[data-theme="light"] select option{ background-color:#FFFFFF; color:#14213A; }
 </style>
 </head>
 <body>
@@ -9470,8 +9483,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'registre', 'carteBox', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'devisXylo',
-      'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules', 'messagerie',
-      'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs', 'utilisateurs',
+      'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules',       'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs', 'utilisateurs',
       'modulesElan', 'parametres'
     ],
     types:null, presta:null, releves:null, produits:null,
@@ -9484,8 +9496,8 @@ const METIERS={
   'plomberie':{ nom:'Plomberie', ic:'🔧', sous:'Dépannage · sanitaire · réseaux',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
-      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs',
       'modulesElan', 'parametres'
     ],
     types:[
@@ -9534,8 +9546,8 @@ const METIERS={
   'electricite':{ nom:'Électricité', ic:'⚡', sous:'Installation · mise aux normes · dépannage',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
-      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs',
       'modulesElan', 'parametres'
     ],
     types:[
@@ -9572,7 +9584,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
-      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Entretien annuel chaudière', 'Entretien pompe à chaleur', 'Entretien climatisation', 'Dépannage chauffage',
@@ -9639,8 +9651,8 @@ const METIERS={
   'serrurerie':{ nom:'Serrurerie', ic:'🔑', sous:'Ouverture · sécurité · contrôle d’accès',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
-      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs',
       'modulesElan', 'parametres'
     ],
     types:[
@@ -9679,7 +9691,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
-      'messagerie', 'fournisseurs', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+      'fournisseurs', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Nettoyage de bureaux', 'Remise en état', 'Vitrerie', 'Nettoyage de fin de chantier', 'Nettoyage industriel',
@@ -9718,8 +9730,7 @@ const METIERS={
   'maconnerie':{ nom:'Maçonnerie / Gros œuvre', ic:'🧱', sous:'Construction · rénovation · gros œuvre',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules', 'messagerie',
-      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules',       'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Construction neuve', 'Rénovation', 'Extension / agrandissement', 'Dalle & fondations', 'Murs & cloisons',
@@ -9750,8 +9761,7 @@ const METIERS={
   'menuiserie':{ nom:'Menuiserie', ic:'🚪', sous:'Pose · agencement · fermetures',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage', 'messagerie',
-      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage',       'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Pose de fenêtres', 'Pose de portes', 'Volets & fermetures', 'Agencement intérieur', 'Placards & dressings',
@@ -9783,8 +9793,7 @@ const METIERS={
   'peinture':{ nom:'Peinture / Revêtements', ic:'🖌️', sous:'Intérieur · extérieur · sols',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage', 'messagerie',
-      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage',       'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Peinture intérieure', 'Peinture extérieure / façade', 'Revêtements muraux', 'Revêtements de sol',
@@ -9816,7 +9825,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'pointage', 'vehicules',
-      'messagerie', 'fournisseurs', 'bons', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+      'fournisseurs', 'bons', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Tonte', 'Taille de haies', 'Élagage / abattage', 'Débroussaillage', 'Entretien de massifs',
@@ -9849,8 +9858,7 @@ const METIERS={
   'couverture':{ nom:'Couverture / Zinguerie', ic:'🏠', sous:'Toiture · gouttières · étanchéité',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules', 'messagerie',
-      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules',       'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Réparation de toiture', 'Recherche de fuite', 'Remplacement de tuiles / ardoises', 'Gouttières & descentes',
@@ -9884,8 +9892,7 @@ const METIERS={
   'multiservices':{ nom:'Multiservices / Maintenance', ic:'🛠️', sous:'Petits travaux · maintenance · contrats',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules', 'messagerie',
-      'utilisateurs', 'modulesElan', 'parametres'
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules',       'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Petits travaux', 'Maintenance préventive', 'Dépannage', 'Plomberie simple', 'Électricité simple',
@@ -9913,7 +9920,7 @@ const METIERS={
   'autre':{ nom:'Autre métier de terrain', ic:'🧰', sous:'Interventions · entretien · dépannage',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'pointage', 'messagerie', 'utilisateurs', 'modulesElan',
+      'clients', 'devis', 'assistantDevis', 'factures', 'pointage', 'utilisateurs', 'modulesElan',
       'parametres'
     ],
     types:[
@@ -9939,7 +9946,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
-      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Vérification annuelle des extincteurs', 'Vérification du désenfumage',
@@ -9975,7 +9982,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
-      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Mise en service', 'Contrôle d\'étanchéité', 'Maintenance préventive', 'Dépannage urgent',
@@ -10014,7 +10021,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
-      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Visite d\'entretien', 'Dépannage (appel de personne bloquée)', 'Mise en sécurité', 'Modernisation',
@@ -10044,7 +10051,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
-      'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Installation', 'Mise en service', 'Maintenance semestrielle', 'Dépannage',
@@ -10074,8 +10081,7 @@ const METIERS={
   'ramonage':{ nom:'Ramonage', ic:'🧹', sous:'Cheminées · poêles · conduits · certificat de ramonage',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'telecollecte',
-      'produits', 'stock', 'pointage', 'vehicules', 'messagerie', 'secteurs', 'utilisateurs', 'modulesElan',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite',       'produits', 'stock', 'pointage', 'vehicules', 'secteurs', 'utilisateurs', 'modulesElan',
       'parametres'
     ],
     types:[
@@ -10105,7 +10111,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'statistiques', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions',
       'rapports', 'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules',
-      'conducteurs', 'messagerie', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+      'conducteurs', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Vidange de fosse septique', 'Vidange de bac à graisses', 'Curage de canalisation', 'Inspection caméra',
@@ -10134,7 +10140,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'produits', 'stock', 'mouvements',
-      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Étude de site', 'Pose', 'Mise en service', 'Maintenance annuelle', 'Nettoyage des panneaux',
@@ -10164,7 +10170,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
-      'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Installation', 'Mise en service', 'Maintenance préventive', 'Dépannage', 'Remplacement de batteries',
@@ -10194,7 +10200,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
-      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Installation', 'Entretien annuel', 'Régénération', 'Remplacement de cartouche', 'Désinfection de circuit',
@@ -10222,7 +10228,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'produits', 'stock',
-      'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan',
+      'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan',
       'parametres'
     ],
     types:[
@@ -10747,14 +10753,27 @@ function catBloque(k){
   }catch(e){ return false; }
 }
 /* ── prestations realisees + releves : la fiche metier qui remplace le diagnostic 3D ── */
+/* v781 — « remplir son rapport n'est pas modifier la fiche » : la règle est celle du menu de statut (la case « Interventions → Modifier »,
+   ou le technicien rattaché à l'intervention) — la même que « Rédiger » et la clôture guidée (test-1182). Chaque geste direct de la
+   fiche (cocher une prestation, ajouter un produit, taper « ce qui a été fait ») la lit en PREMIÈRE instruction. */
+function intRapportPeut(i){ return !!i&&i.statut!=='annulee'&&intStatutPermis(i,'terminee'); }
+function intRapportGarde(i){ if(intRapportPeut(i)) return true; toast('Remplir cette intervention n\'est pas autorisé pour ton compte (Permissions)'); return false; }
+function intFaitSet(id,v){
+  const i=db.interventions.find(x=>x.id===id); if(!i||!intRapportGarde(i)) return;
+  const t=String(v==null?'':v).slice(0,4000); if((i.compteRendu||'')===t) return;
+  i.compteRendu=t; save();
+}
+let _faitTimer=null;
+function intFaitSaisie(id,v){ clearTimeout(_faitTimer); _faitTimer=setTimeout(()=>intFaitSet(id,v),600); }
 function metPrestaToggle(id,lbl){
-  const i=db.interventions.find(x=>x.id===id); if(!i) return;
+  const i=db.interventions.find(x=>x.id===id); if(!i||!intRapportGarde(i)) return;
   i.prestaMetier=i.prestaMetier||[];
   const k=i.prestaMetier.indexOf(lbl);
   if(k>=0) i.prestaMetier.splice(k,1); else i.prestaMetier.push(lbl);
   save(); renderIntDetail(id);
 }
 function metPrestaAjout(id){
+  const i0=db.interventions.find(x=>x.id===id); if(!i0||!intRapportGarde(i0)) return;
   const v=prompt('Ajouter une prestation à cette intervention'); if(!v||!v.trim()) return;
   const i=db.interventions.find(x=>x.id===id); if(!i) return;
   i.prestaMetier=i.prestaMetier||[];
@@ -10765,7 +10784,7 @@ function metPrestaAjout(id){
   save(); renderIntDetail(id);
 }
 function metReleveSet(id,k,v){
-  const i=db.interventions.find(x=>x.id===id); if(!i) return;
+  const i=db.interventions.find(x=>x.id===id); if(!i||!intRapportGarde(i)) return;
   i.relevesMetier=i.relevesMetier||{};
   const t=String(v||'').trim();
   if(t) i.relevesMetier[k]=t; else delete i.relevesMetier[k];
@@ -10776,8 +10795,9 @@ function metierRelevesLignes(i){
   (p.releves||[]).forEach(r=>{ const v=(i.relevesMetier||{})[r.k]; if(v) out.push([r.l,v+(r.u?' '+r.u:'')]); });
   return out;
 }
-function metierPrestaCard(i,edit){
+function metierPrestaCard(i,edit0){
   const p=metierPack(); if(!p||!p.presta) return '';
+  const edit=edit0||intRapportPeut(i);   /* v781 : plus de stylo — les cases se cochent directement, pour qui a le droit de remplir */
   const sel=i.prestaMetier||[];
   /* nettoyage : les tâches du cahier des tâches du site se proposent avec les prestations (rien ailleurs : `extra` est vide) */
   const extra=(typeof nettTachesPourCard==='function')?nettTachesPourCard(i).filter(x=>(p.presta||[]).indexOf(x)<0):[];
@@ -10787,10 +10807,11 @@ function metierPrestaCard(i,edit){
   const rel=p.releves||[];
   const relFaits=metierRelevesLignes(i);
   return `<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px">
-      <h3>${p.ic} Prestations réalisées</h3>${edit?'':'<span style="font-size:10.5px;color:var(--t3)">✏️ stylo pour modifier</span>'}</div>
+      <h3>${p.ic} Prestations réalisées</h3></div>
     ${edit?`${extra.length?'<div style="font-size:12px;color:var(--t3);margin:-2px 0 8px">Les tâches du cahier des tâches du site sont proposées avec les prestations.</div>':''}<div class="met-grid">${liste.map(l=>{ const on=sel.indexOf(l)>=0; const le=l.replace(/'/g,"\\'");
         return `<button type="button" class="met-chip${on?' on':''}" onclick="metPrestaToggle('${i.id}','${esc(le)}')">${on?'✓ ':''}${esc(l)}</button>`; }).join('')}
-        <button type="button" class="met-chip add" onclick="metPrestaAjout('${i.id}')">＋ Autre…</button></div>`
+        <button type="button" class="met-chip add" onclick="metPrestaAjout('${i.id}')">＋ Autre…</button></div>
+        <div class="field" style="margin:12px 0 0"><label for="fait-${i.id}">Ce qui a été fait</label><textarea id="fait-${i.id}" rows="3" placeholder="Quelques mots sur ce qui a été fait…" oninput="intFaitSaisie('${i.id}',this.value)" onchange="clearTimeout(_faitTimer);intFaitSet('${i.id}',this.value)" style="width:100%;resize:vertical">${esc(i.compteRendu||'')}</textarea></div>`
       :(sel.length?`<div class="met-grid">${sel.map(l=>`<span class="met-chip on lecture">✓ ${esc(l)}</span>`).join('')}</div>`
         :'<div style="color:var(--t3);font-size:13px;padding:2px 0 6px">Aucune prestation cochée.</div>')}
     ${rel.length?`<div class="form-sec" style="margin-top:14px">📏 Relevés &amp; mesures</div>
@@ -15882,25 +15903,25 @@ function catVars(k){ const t=catTeinte(k); return '--cat-j:'+t[0]+';--cat-n:'+t[
 const NAV = [
   {g:'Tableau de bord', items:[
     {k:'dashboard',ic:'📊',l:'Tableau de bord'},
-    {k:'statistiques',ic:'📈',l:'Statistiques',admin:true},
+    {k:'statistiques',ic:'📈',l:'Statistiques',admin:true,cache:1},
     {k:'historique',ic:'🕘',l:'Historique'},
     /* ⛔ « Audit » RETIRÉ le 23 septembre 2026 (Justin : « si tu vois des catégories qui sont
        pas utiles, je t'autorise de les supprimer »). C'était le MÊME écran qu'Historique :
        même fonction (`journalView`), même source (`visibleJournal(db.journal)`), seul le
        titre changeait — deux entrées de menu pour une seule chose. Un ancien lien ou un
        onglet mémorisé mène à Historique (`VUES_RETIREES`). */
-    {k:'archives',ic:'🗄️',l:'Archives mensuelles',admin:true,aside:true},
+    {k:'archives',ic:'🗄️',l:'Archives mensuelles',admin:true,aside:true,cache:1},
   ]},
   {g:'Planification', items:[
     {k:'planning',ic:'🗓️',l:'Planning'},
-    {k:'planningGeneral',ic:'🏢',l:'Planning général'},
+    {k:'planningGeneral',ic:'🏢',l:'Planning général',cache:1},
     {k:'taches',ic:'✅',l:'Tâches'},
     {k:'absences',ic:'🏖️',l:'Absences & congés'},
   ]},
   {g:'Interventions', items:[
     {k:'interventions',ic:'🧰',l:'Interventions',b:'int'},
-    {k:'rapports',ic:'📄',l:'Rapports'},
-    {k:'carteInt',ic:'🗺️',l:'Carte interventions'},
+    {k:'rapports',ic:'📄',l:'Rapports',cache:1},
+    {k:'carteInt',ic:'🗺️',l:'Carte interventions',cache:1},
     {k:'registre',ic:'📋',l:'Registre sanitaire',aside:true},
     {k:'carteBox',ic:'📍',l:'Carte des box',aside:true},
   ]},
@@ -15909,7 +15930,7 @@ const NAV = [
   ]},
   {g:'Ventes', items:[
     {k:'devis',ic:'💰',l:'Devis',b:'dev'},
-    {k:'assistantDevis',ic:'🤖',l:'Assistant devis'},
+    {k:'assistantDevis',ic:'🤖',l:'Assistant devis',cache:1},
     {k:'factures',ic:'🧾',l:'Factures',b:'fac'},
     {k:'contrats',ic:'📑',l:'Contrats',b:'ctr'},
     {k:'comptabilite',ic:'📊',l:'Comptabilité',admin:true},
@@ -15919,7 +15940,7 @@ const NAV = [
   {g:'Stock', items:[
     {k:'produits',ic:'📦',l:'Produits',b:'prd'},
     {k:'stock',ic:'🗃️',l:'Stock'},
-    {k:'mouvements',ic:'🔁',l:'Mouvements stock'},
+    {k:'mouvements',ic:'🔁',l:'Mouvements stock',cache:1},
     {k:'boxes',ic:'🧱',l:'Boxes',b:'box'},
     {k:'saisieConso',ic:'📋',l:'Consommation produits',aside:true},
     /* « Produits donnés » n'est pas au menu : c'est une SOUS-CATÉGORIE de Boxes (la rangée
@@ -15930,19 +15951,19 @@ const NAV = [
   {g:'Temps & équipe', items:[
     {k:'pointage',ic:'⏱️',l:'Temps de travail'},
     {k:'vehicules',ic:'🚐',l:'Véhicules',b:'veh'},
-    {k:'conducteurs',ic:'🧑‍✈️',l:'Conducteurs',aside:true},
+    {k:'conducteurs',ic:'🧑‍✈️',l:'Conducteurs',aside:true,cache:1},
   ]},
-  {g:'Communication / Fournisseurs', items:[
-    {k:'messagerie',ic:'💬',l:'Messagerie'},
+  {g:'Fournisseurs & courrier', items:[
+    {k:'messagerie',ic:'💬',l:'Messagerie',cache:1},
     {k:'boiteMail',ic:'📧',l:'Boîte mail',admin:true},
     {k:'fournisseurs',ic:'🏭',l:'Fournisseurs',b:'four',admin:true},
     {k:'bons',ic:'✉️',l:'Bons de commande',admin:true},
   ]},
   {g:'Achats internes', items:[
-    {k:'brouillon',ic:'📝',l:'Brouillon',aside:true},
+    {k:'brouillon',ic:'📝',l:'Brouillon',aside:true,cache:1},
     {k:'demandes',ic:'✈️',l:'Mes demandes',aside:true},
-    {k:'validations',ic:'✅',l:'Validation des mouvements',admin:true,aside:true},
-    {k:'commandes',ic:'📥',l:'Commandes en cours',aside:true},
+    {k:'validations',ic:'✅',l:'Validation des mouvements',admin:true,aside:true,cache:1},
+    {k:'commandes',ic:'📥',l:'Commandes en cours',aside:true,cache:1},
   ]},
   {g:'Administration', items:[
     {k:'secteurs',ic:'📌',l:'Secteurs',admin:true},
@@ -15958,7 +15979,18 @@ const NAV = [
    les droits et les libellés lisent tous : deux listes finiraient par dire deux choses.
    ⛔ ET SANS ELLE, LA VUE ÉCHAPPAIT À LA GARDE DE `go()`, qui ne connaît que `NAV` : mesuré sur la
    v730, un commercial (fermé par défaut) ouvrait Produits donnés en tapant l'adresse. */
+/* v780 — Justin, 29 octobre 2026 : « alléger OP GESTION, trop de trucs qui se ressemblent ; l'assistant devis, autant le mettre
+   dans le même truc ». L'Assistant devis n'a plus de ligne au menu : il s'ouvre depuis Devis (bouton « 🤖 Assistant »). */
 const SOUS_CATS=[{k:'produitsDonnes',ic:'🎁',l:'Produits donnés',parent:'boxes'}];
+/* v780 — Justin, 29 octobre 2026 : « trop de trucs qui se ressemblent ». Chaque groupe n'a plus qu'UNE ligne au menu ; ses
+   écrans se rejoignent par une rangée d'onglets en tête de l'écran (même forme que Boxes : Liste · Carte · Produits donnés).
+   Les droits ne changent pas : chaque écran reste une sous-catégorie avec son droit (`SOUS_CATS`), et la rangée ne montre que ce
+   que la personne peut ouvrir. */
+const FUSIONS={dashboard:[['dashboard','Tableau de bord'],['statistiques','Statistiques']],historique:[['historique','Historique'],['archives','Archives mensuelles']],planning:[['planning','Planning'],['planningGeneral','Planning général']],interventions:[['interventions','Liste'],['rapports','Rapports'],['carteInt','Carte']],stock:[['stock','Stock'],['mouvements','Mouvements']],vehicules:[['vehicules','Véhicules'],['conducteurs','Conducteurs']],demandes:[['demandes','Mes demandes'],['brouillon','Brouillon'],['commandes','Commandes en cours'],['validations','Validation des mouvements']]};
+function fusionRangee(view){ try{ const par=(VUE_PARENT&&VUE_PARENT[view])||view, L=FUSIONS[par]; if(!L) return '';
+  const vus=L.filter(([k])=>k===par||(userSeesModule(currentUser,k)&&!catBloque(k))); if(vus.length<2) return '';
+  return `<nav class="filters fusion-rangee" aria-label="${esc(t(L[0][1]))}" style="margin:0 0 10px">${vus.map(([k,l])=>`<div class="chip${view===k?' active':''}"${view===k?' aria-current="page"':` onclick="go('${k}')"`}>${esc(t(l))}</div>`).join('')}</nav>`;
+  }catch(e){ return ''; } }
 function avecSousCats(items){ return items.flatMap(it=>[it].concat(SOUS_CATS.filter(s=>s.parent===it.k))); }
 function showAside(){ return localStorage.getItem('elanB_aside')==='1'; }
 
@@ -17385,7 +17417,7 @@ const ONGLETS_MAX=4;
 function ongletsDispo(){
   /* ⛔ v767 — suspendue, la barre garde ses onglets, grisés (`html.acces-suspendu`) : un toucher mène à l'écran « Accès
      suspendu ». Sans ça, elle se vidait — ou se remplissait des seuls Paramètres. */
-  try{ const susp=accesSuspendu(); return NAV.flatMap(s=>s.items).filter(it=>canSee(it)||(susp&&!!currentUser&&userSeesModule(currentUser,it.k,true))); }catch(e){ return []; }
+  try{ const susp=accesSuspendu(); return NAV.flatMap(s=>s.items).filter(it=>!it.cache).filter(it=>canSee(it)||(susp&&!!currentUser&&userSeesModule(currentUser,it.k,true))); }catch(e){ return []; }
 }
 function ongletItem(k){ try{ return NAV.flatMap(s=>s.items).find(x=>x.k===k)||null; }catch(e){ return null; } }
 /* ⛔ ON FILTRE TOUJOURS SUR CE QUE LA PERSONNE PEUT VOIR. Un onglet choisi avant qu'un droit
@@ -18118,6 +18150,7 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
   const susp=accesSuspendu();
   $('nav').innerHTML = favorisBloc() + NAV.map(sec=>{
     const rows = sec.items.map(it=>{
+      if(it.cache) return null;   // v780 : rubrique regroupée (onglets en tête de son écran parent) ou retirée (messagerie)
       if(canSee(it)) return {it,verrou:false};
       if(susp && currentUser && userSeesModule(currentUser,it.k,true)) return {it,verrou:true};
       return null;
@@ -18316,6 +18349,7 @@ function rendreVueSure(view,remonter){
   if(!currentUser) return;
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
+  try{ const fr=fusionRangee(view), c=$('content'); if(fr&&c&&!c.querySelector('.fusion-rangee')) c.insertAdjacentHTML('afterbegin',fr); }catch(_e){}   // v780 : les écrans regroupés
   /* ⛔ UNE NOUVELLE RUBRIQUE S'OUVRE EN HAUT. Mesuré : Paramètres défilé à 2 500 px, un tap sur « Accueil » ouvrait le tableau
      de bord à scrollY=1080 (titre et cartes du haut hors écran) ; sur Mac, Clients s'ouvrait à 2 500 px sur 13 888. Ni `go()` ni
      cette fonction ne remettaient jamais l'écran en haut. Selon l'écran c'est `#content` ou la PAGE qui défile : on remet les deux.
@@ -18418,13 +18452,16 @@ let _sensForce='';
    `#v=audit` ou une notification déjà reçue continuent de le demander : sans cette table,
    `go()` retombait sur le tableau de bord, et la personne ne comprenait pas où était passé
    son écran. */
-const VUES_RETIREES={audit:'historique', permissions:'utilisateurs', chantiers:'interventions'};
+/* v780 — Justin, 29 octobre 2026 : « les messageries dans OP GESTION, tu les supprimes totalement, je ne les veux plus » (la
+   messagerie vit dans OP MESSAGES). Les messages déjà écrits restent dans les données (rien n'est effacé) ; l'écran, la tuile
+   et les notifications disparaissent. */
+const VUES_RETIREES={audit:'historique', permissions:'utilisateurs', chantiers:'interventions', messagerie:'dashboard'};
 /* ⛔ UNE SOUS-CATÉGORIE N'A PAS DE LIGNE AU MENU : C'EST SON PARENT QUI S'ALLUME. « Produits
    donnés » vit dans Boxes (Justin, 23 septembre 2026 : « il faudrait le mettre en sous-catégorie
    dans box »). Sans cette table, ouvrir Produits donnés éteignait TOUT : aucune ligne du menu
    allumée, aucun onglet sous la bulle — on ne voyait plus où l'on était. Le menu, la barre du
    bas et le glissement de page la lisent tous les trois. */
-const VUE_PARENT=Object.fromEntries(SOUS_CATS.map(s=>[s.k,s.parent]));
+const VUE_PARENT=Object.fromEntries(SOUS_CATS.map(s=>[s.k,s.parent]).concat(Object.entries(typeof FUSIONS!=='undefined'?FUSIONS:{}).flatMap(([p,L])=>L.filter(([k])=>k!==p).map(([k])=>[k,p]))).concat([['assistantDevis','devis']]));
 /* ⛔ v767 — L'ÉCRAN « ACCÈS SUSPENDU ». Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu
    tant que c'est pas réglé » ; 20 septembre : « rien n'est perdu », et « c'est pas aux utilisateurs de savoir si l'entreprise
    paye ou pas. Que le compte admin ». L'administrateur y lit pourquoi et règle ; les autres lisent seulement que l'accès est
@@ -18482,7 +18519,7 @@ async function suspensionVerifier(btn){
 function go(view){
   /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
   try{ multiCapturer(); }catch(e){}
-  if(!views[view] && VUES_RETIREES[view]) view=VUES_RETIREES[view];
+  if(VUES_RETIREES[view]) view=VUES_RETIREES[view];   // v780 : une vue retirée l'est même si son code est encore là (la messagerie)
   if(!views[view]) view='dashboard';
   /* ⛔ v767 — SUSPENDUE : toute rubrique mène à l'écran « Accès suspendu », sauf les Paramètres (l'administrateur y règle
      son abonnement, chacun y garde ses réglages et sa déconnexion). Le tableau de bord compris : la garde ci-dessous ne le
@@ -18676,7 +18713,6 @@ const DASH_CARDS={
   stock:{label:'Stock total',ic:'📊',color:'#FB923C',view:'stock',val:()=>stockLines().reduce((s,l)=>s+l.total,0)},
   commandesEnCours:{label:'Commandes en cours',ic:'🚚',color:'#22B14C',view:'commandes',val:()=>visibleBons(db.bons).filter(b=>['envoyee','enLivraison','arrivageNote','partielle'].includes(b.statut)).length},
   mouvements:{label:'Mouvements stock',ic:'🔄',color:'#22B14C',view:'mouvements',val:()=>visibleMouvements(db.mouvements).length},
-  messagerie:{label:'Messagerie',ic:'✉️',color:'#22B14C',view:'messagerie',val:()=>db.messages.length},
 };
 const DASH_DEFAULT=['interventions','boxes','enveloppes','bonsCommande','vehicules'];
 const DASH_OLD2=['boxes','aCommander','produits'];
@@ -23365,7 +23401,7 @@ function absSolde(techId){
 
 /* ── Tâches ── */
 views.modulesElan=function(){
-  const items=NAV.flatMap(g=>g.items).filter(x=>x.aside&&userSeesModule(currentUser,x.k));   // seulement ce que ce compte a le droit d'ouvrir
+  const items=NAV.flatMap(g=>g.items).filter(x=>x.aside&&!x.cache&&userSeesModule(currentUser,x.k));   // seulement ce que ce compte a le droit d'ouvrir
   /* admin#4 : le bouton « Afficher dans le menu / Masquer du menu » ne commandait RIEN (mesuré, test-1303) : `showAside()`
      n'est lu que par le défaut d'une rubrique absente de la table de son rôle, et `defaultPerms()` les donne toutes —
      le menu était identique avant et après le clic, et le sous-titre « Masqués — interface 100 % Organilog » mentait
@@ -24322,7 +24358,10 @@ function intHeadExtras(i){ const cli=db.clients.find(c=>c.id===i.clientId)||{};
     return `<div style="display:flex;align-items:center;gap:7px"><span style="width:24px;height:24px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;background:${on?(k===1&&cur?'var(--org)':'var(--acc)'):'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t3)'};border:1px solid ${on?'transparent':'var(--brd)'}">${on&&!cur?'✓':(k===1&&cur?'▶':k+1)}</span><span style="font-size:12px;font-weight:${cur?'800':'600'};color:${cur?'var(--t1)':on?'var(--t2)':'var(--t3)'};white-space:nowrap">${lbl}${extra||''}</span></div>`; };
   let chrono=''; if(i.debutReel&&!i.finReel&&i.statut!=='terminee'){ const mn=Math.floor((Date.now()-i.debutReel)/60000); chrono=' · '+Math.floor(mn/60)+'h'+String(mn%60).padStart(2,'0'); }
   const gar=garActiveOfClient(i.clientId,'');
+  /* v781 : le geste du terrain, en grand — il passe par le menu de statut (intSetStatut → intSetStatutDo), la porte qui existe déjà : pas une sixième */
+  const gros=(i.statut!=='terminee'&&i.statut!=='annulee'&&intStatutPermis(i,'terminee'))?`<button type="button" id="int-terminee-gros" class="btn" onclick="event.stopPropagation();intSetStatut('${i.id}','terminee')" style="width:100%;justify-content:center;gap:10px;min-height:56px;margin:0 0 12px;border-radius:16px;font-size:17px;font-weight:800;background:color-mix(in srgb,var(--green) 72%,#000) !important;border-color:transparent !important;color:#fff !important">✅ Intervention terminée</button>`:'';
   return `<div class="card" style="padding:12px 14px;margin-bottom:12px">
+    ${gros}
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${el(0,'Planifiée')}<span style="flex:0 1 26px;min-width:12px;height:2px;background:${step>=1?'var(--acc)':'var(--brd)'}"></span>${el(1,'En cours',esc(chrono))}<span style="flex:0 1 26px;min-width:12px;height:2px;background:${step>=2?'var(--acc)':'var(--brd)'}"></span>${el(2,'Terminée')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
       ${itin?`<a href="${itin}" target="_blank" onclick="event.stopPropagation()" class="btn sm" style="text-decoration:none;flex:1;min-width:110px;justify-content:center">🗺️ Itinéraire</a>`:''}
@@ -24381,13 +24420,44 @@ function intDiagCard(i,edit){ const sel=i.nuisibles||[];
     ${intInfGauge(i,true,'_diagSetInf')}
   </div>`; }
 /* ── B/F4. Produits & matériel (traçabilité AMM — noté sur l'intervention, jamais déduit du stock) ── */
-function intProdCard(i,edit){ const lines=i.produitsUtilises||[];
+/* v781 — « Produits & matériel : refaire tout » (Justin, 29 octobre 2026). Une ligne de recherche (deux lettres → le catalogue), un toucher
+   ajoute, − / + règlent la quantité, directement dans la carte. Ça écrit `produitsUtilises` de l'intervention et RIEN d'autre : une
+   intervention ne déduit rien du stock (CLAUDE.md) — le stock bouge par un geste qui dit qui (sortie « Pour qui ? », arrivage, scanner). */
+function intProdTrouve(q){ const n=nomNorm(q); if(n.length<2) return [];
+  const mots=n.split(' ');
+  return (db.produits||[]).filter(p=>{ const h=nomNorm((p.nom||'')+' '+(p.ref||'')); return mots.every(m=>h.indexOf(m)>=0); }).slice(0,8); }
+function intProdRecherche(id,q){ const box=$('ip-res-'+id); if(!box) return;
+  const t=String(q||'').trim(); if(t.length<2){ box.innerHTML=''; return; }
+  const l=intProdTrouve(t);
+  box.innerHTML=l.map(p=>`<button type="button" class="met-chip" style="display:flex;width:100%;justify-content:space-between;gap:8px;margin:0 0 6px;text-align:left;min-height:44px;align-items:center" onclick="intProdPlus('${id}','${esc(p.id)}')"><span style="min-width:0">${esc(p.nom||'')}</span><span style="color:var(--t3);font-weight:600;flex-shrink:0">＋</span></button>`).join('')
+    +`<button type="button" class="met-chip add" style="display:flex;width:100%;justify-content:center;min-height:44px;align-items:center" onclick="intProdLibre('${id}')">＋ Ajouter « ${esc(t.slice(0,40))} » hors catalogue</button>`; }
+function intProdPlus(id,pid){ const i=db.interventions.find(x=>x.id===id); if(!i||!intRapportGarde(i)) return;
+  const p=(db.produits||[]).find(x=>x.id===pid); if(!p) return;
+  i.produitsUtilises=i.produitsUtilises||[];
+  const ex=i.produitsUtilises.find(l=>l.produitId===pid&&!l._pap);
+  if(ex) ex.qte=(+ex.qte||0)+1; else i.produitsUtilises.push({produitId:pid,qte:1,unite:p.unite||'u'});
+  save(); renderIntDetail(id); }
+function intProdLibre(id){ const i=db.interventions.find(x=>x.id===id); if(!i||!intRapportGarde(i)) return;
+  const inp=$('ip-q-'+id); const nom=String((inp&&inp.value)||'').trim().slice(0,60); if(!nom){ toast('Tape le nom du produit ou du matériel'); return; }
+  i.produitsUtilises=i.produitsUtilises||[];
+  const ex=i.produitsUtilises.find(l=>l.nomLibre===nom);
+  if(ex) ex.qte=(+ex.qte||0)+1; else i.produitsUtilises.push({nomLibre:nom,qte:1,unite:'u'});
+  save(); renderIntDetail(id); }
+function intProdQte(id,ix,d){ const i=db.interventions.find(x=>x.id===id); if(!i||!intRapportGarde(i)) return;
+  const l=(i.produitsUtilises||[])[ix]; if(!l) return;
+  const q=Math.round(((l.qte!=null?+l.qte:1)+d)*100)/100;
+  if(q<=0) i.produitsUtilises.splice(ix,1); else l.qte=q;   /* − à 1 retire la ligne : pas de ligne à zéro */
+  save(); renderIntDetail(id); }
+function intProdCard(i,edit0){ const lines=i.produitsUtilises||[];
+  const pe=intRapportPeut(i), edit=edit0||pe;   /* plus de stylo : les gestes sont directement dans la carte */
+  const direct=pe&&!estMetier3D();
   const roLine=(lbl,val)=>`<div><div class="dt-lbl" style="margin-bottom:4px">${lbl}</div><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px">${esc(val||'')||'<span style="color:var(--t3)">—</span>'}</div></div>`;
-  return `<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>🧪 Produits & matériel</h3>${edit?'':'<span style="font-size:10.5px;color:var(--t3)">✏️ stylo pour modifier</span>'}</div>
+  return `<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>🧪 Produits & matériel</h3></div>
     ${lines.length?lines.map(l=>{ const cat3=l.categorie&&T3D_CATS[l.categorie];
-      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px"><b style="flex:1;min-width:0">${cat3?cat3.ic+' ':''}${esc(prodLineName(l))}</b>${prodLineAmm(l)?`<span class="tag mono" style="font-size:10px">AMM ${esc(prodLineAmm(l))}</span>`:(l.nomLibre?'<span class="tag" style="font-size:10px">hors stock</span>':'')}<span style="color:var(--t2)">× ${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</span></div>`; }).join('')
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px"><b style="flex:1;min-width:0">${cat3?cat3.ic+' ':''}${esc(prodLineName(l))}</b>${prodLineAmm(l)?`<span class="tag mono" style="font-size:10px">AMM ${esc(prodLineAmm(l))}</span>`:(l.nomLibre?'<span class="tag" style="font-size:10px">hors stock</span>':'')}${direct?`<span style="display:inline-flex;align-items:center;gap:4px;flex-shrink:0"><button type="button" class="btn ghost sm" aria-label="Moins" style="min-width:40px;min-height:40px;justify-content:center;padding:0" onclick="intProdQte('${i.id}',${lines.indexOf(l)},-1)">−</button><b style="min-width:44px;text-align:center">${l.qte!=null?l.qte:1} <span style="color:var(--t3);font-weight:500;font-size:11px">${esc(prodLineUnit(l))}</span></b><button type="button" class="btn ghost sm" aria-label="Plus" style="min-width:40px;min-height:40px;justify-content:center;padding:0" onclick="intProdQte('${i.id}',${lines.indexOf(l)},1)">＋</button></span>`:`<span style="color:var(--t2)">× ${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</span>`}</div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:2px 0 8px">Aucun produit renseigné.</div>'}
     ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Stock déduit à sa clôture (règle d’avant).</div>':`<div style="font-size:11.5px;color:var(--t3);margin-top:6px">${estMetier3D()?'Noté sur le rapport et au registre — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.':'Noté sur le rapport — le stock ne bouge pas : il baisse quand on se sert dans le stockage.'}</div>`}
+    ${direct?`<div style="margin-top:10px"><input id="ip-q-${i.id}" type="search" autocomplete="off" placeholder="🔍 Chercher un produit (2 lettres)…" oninput="intProdRecherche('${i.id}',this.value)" style="width:100%;min-height:44px"><div id="ip-res-${i.id}" style="margin-top:8px"></div></div>`:''}
     <div style="display:grid;gap:8px;margin-top:10px">
       ${edit?`<div><div class="dt-lbl" style="margin-bottom:4px">Matériel utilisé</div><input value="${esc(i.materiel||'')}" placeholder="${estMetier3D()?'Ex : 2 pièges à glu, 1 grille anti-intrusion…':'Ex : outillage, pièces, matériel posé…'}" onchange="intEditField('${i.id}','materiel',this.value)" style="width:100%"></div>
       <div><div class="dt-lbl" style="margin-bottom:4px">${libZones()}</div><input value="${esc(i.zones||'')}" placeholder="${estMetier3D()?'Ex : cuisine, cave, réserve…':'Ex : salle de bain, cuisine, local technique…'}" onchange="intEditField('${i.id}','zones',this.value)" style="width:100%"></div>`
@@ -26872,7 +26942,7 @@ function renderIntDetail(id){
         ${cli.email?`<div style="margin:5px 0 0 30px"><a href="mailto:${esc(cli.email)}" style="color:var(--acc-txt);font-size:13.5px">${esc(cli.email)}</a></div>`:''}
         <div style="height:1px;background:var(--brd);margin:12px 0"></div>
         <b style="font-size:16px">Adresse</b>
-        <div style="display:flex;gap:10px;align-items:flex-start;margin:8px 0 2px"><span style="color:var(--t3)">${fic('pin',16)}</span><span style="font-size:13.5px;color:var(--t2)">${esc(i.adresse||cli.adresse||'')||'-'}</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin:8px 0 2px"><span style="color:var(--t3)">${fic('pin',16)}</span>${(i.adresse||cli.adresse)?`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.adresse||cli.adresse)}" target="_blank" rel="noopener" title="Ouvrir dans le GPS" style="font-size:13.5px;color:var(--acc-txt);text-decoration:underline">${esc(i.adresse||cli.adresse)}</a>`:'<span style="font-size:13.5px;color:var(--t2)">-</span>'}</div>
       </div></details>
       <details open class="olsec"><summary><span class="olsec-ic">${fic('list',19)}</span>Éléments clés</summary><div class="olsec-b">
         <div style="display:flex;align-items:center;gap:6px;padding:2px 0 10px"><b style="font-size:13.5px;white-space:nowrap">Société</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span>${rapportSociete(i.rapportModele)?`<span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(rapportSociete(i.rapportModele))}</span>`:`<button type="button" class="btn sm" style="color:var(--org)" onclick="entCompleterModal('',null,'','nom')">⚠️ Nom à renseigner</button>`}</div>
@@ -26924,7 +26994,7 @@ function renderIntDetail(id){
       ${typeof cvcIntCard==='function'?cvcIntCard(i,intEdit):''}
       ${typeof nettIntCard==='function'?nettIntCard(i,intEdit):''}
       ${typeof docmIntCard==='function'?docmIntCard(i,intEdit):''}
-      ${intNoteInterneCard(i,intEdit)}`+`
+      ${intEdit?intNoteInterneCard(i,intEdit):`<details class="olsec" style="margin-bottom:12px"${i.noteInterne?' open':''}><summary><span class="olsec-ic">${fic('file',19)}</span>Note interne équipe</summary><div class="olsec-b">${intNoteInterneCard(i,true)}</div></details>`}`+`
       <details open class="olsec"><summary><span class="olsec-ic">${fic('brief',19)}</span>Informations</summary><div style="padding:0">
         <div style="display:flex">
           <div onclick="infTab='plan';renderIntDetail('${id}')" style="flex:1;text-align:center;padding:13px;font-weight:800;font-size:14.5px;cursor:pointer;${infTab==='plan'?'color:var(--t1);border-bottom:3px solid var(--acc)':'background:color-mix(in srgb,var(--acc) 8%,transparent);color:var(--t3);border-bottom:3px solid transparent'}">Planifiée</div>
@@ -39499,7 +39569,7 @@ function docListView(kind,xyloOnly){
   if(kind==='devis') list = xyloOnly ? list.filter(d=>d.xylo) : list.filter(d=>!d.xylo);
   const total=list.reduce((s,d)=>s+docTot(d).ttc,0);
   const titre = xyloOnly ? 'Devis xylophage' : (/s$/i.test(cfg.titre)?cfg.titre:cfg.titre+'s');   /* « Devis » est invariable */
-  const headBtn = xyloOnly ? `<button class="btn" onclick="formDevisXylo()">Nouveau devis xylophage</button>` : `${kind==='devis'&&can('devisIA')?`<button class="btn ghost" onclick="devisIAModal()">✨ Devis IA</button> `:''}<button class="btn" onclick="formDoc('${kind}')">＋ ${cfg.titre}</button>`;
+  const headBtn = xyloOnly ? `<button class="btn" onclick="formDevisXylo()">Nouveau devis xylophage</button>` : `${kind==='devis'&&can('devisIA')?`<button class="btn ghost" onclick="devisIAModal()">✨ Devis IA</button> `:''}${kind==='devis'&&!catBloque('assistantDevis')?`<button class="btn ghost" onclick="go('assistantDevis')">🤖 Assistant</button> `:''}<button class="btn" onclick="formDoc('${kind}')">＋ ${cfg.titre}</button>`;
   /* v738 : un bouton qui mène à un refus ne se montre pas — chacun lit la case de son geste */
   const vMod=canCat('ventes','modifier');
   setHeader(titre, `${list.length} ${cfg.un}(s) · ${eur(total)} TTC`, canCat('ventes','ajouter')?headBtn:'');
@@ -43265,7 +43335,12 @@ async function nettDocApercu(kind,id,cid){
   const w=window.open('','_blank'); if(!w){ toast('Autorise les pop-ups pour voir le PDF'); return; }
   try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation du document…</p>'); w.document.close(); }catch(e){}
   const d=await nettDocFabriquer(kind,id,cid);
-  if(d.err){ try{ w.close(); }catch(e){} toast(d.err); return; }
+  /* v780 — Justin, 29 octobre 2026 : « quand je clique sur PDF, rien ne marche ». Un document incomplet (aucune ligne au décompte)
+     fermait la fenêtre avec un toast de deux secondes : on croyait que le bouton ne faisait rien. Le document s'OUVRE maintenant
+     sur ce qui manque, et le message reste. */
+  if(d.err){ try{ w.close(); }catch(e){} toast('⚠️ '+d.err,9000);
+    if(kind==='doc'){ const r=(db.docsMetier||[]).find(x=>x.id===id); if(r&&r.doc&&typeof docmForm==='function') try{ docmForm(r.doc,{id}); }catch(e){} }
+    return; }
   if(d.manque&&d.manque.length) toast('⚠️ Non joint au PDF : '+d.manque.join(', '),9000);
   const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
   const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
@@ -43363,7 +43438,7 @@ const DOCM_TVA=[['20','20 %'],['10','10 %'],['5.5','5,5 %'],['0','0 % (sans TVA)
 const DOCM_OUI=[['oui','Oui'],['non','Non']];
 const DOCM_DEFS=[
  { id:'devis-depannage', metiers:['chauffage','plomberie'], ic:'📝', court:'Devis de dépannage', pdfTitre:'DEVIS',
-   titre:'Devis de dépannage, réparation ou entretien', portee:'intervention', droit:'ventes', prefixe:'DEP', envoi:true, lignes:true,
+   titre:'Devis de dépannage, réparation ou entretien', portee:'intervention', droit:'ventes', prefixe:'DEP', envoi:true, lignes:true, essentiel:['nature','lignes'],
    aide:'À remettre au client AVANT la prestation, et à faire signer avant toute exécution. Les prix unitaires se saisissent hors taxes : les totaux se calculent.',
    champs:[
      {k:'date',l:'Date de rédaction',t:'date',requis:true,pre:'auj',s:'Le devis'},
@@ -43401,7 +43476,7 @@ const DOCM_DEFS=[
      corps:'Bonjour,\n\nVous trouverez ci-joint notre devis'+(r.num?' n° '+r.num:'')+'. Merci de le relire et de nous le retourner signé, précédé de la mention « lu et approuvé », avant toute intervention.\n\nNous restons à votre disposition.'}) },
 
  { id:'note-depannage', metiers:['chauffage','plomberie'], ic:'🧾', court:'Note avant paiement', pdfTitre:'NOTE DE DÉPANNAGE',
-   titre:'Note de dépannage remise avant paiement (à partir de 25 € TTC)', portee:'intervention', droit:'ventes', prefixe:'NOT', envoi:true, lignes:true, reprise:true,
+   titre:'Note de dépannage remise avant paiement (à partir de 25 € TTC)', portee:'intervention', droit:'ventes', prefixe:'NOT', envoi:true, lignes:true, reprise:true, essentiel:['lignes'],
    aide:'À remettre au client après l’exécution, avant tout paiement, en deux exemplaires, dès 25 € TTC. Reprends le décompte du devis accepté s’il est conforme aux travaux, et note les écarts.',
    champs:[
      {k:'date',l:'Date de rédaction',t:'date',requis:true,pre:'auj',s:'La note'},
@@ -43426,7 +43501,7 @@ const DOCM_DEFS=[
      corps:'Bonjour,\n\nVous trouverez ci-joint la note détaillée de notre intervention'+(r.execLe?' du '+nettDateTxt(r.execLe):'')+'.\n\nNous restons à votre disposition.'}) },
 
  { id:'rapport-etancheite', metiers:['plomberie'], ic:'💧', court:'Test d’étanchéité', pdfTitre:'RAPPORT D’ÉTANCHÉITÉ',
-   titre:'Rapport de test d’étanchéité daté', portee:'intervention', droit:'int', prefixe:'ETA', envoi:true, typeInt:/[ée]tanch/i,
+   titre:'Rapport de test d’étanchéité daté', portee:'intervention', droit:'int', prefixe:'ETA', envoi:true, typeInt:/[ée]tanch/i, essentiel:['installation','zone','pressionDebut','pressionFin','duree','resultat','fuiteLoc'],
    aide:'Consigne les valeurs RELEVÉES lors de l’essai : aucun seuil ni aucune durée n’est imposé par l’application, et le rapport ne dit pas « conforme au DTU ». Les valeurs sont aussi écrites dans les relevés de l’intervention.',
    releves:{pressionDebut:'pressionDebut',pressionFin:'pressionFin',duree:'dureeEssai',fluide:'fluideEssai',manometre:'manometre',etalonnage:'etalonnage',vanneArret:'vanneArret',compteurAvant:'compteurAvant',compteurApres:'compteurApres',terre:'terreReseau'},
    champs:[
@@ -43635,13 +43710,55 @@ function docmLignesHtml(){ const W=docmW; if(!W||!W.lignes) return '';
       <input maxlength="20" value="${esc(l.u)}" placeholder="Unité (h, m, pièce)" aria-label="Unité du prix" oninput="docmLigne(${k},'u',this.value)" style="flex:1;min-width:100px">
       <input type="number" step="any" inputmode="decimal" min="0" value="${esc(l.q)}" placeholder="Quantité" aria-label="Quantité" oninput="docmLigne(${k},'q',this.value)" style="flex:1;min-width:90px">
       <button type="button" class="btn ghost sm" onclick="docmLigneSuppr(${k})" aria-label="Retirer la ligne" title="Retirer la ligne">✕</button></div></div>`).join(''); }
+/* v781 — « trop de trucs à remplir, perte de temps » (Justin, 29 octobre 2026). Ce qui est DÉJÀ connu (client, adresse, date, société, technicien) est pré-rempli par
+   `docmPre` et ne se redemande pas ; ce que le document exige vraiment (`essentiel`, sinon les champs `requis` sans pré-remplissage + le décompte) reste en haut ; le reste
+   est replié sous « Plus de détails ». Rien n'est retiré du document : les mentions (`def.mentions`), les champs et leur rendu PDF sont inchangés — seul l'ÉCRAN les replie. */
+function docmEssentiels(def){
+  if(Array.isArray(def.essentiel)) return def.essentiel;
+  const e=def.champs.filter(c=>c.t==='lignes'||(c.requis&&!c.pre)).map(c=>c.k);
+  def.champs.forEach(c=>{ if(c.si&&e.indexOf(c.si.k)>=0&&e.indexOf(c.k)<0) e.push(c.k); });
+  return e.length>=1&&def.champs.length>6?e:null; }   /* null : un petit document garde tous ses champs à l'écran */
+function docmTauxDe(){ const t=docmNum(((docmW||{}).v||{}).tva); return isFinite(t)?t:20; }
+function docmPrixRapideHtml(def){ const W=docmW; if(!def.lignes||!W||!W.lignes) return '';
+  if(!W.lignes.length) W.lignes.push({id:uid(),d:'',pu:'',u:'',q:'1'});
+  const l=W.lignes[0], ttc=W.prixMode==='ttc', t=docmTauxDe();
+  const pu=docmNum(l.pu); const aff=!isFinite(pu)||l.pu===''?'':String(docmArr(ttc?pu*(1+t/100):pu)).replace('.',',');
+  const seg=(m,lbl)=>`<button type="button" class="met-chip${(ttc?'ttc':'ht')===m?' on':''}" style="min-height:44px;flex:1;justify-content:center" onclick="docmPrixMode('${m}')">${lbl}</button>`;
+  return `<div class="field" style="margin:0 0 10px"><label for="docm-q-d">${esc(def.id==='devis-depannage'?'Prestation':'Ce qui a été fait')}</label>
+      <input id="docm-q-d" maxlength="160" value="${esc(l.d)}" placeholder="Ex : remplacement du siphon" oninput="docmLigne(0,'d',this.value)" style="width:100%"></div>
+    <div style="display:flex;gap:8px;align-items:flex-end;margin:0 0 6px"><div class="field" style="flex:2;margin:0"><label for="docm-q-p">Prix <span style="color:var(--t3);font-weight:400">(€ ${ttc?'TTC':'HT'})</span></label>
+      <input id="docm-q-p" type="text" inputmode="decimal" value="${esc(aff)}" placeholder="0" oninput="docmPrixRapide(this.value)" style="width:100%;min-height:48px;font-size:18px"></div>
+      <div style="display:flex;gap:6px;flex:1.4">${seg('ht','HT')}${seg('ttc','TTC')}</div></div>
+    <div style="font-size:12px;color:var(--t3);margin:0 0 8px">La TVA (${esc(docmTauxTxt(t))}) se calcule seule ; le décompte détaillé (plusieurs lignes) est dans « Plus de détails ».</div>`; }
+function docmPrixRapide(val){ const W=docmW; if(!W||!W.lignes||!W.lignes.length) return;
+  const n=docmNum(val); const l=W.lignes[0];
+  if(val===''||!isFinite(n)||n<0){ l.pu=''; W.prixSaisi=''; }
+  else { W.prixSaisi=n; l.pu=String(W.prixMode==='ttc'?Math.round(n/(1+docmTauxDe()/100)*100)/100:docmArr(n)); if(!l.q) l.q='1'; }
+  docmTotMaj(); }
+function docmPrixMode(m){ const W=docmW; if(!W) return; W.prixMode=m==='ttc'?'ttc':'ht'; delete W.prixSaisi; docmMaj(); }
 function docmChampsHtml(def){ const W=docmW; let s='', cur='';
+  const ess=docmEssentiels(def); const haut=[], bas=[];
   def.champs.forEach(c=>{ if(c.si&&!docmSiOk(c.si,W.v)) return;
-    if(c.s&&c.s!==cur){ cur=c.s; s+=`<div class="form-sec">${esc(c.s)}</div>`; }
-    if(c.t==='lignes'){ s+=`<div class="field" style="margin:0"><label>${esc(c.l)} <span style="color:var(--red)" aria-hidden="true">*</span></label>
-      <div id="docm-lignes">${docmLignesHtml()}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px"><button type="button" class="btn ghost sm" onclick="docmLigneAjout()">＋ Ligne</button>${docmRepriseHtml()}</div></div>`; return; }
-    s+=docmChampHtml(c); });
+    const enHaut=!ess||ess.indexOf(c.k)>=0||(c.si&&ess.indexOf(c.si.k)>=0);
+    (enHaut?haut:bas).push(c); });
+  const rendu=(liste,avecRapide)=>{ let h='', sec='';
+    liste.forEach(c=>{
+      if(!avecRapide&&c.s&&c.s!==sec){ sec=c.s; h+=`<div class="form-sec">${esc(c.s)}</div>`; }
+      if(c.t==='lignes'){ h+=`<div class="field" style="margin:0"><label>${esc(c.l)} <span style="color:var(--red)" aria-hidden="true">*</span></label>
+        <div id="docm-lignes">${docmLignesHtml()}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px"><button type="button" class="btn ghost sm" onclick="docmLigneAjout()">＋ Ligne</button>${docmRepriseHtml()}</div></div>`; return; }
+      h+=docmChampHtml(c); });
+    return h; };
+  /* le décompte détaillé existe en un seul exemplaire dans la page (id `docm-lignes`) : en haut tant qu'on ne replie pas, sinon sous « Plus de détails » avec le prix rapide en haut */
+  const rapide=!!ess&&def.lignes&&ess.indexOf('lignes')>=0;
+  if(rapide){
+    const natureEtc=haut.filter(c=>c.t!=='lignes'); const lignes=haut.filter(c=>c.t==='lignes');
+    s=rendu(natureEtc,true)+docmPrixRapideHtml(def)
+      +`<details id="docm-plus" class="olsec" style="margin:8px 0 6px"${W.plusOuvert?' open':''} ontoggle="if(docmW)docmW.plusOuvert=this.open"><summary>Plus de détails (plusieurs lignes, TVA, conditions…)</summary><div class="olsec-b">${rendu(lignes.concat(bas),false)}</div></details>`;
+  } else {
+    s=rendu(haut,false);
+    if(bas.length) s+=`<details id="docm-plus" class="olsec" style="margin:8px 0 6px"${W.plusOuvert?' open':''} ontoggle="if(docmW)docmW.plusOuvert=this.open"><summary>Plus de détails</summary><div class="olsec-b">${rendu(bas,false)}</div></details>`;
+  }
   return s; }
 function docmRepriseHtml(){ const W=docmW; if(!W) return '';
   const docs=(db.docsMetier||[]).filter(r=>r&&r.clientId===W.clientId&&r.id!==W.id&&r.doc==='devis-depannage'&&(r.lignes||[]).length);
@@ -43661,7 +43778,9 @@ function docmTotHtml(def){ const W=docmW; if(!W) return ''; let h='';
 function docmTotMaj(){ const el=document.getElementById('docm-tot'); if(el&&docmW) el.innerHTML=docmTotHtml(docmDef(docmW.doc)); }
 function docmMaj(){ const el=document.getElementById('docm-champs'); if(el&&docmW) el.innerHTML=docmChampsHtml(docmDef(docmW.doc)); docmTotMaj(); }
 function docmSet(k,val){ if(!docmW) return; const def=docmDef(docmW.doc), c=def&&def.champs.find(x=>x.k===k); if(!c) return;
-  docmW.v[k]=val; if(c.maj) docmMaj(); else docmTotMaj(); }
+  docmW.v[k]=val;
+  if(k==='tva'&&docmW.prixMode==='ttc'&&docmW.prixSaisi!=null&&docmW.prixSaisi!==''&&docmW.lignes&&docmW.lignes[0]) docmW.lignes[0].pu=String(Math.round(docmW.prixSaisi/(1+docmTauxDe()/100)*100)/100);   /* TTC tapé : le HT suit le taux */
+  if(c.maj) docmMaj(); else docmTotMaj(); }
 function docmLigne(k,champ,val){ if(!docmW||!docmW.lignes||!docmW.lignes[k]||['d','pu','u','q'].indexOf(champ)<0) return; docmW.lignes[k][champ]=val; docmTotMaj(); }
 function docmLigneAjout(){ if(!docmW||!docmW.lignes) return; docmW.lignes.push({id:uid(),d:'',pu:'',u:'',q:'1'}); const el=document.getElementById('docm-lignes'); if(el) el.innerHTML=docmLignesHtml(); docmTotMaj(); }
 function docmLigneSuppr(k){ if(!docmW||!docmW.lignes) return; docmW.lignes.splice(k,1); const el=document.getElementById('docm-lignes'); if(el) el.innerHTML=docmLignesHtml(); docmTotMaj(); }
@@ -43708,7 +43827,7 @@ function docmSauver(silencieux){ const W=docmW; if(!W) return null;
   if(!nettClientVisible(W.clientId)){ toast('Ce client ne te concerne pas'); return null; }
   const net=docmNet(def,W);
   for(const c of def.champs){ if(!c.requis||c.t==='lignes') continue; if(c.si&&!docmSiOk(c.si,net.v)) continue;
-    if(net.v[c.k]==null||net.v[c.k]===''){ toast('À compléter : '+c.l.replace(/ \(.*\)$/,'')); return null; } }
+    if(net.v[c.k]==null||net.v[c.k]===''){ toast('À compléter : '+c.l.replace(/ \(.*\)$/,'')); if(!W.plusOuvert&&document.getElementById('docm-plus')){ W.plusOuvert=true; docmMaj(); } return null; } }
   if(def.lignes&&!net.lignes.length){ toast('Ajoute au moins une ligne au décompte'); return null; }
   db.docsMetier=db.docsMetier||[];
   const ex=W.id?db.docsMetier.find(x=>x&&x.id===W.id):null; if(W.id&&!ex){ toast('Ce document n’existe plus'); return null; }
@@ -45384,7 +45503,7 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
     (db.telecollectes||[]).filter(r=>(r.ts||0)>=recent).forEach(r=>out.push({id:'tele:'+r.id,ts:r.ts||0,ic:'💳',txt:`<b>Télécollecte</b> effectuée par <b>${esc(teleWho(r))}</b> — ${eur(teleTotal(r))}${r.envoyeeCompta?' · transmise':' · à transmettre'}`,act:"go('telecollecte')"}));
   }
   // Messages internes : directs (à mon compte) + groupes
-  if(notifVoitModule('messagerie')){
+  if(false&&notifVoitModule('messagerie')){   // v780 : messagerie retirée d'OP GESTION
   (db.messages||[]).filter(m=>m.toUserId&&m.toUserId===currentUser.id&&m.fromId!==currentUser.id).forEach(m=>out.push({id:'msg:'+m.id,ts:m.ts||0,ic:'💬',txt:`Message de <b>${esc(m.fromNom||'')}</b> : ${esc((m.texte||'').slice(0,50))}`,act:"msgSel='user:"+m.fromId+"';go('messagerie')"}));
   const myGroups=(db.groupes||[]).filter(g=>inGroup(g)).map(g=>g.id);
   (db.messages||[]).filter(m=>m.toGroupe&&myGroups.includes(m.toGroupe)&&m.fromId!==currentUser.id).forEach(m=>{ const tagged=m.mentionAll||(m.mentions||[]).includes(currentUser.id);
@@ -47367,7 +47486,6 @@ const TOUR = [
   {v:'demandes',ic:'✈️',t:'Mes demandes',h:"Besoin de réappro ? Crée une <b>demande</b> ici. Le responsable la valide et un <b>bon de commande</b> est créé automatiquement."},
   {v:'validations',ic:'✅',t:'Validation des mouvements',h:"Les demandes des équipes arrivent ici. Tu <b>valides</b> (le bon de commande part) ou tu refuses en un geste."},
   {v:'telecollecte',ic:'💳',t:'La télécollecte',h:"Déclare les <b>encaissements du jour</b> (CB, espèces, chèques…) + une photo. Ton nom est détecté tout seul, et tout est <b>centralisé automatiquement dans la Comptabilité</b>. L'historique est gardé jour par jour."},
-  {v:'messagerie',ic:'💬',t:'La messagerie',h:"Échange des <b>messages</b> avec les autres utilisateurs et les groupes, directement dans l'app."},
   {v:'parametres',ic:'⚙️',t:'Les paramètres',h:"Personnalise tout : <b>thème</b>, <b>langue</b>, <b>sauvegarde</b> (export/import), <b>email du comptable</b> et activation de l'<b>Assistant IA</b>."},
 ];
 let tourIdx=0, tourSteps=[];

@@ -1,6 +1,189 @@
 {
- "_doc": "Avance de la bêta v779 sur metiers.json (production) : le pack des seuls métiers déclarés dans tests/beta-en-avance.js (metiersBeta). Le jour où metiers.json les porte, ce fichier et la déclaration se vident ENSEMBLE.",
+ "_doc": "Avance de la bêta sur metiers.json (production) : plomberie, chauffage, nettoyage (packs enrichis, v779) et, depuis le 29 octobre 2026 (menu allégé), les rubriques de TOUS les métiers (ni Messagerie ni Télécollecte cochées d'office). Le jour où metiers.json les porte, ce fichier et la déclaration se vident ENSEMBLE.",
  "metiers": {
+  "3d": {
+   "nom": "3D — Hygiène anti-nuisibles",
+   "ic": "🐀",
+   "sous": "Dératisation · désinsectisation · désinfection",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "registre",
+    "carteBox",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "devisXylo",
+    "produits",
+    "stock",
+    "mouvements",
+    "boxes",
+    "saisieConso",
+    "enveloppes",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "brouillon",
+    "demandes",
+    "validations",
+    "commandes",
+    "secteurs",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre planning de passages du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Un contrôle sanitaire laisse des traces : qui a posé quel produit, où et quand, se retrouve ici.",
+    "planning": "Les passages d'un contrat HACCP reviennent chaque mois ou chaque semaine : le planning les répartit entre techniciens.",
+    "planningGeneral": "Toutes les tournées de contrats et les urgences (guêpes, punaises de lit) sur une page, pour caser l'imprévu.",
+    "taches": "Rappels de relevés de postes, d'appels clients après traitement, de renouvellement de certificat.",
+    "absences": "Un poste d'appâtage non contrôlé à date est une non-conformité : on ne planifie pas quelqu'un en congé.",
+    "interventions": "Une fiche par passage : nuisibles ciblés, méthodes, produits posés, photos des postes.",
+    "rapports": "Le rapport remis au client pour son plan de maîtrise sanitaire, avec photos et signature, à montrer aux audits.",
+    "carteInt": "Enchaîner plusieurs sites clients dans une tournée.",
+    "registre": "Le registre sanitaire des passages, à présenter au client et lors d'un contrôle.",
+    "carteBox": "Retrouver chaque poste d'appâtage posé chez un client.",
+    "clients": "Restaurants, collectivités, hôtels, logistique : chaque site a ses locaux, ses contacts et son historique de traitements.",
+    "devis": "Devis pour les traitements ponctuels (punaises de lit, frelons) comme pour les contrats annuels.",
+    "assistantDevis": "Un devis de traitement dicté sur place, pendant le diagnostic.",
+    "factures": "Facturer les contrats périodiques et les interventions ponctuelles.",
+    "contrats": "Base de l'activité : le contrat anti-nuisibles (HACCP) avec ses passages réguliers.",
+    "devisXylo": "Le traitement du bois a son propre devis.",
+    "produits": "Biocides, appâts, pièges, EPI : la traçabilité des produits utilisés fait partie des obligations de l'activité.",
+    "stock": "Savoir ce qu'il reste de chaque rodenticide ou insecticide avant de partir en tournée.",
+    "mouvements": "Qui a sorti quel produit, pour quelle box ou quel client : la trace qu'un contrôle peut demander.",
+    "boxes": "Le suivi des box (postes d'appâtage) : contenu, produits, date du dernier contrôle.",
+    "saisieConso": "La consommation d'appâts box par box aide à repérer un site où l'infestation progresse.",
+    "enveloppes": "Les interventions ponctuelles payées sur place (punaises de lit, frelons) : espèces et chèques remis au bureau par enveloppe.",
+    "pointage": "Le temps passé par site permet de vérifier la rentabilité d'un contrat de passages réguliers.",
+    "vehicules": "Tournées longues avec des produits à bord : assurance, kilométrage, entretien.",
+    "messagerie": "Le technicien prévient le bureau d'une infestation importante ou d'un accès impossible.",
+    "fournisseurs": "Fournisseurs de biocides, d'appâts, de pièges et d'EPI : on commande toute l'année.",
+    "bons": "Commandes de produits et de pièges, suivies jusqu'à la livraison.",
+    "brouillon": "Le technicien prépare sa liste d'appâts et de pièges avant de la soumettre.",
+    "demandes": "Chaque demande de produit suit son cheminement : en attente, validée, livrée.",
+    "validations": "Le responsable contrôle les sorties de produits sensibles avant qu'elles ne soient actées.",
+    "commandes": "Savoir quelles commandes de biocides ou de pièges sont encore en route.",
+    "secteurs": "Répartir les techniciens par département pour couvrir les sites sans doubler la route.",
+    "utilisateurs": "Créez les comptes de vos techniciens et vos responsables et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport remis au client part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour piloter le chiffre d'affaires des contrats et le taux d'acceptation des devis.",
+    "archives": "Un récapitulatif mensuel à garder en cas d'audit client.",
+    "comptabilite": "Pour suivre les encaissements des contrats et des interventions ponctuelles.",
+    "telecollecte": "Si vous encaissez sur place les interventions ponctuelles.",
+    "conducteurs": "Si plusieurs personnes se partagent les véhicules.",
+    "boiteMail": "Pour répondre aux clients et aux audits depuis l'application."
+   },
+   "types": [
+    "Contrat anti nuisibles (HACCP)",
+    "Dératisation",
+    "Désinsectisation anthrène de tapis",
+    "Désinsectisation blattes",
+    "Désinsectisation fourmis",
+    "Désinsectisation guêpes / frelons",
+    "Désinsectisation mites",
+    "Désinsectisation poux de poules",
+    "Désinsectisation psoques",
+    "Désinsectisation puces",
+    "Désinsectisation punaise de lit",
+    "Désinsectisation tiques",
+    "Détection punaise de lit",
+    "Espèce protégée",
+    "Traitement xylophage",
+    "Visite technique",
+    "Désinfection de locaux",
+    "Audit hygiène et plan de lutte (HACCP)"
+   ],
+   "presta": [],
+   "releves": [],
+   "produits": [
+    "TP18 — Insecticide",
+    "TP14 — Rodenticide",
+    "Xylophage",
+    "Piégeage",
+    "Matériel",
+    "EPI",
+    "Proofing",
+    "Désinfection"
+   ],
+   "documents": [
+    "Fiche d'intervention par passage",
+    "Plan d'implantation des postes",
+    "Rapport de non-conformité",
+    "Bilan de tendance (courbe d'infestation)",
+    "Rapport d'audit client (HACCP / IFS)"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Rappel de la déclaration annuelle Certibiocide avant le 31 mars",
+     "valeur": "haute",
+     "ref": "F6"
+    },
+    {
+     "fonction": "Alerte d'expiration du Certibiocide par technicien, et blocage de l'affectation d'un produit TP14, TP18 ou TP20 à un technicien non certifié",
+     "valeur": "haute",
+     "ref": "F6"
+    },
+    {
+     "fonction": "Fiche de données de sécurité (FDS) jointe à chaque produit, avec sa date de mise à jour",
+     "valeur": "moyenne",
+     "ref": "F10"
+    },
+    {
+     "fonction": "Rapport d'audit client (HACCP / IFS) avec tendances",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Registre rendu générique pour les autres métiers qui en tiennent un",
+     "valeur": "moyenne",
+     "ref": "F13"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Certificat individuel « Certibiocide nuisibles » pour les produits TP14, TP18 et TP20 réservés aux professionnels ; trois certificats depuis le 1er janvier 2024 (arrêté du 23 janvier 2023 modifiant celui du 9 octobre 2013).",
+     "source": "https://walter-learning.com/blog/guide-hygiene/guide-certibiocide-desinfectants/certibiocide-nuisibles-reglementation",
+     "fiabilite": "secondaire"
+    },
+    {
+     "texte": "Déclaration annuelle avant le 31 mars sur l'application du ministère.",
+     "source": "https://walter-learning.com/blog/guide-hygiene/guide-certibiocide-desinfectants/certibiocide-nuisibles-reglementation",
+     "fiabilite": "secondaire"
+    },
+    {
+     "texte": "Conserver la traçabilité des produits utilisés, les enregistrements de contrôles et d'actions correctives, les FDS, les contrats, les fiches d'intervention et les fiches de non-conformité.",
+     "source": "https://walter-learning.com/blog/guide-hygiene/guide-certibiocide-desinfectants/certibiocide-nuisibles-reglementation",
+     "fiabilite": "secondaire"
+    }
+   ],
+   "aVerifier": [
+    "Texte officiel de l'arrêté du 23 janvier 2023 sur Légifrance : l'article de recherche est un site de formation, pas le texte."
+   ],
+   "ajouts": {
+    "types": [
+     "Désinfection de locaux",
+     "Audit hygiène et plan de lutte (HACCP)"
+    ],
+    "presta": [],
+    "releves": []
+   },
+   "codeNote": "Dans le code, le pack 3D n'a ni prestations ni relevés libres : il utilise le diagnostic nuisibles (questionnaires, plan d'appâtage). Les types sont ceux d'INT_TYPES (16)."
+  },
   "plomberie": {
    "nom": "Plomberie",
    "ic": "🔧",
@@ -21,13 +204,11 @@
     "assistantDevis",
     "factures",
     "comptabilite",
-    "telecollecte",
     "produits",
     "stock",
     "mouvements",
     "pointage",
     "vehicules",
-    "messagerie",
     "fournisseurs",
     "bons",
     "utilisateurs",
@@ -287,6 +468,251 @@
     ]
    }
   },
+  "electricite": {
+   "nom": "Électricité",
+   "ic": "⚡",
+   "sous": "Installation · mise aux normes · dépannage",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "comptabilite",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de dépannages et de chantiers du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Après une panne ou un incident, on retrouve qui a fait quel branchement, et à quelle date.",
+    "planning": "Des dépannages s'intercalent entre des chantiers de plusieurs jours : le planning répartit les deux.",
+    "planningGeneral": "Voir quels électriciens sont sur chantier et lesquels sont libres pour un dépannage.",
+    "taches": "Rappeler un client avant la mise sous tension, relancer un dossier de raccordement.",
+    "absences": "Dans une équipe d'un à trois électriciens, un congé change tout le planning.",
+    "interventions": "Une fiche par dépannage ou par chantier : mesures (terre, isolement, différentiel), photos du tableau, signature du client.",
+    "rapports": "Le rapport remis au client avec les mesures relevées et les photos du tableau avant et après.",
+    "carteInt": "Enchaîner les dépannages de la journée sans retours inutiles.",
+    "clients": "Particuliers, syndics, commerces : adresses, accès aux tableaux, historique des installations.",
+    "devis": "Devis de dépannage détaillé avant travaux (arrêté du 24 janvier 2017), ou devis de mise aux normes.",
+    "assistantDevis": "Un devis de mise aux normes ou d'éclairage dicté sur place.",
+    "factures": "La note détaillée à la fin du dépannage, la facture de chantier ensuite.",
+    "comptabilite": "Les encaissements du jour se rapprochent des factures de dépannage.",
+    "telecollecte": "Un dépannage se paie souvent sur place.",
+    "produits": "Disjoncteurs, câbles, appareillage : références et prix sous la main pour chiffrer.",
+    "stock": "Le stock du véhicule : câbles, disjoncteurs, appareillage à portée de main.",
+    "mouvements": "Savoir qui a pris quels disjoncteurs ou quelle bobine de câble.",
+    "pointage": "Heures de chantier et de dépannage, par personne.",
+    "vehicules": "Le transport du matériel : assurance, kilométrage, entretien.",
+    "messagerie": "Le technicien envoie la photo du tableau au bureau pour demander un avis avant de commander.",
+    "fournisseurs": "Grossistes en matériel électrique : contacts, conditions, remises.",
+    "bons": "Commander le matériel d'un chantier avec une date de livraison.",
+    "utilisateurs": "Créez les comptes de vos électriciens et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport de vérification part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires et le taux de devis acceptés.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "contrats": "Maintenance d'installations tertiaires : utile si vous avez des clients sous contrat.",
+    "conducteurs": "Si plusieurs personnes se partagent les véhicules.",
+    "boiteMail": "Pour répondre aux clients et aux syndics depuis l'application.",
+    "brouillon": "Pour les équipes : chacun prépare sa liste de matériel avant de demander.",
+    "demandes": "Un chef d'équipe demande du matériel pour un chantier, le responsable suit.",
+    "validations": "Le responsable valide les sorties de matériel coûteux.",
+    "commandes": "Suivre les commandes de grossiste en route."
+   },
+   "types": [
+    "Dépannage / panne",
+    "Tableau électrique",
+    "Mise aux normes",
+    "Éclairage",
+    "Prises & circuits",
+    "Chauffage électrique",
+    "Borne de recharge",
+    "Interphone / VMC",
+    "Contrôle & vérification",
+    "Installation neuve",
+    "Visite technique / devis",
+    "Dossier Consuel (attestation de conformité)"
+   ],
+   "presta": [
+    "Consignation / mise hors tension",
+    "Diagnostic de la panne",
+    "Remplacement de disjoncteur",
+    "Pose ou remplacement de prise",
+    "Pose de point lumineux",
+    "Tirage de câble",
+    "Raccordement au tableau",
+    "Repérage et étiquetage",
+    "Contrôle de continuité",
+    "Essais et remise sous tension",
+    "Nettoyage du chantier",
+    "Mesure de la résistance de terre",
+    "Mesure d'isolement",
+    "Test des différentiels"
+   ],
+   "releves": [
+    {
+     "k": "terre",
+     "l": "Résistance de terre",
+     "u": "Ω"
+    },
+    {
+     "k": "isolement",
+     "l": "Isolement",
+     "u": "MΩ"
+    },
+    {
+     "k": "tension",
+     "l": "Tension mesurée",
+     "u": "V"
+    },
+    {
+     "k": "intensite",
+     "l": "Intensité",
+     "u": "A"
+    },
+    {
+     "k": "diff",
+     "l": "Déclenchement différentiel",
+     "u": "ms"
+    },
+    {
+     "k": "verdict",
+     "l": "Verdict de la vérification (conforme / non conforme)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "consuel",
+     "l": "N° d'attestation Consuel",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "puissanceBorne",
+     "l": "Puissance de la borne installée",
+     "u": "kVA"
+    }
+   ],
+   "produits": [
+    "Protection (disjoncteurs, différentiels)",
+    "Appareillage (prises, interrupteurs)",
+    "Câbles et fils",
+    "Gaines et goulottes",
+    "Éclairage",
+    "Tableaux et coffrets",
+    "Bornes de recharge",
+    "Chauffage électrique",
+    "Domotique et interphonie",
+    "Outillage consommable",
+    "EPI"
+   ],
+   "documents": [
+    "Devis de dépannage",
+    "Rapport d'intervention avec les mesures relevées",
+    "Rapport de vérification / attestation d'installation (mesures et verdict)",
+    "Suivi du dossier Consuel"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Rapport de vérification / attestation d'installation avec mesures et verdict",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Seuils d'alerte sur les relevés (continuité de terre, isolement, différentiel)",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Stock véhicule (câbles, disjoncteurs, appareillage)",
+     "valeur": "haute",
+     "ref": "F1"
+    },
+    {
+     "fonction": "Catégories de produits d'électricité à la place des catégories anti-nuisibles",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Devis de dépannage conforme à l'arrêté de 2017",
+     "valeur": "haute",
+     "ref": "F8"
+    },
+    {
+     "fonction": "Suivi des habilitations électriques avec échéance par technicien",
+     "valeur": "moyenne",
+     "ref": "F6"
+    },
+    {
+     "fonction": "Suivi de dossier Consuel (demande, date, n° d'attestation)",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Fiche borne de recharge (puissance, modèle, mise en service)",
+     "valeur": "basse",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Garde « mise en sécurité » avant de démarrer une intervention sous tension",
+     "valeur": "basse",
+     "ref": "F9"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Consuel : attestation de conformité de l'installation à la NF C 15-100, nécessaire au raccordement ; demandée par la personne qui a fait les travaux environ trois semaines avant la date de raccordement.",
+     "source": "https://particulier.edf.fr/fr/accueil/guide-energie/electricite/consuel.html",
+     "fiabilite": "secondaire"
+    },
+    {
+     "texte": "Dépannage à domicile : devis détaillé avant travaux et note détaillée au-delà de 25 € TTC (arrêté du 24 janvier 2017).",
+     "source": "https://www.economie.gouv.fr/dgccrf/les-fiches-pratiques/plomberie-serrurerie-chauffage-choisir-le-bon-professionnel-pour-un-depannage-domicile",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Bornes de recharge : qualification IRVE obligatoire au-dessus de 3,7 kVA (décret de 2017, arrêté du 27 octobre 2021).",
+     "source": "https://hager.com/fr/actualites/certifications-irve",
+     "fiabilite": "secondaire",
+     "aConfirmer": true
+    }
+   ],
+   "aVerifier": [
+    "Habilitations électriques NF C 18-510 (B1T, BR, H0…) : la recherche n'a rien donné de sourcé.",
+    "Seuils de conformité des mesures (isolement, terre) : à prendre dans la NF C 15-100 elle-même, pas dans un blog."
+   ],
+   "ajouts": {
+    "types": [
+     "Dossier Consuel (attestation de conformité)"
+    ],
+    "presta": [
+     "Mesure de la résistance de terre",
+     "Mesure d'isolement",
+     "Test des différentiels"
+    ],
+    "releves": [
+     "Verdict de la vérification (conforme / non conforme)",
+     "N° d'attestation Consuel",
+     "Puissance de la borne installée"
+    ]
+   }
+  },
   "chauffage": {
    "nom": "Chauffage / Climatisation",
    "ic": "🔥",
@@ -312,7 +738,6 @@
     "mouvements",
     "pointage",
     "vehicules",
-    "messagerie",
     "fournisseurs",
     "bons",
     "utilisateurs",
@@ -693,6 +1118,216 @@
    },
    "note": "Le cœur du métier est le contrat d'entretien annuel et le parc d'appareils de chaque client. Les relevés sont libres dans le code actuel : aucun seuil, y compris pour le CO, alors que l'arrêté en fixe un."
   },
+  "serrurerie": {
+   "nom": "Serrurerie",
+   "ic": "🔑",
+   "sous": "Ouverture · sécurité · contrôle d’accès",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "comptabilite",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme d'urgences et de poses du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Après une ouverture de porte, on retrouve qui est intervenu, quand et ce qui a été fait : utile face à un litige ou à l'assureur.",
+    "planning": "L'urgence passe avant tout : le planning montre qui peut partir tout de suite.",
+    "planningGeneral": "Voir tous les techniciens d'astreinte et les interventions en cours.",
+    "taches": "Rappeler un client pour la livraison d'une porte blindée commandée sur mesure.",
+    "absences": "Une équipe de un à quatre serruriers : un congé change l'astreinte de toute la semaine.",
+    "interventions": "Une fiche par ouverture ou par pose : photos de la porte avant et après, clés remises, signature.",
+    "rapports": "Le client, ou son assurance, reçoit un compte rendu avec l'état de la porte avant et après.",
+    "carteInt": "Envoyer le technicien le plus proche : l'urgence se joue à la minute.",
+    "clients": "Adresse, accès et historique des serrures posées chez chaque client.",
+    "devis": "Le devis de dépannage avant d'agir : la serrurerie est l'activité la plus exposée à la répression des fraudes.",
+    "assistantDevis": "Un devis de blindage ou de contrôle d'accès dicté sur place.",
+    "factures": "Facturer à la fin de l'intervention, avec la note détaillée exigée au-delà de 25 € TTC.",
+    "comptabilite": "Les encaissements du jour se rapprochent des factures d'urgence.",
+    "telecollecte": "Le paiement se fait à la fin de l'intervention.",
+    "produits": "Cylindres, serrures, blocs-portes par modèle : un catalogue de références pour chiffrer sur place.",
+    "stock": "Cylindres et serrures embarqués : savoir ce qu'on peut poser tout de suite.",
+    "mouvements": "Tracer qui a pris quel cylindre ou quelle serrure, par modèle.",
+    "pointage": "Les heures d'astreinte et de dépannage de chacun.",
+    "vehicules": "Les urgences arrivent à toute heure : le véhicule est l'atelier.",
+    "messagerie": "Le bureau envoie l'adresse de l'urgence, le technicien confirme son arrivée.",
+    "fournisseurs": "Fournisseurs de cylindres, de serrures et de blindage.",
+    "bons": "Commander une porte blindée sur mesure ou des pièces, et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos serruriers et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le devis ou le bon de remise de clés part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires et le taux de devis acceptés.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "contrats": "Maintenance de contrôle d'accès, entretien de rideaux métalliques : utile si vous avez des clients sous contrat.",
+    "conducteurs": "Si plusieurs personnes se partagent les véhicules.",
+    "boiteMail": "Pour répondre aux assureurs et aux gestionnaires depuis l'application."
+   },
+   "types": [
+    "Ouverture de porte",
+    "Changement de serrure",
+    "Cylindre & clés",
+    "Blindage / porte blindée",
+    "Contrôle d’accès",
+    "Volet roulant / rideau métallique",
+    "Coffre-fort",
+    "Dépannage urgent",
+    "Visite technique / devis",
+    "Dépannage après effraction (mise en sécurité)"
+   ],
+   "presta": [
+    "Ouverture fine sans dégât",
+    "Ouverture destructive",
+    "Dépose de l’ancienne serrure",
+    "Pose du nouveau cylindre",
+    "Réglage de la porte",
+    "Remise des clés au client",
+    "Contrôle du bon fonctionnement",
+    "Nettoyage du chantier",
+    "Photos de la porte avant et après l'intervention",
+    "Bon de remise de clés signé",
+    "Taux horaire et frais de déplacement annoncés avant l'intervention",
+    "Pièces remplacées proposées au client"
+   ],
+   "releves": [
+    {
+     "k": "cles",
+     "l": "Nombre de clés remises",
+     "u": ""
+    },
+    {
+     "k": "modele",
+     "l": "Marque / modèle posé",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "a2p",
+     "l": "Certification (A2P…)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "cause",
+     "l": "Nature de l’ouverture (porte claquée, forcée…)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "etatPorte",
+     "l": "État de la porte avant intervention",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "clesDetail",
+     "l": "Clés remises : détail (numéros, copies)",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Cylindres et serrures",
+    "Portes blindées et blocs-portes",
+    "Verrous et ferme-portes",
+    "Contrôle d'accès (badges, lecteurs)",
+    "Rideaux et volets métalliques",
+    "Coffres-forts",
+    "Clés et cylindres bruts",
+    "Quincaillerie",
+    "Outillage consommable"
+   ],
+   "documents": [
+    "Devis de dépannage avec les mentions de l'arrêté de 2017",
+    "Bon de remise de clés signé (nombre de clés, modèle, niveau A2P)",
+    "Rapport pour l'assurance (état de la porte avant et après, photos, nature de l'ouverture)",
+    "Registre des clés confiées"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Devis de dépannage conforme à l'arrêté de 2017, utilisable en urgence sur le téléphone",
+     "valeur": "haute",
+     "ref": "F8"
+    },
+    {
+     "fonction": "Bon de remise de clés signé sur place, avec nombre de clés, modèle et niveau A2P",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Catégories de produits de serrurerie à la place des catégories anti-nuisibles",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Rapport pour l'assurance : état de la porte avant et après, photos, nature de l'ouverture",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Stock véhicule (cylindres et serrures par modèle)",
+     "valeur": "moyenne",
+     "ref": "F1"
+    },
+    {
+     "fonction": "Registre des clés confiées (gardiennage) par client",
+     "valeur": "basse",
+     "ref": "F2"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Dépannage à domicile : information préalable, devis détaillé avant les travaux sans seuil de montant, note détaillée au-delà de 25 € TTC (arrêté du 24 janvier 2017).",
+     "source": "https://www.economie.gouv.fr/dgccrf/les-fiches-pratiques/plomberie-serrurerie-chauffage-choisir-le-bon-professionnel-pour-un-depannage-domicile",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Certaines sources évoquent encore une signature préalable au-delà de 150 € (arrêté du 2 mars 1990) : cet arrêté est abrogé depuis le 1er avril 2017, l'obligation vaut désormais sans seuil.",
+     "source": "https://www.cm-alsace.fr/file/2521/download",
+     "fiabilite": "professionnelle"
+    }
+   ],
+   "aVerifier": [
+    "Certification A2P (niveaux 1, 2, 3 étoiles, résistance d'environ 5, 10 et 15 minutes) : pas de source lue, à confirmer avant de la citer dans un document.",
+    "Bon de remise de clés signé : aucun texte trouvé qui l'impose ; c'est une pratique, pas une obligation prouvée.",
+    "Conditions de prise en charge par l'assurance habitation (agrément du serrurier, délais de déclaration) : non sourcées."
+   ],
+   "ajouts": {
+    "types": [
+     "Dépannage après effraction (mise en sécurité)"
+    ],
+    "presta": [
+     "Photos de la porte avant et après l'intervention",
+     "Bon de remise de clés signé",
+     "Taux horaire et frais de déplacement annoncés avant l'intervention",
+     "Pièces remplacées proposées au client"
+    ],
+    "releves": [
+     "Nature de l’ouverture (porte claquée, forcée…)",
+     "État de la porte avant intervention",
+     "Clés remises : détail (numéros, copies)"
+    ]
+   }
+  },
   "nettoyage": {
    "nom": "Nettoyage / Propreté",
    "ic": "🧽",
@@ -716,7 +1351,6 @@
     "produits",
     "stock",
     "pointage",
-    "messagerie",
     "fournisseurs",
     "secteurs",
     "utilisateurs",
@@ -927,6 +1561,3372 @@
      "Résultat du contrôle qualité (note, remarques)"
     ]
    }
+  },
+  "maconnerie": {
+   "nom": "Maçonnerie / Gros œuvre",
+   "ic": "🧱",
+   "sous": "Construction · rénovation · gros œuvre",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "comptabilite",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de chantiers du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Sur un chantier de plusieurs semaines, on retrouve qui a validé quoi : coulage, réserves, modifications.",
+    "planning": "Des chantiers de plusieurs jours à plusieurs semaines : le planning affecte les équipes à chaque chantier.",
+    "planningGeneral": "Toutes les équipes et tous les chantiers sur une page, pour ne laisser aucun chantier sans maçon.",
+    "taches": "Relancer un bureau d'études, un maître d'ouvrage ou un sous-traitant pour un document manquant.",
+    "absences": "Une équipe réduite d'un maçon change l'avancement du chantier : le congé se voit avant de planifier.",
+    "interventions": "Une fiche par journée ou par phase de chantier : surface réalisée, béton coulé, photos, signature.",
+    "rapports": "Un compte rendu de chantier avec photos, à remettre au maître d'ouvrage.",
+    "clients": "Maîtres d'ouvrage, particuliers, promoteurs : adresse du chantier, contacts, historique.",
+    "devis": "Devis détaillé par lot : terrassement, dalle, murs, enduit.",
+    "assistantDevis": "Un devis de chantier dicté sur le terrain, pendant le métré.",
+    "factures": "Factures d'acompte et de solde au fil de l'avancement.",
+    "comptabilite": "Suivre les acomptes et les soldes encaissés chantier par chantier.",
+    "pointage": "Les heures de chantier par personne, pour suivre le coût réel d'un lot.",
+    "vehicules": "Camions, bennes et matériel roulant : assurance, kilométrage, entretien.",
+    "messagerie": "Le chef de chantier envoie photos et questions au bureau en direct.",
+    "fournisseurs": "Négoces de matériaux : ciment, parpaings, ferraille, livrés sur chantier.",
+    "bons": "Commander les matériaux avec une date de livraison, et savoir ce qui est arrivé.",
+    "utilisateurs": "Créez les comptes de vos chefs de chantier et vos maçons et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le compte rendu de chantier part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires et les devis acceptés.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "carteInt": "Les chantiers sont fixes : utile seulement si vous enchaînez beaucoup de petits chantiers.",
+    "produits": "Un catalogue de prix sert au devis, même si vous ne gérez pas de stock.",
+    "stock": "Seulement si vous gardez des matériaux en dépôt : le gros est livré sur chantier.",
+    "conducteurs": "Si plusieurs personnes conduisent les camions.",
+    "boiteMail": "Pour échanger avec les maîtres d'ouvrage depuis l'application.",
+    "brouillon": "Le chef de chantier prépare sa liste de matériaux.",
+    "demandes": "Le chef de chantier demande, le patron suit la demande.",
+    "validations": "Le patron valide les commandes importantes avant qu'elles partent.",
+    "commandes": "Suivre les livraisons de matériaux en cours."
+   },
+   "types": [
+    "Construction neuve",
+    "Rénovation",
+    "Extension / agrandissement",
+    "Dalle & fondations",
+    "Murs & cloisons",
+    "Enduits & façades",
+    "Ouverture de mur",
+    "Reprise de fissures",
+    "Dallage / terrasse",
+    "Visite technique / devis",
+    "Réception de chantier (procès-verbal)",
+    "Levée de réserves"
+   ],
+   "presta": [
+    "Implantation et traçage",
+    "Terrassement / fouilles",
+    "Coffrage",
+    "Ferraillage",
+    "Coulage du béton",
+    "Montage de parpaings / briques",
+    "Pose de linteau",
+    "Enduit / crépi",
+    "Jointoiement",
+    "Évacuation des gravats",
+    "Nettoyage du chantier",
+    "Vérification du repérage amiante avant travaux",
+    "Procès-verbal de réception signé"
+   ],
+   "releves": [
+    {
+     "k": "surface",
+     "l": "Surface réalisée",
+     "u": "m²"
+    },
+    {
+     "k": "volume",
+     "l": "Béton coulé",
+     "u": "m³"
+    },
+    {
+     "k": "lineaire",
+     "l": "Linéaire de mur",
+     "u": "ml"
+    },
+    {
+     "k": "tps",
+     "l": "Temps passé sur site",
+     "u": "h"
+    },
+    {
+     "k": "avancement",
+     "l": "Avancement du lot",
+     "u": "%"
+    },
+    {
+     "k": "reperageAmiante",
+     "l": "Repérage amiante avant travaux (référence du rapport)",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Liants (ciment, chaux, plâtre)",
+    "Agrégats (sable, gravier)",
+    "Éléments de maçonnerie (parpaings, briques)",
+    "Béton et prêt à l'emploi",
+    "Ferraillage",
+    "Isolation",
+    "Étanchéité",
+    "Enduits",
+    "Coffrage",
+    "Outillage",
+    "EPI"
+   ],
+   "documents": [
+    "Compte rendu de chantier avec photos",
+    "Situation de travaux (facture d'acompte par lot)",
+    "Procès-verbal de réception avec réserves",
+    "Dossier de chantier (permis, repérage amiante, plan, assurance)"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Fiche chantier avec avancement par lot et situations de travaux (factures d'acompte)",
+     "valeur": "haute",
+     "ref": "F5"
+    },
+    {
+     "fonction": "Procès-verbal de réception signé sur place, avec réserves et levée des réserves",
+     "valeur": "haute",
+     "ref": "F4"
+    },
+    {
+     "fonction": "Catégories de produits de maçonnerie à la place des catégories anti-nuisibles",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Dossier de chantier : permis, repérage amiante, plan, assurance",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Sous-traitants : attestations de vigilance et assurances, avec échéance",
+     "valeur": "moyenne",
+     "ref": "F6"
+    },
+    {
+     "fonction": "Suivi des livraisons par bon de commande",
+     "valeur": "moyenne"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Repérage amiante avant travaux : le donneur d'ouvrage le fait réaliser avant de commencer, dans les bâtiments dont le permis date d'avant 1997 ; l'entreprise doit l'exiger avant d'intervenir ; amende maximale de 9 000 € pour le donneur d'ordre.",
+     "source": "https://www.ffbatiment.fr/techniques-batiment/reglementation-construction/reglementation-amiante-plomb-silice/dossier/amiante-reperage",
+     "fiabilite": "professionnelle"
+    },
+    {
+     "texte": "Plomb : le CREP est obligatoire pour les logements d'avant 1949 ; la norme NF X 46-035 sert de référence pour les travaux.",
+     "source": "https://www.ffbatiment.fr/techniques-batiment/reglementation-construction/reglementation-amiante-plomb-silice/dossier/amiante-reperage",
+     "fiabilite": "professionnelle"
+    }
+   ],
+   "aVerifier": [
+    "Date limite du repérage amiante : 1er janvier 1997 ou 1er juillet 1997 selon les sources.",
+    "Garantie décennale (mention de l'assureur sur devis et factures), réception avec procès-verbal, retenue de garantie, situations de travaux, DICT : non vérifié par la recherche."
+   ],
+   "ajouts": {
+    "types": [
+     "Réception de chantier (procès-verbal)",
+     "Levée de réserves"
+    ],
+    "presta": [
+     "Vérification du repérage amiante avant travaux",
+     "Procès-verbal de réception signé"
+    ],
+    "releves": [
+     "Avancement du lot",
+     "Repérage amiante avant travaux (référence du rapport)"
+    ]
+   }
+  },
+  "menuiserie": {
+   "nom": "Menuiserie",
+   "ic": "🚪",
+   "sous": "Pose · agencement · fermetures",
+   "existant": true,
+   "fusion": "Absorbe la vitrerie et la miroiterie (même chantier : prise de cotes, pose, dépannage urgent).",
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "comptabilite",
+    "produits",
+    "pointage",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de poses du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Entre la prise de cotes et la pose, plusieurs semaines passent : on retrouve ce qui a été relevé et commandé.",
+    "planning": "Prise de cotes, puis pose quelques semaines plus tard : le planning garde le lien entre les deux visites.",
+    "planningGeneral": "Voir toutes les poses des semaines à venir pour tenir les délais de livraison du fabricant.",
+    "taches": "Relancer le fabricant sur la date de livraison, rappeler le client pour fixer la pose.",
+    "absences": "Une pose se fait à deux : un congé peut décaler un chantier entier.",
+    "interventions": "Une fiche par prise de cotes ou par pose : cotes, éléments posés, photos, signature.",
+    "rapports": "Le client signe la fin de la pose, photos avant et après à l'appui.",
+    "clients": "Particuliers et entreprises : adresse du chantier, cotes, historique des poses.",
+    "devis": "Un devis précis à partir des cotes relevées, avec le délai du fabricant.",
+    "assistantDevis": "Un devis dicté pendant la prise de cotes.",
+    "factures": "L'acompte à la commande, le solde à la pose.",
+    "comptabilite": "Suivre les acomptes à la commande et les soldes à la pose.",
+    "produits": "Un catalogue de références et de tarifs (fenêtres, portes, quincaillerie) pour chiffrer le devis.",
+    "pointage": "Les heures de pose et d'atelier, par personne.",
+    "messagerie": "Le poseur envoie une photo d'un support difficile avant de commander.",
+    "fournisseurs": "Fabricants de menuiseries, de panneaux et de quincaillerie.",
+    "bons": "Commandes sur mesure chez le fabricant, avec un délai de plusieurs semaines à suivre.",
+    "utilisateurs": "Créez les comptes de vos poseurs et vos menuisiers et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : la fiche de prise de cotes part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires et les devis acceptés.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "carteInt": "Pour enchaîner les poses planifiées dans la journée.",
+    "telecollecte": "Si vous encaissez l'acompte à la commande sur place.",
+    "stock": "Pour les petites fournitures (quincaillerie, joints, vis) : le gros est commandé sur mesure.",
+    "mouvements": "Si vous voulez savoir qui a pris quelle fourniture.",
+    "vehicules": "Le fourgon de pose : assurance, kilométrage.",
+    "boiteMail": "Pour échanger avec les fabricants et les clients depuis l'application."
+   },
+   "types": [
+    "Pose de fenêtres",
+    "Pose de portes",
+    "Volets & fermetures",
+    "Agencement intérieur",
+    "Placards & dressings",
+    "Escalier",
+    "Parquet",
+    "Réparation / dépannage",
+    "Prise de cotes",
+    "Visite technique / devis",
+    "Remplacement de vitrage",
+    "Dépannage bris de glace"
+   ],
+   "presta": [
+    "Prise de cotes",
+    "Dépose de l’existant",
+    "Pose et calage",
+    "Réglage des ouvrants",
+    "Fixation et scellement",
+    "Pose de la quincaillerie",
+    "Calfeutrement et joints",
+    "Finitions (habillage, champlats)",
+    "Évacuation des déchets",
+    "Nettoyage du chantier",
+    "Croquis et plan joints à la prise de cotes",
+    "Réception de la commande du fabricant vérifiée"
+   ],
+   "releves": [
+    {
+     "k": "cotes",
+     "l": "Cotes relevées (L × H)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "elements",
+     "l": "Éléments posés",
+     "u": ""
+    },
+    {
+     "k": "materiau",
+     "l": "Matériau / essence",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "tps",
+     "l": "Temps passé sur site",
+     "u": "h"
+    },
+    {
+     "k": "delaiFab",
+     "l": "Date de livraison promise par le fabricant",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "vitrage",
+     "l": "Type de vitrage et épaisseur",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Fenêtres et portes-fenêtres",
+    "Portes",
+    "Volets et fermetures",
+    "Panneaux et bois",
+    "Parquet et sols",
+    "Quincaillerie",
+    "Joints et mousses",
+    "Escaliers",
+    "Colles et fixations",
+    "Vitrages et miroirs",
+    "Outillage"
+   ],
+   "documents": [
+    "Fiche de prise de cotes avec plan, photos et croquis",
+    "Bon de commande au fabricant",
+    "Procès-verbal de réception avec réserves",
+    "Attestation de TVA réduite à faire signer (à vérifier)"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Fiche de prise de cotes avec plan, photos et croquis",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Suivi commande, réception, pose : date promise par le fabricant, alerte de retard",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Catégories de produits de menuiserie à la place des catégories anti-nuisibles",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Procès-verbal de réception avec réserves, signé sur place",
+     "valeur": "moyenne",
+     "ref": "F4"
+    },
+    {
+     "fonction": "Attestation de TVA réduite à faire signer au client",
+     "valeur": "basse"
+    }
+   ],
+   "obligations": [],
+   "aVerifier": [
+    "Marquage CE des fenêtres, DTU de pose, TVA réduite avec attestation du client, garantie décennale : aucune recherche dédiée n'a été faite, rien n'est sourcé."
+   ],
+   "ajouts": {
+    "types": [
+     "Remplacement de vitrage",
+     "Dépannage bris de glace"
+    ],
+    "presta": [
+     "Croquis et plan joints à la prise de cotes",
+     "Réception de la commande du fabricant vérifiée"
+    ],
+    "releves": [
+     "Date de livraison promise par le fabricant",
+     "Type de vitrage et épaisseur"
+    ]
+   }
+  },
+  "peinture": {
+   "nom": "Peinture / Revêtements",
+   "ic": "🖌️",
+   "sous": "Intérieur · extérieur · sols",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "comptabilite",
+    "produits",
+    "pointage",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de chantiers du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve qui a fait quelle couche, dans quelle pièce, et à quelle date.",
+    "planning": "Des chantiers de quelques jours à quelques semaines : le planning enchaîne les équipes de deux à cinq peintres.",
+    "planningGeneral": "Voir toutes les équipes et tous les chantiers pour enchaîner sans trou.",
+    "taches": "Rappeler le client pour valider une teinte, commander un produit en rupture.",
+    "absences": "Une équipe de deux à cinq : un congé change la durée du chantier.",
+    "interventions": "Une fiche par chantier ou par pièce : surface, couches, teinte, photos.",
+    "rapports": "Un compte rendu avec photos avant et après, remis au client à la fin du chantier.",
+    "clients": "Particuliers, syndics, entreprises : adresse du chantier, teintes choisies, historique.",
+    "devis": "Un devis au m², pièce par pièce, avec le détail de la préparation.",
+    "assistantDevis": "Un devis dicté en faisant le tour des pièces.",
+    "factures": "Acompte au démarrage, solde à la réception.",
+    "comptabilite": "Suivre les acomptes au démarrage et les soldes à la réception.",
+    "produits": "Un catalogue de peintures avec leur rendement (m² par litre) pour calculer la quantité à commander.",
+    "pointage": "Les heures par chantier, pour vérifier que le devis au m² est tenu.",
+    "messagerie": "Le chef d'équipe envoie une photo de teinte ou d'un support abîmé au bureau.",
+    "fournisseurs": "Négoces de peinture : teintes à la demande, livrées ou prises au magasin.",
+    "bons": "Commander les peintures d'un chantier à date, et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos peintres et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le devis au m² part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires et les devis acceptés.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "carteInt": "Pour enchaîner plusieurs petits chantiers dans la semaine.",
+    "stock": "Pour les restes de pots et le matériel de protection.",
+    "mouvements": "Si vous voulez savoir qui a pris quels pots.",
+    "vehicules": "Le fourgon de chantier : assurance, kilométrage.",
+    "boiteMail": "Pour échanger avec les clients et les négoces depuis l'application."
+   },
+   "types": [
+    "Peinture intérieure",
+    "Peinture extérieure / façade",
+    "Revêtements muraux",
+    "Revêtements de sol",
+    "Préparation des supports",
+    "Ravalement",
+    "Traitement anti-humidité",
+    "Décoration",
+    "Retouches / reprises",
+    "Visite technique / devis",
+    "Visite avant travaux (amiante / plomb)"
+   ],
+   "presta": [
+    "Protection des sols et du mobilier",
+    "Lessivage",
+    "Rebouchage et ponçage",
+    "Impression / sous-couche",
+    "Première couche",
+    "Deuxième couche",
+    "Pose de papier peint / toile",
+    "Reprise des angles et raccords",
+    "Dépose des protections",
+    "Nettoyage du chantier",
+    "Vérification du repérage amiante ou du CREP avant ponçage",
+    "Fiche de teinte remise au client"
+   ],
+   "releves": [
+    {
+     "k": "surface",
+     "l": "Surface traitée",
+     "u": "m²"
+    },
+    {
+     "k": "couches",
+     "l": "Nombre de couches",
+     "u": ""
+    },
+    {
+     "k": "teinte",
+     "l": "Teinte / référence",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "tps",
+     "l": "Temps passé sur site",
+     "u": "h"
+    },
+    {
+     "k": "rendement",
+     "l": "Rendement du produit",
+     "u": "m²/L"
+    },
+    {
+     "k": "quantite",
+     "l": "Quantité de peinture utilisée",
+     "u": "L"
+    }
+   ],
+   "produits": [
+    "Peintures intérieures",
+    "Peintures extérieures et façades",
+    "Sous-couches et impressions",
+    "Enduits et rebouchage",
+    "Revêtements muraux (papier peint, toile)",
+    "Revêtements de sol",
+    "Lasures et vernis",
+    "Protection (bâches, adhésifs)",
+    "Outillage (rouleaux, pinceaux)",
+    "EPI"
+   ],
+   "documents": [
+    "Métré et devis au m²",
+    "Fiche de teinte par client (référence, nuancier)",
+    "Procès-verbal de réception"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Métré vers devis : surface par pièce, prestation, rendement, quantité de peinture à commander",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Avertissement amiante / plomb avant l'intervention (bâtiment d'avant 1997 ou logement d'avant 1949)",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Catégories de produits de peinture à la place des catégories anti-nuisibles",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Fiche de teinte par client pour les reprises ultérieures",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Procès-verbal de réception signé sur place",
+     "valeur": "moyenne",
+     "ref": "F4"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Amiante : repérage avant travaux dans les bâtiments dont le permis date d'avant 1997 ; le peintre est concerné dès qu'il ponce, gratte ou perce.",
+     "source": "https://www.ffbatiment.fr/techniques-batiment/reglementation-construction/reglementation-amiante-plomb-silice/dossier/amiante-reperage",
+     "fiabilite": "professionnelle"
+    },
+    {
+     "texte": "Plomb : le CREP est obligatoire pour les logements d'avant 1949.",
+     "source": "https://www.ffbatiment.fr/techniques-batiment/reglementation-construction/reglementation-amiante-plomb-silice/dossier/amiante-reperage",
+     "fiabilite": "professionnelle"
+    }
+   ],
+   "aVerifier": [
+    "Fiches de données de sécurité des peintures et solvants : non vérifié.",
+    "La phrase « le peintre est concerné dès qu'il ponce, gratte ou perce » est un raisonnement du rapport de recherche, la source citée (FFB) parle du repérage avant travaux, pas du geste du peintre."
+   ],
+   "ajouts": {
+    "types": [
+     "Visite avant travaux (amiante / plomb)"
+    ],
+    "presta": [
+     "Vérification du repérage amiante ou du CREP avant ponçage",
+     "Fiche de teinte remise au client"
+    ],
+    "releves": [
+     "Rendement du produit",
+     "Quantité de peinture utilisée"
+    ]
+   }
+  },
+  "paysagiste": {
+   "nom": "Paysagiste / Espaces verts",
+   "ic": "🌿",
+   "sous": "Entretien · création · élagage",
+   "existant": true,
+   "fusion": "Absorbe l'élagage (variante « arboriste » : même clientèle, mêmes véhicules, mêmes tournées).",
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "produits",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "secteurs",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de tournées du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve ce qui a été fait dans quel jardin et à quelle date : tonte, taille, traitement.",
+    "planning": "Entretien récurrent et créations se partagent les équipes : le planning suit la saison.",
+    "planningGeneral": "Toutes les équipes et toutes les tournées de la saison sur une page.",
+    "taches": "Rappeler un client avant la taille, commander des végétaux pour une plantation.",
+    "absences": "En pleine saison de tonte, une absence se voit tout de suite sur la tournée.",
+    "interventions": "Une fiche par passage ou par chantier : surface entretenue, haie taillée, déchets évacués, photos.",
+    "rapports": "Le compte rendu de passage ou de création remis au client avec photos.",
+    "carteInt": "Tournées saisonnières : enchaîner les jardins d'un même quartier.",
+    "clients": "Particuliers, copropriétés, entreprises : surface du jardin, accès, historique des passages.",
+    "devis": "Devis d'entretien annuel ou de création de jardin.",
+    "assistantDevis": "Un devis de création dicté en marchant dans le jardin.",
+    "factures": "Facturer l'entretien périodique et les chantiers de création.",
+    "contrats": "Entretien annuel avec passages périodiques : le cœur de l'activité récurrente.",
+    "produits": "Végétaux, engrais, terreau, paillage : un catalogue avec vos prix.",
+    "pointage": "Les heures par jardin pour vérifier qu'un forfait d'entretien est rentable.",
+    "vehicules": "Camionnettes, remorques, bennes : assurance, kilométrage, entretien.",
+    "messagerie": "Le chef d'équipe prévient le bureau d'un portail fermé ou d'un chantier qui déborde.",
+    "fournisseurs": "Pépinières, négoces d'engrais et de terreau, loueurs de matériel.",
+    "bons": "Commander les végétaux d'une création à date de livraison.",
+    "secteurs": "Découper les tournées par secteur.",
+    "utilisateurs": "Créez les comptes de vos jardiniers et vos chefs d'équipe et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le compte rendu de passage part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires par type de prestation.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "comptabilite": "Pour suivre les encaissements des contrats et des chantiers.",
+    "telecollecte": "Si vous encaissez les prestations ponctuelles sur place.",
+    "stock": "Pour les petits consommables (fil, lames, engrais en sacs).",
+    "mouvements": "Si vous voulez savoir qui a pris quels consommables.",
+    "conducteurs": "Plusieurs véhicules et plusieurs conducteurs : à tenir à jour.",
+    "boiteMail": "Pour répondre aux clients et aux pépinières depuis l'application."
+   },
+   "types": [
+    "Tonte",
+    "Taille de haies",
+    "Élagage / abattage",
+    "Débroussaillage",
+    "Entretien de massifs",
+    "Création de jardin",
+    "Plantation",
+    "Arrosage automatique",
+    "Ramassage des feuilles",
+    "Contrat d’entretien",
+    "Visite technique / devis",
+    "Abattage",
+    "Taille de haute tige"
+   ],
+   "presta": [
+    "Tonte et finitions",
+    "Taille",
+    "Désherbage",
+    "Scarification",
+    "Bêchage / griffage",
+    "Paillage",
+    "Plantation",
+    "Évacuation des déchets verts",
+    "Réglage de l’arrosage",
+    "Nettoyage du site",
+    "Utilisation de nacelle ou de grimpe",
+    "Évacuation en déchetterie ou sur plateforme"
+   ],
+   "releves": [
+    {
+     "k": "surface",
+     "l": "Surface entretenue",
+     "u": "m²"
+    },
+    {
+     "k": "haie",
+     "l": "Haie taillée",
+     "u": "ml"
+    },
+    {
+     "k": "dechets",
+     "l": "Déchets verts évacués",
+     "u": "m³"
+    },
+    {
+     "k": "tps",
+     "l": "Temps passé sur site",
+     "u": "h"
+    },
+    {
+     "k": "hauteurArbre",
+     "l": "Hauteur de l’arbre",
+     "u": "m"
+    },
+    {
+     "k": "nacelle",
+     "l": "Nacelle utilisée (oui / non)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "destDechets",
+     "l": "Destination des déchets verts (déchetterie, plateforme)",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Végétaux (arbres, arbustes, vivaces, gazon)",
+    "Terreaux et amendements",
+    "Engrais",
+    "Paillage et gravier",
+    "Produits phytosanitaires (réservés aux certifiés)",
+    "Arrosage (tuyaux, programmateurs)",
+    "Carburant et huile",
+    "Outillage et consommables (fil, lames)",
+    "EPI"
+   ],
+   "documents": [
+    "Compte rendu de passage",
+    "Fiche jardin (surface, haies, arbres, arrosage)",
+    "Suivi des déchets verts (volume, destination)",
+    "Attestation fiscale annuelle pour les particuliers (à vérifier)"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Tournées saisonnières : un contrat génère les passages selon la saison (tonte d'avril à octobre, taille en hiver)",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits de paysage à la place des catégories anti-nuisibles",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Fiche jardin : surface, haies, arbres, arrosage, particularités",
+     "valeur": "moyenne",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Suivi du Certiphyto par technicien, avec blocage des produits phytosanitaires pour les non-certifiés",
+     "valeur": "moyenne",
+     "ref": "F6"
+    },
+    {
+     "fonction": "Suivi des déchets verts : volume et destination (déchetterie ou plateforme)",
+     "valeur": "basse"
+    },
+    {
+     "fonction": "Attestation fiscale annuelle pour les particuliers",
+     "valeur": "basse"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Certiphyto si le paysagiste applique ou conseille des produits phytopharmaceutiques ; Certibiocide pour les produits biocides.",
+     "source": "https://bpifrance-creation.fr/activites-reglementees/paysagiste-entretien-despaces-verts-utilisation-produits",
+     "fiabilite": "professionnelle"
+    },
+    {
+     "texte": "La loi Labbé interdit les produits phytosanitaires dans les espaces verts publics ; un paysagiste privé travaillant pour des particuliers n'est pas directement visé. Les produits de biocontrôle, à faible risque ou utilisables en agriculture biologique restent autorisés.",
+     "source": "https://bpifrance-creation.fr/activites-reglementees/paysagiste-entretien-despaces-verts-utilisation-produits",
+     "fiabilite": "professionnelle"
+    },
+    {
+     "texte": "Interdiction de brûler les déchets verts pour les entreprises d'espaces verts : elles doivent les éliminer par des voies respectueuses de l'environnement ; des arrêtés préfectoraux locaux encadrent le brûlage.",
+     "source": "https://www.loire.gouv.fr/contenu/telechargement/14814/110342/file/20240404_Plaquette_brulage_air_libre2.pdf",
+     "fiabilite": "officielle"
+    }
+   ],
+   "aVerifier": [
+    "Attestation fiscale / crédit d'impôt services à la personne pour les particuliers : non confirmé, à vérifier sur impots.gouv.fr avant de coder.",
+    "Élagage : rien trouvé sur le CACES, le Certiphyto ou la DT-DICT."
+   ],
+   "ajouts": {
+    "types": [
+     "Abattage",
+     "Taille de haute tige"
+    ],
+    "presta": [
+     "Utilisation de nacelle ou de grimpe",
+     "Évacuation en déchetterie ou sur plateforme"
+    ],
+    "releves": [
+     "Hauteur de l’arbre",
+     "Nacelle utilisée (oui / non)",
+     "Destination des déchets verts (déchetterie, plateforme)"
+    ]
+   }
+  },
+  "couverture": {
+   "nom": "Couverture / Zinguerie",
+   "ic": "🏠",
+   "sous": "Toiture · gouttières · étanchéité",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "comptabilite",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de toitures du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve qui est monté sur quelle toiture, quand, et si la mise en sécurité a été faite.",
+    "planning": "Des urgences après tempête s'ajoutent à des chantiers plus longs : le planning répartit les équipes.",
+    "planningGeneral": "Toutes les équipes et tous les chantiers pour réagir vite après une tempête.",
+    "taches": "Rappeler un client pour fixer le montage de l'échafaudage, commander du zinc sur mesure.",
+    "absences": "Le travail en hauteur se fait à deux : une absence se voit avant de planifier.",
+    "interventions": "Une fiche par toiture : surface traitée, gouttière posée, hauteur de travail, photos, signature.",
+    "rapports": "Le rapport avec photos avant et après est la seule preuve pour un client qui ne peut pas monter voir.",
+    "clients": "Particuliers, syndics, assureurs : adresse, accès, historique des toitures traitées.",
+    "devis": "Devis de réparation ou de réfection, avec le détail des fournitures.",
+    "assistantDevis": "Un devis dicté depuis le pied de la toiture.",
+    "factures": "Acompte à la commande des matériaux, solde à la réception.",
+    "comptabilite": "Suivre les acomptes et les soldes encaissés chantier par chantier.",
+    "pointage": "Les heures par chantier de toiture, par personne.",
+    "vehicules": "Camion avec échelle ou nacelle : assurance, kilométrage, échéances.",
+    "messagerie": "Le couvreur envoie les photos de la toiture au bureau pour chiffrer sans remonter.",
+    "fournisseurs": "Négoces de couverture : tuiles, ardoises, zinc sur mesure.",
+    "bons": "Commander tuiles, ardoises et zinc avec une date de livraison.",
+    "utilisateurs": "Créez les comptes de vos couvreurs et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport avec photos part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires et les devis acceptés.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "carteInt": "Pour enchaîner plusieurs petites réparations dans la journée.",
+    "contrats": "Entretien annuel de toiture, démoussage : utile si vous avez des clients réguliers.",
+    "produits": "Un peu de petit matériel (crochets, vis) : un catalogue sert au devis.",
+    "stock": "Pour le petit matériel gardé en dépôt.",
+    "mouvements": "Si vous voulez savoir qui a pris quel matériel.",
+    "conducteurs": "Si plusieurs personnes conduisent les camions.",
+    "boiteMail": "Pour échanger avec les assureurs et les clients depuis l'application.",
+    "brouillon": "Le chef d'équipe prépare sa liste de fournitures.",
+    "demandes": "Le chef d'équipe demande, le patron suit la demande.",
+    "validations": "Le patron valide les commandes importantes.",
+    "commandes": "Suivre les livraisons de matériaux en cours."
+   },
+   "types": [
+    "Réparation de toiture",
+    "Recherche de fuite",
+    "Remplacement de tuiles / ardoises",
+    "Gouttières & descentes",
+    "Zinguerie",
+    "Démoussage & traitement",
+    "Étanchéité de toit-terrasse",
+    "Fenêtre de toit",
+    "Isolation des combles",
+    "Visite technique / devis",
+    "Dépannage après tempête",
+    "Réfection de toiture complète"
+   ],
+   "presta": [
+    "Mise en sécurité (échafaudage, harnais)",
+    "Inspection de la toiture",
+    "Remplacement d’éléments de couverture",
+    "Réfection des faîtages",
+    "Nettoyage des gouttières",
+    "Pose / soudure du zinc",
+    "Démoussage",
+    "Application d’hydrofuge",
+    "Évacuation des déchets",
+    "Nettoyage du chantier",
+    "Photos avant et après de la toiture",
+    "Contrôle des plaques fragiles",
+    "Vérification de la présence d'amiante (fibrociment, ardoises artificielles)"
+   ],
+   "releves": [
+    {
+     "k": "surface",
+     "l": "Surface traitée",
+     "u": "m²"
+    },
+    {
+     "k": "lineaire",
+     "l": "Gouttière / zinc posé",
+     "u": "ml"
+    },
+    {
+     "k": "hauteur",
+     "l": "Hauteur de travail",
+     "u": "m"
+    },
+    {
+     "k": "tps",
+     "l": "Temps passé sur site",
+     "u": "h"
+    },
+    {
+     "k": "garde",
+     "l": "Garde-corps ou protection collective en place (oui / non)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "amiante",
+     "l": "Toiture amiantée (oui / non)",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Tuiles",
+    "Ardoises",
+    "Zinc et gouttières",
+    "Fixations et crochets",
+    "Isolation (combles)",
+    "Étanchéité (membranes, bitume)",
+    "Fenêtres de toit",
+    "Produits de traitement (démoussant, hydrofuge)",
+    "Échafaudage et protection",
+    "EPI antichute"
+   ],
+   "documents": [
+    "Rapport d'intervention avec photos avant et après",
+    "Fiche de mise en sécurité (échafaudage, harnais)",
+    "Procès-verbal de réception"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Mise en sécurité obligatoire (case bloquante) avant de démarrer une intervention en toiture",
+     "valeur": "haute",
+     "ref": "F9"
+    },
+    {
+     "fonction": "Photos avant et après obligatoires : la toiture n'est pas vérifiable par le client",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Catégories de produits de couverture à la place des catégories anti-nuisibles",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Alerte amiante (toiture ancienne en fibrociment) avec contrôle de la formation du couvreur",
+     "valeur": "moyenne",
+     "ref": "F6"
+    },
+    {
+     "fonction": "Procès-verbal de réception signé sur place",
+     "valeur": "moyenne",
+     "ref": "F4"
+    },
+    {
+     "fonction": "Rappel d'entretien annuel (démoussage, gouttières)",
+     "valeur": "basse",
+     "ref": "F3"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Travaux sur toiture : garde-corps sur les échafaudages de toiture (article R4534-86 du Code du travail) ; à défaut, protection collective équivalente, et seulement si elle est impossible, un système d'arrêt de chute.",
+     "source": "https://content.preventionbtp.fr/pdf/droit_de_la_prevention/article-r4534-86-du-code-du-travail-travaux-sur-toiture.pdf",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Les toitures en plaques fragiles représentent près de 30 % des chutes de hauteur, et une sur trois est mortelle.",
+     "source": "https://content.preventionbtp.fr/pdf/droit_de_la_prevention/article-r4534-86-du-code-du-travail-travaux-sur-toiture.pdf",
+     "fiabilite": "professionnelle"
+    },
+    {
+     "texte": "Amiante (fibrociment, ardoises artificielles) : intervention possible seulement avec la formation Amiante sous-section 4 ; fournir son échafaudage à un particulier qui désamiante peut être retenu comme participation à l'exposition.",
+     "source": "https://pays-de-la-loire.dreets.gouv.fr/sites/pays-de-la-loire.dreets.gouv.fr/IMG/pdf/travaux_de_remplacement_d_une_couverture_amiantee.pdf",
+     "fiabilite": "officielle"
+    }
+   ],
+   "aVerifier": [
+    "Garantie décennale, DTU 40 et réception : la recherche n'a rien donné de sourcé."
+   ],
+   "ajouts": {
+    "types": [
+     "Dépannage après tempête",
+     "Réfection de toiture complète"
+    ],
+    "presta": [
+     "Photos avant et après de la toiture",
+     "Contrôle des plaques fragiles",
+     "Vérification de la présence d'amiante (fibrociment, ardoises artificielles)"
+    ],
+    "releves": [
+     "Garde-corps ou protection collective en place (oui / non)",
+     "Toiture amiantée (oui / non)"
+    ]
+   }
+  },
+  "multiservices": {
+   "nom": "Multiservices / Maintenance",
+   "ic": "🛠️",
+   "sous": "Petits travaux · maintenance · contrats",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "pointage",
+    "vehicules",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de petits travaux du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Un technicien polyvalent touche à tout : l'historique garde ce qui a été fait chez chaque client.",
+    "planning": "Beaucoup de petites interventions dans la journée : le planning les enchaîne.",
+    "planningGeneral": "Un ou deux techniciens, mais plusieurs clients à la fois : tout sur une page.",
+    "taches": "Rappeler un client pour une pièce commandée, repasser finir un petit travail.",
+    "absences": "Avec un ou deux techniciens, une absence change toute la semaine.",
+    "interventions": "Une fiche par petit travail : ce qui a été fait, les pièces fournies, le temps passé, la signature.",
+    "rapports": "Un bon d'intervention clair remis au client à chaque passage.",
+    "carteInt": "Enchaîner les petites interventions du jour sans retours inutiles.",
+    "clients": "Particuliers, copropriétés, commerces : chacun avec son adresse et l'historique de ce qu'on a fait chez lui.",
+    "devis": "Un devis de dépannage avant d'agir, comme l'exige le dépannage à domicile.",
+    "assistantDevis": "Un devis dicté sur place pour un petit travail.",
+    "factures": "Facturer en sortant, avec la note détaillée.",
+    "contrats": "Les contrats de maintenance donnent un revenu régulier aux petites structures.",
+    "pointage": "Le temps réellement passé par intervention, pour fixer des prix justes.",
+    "vehicules": "Le véhicule est l'atelier : assurance, kilométrage, entretien.",
+    "messagerie": "Le technicien demande au bureau une pièce ou un avis pendant l'intervention.",
+    "utilisateurs": "Créez les comptes de vos techniciens polyvalents et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le bon d'intervention part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "comptabilite": "Pour suivre les encaissements.",
+    "telecollecte": "Pour les petites interventions payées sur place.",
+    "produits": "Petites pièces : un catalogue sert au devis.",
+    "stock": "Pour les petites pièces gardées dans le véhicule.",
+    "mouvements": "Si vous voulez savoir qui a pris quelles pièces.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
+    "boiteMail": "Pour répondre aux clients depuis l'application.",
+    "fournisseurs": "Pour vos commandes ponctuelles.",
+    "bons": "Pour vos commandes ponctuelles.",
+    "secteurs": "Si vous découpez votre zone entre plusieurs techniciens."
+   },
+   "types": [
+    "Petits travaux",
+    "Maintenance préventive",
+    "Dépannage",
+    "Plomberie simple",
+    "Électricité simple",
+    "Montage / installation",
+    "Remplacement de pièce",
+    "Contrat de maintenance",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Diagnostic",
+    "Réparation",
+    "Remplacement de pièce",
+    "Réglage",
+    "Montage",
+    "Fixation",
+    "Contrôle du bon fonctionnement",
+    "Explications au client",
+    "Nettoyage du chantier",
+    "Liste des pièces fournies",
+    "Taux horaire et frais de déplacement annoncés avant l'intervention",
+    "Pièces remplacées proposées au client"
+   ],
+   "releves": [
+    {
+     "k": "tps",
+     "l": "Temps passé sur site",
+     "u": "h"
+    },
+    {
+     "k": "materiel",
+     "l": "Pièces / matériel fournis",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Plomberie simple",
+    "Électricité simple",
+    "Quincaillerie et fixations",
+    "Peinture et petites réparations",
+    "Serrurerie simple",
+    "Consommables",
+    "Outillage",
+    "EPI"
+   ],
+   "documents": [
+    "Bon d'intervention signé",
+    "Devis de dépannage",
+    "Liste des pièces fournies",
+    "Contrat de maintenance avec rappel"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Contrat de maintenance avec rappel d'échéance (même moteur que le chauffage)",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Devis de dépannage conforme à l'arrêté de 2017",
+     "valeur": "haute",
+     "ref": "F8"
+    },
+    {
+     "fonction": "Liste des pièces fournies liée au stock",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Catégories de produits génériques de pièces",
+     "valeur": "moyenne",
+     "ref": "F7"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Dépannage à domicile : information préalable, devis détaillé avant travaux, note détaillée au-delà de 25 € TTC (arrêté du 24 janvier 2017).",
+     "source": "https://www.economie.gouv.fr/dgccrf/les-fiches-pratiques/plomberie-serrurerie-chauffage-choisir-le-bon-professionnel-pour-un-depannage-domicile",
+     "fiabilite": "officielle"
+    }
+   ],
+   "aVerifier": [
+    "Crédit d'impôt services à la personne pour les prestations aux particuliers : non vérifié.",
+    "Aucune obligation n'est propre au métier : il se rattache à celles du lot réalisé (électricité, plomberie)."
+   ],
+   "ajouts": {
+    "types": [],
+    "presta": [
+     "Liste des pièces fournies",
+     "Taux horaire et frais de déplacement annoncés avant l'intervention",
+     "Pièces remplacées proposées au client"
+    ],
+    "releves": []
+   }
+  },
+  "autre": {
+   "nom": "Autre métier de terrain",
+   "ic": "🧰",
+   "sous": "Interventions · entretien · dépannage",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "pointage",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Retrouver qui a fait quoi, chez quel client, et quand.",
+    "planning": "Qui intervient où et quand, quel que soit votre métier.",
+    "planningGeneral": "Toute l'équipe sur une page pour voir les trous et les doublons.",
+    "taches": "Une liste de choses à faire avec échéance pour ne rien oublier.",
+    "absences": "Congés et absences, pour planifier sans erreur.",
+    "interventions": "Une fiche par passage chez un client : date, technicien, photos, signature, compte rendu.",
+    "rapports": "Un rapport PDF à remettre à chaque client, avec photos et signature.",
+    "clients": "Votre fichier clients avec leurs adresses et l'historique de ce que vous avez fait chez eux.",
+    "devis": "Des devis professionnels envoyés en PDF.",
+    "assistantDevis": "Dicter un devis plutôt que le taper.",
+    "factures": "Facturer et suivre les paiements.",
+    "pointage": "Les heures de chacun, base de la paie.",
+    "messagerie": "Échanger avec l'équipe sans passer par vos téléphones personnels.",
+    "utilisateurs": "Créez les comptes de votre équipe et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport d'intervention part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre votre chiffre d'affaires.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "carteInt": "Si vous avez des tournées : les interventions du jour sur une carte.",
+    "contrats": "Si vous avez des contrats d'entretien avec des passages réguliers.",
+    "comptabilite": "Pour suivre vos encaissements.",
+    "telecollecte": "Si vous encaissez sur place.",
+    "produits": "Si vous vendez ou utilisez des fournitures que vous voulez chiffrer.",
+    "stock": "Si vous gardez du matériel ou des pièces en réserve.",
+    "mouvements": "Si vous voulez tracer qui prend quoi dans le stock.",
+    "vehicules": "Si vous avez des véhicules à suivre.",
+    "conducteurs": "Si plusieurs personnes conduisent vos véhicules.",
+    "boiteMail": "Pour répondre à vos clients depuis l'application.",
+    "fournisseurs": "Si vous commandez régulièrement chez les mêmes fournisseurs.",
+    "bons": "Si vous envoyez des bons de commande.",
+    "brouillon": "Si vos techniciens préparent des demandes de matériel.",
+    "demandes": "Si vos techniciens demandent du matériel à un responsable.",
+    "validations": "Si un responsable valide les sorties de matériel.",
+    "commandes": "Si vous suivez des commandes en cours.",
+    "secteurs": "Si vous découpez votre zone entre plusieurs techniciens."
+   },
+   "types": [
+    "Intervention",
+    "Dépannage",
+    "Entretien",
+    "Installation",
+    "Contrôle / vérification",
+    "Réparation",
+    "Contrat d’entretien",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Diagnostic",
+    "Intervention réalisée",
+    "Remplacement de pièce",
+    "Réglage",
+    "Essai et contrôle",
+    "Explications au client",
+    "Nettoyage du chantier"
+   ],
+   "releves": [
+    {
+     "k": "tps",
+     "l": "Temps passé sur site",
+     "u": "h"
+    },
+    {
+     "k": "materiel",
+     "l": "Matériel utilisé",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Pièces et fournitures",
+    "Consommables",
+    "Outillage",
+    "EPI"
+   ],
+   "documents": [
+    "Rapport d'intervention",
+    "Devis",
+    "Facture"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Catégories de produits neutres, à compléter par le client",
+     "valeur": "moyenne",
+     "ref": "F7"
+    }
+   ],
+   "obligations": [],
+   "aVerifier": [
+    "Aucune obligation n'est propre à ce réglage : le métier n'est pas connu."
+   ],
+   "ajouts": {
+    "types": [],
+    "presta": [],
+    "releves": []
+   },
+   "note": "Le réglage neutre : il ne parle ni de nuisibles ni d'un métier qu'on ne connaît pas. Le socle seul est coché ; tout le reste est proposé et expliqué, le client coche ce dont il se sert."
+  },
+  "incendie": {
+   "nom": "Sécurité incendie",
+   "ic": "🧯",
+   "sous": "Extincteurs · désenfumage · RIA · alarme incendie",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de vérifications du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Chaque vérification engage votre responsabilité : on retrouve qui a contrôlé quel appareil, et quand.",
+    "planning": "Les vérifications reviennent chaque année à la date anniversaire : le planning répartit les tournées.",
+    "planningGeneral": "Toutes les tournées de vérification de la saison sur une page, pour les équilibrer entre techniciens.",
+    "taches": "Relancer un client qui n'a pas levé les observations d'un rapport, commander des appareils de remplacement.",
+    "absences": "Les tournées annuelles sont fixes : une absence se voit avant qu'une échéance de client soit dépassée.",
+    "interventions": "Une fiche par site vérifié : appareils contrôlés, anomalies relevées, photos.",
+    "rapports": "Le rapport de vérification est le livrable : il part au client, qui le montre à son assureur.",
+    "carteInt": "Regrouper les vérifications annuelles par quartier.",
+    "clients": "Un client a plusieurs bâtiments ; chaque site porte ses appareils et ses échéances.",
+    "devis": "Un devis de remplacement ou de mise en conformité après chaque rapport de vérification.",
+    "assistantDevis": "Un devis de remplacement dicté en fin de tournée.",
+    "factures": "Facturer la vérification annuelle et les remplacements.",
+    "contrats": "Le contrat annuel de vérification est le cœur du métier : sa date d'échéance fixe la prochaine tournée.",
+    "produits": "Extincteurs neufs, recharges, joints, scellés, étiquettes : votre catalogue de pièces.",
+    "stock": "Appareils de remplacement et consommables embarqués dans le camion.",
+    "mouvements": "Tracer quel appareil de remplacement a été posé chez quel client.",
+    "pointage": "Les heures par site vérifié, pour chiffrer un contrat annuel au juste prix.",
+    "vehicules": "Le camion transporte des appareils de remplacement : assurance, kilométrage, entretien.",
+    "messagerie": "Le vérificateur signale au bureau un appareil à remplacer d'urgence.",
+    "fournisseurs": "Constructeurs et revendeurs de pièces et d'appareils.",
+    "bons": "Commander appareils et pièces, et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos vérificateurs et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport de vérification part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires par type de vérification.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "registre": "Un registre de sécurité par site : à ouvrir dès que le registre sera rendu utilisable hors anti-nuisibles.",
+    "comptabilite": "Pour suivre les règlements des contrats annuels.",
+    "conducteurs": "Si plusieurs personnes conduisent les camions.",
+    "boiteMail": "Pour envoyer les rapports et relancer les clients depuis l'application.",
+    "secteurs": "Pour répartir les zones de tournée entre vérificateurs."
+   },
+   "types": [
+    "Vérification annuelle des extincteurs",
+    "Vérification du désenfumage",
+    "Vérification des RIA (robinets d'incendie armés)",
+    "Vérification de l'alarme incendie",
+    "Remplacement ou recharge",
+    "Installation",
+    "Dépannage urgent",
+    "Formation du personnel (extincteurs, évacuation)",
+    "Contrat de vérification annuelle",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Contrôle visuel",
+    "Test de fonctionnement",
+    "Vérification du manomètre",
+    "Remplacement du scellé",
+    "Recharge",
+    "Remplacement d'appareil",
+    "Pose de l'étiquette de vérification",
+    "Mise à jour du plan de situation des appareils"
+   ],
+   "releves": [
+    {
+     "k": "agent",
+     "l": "Type d'agent (eau, poudre, CO₂)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "capacite",
+     "l": "Capacité",
+     "u": "kg ou L"
+    },
+    {
+     "k": "serie",
+     "l": "N° de série",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "annee",
+     "l": "Année de fabrication",
+     "u": ""
+    },
+    {
+     "k": "recharge",
+     "l": "Date de dernière recharge",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "manometre",
+     "l": "État du manomètre",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "scelle",
+     "l": "État du scellé",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "etat",
+     "l": "État visuel",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "resultat",
+     "l": "Résultat (conforme / non conforme / remplacé)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "nbAppareils",
+     "l": "Nombre d'appareils vérifiés",
+     "u": ""
+    }
+   ],
+   "produits": [
+    "Extincteurs portatifs",
+    "Extincteurs mobiles",
+    "Agents extincteurs (poudre, eau, CO₂)",
+    "Pièces détachées",
+    "Signalétique",
+    "Accessoires de désenfumage"
+   ],
+   "documents": [
+    "Rapport de vérification périodique (une ligne par appareil)",
+    "Étiquette ou vignette de vérification",
+    "Devis de remplacement",
+    "Attestation de formation"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Parc d'appareils par site avec numérotation et code QR par appareil",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Scan du code QR ou du numéro pour ouvrir la fiche de l'appareil sur le téléphone",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Rapport PDF groupé par site : résultat et anomalies de chaque appareil",
+     "valeur": "haute",
+     "ref": "F12"
+    },
+    {
+     "fonction": "Tournées planifiées à la date anniversaire du contrat",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits de sécurité incendie",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Plan de situation des appareils sur le site (réutiliser le dessin de plans des PDF existants)",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Registre rebaptisé « Registre de sécurité » et détaché de l'anti-nuisibles",
+     "valeur": "moyenne",
+     "ref": "F13"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Les extincteurs doivent être entretenus (Code du travail, art. R. 4227-29). La norme NF S 61-919 distingue l'inspection (faite par l'utilisateur, tous les trois mois, idéalement chaque mois) de la maintenance (faite par une personne compétente). Le rapport de vérification périodique est à transmettre au client sous un mois, en trois exemplaires dont un pour l'assureur.",
+     "source": "https://www.mapa-assurances.fr/mag/extincteurs-incendie-verifications-annuelles",
+     "fiabilite": "secondaire",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Vérification annuelle des extincteurs en établissement recevant du public : article MS 30 de l'arrêté du 25 juin 1980.",
+     "source": "https://mapa.aji-france.com/mapa/file/marche/105589/r%C3%A9glement%20de%20consultation%20extincteurs.pdf",
+     "fiabilite": "secondaire",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Désenfumage : vérification chaque année par un technicien compétent (article DF 10 de l'arrêté du 25 juin 1980) ; les observations des rapports se lèvent sous 6 mois (article GE 9).",
+     "source": "https://auxerre.fr/content/download/27480/257570/file/2024-DSATM-379+ERP+-+Pr%C3%A9fecture-tampon.pdf",
+     "fiabilite": "secondaire",
+     "aConfirmer": true
+    }
+   ],
+   "aVerifier": [
+    "Les articles MS 30, DF 10 et GE 9 sont cités par des documents locaux (cahier des charges, arrêté municipal) : lire le texte officiel complet sur Légifrance avant de les écrire dans l'application.",
+    "APSAD R4 est un référentiel d'assurance, pas un texte officiel (source faible, un forum).",
+    "Code NAF et chiffres de marché : à chiffrer via l'INSEE."
+   ],
+   "rang": 1,
+   "depend": "parc",
+   "marche": {
+    "texte": "Chiffre non trouvé. Un CAP « agent vérificateur d'appareils extincteurs » existe, ce qui signale un métier structuré.",
+    "source": "https://www.cidj.com/metiers/agent-verificateur-agente-verificatrice-d-appareils-extincteurs"
+   },
+   "pourquoiApp": "Des centaines de petits appareils par site, vérifiés chaque année, avec un rapport écrit à remettre : sur papier ou sur tableur, chaque tournée coûte du temps."
+  },
+  "froid": {
+   "nom": "Froid commercial / Frigoriste",
+   "ic": "❄️",
+   "sous": "Chambres froides · vitrines · groupes · fluides frigorigènes",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme d'entretiens et d'urgences du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Une fiche de fluide se conserve 5 ans : on retrouve qui est intervenu sur quel équipement, et quand.",
+    "planning": "Entretiens programmés et pannes de chambre froide, qui n'attendent pas : le planning les range.",
+    "planningGeneral": "Toutes les équipes et les astreintes sur une page, pour envoyer quelqu'un vite quand une chambre froide lâche.",
+    "taches": "Rappeler un restaurateur avant l'échéance du contrôle d'étanchéité, commander un compresseur.",
+    "absences": "Une panne de froid est une urgence pour le client : une absence se voit avant l'astreinte.",
+    "interventions": "Une fiche par équipement : température, pressions, fluide chargé ou récupéré, résultat du contrôle.",
+    "rapports": "La fiche d'intervention et le compte rendu remis au client, au nom de la bonne société.",
+    "carteInt": "Enchaîner les entretiens et les urgences de la journée.",
+    "clients": "Restaurants, commerces alimentaires, laboratoires : chaque site porte ses équipements de froid.",
+    "devis": "Devis de remplacement de compresseur, de chambre froide ou de groupe.",
+    "assistantDevis": "Un devis dicté devant l'installation.",
+    "factures": "Facturer le contrat d'entretien, les dépannages et les remplacements.",
+    "contrats": "Les contrats d'entretien fixent les visites et les contrôles d'étanchéité de chaque client.",
+    "produits": "Fluides frigorigènes, compresseurs, détendeurs, filtres déshydrateurs : votre catalogue de pièces.",
+    "stock": "Le stock de fluide est central : bouteilles par fluide, pièces d'usure dans le véhicule.",
+    "mouvements": "Tracer les quantités de fluide sorties, chargées et récupérées, bouteille par bouteille.",
+    "pointage": "Heures d'intervention et d'astreinte de chaque frigoriste.",
+    "vehicules": "Le véhicule porte les bouteilles de fluide : assurance, kilométrage, échéances.",
+    "messagerie": "Le technicien demande au bureau un compresseur ou une référence de fluide.",
+    "fournisseurs": "Grossistes en froid, fabricants, fournisseurs de fluides frigorigènes.",
+    "bons": "Commander compresseurs, fluides et pièces électriques, et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos frigoristes et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : la fiche d'intervention fluide part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires par type d'intervention.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "registre": "Un registre par équipement : à ouvrir dès que le registre sera rendu utilisable hors anti-nuisibles.",
+    "comptabilite": "Pour suivre les règlements des contrats et des dépannages.",
+    "telecollecte": "Si vous encaissez les dépannages sur place.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
+    "boiteMail": "Pour relancer les clients dont le contrôle arrive à échéance.",
+    "brouillon": "À partir de trois techniciens : chacun prépare sa liste de pièces.",
+    "demandes": "Le technicien demande un compresseur ou une bouteille de fluide, le responsable suit.",
+    "validations": "Le responsable valide les sorties de fluide frigorigène.",
+    "commandes": "Suivre les commandes de pièces en route.",
+    "secteurs": "Pour répartir les zones d'entretien entre frigoristes."
+   },
+   "types": [
+    "Mise en service",
+    "Contrôle d'étanchéité",
+    "Maintenance préventive",
+    "Dépannage urgent",
+    "Charge ou récupération de fluide",
+    "Remplacement de compresseur",
+    "Nettoyage de condenseur",
+    "Installation",
+    "Contrat d'entretien",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Contrôle des températures de consigne",
+    "Contrôle des pressions haute et basse",
+    "Recherche de fuite (détecteur)",
+    "Contrôle du système permanent de détection de fuite",
+    "Récupération et pesée du fluide",
+    "Remplacement du filtre déshydrateur",
+    "Nettoyage du condenseur",
+    "Contrôle des organes électriques",
+    "Pose de la vignette de contrôle d'étanchéité"
+   ],
+   "releves": [
+    {
+     "k": "fluideType",
+     "l": "Fluide frigorigène (ex. R452A)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "charge",
+     "l": "Charge totale",
+     "u": "kg"
+    },
+    {
+     "k": "prp",
+     "l": "PRP du fluide (plaque signalétique)",
+     "u": ""
+    },
+    {
+     "k": "tco2",
+     "l": "Équivalent CO₂ de la charge (PRP × charge / 1000)",
+     "u": "t"
+    },
+    {
+     "k": "fluideCharge",
+     "l": "Quantité de fluide chargée",
+     "u": "kg"
+    },
+    {
+     "k": "fluideRecup",
+     "l": "Quantité de fluide récupérée",
+     "u": "kg"
+    },
+    {
+     "k": "tconsigne",
+     "l": "Température de consigne",
+     "u": "°C"
+    },
+    {
+     "k": "tdepart",
+     "l": "Température de départ",
+     "u": "°C"
+    },
+    {
+     "k": "phaute",
+     "l": "Pression haute",
+     "u": "bar"
+    },
+    {
+     "k": "pbasse",
+     "l": "Pression basse",
+     "u": "bar"
+    },
+    {
+     "k": "etanch",
+     "l": "Résultat du contrôle d'étanchéité",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "prochain",
+     "l": "Date du prochain contrôle",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "contenant",
+     "l": "Identifiant de la bouteille ou du contenant",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "bordereau",
+     "l": "N° de bordereau de suivi des déchets de fluide (Trackdéchets)",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Fluides frigorigènes (par type)",
+    "Compresseurs",
+    "Détendeurs",
+    "Filtres déshydrateurs",
+    "Pièces électriques",
+    "Isolants"
+   ],
+   "documents": [
+    "Fiche d'intervention fluide (rubriques du Cerfa 15497*04, sans prétendre le remplacer)",
+    "Étiquette de contrôle d'étanchéité",
+    "Registre d'équipement",
+    "Déclaration annuelle des quantités de fluide"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Module « fluides » commun avec le chauffage : charge, récupération, périodicité du contrôle selon la charge, n° de bordereau",
+     "valeur": "haute",
+     "ref": "F11"
+    },
+    {
+     "fonction": "Parc d'équipements du client (chambres froides, groupes, vitrines) avec échéances",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Rappel d'échéance de contrat et de contrôle d'étanchéité",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Suivi des bouteilles de fluide : stock par fluide et par contenant",
+     "valeur": "haute",
+     "ref": "F1"
+    },
+    {
+     "fonction": "Catégories de produits de froid",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Alertes d'échéance des attestations d'aptitude des techniciens",
+     "valeur": "moyenne",
+     "ref": "F6"
+    },
+    {
+     "fonction": "Déclaration annuelle des quantités acquises, chargées, récupérées et cédées",
+     "valeur": "moyenne"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Règlement (UE) 2024/573 « F-gas », applicable depuis le 11 mars 2024 ; transposé aux articles R. 543-75 et suivants du Code de l'environnement.",
+     "source": "https://www.ffbatiment.fr/actualites-batiment/actualite-bam/gaz-fluores-rappel-dispositions-essentielles-reglement-europeen-f-gas-iii",
+     "fiabilite": "professionnelle",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Contrôle d'étanchéité HFC/PFC selon le tonnage équivalent CO₂ : de 5 à 50 t annuel ; de 50 à 500 t semestriel ; au-delà de 500 t trimestriel ; intervalle doublé avec détection permanente. Vignette bleue ou rouge après le contrôle.",
+     "source": "https://www.ffbatiment.fr/techniques-batiment/equipements-techniques/chauffage-ventilation-climatisation/dossier-bam/de-nouvelles-regles-de-controle-d-etancheite-pour-les-equipements-contenant-des-hfc",
+     "fiabilite": "professionnelle"
+    },
+    {
+     "texte": "Fiche d'intervention fluides frigorigènes (Cerfa 15497*04) : une par opération et par équipement, conservée 5 ans ; HFO seuls : 12, 6 ou 3 mois selon la charge, doublés avec détection.",
+     "source": "https://capeb.fr/www/capeb/media/var/document/notice%20fiche%20d%20intervention%20fluides%20frigorigenes.pdf",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Attestation de capacité de l'entreprise (cinq ans maximum) et attestation d'aptitude de chaque technicien, étendue aux HFO ; modèle à l'annexe IV de l'arrêté du 21 novembre 2025.",
+     "source": "https://aida.ineris.fr/reglementation/arrete-211125-relatif-a-delivrance-attestations-capacite-operateurs-prevues-a",
+     "fiabilite": "officielle",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Déclaration annuelle des quantités acquises, chargées, récupérées et cédées, avec les stocks au 1er janvier et au 31 décembre (synthèse d'une source professionnelle).",
+     "source": "https://www.occitanie.developpement-durable.gouv.fr/IMG/pdf/20250319-presentationfff-da-pluscomplete.pdf",
+     "fiabilite": "officielle",
+     "aConfirmer": true
+    }
+   ],
+   "aVerifier": [
+    "Les arrêtés de 2016 (étanchéité) et de 2008 (attestations) étaient en cours de révision en 2025 : lire les versions en vigueur avant de coder une périodicité.",
+    "Seuils exacts de la déclaration annuelle : à confirmer sur Légifrance."
+   ],
+   "rang": 2,
+   "depend": "fluides",
+   "marche": {
+    "texte": "Chiffre non trouvé pour le froid seul. Pour le chauffage et la climatisation : environ 27 400 entreprises artisanales d'eau et de gaz et 15 800 d'équipements thermiques et de climatisation (CAPEB, 2013, hors auto-entrepreneurs : ancien).",
+    "source": "https://conseils.xpair.com/actualite_thermpresse/solaire-thermique-pac-bois-energie.htm"
+   },
+   "pourquoiApp": "Chambres froides, vitrines et groupes de restaurants, commerces alimentaires et laboratoires : des contrats, des fluides à tracer et des contrôles d'étanchéité à dates fixes."
+  },
+  "ascenseurs": {
+   "nom": "Ascenseurs",
+   "ic": "🛗",
+   "sous": "Maintenance · visites périodiques · dépannage · mise en sécurité",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de visites du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Chaque visite se consigne : on retrouve qui a contrôlé quel appareil, et quand.",
+    "planning": "Une visite toutes les six semaines par appareil : le planning enchaîne les tournées.",
+    "planningGeneral": "Toutes les tournées et les astreintes sur une page pour qu'aucune échéance ne saute.",
+    "taches": "Relancer un syndic sur un devis de modernisation, suivre la levée des observations d'un contrôle technique.",
+    "absences": "Les astreintes de dépannage se préparent : un congé se voit avant d'attribuer la semaine.",
+    "interventions": "Une fiche par visite ou par dépannage : appareil, étage, constat, photos, signature.",
+    "rapports": "Le compte rendu de visite remis au syndic ou au gestionnaire.",
+    "carteInt": "Enchaîner les visites d'une même zone dans une tournée.",
+    "clients": "Syndics, bailleurs, gestionnaires : chaque immeuble porte ses appareils et leur contrat.",
+    "devis": "Devis de modernisation ou de remplacement de pièces.",
+    "assistantDevis": "Un devis de modernisation dicté sur place.",
+    "factures": "Facturer l'entretien périodique et les dépannages.",
+    "contrats": "Le contrat d'entretien est le cœur du métier : sa périodicité fixe les visites.",
+    "produits": "Câbles, galets, contacts, cartes électroniques, pièces de portes : votre catalogue de pièces.",
+    "stock": "Les pièces d'usure à avoir dans le véhicule avant de partir en dépannage.",
+    "mouvements": "Tracer quelle pièce a été posée sur quel appareil.",
+    "pointage": "Heures de visite et d'astreinte, par technicien.",
+    "vehicules": "Le véhicule de tournée et d'astreinte : assurance, kilométrage, entretien.",
+    "messagerie": "L'astreinte reçoit une personne bloquée : le bureau envoie l'adresse en un message.",
+    "fournisseurs": "Fabricants et revendeurs de pièces d'ascenseur.",
+    "bons": "Commander des pièces et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos techniciens d'ascenseurs et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le compte rendu de visite part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires par contrat.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "registre": "Un carnet d'entretien par appareil : à ouvrir dès que le registre sera rendu utilisable hors anti-nuisibles.",
+    "comptabilite": "Pour suivre les règlements des contrats, souvent importants.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules d'astreinte.",
+    "boiteMail": "Pour échanger avec les syndics depuis l'application.",
+    "brouillon": "Le technicien prépare sa liste de pièces.",
+    "demandes": "Le technicien demande une pièce, le responsable suit la demande.",
+    "validations": "Le responsable valide les pièces coûteuses.",
+    "commandes": "Suivre les commandes de pièces en route.",
+    "secteurs": "Pour répartir les immeubles entre techniciens."
+   },
+   "types": [
+    "Visite d'entretien",
+    "Dépannage (appel de personne bloquée)",
+    "Mise en sécurité",
+    "Modernisation",
+    "Remise en service",
+    "Visite de contrôle",
+    "Contrat d'entretien",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Test de l'interphone",
+    "Test de l'arrêt d'urgence",
+    "Contrôle des portes palières et de cabine",
+    "Contrôle des câbles",
+    "Graissage",
+    "Remplacement d'une pièce d'usure",
+    "Remise en service après arrêt",
+    "Report dans le carnet d'entretien"
+   ],
+   "releves": [
+    {
+     "k": "appareil",
+     "l": "N° de l'appareil",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "etages",
+     "l": "Étages desservis",
+     "u": ""
+    },
+    {
+     "k": "charge",
+     "l": "Charge nominale",
+     "u": "kg"
+    },
+    {
+     "k": "cables",
+     "l": "État du câblage",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "portes",
+     "l": "État des portes",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "interphone",
+     "l": "Test de l'interphone (bon / défaillant)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "arretUrgence",
+     "l": "Test de l'arrêt d'urgence (bon / défaillant)",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Câbles",
+    "Galets",
+    "Contacts",
+    "Cartes électroniques",
+    "Huiles",
+    "Pièces de portes"
+   ],
+   "documents": [
+    "Compte rendu de visite",
+    "Carnet d'entretien (par appareil)",
+    "Suivi du rapport de contrôle technique"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Parc d'appareils par immeuble avec numéro d'appareil, étages, charge et contrat",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Planification automatique à intervalle fixe de six semaines",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits d'ascenseur",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Astreinte d'urgence (qui est d'astreinte, appel d'une personne bloquée)",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Carnet d'entretien exportable par appareil",
+     "valeur": "moyenne",
+     "ref": "F12"
+    },
+    {
+     "fonction": "Suivi du rapport de contrôle technique quinquennal et de la levée des observations",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Habilitations et formations des techniciens avec échéance",
+     "valeur": "moyenne",
+     "ref": "F6"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Loi n° 2003-590 du 2 juillet 2003, art. 79 : mise en sécurité des appareils installés avant le 24 août 2000 (par tranches jusqu'en 2018), contrat d'entretien obligatoire, contrôle technique périodique (quinquennal).",
+     "source": "https://www.assemblee-nationale.fr/dyn/15/questions/QANR5L15QE15789.pdf",
+     "fiabilite": "officielle",
+     "aConfirmer": true
+    },
+    {
+     "texte": "L'arrêté du 18 novembre 2004 et le décret du 7 mai 2012 précisent les opérations d'entretien et fixent une visite toutes les six semaines.",
+     "source": "https://www.futura-sciences.com/maison/questions-reponses/batiment-assurer-maintenance-ascenseurs-16855/",
+     "fiabilite": "secondaire",
+     "aConfirmer": true
+    }
+   ],
+   "aVerifier": [
+    "Sources anciennes : confirmer les textes et la périodicité sur Légifrance avant de coder."
+   ],
+   "rang": 3,
+   "depend": "parc",
+   "marche": {
+    "texte": "Environ 600 000 appareils, dont la moitié a plus de 25 ans (Fédération des ascenseurs) ; estimations plus anciennes de 420 000 à 570 000 ; 78 227 contrôles quinquennaux réalisés en 2018.",
+    "source": "https://questions.assemblee-nationale.fr/dyn/15/questions/QANR5L15QE15789.pdf"
+   },
+   "pourquoiApp": "Chaque ascenseur a un contrat d'entretien avec une visite toutes les six semaines : le volume de visites récurrentes est le plus élevé de tous les métiers de la liste.",
+   "prudence": "Marché dominé par de grands groupes mais des PME locales existent ; la sécurité (consignation, habilitations) est une contrainte lourde."
+  },
+  "portails": {
+   "nom": "Portes et portails automatiques",
+   "ic": "🚧",
+   "sous": "Installation · maintenance semestrielle · dépannage",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "produits",
+    "stock",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de maintenances du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve qui a réglé quel portail, et quand : utile après une défaillance.",
+    "planning": "Deux visites par an et par porte, plus les dépannages : le planning range les deux.",
+    "planningGeneral": "Toutes les tournées semestrielles sur une page pour ne manquer aucune échéance.",
+    "taches": "Relancer un client pour une pièce commandée, rappeler pour un réglage d'effort.",
+    "absences": "Avec une petite équipe, un congé décale les tournées : on le voit avant de planifier.",
+    "interventions": "Une fiche par porte : force de fermeture, cellules, bords sensibles, photos, signature.",
+    "rapports": "Le rapport de maintenance et le carnet d'entretien remis au client.",
+    "carteInt": "Enchaîner plusieurs sites dans une même tournée de maintenance.",
+    "clients": "Entreprises, copropriétés, collectivités : chaque site porte ses portes et leurs contrats.",
+    "devis": "Devis d'installation, de remplacement de moteur ou de cellule.",
+    "assistantDevis": "Un devis d'installation dicté sur place.",
+    "factures": "Facturer la maintenance semestrielle et les dépannages.",
+    "contrats": "Le contrat de maintenance fixe les deux visites annuelles de chaque porte.",
+    "produits": "Moteurs, cellules photoélectriques, télécommandes, bords sensibles, ressorts : votre catalogue de pièces.",
+    "stock": "Les pièces courantes (cellules, télécommandes, ressorts) à avoir dans le véhicule.",
+    "pointage": "Les heures de maintenance et de dépannage, par technicien.",
+    "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
+    "messagerie": "Le technicien demande au bureau une référence de moteur ou de cellule.",
+    "fournisseurs": "Fabricants et distributeurs de motorisations et d'automatismes.",
+    "bons": "Commander moteurs et automates, et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos techniciens et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le carnet d'entretien part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires des contrats.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "comptabilite": "Pour suivre les règlements des contrats et des dépannages.",
+    "telecollecte": "Si vous encaissez les dépannages sur place.",
+    "mouvements": "Si vous voulez savoir qui a pris quelle pièce.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
+    "boiteMail": "Pour relancer les clients dont la maintenance arrive à échéance.",
+    "secteurs": "Pour répartir les zones entre techniciens."
+   },
+   "types": [
+    "Installation",
+    "Mise en service",
+    "Maintenance semestrielle",
+    "Dépannage",
+    "Remplacement de moteur ou de cellule",
+    "Réglage d'effort",
+    "Contrat d'entretien",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Contrôle des cellules photoélectriques",
+    "Contrôle des bords sensibles",
+    "Test de l'arrêt d'urgence",
+    "Test des télécommandes",
+    "Contrôle des ressorts",
+    "Réglage de la force de fermeture",
+    "Graissage",
+    "Vérification après défaillance",
+    "Mise à jour du carnet d'entretien"
+   ],
+   "releves": [
+    {
+     "k": "force",
+     "l": "Force de fermeture",
+     "u": "N"
+    },
+    {
+     "k": "cellules",
+     "l": "Cellules photoélectriques (bon / défaillant)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "bords",
+     "l": "Bords sensibles (bon / défaillant)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "arretUrgence",
+     "l": "Arrêt d'urgence (bon / défaillant)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "telecommandes",
+     "l": "Télécommandes (bon / défaillant)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "ressorts",
+     "l": "État des ressorts",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Moteurs",
+    "Cellules photoélectriques",
+    "Télécommandes",
+    "Bords sensibles",
+    "Ressorts",
+    "Automates"
+   ],
+   "documents": [
+    "Carnet d'entretien (par porte)",
+    "Rapport de maintenance"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Parc de portes et portails par site avec carnet d'entretien exportable",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Rappel et planification de la maintenance semestrielle",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits d'automatismes",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Vérification obligatoire à créer après toute défaillance signalée par le client",
+     "valeur": "moyenne"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Maintenance semestrielle des portes et portails automatiques sur les lieux de travail, consignée dans un carnet d'entretien, avec vérification après toute défaillance ; périodicité ajustable selon l'usage (arrêté du 21 décembre 1993).",
+     "source": "https://content.preventionbtp.fr/pdf/droit_de_la_prevention/annexe-de-l-arrete-du-21-decembre-1993-relatif-aux-portes-et-portails-automatiques-et-semi-automatiques-sur-les-lieux-de-travail.pdf",
+     "fiabilite": "officielle",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Guide d'entretien des rideaux métalliques et portes sectionnelles.",
+     "source": "https://www.metal2000.fr/uploads/2026/04/guide-entretien-rideaux-metalliques-et-portes-sectionnelles.pdf",
+     "fiabilite": "secondaire"
+    }
+   ],
+   "aVerifier": [
+    "La norme NF EN 12453 est présentée par AFNOR comme « annulée » sans indication de remplacement : ne pas la citer dans un rapport avant vérification.",
+    "Champ exact de l'arrêté de 1993 (lieux de travail, établissements recevant du public) : à relire sur Légifrance."
+   ],
+   "rang": 4,
+   "depend": "parc",
+   "marche": {
+    "texte": "Chiffre non trouvé.",
+    "source": null
+   },
+   "pourquoiApp": "Une maintenance semestrielle à consigner dans un carnet d'entretien : installateur et mainteneur sont souvent la même personne."
+  },
+  "ramonage": {
+   "nom": "Ramonage",
+   "ic": "🧹",
+   "sous": "Cheminées · poêles · conduits · certificat de ramonage",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "comptabilite",
+    "produits",
+    "stock",
+    "pointage",
+    "vehicules",
+    "secteurs",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de ramonages du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve quand un conduit a été ramoné et par qui : la preuve qu'un assureur réclame.",
+    "planning": "À l'ouverture de la saison, des dizaines de ramonages à placer : le planning les répartit.",
+    "planningGeneral": "Toute la saison de ramonage sur une page, par ramoneur et par quartier.",
+    "taches": "Rappeler un client dont le conduit est à tuber, relancer un devis de chapeau.",
+    "absences": "Les saisons de pointe laissent peu de marge : une absence se voit tout de suite.",
+    "interventions": "Une fiche par conduit : type de conduit, combustible, hauteur, état, anomalies, signature.",
+    "rapports": "Le certificat de ramonage daté, remis au client à la clôture de l'intervention.",
+    "carteInt": "La tournée de ramonage est géographique : enchaîner les clients d'un même quartier.",
+    "clients": "Particuliers et gestionnaires : adresse, appareils et conduits de chaque logement.",
+    "devis": "Devis de tubage, de chapeau ou de remise en état d'un conduit.",
+    "assistantDevis": "Un devis de tubage dicté sur place.",
+    "factures": "Facturer à la visite ou à l'abonnement annuel.",
+    "contrats": "Un abonnement annuel ramène le client chaque saison.",
+    "comptabilite": "Les encaissements de la journée se rapprochent des certificats remis.",
+    "telecollecte": "Le paiement se fait souvent à la visite.",
+    "produits": "Hérissons, brosses, tubage inox, chapeaux, trappes de visite : votre catalogue de fournitures.",
+    "stock": "Le matériel et les pièces à avoir dans le véhicule : brosses, tubage, chapeaux.",
+    "pointage": "Le temps réellement passé par conduit, pour fixer un juste tarif.",
+    "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
+    "messagerie": "Le ramoneur signale au bureau une anomalie sur un conduit.",
+    "secteurs": "Découper la saison par secteur et par ramoneur.",
+    "utilisateurs": "Créez les comptes de vos ramoneurs et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le certificat de ramonage part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires par saison.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "mouvements": "Si vous voulez savoir qui a pris quel matériel.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
+    "boiteMail": "Pour envoyer les certificats et relancer les clients depuis l'application.",
+    "fournisseurs": "Pour vos commandes de tubage et de chapeaux.",
+    "bons": "Pour vos commandes de tubage et de chapeaux."
+   },
+   "types": [
+    "Ramonage de cheminée",
+    "Ramonage de poêle",
+    "Ramonage de chaudière",
+    "Débistrage (ramonage mécanique d'un conduit encrassé)",
+    "Tubage",
+    "Pose de chapeau",
+    "Inspection par caméra",
+    "Dépannage tirage",
+    "Abonnement annuel",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Ramonage mécanique du conduit",
+    "Nettoyage du foyer ou de l'appareil",
+    "Contrôle de la vacuité du conduit",
+    "Inspection par caméra",
+    "Mesure du tirage",
+    "Pose d'une trappe de visite",
+    "Remise du certificat de ramonage"
+   ],
+   "releves": [
+    {
+     "k": "conduit",
+     "l": "Type de conduit",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "combustible",
+     "l": "Combustible",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "hauteur",
+     "l": "Hauteur du conduit",
+     "u": "m"
+    },
+    {
+     "k": "diametre",
+     "l": "Diamètre",
+     "u": "mm"
+    },
+    {
+     "k": "etat",
+     "l": "État du conduit",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "tirage",
+     "l": "Tirage",
+     "u": "Pa"
+    },
+    {
+     "k": "bistre",
+     "l": "Présence de bistre",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "anomalies",
+     "l": "Anomalies à signaler",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Hérissons et brosses",
+    "Tubage inox",
+    "Chapeaux",
+    "Trappes de visite",
+    "Produits de nettoyage"
+   ],
+   "documents": [
+    "Certificat de ramonage (PDF daté, nom de l'entreprise, adresse, nature du conduit), envoyé par e-mail à la clôture"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Certificat de ramonage en PDF, daté, avec la nature du conduit, envoyé par e-mail à la signature sur place",
+     "valeur": "haute",
+     "ref": "F12"
+    },
+    {
+     "fonction": "Tournée saisonnière : à l'ouverture de la saison, proposer le planning de tous les clients dont l'abonnement arrive à échéance",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits de ramonage",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Fiche conduit rattachée au client (combustible, hauteur, diamètre)",
+     "valeur": "moyenne",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Fréquence de ramonage par commune, une fois le règlement sanitaire départemental vérifié",
+     "valeur": "basse"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "La fréquence est fixée par le règlement sanitaire départemental. Valeurs usuelles : deux ramonages par an pour les conduits bois, charbon et fioul (dont un en période de chauffe), un pour le gaz.",
+     "source": "https://www.allianz.fr/assurance-particulier/habitation-biens/assurance-habitation/conseils-pratiques/ramonage-cheminee-obligatoire.html",
+     "fiabilite": "secondaire"
+    },
+    {
+     "texte": "Le règlement de Paris impose deux ramonages par an et la plupart des communes s'en inspirent.",
+     "source": "https://www.pap.fr/actualites/avez-vous-fait-ramoner-votre-cheminee-c-est-obligatoire/a18159",
+     "fiabilite": "secondaire"
+    },
+    {
+     "texte": "Un certificat de ramonage est remis au client ; il sert de preuve auprès de l'assureur.",
+     "source": "https://www.macif.fr/assurance/particuliers/assurance-habitation-et-vie-quotidienne/assurance-ramonage",
+     "fiabilite": "secondaire"
+    },
+    {
+     "texte": "Amende de 3e classe en cas de contrôle, jusqu'à 450 €.",
+     "source": "https://www.matmut.fr/assurance/habitation/conseils/ramonage-conduits-cheminee",
+     "fiabilite": "secondaire",
+     "aConfirmer": true
+    }
+   ],
+   "aVerifier": [
+    "Décret n° 2023-641 du 20 juillet 2023 (cité par TotalEnergies, https://services.totalenergies.fr/particuliers/conseils/energies-habitat/chauffage/obligation-ramonage-chauffage) : sources contradictoires, à vérifier sur Légifrance avant de l'écrire dans l'application.",
+    "Le délai de 15 jours pour remettre le certificat, cité par certaines sources, n'est pas confirmé comme réglementaire.",
+    "Toutes les sources trouvées sont des assureurs ou des sites d'information : aucune n'est le texte du règlement sanitaire."
+   ],
+   "rang": 5,
+   "depend": "certificats",
+   "marche": {
+    "texte": "Chiffre non trouvé : aucune source n'indique le nombre d'entreprises.",
+    "source": null
+   },
+   "pourquoiApp": "Chaque client revient une ou deux fois par an, la tournée est saisonnière et géographique, et le certificat de ramonage est le document que tout client réclame. Des artisans en entreprise individuelle qui n'ont aujourd'hui aucun outil."
+  },
+  "assainissement": {
+   "nom": "Assainissement / Vidange",
+   "ic": "🚛",
+   "sous": "Fosses · bacs à graisses · curage · bordereaux de suivi",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "statistiques",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "pointage",
+    "vehicules",
+    "conducteurs",
+    "secteurs",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de vidanges du jour d'un coup d'œil, dès l'ouverture.",
+    "statistiques": "Les m³ pompés par commune alimentent le bilan annuel à remettre au préfet.",
+    "historique": "On retrouve quelle fosse a été vidangée, quand et par qui : la trace qu'un contrôle du SPANC peut demander.",
+    "planning": "Des vidanges planifiées et des urgences de débouchage : le planning fait tenir le tout dans les camions.",
+    "planningGeneral": "Tous les camions et toutes les équipes sur une page.",
+    "taches": "Relancer un client dont la vidange arrive à échéance, préparer le bilan annuel.",
+    "absences": "Le camion est l'outil : une absence de chauffeur se voit avant de planifier.",
+    "interventions": "Une fiche par vidange : volume pompé, état de l'ouvrage, lieu d'élimination, photos.",
+    "rapports": "L'attestation de vidange et le bordereau remis au client.",
+    "carteInt": "Organiser la tournée des camions entre les chantiers.",
+    "clients": "Particuliers, restaurants, collectivités : chaque ouvrage avec son volume et sa date de dernière vidange.",
+    "devis": "Devis de vidange, de curage ou de remise en état d'un poste de relevage.",
+    "assistantDevis": "Un devis de curage dicté sur place.",
+    "factures": "Facturer au volume pompé ou au forfait.",
+    "contrats": "Un contrat de vidange périodique ramène le client à la bonne échéance.",
+    "pointage": "Les heures de camion et de chauffeur, par tournée.",
+    "vehicules": "Le camion est l'outil : assurance, kilométrage, échéances.",
+    "conducteurs": "Les chauffeurs autorisés à conduire chaque camion.",
+    "messagerie": "Le chauffeur prévient le bureau d'un accès impossible ou d'un camion plein.",
+    "secteurs": "Répartir les communes entre les camions : le bilan annuel se fait par commune.",
+    "utilisateurs": "Créez les comptes de vos chauffeurs et vos techniciens et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le bordereau de suivi part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "archives": "Un récapitulatif mensuel à garder.",
+    "registre": "Le registre des vidanges, à conserver dix ans : à ouvrir dès que le registre sera rendu utilisable hors anti-nuisibles.",
+    "comptabilite": "Pour suivre les règlements.",
+    "telecollecte": "Si vous encaissez les débouchages sur place.",
+    "produits": "Peu de stock : seulement pour des consommables.",
+    "stock": "Seulement pour des consommables et des pièces de camion.",
+    "boiteMail": "Pour envoyer les bordereaux depuis l'application.",
+    "fournisseurs": "Pour vos commandes de pièces et de consommables.",
+    "bons": "Pour vos commandes de pièces et de consommables."
+   },
+   "types": [
+    "Vidange de fosse septique",
+    "Vidange de bac à graisses",
+    "Curage de canalisation",
+    "Inspection caméra",
+    "Débouchage",
+    "Pompage",
+    "Entretien de poste de relevage",
+    "Contrat de vidange périodique",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Pompage de l'ouvrage",
+    "Curage haute pression",
+    "Inspection par caméra",
+    "Contrôle de l'état de l'ouvrage",
+    "Contrôle de la pompe du poste de relevage",
+    "Remise du bordereau de suivi",
+    "Nettoyage du site"
+   ],
+   "releves": [
+    {
+     "k": "volume",
+     "l": "Volume pompé",
+     "u": "m³"
+    },
+    {
+     "k": "volumeFosse",
+     "l": "Volume de la fosse",
+     "u": "m³"
+    },
+    {
+     "k": "etat",
+     "l": "État de l'ouvrage",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "elimination",
+     "l": "Lieu d'élimination",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "bordereau",
+     "l": "N° du bordereau de suivi",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "commune",
+     "l": "Commune",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Consommables (flexibles, buses, joints)",
+    "Pièces de camion et de pompe",
+    "Outillage",
+    "EPI"
+   ],
+   "documents": [
+    "Bordereau de suivi des matières de vidange (trois exemplaires)",
+    "Registre des vidanges (dix ans)",
+    "Bilan annuel par commune",
+    "Attestation de vidange"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Bordereau de suivi PDF numéroté (n°, identité du vidangeur et agrément, date, quantité, lieu d'élimination)",
+     "valeur": "haute",
+     "ref": "F12"
+    },
+    {
+     "fonction": "Registre des vidanges conservé dix ans",
+     "valeur": "haute",
+     "ref": "F13"
+    },
+    {
+     "fonction": "Export du bilan annuel par commune, à remettre avant le 1er avril",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Catégories de produits d'assainissement",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Contrôles et entretien des camions",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Alerte de rappel avant le 1er avril pour le bilan annuel",
+     "valeur": "moyenne",
+     "ref": "F6"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Agrément préfectoral par société, avec numéro départemental et quantité annuelle maximale ; cadre commun : arrêté du 7 septembre 2009.",
+     "source": "https://www.yonne.gouv.fr/contenu/telechargement/28216/218743/file/AgrementVidangeurs_cle545315.pdf",
+     "fiabilite": "officielle",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Bordereau de suivi en trois exemplaires (numéro, identité du vidangeur et agrément, date, quantité, lieu d'élimination), registre tenu dix ans.",
+     "source": "https://www.ille-et-vilaine.gouv.fr/contenu/telechargement/64600/531758/file/DENOUAL_AP_20220224_Sign%C3%A9.pdf",
+     "fiabilite": "officielle",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Bilan d'activité annuel au préfet avant le 1er avril, avec le nombre d'installations vidangées par commune.",
+     "source": "https://www.ille-et-vilaine.gouv.fr/contenu/telechargement/64641/531974/file/Procedure_et_obligations_35.pdf",
+     "fiabilite": "officielle",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Vidange en moyenne tous les 4 ans (selon le volume et les occupants) ; le SPANC peut demander le bordereau lors de son contrôle.",
+     "source": "https://www.construires.fr/fosse-septique-mise-aux-normes/",
+     "fiabilite": "secondaire"
+    }
+   ],
+   "aVerifier": [
+    "Les sources sont des arrêtés préfectoraux (Yonne, Ille-et-Vilaine) : les obligations peuvent varier d'un département à l'autre, et le texte national de l'arrêté du 7 septembre 2009 n'a pas été lu."
+   ],
+   "rang": 6,
+   "depend": "certificats",
+   "marche": {
+    "texte": "Chiffre non trouvé. Les entreprises agréées sont listées par préfecture, il n'y a pas de total national.",
+    "source": null
+   },
+   "pourquoiApp": "Un métier de camions et de volumes, avec un bordereau de suivi à chaque vidange : du papier que le logiciel remplace directement. Très différent des autres, à ne fusionner avec aucun pack."
+  },
+  "energies": {
+   "nom": "Photovoltaïque et bornes de recharge",
+   "ic": "☀️",
+   "sous": "Panneaux · onduleurs · bornes IRVE · maintenance",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "comptabilite",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de poses et de maintenances du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve qui a mis en service quelle installation, et quand.",
+    "planning": "Poses de plusieurs jours, maintenances annuelles et dépannages d'onduleur : le planning range les trois.",
+    "planningGeneral": "Toutes les équipes et tous les chantiers sur une page.",
+    "taches": "Suivre un dossier de raccordement, relancer un client pour une mise en service.",
+    "absences": "Une pose se fait à deux : un congé décale un chantier.",
+    "interventions": "Une fiche par pose ou par maintenance : puissance, tension des chaînes, état de l'onduleur, photos.",
+    "rapports": "Le rapport de maintenance remis au client, avec les mesures relevées.",
+    "clients": "Particuliers, entreprises, copropriétés : chaque site porte ses panneaux, ses onduleurs et ses bornes.",
+    "devis": "Un devis détaillé avec les aides, pour des installations qui se chiffrent cher.",
+    "assistantDevis": "Un devis dicté après l'étude de site.",
+    "factures": "Facturer par acomptes, au fil de la pose.",
+    "contrats": "La maintenance annuelle d'une installation se fait sous contrat.",
+    "comptabilite": "Suivre les acomptes et les soldes de chantiers de plusieurs milliers d'euros.",
+    "produits": "Panneaux, onduleurs, bornes, câbles, protections : un catalogue pour chiffrer.",
+    "stock": "Câbles, protections et petites pièces à avoir dans le véhicule.",
+    "mouvements": "Tracer qui a pris quelles pièces pour quel chantier.",
+    "pointage": "Les heures par installation, pour tenir le prix d'une pose.",
+    "vehicules": "Le véhicule de chantier : assurance, kilométrage, entretien.",
+    "messagerie": "L'installateur envoie des photos de toiture ou de tableau au bureau d'études.",
+    "fournisseurs": "Grossistes et fabricants de panneaux, d'onduleurs et de bornes.",
+    "bons": "Commander panneaux et onduleurs avec une date de livraison.",
+    "utilisateurs": "Créez les comptes de vos installateurs et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport de maintenance part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires par type d'installation.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "carteInt": "Pour organiser les tournées de maintenance.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
+    "boiteMail": "Pour échanger avec les clients et les organismes depuis l'application.",
+    "brouillon": "Pour les équipes : chacun prépare sa liste de matériel.",
+    "demandes": "Un chef d'équipe demande du matériel pour un chantier, le responsable suit.",
+    "validations": "Le responsable valide les sorties de matériel coûteux.",
+    "commandes": "Suivre les commandes en route.",
+    "secteurs": "Pour répartir les zones entre équipes."
+   },
+   "types": [
+    "Étude de site",
+    "Pose",
+    "Mise en service",
+    "Maintenance annuelle",
+    "Nettoyage des panneaux",
+    "Dépannage onduleur",
+    "Installation de borne",
+    "Maintenance de borne",
+    "Contrôle de mise à la terre",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Contrôle des chaînes de panneaux",
+    "Contrôle de l'onduleur",
+    "Mesure d'isolement",
+    "Mesure de la résistance de terre",
+    "Nettoyage des panneaux",
+    "Relevé de production",
+    "Test de la borne",
+    "Contrôle des protections",
+    "Remise de la fiche de mise en service"
+   ],
+   "releves": [
+    {
+     "k": "crete",
+     "l": "Puissance crête",
+     "u": "kWc"
+    },
+    {
+     "k": "production",
+     "l": "Production relevée",
+     "u": "kWh"
+    },
+    {
+     "k": "tensionChaine",
+     "l": "Tension des chaînes",
+     "u": "V"
+    },
+    {
+     "k": "courantChaine",
+     "l": "Courant des chaînes",
+     "u": "A"
+    },
+    {
+     "k": "onduleur",
+     "l": "État de l'onduleur",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "isolement",
+     "l": "Isolement",
+     "u": "MΩ"
+    },
+    {
+     "k": "terre",
+     "l": "Résistance de terre",
+     "u": "Ω"
+    },
+    {
+     "k": "energieBorne",
+     "l": "Énergie délivrée par la borne",
+     "u": "kWh"
+    }
+   ],
+   "produits": [
+    "Panneaux",
+    "Onduleurs",
+    "Bornes",
+    "Câbles",
+    "Protections",
+    "Supports de fixation"
+   ],
+   "documents": [
+    "Rapport de maintenance",
+    "Fiche de mise en service",
+    "Attestation de conformité (Consuel : à vérifier)"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Parc par site avec champs propres aux panneaux, aux onduleurs et aux bornes",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Contrat de maintenance avec rappel annuel",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits photovoltaïques et de bornes",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Suivi de la production à saisir à chaque visite",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Suivi des qualifications (IRVE, QualiPV) avec échéance",
+     "valeur": "moyenne",
+     "ref": "F6"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Bornes IRVE : qualification obligatoire au-dessus de 3,7 kVA (décret de 2017, complété par l'arrêté du 27 octobre 2021). Installation : IRVE 1 (jusqu'à 36 kVA), IRVE 2, IRVE 3 (courant continu). Maintenance : IRVEMA1 à 3. Étude de conception obligatoire pour un parc d'au moins 50 places.",
+     "source": "https://hager.com/fr/actualites/certifications-irve",
+     "fiabilite": "secondaire",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Organismes de qualification IRVE : Qualifelec, AFNOR, Qualit'EnR.",
+     "source": "https://opera-energie.com/qualification-irve/",
+     "fiabilite": "secondaire"
+    },
+    {
+     "texte": "Photovoltaïque : qualification QualiPV (Qualit'EnR), qui couvre la pose et la maintenance, y compris les gammes et contrats de maintenance.",
+     "source": "https://www.qualit-enr.org/wp-content/uploads/2025/06/CP_CONSEILS_PV_QUALITE.pdf",
+     "fiabilite": "professionnelle"
+    }
+   ],
+   "aVerifier": [
+    "Une mise à jour des référentiels IRVE en mai 2026 est signalée mais non confirmée.",
+    "Consuel pour le photovoltaïque : de mémoire, à vérifier.",
+    "Rien trouvé sur les contrats de maintenance d'onduleur."
+   ],
+   "rang": 7,
+   "depend": "parc",
+   "fusion": "Photovoltaïque et bornes IRVE réunis dans un seul pack « énergies » : mêmes qualifications, mêmes clients.",
+   "marche": {
+    "texte": "Près de 5 000 installateurs qualifiés QualiPV en mars 2025, soit 75 % des RGE du photovoltaïque (chiffre de l'organisme lui-même). Plus de 169 000 points de recharge ouverts au public en juin 2025 selon un acteur du secteur, à vérifier chez l'Avere.",
+    "source": "https://www.qualit-enr.org/wp-content/uploads/2025/06/CP_CONSEILS_PV_QUALITE.pdf"
+   },
+   "pourquoiApp": "Chaque installation devient un parc à surveiller (onduleurs, bornes) et un contrat de maintenance ; la maintenance de bornes exige une qualification propre."
+  },
+  "alarme": {
+   "nom": "Alarme, vidéosurveillance, contrôle d’accès",
+   "ic": "📹",
+   "sous": "Intrusion · caméras · badges · maintenance annuelle",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "produits",
+    "stock",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme d'installations et de maintenances du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve qui a modifié la configuration de quelle installation, et quand.",
+    "planning": "Installations, maintenances annuelles et dépannages : le planning range les trois.",
+    "planningGeneral": "Toutes les équipes et tous les sites sur une page.",
+    "taches": "Rappeler un client pour une batterie à changer, relancer un procès-verbal de réception.",
+    "absences": "Une petite équipe : un congé décale les maintenances.",
+    "interventions": "Une fiche par visite : zones testées, état des batteries, appel au centre de télésurveillance, photos.",
+    "rapports": "Le rapport de maintenance et le procès-verbal de réception remis au client.",
+    "carteInt": "Enchaîner les visites de maintenance d'une même zone.",
+    "clients": "Commerces, entreprises, particuliers : chaque site porte son matériel (centrale, détecteurs, caméras).",
+    "devis": "Devis d'installation ou de remplacement de matériel.",
+    "assistantDevis": "Un devis d'installation dicté pendant la visite du site.",
+    "factures": "Facturer l'installation, la maintenance annuelle et les dépannages.",
+    "contrats": "Chaque installation devient un contrat de maintenance annuel : le cœur du revenu récurrent.",
+    "produits": "Centrales, détecteurs, caméras, badges, batteries : un catalogue pour chiffrer.",
+    "stock": "Batteries et petit matériel de remplacement dans le véhicule.",
+    "pointage": "Les heures d'installation et de maintenance, par technicien.",
+    "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
+    "messagerie": "Le technicien demande au bureau une référence de centrale ou de caméra.",
+    "fournisseurs": "Fabricants et distributeurs de matériel de sécurité.",
+    "bons": "Commander du matériel avec une date de livraison.",
+    "utilisateurs": "Créez les comptes de vos installateurs et vos techniciens de maintenance et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport de maintenance part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires des contrats.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "comptabilite": "Pour suivre les règlements des contrats.",
+    "mouvements": "Si vous voulez savoir qui a pris quel matériel.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
+    "boiteMail": "Pour échanger avec les clients depuis l'application.",
+    "secteurs": "Pour répartir les zones entre techniciens."
+   },
+   "types": [
+    "Installation",
+    "Mise en service",
+    "Maintenance préventive",
+    "Dépannage",
+    "Remplacement de batteries",
+    "Test de liaison avec le centre de télésurveillance",
+    "Modification de configuration",
+    "Contrat de maintenance",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Test des zones",
+    "Test des détecteurs",
+    "Contrôle des batteries",
+    "Test de la sirène",
+    "Test de liaison avec le centre de télésurveillance",
+    "Contrôle du champ de vision des caméras",
+    "Contrôle de l'enregistreur",
+    "Mise à jour de la configuration",
+    "Remise du procès-verbal de réception"
+   ],
+   "releves": [
+    {
+     "k": "batterie",
+     "l": "État de la batterie",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "signal",
+     "l": "Niveau de signal",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "zones",
+     "l": "Nombre de zones testées",
+     "u": ""
+    },
+    {
+     "k": "appelCentre",
+     "l": "Résultat de l’appel au centre de télésurveillance",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "datePose",
+     "l": "Date de pose du matériel remplacé",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Centrales",
+    "Détecteurs",
+    "Sirènes",
+    "Caméras",
+    "Enregistreurs",
+    "Badges et lecteurs",
+    "Batteries",
+    "Câbles"
+   ],
+   "documents": [
+    "Rapport de maintenance",
+    "Procès-verbal de réception",
+    "Devis et facture"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Parc de matériel par site (centrale, détecteurs, caméras) avec historique",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Contrat de maintenance avec rappel annuel",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits d'alarme et de vidéosurveillance",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Mode « test des zones »",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Suivi de l'expiration des batteries",
+     "valeur": "moyenne"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Habilitation électrique au niveau BR délivrée par l'employeur pour l'intrusion et la vidéoprotection (articles R. 4544-9 et R. 4544-10 du Code du travail).",
+     "source": "https://www.francecompetences.fr/recherche/rncp/11467/",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Référentiels APSAD R81 (intrusion) et R82 (vidéosurveillance) pour les installateurs, I31 pour les centres de télésurveillance : des référentiels d'assurance, pas des textes officiels.",
+     "source": "https://www.homiris.fr/fr/v2/pdf/Tarifs-PRO.pdf",
+     "fiabilite": "secondaire"
+    }
+   ],
+   "aVerifier": [
+    "Agrément CNAPS (concerne surtout la télésurveillance, avec une taxe sur ce service) : mention datée de 2016 sur une source bancaire, https://credit-agricole.fr/professionnel/assurances/locaux-professionnels/pack-pro-telesurveillance.html, à vérifier.",
+    "Règles de déclaration CNIL pour la vidéo : de mémoire, à vérifier."
+   ],
+   "rang": 8,
+   "depend": "parc",
+   "marche": {
+    "texte": "Chiffre non trouvé : les résultats sont des offres commerciales.",
+    "source": "https://www.homiris.fr/fr/v2/pdf/Tarifs-PRO.pdf"
+   },
+   "pourquoiApp": "Chaque installation devient un contrat de maintenance annuel avec visites, les pannes arrivent en dépannage, et il faut tenir un historique de matériel par site (centrale, détecteurs, caméras).",
+   "prudence": "Les codes d'accès d'une alarme sont sensibles : ne pas les ranger dans l'application sans protection (décision à prendre)."
+  },
+  "eau": {
+   "nom": "Traitement de l’eau",
+   "ic": "💧",
+   "sous": "Adoucisseurs · filtres · osmoseurs · analyses",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de visites du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve quel appareil a été entretenu, par qui, et à quelle date.",
+    "planning": "Des visites annuelles récurrentes et des dépannages : le planning range les deux.",
+    "planningGeneral": "Toutes les tournées d'entretien d'adoucisseurs et de filtres sur une page.",
+    "taches": "Rappeler un client pour une cartouche à changer, suivre le résultat d'une analyse.",
+    "absences": "Une petite équipe : un congé décale les visites annuelles.",
+    "interventions": "Une fiche par appareil : dureté avant et après, pression, débit, consommable changé.",
+    "rapports": "La fiche d'entretien ou le rapport d'analyse remis au client.",
+    "carteInt": "Enchaîner les visites annuelles d'une même zone.",
+    "clients": "Particuliers, restaurants, collectivités : chaque site porte ses appareils de traitement.",
+    "devis": "Devis d'installation ou de remplacement d'un adoucisseur.",
+    "assistantDevis": "Un devis d'installation dicté sur place.",
+    "factures": "Facturer l'entretien annuel et les consommables.",
+    "contrats": "L'entretien annuel d'un adoucisseur ou d'un osmoseur se fait sous contrat.",
+    "produits": "Résines, sel, cartouches, lampes UV, membranes d'osmose : un catalogue de consommables.",
+    "stock": "Sel, cartouches et résines à avoir dans le véhicule.",
+    "mouvements": "Tracer quel consommable a été posé chez quel client.",
+    "pointage": "Les heures de visite et d'analyse, par technicien.",
+    "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
+    "messagerie": "Le technicien envoie la photo d'un résultat d'analyse au bureau.",
+    "fournisseurs": "Fabricants et distributeurs d'équipements et de consommables.",
+    "bons": "Commander des consommables et des appareils, et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos techniciens et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : la fiche d'entretien part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires des contrats.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "registre": "Un carnet sanitaire pour les sites à risque : à ouvrir dès que le registre sera rendu utilisable hors anti-nuisibles.",
+    "comptabilite": "Pour suivre les règlements des contrats.",
+    "telecollecte": "Si vous encaissez les dépannages sur place.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
+    "boiteMail": "Pour envoyer les rapports d'analyse depuis l'application.",
+    "secteurs": "Pour répartir les zones entre techniciens."
+   },
+   "types": [
+    "Installation",
+    "Entretien annuel",
+    "Régénération",
+    "Remplacement de cartouche",
+    "Désinfection de circuit",
+    "Prélèvement d'eau",
+    "Dépannage",
+    "Contrat d'entretien",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Mesure de la dureté",
+    "Remplacement des cartouches",
+    "Régénération des résines",
+    "Remplissage en sel",
+    "Contrôle de la pression et du débit",
+    "Désinfection du circuit",
+    "Prélèvement pour analyse",
+    "Contrôle de la lampe UV"
+   ],
+   "releves": [
+    {
+     "k": "durete",
+     "l": "Dureté avant traitement",
+     "u": "TH"
+    },
+    {
+     "k": "dureteApres",
+     "l": "Dureté après traitement",
+     "u": "TH"
+    },
+    {
+     "k": "pression",
+     "l": "Pression",
+     "u": "bar"
+    },
+    {
+     "k": "debit",
+     "l": "Débit",
+     "u": "L/min"
+    },
+    {
+     "k": "temperature",
+     "l": "Température",
+     "u": "°C"
+    },
+    {
+     "k": "chlore",
+     "l": "Chlore résiduel",
+     "u": "mg/L"
+    },
+    {
+     "k": "legionelles",
+     "l": "Résultat d’analyse légionelles",
+     "u": "UFC/L"
+    }
+   ],
+   "produits": [
+    "Résines",
+    "Sel",
+    "Cartouches de filtration",
+    "Lampes UV",
+    "Membranes d'osmose",
+    "Pompes doseuses"
+   ],
+   "documents": [
+    "Carnet sanitaire",
+    "Rapport d'analyse",
+    "Fiche d'entretien"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Parc d'appareils par site (adoucisseur, filtre, osmoseur)",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Rappel de contrat d'entretien annuel",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits de traitement de l'eau",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Relevé de dureté avec historique par appareil",
+     "valeur": "moyenne"
+    },
+    {
+     "fonction": "Carnet sanitaire pour les sites à risque légionelles",
+     "valeur": "moyenne",
+     "ref": "F13"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Arrêté du 1er février 2010 (modifié par l'arrêté du 30 décembre 2022) : pour les établissements recevant du public à points d'usage à risque, surveillance de la température, seuil de 1 000 UFC/L de légionelles dans l'eau chaude sanitaire et carnet sanitaire. Le responsable est le propriétaire ou le directeur de l'établissement.",
+     "source": "https://www.iledefrance.ars.sante.fr/media/133036/download",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Mêmes obligations, rappelées par l'ARS Bretagne.",
+     "source": "https://www.bretagne.ars.sante.fr/media/91790/download",
+     "fiabilite": "officielle"
+    }
+   ],
+   "aVerifier": [
+    "Les tours aéroréfrigérantes relèveraient de l'arrêté du 14 décembre 2013 (rubrique ICPE 2921) : de la mémoire, non confirmé.",
+    "Aucune source trouvée sur les adoucisseurs."
+   ],
+   "rang": 9,
+   "depend": "parc",
+   "marche": {
+    "texte": "Chiffre non trouvé.",
+    "source": null
+   },
+   "pourquoiApp": "Adoucisseurs, filtres, osmoseurs : des visites récurrentes avec des consommables (sel, résines, cartouches) et des analyses. Peut aussi absorber le suivi des légionelles."
+  },
+  "piscine": {
+   "nom": "Pisciniste",
+   "ic": "🏊",
+   "sous": "Construction · entretien saisonnier · hivernage · sécurité",
+   "nouveau": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "comptabilite",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme de visites et de chantiers du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "On retrouve ce qui a été mesuré et ajouté dans quel bassin, et à quelle date.",
+    "planning": "Ouvertures de saison, entretiens, hivernages et chantiers de construction : le planning suit les saisons.",
+    "planningGeneral": "Toutes les équipes et toutes les tournées de la saison sur une page.",
+    "taches": "Rappeler un client avant l'hivernage, commander un liner sur mesure.",
+    "absences": "En pleine saison, une absence se voit tout de suite sur les tournées.",
+    "interventions": "Une fiche par bassin : analyse d'eau, filtration, pompe, produits ajoutés, photos.",
+    "rapports": "Le rapport d'analyse d'eau ou la fiche d'ouverture remis au client.",
+    "carteInt": "Enchaîner les visites saisonnières d'un même quartier.",
+    "clients": "Particuliers, copropriétés, hôtels : chaque bassin avec son volume et ses équipements.",
+    "devis": "Devis de construction ou de rénovation, avec le détail des équipements.",
+    "assistantDevis": "Un devis de rénovation dicté au bord du bassin.",
+    "factures": "Factures d'acompte par étape pour un chantier de construction, facture de visite pour l'entretien.",
+    "contrats": "L'entretien saisonnier d'un bassin se fait sous contrat.",
+    "comptabilite": "Suivre les acomptes par étape d'un chantier de construction.",
+    "produits": "Produits de traitement, pompes, liners, robots : un catalogue pour chiffrer.",
+    "stock": "Produits de traitement et pièces de filtration à avoir dans le véhicule.",
+    "mouvements": "Tracer quels produits ont été utilisés dans quel bassin.",
+    "pointage": "Les heures par chantier et par tournée d'entretien.",
+    "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
+    "messagerie": "Le technicien envoie la photo d'un local technique au bureau avant de commander.",
+    "fournisseurs": "Fabricants et négoces de matériel de piscine.",
+    "bons": "Commander pompes, liners et couvertures sur mesure, et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos techniciens de piscine et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : la fiche d'ouverture ou d'hivernage part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires entre construction et entretien.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "telecollecte": "Si vous encaissez les dépannages sur place.",
+    "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
+    "boiteMail": "Pour échanger avec les clients depuis l'application.",
+    "secteurs": "Pour répartir les zones entre techniciens."
+   },
+   "types": [
+    "Ouverture de saison",
+    "Hivernage",
+    "Visite d'entretien",
+    "Analyse d'eau",
+    "Dépannage pompe ou filtration",
+    "Remplacement de liner",
+    "Mise en service",
+    "Installation de dispositif de sécurité",
+    "Construction",
+    "Contrat d'entretien saisonnier",
+    "Visite technique / devis"
+   ],
+   "presta": [
+    "Analyse de l'eau",
+    "Équilibrage de l'eau",
+    "Nettoyage du bassin",
+    "Contrôle de la filtration",
+    "Contrôle de la pompe",
+    "Mise en hivernage",
+    "Remise en route",
+    "Contrôle du dispositif de sécurité",
+    "Remise de la note technique de sécurité"
+   ],
+   "releves": [
+    {
+     "k": "ph",
+     "l": "pH",
+     "u": ""
+    },
+    {
+     "k": "chlorelibre",
+     "l": "Chlore libre",
+     "u": "mg/L"
+    },
+    {
+     "k": "chloretotal",
+     "l": "Chlore total",
+     "u": "mg/L"
+    },
+    {
+     "k": "tac",
+     "l": "TAC",
+     "u": "°f"
+    },
+    {
+     "k": "stabilisant",
+     "l": "Stabilisant",
+     "u": "mg/L"
+    },
+    {
+     "k": "teau",
+     "l": "Température de l'eau",
+     "u": "°C"
+    },
+    {
+     "k": "pfiltre",
+     "l": "Pression du filtre",
+     "u": "bar"
+    },
+    {
+     "k": "pompe",
+     "l": "État de la pompe",
+     "u": "",
+     "txt": true
+    }
+   ],
+   "produits": [
+    "Produits de traitement",
+    "Électrolyse",
+    "Filtration",
+    "Pompes",
+    "Liners",
+    "Robots",
+    "Couvertures",
+    "Éclairage"
+   ],
+   "documents": [
+    "Rapport d'analyse d'eau",
+    "Fiche d'ouverture / d'hivernage",
+    "Note technique de sécurité remise à la réception"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Fiche piscine (volume, type de traitement, équipements) dans le parc d'équipements",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Tournées saisonnières générées par le contrat (ouverture, entretien, hivernage)",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Catégories de produits de piscine",
+     "valeur": "haute",
+     "ref": "F7"
+    },
+    {
+     "fonction": "Factures d'acompte par étape de construction",
+     "valeur": "moyenne",
+     "ref": "F5"
+    },
+    {
+     "fonction": "Relevé d'analyse avec aide à la dose de produit : à définir avec un professionnel avant de coder",
+     "valeur": "basse"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "La loi de 2003 impose un dispositif de sécurité aux bassins privés enterrés de plein air. Barrière : NF P90-306 ; alarme : NF P90-307 ; couverture : NF P90-308 ; abri : NF P90-309.",
+     "source": "https://www.anil.org/documentation-experte/analyses-juridiques-jurisprudence/analyses-juridiques/analyses-juridiques-2004/reglementation-des-piscines-privees/",
+     "fiabilite": "professionnelle",
+     "aConfirmer": true
+    },
+    {
+     "texte": "Pour une piscine neuve, le constructeur remet une note technique au plus tard à la réception.",
+     "source": "https://questions.assemblee-nationale.fr/dyn/12/questions/QANR5L12QE44882.pdf",
+     "fiabilite": "officielle",
+     "aConfirmer": true
+    }
+   ],
+   "aVerifier": [
+    "Statut actuel des normes NF P90-306 à 309 : à vérifier sur AFNOR.",
+    "Rien trouvé sur les obligations d'entretien ni d'hivernage.",
+    "Chiffres de marché : source indirecte."
+   ],
+   "rang": 10,
+   "depend": "parc",
+   "marche": {
+    "texte": "Environ 2 400 entreprises et 2,8 Md€ de chiffre d'affaires en 2024, avec 94 480 piscines installées, d'après un site de modèles de business plan qui cite la FPP sans source directe : à vérifier. Historique FPP : 5 200 entreprises dont 2 800 de construction en 2008, 1,8 Md€ en 2016.",
+    "source": "https://modelesdebusinessplan.com/blogs/infos/marche-piscine"
+   },
+   "pourquoiApp": "Un mélange de chantier (construction) et de contrat d'entretien saisonnier : ouverture de saison, hivernage, analyse d'eau, remplacement de pompes."
   }
  }
 }
