@@ -201,6 +201,8 @@ module.exports = function agentConversation(ctx) {
   function messagesDe(fil, id, texte) {
     const brut = [];
     for (const m of conversations.historique(fil, HISTORIQUE_N)) {
+      /* ⛔ Une ligne « système » n'est JAMAIS relue à Claude : c'est là que le serveur écrit les chiffres du point de Margaux (`agent-compta.js`). Ce repli (la messagerie des agents ne s'est pas montée) les aurait envoyés chez Anthropic. */
+      if (m.de === 'systeme') continue;
       const t = nettoyer(m.texte); if (!t) continue;
       if (m.de === id) brut.push({ role: 'assistant', texte: t });
       else if (m.de === 'justin') brut.push({ role: 'user', texte: t });

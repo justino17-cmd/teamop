@@ -176,8 +176,13 @@ function questionPlateforme(r, now) {
   r = reglagesPropres(r);
   const e = ECHEANCES.find(x => x.id === 'reception');
   if (r.plateforme === 'oui' || nombreJours(jourDe(now), e.date) > 0) return '';
-  return ('📅 Compta — depuis le ' + dateFr(e.date) + ', toute entreprise doit pouvoir recevoir les factures électroniques par une plateforme agréée [lu]. En as-tu désigné une ? Dis-moi « j’ai désigné une plateforme » ou « pas encore » et je le note.').slice(0, 560);
+  return ('📅 Compta — depuis le ' + dateFr(e.date) + ', toute entreprise doit pouvoir recevoir les factures électroniques par une plateforme agréée [lu]. En as-tu désigné une ? Réponds-moi « oui » ou « pas encore » et je le note.').slice(0, 560);
+}
+/* Est-ce CETTE question ? (le texte exact, reconnu par son début et sa fin) */
+function estQuestionPlateforme(texte) {
+  const t = String(texte || '');
+  return t.startsWith('📅 Compta — depuis le ') && t.includes('plateforme agréée') && t.includes('En as-tu désigné une ?');
 }
 
 module.exports = { REGIMES, REGIMES_LIBELLE, PLATEFORMES, PREUVE_COURTE, PREUVE_LONGUE, ECHEANCES, SEUILS, SEUIL_FRANCHISE, SEUIL_MAJORE, CONSERVATION, DECLARATIONS, A_COCHER,
-  jourDe, nombreJours, dateFr, moment, euros, ranger, reglagesPropres, lignesCalendrier, rappelsDus, texteRappel, questionPlateforme, concerne };
+  jourDe, nombreJours, dateFr, moment, euros, ranger, reglagesPropres, lignesCalendrier, rappelsDus, texteRappel, questionPlateforme, estQuestionPlateforme, concerne };

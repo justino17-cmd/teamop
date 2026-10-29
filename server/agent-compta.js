@@ -25,10 +25,15 @@ const ID = 'margaux';
 const F = 'compta-reglages.json';
 const TOOLS = ['point_compta', 'verifier_factures', 'calendrier_compta', 'regler_compta'];
 const norm = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const ECHO_CHIFFRES = false;
 const VIDE = { type: 'object', properties: {}, additionalProperties: false };
 
 /* Ce que Justin doit avoir DIT pour qu'une valeur soit notée (sur le texte normalisé : sans accent, en minuscules). Une valeur qu'il n'a pas dite est refusée. */
-const DIT_REGIME = { franchise: /franchise|293|non assujetti|pas assujetti|sans tva|pas de tva/, micro: /micro/, reel: /\breel\b/, inconnu: /sais pas|inconnu|pas sur|ignore/ };
+const DIT_REGIME = { franchise: /franchise|293\s?b|non assujetti|pas assujetti|sans tva|pas de tva/, micro: /micro/, reel: /\breel\b/, inconnu: /sais pas|inconnu|pas sur|ignore/ };
+/* Une négation ou un doute devant le mot : « je ne suis PAS en franchise », « je ne sais pas si j'ai désigné… » ne disent pas la valeur. */
+const NIE_REGIME = { franchise: /(ne suis pas|pas|jamais)\s+(en |au |une? |de |d')?(regime )?(de )?franchise|sais pas|pas sur/, micro: /(ne suis pas|pas|jamais)\s+(en |au |une? |de |d')?(regime )?micro|sais pas|pas sur/, reel: /(ne suis pas|pas|jamais)\s+(en |au |une? |de |d')?(regime )?reel|sais pas|pas sur/ };
+/* La réponse sèche à SA question : « oui » ou « pas encore », rien d'autre. Elle ne vaut que si la dernière chose que Margaux a dite dans le fil EST la question (`CAL.estQuestionPlateforme`). */
+const SECHE_PLATEFORME = { oui: /^(oui|oui c'est fait|c'est fait|deja)$/, non: /^(non|pas encore|non pas encore|pas encore non)$/ };
 const SUJET_PLATEFORME = /plateforme|\bpdp\b|\bpa\b|facture\w* electronique|reception/;
 const DIT_PLATEFORME = { oui: /\boui\b|choisi|designe|c'est fait|deja|\bpris\b|\bok\b/, non: /\bnon\b|pas encore|pas choisi|pas designe|aucune|pas fait|pas de plateforme|n'ai pas/, inconnu: /sais pas|inconnu|pas sur|ignore/ };
 const DIT_AUCUN_EXPERT = /pas d'expert|aucun expert|sans expert|pas d expert|n'ai pas d'expert|pas de comptable|aucun comptable/;
@@ -64,7 +69,8 @@ module.exports = function agentCompta(ctx) {
   function ecrire(fil, lignes) {
     for (const l of lignes) {
       if (String(l).length > 300) return false;
-      let r; try { r = conv.systeme(fil, l); } catch (e) { r = null; }
+      /* ⛔ `sansEcho` : le pont ne recopie PAS ces lignes dans OP MESSAGES (décision D5 ouverte : Justin n'a pas dit que le chiffre d'affaires y va). Pour l'ouvrir : `ECHO_CHIFFRES = true`. */
+      let r; try { r = conv.systeme(fil, l, { sansEcho: !ECHO_CHIFFRES }); } catch (e) { r = null; }
       if (!r || r.ok !== true) return false;
     }
     return true;
@@ -84,7 +90,7 @@ module.exports = function agentCompta(ctx) {
     } else {
       if (arg.ok) {
         const segs = ['Au ' + CAL.dateFr(CAL.jourDe(now)) + ' · encaissé en ' + per.libelle + (per.enCours ? ' (mois en cours)' : '') + ' : ' + (arg.payees === 0 ? '0 facture payée' : CAL.euros(arg.centimes / 100) + ' (' + PLURIEL(arg.payees, 'facture payée', 'factures payées') + ')'),
-          'en attente : ' + arg.ouvertes, 'refusées : ' + arg.refusees, 'annulées : ' + arg.annulees];
+          'en attente : ' + arg.ouvertes, 'refusées : ' + arg.refusees, 'annulées : ' + arg.annulees, '(ces trois compteurs : les factures émises en ' + per.libelle + ' ; la Tour compte, elle, sur ses 50 dernières, quelle que soit leur date)'];
         if (arg.horsEuro) segs.push(PLURIEL(arg.horsEuro, 'facture hors euro non comptée', 'factures hors euro non comptées'));
         lignes.push(...CAL.ranger(segs));
       } else lignes.push('Encaissé de ' + per.libelle + ' : ' + ill + '.');
@@ -176,6 +182,17 @@ module.exports = function agentCompta(ctx) {
   }
 
   /* ═══ 4. LES RÉGLAGES ═══ */
+  /* La dernière parole de Margaux dans ce fil est-elle sa question sur la plateforme ? (lu dans l'historique du fil, jamais dans ce que dit le modèle) */
+  function derniereParoleEstQuestion(fil) {
+    try {
+      const h = conv && typeof conv.historique === 'function' ? conv.historique(fil, 20) : [];
+      const l = Array.isArray(h) ? h : [];
+      /* sa réponse à CE message-ci est déjà dans le fil (elle est postée avant les outils) : on remonte avant le dernier message de Justin */
+      let fin = l.length; for (let i = l.length - 1; i >= 0; i--) if (l[i] && l[i].de === 'justin') { fin = i; break; }
+      const siennes = l.slice(0, fin).filter(m => m && m.de === ID);
+      return siennes.length > 0 && CAL.estQuestionPlateforme(siennes[siennes.length - 1].texte);
+    } catch (e) { return false; }
+  }
   function reglerCompta(entree, c) {
     const g = porte(c); if (g) return g;
     const permis = ['regime', 'plateforme_reception', 'expert_comptable'];
@@ -190,13 +207,15 @@ module.exports = function agentCompta(ctx) {
     if ('regime' in entree) {
       const v = entree.regime;
       if (!CAL.REGIMES.includes(v)) return { ok: false, raison: 'valeur' };
-      if (!DIT_REGIME[v].test(t)) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note ton régime que si tu me le dis : franchise, micro-entreprise ou réel ?' };
+      if (!DIT_REGIME[v].test(t) || NIE_REGIME[v].test(t)) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note ton régime que si tu me le dis : franchise, micro-entreprise ou réel ?' };
       cand.regime = v; notes.push('régime : ' + CAL.REGIMES_LIBELLE[v]);
     }
     if ('plateforme_reception' in entree) {
       const v = entree.plateforme_reception;
       if (!CAL.PLATEFORMES.includes(v)) return { ok: false, raison: 'valeur' };
-      if (!(v === 'inconnu' ? DIT_PLATEFORME.inconnu.test(t) : SUJET_PLATEFORME.test(t) && DIT_PLATEFORME[v].test(t) && (v === 'non' || !DIT_PLATEFORME.non.test(t)))) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note la plateforme que si tu me dis clairement si tu en as désigné une ou non.' };
+      const sec = t.replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ').trim();
+      const reponseSeche = (v === 'oui' || v === 'non') && SECHE_PLATEFORME[v].test(sec) && derniereParoleEstQuestion(c.fil);
+      if (!reponseSeche && !(v === 'inconnu' ? DIT_PLATEFORME.inconnu.test(t) : SUJET_PLATEFORME.test(t) && DIT_PLATEFORME[v].test(t) && (v === 'non' || !DIT_PLATEFORME.non.test(t)) && (v === 'non' || !DIT_PLATEFORME.inconnu.test(t)))) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note la plateforme que si tu me dis clairement si tu en as désigné une ou non — par exemple « j’ai désigné une plateforme » ou « pas encore de plateforme ».' };
       cand.plateforme = v; notes.push('plateforme de réception : ' + (v === 'oui' ? 'désignée' : v === 'non' ? 'pas désignée' : 'inconnue'));
     }
     if ('expert_comptable' in entree) {
@@ -206,10 +225,13 @@ module.exports = function agentCompta(ctx) {
         if (e.nom !== undefined || e.adresse !== undefined || !DIT_AUCUN_EXPERT.test(t)) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note « pas d’expert-comptable » que si tu me le dis.' };
         cand.expert = { aucun: true, nom: '', adresse: '' }; notes.push('expert-comptable : aucun');
       } else {
-        const nom = typeof e.nom === 'string' ? e.nom.replace(/\s+/g, ' ').trim() : '', adr = typeof e.adresse === 'string' ? e.adresse.trim().toLowerCase() : '';
-        if (nom.length < 3 || nom.length > 80 || adr.length > 160 || !COURRIEL.test(adr)) return { ok: false, raison: 'valeur' };
-        /* le nom ET l'adresse doivent figurer, tels quels, dans le message de Justin */
-        if (!t.includes(norm(nom)) || !String(c.texte || '').toLowerCase().includes(adr)) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note ton expert-comptable que si tu m’écris son nom et son adresse de courriel.' };
+        /* ⛔ L'adresse est lue dans le message de Justin PAR LE CODE, jamais donnée par le modèle : la messagerie masque les adresses avant de les lui montrer (« (adresse) »), il ne la connaît pas. */
+        const nom = typeof e.nom === 'string' ? e.nom.replace(/\s+/g, ' ').trim() : '';
+        const trouvees = [...new Set((String(c.texte || '').match(/[^\s@<>",;()]+@[^\s@<>",;()]+\.[^\s@<>",;()]+/g) || []).map(a => a.replace(/[.\-]+$/, '').toLowerCase()))];
+        const adr = trouvees.length === 1 ? trouvees[0] : '';
+        if (nom.length < 3 || nom.length > 80 || trouvees.length > 1 || (adr && (adr.length > 160 || !COURRIEL.test(adr)))) return { ok: false, raison: 'valeur' };
+        /* le nom doit figurer, tel quel, dans le message de Justin, avec UNE adresse de courriel */
+        if (!t.includes(norm(nom)) || !adr) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note ton expert-comptable que si tu m’écris son nom et son adresse de courriel.' };
         cand.expert = { aucun: false, nom, adresse: adr }; notes.push('expert-comptable : noté');
       }
     }
@@ -234,7 +256,7 @@ module.exports = function agentCompta(ctx) {
         description: 'Faire le point de l’ARGENT de TeamOP pour Justin : l’encaissé d’une période, les factures en attente ou refusées, les abonnés, le revenu mensuel, les formules, les périodes offertes, tes relances. À n’appeler que si Justin le demande, dans ce fil privé. ⛔ Le SERVEUR écrit lui-même tous les chiffres dans le fil : tu n’en écris AUCUN — ni montant, ni nombre, ni date de TeamOP — et tu ne les connais pas. Ta réponse tient en UNE phrase sans chiffre (par exemple « Voilà le point, il est juste en dessous »).',
         input_schema: { type: 'object', properties: { periode: { type: 'string', enum: periodesOffertes, description: 'ce_mois, mois_dernier, ou un mois AAAA-MM parmi les douze derniers' } }, required: ['periode'], additionalProperties: false } },
       { name: 'verifier_factures',
-        description: 'Vérifier que les factures Stripe de l’année portent les mentions obligatoires (numéro, pied de page, mention de franchise, adresse et TVA du client, période, PDF, TVA facturée) et donner à Justin la liste de ce qu’il doit cocher lui-même dans Stripe. À n’appeler que si Justin le demande, dans ce fil privé. Le serveur écrit le bilan (des nombres) : tu n’écris AUCUN chiffre, aucun nom de client, aucun numéro de facture ; une phrase suffit.',
+        description: 'Vérifier que les factures Stripe de l’année portent les mentions attendues (numéro, pied de page, mention de franchise, adresse et TVA du client, période, PDF, TVA facturée) et donner à Justin la liste de ce qu’il doit cocher lui-même dans Stripe. À n’appeler que si Justin le demande, dans ce fil privé. Le serveur écrit le bilan (des nombres) : tu n’écris AUCUN chiffre, aucun nom de client, aucun numéro de facture ; une phrase suffit.',
         input_schema: VIDE },
       { name: 'calendrier_compta',
         description: 'Dire à Justin les échéances de la loi qui touchent la compta de TeamOP (facturation électronique, mention de franchise, seuil de la franchise, déclarations, conservation), avec le niveau de preuve de chaque date. À n’appeler que si Justin le demande, dans ce fil privé. Le serveur écrit les dates et les seuils : tu n’en écris AUCUN, tu réponds en une phrase.',
@@ -244,7 +266,7 @@ module.exports = function agentCompta(ctx) {
         input_schema: { type: 'object', properties: {
           regime: { type: 'string', enum: CAL.REGIMES },
           plateforme_reception: { type: 'string', enum: CAL.PLATEFORMES },
-          expert_comptable: { type: 'object', properties: { nom: { type: 'string' }, adresse: { type: 'string', description: 'adresse de courriel' }, aucun: { type: 'boolean', description: 'vrai si Justin dit qu’il n’a pas d’expert-comptable' } }, additionalProperties: false } },
+          expert_comptable: { type: 'object', properties: { nom: { type: 'string' }, aucun: { type: 'boolean', description: 'vrai si Justin dit qu’il n’a pas d’expert-comptable' } }, additionalProperties: false } },
           additionalProperties: false } },
     ];
   }
