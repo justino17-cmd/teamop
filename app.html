@@ -15903,20 +15903,25 @@ function catVars(k){ const t=catTeinte(k); return '--cat-j:'+t[0]+';--cat-n:'+t[
 const NAV = [
   {g:'Tableau de bord', items:[
     {k:'dashboard',ic:'📊',l:'Tableau de bord'},
+    {k:'statistiques',cache:1,ic:'📈',l:'Statistiques',admin:true},
     {k:'historique',ic:'🕘',l:'Historique'},
     /* ⛔ « Audit » RETIRÉ le 23 septembre 2026 (Justin : « si tu vois des catégories qui sont
        pas utiles, je t'autorise de les supprimer »). C'était le MÊME écran qu'Historique :
        même fonction (`journalView`), même source (`visibleJournal(db.journal)`), seul le
        titre changeait — deux entrées de menu pour une seule chose. Un ancien lien ou un
        onglet mémorisé mène à Historique (`VUES_RETIREES`). */
+    {k:'archives',cache:1,ic:'🗄️',l:'Archives mensuelles',admin:true,aside:true},
   ]},
   {g:'Planification', items:[
     {k:'planning',ic:'🗓️',l:'Planning'},
+    {k:'planningGeneral',cache:1,ic:'🏢',l:'Planning général'},
     {k:'taches',ic:'✅',l:'Tâches'},
     {k:'absences',ic:'🏖️',l:'Absences & congés'},
   ]},
   {g:'Interventions', items:[
     {k:'interventions',ic:'🧰',l:'Interventions',b:'int'},
+    {k:'rapports',cache:1,ic:'📄',l:'Rapports'},
+    {k:'carteInt',cache:1,ic:'🗺️',l:'Carte interventions'},
     {k:'registre',ic:'📋',l:'Registre sanitaire',aside:true},
     {k:'carteBox',ic:'📍',l:'Carte des box',aside:true},
   ]},
@@ -15925,6 +15930,7 @@ const NAV = [
   ]},
   {g:'Ventes', items:[
     {k:'devis',ic:'💰',l:'Devis',b:'dev'},
+    {k:'assistantDevis',cache:1,ic:'🤖',l:'Assistant devis'},
     {k:'factures',ic:'🧾',l:'Factures',b:'fac'},
     {k:'contrats',ic:'📑',l:'Contrats',b:'ctr'},
     {k:'comptabilite',ic:'📊',l:'Comptabilité',admin:true},
@@ -15934,6 +15940,7 @@ const NAV = [
   {g:'Stock', items:[
     {k:'produits',ic:'📦',l:'Produits',b:'prd'},
     {k:'stock',ic:'🗃️',l:'Stock'},
+    {k:'mouvements',cache:1,ic:'🔁',l:'Mouvements stock'},
     {k:'boxes',ic:'🧱',l:'Boxes',b:'box'},
     {k:'saisieConso',ic:'📋',l:'Consommation produits',aside:true},
     /* « Produits donnés » n'est pas au menu : c'est une SOUS-CATÉGORIE de Boxes (la rangée
@@ -15944,14 +15951,19 @@ const NAV = [
   {g:'Temps & équipe', items:[
     {k:'pointage',ic:'⏱️',l:'Temps de travail'},
     {k:'vehicules',ic:'🚐',l:'Véhicules',b:'veh'},
+    {k:'conducteurs',cache:1,ic:'🧑‍✈️',l:'Conducteurs',aside:true},
   ]},
   {g:'Fournisseurs & courrier', items:[
+    {k:'messagerie',cache:1,ic:'💬',l:'Messagerie'},
     {k:'boiteMail',ic:'📧',l:'Boîte mail',admin:true},
     {k:'fournisseurs',ic:'🏭',l:'Fournisseurs',b:'four',admin:true},
     {k:'bons',ic:'✉️',l:'Bons de commande',admin:true},
   ]},
   {g:'Achats internes', items:[
+    {k:'brouillon',cache:1,ic:'📝',l:'Brouillon',aside:true},
     {k:'demandes',ic:'✈️',l:'Mes demandes',aside:true},
+    {k:'validations',cache:1,ic:'✅',l:'Validation des mouvements',admin:true,aside:true},
+    {k:'commandes',cache:1,ic:'📥',l:'Commandes en cours',aside:true},
   ]},
   {g:'Administration', items:[
     {k:'secteurs',ic:'📌',l:'Secteurs',admin:true},
@@ -15969,7 +15981,7 @@ const NAV = [
    v730, un commercial (fermé par défaut) ouvrait Produits donnés en tapant l'adresse. */
 /* v780 — Justin, 29 octobre 2026 : « alléger OP GESTION, trop de trucs qui se ressemblent ; l'assistant devis, autant le mettre
    dans le même truc ». L'Assistant devis n'a plus de ligne au menu : il s'ouvre depuis Devis (bouton « 🤖 Assistant »). */
-const SOUS_CATS=[{k:'produitsDonnes',ic:'🎁',l:'Produits donnés',parent:'boxes'},{k:'assistantDevis',ic:'🤖',l:'Assistant devis',parent:'devis'},{k:'statistiques',ic:'📈',l:'Statistiques',parent:'dashboard'},{k:'archives',ic:'🗄️',l:'Archives mensuelles',parent:'historique'},{k:'planningGeneral',ic:'🏢',l:'Planning général',parent:'planning'},{k:'rapports',ic:'📄',l:'Rapports',parent:'interventions'},{k:'carteInt',ic:'🗺️',l:'Carte',parent:'interventions'},{k:'mouvements',ic:'🔁',l:'Mouvements',parent:'stock'},{k:'conducteurs',ic:'🧑‍✈️',l:'Conducteurs',parent:'vehicules'},{k:'brouillon',ic:'📝',l:'Brouillon',parent:'demandes'},{k:'commandes',ic:'📥',l:'Commandes en cours',parent:'demandes'},{k:'validations',ic:'✅',l:'Validation des mouvements',parent:'demandes'}];
+const SOUS_CATS=[{k:'produitsDonnes',ic:'🎁',l:'Produits donnés',parent:'boxes'}];
 /* v780 — Justin, 29 octobre 2026 : « trop de trucs qui se ressemblent ». Chaque groupe n'a plus qu'UNE ligne au menu ; ses
    écrans se rejoignent par une rangée d'onglets en tête de l'écran (même forme que Boxes : Liste · Carte · Produits donnés).
    Les droits ne changent pas : chaque écran reste une sous-catégorie avec son droit (`SOUS_CATS`), et la rangée ne montre que ce
@@ -17405,7 +17417,7 @@ const ONGLETS_MAX=4;
 function ongletsDispo(){
   /* ⛔ v767 — suspendue, la barre garde ses onglets, grisés (`html.acces-suspendu`) : un toucher mène à l'écran « Accès
      suspendu ». Sans ça, elle se vidait — ou se remplissait des seuls Paramètres. */
-  try{ const susp=accesSuspendu(); return NAV.flatMap(s=>s.items).filter(it=>canSee(it)||(susp&&!!currentUser&&userSeesModule(currentUser,it.k,true))); }catch(e){ return []; }
+  try{ const susp=accesSuspendu(); return NAV.flatMap(s=>s.items).filter(it=>!it.cache).filter(it=>canSee(it)||(susp&&!!currentUser&&userSeesModule(currentUser,it.k,true))); }catch(e){ return []; }
 }
 function ongletItem(k){ try{ return NAV.flatMap(s=>s.items).find(x=>x.k===k)||null; }catch(e){ return null; } }
 /* ⛔ ON FILTRE TOUJOURS SUR CE QUE LA PERSONNE PEUT VOIR. Un onglet choisi avant qu'un droit
@@ -18138,6 +18150,7 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
   const susp=accesSuspendu();
   $('nav').innerHTML = favorisBloc() + NAV.map(sec=>{
     const rows = sec.items.map(it=>{
+      if(it.cache) return null;   // v780 : rubrique regroupée (onglets en tête de son écran parent) ou retirée (messagerie)
       if(canSee(it)) return {it,verrou:false};
       if(susp && currentUser && userSeesModule(currentUser,it.k,true)) return {it,verrou:true};
       return null;
@@ -18448,7 +18461,7 @@ const VUES_RETIREES={audit:'historique', permissions:'utilisateurs', chantiers:'
    dans box »). Sans cette table, ouvrir Produits donnés éteignait TOUT : aucune ligne du menu
    allumée, aucun onglet sous la bulle — on ne voyait plus où l'on était. Le menu, la barre du
    bas et le glissement de page la lisent tous les trois. */
-const VUE_PARENT=Object.fromEntries(SOUS_CATS.map(s=>[s.k,s.parent]));
+const VUE_PARENT=Object.fromEntries(SOUS_CATS.map(s=>[s.k,s.parent]).concat(Object.entries(FUSIONS).flatMap(([p,L])=>L.filter(([k])=>k!==p).map(([k])=>[k,p]))).concat([['assistantDevis','devis']]));
 /* ⛔ v767 — L'ÉCRAN « ACCÈS SUSPENDU ». Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu
    tant que c'est pas réglé » ; 20 septembre : « rien n'est perdu », et « c'est pas aux utilisateurs de savoir si l'entreprise
    paye ou pas. Que le compte admin ». L'administrateur y lit pourquoi et règle ; les autres lisent seulement que l'accès est
@@ -23388,7 +23401,7 @@ function absSolde(techId){
 
 /* ── Tâches ── */
 views.modulesElan=function(){
-  const items=NAV.flatMap(g=>g.items).filter(x=>x.aside&&userSeesModule(currentUser,x.k));   // seulement ce que ce compte a le droit d'ouvrir
+  const items=NAV.flatMap(g=>g.items).filter(x=>x.aside&&!x.cache&&userSeesModule(currentUser,x.k));   // seulement ce que ce compte a le droit d'ouvrir
   /* admin#4 : le bouton « Afficher dans le menu / Masquer du menu » ne commandait RIEN (mesuré, test-1303) : `showAside()`
      n'est lu que par le défaut d'une rubrique absente de la table de son rôle, et `defaultPerms()` les donne toutes —
      le menu était identique avant et après le clic, et le sous-titre « Masqués — interface 100 % Organilog » mentait
