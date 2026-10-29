@@ -103,6 +103,11 @@
   --base: #f2f2f7;
   --verre-reflet: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.35), inset 0 0 0 .5px rgba(255,255,255,.55);
 }
+/* ⛔ Justin, 29 octobre 2026 (capture, Windows) : de nuit, la liste « Répétition » s'ouvrait blanche, texte blanc pâle — illisible.
+   La liste d'un <select> est peinte par le système ; sous Windows elle ignore le `color-scheme` de la page dès que la feuille colore
+   le champ. On donne aux options leurs propres couleurs, dans les deux thèmes. */
+select option, select optgroup { background-color: #ffffff; color: #0b1633; }
+@media (prefers-color-scheme: dark) { select { color-scheme: dark; } select option, select optgroup { background-color: #14213a; color: #eef2f8; } }
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #ffffff;
