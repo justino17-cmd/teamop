@@ -2503,7 +2503,7 @@ const MON_GESTES = {
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
   /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
   'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
-  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/camille/arriere': 'a demandé à Camille de reprendre l’arriéré du courrier', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/revue/lancer': 'a lancé la revue du week-end de l’équipe d’agents', 'agents/revue/retirer': 'a retiré une règle de travail d’un agent', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/camille/arriere': 'a demandé à Camille de reprendre l’arriéré du courrier', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
   'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
@@ -5082,6 +5082,7 @@ let louisMod = null;         // Louis : la base de connaissances que Justin vali
 let chloeMod = null;         // Chloé : la proposition sur mesure après la réponse du prospect (`agent-chloe.js`)
 let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
 let reunionsMod = null;        // les réunions du lundi et du vendredi (`reunions.js`) : `null` = pas montées ; les agents n'ont alors ni objectifs ni leçons
+let revueMod = null;           // la revue du week-end (`agents-revue.js`) : `null` = pas montée ; les agents n'ont alors aucune règle proposée ni validée
 let plateformeMod = null;      // les six agents de la plateforme (`agents-plateforme.js`) : `null` = pas montés ; ni surveillance par les agents, ni point du matin
 let examenMod = null;          // l'examen de l'équipe et sa clé (`examen.js`) : `null` = pas monté ; la Tour n'a alors ni bouton ni clé d'examen
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
@@ -11085,7 +11086,7 @@ try {
        Sous son propre `try` : un échec de montage ne doit emporter ni Hugo ni la Messagerie — les agents se taisent, c'est tout. */
     try {
       agentsConversation = require('./agent-conversation')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
-        memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
+        memoire: (id) => (reunionsMod ? reunionsMod.memoire(id) : '') + (revueMod ? revueMod.memoire(id) : '') });
       console.log('agents : conversation montée pour ' + agentsConversation.ids.length + ' agents');
     } catch (e) { agentsConversation = null; console.error('conversation des agents indisponible :', e.message); }
     /* LÉA, CAMILLE ET LEURS BROUILLONS : une réponse commerciale PRÉPARÉE à chaque inscription, demande d'application et mail reçu — jamais envoyée
@@ -11167,7 +11168,7 @@ try {
           /* Camille reprend l'arriéré du courrier que Justin lui demande (`agent-camille.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
           get camille() { return agentCamille && agentCamille.outilsEquipe; } },
         arbitrer: (e, c) => plateformeMod ? plateformeMod.arbitrer(e, c) : { ok: false, raison: 'indisponible' },     // l'outil « arbitrer » de Victor (`agents-plateforme.js`)
-        memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
+        memoire: (id) => (reunionsMod ? reunionsMod.memoire(id) : '') + (revueMod ? revueMod.memoire(id) : '') });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
     } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
     /* LE PONT VERS OP MESSAGES (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place »). Fermé sans `opmsgPont` dans la configuration du VPS ({ secret: <64 hexadécimaux>, url?: http://127.0.0.1:<port> },
@@ -11209,6 +11210,20 @@ try {
         console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
       }
     } catch (e) { reunionsMod = null; console.error('réunions des agents indisponibles :', e.message); }
+    /* LA REVUE DU WEEK-END (29 octobre 2026) : samedi 10 h → dimanche 24 h (heure de Paris), chaque agent relit sa semaine et PROPOSE deux ou trois règles de travail ; elles attendent dans la file de
+       validations de Justin (Agents, onglet Validations) et n'entrent dans les consignes de l'agent QU'ACCEPTÉES. Sous son propre `try`, comme les réunions : sans elle, les agents travaillent comme avant.
+       La minuterie est celle des réunions (`agents.reunionsAuto: false` la coupe aussi : les bancs qui démarrent le vrai serveur ne veulent pas d'un appel à Claude un samedi). */
+    try {
+      revueMod = require('./agents-revue')(app, { DATA_DIR, monPatronStrict, agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, pousseNotif,
+        equipe: () => agentEquipe, reunions: () => reunionsMod });
+      const ticRevue = () => { try { revueMod.tic(); } catch (e) { console.error('revue du week-end :', e.message); } };
+      if (config.agents && config.agents.reunionsAuto === false) console.log('agents : revue du week-end montée SANS minuterie (agents.reunionsAuto: false)');
+      else {
+        setTimeout(ticRevue, 7000).unref();
+        setInterval(ticRevue, 60000).unref();
+        console.log('agents : revue du week-end montée (samedi 10 h → dimanche minuit, heure de Paris)');
+      }
+    } catch (e) { revueMod = null; console.error('revue du week-end indisponible :', e.message); }
     /* ══ HUGO, MARGAUX, EMMA, SARAH — LES CLIENTS (23 octobre 2026) ══════════════════════════════════════════════════════════════════════════
        Justin : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. S'il n'arrête
        pas l'abonnement et qu'il ne paye pas, là on fait les démarches pour les faire payer. »

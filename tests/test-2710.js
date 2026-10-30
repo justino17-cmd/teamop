@@ -142,6 +142,8 @@ const P = jeton.patron, S = jeton.simple;
   /* 23 octobre 2026 : les formes fermées de Hugo, Margaux, Emma et Sarah (`agents.js`, `agents-documents.js`) — leur jeu sain, sur leur ligne */
   Object.assign(base, { resilier_fin_periode: { espace: 'dupont' }, rendez_vous_prospect: { dossier: 'DOS-000001' }, choix_creneau: { dossier: 'DOS-000001', creneau: '2' },
     courrier_agent: { ref: 'dc1' }, mise_en_demeure: { ref: 'dc1' }, annonce_clients: { ref: 'dc1' } });
+  /* 29 octobre 2026 : la règle de la revue du week-end (`agents-revue.js`) — seule la référence traverse la file */
+  Object.assign(base, { regle_agent: { regle: 'rg0a1b2c3d' } });
   v('(population) un jeu sain existe pour chaque schéma, et il passe', Object.keys(monter.SCHEMAS).filter(t => !monter.paramsValides(t, base[t])), []);
   for (const type of Object.keys(monter.SCHEMAS)) {
     for (const champ of Object.keys(monter.SCHEMAS[type])) {

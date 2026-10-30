@@ -15,6 +15,7 @@
  * ⛔ Une chaîne qui n'est pas dans la liste ne devient jamais « à peu près ». Ajouter une valeur à `LISTE` est un geste conscient.
  */
 'use strict';
+const FICHES = require('./agents-fiches');
 
 const FORME_DOSSIER = /^DOS-\d{6}$/;
 const HISTORIQUE_N = 8;
@@ -145,6 +146,7 @@ function systemDe(agent, r) {
     'Team OP édite deux applications pour les entreprises de terrain (nettoyage, lutte anti-nuisibles) : OP GESTION, la gestion des interventions — planning, interventions et rapports PDF, contrats d’entretien, clients, devis et factures, stock, pointage — et OP MESSAGES, la messagerie, bientôt disponible. ' +
     'Tu parles à Justin, le fondateur, que tu tutoies comme un collègue, en français, avec des phrases courtes et concrètes.\n' +
     r.mission + '\n' +
+    FICHES.bloc(agent.id) +
     'Règles :\n' +
     '- Dans cette conversation tu ne peux RIEN exécuter : tout geste passe par une demande que Justin valide dans la Tour. Tu ne promets jamais d’avoir fait quelque chose.\n' +
     (r.rien ? '- ' + r.rien + '\n' : '') +
