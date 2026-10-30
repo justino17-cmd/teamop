@@ -33,6 +33,7 @@
  */
 'use strict';
 const AC = require('./agent-conversation');
+const FICHES = require('./agents-fiches');
 const { fermer, raccourcir, sansTel, ADRESSE, CAUSES, FORME_DOSSIER } = AC;
 const { SANS_CONSIGNE_LIBRE, OUTILS_PROPRES_DELEGABLES } = require('./agents');
 const { GROUPES, RACINE } = require('./conversations');
@@ -243,6 +244,7 @@ module.exports = function agentEquipe(ctx) {
       'Tu parles à Justin, le fondateur, que tu tutoies comme un collègue, en français, avec des phrases courtes et concrètes. Tu fais partie d’une vraie équipe ; tes collègues (identifiant, rôle) : ' + collegues + '.\n' +
       r.mission + '\n' +
       'Ton caractère : ' + PERSO[id] + '\n' +
+      FICHES.bloc(id) +
       'Règles :\n' +
       '- Tu ne peux RIEN exécuter en dehors de tes outils : aucun geste sur un client, un paiement ou un accès. Tout autre geste passe par une demande que Justin valide dans la Tour. Tu ne promets jamais d’avoir fait ce que tu n’as pas fait, ni de faire ce qu’aucun de tes outils ne fait : si tu ne peux pas, tu le dis et tu dis ce qu’il faudrait.\n' +
       '- Un sujet que tu as toi-même déclaré clos dans ce fil, tu ne le relances pas : seul un nouveau message de Justin le rouvre.\n' +
@@ -411,7 +413,7 @@ module.exports = function agentEquipe(ctx) {
     /* HORS DES HEURES DE TRAVAIL (26 octobre 2026) : le message de Justin n'est pas perdu dans le vide — on lui dit pourquoi personne ne répond, et quand ils reprennent. */
     else if (raison === 'hors_heures') {
       let o = null; try { o = typeof agents.ouverture === 'function' ? agents.ouverture(id) : null; } catch (e) { o = null; }
-      dire(fil, nomDe(id) + ' est hors des heures de travail' + (o && o.libelle ? ' : il reprend ' + o.libelle : '') + '. « Ouvrir maintenant » (page Agents, Horaires) le fait travailler tout de suite.', { cle: 'hors_heures:' + id, parHeure: true });
+      dire(fil, nomDe(id) + ' est hors des heures de travail' + (o && o.libelle ? ' : il reprend ' + o.libelle : '') + '. « Ouvrir maintenant » (page Agents, onglet Heures de travail) le fait travailler tout de suite.', { cle: 'hors_heures:' + id, parHeure: true });
     }
     else if (raison === 'horaires_illisibles') dire(fil, 'Les horaires des agents sont illisibles : tous les agents restent à l’arrêt tant que le registre n’est pas réparé.', { cle: 'horaires_illisibles', parHeure: true });
   }

@@ -808,7 +808,9 @@ module.exports = function monterReunions(app, ctx) {
     res.status(MSG[0]).json({ error: MSG[1] });
   });
 
-  return { tic, demarrer, memoire, planifier, annuler, outilsVictor, attendre: () => (enCours ? enCours.promesse : Promise.resolve()), enCours: () => enCours && { id: enCours.id, type: enCours.type, fin: enCours.fin }, estIllisible: illisible };
+  /* Les objectifs de la semaine d'un agent et leur bilan, pour la REVUE DU WEEK-END (`agents-revue.js`) : ses propres mots, déjà masqués, jamais ceux d'un client. */
+  const objectifsSemaine = id => (IDS.has(id) && !illisible() ? objectifsDe(semaineDe(maintenant()), id).map(o => ({ texte: o.texte, mesure: o.mesure, statut: o.bilan ? o.bilan.statut : '' })) : []);
+  return { tic, demarrer, memoire, objectifsSemaine, planifier, annuler, outilsVictor, attendre: () => (enCours ? enCours.promesse : Promise.resolve()), enCours: () => enCours && { id: enCours.id, type: enCours.type, fin: enCours.fin }, estIllisible: illisible };
 };
 module.exports.sansRedites = sansRedites;
 module.exports.debutDe = debutDe;
