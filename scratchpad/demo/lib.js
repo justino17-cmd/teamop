@@ -59,7 +59,7 @@ async function ouvrir(o) {
     if (r.exceptionDetails) throw new Error((r.exceptionDetails.exception && r.exceptionDetails.exception.description) || r.exceptionDetails.text);
     return r.result.value;
   };
-  const S = { ev, c, reseau, exterieur, bloques, exceptions, erreurs, violations, BASE, dormir, fermer: null };
+  const S = { pc, ev, c, reseau, exterieur, bloques, exceptions, erreurs, violations, BASE, dormir, fermer: null };
   S.profil = async (largeur, hauteur, mobile, theme) => {
     await c.envoyer('Emulation.setDeviceMetricsOverride', { width: largeur, height: hauteur, deviceScaleFactor: mobile ? 2 : 1, mobile: !!mobile });
     if (mobile) await c.envoyer('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }).catch(() => {});
