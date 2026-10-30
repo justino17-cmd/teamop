@@ -6341,8 +6341,8 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
      après TOUTES les gardes ci-dessus (un aperçu promet un courriel qui partira). À l'envoi, un `texte`/`objet` relu par le patron remplace
      le modèle ; il est borné, et le courriel garde son bouton vers l'adresse de l'espace. Les gardes restent celles d'avant : un texte
      modifié ne fait pas partir un mot de passe que le serveur n'a pas reconnu (voir `m`). */
-  const SUJET_ACCES = '🔗 Votre lien de connexion — TEAM OP';
-  if ((req.body || {}).apercu === true) return res.json({ ok: true, apercu: true, a: e.email, objet: SUJET_ACCES, texte });
+  const SUJET_LIEN = '🔗 Votre lien de connexion — TEAM OP';
+  if ((req.body || {}).apercu === true) return res.json({ ok: true, apercu: true, a: e.email, objet: SUJET_LIEN, texte });
   const texteRelu = typeof (req.body || {}).texte === 'string' ? (req.body || {}).texte.replace(/\r\n?/g, '\n').slice(0, 6000).trim() : '';
   const objetRelu = typeof (req.body || {}).objet === 'string' ? (req.body || {}).objet.replace(/[\r\n]+/g, ' ').slice(0, 150).trim() : '';
   let texteEnvoi = texte, htmlEnvoi = html;
@@ -6360,7 +6360,7 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
        d'une entreprise n'a rien à faire. Sa relance, plus bas, le disait déjà ; celui-ci l'avait oublié. */
     await mailerEnvoi({ confidentiel: true, trace: 'lien de connexion + accès provisoires · espace ' + slug,
       from: config.smtp.from || config.smtp.user, to: e.email,
-      subject: objetRelu || SUJET_ACCES, text: texteEnvoi, html: htmlEnvoi });
+      subject: objetRelu || SUJET_LIEN, text: texteEnvoi, html: htmlEnvoi });
     console.log('Tour :', req.tourUser.nom, 'a envoyé le lien de l\'espace', tE, '→', masqueMail(e.email));   // l'identifiant, pas le nom : souvent celui d'une personne
     // son « Mon espace » passe à Accès activé · OP GESTION active (+ abonnement si formule posée)
     fbMajFicheClient(e.email, Object.assign({ status: 'fourni', apps: ['elan'] },
