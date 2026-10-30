@@ -95,7 +95,9 @@ const promos = D => {
     await attendre(async () => (await lignes('margaux')).filter(m => m.de === 'margaux').length >= 2);
     const corps2 = JSON.stringify(S.claudeRecus());
     vrai('⛔ …au tour suivant non plus (le point n’est pas relu)', CHIFFRES.every(c => !corps2.includes(c)) && !/Encaissé en|Abonnés :/.test(corps2));
-    const jr = (await S.get('/api/monitor/agents/journal?limite=500')).txt;
+    /* les identifiants de ligne (12 signes hexadécimaux, tirés au hasard) et les horodatages contiennent des chiffres : « 487 » y tombe
+       une fois sur quelques centaines (pris en CI le 30 octobre 2026, « a47ced487135 »). On les retire avant de chercher un montant. */
+    const jr = (await S.get('/api/monitor/agents/journal?limite=500')).txt.replace(/"id":"[0-9a-f]+"/g, '"id":""').replace(/"ts":\d+/g, '"ts":0');
     vrai('⛔ le journal des agents (route) : une ligne « point compta », aucun chiffre, aucun nom', /"action":"point compta"/.test(jr) && CHIFFRES.every(c => !jr.includes(c)) && !SECRETS.test(jr) && !/3 142|487/.test(jr), jr.slice(-300));
     const fj = fs.readFileSync(path.join(S.D, 'agents-journal.json'), 'utf8');
     vrai('⛔ …et le fichier du journal aussi', CHIFFRES.every(c => !fj.includes(c)) && !SECRETS.test(fj));
