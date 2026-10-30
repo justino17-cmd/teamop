@@ -44,7 +44,7 @@ const FONCTIONS = ['function plansOf(', 'function papZoneOf(', 'function papRoom
   'function papImplEmpreintes(', 'function papImplDernier(', 'function papImplDernierPlan(', 'function papImplEtat(', 'function papImplEtatTxt(',
   'function _pdfDessinPlans(', 'function papImplPdfStr(', 'async function papImplDocument(', 'let _papImplEnvoi=', 'async function papImplantationEnvoyer(', 'function papImplCarteHtml(', 'function papImplClotureLigne(',
   'function papMarque(', 'function papTombe(', 'function papTouch(', 'function papFindPoste(', 'function papZoneAlimName(', 'function papSheetZone(', 'function papSheetProduit(', 'function papSheetSecure(',
-  'function mentionRegl(', 'function ammVisible(', 'function socNom(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function socDuClient(', 'function socStyle(', 'function entSocUnique('];
+  'function mentionRegl(', 'function ammVisible(', 'const DOC_COULEUR_DEFAUT=', 'function docCouleurEnt(', 'function socNom(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function socDuClient(', 'function socStyle(', 'function entSocUnique('];
 const CONSTS = ['const PA_TYPES=', 'const PAP_ZONES_ALIM=', 'const MENTION_REGL=', 'const PH_MARQUE='];
 function monter(base) {
   const W = { console, Map, Set, Object, JSON, String, Math, Date, Array, Number, Promise, Uint8Array, Error, isNaN,
