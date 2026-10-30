@@ -23,10 +23,10 @@ let webpush; try { webpush = require(path.join(RACINE, 'server', 'node_modules',
 const T = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const corps = (src, entete) => { const i = src.indexOf(entete); if (i < 0) return ''; let j = src.indexOf('{', i), p = 0; for (let k = j; k < src.length; k++) { const c = src[k]; if (c === '{') p++; else if (c === '}') { p--; if (!p) return src.slice(i, k + 1); } } return ''; };
 const ligne = d => { const i = T.indexOf(d); return i < 0 ? '' : T.slice(i, T.indexOf('\n', i)); };
-const NOMS = ['chargerJournal', 'jrAgNom', 'vueJournal', 'jrGroupe', 'teteListe', 'agNom', 'agParId', 'esc', 'fmtDate', 'fmtHeure', 'apiGet'];
+const NOMS = ['chargerJournal', 'jrAgNom', 'vueJournal', 'filtreEff', 'sourcesAff', 'aGestion', 'aMessages', 'jrGroupe', 'teteListe', 'agNom', 'agParId', 'esc', 'fmtDate', 'fmtHeure', 'apiGet'];
 const FN = NOMS.map(n => corps(T, 'function ' + n + '('));
 const JRV = ligne('var JR={');
-v('(population) les 11 fonctions et l\'état JR sont trouvés dans le fichier livré', [FN.filter(f => f.length < 30).length, /ag:\[\],agLec:0/.test(JRV)], [0, true]);
+v('(population) les 15 fonctions et l\'état JR sont trouvés dans le fichier livré', [FN.filter(f => f.length < 30).length, /ag:\[\],agLec:0/.test(JRV)], [0, true]);
 vrai('⛔ le Journal n\'écrit rien pour les agents (aucun apiPost dans chargerJournal ni vueJournal)', !/apiPost/.test(FN[0] + FN[2]));
 
 const MDP = 'banc-2817-patron', now = Date.now(), H = 3600000;
@@ -71,7 +71,7 @@ const JOURNAL = [
   v('un geste de la console par une vraie route (le patron)', g.status, 200);
 
   let jeton = S.TP, rendus = 0;
-  const bac = { API: S.API, fetch, Promise, JSON, Date, String, Array, Math, Error, Number, Object, MYROLE: 'patron', TAB: 'journal', APP: 'gestion', MYAPPS: ['gestion', 'messages'],
+  const bac = { API: S.API, fetch, Promise, JSON, Date, String, Array, Math, Error, Number, Object, MYROLE: 'patron', TAB: 'journal', FILTRE: 'gestion', MYAPPS: ['gestion', 'messages'], APPS_TOUR: { gestion: { nom: 'OP GESTION' }, messages: { nom: 'OP MESSAGES' } }, filtreAffiche: () => false,
     AG: { agents: [] }, IC: { cadenas: '' },
     hAuth: () => ({ Authorization: 'Bearer ' + jeton }), srvRepond: r => r, srvMuet: e => { throw e; }, doLogout: () => {}, render: () => { rendus++; }, msgErreur: () => 'Serveur injoignable.',
     squelListe: () => '<i class="squel"></i>', enTete: (t) => '<h1>' + t + '</h1>' };
@@ -95,9 +95,9 @@ const JOURNAL = [
   vrai('le filtre « Agents » compte 5 ; « Tout » les compte aussi', /onclick="jrFiltrePoser\('agents'\)">Agents<span class="n">5</.test(Hm) && tout >= 5 + bac.JR.serveur.filter(a => !a.app || a.app === 'gestion').length, Hm.slice(Hm.indexOf('tt-seg'), Hm.indexOf('tt-seg') + 500));
   bac.JR.f = 'agents'; Hm = bac.vueJournal();
   vrai('filtre « Agents » : leur groupe seul', /Ce qu’ont fait les agents/.test(Hm) && !/Ce qui a été fait dans cette console/.test(Hm) && !/Tentatives refusées/.test(Hm));
-  bac.APP = 'messages'; Hm = bac.vueJournal();
-  vrai('⛔ console OP MESSAGES : ni le groupe des agents, ni leur filtre — et le filtre « Agents » resté posé retombe sur « Tout »', !/Ce qu’ont fait les agents/.test(Hm) && !/jrFiltrePoser\('agents'\)/.test(Hm) && /aria-pressed="true" onclick="jrFiltrePoser\('tout'\)"/.test(Hm), Hm.slice(Hm.indexOf('tt-seg'), Hm.indexOf('tt-seg') + 400));
-  bac.APP = 'gestion'; bac.JR.f = 'tout';
+  bac.FILTRE = 'messages'; Hm = bac.vueJournal();
+  vrai('⛔ filtre « Messages » : ni le groupe des agents, ni leur filtre — et le filtre « Agents » resté posé retombe sur « Tout »', !/Ce qu’ont fait les agents/.test(Hm) && !/jrFiltrePoser\('agents'\)/.test(Hm) && /aria-pressed="true" onclick="jrFiltrePoser\('tout'\)"/.test(Hm), Hm.slice(Hm.indexOf('tt-seg'), Hm.indexOf('tt-seg') + 400));
+  bac.FILTRE = 'gestion'; bac.JR.f = 'tout';
   /* ⛔ relecture du 22 octobre 2026 : une panne du journal de la CONSOLE ne cache pas celui des agents, lu à part */
   const errAvant = bac.JR.err; bac.JR.err = 'Serveur injoignable.';
   const HE = bac.vueJournal();

@@ -38,14 +38,14 @@ const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur',
   'chargerVersion', 'versionRegler', 'versionExigerLigne', 'versionLever', 'blocVersions', 'carteCanal', 'blocVersionBeta', 'versionBetaPrete', 'versionBetaExiger', 'versionBetaLever',
   'chargerVersionsMsg', 'versionMsgRegler', 'versionMsgExiger', 'versionMsgLever', 'carteMsg', 'blocVersionsMsg',
   'fmtHeure', 'pubSuivre', 'blocPublierMsg', 'publierMsg',          // la carte « Publier OP MESSAGES » (Tour v2.86) : `blocVersionsMsg` l'appelle — un bac à sable qui ne l'a pas MEURT
-  'chargerEssais', 'btDeLaConsole', 'btAppsDe', 'btAvec', 'accLigneBeta', 'accBlocBeta', 'accFormBeta', 'vueEssaisMsg'];
-const VARS = ['VER', 'MV', 'MSG_CANAUX', 'BT', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE', 'PUB_ETATS', 'PUB_SUIVI', 'pubEnCours'];
+  'chargerEssais', 'btDeLaConsole', 'btAppsDe', 'btAvec', 'accLigneBeta', 'accBlocBeta', 'accFormBeta', 'vueEssais', 'accBlocPub', 'btApp', 'btChoisirApp', 'btAppsPastilles', 'filtreEff', 'sourcesAff', 'aGestion', 'aMessages', 'filtreApp', 'filtreAffiche'];   // v2.119 : vueEssais est UNE page (la vueEssaisMsg d'avant est sa moitié « filtre Messages »)
+const VARS = ['VER', 'MV', 'MSG_CANAUX', 'BT', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE', 'PUB_ETATS', 'PUB_SUIVI', 'pubEnCours', 'PBL', 'PB', 'FILTRE_LIB'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
 
 function tour(API, jeton, app, role) {
   const toasts = [], confirmations = [], ctx = { fetch, URL, Object, String, JSON, Promise, Math, Date, Array, Error, document: { getElementById: () => null, visibilityState: 'hidden' }, console, setInterval: () => 0, clearInterval: () => {} };
   vm.createContext(ctx);
-  vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(jeton) + ', APP=' + JSON.stringify(app) + ", TAB='surveillance', MYROLE=" + JSON.stringify(role || 'patron') + ", MYNOM='Patron banc';\n" +
+  vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(jeton) + ', FILTRE=' + JSON.stringify(app) + ", MYAPPS=['gestion','messages'], SOUS={}, INC={}, TAB='surveillance', MYROLE=" + JSON.stringify(role || 'patron') + ", MYNOM='Patron banc';\n" +
     "var JR={actions:[]}, IC={cadenas:''}; function doLogout(){} function srvEtat(){} function render(){} function squelListe(){ return '<i class=\"squel\"></i>'; }\n" +
     "function svg(){ return ''; } function enTete(t,p){ return '<div class=\"page-tete\">'+t+' — '+p+'</div>'; } function accAllerForm(){} function tourCopie(){} function setTab(){}\n" +
     SRCV.join('\n') + '\n' + SRC.join('\n'), ctx);
@@ -76,10 +76,10 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
   if (!(SRC.every(Boolean) && SRCV.every(Boolean))) { console.log('      manquent : ' + [...NOMS.filter((n, i) => !SRC[i]), ...VARS.filter((n, i) => !SRCV[i])].join(', ')); process.exit(1); }
   const vTour = (/\bvar TOUR_VERSION='v(\d+)\.(\d+)'/.exec(CODE) || []).slice(1).map(Number);
   vrai('la Tour porte au moins la v2.84', vTour.length === 2 && (vTour[0] > 2 || (vTour[0] === 2 && vTour[1] >= 84)));
-  /* v2.89 : chaque console a son onglet « Service » dans la Surveillance — GESTION y montre les siennes, MESSAGES les siennes */
+  /* v2.89 : chaque console a son onglet « Service » dans la Surveillance — GESTION y montre les siennes, MESSAGES les siennes ; v2.119 : UNE page, deux colonnes (vueService) */
   vrai('⛔ chaque console sa Surveillance des versions : GESTION les siennes, MESSAGES les siennes',
-    /function vueServiceGestion\(\)\{[^}]*blocVersions\(\)\+blocSortieFirebase\(\);\s*\}/.test(CODE) && !/function vueServiceGestion\(\)\{[^}]*blocVersionsMsg/.test(CODE) &&
-    /SOUS\.survgest==='service'\?vueServiceGestion\(\)/.test(CODE) && /SOUS\.survmsg==='service'\?vueServiceMsg\(\)\+blocBasculeMsg\(\)\+blocVersionsMsg\(\)/.test(CODE));
+    /var cg=G\?'<section class="svc-col" aria-label="OP GESTION">'\+\(M\?srcTitre\('gestion'\):''\)\+blocVersions\(\)\+blocSortieFirebase\(\)\+'<\/section>':'';/.test(CODE) && !/var cg=[^;]*blocVersionsMsg/.test(CODE) &&
+    /SOUS\.surveillance==='service'\?vueService\(\)/.test(CODE) && /corpsServiceMsg\(\)\+blocBasculeMsg\(\)\+blocVersionsMsg\(\)/.test(CODE));
 
   /* le serveur, ses deux instances d'OP MESSAGES, sa beta.html */
   let cfgBeta = { version_client: 14, min_client: 1, build: 'a1b2c3d4e5f6', comptes: { inscription: true } };
@@ -158,7 +158,7 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
 
     console.log('\n── 978 · 3. « Accès » d\'OP MESSAGES : la version publique, à côté de la bêta ──');
     TM.run("TAB='essais'; BT.loaded=true; BT.comptes=[]");
-    const acces = texte(TM.run('vueEssaisMsg()'));
+    const acces = texte(TM.run('vueEssais()'));
     vrai('« Accès à la bêta d’OP MESSAGES » et « Version publique d’OP MESSAGES », deux groupes', /Accès à la bêta d’OP MESSAGES/.test(acces) && /Version publique d’OP MESSAGES/.test(acces));
     vrai('la publique dit son état : en ligne, v12, inscriptions fermées', /En ligne · v12/.test(acces) && /inscriptions fermées/.test(acces));
     vrai('⛔ et on n\'y crée pas d\'accès (chacun ouvre son compte)', /On ne crée pas d’accès ici/.test(acces));

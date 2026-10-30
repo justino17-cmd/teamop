@@ -127,10 +127,11 @@ const S = bac(CLIENTS, { abos: [], videFaute: true });
 vrai('⛔ Stripe qui ne répond pas : jamais « pas encore payé » (un vide de panne n\'est pas un vide)', !/pas encore payé/.test(S.vueDemandes()) && /Stripe ne répond pas/.test(S.vueDemandes()));
 
 /* 4. le câblage : le menu, le rendu, le compteur, l'accueil */
-vrai('« Demandes » est au menu d\'OP GESTION, avec son compteur', /\['demandes','Demandes','gestion','bdg-dem'\]/.test(CODE));
-vrai('renderVue dessine l\'écran Demandes', /TAB==='demandes'\) v\.innerHTML=vueDemandes\(\);/.test(fonction('renderVue')));
+/* v2.119 : « Demandes » est une vue d'OP GESTION rangée dans le groupe « À traiter » (Courrier · Demandes · Incidents) ; son compteur s'ajoute à celui du Courrier (`bdg-att`) */
+vrai('« Demandes » est au menu d\'OP GESTION, dans le groupe « À traiter » dont le compteur additionne les demandes et le courrier', /\['demandes','Demandes','gestion','','support'\]/.test(CODE) && /\['support','Courrier','gestion','bdg-att'\]/.test(CODE) && /id==='bdg-supp'\|\|id==='bdg-dem'\)\{ id='bdg-att'/.test(CODE));
+vrai('renderVue dessine l\'écran Demandes, sous la rangée du groupe', /TAB==='demandes'\) v\.innerHTML=groupeOnglets\('demandes'\)\+vueDemandes\(\);/.test(fonction('renderVue')));
 vrai('le compteur du menu suit les demandes à traiter quand les comptes du site arrivent', /setBdg\('bdg-dem',demandesATraiter\(\)\.length\)/.test(fonction('chargerClients')));
-vrai('l\'accueil met les demandes à traiter en tête de ce qui attend', /demandesATraiter\(\)/.test(fonction('vueAccueil')) && /titre:'Demandes à traiter'/.test(fonction('vueAccueil')));
+vrai('l\'accueil (son groupe OP GESTION) met les demandes à traiter en tête de ce qui attend', /demandesATraiter\(\)/.test(fonction('accueilGestion')) && /titre:'Demandes à traiter'/.test(fonction('accueilGestion')));
 vrai('accepter depuis la carte passe l\'identifiant ET la demande touchée à tourAccepterDemande (pas de fenêtre du navigateur)', /tourAccepterDemande\(email,nom,ident,i,cats\)/.test(fonction('demAccepter')) && /identVoulu!=null\?identVoulu:prompt\(/.test(fonction('tourAccepterDemande')));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

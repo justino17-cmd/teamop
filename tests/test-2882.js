@@ -475,8 +475,10 @@ console.log('\n6. L\'envoi : le message paraît à l\'instant ; un refus se dit 
     vrai('le menu : « Messagerie » dans ÉQUIPE D\'AGENTS, entre Agents et Rapport, avec sa pastille', menu);
     vrai('⛔ les mêmes droits que l\'onglet Agents : « messagerie » est au patron seul (PATRON_SEUL)', /var PATRON_SEUL=\[[^\]]*'agents','messagerie'/.test(SANS));
     vrai('une icône, et un nom court pour la barre du bas', /\n  messagerie:'<path d=/.test(SANS) && /messagerie:'Messag\.'/.test(SANS));
-    vrai('setTab relit la messagerie à chaque ouverture', /if\(t==='messagerie'\) messOuvrir\(\);/.test(SANS));
-    vrai('renderVue la monte UNE fois (messGarde) et la démonte en la quittant', /else if\(TAB==='messagerie'\)\{ if\(!messGarde\(v\)\)\{ v\.innerHTML=vueMessagerie\(\); messMonter\(\); \} \}/.test(SANS) && /if\(TAB!=='messagerie'\) messDemonter\(\);/.test(SANS));
+    /* v2.120 (28 octobre 2026 au soir, « là je veux OP MESSAGES avec les mêmes fonctions que OP MESSAGES Pro ») : la Messagerie AFFICHE le vrai OP MESSAGES dans un cadre (`opmMonter`) ; l'ANCIENNE messagerie
+       que ce fichier garde n'est montée que si on la demande (`OPM.ancienne`, « Ancienne messagerie de la Tour »), et seule elle se relit à l'ouverture. Le montage du cadre est gardé par `test-3127`. */
+    vrai('setTab relit l\'ancienne messagerie à chaque ouverture (et elle seule : le cadre d\'OP MESSAGES se relit tout seul)', /if\(t==='messagerie'&&OPM\.ancienne\) messOuvrir\(\);/.test(SANS));
+    vrai('renderVue monte l\'ancienne UNE fois (messGarde) quand elle est choisie et l\'arrête en la quittant ; le CADRE d\'OP MESSAGES, lui, vit hors de #vue (opmHote) et n\'est plus détruit en quittant — v2.120, relecture (test-3127 § 5 bis le joue)', /else if\(TAB==='messagerie'\)\{ if\(OPM\.ancienne\)\{ if\(!messGarde\(v\)\)\{ v\.innerHTML=vueMessagerie\(\); messMonter\(\); \} \} else v\.innerHTML=''; \}/.test(SANS) && /if\(TAB!=='messagerie'\) messDemonter\(\);/.test(SANS) && /opmHote\(TAB==='messagerie'&&!OPM\.ancienne\);/.test(SANS));
     vrai('« Parler à X » ouvre la messagerie (agParler)', /function agParler\(id\)\{ messOuvrirFil\(id\); \}/.test(SANS));
     vrai('la pastille se repose quand le menu est redessiné', /poser\('bdg-msgr',MS\.nonLus\)/.test(SANS) && /messReleve\(\);/.test(SANS));
     vrai('⛔ l\'observateur typographique n\'écrit JAMAIS dans le calque (il y poserait des insécables : un retour à la ligne de plus que la zone de texte)', /p\.closest\('pre,code,script,style,textarea,\[contenteditable\],\.ms-miroir'\)/.test(SANS));
@@ -495,7 +497,9 @@ console.log('\n6. L\'envoi : le message paraît à l\'instant ; un refus se dit 
     vrai('une mention d\'une bulle à moi : lisible sur le fond d\'accent (pastille claire, encre bleue)', /\.ms-b\.moi \.ms-m\{[^}]*background:rgba\(255,255,255,\.92\)[^}]*\}/.test(css));
     vrai('trois colonnes par la largeur de la ZONE (requête de conteneur), « Qui fait quoi » en volet au-dessous de 1000 px, une seule colonne sous 700 px', /container:mess \/ inline-size/.test(css) && /@container mess \(max-width:1000px\)/.test(css) && /@container mess \(max-width:700px\)/.test(css));
     vrai('les points d\'écriture respectent « animations réduites »', /@media\(prefers-reduced-motion:reduce\)\{ \.ms-pts i\{animation:none/.test(css));
-    vrai('le bouton « Suivre dans OP MESSAGES » n\'est PAS un bouton : un texte « Bientôt » (OP MESSAGES ne se rebranche pas)', /<span class="ms-bientot"[^>]*>Suivre dans OP MESSAGES · <b>Bientôt<\/b><\/span>/.test(SANS) && !/Suivre dans OP MESSAGES[^<]*<\/button>/.test(SANS));
+    /* 28 octobre 2026 : les agents SONT dans OP MESSAGES (le pont) — plus de « Bientôt » dans l'en-tête du fil. v2.120 : le bandeau d'avant (`messBandeauOpm`) a disparu avec le cadre, qui AFFICHE OP MESSAGES ; le lien « Ouvrir dans
+       un nouvel onglet » (même adresse, autre onglet) vit dans la barre du cadre et dans ses messages — gardé par `test-3127`. */
+    vrai('l\'en-tête du fil ne promet plus « Bientôt » : le lien vers OP MESSAGES est « Ouvrir dans un nouvel onglet » (barre du cadre), dans un autre onglet', !/ms-bientot|<b>Bientôt<\/b>/.test(SANS) && !/messBandeauOpm|opm-bandeau/.test(SANS) && /function opmLienOuvrir\(cls\)\{ return '<a class="'\+cls\+'" href="'\+esc\(opmAdresse\(\)\)\+'" target="_blank" rel="noopener noreferrer">Ouvrir dans un nouvel onglet<\/a>'; \}/.test(SANS));
     /* ⛔ la messagerie n'écrit RIEN que par les deux routes de la messagerie */
     /* La population est celle du FICHIER (toute fonction `ms*` / `mess*`), jamais une liste de noms écrite ici : deux écritures de plus sont nées avec les réunions
        (`messReunionLancer`, `messLeconRetirer`) et une liste à la main ne les voyait pas. */
