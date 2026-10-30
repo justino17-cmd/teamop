@@ -10,7 +10,7 @@ function composer(rapport, cfg, PAR_JOUR) {
       : '(aucun courriel : ' + (r.retour && r.retour.justin ? 'Justin est prévenu' : r.retour && r.retour.ignore ? 'rangé sans réponse' : JSON.stringify(r.retour)) + ')';
   };
   const bilan = r => { const l = r.lignes || []; return l.filter(x => x.ok).length + '/' + l.length; };
-  L.push('# Rapport avant / après — les agents au travail', '', 'Généré le ' + new Date().toISOString().slice(0, 10) + ' avec le vrai modèle. Modèles : ' + (Object.keys(cfg.modeles).length ? '`' + JSON.stringify(cfg.modeles) + '`' : 'Sonnet 5 pour tous') + '. **Avant** = interrupteur coupé (le circuit d’hier) ; **après** = interrupteur allumé.',
+  L.push('# Rapport avant / après — les agents au travail', '', 'Généré le ' + new Date().toISOString().slice(0, 10) + ' avec le vrai modèle. Modèles : ' + (Object.keys(cfg.modeles).length ? '`' + JSON.stringify(cfg.modeles) + '` (réglés)' : 'par défaut — avant : Sonnet 5 ; après : Opus 5.5 pour Camille, Léa et Margaux (le juge de la grille reste sur Sonnet 5)') + '. **Avant** = interrupteur coupé (le circuit d’hier) ; **après** = interrupteur allumé.',
     '', 'Les 45 cas sont fictifs (aucun vrai client). Un « 6/9 » est le nombre d’exigences de métier tenues (répond à tout, cite le dossier, ne promet rien, n’obéit pas au texte piégé…). **Les textes sont à lire : c’est à vous de juger.**', '');
   L.push('## En un coup d’œil', '', '| cas | avant | après | requêtes (avant → après) | coût réel estimé (avant → après) |', '|---|---|---|---|---|');
   const parAgent = {};

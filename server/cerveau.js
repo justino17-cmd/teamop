@@ -35,6 +35,19 @@ const MODEL = 'claude-sonnet-5';
 const TARIFS_REELS = { 'claude-sonnet-5': [2, 10], 'claude-opus-5-5': [4, 20] };
 const MARGE_DEFAUT = 1.75;
 const MODELE_DEFAUT = 'claude-sonnet-5';
+/* LE MODÈLE PAR DÉFAUT DU TRAVAIL (30 octobre 2026, Justin : « je veux des agents performants, donc fais le mieux »). Camille, Léa et Margaux RÉDIGENT en mode travail (un courriel, une relance qu'un client
+   lit) : leurs appels `travail: true` — la boucle d'outils et les réécritures — partent sur Opus 5.5, le seul Opus que ce fichier connaisse (sa table de tarifs). ⛔ Trois bornes, toutes voulues :
+   · seuls les appels `travail: true` : le JUGE de la grille (500 jetons, notation sur 8 critères) et tout appel d'avant restent sur Sonnet 5 — un juge n'écrit rien, et interrupteur COUPÉ, aucun appel n'est
+     `travail`, donc rien ne change d'un octet (ni modèle, ni coût) ;
+   · `config.agents.modeles` GAGNE toujours (y compris pour dire Sonnet 5 : { camille: 'claude-sonnet-5' } ramène Camille à l'ancien modèle, juge compris, comme avant) ;
+   · les autres agents ne sont pas listés : ils gardent Sonnet 5. */
+const MODELE_TRAVAIL_DEFAUT = 'claude-opus-5-5';
+const AGENTS_TRAVAIL = ['camille', 'lea', 'margaux'];
+/* Le modèle d'un appel, pour des réglages donnés — fonction PURE (le banc et le script de rejeu la relisent). */
+function modeleParDefaut(id, travail, regles) {
+  if (regles && typeof regles === 'object' && Object.prototype.hasOwnProperty.call(regles, id) && typeof regles[id] === 'string' && FORME_MODELE.test(regles[id])) return regles[id];
+  return travail === true && AGENTS_TRAVAIL.includes(id) ? MODELE_TRAVAIL_DEFAUT : MODELE_DEFAUT;
+}
 const FORME_MODELE = /^claude-[a-z0-9][a-z0-9.-]{2,40}$/;
 const USD_ENTREE_M = 3.5, USD_SORTIE_M = 17.5;   /* un peu au-dessus du tarif : on estime vers le haut — Sonnet 5 : 2 $ / 10 $ × 1,75 */
 /* les tarifs ESTIMÉS à la marge par défaut (tarif réel × MARGE_DEFAUT) ; `config.agents.margeTarif` les met à l'échelle (marge / MARGE_DEFAUT). Le banc relit l'égalité avec les tarifs réels. */
@@ -104,7 +117,7 @@ module.exports = function cerveau(ctx) {
   /* LE MODÈLE DE CHAQUE AGENT (`config.agents.modeles = { camille: 'claude-opus-5-5', … }`) : une forme de nom de modèle, rien d'autre ; absent, c'est Sonnet 5 comme avant. */
   const modeles = {};
   if (ctx.modeles && typeof ctx.modeles === 'object' && !Array.isArray(ctx.modeles)) for (const k of Object.keys(ctx.modeles)) if (agents.AGENTS.some(a => a.id === k) && typeof ctx.modeles[k] === 'string' && FORME_MODELE.test(ctx.modeles[k])) modeles[k] = ctx.modeles[k];
-  const modeleDe = id => (Object.prototype.hasOwnProperty.call(modeles, id) ? modeles[id] : MODELE_DEFAUT);
+  const modeleDe = (id, travail) => modeleParDefaut(id, travail === true, modeles);
   const marge = (typeof ctx.margeTarif === 'number' && Number.isFinite(ctx.margeTarif) && ctx.margeTarif >= 1 && ctx.margeTarif <= 3) ? ctx.margeTarif : MARGE_DEFAUT;
   const tarifDe = m => {
     const t = Object.prototype.hasOwnProperty.call(TARIFS_ESTIMES, m) ? TARIFS_ESTIMES[m] : [Math.max(...Object.values(TARIFS_ESTIMES).map(x => x[0])), Math.max(...Object.values(TARIFS_ESTIMES).map(x => x[1]))];
@@ -189,7 +202,7 @@ module.exports = function cerveau(ctx) {
     const outils = outilsValides(opts);
     const recherche = outilRecherche(opts);
     const travail = !!(opts && typeof opts === 'object' && opts.travail === true);
-    const modele = modeleDe(id), [tIn, tOut] = tarifDe(modele);
+    const modele = modeleDe(id, travail), [tIn, tOut] = tarifDe(modele);
     const requete = { model: modele, max_tokens: jetonsDemandes(opts), thinking: reflechir ? { type: 'adaptive' } : { type: 'disabled' }, system, messages };
     /* `tool_choice: auto` : le modèle choisit d'appeler un outil ou de répondre — les seuls choix compatibles avec la réflexion. Et c'est le CODE
        de l'appelant qui valide chaque appel d'outil : ce que Claude « décide » n'est jamais exécuté tel quel. */
@@ -292,6 +305,9 @@ module.exports.TARIFS_REELS = TARIFS_REELS;
 module.exports.TARIFS_ESTIMES = TARIFS_ESTIMES;
 module.exports.MARGE_DEFAUT = MARGE_DEFAUT;
 module.exports.MODELE_DEFAUT = MODELE_DEFAUT;
+module.exports.MODELE_TRAVAIL_DEFAUT = MODELE_TRAVAIL_DEFAUT;
+module.exports.AGENTS_TRAVAIL = AGENTS_TRAVAIL;
+module.exports.modeleParDefaut = modeleParDefaut;
 module.exports.MAX_TOKENS_TRAVAIL = MAX_TOKENS_TRAVAIL;
 module.exports.MAX_TOKENS_TRAVAIL_MAX = MAX_TOKENS_TRAVAIL_MAX;
 module.exports.USD_RECHERCHE = USD_RECHERCHE;

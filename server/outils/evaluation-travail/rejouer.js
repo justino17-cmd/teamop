@@ -53,9 +53,12 @@ function estimer(cfg) {
   let total = 0; const lignes = [];
   for (const c of choisis) {
     const ag = c.id[0] === 'c' ? 'camille' : c.id[0] === 'l' ? 'lea' : 'margaux';
-    const modele = cfg.modeles[ag] || CERVEAU.MODELE_DEFAUT;
-    const t = CERVEAU.TARIFS_REELS[modele] || [4, 20];
-    for (const mode of ['avant', 'apres']) { const j = JETONS[ag][mode]; total += (j[0] * t[0] + j[1] * t[1]) / 1e6; }
+    /* le modèle de chaque mode comme `cerveau.penser` le choisira : « avant » = les appels d'aujourd'hui (Sonnet 5), « après » = le travail (Opus 5.5 par défaut) ; un réglage `agents.modeles` gagne dans les deux */
+    for (const mode of ['avant', 'apres']) {
+      const modele = CERVEAU.modeleParDefaut(ag, mode === 'apres', cfg.modeles);
+      const t = CERVEAU.TARIFS_REELS[modele] || [4, 20];
+      const j = JETONS[ag][mode]; total += (j[0] * t[0] + j[1] * t[1]) / 1e6;
+    }
     lignes.push(c.id);
   }
   return Math.round(total * 100) / 100;
@@ -64,7 +67,7 @@ function estimer(cfg) {
 (async () => {
   const cfg = lireConfig();
   const est = estimer(cfg);
-  console.log('Cas choisis : ' + choisis.length + ' (' + AGENT + ') · modèles : ' + (Object.keys(cfg.modeles).length ? JSON.stringify(cfg.modeles) : 'Sonnet 5 partout') + ' · Coût estimé de l’envoi (avant + après) : environ ' + est.toFixed(2) + ' $ RÉELS (plafond demandé : ' + BUDGET + ' $).');
+  console.log('Cas choisis : ' + choisis.length + ' (' + AGENT + ') · modèles : ' + (Object.keys(cfg.modeles).length ? JSON.stringify(cfg.modeles) + ' (réglés)' : 'par défaut : avant = Sonnet 5, après = ' + CERVEAU.MODELE_TRAVAIL_DEFAUT + ' pour Camille, Léa et Margaux ; le juge reste sur Sonnet 5') + ' · Coût estimé de l’envoi (avant + après) : environ ' + est.toFixed(2) + ' $ RÉELS (plafond demandé : ' + BUDGET + ' $).');
   if (ESTIMER) return;
   if (!cfg.cle) { console.error('Aucune clé des agents (agents.cleApi) dans la configuration : rien n’est envoyé.'); process.exit(2); }
   if (!OUI) { console.error('Rien n’est envoyé sans l’accord explicite : relancer avec --oui.'); process.exit(1); }

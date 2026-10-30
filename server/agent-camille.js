@@ -123,7 +123,7 @@ const BLOC_TRAVAIL = [
     'Pour « resiliation » et « remboursement », tu n’écris PAS le courriel : après la ligne CATEGORIE, UN seul paragraphe d’ouverture de 40 à 90 mots (sans « Bonjour » ni formule de fin) qui reconnaît la situation de la personne avec ses mots, sans prononcer les mots « remboursement », « résiliation », « arrêt » ni « abonnement », sans annoncer de décision, de date ni de conséquence : le serveur ajoute lui-même la réponse officielle. Pour toutes les autres catégories, la ligne CATEGORIE suffit.',
 ].join('\n');
 /* si la phrase d'origine change, le bloc s'AJOUTE à la fin au lieu de la remplacer (le banc le voit) : Camille ne tombe jamais au montage pour une retouche de texte */
-const SYSTEM_TRAVAIL = SYSTEM.includes(PHRASE_CATEGORIES) ? SYSTEM.replace(PHRASE_CATEGORIES, () => BLOC_TRAVAIL) : SYSTEM + '\n\n' + BLOC_TRAVAIL;
+const SYSTEM_TRAVAIL = (SYSTEM.includes(PHRASE_CATEGORIES) ? SYSTEM.replace(PHRASE_CATEGORIES, () => BLOC_TRAVAIL) : SYSTEM + '\n\n' + BLOC_TRAVAIL) + require('./agents-fiches').blocTravail('camille');   // + le rappel de la fiche de poste (mode travail seulement)
 
 /* ── Les GABARITS : ce que le CODE écrit, mot pour mot, sur les sujets qui engagent. Jamais un texte de Claude ni du client. ── */
 const FIN = '\n\nBien cordialement,';

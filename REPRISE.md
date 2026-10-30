@@ -13,6 +13,11 @@ de ligne du tout.
 
 ---
 
+# 🧠 30 OCTOBRE 2026 (soir) — LES AGENTS AU TRAVAIL EN OPUS, FICHE DE POSTE BRANCHÉE — branche `claude/agents-travail-integ` (= `claude/agents-travail` + `main`) ; poussée, PAS fusionnée, rien déployé, INTERRUPTEUR TOUJOURS COUPÉ
+
+Justin : « je veux des agents performants, donc fais le mieux ». Fait : (1) les appels de TRAVAIL (`travail: true`) de Camille, Léa et Margaux partent par défaut sur `claude-opus-5-5` (`cerveau.modeleParDefaut`) ; le juge de la grille, tout appel d'avant et les treize autres agents restent sur Sonnet 5 ; `config.agents.modeles` gagne toujours ; interrupteur coupé = aucun appel de travail = rien ne change. (2) Budget : **195 $ gardé** (et non 150 : c'est le plafond de TOUS les agents, le baisser aurait coupé les seize pour couvrir trois) — il couvre ≈ 82 $/mois d'Opus avec plus de la moitié de marge ; réglable (`budgetMois`). (3) `agents-fiches.blocTravail` : le rappel de fiche (mission, « jamais », vérité, modèle de courriel) dans les consignes de travail des trois agents, UNE fois, sans le bloc qui parle à Justin. (4) `sous-traitance.html` (+ aperçu) déclare ce qui part en plus quand le travail est allumé. `test-3205`. Mutations : `scratchpad/mutations-modele-travail.py`.
+⚠️ À faire avant d'allumer : lire le rejeu (`rejouer.js --estimer` PUIS `--oui`, sur le VPS) ; `registre-traitements.html` (même flux) n'a pas été retouché ; `config.agents.modeles` n'est pas posé sur le VPS (le défaut suffit).
+
 # 🛠️ 30 OCTOBRE 2026 — LES AGENTS AU TRAVAIL : LE MOTEUR, ET TROIS PILOTES (Camille, Léa, Margaux) — branche `claude/agents-travail`, partie de `claude/agents-pro` ; **poussée, PAS fusionnée, rien déployé, INTERRUPTEUR COUPÉ**
 
 Justin : « ils font pas le travail, ils répondent aux mails en bref, c'est pas pro » ; décision : « réparer les nôtres ». Diagnostic vérifié dans le code : réponse bornée à 600 jetons, un seul modèle, un courriel vu par l'objet et six mille signes, aucun outil de lecture, un contrôle qui dit si un texte est DANGEREUX mais pas s'il est BON — et les mails « en bref » étaient surtout les gabarits de trois lignes du CODE (facture, technique, inconnu).

@@ -39,6 +39,7 @@
 const crypto = require('crypto');
 const K = require('./agents-connaissance');
 const CTRL = require('./agents-controle');
+const FICHES = require('./agents-fiches');   // le rappel de la fiche de poste, en mode travail seulement (`blocTravail`)
 
 const ID = 'lea';
 const F = 'agents-lea.json';
@@ -341,7 +342,7 @@ module.exports = function lea(ctx) {
         const metierLbl = typeof i.metier === 'string' && i.metier ? libelleMetier(i.metier) : '';
         const fiche = await seRenseigner(ent, metierLbl);
         const demande = demandeClaude(Object.assign({}, i, { source }), fiche);
-        const systeme = SYSTEM + connaissances([i.besoin, i.entreprise, metierLbl].join(' '));
+        const systeme = SYSTEM + (travailActif() ? FICHES.blocTravail(ID) : '') + connaissances([i.besoin, i.entreprise, metierLbl].join(' '));
         let premier = true;
         /* mode travail : la première rédaction vient de la boucle d'outils (connaissances validées), les réécritures rejouent ce qu'elle a lu */
         const enTravail = travailActif();
