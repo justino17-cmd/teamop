@@ -116,8 +116,11 @@ const SCHEMAS = {
   courrier_agent:       { ref: REF },
   mise_en_demeure:      { ref: REF },
   annonce_clients:      { ref: REF },
+  /* `regle_agent` (29 octobre 2026, `agents-revue.js`) : une RÈGLE DE TRAVAIL que l'agent propose à la revue du week-end. Seule la référence traverse la file (le texte vit dans le module de la revue) ;
+     elle n'entre dans les consignes de l'agent qu'une fois la validation ACCEPTÉE par Justin — et ne lui donne aucun droit de plus. */
+  regle_agent:          { regle: REF },
 };
-const TYPES_VALIDATION = ['creer_espace', 'suspendre_acces', 'envoyer_mail', 'publier', 'repondre_avis', 'correctif', 'resilier_fin_periode', 'courrier_agent', 'mise_en_demeure', 'annonce_clients'];
+const TYPES_VALIDATION = ['creer_espace', 'suspendre_acces', 'envoyer_mail', 'publier', 'repondre_avis', 'correctif', 'resilier_fin_periode', 'courrier_agent', 'mise_en_demeure', 'annonce_clients', 'regle_agent'];
 const TYPES_TACHE = ['verifier_paiement', 'preparer_espace', 'escalade_humain', 'signaler_erreur', 'relire_envoi', 'resilier_fin_periode', 'rendez_vous_prospect', 'choix_creneau'];
 /* DEUX FORMES POUR UNE MÊME DEMANDE (fusion de l'intégration, 23 octobre 2026). « Je veux arrêter » : Camille (le courrier) ne connaît que le NUMÉRO DE DOSSIER du client
    (jamais un nom d'accès : elle ne lit pas l'annuaire) et le dépose à Hugo (`{ dossier }`) quand l'expéditeur est authentifié ET l'adresse du compte ; Hugo (la gestion) retrouve
@@ -812,8 +815,12 @@ module.exports = function monterAgents(app, ctx) {
   const enAttentePour = (type, champ, valeur) => { perimer(); return validations.some(v => v.statut === 'en_attente' && v.type === type && v.params && v.params[champ] === valeur); };
   /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
      l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
+  /* L'état d'UNE validation, relu à chaque appel (jamais recopié) : la revue du week-end y lit si Justin a accepté, refusé ou laissé expirer une règle. `null` : inconnue, ou le registre est illisible. */
+  const validationDe = id => { perimer(); if (illisibles.has(F_VALID)) return null; const v = validations.find(x => x.id === id); return v ? { statut: v.statut, type: v.type, agent: v.agent, execution: v.execution || '', decideTs: v.decideTs || 0 } : null; };
+  /* Une validation VIVANTE (en attente ou acceptée) du même agent, du même type, dont le champ `champ` vaut `valeur` : un module qui a déposé puis redémarré avant d'avoir noté l'identifiant la retrouve au lieu d'en déposer une seconde. '' sinon (ou registre illisible). */
+  const retrouverValidation = (agent, type, champ, valeur) => { perimer(); if (illisibles.has(F_VALID)) return ''; const v = validations.find(x => x.agent === agent && x.type === type && (x.statut === 'en_attente' || x.statut === 'accepte') && x.params && x.params[champ] === valeur); return v ? v.id : ''; };
   const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
-  return { peutAgir, consigneNuit, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, consigneOuverte, bilan, consignesEnRetard, suiviFait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
+  return { peutAgir, consigneNuit, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, consigneOuverte, bilan, consignesEnRetard, suiviFait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes, validationDe, retrouverValidation };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

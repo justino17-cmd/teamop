@@ -77,6 +77,9 @@ const FORME = [
   '- Structuré en courts paragraphes séparés par une ligne vide ; une liste numérotée simple (1., 2., 3.) pour les questions, et pour elles seules (une liste d’avantages s’écrit en tirets « - »).',
   '- Texte brut : ni Markdown (pas d’astérisques, pas de dièses), ni titres en capitales, ni émoji, ni lien, ni adresse électronique, ni numéro de téléphone.',
   '- Tu n’écris PAS de signature : le serveur l’ajoute après « Bien cordialement, ».',
+  '- Le premier paragraphe montre qu’on a lu la situation de la personne (son activité, sa question) : pas de formule d’ouverture qui irait à n’importe qui.',
+  '- Un paragraphe porte une idée. Le courriel se termine par UNE seule demande claire (ce qu’on attend de la personne), jamais deux.',
+  '- Aucune formule creuse : tu n’écris jamais « n’hésitez pas à… » ; tu dis précisément ce que la personne peut faire (« répondez simplement à ce message avec… »).',
 ].join('\n');
 
 /* Les bornes du texte rendu par Claude : un brouillon trop court n'est pas un courriel, un trop long n'est pas lu. */

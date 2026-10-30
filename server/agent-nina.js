@@ -108,7 +108,7 @@ module.exports = function agentNina(ctx) {
       const camille = agents.AGENTS.some(a => a.id === r.de) && r.de !== ID;
       const dEq = parler('equipe', (camille ? '@' + nomDe(r.de) + ', j’ai bien reçu ' : 'J’ai bien reçu ') + 'la demande d’exercice de droits (RGPD) : je la prends. Le délai légal est d’un mois, soit jusqu’au ' + lim + '. Pense à en accuser réception au demandeur depuis le courrier ; je tiens le délai et je préviens Justin.', 'info');
       const dJ = parler(ID, 'Justin, une demande d’exercice de droits (RGPD) vient d’arriver par ' + (camille ? nomDe(r.de) : 'le courrier') + ' : la lecture est dans le courrier. Le délai légal est d’un mois, donc réponse avant le ' + lim + ' (dans ' + jours + ' jours). ' +
-        'À faire : vérifier l’identité du demandeur, rassembler ce qui le concerne, répondre. Je ne touche à aucune donnée ; un effacement, s’il est demandé, reste ton geste. Je te rappelle à J-10, J-3 et le jour même, et tu me dis « traité » dans la Tour (Agents, Plateforme).', 'important');
+        'À faire : vérifier l’identité du demandeur, rassembler ce qui le concerne, répondre. Je ne touche à aucune donnée ; un effacement, s’il est demandé, reste ton geste. Je te rappelle à J-10, J-3 et le jour même, et tu la marques « traitée » dans la Tour (Messagerie, groupe Plateforme, section Demandes RGPD).', 'important');
       if (dit(dEq) && dit(dJ)) { r.accuse = true; etat.sauver(); n++; note('demande RGPD accusée', { cible: 'rgpd', resultat: 'ok', detail: 'jusqu’au ' + lim }); }
     }
     return n;
@@ -124,7 +124,7 @@ module.exports = function agentNina(ctx) {
       if (!agents.peutAgir(ID).ok) break;
       const lim = O.dateLongue(r.limite);
       const texte = e === 'j0' ? 'Justin, c’est aujourd’hui le dernier jour pour répondre à la demande RGPD (reçue le ' + O.dateLongue(r.recu) + ') : le délai légal d’un mois se termine ce soir.'
-        : e.startsWith('retard') ? 'Justin, la demande RGPD reçue le ' + O.dateLongue(r.recu) + ' est en RETARD de ' + (-jours) + ' ' + O.pluriel(-jours, 'jour', 'jours') + ' : le délai légal d’un mois est dépassé depuis le ' + lim + '. Réponds-y, ou dis-moi dans la Tour qu’elle est traitée.'
+        : e.startsWith('retard') ? 'Justin, la demande RGPD reçue le ' + O.dateLongue(r.recu) + ' est en RETARD de ' + (-jours) + ' ' + O.pluriel(-jours, 'jour', 'jours') + ' : le délai légal d’un mois est dépassé depuis le ' + lim + '. Réponds-y, ou marque-la « traitée » dans la Tour (Messagerie, groupe Plateforme, section Demandes RGPD).'
         : 'Rappel RGPD : il reste ' + jours + ' ' + O.pluriel(jours, 'jour', 'jours') + ' pour répondre à la demande reçue le ' + O.dateLongue(r.recu) + ' (jusqu’au ' + lim + ').';
       const d = parler(ID, texte, e === 'j10' ? 'important' : 'urgent');
       if (dit(d)) { r.rappels.push(e); if (r.rappels.length > 60) r.rappels = r.rappels.slice(-60); etat.sauver(); n++; note('rappel RGPD', { cible: 'rgpd', resultat: 'ok', detail: e }); }

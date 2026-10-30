@@ -26,6 +26,7 @@ const K = require('./agents-connaissance');
 const FAUTES = {
   salutation:          { phrase: 'Commencer par « Bonjour, » seul, sans prénom ni nom après le mot.' },
   justin:              { phrase: 'Ne jamais citer Justin ni se présenter comme lui : le courriel est écrit au nom de l’entreprise (« nous »).' },
+  formule_creuse:      { phrase: 'Retirer la formule creuse « n’hésitez pas à… » : dire précisément ce que la personne peut faire (par exemple « répondez simplement à ce message avec… »).' },
   voix_je:             { phrase: 'Écrire au nom de l’entreprise (« nous »), jamais à la première personne du singulier (« je », « j’ »).' },
   tutoiement:          { phrase: 'Vouvoyer le destinataire : jamais de « tu », « ton », « ta », « tes » ni « te ».' },
   markdown:            { phrase: 'Texte brut : ni astérisques, ni dièses, ni code, ni lien en markdown.' },
@@ -99,6 +100,8 @@ function fautesDuCode(objet, corpsBrut, ctx) {
   /* salutation, voix, ton */
   if (!/^Bonjour,[ \t]*(\n|$)/.test(brut.replace(/^\s+/, ''))) f.push('salutation');
   if (/\bjustin\b/i.test(tout)) f.push('justin');
+  /* (29 octobre 2026) la formule que Justin a relevée dans deux premiers courriels à 9/9 (« n'hésitez pas à nous préciser ») : une faute NON grave, donc réparée par la réécriture, jamais un courriel bloqué */
+  if (/n['’]h[ée]sitez\s+(?:surtout\s+)?pas\s+[àa](?![\p{L}])/iu.test(corps)) f.push('formule_creuse');
   if (/(?:^|[^\p{L}])(?:je(?![\p{L}])|j['’](?=\p{L}))/iu.test(corps)) f.push('voix_je');
   if (/(?:^|[^\p{L}])(?:(?:tu|toi|ton|ta|tes|te)(?![\p{L}])|t['’](?=\p{L}))/iu.test(corps)) f.push('tutoiement');
   /* mise en forme : Claude en glisse malgré la consigne (`normaliserCorps` en retire une partie sans bruit) — on ne signale que ce qui subsiste */
