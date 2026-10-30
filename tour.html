@@ -6014,15 +6014,23 @@ function lgMessagePoser(){
 /* Reprendre la main sur les identifiants de départ d'un espace qui n'a pas encore servi.
    Le serveur refuse dès qu'une connexion a été enregistrée, et le dit — on relaie son message
    plutôt que d'inventer le nôtre. */
+/* v2.124 — UN FORMULAIRE, PLUS DE PETITES FENÊTRES (Justin, 30 octobre 2026 : les deux `prompt()` de ce geste ne ressemblaient en rien
+   au formulaire de création, et se lisaient comme l'ancien système à codes). Le même formulaire que « Ouvrir un accès » : identifiant
+   prérempli, mot de passe proposé (« Générer »), puis « Enregistrer » — qui ouvre le panneau d'envoi (aperçu du courriel). */
 function tourIdentModifier(slug,nom,identActuel){
   if(!slug){ toast('Espace sans identifiant technique — passe par sa fiche d’entreprise'); return; }
-  var ident=prompt('Identifiant de connexion pour « '+(nom||slug)+' » :',identActuel||'');
-  if(ident===null) return;
-  ident=(ident||'').toLowerCase().replace(/[^a-z0-9.]/g,'');
+  tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">🔑 Nouveaux identifiants de départ — '+esc(nom||slug)+'</div>'+
+    '<div style="color:var(--muted);font-size:13px;margin-bottom:14px">L’adresse <b>teamop.fr/e/'+esc(slug)+'</b> ne change pas. Ces identifiants ne servent qu’à la <b>première</b> connexion : l’application fait ensuite choisir le vrai mot de passe.</div>'+
+    '<div class="sec">IDENTIFIANT</div><input id="ti-ident" class="inp" style="margin:6px 0 12px" autocomplete="off" value="'+esc(identActuel||'')+'">'+
+    '<div class="sec">MOT DE PASSE PROVISOIRE</div><div style="display:flex;gap:8px;margin:6px 0 14px"><input id="ti-mdp" class="inp" style="flex:1" autocomplete="off" value="'+esc(tourMdpDefaut())+'">'+
+    '<button type="button" class="btn-fant" onclick="document.getElementById(\'ti-mdp\').value=tourMdpDefaut()">Générer</button></div>'+
+    '<button type="button" class="btn-plein" onclick="tiEnregistrer(\''+jsq(slug)+'\',\''+jsq(nom||'')+'\')">Enregistrer</button>');
+}
+function tiEnregistrer(slug,nom){
+  var ident=((document.getElementById('ti-ident')||{}).value||'').toLowerCase().replace(/[^a-z0-9.]/g,'');
+  var mdp=((document.getElementById('ti-mdp')||{}).value||'').trim();
   if(!ident){ toast('Il faut un identifiant'); return; }
-  var mdp=prompt('Nouveau mot de passe provisoire (8 caractères minimum) :\n\nIl ne sert qu’à la PREMIÈRE connexion : l’application fait ensuite choisir le vrai mot de passe.','');
-  if(mdp===null) return;
-  if((mdp||'').length<8){ toast('Mot de passe trop court (8 caractères minimum)'); return; }
+  if(mdp.length<8){ toast('Mot de passe trop court (8 caractères minimum)'); return; }
   apiPost('/api/monitor/espaces/identifiants',{slug:slug,ident:ident,mdp:mdp}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Modification impossible.'); return; }
     chargerAccesPublics();
