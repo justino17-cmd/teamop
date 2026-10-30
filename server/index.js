@@ -2457,7 +2457,7 @@ function monLog(ident, ok, req, motif, apps) {   // journal des connexions (réu
    Ce qui est noté : qui, le geste, la console, et une CIBLE prise dans une liste fermée de champs du corps — jamais un mot
    de passe, un code ou un lien ; une adresse e-mail n'y entre que masquée (`masqueMail`). */
 const MON_GESTES = {
-  'login': null, 'report': null,
+  'login': null, 'report': null, 'promo-stripe': null,
   'users': 'a créé un compte de la Tour', 'users/toggle': 'a désactivé ou réactivé un compte de la Tour',
   'users/delete': 'a supprimé un compte de la Tour', 'users/apps': 'a changé les consoles d’un compte de la Tour',
   'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
@@ -6268,6 +6268,34 @@ app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
   }
   console.log('Tour :', req.tourUser.nom, 'a envoyé l\'annonce v' + ANNONCE.version, '→', envoyes, 'entreprises', refus ? ('(' + refus + ' refus)') : '');
   res.json({ ok: true, envoyes, refus, version: ANNONCE.version });
+});
+/* Le code promo qu'on écrit dans le courriel d'accès se VÉRIFIE chez Stripe avant d'être ajouté (contrôle de A à Z du
+   30 octobre 2026 : la Tour l'insérait tel quel — une faute de frappe partait chez le client, qui se voyait refuser au paiement
+   un code qu'on venait de lui offrir). Lecture seule, patron seul, et rien du code au journal. Rend ce que le code DONNE, pour que
+   le patron relise la promesse avant de l'envoyer ; « on ne sait pas » (Stripe muet) se dit, il ne devient pas « inconnu ». */
+app.post('/api/monitor/promo-stripe', monPatronStrict, async (req, res) => {
+  const code = monStr((req.body || {}).code, 60).trim();
+  if (!/^[A-Za-z0-9_-]{2,60}$/.test(code)) return res.status(400).json({ error: 'Code illisible : lettres, chiffres, - et _ seulement.' });
+  const sk = config.stripe && config.stripe.secretKey;
+  if (!sk) return res.status(501).json({ error: 'Stripe n\'est pas configuré sur le serveur : impossible de vérifier le code.' });
+  try {
+    const r = await fetch('https://api.stripe.com/v1/promotion_codes?limit=1&code=' + encodeURIComponent(code), { headers: stripeEntetes(sk) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return res.status(502).json({ error: 'Stripe ne répond pas : le code n\'a pas pu être vérifié. Réessaie, ou vérifie-le dans Stripe.' });
+    const pc = (d.data || [])[0];
+    if (!pc) return res.json({ ok: true, existe: false });
+    let cp = pc.coupon || (pc.promotion && pc.promotion.coupon) || null;
+    if (typeof cp === 'string') {
+      const rc = await fetch('https://api.stripe.com/v1/coupons/' + encodeURIComponent(cp), { headers: stripeEntetes(sk) });
+      cp = rc.ok ? await rc.json().catch(() => null) : null;
+    }
+    const maintenant = Math.floor(Date.now() / 1000);
+    const epuise = pc.max_redemptions != null && pc.times_redeemed >= pc.max_redemptions;
+    const expire = !!(pc.expires_at && pc.expires_at < maintenant);
+    res.json({ ok: true, existe: true, code: pc.code, actif: !!pc.active && !epuise && !expire && !(cp && cp.valid === false),
+      epuise, expire, reserveClient: !!pc.customer,
+      remise: cp ? { pourcent: cp.percent_off || null, montant: cp.amount_off != null ? cp.amount_off / 100 : null, duree: cp.duration || '', mois: cp.duration_in_months || null } : null });
+  } catch (e) { res.status(502).json({ error: 'Stripe injoignable : le code n\'a pas pu être vérifié.' }); }
 });
 app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) => {
   if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
