@@ -449,6 +449,23 @@ function suite() {
   };
   const MOTS_3D = /d[ée]ratis|d[ée]sinsect|punaise|rongeur|nuisible|blatte|frelon|gu[êe]pe|rodenticide|insecticide|xylophag|certibiocide|biocide|souris|\brats?\b/i;
   const TYPES_3D_SEULS = INT_TYPES.filter(t => !OUVERTS.some(k => k !== '3d' && (METIERS[k].types || []).indexOf(t) >= 0));
+  /* v782 : jusqu'à TROIS métiers dans l'exemple — le semis les pose AVANT les types et les catégories (la même fonction que le réglage d'une vraie entreprise) */
+  {
+    const sem = (id, p1, p2) => { const w = monde(); const fait = w.b.fn.demoPubliqueSemer(id, p1, p2); return { db: w.db, fn: w.b.fn, fait }; };
+    let w = sem('plomberie', 'chauffage', 'climatisation');
+    vrai('v782 : trois métiers semés — db.metier / metierPlus / metierPlus2 posés, l\'exemple les retient (changer de métiers resème)', w.fait && w.db.metier === 'plomberie' && w.db.metierPlus === 'chauffage' && w.db.metierPlus2 === 'climatisation'
+      && w.db.demoPublique.plus === 'chauffage' && w.db.demoPublique.plus2 === 'climatisation', [w.db.metier, w.db.metierPlus, w.db.metierPlus2, w.db.demoPublique]);
+    const T3 = w.fn.intTypes();
+    vrai('… et les types d\'intervention sont la RÉUNION des trois packs (un type de la climatisation que la plomberie n\'a pas)', (METIERS.climatisation.types || []).some(t => (METIERS.plomberie.types || []).indexOf(t) < 0 && T3.indexOf(t) >= 0) && (METIERS.chauffage.types || []).some(t => (METIERS.plomberie.types || []).indexOf(t) < 0 && T3.indexOf(t) >= 0), T3.length);
+    w = sem('plomberie', 'chauffage');
+    vrai('v782 : deux métiers seulement — plus2 reste vide', w.db.metierPlus === 'chauffage' && w.db.metierPlus2 === '' && w.db.demoPublique.plus2 === '', [w.db.metierPlus, w.db.metierPlus2]);
+    w = sem('plomberie', '', 'climatisation');
+    vrai('v782 : un second associé sans le premier est ignoré (jamais de plus2 sans plus)', w.db.metierPlus === '' && w.db.metierPlus2 === '', [w.db.metierPlus, w.db.metierPlus2]);
+    w = sem('plomberie', 'chauffage', 'chauffage');
+    vrai('v782 : le même métier deux fois, ou le principal en associé, ne s\'écrit pas', w.db.metierPlus === 'chauffage' && w.db.metierPlus2 === '', [w.db.metierPlus, w.db.metierPlus2]);
+    w = sem('plomberie', 'chauffage', '3d');
+    vrai('v782 : la 3D n\'est jamais « en plus »', w.db.metierPlus2 === '', w.db.metierPlus2);
+  }
   const rapports = {};
   [...OUVERTS, ...ORDRE.filter(k => OUVERTS.indexOf(k) < 0)].forEach(k => {
     const { db, traces, b } = monde(); const fn = b.fn;
