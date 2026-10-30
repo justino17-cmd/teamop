@@ -3680,7 +3680,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.121</div>
+    <div class="lg-pied">console interne · v2.122</div>
   </div>
 </div>
 
@@ -3715,7 +3715,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">La Tour · v2.121</div>
+        <div class="hd-tour" id="hd-tour">La Tour · v2.122</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3728,7 +3728,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
   <main id="opm-hote" hidden></main>   <!-- v2.120 : le cadre d'OP MESSAGES vit ICI, hors de #vue (qui est réécrit à chaque rubrique) : il est affiché ou masqué, jamais détruit -->
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.121</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.122</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -4071,7 +4071,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.121';
+var TOUR_VERSION='v2.122';
 /* le nom de la Tour dit qu'elle est UNE (plus « Tour OP GESTION » / « Tour OP MESSAGES ») ; la couleur ne parle jamais seule */
 function majEnteteTour(){ var hd=$('hd-tour'); if(hd) hd.textContent='La Tour · '+TOUR_VERSION; }
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
@@ -4947,6 +4947,8 @@ var CNX_VIA_L={adresse:'l’adresse de son entreprise',identifiants:'identifiant
 /* Le Courrier lui-même vit dans le module (opcourrier.js) ; la Tour n'en garde que ce que l'accueil et la pastille du menu lisent. */
 var MSG={boites:[],nonLus:0,sonRef:null,loaded:false,busy:false,err:''};
 var CLI={list:[],total:0,loaded:false,err:'',sel:null,q:''};
+/* v2.122 (30 octobre 2026) — les demandes « Créer votre application » du SITE (`/api/site/demande`), rangées par le serveur et lues ici : elles n'ont pas de compte du portail. */
+var SDEM={list:[],loaded:false,err:''};
 var ABO={abos:[],paiements:[],mrr:0,actifs:0,impayes:0,echecs:0,configured:false,loaded:false,err:'',f:''};
 var EQ={users:[],loaded:false,err:'',nom:'',pass:'',role:'collaborateur'};
 /* L'état d'OP MESSAGES, lu de GET /api/monitor/messages/etat : la Tour ne prétend jamais que
@@ -6553,7 +6555,16 @@ function tourCatsAller(nom){
   setTab('entreprises'); try{ chargerEntreprises(); }catch(e){}
   toast('Ouvre sa fiche dans Entreprises : « Catégories d’OP GESTION »');
 }
+function chargerSiteDemandes(){
+  apiGet('/api/monitor/demandes-site').then(function(d){
+    if(!d) return;
+    SDEM.list=Array.isArray(d.demandes)?d.demandes:[]; SDEM.loaded=true; SDEM.err='';
+    try{ setBdg('bdg-dem',demandesATraiter().length); }catch(e){}
+    if(TAB==='demandes'||TAB==='accueil') render();
+  }).catch(function(e){ SDEM.err=msgErreur(e); SDEM.loaded=true; if(TAB==='demandes') render(); });
+}
 function chargerClients(){
+  chargerSiteDemandes();
   refMetiersCharger();   // les métiers et l'explication de chaque rubrique : la grille de chaque demande et la fiche en ont besoin
   apiGet('/api/monitor/clients').then(function(d){
     if(!d) return;
@@ -9460,6 +9471,12 @@ function demandesListe(){
       l.push({c:c,d:d,i:i,traitee:tr[i]||null});
     });
   });
+  /* les demandes du SITE : même forme que celles des comptes (`c` = la personne, `d` = la demande), `site:true` pour les gestes qui diffèrent */
+  (SDEM.list||[]).forEach(function(r){
+    if(!r||typeof r!=='object'||typeof r.id!=='string') return;
+    l.push({site:true,sid:r.id,r:r,c:{email:r.email||'',entreprise:r.entreprise||'',nom:r.nom||'',prenom:r.prenom||'',nomFam:r.nom||'',tel:r.tel||''},
+      d:{app:'OP GESTION',date:r.ts||0,metier:r.metier,metiers:r.metiers,variante:r.variante,besoin:r.message||''},i:-1,traitee:r.traitee||null});
+  });
   return l.sort(function(a,b){ return (b.d.date||0)-(a.d.date||0); });
 }
 function demandesATraiter(){ return demandesListe().filter(function(x){ return !x.traitee; }); }
@@ -9480,6 +9497,7 @@ function vueDemandes(){
   if(!CLI.loaded) return tete+acSquel();
   if(CLI.err) return tete+acErr('Les demandes ne répondent pas',CLI.err,'chargerClients()');
   var tout=demandesListe(), aT=tout.filter(function(x){ return !x.traitee; }), faites=tout.filter(function(x){ return !!x.traitee; });
+  if(SDEM.err) tete+='<div class="note" role="alert">Les demandes envoyées par le formulaire « Créer votre application » ne répondent pas : '+esc(SDEM.err)+' <button type="button" class="btn-fant" onclick="chargerSiteDemandes()">Réessayer</button></div>';
   var seg=teteListe('Demandes du site','Filtrer les demandes',[['atraiter','À traiter',aT.length],['traitees','Traitées',faites.length]],DEM.vue,'demOnglet(');
   var liste=DEM.vue==='traitees'?faites.slice(0,40):aT, tronque=DEM.vue==='traitees'&&faites.length>40;
   if(!liste.length) return tete+seg+(DEM.vue==='traitees'
@@ -9487,7 +9505,41 @@ function vueDemandes(){
     :videTour('Aucune demande à traiter','Les demandes envoyées depuis l’espace client du site arrivent ici, avec un avis par e-mail.','','entreprises'));
   return tete+seg+(tronque?'<div class="note">Les 40 plus récentes sur '+faites.length+'.</div>':'')+'<div class="dem-liste">'+liste.map(demCarte).join('')+'</div>';
 }
+/* Une demande du SITE : ce que la personne a rempli, et trois gestes — la marquer traitée, lui écrire, préparer son accès à la version publique. */
+function demCarteSite(x){
+  var r=x.r, nomEnt=r.entreprise||((r.prenom||'')+' '+(r.nom||'')).trim()||r.email, pers=((r.prenom||'')+' '+(r.nom||'')).trim();
+  var mets=(Array.isArray(r.metiers)&&r.metiers.length?r.metiers:[r.metier]).map(function(k){ return MET_L[k]||k; }).join(' + ');
+  var vari=r.variante==='chauffage'?' — chauffage seulement':r.variante==='climatisation'?' — climatisation seulement':r.variante==='deux'?' — chauffage et climatisation':'';
+  var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(r.email)+'</span>'],['Téléphone',r.tel?'<a href="tel:'+esc(String(r.tel).replace(/[^0-9+]/g,''))+'">'+esc(r.tel)+'</a>':'—'],
+    ['Équipe',esc(r.equipe||'—')],['Métiers',esc(mets)+esc(vari)],
+    ['Rubriques',Array.isArray(r.cats)?esc(r.cats.length+' cochées'):'aucune cochée : partir du conseil du métier'],['Besoins',r.besoins&&r.besoins.length?esc(r.besoins.join(', ')):'—']];
+  var gestes=x.traitee
+    ?'<button type="button" class="btn-fant" onclick="demSiteTraiter(\''+jsq(r.id)+'\',false)">Remettre à traiter</button>'
+    :(MYROLE==='patron'?'<button type="button" class="btn-plein" onclick="demSitePublic(\''+jsq(r.id)+'\')">Préparer l’accès à la version publique</button>':'<span class="g dem-patron">Ouvrir l’espace est réservé au patron.</span>')+
+      '<button type="button" class="btn-fant" onclick="courrierEcrire(\''+jsq(r.email)+'\')">Écrire</button>'+
+      '<button type="button" class="btn-fant" onclick="demSiteTraiter(\''+jsq(r.id)+'\',true)">Marquer traitée</button>';
+  return '<div class="carte p24 dem-carte">'+
+    '<div class="dem-tete"><span class="reg-av">'+esc(sigle(nomEnt))+'</span>'+
+      '<span class="reg-txt"><span class="reg-t1">'+esc(nomEnt)+'</span><span class="reg-l2">'+esc(r.ts?fmtJour(r.ts):'date inconnue')+'</span></span>'+
+      '<span class="dem-past"><span class="past p-gris">Demande du site</span> '+(x.traitee?'<span class="past p-vert">✓ traitée'+(x.traitee.par?' par '+esc(x.traitee.par):'')+'</span>':'<span class="past p-ambre">À traiter</span>')+'</span></div>'+
+    (r.message?'<p class="dem-besoin">'+esc(r.message)+'</p>':'')+
+    '<div class="kv">'+kv.map(function(p){ return '<div><span class="k">'+p[0]+'</span><span class="v">'+p[1]+'</span></div>'; }).join('')+'</div>'+
+    '<div class="sous-act dem-gestes">'+gestes+'</div></div>';
+}
+function demSiteTraiter(id,traite){
+  apiPost('/api/monitor/demandes-site/traiter',{id:id,traite:traite}).then(function(r){
+    if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé par le serveur'); return; }
+    toast(traite?'Demande classée':'Demande remise à traiter'); chargerSiteDemandes();
+  }).catch(function(){ toast(INJOIGNABLE); });
+}
+/* « Accès à la version publique » pré-rempli avec l'adresse et le nom de l'entreprise : le patron choisit l'identifiant, génère le mot de passe, et ouvre. Rien n'est créé ici. */
+function demSitePublic(id){
+  var r=(SDEM.list||[]).filter(function(x){ return x.id===id; })[0]; if(!r) return;
+  PB.nom=r.entreprise||((r.prenom||'')+' '+(r.nom||'')).trim(); PB.email=r.email||''; PB.ident=''; PB.pass='';
+  setTab('essais'); setTimeout(function(){ try{ accAllerForm('ac-f-pub'); }catch(e){} },120);
+}
 function demCarte(x){
+  if(x.site) return demCarteSite(x);
   var c=x.c, d=x.d, i=x.i;
   var nomEnt=c.entreprise||c.nom||c.email, pers=((c.prenom||'')+' '+(c.nomFam||'')).trim()||c.nom||'';
   var pay=demPaiement(c.email), esp=demEspace(c.email);

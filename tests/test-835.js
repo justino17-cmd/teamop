@@ -14,7 +14,7 @@
    5. chaque écran d'appareil a sa version jour ET nuit, et l'image existe ;
    6. aucun bouton de mode (le site suit le système, sans bouton — THEME.md § 0, et Justin le 29 septembre 2026) ;
    7. OP MESSAGES : « Bientôt disponible », aucune formule ne se choisit ;
-   8. « Créer » ne dit jamais « demande envoyée » (c'est la messagerie de la personne qui l'envoie) ;
+   8. la PAGE « Créer » ne porte jamais « demande envoyée » en dur ; depuis le 30 octobre 2026 c'est site.js qui le dit, et SEULEMENT sur un 200 du serveur (test-3230) ; le courriel n'est plus que le secours ;
    9. un aperçu ne se référence pas (`noindex`), la page de racine si.
    La preuve au navigateur (menus, fenêtres, onglets, formulaire, débordement) vit dans
    `scratchpad/sonde-site.js`, que ce banc exige. */
@@ -339,7 +339,7 @@ console.log('8. « Créer » part par e-mail, et le dit');
 vrai('le formulaire n\'a pas d\'action serveur', /<form class="demande" id="demande" novalidate>/.test(PAGES.creer));
 vrai('jamais « demande envoyée »', !/demande envoy[ée]/i.test(texte(PAGES.creer)));
 const js = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
-vrai('site.js prépare un mailto vers contact@teamop.fr — sur le site, c\'est toujours contact@ (Justin, 8 octobre 2026)', /location\.href = 'mailto:contact@teamop\.fr\?subject='/.test(js));
+vrai('site.js prépare un mailto vers contact@teamop.fr — sur le site, c\'est toujours contact@ (Justin, 8 octobre 2026)', /var mail = 'mailto:contact@teamop\.fr\?subject='/.test(js));
 vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : '/.test(js));
 /* v766 (Justin, 30 septembre 2026 : « oui, fais ce qu'il faut ») : chaque métier du site a son pack dans l'application —
    plus aucun « Sur mesure avec vous ». Et chaque puce porte une clé que l'application CONNAÎT (METIERS_ORDRE, lu dans

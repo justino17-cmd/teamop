@@ -185,9 +185,11 @@ const jsonCourant = express.json({ limit: '6mb' }); // large : les e-mails peuve
 const jsonGros = express.json({ limit: '20mb' });
 /* `/api/audience/vue` (publique) lit son propre corps, en texte, 2 Ko au plus (`server/audience.js`) : le plafond de 6 Mo ne doit pas le lire avant elle. */
 const CHEMIN_AUDIENCE = /^\/api\/audience\/vue\/?$/i;
+/* `/api/site/demande` (publique : « Créer votre application ») a son propre analyseur de 24 Ko, APRÈS son budget par adresse (`server/demande-site.js`) : 6 Mo lus pour un inconnu seraient le moyen le moins cher de remplir la mémoire. */
+const CHEMIN_DEMANDE_SITE = /^\/api\/site\/demande\/?$/i;
 /* `/api/pauline/releve` (le pont de Pauline) lit AUSSI son propre corps, 2 Mo au plus, et seulement APRÈS avoir vérifié le jeton (`server/pauline.js`) : lire 6 Mo pour un inconnu serait le moyen le moins cher de remplir la mémoire. */
 const CHEMIN_PAULINE = /^\/api\/(?:pauline\/(?:releve|decisions\/resultats)|monitor\/pauline\/decision)\/?$/i;   /* jeton (Mac) ou session de patron vérifiés AVANT la lecture du corps, et SON plafond (27 octobre 2026 : + les décisions) */
-app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
+app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_DEMANDE_SITE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
 const ORIGINS = (config.origins || ['https://teamop.fr', 'https://www.teamop.fr']).concat(ESSAI ? [ESSAI_ORIGINE] : []);   // l'origine de test n'existe que dans le serveur de test
@@ -6649,6 +6651,32 @@ try {
   audienceMod = require('./audience')(app, { DATA_DIR, monPatronStrict, origines: ORIGINS });
 } catch (e) {
   console.error('audience non montée :', e.message);
+}
+/* ══ LES DEMANDES « CRÉER VOTRE APPLICATION » DU SITE (30 octobre 2026) ══ la page envoyait un `mailto:` : sans logiciel de courrier, la demande se perdait en silence.
+   Elle arrive ici (`server/demande-site.js`, route PUBLIQUE, budget par adresse), est rangée sur disque, et PRÉVIENT Justin : notification du téléphone, courriel, message
+   dans OP MESSAGES (par le pont, jamais par le socle). ⛔ Rien de personnel dans le journal ; la notification et le message d'OP MESSAGES ne disent que l'entreprise et les métiers. */
+let demandeSiteMod = null;
+try {
+  demandeSiteMod = require('./demande-site')(app, { DATA_DIR, monAdmin, express, quotaOk, choisir: choixAbonnement, catsAvecBase,
+    surDemande: async (d) => {
+      const nomEnt = (d.entreprise || [d.prenom, d.nom].filter(Boolean).join(' ') || 'sans nom').replace(/[\r\n]+/g, ' ').slice(0, 60);
+      const metiers = d.metiers.map(k => METIERS_LBL[k] || k).join(' + ');
+      try { await pousserALaTour('Demande du site — ' + nomEnt, metiers, '/tour.html#demandes', '/tour.html#demandes'); } catch (e) { console.error('demande du site : notification non partie'); }
+      try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', 'Nouvelle demande du site : ' + sansAdresses(nomEnt) + ' — ' + metiers + '. À traiter dans la Tour (Demandes).', { cle: 'demande-site:' + d.id, unique: true }); } catch (e) {}
+      if (mailer) {
+        const dest = config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || 'contact@teamop.fr';
+        const ligne = (k, v) => v ? k + ' : ' + v + '\n' : '';
+        const texte = 'Nouvelle demande « Créer votre application » reçue sur teamop.fr — À TRAITER\n\n' +
+          ligne('Entreprise', d.entreprise) + ligne('Contact', [d.prenom, d.nom].filter(Boolean).join(' ')) + ligne('E-mail', d.email) + ligne('Téléphone', d.tel) + ligne('Équipe', d.equipe) +
+          'Métiers : ' + metiers + (d.variante ? ' (' + d.variante + ')' : '') + '\n' + (Array.isArray(d.cats) ? 'Rubriques cochées : ' + d.cats.length + ' sur ' + CATS_OK.length + '\n' : '') +
+          (d.besoins.length ? 'Besoins : ' + d.besoins.join(', ') + '\n' : '') + (d.message ? '\nMessage :\n' + d.message + '\n' : '') +
+          '\n── À faire ──\nRien n\'a été créé. Ouvre la Tour → Demandes → « Demande du site » : tu peux la marquer traitée ou préparer l\'accès à la version publique avec son adresse.\n\nhttps://teamop.fr/tour.html';
+        await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, replyTo: d.email, subject: '📥 Demande du site — ' + nomEnt, text: texte });
+        console.log('mail demande du site envoyé →', masqueMail(dest));
+      }
+    } });
+} catch (e) {
+  console.error('demandes du site non montées :', e.message);
 }
 /* ══ LE PONT DE PAULINE (25 octobre 2026) ══ l'agente de prospection (Harvey) tourne sur le Mac de Justin ; elle envoie ici un RELEVÉ complet toutes les quinze minutes
    (`outils/pauline-releve.py`), la Tour le lit (`/api/monitor/pauline`, patron). Fermé sans `config.pauline.jetonSha256` (503). Les données de prospects n'entrent dans aucun journal

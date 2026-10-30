@@ -10,6 +10,38 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
+  /* ══ DEMANDE_SITE:DEBUT ══ « Créer votre application » : la demande part AU SERVEUR (30 octobre 2026). Avant, la page ouvrait le logiciel de courrier du visiteur (`mailto:`) : sans
+     logiciel configuré, ou sans clic sur « Envoyer », la demande se perdait en silence pendant que la page laissait croire qu'elle était partie (un client réel l'a vécu).
+     ⛔ `fetch` NE JETTE PAS SUR UN REFUS : la page n'annonce « envoyée » que sur un 200 dont le corps dit `ok:true` — un 4xx, un 5xx, une coupure ou un corps illisible sont un ÉCHEC,
+     et la page propose alors l'e-mail à la place. Aucun en-tête maison (la requête reste « Content-Type: application/json » : CORS). Ce bloc ne touche pas au DOM : le banc le joue seul. */
+  var DemandeSite = {
+    url: function () { var b = (typeof window.TEAMOP_API === 'string' && /^https?:\/\/[^\s]+$/.test(window.TEAMOP_API)) ? window.TEAMOP_API : 'https://api.teamop.fr'; return b.replace(/\/+$/, '') + '/api/site/demande'; },
+    emailOk: function (v) { v = String(v || '').trim(); return v.length <= 120 && /^[^\s@<>"',;:()\[\]\\]{1,64}@[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(v); },
+    /* ce que la page a rempli → le corps envoyé ; les champs vides ne partent pas */
+    corps: function (f) {
+      var o = {}, t = function (v) { return String(v == null ? '' : v).trim(); };
+      ['nom', 'prenom', 'email', 'tel', 'entreprise', 'equipe', 'message'].forEach(function (c) { var v = t(f[c]); if (v) o[c] = v; });
+      o.metiers = Array.isArray(f.metiers) ? f.metiers.slice(0, 3) : [];
+      if (f.variante) o.variante = String(f.variante);
+      if (Array.isArray(f.cats) && f.cats.length) o.cats = f.cats.slice();
+      if (Array.isArray(f.besoins) && f.besoins.length) o.besoins = f.besoins.slice(0, 10).map(t);
+      if (t(f.piege)) o.site_web = t(f.piege);
+      return o;
+    },
+    /* → Promise<{ ok, etat, status }> ; etat : 'envoyee' | 'invalide' | 'trop' | 'serveur' | 'reseau' */
+    envoyer: function (corps) {
+      var ctl = (typeof AbortController === 'function') ? new AbortController() : null, minuteur = ctl ? setTimeout(function () { ctl.abort(); }, 20000) : null;
+      return fetch(DemandeSite.url(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps), signal: ctl ? ctl.signal : undefined })
+        .then(function (r) {
+          if (minuteur) clearTimeout(minuteur);
+          if (r.status === 200) return r.json().then(function (j) { return j && j.ok === true ? { ok: true, etat: 'envoyee', status: 200 } : { ok: false, etat: 'serveur', status: 200 }; }, function () { return { ok: false, etat: 'serveur', status: 200 }; });
+          return { ok: false, etat: (r.status === 400 || r.status === 413) ? 'invalide' : r.status === 429 ? 'trop' : 'serveur', status: r.status };
+        }, function () { if (minuteur) clearTimeout(minuteur); return { ok: false, etat: 'reseau', status: 0 }; });
+    }
+  };
+  window.TeamOpDemande = DemandeSite;
+  /* ══ DEMANDE_SITE:FIN ══ */
+
   /* ── jour / nuit : la page suit l'appareil, la feuille le fait seule (plus de bouton depuis le 29 septembre 2026) ── */
 
   /* ── l'aperçu se signale, et seulement lui : le même fichier sert à la racine le jour du remplacement ── */
@@ -325,6 +357,28 @@
     $$('.besoin', demande).forEach(function (b) {
       b.addEventListener('click', function () { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); if (lienTest) garder(); });
     });
+    /* L'interface de l'envoi : les pages d'aujourd'hui la portent (aperçu), la page de la racine date d'avant — on complète ce qui manque, on ne double rien. */
+    var envoiEnCours = false;
+    var creer = function (tag, cls, txt, avant) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt) n.textContent = txt; var ref = avant === null ? null : (avant || $('.envoi', demande)); if (ref && ref.parentNode) ref.parentNode.insertBefore(n, ref); else demande.appendChild(n); return n; };
+    if (!$('[name="site_web"]', demande)) {
+      var pg = creer('div', 'piege'); pg.setAttribute('aria-hidden', 'true'); pg.style.cssText = 'position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden';
+      var pl = document.createElement('label'); pl.textContent = 'Site web'; var pi = document.createElement('input'); pi.type = 'text'; pi.name = 'site_web'; pi.tabIndex = -1; pi.setAttribute('autocomplete', 'off'); pl.appendChild(pi); pg.appendChild(pl);
+    }
+    var mauvaisMail = $('#erreur-email', demande);
+    if (!mauvaisMail) { mauvaisMail = creer('p', 'erreur-metier erreur-email', 'Indiquez une adresse e-mail valide : c\'est par elle que nous vous répondons. Si vous préférez, ajoutez aussi votre téléphone.'); mauvaisMail.id = 'erreur-email'; mauvaisMail.setAttribute('role', 'alert'); mauvaisMail.hidden = true; }
+    var succes = $('.avis-envoi:not(.echec-envoi)', demande), echec = $('.echec-envoi', demande);
+    if (!succes) { succes = creer('p', 'avis-envoi', '', null); succes.setAttribute('role', 'status'); succes.hidden = true; }
+    succes.textContent = 'Demande envoyée, on vous rappelle sous 48 h. Merci !'; succes.setAttribute('aria-live', 'polite');
+    if (!echec) {
+      echec = creer('div', 'avis-envoi echec-envoi', '', null); echec.setAttribute('role', 'alert'); echec.hidden = true;
+      var e1 = document.createElement('p'); e1.className = 'echec-texte'; var e2 = document.createElement('p'), eb = document.createElement('button'); eb.type = 'button'; eb.className = 'bouton'; eb.setAttribute('data-mailto', ''); eb.textContent = 'Envoyer par e-mail à la place'; e2.appendChild(eb);
+      var e3 = document.createElement('p'); e3.appendChild(document.createTextNode('Ou écrivez-nous directement à ')); var ea = document.createElement('a'); ea.href = 'mailto:contact@teamop.fr'; ea.textContent = 'contact@teamop.fr'; e3.appendChild(ea); e3.appendChild(document.createTextNode('.'));
+      echec.appendChild(e1); echec.appendChild(e2); echec.appendChild(e3);
+    }
+    var echecTexte = $('.echec-texte', echec), echecMail = $('[data-mailto]', echec);
+    var bEnvoi = $('.envoi button[type="submit"]', demande), pEnvoi = $('.envoi small', demande);
+    if (bEnvoi) bEnvoi.textContent = 'Envoyer ma demande';
+    if (pEnvoi) pEnvoi.textContent = 'Elle nous parvient tout de suite, sans passer par votre messagerie. On vous rappelle sous 48 h.';
     demande.addEventListener('submit', function (e) {
       e.preventDefault();
       /* Le métier part EN TÊTE et sous une forme sans ambiguïté : c'est lui qui décide du pack
@@ -352,15 +406,48 @@
       } else if (etatRub) lignes.push('RUBRIQUES CHOISIES : aucune cochée — partir du conseil du métier');
       lignes.push('');
       $$('input, textarea', demande).forEach(function (c) {
+        if (c.name === 'site_web') return;   // le champ piège n'est pas une réponse
         if (c.type === 'checkbox') return;   // les cases de la grille des rubriques sont dites plus haut
         var v = (c.value || '').trim(); if (!v) return;
         lignes.push((c.getAttribute('data-libelle') || c.name) + ' : ' + v);
       });
       var besoins = $$('.besoin[aria-pressed="true"]', demande).map(function (b) { return b.textContent.trim(); });
       if (besoins.length) lignes.push('Besoins cochés : ' + besoins.join(', '));
-      location.href = 'mailto:contact@teamop.fr?subject=' + encodeURIComponent('Demande de création d\'application — TEAM OP') +
-        '&body=' + encodeURIComponent(lignes.join('\n'));
-      var avis = $('.avis-envoi', demande); if (avis) avis.hidden = false;
+      var mail = 'mailto:contact@teamop.fr?subject=' + encodeURIComponent('Demande de création d\'application — TEAM OP') + '&body=' + encodeURIComponent(lignes.join('\n'));
+      var val = function (n) { var c = $('[name="' + n + '"]', demande); return c ? c.value : ''; };
+      var email = val('c2'), tel = val('c3');
+      if (!DemandeSite.emailOk(email)) {
+        /* ⛔ pas d'adresse valable, pas de demande : c'est par elle qu'on répond */
+        if (mauvaisMail) { mauvaisMail.hidden = false; }
+        var cm = $('[name="c2"]', demande); if (cm) { try { cm.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (x) {} cm.focus(); }
+        return;
+      }
+      if (mauvaisMail) mauvaisMail.hidden = true;
+      if (envoiEnCours) return;   // pas de double demande
+      envoiEnCours = true;
+      var bouton = $('.envoi button[type="submit"]', demande), libelle = bouton ? bouton.textContent : '';
+      if (bouton) { bouton.disabled = true; bouton.textContent = 'Envoi en cours…'; }
+      if (succes) succes.hidden = true;
+      if (echec) echec.hidden = true;
+      var corps = DemandeSite.corps({ nom: val('c0'), prenom: val('c1'), email: email, tel: tel, entreprise: val('c4'), equipe: val('c5'), message: val('quotidien'),
+        metiers: ms, variante: vr, cats: choisies, besoins: besoins, piege: val('site_web') });
+      DemandeSite.envoyer(corps).then(function (r) {
+        envoiEnCours = false;
+        if (r.ok) {
+          /* ⛔ « envoyée » SEULEMENT sur un 200 : le bouton reste éteint (la demande est partie), et le formulaire gardé en session s'efface */
+          if (bouton) bouton.textContent = 'Demande envoyée';
+          try { sessionStorage.removeItem(CLE_SESSION); } catch (x) {}
+          if (succes) { succes.hidden = false; try { succes.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (x) {} }
+          return;
+        }
+        if (bouton) { bouton.disabled = false; bouton.textContent = libelle; }
+        if (echecTexte) echecTexte.textContent = r.etat === 'invalide' ? 'Le serveur a refusé la demande (un champ est incorrect ou trop long). Vérifiez l\'adresse e-mail et le téléphone, ou envoyez-la par e-mail.'
+          : r.etat === 'trop' ? 'Trop de demandes depuis cette connexion : réessayez dans une heure, ou envoyez-la par e-mail.'
+          : r.etat === 'reseau' ? 'Votre demande n\'a pas pu être envoyée : la connexion a échoué. Réessayez, ou envoyez-la par e-mail.'
+          : 'Votre demande n\'a pas pu être envoyée : notre serveur ne répond pas pour le moment. Réessayez, ou envoyez-la par e-mail.';
+        if (echecMail) echecMail.onclick = function () { location.href = mail; };
+        if (echec) { echec.hidden = false; try { echec.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (x) {} }
+      });
     });
   }
 })();
