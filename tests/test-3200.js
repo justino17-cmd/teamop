@@ -43,6 +43,13 @@ egal('un encodage cassé ne jette pas : cats null', r.cats, null);
 const longue = CONNUES.join(',') + ',' + 'x'.repeat(5000);
 r = A('?metier=plomberie&cats=' + longue);
 vrai('longueur BORNÉE : 800 caractères lus au plus, soixante clés au plus', r.cats && r.cats.length <= 60 && r.cats.length > 5, r.cats && r.cats.length);
+{
+  const synth = Array.from({ length: 100 }, (_, i) => 'k' + i);
+  r = outils.fn.demoPubliqueAdresse('?metier=plomberie&cats=' + synth.join(','), synth);
+  egal('(population : 100 clés connues et fournies) au plus soixante retenues', r.cats && r.cats.length, 60);
+  r = A('?metier=plomberie&cats=' + 'x,'.repeat(450) + 'planning');
+  egal('une clé écrite au-delà des 800 premiers caractères n\'est pas lue', r.cats, null);
+}
 r = A('?metier=plomberie&variante=<script>');
 egal('une variante hors liste est ignorée', r.variante, '');
 r = A('?metier=Plomberie%20x&cats=planning');
@@ -163,6 +170,15 @@ console.log('\n7. Le branchement : l\'adresse, le rangement, le semis');
 
 console.log('\n8. Le rangement et le menu');
 {
+  {
+    const rangee = (vue, coche) => { const el = { attrs: {}, getAttribute(k) { return k === 'data-view' ? vue : (this.attrs[k] === undefined ? null : this.attrs[k]); }, setAttribute(k, v) { this.attrs[k] = v; } };
+      const nav = { querySelectorAll: () => [el] };
+      const b = bac('demo.html', ['demoPubliqueMenu', 'demoPubliqueNonChoisie', 'demoPubliqueCatsConnues'], { document: { getElementById: () => nav }, catsConnues: () => CONNUES.slice(), VUE_PARENT, _demoSel: { cats: coche } });
+      b.fn.demoPubliqueMenu(); return el.attrs; };
+    egal('le menu : une rubrique NON cochée porte la marque et son infobulle', rangee('stock', ['planning']), { 'data-nonchoisie': '1', title: 'Non choisie dans votre demande' });
+    egal('le menu : une rubrique cochée n\'en porte aucune', rangee('planning', ['planning']), {});
+  }
+  vrai('le complément est posé par la vraie expression de demoPubliqueSemer (plus valable, ≠ du métier, connu de METIERS)', /db\.metierPlus = \(plus && plus !== id && plus !== '3d' && METIERS\[plus\]\) \? plus : ''/.test(nu(MODULE)));
   const m = nu(MODULE);
   vrai('le choix vit dans le rangement de la démonstration (DEMO_ETAT_CLE, préfixe elanD_) — jamais la clé `cats` de l\'application, qui FERMERAIT les rubriques', /localStorage\.setItem\(DEMO_ETAT_CLE/.test(m) && !/_cats|catsCle|catsServeurAppliquer|catBloque/.test(m));
   vrai('aucune rubrique n\'est fermée par la démonstration : pas de go(\'dashboard\') ni de toast de refus dans le code des rubriques non choisies', !/demoPubliqueNonChoisie[^;]*go\(/.test(m));
