@@ -78,5 +78,14 @@ console.log('\n── 3234 · 4. plus de vert écrit en dur dans les fabriques �
   vrai('les quatre fabriques et la liste des sociétés passent par docCouleurEnt', (CODE.match(/E\.couleur:docCouleurEnt\(\)/g) || []).length === 4 && /st\.couleur:docCouleurEnt\(\)/.test(CODE));
   vrai('Paramètres : la palette, le logo et le cachet sont dans « Mes documents »', /🎨 Mes documents/.test(APP) && /id="doc-coul-zone"/.test(APP) && /id="doc-logo-file"/.test(APP) && /id="doc-cachet-zone"/.test(APP)); }
 
+console.log('\n── 3234 · 5. les champs nus ont l’habit de l’application ──');
+{ const i0 = APP.indexOf('<style id="theme-final">'), i1 = APP.indexOf('</style>', i0), CSS = APP.slice(i0, i1);
+  vrai('(population) la feuille du thème final est trouvée', i0 > 0 && i1 > i0);
+  const r = /:where\(input:not\(\[type=checkbox\][^{]*select,textarea\):where\(:not\(\[class\]\)\)\{([^}]*)\}/.exec(CSS);
+  vrai('une règle habille les input / select / textarea sans classe', !!r);
+  vrai('⛔ … entièrement en :where() — spécificité nulle : une règle écrite ou un style en ligne passe toujours devant', !!r && !/^[^{]*[^:]\bnot\(\[class\]\)/.test(r[0].replace(/:where\(/g, '')) === false || /^:where\([^{]*\):where\(:not\(\[class\]\)\)\{/.test(r[0]));
+  vrai('… avec le fond, la bordure et l’encre des champs de l’application (et la police de la page)', !!r && /background-color:var\(--deep\)/.test(r[1]) && /var\(--inpBorder/.test(r[1]) && /color:var\(--t1\)/.test(r[1]) && /font-family:inherit/.test(r[1]));
+  vrai('⛔ les cases à cocher, boutons radio, curseurs et fichiers en sont exclus', !!r && ['checkbox', 'radio', 'range', 'color', 'file', 'hidden'].every(t => r[0].includes('[type=' + t + ']'))); }
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

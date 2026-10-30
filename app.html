@@ -8262,6 +8262,19 @@ html[data-theme="light"] select option{ background-color:#FFFFFF; color:#14213A;
 .pdff-gestes .pdff-b:first-child{grid-column:1/-1}
 .pdff-gestes .pdff-b[disabled]{opacity:.45}
 html[data-theme="dark"] .pdff-carte{background:#14213A}
+
+/* v783 — LES CHAMPS NUS (Justin, 30 octobre 2026, capture de la fiche d'une intervention, « Produits & matériel » : « refaire les
+   couleurs ici aussi, et vérifier s'il n'y en a pas d'autres »). Un <input>, un <select> ou un <textarea> écrit SANS classe et hors
+   d'un `.field` sortait brut du navigateur : gris Windows, police du système, bordure noire, en plein milieu d'une vitre. Cette
+   règle les habille tous comme un champ de l'application. Elle est en :where() — spécificité NULLE : la moindre règle déjà écrite
+   pour un champ (.field, .gsrch, une classe…) et tout style en ligne passent devant ; elle ne remplit que le vide. */
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden],[type=button],[type=submit],[type=reset],[type=image]),select,textarea):where(:not([class])){
+  background-color:var(--deep);border:1px solid var(--inpBorder,var(--brd));border-radius:var(--r-2,10px);padding:9px 12px;
+  color:var(--t1);font-family:inherit;font-size:15px;line-height:1.35;box-sizing:border-box;min-height:40px}
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden],[type=button],[type=submit],[type=reset],[type=image]),select,textarea):where(:not([class])):focus{
+  outline:none;border-color:var(--acc);box-shadow:var(--focus-champ,0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent))}
+:where(input,textarea):where(:not([class]))::placeholder{color:var(--t3);opacity:1}
+@media (pointer:coarse){ :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden]),select,textarea):where(:not([class])){font-size:16px} }
 </style>
 </head>
 <body>
