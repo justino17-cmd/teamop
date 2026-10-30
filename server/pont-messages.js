@@ -18,6 +18,12 @@
  *                 refusée, absente ou trop grosse ne retarde AUCUN message et ne compte pas comme une panne du pont (`echecMin`) : elle part en tâche de fond, et se retente à l'installation
  *                 suivante (le démarrage de la Tour). Rien à faire sur le VPS : le déploiement redémarre la Tour, qui réinstalle et envoie les photos toutes seules.
  *
+ *   7. PAULINE (29 octobre 2026, Justin : « j'aimerais aussi Pauline sur OP MESSAGES ») : un SEIZIÈME robot « Pauline — Prospection » et sa directe, SI la Tour lui fournit `o.pauline`
+ *                 ({ decider }). Elle n'est PAS dans le registre (`conversations.js`) : c'est Harvey, sur le Mac de Justin. Le pont lui prête sa voix pour ce que la Tour dit déjà au patron :
+ *                 chaque courriel qui attend son accord (UNE fois, numéroté : entreprise + objet, jamais le texte ni une adresse) et un bilan par jour (des nombres). Les messages sont des
+ *                 notes `k:'n'` au `cid` déterministe : même file, même poster, mêmes photos que les agents — pas de second chemin. Ses réponses : voir `repondrePauline`.
+ *                 ⛔ SEUL « NON <n> » (exact) agit — il passe par `decider`, la fonction de la route de la Tour ; « OK <n> » n'accepte RIEN (on n'envoie pas à un prospect un texte qu'on n'a pas lu).
+ *
  * ⛔ UN AGENT NE DÉPEND JAMAIS D'OP MESSAGES. Le crochet de `conversations.js` (`surAjout`, `surRetrait`) est appelé APRÈS l'écriture du registre, dans un `try`, et ne rend rien : un OP MESSAGES
  * à l'arrêt, lent, refusant le secret ou répondant n'importe quoi ne retarde, ne change et ne perd aucun message d'agent. La file est BORNÉE (au-delà, le plus ancien part — le rattrapage le
  * reprendra au prochain démarrage) ; le temps passé en échec se lit dans `/health` (`pont.echecMin`, surveillé), la file aussi (`pont.file`).
@@ -42,6 +48,11 @@ const BOUCLE = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d{2,5})?\/?$/;
 const SECRET = /^[0-9a-f]{64}$/;
 const RE_ID_PHOTO = /^[a-z][a-z0-9]{1,19}$/;     // un agent, un groupe, « systeme » : la seule forme qui entre dans un nom de fichier
 const PHOTO_MAX = 2 * 1024 * 1024;               // le plafond de `pieces.avatarMax` côté OP MESSAGES : plus gros, le service dirait 413
+const PAULINE = { id: 'pauline', nom: 'Pauline', role: 'Prospection' };
+const PAULINE_LIEN = 'https://teamop.fr/tour.html#gestion/messagerie';
+const PAULINE_PAR_RELEVE = 8, PAULINE_NUMEROS_MAX = 300, PAULINE_HEURE_BILAN = 18;   // au plus 8 annonces par relevé (un arriéré s'écoule en plusieurs passages) ; le bilan part après 18 h, heure de Paris
+const RE_ADRESSE = /[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g, RE_LIEN = /\b(?:https?:\/\/|www\.)\S+/gi;
+const RE_REPONSE = /^(OK|NON)[ \t]+([1-9]\d{0,5})$/i;
 const REJETS = ['fil_inconnu', 'auteur_inconnu', 'pas_membre', 'champ_invalide', 'justin_interdit'];
 
 module.exports = function creerPontMessages(o) {
@@ -62,6 +73,15 @@ module.exports = function creerPontMessages(o) {
 
   /* ── L'état rangé : le curseur d'OP MESSAGES et la table des recopies (id du registre ↔ numéro dans la conversation) ── */
   const etatFichier = fichier.charger(F, { v: 1, curseur: null, lies: [] });
+  const pauline = o.pauline && typeof o.pauline === 'object' && typeof o.pauline.decider === 'function' ? o.pauline : null;
+  /* Pauline : le dernier numéro donné, les courriels déjà annoncés (id → numéro, bornés) et le dernier jour dont le bilan est parti. Ni nom ni adresse ici : des identifiants de Harvey et des nombres. */
+  const pl = { n: 0, annonces: new Map(), jour: '' };
+  { const b = etatFichier.pauline;
+    if (b && typeof b === 'object') {
+      if (Number.isInteger(b.n) && b.n >= 0) pl.n = b.n;
+      if (typeof b.jour === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b.jour)) pl.jour = b.jour;
+      for (const x of Array.isArray(b.annonces) ? b.annonces : []) if (Array.isArray(x) && typeof x[0] === 'string' && x[0].length <= 64 && Number.isInteger(x[1])) pl.annonces.set(x[0], x[1]);
+    } }
   const illisible = fichier.illisible(F);
   let curseur = Number.isInteger(etatFichier.curseur) ? etatFichier.curseur : null;
   const parId = new Map(), parSeq = new Map();           // id → {fil, seq} ; "fil#seq" → id
@@ -72,7 +92,7 @@ module.exports = function creerPontMessages(o) {
     if (illisible) return false;
     const lies = [];
     for (const [id, v] of parId) lies.push([id, v.fil, v.seq]);
-    return fichier.ecrire(F, { v: 1, curseur, lies: lies.slice(-LIES_MAX) });
+    return fichier.ecrire(F, Object.assign({ v: 1, curseur, lies: lies.slice(-LIES_MAX) }, pauline ? { pauline: { n: pl.n, jour: pl.jour, annonces: Array.from(pl.annonces).slice(-PAULINE_NUMEROS_MAX) } } : {}));
   }
   function lier(id, fil, seq) {
     parId.set(id, { fil, seq }); parSeq.set(fil + '#' + seq, id);
@@ -123,7 +143,7 @@ module.exports = function creerPontMessages(o) {
   /* ── 1. installer ── */
   async function installer() {
     const corps = {
-      agents: agents.AGENTS.map(a => ({ id: a.id, nom: a.nom, role: a.role })),
+      agents: agents.AGENTS.map(a => ({ id: a.id, nom: a.nom, role: a.role })).concat(pauline ? [PAULINE] : []),
       groupes: groupes.map(fil => ({ fil, nom: conversations.nom(fil), membres: conversations.membres(fil).map(m => m.id) })),
     };
     const r = await appeler('POST', '/api/pont/installer', corps);
@@ -139,7 +159,7 @@ module.exports = function creerPontMessages(o) {
   /* Les cibles et leurs fichiers, tirés de LISTES FIXES : les agents du registre, « systeme », les groupes du registre. Rien de ce que le service répond n'entre dans un chemin. */
   function photosVoulues() {
     const v = [];
-    for (const a of agents.AGENTS) if (a && typeof a.id === 'string' && RE_ID_PHOTO.test(a.id)) v.push({ cible: a.id, fichier: path.join(dossierIcones, 'agents', a.id + '.jpg') });
+    for (const a of agents.AGENTS.concat(pauline ? [PAULINE] : [])) if (a && typeof a.id === 'string' && RE_ID_PHOTO.test(a.id)) v.push({ cible: a.id, fichier: path.join(dossierIcones, 'agents', a.id + '.jpg') });
     v.push({ cible: 'systeme', fichier: path.join(dossierIcones, 'groupes', 'systeme.png') });
     for (const fil of groupes) if (typeof fil === 'string' && RE_ID_PHOTO.test(fil)) v.push({ cible: fil, fichier: path.join(dossierIcones, 'groupes', fil + '.png') });
     return v;
@@ -259,6 +279,55 @@ module.exports = function creerPontMessages(o) {
     finally { enCours = false; }
   }
 
+  /* ── 7. Pauline ── */
+  /* Ce qui d'un prospect peut entrer dans un message : une entreprise et un objet, sans adresse ni lien, sur une ligne, coupés court. */
+  const propre = (t, max) => { let x = String(t === undefined || t === null ? '' : t).replace(RE_ADRESSE, '').replace(RE_LIEN, '').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, ' ').replace(/\s+/g, ' ').trim(); if (Array.from(x).length > max) x = Array.from(x).slice(0, max - 1).join('') + '…'; return x; };
+  const parisDe = (t) => { try { const d = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(t)); const g = (k) => (d.find(x => x.type === k) || {}).value; return { date: g('year') + '-' + g('month') + '-' + g('day'), heure: parseInt(g('hour'), 10) }; } catch (e) { return null; } };
+  function parlerPauline(texte, cid, push) { enfiler({ k: 'n', fil: PAULINE.id, de: PAULINE.id, texte, ts: horloge(), importe: false, push: push === true, cid }); petitCoupDePouce(); }
+  /* Un relevé vient d'être rangé : les courriels qui attendent l'accord de Justin, jamais encore annoncés, puis (une fois par jour) le bilan. `dec` : l'état des décisions de la Tour (null = illisible : on ne dit rien). */
+  function surPauline(releve, dec) {
+    if (!pauline || arrete || illisible || !releve || typeof releve !== 'object' || !Array.isArray(releve.courriels) || !dec || typeof dec !== 'object' || !dec.decisions) return 0;
+    const parNom = new Map(); for (const e of Array.isArray(releve.entreprises) ? releve.entreprises : []) if (e && typeof e.id === 'string') parNom.set(e.id, e.nom);
+    let annonces = 0, change = false;
+    for (const c of releve.courriels) {
+      if (annonces >= PAULINE_PAR_RELEVE) break;
+      if (!c || typeof c.id !== 'string' || c.etat !== 'en_attente' || (c.statutBrut !== undefined && c.statutBrut !== 'pending_review')) continue;
+      if (pl.annonces.has(c.id) || dec.decisions[c.id]) continue;
+      const num = ++pl.n;
+      pl.annonces.set(c.id, num); change = true; annonces++;
+      while (pl.annonces.size > PAULINE_NUMEROS_MAX) pl.annonces.delete(pl.annonces.keys().next().value);
+      const nom = propre(parNom.get(c.entrepriseId), 60) || 'une entreprise', objet = propre(c.objet, 100) || '(sans objet)';
+      /* le `cid` se déduit du courriel : même sans la table (fichier perdu), OP MESSAGES reconnaît le message déjà posé */
+      parlerPauline('📬 Mail n°' + num + ' — ' + nom + ' : « ' + objet + ' » attend ton accord.\nPour le lire et le valider : ' + PAULINE_LIEN + '\nPour le refuser d’ici : NON ' + num, 'pauline-' + crypto.createHash('sha256').update(c.id).digest('hex').slice(0, 32), true);
+    }
+    /* le bilan : après 18 h (Paris), une fois par jour, seulement si le relevé parle bien d'AUJOURD'HUI (le Mac endormi garderait la veille) */
+    const j = releve.jour, p = parisDe(horloge());
+    if (p && p.heure >= PAULINE_HEURE_BILAN && pl.jour !== p.date && j && typeof j === 'object' && j.date === p.date && [j.envoyes, j.reponses, j.refus, j.enAttente].every(Number.isInteger)) {
+      pl.jour = p.date; change = true;
+      parlerPauline('📊 Bilan du jour : ' + j.envoyes + ' mail(s) envoyé(s), ' + j.reponses + ' réponse(s), ' + j.refus + ' refus, ' + j.enAttente + ' en attente de ton accord.', 'pauline-bilan-' + p.date);
+    }
+    if (change) sauver();
+    return annonces;
+  }
+  /* Ce que Justin écrit à Pauline. ⛔ « NON <n> » EXACT seulement agit, et par `decider` (la fonction de la route de la Tour). Tout le reste : une ligne qui renvoie à la Tour (une fois par dix minutes). */
+  function repondrePauline(texte) {
+    const m = RE_REPONSE.exec(String(texte).trim());
+    const dire = (t) => parlerPauline(t, 'pl-' + horloge().toString(36) + Math.random().toString(36).slice(2, 8));
+    if (!m) {
+      const t = horloge();
+      if (!derniereNote.pauline || t - derniereNote.pauline >= NOTE_PAS_MS) { derniereNote.pauline = t; dire('Je ne comprends que « NON <numéro> » pour refuser un mail. Pour lire, accepter ou modifier : ' + PAULINE_LIEN); }
+      return;
+    }
+    const num = parseInt(m[2], 10);
+    if (m[1].toUpperCase() === 'OK') { dire('Je n’accepte pas depuis ici : un mail part chez un prospect, il faut le lire d’abord. Ouvre-le dans la Tour : ' + PAULINE_LIEN); return; }
+    let id = null; for (const [k, n] of pl.annonces) if (n === num) { id = k; break; }
+    if (!id) { dire('Je ne connais pas de mail n°' + num + ' en attente. Regarde dans la Tour : ' + PAULINE_LIEN); return; }
+    let r; try { r = pauline.decider({ id, action: 'refuser' }); } catch (e) { r = { statut: 500, corps: {} }; }
+    if (r.statut === 200) dire('Mail n°' + num + ' refusé. Il ne partira pas.');
+    else if (r.statut === 409) dire('Mail n°' + num + ' : ' + String((r.corps && r.corps.error) || 'déjà traité') + ' Regarde dans la Tour : ' + PAULINE_LIEN);
+    else dire('Je n’ai pas pu enregistrer le refus du mail n°' + num + '. Fais-le dans la Tour : ' + PAULINE_LIEN);
+  }
+
   /* ── 4. lire ce que Justin fait dans OP MESSAGES ── */
   function noteTexteSeul(fil) {
     const t = horloge();
@@ -267,6 +336,13 @@ module.exports = function creerPontMessages(o) {
     enfiler({ k: 'n', fil, de: 'systeme', texte: 'Les agents ne lisent que le texte : ce que tu viens d’envoyer n’a pas été transmis.', ts: t, importe: false, cid: 'note-' + t.toString(36) + Math.random().toString(36).slice(2, 8) });
   }
   function traiter(e) {
+    if (e.type === 'message' && pauline && e.fil === PAULINE.id) {
+      if (parSeq.has(e.fil + '#' + e.seq)) return true;
+      lier('pl-' + e.seq, e.fil, e.seq);                          // une réponse n'agit qu'UNE fois, même si le curseur ne tient pas
+      if (e.genre === 'texte' && typeof e.texte === 'string') repondrePauline(e.texte);
+      return true;
+    }
+    if (e.type === 'suppression' && pauline && e.fil === PAULINE.id) return true;   // la suppression d'un message de Pauline ne touche aucun registre
     if (e.type === 'message') {
       if (!conversations.filValide(e.fil) || parSeq.has(e.fil + '#' + e.seq)) return true;
       if (e.genre !== 'texte' || typeof e.texte !== 'string') { noteTexteSeul(e.fil); return true; }
@@ -320,7 +396,7 @@ module.exports = function creerPontMessages(o) {
   /* ⛔ `/health` : des NOMBRES — minutes d'échec d'affilée (surveillé : la surveillance crie à 30), taille de la file (surveillée). Jamais un texte, un fil, un identifiant. */
   const sante = () => ({ echecMin: echecDepuis ? Math.floor((horloge() - echecDepuis) / 60000) : 0, file: file.length });
 
-  return { demarrer, arreter, surAjout, surRetrait, sante,
+  return { demarrer, arreter, surAjout, surRetrait, surPauline, sante,
     /* pour les bancs */
     _envoyer: envoyer, _lire: lire, _installer: installer, _etat: () => Object.assign({ installe, curseur, file: file.length, lies: parId.size, enAttente: enAttente(), echecDepuis }, compte), _photographier: photographier, _attendreFini: async () => { for (let i = 0; i < 400 && (enCours || lectureEnCours || photosEnCours); i++) await new Promise(r => setTimeout(r, 5)); } };
 };
