@@ -9691,7 +9691,7 @@ function entPlusTard(){ try{ localStorage.setItem('elanD_ent_plus_tard',String(D
 function entPlusTardActif(){ try{ const t=+localStorage.getItem('elanD_ent_plus_tard')||0; return t>0&&Date.now()-t<ENT_PLUS_TARD_JOURS*864e5; }catch(e){ return false; } }
 /* l'entreprise de la bêta : INVENTÉE (nom, adresse, SIRET au bon format mais fictif) — aucune vraie entreprise n'y est imitée */
 const ENT_TEST_BETA={nom:'TeamOP Test',adresse:'12 rue de l’Essai',cp:'17000',ville:'La Rochelle',siret:'12345678900017',tel:'05 46 00 00 00',email:'test@exemple.fr'};
-function entAccueilCheck(n){ n=n||0; try{
+function entAccueilCheck(n){ n=n||0; try{ if(DEMO_PUBLIQUE) return;
   if(!currentUser||currentUser.role!=='admin'||currentUser.essai&&!BETA_ESSAI) return;
   if(entPlusTardActif()) return;
   if((typeof syncEnabled==='function'&&syncEnabled()&&!_syncGotInitial)||document.querySelector('#overlay.open,.overlay.open')){ if(n<60) setTimeout(()=>entAccueilCheck(n+1),2500); return; }   // jusqu'à 2 min 30 : le choix de la langue, la photo de profil passent avant
