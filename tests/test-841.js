@@ -213,8 +213,13 @@ console.log('\n── 841 · plus de code : la Tour crée le lien après la dema
     T.ctx.document.getElementById('ma-texte').value = txtA.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
     T.ctx.document.getElementById('ma-objet').value = '🔗 Votre lien de connexion — TEAM OP';
     T.ctx.document.getElementById('ma-promo').value = 'essaiz';
-    T.ctx.maPromo();
-    vrai('   « Ajouter au message » écrit le code promo dans le texte', /VOTRE CODE PROMO : ESSAIZ/.test(T.ctx.document.getElementById('ma-texte').value));
+    /* v2.125 : le code se vérifie chez Stripe avant d'entrer (test-3233 joue Stripe). Ce serveur n'a pas de clé Stripe : le code n'est PAS
+       ajouté, et la Tour le dit ; le patron peut toujours l'écrire lui-même dans le message, qui part tel qu'il l'a relu. */
+    const texteAvantPromo = T.ctx.document.getElementById('ma-texte').value;
+    T.ctx.maPromo({ disabled: false, textContent: '' }); await dormir(400);
+    vrai('   ⛔ « Ajouter au message » sans vérification possible (Stripe absent) : rien n\'est ajouté, et la Tour le dit',
+      T.ctx.document.getElementById('ma-texte').value === texteAvantPromo && /Stripe/.test(T.toasts.slice(-1)[0] || ''), T.toasts.slice(-1)[0]);
+    T.ctx.document.getElementById('ma-texte').value = texteAvantPromo + '\n\nVOTRE CODE PROMO : ESSAIZ';
     const btnE = { disabled: false, textContent: '' };
     await new Promise(res => { T.ctx.maEnvoyer(btnE); setTimeout(res, 900); });
     v('   la Tour dit que c\'est parti', [btnE.textContent, /Envoyé à rose@exemple-841\.fr/.test(T.toasts.slice(-1)[0] || '')], ['✅ E-mail envoyé', true]);
