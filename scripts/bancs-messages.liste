@@ -438,3 +438,5 @@ tests/test-3126.js
 tests/test-3128.js
 # 28 octobre 2026 : `test-3066` (l'écran partagé s'affiche chez l'invité sans compte : les vraies fonctions `tuile` et `rendreSalle` de `invite.js` dans un faux document, la feuille de `invite.html` ; la preuve aux pixels à trois navigateurs est `tests/sonde-opmessages-ecran.js`, hors porte).
 tests/test-3066.js
+# 30 octobre 2026 : `test-3032` (l'écran de sortie d'une salle : la fin d'une réunion garde la couche, `data-salle` reste jusqu'au bouton) n'était pas dans la porte ; la sonde « ordre du jour » le supposait périmé à tort.
+tests/test-3032.js
