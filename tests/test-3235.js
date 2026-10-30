@@ -35,8 +35,8 @@ const etat = e => ({ visible: e.style.display !== 'none', rond: e.cls.has('bdg-p
   v('⛔ « on ne sait pas » (OP MESSAGES muet) : le rond reste comme il était', etat(E['bdg-msgr']).rond, true);
   R.d = { ok: true, pont: true, nonLus: 0 }; W.opmsgNonLusCharger(); await new Promise(r => setTimeout(r, 5));
   v('⛔ tout lu dans OP MESSAGES : RIEN ne s’affiche', [etat(E['bdg-msgr']).visible, etat(E['bdg-msgr']).rond], [false, false]);
-  W.MS_PA.n = 1; W.msBadge();
-  v('un mail de Pauline à valider rallume le rond', [etat(E['bdg-msgr']).visible, etat(E['bdg-msgr']).rond], [true, true]);
+  W.MS_PA.n = 13; W.msBadge();
+  v('⛔ des mails de Pauline EN ATTENTE ne rallument pas le rond (ils sont dans son fil d’OP MESSAGES) — c’était le « 13 »', [etat(E['bdg-msgr']).visible, etat(E['bdg-msgr']).rond], [false, false]);
   const S = monter({ d: { ok: true, pont: false, nonLus: null } }); S.W.opmsgNonLusCharger(); await new Promise(r => setTimeout(r, 5));
   v('sans pont : l’ancien compteur, inchangé', etat(S.E['bdg-msgr']), { visible: true, rond: false, texte: '13' });
   v('le style du rond existe (9 px, sans chiffre)', /\.bdg-r\.bdg-point,\.bdg-b\.bdg-point\{min-width:0;width:9px;height:9px;padding:0;font-size:0/.test(SRC), true);
