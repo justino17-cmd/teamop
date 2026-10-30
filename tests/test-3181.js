@@ -241,7 +241,7 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ la page n\'accepte le message que de SA propre origine (https://teamop.fr en production) — jamais « * », aucun littéral de production dans le script',
       /ev\.origin !== location\.origin\) return/.test(SITE) && !/addEventListener\('message'[\s\S]{0,400}'\*'/.test(SITE) && !/https:\/\/teamop\.fr/.test(SITE));
     vrai('   le message exact : type « teamop-demo », action « ajouter-rubrique », version 1', /d\.type !== 'teamop-demo' \|\| d\.action !== 'ajouter-rubrique' \|\| d\.v !== 1/.test(SITE));
-    vrai('   le lien `?ajouter=<clé>` est lu au chargement, le formulaire revient de la session de l\'onglet', /ajouter=\(\[A-Za-z0-9\]\{1,30\}\)/.test(SITE) && /restaurer\(\); ajouterDepuisDemo\(ajoutDemande\)/.test(SITE) && /sessionStorage\.setItem\(CLE_SESSION/.test(SITE));
+    vrai('   le lien `?ajouter=<clé>` est lu au chargement, le formulaire revient de la session de l\'onglet', /ajouter=\(\[A-Za-z0-9\]\{1,30\}\)/.test(SITE) && /if \(ajoutDemande && lienTest\) \{ restaurer\(\); ajouterDepuisDemo\(ajoutDemande\)/.test(SITE) && /sessionStorage\.setItem\(CLE_SESSION/.test(SITE));
     vrai('   le message dit « Rubrique ajoutée à votre demande » dans une zone `role="status"` de l\'aperçu, absente de la racine', /Rubrique ajoutée à votre demande/.test(SITE) && /id="rubrique-ajoutee" role="status"/.test(apercu) && !/rubrique-ajoutee/.test(racine));
 
     const tour = fs.readFileSync(path.join(RACINE, 'apercu', 'tour.html'), 'utf8');
