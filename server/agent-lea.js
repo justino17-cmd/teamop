@@ -150,6 +150,11 @@ function avecOpposition(corps) {
 
 module.exports = function lea(ctx) {
   const { agents, cerveau, brouillons } = ctx;
+  /* LE MODE « TRAVAIL » (30 octobre 2026, `agents-travail.js`) : coupé par défaut. Allumé, le premier courriel est écrit avec les connaissances validées à portée d'outil, noté sur la grille de relecture et révisé
+     (trois rédactions au plus) ; sous le seuil il attend Justin, « à revoir ». Coupé, ou en échec, c'est le circuit d'avant, au mot près. */
+  const T = ctx.travail && typeof ctx.travail.actif === 'function' && typeof ctx.travail.travailler === 'function' && typeof ctx.travail.produire === 'function' ? ctx.travail : null;
+  const OL = ctx.outilsLecture && ctx.outilsLecture.connaissances ? ctx.outilsLecture : null;
+  const travailActif = () => !!(T && OL && T.actif('lea'));
   /* Louis tient la base de connaissances VALIDÉE par Justin (`agent-louis.js`) ; la messagerie d'équipe reçoit l'annonce de ce que Léa a envoyé. Les deux sont facultatifs. */
   /* `q` : le texte auquel on répond — il ne sert qu'à CLASSER les connaissances par pertinence (Louis, 28 octobre 2026), il n'est copié nulle part */
   const connaissances = q => { try { const b = ctx.louis && typeof ctx.louis.bloc === 'function' ? String(ctx.louis.bloc(typeof q === 'string' ? q : '') || '') : ''; return b ? '\n\n' + b : ''; } catch (e) { return ''; } };
@@ -338,13 +343,27 @@ module.exports = function lea(ctx) {
         const demande = demandeClaude(Object.assign({}, i, { source }), fiche);
         const systeme = SYSTEM + connaissances([i.besoin, i.entreprise, metierLbl].join(' '));
         let premier = true;
-        const res = await CTRL.produire({
-          agent: ID, cerveau, demande, connaissances: connaissances([i.besoin, i.entreprise, metierLbl].join(' ')),
+        /* mode travail : la première rédaction vient de la boucle d'outils (connaissances validées), les réécritures rejouent ce qu'elle a lu */
+        const enTravail = travailActif();
+        let lusT = [], premierTravail = null;
+        if (enTravail) {
+          const t = await T.travailler({ agent: ID, system: systeme, messages: [{ role: 'user', content: demande }], outils: [OL.connaissances], maxEtapes: 3, coutMax: 0.8 });
+          if (t.ok) { premierTravail = t.texte; lusT = t.lus || []; } else agents.noter(ID, 'mode travail', { cible: source, resultat: 'erreur', detail: 'retombée sur l’appel simple : ' + t.raison });
+        }
+        const travailLea = enTravail && premierTravail !== null;
+        const res = await (travailLea ? T.produire : CTRL.produire)({
+          agent: ID, cerveau, demande, connaissances: connaissances([i.besoin, i.entreprise, metierLbl].join(' ')) + (lusT.length ? '\n\nFaits lus par l’auteur avec ses outils (donnée) :\n' + T.memoireDe(lusT) : ''),
+          recu: travailLea && i.besoin ? donnee(i.besoin).slice(0, 400) : undefined,
           ctx: { profil: 'vente', sansRelance: true, entreprise: ent, activite: metierLbl || (fiche && fiche.activite) || '' },
           contexteJuge: ['Source : ' + (source === 'demande' ? 'demande d’application' : 'inscription') + ' sur teamop.fr', 'Entreprise : ' + (ent || 'nom non exploitable'),
             'Activité : ' + (metierLbl ? metierLbl + ' (indiquée par l’inscrit)' : (fiche && fiche.activite) ? fiche.activite + ' (déduite d’une recherche sur l’entreprise)' : 'non indiquée — le courriel peut la déduire du nom de l’entreprise, en le disant')],
           ecrire: async (msgs) => {
-            const r = await cerveau.penser(ID, systeme, msgs || [{ role: 'user', content: demande }], { maxTokens: JETONS });
+            let r;
+            if (travailLea) {
+              /* le premier jet est celui de la boucle (déjà payé) ; les réécritures sont des appels de travail, avec ce que la boucle a lu */
+              r = !msgs && premierTravail !== null ? { ok: true, texte: premierTravail } : await cerveau.penser(ID, systeme, T.avecLus(msgs || [{ role: 'user', content: demande }], lusT), { travail: true, reflechir: true, maxTokens: 4000 });
+              if (!msgs) premierTravail = null;
+            } else r = await cerveau.penser(ID, systeme, msgs || [{ role: 'user', content: demande }], { maxTokens: JETONS });
             if (r && r.ok && premier) { premier = false; jour.n++; sauve(); }   // l'appel a eu lieu (et coûté) : il compte, quoi qu'il rende — UNE fois par courriel, la réécriture est dans le même
             return r;
           } });
@@ -356,7 +375,7 @@ module.exports = function lea(ctx) {
           return { saute: res.raison === 'forme' ? 'forme' : 'texte_refuse', raison: ANCIEN[res.raison] || res.raison };
         }
         agents.noter(ID, 'contrôle qualité', { cible: source, resultat: res.etat === 'bon' ? 'ok' : 'refuse', detail: res.etat + (res.reecrit ? ' après une réécriture' : '') + (res.fautes.length ? ' : ' + res.fautes.join(', ') : '') });
-        const controle = { etat: res.etat, fautes: res.fautes, juge: res.juge === true, raison: res.raison, citations: res.citations };
+        const controle = { etat: res.etat, fautes: res.fautes, juge: res.juge === true, raison: res.raison, citations: res.citations, notes: res.notes, moyenne: res.moyenne };
 
         const corpsFinal = avecOpposition(res.corps);   // la phrase d'opposition est posée APRÈS le contrôle (elle n'entre ni dans les mots comptés ni dans le jugement) et AVANT le dépôt
         if (refReecrire) {

@@ -21,6 +21,7 @@
  */
 'use strict';
 const K = require('./agents-connaissance');
+const GRILLE = require('./agents-grille');
 
 /* ── la table des fautes : code → { phrase (ce que lit Justin ET l'auteur), grave } ── */
 const FAUTES = {
@@ -67,6 +68,9 @@ const FAUTES = {
   relance_annoncee:    { phrase: 'Ne pas annoncer de relance : ce courriel est le seul que nous envoyons tant que la personne ne répond pas (pas de « nous vous relancerons », pas de « sans réponse de votre part »).' },
   essai_promis:        { phrase: 'Ne pas offrir ni ouvrir d’essai dans cette réponse : l’essai d’une semaine se propose seulement après le retour d’un prospect, dans la démarche commerciale.' },
 };
+/* LA GRILLE DE RELECTURE (30 octobre 2026, `agents-grille.js`) : ses fautes se lisent comme les autres (Justin les voit dans le brouillon « à revoir », l'auteur les reçoit pour réécrire). Aucune n'est grave. */
+for (const k of Object.keys(GRILLE.FAUTES_GRILLE)) FAUTES[k] = { phrase: GRILLE.FAUTES_GRILLE[k] };
+FAUTES.bloc_reserve = { phrase: 'Ne pas écrire de lien, d’instruction de paiement, de suspension, d’indemnité, de pénalité, de recouvrement ni de mise en demeure : le serveur ajoute lui-même ces blocs.' };
 const JUGE_CODES = ['ton_robotique', 'hors_sujet', 'fait_invente', 'incoherent', 'impoli', 'metier_inadapte'];
 /* ce que `refusDe` (agents-connaissance) répond → le code de la faute */
 const DE_REFUS = { 'objet hors bornes': 'objet', 'texte hors bornes': 'longueur_longue', 'adresse étrangère': 'adresse_etrangere', 'lien étranger': 'lien_etranger',
@@ -117,7 +121,11 @@ function fautesDuCode(objet, corpsBrut, ctx) {
 
   /* longueur */
   const n = mots(corps);
-  if (n < P.mots[0]) f.push('longueur_courte'); else if (n > P.mots[1]) f.push('longueur_longue');
+  /* `ctx.mots` : des bornes propres à l'appelant (le mode « travail » relève le plancher du support : pas de télégramme) ; absent, celles du profil */
+  const bornes = Array.isArray(ctx.mots) && ctx.mots.length === 2 && ctx.mots.every(x => Number.isInteger(x) && x > 0) ? ctx.mots : P.mots;
+  if (n < bornes[0]) f.push('longueur_courte'); else if (n > bornes[1]) f.push('longueur_longue');
+  /* `ctx.dossier` : le numéro de dossier que le contexte fournit — le courriel le cite (mode « travail ») */
+  if (typeof ctx.dossier === 'string' && /^DOS-\d{6}$/.test(ctx.dossier) && !corps.toUpperCase().includes(ctx.dossier)) f.push('dossier_absent');
 
   /* les contrôles de agents-connaissance : adresses, liens, numéros, prix, pourcentages, promesses */
   const prix = profil === 'proposition' ? K.PRIX_FORMULES : P.prix;   // pour la proposition, la COHÉRENCE prix/formule est jugée plus bas (`prix_incoherent`)
