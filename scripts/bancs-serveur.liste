@@ -443,3 +443,5 @@ tests/test-3192.js
 tests/test-3166.js
 # 30 octobre 2026 : `test-3230` (la demande « Créer votre application » du site arrive : route publique, rangement atomique, 400/413/429/503, champ piège, Tour, VRAIE fonction d'envoi de site.js contre le vrai serveur, rien de personnel au journal).
 tests/test-3230.js
+# 30 octobre 2026 : `test-3231` (les comptes du site sans espace dans À traiter : une alerte par compte neuf, Ignorer côté serveur, VRAIES fonctions de la Tour, « Ouvrir son accès » = métier + essai par la vraie pbCreer contre le vrai serveur).
+tests/test-3231.js

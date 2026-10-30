@@ -75,7 +75,7 @@ function valider(b, choisir, catsAvecBase) {
 }
 
 module.exports = function monterDemandeSite(app, ctx) {
-  const { DATA_DIR, monAdmin, express, quotaOk, choisir, catsAvecBase, surDemande } = ctx;
+  const { DATA_DIR, monAdmin, monPatronStrict, express, quotaOk, choisir, catsAvecBase, surDemande } = ctx;
   const chemin = path.join(DATA_DIR, F);
   let liste = [], illisible = false;
   try {
@@ -153,6 +153,50 @@ module.exports = function monterDemandeSite(app, ctx) {
     res.json({ ok: true });
   });
 
-  return { valider: b => valider(b, choisir, catsAvecBase), nombre: () => liste.length };
+
+  /* ══ LES COMPTES DU SITE SANS ESPACE (30 octobre 2026) ══ Justin : « j'ai beaucoup de demandes clients, il faut qu'on reçoive la demande dans la Tour ». Un compte créé sur l'Espace client
+     n'est PAS une demande : il apparaissait dans « Comptes du site » (« Aucun espace ») et nulle part dans « À traiter ». La Tour les range maintenant dans Demandes ; ici :
+       · « Ignorer » : un compte qui n'est pas un client (patron seul, réversible, rangé côté serveur, écriture atomique) — `comptes-site-ignores.json` ;
+       · UNE alerte par compte neuf (`comptes-site-vus.json`, adresses EMPREINTÉES : jamais une adresse en clair dans ce registre). Le registre est écrit AVANT l'alerte : un compte n'est
+         jamais annoncé deux fois, même si l'alerte échoue ; s'il ne peut pas s'écrire, on n'alerte pas (on réessaie au passage suivant). Au tout premier passage, les comptes de plus de
+         24 h sont inscrits sans bruit (sinon la première alerte serait une avalanche d'anciens comptes). */
+  const empr = m => crypto.createHash('sha256').update('compte-site|' + String(m || '').trim().toLowerCase()).digest('hex').slice(0, 20);
+  const lireListe = (nom, cle) => { const f = path.join(DATA_DIR, nom); if (!fs.existsSync(f)) return { existe: false, l: [], ko: false }; try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); if (!j || !Array.isArray(j[cle])) throw new Error('forme'); return { existe: true, l: j[cle].filter(x => typeof x === 'string'), ko: false }; } catch (e) { console.error(nom + ' illisible — rien ne sera écrit par-dessus'); return { existe: true, l: [], ko: true }; } };
+  const ecrireListe = (nom, cle, l) => { try { const f = path.join(DATA_DIR, nom); fs.writeFileSync(f + '.tmp', JSON.stringify({ v: 1, [cle]: l }), { mode: 0o600 }); fs.renameSync(f + '.tmp', f); return true; } catch (e) { console.error(nom + ' non écrit :', (e && e.code) || 'erreur disque'); return false; } };
+  const IGN = lireListe('comptes-site-ignores.json', 'e');
+  let ignores = new Set(IGN.l);
+  const VUS = lireListe('comptes-site-vus.json', 'h');
+  let vus = new Set(VUS.l), premierPassage = !VUS.existe;
+  const mailOk = m => typeof m === 'string' && m.length <= 160 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m);
+  app.post('/api/monitor/comptes-site/ignorer', monPatronStrict, (req, res) => {
+    if (IGN.ko) return res.status(503).json({ error: 'registre illisible' });
+    const b = req.body || {}, email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
+    if (!mailOk(email)) return res.status(400).json({ error: 'adresse invalide' });
+    const neuf = new Set(ignores); if (b.ignorer === false) neuf.delete(email); else neuf.add(email);
+    if (neuf.size > 5000) return res.status(409).json({ error: 'trop de comptes ignorés' });
+    if (!ecrireListe('comptes-site-ignores.json', 'e', Array.from(neuf))) return res.status(503).json({ error: 'non écrit' });
+    ignores = neuf; res.json({ ok: true, ignore: b.ignorer !== false });
+  });
+  /* `liste()` rend les comptes { email, cree, … } ; `aUnEspace(email)` ; `alerter(compte)` ne jette jamais. Rend le nombre de comptes ANNONCÉS. */
+  function scannerComptes({ liste: comptesListe, aUnEspace, alerter }) {
+    if (VUS.ko) return 0;
+    let tous; try { tous = comptesListe(); } catch (e) { return 0; }
+    const maintenant = Date.now(), aAnnoncer = [], marques = new Set(vus);
+    for (const c of tous) {
+      if (!c || !mailOk(c.email)) continue;
+      const h = empr(c.email); if (marques.has(h)) continue;
+      marques.add(h);
+      if (premierPassage && (c.cree || 0) < maintenant - 86400000) continue;
+      let espace = false; try { espace = !!aUnEspace(c.email); } catch (e) {}
+      if (!espace && !ignores.has(c.email.toLowerCase())) aAnnoncer.push(c);
+    }
+    if (marques.size === vus.size && !premierPassage) return 0;
+    if (!ecrireListe('comptes-site-vus.json', 'h', Array.from(marques))) return 0;   // pas écrit : on n'annonce pas (on réessaiera), jamais deux fois
+    vus = marques; premierPassage = false;
+    for (const c of aAnnoncer.slice(0, 5)) { try { Promise.resolve(alerter(c)).catch(() => {}); } catch (e) {} }
+    return aAnnoncer.length;
+  }
+
+  return { valider: b => valider(b, choisir, catsAvecBase), nombre: () => liste.length, estIgnore: m => ignores.has(String(m || '').trim().toLowerCase()), scannerComptes };
 };
 module.exports.valider = valider;

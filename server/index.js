@@ -6657,7 +6657,7 @@ try {
    dans OP MESSAGES (par le pont, jamais par le socle). ⛔ Rien de personnel dans le journal ; la notification et le message d'OP MESSAGES ne disent que l'entreprise et les métiers. */
 let demandeSiteMod = null;
 try {
-  demandeSiteMod = require('./demande-site')(app, { DATA_DIR, monAdmin, express, quotaOk, choisir: choixAbonnement, catsAvecBase,
+  demandeSiteMod = require('./demande-site')(app, { DATA_DIR, monAdmin, monPatronStrict, express, quotaOk, choisir: choixAbonnement, catsAvecBase,
     surDemande: async (d) => {
       const nomEnt = (d.entreprise || [d.prenom, d.nom].filter(Boolean).join(' ') || 'sans nom').replace(/[\r\n]+/g, ' ').slice(0, 60);
       const metiers = d.metiers.map(k => METIERS_LBL[k] || k).join(' + ');
@@ -6675,6 +6675,24 @@ try {
         console.log('mail demande du site envoyé →', masqueMail(dest));
       }
     } });
+  /* UNE alerte par COMPTE NEUF du site (nos comptes, `comptes.js`) qui n'a pas d'espace : le passage se fait toutes les dix minutes (`config.comptesScanMs` pour un banc), le premier
+     une minute après le démarrage. La notification ne dit que « un compte » ; le courriel à Justin porte l'adresse et le nom (c'est son métier) ; le journal, rien. */
+  const alerteCompte = async (c) => {
+    try { await pousserALaTour('Nouveau compte sur le site', 'Un compte vient d’être créé : à ouvrir dans la Tour (Demandes).', '/tour.html#demandes', '/tour.html#demandes'); } catch (e) {}
+    try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', 'Nouveau compte sur le site (sans espace) : à ouvrir dans la Tour (Demandes).', { cle: 'compte-site:' + String(c.cree || '') + ':' + c.email.length }); } catch (e) {}
+    if (mailer) {
+      const dest = config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || 'contact@teamop.fr';
+      const une = x => String(x || '').replace(/[\r\n]+/g, ' ');
+      const nom = une([c.prenom, c.nom].filter(Boolean).join(' ')).slice(0, 80);
+      await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: '👤 Nouveau compte sur le site' + (c.societe ? ' — ' + une(c.societe).slice(0, 60) : ''),
+        text: 'Un compte vient d\'être créé sur l\'Espace client de teamop.fr.\n\n' + (nom ? 'Nom : ' + nom + '\n' : '') + (c.societe ? 'Entreprise : ' + une(c.societe).slice(0, 80) + '\n' : '') + 'E-mail : ' + c.email + '\n\nIl n\'a pas encore d\'espace. Tour → Demandes → « Comptes du site sans espace » → « Ouvrir son accès » (ou « Ignorer » si ce n\'est pas un client).\n\nhttps://teamop.fr/tour.html' });
+      console.log('mail nouveau compte du site envoyé →', masqueMail(dest));
+    }
+  };
+  const passageComptes = () => { try { demandeSiteMod.scannerComptes({ liste: () => (typeof comptes !== 'undefined' && comptes && typeof comptes.liste === 'function' ? comptes.liste() : []), aUnEspace: m => porteUnEspace(m) || Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === m.toLowerCase()), alerter: alerteCompte }); } catch (e) { console.error('comptes du site : passage échoué'); } };
+  const scanMs = Math.max(500, Number(config.comptesScanMs) || 600000);
+  setTimeout(passageComptes, Math.min(60000, scanMs)).unref();
+  setInterval(passageComptes, scanMs).unref();
 } catch (e) {
   console.error('demandes du site non montées :', e.message);
 }
@@ -10710,6 +10728,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
     }
   }
   lignes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
+  if (demandeSiteMod) for (const l of lignes) l.ignore = demandeSiteMod.estIgnore(l.email);
   res.json({ comptes: lignes, total: lignes.length, anonymes, google: !!tok });
 });
 
