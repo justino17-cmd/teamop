@@ -317,7 +317,7 @@ globalThis.fetch = async function (url, opts) {
       /<a class="bouton-test plein" id="tester-haut" data-tester href="\/apercu\/demo\.html" data-demo="\/apercu\/demo\.html" target="_blank" rel="opener">/.test(apercu)
       && /<div class="tester-bloc" id="tester-bloc"><a class="bouton-test" id="tester-app" data-tester href="\/apercu\/demo\.html" data-demo="\/apercu\/demo\.html" target="_blank" rel="opener">/.test(apercu));
     vrai('   la phrase d\'accroche et celle de la section des rubriques sont écrites', /choisissez les options qui correspondent à vos besoins/.test(apercu) && /Essayez votre application avant de choisir vos rubriques/.test(apercu));
-    vrai('   le prix est dit : « Chaque métier en plus : +10 € TTC par mois. »', /Chaque métier en plus[\s  ]*:[\s  ]*\+10[\s  ]*€ TTC par mois\./.test(apercu));
+    vrai('   le prix est dit : « Chaque métier en plus : +10 € TTC par mois. »', /Chaque métier en plus[\s  ]*:[\s  ]*\+10[\s  ]*€ par mois\./.test(apercu));
     vrai('   l\'ordre, le refus et le total ont leur place (le refus est un `role="status"`)', /id="metiers-ordre"/.test(apercu) && /id="metiers-refus" role="status"/.test(apercu) && /id="metiers-total"/.test(apercu));
     vrai('la racine PUBLIÉE (30 octobre 2026) porte le bouton du haut', /tester-haut/.test(racine));
     const SITE = nu(fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8'));

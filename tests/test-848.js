@@ -123,7 +123,8 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
   v('⛔ chaque métier a un pack dans l\'application (METIERS)', ordreApp.map(k => !!(METIERS_APP[k] && METIERS_APP[k].nom)), ordreApp.map(() => true));
   const noms = ordreApp.map(k => METIERS_APP[k].nom);
   v('   les libellés sont ceux des packs, partout (serveur, Tour, portail)', [ordreSrv.map(k => lblSrv[k]), Object.keys(lblTour).map(k => lblTour[k]), Object.keys(lblPort).map(k => lblPort[k])],
-    piecesCles.map(l => l.map(k => METIERS_APP[k].nom)));
+    /* la Tour et le portail : « chauffage » y porte aussi la climatisation (variante chauffage / climatisation / les deux, 30 octobre 2026) */
+    piecesCles.map((l, i) => l.map(k => i > 0 && k === 'chauffage' ? 'Chauffage / Climatisation' : METIERS_APP[k].nom)));
   v('   les vingt-trois autres packs portent leurs propres types d\'intervention ; le 3D garde la liste historique', ordreApp.map(k => Array.isArray(METIERS_APP[k].types) && METIERS_APP[k].types.length > 3),
     ordreApp.map(k => k !== '3d'));
   const hors3D = ordreApp.filter(k => k !== '3d');

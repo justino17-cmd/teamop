@@ -251,7 +251,7 @@
       }
       if (totalPlus) {
         var plus = window.OpRub.metiersEnPlus(choix);
-        totalPlus.textContent = plus ? ' Vous en ajoutez ' + plus + ' : +' + window.OpRub.prixEnPlus(choix) + ' € TTC par mois.' : '';
+        totalPlus.textContent = plus ? ' Vous en ajoutez ' + plus + ' : +' + window.OpRub.prixEnPlus(choix) + ' € par mois.' : '';
       }
       if (choix.length && erreur) erreur.hidden = true;
       var princ = choix[0] ? puceDe(choix[0]) : null;
@@ -394,7 +394,7 @@
       lignes.push('MÉTIER CHOISI : ' + m.getAttribute('data-nom') + '  [pack ' + m.getAttribute('data-pack') + ']');
       if (ms.length > 1) {
         lignes.push('METIERS : ' + ms.map(function (k) { return puceDe(k).getAttribute('data-nom'); }).join(' + ') + '  [metiers ' + ms.join(',') + ']  (le premier est le métier principal)');
-        lignes.push('Métiers en plus : ' + (ms.length - 1) + ' (+' + (window.OpRub.prixEnPlus(ms)) + ' € TTC par mois)');
+        lignes.push('Métiers en plus : ' + (ms.length - 1) + ' (+' + (window.OpRub.prixEnPlus(ms)) + ' € par mois)');
       }
       lignes.push('Pack : ' + (m.getAttribute('data-pret') === '1' ? 'prêt — activable dès la création' : 'à construire sur mesure'));
       var vr = varianteCourante();
