@@ -119,9 +119,12 @@ const SCHEMAS = {
   /* `regle_agent` (29 octobre 2026, `agents-revue.js`) : une RÈGLE DE TRAVAIL que l'agent propose à la revue du week-end. Seule la référence traverse la file (le texte vit dans le module de la revue) ;
      elle n'entre dans les consignes de l'agent qu'une fois la validation ACCEPTÉE par Justin — et ne lui donne aucun droit de plus. */
   regle_agent:          { regle: REF },
+  /* `question_facture` (30 octobre 2026, mode « travail ») : Camille confie à MARGAUX la question de facture d'un client — un numéro de dossier et la référence du courriel (4 signes), rien d'autre ; Margaux répond
+     par des FAITS lus chez Stripe, en une phrase écrite par le code (le résumé de la tâche), jamais par un texte libre. */
+  question_facture:     { dossier: /^DOS-\d{6}$/, ref: REF },
 };
 const TYPES_VALIDATION = ['creer_espace', 'suspendre_acces', 'envoyer_mail', 'publier', 'repondre_avis', 'correctif', 'resilier_fin_periode', 'courrier_agent', 'mise_en_demeure', 'annonce_clients', 'regle_agent'];
-const TYPES_TACHE = ['verifier_paiement', 'preparer_espace', 'escalade_humain', 'signaler_erreur', 'relire_envoi', 'resilier_fin_periode', 'rendez_vous_prospect', 'choix_creneau'];
+const TYPES_TACHE = ['verifier_paiement', 'preparer_espace', 'escalade_humain', 'signaler_erreur', 'relire_envoi', 'resilier_fin_periode', 'rendez_vous_prospect', 'choix_creneau', 'question_facture'];
 /* DEUX FORMES POUR UNE MÊME DEMANDE (fusion de l'intégration, 23 octobre 2026). « Je veux arrêter » : Camille (le courrier) ne connaît que le NUMÉRO DE DOSSIER du client
    (jamais un nom d'accès : elle ne lit pas l'annuaire) et le dépose à Hugo (`{ dossier }`) quand l'expéditeur est authentifié ET l'adresse du compte ; Hugo (la gestion) retrouve
    l'espace par ce numéro (`espaceDeDossier`), et c'est lui qui écrit la VALIDATION, sur l'espace (`{ espace }`), que Justin accepte. Deux chantiers avaient écrit chacun leur forme
@@ -549,6 +552,19 @@ module.exports = function monterAgents(app, ctx) {
     const o = {}; for (const a of AGENTS) o[a.id] = enCours(a.id).length;
     return o;
   }
+  /* Ce que l'équipe a fait pour UN dossier (30 octobre 2026, outil de lecture « historique ») : les tâches fermées (`params.dossier`) — type, état, de qui à qui, ancienneté, résumé d'une phrase (déjà nettoyé à
+     l'écriture). Des champs de listes et des nombres ; jamais un texte de client. */
+  function tachesDossier(dossier) {
+    if (illisibles.has(F_TACHES) || typeof dossier !== 'string' || !/^DOS-\d{6}$/.test(dossier)) return [];
+    const now = maintenant();
+    return taches.filter(k => k.params && k.params.dossier === dossier).slice(-8).reverse()
+      .map(k => ({ type: k.type, statut: k.statut, de: k.de, vers: k.vers, ilYAJours: Math.max(0, Math.floor((now - (k.ts || now)) / 86400000)), resume: k.statut === 'faite' || k.statut === 'echec' ? String(k.resume || '').slice(0, RESUME_MAX) : '' }));
+  }
+  /* L'état et le résumé d'UNE tâche fermée (celui qui l'a déposée lit la réponse de son collègue) : `null` si elle n'existe plus. */
+  function tacheResultat(tacheId) {
+    const k = taches.find(x => x.id === tacheId);
+    return k ? { statut: k.statut, resume: k.statut === 'faite' || k.statut === 'echec' ? String(k.resume || '').slice(0, RESUME_MAX) : '' } : null;
+  }
   function tachesDe(id) {
     if (illisibles.has(F_TACHES) || !IDS.has(id)) return [];
     perimer();
@@ -820,7 +836,7 @@ module.exports = function monterAgents(app, ctx) {
   /* Une validation VIVANTE (en attente ou acceptée) du même agent, du même type, dont le champ `champ` vaut `valeur` : un module qui a déposé puis redémarré avant d'avoir noté l'identifiant la retrouve au lieu d'en déposer une seconde. '' sinon (ou registre illisible). */
   const retrouverValidation = (agent, type, champ, valeur) => { perimer(); if (illisibles.has(F_VALID)) return ''; const v = validations.find(x => x.agent === agent && x.type === type && (x.statut === 'en_attente' || x.statut === 'accepte') && x.params && x.params[champ] === valeur); return v ? v.id : ''; };
   const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
-  return { peutAgir, consigneNuit, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, consigneOuverte, bilan, consignesEnRetard, suiviFait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes, validationDe, retrouverValidation };
+  return { peutAgir, tachesDossier, tacheResultat, consigneNuit, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, consigneOuverte, bilan, consignesEnRetard, suiviFait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes, validationDe, retrouverValidation };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

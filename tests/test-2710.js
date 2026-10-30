@@ -144,6 +144,8 @@ const P = jeton.patron, S = jeton.simple;
     courrier_agent: { ref: 'dc1' }, mise_en_demeure: { ref: 'dc1' }, annonce_clients: { ref: 'dc1' } });
   /* 29 octobre 2026 : la règle de la revue du week-end (`agents-revue.js`) — seule la référence traverse la file */
   Object.assign(base, { regle_agent: { regle: 'rg0a1b2c3d' } });
+  /* 30 octobre 2026 : la question de facture que Camille confie à Margaux (`test-3202`) — un dossier et la référence du courriel */
+  Object.assign(base, { question_facture: { dossier: 'DOS-000001', ref: 'ab12' } });
   v('(population) un jeu sain existe pour chaque schéma, et il passe', Object.keys(monter.SCHEMAS).filter(t => !monter.paramsValides(t, base[t])), []);
   for (const type of Object.keys(monter.SCHEMAS)) {
     for (const champ of Object.keys(monter.SCHEMAS[type])) {
@@ -323,7 +325,7 @@ const P = jeton.patron, S = jeton.simple;
      jonction). Hugo, Margaux, Emma, Sarah (~12 000), les six agents de la plateforme (~8 000) ET les signatures, Louis, Chloé, Camille autonome (~12 000) sont dans le même try ;
      historique : 6000 → 12000 (la conversation des quinze autres agents) → 24000 / 32000 selon le chantier. Pas de sens : c'est toujours « le catch des agents est celui du try qui
      monte le socle ». Un chantier de plus qui entre ici relit CE chiffre, mesuré, et garde ~9 000 caractères de marge. */
-  vrai('… sous son propre try, pour ne pas emporter la Messagerie avec lui', /try \{\s*agentsMod = require\('\.\/agents'\)[\s\S]{0,36000}?catch \(e\) \{ console\.error\('agents indisponibles/.test(CODE));
+  vrai('… sous son propre try, pour ne pas emporter la Messagerie avec lui', /try \{\s*agentsMod = require\('\.\/agents'\)[\s\S]{0,42000}?catch \(e\) \{ console\.error\('agents indisponibles/.test(CODE));
   const routes = [...CODE_MOD.matchAll(/app\.(get|post)\('(\/api\/monitor\/[^']+)'/g)].map(m => [m[1], m[2]]);
   v('(population) sept routes : quatre lectures, trois écritures', [routes.filter(x => x[0] === 'get').length, routes.filter(x => x[0] === 'post').length], [4, 3]);
   const i0 = IDX.indexOf('const MON_GESTES = {'), i1 = IDX.indexOf('\n};', i0);

@@ -65,6 +65,9 @@ function controleRange(c) {
   if (!c || typeof c !== 'object' || !ETATS_CONTROLE.includes(c.etat)) return { etat: 'non_verifie', fautes: [], juge: false };
   return { etat: c.etat, fautes: (Array.isArray(c.fautes) ? c.fautes : []).filter(x => typeof x === 'string' && CTRL.FAUTES[x]).slice(0, 12), juge: c.juge === true,
     raison: typeof c.raison === 'string' ? c.raison.slice(0, 80) : undefined,
+    /* la note de la grille de relecture (`agents-grille.js`), quand le mode « travail » l'a posée : des entiers de 1 à 5 par critère connu, et leur moyenne — jamais un texte */
+    notes: c.notes && typeof c.notes === 'object' && !Array.isArray(c.notes) ? Object.fromEntries(Object.entries(c.notes).filter(([k, v]) => /^[a-z_]{3,20}$/.test(k) && Number.isInteger(v) && v >= 1 && v <= 5).slice(0, 10)) : undefined,
+    moyenne: typeof c.moyenne === 'number' && Number.isFinite(c.moyenne) && c.moyenne >= 1 && c.moyenne <= 5 ? c.moyenne : undefined,
     /* la ou les phrases du courriel que le juge a citées pour un fait inventé (des fragments du courriel lui-même, vérifiés par `agents-controle.js`) : Justin lit LAQUELLE est en cause */
     citations: Array.isArray(c.citations) ? c.citations.filter(x => typeof x === 'string' && x).map(x => x.slice(0, 220)).slice(0, 3) : undefined };
 }
@@ -235,6 +238,15 @@ module.exports = function brouillons(app, ctx) {
     return null;
   }
 
+  /* CE QUE L'ÉQUIPE A DÉJÀ ÉCRIT à cette adresse (30 octobre 2026, outils de lecture du mode « travail ») : les `n` derniers courriels PARTIS ou en attente, du plus récent au plus ancien — l'agent
+     ne se répète pas et ne contredit pas ce qui a été dit. Ce sont les mots de nos agents (jamais ceux d'un client), bornés ; l'adresse n'en fait pas partie. */
+  function historiqueA(adresse, n) {
+    const a = String(adresse || '').trim().toLowerCase(), now = maintenant();
+    return Object.keys(reg).map(ref => reg[ref]).filter(e => e.a === a && (e.etat === 'envoye' || e.etat === 'attente'))
+      .sort((x, y) => (y.envoyeTs || y.cree || 0) - (x.envoyeTs || x.cree || 0)).slice(0, Math.min(Math.max(parseInt(n, 10) || 3, 1), 5))
+      .map(e => ({ agent: e.agent, source: e.source, etat: e.etat, ilYAJours: Math.max(0, Math.floor((now - (e.envoyeTs || e.cree || now)) / JOUR_MS)), objet: objetCourt(e.objet), extrait: String(e.texte || '').slice(0, 700) }));
+  }
+
   /* Justin a-t-il déjà corrigé ce brouillon ? Léa le demande AVANT d'appeler Claude : réécrire ce qu'on n'a pas le droit de réécrire serait payer pour rien. */
   const estCorrige = ref => !!(reg[ref] && reg[ref].corrige === true);
 
@@ -327,7 +339,7 @@ module.exports = function brouillons(app, ctx) {
      registre est illisible : « on ne sait pas » n'est pas « rien n'est parti ». */
   const envoyes = depuis => (illisible() ? null : Object.keys(reg).map(ref => ({ ref, e: reg[ref] })).filter(x => x.e && x.e.etat === 'envoye' && (x.e.envoyeTs || 0) >= (depuis || 0))
     .map(x => ({ ref: x.ref, agent: x.e.agent, source: x.e.source, objet: x.e.objet, texte: x.e.texte, ts: x.e.envoyeTs })));
-  return { deposer, reecrire, attenteDe, nombreEnAttente, etatDe, estCorrige, envoyer, illisible, envoyes, envoyesRecents, dernierEnvoiA, parMessageId, bilan, vue: ref => (reg[ref] ? vue(reg[ref]) : null), compter: () => Object.keys(reg).length };
+  return { deposer, reecrire, historiqueA, attenteDe, nombreEnAttente, etatDe, estCorrige, envoyer, illisible, envoyes, envoyesRecents, dernierEnvoiA, parMessageId, bilan, vue: ref => (reg[ref] ? vue(reg[ref]) : null), compter: () => Object.keys(reg).length };
 };
 module.exports.resumeDe = resumeDe;
 module.exports.objetCourt = objetCourt;

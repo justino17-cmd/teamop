@@ -32,6 +32,7 @@ const TACHES = {
   resilier_fin_periode: { fait: 'traiter une fin d’abonnement', echec: 'traiter une fin d’abonnement' },
   rendez_vous_prospect: { fait: 'traiter une demande de rendez-vous', echec: 'traiter une demande de rendez-vous' },
   choix_creneau:        { fait: 'enregistrer le créneau choisi par un prospect', echec: 'enregistrer le créneau choisi par un prospect' },
+  question_facture:     { fait: 'répondre à une question de facture', echec: 'répondre à une question de facture' },
   consigne:             { fait: 'terminer une tâche', echec: 'terminer une tâche' },
 };
 /* Ce que l'agent a PRÉPARÉ pour Justin (une demande de validation, `agents.proposer`) : rien ne part sans lui. */
