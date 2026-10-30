@@ -6346,7 +6346,7 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
   const texteRelu = typeof (req.body || {}).texte === 'string' ? (req.body || {}).texte.replace(/\r\n?/g, '\n').slice(0, 6000).trim() : '';
   const objetRelu = typeof (req.body || {}).objet === 'string' ? (req.body || {}).objet.replace(/[\r\n]+/g, ' ').slice(0, 150).trim() : '';
   let texteEnvoi = texte, htmlEnvoi = html;
-  if (texteRelu) {
+  if (texteRelu && texteRelu !== texte.trim()) {   // texte inchangé : le courriel mis en forme part tel quel
     texteEnvoi = texteRelu;
     htmlEnvoi = mailTeamOP({ chip: 'Accès prêt', titre: 'Votre lien de connexion 🔗',
       corpsHtml: escH(texteRelu).replace(/\n/g, '<br>'),
@@ -6363,8 +6363,10 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
       subject: objetRelu || SUJET_LIEN, text: texteEnvoi, html: htmlEnvoi });
     console.log('Tour :', req.tourUser.nom, 'a envoyé le lien de l\'espace', tE, '→', masqueMail(e.email));   // l'identifiant, pas le nom : souvent celui d'une personne
     // son « Mon espace » passe à Accès activé · OP GESTION active (+ abonnement si formule posée)
+    /* le statut affiché suit l'abonnement réglé (contrôle de bout en bout, 30 octobre 2026 : « Business · Actif » écrasait un essai) */
+    const psLien = { auto: 'actif', actif: 'actif', essai: 'essai', impaye: 'impaye', suspendu: 'impaye', annule: 'annule' }[e.aboStatut || 'auto'] || 'actif';
     fbMajFicheClient(e.email, Object.assign({ status: 'fourni', apps: ['elan'] },
-      e.formule ? { plan: FORMULE_LBL[e.formule] || e.formule, planStatus: 'actif' } : {})).catch(() => {});
+      e.formule ? Object.assign({ plan: FORMULE_LBL[e.formule] || e.formule, planStatus: psLien }, e.aboFin ? { planFin: e.aboFin } : {}) : {})).catch(() => {});
     res.json({ ok: true, envoye: e.email });
   } catch (err) { res.status(500).json({ error: 'envoi impossible : ' + String(err.message).slice(0, 120) }); }
 });
@@ -10613,7 +10615,7 @@ app.post('/api/clients/sync', async (req, res) => {
         'Téléphone : ' + (cli.tel || 'non renseigné') + '\n\n' +
         nv.map(d => '• ' + (d.app || 'Application') + (d.formule ? ' — formule « ' + d.formule + ' »' : ' — formule non précisée') + (d.users ? '\n  Utilisateurs souhaités : ' + d.users : '') + (d.lien ? '\n  Nom de lien souhaité : ' + d.lien : '') + (d.metier ? '\n  Métier : ' + (METIERS_LBL[d.metier] || d.metier) : '\n  Métier : non précisé') + (Array.isArray(d.cats) ? '\n  Rubriques cochées : ' + d.cats.length + ' sur ' + CATS_OK.length : '') + (d.besoin && d.besoin !== 'x' ? '\n  Besoin : ' + d.besoin : '')).join('\n') +
         '\n\n' + codeLigne +
-        '\n── À faire ──\nRien n\'a été créé. Ouvre ta Tour → la fiche de cette entreprise → « ✅ Accepter la demande » : l\'espace se crée, la formule, le métier et le code promo s\'appliquent, puis « 📧 Envoyer par e-mail au client » lui envoie son lien et ses identifiants.\n\nhttps://teamop.fr/tour.html';
+        '\n── À faire ──\nRien n\'a été créé. Ouvre ta Tour → À traiter → Demandes → « ✅ Accepter et ouvrir l\'espace » : l\'espace se crée, la formule, le métier et le code promo s\'appliquent, puis « 📧 Envoyer par e-mail au client » lui envoie son lien et ses identifiants.\n\nhttps://teamop.fr/tour.html';
       mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
         subject: '📥 Nouvelle demande à traiter — ' + nomEnt, text: texte })
         .then(() => console.log('mail demande envoyé →', masqueMail(dest), '(' + nv.length + ' demande' + (nv.length > 1 ? 's' : '') + ')'))   // le nombre, pas le texte libre du client
