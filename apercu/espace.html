@@ -981,7 +981,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       const pi=promoInfo(d);
       body = (apps.length ? apps.map(k=>{ const a=APPS[k]; const viaPromo=pi&&pi.apps.includes(k)&&!(Array.isArray(d.apps)&&d.apps.includes(k));
         return `<a class="appc" href="${a.href}" onclick="try{localStorage.setItem('teamop_app','${a.href}')}catch(e){}"><img src="${a.ic}" alt="${esc(a.name)}"><div class="an"><h4>${esc(a.name)}${viaPromo?' <span class="badge b-done" style="font-size:10px">🎁 '+esc(pi.label)+'</span>':''}</h4><p>${esc(a.desc)}</p></div><span class="openb" style="background:${a.btn};color:${a.encre}">Ouvrir →</span></a>`; }).join('')
-        : `<p class="muted" style="line-height:1.6">⚪ Aucune application activée pour l'instant.<br>Faites une demande dans <b>« Mes demandes d'accès »</b> — dès validation, vos applications apparaîtront ici.</p><button class="btn sm" style="margin-top:10px" onclick="openView('demandes')">➕ Demander un accès</button>`);
+        : `<p class="muted" style="line-height:1.6">⚪ Aucune application activée pour l'instant.<br>Faites une demande dans <b>« Mes demandes d'accès »</b> — dès validation, vos applications apparaîtront ici et vos identifiants vous seront envoyés par e-mail.</p><button class="btn sm" style="margin-top:10px" onclick="openView('demandes')">➕ Demander un accès</button>`);
     }
     else if(v==='demandes'){
       const dems=Array.isArray(d.demandes)?d.demandes.slice().sort((a,b)=>(b.date||0)-(a.date||0)):[];

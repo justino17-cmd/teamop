@@ -3375,7 +3375,10 @@ app.post('/api/monitor/espaces/formule', monPatronStrict, (req, res) => {
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'attribue', f, '×' + q, 'à', slug);
   // le « Mon espace » du client reflète l'attribution : accès activé + abonnement affiché
-  if (e.email) fbMajFicheClient(e.email, { status: 'fourni', apps: ['elan'], plan: FORMULE_LBL[f] || f, planStatus: 'actif' }).catch(() => {});
+  /* ⛔ 30 octobre 2026 (contrôle de bout en bout) : la formule seule ne dit PAS « Accès activé ». Le client lisait « Accès activé · Ouvrir → »
+     sur « Mon espace » avant d'avoir reçu ses identifiants, essayait, et concluait que « ça ne marche pas ». L'accès passe à « fourni » au
+     courriel d'accès (`/api/monitor/espaces/mail-acces`) ; une fiche déjà « fournie » le reste (le champ n'est pas écrit ici). */
+  if (e.email) fbMajFicheClient(e.email, { plan: FORMULE_LBL[f] || f, planStatus: 'actif' }).catch(() => {});
   res.json({ ok: true, slug, formule: f, quantite: q });
 });
 // ── L'abonnement réglé à la main par le patron (fiche entreprise de la Tour) : formule, places,
@@ -3434,7 +3437,7 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   console.log('Tour :', req.tourUser.nom, 'règle l\'abonnement de', slug, ':', f, '×' + q, st, fin || '', optionsDeTour(e.options).length ? '+ ' + optionsDeTour(e.options).join(',') : '');
   // la fiche client (site « Mon espace ») reflète le réglage
   const ps = { auto: 'actif', actif: 'actif', essai: 'essai', impaye: 'impaye', suspendu: 'impaye', annule: 'annule' }[st] || 'actif';
-  if (e.email) fbMajFicheClient(e.email, { status: 'fourni', apps: ['elan'], plan: FORMULE_LBL[f] || f, planStatus: ps, planFin: fin }).catch(() => {});
+  if (e.email) fbMajFicheClient(e.email, { plan: FORMULE_LBL[f] || f, planStatus: ps, planFin: fin }).catch(() => {});   // « Accès activé » au courriel d'accès seulement (voir /formule)
   res.json({ ok: true, slug, formule: f, quantite: q, statut: e.aboStatut || 'auto', fin, options: optionsDeTour(e.options) });
 });
 // payé ? — le réglage manuel du patron d'abord ; sinon trois portes : formule gratuite, code promo actif, abonnement Stripe actif
@@ -6673,6 +6676,20 @@ try {
           '\n── À faire ──\nRien n\'a été créé. Ouvre la Tour → Demandes → « Demande du site » : tu peux la marquer traitée ou préparer l\'accès à la version publique avec son adresse.\n\nhttps://teamop.fr/tour.html';
         await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, replyTo: d.email, subject: '📥 Demande du site — ' + nomEnt, text: texte });
         console.log('mail demande du site envoyé →', masqueMail(dest));
+        /* L'ACCUSÉ AU CLIENT (30 octobre 2026, contrôle de bout en bout) : sans lui, le seul retour était « Demande envoyée » à l'écran — aucune trace ensuite, et
+           un client qui confondait « demande reçue » avec « accès ouvert » essayait de se connecter. Il dit ce qui est VRAI : reçue, PAS encore ouverte, la suite par
+           courriel. ⛔ La route est publique : on n'y recopie RIEN de ce qui a été tapé (pas d'entreprise, pas de message) — un tiers dont l'adresse serait saisie
+           ne reçoit qu'un accusé neutre, et seulement dans le budget d'alertes de la route (cinq par heure, puis la synthèse, qui n'écrit à personne). */
+        try {
+          const corps = 'Bonjour,\n\nNous avons bien reçu votre demande « Créer votre application » sur teamop.fr.\n\n'
+            + 'Ce n\'est pas encore l\'ouverture de votre accès : nous étudions votre besoin et nous vous rappelons sous 48 h.\n'
+            + 'Une fois votre espace ouvert, vous recevrez un autre courriel avec votre lien de connexion et vos identifiants. En attendant, vous n\'avez rien à faire.\n\n'
+            + 'Une question ? Répondez simplement à ce courriel.\n\nL\'équipe TEAM OP';
+          await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: d.email, replyTo: dest, subject: '📥 Votre demande est bien reçue — TEAM OP', text: corps,
+            html: mailTeamOP({ chip: 'Demande reçue', titre: 'Votre demande est bien reçue 📥',
+              corpsHtml: 'Bonjour,<br>nous avons bien reçu votre demande « Créer votre application ».<br><br><b>Ce n’est pas encore l’ouverture de votre accès</b> : nous étudions votre besoin et nous vous rappelons <b>sous 48 h</b>.<br><br>Une fois votre espace ouvert, vous recevrez un autre courriel avec votre <b>lien de connexion et vos identifiants</b>. En attendant, vous n’avez rien à faire.',
+              frise: [{ titre: 'Demande reçue', sous: 'aujourd’hui', fait: true }, { titre: 'On vous rappelle', sous: 'sous 48 h', fait: false }, { titre: 'Vos identifiants', sous: 'par e-mail', fait: false }] }) });
+        } catch (e) { console.error('demande du site : accusé au client non parti'); }
       }
     },
     /* au-delà de cinq alertes par heure : UNE ligne de synthèse (notification + fil Clients), le courriel n'est pas répété */

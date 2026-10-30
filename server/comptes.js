@@ -185,8 +185,8 @@ function monterComptes(app, deps) {
   const envoyerVerif = (mail, salut) => {
     const jv = jetonNeuf(mail, 'verif', VERIF_VIE_MS);
     envoyerDerriere({ to: mail, confidentiel: true, subject: 'Confirmez votre adresse — TEAM OP',
-      text: salut + ',\n\nConfirmez votre adresse pour activer votre espace :\n'
-        + base + '/reinit.html?mode=verifyEmail&jeton=' + jv + '\n\nCe lien est valable 7 jours.\n' + pied() },
+      text: salut + ',\n\nConfirmez votre adresse pour sécuriser votre compte TEAM OP :\n'
+        + base + '/reinit.html?mode=verifyEmail&jeton=' + jv + '\n\nCe lien est valable 7 jours.\n\nCela n\'ouvre pas encore votre application : votre lien de connexion et vos identifiants arrivent par un autre courriel, dès que votre accès est ouvert.\n' + pied() },
       'courriel de vérification non envoyé');
   };
 
