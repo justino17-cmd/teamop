@@ -6297,6 +6297,13 @@ app.post('/api/monitor/promo-stripe', monPatronStrict, async (req, res) => {
       remise: cp ? { pourcent: cp.percent_off || null, montant: cp.amount_off != null ? cp.amount_off / 100 : null, duree: cp.duration || '', mois: cp.duration_in_months || null } : null });
   } catch (e) { res.status(502).json({ error: 'Stripe injoignable : le code n\'a pas pu être vérifié.' }); }
 });
+/* La pastille « Messagerie » de la Tour suit OP MESSAGES (Justin, 30 octobre 2026 : « elle affiche 13 alors que je n'ai rien »). Patron seul ;
+   `null` = on ne sait pas (pont absent, OP MESSAGES muet) — la Tour n'affiche alors RIEN de neuf, elle ne remet pas une pastille au hasard. */
+app.get('/api/monitor/opmsg-nonlus', monPatronStrict, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const n = pontMessages ? await pontMessages.nonLus() : null;
+  res.json({ ok: true, pont: !!pontMessages, nonLus: n });
+});
 app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) => {
   if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir

@@ -426,10 +426,22 @@ module.exports = function creerPontMessages(o) {
   }
   function arreter() { arrete = true; clearInterval(minuteurEnvoi); clearInterval(minuteurLecture); if (pouce) clearTimeout(pouce); }
 
+  /* LA PASTILLE « Messagerie » de la Tour : combien Justin a de non-lus dans OP MESSAGES (un NOMBRE). Lecture à part, qui ne touche ni à la file
+     ni à l'attente du pont (`appeler` mettrait le pont « en panne » sur un simple échec de lecture) ; un échec rend null — « on ne sait pas », jamais 0. */
+  async function nonLus() {
+    if (arrete || !installe) return null;
+    try {
+      const r = await fetchImpl(url + '/api/pont/non-lus', { method: 'GET', headers: { 'X-OPM-Pont': secret, Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(Math.min(delaiMs, 5000)) });
+      if (!r.ok) return null;
+      const j = await r.json().catch(() => null);
+      return j && j.ok === true && Number.isInteger(j.nonLus) && j.nonLus >= 0 ? j.nonLus : null;
+    } catch (e) { return null; }
+  }
+
   /* ⛔ `/health` : des NOMBRES — minutes d'échec d'affilée (surveillé : la surveillance crie à 30), taille de la file (surveillée). Jamais un texte, un fil, un identifiant. */
   const sante = () => ({ echecMin: echecDepuis ? Math.floor((horloge() - echecDepuis) / 60000) : 0, file: file.length });
 
-  return { demarrer, arreter, surAjout, surRetrait, surPauline, sante,
+  return { demarrer, arreter, surAjout, surRetrait, surPauline, sante, nonLus,
     /* pour les bancs */
     _envoyer: envoyer, _lire: lire, _installer: installer, _etat: () => Object.assign({ installe, curseur, file: file.length, lies: parId.size, enAttente: enAttente(), echecDepuis }, compte), _photographier: photographier, _attendreFini: async () => { for (let i = 0; i < 400 && (enCours || lectureEnCours || photosEnCours); i++) await new Promise(r => setTimeout(r, 5)); } };
 };

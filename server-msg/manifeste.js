@@ -52,6 +52,7 @@ const MANIFESTE = [
   { id: 'pont.installer',    m: 'POST', p: '/api/pont/installer',                    garde: 'PT' },
   { id: 'pont.poster',       m: 'POST', p: '/api/pont/poster',                       garde: 'PT' },
   { id: 'pont.nouveaux',     m: 'GET',  p: '/api/pont/nouveaux',                     garde: 'PT' },
+  { id: 'pont.nonlus',       m: 'GET',  p: '/api/pont/non-lus',                      garde: 'PT' },
   { id: 'pont.supprimer',    m: 'POST', p: '/api/pont/supprimer',                    garde: 'PT' },
   { id: 'pont.avatar',       m: 'POST', p: '/api/pont/avatar',                       garde: 'PT' },
   { id: 'beta.entrer',       m: 'POST', p: '/api/beta/entrer',                       garde: 'B' },
