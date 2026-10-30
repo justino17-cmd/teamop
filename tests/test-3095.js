@@ -31,6 +31,7 @@ const RACINE = T.RACINE;
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const MDP = 'mot-de-passe-du-banc-3091', MDP_J = 'pw-justin-3091-banc', MDP_I = 'pw-intrus-3091-banc';
 const SECRET = crypto.randomBytes(32).toString('hex');
+const JETON_P = crypto.randomBytes(24).toString('hex');       // le jeton du Mac de Pauline (la Tour n'en garde que l'empreinte)
 const dort = T.dort;
 let ipN = 40; const ip = () => '198.51.100.' + (ipN++);
 setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 150 s'); process.exit(1); }, 150000).unref();
@@ -56,6 +57,7 @@ async function lancerTour(opts = {}) {
   if (!fs.existsSync(cfg)) { const vap = webpush.generateVAPIDKeys(); fs.writeFileSync(cfg, JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: sha(MDP) })); }
   const c = JSON.parse(fs.readFileSync(cfg, 'utf8'));
   c.agents = { cleApi: 'sk-ant-banc', reunionsAuto: false };
+  c.pauline = { jetonSha256: sha(JETON_P) };
   if (opts.pont === null) delete c.opmsgPont; else c.opmsgPont = opts.pont;
   fs.writeFileSync(cfg, JSON.stringify(c));
   const port = opts.port || await T.portLibre(), base = 'http://127.0.0.1:' + port;
@@ -132,22 +134,22 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
     justin = await T.connecter(svc, {}, 'justin', MDP_J, ip());
     intrus = await T.connecter(svc, {}, 'intrus', MDP_I, ip());
     const convs = async () => (await justin.get('/api/conversations')).j.conversations;
-    const prets = await T.attendre(async () => (await convs()).length >= 20, 20000, 100);
-    vrai('OP MESSAGES démarre APRÈS la Tour : le pont réessaie, installe, et Justin voit ses 16 agents et 4 groupes', !!prets);
+    const prets = await T.attendre(async () => (await convs()).length >= 21, 20000, 100);
+    vrai('OP MESSAGES démarre APRÈS la Tour : le pont réessaie, installe, et Justin voit ses 16 agents, Pauline et 4 groupes', !!prets);
     const liste = await convs();
     const parNom = {}; for (const c of liste) parNom[c.type === 'direct' ? c.autre.prenom : c.nom] = c;
-    v('…les directes portent le nom des agents, les groupes ceux de la Tour', [liste.filter(c => c.type === 'direct').length, liste.filter(c => c.type === 'groupe').map(c => c.nom).sort()], [16, ['Clients', 'Plateforme', 'Réunions', 'Équipe'].sort()]);
+    v('…les directes portent le nom des agents, les groupes ceux de la Tour', [liste.filter(c => c.type === 'direct').length, liste.filter(c => c.type === 'groupe').map(c => c.nom).sort()], [17, ['Clients', 'Plateforme', 'Réunions', 'Équipe'].sort()]);   // seize agents + Pauline (29 octobre 2026)
     /* ── les photos : la Tour les envoie TOUTE SEULE après l'installation ── */
     const avatarDe = (c) => c.type === 'direct' ? c.autre.avatar : c.avatar;
-    const photos = await T.attendre(async () => { const l = await convs(); return l.length >= 20 && l.every(c => typeof avatarDe(c) === 'string'); }, 40000, 150);
-    vrai('⛔ LES PHOTOS arrivent sans aucun geste : la liste de Justin porte un `avatar` pour chacune des seize directes et des quatre groupes', !!photos);
+    const photos = await T.attendre(async () => { const l = await convs(); return l.length >= 21 && l.every(c => typeof avatarDe(c) === 'string'); }, 40000, 150);
+    vrai('⛔ LES PHOTOS arrivent sans aucun geste : la liste de Justin porte un `avatar` pour chacune des dix-sept directes (Pauline comprise) et des quatre groupes', !!photos);
     const lPhotos = await convs();
     const icones = path.join(RACINE, 'icons');
     const telechargees = {};
     for (const c of lPhotos) { const r = await P.lirePiece(justin, avatarDe(c)); telechargees[c.type === 'direct' ? c.autre.prenom : c.nom] = r; }
     const noms = Object.keys(telechargees);
-    v('(population) vingt images téléchargées par la VRAIE route GET : seize JPEG et quatre PNG, des images propres', [noms.length, Object.values(telechargees).filter(r => r.code === 200 && r.buf.subarray(0, 3).toString('hex') === 'ffd8ff').length, Object.values(telechargees).filter(r => r.code === 200 && r.buf.subarray(0, 4).toString('hex') === '89504e47').length], [20, 16, 4]);
-    v('⛔ chacune est la SIENNE : vingt images toutes différentes (une cible mélangée en ferait deux identiques)', new Set(Object.values(telechargees).map(r => sha(r.buf))).size, 20);
+    v('(population) vingt images téléchargées par la VRAIE route GET : seize JPEG et quatre PNG, des images propres', [noms.length, Object.values(telechargees).filter(r => r.code === 200 && r.buf.subarray(0, 3).toString('hex') === 'ffd8ff').length, Object.values(telechargees).filter(r => r.code === 200 && r.buf.subarray(0, 4).toString('hex') === '89504e47').length], [21, 17, 4]);
+    v('⛔ chacune est la SIENNE : vingt et une images toutes différentes (une cible mélangée en ferait deux identiques)', new Set(Object.values(telechargees).map(r => sha(r.buf))).size, 21);
     const AGENTS_TOUR = require(path.join(RACINE, 'server', 'agents.js')).AGENTS;
     v('…le visage de chaque agent est son fichier du dépôt (octet pour octet, ou à ses métadonnées près : même taille à 5 % près)', AGENTS_TOUR.filter(a => { const f = fs.readFileSync(path.join(icones, 'agents', a.id + '.jpg')); const r = telechargees[a.nom]; return !(r && (r.buf.equals(f) || Math.abs(r.buf.length - f.length) <= f.length * 0.05)); }).map(a => a.id), []);
     v('…les images des groupes sont les fichiers de `icons/groupes`', ['equipe', 'clients', 'plateforme', 'reunions'].filter(fil => { const f = fs.readFileSync(path.join(icones, 'groupes', fil + '.png')); const nom = { equipe: 'Équipe', clients: 'Clients', plateforme: 'Plateforme', reunions: 'Réunions' }[fil]; const r = telechargees[nom]; return !(r && (r.buf.equals(f) || Math.abs(r.buf.length - f.length) <= f.length * 0.05)); }), []);
@@ -158,7 +160,7 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
     v('⛔ aucune ligne « a changé la photo du groupe » dans les groupes', await (async () => { let n = 0; for (const c of lPhotos.filter(x => x.type === 'groupe')) n += (await justin.get('/api/conversations/' + c.id + '/messages')).j.messages.filter(m => m.type === 'systeme' && m.meta && /avatar/.test(JSON.stringify(m.meta))).length; return n; })(), 0);
     const lignesAvatar = () => { const d = T.lireBase(path.join(svc.data, 'msg.db')); try { return d.prepare("SELECT id FROM piece WHERE genre = 'avatar' ORDER BY id").all().map(r => r.id); } finally { d.close(); } };
     const idsPhotos = lignesAvatar();
-    v('(population) vingt et une pièces de genre avatar dans la base : seize agents, le Système, quatre groupes', idsPhotos.length, 21);
+    v('(population) vingt-deux pièces de genre avatar dans la base : seize agents, Pauline, le Système, quatre groupes', idsPhotos.length, 22);
     const msgs = async (c) => (await justin.get('/api/conversations/' + c.id + '/messages')).j.messages.filter(m => m.type !== 'systeme');
     const attendu = (fil) => MESSAGES_SEED.filter(m => m.fil === fil);
     const nomFil = { victor: 'Victor', lea: 'Léa', camille: 'Camille', equipe: 'Équipe', reunions: 'Réunions', clients: 'Clients' };
@@ -194,7 +196,7 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       v('⛔ …et RIEN n\'est dupliqué dans OP MESSAGES : chaque texte de l\'historique y est UNE fois', await occurrences(), MESSAGES_SEED.map(() => 1));
     }
 
-    v('⛔ deux redémarrages de la Tour plus tard, AUCUNE photo n\'a été renvoyée : les mêmes vingt et une pièces, les mêmes identifiants', lignesAvatar(), idsPhotos);
+    v('⛔ deux redémarrages de la Tour plus tard, AUCUNE photo n\'a été renvoyée : les mêmes vingt-deux pièces, les mêmes identifiants', lignesAvatar(), idsPhotos);
 
     /* ── 2 · un message de la Tour paraît dans OP MESSAGES, en direct ── */
     console.log('\n2. Un message de la Tour paraît dans OP MESSAGES, en direct — et l\'agent répond');
@@ -257,6 +259,42 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       await dort(900);   // le temps de plusieurs lectures du pont (60 ms) : ce qui ne devait pas entrer n'est pas entré
       v('⛔ RIEN n\'est arrivé au registre de la Tour, et AUCUN agent n\'a été réveillé (aucun appel à Claude pour ces marqueurs)',
         [registre().length, recus.slice(n0).filter(x => /MARQ-intrus/.test(x.brut)).length, (await tour.fil('victor')).some(m => /MARQ-intrus/.test(m.texte))], [reg0, 0, false]);
+    }
+
+    /* ── 4 bis · Pauline (29 octobre 2026) : le relevé du Mac arrive par la VRAIE route, paraît dans OP MESSAGES, et « NON <n> » refuse par la route de la Tour ── */
+    console.log('\n4 bis. Pauline : un mail qui attend l\'accord paraît dans OP MESSAGES, « NON <n> » le refuse par la route de la Tour');
+    {
+      const pau = (await convs()).find(c => c.type === 'direct' && c.autre.prenom === 'Pauline');
+      vrai('Pauline a sa directe, son visage (le sien) et son statut « Prospection »', !!pau && typeof pau.autre.avatar === 'string' && JSON.stringify(pau.autre).includes('Prospection'));
+      const maintenant = new Date().toISOString();
+      const corps = { version: 1, genereLe: maintenant, chauffe: { debut: '2026-10-01', jour: 28, plafondDuJour: 20 }, jour: { envoyes: 3, reponses: 1, refus: 0, enAttente: 1 }, recherches: [],
+        entreprises: [{ id: 'eb1', nom: 'Banc Hygiène SARL', ville: 'Lyon', metier: 'nettoyage', etat: 'courriel_pret', email: 'secret.prospect@banc-hygiene.fr', contact: 'Madame Contactsecret', majLe: maintenant }],
+        courriels: [{ id: 'cb1', entrepriseId: 'eb1', etat: 'en_attente', objet: 'Vos locaux à Lyon', texte: 'TEXTE-SECRET-DU-COURRIEL-3095', quand: maintenant, statutBrut: 'pending_review', maj: 'v1' }], reponses: [] };
+      const envoi = async (jeton) => { const r = await fetch(tour.base + '/api/pauline/releve', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + jeton }, body: JSON.stringify(corps) }); return r.status; };
+      v('⛔ le relevé avec un faux jeton : 401, et rien ne paraît chez Pauline', [await envoi('f'.repeat(48)), (await msgs(pau)).length], [401, 0]);
+      v('le relevé du Mac, avec le bon jeton : 200', await envoi(JETON_P), 200);
+      const paru = await T.attendre(async () => (await msgs(pau)).length >= 1, 20000, 80);
+      vrai('⛔ le message de Pauline paraît dans SA conversation', !!paru);
+      const m1 = await msgs(pau);
+      v('…un seul, de son robot, numéroté, avec l\'entreprise, l\'objet et le lien de la Tour', [m1.length, m1[0].auteur === pau.autre.id, /n°1 — Banc Hygiène SARL : « Vos locaux à Lyon » attend ton accord/.test(m1[0].texte), m1[0].texte.includes('#gestion/messagerie')], [1, true, true, true]);
+      vrai('⛔ ni adresse, ni contact, ni texte du courriel dans OP MESSAGES', !/secret\.prospect|banc-hygiene\.fr|Contactsecret|TEXTE-SECRET/.test(JSON.stringify(m1)));
+      await envoi(JETON_P); await envoi(JETON_P); await dort(900);
+      v('⛔ deux relevés de plus : toujours UN message', (await msgs(pau)).length, 1);
+      const intrusEcrit = await intrus.post('/api/conversations/' + pau.id + '/messages', { cid: 'intrus-pauline-1', texte: 'NON 1' });
+      await dort(700);
+      const decs = async () => ((await tour.api('GET', '/api/monitor/pauline')).j || {}).decisions || {};
+      v('⛔ un autre compte ne peut pas écrire à Pauline (404) : aucune décision', [intrusEcrit.code, Object.keys(await decs()).length], [404, 0]);
+      const ok1 = await justin.post('/api/conversations/' + pau.id + '/messages', { cid: 'opm-pauline-ok', texte: 'OK 1' });
+      await dort(900);
+      v('⛔ « OK 1 » de Justin : Pauline répond qu\'elle n\'accepte pas d\'ici, AUCUNE décision', [ok1.code, Object.keys(await decs()).length, (await msgs(pau)).some(m => /Je n’accepte pas depuis ici/.test(m.texte))], [201, 0, true]);
+      const non1 = await justin.post('/api/conversations/' + pau.id + '/messages', { cid: 'opm-pauline-non', texte: 'NON 1' });
+      const refuse = await T.attendre(async () => (await decs()).cb1, 15000, 80);
+      v('⛔ « NON 1 » de Justin : la décision « refuser » est enregistrée par la Tour, à faire par le Mac', [non1.code, refuse && refuse.action, refuse && refuse.etat], [201, 'refuser', 'a_faire']);
+      vrai('…et Pauline confirme dans le fil', !!(await T.attendre(async () => (await msgs(pau)).some(m => /Mail n°1 refusé/.test(m.texte)), 15000, 80)));
+      const mac = await fetch(tour.base + '/api/pauline/decisions', { headers: { Authorization: 'Bearer ' + JETON_P } });
+      const dm = await mac.json();
+      v('…le Mac la lit comme celle de la Tour (même route, même forme), sans texte ni objet', [mac.status, dm.decisions.map(d => [d.id, d.action, d.texte === undefined])], [200, [['cb1', 'refuser', true]]]);
+      vrai('aucun message de Pauline ni de ses réponses dans le registre des agents de la Tour', !registre().some(m => m.fil === 'pauline' || m.de === 'pauline' || /NON 1|OK 1/.test(m.texte || '')));
     }
 
     /* ── 5 · suppressions dans les deux sens ── */

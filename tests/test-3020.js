@@ -140,7 +140,7 @@ function releve() {
   vrai('⛔ aucun console.* du module ne cite le relevé, une entreprise ou un courriel', (SRC.match(/console\.(?:log|error|warn|info)\([^;]*\);/g) || []).every(l => !/releve|entreprise|courriel|corps|body|\.nom|\.email|\.texte|\.objet/i.test(l.replace(/'[^']*'/g, ''))));
   const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   vrai('⛔ index.js écarte la route du plafond global de 6 Mo (sinon un corps de 2,5 Mo serait lu avant la garde)', /CHEMIN_PAULINE\.test\(req\.path\)\) \? next\(\) : jsonCourant/.test(IDX));
-  vrai('index.js monte le pont', /require\('\.\/pauline'\)\(app, \{ config, DATA_DIR, monPatronStrict(?:, pousseNotif: pousseNotifPauline)? \}\)/.test(IDX));
+  vrai('index.js monte le pont', /require\('\.\/pauline'\)\(app, \{ config, DATA_DIR, monPatronStrict(?:, pousseNotif: pousseNotifPauline)?(?:, surReleve: \(releve, dec\) => \{[^}]*\})? \}\)/.test(IDX));
   const ACORS = /Access-Control-Allow-Origin/.test(SRC);
   vrai('aucune origine CORS pour le pont (le Mac n’est pas un navigateur)', !ACORS);
 

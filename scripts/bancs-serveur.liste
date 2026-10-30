@@ -445,3 +445,5 @@ tests/test-3201.js
 tests/test-3202.js
 tests/test-3203.js
 tests/test-3204.js
+# 29 octobre 2026 : `test-3166` (Pauline dans OP MESSAGES : le robot et sa photo, un mail en attente = UN message, rien de la fiche du prospect, le bilan du jour, « NON <n> » par `decider` et « OK <n> » sans effet) — le vrai `pauline.js` et le vrai `pont-messages.js` contre un faux OP MESSAGES.
+tests/test-3166.js
