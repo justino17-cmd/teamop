@@ -13941,10 +13941,12 @@ function messNonLusCharger(){
 function messReleve(){
   if(MS.releve||MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return; MS.releve=true;
   messNonLusCharger();
-  setInterval(function(){ if(document.visibilityState==='visible'&&TAB!=='messagerie') messNonLusCharger(); },60000);
-  /* OP MESSAGES : relu toutes les 20 s quand la Tour est à l'écran — ouverte sur la Messagerie aussi, pour que le rond s'éteigne dès qu'on a lu */
-  setInterval(function(){ if(document.visibilityState==='visible') opmsgNonLusCharger(); },20000);
-  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') opmsgNonLusCharger(); });
+  /* UNE minuterie (test-2882) : toutes les 20 s, le rond d'OP MESSAGES — ouverte sur la Messagerie aussi, pour qu'il s'éteigne dès qu'on a
+     lu ; une fois sur trois (60 s, comme avant), la relève complète de l'ancienne messagerie, hors de son écran. */
+  var tic=0;
+  setInterval(function(){ if(document.visibilityState!=='visible') return; tic++;
+    if(tic%3===0&&TAB!=='messagerie') messNonLusCharger(); else opmsgNonLusCharger(); },20000);
+  try{ document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') opmsgNonLusCharger(); }); }catch(e){}
 }
 
 /* ══ démarrage : une session déjà ouverte reprend la main ══ */
