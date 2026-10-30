@@ -213,6 +213,9 @@ globalThis.fetch = async function (url, opts) {
     r = await TOUR({ metier: 'electricite' });
     et = await ETAT();
     v('⛔ changer le métier PRINCIPAL retire la liste (elle ne survit pas à un autre principal)', [r.s, et.metier, 'metiers' in et], [200, 'electricite', false]);
+    r = await TOUR({ metier: 'plomberie' });
+    et = await ETAT();
+    v('⛔ … et revenir au premier principal SANS liste ne ressuscite pas l\'ancienne (elle n\'est pas restée en réserve dans l\'annuaire)', [r.s, et.metier, 'metiers' in et], [200, 'plomberie', false]);
     const fnum = (await fiche('demande'));
     vrai('   la fiche de la Tour (`/api/monitor/clients`) porte la liste de la demande', fnum && fnum.demandes.some(d => Array.isArray(d.metiers) && d.metiers.length === 3));
 
