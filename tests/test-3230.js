@@ -39,9 +39,9 @@ console.log('\n── 3230 · la demande du site arrive, est rangée, et la page
   const config = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: sha('mot-de-passe-3230'), comptes: { actif: true } };
   const PRE = path.join(banc, 'pre.js'); fs.writeFileSync(PRE, require('./metiers-banc.js').preload(RACINE, REFB.chemin));
   let PORTS = 9500 + (process.pid % 80) * 2, journalTout = '';
-  const demarrer = async (nom, avant) => {
+  const demarrer = async (nom, avant, confSup) => {
     const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
-    fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify(config));
+    fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify(Object.assign({}, config, confSup || {})));
     fs.writeFileSync(path.join(D, 'monitor.json'), JSON.stringify({ issues: [], journal: [], archive: [], users: [{ id: 'upatron', nom: 'Patron', email: '', hash: sha('mot-de-passe-3230'), role: 'patron', actif: true, ts: MAINT }] }));
     if (avant) avant(D);
     const port = PORTS++; const B = 'http://127.0.0.1:' + port;
@@ -125,6 +125,28 @@ console.log('\n── 3230 · la demande du site arrive, est rangée, et la page
   vrai('(population) le serveur au registre illisible démarre', S2.vivant);
   r = await brut(S2.B, bonne());
   v('⛔ registre illisible : 503, et le fichier n\'est PAS réécrit par-dessus', [r.s, fs.readFileSync(path.join(S2.D, 'demandes-site.json'), 'utf8')], [503, '{pas du json']);
+
+
+  console.log('\n4 bis. le courriel à Justin : les coordonnées, une réponse directe, rien d\'injecté — et toujours rien au journal');
+  const recus = []; let msgC = '', corpsC = false;
+  const smtp = require('net').createServer(c => { c.on('error', () => {}); let t = ''; c.write('220 banc\r\n');
+    c.on('data', d => { t += d.toString('utf8'); let i; while ((i = t.indexOf('\r\n')) >= 0) { const l = t.slice(0, i); t = t.slice(i + 2);
+      if (corpsC) { if (l === '.') { corpsC = false; recus.push(msgC); msgC = ''; c.write('250 ok\r\n'); } else msgC += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
+      const h = l.toUpperCase();
+      if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n'); else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+      else if (h.startsWith('DATA')) { corpsC = true; c.write('354 go\r\n'); } else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); } else c.write('250 ok\r\n'); } }); });
+  await new Promise(r2 => smtp.listen(0, '127.0.0.1', r2));
+  const S3 = await demarrer('c', null, { smtp: { host: '127.0.0.1', port: smtp.address().port, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }, notifDemandes: 'patron@banc-3230.fr' });
+  vrai('(population) le serveur au courrier branché démarre', S3.vivant);
+  r = await brut(S3.B, bonne({ email: 'courrier@exemple-3230.fr', entreprise: 'Banc Courrier\nBcc: evil@exemple.fr' }));
+  v('la demande est reçue (200)', r.s, 200);
+  for (let i = 0; i < 50 && !recus.length; i++) await dormir(100);
+  const mel = recus.map(m => Buffer.from(m.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8')).find(m => /courrier@exemple-3230\.fr/.test(m)) || '';
+  vrai('⛔ le courriel part vraiment, à l\'adresse de Justin', /^To: .*patron@banc-3230\.fr/mi.test(mel), mel.slice(0, 300));
+  vrai('   il porte les coordonnées (adresse, téléphone, entreprise, métier) et dit que rien n\'a été créé', /courrier@exemple-3230\.fr/.test(mel) && /06 11 22 33 44/.test(mel) && /Banc Courrier/.test(mel) && /Métiers : /.test(mel) && /Rien n'a été créé/.test(mel));
+  vrai('   « répondre » écrit au client (Reply-To)', /^Reply-To: .*courrier@exemple-3230\.fr/mi.test(mel));
+  vrai('   ⛔ la retombée à la ligne du nom d\'entreprise n\'a pas fabriqué un en-tête « Bcc »', !/^Bcc:/mi.test(mel.split('\n\n')[0]));
+  smtp.close();
 
   console.log('\n5. la Tour : session exigée, traiter / remettre à traiter');
   v('sans session : la liste est refusée', (await appel('/api/monitor/demandes-site')).s, 401);
