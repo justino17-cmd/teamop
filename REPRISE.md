@@ -1185,6 +1185,16 @@ Justin : « ça serait bien qu'on active le système de signature » ; second VP
 
 ---
 
+# ✅ 19 OCTOBRE 2026 (SOIR) — L'AGENT `juriste` : « IL FERA, OU À QUI TU FERAS RELIRE, TOUS LES PDF »
+
+Justin a donné https://github.com/anthropics/claude-for-legal. Lu en entier côté sécurité (licence Apache 2.0, crochets vides, **connecteurs externes refusés**), puis : agent `juriste` (Sonnet,
+lecture seule, sur commande), grille `.claude/juridique/GRILLE.md` (droit français et RGPD, références « de mémoire » marquées `[à vérifier]`), trois références d'Anthropic copiées à l'identique
+dans `.claude/references/claude-for-legal/` (commit `4a6c651`, `NOTICE.md`). Branche `agent/juriste`. **Pas encore lancé sur un vrai document.**
+· Premier emploi naturel : le **certificat de signature** et les pages légales à mettre à jour avec la signature maison (voir plus haut), avant le premier vrai client.
+· ⚠️ À faire valider par un avocat : la grille elle-même (positions de TeamOP et références de loi) — décision 7 du plan de la signature.
+
+---
+
 # ⏳ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
 
 Justin : « je voudrais qu'ils partent du site internet comme s'ils commandaient l'application […] je veux un

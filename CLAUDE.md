@@ -2442,6 +2442,7 @@ Le choix est donc écrit, agent par agent, dans le frontmatter de `.claude/agent
 | `concepteur` | `sonnet` | `high` | Refonte visuelle et mouvement : un jugement de goût, pas un contrôle mécanique |
 | `gardien` | `sonnet` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
 | `relecteur` | `sonnet` | `high` | Applique des critères écrits à un diff : systématique, pas créatif. Mais il passe après chaque changement, donc son coût unitaire compte |
+| `juriste` | `sonnet` | `high` | Relit un document juridique contre `.claude/juridique/GRILLE.md` : une grille appliquée, pas une invention. Sur commande, jamais en arrière-plan |
 | `echecs-silencieux` | `sonnet` | `high` | Traque ce qui échoue sans que personne le sache (refus muet, `[]` au lieu de `null`, catch qui avale, garde que personne ne lit). Adapté de `silent-failure-hunter` d'Anthropic (Apache-2.0, `.claude/licences/`), lecture seule |
 | `client-mystere` | `sonnet` | `high` | Lance le contrôle de bout en bout (`scripts/controle/`) et enquête sur chaque constat — `fichier:ligne`, journal, capture. Trie, ne corrige pas ; lecture seule |
 
@@ -2450,6 +2451,14 @@ et les failles des dépendances — **pas même la syntaxe**, et personne ne rel
 route renvoie. `gardien` relit `server/` (80 routes exposées sur Internet, données de clients
 réels) ; `relecteur` relit le diff avant qu'il parte sur `main`, qui est servi aux clients en
 quelques minutes.
+
+⛔ **TOUT DOCUMENT JURIDIQUE QU'UN CLIENT REÇOIT PASSE PAR `juriste` AVANT D'ÊTRE PUBLIÉ** (Justin, 19 octobre 2026 : « il fera, ou à qui tu feras relire,
+tous les PDF »). Ce sont les PDF que fabrique le code (devis, bons, rapports d'intervention, certificat de signature), les pages légales du site
+(`mentions-legales`, `confidentialite`, `sous-traitance`, `registre-traitements`) et les textes de consentement. L'agent relit contre
+`.claude/juridique/GRILLE.md`, cite l'extrait exact, écrit `[à vérifier]` plutôt que d'inventer un article, et dit ce qui doit aller chez un **avocat** :
+il n'est pas avocat, et ce qu'il rend est un brouillon. Il vient de « Claude for Legal » (Anthropic, Apache 2.0) : `.claude/references/claude-for-legal/NOTICE.md`
+dit ce qui a été repris, ce qui a été refusé (les connecteurs externes) et à quel commit. ⚠️ **Il ne relit des données de clients réels que si Justin le demande
+pour ce document-là** : le dépôt est en production et la session passe par Anthropic. Un seul lancement par document, jamais en double.
 
 ### ⛔ ET LA MÊME RÈGLE VAUT POUR LES AGENTS D'UN WORKFLOW — posée le 15 septembre 2026 au soir
 
