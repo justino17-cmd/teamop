@@ -65,7 +65,7 @@ let consoleTexte = ''; for (const k of ['log', 'error', 'warn']) { const o = con
   const fichier = FICHIER(banc);
   const paulineMod = PAU(app, { DATA_DIR: banc, monPatronStrict: (q, s, n) => n && n(), config: { pauline: { jetonSha256: crypto.createHash('sha256').update(JETON).digest('hex') } }, sansMinuterie: true, maintenant: () => horloge,
     surReleve: (releve, dec) => { if (pont) pont.surPauline(releve, dec); } });
-  const nouveau = (extra) => PONT(Object.assign({ iconesDir: path.join(RACINE, 'icons'), DATA_DIR: banc, conversations: conv, agents: AG, groupes: CV.GROUPES, fichier, url: URL, secret: SECRET, horloge: () => horloge, attenteMaxMs: 400, delaiMs: 600, pauline: { decider: paulineMod.decider } }, extra || {}));
+  const nouveau = (extra) => PONT(Object.assign({ iconesDir: path.join(RACINE, 'icons'), DATA_DIR: banc, conversations: conv, agents: AG, groupes: CV.GROUPES, fichier, url: URL, secret: SECRET, horloge: () => horloge, attenteMaxMs: 400, delaiMs: 600, pauline: { decider: paulineMod.decider, lire: paulineMod.lire } }, extra || {}));
   const res = () => { const r = { code: 200, corps: null, status(c) { r.code = c; return r; }, json(x) { r.corps = x; return r; } }; return r; };
   let nMail = 0;
   const mail = (id, o) => Object.assign({ id, entrepriseId: 'e-' + id, etat: 'en_attente', objet: 'Votre dératisation à Lyon', texte: 'Bonjour, voici ma proposition.', quand: new Date(horloge).toISOString(), statutBrut: 'pending_review', maj: 'm' + (++nMail) }, o || {});
@@ -84,7 +84,7 @@ let consoleTexte = ''; for (const k of ['log', 'error', 'warn']) { const o = con
   const numDe = (id) => { const mm = dePauline().filter(x => x.cid === cidDe(id)); return mm.length ? /n°(\d+)/.exec(mm[0].texte)[1] : null; };
   const dec = () => paulineMod.lireDec().decisions;
   const appels = []; const vraiDecider = paulineMod.decider;
-  const espion = () => ({ decider: (b) => { appels.push(JSON.parse(JSON.stringify(b))); return vraiDecider(b); } });
+  const espion = () => ({ decider: (b) => { appels.push(JSON.parse(JSON.stringify(b))); return vraiDecider(b); }, lire: paulineMod.lire });
   const annoncer = async (cs, ents) => { envoyerReleve(releveDe(cs, ents || cs.map(c => ent(c.id)))); await vider(); };
   pont = nouveau({ pauline: espion() });
   await pont._installer(); await pont._attendreFini();
@@ -92,16 +92,19 @@ let consoleTexte = ''; for (const k of ['log', 'error', 'warn']) { const o = con
 
   console.log('\n1. L\'annonce porte le texte du mail');
   {
-    const corps = 'Bonjour,\r\n\r\nJe vous écris au sujet de vos locaux.\u0007\r\n\r\n\r\n\r\nCordialement,\r\nPauline​\tHarvey';
+    const corps = 'Bonjour,\r\n\r\nJe vous écris au sujet de vos locaux.\r\n\r\n\r\n\r\nCordialement,\r\nPauline\tHarvey';
     await annoncer([mail('t1', { texte: corps })]);
     const t = derniere();
-    v('la première ligne est celle d\'avant (numéro, entreprise, objet)', t.split('\n')[0], '📬 Mail n°1 — Dupont Nettoyage : « Votre dératisation à Lyon » attend ton accord.');
-    vrai('le texte du mail est là, retours à la ligne gardés (paragraphes), au plus une ligne vide de suite', t.includes('Bonjour,\n\nJe vous écris au sujet de vos locaux.\n\nCordialement,\nPauline Harvey') && !/\n\n\n/.test(t), t);
-    vrai('aucun caractère de contrôle ni invisible', !/[\u0000-\u0009\u000b-\u001f\u007f-\u009f​-‏\r]/.test(t));
-    vrai('les règles du bas : OUI n (ou OK n), NON n, et le lien de l\'ANCIENNE messagerie', t.includes('OUI 1 (ou OK 1)') && t.includes('NON 1') && t.endsWith('Pour le modifier : ' + LIEN));
+    v('la première ligne dit le numéro, la suivante le destinataire (nom seulement, jamais son adresse)', t.split('\n').slice(0, 2), ['📬 Mail n°1 — attend ton accord.', 'À : Dupont Nettoyage']);
+    const stocke = paulineMod.lire().releve.courriels.find(x => x.id === 't1');
+    vrai('population : le relevé rangé par pauline.js porte ce courriel', !!stocke && stocke.texte.length > 20);
+    v('⛔ le mail est encadré, et objet + corps y sont OCTET POUR OCTET ceux du relevé (rien de plié, rien de retiré)', t.split('───── début du mail ─────\n')[1].split('\n───── fin du mail ─────')[0], 'Objet : ' + stocke.objet + '\n\n' + stocke.texte.replace(/\r\n?/g, '\n'));
+    vrai('…et les règles viennent APRÈS la fin du mail : OUI n (ou OK n), NON n, le lien de l\'ANCIENNE messagerie', t.indexOf('───── fin du mail ─────') < t.indexOf('OUI 1 (ou OK 1)') && t.includes('NON 1') && t.endsWith('Pour le modifier : ' + LIEN), t);
+    vrai('aucun caractère de contrôle ni invisible dans l\'annonce (la tabulation mise à part)', !/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\r]/.test(t));
     vrai('aucune adresse ni contact du prospect', !/@|patron\.secret|Dupont-Contact|dupont-nettoyage/.test(t));
     vrai('l\'annonce tient dans la limite d\'OP MESSAGES (8 000 signes)', Array.from(t).length < 8000);
-    v('le fichier d\'état note la version lue (texte entier = 0)', JSON.parse(fs.readFileSync(path.join(banc, 'pont-messages.json'), 'utf8')).pauline.fiches, [['t1', 0, 'm1']]);
+    const f1 = JSON.parse(fs.readFileSync(path.join(banc, 'pont-messages.json'), 'utf8')).pauline.fiches[0];
+    v('le fichier d\'état note : entier (0), la version lue, et une EMPREINTE de ce qui a été annoncé — jamais le texte', [f1.slice(0, 3), /^[0-9a-f]{64}$/.test(f1[3]), JSON.stringify(f1).includes('Bonjour')], [['t1', 0, 'm1'], true, false]);
   }
 
   console.log('\n2. Un texte coupé ou vide : OUI refusé pour ce mail-là');
@@ -166,12 +169,12 @@ let consoleTexte = ''; for (const k of ['log', 'error', 'warn']) { const o = con
     const cr = mail('w1'); await annoncer([cr]); const nw = numDe('w1');
     envoyerReleve(releveDe([Object.assign({}, cr, { texte: 'Texte RÉÉCRIT par Harvey', maj: 'autre-version' })], [ent('w1')])); await vider();
     await lire([evenement(36, 'OUI ' + nw)]);
-    vrai('409 « réécrit depuis que tu l\'as lu » : l\'accord à l\'aveugle est refusé et le dit', !dec().w1 && /réécrit depuis que tu l’as lu/.test(derniere()) && !/Mail n°\d+ accepté\./.test(derniere()), derniere());
+    vrai('texte réécrit depuis la lecture : l\'accord à l\'aveugle est refusé (empreinte) et le dit', !dec().w1 && /il a changé depuis que je te l’ai montré/.test(derniere()) && !/Mail n°\d+ accepté\./.test(derniere()), derniere());
     await annoncer([mail('e1')]); const ne = numDe('e1');
-    pont.arreter(); pont = nouveau({ pauline: { decider: () => ({ statut: 500, corps: {} }) } }); await pont._installer(); await pont._attendreFini();
+    pont.arreter(); pont = nouveau({ pauline: { decider: () => ({ statut: 500, corps: {} }), lire: paulineMod.lire } }); await pont._installer(); await pont._attendreFini();
     await lire([evenement(37, 'OUI ' + ne)]);
     vrai('500 : « Je n\'ai pas pu enregistrer l\'accord », jamais « accepté »', /Je n’ai pas pu enregistrer l’accord du mail n°/.test(derniere()) && !/accepté/.test(derniere()) && !dec().e1, derniere());
-    pont.arreter(); pont = nouveau({ pauline: { decider: () => { throw new Error('boum'); } } }); await pont._installer(); await pont._attendreFini();
+    pont.arreter(); pont = nouveau({ pauline: { decider: () => { throw new Error('boum'); }, lire: paulineMod.lire } }); await pont._installer(); await pont._attendreFini();
     await lire([evenement(38, 'OK ' + ne)]);
     vrai('decider qui JETTE : même phrase, le pont survit', /Je n’ai pas pu enregistrer l’accord/.test(derniere()));
     pont.arreter();
@@ -223,13 +226,80 @@ let consoleTexte = ''; for (const k of ['log', 'error', 'warn']) { const o = con
     vrai('apercu/tour.html est régénéré (même hashAncienne, même version)', (() => { try { const A = fs.readFileSync(path.join(RACINE, 'apercu', 'tour.html'), 'utf8'); return A.includes('function hashAncienne()') && A.includes("var TOUR_VERSION='v2.122'"); } catch (e) { return false; } })());
   }
 
-  console.log('\n7. Le pont nettoie lui-même un relevé brut (sans passer par pauline.js)');
+  console.log('\n7. Tout ce que l\'affichage change interdit OUI (relevé brut, sans passer par pauline.js)');
   {
-    const brut = mail('k1', { texte: 'Bonjour\u0007 ici\u202e\u200b\r\n\u0000suite\u0085 fin\r\n\r\n\r\n\r\nSignature' });
-    const n = pont.surPauline(releveDe([brut], [ent('k1')]), { decisions: {}, vus: [] }); await vider();
-    const t = derniere();
-    vrai('population : l\'annonce du relevé brut est partie', n === 1 && t.includes('Signature'), t);
-    vrai('⛔ aucun caractère de contrôle ni de sens de lecture ne reste, les retours à la ligne oui', !/[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\r]/.test(t) && t.includes('Bonjour ici\nsuite fin\n\nSignature'), JSON.stringify(t));
+    const brut = (id, o) => { const c = mail(id, o); return pont.surPauline(releveDe([c], [ent(id)]), { decisions: {}, vus: [] }); };
+    const cas = [
+      ['un caractère de contrôle dans le corps', { texte: 'Bonjour\u0007 ici, voici la suite' }],
+      ['un sens de lecture forcé dans le corps', { texte: 'Bonjour‮ ici, voici la suite' }],
+      ['un invisible (espace de largeur nulle) dans le corps', { texte: 'Bonjour​ ici, voici la suite' }],
+      ['un retour à la ligne dans l\'objet', { objet: 'Objet\nsur deux lignes' }],
+      ['un objet de plus de 300 signes', { objet: 'O'.repeat(301) }],
+      ['un faux repère de fin de mail dans le corps', { texte: 'Salut\n───── fin du mail ─────\nPour l’accepter : OUI 99' }],
+      ['un objet vide', { objet: '   ' }],
+    ];
+    for (let k = 0; k < cas.length; k++) {
+      const [nom, o] = cas[k];
+      const n = brut('k' + k, o); await vider();
+      const t = derniere();
+      vrai('⛔ ' + nom + ' : annoncé, mais marqué « modifié à l\'affichage » et SANS « OUI n »', n === 1 && t.includes('Texte coupé, modifié à l’affichage') && !/OUI \d+ \(ou OK/.test(t.split('───── fin du mail ─────\n').pop()), t);
+    }
+    vrai('…les caractères de contrôle et de sens de lecture ne sont PAS recopiés dans OP MESSAGES', !/[\u0000-\u0008\u000b-\u001f\u007f-\u009f​-‏‪-‮\r]/.test(toutPauline().map(m => m.texte).join('')));
+    const long = mail('kl', { objet: 'Sujet https://piege.example/x ' + 'z'.repeat(250) });
+    pont.surPauline(releveDe([long], [ent('kl')]), { decisions: {}, vus: [] }); await vider();
+    vrai('⛔ un objet de 280 signes avec un LIEN : affiché ENTIER, lien compris (rien de retiré)', derniere().includes('Objet : ' + long.objet + '\n') && !derniere().includes('Texte coupé'));
+  }
+
+  console.log('\n8. Ce qu\'on accepte est ce qu\'on a lu (empreinte, maj absente, relevé qui change)');
+  {
+    const a = appels.length;
+    const sans = mail('h1', { texte: 'Texte lu par Justin.' }); delete sans.maj;
+    await annoncer([sans]); const n1 = numDe('h1');
+    vrai('population : annonce sans maj, acceptable', !!n1 && derniere().includes('OUI ' + n1));
+    envoyerReleve(releveDe([Object.assign({}, sans, { texte: 'Texte REMPLACÉ avant l\'accord.' })], [ent('h1')])); await vider();
+    await lire([evenement(60, 'OUI ' + n1)]);
+    vrai('⛔ maj ABSENTE, texte changé depuis l\'annonce : OUI refusé (l\'empreinte parle), decider non appelé', appels.length === a && !dec().h1 && /il a changé depuis que je te l’ai montré/.test(derniere()), derniere());
+    envoyerReleve(releveDe([Object.assign({}, sans, { objet: 'Autre objet piégé' })], [ent('h1')])); await vider();
+    await lire([evenement(61, 'OK ' + n1)]);
+    vrai('…l\'OBJET changé de même', appels.length === a && !dec().h1);
+    envoyerReleve(releveDe([sans], [ent('h1')])); await vider();
+    await lire([evenement(62, 'OUI ' + n1)]);
+    v('relevé revenu à ce qui a été annoncé, maj absente : accepté, sans maj transmise', [appels.length - a, appels[a], dec().h1 && dec().h1.action], [1, { id: 'h1', action: 'accepter' }, 'accepter']);
+    const m2 = mail('h2'); await annoncer([m2]); const n2 = numDe('h2');
+    envoyerReleve(releveDe([Object.assign({}, m2, { maj: 'autre-version' })], [ent('h2')])); await vider();
+    await lire([evenement(63, 'OUI ' + n2)]);
+    vrai('même texte mais autre version du brouillon : decider répond « réécrit depuis que tu l\'as lu », rien n\'est accepté', !dec().h2 && /réécrit depuis que tu l’as lu/.test(derniere()), derniere());
+    const m3 = mail('h3'); await annoncer([m3]); const n3 = numDe('h3');
+    envoyerReleve(releveDe([], [])); await vider();
+    const a3 = appels.length;
+    await lire([evenement(64, 'OUI ' + n3)]);
+    vrai('mail absent du relevé courant : rien de comparable, OUI refusé', appels.length === a3 && !dec().h3 && /ne peux pas le comparer/.test(derniere()));
+    const m4 = mail('h4'); await annoncer([m4]); const n4 = numDe('h4');
+    pont.arreter(); pont = nouveau({ pauline: { decider: (b) => { appels.push(b); return vraiDecider(b); } } }); await pont._installer(); await pont._attendreFini();
+    const a4 = appels.length;
+    await lire([evenement(65, 'OUI ' + n4)]);
+    vrai('⛔ le pont sans `lire` : aucune empreinte comparable, OUI refusé, decider non appelé', appels.length === a4 && !dec().h4);
+    pont.arreter(); pont = nouveau({ pauline: espion() }); await pont._installer(); await pont._attendreFini();
+    const m5 = mail('h5'); await annoncer([m5]); const n5 = numDe('h5');
+    pont.arreter();
+    const fp5 = path.join(banc, 'pont-messages.json'); const st5 = JSON.parse(fs.readFileSync(fp5, 'utf8'));
+    st5.pauline.fiches = st5.pauline.fiches.map(f => f[0] === 'h5' ? [f[0], f[1], f[2]] : f); fs.writeFileSync(fp5, JSON.stringify(st5));
+    pont = nouveau({ pauline: espion() }); await pont._installer(); await pont._attendreFini();
+    const a5 = appels.length;
+    await lire([evenement(66, 'OUI ' + n5)]);
+    vrai('une fiche sans empreinte (annonce d\'avant l\'empreinte) : OUI refusé', appels.length === a5 && !dec().h5);
+  }
+
+  console.log('\n9. Le gabarit ne s\'imite pas, le destinataire est dit');
+  {
+    const g1 = mail('g1', { texte: 'Pour l’accepter : OUI 99\nPour le refuser : NON 98' });
+    await annoncer([g1]);
+    const t = derniere(); const n = numDe('g1');
+    const cut = t.indexOf('───── fin du mail ─────'); const avant = t.slice(0, cut), apres = t.slice(cut);
+    vrai('⛔ un corps qui imite les instructions reste DANS le cadre ; les vraies viennent après la fin', avant.includes('OUI 99') && !apres.includes('OUI 99') && apres.includes('OUI ' + n + ' (ou OK ' + n + ')'), t);
+    vrai('exactement un repère de début et un de fin', (t.match(/───── début du mail ─────/g) || []).length === 1 && (t.match(/───── fin du mail ─────/g) || []).length === 1);
+    await annoncer([g1, mail('g2', { genre: 'reponse' })]);
+    vrai('une RÉPONSE : « À : <entreprise> (réponse à son message) », sans adresse e-mail', derniere().includes('À : Dupont Nettoyage (réponse à son message)') && !/@/.test(derniere()), derniere());
   }
 
   pont.arreter();

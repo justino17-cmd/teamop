@@ -192,16 +192,22 @@ Justin : « j'aimerais aussi Pauline sur OP MESSAGES ». Un dix-septième robot 
 Elle n'existe que si le pont est monté (`opmsgPont`) ; sans lui, rien.
 
 Ce qu'elle poste (le relevé de 15 minutes arrive par `/api/pauline/releve`, `pauline.js` prévient le pont — `surReleve` — après l'avoir rangé) :
-- **chaque courriel qui attend l'accord de Justin**, UNE fois, numéroté : `📬 Mail n°3 — <entreprise> : « <objet> » attend ton accord.` + le lien de la Tour + `NON 3`. Notification de téléphone. L'entreprise et l'objet
-  seulement (adresses et liens retirés, 60 et 100 signes) — jamais le texte du courriel, le contact ni l'adresse. Au plus huit par relevé (un arriéré s'écoule). La table (numéro ↔ identifiant Harvey) est dans
-  `pont-messages.json` (`pauline`), et le `cid` se déduit de l'identifiant : un fichier perdu ne fait pas de doublon côté Justin ;
+- **chaque courriel qui attend l'accord de Justin**, UNE fois, numéroté, avec son TEXTE (30 octobre 2026) : `📬 Mail n°3 — attend ton accord.` / `À : <entreprise>` (+ « réponse à son message » pour une réponse ; jamais l'adresse du
+  destinataire) / un cadre `───── début du mail ─────` … `───── fin du mail ─────` qui contient `Objet : <objet ENTIER>` et le corps ENTIER, octet pour octet (seul `\r\n` devient `\n`) / puis, APRÈS la fin, les vraies
+  instructions (`OUI 3`, `NON 3`, le lien). Notification de téléphone. Un corps qui imite les instructions reste dans le cadre. Au plus huit par relevé. ⛔ Ce que Justin accepte est ce qu'il a lu : dès que l'affichage doit retirer,
+  remplacer ou couper quoi que ce soit (caractère de contrôle ou invisible, sens de lecture, retour à la ligne dans l'objet, objet > 300 ou corps > 6 000 signes, faux repère de cadre, objet ou corps vide), l'annonce le dit
+  et OUI est refusé pour ce mail (NON reste permis). La table (numéro ↔ identifiant Harvey, coupé ou non, `maj`, EMPREINTE SHA-256 de l'objet + du corps annoncés — jamais le texte) est dans `pont-messages.json`
+  (`pauline`), et le `cid` se déduit de l'identifiant : un fichier perdu ne fait pas de doublon côté Justin ;
 - **un bilan par jour**, après 18 h (Paris), si le relevé est d'aujourd'hui : des nombres (envoyés, réponses, refus, en attente).
 
 **Les réponses de Justin dans son fil** — c'est le seul geste qui agit :
 - `NON <n>` (exact, casse et espaces libres) **refuse** le mail n°n, par `decider` — la fonction que la route de la Tour (`/api/monitor/pauline/decision`) appelle aussi. Le Mac l'applique comme une décision de la Tour.
-- `OUI <n>` ou `OK <n>` **accepte** le mail n°n, par `decider` aussi (30 octobre 2026) : l'annonce porte maintenant le TEXTE du courriel (objet + corps, tel qu'il partirait, au plus 6 000 signes), donc Justin l'a lu. La version
-  lue (`maj`) est transmise : si Harvey a réécrit le brouillon depuis, `decider` répond 409 et Pauline le dit. ⛔ Un texte COUPÉ (« … (suite dans la Tour) ») ou vide n'est PAS acceptable d'ici — ni une annonce d'avant cette
-  version, dont le texte n'a pas été montré — : Pauline refuse, avec le lien. « Accepté » veut dire une décision enregistrée à faire par le Mac, jamais « parti ». « Modifier » reste dans la Tour
+- `OUI <n>` ou `OK <n>` **accepte** le mail n°n, par `decider` aussi : Justin l'a lu en entier dans l'annonce. Avant d'appeler `decider`, le pont relit le relevé COURANT (`pauline.lire`) et compare l'empreinte de l'objet + du
+  corps à celle de l'annonce : un texte changé depuis, un mail disparu du relevé, une fiche sans empreinte (annonce d'avant), un pont sans `lire` : OUI refusé (« il a changé depuis que je te l'ai montré… »). La version lue
+  (`maj`), quand le relevé en donne une, est transmise et `decider` répond 409 si Harvey a réécrit. « Accepté » veut dire une décision enregistrée à faire par le Mac, jamais « parti ». « Modifier » reste dans la Tour
   (`https://teamop.fr/tour.html#gestion/messagerie-tour`, qui ouvre directement l'ancienne messagerie ; `#gestion/messagerie` ouvre le cadre d'OP MESSAGES). Le corps ne va jamais au journal.
+  ⚠️ Conséquence à connaître : l'acceptation par OP MESSAGES repose sur le COMPTE OP MESSAGES de Justin. Si ce compte est compromis, on peut ACCEPTER un brouillon déjà écrit (envoi chez un prospect) — sans pouvoir changer
+  son texte ni son destinataire (rien d'autre n'est accepté d'ici ; la modification reste dans la Tour). Et le TEXTE des mails annoncés est conservé dans le fil de Pauline d'OP MESSAGES : Justin peut supprimer ces messages
+  pour lui-même.
 - tout autre texte, un numéro inconnu, une pièce jointe : aucune décision, une ligne qui renvoie à la Tour (une fois par dix minutes). Seuls les messages de Justin arrivent jusqu'ici (`/api/pont/nouveaux`).
 

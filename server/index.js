@@ -11179,7 +11179,7 @@ try {
         pontMessages = require('./pont-messages')({ DATA_DIR, conversations: conversationsMod, agents: agentsMod, groupes: require('./conversations').GROUPES, fichier: fichierAgents,
           url: typeof pc.url === 'string' && pc.url ? pc.url : msgInstanceUrl('beta'), secret: pc.secret,
           /* Pauline (Harvey, sur le Mac) n'est pas un agent de ce serveur : elle n'entre dans OP MESSAGES que si son pont est monté, et son refus passe par LA fonction de la route de la Tour */
-          pauline: paulineMod && typeof paulineMod.decider === 'function' ? { decider: paulineMod.decider } : undefined,
+          pauline: paulineMod && typeof paulineMod.decider === 'function' ? { decider: paulineMod.decider, lire: paulineMod.lire } : undefined,
           /* les bancs règlent le rythme par la configuration (jamais en production : 3 s pour lire, une demi-seconde pour envoyer) */
           pasLireMs: Number.isInteger(pc.pasLireMs) && pc.pasLireMs >= 20 ? pc.pasLireMs : undefined, pasEnvoiMs: Number.isInteger(pc.pasEnvoiMs) && pc.pasEnvoiMs >= 20 ? pc.pasEnvoiMs : undefined,
           attenteMaxMs: Number.isInteger(pc.attenteMaxMs) ? pc.attenteMaxMs : undefined });
