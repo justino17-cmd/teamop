@@ -11222,7 +11222,19 @@ try {
          c'est le « relever aujourd'hui » de Justin : une valeur hors forme garde le défaut. */
       plafondsJour: config.agents && typeof config.agents.budgetJour === 'object' ? config.agents.budgetJour : undefined, surBudget: x => alertesBudgetJour(x),
       /* espace de test seulement : le plafond du mois, tous agents confondus (10 $ chez Justin, y compris quand le réglage manque). Jamais lu hors `espaceTest`. */
-      plafondTotalUsd: ESSAI ? essaisMod.plafondAgents(config.agents && config.agents.plafondMoisTotal) : undefined });
+      plafondTotalUsd: ESSAI ? essaisMod.plafondAgents(config.agents && config.agents.plafondMoisTotal) : undefined,
+      /* LE MODE « TRAVAIL » (30 octobre 2026) : ce que Justin règle ici, sur le VPS — `config.agents.modeles` ({ camille: 'claude-opus-5-5' }, absent = Sonnet 5), `budgetMois` (195 par défaut), `plafondsAgent`
+         ({ camille: 40 }, absent = le plafond du registre), `margeTarif` (1,75 par défaut). Une valeur hors forme garde le défaut (`cerveau.js`). */
+      modeles: config.agents && typeof config.agents.modeles === 'object' ? config.agents.modeles : undefined,
+      /* en mode travail allumé, les plafonds du mois de Camille, Léa et Margaux sont ceux de `cerveau.PLAFONDS_TRAVAIL` (le registre sinon) */
+      travailActif: id => { try { return !!(travailMod && travailMod.actif(id)); } catch (e) { return false; } },
+      budgetMois: config.agents ? config.agents.budgetMois : undefined, plafondsAgent: config.agents && typeof config.agents.plafondsAgent === 'object' ? config.agents.plafondsAgent : undefined,
+      margeTarif: config.agents ? config.agents.margeTarif : undefined });
+    /* L'INTERRUPTEUR DU TRAVAIL (`config.agents.travail` : `true` pour Camille, Léa et Margaux, ou `{ camille: true }`) — ⛔ COUPÉ PAR DÉFAUT : sans ce réglage, aucun agent ne change d'un mot (`agents-travail.js`). */
+    const travailMod = require('./agents-travail')({ cerveau: cerveauMod, agents: agentsMod, conversations: conversationsMod, travail: config.agents ? config.agents.travail : undefined });
+    const outilsLectureMod = require('./agents-outils-lecture')({ get brouillons() { return brouillonsMod; }, get louis() { return louisMod; }, agents: agentsMod, get faits() { return faitsAgents; },
+      margaux: () => agentMargaux });
+    console.log('agents : mode travail ' + (travailMod.interrupteur().length ? 'ALLUMÉ pour ' + travailMod.interrupteur().join(', ') : 'coupé (agents.travail)'));
     console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
     /* ce qu'un agent peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note. UNE définition : Hugo
        et les agents de la conversation générique (Léa, Camille, Margaux) la partagent, une seconde copie divergerait. */
@@ -11288,7 +11300,7 @@ try {
     try { louisMod = require('./agent-louis')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, cerveau: cerveauMod, fichier: fichierAgents, conversations: conversationsMod }); }
     catch (e) { louisMod = null; console.error('Louis indisponible :', e.message); }
     try {
-      if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
+      if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents, travail: travailMod, outilsLecture: outilsLectureMod,
         libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod,
         /* LE BALAYAGE (28 octobre 2026, Justin : « sans limite ») : les comptes dont l'adresse est PROUVÉE (même règle que la synchro : `comptes.verifie`) et qui n'ont PAS d'espace — un client qui paie
            ne reçoit pas un courriel de vente. Léa en prend quelques-uns par passage parmi ceux qu'elle n'a jamais servis (inscrits avant elle, ou écartés trois fois). `null` = on ne sait pas : rien. */
@@ -11317,7 +11329,7 @@ try {
           return { entreprise: c.entreprise, metier: METIERS_OK.includes(d.metier) ? d.metier : '', users: Number.isFinite(u) ? u : 0, formule: ['pro', 'business', 'premium'].includes(f) ? f : '' }; } });
     } catch (e) { chloeMod = null; console.error('Chloé indisponible :', e.message); }
     try {
-      if (brouillonsMod) agentCamille = require('./agent-camille')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, mail: messagerieTour, fichier: fichierAgents,
+      if (brouillonsMod) agentCamille = require('./agent-camille')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, mail: messagerieTour, fichier: fichierAgents, travail: travailMod, outilsLecture: outilsLectureMod,
         conversations: conversationsMod, chloe: chloeMod, louis: louisMod,
         /* le numéro de dossier d'une adresse qui est celle d'un COMPTE du portail (la fiche existe), '' sinon — sans jamais en créer un pour un inconnu */
         dossierDe: (adr) => { const a = adrNue(adr); return (a && Object.prototype.hasOwnProperty.call(clientsData || {}, a) && dossiersMod) ? dossiersMod.numeroDe(a) : ''; },
@@ -11608,8 +11620,10 @@ try {
     /* MARGAUX : les relances d'impayé (J+3, J+7 de la charte) et la mise en demeure PRÉPARÉE — jamais envoyée sans Justin. Toutes les 30 minutes, et à la demande du patron. */
     try {
       if (docsAgentsMod && gestionClients) {
-        agentMargaux = require('./agent-margaux')({ agents: agentsMod, conversations: conversationsMod, documents: docsAgentsMod, direction: directionMod, fichier: fichierAgents,
-          impayes: gestionClients.impayesMargaux, facture: gestionClients.factureMargaux });
+        agentMargaux = require('./agent-margaux')({ agents: agentsMod, conversations: conversationsMod, documents: docsAgentsMod, direction: directionMod, fichier: fichierAgents, cerveau: cerveauMod, travail: travailMod, outilsLecture: outilsLectureMod,
+          impayes: gestionClients.impayesMargaux, facture: gestionClients.factureMargaux,
+          /* ⛔ l'indemnité de 40 € de la seconde relance exige la validation de Justin tant que ce réglage n'est pas posé à `true` (CGV et expert-comptable : REPRISE.md) */
+          indemniteConfirmee: !!(config.agents && config.agents.indemniteConfirmee === true) });
         app.post('/api/monitor/agents/margaux/passer', monPatronStrict, async (req, res) => {
           try { res.json(Object.assign({ ok: true }, await agentMargaux.passer())); }
           catch (e) { console.error('margaux :', e.message); res.status(500).json({ error: 'Passage non traité' }); }

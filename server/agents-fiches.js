@@ -208,4 +208,18 @@ function bloc(id) {
     METHODE + '\n';
 }
 
-module.exports = { FICHES, IDS, METHODE, MODELES, ECRANS, bloc };
+/* LE RAPPEL DE FICHE DU MODE « TRAVAIL » (30 octobre 2026) — Camille, Léa et Margaux, quand elles RÉDIGENT pour un client. Le bloc complet (`bloc`) parle à Justin (compte rendu en trois phrases, revue du week-end, objectifs
+   internes) : dans un courriel de client, ces lignes contrediraient la forme demandée par la consigne de l'agent. On ne garde donc que ce qui borne l'écrit : la mission, ce qu'il ne fait JAMAIS, la règle de
+   vérité, et — pour un courriel — le modèle d'écrit. ⛔ Pas de « Tu passes la main » ni de « Tu décides seul » : les consignes de ces trois agents disent déjà les catégories et les routes, les répéter ferait
+   deux textes à tenir d'accord. Chaîne vide pour un agent hors table, comme `bloc`. */
+function blocTravail(id) {
+  const f = FICHES[id];
+  if (!f) return '';
+  return '\nRAPPEL DE TA FICHE DE POSTE (elle complète tes règles, elle ne les remplace pas) :\n' +
+    '- Ta mission : ' + f.mission + '\n' +
+    '- Tu ne fais jamais : ' + liste(f.jamais) + '.\n' +
+    '- Vérifier avant d’affirmer : un fait vient du dossier ou des outils de lecture, jamais d’une supposition ; ce que tu ignores, tu ne l’écris pas comme un fait.\n' +
+    (f.modele === 'courriel' && MODELES.courriel ? '- ' + MODELES.courriel + '\n' : '');
+}
+
+module.exports = { FICHES, IDS, METHODE, MODELES, ECRANS, bloc, blocTravail };

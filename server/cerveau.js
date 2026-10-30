@@ -28,8 +28,37 @@ const F = 'agents-budget.json';
 const JOUR_DEFAUT = { agentMin: 1.5, agentPct: 0.2, nonRacine: 25, filet: 60, alerte: 0.8 };
 const TOTAL_USD = 195;
 const MODEL = 'claude-sonnet-5';
-const USD_ENTREE_M = 3.5, USD_SORTIE_M = 17.5;   /* un peu au-dessus du tarif : on estime vers le haut */
+/* LES TARIFS PAR MODÈLE (30 octobre 2026, mode « travail ») — dollars par million de jetons, ENTRÉE / SORTIE, tels que l'API les publie. Le coût écrit au budget est ce tarif × `MARGE` : on estime vers le haut.
+   ⛔ La marge par défaut (1,75) est celle d'AVANT : 2 $ / 10 $ × 1,75 = 3,5 $ / 17,5 $, les chiffres que ce fichier a toujours utilisés pour Sonnet 5 — rien ne bouge tant qu'on ne règle rien. Elle est pessimiste (le vrai
+   coût est ~43 % plus bas) : Justin peut la baisser (`config.agents.margeTarif`, entre 1 et 3) quand il aura comparé le budget estimé à la facture de la Console. Un modèle qui n'est pas dans la table est compté au
+   tarif LE PLUS HAUT de la table : on ne sous-estime jamais un modèle qu'on ne connaît pas. */
+const TARIFS_REELS = { 'claude-sonnet-5': [2, 10], 'claude-opus-5-5': [4, 20] };
+const MARGE_DEFAUT = 1.75;
+const MODELE_DEFAUT = 'claude-sonnet-5';
+/* LE MODÈLE PAR DÉFAUT DU TRAVAIL (30 octobre 2026, Justin : « je veux des agents performants, donc fais le mieux »). Camille, Léa et Margaux RÉDIGENT en mode travail (un courriel, une relance qu'un client
+   lit) : leurs appels `travail: true` — la boucle d'outils et les réécritures — partent sur Opus 5.5, le seul Opus que ce fichier connaisse (sa table de tarifs). ⛔ Trois bornes, toutes voulues :
+   · seuls les appels `travail: true` : le JUGE de la grille (500 jetons, notation sur 8 critères) et tout appel d'avant restent sur Sonnet 5 — un juge n'écrit rien, et interrupteur COUPÉ, aucun appel n'est
+     `travail`, donc rien ne change d'un octet (ni modèle, ni coût) ;
+   · `config.agents.modeles` GAGNE toujours (y compris pour dire Sonnet 5 : { camille: 'claude-sonnet-5' } ramène Camille à l'ancien modèle, juge compris, comme avant) ;
+   · les autres agents ne sont pas listés : ils gardent Sonnet 5. */
+const MODELE_TRAVAIL_DEFAUT = 'claude-opus-5-5';
+const AGENTS_TRAVAIL = ['camille', 'lea', 'margaux'];
+/* LES PLAFONDS DU MOIS EN MODE TRAVAIL (relecture de sécurité du 30 octobre 2026) : en Opus, un courriel de Camille coûte ≈ 0,23 $ (lectures, réécritures, relecture) ; les 35 $ / 10 $ / 10 $ du registre s'épuisaient en
+   quelques jours. Quand le mode travail d'un agent est ALLUMÉ, son plafond est celui-ci (total 150 $, sous les 195 $ du mois) ; coupé, c'est celui du registre, au dollar près. `config.agents.plafondsAgent` gagne toujours. */
+const PLAFONDS_TRAVAIL = { camille: 100, lea: 35, margaux: 15 };
+/* Le modèle d'un appel, pour des réglages donnés — fonction PURE (le banc et le script de rejeu la relisent). */
+function modeleParDefaut(id, travail, regles) {
+  if (regles && typeof regles === 'object' && Object.prototype.hasOwnProperty.call(regles, id) && typeof regles[id] === 'string' && FORME_MODELE.test(regles[id])) return regles[id];
+  return travail === true && AGENTS_TRAVAIL.includes(id) ? MODELE_TRAVAIL_DEFAUT : MODELE_DEFAUT;
+}
+const FORME_MODELE = /^claude-[a-z0-9][a-z0-9.-]{2,40}$/;
+const USD_ENTREE_M = 3.5, USD_SORTIE_M = 17.5;   /* un peu au-dessus du tarif : on estime vers le haut — Sonnet 5 : 2 $ / 10 $ × 1,75 */
+/* les tarifs ESTIMÉS à la marge par défaut (tarif réel × MARGE_DEFAUT) ; `config.agents.margeTarif` les met à l'échelle (marge / MARGE_DEFAUT). Le banc relit l'égalité avec les tarifs réels. */
+const TARIFS_ESTIMES = { 'claude-sonnet-5': [USD_ENTREE_M, USD_SORTIE_M], 'claude-opus-5-5': [7, 35] };
 const MAX_TOKENS = 600;
+/* LE MODE TRAVAIL (`opts.travail === true`) : un agent qui RÉDIGE (un vrai courriel, un compte rendu) et qui peut appeler des outils de lecture en plusieurs tours. La sortie est bornée plus large (la réflexion adaptative
+   est prise SUR `max_tokens`), l'appel a plus de temps, et la réponse porte ses blocs bruts (`contenu`) pour que la boucle (`agents-travail.js`) les renvoie tels quels à l'API avec les résultats d'outils. Sans cette option, rien ne change. */
+const MAX_TOKENS_TRAVAIL = 6000, MAX_TOKENS_TRAVAIL_MAX = 16000, TIMEOUT_TRAVAIL_MS = 120000;
 /* Ce qu'un appelant peut demander (`opts.maxTokens`) : borné des deux côtés. Sous 100, même « Bonjour » peut être coupé ; au-dessus de 4000,
    un agent qui boucle ferait payer une réponse sans fin sur un budget partagé de 195 $. */
 const MAX_TOKENS_MIN = 100, MAX_TOKENS_MAX = 4000;
@@ -40,6 +69,7 @@ const TIMEOUT_MS = 30000;
 const MAX_TOKENS_REFLEXION = 3000;
 function jetonsDemandes(opts) {
   const n = opts && typeof opts === 'object' ? opts.maxTokens : undefined;
+  if (opts && typeof opts === 'object' && opts.travail === true) return (typeof n !== 'number' || !Number.isFinite(n)) ? MAX_TOKENS_TRAVAIL : Math.min(Math.max(Math.floor(n), MAX_TOKENS_MIN), MAX_TOKENS_TRAVAIL_MAX);
   if (typeof n !== 'number' || !Number.isFinite(n)) return opts && typeof opts === 'object' && opts.reflechir === true ? MAX_TOKENS_REFLEXION : MAX_TOKENS;
   return Math.min(Math.max(Math.floor(n), MAX_TOKENS_MIN), MAX_TOKENS_MAX);
 }
@@ -84,7 +114,18 @@ module.exports = function cerveau(ctx) {
   const cle = ctx.cleApi || '';
   /* ⛔ LE PLAFOND DU MOIS SE BAISSE, JAMAIS SE RELÈVE (espace de test, 23 octobre 2026 : 10 $ pour tous les agents confondus). `ctx.plafondTotalUsd` n'est
      passé par `index.js` QUE si `config.espaceTest === true` ; absent, hors forme ou au-dessus de 195, c'est `TOTAL_USD` — la production ne change pas d'un chiffre. */
-  const TOTAL = (typeof ctx.plafondTotalUsd === 'number' && Number.isFinite(ctx.plafondTotalUsd) && ctx.plafondTotalUsd > 0) ? Math.min(ctx.plafondTotalUsd, TOTAL_USD) : TOTAL_USD;
+  /* LE BUDGET DU MOIS SE RÈGLE (`config.agents.budgetMois`, entre 1 et 2000 $, 195 par défaut — Justin décidera) ; le plafond de TEST, lui, reste borné à 195 comme avant. */
+  const budgetMois = (typeof ctx.budgetMois === 'number' && Number.isFinite(ctx.budgetMois) && ctx.budgetMois >= 1 && ctx.budgetMois <= 2000) ? ctx.budgetMois : TOTAL_USD;
+  const TOTAL = (typeof ctx.plafondTotalUsd === 'number' && Number.isFinite(ctx.plafondTotalUsd) && ctx.plafondTotalUsd > 0) ? Math.min(ctx.plafondTotalUsd, TOTAL_USD) : budgetMois;
+  /* LE MODÈLE DE CHAQUE AGENT (`config.agents.modeles = { camille: 'claude-opus-5-5', … }`) : une forme de nom de modèle, rien d'autre ; absent, c'est Sonnet 5 comme avant. */
+  const modeles = {};
+  if (ctx.modeles && typeof ctx.modeles === 'object' && !Array.isArray(ctx.modeles)) for (const k of Object.keys(ctx.modeles)) if (agents.AGENTS.some(a => a.id === k) && typeof ctx.modeles[k] === 'string' && FORME_MODELE.test(ctx.modeles[k])) modeles[k] = ctx.modeles[k];
+  const modeleDe = (id, travail) => modeleParDefaut(id, travail === true, modeles);
+  const marge = (typeof ctx.margeTarif === 'number' && Number.isFinite(ctx.margeTarif) && ctx.margeTarif >= 1 && ctx.margeTarif <= 3) ? ctx.margeTarif : MARGE_DEFAUT;
+  const tarifDe = m => {
+    const t = Object.prototype.hasOwnProperty.call(TARIFS_ESTIMES, m) ? TARIFS_ESTIMES[m] : [Math.max(...Object.values(TARIFS_ESTIMES).map(x => x[0])), Math.max(...Object.values(TARIFS_ESTIMES).map(x => x[1]))];
+    return [t[0] * marge / MARGE_DEFAUT, t[1] * marge / MARGE_DEFAUT];
+  };
   /* ⛔ DANS LE SERVEUR DE TEST, ON RÉSERVE AVANT D'APPELER (relecture adverse, 23 octobre 2026). `penser` vérifie `total() >= TOTAL` AVANT l'appel et n'enregistre le coût qu'APRÈS : seize
      agents lancés ensemble (`@tous`, une réunion) passaient tous la vérification avec le même total, et le dépassement n'était borné que par leur nombre. Quand un plafond de test est
      fixé (`ctx.plafondTotalUsd`, que `index.js` ne passe QUE si `config.espaceTest === true`), chaque appel RÉSERVE le pire coût qu'il peut avoir (sortie au maximum demandé, entrée estimée à
@@ -128,7 +169,14 @@ module.exports = function cerveau(ctx) {
   const alerte = (cle, x) => { const a = jourCourant().alertes; if (a[cle]) return; a[cle] = true; ecrire(); dire(x); };   // rangée tout de suite : un refus n'écrit pas de dépense, et un redémarrage ne redirait pas l'alerte
   const depense = id => Number(etat.parAgent[id]) || 0;
   const total = () => Object.values(etat.parAgent).reduce((s, x) => s + (Number(x) || 0), 0);
-  const plafond = id => { const a = agents.AGENTS.find(x => x.id === id); return a ? a.plafondUsd : 0; };
+  /* le plafond du MOIS d'un agent : celui du registre, ou celui que Justin a posé (`config.agents.plafondsAgent = { camille: 40 }`, jamais au-dessus du budget du mois) */
+  const plafond = id => {
+    const a = agents.AGENTS.find(x => x.id === id); if (!a) return 0;
+    const o = ctx.plafondsAgent && typeof ctx.plafondsAgent === 'object' && !Array.isArray(ctx.plafondsAgent) ? ctx.plafondsAgent[id] : undefined;
+    if (typeof o === 'number' && Number.isFinite(o) && o > 0) return Math.min(o, TOTAL);
+    let enTravail = false; try { enTravail = typeof ctx.travailActif === 'function' && ctx.travailActif(id) === true; } catch (e) { enTravail = false; }
+    return enTravail && Object.prototype.hasOwnProperty.call(PLAFONDS_TRAVAIL, id) ? Math.min(PLAFONDS_TRAVAIL[id], TOTAL) : a.plafondUsd;
+  };
 
   /* Une question à Claude. `appeler` est injectable (banc) : `(cle, requete) → {texte, entree, sortie, stop_reason}`.
      `opts.maxTokens` (facultatif) : la longueur permise de la réponse, bornée entre 100 et 4000 ; sans lui, 600.
@@ -158,25 +206,27 @@ module.exports = function cerveau(ctx) {
     const reflechir = !!(opts && typeof opts === 'object' && opts.reflechir === true);
     const outils = outilsValides(opts);
     const recherche = outilRecherche(opts);
-    const requete = { model: MODEL, max_tokens: jetonsDemandes(opts), thinking: reflechir ? { type: 'adaptive' } : { type: 'disabled' }, system, messages };
+    const travail = !!(opts && typeof opts === 'object' && opts.travail === true);
+    const modele = modeleDe(id, travail), [tIn, tOut] = tarifDe(modele);
+    const requete = { model: modele, max_tokens: jetonsDemandes(opts), thinking: reflechir ? { type: 'adaptive' } : { type: 'disabled' }, system, messages };
     /* `tool_choice: auto` : le modèle choisit d'appeler un outil ou de répondre — les seuls choix compatibles avec la réflexion. Et c'est le CODE
        de l'appelant qui valide chaque appel d'outil : ce que Claude « décide » n'est jamais exécuté tel quel. */
     /* `opts.forcerOutil` : UN outil nommé, imposé (`tool_choice: tool`) — seulement sans réflexion (l'API refuse les deux ensemble) et seulement un outil offert.
        Pour la parole qui a DIT ce qu'elle devait enregistrer sans l'enregistrer (les objectifs du lundi, examen du 26 octobre 2026 à 23 h 25). */
     const forcer = !reflechir && opts && typeof opts.forcerOutil === 'string' && outils.some(o => o.name === opts.forcerOutil) ? opts.forcerOutil : '';
-    if (outils.length || recherche) { requete.tools = outils.concat(recherche ? [recherche] : []); requete.tool_choice = forcer ? { type: 'tool', name: forcer } : { type: 'auto' }; }
+    if (outils.length || recherche) { requete.tools = outils.concat(recherche ? [recherche] : []); requete.tool_choice = forcer ? { type: 'tool', name: forcer } : (opts && opts.pasDOutil === true ? { type: 'none' } : { type: 'auto' }); }
     let reserve = 0;
     if (reserver) {
-      reserve = ((JSON.stringify(system).length + JSON.stringify(messages).length) / 3 * USD_ENTREE_M + requete.max_tokens * USD_SORTIE_M) / 1e6 + (recherche ? recherche.max_uses * USD_RECHERCHE : 0);
+      reserve = ((JSON.stringify(system).length + JSON.stringify(messages).length) / 3 * tIn + requete.max_tokens * tOut) / 1e6 + (recherche ? recherche.max_uses * USD_RECHERCHE : 0);
       if (total() + enVol >= TOTAL) return { ok: false, raison: 'plafond_total' };   // les appels DÉJÀ en vol comptent ; le sien, non : un seul appel peut passer juste sous le plafond (comme avant)
       enVol += reserve;
     }
-    try { r = await (ctx.appeler || appelerAnthropic)(cle, requete); }
+    try { r = await (ctx.appeler || appelerAnthropic)(cle, requete, { timeoutMs: travail ? TIMEOUT_TRAVAIL_MS : TIMEOUT_MS }); }
     catch (e) { enVol -= reserve; agents.noter(id, 'penser', { cible: 'claude', resultat: 'erreur', detail: String(e && e.message || e).slice(0, 120) }); return { ok: false, raison: 'erreur_api' }; }
     enVol -= reserve;
     /* les recherches se paient en plus : ce que l'API compte (`recherches`), à défaut — réponse sans le compte — le plafond demandé (on se trompe vers le HAUT) */
     const recherches = recherche ? (Number.isInteger(r.recherches) && r.recherches >= 0 ? r.recherches : recherche.max_uses) : 0;
-    const cout = ((Number(r.entree) || 0) * USD_ENTREE_M + (Number(r.sortie) || 0) * USD_SORTIE_M) / 1e6 + recherches * USD_RECHERCHE;
+    const cout = ((Number(r.entree) || 0) * tIn + (Number(r.sortie) || 0) * tOut) / 1e6 + recherches * USD_RECHERCHE;
     moisCourant(); etat.parAgent[id] = depense(id) + (Number.isFinite(cout) ? cout : 0);
     { /* le jour : la dépense va du côté « racine » ou « sans racine » ; une alerte à 80 % du plafond d'agent (sans racine) */
       const j = jourCourant(), c = Number.isFinite(cout) ? cout : 0;
@@ -191,7 +241,9 @@ module.exports = function cerveau(ctx) {
     if (outils.length && Array.isArray(r.actions)) for (const x of r.actions.slice(0, 8)) {
       if (x && typeof x.nom === 'string' && outils.some(o => o.name === x.nom) && x.entree && typeof x.entree === 'object' && !Array.isArray(x.entree)) actions.push({ id: String(x.id || ''), nom: x.nom, entree: x.entree });
     }
-    if (!texte && actions.length) return { ok: true, texte: '', actions, cout, recherches };
+    /* le mode travail rend les blocs bruts de l'assistant (réflexion comprise) : l'API les exige tels quels au tour suivant d'un appel d'outil */
+    const brut = travail && Array.isArray(r.contenu) ? { contenu: r.contenu } : {};
+    if (!texte && actions.length) return Object.assign({ ok: true, texte: '', actions, cout, recherches, modele }, brut);
     if (!texte) {
       /* Aucun texte parce que la réponse a atteint sa limite : ce n'est pas « vide », c'est « trop long » — l'appelant peut le DIRE
          (et le journal le garde, pour qu'on sache qu'il faut relever `maxTokens` plutôt que chercher une panne). */
@@ -201,11 +253,13 @@ module.exports = function cerveau(ctx) {
       }
       return { ok: false, raison: 'vide' };
     }
-    const sortie = outils.length ? { ok: true, texte, actions, cout } : { ok: true, texte, cout };
+    const sortie = Object.assign(outils.length ? { ok: true, texte, actions, cout } : { ok: true, texte, cout }, travail ? { modele } : {}, brut);
     if (recherche) sortie.recherches = recherches;
     return sortie;
   }
   const etatBudget = () => { const j = jourCourant(); return { illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL, parAgent: Object.assign({}, etat.parAgent), cle: !!cle,
+    /* ce que Justin a réglé : le modèle de chaque agent (absent = Sonnet 5), le plafond du mois de chacun, la marge du tarif — des noms et des nombres */
+    modeles: Object.assign({}, modeles), plafondsAgent: Object.fromEntries(agents.AGENTS.map(a => [a.id, plafond(a.id)])), margeTarif: marge,
     /* le jour : de quoi dire à la Tour « aujourd'hui X $ / Y $ » — des nombres, jamais un texte */
     jour: { j: j.j, total: totalJour(), racine: Number(j.racine) || 0, nonRacine: Number(j.nonRacine) || 0, parAgent: Object.assign({}, j.parAgent), filet: P.filet, plafondNonRacine: P.nonRacine,
       plafondsAgent: Object.fromEntries(agents.AGENTS.map(a => [a.id, plafondJourDe(a.id)])) } }; };
@@ -219,12 +273,12 @@ module.exports = function cerveau(ctx) {
     if (!ecrire()) { agents.noter('systeme', 'imputer', { cible: 'budget', resultat: 'erreur', detail: 'dépense non écrite : plus d’appel avant réparation' }); illisible = true; return false; }
     return true;
   }
-  return { penser, etatBudget, imputer, MODEL };
+  return { penser, etatBudget, imputer, MODEL, modeleDe, tarifDe };
 };
 
-async function appelerAnthropic(cle, requete) {
+async function appelerAnthropic(cle, requete, o) {
   const Anthropic = require('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey: cle, timeout: TIMEOUT_MS, maxRetries: 0 });
+  const client = new Anthropic({ apiKey: cle, timeout: (o && Number.isInteger(o.timeoutMs) && o.timeoutMs >= 1000 && o.timeoutMs <= TIMEOUT_TRAVAIL_MS) ? o.timeoutMs : TIMEOUT_MS, maxRetries: 0 });
   /* Une requête avec la recherche peut se mettre en PAUSE (`pause_turn`) : on renvoie sa réponse telle quelle, sans message de plus, et le serveur reprend. */
   const avecRecherche = Array.isArray(requete.tools) && requete.tools.some(t => t && t.type === OUTIL_RECHERCHE);
   let messages = requete.messages, entree = 0, sortie = 0, recherches = 0, rep, reprises = 0;
@@ -238,6 +292,7 @@ async function appelerAnthropic(cle, requete) {
     messages = messages.concat([{ role: 'assistant', content: rep.content }]);
   }
   if (rep.stop_reason === 'refusal') return { texte: '', entree, sortie, stop_reason: rep.stop_reason, recherches };
+  const contenuBrut = Array.isArray(rep.content) ? rep.content : [];
   /* Les blocs `thinking` ne sont jamais lus ; les blocs `tool_use` deviennent des actions à valider. Avec la recherche, le texte rendu est celui qui SUIT le dernier bloc d'outil
      du serveur (la réponse finale) : ce que le modèle dit entre deux recherches (« je vais chercher… ») n'est pas la réponse. */
   let blocs = rep.content || [];
@@ -247,8 +302,18 @@ async function appelerAnthropic(cle, requete) {
     if (dernier >= 0) blocs = blocs.slice(dernier + 1);
   }
   return { texte: blocs.filter(b => b.type === 'text').map(b => b.text).join('\n'), entree, sortie, stop_reason: rep.stop_reason, recherches,
-    actions: blocs.filter(b => b.type === 'tool_use').map(b => ({ id: b.id, nom: b.name, entree: b.input })) };
+    actions: blocs.filter(b => b.type === 'tool_use').map(b => ({ id: b.id, nom: b.name, entree: b.input })), contenu: contenuBrut };
 }
 module.exports.appelerAnthropic = appelerAnthropic;
 module.exports.OUTIL_RECHERCHE = OUTIL_RECHERCHE;
+module.exports.TARIFS_REELS = TARIFS_REELS;
+module.exports.TARIFS_ESTIMES = TARIFS_ESTIMES;
+module.exports.MARGE_DEFAUT = MARGE_DEFAUT;
+module.exports.MODELE_DEFAUT = MODELE_DEFAUT;
+module.exports.MODELE_TRAVAIL_DEFAUT = MODELE_TRAVAIL_DEFAUT;
+module.exports.AGENTS_TRAVAIL = AGENTS_TRAVAIL;
+module.exports.PLAFONDS_TRAVAIL = PLAFONDS_TRAVAIL;
+module.exports.modeleParDefaut = modeleParDefaut;
+module.exports.MAX_TOKENS_TRAVAIL = MAX_TOKENS_TRAVAIL;
+module.exports.MAX_TOKENS_TRAVAIL_MAX = MAX_TOKENS_TRAVAIL_MAX;
 module.exports.USD_RECHERCHE = USD_RECHERCHE;

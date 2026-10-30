@@ -76,7 +76,7 @@
 # 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
 # 28 octobre 2026, l'outil des espaces orphelins (test-3100 : 105 vérifications) : 166 suites, 10 710 vérifications mesurées par la commande de la porte (13 min), toutes vertes — plancher 10696 (le total moins 14, comme avant).
 # 28 octobre 2026, l'assistant devis par métier (test-3112 : 90 vérifications), sur main a3d07bf : 168 suites, 10 936 vérifications mesurées par la commande de la porte (test-738, une mesure de temps, est tombée à 1 ✗ sous une charge de 10 sur la machine et rend 48 ✓ 0 ✗ seule, deux fois), toutes vertes — plancher 10922 (le total moins 14, jamais une addition ni le 10680 du commit d'origine).
-#plancher 11802
+#plancher 12090
 # 28 octobre 2026, les agents autonomes (racine, annonces « Je viens de… », Victor chef, budget du jour : `test-3113` à `test-3123`, dont 3123 contre le vrai serveur) : 176 suites, 10 937 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10923 (le total moins 14, jamais une addition).
 # 28 octobre 2026 au soir, la relecture adverse (`test-3124`, plus § 6 de 3121) : 177 suites, 11 002 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10988 (le total moins 14).
 # 28 octobre 2026, soir : agents autonomes après fusion de main (photos, rôles, Camille) : 178 suites, 11 138 vérifications, sortie 0 — plancher 11124 (le total moins 14).
@@ -439,6 +439,16 @@ tests/test-3155.js
 tests/test-3190.js
 tests/test-3191.js
 tests/test-3192.js
+# 30 octobre 2026 (les agents au travail, branche claude/agents-travail) : le MOTEUR de travail et ses trois pilotes, derrière l'interrupteur `config.agents.travail` (coupé par défaut). `test-3200` (cerveau : modèle par agent, tarifs, budget du mois ; la boucle d'outils ; les outils de lecture ; la grille ; rédiger → noter → réviser), `test-3201` (Camille), `test-3202` (Margaux : relances J+3/J+7, indemnité de 40 €, la question de facture confiée par Camille), `test-3203` (Léa). Un faux Anthropic partout : aucun appel réel.
+tests/test-3200.js
+tests/test-3201.js
+tests/test-3202.js
+tests/test-3203.js
+tests/test-3204.js
+# 30 octobre 2026 (modèle par défaut des agents au travail) : `test-3205` (Opus 5.5 pour les appels de travail de Camille, Léa et Margaux et d'eux seuls, le juge et les autres agents sur Sonnet 5, un réglage gagne, interrupteur coupé = rien ne change ; budget 195 $ ; le rejeu chiffre avant/après ; la fiche de poste dans leurs consignes, une fois). Plancher relevé de 11992 à 12030 (+38 sur les 39 vérifications).
+tests/test-3205.js
+# 30 octobre 2026, relecture de sécurité (`gardien`) : `test-3206` (faits de la relance écrits par le code et refus des chiffres, dates et ultimatums du modèle ; indemnité de 40 € en validation tant que `indemniteConfirmee` n'est pas `true` ; « juste » et « répond à tout » sous 4 bloquent, envoi automatique à 4,5 sans critère sous 4 ; message sensible jamais en accusé automatique ; plafonds 100/35/15 $ et repli au gabarit ; échecs du mode travail alertés). Plancher relevé de 12030 à 12090 (+60 sur les 60 vérifications de 3206, plus les ajouts de 3200).
+tests/test-3206.js
 # 29 octobre 2026 : `test-3166` (Pauline dans OP MESSAGES : le robot et sa photo, un mail en attente = UN message, rien de la fiche du prospect, le bilan du jour, « NON <n> » par `decider` et « OK <n> » sans effet) — le vrai `pauline.js` et le vrai `pont-messages.js` contre un faux OP MESSAGES.
 tests/test-3166.js
 # 30 octobre 2026 : `test-3230` (la demande « Créer votre application » du site arrive : route publique, rangement atomique, 400/413/429/503, champ piège, Tour, VRAIE fonction d'envoi de site.js contre le vrai serveur, rien de personnel au journal).
@@ -447,5 +457,6 @@ tests/test-3230.js
 tests/test-3231.js
 # 30 octobre 2026 : `test-3233` (le code promo du courriel d'accès se vérifie chez Stripe : route patron seul, inconnu / épuisé / expiré / désactivé / réservé, forme d'API récente, panne dite ; les VRAIES maPromo et maRemiseTexte n'ajoutent qu'un code vérifié et actif).
 tests/test-3233.js
+# 30 octobre 2026 : plancher relevé de 11802 à 11992 (+190 sur les 196 vérifications des suites 3200 à 3204, jamais le total moins rien : le total exact se mesure par la commande de la porte, sur la machine de la CI).
 # 30 octobre 2026 : `test-3225` (Justin lit et valide un mail de Pauline DEPUIS OP MESSAGES : le texte du mail dans l'annonce, OUI/OK n accepte par `decider`, texte coupé = OUI refusé, 409 et échecs dits, rien du corps au journal, le lien ouvre l'ancienne messagerie de la Tour sur l'ancre, Tour v2.122) — le vrai `pauline.js` et le vrai `pont-messages.js` contre un faux OP MESSAGES, plus les vraies fonctions de `tour.html`.
 tests/test-3225.js

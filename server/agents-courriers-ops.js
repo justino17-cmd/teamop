@@ -130,7 +130,8 @@ const urlFacture = u => (/^https:\/\/(?:[a-z0-9-]+\.)*(?:stripe\.com|teamop\.fr)
 
 /* Margaux — la relance d'un abonnement impayé. `etape` : 3 ou 7 (les jours de la charte). `facture` : { numero, montantEur } lus chez Stripe. `url` : la page de la facture
    en attente (https, relue chez Stripe) ou '' — sans elle, on écrit à contact@, JAMAIS un lien inventé. */
-function relanceImpaye(o) {
+/* Les morceaux que la relance tient de Stripe, UNE définition pour le modèle du code (`relanceImpaye`) et pour le mode « travail » (`relanceTravail`). */
+function donneesRelance(o) {
   o = o || {};
   const etape = o.etape === 7 ? 7 : 3;
   const f = o.facture && typeof o.facture === 'object' ? o.facture : {};
@@ -141,6 +142,10 @@ function relanceImpaye(o) {
   const regler = url
     ? 'Vous pouvez la régler en ligne, avec la carte de votre choix, depuis la page de la facture : ' + url
     : 'Pour la régler, écrivez-nous à ' + ADRESSE_CONTACT + ' : nous vous indiquerons comment faire.';
+  return { etape, f, numero, montant, url, quoi, regler };
+}
+function relanceImpaye(o) {
+  const { etape, f, numero, montant, url, quoi, regler } = donneesRelance(o);
   const corps = etape === 3 ? [
     'Bonjour,',
     '',
@@ -168,6 +173,48 @@ function relanceImpaye(o) {
   ];
   return { objet: etape === 3 ? 'Un prélèvement à régler pour votre abonnement OP GESTION' : 'Rappel : votre facture OP GESTION reste impayée', texte: corps.join('\n'),
     autorises: { liens: url ? [url] : [], montants: montant ? [Number(f.montantEur)] : [], permis: numero ? [numero] : [] } };
+}
+
+/* L'INDEMNITÉ FORFAITAIRE DE RECOUVREMENT (30 octobre 2026, Justin : « droit français : indemnité forfaitaire de 40 € ») — article L. 441-10 et D. 441-5 du Code de commerce : tout retard de paiement entre professionnels
+   donne lieu de plein droit à une indemnité de 40 € pour frais de recouvrement. Le TEXTE est écrit ICI, une fois, jamais par le modèle : une règle de droit ne se paraphrase pas. ⚠️ À faire confirmer par l'expert-comptable de
+   Justin (la mention doit aussi figurer dans les CGV et sur les factures) : elle n'est ajoutée qu'à la SECONDE relance, et seulement quand le mode « travail » est allumé. */
+const INDEMNITE_RECOUVREMENT_EUR = 40;
+const PARAGRAPHE_INDEMNITE = 'Nous vous rappelons qu’en application des articles L. 441-10 et D. 441-5 du Code de commerce, tout retard de paiement entre professionnels donne lieu de plein droit, en plus des sommes dues, à une indemnité forfaitaire de ' + INDEMNITE_RECOUVREMENT_EUR + ' € pour frais de recouvrement.';
+
+/* Margaux, mode « travail » — la relance dont le CODE tient les faits et les blocs de droit, et dont le MODÈLE écrit la situation (`corpsModele` : les paragraphes entre « Bonjour, » et « Bien cordialement, »).
+   Rend { objet, texte, autorises } comme `relanceImpaye`, ou null si les paragraphes sont inutilisables. Le modèle n'écrit ni lien, ni montant de droit, ni mise en demeure : le contrôle ci-dessous le refuse. */
+function relanceTravail(o, corpsModele) {
+  const d = donneesRelance(o);
+  const corps = String(corpsModele || '').replace(/\r/g, '').replace(/^\s*Bonjour,?\s*\n/i, '').replace(/\n\s*Bien cordialement,?\s*$/i, '').trim();
+  if (corps.length < 80 || corps.length > 1800) return null;
+  const arret = d.etape === 3
+    ? 'Si vous avez décidé d’arrêter votre abonnement, vous pouvez le faire à tout moment depuis le Support de votre espace client ou en répondant à ce courriel ; la facture ci-dessus reste alors à régler.'
+    : 'Si vous avez décidé d’arrêter votre abonnement, répondez-nous : nous programmerons sa fin. La facture ci-dessus reste, dans ce cas, due.';
+  const acces = d.etape === 3
+    ? 'Tant que cette facture n’est pas réglée, l’accès aux fonctions payantes d’OP GESTION est suspendu. Rien n’est perdu : vos données sont intactes, et l’accès revient dès le règlement.'
+    : 'L’accès aux fonctions payantes d’OP GESTION reste suspendu jusqu’au règlement ; vos données sont intactes.';
+  const suite = d.etape === 7 ? [PARAGRAPHE_INDEMNITE, '', 'Si cette facture n’est pas réglée prochainement, nous serons amenés à engager les démarches de recouvrement, après vous en avoir informé par écrit. Nous préférons de loin éviter d’en arriver là.', ''] : [];
+  /* ⛔ LES FAITS DE LA FACTURE SONT ÉCRITS PAR LE CODE (relecture de sécurité du 30 octobre 2026 : un modèle écrivait « ZZ99-4242 », « avant le 12 septembre » et un ultimatum, et le contrôle ne lisait que les montants).
+     Une ligne fixe, placée AVANT les paragraphes du modèle, et le contrôle `fautesCorpsRelance` refuse chez le modèle tout chiffre, toute date et tout ultimatum. */
+  const emise = dateLongue(d.f.emiseMs);
+  const age = Number.isFinite(Number(o && o.age)) && Number(o.age) >= 0 && Number(o.age) < 3650 ? Math.floor(Number(o.age)) : null;
+  const ligneFaits = 'Facture concernée : ' + (d.numero ? 'n° ' + d.numero : 'abonnement OP GESTION') + (d.montant ? ', d’un montant de ' + d.montant + ' €' : '') + (emise ? ', émise le ' + emise : '') + (age !== null ? ', en attente de règlement depuis ' + age + ' jour' + (age > 1 ? 's' : '') : '') + '.';
+  const texte = ['Bonjour,', '', ligneFaits, '', corps, '', d.regler, '', acces, ''].concat(suite, [arret, '', 'Bien cordialement,']).join('\n');
+  const montants = (d.montant ? [Number(d.f.montantEur)] : []).concat(d.etape === 7 ? [INDEMNITE_RECOUVREMENT_EUR] : []);
+  return { objet: d.etape === 3 ? 'Un prélèvement à régler pour votre abonnement OP GESTION' : 'Rappel : votre facture OP GESTION reste impayée', texte,
+    autorises: { liens: d.url ? [d.url] : [], montants, permis: d.numero ? [d.numero] : [] } };
+}
+
+/* Ce que le MODÈLE n'a pas le droit d'écrire dans les paragraphes d'une relance (les faits sont dans la ligne du code) : un chiffre (numéro, date, nombre de jours, montant), un mois, un nombre de jours ou de semaines
+   en toutes lettres, une échéance, un ultimatum. Rend des codes de FAUTES de `agents-controle.js` ('fait_du_modele', 'ultimatum'). */
+const MOIS = /\b(?:janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|demain|aujourd[’']hui)\b/i;
+const JOURS_EN_LETTRES = /\b(?:un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|quinze|vingt|trente|quarante|quelques?)\s+(?:jours?|semaines?|mois|heures?)\b/i;
+const ULTIMATUM = /\b(?:avant\s+le|avant\s+la\s+fin|d[’']ici|sous\s+(?:\S+\s+){0,2}?(?:jours?|semaines?|heures?|huitaine|quinzaine)|dans\s+(?:un|le)\s+d[ée]lai|dans\s+(?:\S+\s+){0,2}?(?:jours?|semaines?|heures?)|au\s+plus\s+tard|date\s+limite|[àa]\s+d[ée]faut|faute\s+de\s+quoi|sans\s+quoi|proc[ée]d(?:er|erons|erez|ons)|poursuites?|sanctions?|sous\s+peine|derni[eè]re\s+(?:chance|relance)|mise\s+en\s+demeure)\b/i;
+function fautesCorpsRelance(corps) {
+  const t = String(corps == null ? '' : corps), f = [];
+  if (/\d/.test(t) || MOIS.test(t) || JOURS_EN_LETTRES.test(t)) f.push('fait_du_modele');
+  if (ULTIMATUM.test(t)) f.push('ultimatum');
+  return f;
 }
 
 /* Margaux — la MISE EN DEMEURE préparée (document pour Justin : il la relit, la corrige, la valide). Les faits viennent de Stripe, le nom de l'entreprise du registre
@@ -260,5 +307,5 @@ function rappelProspect() {
     'Bien cordialement,'].join('\n') };
 }
 
-module.exports = { signatureAgent, SIGNATURES, ADRESSE_CONTACT, controle, accuseResiliation, relanceImpaye, miseEnDemeure, propositionCreneaux, relanceCreneaux, confirmationRendezVous, rappelProspect,
+module.exports = { signatureAgent, SIGNATURES, ADRESSE_CONTACT, controle, accuseResiliation, relanceImpaye, relanceTravail, fautesCorpsRelance, donneesRelance, PARAGRAPHE_INDEMNITE, INDEMNITE_RECOUVREMENT_EUR, miseEnDemeure, propositionCreneaux, relanceCreneaux, confirmationRendezVous, rappelProspect,
   creneauLibelle, dateLongue, eurosFr, DELAI_MISE_EN_DEMEURE_JOURS, FUSEAU };
