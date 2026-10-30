@@ -76,7 +76,7 @@
 # 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
 # 28 octobre 2026, l'outil des espaces orphelins (test-3100 : 105 vérifications) : 166 suites, 10 710 vérifications mesurées par la commande de la porte (13 min), toutes vertes — plancher 10696 (le total moins 14, comme avant).
 # 28 octobre 2026, l'assistant devis par métier (test-3112 : 90 vérifications), sur main a3d07bf : 168 suites, 10 936 vérifications mesurées par la commande de la porte (test-738, une mesure de temps, est tombée à 1 ✗ sous une charge de 10 sur la machine et rend 48 ✓ 0 ✗ seule, deux fois), toutes vertes — plancher 10922 (le total moins 14, jamais une addition ni le 10680 du commit d'origine).
-#plancher 11802
+#plancher 11992
 # 28 octobre 2026, les agents autonomes (racine, annonces « Je viens de… », Victor chef, budget du jour : `test-3113` à `test-3123`, dont 3123 contre le vrai serveur) : 176 suites, 10 937 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10923 (le total moins 14, jamais une addition).
 # 28 octobre 2026 au soir, la relecture adverse (`test-3124`, plus § 6 de 3121) : 177 suites, 11 002 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10988 (le total moins 14).
 # 28 octobre 2026, soir : agents autonomes après fusion de main (photos, rôles, Camille) : 178 suites, 11 138 vérifications, sortie 0 — plancher 11124 (le total moins 14).
@@ -447,3 +447,4 @@ tests/test-3203.js
 tests/test-3204.js
 # 29 octobre 2026 : `test-3166` (Pauline dans OP MESSAGES : le robot et sa photo, un mail en attente = UN message, rien de la fiche du prospect, le bilan du jour, « NON <n> » par `decider` et « OK <n> » sans effet) — le vrai `pauline.js` et le vrai `pont-messages.js` contre un faux OP MESSAGES.
 tests/test-3166.js
+# 30 octobre 2026 : plancher relevé de 11802 à 11992 (+190 sur les 196 vérifications des suites 3200 à 3204, jamais le total moins rien : le total exact se mesure par la commande de la porte, sur la machine de la CI).

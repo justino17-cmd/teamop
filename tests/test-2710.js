@@ -144,6 +144,8 @@ const P = jeton.patron, S = jeton.simple;
     courrier_agent: { ref: 'dc1' }, mise_en_demeure: { ref: 'dc1' }, annonce_clients: { ref: 'dc1' } });
   /* 29 octobre 2026 : la règle de la revue du week-end (`agents-revue.js`) — seule la référence traverse la file */
   Object.assign(base, { regle_agent: { regle: 'rg0a1b2c3d' } });
+  /* 30 octobre 2026 : la question de facture que Camille confie à Margaux (`test-3202`) — un dossier et la référence du courriel */
+  Object.assign(base, { question_facture: { dossier: 'DOS-000001', ref: 'ab12' } });
   v('(population) un jeu sain existe pour chaque schéma, et il passe', Object.keys(monter.SCHEMAS).filter(t => !monter.paramsValides(t, base[t])), []);
   for (const type of Object.keys(monter.SCHEMAS)) {
     for (const champ of Object.keys(monter.SCHEMAS[type])) {

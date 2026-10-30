@@ -136,6 +136,23 @@ const faux = cas => (cas.id[0] === 'c' ? fauxCamille(cas) : cas.id[0] === 'l' ? 
     vrai('⛔ il exige l’accord (`--oui`) AVANT tout envoi et annonce le coût estimé', /--oui/.test(code) && /process\.argv/.test(code) && /Coût estimé/.test(src));
     vrai('⛔ la clé ne vient QUE de la configuration du serveur (`agents.cleApi`), jamais d’un argument ni d’une variable d’environnement, et n’est écrite nulle part', /TEAMOP_CONFIG/.test(code) && /agents\.cleApi|\.agents\b/.test(code) && !/ANTHROPIC_API_KEY/.test(code) && !/console\.(?:log|error)\([^;]*\bcfg\.cle\b/.test(code) && !/writeFileSync\([^;]*\bcfg\.cle\b/.test(code));
     vrai('…et il ne monte que des modules du dépôt dans un dossier jetable : il n’écrit rien dans les données du serveur', !/DATA_DIR|\/opt\/teamop/.test(code));
+    /* le script, JOUÉ (processus fils, configuration factice) — ⛔ `ANTHROPIC_BASE_URL` pointe sur une porte fermée de la boucle locale : même un appel qui partirait n'atteindrait jamais Anthropic */
+    const { spawnSync } = require('child_process'), os = require('os');
+    const D = fs.mkdtempSync(path.join(os.tmpdir(), 'rejouer-3204-'));
+    const CLE = 'sk-ant-api03-FAUSSE-3204-xxxxxxxxxxxxxxxxxxxx';
+    fs.writeFileSync(path.join(D, 'config.json'), JSON.stringify({ agents: { cleApi: CLE, modeles: { camille: 'claude-opus-5-5' } } }));
+    const lancer = (a, env) => spawnSync('node', [path.join(EV, 'rejouer.js')].concat(a), { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(D, 'config.json'), ANTHROPIC_BASE_URL: 'http://127.0.0.1:9', HTTPS_PROXY: 'http://127.0.0.1:9', https_proxy: 'http://127.0.0.1:9' }, env || {}), encoding: 'utf8', timeout: 60000 });
+    let x = lancer(['--estimer']);
+    v('`--estimer` annonce le coût (avec le modèle réglé) et n’envoie rien', [x.status, /Cas choisis : 45/.test(x.stdout), /Coût estimé de l’envoi \(avant \+ après\) : environ \d+\.\d\d \$ RÉELS/.test(x.stdout), /claude-opus-5-5/.test(x.stdout)], [0, true, true, true]);
+    x = lancer(['--agent', 'camille']);
+    v('⛔ sans `--oui` : RIEN n’est envoyé (code 1, le coût est annoncé, le refus est dit)', [x.status, /relancer avec --oui/.test(x.stderr), /Coût estimé/.test(x.stdout)], [1, true, true]);
+    x = lancer(['--oui', '--budget', '0.5']);
+    v('⛔ au-dessus du plafond demandé : refus avant tout envoi', [x.status, /dépasse le plafond demandé/.test(x.stderr)], [1, true]);
+    x = lancer(['--oui'], { TEAMOP_CONFIG: '' });
+    v('sans configuration du serveur : code 2, aucune clé cherchée ailleurs (ni argument, ni environnement)', [x.status, /TEAMOP_CONFIG/.test(x.stderr)], [2, true]);
+    x = lancer(['--oui', '--cas', 'c06'], { ANTHROPIC_API_KEY: 'sk-ant-AUTRE-3204-xxxxxxxxxxxxxxxx' });
+    vrai('⛔ la clé (celle du fichier comme celle de l’environnement) n’apparaît NULLE PART dans ce que le script écrit, même quand l’appel échoue (un mandataire mort)', !(x.stdout + x.stderr).includes(CLE) && !(x.stdout + x.stderr).includes('AUTRE-3204') && !fs.readdirSync(D).some(f => fs.readFileSync(path.join(D, f), 'utf8').includes('AUTRE-3204')), (x.stdout + x.stderr).slice(0, 300));
+    fs.rmSync(D, { recursive: true, force: true });
     const lisez = fs.readFileSync(path.join(EV, 'LISEZMOI.md'), 'utf8');
     vrai('le LISEZMOI dit comment le lancer, ce que ça coûte, et ce que le banc ne prouve PAS', /rejouer\.js/.test(lisez) && /--oui/.test(lisez) && /coût/i.test(lisez) && /ne prouve pas/i.test(lisez));
   }
