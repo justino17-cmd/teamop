@@ -6336,6 +6336,23 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
     boutonTxt: 'Ouvrir mon espace', boutonUrl: 'https://' + adresse,
     bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html'
   });
+  /* ⛔ L'APERÇU PUIS L'ENVOI (Justin, 30 octobre 2026 : « quand on envoie par mail, que ça donne un aperçu de ce qui est écrit, je modifie
+     si je modifie, on met un code promo si on offre un code, et on l'envoie »). `apercu:true` rend l'objet et le texte SANS rien envoyer —
+     après TOUTES les gardes ci-dessus (un aperçu promet un courriel qui partira). À l'envoi, un `texte`/`objet` relu par le patron remplace
+     le modèle ; il est borné, et le courriel garde son bouton vers l'adresse de l'espace. Les gardes restent celles d'avant : un texte
+     modifié ne fait pas partir un mot de passe que le serveur n'a pas reconnu (voir `m`). */
+  const SUJET_ACCES = '🔗 Votre lien de connexion — TEAM OP';
+  if ((req.body || {}).apercu === true) return res.json({ ok: true, apercu: true, a: e.email, objet: SUJET_ACCES, texte });
+  const texteRelu = typeof (req.body || {}).texte === 'string' ? (req.body || {}).texte.replace(/\r\n?/g, '\n').slice(0, 6000).trim() : '';
+  const objetRelu = typeof (req.body || {}).objet === 'string' ? (req.body || {}).objet.replace(/[\r\n]+/g, ' ').slice(0, 150).trim() : '';
+  let texteEnvoi = texte, htmlEnvoi = html;
+  if (texteRelu) {
+    texteEnvoi = texteRelu;
+    htmlEnvoi = mailTeamOP({ chip: 'Accès prêt', titre: 'Votre lien de connexion 🔗',
+      corpsHtml: escH(texteRelu).replace(/\n/g, '<br>'),
+      boutonTxt: 'Ouvrir mon espace', boutonUrl: 'https://' + adresse,
+      bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html' });
+  }
   try {
     /* confidentiel : ce courriel porte le lien de connexion (donc la clé qui déchiffre les données de
        l'espace) ET le mot de passe provisoire. Sans ce drapeau, mailerEnvoi en gardait 2000 caractères
@@ -6343,7 +6360,7 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
        d'une entreprise n'a rien à faire. Sa relance, plus bas, le disait déjà ; celui-ci l'avait oublié. */
     await mailerEnvoi({ confidentiel: true, trace: 'lien de connexion + accès provisoires · espace ' + slug,
       from: config.smtp.from || config.smtp.user, to: e.email,
-      subject: '🔗 Votre lien de connexion — TEAM OP', text: texte, html });
+      subject: objetRelu || SUJET_ACCES, text: texteEnvoi, html: htmlEnvoi });
     console.log('Tour :', req.tourUser.nom, 'a envoyé le lien de l\'espace', tE, '→', masqueMail(e.email));   // l'identifiant, pas le nom : souvent celui d'une personne
     // son « Mon espace » passe à Accès activé · OP GESTION active (+ abonnement si formule posée)
     fbMajFicheClient(e.email, Object.assign({ status: 'fourni', apps: ['elan'] },

@@ -53,7 +53,7 @@ function courte(nom) {
    un patron qui tape l'identifiant proposé, et tout ce que la page affiche, capturé. */
 function tour(API, TOKEN, clients) {
   const noms = ['hAuth', 'apiPost', 'esc', 'jsq', 'espSlugJs', 'tourSha256', 'tourLienServeur', 'tourEspaceDe', 'tourIdentDefaut',
-    'tirageSur', 'tourMdpDefaut', 'tourMailAcces', 'lgMessagePoser', 'tourLienEntreprise', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'demCatsDepart', 'demEspace', 'catsEffet', 'catsPromesse'];   // (23 octobre 2026 : l'acceptation pose aussi les rubriques — test-2892 le joue)   // v2.88 : seules les demandes d'OP GESTION s'acceptent   // v2.87 : « déjà payé ? »
+    'tirageSur', 'tourMdpDefaut', 'tourMailAcces', 'maPromo', 'maEnvoyer', 'lgMessagePoser', 'tourLienEntreprise', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'demCatsDepart', 'demEspace', 'catsEffet', 'catsPromesse'];   // (23 octobre 2026 : l'acceptation pose aussi les rubriques — test-2892 le joue)   // v2.88 : seules les demandes d'OP GESTION s'acceptent   // v2.87 : « déjà payé ? »
   const src = noms.map(n => (n === 'esc' || n === 'jsq') ? courte(n) : fonction(n));
   /* v2.77 : l'acceptation lit la liste des métiers (`MET_L`, le métier demandé se pose sur l'espace — test-848) ; la VRAIE
      ligne de la Tour, pas une copie : sans elle, la fonction extraite jette dès sa première ligne sur le métier */
@@ -204,11 +204,23 @@ console.log('\n── 841 · plus de code : la Tour crée le lien après la dema
     const bouton = /tourMailAcces\('([^']+)',this,'([^']*)'\)/.exec(pan) || [];
     v('⛔ le bouton « Envoyer » transmet le mot de passe AFFICHÉ', bouton[2], mdpR);
     const btn = { disabled: false, textContent: '' };
+    const avantR = facteurSrv.recus.length;
     await new Promise(res => { T.ctx.tourMailAcces(bouton[1], btn, bouton[2]); setTimeout(res, 900); });
-    v('   la Tour dit que c\'est parti', [btn.textContent, /envoyés à rose@exemple-841\.fr/.test(T.toasts.slice(-1)[0] || '')], ['✅ E-mail envoyé', true]);
+    /* v2.124 : le premier geste ouvre l'APERÇU (rien ne part), le second envoie ce que le patron a relu — ici avec un code promo ajouté */
+    const panA = T.panneaux.slice(-1)[0] || '';
+    vrai('⛔ le premier geste ouvre l\'aperçu du courriel, et RIEN ne part', /Le courriel d’accès — à relire/.test(panA) && facteurSrv.recus.length === avantR);
+    const txtA = (/<textarea id="ma-texte"[^>]*>([\s\S]*?)<\/textarea>/.exec(panA) || [])[1] || '';
+    T.ctx.document.getElementById('ma-texte').value = txtA.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    T.ctx.document.getElementById('ma-objet').value = '🔗 Votre lien de connexion — TEAM OP';
+    T.ctx.document.getElementById('ma-promo').value = 'banc841';
+    T.ctx.maPromo();
+    vrai('   « Ajouter au message » écrit le code promo dans le texte', /VOTRE CODE PROMO : BANC841/.test(T.ctx.document.getElementById('ma-texte').value));
+    const btnE = { disabled: false, textContent: '' };
+    await new Promise(res => { T.ctx.maEnvoyer(btnE); setTimeout(res, 900); });
+    v('   la Tour dit que c\'est parti', [btnE.textContent, /Envoyé à rose@exemple-841\.fr/.test(T.toasts.slice(-1)[0] || '')], ['✅ E-mail envoyé', true]);
     const aRose = courrierPour('rose@exemple-841.fr').pop() || '';
     vrai('⛔ le client reçoit l\'adresse ET son mot de passe provisoire (avant : jamais)',
-      aRose.indexOf('teamop.fr/e/' + eR.slug) >= 0 && aRose.indexOf(mdpR) >= 0 && /Identifiant : rose/.test(aRose));
+      aRose.indexOf('teamop.fr/e/' + eR.slug) >= 0 && aRose.indexOf(mdpR) >= 0 && /Identifiant : rose/.test(aRose) && /VOTRE CODE PROMO : BANC841/.test(aRose));
     vrai('   ⛔ sans code d\'accès, sans « Première connexion de l\'entreprise ? », sans « identifiants habituels »',
       aRose && !/code d.acc/i.test(aRose) && !/Première connexion de l/.test(aRose) && !/identifiants habituels/.test(aRose));
     vrai('   ⛔ ni la vieille promesse « votre nom + !! »', aRose && !/votre nom \+/.test(aRose));
