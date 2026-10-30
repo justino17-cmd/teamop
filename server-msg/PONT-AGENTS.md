@@ -122,8 +122,8 @@ est le registre). Ce qui a été recopié dans OP MESSAGES y reste — des conve
 
 ## Les photos (28 octobre 2026)
 
-Justin : « je voudrais les photos des agents et aussi des photos sur les groupes ». Les visages sont `icons/agents/<id>.jpg` (JPEG 256 px, les seize agents du pont ;
-Pauline n'est pas dans le pont), les images des groupes et du Système `icons/groupes/{equipe,clients,plateforme,reunions,systeme}.png` (PNG 256 px, générées par `scripts/avatars-groupes.js`).
+Justin : « je voudrais les photos des agents et aussi des photos sur les groupes ». Les visages sont `icons/agents/<id>.jpg` (JPEG 256 px, les seize agents du pont et Pauline, `pauline.jpg` ;
+elle est un dix-septième robot depuis le 29 octobre 2026, voir « Pauline » plus bas), les images des groupes et du Système `icons/groupes/{equipe,clients,plateforme,reunions,systeme}.png` (PNG 256 px, générées par `scripts/avatars-groupes.js`).
 
 **Rien à faire sur le VPS : les photos partent au redémarrage de la Tour.** La Tour tourne depuis le clone complet du dépôt (`/opt/teamop/repo`), donc `server/pont-messages.js`
 lit `icons/` à côté de `server/`. Au déploiement elle redémarre, **réinstalle** (c'est ce qu'elle fait à chaque démarrage), reçoit du service ce qui est déjà posé (`avatars`) et envoie
@@ -156,7 +156,7 @@ remplacer le fichier de `icons/agents/` et déployer (l'empreinte change, la pho
   dans un groupe il est administrateur et supprime « pour tous ». Un **rappel client non lu** ne se supprime pas depuis
   OP MESSAGES (il n'existe que dans la Tour) : il reste là-bas.
 - **Un groupe renommé** (Tour ou OP MESSAGES) ne se renomme pas de l'autre côté ; les groupes gardent le nom qu'ils avaient à l'installation.
-- **Pauline** n'y est pas : ce n'est pas un agent de ce serveur (c'est Harvey, sur le Mac de Justin) et elle n'écrit pas dans ces conversations.
+- **Pauline** n'est PAS un agent de ce serveur (c'est Harvey, sur le Mac de Justin) : elle n'est pas dans le registre, mais le pont lui prête sa voix (section suivante).
 - **OP MESSAGES n'est pas chiffré de bout en bout** : le service lit le texte (corps chiffrés au repos). Même VPS, même patron — mais c'est
   une décision à savoir : le texte des agents, y compris les numéros de dossier des rappels clients, y est rangé.
 - **Le cadre (28 octobre 2026, Justin : « OP MESSAGES avec les mêmes fonctions que OP MESSAGES Pro »).** La Tour peut afficher la page d'OP MESSAGES **bêta** dans un cadre. Pour cela la page d'accueil
@@ -182,3 +182,24 @@ en file. À la maison : `journalctl -u teamop-msg@beta`, et `--verifier` ci-dess
 `test-3094` (le vrai service : gardes, installer, poster, nouveaux, supprimer, avatar), `test-3095` (le vrai serveur de la Tour + le vrai service + un faux
 Anthropic : historique, direct, réveil des agents, suppressions dans les deux sens, panne), `test-3096` (le module de la Tour contre un faux
 service : file, attente, rattrapage, bandeau), `test-3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
+
+---
+
+## Pauline dans OP MESSAGES (29 octobre 2026)
+
+Justin : « j'aimerais aussi Pauline sur OP MESSAGES ». Un dix-septième robot **« Pauline — Prospection »** (id `pauline`, photo `icons/agents/pauline.jpg`) a sa directe avec Justin, dans le même espace
+« agents » — **rien à faire sur le VPS ni côté OP MESSAGES** : `server-msg/pont-agents.js` n'a pas changé, la Tour envoie simplement dix-sept robots au lieu de seize, et le déploiement la réinstalle.
+Elle n'existe que si le pont est monté (`opmsgPont`) ; sans lui, rien.
+
+Ce qu'elle poste (le relevé de 15 minutes arrive par `/api/pauline/releve`, `pauline.js` prévient le pont — `surReleve` — après l'avoir rangé) :
+- **chaque courriel qui attend l'accord de Justin**, UNE fois, numéroté : `📬 Mail n°3 — <entreprise> : « <objet> » attend ton accord.` + le lien de la Tour + `NON 3`. Notification de téléphone. L'entreprise et l'objet
+  seulement (adresses et liens retirés, 60 et 100 signes) — jamais le texte du courriel, le contact ni l'adresse. Au plus huit par relevé (un arriéré s'écoule). La table (numéro ↔ identifiant Harvey) est dans
+  `pont-messages.json` (`pauline`), et le `cid` se déduit de l'identifiant : un fichier perdu ne fait pas de doublon côté Justin ;
+- **un bilan par jour**, après 18 h (Paris), si le relevé est d'aujourd'hui : des nombres (envoyés, réponses, refus, en attente).
+
+**Les réponses de Justin dans son fil** — c'est le seul geste qui agit :
+- `NON <n>` (exact, casse et espaces libres) **refuse** le mail n°n, par `decider` — la fonction que la route de la Tour (`/api/monitor/pauline/decision`) appelle aussi. Le Mac l'applique comme une décision de la Tour.
+- `OK <n>` **n'accepte rien** : Pauline répond d'ouvrir la Tour. Accepter envoie un courriel à un prospect sous le nom du patron ; le fil ne montre pas le texte, donc on ne l'accepte pas à l'aveugle (la Tour, elle, vérifie
+  même la version lue). « Modifier » reste dans la Tour aussi.
+- tout autre texte, un numéro inconnu, une pièce jointe : aucune décision, une ligne qui renvoie à la Tour (une fois par dix minutes). Seuls les messages de Justin arrivent jusqu'ici (`/api/pont/nouveaux`).
+

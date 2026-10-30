@@ -128,7 +128,7 @@ function localDans(t, tz) {
     v('Ana (un espace abonné) côté Perso : ses quatre onglets — ⛔ et AUCUN sélecteur « Perso | Pro » visible dans Messages (ni l\'ancien dans la page)', [await onglets(A), await A.page.evaluate(() => Array.from(document.querySelectorAll('[data-cote-seg]')).filter(x => x.getClientRects().length).length), await A.page.evaluate(() => document.querySelectorAll('.cote-seg-liste, .cote-seg-agenda').length)], [['Messages', 'Contacts', 'Appels', 'Agenda'], 0, 0]);
     vrai('(le geste complet) Pro, par le Profil', await basculerTel(A, 'pro'));
     await att(A, () => !!document.querySelector('#tabs .tab[data-vue="accueil"]'));
-    v('Ana côté Pro : « Accueil » EN TÊTE (et « Courrier » à la suite de l\'Agenda : la bêta l\'ouvre, 18 octobre 2026)', await onglets(A), ['Accueil', 'Messages', 'Contacts', 'Appels', 'Agenda', 'Courrier']);
+    v('Ana côté Pro : « Accueil » EN TÊTE, « Réunions » juste avant l\'Agenda (26 octobre 2026), « Courrier » à sa suite (la bêta l\'ouvre, 18 octobre 2026)', await onglets(A), ['Accueil', 'Messages', 'Contacts', 'Appels', 'Réunions', 'Agenda', 'Courrier']);
     await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
     vrai('Ana touche « Accueil » : « Tableau de bord » et la date', await att(A, () => !document.getElementById('vue-accueil').hidden && document.getElementById('titre-accueil').textContent === 'Tableau de bord' && document.getElementById('bord-date').textContent.length > 5));
 

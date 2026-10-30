@@ -18,6 +18,9 @@
    et depuis la barre ou la feuille (téléphone) ; ?mode=light|dark force le mode ; sans paramètre
    le mode suit le système EN DIRECT.
    Chaque contrôle prouve d'abord sa population : un zéro sur un ensemble vide ne prouve rien.
+   v2.119 (Tour UNIQUE, 28 octobre 2026) : plus de console à basculer. Les vues sont ouvertes sous le filtre « Tout » (et « Gestion », « Messages » là où il compte) ;
+   trois COMPTES sont joués (`?apps=` : deux applications, sans Gestion, sans Messages) ; la partie OP MESSAGES de l'API simulée rend des DONNÉES (comptes, espaces,
+   abonnements, santé, journal du service, versions), pas des erreurs — le relais `/api/monitor/messages/admin/*` répond `{donnees:{…}}` comme le vrai.
    Usage : node scratchpad/sonde-tour-theme.js
            SEULES=surveillance,entreprises APPAREILS=bureau MODES=dark node scratchpad/sonde-tour-theme.js */
 'use strict';
@@ -27,7 +30,7 @@ const { decoder, contraste } = require('./png.js');
 
 const RACINE = path.resolve(__dirname, '..');
 const CHROME = '/opt/pw-browsers/chromium';
-const CAPTURES = process.env.CAPTURES || '/tmp/claude-0/-home-user-teamop/2b5579ae-09a0-571f-9bc9-ac0e61b4c7de/scratchpad/tour-captures';
+const CAPTURES = process.env.CAPTURES || path.join(os.tmpdir(), 'tour-captures');
 const dormir = ms => new Promise(r => setTimeout(r, ms));
 const portLibre = () => new Promise(res => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 
@@ -38,10 +41,11 @@ const portLibre = () => new Promise(res => { const s = net.createServer(); s.lis
 const MOCK = String.raw`
 (function(){
   var H=3600000, J=24*H, N=Date.now();
+  var APPS_COMPTE=(function(){ var q=(new URLSearchParams(location.search)).get('apps'); return q==='gestion'?['gestion']:q==='messages'?['messages']:['gestion','messages']; })();
   try{ localStorage.setItem('tour_token','jeton-de-sonde'); localStorage.setItem('tour_nom','Justin'); localStorage.setItem('tour_role','patron');
-       localStorage.setItem('tour_apps',JSON.stringify(['gestion','messages'])); }catch(e){}
+       localStorage.setItem('tour_apps',JSON.stringify(APPS_COMPTE)); }catch(e){}
   var ENTS=[
-    {t:'boulmartin-7k2q',nom:'Boulangerie Martin',slug:'boulmartin',email:'contact@boulangerie-martin.test',dansAnnuaire:true,origine:'site',formule:'business',utilisateurs7:4,appareils7:6,derniere:N-2*H,versions:{'755':5,'752':1},erreurs:2,echecs24:1,cleEtat:'propre',opMessages:true,comptesAnnuaire:4},
+    {t:'boulmartin-7k2q',nom:'Boulangerie Martin',slug:'boulmartin',email:'contact@boulangerie-martin.test',dansAnnuaire:true,origine:'site',opMessages:true,formule:'business',utilisateurs7:4,appareils7:6,derniere:N-2*H,versions:{'755':5,'752':1},erreurs:2,echecs24:1,cleEtat:'propre',opMessages:true,comptesAnnuaire:4},
     {t:'azurnet-x1p0',nom:'Azur Nettoyage Services Professionnels de la Côte',slug:'azurnet',email:'direction.generale@azur-nettoyage-services.test',dansAnnuaire:true,origine:'site',formule:'premium',utilisateurs7:9,appareils7:12,derniere:N-20*60000,versions:{'755':12},erreurs:0,echecs24:0,cleEtat:'propre',promo:{actif:true,code:'BIENVENUE3',finLe:'2026-12-15'},comptesAnnuaire:9},
     {t:'hotelpins-77lm',nom:'Hôtel des Pins',slug:'hotelpins',email:'gerance@hotel-pins.test',dansAnnuaire:true,origine:'tour',formule:'gratuit',utilisateurs7:1,appareils7:1,derniere:N-3*J,versions:{'748':1},erreurs:0,echecs24:3,cleEtat:'partagee',suspendu:true,comptesAnnuaire:1},
     {t:'essaidemo-9k2q',nom:'',slug:'',email:'',dansAnnuaire:false,origine:'',utilisateurs7:2,appareils7:2,derniere:N-5*H,versions:{'750':2},erreurs:1,echecs24:0,cleEtat:'inconnue',comptesAnnuaire:0},
@@ -66,8 +70,10 @@ const MOCK = String.raw`
     {email:'gerance@hotel-pins.test',entreprise:'Hôtel des Pins',nom:'Léa Durand',metier:'Hôtellerie',inscrit:N-10*J,majTs:N-10*J,apps:[],statut:'essai',demandes:[{app:'OP GESTION',formule:'gratuit',users:1,date:N-10*J}]}
   ];
   var R={
-    '/api/monitor/login':{token:'jeton-de-sonde',nom:'Justin',role:'patron',apps:['gestion','messages']},
-    '/api/monitor/moi':{nom:'Justin',role:'patron',apps:['gestion','messages']},
+    '/api/monitor/contrats':{types:[{type:'cgv',libelle:'Conditions générales de vente',enVigueur:{n:3,validePar:'Justin',valideLe:N-20*J,empreinte:'ab12cd34ef56'},versions:[{n:3,statut:'valide'}]}],paquets:[{cle:'paquet:op_gestion:pro',manquantes:[]}],clients:{envoyes:4,enAttente:1}},
+    '/api/monitor/contrats/clients':{contrats:[{dossier:'Boulangerie Martin',type:'paquet:op_gestion:pro',envoyeLe:N-9*J,accepteLe:N-8*J}]},
+    '/api/monitor/login':{token:'jeton-de-sonde',nom:'Justin',role:'patron',apps:APPS_COMPTE},
+    '/api/monitor/moi':{nom:'Justin',role:'patron',apps:APPS_COMPTE},
     '/api/monitor/issues':{issues:ISSUES,compteurs:{nouveau:3,encours:1,corrige:1},entreprises:3},
     '/api/monitor/clients':{clients:CLIENTS,total:3},
     '/api/monitor/entreprises':{entreprises:ENTS,total:6,horsAnnuaire:2,avecErreurs:2,avecEchecs:2},
@@ -79,14 +85,36 @@ const MOCK = String.raw`
     '/api/monitor/promos':{codes:[{code:'BIENVENUE3',mois:3,formule:'premium',utilisations:1,max:10,actifs:[{nom:'Azur Nettoyage Services Professionnels de la Côte',finLe:'2026-12-15'}]}],actifsTotal:1},
     '/api/monitor/journal':{journal:[{ts:N-10*60000,qui:'Justin',ok:true,appareil:'Mac · Safari'},{ts:N-5*H,qui:'Sonia',ok:true,appareil:'iPhone · Safari'},{ts:N-3*H,qui:'justine',ok:false,appareil:'Navigateur inconnu',motif:'mot de passe incorrect'},{ts:N-J-2*H,qui:'Justin',ok:true,appareil:'Mac · Safari'}]},
     '/api/monitor/users':{users:[{nom:'Justin',role:'patron',actif:true,apps:['gestion','messages'],cree:N-200*J,derniere:N-10*60000},{nom:'Sonia',role:'collaborateur',actif:true,apps:['gestion'],cree:N-30*J,derniere:N-2*J}]},
-    '/api/monitor/beta':{comptes:[{login:'marc',nom:'Marc',chantier:'Écran Planning',actif:true,cree:N-20*J,derniere:N-J},{login:'sofia',nom:'Sofia',chantier:'',actif:false,cree:N-40*J}]},
+    '/api/monitor/beta':{comptes:[{login:'marc',nom:'Marc',apps:['gestion'],chantier:'Écran Planning',actif:true,cree:N-20*J,derniere:N-J},{login:'sofia',nom:'Sofia',apps:['messages'],chantier:'',actif:false,cree:N-40*J}]},
+    '/api/monitor/mail/boites':{boites:[{id:'b1',email:'support@teamop.test',nom:'Support'},{id:'b2',email:'controle@teamop.test',nom:'Contrôle'}]},
     '/api/monitor/mail/dossiers':{boites:[{boite:{id:'b1',email:'support@teamop.test'},nonLus:2,dossiers:[{chemin:'INBOX',nom:'Boîte de réception',role:'inbox',nonLus:2,total:5},{chemin:'Sent',nom:'Envoyés',role:'sent',total:3}]},{boite:{id:'b2',email:'controle@teamop.test'},nonLus:0,dossiers:[{chemin:'INBOX',nom:'Boîte de réception',role:'inbox',total:1}]}]},
     '/api/monitor/mail/liste':{messages:[{uid:1,boite:'support@teamop.test',dossier:'INBOX',de:'Claire Martin',deAdr:'contact@boulangerie-martin.test',objet:'Question sur la box du dépôt',date:N-2*H,lu:false,extrait:'Bonjour, la box du dépôt n’affiche plus le stock…'},{uid:2,boite:'support@teamop.test',dossier:'INBOX',de:'Léa Durand',deAdr:'gerance@hotel-pins.test',objet:'Facture de septembre',date:N-2*J,lu:true,extrait:'Pouvez-vous me renvoyer la facture ?'}],total:2},
     '/api/monitor/mails':{mails:[{ts:N-J,a:'contact@boulangerie-martin.test',objet:'Nous avons corrigé',par:'Justin'}]},
     '/api/monitor/devisia':{equipes:{'boulmartin-7k2q':{actif:true,n:12}},noms:{'boulmartin-7k2q':'Boulangerie Martin'},entreprises:[{t:'boulmartin-7k2q',nom:'Boulangerie Martin',n:12,actif:true,derniere:N-J}],cle:true,quotaJour:100,utilises:12},
     '/api/monitor/version':{min:748,versionMin:748,ok:true},
     '/api/monitor/sauvegarde/etat':{configuree:true,derniere:{ts:N-6*H,ok:true,taille:1234567},prochaine:N+18*H,archives:7},
-    '/api/monitor/messages/etat':{ouvert:false,entreprises:1},
+    '/api/monitor/messages/etat':{enTravaux:true,depuis:'2026-09-10'},
+    '/api/monitor/messages/versions':{prod:{min:0,service:{joignable:true,version:12,build:'f6e5d4c3b2a1',sha:'f6e5d4c',minService:1,inscription:false}},
+      beta:{min:0,service:{joignable:true,version:14,build:'a1b2c3d4e5f6',sha:'a1b2c3d',minService:1,inscription:true}},publication:null},
+    '/api/monitor/messages/admin/sante':{donnees:{instance:'beta',version:'14',sha:'a1b2c3d4e5f6a7b8',build:'a1b2c3d4e5f6',demarre_le:N-3*J,maintenant:N,
+      base:{fichier_mo:41.2,wal_mo:1.1,schema:7,illisibles:0,stats:{personnes:14,conversations:36,messages:2480,sessions:19,journal:310,illisibles:0}},
+      disque:{libre_mo:12800,bas:false,plancher_mo:500},
+      reglages:{tout_ouvert:false,inscription_courriel:true,courriel_ouvert:true,facturation_ouverte:true,facturation_mode:'live',sauvegarde_configuree:true,admin_configuree:true},
+      decompte:{comptes:{courriel:{actifs:9,supprimes:1,suppression_programmee:0},telephone:{actifs:4,supprimes:0,suppression_programmee:0},beta:{actifs:1,supprimes:0,suppression_programmee:0}},espaces:5,abonnements:{active:{n:3,places:12},impaye:{n:1,places:4}}},
+      sante:{ok:true,sauvegarde:{configuree:true,ageH:5.4,essaiJours:12,echecs:0}},admin:{acces:42,dernier_acces:N-H,refus:{},dernier_refus:null,journal:{depuis:N-3*J,capacite:500,en_memoire:310}}}},
+    '/api/monitor/messages/admin/incidents':{donnees:{depuis:N-3*J,compteurs:{'envoi.echec':{n:3,incidents:1},'session.expiree':{n:12,incidents:0}},
+      incidents:[{t:N-H,evt:'envoi.echec',cause:'délai dépassé'},{t:N-5*H,evt:'envoi.echec',cause:'délai dépassé'}]}},
+    '/api/monitor/messages/admin/comptes':{donnees:{total:3,tout_ouvert:false,suivant:null,items:[
+      {id:'p_1',origine:'courriel',etat:'actif',verifie:true,cree:N-80*J,derniere_activite:N-2*H,ident:'Claire#2041',email:'contact@boulangerie-martin.test',formule:{formule:'pro',motif:'abonnement',sursis_jusqua:null},espaces:2},
+      {id:'p_2',origine:'telephone',etat:'actif',verifie:true,cree:N-30*J,derniere_activite:N-J,ident:'Karim#7712',email:null,formule:{formule:'perso',motif:'',sursis_jusqua:null},espaces:1},
+      {id:'p_3',origine:'courriel',etat:'actif',verifie:false,cree:N-6*J,derniere_activite:null,ident:'Un prénom vraiment très long#9001',email:'direction.generale@azur-nettoyage-services.test',formule:{formule:'impaye',motif:'prélèvement refusé',sursis_jusqua:N+3*J},espaces:0}]}},
+    '/api/monitor/messages/admin/espaces':{donnees:{total:2,suivant:null,items:[
+      {id:'e_1',nom:'Boulangerie Martin',membres:6,canaux:4,cree:N-80*J,abonnement:{statut:'active',places:8,fin_periode:N+12*J,annule:false},formule:{formule:'pro',motif:'abonnement',sursis_jusqua:null},places_depassees:false},
+      {id:'e_2',nom:'',membres:3,canaux:1,cree:N-20*J,abonnement:null,formule:{formule:'perso',motif:'',sursis_jusqua:null},places_depassees:false}]}},
+    '/api/monitor/messages/admin/abonnements':{donnees:{total:2,suivant:null,facturation:{ouvert:true,mode:'live',derniere_lecture:N-H,stripe_echec_min:0},
+      resume:{par_statut:{active:{n:3,places:12},past_due:{n:1,places:4}},perso_plus:{a_annuler:0}},items:[
+      {id:'a_1',nom:'Boulangerie Martin',statut:'active',places:8,membres:6,fin_periode:N+12*J,annule:false,impaye_depuis:null,paiement_en_attente:false,stripe:true,places_depassees:false},
+      {id:'a_2',nom:'Un espace au nom très long pour une entreprise de nettoyage',statut:'past_due',places:4,membres:5,fin_periode:N+2*J,annule:true,impaye_depuis:N-3*J,paiement_en_attente:true,stripe:true,places_depassees:true}]}},
     '/health':{ok:true,version:'755',portail:{comptes:{actif:false},dossiers:{actif:false}},socle:{actif:true}}
   };
   var POST={
@@ -196,17 +224,26 @@ const APAISER = 'for(let i=0;i<60;i++){ if(!window.__vt && !document.querySelect
 
 /* ── LES VUES — chaque vue de la Tour, et les écrans profonds qu'on n'atteint que par un geste ── */
 const VUES = [
-  { cle: 'accueil', app: 'gestion' }, { cle: 'surveillance', app: 'gestion' },
-  { cle: 'incident', app: 'gestion', tab: 'surveillance', geste: 'INC.sel="i1"; render();' },
-  { cle: 'surv-entreprise', app: 'gestion', tab: 'surveillance', geste: 'INC.sel=null; INC.grp="Boulangerie Martin"; render();' },
-  { cle: 'entreprises', app: 'gestion' },
-  { cle: 'fiche-entreprise', app: 'gestion', tab: 'entreprises', geste: 'entSel("boulmartin-7k2q"); await new Promise(r=>setTimeout(r,900));' },
-  { cle: 'connexions', app: 'gestion' }, { cle: 'abonnements', app: 'gestion' }, { cle: 'devisia', app: 'gestion' },
-  { cle: 'support', app: 'gestion' }, { cle: 'essais', app: 'gestion' }, { cle: 'donnees', app: 'gestion' },
-  { cle: 'equipe', app: 'gestion' }, { cle: 'journal', app: 'gestion' },
-  { cle: 'msg-accueil', app: 'messages', tab: 'accueil' }, { cle: 'msg-surveillance', app: 'messages', tab: 'surveillance' },
-  { cle: 'msg-entreprises', app: 'messages', tab: 'entreprises' }, { cle: 'msg-support', app: 'messages', tab: 'support' },
-  { cle: 'msg-equipe', app: 'messages', tab: 'equipe' }, { cle: 'msg-journal', app: 'messages', tab: 'journal' }
+  /* v2.119 : { cle, tab, filtre (« tout » par défaut), geste (un bout de JS joué dans la page, après l'ouverture) } */
+  { cle: 'accueil-tout', tab: 'accueil' }, { cle: 'accueil-gestion', tab: 'accueil', filtre: 'gestion' }, { cle: 'accueil-messages', tab: 'accueil', filtre: 'messages' },
+  { cle: 'support', geste: 'for(let i=0;i<50&&!COUR.inst;i++) await new Promise(r=>setTimeout(r,100)); await new Promise(r=>setTimeout(r,500));' }, { cle: 'demandes' }, { cle: 'incidents' },
+  { cle: 'entreprises' }, { cle: 'entreprises-messages', tab: 'entreprises', geste: 'entFiltrePoser("opmessages");' },
+  { cle: 'fiche-entreprise', tab: 'entreprises', geste: 'entSel("boulmartin-7k2q"); await new Promise(r=>setTimeout(r,900));' },
+  { cle: 'comptes-site', tab: 'entreprises', geste: 'sousOnglet("entreprises","comptes");' }, { cle: 'connexions', tab: 'entreprises', geste: 'sousOnglet("entreprises","connexions");' },
+  { cle: 'comptes' }, { cle: 'espaces' },
+  { cle: 'messagerie', geste: 'await new Promise(r=>setTimeout(r,900));' }, { cle: 'agents', geste: 'await new Promise(r=>setTimeout(r,600));' },
+  { cle: 'abonnements-tout', tab: 'abonnements' }, { cle: 'abonnements-gestion', tab: 'abonnements', filtre: 'gestion' }, { cle: 'abonnements-messages', tab: 'abonnements', filtre: 'messages' },
+  { cle: 'facturation', tab: 'abonnements', geste: 'sousOnglet("abonnements","facturation");' }, { cle: 'devisia', tab: 'abonnements', geste: 'sousOnglet("abonnements","devisia");' },
+  { cle: 'surveillance-tout', tab: 'surveillance' }, { cle: 'surveillance-gestion', tab: 'surveillance', filtre: 'gestion' }, { cle: 'surveillance-messages', tab: 'surveillance', filtre: 'messages' },
+  { cle: 'incident', tab: 'surveillance', geste: 'INC.sel="i1"; render();' },
+  { cle: 'surv-entreprise', tab: 'surveillance', geste: 'INC.sel=null; INC.grp="Boulangerie Martin"; render();' },
+  { cle: 'service-tout', tab: 'surveillance', geste: 'SOUS.surveillance="service"; render(); await new Promise(r=>setTimeout(r,600)); render();' },
+  { cle: 'service-gestion', tab: 'surveillance', filtre: 'gestion', geste: 'SOUS.surveillance="service"; render();' },
+  { cle: 'service-messages', tab: 'surveillance', filtre: 'messages', geste: 'SOUS.surveillance="service"; render(); await new Promise(r=>setTimeout(r,600)); render();' },
+  { cle: 'contrats' },
+  { cle: 'essais-tout', tab: 'essais' }, { cle: 'essais-messages', tab: 'essais', filtre: 'messages' }, { cle: 'equipe' },
+  { cle: 'journal-tout', tab: 'journal' }, { cle: 'journal-messages', tab: 'journal', filtre: 'messages' },
+  { cle: 'donnees-tout', tab: 'donnees' }, { cle: 'donnees-messages', tab: 'donnees', filtre: 'messages' }
 ];
 
 /* ── mesures dans la page ── */
@@ -408,7 +445,8 @@ const RECT_TEXTES = `
       if(w<4||h<4) continue;
       /* recouvert (barre flottante, en-tête collé) ? on ne lit pas un texte qu'on ne voit pas */
       const t=document.elementFromPoint(x+w/2,y+h/2); if(t&&!(t===e||e.contains(t)||t.contains(e))) continue;
-      out.push({fam,txt:(e.textContent||'').trim().slice(0,30),x,y,w,h});
+      const cs2=getComputedStyle(e); let op=1; for(let a=e;a&&a.nodeType===1;a=a.parentElement) op*=parseFloat(getComputedStyle(a).opacity||1);
+      out.push({fam,txt:(e.textContent||'').trim().slice(0,30),x,y,w,h,cls:String(e.className).slice(0,50),coul:cs2.color,taille:cs2.fontSize,op:Math.round(op*100)/100});
     }
   }
   return out;`;
@@ -446,44 +484,51 @@ async function frapper(o, selecteur, index) {
 /* Le parcours : le menu (bureau), la barre et la feuille « Plus » (téléphone), et les modes. */
 async function parcours(S, v, bilan) {
   console.log('\n── parcours du menu, de la barre, de la feuille et des modes ──');
-  for (const app of ['gestion', 'messages']) {
-    const o = await onglet(S, 'bureau', 'dark');
-    await o.ev(`setApp('${app}',true); return 1;`); await dormir(400);
+  /* les trois comptes : deux applications, sans Gestion (« messages »), sans Messages (« gestion ») */
+  const URL_COMPTE = { deux: '/tour.html', messages: '/tour.html?apps=messages', gestion: '/tour.html?apps=gestion' };
+  const SECTIONS = { deux: 'Tour·Clients·Surveillance·Juridique·Équipe d’agents·Site·Administration', gestion: 'Tour·Clients·Surveillance·Juridique·Équipe d’agents·Site·Administration', messages: 'Tour·Clients·Surveillance·Administration' };
+  for (const app of ['deux', 'messages', 'gestion']) {
+    const o = await onglet(S, 'bureau', 'dark', URL_COMPTE[app]);
+    await dormir(400);
     const attendu = await o.ev('return menuVisible().reduce((a,g)=>a.concat(g.vues.map(x=>x[0])),[])');
     const n = await o.ev('return document.querySelectorAll("nav.tabs .tab").length');
     let ouvertes = 0, perdues = [];
     for (let i = 0; i < n; i++) {
       const f = await frapper(o, 'nav.tabs .tab', i);
       await dormir(250); await o.ev(APAISER + ' return 1;');
-      const e = await o.ev('return {tab:TAB,len:(document.getElementById("vue").textContent||"").length}');
+      await o.ev('for(let i=0;i<30&&TAB==="support"&&!COUR.inst;i++) await new Promise(r=>setTimeout(r,100)); return 1;');
+      const e = await o.ev('return {tab:TAB,len:(document.getElementById("vue").textContent||"").length+((typeof COUR!=="undefined"&&COUR.inst)?1000:0)}');
       if (f.porte && e.tab === f.p.t && e.len > 40) ouvertes++; else perdues.push((f.p && f.p.t) + ' (' + (f.porte ? 'ouvre ' + e.tab : 'frappe perdue') + ')');
     }
-    v('bureau · console ' + app + ' : les ' + attendu.length + ' vues du menu s’ouvrent depuis le menu', ouvertes === attendu.length && n === attendu.length, ouvertes + '/' + n + (perdues.length ? ' · ' + perdues.join(', ') : ''));
+    v('bureau · compte « ' + app + ' » : les ' + attendu.length + ' vues du menu s’ouvrent depuis le menu', ouvertes === attendu.length && n === attendu.length, ouvertes + '/' + n + (perdues.length ? ' · ' + perdues.join(', ') : ''));
     const sections = await o.ev('return [...document.querySelectorAll("nav.tabs .grp span")].map(e=>e.textContent)');
     /* v2.68 : les catégories rangées par SUJET (Justin : « range tout bien… un truc pro ») */
-    v('bureau · console ' + app + ' : les catégories de la Tour', sections.join('·') === 'Tour·Clients·Support·Administration', sections.join(' · '));
+    v('bureau · compte « ' + app + ' » : les catégories de la Tour', sections.join('·') === SECTIONS[app], sections.join(' · '));
+    v('bureau · compte « ' + app + ' » : plus aucun sélecteur de console (ni #app-sw, ni #app-pill cliquable)', await o.ev('return !document.querySelector(".app-sw")&&!document.getElementById("app-sw")&&!document.querySelector("[onclick*=setApp]")'));
+    v('bureau · compte « ' + app + ' » : le filtre « Tout · Gestion · Messages » ' + (app === 'deux' ? 'est là' : 'n’existe pas (une seule application)'), (await o.ev('return document.querySelectorAll("#vue .filtre-app button").length')) === (app === 'deux' ? 3 : 0));
     o.exceptions.forEach(e => bilan.exceptions.push('parcours ' + app + ' : ' + e));
     await o.fermer();
   }
-  for (const app of ['gestion', 'messages']) {
-    const o = await onglet(S, 'telephone', 'light');
-    await o.ev(`setApp('${app}',true); return 1;`); await dormir(400);
+  for (const app of ['deux', 'messages', 'gestion']) {
+    const o = await onglet(S, 'telephone', 'light', URL_COMPTE[app]);
+    await dormir(400);
     const attendu = await o.ev('return menuVisible().reduce((a,g)=>a.concat(g.vues.map(x=>x[0])),[])');
     const barre = await o.ev('return [...document.querySelectorAll("#barre-bas .bb")].map(b=>b.dataset.t||"plus")');
     const libs = await o.ev('return [...document.querySelectorAll("#barre-bas .bb>span:not(.bdg-r)")].map(b=>b.textContent)');
-    v('téléphone · ' + app + ' : barre d’onglets flottante à 5 onglets', barre.length === 5 && barre[4] === 'plus', libs.join(' · '));
+    v('téléphone · compte « ' + app + ' » : barre d’onglets flottante à 5 onglets', barre.length === 5 && barre[4] === 'plus', libs.join(' · '));
+    if (app === 'deux') v('téléphone · la barre dit Accueil · À traiter · Clients · Surveill.', libs.slice(0, 4).join(' · ') === 'Accueil · À traiter · Clients · Surveill.', libs.join(' · '));
     const flotte = await o.ev('const r=document.getElementById("barre-bas").getBoundingClientRect(); return {g:r.left,d:innerWidth-r.right,b:innerHeight-r.bottom,rayon:getComputedStyle(document.getElementById("barre-bas")).borderRadius,flou:getComputedStyle(document.getElementById("barre-bas")).backdropFilter}');
-    v('téléphone · ' + app + ' : la barre flotte (décollée des bords) et elle est en verre', flotte.g >= 10 && flotte.d >= 10 && flotte.b >= 10 && /blur/.test(flotte.flou), JSON.stringify(flotte));
+    v('téléphone · compte « ' + app + ' » : la barre flotte (décollée des bords) et elle est en verre', flotte.g >= 10 && flotte.d >= 10 && flotte.b >= 10 && /blur/.test(flotte.flou), JSON.stringify(flotte));
     let parBarre = 0;
     for (let i = 0; i < 4; i++) { const f = await frapper(o, '#barre-bas .bb[data-t]', i); await dormir(300);
       const tb = await o.ev('return TAB'); if (f.porte && tb === f.p.t) parBarre++; else console.log('     barre : ' + JSON.stringify(f.p) + ' → ' + tb); }
-    v('téléphone · ' + app + ' : les 4 onglets de la barre ouvrent leur vue', parBarre === 4, parBarre + '/4');
+    v('téléphone · compte « ' + app + ' » : les 4 onglets de la barre ouvrent leur vue', parBarre === 4, parBarre + '/4');
     /* la feuille « Plus » : elle s'ouvre, elle porte TOUTES les vues, et chacune s'ouvre depuis elle */
     let f = await frapper(o, '#barre-bas .bb.plus'); await dormir(650);
     const feuille = await o.ev('const f=document.getElementById("feuille"); const r=f.getBoundingClientRect(); return {vue:!f.hidden&&f.classList.contains("on")&&r.top<innerHeight-100,items:[...f.querySelectorAll(".groupe button[data-t]")].map(b=>b.dataset.t),sections:[...f.querySelectorAll(".feuille-sec")].map(e=>e.textContent)}');
     const manque = attendu.filter(t => !feuille.items.includes(t));
-    v('téléphone · ' + app + ' : « Plus » ouvre la feuille', f.porte && feuille.vue, JSON.stringify({ sections: feuille.sections }));
-    v('téléphone · ' + app + ' : la feuille atteint toutes les vues (' + attendu.length + ')', feuille.items.length === attendu.length && !manque.length, feuille.items.join(',') + (manque.length ? ' · MANQUE ' + manque.join(',') : ''));
+    v('téléphone · compte « ' + app + ' » : « Plus » ouvre la feuille', f.porte && feuille.vue, JSON.stringify({ sections: feuille.sections }));
+    v('téléphone · compte « ' + app + ' » : la feuille atteint toutes les vues (' + attendu.length + ')', feuille.items.length === attendu.length && !manque.length, feuille.items.join(',') + (manque.length ? ' · MANQUE ' + manque.join(',') : ''));
     const cap = await o.c.envoyer('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(path.join(CAPTURES, 'feuille-plus-' + app + '-jour-telephone.png'), Buffer.from(cap.data, 'base64')); bilan.captures++;
     await o.ev('fermerFeuille(); return 1;'); await dormir(450);
@@ -494,10 +539,10 @@ async function parcours(S, v, bilan) {
       const e = await o.ev('return {tab:TAB,fermee:document.getElementById("feuille").hidden}');
       if (g.porte && e.tab === g.p.t && e.fermee) parFeuille++; else console.log('     feuille : ' + JSON.stringify(g.p) + ' → ' + JSON.stringify(e));
     }
-    v('téléphone · ' + app + ' : chaque vue s’ouvre depuis la feuille', parFeuille === attendu.length, parFeuille + '/' + attendu.length);
+    v('téléphone · compte « ' + app + ' » : chaque vue s’ouvre depuis la feuille', parFeuille === attendu.length, parFeuille + '/' + attendu.length);
     /* v2.68 — au téléphone la phrase d'en-tête se replie sur deux lignes : sa fin (« …elles vivent dans l'onglet
        Entreprises ») ne se lisait NULLE PART. Un toucher la déplie, un second la replie — joué au doigt. */
-    if (app === 'gestion') {
+    if (app === 'deux') {
       await o.ev(`setTab('essais',true); return 1;`); await dormir(700);
       const lire = STABLE + ' const d=document.querySelector("#vue .page-tete .desc"); return d?{h:d.clientHeight,sh:d.scrollHeight,ouverte:d.classList.contains("ouverte")}:null;';
       const avant = await o.ev(APAISER + lire);
@@ -575,17 +620,18 @@ async function main() {
       console.log('\n── ' + appareil + ' · ' + mode + ' ──');
       for (const V of vues) {
         const tab = V.tab || V.cle;
-        await o.ev(`if(APP!=='${V.app}') setApp('${V.app}',true); INC.sel=null; INC.grp=null; if(ENT.sel) { ENT.sel=null; } setTab('${tab}',true); return 1;`);
+        await o.ev(`setFiltre('${V.filtre || 'tout'}',true); SOUS.surveillance='apps'; SOUS.entreprises='liste'; SOUS.abonnements='abos'; INC.sel=null; INC.grp=null; if(ENT.sel) { ENT.sel=null; } ENT.filtre=''; setTab('${tab}',true); return 1;`);
         await dormir(250);
         if (V.geste) await o.ev(V.geste + ' return 1;');
         await o.ev(APAISER + ' window.scrollTo(0,0); return 1;');
         await dormir(200);
-        const etat = await o.ev(`return {tab:TAB,app:APP,len:(document.getElementById('vue').textContent||'').length,titre:((document.querySelector('#vue .ttl-page')||{}).textContent||'').trim()}`);
+        const etat = await o.ev(`return {tab:TAB,filtre:FILTRE,len:(document.getElementById('vue').textContent||'').length+((typeof COUR!=='undefined'&&COUR.inst)?1000:0),titre:((document.querySelector('#vue .ttl-page')||{}).textContent||'').trim()}`);
         if (etat.tab !== tab || etat.len < 40) { v(V.cle + ' (' + appareil + ', ' + mode + ') s’ouvre', false, JSON.stringify(etat)); continue; }
         bilan.vues++;
         /* RELEVE=<fichier> : un relevé ponctuel (le corps d'une fonction, « return … ») lu dans un
            fichier et joué dans la vue ouverte — pour diagnostiquer sans réécrire la sonde */
         if (process.env.RELEVE) console.log('   RELEVÉ ' + V.cle + ' : ' + JSON.stringify(await o.ev(fs.readFileSync(process.env.RELEVE, 'utf8'))));
+        if (V.filtre && etat.filtre !== V.filtre) { v(V.cle + ' : le filtre posé est « ' + V.filtre + ' »', false, JSON.stringify(etat)); continue; }
         const nomCap = V.cle + '-' + (mode === 'dark' ? 'nuit' : 'jour') + '-' + appareil + '.png';
         const cap = await o.c.envoyer('Page.captureScreenshot', { format: 'png' });
         fs.writeFileSync(path.join(CAPTURES, nomCap), Buffer.from(cap.data, 'base64')); bilan.captures++;
@@ -625,7 +671,7 @@ async function main() {
           for (const t of textes) {
             const m = contrasteDans(im, t, dsf);
             bilan.contrastes.n++; bilan.contrastes.parFam[t.fam] = (bilan.contrastes.parFam[t.fam] || 0) + 1;
-            if (m.c < 4.5) bilan.contrastes.faibles.push(V.cle + ' ' + appareil + ' ' + mode + ' [' + t.fam + '] « ' + t.txt + ' » ' + m.c.toFixed(2) + ':1 sur rgb(' + m.fond.join(',') + ')');
+            if (m.c < 4.5) bilan.contrastes.faibles.push(V.cle + ' ' + appareil + ' ' + mode + ' [' + t.fam + '] « ' + t.txt + ' » ' + m.c.toFixed(2) + ':1 sur rgb(' + m.fond.join(',') + ') — .' + t.cls + ' ' + t.coul + ' ' + t.taille + (t.op < 1 ? ' opacité ' + t.op : ''));
           }
         }
         await o.ev('window.scrollTo(0,0); return 1;');

@@ -5062,6 +5062,7 @@ let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = p
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let annonceurFaits = null;    // les annonces « Je viens de… » dans Équipe (`agent-faits.js`) : `null` = pas montées, les agents ne les écrivent pas — le travail, lui, se fait quand même
 let alertesBudgetJour = null; // ce que Justin voit quand un budget du jour se remplit (`agent-budget-jour.js`) : `null` = pas monté, le budget se tient quand même (`cerveau.js`)
+let paulineMod = null;       // le pont de Pauline (`pauline.js`) : sa fonction `decider` sert aussi aux réponses « NON <n> » d'OP MESSAGES (`pont-messages.js`)
 let pontMessages = null;     // le pont vers OP MESSAGES (`pont-messages.js`) : `null` = pas monté (rien dans la configuration, ou une configuration refusée) — les agents n'en dépendent jamais
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
@@ -6603,7 +6604,8 @@ try {
   /* `pousseNotif` : la notification au téléphone du patron (abonnements de la Tour), pour « un mail de Pauline attend ton accord ». Appelée bien après
      le démarrage : `subs` et `webpush` sont des déclarations de tête de fichier, initialisées depuis longtemps. */
   const pousseNotifPauline = (titre, corps, url) => pousserALaTour(titre, corps, url, '/tour.html#messagerie');
-  require('./pauline')(app, { config, DATA_DIR, monPatronStrict, pousseNotif: pousseNotifPauline });
+  /* `surReleve` : Pauline parle aussi dans OP MESSAGES (bêta, 29 octobre 2026) quand le pont est monté — appelé à chaque relevé rangé, sous son `try` (`pauline.js`), après le montage du pont (les deux se parlent à la volée). */
+  paulineMod = require('./pauline')(app, { config, DATA_DIR, monPatronStrict, pousseNotif: pousseNotifPauline, surReleve: (releve, dec) => { if (pontMessages) pontMessages.surPauline(releve, dec); } });
 } catch (e) {
   console.error('pont de Pauline non monté :', e.message);
 }
@@ -11171,6 +11173,8 @@ try {
       if (pc) {
         pontMessages = require('./pont-messages')({ DATA_DIR, conversations: conversationsMod, agents: agentsMod, groupes: require('./conversations').GROUPES, fichier: fichierAgents,
           url: typeof pc.url === 'string' && pc.url ? pc.url : msgInstanceUrl('beta'), secret: pc.secret,
+          /* Pauline (Harvey, sur le Mac) n'est pas un agent de ce serveur : elle n'entre dans OP MESSAGES que si son pont est monté, et son refus passe par LA fonction de la route de la Tour */
+          pauline: paulineMod && typeof paulineMod.decider === 'function' ? { decider: paulineMod.decider } : undefined,
           /* les bancs règlent le rythme par la configuration (jamais en production : 3 s pour lire, une demi-seconde pour envoyer) */
           pasLireMs: Number.isInteger(pc.pasLireMs) && pc.pasLireMs >= 20 ? pc.pasLireMs : undefined, pasEnvoiMs: Number.isInteger(pc.pasEnvoiMs) && pc.pasEnvoiMs >= 20 ? pc.pasEnvoiMs : undefined,
           attenteMaxMs: Number.isInteger(pc.attenteMaxMs) ? pc.attenteMaxMs : undefined });
