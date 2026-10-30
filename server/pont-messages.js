@@ -49,10 +49,13 @@ const SECRET = /^[0-9a-f]{64}$/;
 const RE_ID_PHOTO = /^[a-z][a-z0-9]{1,19}$/;     // un agent, un groupe, « systeme » : la seule forme qui entre dans un nom de fichier
 const PHOTO_MAX = 2 * 1024 * 1024;               // le plafond de `pieces.avatarMax` côté OP MESSAGES : plus gros, le service dirait 413
 const PAULINE = { id: 'pauline', nom: 'Pauline', role: 'Prospection' };
-const PAULINE_LIEN = 'https://teamop.fr/tour.html#gestion/messagerie';
+/* ⛔ l'adresse ouvre DIRECTEMENT l'ancienne messagerie de la Tour (la liste à modifier ou à relire en entier) : `#gestion/messagerie` ouvre le cadre d'OP MESSAGES, vide quand l'encadrement est refusé (30 octobre 2026) */
+const PAULINE_LIEN = 'https://teamop.fr/tour.html#gestion/messagerie-tour';
+const PAULINE_CORPS_MAX = 6000, PAULINE_OBJET_MAX = 300;                   // des CARACTÈRES du corps du courriel dans une annonce : OP MESSAGES en refuse plus de 8000 par message, l'en-tête et les règles en prennent moins de 600
+const PAULINE_SUITE = '… (suite dans la Tour)';
 const PAULINE_PAR_RELEVE = 8, PAULINE_NUMEROS_MAX = 300, PAULINE_HEURE_BILAN = 18;   // au plus 8 annonces par relevé (un arriéré s'écoule en plusieurs passages) ; le bilan part après 18 h, heure de Paris
 const RE_ADRESSE = /[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g, RE_LIEN = /\b(?:https?:\/\/|www\.)\S+/gi;
-const RE_REPONSE = /^(OK|NON)[ \t]+([1-9]\d{0,5})$/i;
+const RE_REPONSE = /^(OUI|OK|NON)[ \t]+([1-9]\d{0,5})$/i;
 const REJETS = ['fil_inconnu', 'auteur_inconnu', 'pas_membre', 'champ_invalide', 'justin_interdit'];
 
 module.exports = function creerPontMessages(o) {
@@ -75,12 +78,13 @@ module.exports = function creerPontMessages(o) {
   const etatFichier = fichier.charger(F, { v: 1, curseur: null, lies: [] });
   const pauline = o.pauline && typeof o.pauline === 'object' && typeof o.pauline.decider === 'function' ? o.pauline : null;
   /* Pauline : le dernier numéro donné, les courriels déjà annoncés (id → numéro, bornés) et le dernier jour dont le bilan est parti. Ni nom ni adresse ici : des identifiants de Harvey et des nombres. */
-  const pl = { n: 0, annonces: new Map(), jour: '' };
+  const pl = { n: 0, annonces: new Map(), fiches: new Map(), jour: '' };   // `fiches` : id → { coupe, maj } — si le texte annoncé était ENTIER, et la version du brouillon que Justin a lue
   { const b = etatFichier.pauline;
     if (b && typeof b === 'object') {
       if (Number.isInteger(b.n) && b.n >= 0) pl.n = b.n;
       if (typeof b.jour === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b.jour)) pl.jour = b.jour;
       for (const x of Array.isArray(b.annonces) ? b.annonces : []) if (Array.isArray(x) && typeof x[0] === 'string' && x[0].length <= 64 && Number.isInteger(x[1])) pl.annonces.set(x[0], x[1]);
+      for (const x of Array.isArray(b.fiches) ? b.fiches : []) if (Array.isArray(x) && typeof x[0] === 'string' && pl.annonces.has(x[0])) pl.fiches.set(x[0], { coupe: x[1] === 1, maj: typeof x[2] === 'string' ? x[2].slice(0, 40) : '', h: typeof x[3] === 'string' && /^[0-9a-f]{64}$/.test(x[3]) ? x[3] : '' });
     } }
   const illisible = fichier.illisible(F);
   let curseur = Number.isInteger(etatFichier.curseur) ? etatFichier.curseur : null;
@@ -92,7 +96,7 @@ module.exports = function creerPontMessages(o) {
     if (illisible) return false;
     const lies = [];
     for (const [id, v] of parId) lies.push([id, v.fil, v.seq]);
-    return fichier.ecrire(F, Object.assign({ v: 1, curseur, lies: lies.slice(-LIES_MAX) }, pauline ? { pauline: { n: pl.n, jour: pl.jour, annonces: Array.from(pl.annonces).slice(-PAULINE_NUMEROS_MAX) } } : {}));
+    return fichier.ecrire(F, Object.assign({ v: 1, curseur, lies: lies.slice(-LIES_MAX) }, pauline ? { pauline: { n: pl.n, jour: pl.jour, annonces: Array.from(pl.annonces).slice(-PAULINE_NUMEROS_MAX), fiches: Array.from(pl.fiches).map(([id, f]) => [id, f.coupe ? 1 : 0, f.maj, f.h || '']) } } : {}));
   }
   function lier(id, fil, seq) {
     parId.set(id, { fil, seq }); parSeq.set(fil + '#' + seq, id);
@@ -282,6 +286,21 @@ module.exports = function creerPontMessages(o) {
   /* ── 7. Pauline ── */
   /* Ce qui d'un prospect peut entrer dans un message : une entreprise et un objet, sans adresse ni lien, sur une ligne, coupés court. */
   const propre = (t, max) => { let x = String(t === undefined || t === null ? '' : t).replace(RE_ADRESSE, '').replace(RE_LIEN, '').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, ' ').replace(/\s+/g, ' ').trim(); if (Array.from(x).length > max) x = Array.from(x).slice(0, max - 1).join('') + '…'; return x; };
+  /* ⛔ CE QUE JUSTIN ACCEPTE DOIT ÊTRE, OCTET POUR OCTET, CE QU'IL A LU. L'objet et le corps s'affichent ENTIERS (seul `\r\n` devient `\n`) ; tout ce que l'affichage doit retirer, remplacer ou couper (caractère de contrôle ou
+     invisible, retour à la ligne dans l'objet, longueur, faux repère de début ou de fin) pose `coupe` : OUI est alors refusé d'ici (NON reste permis) — au moindre doute, la Tour. */
+  const RE_INVISIBLE = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u2028\u2029\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, RE_INVISIBLE_1 = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u2028\u2029\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/, RE_REPERE = /─{3,}[ \t]*(?:début|fin) du mail/i;
+  const mailAffiche = (t, max, uneLigne) => {
+    let x = String(t === undefined || t === null ? '' : t).replace(/\r\n?/g, '\n'), coupe = false;
+    if (RE_INVISIBLE_1.test(x)) { coupe = true; x = x.replace(RE_INVISIBLE, ''); }
+    if (uneLigne && x.includes('\n')) { coupe = true; x = x.replace(/\n/g, ' '); }
+    if (RE_REPERE.test(x)) coupe = true;
+    if (!x.trim()) return { texte: '', coupe: true };
+    const c = Array.from(x);
+    if (c.length > max) return { texte: c.slice(0, max).join('') + (uneLigne ? '' : '\n') + PAULINE_SUITE, coupe: true };
+    return { texte: x, coupe };
+  };
+  /* l'empreinte de ce qui a été ANNONCÉ (objet + corps tels que le relevé les porte) : jamais le texte lui-même dans l'état */
+  const empreinteMail = (objet, texte) => crypto.createHash('sha256').update(String(objet === undefined || objet === null ? '' : objet) + '\u0000' + String(texte === undefined || texte === null ? '' : texte)).digest('hex');
   const parisDe = (t) => { try { const d = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(t)); const g = (k) => (d.find(x => x.type === k) || {}).value; return { date: g('year') + '-' + g('month') + '-' + g('day'), heure: parseInt(g('hour'), 10) }; } catch (e) { return null; } };
   function parlerPauline(texte, cid, push) { enfiler({ k: 'n', fil: PAULINE.id, de: PAULINE.id, texte, ts: horloge(), importe: false, push: push === true, cid }); petitCoupDePouce(); }
   /* Un relevé vient d'être rangé : les courriels qui attendent l'accord de Justin, jamais encore annoncés, puis (une fois par jour) le bilan. `dec` : l'état des décisions de la Tour (null = illisible : on ne dit rien). */
@@ -296,9 +315,16 @@ module.exports = function creerPontMessages(o) {
       const num = ++pl.n;
       pl.annonces.set(c.id, num); change = true; annonces++;
       while (pl.annonces.size > PAULINE_NUMEROS_MAX) pl.annonces.delete(pl.annonces.keys().next().value);
-      const nom = propre(parNom.get(c.entrepriseId), 60) || 'une entreprise', objet = propre(c.objet, 100) || '(sans objet)';
+      const nom = propre(parNom.get(c.entrepriseId), 60) || 'une entreprise';
+      const objet = mailAffiche(c.objet, PAULINE_OBJET_MAX, true), corps = mailAffiche(c.texte, PAULINE_CORPS_MAX, false);
+      const coupe = objet.coupe || corps.coupe;
+      pl.fiches.set(c.id, { coupe, maj: typeof c.maj === 'string' ? c.maj.slice(0, 40) : '', h: empreinteMail(c.objet, c.texte) });
+      while (pl.fiches.size > PAULINE_NUMEROS_MAX) pl.fiches.delete(pl.fiches.keys().next().value);
+      const regles = coupe
+        ? '⚠️ Texte coupé, modifié à l’affichage ou illisible : je ne l’accepte pas d’ici, il part chez un prospect et tu ne l’as pas lu tel qu’il partirait.\nPour le lire en entier, le modifier ou l’accepter : ' + PAULINE_LIEN + '\nPour le refuser d’ici : NON ' + num
+        : 'Pour l’accepter et l’envoyer : OUI ' + num + ' (ou OK ' + num + ')\nPour le refuser : NON ' + num + '\nPour le modifier : ' + PAULINE_LIEN;
       /* le `cid` se déduit du courriel : même sans la table (fichier perdu), OP MESSAGES reconnaît le message déjà posé */
-      parlerPauline('📬 Mail n°' + num + ' — ' + nom + ' : « ' + objet + ' » attend ton accord.\nPour le lire et le valider : ' + PAULINE_LIEN + '\nPour le refuser d’ici : NON ' + num, 'pauline-' + crypto.createHash('sha256').update(c.id).digest('hex').slice(0, 32), true);
+      parlerPauline('📬 Mail n°' + num + ' — attend ton accord.\nÀ : ' + nom + (c.genre === 'reponse' ? ' (réponse à son message)' : '') + '\n───── début du mail ─────\nObjet : ' + (objet.texte || '(sans objet)') + '\n\n' + (corps.texte || '(texte vide)') + '\n───── fin du mail ─────\n' + regles, 'pauline-' + crypto.createHash('sha256').update(c.id).digest('hex').slice(0, 32), true);
     }
     /* le bilan : après 18 h (Paris), une fois par jour, seulement si le relevé parle bien d'AUJOURD'HUI (le Mac endormi garderait la veille) */
     const j = releve.jour, p = parisDe(horloge());
@@ -309,23 +335,30 @@ module.exports = function creerPontMessages(o) {
     if (change) sauver();
     return annonces;
   }
-  /* Ce que Justin écrit à Pauline. ⛔ « NON <n> » EXACT seulement agit, et par `decider` (la fonction de la route de la Tour). Tout le reste : une ligne qui renvoie à la Tour (une fois par dix minutes). */
+  /* Ce que Justin écrit à Pauline. ⛔ « OUI <n> » / « OK <n> » (accepter) et « NON <n> » (refuser) EXACTS seulement agissent, et par `decider` (la fonction de la route de la Tour : jamais un second chemin). Tout le reste : une ligne qui renvoie à la Tour (une fois par dix minutes).
+     ⛔ Accepter n'est permis que pour un texte annoncé EN ENTIER (il part chez un prospect) ; et `decider` rend un accord ENREGISTRÉ, pas un envoi : le Mac de Pauline l'envoie ensuite. */
   function repondrePauline(texte) {
     const m = RE_REPONSE.exec(String(texte).trim());
     const dire = (t) => parlerPauline(t, 'pl-' + horloge().toString(36) + Math.random().toString(36).slice(2, 8));
     if (!m) {
       const t = horloge();
-      if (!derniereNote.pauline || t - derniereNote.pauline >= NOTE_PAS_MS) { derniereNote.pauline = t; dire('Je ne comprends que « NON <numéro> » pour refuser un mail. Pour lire, accepter ou modifier : ' + PAULINE_LIEN); }
+      if (!derniereNote.pauline || t - derniereNote.pauline >= NOTE_PAS_MS) { derniereNote.pauline = t; dire('Je ne comprends que « OUI <numéro> » pour accepter un mail et « NON <numéro> » pour le refuser. Pour le modifier : ' + PAULINE_LIEN); }
       return;
     }
-    const num = parseInt(m[2], 10);
-    if (m[1].toUpperCase() === 'OK') { dire('Je n’accepte pas depuis ici : un mail part chez un prospect, il faut le lire d’abord. Ouvre-le dans la Tour : ' + PAULINE_LIEN); return; }
+    const num = parseInt(m[2], 10), accepter = m[1].toUpperCase() !== 'NON';
     let id = null; for (const [k, n] of pl.annonces) if (n === num) { id = k; break; }
     if (!id) { dire('Je ne connais pas de mail n°' + num + ' en attente. Regarde dans la Tour : ' + PAULINE_LIEN); return; }
-    let r; try { r = pauline.decider({ id, action: 'refuser' }); } catch (e) { r = { statut: 500, corps: {} }; }
-    if (r.statut === 200) dire('Mail n°' + num + ' refusé. Il ne partira pas.');
+    const fiche = pl.fiches.get(id);
+    if (accepter && (!fiche || fiche.coupe)) { dire('Je n’accepte pas le mail n°' + num + ' d’ici : ' + (fiche ? 'son texte était coupé ou vide' : 'je ne t’en ai pas montré le texte') + ', et un mail part chez un prospect. Lis-le en entier dans la Tour : ' + PAULINE_LIEN); return; }
+    if (accepter) {
+      /* ⛔ ce qu'on accepte est ce qui a été LU : le relevé d'aujourd'hui doit porter le même objet et le même corps que l'annonce (empreinte) — sans empreinte comparable, on refuse */
+      let cur = null; try { const L = typeof pauline.lire === 'function' ? pauline.lire() : null; if (L && L.etat === 'ok' && L.releve && Array.isArray(L.releve.courriels)) cur = L.releve.courriels.find(x => x && x.id === id) || null; } catch (e) { cur = null; }
+      if (!fiche.h || !cur || empreinteMail(cur.objet, cur.texte) !== fiche.h) { dire('Je n’accepte pas le mail n°' + num + ' d’ici : il a changé depuis que je te l’ai montré (ou je ne peux pas le comparer). Regarde dans la Tour : ' + PAULINE_LIEN); return; }
+    }
+    let r; try { r = pauline.decider(accepter ? Object.assign({ id, action: 'accepter' }, fiche.maj ? { maj: fiche.maj } : {}) : { id, action: 'refuser' }); } catch (e) { r = { statut: 500, corps: {} }; }
+    if (r.statut === 200) dire(accepter ? 'Mail n°' + num + ' accepté. Il n’est pas encore parti : le Mac de Pauline l’enverra à sa prochaine relève.' : 'Mail n°' + num + ' refusé. Il ne partira pas.');
     else if (r.statut === 409) dire('Mail n°' + num + ' : ' + String((r.corps && r.corps.error) || 'déjà traité') + ' Regarde dans la Tour : ' + PAULINE_LIEN);
-    else dire('Je n’ai pas pu enregistrer le refus du mail n°' + num + '. Fais-le dans la Tour : ' + PAULINE_LIEN);
+    else dire('Je n’ai pas pu enregistrer ' + (accepter ? 'l’accord' : 'le refus') + ' du mail n°' + num + '. Fais-le dans la Tour : ' + PAULINE_LIEN);
   }
 
   /* ── 4. lire ce que Justin fait dans OP MESSAGES ── */
