@@ -172,18 +172,19 @@ console.log('\n8. Le rangement et le menu');
 {
   {
     const rangee = (vue, coche) => { const el = { attrs: {}, getAttribute(k) { return k === 'data-view' ? vue : (this.attrs[k] === undefined ? null : this.attrs[k]); }, setAttribute(k, v) { this.attrs[k] = v; } };
-      const nav = { querySelectorAll: () => [el] };
-      const b = bac('demo.html', ['demoPubliqueMenu', 'demoPubliqueNonChoisie', 'demoPubliqueCatsConnues'], { document: { getElementById: () => nav }, catsConnues: () => CONNUES.slice(), VUE_PARENT, _demoSel: { cats: coche } });
-      b.fn.demoPubliqueMenu(); return el.attrs; };
-    egal('le menu : une rubrique NON cochée porte la marque et son infobulle', rangee('stock', ['planning']), { 'data-nonchoisie': '1', title: 'Non choisie dans votre demande' });
-    egal('le menu : une rubrique cochée n\'en porte aucune', rangee('planning', ['planning']), {});
+      const ins = []; const leg = { l: null };
+      const nav = { children: [], querySelectorAll: () => [el], querySelector: sel => (/demo-legende/.test(sel) ? leg.l : el), insertBefore: x => { leg.l = x; ins.push(x); } };
+      const b = bac('demo.html', ['demoPubliqueMenu', 'demoPubliqueNonChoisie', 'demoPubliqueCatsConnues'], { document: { getElementById: () => nav, createElement: () => ({ className: '', innerHTML: '' }) }, catsConnues: () => CONNUES.slice(), VUE_PARENT, _demoSel: { cats: coche } });
+      b.fn.demoPubliqueMenu(); b.fn.demoPubliqueMenu(); return Object.assign({ legendes: ins.length }, el.attrs); };
+    egal('le menu : une rubrique NON cochée porte la marque et son infobulle', rangee('stock', ['planning']), { legendes: 1, 'data-nonchoisie': '1', title: 'Non choisie dans votre demande' });
+    egal('le menu : une rubrique cochée n\'en porte aucune (la légende, elle, se pose UNE fois même rejouée)', rangee('planning', ['planning']), { legendes: 1 });
   }
   vrai('le complément est posé par la vraie expression de demoPubliqueSemer (plus valable, ≠ du métier, connu de METIERS)', /db\.metierPlus = \(plus && plus !== id && plus !== '3d' && METIERS\[plus\]\) \? plus : ''/.test(nu(MODULE)));
   const m = nu(MODULE);
   vrai('le choix vit dans le rangement de la démonstration (DEMO_ETAT_CLE, préfixe elanD_) — jamais la clé `cats` de l\'application, qui FERMERAIT les rubriques', /localStorage\.setItem\(DEMO_ETAT_CLE/.test(m) && !/_cats|catsCle|catsServeurAppliquer|catBloque/.test(m));
   vrai('aucune rubrique n\'est fermée par la démonstration : pas de go(\'dashboard\') ni de toast de refus dans le code des rubriques non choisies', !/demoPubliqueNonChoisie[^;]*go\(/.test(m));
   vrai('« Recommencer » relit le choix AVANT l\'effacement et le réécrit', /const etat = demoPubliqueEtatLire\(\);[^]*?demoPubliqueEffacer\(\);\s*if \(id\) demoPubliqueChoixEcrire\(id, etat\)/.test(m));
-  vrai('la marque du menu est un attribut (data-nonchoisie) et son texte vient du CSS : la recherche du menu n\'y trouve pas « non choisie »', /\.nav-item\[data-nonchoisie\]::after\{content:"non choisie"/.test(m));
+  vrai('la marque du menu est un attribut (data-nonchoisie) dont le rond pointillé vient du CSS (pas de mot dans la ligne : « Interventions 13 » débordait) — et une légende le dit', /\.nav-item\[data-nonchoisie\]::after\{content:"";[^}]*border-radius:50%/.test(m) && /demo-legende/.test(m) && /Rubrique non choisie dans votre demande/.test(m));
   vrai('le bandeau est reposé par l\'observateur de #content (après chaque écriture), pas depuis go()', /new MutationObserver\(function \(\) \{ _demoObs\.disconnect\(\); try \{ demoPubliqueBandeau\(\)/.test(m) && !/function go\(/.test(m));
   vrai('le pare-feu n\'est pas touché par ce chantier : aucun message ni lien nouveau n\'y est autorisé', !/postMessage|creer\.html/.test(lire('scripts/demo/pare-feu.js')));
   vrai('la page générée porte le tout (demo.html contient demoPubliqueAdresse et demoPubliqueAjouter)', /function demoPubliqueAdresse\(/.test(DEMO) && /function demoPubliqueAjouter\(/.test(DEMO));

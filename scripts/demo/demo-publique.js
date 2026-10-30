@@ -303,7 +303,9 @@ function demoPubliqueStyle() {
     '.demo-bandeau.demo-nc .demo-txt{color:var(--t1)}',
     '.demo-bandeau .demo-ajout{color:var(--on-fill,#fff);background:var(--acc-fill,var(--acc));border-color:transparent}',
     '.demo-bandeau .demo-ajout:hover{background:var(--acc-fill,var(--acc));filter:brightness(1.08)}',
-    '.nav-item[data-nonchoisie]::after{content:"non choisie";margin-left:auto;flex:none;font-size:10px;font-weight:600;letter-spacing:.02em;line-height:1;color:var(--t3);border:1px solid var(--brd2);border-radius:999px;padding:3px 7px;white-space:nowrap}',
+    '.nav-item[data-nonchoisie]::after{content:"";margin-left:auto;flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:50%;border:1.5px dashed var(--t3)}',
+    '.demo-legende{display:flex;align-items:center;gap:8px;margin:2px 14px 8px;font-size:11.5px;line-height:1.35;color:var(--t3)}',
+    '.demo-legende i{flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:50%;border:1.5px dashed var(--t3)}',
     '@media (max-width:520px){.demo-bandeau{padding:7px 10px;font-size:11.5px;gap:4px 8px;margin-bottom:10px}.demo-bandeau b{display:none}.demo-bandeau button{min-height:30px;font-size:11.5px;padding:3px 10px}}',
     '.demo-choix{width:min(980px,100%);margin:0 auto;padding:28px 18px 40px;text-align:center;color:var(--t1)}',
     '.demo-choix h2{font-size:26px!important;letter-spacing:-.02em;margin:6px 0 8px}',
@@ -340,9 +342,15 @@ function demoPubliqueBandeau() {
     + '<span class="demo-act"><button type="button" class="demo-ajout" onclick="demoPubliqueAjouter(\'' + k + '\')">L’ajouter à ma demande</button></span>';
   c.insertBefore(m, b.nextSibling);
 }
-/* le menu : une petite marque discrète sur les rubriques non cochées (un attribut, écrit après chaque dessin du menu — le texte « non choisie » vient du CSS) */
+/* le menu : une petite marque discrète sur les rubriques non cochées (un attribut, écrit après chaque dessin du menu ; le rond pointillé vient du CSS — un MOT dans la ligne
+   débordait dès qu'une pastille de nombre s'y trouvait déjà, « Interventions 13 »), et UNE ligne de légende qui dit ce que le rond veut dire */
 function demoPubliqueMenu() {
   const n = document.getElementById('nav'); if (!n || !n.querySelectorAll) return;
+  if (_demoSel && _demoSel.cats && _demoSel.cats.length && !n.querySelector('.demo-legende') && n.querySelector('.nav-item[data-view]')) {
+    const l = document.createElement('div'); l.className = 'demo-legende'; l.innerHTML = '<i aria-hidden="true"></i><span>Rubrique non choisie dans votre demande</span>';
+    const premier = Array.prototype.find.call(n.children, function (x) { return !(x.classList.contains('nav-loupe') || x.id === 'nav-rien'); });
+    n.insertBefore(l, premier || null);
+  }
   Array.prototype.forEach.call(n.querySelectorAll('.nav-item[data-view]'), function (el) {
     if (demoPubliqueNonChoisie(el.getAttribute('data-view'))) { el.setAttribute('data-nonchoisie', '1'); el.setAttribute('title', 'Non choisie dans votre demande'); }
   });
