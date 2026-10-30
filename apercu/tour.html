@@ -157,6 +157,9 @@ button,input,select,textarea{font-family:inherit}
    TRANSLUCIDE (--inset en rgba), donc un gris clair — et pour texte la couleur claire de la page. Les options reçoivent un fond OPAQUE
    et l'encre du thème, de jour comme de nuit (--bg et --text sont opaques dans les quatre blocs de thème). Même règle qu'OP MESSAGES. */
 select option,select optgroup{background-color:var(--bg);color:var(--text)}
+/* ⛔ Et le fond du champ : sous Windows la liste ouverte prend le fond du <select> (ici une vitre translucide, donc un gris clair),
+   pas celui des options. De nuit, le champ reçoit un fond OPAQUE ; le chevron (background-image) reste. */
+body:not(.jour) select{background-color:#1C2740!important}
 :focus{outline:none}
 :focus-visible{box-shadow:var(--anneau);outline:none}
 button:focus-visible,.item:focus-visible,.kpi.clic:focus-visible{box-shadow:var(--anneau)}

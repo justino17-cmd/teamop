@@ -108,6 +108,8 @@
    le champ. On donne aux options leurs propres couleurs, dans les deux thèmes (le `color-scheme` reste « light dark » sur :root : test-856). */
 select option, select optgroup { background-color: #ffffff; color: #0b1633; }
 @media (prefers-color-scheme: dark) { select option, select optgroup { background-color: #14213a; color: #eef2f8; } }
+/* et le fond du champ lui-même : sous Windows la liste ouverte prend le fond du <select> (une vitre translucide), pas celui des options */
+@media (prefers-color-scheme: dark) { select { background-color: #14213a !important; } }
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #ffffff;
