@@ -405,7 +405,7 @@ module.exports = function pauline(app, ctx) {
     try { rangerDec(etat); } catch (e) { console.error('pauline : décisions non écrites (' + (e && e.code || 'erreur') + ')'); return 0; }
     if (notifier) {
       const n = neufs.length;
-      Promise.resolve().then(() => notifier('Pauline', n + (n > 1 ? ' nouveaux mails attendent' : ' nouveau mail attend') + ' ton accord', '/tour.html#gestion/messagerie'))
+      Promise.resolve().then(() => notifier('Pauline', n + (n > 1 ? ' nouveaux mails attendent' : ' nouveau mail attend') + ' ton accord', '/tour.html#gestion/messagerie-tour'))
         .catch(() => console.error('pauline : notification non partie'));
     }
     return neufs.length;

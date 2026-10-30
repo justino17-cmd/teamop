@@ -276,8 +276,8 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       const paru = await T.attendre(async () => (await msgs(pau)).length >= 1, 20000, 80);
       vrai('⛔ le message de Pauline paraît dans SA conversation', !!paru);
       const m1 = await msgs(pau);
-      v('…un seul, de son robot, numéroté, avec l\'entreprise, l\'objet et le lien de la Tour', [m1.length, m1[0].auteur === pau.autre.id, /n°1 — Banc Hygiène SARL : « Vos locaux à Lyon » attend ton accord/.test(m1[0].texte), m1[0].texte.includes('#gestion/messagerie')], [1, true, true, true]);
-      vrai('⛔ ni adresse, ni contact, ni texte du courriel dans OP MESSAGES', !/secret\.prospect|banc-hygiene\.fr|Contactsecret|TEXTE-SECRET/.test(JSON.stringify(m1)));
+      v('…un seul, de son robot, numéroté, avec l\'entreprise, l\'objet et le lien de la Tour', [m1.length, m1[0].auteur === pau.autre.id, /n°1 — Banc Hygiène SARL : « Vos locaux à Lyon » attend ton accord/.test(m1[0].texte), m1[0].texte.includes('#gestion/messagerie-tour'), m1[0].texte.includes('TEXTE-SECRET-DU-COURRIEL-3095'), m1[0].texte.includes('OUI 1')], [1, true, true, true, true, true]);
+      vrai('⛔ ni adresse ni contact du prospect dans OP MESSAGES (le texte du courriel, lui, y est : Justin le lit pour l\'accepter)', !/secret\.prospect|banc-hygiene\.fr|Contactsecret/.test(JSON.stringify(m1)));
       await envoi(JETON_P); await envoi(JETON_P); await dort(900);
       v('⛔ deux relevés de plus : toujours UN message', (await msgs(pau)).length, 1);
       const intrusEcrit = await intrus.post('/api/conversations/' + pau.id + '/messages', { cid: 'intrus-pauline-1', texte: 'NON 1' });
@@ -286,9 +286,11 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       v('⛔ un autre compte ne peut pas écrire à Pauline (404) : aucune décision', [intrusEcrit.code, Object.keys(await decs()).length], [404, 0]);
       const ok1 = await justin.post('/api/conversations/' + pau.id + '/messages', { cid: 'opm-pauline-ok', texte: 'OK 1' });
       await dort(900);
-      v('⛔ « OK 1 » de Justin : Pauline répond qu\'elle n\'accepte pas d\'ici, AUCUNE décision', [ok1.code, Object.keys(await decs()).length, (await msgs(pau)).some(m => /Je n’accepte pas depuis ici/.test(m.texte))], [201, 0, true]);
+      const accord = await T.attendre(async () => (await decs()).cb1, 15000, 80);
+      v('⛔ « OK 1 » de Justin (le texte a été lu en entier) : la décision « accepter » est enregistrée par la Tour, à faire par le Mac', [ok1.code, accord && accord.action, accord && accord.etat], [201, 'accepter', 'a_faire']);
+      vrai('…et Pauline dit « accepté », jamais « parti »', (await msgs(pau)).some(m => /Mail n°1 accepté/.test(m.texte) && !/est parti/.test(m.texte)));
       const non1 = await justin.post('/api/conversations/' + pau.id + '/messages', { cid: 'opm-pauline-non', texte: 'NON 1' });
-      const refuse = await T.attendre(async () => (await decs()).cb1, 15000, 80);
+      const refuse = await T.attendre(async () => ((await decs()).cb1 || {}).action === 'refuser' && (await decs()).cb1, 15000, 80);
       v('⛔ « NON 1 » de Justin : la décision « refuser » est enregistrée par la Tour, à faire par le Mac', [non1.code, refuse && refuse.action, refuse && refuse.etat], [201, 'refuser', 'a_faire']);
       vrai('…et Pauline confirme dans le fil', !!(await T.attendre(async () => (await msgs(pau)).some(m => /Mail n°1 refusé/.test(m.texte)), 15000, 80)));
       const mac = await fetch(tour.base + '/api/pauline/decisions', { headers: { Authorization: 'Bearer ' + JETON_P } });
