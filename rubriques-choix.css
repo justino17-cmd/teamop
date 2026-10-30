@@ -43,3 +43,26 @@
 .rub-fixe { flex: 0 0 22px; width: 22px; height: 22px; margin: 2px 0 0; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--rb-ok); background: color-mix(in srgb, var(--rb-ok) 14%, transparent); }
 @media (min-width: 760px) { .rub-ligne { padding: 13px 18px; } .rub-gt { padding-left: 18px; padding-right: 18px; } }
 @media (prefers-reduced-motion: no-preference) { .rub-ligne { transition: background .18s ease-out; } }
+
+/* ══ LA PAGE DE CRÉATION (creer.html) : la variante du chauffage / climatisation et le bouton « Tester l'application » (30 octobre 2026) ════════
+   Les jetons sont ceux du site (`--line`, `--link`, `--tile`, `--sub`, `--accent`) : jour et nuit suivent l'appareil. Cibles de 44 px au moins. */
+.variante { margin: 14px 0 0; padding: 14px 16px; border: 1.5px solid var(--link); border-radius: 16px; background: var(--tile); min-width: 0; }
+.variante[hidden], .tester-bloc[hidden] { display: none; }
+.variante legend { padding: 0 6px; font-size: 14px; font-weight: 700; }
+.variante p { margin: 0 0 10px; font-size: 13.5px; color: var(--sub); }
+.variante-choix { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.variante-opt { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 14px; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; background: transparent; min-width: 0; }
+.variante-opt input { flex: 0 0 auto; width: 22px; height: 22px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.variante-opt span { display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
+.variante-opt b { font-size: 14.5px; font-weight: 600; }
+.variante-opt small { font-size: 12px; color: var(--sub); }
+.variante-opt:has(input:checked) { border-color: var(--link); background: color-mix(in srgb, var(--link) 8%, transparent); }
+.variante-opt:has(input:focus-visible) { outline: 2px solid var(--link); outline-offset: 2px; }
+.tester-bloc { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; margin: 4px 0 0; padding: 14px 16px; border: 1.5px dashed var(--line); border-radius: 16px; }
+.bouton-test { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 22px; border-radius: 999px; font-size: 16px; font-weight: 600; color: var(--link); border: 1.5px solid var(--link); background: transparent; text-decoration: none; }
+.bouton-test:hover { background: color-mix(in srgb, var(--link) 8%, transparent); text-decoration: none; }
+.bouton-test:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.tester-bloc small { flex: 1 1 260px; min-width: 0; font-size: 13px; color: var(--sub); line-height: 1.5; }
+.rub-ajoutee { flex: 1 1 100%; margin: 4px 0 0; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--link); background: color-mix(in srgb, var(--link) 10%, transparent); }
+.rub-ajoutee[hidden] { display: none; }
+.rub-ligne.vient-dajouter { outline: 2px solid var(--link); outline-offset: -2px; }

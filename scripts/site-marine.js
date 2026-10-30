@@ -43,7 +43,8 @@ const packPret = k => PACKS_APP.includes(k) ? 1 : 0;
    création du site (creer.html) l'embarque pour proposer les rubriques sans réseau. Seuls les métiers OUVERTS y figurent. */
 const REF_PUBLIQUE = (() => {
   const toujours = Object.keys(METIERS_REF.rubriques).filter(k => METIERS_REF.rubriques[k].toujours);
-  const ref = require('../server/metiers.js')(path.join(RACINE, 'metiers.json'), Object.keys(METIERS_REF.rubriques).filter(k => !toujours.includes(k)), toujours).publique();
+  const BASE = (/const CATS_BASE = \[([^\]]*)\]/.exec(fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8')) || [, ''])[1].match(/'[A-Za-z0-9]+'/g) || [];
+  const ref = require('../server/metiers.js')(path.join(RACINE, 'metiers.json'), Object.keys(METIERS_REF.rubriques).filter(k => !toujours.includes(k)), toujours, BASE.map(x => x.slice(1, -1))).publique();
   /* ⚠️ SANS LA RAISON DE CHAQUE RUBRIQUE POUR CHAQUE MÉTIER (`pourquoi`, `proposees`) : ces phrases parlent du camion, du temps passé, du stock de la
      camionnette — vraies pour le métier, mais le site public ne dit pas ce que l'application ne tient pas (`test-846` lit JUSQUE DANS le JSON de la
      page). La page de création garde le titre, l'explication et le conseil de chaque rubrique ; les raisons, elles, s'affichent dans l'espace client et la
@@ -245,6 +246,19 @@ const ESPACE = () => hors('/espace.html'), CONNEXION = () => hors('/connexion.ht
    23 octobre 2026 : « sur le site il faudrait faire un système de simulation des applications, qu'ils puissent tester » ; le lien sur le site, sur sa
    phrase du même jour. Toujours l'adresse de la RACINE : la démonstration n'a pas de copie d'aperçu. */
 const DEMO = () => '/demo.html';
+/* le bouton « Tester l'application » de la page de création : la démonstration du MÊME dossier que la page — celle de l'APERÇU quand on regarde l'aperçu
+   (pour voir la nouvelle démonstration avant publication), celle de la racine sinon. Les autres liens de démonstration restent à la racine. */
+/* ⚠️ `rel="opener"` EXPRÈS : la démonstration renvoie « Ajouter cette rubrique » à cette page par `window.opener.postMessage` — un lien `_blank` est `noopener` par défaut. */
+const DEMO_TEST = () => hors('/demo.html');
+/* ⛔ LA PAGE DE CRÉATION NEUVE (variante du chauffage, rubriques de base verrouillées, « Tester l'application ») N'EST QUE DANS L'APERÇU : la racine est la
+   page PUBLIÉE (`test-835` §10, `test-837`) et ne change que sur la phrase de Justin. Ce jour-là : retirer cette garde — la racine se régénère
+   alors avec `node scripts/site-marine.js --racine`. */
+const NOUVEAU_CREER = () => !POUR_LA_RACINE;
+const blocVariante = () => !NOUVEAU_CREER() ? '' : `<fieldset class="variante" id="variante-chauffage" hidden><legend>${fr('Chauffage / Climatisation : que faites-vous ?')}</legend><p>${fr('Dites-nous ce que fait votre entreprise : nous réglons votre application en conséquence.')}</p><div class="variante-choix">`
+  + [['deux', 'Les deux', 'Chauffage et climatisation'], ['chauffage', 'Chauffage seulement', 'Pas de climatisation'], ['climatisation', 'Climatisation seulement', 'Pas de chauffage']]
+    .map(([v, n, d], i) => `<label class="variante-opt"><input type="radio" name="variante" value="${v}"${i === 0 ? ' checked' : ''}><span><b>${fr(n)}</b><small>${fr(d)}</small></span></label>`).join('')
+  + '</div></fieldset>';
+const blocTester = () => !NOUVEAU_CREER() ? '' : `<div class="tester-bloc" id="tester-bloc" hidden><a class="bouton-test" id="tester-app" href="${DEMO_TEST()}" data-demo="${DEMO_TEST()}" target="_blank" rel="opener">${fr('Tester l\'application')} <span aria-hidden="true">↗</span></a><small>${fr('S\'ouvre dans un nouvel onglet, avec vos choix. Les rubriques que vous n\'avez pas cochées y sont signalées : vous pouvez les visualiser quand même.')}</small><p class="rub-ajoutee" id="rubrique-ajoutee" role="status" aria-live="polite" hidden></p></div>`;
 const lienDemo = () => `<a class="lien-suite" href="${DEMO()}">Essayer la démonstration ›</a>`;
 
 function entete(section, sousnav) {
@@ -698,7 +712,7 @@ const PAGES = {
     /* la grille des rubriques (rubriques-choix.js/.css, partagée avec l'espace client et la page de paiement) et le référentiel qu'elle lit : le MÊME que
        celui du serveur (`REF_PUBLIQUE`), embarqué — la page se lit sans réseau, et ne propose que les métiers OUVERTS. `<` échappé : le JSON est dans un <script>. */
     tete: () => '<link rel="stylesheet" href="/rubriques-choix.css">\n',
-    scripts: () => '<script type="application/json" id="referentiel-metiers">' + JSON.stringify(REF_PUBLIQUE).replace(/</g, '\\u003c') + '</script>\n<script src="/rubriques-choix.js" defer></script>\n', titre: 'Créer votre application — TEAM OP', desc: 'Décrivez votre métier et vos besoins : nous étudions votre demande et construisons avec vous l\'application qu\'il vous faut.',
+    scripts: () => '<script type="application/json" id="referentiel-metiers">' + JSON.stringify(NOUVEAU_CREER() ? REF_PUBLIQUE : Object.assign({}, REF_PUBLIQUE, { base: undefined })).replace(/</g, '\\u003c') + '</script>\n<script src="/rubriques-choix.js" defer></script>\n', titre: 'Créer votre application — TEAM OP', desc: 'Décrivez votre métier et vos besoins : nous étudions votre demande et construisons avec vous l\'application qu\'il vous faut.',
     corps: () => scene('Sur mesure', 'Créons votre application, de A à Z.', 'Décrivez-nous votre métier, votre quotidien et vos besoins : nous étudions votre demande et construisons avec vous l\'outil qu\'il vous faut.')
       + `<section class="page" style="max-width:1100px;padding-top:clamp(50px,6vw,80px);padding-bottom:60px">
         <div class="etapes3"><div><b>1</b><span>Vous décrivez votre besoin</span></div><div><b>2</b><span>On vous rappelle sous 48 h</span></div><div><b>3</b><span>On construit ensemble</span></div></div>
@@ -717,8 +731,8 @@ const PAGES = {
         .map(([k, n, s, p]) => `<button type="button" class="metier-puce" aria-pressed="false" data-pack="${k}" data-nom="${esc(n)}" data-pret="${p}"><b>${fr(n)}</b><small>${fr(s)}</small><i${p ? ' class="pret"' : ''}>${p ? (k === 'autre' ? 'Réglage général' : 'Pack prêt') : (METIERS_REF.metiers[k].existant ? 'Sur mesure avec vous' : 'Bientôt')}</i></button>`).join('')
       + `</div>
           <p class="erreur-metier" id="erreur-metier" role="alert" hidden>${fr('Choisissez votre métier : il règle votre application (catégories d\'intervention, fiche de terrain, rubriques). La demande ne part pas sans lui.')}</p>
-          <p class="metier-bientot" id="metier-bientot" role="status" hidden>${fr('Ce métier n\'a pas encore son pack dans l\'application : la demande part quand même, et nous construisons le vôtre avec vous.')}</p></div>
-          <div id="rubriques-demande" hidden><h3>${fr('3 · Vos rubriques')}</h3><div id="rubriques-grille"></div></div>
+          <p class="metier-bientot" id="metier-bientot" role="status" hidden>${fr('Ce métier n\'a pas encore son pack dans l\'application : la demande part quand même, et nous construisons le vôtre avec vous.')}</p>${blocVariante()}</div>
+          <div id="rubriques-demande" hidden><h3>${fr('3 · Vos rubriques')}</h3><div id="rubriques-grille"></div></div>${blocTester()}
           <div><h3>${fr('4 · Ce dont vous avez besoin')}</h3><p>${fr('Cochez tout ce qui vous parle — on affine ensemble après.')}</p><div class="besoins">`
       + ['Planning et rendez-vous', 'Suivi d\'interventions / chantiers', 'Stock / matériel / box', 'Encaissements / facturation', 'Communication d\'équipe', 'Photos et comptes-rendus', 'Gestion clients / contrats'].map(b => `<button type="button" class="besoin" aria-pressed="false">${fr(b)}</button>`).join('')
       + `</div></div>

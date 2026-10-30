@@ -119,7 +119,7 @@ const geometrie = (S) => S.page.evaluate(() => {
     v('⛔ le COMPTE retient le choix (prefs.agenda_vue)', ((await A0.get('/api/moi')).j.moi.prefs || {}).agenda_vue, 'mois');
     await toucher(A, '#sem-suiv');
     const suivant = (s => s.charAt(0).toUpperCase() + s.slice(1))(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', month: 'long', year: 'numeric' }).format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 15)));
-    vrai('« Mois suivant » : ' + suivant + ', sans « aujourd\'hui »', await attendre(A, (x) => document.getElementById('sem-titre').textContent === x && document.querySelectorAll('#mois-jours [aria-current="date"]').length === 0, suivant));
+    vrai('« Mois suivant » : ' + suivant + ', sans « aujourd\'hui » DANS le mois (les derniers jours d\'octobre, case grisée `.hors`, peuvent le porter : c\'est bien aujourd\'hui)', await attendre(A, (x) => document.getElementById('sem-titre').textContent === x && document.querySelectorAll('#mois-jours .mjour:not(.hors) [aria-current="date"]').length === 0, suivant));
     await toucher(A, '#sem-titre');
     vrai('le titre ramène à aujourd\'hui', await attendre(A, (x) => document.getElementById('sem-titre').textContent === x && document.querySelectorAll('#mois-jours [aria-current="date"]').length === 1, titreAttendu));
     await A.page.reload();

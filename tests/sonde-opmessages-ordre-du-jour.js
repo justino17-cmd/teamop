@@ -135,7 +135,12 @@ function localDans(t, tz) {
     await toucher(A, '#salle-quitter');
     vrai('population : « Quitter » propose « Terminer pour tous » à l\'hôte', await att(A, () => !!document.querySelector('[data-sa="terminer-confirmer"]')));
     await toucher(A, '[data-sa="terminer-confirmer"]');
-    vrai('la salle se ferme chez Ana', await att(A, () => document.documentElement.dataset.salle !== '1', null, 20000));
+    /* ⛔ depuis le 26 octobre 2026 (« fait les 18 », salle@4/10), la fin d'une RÉUNION ne ferme plus la salle d'un coup : l'écran de sortie « Réunion terminée » (durée, présents) tient la place
+       dans la couche de l'appel — donc `data-salle` RESTE jusqu'au bouton « Revenir à la conversation », exprès. On prouve l'écran, puis la fermeture au bouton. */
+    vrai('chez Ana, l\'écran « Réunion terminée » prend la place (médias lâchés, durée et présents dits)', await att(A, () => document.documentElement.dataset.sortie === '1' && document.getElementById('sortie-titre').textContent === 'Réunion terminée' && /Présents/.test(document.getElementById('sortie-faits').textContent), null, 20000),
+      await A.page.evaluate(() => ({ sortie: document.documentElement.dataset.sortie, titre: (document.getElementById('sortie-titre') || {}).textContent })));
+    await toucher(A, '#sortie-bouton');
+    vrai('la salle se ferme chez Ana (au bouton « Revenir à la conversation »)', await att(A, () => document.documentElement.dataset.salle !== '1' && !document.documentElement.dataset.sortie, null, 20000));
     const B = await ouvrir('ben', TEL, '#messages/' + R.conv);
     vrai('⛔ chez Ben, la conversation de la réunion porte la carte du compte rendu : « Compte rendu », le titre, « Présents (2) », « Ordre du jour · 3 / 3 »', await att(B, () => {
       const c = document.querySelector('#conv-messages .compte-rendu'); if (!c) return false; const t = c.textContent;
