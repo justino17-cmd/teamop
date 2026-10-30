@@ -397,6 +397,22 @@ function installerPont(H, ctx) {
     res.json({ ok: true, curseur: lu.dernier, plein: lu.plein, evenements });
   });
 
+  /* ── non-lus : ce que la pastille « Messagerie » de la Tour doit dire (Justin, 30 octobre 2026 : « elle affiche 13 alors que je n'ai rien ;
+     un petit rond quand j'ai une notification dans OP MESSAGES, rien quand il n'y a plus rien »). La MÊME définition que la pastille d'OP MESSAGES
+     (`convListe`, `non_lus` : un message d'un autre, après ce qu'il a lu, ni système, ni supprimé, ni échu, ni masqué), sur TOUTES ses conversations,
+     les sourdines comprises sauf la sourdine en cours. Un NOMBRE, jamais un nom ni un texte : la Tour n'en fait qu'un rond. ── */
+  H['pont.nonlus'] = garder((req, res) => {
+    const t = lireTable();
+    if (!t) return refus(res, 409, 'pont_non_installe');
+    const maintenant = Date.now();
+    let n = 0, convs = 0;
+    for (const c of stockage.convListe(t.justin)) {
+      if (c.archive || (c.muet_jusqua && c.muet_jusqua > maintenant)) continue;
+      if (c.non_lus > 0) { n += c.non_lus; convs++; }
+    }
+    res.json({ ok: true, nonLus: n, conversations: convs });
+  });
+
   /* ── supprimer : la Tour a supprimé un message ── */
   H['pont.supprimer'] = garder((req, res) => {
     const b = corps(req), t = lireTable();

@@ -225,6 +225,8 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
 /* « Nouveau » (lot 1, 21 octobre 2026) : une pastille discrète, la teinte de l'accent en voile — l'état d'une destination, pas une alerte */
 .tab .nv{margin-left:auto;font-size:10px;font-weight:600;letter-spacing:.01em;line-height:16px;padding:0 6px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc-txt,var(--acc));white-space:nowrap}
 body.barre-repliee .tab .nv{display:none}
+/* v2.127 — le rond de la Messagerie : une notification, pas un nombre */
+.bdg-r.bdg-point,.bdg-b.bdg-point{min-width:0;width:9px;height:9px;padding:0;font-size:0;line-height:0;vertical-align:middle}
 .bdg-b{display:none;background:var(--acc-fill);color:#fff;border-radius:var(--r-pill);font-size:11px;padding:1px 7px;font-weight:700;min-width:18px;text-align:center}
 
 /* ══ CARTES ET LISTES ═══ sans bord ; la surface se détache du fond par le ton ══ */
@@ -3688,7 +3690,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.126</div>
+    <div class="lg-pied">console interne · v2.127</div>
   </div>
 </div>
 
@@ -3723,7 +3725,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">La Tour · v2.126</div>
+        <div class="hd-tour" id="hd-tour">La Tour · v2.127</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3736,7 +3738,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
   <main id="opm-hote" hidden></main>   <!-- v2.120 : le cadre d'OP MESSAGES vit ICI, hors de #vue (qui est réécrit à chaque rubrique) : il est affiché ou masqué, jamais détruit -->
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.126</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.127</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -4081,7 +4083,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.126';
+var TOUR_VERSION='v2.127';
 /* le nom de la Tour dit qu'elle est UNE (plus « Tour OP GESTION » / « Tour OP MESSAGES ») ; la couleur ne parle jamais seule */
 function majEnteteTour(){ var hd=$('hd-tour'); if(hd) hd.textContent='La Tour · '+TOUR_VERSION; }
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
@@ -4291,7 +4293,7 @@ function renderTabs(){
      Surveillance et Courrier restaient muets jusqu'au prochain relevé (une minute). On repose ce
      qu'on SAIT déjà — et pour TOUTES les applications du compte : une alerte ne se masque pas parce qu'un filtre est posé. */
   var poser=function(id,n){ var e=$(id); if(e){ e.textContent=n; e.style.display=n?'inline-block':'none'; } };
-  try{ if(INC.loaded) poser('bdg-surv',incOuvertsTous().length); if(MSG.loaded||CLI.loaded) poser('bdg-att',attendCompte()); if(MS.lec===1||MS.nonLus) poser('bdg-msgr',MS.nonLus); }catch(x){}
+  try{ if(INC.loaded) poser('bdg-surv',incOuvertsTous().length); if(MSG.loaded||CLI.loaded) poser('bdg-att',attendCompte()); if(MS.pont) msBadge(); else if(MS.lec===1||MS.nonLus) poser('bdg-msgr',MS.nonLus); }catch(x){}
   renderBarreBas();
   majHaut();
 }
@@ -13568,7 +13570,22 @@ function paMessagerieApres(){
   if(PA.lec===1){ MS_PA.n=paAttenteN(); msBadge(); }
   if(TAB==='messagerie'&&MS.inst){ messPeindreListe(); if(MS.fil==='pauline'){ messPeindreFil(); messPeindreEntete(); } }
 }
-function msBadge(){ setBdg('bdg-msgr',(Number(MS.nonLus)||0)+(Number(MS_PA.n)||0)); }
+/* v2.127 — LA PASTILLE « Messagerie » SUIT OP MESSAGES (Justin, 30 octobre 2026 : « ça m'affiche 13 messages alors que pas du tout ; un petit
+   rond quand j'ai une notification dans OP MESSAGES, et quand il n'y a plus rien, plus rien »). Le 13 additionnait les non-lus de l'ANCIENNE
+   messagerie de la Tour, que Justin ne lit plus depuis qu'il parle aux agents dans OP MESSAGES. Dès que le serveur dit que le pont existe
+   (`/api/monitor/opmsg-nonlus`), la pastille devient un ROND : allumé s'il reste un non-lu dans OP MESSAGES ou un mail de Pauline à valider,
+   éteint sinon. « On ne sait pas » (OP MESSAGES muet) garde l'état d'avant, il n'allume ni n'éteint rien. Sans pont : l'ancien compteur. */
+function msBadge(){
+  var e=$('bdg-msgr');
+  if(MS.pont){ var on=(Number(MS.opmsg)||0)>0||(Number(MS_PA.n)||0)>0;
+    setBdg('bdg-msgr',on?'\u00a0':0); [e,$('bdg-msgr-bas')].forEach(function(x){ if(x){ x.classList.toggle('bdg-point',on); x.setAttribute('aria-label',on?'Nouveaux messages dans OP MESSAGES':''); } }); return; }
+  [e,$('bdg-msgr-bas')].forEach(function(x){ if(x) x.classList.remove('bdg-point'); });
+  setBdg('bdg-msgr',(Number(MS.nonLus)||0)+(Number(MS_PA.n)||0)); }
+function opmsgNonLusCharger(){
+  if(MYROLE!=='patron') return;
+  apiGet('/api/monitor/opmsg-nonlus').then(function(d){ if(!d||d.ok!==true) return;
+    MS.pont=d.pont===true; if(typeof d.nonLus==='number') MS.opmsg=d.nonLus; msBadge(); }).catch(function(){});
+}
 function paResumeCharger(){
   if(MYROLE!=='patron'||Date.now()-MS_PA.luResume<20000) return;
   MS_PA.luResume=Date.now();
@@ -13919,11 +13936,15 @@ function messNonLusCharger(){
   if(MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return;
   apiGet('/api/monitor/conversations').then(function(d){ if(d&&typeof d.nonLus==='number'){ MS.nonLus=d.nonLus; if(typeof msBadge==='function') msBadge(); else setBdg('bdg-msgr',MS.nonLus); } }).catch(function(){});
   if(typeof paResumeCharger==='function') paResumeCharger();
+  if(typeof opmsgNonLusCharger==='function') opmsgNonLusCharger();
 }
 function messReleve(){
   if(MS.releve||MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return; MS.releve=true;
   messNonLusCharger();
   setInterval(function(){ if(document.visibilityState==='visible'&&TAB!=='messagerie') messNonLusCharger(); },60000);
+  /* OP MESSAGES : relu toutes les 20 s quand la Tour est à l'écran — ouverte sur la Messagerie aussi, pour que le rond s'éteigne dès qu'on a lu */
+  setInterval(function(){ if(document.visibilityState==='visible') opmsgNonLusCharger(); },20000);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') opmsgNonLusCharger(); });
 }
 
 /* ══ démarrage : une session déjà ouverte reprend la main ══ */
