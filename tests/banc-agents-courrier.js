@@ -64,7 +64,7 @@ const PROPOSITION = ['Bonjour,', '', 'Nous vous remercions pour vos réponses. N
   'Nous restons à votre disposition par retour de mail ou par téléphone.', '', 'Bien cordialement,'].join('\n');
 const CHLOE_DEBUT = 'Tu es Chloé, l’assistante « Devis et propositions »';
 const LOUIS_DEBUT = 'Tu es Louis, l’assistant « Documentation et aide »';
-const JUGE_DEBUT = 'Tu es le relecteur qualité', RECHERCHE_DEBUT = 'Tu es Léa, l’assistante de TeamOP. Avant d’écrire';
+const JUGE_DEBUT = 'Tu es le relecteur qualité', NOTEUR_DEBUT = 'Tu es le relecteur de TeamOP. Tu NOTES', RECHERCHE_DEBUT = 'Tu es Léa, l’assistante de TeamOP. Avant d’écrire';
 
 /* Ce que Justin enregistre dans la Tour en ouvrant « Répondre seul aux questions courantes par courrier » — la forme EXACTE d'`agents-charte.json`. */
 const CHARTE_OUVERTE = { repondre_client: { auto: true } };
@@ -105,10 +105,20 @@ function monter(o) {
   /* Claude simulé : chaque requête est gardée ; `o.claude(requete, n)` choisit la réponse (texte brut, ou un objet d'erreur à jeter). */
   /* `recus` : les appels du RÉDACTEUR seulement ; le juge (`recusJuge`, réponse par défaut « VERDICT : OK », réglable par `o.juge(requete, n)`) et la recherche web (`recusRecherche`,
      par défaut « IDENTIFIEE : non », réglable par `o.recherche(requete, n)` qui peut rendre { texte, recherches }) ont les leurs. */
-  const recus = [], recusJuge = [], recusRecherche = [], recusLouis = [];
-  const cerveau = require(S('cerveau.js'))({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2862-xxxxxxxxxxxxxxxx', maintenant,
-    appeler: async (cle, requete) => {
+  const recus = [], recusJuge = [], recusRecherche = [], recusLouis = [], recusNoteur = [];
+  const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.cleApi || (o.sansCle ? '' : 'sk-ant-banc-2862-xxxxxxxxxxxxxxxx'), maintenant }, o.cerveauCtx || {}, {
+    travailActif: id => { try { return !!(travail && travail.actif(id)); } catch (e) { return false; } },   // les plafonds du mode travail suivent l'interrupteur (comme index.js)
+    appeler: async (cle, requete, optsAppel) => {
       const copie = JSON.parse(JSON.stringify(requete));
+      /* `o.appelerReel(cle, requete, opts)` : le VRAI modèle (le script `server/outils/evaluation-travail/rejouer.js`) — les requêtes sont gardées, rien n'est simulé */
+      if (o.appelerReel) { recus.push(copie); return o.appelerReel(cle, requete, optsAppel); }
+      /* LE MODE « TRAVAIL » (30 octobre 2026) : le relecteur noté (`agents-grille.js`) a son propre rôle ; `o.notes(requete, n)` rend ses lignes (par défaut huit 5 — « tout va bien »). */
+      if (String(requete.system).startsWith(NOTEUR_DEBUT)) {
+        recusNoteur.push(copie);
+        const r = o.notes ? await o.notes(requete, recusNoteur.length) : ['repond_a_tout', 'etape_suivante', 'longueur', 'juste', 'charte', 'personnalise', 'professionnel'].map(c => 'NOTE ' + c + ' : 5').join('\n');
+        if (r instanceof Error) throw r;
+        return { texte: r, entree: 1500, sortie: 60, stop_reason: 'end_turn' };
+      }
       if (String(requete.system).startsWith(JUGE_DEBUT)) {
         recusJuge.push(copie);
         const r = o.juge ? await o.juge(requete, recusJuge.length) : 'VERDICT : OK';
@@ -128,10 +138,13 @@ function monter(o) {
         return { texte: r, entree: 1500, sortie: 100, stop_reason: 'end_turn' };
       }
       recus.push(copie);
+      copie.__appel = optsAppel || null;
       const r = o.claude ? await o.claude(requete, recus.length) : courrielPour(requete);
       if (r instanceof Error) throw r;
+      /* une réponse OBJET (mode travail) : { texte, actions:[{id, nom, entree}], contenu?, entree?, sortie?, stop_reason? } — le faux Anthropic peut appeler un outil */
+      if (r && typeof r === 'object') return Object.assign({ texte: '', entree: 900, sortie: 400, stop_reason: (r.actions && r.actions.length) ? 'tool_use' : 'end_turn' }, r);
       return { texte: r, entree: 900, sortie: 400, stop_reason: 'end_turn' };
-    } });
+    } }));
 
   /* La messagerie simulée. `messages` : 'boite|dossier|uid' → le message que rendrait `lireMessage` (ou une Error à jeter). */
   const boites = o.boites || [{ id: 'b-contact', email: 'contact@teamop.fr', nom: 'TEAM OP' }, { id: 'b-support', email: 'support@teamop.fr', nom: 'TEAM OP' }];
@@ -148,18 +161,21 @@ function monter(o) {
   const paroles = [];
   const conversations = o.conversations || { parler: (de, fil, texte, opts) => { paroles.push({ de, fil, texte, niveau: (opts || {}).niveau }); return { ok: true }; } };
   const louis = require(S('agent-louis.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, cerveau, fichier, maintenant, conversations });
-  const lea = require(S('agent-lea.js'))({ agents, cerveau, brouillons, fichier, maintenant, conversations, louis, recherche: o.recherche !== undefined || o.avecRecherche === true,
+  /* le mode « travail » : `o.travail` (true ou { camille: true }) le LÈVE ; sans lui, rien n'est passé aux agents — le chemin d'avant, au caractère près */
+  const travail = o.travail ? require(S('agents-travail.js'))({ cerveau, agents, conversations, maintenant, travail: o.travail }) : null;
+  const outilsLecture = o.travail ? require(S('agents-outils-lecture.js'))({ brouillons, louis, agents, faits: o.faits || {}, margaux: () => o.margaux || null }) : null;
+  const lea = require(S('agent-lea.js'))({ agents, cerveau, brouillons, fichier, maintenant, conversations, louis, travail, outilsLecture, recherche: o.recherche !== undefined || o.avecRecherche === true,
     libelleMetier: m => ({ chauffage: 'Chauffage / Climatisation', nettoyage: 'Nettoyage' }[m] || ''), metiers: ['chauffage', 'nettoyage', 'autre'] });
   const chloe = require(S('agent-chloe.js'))({ agents, cerveau, brouillons, fichier, maintenant, conversations, louis, metiersPath: o.metiersPath,
     libelleMetier: m => ({ chauffage: 'Chauffage / Climatisation', nettoyage: 'Nettoyage' }[m] || ''),
     contexteClient: o.contexteClient || (() => ({ entreprise: 'Toka Clim', metier: 'chauffage', users: 4, formule: 'pro' })) });
-  const camille = require(S('agent-camille.js'))({ agents, cerveau, brouillons, mail, fichier, maintenant, conversations, louis, chloe: o.sansChloe ? null : chloe, dossierDe: o.dossierDe, domainesNotres: () => ['teamop.fr', 'notre-societe.fr'], adressesNotres: () => ['moi-meme@webmail-2863.example'] });
+  const camille = require(S('agent-camille.js'))({ agents, cerveau, brouillons, mail, fichier, maintenant, conversations, louis, travail, outilsLecture, chloe: o.sansChloe ? null : chloe, dossierDe: o.dossierDe, domainesNotres: () => ['teamop.fr', 'notre-societe.fr'], adressesNotres: () => ['moi-meme@webmail-2863.example'] });
 
   const validations = async () => (await appeler('GET /api/monitor/agents/validations', { tourUser: PATRON, query: { statut: 'tout' } })).corps.validations;
   const journal = () => agents.lireJournal();
   const fichierJson = nom => JSON.parse(fs.readFileSync(path.join(D, nom), 'utf8'));
   const nettoyer = () => { try { fs.rmSync(D, { recursive: true, force: true }); } catch (e) {} };
-  return { D, horloge, agents, direction, cerveau, mail, brouillons, lea, camille, chloe, louis, fichier, recus, recusJuge, recusRecherche, recusLouis, paroles, messages, lectures, envoyes, routes, appeler, PATRON, COLLAB,
+  return { D, horloge, agents, direction, cerveau, mail, brouillons, lea, camille, chloe, louis, fichier, travail, outilsLecture, recusNoteur, recus, recusJuge, recusRecherche, recusLouis, paroles, messages, lectures, envoyes, routes, appeler, PATRON, COLLAB,
     validations, journal, fichierJson, nettoyer };
 }
 /* Le même courriel, pour une entreprise nommée « Toka Clim » (l'accroche doit porter le nom — contrôle qualité du 23 octobre 2026). `pourToka(x)` y ajoute une phrase. */
@@ -170,4 +186,4 @@ const pourToka = x => COURRIEL_TOKA.replace(NOTE_TOKA, NOTE_TOKA + ' ' + x);
 /* La signature d'un agent du Courrier (Léa, Camille, Chloé) : depuis le 23 octobre 2026, elle demande d'enregistrer l'adresse qui envoie (`agents-signature.js`). */
 /* Depuis le 25 octobre 2026 : « Léa — Assistante de TeamOP » (plus « virtuelle », Justin), et la mention de l'IA sous la signature (règlement européen, art. 50). */
 const signatureDe = (nom, role, adr) => nom + ' — ' + (role || 'Assistante de TeamOP') + (/team\s?op/i.test(role || 'TeamOP') ? '' : ' — Équipe TeamOP') + '\n' + (adr || 'contact@teamop.fr') + ' · https://teamop.fr/?de=' + nom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() + '\nPour recevoir nos messages sans faute, ajoutez ' + (adr || 'contact@teamop.fr') + ' à vos contacts.\nMessage préparé par un assistant automatique de TeamOP.';
-module.exports = { CHARTE_OUVERTE, LOUIS_DEBUT, PROPOSITION, CHLOE_DEBUT, JUGE_DEBUT, RECHERCHE_DEBUT, monter, COURRIEL, COURRIEL_TOKA, pourToka, NOTE_TOKA, SIGNATURE, courrielPour, signatureDe };
+module.exports = { NOTEUR_DEBUT, CHARTE_OUVERTE, LOUIS_DEBUT, PROPOSITION, CHLOE_DEBUT, JUGE_DEBUT, RECHERCHE_DEBUT, monter, COURRIEL, COURRIEL_TOKA, pourToka, NOTE_TOKA, SIGNATURE, courrielPour, signatureDe };

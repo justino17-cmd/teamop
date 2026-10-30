@@ -184,7 +184,8 @@ module.exports = function documents(app, ctx) {
     if (!p.ok) return { ok: false, raison: p.raison };
     if (p.horsHeures) return { ok: false, raison: 'hors_heures' };       // l'astreinte veille hors des heures mais n'écrit JAMAIS à un client
     const fautes = OPS.controle(o.objet, o.texte, Object.assign({}, o.autorises || {}, { lettre: false }));
-    const aRevoir = fautes.join(', ');
+    /* `o.aRevoirT` (mode « travail », 30 octobre 2026) : la grille de relecture a trouvé le texte sous le seuil, ou n'a pas pu le noter — la raison, en quelques mots du code ; le texte part alors EN VALIDATION, jamais seul */
+    const aRevoir = fautes.join(', ') || (typeof o.aRevoirT === 'string' ? o.aRevoirT.replace(/[\r\n]+/g, ' ').slice(0, 200) : '');
     if (aRevoir) agents.noter(o.agent, 'contrôle qualité', { cible: o.source || 'courrier', resultat: 'refuse', detail: 'à revoir : ' + aRevoir });
     const d = ranger({ type: 'courrier_agent', agent: o.agent, a: o.a, objet: o.objet, texte: o.texte, source: o.source, dossier: o.dossier, autorises: o.autorises, aRevoir });
     if (!d.ok) return d;

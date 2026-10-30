@@ -47,14 +47,16 @@ function monter(o) {
     surMessage: m => (equipe ? equipe.surMessage(m) : null) });
 
   const recus = [];
-  const cerveau = require(S('cerveau.js'))({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2911-xxxxxxxxxxxxxxxx', maintenant,
-    appeler: async (cle, requete) => {
+  const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.cleApi || (o.sansCle ? '' : 'sk-ant-banc-2911-xxxxxxxxxxxxxxxx'), maintenant }, o.cerveauCtx || {}, {
+    travailActif: id => { try { return !!(travail && travail.actif(id)); } catch (e) { return false; } },   // les plafonds du mode travail suivent l'interrupteur (comme index.js)
+    appeler: async (cle, requete, optsAppel) => {
       recus.push(JSON.parse(JSON.stringify(requete)));
+      if (o.appelerReel) return o.appelerReel(cle, requete, optsAppel);   // le VRAI modèle (`server/outils/evaluation-travail/rejouer.js`)
       const r = o.claude ? await o.claude(requete, recus.length) : 'Objet : Mise à jour d’OP GESTION\n\nBonjour,\n\nVotre application OP GESTION vient de recevoir une mise à jour : le planning s’affiche plus vite.\n\nBien cordialement,';
       if (r instanceof Error) throw r;
       if (r && typeof r === 'object') return Object.assign({ texte: '', entree: 900, sortie: 400, stop_reason: 'end_turn' }, r);   // { texte, actions:[{ id, nom, entree }] } : un faux Claude qui joue un outil
       return { texte: r, entree: 900, sortie: 400, stop_reason: 'end_turn' };
-    } });
+    } }));
 
   const boites = o.boites || [{ id: 'b-contact', email: 'contact@teamop.fr', nom: 'TEAM OP' }, { id: 'b-support', email: 'support@teamop.fr', nom: 'TEAM OP' }];
   const envoyes = [];
@@ -87,7 +89,10 @@ function monter(o) {
     clients: () => [], espaceExiste: () => true, stripeListe: async () => [], paiement: () => ({ sur: false }), dossierDe: dep.dossierDe, espaceDeDossier: dep.espaceDeDossier, resilier: dep.resilier, faits: dep.faits });
   const impayesListe = { ok: true, liste: [] };
   const factureDe = { v: null };
-  const margaux = require(S('agent-margaux.js'))({ agents, conversations, documents, direction, fichier, maintenant,
+  /* le mode « travail » (30 octobre 2026) : levé par `o.travail` seulement ; sinon Margaux est montée comme avant, au caractère près */
+  const travail = o.travail ? require(S('agents-travail.js'))({ cerveau, agents, conversations, maintenant, travail: o.travail }) : null;
+  const outilsLecture = o.travail ? require(S('agents-outils-lecture.js'))({ agents, louis: o.louis || null, faits: {}, margaux: () => null }) : null;
+  const margaux = require(S('agent-margaux.js'))({ agents, conversations, documents, direction, fichier, maintenant, cerveau, travail, outilsLecture, indemniteConfirmee: o.indemniteConfirmee,
     impayes: async () => (monde.impayes ? monde.impayes() : impayesListe),
     facture: async (aboId) => { appelsStripe.push(['facture', aboId]); if (monde.facture) return monde.facture(aboId); return factureDe.v; } });
   const emma = require(S('agent-emma.js'))(app, { agents, conversations, documents, fichier, maintenant, monAdmin, monPatronStrict, adresseDe: dep.adresseDe });
@@ -108,7 +113,7 @@ function monter(o) {
   /* un document lu comme la Tour le lit, puis accepté AVEC son empreinte */
   const lireDoc = async (ref) => (await appeler('GET /api/monitor/agents/documents', { tourUser: PATRON, query: { refs: ref } })).corps[ref];
   const accepter = async (v) => { const ref = v.params.ref; const d = ref ? await lireDoc(ref) : null; return decider(v.id, 'accepter', d ? { empreinte: d.empreinte } : {}); };
-  return { D, horloge, equipe, agents, direction, conversations, cerveau, mail, documents, hugo, margaux, emma, sarah, fichier, recus, envoyes, diffusions, appelsStripe, impayesListe, factureDe, dep, espaces,
+  return { D, horloge, equipe, agents, direction, conversations, cerveau, travail, mail, documents, hugo, margaux, emma, sarah, fichier, recus, envoyes, diffusions, appelsStripe, impayesListe, factureDe, dep, espaces,
     routes, appeler, PATRON, COLLAB, validations, decider, journal, fil, fichierJson, nettoyer, lireDoc, accepter };
 }
 module.exports = { monter };
