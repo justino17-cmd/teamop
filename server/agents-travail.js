@@ -44,7 +44,6 @@ module.exports = function travail(ctx) {
   const interrupteur = lireInterrupteur(ctx.travail);
   const agents = ctx.agents || null;
   const actif = id => interrupteur.has(id) && !!cerveau && typeof cerveau.penser === 'function';
-  const journal = (id, action, resultat, detail) => { try { if (agents && typeof agents.noter === 'function') agents.noter(id, action, { cible: 'travail', resultat, detail: String(detail || '').slice(0, 150) }); } catch (e) {} };
 
   const borne = (t, n) => { t = String(t == null ? '' : t); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 

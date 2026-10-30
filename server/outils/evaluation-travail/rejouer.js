@@ -20,7 +20,7 @@
  * ⛔ CE QUE LE RAPPORT NE PROUVE PAS : que le vrai modèle écrira toujours aussi bien (45 cas ne sont pas un parc de clients), ni la tenue à la charge. Il montre des textes à lire — c'est à Justin de juger.
  */
 'use strict';
-const fs = require('fs'), path = require('path');
+const fs = require('fs');
 const CAS = require('./cas.js');
 const { jouer, evaluer } = require('./jouer.js');
 const CERVEAU = require('../../cerveau.js');

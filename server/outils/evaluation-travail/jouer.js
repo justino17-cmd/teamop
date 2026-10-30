@@ -13,6 +13,8 @@ const TESTS = path.join(__dirname, '..', '..', '..', 'tests');
 const J = 86400000;
 const URL_FACTURE = 'https://invoice.stripe.com/i/acct_eval/live_EVAL';
 const REPONSE_MARGAUX = 'Aucun impayé en cours pour ce dossier : aucune facture en attente de règlement.';
+/* ce qui part chez Anthropic, en jetons ESTIMÉS (un jeton pour trois signes : on se trompe vers le haut) — le système et les messages de toutes les requêtes de ce cas */
+const entreeJetons = Z => Math.round([].concat(Z.recus || [], Z.recusJuge || [], Z.recusNoteur || [], Z.recusLouis || []).reduce((n, q) => n + (String(q.system || '').length + JSON.stringify(q.messages || []).length), 0) / 3);
 const nbRequetes = Z => Z.recus.length + (Z.recusJuge ? Z.recusJuge.length : 0) + (Z.recusNoteur ? Z.recusNoteur.length : 0) + (Z.recusLouis ? Z.recusLouis.length : 0);
 
 /* un cas de Camille : un courriel reçu, traité par `surNouveauMessage`. `o` : { travail, claude, appelerReel, cleApi } */
@@ -32,7 +34,7 @@ async function jouerCamille(cas, o) {
     let taches = [];
     try { taches = Z.fichierJson('agents-taches.json'); } catch (e) {}
     return { id: cas.id, agent: 'camille', retour: r, sortie: b ? { a: b.a, objet: b.objet, texte: b.texte, controle: b.controle } : null, envoyes: Z.envoyes.length, validation: b ? (await Z.validations()).length > 0 : false,
-      taches: taches.map(t => t.vers + ':' + t.type), paroles: Z.paroles.map(p => p.fil + ' ' + p.texte), journal: Z.journal().filter(e => /mode travail|contrôle qualité/.test(e.action)).map(e => e.action + ' — ' + e.resultat + ' — ' + e.detail), requetes: nbRequetes(Z), usd: Z.cerveau.etatBudget().total, modeles: [...new Set(Z.recus.map(q => q.model))] };
+      taches: taches.map(t => t.vers + ':' + t.type), paroles: Z.paroles.map(p => p.fil + ' ' + p.texte), journal: Z.journal().filter(e => /mode travail|contrôle qualité/.test(e.action)).map(e => e.action + ' — ' + e.resultat + ' — ' + e.detail), requetes: nbRequetes(Z), entree: entreeJetons(Z), usd: Z.cerveau.etatBudget().total, modeles: [...new Set(Z.recus.map(q => q.model))] };
   } finally { Z.nettoyer(); }
 }
 
@@ -47,7 +49,7 @@ async function jouerLea(cas, o) {
     let brouillons = {};
     try { brouillons = Z.fichierJson('agents-brouillons.json'); } catch (e) {}
     const b = Object.values(brouillons)[0] || null;
-    return { id: cas.id, agent: 'lea', journal: Z.journal().filter(e => /mode travail|contrôle qualité/.test(e.action)).map(e => e.action + ' — ' + e.resultat + ' — ' + e.detail), retour: r, sortie: b ? { a: b.a, objet: b.objet, texte: b.texte, controle: b.controle } : null, envoyes: Z.envoyes.length, requetes: nbRequetes(Z), usd: Z.cerveau.etatBudget().total, modeles: [...new Set(Z.recus.map(q => q.model))] };
+    return { id: cas.id, agent: 'lea', journal: Z.journal().filter(e => /mode travail|contrôle qualité/.test(e.action)).map(e => e.action + ' — ' + e.resultat + ' — ' + e.detail), retour: r, sortie: b ? { a: b.a, objet: b.objet, texte: b.texte, controle: b.controle } : null, envoyes: Z.envoyes.length, requetes: nbRequetes(Z), entree: entreeJetons(Z), usd: Z.cerveau.etatBudget().total, modeles: [...new Set(Z.recus.map(q => q.model))] };
   } finally { Z.nettoyer(); }
 }
 
@@ -69,7 +71,7 @@ async function jouerMargaux(cas, o) {
     const courriers = [];
     for (const e of Z.envoyes) courriers.push({ voie: 'envoyé', a: e.a, objet: e.objet, texte: e.texte });
     for (const x of vals.filter(v => v.type === 'courrier_agent')) { const d = await Z.lireDoc(x.params.ref); courriers.push({ voie: 'validation', a: d.a, objet: d.objet, texte: d.texte, aRevoir: d.aRevoir || '' }); }
-    return { id: cas.id, agent: 'margaux', retour: r, courriers, demeure: vals.filter(v => v.type === 'mise_en_demeure').length, envoyes: Z.envoyes.length, requetes: Z.recus.length, usd: Z.cerveau.etatBudget().total, modeles: [...new Set(Z.recus.map(q => q.model))] };
+    return { id: cas.id, agent: 'margaux', retour: r, courriers, demeure: vals.filter(v => v.type === 'mise_en_demeure').length, envoyes: Z.envoyes.length, requetes: Z.recus.length, entree: entreeJetons(Z), usd: Z.cerveau.etatBudget().total, modeles: [...new Set(Z.recus.map(q => q.model))] };
   } finally { Z.nettoyer(); }
 }
 

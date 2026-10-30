@@ -9,7 +9,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter, COURRIEL, CHARTE_OUVERTE, NOTEUR_DEBUT } = require('./banc-agents-courrier.js');
+const { monter, COURRIEL, CHARTE_OUVERTE } = require('./banc-agents-courrier.js');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 400) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 400)); } };
 const vrai = (t, c, d) => v(t + (d !== undefined && !c ? ' — ' + String(d).slice(0, 200) : ''), !!c, true);

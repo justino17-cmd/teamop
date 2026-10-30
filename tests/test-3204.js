@@ -11,7 +11,7 @@ const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
 const EV = path.join(RACINE, 'server', 'outils', 'evaluation-travail');
 const CAS = require(path.join(EV, 'cas.js'));
-const { jouer, evaluer, URL_FACTURE } = require(path.join(EV, 'jouer.js'));
+const { jouer, evaluer } = require(path.join(EV, 'jouer.js'));
 const { COURRIEL, NOTEUR_DEBUT } = require('./banc-agents-courrier.js');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 500) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 700)); } };
@@ -150,7 +150,7 @@ const faux = cas => (cas.id[0] === 'c' ? fauxCamille(cas) : cas.id[0] === 'l' ? 
     v('⛔ au-dessus du plafond demandé : refus avant tout envoi', [x.status, /dépasse le plafond demandé/.test(x.stderr)], [1, true]);
     x = lancer(['--oui'], { TEAMOP_CONFIG: '' });
     v('sans configuration du serveur : code 2, aucune clé cherchée ailleurs (ni argument, ni environnement)', [x.status, /TEAMOP_CONFIG/.test(x.stderr)], [2, true]);
-    x = lancer(['--oui', '--cas', 'c06'], { ANTHROPIC_API_KEY: 'sk-ant-AUTRE-3204-xxxxxxxxxxxxxxxx' });
+    x = lancer(['--oui', '--cas', 'c06', '--sortie', path.join(D, 'rapport.md')], { ANTHROPIC_API_KEY: 'sk-ant-AUTRE-3204-xxxxxxxxxxxxxxxx' });
     vrai('⛔ la clé (celle du fichier comme celle de l’environnement) n’apparaît NULLE PART dans ce que le script écrit, même quand l’appel échoue (un mandataire mort)', !(x.stdout + x.stderr).includes(CLE) && !(x.stdout + x.stderr).includes('AUTRE-3204') && !fs.readdirSync(D).some(f => fs.readFileSync(path.join(D, f), 'utf8').includes('AUTRE-3204')), (x.stdout + x.stderr).slice(0, 300));
     fs.rmSync(D, { recursive: true, force: true });
     const lisez = fs.readFileSync(path.join(EV, 'LISEZMOI.md'), 'utf8');

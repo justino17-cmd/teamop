@@ -4,7 +4,7 @@
 # mais `git status` doit être propre avant, et `git diff` vide après (règle de CLAUDE.md : un lot interrompu peut laisser une mutation).
 import subprocess, sys, os, concurrent.futures as cf
 R = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-SUITES = ['tests/test-3200.js', 'tests/test-3201.js', 'tests/test-3202.js', 'tests/test-3203.js']
+SUITES = ['tests/test-3200.js', 'tests/test-3201.js', 'tests/test-3202.js', 'tests/test-3203.js', 'tests/test-3204.js']
 M = [
  ('M01 interrupteur ignoré', 'server/agents-travail.js', "const actif = id => interrupteur.has(id) && !!cerveau", "const actif = id => !!cerveau"),
  ('M02 conclusion sans tool_choice none', 'server/agents-travail.js', "pasDOutil: conclure && etape > 0,", "pasDOutil: false,"),
@@ -45,6 +45,12 @@ M = [
  ('M37 léa : repli perdu', 'server/agent-lea.js', "const travailLea = enTravail && premierTravail !== null;", "const travailLea = enTravail;"),
  ('M38 documents : à revoir ignoré', 'server/agents-documents.js', "|| (typeof o.aRevoirT === 'string' ? o.aRevoirT.replace(/[\\r\\n]+/g, ' ').slice(0, 200) : '');", ";"),
  ('M39 tâche question_facture retirée', 'server/agents.js', "'choix_creneau', 'question_facture'];", "'choix_creneau'];"),
+ ('M41 rejeu : sans accord', 'server/outils/evaluation-travail/rejouer.js', "if (!OUI) {", "if (false) {"),
+ ('M42 rejeu : sans plafond', 'server/outils/evaluation-travail/rejouer.js', "if (est > BUDGET) {", "if (false) {"),
+ ('M43 rejeu : clé de l\'environnement', 'server/outils/evaluation-travail/rejouer.js', "return { cle: typeof a.cleApi === 'string' ? a.cleApi : ''", "return { cle: process.env.ANTHROPIC_API_KEY || (typeof a.cleApi === 'string' ? a.cleApi : '')"),
+ ('M44 camille : objet du client dans le contrôle de l\'ouverture', 'server/agent-camille.js', "CTRL.fautesDuCode('Votre message à TeamOP', 'Bonjour,", "CTRL.fautesDuCode(reponseObjet, 'Bonjour,"),
+ ('M45 grille : le relecteur lit le lien de paiement', 'server/agents-travail.js', "corps: c.corpsJuge || c.corps,", "corps: c.corps,"),
+ ('M46 rapport : volume présenté comme mesuré', 'server/outils/evaluation-travail/rapport.js', "des hypothèses, à remplacer", "des mesures, à remplacer"),
  ('M40 code d\'abord : grille payée même si le code échoue', 'server/agents-travail.js', "if (c.etat === 'a_revoir') { codes = c.fautes;", "if (false) { codes = c.fautes;"),
 ]
 def run(s):

@@ -12,6 +12,25 @@ Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici 
 de ligne du tout.
 
 ---
+
+# 🛠️ 30 OCTOBRE 2026 — LES AGENTS AU TRAVAIL : LE MOTEUR, ET TROIS PILOTES (Camille, Léa, Margaux) — branche `claude/agents-travail`, partie de `claude/agents-pro` ; **poussée, PAS fusionnée, rien déployé, INTERRUPTEUR COUPÉ**
+
+Justin : « ils font pas le travail, ils répondent aux mails en bref, c'est pas pro » ; décision : « réparer les nôtres ». Diagnostic vérifié dans le code : réponse bornée à 600 jetons, un seul modèle, un courriel vu par l'objet et six mille signes, aucun outil de lecture, un contrôle qui dit si un texte est DANGEREUX mais pas s'il est BON — et les mails « en bref » étaient surtout les gabarits de trois lignes du CODE (facture, technique, inconnu).
+
+**Ce qui est fait (tout derrière `config.agents.travail`, COUPÉ PAR DÉFAUT — coupé, les agents font EXACTEMENT ce qu'ils faisaient)**
+- `server/cerveau.js` : `config.agents.modeles` (un modèle par agent), `budgetMois` (195 par défaut, 1 à 2000), `plafondsAgent`, `margeTarif` (1,75 par défaut = les chiffres d'avant : Sonnet 5 compte 3,5 $ / 17,5 $ alors que son tarif réel est 2 $ / 10 $ ; Opus 5.5 compte 7 $ / 35 $ pour 4 $ / 20 $ réels ; un modèle inconnu est compté au tarif le plus haut), mode `travail` (6 000 jetons par défaut, 16 000 au plus, 120 s, blocs bruts rendus).
+- `server/agents-travail.js` : la boucle d'outils (`tool_choice: auto`, jamais `any`/`tool`, 5 étapes, 1,5 $ au plus, conclusion forcée par `tool_choice: none`) ; « rédiger → noter → réviser » (trois rédactions au plus) ; l'interrupteur (`true` = Camille, Léa, Margaux, ou `{ camille: true }`).
+- `server/agents-grille.js` : la grille de 8 critères (répond à CHAQUE question, cite le dossier, étape suivante, longueur, juste, charte, personnalisé, professionnel), notée 1 à 5 par un second appel ; aucun note sous 3, moyenne d'au moins 4 ; deux jugements de fond (répond à tout, juste) ne bloquent sous 4 que sur une PREUVE (un fragment du texte, vérifié) ; une relecture muette ne dit jamais « oui » (`non_verifie`, brouillon pour Justin).
+- `server/agents-outils-lecture.js` : le fil complet du courriel (12 000 signes), la fiche de l'entreprise (faits fermés, expéditeur authentifié seulement), l'historique du dossier, les connaissances de Louis, et `demander_a_margaux`. Lecture seule, liée au courriel en cours.
+- Camille : facture, technique, inconnu rédigés (110 à 400 mots, dossier cité), repli sur le gabarit si le contrôle échoue ; résiliation et remboursement : Claude n'écrit que l'OUVERTURE, le paragraphe officiel est celui du code, et le brouillon attend TOUJOURS Justin. Léa : boucle + grille. Margaux : relances J+3/J+7 dont le modèle écrit la situation, le code tient les faits, le lien, l'accès suspendu ET l'indemnité de 40 € (L. 441-10 et D. 441-5) à la SECONDE relance seule ; aucune mise en demeure sans Justin (inchangé).
+- Collaboration : tâche FERMÉE `question_facture` (dossier + référence, `agents-taches.json`), Camille → Margaux, réponse en faits écrits par le code.
+- Bancs : `test-3200` à `test-3204` (45 cas fictifs, `server/outils/evaluation-travail/`) ; mutations `scratchpad/mutations-travail.py`. Rejeu contre le vrai modèle : `server/outils/evaluation-travail/rejouer.js` (hors CI, `--oui`, coût annoncé).
+
+**Ce qui attend Justin** : (1) choisir les modèles (`agents.modeles`) et le budget (`agents.budgetMois`, `agents.plafondsAgent` — les plafonds d'agent du registre, 10 à 35 $, sont bas pour Opus) ; (2) lancer `rejouer.js --estimer` puis `--oui` sur le serveur et LIRE le rapport avant d'allumer `agents.travail` ; (3) faire confirmer l'indemnité de 40 € par l'expert-comptable (mention à porter aussi dans les CGV et les factures) ; (4) décider si `sous-traitance.html` doit citer ce qui s'ajoute chez Anthropic (le message en entier, les derniers courriels écrits à l'adresse, des faits fermés du dossier, l'historique de l'équipe pour ce dossier).
+**Lot 2 (les 13 autres agents)** : voir le rapport de la session ; `REPRISE.md` ne répète pas le plan.
+**Piège rencontré** : `test-723`, `test-724`, `test-725` et `test-726` tombent déjà sur la base `claude/agents-pro` dans le conteneur de session (SQLite/socle) — pas liés à ce chantier.
+
+---
 # 🧑‍🏫 29 OCTOBRE 2026 — LES AGENTS PLUS PROFESSIONNELS : FICHES DE POSTE, MÉTHODE COMMUNE, REVUE DU WEEK-END (branche `claude/agents-pro`, partie de `dfdf80a8` ; **poussée, PAS fusionnée, rien déployé**)
 Justin : « au niveau de la vraie tour, les agents, les règles en fonction de la nouvelle tour aussi, et qu'ils soient plus intelligents, plus autonomes, qu'ils travaillent comme j'avais convenu, et qu'ils fassent des choses plus professionnelles. Donc je veux bien que tu reprennes tous les agents. »
 **Aucun pouvoir de plus** : ni le modèle, ni les outils, ni les droits, ni un seul réglage Auto / Brouillon ne changent. On améliore le JUGEMENT et l'ÉCRIT. Un push de `server/` sur `main` déploie le VPS : à lancer sur une phrase de Justin.
