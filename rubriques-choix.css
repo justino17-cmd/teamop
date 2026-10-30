@@ -63,3 +63,6 @@
 .bouton-test:hover { background: color-mix(in srgb, var(--link) 8%, transparent); text-decoration: none; }
 .bouton-test:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .tester-bloc small { flex: 1 1 260px; min-width: 0; font-size: 13px; color: var(--sub); line-height: 1.5; }
+.rub-ajoutee { flex: 1 1 100%; margin: 4px 0 0; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--link); background: color-mix(in srgb, var(--link) 10%, transparent); }
+.rub-ajoutee[hidden] { display: none; }
+.rub-ligne.vient-dajouter { outline: 2px solid var(--link); outline-offset: -2px; }

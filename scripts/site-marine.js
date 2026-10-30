@@ -248,6 +248,7 @@ const ESPACE = () => hors('/espace.html'), CONNEXION = () => hors('/connexion.ht
 const DEMO = () => '/demo.html';
 /* le bouton « Tester l'application » de la page de création : la démonstration du MÊME dossier que la page — celle de l'APERÇU quand on regarde l'aperçu
    (pour voir la nouvelle démonstration avant publication), celle de la racine sinon. Les autres liens de démonstration restent à la racine. */
+/* ⚠️ `rel="opener"` EXPRÈS : la démonstration renvoie « Ajouter cette rubrique » à cette page par `window.opener.postMessage` — un lien `_blank` est `noopener` par défaut. */
 const DEMO_TEST = () => hors('/demo.html');
 /* ⛔ LA PAGE DE CRÉATION NEUVE (variante du chauffage, rubriques de base verrouillées, « Tester l'application ») N'EST QUE DANS L'APERÇU : la racine est la
    page PUBLIÉE (`test-835` §10, `test-837`) et ne change que sur la phrase de Justin. Ce jour-là : retirer cette garde — la racine se régénère
@@ -257,7 +258,7 @@ const blocVariante = () => !NOUVEAU_CREER() ? '' : `<fieldset class="variante" i
   + [['deux', 'Les deux', 'Chauffage et climatisation'], ['chauffage', 'Chauffage seulement', 'Pas de climatisation'], ['climatisation', 'Climatisation seulement', 'Pas de chauffage']]
     .map(([v, n, d], i) => `<label class="variante-opt"><input type="radio" name="variante" value="${v}"${i === 0 ? ' checked' : ''}><span><b>${fr(n)}</b><small>${fr(d)}</small></span></label>`).join('')
   + '</div></fieldset>';
-const blocTester = () => !NOUVEAU_CREER() ? '' : `<div class="tester-bloc" id="tester-bloc" hidden><a class="bouton-test" id="tester-app" href="${DEMO_TEST()}" data-demo="${DEMO_TEST()}" target="_blank" rel="noopener">${fr('Tester l\'application')} <span aria-hidden="true">↗</span></a><small>${fr('S\'ouvre dans un nouvel onglet, avec vos choix. Les rubriques que vous n\'avez pas cochées y sont signalées : vous pouvez les visualiser quand même.')}</small></div>`;
+const blocTester = () => !NOUVEAU_CREER() ? '' : `<div class="tester-bloc" id="tester-bloc" hidden><a class="bouton-test" id="tester-app" href="${DEMO_TEST()}" data-demo="${DEMO_TEST()}" target="_blank" rel="opener">${fr('Tester l\'application')} <span aria-hidden="true">↗</span></a><small>${fr('S\'ouvre dans un nouvel onglet, avec vos choix. Les rubriques que vous n\'avez pas cochées y sont signalées : vous pouvez les visualiser quand même.')}</small><p class="rub-ajoutee" id="rubrique-ajoutee" role="status" aria-live="polite" hidden></p></div>`;
 const lienDemo = () => `<a class="lien-suite" href="${DEMO()}">Essayer la démonstration ›</a>`;
 
 function entete(section, sousnav) {

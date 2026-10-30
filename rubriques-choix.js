@@ -78,6 +78,14 @@
     if (e.choisies[k]) delete e.choisies[k]; else e.choisies[k] = true;
     e.touche = true; return e;
   };
+  /* « Ajouter cette rubrique » depuis la démonstration (30 octobre 2026) : coche une rubrique QUE LA GRILLE PROPOSE pour ce métier. `ok` faux = la rubrique n'existe pas
+     ou n'est pas proposée à ce métier (rien ne change) ; `deja` vrai = elle était déjà dans la demande (base comprise). */
+  OpRub.ajouter = function (e, k) {
+    if (!e || !e.ref || typeof k !== 'string' || cles(e).indexOf(k) < 0) return { ok: false, deja: false };
+    var deja = !!e.choisies[k];
+    e.choisies[k] = true; if (!deja) e.touche = true;
+    return { ok: true, deja: deja, titre: e.ref.rubriques[k].titre, base: OpRub.base(e.ref).indexOf(k) >= 0 };
+  };
   OpRub.tout = function (e) { e.choisies = {}; var c = cles(e); for (var i = 0; i < c.length; i++) e.choisies[c[i]] = true; e.touche = true; return poserBase(e); };
   OpRub.revenirAuConseil = function (e) { return OpRub.changerMetier(e, e.metier); };
   /* ce qui part avec la demande : les clés cochées, dans l'ordre du menu. `null` : rien de coché (le client n'a rien choisi) */

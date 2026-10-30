@@ -212,7 +212,7 @@ globalThis.fetch = async function (url, opts) {
     const decoche = OPRUB.liste(eD);
     const lienD = OPRUB.lienDemo(DEMO, 'chauffage', 'deux', decoche);
     const catsLien = decodeURIComponent((/cats=([^&]*)/.exec(lienD) || [])[1] || '').split(',');
-    vrai('(population) le conseil du chauffage contenait « devis » et « véhicules » avant qu\'on les décoche', R.j.metiers.chauffage.rubriques.includes('devis') && R.j.metiers.chauffage.rubriques.includes('vehicules'));
+    vrai('(population) le conseil du chauffage contenait « devis » et « vehicules » avant qu\'on les décoche', R.j.metiers.chauffage.rubriques.includes('devis') && R.j.metiers.chauffage.rubriques.includes('vehicules'));
     vrai('trois cas : des rubriques décochées — le lien ne porte QUE les cochées, base comprise', !catsLien.includes('devis') && !catsLien.includes('vehicules') && BASE_ATTENDUE.every(k => catsLien.includes(k)) && catsLien.length === decoche.length, catsLien.join());
     const sale = OPRUB.lienDemo(DEMO, 'chauffage', 'deux', ['planning', '<script>', 'a&b=c', 'x y'].concat(Array.from({ length: 100 }, (_, i) => 'k' + i)));
     const cSale = decodeURIComponent(/cats=([^&]*)/.exec(sale)[1]).split(',');
@@ -221,12 +221,29 @@ globalThis.fetch = async function (url, opts) {
 
     const apercu = fs.readFileSync(path.join(RACINE, 'apercu', 'site', 'creer.html'), 'utf8'), racine = fs.readFileSync(path.join(RACINE, 'creer.html'), 'utf8');
     vrai('⛔ l\'aperçu porte le bouton (vers LA démonstration de l\'aperçu), les trois variantes (« Les deux » cochée d\'office) et le JSON avec la base',
-      /id="tester-app" href="\/apercu\/demo\.html" data-demo="\/apercu\/demo\.html" target="_blank" rel="noopener"/.test(apercu) && /name="variante" value="deux" checked/.test(apercu)
+      /id="tester-app" href="\/apercu\/demo\.html" data-demo="\/apercu\/demo\.html" target="_blank" rel="opener"/.test(apercu) && /name="variante" value="deux" checked/.test(apercu)
       && /name="variante" value="chauffage"/.test(apercu) && /name="variante" value="climatisation"/.test(apercu) && /"base":\["planning","planningGeneral"/.test(apercu));
     vrai('⛔ la racine PUBLIÉE ne porte rien de tout ça', !/tester-app|name="variante"|variante-chauffage|"base":/.test(racine));
     const SITE = nu(fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8'));
-    vrai('   le script de la page câble le lien sur la vraie fonction, au choix du métier, de la variante et à chaque case', /OpRub\.lienDemo\(lienTest\.getAttribute\('data-demo'\)/.test(SITE) && /addEventListener\('change', majTest\)/.test(SITE) && /OpRub\.monter\(grille, etatRub, 'cr', majTest\)/.test(SITE));
+    vrai('   le script de la page câble le lien sur la vraie fonction, au choix du métier, de la variante et à chaque case', /OpRub\.lienDemo\(lienTest\.getAttribute\('data-demo'\)/.test(SITE) && /addEventListener\('change', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE) && /OpRub\.monter\(grille, etatRub, 'cr', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE));
     vrai('   la demande par e-mail DIT la variante', /VARIANTE : /.test(SITE));
+
+    /* ══ 6. LA DÉMONSTRATION RENVOIE « AJOUTER CETTE RUBRIQUE » (contrat fixé avec l'autre chantier) ══ */
+    console.log('\n6. « Ajouter cette rubrique » : le message de la démonstration et le lien `?ajouter=`');
+    vrai('⛔ le bouton garde `window.opener` : `rel="opener"` (un lien `_blank` est `noopener` par défaut) — et PAS « noopener »', /id="tester-app"[^>]*rel="opener"/.test(apercu) && !/id="tester-app"[^>]*noopener/.test(apercu));
+    const eA = OPRUB.etat(R.j, 'plomberie');
+    vrai('(population) « statistiques » n\'est PAS cochée au départ pour la plomberie, et la grille la propose', !eA.choisies.statistiques && OPRUB.html(eA, 'x').includes('data-rub="statistiques"'));
+    v('une rubrique proposée et décochée : ajoutée', [OPRUB.ajouter(eA, 'statistiques').ok, OPRUB.ajouter(eA, 'statistiques').deja, !!eA.choisies.statistiques], [true, true, true]);
+    v('   une rubrique de la base : « déjà dans la demande »', [OPRUB.ajouter(eA, 'stock').ok, OPRUB.ajouter(eA, 'stock').deja], [true, true]);
+    const eB = OPRUB.etat(R.j, 'plomberie');
+    v('⛔ une rubrique de la 3D (non proposée à la plomberie), inconnue ou mal formée : refusée, RIEN ne se coche', [OPRUB.ajouter(eB, 'registre').ok, OPRUB.ajouter(eB, 'nimportequoi').ok, OPRUB.ajouter(eB, '<b>').ok, OPRUB.ajouter(eB, 42).ok, !!eB.choisies.registre], [false, false, false, false, false]);
+    vrai('   CONTRE-ÉPREUVE — la même rubrique 3D est proposée à la 3D', OPRUB.ajouter(OPRUB.etat(R.j, '3d'), 'registre').ok);
+    vrai('⛔ la page n\'accepte le message que de SA propre origine (https://teamop.fr en production) — jamais « * », aucun littéral de production dans le script',
+      /ev\.origin !== location\.origin\) return/.test(SITE) && !/addEventListener\('message'[\s\S]{0,400}'\*'/.test(SITE) && !/https:\/\/teamop\.fr/.test(SITE));
+    vrai('   le message exact : type « teamop-demo », action « ajouter-rubrique », version 1', /d\.type !== 'teamop-demo' \|\| d\.action !== 'ajouter-rubrique' \|\| d\.v !== 1/.test(SITE));
+    vrai('   le lien `?ajouter=<clé>` est lu au chargement, le formulaire revient de la session de l\'onglet', /ajouter=\(\[A-Za-z0-9\]\{1,30\}\)/.test(SITE) && /restaurer\(\); ajouterDepuisDemo\(ajoutDemande\)/.test(SITE) && /sessionStorage\.setItem\(CLE_SESSION/.test(SITE));
+    vrai('   le message dit « Rubrique ajoutée à votre demande » dans une zone `role="status"` de l\'aperçu, absente de la racine', /Rubrique ajoutée à votre demande/.test(SITE) && /id="rubrique-ajoutee" role="status"/.test(apercu) && !/rubrique-ajoutee/.test(racine));
+
     const tour = fs.readFileSync(path.join(RACINE, 'apercu', 'tour.html'), 'utf8');
     vrai('   la Tour (aperçu) lit la variante d\'une demande et la transmet avec le métier à l\'acceptation', /variante:dm\.variante\|\|undefined/.test(tour) && /climatisation seulement/.test(tour));
   } finally { fin(); }
