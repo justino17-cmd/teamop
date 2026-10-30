@@ -114,6 +114,9 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
     const [chemin, ancre] = u.split('#');
     const sansQ = chemin.split('?')[0];
     if (!sansQ) { if (ancre && !ids(c).has(ancre)) morts.push(c + ' → #' + ancre); continue; }
+    /* 30 octobre 2026 : le bouton « Tester l'application » de la page de création ouvre la démonstration DE L'APERÇU (/apercu/demo.html), que fabrique le chantier de la
+       démonstration (demo-build.js) : tant qu'elle n'est pas fabriquée, ce lien-là — et seulement celui-là, seulement depuis `creer` — est une dette NOMMÉE, pas un lien mort. */
+    if (sansQ === '/apercu/demo.html' && c === 'creer' && !fs.existsSync(path.join(RACINE, 'apercu', 'demo.html'))) continue;
     if (sansQ.startsWith('/')) { if (!fs.existsSync(path.join(RACINE, sansQ))) morts.push(c + ' → ' + u); continue; }
     const cible = sansQ.replace(/\.html$/, '');
     if (!PAGES[cible]) { morts.push(c + ' → ' + u + ' (page inconnue)'); continue; }

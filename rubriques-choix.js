@@ -33,13 +33,24 @@
     return m && Array.isArray(m.rubriques) ? m.rubriques.slice() : [];
   };
 
+  /* ⛔ LA BASE (30 octobre 2026, Justin : « planning, rendez-vous, suivi de chantier, stock, encaissement, facturation, photo et compte rendu, gestion
+     client, contrat, c'est obligatoire qu'on le pose… s'il décoche tout sans faire exprès, ils vont avoir une application vide »). Les clés viennent du
+     référentiel que la page embarque (`ref.base`, tirée de `CATS_BASE` côté serveur) : cochées d'office, jamais décochables — ni à la main, ni par
+     « Tout cocher » —, montrées à part comme INCLUSES. Sans `ref.base` (l'espace client et la page de paiement d'aujourd'hui), rien ne change ; le
+     serveur les ajoute de toute façon à ce que le client coche. */
+  OpRub.base = function (ref) {
+    if (!(ref && Array.isArray(ref.base) && ref.rubriques)) return [];
+    return ref.base.filter(function (k) { return Object.prototype.hasOwnProperty.call(ref.rubriques, k); });
+  };
+  function poserBase(e) { var b = OpRub.base(e.ref); for (var i = 0; i < b.length; i++) e.choisies[b[i]] = true; return e; }
+
   /* L'état de la grille. `depart` : une liste de clés déjà choisies (une demande qu'on modifie), sinon le conseil du métier. */
   OpRub.etat = function (ref, metier, depart) {
     var e = { ref: ref || null, metier: metier || '', choisies: {}, touche: false };
     var l = Array.isArray(depart) && depart.length ? depart : OpRub.conseil(ref, metier);
     for (var i = 0; i < l.length; i++) e.choisies[l[i]] = true;
     e.touche = Array.isArray(depart) && depart.length > 0;
-    return e;
+    return poserBase(e);
   };
   /* les rubriques que la grille MONTRE pour ce métier : toutes, sauf celles qui n'existent que pour d'autres métiers (`seulement` : aujourd'hui les
      rubriques de la 3D, masquées dans l'application hors 3D) — à moins que le métier ne les conseille ou ne les propose */
@@ -59,14 +70,23 @@
     e.metier = metier || ''; e.choisies = {}; e.touche = false;
     var l = OpRub.conseil(e.ref, e.metier);
     for (var i = 0; i < l.length; i++) e.choisies[l[i]] = true;
-    return e;
+    return poserBase(e);
   };
   OpRub.bascule = function (e, k) {
+    if (OpRub.base(e.ref).indexOf(k) >= 0) return e;   // la base ne se décoche pas
     if (cles(e).indexOf(k) < 0) return e;   // une clé que le référentiel ne décrit pas ne se coche pas
     if (e.choisies[k]) delete e.choisies[k]; else e.choisies[k] = true;
     e.touche = true; return e;
   };
-  OpRub.tout = function (e) { e.choisies = {}; var c = cles(e); for (var i = 0; i < c.length; i++) e.choisies[c[i]] = true; e.touche = true; return e; };
+  /* « Ajouter cette rubrique » depuis la démonstration (30 octobre 2026) : coche une rubrique QUE LA GRILLE PROPOSE pour ce métier. `ok` faux = la rubrique n'existe pas
+     ou n'est pas proposée à ce métier (rien ne change) ; `deja` vrai = elle était déjà dans la demande (base comprise). */
+  OpRub.ajouter = function (e, k) {
+    if (!e || !e.ref || typeof k !== 'string' || cles(e).indexOf(k) < 0) return { ok: false, deja: false };
+    var deja = !!e.choisies[k];
+    e.choisies[k] = true; if (!deja) e.touche = true;
+    return { ok: true, deja: deja, titre: e.ref.rubriques[k].titre, base: OpRub.base(e.ref).indexOf(k) >= 0 };
+  };
+  OpRub.tout = function (e) { e.choisies = {}; var c = cles(e); for (var i = 0; i < c.length; i++) e.choisies[c[i]] = true; e.touche = true; return poserBase(e); };
   OpRub.revenirAuConseil = function (e) { return OpRub.changerMetier(e, e.metier); };
   /* ce qui part avec la demande : les clés cochées, dans l'ordre du menu. `null` : rien de coché (le client n'a rien choisi) */
   OpRub.liste = function (e) {
@@ -101,10 +121,11 @@
       + (m ? '<button type="button" class="rub-btn" data-rub-act="conseil">Revenir au conseil du métier</button>' : '') + '</div>';
     /* les rubriques groupées comme le menu d'OP GESTION */
     var groupes = Array.isArray(ref.groupes) ? ref.groupes : [];
+    var base = OpRub.base(ref);
     for (var g = 0; g < groupes.length; g++) {
       var dans = [];
       var vis = cles(e);
-      for (var i = 0; i < vis.length; i++) if (ref.rubriques[vis[i]].groupe === groupes[g]) dans.push(vis[i]);
+      for (var i = 0; i < vis.length; i++) if (ref.rubriques[vis[i]].groupe === groupes[g] && base.indexOf(vis[i]) < 0) dans.push(vis[i]);
       if (!dans.length) continue;
       var cochees = 0; for (var c = 0; c < dans.length; c++) if (e.choisies[dans[c]]) cochees++;
       h += '<div class="rub-groupe" role="group" aria-labelledby="' + esc(id) + '-g' + g + '"><div class="rub-gt" id="' + esc(id) + '-g' + g + '"><span>' + fr(groupes[g]) + '</span><small>' + cochees + '\u00a0/\u00a0' + dans.length + '</small></div>';
@@ -120,6 +141,16 @@
           + (conseillees.includes(k) && raisons[k] ? '<span class="rub-raison"><b>Pour votre métier</b> ' + fr(raisons[k]) + '</span>' : '')
           + (!conseillees.includes(k) && proposees[k] ? '<span class="rub-raison propose"><b>Au choix</b> ' + fr(proposees[k]) + '</span>' : '')
           + '</span></label>';
+      }
+      h += '</div>';
+    }
+    /* la base : incluse dans toutes les applications, avant les quatre « toujours » */
+    if (base.length) {
+      h += '<div class="rub-groupe rub-toujours rub-base" role="group" aria-labelledby="' + esc(id) + '-gb"><div class="rub-gt" id="' + esc(id) + '-gb"><span>Incluses dans toutes les applications</span><small>' + base.length + '\u00a0incluses</small></div>';
+      for (var b = 0; b < base.length; b++) {
+        var rb = ref.rubriques[base[b]];
+        h += '<div class="rub-ligne inclus" data-rub-base="' + esc(base[b]) + '"><span class="rub-fixe" aria-hidden="true">✓</span><span class="rub-corps"><span class="rub-nom"><i aria-hidden="true">' + esc(rb.ic || '') + '</i>' + fr(rb.titre)
+          + '<em class="rub-tag inclus">Incluse</em></span><span class="rub-expl">' + fr(rb.explication) + '</span></span></div>';
       }
       h += '</div>';
     }
@@ -161,6 +192,32 @@
     conteneur.addEventListener('click', conteneur._opRubEcoute);
     peindre('');
     return { etat: e, repeindre: function () { peindre(''); } };
+  };
+
+  /* ── LA VARIANTE DU CHAUFFAGE / CLIMATISATION et le lien « Tester l'application » ──────────────────────────────────────────────
+     `VARIANTES` : la liste FERMÉE que le serveur valide aussi (`VARIANTES_CHAUFFAGE`, index.js) ; `deux` est le défaut. Elle n'existe que pour
+     le métier `chauffage` : tout autre métier n'en a pas (`variante` rend alors ''). */
+  OpRub.VARIANTES = [['deux', 'Les deux', 'Chauffage et climatisation'], ['chauffage', 'Chauffage seulement', 'Pas de climatisation'], ['climatisation', 'Climatisation seulement', 'Pas de chauffage']];
+  OpRub.variante = function (metier, v) {
+    if (metier !== 'chauffage') return '';
+    for (var i = 0; i < OpRub.VARIANTES.length; i++) if (OpRub.VARIANTES[i][0] === v) return v;
+    return 'deux';
+  };
+  OpRub.libelleVariante = function (v) { for (var i = 0; i < OpRub.VARIANTES.length; i++) if (OpRub.VARIANTES[i][0] === v) return OpRub.VARIANTES[i][1]; return ''; };
+  /* L'adresse de la démonstration, avec ce que le client a coché : <démo>?metier=<id>&variante=<deux|chauffage|climatisation>&cats=<clés,séparées,par,des,virgules>.
+     Tout est ENCODÉ et BORNÉ : un identifiant de métier ou de rubrique qui n'a pas la forme d'une clé (lettres et chiffres) est jeté, jamais recopié ;
+     60 rubriques au plus. Sans métier valide, l'adresse nue. */
+  OpRub.lienDemo = function (demo, metier, variante, cats) {
+    var cle = /^[A-Za-z0-9]{1,30}$/;
+    if (typeof metier !== 'string' || !/^[a-z0-9]{1,20}$/.test(metier)) return demo;
+    var q = ['metier=' + encodeURIComponent(metier)];
+    var v = OpRub.variante(metier, variante); if (v) q.push('variante=' + encodeURIComponent(v));
+    if (Array.isArray(cats)) {
+      var ok = [];
+      for (var i = 0; i < cats.length && ok.length < 60; i++) if (typeof cats[i] === 'string' && cle.test(cats[i]) && ok.indexOf(cats[i]) < 0) ok.push(cats[i]);
+      if (ok.length) q.push('cats=' + ok.map(encodeURIComponent).join(','));
+    }
+    return demo + (demo.indexOf('?') < 0 ? '?' : '&') + q.join('&');
   };
 
   racine.OpRub = OpRub;

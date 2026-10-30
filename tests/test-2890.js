@@ -180,7 +180,7 @@ try {
 
 /* ══ 4. LES LECTEURS LISENT L'INTERRUPTEUR (dans le code) ══ */
 console.log('\n4. Le serveur lit l\'interrupteur (et plus une liste recopiée)');
-vrai('⛔ `METIERS_OK` vient du module du référentiel, plus d\'un littéral écrit à la main', /const metiersMod = require\('\.\/metiers'\)\(path\.join\(__dirname, '\.\.', 'metiers\.json'\), CATS_OK, CATS_TOUJOURS\);/.test(SRVN) && /const METIERS_OK = metiersMod\.ouverts;/.test(SRVN) && !/const METIERS_OK = \[/.test(SRVN));
+vrai('⛔ `METIERS_OK` vient du module du référentiel, plus d\'un littéral écrit à la main', /const metiersMod = require\('\.\/metiers'\)\(path\.join\(__dirname, '\.\.', 'metiers\.json'\), CATS_OK, CATS_TOUJOURS, CATS_BASE\);/.test(SRVN) && /const METIERS_OK = metiersMod\.ouverts;/.test(SRVN) && !/const METIERS_OK = \[/.test(SRVN));
 vrai('   `metierOk` et `METIERS_LBL` en dérivent', /const metierOk = m => \(METIERS_OK\.includes\(m\) \? m : ''\);/.test(SRVN) && /const METIERS_LBL = metiersMod\.libelles\(\);/.test(SRVN));
 vrai('   la route publique `GET /api/metiers` sert le référentiel et dit 503 quand il manque', /app\.get\('\/api\/metiers', \(req, res\) => \{\s*const p = metiersMod\.publique\(\);\s*if \(!p\) return res\.status\(503\)/.test(SRVN));
 vrai('   le module est déclaré APRÈS `CATS_TOUJOURS` (une `const` lue avant sa déclaration est en zone morte)', SRVN.indexOf('const metiersMod =') > SRVN.indexOf('const CATS_TOUJOURS ='));

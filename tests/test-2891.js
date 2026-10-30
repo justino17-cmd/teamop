@@ -41,6 +41,8 @@ console.log('\n── 2891 · le métier est obligatoire à l\'abonnement, les r
   try { webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push')); }
   catch (e) { console.log('  … SAUTÉ : server/node_modules absent (cd server && npm i)'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
   const CATS_OK = lit('CATS_OK');
+  const CATS_BASE = lit('CATS_BASE');   // 30 octobre 2026 : la base s'ajoute d'office à toute liste choisie
+  const avecBase = l => CATS_OK.filter(c => l.includes(c) || CATS_BASE.includes(c));
   vrai('(population) CATS_OK (38 rubriques cochables) est lu dans le code du serveur', Array.isArray(CATS_OK) && CATS_OK.length === 38);
   /* Le vrai `metiers.json` ouvre les vingt-trois métiers depuis le 23 octobre 2026 : le serveur de ce banc lit un référentiel FABRIQUÉ où
      les dix nouveaux restent fermés (tests/metiers-banc.js), pour que « un métier fermé est refusé » prouve quelque chose. */
@@ -139,16 +141,16 @@ globalThis.fetch = async function (url, opts) {
     const ok1 = await sync('demande', [dem({ cats: ['devis', 'planning', 'clients', 'interventions'] })]);
     const f1 = await fiche('demande');
     v('⛔ CONTRE-ÉPREUVE — la même demande avec un métier ouvert et des rubriques valides passe (200)', ok1.s, 200);
-    v('   … elle est rangée avec son métier, SES RUBRIQUES (dans l\'ordre du menu, pas dans l\'ordre de la saisie)', f1 && f1.demandes.map(d => [d.metier, d.cats]), [['chauffage', CATS_OK.filter(c => ['devis', 'planning', 'clients', 'interventions'].includes(c))]]);
+    v('   … elle est rangée avec son métier, SES RUBRIQUES (dans l\'ordre du menu, pas dans l\'ordre de la saisie)', f1 && f1.demandes.map(d => [d.metier, d.cats]), [['chauffage', avecBase(['devis', 'planning', 'clients', 'interventions'])]]);
     const sans = await sync('demande', [dem(), dem({ date: MAINT - 4000, lien: 'autre-banc', cats: [] })]);
     const f2 = await fiche('demande');
     v('   sans rubriques, ou une liste vide : `cats: null` — la Tour part du conseil du métier', [sans.s, f2.demandes.map(d => d.cats)], [200, [null, null]]);
     const edit = await sync('demande', [dem({ cats: ['stock', 'produits'] })]);
     const f3 = await fiche('demande');
-    v('   une demande MODIFIÉE (mêmes date et identité, rubriques changées) est revalidée puis rangée', [edit.s, f3.demandes.map(d => d.cats)], [200, [CATS_OK.filter(c => ['stock', 'produits'].includes(c))]]);
+    v('   une demande MODIFIÉE (mêmes date et identité, rubriques changées) est revalidée puis rangée', [edit.s, f3.demandes.map(d => d.cats)], [200, [avecBase(['stock', 'produits'])]]);
     const casse = await sync('demande', [dem({ cats: ['stock', 'nimportequoi'] })]);
     const f4 = await fiche('demande');
-    v('⛔ … et modifiée avec une rubrique hors liste : refusée, l\'ancienne reste', [casse.s, casse.j.error, f4.demandes.map(d => d.cats)], [400, 'cats_inconnues', [CATS_OK.filter(c => ['stock', 'produits'].includes(c))]]);
+    v('⛔ … et modifiée avec une rubrique hors liste : refusée, l\'ancienne reste', [casse.s, casse.j.error, f4.demandes.map(d => d.cats)], [400, 'cats_inconnues', [avecBase(['stock', 'produits'])]]);
     const toutes = await sync('demande', [dem({ cats: CATS_OK.slice() })]);
     v('   les 38 rubriques cochées passent', toutes.s, 200);
 
@@ -173,7 +175,7 @@ globalThis.fetch = async function (url, opts) {
     v('   et l\'ancienne demande ne peut pas se voir donner un métier fermé', [rel4.s, rel4.j.error], [400, 'metier_ferme']);
     const rel5 = await sync('ancien', [Object.assign({}, ANCIENNE, { metier: 'peinture', cats: ['devis'] })]);
     const fa2 = await fiche('ancien');
-    v('   ni la compléter d\'un métier ouvert : elle le prend (la modification est valide)', [rel5.s, fa2.demandes[0].metier, fa2.demandes[0].cats], [200, 'peinture', ['devis']]);
+    v('   ni la compléter d\'un métier ouvert : elle le prend (la modification est valide)', [rel5.s, fa2.demandes[0].metier, fa2.demandes[0].cats], [200, 'peinture', avecBase(['devis'])]);
 
     /* ⛔ « D'OP GESTION » SE JUGE COMME LA TOUR LE JUGE : tout ce qui ne contient pas « messages » */
     for (const app of ['', 'op gestion', 'OP GESTION ', 'Op Gestion', 'GESTION', 'x']) {
@@ -208,7 +210,7 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ CONTRE-ÉPREUVE — le même paiement avec un métier ouvert part chez Stripe (200, une page de paiement)', [r.s, /^https:\/\/checkout\.stripe\.com\//.test(r.j.url || ''), sessionsStripe().length - n0], [200, true, 1]);
     const fp = await fiche('paie');
     v('⛔ … et le choix est rangé sur la fiche du client (métier, rubriques dans l\'ordre du menu, source « paiement »), nom repris du compte du site',
-      fp && [fp.choix.metier, fp.choix.cats, fp.choix.source, fp.entreprise, fp.demandes.length], ['chauffage', CATS_OK.filter(c => ['stock', 'devis', 'planning'].includes(c)), 'paiement', 'Société paie', 0]);
+      fp && [fp.choix.metier, fp.choix.cats, fp.choix.source, fp.entreprise, fp.demandes.length], ['chauffage', avecBase(['stock', 'devis', 'planning']), 'paiement', 'Société paie', 0]);
     r = await payer('paie', { metier: 'peinture' });
     const fp2 = await fiche('paie');
     v('   sans rubriques : `cats: null` ; un second paiement remplace le choix (le dernier fait foi)', [r.s, fp2.choix.metier, fp2.choix.cats], [200, 'peinture', null]);

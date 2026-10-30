@@ -186,35 +186,42 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
       const avant = deux.el['req-msg'].innerHTML; deux.el['r-metier'].value = 'plomberie'; deux.ctx.ratMetierChange(); const apres = deux.el['req-msg'].innerHTML;
       vrai('   … sans effacer ce qui manque encore (téléphone et métier manquaient : le téléphone reste, le métier part)', /<b>[^<]*téléphone[^<]*métier/.test(avant) && /il manque : <b>téléphone<\/b>/.test(apres) && !/métier/.test(apres), { avant, apres }); }
     const g1 = nouveau.el['r-rub-grille'].innerHTML;
+    /* 30 octobre 2026 : la BASE (CATS_BASE) est cochée d'office et NON décochable — montrée à part comme incluse, sans case. Les comptes de cases et de cochées la retirent. */
+    const BASE = REF.base || [], NBASE = BASE.length;
+    vrai('(population) le référentiel sert la base (8 rubriques) à l\'espace client — l\'écran dit ce que le serveur range', NBASE === 8, REF.base);
+    const avecBase = l => CATS_OK.filter(k => l.includes(k) || BASE.includes(k));
     const VIS = k => CATS_OK.filter(c => !(REF.rubriques[c].seulement && !REF.rubriques[c].seulement.includes(k)) || METIERS.metiers[k].rubriques.includes(c) || (METIERS.metiers[k].proposees || {})[c]);
     v('⛔ « chauffage » choisi : la grille compte 32 rubriques (les six de la 3D n\'y sont pas : l\'application les masque), celles du conseil cochées, chacune avec son explication (+ les 4 incluses)',
-      compter(g1), { cases: VIS('chauffage').length, cochees: CONSEIL('chauffage').length, expl: VIS('chauffage').length + 4 });
+      compter(g1), { cases: VIS('chauffage').length - NBASE, cochees: CONSEIL('chauffage').length - NBASE, expl: VIS('chauffage').length + 4 });
     v('   (population) elle masque bien six rubriques à ce métier — et la 3D les montre toutes', [38 - VIS('chauffage').length, VIS('3d').length], [6, 38]);
     v('   les cases cochées sont EXACTEMENT celles du référentiel pour le chauffage', OPRUB.liste(nouveau.ctx.window._rat.rub), CONSEIL('chauffage'));
-    vrai('   chaque rubrique conseillée porte la raison propre au métier (« Pour votre métier »)', (g1.match(/class="rub-raison"/g) || []).length === CONSEIL('chauffage').length, (g1.match(/class="rub-raison"/g) || []).length);
+    vrai('   chaque rubrique conseillée porte la raison propre au métier (« Pour votre métier »)', (g1.match(/class="rub-raison"/g) || []).length === CONSEIL('chauffage').length - NBASE, (g1.match(/class="rub-raison"/g) || []).length);
     vrai('   les quatre rubriques toujours présentes sont montrées comme INCLUSES, sans case à cocher',
-      REF.toujours.every(t => g1.includes('>' + t.titre.replace(/&/g, '&amp;') + '<em class="rub-tag inclus">Incluse</em>')) && (g1.match(/rub-fixe/g) || []).length === 4);
+      REF.toujours.every(t => g1.includes('>' + t.titre.replace(/&/g, '&amp;') + '<em class="rub-tag inclus">Incluse</em>')) && (g1.match(/rub-fixe/g) || []).length === 4 + NBASE);
+    vrai('⛔ la base est montrée à part (« Incluses dans toutes les applications »), cochée, SANS case à cocher', g1.includes('Incluses dans toutes les applications') && BASE.every(k => g1.includes('data-rub-base="' + k + '"') && !g1.includes('data-rub="' + k + '"')));
 
-    /* il décoche « Stock » */
+    /* il décoche « Produits » */
     const bascule = (P, k) => P.el['r-rub-grille']._h.change[0]({ target: { getAttribute: a => (a === 'data-rub' ? k : null) } });
+    bascule(nouveau, 'produits');
+    v('⛔ il décoche « Produits » : la case est décochée, le compteur baisse', [OPRUB.liste(nouveau.ctx.window._rat.rub).includes('produits'), nouveau.el['r-rub-grille'].innerHTML.includes('id="r-produits" data-rub="produits" checked'), compter(nouveau.el['r-rub-grille'].innerHTML).cochees],
+      [false, false, CONSEIL('chauffage').length - NBASE - 1]);
     bascule(nouveau, 'stock');
-    v('⛔ il décoche « Stock » : la case est décochée, le compteur baisse', [OPRUB.liste(nouveau.ctx.window._rat.rub).includes('stock'), nouveau.el['r-rub-grille'].innerHTML.includes('id="r-stock" data-rub="stock" checked'), compter(nouveau.el['r-rub-grille'].innerHTML).cochees],
-      [false, false, CONSEIL('chauffage').length - 1]);
+    vrai('⛔ « Stock » est de la base : toucher sa case ne la décoche pas', OPRUB.liste(nouveau.ctx.window._rat.rub).includes('stock'));
     /* « Tout cocher » puis « Revenir au conseil du métier » */
     nouveau.el['r-rub-grille']._h.click[0]({ target: { closest: () => ({ getAttribute: () => 'tout' }) } });
     const toutes = compter(nouveau.el['r-rub-grille'].innerHTML).cochees;
     nouveau.el['r-rub-grille']._h.click[0]({ target: { closest: () => ({ getAttribute: () => 'conseil' }) } });
-    v('   « Tout cocher » (38), puis « Revenir au conseil du métier » (le conseil, « Stock » inclus à nouveau)', [toutes, compter(nouveau.el['r-rub-grille'].innerHTML).cochees], [VIS('chauffage').length, CONSEIL('chauffage').length]);
+    v('   « Tout cocher » (38), puis « Revenir au conseil du métier » (le conseil, « Produits » inclus à nouveau)', [toutes, compter(nouveau.el['r-rub-grille'].innerHTML).cochees], [VIS('chauffage').length - NBASE, CONSEIL('chauffage').length - NBASE]);
     v('   « Tout cocher » ne coche que ce que la grille montre (jamais une rubrique de la 3D chez un chauffagiste)', OPRUB.liste(OPRUB.tout(OPRUB.etat(nouveau.ctx.window._rat.ref, 'chauffage'))), VIS('chauffage'));
-    bascule(nouveau, 'stock');
+    bascule(nouveau, 'produits');
 
     /* l'envoi : relayé au serveur AVANT d'être écrit */
     for (const [id, val] of Object.entries(FORM)) nouveau.el[id].value = val;
     nouveau.ctx.window._demEdit = null;
     await nouveau.ctx.sendRequest('u-chantal');
-    const attendu = CONSEIL('chauffage').filter(k => k !== 'stock');
+    const attendu = CONSEIL('chauffage').filter(k => k !== 'produits');
     const dem = ((nouveau.ecrits.find(e => e.nom === 'teamop_requests') || {}).o || {}).demandes || [];
-    v('⛔ la demande part : écrite dans le dossier AVEC son métier et ses rubriques (« Stock » en moins, dans l\'ordre du menu)', dem.map(d => [d.metier, d.cats]), [['chauffage', attendu]]);
+    v('⛔ la demande part : écrite dans le dossier AVEC son métier et ses rubriques (« Produits » en moins, dans l\'ordre du menu)', dem.map(d => [d.metier, d.cats]), [['chauffage', attendu]]);
     v('   et relayée au serveur avant d\'être écrite (une fois, avec les mêmes rubriques)', nouveau.relais.map(r => r.demandes.map(d => [d.metier, d.cats])), [[['chauffage', attendu]]]);
     vrai('   le fil de la demande dit le nombre de rubriques', nouveau.fil.some(m => new RegExp(' · ' + attendu.length + ' rubriques').test(m.text || '')), JSON.stringify(nouveau.fil.map(m => m.text)));
     const fiche = await ficheClient(MAIL);
@@ -247,7 +254,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     await edit.ctx.ratRefCharger();
     edit.ctx.ratInit({ metier: 'chauffage', cats: ['devis', 'clients'] });
     edit.ctx.ratMonter();
-    v('   modifier une demande : la grille repart de SON choix (pas du conseil), et chaque rubrique y reste expliquée', [OPRUB.liste(edit.ctx.window._rat.rub), compter(edit.el['r-rub-grille'].innerHTML).cochees], [CATS_OK.filter(k => ['devis', 'clients'].includes(k)), 2]);
+    v('   modifier une demande : la grille repart de SON choix (pas du conseil), et chaque rubrique y reste expliquée', [OPRUB.liste(edit.ctx.window._rat.rub), compter(edit.el['r-rub-grille'].innerHTML).cochees], [avecBase(['devis', 'clients']), 1]);
 
     /* ══ 2. LA TOUR — la grille de la demande arrive pré-cochée ══ */
     console.log('\n2. La Tour (les vraies fonctions de tour.html) : la demande arrive avec le choix du client, chaque case expliquée');
@@ -285,11 +292,11 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     await T0.ctx.refMetiersCharger();
     vrai('⛔ le référentiel se charge du vrai serveur par les vraies `apiGet` et `refMetiersCharger`', T0.ctx.__REFM().d && T0.ctx.__REFM().d.ok === true && T0.ctx.__REFM().d.ouverts.length === 13, JSON.stringify(T0.ctx.__REFM()).slice(0, 120));
     const dep = T0.ctx.demCatsDepart(dChantal);
-    v('⛔ la demande arrive PRÉ-COCHÉE avec le choix du client (les 20 rubriques, pas « Stock »)', [dep.source, dep.liste], ['client', attendu]);
+    v('⛔ la demande arrive PRÉ-COCHÉE avec le choix du client (les 20 rubriques, pas « Produits »)', [dep.source, dep.liste], ['client', attendu]);
     const html = T0.ctx.demCatsHtml(cliChantal, 0, dChantal);
     const cle0 = T0.ctx.demCatsCle(MAIL, 0);
     v('   la grille de la demande : 38 cases, 20 cochées', [(html.match(/type="checkbox"/g) || []).length, (html.match(/ checked/g) || []).length], [38, attendu.length]);
-    vrai('   « Stock » n\'est PAS cochée, « Devis » l\'est', !new RegExp('id="dc-' + cle0 + '-stock" checked').test(html) && new RegExp('id="dc-' + cle0 + '-devis" checked').test(html));
+    vrai('   « Produits » n\'est PAS cochée, « Devis » l\'est', !new RegExp('id="dc-' + cle0 + '-produits" checked').test(html) && new RegExp('id="dc-' + cle0 + '-devis" checked').test(html));
     vrai('   chaque case porte son EXPLICATION en petit (celle du référentiel, mot pour mot)', CATS_OK.every(k => html.includes('<small class="cat-expl">' + T0.ctx.esc(REF.rubriques[k].explication) + '</small>')));
     v('   et, pour chaque rubrique que le métier conseille (même décochée), la raison propre au métier (« Pour ce métier »)', (html.match(/class="cat-raison"><b>Pour ce métier/g) || []).length, CONSEIL('chauffage').length);
     vrai('   l\'info dit d\'où vient le pré-cochage et combien : « 20 rubriques sur 38 — pré-cochées avec le choix du client »', /<b>20 rubriques sur 38<\/b> — pré-cochées avec le choix du client/.test(html), html.slice(html.indexOf('dc-info'), html.indexOf('dc-info') + 260));
@@ -304,10 +311,10 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     /* l'état d'un geste se garde, en place */
     const cb = { checked: true, closest: () => ({ classList: { toggle() {} } }) };
     T0.el['dc-info-' + cle0] = { innerHTML: '' };
-    T0.ctx.demCatBasculer(cle0, 'stock', cb);
-    v('⛔ cocher « Stock » : l\'état de la demande le garde (dans l\'ordre du menu) et le compteur se met à jour EN PLACE', [T0.ctx.__DEM().cats[cle0].includes('stock'), T0.ctx.__DEM().cats[cle0].length, /21 rubriques sur 38<\/b> — ajustées/.test(T0.el['dc-info-' + cle0].innerHTML)], [true, attendu.length + 1, true]);
+    T0.ctx.demCatBasculer(cle0, 'produits', cb);
+    v('⛔ cocher « Produits » : l\'état de la demande le garde (dans l\'ordre du menu) et le compteur se met à jour EN PLACE', [T0.ctx.__DEM().cats[cle0].includes('produits'), T0.ctx.__DEM().cats[cle0].length, /21 rubriques sur 38<\/b> — ajustées/.test(T0.el['dc-info-' + cle0].innerHTML)], [true, attendu.length + 1, true]);
     const apres = T0.ctx.demCatsHtml(cliChantal, 0, dChantal);
-    vrai('   un rendu complet de la Tour ne défait pas ce réglage (« Stock » reste cochée)', new RegExp('id="dc-' + cle0 + '-stock" checked').test(apres));
+    vrai('   un rendu complet de la Tour ne défait pas ce réglage (« Produits » reste cochée)', new RegExp('id="dc-' + cle0 + '-produits" checked').test(apres));
     const rendusAvant = T0.rend.length;
     T0.ctx.demCatsRevenir(cle0);
     v('   « Revenir au choix du client » : l\'état est effacé, la Tour se redessine', [T0.ctx.__DEM().cats[cle0], T0.rend.length - rendusAvant], [undefined, 1]);
@@ -322,17 +329,17 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
 
     /* ══ 3. L'ACCEPTATION POSE MÉTIER ET RUBRIQUES — et l'application les reçoit ══ */
     console.log('\n3. L\'acceptation (demAccepter → tourAccepterDemande → le vrai serveur) pose le métier ET les rubriques retenues');
-    /* a · le client a choisi (sans « Stock »), Justin ajoute « Stock » puis accepte */
+    /* a · le client a choisi (sans « Produits »), Justin ajoute « Produits » puis accepte */
     const Ta = tour([cliChantal], { espace: 'chauffe-banc' });
     await Ta.ctx.refMetiersCharger();
     Ta.ctx.demCatsHtml(cliChantal, 0, dChantal);
     const cleA = Ta.ctx.demCatsCle(MAIL, 0);
-    Ta.ctx.demCatBasculer(cleA, 'stock', { checked: true, closest: () => null });
+    Ta.ctx.demCatBasculer(cleA, 'produits', { checked: true, closest: () => null });
     Ta.el['dem-id-0-' + Ta.ctx.sigleAdr(MAIL)] = { value: 'paul' };
     await Ta.ctx.demAccepter(MAIL, 'chauffe-banc', 0, null);
-    const choisiA = CATS_OK.filter(k => attendu.concat(['stock']).includes(k));
+    const choisiA = CATS_OK.filter(k => attendu.concat(['produits']).includes(k));
     const postCats = Ta.posts.filter(p => /espaces\/cats/.test(p.u));
-    v('⛔ « Accepter » pose les rubriques que la grille montrait cochées (celles du client + « Stock » ajouté), par la route de la fiche', postCats.map(p => [p.corps.nom, p.corps.cats]), [['chauffe-banc', choisiA]]);
+    v('⛔ « Accepter » pose les rubriques que la grille montrait cochées (celles du client + « Produits » ajouté), par la route de la fiche', postCats.map(p => [p.corps.nom, p.corps.cats]), [['chauffe-banc', choisiA]]);
     v('   et le métier de la demande, dans le même mouvement', Ta.posts.filter(p => /espaces\/metier/.test(p.u)).map(p => p.corps.metier), ['chauffage']);
     const eA = await etat(T_CH);
     v('⛔ LA COUTURE ENTIÈRE : le vrai `/api/espaces/etat` rend à l\'application le métier ET les rubriques retenues', [eA.metier, eA.cats], ['chauffage', choisiA]);

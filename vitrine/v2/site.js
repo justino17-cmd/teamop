@@ -161,14 +161,84 @@
     var refBrut = $('#referentiel-metiers'), REF = null;
     try { REF = refBrut ? JSON.parse(refBrut.textContent) : null; } catch (e) { REF = null; }
     var zoneRub = $('#rubriques-demande'), grille = $('#rubriques-grille'), erreur = $('#erreur-metier'), bientot = $('#metier-bientot'), etatRub = null;
+    /* 30 octobre 2026 (Justin) : la VARIANTE du chauffage / climatisation (trois choix, « Les deux » par défaut) et le bouton « Tester l'application » (la
+       démonstration, avec ce qui est coché). Absents de la page publiée tant que Justin ne l'a pas dit : tout est gardé par la présence des éléments. */
+    var blocVar = $('#variante-chauffage'), blocTest = $('#tester-bloc'), lienTest = $('#tester-app');
+    var metierCourant = function () { var m = $('.metier-puce[aria-pressed="true"]', demande); return m ? m.getAttribute('data-pack') : ''; };
+    var varianteCourante = function (k) {
+      if (!blocVar || k !== 'chauffage' || !window.OpRub) return '';
+      var r = $('input[name="variante"]:checked', demande); return window.OpRub.variante(k, r && r.value);
+    };
+    var majTest = function () {
+      var k = metierCourant();
+      if (blocVar) blocVar.hidden = k !== 'chauffage';
+      if (blocTest) blocTest.hidden = !k;
+      if (!k || !lienTest || !window.OpRub) return;
+      lienTest.href = window.OpRub.lienDemo(lienTest.getAttribute('data-demo') || '/demo.html', k, varianteCourante(k), etatRub ? window.OpRub.liste(etatRub) : null);
+    };
     var montrerRubriques = function (m) {
       var k = m && m.getAttribute('data-pack'), pret = !!m && m.getAttribute('data-pret') === '1';
       if (bientot) bientot.hidden = !(m && !pret);
       if (!(m && pret && REF && window.OpRub && grille && zoneRub && REF.metiers && REF.metiers[k])) { etatRub = null; if (zoneRub) zoneRub.hidden = true; return; }
-      etatRub = window.OpRub.etat(REF, k);
+      etatRub = window.OpRub.etat(REF, k, depart);
       zoneRub.hidden = false;
-      window.OpRub.monter(grille, etatRub, 'cr', function () {});
+      montage = window.OpRub.monter(grille, etatRub, 'cr', function () { majTest(); garder(); });
+      if (enAttente) { var c = enAttente; enAttente = ''; ajouterDepuisDemo(c); }
     };
+    /* ── « AJOUTER CETTE RUBRIQUE » DEPUIS LA DÉMONSTRATION (30 octobre 2026) ─────────────────────────────────────────────────────────────
+       Le bouton « Tester l'application » ouvre la démonstration dans un onglet qui GARDE `window.opener` (`rel="opener"`) : une rubrique non cochée y propose
+       « l'ajouter à ma demande », et le message revient ici. Contrat fixé avec la démonstration : `{type:'teamop-demo', action:'ajouter-rubrique', rubrique:<clé>, v:1}`,
+       reçu SEULEMENT de l'origine de CETTE page (`location.origin` : le domaine du site en production, 127.0.0.1 pour les bancs — la démonstration est du même site, et un
+       littéral de production ferait refuser la fabrication de l'espace de test) : jamais `*`, jamais une autre origine. Sans onglet d'origine, la démonstration navigue vers `creer.html?ajouter=<clé>` : même geste au chargement, et le reste du formulaire revient
+       (rangé dans la session de l'onglet par `garder`). Une rubrique inconnue ou non proposée au métier ne coche rien, et le dit. */
+    var avisAjout = $('#rubrique-ajoutee'), montage = null, enAttente = '', depart = null;
+    var CLE = /^[A-Za-z0-9]{1,30}$/;
+    var direAjout = function (t) { if (avisAjout) { avisAjout.textContent = t; avisAjout.hidden = false; } };
+    var ajouterDepuisDemo = function (cle) {
+      if (!window.OpRub || typeof cle !== 'string' || !CLE.test(cle)) return false;
+      if (!etatRub) { enAttente = cle; direAjout('Choisissez d’abord votre métier : la rubrique demandée y sera ajoutée aussitôt.'); return false; }
+      var r = window.OpRub.ajouter(etatRub, cle);
+      if (!r.ok) { direAjout('Cette rubrique n’est pas proposée pour votre métier : elle n’a pas été ajoutée.'); return false; }
+      if (montage) montage.repeindre();
+      majTest(); garder();
+      direAjout((r.deja ? 'Cette rubrique était déjà dans votre demande' : 'Rubrique ajoutée à votre demande') + ' : ' + r.titre + '.');
+      var ligne = grille && (grille.querySelector('[data-rub="' + cle + '"]') || grille.querySelector('[data-rub-base="' + cle + '"]'));
+      var bloc = ligne && (ligne.closest ? ligne.closest('.rub-ligne') : null);
+      if (bloc) { bloc.classList.add('vient-dajouter'); try { bloc.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (x) { bloc.scrollIntoView(); } }
+      return true;
+    };
+    if (lienTest) {
+      window.addEventListener('message', function (ev) {
+        if (ev.origin !== location.origin) return;
+        var d = ev.data;
+        if (!d || typeof d !== 'object' || d.type !== 'teamop-demo' || d.action !== 'ajouter-rubrique' || d.v !== 1) return;
+        ajouterDepuisDemo(d.rubrique);
+      });
+    }
+    /* le formulaire dans la session de l'ONGLET (jamais ailleurs) : un onglet ouvert depuis celui-ci en reçoit une copie, ce qui le fait revenir tel quel */
+    var CLE_SESSION = 'teamop_creer_v1';
+    var garder = function () {
+      if (!lienTest) return;
+      try {
+        var champs = {}; $$('input[type="text"], input[type="email"], input[type="tel"], textarea', demande).forEach(function (c) { if (c.name) champs[c.name] = c.value; });
+        var rv = $('input[name="variante"]:checked', demande);
+        sessionStorage.setItem(CLE_SESSION, JSON.stringify({ metier: metierCourant(), variante: rv ? rv.value : '', cats: etatRub && window.OpRub ? window.OpRub.liste(etatRub) : null, champs: champs,
+          besoins: $$('.besoin[aria-pressed="true"]', demande).map(function (b) { return b.textContent.trim(); }) }));
+      } catch (x) {}
+    };
+    var restaurer = function () {
+      var s = null; try { s = JSON.parse(sessionStorage.getItem(CLE_SESSION) || 'null'); } catch (x) { s = null; }
+      if (!s || typeof s !== 'object') return;
+      $$('input[type="text"], input[type="email"], input[type="tel"], textarea', demande).forEach(function (c) { if (c.name && s.champs && typeof s.champs[c.name] === 'string') c.value = s.champs[c.name]; });
+      $$('.besoin', demande).forEach(function (b) { if ((s.besoins || []).indexOf(b.textContent.trim()) >= 0) b.setAttribute('aria-pressed', 'true'); });
+      var m = typeof s.metier === 'string' && s.metier ? $('.metier-puce[data-pack="' + s.metier.replace(/[^a-z0-9]/g, '') + '"]', demande) : null;
+      if (!m) return;
+      if (blocVar && s.variante) { var rv = $('input[name="variante"][value="' + String(s.variante).replace(/[^a-z]/g, '') + '"]', demande); if (rv) rv.checked = true; }
+      depart = Array.isArray(s.cats) ? s.cats.filter(function (k) { return typeof k === 'string' && CLE.test(k); }) : null;
+      m.setAttribute('aria-pressed', 'true'); if (erreur) erreur.hidden = true;
+      montrerRubriques(m); depart = null; majTest();
+    };
+    demande.addEventListener('input', garder);
     $$('.metier-puce', demande).forEach(function (m) {
       m.addEventListener('click', function () {
         var on = m.getAttribute('aria-pressed') !== 'true';
@@ -176,10 +246,14 @@
         m.setAttribute('aria-pressed', on ? 'true' : 'false');
         if (on && erreur) erreur.hidden = true;
         montrerRubriques(on ? m : null);
+        majTest(); garder();
       });
     });
+    $$('input[name="variante"]', demande).forEach(function (r) { r.addEventListener('change', function () { majTest(); garder(); }); });
+    var ajoutDemande = (/[?&]ajouter=([A-Za-z0-9]{1,30})(?:&|$)/.exec(location.search) || [])[1];
+    if (ajoutDemande && lienTest) { restaurer(); ajouterDepuisDemo(ajoutDemande); }
     $$('.besoin', demande).forEach(function (b) {
-      b.addEventListener('click', function () { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); });
+      b.addEventListener('click', function () { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); if (lienTest) garder(); });
     });
     demande.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -195,6 +269,8 @@
       }
       lignes.push('MÉTIER CHOISI : ' + m.getAttribute('data-nom') + '  [pack ' + m.getAttribute('data-pack') + ']');
       lignes.push('Pack : ' + (m.getAttribute('data-pret') === '1' ? 'prêt — activable dès la création' : 'à construire sur mesure'));
+      var vr = varianteCourante(m.getAttribute('data-pack'));
+      if (vr) lignes.push('VARIANTE : ' + window.OpRub.libelleVariante(vr) + '  [variante ' + vr + ']');
       var choisies = etatRub && window.OpRub ? window.OpRub.liste(etatRub) : null;
       if (choisies) {
         lignes.push('RUBRIQUES CHOISIES (' + choisies.length + ' sur ' + etatRub.ref.ordre.length + ') : ' + choisies.map(function (c) { return etatRub.ref.rubriques[c].titre; }).join(', '));
