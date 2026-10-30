@@ -47,14 +47,15 @@ function monter(o) {
     surMessage: m => (equipe ? equipe.surMessage(m) : null) });
 
   const recus = [];
-  const cerveau = require(S('cerveau.js'))({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2911-xxxxxxxxxxxxxxxx', maintenant,
-    appeler: async (cle, requete) => {
+  const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.cleApi || (o.sansCle ? '' : 'sk-ant-banc-2911-xxxxxxxxxxxxxxxx'), maintenant }, o.cerveauCtx || {}, {
+    appeler: async (cle, requete, optsAppel) => {
       recus.push(JSON.parse(JSON.stringify(requete)));
+      if (o.appelerReel) return o.appelerReel(cle, requete, optsAppel);   // le VRAI modèle (`server/outils/evaluation-travail/rejouer.js`)
       const r = o.claude ? await o.claude(requete, recus.length) : 'Objet : Mise à jour d’OP GESTION\n\nBonjour,\n\nVotre application OP GESTION vient de recevoir une mise à jour : le planning s’affiche plus vite.\n\nBien cordialement,';
       if (r instanceof Error) throw r;
       if (r && typeof r === 'object') return Object.assign({ texte: '', entree: 900, sortie: 400, stop_reason: 'end_turn' }, r);   // { texte, actions:[{ id, nom, entree }] } : un faux Claude qui joue un outil
       return { texte: r, entree: 900, sortie: 400, stop_reason: 'end_turn' };
-    } });
+    } }));
 
   const boites = o.boites || [{ id: 'b-contact', email: 'contact@teamop.fr', nom: 'TEAM OP' }, { id: 'b-support', email: 'support@teamop.fr', nom: 'TEAM OP' }];
   const envoyes = [];

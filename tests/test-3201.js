@@ -95,6 +95,18 @@ const MARGAUX = { repondreQuestion: async o => ({ ok: true, resume: 'Aucun impay
     vrai('…et le refus est au journal', Z.journal().some(e => e.agent === 'camille' && e.action === 'mode travail' && /gabarit/.test(e.detail)));
     Z.nettoyer();
 
+    const TUTOIE = ACCUSE_FACTURE.replace('Nous vous remercions de votre confiance', 'Merci pour ta confiance');
+    Z = monter(Object.assign({ modes: { camille: 'brouillon' }, travail: true, dossierDe: () => DOS, margaux: MARGAUX }, jeu(TUTOIE)));
+    r = await Z.camille.surNouveauMessage(poser(Z, {}));
+    v('⛔ un défaut NON grave du code (un tutoiement) qui reste après les réécritures : ce n’est pas un « à revoir » de qualité, c’est le gabarit sûr qui est déposé', [Z.fichierJson('agents-brouillons.json')[r.ref].texte === CAM.GABARITS.facture, Z.recusNoteur.length], [true, 0]);
+    Z.nettoyer();
+
+    /* l'interrupteur est PAR AGENT : allumé pour Léa seulement, Camille reste au circuit d'avant */
+    Z = monter({ modes: { camille: 'brouillon' }, travail: { lea: true }, dossierDe: () => DOS, margaux: MARGAUX, claude: () => 'CATEGORIE : facture' });
+    r = await Z.camille.surNouveauMessage(poser(Z, {}));
+    v('⛔ travail allumé pour Léa seulement : Camille fait l’appel d’avant (2 500 jetons, réflexion coupée, aucun outil) et dépose le gabarit', [Z.recus[0].max_tokens, Z.recus[0].thinking, Z.recus[0].tools, Z.fichierJson('agents-brouillons.json')[r.ref].texte === CAM.GABARITS.facture], [2500, { type: 'disabled' }, undefined, true]);
+    Z.nettoyer();
+
     /* la boucle échoue (une erreur d'API au premier tour) : l'appel simple d'avant reprend */
     let n = 0;
     Z = monter({ modes: { camille: 'brouillon' }, travail: true, dossierDe: () => DOS, margaux: MARGAUX, claude: () => { n++; if (n === 1) return new Error('panne passagère'); return 'CATEGORIE : facture'; } });

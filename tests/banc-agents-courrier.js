@@ -106,9 +106,11 @@ function monter(o) {
   /* `recus` : les appels du RÉDACTEUR seulement ; le juge (`recusJuge`, réponse par défaut « VERDICT : OK », réglable par `o.juge(requete, n)`) et la recherche web (`recusRecherche`,
      par défaut « IDENTIFIEE : non », réglable par `o.recherche(requete, n)` qui peut rendre { texte, recherches }) ont les leurs. */
   const recus = [], recusJuge = [], recusRecherche = [], recusLouis = [], recusNoteur = [];
-  const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2862-xxxxxxxxxxxxxxxx', maintenant }, o.cerveauCtx || {}, {
+  const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.cleApi || (o.sansCle ? '' : 'sk-ant-banc-2862-xxxxxxxxxxxxxxxx'), maintenant }, o.cerveauCtx || {}, {
     appeler: async (cle, requete, optsAppel) => {
       const copie = JSON.parse(JSON.stringify(requete));
+      /* `o.appelerReel(cle, requete, opts)` : le VRAI modèle (le script `server/outils/evaluation-travail/rejouer.js`) — les requêtes sont gardées, rien n'est simulé */
+      if (o.appelerReel) { recus.push(copie); return o.appelerReel(cle, requete, optsAppel); }
       /* LE MODE « TRAVAIL » (30 octobre 2026) : le relecteur noté (`agents-grille.js`) a son propre rôle ; `o.notes(requete, n)` rend ses lignes (par défaut huit 5 — « tout va bien »). */
       if (String(requete.system).startsWith(NOTEUR_DEBUT)) {
         recusNoteur.push(copie);
