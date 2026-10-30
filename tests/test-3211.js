@@ -199,5 +199,5 @@ console.log('\n9. La fenêtre « Ton entreprise — Bienvenue ! » ne s\'ouvre p
   egal('(contre-épreuve) la bêta garde son comportement : le code de la fonction y est celui d\'app.html (garde absente)', [/entAccueilCheck\(n\)\{ n=n\|\|0; try\{ if\(DEMO_PUBLIQUE\)/.test(lire('app.html')), /entAccueilCheck\(n\)\{ n=n\|\|0; try\{ if\(DEMO_PUBLIQUE\)/.test(lire('beta.html'))], [false, false]);
 }
 
-console.log('\n════ test-3200 : ' + ok + ' ✓  ' + ko + ' ✗ ════');
+console.log('\n════ test-3211 : ' + ok + ' ✓  ' + ko + ' ✗ ════');
 process.exit(ko ? 1 : 0);
