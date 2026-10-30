@@ -167,6 +167,11 @@ globalThis.fetch = async function (url, opts) {
     const relais = await sync('rien', await lire('rien'));
     v('   le relais d\'une fiche déjà rangée repasse (200) sans changer ses rubriques', [relais.s, ((await lire('rien')).find(x => x.lien === 'sans') || {}).cats], [200, dAvant.cats]);
 
+    /* relecture du 30 octobre 2026 : une page d'avant renvoie sa demande SANS la base que le serveur y a ajoutée — elle reste « inchangée » */
+    const enAvant = (await lire('rien')).map(x => x.lien === 'sans' ? Object.assign({}, x, { cats: ['devis'] }) : x);
+    const nRelu = await sync('rien', enAvant);
+    v('⛔ la même demande renvoyée sans la base : 200, et ce qui était rangé (base comprise) ne bouge pas', [nRelu.s, ((await lire('rien')).find(x => x.lien === 'sans') || {}).cats], [200, dAvant.cats]);
+
     /* le paiement : même vérification, même rangement sur la fiche */
     let r = await payer('paie', { metier: 'chauffage', variante: 'climatisation', cats: ['devis'] });
     vrai('paiement chauffage + climatisation : une page Stripe', r.s === 200 && /^https:\/\/checkout\.stripe\.com\//.test(r.j.url || ''), JSON.stringify(r.j).slice(0, 200));
@@ -200,6 +205,12 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ … et revenir au chauffage SANS variante ne ressuscite pas l\'ancienne (`climatisation`) : `null`', [r.s, et3.metier, et3.variante], [200, 'chauffage', null]);
     r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'plomberie', variante: 'deux' }, PATRON);
     v('   une variante donnée à la plomberie par la Tour → 400', [r.s], [400]);
+    /* relecture du 30 octobre 2026 : une SECONDE demande acceptée (`siVide`) du même métier ne remplace pas la variante posée */
+    r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'chauffage', variante: 'climatisation' }, PATRON);
+    r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'chauffage', variante: 'deux', siVide: true }, PATRON);
+    v('⛔ `siVide` + même métier + variante déjà posée : rien ne change (garde), la variante reste « climatisation »', [r.s, r.j.garde, (await ETAT()).variante], [200, true, 'climatisation']);
+    r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'chauffage', variante: 'deux' }, PATRON);
+    v('   CONTRE-ÉPREUVE — le geste de la fiche (sans `siVide`) la change bien', [r.s, (await ETAT()).variante], [200, 'deux']);
     vrai('   `variante` figure sur chacune des réponses d\'un espace vivant (cinq `res.json` d\'état, lus dans le code)', (SRVN.match(/metier, cats, variante, versionMin/g) || []).length === 5);
 
     /* ══ 5. LE BOUTON « TESTER L'APPLICATION » : L'ADRESSE QUE BÂTIT LA VRAIE FONCTION ══ */

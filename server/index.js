@@ -3131,6 +3131,9 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
   const recent = noms.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
   const actuel = metierOk(recent && recent.metier);
   if ((req.body || {}).siVide === true && actuel && actuel !== m) return res.json({ ok: true, slug, metier: actuel, garde: true });
+  /* même garde pour la variante : une seconde demande acceptée (`siVide`) du même métier ne remplace pas une variante déjà posée (relecture du 30 octobre 2026) */
+  const varGardee = (req.body || {}).siVide === true && actuel === m && !!varianteOk(m, recent && recent.variante);
+  if (varGardee && varDite) return res.json({ ok: true, slug, metier: actuel, variante: varianteOk(m, recent.variante), garde: true });
   const variantePosee = x => (varDite ? varNeuve : (x.metier === m ? varianteOk(m, x.variante) : null));
   if (noms.some(x => (x.metier || '') !== m || (x.variante || null) !== variantePosee(x))) {
     const avant = noms.map(x => ({ x, v: { metier: x.metier, metierPar: x.metierPar, metierTs: x.metierTs, variante: x.variante } }));
@@ -10309,14 +10312,15 @@ app.post('/api/clients/sync', async (req, res) => {
      ⛔ Et UNE demande d'avant ne couvre qu'UNE demande du corps : retrouvée par sa date ET son identité (application, lien), puis
      CONSOMMÉE. Cherchée par la seule date, elle couvrait aussi une seconde demande de même date — la neuve, sans métier, passait. */
   const restantes = avantDem.slice();
+  const inchangees = new Map();   // demande du corps → la demande d'avant qu'elle répète : on garde ce qui était rangé (base comprise)
   const neuves = new Set();   // les demandes NEUVES ou changées : la base s'ajoute à celles-là seulement, jamais à une demande d'avant relayée telle quelle
   for (const d of brutes) {
     if (!d || /messages/i.test(monStr(d.app, 60))) continue;
     const date = parseInt(d.date, 10) || 0;
     const rang = date ? restantes.findIndex(x => x && x.date === date && (x.app || '') === monStr(d.app, 60) && (x.lien || '') === monStr(d.lien, 60)) : -1;
     const avant = rang >= 0 ? restantes.splice(rang, 1)[0] : null;
-    const meme = avant && JSON.stringify([monStr(d.metier, 20), catsDemande(d.cats), varianteOk(monStr(d.metier, 20), d.variante)]) === JSON.stringify([avant.metier || '', avant.cats || null, avant.variante || null]);   // le métier tel qu'il est ÉCRIT : un métier fermé ne passe pas pour « inchangé »
-    if (meme) continue;
+    const meme = avant && JSON.stringify([monStr(d.metier, 20), catsAvecBase(catsDemande(d.cats)), varianteOk(monStr(d.metier, 20), d.variante)]) === JSON.stringify([avant.metier || '', catsAvecBase(avant.cats || null), avant.variante || null]);   // la base des deux côtés : une page d'avant renvoie sa demande SANS la base que le serveur y a ajoutée   // le métier tel qu'il est ÉCRIT : un métier fermé ne passe pas pour « inchangé »
+    if (meme) { inchangees.set(d, avant); continue; }
     const c = choixAbonnement(d.metier, d.cats, d.variante);
     if (c.ok) neuves.add(d);
     if (!c.ok) return res.status(400).json({ error: c.error, message: MESSAGES_CHOIX[c.error] });
@@ -10325,8 +10329,8 @@ app.post('/api/clients/sync', async (req, res) => {
     app: monStr(d && d.app, 60), formule: monStr(d && d.formule, 40), statut: monStr(d && d.statut, 20), date: parseInt(d && d.date, 10) || 0, besoin: monStr(d && d.besoin, 200), users: monStr(d && d.users, 10),
     code: monStr(d && d.code, 40), lien: monStr(d && d.lien, 60),
     metier: metierOk(d && d.metier),   // le métier DEMANDÉ : une liste fermée ; c'est la Tour qui le pose sur l'espace
-    cats: neuves.has(d) ? catsAvecBase(catsDemande(d.cats)) : catsDemande(d && d.cats),
-    variante: varianteOk(monStr(d && d.metier, 20), d && d.variante) }));   // la variante du chauffage : liste fermée, `null` pour tout autre métier   // les rubriques cochées par le client (liste fermée), `null` quand il n'a rien choisi : la Tour part alors du conseil du métier
+    cats: neuves.has(d) ? catsAvecBase(catsDemande(d.cats)) : inchangees.has(d) ? (inchangees.get(d).cats || null) : catsDemande(d && d.cats),
+    variante: varianteOk(monStr(d && d.metier, 20), d && d.variante) }));   // cats : les rubriques cochées (liste fermée), `null` sans choix (la Tour part du conseil du métier) ; variante : celle du chauffage, `null` pour tout autre métier
   clientsData[email] = {
     email, nom: monStr(b.nom, 80), prenom: monStr(b.prenom, 40) || prev.prenom || '', nomFam: monStr(b.nomFam, 40) || prev.nomFam || '',
     tel: monStr(b.tel, 30) || prev.tel || '', entreprise: monStr(b.entreprise, 80),
