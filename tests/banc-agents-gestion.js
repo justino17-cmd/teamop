@@ -87,7 +87,10 @@ function monter(o) {
     clients: () => [], espaceExiste: () => true, stripeListe: async () => [], paiement: () => ({ sur: false }), dossierDe: dep.dossierDe, espaceDeDossier: dep.espaceDeDossier, resilier: dep.resilier, faits: dep.faits });
   const impayesListe = { ok: true, liste: [] };
   const factureDe = { v: null };
-  const margaux = require(S('agent-margaux.js'))({ agents, conversations, documents, direction, fichier, maintenant,
+  /* le mode « travail » (30 octobre 2026) : levé par `o.travail` seulement ; sinon Margaux est montée comme avant, au caractère près */
+  const travail = o.travail ? require(S('agents-travail.js'))({ cerveau, agents, travail: o.travail }) : null;
+  const outilsLecture = o.travail ? require(S('agents-outils-lecture.js'))({ agents, louis: o.louis || null, faits: {}, margaux: () => null }) : null;
+  const margaux = require(S('agent-margaux.js'))({ agents, conversations, documents, direction, fichier, maintenant, cerveau, travail, outilsLecture,
     impayes: async () => (monde.impayes ? monde.impayes() : impayesListe),
     facture: async (aboId) => { appelsStripe.push(['facture', aboId]); if (monde.facture) return monde.facture(aboId); return factureDe.v; } });
   const emma = require(S('agent-emma.js'))(app, { agents, conversations, documents, fichier, maintenant, monAdmin, monPatronStrict, adresseDe: dep.adresseDe });
@@ -108,7 +111,7 @@ function monter(o) {
   /* un document lu comme la Tour le lit, puis accepté AVEC son empreinte */
   const lireDoc = async (ref) => (await appeler('GET /api/monitor/agents/documents', { tourUser: PATRON, query: { refs: ref } })).corps[ref];
   const accepter = async (v) => { const ref = v.params.ref; const d = ref ? await lireDoc(ref) : null; return decider(v.id, 'accepter', d ? { empreinte: d.empreinte } : {}); };
-  return { D, horloge, equipe, agents, direction, conversations, cerveau, mail, documents, hugo, margaux, emma, sarah, fichier, recus, envoyes, diffusions, appelsStripe, impayesListe, factureDe, dep, espaces,
+  return { D, horloge, equipe, agents, direction, conversations, cerveau, travail, mail, documents, hugo, margaux, emma, sarah, fichier, recus, envoyes, diffusions, appelsStripe, impayesListe, factureDe, dep, espaces,
     routes, appeler, PATRON, COLLAB, validations, decider, journal, fil, fichierJson, nettoyer, lireDoc, accepter };
 }
 module.exports = { monter };

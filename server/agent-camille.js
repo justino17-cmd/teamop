@@ -394,7 +394,7 @@ module.exports = function camille(ctx) {
           'Objet : <<<' + objet + '>>>', 'Texte :', '<<<', texte, '>>>', '', 'Commence par la ligne CATEGORIE, puis, seulement pour « prospect » et « question », « Objet : … » et le corps du courriel.'].join('\n');
         const travail = travailActif();
         const dosT = travail && m.authentifie === true ? dossierDe(a) : '';      // le numéro de dossier ne se donne au modèle (et ne se cite) que pour un expéditeur authentifié
-        const demandeT = travail ? demande + (dosT ? '\n\nContexte fourni par le serveur : le dossier de ce client est ' + dosT + ' (compte authentifié).' : '\n\nContexte fourni par le serveur : ' + (m.authentifie === true ? 'cette adresse n’est celle d’aucun compte.' : 'l’expéditeur n’est pas authentifié : ne communique aucun fait de compte.')) : demande;
+        const demandeT = travail ? demande.replace('Commence par la ligne CATEGORIE, puis, seulement pour « prospect » et « question », « Objet : … » et le corps du courriel.', 'Commence par la ligne CATEGORIE ; pour « prospect », « question », « facture », « technique » et « inconnu », « Objet : … » puis le courriel complet ; pour « resiliation » et « remboursement », un seul paragraphe d’ouverture.') + (dosT ? '\n\nContexte fourni par le serveur : le dossier de ce client est ' + dosT + ' (compte authentifié).' : '\n\nContexte fourni par le serveur : ' + (m.authentifie === true ? 'cette adresse n’est celle d’aucun compte.' : 'l’expéditeur n’est pas authentifié : ne communique aucun fait de compte.')) : demande;
         const systeme = (travail ? SYSTEM_TRAVAIL : SYSTEM) + connaissances(objet + ' ' + texte);
         let r, lusT = [], enTravail = travail;
         if (travail) {
@@ -445,7 +445,8 @@ module.exports = function camille(ctx) {
         const accuseT = async (cat) => {
           if (!enTravail || !K.lireMail(lu.reste)) return null;
           const res = await redigerT('support', [110, 400], cat);
-          if (!res || !['bon', 'a_revoir', 'non_verifie'].includes(res.etat)) { agents.noter(ID, 'mode travail', { cible: 'courrier', resultat: 'refuse', detail: 'accusé personnalisé écarté (' + String((res && res.etat) || 'erreur') + ') : gabarit' }); return null; }
+          /* un accusé que le CODE refuse encore après les réécritures n'est pas « à revoir » : c'est le gabarit, sûr, qui part */
+          if (!res || !['bon', 'a_revoir', 'non_verifie'].includes(res.etat) || (res.etat === 'a_revoir' && !res.notes)) { agents.noter(ID, 'mode travail', { cible: 'courrier', resultat: 'refuse', detail: 'accusé personnalisé écarté (' + String((res && res.etat) || 'erreur') + ') : gabarit' }); return null; }
           agents.noter(ID, 'contrôle qualité', { cible: 'courrier', resultat: res.etat === 'bon' ? 'ok' : 'refuse', detail: res.etat + ' (' + cat + ', ' + (res.tours || 1) + ' rédaction' + ((res.tours || 1) > 1 ? 's' : '') + (typeof res.moyenne === 'number' ? ', note ' + res.moyenne + '/5' : '') + ')' + (res.fautes && res.fautes.length ? ' : ' + res.fautes.join(', ') : '') });
           return { corps: res.corps, controle: controleDe(res), reecrit: res.reecrit === true };
         };
@@ -454,7 +455,8 @@ module.exports = function camille(ctx) {
           if (!enTravail) return null;
           const para = String(lu.reste || '').replace(/\r/g, '').trim();
           if (!para || /^objet\s*:/i.test(para) || para.length > 1200 || /^bonjour\b/i.test(para)) return null;
-          const f = CTRL.fautesDuCode(reponseObjet, 'Bonjour,\n\n' + para + FIN, { profil: 'support', mots: [30, 140] });
+          /* l'objet de contrôle est NEUTRE : celui du client peut contenir « remboursement », un mot que l'ouverture n'a pas le droit de dire mais que l'objet d'une réponse peut citer */
+          const f = CTRL.fautesDuCode('Votre message à TeamOP', 'Bonjour,\n\n' + para + FIN, { profil: 'support', mots: [30, 140] });
           if (f.length || /rembours|r[ée]sili|abonnement|arr[êe]t/i.test(para.normalize('NFD').replace(/[̀-ͯ]/g, ''))) { agents.noter(ID, 'mode travail', { cible: 'courrier', resultat: 'refuse', detail: 'ouverture écartée (' + (f.join(', ') || 'mot réservé') + ') : gabarit' }); return null; }
           return 'Bonjour,\n\n' + para + '\n\n' + GABARITS[cat].replace(/^Bonjour,\n\n/, '');
         };

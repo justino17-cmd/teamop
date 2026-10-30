@@ -115,13 +115,15 @@ module.exports = function margaux(ctx) {
           const fautes = [];
           if (RESERVE.test(String(lu.corps || '').normalize('NFD').replace(/[̀-ͯ]/g, ''))) fautes.push('bloc_reserve');
           for (const f of OPS.controle(a.objet, a.texte, Object.assign({}, a.autorises, { lettre: false }))) { const c = VERS_CODE[f] || 'forme'; if (!fautes.includes(c)) fautes.push(c); }
-          return { etat: fautes.length ? 'a_revoir' : 'ok', fautes, corps: a.texte };
+          /* le courrier que le RELECTEUR lit : sans le lien de la facture (une adresse de paiement n'a pas à quitter le serveur pour être notée) */
+          return { etat: fautes.length ? 'a_revoir' : 'ok', fautes, corps: a.texte, corpsJuge: a.autorises.liens.reduce((t, l) => t.split(l).join('(lien de la page de la facture)'), a.texte) };
         },
         ecrire: async (msgs) => {
           if (!msgs && premier) { premier = false; return { ok: true, texte: t.texte }; }
           return cerveau.penser(ID, SYSTEME_RELANCE, msgs, { travail: true, reflechir: true, maxTokens: 3000 });
         } });
-      if (!res || !['bon', 'a_revoir', 'non_verifie'].includes(res.etat)) { agents.noter(ID, 'mode travail', { cible: 'relance', resultat: 'refuse', detail: 'relance rédigée écartée (' + String((res && res.etat) || 'erreur') + ') : modèle d’avant' }); return null; }
+      /* un jet que le CODE refuse encore (lien, mot réservé, promesse…) n'est pas un texte « à revoir » : c'est un texte qu'on n'envoie pas, même à Justin — la relance d'avant */
+      if (!res || !['bon', 'a_revoir', 'non_verifie'].includes(res.etat) || (res.etat === 'a_revoir' && !res.notes)) { agents.noter(ID, 'mode travail', { cible: 'relance', resultat: 'refuse', detail: 'relance rédigée écartée (' + String((res && res.etat) || 'erreur') + ') : modèle d’avant' }); return null; }
       const a = dernierA;
       /* `res.corps` est DÉJÀ le courrier assemblé qui a été jugé : on le range tel quel (ses liens et montants permis sont ceux de `a`) */
       if (!a || !res.corps || res.corps !== a.texte) return null;

@@ -140,24 +140,25 @@ module.exports = function travail(ctx) {
       /* le CODE d'abord (rien à payer s'il échoue) : les règles écrites, sans juge — la grille est le juge */
       /* `o.controleCode(lu)` : le contrôle du CODE propre à l'appelant (Margaux compose son courrier autour de blocs fixes et le contrôle avec les règles des courriers d'exploitation) → { etat, fautes:[codes de FAUTES], corps } */
       const c0 = typeof o.controleCode === 'function' ? await o.controleCode(lu) : null;
-      const c = c0 ? { etat: c0.etat === 'a_revoir' ? 'a_revoir' : 'non_verifie', fautes: Array.isArray(c0.fautes) ? c0.fautes.filter(x => CTRL.FAUTES[x]) : [], corps: typeof c0.corps === 'string' ? c0.corps : lu.corps }
+      const c = c0 ? { etat: c0.etat === 'a_revoir' ? 'a_revoir' : 'non_verifie', fautes: Array.isArray(c0.fautes) ? c0.fautes.filter(x => CTRL.FAUTES[x]) : [], corps: typeof c0.corps === 'string' ? c0.corps : lu.corps, corpsJuge: typeof c0.corpsJuge === 'string' ? c0.corpsJuge : undefined }
         : await CTRL.controler({ cerveau: cv, agent: o.agent, objet: lu.objet, corps: lu.corps, ctx: o.ctx, contexteJuge: o.contexteJuge, recu: o.recu, sansJuge: true, connaissances: o.connaissances });
       dernier = { etat: c.etat, objet: lu.objet, corps: c.corps, fautes: c.fautes, juge: false, raison: c.raison };
       if (c.etat === 'a_revoir') { codes = c.fautes; citations = null; citesPar = null; complement = ''; continue; }
-      const v = await G.noter({ cerveau: cv, agent: o.agent, objet: lu.objet, corps: c.corps, recu: o.recu, contexte: o.contexteJuge, connaissances: o.connaissances, dossier: o.ctx && o.ctx.dossier });
+      const v = await G.noter({ cerveau: cv, agent: o.agent, objet: lu.objet, corps: c.corpsJuge || c.corps, recu: o.recu, contexte: o.contexteJuge, connaissances: o.connaissances, dossier: o.ctx && o.ctx.dossier });
       if (v.etat === 'indisponible') {
         /* un contrôle qui ne sait pas ne dit pas « oui » : le texte a passé le code, il part en brouillon que Justin lit, jamais seul */
         return { etat: 'non_verifie', objet: lu.objet, corps: c.corps, fautes: [], juge: false, raison: 'grille indisponible : ' + (v.raison || 'erreur'), reecrit, tours: fait };
       }
       notes = v.notes; moyenne = v.moyenne;
       if (v.etat === 'ok') return { etat: 'bon', objet: lu.objet, corps: c.corps, fautes: [], juge: true, reecrit, notes, moyenne, tours: fait };
-      dernier = { etat: 'a_revoir', objet: lu.objet, corps: c.corps, fautes: v.fautes, juge: true };
+      dernier = { etat: 'a_revoir', objet: lu.objet, corps: c.corps, fautes: v.fautes, juge: true, notes: v.notes, moyenne: v.moyenne };
       codes = v.fautes; citations = null; citesPar = null; complement = G.complementReecriture(v);
     }
     if (!dernier) return { etat: 'echec', raison: 'erreur', reecrit };
     if (dernier.fautes.some(CTRL.estGrave)) return { etat: 'refuse', objet: dernier.objet, corps: dernier.corps, fautes: dernier.fautes, reecrit: true, raison: dernier.fautes.find(CTRL.estGrave), tours: fait };
     if (!dernier.objet) return { etat: 'refuse', objet: '', corps: '', fautes: dernier.fautes, reecrit: true, raison: 'forme', tours: fait };
-    return Object.assign(dernier, { etat: 'a_revoir', reecrit: true, notes, moyenne, tours: fait });
+    /* `notes` n'est posé que si le DERNIER jet est allé jusqu'à la grille : un jet qui reste fautif pour le code n'a pas de note (l'appelant le sait : un texte que le code refuse n'est pas un « à revoir » de qualité) */
+    return Object.assign(dernier, { etat: 'a_revoir', reecrit: true, tours: fait });
   }
 
   return { actif, travailler, produire, memoireDe, avecLus, interrupteur: () => Array.from(interrupteur) };

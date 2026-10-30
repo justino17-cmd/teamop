@@ -106,7 +106,7 @@ function monter(o) {
   /* `recus` : les appels du RÉDACTEUR seulement ; le juge (`recusJuge`, réponse par défaut « VERDICT : OK », réglable par `o.juge(requete, n)`) et la recherche web (`recusRecherche`,
      par défaut « IDENTIFIEE : non », réglable par `o.recherche(requete, n)` qui peut rendre { texte, recherches }) ont les leurs. */
   const recus = [], recusJuge = [], recusRecherche = [], recusLouis = [], recusNoteur = [];
-  const cerveau = require(S('cerveau.js'))({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2862-xxxxxxxxxxxxxxxx', maintenant,
+  const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2862-xxxxxxxxxxxxxxxx', maintenant }, o.cerveauCtx || {}, {
     appeler: async (cle, requete, optsAppel) => {
       const copie = JSON.parse(JSON.stringify(requete));
       /* LE MODE « TRAVAIL » (30 octobre 2026) : le relecteur noté (`agents-grille.js`) a son propre rôle ; `o.notes(requete, n)` rend ses lignes (par défaut huit 5 — « tout va bien »). */
@@ -141,7 +141,7 @@ function monter(o) {
       /* une réponse OBJET (mode travail) : { texte, actions:[{id, nom, entree}], contenu?, entree?, sortie?, stop_reason? } — le faux Anthropic peut appeler un outil */
       if (r && typeof r === 'object') return Object.assign({ texte: '', entree: 900, sortie: 400, stop_reason: (r.actions && r.actions.length) ? 'tool_use' : 'end_turn' }, r);
       return { texte: r, entree: 900, sortie: 400, stop_reason: 'end_turn' };
-    } });
+    } }));
 
   /* La messagerie simulée. `messages` : 'boite|dossier|uid' → le message que rendrait `lireMessage` (ou une Error à jeter). */
   const boites = o.boites || [{ id: 'b-contact', email: 'contact@teamop.fr', nom: 'TEAM OP' }, { id: 'b-support', email: 'support@teamop.fr', nom: 'TEAM OP' }];

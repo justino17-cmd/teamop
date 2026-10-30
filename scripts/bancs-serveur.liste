@@ -439,3 +439,8 @@ tests/test-3155.js
 tests/test-3190.js
 tests/test-3191.js
 tests/test-3192.js
+# 30 octobre 2026 (les agents au travail, branche claude/agents-travail) : le MOTEUR de travail et ses trois pilotes, derrière l'interrupteur `config.agents.travail` (coupé par défaut). `test-3200` (cerveau : modèle par agent, tarifs, budget du mois ; la boucle d'outils ; les outils de lecture ; la grille ; rédiger → noter → réviser), `test-3201` (Camille), `test-3202` (Margaux : relances J+3/J+7, indemnité de 40 €, la question de facture confiée par Camille), `test-3203` (Léa). Un faux Anthropic partout : aucun appel réel.
+tests/test-3200.js
+tests/test-3201.js
+tests/test-3202.js
+tests/test-3203.js
