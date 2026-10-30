@@ -204,14 +204,45 @@
     return 'deux';
   };
   OpRub.libelleVariante = function (v) { for (var i = 0; i < OpRub.VARIANTES.length; i++) if (OpRub.VARIANTES[i][0] === v) return OpRub.VARIANTES[i][1]; return ''; };
-  /* L'adresse de la démonstration, avec ce que le client a coché : <démo>?metier=<id>&variante=<deux|chauffage|climatisation>&cats=<clés,séparées,par,des,virgules>.
+  /* ── PLUSIEURS MÉTIERS (30 octobre 2026) : la règle du choix, en fonctions PURES (jouées par `tests/test-3215.js`, sans navigateur) ──────────
+     Justin : « 3 métiers maximum » ; « plus 10 € par métier, toutes taxes comprises ». `choix` : les clés, le PREMIER est le métier principal. La 3D est seule
+     (l'application refuse '3d' comme métier EN PLUS). Un refus rend la liste TELLE QUELLE et la phrase qui le dit ; jamais un retrait en silence. */
+  OpRub.METIERS_MAX = 3; OpRub.PRIX_METIER_EN_PLUS = 10;
+  OpRub.basculerMetier = function (choix, k) {
+    var l = Array.isArray(choix) ? choix.slice() : [], i = l.indexOf(k);
+    if (typeof k !== 'string' || !/^[a-z0-9]{1,20}$/.test(k)) return { choix: l, refus: '' };
+    if (i >= 0) { l.splice(i, 1); return { choix: l, refus: '' }; }
+    if (k === '3d' && l.length) return { choix: l, refus: 'La 3D (anti-nuisibles) se choisit seule : retirez d’abord vos autres métiers pour la choisir.' };
+    if (l[0] === '3d') return { choix: l, refus: 'La 3D (anti-nuisibles) se choisit seule : retirez-la d’abord pour ajouter un autre métier.' };
+    if (l.length >= OpRub.METIERS_MAX) return { choix: l, refus: 'Trois métiers au maximum : retirez-en un pour en choisir un autre.' };
+    l.push(k); return { choix: l, refus: '' };
+  };
+  /* le métier choisi passe en tête (rang 1) ; les autres gardent leur ordre ; un métier absent de la liste ne change rien */
+  OpRub.faireLePrincipal = function (choix, k) {
+    var l = Array.isArray(choix) ? choix.slice() : [], i = l.indexOf(k);
+    if (i > 0) { l.splice(i, 1); l.unshift(k); }
+    return l;
+  };
+  OpRub.metiersEnPlus = function (choix) { return Array.isArray(choix) && choix.length > 1 ? choix.length - 1 : 0; };
+  OpRub.prixEnPlus = function (choix) { return OpRub.metiersEnPlus(choix) * OpRub.PRIX_METIER_EN_PLUS; };
+  /* le bloc « Chauffage / Climatisation : que faites-vous ? » se montre dès que ce métier est dans la sélection, quel que soit son rang */
+  OpRub.varianteVisible = function (choix) { return Array.isArray(choix) && choix.indexOf('chauffage') >= 0; };
+  /* L'adresse de la démonstration, avec ce que le client a coché : <démo>?metier=<id>&metiers=<id,id,id>&variante=<deux|chauffage|climatisation>&cats=<clés,séparées,par,des,virgules>.
      Tout est ENCODÉ et BORNÉ : un identifiant de métier ou de rubrique qui n'a pas la forme d'une clé (lettres et chiffres) est jeté, jamais recopié ;
      60 rubriques au plus. Sans métier valide, l'adresse nue. */
-  OpRub.lienDemo = function (demo, metier, variante, cats) {
+  OpRub.lienDemo = function (demo, metier, variante, cats, metiers) {
     var cle = /^[A-Za-z0-9]{1,30}$/;
     if (typeof metier !== 'string' || !/^[a-z0-9]{1,20}$/.test(metier)) return demo;
     var q = ['metier=' + encodeURIComponent(metier)];
-    var v = OpRub.variante(metier, variante); if (v) q.push('variante=' + encodeURIComponent(v));
+    /* LES MÉTIERS (30 octobre 2026) : `metiers=<k1,k2,k3>`, le principal en tête, 3 au plus, distincts, de forme valide ; `metier=` reste le principal (la démonstration
+       d'avant ne lit que lui). Une liste dont le premier n'est pas `metier` est jetée : elle dirait deux choses. */
+    var ms = [];
+    if (Array.isArray(metiers)) {
+      for (var j = 0; j < metiers.length && ms.length < 3; j++) if (typeof metiers[j] === 'string' && /^[a-z0-9]{1,20}$/.test(metiers[j]) && ms.indexOf(metiers[j]) < 0) ms.push(metiers[j]);
+      if (ms.length && ms[0] === metier) q.push('metiers=' + ms.map(encodeURIComponent).join(','));
+    }
+    /* la variante se lit dès que le chauffage est dans la liste, quel que soit son rang */
+    var v = OpRub.variante(metier === 'chauffage' || (ms[0] === metier && ms.indexOf('chauffage') >= 0) ? 'chauffage' : metier, variante); if (v) q.push('variante=' + encodeURIComponent(v));
     if (Array.isArray(cats)) {
       var ok = [];
       for (var i = 0; i < cats.length && ok.length < 60; i++) if (typeof cats[i] === 'string' && cle.test(cats[i]) && ok.indexOf(cats[i]) < 0) ok.push(cats[i]);

@@ -211,7 +211,7 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ `siVide` + même métier + variante déjà posée : rien ne change (garde), la variante reste « climatisation »', [r.s, r.j.garde, (await ETAT()).variante], [200, true, 'climatisation']);
     r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'chauffage', variante: 'deux' }, PATRON);
     v('   CONTRE-ÉPREUVE — le geste de la fiche (sans `siVide`) la change bien', [r.s, (await ETAT()).variante], [200, 'deux']);
-    vrai('   `variante` figure sur chacune des réponses d\'un espace vivant (cinq `res.json` d\'état, lus dans le code)', (SRVN.match(/metier, cats, variante, versionMin/g) || []).length === 5);
+    vrai('   `variante` figure sur chacune des réponses d\'un espace vivant (cinq `res.json` d\'état, lus dans le code)', (SRVN.match(/metier, cats, variante, \.\.\.mm, versionMin/g) || []).length === 5);
 
     /* ══ 5. LE BOUTON « TESTER L'APPLICATION » : L'ADRESSE QUE BÂTIT LA VRAIE FONCTION ══ */
     console.log('\n5. Le lien de la démonstration (la vraie `OpRub.lienDemo`)');
@@ -232,11 +232,11 @@ globalThis.fetch = async function (url, opts) {
 
     const apercu = fs.readFileSync(path.join(RACINE, 'apercu', 'site', 'creer.html'), 'utf8'), racine = fs.readFileSync(path.join(RACINE, 'creer.html'), 'utf8');
     vrai('⛔ l\'aperçu porte le bouton (vers LA démonstration de l\'aperçu), les trois variantes (« Les deux » cochée d\'office) et le JSON avec la base',
-      /id="tester-app" href="\/apercu\/demo\.html" data-demo="\/apercu\/demo\.html" target="_blank" rel="opener"/.test(apercu) && /name="variante" value="deux" checked/.test(apercu)
+      /id="tester-app" data-tester href="\/apercu\/demo\.html" data-demo="\/apercu\/demo\.html" target="_blank" rel="opener"/.test(apercu) && /name="variante" value="deux" checked/.test(apercu)
       && /name="variante" value="chauffage"/.test(apercu) && /name="variante" value="climatisation"/.test(apercu) && /"base":\["planning","planningGeneral"/.test(apercu));
     vrai('⛔ la racine PUBLIÉE ne porte rien de tout ça', !/tester-app|name="variante"|variante-chauffage|"base":/.test(racine));
     const SITE = nu(fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8'));
-    vrai('   le script de la page câble le lien sur la vraie fonction, au choix du métier, de la variante et à chaque case', /OpRub\.lienDemo\(lienTest\.getAttribute\('data-demo'\)/.test(SITE) && /addEventListener\('change', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE) && /OpRub\.monter\(grille, etatRub, 'cr', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE));
+    vrai('   le script de la page câble le lien sur la vraie fonction, au choix du métier, de la variante et à chaque case', /OpRub\.lienDemo\(base, ms\[0\], varianteCourante\(\)/.test(SITE) && /\$\$\('\[data-tester\]'/.test(SITE) && /addEventListener\('change', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE) && /OpRub\.monter\(grille, etatRub, 'cr', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE));
     vrai('   la demande par e-mail DIT la variante', /VARIANTE : /.test(SITE));
 
     /* ══ 6. LA DÉMONSTRATION RENVOIE « AJOUTER CETTE RUBRIQUE » (contrat fixé avec l'autre chantier) ══ */

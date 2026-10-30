@@ -164,17 +164,73 @@
     /* 30 octobre 2026 (Justin) : la VARIANTE du chauffage / climatisation (trois choix, « Les deux » par défaut) et le bouton « Tester l'application » (la
        démonstration, avec ce qui est coché). Absents de la page publiée tant que Justin ne l'a pas dit : tout est gardé par la présence des éléments. */
     var blocVar = $('#variante-chauffage'), blocTest = $('#tester-bloc'), lienTest = $('#tester-app');
-    var metierCourant = function () { var m = $('.metier-puce[aria-pressed="true"]', demande); return m ? m.getAttribute('data-pack') : ''; };
-    var varianteCourante = function (k) {
-      if (!blocVar || k !== 'chauffage' || !window.OpRub) return '';
-      var r = $('input[name="variante"]:checked', demande); return window.OpRub.variante(k, r && r.value);
+    /* ── PLUSIEURS MÉTIERS (30 octobre 2026, Justin : « le client peut choisir plusieurs métiers » ; « 3 métiers maximum » ; « plus 10 € par métier, toutes taxes comprises ») ──
+       `choix` : les clés, LE PREMIER EST LE MÉTIER PRINCIPAL (celui qui règle l'application au départ, et celui dont la grille de rubriques s'affiche). La 3D est seule :
+       l'application refuse '3d' comme métier EN PLUS. Le mode ne s'allume que si la page porte `#metiers-recap` (l'aperçu) : la page publiée garde son métier unique. */
+    var recap = $('#metiers-recap'), multi = !!recap, choix = [];   // les règles (3 au plus, la 3D seule, le prix) sont dans OpRub : `basculerMetier`, `faireLePrincipal`, `prixEnPlus`
+    var refusMetier = $('#metiers-refus'), listeOrdre = $('#metiers-ordre'), totalPlus = $('#metiers-total');
+    var puceDe = function (k) { return $('.metier-puce[data-pack="' + k + '"]', demande); };
+    var metiersCourants = function () {
+      if (multi) return choix.slice();
+      var m = $('.metier-puce[aria-pressed="true"]', demande); return m ? [m.getAttribute('data-pack')] : [];
+    };
+    var metierCourant = function () { return metiersCourants()[0] || ''; };
+    /* la variante se lit dès que le chauffage est DANS la sélection, quel que soit son rang */
+    var varianteCourante = function () {
+      if (!blocVar || !window.OpRub || metiersCourants().indexOf('chauffage') < 0) return '';
+      var r = $('input[name="variante"]:checked', demande); return window.OpRub.variante('chauffage', r && r.value);
+    };
+    /* l'adresse de la démonstration : tous les métiers, la variante, et les rubriques SEULEMENT si le client y a touché (sinon la démonstration montre tout) */
+    var adresseDemo = function (base) {
+      var ms = metiersCourants(); if (!ms.length || !window.OpRub) return base;
+      return window.OpRub.lienDemo(base, ms[0], varianteCourante(), etatRub && etatRub.touche ? window.OpRub.liste(etatRub) : null, ms);
     };
     var majTest = function () {
-      var k = metierCourant();
-      if (blocVar) blocVar.hidden = k !== 'chauffage';
-      if (blocTest) blocTest.hidden = !k;
-      if (!k || !lienTest || !window.OpRub) return;
-      lienTest.href = window.OpRub.lienDemo(lienTest.getAttribute('data-demo') || '/demo.html', k, varianteCourante(k), etatRub ? window.OpRub.liste(etatRub) : null);
+      var ms = metiersCourants();
+      if (blocVar) blocVar.hidden = !(window.OpRub && window.OpRub.varianteVisible(ms));
+      if (blocTest && !multi) blocTest.hidden = !ms.length;
+      $$('[data-tester]', document).forEach(function (a) { a.href = adresseDemo(a.getAttribute('data-demo') || '/demo.html'); });
+    };
+    var rubPour = '';
+    var dire = function (t) { if (!refusMetier) return; refusMetier.textContent = t || ''; refusMetier.hidden = !t; };
+    /* repeint la sélection : états des puces, rang « 1, 2, 3 », ordre, prix, rubriques du métier principal */
+    var appliquerChoix = function () {
+      $$('.metier-puce', demande).forEach(function (p) {
+        var i = choix.indexOf(p.getAttribute('data-pack')), r = $('.rang', p);
+        p.setAttribute('aria-pressed', i >= 0 ? 'true' : 'false');
+        if (i >= 0) { if (!r) { r = document.createElement('span'); r.className = 'rang'; r.setAttribute('aria-hidden', 'true'); p.appendChild(r); } r.textContent = String(i + 1); }
+        else if (r) r.remove();
+      });
+      if (listeOrdre) {
+        listeOrdre.textContent = '';
+        choix.forEach(function (k, i) {
+          var p = puceDe(k), li = document.createElement('li'), n = document.createElement('b'), nom = document.createElement('span');
+          n.textContent = String(i + 1); nom.className = 'ordre-nom'; nom.textContent = p ? p.getAttribute('data-nom') : k;
+          li.appendChild(n); li.appendChild(nom);
+          if (i === 0) { var t = document.createElement('em'); t.textContent = 'métier principal'; li.appendChild(t); }
+          else {
+            var b = document.createElement('button'); b.type = 'button'; b.className = 'ordre-principal'; b.setAttribute('data-principal', k);
+            b.textContent = 'En faire le métier principal'; b.setAttribute('aria-label', 'Faire de ' + (p ? p.getAttribute('data-nom') : k) + ' le métier principal');
+            li.appendChild(b);
+          }
+          listeOrdre.appendChild(li);
+        });
+        listeOrdre.hidden = !choix.length;
+      }
+      if (totalPlus) {
+        var plus = window.OpRub.metiersEnPlus(choix);
+        totalPlus.textContent = plus ? ' Vous en ajoutez ' + plus + ' : +' + window.OpRub.prixEnPlus(choix) + ' € TTC par mois.' : '';
+      }
+      if (choix.length && erreur) erreur.hidden = true;
+      var princ = choix[0] ? puceDe(choix[0]) : null;
+      if (bientot) bientot.hidden = !(princ && princ.getAttribute('data-pret') !== '1');
+      if (choix[0] !== rubPour) { rubPour = choix[0] || ''; montrerRubriques(princ); }
+      majTest(); garder();
+    };
+    var basculerMetier = function (k) {
+      var r = window.OpRub.basculerMetier(choix, k);
+      dire(r.refus); if (r.refus) return;
+      choix = r.choix; appliquerChoix();
     };
     var montrerRubriques = function (m) {
       var k = m && m.getAttribute('data-pack'), pret = !!m && m.getAttribute('data-pret') === '1';
@@ -222,7 +278,7 @@
       try {
         var champs = {}; $$('input[type="text"], input[type="email"], input[type="tel"], textarea', demande).forEach(function (c) { if (c.name) champs[c.name] = c.value; });
         var rv = $('input[name="variante"]:checked', demande);
-        sessionStorage.setItem(CLE_SESSION, JSON.stringify({ metier: metierCourant(), variante: rv ? rv.value : '', cats: etatRub && window.OpRub ? window.OpRub.liste(etatRub) : null, champs: champs,
+        sessionStorage.setItem(CLE_SESSION, JSON.stringify({ metier: metierCourant(), metiers: metiersCourants(), variante: rv ? rv.value : '', cats: etatRub && window.OpRub ? window.OpRub.liste(etatRub) : null, champs: champs,
           besoins: $$('.besoin[aria-pressed="true"]', demande).map(function (b) { return b.textContent.trim(); }) }));
       } catch (x) {}
     };
@@ -231,16 +287,23 @@
       if (!s || typeof s !== 'object') return;
       $$('input[type="text"], input[type="email"], input[type="tel"], textarea', demande).forEach(function (c) { if (c.name && s.champs && typeof s.champs[c.name] === 'string') c.value = s.champs[c.name]; });
       $$('.besoin', demande).forEach(function (b) { if ((s.besoins || []).indexOf(b.textContent.trim()) >= 0) b.setAttribute('aria-pressed', 'true'); });
-      var m = typeof s.metier === 'string' && s.metier ? $('.metier-puce[data-pack="' + s.metier.replace(/[^a-z0-9]/g, '') + '"]', demande) : null;
-      if (!m) return;
+      var cles = Array.isArray(s.metiers) && s.metiers.length ? s.metiers : (typeof s.metier === 'string' && s.metier ? [s.metier] : []), bons = [];
+      cles.forEach(function (k) {
+        if (typeof k !== 'string' || !/^[a-z0-9]{1,20}$/.test(k) || bons.indexOf(k) >= 0 || !puceDe(k)) return;
+        if (!multi && bons.length) return;
+        var r = window.OpRub.basculerMetier(bons, k); if (!r.refus) bons = r.choix;
+      });
+      if (!bons.length) return;
       if (blocVar && s.variante) { var rv = $('input[name="variante"][value="' + String(s.variante).replace(/[^a-z]/g, '') + '"]', demande); if (rv) rv.checked = true; }
       depart = Array.isArray(s.cats) ? s.cats.filter(function (k) { return typeof k === 'string' && CLE.test(k); }) : null;
-      m.setAttribute('aria-pressed', 'true'); if (erreur) erreur.hidden = true;
-      montrerRubriques(m); depart = null; majTest();
+      if (multi) { choix = bons; appliquerChoix(); }
+      else { var m = puceDe(bons[0]); m.setAttribute('aria-pressed', 'true'); if (erreur) erreur.hidden = true; montrerRubriques(m); }
+      depart = null; majTest();
     };
     demande.addEventListener('input', garder);
     $$('.metier-puce', demande).forEach(function (m) {
       m.addEventListener('click', function () {
+        if (multi) { basculerMetier(m.getAttribute('data-pack')); return; }
         var on = m.getAttribute('aria-pressed') !== 'true';
         $$('.metier-puce', demande).forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
         m.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -248,6 +311,13 @@
         montrerRubriques(on ? m : null);
         majTest(); garder();
       });
+    });
+    /* « En faire le métier principal » : le métier choisi passe en tête (rang 1), les autres gardent leur ordre */
+    if (listeOrdre) listeOrdre.addEventListener('click', function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest('[data-principal]') : null; if (!b) return;
+      var k = b.getAttribute('data-principal'); if (choix.indexOf(k) < 1) return;
+      choix = window.OpRub.faireLePrincipal(choix, k); dire(''); appliquerChoix();
+      var nouveau = $('.ordre-principal', listeOrdre); if (!nouveau) { var pr = puceDe(k); if (pr) pr.focus(); }
     });
     $$('input[name="variante"]', demande).forEach(function (r) { r.addEventListener('change', function () { majTest(); garder(); }); });
     var ajoutDemande = (/[?&]ajouter=([A-Za-z0-9]{1,30})(?:&|$)/.exec(location.search) || [])[1];
@@ -259,7 +329,7 @@
       e.preventDefault();
       /* Le métier part EN TÊTE et sous une forme sans ambiguïté : c'est lui qui décide du pack
          activé à la création de l'espace (même lecture que l'ancienne page). */
-      var lignes = [], m = $('.metier-puce[aria-pressed="true"]', demande);
+      var lignes = [], ms = metiersCourants(), m = ms.length ? puceDe(ms[0]) : null;
       if (!m) {
         /* ⛔ pas de métier, pas de demande : le message se DIT (lecteur d'écran compris) et on ramène sur la liste */
         if (erreur) erreur.hidden = false;
@@ -268,8 +338,12 @@
         return;
       }
       lignes.push('MÉTIER CHOISI : ' + m.getAttribute('data-nom') + '  [pack ' + m.getAttribute('data-pack') + ']');
+      if (ms.length > 1) {
+        lignes.push('METIERS : ' + ms.map(function (k) { return puceDe(k).getAttribute('data-nom'); }).join(' + ') + '  [metiers ' + ms.join(',') + ']  (le premier est le métier principal)');
+        lignes.push('Métiers en plus : ' + (ms.length - 1) + ' (+' + (window.OpRub.prixEnPlus(ms)) + ' € TTC par mois)');
+      }
       lignes.push('Pack : ' + (m.getAttribute('data-pret') === '1' ? 'prêt — activable dès la création' : 'à construire sur mesure'));
-      var vr = varianteCourante(m.getAttribute('data-pack'));
+      var vr = varianteCourante();
       if (vr) lignes.push('VARIANTE : ' + window.OpRub.libelleVariante(vr) + '  [variante ' + vr + ']');
       var choisies = etatRub && window.OpRub ? window.OpRub.liste(etatRub) : null;
       if (choisies) {
