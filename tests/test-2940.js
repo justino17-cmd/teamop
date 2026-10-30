@@ -263,7 +263,8 @@ function fenetre(opts) {
   }
   console.log('\n   — le code du semis lui-même (commentaires retirés)');
   { const code = nu(MODULE + SCEN).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-    egal('aucun appel réseau dans le module de la démonstration : ni fetch(, ni XMLHttpRequest, ni sendBeacon, ni WebSocket, ni adresse http', [/\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|https?:\/\//.test(code)], [false]);
+    egal('aucun appel réseau dans le module de la démonstration : ni fetch(, ni XMLHttpRequest, ni sendBeacon, ni WebSocket, ni adresse http', [/\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|https?:\/\//.test(code.split("'https://teamop.fr'").join(''))], [false]);
+    vrai('(la seule adresse écrite dans le module) \'https://teamop.fr\' ne sert que de DESTINATAIRE d\'un postMessage vers l\'onglet du site (jamais un jeton "*") : aucun envoi réseau', code.split("'https://teamop.fr'").length === 2 && /\.postMessage\([^;]*,\s*'https:\/\/teamop\.fr'\)/.test(code) && !/postMessage\([^;]*'\*'/.test(code));
     egal('⛔ un produit naît par produitCreer(…, {semis:true}) : jamais db.produits.push dans le semis', [/db\.produits\.push\(/.test(code), /produitCreer\(\{[^]*?\},\s*\{\s*semis:\s*true\s*\}\)/.test(code)], [false, true]);
     vrai('le métier se règle par metierServeurAppliquer (la fonction de la Tour), les types par intTypes(), les catégories par categoriesProduit() : aucune liste recopiée dans le semis',
       /metierServeurAppliquer\(\{\s*metier:\s*id\s*\}\)/.test(code) && /intTypes\(\)/.test(code) && /categoriesProduit\(\)/.test(code) && !/INT_TYPES\b|CAT_LIST\b/.test(code));
@@ -309,7 +310,7 @@ function fenetre(opts) {
     vrai('⛔ sans vue posée, le pare-feu n\'écrit PAS top_monitor_off sur le vrai rangement (il éteindrait la sentinelle de la vraie application) — et le note', mauvais.real._m.top_monitor_off === undefined
       && Object.keys(mauvais.real._m).every(k => !/top_monitor/.test(k)) && mauvais.W.__demoPublique.refus.some(r => r.genre === 'stockage'), Object.keys(mauvais.real._m));
     const appels = []; const els = {}; const el = id => (els[id] = els[id] || { style: {}, innerHTML: '' });
-    const mk = stockageIsole => bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris'], { window: { __demoPublique: { stockageIsole } }, document: { getElementById: el }, location: { search: '', pathname: '/demo.html' },
+    const mk = stockageIsole => bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris', 'demoPubliqueAdresse', 'demoPubliquePack'], { DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60, demoPubliqueCatsConnues: () => ['planning', 'clients'], demoPubliqueEtatLire: () => ({}), window: { __demoPublique: { stockageIsole } }, document: { getElementById: el }, location: { search: '', pathname: '/demo.html' },
       demoPubliqueBouchons: () => appels.push('bouchons'), demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => '', demoPubliqueMetiers: () => ['3d'], demoPubliqueChoix: () => appels.push('choix'),
       demoPubliqueSemer: () => appels.push('semer'), demoPubliqueOuvrir: () => appels.push('ouvrir'), demoPubliqueChoixEcrire: () => { }, db: {} });
     mk(false).fn.demoPubliqueBoot();
@@ -322,7 +323,7 @@ function fenetre(opts) {
   {
     const cas = (search, deja, base, accepte) => {
       const j = { confirm: 0, semer: [], ecrit: [], ouvrir: 0 };
-      const b = bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris'], { window: { __demoPublique: { stockageIsole: true } }, document: { getElementById: () => ({ style: {}, innerHTML: '' }) }, location: { search, pathname: '/demo.html' },
+      const b = bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris', 'demoPubliqueAdresse', 'demoPubliquePack'], { DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60, demoPubliqueCatsConnues: () => ['planning', 'clients'], demoPubliqueEtatLire: () => ({}), window: { __demoPublique: { stockageIsole: true } }, document: { getElementById: () => ({ style: {}, innerHTML: '' }) }, location: { search, pathname: '/demo.html' },
         history: { replaceState: () => { j.replace = true; } }, confirm: () => { j.confirm++; return accepte; }, demoPubliqueBouchons: () => { }, demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => deja,
         demoPubliqueMetiers: () => ['3d', 'plomberie', 'chauffage'], demoPubliqueChoix: () => { j.choix = true; }, demoPubliqueSemer: id => j.semer.push(id), demoPubliqueOuvrir: () => { j.ouvrir++; },
         demoPubliqueChoixEcrire: id => j.ecrit.push(id), db: base });
