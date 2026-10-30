@@ -22,9 +22,10 @@ const crypto = require('crypto');
 const F = 'demandes-site.json';
 const MAX_DEMANDES = 3000;
 const CORPS_MAX = '24kb';
-const QUOTA_IP = 6, QUOTA_MAIL = 3, QUOTA_GLOBAL = 120, FENETRE = 3600000;
+const QUOTA_IP = 6, QUOTA_MAIL = 3, RANGEES_PAR_HEURE = 30, ALERTES_PAR_HEURE = 5, FENETRE = 3600000;
+const GARDE_TRAITEES_MS = 365 * 86400000;   // une demande TRAITÉE se purge au bout de douze mois (données personnelles : on ne garde pas sans raison)
 const DOUBLON_MS = 10 * 60000;
-const CTRL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u2028\u2029]/g;
+const CTRL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u2028\u2029\u202A-\u202E\u2066-\u2069]/g;   // + les marques de sens d'écriture (une adresse ou un nom « retourné » dans la Tour)
 const FORBIDDEN = ['__proto__', 'constructor', 'prototype'];
 const MAIL_RE = /^[^\s@<>"',;:()\[\]\\]{1,64}@[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 const TEL_RE = /^[0-9 +().\-\/]{6,30}$/;
@@ -52,8 +53,9 @@ function valider(b, choisir, catsAvecBase) {
   if (em === null || !em || !MAIL_RE.test(em)) return { ok: false, error: 'email_invalide' };
   d.email = em.toLowerCase();
   const tel = texte(b.tel, 30, true);
-  if (tel === null || (tel && !TEL_RE.test(tel))) return { ok: false, error: 'tel_invalide' };
-  d.tel = tel;
+  if (tel === null) return { ok: false, error: 'forme', champ: 'tel' };
+  /* un téléphone mal formé ne fait pas perdre la demande : le champ est écarté (et la Tour le dit) */
+  if (tel && !TEL_RE.test(tel)) { d.tel = ''; d.telEcarte = true; } else d.tel = tel;
   if (!Array.isArray(b.metiers) || !b.metiers.length) return { ok: false, error: 'metier_requis' };
   if (b.metiers.length > 3 || b.metiers.some(k => typeof k !== 'string' || !/^[a-z0-9]{1,20}$/.test(k))) return { ok: false, error: 'metiers_invalides' };
   let variante = b.variante;
@@ -75,7 +77,8 @@ function valider(b, choisir, catsAvecBase) {
 }
 
 module.exports = function monterDemandeSite(app, ctx) {
-  const { DATA_DIR, monAdmin, monPatronStrict, express, quotaOk, choisir, catsAvecBase, surDemande } = ctx;
+  const { DATA_DIR, monAdmin, monPatronStrict, express, quotaOk, choisir, catsAvecBase, surDemande, surSynthese } = ctx;
+  const syntheseMs = Number(ctx.syntheseMs) > 0 ? Number(ctx.syntheseMs) : 300000;
   const chemin = path.join(DATA_DIR, F);
   let liste = [], illisible = false;
   try {
@@ -93,14 +96,18 @@ module.exports = function monterDemandeSite(app, ctx) {
     } catch (e) { console.error('demandes-site.json non écrit :', (e && e.code) || 'erreur disque'); return false; }
   }
 
-  const qIp = new Map(), qMail = new Map(), qGlobal = new Map();
+  const qIp = new Map(), qMail = new Map();
+  const alertesFaites = [];   // les heures des alertes envoyées (au plus ALERTES_PAR_HEURE par heure) ; le reste est compté et résumé en UNE ligne
+  let enTrop = 0, minuterieSynthese = null;
   const nettoyer = () => { for (const m of [qIp, qMail]) if (m.size > 5000) m.clear(); };
   const analyseur = express.json({ limit: CORPS_MAX });
 
   /* 1. le budget, AVANT de lire le corps : un inconnu ne fait pas lire 24 Ko à répétition pour rien */
   const budget = (req, res, next) => {
     nettoyer();
-    if (!quotaOk(qGlobal, 'g', QUOTA_GLOBAL, FENETRE) || !quotaOk(qIp, 'ip:' + (req.ip || '?'), QUOTA_IP, FENETRE)) return res.status(429).json({ error: 'trop_de_demandes' });
+    /* ⛔ L'ADRESSE IP D'ABORD, ET ELLE SEULE (relecture `gardien`) : un compteur global compté AVANT l'IP, refus compris, laisserait UNE adresse vider le budget de tout le site. Le plafond
+       global (RANGEES_PAR_HEURE) ne compte que les demandes réellement RANGÉES, plus bas. */
+    if (!quotaOk(qIp, 'ip:' + (req.ip || '?'), QUOTA_IP, FENETRE)) return res.status(429).json({ error: 'trop_de_demandes' });
     next();
   };
   /* 2. le corps : JSON, 24 Ko ; un corps cassé ou trop gros est une forme invalide, pas une panne */
@@ -118,10 +125,12 @@ module.exports = function monterDemandeSite(app, ctx) {
     if (illisible) return res.status(503).json({ error: 'indisponible' });
     const d = v.demande;
     if (!quotaOk(qMail, 'm:' + d.email, QUOTA_MAIL, FENETRE)) return res.status(429).json({ error: 'trop_de_demandes' });
+    const maintenantG = Date.now();
+    if (liste.filter(x => maintenantG - x.ts < FENETRE).length >= RANGEES_PAR_HEURE) return res.status(429).json({ error: 'trop_de_demandes' });   // le plafond du site entier : seulement ce qui a été rangé
     const empreinte = crypto.createHash('sha256').update(JSON.stringify([d.email, d.metiers, d.variante, d.cats, d.entreprise, d.message])).digest('hex').slice(0, 16);
     const maintenant = Date.now();
     if (liste.some(x => x.empreinte === empreinte && maintenant - x.ts < DOUBLON_MS)) return res.json({ ok: true, doublon: true });   // déjà écrite : un double clic ne fait pas deux demandes
-    let base = liste;
+    let base = liste.filter(x => !(x.traitee && x.traitee.ts && maintenant - x.traitee.ts > GARDE_TRAITEES_MS));   // purge des traitées de plus de douze mois
     if (base.length >= MAX_DEMANDES) {
       /* plein : on retire d'abord les plus anciennes TRAITÉES ; s'il n'y en a plus, on refuse (503) plutôt que d'effacer une demande à traiter */
       const i = base.findIndex(x => x.traitee);
@@ -131,9 +140,20 @@ module.exports = function monterDemandeSite(app, ctx) {
     const enr = Object.assign({ id: crypto.randomBytes(8).toString('hex'), ts: maintenant, empreinte, traitee: null }, d);
     if (!ecrire(base.concat([enr]))) return res.status(503).json({ error: 'non_ecrite' });
     res.json({ ok: true });
-    /* l'alerte vient APRÈS la réponse et ne jette jamais : la demande est écrite, c'est ce qui compte */
-    try { Promise.resolve(surDemande && surDemande(enr)).catch(e => console.error('demande du site : alerte non partie —', String((e && e.message) || e).replace(/\S+@\S+/g, '·').slice(0, 120))); }
-    catch (e) { console.error('demande du site : alerte non partie'); }
+    /* RANGER ET ALERTER SONT DEUX CHOSES (relecture `gardien`) : tout ce qui est valide est rangé, mais au plus ALERTES_PAR_HEURE alertes (notification, courriel, message d'OP MESSAGES)
+       par heure ; le reste est compté et résumé en UNE ligne (« N demandes de plus, voir la Tour »). L'alerte vient APRÈS la réponse et ne jette jamais. */
+    while (alertesFaites.length && maintenant - alertesFaites[0] > FENETRE) alertesFaites.shift();
+    if (alertesFaites.length < ALERTES_PAR_HEURE) {
+      alertesFaites.push(maintenant);
+      try { Promise.resolve(surDemande && surDemande(enr)).catch(e => console.error('demande du site : alerte non partie —', String((e && e.message) || e).replace(/\S+@\S+/g, '·').slice(0, 120))); }
+      catch (e) { console.error('demande du site : alerte non partie'); }
+    } else {
+      enTrop++;
+      if (!minuterieSynthese) {
+        minuterieSynthese = setTimeout(() => { const n = enTrop; enTrop = 0; minuterieSynthese = null; try { Promise.resolve(surSynthese && surSynthese(n)).catch(() => {}); } catch (e) {} }, syntheseMs);
+        if (minuterieSynthese.unref) minuterieSynthese.unref();
+      }
+    }
   });
 
   /* la Tour (patron ET collaborateurs, comme /api/monitor/clients) */

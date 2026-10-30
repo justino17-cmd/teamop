@@ -93,7 +93,7 @@ console.log('\n── 3230 · la demande du site arrive, est rangée, et la page
     ['adresse en tableau', bonne({ email: ['a@b.fr'] })], ['sans métier', bonne({ metiers: [] })], ['métiers absents', bonne({ metiers: undefined })], ['quatre métiers', bonne({ metiers: ['plomberie', 'electricite', 'chauffage', 'serrurerie'] })],
     ['métier inconnu', bonne({ metiers: ['zzzz'] })], ['la 3D avec un autre métier', bonne({ metiers: ['3d', 'plomberie'] })], ['métier en doublon', bonne({ metiers: ['plomberie', 'plomberie'] })],
     ['variante pour un métier sans chauffage', bonne({ variante: 'deux' })], ['variante inconnue', bonne({ metiers: ['chauffage'], variante: 'tout' })], ['rubrique inconnue', bonne({ cats: ['nimportequoi'] })],
-    ['rubriques qui ne sont pas une liste', bonne({ cats: 'planning' })], ['téléphone absurde', bonne({ tel: 'appelez-moi' })], ['nom qui est un objet', bonne({ nom: { a: 1 } })], ['besoins qui ne sont pas une liste', bonne({ besoins: 'x' })],
+    ['rubriques qui ne sont pas une liste', bonne({ cats: 'planning' })], ['téléphone qui est un objet', bonne({ tel: { a: 1 } })], ['nom qui est un objet', bonne({ nom: { a: 1 } })], ['besoins qui ne sont pas une liste', bonne({ besoins: 'x' })],
     ['corps qui est une liste', [1, 2]], ['JSON cassé', '{"email":'], ['prototype : __proto__', '{"__proto__":{"pollue":"oui"},"email":"p@exemple-3230.fr","metiers":["plomberie"]}'],
     ['prototype : constructor', '{"constructor":{"prototype":{"pollue":"oui"}},"email":"p@exemple-3230.fr","metiers":["plomberie"]}']];
   for (const [t, corps] of cas) { const x = await envoi(corps); v('400 — ' + t, x.s, 400); }
@@ -101,11 +101,18 @@ console.log('\n── 3230 · la demande du site arrive, est rangée, et la page
   v('413 — un corps de 40 Ko (la limite est de 24 Ko, lue APRÈS le budget)', gros.s, 413);
   v('rien n\'a été écrit par tous ces refus', (await lire()).length, avant);
   v('CONTRE-ÉPREUVE — le même corps valide passe (message bien trop long : BORNÉ, pas refusé)', [(await envoi(bonne({ email: 'borne@exemple-3230.fr', message: 'y'.repeat(5000) }))).s, ((await lire())[0].message || '').length <= 1500], [200, true]);
+  r = await envoi(bonne({ email: 'tel@exemple-3230.fr', tel: 'appelez-moi', entreprise: 'Bidi\u202Eevil\u2066x Banc' }));
+  const ltel = (await lire()).find(x => x.email === 'tel@exemple-3230.fr');
+  v('⛔ un téléphone mal formé ne fait PAS perdre la demande : 200, champ écarté et marqué (la Tour le dit)', [r.s, ltel && ltel.tel, ltel && ltel.telEcarte], [200, '', true]);
+  vrai('   les marques de sens d\'écriture (U+202A-202E, U+2066-2069) sont retirées du nom d\'entreprise', ltel && ltel.entreprise === 'Bidi evil x Banc', ltel && JSON.stringify(ltel.entreprise));
   const l2 = await lire();
   vrai('   le prototype n\'a rien pollué (aucune ligne ne porte « pollue »)', !JSON.stringify(l2).includes('pollue'));
 
   console.log('\n3. le budget, le double clic, le champ piège');
   const IP = '10.77.0.1';
+  /* ⛔ UNE adresse IP ne vide pas le budget des autres : 130 requêtes d'une même IP, puis une autre IP passe */
+  for (let i = 0; i < 130; i++) await brut(S.B, { email: 'x' }, '10.66.0.1');
+  v('⛔ 130 requêtes (invalides, puis refusées) d\'UNE adresse IP n\'empêchent pas une AUTRE adresse de passer', (await envoi(bonne({ email: 'autre-que-flood@exemple-3230.fr' }), '10.66.0.2')).s, 200);
   const codes = []; for (let i = 0; i < 8; i++) codes.push((await envoi({ email: 'budget' + i + '@exemple-3230.fr', metiers: ['plomberie'] }, IP)).s);
   v('⛔ 429 au-delà de 6 demandes par heure et par adresse IP (les 6 premières passent, les suivantes non)', codes, [200, 200, 200, 200, 200, 200, 429, 429]);
   v('   une AUTRE adresse IP n\'est pas touchée', (await envoi(bonne({ email: 'autre-ip@exemple-3230.fr' }), '10.77.0.2')).s, 200);
@@ -128,15 +135,15 @@ console.log('\n── 3230 · la demande du site arrive, est rangée, et la page
 
 
   console.log('\n4 bis. le courriel à Justin : les coordonnées, une réponse directe, rien d\'injecté — et toujours rien au journal');
-  const recus = []; let msgC = '', corpsC = false;
-  const smtp = require('net').createServer(c => { c.on('error', () => {}); let t = ''; c.write('220 banc\r\n');
+  const recus = [];
+  const smtp = require('net').createServer(c => { c.on('error', () => {}); let t = '', msgC = '', corpsC = false; c.write('220 banc\r\n');
     c.on('data', d => { t += d.toString('utf8'); let i; while ((i = t.indexOf('\r\n')) >= 0) { const l = t.slice(0, i); t = t.slice(i + 2);
       if (corpsC) { if (l === '.') { corpsC = false; recus.push(msgC); msgC = ''; c.write('250 ok\r\n'); } else msgC += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
       const h = l.toUpperCase();
       if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n'); else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
       else if (h.startsWith('DATA')) { corpsC = true; c.write('354 go\r\n'); } else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); } else c.write('250 ok\r\n'); } }); });
   await new Promise(r2 => smtp.listen(0, '127.0.0.1', r2));
-  const S3 = await demarrer('c', null, { smtp: { host: '127.0.0.1', port: smtp.address().port, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }, notifDemandes: 'patron@banc-3230.fr' });
+  const S3 = await demarrer('c', null, { smtp: { host: '127.0.0.1', port: smtp.address().port, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }, notifDemandes: 'patron@banc-3230.fr', syntheseDemandesMs: 800 });
   vrai('(population) le serveur au courrier branché démarre', S3.vivant);
   r = await brut(S3.B, bonne({ email: 'courrier@exemple-3230.fr', entreprise: 'Banc Courrier\nBcc: evil@exemple.fr' }));
   v('la demande est reçue (200)', r.s, 200);
@@ -146,7 +153,28 @@ console.log('\n── 3230 · la demande du site arrive, est rangée, et la page
   vrai('   il porte les coordonnées (adresse, téléphone, entreprise, métier) et dit que rien n\'a été créé', /courrier@exemple-3230\.fr/.test(mel) && /06 11 22 33 44/.test(mel) && /Banc Courrier/.test(mel) && /Métiers : /.test(mel) && /Rien n'a été créé/.test(mel));
   vrai('   « répondre » écrit au client (Reply-To)', /^Reply-To: .*courrier@exemple-3230\.fr/mi.test(mel));
   vrai('   ⛔ la retombée à la ligne du nom d\'entreprise n\'a pas fabriqué un en-tête « Bcc »', !/^Bcc:/mi.test(mel.split('\n\n')[0]));
+  const nbMels = () => recus.map(m => Buffer.from(m.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8')).filter(m => /Nouvelle demande « Créer votre application »/.test(m)).length;
+  for (let i = 0; i < 8; i++) await brut(S3.B, bonne({ email: 'rafale' + i + '@exemple-3230.fr', entreprise: 'Rafale ' + i }));
+  for (let i = 0; i < 100 && nbMels() < 5; i++) await dormir(100);
+  await dormir(2500);
+  if (process.env.DBG) console.log(journalTout.split('\n').filter(l => /demande|mail/i.test(l)).slice(-15).join('\n'));
+  v('⛔ RANGER ET ALERTER SONT DEUX CHOSES : neuf demandes rangées, mais AU PLUS CINQ courriels d\'alerte par heure', nbMels(), 5);
+  vrai('   le reste est résumé en UNE ligne (« 4 demandes de plus »), sans donnée personnelle', (journalTout.match(/demandes du site : 4 de plus/g) || []).length === 1);
+  const rangeesC = JSON.parse(fs.readFileSync(path.join(S3.D, 'demandes-site.json'), 'utf8')).l.length;
+  v('   toutes les demandes valides sont bien rangées (aucune perdue par le plafond d\'alertes)', rangeesC, 9);
   smtp.close();
+  /* le plafond du site entier ne compte que ce qui est RANGÉ ; la purge des traitées de plus de douze mois */
+  const JOUR = 86400000, vieille = { id: 'vieille', ts: MAINT - 400 * JOUR, empreinte: 'a', traitee: { par: 'Patron', ts: MAINT - 400 * JOUR }, email: 'vieille@exemple-3230.fr', metiers: ['plomberie'], metier: 'plomberie' };
+  const recente = { id: 'recente', ts: MAINT - 100 * JOUR, empreinte: 'b', traitee: { par: 'Patron', ts: MAINT - 100 * JOUR }, email: 'recente@exemple-3230.fr', metiers: ['plomberie'], metier: 'plomberie' };
+  const attente = { id: 'attente', ts: MAINT - 400 * JOUR, empreinte: 'c', traitee: null, email: 'attente@exemple-3230.fr', metiers: ['plomberie'], metier: 'plomberie' };
+  const S4 = await demarrer('d', D4 => fs.writeFileSync(path.join(D4, 'demandes-site.json'), JSON.stringify({ v: 1, l: [vieille, recente, attente] })));
+  vrai('(population) le serveur au registre garni démarre', S4.vivant);
+  const lire4 = async () => ((await (await fetch(S4.B + '/api/monitor/demandes-site', { headers: { Authorization: 'Bearer ' + (await (await fetch(S4.B + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nom: 'Patron', pass: 'mot-de-passe-3230' }) })).json()).token } })).json()).demandes || []).map(x => x.id).sort();
+  v('(population) trois demandes au départ', await lire4(), ['attente', 'recente', 'vieille']);
+  v('une demande valide passe', (await brut(S4.B, bonne({ email: 'plafond0@exemple-3230.fr' }))).s, 200);
+  v('⛔ PURGE — la demande TRAITÉE depuis plus de douze mois est partie ; la traitée récente et la demande À TRAITER (même ancienne) restent', (await lire4()).filter(x => x.length === 6 || ['attente', 'recente', 'vieille'].includes(x)).sort(), ['attente', 'recente']);
+  const c30 = []; for (let i = 1; i < 32; i++) c30.push((await brut(S4.B, bonne({ email: 'plafond' + i + '@exemple-3230.fr' }))).s);
+  v('⛔ PLAFOND DU SITE : 30 demandes RANGÉES par heure, toutes adresses confondues (la 31ᵉ est refusée, 429)', [c30.filter(c => c === 200).length, c30[c30.length - 1]], [29, 429]);
 
   console.log('\n5. la Tour : session exigée, traiter / remettre à traiter');
   v('sans session : la liste est refusée', (await appel('/api/monitor/demandes-site')).s, 401);
@@ -209,6 +237,24 @@ console.log('\n── 3230 · la demande du site arrive, est rangée, et la page
   vrai('site.js complète la page : bouton « Envoyer ma demande », champ piège, erreur d\'adresse, bloc d\'échec avec « Envoyer par e-mail à la place »',
     /'Envoyer ma demande'/.test(CODE) && /name = 'site_web'/.test(CODE) && /id = 'erreur-email'/.test(CODE) && /echec-envoi/.test(CODE) && /Envoyer par e-mail à la place/.test(CODE) && /if \(!\$\('\[name="site_web"\]', demande\)\)/.test(CODE) && /\$\('\.echec-envoi', demande\)/.test(CODE));
   for (const page of ['creer.html', 'apercu/site/creer.html']) vrai('la page ' + page + ' charge site.js et porte le formulaire (#demande, E-mail c2)', /vitrine\/v2\/site\.js/.test(fs.readFileSync(path.join(RACINE, page), 'utf8')) && /name="c2"/.test(fs.readFileSync(path.join(RACINE, page), 'utf8')));
+
+  console.log('\n6 bis. la Tour : la carte, et les demandes du site SURVIVENT à une panne des comptes du portail');
+  const TOURH = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
+  const t0 = TOURH.indexOf('var DEM={'), t1 = TOURH.indexOf('function demCatsHtml(');
+  vrai('(population) le bloc des demandes est trouvé dans tour.html', t0 > 0 && t1 > t0, [t0, t1]);
+  const esc = x => String(x == null ? '' : x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const bacR = { CLI: { list: [], loaded: true, err: 'panne des comptes' }, SDEM: { loaded: true, err: '', list: [{ id: 's1', ts: MAINT, email: 'carte@exemple.fr', entreprise: 'Carte SARL', nom: 'Dupont', prenom: 'Marie', tel: '', telEcarte: true, metier: 'plomberie', metiers: ['plomberie'], variante: null, cats: null, besoins: [], traitee: null }] },
+    CS: { loaded: false, err: '', comptes: [] }, ABO: { abos: [{ clientEmail: 'carte@exemple.fr', statut: 'actif' }] }, ENT: { liste: [{ dansAnnuaire: true, email: 'carte@exemple.fr', slug: 'carte-sarl' }] }, MYROLE: 'patron', MET_L: { plomberie: 'Plomberie' },
+    esc, sigle: x => String(x)[0], fmtJour: () => 'aujourd\'hui', jsq: x => String(x), nMot: (n, a, b) => n + ' ' + (n > 1 ? b : a), aboPast: () => ['Actif', 'p-vert'], aboFiable: () => true,
+    enTete: (t) => '[TETE]', acSquel: () => '[SQUEL]', acErr: (a, b) => '[ERR ' + b + ']', teteListe: () => '[SEG]', videTour: () => '[VIDE]', render() {}, String, Array, Object, JSON, Date, Math, RegExp, setBdg() {} };
+  vm.runInNewContext(TOURH.slice(t0, t1), bacR);
+  const ecran = bacR.vueDemandes();
+  vrai('⛔ le formulaire du site s\'affiche MÊME quand la lecture des comptes du portail échoue (la panne se dit aussi)', /Carte SARL/.test(ecran) && /\[ERR panne des comptes\]/.test(ecran), ecran.slice(0, 200));
+  vrai('   la carte dit « adresse non vérifiée », le téléphone illisible écarté, et que l\'adresse a DÉJÀ un espace et un abonnement', /adresse non vérifiée/.test(ecran) && /illisible \(écarté\)/.test(ecran) && /a déjà un espace : <span class="mono">carte-sarl/.test(ecran) && /abonnement en cours/.test(ecran), ecran);
+  v('   la pastille compte la demande du site même si les comptes du portail sont en panne', bacR.attendDemandes ? bacR.attendDemandes() : 'absente', 1);
+  const gest = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
+  vrai('le journal des gestes de la Tour connaît « traiter » (demandes du site) et « ignorer » (comptes du site)', /'demandes-site\/traiter': '/.test(gest) && /'comptes-site\/ignorer': '/.test(gest));
+  vrai('le message d\'OP MESSAGES ne porte jamais le nom d\'entreprise (texte libre public)', !/systeme\('clients',[^;]*nomEnt/.test(nu(gest)) && /voir la Tour/.test(gest));
 
   console.log('\n7. rien de personnel dans le journal');
   await dormir(300);

@@ -3821,7 +3821,7 @@ function groupeOnglets(t){ var l=groupeDe(t); if(l.length<2) return '';
 /* le nombre qui attend, dit sur l'onglet du groupe (rien : pas de chiffre) */
 function groupeCompte(k){ try{
   if(k==='support') return MSG.nonLus||0;
-  if(k==='demandes') return CLI.loaded?attendDemandes():0;
+  if(k==='demandes') return attendDemandes();
   if(k==='incidents') return INC.loaded&&!INC.err?incOuverts().length:0;
 }catch(e){} return 0; }
 /* ⛔ CE QUI EST AU PATRON SEUL, ET LE SERVEUR LE DIT AUSSI : Accès, Équipe, Journal, Agents et Sauvegardes
@@ -4891,7 +4891,7 @@ function setTab(t,sansAnim){
   tiroirRafraichir();
 }
 /* ce qui attend quelqu'un dans « À traiter » : les courriels non lus et les demandes du site (les incidents ont leur compteur, à Surveillance) */
-function attendCompte(){ return (MSG.nonLus||0)+(CLI.loaded?attendDemandes():0); }
+function attendCompte(){ return (MSG.nonLus||0)+(attendDemandes()); }
 function setBdg(id,n){
   if(id==='bdg-supp'||id==='bdg-dem'){ id='bdg-att'; n=attendCompte(); }   /* v2.119 : le groupe les additionne */
   var e=$(id); if(!e) return;
@@ -9494,8 +9494,9 @@ function demOnglet(v){ DEM.vue=v; render(); }
 function vueDemandes(){
   var tete=enTete('Demandes',
     'Ce que les entreprises demandent depuis le site : la formule, le métier, le nombre d’utilisateurs, leur besoin. Accepter ouvre leur espace avec ce qu’elles ont choisi ; l’e-mail d’accès part ensuite d’un geste.');
-  if(!CLI.loaded) return tete+acSquel();
-  if(CLI.err) return tete+acErr('Les demandes ne répondent pas',CLI.err,'chargerClients()');
+  if(!CLI.loaded&&!SDEM.loaded) return tete+acSquel();
+  /* v2.122 : les demandes du SITE s'affichent même si la lecture des comptes du portail échoue (et comptent dans la pastille) */
+  if(CLI.err) tete+=acErr('Les demandes des comptes du portail ne répondent pas',CLI.err,'chargerClients()');
   var tout=demandesListe(), aT=tout.filter(function(x){ return !x.traitee; }), faites=tout.filter(function(x){ return !!x.traitee; });
   if(SDEM.err) tete+='<div class="note" role="alert">Les demandes envoyées par le formulaire « Créer votre application » ne répondent pas : '+esc(SDEM.err)+' <button type="button" class="btn-fant" onclick="chargerSiteDemandes()">Réessayer</button></div>';
   var seg=teteListe('Demandes du site','Filtrer les demandes',[['atraiter','À traiter',aT.length],['traitees','Traitées',faites.length]],DEM.vue,'demOnglet(');
@@ -9567,7 +9568,10 @@ function demCarteSite(x){
   var r=x.r, nomEnt=r.entreprise||((r.prenom||'')+' '+(r.nom||'')).trim()||r.email, pers=((r.prenom||'')+' '+(r.nom||'')).trim();
   var mets=(Array.isArray(r.metiers)&&r.metiers.length?r.metiers:[r.metier]).map(function(k){ return MET_L[k]||k; }).join(' + ');
   var vari=r.variante==='chauffage'?' — chauffage seulement':r.variante==='climatisation'?' — climatisation seulement':r.variante==='deux'?' — chauffage et climatisation':'';
-  var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(r.email)+'</span>'],['Téléphone',r.tel?'<a href="tel:'+esc(String(r.tel).replace(/[^0-9+]/g,''))+'">'+esc(r.tel)+'</a>':'—'],
+  var esp0=demEspace(r.email), pay0=demPaiement(r.email);
+  var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(r.email)+'</span> <span class="past p-ambre">adresse non vérifiée</span>'],
+    ['Téléphone',r.tel?'<a href="tel:'+esc(String(r.tel).replace(/[^0-9+]/g,''))+'">'+esc(r.tel)+'</a>':(r.telEcarte?'indiqué mais illisible (écarté)':'—')],
+    ['Espace / abonnement',(esp0?'cette adresse a déjà un espace : <span class="mono">'+esc(esp0.slug||esp0.t)+'</span>':'aucun espace à cette adresse')+(pay0?' · 💳 '+(pay0.statut==='actif'||pay0.statut==='essai'?'abonnement en cours':'abonnement '+esc(aboPast(pay0.statut)[0].toLowerCase())):'')],
     ['Équipe',esc(r.equipe||'—')],['Métiers',esc(mets)+esc(vari)],
     ['Rubriques',Array.isArray(r.cats)?esc(r.cats.length+' cochées'):'aucune cochée : partir du conseil du métier'],['Besoins',r.besoins&&r.besoins.length?esc(r.besoins.join(', ')):'—']];
   var gestes=x.traitee

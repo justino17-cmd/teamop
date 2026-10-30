@@ -2465,7 +2465,7 @@ const MON_GESTES = {
   'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
   'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
   'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/cats': 'a choisi les catégories d’OP GESTION d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
-  'espaces/abonnement': 'a réglé l’abonnement d’une entreprise à la main', 'espaces/statut': null, 'entreprise/dossier': null,
+  'espaces/abonnement': 'a réglé l’abonnement d’une entreprise à la main', 'demandes-site/traiter': 'a traité ou remis à traiter une demande du site', 'comptes-site/ignorer': 'a ignoré un compte du site, ou l’a remis dans la liste', 'espaces/statut': null, 'entreprise/dossier': null,
   'espaces/activite': null, 'espaces/connexions': null, 'espaces/compteurs-zero': 'a remis à zéro ou rétabli les compteurs d’une entreprise',
   'connexions/effacer-tentatives': 'a effacé les tentatives de connexion refusées',
   'compte/supprimer': 'a supprimé un compte d’une entreprise', 'comptes/supprimer': 'a supprimé des comptes d’une entreprise',
@@ -6657,23 +6657,30 @@ try {
    dans OP MESSAGES (par le pont, jamais par le socle). ⛔ Rien de personnel dans le journal ; la notification et le message d'OP MESSAGES ne disent que l'entreprise et les métiers. */
 let demandeSiteMod = null;
 try {
-  demandeSiteMod = require('./demande-site')(app, { DATA_DIR, monAdmin, monPatronStrict, express, quotaOk, choisir: choixAbonnement, catsAvecBase,
+  demandeSiteMod = require('./demande-site')(app, { DATA_DIR, monAdmin, monPatronStrict, express, quotaOk, syntheseMs: Number(config.syntheseDemandesMs) || 0, choisir: choixAbonnement, catsAvecBase,
     surDemande: async (d) => {
-      const nomEnt = (d.entreprise || [d.prenom, d.nom].filter(Boolean).join(' ') || 'sans nom').replace(/[\r\n]+/g, ' ').slice(0, 60);
+      const nomEnt = (d.entreprise || '(particulier)').replace(/[\r\n]+/g, ' ').slice(0, 60);   // sans entreprise : « (particulier) » — jamais « prénom nom » dans un sujet ou une notification
       const metiers = d.metiers.map(k => METIERS_LBL[k] || k).join(' + ');
       try { await pousserALaTour('Demande du site — ' + nomEnt, metiers, '/tour.html#demandes', '/tour.html#demandes'); } catch (e) { console.error('demande du site : notification non partie'); }
-      try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', 'Nouvelle demande du site : ' + sansAdresses(nomEnt) + ' — ' + metiers + '. À traiter dans la Tour (Demandes).', { cle: 'demande-site:' + d.id, unique: true }); } catch (e) {}
+      try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', /* ⛔ jamais le nom d'entreprise : texte libre PUBLIC, donc injection possible dans le fil des agents */ 'Nouvelle demande du site (' + metiers + ') — voir la Tour.', { cle: 'demande-site:' + d.id, unique: true }); } catch (e) {}
       if (mailer) {
         const dest = config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || 'contact@teamop.fr';
         const ligne = (k, v) => v ? k + ' : ' + v + '\n' : '';
         const texte = 'Nouvelle demande « Créer votre application » reçue sur teamop.fr — À TRAITER\n\n' +
-          ligne('Entreprise', d.entreprise) + ligne('Contact', [d.prenom, d.nom].filter(Boolean).join(' ')) + ligne('E-mail', d.email) + ligne('Téléphone', d.tel) + ligne('Équipe', d.equipe) +
+          ligne('Entreprise', d.entreprise) + ligne('Contact', [d.prenom, d.nom].filter(Boolean).join(' ')) + ligne('E-mail', d.email) + ligne('Téléphone', d.tel) + (d.telEcarte ? 'Téléphone : indiqué mais illisible (écarté)\n' : '') + ligne('Équipe', d.equipe) +
           'Métiers : ' + metiers + (d.variante ? ' (' + d.variante + ')' : '') + '\n' + (Array.isArray(d.cats) ? 'Rubriques cochées : ' + d.cats.length + ' sur ' + CATS_OK.length + '\n' : '') +
           (d.besoins.length ? 'Besoins : ' + d.besoins.join(', ') + '\n' : '') + (d.message ? '\nMessage :\n' + d.message + '\n' : '') +
           '\n── À faire ──\nRien n\'a été créé. Ouvre la Tour → Demandes → « Demande du site » : tu peux la marquer traitée ou préparer l\'accès à la version publique avec son adresse.\n\nhttps://teamop.fr/tour.html';
         await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, replyTo: d.email, subject: '📥 Demande du site — ' + nomEnt, text: texte });
         console.log('mail demande du site envoyé →', masqueMail(dest));
       }
+    },
+    /* au-delà de cinq alertes par heure : UNE ligne de synthèse (notification + fil Clients), le courriel n'est pas répété */
+    surSynthese: async (n) => {
+      const t = n + ' demande' + (n > 1 ? 's' : '') + ' du site de plus : voir la Tour (Demandes).';
+      console.log('demandes du site :', n, 'de plus (au-delà de cinq alertes par heure)');
+      try { await pousserALaTour('Demandes du site', t, '/tour.html#demandes', '/tour.html#demandes'); } catch (e) {}
+      try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', t, { cle: 'demande-site-synthese:' + Date.now() }); } catch (e) {}
     } });
   /* UNE alerte par COMPTE NEUF du site (nos comptes, `comptes.js`) qui n'a pas d'espace : le passage se fait toutes les dix minutes (`config.comptesScanMs` pour un banc), le premier
      une minute après le démarrage. La notification ne dit que « un compte » ; le courriel à Justin porte l'adresse et le nom (c'est son métier) ; le journal, rien. */
