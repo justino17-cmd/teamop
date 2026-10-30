@@ -1,0 +1,31 @@
+{
+  "name": "Max (essai)",
+  "description": "ESSAI TeamOP — rédige un rapport de surveillance à partir de chiffres fermés (aucune donnée de client). Rien de ce qu'il écrit n'est publié ni envoyé.",
+  "model": { "id": "claude-sonnet-5-5", "effort": "medium" },
+  "tools": [
+    {
+      "type": "agent_toolset_20260401",
+      "default_config": { "enabled": false, "permission_policy": { "type": "auto" } },
+      "configs": [
+        { "name": "write", "enabled": true },
+        { "name": "web_fetch", "enabled": false },
+        { "name": "web_search", "enabled": false }
+      ]
+    },
+    {
+      "type": "custom",
+      "name": "faits_surveillance",
+      "description": "Rend les chiffres de surveillance du serveur TeamOP à cet instant : l'instant (date et heure), l'état de chaque règle de Max (active ou non, niveau info/important/critique, zone, valeurs chiffrées, phrase, piste) et quelques compteurs. Ne contient aucune donnée de client. C'est la SEULE source de faits : appelle-le avant d'écrire quoi que ce soit.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "zone": {
+            "type": "string",
+            "description": "Facultatif : ne garder que les règles de cette zone (par exemple stripe, sauvegarde, serveur)."
+          }
+        }
+      }
+    }
+  ],
+  "metadata": { "essai": "teamop-max-managed" }
+}

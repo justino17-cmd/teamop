@@ -11299,6 +11299,10 @@ try {
       plateformeMod.demarrer();
       console.log('agents : plateforme montée (Max, Jules, Théo, Nina, Inès, Victor)');
     } catch (e) { plateformeMod = null; console.error('agents de la plateforme indisponibles :', e.message); }
+    /* L'ESSAI « MANAGED AGENTS » (30 octobre 2026, `outils/essai-managed/`) : la seule route de l'outil maison d'un agent de surveillance hébergé chez Anthropic. DÉSACTIVÉE par défaut —
+       `config.agents.essaiManaged` absent, `monter` ne touche pas à `app` et rien ne change. Sous son propre `try` : une panne ici ne retire rien aux agents. */
+    try { if (require('./outils/essai-managed/route').monter(app, { config, DATA_DIR, sante: () => santeCorps(false) })) console.log('essai Managed Agents : outil maison servi (agents.essaiManaged)'); }
+    catch (e) { console.error('essai Managed Agents indisponible :', e.message); }
     /* L'EXAMEN DE L'ÉQUIPE (`examen.js`, cahier §13) : les neuf scénarios joués avec le VRAI modèle sur une équipe d'ESSAI (modules réels, dossier temporaire, faits et
        courriels fictifs, fausse poste) — rien des vrais fils, files, compteurs ni courriels. Lancé par le patron depuis la Tour, ou par la clé d'examen (deux gestes : lancer,
        lire). Sous son propre `try` : sans lui, la Tour n'a ni bouton ni clé, et rien d'autre ne bouge. `mail` ne porte QUE la lecture de la signature réglée (jamais `envoyerAgent`) : la poste d'essai
