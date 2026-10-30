@@ -2457,7 +2457,7 @@ function monLog(ident, ok, req, motif, apps) {   // journal des connexions (réu
    Ce qui est noté : qui, le geste, la console, et une CIBLE prise dans une liste fermée de champs du corps — jamais un mot
    de passe, un code ou un lien ; une adresse e-mail n'y entre que masquée (`masqueMail`). */
 const MON_GESTES = {
-  'login': null, 'report': null,
+  'login': null, 'report': null, 'promo-stripe': null,
   'users': 'a créé un compte de la Tour', 'users/toggle': 'a désactivé ou réactivé un compte de la Tour',
   'users/delete': 'a supprimé un compte de la Tour', 'users/apps': 'a changé les consoles d’un compte de la Tour',
   'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',

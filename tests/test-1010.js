@@ -69,8 +69,8 @@ function decl(texte, debut) {
 
   console.log('\n2. Le code : les trois appels passent par elle');
   const appels = SANS.split('\n').filter(l => /\bfetch\(/.test(l) && (/api\.stripe\.com/.test(l) || /fetch\(url, \{ headers: stripeEntetes/.test(l)));
-  v('trois appels à Stripe recensés (tarifs, page de paiement, stripeMonGet)', appels.length, 3);
-  v('les trois écrivent leurs en-têtes par stripeEntetes', appels.filter(l => /headers: stripeEntetes\(sk/.test(l)).length, 3);
+  v('cinq appels à Stripe recensés (tarifs, page de paiement, stripeMonGet, et la vérification d\'un code promo de la Tour : le code, puis sa remise)', appels.length, 5);
+  v('les cinq écrivent leurs en-têtes par stripeEntetes', appels.filter(l => /headers: stripeEntetes\(sk/.test(l)).length, 5);
   v('aucune autre ligne n\'écrit « \'Bearer \' + sk »', SANS.split('\n').filter(l => /'Bearer ' \+ sk\b/.test(l)).length, 1);   // la seule : dans stripeEntetes
   vrai('stripeEntetes est une DÉCLARATION de fonction (connue dès le chargement : pas de zone morte temporelle)', /^function stripeEntetes\(sk, extra\)/m.test(SANS));
 
