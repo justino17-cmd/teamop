@@ -27,6 +27,7 @@ console.log('\n── 787 · 0. la population ──');
 const PIECES = {
   CATFOUR: cst('CATFOUR'), CATALOGUE: cst('CATALOGUE'), FOURNISSEURS_3D: cst('FOURNISSEURS_3D'), METIERS: obj('METIERS'),
   pack1: dec("METIERS['3d'].catalogue=CATALOGUE;"), pack2: dec("METIERS['3d'].fournisseurs=FOURNISSEURS_3D;"),
+  metierId: dec('function metierId(){'), estMetier3D: dec('function estMetier3D(){'),   // v778 : la règle lit le métier
   metierPackDe: dec('function metierPackDe(base){'), produitCle: dec('function produitCle(p){'),
   catalogueEnPlace: dec('function catalogueEnPlace(){'), cles: dec('let CATFOUR_CLES=null;'), regle: dec('function cataloguesFournisseurs(){'),
   ferme: dec('const CATFOUR_FERME='), openFourCat: dec('function openFourCat(){'), fcMatches: dec('function fcMatches(){'),

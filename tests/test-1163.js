@@ -24,17 +24,19 @@ const VM = bloc('views.mouvements=function(){');
 vrai('views.mouvements est trouvée', VM.length > 5000, VM.length);
 vrai('une seule définition de views.mouvements', SRC.split('views.mouvements=function(').length - 1 === 1);
 
+const MBA = bloc('function mvtBoxActif(');
+vrai('mvtBoxActif (la porte du filtre par box, fermée hors 3D) est trouvée', MBA.length > 20, MBA);
 const PAS = /Aucun mouvement pour l.instant/, CORRESPOND = /Aucun mouvement ne correspond/;
 function jouer(mouvements, filtres) {
   const nodes = {};
   const propre = { JSON, Math, Date, Set, Map, Object, Array, String, Number, console, parseInt, parseFloat, isFinite, RegExp,
-    esc: s => String(s == null ? '' : s), emptyState: (ic, titre) => '<p class="vide">' + titre + '</p>', setHeader() {}, APP_VERSION: '767',
+    esc: s => String(s == null ? '' : s), sansBox: () => false, libBox: (a, b) => a, boxTxt: s => s, emptyState: (ic, titre) => '<p class="vide">' + titre + '</p>', setHeader() {}, APP_VERSION: '767',
     currentUser: { role: 'admin', prenom: 'Léa', nom: 'Roux' }, db: { mouvements, boxes: [{ id: 'b1', nom: 'Box A' }], bons: [], produits: [{ id: 'p1', nom: 'ALTA 7000' }], vehicules: [] },
     visibleMouvements: l => l, visibleRemises: l => l || [], visibleBoxes: l => l, produit: id => ({ id, nom: 'ALTA 7000', ref: 'R1' }), vehName: () => '', stockageVisible: () => true,
     $: id => nodes[id] || (nodes[id] = { innerHTML: '' }) };
   const ctx = new Proxy(propre, { has: (t, k) => typeof k === 'string', get: (t, k) => k in t ? t[k] : (k === Symbol.unscopables ? undefined : (k in globalThis ? globalThis[k] : (() => ''))), set: (t, k, v) => { t[k] = v; return true; } });
   vm.createContext(ctx);
-  vm.runInContext(`var views={}, mvtFType='', mvtFBox='', mvtFQ='', mvtFBoxQ='', mvtMenuOuvert='', mvtMoisOuverts={}, mvtBoxOuverts={};\n${VM}`, ctx);
+  vm.runInContext(`var views={}, mvtFType='', mvtFBox='', mvtFQ='', mvtFBoxQ='', mvtMenuOuvert='', mvtMoisOuverts={}, mvtBoxOuverts={};\n${MBA}\n${VM}`, ctx);
   Object.keys(filtres || {}).forEach(k => vm.runInContext(k + '=' + JSON.stringify(filtres[k]), ctx));
   ctx.views.mouvements();
   return nodes.content.innerHTML;

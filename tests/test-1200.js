@@ -53,7 +53,7 @@ function monde(db, opts) {
     function canCat(){ return true; } function can(){ return true; } function permGarde(){ return true; }
     function ptPeutCorriger(){ return true; }
     function estStockage(b){ return !!b&&b.id==='stockage'; }
-    function toast(m){ __toasts.push(String(m)); } function confirm(m){ __confirms.push(String(m)); return __reponse; }
+    function boxTxt(s){ return s; } function toast(m){ __toasts.push(String(m)); } function confirm(m){ __confirms.push(String(m)); return __reponse; }
     function save(){ __saves++; } function closeModal(){} function go(){} function logEvent(a,b){ __log.push(a+' '+b); }
     var current='clients'; var views={fournisseurs(){}};
     function delSerieModal(){} function delIntModal(){} function serieAutresActifs(){ return []; }

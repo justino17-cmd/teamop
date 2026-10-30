@@ -44,10 +44,10 @@ console.log('\n── 2891 · le métier est obligatoire à l\'abonnement, les r
   const CATS_BASE = lit('CATS_BASE');   // 30 octobre 2026 : la base s'ajoute d'office à toute liste choisie
   const avecBase = l => CATS_OK.filter(c => l.includes(c) || CATS_BASE.includes(c));
   vrai('(population) CATS_OK (38 rubriques cochables) est lu dans le code du serveur', Array.isArray(CATS_OK) && CATS_OK.length === 38);
-  /* Le vrai `metiers.json` ouvre les vingt-trois métiers depuis le 23 octobre 2026 : le serveur de ce banc lit un référentiel FABRIQUÉ où
+  /* Le vrai `metiers.json` ouvre les vingt-trois métiers depuis le 23 octobre 2026 (la vingt-quatrième, la climatisation du 29 octobre, est déclarée en avance : tests/beta-en-avance.js) : le serveur de ce banc lit un référentiel FABRIQUÉ où
      les dix nouveaux restent fermés (tests/metiers-banc.js), pour que « un métier fermé est refusé » prouve quelque chose. */
   const REFB = require('./metiers-banc.js').ecrire(RACINE, banc);
-  vrai('(population) le référentiel du banc est FABRIQUÉ : le vrai fichier ouvre ' + REFB.reel.ouverts.length + ' métiers, celui du banc ' + REFB.json.ouverts.length, REFB.reel.ouverts.length === REFB.reel.ordreMetiers.length && REFB.json.ouverts.length === 13);
+  vrai('(population) le référentiel du banc est FABRIQUÉ : le vrai fichier ouvre ' + REFB.reel.ouverts.length + ' métiers, celui du banc ' + REFB.json.ouverts.length, REFB.reel.ouverts.length === REFB.reel.ordreMetiers.length - require('./beta-en-avance.js').PAS_ENCORE_OUVERTS.length && REFB.json.ouverts.length === 13);
   const METIERS = REFB.json;
   const OUVERTS = METIERS.ouverts, NOUVEAUX = METIERS.ordreMetiers.filter(k => !OUVERTS.includes(k));
   vrai('(population) le référentiel ferme encore des métiers (' + NOUVEAUX.length + ') — sinon « un métier fermé est refusé » ne prouverait rien', NOUVEAUX.length >= 1, NOUVEAUX.length);

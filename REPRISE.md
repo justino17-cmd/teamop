@@ -221,6 +221,69 @@ Plus. Un FILTRE « Tout · Gestion · Messages » (`tour_filtre`) en tête des s
   `app.html`/`server/`/`server-msg/` non touchés ; publication de la Tour : attend la phrase de Justin.
 
 ---
+# ❄️ 29 OCTOBRE 2026 — CHAUFFAGE ET CLIMATISATION SÉPARÉS, ET LES PACKS COMBINÉS (bêta, branche `claude/metier-climatisation`)
+
+Justin : « un pack Clim et plomberie séparées » (il a choisi de SÉPARER la clim du chauffage), puis « des packs combinés, et des packs séparés de chaque chose ».
+- **Fait (bêta seulement)** : un 24ᵉ métier `climatisation` (« Climatisation / Pompes à chaleur », ❄️) ; `chauffage` s'appelle « Chauffage » (chaudières, ramonage, gaz). **Rien n'est perdu** : l'UNION des deux redonne exactement l'ancien
+  « Chauffage / Climatisation » (16 types, 30 prestations, 22 relevés, 12 catégories, catalogue de 39 articles) — `tests/test-3172.js` §3 et `test-3128.js` §10. Le catalogue (28 + 16, cinq consommables communs), les fournisseurs (5 + 5), les jeux de
+  démonstration (`DEMO_CHAUF` sans clim, `DEMO_CLIM`), le parc d'appareils de démonstration, les documents (`devis` et `note` pour les deux, la vignette aux deux, le suivi gaz au chauffage seul) suivent. Le code CVC (`CVC_METIERS`) sert les deux.
+- **Packs combinés** : quatre choix d'un geste (`METIERS_COMBOS`, liste « Tester un métier » de la bêta et cartes de « Mon métier » pour TEAM OP/bêta) — CVC, Plombier-chauffagiste, Plomberie + Climatisation, Plomberie + Chauffage + Climatisation. Ce NE sont PAS
+  des métiers de plus : un principal (`db.metier`) + jusqu'à deux associés (`db.metierPlus`, et `db.metierPlus2` NOUVEAU, synchronisé comme `metierPlus`). « Mon entreprise fait aussi… » a donc un second sélecteur. `metierSet('combo:cvc')` aiguille vers `metierComboSet`.
+- **⛔ La climatisation n'est PAS dans `ouverts`** (metiers.json) : la version publique ne la connaît pas, un client qui la choisirait recevrait le pack 3D. Elle est DÉCLARÉE EN AVANCE dans `tests/beta-en-avance.js` (comme les dix du 23 octobre) ;
+  la démonstration publique ne la propose pas (`DEMO_METIERS_FERMES`) et n'a pas son exemple. **Le geste de publication** : vider la déclaration ET ouvrir ensemble — `ouverts` de metiers.json, `MET_L` de la Tour (+ « Chauffage » au lieu de « Chauffage / Climatisation »),
+  `METIER_L` du portail (`espace.html`) et de `creer.html`, `DEMO_METIERS_FERMES` + un exemple `climatisation` dans `scripts/demo/scenarios.js`, le site. Les lignes « les libellés sont ceux … » de `test-2892` et `test-848` restent rouges jusque-là : elles gardent exactement ça.
+- **Reste, rien n'est commencé** : le choix d'un pack combiné AU DÉMARRAGE (demande d'application, Tour, portail) — le serveur ne porte qu'un `metier` ; `metierServeurAppliquer` ne lit pas d'associés. À décider avec Justin avant de toucher la demande.
+- Sonde au navigateur : `scratchpad/sonde-metier-clim.js` (70 ✓).
+
+---
+
+# 🔎 29 OCTOBRE 2026 — BÊTA v779 : QUATRE VÉRIFICATIONS AU NAVIGATEUR, UNE SUITE COMPLÈTE, UNE RELECTURE — CE QUI EST CORRIGÉ, CE QUI ATTEND
+
+La v779 (branche `claude/beta-v779-source`) réunit : nettoyage (v778), packs clim/plomberie et modèle des documents, corrections du pack 3D. **`app.html`, `sw.js` et `demo.html` ne partent PAS** (`scripts/verifier-publication-bete.sh`) : seule `beta.html` se publie. Le multi-métiers (`claude/multi-metiers`), la démonstration par métier et la compta lot 1a **ne sont pas dans cette branche** (fusion à faire après la réunion).
+
+- **Corrigé** (`tests/test-3170.js`) : ① ⛔ changer de métier dans « 🧰 Tester un métier » après une démonstration laissait l'ancien métier à l'écran (14 interventions de dératisation, 160 produits, 5 fournisseurs de la 3D sous « plomberie ») — `metierSet` (bêta seulement) dit ce qui part, demande, puis retire démonstration et catalogue de l'ancien pack (les saisies à soi restent ; refus = rien ne change) ; ② chaque intervention de démonstration hors 3D porte un montant (la facture sortait à 0,00 €) ; ③ la démonstration dit qu'il faut un nom d'entreprise pour les PDF ; ④ la note de dépannage de la démonstration chauffage chez un restaurant est à 20 % ; ⑤ un document du métier se supprime avec la case de SON droit (ventes / int / crm) ; ⑥ le Devis IA distingue « le serveur ne répond pas » (réseau) de « mise à jour du serveur » (serveur d'avant). Les douze bancs tombés (`boxTxt`, `libBox`, `moyensPaiementOptions` absents de leurs bacs à sable) suivent `12cf20b7`, repris ici.
+- **⛔ Reste, et attend Justin** : le Devis IA et l'assistant devis sont COUPÉS hors 3D tant que le serveur de production n'annonce pas `metiers:true` — le serveur est sur `origin/claude/devis-metier` (pas sur `main`, pas déployé : un push de `server/` déploie le VPS, donc sa phrase). Avant la réunion : déployer ce serveur, ou ne pas montrer ces deux boutons.
+- **Reste, sans urgence** : la démonstration ne mêle pas deux métiers (le premier métier décide ; choisir Chauffage puis « fait aussi » Plomberie pour avoir le parc d'appareils) — le chantier multi-métiers la reprendra, `metierPlus` n'est pas touché ; mentions légales à relire à la source (seuil de 1997 du repérage amiante : « livrés avant le 1er janvier 1997 » ou permis de construire avant le 1er juillet 1997 ? ; l'arrêté cité pour la note dès 25 € TTC) ; trois fiches fournisseurs portent « non relu » / « refuse les accès automatiques » dans leur note ; `genDemoData` et `genTestNuisibles` sont du code mort ; `app.html` fait 4,78 Mo (+5,2 % sur `main`) — le « ~2,2 Mo » de `CLAUDE.md` ne veut plus rien dire.
+- **À savoir avant la réunion** : sur la bêta en ligne, « Tout vider » n'est plus nécessaire entre deux métiers, mais une démonstration 3D déjà posée sera retirée à la première bascule (une question s'affiche). Sans nom d'entreprise (Paramètres → Mon entreprise), tous les PDF sont refusés. Ne pas ouvrir Paramètres → « Tester un métier » devant le client (les 23 packs, dont la 3D, y sont listés).
+
+---
+
+# 🧽 28 OCTOBRE 2026 (SOIR) — LE PACK NETTOYAGE EST INSTALLÉ DANS LA BÊTA v778 — RIEN SUR `main`, RIEN PUBLIÉ
+Justin : « demain, j'ai une entreprise, on a réunion avec elle, il faut que le pack nettoyage soit installé. » Branche `claude/pack-nettoyage` (source de la bêta,
+app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est poussé**, `main` et `app.html` public (v773) ne sont pas touchés).
+- **Fait** (commit « Bêta v778 : le pack nettoyage est installé » + banc) : le masque du métier s'applique aussi en bêta dès qu'un métier autre que la 3D est choisi
+  (`metierBloque`) ; « Remplir » / « Créer le planning de démonstration » suivent le métier (`demoSemisDe`) ; plus de « box » (`libBox`, `sansBox`, `capTxt`) ni de plan
+  d'appâtage dans les écrans du nettoyage ; exemples de saisie par métier (`exemple(clé)`) ; le métier part au serveur avec l'assistant devis et le Devis IA ;
+  **quatre documents** (bloc « NETTOYAGE — LES SITES D'UN CLIENT », porte unique `metierGereSites`) : D1 rapport enrichi (sept relevés neufs dans `metiers.json`, contrat,
+  horaires, tâches du cahier à cocher), D2 cahier des tâches (`db.cahiers`), D3 fiche de contrôle qualité (`i.controleQualite`, note calculée), D4 plan de prévention
+  (`db.plansPrevention`, seuil des 400 h) — PDF par `nettPdf`, aperçu, envoi ; **catalogue de départ** (24 produits, 6 fournisseurs) posé par un geste de l'administrateur
+  (« 📦 Catalogue de départ »), jamais tout seul. Bancs : `test-3111` (+ atelier `tests/nett-monter.js`), mutations `scratchpad`-session `mutations-pack-nettoyage.py`, sonde au
+  navigateur du parcours complet (téléphone + bureau).
+- **Mesures** (28 octobre, soir) : suite complète 735 suites · 41 575 vérifications, seules échouent `test-1670` et `test-2705` (sautées : `server-courrier/node_modules` manque ici, avant ce chantier) et quatre bancs que le pack avait fait tomber (2886, 747, 787, 793), corrigés et rejoués seuls au vert ; `test-3111` 159 ✓ 0 ✗ ; 30 mutations de `mutations-pack-nettoyage.py` (dans le scratchpad de la session, à recopier si besoin) : 30 mordent ; sonde au navigateur (390 px et 1 440 px, sur une copie de la bêta) : 49 ✓ 0 ✗.
+- **Relecture adverse (testeur + relecteur, 28 octobre, nuit) — douze constats vérifiés un par un, onze vrais, corrigés dans la v778 ; le douzième est une règle de publication, gardée par un script** :
+  (1)(2)(3)(9) le vocabulaire « box » — **vrai, et plus large que relevé** : le stockage est une box, donc « Créer le stockage » (le geste que la carte du Stock propose) rouvrait le mot
+  partout. Deux outils : `boxTxt(s)` (table de phrases, lue CENTRALEMENT par `toast`, `toastAnnuler` et `emptyState`, et par chaque `confirm` qui parle de box — 73 littéraux relus,
+  zéro « box » au nettoyage, la 3D inchangée) et `libBox` pour ce que la grammaire ne suit pas ; Mouvements n'a plus de filtre par box hors 3D (`mvtBoxActif`) ; fiche du stockage,
+  ✎ du stockage, Arrivage, « ＋ Produit », Produits de la box, Commandes & livraisons, cloche, journal : `sonde-stockage.js` ouvre 73 écrans et fenêtres après « Créer le stockage »,
+  deux profils, **0 « box »**. (4) la reprise du cahier et de la fiche de contrôle — **vrai** : `MULTI_MODELES` porte `nett-cah-zones`, `nett-cq-zones` et `nett-cq-actions`, et leurs champs
+  ont un NOM (leur identifiant automatique change à chaque dessin : sans nom, la reprise ne les retrouvait pas) ; enregistrer sans état le dit. (5) fiche client au téléphone —
+  **vrai** (texte à 148 px, pastille sur les boutons) : la ligne passe à la ligne, dates courtes. (6) en-tête « OP GESTION » — **vrai** : aperçu et envoi refusés sans nom d'entreprise.
+  (7)(10) Devis IA / assistant — **vrai** : hors 3D ils ne partent que si `/api/devis/etat` annonce `metiers:true` (ajouté sur `claude/devis-metier`, commit `d5ace7f7`) : tant que ce
+  serveur n'est pas déployé, ils se coupent d'eux-mêmes et le disent ; la 3D n'attend rien. (8) désignations coupées à 48 signes — **vrai** (antérieur au pack) : la désignation et le
+  nom du client passent à la ligne (`_pdfEnLignes`). (11) moyens de paiement d'ELAN — **vrai** : liste neutre hors 3D, la valeur déjà rangée reste proposée. (12) publication : **vrai**,
+  les commits de cette branche touchent `demo.html` et `sw.js` ; `scripts/verifier-publication-bete.sh` refuse tout autre fichier que `beta.html` et `REPRISE.md` — à lancer avant de
+  bâtir le commit qui part sur `main`.
+- **Le serveur de l'assistant devis** est fait à part (branche `claude/devis-metier`, `server/devis-metier.js`) : il lit `t` et `metier` envoyés par cette v778. Tant qu'il n'est pas
+  déployé, l'assistant garde la consigne 3D : décocher « Assistant devis » pour l'entreprise de nettoyage dans la Tour.
+- **Chemin pour que l'entreprise voie tout ça** : (1) sur la **bêta** (`teamop.fr/beta.html`, accès délivré par la Tour) : Paramètres → Outils de bêta → « 🧰 Tester un métier » =
+  Nettoyage / Propreté, **renseigner Mon entreprise** (nom, adresse, SIRET — sinon tous les en-têtes disent « OP GESTION »), puis « 🧪 Remplir (jeu de test) » : planning, clients,
+  3 cahiers, plan de prévention, fiche de contrôle et catalogue arrivent d'un clic. Ouvrir une fiche client (« Documents du site »), une intervention « Contrôle qualité » ; « Aperçu PDF ».
+  (2) **version publique** : elle n'a PAS ces pièces (v773) — il faudrait une phrase de Justin pour publier (puis `sw.js`, régénérer `demo.html`, CI, fichier servi).
+- **Reste ouvert / à dire à Justin** : « E) Paiement en plusieurs fois - COFIDIS » reste dans les moyens de paiement des interventions (liste d'ELAN) ; des « box » peuvent subsister dans des
+  états rares (listes vides, messages d'erreur) que ni la sonde ni les bancs n'ont ouverts ; le plan de prévention ne reproduit pas la liste de l'arrêté du 19 mars 1993 ni l'inspection
+  commune (non relus : l'entreprise répond) ; la convention collective (IDCC 2272/3043) de `metiers.json` reste à confirmer ; la Tour ne demande toujours pas le métier à l'ouverture
+  d'un accès public (poser le métier dans la fiche) ; premier lancement d'une entreprise sur la v773 : le menu est 3D pendant ~2,6 s avant `metierServeurAppliquer`.
+
 # 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
@@ -469,7 +532,22 @@ l'examen — un échec corrigé, un examen, une demi-journée.
 ---
 
 # ✅ 24 OCTOBRE 2026 (SOIR) — LE BLOG RAPATRIÉ À teamop.fr/blog/ — n° 176 fusionné le 25/10, redirection Caddy faite, plan du site soumis
+# 🔶 24 OCTOBRE 2026 (SOIR) — SUITE CVC, BÊTA v774 — branche `claude/cvc-suite`, `app.html` ATTEND LA PHRASE DE JUSTIN
 
+Ce qui manquait au chauffage / climatisation après la v773 (liste du point du 24) :
+- **les appareils visités au rapport d'intervention** (`rapportConstatLignes`, donc le rapport imprimé ET le PDF, `test-2997`) ;
+- **la cloche** annonce les entretiens à planifier dans les 30 jours et ceux dépassés (`cvcNotif`, lit `cvcPropositions` — une seule règle, `test-2998`) ;
+- **pas de fiche fluides sans n° d'attestation de capacité** (R543-99), pré-rempli avec le dernier saisi (`cvcFicheSauver`, `cvcDerniereAttestation`, `test-2999`) ;
+- **le certificat de ramonage** (décret n° 2023-641 : vacuité du conduit sur toute sa longueur, remis sous 15 jours) — `i.ramonages[appareil]`, conduit et
+  vacuité EXIGÉS, le PDF de l'attestation en genre « ramonage », la trace d'envoi seulement si le courriel est parti (`test-3002`, 6 mutations sur 6 mordent).
+  ⛔ Le texte de l'arrêté n'a pas été relu : c'est le document DE L'ENTREPRISE, l'écran et le PDF le disent (comme l'attestation d'entretien).
+Restent, non commencés : l'attestation PAC / clim (arrêté du 24 juillet 2020 à relire avant d'écrire), le suivi des bouteilles de fluide, les rappels
+aux CLIENTS à 30 / 7 jours (un courriel qui part chez un client : à décider avec Justin). Publication : `beta.html` seule sur `main` ; `app.html`, `sw.js`
+et les bancs qui lisent `app.html` restent sur la branche jusqu'à sa phrase.
+
+---
+
+# 🔶 24 OCTOBRE 2026 (SOIR) — LE BLOG RAPATRIÉ À teamop.fr/blog/ — branche `claude/blog-maison`, ATTEND LA FUSION DE JUSTIN
 Justin, 24 octobre 2026 : BabyLoveGrowth (blog.teamop.fr) demandait 600 € — « toi tu peux faire ce que BabyLoveGrowth fait », « bah go le
 faire, je vais pas payer ». Son abonnement BLG est inactif (rien n'a été prélevé) ; les quatre articles du 21 au 24 octobre y sont encore en ligne.
 - **Le blog** : sources dans `contenu/blog/` (NON publié — `articles.json` + un fragment HTML `<slug>.htm` par article + `SUJETS.md`, la file des sujets

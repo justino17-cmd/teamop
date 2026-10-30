@@ -49,10 +49,10 @@ function monde(opts) {
     ${LTL}\n${LHT}
     const DOC={ devis:{coll:'devis',titre:'Devis',un:'devis',prefix:'DV',st:{brouillon:{l:'Brouillon'},accepte:{l:'Accepté'}}}, factures:{coll:'factures',titre:'Facture',un:'facture',prefix:'FAC',st:{brouillon:{l:'En attente'},payee:{l:'Payée'}}} };
     function docEntete(){ return { nom:'Ent SARL', couleur:'#0a7', logo:'', adresse:'', cp:'', ville:'', tel:'', siret:'', tvaIntra:'', iban:'', bic:'', raison:'' }; }
-    function rapportSociete(){ return 'Ent SARL'; } function encreSur(){ return '#fff'; } function todayISO(){ return '2026-10-16'; }
+function docMentionsManquantes(){ return []; } function docMentionsGarde(){ return true; }     function rapportSociete(){ return 'Ent SARL'; } function encreSur(){ return '#fff'; } function todayISO(){ return '2026-10-16'; }
     var window={ open(){ return { document:{ write(h){ __html=h; }, close(){} }, focus(){} }; } };
     function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function logEvent(a,b){ __logs.push(a+' | '+b); }
-    function canCat(g,d){ return !!__can[d]; } function can(){ return false; }
+    function canCat(g,d){ return !!__can[d]; } function can(){ return false; } function catBloque(){ return false; }
     function permGarde(g,d,q){ if(canCat(g,d)) return true; toast('Créer '+q+' n\\'est pas autorisé'); return false; }
     function go(v){ __nav.push('go('+v+')'); } var factFilter='tous';
     function formDoc(k,i){ __ouvert.push('formDoc('+k+','+i+')'); } function printDocOuvre(){ }

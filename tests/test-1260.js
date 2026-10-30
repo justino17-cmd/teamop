@@ -65,7 +65,7 @@ function monde(opt) {
     function clientName(id){ var c=(db.clients||[]).find(function(x){return x.id===id;}); return c?c.nom:''; }
     function intTypes(){ return ['Dératisation','Désinsectisation']; }
     function intDureeChips(){ return ''; } function entSocUnique(){ return ''; } function intSocDefaut(){ return 'Modèle générique'; }
-    var VISITE_TECH=['Non','Oui']; var PRIO={normale:{l:'Normale'},haute:{l:'Haute'}}; var MOYENS_PAIEMENT=['Carte','Chèque'];
+    var VISITE_TECH=['Non','Oui']; var PRIO={normale:{l:'Normale'},haute:{l:'Haute'}}; var MOYENS_PAIEMENT=['Carte','Chèque']; function moyensPaiementOptions(){ return ''; }
     var INT_RECUR={aucune:'Aucune',mensuelle:'Mensuelle'}; var STATUT_INT={planifiee:{l:'Planifiée'},aplanifier:{l:'À planifier'},terminee:{l:'Terminée'}};
     function techForClient(){ return null; } function keyForClient(){ return null; } function techForKey(){ return null; }
     function absentOn(){ return null; } function intConflictOf(){ return null; } function techName(id){ return id; } function fmtShort(x){ return x; }

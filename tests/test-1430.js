@@ -33,7 +33,7 @@ const f = corps('renderBonSites');
 vrai('renderBonSites est trouvée', f.length > 200);
 function rendre(sites) {
   const el = { innerHTML: '' };
-  const W = { bonSites: sites, $: () => el, esc: s => String(s == null ? '' : s) };
+  const W = { bonSites: sites, $: () => el, esc: s => String(s == null ? '' : s), exemple: () => 'Nom du site (ex : CAZABOX ST PORCHAIRE)' };
   vm.createContext(W);
   try { vm.runInContext(f + '\nrenderBonSites();', W); } catch (e) { return { err: String(e) }; }
   return { html: el.innerHTML };

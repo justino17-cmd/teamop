@@ -356,12 +356,14 @@ vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : 
   const ordreTous = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
   const ordreApp = ordreTous.filter(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0).concat(Object.keys(METIERS_JSON.ouvertsReglage || {}));
   vrai('(population) la liste des « pas encore ouverts au public » est bien dans l\'application (' + PAS_ENCORE_OUVERTS.length + ' sur ' + ordreTous.length + ')', PAS_ENCORE_OUVERTS.every(k => ordreTous.includes(k)) && ordreTous.length - ordreTous.filter(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0).length === PAS_ENCORE_OUVERTS.length);
-  const NB_REF = METIERS_JSON.ordreMetiers.length;
+  /* le site propose les treize d'origine (« autre » compris) et les métiers AJOUTÉS au référentiel (`!existant`) : la climatisation, scindée du chauffage le 29 octobre 2026, est `existant` — le site ne lui ajoute pas de carte avant que Justin dise de régénérer ses pages */
+  const TREIZE = ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre'];
+  const NB_REF = METIERS_JSON.ordreMetiers.filter(k => TREIZE.includes(k) || !METIERS_JSON.metiers[k].existant).length;
   const puces = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"[^>]*data-pret="([01])"/g)].map(m => [m[1], m[2] === '1']);
   vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 6 && ordreApp[0] === '3d');
   v('23 métiers proposés (les treize du site, « autre » compris — le métier est obligatoire, il faut pouvoir dire « autre » —, plus les dix du référentiel)', [puces.length, (PAGES.creer.match(/class="metier-puce"/g) || []).length], [NB_REF, NB_REF]);
   v('⛔ les dix nouveaux métiers sont « bientôt » tant que le référentiel ne les ouvre pas (jamais « Pack prêt »)',
-    METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, puces.find(p => p[0] === k)[1], METIERS_JSON.ouverts.includes(k)]),
+    METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, (puces.find(p => p[0] === k) || [k, 'puce absente de creer.html'])[1], METIERS_JSON.ouverts.includes(k)]),
     METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, METIERS_JSON.ouverts.includes(k), METIERS_JSON.ouverts.includes(k)]));
   vrai('   … et leur carte de la page Métiers ne promet rien (aucune puce de fonctionnalité) tant qu\'ils sont fermés',
     METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant && !METIERS_JSON.ouverts.includes(k))

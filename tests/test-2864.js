@@ -314,7 +314,7 @@ const decider = async (Z, id, decision, qui, empreinte) => {
   vrai('le brouillon est RÉÉCRIT (même référence, le texte à jour)', await S.attendre(async () => (((await S.get('/api/monitor/agents/brouillons?refs=' + ref)).j[ref] || {}).texte || '').includes(MARQUE), 15000));
   v('⛔ toujours UNE validation, la même', ((await S.get('/api/monitor/agents/validations')).j.validations || []).map(x => x.params.fil), [ref]);
   const q2 = S.claudeRecus()[1] ? S.claudeRecus()[1].messages[0].content : '';
-  vrai('la seconde requête porte le métier, les utilisateurs, la formule et le besoin — sans le téléphone ni le nom', /Métier : Chauffage \/ Climatisation/.test(q2) && /utilisateurs souhaité : 5/.test(q2) && /Formule demandée : pro/.test(q2) && /fluides frigorigènes/.test(q2) && !/06 55 44|Neuve|nora/i.test(JSON.stringify(S.claudeRecus()[1])), q2);
+  vrai('la seconde requête porte le métier, les utilisateurs, la formule et le besoin — sans le téléphone ni le nom', /Métier : Chauffage(?! \/)/.test(q2) && /utilisateurs souhaité : 5/.test(q2) && /Formule demandée : pro/.test(q2) && /fluides frigorigènes/.test(q2) && !/06 55 44|Neuve|nora/i.test(JSON.stringify(S.claudeRecus()[1])), q2);
 
   console.log('   … la correction de Justin, puis « Valider et envoyer »');
   const corr = { ref, objet: 'Notre proposition pour Toka Clim', texte: 'Bonjour,\n\nTexte relu par Justin, avec la précision demandée par le client.\n\nBien cordialement,' };

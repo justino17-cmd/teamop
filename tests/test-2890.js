@@ -58,14 +58,17 @@ const TOUJOURS = ['dashboard', 'utilisateurs', 'modulesElan', 'parametres'];
 
 /* ══ 1. LE FICHIER EST SAIN ══ */
 console.log('\n1. Le fichier : 23 métiers, des rubriques qui existent, une raison et une explication partout');
-vrai('(population) NAV (10 groupes, une quarantaine de rubriques) et METIERS_ORDRE (23 clés ; publiques : 13 avant la v772, les 23 depuis le 23 octobre 2026) sont lus dans le CODE d\'app.html',
-  NAV.length === 10 && clesNav.length >= 40 && Array.isArray(ORDRE_BETA) && ORDRE_BETA.length === 23 && ORDRE_APP.length === 23 - BETA.PAS_ENCORE_OUVERTS.length, JSON.stringify([NAV.length, clesNav.length, ORDRE_BETA, ORDRE_APP]));
+vrai('(population) NAV (10 groupes, une quarantaine de rubriques) et METIERS_ORDRE (24 clés depuis la climatisation du 29 octobre 2026 ; publiques : 13 avant la v772, les 23 depuis le 23 octobre 2026) sont lus dans le CODE d\'app.html',
+  NAV.length === 10 && clesNav.length >= 40 && Array.isArray(ORDRE_BETA) && ORDRE_BETA.length === 24 && ORDRE_APP.length === 24 - BETA.PAS_ENCORE_OUVERTS.length, JSON.stringify([NAV.length, clesNav.length, ORDRE_BETA, ORDRE_APP]));
 const cles = Object.keys(J.metiers);
-v('23 métiers (les treize actuels et les dix nouveaux)', cles.length, 23);
+v('24 métiers (les treize actuels, les dix nouveaux et la climatisation, séparée du chauffage le 29 octobre 2026)', cles.length, 24);
 v('   `ordreMetiers` les range tous, une fois chacun', J.ordreMetiers.slice().sort(), cles.slice().sort());
-v('   ceux de l\'application publique ouvrent la liste, dans son ordre', J.ordreMetiers.slice(0, ORDRE_APP.length), ORDRE_APP);
+/* un métier DÉCLARÉ en avance (la climatisation, rangée juste après le chauffage) peut se trouver n'importe où dans la liste : ce qu'on garde, c'est l'ordre des métiers que le public connaît */
+const ORDRE_FICHIER_PUBLIC = J.ordreMetiers.filter(k => BETA.PAS_ENCORE_OUVERTS.indexOf(k) < 0);
+v('   ceux de l\'application publique ouvrent la liste, dans son ordre (les métiers déclarés en avance mis à part)', ORDRE_FICHIER_PUBLIC.slice(0, ORDRE_APP.length), ORDRE_APP);
+v('   … et les métiers déclarés en avance sont bien dans la liste', BETA.PAS_ENCORE_OUVERTS.filter(k => J.ordreMetiers.indexOf(k) < 0), []);
 const NOUVEAUX = ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine'];
-v('   les dix nouveaux suivent', J.ordreMetiers.slice(13), NOUVEAUX);
+v('   les dix nouveaux suivent', ORDRE_FICHIER_PUBLIC.slice(13), NOUVEAUX);
 const rub = J.rubriques, clesRub = Object.keys(rub);
 v('42 rubriques décrites : les 38 cochables et les 4 qui ne se cochent jamais', clesRub.length, 42);
 v('⛔ chaque rubrique décrite existe dans NAV d\'app.html (ou est l\'écran des paramètres, hors NAV)', clesRub.filter(k => !clesNav.includes(k) && k !== 'parametres'), []);
@@ -136,7 +139,7 @@ v('⛔ le catalogue du référentiel est EXACTEMENT les rubriques cochables du s
 const M = creer(CHEMIN, CATS_OK, CATS_TOUJOURS);
 /* L'état d'AVANT la publication de la v772 (treize ouverts, les dix nouveaux fermés), FABRIQUÉ : depuis le 23 octobre 2026 le vrai fichier ouvre
    les vingt-trois, et les refus d'un métier fermé se jouent sur cette copie — sinon ils ne viseraient plus rien. */
-const HIST13 = J.ordreMetiers.slice(0, 13);
+const HIST13 = ORDRE_FICHIER_PUBLIC.slice(0, 13);
 const bac13 = fs.mkdtempSync(path.join(os.tmpdir(), 'b2890a-'));
 const J13 = JSON.parse(BRUT); J13.ouverts = HIST13.slice(); J13.ouvertsReglage = {};
 const F13 = path.join(bac13, 'treize.json'); fs.writeFileSync(F13, JSON.stringify(J13));

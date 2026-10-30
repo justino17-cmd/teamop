@@ -56,9 +56,9 @@ function monter(base) {
   vm.createContext(W);
   vm.runInContext([...CONSTS.map(decoupe), ...FONCTIONS.map(decoupe),
     `function estMetier3D(){ return true; } /* ces bancs jouent la 3D : la mention et la colonne AMM y sont celles d'avant */ function can(c){ return c==='modifierPlans'?__droit:true; }
-     function toast(m){ __toasts.push(m); } function save(){ __saves++; } function intHisto(i,t){ (i.histo=i.histo||[]).push({txt:t}); __histo.push(t); }
+     function docNomGarde(){ return true; } function toast(m){ __toasts.push(m); } function save(){ __saves++; } function intHisto(i,t){ (i.histo=i.histo||[]).push({txt:t}); __histo.push(t); }
      function fullName(u){ return u?(u.prenom+' '+u.nom):''; } function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
-     function fmtShort(d){ return String(d||''); } function todayISO(){ return '2026-09-23'; } function entNom(){ return (db.entreprise&&db.entreprise.nom)||'OP GESTION'; }
+     function fmtShort(d){ return String(d||''); } function todayISO(){ return '2026-09-23'; } function entNom(){ return (db.entreprise&&db.entreprise.nom)||'OP GESTION'; } function entNomDoc(){ return (db.entreprise&&db.entreprise.nom)||''; }
      /* v744 : les VRAIES fonctions de pièce (photoPid, photoSrc, photoMarquer) sont extraites ; seul
         le réseau est simulé — une pièce connue de __pieces est rendue, les autres « on ne sait pas ». */
      async function pieceLire(id){ return (__pieces&&__pieces[id])?{dataUrl:__pieces[id]}:{inconnu:true,motif:'reseau'}; }

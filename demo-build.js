@@ -67,6 +67,8 @@ remplacer('PAGE_APP', "const PAGE_APP=BETA_ESSAI?'beta.html':'app.html';", "cons
 }
 
 /* ── 4. AUCUN COMPTE : une session locale, pas de campagne de sécurité, pas d'écran « Connexion requise » ─────────────────────── */
+/* « Ton entreprise — Bienvenue ! » : une démonstration n'a pas d'entreprise réelle à remplir, et la fenêtre recouvrait le premier écran du visiteur (les documents, eux, la demandent toujours à leur geste) */
+remplacer('entAccueilCheck', 'function entAccueilCheck(n){ n=n||0; try{', 'function entAccueilCheck(n){ n=n||0; try{ if(DEMO_PUBLIQUE) return;');
 remplacer('secuAFaire', 'function secuAFaire(u){ if(BETA_ESSAI) return false;', 'function secuAFaire(u){ if(BETA_ESSAI||DEMO_PUBLIQUE) return false;');
 remplacer('emailRappelModal', 'function emailRappelModal(passe){ if(BETA_ESSAI) return;', 'function emailRappelModal(passe){ if(BETA_ESSAI||DEMO_PUBLIQUE) return;');
 remplacer('horsLigneDebut', 'function horsLigneDebut(motif){', 'function horsLigneDebut(motif){ if(DEMO_PUBLIQUE) return;   // pas de réseau voulu : jamais d\'écran « Connexion requise »');

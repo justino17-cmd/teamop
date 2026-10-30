@@ -76,6 +76,7 @@ function envoyer(kind) {
   const f = new Function('db', 'msgs', `
     const DEVIS_ST={brouillon:{l:'Brouillon'}}, FACT_ST={brouillon:{l:'Brouillon'}};
     const permGarde=()=>true, save=()=>{}, toast=()=>{}, current='', views={};
+    const docMentionsManquantes=()=>[], docMentionsGarde=()=>true;   // la porte v780 : entreprise complète (jouée par test-3171)
     const rapportSociete=()=>'Société', docMailOpts=()=>undefined, docPdfChaine=async()=>'', genDocTexte=()=>'texte';
     const srvMail=async(to,sujet,corps,okMsg)=>{ msgs.push(okMsg); return true; };
     ${DOC}

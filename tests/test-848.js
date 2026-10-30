@@ -109,9 +109,9 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
      absent d'une pièce, jamais exigé ; tout autre métier doit y être, dans l'ordre de l'application. */
   const { PAS_ENCORE_OUVERTS, attendu, ouvertsPartout } = require('./metiers-publics.js');
   const piecesCles = [ordreSrv, Object.keys(lblTour), Object.keys(lblPort)];
-  vrai('(population) les quatre listes se lisent dans le CODE (app.html, serveur, Tour, portail) : l\'application porte vingt-trois métiers, chaque autre pièce au moins les treize d\'avant',
-    Array.isArray(ordreApp) && ordreApp.length === 23 && piecesCles.every(l => Array.isArray(l) && l.length >= 13), JSON.stringify(ordreApp));
-  vrai('(population) la liste nommée « pas encore ouverts » est dans l\'application et ne contient pas les treize d\'avant — dix avant la publication de la v772, VIDE depuis (23 octobre 2026 : tout le monde connaît les vingt-trois)', (PAS_ENCORE_OUVERTS.length === 10 || PAS_ENCORE_OUVERTS.length === 0) && PAS_ENCORE_OUVERTS.every(k => ordreApp.includes(k)) && ordreApp.slice(0, 13).every(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0));
+  vrai('(population) les quatre listes se lisent dans le CODE (app.html, serveur, Tour, portail) : l\'application porte vingt-quatre métiers (la climatisation, séparée du chauffage le 29 octobre 2026, s\'ajoute aux vingt-trois), chaque autre pièce au moins les treize d\'avant',
+    Array.isArray(ordreApp) && ordreApp.length === 24 && piecesCles.every(l => Array.isArray(l) && l.length >= 13), JSON.stringify(ordreApp));
+  vrai('(population) la liste nommée « pas encore ouverts » est dans l\'application et ne contient pas les treize d\'avant — dix avant la publication de la v772, VIDE depuis le 23 octobre 2026, sauf la climatisation (29 octobre : app.html la connaît, le public pas encore)', PAS_ENCORE_OUVERTS.every(k => ordreApp.includes(k)) && ordreApp.filter(k => k !== 'climatisation').slice(0, 13).every(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0));   // la climatisation, déclarée en avance le 29 octobre 2026, se range juste après le chauffage : les treize d'avant restent les treize d'avant
   v('⛔ le serveur accepte exactement les métiers de l\'application, dans le même ordre (METIERS_OK = METIERS_ORDRE) — les « pas encore ouverts » tolérés absents', ordreSrv, attendu(ordreApp, ordreSrv));
   v('⛔ la Tour propose exactement ces métiers (MET_L)', Object.keys(lblTour), attendu(ordreApp, Object.keys(lblTour)));
   v('⛔ le portail demande exactement ces métiers (METIER_L)', Object.keys(lblPort), attendu(ordreApp, Object.keys(lblPort)));
@@ -124,7 +124,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
   const noms = ordreApp.map(k => METIERS_APP[k].nom);
   v('   les libellés sont ceux des packs, partout (serveur, Tour, portail)', [ordreSrv.map(k => lblSrv[k]), Object.keys(lblTour).map(k => lblTour[k]), Object.keys(lblPort).map(k => lblPort[k])],
     piecesCles.map(l => l.map(k => METIERS_APP[k].nom)));
-  v('   les vingt-deux autres packs portent leurs propres types d\'intervention ; le 3D garde la liste historique', ordreApp.map(k => Array.isArray(METIERS_APP[k].types) && METIERS_APP[k].types.length > 3),
+  v('   les vingt-trois autres packs portent leurs propres types d\'intervention ; le 3D garde la liste historique', ordreApp.map(k => Array.isArray(METIERS_APP[k].types) && METIERS_APP[k].types.length > 3),
     ordreApp.map(k => k !== '3d'));
   const hors3D = ordreApp.filter(k => k !== '3d');
   v('⛔ chaque pack hors 3D masque les quatre modules du 3D (registre, carte des box, devis xylophage, box) — un maçon ne reçoit pas le registre sanitaire',
@@ -320,7 +320,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
        prises quand la VRAIE `forfaitServeurSync` les appelle (ce banc tourne aussi sur `main`, qui n'en sert pas encore). Une
        fonction appelée sous un `try` mais absente du bac à sable lève une ReferenceError avalée : la lecture ne se ferait jamais. */
     const AVEC_CATS = /\bcatsServeurAppliquer\(/.test(SYNC5);
-    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
+    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metiersDuServeur', 'metiersReponseMulti', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
       .concat(AVEC_OPTIONS ? ['optionsCle', 'optionsLire', 'optionsPoser'] : [])
       .concat(AVEC_CATS ? ['catsServeurAppliquer', 'catsCle', 'catsConnues', 'catsListe', 'catBloque'] : []);
     const CATS_SRC = AVEC_CATS ? [(/^const CATS_TOUJOURS=[^\n]*;/m.exec(APPN) || [''])[0], 'let _cats; let _catsConnues;', 'const NAV=' + litteral(APPN, 'const NAV = [') + ';', 'const VUE_PARENT={};'].join('\n') : '';
