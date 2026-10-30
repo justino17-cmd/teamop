@@ -7335,9 +7335,14 @@ html[data-marque="teamop"][data-verre][data-theme="light"]{
   --tf-page-plein:#F0F3F8;
 }
 html[data-marque="teamop"][data-verre][data-theme="dark"]{
-  /* Jamais de noir pur : le bleu nuit du logo, #152340 → #0B1426, et la diagonale à 5 %. */
-  --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.05) 58.2%),
-    linear-gradient(160deg,#152340,#0B1426);
+  /* Jamais de noir pur : le bleu nuit du logo, et la diagonale.
+     v783 — LA NUIT DE LA TOUR (Justin, 30 octobre 2026 : « le même mode nuit que la Tour, il est beaucoup plus agréable ») :
+     la page reprend le fond de la Tour (--tt-page de tour.html) — deux halos, bleu en haut à gauche et violet en bas à droite,
+     sur un dégradé #0F1A30 → #070B16 — au lieu d'un aplat marine. Les vitres posées dessus le laissent passer, flouté. */
+  --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),
+    radial-gradient(120% 90% at 0% 0%,#1A2A4D 0%,rgba(26,42,77,0) 55%),
+    radial-gradient(110% 80% at 100% 100%,#1C1636 0%,rgba(28,22,54,0) 60%),
+    linear-gradient(160deg,#0F1A30 0%,#070B16 100%);
   --vr-fond-dense:rgba(21,35,64,.86);
   --t1:#F0F3F8; --t2:#B8C0CD; --t3:#ABB3C2;
   --vr-encre:#F0F3F8; --vr-encre2:#B8C0CD; --vr-encre3:#ABB3C2;
@@ -8262,6 +8267,27 @@ html[data-theme="light"] select option{ background-color:#FFFFFF; color:#14213A;
 .pdff-gestes .pdff-b:first-child{grid-column:1/-1}
 .pdff-gestes .pdff-b[disabled]{opacity:.45}
 html[data-theme="dark"] .pdff-carte{background:#14213A}
+
+/* v783 — LES CHAMPS NUS (Justin, 30 octobre 2026, capture de la fiche d'une intervention, « Produits & matériel » : « refaire les
+   couleurs ici aussi, et vérifier s'il n'y en a pas d'autres »). Un <input>, un <select> ou un <textarea> écrit SANS classe et hors
+   d'un `.field` sortait brut du navigateur : gris Windows, police du système, bordure noire, en plein milieu d'une vitre. Cette
+   règle les habille tous comme un champ de l'application. Elle est en :where() — spécificité NULLE : la moindre règle déjà écrite
+   pour un champ (.field, .gsrch, une classe…) et tout style en ligne passent devant ; elle ne remplit que le vide. */
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden],[type=button],[type=submit],[type=reset],[type=image]),select,textarea):where(:not([class])){
+  background-color:var(--deep);border:1px solid var(--inpBorder,var(--brd));border-radius:var(--r-2,10px);padding:9px 12px;
+  color:var(--t1);font-family:inherit;font-size:15px;line-height:1.35;box-sizing:border-box}
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden],[type=button],[type=submit],[type=reset],[type=image]),select,textarea):where(:not([class])):focus{
+  outline:none;border-color:var(--acc);box-shadow:var(--focus-champ,0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent))}
+:where(input,textarea):where(:not([class]))::placeholder{color:var(--ph);opacity:1}
+/* La LISTE d'un <select> est peinte par le système ; sous Windows elle prend pour fond celui du champ (une vitre translucide) et
+   pour texte l'encre claire de la page : de nuit, une liste blanche au texte pâle (Justin, Devis IA, 30 octobre 2026 — la Tour et
+   OP MESSAGES avaient le même défaut). Les options reçoivent un fond OPAQUE et l'encre du thème. */
+select option,select optgroup{background-color:var(--bg);color:var(--t1)}
+/* ⛔ ET LE FOND DU CHAMP LUI-MÊME : sous Windows, la liste ouverte prend le fond du <select> — une vitre translucide sur du blanc
+   système, donc une liste claire — quelles que soient les couleurs des options (c'est ce qui laissait le défaut chez Justin malgré la
+   règle des options). De nuit, le champ reçoit un fond OPAQUE (--bg1) ; le chevron (background-image) reste. */
+html[data-theme="dark"] select{background-color:var(--bg1,#17213A)!important}
+@media (pointer:coarse){ :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden]),select,textarea):where(:not([class])){font-size:16px} }
 </style>
 </head>
 <body>
@@ -8685,7 +8711,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '782-beta';
+const APP_VERSION = '783-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -9274,6 +9300,11 @@ const STATUT_INT = { aplanifier:{l:'À planifier',c:'st-grey'}, planifiee:{l:'Pl
    étiquette (st-green) restait verte — deux couleurs pour un même état. Le sens d'un statut ne
    suit pas le goût de l'utilisateur. `--green` est une ENCRE (#1C7A3A de jour, #30D158 de nuit) :
    la règle de test-774 (« il sert de liseré ET de libellé ») tient toujours. */
+/* v783 — les barres des Statistiques portent un DÉGRADÉ de leur couleur (Justin, 30 octobre 2026 : « qu'il y ait un niveau de couleur,
+   un petit dégradé »). Un statut garde le sens de sa couleur (bleu planifiée, vert terminée…) ; le classement des clients prend une
+   couleur par rang. Le dégradé part de la couleur adoucie vers la couleur pleine : la longueur se lit toujours sur le bout franc. */
+const STAT_RANGS=['var(--blue)','var(--purple)','#DB2777','var(--org)','#0891B2','var(--green)'];
+function statDegrade(c){ return 'linear-gradient(90deg,color-mix(in srgb,'+c+' 45%,transparent),'+c+')'; }
 const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--green)', annulee:'var(--red)' };
 const INT_TYPES = ['Contrat anti nuisibles (HACCP)','Dératisation','Désinsectisation anthrène de tapis','Désinsectisation blattes','Désinsectisation fourmis','Désinsectisation guêpes / frelons','Désinsectisation mites','Désinsectisation poux de poules','Désinsectisation psoques','Désinsectisation puces','Désinsectisation punaise de lit','Désinsectisation tiques','Détection punaise de lit','Espèce protégée','Traitement xylophage','Visite technique'];
 const REPORT_TEMPLATES = ["Modèle générique"];   /* Vidée le 5 sept. 2026 : cette liste portait en dur les ~90 agences d'un seul client et partait chez TOUS les autres — le réseau commercial de l'un devenait visible chez ses concurrents. Chaque entreprise déclare ses sociétés dans Paramètres → Mes sociétés ; entSocietes() ne retombe ici que si elle n'en a aucune. */
@@ -9377,7 +9408,7 @@ function docEntete(m,o){ o=o||{}; const s=socNom(m), E=(db&&db.entreprise)||{}, 
   const propre=!!String(st.siret||'').trim(), L=propre?st:E;
   return { societe:s, generique:!s,
     nom: s||(o.bon&&String(E.enteteBC||'').trim())||entNomDoc(),
-    couleur: hex(st.couleur)||'#1E7A4E',
+    couleur: hex(st.couleur)||docCouleurEnt(),
     logo: s?(st.logo||(estEnt?(E.logo||''):'')):(E.logo||''),
     raison: propre?(String(st.raison||'').trim()||s):(String(E.nom||'').trim()||entNomDoc()),
     adresse:L.adresse||'', cp:L.cp||'', ville:L.ville||'', siret:L.siret||'', tvaIntra:L.tvaIntra||'',
@@ -9387,6 +9418,24 @@ function docEntete(m,o){ o=o||{}; const s=socNom(m), E=(db&&db.entreprise)||{}, 
    qui part au client doit être à l'entreprise ». Le nom d'un document client ne retombe JAMAIS sur « OP GESTION » (le
    logiciel) : sans nom, l'en-tête reste vide, et la porte ci-dessous demande de le remplir avant que rien ne parte.
    `entNom()` garde son repli : il nomme l'APPLICATION à l'écran (menu, sous-titres), pas un document. */
+/* v783 — LA COULEUR DES DOCUMENTS (Justin, 30 octobre 2026 : « que ce soit aux couleurs de TEAM OP, plus le vert ; et proposer aux
+   clients de choisir les couleurs de leur PDF, dans les paramètres »). Une société déclarée garde SA couleur ; sinon la couleur
+   choisie par l'entreprise pour ses documents (`db.entreprise.couleurDoc`, tous forfaits — ce n'est pas la couleur de l'APPLICATION,
+   réservée au Business Premium) ; sinon le marine de TEAM OP. Toutes les fabriques passent par là : un vert écrit en dur ailleurs
+   ferait un devis marine et une facture verte. */
+const DOC_COULEUR_DEFAUT='#152340';
+const DOC_COULEURS=[['#152340','Marine TEAM OP'],['#2458C5','Bleu'],['#0F6E6E','Pétrole'],['#1E6B4E','Vert forêt'],['#5B3FB8','Violet'],['#8B1E3F','Bordeaux'],['#B4530F','Cuivre'],['#334155','Ardoise']];
+function docCouleurEnt(){ const v=(((db&&db.entreprise)||{}).couleurDoc)||''; return /^#[0-9a-fA-F]{6}$/.test(v)?v:DOC_COULEUR_DEFAUT; }
+function docCouleurZone(){ const cur=docCouleurEnt().toUpperCase(); const pris=DOC_COULEURS.some(c=>c[0].toUpperCase()===cur);
+        return `<div class="doc-coul" role="radiogroup" aria-label="Couleur des documents" style="display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 8px">${DOC_COULEURS.map(([hx,nom])=>{ const on=hx.toUpperCase()===cur;
+          return `<button type="button" role="radio" aria-checked="${on}" title="${esc(nom)}" aria-label="${esc(nom)}" onclick="docCouleurSet('${hx}')" style="width:44px;height:44px;border-radius:12px;background:${hx};border:${on?'3px solid var(--t1)':'1px solid var(--brd)'};box-shadow:${on?'0 0 0 2px var(--card) inset':'none'};cursor:pointer;padding:0"></button>`; }).join('')}
+          <label title="Une autre couleur" style="width:44px;height:44px;border-radius:12px;border:${pris?'1px dashed var(--brd)':'3px solid var(--t1)'};display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;background:${pris?'var(--bg2)':cur}">${pris?'<span aria-hidden="true" style="font-size:18px">＋</span>':''}<input type="color" aria-label="Choisir une autre couleur" value="${cur}" onchange="docCouleurSet(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label></div>
+        <p style="font-size:11.5px;color:var(--t3);margin:0 0 12px;line-height:1.5">Par défaut, le marine de TEAM OP. Une société déclarée ci-dessous garde sa propre couleur.</p>`; }
+function docCouleurSet(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex||'')) return; db.entreprise=db.entreprise||{};
+  if(hex.toUpperCase()===DOC_COULEUR_DEFAUT.toUpperCase()) delete db.entreprise.couleurDoc; else db.entreprise.couleurDoc=hex;
+  save(); toast('🎨 Couleur des documents enregistrée');
+  /* seule la palette se redessine : redessiner tout l'écran effacerait le nom ou l'adresse qu'on est en train de taper */
+  const z=document.getElementById('doc-coul-zone'); if(z) z.innerHTML=docCouleurZone(); }
 function entNomDoc(){ return (((db&&db.entreprise)||{}).nom||'').trim() || (localStorage.getItem('elanB_entreprise_nom')||'').trim(); }
 /* Les mentions sans lesquelles un document ne part pas, pour la société QUI ÉMET (celle du document, sinon
    l'entreprise) : son nom, son adresse, son SIRET. Une facture sans elles n'est pas une facture (art. L441-9 du code
@@ -26051,7 +26100,7 @@ function _pdfDessinPlans(o){
 function papImplPdfStr(cid,E,imgs,meta){
   meta=meta||{}; imgs=imgs||{};
   const c=(db.clients||[]).find(x=>x.id===cid)||{}; const plans=meta.plans||papImplPlans(cid);
-  const hx=/^#[0-9a-fA-F]{6}$/.test(E&&E.couleur||'')?E.couleur:'#1E7A4E';
+  const hx=/^#[0-9a-fA-F]{6}$/.test(E&&E.couleur||'')?E.couleur:docCouleurEnt();
   const rgbS=h=>[1,3,5].map(i=>(parseInt(h.slice(i,i+2),16)/255).toFixed(3)).join(' ');
   const ACC=rgbS(hx), ACCLT=[1,3,5].map(i=>(0.93+parseInt(hx.slice(i,i+2),16)/255*0.07).toFixed(3)).join(' ');
   const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91', POSTE=rgbS('#64748b');
@@ -28900,7 +28949,7 @@ function rapportProduitsLibres(i){ return (i.produitsUtilises||[]).filter(l=>!l.
 function rapportPdfStr(i,E,imgs){
   E=E||{}; imgs=imgs||{}; const photos=imgs.photos||[], imPlans=imgs.plans||{};
   const c=(db.clients||[]).find(x=>x.id===i.clientId)||{};
-  const hx=/^#[0-9a-fA-F]{6}$/.test(E.couleur||'')?E.couleur:'#1E7A4E';
+  const hx=/^#[0-9a-fA-F]{6}$/.test(E.couleur||'')?E.couleur:docCouleurEnt();
   const rgbS=h=>[1,3,5].map(k=>(parseInt(h.slice(k,k+2),16)/255).toFixed(3)).join(' ');
   const ACC=rgbS(hx), ACCLT=[1,3,5].map(k=>(0.93+parseInt(hx.slice(k,k+2),16)/255*0.07).toFixed(3)).join(' ');
   const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91', ALT='0.962 0.97 0.976', BLANC='1 1 1';
@@ -35360,7 +35409,7 @@ function devisPdfStr(d,logo){ return docPdfStr('devis',d,logo); }
 /* v740 — la même fabrique pour la FACTURE : un courriel qui disait « veuillez trouver ci-joint
    votre facture » ne joignait rien. En-tête, coordonnées légales, IBAN : ceux de la société DU
    document (docEntete). Mentions de facture reprises de printDoc, qui les porte déjà. */
-function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
+function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   const cli=db.clients.find(x=>x.id===d.clientId)||{};
   /* « Modèle générique » n'est pas une société : c'est le choix par défaut quand
      l'entreprise n'en a déclaré aucune — donc la valeur de TOUS ses devis. bcEntete ne
@@ -35369,8 +35418,14 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
      l'impression le traduisaient déjà par rapportSociete() — seul le PDF mentait. */
   const h=docEntete(d.rapportModele), ent=h.nom;
   const hx=h.couleur, rgb=[1,3,5].map(i=>parseInt(hx.slice(i,i+2),16)/255);
-  const GREEN=rgb.map(v=>v.toFixed(3)).join(' '), GREENLT=rgb.map(v=>(0.93+v*0.07).toFixed(3)).join(' ');
-  const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91';
+  /* v783 — le dessin : une seule couleur (celle des documents de l'entreprise, marine TEAM OP par défaut), posée avec retenue.
+     Un aplat plein seulement pour le total ; le reste en voile très clair et en encre. Une couleur claire choisie par le client
+     (un jaune) ne porte pas de blanc : l'encre de l'aplat se décide par `encreSur`, et le texte « en couleur » s'assombrit. */
+  const GREEN=rgb.map(v=>v.toFixed(3)).join(' '), GREENLT=rgb.map(v=>(0.955+v*0.045).toFixed(3)).join(' ');
+  const lum=0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
+  const ACC_T=lum>0.45?rgb.map(v=>(v*0.55).toFixed(3)).join(' '):GREEN;   // la couleur quand elle ÉCRIT
+  const ON_ACC=(typeof encreSur==='function'&&String(encreSur(hx)).toUpperCase()!=='#FFFFFF')?'0.07 0.09 0.13':'1 1 1';
+  const GREY='0.42 0.46 0.52', DARK='0.07 0.09 0.15', LINE='0.88 0.90 0.93';
   const W=595,H=842,M=42,RGT=W-M;
   const pages=[]; let ops=[]; let y;
   const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',x.toFixed(1)+' '+yy.toFixed(1)+' Td','('+_pdfTxt(txt)+') Tj','ET');
@@ -35380,38 +35435,38 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
   const eur=n=>Number(n||0).toFixed(2).replace('.',',')+' EUR';
   const dateFr=x=>{ try{ return new Date((x||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return x||''; } };
 
-  const tableHead=()=>{ R(M,y-6,W-2*M,22,GREEN);
-    T(M+8,y,9,'DÉSIGNATION',1,'1 1 1');
-    TR(RGT-232,y,9,'QTÉ',1,'1 1 1'); TR(RGT-120,y,9,'P.U. HT',1,'1 1 1'); TR(RGT-8,y,9,'TOTAL HT',1,'1 1 1');
-    y-=24; };
-  const newPage=()=>{ pages.push(ops.join('\n')); ops=[]; R(0,H-6,W,6,GREEN); y=H-M-14; tableHead(); };
+  const tableHead=()=>{ R(M,y-7,W-2*M,22,GREENLT); R(M,y-7,W-2*M,1.2,GREEN);
+    T(M+10,y,8,'DÉSIGNATION',1,ACC_T);
+    TR(RGT-232,y,8,'QTÉ',1,ACC_T); TR(RGT-120,y,8,'P.U. HT',1,ACC_T); TR(RGT-10,y,8,'TOTAL HT',1,ACC_T);
+    y-=25; };
+  const newPage=()=>{ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; tableHead(); };
 
-  R(0,H-6,W,6,GREEN);
+  R(0,H-4,W,4,GREEN);
   y=H-M-16;
   /* Logo à gauche quand la société en a un : le nom se décale d'autant. */
   let nx=M;
   if(logo && logo.b64){ const lh=34, lw=Math.round(logo.w*(lh/logo.h));
     ops.push('q',lw+' 0 0 '+lh+' '+M.toFixed(1)+' '+(y-9).toFixed(1)+' cm','/I1 Do','Q');
     nx=M+lw+12; }
-  T(nx,y,21,cut(ent,logo&&logo.b64?20:28),1,GREEN);
-  TR(RGT,y+3,16,estFact?'FACTURE':'DEVIS',1,DARK);
+  T(nx,y,20,cut(ent,logo&&logo.b64?20:28),1,DARK);
+  TR(RGT,y+3,17,estFact?'FACTURE':'DEVIS',1,ACC_T);
   TR(RGT,y-13,10,'N° '+(d.num||''),1,GREY);
   TR(RGT,y-25,9,dateFr(d.date),0,GREY);
   const paye=estFact&&d.statut==='payee', echISO=isoDe(new Date(new Date((d.date||todayISO())+'T00:00:00').getTime()+30*86400000));
-  if(estFact) TR(RGT,y-37,9,paye?'Réglée le '+dateFr(d.datePaiement||d.date):'Échéance : '+dateFr(echISO),1,paye?GREEN:DARK);
+  if(estFact) TR(RGT,y-37,9,paye?'Réglée le '+dateFr(d.datePaiement||d.date):'Échéance : '+dateFr(echISO),1,paye?ACC_T:DARK);
   const EI=h; let ey=y-14;
   docCoordLignes(h).forEach(t2=>{ T(nx,ey,8.5,cut(t2,58),0,GREY); ey-=11; });   // sous le nom, à droite du logo
-  y=Math.min(y-(estFact?44:32),ey-8); R(M,y,W-2*M,1.6,GREEN); y-=16;
+  y=Math.min(y-(estFact?44:32),ey-8); R(M,y,W-2*M,0.8,LINE); y-=18;
 
   /* v778 : le nom du client passe à la ligne (deux lignes au plus) au lieu d'être coupé à 52 signes (« Établissements Hospitaliers Universitaires de la Cô… ») */
   const nomCl=_pdfEnLignes(cli.nom||'',10.5,1,W-2*M-20,2).filter(Boolean);
   const cl=[].concat(nomCl, cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '),
             [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')).filter(Boolean);
   const ph=20+cl.length*13;
-  R(M,y-ph+10,W-2*M,ph,GREENLT);
-  T(M+10,y-4,8,estFact?'FACTURÉ À':'CLIENT',1,GREEN);
+  R(M,y-ph+10,W-2*M,ph,GREENLT); R(M,y-ph+10,2.4,ph,GREEN);
+  T(M+12,y-4,7.5,estFact?'FACTURÉ À':'CLIENT',1,ACC_T);
   const nbNom=Math.max(1,nomCl.length);   // sans nom, la première ligne garde le style d'avant
-  cl.forEach((t2,i)=>{ T(M+10,y-18-i*13,i<nbNom?10.5:8.8,i<nbNom?t2:cut(t2,70),i<nbNom?1:0,i<nbNom?DARK:GREY); });
+  cl.forEach((t2,i)=>{ T(M+12,y-18-i*13,i<nbNom?10.5:8.8,i<nbNom?t2:cut(t2,70),i<nbNom?1:0,i<nbNom?DARK:GREY); });
   y-=ph+14;
 
   tableHead();
@@ -35422,28 +35477,28 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
     const dl=_pdfEnLignes(l.designation||'',9.2,0,237,6), sup=(dl.length-1)*11;
     if(y-sup<150) newPage();
     const q=Number(l.qte)||0, pu=Number(l.pu)||0, tot=ligTotLigne(l); totHT+=tot;   // même arrondi que l'écran et l'e-mail
-    if(i%2===1) R(M,y-6-sup,W-2*M,17+sup,'0.962 0.97 0.976');
-    dl.forEach((t2,k)=>T(M+8,y-k*11,9.2,t2,0,DARK));
+    if(i>0) R(M+10,y+10.5,W-2*M-20,0.5,LINE);   // un filet fin entre les lignes, plus de bandes grises
+    dl.forEach((t2,k)=>T(M+10,y-k*11,9.2,t2,0,DARK));
     TR(RGT-232,y,9.2,String(q).replace('.',','),0,DARK);
     TR(RGT-120,y,9.2,eur(pu),0,DARK);
-    TR(RGT-8,y,9.2,eur(tot),1,DARK);
-    y-=17+sup;
+    TR(RGT-10,y,9.2,eur(tot),1,DARK);
+    y-=19+sup;
   });
-  R(M,y+11,W-2*M,0.8,LINE);
+  R(M,y+12,W-2*M,0.8,LINE);
 
   if(y<200) newPage();
   const tx=Number(d.tva)||0, mtva=totHT*tx/100, ttc=totHT+mtva;
   y-=18; const bw=210;
-  T(RGT-bw+10,y,9.5,'Total HT',0,GREY); TR(RGT-8,y,9.5,eur(totHT),0,DARK); y-=15;
-  T(RGT-bw+10,y,9.5,'TVA '+String(tx).replace('.',',')+' %',0,GREY); TR(RGT-8,y,9.5,eur(mtva),0,DARK); y-=8;
-  R(RGT-bw,y-20,bw,26,GREEN);
-  T(RGT-bw+10,y-12,11,'TOTAL TTC',1,'1 1 1'); TR(RGT-8,y-12,11,eur(ttc),1,'1 1 1');
-  y-=34;
+  T(RGT-bw+12,y,9.5,'Total HT',0,GREY); TR(RGT-12,y,9.5,eur(totHT),0,DARK); y-=15;
+  T(RGT-bw+12,y,9.5,'TVA '+String(tx).replace('.',',')+' %',0,GREY); TR(RGT-12,y,9.5,eur(mtva),0,DARK); y-=10;
+  R(RGT-bw,y-22,bw,28,GREEN);
+  T(RGT-bw+12,y-13,10.5,'TOTAL TTC',1,ON_ACC); TR(RGT-12,y-13,12,eur(ttc),1,ON_ACC);
+  y-=36;
 
   if(d.notes){ const nl=String(d.notes).split(/\n/).slice(0,6); const nh=22+nl.length*12;
     y-=14; if(y-nh<140) newPage();
     R(M,y-nh+8,W-2*M,nh,GREENLT);
-    T(M+9,y-6,8,'DÉTAIL',1,GREEN);
+    T(M+10,y-6,7.5,'DÉTAIL',1,ACC_T);
     nl.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,cut(line,100),0,DARK); });
     y-=nh+6; }
 
@@ -35457,14 +35512,20 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
              'de recouvrement de 40 EUR (art. L441-10 du Code de commerce). Pas d\'escompte pour paiement anticipé.'])
     .forEach((t2,k)=>{ T(M,y,8,cut(t2,118),k===0?1:0,k===0?DARK:GREY); y-=11; });
     y-=10;
+    if(cachet&&cachet.b64){ const ch=50, cw=Math.min(160,Math.round(cachet.w*(ch/cachet.h)));
+      if(y-ch<80){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; }   // une page de plus, sans en-tête de tableau
+      ops.push('q',cw+' 0 0 '+ch+' '+(RGT-cw).toFixed(1)+' '+(y-ch).toFixed(1)+' cm','/I2 Do','Q'); y-=ch+8; }
   } else {
   [ 'Devis valable 30 jours à compter de sa date d\'émission.',
     tx===0?'TVA non applicable, article 293 B du CGI.':'Prix en euros, TVA au taux indiqué ci-dessus.',
     'Bon pour accord : date, signature et mention « Bon pour accord ».'
   ].forEach(t2=>{ T(M,y,8,cut(t2,110),0,GREY); y-=11; });
   y-=10;
-  R(RGT-210,y-52,210,54,'0.98 0.985 0.99');
-  T(RGT-200,y-14,8.5,'Bon pour accord',1,DARK);
+  if(cachet&&cachet.b64){ const ch=46, cw=Math.min(150,Math.round(cachet.w*(ch/cachet.h)));
+    T(M,y-14,8.5,'Pour l\u2019entreprise',1,ACC_T);
+    ops.push('q',cw+' 0 0 '+ch+' '+M.toFixed(1)+' '+(y-66).toFixed(1)+' cm','/I2 Do','Q'); }
+  R(RGT-210,y-52,210,54,GREENLT); R(RGT-210,y+2,210,0.8,GREEN);
+  T(RGT-200,y-14,8.5,'Bon pour accord',1,ACC_T);
   T(RGT-200,y-28,7.5,'Date et signature du client',0,GREY);
   y-=64; }
 
@@ -35480,13 +35541,14 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
   objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
   objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
   let n=5, xobj='';
-  /* Le logo devient un objet image du PDF, en JPEG brut (DCTDecode). */
-  if(logo && logo.b64){
-    const bin=atob(logo.b64); const io=n++;
-    objs[io]={s:bin, dict:'<< /Type /XObject /Subtype /Image /Width '+logo.w+' /Height '+logo.h+
+  /* Le logo (et le cachet, v783) deviennent des objets image du PDF, en JPEG brut (DCTDecode). */
+  const imgs=[];
+  [['I1',logo],['I2',cachet]].forEach(([nm,im])=>{ if(!(im&&im.b64)) return;
+    const bin=atob(im.b64); const io=n++;
+    objs[io]={s:bin, dict:'<< /Type /XObject /Subtype /Image /Width '+im.w+' /Height '+im.h+
       ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bin.length+' >>'};
-    xobj=' /XObject << /I1 '+io+' 0 R >>';
-  }
+    imgs.push('/'+nm+' '+io+' 0 R'); });
+  if(imgs.length) xobj=' /XObject << '+imgs.join(' ')+' >>';
   const kids=[];
   pages.forEach(c=>{ const pg=n++, ct=n++; kids.push(pg+' 0 R');
     objs[pg]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>'+xobj+' >> /Contents '+ct+' 0 R >>';
@@ -35511,8 +35573,42 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
 async function devisPdfBlob(d){ return docPdfBlob('devis',d); }
 /* Le PDF d'un devis ou d'une facture, logo de SA société compris (docEntete : une société sans
    logo n'emprunte plus celui de l'entreprise principale). */
-async function docPdfChaine(kind,d){ let logo=null; try{ logo=await devisLogoJpeg(docEntete(d.rapportModele).logo); }catch(e){}
-  return docPdfStr(kind,d,logo); }
+async function docPdfChaine(kind,d){ let logo=null, cachet=null; try{ logo=await devisLogoJpeg(docEntete(d.rapportModele).logo); }catch(e){}
+  const c=docCachetPour(kind,d); if(c){ try{ cachet=await devisLogoJpeg(c); }catch(e){} }
+  return docPdfStr(kind,d,logo,cachet); }
+/* v783 — LE CACHET (Justin, 30 octobre 2026 : « leur cachet, s'ils veulent l'ajouter sur les devis ou les factures »). Il n'est
+   OBLIGATOIRE ni sur un devis ni sur une facture : les mentions d'une facture sont celles de l'art. L441-9 du code de commerce et de
+   l'art. 242 nonies A de l'annexe II du CGI, et c'est la signature « Bon pour accord » du CLIENT qui fait d'un devis un contrat. C'est
+   donc un CHOIX, coupé par défaut, réglé à part pour les devis et pour les factures. Et c'est le cachet de l'ENTREPRISE : une société
+   déclarée avec son propre SIRET (une entreprise distincte, `coordsPropres`) ne le porte jamais — ce serait le tampon d'une autre. */
+function docCachetPour(kind,d){ const E=(db&&db.entreprise)||{}; if(!E.cachet) return '';
+  if(!(kind==='devis'?E.cachetDevis:kind==='factures'?E.cachetFacture:false)) return '';
+  try{ if(docEntete(d&&d.rapportModele).coordsPropres) return ''; }catch(e){ return ''; }
+  return E.cachet; }
+function entCachetPick(e){ const f=e.target.files&&e.target.files[0]; if(!f) return; e.target.value='';
+  const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const mx=420; let w=im.width,h=im.height;
+    if(w>mx||h>mx){ if(w>h){h=h*mx/w;w=mx;}else{w=w*mx/h;h=mx;} }
+    const cv=document.createElement('canvas'); cv.width=Math.round(w); cv.height=Math.round(h); const g=cv.getContext('2d');
+    g.fillStyle='#fff'; g.fillRect(0,0,cv.width,cv.height); g.drawImage(im,0,0,cv.width,cv.height);   // le JPEG du PDF n'a pas de transparence : fond blanc
+    db.entreprise=db.entreprise||{}; db.entreprise.cachet=cv.toDataURL('image/jpeg',0.9);
+    if(db.entreprise.cachetDevis===undefined&&db.entreprise.cachetFacture===undefined) db.entreprise.cachetFacture=true;   // un cachet posé sert d'abord aux factures
+    logEvent('Cachet de l\'entreprise ajouté','','crud'); save(); toast('🔏 Cachet enregistré'); const z=document.getElementById('doc-cachet-zone'); if(z) z.innerHTML=docCachetZone(); };
+    im.src=r.result; }; r.readAsDataURL(f); }
+function entCachetDel(){ if(!db.entreprise||!db.entreprise.cachet) return; delete db.entreprise.cachet; save(); toast('Cachet retiré');
+  const z=document.getElementById('doc-cachet-zone'); if(z) z.innerHTML=docCachetZone(); }
+function entCachetOpt(cle,on){ if(cle!=='cachetDevis'&&cle!=='cachetFacture') return; db.entreprise=db.entreprise||{}; db.entreprise[cle]=!!on; save();
+  toast(on?'🔏 Le cachet sera posé sur les '+(cle==='cachetDevis'?'devis':'factures'):'Plus de cachet sur les '+(cle==='cachetDevis'?'devis':'factures')); }
+function docCachetZone(){ const E=(db&&db.entreprise)||{};
+  return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 6px">
+    <span style="width:88px;height:56px;border-radius:12px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff">${E.cachet?`<img src="${E.cachet}" alt="Cachet de l’entreprise" style="max-width:100%;max-height:100%;object-fit:contain">`:'<span aria-hidden="true" style="font-size:20px">🔏</span>'}</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="file" id="ent-cachet-file" accept="image/*" style="display:none" onchange="entCachetPick(event)">
+      <button class="btn ghost sm" onclick="document.getElementById('ent-cachet-file').click()">${E.cachet?'Changer le cachet':'＋ Ajouter le cachet (photo ou scan)'}</button>
+      ${E.cachet?`<button class="btn ghost sm" style="color:var(--red)" onclick="entCachetDel()">Retirer</button>`:''}
+    </div></div>
+  ${E.cachet?`<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0"><input type="checkbox" ${E.cachetFacture?'checked':''} onchange="entCachetOpt('cachetFacture',this.checked)"> Le poser sur les <b>factures</b></label>
+  <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0"><input type="checkbox" ${E.cachetDevis?'checked':''} onchange="entCachetOpt('cachetDevis',this.checked)"> Le poser sur les <b>devis</b> (case « Pour l’entreprise », à côté du « Bon pour accord » du client)</label>`:''}
+  <p style="font-size:11.5px;color:var(--t3);margin:4px 0 12px;line-height:1.5">Le cachet n’est obligatoire ni sur un devis ni sur une facture : c’est un choix. Sur un devis, c’est la signature « Bon pour accord » de ton client qui compte. Une société déclarée avec son propre SIRET n’en porte pas.</p>`; }
 async function docPdfBlob(kind,d){
   const s=await docPdfChaine(kind,d); const bytes=new Uint8Array(s.length);
   for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
@@ -38726,9 +38822,21 @@ views.parametres=function(){
           <div style="font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.5">Une entreprise de climatisation et de plomberie choisit ici le second métier : les types d’intervention, les prestations, les relevés, les catégories de produits, les documents et le catalogue de départ des deux sont réunis. Rien n’est retiré, et tu reviens en arrière quand tu veux.</div></div>`:''}
         ${(()=>{ const L=((metierPack()||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]); if(!L.length) return '';
           return `<details class="met-rub"><summary>📋 Les ${L.length} rubriques conseillées pour ton métier</summary>${L.map(k=>`<div class="met-rub-l"><b>${esc(RUBRIQUES_INFO[k][0])}</b><span>${esc(RUBRIQUES_INFO[k][1])}</span></div>`).join('')}</details>`; })()}`; })()}
+      <div class="form-sec">🎨 Mes documents <span style="font-weight:400;text-transform:none;letter-spacing:0">— la couleur de tes devis, factures, bons et rapports en PDF</span></div>
+      <div id="doc-coul-zone">${docCouleurZone()}</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:2px 0 10px">
+        <span style="width:56px;height:56px;border-radius:12px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff">${E.logo?`<img src="${E.logo}" alt="Logo de l’entreprise" style="max-width:100%;max-height:100%;object-fit:contain">`:'<span aria-hidden="true" style="font-size:20px">🏷️</span>'}</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="file" id="doc-logo-file" accept="image/*" style="display:none" onchange="entLogoPick(event)">
+          <button class="btn ghost sm" onclick="document.getElementById('doc-logo-file').click()">${E.logo?'Changer le logo':'＋ Ajouter le logo'}</button>
+          ${E.logo?`<button class="btn ghost sm" style="color:var(--red)" onclick="entLogoDel()">Retirer</button>`:''}
+        </div>
+        <span style="font-size:11.5px;color:var(--t3);flex:1;min-width:160px">En haut à gauche de chaque document.</span>
+      </div>
+      <div id="doc-cachet-zone">${docCachetZone()}</div>
       <div class="form-sec">🏢 Mes sociétés <span style="font-weight:400;text-transform:none;letter-spacing:0">— noms sur les documents (rapports, devis, factures, SMS…)</span></div>
       <p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:8px">Ajoute tes sociétés : elles remplacent la liste générique dans le sélecteur « Société » des interventions et documents. <b>Une seule société</b> → le sélecteur disparaît et elle est appliquée partout automatiquement.</p>
-      <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">${(db.societes||[]).map((s2,ix)=>{ const st=socStyle(s2); const cl=/^#[0-9a-fA-F]{6}$/.test(st.couleur||'')?st.couleur:'#1E7A4E';
+      <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">${(db.societes||[]).map((s2,ix)=>{ const st=socStyle(s2); const cl=/^#[0-9a-fA-F]{6}$/.test(st.couleur||'')?st.couleur:docCouleurEnt();
         return `<div style="display:flex;align-items:center;gap:11px;border:1px solid var(--brd);border-left:4px solid ${cl};border-radius:12px;padding:9px 13px;flex-wrap:wrap">
           ${st.logo?`<img src="${st.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:7px;background:#fff">`:`<span style="width:32px;height:32px;border-radius:7px;background:${cl};display:inline-flex;align-items:center;justify-content:center;color:${encreSur(cl)};font-weight:800;font-size:14px">${esc((s2[0]||'?').toUpperCase())}</span>`}
           <b style="flex:1;min-width:120px;font-size:13.5px">${esc(s2)}</b>
@@ -39513,7 +39621,8 @@ function devisIAModal(){
   openModal(`<div class="modal-head"><h3>✨ Devis IA</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">Décris la prestation avec tes mots — l'IA propose un devis chiffré ligne par ligne, que tu relis et ajustes avant de l'envoyer.</p>
     <p style="color:var(--t3);font-size:11.5px;line-height:1.55;margin:-6px 0 12px">Seule ta description part au générateur. Le <b>nom et l'adresse du client ne sortent pas de cet appareil</b> — ils ne servent pas à faire un prix.</p>
-    <div class="field"><label>Client</label><select id="dia-client"><option value="">— Sans client —</option>${clientsProposes().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}</select></div>
+    <div class="field"><label>Client</label><select id="dia-client" onchange="docCliInfo(this.value==='__nouveau'?'__nouveau':'__aucun')"><option value="">— Sans client —</option>${canCat('crm','ajouter')?'<option value="__nouveau">＋ Nouveau client…</option>':''}${clientsProposes().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}</select></div>
+    <div id="doc-cli-info"></div>
     <!-- La société choisie donne son nom, sa couleur et son logo à l'en-tête du
          devis — même mécanisme que les bons de commande. -->
     <div class="field"><label>Société (en-tête du devis)</label><select id="dia-societe">${entSocietes().map(t=>`<option ${(entSocUnique()||'Modèle générique')===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
@@ -39541,12 +39650,16 @@ function devisIAModal(){
   }).catch(()=>{ const el=$('dia-etat'); if(el&&!el.textContent){ el.textContent='⚠ Le serveur ne répond pas : l’état du devis par IA n’a pas pu être lu.'; el.style.color='var(--org)'; } });
 }
 async function devisIAGo(profond){
-  const demande=($('dia-demande')||{}).value||'', code=devisIACode(), clientId=($('dia-client')||{}).value||'';
+  const demande=($('dia-demande')||{}).value||'', code=devisIACode(); let clientId=($('dia-client')||{}).value||'';
+  /* v783 — Justin, 30 octobre 2026 : « pour créer un nouveau devis en IA, avoir de nouveaux clients comme pour l'autre ». Le nom se
+     vérifie AVANT l'appel (qui consomme le quota du jour) ; la fiche client naît après la génération réussie, comme dans formDoc. */
+  const nouveauCli=clientId==='__nouveau';
   const err=$('dia-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
   const btn=$(profond?'dia-go2':'dia-go'); const libelle=profond?'📐 Devis approfondi':'✨ Devis rapide';
   const rearme=()=>{ if(btn){ btn.disabled=false; btn.textContent=libelle; } };
   if(!can('devisIA')||!permGarde('ventes','ajouter','un devis')) return;   // v738 : avant l'appel, qui consomme le quota du jour
-  if(clientId&&!clientPropose(clientId)){ show('Ce client ne te concerne pas.'); return; }
+  if(clientId&&!nouveauCli&&!clientPropose(clientId)){ show('Ce client ne te concerne pas.'); return; }
+  if(nouveauCli&&!((($('doc-cli-nom')||{}).value||'').trim())){ show('Écris le nom du nouveau client.'); const n=$('doc-cli-nom'); if(n) n.focus(); return; }
   if(demande.trim().length<5){ show('Décris la prestation d\'abord.'); return; }
   if(!(await devisMetierPret())){ show(devisMetierMsg()); return; }
   if(btn){ btn.disabled=true; btn.textContent='⏳ Génération en cours… (jusqu\'à une minute)'; }
@@ -39559,6 +39672,7 @@ async function devisIAGo(profond){
     const j=await r.json().catch(()=>({}));
     if(!r.ok){ show(j.error||('Erreur '+r.status)); rearme(); return; }
     const d=j.devis||{}; const id=uid();
+    if(nouveauCli){ clientId=docCliCreer(); if(!clientId){ rearme(); return; } }
     db.devis.push({id,num:docNum('devis'),clientId,creePar:(currentUser&&currentUser.id)||'',date:todayISO(),statut:'brouillon',tva:Number(d.tva)||20,
       rapportModele:($('dia-societe')||{}).value||'',
       notes:((d.titre?d.titre+'. ':'')+(d.remarque||'')).trim(),
@@ -41777,7 +41891,7 @@ function docCliBlock(c,nouveau){ c=c||{}; const ville=((c.codePostal||'')+' '+(c
     <div class="field-row"><div class="field"><label>Code postal / Ville</label><input id="doc-cli-ville" value="${esc(ville)}" placeholder="${esc(exemple('ville'))}"></div>
       <div class="field"><label>Téléphone</label><input id="doc-cli-tel" value="${esc(c.tel||'')}" placeholder="Téléphone"></div></div>
     <div class="field"><label>Email du client</label><input id="doc-cli-email" type="email" value="${esc(c.email||'')}" placeholder="Email"></div>`; }
-function docCliInfo(id){ const el=document.getElementById('doc-cli-info'); if(!el)return; const nv=id==='__nouveau'; el.innerHTML=docCliBlock(nv?{}:(db.clients.find(x=>x.id===id)||{}),nv); if(nv) setTimeout(()=>{ const n=document.getElementById('doc-cli-nom'); if(n) n.focus(); },30); }
+function docCliInfo(id){ const el=document.getElementById('doc-cli-info'); if(!el)return; if(id==='__aucun'){ el.innerHTML=''; return; } const nv=id==='__nouveau'; el.innerHTML=docCliBlock(nv?{}:(db.clients.find(x=>x.id===id)||{}),nv); if(nv) setTimeout(()=>{ const n=document.getElementById('doc-cli-nom'); if(n) n.focus(); },30); }
 /* la fiche client d'un « Nouveau client » tapé dans un devis ou une facture : rend son identifiant, ou '' si refusé (rien n'est écrit) */
 function docCliCreer(){ if(!permGarde('crm','ajouter','un client')) return '';
   const val=i=>{ const el=document.getElementById(i); return el?el.value.trim():''; };
@@ -42632,7 +42746,7 @@ function cvcAttestationSauver(iid,aid,silencieux){ if(!permGarde('int','modifier
 /* ── Le PDF, écrit à la main comme le rapport et le bon de commande ── (`_pdfTxt` écrit, `_pdfLarg` mesure : jamais autrement) */
 function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||{};
   const c=(db.clients||[]).find(x=>x.id===i.clientId)||{};
-  const hx=/^#[0-9a-fA-F]{6}$/.test(E.couleur||'')?E.couleur:'#1E7A4E';
+  const hx=/^#[0-9a-fA-F]{6}$/.test(E.couleur||'')?E.couleur:docCouleurEnt();
   const rgbS=h=>[1,3,5].map(k=>(parseInt(h.slice(k,k+2),16)/255).toFixed(3)).join(' ');
   const ACC=rgbS(hx), ACCLT=[1,3,5].map(k=>(0.93+parseInt(hx.slice(k,k+2),16)/255*0.07).toFixed(3)).join(' ');
   const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91', ALT='0.962 0.97 0.976', BLANC='1 1 1', ROUGE='0.80 0.15 0.15', AMBRE='0.76 0.42 0.06', VERT='0.12 0.48 0.31';
@@ -43305,7 +43419,7 @@ function nettCahierSauver(silencieux){ const W=nettCahW; if(!W){ if(!silencieux)
    l'en-tête de la société et le pied sont écrits UNE fois. Blocs : {t:'titre',texte} · {t:'lv',lbl,val,col} · {t:'texte',texte,sz,col} ·
    {t:'note',texte} (encadré) · {t:'table',cols:[{l,w}],rows:[[cellule…]]} (cellule = texte ou {t,col,b}) · {t:'signatures',boites:[{lbl,sous}]} · {t:'vide',h}. */
 function nettPdf(sp,E,imgs){ E=E||{}; imgs=imgs||{};
-  const hx=/^#[0-9a-fA-F]{6}$/.test(E.couleur||'')?E.couleur:'#1E7A4E';
+  const hx=/^#[0-9a-fA-F]{6}$/.test(E.couleur||'')?E.couleur:docCouleurEnt();
   const rgbS=h=>[1,3,5].map(k=>(parseInt(h.slice(k,k+2),16)/255).toFixed(3)).join(' ');
   const ACC=rgbS(hx);
   const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91', ALT='0.962 0.97 0.976', ROUGE='0.80 0.15 0.15', AMBRE='0.76 0.42 0.06', VERT='0.12 0.48 0.31';
@@ -44897,10 +45011,10 @@ views.statistiques=function(){
   $('content').innerHTML=(fin?'':`<div class="card" style="font-size:13px;color:var(--t2);line-height:1.6">🔒 Chiffre d'affaires, devis et classement des clients : réservés au droit « Voir / gérer la comptabilité et les tarifs » (Permissions → Ventes).</div>`)+kpisArgent+`
     <div class="grid2">
       <div class="card"><div class="card-head"><h3>Interventions par statut</h3></div>
-        ${Object.keys(parSt).length? Object.entries(parSt).map(([k,v])=>`<div class="bar-row"><div class="bar-lbl">${STATUT_INT[k]?STATUT_INT[k].l:k}</div><div class="bar-track"><div class="bar-fill" style="width:${v/maxI*100}%"></div></div><div class="bar-val">${v}</div></div>`).join(''):emptyState('🧰','Aucune intervention','','')}
+        ${Object.keys(parSt).length? Object.entries(parSt).map(([k,v])=>`<div class="bar-row"><div class="bar-lbl">${STATUT_INT[k]?STATUT_INT[k].l:k}</div><div class="bar-track"><div class="bar-fill" style="width:${v/maxI*100}%;background:${statDegrade(INT_STCOLOR[k]||'var(--acc)')}"></div></div><div class="bar-val">${v}</div></div>`).join(''):emptyState('🧰','Aucune intervention','','')}
       </div>
       ${fin?`      <div class="card"><div class="card-head"><h3>Top clients (CA facturé)</h3></div>
-        ${topC.length? topC.map(c=>`<div class="bar-row"><div class="bar-lbl">${esc(c.nom)}</div><div class="bar-track"><div class="bar-fill" style="width:${c.v/maxC*100}%"></div></div><div class="bar-val">${eur(c.v)}</div></div>`).join(''):emptyState('🏢','Aucune facture','','')}
+        ${topC.length? topC.map((c,ix)=>`<div class="bar-row"><div class="bar-lbl">${esc(c.nom)}</div><div class="bar-track"><div class="bar-fill" style="width:${c.v/maxC*100}%;background:${statDegrade(STAT_RANGS[ix%STAT_RANGS.length])}"></div></div><div class="bar-val">${eur(c.v)}</div></div>`).join(''):emptyState('🏢','Aucune facture','','')}
       </div>`:''}
     </div>`;
 };
