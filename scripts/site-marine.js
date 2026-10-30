@@ -743,7 +743,7 @@ const PAGES = {
       + ['Planning et rendez-vous', 'Suivi d\'interventions / chantiers', 'Stock / matériel / box', 'Encaissements / facturation', 'Communication d\'équipe', 'Photos et comptes-rendus', 'Gestion clients / contrats'].map(b => `<button type="button" class="besoin" aria-pressed="false">${fr(b)}</button>`).join('')
       + `</div></div>
           <label class="champ">Décrivez votre quotidien (facultatif)<textarea name="quotidien" data-libelle="Quotidien" rows="4" placeholder="${esc('Ex. : 3 techniciens, 40 clients en contrat, on veut les rapports signés sur tablette…')}"></textarea></label>
-          <div class="envoi"><button type="submit" class="bouton">Préparer ma demande</button><small>${fr('Elle s\'ouvre dans votre messagerie, adressée à contact@teamop.fr : vous l\'envoyez. On vous rappelle sous 48 h.')}</small></div>
+          <div class="envoi"><button type="submit" class="bouton">Envoyer ma demande</button><small>${fr('Elle nous parvient tout de suite, sans passer par votre messagerie. On vous rappelle sous 48 h.')}</small></div>
           <p class="avis-envoi" hidden role="status">${fr('Votre messagerie s\'ouvre avec la demande prête : il ne reste qu\'à l\'envoyer. Rien ne s\'est ouvert ? Écrivez-nous directement à ')}<a href="mailto:contact@teamop.fr">contact@teamop.fr</a>.</p>
         </form></section>` },
 

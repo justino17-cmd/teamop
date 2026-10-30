@@ -3680,7 +3680,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.123</div>
+    <div class="lg-pied">console interne · v2.124</div>
   </div>
 </div>
 
@@ -3715,7 +3715,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">La Tour · v2.123</div>
+        <div class="hd-tour" id="hd-tour">La Tour · v2.124</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3728,7 +3728,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
   <main id="opm-hote" hidden></main>   <!-- v2.120 : le cadre d'OP MESSAGES vit ICI, hors de #vue (qui est réécrit à chaque rubrique) : il est affiché ou masqué, jamais détruit -->
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.123</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.124</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -4073,7 +4073,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.123';
+var TOUR_VERSION='v2.124';
 /* le nom de la Tour dit qu'elle est UNE (plus « Tour OP GESTION » / « Tour OP MESSAGES ») ; la couleur ne parle jamais seule */
 function majEnteteTour(){ var hd=$('hd-tour'); if(hd) hd.textContent='La Tour · '+TOUR_VERSION; }
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
@@ -5879,7 +5879,46 @@ function tourActiviteCharge(nm){
 /* `mdp` : le mot de passe provisoire que CE panneau affiche. Le serveur ne garde que son empreinte : sans lui, le
    courriel partait sans mot de passe — « connectez-vous avec vos identifiants habituels » à quelqu'un qui n'en avait
    aucun (mesuré le 28 septembre 2026). Le serveur ne le met dans le courriel que s'il correspond à l'empreinte. */
+/* v2.124 — L'APERÇU AVANT L'ENVOI (Justin, 30 octobre 2026 : « que ça donne un aperçu du mail, je modifie si je modifie, on met un code promo
+   si on offre un code, et on l'envoie »). Le serveur rend le texte qu'il enverrait (`apercu:true`, après toutes ses gardes : un refus se dit ICI,
+   avant d'avoir rien écrit) ; le patron le relit, le modifie, ajoute un code promo, et l'envoie. Rien ne part sans ce second geste. */
+var MA={nom:'',mdp:''};
 function tourMailAcces(nomEnt,btn,mdp){
+  if(btn){ btn.disabled=true; btn.textContent='📧 Préparation…'; }
+  var rendre=function(){ if(btn){ btn.disabled=false; btn.textContent='📧 Envoyer par e-mail au client'; } };
+  apiPost('/api/monitor/espaces/mail-acces',{nom:nomEnt,mdp:mdp||'',apercu:true}).then(function(r){
+    rendre();
+    if(!(r&&r.ok&&r.d&&r.d.ok&&r.d.apercu)){ toast((r&&r.d&&r.d.error)||'Aperçu impossible — mets le serveur à jour',9000); return; }
+    MA={nom:nomEnt,mdp:mdp||''};
+    tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">📧 Le courriel d’accès — à relire</div>'+
+      '<div style="color:var(--muted);font-size:13px;margin-bottom:14px">Pour <b>'+esc(r.d.a||'')+'</b>. Modifie ce que tu veux : rien ne part avant « Envoyer ».</div>'+
+      '<div class="sec">OBJET</div><input id="ma-objet" class="inp" style="margin:6px 0 12px" value="'+esc(r.d.objet||'')+'">'+
+      '<div class="sec">LE MESSAGE</div><textarea id="ma-texte" class="inp" rows="14" style="margin:6px 0 12px;font-size:14px;padding:10px">'+esc(r.d.texte||'')+'</textarea>'+
+      '<div class="sec">CODE PROMO OFFERT <span style="color:var(--muted);font-weight:400;text-transform:none">— facultatif</span></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px"><input id="ma-promo" class="inp" style="flex:1;min-width:140px" placeholder="Le code (Stripe)" aria-label="Code promo offert">'+
+      '<button type="button" class="btn-fant" onclick="maPromo()">＋ Ajouter au message</button></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn-plein" onclick="maEnvoyer(this)">📧 Envoyer</button></div>');
+  }).catch(function(){ rendre(); toast('Serveur injoignable'); });
+}
+function maPromo(){
+  var c=((document.getElementById('ma-promo')||{}).value||'').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');
+  if(!c){ toast('Écris le code'); return; }
+  var t=document.getElementById('ma-texte'); if(!t) return;
+  var phrase='\n\nVOTRE CODE PROMO : '+c+'\nÀ saisir au moment du paiement de votre abonnement (Mon espace → payer → « Ajouter un code promotionnel »).';
+  var i=t.value.indexOf('\n\nPOUR TOUTE VOTRE ÉQUIPE');
+  t.value=i>0?t.value.slice(0,i)+phrase+t.value.slice(i):t.value+phrase;
+  toast('Code ajouté au message');
+}
+function maEnvoyer(btn){
+  var texte=((document.getElementById('ma-texte')||{}).value||'').trim(), objet=((document.getElementById('ma-objet')||{}).value||'').trim();
+  if(!texte){ toast('Le message est vide'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='📧 Envoi…'; }
+  apiPost('/api/monitor/espaces/mail-acces',{nom:MA.nom,mdp:MA.mdp,texte:texte,objet:objet}).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast('📧 Envoyé à '+(r.d.envoye||'son e-mail')); if(btn) btn.textContent='✅ E-mail envoyé'; }
+    else { toast((r&&r.d&&r.d.error)||'Envoi impossible',9000); if(btn){ btn.disabled=false; btn.textContent='📧 Envoyer'; } }
+  }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='📧 Envoyer'; } });
+}
+function tourMailAccesDirect(nomEnt,btn,mdp){
   if(btn){ btn.disabled=true; btn.textContent='📧 Envoi…'; }
   apiPost('/api/monitor/espaces/mail-acces',{nom:nomEnt,mdp:mdp||''}).then(function(r){
     if(r&&r.ok&&r.d&&r.d.ok){ toast('📧 Adresse + identifiants envoyés à '+(r.d.envoye||'son e-mail')); if(btn) btn.textContent='✅ E-mail envoyé'; }
@@ -5975,15 +6014,23 @@ function lgMessagePoser(){
 /* Reprendre la main sur les identifiants de départ d'un espace qui n'a pas encore servi.
    Le serveur refuse dès qu'une connexion a été enregistrée, et le dit — on relaie son message
    plutôt que d'inventer le nôtre. */
+/* v2.124 — UN FORMULAIRE, PLUS DE PETITES FENÊTRES (Justin, 30 octobre 2026 : les deux `prompt()` de ce geste ne ressemblaient en rien
+   au formulaire de création, et se lisaient comme l'ancien système à codes). Le même formulaire que « Ouvrir un accès » : identifiant
+   prérempli, mot de passe proposé (« Générer »), puis « Enregistrer » — qui ouvre le panneau d'envoi (aperçu du courriel). */
 function tourIdentModifier(slug,nom,identActuel){
   if(!slug){ toast('Espace sans identifiant technique — passe par sa fiche d’entreprise'); return; }
-  var ident=prompt('Identifiant de connexion pour « '+(nom||slug)+' » :',identActuel||'');
-  if(ident===null) return;
-  ident=(ident||'').toLowerCase().replace(/[^a-z0-9.]/g,'');
+  tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">🔑 Nouveaux identifiants de départ — '+esc(nom||slug)+'</div>'+
+    '<div style="color:var(--muted);font-size:13px;margin-bottom:14px">L’adresse <b>teamop.fr/e/'+esc(slug)+'</b> ne change pas. Ces identifiants ne servent qu’à la <b>première</b> connexion : l’application fait ensuite choisir le vrai mot de passe.</div>'+
+    '<div class="sec">IDENTIFIANT</div><input id="ti-ident" class="inp" style="margin:6px 0 12px" autocomplete="off" value="'+esc(identActuel||'')+'">'+
+    '<div class="sec">MOT DE PASSE PROVISOIRE</div><div style="display:flex;gap:8px;margin:6px 0 14px"><input id="ti-mdp" class="inp" style="flex:1" autocomplete="off" value="'+esc(tourMdpDefaut())+'">'+
+    '<button type="button" class="btn-fant" onclick="document.getElementById(\'ti-mdp\').value=tourMdpDefaut()">Générer</button></div>'+
+    '<button type="button" class="btn-plein" onclick="tiEnregistrer(\''+jsq(slug)+'\',\''+jsq(nom||'')+'\')">Enregistrer</button>');
+}
+function tiEnregistrer(slug,nom){
+  var ident=((document.getElementById('ti-ident')||{}).value||'').toLowerCase().replace(/[^a-z0-9.]/g,'');
+  var mdp=((document.getElementById('ti-mdp')||{}).value||'').trim();
   if(!ident){ toast('Il faut un identifiant'); return; }
-  var mdp=prompt('Nouveau mot de passe provisoire (8 caractères minimum) :\n\nIl ne sert qu’à la PREMIÈRE connexion : l’application fait ensuite choisir le vrai mot de passe.','');
-  if(mdp===null) return;
-  if((mdp||'').length<8){ toast('Mot de passe trop court (8 caractères minimum)'); return; }
+  if(mdp.length<8){ toast('Mot de passe trop court (8 caractères minimum)'); return; }
   apiPost('/api/monitor/espaces/identifiants',{slug:slug,ident:ident,mdp:mdp}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Modification impossible.'); return; }
     chargerAccesPublics();
@@ -10797,6 +10844,8 @@ async function pbCreer(btn){
          et les identifiants ci-dessous suffisent. */
       '<div class="sec">LES IDENTIFIANTS</div>'+
       '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b><br>Mot de passe provisoire : <b>'+esc(e.mdp||mdp)+'</b> <span style="color:var(--muted);font-size:12px">(l’app fait choisir le vrai mot de passe à la 1re connexion)</span></div>'+
+      /* 30 octobre 2026 (contrôle de bout en bout) : le client ne reçoit RIEN tant que ce courriel ne part pas — et son « Mon espace » ne dit « Accès activé » qu'à cet envoi. Le geste est ici, pas seulement dans la fiche. */
+      (email?'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 14px"><button type="button" class="btn-plein" onclick="tourMailAcces(\''+jsq(e.nom)+'\',this,\''+jsq(e.mdp||mdp)+'\')">📧 Envoyer par e-mail au client</button><span style="color:var(--muted);font-size:12px">Le client ne reçoit ses identifiants qu’à ce geste.</span></div>':'')+
       '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>'+
       /* v2.78 — sans formule, l'espace est SUSPENDU tant que rien n'est payé ni offert (Justin, 30 septembre 2026 : « Suspend ») */
       (suite.length?'<div class="encart" style="margin-top:10px"><div class="encart-tx">'+suite.map(esc).join('<br>')+'</div></div>':'')+

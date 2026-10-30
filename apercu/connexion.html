@@ -215,7 +215,7 @@ try{
     /* On réécrit ce que la personne a TAPÉ, pas le slug : lui renvoyer « plombierducoin »
        quand elle a écrit « plombier-du-coin » se lit comme une faute de l'application. */
     return '<span style="color:var(--m-err)">⛔ <b>« '+String(n||'').slice(0,60).replace(/[<>&]/g,'')+' » n\'est pas une adresse TEAM OP.</b></span><br>'+
-      '<span style="color:var(--m-body)">Aucune entreprise de ce nom n\'est inscrite chez nous. Demande son adresse à ton responsable — c\'est lui qui a le lien de connexion de l\'entreprise.</span><br>'+
+      '<span style="color:var(--m-body)">Aucune entreprise n\'est encore ouverte à ce nom. Tu viens de faire une demande sur teamop.fr ? Ton accès n\'est peut-être pas encore ouvert : tu recevras un courriel avec ton lien et tes identifiants. Sinon, demande l\'adresse à ton responsable.</span><br>'+
       '<a href="#" onclick="entRelance();return false" style="color:var(--m-link);display:inline-flex;align-items:center;margin-top:4px;min-height:44px">✉️ me renvoyer le lien par e-mail</a>';
   }
   /* On garde la position du curseur : réécrire la valeur le renverrait en fin de champ à

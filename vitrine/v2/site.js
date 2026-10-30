@@ -368,7 +368,7 @@
     if (!mauvaisMail) { mauvaisMail = creer('p', 'erreur-metier erreur-email', 'Indiquez une adresse e-mail valide : c\'est par elle que nous vous répondons. Si vous préférez, ajoutez aussi votre téléphone.'); mauvaisMail.id = 'erreur-email'; mauvaisMail.setAttribute('role', 'alert'); mauvaisMail.hidden = true; }
     var succes = $('.avis-envoi:not(.echec-envoi)', demande), echec = $('.echec-envoi', demande);
     if (!succes) { succes = creer('p', 'avis-envoi', '', null); succes.setAttribute('role', 'status'); succes.hidden = true; }
-    succes.textContent = 'Demande envoyée, on vous rappelle sous 48 h. Merci !'; succes.setAttribute('aria-live', 'polite');
+    succes.textContent = 'Demande reçue ✔ — votre accès n\'est pas encore ouvert. On vous rappelle sous 48 h, puis vous recevez par e-mail votre lien et vos identifiants. Un courriel de confirmation vient de partir.'; succes.setAttribute('aria-live', 'polite');
     if (!echec) {
       echec = creer('div', 'avis-envoi echec-envoi', '', null); echec.setAttribute('role', 'alert'); echec.hidden = true;
       var e1 = document.createElement('p'); e1.className = 'echec-texte'; var e2 = document.createElement('p'), eb = document.createElement('button'); eb.type = 'button'; eb.className = 'bouton'; eb.setAttribute('data-mailto', ''); eb.textContent = 'Envoyer par e-mail à la place'; e2.appendChild(eb);
