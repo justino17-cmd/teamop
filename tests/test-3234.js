@@ -87,5 +87,16 @@ console.log('\n── 3234 · 5. les champs nus ont l’habit de l’application
   vrai('… avec le fond, la bordure et l’encre des champs de l’application (et la police de la page)', !!r && /background-color:var\(--deep\)/.test(r[1]) && /var\(--inpBorder/.test(r[1]) && /color:var\(--t1\)/.test(r[1]) && /font-family:inherit/.test(r[1]));
   vrai('⛔ les cases à cocher, boutons radio, curseurs et fichiers en sont exclus', !!r && ['checkbox', 'radio', 'range', 'color', 'file', 'hidden'].every(t => r[0].includes('[type=' + t + ']'))); }
 
+console.log('\n── 3234 · 6. Devis IA : un nouveau client, et les statistiques en couleur ──');
+{ const CODE = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+  const i = CODE.indexOf('async function devisIAGo('), f = CODE.indexOf('\nasync function ', i + 10), G = CODE.slice(i, f > 0 ? f : i + 6000);
+  vrai('(population) devisIAGo est trouvée', i > 0 && G.length > 500);
+  vrai('la liste des clients du Devis IA propose « ＋ Nouveau client… » (à qui peut créer un client)', /id="dia-client"[^>]*>[^]*canCat\('crm','ajouter'\)\?'<option value="__nouveau">/.test(CODE));
+  const iNom = G.indexOf("Écris le nom du nouveau client"), iFetch = G.indexOf("fetch(PUSH_API+'/api/devis/generer'"), iCree = G.indexOf('clientId=docCliCreer()'), iOk = G.indexOf('if(!r.ok)');
+  vrai('⛔ le nom du nouveau client se vérifie AVANT l’appel (qui consomme le quota du jour)', iNom > 0 && iFetch > iNom);
+  vrai('⛔ la fiche client naît APRÈS une génération réussie, jamais avant', iCree > iOk && iOk > iFetch);
+  vrai('… et « __nouveau » ne passe pas pour un identifiant de client', /clientId&&!nouveauCli&&!clientPropose\(clientId\)/.test(G));
+  vrai('les barres des statistiques portent un dégradé : la couleur du statut, une couleur par rang de client', /background:\$\{statDegrade\(INT_STCOLOR\[k\]/.test(CODE) && /statDegrade\(STAT_RANGS\[ix%STAT_RANGS\.length\]\)/.test(CODE) && /function statDegrade\(c\)\{ return 'linear-gradient\(90deg/.test(CODE)); }
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

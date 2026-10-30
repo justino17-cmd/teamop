@@ -8274,6 +8274,14 @@ html[data-theme="dark"] .pdff-carte{background:#14213A}
 :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden],[type=button],[type=submit],[type=reset],[type=image]),select,textarea):where(:not([class])):focus{
   outline:none;border-color:var(--acc);box-shadow:var(--focus-champ,0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent))}
 :where(input,textarea):where(:not([class]))::placeholder{color:var(--t3);opacity:1}
+/* La LISTE d'un <select> est peinte par le système ; sous Windows elle prend pour fond celui du champ (une vitre translucide) et
+   pour texte l'encre claire de la page : de nuit, une liste blanche au texte pâle (Justin, Devis IA, 30 octobre 2026 — la Tour et
+   OP MESSAGES avaient le même défaut). Les options reçoivent un fond OPAQUE et l'encre du thème. */
+select option,select optgroup{background-color:var(--bg);color:var(--t1)}
+/* ⛔ ET LE FOND DU CHAMP LUI-MÊME : sous Windows, la liste ouverte prend le fond du <select> — une vitre translucide sur du blanc
+   système, donc une liste claire — quelles que soient les couleurs des options (c'est ce qui laissait le défaut chez Justin malgré la
+   règle des options). De nuit, le champ reçoit un fond OPAQUE (--bg1) ; le chevron (background-image) reste. */
+html[data-theme="dark"] select{background-color:var(--bg1,#17213A)!important}
 @media (pointer:coarse){ :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden]),select,textarea):where(:not([class])){font-size:16px} }
 </style>
 </head>
@@ -9287,6 +9295,11 @@ const STATUT_INT = { aplanifier:{l:'À planifier',c:'st-grey'}, planifiee:{l:'Pl
    étiquette (st-green) restait verte — deux couleurs pour un même état. Le sens d'un statut ne
    suit pas le goût de l'utilisateur. `--green` est une ENCRE (#1C7A3A de jour, #30D158 de nuit) :
    la règle de test-774 (« il sert de liseré ET de libellé ») tient toujours. */
+/* v783 — les barres des Statistiques portent un DÉGRADÉ de leur couleur (Justin, 30 octobre 2026 : « qu'il y ait un niveau de couleur,
+   un petit dégradé »). Un statut garde le sens de sa couleur (bleu planifiée, vert terminée…) ; le classement des clients prend une
+   couleur par rang. Le dégradé part de la couleur adoucie vers la couleur pleine : la longueur se lit toujours sur le bout franc. */
+const STAT_RANGS=['var(--blue)','var(--purple)','#DB2777','var(--org)','#0891B2','var(--green)'];
+function statDegrade(c){ return 'linear-gradient(90deg,color-mix(in srgb,'+c+' 45%,transparent),'+c+')'; }
 const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--green)', annulee:'var(--red)' };
 const INT_TYPES = ['Contrat anti nuisibles (HACCP)','Dératisation','Désinsectisation anthrène de tapis','Désinsectisation blattes','Désinsectisation fourmis','Désinsectisation guêpes / frelons','Désinsectisation mites','Désinsectisation poux de poules','Désinsectisation psoques','Désinsectisation puces','Désinsectisation punaise de lit','Désinsectisation tiques','Détection punaise de lit','Espèce protégée','Traitement xylophage','Visite technique'];
 const REPORT_TEMPLATES = ["Modèle générique"];   /* Vidée le 5 sept. 2026 : cette liste portait en dur les ~90 agences d'un seul client et partait chez TOUS les autres — le réseau commercial de l'un devenait visible chez ses concurrents. Chaque entreprise déclare ses sociétés dans Paramètres → Mes sociétés ; entSocietes() ne retombe ici que si elle n'en a aucune. */
@@ -39603,7 +39616,8 @@ function devisIAModal(){
   openModal(`<div class="modal-head"><h3>✨ Devis IA</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">Décris la prestation avec tes mots — l'IA propose un devis chiffré ligne par ligne, que tu relis et ajustes avant de l'envoyer.</p>
     <p style="color:var(--t3);font-size:11.5px;line-height:1.55;margin:-6px 0 12px">Seule ta description part au générateur. Le <b>nom et l'adresse du client ne sortent pas de cet appareil</b> — ils ne servent pas à faire un prix.</p>
-    <div class="field"><label>Client</label><select id="dia-client"><option value="">— Sans client —</option>${clientsProposes().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}</select></div>
+    <div class="field"><label>Client</label><select id="dia-client" onchange="docCliInfo(this.value==='__nouveau'?'__nouveau':'__aucun')"><option value="">— Sans client —</option>${canCat('crm','ajouter')?'<option value="__nouveau">＋ Nouveau client…</option>':''}${clientsProposes().map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join('')}</select></div>
+    <div id="doc-cli-info"></div>
     <!-- La société choisie donne son nom, sa couleur et son logo à l'en-tête du
          devis — même mécanisme que les bons de commande. -->
     <div class="field"><label>Société (en-tête du devis)</label><select id="dia-societe">${entSocietes().map(t=>`<option ${(entSocUnique()||'Modèle générique')===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
@@ -39631,12 +39645,16 @@ function devisIAModal(){
   }).catch(()=>{ const el=$('dia-etat'); if(el&&!el.textContent){ el.textContent='⚠ Le serveur ne répond pas : l’état du devis par IA n’a pas pu être lu.'; el.style.color='var(--org)'; } });
 }
 async function devisIAGo(profond){
-  const demande=($('dia-demande')||{}).value||'', code=devisIACode(), clientId=($('dia-client')||{}).value||'';
+  const demande=($('dia-demande')||{}).value||'', code=devisIACode(); let clientId=($('dia-client')||{}).value||'';
+  /* v783 — Justin, 30 octobre 2026 : « pour créer un nouveau devis en IA, avoir de nouveaux clients comme pour l'autre ». Le nom se
+     vérifie AVANT l'appel (qui consomme le quota du jour) ; la fiche client naît après la génération réussie, comme dans formDoc. */
+  const nouveauCli=clientId==='__nouveau';
   const err=$('dia-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
   const btn=$(profond?'dia-go2':'dia-go'); const libelle=profond?'📐 Devis approfondi':'✨ Devis rapide';
   const rearme=()=>{ if(btn){ btn.disabled=false; btn.textContent=libelle; } };
   if(!can('devisIA')||!permGarde('ventes','ajouter','un devis')) return;   // v738 : avant l'appel, qui consomme le quota du jour
-  if(clientId&&!clientPropose(clientId)){ show('Ce client ne te concerne pas.'); return; }
+  if(clientId&&!nouveauCli&&!clientPropose(clientId)){ show('Ce client ne te concerne pas.'); return; }
+  if(nouveauCli&&!((($('doc-cli-nom')||{}).value||'').trim())){ show('Écris le nom du nouveau client.'); const n=$('doc-cli-nom'); if(n) n.focus(); return; }
   if(demande.trim().length<5){ show('Décris la prestation d\'abord.'); return; }
   if(!(await devisMetierPret())){ show(devisMetierMsg()); return; }
   if(btn){ btn.disabled=true; btn.textContent='⏳ Génération en cours… (jusqu\'à une minute)'; }
@@ -39649,6 +39667,7 @@ async function devisIAGo(profond){
     const j=await r.json().catch(()=>({}));
     if(!r.ok){ show(j.error||('Erreur '+r.status)); rearme(); return; }
     const d=j.devis||{}; const id=uid();
+    if(nouveauCli){ clientId=docCliCreer(); if(!clientId){ rearme(); return; } }
     db.devis.push({id,num:docNum('devis'),clientId,creePar:(currentUser&&currentUser.id)||'',date:todayISO(),statut:'brouillon',tva:Number(d.tva)||20,
       rapportModele:($('dia-societe')||{}).value||'',
       notes:((d.titre?d.titre+'. ':'')+(d.remarque||'')).trim(),
@@ -41867,7 +41886,7 @@ function docCliBlock(c,nouveau){ c=c||{}; const ville=((c.codePostal||'')+' '+(c
     <div class="field-row"><div class="field"><label>Code postal / Ville</label><input id="doc-cli-ville" value="${esc(ville)}" placeholder="${esc(exemple('ville'))}"></div>
       <div class="field"><label>Téléphone</label><input id="doc-cli-tel" value="${esc(c.tel||'')}" placeholder="Téléphone"></div></div>
     <div class="field"><label>Email du client</label><input id="doc-cli-email" type="email" value="${esc(c.email||'')}" placeholder="Email"></div>`; }
-function docCliInfo(id){ const el=document.getElementById('doc-cli-info'); if(!el)return; const nv=id==='__nouveau'; el.innerHTML=docCliBlock(nv?{}:(db.clients.find(x=>x.id===id)||{}),nv); if(nv) setTimeout(()=>{ const n=document.getElementById('doc-cli-nom'); if(n) n.focus(); },30); }
+function docCliInfo(id){ const el=document.getElementById('doc-cli-info'); if(!el)return; if(id==='__aucun'){ el.innerHTML=''; return; } const nv=id==='__nouveau'; el.innerHTML=docCliBlock(nv?{}:(db.clients.find(x=>x.id===id)||{}),nv); if(nv) setTimeout(()=>{ const n=document.getElementById('doc-cli-nom'); if(n) n.focus(); },30); }
 /* la fiche client d'un « Nouveau client » tapé dans un devis ou une facture : rend son identifiant, ou '' si refusé (rien n'est écrit) */
 function docCliCreer(){ if(!permGarde('crm','ajouter','un client')) return '';
   const val=i=>{ const el=document.getElementById(i); return el?el.value.trim():''; };
@@ -44987,10 +45006,10 @@ views.statistiques=function(){
   $('content').innerHTML=(fin?'':`<div class="card" style="font-size:13px;color:var(--t2);line-height:1.6">🔒 Chiffre d'affaires, devis et classement des clients : réservés au droit « Voir / gérer la comptabilité et les tarifs » (Permissions → Ventes).</div>`)+kpisArgent+`
     <div class="grid2">
       <div class="card"><div class="card-head"><h3>Interventions par statut</h3></div>
-        ${Object.keys(parSt).length? Object.entries(parSt).map(([k,v])=>`<div class="bar-row"><div class="bar-lbl">${STATUT_INT[k]?STATUT_INT[k].l:k}</div><div class="bar-track"><div class="bar-fill" style="width:${v/maxI*100}%"></div></div><div class="bar-val">${v}</div></div>`).join(''):emptyState('🧰','Aucune intervention','','')}
+        ${Object.keys(parSt).length? Object.entries(parSt).map(([k,v])=>`<div class="bar-row"><div class="bar-lbl">${STATUT_INT[k]?STATUT_INT[k].l:k}</div><div class="bar-track"><div class="bar-fill" style="width:${v/maxI*100}%;background:${statDegrade(INT_STCOLOR[k]||'var(--acc)')}"></div></div><div class="bar-val">${v}</div></div>`).join(''):emptyState('🧰','Aucune intervention','','')}
       </div>
       ${fin?`      <div class="card"><div class="card-head"><h3>Top clients (CA facturé)</h3></div>
-        ${topC.length? topC.map(c=>`<div class="bar-row"><div class="bar-lbl">${esc(c.nom)}</div><div class="bar-track"><div class="bar-fill" style="width:${c.v/maxC*100}%"></div></div><div class="bar-val">${eur(c.v)}</div></div>`).join(''):emptyState('🏢','Aucune facture','','')}
+        ${topC.length? topC.map((c,ix)=>`<div class="bar-row"><div class="bar-lbl">${esc(c.nom)}</div><div class="bar-track"><div class="bar-fill" style="width:${c.v/maxC*100}%;background:${statDegrade(STAT_RANGS[ix%STAT_RANGS.length])}"></div></div><div class="bar-val">${eur(c.v)}</div></div>`).join(''):emptyState('🏢','Aucune facture','','')}
       </div>`:''}
     </div>`;
 };
