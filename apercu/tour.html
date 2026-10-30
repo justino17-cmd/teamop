@@ -3690,7 +3690,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.127</div>
+    <div class="lg-pied">console interne · v2.128</div>
   </div>
 </div>
 
@@ -3725,7 +3725,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">La Tour · v2.127</div>
+        <div class="hd-tour" id="hd-tour">La Tour · v2.128</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3738,7 +3738,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
   <main id="opm-hote" hidden></main>   <!-- v2.120 : le cadre d'OP MESSAGES vit ICI, hors de #vue (qui est réécrit à chaque rubrique) : il est affiché ou masqué, jamais détruit -->
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.127</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.128</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -4083,7 +4083,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.127';
+var TOUR_VERSION='v2.128';
 /* le nom de la Tour dit qu'elle est UNE (plus « Tour OP GESTION » / « Tour OP MESSAGES ») ; la couleur ne parle jamais seule */
 function majEnteteTour(){ var hd=$('hd-tour'); if(hd) hd.textContent='La Tour · '+TOUR_VERSION; }
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
@@ -13577,7 +13577,9 @@ function paMessagerieApres(){
    éteint sinon. « On ne sait pas » (OP MESSAGES muet) garde l'état d'avant, il n'allume ni n'éteint rien. Sans pont : l'ancien compteur. */
 function msBadge(){
   var e=$('bdg-msgr');
-  if(MS.pont){ var on=(Number(MS.opmsg)||0)>0||(Number(MS_PA.n)||0)>0;
+  /* v2.128 — les mails de Pauline EN ATTENTE ne rallument pas le rond (Justin, capture : « 13 » = ses 13 mails à valider, pas des messages) :
+     ils sont déjà dans OP MESSAGES, dans le fil de Pauline — c'est un message non lu qui allume, comme partout ailleurs. */
+  if(MS.pont){ var on=(Number(MS.opmsg)||0)>0;
     setBdg('bdg-msgr',on?'\u00a0':0); [e,$('bdg-msgr-bas')].forEach(function(x){ if(x){ x.classList.toggle('bdg-point',on); x.setAttribute('aria-label',on?'Nouveaux messages dans OP MESSAGES':''); } }); return; }
   [e,$('bdg-msgr-bas')].forEach(function(x){ if(x) x.classList.remove('bdg-point'); });
   setBdg('bdg-msgr',(Number(MS.nonLus)||0)+(Number(MS_PA.n)||0)); }
