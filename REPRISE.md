@@ -32,8 +32,8 @@ la bêta (**sans TLS** : le port 5349 attend un certificat) ; page d'OP MESSAGES
 (le code n'est écrit nulle part dans le dépôt) ; contrat et conditions générales en PDF dans `livrables/` (hors dépôt).
 
 **Attend Justin**
-- Supprimer le compte de la Tour « claud » (ses identifiants ont été collés dans une conversation ; jamais utilisés).
-- Toka Clim : fin d'essai au **08/11** dans la Tour ; envoyer le courriel et les deux PDF à Louca.
+- ✅ Fait par Justin le 30 octobre au soir : compte « claud » supprimé de la Tour ; Toka Clim en essai jusqu'au 08/11, courriel et PDF envoyés à Louca ;
+  demande « TEST TEAM OP » traitée, Urbv services traité.
 - Agents : sur le VPS, `rejouer.js --estimer` puis `--oui` (≈ 5 $), lire le rapport, PUIS allumer `config.agents.travail` ;
   `indemniteConfirmee` seulement après l'expert-comptable.
 - Faire relire par un avocat les points « À CONFIRMER PAR UN JURISTE » de `server/contrats-textes/` (24 mois de conservation, plafond de
@@ -41,7 +41,6 @@ la bêta (**sans TLS** : le port 5349 attend un certificat) ; page d'OP MESSAGES
 - Accès bêta : ouvrir `justinpdg` dans la console MESSAGES ; **rebrancher le pont des agents sur ce nouvel accès AVANT de supprimer
   l'accès « justin » d'OP MESSAGES** (le pont vise son identifiant `b…`) ; supprimer les comptes LOCAUX `teamopteste` et `admin` dans
   Utilisateurs de la bêta (décision : on ne coupe pas tous les comptes locaux de la bêta, les essais de rôles en ont besoin).
-- Demandes : marquer traitée la demande d'essai « TEST TEAM OP » ; Urbv services (compte du site non confirmé depuis le 13/10) : écrire ou ignorer.
 - Redémarrer le VPS un soir calme (« System restart required »). Mails de Pauline en PDF (un par courriel ou un résumé ?). Texte de
   `confidentialite.html` sur la demande du site.
 
