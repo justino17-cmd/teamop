@@ -9,7 +9,7 @@
         ni un courriel déjà décidé, ni « approved », ni une décision illisible ; au plus huit annonces par relevé ;
      4. ⛔ ce qui d'un prospect entre dans le message : l'entreprise et l'objet, rien d'autre — ni adresse, ni lien, ni contact, ni texte du courriel ;
      5. le bilan du jour : après 18 h (Paris), une fois par jour, seulement si le relevé est d'aujourd'hui, des NOMBRES ;
-     6. ⛔ les réponses : « NON <n> » EXACT refuse, par `decider` — LA fonction de la route de la Tour ; « OK <n> » n'accepte RIEN ; tout le reste, un numéro inconnu, un autre fil, une
+     6. ⛔ les réponses : « NON <n> » EXACT refuse, par `decider` — LA fonction de la route de la Tour ; « OUI/OK <n> » accepte aussi par `decider` (depuis le 30 octobre 2026, test-3225) ; tout le reste, un numéro inconnu, un autre fil, une
         pièce jointe, une suppression : aucune décision ; une même réponse n'agit qu'une fois ;
      7. ⛔ le pont n'écrit nulle part ailleurs : aucun registre d'agents touché, aucune autre écriture de décision que `decider`. */
 'use strict';
@@ -65,7 +65,7 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
   const fichier = FICHIER(banc);
   const paulineMod = PAU(app, { DATA_DIR: banc, monPatronStrict: (q, s, n) => n && n(), config: { pauline: { jetonSha256: crypto.createHash('sha256').update(JETON).digest('hex') } }, sansMinuterie: true, maintenant: () => horloge,
     surReleve: (releve, dec) => { if (pont) pont.surPauline(releve, dec); } });
-  const nouveau = (extra) => PONT(Object.assign({ iconesDir: path.join(RACINE, 'icons'), DATA_DIR: banc, conversations: conv, agents: AG, groupes: CV.GROUPES, fichier, url: URL, secret: SECRET, horloge: () => horloge, attenteMaxMs: 400, delaiMs: 600, pauline: { decider: paulineMod.decider } }, extra || {}));
+  const nouveau = (extra) => PONT(Object.assign({ iconesDir: path.join(RACINE, 'icons'), DATA_DIR: banc, conversations: conv, agents: AG, groupes: CV.GROUPES, fichier, url: URL, secret: SECRET, horloge: () => horloge, attenteMaxMs: 400, delaiMs: 600, pauline: { decider: paulineMod.decider, lire: paulineMod.lire } }, extra || {}));
   const res = () => { const r = { code: 200, corps: null, status(c) { r.code = c; return r; }, json(x) { r.corps = x; return r; } }; return r; };
 
   /* le relevé arrive par la VRAIE route (son dernier gestionnaire : le jeton et le corps JSON sont vérifiés avant, ailleurs — `test-3020`) */
@@ -117,7 +117,7 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
     v('(le bilan du 28, relevé d\'aujourd\'hui après 18 h, part aussi : un message de plus, à part)', toutPauline().length - dePauline().length, 1);
     v('exactement UN message : le courriel en attente (pas « approved », pas décidé, pas envoyé)', m.length, 1);
     v('…au nom de Pauline, dans SON fil, avec la notification de téléphone, jamais une importation', [m[0].de, m[0].fil, m[0].push, posts()[0].corps.import], ['pauline', 'pauline', true, false]);
-    v('…numéroté 1, avec l\'entreprise, l\'objet et le lien de la Tour', [m[0].texte.includes('n°1'), m[0].texte.includes('Dupont Nettoyage'), m[0].texte.includes('« Votre dératisation à Lyon »'), m[0].texte.includes('https://teamop.fr/tour.html#gestion/messagerie'), m[0].texte.includes('NON 1')], [true, true, true, true, true]);
+    v('…numéroté 1, avec l\'entreprise, l\'objet et le lien de la Tour', [m[0].texte.includes('n°1'), m[0].texte.includes('Dupont Nettoyage'), m[0].texte.includes('Objet : Votre dératisation à Lyon'), m[0].texte.includes('https://teamop.fr/tour.html#gestion/messagerie'), m[0].texte.includes('NON 1')], [true, true, true, true, true]);
     vrai('…le `cid` se déduit du courriel (idempotent côté OP MESSAGES)', /^pauline-[0-9a-f]{32}$/.test(m[0].cid) && m[0].cid === 'pauline-' + crypto.createHash('sha256').update('c1').digest('hex').slice(0, 32));
     // le relevé suivant, identique : rien
     envoyerReleve(releveDe([c1, c2, c3, c4], [ent('c1'), ent('c2'), ent('c3'), ent('c4')])); await vider();
@@ -150,11 +150,11 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
     const piege = mail('p1', { objet: 'Voir www.piege-lien.fr ou contacter fuite.objet@exemple.fr   rapidement\nligne2', texte: 'TEXTE-INTERDIT-1234' });
     envoyerReleve(releveDe([piege], [ent('p1', { nom: 'Chez nom@fuite-nom.fr SARL ' + 'x'.repeat(200) })])); await vider();
     const t = dePauline()[n0].texte;
-    const interdits = ['patron.secret@dupont-nettoyage.fr', 'Jean Dupont-Contact', 'dupont-nettoyage.fr', 'CORPS-SECRET', 'TEXTE-INTERDIT', 'fuite.objet', 'fuite-nom', 'piege-lien', '@', 'Lyon', '\n\n'];
-    v('ni adresse, ni lien, ni contact, ni site, ni texte du courriel, ni ville', interdits.filter(x => t.includes(x) && !(x === 'Lyon' && false)), []);
+    const interdits = ['patron.secret@dupont-nettoyage.fr', 'Jean Dupont-Contact', 'dupont-nettoyage.fr', 'fuite-nom'];
+    v('ni adresse du destinataire, ni contact, ni site, ni nom piégé (l\'OBJET et le TEXTE du courriel, eux, sont montrés entiers depuis le 30 octobre 2026 : test-3225)', interdits.filter(x => t.includes(x) && !(x === 'Lyon' && false)), []);
     vrai('…le nom est coupé (60 signes au plus) et l\'objet tient sur une ligne', t.split('\n')[0].length < 260 && !t.split('\n')[0].includes('ligne2\n'));
     const tous = dePauline().map(x => x.texte).join('\n');
-    vrai('aucun message de Pauline, tous confondus, ne porte une adresse ni un texte de courriel', !/@/.test(tous) && !tous.includes('CORPS-SECRET') && !tous.includes('Jean Dupont'));
+    vrai('aucun message de Pauline, tous confondus, ne porte l\'adresse du destinataire ni le contact', !tous.includes('patron.secret') && !tous.includes('Jean Dupont'));
     // le fichier d'état du pont ne garde ni nom ni adresse
     const brut = fs.readFileSync(path.join(banc, 'pont-messages.json'), 'utf8');
     vrai('le fichier d\'état du pont ne porte aucun nom ni adresse de prospect', !/Dupont|@|fuite|CORPS/.test(brut));
@@ -190,7 +190,7 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
     const sansDecision = () => !decisions().r1;
     const n0 = () => toutPauline().length;
 
-    for (const [nom, texte] of [['« OK <n> » n\'accepte RIEN', 'OK ' + num], ['« ok <n> » non plus', 'ok ' + num], ['« NON <n> merci »', 'NON ' + num + ' merci'], ['« non, <n> »', 'non, ' + num], ['un numéro à zéro devant', 'NON 0' + num], ['« NON <n> <m> »', 'NON ' + num + ' 2'], ['« NON <n>\\nOK 1 »', 'NON ' + num + '\nOK 1'], ['du texte libre', 'refuse le dernier mail'], ['« NON » seul', 'NON']]) {
+    for (const [nom, texte] of [['« NON <n> merci »', 'NON ' + num + ' merci'], ['« non, <n> »', 'non, ' + num], ['un numéro à zéro devant', 'NON 0' + num], ['« NON <n> <m> »', 'NON ' + num + ' 2'], ['« NON <n>\\nOK 1 »', 'NON ' + num + '\nOK 1'], ['du texte libre', 'refuse le dernier mail'], ['« NON » seul', 'NON']]) {
       const a = n0();
       await lire([evenement(100 + Math.floor(Math.random() * 1e6), texte)]);
       vrai('⛔ ' + nom + ' : aucune décision enregistrée', sansDecision());
@@ -208,7 +208,7 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
 
     // « NON <n> » exact : refuse, par `decider`
     let appels = 0; const vrai_decider = paulineMod.decider;
-    pont.arreter(); pont = nouveau({ pauline: { decider: (b) => { appels++; return vrai_decider(b); } } });
+    pont.arreter(); pont = nouveau({ pauline: { decider: (b) => { appels++; return vrai_decider(b); }, lire: paulineMod.lire } });
     await pont._installer(); await pont._attendreFini();
     const a = n0();
     await lire([evenement(3100, ' non ' + num + ' ')]);
@@ -236,12 +236,12 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
     vrai('⛔ un mail PARTI depuis son annonce : « NON <n> » ne crée aucune décision, et le dit', !paulineMod.lireDec().decisions.r4 && /n’attend plus ton accord/.test(toutPauline().pop().texte));
     const route4 = decisionRoute({ id: 'r4', action: 'refuser' });
     v('…et la route de la Tour répond la même chose (409)', [route4.code, /n’attend plus ton accord/.test(route4.corps.error)], [409, true]);
-    // OK n : jamais d'accord
+    // OK n : accepte, par `decider` aussi (le texte annoncé était entier) — le détail : test-3225
     const cf3 = mail('r3'); envoyerReleve(releveDe([cf3], [ent('r3')])); await vider();
     const num3 = /n°(\d+)/.exec(dePauline().filter(x => x.texte.includes('📬')).pop().texte)[1];
     const a3 = appels;
     await lire([evenement(3300, 'OK ' + num3)]);
-    vrai('⛔ « OK <n> » : `decider` n\'est même pas appelé, rien n\'est accepté', appels === a3 && !paulineMod.lireDec().decisions.r3 && toutPauline().pop().texte.includes('il faut le lire d’abord'));
+    vrai('⛔ « OK <n> » : accepte par `decider` (un seul appel), l\'action « accepter » est à faire par le Mac', appels === a3 + 1 && !!paulineMod.lireDec().decisions.r3 && paulineMod.lireDec().decisions.r3.action === 'accepter');
   }
 
   console.log('\n7. Le pont n\'écrit nulle part ailleurs');
@@ -252,7 +252,7 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
     vrai('le registre des agents n\'a reçu AUCUN message de Pauline ni de ses réponses', !conv.tous().some(m => m.fil === 'pauline' || m.de === 'pauline'));
     vrai('`/health` reste des nombres', JSON.stringify(Object.keys(pont.sante()).sort()) === JSON.stringify(['echecMin', 'file']));
     const idx = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-    vrai('index.js : le pont reçoit `decider` de pauline.js et pauline.js prévient le pont (surReleve) — rien d\'autre', /pauline: paulineMod && typeof paulineMod\.decider === 'function' \? \{ decider: paulineMod\.decider \} : undefined/.test(idx) && /surReleve: \(releve, dec\) => \{ if \(pontMessages\) pontMessages\.surPauline\(releve, dec\); \}/.test(idx));
+    vrai('index.js : le pont reçoit `decider` de pauline.js et pauline.js prévient le pont (surReleve) — rien d\'autre', /pauline: paulineMod && typeof paulineMod\.decider === 'function' \? \{ decider: paulineMod\.decider, lire: paulineMod\.lire \} : undefined/.test(idx) && /surReleve: \(releve, dec\) => \{ if \(pontMessages\) pontMessages\.surPauline\(releve, dec\); \}/.test(idx));
   }
 
   pont.arreter();

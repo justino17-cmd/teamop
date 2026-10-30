@@ -68,7 +68,7 @@ function releve() {
     v('signalés au premier relevé : les DEUX courriels qui attendent l’accord (pas l’accepté, pas le parti)', M.signalerNouveaux(r), 2);
     v('second relevé identique : rien de neuf, aucune notification de plus', M.signalerNouveaux(r), 0);
     await new Promise(res => setTimeout(res, 20));
-    v('UNE notification, des nombres seulement, vers la messagerie de la Tour', notifs, [['Pauline', '2 nouveaux mails attendent ton accord', '/tour.html#gestion/messagerie']]);
+    v('UNE notification, des nombres seulement, vers la messagerie de la Tour', notifs, [['Pauline', '2 nouveaux mails attendent ton accord', '/tour.html#gestion/messagerie-tour']]);
     vrai('⛔ aucun nom, objet ni texte de prospect dans la notification', !FUITES.some(f => JSON.stringify(notifs).includes(f)));
     fs.writeFileSync(path.join(dos, P.FICHIER_DEC), '{cassé');
     v('⛔ fichier des décisions illisible : lireDec rend null (jamais « aucune décision »), rien n’est signalé ni écrasé', [M.lireDec(), M.signalerNouveaux(r), fs.readFileSync(path.join(dos, P.FICHIER_DEC), 'utf8')], [null, 0, '{cassé']);
