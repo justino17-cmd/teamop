@@ -29,7 +29,7 @@ const faux = http.createServer((q, r) => { const m = []; q.on('data', d => m.pus
   etat.requetes.push({ m: q.method, url: q.url, corps: j, octets: brut });
   const rep = (code, o) => { r.writeHead(code, { 'Content-Type': 'application/json' }); r.end(JSON.stringify(o)); };
   if (q.url === '/api/pont/installer') return rep(200, { ok: true, fils: [], robots: [], creees: {}, avatars: etat.avatars });
-  if (q.url === '/api/pont/poster') return rep(200, { ok: true, resultats: j.messages.map(x => { if (etat.cids[x.cid]) return { ok: true, deja: true, seq: etat.cids[x.cid] }; etat.seq[x.fil] = (etat.seq[x.fil] || 0) + 1; etat.cids[x.cid] = etat.seq[x.fil]; return { ok: true, deja: false, seq: etat.seq[x.fil], ts: Date.now() }; }) });
+  if (q.url === '/api/pont/poster') return rep(200, { ok: true, resultats: j.messages.map(x => { if (x.texte.includes('REFUSE-PAR-LE-FAUX')) return { ok: false, raison: 'champ_invalide' }; if (etat.cids[x.cid]) return { ok: true, deja: true, seq: etat.cids[x.cid] }; etat.seq[x.fil] = (etat.seq[x.fil] || 0) + 1; etat.cids[x.cid] = etat.seq[x.fil]; return { ok: true, deja: false, seq: etat.seq[x.fil], ts: Date.now() }; }) });
   if (q.url.startsWith('/api/pont/nouveaux')) { const e = etat.evenements; etat.evenements = []; return rep(200, { ok: true, curseur: etat.curseur, plein: false, evenements: e }); }
   if (q.url.startsWith('/api/pont/avatar')) return rep(200, { ok: true, deja: false });
   rep(404, { error: 'introuvable' });
@@ -191,7 +191,8 @@ let consoleTexte = ''; for (const k of ['log', 'error', 'warn']) { const o = con
     await annoncer([mail('j1', { texte: 'CORPS-INTERDIT-AU-JOURNAL-3225 bonjour' })]);
     await lire([evenement(50, 'OUI ' + numDe('j1'))]); await lire([evenement(51, 'OUI 99999')]);
     vrai('population : le corps a bien été annoncé et accepté', dePauline().some(x => x.texte.includes('CORPS-INTERDIT-AU-JOURNAL-3225')) && dec().j1 && dec().j1.action === 'accepter');
-    vrai('population : le journal a reçu des lignes (le contrôle regarde quelque chose)', consoleTexte.length > 0);
+    await annoncer([mail('j1', { texte: 'CORPS-INTERDIT-AU-JOURNAL-3225 bonjour' }), mail('j2', { texte: 'REFUSE-PAR-LE-FAUX CORPS-INTERDIT-REFUSE-3225' })]);
+    vrai('population : OP MESSAGES a refusé une annonce et le pont l\'a journalisée (le contrôle regarde quelque chose)', consoleTexte.includes('pont messages : message refusé : champ_invalide'), consoleTexte.slice(-300));
     vrai('⛔ aucune ligne de journal (console) ne porte le corps', !consoleTexte.includes('CORPS-INTERDIT') && !consoleTexte.includes('Je vous écris'));
     vrai('⛔ le fichier d\'état du pont ne porte pas le corps', !fs.readFileSync(path.join(banc, 'pont-messages.json'), 'utf8').includes('CORPS-INTERDIT'));
     vrai('le code du pont ne journalise jamais le corps (aucun journal( … c.texte)', !/journal\([^)]*(c\.texte|corps\b)/.test(fs.readFileSync(path.join(RACINE, 'server', 'pont-messages.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ')));
@@ -220,6 +221,15 @@ let consoleTexte = ''; for (const k of ['log', 'error', 'warn']) { const o = con
     vrai('opmAncienne(true) lit l\'ancienne messagerie (messOuvrir) — la fonction que le bouton appelle déjà', /if\(oui\) messOuvrir\(\);/.test(fn('opmAncienne')));
     vrai('la version de la Tour a changé (v2.122 au moins), et les trois libellés disent la même', (() => { const m = /var TOUR_VERSION='v2\.(\d+)';/.exec(SC); const aff = [...TOUR.matchAll(/(?:console interne · |La Tour · |journalisées · )v2\.(\d+)/g)].map(x => +x[1]); return !!m && +m[1] >= 122 && aff.length >= 3 && aff.every(x => x === +m[1]); })());
     vrai('apercu/tour.html est régénéré (même hashAncienne, même version)', (() => { try { const A = fs.readFileSync(path.join(RACINE, 'apercu', 'tour.html'), 'utf8'); return A.includes('function hashAncienne()') && A.includes("var TOUR_VERSION='v2.122'"); } catch (e) { return false; } })());
+  }
+
+  console.log('\n7. Le pont nettoie lui-même un relevé brut (sans passer par pauline.js)');
+  {
+    const brut = mail('k1', { texte: 'Bonjour\u0007 ici\u202e\u200b\r\n\u0000suite\u0085 fin\r\n\r\n\r\n\r\nSignature' });
+    const n = pont.surPauline(releveDe([brut], [ent('k1')]), { decisions: {}, vus: [] }); await vider();
+    const t = derniere();
+    vrai('population : l\'annonce du relevé brut est partie', n === 1 && t.includes('Signature'), t);
+    vrai('⛔ aucun caractère de contrôle ni de sens de lecture ne reste, les retours à la ligne oui', !/[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\r]/.test(t) && t.includes('Bonjour ici\nsuite fin\n\nSignature'), JSON.stringify(t));
   }
 
   pont.arreter();
