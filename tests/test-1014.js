@@ -74,6 +74,7 @@ const bac = (cli, opt) => {
     'var CLI=' + JSON.stringify({ list: cli, loaded: o.charge !== false, err: o.err || '' }) + ';',
     'var ABO=' + JSON.stringify({ abos: o.abos || ABOS, loaded: true, configured: true, videFaute: !!o.videFaute }) + ';',
     'var ENT=' + JSON.stringify({ liste: ENTS, loaded: true }) + ';',
+    'var SDEM={list:[],loaded:true,err:""};',   /* les demandes du formulaire du site (30 octobre 2026) : l'écran les lit à côté des comptes */
     'function enTete(t,p){ return "<h1>"+t+"</h1>"; }',
     'function videTour(t,s){ return "<div class=\\"vide\\">"+t+" — "+s+"</div>"; }',
     'var REFM={d:null,err:"",enCours:false}; var CAT_L=[]; var CAT_CLES=[];',
@@ -113,7 +114,7 @@ C.DEM.vue = 'traitees';
 const htmlT = C.vueDemandes();
 vrai('« Traitées » : la carte de Léa, son espace déjà ouvert, et « Remettre à traiter »', /Plomberie Léa/.test(htmlT) && /déjà ouvert : <span class="mono">plomberielea/.test(htmlT) && /Remettre à traiter/.test(htmlT) && !/Accepter et ouvrir/.test(htmlT));
 const E = bac(CLIENTS, { err: 'Serveur injoignable' });
-vrai('un refus du serveur se DIT (pas « aucune demande »)', /Les demandes ne répondent pas/.test(E.vueDemandes()) && !/Aucune demande/.test(E.vueDemandes()));
+vrai('un refus du serveur se DIT (pas « aucune demande »)', /Les demandes[^<]* ne répondent pas/.test(E.vueDemandes()) && !/Aucune demande/.test(E.vueDemandes()));
 const A = bac(CLIENTS, { charge: false });
 vrai('pendant le chargement : un squelette, pas « aucune demande »', /ac-squel/.test(A.vueDemandes()) && !/Aucune demande/.test(A.vueDemandes()));
 const V = bac([]);
@@ -129,8 +130,8 @@ vrai('⛔ Stripe qui ne répond pas : jamais « pas encore payé » (un vide de 
 /* 4. le câblage : le menu, le rendu, le compteur, l'accueil */
 /* v2.119 : « Demandes » est une vue d'OP GESTION rangée dans le groupe « À traiter » (Courrier · Demandes · Incidents) ; son compteur s'ajoute à celui du Courrier (`bdg-att`) */
 vrai('« Demandes » est au menu d\'OP GESTION, dans le groupe « À traiter » dont le compteur additionne les demandes et le courrier', /\['demandes','Demandes','gestion','','support'\]/.test(CODE) && /\['support','Courrier','gestion','bdg-att'\]/.test(CODE) && /id==='bdg-supp'\|\|id==='bdg-dem'\)\{ id='bdg-att'/.test(CODE));
-vrai('renderVue dessine l\'écran Demandes, sous la rangée du groupe', /TAB==='demandes'\) v\.innerHTML=groupeOnglets\('demandes'\)\+vueDemandes\(\);/.test(fonction('renderVue')));
-vrai('le compteur du menu suit les demandes à traiter quand les comptes du site arrivent', /setBdg\('bdg-dem',demandesATraiter\(\)\.length\)/.test(fonction('chargerClients')));
+vrai('renderVue dessine l\'écran Demandes, sous la rangée du groupe', /TAB==='demandes'\) v\.innerHTML=groupeOnglets\('demandes'\)\+vueDemandes\(\)(\+demComptesHtml\(\))?;/.test(fonction('renderVue')));
+vrai('le compteur du menu suit les demandes à traiter quand les comptes du site arrivent', /setBdg\('bdg-dem',(demandesATraiter\(\)\.length|attendDemandes\(\))\)/.test(fonction('chargerClients')));
 vrai('l\'accueil (son groupe OP GESTION) met les demandes à traiter en tête de ce qui attend', /demandesATraiter\(\)/.test(fonction('accueilGestion')) && /titre:'Demandes à traiter'/.test(fonction('accueilGestion')));
 vrai('accepter depuis la carte passe l\'identifiant ET la demande touchée à tourAccepterDemande (pas de fenêtre du navigateur)', /tourAccepterDemande\(email,nom,ident,i,cats\)/.test(fonction('demAccepter')) && /identVoulu!=null\?identVoulu:prompt\(/.test(fonction('tourAccepterDemande')));
 

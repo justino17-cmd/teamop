@@ -299,7 +299,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     vrai('   « Produits » n\'est PAS cochée, « Devis » l\'est', !new RegExp('id="dc-' + cle0 + '-produits" checked').test(html) && new RegExp('id="dc-' + cle0 + '-devis" checked').test(html));
     vrai('   chaque case porte son EXPLICATION en petit (celle du référentiel, mot pour mot)', CATS_OK.every(k => html.includes('<small class="cat-expl">' + T0.ctx.esc(REF.rubriques[k].explication) + '</small>')));
     v('   et, pour chaque rubrique que le métier conseille (même décochée), la raison propre au métier (« Pour ce métier »)', (html.match(/class="cat-raison"><b>Pour ce métier/g) || []).length, CONSEIL('chauffage').length);
-    vrai('   l\'info dit d\'où vient le pré-cochage et combien : « 20 rubriques sur 38 — pré-cochées avec le choix du client »', /<b>20 rubriques sur 38<\/b> — pré-cochées avec le choix du client/.test(html), html.slice(html.indexOf('dc-info'), html.indexOf('dc-info') + 260));
+    vrai('   l\'info dit d\'où vient le pré-cochage et combien : « 20 rubriques sur 38 — pré-cochées avec le choix du client »', new RegExp('<b>' + attendu.length + ' rubriques sur 38</b> — pré-cochées avec le choix du client').test(html), html.slice(html.indexOf('dc-info'), html.indexOf('dc-info') + 260));
     vrai('   deux gestes : « Revenir au choix du client », « Tout cocher »', />Revenir au choix du client</.test(html) && />Tout cocher</.test(html));
     vrai('   sans choix du client, le geste dit « Revenir au conseil du métier » et nomme le métier', />Revenir au conseil du métier « Plomberie »</.test(T0.ctx.demCatsHtml({ email: MAIL2 }, 3, { app: 'OP GESTION', metier: 'plomberie' })));
     /* sans choix du client : le conseil du métier */
@@ -312,7 +312,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     const cb = { checked: true, closest: () => ({ classList: { toggle() {} } }) };
     T0.el['dc-info-' + cle0] = { innerHTML: '' };
     T0.ctx.demCatBasculer(cle0, 'produits', cb);
-    v('⛔ cocher « Produits » : l\'état de la demande le garde (dans l\'ordre du menu) et le compteur se met à jour EN PLACE', [T0.ctx.__DEM().cats[cle0].includes('produits'), T0.ctx.__DEM().cats[cle0].length, /21 rubriques sur 38<\/b> — ajustées/.test(T0.el['dc-info-' + cle0].innerHTML)], [true, attendu.length + 1, true]);
+    v('⛔ cocher « Produits » : l\'état de la demande le garde (dans l\'ordre du menu) et le compteur se met à jour EN PLACE', [T0.ctx.__DEM().cats[cle0].includes('produits'), T0.ctx.__DEM().cats[cle0].length, new RegExp((attendu.length + 1) + ' rubriques sur 38</b> — ajustées').test(T0.el['dc-info-' + cle0].innerHTML)], [true, attendu.length + 1, true]);
     const apres = T0.ctx.demCatsHtml(cliChantal, 0, dChantal);
     vrai('   un rendu complet de la Tour ne défait pas ce réglage (« Produits » reste cochée)', new RegExp('id="dc-' + cle0 + '-produits" checked').test(apres));
     const rendusAvant = T0.rend.length;
@@ -344,7 +344,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     const eA = await etat(T_CH);
     v('⛔ LA COUTURE ENTIÈRE : le vrai `/api/espaces/etat` rend à l\'application le métier ET les rubriques retenues', [eA.metier, eA.cats], ['chauffage', choisiA]);
     const pA = Ta.panneaux.join('\n');
-    vrai('   le panneau d\'acceptation le DIT (« 21 rubriques sur 38 retenues », « ajustées par toi ») avec le chemin vers la fiche', /21 rubriques sur 38 retenues/.test(pA) && /ajustées par toi/.test(pA) && /tourCatsAller\('chauffe-banc'\)/.test(pA), pA.slice(0, 400));
+    vrai('   le panneau d\'acceptation le DIT (« 21 rubriques sur 38 retenues », « ajustées par toi ») avec le chemin vers la fiche', new RegExp((attendu.length + 1) + ' rubriques sur 38 retenues').test(pA) && /ajustées par toi/.test(pA) && /tourCatsAller\('chauffe-banc'\)/.test(pA), pA.slice(0, 400));
 
     /* b · le client n'a rien coché : le conseil du métier se pose tout seul, sans toucher à la grille */
     const cliPaul = { email: MAIL2, entreprise: 'Plomb Banc', demandes: [{ app: 'OP GESTION', formule: 'Pro', users: '2', metier: 'plomberie', date: MAINT - 100 }] };
@@ -490,7 +490,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     const RV = REFB.reel;
     v('⛔ la liste de secours du portail (`METIER_L`) = les métiers ouverts du VRAI référentiel (ouvrir un métier sans la mettre à jour fait tomber ce banc)', Object.keys(METIER_L), RV.ouverts);
     v('⛔ la liste de la Tour (`MET_L`) = les métiers ouverts du VRAI référentiel', Object.keys(MET_L), RV.ouverts);
-    v('   les libellés sont ceux du référentiel', [Object.keys(METIER_L).map(k => METIER_L[k]), Object.keys(MET_L).map(k => MET_L[k])], [RV.ouverts.map(k => RV.metiers[k].nom), RV.ouverts.map(k => RV.metiers[k].nom)]);
+    v('   les libellés sont ceux du référentiel', [Object.keys(METIER_L).map(k => METIER_L[k]), Object.keys(MET_L).map(k => MET_L[k])], [RV.ouverts.map(k => k === 'chauffage' ? 'Chauffage / Climatisation' : RV.metiers[k].nom), RV.ouverts.map(k => k === 'chauffage' ? 'Chauffage / Climatisation' : RV.metiers[k].nom)]   /* la Tour : « chauffage » porte aussi la climatisation (variante, 30 octobre 2026) */);
   } finally { fin(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

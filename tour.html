@@ -9502,13 +9502,15 @@ function demOnglet(v){ DEM.vue=v; render(); }
 function vueDemandes(){
   var tete=enTete('Demandes',
     'Ce que les entreprises demandent depuis le site : la formule, le métier, le nombre d’utilisateurs, leur besoin. Accepter ouvre leur espace avec ce qu’elles ont choisi ; l’e-mail d’accès part ensuite d’un geste.');
-  if(!CLI.loaded&&!SDEM.loaded) return tete+acSquel();
+  if(!CLI.loaded&&!(SDEM.list||[]).length&&!SDEM.err) return tete+acSquel();   /* rien encore : un squelette, jamais « aucune demande » */
   /* v2.122 : les demandes du SITE s'affichent même si la lecture des comptes du portail échoue (et comptent dans la pastille) */
   if(CLI.err) tete+=acErr('Les demandes des comptes du portail ne répondent pas',CLI.err,'chargerClients()');
   var tout=demandesListe(), aT=tout.filter(function(x){ return !x.traitee; }), faites=tout.filter(function(x){ return !!x.traitee; });
   if(SDEM.err) tete+='<div class="note" role="alert">Les demandes envoyées par le formulaire « Créer votre application » ne répondent pas : '+esc(SDEM.err)+' <button type="button" class="btn-fant" onclick="chargerSiteDemandes()">Réessayer</button></div>';
   var seg=teteListe('Demandes du site','Filtrer les demandes',[['atraiter','À traiter',aT.length],['traitees','Traitées',faites.length]],DEM.vue,'demOnglet(');
   var liste=DEM.vue==='traitees'?faites.slice(0,40):aT, tronque=DEM.vue==='traitees'&&faites.length>40;
+  /* une source en panne ou pas encore lue : la liste est INCOMPLÈTE — on ne dit pas « aucune demande » (on ne le sait pas) */
+  if(!liste.length&&(CLI.err||SDEM.err||!CLI.loaded||!SDEM.loaded)) return tete+seg+((CLI.err||SDEM.err)?'<div class="note">Rien à montrer pour l’instant — mais une source ne répond pas : la liste peut être incomplète.</div>':acSquel());
   if(!liste.length) return tete+seg+(DEM.vue==='traitees'
     ?videTour('Aucune demande traitée','Les demandes acceptées ou classées se rangent ici.','','entreprises')
     :videTour('Aucune demande à traiter','Les demandes envoyées depuis l’espace client du site arrivent ici, avec un avis par e-mail.','','entreprises'));

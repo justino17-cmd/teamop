@@ -253,7 +253,7 @@ const DEMO_TEST = () => hors('/demo.html');
 /* ⛔ LA PAGE DE CRÉATION NEUVE (variante du chauffage, rubriques de base verrouillées, « Tester l'application ») N'EST QUE DANS L'APERÇU : la racine est la
    page PUBLIÉE (`test-835` §10, `test-837`) et ne change que sur la phrase de Justin. Ce jour-là : retirer cette garde — la racine se régénère
    alors avec `node scripts/site-marine.js --racine`. */
-const NOUVEAU_CREER = () => !POUR_LA_RACINE;
+const NOUVEAU_CREER = () => true;   // publiée le 30 octobre 2026 (Justin : « le site, je veux que tu le publies »)
 const blocVariante = () => !NOUVEAU_CREER() ? '' : `<fieldset class="variante" id="variante-chauffage" hidden><legend>${fr('Chauffage / Climatisation : que faites-vous ?')}</legend><p>${fr('Dites-nous ce que fait votre entreprise : nous réglons votre application en conséquence.')}</p><div class="variante-choix">`
   + [['deux', 'Les deux', 'Chauffage et climatisation'], ['chauffage', 'Chauffage seulement', 'Pas de climatisation'], ['climatisation', 'Climatisation seulement', 'Pas de chauffage']]
     .map(([v, n, d], i) => `<label class="variante-opt"><input type="radio" name="variante" value="${v}"${i === 0 ? ' checked' : ''}><span><b>${fr(n)}</b><small>${fr(d)}</small></span></label>`).join('')

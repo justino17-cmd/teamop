@@ -155,7 +155,8 @@ const BORDEAUX = { lat: 44.8378, lng: -0.5792 };
   console.log('\n── 1131 · 6. ⛔ jamais au chargement, jamais en boucle ──');
   const appels = (SRC.match(/\bcliLocaliserFond\(/g) || []).length;
   vrai('cliLocaliserFond existe et saveClientForm l’appelle', appels >= 2 && SC.includes('cliLocaliserFond(cible)'), appels);
-  const hors = SRC.replace(SC, '').replace(bloc('function cliLocaliserFond('), '');
+  /* `docCliCreer` : le « Nouveau client » tapé dans un devis ou une facture (v779) — un geste de création, comme l'enregistrement de la fiche */
+  const hors = SRC.replace(SC, '').replace(bloc('function cliLocaliserFond('), '').replace(bloc('function docCliCreer('), '');
   v('aucun appel hors de saveClientForm (ni boot, ni load, ni views.*)', (hors.match(/\bcliLocaliserFond\(/g) || []).length, 0);
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
