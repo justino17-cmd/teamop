@@ -6213,7 +6213,7 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
      rend alors le métier gardé, que le panneau et le message de bienvenue disent. Le changer reste un geste de la fiche. */
   var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='', metierGarde=false;
   if(metierDem){
-    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem,siVide:true});
+    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem,siVide:true,variante:dm.variante||undefined});
       if(rm&&rm.ok&&rm.d&&rm.d.ok){ metierGarde=!!rm.d.garde&&rm.d.metier!==metierDem; metierPose=metierGarde?(MET_L[rm.d.metier]?rm.d.metier:''):(MET_L[rm.d.metier]?rm.d.metier:metierDem); }
       else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
     catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
@@ -9471,7 +9471,7 @@ function demCarte(x){
   else if(ABO.loaded&&ABO.configured) pastilles.push('<span class="past p-gris">paiement : Stripe ne répond pas</span>');
   var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(c.email)+'</span>'],
     ['Téléphone',c.tel?esc(c.tel):'—'],['Formule',esc(formule)+(d.users?' · '+esc(nMot(d.users,'utilisateur','utilisateurs')):'')],
-    ['Métier',esc(MET_L[d.metier]||'non précisé')],['Lien souhaité',d.lien?'<span class="mono">teamop.fr/e/'+esc(espSlugJs(d.lien))+'</span>'+(espSlugJs(d.lien)!==d.lien?' <span class="g">(tapé « '+esc(d.lien)+' »)</span>':''):'—'],
+    ['Métier',esc(MET_L[d.metier]||'non précisé')+(d.variante==='chauffage'?' — chauffage seulement':d.variante==='climatisation'?' — climatisation seulement':d.variante==='deux'?' — chauffage et climatisation':'')],['Lien souhaité',d.lien?'<span class="mono">teamop.fr/e/'+esc(espSlugJs(d.lien))+'</span>'+(espSlugJs(d.lien)!==d.lien?' <span class="g">(tapé « '+esc(d.lien)+' »)</span>':''):'—'],
     ['Code promo',d.code?'<span class="mono">'+esc(d.code)+'</span>':'—'],['Espace',esp?'déjà ouvert : <span class="mono">'+esc(esp.slug||esp.t)+'</span>':'aucun pour l’instant']];
   var gestes=x.traitee
     ?'<button type="button" class="btn-fant" onclick="demClasser(\''+jsq(c.email)+'\','+i+',false)">Remettre à traiter</button>'+

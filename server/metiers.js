@@ -28,7 +28,7 @@ function lire(chemin) {
 
 /* `catsOk` : la liste fermée des rubriques cochables (CATS_OK, index.js) — passée par l'appelant, pour que la liste du serveur
    reste la seule à décider de ce qui est valable. */
-module.exports = function (chemin, catsOk, catsToujours) {
+module.exports = function (chemin, catsOk, catsToujours, catsBase) {
   const ref = lire(chemin);
   const connu = k => typeof k === 'string' && !!ref && Object.prototype.hasOwnProperty.call(ref.metiers, k);
   const ouvertsFichier = ref && Array.isArray(ref.ouverts) ? ref.ouverts.filter(connu) : [];
@@ -75,7 +75,10 @@ module.exports = function (chemin, catsOk, catsToujours) {
     const groupes = [];
     for (const k of cles) if (!groupes.includes(ref.rubriques[k].groupe)) groupes.push(ref.rubriques[k].groupe);
     const toujours = catsToujours.map(k => ({ k, titre: (ref.rubriques[k] || {}).titre || k, ic: (ref.rubriques[k] || {}).ic || '', explication: (ref.rubriques[k] || {}).explication || '' }));
-    publiqueCache = { ok: true, version: ref.version || 1, ouverts: ordre.filter(connu), ordre: cles, groupes, rubriques, toujours, metiers };
+    /* `base` : les rubriques cochées d'office et non décochables (`CATS_BASE`, index.js — le serveur les ajoute de toute façon à ce que le client coche : l'écran doit
+       le DIRE, sinon il montre « Stock » décochée pendant que le serveur la range cochée). Absent = un appelant d'avant : aucune. */
+    const base = Array.isArray(catsBase) ? catsBase.filter(k => cochable(k) && cles.includes(k)) : [];
+    publiqueCache = { ok: true, version: ref.version || 1, ouverts: ordre.filter(connu), ordre: cles, groupes, rubriques, toujours, base, metiers };
     return publiqueCache;
   };
   return { ref, ouverts, ordre, estOuvert, connu, nom, libelles, conseil, publique, lu: !!ref };

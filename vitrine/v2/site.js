@@ -161,13 +161,28 @@
     var refBrut = $('#referentiel-metiers'), REF = null;
     try { REF = refBrut ? JSON.parse(refBrut.textContent) : null; } catch (e) { REF = null; }
     var zoneRub = $('#rubriques-demande'), grille = $('#rubriques-grille'), erreur = $('#erreur-metier'), bientot = $('#metier-bientot'), etatRub = null;
+    /* 30 octobre 2026 (Justin) : la VARIANTE du chauffage / climatisation (trois choix, « Les deux » par défaut) et le bouton « Tester l'application » (la
+       démonstration, avec ce qui est coché). Absents de la page publiée tant que Justin ne l'a pas dit : tout est gardé par la présence des éléments. */
+    var blocVar = $('#variante-chauffage'), blocTest = $('#tester-bloc'), lienTest = $('#tester-app');
+    var metierCourant = function () { var m = $('.metier-puce[aria-pressed="true"]', demande); return m ? m.getAttribute('data-pack') : ''; };
+    var varianteCourante = function (k) {
+      if (!blocVar || k !== 'chauffage' || !window.OpRub) return '';
+      var r = $('input[name="variante"]:checked', demande); return window.OpRub.variante(k, r && r.value);
+    };
+    var majTest = function () {
+      var k = metierCourant();
+      if (blocVar) blocVar.hidden = k !== 'chauffage';
+      if (blocTest) blocTest.hidden = !k;
+      if (!k || !lienTest || !window.OpRub) return;
+      lienTest.href = window.OpRub.lienDemo(lienTest.getAttribute('data-demo') || '/demo.html', k, varianteCourante(k), etatRub ? window.OpRub.liste(etatRub) : null);
+    };
     var montrerRubriques = function (m) {
       var k = m && m.getAttribute('data-pack'), pret = !!m && m.getAttribute('data-pret') === '1';
       if (bientot) bientot.hidden = !(m && !pret);
       if (!(m && pret && REF && window.OpRub && grille && zoneRub && REF.metiers && REF.metiers[k])) { etatRub = null; if (zoneRub) zoneRub.hidden = true; return; }
       etatRub = window.OpRub.etat(REF, k);
       zoneRub.hidden = false;
-      window.OpRub.monter(grille, etatRub, 'cr', function () {});
+      window.OpRub.monter(grille, etatRub, 'cr', majTest);
     };
     $$('.metier-puce', demande).forEach(function (m) {
       m.addEventListener('click', function () {
@@ -176,8 +191,10 @@
         m.setAttribute('aria-pressed', on ? 'true' : 'false');
         if (on && erreur) erreur.hidden = true;
         montrerRubriques(on ? m : null);
+        majTest();
       });
     });
+    $$('input[name="variante"]', demande).forEach(function (r) { r.addEventListener('change', majTest); });
     $$('.besoin', demande).forEach(function (b) {
       b.addEventListener('click', function () { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); });
     });
@@ -195,6 +212,8 @@
       }
       lignes.push('MÉTIER CHOISI : ' + m.getAttribute('data-nom') + '  [pack ' + m.getAttribute('data-pack') + ']');
       lignes.push('Pack : ' + (m.getAttribute('data-pret') === '1' ? 'prêt — activable dès la création' : 'à construire sur mesure'));
+      var vr = varianteCourante(m.getAttribute('data-pack'));
+      if (vr) lignes.push('VARIANTE : ' + window.OpRub.libelleVariante(vr) + '  [variante ' + vr + ']');
       var choisies = etatRub && window.OpRub ? window.OpRub.liste(etatRub) : null;
       if (choisies) {
         lignes.push('RUBRIQUES CHOISIES (' + choisies.length + ' sur ' + etatRub.ref.ordre.length + ') : ' + choisies.map(function (c) { return etatRub.ref.rubriques[c].titre; }).join(', '));
