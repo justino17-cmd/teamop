@@ -199,7 +199,9 @@ Ce qu'elle poste (le relevé de 15 minutes arrive par `/api/pauline/releve`, `pa
 
 **Les réponses de Justin dans son fil** — c'est le seul geste qui agit :
 - `NON <n>` (exact, casse et espaces libres) **refuse** le mail n°n, par `decider` — la fonction que la route de la Tour (`/api/monitor/pauline/decision`) appelle aussi. Le Mac l'applique comme une décision de la Tour.
-- `OK <n>` **n'accepte rien** : Pauline répond d'ouvrir la Tour. Accepter envoie un courriel à un prospect sous le nom du patron ; le fil ne montre pas le texte, donc on ne l'accepte pas à l'aveugle (la Tour, elle, vérifie
-  même la version lue). « Modifier » reste dans la Tour aussi.
+- `OUI <n>` ou `OK <n>` **accepte** le mail n°n, par `decider` aussi (30 octobre 2026) : l'annonce porte maintenant le TEXTE du courriel (objet + corps, tel qu'il partirait, au plus 6 000 signes), donc Justin l'a lu. La version
+  lue (`maj`) est transmise : si Harvey a réécrit le brouillon depuis, `decider` répond 409 et Pauline le dit. ⛔ Un texte COUPÉ (« … (suite dans la Tour) ») ou vide n'est PAS acceptable d'ici — ni une annonce d'avant cette
+  version, dont le texte n'a pas été montré — : Pauline refuse, avec le lien. « Accepté » veut dire une décision enregistrée à faire par le Mac, jamais « parti ». « Modifier » reste dans la Tour
+  (`https://teamop.fr/tour.html#gestion/messagerie-tour`, qui ouvre directement l'ancienne messagerie ; `#gestion/messagerie` ouvre le cadre d'OP MESSAGES). Le corps ne va jamais au journal.
 - tout autre texte, un numéro inconnu, une pièce jointe : aucune décision, une ligne qui renvoie à la Tour (une fois par dix minutes). Seuls les messages de Justin arrivent jusqu'ici (`/api/pont/nouveaux`).
 
