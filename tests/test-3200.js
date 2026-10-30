@@ -190,5 +190,14 @@ console.log('\n8. Le rangement et le menu');
   vrai('la page générée porte le tout (demo.html contient demoPubliqueAdresse et demoPubliqueAjouter)', /function demoPubliqueAdresse\(/.test(DEMO) && /function demoPubliqueAjouter\(/.test(DEMO));
 }
 
+console.log('\n9. La fenêtre « Ton entreprise — Bienvenue ! » ne s\'ouvre pas dans la démonstration');
+{
+  const joue = (fichier, demo) => { const ouv = []; const b = bac(fichier, ['entAccueilCheck'], { DEMO_PUBLIQUE: demo, BETA_ESSAI: false, currentUser: { role: 'admin' }, entPlusTardActif: () => false, syncEnabled: () => false,
+    document: { querySelector: () => null }, docMentionsManquantes: () => ['le nom'], entCompleterModal: (...a) => ouv.push(a), setTimeout: () => 0 }); b.fn.entAccueilCheck(); return ouv.length; };
+  egal('démonstration (vraie fonction de demo.html, DEMO_PUBLIQUE vrai) : aucune fenêtre', joue('demo.html', true), 0);
+  egal('(contre-épreuve) la même fonction d\'app.html, hors démonstration, ouvre la fenêtre une fois', joue('app.html', false), 1);
+  egal('(contre-épreuve) la bêta garde son comportement : le code de la fonction y est celui d\'app.html (garde absente)', [/entAccueilCheck\(n\)\{ n=n\|\|0; try\{ if\(DEMO_PUBLIQUE\)/.test(lire('app.html')), /entAccueilCheck\(n\)\{ n=n\|\|0; try\{ if\(DEMO_PUBLIQUE\)/.test(lire('beta.html'))], [false, false]);
+}
+
 console.log('\n════ test-3200 : ' + ok + ' ✓  ' + ko + ' ✗ ════');
 process.exit(ko ? 1 : 0);
