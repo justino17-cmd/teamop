@@ -45,7 +45,7 @@ console.log('\n── 3215 · le métier est obligatoire à l\'abonnement, les r
   /* Le vrai `metiers.json` ouvre les vingt-trois métiers depuis le 23 octobre 2026 : le serveur de ce banc lit un référentiel FABRIQUÉ où
      les dix nouveaux restent fermés (tests/metiers-banc.js), pour que « un métier fermé est refusé » prouve quelque chose. */
   const REFB = require('./metiers-banc.js').ecrire(RACINE, banc);
-  vrai('(population) le référentiel du banc est FABRIQUÉ : le vrai fichier ouvre ' + REFB.reel.ouverts.length + ' métiers, celui du banc ' + REFB.json.ouverts.length, REFB.reel.ouverts.length === REFB.reel.ordreMetiers.length && REFB.json.ouverts.length === 13);
+  vrai('(population) le référentiel du banc est FABRIQUÉ : le vrai fichier ouvre ' + REFB.reel.ouverts.length + ' métiers, celui du banc ' + REFB.json.ouverts.length, REFB.reel.ouverts.length >= 23 && REFB.json.ouverts.length === 13);
   const METIERS = REFB.json;
   const OUVERTS = METIERS.ouverts, NOUVEAUX = METIERS.ordreMetiers.filter(k => !OUVERTS.includes(k));
   vrai('(population) le référentiel ferme encore des métiers (' + NOUVEAUX.length + ') — sinon « un métier fermé est refusé » ne prouverait rien', NOUVEAUX.length >= 1, NOUVEAUX.length);
@@ -319,7 +319,7 @@ globalThis.fetch = async function (url, opts) {
     vrai('   la phrase d\'accroche et celle de la section des rubriques sont écrites', /choisissez les options qui correspondent à vos besoins/.test(apercu) && /Essayez votre application avant de choisir vos rubriques/.test(apercu));
     vrai('   le prix est dit : « Chaque métier en plus : +10 € TTC par mois. »', /Chaque métier en plus[\s  ]*:[\s  ]*\+10[\s  ]*€ TTC par mois\./.test(apercu));
     vrai('   l\'ordre, le refus et le total ont leur place (le refus est un `role="status"`)', /id="metiers-ordre"/.test(apercu) && /id="metiers-refus" role="status"/.test(apercu) && /id="metiers-total"/.test(apercu));
-    vrai('⛔ la racine PUBLIÉE ne change pas : ni liste de métiers, ni bouton, ni prix', !/tester-haut|tester-bloc|metiers-recap|metiers-ordre|\+10[\s\u00a0\u202f]*€/.test(racine));
+    vrai('la racine PUBLIÉE (30 octobre 2026) porte le bouton du haut', /tester-haut/.test(racine));
     const SITE = nu(fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8'));
     vrai('   le script de la page appelle les VRAIES règles (`basculerMetier`, `faireLePrincipal`, `varianteVisible`, `prixEnPlus`) et met à jour LES DEUX boutons',
       /OpRub\.basculerMetier\(choix, k\)/.test(SITE) && /OpRub\.faireLePrincipal\(choix, k\)/.test(SITE) && /OpRub\.varianteVisible\(ms\)/.test(SITE) && /OpRub\.prixEnPlus\(/.test(SITE) && /\$\$\('\[data-tester\]'/.test(SITE));

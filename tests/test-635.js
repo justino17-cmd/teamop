@@ -2,7 +2,7 @@ const fs=require('fs'); const APP=fs.readFileSync(__dirname+'/../app.html','utf8
 function dec(h){ const d=APP.indexOf(h); if(d<0) throw new Error(h); for(let i=d;i<d+14000;i++){ if(APP[i]!=='}'&&APP[i]!==';') continue; const b=APP.slice(d,i+1); try{ new Function(b); return b; }catch(e){} } throw new Error('fin '+h); }
 function cst(n){ const i=APP.indexOf('const '+n+'='); const fin=APP.indexOf('];',i); return APP.slice(i,fin+2); }
 function obj(n){ const i=APP.indexOf('const '+n+'={'); let p=0,d=APP.indexOf('{',i); for(let j=d;j<APP.length;j++){ if(APP[j]==='{')p++; else if(APP[j]==='}'){p--; if(!p) return APP.slice(i,j+2);} } }
-const code=[cst('CATALOGUE'),cst('FOURNISSEURS_3D'),cst('CAT_LIST'),obj('METIERS'),dec("METIERS['3d'].catalogue=CATALOGUE;"),dec("METIERS['3d'].fournisseurs=FOURNISSEURS_3D;"),dec('function metierPackDe(base){'),
+const code=[cst('CATALOGUE'),cst('FOURNISSEURS_3D'),cst('CAT_LIST'),obj('METIERS'),dec("METIERS['3d'].catalogue=CATALOGUE;"),dec("METIERS['3d'].fournisseurs=FOURNISSEURS_3D;"),dec('function metiersPlusDe(base){'),dec('function metierPackDe(base){'),
   'const norm = s => (s||\'\').toLowerCase().normalize(\'NFD\').replace(/[\\u0300-\\u036f]/g,\'\');',
   dec('function slugNom(nom){'),dec('function idCatalogue(nom,prefixe){'),dec('function produitCle(p){'),dec('function cataloguePoser(cible,opts){'),dec('function catalogueEnPlace(){')].join('\n');
 const bac=new Function('etat',`let db=etat.db; const uid=()=>'u'+(etat.n=(etat.n||0)+1);
@@ -50,7 +50,7 @@ console.log('Les fiches FOURNISSEURS suivent le métier, comme le catalogue');
      le nom du pack dans le commentaire qui l'explique, vingt lignes au-dessus du code. */
   const src=[cst('FOURNISSEURS_3D'),cst('CATALOGUE'),obj('METIERS'),
     dec("METIERS['3d'].catalogue=CATALOGUE;"),dec("METIERS['3d'].fournisseurs=FOURNISSEURS_3D;"),
-    dec('function metierPackDe(base){'),dec('function slugNom(nom){'),dec('function idCatalogue(nom,prefixe){'),
+    dec('function metiersPlusDe(base){'),dec('function metierPackDe(base){'),dec('function slugNom(nom){'),dec('function idCatalogue(nom,prefixe){'),
     dec('const FOURS_VER='),dec('function seedFournisseurs(){')].join('\n');
   const semer=(base,porte,metierEssai)=>new Function('etat',
       'let db=etat.db; const PACK_METIER_AUTO=etat.porte; let currentUser=null, current=""; const views={};'
