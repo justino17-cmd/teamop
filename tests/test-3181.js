@@ -195,6 +195,9 @@ globalThis.fetch = async function (url, opts) {
     r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'plomberie' }, PATRON);
     const et2 = await ETAT();
     v('   un autre métier retire la variante (elle ne survit pas au chauffage) : `null`, le métier suit', [r.s, et2.metier, et2.variante], [200, 'plomberie', null]);
+    r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'chauffage' }, PATRON);
+    const et3 = await ETAT();
+    v('⛔ … et revenir au chauffage SANS variante ne ressuscite pas l\'ancienne (`climatisation`) : `null`', [r.s, et3.metier, et3.variante], [200, 'chauffage', null]);
     r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'plomberie', variante: 'deux' }, PATRON);
     v('   une variante donnée à la plomberie par la Tour → 400', [r.s], [400]);
     vrai('   `variante` figure sur chacune des réponses d\'un espace vivant (cinq `res.json` d\'état, lus dans le code)', (SRVN.match(/metier, cats, variante, versionMin/g) || []).length === 5);
