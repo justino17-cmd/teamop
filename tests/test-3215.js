@@ -89,7 +89,7 @@ globalThis.fetch = async function (url, opts) {
   if (u.startsWith('https://api.stripe.com/v1/checkout/sessions')) return json({ id: 'cs_banc_3215', url: 'https://checkout.stripe.com/c/pay/banc-3215-' + (++n) });
   return json({ data: [], has_more: false });
 };\n`);
-  const PORT = 9400 + (process.pid % 90), B = 'http://127.0.0.1:' + PORT;
+  const PORT = 9400 + (process.pid % 90); let B = 'http://127.0.0.1:' + PORT;
   let journal = '', ipN = 0;
   const e = spawn(process.execPath, ['--require', PRE, SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json') }), stdio: ['ignore', 'pipe', 'pipe'] });
   enfants.push(e); e.stdout.on('data', d => { journal += d; }); e.stderr.on('data', d => { journal += d; });
@@ -100,7 +100,7 @@ globalThis.fetch = async function (url, opts) {
   const appel = async (route, corps, jeton, methode) => { const r = await fetch(B + route, { method: methode || (corps === undefined ? 'GET' : 'POST'),
       headers: Object.assign({ 'Content-Type': 'application/json', 'X-Forwarded-For': '10.9.' + (++ipN % 250) + '.' + (process.pid % 250) }, jeton ? { Authorization: 'Bearer ' + jeton } : {}), body: corps === undefined ? undefined : JSON.stringify(corps) });
     let j = null; try { j = await r.json(); } catch (x) {} return { s: r.status, j: j || {}, h: r.headers }; };
-  const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-3215' })).j.token;
+  let PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-3215' })).j.token;
   vrai('(population) la Tour se connecte (patron)', typeof PATRON === 'string' && PATRON.length > 10);
   const clients = async () => { await dormir(500); return (await appel('/api/monitor/clients', undefined, PATRON)).j.clients || []; };
   const fiche = async id => (await clients()).find(c => c.email === mail(id));
@@ -165,6 +165,19 @@ globalThis.fetch = async function (url, opts) {
     const apres = await lire('demande');
     v('⛔ le relais d\'une fiche SANS le champ (page d\'avant) ne perd pas la liste déjà rangée', [rel.s, (apres.find(d => d.lien === 'm3') || {}).metiers, (apres.find(d => d.lien === 'm3') || {}).metiersEnPlus], [200, ['plomberie', 'electricite', 'chauffage'], 2]);
 
+    /* relecture `gardien` : une demande MODIFIÉE se juge sur ce qu'elle dit — pas sur la liste que la demande d'avant portait */
+    const base3 = (await lire('demande')).find(d => d.lien === 'm3');
+    const sansM = Object.assign({}, base3); delete sansM.metiers; delete sansM.metiersEnPlus;
+    const autres = (await lire('demande')).filter(d => d.lien !== 'm3');
+    const rA = await sync('demande', autres.concat([Object.assign({}, sansM, { cats: ['taches', 'absences'], variante: null })]));
+    const apresA = (await lire('demande')).find(d => d.lien === 'm3');
+    v('⛔ cas A — la demande MODIFIÉE renvoyée sans `metiers` : 200, la liste n\'est plus (la demande ne la porte plus), 0 en plus', [rA.s, apresA && apresA.metiers, apresA && apresA.metiersEnPlus], [200, null, 0]);
+    const base3b = (await lire('demande')).find(d => d.lien === 'm3b');
+    const sansMb = Object.assign({}, base3b); delete sansMb.metiers; delete sansMb.metiersEnPlus;
+    const rB = await sync('demande', (await lire('demande')).filter(d => d.lien !== 'm3b').concat([Object.assign({}, sansMb, { metier: 'electricite', variante: null })]));
+    const apresB = (await lire('demande')).find(d => d.lien === 'm3b');
+    v('⛔ cas B — le MÉTIER change et la demande est renvoyée sans `metiers` : 200 (pas de 400 à tort), liste vide, nouveau métier rangé', [rB.s, apresB && apresB.metier, apresB && apresB.metiers], [200, 'electricite', null]);
+
     /* ══ 2. LE PAIEMENT ══ */
     console.log('\n2. `/api/stripe/checkout` : la liste voyage avec le choix');
     let r = await payer('paie', { metier: 'plomberie', metiers: ['plomberie', 'chauffage'], variante: 'climatisation', cats: ['devis'] });
@@ -185,6 +198,24 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n3. La Tour pose la liste ; `/api/espaces/etat` la rend');
     const ETAT = async () => (await appel('/api/espaces/etat', { t: T_ELAN })).j;
     const TOUR = corps => appel('/api/monitor/espaces/metier', Object.assign({ nom: 'elan-banc' }, corps), PATRON);
+    /* ⛔ DÉFAUT FERMÉ : tant que la facturation des métiers en plus n'existe pas, l'application ne REÇOIT pas la liste (relecture `gardien`, 30 octobre 2026) */
+    r = await TOUR({ metier: 'plomberie', metiers: ['plomberie', 'chauffage'], variante: 'climatisation' });
+    let ef = await ETAT();
+    v('⛔ serveur FERMÉ (défaut) : la Tour pose la liste (rangée), mais `/api/espaces/etat` ne rend NI `metiers` NI la variante portée par la liste', [r.s, r.j.metiers, ef.metier, 'metiers' in ef, ef.variante], [200, ['plomberie', 'chauffage'], 'plomberie', false, null]);
+    v('   … le chauffage PRINCIPAL garde sa variante, liste ou pas (comme avant)', [(await TOUR({ metier: 'chauffage', metiers: ['chauffage', 'plomberie'], variante: 'deux' })).s, (await ETAT()).variante, 'metiers' in (await ETAT())], [200, 'deux', false]);
+    await TOUR({ metier: 'plomberie' });
+    /* le MÊME monde, serveur OUVERT (`"metiersServis": true`) : une copie de l'annuaire et de la Tour, sur un autre port */
+    const banc2 = banc + '-ouvert', D2 = path.join(banc2, 'data'); fs.mkdirSync(banc2, { recursive: true }); fs.cpSync(D, D2, { recursive: true });
+    fs.copyFileSync(path.join(banc, 'monitor.json'), path.join(banc2, 'monitor.json'));
+    fs.writeFileSync(path.join(banc2, 'config.json'), JSON.stringify(Object.assign(JSON.parse(fs.readFileSync(path.join(banc, 'config.json'), 'utf8')), { metiersServis: true })));
+    const PORT2 = PORT + 100, B2 = 'http://127.0.0.1:' + PORT2;
+    const e2 = spawn(process.execPath, ['--require', PRE, SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc2, 'config.json'), TEAMOP_DATA: D2, PORT: String(PORT2), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json') }), stdio: ['ignore', 'pipe', 'pipe'] });
+    enfants.push(e2); e2.stdout.on('data', d => { journal += d; }); e2.stderr.on('data', d => { journal += d; });
+    let vivant2 = false; B = B2;
+    for (let i = 0; i < 150 && !vivant2; i++) { try { vivant2 = (await fetch(B + '/health')).ok; } catch (x) {} if (!vivant2) await dormir(100); }
+    vrai('le second serveur (réglage `metiersServis` ouvert) démarre', vivant2, journal.slice(0, 400));
+    PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-3215' })).j.token;
+    vrai('(population) la Tour se connecte au second serveur', typeof PATRON === 'string' && PATRON.length > 10);
     const e0 = await ETAT();
     vrai('(population) l\'espace de départ a un métier lisible et pas de liste', !('metiers' in e0), JSON.stringify(e0).slice(0, 200));
     r = await TOUR({ metier: 'plomberie' });
@@ -192,7 +223,7 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ COMPAT — un seul métier : la réponse d\'état n\'a PAS de clé `metiers` (exactement la réponse d\'avant)', [r.s, et.metier, 'metiers' in et], [200, 'plomberie', false]);
     r = await TOUR({ metier: 'plomberie', metiers: ['plomberie', 'chauffage'], variante: 'climatisation' });
     et = await ETAT();
-    v('⛔ la Tour pose deux métiers + la variante du chauffage (second) : l\'état rend `metier` principal, `metiers`, `variante`', [r.s, r.j.metiers, et.metier, et.metiers, et.variante], [200, ['plomberie', 'chauffage'], 'plomberie', ['plomberie', 'chauffage'], 'climatisation']);
+    v('⛔ serveur OUVERT — la Tour pose deux métiers + la variante du chauffage (second) : l\'état rend `metier` principal, `metiers`, `variante`', [r.s, r.j.metiers, et.metier, et.metiers, et.variante], [200, ['plomberie', 'chauffage'], 'plomberie', ['plomberie', 'chauffage'], 'climatisation']);
     for (const [t, corps] of [['quatre', { metier: 'plomberie', metiers: ['plomberie', 'electricite', 'chauffage', 'serrurerie'] }], ['3d + un autre', { metier: '3d', metiers: ['3d', 'plomberie'] }], ['premier ≠ principal', { metier: 'plomberie', metiers: ['chauffage', 'plomberie'] }], ['une liste sans métier', { metier: '', metiers: ['plomberie', 'chauffage'] }], ['vide', { metier: 'plomberie', metiers: [] }]]) {
       r = await TOUR(corps); const e = await ETAT();
       v('⛔ la Tour : ' + t + ' → 400 `metiers_invalides`, l\'état ne bouge pas', [r.s, r.j.error, e.metiers], [400, 'metiers_invalides', ['plomberie', 'chauffage']]);
@@ -203,6 +234,22 @@ globalThis.fetch = async function (url, opts) {
     r = await TOUR({ metier: 'plomberie', metiers: ['plomberie', 'electricite'], siVide: true });
     et = await ETAT();
     v('⛔ `siVide` + même métier : une SECONDE demande acceptée ne remplace pas la liste (garde), le principal non plus', [r.s, r.j.garde, et.metiers], [200, true, ['plomberie', 'chauffage']]);
+    /* relecture `gardien` — la garde ne vaut que si une liste est DÉJÀ rangée, et n'écarte pas une variante dite dans le même corps */
+    r = await TOUR({ metier: 'plomberie', metiers: ['plomberie'] });
+    r = await TOUR({ metier: 'plomberie', metiers: ['plomberie', 'electricite'], siVide: true });
+    et = await ETAT();
+    v('⛔ `siVide` + même métier + AUCUNE liste rangée : la demande POSE la liste (pas de `garde`)', [r.s, r.j.garde, et.metiers], [200, undefined, ['plomberie', 'electricite']]);
+    r = await TOUR({ metier: 'plomberie', metiers: ['plomberie', 'serrurerie', 'peinture'], siVide: true });
+    et = await ETAT();
+    v('   CONTRE-ÉPREUVE — une liste déjà rangée est gardée (`garde`), la nouvelle ne passe pas', [r.s, r.j.garde, et.metiers], [200, true, ['plomberie', 'electricite']]);
+    r = await TOUR({ metier: 'chauffage', metiers: ['chauffage', 'plomberie'] });
+    r = await TOUR({ metier: 'chauffage', metiers: ['chauffage', 'serrurerie'], variante: 'climatisation', siVide: true });
+    et = await ETAT();
+    v('⛔ `siVide`, liste gardée, variante NEUVE dans le même corps : la liste reste, la variante est posée', [r.s, r.j.garde, et.metiers, et.variante], [200, undefined, ['chauffage', 'plomberie'], 'climatisation']);
+    r = await TOUR({ metier: 'chauffage', metiers: ['chauffage', 'serrurerie'], variante: 'deux', siVide: true });
+    et = await ETAT();
+    v('   … et si la variante est AUSSI déjà posée : tout est gardé (`garde`)', [r.s, r.j.garde, et.metiers, et.variante], [200, true, ['chauffage', 'plomberie'], 'climatisation']);
+    r = await TOUR({ metier: 'plomberie' });
     r = await TOUR({ metier: 'plomberie', metiers: ['plomberie', 'electricite', 'serrurerie'] });
     et = await ETAT();
     v('   CONTRE-ÉPREUVE — le geste de la fiche (sans `siVide`) la change bien (3 métiers) ; la variante, sans chauffage, disparaît', [r.s, et.metiers, et.variante], [200, ['plomberie', 'electricite', 'serrurerie'], null]);
@@ -217,7 +264,7 @@ globalThis.fetch = async function (url, opts) {
     et = await ETAT();
     v('⛔ … et revenir au premier principal SANS liste ne ressuscite pas l\'ancienne (elle n\'est pas restée en réserve dans l\'annuaire)', [r.s, et.metier, 'metiers' in et], [200, 'plomberie', false]);
     const fnum = (await fiche('demande'));
-    vrai('   la fiche de la Tour (`/api/monitor/clients`) porte la liste de la demande', fnum && fnum.demandes.some(d => Array.isArray(d.metiers) && d.metiers.length === 3));
+    vrai('   la fiche de la Tour (`/api/monitor/clients`) porte la liste de la demande', fnum && fnum.demandes.some(d => Array.isArray(d.metiers) && d.metiers.length === 2));
 
     /* ══ 4. LE SITE : LA RÈGLE DU CHOIX (fonctions pures de la page) ══ */
     console.log('\n4. Le choix des métiers (les vraies fonctions de `rubriques-choix.js`)');
@@ -279,7 +326,7 @@ globalThis.fetch = async function (url, opts) {
     vrai('   la demande par e-mail porte `METIERS : …` et les clés, la session garde `metiers`', /'METIERS : '/.test(SITE) && /\[metiers ' \+ ms\.join\(','\)/.test(SITE) && /metiers: metiersCourants\(\)/.test(SITE));
     vrai('   les `cats` ne partent vers la démonstration que si le client a touché à la grille (`etatRub.touche`)', /etatRub && etatRub\.touche \? window\.OpRub\.liste\(etatRub\) : null/.test(SITE));
     const tour = fs.readFileSync(path.join(RACINE, 'apercu', 'tour.html'), 'utf8');
-    vrai('   la Tour (aperçu) affiche la liste d\'une demande et la transmet à l\'acceptation', /d\.metiers\.length>1/.test(tour) && /metiers:\(Array\.isArray\(dm\.metiers\)/.test(tour));
+    vrai('   la Tour (aperçu) affiche la liste d\'une demande et la transmet à l\'acceptation', /pas encore facturé, ni appliqué dans l’application/.test(tour) && /d\.metiers\.length>1/.test(tour) && /metiers:\(Array\.isArray\(dm\.metiers\)/.test(tour));
   } finally { fin(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

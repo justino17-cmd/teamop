@@ -3115,7 +3115,7 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
   /* la LISTE des métiers (voir `metiersChoisis`) : facultative. Un corps SANS le champ ne touche pas à la liste déjà posée, sauf si le métier change (elle
      ne survit pas à un autre principal) ; `[m]` (un seul) la retire ; vide, trop longue, doublon, '3d' avec un autre, ou un premier qui n'est pas `metier` → 400. */
   const motsBruts = (req.body || {}).metiers;
-  const motsDits = motsBruts !== undefined && motsBruts !== null;
+  let motsDits = motsBruts !== undefined && motsBruts !== null;
   const motsLus = metiersChoisis(m, motsBruts);
   if (!motsLus.ok || (motsDits && !m)) return res.status(400).json({ error: 'metiers_invalides' });
   const motsNeufs = motsDits ? motsLus.metiers : null;
@@ -3132,18 +3132,24 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
      elle garde l'ancien comportement, comme un serveur d'avant qui ignore le champ. */
   const recent = noms.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
   const actuel = metierOk(recent && recent.metier);
-  const msEff = motsDits ? motsNeufs : (actuel === m ? metiersServis(m, recent && recent.metiers) : null);
+  const listeRangee = actuel === m ? metiersServis(m, recent && recent.metiers) : null;
+  /* `siVide` + même métier + une liste DÉJÀ rangée : cette liste-là est gardée (une demande acceptée ne la remplace pas) ; sans liste rangée, la demande la pose */
+  const motsBloque = (req.body || {}).siVide === true && actuel === m && motsDits && !!listeRangee;
+  const msEff = motsDits && !motsBloque ? motsNeufs : listeRangee;
   /* la variante du chauffage (`deux`, `chauffage`, `climatisation`) : facultative ; hors liste ou donnée à un autre métier → refusée. Un corps SANS le
      champ (la Tour d'avant) ne touche pas à la variante déjà posée, sauf si le métier change (une variante ne survit pas à un autre métier). */
   const varBrute = (req.body || {}).variante;
-  const varDite = varBrute !== undefined && varBrute !== null && varBrute !== '';
+  let varDite = varBrute !== undefined && varBrute !== null && varBrute !== '';
   const varNeuve = varDite ? varianteOk(m, varBrute, msEff) : null;
   if (varDite && !varNeuve) return res.status(400).json({ error: 'variante inconnue' });
   if ((req.body || {}).siVide === true && actuel && actuel !== m) return res.json({ ok: true, slug, metier: actuel, garde: true });
   /* même garde pour la variante : une seconde demande acceptée (`siVide`) du même métier ne remplace pas une variante déjà posée (relecture du 30 octobre 2026) */
   const varGardee = (req.body || {}).siVide === true && actuel === m && !!varianteOk(m, recent && recent.variante);
-  const motsGardes = (req.body || {}).siVide === true && actuel === m;   // la liste suit le principal : une entreprise qui a déjà son métier garde sa liste telle quelle
-  if ((varGardee && varDite) || (motsGardes && motsDits)) return res.json({ ok: true, slug, metier: actuel, variante: varianteOk(m, recent.variante, metiersServis(m, recent.metiers)), metiers: metiersServis(m, recent.metiers) || undefined, garde: true });
+  const varBloque = varGardee && varDite;
+  /* garde totale seulement si TOUT ce que le corps dit est gardé ; sinon on pose le reste (la variante dite avec une liste gardée n'est pas écartée) */
+  if ((varBloque || motsBloque) && (varBloque || !varDite) && (motsBloque || !motsDits)) return res.json({ ok: true, slug, metier: actuel, variante: varianteOk(m, recent.variante, metiersServis(m, recent.metiers)), metiers: metiersServis(m, recent.metiers) || undefined, garde: true });
+  if (varBloque) varDite = false;
+  if (motsBloque) motsDits = false;
   const motsPoses = x => (motsDits ? motsNeufs : (x.metier === m ? metiersServis(m, x.metiers) : null));
   const variantePosee = x => (varDite ? varNeuve : (x.metier === m ? varianteOk(m, x.variante, motsPoses(x)) : null));
   if (noms.some(x => (x.metier || '') !== m || (x.variante || null) !== variantePosee(x) || JSON.stringify(x.metiers || null) !== JSON.stringify(motsPoses(x)))) {
@@ -3242,7 +3248,11 @@ function metiersChoisis(metierBrut, metiersBrut) {
 const metiersServis = (m, v) => (Array.isArray(v) && v.length > 1 && v.length <= METIERS_MAX && v[0] === m && new Set(v).size === v.length
   && v.every(k => typeof k === 'string' && METIERS_OK.includes(k)) && !v.includes('3d') ? v.slice() : null);
 /* ce que `/api/espaces/etat` rend en plus du principal : la variante, et `{ metiers }` (vide s'il n'y en a pas plus d'un) */
-const variantEtMetiers = (metier, e) => { const ml = metiersServis(metier, e && e.metiers); return { variante: varianteOk(metier, e && e.variante, ml), mm: ml ? { metiers: ml } : {} }; };
+/* ⛔ LA LISTE NE SE SERT PAS TANT QUE LA FACTURATION DES MÉTIERS EN PLUS N'EXISTE PAS (relecture `gardien`, 30 octobre 2026) : `metiers` est rangé (demande, fiche,
+   espace) mais l'application ne le reçoit que si la configuration porte `"metiersServis": true` — défaut FERMÉ. Une valeur du corps ne décide jamais de ce qu'une
+   entreprise reçoit sans l'avoir payé : le +10 € TTC par métier est l'étape suivante, et ce réglage s'ouvrira avec elle. Fermé, la variante ne se lit pas non plus
+   dans une liste (seul le chauffage PRINCIPAL la porte, comme avant). */
+const variantEtMetiers = (metier, e) => { const ml = config.metiersServis === true ? metiersServis(metier, e && e.metiers) : null; return { variante: varianteOk(metier, e && e.variante, ml), mm: ml ? { metiers: ml } : {} }; };
 const varianteOk = (m, v, ms) => ((m === 'chauffage' || (Array.isArray(ms) && ms.includes('chauffage'))) && typeof v === 'string' && VARIANTES_CHAUFFAGE.includes(v) ? v : null);
 /* la liste cochée + la base, dans l'ordre de la liste fermée ; `null` reste `null` (« rien choisi » : la Tour part du conseil du métier) */
 const catsAvecBase = c => (Array.isArray(c) && c.length ? CATS_OK.filter(k => c.includes(k) || CATS_BASE.includes(k)) : null);
@@ -10358,12 +10368,12 @@ app.post('/api/clients/sync', async (req, res) => {
     const date = parseInt(d.date, 10) || 0;
     const rang = date ? restantes.findIndex(x => x && x.date === date && (x.app || '') === monStr(d.app, 60) && (x.lien || '') === monStr(d.lien, 60)) : -1;
     const avant = rang >= 0 ? restantes.splice(rang, 1)[0] : null;
-    /* la liste des métiers : une page d'avant (ou le portail qui relaie la fiche) renvoie sa demande SANS le champ — la liste rangée est alors gardée, pas effacée */
+    /* la liste des métiers : une demande renvoyée telle quelle, SANS le champ (page d'avant, relais du portail), garde la liste rangée ; une demande MODIFIÉE se juge sur ce qu'elle dit (`choixAbonnement` reçoit `d.metiers` tel quel) */
     const motsD = avant && d.metiers === undefined ? (avant.metiers || null) : metiersServis(monStr(d.metier, 20), d.metiers);
     const motsSains = d.metiers === undefined || d.metiers === null || metiersChoisis(d.metier, d.metiers).ok;   // une liste refusée ne passe jamais pour « inchangée »
     const meme = avant && motsSains && JSON.stringify([monStr(d.metier, 20), catsAvecBase(catsDemande(d.cats)), varianteOk(monStr(d.metier, 20), d.variante, motsD), motsD]) === JSON.stringify([avant.metier || '', catsAvecBase(avant.cats || null), avant.variante || null, avant.metiers || null]);   // la base des deux côtés : une page d'avant renvoie sa demande SANS la base que le serveur y a ajoutée   // le métier tel qu'il est ÉCRIT : un métier fermé ne passe pas pour « inchangé »
     if (meme) { inchangees.set(d, avant); continue; }
-    const c = choixAbonnement(d.metier, d.cats, d.variante, d.metiers === undefined && avant ? (avant.metiers || undefined) : d.metiers);
+    const c = choixAbonnement(d.metier, d.cats, d.variante, d.metiers);   // tel quel : seule une demande ENTIÈRE inchangée (`meme`) garde la liste rangée ; une demande modifiée dit sa liste, ou n'en a plus
     if (c.ok) neuves.add(d);
     if (!c.ok) return res.status(400).json({ error: c.error, message: MESSAGES_CHOIX[c.error] });
   }
