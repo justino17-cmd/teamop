@@ -6,7 +6,7 @@ On essaie le service « Managed Agents » d'Anthropic sur **un seul agent** : un
 
 ## Ce qui ne part jamais chez Anthropic
 
-Aucune donnée de client. L'agent ne reçoit que des **nombres** (minutes d'échec de Stripe, âge de la dernière sauvegarde, erreurs de l'heure…), le **nom des règles de Max** et les **phrases écrites dans notre code**. Pas de nom d'entreprise, pas d'adresse, pas de courriel, pas le texte d'un incident venu d'un appareil. Le vrai Max, lui, n'appelle même pas Claude : le code surveille tout seul. Le banc `tests/test-3190.js` plante des noms et des adresses dans l'état de santé du serveur et vérifie qu'aucun ne ressort.
+Aucune donnée de client. L'agent ne reçoit que des **nombres** (minutes d'échec de Stripe, âge de la dernière sauvegarde, erreurs de l'heure…), le **nom des règles de Max** et les **phrases écrites dans notre code**. Pas de nom d'entreprise, pas d'adresse, pas de courriel, pas le texte d'un incident venu d'un appareil. Le vrai Max, lui, n'appelle même pas Claude : le code surveille tout seul. Le banc `tests/test-3201.js` plante des noms et des adresses dans l'état de santé du serveur et vérifie qu'aucun ne ressort.
 
 L'agent n'a **aucun accès à Internet** (son environnement est fermé, ses outils web sont coupés). Il n'a que deux outils : écrire son rapport dans son espace à lui, et demander les chiffres à notre serveur.
 
