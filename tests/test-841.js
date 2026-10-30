@@ -212,15 +212,15 @@ console.log('\n── 841 · plus de code : la Tour crée le lien après la dema
     const txtA = (/<textarea id="ma-texte"[^>]*>([\s\S]*?)<\/textarea>/.exec(panA) || [])[1] || '';
     T.ctx.document.getElementById('ma-texte').value = txtA.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
     T.ctx.document.getElementById('ma-objet').value = '🔗 Votre lien de connexion — TEAM OP';
-    T.ctx.document.getElementById('ma-promo').value = 'banc841';
+    T.ctx.document.getElementById('ma-promo').value = 'essaiz';
     T.ctx.maPromo();
-    vrai('   « Ajouter au message » écrit le code promo dans le texte', /VOTRE CODE PROMO : BANC841/.test(T.ctx.document.getElementById('ma-texte').value));
+    vrai('   « Ajouter au message » écrit le code promo dans le texte', /VOTRE CODE PROMO : ESSAIZ/.test(T.ctx.document.getElementById('ma-texte').value));
     const btnE = { disabled: false, textContent: '' };
     await new Promise(res => { T.ctx.maEnvoyer(btnE); setTimeout(res, 900); });
     v('   la Tour dit que c\'est parti', [btnE.textContent, /Envoyé à rose@exemple-841\.fr/.test(T.toasts.slice(-1)[0] || '')], ['✅ E-mail envoyé', true]);
     const aRose = courrierPour('rose@exemple-841.fr').pop() || '';
     vrai('⛔ le client reçoit l\'adresse ET son mot de passe provisoire (avant : jamais)',
-      aRose.indexOf('teamop.fr/e/' + eR.slug) >= 0 && aRose.indexOf(mdpR) >= 0 && /Identifiant : rose/.test(aRose) && /VOTRE CODE PROMO : BANC841/.test(aRose));
+      aRose.indexOf('teamop.fr/e/' + eR.slug) >= 0 && aRose.indexOf(mdpR) >= 0 && /Identifiant : rose/.test(aRose) && /VOTRE CODE PROMO : ESSAIZ/.test(aRose));
     vrai('   ⛔ sans code d\'accès, sans « Première connexion de l\'entreprise ? », sans « identifiants habituels »',
       aRose && !/code d.acc/i.test(aRose) && !/Première connexion de l/.test(aRose) && !/identifiants habituels/.test(aRose));
     vrai('   ⛔ ni la vieille promesse « votre nom + !! »', aRose && !/votre nom \+/.test(aRose));
