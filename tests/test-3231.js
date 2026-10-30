@@ -31,8 +31,8 @@ console.log('\n── 3231 · les comptes du site sans espace, et « Ouvrir son 
   const REFB = require('./metiers-banc.js').ecrire(RACINE, banc);
   const MAINT = Date.now(), vap = webpush.generateVAPIDKeys();
   const PRE = path.join(banc, 'pre.js'); fs.writeFileSync(PRE, require('./metiers-banc.js').preload(RACINE, REFB.chemin));
-  const recus = []; let msg = '', corpsC = false;
-  const smtp = require('net').createServer(c => { c.on('error', () => {}); let t = ''; c.write('220 banc\r\n');
+  const recus = [];
+  const smtp = require('net').createServer(c => { c.on('error', () => {}); let t = '', msg = '', corpsC = false; c.write('220 banc\r\n');
     c.on('data', d => { t += d.toString('utf8'); let i; while ((i = t.indexOf('\r\n')) >= 0) { const l = t.slice(0, i); t = t.slice(i + 2);
       if (corpsC) { if (l === '.') { corpsC = false; recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
       const h = l.toUpperCase();
