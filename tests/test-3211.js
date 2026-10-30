@@ -199,5 +199,11 @@ console.log('\n9. La fenêtre « Ton entreprise — Bienvenue ! » ne s\'ouvre p
   egal('(contre-épreuve) la bêta garde son comportement : le code de la fonction y est celui d\'app.html (garde absente)', [/entAccueilCheck\(n\)\{ n=n\|\|0; try\{ if\(DEMO_PUBLIQUE\)/.test(lire('app.html')), /entAccueilCheck\(n\)\{ n=n\|\|0; try\{ if\(DEMO_PUBLIQUE\)/.test(lire('beta.html'))], [false, false]);
 }
 
+{ // les gestes du bandeau se touchent au doigt (44 px), au téléphone comme au bureau — test de A à Z du 30 octobre 2026 : 38 et 32 px
+  const hauteurs = [...MODULE.matchAll(/\.demo-bandeau button\{[^}]*min-height:(\d+)px/g)].map(m => +m[1]);
+  vrai('(population) les règles de taille des boutons du bandeau sont trouvées (bureau + téléphone)', hauteurs.length >= 2, hauteurs);
+  vrai('⛔ chaque bouton du bandeau mesure au moins 44 px de haut', hauteurs.length >= 2 && hauteurs.every(h => h >= 44), hauteurs);
+}
+
 console.log('\n════ test-3211 : ' + ok + ' ✓  ' + ko + ' ✗ ════');
 process.exit(ko ? 1 : 0);
