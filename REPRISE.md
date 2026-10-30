@@ -13,14 +13,55 @@ de ligne du tout.
 
 ---
 
-# 🧠 30 OCTOBRE 2026 (soir) — LES AGENTS AU TRAVAIL EN OPUS, FICHE DE POSTE BRANCHÉE — branche `claude/agents-travail-integ` (= `claude/agents-travail` + `main`) ; poussée, PAS fusionnée, rien déployé, INTERRUPTEUR TOUJOURS COUPÉ
+# 📍 30 OCTOBRE 2026 (fin de journée) — CE QUI EST EN LIGNE, CE QUI ATTEND JUSTIN, LES DETTES
+
+**En ligne (fusionné sur `main`)** : OP GESTION **v782** (tous les packs métier, dont Climatisation / Pompes à chaleur — la variante
+`climatisation` du métier `chauffage` sert le pack clim) ; le site (`creer.html` : la demande part au serveur, arrive dans la Tour ET par
+courriel, accusé « demande reçue — pas encore l'ouverture de votre accès ») ; la Tour **v2.124** (aperçu du courriel d'accès modifiable,
+formulaire du mot de passe provisoire, comptes du site sans espace dans À traiter) puis **v2.125** (PR #273 : le code promo ajouté au courriel se
+vérifie chez Stripe, `/api/monitor/promo-stripe`, `test-3233`) ; les agents au travail (#269, **interrupteur `config.agents.travail` FERMÉ**) ;
+les agents `juriste` et `redacteur-contrats` + `scripts/contrats/fabriquer.py` (#272 : fiche et PDF d'un client HORS du dépôt, `livrables/`).
+
+**Gestes faits par Justin sur le VPS ce jour** : ELAN effacé entièrement (annuaire, connexions, usage, abonnements, `bugs.jsonl`,
+`monitor.json`, `sentmap.jsonl`) ; surveillance de la Tour remise à zéro (ancien contenu : `/opt/teamop/archives/surveillance-2026-10-30`,
+dernière connexion de chaque entreprise gardée pour la garde `jamaisOuvert`) ; le code retiré de la config qui restait au registre des codes
+(une seule entrée, ELAN) supprimé de `promos-usages.json` (copie dans `/opt/teamop/archives/`) ; relais d'appels d'OP MESSAGES installé pour
+la bêta (**sans TLS** : le port 5349 attend un certificat) ; page d'OP MESSAGES autorisée dans le cadre de la Tour.
+
+**Toka Clim (premier client hors 3D)** : espace `tokaclim`, Business, 2 places, en essai ; remise Stripe de 15 €/mois pendant 12 mois
+(le code n'est écrit nulle part dans le dépôt) ; contrat et conditions générales en PDF dans `livrables/` (hors dépôt).
+
+**Attend Justin**
+- Supprimer le compte de la Tour « claud » (ses identifiants ont été collés dans une conversation ; jamais utilisés).
+- Toka Clim : fin d'essai au **08/11** dans la Tour ; envoyer le courriel et les deux PDF à Louca.
+- Agents : sur le VPS, `rejouer.js --estimer` puis `--oui` (≈ 5 $), lire le rapport, PUIS allumer `config.agents.travail` ;
+  `indemniteConfirmee` seulement après l'expert-comptable.
+- Faire relire par un avocat les points « À CONFIRMER PAR UN JURISTE » de `server/contrats-textes/` (24 mois de conservation, plafond de
+  responsabilité face à l'art. 82 RGPD, transferts vers les États-Unis, client non professionnel, niveau de signature).
+- Accès bêta : ouvrir `justinpdg` dans la console MESSAGES ; **rebrancher le pont des agents sur ce nouvel accès AVANT de supprimer
+  l'accès « justin » d'OP MESSAGES** (le pont vise son identifiant `b…`) ; supprimer les comptes LOCAUX `teamopteste` et `admin` dans
+  Utilisateurs de la bêta (décision : on ne coupe pas tous les comptes locaux de la bêta, les essais de rôles en ont besoin).
+- Demandes : marquer traitée la demande d'essai « TEST TEAM OP » ; Urbv services (compte du site non confirmé depuis le 13/10) : écrire ou ignorer.
+- Redémarrer le VPS un soir calme (« System restart required »). Mails de Pauline en PDF (un par courriel ou un résumé ?). Texte de
+  `confidentialite.html` sur la demande du site.
+
+**Dettes connues (relevées par le contrôle de A à Z, pas encore traitées)**
+- Les métiers en plus (+10 €/métier) s'affichent sur le site et dans la Tour mais **ne sont pas prélevés** (Stripe + `metiersServis`).
+- Le premier compte d'un espace ouvert par la Tour s'appelle « OP Admin » ; la liste « comptes du site » ne se rafraîchit pas après « Ouvrir
+  son accès » ; l'étiquette de formule reste affichée sur une entreprise suspendue ; `connexion.html` affiche le nom normalisé ; « Métier non
+  précisé » sur certaines demandes ; une demande de `creer.html` n'apparaît pas dans Mon espace.
+- Relais d'appels : TLS (5349) à poser quand un certificat existe pour turn.teamop.fr.
+
+---
+
+# 🧠 30 OCTOBRE 2026 (soir) — LES AGENTS AU TRAVAIL EN OPUS, FICHE DE POSTE BRANCHÉE — branche `claude/agents-travail-integ` (= `claude/agents-travail` + `main`) ; ✅ FUSIONNÉE le 30 octobre au soir (PR #269), serveur déployé, INTERRUPTEUR TOUJOURS COUPÉ
 
 Justin : « je veux des agents performants, donc fais le mieux ». Fait : (1) les appels de TRAVAIL (`travail: true`) de Camille, Léa et Margaux partent par défaut sur `claude-opus-5-5` (`cerveau.modeleParDefaut`) ; le juge de la grille, tout appel d'avant et les treize autres agents restent sur Sonnet 5 ; `config.agents.modeles` gagne toujours ; interrupteur coupé = aucun appel de travail = rien ne change. (2) Budget : **195 $ gardé** (et non 150 : c'est le plafond de TOUS les agents, le baisser aurait coupé les seize pour couvrir trois) — il couvre ≈ 82 $/mois d'Opus avec plus de la moitié de marge ; réglable (`budgetMois`). (3) `agents-fiches.blocTravail` : le rappel de fiche (mission, « jamais », vérité, modèle de courriel) dans les consignes de travail des trois agents, UNE fois, sans le bloc qui parle à Justin. (4) `sous-traitance.html` (+ aperçu) déclare ce qui part en plus quand le travail est allumé. `test-3205`. Mutations : `scratchpad/mutations-modele-travail.py`.
 🔒 RELECTURE DE SÉCURITÉ (`gardien`, 30 octobre, « fusion sans risque interrupteur fermé, NON prête à allumer ») — corrigé sur cette branche, `test-3206` : (B1) la relance de Margaux écrit ses FAITS par le code (ligne fixe avant le paragraphe du modèle) et refuse chez le modèle tout chiffre, date, nombre de jours ou ultimatum ; (B2) l'indemnité de 40 € de la seconde relance part TOUJOURS en validation tant que `config.agents.indemniteConfirmee` n'est pas `true`, et le texte ne cite plus « l'article 7 de nos CGV » (il n'y a pas de CGV dans le dépôt — ⚠️ la relance d'AVANT, `relanceImpaye`, le cite encore : inchangée, interrupteur fermé) ; (B3) « juste » ou « répond à tout » sous 4 → à revoir, envoi automatique seulement à moyenne ≥ 4,5 et aucun critère sous 4 ; (A1) un message sensible (litige, double prélèvement, résiliation) ne reçoit jamais d'accusé automatique de Camille en mode travail ; (A2) plafonds du mois 100 / 35 / 15 $ en mode travail allumé (registre inchangé sinon), plafond atteint → alerte + gabarit du code en validation ; (A3) tout échec du mode travail alerte Justin (une fois par jour et par cause) avant le repli.
 ⚠️ À FAIRE (pas dans le dépôt) : rédiger les CGV avec la clause d'indemnité et de recouvrement, faire confirmer le texte par l'expert-comptable de Justin, PUIS poser `"indemniteConfirmee": true` dans `agents` du config.json du VPS.
 ⚠️ À faire avant d'allumer : lire le rejeu (`rejouer.js --estimer` PUIS `--oui`, sur le VPS) ; `registre-traitements.html` (même flux) n'a pas été retouché ; `config.agents.modeles` n'est pas posé sur le VPS (le défaut suffit).
 
-# 🛠️ 30 OCTOBRE 2026 — LES AGENTS AU TRAVAIL : LE MOTEUR, ET TROIS PILOTES (Camille, Léa, Margaux) — branche `claude/agents-travail`, partie de `claude/agents-pro` ; **poussée, PAS fusionnée, rien déployé, INTERRUPTEUR COUPÉ**
+# 🛠️ 30 OCTOBRE 2026 — LES AGENTS AU TRAVAIL : LE MOTEUR, ET TROIS PILOTES (Camille, Léa, Margaux) — branche `claude/agents-travail`, partie de `claude/agents-pro` ; ✅ **fusionnée avec la PR #269 (30 octobre au soir), INTERRUPTEUR COUPÉ**
 
 Justin : « ils font pas le travail, ils répondent aux mails en bref, c'est pas pro » ; décision : « réparer les nôtres ». Diagnostic vérifié dans le code : réponse bornée à 600 jetons, un seul modèle, un courriel vu par l'objet et six mille signes, aucun outil de lecture, un contrôle qui dit si un texte est DANGEREUX mais pas s'il est BON — et les mails « en bref » étaient surtout les gabarits de trois lignes du CODE (facture, technique, inconnu).
 
