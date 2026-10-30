@@ -6428,6 +6428,9 @@ function packPeindre(){
   var sm=document.getElementById('met-f'), mi=document.getElementById('met-info');
   if(sm){ var cm=(CLI.list||[]).filter(function(x){ return x.email===CLI.sel; })[0], dmM=metDemande(cm);
     sm.value=d.metier||dmM||'';
+    var sv=document.getElementById('met-v');
+    if(sv){ sv.value=d.variante||(cm&&cm.variante)||'deux'; sv.style.display=sm.value==='chauffage'?'':'none';
+      sm.onchange=function(){ sv.style.display=sm.value==='chauffage'?'':'none'; }; }
     if(mi) mi.innerHTML=d.metier?'Métier réglé\u202f: <b>'+esc(MET_L[d.metier]||d.metier)+'</b> — l’application le reçoit à sa prochaine ouverture.'
       :'Métier <b>non réglé</b> — l’application reste en 3D'+(dmM?'. Demandé\u202f: <b>'+esc(MET_L[dmM])+'</b>, à enregistrer.':'.'); }
   /* les catégories d'OP GESTION : un tableau (celles qui sont retenues), `null` (rien de réglé : tout est ouvert) ou rien du tout
@@ -6492,9 +6495,10 @@ function tourAboEnregistrer(nom,btn){
 function tourMetierEnregistrer(nom,btn){
   var m=(document.getElementById('met-f')||{}).value||'';
   if(m&&!MET_L[m]){ toast('Métier inconnu'); return; }
+  var v=m==='chauffage'?((document.getElementById('met-v')||{}).value||'deux'):undefined;
   if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
-  return apiPost('/api/monitor/espaces/metier',{nom:nom,metier:m}).then(function(r){
-    if(r&&r.ok&&r.d&&r.d.ok){ toast(m?('🧰 Métier « '+MET_L[m]+' » — l’application le reçoit à sa prochaine ouverture'):'Métier retiré — l’application garde celui qu’elle a'); tourPackPrefill(nom); }
+  return apiPost('/api/monitor/espaces/metier',{nom:nom,metier:m,variante:v}).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast(m?('🧰 Métier « '+MET_L[m]+(v==='chauffage'?' — chauffage seulement':v==='climatisation'?' — climatisation seulement':'')+' » — l’application le reçoit à sa prochaine ouverture'):'Métier retiré — l’application garde celui qu’elle a'); tourPackPrefill(nom); }
     else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; } });
@@ -9810,6 +9814,9 @@ function gestionClientParts(){
       '<div class="form-rang">'+
       '<select id="met-f" title="Métier de l’application" aria-label="Métier de l’application" class="sel-f"><option value="">— non réglé (3D) —</option>'+
         Object.keys(MET_L).map(function(k){ return '<option value="'+k+'">'+esc(MET_L[k])+'</option>'; }).join('')+'</select>'+
+      /* la variante du chauffage (30 octobre 2026, Justin : « pourquoi ici j'ai Climatisation et à la création de mon client je l'ai pas ») :
+         le serveur la connaissait déjà (`/api/monitor/espaces/metier`, `variante`), la fiche ne la proposait pas — visible pour « Chauffage / Climatisation » seulement */
+      '<select id="met-v" title="Ce que fait l’entreprise" aria-label="Chauffage, climatisation ou les deux" class="sel-f" style="display:none"><option value="deux">Chauffage et climatisation</option><option value="chauffage">Chauffage seulement</option><option value="climatisation">Climatisation / pompes à chaleur seulement</option></select>'+
       '<button type="button" class="btn-plein" onclick="tourMetierEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer le métier</button></div>'+
       '<div class="note">'+esc(metDemande(c)?'Métier demandé à l’inscription : '+MET_L[metDemande(c)]:'Métier non précisé à la demande')+'</div>'+
       '<div id="met-info" class="note">Chargement…</div></div>';
