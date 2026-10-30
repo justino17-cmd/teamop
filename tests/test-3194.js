@@ -12,15 +12,16 @@ const { bac, lire } = require('./metiers-outils.js');
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 300) : '')); } };
 
+const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b]);
 const PORTES = ['metierSet', 'metierComboSet', 'metierPlusSet', 'metierPlus2Set', 'metiersAssociesPoser'];
-const NOMS = ['metierCle', 'metierRecu', 'metierVerrouille', 'metierVerrouRefus', 'metierServeurRetenir', 'metierServeurAppliquer'].concat(PORTES);
+const NOMS = ['metiersDuServeur', 'metiersReponseMulti', 'metiersRecus', 'metiersPlusDe', 'metierCle', 'metierRecu', 'metierVerrouille', 'metierVerrouRefus', 'metierServeurRetenir', 'metierServeurAppliquer'].concat(PORTES);
 
 function monde(o) {
   o = o || {};
   const rangement = Object.assign({}, o.rangement || {});
   const toasts = [], saves = [];
   const db = Object.assign({ metier: 'plomberie', metierPlus: '', metierPlus2: '' }, o.db || {});
-  const METIERS = { plomberie: { nom: 'Plomberie', ic: '🔧' }, nettoyage: { nom: 'Nettoyage', ic: '🧽' }, climatisation: { nom: 'Climatisation', ic: '❄️' }, chauffage: { nom: 'Chauffage', ic: '🔥' }, '3d': { nom: '3D', ic: '🐀' } };
+  const METIERS = { plomberie: { nom: 'Plomberie', ic: '🔧' }, nettoyage: { nom: 'Nettoyage', ic: '🧽' }, climatisation: { nom: 'Climatisation', ic: '❄️' }, chauffage: { nom: 'Chauffage', ic: '🔥' }, '3d': { nom: '3D', ic: '🐀' }, electricite: { nom: 'Électricité', ic: '⚡' } };
   const init = {
     STORE_KEY: 'elan_db', BETA_ESSAI: !!o.beta, _metierRecu: undefined, db, METIERS,
     currentUser: { role: o.role || 'admin' }, current: '',
@@ -85,6 +86,83 @@ for (const j of [null, {}, { metier: '' }, { metier: 42 }, { metier: 'inconnu' }
   const i = N.indexOf('function espaceQuitter('); vrai('espaceQuitter est trouvé', i > 0);
   const corps = N.slice(i, N.indexOf('\nfunction ', i + 10));
   vrai('⛔ espaceQuitter retire la marque du métier de l\'entreprise quittée', /localStorage\.removeItem\(P\+'metier_serveur'\)/.test(corps) && /_metierRecu=undefined/.test(corps)); }
+
+
+console.log('── 6. v782 — plusieurs métiers choisis sur le site : la correspondance (fonction pure) ──');
+{
+  const W = monde(); const M = (j) => W.fn.metiersDuServeur(j);
+  vrai('(population) la fonction est bien celle d\'app.html et rend une liste', Array.isArray(M({ metier: 'plomberie' })), M({ metier: 'plomberie' }));
+  egal('métier seul : comme avant', M({ metier: 'plomberie' }), ['plomberie']);
+  egal('principal + deux autres, dans l\'ordre du site', M({ metier: 'plomberie', metiers: ['plomberie', 'electricite', 'nettoyage'] }), ['plomberie', 'electricite', 'nettoyage']);
+  egal('la carte du site « Chauffage / Climatisation » (clé chauffage), variante « deux » : chauffage + climatisation', M({ metier: 'chauffage', variante: 'deux' }), ['chauffage', 'climatisation']);
+  egal('… variante « chauffage » ou absente : le chauffage seul', [M({ metier: 'chauffage', variante: 'chauffage' }), M({ metier: 'chauffage' })], [['chauffage'], ['chauffage']]);
+  egal('… variante « climatisation » : la climatisation SEULE (pas de chauffage)', M({ metier: 'chauffage', variante: 'climatisation' }), ['climatisation']);
+  egal('plomberie + chauffage/clim « climatisation seulement »', M({ metier: 'plomberie', metiers: ['plomberie', 'chauffage'], variante: 'climatisation' }), ['plomberie', 'climatisation']);
+  egal('plomberie + chauffage/clim « les deux » : trois métiers', M({ metier: 'plomberie', metiers: ['plomberie', 'chauffage'], variante: 'deux' }), ['plomberie', 'chauffage', 'climatisation']);
+  egal('⛔ « les deux » + deux autres métiers : COUPÉ à trois, le dernier choisi tombe (le principal et le « les deux » restent)', M({ metier: 'chauffage', metiers: ['chauffage', 'plomberie', 'nettoyage'], variante: 'deux' }), ['chauffage', 'climatisation', 'plomberie']);
+  egal('… et en troisième position, « les deux » est coupé APRÈS le chauffage (jamais avant)', M({ metier: 'plomberie', metiers: ['plomberie', 'nettoyage', 'chauffage'], variante: 'deux' }), ['plomberie', 'nettoyage', 'chauffage']);
+  egal('quatre métiers reçus : trois au plus', M({ metier: 'plomberie', metiers: ['plomberie', 'electricite', 'nettoyage', 'chauffage'] }), ['plomberie', 'electricite', 'nettoyage']);
+  egal('une clé inconnue, un doublon, un type faux sont ignorés', M({ metier: 'plomberie', metiers: ['plomberie', 'zzz', 42, null, 'plomberie', '__proto__', 'constructor', 'nettoyage'] }), ['plomberie', 'nettoyage']);
+  egal('⛔ la 3D n\'est jamais « en plus »', M({ metier: 'plomberie', metiers: ['plomberie', '3d', 'nettoyage'] }), ['plomberie', 'nettoyage']);
+  egal('… et principale, elle est seule (l\'application ne combine rien avec la 3D)', M({ metier: '3d', metiers: ['3d', 'plomberie'] }), ['3d']);
+  egal('le nom d\'un pack combiné (cvc) se déplie par sa liste', M({ metier: 'cvc' }), ['chauffage', 'climatisation']);
+  egal('metiers sans metier : le premier est le principal', M({ metiers: ['nettoyage', 'plomberie'] }), ['nettoyage', 'plomberie']);
+  egal('une variante hors liste ne dit rien', M({ metier: 'chauffage', variante: '<script>' }), ['chauffage']);
+  egal('⛔ rien d\'utilisable : liste vide (l\'appelant ne touche à rien)', [null, undefined, 'x', {}, { metier: 'zzz' }, { metiers: 'plomberie' }, { metier: 42 }].map(M), [[], [], [], [], [], [], []]);
+}
+
+console.log('── 7. v782 — metierServeurAppliquer / Retenir posent aussi metierPlus et metierPlus2 ──');
+{
+  let W = monde({ db: { metier: 'plomberie' } });
+  vrai('plomberie + électricité + nettoyage : posés, UN save, une ligne de journal', W.fn.metierServeurAppliquer({ metier: 'plomberie', metiers: ['plomberie', 'nettoyage', '3d', 'chauffage'] }) === true && etat(W) === JSON.stringify(['plomberie', 'nettoyage', 'chauffage']) && W.saves.length === 1, [etat(W), W.saves.length]);
+  W.fn.metierServeurAppliquer({ metier: 'plomberie', metiers: ['plomberie', 'nettoyage', 'chauffage'] });
+  vrai('⛔ rien ne change : pas de save de plus (ouvrir l\'application n\'écrit pas)', W.saves.length === 1, W.saves.length);
+  W = monde({ db: { metier: 'plomberie' } });
+  W.fn.metierServeurAppliquer({ metier: 'chauffage', variante: 'deux' });
+  vrai('chauffage « deux » : chauffage + climatisation', etat(W) === JSON.stringify(['chauffage', 'climatisation', '']), etat(W));
+  W.fn.metierServeurAppliquer({ metier: 'chauffage', variante: 'climatisation' });
+  vrai('… puis « climatisation seulement » : la climatisation, le chauffage associé est RETIRÉ', etat(W) === JSON.stringify(['climatisation', '', '']), etat(W));
+  W.fn.metierServeurAppliquer({ metier: 'chauffage', variante: 'chauffage' });
+  vrai('… puis « chauffage seulement »', etat(W) === JSON.stringify(['chauffage', '', '']), etat(W));
+  W = monde({ db: { metier: 'plomberie', metierPlus: 'nettoyage', metierPlus2: 'chauffage' } });
+  W.fn.metierServeurAppliquer({ metier: 'plomberie', metiers: ['plomberie', 'nettoyage'] });
+  vrai('le serveur ne donne plus que deux métiers : le troisième est retiré', etat(W) === JSON.stringify(['plomberie', 'nettoyage', '']), etat(W));
+  console.log('   (une réponse SANS metiers ni variante : exactement comme avant)');
+  W = monde({ db: { metier: 'plomberie', metierPlus: 'nettoyage', metierPlus2: 'chauffage' } });
+  vrai('même métier principal, pas de metiers : rien ne bouge, associés intacts, aucun save', W.fn.metierServeurAppliquer({ metier: 'plomberie' }) === false && etat(W) === JSON.stringify(['plomberie', 'nettoyage', 'chauffage']) && W.saves.length === 0, etat(W));
+  W.fn.metierServeurAppliquer({ metier: 'climatisation' });
+  vrai('un autre principal, pas de metiers : le principal change, les associés d\'avant sont gardés (sauf doublon)', etat(W) === JSON.stringify(['climatisation', 'nettoyage', 'chauffage']), etat(W));
+  W = monde({ db: { metier: 'plomberie', metierPlus: 'nettoyage' } });
+  vrai('une variante qui ne concerne pas le chauffage (plomberie + « deux ») : traitée comme avant, rien ne bouge', W.fn.metierServeurAppliquer({ metier: 'plomberie', variante: 'deux' }) === false && etat(W) === JSON.stringify(['plomberie', 'nettoyage', '']), etat(W));
+  for (const j of [{ metiers: [] }, { metiers: ['zzz'] }, { metier: 'plomberie', metiers: 'nettoyage' }]) {
+    W = monde(); const av = etat(W); W.fn.metierServeurAppliquer(j);
+    vrai('réponse inutilisable ' + JSON.stringify(j) + ' : rien ne change', etat(W) === av && W.saves.length === 0, etat(W));
+  }
+
+  console.log('── 8. v782 — le verrou retient la liste et couvre les trois ──');
+  W = monde(); W.fn.metierServeurAppliquer({ metier: 'plomberie', metiers: ['plomberie', 'nettoyage', 'chauffage'] }); W.fn.metierServeurRetenir({ metier: 'plomberie', metiers: ['plomberie', 'nettoyage', 'chauffage'] });
+  vrai('la marque porte les trois, le principal en tête', W.rangement[CLE] === 'plomberie,nettoyage,chauffage' && JSON.stringify(W.fn.metiersRecus()) === '["plomberie","nettoyage","chauffage"]' && W.fn.metierVerrouille() === true, W.rangement);
+  const av = etat(W), sv = W.saves.length;
+  W.fn.metierPlus2Set('climatisation'); W.fn.metierPlusSet(''); W.fn.metiersAssociesPoser('', ''); W.fn.metierSet('nettoyage');
+  vrai('⛔ le verrou couvre le principal ET les deux associés : rien ne change, rien ne s\'enregistre', etat(W) === av && W.saves.length === sv, [etat(W), W.saves.length]);
+  W = monde({ rangement: { [CLE]: 'plomberie,nettoyage' } });
+  vrai('relue au démarrage (autre page) : principal et liste', W.fn.metierRecu() === 'plomberie' && JSON.stringify(W.fn.metiersRecus()) === '["plomberie","nettoyage"]' && W.fn.metierVerrouille() === true);
+  for (const marque of ['plomberie,zzz,nettoyage', ',plomberie', 'zzz,plomberie', 'plomberie,plomberie']) {
+    W = monde({ rangement: { [CLE]: marque } });
+    vrai('marque abîmée « ' + marque + ' » : jamais un verrou sur un métier inconnu', W.fn.metiersRecus().every(k => ['plomberie', 'nettoyage'].includes(k)) && (marque[0] === 'z' || marque[0] === ',' ? W.fn.metierRecu() === '' : W.fn.metierRecu() === 'plomberie'), [W.fn.metierRecu(), W.fn.metiersRecus()]);
+  }
+  W = monde(); W.fn.metierServeurRetenir({ metier: 'chauffage', variante: 'deux' });
+  vrai('chauffage « deux » : la marque dit les deux métiers de l\'application', W.rangement[CLE] === 'chauffage,climatisation', W.rangement);
+  W = monde(); W.fn.metierServeurRetenir({ metier: 'plomberie' });
+  vrai('⛔ un seul métier : la marque d\'avant, un seul mot', W.rangement[CLE] === 'plomberie' && JSON.stringify(W.fn.metiersRecus()) === '["plomberie"]', W.rangement);
+  W = monde(); W.fn.metierServeurRetenir({ metiers: ['zzz'], variante: '<x>' });
+  vrai('réponse inutilisable : aucune marque', !(CLE in W.rangement) && W.fn.metierVerrouille() === false, W.rangement);
+  W = monde({ beta: true }); W.fn.metierServeurAppliquer({ metier: 'plomberie', metiers: ['plomberie', 'nettoyage'] });
+  vrai('la bêta pose les associés sans rien verrouiller', etat(W) === JSON.stringify(['plomberie', 'nettoyage', '']) && W.fn.metierVerrouille() === false);
+  { const { N } = lire('app.html');
+    const k = N.indexOf('try{ metierServeurAppliquer(j); }catch(e){}');
+    vrai('(câblage) forfaitServeurSync passe la RÉPONSE ENTIÈRE (j), pas seulement j.metier', k > 0 && !/metierServeur(Appliquer|Retenir)\(j\.metier\)/.test(N)); }
+}
 
 console.log(`\n════ test-3194 : ${ok} ✓ ${ko} ✗ ════`);
 process.exit(ko ? 1 : 0);

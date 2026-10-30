@@ -8685,7 +8685,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '779';
+const APP_VERSION = '782';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -10677,6 +10677,21 @@ function categorieListe(cat,nom){ const L=categoriesProduit(); if(L.includes(cat
   if(estMetier3D()) return rangerCatFour(cat,nom);
   const n=norm(String(cat||'').trim()); return n?(L.find(c=>norm(c)===n)||''):''; }
 function intTypes(){ const p=metierPack(); return (p&&p.types)?p.types:INT_TYPES; }
+/* ⛔ v782 — LE MÉTIER D'UNE INTERVENTION (Justin, 30 octobre 2026 : « le logiciel va devoir comprendre plusieurs entreprises, voire la même mais
+   des rôles différents : s'ils font une réparation de plomberie, la facture devrait être en plomberie »). Une entreprise à PLUSIEURS métiers
+   (principal + `metierPlus` + `metierPlus2`) choisit, à la création, celui de l'intervention : champ `metier` sur l'intervention, défaut le
+   PRINCIPAL (une fiche sans champ, ou dont le métier a été retiré depuis, se lit « le principal »). Une entreprise à UN SEUL métier n'a ni
+   sélecteur, ni libellé, ni champ écrit : `intMetierLibelle` rend '' et rien ne change. La facture tirée de l'intervention reprend ce libellé
+   en tête de sa première ligne (« Plomberie — … ») et porte le champ `metier` ; ni la numérotation ni l'en-tête (`docEntete`) n'en dépendent. */
+function intMetierMulti(){ try{ return metierActifs().length>1; }catch(e){ return false; } }
+function intMetierDe(i){ const A=metierActifs(); return (i&&typeof i.metier==='string'&&A.indexOf(i.metier)>=0)?i.metier:A[0]; }
+function metierCourt(k){ const M=Object.prototype.hasOwnProperty.call(METIERS,k)?METIERS[k]:null; return M?String(M.nom||k).split(/ [—\/] /)[0]:''; }
+function intMetierLibelle(i){ return intMetierMulti()?metierCourt(intMetierDe(i)):''; }
+/* la désignation d'une ligne de facture : « Plomberie — Fuite sous évier » (une seule fois — un titre qui commence déjà par le métier n'est pas doublé) */
+function intMetierDesignation(i,texte){ const lib=intMetierLibelle(i), t=String(texte||''); if(!lib) return t;
+  return t.toLowerCase().indexOf(lib.toLowerCase())===0?t:lib+' — '+t; }
+/* ce que les créateurs de facture lisent, en UN appel : { metier, designation } — `metier` vaut '' pour une entreprise à un seul métier (la facture n'a alors AUCUN champ de plus) */
+function intMetierFacture(i,texte){ return { metier:intMetierMulti()?intMetierDe(i):'', designation:intMetierDesignation(i,texte) }; }
 /* La beta voit tout : meme raison que planBloque (chercher BETA_ESSAI a cote de PLAN_BLOQUE). */
 /* ⛔ CE QUI EST SAISI SE LIT : le masque d'un métier ne ferme pas un écran dont l'entreprise a DÉJÀ des données. Une entreprise
    abonnée sous un autre métier qui a rangé des enveloppes d'encaissement (registre d'espèces et de chèques, rien d'anti-nuisibles)
@@ -10831,10 +10846,17 @@ function metierPackRestaurer(m,a,b){
    Ni l'équipe TEAM OP ni la bêta ne sont verrouillées : elles choisissent un métier pour le JUGER. */
 function metierCle(){ return STORE_KEY.split('_')[0]+'_metier_serveur'; }
 let _metierRecu;
+/* v782 : la marque porte la LISTE reçue (« plomberie,chauffage,climatisation », le principal en tête) — une entreprise à un seul métier garde la marque d'avant, un seul mot. `_metierRecu` reste le PRINCIPAL. */
+let _metiersRecus;
 function metierRecu(){
-  if(typeof _metierRecu!=='string'){ _metierRecu=''; try{ const v=localStorage.getItem(metierCle()); if(typeof v==='string'&&Object.prototype.hasOwnProperty.call(METIERS,v)) _metierRecu=v; }catch(e){} }
+  if(typeof _metierRecu!=='string'){ _metierRecu=''; _metiersRecus=[];
+    try{ const v=localStorage.getItem(metierCle());
+      if(typeof v==='string'){ const L=v.split(',').filter((k,i,a)=>Object.prototype.hasOwnProperty.call(METIERS,k)&&a.indexOf(k)===i);
+        if(L.length&&L[0]===v.split(',')[0]){ _metierRecu=L[0]; _metiersRecus=L.slice(0,3); } } }catch(e){} }
   return _metierRecu;
 }
+/* tous les métiers reçus du site, le principal en tête ([] si aucun) */
+function metiersRecus(){ metierRecu(); return (_metiersRecus||[]).slice(); }
 function metierVerrouille(){
   try{
     if(typeof BETA_ESSAI!=='undefined'&&BETA_ESSAI) return false;
@@ -10849,13 +10871,64 @@ function metierVerrouRefus(){
 }
 /* le verrou se pose depuis la SEULE réponse du serveur (`forfaitServeurSync`), jamais depuis `metierServeurAppliquer` : la
    démonstration publique et la bêta posent aussi un métier par lui, et ne doivent rien verrouiller */
+/* ⛔ v782 — PLUSIEURS MÉTIERS SUR UNE MÊME APPLICATION (Justin, 30 octobre 2026 : « le client choisit sur le site jusqu'à 3 métiers ;
+   pour Chauffage / Climatisation, les deux, le chauffage seul ou la climatisation seule »). Le site dit `metier` (la clé du site, le
+   PRINCIPAL), `metiers` (1 à 3 clés du site, le principal en tête — absent s'il n'y en a qu'un) et `variante` (`deux`, `chauffage`,
+   `climatisation` — seulement quand le chauffage est choisi). L'application, elle, ne connaît que ses clés de `METIERS` : UNE fonction
+   pure fait la correspondance, et c'est la seule.
+   · la carte du site « Chauffage / Climatisation » a la clé `chauffage` ; `deux` la dépliera en `chauffage` + `climatisation` (le
+     réglage que l'application connaît déjà — c'est le pack combiné `cvc`), `climatisation` donne le seul métier `climatisation`,
+     `chauffage` (ou aucune variante) le seul `chauffage`. Le nom d'un pack combiné (`cvc`…) reçu comme clé se déplie par sa liste.
+   · ⛔ AU PLUS TROIS (principal, `metierPlus`, `metierPlus2`) : le dépliage se fait DANS L'ORDRE du site puis la liste est COUPÉE à
+     trois. Donc « chauffage + climatisation » (les deux) suivi de deux autres métiers sort [chauffage, climatisation, premier autre] et
+     le DERNIER métier choisi sur le site tombe — jamais le principal, jamais la moitié d'un « les deux » prise avant son tour.
+   · une clé inconnue est ignorée (l'application garde ce qu'elle sait) ; `3d` n'est jamais un métier « en plus » (le mécanisme
+     `metierPlus` ne le connaît pas) — principal, il est seul, l'application ne combine rien avec la 3D.
+   Rendre `[]` veut dire « rien d'utilisable » : l'appelant ne touche à rien. */
+function metiersDuServeur(j){
+  if(!j||typeof j!=='object') return [];
+  const connu=k=>typeof k==='string'&&Object.prototype.hasOwnProperty.call(METIERS,k);
+  const brut=[]; if(typeof j.metier==='string') brut.push(j.metier);
+  if(Array.isArray(j.metiers)) j.metiers.forEach(k=>{ if(typeof k==='string'&&brut.indexOf(k)<0) brut.push(k); });
+  const v=['deux','chauffage','climatisation'].indexOf(j.variante)>=0?j.variante:'';
+  const out=[]; const poser=k=>{ if(connu(k)&&out.indexOf(k)<0) out.push(k); };
+  brut.forEach(k=>{
+    if(k==='chauffage'){ if(v==='deux'){ poser('chauffage'); poser('climatisation'); } else if(v==='climatisation') poser('climatisation'); else poser('chauffage'); }
+    else if(!connu(k)){ const c=(typeof metierComboDe==='function')?metierComboDe(k):null; if(c&&Array.isArray(c.liste)) c.liste.forEach(poser); }
+    else poser(k);
+  });
+  if(out[0]==='3d') return ['3d'];
+  return out.filter((k,i)=>i===0||k!=='3d').slice(0,3);
+}
+/* la réponse DIT-ELLE plusieurs métiers ? — `metiers` présent, ou une variante du chauffage ; sinon l'application se comporte comme avant (un seul métier, rien d'autre ne bouge) */
+function metiersReponseMulti(j){
+  if(!j||typeof j!=='object') return false;
+  if(Array.isArray(j.metiers)&&j.metiers.length) return true;
+  return ['deux','chauffage','climatisation'].indexOf(j.variante)>=0&&metiersDuServeur(j).some(k=>k==='chauffage'||k==='climatisation');
+}
 function metierServeurRetenir(j){
-  const m=j&&j.metier;
+  const L=metiersReponseMulti(j)?metiersDuServeur(j):[];
+  const m=L.length?L[0]:(j&&j.metier);
   if(!m||typeof m!=='string'||!Object.prototype.hasOwnProperty.call(METIERS,m)) return false;
-  _metierRecu=m; try{ localStorage.setItem(metierCle(),m); }catch(e){}
+  const marque=L.length>1?L.join(','):m;   // un seul métier : la marque d'avant, un seul mot
+  _metierRecu=m; _metiersRecus=L.length?L:[m]; try{ localStorage.setItem(metierCle(),marque); }catch(e){}
   return true;
 }
 function metierServeurAppliquer(j){
+  const L=metiersReponseMulti(j)?metiersDuServeur(j):[];
+  if(L.length){
+    /* plusieurs métiers (ou une variante du chauffage) : le serveur dit TOUT — le principal ET les associés, y compris « aucun associé » */
+    const cur=[db.metier||'',db.metierPlus||'',db.metierPlus2||''], voulu=[L[0],L[1]||'',L[2]||''];
+    if(cur.join('|')===voulu.join('|')) return false;
+    const av=metierId(), avPlus=metiersPlusDe(db).join('|');
+    db.metier=voulu[0]; db.metierPlus=voulu[1]; db.metierPlus2=voulu[2];
+    try{ logEvent('Métier de l’entreprise',L.map(k=>METIERS[k].nom).join(' + ')+' — réglé par TEAM OP','admin'); }catch(e){}
+    save();
+    try{ renderNav(); }catch(e){}
+    try{ if(currentUser&&current&&views[current]) views[current](); }catch(e){}
+    if((av!==voulu[0]||avPlus!==voulu.slice(1).filter(Boolean).join('|'))&&currentUser) try{ toast(METIERS[voulu[0]].ic+' Application réglée pour : '+L.map(k=>METIERS[k].nom).join(' + ')); }catch(e){}
+    return true;
+  }
   const m=j&&j.metier;
   if(!m||typeof m!=='string'||!Object.prototype.hasOwnProperty.call(METIERS,m)||db.metier===m) return false;
   const av=metierId();
@@ -26567,6 +26640,7 @@ function formIntervention(id,preset){
 
         <div class="fsec"><div class="form-sec">Détails de l'intervention</div>
         <div class="fgroup">
+          ${(typeof intMetierMulti==='function'&&intMetierMulti()===true)?`<div class="frow"><span class="frow-lbl">Métier</span><div class="frow-val"><select name="metier">${metierActifs().map(k=>`<option value="${k}" ${intMetierDe(i)===k?'selected':''}>${esc(metierCourt(k))}</option>`).join('')}</select></div></div>`:''}
           <div class="frow"><span class="frow-lbl">Catégorie</span><div class="frow-val"><select name="type" onchange="intOnCat(this)"><option value="">Choix</option>${intTypes().map(t=>`<option ${i.type===t?'selected':''}>${t}</option>`).join('')}${(i.type&&intTypes().indexOf(i.type)<0)?`<option selected>${esc(i.type)}</option>`:''}</select></div></div>
           <div class="frow"><span class="frow-lbl">Contrat</span><div class="frow-val"><select name="contratId"><option value="">Aucun</option>${db.contrats.map(c=>`<option value="${c.id}" ${i.contratId===c.id?'selected':''}>${esc(c.num||'')} ${esc(c.titre||'')}</option>`).join('')}</select></div></div>
           <div class="frow"><span class="frow-lbl">Visite technique</span><div class="frow-val"><select name="visiteTechnique">${VISITE_TECH.map(v=>`<option ${(i.visiteTechnique||'Non')===v?'selected':''}>${v}</option>`).join('')}</select></div></div>
@@ -26959,6 +27033,7 @@ function intConflictOf(cand,ignoreId){ const ids=intTechIds(cand); if(!ids.lengt
     Math.max(s1,toMin(x.heure)) < Math.min(e1,toMin(x.heure)+(parseInt(x.duree)||60)))||null; }
 function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'modifier':'ajouter','une intervention')) return; const data=Object.fromEntries(new FormData(e.target)); data.duree=parseInt(data.duree)||60;
   data.techIds=[...document.querySelectorAll('.int-tech.active')].map(x=>x.dataset.tid); data.techId=data.techIds[0]||'';
+  if(data.metier!==undefined&&metierActifs().indexOf(String(data.metier))<0) delete data.metier;   // v782 : seul un métier de l'entreprise s'écrit ; une fiche qui en a un le garde (la fusion ne l'efface jamais)
   if(data.heureFin && data.heure){ const dm=toMin(data.heureFin)-toMin(data.heure); if(dm>0) data.duree=dm; }
   // Organilog : sans date = « À planifier » ; une date posée re-planifie
   if(!data.date){ data.statut='aplanifier'; }
@@ -27144,6 +27219,7 @@ function renderIntDetail(id){
         <div style="margin:6px 0 12px;border-left:3px solid var(--brd);padding-left:10px">${intTechsAff(i).length?intTechsAff(i).map((tid,k)=>`<div style="display:flex;gap:8px;align-items:center;padding:3px 0">${techPastille(tid,'g')}<span style="font-size:13.5px">${esc(techName(tid))}${k===0?' <span style="color:var(--t3)">(Leader)</span>':''}</span></div>`).join(''):'<span style="color:var(--t3);font-size:13px">Non assignée</span>'}</div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 0"><b style="font-size:13.5px;white-space:nowrap">Rapport personnalisé</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right;max-width:55%">${esc(i.rapportModele||'')||'Modèle générique'}</span></div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 0"><b style="font-size:13.5px;white-space:nowrap">Catégorie</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(i.type||'')||'—'}</span></div>
+        ${intMetierMulti()?`<div class="int-metier-lecture" style="display:flex;align-items:center;gap:6px;padding:6px 0"><b style="font-size:13.5px;white-space:nowrap">Métier</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(intMetierLibelle(i))}</span></div>`:''}
         <div style="padding:8px 0 2px"><b style="font-size:13.5px">Demandes client</b><div style="font-size:12.5px;color:var(--t2);margin-top:5px;border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding-left:12px;min-height:17px;white-space:pre-wrap">${esc(i.desc||'')}</div></div>
       </div></details>`;
     if(intEdit) sideCards=`
@@ -27166,6 +27242,7 @@ function renderIntDetail(id){
       </div></details>
       <details open class="olsec"><summary><span class="olsec-ic">${fic('list',19)}</span>Éléments clés</summary><div class="olsec-b">
         <div class="field" style="margin-bottom:12px"><label>Titre</label><input value="${esc(i.titre||'')}" onchange="intEditField('${id}','titre',this.value)"></div>
+        ${intMetierMulti()?`<div class="field" style="margin-bottom:12px"><label>Métier</label><select onchange="intEditField('${id}','metier',this.value)">${metierActifs().map(k=>`<option value="${k}" ${intMetierDe(i)===k?'selected':''}>${esc(metierCourt(k))}</option>`).join('')}</select></div>`:''}
         <div class="field" style="margin-bottom:12px"><label>Catégorie</label><select onchange="intEditField('${id}','type',this.value)"><option value="">Choix</option>${intTypes().map(t=>`<option ${i.type===t?'selected':''}>${t}</option>`).join('')}${(i.type&&intTypes().indexOf(i.type)<0)?`<option selected>${esc(i.type)}</option>`:''}</select></div>
         ${entSocUnique()?`<div class="field" style="margin-bottom:12px"><label>Société</label><input value="${esc(rapportSociete(i.rapportModele||entSocUnique()))}" disabled style="opacity:.65"></div>`
           :`<div class="field" style="margin-bottom:12px"><label>Société (documents, e-mails, SMS)</label><select onchange="intEditField('${id}','rapportModele',this.value);renderIntDetail('${id}')">${entSocietes().map(t=>`<option ${(i.rapportModele||'Modèle générique')===t?'selected':''}>${esc(t)}</option>`).join('')}${i.rapportModele&&!entSocietes().includes(i.rapportModele)?`<option selected>${esc(i.rapportModele)}</option>`:''}</select></div>`}
@@ -27483,9 +27560,10 @@ function intQSet(id,f,v){ const i=db.interventions.find(x=>x.id===id); if(!i) re
    client, adresse, contact, titre, catégorie et société sans rien lire. Mesuré sur la v737. Les champs du
    RAPPORT (matériel, zones, note interne, justification, non-travaillé), eux, restent au technicien :
    remplir son rapport n'est pas modifier la fiche. */
-const INT_CHAMPS_FICHE=['date','heure','duree','titre','type','rapportModele','adresse','contactSurPlace'];
+const INT_CHAMPS_FICHE=['date','heure','duree','titre','type','metier','rapportModele','adresse','contactSurPlace'];
 function intEditField(id,f,v){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   if(INT_CHAMPS_FICHE.includes(f)&&!permGarde('int','modifier','une intervention')){ renderIntDetail(id); return; }
+  if(f==='metier'&&metierActifs().indexOf(String(v))<0){ renderIntDetail(id); return; }   // v782 : un métier de l'entreprise, rien d'autre
   const old=i[f]; i[f]=v; save();
   if(f==='date'&&old&&v&&old!==v){ try{ serieShiftPropose(i,old); }catch(e){} } }
 function intEditDone(id){ const i=db.interventions.find(x=>x.id===id); if(i) intHisto(i,'Fiche modifiée'); intEdit=false; save(); renderIntDetail(id); toast('Enregistré'); }
@@ -27978,10 +28056,12 @@ function intGenererDoc(id,kind){ if(!permGarde('ventes','ajouter',kind==='devis'
     return {designation:(p.nom||l.nomLibre||'Produit')+(uP?' ('+uP+')':''),qte:q,pu:p.prix||0}; });
   /* le prix de la fiche est un TTC (« Prix encaissé ») : on en tire le HT, la TVA se rajoute au total */
   const tvaR=intTvaFacture();
-  if(Number(i.montant)>0) lignes.unshift({designation:i.titre||'Prestation',qte:1,pu:intMontantHT(i.montant,tvaR)});
-  if(!lignes.length) lignes.push({designation:i.titre||'Prestation',qte:1,pu:0});
+  /* v782 : « Plomberie — … » quand l'entreprise a plusieurs métiers. L'appel est GARDÉ : un banc qui extrait cette fonction seule (une quinzaine de suites, d'avant) retrouve la désignation d'avant, à l'octet ; en production `intMetierFacture` existe toujours. */
+  const _mf=(typeof intMetierFacture==='function')?intMetierFacture(i,i.titre||'Prestation'):null, _dm=(_mf&&typeof _mf.designation==='string')?_mf.designation:(i.titre||'Prestation'), _mm=(_mf&&typeof _mf.metier==='string')?_mf.metier:'';
+  if(Number(i.montant)>0) lignes.unshift({designation:_dm,qte:1,pu:intMontantHT(i.montant,tvaR)});
+  if(!lignes.length) lignes.push({designation:_dm,qte:1,pu:0});
   const pref=kind==='devis'?'DEV':'FAC'; const num=docNum(kind);
-  db[kind].push({id:uid(),num,clientId:i.clientId,creePar:(currentUser&&currentUser.id)||'',date:todayISO(),statut:'brouillon',tva:tvaR,lignes,rapportModele:i.rapportModele||'',notes:'Depuis intervention : '+(i.titre||''),interventionId:i.id,montantInt:Number(i.montant)||0});
+  db[kind].push({id:uid(),num,clientId:i.clientId,creePar:(currentUser&&currentUser.id)||'',date:todayISO(),statut:'brouillon',tva:tvaR,lignes,rapportModele:i.rapportModele||'',notes:'Depuis intervention : '+(i.titre||''),interventionId:i.id,montantInt:Number(i.montant)||0,...(_mm?{metier:_mm}:{})});
   logEvent(kind==='devis'?'Devis créé':'Facture créée',num+' (depuis intervention)','commercial'); save(); closeModal();
   if(kind==='factures'){ factFilter='brouillon'; toast('Facture '+num+' créée — elle est En attente : vérifie l\'aperçu puis envoie-la'); } else toast('Devis créé : '+num);
   go(kind);
@@ -39914,8 +39994,10 @@ function syncFactureFromIntervention(i,opts){
   const computed = paid?'payee':(i.statut==='terminee'?'envoyee':'brouillon');
   let f=factureDeIntervention(i.id), vientDePayer=false;
   if(!f){
-    f={id:uid(),num:docNum('factures'),clientId:i.clientId,interventionId:i.id,date:i.date||todayISO(),tva:tvaR,montantInt:mnt,statut:computed,lignes:[{designation:i.titre||'Prestation',qte:1,pu:ht}],rapportModele:i.rapportModele||'',moyenPaiement:i.moyenPaiement||'',
+    const _mf=(typeof intMetierFacture==='function')?intMetierFacture(i,i.titre||'Prestation'):null, _dm=(_mf&&typeof _mf.designation==='string')?_mf.designation:(i.titre||'Prestation'), _mm=(_mf&&typeof _mf.metier==='string')?_mf.metier:'';   // v782 : le métier de l'intervention, quand l'entreprise en a plusieurs (appel gardé : voir intGenererDoc)
+    f={id:uid(),num:docNum('factures'),clientId:i.clientId,interventionId:i.id,date:i.date||todayISO(),tva:tvaR,montantInt:mnt,statut:computed,lignes:[{designation:_dm,qte:1,pu:ht}],rapportModele:i.rapportModele||'',moyenPaiement:i.moyenPaiement||'',
        notes:paid?'Générée automatiquement — réglée sur place ('+i.moyenPaiement+')':'Auto — intervention : '+(i.titre||'')};
+    if(_mm) f.metier=_mm;   // la facture est du métier de l'intervention
     if(paid){ f.datePaiement=todayISO(); vientDePayer=true; }
     db.factures.unshift(f); logEvent('Facture auto créée',f.num+' ('+computed+')','finance');
   } else if(f.interventionId===i.id||f.interId===i.id){

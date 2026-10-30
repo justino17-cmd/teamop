@@ -320,7 +320,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
        prises quand la VRAIE `forfaitServeurSync` les appelle (ce banc tourne aussi sur `main`, qui n'en sert pas encore). Une
        fonction appelée sous un `try` mais absente du bac à sable lève une ReferenceError avalée : la lecture ne se ferait jamais. */
     const AVEC_CATS = /\bcatsServeurAppliquer\(/.test(SYNC5);
-    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
+    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metiersDuServeur', 'metiersReponseMulti', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
       .concat(AVEC_OPTIONS ? ['optionsCle', 'optionsLire', 'optionsPoser'] : [])
       .concat(AVEC_CATS ? ['catsServeurAppliquer', 'catsCle', 'catsConnues', 'catsListe', 'catBloque'] : []);
     const CATS_SRC = AVEC_CATS ? [(/^const CATS_TOUJOURS=[^\n]*;/m.exec(APPN) || [''])[0], 'let _cats; let _catsConnues;', 'const NAV=' + litteral(APPN, 'const NAV = [') + ';', 'const VUE_PARENT={};'].join('\n') : '';

@@ -17,6 +17,10 @@ const lire = f => fs.readFileSync(path.join(RACINE, f), 'utf8');
 const APP = nu(lire('app.html')), DEMO = lire('demo.html'), MODULE = lire('scripts/demo/demo-publique.js');
 
 const NAV = evalue(litteral(APP, 'const NAV = ['));
+/* v782 : la démonstration utilise la correspondance site → application de l'APPLICATION (`metiersDuServeur`) : on lui donne les VRAIS METIERS et les vrais packs combinés */
+const METIERS_REELS = evalue(litteral(APP, 'const METIERS={'));
+const COMBOS_REELS = evalue(litteral(APP, 'const METIERS_COMBOS=['));
+const DEPS_METIERS = { METIERS: METIERS_REELS, metierComboDe: k => COMBOS_REELS.find(c => c.k === k) || null };
 const TOUJOURS = evalue(litteral(APP, 'const CATS_TOUJOURS=['));
 const CONNUES = NAV.flatMap(s => s.items).map(i => i.k).filter(k => TOUJOURS.indexOf(k) < 0);
 /* la table des parents, recomposée comme l'application la fabrique (SOUS_CATS, FUSIONS, assistantDevis) sur les VRAIS littéraux */
@@ -25,8 +29,9 @@ const VUE_PARENT = Object.fromEntries(evalue(litteral(APP, 'const SOUS_CATS=['))
 
 console.log('\n1. L\'adresse, lue sans rien en croire');
 vrai('(population) la VRAIE liste de NAV : plus de 30 rubriques connues, planning et factures dedans, le tableau de bord dehors', CONNUES.length > 30 && CONNUES.includes('planning') && CONNUES.includes('factures') && !CONNUES.includes('dashboard'), CONNUES.length);
+const METIERS_DUSERVEUR = bac('app.html', ['metiersDuServeur'], Object.assign({}, { METIERS: METIERS_REELS, metierComboDe: k => COMBOS_REELS.find(c => c.k === k) || null })).fn.metiersDuServeur;
 const outils = bac('demo.html', ['demoPubliqueAdresse', 'demoPubliquePack', 'demoPubliqueCatsConnues', 'demoPubliqueNonChoisie'],
-  { DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60, catsConnues: () => CONNUES.slice(), VUE_PARENT, _demoSel: null });
+  Object.assign({ DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60, catsConnues: () => CONNUES.slice(), VUE_PARENT, _demoSel: null, metiersDuServeur: METIERS_DUSERVEUR }, DEPS_METIERS));
 const A = (s) => outils.fn.demoPubliqueAdresse(s, CONNUES);
 let r = A('?metier=plomberie&variante=deux&cats=planning,factures,clients');
 egal('métier, variante et rubriques lus', [r.metier, r.variante, r.cats], ['plomberie', 'deux', ['planning', 'factures', 'clients']]);
@@ -144,9 +149,9 @@ console.log('\n7. Le branchement : l\'adresse, le rangement, le semis');
   const cas = (search, stocke, base) => {
     const j = { semer: [], ecrit: [], ouvrir: 0 };
     const b = bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris', 'demoPubliqueAdresse', 'demoPubliquePack', 'demoPubliqueCatsConnues'], { window: { __demoPublique: { stockageIsole: true } }, document: { getElementById: () => ({ style: {}, innerHTML: '' }) },
-      location: { search, pathname: '/demo.html' }, history: { replaceState: () => { j.replace = true; } }, confirm: () => { j.confirm = (j.confirm || 0) + 1; return true; }, DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60,
+      location: { search, pathname: '/demo.html' }, history: { replaceState: () => { j.replace = true; } }, confirm: () => { j.confirm = (j.confirm || 0) + 1; return true; }, DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60, metiersDuServeur: METIERS_DUSERVEUR, METIERS: METIERS_REELS, metierComboDe: DEPS_METIERS.metierComboDe,
       catsConnues: () => CONNUES.slice(), demoPubliqueBouchons: () => { }, demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => (stocke && stocke.metier) || '', demoPubliqueEtatLire: () => stocke || {},
-      demoPubliqueMetiers: () => ['plomberie', 'chauffage', 'electricite'], demoPubliqueChoix: () => { j.choix = true; }, demoPubliqueSemer: (id, plus) => j.semer.push([id, plus]), demoPubliqueOuvrir: () => { j.ouvrir++; },
+      demoPubliqueMetiers: () => ['plomberie', 'chauffage', 'electricite'], demoPubliqueChoix: () => { j.choix = true; }, demoPubliqueSemer: (id, plus, plus2) => { j.semer.push([id, plus]); j.semer2 = plus2; }, demoPubliqueOuvrir: () => { j.ouvrir++; },
       demoPubliqueChoixEcrire: (id, x) => j.ecrit.push([id, x]), db: base || {}, _demoSel: null });
     b.fn.demoPubliqueBoot(); j.sel = b.scope._demoSel; return j;
   };
@@ -203,6 +208,60 @@ console.log('\n9. La fenêtre « Ton entreprise — Bienvenue ! » ne s\'ouvre p
   const hauteurs = [...MODULE.matchAll(/\.demo-bandeau button\{[^}]*min-height:(\d+)px/g)].map(m => +m[1]);
   vrai('(population) les règles de taille des boutons du bandeau sont trouvées (bureau + téléphone)', hauteurs.length >= 2, hauteurs);
   vrai('⛔ chaque bouton du bandeau mesure au moins 44 px de haut', hauteurs.length >= 2 && hauteurs.every(h => h >= 44), hauteurs);
+}
+
+
+console.log('\n9. v782 — jusqu\'à TROIS métiers dans l\'adresse (metiers=…)');
+{
+  let r = A('?metier=plomberie&metiers=plomberie,chauffage,electricite&variante=deux&cats=planning');
+  egal('metiers= lit trois clés, le principal en tête', [r.metier, r.metiers, r.variante], ['plomberie', ['plomberie', 'chauffage', 'electricite'], 'deux']);
+  r = A('?metier=plomberie');
+  egal('⛔ sans metiers= : liste vide, comportement d\'avant', r.metiers, []);
+  r = A('?metier=plomberie&metiers=plomberie,a,b,c,d,plomberie,__proto__,<x>,Ab');
+  egal('quatre clés bien formées + doublons + balisage : trois au plus, forme [a-z0-9-] seulement', r.metiers, ['plomberie', 'a', 'b']);
+  r = A('?metier=plomberie&metiers=%E0%A4%A');
+  egal('un encodage cassé ne jette pas : liste vide', r.metiers, []);
+  r = A('?metier=plomberie&metiers=' + 'a,'.repeat(300));
+  vrai('longueur bornée (200 caractères lus)', r.metiers.length <= 3, r.metiers);
+
+  const P3 = (m, v, l) => outils.fn.demoPubliquePack(m, v, l);
+  egal('plomberie + chauffage, variante « climatisation » : la climatisation remplace le chauffage (pas de chauffage)', P3('plomberie', 'climatisation', ['plomberie', 'chauffage']), { metier: 'plomberie', plus: 'climatisation', variante: 'climatisation' });
+  egal('plomberie + chauffage, variante « deux » : trois métiers, plomberie / chauffage / climatisation', P3('plomberie', 'deux', ['plomberie', 'chauffage']), { metier: 'plomberie', plus: 'chauffage', variante: 'deux', plus2: 'climatisation' });
+  egal('plomberie + chauffage, variante « chauffage » : deux métiers', P3('plomberie', 'chauffage', ['plomberie', 'chauffage']), { metier: 'plomberie', plus: 'chauffage', variante: 'chauffage' });
+  egal('chauffage « deux » puis deux autres : COUPÉ à trois, le dernier choisi tombe', P3('chauffage', 'deux', ['chauffage', 'plomberie', 'electricite']), { metier: 'chauffage', plus: 'climatisation', variante: 'deux', plus2: 'plomberie' });
+  egal('sans variante, le chauffage seul (comme avant)', P3('plomberie', '', ['plomberie', 'chauffage']), { metier: 'plomberie', plus: 'chauffage', variante: '' });
+  egal('⛔ un métier seul se comporte EXACTEMENT comme avant (aucun plus2, aucune clé de plus)', [P3('plomberie', '', []), P3('plomberie', 'deux', undefined), P3('chauffage', 'deux', [])],
+    [{ metier: 'plomberie', plus: '', variante: '' }, { metier: 'plomberie', plus: '', variante: '' }, { metier: 'chauffage', plus: 'climatisation', variante: 'deux' }]);
+  egal('un principal inconnu n\'est pas remplacé par le métier suivant (le démarrage le refuse)', P3('zzz', '', ['zzz', 'plomberie']), { metier: 'zzz', plus: '', variante: '' });
+  egal('« constructor » (une propriété d\'objet) n\'est pas un métier', P3('constructor', '', ['plomberie']), { metier: 'constructor', plus: '', variante: '' });
+  egal('une clé inconnue au milieu est ignorée, la 3D n\'est jamais « en plus »', P3('plomberie', '', ['plomberie', 'zzz', '3d', 'electricite']), { metier: 'plomberie', plus: 'electricite', variante: '' });
+
+  const cas9 = (search) => {
+    const j = { semer: [], semer2: null, ecrit: [], ouvrir: 0 };
+    const b = bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris', 'demoPubliqueAdresse', 'demoPubliquePack', 'demoPubliqueCatsConnues'], { window: { __demoPublique: { stockageIsole: true } }, document: { getElementById: () => ({ style: {}, innerHTML: '' }) },
+      location: { search, pathname: '/demo.html' }, history: { replaceState: () => { } }, confirm: () => { j.confirm = (j.confirm || 0) + 1; return true; }, DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60,
+      metiersDuServeur: METIERS_DUSERVEUR, METIERS: METIERS_REELS, metierComboDe: DEPS_METIERS.metierComboDe, catsConnues: () => CONNUES.slice(), demoPubliqueBouchons: () => { }, demoPubliqueStyle: () => { },
+      demoPubliqueChoixLire: () => '', demoPubliqueEtatLire: () => ({}), demoPubliqueMetiers: () => ['plomberie', 'chauffage', 'electricite'], demoPubliqueChoix: () => { j.choix = true; },
+      demoPubliqueSemer: (id, plus, plus2) => { j.semer.push([id, plus]); j.semer2 = plus2; }, demoPubliqueOuvrir: () => { j.ouvrir++; }, demoPubliqueChoixEcrire: (id, x) => j.ecrit.push([id, x]), db: {}, _demoSel: null });
+    b.fn.demoPubliqueBoot(); return j;
+  };
+  let j = cas9('?metier=plomberie&metiers=plomberie,chauffage&variante=climatisation&cats=planning');
+  egal('⛔ le cas de Justin : plomberie + chauffage/clim « climatisation seulement » → semé plomberie + climatisation, choix rangé avec sa variante', [j.semer, j.semer2, j.ecrit[0][1].plus, j.ecrit[0][1].variante, j.ouvrir], [[['plomberie', 'climatisation']], '', 'climatisation', 'climatisation', 1]);
+  j = cas9('?metier=plomberie&metiers=plomberie,chauffage&variante=deux');
+  egal('plomberie + « les deux » : trois métiers semés, le troisième rangé (plus2)', [j.semer, j.semer2, j.ecrit[0][1].plus2], [[['plomberie', 'chauffage']], 'climatisation', 'climatisation']);
+  j = cas9('?metier=plomberie&variante=deux');
+  egal('⛔ metier= seul (le lien d\'avant) : plomberie seule, la variante ne dit rien', [j.semer, j.semer2 || '', j.ecrit[0][1].plus2 || ''], [[['plomberie', '']], '', '']);
+  j = cas9('?metiers=plomberie,chauffage&variante=chauffage');
+  egal('metiers= sans metier= : le premier est le principal', j.semer, [['plomberie', 'chauffage']]);
+
+  /* le rangement relit plus2 avec les mêmes règles que l'adresse */
+  const lire = (etat) => bac('demo.html', ['demoPubliqueEtatLire', 'demoPubliqueCatsConnues'], { localStorage: { getItem: () => JSON.stringify(etat) }, DEMO_ETAT_CLE: 'k', DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60, METIERS: METIERS_REELS, catsConnues: () => CONNUES.slice() }).fn.demoPubliqueEtatLire();
+  egal('le rangement relit plus et plus2', lire({ metier: 'plomberie', plus: 'chauffage', plus2: 'climatisation' }), { plus: 'chauffage', plus2: 'climatisation' });
+  egal('⛔ plus2 sans plus, doublon du principal ou du plus, ou inconnu : ignoré', [lire({ metier: 'plomberie', plus2: 'climatisation' }), lire({ metier: 'plomberie', plus: 'chauffage', plus2: 'chauffage' }), lire({ metier: 'plomberie', plus: 'chauffage', plus2: 'plomberie' }), lire({ metier: 'plomberie', plus: 'chauffage', plus2: 'zzz' })],
+    [{}, { plus: 'chauffage' }, { plus: 'chauffage' }, { plus: 'chauffage' }]);
+  const sem = nu(MODULE).slice(nu(MODULE).indexOf('function demoPubliqueSemer'));
+  vrai('le semis pose metierPlus2 AVANT intTypes() et categoriesProduit(), et l\'exemple retient plus2 (changer de métiers resème)',
+    sem.indexOf('db.metierPlus2 = ') > 0 && sem.indexOf('db.metierPlus2 = ') < sem.indexOf('intTypes()') && sem.indexOf('db.metierPlus2 = ') < sem.indexOf('categoriesProduit()') && /plus2: db\.metierPlus2 \|\| ''/.test(sem));
 }
 
 console.log('\n════ test-3211 : ' + ok + ' ✓  ' + ko + ' ✗ ════');

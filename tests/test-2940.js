@@ -440,7 +440,7 @@ function suite() {
   /* 28 depuis le chauffage / climatisation (`appareils`, le parc d'appareils par client), 31 depuis le modèle des documents du métier (`docsMetier`), 30 depuis le pack nettoyage (`cahiers`, `plansPrevention`) : le semis de la démonstration publique n'en pose pas encore */
   vrai('(population) 31 collections de données dans l\'application (appareils, cahiers, plans de prévention et documents du métier compris) et 8 catégories historiques', COLLECTIONS.length === 31 && COLLECTIONS.includes('appareils') && CAT_LIST.length === 8 && INT_TYPES.length >= 10);
   let c = 0; const uid = () => 'u' + (++c);
-  const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metierId', 'metierPack', 'metiersPlusDe', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel', 'demoPubliqueJourOuvre'];
+  const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metiersDuServeur', 'metiersReponseMulti', 'metierId', 'metierPack', 'metiersPlusDe', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel', 'demoPubliqueJourOuvre'];
   const monde = () => {
     const db = {}; COLLECTIONS.forEach(k => { db[k] = []; }); db.users = []; db.produits = [];
     const traces = { save: 0, journal: [] };

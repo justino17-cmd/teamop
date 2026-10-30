@@ -33,6 +33,7 @@ function demoPubliqueChoixEcrire(id, extra) {
   const o = { metier: id, v: 1 };
   if (extra) {
     if (extra.plus) o.plus = extra.plus;
+    if (extra.plus2) o.plus2 = extra.plus2;
     if (extra.variante) o.variante = extra.variante;
     if (extra.cats && extra.cats.length) o.cats = extra.cats;
   }
@@ -62,24 +63,35 @@ function demoPubliqueAdresse(search, connues) {
     txt.split(',').forEach(function (x) { x = x.trim(); if (l.length < DEMO_CATS_MAX && (connues || []).indexOf(x) >= 0 && l.indexOf(x) < 0) l.push(x); });
     if (l.length) cats = l;
   }
-  return { metier: metier, variante: DEMO_VARIANTES.indexOf(v) >= 0 ? v : '', cats: cats };
+  /* v782 : jusqu'à trois métiers choisis sur le site (`metiers=plomberie,chauffage,electricite`, le principal en tête) — clés bien formées seulement, trois au plus */
+  const metiers = [];
+  let mt = ''; try { mt = decodeURIComponent(lire('metiers').slice(0, 200)); } catch (e) { mt = ''; }
+  mt.split(',').forEach(function (x) { x = x.trim(); if (metiers.length < 3 && /^[a-z0-9-]+$/.test(x) && metiers.indexOf(x) < 0) metiers.push(x); });
+  return { metier: metier, metiers: metiers, variante: DEMO_VARIANTES.indexOf(v) >= 0 ? v : '', cats: cats };
 }
 /* chauffage / climatisation : « deux » = le chauffage et, en complément, la climatisation (le mécanisme `metierPlus` de l'application, pack réuni) ;
-   « cvc » est le nom du pack combiné de l'application, accepté comme « deux ». Pour tout autre métier la variante ne dit rien. */
-function demoPubliquePack(metier, variante) {
-  if (metier === 'cvc') { metier = 'chauffage'; variante = 'deux'; }
-  if (metier === 'chauffage' || metier === 'climatisation') {
-    if (variante === 'deux') return { metier: 'chauffage', plus: 'climatisation', variante: 'deux' };
-    if (variante === 'climatisation') return { metier: 'climatisation', plus: '', variante: 'climatisation' };
-    if (variante === 'chauffage') return { metier: 'chauffage', plus: '', variante: 'chauffage' };
+   « cvc » est le nom du pack combiné de l'application, accepté comme « deux ». Pour tout autre métier la variante ne dit rien.
+   v782 : jusqu'à TROIS métiers — la correspondance site → application est celle de l'application (`metiersDuServeur`, la même que pour un vrai
+   client), jamais une seconde copie : principal, puis `plus`, puis `plus2`. Un principal inconnu se rend tel quel (le démarrage le refuse). */
+function demoPubliquePack(metier, variante, metiers) {
+  const connu = Object.prototype.hasOwnProperty.call(METIERS, metier) || !!(typeof metierComboDe === 'function' && metierComboDe(metier));
+  const L = connu ? metiersDuServeur({ metier: metier, metiers: metiers || [], variante: variante }) : [];
+  if (!L.length) return { metier: metier, plus: '', variante: '' };
+  const brut = [metier].concat(metiers || []);
+  let v = '';
+  if (brut.indexOf('chauffage') >= 0 || brut.indexOf('cvc') >= 0) {
+    if (DEMO_VARIANTES.indexOf(variante) >= 0 || brut.indexOf('cvc') >= 0) v = (L.indexOf('chauffage') >= 0 && L.indexOf('climatisation') >= 0) ? 'deux' : (L.indexOf('climatisation') >= 0 ? 'climatisation' : 'chauffage');
   }
-  return { metier: metier, plus: '', variante: '' };
+  const o = { metier: L[0], plus: L[1] || '', variante: v };
+  if (L[2]) o.plus2 = L[2];
+  return o;
 }
 /* le choix rangé (métier, complément, variante, rubriques cochées) — relu avec les mêmes règles que l'adresse */
 function demoPubliqueEtatLire() {
   try {
     const j = JSON.parse(localStorage.getItem(DEMO_ETAT_CLE) || 'null') || {}, connues = demoPubliqueCatsConnues(), o = {};
     if (typeof j.plus === 'string' && j.plus !== j.metier && j.plus !== '3d' && METIERS[j.plus]) o.plus = j.plus;
+    if (o.plus && typeof j.plus2 === 'string' && j.plus2 !== j.metier && j.plus2 !== j.plus && j.plus2 !== '3d' && METIERS[j.plus2]) o.plus2 = j.plus2;
     if (DEMO_VARIANTES.indexOf(j.variante) >= 0) o.variante = j.variante;
     if (Array.isArray(j.cats)) { const l = []; j.cats.forEach(function (x) { if (l.length < DEMO_CATS_MAX && connues.indexOf(x) >= 0 && l.indexOf(x) < 0) l.push(x); }); if (l.length) o.cats = l; }
     return o;
@@ -121,7 +133,7 @@ function demoPubliqueJourOuvre(iso, n) {
 
 /* Le semis. Rend vrai si la base est posée. Toute la base passe par les fonctions de l'application ; ce qui est écrit ici, ce sont
    les noms propres de l'exemple (scenarios.js) et la mise en forme de la semaine. */
-function demoPubliqueSemer(id, plus) {
+function demoPubliqueSemer(id, plus, plus2) {
   const M = METIERS[id]; if (!M) return false;
   const sc = DEMO_SCENARIOS[id] || DEMO_SCENARIO_DEFAUT;
   /* une base propre : les collections de données de l'application, par SA liste (celle du vidage de load()) */
@@ -133,7 +145,8 @@ function demoPubliqueSemer(id, plus) {
   try { metierServeurAppliquer({ metier: id }); } catch (e) { /* l'écran n'est pas encore là : db.metier est posé avant */ }
   if (db.metier !== id) db.metier = id;
   /* le complément (chauffage + climatisation) : le mécanisme « Mon entreprise fait aussi… » de l'application, posé AVANT les types, prestations et catégories qui s'en lisent */
-  db.metierPlus = (plus && plus !== id && plus !== '3d' && METIERS[plus]) ? plus : ''; db.metierPlus2 = '';
+  db.metierPlus = (plus && plus !== id && plus !== '3d' && METIERS[plus]) ? plus : '';
+  db.metierPlus2 = (db.metierPlus && plus2 && plus2 !== id && plus2 !== plus && plus2 !== '3d' && METIERS[plus2]) ? plus2 : '';
   /* toutes les rubriques du métier : pas de verrou de forfait (premium ne bloque rien) et assez de places pour essayer */
   db.forfait = 'premium'; db.forfaitQty = 10;
   db.entreprise = { nom: sc.ent, adresse: '', cp: sc.ville[1], ville: sc.ville[0], tel: demoTel(1) };
@@ -202,7 +215,7 @@ function demoPubliqueSemer(id, plus) {
     db.contrats.push({ id: uid(), num: nextNum('contrats', 'CTR', 'num'), clientId: clients[c[0]].id, titre: (M.nom || 'Contrat').split(/ [—\/] /)[0] + ' · contrat d’entretien', frequence: c[1],
       dateDebut: shiftDay(today, -60), dateFin: shiftDay(today, 300), montant: c[2], statut: 'actif', notes: '', demo: 1 });
   });
-  db.demoPublique = { metier: id, plus: db.metierPlus || '', ts: Date.now(), v: 1 };
+  db.demoPublique = { metier: id, plus: db.metierPlus || '', plus2: db.metierPlus2 || '', ts: Date.now(), v: 1 };
   try { logEvent('Démonstration', 'Exemple « ' + (M.nom || id) + ' » posé', 'admin'); } catch (e) { /* le journal ne doit pas arrêter le semis */ }
   save();
   try { ombreRelever(); } catch (e) { /* idem */ }
@@ -441,26 +454,26 @@ function demoPubliqueBoot() {
   if (window.__demoPublique && window.__demoPublique.stockageIsole === false) { demoPubliqueNonPris(); return; }
   demoPubliqueBouchons();
   demoPubliqueStyle();
-  let id = '', plus = '', variante = '', cats = null;
+  let id = '', plus = '', plus2 = '', variante = '', cats = null;
   /* le bouton du site : « Essayer la démo plombier » (métier seul) ou « Tester l'application » de la page de commande (métier, variante, rubriques cochées) */
   const adr = demoPubliqueAdresse(location.search, demoPubliqueCatsConnues());
-  const pk = adr.metier ? demoPubliquePack(adr.metier, adr.variante) : null;
+  const pk = (adr.metier || adr.metiers[0]) ? demoPubliquePack(adr.metier || adr.metiers[0], adr.variante, adr.metiers) : null;
   if (pk && (demoPubliqueMetiers().indexOf(pk.metier) >= 0 || (pk.metier === 'climatisation' && pk.variante === 'climatisation'))) {
-    id = pk.metier; plus = pk.plus; variante = pk.variante; cats = adr.cats;
+    id = pk.metier; plus = pk.plus; plus2 = pk.plus2 || ''; variante = pk.variante; cats = adr.cats;
     /* ⛔ suivre le lien d'un AUTRE métier remplace les essais du visiteur : on le demande, comme « Changer de métier » */
     const deja = demoPubliqueChoixLire(), etat = demoPubliqueEtatLire();
-    if (deja && (deja !== id || (etat.plus || '') !== plus) && db.demoPublique && db.demoPublique.metier === deja && !confirm('Passer à ce métier ?\n\nVos essais sur cet appareil sont remplacés par l’exemple du nouveau métier.')) {
-      id = deja; plus = etat.plus || ''; variante = etat.variante || ''; cats = etat.cats || null;
+    if (deja && (deja !== id || (etat.plus || '') !== plus || (etat.plus2 || '') !== plus2) && db.demoPublique && db.demoPublique.metier === deja && !confirm('Passer à ce métier ?\n\nVos essais sur cet appareil sont remplacés par l’exemple du nouveau métier.')) {
+      id = deja; plus = etat.plus || ''; plus2 = etat.plus2 || ''; variante = etat.variante || ''; cats = etat.cats || null;
       try { history.replaceState(null, '', location.pathname); } catch (e) { /* idem */ }
     }
   } else {
     id = demoPubliqueChoixLire();
-    if (id) { const etat = demoPubliqueEtatLire(); plus = etat.plus || ''; variante = etat.variante || ''; cats = etat.cats || null; }
+    if (id) { const etat = demoPubliqueEtatLire(); plus = etat.plus || ''; plus2 = etat.plus2 || ''; variante = etat.variante || ''; cats = etat.cats || null; }
   }
   if (!id) { demoPubliqueChoix(); return; }
-  const semee = db.demoPublique && db.demoPublique.metier === id && (db.demoPublique.plus || '') === plus && (db.techniciens || []).length > 0;
-  demoPubliqueChoixEcrire(id, { plus: plus, variante: variante, cats: cats });
+  const semee = db.demoPublique && db.demoPublique.metier === id && (db.demoPublique.plus || '') === plus && (db.demoPublique.plus2 || '') === plus2 && (db.techniciens || []).length > 0;
+  demoPubliqueChoixEcrire(id, { plus: plus, plus2: plus2, variante: variante, cats: cats });
   _demoSel = cats ? { cats: cats } : null;
-  if (!semee) demoPubliqueSemer(id, plus);
+  if (!semee) demoPubliqueSemer(id, plus, plus2);
   demoPubliqueOuvrir();
 }

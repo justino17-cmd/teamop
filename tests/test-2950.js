@@ -153,7 +153,7 @@ vrai('(population) l\'écart déclaré de titre est bien celui d\'app.html : ' +
 console.log('\n6. Les vraies fonctions, jouées pour chacun des 23 métiers');
 {
   const A = a1, N = A.N;
-  const NOMS = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'metierSet', 'metierServeurAppliquer', 'metierResidu', 'metierResiduRetirer', 'slugNom', 'idCatalogue'];
+  const NOMS = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'metierSet', 'metierServeurAppliquer', 'metiersDuServeur', 'metiersReponseMulti', 'metierResidu', 'metierResiduRetirer', 'slugNom', 'idCatalogue'];
   const FN = NOMS.map(n => fonction(N, n));
   vrai('(population) les huit fonctions sont trouvées dans le fichier réel', FN.every(Boolean), NOMS.filter((n, i) => !FN[i]).join(', '));
   const monter = (beta, base) => {
