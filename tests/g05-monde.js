@@ -25,11 +25,11 @@ const FONCTIONS = ['factureDeIntervention', 'intTvaFacture', 'intMontantHT', 'sy
   'intRegistreEncaisse', 'factureAFacturer', 'interAFacturer', 'regAdd', 'regDeLInter', 'regModeDe', 'docTot', 'intRecaleAuJourFait',
   'intRecaleDefaire', 'intHisto', 'intTechIds', 'intStatutPermis', 'saveRapport', 'assistFinish', 'assistCloture', 'asKeepSigs', 'intSetStatutDo',
   'intEffToggle', 'intTerminerPrevu', 'intGenererDoc', 'intInfOf', 'intEffectuer', 'formRapport', 'intRepasseNonTerminee', 'intInfestationConstat',
-  'interReglee', 'interDejaRegle', 'intMoyenPaiementOptions', 'saveIntervention', 'facturesAEditer',
+  'interReglee', 'interDejaRegle', 'intMoyenPaiementOptions', 'moyensPaiement', 'moyensPaiementOptions', 'saveIntervention', 'facturesAEditer',
   /* assistCloture garde l'empreinte de son ouverture (« Fermer » sait s'il y a une saisie à perdre) depuis un autre lot : les vraies, pas un double */
   'asEmpreinte', 'asSigsVives', 'assistModifie'];
 const CODE = FONCTIONS.map(fonction).filter(Boolean).join('\n');
-const CONSTS = ['const ligTotLigne=', 'const ligHT=', 'const MOYENS_PAIEMENT =', 'const esc ='].map(ligne).join('\n');
+const CONSTS = ['const ligTotLigne=', 'const ligHT=', 'const MOYENS_PAIEMENT =', 'const MOYENS_PAIEMENT_NEUTRES =', 'const esc ='].map(ligne).join('\n') + '\nfunction estMetier3D(){ return globalThis.__metier3d!==false; }';
 
 /* opts : { db, moi, droits:{ 'int.modifier':false, … }, voit:{ factures:false }, moiTech } */
 function monde(opts) {
@@ -69,7 +69,7 @@ function monde(opts) {
     function techName(id){ return id||''; }
     function docNum(kind){ var p=kind==='devis'?'DEV':'FAC'; return p+'-2026-'+String((db[kind]||[]).length+1).padStart(3,'0'); }
     function intRecurNext(){ return ''; }
-    function rapportSociete(){ return 'Entreprise'; } function docMailOpts(){ return undefined; }
+function docMentionsManquantes(){ return []; } function docMentionsGarde(){ return true; }     function rapportSociete(){ return 'Entreprise'; } function docMailOpts(){ return undefined; }
     async function docPdfChaine(){ return ''; }
     async function srvMail(to,sujet,corps){ __mails.push({to,sujet,corps}); return true; }
     function regMigration(){}

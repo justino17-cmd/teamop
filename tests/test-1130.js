@@ -35,7 +35,7 @@ function monde(clients, interventions) {
     db: { clients, interventions: interventions || [], devis: [], factures: [] }, currentUser: { id: 'u1', role: 'admin' },
     __saves: 0 };
   vm.createContext(ctx);
-  vm.runInContext(`${ESC.replace('const ', 'var ')}\n${INI.replace('const ', 'var ')}\n${NM.replace('const ', 'var ')}\n${ETAT}\n${ETAT2}\n${AT}\n${TC}\n${CP}\n${TG}\n${ES}
+  vm.runInContext(`${ESC.replace('const ', 'var ')}\n${INI.replace('const ', 'var ')}\n${NM.replace('const ', 'var ')}\n${ETAT}\n${ETAT2}\n${AT}\n${TC}\n${CP}\n${TG}\nvar boxTxt = function (s) { return s; };\n${ES}
     function $(id){ return id==='content' ? __page : (id==='cli-liste' ? __liste : { value:'', focus(){}, innerHTML:'' }); }
     function setHeader(t,s){ __sub=s; } function can(){ return true; } function visibleClients(l){ return l; }
     function save(){ __saves++; } function openTagEditor(){}

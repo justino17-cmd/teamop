@@ -263,7 +263,8 @@ function fenetre(opts) {
   }
   console.log('\n   — le code du semis lui-même (commentaires retirés)');
   { const code = nu(MODULE + SCEN).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-    egal('aucun appel réseau dans le module de la démonstration : ni fetch(, ni XMLHttpRequest, ni sendBeacon, ni WebSocket, ni adresse http', [/\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|https?:\/\//.test(code)], [false]);
+    egal('aucun appel réseau dans le module de la démonstration : ni fetch(, ni XMLHttpRequest, ni sendBeacon, ni WebSocket, ni adresse http', [/\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|https?:\/\//.test(code.split("'https://teamop.fr'").join(''))], [false]);
+    vrai('(la seule adresse écrite dans le module) \'https://teamop.fr\' ne sert que de DESTINATAIRE d\'un postMessage vers l\'onglet du site (jamais un jeton "*") : aucun envoi réseau', code.split("'https://teamop.fr'").length === 2 && /\.postMessage\([^;]*,\s*'https:\/\/teamop\.fr'\)/.test(code) && !/postMessage\([^;]*'\*'/.test(code));
     egal('⛔ un produit naît par produitCreer(…, {semis:true}) : jamais db.produits.push dans le semis', [/db\.produits\.push\(/.test(code), /produitCreer\(\{[^]*?\},\s*\{\s*semis:\s*true\s*\}\)/.test(code)], [false, true]);
     vrai('le métier se règle par metierServeurAppliquer (la fonction de la Tour), les types par intTypes(), les catégories par categoriesProduit() : aucune liste recopiée dans le semis',
       /metierServeurAppliquer\(\{\s*metier:\s*id\s*\}\)/.test(code) && /intTypes\(\)/.test(code) && /categoriesProduit\(\)/.test(code) && !/INT_TYPES\b|CAT_LIST\b/.test(code));
@@ -309,7 +310,7 @@ function fenetre(opts) {
     vrai('⛔ sans vue posée, le pare-feu n\'écrit PAS top_monitor_off sur le vrai rangement (il éteindrait la sentinelle de la vraie application) — et le note', mauvais.real._m.top_monitor_off === undefined
       && Object.keys(mauvais.real._m).every(k => !/top_monitor/.test(k)) && mauvais.W.__demoPublique.refus.some(r => r.genre === 'stockage'), Object.keys(mauvais.real._m));
     const appels = []; const els = {}; const el = id => (els[id] = els[id] || { style: {}, innerHTML: '' });
-    const mk = stockageIsole => bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris'], { window: { __demoPublique: { stockageIsole } }, document: { getElementById: el }, location: { search: '', pathname: '/demo.html' },
+    const mk = stockageIsole => bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris', 'demoPubliqueAdresse', 'demoPubliquePack'], { DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60, demoPubliqueCatsConnues: () => ['planning', 'clients'], demoPubliqueEtatLire: () => ({}), window: { __demoPublique: { stockageIsole } }, document: { getElementById: el }, location: { search: '', pathname: '/demo.html' },
       demoPubliqueBouchons: () => appels.push('bouchons'), demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => '', demoPubliqueMetiers: () => ['3d'], demoPubliqueChoix: () => appels.push('choix'),
       demoPubliqueSemer: () => appels.push('semer'), demoPubliqueOuvrir: () => appels.push('ouvrir'), demoPubliqueChoixEcrire: () => { }, db: {} });
     mk(false).fn.demoPubliqueBoot();
@@ -322,7 +323,7 @@ function fenetre(opts) {
   {
     const cas = (search, deja, base, accepte) => {
       const j = { confirm: 0, semer: [], ecrit: [], ouvrir: 0 };
-      const b = bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris'], { window: { __demoPublique: { stockageIsole: true } }, document: { getElementById: () => ({ style: {}, innerHTML: '' }) }, location: { search, pathname: '/demo.html' },
+      const b = bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris', 'demoPubliqueAdresse', 'demoPubliquePack'], { DEMO_VARIANTES: ['deux', 'chauffage', 'climatisation'], DEMO_CATS_MAX: 60, demoPubliqueCatsConnues: () => ['planning', 'clients'], demoPubliqueEtatLire: () => ({}), window: { __demoPublique: { stockageIsole: true } }, document: { getElementById: () => ({ style: {}, innerHTML: '' }) }, location: { search, pathname: '/demo.html' },
         history: { replaceState: () => { j.replace = true; } }, confirm: () => { j.confirm++; return accepte; }, demoPubliqueBouchons: () => { }, demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => deja,
         demoPubliqueMetiers: () => ['3d', 'plomberie', 'chauffage'], demoPubliqueChoix: () => { j.choix = true; }, demoPubliqueSemer: id => j.semer.push(id), demoPubliqueOuvrir: () => { j.ouvrir++; },
         demoPubliqueChoixEcrire: id => j.ecrit.push(id), db: base });
@@ -425,7 +426,7 @@ function suite() {
   vrai('le fichier de scénarios est recopié TEL QUEL dans demo.html, comme le module et le pare-feu', DEMO.indexOf(SCEN) > 0 && DEMO.indexOf(MODULE) > 0 && DEMO.indexOf(PARE) > 0);
   egal('⛔ la liste des métiers FERMÉS de la démonstration est celle que tests/metiers-publics.js nomme « pas encore ouverts » (quand le site les ouvre, les deux se vident ensemble)', CONSTS.DEMO_METIERS_FERMES, PUBLICS.PAS_ENCORE_OUVERTS);
   const OUVERTS = ORDRE.filter(k => CONSTS.DEMO_METIERS_FERMES.indexOf(k) < 0);
-  vrai('(population) 23 métiers dans l\'application ; proposés + fermés = 23, et les fermés sont ceux que le site n\'ouvre pas', ORDRE.length === 23 && OUVERTS.length + CONSTS.DEMO_METIERS_FERMES.length === 23 && OUVERTS.length >= 13);
+  vrai('(population) 24 métiers dans l\'application ; proposés + fermés = 24, et les fermés sont ceux que le site n\'ouvre pas', ORDRE.length === 24 && OUVERTS.length + CONSTS.DEMO_METIERS_FERMES.length === 24 && OUVERTS.length >= 13);
   egal('chaque métier proposé a SON exemple ; aucun exemple pour un métier fermé (pas de donnée écrite pour rien)', [OUVERTS.filter(k => !DEMO_SCENARIOS[k]), Object.keys(DEMO_SCENARIOS).filter(k => OUVERTS.indexOf(k) < 0)], [[], []]);
 
   console.log('\n6. Le vrai semis, pour chaque métier (les vraies fonctions de l\'application et du module)');
@@ -436,10 +437,10 @@ function suite() {
   const COLLECTIONS = evalue(litteral(N, 'const COLLECTIONS_DONNEES=['));
   const INT_TYPES = evalue(litteral(N, 'const INT_TYPES = ['));
   const CAT_LIST = evalue(litteral(N, 'const CAT_LIST=['));
-  /* 28 depuis le chauffage / climatisation (`appareils`, le parc d'appareils par client) : le semis de la démonstration n'en pose pas encore */
-  vrai('(population) 28 collections de données dans l\'application (appareils compris) et 8 catégories historiques', COLLECTIONS.length === 28 && COLLECTIONS.includes('appareils') && CAT_LIST.length === 8 && INT_TYPES.length >= 10);
+  /* 28 depuis le chauffage / climatisation (`appareils`, le parc d'appareils par client), 31 depuis le modèle des documents du métier (`docsMetier`), 30 depuis le pack nettoyage (`cahiers`, `plansPrevention`) : le semis de la démonstration publique n'en pose pas encore */
+  vrai('(population) 31 collections de données dans l\'application (appareils, cahiers, plans de prévention et documents du métier compris) et 8 catégories historiques', COLLECTIONS.length === 31 && COLLECTIONS.includes('appareils') && CAT_LIST.length === 8 && INT_TYPES.length >= 10);
   let c = 0; const uid = () => 'u' + (++c);
-  const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metierId', 'metierPack', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel', 'demoPubliqueJourOuvre'];
+  const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metiersDuServeur', 'metiersReponseMulti', 'metierId', 'metierPack', 'metiersPlusDe', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel', 'demoPubliqueJourOuvre'];
   const monde = () => {
     const db = {}; COLLECTIONS.forEach(k => { db[k] = []; }); db.users = []; db.produits = [];
     const traces = { save: 0, journal: [] };
@@ -448,6 +449,23 @@ function suite() {
   };
   const MOTS_3D = /d[ée]ratis|d[ée]sinsect|punaise|rongeur|nuisible|blatte|frelon|gu[êe]pe|rodenticide|insecticide|xylophag|certibiocide|biocide|souris|\brats?\b/i;
   const TYPES_3D_SEULS = INT_TYPES.filter(t => !OUVERTS.some(k => k !== '3d' && (METIERS[k].types || []).indexOf(t) >= 0));
+  /* v782 : jusqu'à TROIS métiers dans l'exemple — le semis les pose AVANT les types et les catégories (la même fonction que le réglage d'une vraie entreprise) */
+  {
+    const sem = (id, p1, p2) => { const w = monde(); const fait = w.b.fn.demoPubliqueSemer(id, p1, p2); return { db: w.db, fn: w.b.fn, fait }; };
+    let w = sem('plomberie', 'chauffage', 'climatisation');
+    vrai('v782 : trois métiers semés — db.metier / metierPlus / metierPlus2 posés, l\'exemple les retient (changer de métiers resème)', w.fait && w.db.metier === 'plomberie' && w.db.metierPlus === 'chauffage' && w.db.metierPlus2 === 'climatisation'
+      && w.db.demoPublique.plus === 'chauffage' && w.db.demoPublique.plus2 === 'climatisation', [w.db.metier, w.db.metierPlus, w.db.metierPlus2, w.db.demoPublique]);
+    const T3 = w.fn.intTypes();
+    vrai('… et les types d\'intervention sont la RÉUNION des trois packs (un type de la climatisation que la plomberie n\'a pas)', (METIERS.climatisation.types || []).some(t => (METIERS.plomberie.types || []).indexOf(t) < 0 && T3.indexOf(t) >= 0) && (METIERS.chauffage.types || []).some(t => (METIERS.plomberie.types || []).indexOf(t) < 0 && T3.indexOf(t) >= 0), T3.length);
+    w = sem('plomberie', 'chauffage');
+    vrai('v782 : deux métiers seulement — plus2 reste vide', w.db.metierPlus === 'chauffage' && w.db.metierPlus2 === '' && w.db.demoPublique.plus2 === '', [w.db.metierPlus, w.db.metierPlus2]);
+    w = sem('plomberie', '', 'climatisation');
+    vrai('v782 : un second associé sans le premier est ignoré (jamais de plus2 sans plus)', w.db.metierPlus === '' && w.db.metierPlus2 === '', [w.db.metierPlus, w.db.metierPlus2]);
+    w = sem('plomberie', 'chauffage', 'chauffage');
+    vrai('v782 : le même métier deux fois, ou le principal en associé, ne s\'écrit pas', w.db.metierPlus === 'chauffage' && w.db.metierPlus2 === '', [w.db.metierPlus, w.db.metierPlus2]);
+    w = sem('plomberie', 'chauffage', '3d');
+    vrai('v782 : la 3D n\'est jamais « en plus »', w.db.metierPlus2 === '', w.db.metierPlus2);
+  }
   const rapports = {};
   [...OUVERTS, ...ORDRE.filter(k => OUVERTS.indexOf(k) < 0)].forEach(k => {
     const { db, traces, b } = monde(); const fn = b.fn;
@@ -506,7 +524,7 @@ function suite() {
     egal((OUVERTS.indexOf(k) >= 0 ? 'métier proposé' : 'métier fermé (le semis tient aussi)') + ' « ' + k + ' » : ' + db.techniciens.length + ' techniciens, ' + db.clients.length + ' clients, ' + db.interventions.length + ' interventions, ' + db.produits.length + ' produits, '
       + db.devis.length + ' devis, ' + db.factures.length + ' factures — tous aux types, catégories et mots du métier', f, []);
   });
-  vrai('(population) 23 métiers semés, dont ' + OUVERTS.length + ' proposés', Object.keys(rapports).length === 23);
+  vrai('(population) 24 métiers semés, dont ' + OUVERTS.length + ' proposés', Object.keys(rapports).length === 24);
   /* la contre-épreuve du détecteur de mots : il VOIT l'anti-nuisibles quand on en pose un */
   { const { db, b } = monde(); b.fn.demoPubliqueSemer('plomberie'); db.interventions[0].titre = 'Dératisation'; vrai('(contre-épreuve) le détecteur de mots de l\'anti-nuisibles voit une dératisation posée chez un plombier', MOTS_3D.test(JSON.stringify(db.interventions))); }
   { const { db, b } = monde(); b.fn.demoPubliqueSemer('3d'); vrai('(contre-épreuve) la 3D, elle, garde ses types (Dératisation…) : le semis ne vide pas le métier d\'origine', db.interventions.some(i => /Dératisation|Désinsectisation/.test(i.type))); }

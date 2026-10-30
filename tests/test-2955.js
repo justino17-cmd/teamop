@@ -23,7 +23,7 @@ const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b
 const BIOCIDE = /biocide|certibiocide|\bAMM\b|animaux domestiques/i;
 const HORS = ['plomberie', 'chauffage', 'incendie', 'piscine', 'autre'];
 const TOUS = ['3d'].concat(HORS);
-const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'libZones', 'mentionRegl', 'ammVisible', 'prodLineAmm', 'rapportProduitsLibres'];
+const NOMS_BASE = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'exemple', 'intTypes', 'libZones', 'mentionRegl', 'ammVisible', 'prodLineAmm', 'rapportProduitsLibres'];
 
 (async () => {
 for (const fichier of ['app.html', 'beta.html']) {
@@ -60,7 +60,7 @@ for (const fichier of ['app.html', 'beta.html']) {
       devisIACode: () => '', norm: s => String(s || '').toLowerCase() };
     return { db, sortie, init };
   };
-  const essai = (m, noms, lignes, extra) => { const w = monde(m, lignes); const b = bac(fichier, NOMS_BASE.concat(fichier === 'beta.html' ? ['exemple'] : []).concat(noms), Object.assign(w.init, extra || {})); return Object.assign(w, { b }); };
+  const essai = (m, noms, lignes, extra) => { const w = monde(m, lignes); const b = bac(fichier, NOMS_BASE.concat(noms), Object.assign(w.init, extra || {})); return Object.assign(w, { b }); };
   const joue = (m, noms, lignes, appel, extra) => { try { const w = essai(m, noms, lignes, extra); const r = appel(w); return { w, html: w.sortie.html, r }; } catch (e) { return { erreur: String(e && e.stack || e).split('\n').slice(0, 3).join(' | ') }; } };
   const ASYNC = async (m, noms, lignes, appel, extra) => { try { const w = essai(m, noms, lignes, extra); const r = await appel(w); return { w, html: w.sortie.html, r }; } catch (e) { return { erreur: String(e && e.stack || e).split('\n').slice(0, 3).join(' | ') }; } };
   /* le texte dessiné par un PDF écrit à la main : chaque « (…) Tj » */
@@ -132,18 +132,16 @@ for (const fichier of ['app.html', 'beta.html']) {
   { const R = {}; TOUS.forEach(m => { R[m] = joue(m, ['devisIAModal'], [], w => w.b.fn.devisIAModal()); });
     vrai('(population) la fenêtre se rend pour les six métiers', TOUS.every(m => /dia-demande/.test(R[m].html || '')), TOUS.filter(m => !R[m].html).map(m => m + ' : ' + R[m].erreur));
     vrai('⛔ la 3D garde son exemple À L\'IDENTIQUE', /placeholder="Ex : dératisation d'un restaurant de 120 m² avec cave, 8 postes d'appâtage, 3 passages sur 2 mois, à Strasbourg"/.test(R['3d'].html));
-    if (fichier === 'beta.html') { egal('⛔ hors 3D : un exemple tiré du premier type d\'intervention du métier, sans dératisation ni appâtage', HORS.filter(m => { const ph = (/id="dia-demande"[^>]*placeholder="([^"]*)"/.exec(R[m].html) || [])[1] || ''; return !(({ plomberie: 'remplacement d’un chauffe-eau électrique', chauffage: 'remplacement d’une chaudière gaz' })[m] ? ph.includes(({ plomberie: 'remplacement d’un chauffe-eau électrique', chauffage: 'remplacement d’une chaudière gaz' })[m]) : ph.includes(METIERS[m].types[0])) || /dératis|appât|restaurant|cave/i.test(ph); }), []); } else { egal('⛔ hors 3D : un exemple tiré du premier type d\'intervention du métier, sans dératisation ni appâtage', HORS.filter(m => { const ph = (/id="dia-demande"[^>]*placeholder="([^"]*)"/.exec(R[m].html) || [])[1] || ''; return !ph.includes(METIERS[m].types[0]) || /dératis|appât|restaurant|cave/i.test(ph); }), []); } }
+    egal('⛔ hors 3D : un exemple tiré du premier type d\'intervention du métier, sans dératisation ni appâtage', HORS.filter(m => { const ph = (/id="dia-demande"[^>]*placeholder="([^"]*)"/.exec(R[m].html) || [])[1] || ''; return !(({ plomberie: 'remplacement d’un chauffe-eau électrique', chauffage: 'remplacement d’une chaudière gaz' })[m] ? ph.includes(({ plomberie: 'remplacement d’un chauffe-eau électrique', chauffage: 'remplacement d’une chaudière gaz' })[m]) : ph.includes(METIERS[m].types[0])) || /dératis|appât|restaurant|cave/i.test(ph); }), []); /* v779 : la plomberie et le chauffage ont leur exemple écrit pour eux */ }
 
   /* ── 7. un écran du masque dont l'entreprise a déjà des données reste ouvert ── */
   console.log('\n7. metierBloque : ce qui est saisi se lit');
-  { const bl = (m, donnees, beta) => { const w = monde(m); Object.assign(w.db, donnees || {}); w.init.BETA_ESSAI = !!beta; const b = bac(fichier, NOMS_BASE.concat(fichier === 'beta.html' ? ['exemple'] : []).concat(['metierBloque']), w.init); return k => b.fn.metierBloque(k); };
+  { const bl = (m, donnees, beta) => { const w = monde(m); Object.assign(w.db, donnees || {}); w.init.BETA_ESSAI = !!beta; const b = bac(fichier, NOMS_BASE.concat(['metierBloque']), w.init); return k => b.fn.metierBloque(k); };
     egal('⛔ la 3D ne ferme rien ; hors 3D les six rubriques du masque sont fermées SANS données', [bl('3d')('enveloppes'), HORS.map(m => ['registre', 'carteBox', 'devisXylo', 'boxes', 'saisieConso', 'enveloppes'].map(k => bl(m)(k)))], [false, HORS.map(() => [true, true, true, true, true, true])]);
     egal('   des enveloppes déjà rangées : « Enveloppes » reste ouvert hors 3D (les autres rubriques restent fermées)', HORS.map(m => { const f = bl(m, { enveloppes: [{ id: 'e1' }] }); return [f('enveloppes'), f('boxes'), f('registre'), f('saisieConso')]; }), HORS.map(() => [false, true, true, true]));
     egal('   des mouvements de box : « Consommation produits » reste ouvert ; ceux du seul stockage ne l\'ouvrent pas', HORS.map(m => [bl(m, { mouvements: [{ id: 'm1', boxId: 'b1' }] })('saisieConso'), bl(m, { mouvements: [{ id: 'm1', boxId: 'stockage' }] })('saisieConso'), bl(m, { mouvements: [{ id: 'm1', boxId: '' }] })('saisieConso')]), HORS.map(() => [false, true, true]));
-    if (fichier === 'beta.html') {
-      egal('   la bêta, métier 3D : voit tout (comme avant)', bl('3d', {}, true)('boxes'), false);
-      egal('   la bêta, métier autre : le masque du métier s\'applique (v778 — « Tester un métier » montre ce que verra le client)', HORS.map(m => bl(m, {}, true)('enveloppes')), HORS.map(() => true));
-    } else egal('   la bêta voit tout (comme avant)', HORS.map(m => bl(m, {}, true)('enveloppes')), HORS.map(() => false)); }
+    egal('   la bêta, métier 3D : voit tout (comme avant)', bl('3d', {}, true)('boxes'), false);
+    egal('   la bêta, métier autre : le masque du métier s\'applique (v778 — « Tester un métier » montre ce que verra le client)', HORS.map(m => bl(m, {}, true)('enveloppes')), HORS.map(() => true)); }
 
   /* ── 8. une fiche produit sans catégorie garde « Sans catégorie » ── */
   console.log('\n8. formProduit : la catégorie vide ne change pas en silence');

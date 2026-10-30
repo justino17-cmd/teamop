@@ -19,7 +19,6 @@ const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b
 
 /* Les huit couleurs historiques de la 3D, telles qu'elles étaient le 22 octobre 2026 : elles ne bougent pas. */
 const COULEURS_3D = { 'TP18 — Insecticide': '#EF9F27', 'TP14 — Rodenticide': '#E24B4A', 'Xylophage': '#8B5A2B', 'Piégeage': '#BA7517', 'Matériel': '#378ADD', 'EPI': '#1D9E75', 'Proofing': '#7F77DD', 'Désinfection': '#5DCAA5' };
-const { BETA_SEULE } = require('./beta-en-avance.js');   // les métiers que seule la bêta connaît (déclarés : tests/beta-en-avance.js)
 const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 for (const fichier of ['app.html', 'beta.html']) {
@@ -28,16 +27,15 @@ for (const fichier of ['app.html', 'beta.html']) {
   const METIERS = evalue(litteral(N, 'const METIERS={')), ORDRE = evalue(litteral(N, 'const METIERS_ORDRE=[')), CAT_LIST = evalue(litteral(N, 'const CAT_LIST=['));
   const HORS = ORDRE.filter(k => k !== '3d');
   const appels = [];
-  const monter = (m, noms, extra, blocs) => bac(fichier, ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'categoriesProduit', 'categorieListe'].concat(noms || []),
+  const monter = (m, noms, extra, blocs) => bac(fichier, ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'categoriesProduit', 'categorieListe'].concat(noms || []),
     Object.assign({ METIERS, CAT_LIST, BETA_ESSAI: false, norm, db: { metier: m, produits: [] }, esc: s => String(s == null ? '' : s), rangerCatFour: (c, n) => { appels.push([c, n]); return 'TP18 — Insecticide'; } }, extra || {}), blocs);
 
   console.log('\n1. categoriesProduit : la liste du métier');
-  const NB = 23 + (fichier === 'beta.html' ? BETA_SEULE.length : 0);   // app.html : les 23 de la production ; beta.html : + ceux que seule la bêta connaît
-  vrai('(population) ' + NB + ' métiers, dont ' + (NB - 1) + ' avec leur propre liste', ORDRE.length === NB && HORS.length === NB - 1 && BETA_SEULE.every(k => (ORDRE.indexOf(k) >= 0) === (fichier === 'beta.html')) && HORS.every(k => Array.isArray(METIERS[k].produits) && METIERS[k].produits.length >= 4));
+  vrai('(population) 24 métiers (la climatisation, 29 octobre 2026), dont 23 avec leur propre liste', ORDRE.length === 24 && HORS.every(k => Array.isArray(METIERS[k].produits) && METIERS[k].produits.length >= 4));
   const b3 = monter('3d');
   vrai('⛔ la 3D rend LA MÊME liste que CAT_LIST (même objet, huit catégories, même ordre) — rien ne change pour ELAN', b3.fn.categoriesProduit() === b3.scope.CAT_LIST && b3.fn.categoriesProduit().length === 8 && b3.fn.categoriesProduit()[0] === 'TP18 — Insecticide');
-  egal('⛔ les ' + HORS.length + ' autres rendent chacun SA liste, celle du référentiel', HORS.filter(k => JSON.stringify(monter(k).fn.categoriesProduit()) !== JSON.stringify(METIERS[k].produits)), []);
-  egal('   aucune des ' + HORS.length + ' listes ne contient une catégorie de l\'anti-nuisibles (TP14, TP18, xylophage, piégeage, proofing)', HORS.filter(k => METIERS[k].produits.some(c => /TP ?1[48]|xylophag|pi[ée]geage|proofing|rodent|insecticide/i.test(c))), []);
+  egal('⛔ les 23 autres rendent chacun SA liste, celle du référentiel', HORS.filter(k => JSON.stringify(monter(k).fn.categoriesProduit()) !== JSON.stringify(METIERS[k].produits)), []);
+  egal('   aucune des 23 listes ne contient une catégorie de l\'anti-nuisibles (TP14, TP18, xylophage, piégeage, proofing)', HORS.filter(k => METIERS[k].produits.some(c => /TP ?1[48]|xylophag|pi[ée]geage|proofing|rodent|insecticide/i.test(c))), []);
   egal('   sans métier réglé ou avec un métier inconnu : la 3D, comme partout (les entreprises d\'avant le choix du métier)', [monter(undefined).fn.categoriesProduit() === CAT_LIST, monter('boulangerie').fn.categoriesProduit() === CAT_LIST, b3.fn.categoriesProduit({ metier: 'piscine' }).length], [true, true, METIERS.piscine.produits.length]);
 
   console.log('\n2. Les couleurs : une par catégorie, jamais deux pareilles dans un métier');
@@ -46,7 +44,7 @@ for (const fichier of ['app.html', 'beta.html']) {
     vrai('(population) la fabrique de couleurs et les huit couleurs historiques se lisent dans le CODE', bloc.length > 200 && origine.length > 50 && /\(function\(\)\{ METIERS_ORDRE\.forEach/.test(bloc));
     const CAT_COLORS = new Function('METIERS', 'METIERS_ORDRE', origine + '\n' + bloc + '\nreturn CAT_COLORS;')(METIERS, ORDRE);
     egal('⛔ les huit couleurs de la 3D sont EXACTEMENT celles d\'avant', Object.keys(COULEURS_3D).filter(c => CAT_COLORS[c] !== COULEURS_3D[c]), []);
-    egal('⛔ chaque catégorie des ' + HORS.length + ' métiers a une couleur (un hexadécimal)', HORS.flatMap(k => METIERS[k].produits.filter(c => !/^#[0-9A-Fa-f]{6}$/.test(CAT_COLORS[c] || '')).map(c => k + ' : ' + c)), []);
+    egal('⛔ chaque catégorie des 23 métiers a une couleur (un hexadécimal)', HORS.flatMap(k => METIERS[k].produits.filter(c => !/^#[0-9A-Fa-f]{6}$/.test(CAT_COLORS[c] || '')).map(c => k + ' : ' + c)), []);
     egal('⛔ dans un même métier, deux catégories ne se confondent jamais', HORS.filter(k => new Set(METIERS[k].produits.map(c => CAT_COLORS[c])).size !== METIERS[k].produits.length), []);
     egal('   une catégorie partagée avec la 3D (« EPI ») garde sa couleur partout', HORS.filter(k => METIERS[k].produits.includes('EPI') && CAT_COLORS.EPI !== COULEURS_3D.EPI), []); }
 

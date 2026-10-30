@@ -76,7 +76,7 @@ function monde(opts) {
   vm.createContext(ctx);
   vm.runInContext(`
     var db = { users: [], boxes: [], vehicules: [], profilsDroits: [] };
-    function planBloque(k){ return __plan.includes(k); } function metierBloque(){ return false; } function catBloque(){ return false; }
+    function planBloque(k){ return __plan.includes(k); } function metierBloque(){ return false; } function capTxt(s){ return s; } function sansBox(){ return false; } function catBloque(){ return false; }
     function rubExplication(){ return ''; } function rubExplHtml(){ return ''; }   /* v773 : les explications des rubriques sont le sujet de test-2953 */
     function logEvent(){} function save(){} function toast(){} function t(x){ return x; }
     function estStockage(){ return false; } function showAside(){ return false; }
@@ -352,7 +352,7 @@ console.log('\n── 821 · 7. ⛔⛔ (v754) « ＋ Nouveau profil » part TOUT
   v('… profilVierge ne pose aucune case déduite', Object.keys(vierge.caps).filter(k => k.startsWith('cat_') ? !!Mn.catDeduitRegle(k.split('_')[1], k.split('_')[2]) : !!Mn.capDeduitRegle(k)), []);
   const lu = Mn.profilLireZone(zoneDe(h));
   v('⛔⛔ « Enregistrer » sans rien toucher : aucun menu, aucun droit à OUI', Object.entries(lu.modules).concat(Object.entries(lu.caps)).filter(([, x]) => x).map(([k]) => k), []);
-  vrai('… et les menus sont bien écrits (à NON), pas oubliés', Object.keys(lu.modules).length >= 40 && Object.values(lu.modules).every(x => x === false), Object.keys(lu.modules).length);
+  vrai('… et les menus sont bien écrits (à NON), pas oubliés', Object.keys(lu.modules).length >= 30 &&   /* v780 : les rubriques regroupées (cache:1) suivent leur parent */ Object.values(lu.modules).every(x => x === false), Object.keys(lu.modules).length);
   /* sous « Toute sortie de stock passe par la validation », un profil n'est pas une personne : jamais « soumis » */
   const Mt = monde(); Mt.db.validDRTous = true;
   const ht = neuf(Mt), it = inputs(ht).find(i => i.dataset.d === 'mod_validations');

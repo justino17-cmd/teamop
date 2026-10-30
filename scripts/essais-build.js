@@ -341,6 +341,9 @@ function copierDossier(d, ignore) {
   })('');
 }
 copierDossier('icons'); copierDossier('sons'); copierDossier('screenshots'); copierDossier('vitrine', /\.json$/);   // les empreintes de vitrine/ sont des outils de banc
+/* `vitrine/v2/site.js` envoie la demande « Créer votre application » à l'API (30 octobre 2026) : dans l'espace de test, elle va au serveur de TEST */
+{ COURANT = 'vitrine/v2/site.js'; const fv = path.join(SORTIE, 'vitrine', 'v2', 'site.js');
+  fs.writeFileSync(fv, remplacer(fs.readFileSync(fv, 'utf8'), 'adresse de la demande du site → test', 'https://api.teamop.fr', 'https://' + HOTE, 1)); }
 
 /* ── l'accueil des essais, la liste des courriels, le reste ───────────────────────────────────────────────────────────────────── */
 const CSS_ESSAI = `<style>

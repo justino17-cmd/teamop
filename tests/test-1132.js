@@ -37,7 +37,7 @@ function monde(clients, ints, { crm = true } = {}) {
     db: { clients, interventions: ints, techniciens: [] }, currentUser: { id: 'u1', role: 'admin' }, current: 'carteInt',
     __sub: '', __actions: '', __els: {}, __toasts: [], __geo: [], __saves: 0, __vues: 0, __crm: crm, localStorage: { getItem: () => null, setItem: () => {} } };
   vm.createContext(ctx);
-  vm.runInContext(`${ESC.replace('const ', 'var ')}\n${ES}\n${TV}\n${TS}\n${INTP}\n${AIDE}\n${RT}\n${GC}
+  vm.runInContext(`${ESC.replace('const ', 'var ')}\nvar boxTxt = function (s) { return s; };\n${ES}\n${TV}\n${TS}\n${INTP}\n${AIDE}\n${RT}\n${GC}
     var carteIntDay='2099-01-05', showSecteurs=false, carteDDopen=false, carteTechM=null, _map=null;
     function $(id){ return __els[id]||(__els[id]={innerHTML:'',classList:{add(){},remove(){}},style:{}}); }
     var views={ carteInt: function(){ __vues++; return carteIntImpl(); }, carte(){} };

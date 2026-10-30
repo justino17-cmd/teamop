@@ -185,9 +185,11 @@ const jsonCourant = express.json({ limit: '6mb' }); // large : les e-mails peuve
 const jsonGros = express.json({ limit: '20mb' });
 /* `/api/audience/vue` (publique) lit son propre corps, en texte, 2 Ko au plus (`server/audience.js`) : le plafond de 6 Mo ne doit pas le lire avant elle. */
 const CHEMIN_AUDIENCE = /^\/api\/audience\/vue\/?$/i;
+/* `/api/site/demande` (publique : « Créer votre application ») a son propre analyseur de 24 Ko, APRÈS son budget par adresse (`server/demande-site.js`) : 6 Mo lus pour un inconnu seraient le moyen le moins cher de remplir la mémoire. */
+const CHEMIN_DEMANDE_SITE = /^\/api\/site\/demande\/?$/i;
 /* `/api/pauline/releve` (le pont de Pauline) lit AUSSI son propre corps, 2 Mo au plus, et seulement APRÈS avoir vérifié le jeton (`server/pauline.js`) : lire 6 Mo pour un inconnu serait le moyen le moins cher de remplir la mémoire. */
 const CHEMIN_PAULINE = /^\/api\/(?:pauline\/(?:releve|decisions\/resultats)|monitor\/pauline\/decision)\/?$/i;   /* jeton (Mac) ou session de patron vérifiés AVANT la lecture du corps, et SON plafond (27 octobre 2026 : + les décisions) */
-app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
+app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_DEMANDE_SITE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
 const ORIGINS = (config.origins || ['https://teamop.fr', 'https://www.teamop.fr']).concat(ESSAI ? [ESSAI_ORIGINE] : []);   // l'origine de test n'existe que dans le serveur de test
@@ -969,7 +971,7 @@ app.post('/api/stripe/checkout', async (req, res) => {
        rubriques) est rangé sur la fiche du client APRÈS que Stripe a rendu sa page : la Tour le lit à l'ouverture de son espace. */
     let choixPaiement = null;
     if (!optionSeule && rangDuPrix >= 0 && !visees.length) {
-      const c = choixAbonnement((req.body || {}).metier, (req.body || {}).cats, (req.body || {}).variante);
+      const c = choixAbonnement((req.body || {}).metier, (req.body || {}).cats, (req.body || {}).variante, (req.body || {}).metiers);
       if (!c.ok) return res.status(400).json({ error: c.error, message: MESSAGES_CHOIX[c.error] });
       choixPaiement = c;
     }
@@ -2463,7 +2465,7 @@ const MON_GESTES = {
   'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
   'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
   'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/cats': 'a choisi les catégories d’OP GESTION d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
-  'espaces/abonnement': 'a réglé l’abonnement d’une entreprise à la main', 'espaces/statut': null, 'entreprise/dossier': null,
+  'espaces/abonnement': 'a réglé l’abonnement d’une entreprise à la main', 'demandes-site/traiter': 'a traité ou remis à traiter une demande du site', 'comptes-site/ignorer': 'a ignoré un compte du site, ou l’a remis dans la liste', 'espaces/statut': null, 'entreprise/dossier': null,
   'espaces/activite': null, 'espaces/connexions': null, 'espaces/compteurs-zero': 'a remis à zéro ou rétabli les compteurs d’une entreprise',
   'connexions/effacer-tentatives': 'a effacé les tentatives de connexion refusées',
   'compte/supprimer': 'a supprimé un compte d’une entreprise', 'comptes/supprimer': 'a supprimé des comptes d’une entreprise',
@@ -3027,6 +3029,7 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
     /* ⛔ et les catégories retenues (CATS_OK) : la même panne que le métier — cette route reconstruit l'entrée de zéro, et
        « Revoir le lien de connexion » rouvrait toutes les rubriques d'une entreprise dont on venait de restreindre l'application */
     cats: base.cats, catsPar: base.catsPar, catsTs: base.catsTs,
+    metiers: base.metiers,   // la liste des métiers voyage comme le principal
     variante: base.variante,   // la variante du chauffage se reporte comme le métier (« Revoir le lien » la remettait à « non choisie »)
     /* ⛔⛔ L'ABONNEMENT RÉGLÉ À LA MAIN SE REPORTE AUSSI (30 septembre 2026). Cette route le perdait : une entreprise
        « abonnement activé par TEAM OP » (un virement, un accord) retombait sur Stripe, qui ne la connaît pas — l'application
@@ -3111,12 +3114,13 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son « Lien de connexion » (fiche entreprise)' });
   const m = monStr((req.body || {}).metier, 20);
   if (m && !METIERS_OK.includes(m)) return res.status(400).json({ error: 'métier inconnu' });
-  /* la variante du chauffage (`deux`, `chauffage`, `climatisation`) : facultative ; hors liste ou donnée à un autre métier → refusée. Un corps SANS le
-     champ (la Tour d'avant) ne touche pas à la variante déjà posée, sauf si le métier change (une variante ne survit pas à un autre métier). */
-  const varBrute = (req.body || {}).variante;
-  const varDite = varBrute !== undefined && varBrute !== null && varBrute !== '';
-  const varNeuve = varDite ? varianteOk(m, varBrute) : null;
-  if (varDite && !varNeuve) return res.status(400).json({ error: 'variante inconnue' });
+  /* la LISTE des métiers (voir `metiersChoisis`) : facultative. Un corps SANS le champ ne touche pas à la liste déjà posée, sauf si le métier change (elle
+     ne survit pas à un autre principal) ; `[m]` (un seul) la retire ; vide, trop longue, doublon, '3d' avec un autre, ou un premier qui n'est pas `metier` → 400. */
+  const motsBruts = (req.body || {}).metiers;
+  let motsDits = motsBruts !== undefined && motsBruts !== null;
+  const motsLus = metiersChoisis(m, motsBruts);
+  if (!motsLus.ok || (motsDits && !m)) return res.status(400).json({ error: 'metiers_invalides' });
+  const motsNeufs = motsDits ? motsLus.metiers : null;
   /* ⛔ LE MÉTIER EST CELUI DE L'ENTREPRISE, SUR TOUS SES NOMS (relecture de la poussée, 30 septembre 2026, rejouée) : posé
      sur un ancien nom, il n'atteignait pas l'application (qui lit le plus récent), et « Revoir le lien » sur un ancien nom
      le faisait revenir en arrière. Comme la facturation (`facturationPartager`). */
@@ -3130,22 +3134,38 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
      elle garde l'ancien comportement, comme un serveur d'avant qui ignore le champ. */
   const recent = noms.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
   const actuel = metierOk(recent && recent.metier);
+  const listeRangee = actuel === m ? metiersServis(m, recent && recent.metiers) : null;
+  /* `siVide` + même métier + une liste DÉJÀ rangée : cette liste-là est gardée (une demande acceptée ne la remplace pas) ; sans liste rangée, la demande la pose */
+  const motsBloque = (req.body || {}).siVide === true && actuel === m && motsDits && !!listeRangee;
+  const msEff = motsDits && !motsBloque ? motsNeufs : listeRangee;
+  /* la variante du chauffage (`deux`, `chauffage`, `climatisation`) : facultative ; hors liste ou donnée à un autre métier → refusée. Un corps SANS le
+     champ (la Tour d'avant) ne touche pas à la variante déjà posée, sauf si le métier change (une variante ne survit pas à un autre métier). */
+  const varBrute = (req.body || {}).variante;
+  let varDite = varBrute !== undefined && varBrute !== null && varBrute !== '';
+  const varNeuve = varDite ? varianteOk(m, varBrute, msEff) : null;
+  if (varDite && !varNeuve) return res.status(400).json({ error: 'variante inconnue' });
   if ((req.body || {}).siVide === true && actuel && actuel !== m) return res.json({ ok: true, slug, metier: actuel, garde: true });
   /* même garde pour la variante : une seconde demande acceptée (`siVide`) du même métier ne remplace pas une variante déjà posée (relecture du 30 octobre 2026) */
   const varGardee = (req.body || {}).siVide === true && actuel === m && !!varianteOk(m, recent && recent.variante);
-  if (varGardee && varDite) return res.json({ ok: true, slug, metier: actuel, variante: varianteOk(m, recent.variante), garde: true });
-  const variantePosee = x => (varDite ? varNeuve : (x.metier === m ? varianteOk(m, x.variante) : null));
-  if (noms.some(x => (x.metier || '') !== m || (x.variante || null) !== variantePosee(x))) {
-    const avant = noms.map(x => ({ x, v: { metier: x.metier, metierPar: x.metierPar, metierTs: x.metierTs, variante: x.variante } }));
+  const varBloque = varGardee && varDite;
+  /* garde totale seulement si TOUT ce que le corps dit est gardé ; sinon on pose le reste (la variante dite avec une liste gardée n'est pas écartée) */
+  if ((varBloque || motsBloque) && (varBloque || !varDite) && (motsBloque || !motsDits)) return res.json({ ok: true, slug, metier: actuel, variante: varianteOk(m, recent.variante, metiersServis(m, recent.metiers)), metiers: metiersServis(m, recent.metiers) || undefined, garde: true });
+  if (varBloque) varDite = false;
+  if (motsBloque) motsDits = false;
+  const motsPoses = x => (motsDits ? motsNeufs : (x.metier === m ? metiersServis(m, x.metiers) : null));
+  const variantePosee = x => (varDite ? varNeuve : (x.metier === m ? varianteOk(m, x.variante, motsPoses(x)) : null));
+  if (noms.some(x => (x.metier || '') !== m || (x.variante || null) !== variantePosee(x) || JSON.stringify(x.metiers || null) !== JSON.stringify(motsPoses(x)))) {
+    const avant = noms.map(x => ({ x, v: { metier: x.metier, metierPar: x.metierPar, metierTs: x.metierTs, variante: x.variante, metiers: x.metiers } }));
     const ts = Date.now();
-    for (const x of noms) { const vp = variantePosee(x); x.metier = m; x.metierPar = m ? req.tourUser.nom : ''; x.metierTs = ts; if (vp) x.variante = vp; else delete x.variante; }
+    for (const x of noms) { const vp = variantePosee(x), mp = motsPoses(x); if (mp) x.metiers = mp; else delete x.metiers; x.metier = m; x.metierPar = m ? req.tourUser.nom : ''; x.metierTs = ts; if (vp) x.variante = vp; else delete x.variante; }
     /* écrit, ou on le dit — et on défait en mémoire : sinon le serveur servirait ce métier jusqu'au redémarrage,
        puis l'ancien, sans que la Tour l'ait jamais su (même règle que la création d'un espace) */
     if (!espacesEcrire()) { avant.forEach(a => Object.assign(a.x, a.v)); return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — le métier n\'a pas changé.' }); }
     /* (l'identifiant, jamais le nom d'accès : il est souvent celui d'une personne) */
     console.log('Tour :', req.tourUser.nom, 'règle le métier', m || '(aucun)', 'de l\'entreprise', espaceT(e) || '(sans identifiant)');
   }
-  res.json({ ok: true, slug, metier: m, variante: varianteOk(m, noms[0].variante) });
+  const motsRendus = metiersServis(m, noms[0].metiers);
+  res.json({ ok: true, slug, metier: m, variante: varianteOk(m, noms[0].variante, motsRendus), metiers: motsRendus || undefined });
 });
 /* ══ LES CATÉGORIES D'OP GESTION D'UNE ENTREPRISE — Justin : « quand on crée un accès client, dans la Tour on choisit les
    catégories dont ils ont besoin et pas besoin ». L'application ne montre alors à cette entreprise que les rubriques retenues.
@@ -3209,10 +3229,36 @@ app.get('/api/metiers', (req, res) => {
      · les rubriques sont une liste FERMÉE (`CATS_OK`) : une clé inconnue, un doublon, une forme qui n'est pas un tableau →
        `cats_inconnues`. Absent ou vide = « le client n'a rien choisi » : `null`, et la Tour part du conseil de son métier ;
      · ce que le client demande ne décide de rien (règle 1 de CLAUDE.md) : c'est la Tour qui POSE métier et rubriques. */
-const varianteOk = (m, v) => (m === 'chauffage' && typeof v === 'string' && VARIANTES_CHAUFFAGE.includes(v) ? v : null);
+/* ── PLUSIEURS MÉTIERS (Justin, 30 octobre 2026) : « le client peut choisir plusieurs métiers » ; « 3 métiers maximum » ; « plus 10 € par métier ».
+   `metier` reste LE PRINCIPAL (l'application v773 et les pages d'avant ne lisent que lui : une demande sans `metiers` se comporte exactement comme
+   avant) ; `metiers` est la liste complète, principal en tête, 1 à 3 clés connues, distinctes. ⛔ La 3D est seule : l'application refuse '3d' comme
+   métier EN PLUS (`metierPlusSet`), et une 3D principale ne reçoit pas de métier associé. Une liste d'UN métier n'est pas rangée (elle ne dit rien
+   de plus que `metier`) : seule une liste de 2 ou 3 voyage. La facturation (le « +10 € par métier ») est une étape à part : ici, seulement
+   `metiersEnPlus` sur la demande, pour la suite. ⚠️ La variante du chauffage est permise dès que le chauffage est DANS la liste, quel que soit son rang. */
+const METIERS_MAX = 3;
+/* la liste telle qu'un CLIENT l'envoie : { ok:true, metiers:<2 ou 3 clés>|null } ou { ok:false }. Absent / null = « pas de liste » (une page d'avant) */
+function metiersChoisis(metierBrut, metiersBrut) {
+  if (metiersBrut === undefined || metiersBrut === null) return { ok: true, metiers: null };
+  if (!Array.isArray(metiersBrut) || !metiersBrut.length || metiersBrut.length > METIERS_MAX) return { ok: false };
+  if (metiersBrut.some(k => typeof k !== 'string' || !METIERS_OK.includes(k)) || new Set(metiersBrut).size !== metiersBrut.length) return { ok: false };
+  if (metiersBrut.length > 1 && metiersBrut.includes('3d')) return { ok: false };
+  const m = monStr(metierBrut, 20);
+  if (m && m !== metiersBrut[0]) return { ok: false };
+  return { ok: true, metiers: metiersBrut.length > 1 ? metiersBrut.slice() : null };
+}
+/* la liste telle qu'elle est RANGÉE ou SERVIE : le tableau (2 ou 3), ou `null` — une valeur écrite à la main dans l'annuaire n'atteint jamais l'application */
+const metiersServis = (m, v) => (Array.isArray(v) && v.length > 1 && v.length <= METIERS_MAX && v[0] === m && new Set(v).size === v.length
+  && v.every(k => typeof k === 'string' && METIERS_OK.includes(k)) && !v.includes('3d') ? v.slice() : null);
+/* ce que `/api/espaces/etat` rend en plus du principal : la variante, et `{ metiers }` (vide s'il n'y en a pas plus d'un) */
+/* ⛔ LA LISTE NE SE SERT PAS TANT QUE LA FACTURATION DES MÉTIERS EN PLUS N'EXISTE PAS (relecture `gardien`, 30 octobre 2026) : `metiers` est rangé (demande, fiche,
+   espace) mais l'application ne le reçoit que si la configuration porte `"metiersServis": true` — défaut FERMÉ. Une valeur du corps ne décide jamais de ce qu'une
+   entreprise reçoit sans l'avoir payé : le +10 € TTC par métier est l'étape suivante, et ce réglage s'ouvrira avec elle. Fermé, la variante ne se lit pas non plus
+   dans une liste (seul le chauffage PRINCIPAL la porte, comme avant). */
+const variantEtMetiers = (metier, e) => { const ml = config.metiersServis === true ? metiersServis(metier, e && e.metiers) : null; return { variante: varianteOk(metier, e && e.variante, ml), mm: ml ? { metiers: ml } : {} }; };
+const varianteOk = (m, v, ms) => ((m === 'chauffage' || (Array.isArray(ms) && ms.includes('chauffage'))) && typeof v === 'string' && VARIANTES_CHAUFFAGE.includes(v) ? v : null);
 /* la liste cochée + la base, dans l'ordre de la liste fermée ; `null` reste `null` (« rien choisi » : la Tour part du conseil du métier) */
 const catsAvecBase = c => (Array.isArray(c) && c.length ? CATS_OK.filter(k => c.includes(k) || CATS_BASE.includes(k)) : null);
-function choixAbonnement(metierBrut, catsBrut, varianteBrut) {
+function choixAbonnement(metierBrut, catsBrut, varianteBrut, metiersBrut) {
   const metier = monStr(metierBrut, 20);
   if (!metier) return { ok: false, error: 'metier_requis' };
   if (!METIERS_OK.includes(metier)) return { ok: false, error: metiersMod.connu(metier) ? 'metier_ferme' : 'metier_inconnu' };
@@ -3222,12 +3268,14 @@ function choixAbonnement(metierBrut, catsBrut, varianteBrut) {
     cats = catsBrut.length ? catsAvecBase(catsBrut) : null;
   }
   /* absent / null / '' : « pas choisi » (une page d'avant, ou un autre métier) ; une valeur hors liste, ou donnée à un autre métier que le chauffage : refusée */
+  const lm = metiersChoisis(metier, metiersBrut);
+  if (!lm.ok) return { ok: false, error: 'metiers_invalides' };
   let variante = null;
   if (varianteBrut !== undefined && varianteBrut !== null && varianteBrut !== '') {
-    variante = varianteOk(metier, varianteBrut);
+    variante = varianteOk(metier, varianteBrut, lm.metiers);
     if (!variante) return { ok: false, error: 'variante_inconnue' };
   }
-  return { ok: true, metier, cats, variante };
+  return { ok: true, metier, cats, variante, metiers: lm.metiers };
 }
 /* ce que l'écran DIT à un client dont le choix est refusé (la page lit `error`, le message sert aux autres lecteurs) */
 const MESSAGES_CHOIX = {
@@ -3235,7 +3283,8 @@ const MESSAGES_CHOIX = {
   metier_inconnu: 'Ce métier n\'existe pas dans la liste — choisissez-en un.',
   metier_ferme: 'Ce métier n\'est pas encore ouvert : choisissez-en un autre, ou écrivez-nous.',
   cats_inconnues: 'Une rubrique choisie n\'existe pas : rechargez la page.',
-  variante_inconnue: 'Ce choix (chauffage, climatisation ou les deux) n\'existe pas : rechargez la page.'
+  variante_inconnue: 'Ce choix (chauffage, climatisation ou les deux) n\'existe pas : rechargez la page.',
+  metiers_invalides: 'Trois métiers au maximum, sans doublon (et la 3D se choisit seule) : rechargez la page.'
 };
 /* Range le choix fait à la page de paiement sur la fiche du client (la Tour la lit). Un prospect qui paie sans avoir jamais ouvert
    l'espace client n'a pas de fiche : on en ouvre une, minimale, avec ce que son compte du site sait de lui — sans jamais dépasser
@@ -3253,7 +3302,7 @@ function choixAbonnementNoter(email, c) {
         inscrit: Date.now(), apps: [], demandes: [], plan: '', planStatus: '', promo: '', majTs: Date.now(), noteInterne: '', metier: '', metierPar: '', demandesTraitees: {},
         ficheDePaiement: true };   // ⛔ née d'un clic sur « Payer », pas d'une entreprise : elle ne compte pas comme un espace (`aUnEspace`) — la première synchro de l'espace client écrit une fiche neuve, sans ce drapeau
     }
-    fiche.choix = { metier: c.metier, cats: c.cats, variante: c.variante || null, ts: Date.now(), source: 'paiement' };
+    fiche.choix = { metier: c.metier, cats: c.cats, variante: c.variante || null, metiers: c.metiers || null, ts: Date.now(), source: 'paiement' };
     cliSave();
   } catch (e) { console.error('choix à l\'abonnement non rangé :', String((e && e.message) || e).slice(0, 120)); }
 }
@@ -4582,7 +4631,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   if (!espacesReg[slug]) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const e = facturationDe(espacesReg[slug]);   // la fiche montre la facturation de l'ENTREPRISE : c'est elle que la Tour règle
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, inconnu: !!p.inconnu, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier), cats: catsOk(e.cats),
+  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, inconnu: !!p.inconnu, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier), variante: varianteOk(metierOk(e.metier), e.variante) || '', cats: catsOk(e.cats),
     impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0,
     optionsServies: Array.isArray(p.optionsServies) ? p.optionsServies : [], options: optionsDeTour(e.options), optionsStripe: optionsLignesStripe(Object.assign({ slug }, e)) });
 });
@@ -6506,14 +6555,16 @@ app.post('/api/espaces/etat', (req, res) => {
   const cats = catsOk(e && e.cats);
   /* La variante du chauffage voyage comme le métier et les rubriques, TOUJOURS présente (`null` : pas choisie, ou un autre métier). Une application
      d'avant l'ignore — elle lit `metier` (qui reste `chauffage` pour les trois variantes) et rien d'autre ; la bêta lit `deux`, `chauffage` ou `climatisation`. */
-  const variante = varianteOk(metier, e && e.variante);
+  /* ET LA LISTE DES MÉTIERS (30 octobre 2026) : le tableau, principal en tête, SEULEMENT quand il y en a plus d'un — une entreprise à un métier reçoit exactement
+     la réponse d'avant (pas de clé en plus). La variante se lit dans la liste : le chauffage peut n'être que le second. */
+  const { variante, mm } = variantEtMetiers(metier, e);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
   /* ⛔⛔ UNE FICHE SANS FORMULE NE SORT PLUS ICI (Justin, 30 septembre 2026, « Suspend ») : elle passe par `espacePaye`, qui la
      traite comme une fiche « Gratuit » d'avant (`ficheSansFormule`) — une période offerte ou un abonnement la servent, rien
      de payé la suspend, un doute ne décide rien. Seule une entreprise ABSENTE de l'annuaire garde la réponse d'avant, sans
      formule ni suspension : elle ne se décide pas (un annuaire illisible au démarrage rendrait TOUT LE MONDE inconnu — les
      suspendre couperait toutes les entreprises d'un coup, sur une panne de notre côté). */
-  if (!e) return res.json({ ok: true, opMessages, metier, cats, variante, versionMin, enLigne, suspendu, sursisJours });
+  if (!e) return res.json({ ok: true, opMessages, metier, cats, variante, ...mm, versionMin, enLigne, suspendu, sursisJours });
   /* ⛔ la formule SERVIE (`formulePayee`) : celle que l'entreprise paie, pas forcément celle de la fiche (29 septembre 2026) */
   espacePaye(e).then(p => {
     /* ⛔⛔ UN IMPAYÉ SE SERT COMME UNE SUSPENSION AU SURSIS ÉCOULÉ, SANS FORMULE (Justin, 29 septembre 2026 : « leur accès sont
@@ -6539,23 +6590,23 @@ app.post('/api/espaces/etat', (req, res) => {
        lui rouvrirait tout pendant une semaine, plus qu'à une entreprise que la Tour n'a pas touchée. `test-761`. */
     /* ⛔ ON NE SAIT PAS (Stripe ou registre des codes illisible) : ni formule, ni suspension — l'application garde ce qu'elle
        savait (`payeInconnu`, relectures du 30 septembre 2026) */
-    if (p.inconnu) return res.json({ ok: true, verificationImpossible: true, opMessages, metier, cats, variante, versionMin, enLigne, suspendu, sursisJours });
+    if (p.inconnu) return res.json({ ok: true, verificationImpossible: true, opMessages, metier, cats, variante, ...mm, versionMin, enLigne, suspendu, sursisJours });
     const fServie = p.formuleServie || e.formule;
-    if (accesSuspenduPar(p, fServie)) return res.json({ ok: true, paye: false, motif: 'accès suspendu', opMessages, metier, cats, variante, versionMin, enLigne, suspendu: true, sursisJours: 0 });
+    if (accesSuspenduPar(p, fServie)) return res.json({ ok: true, paye: false, motif: 'accès suspendu', opMessages, metier, cats, variante, ...mm, versionMin, enLigne, suspendu: true, sursisJours: 0 });
     /* ⛔⛔ `options` : LES OPTIONS DU PRO PAYÉES (1er octobre 2026), dans la réponse PAYÉE et nulle part ailleurs. Un tableau — éventuellement
        VIDE : « le serveur sait, et il n'y en a pas » (toujours `[]` en Business, Business Premium et en période offerte : toutes les
        rubriques y sont déjà ouvertes, l'application n'en déduit aucun verrouillage). ABSENT quand le serveur ne sait pas (liste Stripe
        périmée, places illisibles, doute) : l'application garde alors ce qu'elle savait — jamais « rien » à la place de « on ne sait
        pas ». Les deux réponses suspendue et « vérification impossible » n'en portent pas : une option ne lève aucune suspension.
        Jamais dans `motif` (`motifPublic`) : c'est la Tour, gardée, qui lit le détail. Les applications v763 et v767 ignorent ce champ. */
-    res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: motifPublic(p.motif), opMessages, metier, cats, variante, versionMin, enLigne, suspendu, sursisJours,
+    res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: motifPublic(p.motif), opMessages, metier, cats, variante, ...mm, versionMin, enLigne, suspendu, sursisJours,
       ...((Array.isArray(p.optionsServies) && !p.doute) ? { options: p.optionsServies.slice() } : {}) });
   })
     /* ⛔ LA VÉRIFICATION IMPOSSIBLE NE DÉCIDE RIEN. Elle rendait la formule avec `paye:false` : à la moindre panne ici,
        l'application v763 réécrivait `db.forfait` au Gratuit chez une entreprise qui paie, et le répandait à toute l'équipe
        par la synchro. On le DIT (`verificationImpossible`) et on ne sert ni formule ni suspension de facturation :
        l'application garde ce qu'elle savait. « Dans le doute, on ne coupe pas. » */
-    .catch(() => res.json({ ok: true, verificationImpossible: true, opMessages, metier, cats, variante, versionMin, enLigne, suspendu, sursisJours }));
+    .catch(() => res.json({ ok: true, verificationImpossible: true, opMessages, metier, cats, variante, ...mm, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */
 function espNomPropre(e) { const n = String((e && e.nom) || '').trim(); return (n && !/@/.test(n) && n.toLowerCase() !== String((e && e.email) || '').toLowerCase()) ? n : ''; }
@@ -6600,6 +6651,57 @@ try {
   audienceMod = require('./audience')(app, { DATA_DIR, monPatronStrict, origines: ORIGINS });
 } catch (e) {
   console.error('audience non montée :', e.message);
+}
+/* ══ LES DEMANDES « CRÉER VOTRE APPLICATION » DU SITE (30 octobre 2026) ══ la page envoyait un `mailto:` : sans logiciel de courrier, la demande se perdait en silence.
+   Elle arrive ici (`server/demande-site.js`, route PUBLIQUE, budget par adresse), est rangée sur disque, et PRÉVIENT Justin : notification du téléphone, courriel, message
+   dans OP MESSAGES (par le pont, jamais par le socle). ⛔ Rien de personnel dans le journal ; la notification et le message d'OP MESSAGES ne disent que l'entreprise et les métiers. */
+let demandeSiteMod = null;
+try {
+  demandeSiteMod = require('./demande-site')(app, { DATA_DIR, monAdmin, monPatronStrict, express, quotaOk, syntheseMs: Number(config.syntheseDemandesMs) || 0, choisir: choixAbonnement, catsAvecBase,
+    surDemande: async (d) => {
+      const nomEnt = (d.entreprise || '(particulier)').replace(/[\r\n]+/g, ' ').slice(0, 60);   // sans entreprise : « (particulier) » — jamais « prénom nom » dans un sujet ou une notification
+      const metiers = d.metiers.map(k => METIERS_LBL[k] || k).join(' + ');
+      try { await pousserALaTour('Demande du site — ' + nomEnt, metiers, '/tour.html#demandes', '/tour.html#demandes'); } catch (e) { console.error('demande du site : notification non partie'); }
+      try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', /* ⛔ jamais le nom d'entreprise : texte libre PUBLIC, donc injection possible dans le fil des agents */ 'Nouvelle demande du site (' + metiers + ') — voir la Tour.', { cle: 'demande-site:' + d.id, unique: true }); } catch (e) {}
+      if (mailer) {
+        const dest = config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || 'contact@teamop.fr';
+        const ligne = (k, v) => v ? k + ' : ' + v + '\n' : '';
+        const texte = 'Nouvelle demande « Créer votre application » reçue sur teamop.fr — À TRAITER\n\n' +
+          ligne('Entreprise', d.entreprise) + ligne('Contact', [d.prenom, d.nom].filter(Boolean).join(' ')) + ligne('E-mail', d.email) + ligne('Téléphone', d.tel) + (d.telEcarte ? 'Téléphone : indiqué mais illisible (écarté)\n' : '') + ligne('Équipe', d.equipe) +
+          'Métiers : ' + metiers + (d.variante ? ' (' + d.variante + ')' : '') + '\n' + (Array.isArray(d.cats) ? 'Rubriques cochées : ' + d.cats.length + ' sur ' + CATS_OK.length + '\n' : '') +
+          (d.besoins.length ? 'Besoins : ' + d.besoins.join(', ') + '\n' : '') + (d.message ? '\nMessage :\n' + d.message + '\n' : '') +
+          '\n── À faire ──\nRien n\'a été créé. Ouvre la Tour → Demandes → « Demande du site » : tu peux la marquer traitée ou préparer l\'accès à la version publique avec son adresse.\n\nhttps://teamop.fr/tour.html';
+        await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, replyTo: d.email, subject: '📥 Demande du site — ' + nomEnt, text: texte });
+        console.log('mail demande du site envoyé →', masqueMail(dest));
+      }
+    },
+    /* au-delà de cinq alertes par heure : UNE ligne de synthèse (notification + fil Clients), le courriel n'est pas répété */
+    surSynthese: async (n) => {
+      const t = n + ' demande' + (n > 1 ? 's' : '') + ' du site de plus : voir la Tour (Demandes).';
+      console.log('demandes du site :', n, 'de plus (au-delà de cinq alertes par heure)');
+      try { await pousserALaTour('Demandes du site', t, '/tour.html#demandes', '/tour.html#demandes'); } catch (e) {}
+      try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', t, { cle: 'demande-site-synthese:' + Date.now() }); } catch (e) {}
+    } });
+  /* UNE alerte par COMPTE NEUF du site (nos comptes, `comptes.js`) qui n'a pas d'espace : le passage se fait toutes les dix minutes (`config.comptesScanMs` pour un banc), le premier
+     une minute après le démarrage. La notification ne dit que « un compte » ; le courriel à Justin porte l'adresse et le nom (c'est son métier) ; le journal, rien. */
+  const alerteCompte = async (c) => {
+    try { await pousserALaTour('Nouveau compte sur le site', 'Un compte vient d’être créé : à ouvrir dans la Tour (Demandes).', '/tour.html#demandes', '/tour.html#demandes'); } catch (e) {}
+    try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', 'Nouveau compte sur le site (sans espace) : à ouvrir dans la Tour (Demandes).', { cle: 'compte-site:' + String(c.cree || '') + ':' + c.email.length }); } catch (e) {}
+    if (mailer) {
+      const dest = config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || 'contact@teamop.fr';
+      const une = x => String(x || '').replace(/[\r\n]+/g, ' ');
+      const nom = une([c.prenom, c.nom].filter(Boolean).join(' ')).slice(0, 80);
+      await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: '👤 Nouveau compte sur le site' + (c.societe ? ' — ' + une(c.societe).slice(0, 60) : ''),
+        text: 'Un compte vient d\'être créé sur l\'Espace client de teamop.fr.\n\n' + (nom ? 'Nom : ' + nom + '\n' : '') + (c.societe ? 'Entreprise : ' + une(c.societe).slice(0, 80) + '\n' : '') + 'E-mail : ' + c.email + '\n\nIl n\'a pas encore d\'espace. Tour → Demandes → « Comptes du site sans espace » → « Ouvrir son accès » (ou « Ignorer » si ce n\'est pas un client).\n\nhttps://teamop.fr/tour.html' });
+      console.log('mail nouveau compte du site envoyé →', masqueMail(dest));
+    }
+  };
+  const passageComptes = () => { try { demandeSiteMod.scannerComptes({ liste: () => (typeof comptes !== 'undefined' && comptes && typeof comptes.liste === 'function' ? comptes.liste() : []), aUnEspace: m => porteUnEspace(m) || Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === m.toLowerCase()), alerter: alerteCompte }); } catch (e) { console.error('comptes du site : passage échoué'); } };
+  const scanMs = Math.max(500, Number(config.comptesScanMs) || 600000);
+  setTimeout(passageComptes, Math.min(60000, scanMs)).unref();
+  setInterval(passageComptes, scanMs).unref();
+} catch (e) {
+  console.error('demandes du site non montées :', e.message);
 }
 /* ══ LE PONT DE PAULINE (25 octobre 2026) ══ l'agente de prospection (Harvey) tourne sur le Mac de Justin ; elle envoie ici un RELEVÉ complet toutes les quinze minutes
    (`outils/pauline-releve.py`), la Tour le lit (`/api/monitor/pauline`, patron). Fermé sans `config.pauline.jetonSha256` (503). Les données de prospects n'entrent dans aucun journal
@@ -10320,18 +10422,24 @@ app.post('/api/clients/sync', async (req, res) => {
     const date = parseInt(d.date, 10) || 0;
     const rang = date ? restantes.findIndex(x => x && x.date === date && (x.app || '') === monStr(d.app, 60) && (x.lien || '') === monStr(d.lien, 60)) : -1;
     const avant = rang >= 0 ? restantes.splice(rang, 1)[0] : null;
-    const meme = avant && JSON.stringify([monStr(d.metier, 20), catsAvecBase(catsDemande(d.cats)), varianteOk(monStr(d.metier, 20), d.variante)]) === JSON.stringify([avant.metier || '', catsAvecBase(avant.cats || null), avant.variante || null]);   // la base des deux côtés : une page d'avant renvoie sa demande SANS la base que le serveur y a ajoutée   // le métier tel qu'il est ÉCRIT : un métier fermé ne passe pas pour « inchangé »
+    /* la liste des métiers : une demande renvoyée telle quelle, SANS le champ (page d'avant, relais du portail), garde la liste rangée ; une demande MODIFIÉE se juge sur ce qu'elle dit (`choixAbonnement` reçoit `d.metiers` tel quel) */
+    const motsD = avant && d.metiers === undefined ? (avant.metiers || null) : metiersServis(monStr(d.metier, 20), d.metiers);
+    const motsSains = d.metiers === undefined || d.metiers === null || metiersChoisis(d.metier, d.metiers).ok;   // une liste refusée ne passe jamais pour « inchangée »
+    const meme = avant && motsSains && JSON.stringify([monStr(d.metier, 20), catsAvecBase(catsDemande(d.cats)), varianteOk(monStr(d.metier, 20), d.variante, motsD), motsD]) === JSON.stringify([avant.metier || '', catsAvecBase(avant.cats || null), avant.variante || null, avant.metiers || null]);   // la base des deux côtés : une page d'avant renvoie sa demande SANS la base que le serveur y a ajoutée   // le métier tel qu'il est ÉCRIT : un métier fermé ne passe pas pour « inchangé »
     if (meme) { inchangees.set(d, avant); continue; }
-    const c = choixAbonnement(d.metier, d.cats, d.variante);
+    const c = choixAbonnement(d.metier, d.cats, d.variante, d.metiers);   // tel quel : seule une demande ENTIÈRE inchangée (`meme`) garde la liste rangée ; une demande modifiée dit sa liste, ou n'en a plus
     if (c.ok) neuves.add(d);
     if (!c.ok) return res.status(400).json({ error: c.error, message: MESSAGES_CHOIX[c.error] });
   }
+  const demMetiers = d => (inchangees.has(d) && d.metiers === undefined ? (inchangees.get(d).metiers || null) : metiersServis(monStr(d && d.metier, 20), d && d.metiers));
   const demandes = brutes.map(d => ({
     app: monStr(d && d.app, 60), formule: monStr(d && d.formule, 40), statut: monStr(d && d.statut, 20), date: parseInt(d && d.date, 10) || 0, besoin: monStr(d && d.besoin, 200), users: monStr(d && d.users, 10),
     code: monStr(d && d.code, 40), lien: monStr(d && d.lien, 60),
     metier: metierOk(d && d.metier),   // le métier DEMANDÉ : une liste fermée ; c'est la Tour qui le pose sur l'espace
     cats: neuves.has(d) ? catsAvecBase(catsDemande(d.cats)) : inchangees.has(d) ? (inchangees.get(d).cats || null) : catsDemande(d && d.cats),
-    variante: varianteOk(monStr(d && d.metier, 20), d && d.variante) }));   // cats : les rubriques cochées (liste fermée), `null` sans choix (la Tour part du conseil du métier) ; variante : celle du chauffage, `null` pour tout autre métier
+    variante: varianteOk(monStr(d && d.metier, 20), d && d.variante, demMetiers(d)),
+    metiers: demMetiers(d),
+    metiersEnPlus: (demMetiers(d) || []).length ? demMetiers(d).length - 1 : 0 }));   // le nombre de métiers EN PLUS du principal : la facturation (+10 € TTC par mois chacun) est une étape à part   // cats : les rubriques cochées (liste fermée), `null` sans choix (la Tour part du conseil du métier) ; variante : celle du chauffage, `null` pour tout autre métier
   clientsData[email] = {
     email, nom: monStr(b.nom, 80), prenom: monStr(b.prenom, 40) || prev.prenom || '', nomFam: monStr(b.nomFam, 40) || prev.nomFam || '',
     tel: monStr(b.tel, 30) || prev.tel || '', entreprise: monStr(b.entreprise, 80),
@@ -10627,6 +10735,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
     }
   }
   lignes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
+  if (demandeSiteMod) for (const l of lignes) l.ignore = demandeSiteMod.estIgnore(l.email);
   res.json({ comptes: lignes, total: lignes.length, anonymes, google: !!tok });
 });
 

@@ -70,6 +70,7 @@ function monde(opts) {
     ${K_EXCLU.replace('const ', 'var ')}
     var mvtFBox='', mvtFType='', mvtFQ='', boxView=null, bonLignes=[], _stkAcces=null, current='stock';
     function uid(){ return 'id'+(++__uid); }
+    function libBox(a,b){ return a; }   /* v778 : la 3D garde « box » ; le nettoyage a son propre banc (test-3111) */
     function visibleBoxes(l){ if(__vus===null) return (l||[]).slice(); return (l||[]).filter(b=>__vus.includes(b.id)); }
     function can(c){ return !!__caps[c]; }
     /* v742 : comme le vrai — l'administrateur a tout, une case RÉGLÉE (acces.caps) passe avant la base */
@@ -140,7 +141,7 @@ console.log('\n── 794 · 2. UN total pour Stock, Produits, la cloche et la c
   const SP = bloc('function renderProduitsList(');
   /* g19 · stock#5 : Produits passe aussi le seuil d'alerte de la fiche (`boxEtat(total, p.seuil)`) — le motif suit ; test-1162 l'EXÉCUTE. */
   vrai('⛔ Produits lit stockTotaux — plus `boxEtat(p.qte)`', /const TOT=stockTotaux\(\), toutVu=stockVoitTout\(\);/.test(SP) && /boxEtat\(tq\|\|0,p\.seuil\)/.test(SP) && !/boxEtat\(p\.qte\)/.test(SP), SP.length);
-  vrai('… et un produit absent de SES box n’est pas « Épuisé » pour qui ne voit pas tout', /\(tq==null&&!toutVu\)\?\{k:'hors',l:'Pas dans tes box'/.test(SP));
+  vrai('… et un produit absent de SES box n’est pas « Épuisé » pour qui ne voit pas tout', /\(tq==null&&!toutVu\)\?\{k:'hors',l:libBox\('Pas dans tes box','Pas dans ton stockage'\)/.test(SP));
   vrai('⛔ plus aucun écran ne lit l’état d’un produit sur `p.qte`', !/boxEtat\(\s*p\.qte/.test(SRC)); }
 
 console.log('\n── 794 · 3. créer le stockage : l’ancien stock y est RANGÉ, une fois ──');
@@ -296,7 +297,7 @@ console.log('\n── 794 · 11. la carte de Stock dit pourquoi, et ne montre qu
   const c5 = carte({ moi: chef, db: avecS, vus: ['stockage'], gerer: { modifier: 1, ajouter: 1 }, modules: ['stock', 'mouvements'] });
   vrai('⛔ … et PAS celui qui gère les box sans être administrateur (v741 le lui montrait)', /Qui a pris quoi/.test(c5) && !/Qui peut s[’']y servir/.test(c5), c5);
   const VS = bloc('views.stock=function(){');
-  vrai('Stock dit ce qu’il regroupe, et porte la carte', /setHeader\('Stock','Le stockage et toutes les box'/.test(VS) && /\$\{stockageCarte\(\)\}/.test(VS), VS.length); }
+  vrai('Stock dit ce qu’il regroupe, et porte la carte', /setHeader\('Stock',libBox\('Le stockage et toutes les box','Le stockage de l’entreprise'\)/.test(VS) && /\$\{stockageCarte\(\)\}/.test(VS), VS.length); }
 
 console.log('\n── 794 · 12. le scanner du catalogue range dans le stockage quand il existe ──');
 { vrai('⛔ sa garde reste la PREMIÈRE instruction (test-747)', /function openScanner\(\)\{ if\(!permGarde\('stock','modifier','le stock'\)\) return;/.test(BRUT));
@@ -321,7 +322,7 @@ console.log('\n── 794 · 14. la relecture : le stockage ne se supprime pas, 
     vm.runInContext(`${K_ID.replace('const ', 'var ')}
       var boxView=null, current='boxes', etiq={sel:'a',action:'ajouter'}, COLL_GRP={boxes:'stock',produitsDonnes:'stock'}, views={boxes(){}};
       function visibleBoxes(l){ return __vus===null?(l||[]).slice():(l||[]).filter(b=>__vus.includes(b.id)); }
-      function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){} function go(v){ current=v; }
+      function boxTxt(s){ return s; } function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){} function go(v){ current=v; }
       function logEvent(){} function canCat(){ return true; } function can(){ return true; } function permGarde(){ return true; }
       function confirm(m){ __conf.push(m); return true; } function ptPeutCorriger(){ return true; }
       function boxDonneOublier(){} function ecranDetail(f){ __ouvert.push(boxView); } function rendreDirige(){} function renderBoxDetail(){}
@@ -342,7 +343,7 @@ console.log('\n── 794 · 14. la relecture : le stockage ne se supprime pas, 
   v('contre-épreuve : une box ordinaire se supprime toujours, après confirmation', [W.db.boxes.some(b => b.id === 'bxN'), W.__conf.length], [false, 1]);
   const RBD = bloc('function renderBoxDetail(){');
   vrai('la fiche du stockage n’offre pas la corbeille (le bouton est conditionné à « pas le stockage »)', /\$\{!stk&&canCat\('stock','supprimer'\)\?`<button onclick="delItem\('boxes'/.test(RBD), RBD.length);
-  vrai('… et la case du formulaire dit « Stockage actif »', /\$\{estStockage\(b\)\?'Stockage actif':'Box active'\}/.test(bloc('function formBox(id){')));
+  vrai('… et la case du formulaire dit « Stockage actif »', /\$\{estStockage\(b\)\?'Stockage actif':boxTxt\('Box active'\)\}/.test(bloc('function formBox(id){')));
   // b. ouvrir
   W = bac({ db: { boxes: [S(), { id: 'bxN' }] }, vus: ['bxN'] });
   W.openBox('stockage');

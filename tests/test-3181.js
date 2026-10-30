@@ -46,7 +46,7 @@ console.log('\n── 3181 · le métier est obligatoire à l\'abonnement, les r
   /* Le vrai `metiers.json` ouvre les vingt-trois métiers depuis le 23 octobre 2026 : le serveur de ce banc lit un référentiel FABRIQUÉ où
      les dix nouveaux restent fermés (tests/metiers-banc.js), pour que « un métier fermé est refusé » prouve quelque chose. */
   const REFB = require('./metiers-banc.js').ecrire(RACINE, banc);
-  vrai('(population) le référentiel du banc est FABRIQUÉ : le vrai fichier ouvre ' + REFB.reel.ouverts.length + ' métiers, celui du banc ' + REFB.json.ouverts.length, REFB.reel.ouverts.length === REFB.reel.ordreMetiers.length && REFB.json.ouverts.length === 13);
+  vrai('(population) le référentiel du banc est FABRIQUÉ : le vrai fichier ouvre ' + REFB.reel.ouverts.length + ' métiers, celui du banc ' + REFB.json.ouverts.length, REFB.reel.ouverts.length >= 23 && REFB.json.ouverts.length === 13);
   const METIERS = REFB.json;
   const OUVERTS = METIERS.ouverts, NOUVEAUX = METIERS.ordreMetiers.filter(k => !OUVERTS.includes(k));
   vrai('(population) le référentiel ferme encore des métiers (' + NOUVEAUX.length + ') — sinon « un métier fermé est refusé » ne prouverait rien', NOUVEAUX.length >= 1, NOUVEAUX.length);
@@ -211,7 +211,7 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ `siVide` + même métier + variante déjà posée : rien ne change (garde), la variante reste « climatisation »', [r.s, r.j.garde, (await ETAT()).variante], [200, true, 'climatisation']);
     r = await appel('/api/monitor/espaces/metier', { nom: 'elan-banc', metier: 'chauffage', variante: 'deux' }, PATRON);
     v('   CONTRE-ÉPREUVE — le geste de la fiche (sans `siVide`) la change bien', [r.s, (await ETAT()).variante], [200, 'deux']);
-    vrai('   `variante` figure sur chacune des réponses d\'un espace vivant (cinq `res.json` d\'état, lus dans le code)', (SRVN.match(/metier, cats, variante, versionMin/g) || []).length === 5);
+    vrai('   `variante` figure sur chacune des réponses d\'un espace vivant (cinq `res.json` d\'état, lus dans le code)', (SRVN.match(/metier, cats, variante, \.\.\.mm, versionMin/g) || []).length === 5);
 
     /* ══ 5. LE BOUTON « TESTER L'APPLICATION » : L'ADRESSE QUE BÂTIT LA VRAIE FONCTION ══ */
     console.log('\n5. Le lien de la démonstration (la vraie `OpRub.lienDemo`)');
@@ -232,11 +232,11 @@ globalThis.fetch = async function (url, opts) {
 
     const apercu = fs.readFileSync(path.join(RACINE, 'apercu', 'site', 'creer.html'), 'utf8'), racine = fs.readFileSync(path.join(RACINE, 'creer.html'), 'utf8');
     vrai('⛔ l\'aperçu porte le bouton (vers LA démonstration de l\'aperçu), les trois variantes (« Les deux » cochée d\'office) et le JSON avec la base',
-      /id="tester-app" href="\/apercu\/demo\.html" data-demo="\/apercu\/demo\.html" target="_blank" rel="opener"/.test(apercu) && /name="variante" value="deux" checked/.test(apercu)
+      /id="tester-app" data-tester href="\/apercu\/demo\.html" data-demo="\/apercu\/demo\.html" target="_blank" rel="opener"/.test(apercu) && /name="variante" value="deux" checked/.test(apercu)
       && /name="variante" value="chauffage"/.test(apercu) && /name="variante" value="climatisation"/.test(apercu) && /"base":\["planning","planningGeneral"/.test(apercu));
-    vrai('⛔ la racine PUBLIÉE ne porte rien de tout ça', !/tester-app|name="variante"|variante-chauffage|"base":/.test(racine));
+    vrai('la racine PUBLIÉE (30 octobre 2026, Justin : « le site, je veux que tu le publies ») porte la page neuve : variante du chauffage', /variante-chauffage/.test(racine));
     const SITE = nu(fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8'));
-    vrai('   le script de la page câble le lien sur la vraie fonction, au choix du métier, de la variante et à chaque case', /OpRub\.lienDemo\(lienTest\.getAttribute\('data-demo'\)/.test(SITE) && /addEventListener\('change', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE) && /OpRub\.monter\(grille, etatRub, 'cr', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE));
+    vrai('   le script de la page câble le lien sur la vraie fonction, au choix du métier, de la variante et à chaque case', /OpRub\.lienDemo\(base, ms\[0\], varianteCourante\(\)/.test(SITE) && /\$\$\('\[data-tester\]'/.test(SITE) && /addEventListener\('change', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE) && /OpRub\.monter\(grille, etatRub, 'cr', function \(\) \{ majTest\(\); garder\(\); \}\)/.test(SITE));
     vrai('   la demande par e-mail DIT la variante', /VARIANTE : /.test(SITE));
 
     /* ══ 6. LA DÉMONSTRATION RENVOIE « AJOUTER CETTE RUBRIQUE » (contrat fixé avec l'autre chantier) ══ */
@@ -253,7 +253,7 @@ globalThis.fetch = async function (url, opts) {
       /ev\.origin !== location\.origin\) return/.test(SITE) && !/addEventListener\('message'[\s\S]{0,400}'\*'/.test(SITE) && !/https:\/\/teamop\.fr/.test(SITE));
     vrai('   le message exact : type « teamop-demo », action « ajouter-rubrique », version 1', /d\.type !== 'teamop-demo' \|\| d\.action !== 'ajouter-rubrique' \|\| d\.v !== 1/.test(SITE));
     vrai('   le lien `?ajouter=<clé>` est lu au chargement, le formulaire revient de la session de l\'onglet', /ajouter=\(\[A-Za-z0-9\]\{1,30\}\)/.test(SITE) && /if \(ajoutDemande && lienTest\) \{ restaurer\(\); ajouterDepuisDemo\(ajoutDemande\)/.test(SITE) && /sessionStorage\.setItem\(CLE_SESSION/.test(SITE));
-    vrai('   le message dit « Rubrique ajoutée à votre demande » dans une zone `role="status"` de l\'aperçu, absente de la racine', /Rubrique ajoutée à votre demande/.test(SITE) && /id="rubrique-ajoutee" role="status"/.test(apercu) && !/rubrique-ajoutee/.test(racine));
+    vrai('   le message dit « Rubrique ajoutée à votre demande » dans une zone `role="status"` de l\'aperçu, absente de la racine', /Rubrique ajoutée à votre demande/.test(SITE) && /id="rubrique-ajoutee" role="status"/.test(apercu) && /rubrique-ajoutee/.test(racine));
 
     const tour = fs.readFileSync(path.join(RACINE, 'apercu', 'tour.html'), 'utf8');
     vrai('   la Tour (aperçu) lit la variante d\'une demande et la transmet avec le métier à l\'acceptation', /variante:dm\.variante\|\|undefined/.test(tour) && /climatisation seulement/.test(tour));

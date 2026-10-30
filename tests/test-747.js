@@ -52,6 +52,9 @@ const VU_ET_PAS_GARDE = {
   seedFournisseurs: 'semis du pack métier', mvtDemoPoser: 'démonstration', mvtDemoGrande: 'démonstration',
   mvtDemoDeuxMois: 'démonstration', betaRemplir: 'démonstration (bêta)', demoCharger: 'démonstration',
   demoCompta: 'démonstration', demoTele: 'démonstration',
+  nettDemoPoser: 'démonstration (cahiers et plan de prévention du pack nettoyage, posés par « Remplir » de la bêta)',
+  cvcDemoPoser: 'démonstration (parc d\'appareils du chauffage, posé par « Remplir » de la bêta)',
+  docmDemoPoser: 'démonstration (documents du métier — devis, note, rapport d\'étanchéité, suivis —, posés par « Remplir » de la bêta, marqués démonstration)',
   /* ⚠️ Ces deux-là n'apparaissaient PAS tant que le nettoyage des commentaires était naïf :
      elles tombaient dans les 107 069 caractères avalés. Le banc voit plus large depuis. */
   genDemoData: 'démonstration', genTestNuisibles: 'démonstration (jeu d essai nuisibles)',
@@ -201,7 +204,7 @@ vrai('   … et boxGererGarde finit bien par permGarde(\'stock\', …)', /functi
 console.log('\n══ 5. ⛔ LA SUPPRESSION RESTE GÉNÉRIQUE ══\n');
 /* `delItem` déduit la catégorie de la collection : c'est ce qui fait que « supprimer » vaut
    pour TOUTE collection rattachée, sans une ligne par écran. Ne pas le particulariser. */
-vrai('⛔ delItem déduit la catégorie de la collection', /const _grp=COLL_GRP\[coll\]/.test(corps('delItem')));
+vrai('⛔ delItem déduit la catégorie de la collection', /const _grp=[^;]*COLL_GRP\[coll\]/.test(corps('delItem')));
 vrai('   et refuse quand le droit manque', /canCat\(_grp,'supprimer'\)/.test(corps('delItem')));
 
 console.log('\n══ 6. ⛔ LA LISTE BLANCHE NE PARLE PAS DE FANTÔMES ══\n');

@@ -223,7 +223,7 @@ let consoleTexte = ''; for (const k of ['log', 'error', 'warn']) { const o = con
     vrai('hashchange : à la navigation aussi, AVANT setTab', !!hc && hc[0].includes('hashAncienne()') && hc[0].indexOf('hashAncienne()') < hc[0].indexOf('setTab('));
     vrai('opmAncienne(true) lit l\'ancienne messagerie (messOuvrir) — la fonction que le bouton appelle déjà', /if\(oui\) messOuvrir\(\);/.test(fn('opmAncienne')));
     vrai('la version de la Tour a changé (v2.122 au moins), et les trois libellés disent la même', (() => { const m = /var TOUR_VERSION='v2\.(\d+)';/.exec(SC); const aff = [...TOUR.matchAll(/(?:console interne · |La Tour · |journalisées · )v2\.(\d+)/g)].map(x => +x[1]); return !!m && +m[1] >= 122 && aff.length >= 3 && aff.every(x => x === +m[1]); })());
-    vrai('apercu/tour.html est régénéré (même hashAncienne, même version)', (() => { try { const A = fs.readFileSync(path.join(RACINE, 'apercu', 'tour.html'), 'utf8'); return A.includes('function hashAncienne()') && A.includes("var TOUR_VERSION='v2.122'"); } catch (e) { return false; } })());
+    vrai('apercu/tour.html est régénéré (même hashAncienne, même version)', (() => { try { const A = fs.readFileSync(path.join(RACINE, 'apercu', 'tour.html'), 'utf8'); return A.includes('function hashAncienne()') && /var TOUR_VERSION='v2\.(\d+)'/.test(A) && +/var TOUR_VERSION='v2\.(\d+)'/.exec(A)[1] >= 122; } catch (e) { return false; } })());
   }
 
   console.log('\n7. Tout ce que l\'affichage change interdit OUI (relevé brut, sans passer par pauline.js)');

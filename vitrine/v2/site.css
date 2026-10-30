@@ -332,6 +332,10 @@ ul.conditions { padding-left: 1.2em; } ul.conditions li + li { margin-top: 6px; 
 .envoi small { font-size: 13px; color: var(--sub); }
 .avis-envoi { border-radius: 18px; background: var(--tile); padding: 16px 18px; font-size: 15px; line-height: 1.5; }
 .avis-envoi[hidden] { display: none; }
+.echec-envoi { border: 1.5px solid var(--link); }
+.echec-envoi p { margin: 0 0 10px; }
+.echec-envoi p:last-child { margin-bottom: 0; }
+.bouton[disabled] { opacity: .6; cursor: progress; }
 
 /* métiers */
 .cartes-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap: 16px; }

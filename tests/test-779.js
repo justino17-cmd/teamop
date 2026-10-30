@@ -159,7 +159,7 @@ const iNav0 = SRC.indexOf('const NAV = ['), iNav1 = SRC.indexOf('\n];', iNav0);
 vrai('population : le bloc NAV est trouvé', iNav0 > 0 && iNav1 > iNav0 + 2000, [iNav0, iNav1]);
 vrai('⛔ Produits donnés n’a PAS de ligne au menu (c’est une sous-catégorie)', !/k:'produitsDonnes'/.test(SRC.slice(iNav0, iNav1)));
 vrai('⛔ VUE_PARENT est DÉRIVÉE de SOUS_CATS (pas une seconde liste à tenir)',
-  /const VUE_PARENT=Object\.fromEntries\(SOUS_CATS\.map\(s=>\[s\.k,s\.parent\]\)\);/.test(SRC) && (SRC.match(/const VUE_PARENT=/g) || []).length === 1);
+  /const VUE_PARENT=Object\.fromEntries\(SOUS_CATS\.map\(s=>\[s\.k,s\.parent\]\)(\.concat\(.*FUSIONS.*\))?\);/.test(SRC) && (SRC.match(/const VUE_PARENT=/g) || []).length === 1);
 vrai('… et SOUS_CATS est déclarée AVANT VUE_PARENT (sinon zone morte au chargement)',
   SRC.indexOf('const SOUS_CATS=') > 0 && SRC.indexOf('const SOUS_CATS=') < SRC.indexOf('const VUE_PARENT='));
 v('une seule définition de chacune', ['function boxSousCats(', 'function donsListe(', 'function donTotTxt(', 'function avecSousCats(', 'function donDetail(', 'function donsRendre(']

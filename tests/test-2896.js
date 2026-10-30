@@ -5,7 +5,7 @@
    Ce banc EXÉCUTE le vrai bloc CVC d'app.html et les VRAIES fonctions d'écriture PDF (`_pdfTxt` écrit, `_pdfLarg` mesure), et
    LIT le PDF qui sort :
      1. les seuils du CO (arrêté du 15 septembre 2009, article 3), aux frontières — et le CO des FUMÉES ne reçoit AUCUN verdict ;
-     2. qui peut recevoir une attestation : une chaudière, d'une intervention TERMINÉE qui la cite — jamais une pompe à chaleur ;
+     2. qui peut recevoir une attestation : une chaudière (et, depuis le 25 octobre 2026, une pompe à chaleur ou une climatisation — test-3003), d'une intervention TERMINÉE qui la cite ;
      3. le formulaire part des relevés de l'intervention (copiés), l'attestation déjà établie l'emporte ;
      4. l'enregistrement : droit lu dans la fonction qui écrit, une ligne d'historique, rien d'écrit à l'ouverture ;
      5. un vrai PDF : structure, pages, images, société, textes — ⛔ aucun « ? » pour une flèche, un émoji, un « ≥ », et aucune ligne
@@ -55,7 +55,11 @@ console.log('\n── 2896 · 2. qui peut recevoir une attestation ──');
   refus('intervention non terminée', 'i2', 'a1', /une fois l’intervention terminée/);
   refus('appareil non cité sur l’intervention', 'i1', 'a3', /pas cité/);
   refus('appareil d’un autre client', 'i3', 'a1', /pas cité/);
-  refus('pompe à chaleur', 'i1', 'a2', /que les chaudières/);
+  /* 25 octobre 2026 : la pompe à chaleur reçoit SON attestation (arrêté du 24 juillet 2020, test-3003) ; un chauffe-eau thermodynamique, exclu de l'arrêté, non */
+  vrai('pompe à chaleur + terminée + citée : accordée (attestation « thermo », test-3003)', !!W.cvcAttestationCtx('i1', 'a2'));
+  W.db.appareils.push({ id: 'a9', clientId: 'c1', type: 'cet', marque: 'Thermor' }); W.db.interventions[0].appareilIds.push('a9');
+  refus('chauffe-eau thermodynamique (exclu de l’arrêté)', 'i1', 'a9', /chaudières, les pompes à chaleur et les climatisations/);
+  W.db.appareils.pop(); W.db.interventions[0].appareilIds.pop();
   refus('intervention inconnue', 'iX', 'a1', /introuvable/);
   vrai('chaudière + terminée + citée : accordée', !!W.cvcAttestationCtx('i1', 'a1'));
 }
@@ -155,22 +159,21 @@ console.log('\n── 2896 · 5. un vrai PDF ──');
   vrai('le client très long est dit en entier ou coupé avec « … », jamais hors page', G.textes.some(t => /Établissements Dupont/.test(t.u)));
 }
 
-console.log('\n── 2896 · 6. l’aperçu : la fenêtre s’ouvre DANS le geste ──');
+console.log('\n── 2896 · 6. l’aperçu : la fenêtre PDF commune (v780) ──');
 (async () => {
   {
     const W = monter({ db: BASE, pack: PACK, jpeg: JPEG1 });
     W.__form = formulaire({ coAmbiant: '3', conseils: 'Bon état' });
     require('vm').runInContext("document.getElementById=function(id){ return id==='cvc-att'?__form:null; }", W);
     const p = W.cvcAttestationApercu('i1', 'a1');
-    vrai('⛔ la fenêtre est ouverte AVANT toute attente (synchrone)', W.__windows.length === 1 && /Préparation/.test(W.__windows[0].ecrit));
+    const F = require('vm').runInContext('__feuilles', W);
+    vrai('⛔ la fenêtre PDF s’ouvre AVANT toute attente (synchrone), avec l’envoi au client', F.length === 1 && typeof F[0].o.envoyer === 'function');
     await p;
-    vrai('le PDF s’y affiche (adresse blob), la fenêtre n’est pas fermée', W.__windows[0].location.href === 'blob:test' && !W.__windows[0].ferme);
+    vrai('sa fabrique rend un vrai PDF (la saisie EN COURS du formulaire)', !!(F[0].d && /^%PDF-/.test(F[0].d.pdf || '')), F[0].d && F[0].d.err);
+    vrai('⛔ aucun onglet ouvert d’office (un onglet ouvert après une attente, Safari le bloque) : Aperçu se touche dans la fenêtre', W.__windows.length === 0);
     vrai('⛔ un aperçu n’écrit RIEN (ni save, ni attestation)', W.__saves === 0 && !W.db.interventions[0].attestations);
-    const B = monter({ db: BASE, pack: PACK }); require('vm').runInContext('__noPopup=true', B);
-    await B.cvcAttestationApercu('i1', 'a1');
-    vrai('popup bloquée : on le dit, pas de PDF fabriqué', /pop-ups/.test(B.__toasts.join('|')));
     const S = monter({ db: BASE, pack: PACK }); await S.cvcAttestationApercu('i2', 'a1');
-    vrai('intervention non terminée : aucune fenêtre ouverte pour rien', S.__windows.length === 0);
+    vrai('intervention non terminée : aucune fenêtre ouverte pour rien', require('vm').runInContext('__feuilles', S).length === 0 && S.__windows.length === 0);
   }
 
   console.log('\n── 2896 · 7. l’envoi : un seul courriel, la trace après la réussite ──');
@@ -221,7 +224,7 @@ console.log('\n── 2896 · 6. l’aperçu : la fenêtre s’ouvre DANS le ges
     const W = monter({ db: BASE, pack: PACK });
     const t = W.cvcIntCard(W.db.interventions[0], false);
     vrai('chaudière visitée + terminée : bouton « Attestation d’entretien » actif', /cvcAttestationForm\('i1','a1'\)/.test(t) && !/disabled/.test(t.slice(t.indexOf('Attestation') - 200, t.indexOf('Attestation'))), t.slice(0, 80));
-    vrai('⛔ la pompe à chaleur visitée n’a PAS de bouton d’attestation', !/cvcAttestationForm\('i1','a2'\)/.test(t));
+    vrai('la pompe à chaleur visitée a SON bouton d’attestation (25 octobre 2026), mais pas de certificat de ramonage', /cvcAttestationForm\('i1','a2'\)/.test(t) && !/cvcRamonageForm\('i1','a2'\)/.test(t));
     const p = W.cvcIntCard(W.db.interventions[1], false);
     vrai('intervention planifiée : bouton grisé, avec la raison', /disabled/.test(p) && /une fois l’intervention terminée/.test(p));
     W.db.interventions[0].attestations = { a1: { etabliLe: '2026-10-21', envoyeeLe: 1790000000000, envoyeeA: 'elise@exemple.fr' } };

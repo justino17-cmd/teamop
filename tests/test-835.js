@@ -14,7 +14,7 @@
    5. chaque écran d'appareil a sa version jour ET nuit, et l'image existe ;
    6. aucun bouton de mode (le site suit le système, sans bouton — THEME.md § 0, et Justin le 29 septembre 2026) ;
    7. OP MESSAGES : « Bientôt disponible », aucune formule ne se choisit ;
-   8. « Créer » ne dit jamais « demande envoyée » (c'est la messagerie de la personne qui l'envoie) ;
+   8. la PAGE « Créer » ne porte jamais « demande envoyée » en dur ; depuis le 30 octobre 2026 c'est site.js qui le dit, et SEULEMENT sur un 200 du serveur (test-3230) ; le courriel n'est plus que le secours ;
    9. un aperçu ne se référence pas (`noindex`), la page de racine si.
    La preuve au navigateur (menus, fenêtres, onglets, formulaire, débordement) vit dans
    `scratchpad/sonde-site.js`, que ce banc exige. */
@@ -339,7 +339,7 @@ console.log('8. « Créer » part par e-mail, et le dit');
 vrai('le formulaire n\'a pas d\'action serveur', /<form class="demande" id="demande" novalidate>/.test(PAGES.creer));
 vrai('jamais « demande envoyée »', !/demande envoy[ée]/i.test(texte(PAGES.creer)));
 const js = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
-vrai('site.js prépare un mailto vers contact@teamop.fr — sur le site, c\'est toujours contact@ (Justin, 8 octobre 2026)', /location\.href = 'mailto:contact@teamop\.fr\?subject='/.test(js));
+vrai('site.js prépare un mailto vers contact@teamop.fr — sur le site, c\'est toujours contact@ (Justin, 8 octobre 2026)', /var mail = 'mailto:contact@teamop\.fr\?subject='/.test(js));
 vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : '/.test(js));
 /* v766 (Justin, 30 septembre 2026 : « oui, fais ce qu'il faut ») : chaque métier du site a son pack dans l'application —
    plus aucun « Sur mesure avec vous ». Et chaque puce porte une clé que l'application CONNAÎT (METIERS_ORDRE, lu dans
@@ -356,12 +356,14 @@ vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : 
   const ordreTous = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
   const ordreApp = ordreTous.filter(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0).concat(Object.keys(METIERS_JSON.ouvertsReglage || {}));
   vrai('(population) la liste des « pas encore ouverts au public » est bien dans l\'application (' + PAS_ENCORE_OUVERTS.length + ' sur ' + ordreTous.length + ')', PAS_ENCORE_OUVERTS.every(k => ordreTous.includes(k)) && ordreTous.length - ordreTous.filter(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0).length === PAS_ENCORE_OUVERTS.length);
-  const NB_REF = METIERS_JSON.ordreMetiers.length;
+  /* le site propose les treize d'origine (« autre » compris) et les métiers AJOUTÉS au référentiel (`!existant`) : la climatisation, scindée du chauffage le 29 octobre 2026, est `existant` — le site ne lui ajoute pas de carte avant que Justin dise de régénérer ses pages */
+  const TREIZE = ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre'];
+  const NB_REF = METIERS_JSON.ordreMetiers.filter(k => TREIZE.includes(k) || !METIERS_JSON.metiers[k].existant).length;
   const puces = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"[^>]*data-pret="([01])"/g)].map(m => [m[1], m[2] === '1']);
   vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 6 && ordreApp[0] === '3d');
   v('23 métiers proposés (les treize du site, « autre » compris — le métier est obligatoire, il faut pouvoir dire « autre » —, plus les dix du référentiel)', [puces.length, (PAGES.creer.match(/class="metier-puce"/g) || []).length], [NB_REF, NB_REF]);
   v('⛔ les dix nouveaux métiers sont « bientôt » tant que le référentiel ne les ouvre pas (jamais « Pack prêt »)',
-    METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, puces.find(p => p[0] === k)[1], METIERS_JSON.ouverts.includes(k)]),
+    METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, (puces.find(p => p[0] === k) || [k, 'puce absente de creer.html'])[1], METIERS_JSON.ouverts.includes(k)]),
     METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, METIERS_JSON.ouverts.includes(k), METIERS_JSON.ouverts.includes(k)]));
   vrai('   … et leur carte de la page Métiers ne promet rien (aucune puce de fonctionnalité) tant qu\'ils sont fermés',
     METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant && !METIERS_JSON.ouverts.includes(k))

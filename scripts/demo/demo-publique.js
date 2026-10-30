@@ -12,8 +12,9 @@
    · un produit naît par `produitCreer(…,{semis:true})`, jamais `db.produits.push` ;
    · aucun client n'a de courriel réel (« .invalid ») et aucun numéro n'est joignable (01 99 00 xx xx, réservé à la fiction) ;
    · tout ce que le semis pose porte `demo:1` ; « Recommencer » efface le préfixe elanD_ et resème.                               */
-// Vidée le 23 octobre 2026 avec la déclaration de tests/beta-en-avance.js : les dix nouveaux métiers ont leur exemple.
-const DEMO_METIERS_FERMES = [];
+// Vidée le 23 octobre 2026 avec la déclaration de tests/beta-en-avance.js : les dix nouveaux métiers ont leur exemple. Le 29 octobre, la climatisation (séparée du chauffage) rejoint la déclaration : app.html la connaît,
+// le site ne l'ouvre pas encore, la démonstration ne la propose donc pas — son exemple s'écrit le jour où la déclaration se vide.
+const DEMO_METIERS_FERMES = ['climatisation'];
 const DEMO_ETAT_CLE = 'elanD_demo_etat';
 const DEMO_ID_ADMIN = 'demo-admin';
 const DEMO_MSG = "Dans la démonstration, rien n'est envoyé.";
@@ -25,9 +26,102 @@ const DEMO_DECALAGES = [[0, 0], [0.012, -0.008], [-0.010, 0.014], [0.020, 0.010]
 /* Les métiers que la démonstration propose : ceux de la page (`METIERS_ORDRE`) que le site ouvre au public. */
 function demoPubliqueMetiers() { return METIERS_ORDRE.filter(function (k) { return METIERS[k] && DEMO_METIERS_FERMES.indexOf(k) < 0; }); }
 function demoPubliqueChoixLire() {
-  try { const j = JSON.parse(localStorage.getItem(DEMO_ETAT_CLE) || 'null'); return (j && typeof j.metier === 'string' && demoPubliqueMetiers().indexOf(j.metier) >= 0) ? j.metier : ''; } catch (e) { return ''; }
+  /* la climatisation n'est « fermée » que comme carte du choix : elle s'ouvre quand le visiteur l'a demandée par l'adresse (variante=climatisation) */
+  try { const j = JSON.parse(localStorage.getItem(DEMO_ETAT_CLE) || 'null'); return (j && typeof j.metier === 'string' && (demoPubliqueMetiers().indexOf(j.metier) >= 0 || (j.metier === 'climatisation' && j.variante === 'climatisation'))) ? j.metier : ''; } catch (e) { return ''; }
 }
-function demoPubliqueChoixEcrire(id) { try { localStorage.setItem(DEMO_ETAT_CLE, JSON.stringify({ metier: id, v: 1 })); } catch (e) { /* le rangement est plein : la démonstration tient en mémoire */ } }
+function demoPubliqueChoixEcrire(id, extra) {
+  const o = { metier: id, v: 1 };
+  if (extra) {
+    if (extra.plus) o.plus = extra.plus;
+    if (extra.plus2) o.plus2 = extra.plus2;
+    if (extra.variante) o.variante = extra.variante;
+    if (extra.cats && extra.cats.length) o.cats = extra.cats;
+  }
+  try { localStorage.setItem(DEMO_ETAT_CLE, JSON.stringify(o)); } catch (e) { /* le rangement est plein : la démonstration tient en mémoire */ }
+}
+
+/* ── Ce que le visiteur a coché sur le site (creer.html) : demo.html?metier=…&variante=…&cats=… ─────────────────────────────────
+   Justin : « ils ont aussi les cases qu'ils n'ont pas sélectionnées, et ça met : vous n'avez pas sélectionné cette case, mais vous pouvez
+   la visualiser ». Rien n'est FERMÉ ici (toutes les rubriques du métier restent ouvertes, ce n'est pas le réglage `cats` de l'application
+   qui, lui, ferme) : la liste retenue ne sert qu'à dire, en tête de l'écran, « non choisie ». Elle vit dans le rangement de la démonstration
+   (elanD_demo_etat), jamais dans `db` ni dans la clé `cats` de l'application. Liste FERMÉE : seules les clés de NAV comptent, le reste est ignoré. */
+const DEMO_CATS_MAX = 60, DEMO_VARIANTES = ['deux', 'chauffage', 'climatisation'];
+function demoPubliqueCatsConnues() {
+  try { if (typeof catsConnues === 'function') return catsConnues().slice(); } catch (e) { /* idem */ }
+  return [];
+}
+/* l'adresse, sans rien en croire : un métier (a-z0-9), une variante de la liste, des clés connues (longueur bornée) ; `cats` vaut null quand rien d'utilisable n'est donné */
+function demoPubliqueAdresse(search, connues) {
+  const lire = function (n) { const m = String(search || '').match(new RegExp('[?&]' + n + '=([^&#]*)')); return m ? m[1] : ''; };
+  const metier = (lire('metier').match(/^[a-z0-9]+$/) || [''])[0];
+  const v = lire('variante');
+  const brut = lire('cats').slice(0, 800);
+  let cats = null;
+  if (brut) {
+    let txt = ''; try { txt = decodeURIComponent(brut); } catch (e) { txt = ''; }
+    const l = [];
+    txt.split(',').forEach(function (x) { x = x.trim(); if (l.length < DEMO_CATS_MAX && (connues || []).indexOf(x) >= 0 && l.indexOf(x) < 0) l.push(x); });
+    if (l.length) cats = l;
+  }
+  /* v782 : jusqu'à trois métiers choisis sur le site (`metiers=plomberie,chauffage,electricite`, le principal en tête) — clés bien formées seulement, trois au plus */
+  const metiers = [];
+  let mt = ''; try { mt = decodeURIComponent(lire('metiers').slice(0, 200)); } catch (e) { mt = ''; }
+  mt.split(',').forEach(function (x) { x = x.trim(); if (metiers.length < 3 && /^[a-z0-9-]+$/.test(x) && metiers.indexOf(x) < 0) metiers.push(x); });
+  return { metier: metier, metiers: metiers, variante: DEMO_VARIANTES.indexOf(v) >= 0 ? v : '', cats: cats };
+}
+/* chauffage / climatisation : « deux » = le chauffage et, en complément, la climatisation (le mécanisme `metierPlus` de l'application, pack réuni) ;
+   « cvc » est le nom du pack combiné de l'application, accepté comme « deux ». Pour tout autre métier la variante ne dit rien.
+   v782 : jusqu'à TROIS métiers — la correspondance site → application est celle de l'application (`metiersDuServeur`, la même que pour un vrai
+   client), jamais une seconde copie : principal, puis `plus`, puis `plus2`. Un principal inconnu se rend tel quel (le démarrage le refuse). */
+function demoPubliquePack(metier, variante, metiers) {
+  const connu = Object.prototype.hasOwnProperty.call(METIERS, metier) || !!(typeof metierComboDe === 'function' && metierComboDe(metier));
+  const L = connu ? metiersDuServeur({ metier: metier, metiers: metiers || [], variante: variante }) : [];
+  if (!L.length) return { metier: metier, plus: '', variante: '' };
+  const brut = [metier].concat(metiers || []);
+  let v = '';
+  if (brut.indexOf('chauffage') >= 0 || brut.indexOf('cvc') >= 0) {
+    if (DEMO_VARIANTES.indexOf(variante) >= 0 || brut.indexOf('cvc') >= 0) v = (L.indexOf('chauffage') >= 0 && L.indexOf('climatisation') >= 0) ? 'deux' : (L.indexOf('climatisation') >= 0 ? 'climatisation' : 'chauffage');
+  }
+  const o = { metier: L[0], plus: L[1] || '', variante: v };
+  if (L[2]) o.plus2 = L[2];
+  return o;
+}
+/* le choix rangé (métier, complément, variante, rubriques cochées) — relu avec les mêmes règles que l'adresse */
+function demoPubliqueEtatLire() {
+  try {
+    const j = JSON.parse(localStorage.getItem(DEMO_ETAT_CLE) || 'null') || {}, connues = demoPubliqueCatsConnues(), o = {};
+    if (typeof j.plus === 'string' && j.plus !== j.metier && j.plus !== '3d' && METIERS[j.plus]) o.plus = j.plus;
+    if (o.plus && typeof j.plus2 === 'string' && j.plus2 !== j.metier && j.plus2 !== j.plus && j.plus2 !== '3d' && METIERS[j.plus2]) o.plus2 = j.plus2;
+    if (DEMO_VARIANTES.indexOf(j.variante) >= 0) o.variante = j.variante;
+    if (Array.isArray(j.cats)) { const l = []; j.cats.forEach(function (x) { if (l.length < DEMO_CATS_MAX && connues.indexOf(x) >= 0 && l.indexOf(x) < 0) l.push(x); }); if (l.length) o.cats = l; }
+    return o;
+  } catch (e) { return {}; }
+}
+let _demoSel = null;   // { cats: [clés cochées sur le site] } — null : pas de choix du site, aucun bandeau « non choisie »
+/* la rubrique (clé de NAV) de cet écran si le visiteur ne l'a PAS cochée sur le site, sinon '' — le parent d'une sous-rubrique, comme `catBloque` */
+function demoPubliqueNonChoisie(view) {
+  try {
+    if (!_demoSel || !_demoSel.cats || !_demoSel.cats.length) return '';
+    const p = (typeof VUE_PARENT === 'object' && VUE_PARENT && VUE_PARENT[view]) || view;
+    return (demoPubliqueCatsConnues().indexOf(p) >= 0 && _demoSel.cats.indexOf(p) < 0) ? p : '';
+  } catch (e) { return ''; }
+}
+/* « L'ajouter à ma demande » : l'onglet du site qui a ouvert la démonstration, s'il existe (message vers teamop.fr SEULEMENT, aucun envoi réseau) ;
+   sinon on revient à la page de commande. */
+function demoPubliqueAjouter(k) {
+  k = String(k || '');
+  if (demoPubliqueCatsConnues().indexOf(k) < 0) return;
+  try {
+    const o = window.opener;
+    if (o && !o.closed) {
+      o.postMessage({ type: 'teamop-demo', action: 'ajouter-rubrique', rubrique: k, v: 1 }, 'https://teamop.fr');
+      try { o.focus(); } catch (e) { /* idem */ }
+      try { toast('✓ Envoyé à votre demande — retournez sur l’onglet du site.', 4500); } catch (e) { /* idem */ }
+      return;
+    }
+  } catch (e) { /* pas d'onglet d'origine : le lien ci-dessous */ }
+  location.href = 'creer.html?ajouter=' + encodeURIComponent(k);
+}
 function demoTel(n) { const p = function (x) { return String(x % 100).padStart(2, '0'); }; return '01 99 00 ' + p(n) + ' ' + p(n * 7 + 3); }
 
 /* n jours OUVRÉS avant (n < 0) ou après (n > 0) un jour : une semaine d'interventions ne tombe pas un dimanche */
@@ -39,7 +133,7 @@ function demoPubliqueJourOuvre(iso, n) {
 
 /* Le semis. Rend vrai si la base est posée. Toute la base passe par les fonctions de l'application ; ce qui est écrit ici, ce sont
    les noms propres de l'exemple (scenarios.js) et la mise en forme de la semaine. */
-function demoPubliqueSemer(id) {
+function demoPubliqueSemer(id, plus, plus2) {
   const M = METIERS[id]; if (!M) return false;
   const sc = DEMO_SCENARIOS[id] || DEMO_SCENARIO_DEFAUT;
   /* une base propre : les collections de données de l'application, par SA liste (celle du vidage de load()) */
@@ -50,6 +144,9 @@ function demoPubliqueSemer(id) {
   db.metier = '';
   try { metierServeurAppliquer({ metier: id }); } catch (e) { /* l'écran n'est pas encore là : db.metier est posé avant */ }
   if (db.metier !== id) db.metier = id;
+  /* le complément (chauffage + climatisation) : le mécanisme « Mon entreprise fait aussi… » de l'application, posé AVANT les types, prestations et catégories qui s'en lisent */
+  db.metierPlus = (plus && plus !== id && plus !== '3d' && METIERS[plus]) ? plus : '';
+  db.metierPlus2 = (db.metierPlus && plus2 && plus2 !== id && plus2 !== plus && plus2 !== '3d' && METIERS[plus2]) ? plus2 : '';
   /* toutes les rubriques du métier : pas de verrou de forfait (premium ne bloque rien) et assez de places pour essayer */
   db.forfait = 'premium'; db.forfaitQty = 10;
   db.entreprise = { nom: sc.ent, adresse: '', cp: sc.ville[1], ville: sc.ville[0], tel: demoTel(1) };
@@ -118,7 +215,7 @@ function demoPubliqueSemer(id) {
     db.contrats.push({ id: uid(), num: nextNum('contrats', 'CTR', 'num'), clientId: clients[c[0]].id, titre: (M.nom || 'Contrat').split(/ [—\/] /)[0] + ' · contrat d’entretien', frequence: c[1],
       dateDebut: shiftDay(today, -60), dateFin: shiftDay(today, 300), montant: c[2], statut: 'actif', notes: '', demo: 1 });
   });
-  db.demoPublique = { metier: id, ts: Date.now(), v: 1 };
+  db.demoPublique = { metier: id, plus: db.metierPlus || '', plus2: db.metierPlus2 || '', ts: Date.now(), v: 1 };
   try { logEvent('Démonstration', 'Exemple « ' + (M.nom || id) + ' » posé', 'admin'); } catch (e) { /* le journal ne doit pas arrêter le semis */ }
   save();
   try { ombreRelever(); } catch (e) { /* idem */ }
@@ -213,9 +310,16 @@ function demoPubliqueStyle() {
     '.demo-bandeau b{color:var(--t1);font-weight:700;letter-spacing:.04em;font-size:11px;text-transform:uppercase}',
     '.demo-bandeau .demo-txt{flex:1 1 220px;min-width:0}',
     '.demo-bandeau .demo-act{display:flex;gap:6px;flex-wrap:wrap}',
-    '.demo-bandeau button{font:inherit;font-size:12px;font-weight:600;min-height:32px;padding:4px 11px;border-radius:999px;cursor:pointer;color:var(--t1);background:transparent;border:1px solid var(--brd2)}',
+    '.demo-bandeau button{font:inherit;font-size:12px;font-weight:600;min-height:44px;padding:6px 14px;border-radius:999px;cursor:pointer;color:var(--t1);background:transparent;border:1px solid var(--brd2)}',
     '.demo-bandeau button:hover{background:var(--hover-tint)}',
-    '@media (max-width:520px){.demo-bandeau{padding:7px 10px;font-size:11.5px;gap:4px 8px;margin-bottom:10px}.demo-bandeau b{display:none}.demo-bandeau button{min-height:30px;font-size:11.5px;padding:3px 10px}}',
+    '.demo-bandeau.demo-nc{margin-top:-6px;background:color-mix(in srgb,var(--acc) 9%,var(--card));border:1px solid color-mix(in srgb,var(--acc) 34%,transparent)}',
+    '.demo-bandeau.demo-nc .demo-txt{color:var(--t1)}',
+    '.demo-bandeau .demo-ajout{color:var(--on-fill,#fff);background:var(--acc-fill,var(--acc));border-color:transparent}',
+    '.demo-bandeau .demo-ajout:hover{background:var(--acc-fill,var(--acc));filter:brightness(1.08)}',
+    '.nav-item[data-nonchoisie]::after{content:"";margin-left:auto;flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:50%;border:1.5px dashed var(--t3)}',
+    '.demo-legende{display:flex;align-items:center;gap:8px;margin:2px 14px 8px;font-size:11.5px;line-height:1.35;color:var(--t3)}',
+    '.demo-legende i{flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:50%;border:1.5px dashed var(--t3)}',
+    '@media (max-width:520px){.demo-bandeau{padding:7px 10px;font-size:11.5px;gap:4px 8px;margin-bottom:10px}.demo-bandeau b{display:none}.demo-bandeau button{min-height:44px;font-size:12px;padding:6px 12px}}',
     '.demo-choix{width:min(980px,100%);margin:0 auto;padding:28px 18px 40px;text-align:center;color:var(--t1)}',
     '.demo-choix h2{font-size:26px!important;letter-spacing:-.02em;margin:6px 0 8px}',
     '.demo-choix p{color:var(--t2);font-size:14.5px;line-height:1.6;max-width:640px;margin:0 auto 6px}',
@@ -233,11 +337,43 @@ function demoPubliqueStyle() {
 }
 function demoPubliqueBandeau() {
   const c = document.getElementById('content'); if (!c || !currentUser) return;
-  if (c.firstElementChild && c.firstElementChild.id === 'demo-bandeau') return;
-  const b = document.createElement('div'); b.id = 'demo-bandeau'; b.className = 'demo-bandeau'; b.setAttribute('role', 'note');
-  b.innerHTML = '<b>Démonstration</b><span class="demo-txt">Démonstration — vos essais restent sur cet appareil, rien n\'est envoyé. Toutes les rubriques sont ouvertes ; l’IA, la synchro et le courrier ne fonctionnent pas ici.</span>'
-    + '<span class="demo-act"><button type="button" onclick="demoPubliqueChanger()">Changer de métier</button><button type="button" onclick="demoPubliqueRecommencer()">Recommencer</button></span>';
-  c.insertBefore(b, c.firstChild);
+  let b = c.firstElementChild;
+  if (!(b && b.id === 'demo-bandeau')) {
+    b = document.createElement('div'); b.id = 'demo-bandeau'; b.className = 'demo-bandeau'; b.setAttribute('role', 'note');
+    b.innerHTML = '<b>Démonstration</b><span class="demo-txt">Démonstration — vos essais restent sur cet appareil, rien n\'est envoyé. Toutes les rubriques sont ouvertes ; l’IA, la synchro et le courrier ne fonctionnent pas ici.</span>'
+      + '<span class="demo-act"><button type="button" onclick="demoPubliqueChanger()">Changer de métier</button><button type="button" onclick="demoPubliqueRecommencer()">Recommencer</button></span>';
+    c.insertBefore(b, c.firstChild);
+  }
+  /* la rubrique que le visiteur n'a pas cochée sur le site : un second bandeau, juste dessous. Posé ICI — là où l'écran s'écrit vraiment (l'observateur
+     ci-dessous le repose après chaque écriture de #content) — et non depuis go(), dont la barre est balayée par rendreVueAnimee. */
+  const k = demoPubliqueNonChoisie(current), n = document.getElementById('demo-nonchoisie');
+  if (!k) { if (n && n.parentNode) n.parentNode.removeChild(n); return; }
+  if (n && n.getAttribute('data-k') === k && n.previousElementSibling === b) return;
+  if (n && n.parentNode) n.parentNode.removeChild(n);
+  const m = document.createElement('div'); m.id = 'demo-nonchoisie'; m.className = 'demo-bandeau demo-nc'; m.setAttribute('role', 'note'); m.setAttribute('data-k', k);
+  m.innerHTML = '<span class="demo-txt">Vous n’avez pas sélectionné cette rubrique — vous pouvez la visualiser ici.</span>'
+    + '<span class="demo-act"><button type="button" class="demo-ajout" onclick="demoPubliqueAjouter(\'' + k + '\')">L’ajouter à ma demande</button></span>';
+  c.insertBefore(m, b.nextSibling);
+}
+/* le menu : une petite marque discrète sur les rubriques non cochées (un attribut, écrit après chaque dessin du menu ; le rond pointillé vient du CSS — un MOT dans la ligne
+   débordait dès qu'une pastille de nombre s'y trouvait déjà, « Interventions 13 »), et UNE ligne de légende qui dit ce que le rond veut dire */
+function demoPubliqueMenu() {
+  const n = document.getElementById('nav'); if (!n || !n.querySelectorAll) return;
+  if (_demoSel && _demoSel.cats && _demoSel.cats.length && !n.querySelector('.demo-legende') && n.querySelector('.nav-item[data-view]')) {
+    const l = document.createElement('div'); l.className = 'demo-legende'; l.innerHTML = '<i aria-hidden="true"></i><span>Rubrique non choisie dans votre demande</span>';
+    const premier = Array.prototype.find.call(n.children, function (x) { return !(x.classList.contains('nav-loupe') || x.id === 'nav-rien'); });
+    n.insertBefore(l, premier || null);
+  }
+  Array.prototype.forEach.call(n.querySelectorAll('.nav-item[data-view]'), function (el) {
+    if (demoPubliqueNonChoisie(el.getAttribute('data-view'))) { el.setAttribute('data-nonchoisie', '1'); el.setAttribute('title', 'Non choisie dans votre demande'); }
+  });
+}
+let _demoObsNav = null;
+function demoPubliqueObserverMenu() {
+  const n = document.getElementById('nav'); if (!n || _demoObsNav || typeof MutationObserver !== 'function') return;
+  _demoObsNav = new MutationObserver(function () { try { demoPubliqueMenu(); } catch (e) { /* idem */ } });
+  _demoObsNav.observe(n, { childList: true });
+  demoPubliqueMenu();
 }
 let _demoObs = null;
 function demoPubliqueObserver() {
@@ -278,8 +414,9 @@ function demoPubliqueEffacer() {
 function demoPubliqueRecommencer() {
   if (!confirm('Recommencer ?\n\nVos essais sur cet appareil sont effacés et l’exemple revient comme au début.')) return;
   const id = (db.demoPublique && db.demoPublique.metier) || demoPubliqueChoixLire();
+  const etat = demoPubliqueEtatLire();   // lu AVANT l'effacement : le complément, la variante et les rubriques cochées sur le site se gardent
   demoPubliqueEffacer();
-  if (id) demoPubliqueChoixEcrire(id);
+  if (id) demoPubliqueChoixEcrire(id, etat);
   location.reload();
 }
 function demoPubliqueChanger() {
@@ -302,6 +439,7 @@ function demoPubliqueOuvrir() {
   _cnxVia = 'session';
   enterApp(u);
   demoPubliqueObserver();
+  demoPubliqueObserverMenu();
   try { demoPubliqueBandeau(); } catch (e) { /* idem */ }
 }
 /* Le pare-feu n'a pas pu poser sa vue du stockage (navigateur qui refuse la redéfinition) : la page lirait et écrirait les clés de l'application des clients. On n'ouvre RIEN. */
@@ -316,21 +454,26 @@ function demoPubliqueBoot() {
   if (window.__demoPublique && window.__demoPublique.stockageIsole === false) { demoPubliqueNonPris(); return; }
   demoPubliqueBouchons();
   demoPubliqueStyle();
-  let id = '';
-  const q = (location.search.match(/[?&]metier=([a-z0-9]+)/) || [])[1];   // le bouton du site : « Essayer la démo plombier »
-  if (q && demoPubliqueMetiers().indexOf(q) >= 0) {
-    id = q;
+  let id = '', plus = '', plus2 = '', variante = '', cats = null;
+  /* le bouton du site : « Essayer la démo plombier » (métier seul) ou « Tester l'application » de la page de commande (métier, variante, rubriques cochées) */
+  const adr = demoPubliqueAdresse(location.search, demoPubliqueCatsConnues());
+  const pk = (adr.metier || adr.metiers[0]) ? demoPubliquePack(adr.metier || adr.metiers[0], adr.variante, adr.metiers) : null;
+  if (pk && (demoPubliqueMetiers().indexOf(pk.metier) >= 0 || (pk.metier === 'climatisation' && pk.variante === 'climatisation'))) {
+    id = pk.metier; plus = pk.plus; plus2 = pk.plus2 || ''; variante = pk.variante; cats = adr.cats;
     /* ⛔ suivre le lien d'un AUTRE métier remplace les essais du visiteur : on le demande, comme « Changer de métier » */
-    const deja = demoPubliqueChoixLire();
-    if (deja && deja !== q && db.demoPublique && db.demoPublique.metier === deja && !confirm('Passer à ce métier ?\n\nVos essais sur cet appareil sont remplacés par l’exemple du nouveau métier.')) {
-      id = deja;
+    const deja = demoPubliqueChoixLire(), etat = demoPubliqueEtatLire();
+    if (deja && (deja !== id || (etat.plus || '') !== plus || (etat.plus2 || '') !== plus2) && db.demoPublique && db.demoPublique.metier === deja && !confirm('Passer à ce métier ?\n\nVos essais sur cet appareil sont remplacés par l’exemple du nouveau métier.')) {
+      id = deja; plus = etat.plus || ''; plus2 = etat.plus2 || ''; variante = etat.variante || ''; cats = etat.cats || null;
       try { history.replaceState(null, '', location.pathname); } catch (e) { /* idem */ }
     }
+  } else {
+    id = demoPubliqueChoixLire();
+    if (id) { const etat = demoPubliqueEtatLire(); plus = etat.plus || ''; plus2 = etat.plus2 || ''; variante = etat.variante || ''; cats = etat.cats || null; }
   }
-  if (!id) id = demoPubliqueChoixLire();
   if (!id) { demoPubliqueChoix(); return; }
-  const semee = db.demoPublique && db.demoPublique.metier === id && (db.techniciens || []).length > 0;
-  demoPubliqueChoixEcrire(id);
-  if (!semee) demoPubliqueSemer(id);
+  const semee = db.demoPublique && db.demoPublique.metier === id && (db.demoPublique.plus || '') === plus && (db.demoPublique.plus2 || '') === plus2 && (db.techniciens || []).length > 0;
+  demoPubliqueChoixEcrire(id, { plus: plus, plus2: plus2, variante: variante, cats: cats });
+  _demoSel = cats ? { cats: cats } : null;
+  if (!semee) demoPubliqueSemer(id, plus, plus2);
   demoPubliqueOuvrir();
 }

@@ -49,10 +49,12 @@ console.log('\n── 2895 · 1. la collection est déclarée à TOUS ses regist
   vrai('COL_GRP : les droits de la catégorie Clients', /const COLL_GRP=\{[^}]*appareils:'crm'/.test(CODE));
   vrai('COLL_QUOI : le message de refus sait nommer un appareil', /const COLL_QUOI=\{[^}]*appareils:'un appareil'/.test(CODE));
   vrai('DEL_NOMS : la suppression nomme « l’appareil »', /const DEL_NOMS=\{[^}]*appareils:'l’appareil'/.test(CODE));
-  vrai('la remise à zéro des données de test vide aussi les appareils', /'fournisseurs','registres','appareils'\]\.forEach\(k=>\{ db\[k\]=\[\]; \}\)/.test(CODE));
+  vrai('la remise à zéro des données de test vide aussi les appareils', /'fournisseurs','registres','appareils','cahiers','plansPrevention','docsMetier'\]\.forEach\(k=>\{ db\[k\]=\[\]; \}\)/.test(CODE));
   vrai('« Effacer les clients » emporte leur parc (sinon des appareils sans client)', /if\(c\.clients\)\{ db\.clients=\[\]; db\.appareils=\[\];/.test(CODE));
   vrai('supprimer un client DIT combien d’appareils restent', /appareils:n\('appareils'\)/.test(CODE) && /liensPluriel\(l\.appareils,'appareil'\)/.test(CODE));
-  vrai('une seule ligne de code pousse dans db.appareils (saveAppareil)', (CODE.match(/db\.appareils\.push\(/g) || []).length === 1);
+  /* v779 : une deuxième ligne, celle du parc de DÉMONSTRATION du chauffage (`cvcDemoPoser`, fiches marquées demo:1, emportées par « Retirer la démonstration ») — la création de l'écran reste unique */
+  vrai('deux lignes de code poussent dans db.appareils : saveAppareil (le geste) et cvcDemoPoser (la démonstration, marquée demo:1)', (CODE.match(/db\.appareils\.push\(/g) || []).length === 2
+    && /function saveAppareil[\s\S]{0,8000}?db\.appareils\.push\(/.test(CODE) && /function cvcDemoPoser[\s\S]{0,3500}?creeLe:todayISO\(\),demo:1\},d\); db\.appareils\.push\(/.test(CODE));
 }
 
 console.log('\n── 2895 · 2. ⛔ un autre métier ne voit RIEN de neuf ──');

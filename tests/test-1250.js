@@ -68,7 +68,7 @@ const F = (id, statut, jours, ttc, extra) => Object.assign({ id, num: 'FAC-' + i
 const nb = s => String(s).replace(/[\u202f\u00a0]/g, ' ');
 /* lit un compteur « À encaisser (N) » : [montant, N] */
 function kpi(html, lbl) { html = nb(html); const m = html.match(new RegExp('kpi-val">([^<]*)</div><div class="kpi-lbl">' + lbl + ' \\((\\d+)\\)')); return m ? [m[1], +m[2]] : null; }
-function affichees(W, filtre) { W.__ff(filtre); W.views.factures(); return ['a', 'b', 'c', 'd', 'e', 'f'].filter(id => W.__html.includes("printDoc('factures','" + id + "')")); }
+function affichees(W, filtre) { W.__ff(filtre); W.views.factures(); return ['a', 'b', 'c', 'd', 'e', 'f'].filter(id => W.__html.includes("pdfDoc('factures','" + id + "')")); }
 
 console.log('\n── 1250 · 1. facturation#5 — « En retard » posé à la main compte comme dû ET comme en retard ──');
 { const W = monde([F('a', 'retard', 2, 120)]);

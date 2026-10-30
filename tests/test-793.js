@@ -55,15 +55,15 @@ const BASE = {
              { id: 'fA', num: 'FA-2', clientId: 'cX', date: '2026-09-10', tva: 0, rapportModele: 'Alpha Nuisibles', statut: 'payee', datePaiement: '2026-09-12', lignes: [{ designation: 'Y', qte: 1, pu: 80 }] }],
   bons: [{ id: 'bA', societe: 'Alpha Nuisibles', lignes: [] }, { id: 'b0', societe: '', lignes: [] }], fournisseurs: [] };
 const FN = ['function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function intSocMailOpts(',
-  'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(',
-  'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
+  'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(', 'function entNomDoc(', 'function docMentionsManquantes(', 'function listeEt(', 'function docNomGarde(', 'let _docMentionsAvertis=', 'function docMentionsGarde(',
+  'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfEnLignes(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
 function monter(base) {
   const W = { console, Object, JSON, String, Math, Date, Array, Number, Uint8Array, __html: '',
-    localStorage: { getItem: () => null }, atob: s => Buffer.from(s, 'base64').toString('latin1') };
+    __toasts: [], __modal: null, localStorage: { getItem: () => null }, atob: s => Buffer.from(s, 'base64').toString('latin1') };
   W.db = JSON.parse(JSON.stringify(base)); vm.createContext(W);
   vm.runInContext([decoupe('const REPORT_TEMPLATES ='), decoupe('const isoDe ='), ...FN.map(decoupe),
     `function todayISO(){ return '2026-09-23'; } function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
-     function eur(n){ return Number(n||0).toFixed(2)+' €'; } function encreSur(){ return '#fff'; } function toast(){}
+     function eur(n){ return Number(n||0).toFixed(2)+' €'; } function encreSur(){ return '#fff'; } function toast(t){ __toasts.push(String(t)); } function entCompleterModal(m,s,i){ __modal={m:m,suite:s,intro:i}; }
      const ligTotLigne=l=>Math.round((Number(l.qte)||0)*(Number(l.pu)||0)*100)/100;
      function docTot(d){ const ht=(d.lignes||[]).reduce((s,l)=>s+ligTotLigne(l),0), tva=ht*(+d.tva||0)/100; return {ht,tva,ttc:ht+tva}; }
      function bonNum(b){ return 'BC-'+b.id; } function bonQteTxt(){ return '1 u'; } function bonQteTotTxt(){ return '0 u'; }
@@ -83,7 +83,9 @@ console.log('── 793 · 1. la règle, exécutée ──');
   v('le générique : le NOM DE L’ENTREPRISE, son logo, ses coordonnées — jamais « Modèle générique » ni « OP GESTION »', [G.nom, G.logo, G.siret, G.generique], ['Nettoyage Excellence SARL', 'data:E', '11111111100011', true]);
   v('… vide, « aucune » et undefined pareil', [W.docEntete('').nom, W.docEntete('Aucune société').nom, W.docEntete(undefined).nom], Array(3).fill('Nettoyage Excellence SARL'));
   v('rapportSociete (28 appelants) : le générique rend l’entreprise', [W.rapportSociete('Modèle générique'), W.rapportSociete('Alpha Nuisibles')], ['Nettoyage Excellence SARL', 'Alpha Nuisibles']);
-  const W2 = monter({ ...BASE, entreprise: {} }); v('une entreprise SANS nom : « OP GESTION » en tout dernier recours', W2.docEntete('').nom, 'OP GESTION');
+  /* v780 — Justin, 29 octobre 2026 : « nous on n'est pas affichés sur les devis, on est juste la plate-forme ». Le
+     dernier recours n'est plus le nom du logiciel : un en-tête vide, et la porte (§ 6) fait remplir l'entreprise. */
+  const W2 = monter({ ...BASE, entreprise: {} }); v('⛔ une entreprise SANS nom : l’en-tête reste VIDE — jamais « OP GESTION » (v780)', [W2.docEntete('').nom, W2.docEntete('').raison, W2.rapportSociete('')], ['', '', '']);
   v('le nom d’expéditeur suit : la société, sinon rien d’imposé', [W.docMailOpts('Alpha Nuisibles'), W.docMailOpts('Modèle générique')], [{ brandName: 'Alpha Nuisibles', societe: 'Alpha Nuisibles' }, undefined]);
   v('socDuClient : ni l’annulée du 20/09, ni la future de 2099 — la dernière RÉELLE (Bêta, 15/09)', W.socDuClient('cX'), 'Bêta Hygiène');
   v('… parmi les passages d’un document : la dernière de CE document', W.socDuClient('cX', [W.db.interventions[0]]), 'Alpha Nuisibles');
@@ -106,6 +108,23 @@ console.log('── 793 · 2. les PDF de vente et d’achat, exécutés ──')
   vrai('… et sa table xref est juste', n > 3 && bons === n - 1, [bons, n - 1]);
   const bA = W.bonPdfStr(W.db.bons[0]);
   vrai('bon de commande Alpha : Alpha et SES coordonnées', bA.includes('Alpha Nuisibles') && bA.includes('2 quai Alpha') && !bA.includes('1 rue de la Mairie')); }
+
+console.log('── 793 · 2 bis. ⛔ une désignation longue et un nom de client long ne sont plus COUPÉS (relecture adverse du 28 octobre 2026) ──');
+{ const LONG = 'Nettoyage quotidien des locaux — contrat annuel, deux passages par jour, sanitaires désinfectés, vitrerie mensuelle et remise en état des sols FINDESIGNATION';
+  const NOM = 'Établissements Hospitaliers Universitaires de la Côte Atlantique et des Pays de la Loire FINDUNOM';
+  const B2 = JSON.parse(JSON.stringify(BASE)); B2.clients[0].nom = NOM;
+  B2.devis[0].lignes = [{ designation: 'Court', qte: 1, pu: 10 }, { designation: LONG, qte: 2, pu: 50 }, { designation: 'Suite', qte: 1, pu: 5 }];
+  const W = monter(B2), pdf = W.docPdfStr('devis', W.db.devis[0], null);
+  const tj = [...pdf.matchAll(/\(((?:[^()\\]|\\.)*)\) Tj/g)].map(m => m[1]);
+  const tout = tj.join(' ');
+  vrai('(population) le PDF porte du texte (' + tj.length + ' chaînes) et sa ligne « Court » comme « Suite »', tj.length > 20 && /\(Court\) Tj/.test(pdf) && /\(Suite\) Tj/.test(pdf));
+  vrai('⛔ la désignation longue va JUSQU\'À SON DERNIER MOT (FINDESIGNATION), répartie sur plusieurs lignes, sans « … »', tout.includes('FINDESIGNATION') && !/\\205|…/.test(tj.filter(t => /Nettoyage quotidien|contrat annuel|sanitaires|vitrerie|FINDESIGNATION/.test(t)).join('')) && tj.filter(t => /Nettoyage quotidien|contrat annuel|sanitaires|vitrerie|sols|FINDESIGNATION/.test(t)).length >= 2, tj.filter(t => /FINDESIGNATION|quotidien/.test(t)));
+  vrai('⛔ le nom du client va jusqu\'au bout (FINDUNOM) sur deux lignes au plus', tout.includes('FINDUNOM') && tj.filter(t => /Hospitaliers|Atlantique|FINDUNOM/.test(t)).length <= 2);
+  vrai('la ligne qui SUIT une désignation à plusieurs lignes est placée dessous (son texte est plus bas que le dernier mot)', (() => { const y = t => { const m = pdf.match(new RegExp('([\\d.]+) ([\\d.-]+) Td\\n\\([^)]*' + t + '[^)]*\\) Tj')); return m ? +m[2] : null; }; const a = y('FINDESIGNATION'), b = y('Suite'); return a != null && b != null && b < a; })());
+  const W3 = monter(BASE), court = W3.docPdfStr('devis', W3.db.devis[0], null);
+  vrai('une désignation courte tient sur UNE ligne, comme avant (3D inchangée)', court.includes('(Dératisation) Tj') || court.includes('(D\\351ratisation) Tj'));
+  const cl = W.docPdfStr('factures', W.db.factures[0], null);
+  vrai('… la facture aussi porte le nom entier', cl.includes('FINDUNOM')); }
 
 console.log('── 793 · 3. l’impression d’un devis ou d’une facture, exécutée ──');
 { const W = monter(BASE);
@@ -131,7 +150,10 @@ console.log('── 793 · 4. chaque fabrique passe par la même règle ──')
     ptPdfStr: 'relevé de pointage des heures', printArchive: 'archive mensuelle de l’entreprise' };
   /* la fabrique reçoit son en-tête tout prêt : c'est l'appelant qui lit docEntete */
   const PAR_APPELANT = { papImplPdfStr: 'papImplDocument', rapportPdfStr: 'rapportDocument',   // v744 : le rapport joint au courriel
-    cvcAttestationPdfStr: 'cvcAttestationDocument', cvcAttestationApercu: 'cvcAttestationDocument' };   // 23 octobre 2026 : l'attestation d'entretien (chauffage) — l'aperçu n'écrit que « Préparation… » dans sa fenêtre, le document vient de cvcAttestationDocument
+    cvcAttestationPdfStr: 'cvcAttestationDocument', cvcAttestationApercu: 'cvcAttestationDocument',
+    cvcRamonageApercu: 'cvcRamonageDocument',
+    nettPdf: 'nettDocFabriquer', nettDocApercu: 'nettDocFabriquer' };   // 28 octobre 2026 : le pack nettoyage — nettDocFabriquer lit docEntete(société du client)
+      // 24 octobre 2026 : le certificat de ramonage — même chemin que l'attestation (son PDF est cvcAttestationPdfStr, genre « ramonage »)   // 23 octobre 2026 : l'attestation d'entretien (chauffage) — l'aperçu n'écrit que « Préparation… » dans sa fenêtre, le document vient de cvcAttestationDocument
   vrai('population : au moins 15 fabriques trouvées dans le fichier', fab.length >= 15, fab.map(x => x.n));
   const sans = fab.filter(x => !INTERNES[x.n] && !PAR_APPELANT[x.n] && !/docEntete\(|bcEntete\(/.test(x.b)).map(x => x.n);
   v('toute fabrique remise à un client passe par docEntete (ou bcEntete) — ou elle est nommée INTERNE', sans, []);
@@ -248,6 +270,39 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
     v('… un nom à virgule et guillemets ne fabrique ni deux adresses ni un en-tête cassé', (r.p.smtp || {}).from, '"Alpha, Nuisibles SAS" <contact@excellence.fr>');
     r = await essai(null, alpha);
     v('sans boîte connectée : la plateforme envoie au nom d’Alpha', [(r.p.brand || {}).name, !!r.p.smtp], ['Alpha Nuisibles', false]); }
+
+  console.log('── 793 · 6. v780 : rien ne part au client sans le nom, l’adresse et le SIRET de la société qui émet ──');
+  { const vide = { ...BASE, entreprise: { nom: 'Clim Ouest', logo: '' } };
+    const W = monter(vide);
+    v('mentions manquantes de l’entreprise : l’adresse et le SIRET (le nom est là)', W.docMentionsManquantes(''), ["l'adresse", 'le SIRET']);
+    v('… une société AVEC son SIRET et son adresse (Alpha) ne manque de rien, même entreprise incomplète', W.docMentionsManquantes('Alpha Nuisibles'), []);
+    v('… une société SANS SIRET (Bêta, nom commercial) manque de ce qui manque à l’entreprise', W.docMentionsManquantes('Bêta Hygiène'), ["l'adresse", 'le SIRET']);
+    W.db.factures.push({ id: 'fV', num: 'FA-9', clientId: 'cX', date: '2026-09-15', tva: 20, rapportModele: '', statut: 'brouillon', lignes: [{ designation: 'Entretien', qte: 1, pu: 90 }] });
+    W.__html = ''; W.printDoc('factures', 'fV');
+    vrai('⛔ facture d’une entreprise incomplète : RIEN ne s’imprime, « Ton entreprise » s’ouvre et nomme ce qui manque', W.__html === '' && !!W.__modal && /l'adresse et le SIRET/.test(W.__modal.intro), W.__modal);
+    vrai('… et la fenêtre garde le geste : une fois complétée, la facture repart d’elle-même', typeof (W.__modal && W.__modal.suite) === 'function');
+    W.db.entreprise = { ...W.db.entreprise, adresse: '3 rue du Port', cp: '17000', ville: 'La Rochelle', siret: '33333333300033' }; W.__modal.suite();
+    vrai('… entreprise complétée : la suite imprime la facture, au nom de l’entreprise et avec son SIRET', /Clim Ouest/.test(W.__html) && /33333333300033/.test(W.__html) && !/OP GESTION/.test(W.__html));
+    const W3 = monter(vide); W3.db.devis.push({ id: 'dV', num: 'DV-9', clientId: 'cX', date: '2026-09-10', tva: 20, rapportModele: '', lignes: [{ designation: 'X', qte: 1, pu: 10 }] });
+    W3.__html = ''; W3.printDoc('devis', 'dV');
+    vrai('un DEVIS d’une entreprise incomplète passe (il n’est pas une facture), avec UN avertissement qui dit quoi compléter', W3.__html.length > 0 && !W3.__modal && W3.__toasts.length === 1 && /l'adresse et le SIRET/.test(W3.__toasts[0]), W3.__toasts);
+    W3.printDoc('devis', 'dV'); v('… l’avertissement ne revient pas à chaque devis de la séance', W3.__toasts.length, 1);
+    const W4 = monter(BASE); W4.__html = ''; W4.printDoc('factures', 'fB');
+    vrai('contre-épreuve : entreprise complète, la facture s’imprime sans fenêtre ni avertissement', W4.__html.length > 0 && !W4.__modal && !W4.__toasts.length);
+    vrai('l’envoi (envoiDoc) passe par la même porte, AVANT de rien envoyer', /function envoiDoc\([^)]*\)\{[^\n]*\n\s*if\(!docMentionsGarde\(kind,d\.rapportModele,/.test(SRC));
+    vrai('la facture réglée sur place (factureMailPayee) ne part pas non plus sans les mentions, et le dit', /const manque=docMentionsManquantes\(it\.rapportModele\);\s*if\(manque\.length\)\{ toast\([^;]*non envoyée[^;]*\); return; \}/.test(SRC));
+    vrai('l’administrateur reçoit « Ton entreprise » après sa connexion (entAccueilCheck) ; « Plus tard » tient sept jours (v780) ; la bêta reçoit une entreprise de TEST, jamais la production', /setTimeout\(\(\)=>\{ try\{ entAccueilCheck\(\); \}catch\(e\)\{\} \},\d+\)/.test(SRC) && /if\(entPlusTardActif\(\)\) return;/.test(SRC) && /const ENT_PLUS_TARD_JOURS=7;/.test(SRC) && /if\(BETA_ESSAI&&docMentionsManquantes\(''\)\.length\)\{ db\.entreprise=/.test(SRC));
+    const W5 = monter({ ...BASE, entreprise: {} }); W5.db.devis.push({ id: 'dN', num: 'DV-8', clientId: 'cX', date: '2026-09-10', tva: 20, rapportModele: '', lignes: [{ designation: 'X', qte: 1, pu: 10 }] });
+    W5.__html = ''; W5.printDoc('devis', 'dN');
+    vrai('⛔ SANS NOM d’entreprise, même un DEVIS ne sort pas : « Ton entreprise » demande le nom (seul le nom est exigé)', W5.__html === '' && !!W5.__modal && /indique le nom de ton entreprise/.test(W5.__modal.intro), W5.__modal);
+    const PORTES = ['printRapport', 'rapportVia', 'printDossierClient', 'papDossierSanitaire', 'printRegistre', 'printBox', 'shareBoxStock', 'printBon', 'envoiBonEmail', 'printProduitDonne', 'exportFacturX', 'mailClientRdv', 'smsArrivee'];
+    const FABRIQUES = ['cvcAttestationDocument', 'cvcRamonageDocument', 'papImplDocument', 'nettDocFabriquer'];   // leurs appelants lisent d.err
+    v('⛔ les 4 fabriques dont l’appelant lit le résultat rendent {err} sans nom (jamais undefined : « d.err » jetterait)', FABRIQUES.filter(f => !new RegExp('function ' + f + '\\([^)]*\\)\\{ if\\(!docNomGarde\\(null\\)\\) return \\{err:').test(SRC)), []);
+    const sans = PORTES.filter(f => !new RegExp('function ' + f + '\\([^)]*\\)\\{ const __a=arguments; if\\(!docNomGarde\\(\\(\\)=>' + f + '\\.apply\\(null,__a\\)\\)\\) return;').test(SRC));
+    v('⛔ les 13 portes des autres documents et messages (rapport, attestations, dossier, registre, box, bon fournisseur, Factur-X…) demandent le nom en PREMIÈRE instruction', sans, []);
+    vrai('« Ton entreprise » exige un SIRET de 14 chiffres', /\^\\d\{14\}\$/.test(corps('entCompleterSave')));
+    vrai('⛔ plus aucun document ne lit entNom() (le nom de l’APPLICATION) : docEntete, rapportSociete et le bon de remise lisent entNomDoc()',
+      !/entNom\(\)/.test(corps('docEntete')) && !/entNom\(\)/.test(corps('rapportSociete')) && !/doc\.text\(String\(entNom\(\)\)/.test(SRC)); }
 
   console.log(`\n════ test-793 : ${ok} ✓ ${ko} ✗ ════`);
   process.exit(ko ? 1 : 0);

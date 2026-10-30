@@ -1,7 +1,7 @@
 /* ══ test-3086 · BÊTA v777 — CHOISIR N'IMPORTE QUEL MÉTIER POUR LE TESTER ═══════════════════════════════════════════
    Justin, 28 octobre 2026 : « dans OPG bêta je veux pouvoir choisir le style d'entreprise, que ce soit de la dératisation,
    la clim, le chauffage, enfin tout… je choisis le pack directement pour tester ». Trois règles :
-   1. la carte « 🧪 Outils de bêta » porte « 🧰 Tester un métier » : les 23 packs (METIERS_ORDRE), un geste → metierSet
+   1. la carte « 🧪 Outils de bêta » porte « 🧰 Tester un métier » : les packs (METIERS_ORDRE, 24 depuis la climatisation, plus les packs combinés), un geste → metierSet
       (journal, « ↩︎ Annuler ») ; et « Mon métier » montre les 23 cartes sur la bêta (`equipeTeamOP()||BETA_ESSAI`) ;
    2. ⛔ dans app.html, BETA_ESSAI vaut false : une entreprise ne voit toujours que SON métier — joué, pas relu ;
    3. « Remplir en grand nombre » prend les types du pack choisi (`intTypes()`), plus INT_TYPES (la 3D) : un pack se juge
@@ -11,7 +11,6 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const lire = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const BETA = lire('beta.html');
-const { BETA_SEULE } = require('./beta-en-avance.js');   // 23 métiers de la production + ceux que seule la bêta connaît (tests/beta-en-avance.js)
 const sansCom = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d) : '')); } };
@@ -38,8 +37,7 @@ function contexte(SRC, beta) {
 console.log('\n── 3086 · 1. le sélecteur de la bêta ──');
 const B = contexte(BETA, true);
 vrai('les morceaux sont trouvés (8)', B.morceaux.every(m => m.length > 20), B.morceaux.map(m => m.length));
-const NB = 23 + BETA_SEULE.length;
-vrai('(population) ' + NB + ' métiers dans METIERS_ORDRE de la bêta : les 23 de la production + ' + BETA_SEULE.join(', '), B.ctx.METIERS_ORDRE.length === NB && BETA_SEULE.every(k => B.ctx.METIERS_ORDRE.indexOf(k) >= 0), B.ctx.METIERS_ORDRE.length);
+vrai('24 métiers dans METIERS_ORDRE (la climatisation, séparée du chauffage le 29 octobre 2026, s\'ajoute)', B.ctx.METIERS_ORDRE.length === 24, B.ctx.METIERS_ORDRE.length);
 const PARAM = bloc(B.C, 'views.parametres=function(');
 vrai('views.parametres est trouvée', PARAM.length > 5000, PARAM.length);
 const iOutils = PARAM.indexOf('🧪 Outils de bêta'), iSel = PARAM.indexOf('id="beta-metier"'), iFin = PARAM.indexOf("</div>`:''}", iSel);
@@ -47,10 +45,10 @@ vrai('le sélecteur vit DANS la carte « Outils de bêta » (gardée par BETA_ES
   && /\$\{BETA_ESSAI&&currentUser&&currentUser\.role==='admin'\?`<div class="card"><div class="card-head"><h3>🧪 Outils de bêta/.test(PARAM), [iOutils, iSel, iFin]);
 const SEL = PARAM.slice(iSel, iFin);
 vrai('un geste sur le sélecteur appelle metierSet', /onchange="metierSet\(this\.value\)"/.test(SEL));
-vrai('il propose TOUS les métiers (METIERS_ORDRE.map) et part sur le courant (sauf sous un pack combiné, que le groupe suivant désigne — avance de la bêta)', /\$\{METIERS_ORDRE\.map\(k=>`<option value="\$\{k\}"\$\{k===metierId\(\)&&!metierComboCourant\(\)\?' selected':''\}>/.test(SEL));
-vrai('… puis les packs COMBINÉS (bêta seule), un par ligne, valeur « combo:… » que metierSet aiguille', /<optgroup label="Packs combinés[^"]*">\$\{METIERS_COMBOS\.map\(c=>`<option value="combo:\$\{c\.k\}"\$\{metierComboCourant\(\)===c\.k\?' selected':''\}>/.test(SEL));
+vrai('il propose TOUS les métiers (METIERS_ORDRE.map) et part sur le courant (sauf sous un pack combiné, que le groupe suivant désigne)', /\$\{METIERS_ORDRE\.map\(k=>`<option value="\$\{k\}"\$\{k===metierId\(\)&&!metierComboCourant\(\)\?' selected':''\}>/.test(SEL));
+vrai('… puis les packs COMBINÉS (v780), un par ligne, valeur « combo:… » que metierSet aiguille', /<optgroup label="Packs combinés[^"]*">\$\{METIERS_COMBOS\.map\(c=>`<option value="combo:\$\{c\.k\}"\$\{metierComboCourant\(\)===c\.k\?' selected':''\}>/.test(SEL));
 
-console.log('\n── 3086 · 2. « Mon métier » : une carte par métier de la bêta, une seule chez un client ──');
+console.log('\n── 3086 · 2. « Mon métier » : 24 cartes sur la bêta, une seule chez un client ──');
 const expr = c => { const m = c.match(/<div class="met-cards">\$\{\((.*?)\)\.map\(k=>/); return m ? m[1] : ''; };
 const EB = expr(B.C), EA = expr(sansCom(lire('app.html')));
 vrai('l\'expression des cartes est trouvée (bêta et app.html)', !!EB && !!EA, [EB, EA]);
@@ -58,9 +56,9 @@ vrai('l\'expression des cartes est trouvée (bêta et app.html)', !!EB && !!EA, 
 const client = vm.runInNewContext(EA, { BETA_ESSAI: false, equipeTeamOP: () => false, METIERS_ORDRE: B.ctx.METIERS_ORDRE, cur: 'plomberie' });
 vrai('app.html : un client ne voit que sa carte', JSON.stringify(client) === '["plomberie"]', client);
 const cartes = (beta, equipe) => vm.runInNewContext(EB, { BETA_ESSAI: beta, equipeTeamOP: () => equipe, METIERS_ORDRE: B.ctx.METIERS_ORDRE, cur: 'plomberie' });
-vrai('bêta (BETA_ESSAI vrai) : les ' + NB + ' cartes', cartes(true, false).length === NB, cartes(true, false).length);
+vrai('bêta (BETA_ESSAI vrai) : les 24 cartes de métier (les packs combinés en ont les leurs, à la suite)', cartes(true, false).length === 24, cartes(true, false).length);
 vrai('client (BETA_ESSAI faux, pas TEAM OP) : sa seule carte', JSON.stringify(cartes(false, false)) === '["plomberie"]', cartes(false, false));
-vrai('équipe TEAM OP : les ' + NB + ' cartes, comme avant', cartes(false, true).length === NB);
+vrai('équipe TEAM OP : les 24 cartes, comme avant', cartes(false, true).length === 24);
 vrai('app.html arme BETA_ESSAI à false', /const BETA_ESSAI=false;/.test(lire('app.html')));
 vrai('beta.html l\'arme à true', /const BETA_ESSAI=true;/.test(BETA));
 

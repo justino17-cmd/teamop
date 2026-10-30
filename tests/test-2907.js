@@ -89,7 +89,7 @@ const poser = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', bo
     await Z.chloe.surReponse({ adresse: 'prospect@exemple-2907.fr', texte: 'Nous sommes 4 techniciens.', mid: '<r@x>', boiteId: 'b-contact', dossier: 'INBOX', uid: 3, authentifie: true });
     await calme();
     const mc = cl().find(m => m.de === 'chloe');
-    vrai('Chloé annonce sa proposition : le métier et la formule (des valeurs du référentiel), la référence', mc && /^J’ai envoyé seule une proposition sur mesure à un prospect qui avait répondu à Léa \(métier : Chauffage \/ Climatisation\), formule OP GESTION Business\. Contrôle qualité passé\. Référence [0-9a-f]{4}\.$/.test(mc.texte), mc && mc.texte);
+    vrai('Chloé annonce sa proposition : le métier et la formule (des valeurs du référentiel), la référence', mc && /^J’ai envoyé seule une proposition sur mesure à un prospect qui avait répondu à Léa \(métier : Chauffage(?: \/ Climatisation)?\), formule OP GESTION Business\. Contrôle qualité passé\. Référence [0-9a-f]{4}\.$/.test(mc.texte), mc && mc.texte);
     v('…et personne n’est réveillé non plus', Z.chats().length, 0);
     vrai('⛔ elles n’écrivent que dans les fils dont elles sont membres (Clients) — pas « Plateforme », pas le fil d’un collègue', Z.conv.lire('plateforme', 10).length === 0 && Z.conv.lire('margaux', 10).length === 0);
     Z.nettoyer();

@@ -3680,7 +3680,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.122</div>
+    <div class="lg-pied">console interne · v2.123</div>
   </div>
 </div>
 
@@ -3715,7 +3715,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">La Tour · v2.122</div>
+        <div class="hd-tour" id="hd-tour">La Tour · v2.123</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3728,7 +3728,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
   <main id="opm-hote" hidden></main>   <!-- v2.120 : le cadre d'OP MESSAGES vit ICI, hors de #vue (qui est réécrit à chaque rubrique) : il est affiché ou masqué, jamais détruit -->
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.122</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.123</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3821,7 +3821,7 @@ function groupeOnglets(t){ var l=groupeDe(t); if(l.length<2) return '';
 /* le nombre qui attend, dit sur l'onglet du groupe (rien : pas de chiffre) */
 function groupeCompte(k){ try{
   if(k==='support') return MSG.nonLus||0;
-  if(k==='demandes') return CLI.loaded?demandesATraiter().length:0;
+  if(k==='demandes') return attendDemandes();
   if(k==='incidents') return INC.loaded&&!INC.err?incOuverts().length:0;
 }catch(e){} return 0; }
 /* ⛔ CE QUI EST AU PATRON SEUL, ET LE SERVEUR LE DIT AUSSI : Accès, Équipe, Journal, Agents et Sauvegardes
@@ -4073,7 +4073,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.122';
+var TOUR_VERSION='v2.123';
 /* le nom de la Tour dit qu'elle est UNE (plus « Tour OP GESTION » / « Tour OP MESSAGES ») ; la couleur ne parle jamais seule */
 function majEnteteTour(){ var hd=$('hd-tour'); if(hd) hd.textContent='La Tour · '+TOUR_VERSION; }
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
@@ -4877,7 +4877,7 @@ function setTab(t,sansAnim){
   if(t==='entreprises'&&SOUS.entreprises==='connexions') chargerConnexions();
   if(t==='abonnements'&&SOUS.abonnements==='devisia'&&!DIA.loaded) chargerDevisIA();
   /* Demandes : les comptes du site, l'annuaire (« espace déjà ouvert ») et Stripe (« déjà payé ») */
-  if(t==='demandes'){ chargerClients(); if(!ENT.loaded) chargerEntreprises(); if(!ABO.loaded) chargerAbos(); }
+  if(t==='demandes'){ chargerClients(); if(!ENT.loaded) chargerEntreprises(); if(!ABO.loaded) chargerAbos(); if(!CS.loaded) chargerComptesSite(); }
   /* chargerPromos() n'était appelée NULLE PART : le bloc des formules offertes restait
      sur « Chargement des codes… » pour toute la session, alors que c'est le seul endroit de
      la console où l'on voit qui profite d'une formule offerte, et jusqu'à quand. */
@@ -4895,7 +4895,7 @@ function setTab(t,sansAnim){
   tiroirRafraichir();
 }
 /* ce qui attend quelqu'un dans « À traiter » : les courriels non lus et les demandes du site (les incidents ont leur compteur, à Surveillance) */
-function attendCompte(){ return (MSG.nonLus||0)+(CLI.loaded?demandesATraiter().length:0); }
+function attendCompte(){ return (MSG.nonLus||0)+(attendDemandes()); }
 function setBdg(id,n){
   if(id==='bdg-supp'||id==='bdg-dem'){ id='bdg-att'; n=attendCompte(); }   /* v2.119 : le groupe les additionne */
   var e=$(id); if(!e) return;
@@ -4951,6 +4951,8 @@ var CNX_VIA_L={adresse:'l’adresse de son entreprise',identifiants:'identifiant
 /* Le Courrier lui-même vit dans le module (opcourrier.js) ; la Tour n'en garde que ce que l'accueil et la pastille du menu lisent. */
 var MSG={boites:[],nonLus:0,sonRef:null,loaded:false,busy:false,err:''};
 var CLI={list:[],total:0,loaded:false,err:'',sel:null,q:''};
+/* v2.122 (30 octobre 2026) — les demandes « Créer votre application » du SITE (`/api/site/demande`), rangées par le serveur et lues ici : elles n'ont pas de compte du portail. */
+var SDEM={list:[],loaded:false,err:''};
 var ABO={abos:[],paiements:[],mrr:0,actifs:0,impayes:0,echecs:0,configured:false,loaded:false,err:'',f:''};
 var EQ={users:[],loaded:false,err:'',nom:'',pass:'',role:'collaborateur'};
 /* L'état d'OP MESSAGES, lu de GET /api/monitor/messages/etat : la Tour ne prétend jamais que
@@ -4965,7 +4967,7 @@ var BT={comptes:[],loaded:false,err:'',login:'',nom:'',chantier:'',pass:'',aussi
 /* PB — accès à la version PUBLIQUE (teamop.fr/app.html), pas à la bêta. Deux choses
    différentes qui vivent sur le même écran : la bêta n'ouvre que la bêta, un accès public
    ouvre un vrai espace d'entreprise, avec de vraies données qui se synchronisent. */
-var PB={nom:'',email:'',ident:'',pass:''};
+var PB={nom:'',email:'',ident:'',pass:'',metier:'',formule:'',fin:''};
 /* Les accès à la version PUBLIQUE. Ils existaient déjà — « Ouvrir l'accès public » écrit bien un
    espace côté serveur — mais rien dans la Tour ne les montrait : l'onglet Accès ne listait que
    la bêta, et le patron qui venait d'en ouvrir un ne voyait rien. On les liste ici, à partir de
@@ -5177,7 +5179,7 @@ function chargerComptesSite(dire){
   CS.loaded=false; CS.err='';
   apiGet('/api/monitor/comptes-site').then(function(d){
     CS.comptes=(d&&d.comptes)||[]; CS.anonymes=(d&&d.anonymes)||0;
-    CS.loaded=true; rafraichirSiConcerne(); if(dire) toast('↻ Comptes du site à jour');
+    CS.loaded=true; try{ setBdg('bdg-dem',attendDemandes()); }catch(e){} rafraichirSiConcerne(); if(dire) toast('↻ Comptes du site à jour');
   }).catch(function(e){ CS.err=(e&&e.corps)||(e&&e.status?msgErreur(e):'Impossible de lire les comptes du site — serveur injoignable.'); CS.loaded=true; rafraichirSiConcerne(); });
 }
 /* Supprime un compte du site. Le serveur REFUSE (409) si le compte porte une entreprise :
@@ -5521,7 +5523,7 @@ function tourConnexionsCharge(nm){
 
 /* v2.85 — un compte qui n'a QUE la console OP MESSAGES ne charge pas le courrier, les clientes ni les abonnements d'OP GESTION : le serveur les lui refuse,
    et chaque refus tombait en « Serveur injoignable » dans un coin de l'écran */
-function chargerTout(){ var g=MYAPPS.indexOf('gestion')>=0; chargerIncidents(); if(g){ chargerClients(); chargerAbos(); chargerEntreprises(); } chargerJournal(); chargerEquipe(); chargerEssais(); if(g){ chargerAccesPublics(); chargerMail(); } }
+function chargerTout(){ var g=MYAPPS.indexOf('gestion')>=0; chargerIncidents(); if(g){ chargerClients(); chargerAbos(); chargerEntreprises(); chargerComptesSite(); } chargerJournal(); chargerEquipe(); chargerEssais(); if(g){ chargerAccesPublics(); chargerMail(); } }
 
 /* v2.88 (relecture du 17 octobre 2026) — la relève de chaque minute redessinait l'écran : une note en cours de frappe
    (#inc-note) disparaissait sans bruit, et UN raté réseau (fréquent en 4G) remplaçait la liste lue, dossier ouvert compris,
@@ -6248,7 +6250,7 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
      rend alors le métier gardé, que le panneau et le message de bienvenue disent. Le changer reste un geste de la fiche. */
   var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='', metierGarde=false;
   if(metierDem){
-    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem,siVide:true,variante:dm.variante||undefined});
+    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem,siVide:true,variante:dm.variante||undefined,metiers:(Array.isArray(dm.metiers)&&dm.metiers.length>1&&dm.metiers[0]===metierDem)?dm.metiers:undefined});
       if(rm&&rm.ok&&rm.d&&rm.d.ok){ metierGarde=!!rm.d.garde&&rm.d.metier!==metierDem; metierPose=metierGarde?(MET_L[rm.d.metier]?rm.d.metier:''):(MET_L[rm.d.metier]?rm.d.metier:metierDem); }
       else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
     catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
@@ -6426,6 +6428,9 @@ function packPeindre(){
   var sm=document.getElementById('met-f'), mi=document.getElementById('met-info');
   if(sm){ var cm=(CLI.list||[]).filter(function(x){ return x.email===CLI.sel; })[0], dmM=metDemande(cm);
     sm.value=d.metier||dmM||'';
+    var sv=document.getElementById('met-v');
+    if(sv){ sv.value=d.variante||(cm&&cm.variante)||'deux'; sv.style.display=sm.value==='chauffage'?'':'none';
+      sm.onchange=function(){ sv.style.display=sm.value==='chauffage'?'':'none'; }; }
     if(mi) mi.innerHTML=d.metier?'Métier réglé\u202f: <b>'+esc(MET_L[d.metier]||d.metier)+'</b> — l’application le reçoit à sa prochaine ouverture.'
       :'Métier <b>non réglé</b> — l’application reste en 3D'+(dmM?'. Demandé\u202f: <b>'+esc(MET_L[dmM])+'</b>, à enregistrer.':'.'); }
   /* les catégories d'OP GESTION : un tableau (celles qui sont retenues), `null` (rien de réglé : tout est ouvert) ou rien du tout
@@ -6490,9 +6495,10 @@ function tourAboEnregistrer(nom,btn){
 function tourMetierEnregistrer(nom,btn){
   var m=(document.getElementById('met-f')||{}).value||'';
   if(m&&!MET_L[m]){ toast('Métier inconnu'); return; }
+  var v=m==='chauffage'?((document.getElementById('met-v')||{}).value||'deux'):undefined;
   if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
-  return apiPost('/api/monitor/espaces/metier',{nom:nom,metier:m}).then(function(r){
-    if(r&&r.ok&&r.d&&r.d.ok){ toast(m?('🧰 Métier « '+MET_L[m]+' » — l’application le reçoit à sa prochaine ouverture'):'Métier retiré — l’application garde celui qu’elle a'); tourPackPrefill(nom); }
+  return apiPost('/api/monitor/espaces/metier',{nom:nom,metier:m,variante:v}).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast(m?('🧰 Métier « '+MET_L[m]+(v==='chauffage'?' — chauffage seulement':v==='climatisation'?' — climatisation seulement':'')+' » — l’application le reçoit à sa prochaine ouverture'):'Métier retiré — l’application garde celui qu’elle a'); tourPackPrefill(nom); }
     else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; } });
@@ -6557,13 +6563,22 @@ function tourCatsAller(nom){
   setTab('entreprises'); try{ chargerEntreprises(); }catch(e){}
   toast('Ouvre sa fiche dans Entreprises : « Catégories d’OP GESTION »');
 }
+function chargerSiteDemandes(){
+  apiGet('/api/monitor/demandes-site').then(function(d){
+    if(!d) return;
+    SDEM.list=Array.isArray(d.demandes)?d.demandes:[]; SDEM.loaded=true; SDEM.err='';
+    try{ setBdg('bdg-dem',attendDemandes()); }catch(e){}
+    if(TAB==='demandes'||TAB==='accueil') render();
+  }).catch(function(e){ SDEM.err=msgErreur(e); SDEM.loaded=true; if(TAB==='demandes') render(); });
+}
 function chargerClients(){
+  chargerSiteDemandes();
   refMetiersCharger();   // les métiers et l'explication de chaque rubrique : la grille de chaque demande et la fiche en ont besoin
   apiGet('/api/monitor/clients').then(function(d){
     if(!d) return;
     CLI.list=(d.clients||[]).slice().sort(function(a,b){ return (b.majTs||b.inscrit||0)-(a.majTs||a.inscrit||0); });
     CLI.total=(d.total!=null?d.total:CLI.list.length); CLI.loaded=true; CLI.err='';
-    try{ setBdg('bdg-dem',demandesATraiter().length); }catch(e){}
+    try{ setBdg('bdg-dem',attendDemandes()); }catch(e){}
     if(TAB==='entreprises'||TAB==='accueil'||TAB==='demandes') render();
   }).catch(function(e){ CLI.err=msgErreur(e); CLI.loaded=true; if(TAB==='entreprises'||TAB==='demandes'||TAB==='accueil') render(); });
 }
@@ -6765,7 +6780,7 @@ function renderVue(v){
      sortie de Firebase). v2.119 — UNE seule Surveillance : les incidents des deux applications (le filtre) ; le service d'OP GESTION ET celui d'OP MESSAGES côte à côte. */
   else if(TAB==='surveillance') v.innerHTML=sousOnglets('surveillance',[['apps','Incidents'],['service','Service']])+(SOUS.surveillance==='service'?vueService():survAvert()+vueSurveillance());
   else if(TAB==='support'){ if(!courrierGarde(v)){ v.innerHTML=groupeOnglets('support')+vueCourrier(); courrierMonter(); } }
-  else if(TAB==='demandes') v.innerHTML=groupeOnglets('demandes')+vueDemandes();
+  else if(TAB==='demandes') v.innerHTML=groupeOnglets('demandes')+vueDemandes()+demComptesHtml();
   else if(TAB==='comptes') v.innerHTML=groupeOnglets('comptes')+vueComptesMsg();
   else if(TAB==='espaces') v.innerHTML=groupeOnglets('espaces')+vueEspacesMsg();
   else if(TAB==='entreprises') v.innerHTML=(ENT.sel?'':groupeOnglets('entreprises'))+sousOnglets('entreprises',[['liste','Liste'],['comptes','Comptes du site'],['connexions','Connexions']])+(SOUS.entreprises==='connexions'?vueConnexions():SOUS.entreprises==='comptes'?vueComptesSite():vueEntreprises());
@@ -9464,6 +9479,12 @@ function demandesListe(){
       l.push({c:c,d:d,i:i,traitee:tr[i]||null});
     });
   });
+  /* les demandes du SITE : même forme que celles des comptes (`c` = la personne, `d` = la demande), `site:true` pour les gestes qui diffèrent */
+  (SDEM.list||[]).forEach(function(r){
+    if(!r||typeof r!=='object'||typeof r.id!=='string') return;
+    l.push({site:true,sid:r.id,r:r,c:{email:r.email||'',entreprise:r.entreprise||'',nom:r.nom||'',prenom:r.prenom||'',nomFam:r.nom||'',tel:r.tel||''},
+      d:{app:'OP GESTION',date:r.ts||0,metier:r.metier,metiers:r.metiers,variante:r.variante,besoin:r.message||''},i:-1,traitee:r.traitee||null});
+  });
   return l.sort(function(a,b){ return (b.d.date||0)-(a.d.date||0); });
 }
 function demandesATraiter(){ return demandesListe().filter(function(x){ return !x.traitee; }); }
@@ -9481,17 +9502,115 @@ function demOnglet(v){ DEM.vue=v; render(); }
 function vueDemandes(){
   var tete=enTete('Demandes',
     'Ce que les entreprises demandent depuis le site : la formule, le métier, le nombre d’utilisateurs, leur besoin. Accepter ouvre leur espace avec ce qu’elles ont choisi ; l’e-mail d’accès part ensuite d’un geste.');
-  if(!CLI.loaded) return tete+acSquel();
-  if(CLI.err) return tete+acErr('Les demandes ne répondent pas',CLI.err,'chargerClients()');
+  if(!CLI.loaded&&!(SDEM.list||[]).length&&!SDEM.err) return tete+acSquel();   /* rien encore : un squelette, jamais « aucune demande » */
+  /* v2.122 : les demandes du SITE s'affichent même si la lecture des comptes du portail échoue (et comptent dans la pastille) */
+  if(CLI.err) tete+=acErr('Les demandes des comptes du portail ne répondent pas',CLI.err,'chargerClients()');
   var tout=demandesListe(), aT=tout.filter(function(x){ return !x.traitee; }), faites=tout.filter(function(x){ return !!x.traitee; });
+  if(SDEM.err) tete+='<div class="note" role="alert">Les demandes envoyées par le formulaire « Créer votre application » ne répondent pas : '+esc(SDEM.err)+' <button type="button" class="btn-fant" onclick="chargerSiteDemandes()">Réessayer</button></div>';
   var seg=teteListe('Demandes du site','Filtrer les demandes',[['atraiter','À traiter',aT.length],['traitees','Traitées',faites.length]],DEM.vue,'demOnglet(');
   var liste=DEM.vue==='traitees'?faites.slice(0,40):aT, tronque=DEM.vue==='traitees'&&faites.length>40;
+  /* une source en panne ou pas encore lue : la liste est INCOMPLÈTE — on ne dit pas « aucune demande » (on ne le sait pas) */
+  if(!liste.length&&(CLI.err||SDEM.err||!CLI.loaded||!SDEM.loaded)) return tete+seg+((CLI.err||SDEM.err)?'<div class="note">Rien à montrer pour l’instant — mais une source ne répond pas : la liste peut être incomplète.</div>':acSquel());
   if(!liste.length) return tete+seg+(DEM.vue==='traitees'
     ?videTour('Aucune demande traitée','Les demandes acceptées ou classées se rangent ici.','','entreprises')
     :videTour('Aucune demande à traiter','Les demandes envoyées depuis l’espace client du site arrivent ici, avec un avis par e-mail.','','entreprises'));
   return tete+seg+(tronque?'<div class="note">Les 40 plus récentes sur '+faites.length+'.</div>':'')+'<div class="dem-liste">'+liste.map(demCarte).join('')+'</div>';
 }
+/* v2.122 — LES COMPTES DU SITE SANS ESPACE, dans « À traiter » (Justin, 30 octobre 2026 : « j'ai beaucoup de demandes clients, il faut qu'on reçoive la demande dans la Tour »).
+   Un compte créé sur l'Espace client n'est pas une demande : il n'apparaissait que dans Clients → « Comptes du site » (« Aucun espace »). Même source (`CS`, `/api/monitor/comptes-site`) ;
+   ne reste ici que ce qui n'a AUCUN espace (ni dans l'annuaire des espaces, ni dans la fiche du client), pas de demande déjà à traiter à la même adresse, et qui n'a pas été « ignoré »
+   (rangé côté serveur, patron seul, réversible). Une fois l'espace ouvert, le compte sort tout seul de la liste. Le compte pèse dans la pastille de l'onglet. */
+function comptesSansEspace(ign){
+  if(!CS.loaded||CS.err||!ENT.loaded) return [];
+  var att=demandesATraiter().map(function(x){ return String((x.c&&x.c.email)||'').toLowerCase(); });
+  return (CS.comptes||[]).filter(function(c){
+    if(!c||!c.email||c.aUnEspace||c.desactive) return false;
+    if(!!c.ignore!==!!ign) return false;
+    if(!ign&&att.indexOf(String(c.email).toLowerCase())>=0) return false;
+    return !demEspace(c.email);
+  }).sort(function(a,b){ return (b.cree||0)-(a.cree||0); });
+}
+function attendDemandes(){ return demandesATraiter().length+(comptesSansEspace(false).length); }
+function demCompteCarte(c,ign){
+  var nomEnt=c.societe||c.nom||c.email;
+  var kv=[['Personne',esc(c.nom||'—')],['Adresse','<span class="mono">'+esc(c.email)+'</span>'],['Compte créé',c.cree?esc(fmtJour(c.cree)):'—'],
+    ['Dernière connexion',c.derniere?esc(fmtJour(c.derniere))+' · '+esc(fmtAgo(c.derniere)):'—'],['Adresse confirmée',c.verifie?'oui':'non']];
+  var gestes=ign
+    ?'<button type="button" class="btn-fant" onclick="demCompteIgnorer(\''+jsq(c.email)+'\',false)">Ne plus ignorer</button>'
+    :(MYROLE==='patron'?'<button type="button" class="btn-plein" onclick="demCompteOuvrir(\''+jsq(c.email)+'\')">Ouvrir son accès</button>':'<span class="g dem-patron">Ouvrir l’espace est réservé au patron.</span>')+
+      '<button type="button" class="btn-fant" onclick="courrierEcrire(\''+jsq(c.email)+'\')">Écrire</button>'+
+      (MYROLE==='patron'?'<button type="button" class="btn-fant" onclick="demCompteIgnorer(\''+jsq(c.email)+'\',true)">Ignorer</button>':'');
+  return '<div class="carte p24 dem-carte">'+
+    '<div class="dem-tete"><span class="reg-av">'+esc(sigle(nomEnt))+'</span>'+
+      '<span class="reg-txt"><span class="reg-t1">'+esc(nomEnt)+'</span><span class="reg-l2">'+esc(c.cree?'compte créé le '+fmtJour(c.cree):'date inconnue')+'</span></span>'+
+      '<span class="dem-past"><span class="past p-gris">Compte du site</span> <span class="past p-ambre">Aucun espace</span></span></div>'+
+    '<div class="kv">'+kv.map(function(p){ return '<div><span class="k">'+p[0]+'</span><span class="v">'+p[1]+'</span></div>'; }).join('')+'</div>'+
+    '<div class="sous-act dem-gestes">'+gestes+'</div></div>';
+}
+function demComptesHtml(){
+  if(DEM.vue==='traitees') return '';
+  if(!CS.loaded||!ENT.loaded) return '';
+  var titre='<div class="sec" style="margin:26px 0 8px">COMPTES DU SITE SANS ESPACE</div>';
+  if(CS.err) return titre+'<div class="note" role="alert">Les comptes du site ne répondent pas : '+esc(CS.err)+' <button type="button" class="btn-fant" onclick="chargerComptesSite()">Réessayer</button></div>';
+  var l=comptesSansEspace(false), ig=comptesSansEspace(true);
+  var corps=l.length?'<div class="dem-liste">'+l.map(function(c){ return demCompteCarte(c,false); }).join('')+'</div>'
+    :'<div class="note">Aucun compte du site en attente d’un espace.</div>';
+  var bas=ig.length?'<div style="margin-top:14px"><button type="button" class="btn-fant" onclick="DEM.voirIgn=!DEM.voirIgn;render()">'+(DEM.voirIgn?'Masquer':'Voir')+' les '+nMot(ig.length,'compte ignoré','comptes ignorés')+'</button></div>'+
+    (DEM.voirIgn?'<div class="dem-liste" style="margin-top:10px">'+ig.map(function(c){ return demCompteCarte(c,true); }).join('')+'</div>':''):'';
+  return titre+'<div class="note" style="margin-bottom:10px">Des comptes créés sur l’Espace client qui n’ont pas encore d’espace OP GESTION : ouvre leur accès, ou ignore ceux qui ne sont pas des clients.</div>'+corps+bas;
+}
+function demCompteIgnorer(email,ignorer){
+  apiPost('/api/monitor/comptes-site/ignorer',{email:email,ignorer:ignorer}).then(function(r){
+    if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé par le serveur'); return; }
+    toast(ignorer?'Compte ignoré':'Compte remis dans la liste'); chargerComptesSite();
+  }).catch(function(){ toast(INJOIGNABLE); });
+}
+/* « Ouvrir son accès » : le formulaire d'accès à la version publique, rempli (adresse, entreprise) ET avec de quoi travailler tout de suite — un métier à choisir, la formule Pro et
+   un essai de 14 jours (modifiables) : sans formule, l'espace naît SUSPENDU (Justin, 30 septembre 2026). Rien n'est créé avant « Ouvrir l'accès public ». */
+function pbEssaiDefaut(){ var d=new Date(Date.now()+14*86400000); return d.toISOString().slice(0,10); }
+function demCompteOuvrir(email){
+  var c=(CS.comptes||[]).filter(function(x){ return x.email===email; })[0]; if(!c) return;
+  PB.nom=c.societe||c.nom||''; PB.email=c.email; PB.ident=''; PB.pass=''; PB.metier=''; PB.formule='pro'; PB.fin=pbEssaiDefaut();
+  setTab('essais'); setTimeout(function(){ try{ accAllerForm('ac-f-pub'); }catch(e){} },120);
+}
+/* Une demande du SITE : ce que la personne a rempli, et trois gestes — la marquer traitée, lui écrire, préparer son accès à la version publique. */
+function demCarteSite(x){
+  var r=x.r, nomEnt=r.entreprise||((r.prenom||'')+' '+(r.nom||'')).trim()||r.email, pers=((r.prenom||'')+' '+(r.nom||'')).trim();
+  var mets=(Array.isArray(r.metiers)&&r.metiers.length?r.metiers:[r.metier]).map(function(k){ return MET_L[k]||k; }).join(' + ');
+  var vari=r.variante==='chauffage'?' — chauffage seulement':r.variante==='climatisation'?' — climatisation seulement':r.variante==='deux'?' — chauffage et climatisation':'';
+  var esp0=demEspace(r.email), pay0=demPaiement(r.email);
+  var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(r.email)+'</span> <span class="past p-ambre">adresse non vérifiée</span>'],
+    ['Téléphone',r.tel?'<a href="tel:'+esc(String(r.tel).replace(/[^0-9+]/g,''))+'">'+esc(r.tel)+'</a>':(r.telEcarte?'indiqué mais illisible (écarté)':'—')],
+    ['Espace / abonnement',(esp0?'cette adresse a déjà un espace : <span class="mono">'+esc(esp0.slug||esp0.t)+'</span>':'aucun espace à cette adresse')+(pay0?' · 💳 '+(pay0.statut==='actif'||pay0.statut==='essai'?'abonnement en cours':'abonnement '+esc(aboPast(pay0.statut)[0].toLowerCase())):'')],
+    ['Équipe',esc(r.equipe||'—')],['Métiers',esc(mets)+esc(vari)],
+    ['Rubriques',Array.isArray(r.cats)?esc(r.cats.length+' cochées'):'aucune cochée : partir du conseil du métier'],['Besoins',r.besoins&&r.besoins.length?esc(r.besoins.join(', ')):'—']];
+  var gestes=x.traitee
+    ?'<button type="button" class="btn-fant" onclick="demSiteTraiter(\''+jsq(r.id)+'\',false)">Remettre à traiter</button>'
+    :(MYROLE==='patron'?'<button type="button" class="btn-plein" onclick="demSitePublic(\''+jsq(r.id)+'\')">Préparer l’accès à la version publique</button>':'<span class="g dem-patron">Ouvrir l’espace est réservé au patron.</span>')+
+      '<button type="button" class="btn-fant" onclick="courrierEcrire(\''+jsq(r.email)+'\')">Écrire</button>'+
+      '<button type="button" class="btn-fant" onclick="demSiteTraiter(\''+jsq(r.id)+'\',true)">Marquer traitée</button>';
+  return '<div class="carte p24 dem-carte">'+
+    '<div class="dem-tete"><span class="reg-av">'+esc(sigle(nomEnt))+'</span>'+
+      '<span class="reg-txt"><span class="reg-t1">'+esc(nomEnt)+'</span><span class="reg-l2">'+esc(r.ts?fmtJour(r.ts):'date inconnue')+'</span></span>'+
+      '<span class="dem-past"><span class="past p-gris">Demande du site</span> '+(x.traitee?'<span class="past p-vert">✓ traitée'+(x.traitee.par?' par '+esc(x.traitee.par):'')+'</span>':'<span class="past p-ambre">À traiter</span>')+'</span></div>'+
+    (r.message?'<p class="dem-besoin">'+esc(r.message)+'</p>':'')+
+    '<div class="kv">'+kv.map(function(p){ return '<div><span class="k">'+p[0]+'</span><span class="v">'+p[1]+'</span></div>'; }).join('')+'</div>'+
+    '<div class="sous-act dem-gestes">'+gestes+'</div></div>';
+}
+function demSiteTraiter(id,traite){
+  apiPost('/api/monitor/demandes-site/traiter',{id:id,traite:traite}).then(function(r){
+    if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé par le serveur'); return; }
+    toast(traite?'Demande classée':'Demande remise à traiter'); chargerSiteDemandes();
+  }).catch(function(){ toast(INJOIGNABLE); });
+}
+/* « Accès à la version publique » pré-rempli avec l'adresse et le nom de l'entreprise : le patron choisit l'identifiant, génère le mot de passe, et ouvre. Rien n'est créé ici. */
+function demSitePublic(id){
+  var r=(SDEM.list||[]).filter(function(x){ return x.id===id; })[0]; if(!r) return;
+  PB.nom=r.entreprise||((r.prenom||'')+' '+(r.nom||'')).trim(); PB.email=r.email||''; PB.ident=''; PB.pass=''; PB.metier=(r.metier&&MET_L[r.metier])?r.metier:''; PB.formule='pro'; PB.fin=pbEssaiDefaut();
+  setTab('essais'); setTimeout(function(){ try{ accAllerForm('ac-f-pub'); }catch(e){} },120);
+}
 function demCarte(x){
+  if(x.site) return demCarteSite(x);
   var c=x.c, d=x.d, i=x.i;
   var nomEnt=c.entreprise||c.nom||c.email, pers=((c.prenom||'')+' '+(c.nomFam||'')).trim()||c.nom||'';
   var pay=demPaiement(c.email), esp=demEspace(c.email);
@@ -9507,7 +9626,7 @@ function demCarte(x){
   else if(ABO.loaded&&ABO.configured) pastilles.push('<span class="past p-gris">paiement : Stripe ne répond pas</span>');
   var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(c.email)+'</span>'],
     ['Téléphone',c.tel?esc(c.tel):'—'],['Formule',esc(formule)+(d.users?' · '+esc(nMot(d.users,'utilisateur','utilisateurs')):'')],
-    ['Métier',esc(MET_L[d.metier]||'non précisé')+(d.variante==='chauffage'?' — chauffage seulement':d.variante==='climatisation'?' — climatisation seulement':d.variante==='deux'?' — chauffage et climatisation':'')],['Lien souhaité',d.lien?'<span class="mono">teamop.fr/e/'+esc(espSlugJs(d.lien))+'</span>'+(espSlugJs(d.lien)!==d.lien?' <span class="g">(tapé « '+esc(d.lien)+' »)</span>':''):'—'],
+    ['Métier',esc(MET_L[d.metier]||'non précisé')+(d.variante==='chauffage'?' — chauffage seulement':d.variante==='climatisation'?' — climatisation seulement':d.variante==='deux'?' — chauffage et climatisation':'')+(Array.isArray(d.metiers)&&d.metiers.length>1?' <span class="g">· '+d.metiers.length+' métiers, le premier est le principal : '+d.metiers.map(function(k){return esc(MET_L[k]||k);}).join(' + ')+' · '+nMot(d.metiersEnPlus||d.metiers.length-1,'métier','métiers')+' en plus — pas encore facturé, ni appliqué dans l’application</span>':'')],['Lien souhaité',d.lien?'<span class="mono">teamop.fr/e/'+esc(espSlugJs(d.lien))+'</span>'+(espSlugJs(d.lien)!==d.lien?' <span class="g">(tapé « '+esc(d.lien)+' »)</span>':''):'—'],
     ['Code promo',d.code?'<span class="mono">'+esc(d.code)+'</span>':'—'],['Espace',esp?'déjà ouvert : <span class="mono">'+esc(esp.slug||esp.t)+'</span>':'aucun pour l’instant']];
   var gestes=x.traitee
     ?'<button type="button" class="btn-fant" onclick="demClasser(\''+jsq(c.email)+'\','+i+',false)">Remettre à traiter</button>'+
@@ -9697,6 +9816,9 @@ function gestionClientParts(){
       '<div class="form-rang">'+
       '<select id="met-f" title="Métier de l’application" aria-label="Métier de l’application" class="sel-f"><option value="">— non réglé (3D) —</option>'+
         Object.keys(MET_L).map(function(k){ return '<option value="'+k+'">'+esc(MET_L[k])+'</option>'; }).join('')+'</select>'+
+      /* la variante du chauffage (30 octobre 2026, Justin : « pourquoi ici j'ai Climatisation et à la création de mon client je l'ai pas ») :
+         le serveur la connaissait déjà (`/api/monitor/espaces/metier`, `variante`), la fiche ne la proposait pas — visible pour « Chauffage / Climatisation » seulement */
+      '<select id="met-v" title="Ce que fait l’entreprise" aria-label="Chauffage, climatisation ou les deux" class="sel-f" style="display:none"><option value="deux">Chauffage et climatisation</option><option value="chauffage">Chauffage seulement</option><option value="climatisation">Climatisation / pompes à chaleur seulement</option></select>'+
       '<button type="button" class="btn-plein" onclick="tourMetierEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer le métier</button></div>'+
       '<div class="note">'+esc(metDemande(c)?'Métier demandé à l’inscription : '+MET_L[metDemande(c)]:'Métier non précisé à la demande')+'</div>'+
       '<div id="met-info" class="note">Chargement…</div></div>';
@@ -10661,9 +10783,12 @@ async function pbCreer(btn){
     // « tour » : cet espace est un accès que TEAM OP s'ouvre à lui-même, pas un client du site
     var e=await tourEspaceDe(email,nom,ident,mdp,!dejaLa,'tour');
     if(!e){ if(btn){ btn.disabled=false; btn.textContent='Ouvrir l\'accès'; } return; }
-    PB.nom=''; PB.email=''; PB.ident=''; PB.pass='';
-    
-    chargerAccesPublics();   // il doit apparaître dans la liste, tout de suite
+    /* v2.122 : de quoi travailler tout de suite — le métier, puis l'essai (formule + fin), par les routes d'AUJOURD'HUI (rien de neuf côté serveur). Un échec se DIT : l'espace existe déjà. */
+    var suite=[];
+    if(PB.metier){ try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:PB.metier}); suite.push(rm&&rm.ok?'✓ métier réglé':'⚠ métier NON réglé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — à poser dans sa fiche'); }catch(x){ suite.push('⚠ métier NON réglé (serveur injoignable)'); } }
+    if(PB.formule&&/^\d{4}-\d{2}-\d{2}$/.test(PB.fin||'')){ try{ var ra=await apiPost('/api/monitor/espaces/abonnement',{nom:e.nom,formule:PB.formule,statut:'essai',fin:PB.fin,quantite:1}); suite.push(ra&&ra.ok?'✓ essai '+PB.formule+' jusqu’au '+PB.fin:'⚠ essai NON posé : '+((ra&&ra.d&&ra.d.error)||'refusé')+' — l’espace est SUSPENDU tant qu’il n’est pas posé'); }catch(x){ suite.push('⚠ essai NON posé (serveur injoignable) — l’espace est SUSPENDU'); } }
+    PB.nom=''; PB.email=''; PB.ident=''; PB.pass=''; PB.metier=''; PB.formule=''; PB.fin='';
+    chargerAccesPublics(); chargerEntreprises(); chargerComptesSite();   // il doit apparaître dans la liste, tout de suite
     tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">🌍 Accès version publique — '+esc(e.nom)+'</div>'+
       '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">C’est un vrai espace d’entreprise sur <b>teamop.fr/app.html</b>. Ouvre le lien sur chaque appareil qui doit y accéder.</div>'+
       '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— à donner aux équipes</span></div>'+
@@ -10674,6 +10799,7 @@ async function pbCreer(btn){
       '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b><br>Mot de passe provisoire : <b>'+esc(e.mdp||mdp)+'</b> <span style="color:var(--muted);font-size:12px">(l’app fait choisir le vrai mot de passe à la 1re connexion)</span></div>'+
       '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>'+
       /* v2.78 — sans formule, l'espace est SUSPENDU tant que rien n'est payé ni offert (Justin, 30 septembre 2026 : « Suspend ») */
+      (suite.length?'<div class="encart" style="margin-top:10px"><div class="encart-tx">'+suite.map(esc).join('<br>')+'</div></div>':'')+
       '<div class="encart" style="margin-top:10px"><div class="encart-tx">⏸ <b>Sans formule, l’application s’ouvre suspendue</b> (rien de payé ni offert). Pour t’en servir : Entreprises → sa fiche → Abonnement → une formule et le statut « En essai » avec une date de fin.</div></div>'+
       /* 22 octobre 2026 — les catégories d'OP GESTION se choisissent dans sa fiche */
       '<div class="encart" style="margin-top:10px"><div class="encart-tx">🧩 <b>Choisis ses catégories</b> dans sa fiche : '+catsPromesse()+'. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>');
@@ -11000,6 +11126,8 @@ function vueEssais(){
       '<div><div class="lbl">NOM DE L’ESPACE</div><input class="inp" value="'+esc(PB.nom)+'" oninput="pbChamp(\'nom\',this.value)" placeholder="ex. TEAM OP interne"></div>'+
       '<div><div class="lbl">E-MAIL</div><input class="inp mono" value="'+esc(PB.email)+'" oninput="pbChamp(\'email\',this.value)" placeholder="ex. controle@teamop.fr" autocapitalize="off" spellcheck="false"></div>'+
       '<div><div class="lbl">IDENTIFIANT</div><input class="inp mono" value="'+esc(PB.ident)+'" oninput="pbChamp(\'ident\',this.value)" placeholder="ex. justin" autocapitalize="off" spellcheck="false"></div>'+
+      '<div><div class="lbl">MÉTIER</div><select class="inp" onchange="pbChamp(\'metier\',this.value)"><option value="">— à régler plus tard (3D par défaut)</option>'+Object.keys(MET_L).map(function(k){ return '<option value="'+esc(k)+'"'+(PB.metier===k?' selected':'')+'>'+esc(MET_L[k])+'</option>'; }).join('')+'</select></div>'+
+      '<div><div class="lbl">ESSAI — FORMULE ET FIN</div><div style="display:flex;gap:9px"><select class="inp" onchange="pbChamp(\'formule\',this.value)"><option value="">Aucune (l’espace s’ouvre suspendu)</option>'+[['pro','Pro'],['business','Business'],['premium','Business Premium']].map(function(f){ return '<option value="'+f[0]+'"'+(PB.formule===f[0]?' selected':'')+'>'+f[1]+'</option>'; }).join('')+'</select><input class="inp" type="date" value="'+esc(PB.fin)+'" onchange="pbChamp(\'fin\',this.value)" aria-label="Fin de l’essai"></div></div>'+
       '<div><div class="lbl">MOT DE PASSE PROVISOIRE</div><div style="display:flex;gap:9px">'+
         '<input class="inp mono" id="pb-pass" value="'+esc(PB.pass)+'" oninput="pbChamp(\'pass\',this.value)" placeholder="12 caractères">'+
         '<button type="button" class="btn-fant" onclick="pbGen()">Générer</button></div></div>'+

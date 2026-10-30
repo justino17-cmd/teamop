@@ -71,7 +71,7 @@ for (const nom of ['app.html', 'beta.html']) {
 
   /* 2. Le nouveau libellé, au menu, au titre de l'écran, dans la visite guidée ; la clé de rubrique ne bouge pas. */
   vrai("NAV : {k:'validations',…,l:'Validation des mouvements'} — la clé de rubrique reste 'validations'",
-    /\{k:'validations',ic:'✅',l:'Validation des mouvements',admin:true,aside:true(?:,cache:1)?\}/.test(code));   // v780 : rubrique regroupée (cache:1), clé inchangée
+    /\{k:'validations',ic:'✅',l:'Validation des mouvements',admin:true,aside:true(,cache:1)?\}/.test(code));   // v780 : regroupée sous « Mes demandes » (cache:1)
   vrai("l'écran : setHeader('Validation des mouvements', …)", /setHeader\('Validation des mouvements',/.test(code));
   vrai("la visite guidée : {v:'validations',…,t:'Validation des mouvements'}", /\{v:'validations',ic:'✅',t:'Validation des mouvements',/.test(code));
   vrai("le droit « Valider les mouvements de box et les demandes » ne porte plus « (rôle DR) » et renvoie à « Validation des mouvements »",

@@ -31,7 +31,7 @@ const MAIL = (formule, corps) => 'FORMULE : ' + formule + '\nObjet : Notre propo
     const r = Z.chloe.rubriquesDe('chauffage');
     /* 23 octobre 2026 (fusion de l'intégration) : le référentiel du chantier métiers RÉSERVE six rubriques à la 3D (`seulement: ["3d"]` : registre sanitaire, carte des box, devis xylophage, box, saisie
        de consommation, enveloppes). Le chauffage n'a donc RIEN à « retirer » : toutes les autres lui sont proposées. Un métier qui a des retraits : le nettoyage (6) — voir 1 bis. */
-    vrai('(population) le référentiel est trouvé (metiers.json à la racine) et « chauffage » en tire des listes', r && r.gardees.length > 10 && r.retirees.length === 0 && r.optionnelles.length > 0, JSON.stringify(r).slice(0, 200));
+    vrai('(population) le référentiel est trouvé (metiers.json à la racine) et « chauffage » en tire des listes', r && r.gardees.length > 10 && r.optionnelles.length > 0 && r.retirees.every(t => !Object.values(REF.rubriques).some(x => x.titre === t && Array.isArray(x.seulement))), JSON.stringify(r).slice(0, 200));
     const net = Z.chloe.rubriquesDe('nettoyage');
     const reservees = Object.values(REF.rubriques).filter(x => Array.isArray(x.seulement) && !x.seulement.includes('nettoyage')).map(x => x.titre);
     vrai('(population) le référentiel réserve au moins six rubriques à la 3D, et « nettoyage » a de vraies rubriques retirées (plus de trois)', reservees.length >= 6 && net && net.retirees.length > 3, reservees.length + ' réservées ; ' + (net && net.retirees.length) + ' retirées');
@@ -55,7 +55,8 @@ const MAIL = (formule, corps) => 'FORMULE : ' + formule + '\nObjet : Notre propo
     const ch = REF.metiers.chauffage;
     const garde = ch.rubriques.filter(x => REF.rubriques[x] && !REF.rubriques[x].toujours).map(x => REF.rubriques[x].titre);
     vrai('⛔ les rubriques à conserver sont POSÉES PAR LE CODE : la phrase du serveur, tous les titres du référentiel pour ce métier, dans l’ordre', b.texte.includes('Pour votre activité, nous vous proposons de conserver : ' + garde.join(', ') + '.'));
-    vrai('…le chauffage n\'a aucune rubrique à retirer : la phrase le DIT (jamais une liste de rubriques réservées à la 3D)', /Aucune rubrique n’est à retirer pour votre activité\./.test(b.texte) && !/donc retirées et non facturées/.test(b.texte));
+    /* 30 octobre 2026 (menu allégé, v782) : la messagerie et la télécollecte ne sont plus proposées d'office — le chauffage a donc des retraits ; jamais une rubrique RÉSERVÉE à la 3D */
+    vrai('…la phrase ne cite jamais une rubrique réservée à la 3D', !Object.values(REF.rubriques).filter(x => Array.isArray(x.seulement) && x.seulement.indexOf('chauffage') < 0).some(x => b.texte.includes(x.titre + ',') || b.texte.includes(x.titre + '.')));
     vrai('…plus aucun emplacement {{…}} dans le texte rangé', !/\{\{|\}\}/.test(b.texte));
     vrai('la formule est nommée avec son prix, « sans engagement de durée » (un fait), l’essai est À LA FIN, les catégories créées sont dites confidentielles', /OP GESTION Business, à 25 €/.test(b.texte) && /sans engagement de durée/.test(b.texte) && b.texte.indexOf('période d’essai d’une semaine') > b.texte.indexOf('confidentielle') && /confidentielle/.test(b.texte));
     const val = (await Z.validations())[0];

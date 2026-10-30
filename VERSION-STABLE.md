@@ -1,5 +1,18 @@
 # Point stable TeamOP
 
+**Version stable : v782** — 30 octobre 2026 (Justin : « ce qu'il faut, c'est que tu publies OP Gestion, vu que maintenant tous les packs sont
+terminés »). Ce qui change pour une entreprise :
+- **Les packs métier complets** : nettoyage (cahiers, relevés, catalogue), chauffage et plomberie (documents, catalogue, obligations, attestation
+  d'entretien des pompes à chaleur et climatisations, bouteilles de fluide, rappels d'entretien), pack 3D corrigé ; la **climatisation / pompes à
+  chaleur** devient un pack à part (l'entreprise qui ne fait que de la clim le reçoit quand la Tour règle « climatisation seulement »).
+- **Jusqu'à trois métiers** : chaque intervention porte son métier, et la facture qui en sort est celle du bon métier.
+- **Un menu allégé** : les messageries ne sont plus dans OP GESTION, la télécollecte se demande.
+- **Comptabilité** : une facture émise ne se réécrit plus et ne se supprime plus ; l'envoi automatique se choisit.
+- Les corrections de l'audit des appareils (contrastes, cibles tactiles) et de la campagne de tests.
+Pas d'annonce par courriel depuis cette publication : l'annonce se décide dans la Tour.
+
+**Ancien point : v773.**
+
 **Version stable : v773** — 24 octobre 2026 (Justin : « Ok bon publie tout »). Ce qui change pour une entreprise : sur l'écran où elle
 choisit son abonnement, la formule Business Premium promet **« assistance prioritaire »** au lieu de « service 24h/24 » — comme la page des
 tarifs, la page de paiement et les contrats depuis la relecture juridique du 23 octobre. Rien d'autre ne change : aucun format de données,

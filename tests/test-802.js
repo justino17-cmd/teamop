@@ -49,7 +49,7 @@ function monter(base, ext) {
     function prodLineName(l){ return l.nomLibre||produit(l.produitId).nom||'—'; } function prodLineAmm(l){ return produit(l.produitId).amm||''; }
     function prodLineUnit(l){ return l.unite||''; }
     function rapportConstatLignes(i){ return __constat||[]; } function t3dTexte(i){ return __t3d||[]; }
-    function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){}
+    function docNomGarde(){ return true; } function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){}
     function intHisto(i,t){ (i.histo=i.histo||[]).push(t); } function genRapportTexte(i){ return 'RAPPORT TEXTE'; }
     function intSocMailOpts(i){ return {brandName:'Alpha Nuisibles',societe:'Alpha Nuisibles'}; } function rapportSociete(){ return 'Alpha Nuisibles'; } function canCat(){ return true; }
     function confirm(m){ __confirms.push(m); return __confirm; }

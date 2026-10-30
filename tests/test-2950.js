@@ -53,8 +53,7 @@ const evalue = txt => vm.runInNewContext('(' + txt + ')');
 
 const REF = JSON.parse(fs.readFileSync(path.join(RACINE, 'metiers.json'), 'utf8'));
 /* la bêta précède le public sur UN titre (« Validation des mouvements ») : l'écart est déclaré dans tests/beta-en-avance.js, et seulement là */
-const { libellePublic, LIBELLES, referentielBeta, BETA_EN_AVANCE, BETA_SEULE, mensongesBetaSeule } = require('./beta-en-avance.js');
-const REF_PUBLIC = REF;
+const { libellePublic, LIBELLES } = require('./beta-en-avance.js');
 
 /* ── ÉCARTS NOMMÉS (chacun est une décision, pas un oubli) ───────────────────────────────────────────────────────────────── */
 /* La 3D d'ELAN ne change pas d'un mot : ces deux types, que le référentiel propose pour la 3D, ne sont PAS dans INT_TYPES. */
@@ -68,19 +67,18 @@ function lire(fichier) {
     INT_TYPES: evalue(litteral(N, 'const INT_TYPES = [')), CAT_LIST: evalue(litteral(N, 'const CAT_LIST=[')), NAV: evalue(litteral(N, 'const NAV = [')) };
 }
 
-console.log('\n── 2900 · les 23 métiers de l\'application sont ceux du référentiel ──');
+console.log('\n── 2900 · les 24 métiers de l\'application sont ceux du référentiel ──');
 console.log('\n1. Le référentiel');
-vrai('(population) 23 métiers, 42 rubriques, dans l\'ordre du référentiel', REF.ordreMetiers.length === 23 && Object.keys(REF.rubriques).length === 42 && REF.ordreMetiers.every(k => REF.metiers[k]), REF.ordreMetiers.length);
-egal('les treize métiers d\'avant restent en tête, dans leur ordre', REF.ordreMetiers.slice(0, 13), ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre']);
-egal('les dix nouveaux, dans l\'ordre de la recherche', REF.ordreMetiers.slice(13), ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine']);
+vrai('(population) 24 métiers (la climatisation, séparée du chauffage le 29 octobre 2026, s\'ajoute aux 23), 42 rubriques, dans l\'ordre du référentiel', REF.ordreMetiers.length === 24 && Object.keys(REF.rubriques).length === 42 && REF.ordreMetiers.every(k => REF.metiers[k]), REF.ordreMetiers.length);
+const SANS_CLIM = REF.ordreMetiers.filter(k => k !== 'climatisation');   // la climatisation se range juste après le chauffage : les autres gardent leur ordre
+egal('la climatisation est juste après le chauffage', REF.ordreMetiers[REF.ordreMetiers.indexOf('chauffage') + 1], 'climatisation');
+egal('les treize métiers d\'avant restent en tête, dans leur ordre (la climatisation mise à part)', SANS_CLIM.slice(0, 13), ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre']);
+egal('les dix nouveaux, dans l\'ordre de la recherche', SANS_CLIM.slice(13), ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine']);
 
 for (const fichier of ['app.html', 'beta.html']) {
   console.log('\n2. ' + fichier + ' — la copie embarquée dit la même chose');
   const A = lire(fichier);
-  const REF = fichier === 'beta.html' ? referentielBeta(REF_PUBLIC) : REF_PUBLIC;   // la bêta : le référentiel public, moins l'avance DÉCLARÉE (tests/beta-en-avance.js)
-  /* app.html : les 23 de la production ; beta.html : les 23 PLUS les métiers que seule la bêta connaît (déclarés dans tests/beta-en-avance.js) */
-  const NB = REF_PUBLIC.ordreMetiers.length + (fichier === 'beta.html' ? BETA_SEULE.length : 0);
-  vrai('(population) ' + fichier + ' : METIERS, METIERS_ORDRE, RUBRIQUES_INFO, INT_TYPES, CAT_LIST et NAV se lisent dans le CODE (' + NB + ' métiers)', Object.keys(A.METIERS).length === NB && A.ORDRE.length === NB && Object.keys(A.INFO).length === 42 && A.INT_TYPES.length > 10 && A.CAT_LIST.length === 8 && A.NAV.length > 5);
+  vrai('(population) ' + fichier + ' : METIERS, METIERS_ORDRE, RUBRIQUES_INFO, INT_TYPES, CAT_LIST et NAV se lisent dans le CODE', Object.keys(A.METIERS).length === 24 && A.ORDRE.length === 24 && Object.keys(A.INFO).length === 42 && A.INT_TYPES.length > 10 && A.CAT_LIST.length === 8 && A.NAV.length > 5);
   egal('METIERS_ORDRE = l\'ordre du référentiel', A.ORDRE, REF.ordreMetiers);
   egal('les clés de METIERS sont celles de METIERS_ORDRE, dans le même ordre', Object.keys(A.METIERS), A.ORDRE);
   const navCles = A.NAV.flatMap(g => g.items).map(it => it.k);
@@ -106,7 +104,7 @@ for (const fichier of ['app.html', 'beta.html']) {
     if (JSON.stringify(m.documents) !== JSON.stringify(r.documents || [])) diffs.documents.push(k);
     if (JSON.stringify(m.masque) !== JSON.stringify(est3d ? [] : MASQUE_HORS_3D)) diffs.masque.push(k);
   }
-  for (const f of Object.keys(diffs)) egal('⛔ ' + f + ' : aucun des ' + REF.ordreMetiers.length + ' métiers ne diffère du référentiel', diffs[f], []);
+  for (const f of Object.keys(diffs)) egal('⛔ ' + f + ' : aucun des 23 métiers ne diffère du référentiel', diffs[f], []);
   /* les écarts nommés se prouvent des DEUX côtés : sinon un écart « nommé » que plus rien n'impose passerait pour une décision */
   vrai('   (écart nommé) la 3D ne reprend PAS ' + TYPES_3D_NON_REPRIS.length + ' types : « ' + TYPES_3D_NON_REPRIS.join(' », « ') + ' » ne sont pas dans INT_TYPES, et le référentiel les propose bien',
     TYPES_3D_NON_REPRIS.every(t => A.INT_TYPES.indexOf(t) < 0 && REF.metiers['3d'].types.indexOf(t) >= 0));
@@ -147,15 +145,7 @@ console.log('\n5. Le générateur : app.html est à jour, et beta.html en porte 
 const gen = cp.spawnSync(process.execPath, [path.join(RACINE, 'scripts', 'metiers-generer.js'), '--verifier'], { encoding: 'utf8' });
 vrai('node scripts/metiers-generer.js --verifier → app.html est à jour avec le référentiel (sinon : relancer le script)', gen.status === 0, (gen.stdout + gen.stderr).trim());
 const a1 = lire('app.html'), b1 = lire('beta.html');
-const sansAvance = M => Object.keys(M).filter(k => BETA_EN_AVANCE.metiersBeta.indexOf(k) < 0).map(k => [k, M[k]]);
-const horsBetaSeule = l => l.filter(k => BETA_SEULE.indexOf(k) < 0);
-const sansBetaSeule = M => M.filter(([k]) => BETA_SEULE.indexOf(k) < 0);
-egal('beta.html porte les mêmes METIERS, METIERS_ORDRE et RUBRIQUES_INFO qu\'app.html (beta-build.js les recopie), hors les packs en avance déclarés : ' + (BETA_EN_AVANCE.metiersBeta.join(', ') || 'aucun') + ' — et hors les métiers que seule la bêta connaît : ' + (BETA_SEULE.join(', ') || 'aucun'), [sansBetaSeule(sansAvance(b1.METIERS)), horsBetaSeule(b1.ORDRE), b1.INFO], [sansAvance(a1.METIERS), a1.ORDRE, a1.INFO]);
-/* la déclaration « seulement bêta » se prouve des DEUX côtés : le métier EST dans beta.html, il n'est NI dans app.html NI dans le référentiel public */
-vrai('(population) il y a au moins un métier « que seule la bêta connaît » déclaré', BETA_SEULE.length >= 1, BETA_SEULE);
-egal('⛔ chaque métier déclaré « seulement bêta » est dans beta.html (METIERS et METIERS_ORDRE), absent d\'app.html et de metiers.json', mensongesBetaSeule(a1.ORDRE, b1.ORDRE, REF_PUBLIC.ouverts, REF_PUBLIC.ordreMetiers).concat(BETA_SEULE.filter(k => !b1.METIERS[k] || a1.METIERS[k] || REF_PUBLIC.metiers[k]).map(k => '« ' + k + ' » : présence incohérente dans METIERS')), []);
-egal('⛔ beta.html ne connaît AUCUN autre métier que ceux d\'app.html et ceux déclarés « seulement bêta » (une différence non déclarée fait tomber)', horsBetaSeule(b1.ORDRE).length === b1.ORDRE.length - BETA_SEULE.length && b1.ORDRE.length === a1.ORDRE.length + BETA_SEULE.length, true);
-vrai('(population) les packs en avance déclarés existent dans les deux fichiers, et DIFFÈRENT bien d\'app.html (sinon la déclaration est périmée)', BETA_EN_AVANCE.metiersBeta.every(k => a1.METIERS[k] && b1.METIERS[k] && JSON.stringify(a1.METIERS[k]) !== JSON.stringify(b1.METIERS[k])));
+egal('beta.html porte les mêmes METIERS, METIERS_ORDRE et RUBRIQUES_INFO qu\'app.html (beta-build.js les recopie)', [b1.METIERS, b1.ORDRE, b1.INFO], [a1.METIERS, a1.ORDRE, a1.INFO]);
 /* UNE SEULE SOURCE : l'ancienne copie du référentiel (design/) a été supprimée — deux copies d'un même fichier divergent toujours */
 vrai('il n\'existe pas de seconde copie du référentiel (design/metiers-referentiel.json supprimé)', !fs.existsSync(path.join(RACINE, 'design', 'metiers-referentiel.json')));
 vrai('(population) l\'écart déclaré de titre est bien celui d\'app.html : ' + Object.keys(LIBELLES).join(', '), Object.keys(LIBELLES).every(k => a1.INFO[k] && a1.INFO[k][0] === LIBELLES[k].beta && REF.rubriques[k].titre === LIBELLES[k].public));
@@ -163,7 +153,7 @@ vrai('(population) l\'écart déclaré de titre est bien celui d\'app.html : ' +
 console.log('\n6. Les vraies fonctions, jouées pour chacun des 23 métiers');
 {
   const A = a1, N = A.N;
-  const NOMS = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'metierSet', 'metierServeurAppliquer'];
+  const NOMS = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'metierSet', 'metierServeurAppliquer', 'metiersDuServeur', 'metiersReponseMulti', 'metierResidu', 'metierResiduRetirer', 'slugNom', 'idCatalogue'];
   const FN = NOMS.map(n => fonction(N, n));
   vrai('(population) les huit fonctions sont trouvées dans le fichier réel', FN.every(Boolean), NOMS.filter((n, i) => !FN[i]).join(', '));
   const monter = (beta, base) => {
@@ -193,7 +183,9 @@ console.log('\n6. Les vraies fonctions, jouées pour chacun des 23 métiers');
   }
   for (const f of Object.keys(rate)) egal('⛔ ' + { pack: 'metierPackDe rend le pack du métier', id: 'metierId / estMetier3D', types: 'intTypes rend les types du pack (la 3D : INT_TYPES)', masque: 'metierBloque ferme les six rubriques de la 3D hors 3D, aucune dans la 3D', set: 'metierSet bascule sur ce métier (un save, une ligne de journal)', serveur: 'metierServeurAppliquer accepte le métier une fois, la seconde fois ne fait rien' }[f] + ' — pour les 23', rate[f], []);
   const beta = monter(true, { metier: 'plomberie' });
-  vrai('   la bêta voit tout : metierBloque rend faux pour un plombier (BETA_ESSAI)', MASQUE_HORS_3D.every(c => beta.metierBloque(c) === false));
+  /* v778 : la bêta voit toute la 3D (son outil de travail) ; un métier AUTRE choisi par « Tester un métier » applique son masque, comme chez un client */
+  vrai('   la bêta, métier 3D : metierBloque rend faux (la bêta voit tout en 3D)', MASQUE_HORS_3D.every(c => monter(true, { metier: '3d' }).metierBloque(c) === false));
+  vrai('   la bêta, métier plomberie : le masque du métier s\'applique (v778)', MASQUE_HORS_3D.every(c => beta.metierBloque(c) === true));
   const X = monter(false, {});
   egal('⛔ une valeur étrangère n\'entre jamais (hors liste, propriété héritée, pas une chaîne)', ['boulangerie', '__proto__', 'toString', 'constructor', 42, null, 'Piscine'].map(m => X.appliquer({ metier: m })), [false, false, false, false, false, false, false]);
   egal('   un métier inconnu ou absent retombe sur la 3D, comme avant (les entreprises d\'avant le choix du métier)', [X.metierId(), monter(false, { metier: 'boulangerie' }).metierId(), X.metierPackDe({}).nom], ['3d', '3d', REF.metiers['3d'].nom]);

@@ -291,7 +291,7 @@ console.log('\n── 2871 · les catégories d\'OP GESTION : la Tour et le serv
   vrai('(population) `pbCreer` est trouvée dans le code de la Tour', !!FNP);
   const pan2 = [];
   const ctxP = { JSON, Object, Array, String, Math, Date, Promise, setTimeout, console, document: { getElementById: () => null }, localStorage: { getItem: () => '{}', setItem() {} },
-    toast: () => {}, confirm: () => true, tourPanneau: h => pan2.push(String(h)), chargerAccesPublics: () => {}, chargerEssais: () => {},
+    toast: () => {}, confirm: () => true, tourPanneau: h => pan2.push(String(h)), chargerAccesPublics: () => {}, chargerEssais: () => {}, chargerEntreprises: () => {}, chargerComptesSite: () => {},
     tourEspaceDe: async () => ({ nom: 'acces-banc', slug: 'acces-banc', ident: 'paul', mdp: 'Mdp-provisoire' }), espSlugJs: s => String(s), esc: s => String(s == null ? '' : s), jsq: s => String(s) };
   vm.createContext(ctxP);
   vm.runInContext('var PB={nom:"acces-banc",email:"acces@exemple-2871.fr",ident:"paul",pass:"Mdp-provisoire"}; var LG_MSG_MODELE="",LG_ZONE=""; var CATS_APPLIQUEES=false;\n' + FNP, ctxP);

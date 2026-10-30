@@ -37,7 +37,7 @@ function monde() {
   const attrs = {}; const cl = new Set();
   const t = { textContent: '', innerHTML: '', _t: 0, _v: 0, setAttribute: (k, v) => { attrs[k] = String(v); }, getAttribute: (k) => attrs[k], removeAttribute: (k) => { delete attrs[k]; },
     classList: { add: (c) => cl.add(c), remove: (c) => cl.delete(c), contains: (c) => cl.has(c), toggle: (c, on) => { if (on) cl.add(c); else cl.delete(c); } } };
-  const ctx = { console, String, $: (id) => id === 'toast' ? t : null, esc: (x) => String(x).replace(/</g, '&lt;'), window: {},
+  const ctx = { console, String, boxTxt: (s) => s, $: (id) => id === 'toast' ? t : null, esc: (x) => String(x).replace(/</g, '&lt;'), window: {},
     setTimeout: (f, ms) => { J.minut.push({ f, ms }); return J.minut.length; }, clearTimeout: (id) => { if (J.minut[id - 1]) J.minut[id - 1].annule = true; } };
   vm.createContext(ctx);
   try { vm.runInContext('const TOAST_ERREUR=' + RE + ';\n' + F.join('\n'), ctx); } catch (e) { J.err = e.message; }
