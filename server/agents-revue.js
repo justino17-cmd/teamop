@@ -33,15 +33,16 @@ const REGLE_MIN = 15, REGLE_MAX = 130, CONSTAT_MAX = 45;
 const PAR_AGENT = 3, ACTIVES_MAX = 10, REVUES_MAX = 12, ESSAIS_MAX = 2, REGLES_MAX = 400;
 const ID_REGLE = /^rg[a-f0-9]{8}$/;
 const ACTION_MAX = 40;
-const ESSAI_ESPACE_MS = 30 * 60000;   // deux essais par agent et par weekend, espacés d'une demi-heure
+const ESSAI_ESPACE_MS = 6 * 3600000;   // deux essais par agent et par weekend, ÉTALÉS sur la fenêtre (38 h) : une panne d'une heure ne les consomme pas tous les deux
 
-/* Ce qu'une règle n'a pas le droit de dire : un pouvoir, un secret, un contournement de Justin. Le motif cherche des MOTS dans la règle PROPOSÉE (un texte que le code refuse), pas dans un commentaire. */
+/* Ce qu'une règle n'a pas le droit de dire : un pouvoir, un secret, un contournement de Justin. Le motif cherche des MOTS dans la règle PROPOSÉE (un texte que le code refuse), pas dans un commentaire.
+   ⚠️ C'EST UNE LISTE D'ÉCART, PAS LA GARDE : un modèle trouvera toujours une tournure qu'elle ne prévoit pas. La vraie garde est la VALIDATION DE JUSTIN (rien ne s'applique avant son accord) et les outils fermés, qui ne bougent pas. */
 const INTERDITS = [
   ['argent', /rembours|\bavoirs?\b|pr[ée]l[èe]v|virement|geste commercial|d[ée]dommag|\bremises?\b|r[ée]duction|\d\s*(?:€|euros?)/i],
   ['acces', /mot de passe|\bjetons?\b|\btoken|\bcl[ée]s?\b|permission|(?:cr[ée]e|ouvr|donn|accord|suspend|ferm|coup|chang|modifi)\w*\s+(?:un |l[’']\s*|les? |des? |ton |son |leur )?(?:acc[èe]s|espace)/i],
   ['suppression', /supprim|efface|d[ée]truis|purge|r[ée]sili/i],
   ['envoi', /envoy\w*\s+(?:seul|automatiquement|directement|imm[ée]diatement)|envoie\w*\s+(?:seul|automatiquement|directement|imm[ée]diatement)|publi\w*\s+(?:seul|automatiquement|directement)|(?:programm|planifi)\w*\s+(?:seul|automatiquement)/i],
-  ['contournement', /sans\s+(?:attendre\s+|demander\s+)?(?:la\s+|l[’']\s*)?(?:validation|accord|autorisation|justin|relecture|contr[ôo]le)|ignor(?:e|er|ez)\b.{0,30}(?:r[èe]gle|limite|consigne|charte)|d[ée]pass(?:e|er|ez)\b.{0,30}(?:limite|plafond|budget)|d[ée]sactiv|mode auto|passe[rz]? en auto|ne (?:demande|dis|pr[ée]viens) plus/i],
+  ['contournement', /sans\s+(?:attendre\s+|demander\s+)?(?:la\s+|l[’']\s*)?(?:validation|accord|autorisation|justin|relecture|contr[ôo]le)|ignor(?:e|er|ez)\b.{0,30}(?:r[èe]gle|limite|consigne|charte)|d[ée]pass(?:e|er|ez)\b.{0,30}(?:limite|plafond|budget)|d[ée]sactiv|mode auto|passe[rz]? en auto|ne (?:demande|dis|pr[ée]viens) plus|ignor(?:e|er|ez)\b|oubli(?:e|er|ez)\b|contourn|passe[rz]?\s+outre|sans\s+demander|ob[ée]is|[ée]cri(?:s|re|vez)\s+(?:à|a)\s+tous\s+les\s+clients|\btous\s+les\s+clients\b/i],
   ['lien', /https?:\/\/|www\./i],
 ];
 
@@ -125,7 +126,7 @@ module.exports = function monterRevue(app, ctx) {
     if (r.retiree === true) return 'retiree';
     if (!r.validation) return 'a_deposer';
     let v = null; try { v = typeof agents.validationDe === 'function' ? agents.validationDe(r.validation) : null; } catch (e) { v = null; }
-    if (!v) return 'inconnue';
+    if (!v || v.type !== TYPE || v.agent !== r.agent) return 'inconnue';   // une validation d'un autre type ou d'un autre agent ne fait JAMAIS valider une règle
     return { en_attente: 'proposee', accepte: 'validee', refuse: 'refusee', expire: 'expiree' }[v.statut] || 'inconnue';
   }
   const validees = id => etat.regles.filter(r => r.agent === id && statutDe(r) === 'validee').sort((a, b) => b.ts - a.ts).slice(0, ACTIVES_MAX);
@@ -177,6 +178,9 @@ module.exports = function monterRevue(app, ctx) {
 
   function deposer(r) {
     const resume = 'Règle pour ' + nomDe(r.agent) + ' : ' + r.regle + (r.constat ? ' — constat : ' + r.constat : '');
+    /* un redémarrage entre `proposer` et l'inscription de `r.validation` a pu laisser une validation vivante pour CETTE règle : on la retrouve, on n'en dépose pas une seconde */
+    let existante = ''; try { existante = typeof agents.retrouverValidation === 'function' ? agents.retrouverValidation(r.agent, TYPE, 'regle', r.id) : ''; } catch (e) { existante = ''; }
+    if (existante) { r.validation = existante; return { ok: true }; }
     const p = agents.proposer(r.agent, TYPE, resume, { regle: r.id });
     if (p && p.ok) { r.validation = p.id; return { ok: true }; }
     return { ok: false, raison: (p && p.raison) || 'erreur' };
@@ -187,8 +191,9 @@ module.exports = function monterRevue(app, ctx) {
     for (const r of etat.regles) {
       if (r.retiree === true || r.validation) continue;
       if (!agents.peutAgir(r.agent).ok) continue;
+      if (typeof agents.placeLibre === 'function' && !agents.placeLibre(r.agent)) continue;   // sa file (ou la file entière) est pleine : on n'insiste pas, ni ne note un refus par minute au journal
       const d = deposer(r);
-      if (d.ok) { n++; change = true; } else if (d.raison === 'file_pleine') break;
+      if (d.ok) { n++; change = true; ecrire(); }
     }
     if (change) ecrire();
     return n;
@@ -269,9 +274,17 @@ module.exports = function monterRevue(app, ctx) {
   function annoncer(R) {
     const regles = etat.regles.filter(r => r.semaine === R.semaine && r.retiree !== true);
     const agentsAvec = new Set(regles.map(r => r.agent));
-    if (!regles.length) return;
+    const ratees = Object.entries(R.agents || {}).filter(([id, a]) => a && a.statut !== 'ok' && a.statut !== 'arret').length;
+    const manque = ratees ? ' ' + ratees + ' agent' + (ratees > 1 ? 's n’ont' : ' n’a') + ' pas pu relire ' + (ratees > 1 ? 'leur' : 'sa') + ' semaine (panne, budget ou heures de travail) : tu peux relancer la revue depuis la Tour.' : '';
+    if (!regles.length) {
+      if (!ratees) return;
+      const t0 = 'Revue du week-end : aucune règle posée.' + manque;
+      try { conversations.systeme(FIL, t0, { cle: 'revue:' + R.semaine, unique: true }); } catch (e) {}
+      if (pousse) { try { Promise.resolve(pousse('Revue du week-end', 'Aucune règle posée : ' + ratees + ' agent(s) n’ont pas pu relire leur semaine', '/tour.html#agents')).catch(() => {}); } catch (e) {} }
+      return;
+    }
     const texte = 'Revue du week-end : ' + regles.length + ' règle' + (regles.length > 1 ? 's' : '') + ' proposée' + (regles.length > 1 ? 's' : '') + ' par ' + agentsAvec.size + ' agent' + (agentsAvec.size > 1 ? 's' : '') +
-      '. Elles attendent ta validation dans la Tour (Agents, onglet Validations) : rien ne s’applique avant ton accord.';
+      '. Elles attendent ta validation dans la Tour (Agents, onglet Validations) : rien ne s’applique avant ton accord.' + manque;
     try { conversations.systeme(FIL, texte, { cle: 'revue:' + R.semaine, unique: true }); } catch (e) {}
     if (pousse) { try { Promise.resolve(pousse('Revue du week-end', regles.length + ' règle' + (regles.length > 1 ? 's' : '') + ' à valider (' + agentsAvec.size + ' agents)', '/tour.html#agents')).catch(() => {}); } catch (e) {} }
   }
@@ -323,8 +336,8 @@ module.exports = function monterRevue(app, ctx) {
   });
   app.post('/api/monitor/agents/revue/lancer', monPatronStrict, (req, res) => {
     const now = maintenant(), p = parisParties(now);
-    const sem = semaineIso(p.annee, p.mois, p.jour);
-    const r = demarrer({ cle: 'revue:' + sem, semaine: sem }, true);
+    /* ⛔ une revue lancée À LA MAIN a sa propre clé (le jour) et sa propre semaine : elle ne consomme jamais la revue du week-end, et ses règles ne comptent pas dans les trois du week-end */
+    const r = demarrer({ cle: 'revue:manuel:' + p.date, semaine: 'manuel-' + p.date }, true);
     if (r.ok) return res.json({ ok: true });
     const MSG = { en_cours: [409, 'Une revue est déjà en cours'], illisible: [503, 'La revue du week-end est illisible : rien n’est lancé'], pause: [409, 'Les agents sont en pause : reprends-les d’abord'],
       deja: [409, 'La revue de cette semaine est déjà faite'], ecriture: [503, 'Revue non enregistrée'] }[r.raison] || [400, 'Revue non lancée'];
