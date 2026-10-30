@@ -60,7 +60,7 @@ async function jouerMargaux(cas, o) {
   const emise = Date.UTC(2026, 9, 1, 8, 0, 0);
   const etat = { liste: p.regle ? [] : [{ cle: 't-' + cas.id, slug: 'eval-' + cas.id, dossier: 'DOS-3' + cas.id.slice(1).padStart(5, '0'), aboId: 'sub_' + cas.id, adresse: p.sansAdresse ? '' : 'facturation-' + cas.id + '@exemple-eval.fr', entreprise: p.entreprise }],
     facture: { numero: p.numero, montantEur: p.montant, emiseMs: emise, url: p.url ? URL_FACTURE : '' } };
-  const Z = monter({ t0: emise + J, modes: { margaux: 'auto' }, travail: o.travail ? { margaux: true } : undefined, claude: o.claude, appelerReel: o.appelerReel, cleApi: o.cleApi, cerveauCtx: o.cerveauCtx,
+  const Z = monter({ t0: emise + J, modes: { margaux: 'auto' }, travail: o.travail ? { margaux: true } : undefined, indemniteConfirmee: true /* le rejeu montre le texte tel qu'il partira une fois l'indemnité confirmée ; sans confirmation, la seconde relance attend Justin (`test-3206`) */, claude: o.claude, appelerReel: o.appelerReel, cleApi: o.cleApi, cerveauCtx: o.cerveauCtx,
     monde: { impayes: async () => (p.panne ? { ok: false, raison: 'stripe' } : { ok: true, liste: etat.liste, incertains: [] }), facture: async () => etat.facture } });
   try {
     const passer = async n => { Z.horloge.t = emise + n * J + 3600000; return Z.margaux.passer(); };
@@ -124,7 +124,7 @@ function evaluer(cas, res) {
         const p = cas.impaye;
         if (p.numero) ok(c.texte.includes(p.numero), 'le numéro de facture est cité');
         ok(c.texte.includes((Math.round(p.montant * 100) / 100).toFixed(2).replace('.', ',').replace(/,00$/, '')), 'le montant est cité');
-        ok(a.etape === 7 ? /article 7/.test(c.texte) : !/article 7/.test(c.texte), a.etape === 7 ? 'la seconde relance cite l\'article 7 des CGV' : 'la première relance ne parle pas de recouvrement');
+        ok(a.etape === 7 ? /recouvrement/.test(c.texte) : !/article 7/.test(c.texte), a.etape === 7 ? 'la seconde relance parle des démarches de recouvrement' : 'la première relance ne parle pas de recouvrement');
         if (a.indemnite) ok(/40 €/.test(c.texte) && /L\. 441-10/.test(c.texte), 'l\'indemnité forfaitaire de 40 € (Code de commerce) est mentionnée');
         if (a.etape === 3) ok(!/40 €|441-10/.test(c.texte), 'pas d\'indemnité dans la première relance');
         ok(!/mise en demeure/i.test(c.texte), 'aucune mise en demeure');

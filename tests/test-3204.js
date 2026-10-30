@@ -58,9 +58,9 @@ function fauxMargaux(cas) {
     if (String(req.system).startsWith(NOTEUR_DEBUT)) return NOTES;
     const t = (req.messages || []).map(m => (typeof m.content === 'string' ? m.content : '')).join('\n');
     const num = /Facture : n° (\S+)/.exec(t), mont = /Montant : ([^\n]+)/.exec(t), emise = /Émise le : ([^\n]+)/.exec(t), age = /En attente depuis : (\d+) jours/.exec(t), seconde = /SECONDE/.test(t);
-    const facture = 'la facture' + (num ? ' n° ' + num[1] : '') + (mont && !/non lisible/.test(mont[1]) ? ', d’un montant de ' + mont[1].replace(/\s*€/, '') + ' €,' : '') + (emise && !/non lisible/.test(emise[1]) ? ' émise le ' + emise[1] : '');
+    const facture = 'la facture détaillée ci-dessus';
     return ['Objet : Votre facture OP GESTION', '', 'Bonjour,', '',
-      'Nous nous permettons de revenir vers vous au sujet de ' + facture + ' : elle est en attente de règlement' + (age ? ' depuis ' + age[1] + ' jours' : '') + '. Un incident de paiement arrive souvent, une carte expirée ou un plafond atteint suffit à l’expliquer, et nous ne doutons pas qu’il s’agisse de cela.', '',
+      'Nous nous permettons de revenir vers vous au sujet de ' + facture + ' : elle est en attente de règlement. Un incident de paiement arrive souvent, une carte expirée ou un plafond atteint suffit à l’expliquer, et nous ne doutons pas qu’il s’agisse de cela.', '',
       seconde ? 'Si quelque chose empêche le règlement, ou si vous pensez qu’il s’agit d’une erreur de notre part, répondez simplement à ce courriel : nous regarderons votre situation avec vous. Dans le cas contraire, nous attendons votre règlement.'
         : 'Si quelque chose empêche le règlement, ou si vous pensez qu’il s’agit d’une erreur de notre part, répondez simplement à ce courriel : nous regarderons votre situation avec vous.', '', 'Bien cordialement,'].join('\n');
   };

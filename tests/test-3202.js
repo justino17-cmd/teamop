@@ -23,7 +23,7 @@ const URL1 = 'https://invoice.stripe.com/i/acct_1ABC/live_YWNj';
 const IMPAYE = { cle: 't-alpha', slug: 'alpha-proprete', dossier: 'DOS-000001', aboId: 'sub_alpha1', adresse: 'facturation-alpha@exemple-3202.fr', entreprise: 'Alpha Propreté' };
 const NOTES_5 = ['repond_a_tout', 'etape_suivante', 'longueur', 'juste', 'charte', 'personnalise', 'professionnel'].map(c => 'NOTE ' + c + ' : 5').join('\n');
 const RELANCE = (j) => ['Objet : Votre facture OP GESTION', '', 'Bonjour,', '',
-  'Nous nous permettons de revenir vers vous au sujet de la facture n° AB12-0001, d’un montant de 15 €, émise le 1 octobre 2026 : elle est en attente de règlement depuis ' + j + ' jours. Un incident de paiement arrive souvent, une carte expirée ou un plafond atteint suffit à l’expliquer, et nous ne doutons pas qu’il s’agisse de cela.', '',
+  'Nous nous permettons de revenir vers vous au sujet de la facture détaillée ci-dessus : elle est en attente de règlement. Un incident de paiement arrive souvent, une carte expirée ou un plafond atteint suffit à l’expliquer, et nous ne doutons pas qu’il s’agisse de cela.', '',
   'Si quelque chose empêche le règlement, ou si vous pensez qu’il s’agit d’une erreur de notre part, répondez simplement à ce courriel : nous regarderons votre situation avec vous. Dans le cas contraire, nous attendons votre règlement.', '', 'Bien cordialement,'].join('\n');
 const route = (corps, notes) => (req) => (String(req.system).startsWith(NOTEUR_DEBUT) ? (notes || NOTES_5) : (typeof corps === 'function' ? corps(req) : corps));
 
@@ -57,7 +57,7 @@ function monde(o) {
     const r = await m.margaux.passer();
     const e = m.envoyes[0];
     v('une relance partie seule (mode auto, charte ouverte, grille satisfaite), à l’adresse de facturation', [r.relances, m.envoyes.length, e.a], [1, 1, 'facturation-alpha@exemple-3202.fr']);
-    vrai('…le texte du modèle est dedans, puis le lien de la facture (relue chez Stripe), l’accès suspendu et le départ de l’abonnement — ceux du code', e.texte.includes('revenir vers vous au sujet de la facture n° AB12-0001') && e.texte.includes(URL1) && /Tant que cette facture n’est pas réglée, l’accès aux fonctions payantes d’OP GESTION est suspendu/.test(e.texte) && /Si vous avez décidé d’arrêter votre abonnement/.test(e.texte));
+    vrai('…le texte du modèle est dedans, puis le lien de la facture (relue chez Stripe), l’accès suspendu et le départ de l’abonnement — ceux du code', e.texte.includes('revenir vers vous au sujet de la facture détaillée ci-dessus') && e.texte.indexOf('Facture concernée : n° AB12-0001, d’un montant de 15 €, émise le 1 octobre 2026, en attente de règlement depuis 3 jours.') > 0 && e.texte.indexOf('Facture concernée') < e.texte.indexOf('revenir vers vous') && e.texte.includes(URL1) && /Tant que cette facture n’est pas réglée, l’accès aux fonctions payantes d’OP GESTION est suspendu/.test(e.texte) && /Si vous avez décidé d’arrêter votre abonnement/.test(e.texte));
     vrai('…à J+3 aucun bloc de la seconde relance : pas d’indemnité, pas de recouvrement', !/indemnit|recouvrement|441/.test(e.texte));
     vrai('…le courrier passe le contrôle des courriers d’exploitation (le même que celui de `documents.courrier`)', OPS.controle(e.objet, e.texte, { liens: [URL1], montants: [15], permis: ['AB12-0001'], lettre: false }).length === 0, OPS.controle(e.objet, e.texte, { liens: [URL1], montants: [15], permis: ['AB12-0001'] }).join(','));
     v('…la grille a été jouée (une relecture), le modèle appelé avec l’outil de connaissances et celui de l’historique, en mode travail', [m.recus.filter(q => String(q.system).startsWith(NOTEUR_DEBUT)).length, m.recus.find(q => String(q.system).startsWith('Tu es Margaux')).tools.map(t => t.name), m.recus.find(q => String(q.system).startsWith('Tu es Margaux')).thinking.type], [1, ['connaissances_equipe', 'historique_relances'], 'adaptive']);
@@ -68,12 +68,12 @@ function monde(o) {
 
   console.log('\n2. J+7 : le droit est écrit par le code');
   {
-    const m = monde({ travail: true, claude: route(RELANCE(7)) });
+    const m = monde({ travail: true, indemniteConfirmee: true, claude: route(RELANCE(7)) });
     m.jour(7);
     await m.margaux.passer();
     const e = m.envoyes[0];
     vrai('⛔ la seconde relance porte l’indemnité forfaitaire de 40 € (articles L. 441-10 et D. 441-5 du Code de commerce) dans les termes du code', e && e.texte.includes(OPS.PARAGRAPHE_INDEMNITE) && /40 €/.test(e.texte) && /L\. 441-10 et D\. 441-5/.test(e.texte), e && e.texte.slice(-900));
-    vrai('…avec l’article 7 des conditions générales (démarches « après vous en avoir informé par écrit ») et SANS « mise en demeure »', /article 7 de nos conditions générales/.test(e.texte) && !/mise en demeure/i.test(e.texte));
+    vrai('…avec les démarches « après vous en avoir informé par écrit », SANS « article 7 de nos conditions générales » (il n’y a pas de CGV dans le dépôt) et SANS « mise en demeure »', /démarches de recouvrement, après vous en avoir informé par écrit/.test(e.texte) && !/article 7|conditions générales/i.test(e.texte) && !/mise en demeure/i.test(e.texte));
     v('…la mise en demeure, elle, reste ce qu’elle était : rien à J+7, préparée à J+14 en validation seulement', [(await m.validations('en_attente')).length], [0]);
     m.jour(14); await m.margaux.passer();
     v('…à J+14 : en VALIDATION, jamais envoyée', [(await m.validations('en_attente')).map(x => x.type), m.envoyes.length], [['mise_en_demeure'], 1]);
@@ -82,7 +82,7 @@ function monde(o) {
 
   console.log('\n3. Le repli : le texte d’avant, mot pour mot');
   for (const [nom, mauvais] of [['un lien', RELANCE(3).replace('Un incident', 'Payez ici https://evil-3202.example/pay. Un incident')], ['« mise en demeure »', RELANCE(3).replace('Si quelque chose', 'Sans règlement, une mise en demeure suivra. Si quelque chose')],
-    ['un autre montant', RELANCE(3).replace('d’un montant de 15 €', 'd’un montant de 150 €')], ['la suspension (un bloc du code)', RELANCE(3).replace('Un incident', 'Votre accès est suspendu. Un incident')], ['une promesse', RELANCE(3).replace('nous regarderons', 'nous vous offrons un mois gratuit et nous regarderons')],
+    ['un autre montant', RELANCE(3).replace('en attente de règlement.', 'en attente de règlement, soit 150 €.')], ['la suspension (un bloc du code)', RELANCE(3).replace('Un incident', 'Votre accès est suspendu. Un incident')], ['une promesse', RELANCE(3).replace('nous regarderons', 'nous vous offrons un mois gratuit et nous regarderons')],
     ['un tutoiement', RELANCE(3).replace('vous pensez', 'tu penses')]]) {
     const m = monde({ travail: true, claude: route(mauvais) });
     m.jour(3);

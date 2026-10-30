@@ -20,6 +20,7 @@
 const K = require('./agents-connaissance');
 const CTRL = require('./agents-controle');
 const G = require('./agents-grille');
+const { parisParties } = require('./agents-horaires');
 
 /* les agents qui ont un chemin « travail » dans leur module (les autres n'en ont pas encore : le lot 2) */
 const PILOTES = ['camille', 'lea', 'margaux'];
@@ -47,10 +48,52 @@ module.exports = function travail(ctx) {
 
   const borne = (t, n) => { t = String(t == null ? '' : t); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 
+  /* ── 0. UN ÉCHEC DU MODE TRAVAIL SE DIT (30 octobre 2026, relecture de sécurité) ──
+     Un modèle refusé, un identifiant faux, une erreur d'API, un plafond atteint : le mode retombait sur l'ancien chemin SANS UN MOT, et Justin croyait ses agents « au travail » pendant qu'ils écrivaient comme avant
+     (ou n'écrivaient plus). Chaque échec — seulement pour un agent dont le mode est ALLUMÉ — écrit UNE ligne dans le fil PRIVÉ de l'agent (niveau « important » : Justin est notifié), UNE fois par jour et par cause.
+     ⛔ Le texte est écrit ICI, à partir d'une cause d'une liste fermée : jamais un mot de l'API, d'un client ou du modèle. Les pauses, l'arrêt et les heures de travail sont des choix de Justin : pas d'alerte. */
+  const CAUSES = {
+    plafond_agent: ['plafond', 'J’ai atteint mon plafond du MOIS : le mode travail est suspendu. Ce qui peut partir sans modèle (gabarits du code, accusés en validation) continue ; le reste attend le mois prochain ou un plafond relevé (config.agents.plafondsAgent).'],
+    plafond_jour: ['plafond_jour', 'J’ai atteint mon budget du JOUR : le mode travail reprend demain. En attendant, seuls les gabarits du code (accusés en validation) sont utilisés.'],
+    plafond_total: ['total', 'Le budget du mois de toute l’équipe est atteint : plus aucun appel au modèle, le mode travail est à l’arrêt.'],
+    filet_jour: ['total', 'Le filet du jour de toute l’équipe est atteint : plus aucun appel au modèle jusqu’à demain, le mode travail est à l’arrêt.'],
+    pas_de_cle: ['cle', 'Je n’ai pas de clé pour appeler le modèle : le mode travail ne peut pas fonctionner.'],
+    budget_illisible: ['cle', 'Le fichier de budget est illisible : plus aucun appel au modèle avant réparation.'],
+    erreur_api: ['api', 'Le modèle a refusé ou n’a pas répondu (identifiant de modèle faux, clé refusée ou panne) : je retombe sur l’ancien chemin. À vérifier dans config.agents.modeles et la clé.'],
+    requete: ['api', 'Le modèle a refusé ma requête : je retombe sur l’ancien chemin. À vérifier dans config.agents.modeles.'],
+    trop_long: ['api', 'La réponse du modèle a été coupée : je retombe sur l’ancien chemin.'],
+    vide: ['api', 'Le modèle a rendu une réponse vide : je retombe sur l’ancien chemin.'],
+    etapes: ['api', 'Ma boucle de lecture n’a pas abouti dans le nombre d’étapes permis : je retombe sur l’ancien chemin.'],
+    erreur: ['api', 'Le mode travail a échoué sans cause connue : je retombe sur l’ancien chemin.'],
+  };
+  const dejaDit = new Map();
+  const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
+  const jourParis = () => { const p = parisParties(maintenant()); return p.annee + '-' + String(p.mois).padStart(2, '0') + '-' + String(p.jour).padStart(2, '0'); };
+  /* Rend { fait:true } si une ligne a été écrite, { fait:false, raison } sinon (pas d'interrupteur, cause sans alerte, déjà dit aujourd'hui, pas de canal). Ne jette jamais. */
+  function signaler(agent, raison) {
+    try {
+      if (!actif(agent)) return { fait: false, raison: 'coupe' };
+      if (!Object.prototype.hasOwnProperty.call(CAUSES, raison)) return { fait: false, raison: 'sans_alerte' };
+      const [cause, phrase] = CAUSES[raison], jour = jourParis(), cle = agent + '|' + cause;
+      if (dejaDit.get(cle) === jour) return { fait: false, raison: 'deja_dit' };
+      const conv = ctx.conversations;
+      if (!conv || typeof conv.parler !== 'function') return { fait: false, raison: 'pas_de_canal' };
+      dejaDit.set(cle, jour);
+      const r = conv.parler(agent, agent, 'Mode travail (' + jour.split('-').reverse().join('/') + ') : ' + phrase, { niveau: 'important', prof: 1 });
+      if (agents && typeof agents.noter === 'function') agents.noter(agent, 'mode travail', { cible: 'alerte', resultat: 'erreur', detail: 'cause : ' + cause + ' (' + raison + ')' });
+      return { fait: !!(r && r.ok !== false), cause };
+    } catch (e) { return { fait: false, raison: 'erreur' }; }
+  }
+
   /* ── 1. LA BOUCLE D'OUTILS ──
      `o` : { agent, system, messages:[{role, content:string}], outils:[{ name, description, input_schema, executer(entree) → string | {…} | Promise }], maxEtapes?, coutMax?, maxTokens?, racine? }
      Rend { ok:true, texte, etapes, cout, appels:[{nom, ok}], lus:[{nom, texte}] } ou { ok:false, raison, etapes, cout, appels, lus }. */
   async function travailler(o) {
+    const r = await travaillerInterne(o);
+    if (!r.ok && o && typeof o.agent === 'string') signaler(o.agent, r.raison);
+    return r;
+  }
+  async function travaillerInterne(o) {
     if (!o || typeof o.agent !== 'string' || typeof o.system !== 'string' || !Array.isArray(o.messages) || !o.messages.length) return { ok: false, raison: 'requete', etapes: 0, cout: 0, appels: [], lus: [] };
     const outils = (Array.isArray(o.outils) ? o.outils : []).filter(t => t && typeof t.name === 'string' && typeof t.executer === 'function');
     const defs = outils.map(t => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
@@ -118,6 +161,11 @@ module.exports = function travail(ctx) {
      Même contrat que `CTRL.produire` (rend { etat:'bon'|'a_revoir'|'non_verifie'|'ignore'|'refuse'|'echec', objet, corps, fautes, reecrit, juge, raison? }) plus { notes, moyenne, tours }.
      `o` : { agent, cerveau, ctx (profil… dossier, mots), contexteJuge, recu, connaissances, demande, ecrire(msgsOuNull), tours? }. */
   async function produire(o) {
+    const r = await produireInterne(o);
+    if (r && r.etat === 'echec' && o && typeof o.agent === 'string') signaler(o.agent, r.raison);
+    return r;
+  }
+  async function produireInterne(o) {
     const cv = o.cerveau || cerveau;
     const tours = Number.isInteger(o.tours) ? Math.min(Math.max(o.tours, 1), TOURS_REDACTION) : TOURS_REDACTION;
     let precedent = null, codes = null, citations = null, citesPar = null, complement = '', dernier = null, reecrit = false, notes = null, moyenne = null, fait = 0;
@@ -149,6 +197,9 @@ module.exports = function travail(ctx) {
         return { etat: 'non_verifie', objet: lu.objet, corps: c.corps, fautes: [], juge: false, raison: 'grille indisponible : ' + (v.raison || 'erreur'), reecrit, tours: fait };
       }
       notes = v.notes; moyenne = v.moyenne;
+      /* ⛔ bon pour Justin, pas pour partir seul : l'envoi automatique exige une moyenne ≥ 4,5 ET aucun critère sous 4 (`G.autoriseEnvoi`). Entre le seuil de validation et celui-ci, le texte est rendu `non_verifie`
+         (un brouillon que Justin lit, jamais un envoi) avec ses notes. */
+      if (v.etat === 'ok' && !G.autoriseEnvoi(v)) return { etat: 'non_verifie', objet: lu.objet, corps: c.corps, fautes: [], juge: true, raison: 'notes sous le seuil d’envoi automatique (moyenne ' + v.moyenne + ', il faut 4,5 et aucun critère sous 4) : Justin relit', reecrit, notes, moyenne, tours: fait };
       if (v.etat === 'ok') return { etat: 'bon', objet: lu.objet, corps: c.corps, fautes: [], juge: true, reecrit, notes, moyenne, tours: fait };
       dernier = { etat: 'a_revoir', objet: lu.objet, corps: c.corps, fautes: v.fautes, juge: true, notes: v.notes, moyenne: v.moyenne };
       codes = v.fautes; citations = null; citesPar = null; complement = G.complementReecriture(v);
@@ -160,7 +211,7 @@ module.exports = function travail(ctx) {
     return Object.assign(dernier, { etat: 'a_revoir', reecrit: true, tours: fait });
   }
 
-  return { actif, travailler, produire, memoireDe, avecLus, interrupteur: () => Array.from(interrupteur) };
+  return { actif, signaler, travailler, produire, memoireDe, avecLus, interrupteur: () => Array.from(interrupteur) };
 };
 module.exports.PILOTES = PILOTES;
 module.exports.lireInterrupteur = lireInterrupteur;

@@ -32,7 +32,11 @@ const CRITERES = [
 ];
 const JUGES = CRITERES.filter(c => c.juge).map(c => c.id);
 /* le seuil : aucune note sous MIN, une moyenne d'au moins MOYENNE (sur les critères notés) */
-const SEUIL = { min: 3, moyenne: 4.0 };
+const SEUIL = { min: 3, moyenne: 4.0, fond: 4 };
+/* L'ENVOI AUTOMATIQUE (sans que Justin relise) est plus exigeant que le seuil de validation : une moyenne d'au moins 4,5 ET aucun critère noté sous 4. Entre les deux seuils, l'écrit est BON pour
+   un brouillon que Justin lit, jamais assez pour partir seul. */
+const SEUIL_AUTO = { moyenne: 4.5, min: 4 };
+const autoriseEnvoi = v => !!v && typeof v.moyenne === 'number' && v.moyenne >= SEUIL_AUTO.moyenne && Object.values(v.notes || {}).every(n => typeof n === 'number' && n >= SEUIL_AUTO.min);
 
 /* Ce que lit l'auteur pour chaque critère en défaut — des phrases du code, jamais celles du juge. Les codes sont aussi dans `FAUTES` (agents-controle.js), pour que Justin et les brouillons les lisent. */
 const FAUTES_GRILLE = {
@@ -104,9 +108,9 @@ function verdict(lu, o) {
   for (const c of CRITERES) {
     const n = notes[c.id]; if (typeof n !== 'number') continue;
     let bloque = n < SEUIL.min;
-    /* les deux jugements de FOND ne bloquent sous 4 qu'avec une preuve citée */
-    if (!bloque && n < 4 && c.id === 'repond_a_tout' && lu.sansReponse && lu.sansReponse.length) bloque = true;
-    if (!bloque && n < 4 && c.id === 'juste' && lu.invente && lu.invente.length) bloque = true;
+    /* ⛔ les deux jugements de FOND (« répond à tout », « juste ») bloquent dès qu'ils sont sous 4, AVEC OU SANS citation (relecture de sécurité du 30 octobre 2026 : un juge qui note « juste » à 3 et ne sait pas
+       citer la phrase laissait partir un courriel que sa propre note jugeait faux). La citation, quand il y en a une, aide l'auteur à corriger ; elle ne conditionne plus le blocage. */
+    if (!bloque && n < SEUIL.fond && (c.id === 'repond_a_tout' || c.id === 'juste')) bloque = true;
     if (!bloque && c.id === 'dossier' && n < 4) bloque = true;
     if (bloque) fautes.push(codeDe(c.id));
   }
@@ -150,4 +154,4 @@ async function noter(o) {
   } catch (e) { return { etat: 'indisponible', raison: 'erreur' }; }
 }
 
-module.exports = { CRITERES, JUGES, SEUIL, FAUTES_GRILLE, JUGE_SYSTEM, lireNotes, verdict, noter, complementReecriture, fragment, codeDe };
+module.exports = { CRITERES, JUGES, SEUIL, FAUTES_GRILLE, JUGE_SYSTEM, SEUIL_AUTO, autoriseEnvoi, lireNotes, verdict, noter, complementReecriture, fragment, codeDe };

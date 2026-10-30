@@ -70,6 +70,8 @@ const FAUTES = {
 };
 /* LA GRILLE DE RELECTURE (30 octobre 2026, `agents-grille.js`) : ses fautes se lisent comme les autres (Justin les voit dans le brouillon « à revoir », l'auteur les reçoit pour réécrire). Aucune n'est grave. */
 for (const k of Object.keys(GRILLE.FAUTES_GRILLE)) FAUTES[k] = { phrase: GRILLE.FAUTES_GRILLE[k] };
+FAUTES.fait_du_modele = { phrase: 'N’écrire AUCUN chiffre, numéro, date ni nombre de jours dans tes paragraphes : le serveur écrit lui-même la ligne des faits de la facture, juste sous « Bonjour, ».' };
+FAUTES.ultimatum = { phrase: 'Ne fixer aucune échéance ni aucun ultimatum (« avant le », « sous N jours », « faute de quoi », « procéderons ») : un courrier de relance demande seulement le règlement.' };
 FAUTES.bloc_reserve = { phrase: 'Ne pas écrire de lien, d’instruction de paiement, de suspension, d’indemnité, de pénalité, de recouvrement ni de mise en demeure : le serveur ajoute lui-même ces blocs.' };
 const JUGE_CODES = ['ton_robotique', 'hors_sujet', 'fait_invente', 'incoherent', 'impoli', 'metier_inadapte'];
 /* ce que `refusDe` (agents-connaissance) répond → le code de la faute */

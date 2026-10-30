@@ -118,7 +118,7 @@ const MARGAUX = { repondreQuestion: async o => ({ ok: true, resume: 'Aucun impay
     Z = monter({ modes: { camille: 'brouillon' }, travail: true, dossierDe: () => DOS, cerveauCtx: { plafondsAgent: { camille: 0.00001 } }, claude: () => LIRE });
     await Z.camille.surNouveauMessage(poser(Z, {}));
     r = await Z.camille.surNouveauMessage(poser(Z, { uid: 2, mid: '<c2@banc-3201>' }));
-    v('⛔ le plafond du mois de l’agent tient : le courriel attend (rien déposé, pas de repli qui contournerait le plafond)', [r.saute, fs.existsSync(path.join(Z.D, 'agents-brouillons.json'))], ['plafond_agent', false]);
+    v('⛔ le plafond du mois de l’agent tient : AUCUN appel de plus au modèle ; le CODE dépose l’accusé sans engagement (gabarit) en VALIDATION (relecture de sécurité du 30 octobre : un courriel ne reste plus à attendre sans un mot)', [r.repli, r.raison, r.voie, Z.recus.length], ['gabarit', 'plafond_agent', 'validation', 1]);
     Z.nettoyer();
   }
 

@@ -107,6 +107,7 @@ function monter(o) {
      par défaut « IDENTIFIEE : non », réglable par `o.recherche(requete, n)` qui peut rendre { texte, recherches }) ont les leurs. */
   const recus = [], recusJuge = [], recusRecherche = [], recusLouis = [], recusNoteur = [];
   const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.cleApi || (o.sansCle ? '' : 'sk-ant-banc-2862-xxxxxxxxxxxxxxxx'), maintenant }, o.cerveauCtx || {}, {
+    travailActif: id => { try { return !!(travail && travail.actif(id)); } catch (e) { return false; } },   // les plafonds du mode travail suivent l'interrupteur (comme index.js)
     appeler: async (cle, requete, optsAppel) => {
       const copie = JSON.parse(JSON.stringify(requete));
       /* `o.appelerReel(cle, requete, opts)` : le VRAI modèle (le script `server/outils/evaluation-travail/rejouer.js`) — les requêtes sont gardées, rien n'est simulé */
@@ -161,7 +162,7 @@ function monter(o) {
   const conversations = o.conversations || { parler: (de, fil, texte, opts) => { paroles.push({ de, fil, texte, niveau: (opts || {}).niveau }); return { ok: true }; } };
   const louis = require(S('agent-louis.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, cerveau, fichier, maintenant, conversations });
   /* le mode « travail » : `o.travail` (true ou { camille: true }) le LÈVE ; sans lui, rien n'est passé aux agents — le chemin d'avant, au caractère près */
-  const travail = o.travail ? require(S('agents-travail.js'))({ cerveau, agents, travail: o.travail }) : null;
+  const travail = o.travail ? require(S('agents-travail.js'))({ cerveau, agents, conversations, maintenant, travail: o.travail }) : null;
   const outilsLecture = o.travail ? require(S('agents-outils-lecture.js'))({ brouillons, louis, agents, faits: o.faits || {}, margaux: () => o.margaux || null }) : null;
   const lea = require(S('agent-lea.js'))({ agents, cerveau, brouillons, fichier, maintenant, conversations, louis, travail, outilsLecture, recherche: o.recherche !== undefined || o.avecRecherche === true,
     libelleMetier: m => ({ chauffage: 'Chauffage / Climatisation', nettoyage: 'Nettoyage' }[m] || ''), metiers: ['chauffage', 'nettoyage', 'autre'] });

@@ -48,6 +48,7 @@ function monter(o) {
 
   const recus = [];
   const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.cleApi || (o.sansCle ? '' : 'sk-ant-banc-2911-xxxxxxxxxxxxxxxx'), maintenant }, o.cerveauCtx || {}, {
+    travailActif: id => { try { return !!(travail && travail.actif(id)); } catch (e) { return false; } },   // les plafonds du mode travail suivent l'interrupteur (comme index.js)
     appeler: async (cle, requete, optsAppel) => {
       recus.push(JSON.parse(JSON.stringify(requete)));
       if (o.appelerReel) return o.appelerReel(cle, requete, optsAppel);   // le VRAI modèle (`server/outils/evaluation-travail/rejouer.js`)
@@ -89,9 +90,9 @@ function monter(o) {
   const impayesListe = { ok: true, liste: [] };
   const factureDe = { v: null };
   /* le mode « travail » (30 octobre 2026) : levé par `o.travail` seulement ; sinon Margaux est montée comme avant, au caractère près */
-  const travail = o.travail ? require(S('agents-travail.js'))({ cerveau, agents, travail: o.travail }) : null;
+  const travail = o.travail ? require(S('agents-travail.js'))({ cerveau, agents, conversations, maintenant, travail: o.travail }) : null;
   const outilsLecture = o.travail ? require(S('agents-outils-lecture.js'))({ agents, louis: o.louis || null, faits: {}, margaux: () => null }) : null;
-  const margaux = require(S('agent-margaux.js'))({ agents, conversations, documents, direction, fichier, maintenant, cerveau, travail, outilsLecture,
+  const margaux = require(S('agent-margaux.js'))({ agents, conversations, documents, direction, fichier, maintenant, cerveau, travail, outilsLecture, indemniteConfirmee: o.indemniteConfirmee === true,
     impayes: async () => (monde.impayes ? monde.impayes() : impayesListe),
     facture: async (aboId) => { appelsStripe.push(['facture', aboId]); if (monde.facture) return monde.facture(aboId); return factureDe.v; } });
   const emma = require(S('agent-emma.js'))(app, { agents, conversations, documents, fichier, maintenant, monAdmin, monPatronStrict, adresseDe: dep.adresseDe });

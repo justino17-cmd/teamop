@@ -43,6 +43,9 @@ const MODELE_DEFAUT = 'claude-sonnet-5';
    · les autres agents ne sont pas listés : ils gardent Sonnet 5. */
 const MODELE_TRAVAIL_DEFAUT = 'claude-opus-5-5';
 const AGENTS_TRAVAIL = ['camille', 'lea', 'margaux'];
+/* LES PLAFONDS DU MOIS EN MODE TRAVAIL (relecture de sécurité du 30 octobre 2026) : en Opus, un courriel de Camille coûte ≈ 0,23 $ (lectures, réécritures, relecture) ; les 35 $ / 10 $ / 10 $ du registre s'épuisaient en
+   quelques jours. Quand le mode travail d'un agent est ALLUMÉ, son plafond est celui-ci (total 150 $, sous les 195 $ du mois) ; coupé, c'est celui du registre, au dollar près. `config.agents.plafondsAgent` gagne toujours. */
+const PLAFONDS_TRAVAIL = { camille: 100, lea: 35, margaux: 15 };
 /* Le modèle d'un appel, pour des réglages donnés — fonction PURE (le banc et le script de rejeu la relisent). */
 function modeleParDefaut(id, travail, regles) {
   if (regles && typeof regles === 'object' && Object.prototype.hasOwnProperty.call(regles, id) && typeof regles[id] === 'string' && FORME_MODELE.test(regles[id])) return regles[id];
@@ -170,7 +173,9 @@ module.exports = function cerveau(ctx) {
   const plafond = id => {
     const a = agents.AGENTS.find(x => x.id === id); if (!a) return 0;
     const o = ctx.plafondsAgent && typeof ctx.plafondsAgent === 'object' && !Array.isArray(ctx.plafondsAgent) ? ctx.plafondsAgent[id] : undefined;
-    return (typeof o === 'number' && Number.isFinite(o) && o > 0) ? Math.min(o, TOTAL) : a.plafondUsd;
+    if (typeof o === 'number' && Number.isFinite(o) && o > 0) return Math.min(o, TOTAL);
+    let enTravail = false; try { enTravail = typeof ctx.travailActif === 'function' && ctx.travailActif(id) === true; } catch (e) { enTravail = false; }
+    return enTravail && Object.prototype.hasOwnProperty.call(PLAFONDS_TRAVAIL, id) ? Math.min(PLAFONDS_TRAVAIL[id], TOTAL) : a.plafondUsd;
   };
 
   /* Une question à Claude. `appeler` est injectable (banc) : `(cle, requete) → {texte, entree, sortie, stop_reason}`.
@@ -307,6 +312,7 @@ module.exports.MARGE_DEFAUT = MARGE_DEFAUT;
 module.exports.MODELE_DEFAUT = MODELE_DEFAUT;
 module.exports.MODELE_TRAVAIL_DEFAUT = MODELE_TRAVAIL_DEFAUT;
 module.exports.AGENTS_TRAVAIL = AGENTS_TRAVAIL;
+module.exports.PLAFONDS_TRAVAIL = PLAFONDS_TRAVAIL;
 module.exports.modeleParDefaut = modeleParDefaut;
 module.exports.MAX_TOKENS_TRAVAIL = MAX_TOKENS_TRAVAIL;
 module.exports.MAX_TOKENS_TRAVAIL_MAX = MAX_TOKENS_TRAVAIL_MAX;

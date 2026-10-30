@@ -11053,10 +11053,12 @@ try {
       /* LE MODE « TRAVAIL » (30 octobre 2026) : ce que Justin règle ici, sur le VPS — `config.agents.modeles` ({ camille: 'claude-opus-5-5' }, absent = Sonnet 5), `budgetMois` (195 par défaut), `plafondsAgent`
          ({ camille: 40 }, absent = le plafond du registre), `margeTarif` (1,75 par défaut). Une valeur hors forme garde le défaut (`cerveau.js`). */
       modeles: config.agents && typeof config.agents.modeles === 'object' ? config.agents.modeles : undefined,
+      /* en mode travail allumé, les plafonds du mois de Camille, Léa et Margaux sont ceux de `cerveau.PLAFONDS_TRAVAIL` (le registre sinon) */
+      travailActif: id => { try { return !!(travailMod && travailMod.actif(id)); } catch (e) { return false; } },
       budgetMois: config.agents ? config.agents.budgetMois : undefined, plafondsAgent: config.agents && typeof config.agents.plafondsAgent === 'object' ? config.agents.plafondsAgent : undefined,
       margeTarif: config.agents ? config.agents.margeTarif : undefined });
     /* L'INTERRUPTEUR DU TRAVAIL (`config.agents.travail` : `true` pour Camille, Léa et Margaux, ou `{ camille: true }`) — ⛔ COUPÉ PAR DÉFAUT : sans ce réglage, aucun agent ne change d'un mot (`agents-travail.js`). */
-    const travailMod = require('./agents-travail')({ cerveau: cerveauMod, agents: agentsMod, travail: config.agents ? config.agents.travail : undefined });
+    const travailMod = require('./agents-travail')({ cerveau: cerveauMod, agents: agentsMod, conversations: conversationsMod, travail: config.agents ? config.agents.travail : undefined });
     const outilsLectureMod = require('./agents-outils-lecture')({ get brouillons() { return brouillonsMod; }, get louis() { return louisMod; }, agents: agentsMod, get faits() { return faitsAgents; },
       margaux: () => agentMargaux });
     console.log('agents : mode travail ' + (travailMod.interrupteur().length ? 'ALLUMÉ pour ' + travailMod.interrupteur().join(', ') : 'coupé (agents.travail)'));
@@ -11446,7 +11448,9 @@ try {
     try {
       if (docsAgentsMod && gestionClients) {
         agentMargaux = require('./agent-margaux')({ agents: agentsMod, conversations: conversationsMod, documents: docsAgentsMod, direction: directionMod, fichier: fichierAgents, cerveau: cerveauMod, travail: travailMod, outilsLecture: outilsLectureMod,
-          impayes: gestionClients.impayesMargaux, facture: gestionClients.factureMargaux });
+          impayes: gestionClients.impayesMargaux, facture: gestionClients.factureMargaux,
+          /* ⛔ l'indemnité de 40 € de la seconde relance exige la validation de Justin tant que ce réglage n'est pas posé à `true` (CGV et expert-comptable : REPRISE.md) */
+          indemniteConfirmee: !!(config.agents && config.agents.indemniteConfirmee === true) });
         app.post('/api/monitor/agents/margaux/passer', monPatronStrict, async (req, res) => {
           try { res.json(Object.assign({ ok: true }, await agentMargaux.passer())); }
           catch (e) { console.error('margaux :', e.message); res.status(500).json({ error: 'Passage non traité' }); }

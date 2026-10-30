@@ -404,11 +404,23 @@ module.exports = function camille(ctx) {
           /* un échec du MODE (étapes épuisées, texte vide, panne d'un tour) retombe sur l'appel d'avant ; un plafond, une pause ou l'absence de clé, non : ils valent pour l'ancien appel aussi */
           if (!r.ok && ['etapes', 'vide', 'erreur_api', 'trop_long', 'requete', 'erreur'].includes(r.raison)) { agents.noter(ID, 'mode travail', { cible: 'courrier', resultat: 'erreur', detail: 'retombée sur l’appel simple : ' + r.raison }); lusT = []; enTravail = false; r = await cerveau.penser(ID, SYSTEM + connaissances(objet + ' ' + texte), [{ role: 'user', content: demande }], { maxTokens: JETONS }); }
         } else r = await cerveau.penser(ID, systeme, [{ role: 'user', content: demande }], { maxTokens: JETONS });
+        /* ⛔ PLAFOND ATTEINT EN MODE TRAVAIL (jour ou mois) : l'ancien chemin utilise le MÊME plafond (même agent), donc il ne passerait pas non plus. Plutôt que de laisser le courriel attendre sans un mot, le CODE dépose
+           l'accusé de réception sans engagement (le gabarit « nous revenons vers vous », aucun appel au modèle) EN VALIDATION : Justin le voit, et l'alerte (`signaler`, une fois par jour) lui dit pourquoi. */
+        if (!r.ok && enTravail && ['plafond_agent', 'plafond_jour'].includes(r.raison)) {
+          noterVu(h);
+          agents.noter(ID, 'mode travail', { cible: 'courrier', resultat: 'erreur', detail: 'plafond atteint (' + r.raison + ') : accusé de réception du code, en validation' });
+          const dR = await deposerReponse({ m, ev, a, objet: objetReponse(m.objet), texte: GABARITS.inconnu, controle: { etat: 'non_verifie', fautes: [], juge: false, raison: 'plafond atteint : accusé écrit par le code' }, forceValidation: true });
+          if (dR.ok) { jour.brouillons++; sauve(); }
+          return { repli: 'gabarit', raison: r.raison, depose: dR.ok, ref: dR.ref, voie: dR.voie };
+        }
         if (!r.ok) { if (compteDomaine && jour.domaines[dom] > 0) jour.domaines[dom]--; return { saute: r.raison }; }          // pas marqué vu : rien n'a été décidé (la veille ne le ré-annoncera pas, mais Justin le voit au Courrier)
         jour.examens++;
         const lu = lireCategorie(r.texte);
         if (!lu) { noterVu(h); agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'erreur', detail: 'réponse de Claude sans ligne CATEGORIE' }); return { saute: 'forme' }; }
         const categorie = lu.categorie;
+        /* ⛔ MODE TRAVAIL : un courriel que le MODÈLE a rédigé (facture, technique, question, prospect…) ne part JAMAIS seul quand le message reçu est sensible — litige, erreur ou double prélèvement, résiliation (relecture de
+           sécurité du 30 octobre 2026 : « débité deux fois » classé « facture » recevait un accusé personnalisé en envoi automatique). Le doute va vers la validation de Justin. Hors mode travail : rien ne change. */
+        const validationT = () => enTravail && (sensible(objet + '\n' + texte) || erreurDePaiement(objet + '\n' + texte) || menaceDeLitige(objet + '\n' + texte));
 
         /* ⛔ « ignorer » est un jugement de Claude, que le texte du courriel peut PIÉGER. Il passe toujours avant le filet de litige (test-2905 : un cabinet d'avocats qui démarche ne dérange pas Justin),
            mais il ne se CLASSE (ne sort de « à traiter ») que si le texte ne parle ni de recours, ni d'erreur de prélèvement, ni de résiliation, ni de remboursement : sinon la ligne reste « à traiter »,
@@ -517,7 +529,7 @@ module.exports = function camille(ctx) {
             : '@Jules un client signale un problème technique' + dos + ' (réf. ' + rf + '). Je lui ai accusé réception ; peux-tu regarder si c’est connu côté application ou serveur ?', 'info');
           agents.noter(ID, 'passer la main à ' + collegue, { cible: 'courrier', resultat: 'ok', detail: categorie });
           const perso = await accuseT(categorie);
-          const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: perso ? perso.corps : GABARITS[categorie], controle: perso ? perso.controle : BON_GABARIT, reecrit: perso ? perso.reecrit : false });
+          const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: perso ? perso.corps : GABARITS[categorie], controle: perso ? perso.controle : BON_GABARIT, reecrit: perso ? perso.reecrit : false, forceValidation: validationT() });
           if (d.ok) { jour.brouillons++; sauve(); }
           return { passe: collegue.toLowerCase(), categorie, depose: d.ok, ref: d.ref, voie: d.voie };
         }
@@ -580,7 +592,7 @@ module.exports = function camille(ctx) {
         }
         agents.noter(ID, 'contrôle qualité', { cible: 'courrier', resultat: res.etat === 'bon' ? 'ok' : 'refuse', detail: res.etat + (res.reecrit ? ' après une réécriture' : '') + (res.fautes.length ? ' : ' + res.fautes.join(', ') : '') });
         const controle = controleDe(res);
-        const d = await deposerReponse({ m, ev, a, objet: res.objet, texte: res.corps, controle, reecrit: res.reecrit });
+        const d = await deposerReponse({ m, ev, a, objet: res.objet, texte: res.corps, controle, reecrit: res.reecrit, forceValidation: validationT() });
         if (!d.ok) return { saute: d.raison };
         jour.brouillons++; sauve();
         if (d.voie === 'direct') dire('clients', 'J’ai répondu seule à un courriel ' + (categorie === 'prospect' ? 'd’un prospect' : 'avec une question sur l’application') + ' : le contrôle qualité est passé, la réponse est partie (réf. ' + rf + ').', 'info');
