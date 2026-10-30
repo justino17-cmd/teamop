@@ -33,14 +33,14 @@ function bloc(motif) {
 }
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'esc', 'jsq', 'ini', 'fmtJour', 'fmtDate', 'fmtHeure', 'fmtAgo', 'videTour', 'nMot',
   'appDe', 'appVisible', 'incDeLaConsole', 'incOuverts', 'incToutIgnorer', 'nbEntSurveillees', 'entQ', 'incNoteEnCours', 'chargerIncidents', 'chargerJournal', 'chargerEquipe',
-  'vuesDe', 'vuePermise', 'vues', 'vueJournal', 'jrGroupe', 'teteListe', 'vueEquipe', 'eqNoteCollaborateur', 'libsPatronSeul', 'appsDuCompte', 'enPhrase', 'acSquel'];
-const VARS = ['MENU', 'PATRON_SEUL', 'APPS_TOUR', 'APP_TEINTE', 'INJOIGNABLE', 'INC', 'JR', 'EQ', 'ENT', 'CLI'];
+  'filtreEff', 'sourcesAff', 'aGestion', 'aMessages', 'entOuvertesMsg', 'vuesDe', 'vuePermise', 'vues', 'vueJournal', 'jrGroupe', 'teteListe', 'vueEquipe', 'eqNoteCollaborateur', 'libsPatronSeul', 'appsDuCompte', 'enPhrase', 'acSquel'];
+const VARS = ['MENU', 'LIB_SOUS', 'PATRON_SEUL', 'APPS_TOUR', 'APP_TEINTE', 'INJOIGNABLE', 'INC', 'JR', 'EQ', 'ENT', 'CLI'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
 
 function tour(API, jeton, app, apps) {
   const toasts = [], envois = [], ctx = { fetch, URL, Object, String, JSON, Promise, Math, Date, Array, Error, Number, document: { getElementById: () => null }, console };
   vm.createContext(ctx);
-  vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(jeton) + ', APP=' + JSON.stringify(app) + ", TAB='surveillance', MYROLE='patron', MYNOM='Patron', MYAPPS=" + JSON.stringify(apps || ['gestion', 'messages']) + ";\n" +
+  vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(jeton) + ', FILTRE=' + JSON.stringify(app) + ", TAB='surveillance', MYROLE='patron', MYNOM='Patron', MYAPPS=" + JSON.stringify(apps || ['gestion', 'messages']) + ";\n" +
     "var IC={cadenas:''}; function doLogout(){} function srvEtat(){} function render(){} function rafraichirSiConcerne(){} function setBdg(){} function majCompteursApp(){} function majBarreBas(){} function squelListe(){ return '<i class=\"squel\"></i>'; }\n" +
     "function svg(){ return ''; } function enTete(t,p){ return '<div class=\"page-tete\">'+t+' — '+p+'</div>'; }\n" +
     SRCV.join('\n') + '\n' + SRC.join('\n'), ctx);
@@ -138,8 +138,8 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     vrai('population : les quatre comptes sont lus', (await TG.attendre('EQ.loaded&&EQ.users.length===4')) && (await TM.attendre('EQ.loaded&&EQ.users.length===4')));
     const groupes = (T) => { const h = T.run('vueEquipe()'); const o = {}; h.split('<div class="reg-g">').slice(1).forEach(g => { const nom = texte((/<span class="reg-nom">([\s\S]*?)<\/span>/.exec(g) || [])[1]); o[nom.trim()] = ['Patron', 'Gaston', 'Mona', 'Dora'].filter(n => g.indexOf('title="' + n + '"') >= 0); }); return o; };
     const gG = groupes(TG), gM = groupes(TM);
-    v('⛔ console OP GESTION : le patron, Gaston et Dora ; Mona à part', [gG['Accès ouverts'], gG['Sans accès à la Tour OP GESTION']], [['Patron', 'Gaston', 'Dora'], ['Mona']]);
-    v('⛔ console OP MESSAGES : le patron, Mona et Dora ; Gaston à part', [gM['Accès ouverts'], gM['Sans accès à la Tour OP MESSAGES']], [['Patron', 'Mona', 'Dora'], ['Gaston']]);
+    v('⛔ console OP GESTION : le patron, Gaston et Dora ; Mona à part', [gG['Accès ouverts'], gG['Sans accès à OP GESTION']], [['Patron', 'Gaston', 'Dora'], ['Mona']]);
+    v('⛔ console OP MESSAGES : le patron, Mona et Dora ; Gaston à part', [gM['Accès ouverts'], gM['Sans accès à OP MESSAGES']], [['Patron', 'Mona', 'Dora'], ['Gaston']]);
     vrai('le formulaire coche la console ouverte, pas l\'autre', /id="eq-app-messages" checked/.test(TM.run('vueEquipe()')) && !/id="eq-app-gestion" checked/.test(TM.run('vueEquipe()')) && /id="eq-app-gestion" checked/.test(TG.run('vueEquipe()')));
     vrai('⛔ plus de « (en travaux) » à côté d\'OP MESSAGES', !/en travaux/.test(TM.run('vueEquipe()')));
     /* v2.88 : OP MESSAGES a SES Comptes et SES Abonnements (lus sur son serveur) ; le Courrier et les Demandes restent à OP GESTION */
@@ -154,7 +154,7 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     const dos = await (await fetch(B + '/api/monitor/entreprise/dossier', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PATRON }, body: JSON.stringify({ nom: 'entx' }) })).json();   // le nom d'accès (slug) de l'entreprise du banc
     v('⛔ et la liste de la fiche compte la MÊME chose (une erreur, celle d\'OP GESTION)', (dos.erreurs || []).map(e => e.app), ['opgestion']);
     const fiche = bloc('ficheEntrepriseHtml') || CODE;
-    vrai('⛔ la fiche d\'OP GESTION n\'ouvre ni ne ferme plus OP MESSAGES (elle dit où ça se règle)', /Se règle dans la console OP MESSAGES/.test(fiche) && !/Application séparée, abonnement séparé\. Fermée, elle disparaît/.test(CODE));
+    vrai('⛔ la fiche d\'une entreprise porte le geste d\'ouvrir ou fermer OP MESSAGES, au patron seul (v2.119 : la console OP MESSAGES où il vivait n\'existe plus) — et l\'ancien texte « Application séparée… » reste absent', /MYROLE==='patron'&&es\.slug\?' <button type="button" class="btn-fant'\+\(es\.opMessages[^]*?tourApps\(\\''\+jsq\(es\.slug\)/.test(CODE) && !/Application séparée, abonnement séparé\. Fermée, elle disparaît/.test(CODE));
     TM.run("ENT.loaded=true; ENT.liste=[{t:'opgestion-beta',technique:true,nom:'',slug:''},{t:'a1',nom:'Atelier',slug:'atelier',opMessages:true},{t:'b1',nom:'Boucherie',slug:'boucherie'}]");
     v('la console OP MESSAGES surveille ses entreprises ouvertes, sans les espaces techniques', TM.run('nbEntSurveillees()'), 1);
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }

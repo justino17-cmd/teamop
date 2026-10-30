@@ -56,15 +56,15 @@ const MENU = bloc('var MENU=[', '];');
 vrai('le menu est trouvé (population)', MENU.length > 300, MENU.length);
 /* v2.87 : VUE_ALIAS — une barre rangée avant le ménage traduit « devisia » et « connexions » */
 /* v2.88 : les vues RATTACHÉES (Équipe sous Accès, Sauvegardes sous Système) et leur tête — GROUPE_LIB, PARENT_DE */
-const JEU = [MENU, ligne('var GROUPE_LIB='), ligne('var PARENT_DE='), ligne('function tabMenu('), fonction('groupeDe'), ligne('var PATRON_SEUL='), ligne('var VUE_ALIAS='), fonction('vuePermise'), fonction('menuVisible'), ligne('var BAS_DEFAUT='), ligne('var BAS_MAX='), ligne('var BAS=BAS_DEFAUT'),
+const JEU = [MENU, ligne('var GROUPE_LIB='), ligne('var PARENT_DE='), fonction('appsDeVue'), fonction('membresVisibles'), fonction('teteDe'), ligne('function tabMenu('), fonction('groupeDe'), ligne('var PATRON_SEUL='), ligne('var VUE_ALIAS='), fonction('vuePermise'), fonction('menuVisible'), ligne('var BAS_DEFAUT='), ligne('var BAS_MAX='), ligne('var BAS=BAS_DEFAUT'),
   bloc('var BAS_LIB={', '};'), fonction('barreDispo'), fonction('barreDe'), ligne('var _barreRepli='), fonction('barreLire'),
   ligne('var _barreBrouillon='), fonction('barreBascule'), fonction('barreCompteTxt'), fonction('barreRepeindre'),
   fonction('barreDefaut'), fonction('barreValider')].join('\n');
-function bac(role, app) {
+function bac(role, apps) {   /* v2.119 : plus de console — les APPLICATIONS du compte (MYAPPS) décident de ce qu'il voit */
   const rangement = new Map(); let plein = false;
   const journal = { toasts: [], rendus: 0, fermee: 0 };
   const ctx = {
-    APP: app || 'gestion', MYROLE: role || 'patron',
+    MYAPPS: apps || ['gestion', 'messages'], MYROLE: role || 'patron',
     localStorage: { getItem: k => rangement.has(k) ? rangement.get(k) : null,
       setItem: (k, x) => { if (plein) { const e = new Error('plein'); e.name = 'QuotaExceededError'; throw e; } rangement.set(k, String(x)); },
       removeItem: k => rangement.delete(k) },
@@ -74,73 +74,78 @@ function bac(role, app) {
   return { ctx, rangement, journal, remplir: b => { plein = b; } };
 }
 {
-  const p = bac('patron', 'gestion');
-  v('par défaut (patron, GESTION) : la barre d’avant, à l’identique', p.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'essais']);
-  const c = bac('collaborateur', 'gestion');
-  v('par défaut (collaborateur) : le Courrier à la place d’Accès', c.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
-  const m = bac('patron', 'messages');
-  v('par défaut (console MESSAGES) : Accès y existe depuis la v2.81 (la bêta d’OP MESSAGES a ses accès) : la barre est celle de GESTION', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'essais']);
-  v('la liste des vues suit le menu visible (patron, GESTION : 15 vues — v2.110 : + Audience — lot 1 : + Facturation, Incidents, Contrats, Rapport ; v2.87 : Demandes entre, Connexions et Devis IA deviennent des onglets ; v2.88 : Équipe et Sauvegardes rattachées)', p.ctx.barreDispo().length, 15);   // 25 octobre 2026 (v2.110) : + Audience (section « Site »)   // 23 octobre 2026 (v2.104) : + Messagerie, entre Agents et Rapport   // lot 1 (21 octobre 2026) : + Facturation, Incidents, Contrats, Rapport
+  const DEFAUT = ['accueil', 'support', 'entreprises', 'surveillance'];   /* Accueil · À traiter · Clients · Surveillance (la tête de chaque groupe) */
+  const p = bac('patron', ['gestion', 'messages']);
+  v('par défaut (patron, les deux applications) : Accueil · À traiter · Clients · Surveillance', p.ctx.barreLire(), DEFAUT);
+  const c = bac('collaborateur', ['gestion']);
+  v('par défaut (collaborateur) : la même — le Courrier, les Entreprises et la Surveillance ne sont pas au patron seul', c.ctx.barreLire(), DEFAUT);
+  const m = bac('patron', ['messages']);
+  v('par défaut (compte SANS Gestion) : la tête de chaque groupe devient la première vue qu’il voit (Incidents, Comptes OP MESSAGES)', m.ctx.barreLire(), ['accueil', 'incidents', 'comptes', 'surveillance']);
+  v('la liste des vues suit le menu visible (patron, deux applications : 12 entrées — les groupes À traiter, Clients, Accès et Journal comptent chacun pour UNE ; Facturation est un onglet d’Abonnements)', p.ctx.barreDispo().map(o => o.t),
+    ['accueil', 'support', 'entreprises', 'abonnements', 'surveillance', 'contrats', 'agents', 'messagerie', 'rapport', 'audience', 'essais', 'journal']);
   v('…(collaborateur : ni Accès, ni Équipe, ni Journal, ni Sauvegardes — ce que le serveur lui refuse)', c.ctx.barreDispo().map(o => o.t).filter(t => ['essais', 'equipe', 'journal', 'agents', 'donnees'].includes(t)), []);
+  v('…(compte sans Gestion : ni Courrier, ni Demandes, ni Entreprises, ni Contrats — il garde Incidents et les deux écrans d’OP MESSAGES)', m.ctx.barreDispo().map(o => o.t), ['accueil', 'incidents', 'comptes', 'abonnements', 'surveillance', 'essais', 'journal']);
 }
 {
-  const p = bac('patron', 'gestion');
-  const lire = x => { p.rangement.set('tour_barre_gestion', x); return p.ctx.barreLire(); };
+  const p = bac('patron', ['gestion', 'messages']);
+  const lire = x => { p.rangement.set('tour_barre', x); return p.ctx.barreLire(); };
   /* v2.88 : une vue RATTACHÉE (Équipe, Sauvegardes) rangée dans une barre d'avant y devient sa tête (Accès, Système/Journal) */
-  v('un choix de deux vues se complète par la barre d’origine (Équipe d’avant devient Accès)', lire('journal,equipe'), ['journal', 'essais', 'accueil', 'surveillance']);
-  v('l’ordre choisi est respecté (Sauvegardes d’avant rejoint Système, déjà là : une place se libère)', lire('entreprises,accueil,journal,donnees'), ['entreprises', 'accueil', 'journal', 'surveillance']);
-  v('un doublon ne prend pas deux places', lire('journal,journal,equipe'), ['journal', 'essais', 'accueil', 'surveillance']);
-  v('une vue inconnue ou des blancs sont ignorés', lire(' , journal , inconnue ,'), ['journal', 'accueil', 'surveillance', 'entreprises']);
-  v('au-delà de quatre, les quatre premières valides', lire('journal,equipe,donnees,demandes,abonnements'), ['journal', 'essais', 'demandes', 'abonnements']);
-  /* v2.87 : une barre rangée avant le ménage (Devis IA et Connexions sont devenus des onglets) garde sa place */
+  v('un choix de deux vues se complète par la barre d’origine (Équipe d’avant devient Accès)', lire('journal,equipe'), ['journal', 'essais', 'accueil', 'support']);
+  v('l’ordre choisi est respecté (Sauvegardes d’avant rejoint Système, déjà là : une place se libère)', lire('entreprises,accueil,journal,donnees'), ['entreprises', 'accueil', 'journal', 'support']);
+  v('un doublon ne prend pas deux places', lire('journal,journal,equipe'), ['journal', 'essais', 'accueil', 'support']);
+  v('une vue inconnue ou des blancs sont ignorés', lire(' , journal , inconnue ,'), ['journal', 'accueil', 'support', 'entreprises']);
+  v('au-delà de quatre, les quatre premières valides (Demandes d’avant devient À traiter)', lire('journal,equipe,donnees,demandes,abonnements'), ['journal', 'essais', 'support', 'abonnements']);
+  /* v2.87 : une barre rangée avant le ménage (Devis IA et Connexions sont devenus des onglets) garde sa place ; v2.119 : Facturation aussi */
   v('« devisia » d’une barre d’avant devient Abonnements, « connexions » Entreprises', lire('devisia,connexions,journal'), ['abonnements', 'entreprises', 'journal', 'accueil']);
-  const m = bac('patron', 'messages'); m.rangement.set('tour_barre_gestion', 'journal,equipe');
-  v('une console, une barre : le choix de GESTION ne touche pas MESSAGES', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'essais']);
-  const c = bac('collaborateur', 'gestion'); c.rangement.set('tour_barre_gestion', 'essais,equipe,journal');
-  v('⛔ une vue que le compte ne voit pas n’entre jamais dans sa barre, même « choisie »', c.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
-  const mv = bac('patron', 'messages'); mv.rangement.set('tour_barre_messages', 'devisia,abonnements,journal');
-  /* v2.88 : OP MESSAGES a SES Abonnements (lus sur son serveur) — « devisia », lui, reste un écran d'OP GESTION */
-  v('…ni une vue d’une AUTRE console (Devis IA n’existe pas dans MESSAGES)', mv.ctx.barreLire(), ['abonnements', 'journal', 'accueil', 'surveillance']);
+  v('…et « facturation » (devenue l’onglet d’Abonnements) aussi', lire('facturation,journal'), ['abonnements', 'journal', 'accueil', 'support']);
+  v('…et Incidents, rangé dans « À traiter », est la tête du groupe : « incidents » d’une barre d’avant devient À traiter', lire('incidents,journal'), ['support', 'journal', 'accueil', 'entreprises']);
+  const m = bac('patron', ['gestion', 'messages']); m.rangement.set('tour_barre_gestion', 'journal,equipe'); m.rangement.set('tour_barre_messages', 'journal,equipe');
+  v('UNE barre par appareil : les clés d’AVANT (par console) ne sont plus lues ici — `migrerReglagesAvant` les range une fois', m.ctx.barreLire(), ['accueil', 'support', 'entreprises', 'surveillance']);
+  const c = bac('collaborateur', ['gestion']); c.rangement.set('tour_barre', 'essais,equipe,journal');
+  v('⛔ une vue que le compte ne voit pas n’entre jamais dans sa barre, même « choisie »', c.ctx.barreLire(), ['accueil', 'support', 'entreprises', 'surveillance']);
+  const mv = bac('patron', ['messages']); mv.rangement.set('tour_barre', 'contrats,abonnements,journal');
+  /* v2.88 : OP MESSAGES a SES Abonnements (lus sur son serveur) — Contrats, lui, reste un écran d'OP GESTION */
+  v('…ni une vue d’une application que le compte n’a pas (Contrats n’existe pas sans Gestion)', mv.ctx.barreLire(), ['abonnements', 'journal', 'accueil', 'incidents']);
 }
 {
-  const p = bac('patron', 'gestion');
+  const p = bac('patron', ['gestion', 'messages']);
   p.ctx._barreBrouillon = p.ctx.barreLire();
-  p.ctx.barreBascule('essais');
-  v('toucher une vue choisie la retire', p.ctx._barreBrouillon, ['accueil', 'surveillance', 'entreprises']);
-  p.ctx.barreBascule('journal');
-  v('toucher une autre la prend à la suite', p.ctx._barreBrouillon, ['accueil', 'surveillance', 'entreprises', 'journal']);
-  p.ctx.barreBascule('equipe');
-  v('une cinquième est refusée…', p.ctx._barreBrouillon, ['accueil', 'surveillance', 'entreprises', 'journal']);
-  v('…et on le dit', /Quatre vues au maximum/.test(p.journal.toasts.pop() || ''), true);
   p.ctx.barreBascule('surveillance');
+  v('toucher une vue choisie la retire', p.ctx._barreBrouillon, ['accueil', 'support', 'entreprises']);
+  p.ctx.barreBascule('journal');
+  v('toucher une autre la prend à la suite', p.ctx._barreBrouillon, ['accueil', 'support', 'entreprises', 'journal']);
+  p.ctx.barreBascule('equipe');
+  v('une cinquième est refusée…', p.ctx._barreBrouillon, ['accueil', 'support', 'entreprises', 'journal']);
+  v('…et on le dit', /Quatre vues au maximum/.test(p.journal.toasts.pop() || ''), true);
+  p.ctx.barreBascule('support');
   v('retirer la deuxième fait remonter les suivantes', p.ctx._barreBrouillon, ['accueil', 'entreprises', 'journal']);
   v('le compte le dit', p.ctx.barreCompteTxt(3), '3 / 4 choisies — les places libres reprennent la barre d’origine');
   p.ctx.barreValider();
-  v('Enregistrer range le choix pour CETTE console', p.rangement.get('tour_barre_gestion'), 'accueil,entreprises,journal');
+  v('Enregistrer range le choix pour CET APPAREIL (une seule clé, plus une par console)', p.rangement.get('tour_barre'), 'accueil,entreprises,journal');
   v('…redessine la barre et ferme la feuille', [p.journal.rendus, p.journal.fermee], [1, 1]);
   v('…et le dit', p.journal.toasts.pop(), 'Barre enregistrée');
-  v('relu, le choix se complète', p.ctx.barreLire(), ['accueil', 'entreprises', 'journal', 'surveillance']);
+  v('relu, le choix se complète', p.ctx.barreLire(), ['accueil', 'entreprises', 'journal', 'support']);
   p.ctx.barreDefaut();
-  v('« Réinitialiser » remet la barre d’origine dans le choix', p.ctx._barreBrouillon, ['accueil', 'surveillance', 'entreprises', 'essais']);
+  v('« Réinitialiser » remet la barre d’origine dans le choix', p.ctx._barreBrouillon, ['accueil', 'support', 'entreprises', 'surveillance']);
   p.ctx.barreValider();
-  v('…et la barre d’origine ne s’écrit pas : la clé disparaît', p.rangement.has('tour_barre_gestion'), false);
+  v('…et la barre d’origine ne s’écrit pas : la clé disparaît', p.rangement.has('tour_barre'), false);
   p.ctx._barreBrouillon = [];
   p.ctx.barreValider();
-  v('un choix vide non plus', p.rangement.has('tour_barre_gestion'), false);
+  v('un choix vide non plus', p.rangement.has('tour_barre'), false);
 }
 {
   /* ⛔ le rangement est PARTAGÉ par toute l'origine teamop.fr, et Safari le borne à 5 Mo */
-  const p = bac('patron', 'gestion');
+  const p = bac('patron', ['gestion', 'messages']);
   p.remplir(true);
   p.ctx._barreBrouillon = ['journal', 'essais', 'accueil', 'demandes'];
   let jete = null; try { p.ctx.barreValider(); } catch (e) { jete = e.message; }
   v('rangement plein : Enregistrer ne jette pas', jete, null);
-  v('…la barre change quand même, pour cette visite', p.ctx.barreLire(), ['journal', 'essais', 'accueil', 'demandes']);
+  v('…la barre change quand même, pour cette visite', p.ctx.barreLire(), ['journal', 'essais', 'accueil', 'support']);
   v('…et on dit qu’elle ne sera pas gardée', /appareil est plein/.test(p.journal.toasts.pop() || ''), true);
   p.remplir(false);
   p.ctx._barreBrouillon = ['journal', 'accueil', 'surveillance', 'entreprises'];
   p.ctx.barreValider();
-  v('rangement libéré : le choix suivant est rangé, et la mémoire de repli oubliée', [p.rangement.get('tour_barre_gestion'), Object.keys(p.ctx._barreRepli)], ['journal,accueil,surveillance,entreprises', []]);
+  v('rangement libéré : le choix suivant est rangé, et la mémoire de repli oubliée', [p.rangement.get('tour_barre'), Object.keys(p.ctx._barreRepli)], ['journal,accueil,surveillance,entreprises', []]);
 }
 
 console.log('\n3. La barre et la bulle, relues dans le code (le geste se mesure au doigt : sonde-tour-barre.js)');
@@ -190,7 +195,7 @@ console.log('\n3 bis. La bulle, jouée avec les vraies fonctions (majBarreBas, b
       toggle: (x, f) => { if (f === undefined ? !c.has(x) : f) c.add(x); else c.delete(x); } },
     setAttribute: (k, x) => { o.attrs[k] = String(x); }, removeAttribute: k => { delete o.attrs[k]; }, offsetWidth: 0 }; return o; };
   const jouer = (tab, feuille) => {
-    const p = bac('patron', 'gestion');
+    const p = bac('patron', ['gestion', 'messages']);
     vm.runInContext(fonction('majBarreBas') + '\n' + fonction('bbCurPlacer') + '\nvar TAB=' + JSON.stringify(tab) + ', _feuilleOuverte=' + feuille + ';', p.ctx);
     const bas = vm.runInContext('BAS', p.ctx);
     const tabs = bas.map(t => el('bb', t)).concat([el('bb plus')]), bar = el('barre-bas'), cur = el('bb-cur');
@@ -201,7 +206,7 @@ console.log('\n3 bis. La bulle, jouée avec les vraies fonctions (majBarreBas, b
     return { bas, on: tabs.map(b => b.classList.contains('on')), bulle: bar.classList.contains('cur-on'), i: bar.props['--bb-i'] };
   };
   let x = jouer('surveillance', false);
-  v('la vue ouverte est dans la barre : son onglet s’allume, la bulle y repose', [x.on, x.bulle, x.i], [[false, true, false, false, false], true, 1]);
+  v('la vue ouverte est dans la barre : son onglet s’allume, la bulle y repose', [x.on, x.bulle, x.i], [[false, false, false, true, false], true, 3]);
   x = jouer('journal', false);
   vrai('(population : « journal » n’est PAS dans la barre par défaut)', x.bas.indexOf('journal') < 0 && x.bas.length === 4);
   v('⛔ une vue rangée derrière « Plus » : aucun onglet allumé, « Plus » compris, et PAS de bulle', [x.on, x.bulle], [[false, false, false, false, false], false]);
@@ -214,7 +219,7 @@ console.log('\n3 bis. La bulle, jouée avec les vraies fonctions (majBarreBas, b
 console.log('\n4. La feuille « Ma barre » et sa porte dans « Plus »');
 {
   const f = fonction('ouvrirFeuille');
-  vrai('ouvrirFeuille sait ouvrir « barre »', /\} else if\(quoi==='barre'\)\{/.test(f));
+  vrai('ouvrirFeuille sait ouvrir « barre » (v2.119 : le choix de console a disparu, « barre » est sa première branche)', /if\(quoi==='barre'\)\{/.test(f) && !/quoi==='app'/.test(f));
   vrai('le brouillon part de la barre actuelle', /_barreBrouillon=barreLire\(\);/.test(f));
   vrai('une ligne par vue du menu visible, un rang à droite', /menuVisible\(\)\.forEach[\s\S]*?data-barre="'\+x\[0\]\+'"[\s\S]*?<span class="rang" aria-hidden="true"><\/span>/.test(f));
   vrai('« Plus » porte « Personnaliser la barre »', /onclick="ouvrirFeuille\(\\'barre\\'\)"><span class="ic">'\+svg\('crayon',16\)\+'<\/span>Personnaliser la barre/.test(f));
