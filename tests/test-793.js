@@ -54,7 +54,7 @@ const BASE = {
   factures: [{ id: 'fB', num: 'FA-1', clientId: 'cX', date: '2026-09-15', tva: 20, rapportModele: 'Bêta Hygiène', statut: 'envoyee', lignes: [{ designation: 'Désinsectisation', qte: 2, pu: 50 }] },
              { id: 'fA', num: 'FA-2', clientId: 'cX', date: '2026-09-10', tva: 0, rapportModele: 'Alpha Nuisibles', statut: 'payee', datePaiement: '2026-09-12', lignes: [{ designation: 'Y', qte: 1, pu: 80 }] }],
   bons: [{ id: 'bA', societe: 'Alpha Nuisibles', lignes: [] }, { id: 'b0', societe: '', lignes: [] }], fournisseurs: [] };
-const FN = ['const DOC_COULEUR_DEFAUT=', 'function docCouleurEnt(', 'function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function intSocMailOpts(',
+const FN = ['const DOC_COULEUR_DEFAUT=', 'function docCouleurEnt(', 'function docCachetPour(', 'function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function intSocMailOpts(',
   'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(', 'function entNomDoc(', 'function docMentionsManquantes(', 'function listeEt(', 'function docNomGarde(', 'let _docMentionsAvertis=', 'function docMentionsGarde(',
   'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfEnLignes(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
 function monter(base) {

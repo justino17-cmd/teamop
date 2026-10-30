@@ -8513,10 +8513,10 @@ html[data-theme="dark"] .pdff-carte{background:#14213A}
    pour un champ (.field, .gsrch, une classe…) et tout style en ligne passent devant ; elle ne remplit que le vide. */
 :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden],[type=button],[type=submit],[type=reset],[type=image]),select,textarea):where(:not([class])){
   background-color:var(--deep);border:1px solid var(--inpBorder,var(--brd));border-radius:var(--r-2,10px);padding:9px 12px;
-  color:var(--t1);font-family:inherit;font-size:15px;line-height:1.35;box-sizing:border-box;min-height:40px}
+  color:var(--t1);font-family:inherit;font-size:15px;line-height:1.35;box-sizing:border-box}
 :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden],[type=button],[type=submit],[type=reset],[type=image]),select,textarea):where(:not([class])):focus{
   outline:none;border-color:var(--acc);box-shadow:var(--focus-champ,0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent))}
-:where(input,textarea):where(:not([class]))::placeholder{color:var(--t3);opacity:1}
+:where(input,textarea):where(:not([class]))::placeholder{color:var(--ph);opacity:1}
 /* La LISTE d'un <select> est peinte par le système ; sous Windows elle prend pour fond celui du champ (une vitre translucide) et
    pour texte l'encre claire de la page : de nuit, une liste blanche au texte pâle (Justin, Devis IA, 30 octobre 2026 — la Tour et
    OP MESSAGES avaient le même défaut). Les options reçoivent un fond OPAQUE et l'encre du thème. */
