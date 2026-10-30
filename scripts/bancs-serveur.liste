@@ -445,3 +445,5 @@ tests/test-3166.js
 tests/test-3230.js
 # 30 octobre 2026 : `test-3231` (les comptes du site sans espace dans À traiter : une alerte par compte neuf, Ignorer côté serveur, VRAIES fonctions de la Tour, « Ouvrir son accès » = métier + essai par la vraie pbCreer contre le vrai serveur).
 tests/test-3231.js
+# 30 octobre 2026 : `test-3225` (Justin lit et valide un mail de Pauline DEPUIS OP MESSAGES : le texte du mail dans l'annonce, OUI/OK n accepte par `decider`, texte coupé = OUI refusé, 409 et échecs dits, rien du corps au journal, le lien ouvre l'ancienne messagerie de la Tour sur l'ancre, Tour v2.122) — le vrai `pauline.js` et le vrai `pont-messages.js` contre un faux OP MESSAGES, plus les vraies fonctions de `tour.html`.
+tests/test-3225.js
