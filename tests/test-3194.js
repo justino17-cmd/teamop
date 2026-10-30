@@ -13,7 +13,7 @@ let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 300) : '')); } };
 
 const PORTES = ['metierSet', 'metierComboSet', 'metierPlusSet', 'metierPlus2Set', 'metiersAssociesPoser'];
-const NOMS = ['metierCle', 'metierRecu', 'metierVerrouille', 'metierVerrouRefus', 'metierServeurAppliquer'].concat(PORTES);
+const NOMS = ['metierCle', 'metierRecu', 'metierVerrouille', 'metierVerrouRefus', 'metierServeurRetenir', 'metierServeurAppliquer'].concat(PORTES);
 
 function monde(o) {
   o = o || {};
@@ -39,11 +39,11 @@ const etat = (W) => JSON.stringify([W.db.metier, W.db.metierPlus, W.db.metierPlu
 
 console.log('── 1. un métier reçu se retient sur l\'appareil, jamais dans db ──');
 { const W = monde(); const av = Object.keys(W.db).sort().join(',');
-  W.fn.metierServeurAppliquer({ metier: 'plomberie' });
+  W.fn.metierServeurAppliquer({ metier: 'plomberie' }); W.fn.metierServeurRetenir({ metier: 'plomberie' });
   vrai('la base portait déjà le métier : la marque est quand même posée', W.rangement[CLE] === 'plomberie', W.rangement);
   vrai('… sans écrire la base (aucun save, aucune clé de plus dans db)', W.saves.length === 0 && Object.keys(W.db).sort().join(',') === av, [W.saves.length, Object.keys(W.db)]);
   vrai('… et le verrou est actif', W.fn.metierVerrouille() === true); }
-{ const W = monde(); W.fn.metierServeurAppliquer({ metier: 'nettoyage' });
+{ const W = monde(); W.fn.metierServeurAppliquer({ metier: 'nettoyage' }); W.fn.metierServeurRetenir({ metier: 'nettoyage' });
   vrai('un métier différent : posé dans la base ET retenu', W.db.metier === 'nettoyage' && W.rangement[CLE] === 'nettoyage' && W.saves.length === 1, [W.db.metier, W.rangement[CLE]]); }
 
 console.log('── 2. ⛔ les cinq portes refusent une fois verrouillé ──');
@@ -70,14 +70,18 @@ for (const [nom, o] of [['bêta', { beta: true }], ['équipe TEAM OP', { teamop:
 
 console.log('── 5. une réponse illisible ne pose rien ; quitter emporte la marque ──');
 for (const j of [null, {}, { metier: '' }, { metier: 42 }, { metier: 'inconnu' }, { metier: '__proto__' }]) {
-  const W = monde(); W.fn.metierServeurAppliquer(j);
+  const W = monde(); W.fn.metierServeurRetenir(j);
   vrai('réponse ' + JSON.stringify(j) + ' : aucune marque, aucun verrou', !(CLE in W.rangement) && W.fn.metierVerrouille() === false, W.rangement);
 }
 { const W = monde({ rangement: { [CLE]: 'plomberie' } });
   W.B.scope.localStorage.getItem = () => { throw new Error('rangement refusé'); };
   W.B.scope._metierRecu = undefined;
   vrai('rangement illisible (navigation privée) : la page tourne, pas de verrou fantôme', W.fn.metierVerrouille() === false); }
+{ const W = monde(); W.fn.metierServeurAppliquer({ metier: 'nettoyage' });
+  vrai('⛔ metierServeurAppliquer SEUL (démonstration, bêta) ne verrouille rien', !(CLE in W.rangement) && W.fn.metierVerrouille() === false, W.rangement); }
 { const { N } = lire('app.html');
+  const k = N.indexOf('try{ metierServeurAppliquer(j); }catch(e){}');
+  vrai('⛔ la réponse du serveur (forfaitServeurSync) retient le métier juste après l\'avoir appliqué', k > 0 && /^\s*try\{ metierServeurRetenir\(j\); \}catch\(e\)\{\}/.test(N.slice(k + 43, k + 120)), N.slice(k, k + 140));
   const i = N.indexOf('function espaceQuitter('); vrai('espaceQuitter est trouvé', i > 0);
   const corps = N.slice(i, N.indexOf('\nfunction ', i + 10));
   vrai('⛔ espaceQuitter retire la marque du métier de l\'entreprise quittée', /localStorage\.removeItem\(P\+'metier_serveur'\)/.test(corps) && /_metierRecu=undefined/.test(corps)); }
