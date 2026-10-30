@@ -27,6 +27,10 @@ const net = x => String(x || '').replace(/\s+/g, '').toLowerCase();
 
 /* ⛔ TOUT ÉCART AU DOCUMENT SE DÉCLARE ICI, AVEC SA RAISON ET SA MESURE. */
 const ECARTS = {
+  'la nuit de la Tour': `la maquette donne au thème TEAM OP de nuit un dégradé #152340 → #0B1426 avec la diagonale à 5 % ;
+     Justin, 30 octobre 2026 : « le même mode nuit que la Tour, il est beaucoup plus agréable ». La page de nuit TEAM OP reprend
+     donc le fond de la Tour (--tt-page) : deux halos (#1A2A4D, #1C1636) sur #0F1A30 → #070B16, diagonale à 4 %. Les contrastes
+     sont mesurés sur la vitre (test-757, test-773, test-774 restent verts).`,
   'le nom et le logo': `la maquette écrit « TEAM OP » (et son logo) sous le thème TEAM OP ; on garde
      « OP GESTION » et le logo OP GESTION dans les DEUX thèmes, sur tous les appareils. Décision de
      Justin, 24 septembre 2026 à 21 h 51, capture de la maquette à l'appui : « pour tous les types
@@ -117,8 +121,14 @@ for (const mq of ['teamop', 'opgestion']) {
   vrai(mq + ' — le fond de jour porte A, C, B et le clair, dans l’ordre de la maquette',
     pos.every(p => p > 0) && pos[0] < pos[1] && pos[1] < pos[2] && pos[2] < pos[3], JSON.stringify(pos));
   vrai(mq + ' — … et la diagonale blanche à 112° (35 % de jour)', pj.startsWith('linear-gradient(112deg,') && pj.includes('rgba(255,255,255,.35)58.2%'));
+  if (mq === 'teamop' && ECARTS['la nuit de la Tour']) {
+    vrai(mq + ' — le fond de nuit est celui de la Tour (écart DÉCLARÉ) : halos bleu et violet sur #0F1A30 → #070B16',
+      /linear-gradient\(160deg,#0f1a30 ?0%,#070b16 ?100%\)/.test(pn.toLowerCase()) && /#1a2a4d/.test(pn.toLowerCase()) && /#1c1636/.test(pn.toLowerCase()));
+    vrai(mq + ' — … avec la diagonale à 4 %, comme la Tour', pn.includes('rgba(255,255,255,.04)58.2%'));
+  } else {
   vrai(mq + ' — le fond de nuit va du haut au bas du thème', pn.includes(net('linear-gradient(160deg,' + J['theme.' + mq + '.nuit.haut'] + ',' + J['theme.' + mq + '.nuit.bas'] + ')')));
   vrai(mq + ' — … avec la diagonale à 5 %', pn.includes('rgba(255,255,255,.05)58.2%'));
+  }
   /* ⛔ Un dégradé qui finit sur `transparent` passe par du noir (CLAUDE.md) : chaque arrêt
      transparent garde sa teinte. */
   vrai(mq + ' — aucun arrêt « transparent » dans le fond (il salit le bord)', !/transparent/.test(pj + pn));

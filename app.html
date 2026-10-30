@@ -7335,9 +7335,14 @@ html[data-marque="teamop"][data-verre][data-theme="light"]{
   --tf-page-plein:#F0F3F8;
 }
 html[data-marque="teamop"][data-verre][data-theme="dark"]{
-  /* Jamais de noir pur : le bleu nuit du logo, #152340 → #0B1426, et la diagonale à 5 %. */
-  --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.05) 58.2%),
-    linear-gradient(160deg,#152340,#0B1426);
+  /* Jamais de noir pur : le bleu nuit du logo, et la diagonale.
+     v783 — LA NUIT DE LA TOUR (Justin, 30 octobre 2026 : « le même mode nuit que la Tour, il est beaucoup plus agréable ») :
+     la page reprend le fond de la Tour (--tt-page de tour.html) — deux halos, bleu en haut à gauche et violet en bas à droite,
+     sur un dégradé #0F1A30 → #070B16 — au lieu d'un aplat marine. Les vitres posées dessus le laissent passer, flouté. */
+  --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),
+    radial-gradient(120% 90% at 0% 0%,#1A2A4D 0%,rgba(26,42,77,0) 55%),
+    radial-gradient(110% 80% at 100% 100%,#1C1636 0%,rgba(28,22,54,0) 60%),
+    linear-gradient(160deg,#0F1A30 0%,#070B16 100%);
   --vr-fond-dense:rgba(21,35,64,.86);
   --t1:#F0F3F8; --t2:#B8C0CD; --t3:#ABB3C2;
   --vr-encre:#F0F3F8; --vr-encre2:#B8C0CD; --vr-encre3:#ABB3C2;
