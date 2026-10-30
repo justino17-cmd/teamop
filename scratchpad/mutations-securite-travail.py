@@ -36,7 +36,7 @@ MUT = [
     ("A2 le réglage de Justin ne gagne plus", CE, "if (typeof o === 'number' && Number.isFinite(o) && o > 0) return Math.min(o, TOTAL);", ""),
     ("A2 plus de repli au plafond", CA, "if (!r.ok && enTravail && ['plafond_agent', 'plafond_jour'].includes(r.raison)) {", "if (false) {"),
     ("A2 le repli se fait passer pour un contrôle bon", CA, "controle: { etat: 'non_verifie', fautes: [], juge: false, raison: 'plafond atteint : accusé écrit par le code' }", "controle: { etat: 'bon', fautes: [], juge: false }"),
-    ("A2 le repli part sans validation", CA, "raison: 'plafond atteint : accusé écrit par le code' }, forceValidation: true });", "raison: 'plafond atteint : accusé écrit par le code' }, forceValidation: false });"),
+    ("A2 le repli part SEUL (contrôle bon ET validation retirée ; l'un sans l'autre est neutralisé par la garde jumelle)", CA, "controle: { etat: 'non_verifie', fautes: [], juge: false, raison: 'plafond atteint : accusé écrit par le code' }, forceValidation: true });", "controle: { etat: 'bon', fautes: [], juge: false }, forceValidation: false });"),
     ("A3 l'alerte se répète à chaque échec", TR, "if (dejaDit.get(cle) === jour) return { fait: false, raison: 'deja_dit' };", ""),
     ("A3 l'alerte ne distingue plus les jours", TR, "dejaDit.set(cle, jour);", "dejaDit.set(cle, 'toujours'); "),
     ("A3 l'alerte parle même coupé", TR, "if (!actif(agent)) return { fait: false, raison: 'coupe' };", ""),

@@ -92,7 +92,7 @@ function monter(o) {
   /* le mode « travail » (30 octobre 2026) : levé par `o.travail` seulement ; sinon Margaux est montée comme avant, au caractère près */
   const travail = o.travail ? require(S('agents-travail.js'))({ cerveau, agents, conversations, maintenant, travail: o.travail }) : null;
   const outilsLecture = o.travail ? require(S('agents-outils-lecture.js'))({ agents, louis: o.louis || null, faits: {}, margaux: () => null }) : null;
-  const margaux = require(S('agent-margaux.js'))({ agents, conversations, documents, direction, fichier, maintenant, cerveau, travail, outilsLecture, indemniteConfirmee: o.indemniteConfirmee === true,
+  const margaux = require(S('agent-margaux.js'))({ agents, conversations, documents, direction, fichier, maintenant, cerveau, travail, outilsLecture, indemniteConfirmee: o.indemniteConfirmee,
     impayes: async () => (monde.impayes ? monde.impayes() : impayesListe),
     facture: async (aboId) => { appelsStripe.push(['facture', aboId]); if (monde.facture) return monde.facture(aboId); return factureDe.v; } });
   const emma = require(S('agent-emma.js'))(app, { agents, conversations, documents, fichier, maintenant, monAdmin, monPatronStrict, adresseDe: dep.adresseDe });

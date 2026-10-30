@@ -99,6 +99,11 @@ function monde(o) {
     m.jour(3); await m.margaux.passer();
     v('⛔ LE CAS DU GARDIEN (ZZ99-4242, 12 septembre, ultimatum) : refusé trois fois par le code, la relance d’avant part, aucune relecture payée', [m.envoyes.length, (m.envoyes[0] || {}).texte, m.recus.filter(q => String(q.system).startsWith(NOTEUR_DEBUT)).length], [1, OPS.relanceImpaye({ etape: 3, facture: m.etat.facture, url: URL1 }).texte, 0]);
     vrai('…et ni le faux numéro, ni la date, ni l’ultimatum ne sont dans ce qui est parti', !/ZZ99|12 septembre|faute de quoi|procéderons/.test(JSON.stringify(m.envoyes)));
+    for (const [nom, p1] of [['un autre numéro', BASE1 + ' Il s’agit de la facture ZZ99-4242.'], ['une date en lettres', BASE1 + ' Elle a été émise le douze septembre.'], ['un nombre de jours en lettres', BASE1 + ' Elle attend depuis quarante jours.'], ['un ultimatum sans mot de droit', BASE1 + ' Merci de régler avant le plus tôt possible.']]) {
+      const mm = monde({ travail: true, claude: route(relanceTxt(p1)) });
+      mm.jour(3); await mm.margaux.passer();
+      v('⛔ de bout en bout, le modèle écrit ' + nom + ' : refusé par le code seul (aucun mot de droit en cause), la relance d’avant part', [mm.envoyes.length, (mm.envoyes[0] || {}).texte, mm.recus.filter(r => String(r.system).startsWith(NOTEUR_DEBUT)).length], [1, OPS.relanceImpaye({ etape: 3, facture: mm.etat.facture, url: URL1 }).texte, 0]);
+    }
     const q = m.recus.find(r => String(r.system).startsWith('Tu es Margaux'));
     vrai('…le prompt dit au modèle de n’écrire AUCUN chiffre (la ligne est au serveur)', /tu n’en écris AUCUN/.test(q.system) && /AUCUN chiffre/.test(q.system));
   }
@@ -136,6 +141,10 @@ function monde(o) {
     v('⛔ « juste » 3 + « répond à tout » 3 : à revoir, les deux fautes', [r.etat, (r.fautes || []).slice().sort()], ['a_revoir', ['grille_juste', 'grille_repond_a_tout']]);
     r = await rejouer(() => notes({ etape_suivante: 3, longueur: 3, charte: 3 }));
     vrai('⛔ trois critères à 3 (moyenne 4,14) : validé pour Justin mais JAMAIS « bon » (donc jamais un envoi automatique), avec la raison dite', r.etat === 'non_verifie' && /seuil d’envoi automatique/.test(r.raison) && r.moyenne > 4 && r.moyenne < 4.5, JSON.stringify([r.etat, r.raison, r.moyenne]));
+    r = await rejouer(() => notes({ repond_a_tout: 4, etape_suivante: 4, longueur: 4, juste: 4, charte: 4, personnalise: 4, professionnel: 4 }));
+    vrai('⛔ quatre partout (moyenne 4,0, aucun critère sous 4) : validé pour Justin, PAS d’envoi automatique', r.etat === 'non_verifie' && /seuil d’envoi automatique/.test(r.raison), JSON.stringify([r.etat, r.moyenne]));
+    r = await rejouer(() => notes({ charte: 3 }));
+    vrai('⛔ moyenne 4,71 mais UN critère à 3 : validé pour Justin, PAS d’envoi automatique', r.etat === 'non_verifie' && /seuil d’envoi automatique/.test(r.raison) && r.moyenne > 4.5, JSON.stringify([r.etat, r.moyenne]));
     r = await rejouer(() => NOTES_5);
     v('contre-épreuve : toutes les notes à 5 → « bon »', r.etat, 'bon');
     r = await rejouer(() => notes({ charte: 4, professionnel: 4 }));
