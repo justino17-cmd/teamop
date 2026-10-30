@@ -2419,7 +2419,7 @@ marketingskills disent donc « relu à la main et balayé par un script maison �
 - **Trail of Bits** (CC-BY-SA-4.0 : mention d'origine, même licence pour les adaptations) : `differential-review`, `insecure-defaults` (réécrit en skill : l'original est un `Workflow` dont la vérification est en Opus), `supply-chain-risk-auditor`
   (envoie noms et versions de paquets à huit services publics et **lit `gh auth token`** : on ne connecte pas `gh` pour l'occasion). `second-opinion` (envoie du code ailleurs) n'est PAS installé et ne l'est jamais.
 - **marketingskills** (MIT) : six skills **traduits et adaptés au droit français**, pas recopiés — `prospecting`, `cold-email`, `sales-enablement`, `customer-research`, `directory-submissions`, `lead-magnets`.
-  ⛔ La règle de la prospection est dans `.claude/skills/prospecting/references/droit-francais.md` (RGPD art. 14 et 21, CPCE L34-5, LCEN art. 20, CNIL) — **écrite de mémoire, non relue à la source** : à faire valider (Nina, puis l'agent `juriste` de la branche `agent/juriste` quand elle sera fusionnée, puis Justin)
+  ⛔ La règle de la prospection est dans `.claude/skills/prospecting/references/droit-francais.md` (RGPD art. 14 et 21, CPCE L34-5, LCEN art. 20, CNIL) — **écrite de mémoire, non relue à la source** : à faire valider (Nina, puis l'agent `juriste`, puis Justin)
   avant une campagne d'ampleur. Ce qui y est tranché pour TeamOP : **jamais de SMS de prospection sans consentement** ; aucun agent n'appelle ni n'automatise LinkedIn ; pas de faux humain ni de faux « Re: » ; un refus est définitif (liste de suppression) ;
   pas d'avis acheté ni récompensé ; la forme des courriels d'agents est celle du serveur (`server/agents-connaissance.js`). Les données de prospects sont des données réelles : dossier temporaire de la session, jamais dans le dépôt.
 - Douze skills de marketingskills étaient déjà là sans licence ni provenance (`copywriting`, `copy-editing`, `signup`, `onboarding`, `paywalls`, `churn-prevention`, `pricing`, `analytics`, `product-marketing`, `programmatic-seo`, `schema`, `seo-audit`) ;
@@ -2442,6 +2442,8 @@ Le choix est donc écrit, agent par agent, dans le frontmatter de `.claude/agent
 | `concepteur` | `sonnet` | `high` | Refonte visuelle et mouvement : un jugement de goût, pas un contrôle mécanique |
 | `gardien` | `sonnet` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
 | `relecteur` | `sonnet` | `high` | Applique des critères écrits à un diff : systématique, pas créatif. Mais il passe après chaque changement, donc son coût unitaire compte |
+| `juriste` | `sonnet` | `high` | Relit un document juridique contre `.claude/juridique/GRILLE.md` : une grille appliquée, pas une invention. Sur commande, jamais en arrière-plan |
+| `redacteur-contrats` | `sonnet` | `high` | Rédige contrats, conditions générales, conditions particulières et sous-traitance dans `server/contrats-textes/`, et fabrique le contrat PDF d'un client (`scripts/contrats/fabriquer.py`, fiche et PDF hors du dépôt). `juriste` relit derrière. Sur commande |
 | `echecs-silencieux` | `sonnet` | `high` | Traque ce qui échoue sans que personne le sache (refus muet, `[]` au lieu de `null`, catch qui avale, garde que personne ne lit). Adapté de `silent-failure-hunter` d'Anthropic (Apache-2.0, `.claude/licences/`), lecture seule |
 | `client-mystere` | `sonnet` | `high` | Lance le contrôle de bout en bout (`scripts/controle/`) et enquête sur chaque constat — `fichier:ligne`, journal, capture. Trie, ne corrige pas ; lecture seule |
 
@@ -2450,6 +2452,14 @@ et les failles des dépendances — **pas même la syntaxe**, et personne ne rel
 route renvoie. `gardien` relit `server/` (80 routes exposées sur Internet, données de clients
 réels) ; `relecteur` relit le diff avant qu'il parte sur `main`, qui est servi aux clients en
 quelques minutes.
+
+⛔ **TOUT DOCUMENT JURIDIQUE QU'UN CLIENT REÇOIT PASSE PAR `juriste` AVANT D'ÊTRE PUBLIÉ** (Justin, 19 octobre 2026 : « il fera, ou à qui tu feras relire,
+tous les PDF »). Ce sont les PDF que fabrique le code (devis, bons, rapports d'intervention, certificat de signature), les pages légales du site
+(`mentions-legales`, `confidentialite`, `sous-traitance`, `registre-traitements`) et les textes de consentement. L'agent relit contre
+`.claude/juridique/GRILLE.md`, cite l'extrait exact, écrit `[à vérifier]` plutôt que d'inventer un article, et dit ce qui doit aller chez un **avocat** :
+il n'est pas avocat, et ce qu'il rend est un brouillon. Il vient de « Claude for Legal » (Anthropic, Apache 2.0) : `.claude/references/claude-for-legal/NOTICE.md`
+dit ce qui a été repris, ce qui a été refusé (les connecteurs externes) et à quel commit. ⚠️ **Il ne relit des données de clients réels que si Justin le demande
+pour ce document-là** : le dépôt est en production et la session passe par Anthropic. Un seul lancement par document, jamais en double.
 
 ### ⛔ ET LA MÊME RÈGLE VAUT POUR LES AGENTS D'UN WORKFLOW — posée le 15 septembre 2026 au soir
 

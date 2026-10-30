@@ -1,0 +1,14 @@
+{
+  "numero": "EXEMPLE-2026-001",
+  "date": "1er janvier 2026",
+  "client": { "nom": "Entreprise Fictive", "representant": "Mme Exemple", "qualite": "gérante", "siret": "",
+              "adresse": [], "email": "exemple@exemple.invalid" },
+  "activite": "nettoyage",
+  "formule": "Business",
+  "cp": "cp_op_gestion_business.txt",
+  "utilisateurs": 2,
+  "prix_utilisateur": 25,
+  "acces": "teamop.fr/e/exemple",
+  "essai_jusqu_au": "15 janvier 2026",
+  "remise": null
+}
