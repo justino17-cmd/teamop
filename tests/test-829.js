@@ -84,7 +84,8 @@ const LIB = {}; P.MENU.forEach(g => g.vues.forEach(x => { LIB[x[0]] = x[1]; }));
 v('les noms du menu', LIB, { accueil: 'Accueil', support: 'Courrier', demandes: 'Demandes', incidents: 'Incidents', entreprises: 'Entreprises', comptes: 'Comptes OP MESSAGES', espaces: 'Espaces OP MESSAGES', abonnements: 'Abonnements',
   surveillance: 'Surveillance', contrats: 'Contrats', agents: 'Agents', messagerie: 'Messagerie', rapport: 'Rapport', audience: 'Audience',
   essais: 'Accès', equipe: 'Équipe', journal: 'Journal', donnees: 'Sauvegardes' });
-/* v2.87 : un écran double porte ses onglets (sousOnglets) — l'écran d'un onglet se titre du nom de son onglet */
+/* v2.87 : un écran double porte ses onglets (sousOnglets) — l'écran d'un onglet se titre du nom de son onglet
+   (v2.130 : suivi du nom de l'application quand le filtre n'en montre qu'une, « Service OP GESTION » — demande de Justin) */
 const ONGLETS = {}; for (const m of fonction('renderVue').matchAll(/sousOnglets\('(\w+)',\[([^\]]*\](?:,\[[^\]]*\])*)\]\)/g)) ONGLETS[m[1]] = [...m[2].matchAll(/\['\w+','([^']+)'\]/g)].map(x => x[1]);
 /* v2.119 : Abonnements pose ses onglets par `segsAbonnements()` (Facturation n'est montrée qu'au patron) : on les lit dans la fonction */
 ONGLETS.abonnements = [...new Set([...fonction('segsAbonnements').matchAll(/\['\w+','([^']+)'\]/g)].map(x => x[1]))];
@@ -105,7 +106,7 @@ for (const [cle, fns] of Object.entries(dessin)) {
     const lits = [...corps.matchAll(/enTete\(([^,]+),/g)].map(m => [...m[1].matchAll(/'([^']*)'/g)].map(x => x[1])).flat()
       .filter(t => t.trim() && !/^\s*·/.test(t));
     titres += lits.length;
-    vrai('« ' + LIB[cle] + ' » : ' + f + ' se titre du nom du menu' + (ongletsDe[cle] ? ' ou de son onglet' : ''), lits.length && lits.every(t => t === LIB[cle] || t.startsWith(LIB[cle] + ' · ') || (ongletsDe[cle] || []).includes(t)), JSON.stringify(lits));
+    vrai('« ' + LIB[cle] + ' » : ' + f + ' se titre du nom du menu' + (ongletsDe[cle] ? ' ou de son onglet' : ''), lits.length && lits.every(t => t === LIB[cle] || t.startsWith(LIB[cle] + ' · ') || (ongletsDe[cle] || []).includes(t) || (ongletsDe[cle] || []).some(o => t === o + ' OP GESTION' || t === o + ' OP MESSAGES')), JSON.stringify(lits));
   }
 }
 vrai('population : les titres de page relevés', titres >= 11, titres);

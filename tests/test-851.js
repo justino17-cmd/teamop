@@ -152,7 +152,7 @@ function serveur(traiter) {
       return bac.__h;
     };
     let h = carte(await versions(), 'patron');
-    vrai('population : la carte se dessine (« PUBLIER OP MESSAGES »)', /PUBLIER OP MESSAGES/.test(h));
+    vrai('population : la carte se dessine (« Publier OP MESSAGES », bandeau BÊTA → PUBLIQUE depuis la v2.130)', /Publier OP MESSAGES<\/b>/.test(h));
     v('elle dit « En ligne », qui a publié, le lien du déploiement, le commit, et le rappel d\'« Exiger »', [/>En ligne</.test(h), /Justin/.test(h), /href="https:\/\/github\.com\/org-banc\/depot-banc\/actions\/runs\/\d+"/.test(h), h.includes(SHA_BETA.slice(0, 7)), /Exiger la dernière version/.test(h)], [true, true, true, true, true]);
     inst.prod.sha = SHA_PROD;
     h = carte(await versions(), 'patron');
@@ -161,7 +161,7 @@ function serveur(traiter) {
     h = carte(await versions(), 'patron');
     v('⛔ la publique sert le commit de la bêta : bouton grisé, raison dite', [/publierMsg\(this\)"\s*disabled/.test(h), /déjà ce que sert la bêta/.test(h)], [true, true]);
     h = carte(await versions(), 'collaborateur');
-    v('⛔ un collaborateur voit l\'état, jamais le bouton', [/PUBLIER OP MESSAGES/.test(h), /publierMsg\(/.test(h)], [true, false]);
+    v('⛔ un collaborateur voit l\'état, jamais le bouton', [/Publier OP MESSAGES<\/b>/.test(h), /publierMsg\(/.test(h)], [true, false]);
     inst.prod.sha = SHA_PROD;
 
     console.log('\n4. Un banc rouge, une approbation impossible');

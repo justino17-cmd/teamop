@@ -1290,8 +1290,35 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
   white-space:nowrap;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie)}
 #dia .dia-seg button:hover{color:var(--text2)}
-#dia .dia-seg button[aria-checked="true"]{background:var(--surface);color:var(--strong);font-weight:700;
+/* v2.129 — Justin, 31 octobre 2026 : on ne voyait pas quel moteur était choisi (un voile à 8 % de blanc sur la vitre de nuit).
+   La case choisie prend l'aplat de l'application et son encre : on la voit au premier coup d'œil, de jour comme de nuit. */
+#dia .dia-seg button[aria-checked="true"]{background:var(--app-fill);color:var(--app-on,#fff);font-weight:700;
   box-shadow:0 1px 2px rgba(0,0,0,.18)}
+/* v2.130 — les bandeaux PUBLIQUE / BÊTA de l'écran Service */
+.canal-bd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:26px 0 0;padding:11px 14px;border-radius:var(--r-3);border-left:4px solid}
+.canal-bd .canal-g{display:flex;flex-direction:column;gap:3px;flex:1 1 240px;min-width:0}
+.canal-bd .canal-mot{font-weight:800;font-size:13px;letter-spacing:.04em;white-space:nowrap}
+.canal-bd .canal-txt{font-size:12.5px;color:var(--text2);min-width:0;overflow-wrap:anywhere}
+.canal-bd .canal-choix{flex:0 0 auto}
+.opma-inst>.canal-bd{margin:0 0 14px}
+.svc-col>.ac-src-t{min-height:44px;font-size:13px;color:var(--text)}
+.svc-col>.ac-src-t i{width:12px;height:12px}
+@media (max-width:760px){ /* .tt-seg.filtre-app : la règle générale des segmentés (même force, plus loin) gagnait — mesuré, le filtre sortait de l'écran */ body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg.filtre-app button{flex:1 1 0;white-space:normal;line-height:1.15;padding:4px 6px;font-size:12.5px}
+  body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg.filtre-app button span{white-space:nowrap}
+  .canal-bd .canal-choix{flex:1 1 100%} .canal-bd .canal-choix .tt-seg{width:100%} .canal-bd .canal-choix .tt-seg button{flex:1} }
+.canal-pub{background:var(--vertBg);border-left-color:var(--green)}
+.canal-pub .canal-mot{color:var(--green)}
+.canal-beta{background:var(--ambreBg);border-left-color:var(--amber)}
+.canal-beta .canal-mot{color:var(--amber)}
+.canal-pont{background:var(--rougeBg);border-left-color:var(--red)}
+.canal-pont .canal-mot{color:var(--red)}
+/* de jour, le vert et le rouge de la palette sont des couleurs de PASTILLE : posés en lettres sur leur voile, 4,3 et 4,1 contre 1 (mesuré,
+   scratchpad/sonde-tour-service.js) — le mot qui dit « tes clients » doit se lire du premier coup. */
+body.jour .canal-pub .canal-mot{color:#0B6B4C}
+body.jour .canal-pont .canal-mot{color:#962222}
+#dia .dia-moteur{display:flex;flex-direction:column;gap:6px;flex:1 1 320px;min-width:0}
+#dia .dia-moteur .lbl{font-size:12px;color:var(--muted);font-weight:600}
+#dia .dia-moteur .dia-aide{font-size:12px;color:var(--muted);line-height:1.5}
 /* Le segmenté fait 44 px de haut en tout (38 + 2×3 de gouttière) : le plancher est tenu par
    l'objet, pas par chacune de ses cases. */
 #dia .dia-ctrl>.btn-fant{margin-left:auto;min-height:44px}
@@ -3690,7 +3717,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.128</div>
+    <div class="lg-pied">console interne · v2.130</div>
   </div>
 </div>
 
@@ -3725,7 +3752,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">La Tour · v2.128</div>
+        <div class="hd-tour" id="hd-tour">La Tour · v2.130</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3738,7 +3765,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
   <main id="opm-hote" hidden></main>   <!-- v2.120 : le cadre d'OP MESSAGES vit ICI, hors de #vue (qui est réécrit à chaque rubrique) : il est affiché ou masqué, jamais détruit -->
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.128</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.130</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3880,13 +3907,14 @@ function aGestion(){ return sourcesAff().indexOf('gestion')>=0; }
 function aMessages(){ return sourcesAff().indexOf('messages')>=0; }
 /* un tag d'incident, de connexion… est-il de la source affichée ? (« Tout » : des deux) */
 function appVisible(code){ var a=appDe(code); return a==='*'||sourcesAff().indexOf(a)>=0; }
-var FILTRE_LIB={tout:'Tout',gestion:'Gestion',messages:'Messages'};
+/* v2.130 — Justin, 31 octobre 2026 : « à la place de Tout · Gestion · Messages, les deux applications : OP GESTION + OP MESSAGES » */
+var FILTRE_LIB={tout:'OP GESTION + OP MESSAGES',gestion:'OP GESTION',messages:'OP MESSAGES'};
 /* la rangée de choix, posée en tête des seules vues qui mélangent les deux sources (rien chez un compte à une seule application) */
 function filtreApp(){
   if(MYAPPS.length<2) return '';
   var f=filtreEff();
   return '<div class="tt-seg filtre-app" role="group" aria-label="Source affichée">'+['tout','gestion','messages'].map(function(k){
-    return '<button type="button" aria-pressed="'+(f===k)+'" onclick="setFiltre(\''+k+'\')">'+FILTRE_LIB[k]+'</button>'; }).join('')+'</div>';
+    return '<button type="button" aria-pressed="'+(f===k)+'" onclick="setFiltre(\''+k+'\')">'+(k==='tout'?'<span>OP GESTION</span> <span>+ OP MESSAGES</span>':FILTRE_LIB[k])+'</button>'; }).join('')+'</div>';
 }
 /* Les vues qui MÉLANGENT les deux sources portent le filtre dans leur en-tête (enTete l'ajoute) ; les autres n'en ont pas — Contrats, Agents,
    Courrier… sont d'OP GESTION seul et le DISENT, un filtre posé là ferait croire qu'il vaut pour elles. */
@@ -4083,7 +4111,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.128';
+var TOUR_VERSION='v2.130';
 /* le nom de la Tour dit qu'elle est UNE (plus « Tour OP GESTION » / « Tour OP MESSAGES ») ; la couleur ne parle jamais seule */
 function majEnteteTour(){ var hd=$('hd-tour'); if(hd) hd.textContent='La Tour · '+TOUR_VERSION; }
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
@@ -5562,7 +5590,7 @@ function chargerDevisIA(){
 /* v2.88 — par apiPost et `geste` : un 502 qui n'est pas du JSON se lisait « injoignable », le code tapé était vidé AVANT la
    réponse (un refus laissait un champ qui mentait), et un double clic envoyait deux fois. */
 function diaEnvoyer(body,apres){
-  return geste('dia-'+(body.teamId||''),function(){ return apiPost('/api/monitor/devisia',body); },function(x){
+  return geste('dia-'+(body.moteur?'m-':'')+(body.teamId||''),function(){ return apiPost('/api/monitor/devisia',body); },function(x){
     var d=x.d||{}; if(d.equipes){ DIA.equipes=d.equipes; DIA.noms=d.noms||DIA.noms; } if(apres) apres(); render(); });
 }
 function diaActiver(){ var t=(DIA.nv||'').trim(); if(!t){ toast('Entre le code d’espace de l’entreprise (celui avec lequel son équipe se synchronise).'); return; }
@@ -5576,7 +5604,8 @@ function diaToggle(t,on){
 }
 /* Haiku est inclus dans l'abonnement, Sonnet est le supplément payant.
    On bascule d'un clic : même clé, même appel, seul le modèle change. */
-function diaMoteur(t,m){ diaEnvoyer({teamId:t,moteur:m}); }
+function diaMoteur(t,m){ if(((DIA.equipes[t]||{}).moteur||'haiku')===m) return;   /* cliquer la case déjà choisie ne renvoie rien */
+  diaEnvoyer({teamId:t,moteur:m},function(){ toast('Moteur : '+({haiku:'Rapide',sonnet:'Approfondi',deux:'Au choix'})[m]); }); }
 function diaRetirer(t){ var q=DIA.noms[t]?DIA.noms[t]+' ('+t+')':t; if(confirm('Retirer complètement « '+q+' » de la liste ?')) diaEnvoyer({teamId:t,supprimer:true}); }
 /* Trois natures, une seule fois, avant tout rendu. `x.vu` est la dernière connexion RÉUSSIE
    de l'espace, et c'est le seul critère : le groupe dit ce qu'il dit, ni plus ni moins.
@@ -5646,9 +5675,10 @@ function vueDevisIA(){
       (x.vu==null?'<span class="reg-av sans">?</span>':'<span class="reg-av">'+esc(sigle(x.nom||t))+'</span>')+
       '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.nom||t)+'">'+esc(x.nom||t)+'</span>'+
       '<span class="reg-l2">'+l2+'</span><span class="reg-l3">'+f3.join(' · ')+'</span></span>'+
-      '<span class="reg-fin">'+(DIA.cle?'<span class="past p-vert">✓ Actif</span>':'<span class="past p-ambre">⚠ actif, mais sans clé</span>')+'</span></div>'+
-      '<div class="dia-ctrl"><div class="dia-seg" role="radiogroup" aria-label="Moteur">'+seg+'</div>'+
-      '<button type="button" class="btn-fant danger" onclick="diaToggle(\''+jsq(t)+'\',false)">Couper</button></div></div>'; };
+      '<span class="reg-fin">'+(DIA.cle?'<span class="dia-etat" style="color:var(--green);font-weight:700;font-size:13px">● Activé chez elle</span>':'<span class="past p-ambre">⚠ actif, mais sans clé</span>')+'</span></div>'+
+      '<div class="dia-ctrl"><div class="dia-moteur"><span class="lbl">Moteur des devis</span><div class="dia-seg" role="radiogroup" aria-label="Moteur des devis">'+seg+'</div>'+
+      '<span class="dia-aide">'+({haiku:'Rapide : inclus dans l’abonnement.',sonnet:'Approfondi : devis plus détaillés, facturé en supplément.',deux:'Au choix : l’entreprise choisit Rapide ou Approfondi à chaque devis.'})[offre]+'</span></div>'+
+      '<button type="button" class="btn-fant danger" onclick="diaToggle(\''+jsq(t)+'\',false)">Couper le Devis IA</button></div></div>'; };
 
   /* Deux boutons, deux questions distinctes — les confondre est ce qui a produit un bouton
      inopérant. « Activer » s'offre à tout espace pas encore actif. « Retirer de la liste »
@@ -7177,7 +7207,11 @@ function opmaInstance(){
 function opmaChoisir(i){ if(i!=='beta'&&i!=='prod') return; OPMA.inst=i; try{ localStorage.setItem('tour_opm_instance',i); }catch(e){}
   OPMA.cache={}; OPMA.comptes=null; OPMA.abos=null; OPMA.esp=null; render(); }
 function opmaBascule(){ var i=opmaInstance();
-  return '<div class="opma-inst">'+teteListe('','Quelle instance d’OP MESSAGES',[['prod','Publique'],['beta','Bêta']],i,'opmaChoisir(')+'</div>'; }
+  /* v2.130 — l'instance regardée se DIT comme partout ailleurs : bandeau vert ou ambre, le choix posé dedans (Justin : « bien séparé,
+     pour éviter les erreurs pendant le travail » — une liste de comptes de la bêta ressemblait trait pour trait à celle des clients) */
+  var ch='<div class="tt-seg" role="group" aria-label="Quelle instance d’OP MESSAGES">'+[['prod','Publique'],['beta','Bêta']].map(function(x){
+    return '<button type="button" aria-pressed="'+(i===x[0])+'" onclick="opmaChoisir(\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>';
+  return '<div class="opma-inst">'+canalBandeau(i==='beta'?'beta':'public','OP MESSAGES',(MSG_CANAUX[i]||{}).adr,ch)+'</div>'; }
 /* Le message d'un relais qui refuse, dit pour le patron : ce qu'il voit, et le geste qui répare. */
 function opmaErreur(e){
   var c=String((e&&e.corps)||'');
@@ -7320,7 +7354,7 @@ function vueService(){
     :G?GEST_SERV_DESC:OPMA_SERV_DESC;
   var cg=G?'<section class="svc-col" aria-label="OP GESTION">'+(M?srcTitre('gestion'):'')+blocVersions()+blocSortieFirebase()+'</section>':'';
   var cm=M?'<section class="svc-col" aria-label="OP MESSAGES">'+(G?srcTitre('messages',OPMA_SERV_ACT):'')+corpsServiceMsg()+blocBasculeMsg()+blocVersionsMsg()+'</section>':'';
-  return enTete('Service',desc,(M&&!G)?OPMA_SERV_ACT:'')+(G&&M?'<div class="svc-deux">'+cg+cm+'</div>':cg+cm);
+  return enTete(G&&M?'Service':G?'Service OP GESTION':'Service OP MESSAGES',desc,(M&&!G)?OPMA_SERV_ACT:'')+(G&&M?'<div class="svc-deux">'+cg+cm+'</div>':cg+cm);
 }
 function corpsServiceMsg(){
   var tete='';
@@ -7539,11 +7573,11 @@ function blocVersions(){
   sous.forEach(function(x){ nSous+=(x.n||0); });
   var patron=(MYROLE==='patron');
   var p=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
-  return '<div class="sec" style="margin-top:18px">VERSIONS · VERSION PUBLIQUE <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— teamop.fr/app.html, la porte du nuage</span></div>'+
+  return canalBandeau('public','OP GESTION','teamop.fr/app.html')+
     '<div class="grille-kpi" style="margin-top:10px">'+
       p('version en ligne', ligne?'v'+ligne:'?')+
       p('minimum exigé', min?'v'+min:'aucun', min?'':'var(--amber)')+
-      p('appareils bloqués · 7 j', nSous, nSous?'var(--amber)':'')+
+      p('appareils bloqués ·\u00a07\u00a0j', nSous, nSous?'var(--amber)':'')+
     '</div>'+
     '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:10px">Un appareil sous le minimum lit encore, mais <b>n’écrit plus</b> — le nuage refuse — et il se met à jour tout seul. L’application ne travaille qu’en ligne, sans option : sans réseau, elle affiche « Connexion requise » et n’enregistre rien. '+
       (min?'':'<b>Aucun minimum n’est exigé : les vieilles versions écrivent encore.</b> ')+
@@ -7569,10 +7603,20 @@ function blocVersions(){
    OP MESSAGES publique et bêta (`blocVersionsMsg`, console OP MESSAGES). ⛔ Exiger une version de la bêta ne bloque AUCUN client : le serveur
    les tient à part (`versionsCfg.canaux`), et la bêta d'OP GESTION ne touche jamais Firestore.
    Un serveur d'avant ne rend pas `beta` (ni la route d'OP MESSAGES) : la carte le DIT, elle n'invente pas « aucun minimum ». */
+/* v2.130 — VERSION PUBLIQUE ou BÊTA, IMPOSSIBLE À CONFONDRE (Justin, 31 octobre 2026 : « la version publique mieux écrite, plus apparente,
+   la version bêta plus apparente, bien séparées, pour éviter les erreurs pendant le travail »). Chaque bloc de versions s'ouvre sur un
+   bandeau : vert « VERSION PUBLIQUE — tes clients », ambre « BÊTA — interne, tes clients ne la voient pas ». Un geste fait dans le mauvais bloc touchait
+   les clients : la couleur et le mot le disent avant le bouton. */
+function canalBandeau(canal,app,adr,choix){
+  var pub=canal!=='beta';
+  return '<div class="canal-bd '+(pub?'canal-pub':'canal-beta')+'"><div class="canal-g"><span class="canal-mot">'+(pub?'🌍 VERSION PUBLIQUE':'🧪 BÊTA')+'</span>'+
+    '<span class="canal-txt"><b>'+esc(app)+'</b> · '+(pub?'ce que reçoivent tes clients':'interne, tes clients ne la voient pas')+(adr?' · <span class="mono">'+esc(adr)+'</span>':'')+'</span></div>'+
+    (choix?'<div class="canal-choix">'+choix+'</div>':'')+'</div>'; }
 function carteCanal(o){   // o : {titre, sous, servie, min, applique, joignable, note, exiger, lever, maj, par}
   var p=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
   var patron=(MYROLE==='patron');
-  return '<div class="sec" style="margin-top:22px">'+esc(o.titre)+' <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— '+esc(o.sous)+'</span></div>'+
+  var beta=/BÊTA/.test(o.titre||'');
+  return canalBandeau(beta?'beta':'public',o.app||'OP GESTION',o.sous)+
     '<div class="grille-kpi" style="margin-top:10px">'+
       p('version servie', o.joignable===false?'injoignable':(o.servie?'v'+o.servie:'?'), o.joignable===false?'var(--redText)':'')+
       p('minimum exigé', o.min?'v'+o.min:'aucun', o.min?'':'var(--amber)')+
@@ -7586,8 +7630,8 @@ function carteCanal(o){   // o : {titre, sous, servie, min, applique, joignable,
     (o.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(o.maj))+(o.par?' par '+esc(o.par):'')+'</div>':'');
 }
 function blocVersionBeta(b){
-  if(!b) return '<div class="sec" style="margin-top:22px">VERSIONS · BÊTA</div><div style="font-size:12.5px;color:var(--amber);margin-top:8px;line-height:1.55">Le serveur ne tient pas encore de minimum à part pour la bêta : il le fera à son prochain déploiement. D’ici là, la bêta lit le minimum de la version publique.</div>';
-  return carteCanal({ titre:'VERSIONS · BÊTA', sous:'teamop.fr/beta.html, à part des clients', servie:b.versionEnLigne||0, min:b.min||0, maj:b.maj, par:b.par,
+  if(!b) return canalBandeau('beta','OP GESTION','teamop.fr/beta.html')+'<div><div style="font-size:12.5px;color:var(--amber);margin-top:8px;line-height:1.55">Le serveur ne tient pas encore de minimum à part pour la bêta : il le fera à son prochain déploiement. D’ici là, la bêta lit le minimum de la version publique.</div>';
+  return carteCanal({ app:'OP GESTION', titre:'VERSIONS · BÊTA', sous:'teamop.fr/beta.html', servie:b.versionEnLigne||0, min:b.min||0, maj:b.maj, par:b.par,
     exiger:'versionBetaExiger()', lever:'versionBetaLever()',
     note:'Sous ce minimum, la bêta se met à jour toute seule. ⛔ Rien de ce qui se règle ici ne touche les clients, ni le nuage : la version publique a sa propre carte, juste au-dessus.' });
 }
@@ -7617,7 +7661,7 @@ function carteMsg(canal){
   var c=MSG_CANAUX[canal], x=(MV.d&&MV.d[canal])||{}, sv=x.service||{};
   var rien=sv.joignable===false;
   var attend=!rien&&sv.minService!==undefined&&sv.minService!==Math.max(1,x.min||0);
-  return carteCanal({ titre:'VERSIONS · '+(canal==='beta'?'BÊTA':'VERSION PUBLIQUE'), sous:c.adr, servie:sv.version||0, joignable:sv.joignable, min:x.min||0, applique:rien?undefined:sv.minService, maj:x.maj, par:x.par,
+  return carteCanal({ app:'OP MESSAGES', titre:'VERSIONS · '+(canal==='beta'?'BÊTA':'VERSION PUBLIQUE'), sous:c.adr, servie:sv.version||0, joignable:sv.joignable, min:x.min||0, applique:rien?undefined:sv.minService, maj:x.maj, par:x.par,
     exiger:'versionMsgExiger(\''+canal+'\')', lever:'versionMsgLever(\''+canal+'\')',
     note:rien?'<span style="color:var(--redText)">Le service ne répond pas : on ne peut ni lire sa version, ni l’exiger.</span> Le minimum déjà posé reste, et il l’appliquera à son redémarrage.'
       :('Sous ce minimum, une page lit encore mais <b>n’envoie plus rien</b>, et se met à jour toute seule.'+(attend?' <b style="color:var(--amber)">Le service ne l’a pas encore relu — il le fait chaque minute.</b>':'')) });
@@ -7640,7 +7684,7 @@ function blocPublierMsg(){
   var k=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
   var ver=function(x){ return x.joignable===false?'injoignable':((x.version?'v'+x.version:'?')+(x.sha?' <span style="font-size:12px;color:var(--muted);font-weight:400">'+esc(x.sha)+'</span>':'')); };
   var raison=!b.sha?'La bêta ne dit pas quel commit elle sert : rien à publier pour l’instant.':meme?'La version publique sert déjà ce que sert la bêta.':'';
-  return '<div class="sec" style="margin-top:18px">PUBLIER OP MESSAGES <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— la bêta essayée part en public</span></div>'+
+  return '<div class="canal-bd canal-pont"><div class="canal-g"><span class="canal-mot">🧪 BÊTA → 🌍 PUBLIQUE</span><span class="canal-txt"><b>Publier OP MESSAGES</b> · la bêta essayée part chez tes clients</span></div></div>'+
     '<div class="grille-kpi" style="margin-top:10px">'+k('bêta',ver(b),b.joignable===false?'var(--redText)':'')+k('version publique',ver(p),p.joignable===false?'var(--redText)':'')+'</div>'+
     (pub?'<div style="font-size:12.5px;line-height:1.6;margin-top:10px"><b style="color:'+(e[1]||'var(--text)')+'">'+esc(e[0])+'</b>'+
       ' <span style="color:var(--muted)">· '+esc(pub.sha||'')+' · '+esc(pub.par||'')+' · '+esc(fmtHeure(pub.ts))+'</span>'+
@@ -7664,7 +7708,7 @@ function blocVersionsMsg(){
   if(!MV.d&&!MV.err){ chargerVersionsMsg(); return '<div class="sous-sec"><div class="sec">VERSIONS</div>'+squelListe(2)+'</div>'; }
   if(MV.err&&!MV.d) return '<div class="sec" style="margin-top:18px">VERSIONS</div><div style="color:var(--redText);font-size:13px;margin-top:8px">'+esc(MV.err)+' <a onclick="MV.err=\'\';chargerVersionsMsg()">réessayer</a></div>';
   if(Date.now()-(MV.ts||0)>120000) chargerVersionsMsg();
-  return blocPublierMsg()+carteMsg('prod')+carteMsg('beta');
+  return carteMsg('prod')+carteMsg('beta')+blocPublierMsg();
 }
 /* ══ SORTIE DE FIREBASE — les gestes du jour J (25 septembre 2026) ══
    Deux gestes n'existaient que par l'API, donc depuis un terminal : reprendre les dossiers du
@@ -7707,8 +7751,8 @@ function blocSortieFirebase(){
       p('copie depuis Google', doc.actif?(doc.copieFirebase?'active':'coupée'):'—')+
       p('porte de version chez Google', minF?'v'+minF:'non confirmée', ok748?'':'var(--amber)')+
       p('comptes du portail', etat(com), coul(com))+
-      p('copies ratées · 1 h', doc.copiesEchec1h||0, doc.copiesEchec1h?'var(--redText)':'')+
-      p('copies en attente · 1 h', doc.copiesEnAttente1h||0, doc.copiesEnAttente1h?'var(--amber)':'')+
+      p('copies ratées ·\u00a01\u00a0h', doc.copiesEchec1h||0, doc.copiesEchec1h?'var(--redText)':'')+
+      p('copies en attente ·\u00a01\u00a0h', doc.copiesEnAttente1h||0, doc.copiesEnAttente1h?'var(--amber)':'')+
     '</div>'+
     '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:10px">'+
       'L’ordre : les comptes du portail allumés sur le serveur, <b>puis</b> la reprise des dossiers du portail, <b>puis</b> la publication, et aussitôt « Exiger la dernière version » (748). '+
