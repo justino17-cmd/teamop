@@ -36,7 +36,8 @@ const juge = (reglages) => (cond, w) => {
   return parts.every(p => { const m = /\((min|max)-width:\s*([\d.]+)px\)/.exec(p); return m[1] === 'min' ? w >= +m[2] : w <= +m[2]; });
 };
 const W = 1440;
-const HTML = (theme) => ({ tag: 'html', attrs: { 'data-marque': 'teamop', 'data-verre': '1', 'data-theme': theme, 'data-refonte': '1', 'data-kind': 'mobile', 'lang': 'fr' } });
+let MARQUE = 'teamop';
+const HTML = (theme) => ({ tag: 'html', attrs: { 'data-marque': MARQUE, 'data-verre': '1', 'data-theme': theme, 'data-refonte': '1', 'data-kind': 'mobile', 'lang': 'fr' } });
 const el = (tag, classes, attrs) => ({ tag, classes: classes || [], attrs: attrs || {} });
 
 /* la valeur d'un jeton porté par <html>, et sa RÉSOLUTION (var() suivis, un repli compris) */
@@ -67,8 +68,11 @@ vrai('des règles vivent sous « contraste accru »', SOUS.length >= 8, SOUS.len
 
 /* les jetons de matière des surfaces en verre : chacun doit devenir presque plein sous le réglage, et rester tel quel sans */
 const MATIERES = ['--vr-fond', '--vr-fond2', '--vr-fond-dense', '--tf-kpi', '--tf-barre', '--tf-cote'];
-for (const theme of ['light', 'dark']) {
-  console.log('\n── 2830 · 1. ' + (theme === 'light' ? 'de jour' : 'de nuit') + ' : la matière des vitres ──');
+/* v784 : la nuit de TEAM OP est faite d'aplats (la nuit de la Tour, Justin, 31 octobre 2026) — le réglage s'éprouve de nuit sur
+   le thème OP GESTION, qui garde ses vitres ; test-2831 § 1 bis contrôle que la nuit de TEAM OP est pleine. */
+for (const [theme, marque] of [['light', 'teamop'], ['dark', 'opgestion']]) {
+  MARQUE = marque;
+  console.log('\n── 2830 · 1. ' + (theme === 'light' ? 'de jour' : 'de nuit') + ' (' + marque + ') : la matière des vitres ──');
   const plus = { 'prefers-contrast': 'more', 'prefers-reduced-transparency': 'no-preference' };
   const sans = { 'prefers-contrast': 'no-preference', 'prefers-reduced-transparency': 'no-preference' };
   for (const n of MATIERES) {
@@ -85,6 +89,7 @@ for (const theme of ['light', 'dark']) {
     vrai(n + ' prend la teinte du texte tertiaire sous contraste accru (un trait qui se lit), et garde le sien sans', !!t3 && avec === t3 && base !== t3, { avec, base, t3 });
   }
 }
+MARQUE = 'teamop';
 
 console.log('\n── 2830 · 2. les contrôles en verre sans bord, et les en-têtes collants ──');
 const plus = juge({ 'prefers-contrast': 'more' }), sans = juge({ 'prefers-contrast': 'no-preference' });

@@ -36,7 +36,8 @@ const REDUIT = juge({ 'prefers-reduced-transparency': 'reduce', 'prefers-contras
 const NORMAL = juge({ 'prefers-reduced-transparency': 'no-preference', 'prefers-contrast': 'no-preference', 'prefers-reduced-motion': 'no-preference' });
 const PLUS = juge({ 'prefers-reduced-transparency': 'reduce', 'prefers-contrast': 'more', 'prefers-reduced-motion': 'no-preference' });
 const W = 1440;
-const HTML = (theme) => ({ tag: 'html', attrs: { 'data-marque': 'teamop', 'data-verre': '1', 'data-theme': theme, 'data-refonte': '1', 'data-kind': 'mobile', 'lang': 'fr' } });
+let MARQUE = 'teamop';
+const HTML = (theme) => ({ tag: 'html', attrs: { 'data-marque': MARQUE, 'data-verre': '1', 'data-theme': theme, 'data-refonte': '1', 'data-kind': 'mobile', 'lang': 'fr' } });
 const el = (tag, classes, attrs) => ({ tag, classes: classes || [], attrs: attrs || {} });
 const jeton = (theme, j, nom) => { const g = C.gagnant(REGLES, [HTML(theme)], W, nom, undefined, j); return g ? g.v : undefined; };
 function resoudre(v, theme, j, prof) {
@@ -57,8 +58,12 @@ vrai('des règles sont lues', REGLES.length > 3000, REGLES.length);
 const SOUS = REGLES.filter(r => r.media.some(m => /prefers-reduced-transparency:\s*reduce/.test(m)));
 vrai('des règles vivent sous « transparence réduite »', SOUS.length >= 10, SOUS.length);
 
-for (const theme of ['light', 'dark']) {
-  console.log('\n── 2831 · 1. ' + (theme === 'light' ? 'de jour' : 'de nuit') + ' : les jetons de matière deviennent opaques ──');
+/* v784 (Justin, 31 octobre 2026 : « tout le mode nuit de la Tour ») : la nuit de TEAM OP est faite d'APLATS, comme la Tour —
+   elle n'a plus de matière translucide à rendre opaque. Le réglage s'éprouve donc de nuit sur le thème OP GESTION, qui reste
+   en verre, et la nuit de TEAM OP est contrôlée pour ce qu'elle est : pleine, sans flou, avec ou sans le réglage. */
+for (const [theme, marque] of [['light', 'teamop'], ['dark', 'opgestion']]) {
+  MARQUE = marque;
+  console.log('\n── 2831 · 1. ' + (theme === 'light' ? 'de jour' : 'de nuit') + ' (' + marque + ') : les jetons de matière deviennent opaques ──');
   for (const n of ['--vr-fond', '--vr-fond2', '--vr-fond-dense', '--tf-kpi', '--tf-barre', '--tf-cote']) {
     const a = opacite(resoudre(jeton(theme, REDUIT, n), theme, REDUIT)), b = opacite(resoudre(jeton(theme, NORMAL, n), theme, NORMAL));
     vrai(n + ' : opaque sous transparence réduite, translucide sans', a === 1 && b < 1, { reduit: a, normal: b });
@@ -67,6 +72,12 @@ for (const theme of ['light', 'dark']) {
   }
   vrai('le jeton du flou s’éteint (--vr-flou : none)', resoudre(jeton(theme, REDUIT, '--vr-flou'), theme, REDUIT) === 'none', jeton(theme, REDUIT, '--vr-flou'));
 }
+MARQUE = 'teamop';
+console.log('\n── 2831 · 1 bis. de nuit (teamop) : les aplats de la Tour, pleins sans aucun réglage ──');
+for (const n of ['--vr-fond', '--vr-fond2', '--vr-fond-dense', '--tf-kpi', '--tf-barre', '--tf-cote'])
+  for (const [lib, j] of [['sans réglage', NORMAL], ['transparence réduite', REDUIT], ['contraste accru', PLUS]])
+    vrai(n + ' : plein (' + lib + ')', opacite(resoudre(jeton('dark', j, n), 'dark', j)) === 1, resoudre(jeton('dark', j, n), 'dark', j));
+vrai('le flou est éteint de nuit, sans réglage', resoudre(jeton('dark', NORMAL, '--vr-flou'), 'dark', NORMAL) === 'none', jeton('dark', NORMAL, '--vr-flou'));
 
 console.log('\n── 2831 · 2. aucun flou de fond ne survit au réglage, quelle que soit la surface ──');
 const RACINE = [HTML('light'), el('body'), el('div', ['app']), el('main', [], { id: 'content' })];
