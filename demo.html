@@ -3309,8 +3309,8 @@ html[data-refonte][data-theme="light"][data-accent="purple"]{ --on-acc:#FFFFFF; 
 html[data-refonte][data-theme="light"][data-accent="teamop"]  { --acc-fill:#0B1426; --acc-fill-hover:#152340; --acc-fill-press:#060C18; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --on-acc2:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="marine"]  { --acc-fill:#0B1426; --acc-fill-hover:#152340; --acc-fill-press:#060C18; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --on-acc2:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="opgestion"]{ --acc-fill:#0B3B2E; --acc-fill-hover:#0F4A3A; --acc-fill-press:#062419; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --on-acc2:#FFFFFF; }
-html[data-refonte][data-theme="dark"][data-accent="teamop"]   { --acc-fill:#F0F3F8; --acc-fill-hover:#FFFFFF; --acc-fill-press:#D7DDE8; --on-fill:#0B1426; --on-acc2:#0B1426; }
-html[data-refonte][data-theme="dark"][data-accent="marine"]   { --acc-fill:#F0F3F8; --acc-fill-hover:#FFFFFF; --acc-fill-press:#D7DDE8; --on-fill:#0B1426; --on-acc2:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="teamop"]   { --acc-fill:#2C3D63; --acc-fill-hover:#34497A; --acc-fill-press:#24334F; --on-fill:#F0F3F8; --on-acc2:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="marine"]   { --acc-fill:#2C3D63; --acc-fill-hover:#34497A; --acc-fill-press:#24334F; --on-fill:#F0F3F8; --on-acc2:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="opgestion"]{ --acc-fill:#6AA896; --acc-fill-hover:#7BB6A5; --acc-fill-press:#5A9483; --on-fill:#0B1426; --on-acc2:#0B1426; }
 html[data-refonte][data-theme="light"][data-accent="green"]   { --acc-txt:color-mix(in srgb,#000 42%,var(--acc-src)); --on-acc:#0B1426; --on-fill:#0B1426; --on-acc2:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="graphite"]{ --acc-fill:#636366; --acc-fill-hover:#56565A; --acc-fill-press:#48484C; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --on-acc2:#FFFFFF; }
@@ -7581,11 +7581,10 @@ html[data-marque="teamop"][data-verre][data-theme="dark"]{
     radial-gradient(120% 90% at 0% 0%,#1A2A4D 0%,rgba(26,42,77,0) 55%),
     radial-gradient(110% 80% at 100% 100%,#1C1636 0%,rgba(28,22,54,0) 60%),
     linear-gradient(160deg,#0F1A30 0%,#070B16 100%);
-  --vr-fond-dense:rgba(21,35,64,.86);
   --t1:#F0F3F8; --t2:#B8C0CD; --t3:#ABB3C2;
   --vr-encre:#F0F3F8; --vr-encre2:#B8C0CD; --vr-encre3:#ABB3C2;
-  --bg:#0B1426; --bg1:#1A2640; --bg2:#1F2D4A; --bg3:#2B3A58; --card:#1A2640; --card2:#1F2D4A;
-  --deep:#0B1426; --eleve:#1F2D4A;
+  --bg:#0B1426; --bg1:#1E2A42; --bg2:#25334F; --bg3:#2C3D63; --card:#1E2A42; --card2:#25334F;   /* v784 : les cartes de la Tour */
+  --deep:#0B1426; --eleve:#25334F;
   --tf-page-plein:#0B1426;
   --tf-bord-haut:rgba(16,29,53,.7);
   /* ⚠ ÉCART DÉCLARÉ (test-759, « barre d'onglets de nuit ») : la maquette pose la pilule d'onglets
@@ -7593,8 +7592,17 @@ html[data-marque="teamop"][data-verre][data-theme="dark"]{
      un bloc coloré du Planning passe dessous, la vitre saturée devient bleu vif (50,90,170) et les
      libellés des onglets y tombent à 3,13. On glisse SOUS le blanc un voile du bleu nuit à 55 %,
      écrit en une seule couleur (les deux couches composées) : sur un fond calme la pilule ne
-     change pas (37,46,62 contre 38,47,64), sur un bloc vif elle reste sombre (≥ 4,8 calculé). */
-  --tf-barre:rgba(52,59,74,.6);
+     change pas (37,46,62 contre 38,47,64), sur un bloc vif elle reste sombre (≥ 4,8 calculé).
+     v784 : la pilule est désormais un APLAT (#15213A, plus bas) — il n'y a plus de vitre à saturer. */
+  /* v784 — TOUTE LA NUIT DE LA TOUR, PAS SEULEMENT SA PAGE (Justin, 31 octobre 2026 : « je veux tout le mode nuit de la Tour
+     pour OP GESTION… comme les couleurs de tes prototypes »). La v783 n'avait repris que le fond : les cartes et les barres
+     restaient des vitres à 8,5 % de blanc. La Tour pose des APLATS bleu nuit (tour.html, --tt-carte #1E2A42, menu et barres
+     #15213A) : mêmes couleurs ici, et donc plus de flou ni de reflet — un flou sous un aplat opaque ne se voit pas, il coûte. */
+  --vr-flou:none; --vr-reflet:none;
+  --vr-plein:#1E2A42; --vr-fond:#1E2A42; --vr-fond2:#25334F; --vr-fond-dense:#1E2A42;
+  --vr-liseret:rgba(255,255,255,.08);
+  --vr-ombre:0 10px 28px rgba(0,0,0,.35); --vr-ombre-barre:0 14px 36px rgba(0,0,0,.45);
+  --tf-kpi:#1E2A42; --tf-cote:#15213A; --tf-barre:#15213A; --tf-entete:#25334F;
 }
 /* ── 3. LE THÈME OP GESTION — vert forêt et menthe, les couleurs du logo OP GESTION ────────── */
 html[data-marque="opgestion"][data-verre][data-theme="light"]{
@@ -8947,7 +8955,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '783-demo';
+const APP_VERSION = '784-demo';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
