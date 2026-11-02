@@ -58,6 +58,9 @@ const CONTACT = 'contact@banc-courrier.fr', JUSTIN = 'justin@banc-courrier.fr'; 
     v('§3 entreprise neuve : UN accusé, « nous préparons votre espace »', [acc.length, /prépare votre espace/.test(acc[0] ? acc[0].texte : '')], [1, true]);
     v('§3 … au client, avec UNE copie pour l\'équipe (la trace voulue)', acc[0] && acc[0].rcpt.slice().sort(), [JUSTIN, 'neuve@exemple-3150.fr'].sort());
     v('§3 UN avis « Nouvelle demande à traiter », reçu une fois', [de(L, /Nouvelle demande à traiter/).length, (de(L, /Nouvelle demande à traiter/)[0] || {}).rcpt], [1, [JUSTIN]]);
+    await dormir(3500);   // deux passages des comptes
+    v('§3 un compte qui a DÉJÀ envoyé sa demande ne reçoit pas en plus l\'avis « Nouveau compte » (il a eu « Nouvelle demande à traiter »)',
+      (await lus()).slice(avant).filter(x => /Nouveau compte/.test(x.sujet) && /Neuve Clim/.test(x.sujet + x.texte)).length, 0);
     const avant2 = S.fact.enveloppes.length;
     await S.inscrire('patron@toka-3150.fr', 'Toka Clim', [{ app: 'OP GESTION', formule: 'Pro', metier: 'chauffage', date: Date.now() }]);
     await S.attendre(async () => de((await lus()).slice(avant2), /Votre demande est bien reçue/).length > 0, 8000);

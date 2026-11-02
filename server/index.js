@@ -6747,7 +6747,10 @@ try {
   /* UNE alerte par COMPTE NEUF du site (nos comptes, `comptes.js`) qui n'a pas d'espace : le passage se fait toutes les dix minutes (`config.comptesScanMs` pour un banc), le premier
      une minute après le démarrage. La notification ne dit que « un compte » ; le courriel à Justin porte l'adresse et le nom (c'est son métier) ; le journal, rien. */
   const alerteCompte = async (c0) => {
-    const n = nomsInscription.get(String((c0 && c0.email) || '').toLowerCase()) || {};
+    const cle = String((c0 && c0.email) || '').toLowerCase(), n0 = nomsInscription.get(cle);
+    nomsInscription.delete(cle);   // lu une fois, puis oublié
+    const n = n0 && Date.now() - n0.ts <= 3600000 ? n0 : {};
+    const declare = !!(n.prenom || n.nom || n.societe) && !((c0 && (c0.prenom || c0.nom || c0.societe)));
     const c = Object.assign({}, c0, { prenom:(c0 && c0.prenom) || n.prenom || '', nom:(c0 && c0.nom) || n.nom || '', societe:(c0 && c0.societe) || n.societe || '' });
     try { await pousserALaTour('Nouveau compte sur le site', 'Un compte vient d’être créé : à ouvrir dans la Tour (Demandes).', '/tour.html#demandes', '/tour.html#demandes'); } catch (e) {}
     try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', 'Nouveau compte sur le site (sans espace) : à ouvrir dans la Tour (Demandes).', { cle: 'compte-site:' + String(c.cree || '') + ':' + c.email.length }); } catch (e) {}
@@ -6756,11 +6759,11 @@ try {
       const une = x => String(x || '').replace(/[\r\n]+/g, ' ');
       const nom = une([c.prenom, c.nom].filter(Boolean).join(' ')).slice(0, 80);
       await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: '👤 Nouveau compte sur le site' + (c.societe ? ' — ' + une(c.societe).slice(0, 60) : ''),
-        text: 'Un compte vient d\'être créé sur l\'Espace client de teamop.fr.\n\n' + (nom ? 'Nom : ' + nom + '\n' : '') + (c.societe ? 'Entreprise : ' + une(c.societe).slice(0, 80) + '\n' : '') + 'E-mail : ' + c.email + '\n\nIl n\'a pas encore d\'espace. Tour → Demandes → « Comptes du site sans espace » → « Ouvrir son accès » (ou « Ignorer » si ce n\'est pas un client).\n\nhttps://teamop.fr/tour.html' });
+        text: 'Un compte vient d\'être créé sur l\'Espace client de teamop.fr.\n\n' + (nom ? 'Nom : ' + nom + (declare ? ' (déclaré à l\'inscription, non vérifié)' : '') + '\n' : '') + (c.societe ? 'Entreprise : ' + une(c.societe).slice(0, 80) + (declare ? ' (déclarée, non vérifiée)' : '') + '\n' : '') + 'E-mail : ' + c.email + '\n\nIl n\'a pas encore d\'espace. Tour → Demandes → « Comptes du site sans espace » → « Ouvrir son accès » (ou « Ignorer » si ce n\'est pas un client).\n\nhttps://teamop.fr/tour.html' });
       console.log('mail nouveau compte du site envoyé →', masqueMail(dest));
     }
   };
-  const passageComptes = () => { try { demandeSiteMod.scannerComptes({ liste: () => (typeof comptes !== 'undefined' && comptes && typeof comptes.liste === 'function' ? comptes.liste() : []), aUnEspace: m => porteUneEntreprise(m), alerter: alerteCompte }); } catch (e) { console.error('comptes du site : passage échoué'); } };
+  const passageComptes = () => { try { demandeSiteMod.scannerComptes({ liste: () => (typeof comptes !== 'undefined' && comptes && typeof comptes.liste === 'function' ? comptes.liste() : []), aUnEspace: m => porteUneEntreprise(m) || !!(clientsData[m] && !clientsData[m].ficheDePaiement && Array.isArray(clientsData[m].demandes) && clientsData[m].demandes.length), alerter: alerteCompte }); } catch (e) { console.error('comptes du site : passage échoué'); } };
   const scanMs = Math.max(500, Number(config.comptesScanMs) || 600000);
   setTimeout(passageComptes, Math.min(60000, scanMs)).unref();
   setInterval(passageComptes, scanMs).unref();
@@ -10767,8 +10770,9 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   const lignes = []; let anonymes = 0; let pageTok = '';
   if (tok) try {
     /* ⛔ 200 pages, plus 20 : la Tour affichait « 10000 sessions techniques » — exactement 20 × 500, le plafond. Les comptes de PERSONNES rangés
-       après les 10 000 sessions anonymes n'étaient donc jamais listés (2 novembre 2026). `tronque` dit si même 100 000 ne suffisent pas. */
-    for (let tour = 0; tour < 200; tour++) {
+       après les 10 000 sessions anonymes n'étaient donc jamais listés (2 novembre 2026). Bornée aussi en durée (20 s). */
+    const t0 = Date.now();
+    for (let tour = 0; tour < 200 && Date.now() - t0 < 20000; tour++) {   // et vingt secondes au plus : au-delà, la Tour aurait déjà coupé
       const url = IDTK_URL + '/projects/' + FB_PROJET
         + '/accounts:batchGet?maxResults=500' + (pageTok ? '&nextPageToken=' + encodeURIComponent(pageTok) : '');
       const r = await fbAdminFetch(url, { method: 'GET' }, tok);
@@ -10820,7 +10824,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   }
   lignes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
   if (demandeSiteMod) for (const l of lignes) l.ignore = demandeSiteMod.estIgnore(l.email);
-  res.json({ comptes: lignes, total: lignes.length, anonymes, tronque: !!pageTok, google: !!tok });
+  res.json({ comptes: lignes, total: lignes.length, anonymes, google: !!tok });
 });
 
 /* Suppression d'un compte du site — patron seulement, et JAMAIS un compte qui porte une

@@ -271,7 +271,7 @@ const decider = async (Z, id, decision, qui, empreinte) => {
   /* ⛔ LA ROUTE PUBLIQUE NE DÉCLENCHE PLUS LÉA (relecture adverse du 23 octobre 2026) : elle ne prouve aucune adresse. */
   const mails = async () => Promise.all(S.fact.recus.map(r => simpleParser(r)));
   const ins = await S.public('/api/nouveau-compte', { email: ADR, prenom: 'Zéphyrin', nom: 'Quarantelle', company: 'Toka Clim' });
-  vrai('(population) la route publique a servi : elle répond ok et l’avis « Nouveau compte » est parti à l’équipe', ins.s === 200 && ins.j.ok === true && await S.attendre(async () => (await mails()).some(m => /Nouveau compte/.test(String(m.subject || ''))), 8000));
+  vrai('(population) la route publique a servi : elle répond ok — et depuis le 2 novembre 2026 elle n’envoie plus rien (l’avis « Nouveau compte » part du passage des comptes, une seule fois : test-3150)', ins.s === 200 && ins.j.ok === true && !(await S.attendre(async () => (await mails()).some(m => /Nouveau compte/.test(String(m.subject || ''))), 1500)));
   await dormir(2500);
   v('⛔ …mais Léa n’a PAS été appelée : ni Claude, ni brouillon, ni validation (un anonyme ne prépare aucun courriel à l’adresse de son choix)', [S.claudeRecus().length, ((await S.get('/api/monitor/agents/validations')).j.validations || []).length], [0, 0]);
   for (let k = 0; k < 12; k++) await S.public('/api/nouveau-compte', { email: 'bruit' + k + '@exemple-2864.fr', prenom: 'A', nom: 'B', company: 'Bruit ' + k });
