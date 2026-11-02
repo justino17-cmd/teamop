@@ -216,7 +216,7 @@ const srv = http.createServer((q, r) => {
   for (const k of ['GBP_CLIENT_ID', 'GBP_CLIENT_SECRET', 'GBP_REFRESH_TOKEN', 'GBP_ACCOUNT_ID', 'GBP_LOCATION_ID'])
     vrai(`${k} ne vient que du secret du même nom`, new RegExp(`${k}: \\$\\{\\{ secrets\\.${k} \\}\\}`).test(W) && (W.match(new RegExp('secrets\\.' + k, 'g')) || []).length === 1);
   vrai('le script de publication n\'est jamais appelé avec un secret en argument ni affiché', !/(echo|cat|printf)[^\n]*GBP_/.test(W) && !/google-post\.js[^\n]*(\$GBP|secrets\.)/.test(W));
-  vrai('ce banc est dans la boucle des bancs du blog', /for t in 3000 835 846 1008 3060 3065;/.test(W));
+  vrai('ce banc est dans la boucle des bancs du blog', /for t in [^\n]*\b3065\b/.test(W));
   vrai('la publication attend le site en ligne (GBP_ATTENTE_S)', /GBP_ATTENTE_S: "?\d{3,}"?/.test(W));
   const M = fs.readFileSync(path.join(RACINE, '.github/workflows/google-post-manuel.yml'), 'utf8').replace(/^\s*#.*$/gm, '');
   vrai('publication manuelle : workflow_dispatch, slug passé par l\'environnement (jamais interpolé dans le shell)', /workflow_dispatch:/.test(M) && /CHOIX: \$\{\{ inputs\.slug \}\}/.test(M) && !/run:[\s\S]*\$\{\{ inputs/.test(M.slice(M.indexOf('run:'))));
