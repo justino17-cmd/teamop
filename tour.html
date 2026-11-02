@@ -9559,13 +9559,18 @@ function vueComptesSite(){
             (c.cree?'Créé le '+esc(fmtJour(c.cree)):'Date de création inconnue')+
             (c.derniere?' · dernière connexion '+esc(fmtJour(c.derniere)):' · jamais connecté')+
           '</div></div>'+
-        (lie?'<span class="past p-vert" title="Ce compte porte une entreprise avec des données">🏢 '+esc(c.entreprise||'entreprise')+'</span>'
+        /* ⛔ 2 novembre 2026 (« MS Garnier » marqué « Porte une entreprise » et absent d'Entreprises) : `aUnEspace` dit l'ANNUAIRE ; une simple
+           FICHE (profil rempli, demande) n'est pas une entreprise — elle se dit à part, et renvoie vers les Demandes. */
+        (lie?'<span class="past p-vert" title="Ce compte porte une entreprise de l’annuaire">🏢 '+esc(c.entreprise||'entreprise')+'</span>'
+            :c.fiche?'<span class="past p-orange" title="Profil rempli ou demande en cours, mais aucun espace ouvert">📋 Fiche client · pas d’espace</span>'
             :'<span class="past p-gris">Aucun espace</span>')+
         (c.desactive?'<span class="past p-rouge">Désactivé</span>':'')+
       '</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
         (lie
           ? '<span style="font-size:12px;color:var(--muted)">Porte une entreprise — sa suppression passe par la fiche de l’entreprise (« 🗑 Supprimer … partout »), qui efface aussi son espace et ses données.</span>'
+          : c.fiche
+          ? '<span style="font-size:12px;color:var(--muted)">A une fiche client (profil ou demande) mais <b>aucun espace ouvert</b> : il n’est donc pas dans Entreprises. Sa demande se traite dans « À traiter → Demandes » ; une fois refusée, le compte se supprime ici.</span>'
           : '<button class="btn-fant" style="color:var(--redText);border-color:rgba(255,107,107,.35)" onclick="csSupprimer(\''+jsq(c.email)+'\',this)">🗑 Supprimer</button>')+
       '</div>'+
     '</div>';
