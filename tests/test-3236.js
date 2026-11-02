@@ -20,6 +20,7 @@ const vrai = (t, a) => v(t, !!a, true);
 const RACINE = path.join(__dirname, '..');
 const SCRIPT = path.join(RACINE, 'scripts', 'instagram-story.js');
 const JETON = 'EAAbancZQXjetonquinesortjamais0123456789';
+const JETON_FB = 'pagebancZQX-jeton-de-page-jamais-affiche';
 
 /* la taille d'un JPEG, lue dans son marqueur SOF */
 function tailleJpeg(b) {
@@ -44,7 +45,7 @@ const lancer = env => new Promise(res => {
   p.on('close', code => res({ code, sortie: o }));
 });
 
-const etat = { reqs: [], image: 200, modeMedia: 'ok', statut: ['IN_PROGRESS', 'FINISHED'], publies: 0 };
+const etat = { reqs: [], image: 200, modeMedia: 'ok', statut: ['IN_PROGRESS', 'FINISHED'], publies: 0, fbStories: 0, modeFb: 'ok' };
 const srv = http.createServer((q, r) => {
   let corps = ''; q.on('data', d => corps += d); q.on('end', () => {
     etat.reqs.push({ m: q.method, url: q.url, h: q.headers, corps });
@@ -58,6 +59,13 @@ const srv = http.createServer((q, r) => {
     }
     if (q.url.startsWith('/v21/cont42?fields=status_code')) return j(200, { status_code: etat.statut.length > 1 ? etat.statut.shift() : etat.statut[0] });
     if (q.url === '/v21/1789/media_publish' && q.method === 'POST') { if (!bon) return j(401, {}); etat.publies++; return j(200, { id: 'story777' }); }
+    const bonFb = q.headers.authorization === 'Bearer ' + JETON_FB;
+    if (q.url === '/v21/5150/photos' && q.method === 'POST') {
+      if (!bonFb) return j(401, { error: { message: 'jeton de page absent' } });
+      if (etat.modeFb === 'refus') return j(403, { error: { type: 'OAuthException', code: 200, message: 'pages_manage_posts manquant ' + JETON_FB } });
+      return j(200, { id: 'photo99' });
+    }
+    if (q.url === '/v21/5150/photo_stories' && q.method === 'POST') { if (!bonFb) return j(401, {}); etat.fbStories++; return j(200, { success: true, post_id: 'fbstory1' }); }
     j(404, {});
   });
 });
@@ -71,7 +79,7 @@ const srv = http.createServer((q, r) => {
 
   await new Promise(r => srv.listen(0, '127.0.0.1', r));
   const B = `http://127.0.0.1:${srv.address().port}`;
-  const env = { IG_USER_ID: '1789', IG_ACCESS_TOKEN: JETON, IG_API_BASE: B + '/v21', IG_SITE_BASE: B, IG_ATTENTE_S: '0', IG_PRET_S: '2', GITHUB_ACTIONS: 'true' };
+  const env = { IG_USER_ID: '1789', IG_ACCESS_TOKEN: JETON, FB_PAGE_ID: '5150', FB_PAGE_TOKEN: JETON_FB, IG_API_BASE: B + '/v21', IG_SITE_BASE: B, IG_ATTENTE_S: '0', IG_PRET_S: '2', GITHUB_ACTIONS: 'true' };
 
   console.log('2. la publication');
   let x = await lancer(env);
@@ -82,13 +90,29 @@ const srv = http.createServer((q, r) => {
   const champs = media ? Object.fromEntries(new URLSearchParams(media.corps)) : {};
   v('le conteneur est une STORY, avec l\'adresse PUBLIQUE de l\'image', [champs.media_type, champs.image_url], ['STORIES', B + '/blog/img/bon-d-intervention-story.jpg']);
   vrai('elle attend « FINISHED » avant de publier (deux lectures de l\'état)', etat.reqs.filter(q => q.url.startsWith('/v21/cont42')).length === 2);
-  vrai('le jeton voyage en EN-TÊTE, jamais dans une adresse ni dans le corps', etat.reqs.filter(q => q.url.startsWith('/v21')).every(q => q.h.authorization === 'Bearer ' + JETON && !q.url.includes(JETON) && !q.corps.includes(JETON)));
+  vrai('le jeton voyage en EN-TÊTE, jamais dans une adresse ni dans le corps', etat.reqs.filter(q => /^\/v21\/(1789|cont42)/.test(q.url)).every(q => q.h.authorization === 'Bearer ' + JETON && !q.url.includes(JETON) && !q.corps.includes(JETON)));
   vrai('le jeton n\'apparaît pas dans ce qui est dit', !x.sortie.includes(JETON));
+  console.log('2 bis. la story de la page Facebook, en même temps');
+  v('une story Facebook publiée', [etat.fbStories, /story Facebook de bon-d-intervention publiée \(fbstory1\)/.test(x.sortie)], [1, true]);
+  const ph = etat.reqs.find(q => q.url === '/v21/5150/photos'), phc = ph ? Object.fromEntries(new URLSearchParams(ph.corps)) : {};
+  v('la photo est déposée SANS paraître dans le fil, puis posée en story', [phc.url, phc.published, Object.fromEntries(new URLSearchParams((etat.reqs.find(q => q.url === '/v21/5150/photo_stories') || {}).corps || '')).photo_id],
+    [B + '/blog/img/bon-d-intervention-story.jpg', 'false', 'photo99']);
+  vrai('le jeton de page voyage en en-tête, et n\'est jamais dit', etat.reqs.filter(q => q.url.startsWith('/v21/5150')).every(q => q.h.authorization === 'Bearer ' + JETON_FB && !q.url.includes(JETON_FB) && !q.corps.includes(JETON_FB)) && !x.sortie.includes(JETON_FB));
+  etat.reqs = []; etat.publies = 0; etat.fbStories = 0; etat.statut = ['FINISHED'];
+  x = await lancer({ ...env, FB_PAGE_ID: '', FB_PAGE_TOKEN: '' });
+  v('sans les secrets de la page : Instagram part quand même, Facebook dit ce qui manque', [x.code, etat.publies, etat.fbStories, /rien publié sur Facebook, il manque FB_PAGE_ID, FB_PAGE_TOKEN/.test(x.sortie)], [0, 1, 0, true]);
+  etat.reqs = []; etat.publies = 0; etat.statut = ['FINISHED'];
+  x = await lancer({ ...env, IG_USER_ID: '', IG_ACCESS_TOKEN: '' });
+  v('sans les secrets d\'Instagram : Facebook part quand même', [x.code, etat.publies, etat.fbStories], [0, 0, 1]);
+  etat.modeFb = 'refus'; etat.fbStories = 0; etat.statut = ['FINISHED'];
+  x = await lancer(env);
+  v('Facebook refuse : sortie 0, avertissement, jeton effacé, Instagram publié quand même', [x.code, /::warning::instagram-story : Facebook a refusé la photo/.test(x.sortie), x.sortie.includes(JETON_FB), etat.fbStories, etat.publies >= 1], [0, true, false, 0, true]);
+  etat.modeFb = 'ok'; etat.statut = ['FINISHED'];
 
   console.log('3. rien ne bloque, tout se dit');
   etat.reqs = []; etat.publies = 0;
-  x = await lancer({ ...env, IG_ACCESS_TOKEN: '', IG_USER_ID: '' });
-  v('sans secrets : sortie 0, et il dit lesquels manquent', [x.code, /il manque IG_USER_ID, IG_ACCESS_TOKEN/.test(x.sortie)], [0, true]);
+  x = await lancer({ ...env, IG_ACCESS_TOKEN: '', IG_USER_ID: '', FB_PAGE_ID: '', FB_PAGE_TOKEN: '' });
+  v('sans aucun secret : sortie 0, et il dit lesquels manquent', [x.code, /il manque IG_USER_ID, IG_ACCESS_TOKEN/.test(x.sortie) && /il manque FB_PAGE_ID, FB_PAGE_TOKEN/.test(x.sortie)], [0, true]);
   v('… sans rien demander à Meta', etat.reqs.filter(q => q.url.startsWith('/v21')).length, 0);
 
   etat.modeMedia = 'refus';

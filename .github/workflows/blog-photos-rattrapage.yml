@@ -1,0 +1,128 @@
+# Rattrapage des PHOTOS de couverture d'articles déjà publiés, dessinées par Gemini.
+#
+# Justin, 2 novembre 2026 : « pourquoi sur les derniers blogs il n'y a pas d'image ? […] Corrige tout pour les blogs, les
+# photos ». Trois articles (bon-d-intervention, planning-des-techniciens, gestion-de-stock-camionnette) sont partis avec
+# le panneau bleu nuit seul : Gemini répondait HTTP 429, « quota dépassé » (la clé n'a pas de quota d'image tant que la
+# facturation de son projet Google n'est pas activée). Une fois le quota rendu, ce workflow les redessine.
+#
+# Lancement à la main : Actions → « Rattrapage des photos du blog » → Run workflow, avec la liste des articles (ou vide :
+# tous ceux qui n'ont pas de photo). Il fait comme la publication d'un article : photo par Gemini, couverture refaite,
+# pages et story refaites, bancs du blog, puis une demande de fusion `rattrapage/blog-photos-<n°>` (pas `claude/blog-` : la publication d’un article se déclencherait en plus) fusionnée et le site publié.
+# ⛔ Si Gemini refuse encore, il le DIT (avertissement) et ne fusionne rien : republier le même panneau ne sert à rien.
+name: Rattrapage des photos du blog
+
+on:
+  workflow_dispatch:
+    inputs:
+      articles:
+        description: "Articles à reprendre (slugs séparés par des espaces) — vide : tous ceux qui n'ont pas de photo"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: blog-photos
+  cancel-in-progress: false
+
+jobs:
+  rattraper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Pillow
+        run: python3 -m pip install --quiet pillow
+
+      - name: Les articles à reprendre
+        id: liste
+        env:
+          DEMANDE: ${{ github.event.inputs.articles }}
+        run: |
+          liste=$(DEMANDE="$DEMANDE" node -e "
+            const fs = require('fs');
+            const arts = JSON.parse(fs.readFileSync('contenu/blog/articles.json', 'utf8'));
+            const photos = fs.existsSync('contenu/blog/photos') ? fs.readdirSync('contenu/blog/photos') : [];
+            const sans = arts.filter(a => a.photo !== false && !photos.some(f => f.startsWith(a.slug + '.'))).map(a => a.slug);
+            const dem = (process.env.DEMANDE || '').split(/\s+/).filter(s => /^[a-z0-9][a-z0-9-]*$/.test(s));
+            process.stdout.write((dem.length ? dem.filter(s => arts.some(a => a.slug === s)) : sans).join(' '));")
+          echo "articles : ${liste:-aucun}"
+          echo "liste=$liste" >> "$GITHUB_OUTPUT"
+
+      - name: Photos par Gemini
+        if: steps.liste.outputs.liste != ''
+        id: gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODELE_IMAGE: ${{ vars.GEMINI_MODELE_IMAGE }}
+          LISTE: ${{ steps.liste.outputs.liste }}
+        run: |
+          faites=""
+          for s in $LISTE; do
+            node scripts/blog-gemini.js "$s" "$RUNNER_TEMP/gemini-$s"
+            if node -e "process.exit(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).couverture ? 0 : 1)" "$RUNNER_TEMP/gemini-$s/manifeste.json"; then
+              python3 scripts/blog-images.py "$RUNNER_TEMP/gemini-$s/manifeste.json" "$s"
+              faites="$faites $s"
+            fi
+          done
+          echo "photos refaites :${faites:- aucune}"
+          echo "faites=$faites" >> "$GITHUB_OUTPUT"
+          [ -n "$faites" ] || echo "::warning::Gemini n'a rendu aucune photo : rien n'est republié (voir les avertissements ci-dessus)"
+
+      - name: Pages, plan du site et stories
+        if: steps.gemini.outputs.faites != ''
+        env:
+          FAITES: ${{ steps.gemini.outputs.faites }}
+        run: |
+          node scripts/blog.js
+          node scripts/site-marine.js --racine
+          node scripts/site-marine.js
+          python3 scripts/blog-story.py $FAITES
+
+      - name: Bancs du blog
+        if: steps.gemini.outputs.faites != ''
+        run: |
+          for t in 3000 835 846 1008 3060 3065 3236; do
+            node "tests/test-$t.js" > "$RUNNER_TEMP/banc-$t.txt" 2>&1 || { echo "::error::tests/test-$t.js échoue"; tail -40 "$RUNNER_TEMP/banc-$t.txt"; exit 1; }
+            grep -aoE '[0-9]+ ✓ +[0-9]+ ✗' "$RUNNER_TEMP/banc-$t.txt" | tail -1 | sed "s/^/test-$t : /"
+          done
+          bash scripts/verif-secrets.sh
+
+      - name: Demande de fusion, fusion et publication du site
+        if: steps.gemini.outputs.faites != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FAITES: ${{ steps.gemini.outputs.faites }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blog contenu/blog sitemap.xml
+          if git diff --cached --quiet; then echo "rien à ajouter"; exit 0; fi
+          b="rattrapage/blog-photos-${{ github.run_number }}"
+          git checkout -q -b "$b"
+          git commit -q -m "blog : photos de couverture refaites par Gemini ($FAITES)"
+          git push -q origin "$b"
+          pr=$(gh pr create --base main --head "$b" --title "Blog : photos de couverture refaites ($FAITES)" --body "Rattrapage des photos par Gemini (workflow « Rattrapage des photos du blog »)." )
+          tete=$(git rev-parse HEAD)
+          if ! gh pr merge "$pr" --merge --delete-branch --match-head-commit "$tete"; then
+            gh pr merge "$pr" --merge --delete-branch --auto
+            for i in $(seq 1 50); do
+              etat=$(gh pr view "$pr" --json state -q .state)
+              [ "$etat" = "MERGED" ] && break
+              [ "$etat" = "CLOSED" ] && { echo "::error::demande fermée sans fusion"; exit 1; }
+              sleep 30
+            done
+            [ "$(gh pr view "$pr" --json state -q .state)" = "MERGED" ] || { echo "::error::pas fusionnée après 25 minutes : à regarder"; exit 1; }
+          fi
+          gh workflow run publication-site.yml --ref main

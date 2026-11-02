@@ -168,15 +168,17 @@ jobs:
             node scripts/google-post.js publier "$s"
           done
 
-      # La story Instagram vient APRÈS la publication du site : Instagram va chercher l'image à son adresse publique
+      # La story (Instagram et page Facebook) vient APRÈS la publication du site : Instagram va chercher l'image à son adresse publique
       # (le script attend jusqu'à 15 minutes qu'elle réponde 200, sinon il ne publie rien et le dit). Sans les secrets
       # IG_* il dit ce qui manque et sort en 0 ; une erreur de l'API devient un avertissement, jamais un échec.
-      - name: Publier la story Instagram
+      - name: Publier la story Instagram et Facebook
         if: steps.neufs.outputs.liste != ''
         continue-on-error: true
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
           IG_ATTENTE_S: "900"
           NEUFS: ${{ steps.neufs.outputs.liste }}
         run: |

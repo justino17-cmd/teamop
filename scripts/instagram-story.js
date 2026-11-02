@@ -28,11 +28,11 @@ const RACINE = process.env.BLOG_RACINE || path.join(__dirname, '..');
 const SITE = 'https://teamop.fr';
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const SECRETS = ['IG_USER_ID', 'IG_ACCESS_TOKEN'];
+const SECRETS_FB = ['FB_PAGE_ID', 'FB_PAGE_TOKEN'];
 
 function nettoyer(t) {
   let s = String(t == null ? '' : t);
-  const jeton = process.env.IG_ACCESS_TOKEN;
-  if (jeton && jeton.length >= 4) s = s.split(jeton).join('***');
+  for (const jeton of [process.env.IG_ACCESS_TOKEN, process.env.FB_PAGE_TOKEN]) if (jeton && jeton.length >= 4) s = s.split(jeton).join('***');
   return s.replace(/EA[A-Za-z0-9]{20,}/g, '***').replace(/IG[A-Za-z0-9]{20,}/g, '***')
     .replace(/access_token=[^&\s"]+/gi, 'access_token=***').replace(/Bearer\s+\S+/gi, 'Bearer ***').replace(/\s+/g, ' ').slice(0, 300);
 }
@@ -60,22 +60,49 @@ async function imageEnLigne(url) {
   }
 }
 
+const base = () => (process.env.IG_API_BASE || 'https://graph.facebook.com/v21.0').replace(/\/$/, '');
+const form = (jeton, o) => ({ method: 'POST', headers: { Authorization: 'Bearer ' + jeton, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(o) });
+
+/* Instagram ET la page Facebook : chacun a ses secrets, l'un peut manquer sans empêcher l'autre. */
 async function publier(slug) {
   if (!SLUG.test(slug || '')) { dire('instagram-story : slug invalide', true); return 0; }
   const fichier = path.join(RACINE, 'blog', 'img', slug + '-story.jpg');
   if (!fs.existsSync(fichier)) { dire(`instagram-story : pas de blog/img/${slug}-story.jpg (scripts/blog-story.py ne l'a pas fabriquée)`, true); return 0; }
-  const env = process.env, manque = SECRETS.filter(k => !env[k]);
-  if (manque.length) { dire(`instagram-story : rien publié, il manque ${manque.join(', ')} (voir contenu/blog/INSTAGRAM-STORIES.md)`); return 0; }
+  const env = process.env, manqueIg = SECRETS.filter(k => !env[k]), manqueFb = SECRETS_FB.filter(k => !env[k]);
+  if (manqueIg.length) dire(`instagram-story : rien publié sur Instagram, il manque ${manqueIg.join(', ')} (voir contenu/blog/INSTAGRAM-STORIES.md)`);
+  if (manqueFb.length) dire(`instagram-story : rien publié sur Facebook, il manque ${manqueFb.join(', ')} (voir contenu/blog/INSTAGRAM-STORIES.md)`);
+  if (manqueIg.length && manqueFb.length) return 0;
   const image = `${env.IG_SITE_BASE || SITE}/blog/img/${slug}-story.jpg`;
   try {
     if (!(await imageEnLigne(image))) { dire(`instagram-story : l'image de ${slug} n'est pas en ligne, story NON publiée`, true); return 0; }
+  } catch (e) { dire(`instagram-story : ${slug} non publiée — ${e.message}`, true); return 0; }
+  if (!manqueIg.length) await instagram(slug, image);
+  if (!manqueFb.length) await facebook(slug, image);
+  return 0;
+}
+
+/* la story de la page Facebook : la photo déposée SANS être publiée dans le fil, puis posée en story */
+async function facebook(slug, image) {
+  const env = process.env, page = encodeURIComponent(env.FB_PAGE_ID), jeton = env.FB_PAGE_TOKEN;
+  try {
+    const ph = await http(`${base()}/${page}/photos`, form(jeton, { url: image, published: 'false' }));
+    if (!ph.ok || !ph.json || !ph.json.id) { dire(`instagram-story : Facebook a refusé la photo de ${slug} (${causeApi(ph)})`, true); return; }
+    const st = await http(`${base()}/${page}/photo_stories`, form(jeton, { photo_id: ph.json.id }));
+    if (!st.ok || !st.json || st.json.success === false) { dire(`instagram-story : Facebook a refusé la story de ${slug} (${causeApi(st)})`, true); return; }
+    dire(`instagram-story : story Facebook de ${slug} publiée (${st.json.post_id || ph.json.id})`);
+  } catch (e) { dire(`instagram-story : story Facebook de ${slug} non publiée — ${e.message}`, true); }
+}
+
+async function instagram(slug, image) {
+  const env = process.env;
+  try {
     const base = (env.IG_API_BASE || 'https://graph.facebook.com/v21.0').replace(/\/$/, '');
     const compte = encodeURIComponent(env.IG_USER_ID);
     const auth = { Authorization: 'Bearer ' + env.IG_ACCESS_TOKEN };
     const form = o => ({ method: 'POST', headers: { ...auth, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(o) });
 
     const c = await http(`${base}/${compte}/media`, form({ image_url: image, media_type: 'STORIES' }));
-    if (!c.ok || !c.json || !c.json.id) { dire(`instagram-story : Instagram a refusé la story de ${slug} (${causeApi(c)})`, true); return 0; }
+    if (!c.ok || !c.json || !c.json.id) { dire(`instagram-story : Instagram a refusé la story de ${slug} (${causeApi(c)})`, true); return; }
     const conteneur = encodeURIComponent(c.json.id);
 
     // le conteneur se prépare côté Meta (téléchargement de l'image) : on attend « FINISHED », pas plus de IG_PRET_S
@@ -84,18 +111,17 @@ async function publier(slug) {
       const e = await http(`${base}/${conteneur}?fields=status_code`, { headers: auth });
       const st = e.json && e.json.status_code;
       if (st === 'FINISHED') break;
-      if (st === 'ERROR' || st === 'EXPIRED') { dire(`instagram-story : Instagram n'a pas pu préparer la story de ${slug} (${st})`, true); return 0; }
-      if (Date.now() - t0 >= pret) { dire(`instagram-story : la story de ${slug} n'était pas prête à temps (${st || causeApi(e)}), non publiée`, true); return 0; }
+      if (st === 'ERROR' || st === 'EXPIRED') { dire(`instagram-story : Instagram n'a pas pu préparer la story de ${slug} (${st})`, true); return; }
+      if (Date.now() - t0 >= pret) { dire(`instagram-story : la story de ${slug} n'était pas prête à temps (${st || causeApi(e)}), non publiée`, true); return; }
       await pause(Math.min(5000, Math.max(50, pret / 12)));
     }
 
     const p = await http(`${base}/${compte}/media_publish`, form({ creation_id: c.json.id }));
-    if (!p.ok || !p.json || !p.json.id) { dire(`instagram-story : publication de la story de ${slug} refusée (${causeApi(p)})`, true); return 0; }
+    if (!p.ok || !p.json || !p.json.id) { dire(`instagram-story : publication de la story de ${slug} refusée (${causeApi(p)})`, true); return; }
     dire(`instagram-story : story de ${slug} publiée (${p.json.id})`);
   } catch (e) {
-    dire(`instagram-story : ${slug} non publiée — ${e.message}`, true);
+    dire(`instagram-story : story Instagram de ${slug} non publiée — ${e.message}`, true);
   }
-  return 0;
 }
 
 module.exports = { publier, nettoyer };
