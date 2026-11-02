@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>
+<title>Gestion de stock camionnette : suivre ce que chaque technicien emporte | Blog TEAM OP</title>
+<meta name="description" content="Gestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.">
+<link rel="canonical" href="https://teamop.fr/blog/gestion-de-stock-camionnette.html">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="TEAM OP">
+<meta property="og:title" content="Gestion de stock camionnette : suivre ce que chaque technicien emporte">
+<meta property="og:description" content="Gestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.">
+<meta property="og:url" content="https://teamop.fr/blog/gestion-de-stock-camionnette.html">
+<meta property="og:image" content="https://teamop.fr/blog/img/gestion-de-stock-camionnette-couverture.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="675">
+<meta property="og:image:alt" content="Couverture bleu nuit avec le titre : Gestion de stock camionnette, suivre ce que chaque technicien emporte">
+<meta property="article:published_time" content="2026-11-02">
+<meta property="article:author" content="Justin Biret">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" type="application/rss+xml" title="Blog TEAM OP" href="/blog/flux.xml">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://teamop.fr/blog/gestion-de-stock-camionnette.html#article",
+      "headline": "Gestion de stock camionnette : suivre ce que chaque technicien emporte",
+      "description": "Gestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.",
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://teamop.fr/blog/img/gestion-de-stock-camionnette-couverture.webp",
+        "width": 1200,
+        "height": 675
+      },
+      "datePublished": "2026-11-02",
+      "dateModified": "2026-11-02",
+      "inLanguage": "fr-FR",
+      "mainEntityOfPage": "https://teamop.fr/blog/gestion-de-stock-camionnette.html",
+      "author": {
+        "@type": "Person",
+        "name": "Justin Biret",
+        "jobTitle": "Fondateur de TEAM OP",
+        "url": "https://teamop.fr/pourquoi.html"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://teamop.fr/#organisation",
+        "name": "TEAM OP",
+        "url": "https://teamop.fr/",
+        "logo": "https://teamop.fr/icons/teamop-192.png"
+      },
+      "wordCount": 2617
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Accueil",
+          "item": "https://teamop.fr/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://teamop.fr/blog/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Gestion de stock camionnette : suivre ce que chaque technicien emporte",
+          "item": "https://teamop.fr/blog/gestion-de-stock-camionnette.html"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Quelle quantité de chaque produit mettre dans une camionnette ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Multipliez la consommation moyenne par jour par le nombre de jours entre deux réassorts, puis ajoutez une marge de sécurité. Avec 1,5 pièce par jour, un réassort chaque semaine (5 jours) et une marge de 3, la quantité cible est de 11."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "À quelle fréquence faire l’inventaire des véhicules ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Un inventaire tournant d’un véhicule par semaine suffit à la plupart des équipes : avec six camionnettes, chacune est comptée toutes les six semaines. Ajoutez le comptage de clôture de l’exercice si votre entreprise inscrit un stock à son bilan."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Comment savoir quel technicien a pris quoi ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "En notant chaque sortie du dépôt au nom de celui qui l’emporte, puis en comparant ces sorties aux produits notés sur ses interventions. Un écart signale un oubli de saisie, une pose non facturée ou une perte."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Que risque-t-on à rouler en surcharge avec un utilitaire ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Une contravention de 4e classe par tranche de dépassement, et une immobilisation possible du véhicule au-delà de 5 % de dépassement. L’assureur peut aussi refuser d’indemniser un conducteur en infraction, et l’employeur doit donner des consignes écrites à ses conducteurs."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Faut-il un stock identique dans chaque véhicule ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Une dotation de base commune simplifie le réassort et l’inventaire. Ajustez-la ensuite selon le métier, le secteur et la spécialité de chaque technicien, à partir de sa consommation réelle."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
+<link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
+<link rel="manifest" href="/manifest-teamop.webmanifest">
+<link rel="stylesheet" href="/vitrine/v2/site.css">
+<link rel="stylesheet" href="/vitrine/v2/blog.css">
+<link rel="preload" as="image" href="/blog/img/gestion-de-stock-camionnette-couverture.webp" fetchpriority="high">
+</head>
+<body>
+<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
+      <a class="marque" href="/"><img src="/icons/teamop-192.png" width="22" height="22" alt="TEAM OP"><span aria-hidden="true">TEAM OP</span></a>
+      <div class="nav-liens"><a href="/applications.html" data-fly="applications" aria-haspopup="true" aria-expanded="false">Applications</a><a href="/metiers.html" data-fly="metiers" aria-haspopup="true" aria-expanded="false">Métiers</a><a href="/tarifs.html" data-fly="tarifs" aria-haspopup="true" aria-expanded="false">Tarifs</a><a href="/pourquoi.html" data-fly="pourquoi" aria-haspopup="true" aria-expanded="false">Pourquoi TEAM OP</a></div>
+      <div class="nav-droite"><a class="pilule" href="/espace.html">Espace client</a>
+        <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    </div><div class="fly" id="fly-applications"><div class="fly-in"><div><div class="fly-t">Explorer les applications</div><div class="fly-grand"><a href="/op-gestion.html"><b>OP GESTION</b><small>Gestion tout-en-un : interventions, stock, compta</small></a><a href="/opmessages.html"><b>OP MESSAGES</b><small>Messagerie d'équipe — bientôt disponible</small></a><a href="/creer.html"><b>Créer votre application</b><small>Décrivez votre besoin, on le construit</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div></div></div></div><div class="fly" id="fly-metiers"><div class="fly-in"><div><div class="fly-t">Explorer les métiers</div><div class="fly-grand"><a href="/logiciel-anti-nuisibles.html"><b>3D — Anti-nuisibles</b><small>Pack complet : registre sanitaire, biocides</small></a><a href="/logiciel-plombier.html"><b>Plomberie</b></a><a href="/logiciel-electricien.html"><b>Électricité</b></a><a href="/logiciel-chauffage-climatisation.html"><b>Chauffage / Climatisation</b></a><a href="/logiciel-nettoyage.html"><b>Nettoyage / Propreté</b></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/metiers.html">Tous les métiers</a></div></div></div></div><div class="fly" id="fly-tarifs"><div class="fly-in"><div><div class="fly-t">Explorer les tarifs</div><div class="fly-grand"><a href="/tarifs.html#op-gestion"><b>Tarifs OP GESTION</b><small>Pro 15 € · Business 25 € · Business Premium 50 €</small></a><a href="/tarifs.html#opmessages"><b>Tarifs OP MESSAGES</b><small>Perso · Pro · Premium — bientôt disponible</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div></div></div></div><div class="fly" id="fly-pourquoi"><div class="fly-in"><div><div class="fly-t">Pourquoi TEAM OP</div><div class="fly-grand"><a href="/pourquoi.html#partenaire"><b>Au service des entreprises</b><small>On écoute, on adapte, on construit avec vous</small></a><a href="/pourquoi.html#engagements"><b>Sécurité et engagements</b><small>Chiffrement AES-256, vos données à vous</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></div></div></div></div></nav>
+    <div class="menu-mobile" id="menu-mobile"><section><div class="fly-t">TEAM OP</div><a href="/">Accueil</a></section><section><div class="fly-t">Applications</div><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></section><section><div class="fly-t">Métiers</div><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></section><section><div class="fly-t">Tarifs</div><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></section><section><div class="fly-t">Pourquoi TEAM OP</div><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></section></div>
+  </header><div class="voile" aria-hidden="true"></div>
+<main>
+<article class="billet">
+<nav class="fil" aria-label="Fil d'Ariane"><a href="/">Accueil</a><span aria-hidden="true">›</span><a href="/blog/">Blog</a></nav>
+<header class="billet-tete">
+<h1>Gestion de stock camionnette : suivre ce que chaque technicien emporte</h1>
+<p class="billet-meta">Par Justin Biret · <time datetime="2026-11-02">2 novembre 2026</time> · 12 min de lecture</p>
+</header>
+<figure class="billet-couverture"><img src="/blog/img/gestion-de-stock-camionnette-couverture.webp" alt="Couverture bleu nuit avec le titre : Gestion de stock camionnette, suivre ce que chaque technicien emporte" width="1200" height="675" fetchpriority="high" decoding="async"></figure>
+<div class="billet-corps">
+<p>Bien gérer le stock d’une camionnette tient en quatre gestes : fixer pour chaque véhicule une liste de dotation (ce qu’il doit contenir, en quelle quantité), noter chaque sortie au nom de celui qui l’emporte, réassortir à jour fixe à partir de ce qui a été consommé, et compter un véhicule par semaine à tour de rôle. Le chargement doit en plus rester sous le poids autorisé du véhicule : une surcharge est une infraction du Code de la route. Cet article vous donne une liste de dotation à recopier, le calcul des quantités pas à pas, le calcul de la charge utile, une routine d’inventaire et des exemples par métier.</p>
+<aside class="billet-encart" aria-label="OP GESTION"><p class="surtitre">OP GESTION</p>
+<p class="encart-titre">Interventions, planning, devis et factures, dans une seule application.</p>
+<p>Pour les entreprises de terrain, sur téléphone, tablette et ordinateur. À partir de 15 € par mois et par utilisateur, sans engagement.</p>
+<p class="encart-actions"><a class="bouton" href="/op-gestion.html">Découvrir OP GESTION</a><a class="lien-suite" href="/demo.html">Essayer la démonstration ›</a></p></aside>
+
+<h2 id="en-bref">En bref</h2>
+<ul>
+<li><strong>Écrivez la dotation de chaque véhicule</strong> : la liste des produits et la quantité cible. Sans elle, personne ne sait ce qui manque.</li>
+<li><strong>Calculez la quantité cible</strong> : consommation par jour × jours entre deux réassorts, plus une marge de sécurité.</li>
+<li><strong>Tracez chaque sortie du dépôt</strong> au nom du technicien qui l’emporte, et notez sur chaque intervention ce qui a été utilisé.</li>
+<li><strong>Comptez un véhicule par semaine</strong>, à tour de rôle, plutôt que tout le parc une fois par an.</li>
+<li><strong>Pesez votre chargement</strong> : le véhicule chargé, conducteur compris, ne doit pas dépasser son poids total autorisé en charge (PTAC).</li>
+</ul>
+<h2 id="table-des-matieres">Table des matières</h2>
+<ul>
+<li><a href="#pourquoi-le-stock-des-vehicules-derape">Pourquoi le stock des véhicules dérape</a></li>
+<li><a href="#la-liste-de-dotation">La liste de dotation : le modèle à recopier</a></li>
+<li><a href="#calculer-les-quantites">Calculer les quantités (exemple chiffré)</a></li>
+<li><a href="#le-reassort">Le réassort : à jour fixe, sur ce qui a été consommé</a></li>
+<li><a href="#linventaire-tournant">L’inventaire tournant, véhicule par véhicule</a></li>
+<li><a href="#poids-et-chargement">Poids et chargement : ce que dit le Code de la route</a></li>
+<li><a href="#le-point-de-vue-de-team-op">Le point de vue de TEAM OP</a></li>
+<li><a href="#exemples-par-metier">Exemples par métier</a></li>
+<li><a href="#le-stock-dans-op-gestion">Le stock dans OP GESTION</a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#sources">Sources</a></li>
+</ul>
+<h2 id="pourquoi-le-stock-des-vehicules-derape">Pourquoi le stock des véhicules dérape</h2>
+<p>Dans une entreprise de terrain, le stock ne dort pas dans un seul dépôt. Il roule. Chaque camionnette est un petit magasin que personne ne compte, et c’est là que l’argent se perd sans bruit.</p>
+<p>Les symptômes sont toujours les mêmes :</p>
+<ul>
+<li>un technicien arrive chez le client sans la pièce, et revient le lendemain : un deuxième déplacement non facturé ;</li>
+<li>un autre garde trois fois ce qu’il lui faut « au cas où », pendant que le dépôt est vide ;</li>
+<li>le bureau commande un produit déjà présent dans deux véhicules ;</li>
+<li>un produit posé chez un client n’apparaît pas sur la facture, faute d’avoir été noté.</li>
+</ul>
+<p>La cause est presque toujours l’absence de règle : personne n’a écrit ce qu’une camionnette doit contenir, et les sorties du dépôt se font sans trace.</p>
+<h2 id="la-liste-de-dotation">La liste de dotation : le modèle à recopier</h2>
+<p>La dotation est la liste de ce qu’un véhicule doit contenir en permanence. Elle sert à tout le reste : le réassort complète jusqu’à elle, l’inventaire compare à elle, et un nouveau technicien sait ce qu’il doit avoir.</p>
+<p>Voici le modèle. Une ligne par produit, une feuille par véhicule (ou une feuille par type de véhicule si vos camionnettes sont équipées de la même façon).</p>
+<div class="tableau"><table><thead><tr><th>Produit</th><th>Unité</th><th>Quantité cible</th><th>Seuil de réassort</th><th>Emplacement dans le véhicule</th><th>Compté le</th><th>Quantité comptée</th></tr></thead><tbody>
+<tr><td>Exemple : raccord laiton 15/21</td><td>pièce</td><td>10</td><td>4</td><td>Bac 3, étagère gauche</td><td></td><td></td></tr>
+<tr><td>Exemple : cartouche de silicone</td><td>cartouche</td><td>6</td><td>2</td><td>Tiroir du bas</td><td></td><td></td></tr>
+<tr><td>…</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody></table></div>
+<p>Quatre règles pour la remplir :</p>
+<ul>
+<li>☐ <strong>Partez des interventions réelles</strong>, pas d’un catalogue : reprenez les produits utilisés sur un ou deux mois de fiches d’intervention.</li>
+<li>☐ <strong>Gardez au dépôt ce qui est rare et cher</strong> : une pièce utilisée deux fois par an n’a rien à faire dans six véhicules à la fois.</li>
+<li>☐ <strong>Donnez une place à chaque produit</strong> : un bac étiqueté se compte en un coup d’œil, un carton en vrac se compte en dix minutes.</li>
+<li>☐ <strong>Écrivez l’unité</strong> : « 2 » ne dit rien si l’un compte en boîtes et l’autre en pièces.</li>
+</ul>
+<h2 id="calculer-les-quantites">Calculer les quantités (exemple chiffré)</h2>
+<p>La quantité cible doit couvrir la consommation jusqu’au prochain réassort, avec une marge pour les journées chargées. La formule tient en une ligne :</p>
+<p><strong>Quantité cible = consommation moyenne par jour × jours entre deux réassorts + marge de sécurité.</strong></p>
+<p>Le seuil de réassort est le niveau sous lequel on complète sans attendre. Exemple avec un raccord de plombier ; les chiffres sont des hypothèses à remplacer par vos relevés.</p>
+<div class="tableau"><table><thead><tr><th>Étape</th><th>Calcul</th><th>Résultat</th></tr></thead><tbody>
+<tr><td>1. Consommation relevée sur un mois (20 jours travaillés)</td><td>relevé des fiches</td><td>30 raccords</td></tr>
+<tr><td>2. Consommation moyenne par jour</td><td>30 ÷ 20</td><td>1,5 par jour</td></tr>
+<tr><td>3. Jours entre deux réassorts (réassort chaque lundi)</td><td>1 semaine de 5 jours</td><td>5 jours</td></tr>
+<tr><td>4. Besoin jusqu’au prochain réassort</td><td>1,5 × 5</td><td>7,5, arrondi à 8</td></tr>
+<tr><td>5. Marge de sécurité (hypothèse : une journée chargée, le double de la moyenne)</td><td>1,5 × 2 arrondi</td><td>3</td></tr>
+<tr><td>6. Quantité cible</td><td>8 + 3</td><td>11</td></tr>
+<tr><td>7. Seuil de réassort (deux jours de consommation)</td><td>1,5 × 2 arrondi</td><td>3</td></tr>
+</tbody></table></div>
+<p>Résultat : 11 raccords dans le véhicule le lundi matin, et un complément avant le lundi suivant s’il en reste 3 ou moins. Si le véhicule revient chaque lundi avec 8 raccords, la cible est trop haute : baissez-la. S’il en manque le jeudi, montez la marge.</p>
+<p>Le même calcul donne la valeur qui dort dans votre parc. Si une camionnette porte 1 500 € de produits au prix d’achat (une hypothèse, à remplacer par la vôtre) et que vous en avez six, ce sont 9 000 € de trésorerie immobilisés sur la route. Réduire chaque dotation de 20 % libère 1 800 € sans rien changer au service rendu, à condition de réassortir régulièrement.</p>
+
+<h2 id="le-reassort">Le réassort : à jour fixe, sur ce qui a été consommé</h2>
+<p>Le réassort au fil de l’eau, « je passe au dépôt quand il me manque quelque chose », coûte des allers-retours et ne laisse aucune trace. Mieux vaut un rendez-vous fixe, par exemple le lundi matin ou le vendredi soir, et un réassort calculé :</p>
+<ol>
+<li>le technicien (ou le magasinier) compare le véhicule à sa dotation ;</li>
+<li>il complète jusqu’à la quantité cible, pas au-delà ;</li>
+<li>chaque produit qui sort du dépôt est noté au nom du technicien qui l’emporte ;</li>
+<li>le dépôt, de son côté, recommande ce qui passe sous son propre seuil.</li>
+</ol>
+<p>La trace de l’étape 3 répond à la question « qui a pris quoi ? », et se recoupe avec les produits notés sur les interventions. Si un véhicule reçoit 20 raccords en un mois et que ses fiches n’en mentionnent que 12, l’écart de 8 mérite une question : oubli de saisie, pièce posée sans être notée (donc non facturée), ou perte.</p>
+<p>Notez donc toujours sur la fiche ce qui a été posé chez le client. C’est ce qui alimente le rapport et la facture ; notre article sur le <a href="/blog/bon-d-intervention.html">bon d’intervention</a> détaille ce qu’il doit contenir. Pour le chemin complet de la demande du client à la facture, voyez l’article sur l’<a href="/blog/ordre-de-travail.html">ordre de travail</a>.</p>
+<h2 id="linventaire-tournant">L’inventaire tournant, véhicule par véhicule</h2>
+<p>Compter tout le parc une fois par an immobilise l’équipe et donne un chiffre vite faux. L’inventaire tournant compte un véhicule par semaine, à tour de rôle : avec six camionnettes, chacune passe toutes les six semaines.</p>
+<p>La routine à cocher :</p>
+<ul>
+<li>☐ Choisir le véhicule de la semaine selon un calendrier connu de tous.</li>
+<li>☐ Compter avec la feuille de dotation, bac par bac, avant le départ en tournée.</li>
+<li>☐ Noter la quantité comptée en face de la quantité attendue.</li>
+<li>☐ Pour chaque écart, chercher l’explication tout de suite avec le technicien : une pose non notée se rattrape encore sur la facture.</li>
+<li>☐ Corriger le stock avec la quantité réelle, en gardant la trace de la correction.</li>
+<li>☐ Retirer les produits abîmés, périmés ou inutiles, et revoir la dotation si un produit n’a jamais servi.</li>
+</ul>
+<div class="tableau"><table><thead><tr><th>Écart constaté</th><th>Cause probable</th><th>Action</th></tr></thead><tbody>
+<tr><td>Moins que prévu, et l’intervention existe</td><td>Produit posé mais non noté sur la fiche</td><td>Compléter la fiche, vérifier la facture</td></tr>
+<tr><td>Moins que prévu, sans intervention</td><td>Perte, casse, prêt à un collègue</td><td>Noter la cause, corriger le stock</td></tr>
+<tr><td>Plus que prévu</td><td>Sortie du dépôt non notée</td><td>Rappeler la règle de la trace</td></tr>
+<tr><td>Toujours plein, jamais utilisé</td><td>Dotation trop large</td><td>Rendre au dépôt, baisser la cible</td></tr>
+</tbody></table></div>
+<p>Si votre entreprise inscrit un stock à son bilan, le comptage de clôture doit aussi inclure ce qui se trouve dans les véhicules. Votre expert-comptable vous dira comment le valoriser selon votre statut.</p>
+<h2 id="poids-et-chargement">Poids et chargement : ce que dit le Code de la route</h2>
+<p>Un stock bien rempli pèse. Le poids réel d’un véhicule ne doit pas dépasser le poids total autorisé en charge (PTAC) inscrit sur la carte grise : c’est l’article R312-2 du Code de la route, rappelé par le ministère dans une <a href="https://www.assemblee-nationale.fr/dyn/15/questions/QANR5L15QE12299.pdf" rel="noopener">réponse à une question écrite de l’Assemblée nationale</a> (Journal officiel du 29 janvier 2019). La même réponse indique que les contrôles relèvent de nombreux véhicules utilitaires légers en surcharge, « en moyenne entre 15 et 30 % ».</p>
+<h3 id="calculer-sa-charge-utile">Calculer sa charge utile</h3>
+<p>La charge utile est ce que vous pouvez embarquer. Selon la <a href="https://www.auvergne-rhone-alpes.developpement-durable.gouv.fr/IMG/pdf/surcharge_routiere_cle5fd888.pdf" rel="noopener">note de la DREAL Auvergne-Rhône-Alpes</a> sur la surcharge, elle se calcule ainsi : PTAC moins poids à vide, puis on retire les équipements ajoutés après l’achat et les personnes à bord, à compter 75 kg par personne.</p>
+<div class="tableau"><table><thead><tr><th>Étape</th><th>Calcul</th><th>Résultat</th></tr></thead><tbody>
+<tr><td>1. PTAC (carte grise, exemple)</td><td>—</td><td>3 500 kg</td></tr>
+<tr><td>2. Poids à vide (carte grise, exemple)</td><td>—</td><td>2 100 kg</td></tr>
+<tr><td>3. Charge utile théorique</td><td>3 500 − 2 100</td><td>1 400 kg</td></tr>
+<tr><td>4. Aménagement ajouté (étagères, plancher : hypothèse)</td><td>1 400 − 150</td><td>1 250 kg</td></tr>
+<tr><td>5. Conducteur et un passager</td><td>1 250 − 2 × 75</td><td>1 100 kg</td></tr>
+<tr><td>6. Outillage lourd embarqué en permanence (hypothèse)</td><td>1 100 − 250</td><td>850 kg pour le stock</td></tr>
+</tbody></table></div>
+<p>Ces 850 kg se remplissent vite avec des sacs, des bidons ou des tubes. Pesez une fois le véhicule chargé (sur une bascule publique, par exemple) pour savoir où vous en êtes, et revoyez la dotation des produits lourds en conséquence.</p>
+<h3 id="les-sanctions-et-la-responsabilite">Les sanctions et la responsabilité de l’employeur</h3>
+<p>D’après la <a href="https://www.bretagne.developpement-durable.gouv.fr/IMG/pdf/planche_surcharge.pdf" rel="noopener">fiche du ministère chargé des transports</a> (mars 2016), une surcharge est punie d’une contravention de 4e classe, cumulée autant de fois qu’il y a de tranches de dépassement, et un dépassement de plus de 5 % peut entraîner l’immobilisation du véhicule. La note de la DREAL ajoute deux points qui concernent directement le chef d’entreprise : il doit donner des consignes écrites à ses conducteurs et veiller à leur respect, et l’assureur peut refuser d’indemniser quand le conducteur est en infraction. Elle rappelle aussi qu’un chargement doit être maintenu, par une bâche ou un filet (article R312-19 du Code de la route).</p>
+<h2 id="le-point-de-vue-de-team-op">Le point de vue de TEAM OP</h2>
+<p>Dans les entreprises avec qui nous construisons OP GESTION, le dépôt est souvent bien tenu ; c’est le stock qui roule qui échappe à tout le monde.</p>
+<p>Notre conviction : la trace compte plus que le comptage. Un inventaire parfait une fois par an ne dit pas où sont partis les produits ; une sortie notée au nom de chacun le dit tous les jours. Et le stock affiché doit rester celui de l’étagère : c’est pourquoi, dans notre application, une intervention ne déduit rien d’elle-même. Ce qui a été posé est noté sur la fiche pour le rapport et la facture, et le stock bouge quand un produit sort vraiment.</p>
+<p>Un conseil : écrivez d’abord la dotation d’un seul véhicule, celui du technicien le plus organisé, et servez-vous-en comme modèle.</p>
+<p class="signature">— Justin Biret, fondateur de TEAM OP</p>
+<h2 id="exemples-par-metier">Exemples par métier</h2>
+<h3 id="plombier">Plombier</h3>
+<p>Beaucoup de petites pièces aux références proches : raccords, joints, flexibles, robinetterie courante. Rangez par diamètre dans des bacs étiquetés, et gardez au dépôt les pièces de marque rares, commandées pour un chantier précis. Les tubes et les chauffe-eau pèsent : surveillez la charge utile.</p>
+<h3 id="electricien">Électricien</h3>
+<p>Câble au mètre, disjoncteurs, prises, gaines. Écrivez l’unité du câble (couronne ou mètre) sur la dotation, sinon l’inventaire ne veut rien dire.</p>
+<h3 id="chauffage-et-climatisation">Chauffage et climatisation</h3>
+<p>Une dotation qui change avec la saison : pièces d’entretien de chaudière à l’automne, consommables de climatisation au printemps. Revoyez les quantités cibles deux fois par an plutôt que de tout garder toute l’année.</p>
+<h3 id="nettoyage">Nettoyage</h3>
+<p>Des produits liquides en bidons, des consommables et du petit matériel. Le poids monte vite : préférez un réassort plus fréquent à des bidons de réserve.</p>
+<h3 id="lutte-contre-les-nuisibles-3d">Lutte contre les nuisibles (3D)</h3>
+<p>Appâts, postes d’appâtage, produits d’application : chaque produit utilisé doit se retrouver sur l’intervention, puisqu’il alimente le registre et le rapport remis au client. Rangez les produits à part du reste, dans leurs emballages d’origine, et ne gardez dans le véhicule que la quantité de la tournée.</p>
+<h2 id="le-stock-dans-op-gestion">Le stock dans OP GESTION</h2>
+<p>Dans <a href="/op-gestion.html">OP GESTION</a>, le stockage est votre stock central. Chaque sortie dit pour qui elle est faite, et un bon de remise peut accompagner ce qui est donné : quand un technicien charge sa camionnette, le journal des mouvements garde, produit par produit, qui a pris quoi, quand et pour qui. Les entreprises de lutte contre les nuisibles y ajoutent des box, chacune étant un point de stock : un local, une réserve ou une armoire. L’écran Stock additionne le tout pour un seul total par produit.</p>
+<p>À la livraison, l’arrivage enregistre les quantités reçues et la photo du bon de livraison, et la caméra du téléphone lit l’étiquette d’un produit pour le retrouver. Chaque produit peut avoir un seuil : quand le total passe dessous, la cloche le signale, et la commande suggérée prépare un bon de commande que vous relisez avant de l’envoyer au fournisseur. Vous pouvez aussi exiger qu’un responsable valide les mouvements avant qu’ils ne comptent. Les produits utilisés sont notés sur la fiche d’intervention, pour le rapport et la facture. Le détail est sur la page <a href="/logiciel-gestion-de-stock.html">gestion de stock</a>, et les commandes aux fournisseurs sur la page <a href="/logiciel-bons-de-commande.html">bons de commande</a>.</p>
+<p>Le stock est compris dans la formule Business, à 25 € par mois et par utilisateur (TVA non applicable, article 293 B du CGI). Un abonnement correspond à un utilisateur. Les formules sont détaillées sur la page <a href="/tarifs.html">tarifs</a>.</p>
+<h2 id="faq">FAQ</h2>
+<h3 id="quelle-quantite-mettre-dans-une-camionnette">Quelle quantité de chaque produit mettre dans une camionnette ?</h3>
+<p>Multipliez la consommation moyenne par jour par le nombre de jours entre deux réassorts, puis ajoutez une marge de sécurité. Avec 1,5 pièce par jour, un réassort chaque semaine (5 jours) et une marge de 3, la quantité cible est de 11.</p>
+<h3 id="a-quelle-frequence-faire-linventaire-des-vehicules">À quelle fréquence faire l’inventaire des véhicules ?</h3>
+<p>Un inventaire tournant d’un véhicule par semaine suffit à la plupart des équipes : avec six camionnettes, chacune est comptée toutes les six semaines. Ajoutez le comptage de clôture de l’exercice si votre entreprise inscrit un stock à son bilan.</p>
+<h3 id="comment-savoir-quel-technicien-a-pris-quoi">Comment savoir quel technicien a pris quoi ?</h3>
+<p>En notant chaque sortie du dépôt au nom de celui qui l’emporte, puis en comparant ces sorties aux produits notés sur ses interventions. Un écart signale un oubli de saisie, une pose non facturée ou une perte.</p>
+<h3 id="que-risque-t-on-a-rouler-en-surcharge">Que risque-t-on à rouler en surcharge avec un utilitaire ?</h3>
+<p>Une contravention de 4e classe par tranche de dépassement, et une immobilisation possible du véhicule au-delà de 5 % de dépassement. L’assureur peut aussi refuser d’indemniser un conducteur en infraction, et l’employeur doit donner des consignes écrites à ses conducteurs.</p>
+<h3 id="faut-il-un-stock-identique-dans-chaque-vehicule">Faut-il un stock identique dans chaque véhicule ?</h3>
+<p>Une dotation de base commune simplifie le réassort et l’inventaire. Ajustez-la ensuite selon le métier, le secteur et la spécialité de chaque technicien, à partir de sa consommation réelle.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://www.assemblee-nationale.fr/dyn/15/questions/QANR5L15QE12299.pdf" rel="noopener">Question écrite n° 12299 et réponse du ministère sur le PTAC des véhicules utilitaires légers (Assemblée nationale, JO du 29 janvier 2019)</a></li>
+<li><a href="https://www.auvergne-rhone-alpes.developpement-durable.gouv.fr/IMG/pdf/surcharge_routiere_cle5fd888.pdf" rel="noopener">La surcharge routière, note d’information (DREAL Auvergne-Rhône-Alpes)</a></li>
+<li><a href="https://www.bretagne.developpement-durable.gouv.fr/IMG/pdf/planche_surcharge.pdf" rel="noopener">Le contrôle des limites de charge des véhicules routiers (ministère chargé des transports, mars 2016)</a></li>
+</ul>
+</div>
+<footer class="billet-auteur"><img src="/icons/teamop-192.png" width="48" height="48" alt="" loading="lazy"><div><b>Justin Biret</b><span>Fondateur de TEAM OP. Une question sur cet article : <a href="mailto:contact@teamop.fr">contact@teamop.fr</a></span></div></footer>
+</article>
+<section class="blog-suite" aria-labelledby="a-lire"><h2 id="a-lire">À lire aussi</h2><div class="blog-grille"><a class="blog-carte" href="/blog/planning-des-techniciens.html"><img src="/blog/img/planning-des-techniciens-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-28">28 octobre 2026</time><b>Planning des techniciens : organiser la semaine de son équipe</b><span>Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.</span></span></a><a class="blog-carte" href="/blog/bon-d-intervention.html"><img src="/blog/img/bon-d-intervention-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-25">25 octobre 2026</time><b>Bon d’intervention : modèle, mentions et valeur de preuve</b><span>Bon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.</span></span></a><a class="blog-carte" href="/blog/signature-electronique-devis.html"><img src="/blog/img/signature-devis-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-24">24 octobre 2026</time><b>Signature électronique de devis : valeur, niveaux et marche à suivre</b><span>Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.</span></span></a></div></section>
+<section class="commencer" id="commencer"><div class="commencer-in"><div><h2>Prêt en trois étapes.</h2><ol>
+    <li><b>1</b><span>Créez votre compte TEAM OP.</span></li><li><b>2</b><span>Demandez l'accès à une application.</span></li><li><b>3</b><span>Votre équipe travaille, tout se synchronise.</span></li></ol></div>
+    <div class="boutons"><a href="/espace.html">Créer mon compte</a><a href="/connexion.html?choix=1">Se connecter ›</a></div></div></section>
+</main>
+<footer class="pied"><div class="pied-in"><div class="cols"><div><b>Applications</b><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div><div><b>Métiers</b><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></div><div><b>Tarifs</b><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div><div><b>TEAM OP</b><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/blog/">Blog</a><a href="/espace.html">Espace client</a><a href="/connexion.html?choix=1">Se connecter</a></div><div class="contact"><b>Contact</b><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><small>Une question, une demande</small></div></div>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="/confidentialite.html">Confidentialité</a><a href="/mentions-legales.html">Mentions légales et CGV</a><a href="#" data-cookies>Gestion des cookies</a><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><span class="fin">France</span></div>
+  </div></footer>
+<script src="/vitrine/v2/site.js" defer></script>
+<script src="/cookies.js" defer></script>
+<script src="/audience.js" defer></script>
+</body>
+</html>

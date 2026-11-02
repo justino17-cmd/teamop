@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Wed, 28 Oct 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Mon, 02 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Gestion de stock camionnette : suivre ce que chaque technicien emporte</title>
+<link>https://teamop.fr/blog/gestion-de-stock-camionnette.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/gestion-de-stock-camionnette.html</guid>
+<pubDate>Mon, 02 Nov 2026 06:00:00 GMT</pubDate>
+<description>Gestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.</description>
+<enclosure url="https://teamop.fr/blog/img/gestion-de-stock-camionnette-couverture.webp" type="image/webp" length="20870"/>
+</item>
 <item>
 <title>Planning des techniciens : organiser la semaine de son équipe</title>
 <link>https://teamop.fr/blog/planning-des-techniciens.html</link>
