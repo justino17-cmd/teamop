@@ -13,6 +13,17 @@ de ligne du tout.
 
 ---
 
+# 📍 2 NOVEMBRE 2026 — GOOGLE ANALYTICS, BLOG, STORIES
+
+- **Analytics** : la propriété qui sert est **`teamop.fr`** (559886884, flux « Site teamop.fr », `G-BW7P0K94BZ`, celui de
+  `cookies.js`). Liée à la Search Console le 2 novembre 2026 (une première liaison faite par erreur sur `elan-gestion`
+  a été retirée). Les trois autres propriétés attendent la sortie de Firebase (étape F, plus bas).
+- **Blog** : Gemini refuse les images depuis le 25 octobre (HTTP 429, quota ; facturation non activée) — le refus est
+  maintenant un avertissement (#286). Les trois couvertures sans photo ont reçu celles de Justin (#287, logo et plaque
+  floutés), leurs stories refaites (#288). Rappel de la veille « 📸 Blog prévu demain » (dim., mar., jeu. 17 h 43) :
+  Justin fait les photos, l'article part avec. Stories Instagram et Facebook automatiques (#286) : en attente des
+  quatre secrets Meta (`contenu/blog/INSTAGRAM-STORIES.md`). Rattrapage Gemini : workflow « Rattrapage des photos du blog ».
+
 # 📍 30 OCTOBRE 2026 (fin de journée) — CE QUI EST EN LIGNE, CE QUI ATTEND JUSTIN, LES DETTES
 
 **En ligne (fusionné sur `main`)** : OP GESTION **v782** (tous les packs métier, dont Climatisation / Pompes à chaleur — la variante
@@ -5387,6 +5398,12 @@ L'ordre, et qui fait quoi :
 10. **Étape F** — pages juridiques (Google → l'hébergeur du VPS, `sous-traitance.html:162`,
     `mentions-legales.html:52`), le **registre des traitements** promis à
     `sous-traitance.html:126` et qui n'existe nulle part, puis éteindre le projet Firebase.
+    ⛔ **Et, le même jour, les trois propriétés Google Analytics de Firebase** (compte « Default Account for Firebase ») :
+    `elan-gestion` (533807765), `messagerie-elan` (530197479) et `team-op-29bcc` (537002119). Justin, 2 novembre 2026 :
+    « mets ça de côté, on les supprimera quand on quittera Firebase totalement ». Aucun code ne leur envoie rien (seul
+    identifiant du dépôt : `G-BW7P0K94BZ`). Geste : Administration → Paramètres de la propriété → Propriété → Détails →
+    « Placer dans la corbeille » (35 jours pour revenir). ⛔ NE PAS toucher à `teamop.fr` (559886884) : elle reçoit les
+    visites du site et porte la liaison Search Console (faite le 2 novembre 2026).
 
 Hors du chemin : servir le site depuis le VPS (G) est indépendant — GitHub Pages n'est pas
 Firebase. Calendrier : au moins quatre semaines entre la 1ʳᵉ publication et la coupure (les
