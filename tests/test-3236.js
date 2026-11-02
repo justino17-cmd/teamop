@@ -125,6 +125,10 @@ const srv = http.createServer((q, r) => {
   vrai('l\'étape de publication ne bloque jamais (continue-on-error)', /continue-on-error:\s*true/.test(etape));
   vrai('les secrets viennent de `secrets.`', /IG_USER_ID:\s*\$\{\{\s*secrets\.IG_USER_ID\s*\}\}/.test(etape) && /IG_ACCESS_TOKEN:\s*\$\{\{\s*secrets\.IG_ACCESS_TOKEN\s*\}\}/.test(etape));
   vrai('ce banc fait partie des bancs du blog du workflow', /for t in [^\n]*\b3236\b/.test(W));
+  const GEM = fs.readFileSync(path.join(RACINE, 'scripts/blog-gemini.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+  vrai('⛔ un refus de Gemini (quota, clé absente) devient un avertissement GitHub, pas une ligne perdue du journal',
+    /const dire = \(t, alerte\) => console\.log\(\(alerte && process\.env\.GITHUB_ACTIONS \? '::warning::'/.test(GEM) &&
+    ["photo de couverture refusée", "' refusée (", 'pas de clé GEMINI_API_KEY', 'Gemini injoignable'].every(m => new RegExp("dire\\([^;]*" + m.replace(/[()]/g, '\\$&') + "[^;]*, true\\)").test(GEM)));
   vrai('le mode d\'emploi existe', fs.existsSync(path.join(RACINE, 'contenu/blog/INSTAGRAM-STORIES.md')));
 
   fs.rmSync(tmp, { recursive: true, force: true });
