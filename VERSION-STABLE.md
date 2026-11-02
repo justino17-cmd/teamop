@@ -1,5 +1,13 @@
 # Point stable TeamOP
 
+**Version stable : v785** — 2 novembre 2026, correctif (Justin, à « ça envoie l'utilisateur sur le même profil que moi », chez un client :
+« faut les corrections pour éviter les problèmes… gère ce problème et vérifie le »). Ce qui change pour une entreprise : **un employé qui se
+connecte sur un appareil où le patron est resté connecté arrive sur SON profil**, plus sur celui du patron — les identifiants qu'on vient de
+taper passent avant la session restée ouverte, et le patron qui retape les siens retrouve son compte. Rien d'autre ne change : c'est la v782
+plus ce seul correctif (les nouveautés de la bêta v784 n'y sont pas). Pas d'annonce par courriel. `tests/test-3235.js`.
+
+**Ancien point : v782.**
+
 **Version stable : v782** — 30 octobre 2026 (Justin : « ce qu'il faut, c'est que tu publies OP Gestion, vu que maintenant tous les packs sont
 terminés »). Ce qui change pour une entreprise :
 - **Les packs métier complets** : nettoyage (cahiers, relevés, catalogue), chauffage et plomberie (documents, catalogue, obligations, attestation
