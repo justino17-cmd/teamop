@@ -1,0 +1,21 @@
+{
+  "slug": "gestion-de-stock-camionnette",
+  "prepare": "2026-11-02",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Gestion de stock camionnette : suivre ce que chaque technicien emporte\n\nGestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.\n\nÀ retenir : Écrivez la dotation de chaque véhicule : la liste des produits et la quantité cible. Sans elle, personne ne sait ce qui manque.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/gestion-de-stock-camionnette.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/gestion-de-stock-camionnette-couverture-google.jpg"
+      }
+    ]
+  }
+}

@@ -1,5 +1,36 @@
 [
  {
+  "slug": "gestion-de-stock-camionnette",
+  "titre": "Gestion de stock camionnette : suivre ce que chaque technicien emporte",
+  "description": "Gestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.",
+  "date": "2026-11-02",
+  "image": "gestion-de-stock-camionnette-couverture.webp",
+  "imageAlt": "Couverture bleu nuit avec le titre : Gestion de stock camionnette, suivre ce que chaque technicien emporte",
+  "faq": [
+   {
+    "q": "Quelle quantité de chaque produit mettre dans une camionnette ?",
+    "r": "Multipliez la consommation moyenne par jour par le nombre de jours entre deux réassorts, puis ajoutez une marge de sécurité. Avec 1,5 pièce par jour, un réassort chaque semaine (5 jours) et une marge de 3, la quantité cible est de 11."
+   },
+   {
+    "q": "À quelle fréquence faire l’inventaire des véhicules ?",
+    "r": "Un inventaire tournant d’un véhicule par semaine suffit à la plupart des équipes : avec six camionnettes, chacune est comptée toutes les six semaines. Ajoutez le comptage de clôture de l’exercice si votre entreprise inscrit un stock à son bilan."
+   },
+   {
+    "q": "Comment savoir quel technicien a pris quoi ?",
+    "r": "En notant chaque sortie du dépôt au nom de celui qui l’emporte, puis en comparant ces sorties aux produits notés sur ses interventions. Un écart signale un oubli de saisie, une pose non facturée ou une perte."
+   },
+   {
+    "q": "Que risque-t-on à rouler en surcharge avec un utilitaire ?",
+    "r": "Une contravention de 4e classe par tranche de dépassement, et une immobilisation possible du véhicule au-delà de 5 % de dépassement. L’assureur peut aussi refuser d’indemniser un conducteur en infraction, et l’employeur doit donner des consignes écrites à ses conducteurs."
+   },
+   {
+    "q": "Faut-il un stock identique dans chaque véhicule ?",
+    "r": "Une dotation de base commune simplifie le réassort et l’inventaire. Ajustez-la ensuite selon le métier, le secteur et la spécialité de chaque technicien, à partir de sa consommation réelle."
+   }
+  ],
+  "photo": "A field technician checking the parts and supplies stored on the shelves of an open work van parked in front of a small French company depot"
+ },
+ {
   "slug": "planning-des-techniciens",
   "titre": "Planning des techniciens : organiser la semaine de son équipe",
   "description": "Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.",
