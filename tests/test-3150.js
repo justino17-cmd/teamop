@@ -18,10 +18,10 @@ const { demarrer, dormir } = require('./banc-serveur-courrier.js');
 const { simpleParser } = require(path.join(RACINE, 'server', 'node_modules', 'mailparser'));
 let ok = 0, ko = 0;
 const v = (nom, obtenu, attendu) => { const a = JSON.stringify(obtenu), b = JSON.stringify(attendu); if (a === b) { ok++; console.log('  ✓ ' + nom); } else { ko++; console.log('  ✗ ' + nom + '\n      obtenu  ' + a + '\n      attendu ' + b); } };
-const CONTACT = 'contact@banc-courrier.fr';
+const CONTACT = 'contact@banc-courrier.fr', JUSTIN = 'justin@banc-courrier.fr';   // deux boîtes de l'équipe qui aboutissent chez la même personne : le cas réel
 
 (async () => {
-  const S = await demarrer({ comptes: true, smtpFrom: 'TeamOP <' + CONTACT + '>', contactEmail: CONTACT, conf: { comptesScanMs: 1500 },
+  const S = await demarrer({ comptes: true, smtpFrom: 'TeamOP <' + CONTACT + '>', contactEmail: CONTACT, conf: { comptesScanMs: 1500, notifDemandes: JUSTIN },
     avant: D => fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({ 'toka-clim': { slug: 'toka-clim', t: 'teamToka', email: 'patron@toka-3150.fr', nom: 'Toka Clim', formule: 'pro', ts: Date.now() } })) });
   try {
     if (!S.vivant) { ko++; console.log('  ✗ le serveur ne démarre pas\n' + S.journal().slice(-1500)); return; }
@@ -44,10 +44,10 @@ const CONTACT = 'contact@banc-courrier.fr';
     v('§1 … sans copie cachée (il porte un lien personnel)', conf[0] && conf[0].rcpt, [ADR]);
     const avis = de(L, /Nouveau compte/);
     v('§1 UN SEUL avis « Nouveau compte » à l\'équipe', avis.length, 1);
-    v('§1 … reçu UNE fois par la boîte de contact (pas de copie cachée vers elle-même)', avis[0] && avis[0].rcpt, [CONTACT]);
+    v('§1 … reçu UNE fois, par la boîte des demandes (pas de copie cachée en plus)', avis[0] && avis[0].rcpt, [JUSTIN]);
     v('§1 … avec le nom et l\'entreprise de l\'inscription', [/Garnier|Prénom|Nom/.test(avis[0] ? avis[0].texte : ''), /MS Garnier/.test(avis[0] ? avis[0].sujet + avis[0].texte : '')], [true, true]);
-    const tousAContact = L.filter(x => x.rcpt.includes(CONTACT));
-    v('§1 aucun message n\'atteint la boîte de contact deux fois (même sujet)', tousAContact.length, new Set(tousAContact.map(x => x.sujet)).size);
+    const internes = L.filter(x => x.rcpt.includes(CONTACT) || x.rcpt.includes(JUSTIN));
+    v('§1 aucun avis n\'atteint l\'équipe deux fois (même sujet)', internes.length, new Set(internes.map(x => x.sujet)).size);
 
     /* § 3 — l'accusé d'une demande (entreprise neuve, puis entreprise déjà ouverte) */
     const avant = S.fact.enveloppes.length;
@@ -56,8 +56,8 @@ const CONTACT = 'contact@banc-courrier.fr';
     L = (await lus()).slice(avant);
     const acc = de(L, /Votre demande est bien reçue/);
     v('§3 entreprise neuve : UN accusé, « nous préparons votre espace »', [acc.length, /prépare votre espace/.test(acc[0] ? acc[0].texte : '')], [1, true]);
-    v('§3 … au client, avec UNE copie pour l\'équipe (la trace voulue)', acc[0] && acc[0].rcpt.slice().sort(), ['neuve@exemple-3150.fr', ('teamop <' + CONTACT + '>').toLowerCase()].map(x => x.replace(/^.*<|>$/g, '')).sort());
-    v('§3 UN avis « Nouvelle demande à traiter », reçu une fois', [de(L, /Nouvelle demande à traiter/).length, (de(L, /Nouvelle demande à traiter/)[0] || {}).rcpt], [1, [('teamop <' + CONTACT + '>').replace(/^.*<|>$/g, '')]]);
+    v('§3 … au client, avec UNE copie pour l\'équipe (la trace voulue)', acc[0] && acc[0].rcpt.slice().sort(), [JUSTIN, 'neuve@exemple-3150.fr'].sort());
+    v('§3 UN avis « Nouvelle demande à traiter », reçu une fois', [de(L, /Nouvelle demande à traiter/).length, (de(L, /Nouvelle demande à traiter/)[0] || {}).rcpt], [1, [JUSTIN]]);
     const avant2 = S.fact.enveloppes.length;
     await S.inscrire('patron@toka-3150.fr', 'Toka Clim', [{ app: 'OP GESTION', formule: 'Pro', metier: 'chauffage', date: Date.now() }]);
     await S.attendre(async () => de((await lus()).slice(avant2), /Votre demande est bien reçue/).length > 0, 8000);
@@ -79,7 +79,7 @@ const CONTACT = 'contact@banc-courrier.fr';
     await S.public('/api/bug', { teamId: 'banc-3150', app: 'opgestion', version: '1', msg: 'Erreur de banc 3150 ' + Date.now(), src: 'banc', line: 1 });
     await S.attendre(async () => de((await lus()).slice(avant3), /Bug/).length > 0, 8000);
     const bug = de((await lus()).slice(avant3), /Bug/);
-    v('§2 un avis de bug à « contact@… » : UNE enveloppe, UN destinataire (plus de copie cachée vers la même boîte)', [bug.length, bug[0] && bug[0].rcpt], [1, [CONTACT]]);
+    v('§2 un avis de bug à « contact@… » : UNE enveloppe, UN destinataire (plus de copie cachée vers l\'autre boîte de l\'équipe)', [bug.length, bug[0] && bug[0].rcpt], [1, [CONTACT]]);
     /* … et la règle, lue dans le code (la forme, pas une phrase) */
     const SRC = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     v('§2 la copie cachée compare des adresses nues, à toutes les adresses de l\'équipe', [/const nus = String\(opts\.to \|\| ''\)\.split\(','\)\.map\(adrNue\)/.test(SRC), /!nus\.some\(a => internes\.has\(a\)\)\) o2\.bcc = moi/.test(SRC)], [true, true]);
