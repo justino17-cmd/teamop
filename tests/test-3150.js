@@ -73,7 +73,14 @@ const CONTACT = 'contact@banc-courrier.fr';
     const sup = await S.post('/api/monitor/comptes-site/supprimer', { email: ADR });
     v('§4 supprimer un compte à fiche seule : refus qui renvoie vers les Demandes, pas vers une entreprise', [sup.s, /Demandes/.test(sup.j.error || ''), /pas encore d'entreprise/.test(sup.j.error || '')], [409, true, true]);
 
-    /* § 2 — la règle de la copie cachée, lue dans le code (la forme, pas une phrase) */
+    /* § 2 — la copie cachée, JOUÉE : un signalement de bug part à l'adresse de contact écrite NUE (« contact@… ») pendant que l'expéditeur est
+       « TeamOP <contact@…> » — c'est exactement le cas qui faisait arriver chaque avis deux fois dans la même boîte. */
+    const avant3 = S.fact.enveloppes.length;
+    await S.public('/api/bug', { teamId: 'banc-3150', app: 'opgestion', version: '1', msg: 'Erreur de banc 3150 ' + Date.now(), src: 'banc', line: 1 });
+    await S.attendre(async () => de((await lus()).slice(avant3), /Bug/).length > 0, 8000);
+    const bug = de((await lus()).slice(avant3), /Bug/);
+    v('§2 un avis de bug à « contact@… » : UNE enveloppe, UN destinataire (plus de copie cachée vers la même boîte)', [bug.length, bug[0] && bug[0].rcpt], [1, [CONTACT]]);
+    /* … et la règle, lue dans le code (la forme, pas une phrase) */
     const SRC = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     v('§2 la copie cachée compare des adresses nues, à toutes les adresses de l\'équipe', [/const nus = String\(opts\.to \|\| ''\)\.split\(','\)\.map\(adrNue\)/.test(SRC), /!nus\.some\(a => internes\.has\(a\)\)\) o2\.bcc = moi/.test(SRC)], [true, true]);
     v('§2 « Corrigé » marque l\'envoi AVANT le premier courriel (deux appuis ne font pas deux envois)', /if \(statut === 'corrige' && !issue\.mailEnvoye\) \{\s*issue\.mailEnvoye = true;/.test(SRC), true);
