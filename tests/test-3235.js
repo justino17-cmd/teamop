@@ -1,44 +1,74 @@
-/* ⛔ CE QUE CE FICHIER GARDE — LA PASTILLE « Messagerie » DE LA TOUR EST UN ROND QUI SUIT OP MESSAGES (30 octobre 2026, Tour v2.127).
-
-   Justin : « ça m'affiche 13 messages alors que pas du tout ; un petit rond quand j'ai une notification dans OP MESSAGES, et quand il n'y a plus rien,
-   que ça n'affiche rien ». Le 13 additionnait les non-lus de l'ANCIENNE messagerie de la Tour. Les VRAIES `msBadge` et `opmsgNonLusCharger` de tour.html :
-     1. pont présent : un ROND (classe `bdg-point`, aucun chiffre) s'il reste un non-lu dans OP MESSAGES ou un mail de Pauline ; RIEN sinon — l'ancien compteur
-        ne compte plus ;
-     2. « on ne sait pas » (nonLus null) garde l'état d'avant, n'allume ni n'éteint rien ;
-     3. sans pont : l'ancien compteur, inchangé. Le côté serveur (OP MESSAGES → Tour) est joué de bout en bout par test-3095. */
-const fs = require('fs'), vm = require('vm'), path = require('path');
-const SRC = fs.readFileSync(path.join(__dirname, '..', 'tour.html'), 'utf8');
+/* ⛔ L'EMPLOYÉ QUI SE CONNECTE SUR L'APPAREIL DU PATRON ARRIVE SUR SON PROPRE PROFIL — 2 novembre 2026.
+ * Un client de Justin : « ça envoie l'utilisateur sur le même profil que moi ». Reproduit sur le jumeau (scripts/controle) : sur un
+ * appareil où le patron reste connecté (elan_session), l'employé tape SES identifiants dans connexion.html, qui range un jeton
+ * elan_cnx_auto puis ouvre app.html — et boot() rouvrait la session du patron avant que l'écran de connexion lise le jeton.
+ * Ce banc EXÉCUTE les vraies tranches d'app.html (boot : le choix de la session ; cnxAutoEnAttente ; cnxAutoTenter) :
+ *   § 1  jeton frais d'un AUTRE compte → l'ancienne session est fermée, on passe par l'écran de connexion ;
+ *   § 2  jeton du MÊME compte, jeton périmé, pas de jeton → la session reprend comme avant ;
+ *   § 3  cnxAutoTenter sans « rester connecté » retire la session d'un autre compte restée dans localStorage
+ *        (getSession() lit localStorage d'abord : au rechargement, le patron reprenait la main).
+ */
+'use strict';
+const fs = require('fs'), path = require('path');
+const SRC = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
 let ok = 0, ko = 0;
-const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a)); } };
-const corps = nom => { const i = SRC.indexOf('function ' + nom + '('); if (i < 0) return ''; let p = SRC.indexOf('{', i), n = 0, j = p; for (; j < SRC.length; j++) { if (SRC[j] === '{') n++; else if (SRC[j] === '}' && --n === 0) break; } return SRC.slice(i, j + 1); };
-console.log('\n── 3235 · la pastille Messagerie suit OP MESSAGES ──');
-const src = ['msBadge', 'opmsgNonLusCharger', 'setBdg'].map(corps).join('\n');
-v('(population) les trois fonctions sont trouvées dans tour.html', ['msBadge', 'opmsgNonLusCharger', 'setBdg'].every(n => src.includes('function ' + n + '(')), true);
-function monter(reponse) {
-  const el = id => ({ id, textContent: '0', style: { display: 'none' }, cls: new Set(), attrs: {}, classList: { toggle(c, on) { on ? this._s.add(c) : this._s.delete(c); }, remove(c) { this._s.delete(c); }, add(c) { this._s.add(c); }, _s: null }, setAttribute(k, x) { this.attrs[k] = x; }, get offsetWidth() { return 0; } });
-  const E = { 'bdg-msgr': el('bdg-msgr'), 'bdg-msgr-bas': el('bdg-msgr-bas') };
-  Object.values(E).forEach(e => { e.classList._s = e.cls; });
-  const W = { $: id => E[id] || null, MYROLE: 'patron', MS: { nonLus: 13 }, MS_PA: { n: 0 }, attendCompte: () => 0, renderBarreBas() {}, majHaut() {}, majBarreBas() {}, tiroirRafraichir() {},
-    apiGet: async () => reponse.d, console };
-  vm.createContext(W); vm.runInContext(src, W);
-  return { W, E };
+const v = (nom, c) => { if (c) { ok++; console.log('  ✓ ' + nom); } else { ko++; console.log('  ✗ ' + nom); } };
+
+const fonction = nom => { const i = SRC.indexOf('function ' + nom + '('); if (i < 0) return '';
+  let j = SRC.indexOf('{', i), d = 0; for (let k = j; k < SRC.length; k++) { if (SRC[k] === '{') d++; else if (SRC[k] === '}' && !--d) return SRC.slice(i, k + 1); } return ''; };
+const iDeb = SRC.indexOf("  let u=db.users.find(x=>x.id===getSession()&&x.actif);");
+const iFin = SRC.indexOf("  if(u){ _cnxVia='session'; enterApp(u); }", iDeb);
+v('la tranche de boot() qui choisit la session est trouvée', iDeb > 0 && iFin > iDeb);
+const TRANCHE = SRC.slice(iDeb, iFin) + "  if(u){ _cnxVia='session'; enterApp(u); } else renderLogin();";
+const AUTO = fonction('cnxAutoEnAttente'), TENTER = fonction('cnxAutoTenter'), GETS = fonction('getSession');
+v('cnxAutoEnAttente, cnxAutoTenter et getSession sont trouvées', !!(AUTO && TENTER && GETS));
+
+const stock = init => { const m = new Map(Object.entries(init || {})); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, x) => m.set(k, String(x)), removeItem: k => m.delete(k), _m: m }; };
+const H = 'a'.repeat(64);
+const USERS = [{ id: 'patron', login: 'camille', actif: true, pwdHash: 'b'.repeat(64) }, { id: 'emp', login: 'marc.employe', actif: true, pwdHash: H }];
+
+function boot({ session, jeton }) {
+  const localStorage = stock(session ? { elan_session: session } : {}), sessionStorage = stock(jeton ? { elan_cnx_auto: JSON.stringify(jeton) } : {});
+  const trace = { entre: null, login: false };
+  const f = new Function('localStorage', 'sessionStorage', 'db', 'enterApp', 'renderLogin',
+    GETS + AUTO + 'let _cnxVia="";' + TRANCHE);
+  f(localStorage, sessionStorage, { users: USERS }, u => { trace.entre = u.id; }, () => { trace.login = true; });
+  return { trace, ls: localStorage, ss: sessionStorage };
 }
-const etat = e => ({ visible: e.style.display !== 'none', rond: e.cls.has('bdg-point'), texte: String(e.textContent) });
+const frais = login => ({ login, h: H, rester: false, ts: Date.now() });
+
+/* § 1 */
+let r = boot({ session: 'patron', jeton: frais('marc.employe') });
+v('§1 patron connecté + identifiants de l\'employé : la session du patron n\'est PAS rouverte', r.trace.entre === null && r.trace.login === true);
+v('§1 … et elle est fermée (ni localStorage ni sessionStorage)', r.ls.getItem('elan_session') === null && r.ss.getItem('elan_session') === null);
+v('§1 … le jeton reste pour l\'écran de connexion', !!r.ss.getItem('elan_cnx_auto'));
+r = boot({ session: 'patron', jeton: frais('MARC.EMPLOYE') });
+v('§1 l\'identifiant se compare sans la casse (connexion.html le garde tel que tapé)', r.trace.entre === null);
+
+/* § 2 */
+r = boot({ session: 'patron', jeton: frais('camille') });
+v('§2 le patron retape SES identifiants : sa session reprend, rien ne change', r.trace.entre === 'patron');
+r = boot({ session: 'patron', jeton: Object.assign(frais('marc.employe'), { ts: Date.now() - 300000 }) });
+v('§2 un jeton périmé (5 min) ne ferme rien', r.trace.entre === 'patron');
+r = boot({ session: 'patron', jeton: null });
+v('§2 sans jeton, la session reprend comme avant', r.trace.entre === 'patron');
+r = boot({ session: null, jeton: frais('marc.employe') });
+v('§2 sans session, l\'écran de connexion (comme avant)', r.trace.login === true && r.trace.entre === null);
+
+/* § 3 — la vraie cnxAutoTenter, jusqu'à l'entrée */
 (async () => {
-  const R = { d: { ok: true, pont: true, nonLus: 2 } }, { W, E } = monter(R);
-  W.msBadge();
-  v('sans réponse encore : l’ancien compteur (13) — c’est lui qui s’affichait à tort', etat(E['bdg-msgr']), { visible: true, rond: false, texte: '13' });
-  W.opmsgNonLusCharger(); await new Promise(r => setTimeout(r, 5));
-  v('⛔ pont présent, 2 non-lus dans OP MESSAGES : un ROND, sans chiffre (le 13 ne compte plus)', [etat(E['bdg-msgr']).visible, etat(E['bdg-msgr']).rond, /\d/.test(E['bdg-msgr'].textContent)], [true, true, false]);
-  v('… et le rond de la barre du bas aussi', E['bdg-msgr-bas'].cls.has('bdg-point'), true);
-  R.d = { ok: true, pont: true, nonLus: null }; W.opmsgNonLusCharger(); await new Promise(r => setTimeout(r, 5));
-  v('⛔ « on ne sait pas » (OP MESSAGES muet) : le rond reste comme il était', etat(E['bdg-msgr']).rond, true);
-  R.d = { ok: true, pont: true, nonLus: 0 }; W.opmsgNonLusCharger(); await new Promise(r => setTimeout(r, 5));
-  v('⛔ tout lu dans OP MESSAGES : RIEN ne s’affiche', [etat(E['bdg-msgr']).visible, etat(E['bdg-msgr']).rond], [false, false]);
-  W.MS_PA.n = 13; W.msBadge();
-  v('⛔ des mails de Pauline EN ATTENTE ne rallument pas le rond (ils sont dans son fil d’OP MESSAGES) — c’était le « 13 »', [etat(E['bdg-msgr']).visible, etat(E['bdg-msgr']).rond], [false, false]);
-  const S = monter({ d: { ok: true, pont: false, nonLus: null } }); S.W.opmsgNonLusCharger(); await new Promise(r => setTimeout(r, 5));
-  v('sans pont : l’ancien compteur, inchangé', etat(S.E['bdg-msgr']), { visible: true, rond: false, texte: '13' });
-  v('le style du rond existe (9 px, sans chiffre)', /\.bdg-r\.bdg-point,\.bdg-b\.bdg-point\{min-width:0;width:9px;height:9px;padding:0;font-size:0/.test(SRC), true);
-  console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0);
-})();
+  async function tenter(rester) {
+    const localStorage = stock({ elan_session: 'patron' }), sessionStorage = stock({ elan_cnx_auto: JSON.stringify(Object.assign(frais('marc.employe'), { rester })) });
+    let entre = null;
+    const f = new Function('localStorage', 'sessionStorage', 'db', 'enterApp', 'syncAttendre', 'syncEnabled', 'syncInit', 'toast', 'document', 'setTimeout',
+      'let _syncOn=true,_syncDemarre=true,_cnxVia="";function cnxAutoRevele(){}async ' + TENTER + ';return cnxAutoTenter();');
+    await f(localStorage, sessionStorage, { users: USERS }, u => { entre = u.id; }, async () => {}, () => true, () => {}, () => {}, { getElementById: () => null }, () => 0);
+    return { entre, ls: localStorage.getItem('elan_session'), ss: sessionStorage.getItem('elan_session') };
+  }
+  let t = await tenter(false);
+  v('§3 sans « rester connecté » : l\'employé entre', t.entre === 'emp' && t.ss === 'emp');
+  v('§3 … et la session du patron ne reste pas dans localStorage (le rechargement ne le ramène pas au patron)', t.ls === null);
+  t = await tenter(true);
+  v('§3 avec « rester connecté » : sa session à lui est gardée', t.entre === 'emp' && t.ls === 'emp');
+  console.log(`════ test-3235 : ${ok} ✓ ${ko} ✗ ════`); process.exit(ko ? 1 : 0);
+})().catch(e => { console.log('  ✗ exception ' + (e && e.stack || e)); console.log(`════ test-3235 : ${ok} ✓ ${ko + 1} ✗ ════`); process.exit(1); });

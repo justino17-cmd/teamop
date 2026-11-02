@@ -8719,7 +8719,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '784-beta';
+const APP_VERSION = '786-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -46661,7 +46661,17 @@ async function boot(){
     if(!BETA_ESSAI && espaceRattache() && !(db.users||[]).length && syncEnabled()){
       renderCreateAdminAttente(); try{ syncInit(); }catch(e){} return; }
     renderCreateAdmin(); return; }
-  const u=db.users.find(x=>x.id===getSession()&&x.actif); if(u){ _cnxVia='session'; enterApp(u); }
+  /* ⛔ DES IDENTIFIANTS QU'ON VIENT DE TAPER PASSENT AVANT LA SESSION RESTÉE OUVERTE. 2 novembre 2026, chez un client de Justin :
+     « ça envoie l'utilisateur sur le même profil que moi ». Sur l'appareil où le patron reste connecté, l'employé tape SES
+     identifiants dans connexion.html (jeton elan_cnx_auto) — et boot() rouvrait la session du patron AVANT de lire le jeton :
+     cnxAutoTenter n'est appelée que par l'écran de connexion, qui ne se dessinait jamais. Reproduit sur le jumeau. Un jeton
+     frais au nom d'un AUTRE compte ferme donc l'ancienne session ; l'écran de connexion le consomme (cnxAutoTenter). */
+  let u=db.users.find(x=>x.id===getSession()&&x.actif);
+  try{ const _jl=cnxAutoEnAttente();
+    if(u && _jl && String(u.login||'').toLowerCase()!==_jl.toLowerCase()){
+      try{ localStorage.removeItem('elanB_session'); sessionStorage.removeItem('elanB_session'); }catch(_e){}
+      u=null; } }catch(e){}
+  if(u){ _cnxVia='session'; enterApp(u); }
   else { try{ if(syncEnabled()) syncInit(); }catch(e){} renderLogin();   // les comptes de l'entreprise arrivent AVANT la connexion (appareil neuf via le lien)
     // on venait de « Mot de passe oublié » avant la bascule d'espace : on rouvre la fenêtre, identifiant et e-mail pré-remplis
     try{ if(localStorage.getItem('elanB_apres_bascule')==='mdp-oublie'){ localStorage.removeItem('elanB_apres_bascule'); setTimeout(pwdForgotModal,500); } }catch(e){} } }
@@ -47238,6 +47248,9 @@ async function cnxAutoTenter(){
   try{
     sessionStorage.setItem('elanB_session',u.id);
     if(j.rester){ localStorage.setItem('elanB_session',u.id); localStorage.setItem('elanB_savedLogin',u.login); }
+    /* getSession() lit localStorage D'ABORD : la session d'un autre compte qui y resterait reprendrait la main au
+       prochain chargement (l'employé connecté « sans rester » repartirait sur le profil du patron). */
+    else if(localStorage.getItem('elanB_session') && localStorage.getItem('elanB_session')!==u.id) localStorage.removeItem('elanB_session');
   }catch(e){}
   _cnxVia='adresse';   // par quel chemin on arrive — la Tour le lit
   enterApp(u);
