@@ -303,7 +303,14 @@ function mailerEnvoi(opts) {
        écrit à un client. Elle devient nuisible sur une diffusion : l'annonce revient UNE FOIS PAR
        ENTREPRISE dans la boîte support. Avec deux entreprises c'est déjà deux copies ; avec
        cinquante, les vrais messages clients sont noyés. */
-    if (moi && !secret && !opts.diffusion && String(opts.to || '').toLowerCase() !== moi) o2.bcc = moi;
+    /* ⛔⛔ ON COMPARE DES ADRESSES, PAS DES CHAÎNES — ET UNE BOÎTE DE L'ÉQUIPE NE REÇOIT JAMAIS SA PROPRE COPIE (Justin, 2 novembre
+       2026 : « je reçois les mails en double, c'est une horreur »). `moi` vaut souvent « TeamOP <contact@teamop.fr> » (`set-smtp.sh`) et
+       un avis interne part à « contact@teamop.fr » (`contactEmail`, `alertEmail`) : les deux CHAÎNES diffèrent, la copie cachée partait
+       donc vers la boîte même qui recevait l'original — chaque avis arrivait deux fois. Pareil quand l'avis va à une autre adresse de
+       l'équipe qui aboutit chez Justin. On compare l'adresse nue de CHAQUE destinataire à toutes les adresses internes. */
+    const nus = String(opts.to || '').split(',').map(adrNue).filter(Boolean);
+    const internes = new Set([moi, config.notifDemandes, config.contactEmail, config.alertEmail, config.securiteEmail, config.smtp && config.smtp.from, config.smtp && config.smtp.user].map(adrNue).filter(Boolean));
+    if (moi && !secret && !opts.diffusion && nus.length && !nus.some(a => internes.has(a))) o2.bcc = moi;
     // un e-mail confidentiel adressé à notre boîte de sécurité : la Tour ne le cache ni ne l'efface (voir plus haut)
     if (secret && adrNue(opts.to) && adrNue(opts.to) === adrNue(supprDest())) o2.messageId = mailProtegeNouveau();
   } catch (e) {}
@@ -1157,39 +1164,23 @@ app.post('/api/bug', (req, res) => {
    un relais à spam offert à Internet. Le quota par IP borne le reste — au pire du bruit
    dans la boîte de l'équipe, et seulement dix fois par heure. */
 const compteQuota = new Map();
+/* ⛔⛔ UNE INSCRIPTION = UN SEUL AVIS À L'ÉQUIPE (Justin, 2 novembre 2026 : « je reçois les mails en double »). Cette route envoyait
+   « 🎉 Nouveau compte sur teamop.fr » tout de suite, ET le passage des comptes (`scannerComptes`, toutes les dix minutes) envoyait
+   « 👤 Nouveau compte sur le site » pour le même compte : deux courriels par inscription. C'est le passage qui reste — il lit NOS comptes
+   (`comptes.js`), cette route n'est qu'une déclaration publique que n'importe qui peut appeler. Elle ne fait plus que retenir, une heure,
+   le prénom, le nom et l'entreprise tapés à l'inscription (`comptes.js` ne les reçoit pas) : l'avis du passage les reprend. Rien ne part
+   d'ici, rien n'entre dans les journaux. */
+const nomsInscription = new Map();   // adresse → { prenom, nom, societe, ts }, une heure au plus, 2 000 adresses au plus
 app.post('/api/nouveau-compte', (req, res) => {
   const b = req.body || {};
   const email = monStr(b.email, 160).trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'adresse invalide' });
   if (compteQuota.size > 5000) compteQuota.clear();
   if (!quotaOk(compteQuota, 'ip:' + (req.ip || '?'), 10, 3600000)) return res.json({ ok: true, muted: true });
-  const prenom = monStr(b.prenom, 60).trim(), nom = monStr(b.nom, 60).trim();
-  const societe = monStr(b.company, 120).trim();
-  const qui = ((prenom + ' ' + nom).trim() || '(nom non renseigné)');
-  /* Rien de tout cela ne part dans les journaux : ce sont des données personnelles,
-     elles ne vont que dans l'e-mail adressé à l'équipe. */
-  if (mailer) {
-    const to = config.alertEmail || config.contactEmail || 'contact@teamop.fr';
-    mailerEnvoi({
-      from: config.smtp.from || config.smtp.user, to,
-      subject: '🎉 Nouveau compte sur teamop.fr — ' + (societe || qui),
-      text: 'Un compte vient d\'être créé sur l\'espace client.\n\nEntreprise : ' + (societe || '—')
-        + '\nPersonne : ' + qui + '\nAdresse : ' + email
-        + '\n\nLa fiche est dans la Tour de contrôle, onglet Entreprises.',
-      html: mailTeamOP({ chip: 'Inscription', chipBg: '#E8F5EE', chipColor: '#0A7A52',
-        titre: '🎉 Nouveau compte — ' + (societe || qui),
-        corpsHtml: 'Un compte vient d\'être créé sur l\'espace client de teamop.fr.',
-        blocHtml: '<div style="font-size:14px;line-height:1.9">'
-          + '<b>Entreprise :</b> ' + (societe || '—') + '<br>'
-          + '<b>Personne :</b> ' + qui + '<br>'
-          + '<b>Adresse :</b> ' + email + '</div>',
-        boutonTxt: 'Ouvrir la Tour de contrôle', boutonUrl: 'https://teamop.fr/tour.html' })
-    }).catch(e => console.error('mail nouveau compte:', e.message));
-  }
-  /* ⛔ LÉA N'EST PAS APPELÉE D'ICI. Cette route est PUBLIQUE et ne prouve aucune adresse : y déclencher Léa laissait un anonyme épuiser ses 20 appels du
-     jour, remplir la file de validations de Justin (le vrai prospect du lendemain recevait « file pleine ») et lui faire valider un courriel à l'adresse
-     de son choix (relecture adverse, 23 octobre 2026). Son premier déclencheur est la PREMIÈRE synchro d'un compte dont l'adresse est PROUVÉE
-     (`/api/clients/sync`, plus bas) — le courriel à l'équipe ci-dessus, lui, reste ici. */
+  const maintenant = Date.now();
+  for (const [k, v] of nomsInscription) if (maintenant - v.ts > 3600000) nomsInscription.delete(k);
+  if (nomsInscription.size < 2000 && !nomsInscription.has(email))
+    nomsInscription.set(email, { prenom: monStr(b.prenom, 60).trim(), nom: monStr(b.nom, 60).trim(), societe: monStr(b.company, 120).trim(), ts: maintenant });
   res.json({ ok: true });
 });
 
@@ -6755,7 +6746,12 @@ try {
     } });
   /* UNE alerte par COMPTE NEUF du site (nos comptes, `comptes.js`) qui n'a pas d'espace : le passage se fait toutes les dix minutes (`config.comptesScanMs` pour un banc), le premier
      une minute après le démarrage. La notification ne dit que « un compte » ; le courriel à Justin porte l'adresse et le nom (c'est son métier) ; le journal, rien. */
-  const alerteCompte = async (c) => {
+  const alerteCompte = async (c0) => {
+    const cle = String((c0 && c0.email) || '').toLowerCase(), n0 = nomsInscription.get(cle);
+    nomsInscription.delete(cle);   // lu une fois, puis oublié
+    const n = n0 && Date.now() - n0.ts <= 3600000 ? n0 : {};
+    const declare = !!(n.prenom || n.nom || n.societe) && !((c0 && (c0.prenom || c0.nom || c0.societe)));
+    const c = Object.assign({}, c0, { prenom:(c0 && c0.prenom) || n.prenom || '', nom:(c0 && c0.nom) || n.nom || '', societe:(c0 && c0.societe) || n.societe || '' });
     try { await pousserALaTour('Nouveau compte sur le site', 'Un compte vient d’être créé : à ouvrir dans la Tour (Demandes).', '/tour.html#demandes', '/tour.html#demandes'); } catch (e) {}
     try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', 'Nouveau compte sur le site (sans espace) : à ouvrir dans la Tour (Demandes).', { cle: 'compte-site:' + String(c.cree || '') + ':' + c.email.length }); } catch (e) {}
     if (mailer) {
@@ -6763,11 +6759,11 @@ try {
       const une = x => String(x || '').replace(/[\r\n]+/g, ' ');
       const nom = une([c.prenom, c.nom].filter(Boolean).join(' ')).slice(0, 80);
       await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: '👤 Nouveau compte sur le site' + (c.societe ? ' — ' + une(c.societe).slice(0, 60) : ''),
-        text: 'Un compte vient d\'être créé sur l\'Espace client de teamop.fr.\n\n' + (nom ? 'Nom : ' + nom + '\n' : '') + (c.societe ? 'Entreprise : ' + une(c.societe).slice(0, 80) + '\n' : '') + 'E-mail : ' + c.email + '\n\nIl n\'a pas encore d\'espace. Tour → Demandes → « Comptes du site sans espace » → « Ouvrir son accès » (ou « Ignorer » si ce n\'est pas un client).\n\nhttps://teamop.fr/tour.html' });
+        text: 'Un compte vient d\'être créé sur l\'Espace client de teamop.fr.\n\n' + (nom ? 'Nom : ' + nom + (declare ? ' (déclaré à l\'inscription, non vérifié)' : '') + '\n' : '') + (c.societe ? 'Entreprise : ' + une(c.societe).slice(0, 80) + (declare ? ' (déclarée, non vérifiée)' : '') + '\n' : '') + 'E-mail : ' + c.email + '\n\nIl n\'a pas encore d\'espace. Tour → Demandes → « Comptes du site sans espace » → « Ouvrir son accès » (ou « Ignorer » si ce n\'est pas un client).\n\nhttps://teamop.fr/tour.html' });
       console.log('mail nouveau compte du site envoyé →', masqueMail(dest));
     }
   };
-  const passageComptes = () => { try { demandeSiteMod.scannerComptes({ liste: () => (typeof comptes !== 'undefined' && comptes && typeof comptes.liste === 'function' ? comptes.liste() : []), aUnEspace: m => porteUnEspace(m) || Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === m.toLowerCase()), alerter: alerteCompte }); } catch (e) { console.error('comptes du site : passage échoué'); } };
+  const passageComptes = () => { try { demandeSiteMod.scannerComptes({ liste: () => (typeof comptes !== 'undefined' && comptes && typeof comptes.liste === 'function' ? comptes.liste() : []), aUnEspace: m => porteUneEntreprise(m) || !!(clientsData[m] && !clientsData[m].ficheDePaiement && Array.isArray(clientsData[m].demandes) && clientsData[m].demandes.length), alerter: alerteCompte }); } catch (e) { console.error('comptes du site : passage échoué'); } };
   const scanMs = Math.max(500, Number(config.comptesScanMs) || 600000);
   setTimeout(passageComptes, Math.min(60000, scanMs)).unref();
   setInterval(passageComptes, scanMs).unref();
@@ -9657,6 +9653,9 @@ app.post('/api/monitor/status', monAdmin, async (req, res) => {
   issue.historique = (issue.historique || []).concat([{ ts: Date.now(), par: req.tourUser.nom, action: ACTION[statut], note: monStr(note, 300) }]).slice(-30);
   let mails = 0, mailsSimules = 0;
   if (statut === 'corrige' && !issue.mailEnvoye) {
+    /* ⛔ LA MARQUE AVANT LE PREMIER ENVOI (2 novembre 2026, « mails en double ») : posée APRÈS la boucle d'`await`, deux appuis rapprochés
+       sur « Corrigé » passaient tous les deux ce test et chaque entreprise recevait le courriel deux fois. */
+    issue.mailEnvoye = true;
     const dests = (issue.entreprises || []).filter(e => e.email);
     const sujet = 'Votre application a été améliorée ✅';
     /* ⛔ ON NE NOMME PLUS L'ÉCRAN DANS CE COURRIEL. `issue.categorie` n'est pas l'endroit d'où
@@ -10661,17 +10660,27 @@ app.post('/api/clients/sync', async (req, res) => {
       /* Une liste FERMÉE : `app` est du texte libre du client, et l'accusé part à son adresse sous l'en-tête TEAM OP —
          un texte à soi recopié dans un courriel à notre nom ferait de nous un relais (`gardien`). */
       const apps = [...new Set(nv.map(d => /messages/i.test(String(d.app || '')) ? 'OP MESSAGES' : 'OP GESTION'))].join(', ');
+      /* ⛔ UNE ENTREPRISE DÉJÀ OUVERTE NE S'ENTEND PAS DIRE « nous préparons votre espace » (Tokaclim, 1er novembre 2026 : espace ouvert le
+         vendredi, demande refaite le dimanche depuis l'espace client, et l'accusé lui annonçait des identifiants qu'elle avait déjà). */
+      let dejaOuvert = false; try { dejaOuvert = Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === String(email).toLowerCase()); } catch (e) {}   // l'ANNUAIRE, pas la fiche du portail (elle s'écrit dans cette requête même)
+      const phraseSuite = dejaOuvert
+        ? 'Votre espace est déjà ouvert : vous vous connectez avec le lien reçu à l\'ouverture. Votre demande est transmise à l\'équipe TEAM OP, qui revient vers vous s\'il y a quelque chose à changer.'
+        : 'L\'équipe TEAM OP prépare votre espace : vous recevrez très vite, par e-mail, votre lien de connexion et vos identifiants. Vous n\'avez rien d\'autre à faire.';
       const accuse = 'Bonjour,\n\n' +
         'Nous avons bien reçu votre demande d\'accès (' + apps + ') pour « ' + nomEnt + ' ».\n\n' +
-        'L\'équipe TEAM OP prépare votre espace : vous recevrez très vite, par e-mail, votre lien de connexion et vos identifiants. Vous n\'avez rien d\'autre à faire.\n\n' +
+        phraseSuite + '\n\n' +
         'Vous pouvez suivre ou modifier votre demande dans votre espace client : https://teamop.fr/espace.html\n\n' +
         '— L\'équipe TEAM OP · teamop.fr';
       const accuseHtml = mailTeamOP({
         chip: 'Demande reçue',
         titre: 'Votre demande est bien reçue',
         corpsHtml: 'Bonjour,<br>nous avons bien reçu votre demande d\'accès (<b>' + escH(apps) + '</b>) pour « <b>' + escH(nomEnt) + '</b> ».<br><br>' +
-          'L\'équipe TEAM OP prépare votre espace : vous recevrez très vite, par e-mail, <b>votre lien de connexion et vos identifiants</b>. Vous n\'avez rien d\'autre à faire.<br>',
-        frise: [
+          escH(phraseSuite) + '<br>',
+        frise: dejaOuvert ? [
+          { titre: 'Reçue', sous: 'aujourd\'hui', fait: true },
+          { titre: 'Espace ouvert', sous: 'déjà actif', fait: true },
+          { titre: 'Réponse', sous: 'par TEAM OP', fait: false }
+        ] : [
           { titre: 'Reçue', sous: 'aujourd\'hui', fait: true },
           { titre: 'Préparation', sous: 'par TEAM OP', fait: false },
           { titre: 'Connectez-vous', sous: 'avec votre lien', fait: false }
@@ -10719,6 +10728,11 @@ app.post('/api/clients/sync', async (req, res) => {
    choix du métier pour la Tour mais n'est PAS une entreprise : la compter comme un espace bloquait la suppression d'un simple
    curieux, et le montrait « avec espace » dans la liste des comptes. */
 const porteUnEspace = mail => !!(clientsData[mail] && !clientsData[mail].ficheDePaiement);
+/* ⛔ « PORTE UNE ENTREPRISE » SE LIT DANS L'ANNUAIRE, PAS DANS LA FICHE DU PORTAIL (Justin, 2 novembre 2026, capture à l'appui : « MS Garnier »
+   marqué « Porte une entreprise » dans Comptes du site, et absent d'Entreprises). `porteUnEspace` dit seulement qu'une FICHE CLIENT existe sur le
+   site (la personne a rempli son profil, nom de société compris) ; une entreprise, c'est un espace de l'annuaire à cette adresse. Sinon la Tour
+   renvoyait la suppression vers une fiche d'entreprise qui n'existe pas : le compte ne se supprimait plus nulle part. */
+const porteUneEntreprise = mail => { const m = String(mail || '').trim().toLowerCase(); return !!m && Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === m); };
 app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   const tok = await fbAdminJeton();
   /* Nos comptes (`comptes.js`) se listent même sans Google : c'est eux que le portail utilise
@@ -10755,7 +10769,10 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   }
   const lignes = []; let anonymes = 0; let pageTok = '';
   if (tok) try {
-    for (let tour = 0; tour < 20; tour++) {
+    /* ⛔ 200 pages, plus 20 : la Tour affichait « 10000 sessions techniques » — exactement 20 × 500, le plafond. Les comptes de PERSONNES rangés
+       après les 10 000 sessions anonymes n'étaient donc jamais listés (2 novembre 2026). Bornée aussi en durée (20 s). */
+    const t0 = Date.now();
+    for (let tour = 0; tour < 200 && Date.now() - t0 < 20000; tour++) {   // et vingt secondes au plus : au-delà, la Tour aurait déjà coupé
       const url = IDTK_URL + '/projects/' + FB_PROJET
         + '/accounts:batchGet?maxResults=500' + (pageTok ? '&nextPageToken=' + encodeURIComponent(pageTok) : '');
       const r = await fbAdminFetch(url, { method: 'GET' }, tok);
@@ -10782,7 +10799,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
           /* Le point décisif pour trier : ce compte porte-t-il une entreprise avec des
              données, ou n'est-ce qu'un compte d'essai qu'on peut effacer sans rien perdre ? */
           entreprise: clientsData[mail] ? (clientsData[mail].entreprise || clientsData[mail].nom || '') : '',
-          aUnEspace: porteUnEspace(mail)
+          aUnEspace: porteUneEntreprise(mail), fiche: porteUnEspace(mail)
         });
       }
       pageTok = j.nextPageToken || ''; if (!pageTok) break;
@@ -10802,7 +10819,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
         statut: String((dos && dos.status) || '').slice(0, 30),
         cree: c.cree || 0, derniere: c.maj || 0, verifie: c.verifie, desactive: false,
         entreprise: clientsData[c.email] ? (clientsData[c.email].entreprise || clientsData[c.email].nom || '') : '',
-        aUnEspace: porteUnEspace(c.email), chezNous: true, aPoser: c.aPoser });
+        aUnEspace: porteUneEntreprise(c.email), fiche: porteUnEspace(c.email), chezNous: true, aPoser: c.aPoser });
     }
   }
   lignes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
@@ -10817,8 +10834,14 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
 app.post('/api/monitor/comptes-site/supprimer', monPatronStrict, async (req, res) => {
   const email = monStr((req.body || {}).email, 160).trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'adresse invalide' });
-  if (porteUnEspace(email)) return res.status(409).json({
+  if (porteUneEntreprise(email)) return res.status(409).json({   // l'annuaire décide (voir `porteUneEntreprise`)
     error: 'ce compte porte une entreprise — passe par « Fermer définitivement » dans Entreprises, qui efface aussi son espace et ses données'
+  });
+  /* Une FICHE CLIENT sans entreprise (profil rempli, demande en cours) protège encore le compte : effacer le compte perdrait la demande sans que
+     personne l'ait lue. Elle se traite dans « À traiter → Demandes » (refuser la demande, puis supprimer). Le refus le DIT, au lieu d'envoyer
+     chercher une entreprise qui n'existe pas. */
+  if (porteUnEspace(email)) return res.status(409).json({
+    error: 'ce compte a une fiche client (demande ou profil rempli) mais pas encore d\'entreprise — traite-la dans « À traiter → Demandes » avant de supprimer le compte'
   });
   const r = await compteSiteSupprimer(email);
   // Journal : l'adresse est masquée, on ne met pas de données personnelles dans les logs.

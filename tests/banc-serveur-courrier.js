@@ -19,22 +19,23 @@ const sha = x => crypto.createHash('sha256').update(x).digest('hex');
 
 /* Le facteur : garde chaque message reçu (brut, point doublé retiré — RFC 5321 §4.5.2). */
 function facteur() {
-  const f = { recus: [] };
+  const f = { recus: [], enveloppes: [] };
   f.s = net.createServer(c => {
     c.on('error', () => {});
-    let tampon = '', corps = false, msg = '';
+    let tampon = '', corps = false, msg = '', rcpt = [];   // rcpt : l'ENVELOPPE (copies cachées comprises — l'en-tête ne les montre pas)
     c.write('220 banc\r\n');
     c.on('data', d => {
       tampon += d.toString('utf8');
       let i;
       while ((i = tampon.indexOf('\r\n')) >= 0) {
         const l = tampon.slice(0, i); tampon = tampon.slice(i + 2);
-        if (corps) { if (l === '.') { corps = false; f.recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
+        if (corps) { if (l === '.') { corps = false; f.recus.push(msg); f.enveloppes.push({ msg, rcpt: rcpt.slice() }); msg = ''; rcpt = []; c.write('250 ok\r\n'); } else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
         const h = l.toUpperCase();
         if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
         else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
         else if (h.startsWith('RCPT') && f.refuserA && h.includes(String(f.refuserA).toUpperCase())) c.write('550 5.1.1 ' + l.replace(/^RCPT TO:\s*/i, '') + ': Recipient address rejected: User unknown\r\n');   // f.refuserA : un destinataire refusé, adresse recopiée dans l'erreur comme le font les vrais serveurs
+        else if (h.startsWith('RCPT') && (rcpt.push(l.replace(/^RCPT TO:\s*<?([^>]*)>?.*$/i, '$1').toLowerCase()), false)) {}
         else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
         else c.write('250 ok\r\n');
       }
@@ -99,6 +100,8 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   if (o.promos) conf.promos = o.promos;
   if (o.authservIds) conf.agents.authservIds = o.authservIds;   // les serveurs de réception dont l'Authentication-Results fait foi (AUCUN par défaut : mail.js)
   if (o.comptes) conf.comptes = { actif: true };
+  if (o.smtpFrom) conf.smtp.from = o.smtpFrom;   // « Nom <adresse> », comme `set-smtp.sh` le pose en ligne
+  if (o.conf) Object.assign(conf, o.conf);
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify(conf));
   const PORT = await new Promise(res => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
   const B = 'http://127.0.0.1:' + PORT;
