@@ -1149,11 +1149,14 @@ const horlogeFixe = (h) => () => h.t;
       const listeEtrangere = await outil(['liste']);
       vrai('⛔ `liste` ne compte PAS ces objets comme des pièces, et dit qu\'ils n\'ont pas la forme d\'une pièce (4 objets étrangers, 2 vraies pièces)', /pièces au coffre : 2 /.test(listeEtrangere.sortie) && /plus 4 objet\(s\) qui n'ont pas la forme d'une pièce/.test(listeEtrangere.sortie));
       /* Une archive dont le NOM est daté du futur (l'horloge de la machine avançait quand elle a été posée) : `liste` le marque et donne la vraie date, celle du coffre. */
-      const cleFutur = 'beta/base/' + SAUV.nomDe(m.h.t + 40 * 86400000) + SAUV.SUFFIXE; m.coffre.poser(cleFutur, Buffer.from('archive datée du futur'));
+      /* ⚠ L'ÂGE (« datée du futur ») se lit contre la VRAIE horloge de l'outil : `m.h.t + 40 jours` tombe fin octobre 2026, et depuis le
+         1er novembre ce n'est plus le futur — le banc tombait seul (CI de la PR #281). Le MARQUAGE, lui, compare au coffre : il ne dépend pas du jour. */
+      const dateFutur = m.h.t + 40 * 86400000;
+      const cleFutur = 'beta/base/' + SAUV.nomDe(dateFutur) + SAUV.SUFFIXE; m.coffre.poser(cleFutur, Buffer.from('archive datée du futur'));
       const listeFutur = await outil(['liste']);
       m.coffre.objets.delete(cleFutur);
       v('⛔ `liste` MARQUE l\'archive dont le nom est daté du futur (une seule des quatre) et donne la date du coffre — après un saut d\'horloge, la plus récente par le nom n\'est plus la plus fraîche',
-        [(listeFutur.sortie.match(/⚠ nom daté du futur/g) || []).length, /4 archive\(s\) de base/.test(listeFutur.sortie), /datée du futur/.test(listeFutur.sortie), new RegExp('le coffre la date du ' + new Date(m.h.t).toISOString().slice(0, 10)).test(listeFutur.sortie)], [1, true, true, true]);
+        [(listeFutur.sortie.match(/⚠ nom daté du futur/g) || []).length, /4 archive\(s\) de base/.test(listeFutur.sortie), /datée du futur/.test(listeFutur.sortie) === (dateFutur > Date.now() + 3600000), new RegExp('le coffre la date du ' + new Date(m.h.t).toISOString().slice(0, 10)).test(listeFutur.sortie)], [1, true, true, true]);
       const vers2 = path.join(bac, 'restauree2');
       const umaskAvant = process.umask(0o022);   // un umask ordinaire : ce sont les droits que l'OUTIL pose qui font 0700 / 0600, pas ceux de la machine du banc
       const r5 = await outil(['restaurer', '--vers', vers2]);
