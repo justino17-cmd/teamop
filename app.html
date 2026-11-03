@@ -8729,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '787';
+const APP_VERSION = '788';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -9450,7 +9450,7 @@ function docCouleurZone(){ const cur=docCouleurEnt().toUpperCase(); const pris=D
           <label title="Une autre couleur" style="width:44px;height:44px;border-radius:12px;border:${pris?'1px dashed var(--brd)':'3px solid var(--t1)'};display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;background:${pris?'var(--bg2)':cur}">${pris?'<span aria-hidden="true" style="font-size:18px">＋</span>':''}<input type="color" aria-label="Choisir une autre couleur" value="${cur}" onchange="docCouleurSet(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label></div>
         <p style="font-size:11.5px;color:var(--t3);margin:0 0 12px;line-height:1.5">Par défaut, le marine de TEAM OP. Une société déclarée ci-dessous garde sa propre couleur.</p>`; }
 function docCouleurSet(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex||'')) return; db.entreprise=db.entreprise||{};
-  if(hex.toUpperCase()===DOC_COULEUR_DEFAUT.toUpperCase()) delete db.entreprise.couleurDoc; else db.entreprise.couleurDoc=hex;
+  entPose('couleurDoc', hex.toUpperCase()===DOC_COULEUR_DEFAUT.toUpperCase()?null:hex);   // daté : la synchro ne l'efface plus (entFusion)
   save(); toast('🎨 Couleur des documents enregistrée');
   /* seule la palette se redessine : redessiner tout l'écran effacerait le nom ou l'adresse qu'on est en train de taper */
   const z=document.getElementById('doc-coul-zone'); if(z) z.innerHTML=docCouleurZone(); }
@@ -12468,6 +12468,18 @@ function tombesElaguer(t,now){ if(!t) return; const lim=now-TOMBE_JOURS*86400000
     tous.sort((a,b)=>a[0]-b[0]); tous.slice(0,total-TOMBE_TOTAL).forEach(x=>{ delete t[x[1]][x[2]]; if(!Object.keys(t[x[1]]).length) delete t[x[1]]; }); } }
 function tombesUnion(a,b){ const out={}; const cs=new Set([].concat(Object.keys(a||{}),Object.keys(b||{})));
   cs.forEach(c=>{ const x=(a&&a[c])||{}, y=(b&&b[c])||{}; const o={}; new Set([].concat(Object.keys(x),Object.keys(y))).forEach(id=>{ o[id]=Math.max(x[id]||0,y[id]||0); }); out[c]=o; }); return out; }
+/* ⛔ v788 — LA FICHE DE L'ENTREPRISE SE FUSIONNE RÉGLAGE PAR RÉGLAGE, POUR LES RÉGLAGES DATÉS (Justin, 3 novembre 2026, bêta :
+   « j'ai essayé et ça marche pas au niveau des changements de couleur »). `db.entreprise` n'est pas une collection : la fusion la
+   prenait EN BLOC du côté prioritaire (le distant, à la réception). Mesuré dans la vraie page : la couleur choisie ici, puis la
+   copie d'un autre appareil de l'équipe (qui ne la connaît pas) → la couleur disparaît, et le PDF repart en marine. Un réglage
+   daté (`_ms[clé]`, posé par `entPose`) gagne s'il est plus récent que celui d'en face — retrait compris (clé absente + date) ;
+   le reste de la fiche suit l'ancienne règle. `tests/test-3240.js`. */
+function entFusion(P,A){ if(!P&&!A) return P;
+  const o=Object.assign({},P||{}), pm=(P&&P._ms&&typeof P._ms==='object')?P._ms:{}, am=(A&&A._ms&&typeof A._ms==='object')?A._ms:{}, ms=Object.assign({},pm);
+  Object.keys(am).forEach(k=>{ if(k==='_ms') return; if((+am[k]||0)>(+pm[k]||0)){ if(A&&Object.prototype.hasOwnProperty.call(A,k)) o[k]=A[k]; else delete o[k]; ms[k]=+am[k]||0; } });
+  if(Object.keys(ms).length) o._ms=ms; return o; }
+function entPose(cle,val){ db.entreprise=db.entreprise||{}; if(val==null||val==='') delete db.entreprise[cle]; else db.entreprise[cle]=val;
+  db.entreprise._ms=Object.assign({},db.entreprise._ms||{}); db.entreprise._ms[cle]=Math.max(Date.now(),(+db.entreprise._ms[cle]||0)+1); }   // deux gestes dans la même milliseconde : le second reste le plus récent
 function fusionnerBases(local,remote,prioriteLocale){
   const prio=prioriteLocale?local:remote, autre=prioriteLocale?remote:local;
   const out=Object.assign({},prio);
@@ -12502,6 +12514,7 @@ function fusionnerBases(local,remote,prioriteLocale){
   });
   COLLS_DICT.forEach(c=>{ const P=prio&&prio[c], A=autre&&autre[c];
     if((P&&typeof P==='object'&&!Array.isArray(P))||(A&&typeof A==='object'&&!Array.isArray(A))) out[c]=(c==='plansSite')?plansSiteFusion(P,A,tombes):dictFusion(P,A); });
+  if((prio&&prio.entreprise)||(autre&&autre.entreprise)) out.entreprise=entFusion(prio&&prio.entreprise,autre&&autre.entreprise);
   if(Array.isArray(out.journal)) out.journal=out.journal.slice().sort((x,y)=>(y.ts||0)-(x.ts||0)).slice(0,500);
   if(Array.isArray(out.planJournal)) out.planJournal=out.planJournal.slice().sort((x,y)=>(x.ts||0)-(y.ts||0)).slice(-400);   // même plafond qu'en local, sinon il grossit à chaque fusion
   out._tombes=tombes;
@@ -12525,7 +12538,7 @@ function baseSignature(d){ return collsFusion(d).sort().map(c=>c+':'+(d[c]||[]).
          donc n'était jamais repoussée (le même défaut que les box, corrigé pour elles). */
       if(c==='plansSite'&&Array.isArray(v)) return k+'@'+recEmpreinte({p:v.map(pl=>pl&&[pl.id,+pl._m||0,(pl.postes||[]).map(po=>po&&[po.id,+po._m||0])])});
       return k+((v&&typeof v==='object'&&!Array.isArray(v)&&v._m)?'@'+v._m:''); }).join(',')).join('|')
-  +'#'+JSON.stringify(d._tombes||{}); }
+  +'#'+JSON.stringify(d._tombes||{})+'§E'+JSON.stringify((d&&d.entreprise&&d.entreprise._ms)||{}); }
 /* ⛔⛔ CE QUE L'ENVOI COUPE EXPRÈS NE DÉCIDE JAMAIS D'UN RENVOI — 25 septembre 2026 au soir, le jour
    même de la sortie de Firebase. Chez ELAN, la base dépasse le budget du nuage : `syncAlleger`
    raccourcit donc les JOURNAUX d'activité de la copie poussée, et chaque appareil garde les siens
@@ -24229,10 +24242,10 @@ function entLogoPick(e){ const f=e.target.files&&e.target.files[0]; if(!f) retur
   const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const mx=256; let w=im.width,h=im.height;
     if(w>mx||h>mx){ if(w>h){h=h*mx/w;w=mx;}else{w=w*mx/h;h=mx;} }
     const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(im,0,0,w,h);
-    db.entreprise=db.entreprise||{}; db.entreprise.logo=cv.toDataURL('image/png');
+    entPose('logo',cv.toDataURL('image/png'));
     logEvent('Logo entreprise ajouté','','crud'); save(); applyBrand(); try{ avatarAccentSync(); }catch(e2){} toast('🏷️ Logo enregistré — visible par toute l\'équipe'); if(current==='parametres') views.parametres(); };
     im.src=r.result; }; r.readAsDataURL(f); }
-function entLogoDel(){ if(!db.entreprise) return; delete db.entreprise.logo; save(); applyBrand(); try{ avatarAccentSync(); }catch(e){} toast('Logo retiré'); if(current==='parametres') views.parametres(); }
+function entLogoDel(){ if(!db.entreprise) return; entPose('logo',null); save(); applyBrand(); try{ avatarAccentSync(); }catch(e){} toast('Logo retiré'); if(current==='parametres') views.parametres(); }
 function entSave(){ const g=id=>((document.getElementById(id)||{}).value||'').trim();
   db.entreprise={...(db.entreprise||{}),nom:g('ent-nom'),adresse:g('ent-adresse'),cp:g('ent-cp'),ville:g('ent-ville'),tel:g('ent-tel'),siret:g('ent-siret'),tvaIntra:g('ent-tvaintra'),iban:g('ent-iban'),bic:g('ent-bic'),enteteBC:g('ent-entete-bc')};   // le logo est conservé
   /* ⛔ ÉCRIRE OU EFFACER, jamais seulement écrire (accueil#7). `entrepriseNom()` et `entNom()` retombent sur cette clé
