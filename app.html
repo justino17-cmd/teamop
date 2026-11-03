@@ -8729,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '791';
+const APP_VERSION = '792';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -38901,19 +38901,12 @@ views.parametres=function(){
         </div>`; }).join('')||'<span style="font-size:12px;color:var(--t3)">Aucune société déclarée — la liste générique est proposée.</span>'}</div>
       ${(db.societes||[]).length?'<p style="font-size:11.5px;color:var(--t3);margin:0 0 8px">Chaque société a <b>sa couleur</b>, <b>son logo</b> et, si c’est une entreprise distincte, <b>ses coordonnées</b> (SIRET, TVA, IBAN) : tous ses documents — rapports, plans, devis, factures, bons — les portent.</p>':''}
       <div style="display:flex;gap:6px;margin-bottom:4px"><input id="ent-soc-new" placeholder="${esc(exemple('societe'))}" style="flex:1;background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;color:var(--t1);font-family:inherit" onkeydown="if(event.key==='Enter'){event.preventDefault();entSocAdd()}"><button class="btn sm" onclick="entSocAdd()">＋ Ajouter</button></div>
-      ${['business','premium'].includes(forfait())?`
-      <div class="form-sec">🏷️ Marque dans l'application <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--acc-txt)">— inclus avec ton forfait</span></div>
-      ${forfait()==='premium'
-        ?`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business Premium : ton <b>logo</b> et ta <b>couleur</b> (thème de couleur) s'appliquent à l'application pour toute l'équipe.</p>`
-        :`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business : ton <b>logo</b> s'affiche en haut de la barre latérale pour toute l'équipe. La <b>couleur</b> de l'entreprise dans l'application est réservée au <b>Business Premium</b>.</p>`}
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
-        <span style="width:52px;height:52px;border-radius:14px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg2)">${E.logo?`<img src="${E.logo}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:20px">🏷️</span>'}</span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input type="file" id="ent-logo-file" accept="image/*" style="display:none" onchange="entLogoPick(event)">
-          <button class="btn ghost sm" onclick="document.getElementById('ent-logo-file').click()">${E.logo?'Changer le logo':'＋ Ajouter le logo'}</button>
-          ${E.logo?`<button class="btn ghost sm" style="color:var(--red)" onclick="entLogoDel()">Retirer</button>`:''}
-        </div>
-      </div>
+      ${/* ⛔ v792 — Justin, 3 novembre 2026, capture à l'appui : « pourquoi quand j'ajoute un logo ça change celui de l'application ». Le logo
+           de l'entreprise ne sert plus qu'à ses documents (bloc « Mes documents » ci-dessus, v789) : ce bloc ne propose plus de logo, il ne garde
+           que la couleur du Business Premium. */''}
+      ${forfait()==='premium'?`
+      <div class="form-sec">🏷️ Couleur dans l'application <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--acc-txt)">— inclus avec Business Premium</span></div>
+      <p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business Premium : ta <b>couleur</b> devient le thème de couleur de l'application pour toute l'équipe. Le logo d'OP GESTION reste dans l'application ; ton logo va sur tes documents (« Mes documents », plus haut).</p>
       ${forfait()==='premium'?`
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px">
         <span style="position:relative;width:52px;height:52px;border-radius:14px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:${E.couleur?esc(E.couleur):'var(--bg2)'}">${E.couleur?'':'<span style="font-size:20px">🎨</span>'}<input type="color" id="ent-couleur-in" value="${esc(E.couleur||'#1E7A4E')}" onchange="entCouleurSet(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"></span>
@@ -38923,7 +38916,7 @@ views.parametres=function(){
         </div>
       </div>
       <p style="font-size:12px;color:var(--t3);margin:0 0 10px">La couleur de l'entreprise devient le <b>thème de couleur</b> de toute l'équipe (contours, boutons, sélections). Chaque utilisateur peut toujours choisir une couleur perso dans ses Paramètres.</p>`:''}`
-      :`<div class="detail-desc" style="margin-top:10px">🏷️ <b>Personnalisation</b> : avec <b>Business</b>, ton logo en haut de l'application — avec <b>Business Premium</b>, logo + nom d'entreprise + couleur (thème de couleur). Avec Pro, l'interface reste standard.</div>`}
+      :`<div class="detail-desc" style="margin-top:10px">🏷️ <b>Personnalisation</b> : avec <b>Business Premium</b>, la couleur de ton entreprise devient le thème de couleur de l'application. Ton logo, lui, va sur tes documents (« Mes documents », plus haut), à tous les forfaits.</div>`}
       <button class="btn" onclick="entSave()">Enregistrer</button>
     </div>`; })():''}
     ${(()=>{ return `<div class="card"><div class="card-head"><h3>✉️ Mes envois</h3></div>
