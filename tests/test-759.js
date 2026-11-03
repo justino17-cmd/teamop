@@ -347,7 +347,8 @@ console.log('\n══ 7. LES ÉCARTS SONT TOUS MOTIVÉS ══\n');
     let r; try { r = jouer(fo, E); } catch (e) { r = { nom: 'ERREUR ' + e.message, sous: '', logo: '' }; }
     vrai('⛔ ' + lib + ' → le menu s’appelle « OP GESTION »', r.nom === 'OP GESTION', JSON.stringify(r.nom));
     if (E.nom) vrai('   … et le nom de l’entreprise s’écrit dessous', r.sous === E.nom, JSON.stringify(r.sous));
-    if (E.logo) vrai('   … et le logo payé par l’entreprise reste le sien', r.logo === E.logo, r.logo.slice(0, 30));
+    /* v789 — Justin, 3 novembre 2026 : « plus le logo de l'application dans l'application ». Le logo de l'entreprise ne sert plus qu'à ses documents. */
+    if (E.logo) vrai('   … et le logo reste celui d’OP GESTION (le logo de l’entreprise ne va que sur ses documents)', r.logo !== E.logo && /^icons\//.test(r.logo), r.logo.slice(0, 30));
   }
   vrai('⛔ la connexion porte le titre OP GESTION et le logo OP GESTION',
     /<img class="login-logo" src="\$\{_logo\}" alt="OP GESTION"><h2>OP GESTION<\/h2>/.test(NU) && /icons\/logo-day\.png/.test(NU));

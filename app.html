@@ -8729,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '788';
+const APP_VERSION = '789';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -16348,8 +16348,8 @@ function showAside(){ return localStorage.getItem('elan_aside')==='1'; }
    décide plus rien, c'est le serveur qui dit, à chaque ouverture, ce qui est payé. */
 const PLANS={
   pro:{l:'Pro',prix:'15 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · rapports complets, récurrences, tournées optimisées, devis & factures'},
-  business:{l:'Business',prix:'25 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · + stock & box, bons fournisseurs, boîte mail, réglementaire, compta · votre logo dans l\'application'},
-  premium:{l:'Business Premium',prix:'50 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · accès 100 % à toutes les fonctions d\'OP GESTION · assistance prioritaire · logo, nom & couleur de votre entreprise'}
+  business:{l:'Business',prix:'25 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · + stock & box, bons fournisseurs, boîte mail, réglementaire, compta'},
+  premium:{l:'Business Premium',prix:'50 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · accès 100 % à toutes les fonctions d\'OP GESTION · assistance prioritaire · le nom et la couleur de votre entreprise dans l\'application'}
 };
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE — Justin, 27 septembre 2026 (le site et la page de
    paiement), puis 28 septembre pour l'application : « c'est un utilisateur par abonnement ». Jusqu'à la v761, Business en
@@ -24201,11 +24201,15 @@ function entNom(){ return (((db.entreprise||{}).nom)||'').trim() || (localStorag
 function bcEntete(b){ return docEntete(b&&b.societe,{bon:true}).nom; }   // v740 : l'en-tête passe par docEntete
 /* Couleur du bon : celle de la société choisie (si réglée), sinon le vert TeamOP */
 function bcCouleur(b){ return docEntete(b&&b.societe,{bon:true}).couleur; }
-/* 🏷️ Marque de l'entreprise dans la barre — Business : son logo · Business Premium : son logo et sa couleur.
+/* 🏷️ Marque de l'entreprise dans la barre. ⛔ v789 — Justin, 3 novembre 2026 : « je veux plus que le logo de l'application soit
+   changeable, que pour les devis, factures ou autres, mais plus le logo de l'application dans l'application ». Le logo de
+   l'entreprise ne remplace donc PLUS celui d'OP GESTION, à aucun forfait : il ne sert qu'à ses documents (`docEntete`). Ce qui
+   reste au Business Premium : sa couleur dans l'application ; le nom de l'entreprise s'écrit dessous pour tout le monde.
+   (Ancien titre : Business : son logo · Business Premium : son logo et sa couleur.)
    Dans tous les cas le NOM est « OP GESTION » et celui de l'entreprise s'écrit dessous (voir plus bas). */
 function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('brand-sub'); if(!img||!nm) return;
   const E=db.entreprise||{}, f=forfait();
-  if(f==='premium' && ((E.nom||'').trim()||E.logo)){ img.src=E.logo||PLAN_BADGE[f]; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=(E.nom||'').trim()||entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
+  if(f==='premium' && ((E.nom||'').trim()||E.logo)){ img.src=PLAN_BADGE[f]; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=(E.nom||'').trim()||entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   /* ⛔⛔ L'APPLICATION S'APPELLE « OP GESTION », AVEC SON LOGO, SUR TOUS LES APPAREILS ET DANS
      LES DEUX THÈMES. Justin, 24 septembre 2026, capture de la maquette à l'appui (elle écrivait
      « TEAM OP » à la connexion) : « pour tous les types d'appareil tu mets bien OP GESTION avec
@@ -24214,7 +24218,7 @@ function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('bra
      ne remplace plus celui de l'application — jusqu'à la v744, Premium écrivait « ELAN GESTION »
      en titre et « OP GESTION » dessous : il s'écrit désormais dessous, comme dans la maquette
      et comme pour tout le monde. */
-  else if(f==='business' && E.logo){ img.src=E.logo; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
+  else if(f==='business' && E.logo){ img.src=PLAN_BADGE[f]||'icons/icon-192.png'; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   else { img.src=PLAN_BADGE[f]||'icons/icon-192.png'; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   // Nom du forfait écrit en couleur sous le nom
   const pl=$('brand-plan'); if(pl){
@@ -24226,9 +24230,9 @@ function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('bra
   try{ if(!prefLocalLire('elan_accent')){ const r=document.documentElement, want=entCouleur()||'';
     if(want!==(r.style.getPropertyValue('--acc')||'').trim()) applyTheme(); } }catch(e){} }
 /* Écusson à afficher sur l'avatar : logo de l'entreprise si elle en a un (Business / Premium), sinon logo du forfait */
-function brandBadgeSrc(){ try{ const E=(db&&db.entreprise)||{}, f=forfait(); if(['business','premium'].includes(f)&&E.logo) return E.logo; return PLAN_BADGE[f]||'icons/plan-gestion.png'; }catch(e){ return 'icons/plan-gestion.png'; } }
+function brandBadgeSrc(){ try{ const f=forfait(); return PLAN_BADGE[f]||'icons/plan-gestion.png'; }catch(e){ return 'icons/plan-gestion.png'; } }   // v789 : jamais le logo de l'entreprise (voir applyBrand)
 /* Identifiant court de l'écusson actuel — sert à savoir si les avatars doivent être régénérés */
-function brandBadgeKey(){ try{ const E=(db&&db.entreprise)||{}, f=forfait(); return (['business','premium'].includes(f)&&E.logo)?('ent-'+E.logo.length):f; }catch(e){ return 'pro'; } }
+function brandBadgeKey(){ try{ return forfait(); }catch(e){ return 'pro'; } }
 /* 🎖️ Logo du forfait dans la barre latérale — prouve l'abonnement actif ;
    si l'entreprise a son propre logo (Business / Business Premium), c'est lui qui s'affiche à la place */
 const PLAN_BADGE={pro:'icons/plan-gestion-pro.png',business:'icons/plan-gestion-business.png',premium:'icons/plan-gestion-premium.png'};
