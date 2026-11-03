@@ -8729,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '790';
+const APP_VERSION = '791';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13131,6 +13131,11 @@ function docErreur(statut,motif){ const e=new Error('document d\'équipe : '+(mo
    et recommençait depuis zéro — sans fin tant que le réseau ne s'améliorait pas. On accorde 20 s plus 120 ms par Ko (52 s pour
    265 Ko), plafonné à 90 s. Le délai est NOTÉ sur le signal : la sentinelle dit « trop lent », pas « injoignable ». `tests/test-3238.js`.
    ⚠️ Le calcul vit DANS docAppel : plusieurs bancs (810, 818, 950) extraient cette fonction seule — une aide à côté y manquerait. */
+/* ⛔ v791 — LE DEVIS IA DE LA BÊTA (Justin, 3 novembre 2026 : « active tout, que la bêta puisse le tester de A à Z », puis, capture à
+   l'appui : « Devis IA n'est pas encore activé pour ton entreprise » sur une entreprise de test). Une entreprise de test de la bêta
+   a son propre espace ; c'est l'espace bêta (`opgestion-beta`) qui porte l'activation, d'office, côté serveur. Sur la bêta, le Devis IA
+   parle donc au nom de l'espace bêta, quelle que soit l'entreprise de test ; en production, au nom de l'entreprise, comme avant. */
+function devisEquipe(){ return (typeof BETA_ESSAI!=='undefined'&&BETA_ESSAI)?'opgestion-beta':syncTeam(); }
 async function docAppel(route,corps,ms){ const ctl=new AbortController(); const corpsTxt=JSON.stringify(corps);
   const delai=Math.max(ms||20000, Math.min(90000, 20000+Math.round(corpsTxt.length/1024)*120)); try{ ctl.signal.__opDelai=delai; }catch(e){}
   const to=setTimeout(()=>ctl.abort(),delai);
@@ -39655,7 +39660,7 @@ function devisMetierPret(){
   if(_devisMetierOk!==null) return Promise.resolve(_devisMetierOk);
   /* v779 : DEUX raisons de dire non, deux phrases. Un serveur qui répond sans `metiers:true` est un serveur d'avant (le verdict se garde) ;
      un réseau qui tombe ne dit RIEN du serveur — on ne l'accuse pas d'être ancien et on ne retient pas ce non-verdict (le prochain geste réessaie). */
-  return fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(syncTeam())).then(r=>{ if(r.ok===false) throw new Error('etat '+r.status); return r.json(); }).then(j=>{ _devisMetierOk=!!(j&&j.metiers===true); _devisMetierReseau=false; return _devisMetierOk; }).catch(()=>{ _devisMetierReseau=true; return false; });
+  return fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(devisEquipe())).then(r=>{ if(r.ok===false) throw new Error('etat '+r.status); return r.json(); }).then(j=>{ _devisMetierOk=!!(j&&j.metiers===true); _devisMetierReseau=false; return _devisMetierOk; }).catch(()=>{ _devisMetierReseau=true; return false; });
 }
 let _devisMetierReseau=false;
 const DEVIS_METIER_RESEAU='Le serveur ne répond pas : impossible de vérifier le devis par IA de ton métier pour l’instant. Réessaie dans un instant — rien n’est parti.';
@@ -39687,7 +39692,7 @@ function devisIAModal(){
     <button id="dia-go2" class="btn" style="width:100%;justify-content:center;padding:13px;margin-top:8px;display:none" onclick="devisIAGo(true)">📐 Devis approfondi</button>
     <div id="dia-etat" style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center"></div>`);
   // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui
-  fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(syncTeam())).then(r=>r.json()).then(j=>{
+  fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(devisEquipe())).then(r=>r.json()).then(j=>{
     const el=$('dia-etat'); if(!el||!j) return;
     if(!estMetier3D()){ _devisMetierOk=(j.metiers===true); if(!_devisMetierOk){ el.textContent='⚠ '+DEVIS_METIER_ATTENTE; el.style.color='var(--org)'; ['dia-go','dia-go2'].forEach(id=>{ const b=$(id); if(b) b.disabled=true; }); return; } }
     if(j.approfondi){ const b2=$('dia-go2'); if(b2) b2.style.display=''; }
@@ -39714,7 +39719,7 @@ async function devisIAGo(profond){
        adresse ne quittent pas l'appareil. Le générateur ne reçoit que la prestation —
        il n'a besoin de rien d'autre pour chiffrer, et ce qui ne part pas ne fuit pas. */
     const r=await fetch(PUSH_API+'/api/devis/generer',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({team:syncTeam(),metier:metierId(),code:code||undefined,demande,profond:!!profond})});
+      body:JSON.stringify({team:devisEquipe(),metier:metierId(),code:code||undefined,demande,profond:!!profond})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok){ show(j.error||('Erreur '+r.status)); rearme(); return; }
     const d=j.devis||{}; const id=uid();
