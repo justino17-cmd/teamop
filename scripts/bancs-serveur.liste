@@ -463,3 +463,5 @@ tests/test-3225.js
 tests/test-3150.js
 # 2 novembre 2026 : `test-3237` (une entreprise, un nom dans la Surveillance : « Toka Clim » et « toka-clim-33xz » ne font plus deux lignes — le nom de l'annuaire à l'arrivée d'un rapport, les entrées déjà écrites réunies à la lecture). Le vrai serveur, sans lire une page. 17 vérifications.
 tests/test-3237.js
+# 3 novembre 2026 : `test-3239` (la bêta a le Devis IA d'office, moteur « Au choix », visible et réglable dans la Tour ; changer le moteur ne coupe plus le Devis IA). Le vrai serveur, trois démarrages. 11 vérifications.
+tests/test-3239.js
