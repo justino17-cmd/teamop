@@ -8729,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '789-beta';
+const APP_VERSION = '790-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -16406,7 +16406,7 @@ function aboFeuille(titre,texteHtml,bouton,url){
       <button type="button" class="btn ghost" onclick="closeSub()">Plus tard</button>
       <button type="button" class="btn" onclick="window.open('${url.replace(/'/g,'%27')}','_blank');closeSub()">${esc(bouton)}</button></div>`); }
 function setForfaitQty(d){ const q=Math.max(1,(db.forfaitQty||1)+d);
-  if(d<0 && db.users.length>(PLANS[forfait()].maxU||1)*q){ toast('Impossible : '+db.users.length+' comptes utilisent les places actuelles'); return; }
+  if(d<0 && db.users.length>(PLANS[forfait()].maxU||1)*q){ toast('Un abonnement par utilisateur : '+db.users.length+' utilisateurs ont un compte. Désactive un compte avant de retirer un abonnement.'); return; }
   db.forfaitQty=q; logEvent('Abonnements '+PLANS[forfait()].l,'×'+q,'auth'); save(); toast(q+' abonnement(s) — '+planPlaces()+' place(s)'); if(current==='parametres') views.parametres(); }
 const PLAN_BLOQUE={
   premium:[],
@@ -38761,9 +38761,12 @@ views.parametres=function(){
              ICI, le jour où l'espace existe. ⚠️ On le POSE dans le champ, on ne l'active pas :
              « rien ne s'écrit au seul chargement », et une activation reste un geste. */
           :`<input id="promo-inp" placeholder="Ex : BIENVENUE3" value="${esc(promoEnAttente())}" style="text-transform:uppercase;width:160px" onkeydown="if(event.key==='Enter')promoAppliquer()"><button class="btn sm" onclick="promoAppliquer()">Activer</button>`}</div></div></div>
-      <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">Places utilisateur</span><div class="frow-val" style="display:flex;align-items:center;gap:10px;justify-content:flex-end">
-        <b>${essaiCouvreEquipe()?db.users.length:db.users.length+' / '+planPlaces()}</b><span style="color:var(--t3);font-size:12px">· ${essaiCouvreEquipe()?'tous couverts par ton code':placesSrvActives()?'selon ce qui est payé':(q=>q+' abonnement'+(q>1?'s':''))(Math.max(1,db.forfaitQty||1))}</span>
-        ${placesSrvActives()?'':'<button class="btn ghost sm" onclick="setForfaitQty(-1)">−</button><button class="btn sm" onclick="setForfaitQty(1)">＋ Abonnement</button>'}</div></div></div>
+      ${/* v790 — Justin, 3 novembre 2026 : « c'est un compte par utilisateur ». La ligne parlait de « places » (4 / 2) et offrait un « − » qui
+           ne pouvait que refuser : elle dit maintenant les deux nombres par leur nom, le manque s'il y en a, et le « − » ne paraît que s'il
+           peut servir (plus d'abonnements que d'utilisateurs). */''}
+      <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">Utilisateurs et abonnements</span><div class="frow-val" style="display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+        ${(()=>{ const nU=db.users.length, nA=Math.max(1,db.forfaitQty||1), uTxt=nU+' utilisateur'+(nU>1?'s':''); if(essaiCouvreEquipe()) return `<b>${uTxt}</b><span style="color:var(--t3);font-size:12px">· tous couverts par ton code</span>`; if(placesSrvActives()) return `<b>${uTxt}</b><span style="color:var(--t3);font-size:12px">· ${planPlaces()} abonnement${planPlaces()>1?'s':''} payé${planPlaces()>1?'s':''}</span>`; const manque=nU-(PLANS[forfait()].maxU||1)*nA; return `<b>${uTxt}</b><span style="color:var(--t3);font-size:12px">· ${nA} abonnement${nA>1?'s':''}</span>${manque>0?`<span style="color:var(--org);font-size:12px;font-weight:600">· il manque ${manque} abonnement${manque>1?'s':''}${BETA_ESSAI?' (pas bloquant sur la bêta)':''}</span>`:''}`; })()}
+        ${placesSrvActives()?'':(Math.max(1,db.forfaitQty||1)*(PLANS[forfait()].maxU||1)>db.users.length&&Math.max(1,db.forfaitQty||1)>1?'<button class="btn ghost sm" onclick="setForfaitQty(-1)" aria-label="Retirer un abonnement">−</button>':'')+'<button class="btn sm" onclick="setForfaitQty(1)">＋ Abonnement</button>'}</div></div></div>
       <p style="font-size:12px;color:var(--t3);margin-top:8px">Un abonnement = un utilisateur.${essaiCouvreEquipe()?' Pendant la période offerte par ton code, toute l’équipe est couverte ; à la fin, chaque utilisateur compte pour un abonnement.':''} Détail des formules : <a href="tarifs.html" target="_blank" style="color:var(--acc-txt)">teamop.fr/tarifs</a></p>
     </div>
     <div class="card"><div class="card-head"><h3>Sauvegarde & synchronisation</h3></div>
