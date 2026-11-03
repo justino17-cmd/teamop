@@ -13116,10 +13116,10 @@ function docErreur(statut,motif){ const e=new Error('document d\'équipe : '+(mo
    « écriture non acquittée en 15 s alors que le réseau répond » — un iPhone sur une 4G faible, le serveur sain). Chaque écriture
    renvoie la base ENTIÈRE (265 Ko chez eux) : sur une voie montante faible, elle dépasse 20 s, l'appareil coupait l'envoi au milieu
    et recommençait depuis zéro — sans fin tant que le réseau ne s'améliorait pas. On accorde 20 s plus 120 ms par Ko (52 s pour
-   265 Ko), plafonné à 90 s. Le délai est NOTÉ sur le signal : la sentinelle dit « trop lent », pas « injoignable ». `tests/test-3238.js`. */
-function docDelaiEnvoi(octets){ return Math.min(90000, 20000+Math.round((octets||0)/1024)*120); }
+   265 Ko), plafonné à 90 s. Le délai est NOTÉ sur le signal : la sentinelle dit « trop lent », pas « injoignable ». `tests/test-3238.js`.
+   ⚠️ Le calcul vit DANS docAppel : plusieurs bancs (810, 818, 950) extraient cette fonction seule — une aide à côté y manquerait. */
 async function docAppel(route,corps,ms){ const ctl=new AbortController(); const corpsTxt=JSON.stringify(corps);
-  const delai=Math.max(ms||20000, docDelaiEnvoi(corpsTxt.length)); try{ ctl.signal.__opDelai=delai; }catch(e){}
+  const delai=Math.max(ms||20000, Math.min(90000, 20000+Math.round(corpsTxt.length/1024)*120)); try{ ctl.signal.__opDelai=delai; }catch(e){}
   const to=setTimeout(()=>ctl.abort(),delai);
   try{ const r=await fetch(PUSH_API+route,{method:'POST',headers:{'Content-Type':'application/json'},body:corpsTxt,signal:ctl.signal,cache:'no-store'});
     let j=null; try{ j=await r.json(); }catch(e){}
@@ -14056,7 +14056,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
        4G, une écriture parfaitement saine dépasse donc le délai et l'application annonce une
        panne qui n'existe pas. On accorde une seconde de plus par tranche de 50 Ko, plafonné à
        45 s : au-delà, il y a vraiment quelque chose à dire. */
-    const _delai=Math.min(45000, 15000+Math.round((alle.taille||0)/10240)*1000);   // v787 : une seconde par 10 Ko (41 s pour 265 Ko), au plus 45 s — l'envoi, lui, a jusqu'à `docDelaiEnvoi`
+    const _delai=Math.min(45000, 15000+Math.round((alle.taille||0)/10240)*1000);   // v787 : une seconde par 10 Ko (41 s pour 265 Ko), au plus 45 s — l'envoi, lui, a son propre délai (`docAppel`)
     /* `z` dit si le contenu est compressé. En phase 1 il vaut 0 partout : rien ne change pour
        personne, mais le chemin complet est en place et éprouvé AVANT qu'on l'allume. */
     /* ⛔ LE DERNIER CONTRÔLE, ET C'EST CELUI QUI COMPTE. Entre la mesure et ici, il s'est écoulé

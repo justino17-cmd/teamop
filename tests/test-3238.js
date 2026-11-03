@@ -17,16 +17,15 @@ const tranche = (debut, fin) => { const i = SRC.indexOf(debut); const j = i < 0 
 
 (async () => {
   console.log('\n── 3238 · 1. l’envoi se chronomètre à sa taille ──');
-  const fDelai = tranche('function docDelaiEnvoi(', '\n');
   const fAppel = tranche('async function docAppel(', 'finally{ clearTimeout(to); } }') + 'finally{ clearTimeout(to); } }';
-  vrai('docDelaiEnvoi et docAppel sont trouvées dans la page', fDelai.length > 30 && fAppel.length > 200);
+  vrai('docAppel est trouvée dans la page', fAppel.length > 200);
   const notes = [];
   const bac = { PUSH_API: 'https://api.teamop.fr', notes, AbortController, setTimeout, clearTimeout, JSON, Math,
     fetch: async (url, init) => { notes.push({ url, delai: init.signal.__opDelai, corps: init.body.length }); return { status: 200, json: async () => ({ ok: true }) }; } };
-  vm.createContext(bac); vm.runInContext(fDelai + '\n' + fAppel, bac);
-  v('une petite écriture garde 20 s', bac.docDelaiEnvoi(2 * 1024), 20000 + 2 * 120);
-  v('265 Ko (la base de Toka Clim) : 52 s, plus 20 s', Math.round(bac.docDelaiEnvoi(265 * 1024) / 1000), 52);
-  v('plafond de 90 s', bac.docDelaiEnvoi(5 * 1024 * 1024), 90000);
+  vm.createContext(bac); vm.runInContext(fAppel + '\nfunction docDelaiEnvoi(o){ const n=[]; const f=fetch; fetch=async(u,i)=>{ n.push(i.signal.__opDelai); return {status:200,json:async()=>({})}; }; return docAppel(\'/x\',{d:\'x\'.repeat(Math.max(0,o-12))},20000).then(()=>{ fetch=f; return n[0]; }); }', bac);
+  v('une petite écriture garde 20 s', await bac.docDelaiEnvoi(2 * 1024), 20000 + 2 * 120);
+  v('265 Ko (la base de Toka Clim) : 52 s, plus 20 s', Math.round((await bac.docDelaiEnvoi(265 * 1024)) / 1000), 52);
+  v('plafond de 90 s', await bac.docDelaiEnvoi(5 * 1024 * 1024), 90000);
   const gros = 'x'.repeat(265 * 1024);
   await bac.docAppel('/api/doc/ecrire', { t: 'a', kh: 'b', doc: gros }, 20000);
   vrai('docAppel envoie le corps une seule fois sérialisé, et note son délai sur le signal', notes[0] && notes[0].corps > 265 * 1024 && notes[0].delai >= 51000);
