@@ -316,12 +316,16 @@ function facteur() {
   /* À CORRIGER 2 — le serveur situe l'entrée par l'espace d'où elle vient, pas seulement par le nom que le téléphone a saisi. */
   await envoyer(VIV, 'Vivante Services SARL', 'x5', '');        // le nom tapé dans l'application diffère de celui de l'annuaire
   r = await appel(ROUTE, { nom: 'Vivante Services SARL' }, PATRON);
-  v('⛔ une entreprise qui VIT sous un autre nom que celui de l\'annuaire : refusée (409), reconnue par son espace', r.s, 409);
+  /* 2 novembre 2026 (test-3237) : un rapport qui porte l'espace d'une entreprise de l'annuaire s'écrit sous le NOM DE L'ANNUAIRE — le nom tapé
+     dans l'application n'existe donc plus dans la Surveillance, et le purger ne trouve rien (200, rien de retiré). Le nom de l'annuaire, lui, reste refusé (409). */
+  v('⛔ une entreprise qui VIT, rapportée sous un autre nom : écrite sous celui de l\'annuaire, l\'autre nom ne purge rien (200)', [r.s, (r.j.retires || r.j.n || 0)], [200, 0]);
+  r = await appel(ROUTE, { nom: 'Vivante Services' }, PATRON);
+  v('⛔ et son nom d\'annuaire reste refusé (409)', r.s, 409);
   vrai('   et son incident est intact', !!(await trouve('x5')));
   await dormir(700);   // monSave est différée de 500 ms
   const entDe = (id) => { const i = (mon().issues || []).find(x => x.signature === 'opgestion|sig-' + id); return (i && i.entreprises[0]) || {}; };
   v('   l\'espace est écrit à la réception — celui du serveur, JAMAIS l\'intouchable ni un inconnu', [entDe('x5').espaces, entDe('f2').espaces, entDe('x4').espaces], [[VIV], undefined, undefined]);
-  vrai('   ⛔ et la Tour ne reçoit pas ces identifiants d\'espace (ils servent la purge, pas l\'écran)', JSON.stringify(await issuesVivantes()).includes('Vivante Services SARL') && !JSON.stringify(await issuesVivantes()).includes('"espaces"'));
+  vrai('   ⛔ et la Tour ne reçoit pas ces identifiants d\'espace (ils servent la purge, pas l\'écran)', JSON.stringify(await issuesVivantes()).includes('Vivante Services') && !JSON.stringify(await issuesVivantes()).includes('"espaces"'));
   await envoyer('elan-gestion', 'Entreprise Du Repli', 'x4b', '');
   await dormir(700);
   v('   ⛔ l\'espace par défaut, partagé par toutes les entreprises sans clé propre, n\'est pas écrit', entDe('x4b').espaces, undefined);
