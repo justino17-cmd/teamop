@@ -11788,6 +11788,14 @@ const DEVIS_ACCES_PATH = path.join(DATA_DIR, 'devis-acces.json');
 let devisAcces = {};
 try { devisAcces = JSON.parse(fs.readFileSync(DEVIS_ACCES_PATH, 'utf8')); } catch (e) {}
 function saveDevisAcces() { try { fs.writeFileSync(DEVIS_ACCES_PATH, JSON.stringify(devisAcces)); } catch (e) {} }
+/* ⛔ LA BÊTA A LE DEVIS IA D'OFFICE (Justin, 3 novembre 2026 : « active tout, que la bêta puisse le tester de A à Z »). L'espace bêta
+   (`opgestion-beta`, jamais de données d'entreprise) n'a pas de nom dans l'annuaire : la Tour le cachait de l'onglet Devis IA, donc
+   personne ne pouvait l'activer. Il naît actif, moteur « Au choix » (Rapide ET Approfondi), en mémoire seulement — tant que la Tour
+   n'y a pas touché ; dès qu'elle le coupe ou change de moteur, c'est SON réglage qui est écrit et qui reste. Il paraît dans la Tour
+   sous un nom lisible (`devisNomDe`). Même plafond quotidien que tout le monde. `tests/test-3239.js`. */
+const DEVIS_BETA = 'opgestion-beta', DEVIS_BETA_NOM = 'Bêta OP GESTION (équipe)';
+if (!devisAcces[DEVIS_BETA]) devisAcces[DEVIS_BETA] = { actif: true, moteur: 'deux', depuis: new Date().toISOString().slice(0, 10), beta: true };
+function devisNomDe(t, nom) { return nom || (t === DEVIS_BETA ? DEVIS_BETA_NOM : ''); }
 function devisTeamOk(team) { const t = devisAcces[String(team || '').trim().slice(0, 80)]; return !!(t && t.actif); }
 function devisQuotaJour() { return Number(devisConf().quotaJour) || 100; }
 function devisUtilises() {
@@ -11961,7 +11969,7 @@ function espacesConnus() {
   for (const tc of Object.keys(cnxData)) {
     if (!tc || vus.has(tc)) continue;
     let e = null; try { e = espaceParT(tc); } catch (err) {}
-    const nom = (e && espNomPropre(e)) || '';
+    const nom = devisNomDe(tc, (e && espNomPropre(e)) || '');
     /* Sans nom d'entreprise, c'est un espace technique — environnement de test,
        ancienne bascule. Il n'a rien à faire dans une liste de clients. On ne le
        garde que s'il est déjà activé : couper un accès en cours par simple
@@ -11985,7 +11993,7 @@ function espacesConnus() {
     if (vus.has(tc)) continue;
     vus.add(tc);
     let e = null; try { e = espaceParT(tc); } catch (err) {}
-    out.push({ t: tc, nom: (e && espNomPropre(e)) || '', vu: vuDe(tc) });
+    out.push({ t: tc, nom: devisNomDe(tc, (e && espNomPropre(e)) || ''), vu: vuDe(tc) });
   }
   out.sort(function (a, b) { return (a.nom || a.t).localeCompare(b.nom || b.t, 'fr'); });
   return out;
@@ -11995,7 +12003,7 @@ function nomsDesEspaces(codes) {
   for (const t of codes) {
     let e = null;
     try { e = espaceParT(t); } catch (err) {}
-    noms[t] = (e && espNomPropre(e)) || '';
+    noms[t] = devisNomDe(t, (e && espNomPropre(e)) || '');
   }
   return noms;
 }
@@ -12008,7 +12016,9 @@ app.post('/api/monitor/devisia', monAdmin, (req, res) => {
   if (!team) return res.status(400).json({ error: "code d'espace requis" });
   if (b.supprimer) delete devisAcces[team];
   else if (b.actif) devisAcces[team] = { ...(devisAcces[team] || {}), actif: true, depuis: (devisAcces[team] || {}).depuis || new Date().toISOString().slice(0, 10) };
-  else if (devisAcces[team]) devisAcces[team].actif = false;
+  /* ⛔ COUPER EXIGE `actif:false` ÉCRIT (3 novembre 2026, test-3239). La Tour change le moteur en n'envoyant que `{teamId, moteur}` (`diaMoteur`) :
+     « ni actif, ni supprimer » valait « couper », et choisir « Approfondi » ÉTEIGNAIT le Devis IA de l'entreprise. */
+  else if (b.actif === false && devisAcces[team]) devisAcces[team].actif = false;
   if (b.moteur && DEVIS_OFFRES[b.moteur] && devisAcces[team]) devisAcces[team].moteur = b.moteur;
   saveDevisAcces();
   res.json({ ok: true, equipes: devisAcces, noms: nomsDesEspaces(Object.keys(devisAcces)) });
