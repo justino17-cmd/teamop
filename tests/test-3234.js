@@ -76,7 +76,7 @@ console.log('\n── 3234 · 4. plus de vert écrit en dur dans les fabriques �
 { const CODE = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
   v('aucune fabrique ne retombe sur « :\'#1E7A4E\' » pour une couleur de document', (CODE.match(/E\.couleur:'#1E7A4E'|\|\|'#1E7A4E',\n/g) || []).length, 0);
   vrai('les quatre fabriques et la liste des sociétés passent par docCouleurEnt', (CODE.match(/E\.couleur:docCouleurEnt\(\)/g) || []).length === 4 && /st\.couleur:docCouleurEnt\(\)/.test(CODE));
-  vrai('Paramètres : la palette, le logo et le cachet sont dans « Mes documents »', /🎨 Mes documents/.test(APP) && /id="doc-coul-zone"/.test(APP) && /id="doc-logo-file"/.test(APP) && /id="doc-cachet-zone"/.test(APP)); }
+  vrai('Paramètres : la palette, le logo et le cachet sont dans « Tes documents » (v793), avec l’aperçu', /🧾 Tes documents/.test(APP) && /id="doc-apercu-zone"/.test(APP) && /id="doc-coul-zone"/.test(APP) && /id="doc-logo-file"/.test(APP) && /id="doc-cachet-zone"/.test(APP)); }
 
 console.log('\n── 3234 · 5. les champs nus ont l’habit de l’application ──');
 { const i0 = APP.indexOf('<style id="theme-final">'), i1 = APP.indexOf('</style>', i0), CSS = APP.slice(i0, i1);
