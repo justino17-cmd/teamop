@@ -8591,7 +8591,7 @@ try{
 /* échecs réseau vers api.teamop.fr (hors sentinelle elle-même) */
 try{
   var tmF=window.fetch;
-  if(tmF) window.fetch=function(input){ var url=''; try{ url=(typeof input==='string')?input:((input&&input.url)||''); }catch(_){ }
+  if(tmF) window.fetch=function(input){ var tmArgs=arguments; var url=''; try{ url=(typeof input==='string')?input:((input&&input.url)||''); }catch(_){ }
     var p=tmF.apply(window,arguments);
     try{
       /* on ne surveille QUE les appels dont l'échec gêne vraiment l'utilisateur.
@@ -8616,7 +8616,17 @@ try{
           if(n-pre<180000) tmPush('reseau',msg,'','',0);
         }catch(_){ } };
         p.then(function(r){ try{ if(r&&r.status>=500) tmRet('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
-               function(err){ try{ tmRet('api.teamop.fr injoignable sur '+ep+' ('+String((err&&err.message)||'échec').slice(0,80)+')',true); }catch(_){ } });
+               function(err){ try{
+                 /* ⛔ v787 — UNE DEMANDE QUE L'APPLICATION COUPE ELLE-MÊME N'EST PAS UN SERVEUR INJOIGNABLE. L'écoute des nouveautés
+                    est coupée exprès quand on revient sur l'application ou quand le réseau revient (`reveil`), et à l'arrêt de la
+                    synchro : la Tour recevait « injoignable sur /api/doc/attendre (Fetch is aborted) » pour un geste voulu. Une
+                    coupure par DÉLAI dépassé, elle, se dit pour ce qu'elle est : le serveur n'a pas répondu à temps à CET appareil. */
+                 var sg=null;
+                 try{ sg=(tmArgs[1]&&tmArgs[1].signal)||(tmArgs[0]&&tmArgs[0].signal)||null; }catch(_){ }
+                 if(sg&&sg.__opVolontaire) return;
+                 var abandon=!!(err&&(err.name==='AbortError'||/abort/i.test(String(err.message||''))));
+                 if(abandon) tmRet('api.teamop.fr trop lent sur '+ep+' (pas de réponse'+(sg&&sg.__opDelai?' en '+Math.round(sg.__opDelai/1000)+' s':' dans le délai')+' — réseau de l’appareil ?)',true);
+                 else tmRet('api.teamop.fr injoignable sur '+ep+' ('+String((err&&err.message)||'échec').slice(0,80)+')',true); }catch(_){ } });
       } }catch(_){ }
     return p; };
 }catch(_){ }
@@ -8719,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '786-beta';
+const APP_VERSION = '787-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13102,8 +13112,16 @@ async function docPreuve(){ const c=await sauvKh(); return {t:syncTeam(), kh:(c&
 function docErreur(statut,motif){ const e=new Error('document d\'équipe : '+(motif||statut||'réseau'));
   e.code=([403,409,426].indexOf(statut)>=0)?'permission-denied':([400,413].indexOf(statut)>=0)?'invalid-argument':'unavailable';
   e.statut=statut||0; e.motif=motif||''; return e; }
-async function docAppel(route,corps,ms){ const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),ms||20000);
-  try{ const r=await fetch(PUSH_API+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps),signal:ctl.signal,cache:'no-store'});
+/* ⛔ UN ENVOI SE CHRONOMÈTRE À SA TAILLE (v787, Toka Clim, 3 novembre 2026 : « api.teamop.fr injoignable sur /api/doc/ecrire »,
+   « écriture non acquittée en 15 s alors que le réseau répond » — un iPhone sur une 4G faible, le serveur sain). Chaque écriture
+   renvoie la base ENTIÈRE (265 Ko chez eux) : sur une voie montante faible, elle dépasse 20 s, l'appareil coupait l'envoi au milieu
+   et recommençait depuis zéro — sans fin tant que le réseau ne s'améliorait pas. On accorde 20 s plus 120 ms par Ko (52 s pour
+   265 Ko), plafonné à 90 s. Le délai est NOTÉ sur le signal : la sentinelle dit « trop lent », pas « injoignable ». `tests/test-3238.js`. */
+function docDelaiEnvoi(octets){ return Math.min(90000, 20000+Math.round((octets||0)/1024)*120); }
+async function docAppel(route,corps,ms){ const ctl=new AbortController(); const corpsTxt=JSON.stringify(corps);
+  const delai=Math.max(ms||20000, docDelaiEnvoi(corpsTxt.length)); try{ ctl.signal.__opDelai=delai; }catch(e){}
+  const to=setTimeout(()=>ctl.abort(),delai);
+  try{ const r=await fetch(PUSH_API+route,{method:'POST',headers:{'Content-Type':'application/json'},body:corpsTxt,signal:ctl.signal,cache:'no-store'});
     let j=null; try{ j=await r.json(); }catch(e){}
     return {statut:r.status,j:j}; }
   finally{ clearTimeout(to); } }
@@ -13190,9 +13208,9 @@ function docEquipe(){
       let actif=true, ctl=null, v=0, livre=false;
       /* Revenir au premier plan ou retrouver le réseau RÉVEILLE l'écoute : on coupe l'attente en
          cours, et la boucle relit tout de suite au lieu d'attendre la fin des 25 s. */
-      const reveil=()=>{ if(!actif) return; try{ if(document.visibilityState==='hidden') return; }catch(e){} try{ if(ctl) ctl.abort(); }catch(e){} };
+      const reveil=()=>{ if(!actif) return; try{ if(document.visibilityState==='hidden') return; }catch(e){} try{ if(ctl){ ctl.signal.__opVolontaire=1; ctl.abort(); } }catch(e){} };   // coupure VOULUE : la sentinelle ne la compte pas (v787)
       try{ window.addEventListener('online',reveil); document.addEventListener('visibilitychange',reveil); }catch(e){}
-      const arreter=()=>{ actif=false; try{ if(ctl) ctl.abort(); }catch(e){}
+      const arreter=()=>{ actif=false; try{ if(ctl){ ctl.signal.__opVolontaire=1; ctl.abort(); } }catch(e){}
         try{ window.removeEventListener('online',reveil); document.removeEventListener('visibilitychange',reveil); }catch(e){} };
       const refus=e=>{ actif=false; arreter(); docRefusVu(e); try{ if(errCb) errCb(e); }catch(_e){} };
       (async()=>{
@@ -13211,7 +13229,7 @@ function docEquipe(){
               if(!livre||s._v!==v){ livre=true; v=s._v; try{ cb(s); }catch(e){} }
               continue;
             }
-            const p=await docPreuve(); if(p.t!==tEq){ arreter(); break; } ctl=new AbortController(); const c=ctl; const to=setTimeout(()=>c.abort(),40000); const t0=Date.now();
+            const p=await docPreuve(); if(p.t!==tEq){ arreter(); break; } ctl=new AbortController(); const c=ctl; try{ c.signal.__opDelai=40000; }catch(e){} const to=setTimeout(()=>c.abort(),40000); const t0=Date.now();
             let r; try{ r=await fetch(PUSH_API+'/api/doc/attendre',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:p.t,kh:p.kh,v:v}),signal:c.signal,cache:'no-store'}); }
             finally{ clearTimeout(to); }
             let j=null; try{ j=await r.json(); }catch(e){}
@@ -14038,7 +14056,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
        4G, une écriture parfaitement saine dépasse donc le délai et l'application annonce une
        panne qui n'existe pas. On accorde une seconde de plus par tranche de 50 Ko, plafonné à
        45 s : au-delà, il y a vraiment quelque chose à dire. */
-    const _delai=Math.min(45000, 15000+Math.round((alle.taille||0)/50000)*1000);
+    const _delai=Math.min(60000, 15000+Math.round((alle.taille||0)/1024)*120);   // v787 : au même rythme que l'envoi (`docDelaiEnvoi`), 47 s pour 265 Ko
     /* `z` dit si le contenu est compressé. En phase 1 il vaut 0 partout : rien ne change pour
        personne, mais le chemin complet est en place et éprouvé AVANT qu'on l'allume. */
     /* ⛔ LE DERNIER CONTRÔLE, ET C'EST CELUI QUI COMPTE. Entre la mesure et ici, il s'est écoulé
@@ -14071,14 +14089,14 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
       /* ⛔ v751 : les drapeaux APRÈS horsLigneDebut(), qui les remet à zéro — posés avant, ils étaient effacés
          aussitôt, et une écriture réellement partie sans réponse ne faisait plus recharger. */
       if(!reseau){ _syncEnCours=false; try{ horsLigneDebut('écriture sans réponse'); }catch(_e){} _horsLignePush=true; _horsLignePushRisque=true; try{ updateSyncBtn(); }catch(_e){} return; }
-      try{ console.warn('synchro : écriture non acquittée en 15 s alors que le réseau répond — base '+Math.round(alle.taille/1024)+' Ko'+(alle.gros&&alle.gros.length?' · plus lourds : '+alle.gros.join(', '):'')); }catch(_e){}
+      try{ console.warn('synchro : écriture non acquittée en '+Math.round(_delai/1000)+' s alors que le réseau répond — base '+Math.round(alle.taille/1024)+' Ko'+(alle.gros&&alle.gros.length?' · plus lourds : '+alle.gros.join(', '):'')); }catch(_e){}
       _alerte=true;
       try{ toast('⚠️ Tes modifications ne partent pas encore vers l\'équipe — elles sont enregistrées sur cet appareil',7000); }catch(_e){}
       /* Écriture toujours pas acquittée : on REND le repère, sinon cet appareil ignore tout ce que
          l'équipe publie (voir le bloc ⛔ plus haut). Mieux vaut recevoir deux fois que devenir sourd. */
       if(_syncTs===ts) _syncTs=_tsAvant;
       /* …et on le REMONTE, pour ne plus jamais avoir à demander une capture d'écran à un client. */
-      try{ syncDiagnostic('ecriture non acquittee en 15 s alors que le reseau repond — base '+Math.round(alle.taille/1024)+' Ko'); }catch(_e){}
+      try{ syncDiagnostic('ecriture non acquittee en '+Math.round(_delai/1000)+' s alors que le reseau repond — base '+Math.round(alle.taille/1024)+' Ko'); }catch(_e){}
     },_delai);
     /* ⛔ ON REFERME CE QU'ON A OUVERT. Sans ce second message, l'alerte du dessus était sans
        fin : la personne apprenait que son travail ne partait pas, et n'apprenait JAMAIS qu'il
