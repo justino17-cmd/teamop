@@ -27,7 +27,7 @@ console.log('L\'appareil remonte son diagnostic tout seul');
   v('elle part quand le premier instantané n\'arrive jamais',
     /if\(!_syncGotInitial && _syncOn\) syncDiagnostic\('bloquée : premier instantané jamais reçu après 25 s'\);/.test(APP), true);
   v('…et quand une écriture n\'est pas acquittée',
-    /syncDiagnostic\('ecriture non acquittee en 15 s/.test(APP), true);
+    /syncDiagnostic\('ecriture non acquittee en '\+Math\.round\(_delai\/1000\)\+' s/.test(APP), true);   // v787 : le message dit le vrai délai (test-3238)
   /* ⛔ Le canal est la PORTE de la sentinelle : `tmPush` vit dans une fonction isolée et valait
      `undefined` ici — le diagnostic n'a jamais atteint la Tour jusqu'à la v747. test-808 le JOUE. */
   v('elle emprunte le canal existant vers la Tour',

@@ -1,5 +1,14 @@
 # Point stable TeamOP
 
+**Version stable : v786** — 3 novembre 2026, correctif (Justin, à cinq dossiers de la Tour chez Toka Clim — « corrige tout ce que tu peux
+corriger par rapport à ces erreurs », puis « Publié »). Ce qui change pour une entreprise : **sur une 4G faible, les modifications partent du premier
+coup** — l'envoi n'est plus coupé à 20 s pour recommencer depuis zéro, son délai suit la taille de la base (52 s pour 265 Ko, 90 s au plus) ; le
+message « tes modifications ne partent pas encore » attend en proportion (41 s pour 265 Ko, 45 s au plus). Côté Tour : les coupures que l'application
+fait exprès ne remontent plus, et un délai dépassé se dit « trop lent (pas de réponse en N s) » au lieu de « injoignable ». Rien d'autre ne change :
+c'est la v785 plus ce seul correctif (la bêta v787 le porte aussi). Pas d'annonce par courriel. `tests/test-3238.js`.
+
+**Ancien point : v785.**
+
 **Version stable : v785** — 2 novembre 2026, correctif (Justin, à « ça envoie l'utilisateur sur le même profil que moi », chez un client :
 « faut les corrections pour éviter les problèmes… gère ce problème et vérifie le »). Ce qui change pour une entreprise : **un employé qui se
 connecte sur un appareil où le patron est resté connecté arrive sur SON profil**, plus sur celui du patron — les identifiants qu'on vient de
