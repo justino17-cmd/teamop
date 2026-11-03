@@ -2193,6 +2193,36 @@ function monPurgerEntreprise(o) {
 
 const MON_TYPES = ['erreur', 'lenteur', 'reseau'];
 const monStr = (v, n) => String(v == null ? '' : v).slice(0, n);
+/* ⛔ UNE ENTREPRISE, UN NOM DANS LA SURVEILLANCE. Justin, 2 novembre 2026, capture à l'appui : « Toka Clim » et
+   « toka-clim-33xz », deux lignes pour la même entreprise. `tmEnt` (app.html) envoie le nom saisi dans l'application et, quand
+   la base n'est pas encore chargée (écran de connexion, démarrage), l'IDENTIFIANT d'espace à la place. Le nom qu'on écrit et
+   qu'on montre se lit donc dans l'ANNUAIRE quand l'espace y est ; ce que le téléphone envoie ne sert qu'à défaut. L'espace par
+   défaut (partagé par toutes les entreprises sans clé propre) ne désigne personne. `monEntFusion` réunit à l'affichage les
+   entrées déjà écrites sous deux noms. `tests/test-3237.js`. */
+function monNomAnnuaire(t) {
+  try { t = String(t || '').trim(); if (!t || ESPACES_INTOUCHABLES.includes(t)) return ''; return espNomPropre(espaceParT(t)) || ''; } catch (e) { return ''; }
+}
+function monEntFusion(liste) {
+  const par = new Map();
+  for (const e of Array.isArray(liste) ? liste : []) {
+    if (!e || typeof e !== 'object') continue;
+    const esp = Array.isArray(e.espaces) ? e.espaces : [];
+    const nom = esp.map(monNomAnnuaire).filter(Boolean).pop() || monNomAnnuaire(e.nom) || e.nom;
+    const x = par.get(nom);
+    if (!x) { par.set(nom, Object.assign({}, e, { nom, gens: Array.isArray(e.gens) ? e.gens.slice() : e.gens })); continue; }
+    x.count = (x.count || 0) + (e.count || 0);
+    if ((e.lastTs || 0) > (x.lastTs || 0)) x.lastTs = e.lastTs;
+    if (!x.email && e.email) x.email = e.email;
+    if (esp.length) x.espaces = [...new Set([...(Array.isArray(x.espaces) ? x.espaces : []), ...esp])].slice(-10);
+    if (Array.isArray(e.gens)) {
+      x.gens = Array.isArray(x.gens) ? x.gens : [];
+      for (const g of e.gens) { if (!g) continue; const h = x.gens.find(y => y && y.login === g.login);
+        if (!h) x.gens.push(Object.assign({}, g));
+        else { h.count = (h.count || 0) + (g.count || 0); if ((g.lastTs || 0) > (h.lastTs || 0)) Object.assign(h, { lastTs: g.lastTs, nom: g.nom || h.nom, role: g.role || h.role }); } }
+    }
+  }
+  return [...par.values()];
+}
 // réception des rapports des sentinelles (public, quota par IP via le limiteur global)
 app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb' }), (req, res) => {
   try {
@@ -2207,7 +2237,7 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       const message = monStr(r.message, 300); if (!message) continue;
       const appName = monStr(r.app, 20) || 'inconnue';
       const signature = appName + '|' + (monStr(r.signature, 200) || (type + '|' + message.slice(0, 120)));
-      const entNom = monStr(r.entreprise, 80) || 'inconnue';
+      let entNom = monStr(r.entreprise, 80) || 'inconnue';
       const entEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(monStr(r.email, 120)) ? monStr(r.email, 120).toLowerCase() : '';
       const appareil = monStr(r.appareil, 60) || '?';
       /* ⛔ QUI ÉTAIT CONNECTÉ — ET POURQUOI ON NE CROIT PAS CE CORPS DE REQUÊTE SUR PAROLE.
@@ -2232,6 +2262,7 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
          n'en porte pas (une version d'avant la v683, la page d'inscription, OP MESSAGES) garde le comportement d'avant : le serveur ne
          peut pas savoir de quelle entreprise il vient, donc il l'écrit. */
       if (quiEspace && espaceFerme(quiEspace)) { fermes++; continue; }
+      { const nomAnnu = monNomAnnuaire(quiEspace) || monNomAnnuaire(entNom); if (nomAnnu) entNom = nomAnnu; }   // le nom de l'ANNUAIRE, pas celui du téléphone (`monNomAnnuaire`)
       ecrits++;
       const count = Math.min(500, Math.max(1, parseInt(r.count, 10) || 1));
       const now = Date.now();
@@ -4786,7 +4817,7 @@ app.post('/api/monitor/espaces/activite', monAdmin, (req, res) => {
   let t = e.t; try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
   const u = usageData[t] || { vues: {}, total: 0, dernier: 0, version: '' };
   const vues = Object.entries(u.vues).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => ({ vue: k, n: v }));
-  const bugs = (monIssues || []).filter(i => i.statut !== 'corrige' && i.statut !== 'ignore' && (i.entreprises || []).some(x => x.nom === e.nom)).length;
+  const bugs = (monIssues || []).filter(i => i.statut !== 'corrige' && i.statut !== 'ignore' && monEntFusion(i.entreprises).some(x => x.nom === e.nom)).length;
   res.json({ ok: true, vues, total: u.total, dernier: u.dernier, version: u.version, bugs });
 });
 // ── Connexions des applications, par espace : qui se connecte, quand, depuis quel appareil,
@@ -9523,7 +9554,8 @@ app.get('/api/monitor/issues', monAdmin, (req, res) => {
   /* Filtré par application AVANT tout calcul : compteurs et entreprises se comptent sur ce que le
      compte a le droit de voir — sinon un compte OP MESSAGES apprendrait combien d'incidents
      OP GESTION existent, et chez qui. Forger la requête n'y change rien : le filtre est ici. */
-  const vis = monIssues.filter(i => req.tourUser.apps.includes(monAppDeTag(i.app)));
+  const vis = monIssues.filter(i => req.tourUser.apps.includes(monAppDeTag(i.app)))
+    .map(i => Array.isArray(i.entreprises) && i.entreprises.length ? Object.assign({}, i, { entreprises: monEntFusion(i.entreprises) }) : i);   // un nom par entreprise (`monEntFusion`)
   const compteurs = { nouveau: 0, encours: 0, corrige: 0, ignore: 0 };
   const entSet = new Set();
   for (const i of vis) { compteurs[i.statut] = (compteurs[i.statut] || 0) + 1; for (const e of i.entreprises || []) if (e.nom && e.nom !== 'inconnue') entSet.add(e.nom); }
