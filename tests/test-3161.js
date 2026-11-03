@@ -76,7 +76,9 @@ const corpsRecus = H => JSON.stringify(H.appels.map(a => ({ s: a.system, m: a.me
     H.appels.push(); await H.justin('margaux', 'Merci Margaux');
     const recu2 = corpsRecus(H);
     vrai('⛔ …ni au tour suivant (le point n’est pas dans l’historique que Margaux relit)', H.appels.length >= 1 && CHIFFRES.every(c => !recu2.includes(c)) && !/Encaissé|Abonnés|revenu mensuel/.test(recu2), recu2.slice(0, 300));
-    const jour = JSON.stringify(H.agents.lireJournal());
+    /* ⛔ l'identifiant (hexadécimal aléatoire) et l'horodatage d'une ligne ne sont pas du contenu : « 487 » tombait au hasard dans
+       un identifiant (« e6487236a88b », CI du 3 novembre 2026) — le banc accusait le journal d'un montant qu'il ne portait pas. */
+    const jour = JSON.stringify(H.agents.lireJournal().map(({ id, ts, ...reste }) => reste));
     vrai('(population) le journal des agents a une ligne « point compta » de Margaux', H.agents.lireJournal().some(e => e.agent === 'margaux' && e.action === 'point compta' && e.resultat === 'ok'));
     vrai('⛔ …et pas un montant, un nombre de factures, un nom dans tout le journal', CHIFFRES.every(c => !jour.includes(c)) && !/Dupont|Martin|Secr[èe]te|Confidentiel|3 142|487/.test(jour), jour.slice(-400));
     H.conv.viderFaits();
