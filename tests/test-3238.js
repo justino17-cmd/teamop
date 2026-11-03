@@ -58,7 +58,7 @@ const tranche = (debut, fin) => { const i = SRC.indexOf(debut); const j = i < 0 
   vrai('reveil marque la coupure', /const reveil=\(\)=>\{[^\n]*ctl\.signal\.__opVolontaire=1; ctl\.abort\(\)/.test(SRC));
   vrai('arreter marque la coupure', /const arreter=\(\)=>\{ actif=false; try\{ if\(ctl\)\{ ctl\.signal\.__opVolontaire=1; ctl\.abort\(\)/.test(SRC));
   vrai('l’écoute longue note ses 40 s', /c\.signal\.__opDelai=40000; \}catch\(e\)\{\} const to=setTimeout\(\(\)=>c\.abort\(\),40000\)/.test(SRC));
-  vrai('le délai d’acquittement suit la taille (47 s pour 265 Ko)', /const _delai=Math\.min\(60000, 15000\+Math\.round\(\(alle\.taille\|\|0\)\/1024\)\*120\);/.test(SRC));
+  vrai('le délai d’acquittement suit la taille (41 s pour 265 Ko, au plus 45 s — test-660)', /const _delai=Math\.min\(45000, 15000\+Math\.round\(\(alle\.taille\|\|0\)\/10240\)\*1000\);/.test(SRC));
   vrai('le diagnostic n’écrit plus « 15 s » en dur', !/ecriture non acquittee en 15 s/.test(SRC) && /ecriture non acquittee en '\+Math\.round\(_delai\/1000\)\+' s/.test(SRC));
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

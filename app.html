@@ -14056,7 +14056,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
        4G, une écriture parfaitement saine dépasse donc le délai et l'application annonce une
        panne qui n'existe pas. On accorde une seconde de plus par tranche de 50 Ko, plafonné à
        45 s : au-delà, il y a vraiment quelque chose à dire. */
-    const _delai=Math.min(60000, 15000+Math.round((alle.taille||0)/1024)*120);   // v787 : au même rythme que l'envoi (`docDelaiEnvoi`), 47 s pour 265 Ko
+    const _delai=Math.min(45000, 15000+Math.round((alle.taille||0)/10240)*1000);   // v787 : une seconde par 10 Ko (41 s pour 265 Ko), au plus 45 s — l'envoi, lui, a jusqu'à `docDelaiEnvoi`
     /* `z` dit si le contenu est compressé. En phase 1 il vaut 0 partout : rien ne change pour
        personne, mais le chemin complet est en place et éprouvé AVANT qu'on l'allume. */
     /* ⛔ LE DERNIER CONTRÔLE, ET C'EST CELUI QUI COMPTE. Entre la mesure et ici, il s'est écoulé
