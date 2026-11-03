@@ -68,7 +68,9 @@ console.log('\n── 3234 · 3. le cachet ──');
   v('… mais sur un nom commercial de l’entreprise, oui', !!Wd.docCachetPour('devis', { ...d, rapportModele: 'Zéphyr Nom' }), true);
   v('sans cachet enregistré, rien', monter({ ...BASE, entreprise: { ...BASE.entreprise, cachetDevis: true } }).docCachetPour('devis', d), '');
   const avec = W.docPdfStr('devis', d, null, CACHET), sans = W.docPdfStr('devis', d, null, null), fac = W.docPdfStr('factures', { ...d, statut: 'envoyee' }, null, CACHET);
-  vrai('⛔ demandé, le cachet est DANS le devis (image /I2, dessinée, « Pour l’entreprise »)', /\/I2 \d+ 0 R/.test(avec) && /\/I2 Do/.test(avec) && avec.includes('JPEGZQX-CACHET') && /Pour l.entreprise/.test(avec));
+  vrai('⛔ demandé, le cachet est DANS le devis (image /I2, dessinée)', /\/I2 \d+ 0 R/.test(avec) && /\/I2 Do/.test(avec) && avec.includes('JPEGZQX-CACHET'));
+  /* v795 : plus de titre « Pour l’entreprise » au-dessus du cachet (aucun texte ne l’exige, ambigu quand le client est une entreprise) */
+  vrai('v795 : le devis ne porte plus le titre « Pour l’entreprise » au-dessus du cachet', !/Pour l.entreprise/.test(avec));
   vrai('… et dans la facture', /\/I2 Do/.test(fac) && fac.includes('JPEGZQX-CACHET'));
   vrai('⛔ non demandé, aucune trace', !/\/I2/.test(sans) && !sans.includes('JPEGZQX') && !/Pour l.entreprise/.test(sans)); }
 

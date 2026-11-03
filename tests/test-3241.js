@@ -6,7 +6,7 @@
  *   1. le CACHET (et ses deux cases) et la couleur Premium s'écrivaient dans `db.entreprise` sans date : la synchro d'un autre appareil
  *      les effaçait, exactement comme la couleur des documents avant la v788 ;
  *   2. le BON DE COMMANDE portait la couleur et le nom de sa société, jamais son logo.
- * Ce banc EXÉCUTE les vraies fonctions (entPose, entFusion, entCachetDel, entCachetOpt, entCouleurSet/Del, bonPdfStr, docApercuZone). */
+ * Ce banc EXÉCUTE les vraies fonctions (entPose, entFusion, entCachetDel, entCachetOpt, bonPdfStr, docApercuZone). */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const BRUT = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
 const SRC = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
@@ -19,9 +19,9 @@ function bloc(debut) {
   for (let k = j; k < SRC.length; k++) { const c = SRC[k]; if (c === '{') p++; else if (c === '}') { p--; if (p === 0) return SRC.slice(i, k + 1); } }
   return ''; }
 
-console.log('\n── 3241 · 1. le cachet et la couleur Premium survivent à la synchro ──');
-const F = ['function entFusion(P,A){', 'function entPose(cle,val){', 'function entCachetDel(){', 'function entCachetOpt(cle,on){', 'function entCouleurSet(hex){', 'function entCouleurDel(){'].map(bloc);
-v('les six fonctions sont trouvées', F.map(f => f.length > 40), [true, true, true, true, true, true]);
+console.log('\n── 3241 · 1. le cachet survit à la synchro (v795 : la couleur Premium de l’application est retirée — test-3242) ──');
+const F = ['function entFusion(P,A){', 'function entPose(cle,val){', 'function entCachetDel(){', 'function entCachetOpt(cle,on){'].map(bloc);
+v('les quatre fonctions sont trouvées', F.map(f => f.length > 40), [true, true, true, true]);
 const W = { console, Object, JSON, String, Math, Date, Array, Number, document: { getElementById: () => null } };
 vm.createContext(W);
 vm.runInContext(F.join('\n') + `
@@ -29,16 +29,18 @@ vm.runInContext(F.join('\n') + `
   function save(){} function toast(){} function logEvent(){} function applyBrand(){} function docCachetZone(){ return ''; } function docApercuMaj(){} var views={ parametres(){} };`, W);
 const autre = { nom: 'Clim Test', tel: '0102' };   // la fiche telle qu'un AUTRE appareil la connaît : ni cachet, ni cases, ni couleur
 W.db.entreprise.cachet = 'data:image/jpeg;base64,AA'; W.entPose('cachet', W.db.entreprise.cachet);
-W.entCachetOpt('cachetDevis', true); W.entCachetOpt('cachetFacture', false); W.entCouleurSet('#8B1E3F');
+W.entCachetOpt('cachetDevis', true); W.entCachetOpt('cachetFacture', false);
 let f = W.entFusion(autre, W.db.entreprise);   // à la réception, le distant est prioritaire : P = l'autre appareil, A = celui-ci
 v('après la synchro, le cachet est resté', !!f.cachet, true);
 v('…la case « devis » cochée est restée', f.cachetDevis, true);
 v('…la case « factures » décochée est restée décochée (false, pas effacée)', f.cachetFacture, false);
-v('…la couleur Premium est restée', f.couleur, '#8B1E3F');
 v('…et ce que l’autre appareil avait changé (le téléphone) est gardé', f.tel, '0102');
-W.entCachetDel(); W.entCouleurDel();
-f = W.entFusion({ nom: 'Clim Test', cachet: 'data:image/jpeg;base64,VIEUX', couleur: '#000000' }, W.db.entreprise);
-v('un retrait du cachet et de la couleur gagne contre une copie plus ancienne qui les porte encore', [!!f.cachet, !!f.couleur], [false, false]);
+W.entCachetDel();
+f = W.entFusion({ nom: 'Clim Test', cachet: 'data:image/jpeg;base64,VIEUX' }, W.db.entreprise);
+v('un retrait du cachet gagne contre une copie plus ancienne qui le porte encore', !!f.cachet, false);
+/* v795 : une ancienne couleur d’application portée par une autre copie n’est ni effacée ni réécrite — elle n’est simplement plus lue */
+f = W.entFusion({ nom: 'Clim Test', couleur: '#8B1E3F' }, W.db.entreprise);
+v('une ancienne « couleur » d’application reste dans la fiche (aucune donnée effacée)', f.couleur, '#8B1E3F');
 
 console.log('\n── 3241 · 2. le bon de commande porte le logo de sa société ──');
 const iL = SRC.indexOf('const _PDF_L=['), PDFL = iL < 0 ? '' : SRC.slice(iL, SRC.indexOf("].map(l=>l.split(' ').map(Number));", iL) + 36);

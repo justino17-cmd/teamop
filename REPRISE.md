@@ -13,6 +13,18 @@ de ligne du tout.
 
 ---
 
+# 📍 3 NOVEMBRE 2026 (nuit) — BÊTA v795 : PLUS DE « COULEUR DANS L'APPLICATION »
+
+Justin, devant le bloc « Couleur dans l'application — inclus avec Business Premium » des Paramètres : « ça sert à rien du coup, donc tu
+peux supprimer ». Sur la bêta (v795) : le bloc, `entCouleur`, `entCouleurSet`, `entCouleurDel` sont retirés ; `applyTheme` et `applyBrand`
+ne lisent plus `db.entreprise.couleur` (l'ancien champ reste dans les bases, il n'est plus lu ni réécrit) ; la phrase « le nom et la couleur
+de votre entreprise dans l'application » sort de la fiche Business Premium (`PLANS`). La couleur des DOCUMENTS (`couleurDoc`, « Tes documents »)
+et la couleur perso de chaque utilisateur restent. `tests/test-3242.js` (exécute la vraie `applyTheme`), `test-3241`, `test-1640`.
+Même version : le titre « Pour l’entreprise » au-dessus du cachet du DEVIS est retiré (aucun texte ne l’exige ; ambigu quand le client est une
+entreprise) — le cachet reste seul, à la même place, en face du « Bon pour accord » (`test-3234`). Les signatures des contrats et rapports gardent la formule.
+⚠️ **À faire le jour où cette version passe en production** : la page des tarifs (`scripts/site-marine.js`) promet encore « Votre logo dans
+l'application » (Business) et « Votre logo et votre couleur d'application » (Premium) — les deux sont faux depuis v789 et v795.
+
 # 📍 30 OCTOBRE 2026 (fin de journée) — CE QUI EST EN LIGNE, CE QUI ATTEND JUSTIN, LES DETTES
 
 **En ligne (fusionné sur `main`)** : OP GESTION **v782** (tous les packs métier, dont Climatisation / Pompes à chaleur — la variante

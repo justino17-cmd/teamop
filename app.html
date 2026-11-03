@@ -8729,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '794';
+const APP_VERSION = '795';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -16366,7 +16366,7 @@ function showAside(){ return localStorage.getItem('elan_aside')==='1'; }
 const PLANS={
   pro:{l:'Pro',prix:'15 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · rapports complets, récurrences, tournées optimisées, devis & factures'},
   business:{l:'Business',prix:'25 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · + stock & box, bons fournisseurs, boîte mail, réglementaire, compta'},
-  premium:{l:'Business Premium',prix:'50 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · accès 100 % à toutes les fonctions d\'OP GESTION · assistance prioritaire · le nom et la couleur de votre entreprise dans l\'application'}
+  premium:{l:'Business Premium',prix:'50 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · accès 100 % à toutes les fonctions d\'OP GESTION · assistance prioritaire'}   /* v795 : plus de couleur d’entreprise dans l’application */
 };
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE — Justin, 27 septembre 2026 (le site et la page de
    paiement), puis 28 septembre pour l'application : « c'est un utilisateur par abonnement ». Jusqu'à la v761, Business en
@@ -24221,7 +24221,8 @@ function bcCouleur(b){ return docEntete(b&&b.societe,{bon:true}).couleur; }
 /* 🏷️ Marque de l'entreprise dans la barre. ⛔ v789 — Justin, 3 novembre 2026 : « je veux plus que le logo de l'application soit
    changeable, que pour les devis, factures ou autres, mais plus le logo de l'application dans l'application ». Le logo de
    l'entreprise ne remplace donc PLUS celui d'OP GESTION, à aucun forfait : il ne sert qu'à ses documents (`docEntete`). Ce qui
-   reste au Business Premium : sa couleur dans l'application ; le nom de l'entreprise s'écrit dessous pour tout le monde.
+   reste : le nom de l'entreprise s'écrit dessous pour tout le monde. (v795 : la couleur du Business Premium dans l'application est
+   retirée elle aussi — Justin : « ça sert à rien ».)
    (Ancien titre : Business : son logo · Business Premium : son logo et sa couleur.)
    Dans tous les cas le NOM est « OP GESTION » et celui de l'entreprise s'écrit dessous (voir plus bas). */
 function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('brand-sub'); if(!img||!nm) return;
@@ -24243,9 +24244,7 @@ function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('bra
     else { pl.textContent=PLANS[f].l.toUpperCase(); pl.style.color=PLAN_COLOR[f]||'var(--t3)'; }
     pl.style.display='block'; }
   const se=$('suite-ic-elan'); if(se) se.src=PLAN_BADGE[f]||'icons/plan-gestion.png';
-  // Couleur de l'entreprise (Business Premium) : appliquée à toute l'équipe, sauf choix perso de l'utilisateur
-  try{ if(!prefLocalLire('elan_accent')){ const r=document.documentElement, want=entCouleur()||'';
-    if(want!==(r.style.getPropertyValue('--acc')||'').trim()) applyTheme(); } }catch(e){} }
+  /* v795 : la couleur de l'entreprise ne colore plus l'application (Justin : « ça sert à rien ») — seulement ses documents. */ }
 /* Écusson à afficher sur l'avatar : logo de l'entreprise si elle en a un (Business / Premium), sinon logo du forfait */
 function brandBadgeSrc(){ try{ const f=forfait(); return PLAN_BADGE[f]||'icons/plan-gestion.png'; }catch(e){ return 'icons/plan-gestion.png'; } }   // v789 : jamais le logo de l'entreprise (voir applyBrand)
 /* Identifiant court de l'écusson actuel — sert à savoir si les avatars doivent être régénérés */
@@ -24254,11 +24253,8 @@ function brandBadgeKey(){ try{ return forfait(); }catch(e){ return 'pro'; } }
    si l'entreprise a son propre logo (Business / Business Premium), c'est lui qui s'affiche à la place */
 const PLAN_BADGE={pro:'icons/plan-gestion-pro.png',business:'icons/plan-gestion-business.png',premium:'icons/plan-gestion-premium.png'};
 const PLAN_COLOR={pro:'#4a9b7f',business:'#3b82f6',premium:'#a78bfa'};
-/* Couleur choisie par l'entreprise — valable uniquement avec le forfait Business Premium */
-function entCouleur(){ try{ const E=(db&&db.entreprise)||{}; return (forfait()==='premium'&&/^#[0-9a-fA-F]{6}$/.test(E.couleur||''))?E.couleur:null; }catch(e){ return null; } }
-function entCouleurSet(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex)) return; entPose('couleur',hex);
-  logEvent('Couleur entreprise',hex,'crud'); save(); applyBrand(); toast('🎨 Couleur de l\'entreprise appliquée à toute l\'équipe'); if(current==='parametres') views.parametres(); }
-function entCouleurDel(){ if(!db.entreprise||!db.entreprise.couleur) return; entPose('couleur',null); save(); applyBrand(); toast('Couleur de l\'entreprise retirée'); if(current==='parametres') views.parametres(); }
+/* v795 — plus de « couleur de l'entreprise » pour l'application (entCouleur, entCouleurSet, entCouleurDel retirées) : la couleur de
+   l'entreprise est celle de ses documents, `couleurDoc` (docCouleurEnt). */
 function entLogoPick(e){ const f=e.target.files&&e.target.files[0]; if(!f) return; e.target.value='';
   const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const mx=256; let w=im.width,h=im.height;
     if(w>mx||h>mx){ if(w>h){h=h*mx/w;w=mx;}else{w=w*mx/h;h=mx;} }
@@ -35595,7 +35591,8 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   ].forEach(t2=>{ T(M,y,8,cut(t2,110),0,GREY); y-=11; });
   y-=10;
   if(cachet&&cachet.b64){ const ch=46, cw=Math.min(150,Math.round(cachet.w*(ch/cachet.h)));
-    T(M,y-14,8.5,'Pour l\u2019entreprise',1,ACC_T);
+    /* v795 — Justin doute du titre « Pour l’entreprise » au-dessus du cachet : aucun texte ne l’exige (ni L441-9, ni 242 nonies A, ni pour un
+       devis), et il devient ambigu quand le client est lui aussi une entreprise. Le cachet reste seul, à sa place, en face du « Bon pour accord ». */
     ops.push('q',cw+' 0 0 '+ch+' '+M.toFixed(1)+' '+(y-66).toFixed(1)+' cm','/I2 Do','Q'); }
   R(RGT-210,y-52,210,54,GREENLT); R(RGT-210,y+2,210,0.8,GREEN);
   T(RGT-200,y-14,8.5,'Bon pour accord',1,ACC_T);
@@ -35680,7 +35677,7 @@ function docCachetZone(){ const E=(db&&db.entreprise)||{};
       ${E.cachet?`<button class="btn ghost sm" style="color:var(--red)" onclick="entCachetDel()">Retirer</button>`:''}
     </div></div>
   ${E.cachet?`<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0"><input type="checkbox" ${E.cachetFacture?'checked':''} onchange="entCachetOpt('cachetFacture',this.checked)"> Le poser sur les <b>factures</b></label>
-  <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0"><input type="checkbox" ${E.cachetDevis?'checked':''} onchange="entCachetOpt('cachetDevis',this.checked)"> Le poser sur les <b>devis</b> (case « Pour l’entreprise », à côté du « Bon pour accord » du client)</label>`:''}
+  <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0"><input type="checkbox" ${E.cachetDevis?'checked':''} onchange="entCachetOpt('cachetDevis',this.checked)"> Le poser sur les <b>devis</b> (à gauche, en face du « Bon pour accord » du client)</label>`:''}
   <p style="font-size:11.5px;color:var(--t3);margin:4px 0 12px;line-height:1.5">Le cachet n’est obligatoire ni sur un devis ni sur une facture : c’est un choix. Sur un devis, c’est la signature « Bon pour accord » de ton client qui compte. Une société déclarée avec son propre SIRET n’en porte pas.</p>`; }
 async function docPdfBlob(kind,d){
   const s=await docPdfChaine(kind,d); const bytes=new Uint8Array(s.length);
@@ -38932,22 +38929,10 @@ views.parametres=function(){
         </div>`; }).join('')||'<span style="font-size:12px;color:var(--t3)">Aucune société déclarée — la liste générique est proposée.</span>'}</div>
       ${(db.societes||[]).length?'<p style="font-size:11.5px;color:var(--t3);margin:0 0 8px">Chaque société a <b>sa couleur</b>, <b>son logo</b> et, si c’est une entreprise distincte, <b>ses coordonnées</b> (SIRET, TVA, IBAN) : tous ses documents — rapports, plans, devis, factures, bons — les portent.</p>':''}
       <div style="display:flex;gap:6px;margin-bottom:4px"><input id="ent-soc-new" placeholder="${esc(exemple('societe'))}" style="flex:1;background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;color:var(--t1);font-family:inherit" onkeydown="if(event.key==='Enter'){event.preventDefault();entSocAdd()}"><button class="btn sm" onclick="entSocAdd()">＋ Ajouter</button></div>
-      ${/* ⛔ v792 — Justin, 3 novembre 2026, capture à l'appui : « pourquoi quand j'ajoute un logo ça change celui de l'application ». Le logo
-           de l'entreprise ne sert plus qu'à ses documents (bloc « Tes documents » ci-dessus, v789) : ce bloc ne propose plus de logo, il ne garde
-           que la couleur du Business Premium. */''}
-      ${forfait()==='premium'?`
-      <div class="form-sec">🏷️ Couleur dans l'application <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--acc-txt)">— inclus avec Business Premium</span></div>
-      <p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business Premium : ta <b>couleur</b> devient le thème de couleur de l'application pour toute l'équipe. Le logo d'OP GESTION reste dans l'application ; ton logo va sur tes documents (« Tes documents », plus haut).</p>
-      ${forfait()==='premium'?`
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px">
-        <span style="position:relative;width:52px;height:52px;border-radius:14px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:${E.couleur?esc(E.couleur):'var(--bg2)'}">${E.couleur?'':'<span style="font-size:20px">🎨</span>'}<input type="color" id="ent-couleur-in" value="${esc(E.couleur||'#1E7A4E')}" onchange="entCouleurSet(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"></span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn ghost sm" style="white-space:normal" onclick="document.getElementById('ent-couleur-in').click()">${E.couleur?'Changer la couleur':'＋ Choisir la couleur de l’entreprise'}</button>
-          ${E.couleur?`<button class="btn ghost sm" style="color:var(--red)" onclick="entCouleurDel()">Retirer</button>`:''}
-        </div>
-      </div>
-      <p style="font-size:12px;color:var(--t3);margin:0 0 10px">La couleur de l'entreprise devient le <b>thème de couleur</b> de toute l'équipe (contours, boutons, sélections). Chaque utilisateur peut toujours choisir une couleur perso dans ses Paramètres.</p>`:''}`
-      :`<div class="detail-desc" style="margin-top:10px">🏷️ <b>Personnalisation</b> : avec <b>Business Premium</b>, la couleur de ton entreprise devient le thème de couleur de l'application. Ton logo, lui, va sur tes documents (« Tes documents », plus haut), à tous les forfaits.</div>`}
+      ${/* ⛔ v795 — Justin, 3 novembre 2026, à « la couleur de l'entreprise devient le thème de l'application » : « ça sert à rien du coup,
+           donc tu peux supprimer ». Le bloc « Couleur dans l'application » (Business Premium) n'existe plus, et la couleur ne colore plus
+           l'application (applyBrand, applyTheme). La couleur de l'entreprise ne sert plus qu'à ses DOCUMENTS (`couleurDoc`, « Tes documents »).
+           Un ancien `db.entreprise.couleur` reste dans la base : on ne réécrit rien au chargement, on ne le lit plus. */''}
       <button class="btn" onclick="entSave()">Enregistrer</button>
     </div>`; })():''}
     ${(()=>{ return `<div class="card"><div class="card-head"><h3>✉️ Mes envois</h3></div>
@@ -48478,9 +48463,8 @@ function applyTheme(){
      Le vert est une teinte comme les autres. Il prend le même chemin. */
   r.setAttribute('data-accent', a||'green');
   // 🎨 Couleur personnalisée : la teinte choisie remplace le vert PARTOUT (contours, survols, sélections…)
-  // Sans choix perso, la couleur de l'entreprise (Business Premium) sert de thème de couleur pour toute l'équipe
-  const hx = a==='custom' ? (prefLocalLire('elan_accent_hex')||'#7A5AF8')
-    : (!prefLocalLire('elan_accent') && typeof entCouleur==='function' ? entCouleur() : null);
+  // v795 : la couleur de l'entreprise ne sert plus de thème à l'équipe (Justin : « ça sert à rien ») — seule la couleur perso compte
+  const hx = a==='custom' ? (prefLocalLire('elan_accent_hex')||'#7A5AF8') : null;
   if(hx){
     /* ⛔⛔ ON POSE LA SOURCE, PAS LES DÉRIVÉS. Cette fonction tenait CINQ jetons à la main
        (`--acc`, `--acc2`, `--on-acc`, `--acc-fill`, `--acc-fill-hover`) pendant que la feuille
