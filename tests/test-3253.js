@@ -124,10 +124,10 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 4 min'); fini(1); }
     }
 
     console.log('\n── 3253 · 3. appareil déjà rattaché : rien ne change ──');
-    const C = await appareil({ elanB_sync_team: 'entreprise-test-qzw', elanB_sync_secret: 'CLE-TEST-QZW', elanB_sync_on: '1' });
+    const C = await appareil({ elanB_sync_team: 'entreprise-test-qzw', elanB_sync_secret: 'CLE-QZW', elanB_sync_on: '1' });
     await connecter(C, 'justin-qzw', 'mdp-qzw-ouvert');
     const c = await etat(C);
-    v('connecté, il garde son espace et sa clé', [c.entre, c.team, await C.page.evaluate(() => localStorage.getItem('elanB_sync_secret'))], [true, 'entreprise-test-qzw', 'CLE-TEST-QZW']);
+    v('connecté, il garde son espace et sa clé', [c.entre, c.team, await C.page.evaluate(() => localStorage.getItem('elanB_sync_secret'))], [true, 'entreprise-test-qzw', 'CLE-QZW']);
     v('il ne lit jamais le document de la bêta', C.docs.filter(x => / opgestion-beta$/.test(x)), []);
     await C.ctx.close();
 
