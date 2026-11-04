@@ -13,6 +13,19 @@ de ligne du tout.
 
 ---
 
+# 4 NOVEMBRE 2026 (nuit) — BÊTA 799 : UN APPAREIL NEUF REJOINT LA SYNCHRO DE LA BÊTA
+
+Justin : « sur mon compte bêta je ne vois pas ce que j'ai fait sur mon PC sur les autres appareils, mon téléphone ou mon Mac ».
+Cause MESURÉE (au navigateur, profil neuf : `syncTeam()` vide) : la bêta ne rattachait un appareil à `opgestion-beta` que s'il portait
+déjà des traces de la bêta au premier chargement (`espaceHerite`, verdict gelé dans `elanB_repli_v1`) ou par un lien d'entreprise ; la
+connexion bêta (`/api/beta/login`) n'écrivait rien. ⚠️ Ce n'était PAS le serveur : `documents.js` laisse passer les espaces techniques
+sans preuve, et `/api/fb/jeton` ne sert plus depuis la sortie de Firebase (v748) — un premier diagnostic l'accusait à tort.
+Correctif dans `beta-build.js` seul (app.html inchangé) : après une connexion bêta ACCEPTÉE, un appareil sans espace pose
+`elanB_sync_team` = `opgestion-beta`, la clé par défaut (valeur inchangée), `elanB_sync_on` = 1 ; `enterApp` lance la synchro. Un appareil
+déjà rattaché ne bouge pas. La bêta porte son propre numéro (`BETA_NUMERO = 799`) tant qu'app.html est en dessous (`test-720` le lit).
+`tests/test-3253.js` : vraie beta.html contre le vrai serveur isolé, quatre cas dont deux appareils qui se voient (MUTER=1 → 5 ✗).
+Pour Justin : une fois la bêta publiée, se reconnecter une fois sur le téléphone et le Mac.
+
 # 4 NOVEMBRE 2026 (soir) — OP GESTION v798 EN PRODUCTION : envois par la boîte de l'entreprise, DÉTAIL des PDF en entier, « Se connecter avec Google »
 
 C'est la bêta v798 entière (v796 à v798), voir `VERSION-STABLE.md`. Ce qui reste ouvert :
