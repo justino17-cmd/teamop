@@ -17,6 +17,24 @@ s = s.split('"elan_').join('"elanB_');
 s = s.split("'op_devis_code'").join("'opB_devis_code'");
 s = s.split("FB_TEAM='elan-gestion'").join("FB_TEAM='opgestion-beta'");
 s = s.replace(/const APP_VERSION = '([0-9]+)'/, "const APP_VERSION = '$1-beta'");
+/* ⛔ LA BÊTA PEUT PORTER UN NUMÉRO D'AVANCE SUR app.html (4 novembre 2026). Un correctif qui ne vit QUE dans ce générateur (le
+   rattachement à la synchro, plus bas) change la bêta sans changer app.html : sans un numéro neuf, un appareil resté en 798-beta
+   ne se mettrait jamais à jour (la bêta ne recharge que pour une version STRICTEMENT plus haute). Le plus grand des deux gagne :
+   le jour où app.html dépasse ce nombre, il redevient la source, sans rien à toucher ici. */
+const BETA_NUMERO = 799;
+s = s.replace(/const APP_VERSION = '([0-9]+)-beta'/, (m, n) => "const APP_VERSION = '" + Math.max(parseInt(n, 10), BETA_NUMERO) + "-beta'");
+/* ⛔ UN APPAREIL NEUF QUI OUVRE LA BÊTA REJOINT LA SYNCHRO DE LA BÊTA (Justin, 4 novembre 2026 : « sur mon compte bêta je ne vois pas
+   ce que j'ai fait sur mon PC sur les autres appareils, mon téléphone ou mon Mac »). La bêta ne rattachait un appareil à son espace
+   (`opgestion-beta`) que s'il portait DÉJÀ des traces de la bêta au premier chargement (`espaceHerite`, verdict gelé dans
+   `elanB_repli_v1`) ou par un lien d'entreprise. La connexion bêta, elle, n'écrivait rien : un téléphone ou un Mac neuf restait
+   sans espace (`syncEnabled()` faux), et travaillait seul — mesuré au navigateur, profil neuf : `syncTeam()` vide.
+   Ici, une fois `/api/beta/login` ACCEPTÉ (jamais avant, jamais sur un refus), un appareil SANS espace rejoint celui de la bêta,
+   avec la clé par défaut (SYNC_SECRET_DEFAULT, sa valeur n'est pas touchée), exactement ce que pose `espaceHerite`. Un appareil déjà
+   rattaché (la bêta, ou une entreprise de test par son lien) ne change pas. `enterApp`, juste après, lance `syncInit()`.
+   La production n'est pas concernée : ce bloc n'existe que dans beta.html. `tests/test-3253.js`. */
+const BETA_LOGIN_OK = '    ub.pwdHash=h; ub.actif=true; ub.essai=true; delete ub.mustChangePwd; delete ub.pinHash; delete ub.sansMdp; save();';
+if (s.split(BETA_LOGIN_OK).length !== 2) { console.error('ÉCHEC : la ligne de la connexion bêta acceptée doit être trouvée UNE fois dans app.html'); process.exit(1); }
+s = s.split(BETA_LOGIN_OK).join(BETA_LOGIN_OK + "\n    try{ if(!syncTeam()){ localStorage.setItem('elanB_sync_team',FB_TEAM); localStorage.setItem('elanB_sync_secret',SYNC_SECRET_DEFAULT); localStorage.setItem('elanB_sync_on','1'); } }catch(_e){}   // beta-build.js : un appareil neuf rejoint la synchro de la bêta");
 /* ⛔ LA BÊTA A SA VERSION MINIMALE À ELLE (Justin, 6 octobre 2026 : « qu'on sépare la version bêta et la version publique »).
    L'application demande `/api/version` ; la bêta demande `/api/version?canal=beta` — le minimum que la Tour pose sur la carte
    « Bêta » d'OP GESTION, jamais celui des clients (et inversement : exiger une bêta ne bloque aucun client). Un serveur d'avant

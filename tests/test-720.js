@@ -41,7 +41,11 @@ function generer(env) {
 }
 const versionDe = (f) => { try { const m = /APP_VERSION = '([^']+)'/.exec(fs.readFileSync(f, 'utf8')); return m ? m[1] : null; } catch (e) { return null; } };
 const poser = (v) => fs.writeFileSync(sortie, "<html><script>const APP_VERSION = '" + v + "';</script></html>");
-const VRAIE = (/APP_VERSION = '(\d+)'/.exec(fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8')) || [])[1];
+const APPV = (/APP_VERSION = '(\d+)'/.exec(fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8')) || [])[1];
+/* La bêta peut porter son propre numéro, plus haut qu'app.html (`BETA_NUMERO` de beta-build.js, 4 novembre 2026) : le numéro
+   qu'elle doit porter est le plus grand des deux. Lu dans le CODE du générateur, jamais recopié ici. */
+const BN = parseInt((/^const BETA_NUMERO = (\d+);/m.exec(fs.readFileSync(path.join(RACINE, 'beta-build.js'), 'utf8')) || [])[1] || '0', 10);
+const VRAIE = APPV ? String(Math.max(+APPV, BN)) : APPV;
 
 console.log('0. Le point de départ');
 vrai('app.html porte bien un numéro de version', !!VRAIE && +VRAIE > 0);
@@ -90,7 +94,7 @@ console.log('6. ⛔ La route PROPOSE du serveur ne doit PAS tomber sur la garde'
   /* On lui donne une app d'une version PLUS BASSE que la bêta du dépôt : c'est la situation
      réelle de la route, et celle qui déclencherait la garde si elle était naïve. */
   const appBasse = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8')
-    .replace(/const APP_VERSION = '\d+'/, "const APP_VERSION = '" + (+VRAIE - 100) + "'");
+    .replace(/const APP_VERSION = '\d+'/, "const APP_VERSION = '" + (+APPV - 100) + "'");
   let produite = null, refus = null, ecritDisque = 0;
   const fauxFs = {
     readFileSync: (f, e) => (String(f).endsWith('app.html') ? appBasse : fs.readFileSync(f, e)),
@@ -105,8 +109,8 @@ console.log('6. ⛔ La route PROPOSE du serveur ne doit PAS tomber sur la garde'
   } catch (e) { refus = e.message; }
   vrai('⛔ le bac à sable produit bien une bêta, malgré une version plus basse', !!produite);
   eq('… et ne refuse rien', refus, null);
-  vrai('… la bêta produite porte la version basse qu\'on lui a donnée',
-    !!produite && produite.indexOf("APP_VERSION = '" + (+VRAIE - 100) + "-beta'") > 0);
+  vrai('… la bêta produite porte la version basse qu\'on lui a donnée (ou le numéro propre de la bêta, s\'il est plus haut)',
+    !!produite && produite.indexOf("APP_VERSION = '" + Math.max(+APPV - 100, BN) + "-beta'") > 0);
   vrai('… et rien n\'a été écrit sur le vrai disque', ecritDisque === 1);
   /* La raison pour laquelle la garde se tait ici, vérifiée et pas supposée : le faux
      `process` n'expose pas `env`. Si un jour il l'exposait, la route casserait — et cette
