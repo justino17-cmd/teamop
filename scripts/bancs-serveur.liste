@@ -465,3 +465,5 @@ tests/test-3150.js
 tests/test-3237.js
 # 3 novembre 2026 : `test-3239` (la bêta a le Devis IA d'office, moteur « Au choix », visible et réglable dans la Tour ; changer le moteur ne coupe plus le Devis IA). Le vrai serveur, trois démarrages. 11 vérifications.
 tests/test-3239.js
+# 4 novembre 2026 : `test-3243` (les conditions particulières d'OP GESTION et les agents ne promettent plus le logo ni la couleur dans l'application ; révision « logo-documents-2026-11-04 » déposée UNE fois en brouillon sur le registre du VPS). Le vrai module des contrats. 19 vérifications.
+tests/test-3243.js

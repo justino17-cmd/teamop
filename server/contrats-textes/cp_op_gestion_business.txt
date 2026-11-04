@@ -6,12 +6,11 @@ Facturation : mensuelle, ou annuelle avec deux mois offerts. Sans engagement de 
 
 Fonctions comprises : toutes celles d'OP GESTION Pro, plus
 - Stock : inventaire et seuils d'alerte (box pour le métier de la lutte anti-nuisibles)
-- Bons de commande fournisseurs : PDF, envoi en un clic
+- Bons de commande fournisseurs : PDF à votre logo et votre couleur, envoi en un clic
 - Commande suggérée ; la réception crédite le stock
 - Boîte mail intégrée, rattachée aux bons
 - Registre sanitaire (métier de la lutte anti-nuisibles) : passages et produits appliqués
 - Télécollecte et comptabilité, droits utilisateur fins
-- Logo de l'entreprise dans l'application
 
 Assistance : par courriel, avec traitement prioritaire, sans délai de réponse garanti.
 

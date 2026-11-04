@@ -53,16 +53,16 @@ const OFFRE = [
   '- Tu n’écris jamais les mots « gratuit », « offert », « remise », « réduction », « illimité », « garanti », « remboursé », ni « sans engagement » seul : ce sont des promesses commerciales que personne n’a faites (« sans engagement de durée » est un fait, voir ci-dessus). Tu n’écris aucun nom de site ou d’adresse web autre que « teamop.fr ».',
 ].join('\n');
 
-/* LES TROIS FORMULES D'OP GESTION (23 octobre 2026) — recopiées des conditions particulières VALIDÉES (`server/contrats-textes/cp_op_gestion_*.txt`) et de `tarifs.html` ; rien des
+/* LES TROIS FORMULES D'OP GESTION (23 octobre 2026 ; 4 novembre 2026 : logo, couleur et cachet sur les DOCUMENTS, plus dans l'application — v795) — recopiées des conditions particulières VALIDÉES (`server/contrats-textes/cp_op_gestion_*.txt`) et de `tarifs.html` ; rien des
    « À CONFIRMER » de ces textes n'y entre (périmètre de la création sur mesure, délai du support prioritaire, disponibilité 24 h/24 : aucun engagement). Chloé en tire sa
    proposition ; le SEUL endroit où paraissent 25 € et 50 € : `refusDe` les permet à son profil « proposition » et à lui seul. */
 const FORMULES = {
   pro: { nom: 'OP GESTION Pro', prix: 15, inclus: ['planning des interventions (jour, semaine, mois)', 'fiches clients et historique des passages', 'rapports d’intervention avec photos, signatures et envoi en PDF',
-    'tournées du jour avec carte et ordre optimisé', 'récurrences (contrats) et passages multiples', 'conflits de planning et absences signalés', 'devis et factures', 'pointage des heures',
+    'tournées du jour avec carte et ordre optimisé', 'récurrences (contrats) et passages multiples', 'conflits de planning et absences signalés', 'devis et factures à son logo, sa couleur et son cachet', 'pointage des heures',
     'exports CSV et notifications', 'application web et mobile (iPhone, Android, Mac, PC)'] },
-  business: { nom: 'OP GESTION Business', prix: 25, inclus: ['tout OP GESTION Pro', 'stock avec inventaire et seuils d’alerte', 'bons de commande fournisseurs en PDF, envoyés en un clic', 'commande suggérée, la réception crédite le stock',
-    'boîte mail intégrée, rattachée aux bons', 'télécollecte et comptabilité', 'droits utilisateur fins', 'logo de l’entreprise dans l’application', 'assistance par courriel avec traitement prioritaire'] },
-  premium: { nom: 'OP GESTION Business Premium', prix: 50, inclus: ['tout OP GESTION Business', 'toutes les fonctions d’OP GESTION pour le métier de l’entreprise', 'logo et couleur de l’entreprise pour toute l’équipe',
+  business: { nom: 'OP GESTION Business', prix: 25, inclus: ['tout OP GESTION Pro', 'stock avec inventaire et seuils d’alerte', 'bons de commande fournisseurs en PDF à son logo et sa couleur, envoyés en un clic', 'commande suggérée, la réception crédite le stock',
+    'boîte mail intégrée, rattachée aux bons', 'télécollecte et comptabilité', 'droits utilisateur fins', 'assistance par courriel avec traitement prioritaire'] },
+  premium: { nom: 'OP GESTION Business Premium', prix: 50, inclus: ['tout OP GESTION Business', 'toutes les fonctions d’OP GESTION pour le métier de l’entreprise',
     'OP MESSAGES inclus à son ouverture', 'accompagnement à la mise en route et assistance prioritaire'] },
 };
 const PRIX_FORMULES = Object.values(FORMULES).map(f => f.prix);

@@ -11,7 +11,7 @@ Fonctions comprises
 - Tournées du jour : carte, temps de trajet, ordre optimisé
 - Récurrences (contrats) et passages multiples
 - Conflits de planning et absences signalés
-- Devis et factures
+- Devis et factures, à votre logo, votre couleur et votre cachet
 - Pointage des heures
 - Exports CSV, notifications
 - Application web et mobile (iPhone, Android, Mac, PC), données chiffrées AES-256
@@ -20,4 +20,4 @@ Assistance : par courriel (support@teamop.fr) et depuis l'espace client.
 
 Changement de formule : le Client peut passer à OP GESTION Business ou Business Premium, ou redescendre, sur simple demande. La nouvelle formule s'applique à la période suivante ; la période en cours n'est ni remboursée ni recalculée.
 
-Les fonctions qui ne sont pas listées ci-dessus (stock, bons de commande, registre sanitaire, comptabilité, personnalisation) ne font pas partie de cette formule.
+Les fonctions qui ne sont pas listées ci-dessus (stock, bons de commande, registre sanitaire, comptabilité) ne font pas partie de cette formule.

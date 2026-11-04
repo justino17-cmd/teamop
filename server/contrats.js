@@ -49,12 +49,19 @@ const MARQUEUR = /\[\s*[AÀ]\s+(?:CONFIRMER|COMPLÉTER|VÉRIFIER|RENSEIGNER)/i;
    au démarrage suivant, la révision est là, rien ne se redépose — même si la version a été retirée, même si Justin a écrit la sienne depuis. ⛔ Une révision de plus s'AJOUTE
    ici avec un nouveau nom : réutiliser un nom ferait croire un texte déjà déposé. Les types dont le fichier n'a pas bougé n'y figurent pas. */
 const REVISION_JURIDIQUE = 'relecture-juridique-2026-10-23';
+/* 4 novembre 2026 — OP GESTION v795 (en production) : le logo et la couleur de l'entreprise ne vont plus DANS l'application, seulement sur les
+   documents (devis et factures : logo, couleur, cachet ; bons de commande : logo, couleur), et pour toutes les formules. Justin : « ça tu changes ».
+   Les trois conditions particulières d'OP GESTION en reçoivent une révision ; rien d'autre n'y change (prix, assistance, changement de formule). */
+const REVISION_DOCUMENTS = 'logo-documents-2026-11-04';
 const REVISIONS = {
   conditions_generales: REVISION_JURIDIQUE, conditions_op_messages: REVISION_JURIDIQUE, dpa: REVISION_JURIDIQUE,
-  cp_op_gestion_pro: REVISION_JURIDIQUE, cp_op_gestion_business: REVISION_JURIDIQUE, cp_op_gestion_business_premium: REVISION_JURIDIQUE,
+  cp_op_gestion_pro: REVISION_DOCUMENTS, cp_op_gestion_business: REVISION_DOCUMENTS, cp_op_gestion_business_premium: REVISION_DOCUMENTS,
   cp_op_messages_business_premium: REVISION_JURIDIQUE,
 };
-const NOTE_REVISION = 'Révision du 23 octobre 2026 (relecture juridique) — à comparer à la version en vigueur, puis valider ; les points « PAR UN JURISTE » restent à trancher';
+const NOTES_REVISION = {
+  [REVISION_JURIDIQUE]: 'Révision du 23 octobre 2026 (relecture juridique) — à comparer à la version en vigueur, puis valider ; les points « PAR UN JURISTE » restent à trancher',
+  [REVISION_DOCUMENTS]: 'Révision du 4 novembre 2026 — le logo, la couleur et le cachet vont sur les devis, factures et bons, plus dans l’application (v795) ; à comparer à la version en vigueur, puis valider',
+};
 const connu = t => typeof t === 'string' && Object.prototype.hasOwnProperty.call(TYPES, t);
 const TEXTE_MAX = 80000, NOTE_MAX = 300;
 const DOS = /^DOS-\d{6}$/;
@@ -191,7 +198,7 @@ module.exports = function contrats(app, ctx) {
       if (versions(t).length && (!rev || versions(t).some(x => x.revision === rev))) continue;
       let texte; try { texte = fs.readFileSync(path.join(dossierTextes, t + '.txt'), 'utf8'); } catch (e) { continue; }
       const neuf = !versions(t).length;
-      if (brouillon(t, texte, 'Rédaction (agents)', neuf ? 'Texte initial — à relire et trancher les points « À CONFIRMER »' : NOTE_REVISION, rev).code === 200) n++;
+      if (brouillon(t, texte, 'Rédaction (agents)', neuf ? 'Texte initial — à relire et trancher les points « À CONFIRMER »' : (NOTES_REVISION[rev] || NOTES_REVISION[REVISION_JURIDIQUE]), rev).code === 200) n++;
     } } finally { enSemis = false; }
     return n;
   }
