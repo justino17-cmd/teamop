@@ -730,7 +730,7 @@ process.on('unhandledRejection', (r) => {
    surveillance horaire de GitHub lit une fois par heure — une question à Max faussait la surveillance. `vider` n'est donc VRAI que pour la
    route publique ; un agent appelle `santeCorps(false)`, mêmes champs, aucune fenêtre touchée. */
 app.get('/health', (req, res) => res.json(santeCorps(true)));
-function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), oauth: boiteOauth.disponibles(), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* LE PONT VERS OP MESSAGES (28 octobre 2026) : DEUX NOMBRES, présents SEULEMENT quand le pont est monté — les minutes d'échec d'affilée (la surveillance crie à 30) et la taille de la file (elle crie à 1 000 sur 2 000). Jamais un texte, un fil, un identifiant. */
   ...(pontMessages ? { pont: pontMessages.sante() } : {}),
   /* Ce que la messagerie des agents a REFUSÉ dans la dernière heure, en deux NOMBRES (28 octobre 2026) : `horaire` — un agent qui travaille SEUL a buté sur ses plafonds horaires (12 messages par heure, 20 par
@@ -1262,6 +1262,28 @@ mailboxes = coffreBoites.lire(MAILBOX_PATH, {});
 // migration éventuelle depuis l'ancien format "teamId|userId"
 for (const k of Object.keys(mailboxes)) { const b = mailboxes[k]; if (!b.id) { b.id = 'mb' + Math.random().toString(36).slice(2, 9); mailboxes[b.id] = b; delete mailboxes[k]; } }
 function saveMailboxes() { return coffreBoites.ecrire(MAILBOX_PATH, mailboxes); }   // temporaire + renommage, mots de passe chiffrés ; rend false (et le dit) si non écrit
+/* ══ BOÎTES CONNECTÉES PAR AUTORISATION (OAuth — Microsoft, Google), 4 novembre 2026 ══ (`boite-oauth.js`)
+   Une boîte OAuth porte `auth:'oauth'` et `fournisseur` ; son `pass` est le JETON DE RENOUVELLEMENT, donc chiffré au repos par
+   le même coffre qu'un mot de passe. ⛔ Toute connexion SMTP/IMAP à une boîte d'entreprise passe par `authBoite` : présenter
+   `b.pass` en mot de passe pour une boîte OAuth enverrait le jeton de renouvellement à un serveur qui n'en veut pas. */
+const boiteOauth = require('./boite-oauth').creer({ config });
+function oauthRotation(b, neuf) { const m = b && b.id && mailboxes[b.id]; if (m) { m.pass = neuf; saveMailboxes(); } }
+async function authBoite(b, pour) {
+  if (b.auth !== 'oauth') return { user: b.email, pass: b.pass };
+  try { return pour === 'smtp' ? await boiteOauth.authSmtp(b, oauthRotation) : await boiteOauth.authImap(b, oauthRotation); }
+  catch (e) {
+    if (e.code === 'a_reconnecter' && b.id && mailboxes[b.id] && mailboxes[b.id].etat !== 'a_reconnecter') { mailboxes[b.id].etat = 'a_reconnecter'; saveMailboxes(); }
+    throw e;
+  }
+}
+/* Les options de transport SMTP d'une boîte : 587 = STARTTLS exigé (Microsoft), 465 = TLS direct. `tlsAucun` n'existe que
+   pour les bancs (serveurs surchargés par TEAMOP_OAUTH_SERVEURS) : un vrai fournisseur ne le reçoit jamais. */
+function transportBoite(b, auth) {
+  const o = { host: b.smtpHost, port: b.smtpPort, secure: b.smtpPort === 465, auth, connectionTimeout: 15000, greetingTimeout: 15000 };
+  if (b.smtpPort === 587) o.requireTLS = true;
+  if (b.tlsAucun) { o.secure = false; o.requireTLS = false; o.ignoreTLS = true; }
+  return o;
+}
 // Détection automatique des serveurs selon le domaine
 function mailServers(email) {
   const dom = String(email || '').split('@')[1] || '';
@@ -1297,7 +1319,7 @@ function mailServers(email) {
    C'est exactement le mode de panne silencieuse que ce dépôt a déjà payé. On mesure d'abord
    — /api/mail/cles, protégée — et on ne ferme que lorsque le compte « sans preuve » est à
    zéro pour les espaces vivants. */
-app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail', '/api/mail/traduire', '/api/subscribe', '/api/notify'], cleEquipeObserve);
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire', '/api/subscribe', '/api/notify'], cleEquipeObserve);
 
 /* ══ PHASE 2 — 11 septembre 2026 : LES DEUX ROUTES QUI LISENT REFUSENT VRAIMENT ══
    Elles ne demandaient qu'un teamId dans l'URL. /api/mailboxes rendait les adresses de
@@ -1428,8 +1450,8 @@ const mailRefus = { n: 0, parMotif: Object.create(null), parRoute: Object.create
    appels depuis la v572, et le minimum exigé en ligne (/api/version) est bien au-delà.
    `/api/subscribe` et `/api/notify` restent OBSERVÉES : `espace.html` et `messages.html` les appellent sans jamais envoyer
    de preuve, leur fermer la porte les couperait. */
-const ROUTES_MAIL_REFUS_JSON = ['mailbox/connect', 'mailbox/disconnect', 'sendmail'];
-app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail', '/api/mail/traduire'], cleEquipeExige);
+const ROUTES_MAIL_REFUS_JSON = ['mailbox/connect', 'mailbox/disconnect', 'mailbox/oauth/start', 'sendmail'];
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire'], cleEquipeExige);
 
 /* Le nombre d'essais de connexion à une boîte, par IP et par heure. La route tente un
    SMTP puis un IMAP chez le fournisseur et RENVOIE son message d'erreur : sans borne,
@@ -1487,15 +1509,65 @@ app.post('/api/mailbox/connect', async (req, res) => {
   res.json({ ok: true, id, email });
   importHistorique(mailboxes[id]).catch(() => {});   // les anciens mails de la boîte arrivent dans l'app (en arrière-plan)
 });
+/* ── Connexion par autorisation (Microsoft, Google), 4 novembre 2026 ──
+   `start` est sous la MÊME preuve de clé que `connect` (montée plus haut). `retour` arrive par le navigateur, depuis le
+   fournisseur, sans clé : c'est le `state` signé, à usage unique, qui dit quel espace a demandé — rien du corps ni de la requête
+   n'en décide autrement. */
+const oauthQuota = new Map();
+const espaceConnuBoite = (t) => !!espaceParT(t) || Object.values(subs).some(x => abonneEntreprise(x, t)) || !!cnxData[t];
+app.post('/api/mailbox/oauth/start', (req, res) => {
+  if (oauthQuota.size > 5000) oauthQuota.clear();
+  if (!quotaOk(oauthQuota, 'ip:' + (req.ip || '?'), 30, 3600000)) return res.status(429).json({ error: 'trop d\'essais de connexion — réessaie dans une heure' });
+  const b = req.body || {};
+  const teamId = String(b.teamId || b.t || '').slice(0, 80);
+  if (!teamId || !espaceConnuBoite(teamId)) return res.status(403).json({ error: 'espace inconnu du serveur' });
+  try { res.json(boiteOauth.demarrer({ fournisseur: String(b.fournisseur || ''), t: teamId })); }
+  catch (e) { res.status(e.statut || 400).json({ error: e.message, code: e.code }); }
+});
+function pageRetourOauth(ok, message) {
+  const esc = (x) => String(x || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const donnee = JSON.stringify({ type: 'teamop-boite', ok: !!ok, message: String(message || '').slice(0, 200) }).replace(/</g, '\\u003c');
+  return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OP GESTION — boîte mail</title>'
+    + '<style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0f1729;color:#e8edf6;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:16px}'
+    + '.c{max-width:420px;text-align:center}.i{font-size:46px}h1{font-size:20px;margin:10px 0}p{color:#aeb9cf;line-height:1.5}</style></head><body><div class="c">'
+    + '<div class="i">' + (ok ? '✅' : '⚠️') + '</div><h1>' + (ok ? 'Boîte connectée' : 'Connexion non terminée') + '</h1><p>' + esc(message) + '</p>'
+    + '<p>' + (ok ? 'Tu peux revenir dans OP GESTION.' : 'Reviens dans OP GESTION et recommence.') + '</p></div>'
+    + '<script>(function(){var d=' + donnee + ';try{if(window.opener){["https://teamop.fr","https://www.teamop.fr"].forEach(function(o){try{window.opener.postMessage(d,o)}catch(e){}});setTimeout(function(){window.close()},1500)}}catch(e){}})();</script></body></html>';
+}
+app.get('/api/mailbox/oauth/retour', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store'); res.setHeader('Referrer-Policy', 'no-referrer');
+  if (oauthQuota.size > 5000) oauthQuota.clear();
+  if (!quotaOk(oauthQuota, 'r:' + (req.ip || '?'), 30, 3600000)) return res.status(429).type('html').send(pageRetourOauth(false, 'Trop d\'essais — réessaie dans une heure.'));
+  const q = req.query || {};
+  if (q.error) return res.status(400).type('html').send(pageRetourOauth(false, 'Autorisation refusée ou annulée.'));
+  let r;
+  try { r = await boiteOauth.retour({ code: q.code, state: q.state }); }
+  catch (e) { return res.status(e.statut && e.statut < 500 ? e.statut : 400).type('html').send(pageRetourOauth(false, e.message)); }
+  if (!espaceConnuBoite(r.t)) return res.status(403).type('html').send(pageRetourOauth(false, 'Espace inconnu du serveur.'));
+  const srv = boiteOauth.serveurs(r.fournisseur);
+  const ex = Object.values(mailboxes).find(b => b.teamId === r.t && String(b.email).toLowerCase() === r.email);
+  const id = ex ? ex.id : ('mb' + Math.random().toString(36).slice(2, 9));
+  const boite = { id, teamId: r.t, email: r.email, pass: r.refresh, auth: 'oauth', fournisseur: r.fournisseur, name: ex ? ex.name : '', ...srv, ts: Date.now() };
+  boiteOauth.oublier(boite); boiteOauth.amorcer(boite, r.acces, r.exp);
+  /* L'envoi est éprouvé AVANT d'enregistrer : chez Microsoft, une organisation peut avoir coupé le « SMTP authentifié » — mieux
+     vaut le dire maintenant que sur le premier devis. */
+  try { const nodemailer = require('nodemailer'); await nodemailer.createTransport(transportBoite(boite, { type: 'OAuth2', user: boite.email, accessToken: r.acces })).verify(); }
+  catch (e) { boiteOauth.oublier(boite); console.error('oauth', masqueMail(boite.email) + ': envoi refusé'); return res.status(400).type('html').send(pageRetourOauth(false, 'Ton fournisseur refuse l\'envoi depuis une application (« SMTP authentifié » coupé ?). Voir avec la personne qui gère ta messagerie.')); }
+  mailboxes[id] = boite;
+  if (!saveMailboxes()) { delete mailboxes[id]; boiteOauth.oublier(boite); return res.status(503).type('html').send(pageRetourOauth(false, 'Le serveur n\'a pas pu enregistrer la boîte — réessaie.')); }
+  res.type('html').send(pageRetourOauth(true, 'La boîte ' + r.email + ' est connectée à OP GESTION.'));
+  importHistorique(mailboxes[id]).catch(() => {});
+});
 app.post('/api/mailbox/disconnect', (req, res) => {
   const { teamId, id } = req.body || {}; const b = mailboxes[id];
-  if (b && b.teamId === teamId) { delete mailboxes[id]; saveMailboxes(); }
+  if (b && b.teamId === teamId) { boiteOauth.oublier(b); delete mailboxes[id]; saveMailboxes(); }
   res.json({ ok: true });
 });
 // liste des boîtes d'une équipe (sans mot de passe)
 app.get('/api/mailboxes', (req, res) => {
   const teamId = String(req.query.teamId || '');
-  const list = Object.values(mailboxes).filter(b => b.teamId === teamId).map(b => ({ id: b.id, email: b.email, name: b.name, imapHost: b.imapHost, smtpHost: b.smtpHost }));
+  const list = Object.values(mailboxes).filter(b => b.teamId === teamId).map(b => ({ id: b.id, email: b.email, name: b.name, imapHost: b.imapHost, smtpHost: b.smtpHost,
+    type: b.auth === 'oauth' ? b.fournisseur : 'motdepasse', etat: b.etat === 'a_reconnecter' ? 'a_reconnecter' : 'ok' }));
   res.json({ mailboxes: list });
 });
 
@@ -1507,7 +1579,7 @@ try { fs.readFileSync(REPLIES_PATH, 'utf8').trim().split('\n').forEach(l => { tr
 async function importHistorique(b, limit = 60) {
   const { ImapFlow } = require('imapflow'); const { simpleParser } = require('mailparser'); let client;
   try {
-    client = new ImapFlow({ host: b.imapHost, port: b.imapPort || 993, secure: true, auth: { user: b.email, pass: b.pass }, logger: false });
+    client = new ImapFlow({ host: b.imapHost, port: b.imapPort || 993, secure: !b.tlsAucun, auth: await authBoite(b, 'imap'), logger: false });
     client.on('error', () => {});   // une erreur émise en événement tuerait le processus : on l'absorbe, l'échec est déjà traité par le try/catch
     await client.connect();
     const lock = await client.getMailboxLock('INBOX');
@@ -1544,7 +1616,7 @@ let boiteBusy = false;
 async function releveUneBoite(cfg, tag) {   // cfg = {host/port/user/pass} ; tag = {teamId, userId} pour le rattachement
   const { ImapFlow } = require('imapflow'); let client;
   try {
-    client = new ImapFlow({ host: cfg.host, port: cfg.port || 993, secure: true, auth: { user: cfg.user, pass: cfg.pass }, logger: false });
+    client = new ImapFlow({ host: cfg.host, port: cfg.port || 993, secure: !cfg.tlsAucun, auth: cfg.auth || { user: cfg.user, pass: cfg.pass }, logger: false });
     client.on('error', () => {});   // une erreur émise en événement tuerait le processus : on l'absorbe, l'échec est déjà traité par le try/catch
     await client.connect();
     const lock = await client.getMailboxLock('INBOX');
@@ -1613,8 +1685,10 @@ async function releveBoite() {
   try {
     if (config.imap && config.imap.user && config.imap.pass) await releveUneBoite({ host: config.imap.host || 'ssl0.ovh.net', port: config.imap.port || 993, user: config.imap.user, pass: config.imap.pass }, null);
     for (const k of Object.keys(mailboxes)) { const b = mailboxes[k];
+      if (b.etat === 'a_reconnecter') continue;   // autorisation retirée ou expirée : on ne harcèle pas le fournisseur, l'écran le dit
       if (!b.histoDone) await importHistorique(b).catch(() => {});   // boîtes connectées avant cette mise à jour : historique importé au premier passage
-      await releveUneBoite({ host: b.imapHost, port: b.imapPort, user: b.email, pass: b.pass }, { teamId: b.teamId, email: b.email }); }
+      let auth; try { auth = await authBoite(b, 'imap'); } catch (e) { console.error('releve', masqueMail(b.email) + ':', e.code || 'jeton'); continue; }
+      await releveUneBoite({ host: b.imapHost, port: b.imapPort, user: b.email, auth, tlsAucun: b.tlsAucun }, { teamId: b.teamId, email: b.email }); }
   } catch (e) { console.error('releveBoite:', e.message); }
   boiteBusy = false;
 }
@@ -1821,7 +1895,10 @@ app.post('/api/sendmail', async (req, res) => {
   try {
     if (mb) {
       const nodemailer = require('nodemailer');
-      const t = nodemailer.createTransport({ host: mb.smtpHost, port: mb.smtpPort, secure: mb.smtpPort === 465, auth: { user: mb.email, pass: mb.pass } });
+      let authMb;
+      try { authMb = await authBoite(mb, 'smtp'); }
+      catch (e) { return res.status(e.statut || 502).json({ error: String(e.message || 'Boîte indisponible'), code: e.code || 'boite' }); }   // JSON : `srvMail` le lit et le DIT
+      const t = nodemailer.createTransport(transportBoite(mb, authMb));
       const dn = String((brand && brand.name) || mb.name || '').replace(/["<>\r\n]/g, '').slice(0, 80);
       await t.sendMail({ from: dn ? '"' + dn + '" <' + mb.email + '>' : mb.email, ...msg });
     } else if (smtp && smtp.user && smtp.pass && smtp.host) {

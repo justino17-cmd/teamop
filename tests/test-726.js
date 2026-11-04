@@ -378,6 +378,9 @@ const menage = async () => {
          ⚠️ DES CHEMINS COMPLETS, désormais : `socle.flux` ne couvre plus `pieces.flux`. */
       const VUS_NON_SURVEILLES = [
         'v', 'histo', 'annonce', 'uptime', 'subs', 'boite', 'stripe',   // la réponse et ses capacités
+        /* La connexion des boîtes par autorisation (4 novembre 2026) : deux CAPACITÉS (le réglage est posé ou non), pas un état qui se
+           dégrade — une boîte dont l'autorisation tombe se dit à son entreprise (`etat:'a_reconnecter'`), pas au monde. */
+        'oauth.microsoft', 'oauth.google',
         'bugs24h', 'lastRefus',                                        // du diagnostic, consulté
         'cles.valide', 'cles.absent', 'cles.invalide', 'cles.inconnu', // le contexte de `mailRefus.parMotif`,
         'cles.depuis', 'cles.parRoute',                                //   qui porte l'alarme
