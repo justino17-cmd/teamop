@@ -8534,6 +8534,35 @@ select option,select optgroup{background-color:var(--bg);color:var(--t1)}
    règle des options). De nuit, le champ reçoit un fond OPAQUE (--bg1) ; le chevron (background-image) reste. */
 html[data-theme="dark"] select{background-color:var(--bg1,#17213A)!important}
 @media (pointer:coarse){ :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden]),select,textarea):where(:not([class])){font-size:16px} }
+/* ══ L'APERÇU D'UN DOCUMENT PREND L'ÉCRAN (`.pdfap`) — Justin, 4 novembre 2026, capture du Devis IA : « il faudrait que ça prenne
+   toute la page, c'est beaucoup trop petit… le devis est coupé en 3 fois, c'est pas normal ». L'aperçu était une boîte de 46vh
+   (470 px sur un écran de 1 080) où l'on faisait défiler une page A4 en trois fois, sous un formulaire qui prenait le reste.
+   La règle : la VUE prend toute la hauteur de l'écran sous l'en-tête de la fenêtre ; ce qui sert à envoyer va À CÔTÉ sur un écran
+   large, DESSOUS sur un écran étroit, avec les deux boutons d'envoi collés en bas (on les a toujours sous le pouce). Hauteurs en
+   dvh : 100vh ment sur téléphone (barre d'adresse). Une seule pièce : tout aperçu de document intégré à une fenêtre la reprend
+   (`pdfApercuHtml`, `pdfApercuPoser`) — `tests/test-3256.js`. */
+.pdfap{--pdfap-h:calc(100dvh - 120px);display:grid;grid-template-columns:minmax(0,calc(var(--pdfap-h) * .74)) minmax(300px,420px);grid-template-rows:auto auto 1fr;
+  grid-template-areas:"vue cote" "vue envoi" "vue autres";column-gap:24px;justify-content:center;align-items:start}
+/* La largeur de la vue suit sa HAUTEUR (proportions d'une page A4, barre de défilement comprise) : la page entière se lit d'un coup
+   d'œil, au lieu d'une page à la largeur d'un écran de 1 920 px qu'il faudrait faire défiler sur deux écrans. */
+.pdfap-vue{grid-area:vue;height:var(--pdfap-h);min-height:420px;border:1px solid var(--brd2);border-radius:12px;overflow:hidden;background:#525659}
+.pdfap-vue iframe{display:block;width:100%;height:100%;border:0}
+.pdfap-vue .pdfap-msg{padding:16px;color:#eee;font-size:13px}
+.pdfap-cote{grid-area:cote;min-width:0}
+.pdfap-cote .form-sec:first-child{margin-top:0}
+.pdfap-envoi{grid-area:envoi;min-width:0;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.pdfap-envoi .btn{flex:1;min-width:150px;justify-content:center}
+.pdfap-autres{grid-area:autres;min-width:0;display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media (max-width:899px){
+  /* téléphone, tablette étroite : la page à la largeur de l'écran, sur toute la hauteur ; dessous, à qui l'envoyer ; les deux envois
+     collés en bas pendant qu'on fait défiler (sous le pouce), rien d'autre dans la barre collée */
+  .pdfap{--pdfap-h:calc(100dvh - 172px);grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-template-areas:"vue" "cote" "autres" "envoi";row-gap:14px}
+  .pdfap-vue{min-height:360px}
+  .pdfap-autres{margin-top:0}
+  .pdfap-envoi{position:sticky;bottom:0;z-index:4;margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:color-mix(in srgb,var(--bg1,#fff) 90%,transparent);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+    border-top:1px solid var(--brd)}
+}
 </style>
 </head>
 <body>
@@ -40243,9 +40272,13 @@ function devisIAMic(){
 function devisIAApercu(id){
   const d=db.devis.find(x=>x.id===id); if(!d){ toast('Devis introuvable'); return; }
   const c=db.clients.find(x=>x.id===d.clientId)||{};
+  /* L'aperçu prend l'écran (`.pdfap`, Justin, 4 novembre 2026 : « il faut que ça utilise toute la page ») : la page à gauche, sur toute
+     la hauteur ; à qui l'envoyer et les gestes à côté — dessous sur téléphone, avec les deux envois collés en bas. */
   openModal(`<div class="modal-head"><h3>📄 Devis ${esc(d.num||'')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div id="dia-pdf-box" style="border:1px solid var(--brd2);border-radius:10px;overflow:hidden;background:#fff;height:46vh;min-height:280px"></div>
-    <div class="form-sec" style="margin-top:14px">À qui l'envoyer</div>
+    <div class="pdfap">
+    ${pdfApercuHtml('dia-pdf-box')}
+    <div class="pdfap-cote">
+    <div class="form-sec">À qui l'envoyer</div>
     <div class="field"><label>Client enregistré</label>
       <select id="dia-ap-client" onchange="devisIAApClient()">
         <option value="">— Nouveau client, à saisir ci-dessous —</option>
@@ -40260,24 +40293,35 @@ function devisIAApercu(id){
         <div class="field"><label>Ville</label><input id="dia-c-ville" value="${esc(c.ville||'')}"></div></div>
     </div>
     <div id="dia-ap-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:8px"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      <button class="btn" style="flex:1;min-width:150px;justify-content:center" onclick="devisIAEnvoyer('${id}','mail')">📧 Envoyer par e-mail</button>
-      <button class="btn ghost" style="flex:1;min-width:150px;justify-content:center" onclick="devisIAEnvoyer('${id}','sms')">💬 Envoyer par SMS</button>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <div class="pdfap-envoi">
+      <button class="btn" onclick="devisIAEnvoyer('${id}','mail')">📧 Envoyer par e-mail</button>
+      <button class="btn ghost" onclick="devisIAEnvoyer('${id}','sms')">💬 Envoyer par SMS</button>
+    </div>
+    <div class="pdfap-autres">
       <button class="btn ghost sm" onclick="devisPdfDownload('${id}')">⬇️ Télécharger le PDF</button>
+      <button class="btn ghost sm" onclick="pdfApercuGrand('dia-pdf-box')">⤢ Ouvrir en grand</button>
       <button class="btn ghost sm" onclick="devisIAAppliquer('${id}');closeModal();go('devis');setTimeout(()=>{try{formDoc('devis','${id}')}catch(e){}},150)">✎ Ajuster les lignes</button>
+    </div>
     </div>`);
   devisIAApRendu(id);
 }
+/* ══ L'APERÇU D'UN DOCUMENT DANS UNE FENÊTRE — UNE pièce (`.pdfap-vue`, styles en fin de feuille). `pdfApercuHtml` pose la zone,
+   `pdfApercuPoser` y met le PDF (`view=FitH` : la page à la largeur de la zone, qui fait déjà toute la hauteur de l'écran), et
+   « Ouvrir en grand » le donne au lecteur du navigateur — sur téléphone, c'est là qu'on zoome au doigt. */
+function pdfApercuHtml(boxId){ return '<div class="pdfap-vue" id="'+boxId+'"><div class="pdfap-msg">Préparation de l’aperçu…</div></div>'; }
+function pdfApercuPoser(boxId,blob){ const box=$(boxId); if(!box) return;
+  if(box._url){ const v=box._url; setTimeout(()=>{ try{URL.revokeObjectURL(v)}catch(e){} },120000); }
+  const u=URL.createObjectURL(blob); box._url=u;
+  box.innerHTML='<iframe title="Aperçu du document" src="'+u+'#toolbar=0&view=FitH"></iframe>'; }
+function pdfApercuGrand(boxId){ const box=$(boxId), u=box&&box._url; if(!u){ toast('Aperçu pas encore prêt'); return; }
+  const w=window.open(u,'_blank'); if(!w){ const l=document.createElement('a'); l.href=u; l.target='_blank'; l.rel='noopener'; document.body.appendChild(l); l.click(); l.remove(); } }
 /* Le PDF affiché doit refléter le client courant : on le régénère à chaque
    changement plutôt que de montrer une version périmée. */
 async function devisIAApRendu(id){
   const box=$('dia-pdf-box'), d=db.devis.find(x=>x.id===id); if(!box||!d) return;
-  try{ const u=URL.createObjectURL(await devisPdfBlob(d));
-    box.innerHTML='<iframe src="'+u+'#toolbar=0" style="width:100%;height:100%;border:0"></iframe>';
-    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
-  }catch(e){ box.innerHTML='<div style="padding:16px;color:#666;font-size:13px">Aperçu indisponible — le PDF reste téléchargeable.</div>'; }
+  try{ pdfApercuPoser('dia-pdf-box',await devisPdfBlob(d)); }
+  catch(e){ box.innerHTML='<div class="pdfap-msg">Aperçu indisponible — le PDF reste téléchargeable.</div>'; }
 }
 function devisIAApClient(){
   const sel=($('dia-ap-client')||{}).value||'', bloc=$('dia-ap-neuf');
