@@ -8835,42 +8835,67 @@ try{
          — typiquement pendant un redémarrage du serveur — et ne doivent pas polluer la surveillance. */
       var TM_HORS=/\/api\/(monitor|subscribe|unsubscribe|notify|bug|vapid|clients\/sync)/;
       if(/api\.teamop\.fr/.test(url)&&!TM_HORS.test(url)){ var ep=url.replace(/^https?:\/\/[^\/]+/,'').split('?')[0];
-        /* un échec isolé (serveur qui redémarre, wifi qui saute) n'est pas un incident :
-           on ne le signale qu'à la 2e fois en moins de 3 minutes sur le même appel.
+        /* un échec isolé (serveur qui redémarre, wifi qui saute) n'est pas un incident : une réponse 5xx ne se signale qu'à la 2e
+           fois en moins de 3 minutes sur le même appel, un appel SANS réponse qu'après 2 minutes de panne (v800, plus bas).
            ⛔ ET UN APPAREIL QUI N'A PAS DE RÉSEAU N'EST PAS UN SERVEUR INJOIGNABLE. 22 octobre 2026, deux dossiers de la Tour :
            « api.teamop.fr injoignable sur /api/mailboxes » ×3 et « … sur /api/replies », la même minute (01 h 46-47), un PC sous
            Chrome sur l'écran Messages — et le serveur tournait sans interruption depuis 48 h (`/health`, uptime). C'était
            l'appareil : un ordinateur qui sort de veille, un wifi qui revient. On ne signale donc rien quand l'appareil se sait
            hors ligne, ni dans la minute qui suit son retour (réseau revenu, page revenue au premier plan, page rendue par le
            cache d'historique) : une vraie panne dure plus d'une minute, et la surveillance horaire du serveur la voit aussi. */
-        var tmRet=function(msg,sansReponse){ try{
-          if(sansReponse&&navigator.onLine===false) return;
-          if(sansReponse&&Date.now()-(window.__tmRetour||0)<60000) return;   // une réponse 5xx, elle, prouve le réseau : elle se signale toujours
+        /* ⛔ v800 — UNE COUPURE QUE LA SYNCHRO RENOUE TOUTE SEULE N'EST PAS UN INCIDENT. Justin, 4 novembre 2026 : « ce message revient
+           beaucoup trop souvent de beaucoup de clients — il faut vraiment la corriger ». Tous les dossiers collés portaient la synchro
+           (/api/doc/attendre, /api/doc/lire, /api/doc/ecrire, /health), sur des iPhone et des Safari, serveur sain (uptime, aucune
+           écriture ratée). La règle d'avant — « 2e échec du même appel en 3 minutes » — comptait comme une panne ce qu'un téléphone de
+           terrain fait vingt fois par jour : l'écran verrouillé coupe l'écoute en cours (iOS rend « Load failed » au RETOUR, AVANT
+           l'événement qui ouvre la minute de grâce), un passage wifi → 4G coupe une connexion pendant que les autres répondent, et la
+           boucle de la synchro relit dans la seconde. Rien de tout ça ne gêne la personne : la synchro reprend seule.
+           La règle, désormais, pour un appel resté SANS RÉPONSE (coupure ou délai dépassé) :
+             · la page a été mise au second plan pendant l'appel, ou elle l'est → ce n'est pas le serveur, on n'en parle pas ;
+             · une AUTRE réponse du serveur est arrivée pendant l'appel → le réseau marche, c'est UNE connexion perdue : rien ;
+             · sinon c'est peut-être une panne, et on la CHRONOMÈTRE : elle ne se signale qu'après 2 minutes sans aucune réponse du
+               serveur, au moins 3 échecs, page au premier plan tout du long — UN dossier par panne et par appareil, plus un par appel.
+           Une réponse 5xx, elle, prouve le réseau : elle garde la règle d'avant (2e fois en 3 minutes sur le même appel) et se signale
+           toujours. `tests/test-3254.js`. */
+        var t0=Date.now();
+        var tmNet5xx=function(msg){ try{
           window.__tmNet=window.__tmNet||{};
           var n=Date.now(), pre=window.__tmNet[ep]||0;
           window.__tmNet[ep]=n;
           if(n-pre<180000) tmPush('reseau',msg,'','',0);
         }catch(_){ } };
-        p.then(function(r){ try{ if(r&&r.status>=500) tmRet('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
+        var tmSansReponse=function(msg){ try{
+          var n=Date.now();
+          if(navigator.onLine===false){ window.__tmPanne=null; return; }
+          if(n-(window.__tmRetour||0)<60000) return;
+          try{ if(document.visibilityState==='hidden') return; }catch(_){ }
+          if((window.__tmCache||0)>=t0) return;          // passée au second plan pendant l'appel (écran verrouillé, autre appli)
+          if((window.__tmOk||0)>t0) return;              // une autre réponse est arrivée entre-temps : le réseau marche
+          var P=window.__tmPanne;
+          if(!P||n-P.dernier>90000) P=window.__tmPanne={debut:n,n:0,dernier:n,signale:false};
+          P.n++; P.dernier=n;
+          if(!P.signale&&P.n>=3&&n-P.debut>=120000){ P.signale=true; tmPush('reseau',msg,'','',0); }
+        }catch(_){ } };
+        p.then(function(r){ try{ window.__tmOk=Date.now(); window.__tmPanne=null; if(r&&r.status>=500) tmNet5xx('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
                function(err){ try{
-                 /* ⛔ v787 — UNE DEMANDE QUE L'APPLICATION COUPE ELLE-MÊME N'EST PAS UN SERVEUR INJOIGNABLE. L'écoute des nouveautés
-                    est coupée exprès quand on revient sur l'application ou quand le réseau revient (`reveil`), et à l'arrêt de la
-                    synchro : la Tour recevait « injoignable sur /api/doc/attendre (Fetch is aborted) » pour un geste voulu. Une
-                    coupure par DÉLAI dépassé, elle, se dit pour ce qu'elle est : le serveur n'a pas répondu à temps à CET appareil. */
+                 /* ⛔ v787 — UNE DEMANDE QUE L'APPLICATION COUPE ELLE-MÊME N'EST PAS UN SERVEUR INJOIGNABLE (écoute coupée exprès au
+                    retour sur l'application, au retour du réseau, à l'arrêt de la synchro). Une coupure par DÉLAI dépassé se dit
+                    pour ce qu'elle est : le serveur n'a pas répondu à temps à CET appareil. */
                  var sg=null;
                  try{ sg=(tmArgs[1]&&tmArgs[1].signal)||(tmArgs[0]&&tmArgs[0].signal)||null; }catch(_){ }
                  if(sg&&sg.__opVolontaire) return;
                  var abandon=!!(err&&(err.name==='AbortError'||/abort/i.test(String(err.message||''))));
-                 if(abandon) tmRet('api.teamop.fr trop lent sur '+ep+' (pas de réponse'+(sg&&sg.__opDelai?' en '+Math.round(sg.__opDelai/1000)+' s':' dans le délai')+' — réseau de l’appareil ?)',true);
-                 else tmRet('api.teamop.fr injoignable sur '+ep+' ('+String((err&&err.message)||'échec').slice(0,80)+')',true); }catch(_){ } });
+                 if(abandon) tmSansReponse('api.teamop.fr ne répond plus à cet appareil depuis plus de 2 min — '+ep+' (pas de réponse'+(sg&&sg.__opDelai?' en '+Math.round(sg.__opDelai/1000)+' s':' dans le délai')+')');
+                 else tmSansReponse('api.teamop.fr injoignable depuis plus de 2 min sur cet appareil — '+ep+' ('+String((err&&err.message)||'échec').slice(0,80)+')'); }catch(_){ } });
       } }catch(_){ }
     return p; };
 }catch(_){ }
-try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); else window.__tmRetour=Date.now(); }); }catch(_){ }
+try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden'){ window.__tmCache=Date.now(); window.__tmPanne=null; tmFlush(); } else { window.__tmRetour=Date.now(); window.__tmPanne=null; } }); }catch(_){ }
 /* le retour de l'appareil : le réseau qui revient, la page rendue par le cache d'historique (voir tmRet, plus haut) — pas le
    premier chargement : une panne à l'ouverture de l'application se signale tout de suite */
-try{ window.addEventListener('online',function(){ window.__tmRetour=Date.now(); });
-  window.addEventListener('pageshow',function(e){ if(e&&e.persisted) window.__tmRetour=Date.now(); }); }catch(_){ }
+try{ window.addEventListener('online',function(){ window.__tmRetour=Date.now(); window.__tmPanne=null; });
+  window.addEventListener('offline',function(){ window.__tmPanne=null; });
+  window.addEventListener('pageshow',function(e){ if(e&&e.persisted){ window.__tmRetour=Date.now(); window.__tmPanne=null; } }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 /* ⛔ LA SEULE PORTE DE LA SENTINELLE VERS LE RESTE DE LA PAGE. Tout ce bloc est une fonction
    isolée : `tmPush` n'existe pas en dehors. Mesuré le 25 septembre 2026 : `syncDiagnostic`

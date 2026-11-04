@@ -54,14 +54,14 @@ vrai('le bloc du relais réseau d’app.html est trouvé', BLOC.length > 800 && 
   { const m = monde(); m.avance(5 * 60000); m.emet('window', 'online');
     await m.appel('/api/mailboxes', 'echec'); m.avance(20000); await m.appel('/api/mailboxes', 'echec');
     vrai('⛔ le réseau vient de revenir (« online ») : deux échecs dans la minute, rien', m.signales.length === 0, m.signales);
-    m.avance(61000); await m.appel('/api/mailboxes', 'echec'); m.avance(5000); await m.appel('/api/mailboxes', 'echec');
-    vrai('… passé la minute, une panne qui dure se signale (« injoignable sur /api/mailboxes »)', m.signales.length === 1 && /injoignable sur \/api\/mailboxes \(Failed to fetch\)/.test(m.signales[0]), m.signales); }
+    m.avance(61000); for (let k = 0; k < 9; k++) { await m.appel('/api/mailboxes', 'echec'); m.avance(15000); }
+    vrai('… passé la minute, une panne qui dure (2 min sans réponse, v800) se signale (« injoignable … /api/mailboxes »)', m.signales.length === 1 && /injoignable depuis plus de 2 min sur cet appareil — \/api\/mailboxes \(Failed to fetch\)/.test(m.signales[0]), m.signales); }
   { const m = monde(); m.avance(5 * 60000); m.emet('window', 'pageshow', { persisted: true });
     await m.appel('/api/replies', 'echec'); m.avance(5000); await m.appel('/api/replies', 'echec');
     vrai('la page rendue par le cache d’historique (pageshow, persisted) : rien dans la minute', m.signales.length === 0, m.signales); }
   { const m = monde(); m.emet('window', 'pageshow', { persisted: false });
-    await m.appel('/api/replies', 'echec'); m.avance(5000); await m.appel('/api/replies', 'echec');
-    vrai('⛔ le PREMIER chargement n’est pas un retour : une panne à l’ouverture se signale tout de suite (2e échec)', m.signales.length === 1 && /injoignable sur \/api\/replies/.test(m.signales[0]), m.signales); }
+    for (let k = 0; k < 9; k++) { await m.appel('/api/replies', 'echec'); m.avance(15000); }
+    vrai('⛔ le PREMIER chargement n’est pas un retour : une panne à l’ouverture se chronomètre tout de suite (signalée à 2 min, sans minute de grâce)', m.signales.length === 1 && /injoignable depuis plus de 2 min sur cet appareil — \/api\/replies/.test(m.signales[0]), m.signales); }
   { const m = monde(); m.avance(5 * 60000); m.emet('window', 'online');
     await m.appel('/api/mailboxes', 503); m.avance(3000); await m.appel('/api/mailboxes', 503);
     vrai('⛔ une réponse 5xx juste après le retour se signale quand même (elle prouve le réseau)', m.signales.length === 1 && /a répondu 503 sur \/api\/mailboxes/.test(m.signales[0]), m.signales); }
@@ -73,8 +73,8 @@ vrai('le bloc du relais réseau d’app.html est trouvé', BLOC.length > 800 && 
     await m.appel('/api/monitor/report', 'echec'); await m.appel('/api/monitor/report', 'echec');
     vrai('… ni les appels « au mieux » (la sentinelle elle-même)', m.signales.length === 0, m.signales); }
   { const m = monde(); m.S.document.visibilityState = 'hidden'; m.emet('document', 'visibilitychange');
-    await m.appel('/api/mailboxes', 'echec'); m.avance(5000); await m.appel('/api/mailboxes', 'echec');
-    vrai('passer au second plan n’ouvre PAS la minute de grâce (seul le retour au premier plan l’ouvre)', m.signales.length === 1, m.signales); }
+    for (let k = 0; k < 9; k++) { await m.appel('/api/mailboxes', 'echec'); m.avance(15000); }
+    vrai('⛔ v800 — la page au SECOND PLAN ne signale rien : iOS coupe le réseau d’une page cachée, ce n’est pas le serveur (test-3254)', m.signales.length === 0, m.signales); }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
