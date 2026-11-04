@@ -467,3 +467,7 @@ tests/test-3237.js
 tests/test-3239.js
 # 4 novembre 2026 : `test-3243` (les conditions particulières d'OP GESTION et les agents ne promettent plus le logo ni la couleur dans l'application ; révision « logo-documents-2026-11-04 » déposée UNE fois en brouillon sur le registre du VPS). Le vrai module des contrats. 19 vérifications.
 tests/test-3243.js
+# 4 novembre 2026 : `test-3244` (un document qu'une entreprise envoie à son client par le serveur de TEAM OP ne laisse RIEN chez nous : ni copie cachée, ni destinataire, objet ou texte au journal ; Reply-To = l'adresse de l'annuaire ; les e-mails de TEAM OP gardent leur copie). Le vrai serveur, un facteur SMTP qui lit l'enveloppe. 24 vérifications.
+tests/test-3244.js
+# 4 novembre 2026 : `test-3245` (Camille ne lit ni ne classe la réponse d'un client final à un document d'entreprise ; rien ne part chez Claude). Les vrais modules des agents. 10 vérifications.
+tests/test-3245.js

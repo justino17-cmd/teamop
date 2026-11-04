@@ -326,6 +326,10 @@ module.exports = function camille(ctx) {
         if (m.protege) return { saute: 'automatique', protege: true };
         const h = empreinte(m.mid || cle);
         ev.__lu = { mid: String(m.mid || ''), de: String(m.de || ''), objet: String(m.objet || ''), ts: m.ts || 0 }; ev.__h = h;
+        /* ⛔ (4 novembre 2026) la RÉPONSE d'un client final à un document qu'une entreprise lui a envoyé par notre serveur (devis, facture…) :
+           ce courrier est celui de l'entreprise, pas le nôtre. Camille ne le lit pas (rien ne part à Claude), ne le classe pas et ne rédige
+           rien — il reste « à traiter » sous les yeux de Justin, qui le renvoie à l'entreprise. Noté « vu » (une empreinte) pour ne pas le relire. */
+        if (typeof ctx.reponseAEnvoiEntreprise === 'function' && ctx.reponseAEnvoiEntreprise(m.enReponseDe)) { noterVu(h); return { saute: 'reponse_entreprise' }; }
         /* le texte sur lequel le CODE juge si un classement « sans réponse » est permis (jamais envoyé à Claude, jamais gardé) */
         const brut = String(m.objet || '') + '\n' + String(m.texte || '').slice(0, TEXTE_MAX);
         if (m.auto || m.enteteAuto) {

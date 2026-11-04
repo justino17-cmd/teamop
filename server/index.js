@@ -286,12 +286,54 @@ function mailProtegeNouveau() {
   catch (e) { console.error('mails-proteges.json non écrit :', e.code || 'erreur disque'); }
   return '<' + id + '>';
 }
+/* ⛔⛔ UN DOCUMENT QU'UNE ENTREPRISE ENVOIE À SON CLIENT NE LAISSE RIEN CHEZ TEAM OP (Justin, 4 novembre 2026, capture de la Tour : « je
+   reçois les factures de certaines entreprises »). Le « mode simple » de `/api/sendmail` (l'entreprise n'a connecté ni boîte ni SMTP)
+   passait par cette fonction : la copie cachée ci-dessous partait donc à contact@teamop.fr — devis, facture, bon, rapport, PDF compris
+   — et le journal gardait le destinataire, l'objet et 2 000 caractères du texte. Ce sont les données du client de NOTRE client : elles
+   n'ont rien à faire chez nous (`sous-traitance.html`). Un envoi marqué `pourEntreprise` (l'identifiant d'espace) ne reçoit AUCUNE copie
+   et ne laisse au journal qu'une trace sans contenu : la date, l'espace, parti ou non. Les e-mails de TEAM OP lui-même gardent leur copie.
+   `tests/test-3244.js`. */
+function mailsJournalEntreprise(t) {
+  try {
+    const ent = { ts: Date.now(), a: '(client de l’entreprise — non conservé)', sujet: '📄 Document envoyé au nom d’une entreprise',
+      txt: 'Envoyé par le serveur de TEAM OP au nom de l’espace ' + String(t || '?').slice(0, 80) + '. Ni destinataire, ni objet, ni contenu ne sont conservés.' };
+    mailsLog.unshift(ent);
+    if (mailsLog.length > 300) mailsLog.length = 300; mailsSave();
+    return ent;
+  } catch (e) { return null; }
+}
+/* Le registre des envois faits AU NOM d'une entreprise : leur seul Message-ID, l'espace et la date — rien d'autre, ni adresse ni objet.
+   Il sert à UNE chose : reconnaître la réponse d'un client final qui arriverait quand même chez nous (une ancienne copie, une entreprise
+   sans adresse dans l'annuaire) pour que Camille ne la lise ni ne la classe (`agent-camille.js`, `reponseAEnvoiEntreprise`). 90 jours,
+   5 000 lignes au plus, écrit par temporaire puis renommage. */
+const ENVOIS_ENT_PATH = path.join(DATA_DIR, 'envois-entreprises.json');
+const ENVOIS_ENT_JOURS = 90;
+let envoisEnt = [];
+try { const l = JSON.parse(fs.readFileSync(ENVOIS_ENT_PATH, 'utf8')); if (Array.isArray(l)) envoisEnt = l.filter(x => x && typeof x.mid === 'string'); } catch (e) {}
+let envoisEntSet = new Set(envoisEnt.map(x => midNorm(x.mid)));
+function envoiEntNoter(t) {
+  const dom = (adrNue((config.smtp && (config.smtp.from || config.smtp.user)) || '').split('@')[1] || '').replace(/[^a-z0-9.-]/g, '') || 'teamop.fr';
+  const id = require('crypto').randomBytes(16).toString('hex') + '.doc@' + dom;
+  const limite = Date.now() - ENVOIS_ENT_JOURS * 86400000;
+  envoisEnt = envoisEnt.filter(x => (x.ts || 0) > limite).concat({ mid: id, t: String(t || '').slice(0, 80), ts: Date.now() }).slice(-5000);
+  envoisEntSet = new Set(envoisEnt.map(x => midNorm(x.mid)));
+  try { fs.writeFileSync(ENVOIS_ENT_PATH + '.tmp', JSON.stringify(envoisEnt)); fs.renameSync(ENVOIS_ENT_PATH + '.tmp', ENVOIS_ENT_PATH); }
+  catch (e) { console.error('envois-entreprises.json non écrit :', e.code || 'erreur disque'); }
+  return '<' + id + '>';
+}
+/* Un mail reçu qui RÉPOND (In-Reply-To ou References) à un envoi fait au nom d'une entreprise. */
+function reponseAEnvoiEntreprise(refs) {
+  const liste = [].concat(refs || []).join(' ').split(/\s+/).map(midNorm).filter(Boolean);
+  return liste.some(k => envoisEntSet.has(k));
+}
 function mailerEnvoi(opts) {
   // confidentiel : code de sécurité ou mot de passe → jamais journalisé ni copié
   const secret = opts.confidentiel === true || /code/i.test(String(opts.subject || ''));
+  const pourEntreprise = opts.pourEntreprise ? String(opts.pourEntreprise) : '';
   // trace : ce qu'on garde d'un e-mail confidentiel (destinataire, lien envoyé, espace…) — jamais le secret lui-même
-  const ent = mailsJournal(opts.to, opts.subject, opts.text, secret, opts.trace);
-  const o2 = Object.assign({}, opts); delete o2.confidentiel; delete o2.trace; delete o2.diffusion;
+  const ent = pourEntreprise ? mailsJournalEntreprise(pourEntreprise) : mailsJournal(opts.to, opts.subject, opts.text, secret, opts.trace);
+  const o2 = Object.assign({}, opts); delete o2.confidentiel; delete o2.trace; delete o2.diffusion; delete o2.pourEntreprise;
+  if (pourEntreprise) { delete o2.bcc; delete o2.cc; o2.messageId = envoiEntNoter(pourEntreprise); }
   /* ⛔ AUCUN COURRIEL NE PART SANS EXPÉDITEUR (23 octobre 2026). Les trois courriels du portail (`comptes.js` : confirmation d'adresse,
      changement d'adresse, mot de passe) n'en donnaient pas : nodemailer les envoyait sans « From: », avec « MAIL FROM:<> » et un
      identifiant « @localhost » — Gmail refuse un tel message, et les autres le rangent en indésirables. Chaque client qui s'inscrivait
@@ -310,7 +352,7 @@ function mailerEnvoi(opts) {
        l'équipe qui aboutit chez Justin. On compare l'adresse nue de CHAQUE destinataire à toutes les adresses internes. */
     const nus = String(opts.to || '').split(',').map(adrNue).filter(Boolean);
     const internes = new Set([moi, config.notifDemandes, config.contactEmail, config.alertEmail, config.securiteEmail, config.smtp && config.smtp.from, config.smtp && config.smtp.user].map(adrNue).filter(Boolean));
-    if (moi && !secret && !opts.diffusion && nus.length && !nus.some(a => internes.has(a))) o2.bcc = moi;
+    if (moi && !secret && !pourEntreprise && !opts.diffusion && nus.length && !nus.some(a => internes.has(a))) o2.bcc = moi;
     // un e-mail confidentiel adressé à notre boîte de sécurité : la Tour ne le cache ni ne l'efface (voir plus haut)
     if (secret && adrNue(opts.to) && adrNue(opts.to) === adrNue(supprDest())) o2.messageId = mailProtegeNouveau();
   } catch (e) {}
@@ -1191,8 +1233,21 @@ const REPLIES_PATH = path.join(DATA_DIR, 'replies.jsonl');
 const SENTMAP_PATH = path.join(DATA_DIR, 'sentmap.jsonl');
 let sentMap = [];
 try { sentMap = fs.readFileSync(SENTMAP_PATH, 'utf8').trim().split('\n').map(l => JSON.parse(l)).slice(-2000); } catch (e) {}
+/* ⛔ (4 novembre 2026) `sentmap.jsonl` garde l'adresse du CLIENT de l'entreprise : il ne sert qu'à rattacher les réponses arrivées dans la
+   boîte commandes PARTAGÉE (`config.imap`, relevée par `releveBoite`). Sans elle, il ne sert à rien : rien ne s'écrit. Avec elle, 90 jours
+   au plus, et le fichier se réécrit sans les lignes échues. */
+const SENTMAP_JOURS = 90;
+function sentMapPurger() {
+  const limite = Date.now() - SENTMAP_JOURS * 86400000, avant = sentMap.length;
+  sentMap = sentMap.filter(x => x && (x.ts || 0) > limite).slice(-2000);
+  if (sentMap.length !== avant) {
+    try { fs.writeFileSync(SENTMAP_PATH + '.tmp', sentMap.map(x => JSON.stringify(x)).join('\n') + (sentMap.length ? '\n' : '')); fs.renameSync(SENTMAP_PATH + '.tmp', SENTMAP_PATH); } catch (_) {}
+  }
+}
 function rememberSent(teamId, bonNum, to) {
+  if (!(config.imap && config.imap.user)) return;
   const e = { ts: Date.now(), teamId: String(teamId).slice(0, 80), bonNum: String(bonNum).slice(0, 30).toUpperCase(), to: String(to || '').toLowerCase().slice(0, 120) };
+  sentMapPurger();
   sentMap.push(e); if (sentMap.length > 3000) sentMap = sentMap.slice(-2000);
   try { fs.appendFileSync(SENTMAP_PATH, JSON.stringify(e) + '\n'); } catch (_) {}
 }
@@ -1710,6 +1765,7 @@ function mailQuotaRefus(req, teamId, prefixe, max) {
   q.count++; mailQuota.set(cle, q);
   return null;
 }
+let envoisSansReponse = 0;   // envois au nom d'une entreprise partis sans adresse de réponse (ni fournie, ni dans l'annuaire) — un compte, jamais un nom
 app.post('/api/sendmail', async (req, res) => {
   const { teamId, to, subject, text, smtp, brand, atts, meta, useMailbox } = req.body || {};
   if (!teamId || !to || !subject) return res.status(400).json({ error: 'teamId, to et subject requis' });
@@ -1778,9 +1834,14 @@ app.post('/api/sendmail', async (req, res) => {
       // Mode simple : la plateforme envoie au nom de l'entreprise (Reply-To vers elle)
       if (!mailer) return res.status(503).json({ error: 'email_off' });
       const name = String((brand && brand.name) || 'TeamOP').replace(/["<>\r\n]/g, '').slice(0, 80);
-      const replyTo = (brand && brand.replyTo && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(brand.replyTo))) ? String(brand.replyTo) : undefined;
+      /* La réponse du client va à l'ENTREPRISE, jamais à TEAM OP : sans adresse de réponse fournie par l'application, celle de
+         l'ANNUAIRE du serveur (jamais une valeur du corps de la requête, qui se forge) ; sans annuaire non plus, pas de Reply-To, et
+         c'est compté (agrégé, sans nom). */
+      const valide = (a) => /^[^@\s<>"]+@[^@\s<>"]+\.[^@\s<>"]+$/.test(String(a || ''));
+      let replyTo = (brand && valide(brand.replyTo)) ? String(brand.replyTo) : undefined;
+      if (!replyTo) { const esp = espaceParT(String(teamId).slice(0, 80)); if (esp && valide(esp.email)) replyTo = String(esp.email); else { envoisSansReponse++; console.log('sendmail : document parti sans adresse de réponse (' + envoisSansReponse + ' depuis le démarrage)'); } }
       const addr = (config.smtp.from || config.smtp.user).match(/<([^>]+)>/) ? (config.smtp.from || config.smtp.user).match(/<([^>]+)>/)[1] : (config.smtp.user);
-      await mailerEnvoi({ from: '"' + name + '" <' + addr + '>', replyTo, ...msg });
+      await mailerEnvoi({ pourEntreprise: String(teamId).slice(0, 80), from: '"' + name + '" <' + addr + '>', replyTo, ...msg });
     }
     if (meta && (meta.bonNum || meta.track)) rememberSent(teamId, meta.bonNum || '', to);   // pour rattacher la future réponse
     res.json({ ok: true });
@@ -11393,6 +11454,8 @@ try {
     try {
       if (brouillonsMod) agentCamille = require('./agent-camille')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, mail: messagerieTour, fichier: fichierAgents, travail: travailMod, outilsLecture: outilsLectureMod,
         conversations: conversationsMod, chloe: chloeMod, louis: louisMod,
+        /* la réponse d'un client final à un document envoyé AU NOM d'une entreprise : Camille ne la lit ni ne la classe (4 novembre 2026) */
+        reponseAEnvoiEntreprise,
         /* le numéro de dossier d'une adresse qui est celle d'un COMPTE du portail (la fiche existe), '' sinon — sans jamais en créer un pour un inconnu */
         dossierDe: (adr) => { const a = adrNue(adr); return (a && Object.prototype.hasOwnProperty.call(clientsData || {}, a) && dossiersMod) ? dossiersMod.numeroDe(a) : ''; },
         /* NOS domaines : celui de l'expéditeur de la configuration, teamop.fr et ceux des boîtes connectées — un mail de chez nous n'appelle jamais de réponse.
