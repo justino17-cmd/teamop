@@ -8850,14 +8850,15 @@ try{
            terrain fait vingt fois par jour : l'écran verrouillé coupe l'écoute en cours (iOS rend « Load failed » au RETOUR, AVANT
            l'événement qui ouvre la minute de grâce), un passage wifi → 4G coupe une connexion pendant que les autres répondent, et la
            boucle de la synchro relit dans la seconde. Rien de tout ça ne gêne la personne : la synchro reprend seule.
-           La règle, désormais, pour un appel resté SANS RÉPONSE (coupure ou délai dépassé) :
-             · la page a été mise au second plan pendant l'appel, ou elle l'est → ce n'est pas le serveur, on n'en parle pas ;
-             · une AUTRE réponse du serveur est arrivée pendant l'appel → le réseau marche, c'est UNE connexion perdue : rien ;
-             · sinon c'est peut-être une panne, et on la CHRONOMÈTRE : elle ne se signale qu'après 2 minutes sans aucune réponse du
-               serveur, au moins 3 échecs, page au premier plan tout du long — UN dossier par panne et par appareil, plus un par appel.
+           La règle, désormais, pour un appel resté SANS RÉPONSE (coupure ou délai dépassé) : c'est peut-être une panne, et on la
+           CHRONOMÈTRE. Elle ne se signale qu'après 2 minutes sans aucune réponse du serveur (au moins 3 échecs, jamais plus de 90 s
+           entre deux), page au premier plan tout du long — UN dossier par panne et par appareil, plus un par appel. L'horloge
+           repart de zéro à chaque réponse du serveur (le réseau marche : c'était UNE connexion perdue), à chaque passage au second
+           plan ou retour (l'écran verrouillé d'un iPhone coupe l'écoute en cours), au retour ou à la perte du réseau.
+           ⚠️ Deux gardes de plus (« passée au second plan pendant l'appel », « une autre réponse pendant l'appel ») ont été
+           écrites puis retirées : la mutation a montré que ces remises à zéro les couvraient déjà entièrement.
            Une réponse 5xx, elle, prouve le réseau : elle garde la règle d'avant (2e fois en 3 minutes sur le même appel) et se signale
            toujours. `tests/test-3254.js`. */
-        var t0=Date.now();
         var tmNet5xx=function(msg){ try{
           window.__tmNet=window.__tmNet||{};
           var n=Date.now(), pre=window.__tmNet[ep]||0;
@@ -8869,14 +8870,12 @@ try{
           if(navigator.onLine===false){ window.__tmPanne=null; return; }
           if(n-(window.__tmRetour||0)<60000) return;
           try{ if(document.visibilityState==='hidden') return; }catch(_){ }
-          if((window.__tmCache||0)>=t0) return;          // passée au second plan pendant l'appel (écran verrouillé, autre appli)
-          if((window.__tmOk||0)>t0) return;              // une autre réponse est arrivée entre-temps : le réseau marche
           var P=window.__tmPanne;
           if(!P||n-P.dernier>90000) P=window.__tmPanne={debut:n,n:0,dernier:n,signale:false};
           P.n++; P.dernier=n;
           if(!P.signale&&P.n>=3&&n-P.debut>=120000){ P.signale=true; tmPush('reseau',msg,'','',0); }
         }catch(_){ } };
-        p.then(function(r){ try{ window.__tmOk=Date.now(); window.__tmPanne=null; if(r&&r.status>=500) tmNet5xx('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
+        p.then(function(r){ try{ window.__tmPanne=null; if(r&&r.status>=500) tmNet5xx('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
                function(err){ try{
                  /* ⛔ v787 — UNE DEMANDE QUE L'APPLICATION COUPE ELLE-MÊME N'EST PAS UN SERVEUR INJOIGNABLE (écoute coupée exprès au
                     retour sur l'application, au retour du réseau, à l'arrêt de la synchro). Une coupure par DÉLAI dépassé se dit
@@ -8890,7 +8889,7 @@ try{
       } }catch(_){ }
     return p; };
 }catch(_){ }
-try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden'){ window.__tmCache=Date.now(); window.__tmPanne=null; tmFlush(); } else { window.__tmRetour=Date.now(); window.__tmPanne=null; } }); }catch(_){ }
+try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden'){ window.__tmPanne=null; tmFlush(); } else { window.__tmRetour=Date.now(); window.__tmPanne=null; } }); }catch(_){ }
 /* le retour de l'appareil : le réseau qui revient, la page rendue par le cache d'historique (voir tmRet, plus haut) — pas le
    premier chargement : une panne à l'ouverture de l'application se signale tout de suite */
 try{ window.addEventListener('online',function(){ window.__tmRetour=Date.now(); window.__tmPanne=null; });
