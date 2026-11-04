@@ -13,6 +13,30 @@ de ligne du tout.
 
 ---
 
+# 4 NOVEMBRE 2026 (nuit) — BÊTA 799 : UN APPAREIL NEUF REJOINT LA SYNCHRO DE LA BÊTA
+
+Justin : « sur mon compte bêta je ne vois pas ce que j'ai fait sur mon PC sur les autres appareils, mon téléphone ou mon Mac ».
+Cause MESURÉE (au navigateur, profil neuf : `syncTeam()` vide) : la bêta ne rattachait un appareil à `opgestion-beta` que s'il portait
+déjà des traces de la bêta au premier chargement (`espaceHerite`, verdict gelé dans `elanB_repli_v1`) ou par un lien d'entreprise ; la
+connexion bêta (`/api/beta/login`) n'écrivait rien. ⚠️ Ce n'était PAS le serveur : `documents.js` laisse passer les espaces techniques
+sans preuve, et `/api/fb/jeton` ne sert plus depuis la sortie de Firebase (v748) — un premier diagnostic l'accusait à tort.
+Correctif dans `beta-build.js` seul (app.html inchangé) : après une connexion bêta ACCEPTÉE, un appareil sans espace pose
+`elanB_sync_team` = `opgestion-beta`, la clé par défaut (valeur inchangée), `elanB_sync_on` = 1 ; `enterApp` lance la synchro. Un appareil
+déjà rattaché ne bouge pas. La bêta porte son propre numéro (`BETA_NUMERO = 799`) tant qu'app.html est en dessous (`test-720` le lit).
+`tests/test-3253.js` : vraie beta.html contre le vrai serveur isolé, quatre cas dont deux appareils qui se voient (MUTER=1 → 5 ✗).
+Pour Justin : une fois la bêta publiée, se reconnecter une fois sur le téléphone et le Mac.
+
+# 4 NOVEMBRE 2026 (soir) — OP GESTION v798 EN PRODUCTION : envois par la boîte de l'entreprise, DÉTAIL des PDF en entier, « Se connecter avec Google »
+
+C'est la bêta v798 entière (v796 à v798), voir `VERSION-STABLE.md`. Ce qui reste ouvert :
+- **Google est en MODE TEST** (`server/OAUTH-BOITES.md`) : seuls les comptes ajoutés aux « utilisateurs test » de la console Google se connectent,
+  et l'autorisation expire au bout de 7 jours (la boîte passe « À reconnecter »). Sortir du mode test = vérification Google (portée restreinte,
+  audit payant) : décision de Justin. **Microsoft** : pas de bouton tant que ses identifiants ne sont pas posés sur le VPS.
+- **La recherche de la Boîte mail** (`opcourrier.js`, corrigée sur la bêta en v797, `test-3248`) n'est PAS partie : `test-2994` exige que
+  `server-msg/public/opcourrier.js` soit la même copie, et `server-msg/` ne se touche pas dans cette publication. Elle part avec le prochain
+  déploiement d'OP MESSAGES (les trois copies ensemble).
+- Le courriel aux entreprises (« mettez l'adresse dans Mon entreprise ou connectez votre boîte ») : brouillon remis à Justin, pas envoyé.
+
 # ⛔ 4 NOVEMBRE 2026 — LES DOCUMENTS DES ENTREPRISES ARRIVAIENT CHEZ TEAM OP (corrigé côté serveur ; PURGE EN ATTENTE DE JUSTIN)
 
 Justin, capture de la Tour : contact@teamop.fr recevait les factures que les entreprises envoyaient à LEURS clients. **Cause** : le « mode

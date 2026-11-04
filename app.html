@@ -8729,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '795';
+const APP_VERSION = '798';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -24264,47 +24264,135 @@ function entLogoPick(e){ const f=e.target.files&&e.target.files[0]; if(!f) retur
     im.src=r.result; }; r.readAsDataURL(f); }
 function entLogoDel(){ if(!db.entreprise) return; entPose('logo',null); save(); applyBrand(); try{ avatarAccentSync(); }catch(e){} toast('Logo retiré'); if(current==='parametres') views.parametres(); }
 function entSave(){ const g=id=>((document.getElementById(id)||{}).value||'').trim();
+  /* v797 : l'adresse e-mail de l'entreprise — celle où ses clients répondent. Mal formée, on ne l'enregistre pas (vide, on prévient). */
+  const em=g('ent-email');
+  if(em&&!ENVOI_ADR_RE.test(em)){ toast('Adresse e-mail invalide — exemple : contact@ton-entreprise.fr'); const el=document.getElementById('ent-email'); if(el) el.focus(); return; }
+  if(document.getElementById('ent-email')&&em!==String(((db.entreprise||{}).email)||'')) entPose('email',em);
   db.entreprise={...(db.entreprise||{}),nom:g('ent-nom'),adresse:g('ent-adresse'),cp:g('ent-cp'),ville:g('ent-ville'),tel:g('ent-tel'),siret:g('ent-siret'),tvaIntra:g('ent-tvaintra'),iban:g('ent-iban'),bic:g('ent-bic'),enteteBC:g('ent-entete-bc')};   // le logo est conservé
   /* ⛔ ÉCRIRE OU EFFACER, jamais seulement écrire (accueil#7). `entrepriseNom()` et `entNom()` retombent sur cette clé
      quand `db.entreprise.nom` est vide : un nom vidé mais jamais retiré d'ici restait affiché dans le menu et le
      sous-titre, pendant que le toast annonçait « Entreprise enregistrée ». */
   try{ if(db.entreprise.nom) localStorage.setItem('elan_entreprise_nom',db.entreprise.nom); else localStorage.removeItem('elan_entreprise_nom'); }catch(e){}
-  save(); applyBrand(); toast('🏢 Entreprise enregistrée — son nom apparaîtra sur les bons et e-mails'); }
+  save(); applyBrand(); toast(document.getElementById('ent-email')&&!g('ent-email')?'🏢 Enregistrée — ⚠️ sans adresse e-mail, aucun devis ni facture ne peut partir à tes clients':'🏢 Entreprise enregistrée — son nom apparaîtra sur les bons et e-mails'); }
 function mailBrandName(){ return ((db.mailFrom||'').trim()) || (((db.entreprise||{}).nom)||'').trim() || rapportSociete(); }
-async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
+/* ⛔⛔ v796 — RIEN NE PART PAR TEAM OP (Justin, 4 novembre 2026 : « ils doivent mettre leur adresse e-mail […] dans le système de
+   boîte mail, que comme ça, quand ils envoient le devis, facture ou autre, c'est leur e-mail à eux, pas à nous. Il n'y a rien qui passe
+   par nous. »). Une facture de Toka Clim était arrivée dans contact@teamop.fr : le « mode simple » envoyait au nom de l'entreprise PAR
+   NOTRE SERVEUR, avec une copie cachée chez nous et les réponses du client final chez nous aussi. Un document au client final ne part
+   donc plus QUE par une boîte de l'entreprise : la boîte connectée (Courrier → « Connecter une boîte », le mot de passe reste au serveur),
+   une adresse d'envoi des Paramètres (mode avancé) ou l'adresse pro de l'utilisateur. Sans aucune des trois, « Envoyer » n'envoie pas :
+   l'étape « connecte ta boîte » s'ouvre, et l'envoi REPREND quand elle est connectée. Et une boîte qui refuse ne se rabat plus sur la
+   plateforme : l'écran le dit. `tests/test-3244.js` recense tous les envois. */
+async function envoiBoiteResoudre(cat,boxOverride,opts){
   /* le droit retiré, l'adresse pro ne sert plus : on repasse sur celle de l'entreprise */
   const perso=(currentUser&&currentUser.mailBox&&currentUser.mailBox.user&&currentUser.mailBox.pass&&can('mailPro'))?currentUser.mailBox:null;
+  if(opts&&opts.mailboxId&&!boxOverride) return {mb:opts.mailboxId};   // la boîte connectée CHOISIE à l'envoi (Courrier, bon de commande)
   const b=boxOverride||perso||mailBoxFor(cat);
+  if(b&&b.user&&b.pass) return {smtp:b};
+  if(_mailboxes===null){ try{ await loadMailboxes(); }catch(e){} }
+  if(Array.isArray(_mailboxes)&&_mailboxes.length) return {mb:_mailboxes[0].id};
+  /* v797 — Justin : « s'il n'utilise pas la boîte mail, il faut que dans Mon entreprise on l'oblige à mettre le mail ». Sans boîte
+     connectée, l'envoi part par le serveur AU NOM de l'entreprise, avec l'adresse de « Mon entreprise » en adresse de réponse — aucune
+     copie chez TEAM OP (serveur, 91641d89). Sans cette adresse, rien ne part. Quand on ne SAIT pas s'il y a une boîte (`null`), on ne
+     choisit pas à sa place : une boîte qui existe ne se contourne pas en silence. */
+  if(Array.isArray(_mailboxes)||BETA_ESSAI){ const em=envoiAdresseEnt(); if(em) return {ent:em}; }
+  /* la bêta ne connecte aucune boîte, par construction (ESPACES_INTOUCHABLES) : elle n'en a AUCUNE, ce n'est pas « on ne sait pas » */
+  return {manque:(_mailboxes===null&&!BETA_ESSAI)?'inconnu':'aucune'};
+}
+/* L'adresse e-mail de « Mon entreprise » — celle où ses clients répondent. Une adresse mal formée ne compte pas. */
+const ENVOI_ADR_RE=/^[^@\s<>"',;]+@[^@\s<>"',;]+\.[a-z]{2,}$/i;
+function envoiAdresseEnt(){ const em=String(((db&&db.entreprise)||{}).email||'').trim(); return ENVOI_ADR_RE.test(em)?em:''; }
+/* l'étape : l'adresse tapée s'enregistre dans Mon entreprise (datée, pour la synchro), et l'envoi reprend */
+function envoiAdresseEnregistrer(){ const el=document.getElementById('boite-etape-email'); const em=String((el&&el.value)||'').trim();
+  if(!ENVOI_ADR_RE.test(em)){ toast('Adresse e-mail invalide — exemple : contact@ton-entreprise.fr'); if(el) el.focus(); return; }
+  entPose('email',em); save(); toast('✓ Adresse enregistrée dans Mon entreprise — tes clients te répondront à '+em); closeModal(); }
+/* L'étape « connecte ta boîte » : rend une promesse qui se résout quand la fenêtre se ferme (connexion faite ou non — srvMail
+   revérifie). Un envoi en LOT (prévenir dix clients) ne la rouvre pas à chaque ligne : refusée il y a moins de 20 s, elle répond non. */
+let _boiteEtapeFin=0, _boiteEtapeEnCours=null;
+function envoiBoiteEtape(manque){
+  if(_boiteEtapeEnCours) return _boiteEtapeEnCours;
+  if(Date.now()-_boiteEtapeFin<20000) return Promise.resolve(false);
+  const admin=!!(currentUser&&currentUser.role==='admin');
+  const corps=manque==='inconnu'
+    ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Impossible de vérifier ta boîte mail pour l’instant (le serveur n’a pas répondu). <b>Rien n’est parti</b> : réessaie dans un instant.</p>
+      <button class="btn block" onclick="closeModal()">Compris</button>`
+    :admin
+      ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:12px">Pour envoyer à tes clients, OP GESTION a besoin de <b>l’adresse e-mail de ton entreprise</b> : c’est l’adresse où tes clients te répondront.</p>
+        <div class="field"><label for="boite-etape-email">Adresse e-mail de mon entreprise</label><input id="boite-etape-email" type="email" inputmode="email" autocomplete="email" placeholder="contact@ton-entreprise.fr" value="${esc(String(((db&&db.entreprise)||{}).email||''))}" onkeydown="if(event.key==='Enter'){event.preventDefault();envoiAdresseEnregistrer();}"></div>
+        <button class="btn block" id="boite-etape-ok" onclick="envoiAdresseEnregistrer()">Enregistrer et envoyer</button>
+        <p style="color:var(--t3);font-size:12.5px;line-height:1.55;margin:12px 0 8px">Ou, mieux : connecte ta boîte mail, et tes envois partiront directement de ton adresse.</p>
+        ${oauthBoutonsHtml('etape')}
+        <button class="btn block ghost" onclick="mailConnect()">🔗 Connecter ma boîte mail</button>
+        <button class="btn block ghost" style="margin-top:8px" onclick="closeModal()">Plus tard</button>`
+      :`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Pour envoyer à tes clients, l’entreprise doit indiquer son adresse e-mail ou connecter sa boîte mail. <b>Demande à ton administrateur de connecter la boîte mail de l’entreprise</b> ou de remplir son adresse (Paramètres → Mon entreprise). Rien n’est parti.</p>
+        <button class="btn block" onclick="closeModal()">Compris</button>`;
+  _boiteEtapeEnCours=new Promise(res=>{
+    openModal(`<div class="modal-head"><h3>✉️ ${manque==='inconnu'?'Boîte mail à vérifier':admin?'L’adresse e-mail de ton entreprise':'Connecte ta boîte mail'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div><div id="boite-etape">${corps}</div>`);
+    if(admin&&manque!=='inconnu') oauthBoutonsMontrer();
+    const ov=document.getElementById('overlay');
+    const fin=()=>{ _boiteEtapeEnCours=null; res(true); };
+    if(!ov||typeof MutationObserver==='undefined'){ fin(); return; }
+    const obs=new MutationObserver(()=>{ if(!ov.classList.contains('open')){ obs.disconnect(); fin(); } });
+    obs.observe(ov,{attributes:true,attributeFilter:['class']});
+  });
+  return _boiteEtapeEnCours;
+}
+/* L'envoi AUTOMATIQUE (facture payée sur place) ne rouvre aucune fenêtre chez un technicien : il prévient l'administrateur, une fois par jour. */
+function envoiBoiteSignaler(){
+  try{ const k='elan_boite_alerte_'+syncTeam(), j=todayISO(); if(localStorage.getItem(k)===j) return; localStorage.setItem(k,j); }catch(e){}
+  try{ const admins=(db.users||[]).filter(u=>u&&u.role==='admin'&&u.actif!==false).map(u=>u.id);
+    if(admins.length) pushNotify('✉️ Boîte mail à connecter','Une facture n’a pas pu partir au client : indique l’adresse e-mail de l’entreprise (Paramètres → Mon entreprise) ou connecte sa boîte mail.','/app.html#v=parametres',admins); }catch(e){}
+}
+/* Le domaine d'une adresse, pour un diagnostic : celui d'une messagerie PUBLIQUE (il ne désigne personne), sinon rien qui nomme le client. */
+function domaineDiag(adr){ const d=String(adr||'').split('@')[1]||''; if(!d) return '—';
+  return /^(gmail\.com|googlemail\.com|(outlook|hotmail|live)\.[a-z.]+|msn\.com|yahoo\.[a-z.]+|icloud\.com|me\.com|orange\.fr|wanadoo\.fr|free\.fr|sfr\.fr|neuf\.fr|laposte\.net|bbox\.fr|gmx\.[a-z.]+|aol\.com|proton(mail)?\.(me|com))$/i.test(d)?d.toLowerCase():'domaine d’entreprise'; }
+async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
+  let bt=await envoiBoiteResoudre(cat,boxOverride,opts);
+  if(bt.manque){
+    if(opts&&opts.auto){ envoiBoiteSignaler(); _srvMailErr='aucune boîte mail connectée'; return false; }
+    await envoiBoiteEtape(bt.manque);
+    bt=await envoiBoiteResoudre(cat,boxOverride,opts);
+    if(bt.manque){ _boiteEtapeFin=Date.now(); _srvMailErr='aucune boîte mail connectée'; toast('Rien n’est parti : connecte d’abord la boîte mail de ton entreprise'); return false; }
+  }
+  const b=bt.smtp||null;
   const payload={teamId:syncTeam(),to,subject,text:body};
   if(opts&&opts.atts&&opts.atts.length) payload.atts=opts.atts;   // pièces jointes (ex : bon de commande en PDF)
   if(opts&&opts.meta) payload.meta=opts.meta;                     // rattachement des réponses (n° de bon)
-  if(opts&&opts.mailboxId) payload.useMailbox={id:opts.mailboxId};   // envoi via la boîte connectée choisie
+  if(bt.mb) payload.useMailbox={id:bt.mb};                        // envoi via la boîte connectée de l'entreprise (le serveur a son mot de passe)
   /* v740 (relecture) : un document d'une société NOMMÉE (opts.societe, posé par docMailOpts) part sous
      son nom aussi par une boîte connectée — sinon le client reçoit le PDF d'« Alpha » d'un expéditeur
      au nom de l'entreprise. Le nom réglé sur la boîte reste celui de tout le reste. Entre guillemets
      et sans « <>" » : une virgule dans un nom ferait deux adresses. */
   const nomSoc=(opts&&opts.societe)?String(opts.societe).replace(/["<>\r\n]/g,'').trim().slice(0,80):'';
   if(b&&b.user&&b.pass){ payload.smtp={host:b.host||'smtp.mail.ovh.net',port:parseInt(b.port)||465,user:b.user,pass:b.pass,from:nomSoc?'"'+nomSoc+'" <'+b.user+'>':(b.from?b.from+' ':'')+'<'+b.user+'>'}; }
-  else{ payload.brand={name:(opts&&opts.brandName)||mailBrandName(),replyTo:(opts&&opts.replyTo)||((currentUser&&currentUser.mailReply)||'').trim()||((db.mailReply||'').trim())}; }   // la plateforme envoie au nom de l'entreprise / de l'utilisateur
+  else{ payload.brand={name:nomSoc||(opts&&opts.brandName)||mailBrandName()}; if(bt.ent) payload.brand.replyTo=bt.ent; }   // v797 : sans boîte, les réponses vont à l'adresse de Mon entreprise   // le NOM affiché devant l'adresse de la boîte connectée — jamais un envoi par la plateforme
   try{
-    let r=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(payload)});
-    if(!r.ok && payload.smtp){
-      // la boîte pro configurée a échoué (identifiants, Hotmail/Outlook bloqué…) → on retente via la plateforme
-      const d1=await r.json().catch(()=>({}));
-      const p2={...payload}; delete p2.smtp;
-      p2.brand={name:(opts&&opts.brandName)||mailBrandName(),replyTo:(opts&&opts.replyTo)||((db.mailReply||'').trim())||((b&&b.user)||'')};
-      const r2=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(p2)});
-      if(r2.ok){ _srvMailErr=''; toast('⚠️ Ta boîte e-mail pro a été refusée ('+(d1.error||'identifiants')+') — envoyé via la plateforme au nom de « '+mailBrandName()+' ». Corrige ou supprime la boîte dans Paramètres.'); return true; }
-      r=r2;
-    }
+    const r=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(payload)});
+    /* v796 : une boîte de l'entreprise qui refuse (identifiants, Hotmail/Outlook bloqué…) ne se rabat PLUS sur la plateforme */
     if(r.ok){ _srvMailErr=''; toast(okMsg||('✉️ E-mail envoyé à '+to)); return true; }
     const d=await r.json().catch(()=>({}));
+    if(r.status===409) _mailboxes=null;   // v797 : la boîte a été déconnectée ailleurs — la liste se relira au prochain envoi
     _srvMailErr=d.error||('erreur serveur HTTP '+r.status);
-    toast('Envoi refusé ('+_srvMailErr+')'+(opts&&opts.sansMailto?' — rien n’est parti':' — e-mail préparé dans Mail'));
+    /* v798 : une boîte connectée avec Google (ou Microsoft) dont l'autorisation a expiré ou a été retirée — 409 `a_reconnecter`. On le DIT,
+       avec le geste qui répare ; la reprise par OP GESTION reste une simple proposition (ci-dessous), jamais un repli silencieux. */
+    if(d.code==='a_reconnecter') _srvMailErr='ta boîte mail doit être reconnectée (Paramètres → E-mails à tes clients → Reconnecter)';
+    /* v797 : la boîte de l'entreprise refuse. On ne repasse JAMAIS en silence par OP GESTION ; avec une adresse dans Mon entreprise, on le
+       PROPOSE, en disant où iront les réponses. Jamais pour un envoi automatique (personne pour répondre). */
+    const emRep=(bt.mb||bt.smtp)&&!(opts&&opts.auto)?envoiAdresseEnt():'';
+    if(emRep&&confirm('Ta boîte mail a refusé l’envoi ('+_srvMailErr+').\n\nEnvoyer quand même depuis OP GESTION, au nom de ton entreprise ? Les réponses arriveront à '+emRep+'.')){
+      const p2=Object.assign({},payload); delete p2.useMailbox; delete p2.smtp; p2.brand={name:nomSoc||(opts&&opts.brandName)||mailBrandName(),replyTo:emRep};
+      try{ const r2=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(p2)});
+        if(r2.ok){ _srvMailErr=''; toast(okMsg||('✉️ E-mail envoyé à '+to)); return true; }
+        const d2=await r2.json().catch(()=>({})); _srvMailErr=d2.error||('erreur serveur HTTP '+r2.status); }catch(e2){ _srvMailErr='serveur d\'envoi injoignable'; } }
+    toast((d.code==='a_reconnecter'?'Rien n’est parti : ta boîte mail doit être reconnectée (Paramètres → E-mails à tes clients → Reconnecter)':'Envoi refusé ('+_srvMailErr+') : ta boîte mail a refusé l’envoi')+(opts&&opts.sansMailto?(d.code==='a_reconnecter'?'':' — rien n’est parti'):' — e-mail préparé dans Mail'));
     /* v740 : le DOMAINE seulement. L'adresse d'un client n'a rien à faire dans un rapport d'erreur
        (pas de données personnelles de clients dans les journaux) ; le domaine suffit à voir qu'un
        fournisseur de messagerie refuse. */
-    try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+_srvMailErr,src:'srvMail',line:0,stack:'domaine du destinataire : '+(String(to||'').split('@')[1]||'—'),ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
+    /* v797 (essai des mails de A à Z) : même le domaine en disait trop — « client-dupont.fr » NOMME le client de l'entreprise, et il
+       finissait dans bugs.jsonl, le courriel de la vigie et le journal de la Tour. On garde le FOURNISSEUR quand c'est une messagerie
+       publique (c'est ce qui sert à voir qu'Orange ou Gmail refuse), sinon « domaine d'entreprise » ; et une adresse que le serveur de
+       la boîte recopie dans son refus (« 550 <x@y> unknown ») ne part pas non plus. */
+    try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+String(_srvMailErr).replace(/[^\s<>"'@]+@[^\s<>"'@]+/g,'[adresse]'),src:'srvMail',line:0,stack:'domaine du destinataire : '+domaineDiag(to),ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
   }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable'+(opts&&opts.sansMailto?' — rien n’est parti, réessaie quand le réseau revient':' — e-mail préparé dans Mail')); }
   /* ⛔ v740 — un courriel qui porte une PIÈCE JOINTE ne se rabat pas sur un brouillon : le lien
      mailto: ne sait pas joindre de fichier, et le brouillon dirait « ci-joint » sans rien joindre.
@@ -24332,11 +24420,26 @@ async function srvFeatures(){ if(_srvFeat) return _srvFeat;
   try{ const r=await fetch(PUSH_API+'/health'); _srvFeat=await r.json(); }catch(e){ _srvFeat={}; }
   return _srvFeat; }
 function mailSimpleSave(){ if(!adminSeul()) return; const g=id=>((document.getElementById(id)||{}).value||'').trim();
-  const rep=g('ms-reply');
-  if(rep && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rep)){ toast('Adresse de réponse invalide'); return; }
-  db.mailFrom=g('ms-from'); db.mailReply=rep; save(); toast('Réglages d\'envoi enregistrés ✓'); views.parametres(); }
+  const em=g('ms-email');
+  if(em && !ENVOI_ADR_RE.test(em)){ toast('Adresse e-mail invalide — exemple : contact@ton-entreprise.fr'); return; }
+  entPose('email',em); db.mailFrom=g('ms-from'); save(); toast('Réglages d\'envoi enregistrés ✓'); views.parametres(); }
+/* v796 : l'état de la boîte connectée dans « E-mails à tes clients » — les TROIS états de `_mailboxes` (liste, vide, null). */
+async function envoiBoiteCarteMaj(){ const el=document.getElementById('envoi-boite-etat'), ac=document.getElementById('envoi-boite-actions'); if(!el) return;
+  try{ await loadMailboxes(); }catch(e){}
+  if(!document.body.contains(el)) return;
+  const adm=!!(currentUser&&currentUser.role==='admin'), smtp=(db.mailBoxes||[]).filter(b=>b&&b.user);
+  const liste=Array.isArray(_mailboxes)?_mailboxes:(BETA_ESSAI?[]:null);
+  if(liste===null){ el.innerHTML='<span style="color:var(--org)">Impossible de vérifier pour l’instant</span>'; if(ac) ac.innerHTML='<button class="btn sm ghost" onclick="envoiBoiteCarteMaj()">Réessayer</button>'; return; }
+  if(liste.length){ el.innerHTML=liste.map(b=>b.etat==='a_reconnecter'?'<span style="color:var(--org);font-weight:700">À reconnecter : '+esc(b.email)+' — rien ne part par elle</span>':'<span style="color:var(--green);font-weight:700">Connectée : '+esc(b.email)+' ✓</span>').join('<br>'); if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailBoxesManage()">Gérer mes boîtes</button>':''; return; }
+  if(smtp.length){ el.innerHTML='<span style="color:var(--green);font-weight:700">Adresse d’envoi : '+esc(smtp[0].user)+' ✓</span>'; if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailConnect()">🔗 Connecter aussi la boîte (réponses dans l’app)</button>':''; return; }
+  const emE=envoiAdresseEnt();
+  if(emE){ el.innerHTML='<span style="color:var(--t2)">Pas de boîte connectée — tes envois partent à ton nom, les réponses vont à <b>'+esc(emE)+'</b></span>';
+    if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailConnect()">🔗 Connecter la boîte mail de l’entreprise</button>':''; return; }
+  el.innerHTML='<span style="color:var(--org);font-weight:700">À compléter — sans adresse e-mail ni boîte connectée, rien ne peut partir à tes clients</span>';
+  if(ac) ac.innerHTML=adm?'<button class="btn sm" onclick="mailConnect()">🔗 Connecter la boîte mail de l’entreprise</button>':'<span style="font-size:12.5px;color:var(--t3)">Demande à ton administrateur de connecter la boîte mail de l’entreprise.</span>';
+}
 function mailSimpleTest(){ const to=prompt('Envoyer un e-mail de test à :',(currentUser&&currentUser.email)||''); if(!to) return;
-  srvMail(to,'Test — '+mailBrandName(),'E-mail de test envoyé depuis votre application.\n\nVos clients verront « '+mailBrandName()+' » comme expéditeur'+(db.mailReply?' et leurs réponses arriveront sur '+db.mailReply:'')+'.','✉️ Test envoyé à '+to+' — vérifie la réception'); }
+  srvMail(to,'Test — '+mailBrandName(),'E-mail de test envoyé depuis votre application.\n\nVos clients verront « '+mailBrandName()+' » comme expéditeur, et leurs réponses arriveront dans la boîte de l\'entreprise.','✉️ Test envoyé à '+to+' — vérifie la réception'); }
 function userMailForm(){ if(!can('mailPro')){ toast('Ton compte n\'a pas le droit « Envoyer depuis son adresse e-mail pro »'); return; } const b=(currentUser&&currentUser.mailBox)||{};
   openModal(`<div class="modal-head"><h3>💼 Mon e-mail professionnel</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13px;line-height:1.55;margin-bottom:12px">Tes envois (rapports, avis, devis…) partiront de TON adresse pro. Laisse vide pour utiliser l'adresse de l'entreprise.</p>
@@ -34118,7 +34221,7 @@ function courrierSource(){
       const rep=await reponses(), b=boites.find(x=>String(x.id)===String(boite)); if(!b) return [];
       const premiere=boites[0]&&String(boites[0].id)===String(b.id);
       return rep.filter(x=>{ const bx=String(x.boite||'').toLowerCase(); return bx?bx===String(b.email).toLowerCase():premiere; })
-        .map(x=>({id:String(x.mid||(x.ts+'|'+x.from)),de:{nom:x.fromName||x.from,email:x.from},a:b.nom,objet:x.subject||'',corps:x.text||'',date:x.ts,lu:false,ancien:!!x.histo,pj:[]})); },
+        .map(x=>({id:String(x.mid||(x.ts+'|'+x.from)),de:{nom:x.fromName||x.from,email:x.from},a:b.nom,objet:x.subject||'',corps:courrierCorps(x),date:x.ts,lu:false,ancien:!!x.histo,pj:[]})); },
     async envoyer(m){
       const atts=[]; for(const f of (m.pieces||[])) atts.push({filename:f.name,content:await base64(f)});
       const payload={teamId:syncTeam(),to:(String(m.a).match(/[^\s<>,;:"']+@[^\s<>,;:"']+/)||[m.a])[0],subject:m.objet,text:m.texte,useMailbox:{id:m.boite}};
@@ -34138,6 +34241,8 @@ function courrierSource(){
       if(!r.ok) throw await refus(r,'Retrait refusé'); _courrierRep=null; }
   };
 }
+/* v797 : la réponse d'un fournisseur rattachée à un bon (`bonNum`) porte son numéro dans le texte lu — on le lit, et la recherche le trouve. */
+function courrierCorps(x){ const t=String((x&&x.text)||''), n=String((x&&x.bonNum)||'').trim(); return n&&t.indexOf(n)<0?t+(t?'\n\n':'')+'Bon de commande '+n:t; }
 function courrierCharger(){
   if(window.OPCourrier) return Promise.resolve();
   if(_courrierChargement) return _courrierChargement;
@@ -34387,26 +34492,103 @@ function mailOpen(type,idx){
     <div style="flex:1;overflow-y:auto">${mailReadHtml(r,type)}</div>`;
   document.body.appendChild(ov);
 }
-/* Options d'envoi : les boîtes connectées, sinon la plateforme */
+/* Options d'envoi : les boîtes connectées, puis l'adresse d'envoi des Paramètres. v796 : plus de « plateforme » — l'option
+   `kind:'plat'` (nom gardé : des bons l'ont en mémoire) veut dire « l'adresse d'envoi des Paramètres, ou la boîte à connecter » ;
+   srvMail décide, et n'envoie jamais par TEAM OP. */
+function envoiAutreLib(){ const b=mailBoxFor(''); return (b&&b.user)?b.user:'Boîte mail à connecter'; }
 function mailFromOptions(){ const o=[];
   (_mailboxes||[]).forEach(b=>o.push({kind:'mb',id:b.id,email:b.email}));
-  o.push({kind:'plat',id:'',email:''});
+  if(!o.length||(db.mailBoxes||[]).length) o.push({kind:'plat',id:'',email:''});
   return o; }
 async function mailBoxesManage(){ await loadMailboxes();
   openModal(`<div class="modal-head"><h3>📬 Mes boîtes mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    ${(_mailboxes||[]).map(b=>`<div class="pl-row"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(b.email)}</div><div class="pl-meta">envoi + réception + historique dans l'app</div></div><button class="btn danger sm" onclick="mailDisconnect('${b.id}')">Déconnecter</button></div>`).join('')}
+    ${(_mailboxes||[]).map(b=>`<div class="pl-row"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(b.email)}</div><div class="pl-meta">${b.etat==='a_reconnecter'?'<span style="color:var(--org);font-weight:700">⚠️ À reconnecter — l’autorisation a expiré ou a été retirée, rien ne part par elle</span>':(OAUTH_NOMS[b.type]?'connectée avec '+OAUTH_NOMS[b.type]+' · ':'')+'envoi + réception + historique dans l\'app'}</div></div>${b.etat==='a_reconnecter'?`<button class="btn sm" style="margin-right:6px" onclick="${OAUTH_NOMS[b.type]?`mailOauthDemarrer('${esc(b.type)}')`:`mailConnect('${esc(b.email)}')`}">Reconnecter</button>`:''}<button class="btn danger sm" onclick="mailDisconnect('${b.id}')">Déconnecter</button></div>`).join('')}
     ${_mailboxes===null?'<div style="color:var(--t3);text-align:center;padding:16px">Liste indisponible — le serveur n\'a pas répondu.</div>':(!_mailboxes.length?'<div style="color:var(--t3);text-align:center;padding:16px">Aucune boîte connectée.</div>':'')}
     <button class="btn block" style="margin-top:12px" onclick="mailConnect()">＋ Connecter une boîte</button>`);
 }
+/* v798 — « SE CONNECTER AVEC GOOGLE » (4 novembre 2026, Justin : « fais tout avant la mise à jour »). Le serveur (`/api/mailbox/oauth/*`,
+   `server/OAUTH-BOITES.md`) ouvre l'autorisation chez le fournisseur ; la boîte revient connectée sans qu'aucun mot de passe passe par nous.
+   ⛔ La fenêtre s'ouvre DANS le geste, avant tout `await` — ouverte après l'aller-retour au serveur, Safari la bloque —, vide, puis reçoit
+   l'adresse du fournisseur. ⛔ Pas de `noopener` : la page de retour prévient par `window.opener.postMessage` (origine api.teamop.fr,
+   `type:'teamop-boite'`). Et parce qu'un téléphone ou une application installée peut perdre l'opener, la FERMETURE de la fenêtre et le
+   retour sur l'application relisent aussi la liste : on dit « connectée » sur ce que le serveur liste, jamais sur la fermeture seule.
+   Le bouton ne paraît que pour un fournisseur que le serveur dit configuré (`/health` → `oauth`) ; un 503 `oauth_non_configure` le retire.
+   Microsoft n'a donc pas de bouton tant que ses identifiants ne sont pas posés sur le VPS. `tests/test-3252.js`. */
+const OAUTH_NOMS={google:'Google',microsoft:'Microsoft'};
+let _oauthDispo=null, _oauthDispoTs=0, _oauthSuivi=null;
+async function oauthDispo(){ if(_oauthDispo&&Date.now()-_oauthDispoTs<60000) return _oauthDispo;
+  try{ const c=new AbortController(), t=setTimeout(()=>c.abort(),4000);
+    const r=await fetch(PUSH_API+'/health',{cache:'no-store',signal:c.signal}); clearTimeout(t);
+    const j=r.ok?await r.json():null; if(!j) return {};
+    _oauthDispo={google:!!(j.oauth&&j.oauth.google),microsoft:!!(j.oauth&&j.oauth.microsoft)}; _oauthDispoTs=Date.now(); return _oauthDispo; }
+  catch(e){ return _oauthDispo||{}; } }
+function oauthBoutonsHtml(ou){ return `<div class="oauth-boutons" data-ou="${ou}" style="display:none"></div>`; }
+async function oauthBoutonsMontrer(){ const d=await oauthDispo();
+  document.querySelectorAll('.oauth-boutons').forEach(z=>{
+    const f=Object.keys(OAUTH_NOMS).filter(k=>d[k]);
+    if(!f.length){ z.style.display='none'; z.innerHTML=''; return; }
+    const etape=z.getAttribute('data-ou')==='etape';
+    z.innerHTML=f.map(k=>`<div class="oauth-b-${k}" style="margin-bottom:${etape?8:12}px">${etape?'':`<div style="font-size:12.5px;font-weight:700;color:var(--t2);margin-bottom:6px">${k==='google'?'Gmail ?':'Outlook, Hotmail ou Microsoft 365 ?'}</div>`}<button class="btn block${etape?' ghost':''}" onclick="mailOauthDemarrer('${k}')">Se connecter avec ${OAUTH_NOMS[k]}</button></div>`).join('')
+      +(etape?'':'<div style="font-size:12px;color:var(--t3);margin:0 0 12px;text-align:center">Pour les autres boîtes : l’adresse et le mot de passe, ci-dessous.</div>');
+    z.style.display=''; }); }
+async function mailOauthDemarrer(f){
+  const nom=OAUTH_NOMS[f]; if(!nom) return false;
+  let w=null; try{ w=window.open('','teamop-oauth','width=520,height=720'); }catch(e){ w=null; }
+  if(w){ try{ w.document.title='OP GESTION'; w.document.body.style.cssText='font-family:system-ui,-apple-system,sans-serif;padding:24px;color:#334'; w.document.body.textContent='Ouverture de la connexion '+nom+'…'; }catch(e){} }
+  const fermer=()=>{ try{ if(w&&!w.closed) w.close(); }catch(e){} };
+  let r=null, d={};
+  try{ r=await fetch(PUSH_API+'/api/mailbox/oauth/start',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),fournisseur:f})});
+    d=await r.json().catch(()=>({})); }
+  catch(e){ fermer(); toast('Serveur injoignable — rien n’a changé, réessaie dans un instant'); return false; }
+  if(!r.ok||!d||typeof d.url!=='string'||!/^https?:\/\//.test(d.url)){ fermer();
+    if(r.status===503||(d&&d.code==='oauth_non_configure')){ _oauthDispo=Object.assign({},_oauthDispo||{},{[f]:false}); _oauthDispoTs=Date.now(); oauthBoutonsMontrer();
+      toast('La connexion '+nom+' n’est pas encore disponible — connecte la boîte avec son adresse et son mot de passe'); return false; }
+    toast('Connexion '+nom+' impossible : '+((d&&d.error)||('le serveur a répondu '+r.status))); return false; }
+  if(!w||w.closed){ if(confirm('Ton navigateur a bloqué la fenêtre de connexion '+nom+'.\n\nOuvrir la page '+nom+' ici ? Tu reviendras ensuite dans OP GESTION.')) location.href=d.url; return false; }
+  try{ w.location.href=d.url; }catch(e){ fermer(); toast('Connexion '+nom+' impossible : la fenêtre n’a pas pu s’ouvrir'); return false; }
+  oauthSuivre(w);
+  return true; }
+/* Le suivi d'UNE connexion : le message de la page de retour, ou la fenêtre fermée, ou le retour sur l'application — le premier qui
+   arrive relit la liste ; les autres ne font plus rien. */
+function oauthSuivre(w){ if(_oauthSuivi) clearInterval(_oauthSuivi.t);
+  const avant=JSON.stringify((_mailboxes||[]).map(b=>b.id+':'+b.etat).sort());
+  const s={avant,w,debut:Date.now()};
+  s.t=setInterval(()=>{ let ferme=true; try{ ferme=!s.w||s.w.closed; }catch(e){}
+    if(ferme){ clearInterval(s.t); oauthFin(null,true); } else if(Date.now()-s.debut>15*60000) { clearInterval(s.t); if(_oauthSuivi===s) _oauthSuivi=null; } },1000);
+  _oauthSuivi=s; }
+/* `ferme` : la fenêtre s'est fermée. Sans message ni fenêtre fermée (retour sur l'application), on ne fait que REGARDER : la connexion
+   peut être encore en cours chez Google (un téléphone revient sur l'appli avant d'avoir fini), le suivi continue. */
+async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
+  if(s&&s.lit&&!msg){ if(ferme) s.fermee=true; return; }   // une relecture est déjà en route : elle tiendra compte de la fermeture
+  if(s) s.lit=true;
+  const avant=s?s.avant:'';
+  await loadMailboxes();
+  if(s){ s.lit=false; if(s.fermee) ferme=true; }
+  if(s&&s.conclu) return;   // un autre chemin (le message de la page de retour, ou la fenêtre fermée) a déjà conclu
+  const apres=JSON.stringify((_mailboxes||[]).map(b=>b.id+':'+b.etat).sort());
+  const change=Array.isArray(_mailboxes)&&apres!==avant;
+  if(!msg&&!ferme&&!change) return;
+  if(s) s.conclu=true; if(_oauthSuivi){ clearInterval(_oauthSuivi.t); _oauthSuivi=null; }
+  if(msg&&msg.ok===false){ toast('⚠️ '+(msg.message||'Connexion non terminée')+' — rien n’a changé'); return; }
+  if(!Array.isArray(_mailboxes)){ toast('Impossible de vérifier la boîte pour l’instant — rouvre « Mes boîtes mail » dans un instant'); return; }
+  if(!(msg&&msg.ok)&&!change) return;   // fenêtre fermée sans rien changer : on ne dit rien de faux
+  toast('✅ Boîte mail connectée — tes envois partent maintenant de ton adresse');
+  if(document.querySelector('#overlay.open #mb-email, #overlay.open #boite-etape')) closeModal();   // l'étape d'envoi fermée : l'envoi reprend
+  try{ envoiBoiteCarteMaj(); }catch(e){}
+  if(current==='boiteMail'){ _mailReplies=null; mailSel=null; views.boiteMail(); } }
+window.addEventListener('message',e=>{ if(e.origin!==PUSH_API) return; const d=e.data;
+  if(!d||typeof d!=='object'||d.type!=='teamop-boite') return; oauthFin({ok:!!d.ok,message:String(d.message||'').slice(0,200)}); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&_oauthSuivi) setTimeout(()=>{ if(_oauthSuivi) oauthFin(null); },800); });
 function mailConnect(pre){
   const ligne=(ok,nom,det)=>`<div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12.5px"><span style="flex-shrink:0">${ok}</span><b style="flex-shrink:0">${nom}</b><span style="color:var(--t3);text-align:right;flex:1">${det}</span></div>`;
   openModal(`<div class="modal-head"><h3>🔗 Connecter une boîte mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">Connecte <b>n'importe quelle boîte</b> — celle de l'entreprise ou la tienne, pro ou perso — avec son adresse et son mot de passe. Tu retrouves ici <b>tes mails (les ~60 derniers s'importent automatiquement)</b>, tu envoies et tu reçois directement dans l'app, et tout reste aussi sur ta vraie boîte.</p>
+    ${oauthBoutonsHtml('mb')}
     <div style="border:1px solid var(--brd);border-radius:12px;padding:10px 14px 6px;margin-bottom:14px">
       <div style="font-size:10.5px;font-weight:800;letter-spacing:1px;color:var(--t3);margin-bottom:4px">BOÎTES COMPATIBLES</div>
       ${ligne('✅','Boîte pro / OVH','mot de passe habituel')}
       ${ligne('✅','Orange · Free · SFR · La Poste','mot de passe habituel')}
-      ${ligne('✅','Gmail','mot de passe d\'application (guidé, 2 min)')}
+      ${ligne('✅','Gmail','« Se connecter avec Google », ou mot de passe d\'application')}
       ${ligne('✅','Yahoo','mot de passe d\'application (guidé)')}
       <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;font-size:12.5px"><span style="flex-shrink:0">⏳</span><b style="flex-shrink:0">Hotmail / Outlook</b><span style="color:var(--t3);text-align:right;flex:1">bientôt — connexion officielle Microsoft en cours de demande</span></div>
     </div>
@@ -34415,6 +34597,7 @@ function mailConnect(pre){
     <div class="field"><label>Mot de passe</label><input id="mb-pass" type="password" placeholder="mot de passe de la boîte"></div>
     <button class="btn block" id="mb-btn" onclick="mailDoConnect()">Connecter et vérifier</button>`);
   if(pre&&typeof pre==='string'){ const e=$('mb-email'); if(e){ e.value=pre; mailConnHelp(); } }
+  oauthBoutonsMontrer();
 }
 /* Lien « mot de passe oublié » selon le fournisseur */
 /* La page des mots de passe d'application — à ne PAS confondre avec la récupération de
@@ -34503,13 +34686,13 @@ function mailChoisirBoite(titre,cb){
   openModal(`<div class="modal-head"><h3>📤 ${esc(titre||'Envoyer avec quelle adresse ?')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     ${opts.map((o,i)=>o.kind==='mb'?
       `<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(o.email)}</div><div class="pl-meta">boîte connectée — réponses dans l'app</div></div></div>`
-      :`<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">🏢</span><div class="pl-info"><div class="pl-title">Plateforme (au nom de ${esc(mailBrandName())})</div></div></div>`).join('')}`);
+      :`<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">✉️</span><div class="pl-info"><div class="pl-title">${esc(envoiAutreLib())}</div></div></div>`).join('')}`);
 }
 let _mailAtt=null;
 function mailCompose(to,subject){ _mailAtt=null;
   const sug=[...(db.fournisseurs||[]).filter(f=>f.email).map(f=>({e:f.email,n:f.nom})),...(db.clients||[]).filter(c=>c.email).map(c=>({e:c.email,n:c.nom}))];
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>✏️ Nouvel e-mail</h3><button type="button" class="btn sm" onclick="mailSend()">Envoyer</button></div>
-    <div class="field"><label>De</label><select id="mc-from" style="width:100%"><option value="">🏢 Plateforme — au nom de ${esc(mailBrandName())}</option></select></div>
+    <div class="field"><label>De</label><select id="mc-from" style="width:100%"><option value="">✉️ ${esc(envoiAutreLib())}</option></select></div>
     <div class="field"><label>À</label><input id="mc-to" type="email" list="mc-dl" autocomplete="off" value="${esc(to||'')}" placeholder="destinataire@exemple.fr"><datalist id="mc-dl">${sug.map(x=>`<option value="${esc(x.e)}">${esc(x.n)}</option>`).join('')}</datalist></div>
     <div class="field"><label>Objet</label><input id="mc-subject" value="${esc(subject||'')}" placeholder="Objet du message"></div>
     <div class="field"><label>Message</label><textarea id="mc-text" style="min-height:170px" placeholder="Ton message…"></textarea></div>
@@ -34517,7 +34700,7 @@ function mailCompose(to,subject){ _mailAtt=null;
     <div class="detail-desc">Signé <b>${esc(fullName(currentUser))} · ${esc(mailBrandName())}</b> — les réponses arrivent dans 📥 Réception (et sur la vraie boîte).</div>`);
   loadMailboxes().then(()=>{ const sel=$('mc-from'); if(!sel) return;
     const opts=mailFromOptions();
-    sel.innerHTML=opts.map(o=>o.kind==='mb'?`<option value="mb:${o.id}">📧 ${esc(o.email)}</option>`:`<option value="">🏢 Plateforme — au nom de ${esc(mailBrandName())}</option>`).join('');
+    sel.innerHTML=opts.map(o=>o.kind==='mb'?`<option value="mb:${o.id}">📧 ${esc(o.email)}</option>`:`<option value="">✉️ ${esc(envoiAutreLib())}</option>`).join('');
     const first=opts.find(o=>o.kind==='mb'); if(first) sel.value='mb:'+first.id; });
 }
 function mailPickFile(inp){ const f=inp.files&&inp.files[0]; if(!f) return;
@@ -35529,13 +35712,14 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
 
   /* v778 : le nom du client passe à la ligne (deux lignes au plus) au lieu d'être coupé à 52 signes (« Établissements Hospitaliers Universitaires de la Cô… ») */
   const nomCl=_pdfEnLignes(cli.nom||'',10.5,1,W-2*M-20,2).filter(Boolean);
-  const cl=[].concat(nomCl, cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '),
-            [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')).filter(Boolean);
+  const sousCl=[cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '), [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')]
+            .filter(Boolean).flatMap(t2=>_pdfEnLignes(t2,8.8,0,W-2*M-24,3).filter(Boolean));   // v798 : à la ligne, plus de cut(…,70)
+  const cl=[].concat(nomCl, sousCl).filter(Boolean);
   const ph=20+cl.length*13;
   R(M,y-ph+10,W-2*M,ph,GREENLT); R(M,y-ph+10,2.4,ph,GREEN);
   T(M+12,y-4,7.5,estFact?'FACTURÉ À':'CLIENT',1,ACC_T);
   const nbNom=Math.max(1,nomCl.length);   // sans nom, la première ligne garde le style d'avant
-  cl.forEach((t2,i)=>{ T(M+12,y-18-i*13,i<nbNom?10.5:8.8,i<nbNom?t2:cut(t2,70),i<nbNom?1:0,i<nbNom?DARK:GREY); });
+  cl.forEach((t2,i)=>{ T(M+12,y-18-i*13,i<nbNom?10.5:8.8,t2,i<nbNom?1:0,i<nbNom?DARK:GREY); });
   y-=ph+14;
 
   tableHead();
@@ -35543,7 +35727,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   let totHT=0;
   (d.lignes||[]).forEach((l,i)=>{
     /* v778 : la désignation passe à la ligne (colonne de 237 pt, six lignes au plus) — plus de « … » qui mange la fin d'un devis descriptif */
-    const dl=_pdfEnLignes(l.designation||'',9.2,0,237,6), sup=(dl.length-1)*11;
+    const dl=_pdfEnLignes(l.designation||'',9.2,0,237,48), sup=(dl.length-1)*11;   // v798 : 48 lignes (une page) au lieu de 6 coupées par « … »
     if(y-sup<150) newPage();
     const q=Number(l.qte)||0, pu=Number(l.pu)||0, tot=ligTotLigne(l); totHT+=tot;   // même arrondi que l'écran et l'e-mail
     if(i>0) R(M+10,y+10.5,W-2*M-20,0.5,LINE);   // un filet fin entre les lignes, plus de bandes grises
@@ -35564,12 +35748,27 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   T(RGT-bw+12,y-13,10.5,'TOTAL TTC',1,ON_ACC); TR(RGT-12,y-13,12,eur(ttc),1,ON_ACC);
   y-=36;
 
-  if(d.notes){ const nl=String(d.notes).split(/\n/).slice(0,6); const nh=22+nl.length*12;
-    y-=14; if(y-nh<140) newPage();
-    R(M,y-nh+8,W-2*M,nh,GREENLT);
-    T(M+10,y-6,7.5,'DÉTAIL',1,ACC_T);
-    nl.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,cut(line,100),0,DARK); });
-    y-=nh+6; }
+  /* v798 (un client, capture à l'appui : « Technologie Inverter : adapte automatiquement la puissance… afin de mainte… ») — le
+     DÉTAIL PASSE À LA LIGNE au lieu d'être coupé à 100 signes, et plus de plafond à six lignes. Une puce (•, -, –, *, 1.) garde son
+     retrait sur les lignes suivantes ; le bloc grandit, et s'il ne tient pas, il continue sur la page suivante (« DÉTAIL (SUITE) »).
+     Mesuré par `_pdfLarg` (via `_pdfEnLignes`), écrit par `_pdfTxt` : ce qu'on mesure est ce qu'on écrit. `test-3251`. */
+  if(d.notes){ const LH=12, maxW=W-2*M-22, rows=[];
+    String(d.notes).split(/\r?\n/).forEach(src=>{ const s0=String(src).replace(/\s+$/,'');
+      if(!s0.trim()){ rows.push({x:0,t:''}); return; }
+      const mp=s0.match(/^\s*((?:[•·\-–—*]|\d{1,3}[.)])\s+)/), pre=mp?mp[1].replace(/\s+$/,'')+' ':'', corps=mp?s0.slice(mp[0].length):s0.trim();
+      const ind=pre?_pdfLarg(pre,8.8,0):0;
+      _pdfEnLignes(corps,8.8,0,maxW-ind).forEach((t,k)=>rows.push({x:k?ind:0,t:(k?'':pre)+t})); });
+    while(rows.length&&!rows[rows.length-1].t) rows.pop();
+    y-=14; let i=0, premier=true;
+    while(i<rows.length){
+      const dispo=Math.floor((y-140-22)/LH);
+      if(dispo<2){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; continue; }
+      const n=Math.min(dispo,rows.length-i), nh=22+n*LH;
+      R(M,y-nh+8,W-2*M,nh,GREENLT);
+      T(M+10,y-6,7.5,premier?'DÉTAIL':'DÉTAIL (SUITE)',1,ACC_T);
+      for(let k=0;k<n;k++){ const r=rows[i+k]; if(r.t) T(M+9+r.x,y-19-k*LH,8.8,r.t,0,DARK); }
+      i+=n; premier=false; y-=nh+6;
+      if(i<rows.length){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; } } }
 
   if(y<160) newPage();
   y-=14;
@@ -35579,7 +35778,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
     .concat(tx===0?['TVA non applicable, article 293 B du CGI.']:[])
     .concat(['En cas de retard de paiement : pénalités au taux d\'intérêt légal majoré et indemnité forfaitaire',
              'de recouvrement de 40 EUR (art. L441-10 du Code de commerce). Pas d\'escompte pour paiement anticipé.'])
-    .forEach((t2,k)=>{ T(M,y,8,cut(t2,118),k===0?1:0,k===0?DARK:GREY); y-=11; });
+    .forEach((t2,k)=>{ _pdfEnLignes(t2,8,k===0,W-2*M,4).forEach(t3=>{ T(M,y,8,t3,k===0?1:0,k===0?DARK:GREY); y-=11; }); });   // v798 : l'IBAN ne se coupe plus
     y-=10;
     if(cachet&&cachet.b64){ const ch=50, cw=Math.min(160,Math.round(cachet.w*(ch/cachet.h)));
       if(y-ch<80){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; }   // une page de plus, sans en-tête de tableau
@@ -35588,7 +35787,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   [ 'Devis valable 30 jours à compter de sa date d\'émission.',
     tx===0?'TVA non applicable, article 293 B du CGI.':'Prix en euros, TVA au taux indiqué ci-dessus.',
     'Bon pour accord : date, signature et mention « Bon pour accord ».'
-  ].forEach(t2=>{ T(M,y,8,cut(t2,110),0,GREY); y-=11; });
+  ].forEach(t2=>{ _pdfEnLignes(t2,8,0,W-2*M,4).forEach(t3=>{ T(M,y,8,t3,0,GREY); y-=11; }); });   // v798 : à la ligne
   y-=10;
   if(cachet&&cachet.b64){ const ch=46, cw=Math.min(150,Math.round(cachet.w*(ch/cachet.h)));
     /* v795 — Justin doute du titre « Pour l’entreprise » au-dessus du cachet : aucun texte ne l’exige (ni L441-9, ni 242 nonies A, ni pour un
@@ -35790,7 +35989,7 @@ function bonBoiteChoisie(b){
   if(b&&b.mbId){ const o=opts.find(x=>x.kind==='mb'&&x.id===b.mbId); if(o) return o; }
   return opts.find(o=>o.kind==='mb')||opts[0]||{kind:'plat'};
 }
-function bonBoiteTexte(o){ return (o&&o.kind==='mb')?o.email:('Plateforme — au nom de '+mailBrandName()); }
+function bonBoiteTexte(o){ return (o&&o.kind==='mb')?o.email:envoiAutreLib(); }
 function bonBoiteChanger(id){ const b=db.bons.find(x=>x.id===id); if(!b) return;
   mailChoisirBoite('Envoyer ce bon avec quelle adresse ?',function(o){
     b.mbId=(o&&o.kind==='mb')?o.id:'';
@@ -38857,6 +39056,9 @@ views.parametres=function(){
         <div class="field"><label>Ville</label><input id="ent-ville" value="${esc(E.ville||'')}" placeholder="Saintes"></div>
       </div>
       <div class="field-row">
+        <div class="field"><label for="ent-email">E-mail de l’entreprise <b style="color:var(--org)">* obligatoire pour tes envois</b></label><input id="ent-email" type="email" inputmode="email" autocomplete="email" value="${esc(E.email||'')}" placeholder="contact@ton-entreprise.fr"><div style="font-size:12px;color:var(--t3);margin-top:4px">C’est l’adresse où tes clients te répondront (devis, factures, rapports…).</div></div>
+      </div>
+      <div class="field-row">
         <div class="field"><label>Téléphone</label><input id="ent-tel" inputmode="tel" value="${esc(E.tel||'')}" placeholder="05 46 …"></div>
         <div class="field"><label>SIRET (optionnel)</label><input id="ent-siret" value="${esc(E.siret||'')}"></div>
       </div>
@@ -38935,30 +39137,29 @@ views.parametres=function(){
            Un ancien `db.entreprise.couleur` reste dans la base : on ne réécrit rien au chargement, on ne le lit plus. */''}
       <button class="btn" onclick="entSave()">Enregistrer</button>
     </div>`; })():''}
-    ${(()=>{ return `<div class="card"><div class="card-head"><h3>✉️ Mes envois</h3></div>
-      <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Tout part <b>directement de l'application</b>, au nom de <b>${esc(mailBrandName())}</b> avec ton prénom. Renseigne ton adresse (n'importe laquelle : Gmail, Hotmail…) pour recevoir les <b>réponses</b> — aucun mot de passe à configurer.</p>
-      <div class="field"><label>Mon adresse pour les réponses</label><input id="me-reply" type="email" value="${esc((currentUser&&currentUser.mailReply)||'')}" placeholder="prenom@gmail.com"></div>
-      <button class="btn" onclick="(function(){ const v=(($('me-reply')||{}).value||'').trim(); if(v&&!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(v)){toast('Adresse invalide');return;} currentUser.mailReply=v; save(); toast(v?'✉️ Les réponses arriveront sur '+v:'Adresse retirée'); })()">Enregistrer</button>
-    </div>`; })()}
-    ${(()=>{ const bx=db.mailBoxes||[]; const asg=db.mailAssign||{};
-      return `<div class="card"><div class="card-head"><h3>✉️ E-mails aux clients</h3></div>
-      <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Rapports, avis de passage, rappels de RDV, devis, factures et bons de commande. <b>Ça fonctionne déjà, sans rien configurer</b> : la plateforme envoie au nom de ton entreprise.</p>
-      <div class="dt-lbl" style="margin-bottom:8px">Mode simple — actif par défaut</div>
+    ${(()=>{ const bx=db.mailBoxes||[]; const asg=db.mailAssign||{}; const E=db.entreprise||{}; const adm=currentUser.role==='admin';
+      setTimeout(envoiBoiteCarteMaj,0);   // l'état de la boîte connectée se lit au serveur : la carte se dessine, puis se complète
+      /* ⛔ v796 — plus de « mode simple » : tout part de la boîte de l'entreprise (srvMail), rien par TEAM OP. L'adresse de
+         l'entreprise (celle de ses documents) et sa boîte connectée sont dans la MÊME rubrique. */
+      return `<div class="card" id="envoi-boite-carte"><div class="card-head"><h3>✉️ E-mails à tes clients</h3></div>
+      <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Devis, factures, rapports, rappels de RDV, avis de passage, bons de commande : tout part de <b>la boîte mail de ton entreprise</b> si elle est connectée. Sinon OP GESTION les envoie <b>à ton nom</b>, et tes clients répondent à <b>l’adresse e-mail de ton entreprise</b> (obligatoire). TEAM OP n’en garde aucune copie.</p>
       <div class="fgroup">
-        <div class="frow"><span class="frow-lbl">Nom d'expéditeur</span><div class="frow-val"><input id="ms-from" placeholder="${esc(rapportSociete())}" value="${esc(db.mailFrom||'')}"></div></div>
-        <div class="frow"><span class="frow-lbl">Adresse de réponse</span><div class="frow-val"><input id="ms-reply" type="email" placeholder="monentreprise@domaine.fr" value="${esc(db.mailReply||'')}"></div></div>
+        <div class="frow"><span class="frow-lbl">Adresse e-mail de l'entreprise</span><div class="frow-val"><input id="ms-email" type="email" placeholder="contact@monentreprise.fr" value="${esc(E.email||(db.mailReply||'').trim())}" ${adm?'':'disabled'}></div></div>
+        <div class="frow"><span class="frow-lbl">Nom d'expéditeur</span><div class="frow-val"><input id="ms-from" placeholder="${esc(rapportSociete())}" value="${esc(db.mailFrom||'')}" ${adm?'':'disabled'}></div></div>
+        <div class="frow"><span class="frow-lbl">Boîte mail connectée</span><div class="frow-val" id="envoi-boite-etat" style="color:var(--t3)">Vérification…</div></div>
       </div>
-      <p style="font-size:12px;color:var(--t3);margin:8px 0 10px">Tes clients voient « <b>${esc((db.mailFrom||'').trim()||rapportSociete())}</b> » comme expéditeur${(db.mailReply||'').trim()?` et leurs réponses arrivent sur <b>${esc(db.mailReply)}</b>`:` — ajoute une adresse de réponse pour recevoir leurs retours`}.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="mailSimpleSave()">Enregistrer</button><button class="btn sm ghost" onclick="mailSimpleTest()">Envoyer un test</button></div>
-      <div style="margin-top:16px;border-top:1px solid var(--brd);padding-top:12px">
-      <div class="dt-lbl" style="margin-bottom:8px">Mode avancé — envoyer depuis tes propres boîtes</div>
-      <p style="font-size:12.5px;color:var(--t3);margin-bottom:10px">Si tu ajoutes une boîte ici, les e-mails partent de TON domaine (prioritaire sur le mode simple). Chaque utilisateur peut aussi mettre sa boîte perso dans ses Paramètres.</p>
+      <div id="envoi-boite-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
+      ${adm?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm" onclick="mailSimpleSave()">Enregistrer</button><button class="btn sm ghost" onclick="mailSimpleTest()">Envoyer un test</button></div>`:''}
+      <p style="font-size:12px;color:var(--t3);margin:8px 0 0">L'adresse de l'entreprise s'imprime aussi sur tes documents. Tes clients voient « <b>${esc((db.mailFrom||'').trim()||rapportSociete())}</b> » comme expéditeur.</p>
+      ${adm?`<div style="margin-top:16px;border-top:1px solid var(--brd);padding-top:12px">
+      <div class="dt-lbl" style="margin-bottom:8px">Autre façon : un serveur d'envoi (SMTP)</div>
+      <p style="font-size:12.5px;color:var(--t3);margin-bottom:10px">Pour envoyer depuis une adresse précise de ton domaine (rapports@…, factures@…). Chaque utilisateur peut aussi mettre sa boîte pro dans ses Paramètres.</p>
       ${bx.length?bx.map(b=>`<div class="perm-row"><div class="pn">${esc(b.user)}<div style="font-size:11px;color:var(--t3);font-weight:400">${esc(b.from||'—')} · ${esc(b.host||'')}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn ghost sm" onclick="mailBoxTest('${b.id}')">Test</button><button class="btn ghost sm" onclick="mailBoxForm('${b.id}')">✎</button><button class="btn ghost sm" style="color:var(--red)" onclick="mailBoxDel('${b.id}')">✕</button></div></div>`).join(''):''}
-      <button class="btn sm ghost" style="margin-top:6px" onclick="mailBoxForm()">＋ Ajouter une boîte d'envoi</button>
-      ${bx.length?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:10px">Quelle boîte pour quel envoi ?</div>
+      <button class="btn sm ghost" style="margin-top:6px" onclick="mailBoxForm()">＋ Ajouter une adresse d'envoi</button>
+      ${bx.length?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:10px">Quelle adresse pour quel envoi ?</div>
         ${MAIL_CATS.map(([k,l])=>`<div class="frow"><span class="frow-lbl" style="min-width:210px">${l}</span><div class="frow-val"><select onchange="mailAssignSet('${k}',this.value)">${bx.map(b=>`<option value="${b.id}" ${(((asg[k])||bx[0].id)===b.id)?'selected':''}>${esc(b.user)}</option>`).join('')}</select></div></div>`).join('')}
       </div>`:''}
-      </div>
+      </div>`:''}
     </div>`; })()}
     <div class="card"><div class="card-head"><h3>Mise à jour</h3></div>
     <p style="color:var(--t2);font-size:14px;margin-bottom:10px">Version installée : <b>v${APP_VERSION}</b>.</p></div>
@@ -40479,10 +40680,11 @@ function factureMailPayee(f,it){
     /* v740 : la facture part aussi en PDF joint, à l'en-tête de SA société (docPdfChaine) */
     (async()=>{ let pdf=''; try{ pdf=await docPdfChaine('factures',f); }catch(e){ pdf=''; }
       const opts=Object.assign({},docMailOpts(it.rapportModele)||{});
+      opts.auto=true;   // v796 : envoi AUTOMATIQUE — sans boîte connectée, aucune fenêtre chez le technicien, l'administrateur est prévenu
       if(pdf){ opts.atts=[{filename:('Facture-'+(f.num||'')).replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}]; opts.mailtoBody=corpsDe(false); }
       return srvMail((c.email||'').trim(),'Votre facture '+f.num,corpsDe(!!pdf),'','facture',null,Object.keys(opts).length?opts:undefined); })()
       .then(okE=>{ if(okE){ f.mailEnvoye=Date.now(); save(); toast('🧾 Facture '+f.num+' réglée — envoyée à '+c.email); }
-        else toast('🧾 Facture '+f.num+' réglée — l\'email n\'est pas parti (à renvoyer depuis Factures)'); })
+        else toast('🧾 Facture '+f.num+' réglée — l\'email n\'est pas parti'+(_srvMailErr==='aucune boîte mail connectée'?' : la boîte mail de l\'entreprise n\'est pas connectée (à renvoyer depuis Factures une fois connectée)':' (à renvoyer depuis Factures)')); })
       .catch(()=>{ toast('🧾 Facture '+f.num+' réglée — l\'email n\'est pas parti'); });
   } else {
     toast('🧾 Facture '+f.num+' réglée — ajoute l\'e-mail du client pour l\'envoi automatique');

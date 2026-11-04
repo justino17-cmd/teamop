@@ -259,7 +259,7 @@ function demoPubliqueDevisIAMessage() { return 'Dans la démonstration, la réda
 /* Paramètres : les cartes dont le geste n'a de sens qu'avec un serveur ou une vraie boîte mail, retirées de l'écran ; la carte « Forfait » dit ce qu'il en est.
    Les titres se lisent dans le <h3> sans son pictogramme (il devient une icône après coup). tests/test-2940.js exige que chacun existe dans app.html. */
 const DEMO_PARAM_RETIREES = ['Notifications', 'Mon e-mail professionnel', 'Devis IA', 'Installer l\'application', 'Synchronisation de l\'équipe', 'Le lien de connexion de ton entreprise',
-  'Mes envois', 'E-mails aux clients'];
+  'E-mails à tes clients'];   // v796 : « Mes envois » et « E-mails aux clients » ne font plus qu'une carte, qui parle à une vraie boîte mail
 const DEMO_PARAM_FORFAIT = 'Forfait de l\'espace';
 function demoPubliqueParametres() {
   const c = document.getElementById('content'); if (!c) return;

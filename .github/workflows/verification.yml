@@ -104,6 +104,17 @@ jobs:
         if: always()
         run: npm install -g eslint@10.1.0 --no-audit --no-fund
 
+      # ⛔ PLAYWRIGHT ET CHROMIUM, POUR LES BANCS QUI FONT TOURNER LA VRAIE PAGE DANS UN VRAI NAVIGATEUR
+      # (test-3252 : « Se connecter avec Google » ; test-3253 : la synchro de la bêta entre deux appareils).
+      # Sans eux ces bancs écrivent « … SAUTÉ : playwright absent » et le filet ci-dessous fait tomber le job
+      # (PR n° 304, 4 novembre 2026) — à juste titre : un saut n'est pas une preuve. Même version que la
+      # machine de travail, épinglée ; `require('playwright')` le trouve par NODE_PATH, comme ESLint.
+      - name: Playwright et Chromium pour les bancs navigateur
+        if: always()
+        run: |
+          npm install -g playwright@1.56.1 --no-audit --no-fund
+          npx -y playwright@1.56.1 install --with-deps chromium
+
       - name: Les suites du dépôt passent
         if: always()
         run: |

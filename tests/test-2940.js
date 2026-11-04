@@ -361,16 +361,16 @@ function fenetre(opts) {
     const FORFAIT = evalue(litteral(MODULE, 'const DEMO_PARAM_FORFAIT = ').length ? '"' + (/const DEMO_PARAM_FORFAIT = '((?:[^'\\]|\\.)*)'/.exec(MODULE) || [])[1].replace(/\\'/g, '\'') + '"' : '""');
     const titresApp = new Set(); (APP.match(/<h3>(?:[^<]*)<\/h3>/g) || []).forEach(h => titresApp.add(h.replace(/<\/?h3>/g, '').replace(/^[^A-Za-zÀ-ÿ]+/, '').trim()));
     egal('(population) ' + RETIREES.length + ' cartes retirées de Paramètres + la carte Forfait : chaque titre est un <h3> d\'app.html', RETIREES.concat([FORFAIT]).filter(t => !titresApp.has(t)), []);
-    egal('les cartes retirées sont celles qui parlent à un serveur ou à une vraie boîte mail', RETIREES.slice().sort(), ['Devis IA', 'E-mails aux clients', 'Installer l\'application', 'Le lien de connexion de ton entreprise', 'Mes envois', 'Mon e-mail professionnel', 'Notifications', 'Synchronisation de l\'équipe']);
+    egal('les cartes retirées sont celles qui parlent à un serveur ou à une vraie boîte mail', RETIREES.slice().sort(), ['Devis IA', 'E-mails à tes clients', 'Installer l\'application', 'Le lien de connexion de ton entreprise', 'Mon e-mail professionnel', 'Notifications', 'Synchronisation de l\'équipe']);
     /* la VRAIE fonction, sur des cartes qui portent les titres tels que l'application les écrit (pictogramme devant) */
     const cartes = ['⚙️ Contrôle des mouvements', 'Mon compte', '🔔 Notifications', '💼 Mon e-mail professionnel', 'Apparence', 'Forfait de l\'espace', 'Sauvegarde & synchronisation', '✨ Devis IA', 'Comptabilité',
-      'Installer l\'application', 'Synchronisation de l\'équipe', '🔗 Le lien de connexion de ton entreprise', 'Mon entreprise', 'Mes envois', '✉️ E-mails aux clients', 'Mise à jour'].map(t => ({ t, ote: false, html: null }));
+      'Installer l\'application', 'Synchronisation de l\'équipe', '🔗 Le lien de connexion de ton entreprise', 'Mon entreprise', '✉️ E-mails à tes clients', 'Mise à jour'].map(t => ({ t, ote: false, html: null }));
     const mkCarte = c => ({ parentNode: { removeChild: () => { c.ote = true; } }, querySelector: () => ({ textContent: c.t }), set innerHTML(v) { c.html = v; } });
     const objets = cartes.map(mkCarte);
     const contenu = { querySelectorAll: () => objets };
     const bp = bac('demo.html', ['demoPubliqueParametres'], { document: { getElementById: () => contenu }, DEMO_PARAM_RETIREES: RETIREES, DEMO_PARAM_FORFAIT: FORFAIT });
     bp.fn.demoPubliqueParametres();
-    egal('⛔ Paramètres : seules les 8 cartes à serveur / boîte mail sont retirées', cartes.filter(c => c.ote).map(c => c.t.replace(/^[^A-Za-zÀ-ÿ]+/, '')).sort(), RETIREES.slice().sort());
+    egal('⛔ Paramètres : seules les 7 cartes à serveur / boîte mail sont retirées', cartes.filter(c => c.ote).map(c => c.t.replace(/^[^A-Za-zÀ-ÿ]+/, '')).sort(), RETIREES.slice().sort());
     vrai('la carte « Forfait de l\'espace » est réécrite (formule de démonstration, tarifs) : plus d\'abonnement, de « Business Premium » ni de « 10 abonnements »', (() => { const f = cartes.find(c => c.t === 'Forfait de l\'espace'); return !f.ote && /toutes les rubriques sont ouvertes/.test(f.html) && /Aucun abonnement n’existe ici/.test(f.html) && !/Business|abonnements|Activer/.test(f.html.replace(/Aucun abonnement/, '')); })());
     vrai('les autres cartes (Mon compte, Apparence, Sauvegarde, Comptabilité, Mon entreprise, Mise à jour…) restent intactes', cartes.filter(c => !c.ote && c.t !== 'Forfait de l\'espace').length === cartes.length - RETIREES.length - 1 && cartes.filter(c => !c.ote && c.html !== null && c.t !== 'Forfait de l\'espace').length === 0);
     /* le crochet : views.parametres est enveloppée UNE fois, rend ce que rend l'originale, puis retouche */
