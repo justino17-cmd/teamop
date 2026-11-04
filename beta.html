@@ -8729,7 +8729,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '797-beta';
+const APP_VERSION = '798-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -35632,13 +35632,14 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
 
   /* v778 : le nom du client passe à la ligne (deux lignes au plus) au lieu d'être coupé à 52 signes (« Établissements Hospitaliers Universitaires de la Cô… ») */
   const nomCl=_pdfEnLignes(cli.nom||'',10.5,1,W-2*M-20,2).filter(Boolean);
-  const cl=[].concat(nomCl, cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '),
-            [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')).filter(Boolean);
+  const sousCl=[cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '), [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')]
+            .filter(Boolean).flatMap(t2=>_pdfEnLignes(t2,8.8,0,W-2*M-24,3).filter(Boolean));   // v798 : à la ligne, plus de cut(…,70)
+  const cl=[].concat(nomCl, sousCl).filter(Boolean);
   const ph=20+cl.length*13;
   R(M,y-ph+10,W-2*M,ph,GREENLT); R(M,y-ph+10,2.4,ph,GREEN);
   T(M+12,y-4,7.5,estFact?'FACTURÉ À':'CLIENT',1,ACC_T);
   const nbNom=Math.max(1,nomCl.length);   // sans nom, la première ligne garde le style d'avant
-  cl.forEach((t2,i)=>{ T(M+12,y-18-i*13,i<nbNom?10.5:8.8,i<nbNom?t2:cut(t2,70),i<nbNom?1:0,i<nbNom?DARK:GREY); });
+  cl.forEach((t2,i)=>{ T(M+12,y-18-i*13,i<nbNom?10.5:8.8,t2,i<nbNom?1:0,i<nbNom?DARK:GREY); });
   y-=ph+14;
 
   tableHead();
@@ -35646,7 +35647,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   let totHT=0;
   (d.lignes||[]).forEach((l,i)=>{
     /* v778 : la désignation passe à la ligne (colonne de 237 pt, six lignes au plus) — plus de « … » qui mange la fin d'un devis descriptif */
-    const dl=_pdfEnLignes(l.designation||'',9.2,0,237,6), sup=(dl.length-1)*11;
+    const dl=_pdfEnLignes(l.designation||'',9.2,0,237,48), sup=(dl.length-1)*11;   // v798 : 48 lignes (une page) au lieu de 6 coupées par « … »
     if(y-sup<150) newPage();
     const q=Number(l.qte)||0, pu=Number(l.pu)||0, tot=ligTotLigne(l); totHT+=tot;   // même arrondi que l'écran et l'e-mail
     if(i>0) R(M+10,y+10.5,W-2*M-20,0.5,LINE);   // un filet fin entre les lignes, plus de bandes grises
@@ -35667,12 +35668,27 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   T(RGT-bw+12,y-13,10.5,'TOTAL TTC',1,ON_ACC); TR(RGT-12,y-13,12,eur(ttc),1,ON_ACC);
   y-=36;
 
-  if(d.notes){ const nl=String(d.notes).split(/\n/).slice(0,6); const nh=22+nl.length*12;
-    y-=14; if(y-nh<140) newPage();
-    R(M,y-nh+8,W-2*M,nh,GREENLT);
-    T(M+10,y-6,7.5,'DÉTAIL',1,ACC_T);
-    nl.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,cut(line,100),0,DARK); });
-    y-=nh+6; }
+  /* v798 (un client, capture à l'appui : « Technologie Inverter : adapte automatiquement la puissance… afin de mainte… ») — le
+     DÉTAIL PASSE À LA LIGNE au lieu d'être coupé à 100 signes, et plus de plafond à six lignes. Une puce (•, -, –, *, 1.) garde son
+     retrait sur les lignes suivantes ; le bloc grandit, et s'il ne tient pas, il continue sur la page suivante (« DÉTAIL (SUITE) »).
+     Mesuré par `_pdfLarg` (via `_pdfEnLignes`), écrit par `_pdfTxt` : ce qu'on mesure est ce qu'on écrit. `test-3251`. */
+  if(d.notes){ const LH=12, maxW=W-2*M-22, rows=[];
+    String(d.notes).split(/\r?\n/).forEach(src=>{ const s0=String(src).replace(/\s+$/,'');
+      if(!s0.trim()){ rows.push({x:0,t:''}); return; }
+      const mp=s0.match(/^\s*((?:[•·\-–—*]|\d{1,3}[.)])\s+)/), pre=mp?mp[1].replace(/\s+$/,'')+' ':'', corps=mp?s0.slice(mp[0].length):s0.trim();
+      const ind=pre?_pdfLarg(pre,8.8,0):0;
+      _pdfEnLignes(corps,8.8,0,maxW-ind).forEach((t,k)=>rows.push({x:k?ind:0,t:(k?'':pre)+t})); });
+    while(rows.length&&!rows[rows.length-1].t) rows.pop();
+    y-=14; let i=0, premier=true;
+    while(i<rows.length){
+      const dispo=Math.floor((y-140-22)/LH);
+      if(dispo<2){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; continue; }
+      const n=Math.min(dispo,rows.length-i), nh=22+n*LH;
+      R(M,y-nh+8,W-2*M,nh,GREENLT);
+      T(M+10,y-6,7.5,premier?'DÉTAIL':'DÉTAIL (SUITE)',1,ACC_T);
+      for(let k=0;k<n;k++){ const r=rows[i+k]; if(r.t) T(M+9+r.x,y-19-k*LH,8.8,r.t,0,DARK); }
+      i+=n; premier=false; y-=nh+6;
+      if(i<rows.length){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; } } }
 
   if(y<160) newPage();
   y-=14;
@@ -35682,7 +35698,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
     .concat(tx===0?['TVA non applicable, article 293 B du CGI.']:[])
     .concat(['En cas de retard de paiement : pénalités au taux d\'intérêt légal majoré et indemnité forfaitaire',
              'de recouvrement de 40 EUR (art. L441-10 du Code de commerce). Pas d\'escompte pour paiement anticipé.'])
-    .forEach((t2,k)=>{ T(M,y,8,cut(t2,118),k===0?1:0,k===0?DARK:GREY); y-=11; });
+    .forEach((t2,k)=>{ _pdfEnLignes(t2,8,k===0,W-2*M,4).forEach(t3=>{ T(M,y,8,t3,k===0?1:0,k===0?DARK:GREY); y-=11; }); });   // v798 : l'IBAN ne se coupe plus
     y-=10;
     if(cachet&&cachet.b64){ const ch=50, cw=Math.min(160,Math.round(cachet.w*(ch/cachet.h)));
       if(y-ch<80){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; }   // une page de plus, sans en-tête de tableau
@@ -35691,7 +35707,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   [ 'Devis valable 30 jours à compter de sa date d\'émission.',
     tx===0?'TVA non applicable, article 293 B du CGI.':'Prix en euros, TVA au taux indiqué ci-dessus.',
     'Bon pour accord : date, signature et mention « Bon pour accord ».'
-  ].forEach(t2=>{ T(M,y,8,cut(t2,110),0,GREY); y-=11; });
+  ].forEach(t2=>{ _pdfEnLignes(t2,8,0,W-2*M,4).forEach(t3=>{ T(M,y,8,t3,0,GREY); y-=11; }); });   // v798 : à la ligne
   y-=10;
   if(cachet&&cachet.b64){ const ch=46, cw=Math.min(150,Math.round(cachet.w*(ch/cachet.h)));
     /* v795 — Justin doute du titre « Pour l’entreprise » au-dessus du cachet : aucun texte ne l’exige (ni L441-9, ni 242 nonies A, ni pour un
