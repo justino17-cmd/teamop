@@ -12950,7 +12950,12 @@ async function khEquipe(){ try{
   const h=await sha256(k); if(!/^[0-9a-f]{64}$/.test(h||'')) return '';
   _khCle=k; _khVal=h; return h;
 }catch(e){ return ''; } }
-async function enteteEquipe(base){ const h=Object.assign({}, base||{}); const kh=await khEquipe(); if(kh) h['x-teamop-kh']=kh; return h; }
+async function enteteEquipe(base){ const h=Object.assign({}, base||{}); const kh=await khEquipe(); if(kh) h['x-teamop-kh']=kh;
+  /* v801 — LA BÊTA PROUVE UN COMPTE, PAS UNE CLÉ (Justin, 4 novembre 2026 : « en bêta, je devrais pouvoir me connecter avec mes boîtes
+     mail pour tester »). La clé de la bêta est publique : le serveur ne la croit pas. Il croit le JETON que `/api/beta/login` rend à un
+     accès de la Tour, présenté ici sur les routes mail ; chaque testeur y a SES boîtes. En production `BETA_ESSAI` vaut false : rien. */
+  if(BETA_ESSAI){ try{ const j=localStorage.getItem('elan_beta_jeton'); if(j) h['x-teamop-beta']=j; }catch(e){} }
+  return h; }
 let _ck={};
 function _b64e(buf){ const b=new Uint8Array(buf); let s=''; const CH=0x8000; for(let i=0;i<b.length;i+=CH){ s+=String.fromCharCode.apply(null,b.subarray(i,i+CH)); } return btoa(s); }
 function _b64d(str){ const bin=atob(str); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a; }
@@ -24350,9 +24355,10 @@ async function envoiBoiteResoudre(cat,boxOverride,opts){
      connectée, l'envoi part par le serveur AU NOM de l'entreprise, avec l'adresse de « Mon entreprise » en adresse de réponse — aucune
      copie chez TEAM OP (serveur, 91641d89). Sans cette adresse, rien ne part. Quand on ne SAIT pas s'il y a une boîte (`null`), on ne
      choisit pas à sa place : une boîte qui existe ne se contourne pas en silence. */
-  if(Array.isArray(_mailboxes)||BETA_ESSAI){ const em=envoiAdresseEnt(); if(em) return {ent:em}; }
-  /* la bêta ne connecte aucune boîte, par construction (ESPACES_INTOUCHABLES) : elle n'en a AUCUNE, ce n'est pas « on ne sait pas » */
-  return {manque:(_mailboxes===null&&!BETA_ESSAI)?'inconnu':'aucune'};
+  /* v801 : sur la BÊTA, un envoi part seulement par la boîte reliée du testeur — le serveur refuse le relais au nom de « l'entreprise
+     bêta » (c'était le chemin de la fuite du mail d'incident). Pas de repli sur l'adresse de Mon entreprise ici. */
+  if(Array.isArray(_mailboxes)&&!BETA_ESSAI){ const em=envoiAdresseEnt(); if(em) return {ent:em}; }
+  return {manque:_mailboxes===null?'inconnu':'aucune'};
 }
 /* L'adresse e-mail de « Mon entreprise » — celle où ses clients répondent. Une adresse mal formée ne compte pas. */
 const ENVOI_ADR_RE=/^[^@\s<>"',;]+@[^@\s<>"',;]+\.[a-z]{2,}$/i;
@@ -24368,9 +24374,19 @@ function envoiBoiteEtape(manque){
   if(_boiteEtapeEnCours) return _boiteEtapeEnCours;
   if(Date.now()-_boiteEtapeFin<20000) return Promise.resolve(false);
   const admin=!!(currentUser&&currentUser.role==='admin');
-  const corps=manque==='inconnu'
+  let _sansJeton=false; if(BETA_ESSAI){ try{ _sansJeton=!localStorage.getItem('elan_beta_jeton'); }catch(e){} }
+  const corps=(manque==='inconnu'&&_sansJeton)
+    ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Pour utiliser ta boîte mail sur la bêta, <b>déconnecte-toi puis reconnecte-toi</b> avec l’identifiant et le mot de passe donnés par la Tour. <b>Rien n’est parti.</b></p>
+      <button class="btn block" onclick="closeModal()">Compris</button>`
+    :manque==='inconnu'
     ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Impossible de vérifier ta boîte mail pour l’instant (le serveur n’a pas répondu). <b>Rien n’est parti</b> : réessaie dans un instant.</p>
       <button class="btn block" onclick="closeModal()">Compris</button>`
+    :(BETA_ESSAI&&admin)
+    /* v801 : la bêta n'envoie que par la boîte reliée du testeur — pas d'adresse « Mon entreprise » à poser ici, elle ne servirait pas */
+    ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:12px">Sur la bêta, un envoi part <b>seulement par ta boîte mail connectée</b> : connecte-la, et tes essais partiront vraiment de ton adresse.</p>
+        ${oauthBoutonsHtml('etape')}
+        <button class="btn block ghost" onclick="mailConnect()">🔗 Connecter ma boîte mail</button>
+        <button class="btn block ghost" style="margin-top:8px" onclick="closeModal()">Plus tard</button>`
     :admin
       ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:12px">Pour envoyer à tes clients, OP GESTION a besoin de <b>l’adresse e-mail de ton entreprise</b> : c’est l’adresse où tes clients te répondront.</p>
         <div class="field"><label for="boite-etape-email">Adresse e-mail de mon entreprise</label><input id="boite-etape-email" type="email" inputmode="email" autocomplete="email" placeholder="contact@ton-entreprise.fr" value="${esc(String(((db&&db.entreprise)||{}).email||''))}" onkeydown="if(event.key==='Enter'){event.preventDefault();envoiAdresseEnregistrer();}"></div>
@@ -24483,7 +24499,7 @@ async function envoiBoiteCarteMaj(){ const el=document.getElementById('envoi-boi
   try{ await loadMailboxes(); }catch(e){}
   if(!document.body.contains(el)) return;
   const adm=!!(currentUser&&currentUser.role==='admin'), smtp=(db.mailBoxes||[]).filter(b=>b&&b.user);
-  const liste=Array.isArray(_mailboxes)?_mailboxes:(BETA_ESSAI?[]:null);
+  const liste=Array.isArray(_mailboxes)?_mailboxes:null;
   if(liste===null){ el.innerHTML='<span style="color:var(--org)">Impossible de vérifier pour l’instant</span>'; if(ac) ac.innerHTML='<button class="btn sm ghost" onclick="envoiBoiteCarteMaj()">Réessayer</button>'; return; }
   if(liste.length){ el.innerHTML=liste.map(b=>b.etat==='a_reconnecter'?'<span style="color:var(--org);font-weight:700">À reconnecter : '+esc(b.email)+' — rien ne part par elle</span>':'<span style="color:var(--green);font-weight:700">Connectée : '+esc(b.email)+' ✓</span>').join('<br>'); if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailBoxesManage()">Gérer mes boîtes</button>':''; return; }
   if(smtp.length){ el.innerHTML='<span style="color:var(--green);font-weight:700">Adresse d’envoi : '+esc(smtp[0].user)+' ✓</span>'; if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailConnect()">🔗 Connecter aussi la boîte (réponses dans l’app)</button>':''; return; }
@@ -34265,7 +34281,6 @@ function courrierSource(){
     async boites(){
       /* ⛔ L'espace de la BÊTA est refusé exprès sur les routes mail (aucun vrai courriel ne se lit, ne se connecte ni ne part d'ici) : ce n'est pas une panne, donc pas de « refusé » ni de
          « Réessayer ». `calme:true` le dit au module, qui affiche l'état tel quel. En production `BETA_ESSAI` vaut `false` : cette ligne ne s'exécute jamais, le chemin est celui d'avant. */
-      if(BETA_ESSAI){ const e=new Error('Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }
       const r=await fetch(PUSH_API+'/api/mailboxes?teamId='+encodeURIComponent(syncTeam()),{headers:await enteteEquipe()});
       if(!r.ok) throw await refus(r,'Lecture des boîtes refusée');
       const d=await r.json(); if(!Array.isArray(d.mailboxes)) throw new Error('réponse du serveur illisible');
@@ -47417,8 +47432,10 @@ function enterApp(u){ currentUser=u;
   try{ setTimeout(function(){ annuaireDeposer(); },4000); }catch(e){}
   // Bêta : « coupé » depuis la Tour doit fermer aussi les sessions déjà ouvertes. On demande
   // au serveur, sans bloquer l'ouverture ; s'il dit non, on ressort proprement.
-  if(BETA_ESSAI&&u&&u.essai){ try{ fetch(PUSH_API+'/api/beta/etat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:u.login})})
-    .then(r=>r.json()).then(j=>{ if(j&&j.ouvert===false){ try{ localStorage.removeItem('elan_session'); sessionStorage.removeItem('elan_session'); }catch(_e){} alert('Cet accès d\'essai a été coupé depuis la Tour de contrôle.'); location.reload(); } }).catch(()=>{}); }catch(_e){} } try{ localStorage.removeItem('elan_lien_ok'); localStorage.removeItem('elan_ent_ok'); }catch(e){} try{ gpsAutoChrono(); }catch(e){} $('login').style.display='none'; $('app-root').style.display='flex';
+  if(BETA_ESSAI&&u&&u.essai){ try{ let _jt=''; try{ _jt=localStorage.getItem('elan_beta_jeton')||''; }catch(_e){}
+    fetch(PUSH_API+'/api/beta/etat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:u.login,jeton:_jt})})
+    .then(r=>r.json()).then(j=>{ try{ if(j&&j.jeton) localStorage.setItem('elan_beta_jeton',String(j.jeton)); }catch(_e){}
+      if(j&&j.ouvert===false){ try{ localStorage.removeItem('elan_session'); sessionStorage.removeItem('elan_session'); localStorage.removeItem('elan_beta_jeton'); }catch(_e){} alert('Cet accès d\'essai a été coupé depuis la Tour de contrôle.'); location.reload(); } }).catch(()=>{}); }catch(_e){} } try{ localStorage.removeItem('elan_lien_ok'); localStorage.removeItem('elan_ent_ok'); }catch(e){} try{ gpsAutoChrono(); }catch(e){} $('login').style.display='none'; $('app-root').style.display='flex';
   /* ⛔ L'ENTRÉE EST UN FONDU, ET L'ACCUEIL NOMME LA PERSONNE. Passer de l'écran de connexion
      à un tableau de bord complet d'un seul coup, c'est un saut : on ne sait pas si on a
      changé d'écran ou si la page a rechargé. La classe se retire à la fin — sinon une
@@ -47718,6 +47735,7 @@ async function doLogin(e){ e.preventDefault();
       const c=document.querySelector('.login-card'); if(c){ c.classList.add('pin-err'); setTimeout(()=>c.classList.remove('pin-err'),400); }
       const p=$('li-pin'); if(p){ p.value=''; p.focus(); } return;
     }
+    try{ if(j.jeton) localStorage.setItem('elan_beta_jeton',String(j.jeton)); else localStorage.removeItem('elan_beta_jeton'); }catch(_e){}   // v801 : la preuve des boîtes mail de la bêta
     // le compte n'existe localement que comme reflet de l'accès serveur : même identifiant,
     // même mot de passe, administrateur de la bêta — jamais de mot de passe à « définir »
     let ub=db.users.find(x=>x.login&&x.login.toLowerCase()===j.login);
@@ -47799,7 +47817,7 @@ async function doLogin(e){ e.preventDefault();
     const p=$('li-pin'); if(p){ p.value=''; p.focus(); }
   }
 }
-function logout(){ logEvent('Déconnexion','','auth'); save(); try{ cnxSignaler('deconnexion'); }catch(e){} localStorage.removeItem('elan_session'); sessionStorage.removeItem('elan_session'); currentUser=null; _modalForcee=false; closeModal(true); closeNotif(); try{ const fb=document.getElementById('fdr-banner'); if(fb) fb.remove(); }catch(e){} renderLogin(); }
+function logout(){ logEvent('Déconnexion','','auth'); save(); try{ cnxSignaler('deconnexion'); }catch(e){} localStorage.removeItem('elan_session'); try{ localStorage.removeItem('elan_beta_jeton'); }catch(e){} sessionStorage.removeItem('elan_session'); currentUser=null; _modalForcee=false; closeModal(true); closeNotif(); try{ const fb=document.getElementById('fdr-banner'); if(fb) fb.remove(); }catch(e){} renderLogin(); }
 /* ── Connexions remontées à la Tour de contrôle : qui se connecte, quand, depuis quel appareil,
    avec quelle version, par quel chemin — et les échecs. Jamais de mot de passe, jamais de données métier. ── */
 let _cnxVia='identifiants';

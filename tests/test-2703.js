@@ -126,11 +126,13 @@ function facteur() {
     Date, JSON, Promise, Array, String, Uint8Array, btoa, encodeURIComponent, Error, URL };
   vm.createContext(sb);
   vm.runInContext(SRC_A + '\n;this.source = courrierSource();', sb);
-  /* v2.92 — l'ESPACE DE LA BÊTA n'est pas une panne : aucune route n'est appelée, l'erreur porte `calme:true` et le message de Justin ; en production le drapeau est faux et le chemin est celui d'avant */
-  { const pris = []; const sbB = Object.assign({}, sb, { BETA_ESSAI: true, fetch: async (u) => { pris.push(u); return { ok: false, status: 403, json: async () => ({ error: 'refusé' }) }; } }); vm.createContext(sbB);
+  /* v801 — Justin, 4 novembre 2026 : « en bêta, je devrais pouvoir me connecter avec mes boîtes mail pour tester ». La bêta LIT ses
+     boîtes : boites() appelle la route (le jeton d'accès bêta part dans l'en-tête, posé par enteteEquipe), et un refus se DIT — ce n'est
+     plus l'état « calme » d'un espace sans boîte (v2.92). */
+  { const pris = []; const sbB = Object.assign({}, sb, { BETA_ESSAI: true, fetch: async (u) => { pris.push(u); return { ok: false, status: 403, headers: { get: () => 'text/plain' }, text: async () => 'Espace de test : reconnecte-toi à la bêta', json: async () => ({ error: 'refusé' }) }; } }); vm.createContext(sbB);
     vm.runInContext(SRC_A + '\n;this.source = courrierSource();', sbB);
     let e = null; try { await sbB.source.boites(); } catch (x) { e = x; }
-    v('⛔ BÊTA : boites() ne parle à AUCUNE route et rend une erreur CALME (pas de « refusé », pas de panne)', [pris.length, !!e && e.calme === true, !!e && /^Espace de test : aucune vraie boîte mail ne se connecte ici\. Les vrais mails se testent dans la Tour\.$/.test(e.message), !!e && /refus|clé/i.test(e.message)], [0, true, true, false]);
+    v('⛔ BÊTA : boites() appelle la route des boîtes, et un refus se dit (pas l’ancien état « calme »)', [pris.length, /\/api\/mailboxes\?teamId=/.test(pris[0] || ''), !!e, !!e && e.calme === true], [1, true, true, false]);
     const nB = requetes.length; let e2 = null; try { await sb.source.boites(); } catch (x) { e2 = x; }
     vrai('⛔ PRODUCTION (BETA_ESSAI faux) : le chemin est celui d\'avant — la route est appelée', requetes.length === nB + 1 && !(e2 && e2.calme), requetes.slice(nB).join(',')); }
   const S = sb.source;

@@ -124,10 +124,19 @@ const dormir = ms => new Promise(r => setTimeout(r, ms));
     W = monde({ mb: [{ id: 'mb1', email: 'contact@tokaclim.fr' }] });
     r = await W.srvMail('client@dehors.fr', 'Votre devis', 'Bonjour', '', 'devis', null, {});
     v('I · boîte déjà connectée : envoi direct par elle', [r, W.__req.map(q => q.useMailbox && q.useMailbox.id), W.__modales.length], [true, ['mb1'], 0]);
+    /* v801 — la bêta relie de VRAIES boîtes (jeton d'accès de la Tour) et n'envoie QUE par elles : sans boîte, l'étape propose de la
+       connecter, jamais l'adresse de Mon entreprise (le serveur refuse le relais au nom de « l'entreprise bêta »). */
+    W = monde({ beta: true, mb: [] }); W.localStorage.setItem('elan_beta_jeton', 'jeton-essai');
+    p = W.srvMail('client@dehors.fr', 'Votre devis', 'Bonjour', '', 'devis', null, {}); await dormir(20);
+    vrai('J · bêta sans boîte : l\'étape propose de CONNECTER la boîte, sans l\'adresse de Mon entreprise', W.__modales.some(h => /seulement par ta boîte mail connectée/.test(h) && /mailConnect\(\)/.test(h) && !/envoiAdresseEnregistrer\(\)/.test(h)), W.__modales);
+    W.closeModal(); r = await p; v('J · … et rien ne part depuis la bêta', [r, W.__req.length], [false, 0]);
+    W = monde({ beta: true, mb: [], ent: { email: 'contact@tokaclim.fr' } }); W.localStorage.setItem('elan_beta_jeton', 'jeton-essai');
+    p = W.srvMail('client@dehors.fr', 'Votre devis', 'Bonjour', '', 'devis', null, {}); await dormir(20); W.closeModal(); r = await p;
+    v('J · bêta : même avec une adresse dans Mon entreprise, rien ne part par le relais', [r, W.__req.length], [false, 0]);
     W = monde({ beta: true, mb: null });
     p = W.srvMail('client@dehors.fr', 'Votre devis', 'Bonjour', '', 'devis', null, {}); await dormir(20);
-    vrai('J · bêta : l\'étape s\'affiche (pas « impossible de vérifier »)', W.__modales.some(h => /envoiAdresseEnregistrer\(\)/.test(h)), W.__modales);
-    W.closeModal(); r = await p; v('J · … et rien ne part depuis la bêta', [r, W.__req.length], [false, 0]);
+    vrai('J · bêta sans jeton (session d\'avant) : « reconnecte-toi », pas « impossible de vérifier »', W.__modales.some(h => /déconnecte-toi puis reconnecte-toi/.test(h)), W.__modales);
+    W.closeModal(); r = await p; v('J · … et rien ne part', [r, W.__req.length], [false, 0]);
     /* ── v797 (Justin : « s'il n'utilise pas la boîte mail, il faut que dans Mon entreprise on l'oblige à mettre le mail ») ── */
     W = monde({ ent: { email: 'contact@tokaclim.fr' } });
     r = await W.srvMail('client@dehors.fr', 'Votre devis', 'Bonjour', '', 'devis', null, {});

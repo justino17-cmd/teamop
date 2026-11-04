@@ -203,7 +203,7 @@ app.use((req, res, next) => {
        requête préalable que le navigateur refuse — et il bloque l'appel réel, silencieusement.
        Un test en ligne de commande ne peut pas l'attraper : CORS n'existe que dans le navigateur.
        X-Teamop-Kh porte la preuve de possession de la clé d'équipe sur les routes mail. */
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teamop-Devis, X-Teamop-Kh');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teamop-Devis, X-Teamop-Kh, X-Teamop-Beta');
   }
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
@@ -1406,6 +1406,8 @@ app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox
    depuis la Tour avant l'étape 3. */
 function cleEquipeExige(req, res, next) {
   if (config.mailPreuveExigee === false) return next();
+  /* La bêta, prouvée par son JETON d'accès (`betaBoitePorte`, montée juste avant) : son espace a déjà été réécrit en `opgestion-beta~<compte>`. */
+  if (req.betaCompte) return next();
   const src = (req.method === 'GET') ? (req.query || {}) : (req.body || {});
   const t = String(src.teamId || src.t || '');
   let motif = '';
@@ -1463,6 +1465,47 @@ const mailRefus = { n: 0, parMotif: Object.create(null), parRoute: Object.create
    `/api/subscribe` et `/api/notify` restent OBSERVÉES : `espace.html` et `messages.html` les appellent sans jamais envoyer
    de preuve, leur fermer la porte les couperait. */
 const ROUTES_MAIL_REFUS_JSON = ['mailbox/connect', 'mailbox/disconnect', 'mailbox/oauth/start', 'sendmail'];
+/* ⛔⛔ LES BOÎTES MAIL DE LA BÊTA (Justin, 4 novembre 2026 : « En bêta, je devrais pouvoir me connecter avec mes boîtes mail pour pouvoir
+   tester. Active que je puisse me connecter avec mes boîtes mail. »). Jusque-là l'espace bêta (`opgestion-beta`, dans ESPACES_INTOUCHABLES)
+   était refusé ici d'office (« technique »). Il ne peut PAS passer par la preuve de clé : sa clé est la clé par défaut, écrite en clair dans
+   beta.html — la présenter ne prouve rien. Il passe donc par une AUTRE preuve : le jeton d'accès bêta (`betaJetonSigner`, rendu par
+   `/api/beta/login`, renouvelé par `/api/beta/etat`), en-tête `X-Teamop-Beta`. Trois règles :
+   · le jeton désigne UN accès de la Tour, relu à CHAQUE appel (`betaJetonCompte`) : coupé, supprimé ou mot de passe changé depuis → refus ;
+   · l'espace est RÉÉCRIT en `opgestion-beta~<compte>` avant la route : chaque testeur a SES boîtes, jamais celles d'un autre, et la route n'a
+     rien à savoir de la bêta (même filtre `teamId` partout) ;
+   · un envoi depuis la bêta ne part QUE par la boîte reliée du testeur (`/api/sendmail` le refuse autrement) : jamais par le relais de TEAM OP
+     au nom de « l'entreprise bêta ».
+   Seul `opgestion-beta` est concerné : `elan-gestion` et l'ancien `elan-gestion-beta` restent « technique », toute autre entreprise ne voit
+   rien changer. `tests/test-3255.js`. */
+const BETA_ESPACE = 'opgestion-beta';
+const BETA_BOITE_PREFIXE = BETA_ESPACE + '~';
+const betaBoiteT = (t) => { const m = /^opgestion-beta~(b[0-9a-z]{3,40})$/.exec(String(t || '')); return m ? m[1] : ''; };   // l'identifiant d'un accès (« b » + caractères simples)
+function betaBoitePorte(req, res, next) {
+  const surQuery = req.method === 'GET';
+  const src = surQuery ? (req.query || {}) : (req.body || {});
+  const t = String(src.teamId || src.t || '');
+  /* Un espace déjà composé reçu du dehors (« opgestion-beta~b… ») n'est pas une porte d'entrée : seul le jeton le compose. */
+  if (betaBoiteT(t)) return refusBeta(req, res, 'Sur l’espace de test, reconnecte-toi à la bêta (identifiant et code donnés par la Tour) pour utiliser ta boîte mail.');
+  if (t !== BETA_ESPACE) return next();
+  const c = betaJetonCompte(req.get('x-teamop-beta'));
+  if (!c) return refusBeta(req, res, 'Sur l’espace de test, reconnecte-toi à la bêta (identifiant et code donnés par la Tour) pour utiliser ta boîte mail.');
+  const tc = BETA_BOITE_PREFIXE + c.id;
+  if (src.teamId !== undefined) src.teamId = tc;
+  if (src.t !== undefined) src.t = tc;
+  req.betaCompte = c;
+  next();
+}
+function refusBeta(req, res, message) {
+  const rt = String(req.baseUrl || req.path || '').toLowerCase().replace(/^\/api\//, '').slice(0, 24) || '?';
+  /* compté « technique », comme avant : c'est l'espace de la bêta sans son jeton (une session ouverte avant cette version, un accès
+     coupé) — un refus attendu, que la surveillance (`.github/scripts/surveillance.js`) range parmi les bénins. Un motif neuf y crierait. */
+  mailRefus.n++; mailRefus.parMotif.technique = (mailRefus.parMotif.technique || 0) + 1; mailRefus.ts = Date.now();
+  mailRefus.parRoute[rt] = (mailRefus.parRoute[rt] || 0) + 1;
+  /* même forme que `cleEquipeExige` : du JSON pour les routes qui écrivent, du texte pour les deux qui lisent (un refus lu ne devient jamais une liste vide) */
+  if (ROUTES_MAIL_REFUS_JSON.includes(rt) || rt === 'mail/traduire') return res.status(403).json({ error: message, code: 'beta_jeton' });
+  res.status(403).type('text/plain; charset=utf-8').send(message);
+}
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire'], betaBoitePorte);
 app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire'], cleEquipeExige);
 
 /* Le nombre d'essais de connexion à une boîte, par IP et par heure. La route tente un
@@ -1482,7 +1525,7 @@ app.post('/api/mailbox/connect', async (req, res) => {
      ligne suffisante : elle élève la marche, le quota au-dessus fait le vrai travail. */
   {
     const tCo = String((req.body || {}).teamId || '').slice(0, 80);
-    const connu = !!espaceParT(tCo) || Object.values(subs).some(x => abonneEntreprise(x, tCo)) || !!cnxData[tCo];
+    const connu = !!req.betaCompte || !!espaceParT(tCo) || Object.values(subs).some(x => abonneEntreprise(x, tCo)) || !!cnxData[tCo];
     if (!connu) {
       /* Pas de teamId ici non plus : /health est publique. */
       lastRefus = { ts: Date.now(), raison: 'mailbox/connect : espace inconnu' };
@@ -1526,7 +1569,11 @@ app.post('/api/mailbox/connect', async (req, res) => {
    fournisseur, sans clé : c'est le `state` signé, à usage unique, qui dit quel espace a demandé — rien du corps ni de la requête
    n'en décide autrement. */
 const oauthQuota = new Map();
-const espaceConnuBoite = (t) => !!espaceParT(t) || Object.values(subs).some(x => abonneEntreprise(x, t)) || !!cnxData[t];
+/* Une boîte de la BÊTA (`opgestion-beta~<compte>`) n'est connue que si son accès de la Tour vit encore — relu ici aussi au RETOUR d'OAuth :
+   un accès coupé pendant la connexion chez Google ne reçoit pas sa boîte. */
+const espaceConnuBoite = (t) => { const bid = betaBoiteT(t);
+  if (bid) { const c = betaComptes.find(x => x.id === bid); return !!(c && c.actif && betaApps(c).includes('gestion')); }
+  return !!espaceParT(t) || Object.values(subs).some(x => abonneEntreprise(x, t)) || !!cnxData[t]; };
 app.post('/api/mailbox/oauth/start', (req, res) => {
   if (oauthQuota.size > 5000) oauthQuota.clear();
   if (!quotaOk(oauthQuota, 'ip:' + (req.ip || '?'), 30, 3600000)) return res.status(429).json({ error: 'trop d\'essais de connexion — réessaie dans une heure' });
@@ -1876,7 +1923,7 @@ app.post('/api/sendmail', async (req, res) => {
      épuiser l'heure d'envoi d'une entreprise par des requêtes toutes refusées. */
   {
     const tEnv = String(teamId).slice(0, 80);
-    const connu = !!espaceParT(tEnv) || Object.values(subs).some(x => abonneEntreprise(x, tEnv)) || !!cnxData[tEnv];
+    const connu = !!req.betaCompte || !!espaceParT(tEnv) || Object.values(subs).some(x => abonneEntreprise(x, tEnv)) || !!cnxData[tEnv];
     if (!connu) {
       /* Pas de teamId dans lastRefus : /health est publique, et un teamId est la seule clé
          d'accès aux routes de messagerie. Le motif suffit au diagnostic. La règle vaut pour TOUS les
@@ -1909,6 +1956,9 @@ app.post('/api/sendmail', async (req, res) => {
      le mode simple : le document partait par le SMTP de TEAM OP alors que l'entreprise croyait envoyer de sa boîte — Justin : « il n'y a
      rien qui passe par nous ». On refuse, et on le dit. (Les mots sont choisis : ni « refus », ni « auth », ni « mot de passe ».) */
   if (useMailbox && useMailbox.id && !mb) return res.status(409).json({ error: 'boîte mail introuvable : reconnecte la boîte de l’entreprise (Paramètres → E-mails à tes clients)' });
+  /* ⛔ LA BÊTA N'ENVOIE QUE PAR LA BOÎTE RELIÉE DU TESTEUR (4 novembre 2026) : ni le relais de TEAM OP au nom de « l'entreprise bêta » (c'est le
+     chemin de la fuite du mail d'incident), ni des identifiants SMTP venus du corps de la requête. */
+  if ((req.betaCompte || betaBoiteT(teamId)) && !mb) return res.status(403).json({ error: 'sur la bêta, un envoi part seulement par ta boîte mail connectée (Boîte mail → Connecter)', code: 'beta_boite' });
   try {
     if (mb) {
       const nodemailer = require('nodemailer');
@@ -2988,8 +3038,36 @@ app.post('/api/monitor/beta/delete', monPatronStrict, (req, res) => {
   const id = (req.body || {}).id;
   if (!betaComptes.some(x => x.id === id)) return res.status(404).json({ error: 'accès introuvable' });
   betaComptes = betaComptes.filter(x => x.id !== id); betaSave();
+  /* ses boîtes mail de la bêta partent avec lui : un accès supprimé ne garde pas une boîte relevée pour personne */
+  try { let n = 0; for (const [k, b] of Object.entries(mailboxes)) if (b && b.teamId === BETA_BOITE_PREFIXE + id) { try { boiteOauth.oublier(b); } catch (e) {} delete mailboxes[k]; n++; } if (n) saveMailboxes(); } catch (e) {}
   res.json({ ok: true });
 });
+/* ⛔ LE JETON D'ACCÈS BÊTA (4 novembre 2026, boîtes mail de la bêta — voir `betaBoitePorte`). La session de beta.html vit dans le navigateur et
+   ne prouvait rien au serveur ; pour relier une VRAIE boîte, il faut une preuve. `{i: compte, a: émis le, e: expire le}` signé HMAC, sept jours,
+   renouvelé à chaque ouverture de la bêta (`/api/beta/etat`). Il ne VAUT que par l'accès qu'il désigne, relu à chaque appel : coupé, supprimé,
+   ou mot de passe posé depuis son émission (`mdpTs`) → nul. La clé se DÉRIVE de la clé VAPID (secrète, propre au VPS, stable d'un redémarrage
+   à l'autre) : rien de neuf à poser, et un redémarrage ne déconnecte personne. OP GESTION seulement (`apps` contient « gestion »). */
+const BETA_JETON_MS = 7 * 86400000;
+const betaJetonCle = (() => { const v = String(config.vapidPrivateKey || ''); return v ? crypto.createHmac('sha256', v).update('teamop-beta-jeton-v1').digest() : crypto.randomBytes(32); })();
+const b64uBeta = (b) => Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function betaJetonSigner(c) {
+  const corps = b64uBeta(JSON.stringify({ i: c.id, a: Date.now(), e: Date.now() + BETA_JETON_MS }));
+  return corps + '.' + b64uBeta(crypto.createHmac('sha256', betaJetonCle).update(corps).digest());
+}
+function betaJetonCompte(jeton) {
+  try {
+    const j = String(jeton || ''); if (j.length > 400) return null;
+    const [corps, sig] = j.split('.'); if (!corps || !sig) return null;
+    const attendu = b64uBeta(crypto.createHmac('sha256', betaJetonCle).update(corps).digest());
+    if (sig.length !== attendu.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(attendu))) return null;
+    const o = JSON.parse(Buffer.from(corps.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+    if (!o || typeof o.i !== 'string' || !(o.e > Date.now())) return null;
+    const c = betaComptes.find(x => x.id === o.i);
+    if (!c || !c.actif || !betaApps(c).includes('gestion')) return null;
+    if (c.mdpTs && !(o.a >= c.mdpTs)) return null;   // un mot de passe posé depuis : les jetons d'avant tombent
+    return c;
+  } catch (e) { return null; }
+}
 // La porte elle-même. Publique (la bêta l'appelle depuis le navigateur), donc bornée comme
 // /api/monitor/login : même verrou par identifiant, et /api/beta figure dans ROUTES_SENSIBLES
 // pour le plafond par adresse. Réponse identique pour un identifiant inconnu et un mauvais
@@ -3015,7 +3093,7 @@ app.post('/api/beta/login', (req, res) => {
   // `id` : l'identifiant du COMPTE (b + hexadécimaux), jamais réutilisé. OP MESSAGES s'en sert pour reconnaître une
   // personne : un accès supprimé puis recréé sous le même `login` est une autre personne (relecture du gardien, 1er octobre 2026).
   // `apps` : ce que l'accès ouvre. L'autre service (OP MESSAGES) exige d'y lire SON nom : un OP GESTION d'avant ce champ ne le dit pas, et la porte reste fermée plutôt que d'ouvrir à tout accès.
-  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id, apps: betaApps(c) });
+  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id, apps: betaApps(c), ...(appVoulue === 'gestion' ? { jeton: betaJetonSigner(c) } : {}) });
 });
 // Un appareil resté connecté redemande si sa porte est toujours ouverte : « coupé » depuis
 // la Tour doit fermer aussi les sessions déjà ouvertes. Même réponse pour un accès inconnu.
@@ -3047,7 +3125,10 @@ app.post('/api/beta/etat', (req, res) => {
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   // L'accès d'OP GESTION de cet identifiant : un accès d'OP MESSAGES du même nom, rangé avant lui, ne doit pas fermer la bêta d'OP GESTION.
   const c = betaComptes.find(x => x.login === login && betaApps(x).includes(appVoulue));
-  res.json({ ouvert: ouvert(c) });
+  /* Le jeton présenté, s'il désigne CET accès et vaut encore, est renouvelé (sept jours de plus) : la bêta ouverte chaque semaine garde sa boîte
+     mail sans retaper son mot de passe. Un jeton d'un autre accès, périmé ou faux : rien n'est rendu (pas de renouvellement par un nom deviné). */
+  const cj = (req.body || {}).jeton ? betaJetonCompte((req.body || {}).jeton) : null;
+  res.json({ ouvert: ouvert(c), ...(cj && c && cj.id === c.id ? { jeton: betaJetonSigner(c) } : {}) });
 });
 
 /* ── Annuaire des espaces entreprise : « nom d'entreprise » → code de connexion ──
