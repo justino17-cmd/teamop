@@ -13,6 +13,25 @@ de ligne du tout.
 
 ---
 
+# 4 NOVEMBRE 2026 (nuit) — BÊTA 800 : LES DOSSIERS « RÉSEAU » DE LA TOUR NE S'OUVRENT PLUS POUR UNE COUPURE QUE LA SYNCHRO RENOUE
+
+Justin : « cette erreur-là, il faut vraiment la corriger, ce message revient beaucoup trop souvent de beaucoup de clients ». Les
+dossiers collés (Toka Clim surtout) portaient tous la synchro — `/api/doc/attendre`, `lire`, `ecrire`, `/health` —, iPhone et
+Safari, serveur sain. **La cause était la sentinelle, pas le serveur** : « 2e échec du même appel en 3 min » ouvrait un dossier pour
+l'écran verrouillé (iOS rend l'échec de l'écoute AU RETOUR, avant l'événement qui ouvrait la minute de grâce), une connexion perdue
+pendant que les autres répondent, et les quelques secondes d'une mise en ligne du serveur.
+- **La règle (`app.html`, sentinelle, bêta 800)** : un appel SANS réponse ne se signale qu'après **2 min sans aucune réponse du serveur**,
+  page au premier plan, échecs à moins de 90 s l'un de l'autre — **un dossier par panne et par appareil** (« api.teamop.fr injoignable
+  depuis plus de 2 min sur cet appareil — <appel> (<erreur>) », ou « ne répond plus… pas de réponse en N s » pour un délai). L'horloge
+  repart à chaque réponse, passage au second plan ou retour, perte ou retour du réseau ; la minute de grâce du retour reste (une
+  panne au réveil se signale à 3 min). **Une réponse 5xx garde l'ancienne règle et se signale toujours.**
+- Preuves : `test-3254` (neuf, 18 ✓ ; contre-épreuve sur l'`app.html` de main : 10 ✗), `test-2856` et `test-3238` adaptés ;
+  11 mutations, toutes mordent ; navigateur (vraie bêta, api.teamop.fr coupé, `scratchpad/sonde-reseau/sonde.js`) : redémarrage de
+  7 s → aucun dossier (avant : ×3), panne de 2 min → 1 dossier ×1 (avant : ×9).
+- ⚠️ `app.html` porte le correctif mais reste numérotée 798 sur cette branche : **au report en production, monter son numéro**.
+- Non fait, à proposer : côté serveur, regrouper les dossiers « Réseau » de plusieurs entreprises à la même minute (une vraie panne
+  du serveur se verrait alors d'un coup d'œil). La surveillance horaire du serveur reste la garde des pannes courtes.
+
 # 4 NOVEMBRE 2026 (nuit) — BÊTA 799 : UN APPAREIL NEUF REJOINT LA SYNCHRO DE LA BÊTA
 
 Justin : « sur mon compte bêta je ne vois pas ce que j'ai fait sur mon PC sur les autres appareils, mon téléphone ou mon Mac ».
