@@ -13,6 +13,21 @@ de ligne du tout.
 
 ---
 
+# 🚀 4 NOVEMBRE 2026 — OP GESTION v795 EN PRODUCTION (`app.html`, `sw.js` v996, `demo.html`) — la bêta v795 entière
+
+Justin : « une fois fait ça, tu publies pour la version publique avec tout ce qu'on vient de faire », puis « Tout publier » (les v783 à
+v795 : documents à ses couleurs, logo et couleur d'OP GESTION intouchables, statistiques, Devis IA « nouveau client », nuit bleu nuit de
+la Tour, « Utilisateurs et abonnements »). Bêta et production sont toutes deux en 795. Détail : `VERSION-STABLE.md`.
+- **Tarifs et récapitulation d'abonnement corrigés** (`scripts/site-marine.js`, `tarifs.html`, `recap-abonnement.html`) : plus de
+  « logo » ni de « couleur » DANS l'application ; « Devis et factures à votre logo, votre couleur et votre cachet » sous Pro (tous forfaits).
+- **⛔ Reste, et attend Justin** : les conditions particulières `server/contrats-textes/cp_op_gestion_business.txt` (« Logo de l'entreprise
+  dans l'application ») et `cp_op_gestion_business_premium.txt` (« Logo et couleur de l'entreprise pour toute l'équipe ») le promettent
+  encore, et `server/agents-connaissance.js` (l. 64-65) le recopie pour les agents. Une version validée ne se modifie pas : nouvelle
+  version (agent `redacteur-contrats`, relue par `juriste`), validée par Justin dans le registre — puis les agents. Toucher `server/`
+  déploie le VPS.
+
+---
+
 # 📍 2 NOVEMBRE 2026 — GOOGLE ANALYTICS, BLOG, STORIES
 
 - **Analytics** : la propriété qui sert est **`teamop.fr`** (559886884, flux « Site teamop.fr », `G-BW7P0K94BZ`, celui de
