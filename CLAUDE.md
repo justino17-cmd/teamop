@@ -564,8 +564,12 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   `parRoute`). Leur refus est un `403 {error}` en JSON : `mailDoConnect` fait `await r.json()`, et un refus en `text/plain` y
   afficherait « Serveur injoignable » alors que le serveur a répondu ; le piège de `/api/replies` (une liste qui devient vide) n'existe
   pas ici, rien n'est lu. ⚠️ Les mots du message sont choisis : l'écran de connexion prend « refus », « auth », « login », « invalid »,
-  « password » pour un mot de passe de boîte et propose de le réinitialiser. La bêta (`ESPACES_INTOUCHABLES`) ne connecte plus de boîte
-  et n'envoie plus de courriel : voulu, elle n'a pas de données d'entreprise. `/api/subscribe` et `/api/notify` restent observées
+  « password » pour un mot de passe de boîte et propose de le réinitialiser. ⛔ **La bêta relie de VRAIES boîtes depuis la bêta 801** (Justin,
+  4 novembre 2026 : « en bêta, je devrais pouvoir me connecter avec mes boîtes mail pour pouvoir tester ») — ce qui remplace « la bêta
+  ne connecte plus de boîte ». Sa clé est publique : la preuve est le JETON d'accès bêta (`/api/beta/login`, en-tête `X-Teamop-Beta`,
+  `betaBoitePorte`), chaque accès de la Tour a SES boîtes (`opgestion-beta~<accès>`), un envoi bêta ne part que par la boîte du testeur
+  (jamais le relais de TEAM OP), un accès coupé / mot de passe changé / supprimé fait tomber son jeton (et ses boîtes à la suppression).
+  Les refus restent comptés « technique ». `tests/test-3255.js`. `/api/subscribe` et `/api/notify` restent observées
   (`espace.html` et `messages.html` les appellent sans preuve). `tests/test-2692.js`, dans `scripts/bancs-serveur.liste`.
 - ⛔ **Le refus de `/api/replies` n'est PAS du JSON.** `loadMailReplies()` (`app.html`) fait
   `const d = await r.json(); _mailReplies = d.replies||[]` : un refus en JSON se parse sans

@@ -475,3 +475,5 @@ tests/test-3245.js
 tests/test-3247.js
 tests/test-3246.js
 # 4 novembre 2026 : `test-3246` (essai des mails de A à Z) — /api/bug ne garde ni adresse ni domaine d'entreprise ; une boîte demandée et introuvable → 409, jamais le SMTP de TEAM OP. MUTER=1 le fait tomber.
+# 4 novembre 2026 : `test-3255` (les boîtes mail de la BÊTA, Justin : « en bêta, je devrais pouvoir me connecter avec mes boîtes mail ») — jeton d'accès bêta signé, boîtes par testeur (opgestion-beta~<accès>), envoi par la seule boîte du testeur (jamais le relais TEAM OP), accès coupé / mot de passe changé / supprimé, refus comptés « technique », une vraie entreprise inchangée. Le vrai serveur, faux fournisseur OAuth, faux SMTP. 32 vérifications.
+tests/test-3255.js

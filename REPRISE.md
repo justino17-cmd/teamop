@@ -13,6 +13,55 @@ de ligne du tout.
 
 ---
 
+# 4 NOVEMBRE 2026 (nuit) — BÊTA 801 : APERÇU DU DEVIS EN PLEIN ÉCRAN, « ENVOYÉ » QUAND C'EST PARTI, VRAIES BOÎTES MAIL SUR LA BÊTA
+
+Branche `claude/pdf-couleurs` (bêta 801). **`app.html` porte les deux premiers points mais reste numérotée 798 ici : monter son numéro
+au report** (et y reporter, depuis la branche de la PR #306, `tests/test-3253.js` à clé factice courte et Playwright dans
+`verification.yml`, s'ils n'y sont pas déjà).
+- **Aperçu d'un document** (Justin : « il faudrait que ça prenne toute la page… le devis est coupé en 3 fois ») : une pièce commune
+  `.pdfap` (`pdfApercuHtml`, `pdfApercuPoser`, `pdfApercuGrand`) — la vue fait la hauteur de l'écran (`100dvh`), sa largeur suit sa hauteur
+  sur écran large (page A4 entière), « À qui l'envoyer » à côté ; sur téléphone la page à la largeur, les deux envois collés en bas,
+  « Ouvrir en grand » pour zoomer. Le Devis IA est le seul aperçu INTÉGRÉ (les autres PDF passent par la fenêtre `pdfFeuille`, qui ouvre
+  le lecteur du navigateur). Mesuré : 49-51 % → 88-95 % de la hauteur utile. `tests/test-3256.js`.
+- **« Envoyé » n'est plus une case** (Justin : « quand on coche "envoyé", ça s'envoie pas ») : `envoiDoc` le pose sur un envoi réussi, avec
+  `d.envoi` {date, canal, a} affiché dans les listes. Formulaire : « Envoyé — l'envoyer maintenant… » et « Enregistrer / Créer et envoyer »
+  (brouillon + fenêtre d'envoi). SMS = lien `sms:` vers l'application Messages, texte seul (pas de PDF), « Envoyé » seulement si la personne
+  confirme. Facture remise en main propre : « remise autrement » (📤), tracée. `tests/test-3257.js`.
+- **Vraies boîtes mail sur la bêta** (Justin : « en bêta, je devrais pouvoir me connecter avec mes boîtes mail ») — voir CLAUDE.md
+  (règle « CONNECTER, DÉCONNECTER ET ENVOYER »). Serveur + bêta. `tests/test-3255.js` (dans `scripts/bancs-serveur.liste`).
+  ⚠️ **Le serveur doit partir AVANT la bêta 801** (sinon la bêta lit une route qui la refuse encore : message « reconnecte-toi » ou refus) ;
+  le serveur seul ne change rien pour personne d'autre (ni production ni entreprises). Après déploiement, chaque testeur se **déconnecte puis
+  se reconnecte** une fois à la bêta pour recevoir son jeton. Google en mode test : l'adresse doit être parmi les « utilisateurs test ».
+  Relecture `gardien` faite (aucun bloquant de contrefaçon ni de cloisonnement) ; ses corrections sont posées : `jetonDepuis` (coupé PUIS
+  rouvert, supprimé, mot de passe changé → les jetons d'avant tombent ; `mdpTs` n'est pas réutilisé, OP MESSAGES le lit), plafond absolu de
+  30 jours depuis la connexion (le renouvellement ne prolonge pas), jeton à deux segments exactement, `teamId` piégé → 400 ; à la suppression
+  d'un accès, ses boîtes ET son courrier relevé (`replies.jsonl`, `sentmap`, par `purgeJournal`, désormais au niveau du module) partent, et
+  une relève en vol n'écrit plus pour un accès coupé ou supprimé ; la relève saute la boîte d'un accès coupé.
+  ⛔ **« Traduire » N'EST PAS ouvert à la bêta** (gardien) : le texte d'un vrai mail partirait chez Anthropic, flux non couvert par
+  `sous-traitance.html` ; refusé par le serveur (`beta_traduire`), bouton absent du Courrier de la bêta.
+  ⛔ **La bêta peut désormais contenir de VRAIS mails** (ceux des boîtes reliées par les testeurs) : la règle « navigateur piloté, bêta
+  uniquement » protégeait une bêta SANS données réelles — ne plus piloter une bêta où une vraie boîte est reliée sans y penser (ou le
+  faire sur une copie locale, comme les sondes du scratchpad, jamais sur teamop.fr/beta.html connecté).
+
+# 4 NOVEMBRE 2026 (nuit) — BÊTA 800 : LES DOSSIERS « RÉSEAU » DE LA TOUR NE S'OUVRENT PLUS POUR UNE COUPURE QUE LA SYNCHRO RENOUE
+
+Justin : « cette erreur-là, il faut vraiment la corriger, ce message revient beaucoup trop souvent de beaucoup de clients ». Les
+dossiers collés (Toka Clim surtout) portaient tous la synchro — `/api/doc/attendre`, `lire`, `ecrire`, `/health` —, iPhone et
+Safari, serveur sain. **La cause était la sentinelle, pas le serveur** : « 2e échec du même appel en 3 min » ouvrait un dossier pour
+l'écran verrouillé (iOS rend l'échec de l'écoute AU RETOUR, avant l'événement qui ouvrait la minute de grâce), une connexion perdue
+pendant que les autres répondent, et les quelques secondes d'une mise en ligne du serveur.
+- **La règle (`app.html`, sentinelle, bêta 800)** : un appel SANS réponse ne se signale qu'après **2 min sans aucune réponse du serveur**,
+  page au premier plan, échecs à moins de 90 s l'un de l'autre — **un dossier par panne et par appareil** (« api.teamop.fr injoignable
+  depuis plus de 2 min sur cet appareil — <appel> (<erreur>) », ou « ne répond plus… pas de réponse en N s » pour un délai). L'horloge
+  repart à chaque réponse, passage au second plan ou retour, perte ou retour du réseau ; la minute de grâce du retour reste (une
+  panne au réveil se signale à 3 min). **Une réponse 5xx garde l'ancienne règle et se signale toujours.**
+- Preuves : `test-3254` (neuf, 18 ✓ ; contre-épreuve sur l'`app.html` de main : 10 ✗), `test-2856` et `test-3238` adaptés ;
+  11 mutations, toutes mordent ; navigateur (vraie bêta, api.teamop.fr coupé, `scratchpad/sonde-reseau/sonde.js`) : redémarrage de
+  7 s → aucun dossier (avant : ×3), panne de 2 min → 1 dossier ×1 (avant : ×9).
+- ⚠️ `app.html` porte le correctif mais reste numérotée 798 sur cette branche : **au report en production, monter son numéro**.
+- Non fait, à proposer : côté serveur, regrouper les dossiers « Réseau » de plusieurs entreprises à la même minute (une vraie panne
+  du serveur se verrait alors d'un coup d'œil). La surveillance horaire du serveur reste la garde des pannes courtes.
+
 # 4 NOVEMBRE 2026 (nuit) — BÊTA 799 : UN APPAREIL NEUF REJOINT LA SYNCHRO DE LA BÊTA
 
 Justin : « sur mon compte bêta je ne vois pas ce que j'ai fait sur mon PC sur les autres appareils, mon téléphone ou mon Mac ».
@@ -85,6 +134,52 @@ la Tour, « Utilisateurs et abonnements »). Bêta et production sont toutes deu
   floutés), leurs stories refaites (#288). Rappel de la veille « 📸 Blog prévu demain » (dim., mar., jeu. 17 h 43) :
   Justin fait les photos, l'article part avec. Stories Instagram et Facebook automatiques (#286) : en attente des
   quatre secrets Meta (`contenu/blog/INSTAGRAM-STORIES.md`). Rattrapage Gemini : workflow « Rattrapage des photos du blog ».
+# 📍 4 NOVEMBRE 2026 (soir) — BÊTA v797 : LA BOÎTE DE L'ENTREPRISE, SINON L'ADRESSE DE « MON ENTREPRISE », SINON RIEN — ESSAI DE A À Z
+Justin : « s'il n'utilise pas la boîte mail, il faut que dans Mon entreprise on l'oblige à mettre le mail ». La v796 (boîte OBLIGATOIRE) était trop
+stricte. Règle v797 (`envoiBoiteResoudre`) : boîte connectée → par elle ; sinon, adresse VALIDE dans Mon entreprise (`db.entreprise.email`,
+`ENVOI_ADR_RE`) → par le serveur au nom de l'entreprise, `brand.replyTo` = cette adresse, aucune copie (serveur 91641d89) ; ni l'une ni l'autre →
+l'étape (a « l'adresse de mon entreprise », enregistrée par `entPose`, l'envoi reprend ; b « connecter ma boîte ») ; boîtes INCONNUES (`null`) →
+« impossible de vérifier » (on ne contourne pas une boîte qui existe peut-être). Une boîte qui refuse : on le DIT, et avec une adresse on PROPOSE
+(`confirm`) « envoyer quand même depuis OP GESTION, réponses vers <adresse> » — jamais en silence, jamais pour un envoi automatique.
+Mon entreprise : champ `ent-email` « obligatoire pour tes envois — c'est l'adresse où tes clients te répondront », adresse mal formée refusée.
+**L'essai de bout en bout : `node scripts/controle/mails-a-z.js`** (vrai serveur isolé, vraie page dans Chromium, facteur SMTP TEAM OP + faux
+SMTP/IMAP de la boîte de l'entreprise, 14 scénarios, 108 ✓). Il a trouvé et fait corriger, côté SERVEUR (`server/index.js`) : `/api/bug` gardait
+le DOMAINE d'entreprise du client et l'adresse recopiée dans un refus SMTP (`bugAnonymiser`, `test-3246`) ; une boîte demandée et introuvable
+retombait en silence sur le SMTP de TEAM OP (409, `test-3246`). Côté application : `domaineDiag`. Bancs : `test-3250` (43 ✓, MUTER=1/2/3),
+`test-3246` (9 ✓, MUTER=1), `test-793`, `test-2692` mis à jour.
+⚠️ **Recherche de la Boîte mail (« elle ne marche pas »)** : cause MESURÉE au navigateur — le module `opcourrier.js` vit dans un arbre d'ombre,
+et l'écouteur lisait `e.target.value` 120 ms après l'événement, quand le navigateur a déjà vidé `e.target` : `state.query` jamais posé, aucune
+erreur. Corrigé dans `opcourrier.js` (+ ses deux copies `apercu/` et `server-msg/public/`, `test-2994`), plus le n° de bon dans le texte lu
+(`courrierCorps`) et « Aucun message pour « … » ». `test-3248` (26 ✓ ; MUTER=1 → 14 ✗). ⛔ **Ce fichier est servi aussi par la PRODUCTION
+(app.html v795) et par OP MESSAGES** : il n'est PAS sur `main`, il attend la phrase de Justin (un push de `server-msg/` redéploie OP MESSAGES).
+
+# 📍 4 NOVEMBRE 2026 — BÊTA v796 : RIEN NE PART PAR TEAM OP (la boîte de l'entreprise, ou rien)
+
+Justin, après une facture de Toka Clim arrivée dans contact@teamop.fr : « ils doivent mettre leur adresse e-mail dans les paramètres de
+l'application et dans le système de boîte mail […] c'est leur e-mail à eux, pas à nous. Il n'y a rien qui passe par nous. » Sur la bêta
+(v796), `srvMail` n'envoie plus QUE par une boîte de l'entreprise : la boîte connectée (`_mailboxes`, mot de passe au serveur), une adresse
+d'envoi SMTP des Paramètres, ou l'adresse pro de l'utilisateur. Plus de « mode simple » par le SMTP de TEAM OP, plus de repli « via la
+plateforme » quand la boîte refuse (l'écran le dit). Sans boîte, « Envoyer » ouvre l'étape « Connecte ta boîte mail » (administrateur ; un
+autre compte est renvoyé à l'administrateur ; `_mailboxes === null` dit « impossible de vérifier ») et l'envoi REPREND une fois la boîte
+connectée. La facture envoyée automatiquement (`factureMailPayee`, `opts.auto`) n'ouvre aucune fenêtre : elle prévient l'administrateur une fois
+par jour. Paramètres : une seule rubrique « E-mails à tes clients » (adresse e-mail de l'entreprise `db.entreprise.email`, nom d'expéditeur,
+état de la boîte connectée). `tests/test-3250.js` (recensement des 18 appels + la vraie srvMail jouée ; `MUTER=1` la fait tomber),
+`test-2692`, `test-793`, `test-2940` mis à jour ; sonde `scratchpad/v796/sonde.js` (44 ✓).
+⚠️ **Avant de publier en production** : toute entreprise sans boîte connectée ne pourra plus RIEN envoyer à ses clients. Les compter dans la Tour
+et les prévenir AVANT (Justin). Le serveur garde son « mode simple » pour les appareils d'avant (correctif de la copie cachée, autre branche) :
+les appareils d'abord, la porte ensuite.
+
+# 📍 3 NOVEMBRE 2026 (nuit) — BÊTA v795 : PLUS DE « COULEUR DANS L'APPLICATION »
+
+Justin, devant le bloc « Couleur dans l'application — inclus avec Business Premium » des Paramètres : « ça sert à rien du coup, donc tu
+peux supprimer ». Sur la bêta (v795) : le bloc, `entCouleur`, `entCouleurSet`, `entCouleurDel` sont retirés ; `applyTheme` et `applyBrand`
+ne lisent plus `db.entreprise.couleur` (l'ancien champ reste dans les bases, il n'est plus lu ni réécrit) ; la phrase « le nom et la couleur
+de votre entreprise dans l'application » sort de la fiche Business Premium (`PLANS`). La couleur des DOCUMENTS (`couleurDoc`, « Tes documents »)
+et la couleur perso de chaque utilisateur restent. `tests/test-3242.js` (exécute la vraie `applyTheme`), `test-3241`, `test-1640`.
+Même version : le titre « Pour l’entreprise » au-dessus du cachet du DEVIS est retiré (aucun texte ne l’exige ; ambigu quand le client est une
+entreprise) — le cachet reste seul, à la même place, en face du « Bon pour accord » (`test-3234`). Les signatures des contrats et rapports gardent la formule.
+⚠️ **À faire le jour où cette version passe en production** : la page des tarifs (`scripts/site-marine.js`) promet encore « Votre logo dans
+l'application » (Business) et « Votre logo et votre couleur d'application » (Premium) — les deux sont faux depuis v789 et v795.
 
 # 📍 30 OCTOBRE 2026 (fin de journée) — CE QUI EST EN LIGNE, CE QUI ATTEND JUSTIN, LES DETTES
 

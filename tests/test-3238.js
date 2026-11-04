@@ -38,23 +38,20 @@ const tranche = (debut, fin) => { const i = SRC.indexOf(debut); const j = i < 0 
   const pousse = [];
   const ab = (volontaire, delai) => { const c = new AbortController(); if (volontaire) c.signal.__opVolontaire = 1; if (delai) c.signal.__opDelai = delai; return c.signal; };
   const echec = (nom, msg) => { const e = new Error(msg); e.name = nom; return e; };
-  let prochain = null, t = 1_800_000_000_000;
-  const fen = { fetch: () => prochain ? Promise.reject(prochain) : Promise.resolve({ status: 200 }), __tmRetour: 0 };
-  const bac2 = { window: fen, navigator: { onLine: true }, Date: { now: () => t }, String, tmPush: (type, msg) => pousse.push(msg) };
+  let prochain = null;
+  const fen = { fetch: () => Promise.reject(prochain), __tmRetour: 0 };
+  const bac2 = { window: fen, navigator: { onLine: true }, Date, String, tmPush: (type, msg) => pousse.push(msg) };
   vm.createContext(bac2); vm.runInContext(blocSent, bac2);
-  const appel = async (url, init, err) => { prochain = err; try { await fen.fetch(url, init); } catch (e) {} await new Promise(r => setTimeout(r, 5)); t += 15000; };
-  /* v800 : un appel SANS réponse ne se signale qu'après 2 min de panne (au moins 3 échecs, aucune réponse entre-temps) —
-     on joue donc chaque cas neuf fois à 15 s d'écart, et une réponse entre deux cas remet l'horloge à zéro (test-3254). */
-  const panne = async (url, init, err) => { for (let k = 0; k < 9; k++) await appel(url, init, err); await appel(url, {}, null); };
-  await panne('https://api.teamop.fr/api/doc/attendre', { signal: ab(true) }, echec('AbortError', 'Fetch is aborted'));
+  const appel = async (url, init, err) => { prochain = err; try { await fen.fetch(url, init); } catch (e) {} await new Promise(r => setTimeout(r, 5)); };
+  // la sentinelle ne signale qu'à la 2e fois en 3 minutes : on joue chaque cas deux fois
+  for (let k = 0; k < 2; k++) await appel('https://api.teamop.fr/api/doc/attendre', { signal: ab(true) }, echec('AbortError', 'Fetch is aborted'));
   v('l’écoute coupée EXPRÈS (retour au premier plan, arrêt) : rien ne remonte', pousse.length, 0);
-  await panne('https://api.teamop.fr/api/doc/ecrire', { signal: ab(false, 52000) }, echec('AbortError', 'Fetch is aborted'));
-  v('un délai dépassé se dit « ne répond plus », avec le délai, pas « injoignable »', pousse.slice(-1), ['api.teamop.fr ne répond plus à cet appareil depuis plus de 2 min — /api/doc/ecrire (pas de réponse en 52 s)']);
-  await panne('https://api.teamop.fr/health', { signal: ab(false) }, echec('AbortError', 'Fetch is aborted'));
-  v('un abandon sans délai noté dit « pas de réponse dans le délai »', pousse.slice(-1), ['api.teamop.fr ne répond plus à cet appareil depuis plus de 2 min — /health (pas de réponse dans le délai)']);
-  await panne('https://api.teamop.fr/api/doc/lire', {}, echec('TypeError', 'Load failed'));
-  v('une vraie coupure (pas un abandon) reste « injoignable »', pousse.slice(-1), ['api.teamop.fr injoignable depuis plus de 2 min sur cet appareil — /api/doc/lire (Load failed)']);
-  v('… et chaque panne n’a ouvert qu’un dossier', pousse.length, 3);
+  for (let k = 0; k < 2; k++) await appel('https://api.teamop.fr/api/doc/ecrire', { signal: ab(false, 52000) }, echec('AbortError', 'Fetch is aborted'));
+  v('un délai dépassé se dit « trop lent », avec le délai, pas « injoignable »', pousse.slice(-1), ['api.teamop.fr trop lent sur /api/doc/ecrire (pas de réponse en 52 s — réseau de l’appareil ?)']);
+  for (let k = 0; k < 2; k++) await appel('https://api.teamop.fr/health', { signal: ab(false) }, echec('AbortError', 'Fetch is aborted'));
+  v('un abandon sans délai noté reste « trop lent… dans le délai »', pousse.slice(-1), ['api.teamop.fr trop lent sur /health (pas de réponse dans le délai — réseau de l’appareil ?)']);
+  for (let k = 0; k < 2; k++) await appel('https://api.teamop.fr/api/doc/lire', {}, echec('TypeError', 'Load failed'));
+  v('une vraie coupure (pas un abandon) reste « injoignable »', pousse.slice(-1), ['api.teamop.fr injoignable sur /api/doc/lire (Load failed)']);
 
   console.log('\n── 3238 · 3. les coupures voulues sont marquées, et l’alerte d’écriture dit son vrai délai ──');
   vrai('reveil marque la coupure', /const reveil=\(\)=>\{[^\n]*ctl\.signal\.__opVolontaire=1; ctl\.abort\(\)/.test(SRC));
