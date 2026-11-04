@@ -3058,7 +3058,6 @@ app.post('/api/monitor/beta/toggle', monPatronStrict, (req, res) => {
 app.post('/api/monitor/beta/delete', monPatronStrict, (req, res) => {
   const id = (req.body || {}).id;
   if (!betaComptes.some(x => x.id === id)) return res.status(404).json({ error: 'accès introuvable' });
-  { const c0 = betaComptes.find(x => x.id === id); if (c0) c0.jetonDepuis = Date.now(); }
   betaComptes = betaComptes.filter(x => x.id !== id); betaSave();
   /* ses boîtes mail de la bêta partent avec lui, et ce qu'elles avaient relevé aussi : un accès supprimé ne garde ni boîte relevée pour
      personne, ni courrier d'un vrai correspondant dans `replies.jsonl`. Une relève EN VOL ne réécrit rien : l'espace d'un accès disparu
