@@ -471,3 +471,5 @@ tests/test-3243.js
 tests/test-3244.js
 # 4 novembre 2026 : `test-3245` (Camille ne lit ni ne classe la réponse d'un client final à un document d'entreprise ; rien ne part chez Claude). Les vrais modules des agents. 10 vérifications.
 tests/test-3245.js
+# 4 novembre 2026 : `test-3247` (une boîte Microsoft ou Google se connecte par autorisation OAuth, sans mot de passe : routes inertes sans réglage, preuve de clé au départ, state signé à usage unique + PKCE, jeton de renouvellement chiffré, envoi en XOAUTH2, rafraîchissement et rotation, invalid_grant → « à reconnecter », rien de secret au journal). Le vrai serveur, un faux fournisseur, un faux SMTP XOAUTH2. 39 vérifications.
+tests/test-3247.js
