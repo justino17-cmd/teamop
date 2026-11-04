@@ -8965,7 +8965,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '797-demo';
+const APP_VERSION = '798-demo';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -24562,12 +24562,14 @@ function envoiBoiteEtape(manque){
         <div class="field"><label for="boite-etape-email">Adresse e-mail de mon entreprise</label><input id="boite-etape-email" type="email" inputmode="email" autocomplete="email" placeholder="contact@ton-entreprise.fr" value="${esc(String(((db&&db.entreprise)||{}).email||''))}" onkeydown="if(event.key==='Enter'){event.preventDefault();envoiAdresseEnregistrer();}"></div>
         <button class="btn block" id="boite-etape-ok" onclick="envoiAdresseEnregistrer()">Enregistrer et envoyer</button>
         <p style="color:var(--t3);font-size:12.5px;line-height:1.55;margin:12px 0 8px">Ou, mieux : connecte ta boîte mail, et tes envois partiront directement de ton adresse.</p>
+        ${oauthBoutonsHtml('etape')}
         <button class="btn block ghost" onclick="mailConnect()">🔗 Connecter ma boîte mail</button>
         <button class="btn block ghost" style="margin-top:8px" onclick="closeModal()">Plus tard</button>`
       :`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Pour envoyer à tes clients, l’entreprise doit indiquer son adresse e-mail ou connecter sa boîte mail. <b>Demande à ton administrateur de connecter la boîte mail de l’entreprise</b> ou de remplir son adresse (Paramètres → Mon entreprise). Rien n’est parti.</p>
         <button class="btn block" onclick="closeModal()">Compris</button>`;
   _boiteEtapeEnCours=new Promise(res=>{
     openModal(`<div class="modal-head"><h3>✉️ ${manque==='inconnu'?'Boîte mail à vérifier':admin?'L’adresse e-mail de ton entreprise':'Connecte ta boîte mail'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div><div id="boite-etape">${corps}</div>`);
+    if(admin&&manque!=='inconnu') oauthBoutonsMontrer();
     const ov=document.getElementById('overlay');
     const fin=()=>{ _boiteEtapeEnCours=null; res(true); };
     if(!ov||typeof MutationObserver==='undefined'){ fin(); return; }
@@ -24612,6 +24614,9 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
     const d=await r.json().catch(()=>({}));
     if(r.status===409) _mailboxes=null;   // v797 : la boîte a été déconnectée ailleurs — la liste se relira au prochain envoi
     _srvMailErr=d.error||('erreur serveur HTTP '+r.status);
+    /* v798 : une boîte connectée avec Google (ou Microsoft) dont l'autorisation a expiré ou a été retirée — 409 `a_reconnecter`. On le DIT,
+       avec le geste qui répare ; la reprise par OP GESTION reste une simple proposition (ci-dessous), jamais un repli silencieux. */
+    if(d.code==='a_reconnecter') _srvMailErr='ta boîte mail doit être reconnectée (Paramètres → E-mails à tes clients → Reconnecter)';
     /* v797 : la boîte de l'entreprise refuse. On ne repasse JAMAIS en silence par OP GESTION ; avec une adresse dans Mon entreprise, on le
        PROPOSE, en disant où iront les réponses. Jamais pour un envoi automatique (personne pour répondre). */
     const emRep=(bt.mb||bt.smtp)&&!(opts&&opts.auto)?envoiAdresseEnt():'';
@@ -24620,7 +24625,7 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
       try{ const r2=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(p2)});
         if(r2.ok){ _srvMailErr=''; toast(okMsg||('✉️ E-mail envoyé à '+to)); return true; }
         const d2=await r2.json().catch(()=>({})); _srvMailErr=d2.error||('erreur serveur HTTP '+r2.status); }catch(e2){ _srvMailErr='serveur d\'envoi injoignable'; } }
-    toast('Envoi refusé ('+_srvMailErr+') : ta boîte mail a refusé l’envoi'+(opts&&opts.sansMailto?' — rien n’est parti':' — e-mail préparé dans Mail'));
+    toast((d.code==='a_reconnecter'?'Rien n’est parti : ta boîte mail doit être reconnectée (Paramètres → E-mails à tes clients → Reconnecter)':'Envoi refusé ('+_srvMailErr+') : ta boîte mail a refusé l’envoi')+(opts&&opts.sansMailto?(d.code==='a_reconnecter'?'':' — rien n’est parti'):' — e-mail préparé dans Mail'));
     /* v740 : le DOMAINE seulement. L'adresse d'un client n'a rien à faire dans un rapport d'erreur
        (pas de données personnelles de clients dans les journaux) ; le domaine suffit à voir qu'un
        fournisseur de messagerie refuse. */
@@ -24666,7 +24671,7 @@ async function envoiBoiteCarteMaj(){ const el=document.getElementById('envoi-boi
   const adm=!!(currentUser&&currentUser.role==='admin'), smtp=(db.mailBoxes||[]).filter(b=>b&&b.user);
   const liste=Array.isArray(_mailboxes)?_mailboxes:(BETA_ESSAI?[]:null);
   if(liste===null){ el.innerHTML='<span style="color:var(--org)">Impossible de vérifier pour l’instant</span>'; if(ac) ac.innerHTML='<button class="btn sm ghost" onclick="envoiBoiteCarteMaj()">Réessayer</button>'; return; }
-  if(liste.length){ el.innerHTML=liste.map(b=>'<span style="color:var(--green);font-weight:700">Connectée : '+esc(b.email)+' ✓</span>').join('<br>'); if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailBoxesManage()">Gérer mes boîtes</button>':''; return; }
+  if(liste.length){ el.innerHTML=liste.map(b=>b.etat==='a_reconnecter'?'<span style="color:var(--org);font-weight:700">À reconnecter : '+esc(b.email)+' — rien ne part par elle</span>':'<span style="color:var(--green);font-weight:700">Connectée : '+esc(b.email)+' ✓</span>').join('<br>'); if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailBoxesManage()">Gérer mes boîtes</button>':''; return; }
   if(smtp.length){ el.innerHTML='<span style="color:var(--green);font-weight:700">Adresse d’envoi : '+esc(smtp[0].user)+' ✓</span>'; if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailConnect()">🔗 Connecter aussi la boîte (réponses dans l’app)</button>':''; return; }
   const emE=envoiAdresseEnt();
   if(emE){ el.innerHTML='<span style="color:var(--t2)">Pas de boîte connectée — tes envois partent à ton nom, les réponses vont à <b>'+esc(emE)+'</b></span>';
@@ -34738,19 +34743,93 @@ function mailFromOptions(){ const o=[];
   return o; }
 async function mailBoxesManage(){ await loadMailboxes();
   openModal(`<div class="modal-head"><h3>📬 Mes boîtes mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    ${(_mailboxes||[]).map(b=>`<div class="pl-row"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(b.email)}</div><div class="pl-meta">envoi + réception + historique dans l'app</div></div><button class="btn danger sm" onclick="mailDisconnect('${b.id}')">Déconnecter</button></div>`).join('')}
+    ${(_mailboxes||[]).map(b=>`<div class="pl-row"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(b.email)}</div><div class="pl-meta">${b.etat==='a_reconnecter'?'<span style="color:var(--org);font-weight:700">⚠️ À reconnecter — l’autorisation a expiré ou a été retirée, rien ne part par elle</span>':(OAUTH_NOMS[b.type]?'connectée avec '+OAUTH_NOMS[b.type]+' · ':'')+'envoi + réception + historique dans l\'app'}</div></div>${b.etat==='a_reconnecter'?`<button class="btn sm" style="margin-right:6px" onclick="${OAUTH_NOMS[b.type]?`mailOauthDemarrer('${esc(b.type)}')`:`mailConnect('${esc(b.email)}')`}">Reconnecter</button>`:''}<button class="btn danger sm" onclick="mailDisconnect('${b.id}')">Déconnecter</button></div>`).join('')}
     ${_mailboxes===null?'<div style="color:var(--t3);text-align:center;padding:16px">Liste indisponible — le serveur n\'a pas répondu.</div>':(!_mailboxes.length?'<div style="color:var(--t3);text-align:center;padding:16px">Aucune boîte connectée.</div>':'')}
     <button class="btn block" style="margin-top:12px" onclick="mailConnect()">＋ Connecter une boîte</button>`);
 }
+/* v798 — « SE CONNECTER AVEC GOOGLE » (4 novembre 2026, Justin : « fais tout avant la mise à jour »). Le serveur (`/api/mailbox/oauth/*`,
+   `server/OAUTH-BOITES.md`) ouvre l'autorisation chez le fournisseur ; la boîte revient connectée sans qu'aucun mot de passe passe par nous.
+   ⛔ La fenêtre s'ouvre DANS le geste, avant tout `await` — ouverte après l'aller-retour au serveur, Safari la bloque —, vide, puis reçoit
+   l'adresse du fournisseur. ⛔ Pas de `noopener` : la page de retour prévient par `window.opener.postMessage` (origine api.teamop.fr,
+   `type:'teamop-boite'`). Et parce qu'un téléphone ou une application installée peut perdre l'opener, la FERMETURE de la fenêtre et le
+   retour sur l'application relisent aussi la liste : on dit « connectée » sur ce que le serveur liste, jamais sur la fermeture seule.
+   Le bouton ne paraît que pour un fournisseur que le serveur dit configuré (`/health` → `oauth`) ; un 503 `oauth_non_configure` le retire.
+   Microsoft n'a donc pas de bouton tant que ses identifiants ne sont pas posés sur le VPS. `tests/test-3252.js`. */
+const OAUTH_NOMS={google:'Google',microsoft:'Microsoft'};
+let _oauthDispo=null, _oauthDispoTs=0, _oauthSuivi=null;
+async function oauthDispo(){ if(_oauthDispo&&Date.now()-_oauthDispoTs<60000) return _oauthDispo;
+  try{ const c=new AbortController(), t=setTimeout(()=>c.abort(),4000);
+    const r=await fetch(PUSH_API+'/health',{cache:'no-store',signal:c.signal}); clearTimeout(t);
+    const j=r.ok?await r.json():null; if(!j) return {};
+    _oauthDispo={google:!!(j.oauth&&j.oauth.google),microsoft:!!(j.oauth&&j.oauth.microsoft)}; _oauthDispoTs=Date.now(); return _oauthDispo; }
+  catch(e){ return _oauthDispo||{}; } }
+function oauthBoutonsHtml(ou){ return `<div class="oauth-boutons" data-ou="${ou}" style="display:none"></div>`; }
+async function oauthBoutonsMontrer(){ const d=await oauthDispo();
+  document.querySelectorAll('.oauth-boutons').forEach(z=>{
+    const f=Object.keys(OAUTH_NOMS).filter(k=>d[k]);
+    if(!f.length){ z.style.display='none'; z.innerHTML=''; return; }
+    const etape=z.getAttribute('data-ou')==='etape';
+    z.innerHTML=f.map(k=>`<div class="oauth-b-${k}" style="margin-bottom:${etape?8:12}px">${etape?'':`<div style="font-size:12.5px;font-weight:700;color:var(--t2);margin-bottom:6px">${k==='google'?'Gmail ?':'Outlook, Hotmail ou Microsoft 365 ?'}</div>`}<button class="btn block${etape?' ghost':''}" onclick="mailOauthDemarrer('${k}')">Se connecter avec ${OAUTH_NOMS[k]}</button></div>`).join('')
+      +(etape?'':'<div style="font-size:12px;color:var(--t3);margin:0 0 12px;text-align:center">Pour les autres boîtes : l’adresse et le mot de passe, ci-dessous.</div>');
+    z.style.display=''; }); }
+async function mailOauthDemarrer(f){
+  const nom=OAUTH_NOMS[f]; if(!nom) return false;
+  let w=null; try{ w=window.open('','teamop-oauth','width=520,height=720'); }catch(e){ w=null; }
+  if(w){ try{ w.document.title='OP GESTION'; w.document.body.style.cssText='font-family:system-ui,-apple-system,sans-serif;padding:24px;color:#334'; w.document.body.textContent='Ouverture de la connexion '+nom+'…'; }catch(e){} }
+  const fermer=()=>{ try{ if(w&&!w.closed) w.close(); }catch(e){} };
+  let r=null, d={};
+  try{ r=await fetch(PUSH_API+'/api/mailbox/oauth/start',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),fournisseur:f})});
+    d=await r.json().catch(()=>({})); }
+  catch(e){ fermer(); toast('Serveur injoignable — rien n’a changé, réessaie dans un instant'); return false; }
+  if(!r.ok||!d||typeof d.url!=='string'||!/^https?:\/\//.test(d.url)){ fermer();
+    if(r.status===503||(d&&d.code==='oauth_non_configure')){ _oauthDispo=Object.assign({},_oauthDispo||{},{[f]:false}); _oauthDispoTs=Date.now(); oauthBoutonsMontrer();
+      toast('La connexion '+nom+' n’est pas encore disponible — connecte la boîte avec son adresse et son mot de passe'); return false; }
+    toast('Connexion '+nom+' impossible : '+((d&&d.error)||('le serveur a répondu '+r.status))); return false; }
+  if(!w||w.closed){ if(confirm('Ton navigateur a bloqué la fenêtre de connexion '+nom+'.\n\nOuvrir la page '+nom+' ici ? Tu reviendras ensuite dans OP GESTION.')) location.href=d.url; return false; }
+  try{ w.location.href=d.url; }catch(e){ fermer(); toast('Connexion '+nom+' impossible : la fenêtre n’a pas pu s’ouvrir'); return false; }
+  oauthSuivre(w);
+  return true; }
+/* Le suivi d'UNE connexion : le message de la page de retour, ou la fenêtre fermée, ou le retour sur l'application — le premier qui
+   arrive relit la liste ; les autres ne font plus rien. */
+function oauthSuivre(w){ if(_oauthSuivi) clearInterval(_oauthSuivi.t);
+  const avant=JSON.stringify((_mailboxes||[]).map(b=>b.id+':'+b.etat).sort());
+  const s={avant,w,debut:Date.now()};
+  s.t=setInterval(()=>{ let ferme=true; try{ ferme=!s.w||s.w.closed; }catch(e){}
+    if(ferme){ clearInterval(s.t); oauthFin(null,true); } else if(Date.now()-s.debut>15*60000) { clearInterval(s.t); if(_oauthSuivi===s) _oauthSuivi=null; } },1000);
+  _oauthSuivi=s; }
+/* `ferme` : la fenêtre s'est fermée. Sans message ni fenêtre fermée (retour sur l'application), on ne fait que REGARDER : la connexion
+   peut être encore en cours chez Google (un téléphone revient sur l'appli avant d'avoir fini), le suivi continue. */
+async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
+  if(s&&s.lit&&!msg){ if(ferme) s.fermee=true; return; }   // une relecture est déjà en route : elle tiendra compte de la fermeture
+  if(s) s.lit=true;
+  const avant=s?s.avant:'';
+  await loadMailboxes();
+  if(s){ s.lit=false; if(s.fermee) ferme=true; }
+  if(s&&s.conclu) return;   // un autre chemin (le message de la page de retour, ou la fenêtre fermée) a déjà conclu
+  const apres=JSON.stringify((_mailboxes||[]).map(b=>b.id+':'+b.etat).sort());
+  const change=Array.isArray(_mailboxes)&&apres!==avant;
+  if(!msg&&!ferme&&!change) return;
+  if(s) s.conclu=true; if(_oauthSuivi){ clearInterval(_oauthSuivi.t); _oauthSuivi=null; }
+  if(msg&&msg.ok===false){ toast('⚠️ '+(msg.message||'Connexion non terminée')+' — rien n’a changé'); return; }
+  if(!Array.isArray(_mailboxes)){ toast('Impossible de vérifier la boîte pour l’instant — rouvre « Mes boîtes mail » dans un instant'); return; }
+  if(!(msg&&msg.ok)&&!change) return;   // fenêtre fermée sans rien changer : on ne dit rien de faux
+  toast('✅ Boîte mail connectée — tes envois partent maintenant de ton adresse');
+  if(document.querySelector('#overlay.open #mb-email, #overlay.open #boite-etape')) closeModal();   // l'étape d'envoi fermée : l'envoi reprend
+  try{ envoiBoiteCarteMaj(); }catch(e){}
+  if(current==='boiteMail'){ _mailReplies=null; mailSel=null; views.boiteMail(); } }
+window.addEventListener('message',e=>{ if(e.origin!==PUSH_API) return; const d=e.data;
+  if(!d||typeof d!=='object'||d.type!=='teamop-boite') return; oauthFin({ok:!!d.ok,message:String(d.message||'').slice(0,200)}); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&_oauthSuivi) setTimeout(()=>{ if(_oauthSuivi) oauthFin(null); },800); });
 function mailConnect(pre){
   const ligne=(ok,nom,det)=>`<div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12.5px"><span style="flex-shrink:0">${ok}</span><b style="flex-shrink:0">${nom}</b><span style="color:var(--t3);text-align:right;flex:1">${det}</span></div>`;
   openModal(`<div class="modal-head"><h3>🔗 Connecter une boîte mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">Connecte <b>n'importe quelle boîte</b> — celle de l'entreprise ou la tienne, pro ou perso — avec son adresse et son mot de passe. Tu retrouves ici <b>tes mails (les ~60 derniers s'importent automatiquement)</b>, tu envoies et tu reçois directement dans l'app, et tout reste aussi sur ta vraie boîte.</p>
+    ${oauthBoutonsHtml('mb')}
     <div style="border:1px solid var(--brd);border-radius:12px;padding:10px 14px 6px;margin-bottom:14px">
       <div style="font-size:10.5px;font-weight:800;letter-spacing:1px;color:var(--t3);margin-bottom:4px">BOÎTES COMPATIBLES</div>
       ${ligne('✅','Boîte pro / OVH','mot de passe habituel')}
       ${ligne('✅','Orange · Free · SFR · La Poste','mot de passe habituel')}
-      ${ligne('✅','Gmail','mot de passe d\'application (guidé, 2 min)')}
+      ${ligne('✅','Gmail','« Se connecter avec Google », ou mot de passe d\'application')}
       ${ligne('✅','Yahoo','mot de passe d\'application (guidé)')}
       <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;font-size:12.5px"><span style="flex-shrink:0">⏳</span><b style="flex-shrink:0">Hotmail / Outlook</b><span style="color:var(--t3);text-align:right;flex:1">bientôt — connexion officielle Microsoft en cours de demande</span></div>
     </div>
@@ -34759,6 +34838,7 @@ function mailConnect(pre){
     <div class="field"><label>Mot de passe</label><input id="mb-pass" type="password" placeholder="mot de passe de la boîte"></div>
     <button class="btn block" id="mb-btn" onclick="mailDoConnect()">Connecter et vérifier</button>`);
   if(pre&&typeof pre==='string'){ const e=$('mb-email'); if(e){ e.value=pre; mailConnHelp(); } }
+  oauthBoutonsMontrer();
 }
 /* Lien « mot de passe oublié » selon le fournisseur */
 /* La page des mots de passe d'application — à ne PAS confondre avec la récupération de
@@ -35873,13 +35953,14 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
 
   /* v778 : le nom du client passe à la ligne (deux lignes au plus) au lieu d'être coupé à 52 signes (« Établissements Hospitaliers Universitaires de la Cô… ») */
   const nomCl=_pdfEnLignes(cli.nom||'',10.5,1,W-2*M-20,2).filter(Boolean);
-  const cl=[].concat(nomCl, cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '),
-            [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')).filter(Boolean);
+  const sousCl=[cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '), [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')]
+            .filter(Boolean).flatMap(t2=>_pdfEnLignes(t2,8.8,0,W-2*M-24,3).filter(Boolean));   // v798 : à la ligne, plus de cut(…,70)
+  const cl=[].concat(nomCl, sousCl).filter(Boolean);
   const ph=20+cl.length*13;
   R(M,y-ph+10,W-2*M,ph,GREENLT); R(M,y-ph+10,2.4,ph,GREEN);
   T(M+12,y-4,7.5,estFact?'FACTURÉ À':'CLIENT',1,ACC_T);
   const nbNom=Math.max(1,nomCl.length);   // sans nom, la première ligne garde le style d'avant
-  cl.forEach((t2,i)=>{ T(M+12,y-18-i*13,i<nbNom?10.5:8.8,i<nbNom?t2:cut(t2,70),i<nbNom?1:0,i<nbNom?DARK:GREY); });
+  cl.forEach((t2,i)=>{ T(M+12,y-18-i*13,i<nbNom?10.5:8.8,t2,i<nbNom?1:0,i<nbNom?DARK:GREY); });
   y-=ph+14;
 
   tableHead();
@@ -35887,7 +35968,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   let totHT=0;
   (d.lignes||[]).forEach((l,i)=>{
     /* v778 : la désignation passe à la ligne (colonne de 237 pt, six lignes au plus) — plus de « … » qui mange la fin d'un devis descriptif */
-    const dl=_pdfEnLignes(l.designation||'',9.2,0,237,6), sup=(dl.length-1)*11;
+    const dl=_pdfEnLignes(l.designation||'',9.2,0,237,48), sup=(dl.length-1)*11;   // v798 : 48 lignes (une page) au lieu de 6 coupées par « … »
     if(y-sup<150) newPage();
     const q=Number(l.qte)||0, pu=Number(l.pu)||0, tot=ligTotLigne(l); totHT+=tot;   // même arrondi que l'écran et l'e-mail
     if(i>0) R(M+10,y+10.5,W-2*M-20,0.5,LINE);   // un filet fin entre les lignes, plus de bandes grises
@@ -35908,12 +35989,27 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   T(RGT-bw+12,y-13,10.5,'TOTAL TTC',1,ON_ACC); TR(RGT-12,y-13,12,eur(ttc),1,ON_ACC);
   y-=36;
 
-  if(d.notes){ const nl=String(d.notes).split(/\n/).slice(0,6); const nh=22+nl.length*12;
-    y-=14; if(y-nh<140) newPage();
-    R(M,y-nh+8,W-2*M,nh,GREENLT);
-    T(M+10,y-6,7.5,'DÉTAIL',1,ACC_T);
-    nl.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,cut(line,100),0,DARK); });
-    y-=nh+6; }
+  /* v798 (un client, capture à l'appui : « Technologie Inverter : adapte automatiquement la puissance… afin de mainte… ») — le
+     DÉTAIL PASSE À LA LIGNE au lieu d'être coupé à 100 signes, et plus de plafond à six lignes. Une puce (•, -, –, *, 1.) garde son
+     retrait sur les lignes suivantes ; le bloc grandit, et s'il ne tient pas, il continue sur la page suivante (« DÉTAIL (SUITE) »).
+     Mesuré par `_pdfLarg` (via `_pdfEnLignes`), écrit par `_pdfTxt` : ce qu'on mesure est ce qu'on écrit. `test-3251`. */
+  if(d.notes){ const LH=12, maxW=W-2*M-22, rows=[];
+    String(d.notes).split(/\r?\n/).forEach(src=>{ const s0=String(src).replace(/\s+$/,'');
+      if(!s0.trim()){ rows.push({x:0,t:''}); return; }
+      const mp=s0.match(/^\s*((?:[•·\-–—*]|\d{1,3}[.)])\s+)/), pre=mp?mp[1].replace(/\s+$/,'')+' ':'', corps=mp?s0.slice(mp[0].length):s0.trim();
+      const ind=pre?_pdfLarg(pre,8.8,0):0;
+      _pdfEnLignes(corps,8.8,0,maxW-ind).forEach((t,k)=>rows.push({x:k?ind:0,t:(k?'':pre)+t})); });
+    while(rows.length&&!rows[rows.length-1].t) rows.pop();
+    y-=14; let i=0, premier=true;
+    while(i<rows.length){
+      const dispo=Math.floor((y-140-22)/LH);
+      if(dispo<2){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; continue; }
+      const n=Math.min(dispo,rows.length-i), nh=22+n*LH;
+      R(M,y-nh+8,W-2*M,nh,GREENLT);
+      T(M+10,y-6,7.5,premier?'DÉTAIL':'DÉTAIL (SUITE)',1,ACC_T);
+      for(let k=0;k<n;k++){ const r=rows[i+k]; if(r.t) T(M+9+r.x,y-19-k*LH,8.8,r.t,0,DARK); }
+      i+=n; premier=false; y-=nh+6;
+      if(i<rows.length){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; } } }
 
   if(y<160) newPage();
   y-=14;
@@ -35923,7 +36019,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
     .concat(tx===0?['TVA non applicable, article 293 B du CGI.']:[])
     .concat(['En cas de retard de paiement : pénalités au taux d\'intérêt légal majoré et indemnité forfaitaire',
              'de recouvrement de 40 EUR (art. L441-10 du Code de commerce). Pas d\'escompte pour paiement anticipé.'])
-    .forEach((t2,k)=>{ T(M,y,8,cut(t2,118),k===0?1:0,k===0?DARK:GREY); y-=11; });
+    .forEach((t2,k)=>{ _pdfEnLignes(t2,8,k===0,W-2*M,4).forEach(t3=>{ T(M,y,8,t3,k===0?1:0,k===0?DARK:GREY); y-=11; }); });   // v798 : l'IBAN ne se coupe plus
     y-=10;
     if(cachet&&cachet.b64){ const ch=50, cw=Math.min(160,Math.round(cachet.w*(ch/cachet.h)));
       if(y-ch<80){ pages.push(ops.join('\n')); ops=[]; R(0,H-4,W,4,GREEN); y=H-M-14; }   // une page de plus, sans en-tête de tableau
@@ -35932,7 +36028,7 @@ function docPdfStr(kind,d,logo,cachet){ const estFact=kind==='factures';
   [ 'Devis valable 30 jours à compter de sa date d\'émission.',
     tx===0?'TVA non applicable, article 293 B du CGI.':'Prix en euros, TVA au taux indiqué ci-dessus.',
     'Bon pour accord : date, signature et mention « Bon pour accord ».'
-  ].forEach(t2=>{ T(M,y,8,cut(t2,110),0,GREY); y-=11; });
+  ].forEach(t2=>{ _pdfEnLignes(t2,8,0,W-2*M,4).forEach(t3=>{ T(M,y,8,t3,0,GREY); y-=11; }); });   // v798 : à la ligne
   y-=10;
   if(cachet&&cachet.b64){ const ch=46, cw=Math.min(150,Math.round(cachet.w*(ch/cachet.h)));
     /* v795 — Justin doute du titre « Pour l’entreprise » au-dessus du cachet : aucun texte ne l’exige (ni L441-9, ni 242 nonies A, ni pour un

@@ -35,7 +35,7 @@ function bloc(motif) {
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour', 'nomEspace', 'nomTechnique',
-  'chargerVersion', 'versionRegler', 'versionExigerLigne', 'versionLever', 'blocVersions', 'carteCanal', 'blocVersionBeta', 'versionBetaPrete', 'versionBetaExiger', 'versionBetaLever',
+  'chargerVersion', 'versionRegler', 'versionExigerLigne', 'versionLever', 'blocVersions', 'canalBandeau', 'carteCanal', 'blocVersionBeta', 'versionBetaPrete', 'versionBetaExiger', 'versionBetaLever',
   'chargerVersionsMsg', 'versionMsgRegler', 'versionMsgExiger', 'versionMsgLever', 'carteMsg', 'blocVersionsMsg',
   'fmtHeure', 'pubSuivre', 'blocPublierMsg', 'publierMsg',          // la carte « Publier OP MESSAGES » (Tour v2.86) : `blocVersionsMsg` l'appelle — un bac à sable qui ne l'a pas MEURT
   'chargerEssais', 'btDeLaConsole', 'btAppsDe', 'btAvec', 'accLigneBeta', 'accBlocBeta', 'accFormBeta', 'vueEssais', 'accBlocPub', 'btApp', 'btChoisirApp', 'btAppsPastilles', 'filtreEff', 'sourcesAff', 'aGestion', 'aMessages', 'filtreApp', 'filtreAffiche'];   // v2.119 : vueEssais est UNE page (la vueEssaisMsg d'avant est sa moitié « filtre Messages »)
@@ -56,7 +56,8 @@ function tour(API, jeton, app, role) {
 }
 const texte = (h) => String(h || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;|&#\d+;/g, ' ').replace(/\s+/g, ' ');
 /* les cartes d'un bloc, une par titre « VERSIONS · … » : on découpe le texte rendu à chaque titre */
-const cartes = (h) => { const t = texte(h), o = {}; t.split(/(?=VERSIONS · )/).forEach(x => { const m = /^VERSIONS · (VERSION PUBLIQUE|BÊTA)/.exec(x); if (m) o[m[1]] = x; }); return o; };
+/* Tour v2.130 : chaque carte s'ouvre sur son bandeau « 🌍 VERSION PUBLIQUE » / « 🧪 BÊTA » (le passage « 🧪 BÊTA → 🌍 PUBLIQUE » n'est pas une carte) */
+const cartes = (h) => { const t = texte(h), o = {}; t.split(/(?=🌍 VERSION PUBLIQUE|🧪 BÊTA)/).forEach(x => { const m = /^(?:🌍 (VERSION PUBLIQUE)|🧪 (BÊTA)(?! →))/.exec(x); if (m) o[m[1] || m[2]] = x; }); return o; };
 function faux(reponse) {
   const etat = { reponse, port: 0 };
   const s = http.createServer((q, r) => { const x = etat.reponse(q); if (!x) { r.writeHead(500); return r.end(); } r.writeHead(200, { 'Content-Type': x.type || 'application/json' }); r.end(x.corps); });

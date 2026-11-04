@@ -6,14 +6,30 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Wed, 28 Oct 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 04 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Facture d’intervention : mentions, délais et facture électronique</title>
+<link>https://teamop.fr/blog/facture-d-intervention.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/facture-d-intervention.html</guid>
+<pubDate>Wed, 04 Nov 2026 06:00:00 GMT</pubDate>
+<description>Facture d’intervention : liste des mentions à cocher, deux factures calculées, délais de paiement, pénalités et calendrier de la facture électronique.</description>
+<enclosure url="https://teamop.fr/blog/img/facture-d-intervention-couverture.webp" type="image/webp" length="52270"/>
+</item>
+<item>
+<title>Gestion de stock camionnette : suivre ce que chaque technicien emporte</title>
+<link>https://teamop.fr/blog/gestion-de-stock-camionnette.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/gestion-de-stock-camionnette.html</guid>
+<pubDate>Mon, 02 Nov 2026 06:00:00 GMT</pubDate>
+<description>Gestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.</description>
+<enclosure url="https://teamop.fr/blog/img/gestion-de-stock-camionnette-couverture.webp" type="image/webp" length="67892"/>
+</item>
 <item>
 <title>Planning des techniciens : organiser la semaine de son équipe</title>
 <link>https://teamop.fr/blog/planning-des-techniciens.html</link>
 <guid isPermaLink="true">https://teamop.fr/blog/planning-des-techniciens.html</guid>
 <pubDate>Wed, 28 Oct 2026 06:00:00 GMT</pubDate>
 <description>Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.</description>
-<enclosure url="https://teamop.fr/blog/img/planning-des-techniciens-couverture.webp" type="image/webp" length="18394"/>
+<enclosure url="https://teamop.fr/blog/img/planning-des-techniciens-couverture.webp" type="image/webp" length="53748"/>
 </item>
 <item>
 <title>Bon d’intervention : modèle, mentions et valeur de preuve</title>
@@ -21,7 +37,7 @@
 <guid isPermaLink="true">https://teamop.fr/blog/bon-d-intervention.html</guid>
 <pubDate>Sun, 25 Oct 2026 06:00:00 GMT</pubDate>
 <description>Bon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.</description>
-<enclosure url="https://teamop.fr/blog/img/bon-d-intervention-couverture.webp" type="image/webp" length="16728"/>
+<enclosure url="https://teamop.fr/blog/img/bon-d-intervention-couverture.webp" type="image/webp" length="55062"/>
 </item>
 <item>
 <title>Signature électronique de devis : valeur, niveaux et marche à suivre</title>

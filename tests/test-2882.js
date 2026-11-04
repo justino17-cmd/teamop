@@ -454,7 +454,7 @@ console.log('\n6. L\'envoi : le message paraît à l\'instant ; un refus se dit 
     const c = monde(); c.ctx.MYROLE = 'collaborateur'; c.ctx.messNonLusCharger(); c.ctx.messReleve();
     v('⛔ un collaborateur : aucune relève (les routes sont au patron seul)', [c.j.appels.length, c.j.timers.length], [0, 0]);
     const g = monde(); g.ctx.messReleve(); g.ctx.messReleve();
-    v('la relève du menu se pose UNE fois (une minuterie de soixante secondes)', g.j.timers.map(t => t.ms), [60000]);
+    v('la relève du menu se pose UNE fois (une minuterie de vingt secondes : le rond d’OP MESSAGES à chaque tour, l’ancienne relève une fois sur trois — v2.127)', g.j.timers.map(t => t.ms), [20000]);
   }
   {
     /* ouvrir : « Parler à X » et les liens */

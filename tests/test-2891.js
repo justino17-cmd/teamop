@@ -238,7 +238,7 @@ globalThis.fetch = async function (url, opts) {
     const fc = await fiche('curieux');
     v('   CONTRE-ÉPREUVE — un paiement rendu range le choix sur une fiche marquée « de paiement »', [r.s, fc && fc.choix && fc.choix.metier, fc && fc.ficheDePaiement], [200, 'chauffage', true]);
     const liste = (await appel('/api/monitor/comptes-site', undefined, PATRON)).j.comptes || [];
-    const lg = x => (liste.find(c => c.email === mail(x)) || {}).aUnEspace;
+    const lg = x => (liste.find(c => c.email === mail(x)) || {}).fiche;   // 2 novembre 2026 : `aUnEspace` dit l'ANNUAIRE, `fiche` la fiche du portail
     v('⛔ un clic sur « Payer » ne fait PAS passer le compte pour « avec espace » ; deux comptes qui ont synchronisé leur espace client (« demande », « paie » : sa fiche relayée a remplacé la fiche de paiement), si', [lg('curieux'), lg('demande'), lg('paie')], [false, true, true]);
     r = await appel('/api/monitor/comptes-site/supprimer', { email: mail('demande') }, PATRON);
     v('   la fiche d\'une vraie entreprise protège toujours le compte (409)', r.s, 409);

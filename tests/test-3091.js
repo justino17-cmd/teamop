@@ -141,7 +141,8 @@ for (const [apps, f, attendu] of [[['gestion', 'messages'], 'tout', ['gestion', 
 {
   /* la rangée de choix : un groupe segmenté, trois boutons, celui du filtre pressé — et rien chez un compte à une seule application */
   const H = bac({ filtre: 'gestion' }).run('filtreApp()');
-  v('filtreApp : « Tout · Gestion · Messages », celui du filtre pressé', [[...H.matchAll(/aria-pressed="(\w+)" onclick="setFiltre\('(\w+)'\)">(\w+)</g)].map(m => m[3] + '=' + m[1])], [['Tout=false', 'Gestion=true', 'Messages=false']]);
+  /* v2.130 (Justin, 31 octobre 2026) : les choix NOMMENT les applications — « OP GESTION + OP MESSAGES · OP GESTION · OP MESSAGES » */
+  v('filtreApp : « OP GESTION + OP MESSAGES · OP GESTION · OP MESSAGES », celui du filtre pressé', [[...H.matchAll(/aria-pressed="(\w+)" onclick="setFiltre\('(\w+)'\)">(.*?)<\/button>/g)].map(m => m[3].replace(/<[^>]+>/g, '') + '=' + m[1])], [['OP GESTION + OP MESSAGES=false', 'OP GESTION=true', 'OP MESSAGES=false']]);
   v('⛔ un compte à une seule application : aucune rangée (ni « Tout », ni l’autre)', [bac({ apps: ['gestion'] }).run('filtreApp()'), bac({ apps: ['messages'], filtre: 'gestion' }).run('filtreApp()')], ['', '']);
   const aff = (tab, extra) => { const b = bac(); b.run('TAB=' + JSON.stringify(tab) + '; ' + (extra || '')); return b.run('filtreAffiche()'); };
   v('le filtre se pose SEULEMENT sur les vues qui mélangent les deux sources : Incidents, Surveillance, Abonnements (sa liste), Journal, Accès, Équipe, Sauvegardes',

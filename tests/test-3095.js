@@ -209,6 +209,14 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       const mien = (await msgs(parNom['Victor'])).filter(m => m.texte && /MARQ-tour1/.test(m.texte));
       v('…avec, dans le même fil, le message de Justin recopié (à son nom) puis la réponse (au nom du robot de Victor)', mien.map(m => m.auteur === justin.moi.id ? 'justin' : 'robot'), ['justin', 'robot']);
       v('⛔ l\'agent n\'a été réveillé qu\'UNE fois (rien ne boucle : ce qui est recopié ne revient pas)', [recus.slice(n0).filter(r => r.marq === 'MARQ-tour1').length, (await tour.fil('victor')).filter(m => /MARQ-tour1/.test(m.texte)).length], [1, 2]);
+      /* v2.127 — la pastille « Messagerie » de la Tour suit OP MESSAGES : la réponse de Victor est un non-lu de Justin ; tout lu, plus rien */
+      const nl1 = await tour.api('GET', '/api/monitor/opmsg-nonlus');
+      vrai('⛔ la Tour lit les non-lus de Justin dans OP MESSAGES (la réponse de Victor en est un)', nl1.code === 200 && nl1.j.pont === true && Number.isInteger(nl1.j.nonLus) && nl1.j.nonLus >= 1, JSON.stringify(nl1.j));
+      for (const c of await convs()) if (c.non_lus > 0) await justin.post('/api/conversations/' + c.id + '/lu', { seq: c.dernier_seq });
+      const nl2 = await tour.api('GET', '/api/monitor/opmsg-nonlus');
+      v('⛔ … et dès que Justin a tout lu dans OP MESSAGES, la Tour lit 0 (le rond s\'éteint)', [nl2.code, nl2.j.nonLus], [200, 0]);
+      const anonyme = await fetch(tour.base + '/api/monitor/opmsg-nonlus');
+      vrai('… route réservée au patron (sans session : refusée)', [401, 403].includes(anonyme.status));
     }
 
     /* ── 3 · Justin écrit dans OP MESSAGES ── */

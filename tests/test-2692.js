@@ -95,8 +95,9 @@ console.log('\n1. Le montage');
   const obs = /app\.use\(\[([^\]]*)\], cleEquipeObserve\);/.exec(CODE);
   const observe = obs ? obs[1].split(',').map(x => x.trim().replace(/['"]/g, '')) : [];
   vrai('population : la garde est montée (et la liste de ce qu\'elle garde est lue)', exige.length > 0 && observe.length > 0, { exige, observe });
-  v('elle garde les deux routes de lecture, les trois qui agissent, et la traduction (20 octobre 2026) — et elles seules',
-    exige.slice().sort(), ['/api/mail/traduire', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailboxes', '/api/replies', '/api/sendmail']);
+  /* 4 novembre 2026 : plus `/api/mailbox/oauth/start` (connecter une boîte par autorisation : il agit au nom de l'entreprise, `test-3247`). */
+  v('elle garde les deux routes de lecture, les quatre qui agissent, et la traduction (20 octobre 2026) — et elles seules',
+    exige.slice().sort(), ['/api/mail/traduire', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/mailboxes', '/api/replies', '/api/sendmail']);
   vrai('chacune est AUSSI observée (req.cleEquipe est posé par l\'observation)', exige.every(r => observe.includes(r)));
   vrai('et la garde est montée APRÈS l\'observation (montée avant, elle refuserait tout le monde)',
     CODE.indexOf('], cleEquipeObserve);') > 0 && CODE.indexOf('], cleEquipeObserve);') < CODE.indexOf('], cleEquipeExige);'));

@@ -111,17 +111,20 @@ async function principal(slug, dossier) {
   let html = fs.readFileSync(fragment, 'utf8');
   fs.mkdirSync(dossier, { recursive: true });
   const man = { couverture: null, figures: [], retirees: [], modele: null };
-  const dire = t => console.log('blog-gemini : ' + t);
+  /* ⛔ UN REFUS DE GEMINI SE VOIT. Jusqu'au 2 novembre 2026 il n'était qu'une ligne du journal : trois articles (25 octobre,
+     28 octobre, 2 novembre) sont partis sans photo, sur un « HTTP 429 — quota dépassé » que personne n'a lu. Il devient un
+     avertissement GitHub (jaune, en tête du résumé de l'exécution) ; l'article part toujours. */
+  const dire = (t, alerte) => console.log((alerte && process.env.GITHUB_ACTIONS ? '::warning::' : '') + 'blog-gemini : ' + t);
 
   const photos = path.join(SOURCES, 'photos');
   const dejaPhoto = fs.existsSync(photos) && fs.readdirSync(photos).some(f => f.startsWith(slug + '.'));
   const attente = figuresEnAttente(html);
 
   let mod = null;
-  if (!CLE) dire('pas de clé GEMINI_API_KEY : couverture sans photo, figures en attente retirées');
+  if (!CLE) dire('pas de clé GEMINI_API_KEY : couverture sans photo, figures en attente retirées', true);
   else if (!dejaPhoto || attente.length) {
     try { mod = await modele(); man.modele = mod; dire('modèle ' + mod); }
-    catch (e) { dire('Gemini injoignable (' + e.message + ') : on publie sans ses images'); }
+    catch (e) { dire('Gemini injoignable (' + e.message + ') : on publie sans ses images', true); }
   }
 
   if (mod && !dejaPhoto && fiche.photo !== false) {
@@ -131,7 +134,7 @@ async function principal(slug, dossier) {
       man.couverture = path.join(photos, slug + '.' + img.ext);
       fs.writeFileSync(man.couverture, img.octets);
       dire('photo de couverture : ' + img.octets.length + ' octets');
-    } catch (e) { dire('photo de couverture refusée (' + e.message + ') : le panneau seul'); }
+    } catch (e) { dire('photo de couverture refusée (' + e.message + ') : le panneau seul', true); }
   }
 
   for (const [i, f] of attente.entries()) {
@@ -145,7 +148,7 @@ async function principal(slug, dossier) {
         html = html.replace(f.bloc, f.bloc.replace(/\s*data-gemini="[^"]*"/, ''));
         fait = true;
         dire('figure ' + f.src + ' : ' + img.octets.length + ' octets');
-      } catch (e) { dire('figure ' + f.src + ' refusée (' + e.message + ')'); }
+      } catch (e) { dire('figure ' + f.src + ' refusée (' + e.message + ')', true); }
     }
     if (!fait) {
       /* ni figure vide ni image d'attente en ligne : le bloc part, son fichier aussi */

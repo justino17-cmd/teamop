@@ -343,7 +343,10 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   console.log('4 bis. le prix se dit TTC partout');
   const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta)\.html$/;
   const DIT_HT = /\bPrix HT\b|\bHT\s*\/\s*mois|\bHT par mois|€\s*HT\b/, HORS_TAXES = /hors[ -]taxes?/i;
-  const relus = SERVIS.filter(f => !APPLICATIONS.test(f));
+  /* Les articles du blog qui expliquent la facture D'UN ARTISAN (ses mentions obligatoires, ses totaux hors taxe, l'autoliquidation) :
+     « HT » y est le sujet, pas un prix de TEAM OP. Nommés un par un, et chacun doit encore en avoir besoin (contrôle ci-dessous). */
+  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html'];
+  const relus = SERVIS.filter(f => !APPLICATIONS.test(f) && ARTICLES_FACTURE.indexOf(f) < 0);
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
   const ht = [];
   for (const f of relus) {
@@ -353,6 +356,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     if (m) ht.push(f + ' : « ' + t.slice(Math.max(0, m.index - 30), m.index + m[0].length + 10).replace(/\s+/g, ' ') + ' »');
   }
   v('⛔ aucune page servie n\'écrit « HT » pour un prix', ht, []);
+  for (const f of ARTICLES_FACTURE) vrai('l\'article ' + f + ' parle encore de la facture d\'un artisan en hors taxe (sinon : le retirer de ARTICLES_FACTURE)', existe(f) && /€\s*HT\b|hors[ -]taxes?/i.test(lire(f)));
   for (const f of ECART_APPLICATION) if (existe(f)) vrai('l\'écart déclaré pour ' + f + ' sert encore (sinon : le retirer d\'ici et de test-835)', PROMESSE.test(sansCommentaires(lire(f))));
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

@@ -460,5 +460,18 @@ tests/test-3233.js
 # 30 octobre 2026 : plancher relevé de 11802 à 11992 (+190 sur les 196 vérifications des suites 3200 à 3204, jamais le total moins rien : le total exact se mesure par la commande de la porte, sur la machine de la CI).
 # 30 octobre 2026 : `test-3225` (Justin lit et valide un mail de Pauline DEPUIS OP MESSAGES : le texte du mail dans l'annonce, OUI/OK n accepte par `decider`, texte coupé = OUI refusé, 409 et échecs dits, rien du corps au journal, le lien ouvre l'ancienne messagerie de la Tour sur l'ancre, Tour v2.122) — le vrai `pauline.js` et le vrai `pont-messages.js` contre un faux OP MESSAGES, plus les vraies fonctions de `tour.html`.
 tests/test-3225.js
+tests/test-3150.js
+# 2 novembre 2026 : `test-3237` (une entreprise, un nom dans la Surveillance : « Toka Clim » et « toka-clim-33xz » ne font plus deux lignes — le nom de l'annuaire à l'arrivée d'un rapport, les entrées déjà écrites réunies à la lecture). Le vrai serveur, sans lire une page. 17 vérifications.
+tests/test-3237.js
+# 3 novembre 2026 : `test-3239` (la bêta a le Devis IA d'office, moteur « Au choix », visible et réglable dans la Tour ; changer le moteur ne coupe plus le Devis IA). Le vrai serveur, trois démarrages. 11 vérifications.
+tests/test-3239.js
+# 4 novembre 2026 : `test-3243` (les conditions particulières d'OP GESTION et les agents ne promettent plus le logo ni la couleur dans l'application ; révision « logo-documents-2026-11-04 » déposée UNE fois en brouillon sur le registre du VPS). Le vrai module des contrats. 19 vérifications.
+tests/test-3243.js
+# 4 novembre 2026 : `test-3244` (un document qu'une entreprise envoie à son client par le serveur de TEAM OP ne laisse RIEN chez nous : ni copie cachée, ni destinataire, objet ou texte au journal ; Reply-To = l'adresse de l'annuaire ; les e-mails de TEAM OP gardent leur copie). Le vrai serveur, un facteur SMTP qui lit l'enveloppe. 24 vérifications.
+tests/test-3244.js
+# 4 novembre 2026 : `test-3245` (Camille ne lit ni ne classe la réponse d'un client final à un document d'entreprise ; rien ne part chez Claude). Les vrais modules des agents. 10 vérifications.
+tests/test-3245.js
+# 4 novembre 2026 : `test-3247` (une boîte Microsoft ou Google se connecte par autorisation OAuth, sans mot de passe : routes inertes sans réglage, preuve de clé au départ, state signé à usage unique + PKCE, jeton de renouvellement chiffré, envoi en XOAUTH2, rafraîchissement et rotation, invalid_grant → « à reconnecter », rien de secret au journal). Le vrai serveur, un faux fournisseur, un faux SMTP XOAUTH2. 39 vérifications.
+tests/test-3247.js
 tests/test-3246.js
 # 4 novembre 2026 : `test-3246` (essai des mails de A à Z) — /api/bug ne garde ni adresse ni domaine d'entreprise ; une boîte demandée et introuvable → 409, jamais le SMTP de TEAM OP. MUTER=1 le fait tomber.

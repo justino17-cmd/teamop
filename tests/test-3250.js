@@ -73,6 +73,7 @@ const monde = (o) => {
     function esc(x){ return String(x==null?'':x); } function entPose(k,v){ db.entreprise[k]=v; } function save(){ __saves=(typeof __saves==='number'?__saves:0)+1; } var __saves=0;
     function confirm(m){ __confirms.push(String(m)); return ${o.confirm ? 'true' : 'false'}; }
     function mailConnect(){ openModal('<h3>Connecter une boîte mail</h3>'); }
+    function oauthBoutonsHtml(){ return '<div class="oauth-boutons"></div>'; } function oauthBoutonsMontrer(){}   // v798 : « Se connecter avec Google » (test-3252 le joue contre le vrai serveur)
     ${FN}
     this.srvMail=srvMail; this.poser=l=>{ _mailboxes=l; }; this.err=()=>_srvMailErr; this.ent=()=>db.entreprise; this.enregistrer=envoiAdresseEnregistrer;`, W);
   return W;

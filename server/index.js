@@ -286,12 +286,54 @@ function mailProtegeNouveau() {
   catch (e) { console.error('mails-proteges.json non écrit :', e.code || 'erreur disque'); }
   return '<' + id + '>';
 }
+/* ⛔⛔ UN DOCUMENT QU'UNE ENTREPRISE ENVOIE À SON CLIENT NE LAISSE RIEN CHEZ TEAM OP (Justin, 4 novembre 2026, capture de la Tour : « je
+   reçois les factures de certaines entreprises »). Le « mode simple » de `/api/sendmail` (l'entreprise n'a connecté ni boîte ni SMTP)
+   passait par cette fonction : la copie cachée ci-dessous partait donc à contact@teamop.fr — devis, facture, bon, rapport, PDF compris
+   — et le journal gardait le destinataire, l'objet et 2 000 caractères du texte. Ce sont les données du client de NOTRE client : elles
+   n'ont rien à faire chez nous (`sous-traitance.html`). Un envoi marqué `pourEntreprise` (l'identifiant d'espace) ne reçoit AUCUNE copie
+   et ne laisse au journal qu'une trace sans contenu : la date, l'espace, parti ou non. Les e-mails de TEAM OP lui-même gardent leur copie.
+   `tests/test-3244.js`. */
+function mailsJournalEntreprise(t) {
+  try {
+    const ent = { ts: Date.now(), a: '(client de l’entreprise — non conservé)', sujet: '📄 Document envoyé au nom d’une entreprise',
+      txt: 'Envoyé par le serveur de TEAM OP au nom de l’espace ' + String(t || '?').slice(0, 80) + '. Ni destinataire, ni objet, ni contenu ne sont conservés.' };
+    mailsLog.unshift(ent);
+    if (mailsLog.length > 300) mailsLog.length = 300; mailsSave();
+    return ent;
+  } catch (e) { return null; }
+}
+/* Le registre des envois faits AU NOM d'une entreprise : leur seul Message-ID, l'espace et la date — rien d'autre, ni adresse ni objet.
+   Il sert à UNE chose : reconnaître la réponse d'un client final qui arriverait quand même chez nous (une ancienne copie, une entreprise
+   sans adresse dans l'annuaire) pour que Camille ne la lise ni ne la classe (`agent-camille.js`, `reponseAEnvoiEntreprise`). 90 jours,
+   5 000 lignes au plus, écrit par temporaire puis renommage. */
+const ENVOIS_ENT_PATH = path.join(DATA_DIR, 'envois-entreprises.json');
+const ENVOIS_ENT_JOURS = 90;
+let envoisEnt = [];
+try { const l = JSON.parse(fs.readFileSync(ENVOIS_ENT_PATH, 'utf8')); if (Array.isArray(l)) envoisEnt = l.filter(x => x && typeof x.mid === 'string'); } catch (e) {}
+let envoisEntSet = new Set(envoisEnt.map(x => midNorm(x.mid)));
+function envoiEntNoter(t) {
+  const dom = (adrNue((config.smtp && (config.smtp.from || config.smtp.user)) || '').split('@')[1] || '').replace(/[^a-z0-9.-]/g, '') || 'teamop.fr';
+  const id = require('crypto').randomBytes(16).toString('hex') + '.doc@' + dom;
+  const limite = Date.now() - ENVOIS_ENT_JOURS * 86400000;
+  envoisEnt = envoisEnt.filter(x => (x.ts || 0) > limite).concat({ mid: id, t: String(t || '').slice(0, 80), ts: Date.now() }).slice(-5000);
+  envoisEntSet = new Set(envoisEnt.map(x => midNorm(x.mid)));
+  try { fs.writeFileSync(ENVOIS_ENT_PATH + '.tmp', JSON.stringify(envoisEnt)); fs.renameSync(ENVOIS_ENT_PATH + '.tmp', ENVOIS_ENT_PATH); }
+  catch (e) { console.error('envois-entreprises.json non écrit :', e.code || 'erreur disque'); }
+  return '<' + id + '>';
+}
+/* Un mail reçu qui RÉPOND (In-Reply-To ou References) à un envoi fait au nom d'une entreprise. */
+function reponseAEnvoiEntreprise(refs) {
+  const liste = [].concat(refs || []).join(' ').split(/\s+/).map(midNorm).filter(Boolean);
+  return liste.some(k => envoisEntSet.has(k));
+}
 function mailerEnvoi(opts) {
   // confidentiel : code de sécurité ou mot de passe → jamais journalisé ni copié
   const secret = opts.confidentiel === true || /code/i.test(String(opts.subject || ''));
+  const pourEntreprise = opts.pourEntreprise ? String(opts.pourEntreprise) : '';
   // trace : ce qu'on garde d'un e-mail confidentiel (destinataire, lien envoyé, espace…) — jamais le secret lui-même
-  const ent = mailsJournal(opts.to, opts.subject, opts.text, secret, opts.trace);
-  const o2 = Object.assign({}, opts); delete o2.confidentiel; delete o2.trace; delete o2.diffusion;
+  const ent = pourEntreprise ? mailsJournalEntreprise(pourEntreprise) : mailsJournal(opts.to, opts.subject, opts.text, secret, opts.trace);
+  const o2 = Object.assign({}, opts); delete o2.confidentiel; delete o2.trace; delete o2.diffusion; delete o2.pourEntreprise;
+  if (pourEntreprise) { delete o2.bcc; delete o2.cc; o2.messageId = envoiEntNoter(pourEntreprise); }
   /* ⛔ AUCUN COURRIEL NE PART SANS EXPÉDITEUR (23 octobre 2026). Les trois courriels du portail (`comptes.js` : confirmation d'adresse,
      changement d'adresse, mot de passe) n'en donnaient pas : nodemailer les envoyait sans « From: », avec « MAIL FROM:<> » et un
      identifiant « @localhost » — Gmail refuse un tel message, et les autres le rangent en indésirables. Chaque client qui s'inscrivait
@@ -303,7 +345,14 @@ function mailerEnvoi(opts) {
        écrit à un client. Elle devient nuisible sur une diffusion : l'annonce revient UNE FOIS PAR
        ENTREPRISE dans la boîte support. Avec deux entreprises c'est déjà deux copies ; avec
        cinquante, les vrais messages clients sont noyés. */
-    if (moi && !secret && !opts.diffusion && String(opts.to || '').toLowerCase() !== moi) o2.bcc = moi;
+    /* ⛔⛔ ON COMPARE DES ADRESSES, PAS DES CHAÎNES — ET UNE BOÎTE DE L'ÉQUIPE NE REÇOIT JAMAIS SA PROPRE COPIE (Justin, 2 novembre
+       2026 : « je reçois les mails en double, c'est une horreur »). `moi` vaut souvent « TeamOP <contact@teamop.fr> » (`set-smtp.sh`) et
+       un avis interne part à « contact@teamop.fr » (`contactEmail`, `alertEmail`) : les deux CHAÎNES diffèrent, la copie cachée partait
+       donc vers la boîte même qui recevait l'original — chaque avis arrivait deux fois. Pareil quand l'avis va à une autre adresse de
+       l'équipe qui aboutit chez Justin. On compare l'adresse nue de CHAQUE destinataire à toutes les adresses internes. */
+    const nus = String(opts.to || '').split(',').map(adrNue).filter(Boolean);
+    const internes = new Set([moi, config.notifDemandes, config.contactEmail, config.alertEmail, config.securiteEmail, config.smtp && config.smtp.from, config.smtp && config.smtp.user].map(adrNue).filter(Boolean));
+    if (moi && !secret && !pourEntreprise && !opts.diffusion && nus.length && !nus.some(a => internes.has(a))) o2.bcc = moi;
     // un e-mail confidentiel adressé à notre boîte de sécurité : la Tour ne le cache ni ne l'efface (voir plus haut)
     if (secret && adrNue(opts.to) && adrNue(opts.to) === adrNue(supprDest())) o2.messageId = mailProtegeNouveau();
   } catch (e) {}
@@ -681,7 +730,7 @@ process.on('unhandledRejection', (r) => {
    surveillance horaire de GitHub lit une fois par heure — une question à Max faussait la surveillance. `vider` n'est donc VRAI que pour la
    route publique ; un agent appelle `santeCorps(false)`, mêmes champs, aucune fenêtre touchée. */
 app.get('/health', (req, res) => res.json(santeCorps(true)));
-function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), oauth: boiteOauth.disponibles(), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* LE PONT VERS OP MESSAGES (28 octobre 2026) : DEUX NOMBRES, présents SEULEMENT quand le pont est monté — les minutes d'échec d'affilée (la surveillance crie à 30) et la taille de la file (elle crie à 1 000 sur 2 000). Jamais un texte, un fil, un identifiant. */
   ...(pontMessages ? { pont: pontMessages.sante() } : {}),
   /* Ce que la messagerie des agents a REFUSÉ dans la dernière heure, en deux NOMBRES (28 octobre 2026) : `horaire` — un agent qui travaille SEUL a buté sur ses plafonds horaires (12 messages par heure, 20 par
@@ -1169,39 +1218,23 @@ app.post('/api/bug', (req, res) => {
    un relais à spam offert à Internet. Le quota par IP borne le reste — au pire du bruit
    dans la boîte de l'équipe, et seulement dix fois par heure. */
 const compteQuota = new Map();
+/* ⛔⛔ UNE INSCRIPTION = UN SEUL AVIS À L'ÉQUIPE (Justin, 2 novembre 2026 : « je reçois les mails en double »). Cette route envoyait
+   « 🎉 Nouveau compte sur teamop.fr » tout de suite, ET le passage des comptes (`scannerComptes`, toutes les dix minutes) envoyait
+   « 👤 Nouveau compte sur le site » pour le même compte : deux courriels par inscription. C'est le passage qui reste — il lit NOS comptes
+   (`comptes.js`), cette route n'est qu'une déclaration publique que n'importe qui peut appeler. Elle ne fait plus que retenir, une heure,
+   le prénom, le nom et l'entreprise tapés à l'inscription (`comptes.js` ne les reçoit pas) : l'avis du passage les reprend. Rien ne part
+   d'ici, rien n'entre dans les journaux. */
+const nomsInscription = new Map();   // adresse → { prenom, nom, societe, ts }, une heure au plus, 2 000 adresses au plus
 app.post('/api/nouveau-compte', (req, res) => {
   const b = req.body || {};
   const email = monStr(b.email, 160).trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'adresse invalide' });
   if (compteQuota.size > 5000) compteQuota.clear();
   if (!quotaOk(compteQuota, 'ip:' + (req.ip || '?'), 10, 3600000)) return res.json({ ok: true, muted: true });
-  const prenom = monStr(b.prenom, 60).trim(), nom = monStr(b.nom, 60).trim();
-  const societe = monStr(b.company, 120).trim();
-  const qui = ((prenom + ' ' + nom).trim() || '(nom non renseigné)');
-  /* Rien de tout cela ne part dans les journaux : ce sont des données personnelles,
-     elles ne vont que dans l'e-mail adressé à l'équipe. */
-  if (mailer) {
-    const to = config.alertEmail || config.contactEmail || 'contact@teamop.fr';
-    mailerEnvoi({
-      from: config.smtp.from || config.smtp.user, to,
-      subject: '🎉 Nouveau compte sur teamop.fr — ' + (societe || qui),
-      text: 'Un compte vient d\'être créé sur l\'espace client.\n\nEntreprise : ' + (societe || '—')
-        + '\nPersonne : ' + qui + '\nAdresse : ' + email
-        + '\n\nLa fiche est dans la Tour de contrôle, onglet Entreprises.',
-      html: mailTeamOP({ chip: 'Inscription', chipBg: '#E8F5EE', chipColor: '#0A7A52',
-        titre: '🎉 Nouveau compte — ' + (societe || qui),
-        corpsHtml: 'Un compte vient d\'être créé sur l\'espace client de teamop.fr.',
-        blocHtml: '<div style="font-size:14px;line-height:1.9">'
-          + '<b>Entreprise :</b> ' + (societe || '—') + '<br>'
-          + '<b>Personne :</b> ' + qui + '<br>'
-          + '<b>Adresse :</b> ' + email + '</div>',
-        boutonTxt: 'Ouvrir la Tour de contrôle', boutonUrl: 'https://teamop.fr/tour.html' })
-    }).catch(e => console.error('mail nouveau compte:', e.message));
-  }
-  /* ⛔ LÉA N'EST PAS APPELÉE D'ICI. Cette route est PUBLIQUE et ne prouve aucune adresse : y déclencher Léa laissait un anonyme épuiser ses 20 appels du
-     jour, remplir la file de validations de Justin (le vrai prospect du lendemain recevait « file pleine ») et lui faire valider un courriel à l'adresse
-     de son choix (relecture adverse, 23 octobre 2026). Son premier déclencheur est la PREMIÈRE synchro d'un compte dont l'adresse est PROUVÉE
-     (`/api/clients/sync`, plus bas) — le courriel à l'équipe ci-dessus, lui, reste ici. */
+  const maintenant = Date.now();
+  for (const [k, v] of nomsInscription) if (maintenant - v.ts > 3600000) nomsInscription.delete(k);
+  if (nomsInscription.size < 2000 && !nomsInscription.has(email))
+    nomsInscription.set(email, { prenom: monStr(b.prenom, 60).trim(), nom: monStr(b.nom, 60).trim(), societe: monStr(b.company, 120).trim(), ts: maintenant });
   res.json({ ok: true });
 });
 
@@ -1212,8 +1245,21 @@ const REPLIES_PATH = path.join(DATA_DIR, 'replies.jsonl');
 const SENTMAP_PATH = path.join(DATA_DIR, 'sentmap.jsonl');
 let sentMap = [];
 try { sentMap = fs.readFileSync(SENTMAP_PATH, 'utf8').trim().split('\n').map(l => JSON.parse(l)).slice(-2000); } catch (e) {}
+/* ⛔ (4 novembre 2026) `sentmap.jsonl` garde l'adresse du CLIENT de l'entreprise : il ne sert qu'à rattacher les réponses arrivées dans la
+   boîte commandes PARTAGÉE (`config.imap`, relevée par `releveBoite`). Sans elle, il ne sert à rien : rien ne s'écrit. Avec elle, 90 jours
+   au plus, et le fichier se réécrit sans les lignes échues. */
+const SENTMAP_JOURS = 90;
+function sentMapPurger() {
+  const limite = Date.now() - SENTMAP_JOURS * 86400000, avant = sentMap.length;
+  sentMap = sentMap.filter(x => x && (x.ts || 0) > limite).slice(-2000);
+  if (sentMap.length !== avant) {
+    try { fs.writeFileSync(SENTMAP_PATH + '.tmp', sentMap.map(x => JSON.stringify(x)).join('\n') + (sentMap.length ? '\n' : '')); fs.renameSync(SENTMAP_PATH + '.tmp', SENTMAP_PATH); } catch (_) {}
+  }
+}
 function rememberSent(teamId, bonNum, to) {
+  if (!(config.imap && config.imap.user)) return;
   const e = { ts: Date.now(), teamId: String(teamId).slice(0, 80), bonNum: String(bonNum).slice(0, 30).toUpperCase(), to: String(to || '').toLowerCase().slice(0, 120) };
+  sentMapPurger();
   sentMap.push(e); if (sentMap.length > 3000) sentMap = sentMap.slice(-2000);
   try { fs.appendFileSync(SENTMAP_PATH, JSON.stringify(e) + '\n'); } catch (_) {}
 }
@@ -1228,6 +1274,28 @@ mailboxes = coffreBoites.lire(MAILBOX_PATH, {});
 // migration éventuelle depuis l'ancien format "teamId|userId"
 for (const k of Object.keys(mailboxes)) { const b = mailboxes[k]; if (!b.id) { b.id = 'mb' + Math.random().toString(36).slice(2, 9); mailboxes[b.id] = b; delete mailboxes[k]; } }
 function saveMailboxes() { return coffreBoites.ecrire(MAILBOX_PATH, mailboxes); }   // temporaire + renommage, mots de passe chiffrés ; rend false (et le dit) si non écrit
+/* ══ BOÎTES CONNECTÉES PAR AUTORISATION (OAuth — Microsoft, Google), 4 novembre 2026 ══ (`boite-oauth.js`)
+   Une boîte OAuth porte `auth:'oauth'` et `fournisseur` ; son `pass` est le JETON DE RENOUVELLEMENT, donc chiffré au repos par
+   le même coffre qu'un mot de passe. ⛔ Toute connexion SMTP/IMAP à une boîte d'entreprise passe par `authBoite` : présenter
+   `b.pass` en mot de passe pour une boîte OAuth enverrait le jeton de renouvellement à un serveur qui n'en veut pas. */
+const boiteOauth = require('./boite-oauth').creer({ config });
+function oauthRotation(b, neuf) { const m = b && b.id && mailboxes[b.id]; if (m) { m.pass = neuf; saveMailboxes(); } }
+async function authBoite(b, pour) {
+  if (b.auth !== 'oauth') return { user: b.email, pass: b.pass };
+  try { return pour === 'smtp' ? await boiteOauth.authSmtp(b, oauthRotation) : await boiteOauth.authImap(b, oauthRotation); }
+  catch (e) {
+    if (e.code === 'a_reconnecter' && b.id && mailboxes[b.id] && mailboxes[b.id].etat !== 'a_reconnecter') { mailboxes[b.id].etat = 'a_reconnecter'; saveMailboxes(); }
+    throw e;
+  }
+}
+/* Les options de transport SMTP d'une boîte : 587 = STARTTLS exigé (Microsoft), 465 = TLS direct. `tlsAucun` n'existe que
+   pour les bancs (serveurs surchargés par TEAMOP_OAUTH_SERVEURS) : un vrai fournisseur ne le reçoit jamais. */
+function transportBoite(b, auth) {
+  const o = { host: b.smtpHost, port: b.smtpPort, secure: b.smtpPort === 465, auth, connectionTimeout: 15000, greetingTimeout: 15000 };
+  if (b.smtpPort === 587) o.requireTLS = true;
+  if (b.tlsAucun) { o.secure = false; o.requireTLS = false; o.ignoreTLS = true; }
+  return o;
+}
 // Détection automatique des serveurs selon le domaine
 function mailServers(email) {
   const dom = String(email || '').split('@')[1] || '';
@@ -1263,7 +1331,7 @@ function mailServers(email) {
    C'est exactement le mode de panne silencieuse que ce dépôt a déjà payé. On mesure d'abord
    — /api/mail/cles, protégée — et on ne ferme que lorsque le compte « sans preuve » est à
    zéro pour les espaces vivants. */
-app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail', '/api/mail/traduire', '/api/subscribe', '/api/notify'], cleEquipeObserve);
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire', '/api/subscribe', '/api/notify'], cleEquipeObserve);
 
 /* ══ PHASE 2 — 11 septembre 2026 : LES DEUX ROUTES QUI LISENT REFUSENT VRAIMENT ══
    Elles ne demandaient qu'un teamId dans l'URL. /api/mailboxes rendait les adresses de
@@ -1394,8 +1462,8 @@ const mailRefus = { n: 0, parMotif: Object.create(null), parRoute: Object.create
    appels depuis la v572, et le minimum exigé en ligne (/api/version) est bien au-delà.
    `/api/subscribe` et `/api/notify` restent OBSERVÉES : `espace.html` et `messages.html` les appellent sans jamais envoyer
    de preuve, leur fermer la porte les couperait. */
-const ROUTES_MAIL_REFUS_JSON = ['mailbox/connect', 'mailbox/disconnect', 'sendmail'];
-app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail', '/api/mail/traduire'], cleEquipeExige);
+const ROUTES_MAIL_REFUS_JSON = ['mailbox/connect', 'mailbox/disconnect', 'mailbox/oauth/start', 'sendmail'];
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire'], cleEquipeExige);
 
 /* Le nombre d'essais de connexion à une boîte, par IP et par heure. La route tente un
    SMTP puis un IMAP chez le fournisseur et RENVOIE son message d'erreur : sans borne,
@@ -1453,15 +1521,65 @@ app.post('/api/mailbox/connect', async (req, res) => {
   res.json({ ok: true, id, email });
   importHistorique(mailboxes[id]).catch(() => {});   // les anciens mails de la boîte arrivent dans l'app (en arrière-plan)
 });
+/* ── Connexion par autorisation (Microsoft, Google), 4 novembre 2026 ──
+   `start` est sous la MÊME preuve de clé que `connect` (montée plus haut). `retour` arrive par le navigateur, depuis le
+   fournisseur, sans clé : c'est le `state` signé, à usage unique, qui dit quel espace a demandé — rien du corps ni de la requête
+   n'en décide autrement. */
+const oauthQuota = new Map();
+const espaceConnuBoite = (t) => !!espaceParT(t) || Object.values(subs).some(x => abonneEntreprise(x, t)) || !!cnxData[t];
+app.post('/api/mailbox/oauth/start', (req, res) => {
+  if (oauthQuota.size > 5000) oauthQuota.clear();
+  if (!quotaOk(oauthQuota, 'ip:' + (req.ip || '?'), 30, 3600000)) return res.status(429).json({ error: 'trop d\'essais de connexion — réessaie dans une heure' });
+  const b = req.body || {};
+  const teamId = String(b.teamId || b.t || '').slice(0, 80);
+  if (!teamId || !espaceConnuBoite(teamId)) return res.status(403).json({ error: 'espace inconnu du serveur' });
+  try { res.json(boiteOauth.demarrer({ fournisseur: String(b.fournisseur || ''), t: teamId })); }
+  catch (e) { res.status(e.statut || 400).json({ error: e.message, code: e.code }); }
+});
+function pageRetourOauth(ok, message) {
+  const esc = (x) => String(x || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const donnee = JSON.stringify({ type: 'teamop-boite', ok: !!ok, message: String(message || '').slice(0, 200) }).replace(/</g, '\\u003c');
+  return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OP GESTION — boîte mail</title>'
+    + '<style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0f1729;color:#e8edf6;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:16px}'
+    + '.c{max-width:420px;text-align:center}.i{font-size:46px}h1{font-size:20px;margin:10px 0}p{color:#aeb9cf;line-height:1.5}</style></head><body><div class="c">'
+    + '<div class="i">' + (ok ? '✅' : '⚠️') + '</div><h1>' + (ok ? 'Boîte connectée' : 'Connexion non terminée') + '</h1><p>' + esc(message) + '</p>'
+    + '<p>' + (ok ? 'Tu peux revenir dans OP GESTION.' : 'Reviens dans OP GESTION et recommence.') + '</p></div>'
+    + '<script>(function(){var d=' + donnee + ';try{if(window.opener){["https://teamop.fr","https://www.teamop.fr"].forEach(function(o){try{window.opener.postMessage(d,o)}catch(e){}});setTimeout(function(){window.close()},1500)}}catch(e){}})();</script></body></html>';
+}
+app.get('/api/mailbox/oauth/retour', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store'); res.setHeader('Referrer-Policy', 'no-referrer');
+  if (oauthQuota.size > 5000) oauthQuota.clear();
+  if (!quotaOk(oauthQuota, 'r:' + (req.ip || '?'), 30, 3600000)) return res.status(429).type('html').send(pageRetourOauth(false, 'Trop d\'essais — réessaie dans une heure.'));
+  const q = req.query || {};
+  if (q.error) return res.status(400).type('html').send(pageRetourOauth(false, 'Autorisation refusée ou annulée.'));
+  let r;
+  try { r = await boiteOauth.retour({ code: q.code, state: q.state }); }
+  catch (e) { return res.status(e.statut && e.statut < 500 ? e.statut : 400).type('html').send(pageRetourOauth(false, e.message)); }
+  if (!espaceConnuBoite(r.t)) return res.status(403).type('html').send(pageRetourOauth(false, 'Espace inconnu du serveur.'));
+  const srv = boiteOauth.serveurs(r.fournisseur);
+  const ex = Object.values(mailboxes).find(b => b.teamId === r.t && String(b.email).toLowerCase() === r.email);
+  const id = ex ? ex.id : ('mb' + Math.random().toString(36).slice(2, 9));
+  const boite = { id, teamId: r.t, email: r.email, pass: r.refresh, auth: 'oauth', fournisseur: r.fournisseur, name: ex ? ex.name : '', ...srv, ts: Date.now() };
+  boiteOauth.oublier(boite); boiteOauth.amorcer(boite, r.acces, r.exp);
+  /* L'envoi est éprouvé AVANT d'enregistrer : chez Microsoft, une organisation peut avoir coupé le « SMTP authentifié » — mieux
+     vaut le dire maintenant que sur le premier devis. */
+  try { const nodemailer = require('nodemailer'); await nodemailer.createTransport(transportBoite(boite, { type: 'OAuth2', user: boite.email, accessToken: r.acces })).verify(); }
+  catch (e) { boiteOauth.oublier(boite); console.error('oauth', masqueMail(boite.email) + ': envoi refusé'); return res.status(400).type('html').send(pageRetourOauth(false, 'Ton fournisseur refuse l\'envoi depuis une application (« SMTP authentifié » coupé ?). Voir avec la personne qui gère ta messagerie.')); }
+  mailboxes[id] = boite;
+  if (!saveMailboxes()) { delete mailboxes[id]; boiteOauth.oublier(boite); return res.status(503).type('html').send(pageRetourOauth(false, 'Le serveur n\'a pas pu enregistrer la boîte — réessaie.')); }
+  res.type('html').send(pageRetourOauth(true, 'La boîte ' + r.email + ' est connectée à OP GESTION.'));
+  importHistorique(mailboxes[id]).catch(() => {});
+});
 app.post('/api/mailbox/disconnect', (req, res) => {
   const { teamId, id } = req.body || {}; const b = mailboxes[id];
-  if (b && b.teamId === teamId) { delete mailboxes[id]; saveMailboxes(); }
+  if (b && b.teamId === teamId) { boiteOauth.oublier(b); delete mailboxes[id]; saveMailboxes(); }
   res.json({ ok: true });
 });
 // liste des boîtes d'une équipe (sans mot de passe)
 app.get('/api/mailboxes', (req, res) => {
   const teamId = String(req.query.teamId || '');
-  const list = Object.values(mailboxes).filter(b => b.teamId === teamId).map(b => ({ id: b.id, email: b.email, name: b.name, imapHost: b.imapHost, smtpHost: b.smtpHost }));
+  const list = Object.values(mailboxes).filter(b => b.teamId === teamId).map(b => ({ id: b.id, email: b.email, name: b.name, imapHost: b.imapHost, smtpHost: b.smtpHost,
+    type: b.auth === 'oauth' ? b.fournisseur : 'motdepasse', etat: b.etat === 'a_reconnecter' ? 'a_reconnecter' : 'ok' }));
   res.json({ mailboxes: list });
 });
 
@@ -1473,7 +1591,7 @@ try { fs.readFileSync(REPLIES_PATH, 'utf8').trim().split('\n').forEach(l => { tr
 async function importHistorique(b, limit = 60) {
   const { ImapFlow } = require('imapflow'); const { simpleParser } = require('mailparser'); let client;
   try {
-    client = new ImapFlow({ host: b.imapHost, port: b.imapPort || 993, secure: true, auth: { user: b.email, pass: b.pass }, logger: false });
+    client = new ImapFlow({ host: b.imapHost, port: b.imapPort || 993, secure: !b.tlsAucun, auth: await authBoite(b, 'imap'), logger: false });
     client.on('error', () => {});   // une erreur émise en événement tuerait le processus : on l'absorbe, l'échec est déjà traité par le try/catch
     await client.connect();
     const lock = await client.getMailboxLock('INBOX');
@@ -1510,7 +1628,7 @@ let boiteBusy = false;
 async function releveUneBoite(cfg, tag) {   // cfg = {host/port/user/pass} ; tag = {teamId, userId} pour le rattachement
   const { ImapFlow } = require('imapflow'); let client;
   try {
-    client = new ImapFlow({ host: cfg.host, port: cfg.port || 993, secure: true, auth: { user: cfg.user, pass: cfg.pass }, logger: false });
+    client = new ImapFlow({ host: cfg.host, port: cfg.port || 993, secure: !cfg.tlsAucun, auth: cfg.auth || { user: cfg.user, pass: cfg.pass }, logger: false });
     client.on('error', () => {});   // une erreur émise en événement tuerait le processus : on l'absorbe, l'échec est déjà traité par le try/catch
     await client.connect();
     const lock = await client.getMailboxLock('INBOX');
@@ -1579,8 +1697,10 @@ async function releveBoite() {
   try {
     if (config.imap && config.imap.user && config.imap.pass) await releveUneBoite({ host: config.imap.host || 'ssl0.ovh.net', port: config.imap.port || 993, user: config.imap.user, pass: config.imap.pass }, null);
     for (const k of Object.keys(mailboxes)) { const b = mailboxes[k];
+      if (b.etat === 'a_reconnecter') continue;   // autorisation retirée ou expirée : on ne harcèle pas le fournisseur, l'écran le dit
       if (!b.histoDone) await importHistorique(b).catch(() => {});   // boîtes connectées avant cette mise à jour : historique importé au premier passage
-      await releveUneBoite({ host: b.imapHost, port: b.imapPort, user: b.email, pass: b.pass }, { teamId: b.teamId, email: b.email }); }
+      let auth; try { auth = await authBoite(b, 'imap'); } catch (e) { console.error('releve', masqueMail(b.email) + ':', e.code || 'jeton'); continue; }
+      await releveUneBoite({ host: b.imapHost, port: b.imapPort, user: b.email, auth, tlsAucun: b.tlsAucun }, { teamId: b.teamId, email: b.email }); }
   } catch (e) { console.error('releveBoite:', e.message); }
   boiteBusy = false;
 }
@@ -1731,6 +1851,7 @@ function mailQuotaRefus(req, teamId, prefixe, max) {
   q.count++; mailQuota.set(cle, q);
   return null;
 }
+let envoisSansReponse = 0;   // envois au nom d'une entreprise partis sans adresse de réponse (ni fournie, ni dans l'annuaire) — un compte, jamais un nom
 app.post('/api/sendmail', async (req, res) => {
   const { teamId, to, subject, text, smtp, brand, atts, meta, useMailbox } = req.body || {};
   if (!teamId || !to || !subject) return res.status(400).json({ error: 'teamId, to et subject requis' });
@@ -1791,7 +1912,10 @@ app.post('/api/sendmail', async (req, res) => {
   try {
     if (mb) {
       const nodemailer = require('nodemailer');
-      const t = nodemailer.createTransport({ host: mb.smtpHost, port: mb.smtpPort, secure: mb.smtpPort === 465, auth: { user: mb.email, pass: mb.pass } });
+      let authMb;
+      try { authMb = await authBoite(mb, 'smtp'); }
+      catch (e) { return res.status(e.statut || 502).json({ error: String(e.message || 'Boîte indisponible'), code: e.code || 'boite' }); }   // JSON : `srvMail` le lit et le DIT
+      const t = nodemailer.createTransport(transportBoite(mb, authMb));
       const dn = String((brand && brand.name) || mb.name || '').replace(/["<>\r\n]/g, '').slice(0, 80);
       await t.sendMail({ from: dn ? '"' + dn + '" <' + mb.email + '>' : mb.email, ...msg });
     } else if (smtp && smtp.user && smtp.pass && smtp.host) {
@@ -1804,9 +1928,14 @@ app.post('/api/sendmail', async (req, res) => {
       // Mode simple : la plateforme envoie au nom de l'entreprise (Reply-To vers elle)
       if (!mailer) return res.status(503).json({ error: 'email_off' });
       const name = String((brand && brand.name) || 'TeamOP').replace(/["<>\r\n]/g, '').slice(0, 80);
-      const replyTo = (brand && brand.replyTo && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(brand.replyTo))) ? String(brand.replyTo) : undefined;
+      /* La réponse du client va à l'ENTREPRISE, jamais à TEAM OP : sans adresse de réponse fournie par l'application, celle de
+         l'ANNUAIRE du serveur (jamais une valeur du corps de la requête, qui se forge) ; sans annuaire non plus, pas de Reply-To, et
+         c'est compté (agrégé, sans nom). */
+      const valide = (a) => /^[^@\s<>"]+@[^@\s<>"]+\.[^@\s<>"]+$/.test(String(a || ''));
+      let replyTo = (brand && valide(brand.replyTo)) ? String(brand.replyTo) : undefined;
+      if (!replyTo) { const esp = espaceParT(String(teamId).slice(0, 80)); if (esp && valide(esp.email)) replyTo = String(esp.email); else { envoisSansReponse++; console.log('sendmail : document parti sans adresse de réponse (' + envoisSansReponse + ' depuis le démarrage)'); } }
       const addr = (config.smtp.from || config.smtp.user).match(/<([^>]+)>/) ? (config.smtp.from || config.smtp.user).match(/<([^>]+)>/)[1] : (config.smtp.user);
-      await mailerEnvoi({ from: '"' + name + '" <' + addr + '>', replyTo, ...msg });
+      await mailerEnvoi({ pourEntreprise: String(teamId).slice(0, 80), from: '"' + name + '" <' + addr + '>', replyTo, ...msg });
     }
     if (meta && (meta.bonNum || meta.track)) rememberSent(teamId, meta.bonNum || '', to);   // pour rattacher la future réponse
     res.json({ ok: true });
@@ -2219,6 +2348,36 @@ function monPurgerEntreprise(o) {
 
 const MON_TYPES = ['erreur', 'lenteur', 'reseau'];
 const monStr = (v, n) => String(v == null ? '' : v).slice(0, n);
+/* ⛔ UNE ENTREPRISE, UN NOM DANS LA SURVEILLANCE. Justin, 2 novembre 2026, capture à l'appui : « Toka Clim » et
+   « toka-clim-33xz », deux lignes pour la même entreprise. `tmEnt` (app.html) envoie le nom saisi dans l'application et, quand
+   la base n'est pas encore chargée (écran de connexion, démarrage), l'IDENTIFIANT d'espace à la place. Le nom qu'on écrit et
+   qu'on montre se lit donc dans l'ANNUAIRE quand l'espace y est ; ce que le téléphone envoie ne sert qu'à défaut. L'espace par
+   défaut (partagé par toutes les entreprises sans clé propre) ne désigne personne. `monEntFusion` réunit à l'affichage les
+   entrées déjà écrites sous deux noms. `tests/test-3237.js`. */
+function monNomAnnuaire(t) {
+  try { t = String(t || '').trim(); if (!t || ESPACES_INTOUCHABLES.includes(t)) return ''; return espNomPropre(espaceParT(t)) || ''; } catch (e) { return ''; }
+}
+function monEntFusion(liste) {
+  const par = new Map();
+  for (const e of Array.isArray(liste) ? liste : []) {
+    if (!e || typeof e !== 'object') continue;
+    const esp = Array.isArray(e.espaces) ? e.espaces : [];
+    const nom = esp.map(monNomAnnuaire).filter(Boolean).pop() || monNomAnnuaire(e.nom) || e.nom;
+    const x = par.get(nom);
+    if (!x) { par.set(nom, Object.assign({}, e, { nom, gens: Array.isArray(e.gens) ? e.gens.slice() : e.gens })); continue; }
+    x.count = (x.count || 0) + (e.count || 0);
+    if ((e.lastTs || 0) > (x.lastTs || 0)) x.lastTs = e.lastTs;
+    if (!x.email && e.email) x.email = e.email;
+    if (esp.length) x.espaces = [...new Set([...(Array.isArray(x.espaces) ? x.espaces : []), ...esp])].slice(-10);
+    if (Array.isArray(e.gens)) {
+      x.gens = Array.isArray(x.gens) ? x.gens : [];
+      for (const g of e.gens) { if (!g) continue; const h = x.gens.find(y => y && y.login === g.login);
+        if (!h) x.gens.push(Object.assign({}, g));
+        else { h.count = (h.count || 0) + (g.count || 0); if ((g.lastTs || 0) > (h.lastTs || 0)) Object.assign(h, { lastTs: g.lastTs, nom: g.nom || h.nom, role: g.role || h.role }); } }
+    }
+  }
+  return [...par.values()];
+}
 // réception des rapports des sentinelles (public, quota par IP via le limiteur global)
 app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb' }), (req, res) => {
   try {
@@ -2233,7 +2392,7 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       const message = monStr(r.message, 300); if (!message) continue;
       const appName = monStr(r.app, 20) || 'inconnue';
       const signature = appName + '|' + (monStr(r.signature, 200) || (type + '|' + message.slice(0, 120)));
-      const entNom = monStr(r.entreprise, 80) || 'inconnue';
+      let entNom = monStr(r.entreprise, 80) || 'inconnue';
       const entEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(monStr(r.email, 120)) ? monStr(r.email, 120).toLowerCase() : '';
       const appareil = monStr(r.appareil, 60) || '?';
       /* ⛔ QUI ÉTAIT CONNECTÉ — ET POURQUOI ON NE CROIT PAS CE CORPS DE REQUÊTE SUR PAROLE.
@@ -2258,6 +2417,7 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
          n'en porte pas (une version d'avant la v683, la page d'inscription, OP MESSAGES) garde le comportement d'avant : le serveur ne
          peut pas savoir de quelle entreprise il vient, donc il l'écrit. */
       if (quiEspace && espaceFerme(quiEspace)) { fermes++; continue; }
+      { const nomAnnu = monNomAnnuaire(quiEspace) || monNomAnnuaire(entNom); if (nomAnnu) entNom = nomAnnu; }   // le nom de l'ANNUAIRE, pas celui du téléphone (`monNomAnnuaire`)
       ecrits++;
       const count = Math.min(500, Math.max(1, parseInt(r.count, 10) || 1));
       const now = Date.now();
@@ -4812,7 +4972,7 @@ app.post('/api/monitor/espaces/activite', monAdmin, (req, res) => {
   let t = e.t; try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
   const u = usageData[t] || { vues: {}, total: 0, dernier: 0, version: '' };
   const vues = Object.entries(u.vues).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => ({ vue: k, n: v }));
-  const bugs = (monIssues || []).filter(i => i.statut !== 'corrige' && i.statut !== 'ignore' && (i.entreprises || []).some(x => x.nom === e.nom)).length;
+  const bugs = (monIssues || []).filter(i => i.statut !== 'corrige' && i.statut !== 'ignore' && monEntFusion(i.entreprises).some(x => x.nom === e.nom)).length;
   res.json({ ok: true, vues, total: u.total, dernier: u.dernier, version: u.version, bugs });
 });
 // ── Connexions des applications, par espace : qui se connecte, quand, depuis quel appareil,
@@ -6314,6 +6474,13 @@ app.post('/api/monitor/promo-stripe', monPatronStrict, async (req, res) => {
       remise: cp ? { pourcent: cp.percent_off || null, montant: cp.amount_off != null ? cp.amount_off / 100 : null, duree: cp.duration || '', mois: cp.duration_in_months || null } : null });
   } catch (e) { res.status(502).json({ error: 'Stripe injoignable : le code n\'a pas pu être vérifié.' }); }
 });
+/* La pastille « Messagerie » de la Tour suit OP MESSAGES (Justin, 30 octobre 2026 : « elle affiche 13 alors que je n'ai rien »). Patron seul ;
+   `null` = on ne sait pas (pont absent, OP MESSAGES muet) — la Tour n'affiche alors RIEN de neuf, elle ne remet pas une pastille au hasard. */
+app.get('/api/monitor/opmsg-nonlus', monPatronStrict, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const n = pontMessages ? await pontMessages.nonLus() : null;
+  res.json({ ok: true, pont: !!pontMessages, nonLus: n });
+});
 app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) => {
   if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
@@ -6765,7 +6932,12 @@ try {
     } });
   /* UNE alerte par COMPTE NEUF du site (nos comptes, `comptes.js`) qui n'a pas d'espace : le passage se fait toutes les dix minutes (`config.comptesScanMs` pour un banc), le premier
      une minute après le démarrage. La notification ne dit que « un compte » ; le courriel à Justin porte l'adresse et le nom (c'est son métier) ; le journal, rien. */
-  const alerteCompte = async (c) => {
+  const alerteCompte = async (c0) => {
+    const cle = String((c0 && c0.email) || '').toLowerCase(), n0 = nomsInscription.get(cle);
+    nomsInscription.delete(cle);   // lu une fois, puis oublié
+    const n = n0 && Date.now() - n0.ts <= 3600000 ? n0 : {};
+    const declare = !!(n.prenom || n.nom || n.societe) && !((c0 && (c0.prenom || c0.nom || c0.societe)));
+    const c = Object.assign({}, c0, { prenom:(c0 && c0.prenom) || n.prenom || '', nom:(c0 && c0.nom) || n.nom || '', societe:(c0 && c0.societe) || n.societe || '' });
     try { await pousserALaTour('Nouveau compte sur le site', 'Un compte vient d’être créé : à ouvrir dans la Tour (Demandes).', '/tour.html#demandes', '/tour.html#demandes'); } catch (e) {}
     try { if (conversationsMod && typeof conversationsMod.systeme === 'function') conversationsMod.systeme('clients', 'Nouveau compte sur le site (sans espace) : à ouvrir dans la Tour (Demandes).', { cle: 'compte-site:' + String(c.cree || '') + ':' + c.email.length }); } catch (e) {}
     if (mailer) {
@@ -6773,11 +6945,11 @@ try {
       const une = x => String(x || '').replace(/[\r\n]+/g, ' ');
       const nom = une([c.prenom, c.nom].filter(Boolean).join(' ')).slice(0, 80);
       await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: '👤 Nouveau compte sur le site' + (c.societe ? ' — ' + une(c.societe).slice(0, 60) : ''),
-        text: 'Un compte vient d\'être créé sur l\'Espace client de teamop.fr.\n\n' + (nom ? 'Nom : ' + nom + '\n' : '') + (c.societe ? 'Entreprise : ' + une(c.societe).slice(0, 80) + '\n' : '') + 'E-mail : ' + c.email + '\n\nIl n\'a pas encore d\'espace. Tour → Demandes → « Comptes du site sans espace » → « Ouvrir son accès » (ou « Ignorer » si ce n\'est pas un client).\n\nhttps://teamop.fr/tour.html' });
+        text: 'Un compte vient d\'être créé sur l\'Espace client de teamop.fr.\n\n' + (nom ? 'Nom : ' + nom + (declare ? ' (déclaré à l\'inscription, non vérifié)' : '') + '\n' : '') + (c.societe ? 'Entreprise : ' + une(c.societe).slice(0, 80) + (declare ? ' (déclarée, non vérifiée)' : '') + '\n' : '') + 'E-mail : ' + c.email + '\n\nIl n\'a pas encore d\'espace. Tour → Demandes → « Comptes du site sans espace » → « Ouvrir son accès » (ou « Ignorer » si ce n\'est pas un client).\n\nhttps://teamop.fr/tour.html' });
       console.log('mail nouveau compte du site envoyé →', masqueMail(dest));
     }
   };
-  const passageComptes = () => { try { demandeSiteMod.scannerComptes({ liste: () => (typeof comptes !== 'undefined' && comptes && typeof comptes.liste === 'function' ? comptes.liste() : []), aUnEspace: m => porteUnEspace(m) || Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === m.toLowerCase()), alerter: alerteCompte }); } catch (e) { console.error('comptes du site : passage échoué'); } };
+  const passageComptes = () => { try { demandeSiteMod.scannerComptes({ liste: () => (typeof comptes !== 'undefined' && comptes && typeof comptes.liste === 'function' ? comptes.liste() : []), aUnEspace: m => porteUneEntreprise(m) || !!(clientsData[m] && !clientsData[m].ficheDePaiement && Array.isArray(clientsData[m].demandes) && clientsData[m].demandes.length), alerter: alerteCompte }); } catch (e) { console.error('comptes du site : passage échoué'); } };
   const scanMs = Math.max(500, Number(config.comptesScanMs) || 600000);
   setTimeout(passageComptes, Math.min(60000, scanMs)).unref();
   setInterval(passageComptes, scanMs).unref();
@@ -7468,12 +7640,13 @@ setTimeout(() => {
          peut n'avoir ni « a » ni « mh » — rien à dériver, donc pas de semis possible, donc AUCUNE
          porte pour cette entreprise tant qu'on ne lui a pas posé d'identifiant de départ depuis
          la Tour (« Identifiants » ; la Tour la marque « aucun compte »).
-         Seuls les identifiants d'équipe sortent au journal : jamais un nom, jamais une
-         adresse — c'est assez pour les retrouver dans la Tour. */
+         ⛔ Le journal n'en dit que le NOMBRE (4 novembre 2026) : la Tour les marque déjà « aucun compte », c'est là qu'on les
+         retrouve. Les identifiants d'espace y sortaient aussi, et `test-809` (« le journal ne nomme aucun espace ») tombait une
+         fois sur trois — selon que ce rattrapage, lancé au démarrage, finissait avant ou après la fin du banc. */
       if (sansAmorce.length)
         console.warn('⛔ ' + sansAmorce.length + ' espace(s) SANS identifiant de départ dans leur code : '
           + 'plus aucune porte (le code d\'accès n\'existe plus depuis le 28 septembre 2026) — la Tour les marque « aucun compte » ; '
-          + 'poser leurs identifiants (« Identifiants » sur leur fiche) : ' + sansAmorce.join(', '));
+          + 'poser leurs identifiants (« Identifiants » sur leur fiche).');
       return;
     }
     const x = liste[i++];
@@ -9537,7 +9710,8 @@ app.get('/api/monitor/issues', monAdmin, (req, res) => {
   /* Filtré par application AVANT tout calcul : compteurs et entreprises se comptent sur ce que le
      compte a le droit de voir — sinon un compte OP MESSAGES apprendrait combien d'incidents
      OP GESTION existent, et chez qui. Forger la requête n'y change rien : le filtre est ici. */
-  const vis = monIssues.filter(i => req.tourUser.apps.includes(monAppDeTag(i.app)));
+  const vis = monIssues.filter(i => req.tourUser.apps.includes(monAppDeTag(i.app)))
+    .map(i => Array.isArray(i.entreprises) && i.entreprises.length ? Object.assign({}, i, { entreprises: monEntFusion(i.entreprises) }) : i);   // un nom par entreprise (`monEntFusion`)
   const compteurs = { nouveau: 0, encours: 0, corrige: 0, ignore: 0 };
   const entSet = new Set();
   for (const i of vis) { compteurs[i.statut] = (compteurs[i.statut] || 0) + 1; for (const e of i.entreprises || []) if (e.nom && e.nom !== 'inconnue') entSet.add(e.nom); }
@@ -9667,6 +9841,9 @@ app.post('/api/monitor/status', monAdmin, async (req, res) => {
   issue.historique = (issue.historique || []).concat([{ ts: Date.now(), par: req.tourUser.nom, action: ACTION[statut], note: monStr(note, 300) }]).slice(-30);
   let mails = 0, mailsSimules = 0;
   if (statut === 'corrige' && !issue.mailEnvoye) {
+    /* ⛔ LA MARQUE AVANT LE PREMIER ENVOI (2 novembre 2026, « mails en double ») : posée APRÈS la boucle d'`await`, deux appuis rapprochés
+       sur « Corrigé » passaient tous les deux ce test et chaque entreprise recevait le courriel deux fois. */
+    issue.mailEnvoye = true;
     const dests = (issue.entreprises || []).filter(e => e.email);
     const sujet = 'Votre application a été améliorée ✅';
     /* ⛔ ON NE NOMME PLUS L'ÉCRAN DANS CE COURRIEL. `issue.categorie` n'est pas l'endroit d'où
@@ -10671,17 +10848,27 @@ app.post('/api/clients/sync', async (req, res) => {
       /* Une liste FERMÉE : `app` est du texte libre du client, et l'accusé part à son adresse sous l'en-tête TEAM OP —
          un texte à soi recopié dans un courriel à notre nom ferait de nous un relais (`gardien`). */
       const apps = [...new Set(nv.map(d => /messages/i.test(String(d.app || '')) ? 'OP MESSAGES' : 'OP GESTION'))].join(', ');
+      /* ⛔ UNE ENTREPRISE DÉJÀ OUVERTE NE S'ENTEND PAS DIRE « nous préparons votre espace » (Tokaclim, 1er novembre 2026 : espace ouvert le
+         vendredi, demande refaite le dimanche depuis l'espace client, et l'accusé lui annonçait des identifiants qu'elle avait déjà). */
+      let dejaOuvert = false; try { dejaOuvert = Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === String(email).toLowerCase()); } catch (e) {}   // l'ANNUAIRE, pas la fiche du portail (elle s'écrit dans cette requête même)
+      const phraseSuite = dejaOuvert
+        ? 'Votre espace est déjà ouvert : vous vous connectez avec le lien reçu à l\'ouverture. Votre demande est transmise à l\'équipe TEAM OP, qui revient vers vous s\'il y a quelque chose à changer.'
+        : 'L\'équipe TEAM OP prépare votre espace : vous recevrez très vite, par e-mail, votre lien de connexion et vos identifiants. Vous n\'avez rien d\'autre à faire.';
       const accuse = 'Bonjour,\n\n' +
         'Nous avons bien reçu votre demande d\'accès (' + apps + ') pour « ' + nomEnt + ' ».\n\n' +
-        'L\'équipe TEAM OP prépare votre espace : vous recevrez très vite, par e-mail, votre lien de connexion et vos identifiants. Vous n\'avez rien d\'autre à faire.\n\n' +
+        phraseSuite + '\n\n' +
         'Vous pouvez suivre ou modifier votre demande dans votre espace client : https://teamop.fr/espace.html\n\n' +
         '— L\'équipe TEAM OP · teamop.fr';
       const accuseHtml = mailTeamOP({
         chip: 'Demande reçue',
         titre: 'Votre demande est bien reçue',
         corpsHtml: 'Bonjour,<br>nous avons bien reçu votre demande d\'accès (<b>' + escH(apps) + '</b>) pour « <b>' + escH(nomEnt) + '</b> ».<br><br>' +
-          'L\'équipe TEAM OP prépare votre espace : vous recevrez très vite, par e-mail, <b>votre lien de connexion et vos identifiants</b>. Vous n\'avez rien d\'autre à faire.<br>',
-        frise: [
+          escH(phraseSuite) + '<br>',
+        frise: dejaOuvert ? [
+          { titre: 'Reçue', sous: 'aujourd\'hui', fait: true },
+          { titre: 'Espace ouvert', sous: 'déjà actif', fait: true },
+          { titre: 'Réponse', sous: 'par TEAM OP', fait: false }
+        ] : [
           { titre: 'Reçue', sous: 'aujourd\'hui', fait: true },
           { titre: 'Préparation', sous: 'par TEAM OP', fait: false },
           { titre: 'Connectez-vous', sous: 'avec votre lien', fait: false }
@@ -10729,6 +10916,11 @@ app.post('/api/clients/sync', async (req, res) => {
    choix du métier pour la Tour mais n'est PAS une entreprise : la compter comme un espace bloquait la suppression d'un simple
    curieux, et le montrait « avec espace » dans la liste des comptes. */
 const porteUnEspace = mail => !!(clientsData[mail] && !clientsData[mail].ficheDePaiement);
+/* ⛔ « PORTE UNE ENTREPRISE » SE LIT DANS L'ANNUAIRE, PAS DANS LA FICHE DU PORTAIL (Justin, 2 novembre 2026, capture à l'appui : « MS Garnier »
+   marqué « Porte une entreprise » dans Comptes du site, et absent d'Entreprises). `porteUnEspace` dit seulement qu'une FICHE CLIENT existe sur le
+   site (la personne a rempli son profil, nom de société compris) ; une entreprise, c'est un espace de l'annuaire à cette adresse. Sinon la Tour
+   renvoyait la suppression vers une fiche d'entreprise qui n'existe pas : le compte ne se supprimait plus nulle part. */
+const porteUneEntreprise = mail => { const m = String(mail || '').trim().toLowerCase(); return !!m && Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === m); };
 app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   const tok = await fbAdminJeton();
   /* Nos comptes (`comptes.js`) se listent même sans Google : c'est eux que le portail utilise
@@ -10765,7 +10957,10 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   }
   const lignes = []; let anonymes = 0; let pageTok = '';
   if (tok) try {
-    for (let tour = 0; tour < 20; tour++) {
+    /* ⛔ 200 pages, plus 20 : la Tour affichait « 10000 sessions techniques » — exactement 20 × 500, le plafond. Les comptes de PERSONNES rangés
+       après les 10 000 sessions anonymes n'étaient donc jamais listés (2 novembre 2026). Bornée aussi en durée (20 s). */
+    const t0 = Date.now();
+    for (let tour = 0; tour < 200 && Date.now() - t0 < 20000; tour++) {   // et vingt secondes au plus : au-delà, la Tour aurait déjà coupé
       const url = IDTK_URL + '/projects/' + FB_PROJET
         + '/accounts:batchGet?maxResults=500' + (pageTok ? '&nextPageToken=' + encodeURIComponent(pageTok) : '');
       const r = await fbAdminFetch(url, { method: 'GET' }, tok);
@@ -10792,7 +10987,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
           /* Le point décisif pour trier : ce compte porte-t-il une entreprise avec des
              données, ou n'est-ce qu'un compte d'essai qu'on peut effacer sans rien perdre ? */
           entreprise: clientsData[mail] ? (clientsData[mail].entreprise || clientsData[mail].nom || '') : '',
-          aUnEspace: porteUnEspace(mail)
+          aUnEspace: porteUneEntreprise(mail), fiche: porteUnEspace(mail)
         });
       }
       pageTok = j.nextPageToken || ''; if (!pageTok) break;
@@ -10812,7 +11007,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
         statut: String((dos && dos.status) || '').slice(0, 30),
         cree: c.cree || 0, derniere: c.maj || 0, verifie: c.verifie, desactive: false,
         entreprise: clientsData[c.email] ? (clientsData[c.email].entreprise || clientsData[c.email].nom || '') : '',
-        aUnEspace: porteUnEspace(c.email), chezNous: true, aPoser: c.aPoser });
+        aUnEspace: porteUneEntreprise(c.email), fiche: porteUnEspace(c.email), chezNous: true, aPoser: c.aPoser });
     }
   }
   lignes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
@@ -10827,8 +11022,14 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
 app.post('/api/monitor/comptes-site/supprimer', monPatronStrict, async (req, res) => {
   const email = monStr((req.body || {}).email, 160).trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'adresse invalide' });
-  if (porteUnEspace(email)) return res.status(409).json({
+  if (porteUneEntreprise(email)) return res.status(409).json({   // l'annuaire décide (voir `porteUneEntreprise`)
     error: 'ce compte porte une entreprise — passe par « Fermer définitivement » dans Entreprises, qui efface aussi son espace et ses données'
+  });
+  /* Une FICHE CLIENT sans entreprise (profil rempli, demande en cours) protège encore le compte : effacer le compte perdrait la demande sans que
+     personne l'ait lue. Elle se traite dans « À traiter → Demandes » (refuser la demande, puis supprimer). Le refus le DIT, au lieu d'envoyer
+     chercher une entreprise qui n'existe pas. */
+  if (porteUnEspace(email)) return res.status(409).json({
+    error: 'ce compte a une fiche client (demande ou profil rempli) mais pas encore d\'entreprise — traite-la dans « À traiter → Demandes » avant de supprimer le compte'
   });
   const r = await compteSiteSupprimer(email);
   // Journal : l'adresse est masquée, on ne met pas de données personnelles dans les logs.
@@ -11348,6 +11549,8 @@ try {
     try {
       if (brouillonsMod) agentCamille = require('./agent-camille')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, mail: messagerieTour, fichier: fichierAgents, travail: travailMod, outilsLecture: outilsLectureMod,
         conversations: conversationsMod, chloe: chloeMod, louis: louisMod,
+        /* la réponse d'un client final à un document envoyé AU NOM d'une entreprise : Camille ne la lit ni ne la classe (4 novembre 2026) */
+        reponseAEnvoiEntreprise,
         /* le numéro de dossier d'une adresse qui est celle d'un COMPTE du portail (la fiche existe), '' sinon — sans jamais en créer un pour un inconnu */
         dossierDe: (adr) => { const a = adrNue(adr); return (a && Object.prototype.hasOwnProperty.call(clientsData || {}, a) && dossiersMod) ? dossiersMod.numeroDe(a) : ''; },
         /* NOS domaines : celui de l'expéditeur de la configuration, teamop.fr et ceux des boîtes connectées — un mail de chez nous n'appelle jamais de réponse.
@@ -11743,6 +11946,14 @@ const DEVIS_ACCES_PATH = path.join(DATA_DIR, 'devis-acces.json');
 let devisAcces = {};
 try { devisAcces = JSON.parse(fs.readFileSync(DEVIS_ACCES_PATH, 'utf8')); } catch (e) {}
 function saveDevisAcces() { try { fs.writeFileSync(DEVIS_ACCES_PATH, JSON.stringify(devisAcces)); } catch (e) {} }
+/* ⛔ LA BÊTA A LE DEVIS IA D'OFFICE (Justin, 3 novembre 2026 : « active tout, que la bêta puisse le tester de A à Z »). L'espace bêta
+   (`opgestion-beta`, jamais de données d'entreprise) n'a pas de nom dans l'annuaire : la Tour le cachait de l'onglet Devis IA, donc
+   personne ne pouvait l'activer. Il naît actif, moteur « Au choix » (Rapide ET Approfondi), en mémoire seulement — tant que la Tour
+   n'y a pas touché ; dès qu'elle le coupe ou change de moteur, c'est SON réglage qui est écrit et qui reste. Il paraît dans la Tour
+   sous un nom lisible (`devisNomDe`). Même plafond quotidien que tout le monde. `tests/test-3239.js`. */
+const DEVIS_BETA = 'opgestion-beta', DEVIS_BETA_NOM = 'Bêta OP GESTION (équipe)';
+if (!devisAcces[DEVIS_BETA]) devisAcces[DEVIS_BETA] = { actif: true, moteur: 'deux', depuis: new Date().toISOString().slice(0, 10), beta: true };
+function devisNomDe(t, nom) { return nom || (t === DEVIS_BETA ? DEVIS_BETA_NOM : ''); }
 function devisTeamOk(team) { const t = devisAcces[String(team || '').trim().slice(0, 80)]; return !!(t && t.actif); }
 function devisQuotaJour() { return Number(devisConf().quotaJour) || 100; }
 function devisUtilises() {
@@ -11916,7 +12127,7 @@ function espacesConnus() {
   for (const tc of Object.keys(cnxData)) {
     if (!tc || vus.has(tc)) continue;
     let e = null; try { e = espaceParT(tc); } catch (err) {}
-    const nom = (e && espNomPropre(e)) || '';
+    const nom = devisNomDe(tc, (e && espNomPropre(e)) || '');
     /* Sans nom d'entreprise, c'est un espace technique — environnement de test,
        ancienne bascule. Il n'a rien à faire dans une liste de clients. On ne le
        garde que s'il est déjà activé : couper un accès en cours par simple
@@ -11940,7 +12151,7 @@ function espacesConnus() {
     if (vus.has(tc)) continue;
     vus.add(tc);
     let e = null; try { e = espaceParT(tc); } catch (err) {}
-    out.push({ t: tc, nom: (e && espNomPropre(e)) || '', vu: vuDe(tc) });
+    out.push({ t: tc, nom: devisNomDe(tc, (e && espNomPropre(e)) || ''), vu: vuDe(tc) });
   }
   out.sort(function (a, b) { return (a.nom || a.t).localeCompare(b.nom || b.t, 'fr'); });
   return out;
@@ -11950,7 +12161,7 @@ function nomsDesEspaces(codes) {
   for (const t of codes) {
     let e = null;
     try { e = espaceParT(t); } catch (err) {}
-    noms[t] = (e && espNomPropre(e)) || '';
+    noms[t] = devisNomDe(t, (e && espNomPropre(e)) || '');
   }
   return noms;
 }
@@ -11963,7 +12174,9 @@ app.post('/api/monitor/devisia', monAdmin, (req, res) => {
   if (!team) return res.status(400).json({ error: "code d'espace requis" });
   if (b.supprimer) delete devisAcces[team];
   else if (b.actif) devisAcces[team] = { ...(devisAcces[team] || {}), actif: true, depuis: (devisAcces[team] || {}).depuis || new Date().toISOString().slice(0, 10) };
-  else if (devisAcces[team]) devisAcces[team].actif = false;
+  /* ⛔ COUPER EXIGE `actif:false` ÉCRIT (3 novembre 2026, test-3239). La Tour change le moteur en n'envoyant que `{teamId, moteur}` (`diaMoteur`) :
+     « ni actif, ni supprimer » valait « couper », et choisir « Approfondi » ÉTEIGNAIT le Devis IA de l'entreprise. */
+  else if (b.actif === false && devisAcces[team]) devisAcces[team].actif = false;
   if (b.moteur && DEVIS_OFFRES[b.moteur] && devisAcces[team]) devisAcces[team].moteur = b.moteur;
   saveDevisAcces();
   res.json({ ok: true, equipes: devisAcces, noms: nomsDesEspaces(Object.keys(devisAcces)) });

@@ -204,7 +204,8 @@ const neuf = (nom) => { const d = path.join(tmp, nom); fs.mkdirSync(d, { recursi
   v('⛔ `require(\'nodemailer\')` : index.js et mail.js SEULEMENT (plus essais.js qui le remplace) — une 3e porte d\'envoi serait un chemin non vu', avec(/require\(['"]nodemailer['"]\)/), ['index.js', 'mail.js']);
   v('⛔ chaque `createTransport` est une PROPRIÉTÉ de `nodemailer.` (interceptable) : jamais déstructuré, jamais gardé dans une variable',
     fichiers.filter(f => f !== 'essais.js').map(f => (code2[f].match(/createTransport/g) || []).length - (code2[f].match(/nodemailer\.createTransport\(/g) || []).length), fichiers.filter(f => f !== 'essais.js').map(() => 0));
-  vrai('(population) il y a bien des createTransport à intercepter (index.js : 7, mail.js : 4)', [(code2['index.js'].match(/nodemailer\.createTransport\(/g) || []).length, (code2['mail.js'].match(/nodemailer\.createTransport\(/g) || []).length].join() === '7,4');
+  /* 4 novembre 2026 : index.js passe à 8 — la vérification de l'envoi d'une boîte connectée par autorisation (`/api/mailbox/oauth/retour`). */
+  vrai('(population) il y a bien des createTransport à intercepter (index.js : 8, mail.js : 4)', [(code2['index.js'].match(/nodemailer\.createTransport\(/g) || []).length, (code2['mail.js'].match(/nodemailer\.createTransport\(/g) || []).length].join() === '8,4');
   const pk = JSON.parse(lire('server/package.json'));
   v('⛔ aucune autre bibliothèque d\'envoi dans les dépendances', Object.keys(pk.dependencies || {}).filter(d => /mail|smtp|sendgrid|postmark|mailgun|resend|brevo|sendinblue|ses\b/i.test(d) && !['nodemailer', 'imapflow', 'mailparser'].includes(d)), []);
   v('⛔ aucune connexion réseau BRUTE (net, tls, http2) dans le serveur : un envoi à la main contournerait nodemailer', avec(/require\(['"](net|tls|http2|dgram)['"]\)/), []);

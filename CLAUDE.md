@@ -352,6 +352,15 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   s'en inspirer plutôt que de les diluer.
 - Fait main plutôt qu'une dépendance de plus, quand c'est raisonnable : le serveur
   est exposé sur Internet, chaque dépendance est une surface d'attaque.
+- ⛔ **TOUT CE QUI SE VOIT SE REGARDE SOI-MÊME AVANT D'ÊTRE ANNONCÉ — SUR TOUS LES APPAREILS.** Justin, 31 octobre 2026 : « tous
+  les détails que je te demande, tu devrais le vérifier toi-même ; tu sais comment je suis exigeant, et comment le système Apple et
+  le design travaillent avec nos applications ; prends-le en compte dans le futur — vérifie aussi Windows et Android ». Un écran
+  touché (application, Tour, site, OP MESSAGES) se mesure ET se REGARDE (captures relues à l'œil) sur Mac, Windows, iPhone, Android
+  et iPad, de jour ET de nuit, avant de dire « fait » — et on corrige ce qu'on voit sans attendre qu'il le voie. Le jour même, une
+  sonde verte laissait le filtre de l'écran Service sortir de l'iPhone : `innerWidth` avait grandi avec la page (règle plus bas) ;
+  ce sont les captures qui l'ont montré. Modèle : `scratchpad/sonde-tour-service.js` (neuf profils, trois filtres, contre-épreuve).
+  ⚠️ Le navigateur « Blisk » (plusieurs appareils côte à côte) n'existe pas dans une session du cloud : on émule les appareils
+  dans le Chromium de l'image (largeur, toucher, densité, encoches).
 
 ## À ne pas faire
 

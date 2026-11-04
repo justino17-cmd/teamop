@@ -258,6 +258,7 @@ const MATRICE = {
   'pont.installer':     { ok: () => ['POST', '/api/pont/installer', {}], codes: [404] },
   'pont.poster':        { ok: () => ['POST', '/api/pont/poster', {}], codes: [404] },
   'pont.nouveaux':      { ok: () => ['GET', '/api/pont/nouveaux'], codes: [404] },
+  'pont.nonlus':        { ok: () => ['GET', '/api/pont/non-lus'], codes: [404] },
   'pont.supprimer':     { ok: () => ['POST', '/api/pont/supprimer', {}], codes: [404] },
   'pont.avatar':        { ok: () => ['POST', '/api/pont/avatar?cible=victor', {}], codes: [404] },
   /* Le lien d'invité et la salle d'une réunion. `apercu` est PUBLIC (le code vient de la fixture : celui de la réunion d'Ana) ; entrer par le lien est S, par l'identifiant R (l'invité, l'hôte) ; le lien se lit et se
