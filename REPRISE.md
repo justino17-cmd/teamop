@@ -13,6 +13,27 @@ de ligne du tout.
 
 ---
 
+# 4 NOVEMBRE 2026 (nuit) — BÊTA 801 : APERÇU DU DEVIS EN PLEIN ÉCRAN, « ENVOYÉ » QUAND C'EST PARTI, VRAIES BOÎTES MAIL SUR LA BÊTA
+
+Branche `claude/pdf-couleurs` (bêta 801). **`app.html` porte les deux premiers points mais reste numérotée 798 ici : monter son numéro
+au report** (et y reporter, depuis la branche de la PR #306, `tests/test-3253.js` à clé factice courte et Playwright dans
+`verification.yml`, s'ils n'y sont pas déjà).
+- **Aperçu d'un document** (Justin : « il faudrait que ça prenne toute la page… le devis est coupé en 3 fois ») : une pièce commune
+  `.pdfap` (`pdfApercuHtml`, `pdfApercuPoser`, `pdfApercuGrand`) — la vue fait la hauteur de l'écran (`100dvh`), sa largeur suit sa hauteur
+  sur écran large (page A4 entière), « À qui l'envoyer » à côté ; sur téléphone la page à la largeur, les deux envois collés en bas,
+  « Ouvrir en grand » pour zoomer. Le Devis IA est le seul aperçu INTÉGRÉ (les autres PDF passent par la fenêtre `pdfFeuille`, qui ouvre
+  le lecteur du navigateur). Mesuré : 49-51 % → 88-95 % de la hauteur utile. `tests/test-3256.js`.
+- **« Envoyé » n'est plus une case** (Justin : « quand on coche "envoyé", ça s'envoie pas ») : `envoiDoc` le pose sur un envoi réussi, avec
+  `d.envoi` {date, canal, a} affiché dans les listes. Formulaire : « Envoyé — l'envoyer maintenant… » et « Enregistrer / Créer et envoyer »
+  (brouillon + fenêtre d'envoi). SMS = lien `sms:` vers l'application Messages, texte seul (pas de PDF), « Envoyé » seulement si la personne
+  confirme. Facture remise en main propre : « remise autrement » (📤), tracée. `tests/test-3257.js`.
+- **Vraies boîtes mail sur la bêta** (Justin : « en bêta, je devrais pouvoir me connecter avec mes boîtes mail ») — voir CLAUDE.md
+  (règle « CONNECTER, DÉCONNECTER ET ENVOYER »). Serveur + bêta. `tests/test-3255.js` (dans `scripts/bancs-serveur.liste`).
+  ⚠️ **Le serveur doit partir AVANT la bêta 801** (sinon la bêta lit une route qui la refuse encore : message « reconnecte-toi » ou refus) ;
+  le serveur seul ne change rien pour personne d'autre (ni production ni entreprises). Après déploiement, chaque testeur se **déconnecte puis
+  se reconnecte** une fois à la bêta pour recevoir son jeton. Google en mode test : l'adresse doit être parmi les « utilisateurs test ».
+  ⚠️ Relecture `gardien` du diff serveur à faire avant le push sur `main` (pas faite par l'agent qui l'a écrit).
+
 # 4 NOVEMBRE 2026 (nuit) — BÊTA 800 : LES DOSSIERS « RÉSEAU » DE LA TOUR NE S'OUVRENT PLUS POUR UNE COUPURE QUE LA SYNCHRO RENOUE
 
 Justin : « cette erreur-là, il faut vraiment la corriger, ce message revient beaucoup trop souvent de beaucoup de clients ». Les
