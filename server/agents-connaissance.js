@@ -58,7 +58,7 @@ const OFFRE = [
    proposition ; le SEUL endroit où paraissent 25 € et 50 € : `refusDe` les permet à son profil « proposition » et à lui seul. */
 const FORMULES = {
   pro: { nom: 'OP GESTION Pro', prix: 15, inclus: ['planning des interventions (jour, semaine, mois)', 'fiches clients et historique des passages', 'rapports d’intervention avec photos, signatures et envoi en PDF',
-    'tournées du jour avec carte et ordre optimisé', 'récurrences (contrats) et passages multiples', 'conflits de planning et absences signalés', 'devis et factures à son logo, sa couleur et son cachet', 'pointage des heures',
+    'tournées du jour avec carte et ordre optimisé', 'récurrences (contrats) et passages multiples', 'conflits de planning et absences signalés', 'devis et factures à son logo et sa couleur, et, s’il l’a ajouté, à son cachet', 'pointage des heures',
     'exports CSV et notifications', 'application web et mobile (iPhone, Android, Mac, PC)'] },
   business: { nom: 'OP GESTION Business', prix: 25, inclus: ['tout OP GESTION Pro', 'stock avec inventaire et seuils d’alerte', 'bons de commande fournisseurs en PDF à son logo et sa couleur, envoyés en un clic', 'commande suggérée, la réception crédite le stock',
     'boîte mail intégrée, rattachée aux bons', 'télécollecte et comptabilité', 'droits utilisateur fins', 'assistance par courriel avec traitement prioritaire'] },

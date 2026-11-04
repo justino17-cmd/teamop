@@ -60,7 +60,7 @@ const REVISIONS = {
 };
 const NOTES_REVISION = {
   [REVISION_JURIDIQUE]: 'Révision du 23 octobre 2026 (relecture juridique) — à comparer à la version en vigueur, puis valider ; les points « PAR UN JURISTE » restent à trancher',
-  [REVISION_DOCUMENTS]: 'Révision du 4 novembre 2026 — le logo, la couleur et le cachet vont sur les devis, factures et bons, plus dans l’application (v795) ; à comparer à la version en vigueur, puis valider',
+  [REVISION_DOCUMENTS]: 'Révision du 4 novembre 2026 — logo et couleur sur les documents, plus dans l’application (v795). Retrait d’une fonction incluse (Business, Premium) : informer les abonnés par courriel 30 jours avant, résiliation sans frais (conditions OP GESTION, art. 7). À comparer, puis valider',
 };
 const connu = t => typeof t === 'string' && Object.prototype.hasOwnProperty.call(TYPES, t);
 const TEXTE_MAX = 80000, NOTE_MAX = 300;

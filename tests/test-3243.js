@@ -28,7 +28,8 @@ console.log('\n── 3243 · logo et couleur sur les documents, plus dans l’a
 console.log('\n1. Les conditions particulières');
 vrai('(population) les trois conditions particulières d’OP GESTION sont lues', CP.every(t => txt(t).length > 400));
 v('⛔ aucune ne promet plus le logo ni la couleur dans l’application', CP.filter(t => PROMESSE.test(txt(t))), []);
-vrai('Pro : « Devis et factures, à votre logo, votre couleur et votre cachet »', /- Devis et factures, à votre logo, votre couleur et votre cachet\n/.test(txt('cp_op_gestion_pro')));
+vrai('Pro : « Devis et factures à votre logo et votre couleur, et, si vous l\'avez ajouté, à votre cachet » (le cachet est un CHOIX, coupé par défaut — juriste, 4 novembre)', /- Devis et factures à votre logo et votre couleur, et, si vous l'avez ajouté, à votre cachet\n/.test(txt('cp_op_gestion_pro')));
+v('⛔ nulle part le cachet n\'est promis d\'office (« votre couleur et votre cachet »)', CP.filter(t => /couleur et votre cachet/.test(txt(t))), []);
 vrai('Pro : la « personnalisation » ne figure plus parmi les fonctions exclues', /\(stock, bons de commande, registre sanitaire, comptabilité\) ne font pas partie/.test(txt('cp_op_gestion_pro')));
 vrai('Business : « Bons de commande fournisseurs : PDF à votre logo et votre couleur, envoi en un clic »', /- Bons de commande fournisseurs : PDF à votre logo et votre couleur, envoi en un clic\n/.test(txt('cp_op_gestion_business')));
 vrai('…le reste du fond est intact (prix, assistance, changement de formule)', /Prix : 15 € par mois/.test(txt('cp_op_gestion_pro')) && /Prix : 25 € par mois/.test(txt('cp_op_gestion_business')) && /Prix : 50 € par mois/.test(txt('cp_op_gestion_business_premium'))
@@ -52,6 +53,7 @@ const apres = JSON.parse(fs.readFileSync(F, 'utf8'));
 v('⛔ chaque pièce reçoit UN brouillon de plus', CP.map(t => apres[t].length), [2, 2, 2]);
 v('⛔ …marqué de la révision, en brouillon, avec le texte du fichier', CP.map(t => (apres[t][1] || {})).map((x, i) => [x.statut, x.revision, x.texte === txt(CP[i]).replace(/\r\n/g, '\n').trim()]), CP.map(() => ['brouillon', 'logo-documents-2026-11-04', true]));
 vrai('…sa note dit la révision du 4 novembre, pas la relecture juridique', CP.every(t => /4 novembre 2026/.test((apres[t][1] || {}).note) && !/relecture juridique/.test((apres[t][1] || {}).note)));
+vrai('⛔ …et elle rappelle d\'informer les abonnés 30 jours avant, résiliation sans frais (art. 7) — sinon on valide sans prévenir', CP.every(t => /informer les abonnés par courriel 30 jours avant/.test((apres[t][1] || {}).note) && /résiliation sans frais/.test((apres[t][1] || {}).note) && /art\. 7/.test((apres[t][1] || {}).note)));
 v('⛔ …et ce qui est en vigueur ne bouge pas (la version 1, son empreinte)', CP.map(t => [VPS.m.enVigueur(t).n, VPS.m.enVigueur(t).empreinte === avant[t][0].empreinte]), CP.map(() => [1, true]));
 VPS.m.semer(TEXTES);
 v('⛔ le redémarrage suivant ne redépose rien', CP.map(t => JSON.parse(fs.readFileSync(F, 'utf8'))[t].length), [2, 2, 2]);
@@ -60,7 +62,12 @@ console.log('\n3. Ce que les agents récitent');
 const CONN = sansJsCom(lire('server/agents-connaissance.js')), EQ = sansJsCom(lire('server/agent-equipe.js'));
 vrai('(population) les deux sources sont lues, et les trois formules y sont', CONN.length > 5000 && /premium: \{ nom: 'OP GESTION Business Premium'/.test(CONN) && /Business Premium 50 €/.test(EQ));
 v('⛔ aucune ne promet plus le logo ni la couleur dans l’application', [['agents-connaissance.js', CONN], ['agent-equipe.js', EQ]].filter(([, s]) => PROMESSE.test(s) || /logo, nom et couleur/.test(s)).map(([n]) => n), []);
-vrai('Pro : les agents disent « devis et factures à son logo, sa couleur et son cachet »', /'devis et factures à son logo, sa couleur et son cachet'/.test(CONN) && /devis et factures à son logo, sa couleur et son cachet\)/.test(EQ));
+vrai('Pro : les agents disent « devis et factures à son logo et sa couleur, et, s’il l’a ajouté, à son cachet »', /'devis et factures à son logo et sa couleur, et, s’il l’a ajouté, à son cachet'/.test(CONN) && /devis et factures à son logo et sa couleur, et, s’il l’a ajouté, à son cachet\)/.test(EQ));
+v('⛔ …et aucun ne promet le cachet d\'office', [['agents-connaissance.js', CONN], ['agent-equipe.js', EQ]].filter(([, s]) => /couleur et son cachet/.test(s)).map(([n]) => n), []);
+
+console.log('\n4. La page des tarifs (publique)');
+const TAR = lire('tarifs.html'), MAR = sansJsCom(lire('scripts/site-marine.js'));
+vrai('⛔ la page servie et sa fabrique disent la même réserve, et plus « votre couleur et votre cachet »', /Devis et factures à votre logo et votre couleur, et, si vous l’avez ajouté, à votre cachet/.test(TAR) && /'Devis et factures à votre logo et votre couleur, et, si vous l’avez ajouté, à votre cachet'/.test(MAR) && !/couleur et votre cachet/.test(TAR + MAR));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

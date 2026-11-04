@@ -11,7 +11,7 @@ Fonctions comprises
 - Tournées du jour : carte, temps de trajet, ordre optimisé
 - Récurrences (contrats) et passages multiples
 - Conflits de planning et absences signalés
-- Devis et factures, à votre logo, votre couleur et votre cachet
+- Devis et factures à votre logo et votre couleur, et, si vous l'avez ajouté, à votre cachet
 - Pointage des heures
 - Exports CSV, notifications
 - Application web et mobile (iPhone, Android, Mac, PC), données chiffrées AES-256
