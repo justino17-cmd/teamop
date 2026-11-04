@@ -29,7 +29,7 @@ retombait en silence sur le SMTP de TEAM OP (409, `test-3246`). Côté applicati
 ⚠️ **Recherche de la Boîte mail (« elle ne marche pas »)** : cause MESURÉE au navigateur — le module `opcourrier.js` vit dans un arbre d'ombre,
 et l'écouteur lisait `e.target.value` 120 ms après l'événement, quand le navigateur a déjà vidé `e.target` : `state.query` jamais posé, aucune
 erreur. Corrigé dans `opcourrier.js` (+ ses deux copies `apercu/` et `server-msg/public/`, `test-2994`), plus le n° de bon dans le texte lu
-(`courrierCorps`) et « Aucun message pour « … » ». `test-3247` (26 ✓ ; MUTER=1 → 14 ✗). ⛔ **Ce fichier est servi aussi par la PRODUCTION
+(`courrierCorps`) et « Aucun message pour « … » ». `test-3248` (26 ✓ ; MUTER=1 → 14 ✗). ⛔ **Ce fichier est servi aussi par la PRODUCTION
 (app.html v795) et par OP MESSAGES** : il n'est PAS sur `main`, il attend la phrase de Justin (un push de `server-msg/` redéploie OP MESSAGES).
 
 # 📍 4 NOVEMBRE 2026 — BÊTA v796 : RIEN NE PART PAR TEAM OP (la boîte de l'entreprise, ou rien)

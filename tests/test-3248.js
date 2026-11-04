@@ -1,4 +1,4 @@
-/* test-3247 — LA RECHERCHE DE LA BOÎTE MAIL FILTRE VRAIMENT (4 novembre 2026, Justin : « dans Boîte mail, la barre de recherche ne marche pas »).
+/* test-3248 — LA RECHERCHE DE LA BOÎTE MAIL FILTRE VRAIMENT (4 novembre 2026, Justin : « dans Boîte mail, la barre de recherche ne marche pas »).
  *
  * Mesuré au navigateur avant toute hypothèse : la frappe arrivait dans le champ, l'écouteur `input` tournait (la ligne prenait `has-q`),
  * et la liste ne bougeait pas — sans une erreur. La cause : le module vit dans un ARBRE D'OMBRE, et à la fin de la diffusion le
@@ -20,7 +20,7 @@ if (process.env.MUTER) OPC = OPC.replace(/var champ=e\.currentTarget\|\|e\.targe
 const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
 const corps = (() => { const i = APP.indexOf('function courrierCorps('); return i < 0 ? '' : APP.slice(i, APP.indexOf('\n', i)); })();
 
-console.log('\n── 3247 · 0. la vraie courrierCorps (app.html) ──');
+console.log('\n── 3248 · 0. la vraie courrierCorps (app.html) ──');
 vrai('courrierCorps est trouvée', corps.length > 40, corps.length);
 const courrierCorps = corps ? new Function(corps + '; return courrierCorps;')() : () => '';
 v('le n° de bon s\'ajoute au texte lu (donc à la recherche)', courrierCorps({ text: 'Livraison mardi', bonNum: 'BC-2026-012' }), 'Livraison mardi\n\nBon de commande BC-2026-012');
@@ -46,7 +46,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><div id="z" style="width:1440
   const b = await chromium.launch();
   try {
     for (const [nom, vp] of [['bureau', { width: 1440, height: 900 }], ['téléphone', { width: 390, height: 844 }]]) {
-      console.log('\n── 3247 · ' + nom + (process.env.MUTER ? ' (MUTÉ)' : '') + ' ──');
+      console.log('\n── 3248 · ' + nom + (process.env.MUTER ? ' (MUTÉ)' : '') + ' ──');
       const p = await b.newPage({ viewport: vp, isMobile: nom !== 'bureau', hasTouch: nom !== 'bureau' }); const err = [];
       p.on('pageerror', e => err.push(e.message));
       await p.goto('http://127.0.0.1:' + srv.address().port + '/', { timeout: 30000 }); await p.waitForTimeout(1500);
