@@ -36,7 +36,8 @@ const PIECES = {
   print: bloc('function printArchive(){'), fiche: bloc('function ficheTech(id){'), journal: bloc('function journalGo(id){'),
   ptSecs: bloc('function ptSecs(p,now){'), ptOuvert: ligne('function ptOuvert(p)'), ptTotal: ligne('function ptTotal(list,now)'),
   minutes: ligne('function minutes(deb,fin)'), vehAuto: ligne('function vehiculeAuto(v,u)'), note: ligne('const DOCS_EMIS_TXT=') + '\n' + ligne('function docsEmisNote('),   /* i02 : la note est une fabrique (elle passe par t() au rendu), plus une constante */ dureeStr: ligne('function dureeStr(min)'), docTot: ligne('function docTot(d)'),
-  ymOf: ligne('function ymOf(iso)'), isFin: ligne('function isFinanceMgr()'), norm: ligne('const norm ='), vPlaque: ligne('const vPlaque='), vehName: ligne('const vehName =')
+  ymOf: ligne('function ymOf(iso)'), isFin: ligne('function isFinanceMgr()'), norm: ligne('const norm ='), vPlaque: ligne('const vPlaque='), vehName: ligne('const vehName ='),
+  statDeg: ligne('const STAT_RANGS=') + '\n' + ligne('function statDegrade(') + '\n' + ligne('const INT_STCOLOR =')
 };
 v('toutes les pièces sont trouvées (une tranche vide passerait au vert sur tout)', Object.entries(PIECES).filter(([, s]) => s.length < 20).map(([k]) => k), []);
 v('⛔ une seule définition de chaque fonction extraite',
@@ -78,7 +79,7 @@ function monde(o) {
     var PT_MAX_H=16;\n${PIECES.minutes}\n${PIECES.dureeStr}\n${PIECES.docTot}\n${PIECES.ymOf}\n${PIECES.isFin}\n${PIECES.norm}\n${PIECES.ptOuvert}\n${PIECES.ptSecs}\n${PIECES.ptTotal}
     ${bloc('function docEmis(')}\n${PIECES.vehAuto}\n${PIECES.note}
     ${PIECES.vPlaque}\n${PIECES.vehName}\n${PIECES.archStats}\n${PIECES.fiche}\n${PIECES.journal}\n${PIECES.print}
-    ${PIECES.stats}\n${PIECES.archives}
+    ${PIECES.statDeg}\n${PIECES.stats}\n${PIECES.archives}
   `, ctx);
   ctx.vehName = vm.runInContext('vehName', ctx);   // un `const` n'est pas une propriété du contexte
   return ctx;

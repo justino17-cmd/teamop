@@ -57,8 +57,10 @@ const VUE = CODE.slice(i0);
 const attrs = s => { const o = {}; for (const m of s.matchAll(/([\w-]+)="([^"]*)"/g)) o[m[1]] = m[2]; return o; };
 const enLigne = (a, prop) => { const m = new RegExp('(?:^|;)\\s*' + prop + ':\\s*([^;]+)').exec(a.style || ''); return m ? m[1].trim() : undefined; };
 
-const bouton = /<button ([^>]*onclick="document\.getElementById\('ent-couleur-in'\)\.click\(\)"[^>]*)>/.exec(VUE);
-vrai('le bouton « Choisir la couleur de l\'entreprise » est trouvé dans le balisage', !!bouton);
+/* v795 : le bouton « ＋ Choisir la couleur de l'entreprise » n'existe plus (le bloc « Couleur dans l'application » est retiré, Justin :
+   « ça sert à rien »). Sa section se garde à rebours : il ne doit pas revenir. */
+const bouton = null;
+vrai('v795 : le bouton « Choisir la couleur de l\'entreprise » n\'est plus dans le balisage', !/ent-couleur-in/.test(VUE));
 const libs = ['Toute sortie de stock passe par la validation', 'Bons de remise à la sortie de stock'].map(t => {
   const m = new RegExp('<span ([^>]*class="frow-lbl[^"]*"[^>]*)>' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</span>').exec(VUE);
   return { t, m };
@@ -73,7 +75,7 @@ const el = (tag, a) => ({ tag, classes: (a.class || '').split(/\s+/).filter(Bool
 /* le bouton n'est PAS enfant direct de la carte : il vit dans <div display:flex;gap:8px;flex-wrap:wrap> (lui-même dans la rangée du sélecteur) */
 const RANGEE = el('div', { style: 'display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px' });
 const PHONES = [320, 360, 390, 430];
-console.log('\n── 1640 · 1. le bouton « ＋ Choisir la couleur de l\'entreprise » peut passer à la ligne ──');
+console.log('\n── 1640 · 1. (v795) le bouton « ＋ Choisir la couleur de l\'entreprise » est retiré — section sans objet ──');
 if (bouton) {
   const a = attrs(bouton[1]);
   for (const w of PHONES) {

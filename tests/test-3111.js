@@ -369,7 +369,8 @@ async function suite2(N, METIERS, CATALOGUE_3D) {
   reg('supprimer un client DIT combien de cahiers et de plans restent', /cahiers:n\('cahiers'\),plans:n\('plansPrevention'\)/);
   reg('la fiche client appelle nettSectionClient ; l\'intervention nettIntCard ; le rapport nettRapportLignes ; la carte des prestations nettTachesPourCard', /nettSectionClient\(c\)/.test(N) && /nettIntCard\(i,intEdit\)/.test(N) && /nettRapportLignes\(i\)\.forEach/.test(N) && /nettTachesPourCard\(i\)\.filter/.test(N) ? /./ : /^$/);
   reg('l\'assistant devis envoie l\'entreprise et le métier (jamais un client de plus)', /body:JSON\.stringify\(\{\s*t:syncTeam\(\), metier:metierId\(\),\s*messages:/);
-  reg('les deux générateurs de devis envoient le métier', /body:JSON\.stringify\(\{team:syncTeam\(\),metier:metierId\(\),code:code\|\|undefined/);
+  /* v791 : le Devis IA parle au nom de devisEquipe() (opgestion-beta sur la bêta, syncTeam() en production) */
+  reg('les deux générateurs de devis envoient le métier', /body:JSON\.stringify\(\{team:(?:syncTeam|devisEquipe)\(\),metier:metierId\(\),code:code\|\|undefined/);
   reg('metierBloque : la bêta ne voit tout qu\'en 3D', /function metierBloque\(k\)\{ if\(BETA_ESSAI&&estMetier3D\(\)\) return false;/);
   reg('cataloguesFournisseurs ne s\'ouvre pour un pack posé que pour la 3D', /if\(catalogueEnPlace\(\)&&estMetier3D\(\)\) return true;/);
   const REF = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'metiers.json'), 'utf8')).metiers.nettoyage;

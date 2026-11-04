@@ -27,6 +27,10 @@ const net = x => String(x || '').replace(/\s+/g, '').toLowerCase();
 
 /* ⛔ TOUT ÉCART AU DOCUMENT SE DÉCLARE ICI, AVEC SA RAISON ET SA MESURE. */
 const ECARTS = {
+  'la nuit de la Tour': `la maquette donne au thème TEAM OP de nuit un dégradé #152340 → #0B1426 avec la diagonale à 5 % ;
+     Justin, 30 octobre 2026 : « le même mode nuit que la Tour, il est beaucoup plus agréable ». La page de nuit TEAM OP reprend
+     donc le fond de la Tour (--tt-page) : deux halos (#1A2A4D, #1C1636) sur #0F1A30 → #070B16, diagonale à 4 %. Les contrastes
+     sont mesurés sur la vitre (test-757, test-773, test-774 restent verts).`,
   'le nom et le logo': `la maquette écrit « TEAM OP » (et son logo) sous le thème TEAM OP ; on garde
      « OP GESTION » et le logo OP GESTION dans les DEUX thèmes, sur tous les appareils. Décision de
      Justin, 24 septembre 2026 à 21 h 51, capture de la maquette à l'appui : « pour tous les types
@@ -61,6 +65,12 @@ const ECARTS = {
      onglets y tombent à 3,13 (TEAM OP) et 3,73 (OP GESTION). Chaque thème glisse SOUS le blanc un
      voile de sa couleur de fond à 55 %, écrit en une seule couleur : sur un fond calme la pilule
      ne change pas, sur un bloc vif ses libellés tiennent (test-806 refait le calcul).`,
+  'nuit de la Tour': `Décision de Justin, 31 octobre 2026 : « je veux tout le mode nuit de la Tour pour OP GESTION… comme les couleurs
+     de tes prototypes ». Le thème TEAM OP de NUIT n'est plus en verre : ses surfaces sont les APLATS de tour.html — cartes
+     #1E2A42, second plan #25334F, menu, barre d'onglets et feuilles #15213A/#1E2A42 —, sans flou ni reflet (un flou sous un
+     aplat opaque ne se voit pas, il coûte), et son bouton principal est bleu nuit (#2C3D63, encre #F0F3F8) au lieu de blanc.
+     Le thème OP GESTION (vert) garde le verre du document ; le jour ne change pas. test-2830 et test-2831 éprouvent les
+     réglages d'accessibilité sur le verre d'OP GESTION, et contrôlent que la nuit de TEAM OP est pleine.`,
   'feuille de nuit': `la maquette pose ses feuilles de nuit sur rgba(28,28,30,.7), un gris neutre ;
      on les teinte du thème (bleu nuit pour TEAM OP, vert forêt pour OP GESTION) et on les
      densifie (.86–.88). La règle du dépôt, écrite après la capture de Justin du 22 septembre :
@@ -117,8 +127,14 @@ for (const mq of ['teamop', 'opgestion']) {
   vrai(mq + ' — le fond de jour porte A, C, B et le clair, dans l’ordre de la maquette',
     pos.every(p => p > 0) && pos[0] < pos[1] && pos[1] < pos[2] && pos[2] < pos[3], JSON.stringify(pos));
   vrai(mq + ' — … et la diagonale blanche à 112° (35 % de jour)', pj.startsWith('linear-gradient(112deg,') && pj.includes('rgba(255,255,255,.35)58.2%'));
+  if (mq === 'teamop' && ECARTS['la nuit de la Tour']) {
+    vrai(mq + ' — le fond de nuit est celui de la Tour (écart DÉCLARÉ) : halos bleu et violet sur #0F1A30 → #070B16',
+      /linear-gradient\(160deg,#0f1a30 ?0%,#070b16 ?100%\)/.test(pn.toLowerCase()) && /#1a2a4d/.test(pn.toLowerCase()) && /#1c1636/.test(pn.toLowerCase()));
+    vrai(mq + ' — … avec la diagonale à 4 %, comme la Tour', pn.includes('rgba(255,255,255,.04)58.2%'));
+  } else {
   vrai(mq + ' — le fond de nuit va du haut au bas du thème', pn.includes(net('linear-gradient(160deg,' + J['theme.' + mq + '.nuit.haut'] + ',' + J['theme.' + mq + '.nuit.bas'] + ')')));
   vrai(mq + ' — … avec la diagonale à 5 %', pn.includes('rgba(255,255,255,.05)58.2%'));
+  }
   /* ⛔ Un dégradé qui finit sur `transparent` passe par du noir (CLAUDE.md) : chaque arrêt
      transparent garde sa teinte. */
   vrai(mq + ' — aucun arrêt « transparent » dans le fond (il salit le bord)', !/transparent/.test(pj + pn));
@@ -147,13 +163,15 @@ console.log('\n══ 2. LE VERRE — lu dans le document (§ 4) ══\n');
   const satOpg = parseFloat((fOpg.match(/saturate\((\d+)%\)/) || [, '0'])[1]);
   vrai('nuit OP GESTION — le vert se sature MOINS que la maquette (écart déclaré, mesuré au pixel)',
     !!ECARTS['flou de nuit OP GESTION'] && satOpg > 0 && satOpg <= 150 && /blur\(40px\)/.test(fOpg), fOpg);
-  vrai('   … et TEAM OP de nuit garde le flou du document', !jeton(regle('html[data-marque="teamop"][data-verre][data-theme="dark"]'), '--vr-flou'));
+  vrai('   … et TEAM OP de nuit n’a plus de flou du tout : ses surfaces sont les aplats de la Tour (écart déclaré)',
+    !!ECARTS['nuit de la Tour'] && jeton(regle('html[data-marque="teamop"][data-verre][data-theme="dark"]'), '--vr-flou') === 'none');
   /* ⛔ ÉCART DÉCLARÉ : la pilule d'onglets de nuit porte un voile du thème sous son blanc. */
   const barresNuit = ['teamop', 'opgestion'].map(m => jeton(regle('html[data-marque="' + m + '"][data-verre][data-theme="dark"]'), '--tf-barre'));
   vrai('nuit — la pilule d’onglets de chaque thème porte son voile (écart déclaré, mesuré au pixel)',
-    barresNuit.every(b => /^rgba\(\d+,\d+,\d+,\.[5-9]\d*\)$/.test(net(b))) && !!ECARTS["barre d'onglets de nuit"], barresNuit.join(' · '));
+    /^rgba\(\d+,\d+,\d+,\.[5-9]\d*\)$/.test(net(barresNuit[1])) && !!ECARTS["barre d'onglets de nuit"]
+    && net(barresNuit[0]) === '#15213a' && !!ECARTS['nuit de la Tour'], barresNuit.join(' · '));
   vrai('nuit — la feuille est AU MOINS aussi dense que la maquette (écart déclaré : teinte du thème)',
-    alphas.every(a => a >= aDoc) && !!ECARTS['feuille de nuit'], fn.join(' · ') + ' / document ' + J['verre.nuit.feuille']);
+    alphas[1] >= aDoc && !!ECARTS['feuille de nuit'] && fn[0] === '#1E2A42' && !!ECARTS['nuit de la Tour'], fn.join(' · ') + ' / document ' + J['verre.nuit.feuille']);
   v('la bulle de l’onglet choisi, jour', net(jeton(jour, '--tf-bulle')), net(J['bulle.jour']));
   v('   … nuit', net(jeton(nuit, '--tf-bulle')), net(J['bulle.nuit']));
   v('son ombre, jour', net(jeton(jour, '--tf-bulle-ombre')), net(J['bulle.jour.ombre']));
@@ -191,7 +209,7 @@ console.log('\n══ 3. LES TEINTES — lues dans le document (§ 3) ══\n')
       const fj = (NU.match(new RegExp('html\\[data-refonte\\]\\[data-theme="light"\\]\\[data-accent="' + k + '"\\]\\s*\\{[^}]*--acc-fill:(#[0-9A-Fa-f]{6})')) || [, ''])[1].toUpperCase();
       const fn = (NU.match(new RegExp('html\\[data-refonte\\]\\[data-theme="dark"\\]\\[data-accent="' + k + '"\\]\\s*\\{[^}]*--acc-fill:(#[0-9A-Fa-f]{6})')) || [, ''])[1].toUpperCase();
       v('   son remplissage de jour (le « Créer »)', fj, t.fillJ.toUpperCase());
-      v('   … et de nuit', fn, t.fillN.toUpperCase());
+      v('   … et de nuit', fn, (k === 'teamop' || k === 'marine') && ECARTS['nuit de la Tour'] ? '#2C3D63' : t.fillN.toUpperCase());
     }
     const rgb = (NU.match(new RegExp('html\\[data-marque\\]\\[data-accent="' + k + '"\\]\\s*\\{\\s*--tf-acc-rgb:([\\d,]+);')) || [, ''])[1];
     v('   son voile (rubrique active, action de liste)', rgb, t.rgb);
@@ -329,7 +347,8 @@ console.log('\n══ 7. LES ÉCARTS SONT TOUS MOTIVÉS ══\n');
     let r; try { r = jouer(fo, E); } catch (e) { r = { nom: 'ERREUR ' + e.message, sous: '', logo: '' }; }
     vrai('⛔ ' + lib + ' → le menu s’appelle « OP GESTION »', r.nom === 'OP GESTION', JSON.stringify(r.nom));
     if (E.nom) vrai('   … et le nom de l’entreprise s’écrit dessous', r.sous === E.nom, JSON.stringify(r.sous));
-    if (E.logo) vrai('   … et le logo payé par l’entreprise reste le sien', r.logo === E.logo, r.logo.slice(0, 30));
+    /* v789 — Justin, 3 novembre 2026 : « plus le logo de l'application dans l'application ». Le logo de l'entreprise ne sert plus qu'à ses documents. */
+    if (E.logo) vrai('   … et le logo reste celui d’OP GESTION (le logo de l’entreprise ne va que sur ses documents)', r.logo !== E.logo && /^icons\//.test(r.logo), r.logo.slice(0, 30));
   }
   vrai('⛔ la connexion porte le titre OP GESTION et le logo OP GESTION',
     /<img class="login-logo" src="\$\{_logo\}" alt="OP GESTION"><h2>OP GESTION<\/h2>/.test(NU) && /icons\/logo-day\.png/.test(NU));

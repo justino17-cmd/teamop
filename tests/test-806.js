@@ -222,6 +222,10 @@ console.log('\n── 9. La passe des DOUZE teintes, au pixel (les deux thèmes,
     const b = bloc('html[data-marque="' + M + '"][data-verre][data-theme="dark"]');
     const barre = rgba((b.match(/--tf-barre:(rgba\([^)]*\))/) || [])[1]);
     const t3 = (b.match(/--t3:(#[0-9A-Fa-f]{6})/) || [])[1];
+    /* v784 : la nuit de TEAM OP est faite des APLATS de la Tour (décision de Justin, 31 octobre 2026) — sa pilule n'est plus
+       une vitre, rien de vif ne passe dessous : elle est pleine (#15213A) et ses libellés se calculent sur elle seule. */
+    const plein = (b.match(/--tf-barre:(#[0-9A-Fa-f]{6})/) || [])[1];
+    if (M === 'teamop' && plein && !barre) { vrai('⛔ teamop de nuit : la pilule d’onglets est un aplat de la Tour (' + plein + '), libellés à 4,5 au moins', !!t3 && ctr(hex(t3), hex(plein)) >= 4.5, t3 && ctr(hex(t3), hex(plein)).toFixed(2)); continue; }
     vrai('⛔ ' + M + ' de nuit : la pilule d’onglets porte un voile SOUS son blanc (--tf-barre)', !!barre && barre.a >= .5 && !!t3, b ? (barre ? JSON.stringify(barre) : 'absent') : 'bloc introuvable');
     if (barre && t3) {
       /* ce qui passe SOUS la vitre, retrouvé depuis le relevé (fond = dessous × .9 + blanc × .1) */

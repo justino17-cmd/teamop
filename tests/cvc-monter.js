@@ -62,6 +62,7 @@ function monter(opts) {
     var document={getElementById:function(){return null;}};
     function intHisto(i,t){ (i.histo=i.histo||[]).push(t); } function fullName(u){ return ((u.prenom||'')+' '+(u.nom||'')).trim(); }
     function techNames(i){ return i.techNom||'Tom Sonde'; } function metierPack(){ return __pack; }
+    function docCouleurEnt(){ return '#152340'; }
     function docEntete(m){ return {nom:'Alpha Chauffage',couleur:'#C0392B',logo:'',adresse:'2 quai Alpha'}; }
     function docCoordLignes(h){ return ['2 quai Alpha, 33000 Bordeaux','SIRET 222 222 222 00022 · Tél. 05 56 00 00 00']; }
     async function devisLogoJpeg(){ return null; }
