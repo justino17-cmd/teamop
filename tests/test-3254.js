@@ -99,6 +99,18 @@ vrai('le bloc du relais réseau d’app.html est trouvé', BLOC.length > 800 && 
     for (let k = 0; k < 4; k++) { const h = m.lance('/api/doc/ecrire', sg()); m.avance(52000); await h.abandon(); m.avance(1000); }
     vrai('des envois qui dépassent leur délai, sans aucune réponse pendant 2 min : « ne répond plus… pas de réponse en 52 s »', m.signales.length === 1 && /api\.teamop\.fr ne répond plus à cet appareil depuis plus de 2 min — \/api\/doc\/ecrire \(pas de réponse en 52 s\)/.test(m.signales[0]), m.signales); }
 
+  console.log('\n── 3254 · 4 bis. au retour sur l’application, la panne se chronomètre APRÈS la minute de grâce ──');
+  { const m = monde(); m.avance(10 * 60000);
+    m.S.document.visibilityState = 'hidden'; m.emet('document', 'visibilitychange'); m.avance(5 * 60000);
+    const ecoute = m.lance('/api/doc/attendre');
+    m.S.document.visibilityState = 'visible';              // l'iPhone se réveille : l'état a changé…
+    await ecoute.coupe('Load failed');                      // … l'écoute rend son échec…
+    m.emet('document', 'visibilitychange');                 // … puis l'événement arrive (l'ordre vu chez Safari)
+    for (let k = 0; k < 9; k++) { m.avance(15000); await m.appel('/api/doc/lire', 'coupe'); }
+    vrai('2 min 15 de coupure juste après le retour : pas encore de dossier (la minute de grâce, puis 2 min de panne)', m.signales.length === 0, m.signales);
+    for (let k = 0; k < 4; k++) { m.avance(15000); await m.appel('/api/doc/lire', 'coupe'); }
+    vrai('… à 3 min 15, la panne qui dure se signale : un dossier', m.signales.length === 1, m.signales); }
+
   console.log('\n── 3254 · 5. une réponse 5xx prouve le réseau : elle se signale toujours ──');
   { const m = monde(); m.avance(10 * 60000); m.emet('window', 'online');
     await m.appel('/api/doc/lire', 502); m.avance(3000); await m.appel('/api/doc/lire', 502);

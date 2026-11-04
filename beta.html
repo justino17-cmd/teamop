@@ -8615,12 +8615,14 @@ try{
            l'événement qui ouvre la minute de grâce), un passage wifi → 4G coupe une connexion pendant que les autres répondent, et la
            boucle de la synchro relit dans la seconde. Rien de tout ça ne gêne la personne : la synchro reprend seule.
            La règle, désormais, pour un appel resté SANS RÉPONSE (coupure ou délai dépassé) : c'est peut-être une panne, et on la
-           CHRONOMÈTRE. Elle ne se signale qu'après 2 minutes sans aucune réponse du serveur (au moins 3 échecs, jamais plus de 90 s
-           entre deux), page au premier plan tout du long — UN dossier par panne et par appareil, plus un par appel. L'horloge
+           CHRONOMÈTRE. Elle ne se signale qu'après 2 minutes sans aucune réponse du serveur (des échecs jamais à plus de 90 s l'un de
+           l'autre — donc au moins trois), page au premier plan tout du long — UN dossier par panne et par appareil, plus un par appel. L'horloge
            repart de zéro à chaque réponse du serveur (le réseau marche : c'était UNE connexion perdue), à chaque passage au second
            plan ou retour (l'écran verrouillé d'un iPhone coupe l'écoute en cours), au retour ou à la perte du réseau.
-           ⚠️ Deux gardes de plus (« passée au second plan pendant l'appel », « une autre réponse pendant l'appel ») ont été
-           écrites puis retirées : la mutation a montré que ces remises à zéro les couvraient déjà entièrement.
+           La minute de grâce qui suit un retour (plus haut) reste : une panne constatée au réveil se signale donc à 3 minutes.
+           ⚠️ Trois gardes de plus (« passée au second plan pendant l'appel », « une autre réponse pendant l'appel », « au moins
+           3 échecs ») ont été écrites puis retirées : la mutation a montré que les remises à zéro et l'écart de 90 s les
+           couvraient déjà entièrement.
            Une réponse 5xx, elle, prouve le réseau : elle garde la règle d'avant (2e fois en 3 minutes sur le même appel) et se signale
            toujours. `tests/test-3254.js`. */
         var tmNet5xx=function(msg){ try{
@@ -8635,9 +8637,9 @@ try{
           if(n-(window.__tmRetour||0)<60000) return;
           try{ if(document.visibilityState==='hidden') return; }catch(_){ }
           var P=window.__tmPanne;
-          if(!P||n-P.dernier>90000) P=window.__tmPanne={debut:n,n:0,dernier:n,signale:false};
-          P.n++; P.dernier=n;
-          if(!P.signale&&P.n>=3&&n-P.debut>=120000){ P.signale=true; tmPush('reseau',msg,'','',0); }
+          if(!P||n-P.dernier>90000) P=window.__tmPanne={debut:n,dernier:n,signale:false};
+          P.dernier=n;
+          if(!P.signale&&n-P.debut>=120000){ P.signale=true; tmPush('reseau',msg,'','',0); }
         }catch(_){ } };
         p.then(function(r){ try{ window.__tmPanne=null; if(r&&r.status>=500) tmNet5xx('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
                function(err){ try{
