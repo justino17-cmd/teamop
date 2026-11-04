@@ -1115,8 +1115,20 @@ const APPS_NOM = { elan: 'OP GESTION', 'elan-gestion': 'OP GESTION', elangestion
   opmessages: 'OP MESSAGES', opmsg: 'OP MESSAGES', messages: 'OP MESSAGES', espace: 'ESPACE CLIENT', site: 'SITE TEAM OP' };
 function appLisible(a) { const k = String(a || '').toLowerCase().trim(); return APPS_NOM[k] || (k ? k.toUpperCase() : 'APPLICATION'); }
 
+/* ⛔ UN RAPPORT D'ERREUR NE PORTE AUCUNE ADRESSE DU CLIENT D'UNE ENTREPRISE (4 novembre 2026, essai des mails de A à Z).
+   La route est publique et ce qu'elle reçoit part dans bugs.jsonl, dans le courriel de la vigie (donc dans mails-envoyes.json et la
+   Tour). Une application (la v795 en service) y écrivait « domaine du destinataire : client-dupont.fr » — un domaine d'entreprise
+   NOMME le client — et le refus d'un serveur de messagerie recopie souvent l'adresse (« 550 <x@y> unknown »). On retire les adresses,
+   et on ne garde un domaine que s'il est celui d'une messagerie PUBLIQUE (il ne désigne personne et sert à voir qu'un fournisseur
+   refuse). Fait ICI, pour toutes les versions d'application, et pas seulement dans la nouvelle. */
+const DOMAINES_PUBLICS = /^(gmail\.com|googlemail\.com|(outlook|hotmail|live)\.[a-z.]+|msn\.com|yahoo\.[a-z.]+|icloud\.com|me\.com|orange\.fr|wanadoo\.fr|free\.fr|sfr\.fr|neuf\.fr|laposte\.net|bbox\.fr|gmx\.[a-z.]+|aol\.com|proton(mail)?\.(me|com))$/i;
+function bugAnonymiser(s) {
+  return String(s || '').replace(/[^\s<>"'@,;:()\[\]]+@[^\s<>"'@,;:()\[\]]+/g, '[adresse]')
+    .replace(/(domaine du destinataire\s*:\s*)([^\s,;]+)/gi, (_, k, d) => k + (d === '—' || DOMAINES_PUBLICS.test(d) || d === 'domaine' ? d : 'domaine d’entreprise'));
+}
 app.post('/api/bug', (req, res) => {
-  const { teamId, app: appName, version, msg, src, line, stack, ua } = req.body || {};
+  const { teamId, app: appName, version, line, ua } = req.body || {};
+  const msg = req.body && req.body.msg ? bugAnonymiser(req.body.msg) : '', src = bugAnonymiser(req.body && req.body.src), stack = bugAnonymiser(req.body && req.body.stack);
   if (!msg) return res.status(400).json({ error: 'msg requis' });
   const team = String(teamId || 'inconnu').slice(0, 80);   // 80 comme entFermes : à 60, un teamId long passait le garde-fou
   /* Un espace supprimé ne se laisse pas ressusciter par un appareil resté hors ligne :
@@ -1771,6 +1783,11 @@ app.post('/api/sendmail', async (req, res) => {
   }
   // Boîte connectée choisie à l'envoi : le serveur a le mot de passe, l'app ne l'envoie jamais
   const mb = (useMailbox && useMailbox.id && mailboxes[useMailbox.id] && mailboxes[useMailbox.id].teamId === teamId) ? mailboxes[useMailbox.id] : null;
+  /* ⛔ UNE BOÎTE DEMANDÉE ET INTROUVABLE NE SE RABAT PAS SUR LA PLATEFORME (4 novembre 2026, essai des mails de A à Z). L'appareil
+     demande « par la boîte mb… » ; si elle a été déconnectée ailleurs (un autre appareil, la Tour), `mb` est nul et l'envoi tombait dans
+     le mode simple : le document partait par le SMTP de TEAM OP alors que l'entreprise croyait envoyer de sa boîte — Justin : « il n'y a
+     rien qui passe par nous ». On refuse, et on le dit. (Les mots sont choisis : ni « refus », ni « auth », ni « mot de passe ».) */
+  if (useMailbox && useMailbox.id && !mb) return res.status(409).json({ error: 'boîte mail introuvable : reconnecte la boîte de l’entreprise (Paramètres → E-mails à tes clients)' });
   try {
     if (mb) {
       const nodemailer = require('nodemailer');

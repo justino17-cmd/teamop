@@ -13,6 +13,25 @@ de ligne du tout.
 
 ---
 
+# 📍 4 NOVEMBRE 2026 (soir) — BÊTA v797 : LA BOÎTE DE L'ENTREPRISE, SINON L'ADRESSE DE « MON ENTREPRISE », SINON RIEN — ESSAI DE A À Z
+Justin : « s'il n'utilise pas la boîte mail, il faut que dans Mon entreprise on l'oblige à mettre le mail ». La v796 (boîte OBLIGATOIRE) était trop
+stricte. Règle v797 (`envoiBoiteResoudre`) : boîte connectée → par elle ; sinon, adresse VALIDE dans Mon entreprise (`db.entreprise.email`,
+`ENVOI_ADR_RE`) → par le serveur au nom de l'entreprise, `brand.replyTo` = cette adresse, aucune copie (serveur 91641d89) ; ni l'une ni l'autre →
+l'étape (a « l'adresse de mon entreprise », enregistrée par `entPose`, l'envoi reprend ; b « connecter ma boîte ») ; boîtes INCONNUES (`null`) →
+« impossible de vérifier » (on ne contourne pas une boîte qui existe peut-être). Une boîte qui refuse : on le DIT, et avec une adresse on PROPOSE
+(`confirm`) « envoyer quand même depuis OP GESTION, réponses vers <adresse> » — jamais en silence, jamais pour un envoi automatique.
+Mon entreprise : champ `ent-email` « obligatoire pour tes envois — c'est l'adresse où tes clients te répondront », adresse mal formée refusée.
+**L'essai de bout en bout : `node scripts/controle/mails-a-z.js`** (vrai serveur isolé, vraie page dans Chromium, facteur SMTP TEAM OP + faux
+SMTP/IMAP de la boîte de l'entreprise, 14 scénarios, 108 ✓). Il a trouvé et fait corriger, côté SERVEUR (`server/index.js`) : `/api/bug` gardait
+le DOMAINE d'entreprise du client et l'adresse recopiée dans un refus SMTP (`bugAnonymiser`, `test-3246`) ; une boîte demandée et introuvable
+retombait en silence sur le SMTP de TEAM OP (409, `test-3246`). Côté application : `domaineDiag`. Bancs : `test-3250` (43 ✓, MUTER=1/2/3),
+`test-3246` (9 ✓, MUTER=1), `test-793`, `test-2692` mis à jour.
+⚠️ **Recherche de la Boîte mail (« elle ne marche pas »)** : cause MESURÉE au navigateur — le module `opcourrier.js` vit dans un arbre d'ombre,
+et l'écouteur lisait `e.target.value` 120 ms après l'événement, quand le navigateur a déjà vidé `e.target` : `state.query` jamais posé, aucune
+erreur. Corrigé dans `opcourrier.js` (+ ses deux copies `apercu/` et `server-msg/public/`, `test-2994`), plus le n° de bon dans le texte lu
+(`courrierCorps`) et « Aucun message pour « … » ». `test-3247` (26 ✓ ; MUTER=1 → 14 ✗). ⛔ **Ce fichier est servi aussi par la PRODUCTION
+(app.html v795) et par OP MESSAGES** : il n'est PAS sur `main`, il attend la phrase de Justin (un push de `server-msg/` redéploie OP MESSAGES).
+
 # 📍 4 NOVEMBRE 2026 — BÊTA v796 : RIEN NE PART PAR TEAM OP (la boîte de l'entreprise, ou rien)
 
 Justin, après une facture de Toka Clim arrivée dans contact@teamop.fr : « ils doivent mettre leur adresse e-mail dans les paramètres de

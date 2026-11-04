@@ -362,6 +362,8 @@ nm.createTransport = function (o) {
     console.log('\n6. ⛔ Les VRAIES fonctions d\'app.html (srvMail, mailDoConnect, mailDisconnect) contre ce serveur');
     const FN = [extraire(APP, 'envoiBoiteResoudre'), extraire(APP, 'envoiBoiteEtape'), extraire(APP, 'envoiBoiteSignaler'), extraire(APP, 'srvMail'), extraire(APP, 'mailDoConnect'), extraire(APP, 'mailDisconnect'), extraire(APP, 'enteteEquipe'),
       extraire(APP, 'khEquipe'), extraire(APP, 'syncSecret'), extraire(APP, 'sha256')];
+    /* v797 : srvMail lit aussi l'adresse de Mon entreprise (envoiAdresseEnt) et masque le domaine du rapport d'erreur (domaineDiag) */
+    const FN2 = [(APP.match(/const ENVOI_ADR_RE=[^\n]*/) || [''])[0], extraire(APP, 'envoiAdresseEnt'), extraire(APP, 'domaineDiag')];
     vrai('population : les dix fonctions sont trouvées dans app.html (et ne sont pas des coquilles) — srvMail et ses trois aides depuis la v796', FN.every(f => f.length > 80), FN.map(f => f.length));
     vrai('app.html présente la preuve sur CES trois appels (`enteteEquipe`), et sur aucun autre chemin d\'envoi',
       ['/api/sendmail', '/api/mailbox/connect', '/api/mailbox/disconnect'].every(rt => new RegExp("fetch\\(PUSH_API\\+'" + rt.replace(/\//g, '\\/') + "',\\{method:'POST',headers:await enteteEquipe\\(").test(sansCom(APP))));
@@ -377,7 +379,7 @@ nm.createTransport = function (o) {
       const champs = { 'mb-email': { value: 'jolie@exemple.fr' }, 'mb-pass': { value: 'pw-jolie' }, 'mb-btn': { textContent: '', disabled: false } };
       W.$ = id => champs[id] || null; W.__champs = champs;
       vm.createContext(W);
-      vm.runInContext("let _khCle='', _khVal=''; let _srvMailErr=''; let _mailboxes=[]; const BETA_ESSAI=false; let _boiteEtapeFin=0, _boiteEtapeEnCours=null; function todayISO(){ return '2026-11-04'; } function pushNotify(){}\n" + FN.join('\n') + '\nthis.srvMail=srvMail; this.mailDoConnect=mailDoConnect; this.mailDisconnect=mailDisconnect; this.__err=()=>_srvMailErr;', W);
+      vm.runInContext("let _khCle='', _khVal=''; let _srvMailErr=''; let _mailboxes=[]; const BETA_ESSAI=false; let _boiteEtapeFin=0, _boiteEtapeEnCours=null; function todayISO(){ return '2026-11-04'; } function pushNotify(){}\n" + FN2.concat(FN).join('\n') + '\nthis.srvMail=srvMail; this.mailDoConnect=mailDoConnect; this.mailDisconnect=mailDisconnect; this.__err=()=>_srvMailErr;', W);
       return W;
     };
 
