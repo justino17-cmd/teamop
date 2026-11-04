@@ -34554,15 +34554,24 @@ function oauthSuivre(w){ if(_oauthSuivi) clearInterval(_oauthSuivi.t);
   const avant=JSON.stringify((_mailboxes||[]).map(b=>b.id+':'+b.etat).sort());
   const s={avant,w,debut:Date.now()};
   s.t=setInterval(()=>{ let ferme=true; try{ ferme=!s.w||s.w.closed; }catch(e){}
-    if(ferme) oauthFin(null); else if(Date.now()-s.debut>15*60000) { clearInterval(s.t); if(_oauthSuivi===s) _oauthSuivi=null; } },1000);
+    if(ferme){ clearInterval(s.t); oauthFin(null,true); } else if(Date.now()-s.debut>15*60000) { clearInterval(s.t); if(_oauthSuivi===s) _oauthSuivi=null; } },1000);
   _oauthSuivi=s; }
-async function oauthFin(msg){ const s=_oauthSuivi; if(!s&&!msg) return; if(s){ clearInterval(s.t); _oauthSuivi=null; }
+/* `ferme` : la fenêtre s'est fermée. Sans message ni fenêtre fermée (retour sur l'application), on ne fait que REGARDER : la connexion
+   peut être encore en cours chez Google (un téléphone revient sur l'appli avant d'avoir fini), le suivi continue. */
+async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
+  if(s&&s.lit&&!msg){ if(ferme) s.fermee=true; return; }   // une relecture est déjà en route : elle tiendra compte de la fermeture
+  if(s) s.lit=true;
   const avant=s?s.avant:'';
   await loadMailboxes();
-  if(msg&&msg.ok===false){ toast('⚠️ '+(msg.message||'Connexion non terminée')+' — rien n’a changé'); return; }
+  if(s){ s.lit=false; if(s.fermee) ferme=true; }
+  if(s&&s.conclu) return;   // un autre chemin (le message de la page de retour, ou la fenêtre fermée) a déjà conclu
   const apres=JSON.stringify((_mailboxes||[]).map(b=>b.id+':'+b.etat).sort());
+  const change=Array.isArray(_mailboxes)&&apres!==avant;
+  if(!msg&&!ferme&&!change) return;
+  if(s) s.conclu=true; if(_oauthSuivi){ clearInterval(_oauthSuivi.t); _oauthSuivi=null; }
+  if(msg&&msg.ok===false){ toast('⚠️ '+(msg.message||'Connexion non terminée')+' — rien n’a changé'); return; }
   if(!Array.isArray(_mailboxes)){ toast('Impossible de vérifier la boîte pour l’instant — rouvre « Mes boîtes mail » dans un instant'); return; }
-  if(!(msg&&msg.ok)&&apres===avant) return;   // fenêtre fermée sans rien changer : on ne dit rien de faux
+  if(!(msg&&msg.ok)&&!change) return;   // fenêtre fermée sans rien changer : on ne dit rien de faux
   toast('✅ Boîte mail connectée — tes envois partent maintenant de ton adresse');
   if(document.querySelector('#overlay.open #mb-email, #overlay.open #boite-etape')) closeModal();   // l'étape d'envoi fermée : l'envoi reprend
   try{ envoiBoiteCarteMaj(); }catch(e){}
