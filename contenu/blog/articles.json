@@ -1,5 +1,36 @@
 [
  {
+  "slug": "facture-d-intervention",
+  "titre": "Facture d’intervention : mentions, délais et facture électronique",
+  "description": "Facture d’intervention : liste des mentions à cocher, deux factures calculées, délais de paiement, pénalités et calendrier de la facture électronique.",
+  "date": "2026-11-04",
+  "image": "facture-d-intervention-couverture.webp",
+  "imageAlt": "Technicien en tenue bleu marine qui montre une facture sur sa tablette à une cliente, à l’accueil d’un bureau aux murs de pierre",
+  "faq": [
+   {
+    "q": "Une facture d’intervention est-elle obligatoire pour un particulier ?",
+    "r": "Pour une prestation de services, une note est obligatoire dès 25 € TTC, ou si le client la demande. Presque toutes les interventions à domicile dépassent ce seuil : émettez une facture à chaque visite."
+   },
+   {
+    "q": "Quand faut-il envoyer la facture d’intervention ?",
+    "r": "En principe, au moment de la réalisation de la prestation. Pour plusieurs prestations au même client dans le mois, une facture récapitulative est possible, au plus tard à la fin du mois."
+   },
+   {
+    "q": "Que risque-t-on si une mention manque ?",
+    "r": "Une amende fiscale de 15 € par omission ou inexactitude, sans dépasser le quart du montant de la facture. Ne pas émettre de facture du tout à un professionnel peut coûter jusqu’à 75 000 € pour une personne physique et 375 000 € pour une société."
+   },
+   {
+    "q": "Un artisan doit-il déjà envoyer des factures électroniques ?",
+    "r": "Une PME ou une micro-entreprise doit émettre ses factures électroniques à partir du 1er septembre 2027. Mais depuis le 1er septembre 2026, elle doit déjà pouvoir en recevoir, ce qui suppose d’avoir choisi une plateforme agréée."
+   },
+   {
+    "q": "Combien de temps conserver ses factures ?",
+    "r": "Dix ans, au titre du Code de commerce. Le délai fiscal est de six ans, mais c’est le plus long qui s’impose en pratique."
+   }
+  ],
+  "photo": "A field technician in a navy blue work uniform showing an invoice on a tablet to a woman at the reception desk of a small office with stone walls"
+ },
+ {
   "slug": "gestion-de-stock-camionnette",
   "titre": "Gestion de stock camionnette : suivre ce que chaque technicien emporte",
   "description": "Gestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.",

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>
+<title>Facture d’intervention : mentions, délais et facture électronique | Blog TEAM OP</title>
+<meta name="description" content="Facture d’intervention : liste des mentions à cocher, deux factures calculées, délais de paiement, pénalités et calendrier de la facture électronique.">
+<link rel="canonical" href="https://teamop.fr/blog/facture-d-intervention.html">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="TEAM OP">
+<meta property="og:title" content="Facture d’intervention : mentions, délais et facture électronique">
+<meta property="og:description" content="Facture d’intervention : liste des mentions à cocher, deux factures calculées, délais de paiement, pénalités et calendrier de la facture électronique.">
+<meta property="og:url" content="https://teamop.fr/blog/facture-d-intervention.html">
+<meta property="og:image" content="https://teamop.fr/blog/img/facture-d-intervention-couverture.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="675">
+<meta property="og:image:alt" content="Technicien en tenue bleu marine qui montre une facture sur sa tablette à une cliente, à l’accueil d’un bureau aux murs de pierre">
+<meta property="article:published_time" content="2026-11-04">
+<meta property="article:author" content="Justin Biret">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" type="application/rss+xml" title="Blog TEAM OP" href="/blog/flux.xml">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://teamop.fr/blog/facture-d-intervention.html#article",
+      "headline": "Facture d’intervention : mentions, délais et facture électronique",
+      "description": "Facture d’intervention : liste des mentions à cocher, deux factures calculées, délais de paiement, pénalités et calendrier de la facture électronique.",
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://teamop.fr/blog/img/facture-d-intervention-couverture.webp",
+        "width": 1200,
+        "height": 675
+      },
+      "datePublished": "2026-11-04",
+      "dateModified": "2026-11-04",
+      "inLanguage": "fr-FR",
+      "mainEntityOfPage": "https://teamop.fr/blog/facture-d-intervention.html",
+      "author": {
+        "@type": "Person",
+        "name": "Justin Biret",
+        "jobTitle": "Fondateur de TEAM OP",
+        "url": "https://teamop.fr/pourquoi.html"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://teamop.fr/#organisation",
+        "name": "TEAM OP",
+        "url": "https://teamop.fr/",
+        "logo": "https://teamop.fr/icons/teamop-192.png"
+      },
+      "wordCount": 2633
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Accueil",
+          "item": "https://teamop.fr/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://teamop.fr/blog/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Facture d’intervention : mentions, délais et facture électronique",
+          "item": "https://teamop.fr/blog/facture-d-intervention.html"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Une facture d’intervention est-elle obligatoire pour un particulier ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Pour une prestation de services, une note est obligatoire dès 25 € TTC, ou si le client la demande. Presque toutes les interventions à domicile dépassent ce seuil : émettez une facture à chaque visite."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Quand faut-il envoyer la facture d’intervention ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "En principe, au moment de la réalisation de la prestation. Pour plusieurs prestations au même client dans le mois, une facture récapitulative est possible, au plus tard à la fin du mois."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Que risque-t-on si une mention manque ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Une amende fiscale de 15 € par omission ou inexactitude, sans dépasser le quart du montant de la facture. Ne pas émettre de facture du tout à un professionnel peut coûter jusqu’à 75 000 € pour une personne physique et 375 000 € pour une société."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Un artisan doit-il déjà envoyer des factures électroniques ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Une PME ou une micro-entreprise doit émettre ses factures électroniques à partir du 1er septembre 2027. Mais depuis le 1er septembre 2026, elle doit déjà pouvoir en recevoir, ce qui suppose d’avoir choisi une plateforme agréée."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Combien de temps conserver ses factures ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Dix ans, au titre du Code de commerce. Le délai fiscal est de six ans, mais c’est le plus long qui s’impose en pratique."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
+<link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
+<link rel="manifest" href="/manifest-teamop.webmanifest">
+<link rel="stylesheet" href="/vitrine/v2/site.css">
+<link rel="stylesheet" href="/vitrine/v2/blog.css">
+<link rel="preload" as="image" href="/blog/img/facture-d-intervention-couverture.webp" fetchpriority="high">
+</head>
+<body>
+<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
+      <a class="marque" href="/"><img src="/icons/teamop-192.png" width="22" height="22" alt="TEAM OP"><span aria-hidden="true">TEAM OP</span></a>
+      <div class="nav-liens"><a href="/applications.html" data-fly="applications" aria-haspopup="true" aria-expanded="false">Applications</a><a href="/metiers.html" data-fly="metiers" aria-haspopup="true" aria-expanded="false">Métiers</a><a href="/tarifs.html" data-fly="tarifs" aria-haspopup="true" aria-expanded="false">Tarifs</a><a href="/pourquoi.html" data-fly="pourquoi" aria-haspopup="true" aria-expanded="false">Pourquoi TEAM OP</a></div>
+      <div class="nav-droite"><a class="pilule" href="/espace.html">Espace client</a>
+        <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    </div><div class="fly" id="fly-applications"><div class="fly-in"><div><div class="fly-t">Explorer les applications</div><div class="fly-grand"><a href="/op-gestion.html"><b>OP GESTION</b><small>Gestion tout-en-un : interventions, stock, compta</small></a><a href="/opmessages.html"><b>OP MESSAGES</b><small>Messagerie d'équipe — bientôt disponible</small></a><a href="/creer.html"><b>Créer votre application</b><small>Décrivez votre besoin, on le construit</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div></div></div></div><div class="fly" id="fly-metiers"><div class="fly-in"><div><div class="fly-t">Explorer les métiers</div><div class="fly-grand"><a href="/logiciel-anti-nuisibles.html"><b>3D — Anti-nuisibles</b><small>Pack complet : registre sanitaire, biocides</small></a><a href="/logiciel-plombier.html"><b>Plomberie</b></a><a href="/logiciel-electricien.html"><b>Électricité</b></a><a href="/logiciel-chauffage-climatisation.html"><b>Chauffage / Climatisation</b></a><a href="/logiciel-nettoyage.html"><b>Nettoyage / Propreté</b></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/metiers.html">Tous les métiers</a></div></div></div></div><div class="fly" id="fly-tarifs"><div class="fly-in"><div><div class="fly-t">Explorer les tarifs</div><div class="fly-grand"><a href="/tarifs.html#op-gestion"><b>Tarifs OP GESTION</b><small>Pro 15 € · Business 25 € · Business Premium 50 €</small></a><a href="/tarifs.html#opmessages"><b>Tarifs OP MESSAGES</b><small>Perso · Pro · Premium — bientôt disponible</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div></div></div></div><div class="fly" id="fly-pourquoi"><div class="fly-in"><div><div class="fly-t">Pourquoi TEAM OP</div><div class="fly-grand"><a href="/pourquoi.html#partenaire"><b>Au service des entreprises</b><small>On écoute, on adapte, on construit avec vous</small></a><a href="/pourquoi.html#engagements"><b>Sécurité et engagements</b><small>Chiffrement AES-256, vos données à vous</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></div></div></div></div></nav>
+    <div class="menu-mobile" id="menu-mobile"><section><div class="fly-t">TEAM OP</div><a href="/">Accueil</a></section><section><div class="fly-t">Applications</div><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></section><section><div class="fly-t">Métiers</div><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></section><section><div class="fly-t">Tarifs</div><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></section><section><div class="fly-t">Pourquoi TEAM OP</div><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></section></div>
+  </header><div class="voile" aria-hidden="true"></div>
+<main>
+<article class="billet">
+<nav class="fil" aria-label="Fil d'Ariane"><a href="/">Accueil</a><span aria-hidden="true">›</span><a href="/blog/">Blog</a></nav>
+<header class="billet-tete">
+<h1>Facture d’intervention : mentions, délais et facture électronique</h1>
+<p class="billet-meta">Par Justin Biret · <time datetime="2026-11-04">4 novembre 2026</time> · 12 min de lecture</p>
+</header>
+<figure class="billet-couverture"><img src="/blog/img/facture-d-intervention-couverture.webp" alt="Technicien en tenue bleu marine qui montre une facture sur sa tablette à une cliente, à l’accueil d’un bureau aux murs de pierre" width="1200" height="675" fetchpriority="high" decoding="async"></figure>
+<div class="billet-corps">
+<p>Une facture d’intervention est la facture qui suit une visite chez un client : dépannage, réparation, entretien, nettoyage, traitement. Entre professionnels, elle est obligatoire quel que soit le montant et doit partir dès la prestation réalisée. Chez un particulier, une note est obligatoire dès 25 € TTC. Dans les deux cas, elle porte une liste de mentions fixée par la loi, et chaque oubli peut coûter une amende. Depuis le 1er septembre 2026, toutes les entreprises doivent aussi pouvoir recevoir des factures électroniques, et les PME devront les émettre à partir du 1er septembre 2027. Voici les mentions, les délais, une liste à cocher et deux factures calculées pas à pas.</p>
+<aside class="billet-encart" aria-label="OP GESTION"><p class="surtitre">OP GESTION</p>
+<p class="encart-titre">Interventions, planning, devis et factures, dans une seule application.</p>
+<p>Pour les entreprises de terrain, sur téléphone, tablette et ordinateur. À partir de 15 € par mois et par utilisateur, sans engagement.</p>
+<p class="encart-actions"><a class="bouton" href="/op-gestion.html">Découvrir OP GESTION</a><a class="lien-suite" href="/demo.html">Essayer la démonstration ›</a></p></aside>
+
+<h2 id="en-bref">En bref</h2>
+<ul>
+<li><strong>Entre professionnels</strong>, la facture est obligatoire dès le premier euro et s’émet en principe au moment de la prestation.</li>
+<li><strong>Chez un particulier</strong>, une note détaillée est obligatoire dès 25 € TTC, ou si le client la demande.</li>
+<li><strong>Chaque mention manquante</strong> peut coûter 15 € d’amende fiscale, dans la limite du quart du montant de la facture.</li>
+<li><strong>Le délai de paiement</strong> est de 30 jours par défaut, et ne peut pas dépasser 60 jours après l’émission de la facture.</li>
+<li><strong>La facturation électronique</strong> : réception obligatoire pour tous depuis le 1er septembre 2026, émission obligatoire pour les PME et micro-entreprises le 1er septembre 2027.</li>
+<li><strong>Le bon d’intervention</strong> prépare la facture, mais ne la remplace pas.</li>
+</ul>
+<h2 id="table-des-matieres">Table des matières</h2>
+<ul>
+<li><a href="#bon-dintervention-et-facture-dintervention">Bon d’intervention et facture d’intervention</a></li>
+<li><a href="#quand-la-facture-est-elle-obligatoire">Quand la facture est-elle obligatoire ?</a></li>
+<li><a href="#les-mentions-obligatoires-liste-a-cocher">Les mentions obligatoires (liste à cocher)</a></li>
+<li><a href="#deux-factures-calculees-pas-a-pas">Deux factures calculées pas à pas</a></li>
+<li><a href="#delais-de-paiement-et-penalites">Délais de paiement et pénalités</a></li>
+<li><a href="#facturation-electronique-ce-qui-change-en-2026-et-2027">Facturation électronique : ce qui change en 2026 et 2027</a></li>
+<li><a href="#le-point-de-vue-de-team-op">Le point de vue de TEAM OP</a></li>
+<li><a href="#exemples-par-metier">Exemples par métier</a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#sources">Sources</a></li>
+</ul>
+<h2 id="bon-dintervention-et-facture-dintervention">Bon d’intervention et facture d’intervention</h2>
+<p>Les deux documents se suivent, et on les mélange souvent. Le <a href="/blog/bon-d-intervention.html">bon d’intervention</a> raconte la visite : qui est venu, ce qui a été fait, avec quelles pièces, et ce que le client a constaté. La facture demande le paiement. Elle reprend ce que dit le bon, mais elle obéit à des règles fiscales et commerciales que le bon n’a pas.</p>
+<div class="tableau"><table><thead><tr><th></th><th>Bon d’intervention</th><th>Facture d’intervention</th></tr></thead><tbody><tr><td>Rôle</td><td>Décrire la visite et la faire constater</td><td>Demander le paiement</td></tr><tr><td>Signé par le client</td><td>Recommandé</td><td>Non</td></tr><tr><td>Imposé par un texte</td><td>Non, sous ce nom</td><td>Oui : Code de commerce et Code général des impôts</td></tr><tr><td>Numéro</td><td>Libre</td><td>Séquence chronologique et continue, sans trou</td></tr><tr><td>Conservation</td><td>Conseillée, comme preuve</td><td>10 ans</td></tr></tbody></table></div>
+<p>Un bon bien rempli fait gagner du temps : la désignation des travaux, les quantités, les pièces et la durée y sont déjà. Le risque est ailleurs. Quand quelqu’un recopie le bon pour faire la facture, une ligne saute, une quantité change, un déplacement est oublié.</p>
+<h2 id="quand-la-facture-est-elle-obligatoire">Quand la facture est-elle obligatoire ?</h2>
+<h3 id="pour-un-client-professionnel">Pour un client professionnel</h3>
+<p>Dès que la prestation est faite entre deux professionnels, la facture est obligatoire, quel que soit son montant (<a href="https://bpifrance-creation.fr/encyclopedie/gerer-piloter-lentreprise/piloter-gerer-son-entreprise/facturation" rel="noopener">Bpifrance Création</a>). Elle s’émet en principe au moment de la réalisation de la prestation. Une facture récapitulative est possible pour plusieurs prestations du même mois, au plus tard à la fin du mois (<a href="https://entreprendre.service-public.gouv.fr/vosdroits/F23208" rel="noopener">service-public.fr, F23208</a>). C’est utile pour un contrat de nettoyage ou une tournée d’entretien chez le même client.</p>
+<p>Ne pas facturer coûte cher : une amende administrative jusqu’à 75 000 € pour une personne physique et 375 000 € pour une personne morale, doublée en cas de récidive dans les deux ans (article L441-9 du Code de commerce, rappelé par <a href="https://bpifrance-creation.fr/encyclopedie/gerer-piloter-lentreprise/piloter-gerer-son-entreprise/facturation" rel="noopener">Bpifrance Création</a>).</p>
+<h3 id="pour-un-particulier">Pour un particulier</h3>
+<p>Pour une prestation de services, une note est obligatoire dès que le prix atteint 25 € TTC, si le client la demande, ou pour certains travaux immobiliers. En pratique, presque toutes les interventions à domicile dépassent ce seuil. Faites donc une facture à chaque visite : c’est plus simple que de se demander si elle est due.</p>
+<p>Pour un dépannage, une réparation ou un entretien à domicile, la note vient après un devis écrit remis avant les travaux. Le prix facturé doit correspondre au prix annoncé.</p>
+<h2 id="les-mentions-obligatoires-liste-a-cocher">Les mentions obligatoires (liste à cocher)</h2>
+<p>La liste vient du Code de commerce (article L441-9) et de l’article 242 nonies A de l’annexe II du Code général des impôts. Elle est reprise par la fiche <a href="https://entreprendre.service-public.gouv.fr/vosdroits/F31808" rel="noopener">« Mentions obligatoires sur une facture » de service-public.fr</a>. Recopiez-la et gardez-la près de votre modèle de facture.</p>
+<h3 id="les-mentions-communes">Les mentions communes</h3>
+<ul>
+<li>☐ La date d’émission de la facture.</li>
+<li>☐ Un numéro unique, pris dans une séquence chronologique et continue.</li>
+<li>☐ La date de la prestation (le jour de l’intervention).</li>
+<li>☐ Votre identité : nom ou dénomination, adresse, numéro SIREN, et pour une société sa forme juridique et son capital.</li>
+<li>☐ L’identité du client : nom ou dénomination, adresse.</li>
+<li>☐ Le numéro du bon de commande, si le client en a émis un.</li>
+<li>☐ Votre numéro de TVA intracommunautaire, si vous êtes assujetti.</li>
+<li>☐ La désignation précise de chaque prestation et de chaque pièce.</li>
+<li>☐ Pour chaque ligne : la quantité, le prix unitaire hors taxe et le taux de TVA.</li>
+<li>☐ Les totaux hors taxe et toutes taxes comprises, et le montant de la TVA par taux.</li>
+<li>☐ Toute réduction de prix accordée.</li>
+<li>☐ La date de règlement et les conditions d’escompte (« Escompte pour paiement anticipé : néant » s’il n’y en a pas).</li>
+<li>☐ Le taux des pénalités de retard.</li>
+<li>☐ Pour un client professionnel, l’indemnité forfaitaire de 40 € pour frais de recouvrement.</li>
+</ul>
+<h3 id="les-mentions-selon-votre-situation">Les mentions selon votre situation</h3>
+<ul>
+<li>☐ <strong>Franchise de TVA</strong> : « TVA non applicable, art. 293 B du code général des impôts ».</li>
+<li>☐ <strong>Sous-traitance dans le bâtiment</strong> : la mention « Autoliquidation », et une facture hors taxe. C’est le donneur d’ordre qui déclare la TVA.</li>
+<li>☐ <strong>Activité artisanale</strong> : l’assurance professionnelle souscrite, avec les coordonnées de l’assureur et la couverture géographique, quand elle est obligatoire pour votre activité.</li>
+<li>☐ <strong>Taux réduit de TVA</strong> (10 % ou 5,5 %) pour des travaux dans un logement : depuis la loi de finances pour 2025, l’attestation du client est remplacée par une mention sur le devis ou la facture qui atteste que les conditions du taux réduit sont remplies (<a href="https://www.service-public.gouv.fr/particuliers/actualites/A18088?lang=fr" rel="noopener">service-public.fr</a>).</li>
+</ul>
+<h3 id="les-quatre-mentions-de-la-facturation-electronique">Les quatre mentions de la facturation électronique</h3>
+<p>La réforme ajoute quatre mentions, obligatoires pour les PME et micro-entreprises à partir du 1er septembre 2027 (<a href="https://entreprendre.service-public.gouv.fr/vosdroits/F31808" rel="noopener">F31808</a>). Rien n’empêche de les ajouter dès maintenant :</p>
+<ul>
+<li>☐ Le numéro SIREN du client, quand c’est une entreprise.</li>
+<li>☐ L’adresse de livraison, si elle diffère de l’adresse du client. Pour une intervention, c’est l’adresse du site.</li>
+<li>☐ La nature des opérations : prestations de services, livraisons de biens, ou les deux.</li>
+<li>☐ La mention « Option pour le paiement de la taxe d’après les débits », si vous avez choisi cette option.</li>
+</ul>
+<p>L’adresse du site compte beaucoup pour les entreprises de terrain : un syndic reçoit la facture à son siège, pour une intervention faite dans un de ses immeubles.</p>
+<h3 id="ce-que-coute-un-oubli">Ce que coûte un oubli</h3>
+<p>Chaque omission ou inexactitude peut être sanctionnée d’une amende fiscale de 15 €, sans que l’amende d’une facture puisse dépasser le quart de son montant (article 1737 du Code général des impôts, rappelé par <a href="https://bpifrance-creation.fr/encyclopedie/gerer-piloter-lentreprise/piloter-gerer-son-entreprise/facturation" rel="noopener">Bpifrance Création</a>). Sur une facture de 190 €, trois mentions oubliées coûtent jusqu’à 45 €.</p>
+<h2 id="deux-factures-calculees-pas-a-pas">Deux factures calculées pas à pas</h2>
+<h3 id="un-depannage-chez-un-particulier">Un dépannage chez un particulier</h3>
+<p>Un plombier remplace le mécanisme d’une chasse d’eau qui fuit, dans un appartement habité depuis plus de deux ans. Les travaux d’entretien dans un logement de plus de deux ans relèvent du taux de 10 %, sous conditions, et la facture porte la mention qui l’atteste.</p>
+<div class="tableau"><table><thead><tr><th>Ligne</th><th>Quantité</th><th>Prix unitaire HT</th><th>Total HT</th></tr></thead><tbody><tr><td>Déplacement</td><td>1</td><td>45,00 €</td><td>45,00 €</td></tr><tr><td>Main-d’œuvre</td><td>1,5 h</td><td>60,00 €</td><td>90,00 €</td></tr><tr><td>Mécanisme de chasse complet</td><td>1</td><td>38,00 €</td><td>38,00 €</td></tr><tr><td colspan="3"><strong>Total HT</strong></td><td><strong>173,00 €</strong></td></tr><tr><td colspan="3">TVA à 10 %</td><td>17,30 €</td></tr><tr><td colspan="3"><strong>Total TTC</strong></td><td><strong>190,30 €</strong></td></tr></tbody></table></div>
+<p>Les prix sont des exemples, pas des tarifs de référence. Le calcul se vérifie en trois gestes : 45 + 90 + 38 = 173 € HT ; 173 × 10 % = 17,30 € de TVA ; 173 + 17,30 = 190,30 € TTC. Les trois lignes du devis doivent se retrouver sur la facture, avec les mêmes prix.</p>
+<h3 id="un-contrat-de-nettoyage-entre-professionnels">Un contrat de nettoyage entre professionnels</h3>
+<p>Une entreprise de nettoyage entretient les bureaux d’un client tous les jours ouvrés. Elle émet une facture récapitulative le 31 octobre 2026 pour le mois : 1 200 € HT, 240 € de TVA à 20 %, soit 1 440 € TTC. Ses conditions générales prévoient un paiement à 60 jours à compter de l’émission. L’échéance tombe le 30 décembre 2026.</p>
+<p>Le client paie le 29 janvier 2027, avec 30 jours de retard. Si ses conditions prévoient le taux de la BCE majoré de 10 points, soit 12,40 % au second semestre 2026 (<a href="https://entreprendre.service-public.gouv.fr/vosdroits/F23211" rel="noopener">service-public.fr, F23211</a>), les pénalités se calculent ainsi :</p>
+<ul>
+<li>1 440 € × 12,40 % = 178,56 € par an ;</li>
+<li>178,56 € × 30 / 365 = <strong>14,68 €</strong> de pénalités ;</li>
+<li>plus <strong>40 €</strong> d’indemnité forfaitaire, due une seule fois pour cette facture.</li>
+</ul>
+<p>Le client doit donc 54,68 € de plus. Les pénalités sont dues sans rappel ni mise en demeure. Les avoir écrites sur la facture permet de les rappeler quand le retard devient une habitude.</p>
+<h2 id="delais-de-paiement-et-penalites">Délais de paiement et pénalités</h2>
+<p>Entre professionnels, la règle est fixée par l’article L441-10 du Code de commerce et résumée par <a href="https://entreprendre.service-public.gouv.fr/vosdroits/F23211" rel="noopener">service-public.fr (F23211)</a> :</p>
+<div class="tableau"><table><thead><tr><th>Situation</th><th>Délai maximal</th></tr></thead><tbody><tr><td>Rien n’est prévu</td><td>30 jours après la réalisation de la prestation</td></tr><tr><td>Délai convenu entre les parties</td><td>60 jours après la date d’émission de la facture</td></tr><tr><td>Délai convenu, prévu au contrat</td><td>45 jours fin de mois après la date d’émission</td></tr></tbody></table></div>
+<p>Les pénalités de retard ne peuvent pas être inférieures à trois fois le taux de l’intérêt légal. L’indemnité forfaitaire de 40 € ne se réclame qu’à un client professionnel. Face à un particulier, aucun délai légal n’est imposé : c’est la date que vous indiquez sur la facture qui compte. Indiquez-en toujours une, par exemple « paiement à réception ».</p>
+<h2 id="facturation-electronique-ce-qui-change-en-2026-et-2027">Facturation électronique : ce qui change en 2026 et 2027</h2>
+<p>La réforme passe toutes les factures entre entreprises assujetties à la TVA en France par des plateformes agréées par l’administration. Le <a href="https://www.impots.gouv.fr/sites/default/files/media/1_metier/2_professionnel/EV/2_gestion/290_facturation_electronique/guide_pratique_facturation_electronique.pdf" rel="noopener">guide pratique d’impots.gouv.fr</a> donne le calendrier :</p>
+<div class="tableau"><table><thead><tr><th>Date</th><th>Qui</th><th>Quoi</th></tr></thead><tbody><tr><td>1er septembre 2026</td><td>Toutes les entreprises concernées</td><td>Pouvoir recevoir des factures électroniques</td></tr><tr><td>1er septembre 2026</td><td>Grandes entreprises et ETI</td><td>Émettre leurs factures électroniques</td></tr><tr><td>1er septembre 2027</td><td>PME, TPE et micro-entreprises</td><td>Émettre leurs factures électroniques</td></tr></tbody></table></div>
+<p>Pour la plupart des entreprises de terrain, cela donne trois choses à faire, dans l’ordre.</p>
+<ol>
+<li><strong>Aujourd’hui</strong> : vous devez déjà pouvoir recevoir les factures électroniques de vos fournisseurs. Si ce n’est pas fait, choisissez une plateforme agréée.</li>
+<li><strong>Avant septembre 2027</strong> : complétez vos fiches clients avec le SIREN de chaque client professionnel et l’adresse de chaque site d’intervention. Ce sont les données qui manquent le plus souvent.</li>
+<li><strong>Le 1er septembre 2027</strong> : vos factures aux clients professionnels partent par votre plateforme. Un PDF envoyé par e-mail ne sera plus le mode normal : l’administration indique qu’il peut seulement assurer la continuité de la relation commerciale.</li>
+</ol>
+<p>Les ventes aux particuliers ne passent pas par une facture électronique. Les entreprises assujetties peuvent en revanche être tenues de transmettre certaines données à l’administration : c’est l’« e-reporting » (<a href="https://entreprendre.service-public.gouv.fr/vosdroits/F23208" rel="noopener">F23208</a>). Votre plateforme agréée s’en charge en général.</p>
+<p>La loi de finances pour 2026 a relevé les sanctions : 50 € par facture qui n’est pas émise sous forme électronique, dans la limite de 15 000 € par an, et 500 € par défaut de transmission de données (<a href="https://www.capeb.fr/actualites/des-sanctions-plus-severes-en-cas-de-non-respect-de-la-facturation-electronique-vesr0i" rel="noopener">CAPEB</a>).</p>
+<h2 id="le-point-de-vue-de-team-op">Le point de vue de TEAM OP</h2>
+<p>Les entreprises avec qui nous travaillons ne perdent presque jamais d’argent sur une facture mal calculée. Elles en perdent sur les factures qui ne partent pas : le dépannage du vendredi soir resté dans la camionnette, la pièce posée et oubliée sur la note, la visite de contrôle qu’on pensait incluse dans le contrat.</p>
+<p>Notre conviction : la facture doit naître de l’intervention, pas d’une ressaisie. Dans <a href="/op-gestion.html">OP GESTION</a>, une intervention peut donner sa facture d’un clic : la prestation, les produits et le montant de la fiche la préremplissent. Chaque facture reçoit un numéro qui ne sera jamais réutilisé, même après une suppression, et elle part en PDF à l’en-tête de votre société, par e-mail.</p>
+<p>Une habitude vaut quel que soit votre outil : facturez le jour même. Une facture envoyée le soir de l’intervention est payée plus vite qu’une facture envoyée en fin de mois, parce que le client se souvient encore du technicien qui est venu.</p>
+<p class="signature">— Justin Biret, fondateur de TEAM OP</p>
+<h2 id="exemples-par-metier">Exemples par métier</h2>
+<h3 id="plomberie-et-chauffage">Plomberie et chauffage</h3>
+<p>Le dépannage chez un particulier domine. Vérifiez le taux de TVA ligne par ligne : le taux réduit dépend du logement et de la nature des travaux, pas du métier. Pour un entretien de chaudière sous contrat, une facture récapitulative par période évite une facture par visite.</p>
+<h3 id="electricite">Électricité</h3>
+<p>En sous-traitance pour une entreprise générale, la facture est hors taxe, avec la mention « Autoliquidation ». Notez le numéro de bon de commande du donneur d’ordre : sans lui, beaucoup de services comptables bloquent le paiement.</p>
+<h3 id="nettoyage-et-proprete">Nettoyage et propreté</h3>
+<p>Les clients sont surtout des entreprises, des syndics et des collectivités. Une facture mensuelle par site, avec l’adresse du site et le SIREN du client, prépare déjà la facturation électronique. Indiquez le nombre de passages réalisés dans le mois : c’est la première chose que le client vérifie.</p>
+<h3 id="lutte-contre-les-nuisibles-3d">Lutte contre les nuisibles (3D)</h3>
+<p>Un contrat annuel prévoit souvent plusieurs passages et des interventions curatives en plus. Séparez-les sur la facture : le passage prévu au contrat d’un côté, l’intervention supplémentaire de l’autre, avec sa date. Le client voit ce qui est inclus et ce qui ne l’est pas.</p>
+<p>Pour tous ces métiers, les devis, les factures et les contrats d’entretien sont inclus dans OP GESTION dès la formule Pro, à 15 € par mois et par utilisateur (TVA non applicable, article 293 B du CGI). Un abonnement correspond à un utilisateur. Le détail est sur la page <a href="/logiciel-devis-factures.html">devis et factures</a> et sur la page <a href="/tarifs.html">tarifs</a>.</p>
+<h2 id="faq">FAQ</h2>
+<h3 id="une-facture-dintervention-est-elle-obligatoire-pour-un-particulier">Une facture d’intervention est-elle obligatoire pour un particulier ?</h3>
+<p>Pour une prestation de services, une note est obligatoire dès 25 € TTC, ou si le client la demande. Presque toutes les interventions à domicile dépassent ce seuil : émettez une facture à chaque visite.</p>
+<h3 id="quand-faut-il-envoyer-la-facture-dintervention">Quand faut-il envoyer la facture d’intervention ?</h3>
+<p>En principe, au moment de la réalisation de la prestation. Pour plusieurs prestations au même client dans le mois, une facture récapitulative est possible, au plus tard à la fin du mois.</p>
+<h3 id="que-risque-t-on-si-une-mention-manque">Que risque-t-on si une mention manque ?</h3>
+<p>Une amende fiscale de 15 € par omission ou inexactitude, sans dépasser le quart du montant de la facture. Ne pas émettre de facture du tout à un professionnel peut coûter jusqu’à 75 000 € pour une personne physique et 375 000 € pour une société.</p>
+<h3 id="un-artisan-doit-il-deja-envoyer-des-factures-electroniques">Un artisan doit-il déjà envoyer des factures électroniques ?</h3>
+<p>Une PME ou une micro-entreprise doit émettre ses factures électroniques à partir du 1er septembre 2027. Mais depuis le 1er septembre 2026, elle doit déjà pouvoir en recevoir, ce qui suppose d’avoir choisi une plateforme agréée.</p>
+<h3 id="combien-de-temps-conserver-ses-factures">Combien de temps conserver ses factures ?</h3>
+<p>Dix ans, au titre du Code de commerce. Le délai fiscal est de six ans, mais c’est le plus long qui s’impose en pratique.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://entreprendre.service-public.gouv.fr/vosdroits/F31808" rel="noopener">Mentions obligatoires sur une facture (service-public.fr, F31808)</a></li>
+<li><a href="https://entreprendre.service-public.gouv.fr/vosdroits/F23208" rel="noopener">Facturation : obligations, émission et conservation (service-public.fr, F23208)</a></li>
+<li><a href="https://entreprendre.service-public.gouv.fr/vosdroits/F23211" rel="noopener">Délais de paiement et pénalités de retard entre professionnels (service-public.fr, F23211)</a></li>
+<li><a href="https://www.impots.gouv.fr/sites/default/files/media/1_metier/2_professionnel/EV/2_gestion/290_facturation_electronique/guide_pratique_facturation_electronique.pdf" rel="noopener">Facturation électronique : guide pratique de démarrage (impots.gouv.fr)</a></li>
+<li><a href="https://www.service-public.gouv.fr/particuliers/actualites/A18088?lang=fr" rel="noopener">TVA à taux réduit pour les travaux : l’attestation remplacée par une mention (service-public.fr)</a></li>
+<li><a href="https://bpifrance-creation.fr/encyclopedie/gerer-piloter-lentreprise/piloter-gerer-son-entreprise/facturation" rel="noopener">Factures : quelles sont vos obligations ? (Bpifrance Création)</a></li>
+<li><a href="https://www.capeb.fr/actualites/des-sanctions-plus-severes-en-cas-de-non-respect-de-la-facturation-electronique-vesr0i" rel="noopener">Des sanctions plus sévères en cas de non-respect de la facturation électronique (CAPEB)</a></li>
+</ul>
+</div>
+<footer class="billet-auteur"><img src="/icons/teamop-192.png" width="48" height="48" alt="" loading="lazy"><div><b>Justin Biret</b><span>Fondateur de TEAM OP. Une question sur cet article : <a href="mailto:contact@teamop.fr">contact@teamop.fr</a></span></div></footer>
+</article>
+<section class="blog-suite" aria-labelledby="a-lire"><h2 id="a-lire">À lire aussi</h2><div class="blog-grille"><a class="blog-carte" href="/blog/gestion-de-stock-camionnette.html"><img src="/blog/img/gestion-de-stock-camionnette-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-11-02">2 novembre 2026</time><b>Gestion de stock camionnette : suivre ce que chaque technicien emporte</b><span>Gestion de stock camionnette : liste de dotation à recopier, calcul des quantités, réassort, inventaire tournant et charge utile du véhicule.</span></span></a><a class="blog-carte" href="/blog/planning-des-techniciens.html"><img src="/blog/img/planning-des-techniciens-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-28">28 octobre 2026</time><b>Planning des techniciens : organiser la semaine de son équipe</b><span>Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.</span></span></a><a class="blog-carte" href="/blog/bon-d-intervention.html"><img src="/blog/img/bon-d-intervention-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-25">25 octobre 2026</time><b>Bon d’intervention : modèle, mentions et valeur de preuve</b><span>Bon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.</span></span></a></div></section>
+<section class="commencer" id="commencer"><div class="commencer-in"><div><h2>Prêt en trois étapes.</h2><ol>
+    <li><b>1</b><span>Créez votre compte TEAM OP.</span></li><li><b>2</b><span>Demandez l'accès à une application.</span></li><li><b>3</b><span>Votre équipe travaille, tout se synchronise.</span></li></ol></div>
+    <div class="boutons"><a href="/espace.html">Créer mon compte</a><a href="/connexion.html?choix=1">Se connecter ›</a></div></div></section>
+</main>
+<footer class="pied"><div class="pied-in"><div class="cols"><div><b>Applications</b><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div><div><b>Métiers</b><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></div><div><b>Tarifs</b><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div><div><b>TEAM OP</b><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/blog/">Blog</a><a href="/espace.html">Espace client</a><a href="/connexion.html?choix=1">Se connecter</a></div><div class="contact"><b>Contact</b><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><small>Une question, une demande</small></div></div>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="/confidentialite.html">Confidentialité</a><a href="/mentions-legales.html">Mentions légales et CGV</a><a href="#" data-cookies>Gestion des cookies</a><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><span class="fin">France</span></div>
+  </div></footer>
+<script src="/vitrine/v2/site.js" defer></script>
+<script src="/cookies.js" defer></script>
+<script src="/audience.js" defer></script>
+</body>
+</html>

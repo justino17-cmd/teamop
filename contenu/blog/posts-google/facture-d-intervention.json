@@ -1,0 +1,21 @@
+{
+  "slug": "facture-d-intervention",
+  "prepare": "2026-11-04",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Facture d’intervention : mentions, délais et facture électronique\n\nFacture d’intervention : liste des mentions à cocher, deux factures calculées, délais de paiement, pénalités et calendrier de la facture électronique.\n\nÀ retenir : Le délai de paiement est de 30 jours par défaut, et ne peut pas dépasser 60 jours après l’émission de la facture.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/facture-d-intervention.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/facture-d-intervention-couverture-google.jpg"
+      }
+    ]
+  }
+}
