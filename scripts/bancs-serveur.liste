@@ -473,3 +473,5 @@ tests/test-3244.js
 tests/test-3245.js
 # 4 novembre 2026 : `test-3247` (une boîte Microsoft ou Google se connecte par autorisation OAuth, sans mot de passe : routes inertes sans réglage, preuve de clé au départ, state signé à usage unique + PKCE, jeton de renouvellement chiffré, envoi en XOAUTH2, rafraîchissement et rotation, invalid_grant → « à reconnecter », rien de secret au journal). Le vrai serveur, un faux fournisseur, un faux SMTP XOAUTH2. 39 vérifications.
 tests/test-3247.js
+tests/test-3246.js
+# 4 novembre 2026 : `test-3246` (essai des mails de A à Z) — /api/bug ne garde ni adresse ni domaine d'entreprise ; une boîte demandée et introuvable → 409, jamais le SMTP de TEAM OP. MUTER=1 le fait tomber.
