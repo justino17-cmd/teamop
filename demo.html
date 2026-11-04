@@ -40626,7 +40626,7 @@ function docListView(kind,xyloOnly){
   const vMod=canCat('ventes','modifier');
   setHeader(titre, `${list.length} ${cfg.un}(s) · ${eur(total)} TTC`, canCat('ventes','ajouter')?headBtn:'');
   const rows=list.map(d=>{ const t=docTot(d);
-    return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShort(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}</td>
+    return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShort(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}${docEnvoiLib(d)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;white-space:nowrap">${esc(docEnvoiLib(d))}</div>`:''}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap">
       ${vMod?`<button class="btn sm" onclick="envoiDoc('${kind}','${d.id}','mail')" title="Envoyer par email">📧</button>
       <button class="btn ghost sm" onclick="envoiDoc('${kind}','${d.id}','sms')" title="Envoyer par SMS (exception)">💬</button>`:''}
@@ -40767,6 +40767,11 @@ function factQuitterPayee(f,nouveau){ if(!f||f.statut!=='payee'||nouveau==='paye
   factRegistreRetirer(f); return true; }
 function factSetStatut(id,st){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; if(!factQuitterPayee(f,st)) return; f.statut=st; if(st==='payee'&&!f.datePaiement)f.datePaiement=todayISO(); if(st!=='payee')delete f.datePaiement; logEvent('Facture '+((FACT_ST[st]||{}).l||st),f.num,'finance'); save(); views.factures(); toast('Facture mise à jour'); }
 /* Envoi d'une facture En attente : l'e-mail part (ou SMS si pas d'e-mail) et la facture passe « Envoyée » */
+/* v801 : une facture remise SANS l'application (en main propre, par courrier) se déclare comme telle — « Envoyée », canal « remis
+   autrement », avec sa date. Ce n'est plus un libellé coché : c'est une remise dite, et elle se lit sur la ligne. */
+function factRemiseAutrement(id){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f||f.statut!=='brouillon') return;
+  if(!confirm('As-tu remis la facture '+(f.num||'')+' au client autrement (en main propre, par courrier) ?\n\nElle passera « Envoyée », remise autrement, aujourd\'hui.')) return;
+  f.statut='envoyee'; f.envoi={date:todayISO(),ts:Date.now(),canal:'autre',a:''}; logEvent('Facture remise autrement',f.num,'finance'); save(); if(current==='factures') views.factures(); }
 function factEnvoyer(id){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return;
   const c=db.clients.find(x=>x.id===f.clientId)||{};
   if(!c.email&&!c.tel){ toast('Ajoute un e-mail (ou un téléphone) sur la fiche du client d\'abord'); return; }
@@ -40814,11 +40819,11 @@ views.factures=function(){
     return `<div class="pl-row lga">
       <div class="pl-info" style="cursor:pointer" onclick="${vMod?`formDoc('factures','${f.id}')`:`printDoc('factures','${f.id}')`}">
         <div class="pl-title">${esc(f.num||'—')} · <span style="white-space:nowrap">${eur(ttc(f))}</span></div>
-        <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)} · ${badge(FACT_ST,st)}${f.datePaiement?' · payée le '+fmtShort(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
+        <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)} · ${badge(FACT_ST,st)}${docEnvoiLib(f)?' · envoyée '+esc(docEnvoiLib(f)):''}${f.datePaiement?' · payée le '+fmtShort(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
       <span class="lga-a" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn ghost sm" onclick="pdfDoc('factures','${f.id}')" title="PDF : aperçu, télécharger, partager, envoyer">📄 PDF</button>
         <button class="btn ghost sm" onclick="exportFacturX('${f.id}')" title="Export Factur-X (facturation électronique)">FX</button>
-        ${vMod&&f.statut==='brouillon'?`<button class="btn sm" onclick="factEnvoyer('${f.id}')" title="Envoyer la facture au client par e-mail">📧 Envoyer</button><button class="btn ghost sm" onclick="factSetStatut('${f.id}','envoyee')" title="Marquer envoyée (si l'envoi a été fait autrement)">📤</button>`:''}
+        ${vMod&&f.statut==='brouillon'?`<button class="btn sm" onclick="factEnvoyer('${f.id}')" title="Envoyer la facture au client par e-mail">📧 Envoyer</button><button class="btn ghost sm" onclick="factRemiseAutrement('${f.id}')" title="Remise autrement (en main propre, par courrier) : la marquer envoyée">📤</button>`:''}
         ${vMod&&(f.statut==='envoyee')?`<button class="btn ghost sm" onclick="envoiDoc('factures','${f.id}','mail')" title="Relancer par email">📧</button>`:''}
         ${!vMod?'':f.statut!=='payee'?`<button class="btn sm" onclick="factSetStatut('${f.id}','payee')">Payée</button>`:`<button class="btn ghost sm" onclick="factSetStatut('${f.id}','envoyee')" title="Annuler le paiement">↩︎</button>`}
         ${f.statut==='payee'&&isFinanceMgr()?`<button class="btn ${f.valideCompta?'ghost':''} sm" onclick="factValider('${f.id}')" title="Validation comptable">${f.valideCompta?'Validée':'Valider'}</button>`:''}
@@ -42499,11 +42504,22 @@ function formDoc(kind,id,preset){
       <div class="field"><label>Lignes</label><div id="lignes-box"></div></div>
       <div id="lig-tot" style="text-align:right;font-size:14px;color:var(--t2);margin:6px 0 14px"></div>
       <div class="field-row"><div class="field"><label>TVA (%)</label><input id="f-tva" type="number" step="0.01" min="0" name="tva" value="${d.tva??20}" oninput="ligTot()"></div>
-        <div class="field"><label>Statut</label><select name="statut">${Object.entries(cfg.st).map(([k,v])=>`<option value="${k}" ${d.statut===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
+        <div class="field"><label>Statut</label><select name="statut">${docStatutOptions(kind,d)}</select>${docEnvoiLib(d)?`<div style="font-size:11.5px;color:var(--t3);margin-top:4px">Envoyé${cfg.fem?'e':''} ${esc(docEnvoiLib(d))}</div>`:''}</div></div>
       <div class="field"><label>Notes</label><textarea name="notes" rows="4">${esc(d.notes)}</textarea></div>
-      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
+      <input type="hidden" name="__apres" value="">
+      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button>${docEnvoyable(kind,d)?`<button type="submit" class="btn ghost" onclick="this.form.__apres.value='envoyer'">📤 ${id?'Enregistrer':'Créer'} et envoyer</button>`:''}<button type="submit" class="btn" onclick="this.form.__apres.value=''">${id?'Enregistrer':'Créer'}</button></div></form>`);
   renderLignes();
 }
+/* v801 — LE STATUT « ENVOYÉ » N'EST PLUS UN LIBELLÉ QU'ON COCHE. Justin, 4 novembre 2026 : « quand on fait un devis et qu'on coche
+   "envoyé", ça s'envoie pas ». Il se pose quand un envoi a réussi (`envoiDoc`, `marquer`). Dans le formulaire : un document pas
+   encore parti propose « Envoyé — l'envoyer maintenant… » (qui ouvre l'envoi après l'enregistrement) ; un document déjà parti garde
+   « Envoyé » (une base d'avant aussi). Accepté / Refusé, Payée / En retard restent des décisions. */
+const DOC_ST_ENVOI={devis:'envoye',factures:'envoyee'};
+function docEnvoyable(kind,d){ return canCat('ventes','modifier') && (!d||!d.statut||d.statut==='brouillon'); }
+function docStatutOptions(kind,d){ const cfg=DOC[kind], stE=DOC_ST_ENVOI[kind], cur=(d&&d.statut)||'brouillon';
+  return Object.entries(cfg.st).map(([k,v])=>{
+    if(k===stE&&cur==='brouillon') return docEnvoyable(kind,d)?`<option value="__envoyer">${v.l} — l’envoyer maintenant…</option>`:'';
+    return `<option value="${k}" ${cur===k?'selected':''}>${v.l}</option>`; }).join(''); }
 function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modifier':'ajouter',kind==='devis'?'un devis':'une facture')) return; const cfg=DOC[kind], f=Object.fromEntries(new FormData(e.target));
   /* v738 : la liste ne propose que les clients qu'on voit — l'enregistrement le vérifie aussi */
   const _av=id?(db[cfg.coll].find(x=>x.id===id)||{}):{};
@@ -42530,10 +42546,17 @@ function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modi
   const cli=canCat('crm','modifier')?db.clients.find(x=>x.id===f.clientId):null; if(cli){ const a=document.getElementById('doc-cli-adr'),v=document.getElementById('doc-cli-ville'),tl=document.getElementById('doc-cli-tel'),em=document.getElementById('doc-cli-email');
     if(a)cli.adresse=a.value.trim(); if(tl)cli.tel=tl.value.trim(); if(em)cli.email=em.value.trim();
     if(v&&v.value.trim()){ const mv=v.value.trim().match(/(\d{5})\s*(.*)/); if(mv){cli.codePostal=mv[1];cli.ville=mv[2].trim();} else cli.ville=v.value.trim(); } }
+  /* v801 : « Envoyé » ne se pose pas ici. Demandé (option « l'envoyer maintenant… », bouton « … et envoyer », ou un « envoye » venu d'un
+     formulaire d'avant pour un document qui n'était pas parti) : le document s'enregistre tel qu'il était — brouillon — et l'envoi s'ouvre. */
+  const stE=kind==='devis'?'envoye':'envoyee'; let envoyerApres=f.__apres==='envoyer';   /* = DOC_ST_ENVOI, écrit en ligne : saveDoc se joue seule dans des bancs */
+  if(f.statut==='__envoyer'||(f.statut===stE&&(!_av.statut||_av.statut==='brouillon'))){ envoyerApres=true; f.statut=_av.statut||'brouillon'; }   /* une facture PAYÉE qui revient « envoyée » (paiement annulé) n'est pas une demande d'envoi */
+  if(cfg.st&&!cfg.st[f.statut]) f.statut=_av.statut||'brouillon';
   const doc={num:f.num,clientId:f.clientId,date:f.date,tva:parseFloat(f.tva)||0,statut:f.statut,notes:f.notes,rapportModele:f.rapportModele||'',lignes:lignesOk};
   if(id){ const ix=db[cfg.coll].findIndex(x=>x.id===id); db[cfg.coll][ix]={...db[cfg.coll][ix],...doc}; toast(cfg.titre+(cfg.fem?' mise à jour':' mis à jour')); }
-  else{ db[cfg.coll].push({id:uid(),devisId:'',creePar:(currentUser&&currentUser.id)||'',...doc}); const cree=cfg.titre+(cfg.fem?' créée':' créé'); logEvent(cree,f.num+' — '+eur(docTot(doc).ttc),'finance'); toast(cree); }
+  let idEnv=id;
+  if(!id){ idEnv=uid(); db[cfg.coll].push({id:idEnv,devisId:'',creePar:(currentUser&&currentUser.id)||'',...doc}); const cree=cfg.titre+(cfg.fem?' créée':' créé'); logEvent(cree,f.num+' — '+eur(docTot(doc).ttc),'finance'); toast(cree); }
   save(); closeModal();
+  if(envoyerApres) setTimeout(()=>{ try{ if(docEnvoyable(kind,db[cfg.coll].find(x=>x.id===idEnv))) docEnvoyerChoix(kind,idEnv); }catch(e){} },120);
   if(kind==='devis'){ const cur=id?db.devis.find(x=>x.id===id):null; docListView('devis', !!(cur&&cur.xylo)); }
   /* g06 (facturation#10) : une facture enregistrée revient à l'écran Factures (cartes, filtres, boutons Payée / Valider /
      Envoyer / FX / Excel) — docListView('factures') montrait un tableau nu, sans rien de tout cela. */
@@ -42680,12 +42703,22 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
      courriel est asynchrone (PDF puis serveur) : le statut attend sa réponse. Un refus, ou un
      brouillon de secours ouvert dans Mail, laisse le document en brouillon — l'équipe ne croit plus
      envoyé ce que le client n'a jamais reçu. Rend une promesse : vrai si parti. */
-  const marquer=()=>{ if(kind==='devis'&&d.statut==='brouillon'){ d.statut='envoye'; save(); }
-    else if(kind==='factures'&&d.statut==='brouillon'){ d.statut='envoyee'; save(); } };
+  /* v801 — « Envoyé » DIT CE QUI EST PARTI, PAR OÙ ET QUAND (Justin, 4 novembre 2026 : « quand on fait un devis et qu'on coche
+     "envoyé", ça s'envoie pas »). Le statut ne se choisit plus à la main dans le formulaire : il se pose ICI, sur un envoi réussi, avec
+     `d.envoi` = {date, ts, canal, a} — lu par la liste (« Envoyé le 04/11 · e-mail »). Un document déjà « envoyé » d'une base
+     d'avant le garde. Accepté / Refusé (devis), Payée (facture) restent des décisions. */
+  const marquer=(canalOk,dest)=>{ if(kind==='devis'&&d.statut==='brouillon') d.statut='envoye';
+    else if(kind==='factures'&&d.statut==='brouillon') d.statut='envoyee';
+    d.envoi={date:(typeof todayISO==='function'?todayISO():new Date().toISOString().slice(0,10)),ts:Date.now(),canal:canalOk||'mail',a:String(dest||'').slice(0,120)};
+    save(); };
   if(canal==='sms'){
     const tel=(c.tel||'').replace(/\s/g,''); if(!tel){ toast('Pas de numéro pour ce client'); return Promise.resolve(false); }
+    /* Un SMS part de l'application Messages du TÉLÉPHONE (lien sms:) avec le texte du document — sans le PDF, qu'un SMS ne
+       porte pas. L'application ne peut pas savoir s'il est parti : c'est la personne qui le dit, au retour (`docSmsParti`).
+       « Pas envoyé » (ou un ordinateur sans messagerie) laisse le document en brouillon. */
     setTimeout(()=>{ demoNav.href='sms:'+tel+'?&body='+encodeURIComponent(texte); },700);
-    toast('SMS préparé pour '+(c.nom||tel)); marquer(); return Promise.resolve(true);
+    toast('SMS préparé pour '+(c.nom||tel)+' dans ton application Messages');
+    return new Promise(res=>{ setTimeout(()=>{ try{ docSmsParti(cfg,d,c,tel,ok=>{ if(ok){ marquer('sms',tel); if(current===kind&&views[kind]) views[kind](); } res(!!ok); }); }catch(e){ res(false); } },1200); });
   } else {
     if(!c.email){ if(confirm('Ce client n\'a pas d\'email. Envoyer par SMS à la place ?')){ return envoiDoc(kind,id,'sms'); } toast('Ajoute un email au client (fiche) ou utilise le SMS'); return Promise.resolve(false); }
     const sujet=cfg.titre+' '+(d.num||'')+' — '+soc;
@@ -42698,10 +42731,31 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
       if(pdf){ opts.atts=[{filename:(cfg.titre+'-'+(d.num||'document')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}];
         opts.mailtoBody=genDocTexte(kind,d,false); }
       const ok=await srvMail(c.email,sujet,genDocTexte(kind,d,!!pdf),'✉️ '+cfg.titre+(cfg.fem?' envoyée':' envoyé')+' à '+(c.nom||c.email)+(pdf?' (PDF joint)':''),'devis',null,Object.keys(opts).length?opts:undefined);
-      if(ok){ marquer(); if(current===kind&&views[kind]) views[kind](); }
+      if(ok){ marquer('mail',c.email); if(current===kind&&views[kind]) views[kind](); }
       return ok; });
   }
 }
+
+/* Le SMS est parti ? — demandé au retour de l'application Messages : seul « Oui » pose « Envoyé ». */
+function docSmsParti(cfg,d,c,tel,fin){ let fait=false; const repondre=v=>{ if(fait) return; fait=true; window._docSmsFin=null; closeModal(); fin(v); };
+  window._docSmsFin=repondre;
+  openModal(`<div class="modal-head"><h3>💬 Le SMS est-il parti ?</h3><button class="modal-close" onclick="window._docSmsFin&&window._docSmsFin(false)">✕</button></div>
+    <p style="font-size:14px;line-height:1.5;margin:0 0 6px">Ton application Messages s’est ouverte avec ${cfg.fem?'la':'le'} ${esc(cfg.un)} <b>${esc(d.num||'')}</b> pour <b>${esc(c.nom||tel)}</b> (${esc(tel)}).</p>
+    <p style="font-size:12.5px;color:var(--t3);margin:0 0 14px">Le SMS porte le texte ${cfg.fem?'de la facture':'du devis'} (lignes et total), pas le PDF. ${cfg.fem?'Elle':'Il'} ne passe « ${cfg.fem?'Envoyée':'Envoyé'} » que si tu le confirmes.</p>
+    <div class="modal-foot"><button type="button" class="btn ghost" onclick="window._docSmsFin&&window._docSmsFin(false)">Pas envoyé</button><button type="button" class="btn" onclick="window._docSmsFin&&window._docSmsFin(true)">✓ Il est parti</button></div>`,'carte'); }
+/* La ligne « Envoyé le 04/11 · e-mail » d'un document : rien pour une base d'avant (statut sans trace d'envoi). */
+function docEnvoiLib(d){ const e=d&&d.envoi; if(!e||!e.date) return '';
+  const can={mail:'e-mail',sms:'SMS',autre:'remis autrement'}[e.canal]||''; return 'le '+fmtShort(e.date)+(can?' · '+can:''); }
+/* Envoyer maintenant : par e-mail (PDF joint) ou par SMS (texte) — depuis « Enregistrer et envoyer » ou « Envoyé » choisi dans le formulaire. */
+function docEnvoyerChoix(kind,id){ const cfg=DOC[kind], d=(db[cfg.coll]||[]).find(x=>x.id===id); if(!d) return; const c=db.clients.find(x=>x.id===d.clientId)||{};
+  const em=!!c.email, tl=!!String(c.tel||'').trim();
+  openModal(`<div class="modal-head"><h3>📤 Envoyer ${cfg.fem?'la':'le'} ${esc(cfg.un)} ${esc(d.num||'')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="font-size:14px;margin:0 0 12px">À <b>${esc(c.nom||'—')}</b>. ${cfg.fem?'Elle':'Il'} passe « ${cfg.fem?'Envoyée':'Envoyé'} » une fois parti${cfg.fem?'e':''} — sinon ${cfg.fem?'elle reste en attente':'il reste en brouillon'}.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button type="button" class="btn" ${em?'':'disabled'} onclick="closeModal();envoiDoc('${kind}','${id}','mail')">📧 Par e-mail${em?' — '+esc(c.email)+' (PDF joint)':' — pas d’e-mail sur la fiche du client'}</button>
+      <button type="button" class="btn ghost" ${tl?'':'disabled'} onclick="closeModal();envoiDoc('${kind}','${id}','sms')">💬 Par SMS${tl?' — '+esc(c.tel)+' (texte, sans PDF)':' — pas de téléphone sur la fiche du client'}</button>
+      <button type="button" class="btn ghost" onclick="closeModal()">Plus tard</button>
+    </div>`,'carte'); }
 
 /* ═══════════════ CONTRATS DE MAINTENANCE ═══════════════ */
 const CTR_ST={actif:{l:'Actif',c:'st-green'},suspendu:{l:'Suspendu',c:'st-org'},expire:{l:'Expiré',c:'st-red'}};
