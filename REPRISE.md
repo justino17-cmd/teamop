@@ -19,12 +19,17 @@ Justin : « une fois fait ça, tu publies pour la version publique avec tout ce 
 v795 : documents à ses couleurs, logo et couleur d'OP GESTION intouchables, statistiques, Devis IA « nouveau client », nuit bleu nuit de
 la Tour, « Utilisateurs et abonnements »). Bêta et production sont toutes deux en 795. Détail : `VERSION-STABLE.md`.
 - **Tarifs et récapitulation d'abonnement corrigés** (`scripts/site-marine.js`, `tarifs.html`, `recap-abonnement.html`) : plus de
-  « logo » ni de « couleur » DANS l'application ; « Devis et factures à votre logo, votre couleur et votre cachet » sous Pro (tous forfaits).
-- **⛔ Reste, et attend Justin** : les conditions particulières `server/contrats-textes/cp_op_gestion_business.txt` (« Logo de l'entreprise
-  dans l'application ») et `cp_op_gestion_business_premium.txt` (« Logo et couleur de l'entreprise pour toute l'équipe ») le promettent
-  encore, et `server/agents-connaissance.js` (l. 64-65) le recopie pour les agents. Une version validée ne se modifie pas : nouvelle
-  version (agent `redacteur-contrats`, relue par `juriste`), validée par Justin dans le registre — puis les agents. Toucher `server/`
-  déploie le VPS.
+  « logo » ni de « couleur » DANS l'application ; « Devis et factures à votre logo et votre couleur, et, si vous l'avez ajouté, à votre
+  cachet » sous Pro (tous forfaits : le cachet est un CHOIX coupé par défaut — juriste, 4 novembre).
+- **Conditions particulières : nouvelle version DÉPOSÉE EN BROUILLON (révision `logo-documents-2026-11-04`, PR #299)** — Pro, Business et
+  Business Premium ne promettent plus le logo ni la couleur dans l'application ; les agents (`agents-connaissance.js`, `agent-equipe.js`) non
+  plus. Rien n'est validé par le code : **⛔ Justin les valide dans la Tour (Contrats)**, une pièce à la fois, après comparaison.
+  **⛔ AVANT de valider — le mail d'information aux abonnés Business et Premium** (choix de Justin du 4 novembre) : conditions OP GESTION
+  art. 7 et CG art. 16 = courriel au moins 30 jours avant, résiliation sans frais. La fonction est déjà retirée depuis la v795 : le préavis
+  court à partir de l'envoi. Le mail se rédige dans la session principale, Justin le valide et l'envoie ; garder la preuve (date,
+  destinataires, texte). Questions laissées à un avocat par `juriste` : le retrait est-il « significatif » ; un abonné ANNUEL qui résilie
+  est-il remboursé au prorata malgré CG art. 6 (« aucune période commencée n'est remboursée ») ? La note du brouillon rappelle l'information
+  (`test-3243`). ⚠️ Si des brouillons de la révision du 23 octobre traînent encore pour ces trois pièces, ne valider que le plus récent.
 
 ---
 
