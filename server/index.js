@@ -7640,12 +7640,13 @@ setTimeout(() => {
          peut n'avoir ni « a » ni « mh » — rien à dériver, donc pas de semis possible, donc AUCUNE
          porte pour cette entreprise tant qu'on ne lui a pas posé d'identifiant de départ depuis
          la Tour (« Identifiants » ; la Tour la marque « aucun compte »).
-         Seuls les identifiants d'équipe sortent au journal : jamais un nom, jamais une
-         adresse — c'est assez pour les retrouver dans la Tour. */
+         ⛔ Le journal n'en dit que le NOMBRE (4 novembre 2026) : la Tour les marque déjà « aucun compte », c'est là qu'on les
+         retrouve. Les identifiants d'espace y sortaient aussi, et `test-809` (« le journal ne nomme aucun espace ») tombait une
+         fois sur trois — selon que ce rattrapage, lancé au démarrage, finissait avant ou après la fin du banc. */
       if (sansAmorce.length)
         console.warn('⛔ ' + sansAmorce.length + ' espace(s) SANS identifiant de départ dans leur code : '
           + 'plus aucune porte (le code d\'accès n\'existe plus depuis le 28 septembre 2026) — la Tour les marque « aucun compte » ; '
-          + 'poser leurs identifiants (« Identifiants » sur leur fiche) : ' + sansAmorce.join(', '));
+          + 'poser leurs identifiants (« Identifiants » sur leur fiche).');
       return;
     }
     const x = liste[i++];
