@@ -25,8 +25,18 @@ permissions:
   contents: read
 
 jobs:
-  verifier:
-    runs-on: ubuntu-latest
+  # ⛔⛔ EN MORCEAUX DEPUIS LE 4 NOVEMBRE 2026 (Justin : « pourquoi c'est long ? »). Le job unique jouait les ~810 suites
+  # UNE PAR UNE : 35 à 40 minutes par poussée (demande de fusion n° 304). Les suites se jouent maintenant en SIX morceaux,
+  # chacun sur SA machine — jamais plusieurs suites en même temps sur une machine : des bancs partagent des ports et des
+  # fichiers (le vrai serveur isolé, son dossier de données), et deux en même temps se marcheraient dessus.
+  # Trois jobs :
+  #   · « pages » — tout ce qui n'est pas une suite (syntaxe, versions, connexion, code d'accès, bêta…), une seule fois ;
+  #   · « suites N/6 » — les six morceaux, chacun avec TOUTES les installations (serveur, OP MESSAGES, OP Courrier,
+  #     ESLint, Playwright) : une suite jouée sans ses dépendances se saute, et le filet « SAUTÉ » la ferait tomber ;
+  #   · « verifier » — le job qui CONCLUT, sous son ancien nom (rien d'autre ne change de nom) : il réunit les six bilans,
+  #     exige que chaque suite ait été jouée UNE fois et une seule, applique le plancher au total, et tombe si « pages »
+  #     ou un morceau est tombé.
+  # Historique des plafonds de durée de l'ancien job unique, gardé pour la leçon :
     # 10 et non 5 : la suite de connexion attend une minute pleine pour laisser retomber le
     # plafond anti-abus par minute — c'est le prix de l'éprouver sur le vrai serveur.
     # ⛔ 20 ET NON PLUS 10 (2 octobre 2026) : la suite a grandi jusqu'au minuteur. Run 526 (0df1229) :
@@ -42,7 +52,11 @@ jobs:
     # ⛔ 45 ET NON PLUS 30 (23 octobre 2026) : avec les bancs de l'équipe d'agents (le vrai serveur pour chaque agent, l'examen,
     # la veille du courrier attendue deux fois dans test-2908), le job a fait TOUTES ses étapes en vert et a quand même été
     # coupé à 33 min (demande de fusion n° 162, run 39925746438) : la durée normale avait rejoint le plafond.
-    timeout-minutes: 45
+
+  pages:
+    name: pages (syntaxe, versions, connexion, bêta)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       # ⛔ `fetch-depth: 2` N'EST PAS DU CONFORT. Par défaut, actions/checkout ne ramène QU'UN
       # commit : « verifier-version.js » n'aurait alors aucun point de comparaison et ne
@@ -76,98 +90,6 @@ jobs:
         if: always()
         run: npm install --no-audit --no-fund
         working-directory: server
-
-      # ⛔ ET CELLES D'OP MESSAGES : sans `server-msg/node_modules`, les suites qui montent le VRAI service écrivent « banc non
-      # exécuté » et rendent « 0 ✓ 0 ✗ », code 0 — ce que le filet « SAUTÉ » ci-dessous ne voit pas. Mesuré le 3 octobre 2026 :
-      # `test-901` passait ainsi sur chaque poussée de main. Son propre déploiement les joue (deploiement-messages.yml), mais
-      # seulement quand `server-msg/` bouge : une poussée qui ne touche que les bancs ou l'interface n'en jouait aucune.
-      - name: Dépendances d'OP MESSAGES
-        if: always()
-        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
-
-      # `test-2705` fait parler la VRAIE fonction de la Tour au VRAI serveur de signature (`server-courrier/`) : sans `server-courrier/node_modules` il se SAUTE,
-      # et le compteur lit un saut comme un échec (PR n° 151, 19 octobre 2026 : le seul rouge de « Vérification des pages »). Rien n'est déployé : on installe pour tester.
-      - name: Dépendances d'OP Courrier (serveur de signature)
-        if: always()
-        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-courrier
-
-      # ⛔ APRÈS LES DÉPENDANCES, ET CE N'EST PAS UN DÉTAIL D'ORDRE. Six suites LANCENT le vrai
-      # serveur et sautent d'elles-mêmes leur partie exécutée si server/node_modules manque.
-      # Mesuré le 15 septembre 2026 : le total tombe alors de 1 923 à 1 758, sortie 0, sans un
-      # mot — la CI serait verte sur 165 vérifications qui n'ont pas eu lieu. Placé ici, et le
-      # plancher numérique ci-dessous le tient même si quelqu'un déplace à nouveau les étapes.
-      # ⛔ ESLINT, POUR QUE LA PARTIE « AUCUN NOM LU SANS EXISTER » DE test-818 SE JOUE ICI AUSSI (Justin, 28 septembre
-      # 2026 : « oui, répare »). Sans lui la suite écrivait « … SAUTÉ : ESLint absent » et passait : la CI rendait trois
-      # vérifications de moins que la machine de travail — exactement celles qui auraient attrapé la cloche qui plantait
-      # en v749. Même version que la machine de travail, épinglée : un banc ne change pas de juge d'une poussée à l'autre.
-      - name: ESLint pour test-818
-        if: always()
-        run: npm install -g eslint@10.1.0 --no-audit --no-fund
-
-      # ⛔ PLAYWRIGHT ET CHROMIUM, POUR LES BANCS QUI FONT TOURNER LA VRAIE PAGE DANS UN VRAI NAVIGATEUR
-      # (test-3252 : « Se connecter avec Google » ; test-3253 : la synchro de la bêta entre deux appareils).
-      # Sans eux ces bancs écrivent « … SAUTÉ : playwright absent » et le filet ci-dessous fait tomber le job
-      # (PR n° 304, 4 novembre 2026) — à juste titre : un saut n'est pas une preuve. Même version que la
-      # machine de travail, épinglée ; `require('playwright')` le trouve par NODE_PATH, comme ESLint.
-      - name: Playwright et Chromium pour les bancs navigateur
-        if: always()
-        run: |
-          npm install -g playwright@1.56.1 --no-audit --no-fund
-          npx -y playwright@1.56.1 install --with-deps chromium
-
-      - name: Les suites du dépôt passent
-        if: always()
-        run: |
-          # `require('eslint')` de test-818 trouve le paquet installé globalement à l'étape d'avant.
-          export NODE_PATH="$(npm root -g)"
-          # ⛔ `bash -e` EST ACTIF ICI (GitHub lance « /usr/bin/bash -e {0} »). Toute commande
-          # qui rend non-zéro tue l'étape sur place. Premier jet : un `grep -q … && {…}` a fait
-          # mourir cette étape EN ZÉRO SECONDE, sans lancer une seule suite — et la CI l'a
-          # comptée comme un échec de tests. Chaque commande qui peut légitimement ne rien
-          # trouver est donc soit dans un `if`, soit suivie de `|| true`.
-          total=0; rouge=0; echecs=""
-          for f in tests/test-*.js; do
-            # ⛔ ON MONTRE LES DERNIÈRES LIGNES, PAS SEULEMENT LES ✗. Mesuré le 15 septembre :
-            # six suites PLANTAIENT (chemin absolu codé en dur), donc n'imprimaient aucun ✗ —
-            # le filtre ne montrait que « Node.js v22.23.2 », la dernière ligne d'une pile
-            # d'erreur. Un échec silencieux déguisé en échec illisible.
-            if sortie=$(node "$f" 2>&1); then :; else
-              rouge=1; echecs="$echecs $f"; echo "::error::$f échoue"
-              # ⛔ ET LES ✗ EUX-MÊMES, PAS SEULEMENT LA QUEUE : elle ne les montre que s'ils sont à la fin.
-              # Le 26 septembre 2026, test-735 est tombé en CI (223 ✓ 2 ✗) avec ses deux ✗ plus haut :
-              # impossible de savoir lesquels, et cinq passages en local sont restés verts.
-              echo "$sortie" | grep '✗' | grep -vE '(^|[^0-9])0 ✗' | head -12 | sed 's/^/      /' || true
-              echo "$sortie" | tail -8 | sed 's/^/      /'
-            fi
-            echo "$sortie" | tail -1
-            n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+' || true)
-            total=$((total + ${n:-0}))
-            # « SAUTÉ » couvre aussi « SAUTÉE » : test-818 écrit le masculin, et le filet ne cherchait que le féminin.
-            # ⛔ Le MÊME filet que `scripts/bancs-ci.sh` (2 octobre 2026) : les deux casses écrites à la main (`grep -i` ne replie
-            # « É » que dans une langue UTF-8 — ici oui, sur la machine de travail non), les lignes de RÉSULTAT écartées (un
-            # libellé « ✓ … aucune sautée en silence » faisait tomber test-905 et test-933), et sans `-q`. `test-933` les compare.
-            saut=$(printf '%s\n' "$sortie" | grep -avE '^[[:space:]]*(✓|✗|✔|✘)' | grep -aE '[Ss][Aa][Uu][Tt](É|é)' || true)
-            if [ -n "$saut" ]; then
-              echo "::error::$f a SAUTÉ une partie en silence : ${saut%%$'\n'*}"; rouge=1
-            fi
-          done
-          echo ""
-          echo "══ RÉCAPITULATIF ══"
-          # ⛔ LE RÉCAPITULATIF EST À LA FIN, ET C'EST TOUT L'INTÉRÊT. Le journal d'un job fait
-          # des centaines de lignes ; une étape qui noie le nom de la suite fautive au milieu
-          # oblige à tout dérouler pour savoir quoi réparer. Mesuré le 15 septembre 2026 : il a
-          # fallu quatre allers-retours pour retrouver une suite rouge. Les dernières lignes
-          # doivent suffire.
-          if [ -n "$echecs" ]; then echo "SUITES EN ÉCHEC :$echecs"; else echo "aucune suite en échec"; fi
-          echo "── $total vérifications sur $(ls tests/test-*.js | wc -l) suites"
-          # ⛔ UN PLANCHER, parce qu'une suite qui se saute elle-même sort en 0 sans rien dire.
-          # Mesuré le 15 septembre 2026 : sans server/node_modules, six suites sautent leur
-          # partie exécutée et le total tombe de 1 923 à 1 758 — vert, et aveugle sur 165
-          # vérifications. Le plancher tient même si quelqu'un déplace à nouveau les étapes.
-          if [ "$total" -lt 1900 ]; then
-            echo "::error::$total vérifications seulement — il en manque"; rouge=1
-          fi
-          exit $rouge
 
       - name: Le nom d'une entreprise ne rend pas sa clé
         if: always()
@@ -237,3 +159,207 @@ jobs:
             exit 1
           fi
           echo "beta.html est à jour."
+
+  suites:
+    name: suites ${{ matrix.morceau }}/6
+    runs-on: ubuntu-latest
+    # Un morceau joue un sixième de la suite (~6 min) plus ses installations (~2 min) : 30 minutes ne se touchent que si un
+    # banc se fige — c'est la garde, pas la durée normale.
+    timeout-minutes: 30
+    strategy:
+      # Tous les morceaux vont au bout : on veut le tableau complet, pas le premier rouge (la règle des `if: always()`).
+      fail-fast: false
+      matrix:
+        morceau: [1, 2, 3, 4, 5, 6]
+    env:
+      MORCEAUX: 6
+    steps:
+      # ⛔ `fetch-depth: 2` N'EST PAS DU CONFORT. Par défaut, actions/checkout ne ramène QU'UN
+      # commit : « verifier-version.js » n'aurait alors aucun point de comparaison et ne
+      # pourrait plus dire si APP_VERSION a monté. Il échouerait franchement (il refuse de se
+      # taire en CI), mais autant lui donner ce qu'il lui faut.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Les dépendances du serveur : les suites ci-dessous démarrent le serveur LIVRÉ et
+      # interrogent ses vraies routes — un test qui rejoue une copie du code ne dit rien
+      # de ce qui part en production.
+      - name: Dépendances du serveur
+        if: always()
+        run: npm install --no-audit --no-fund
+        working-directory: server
+
+      # ⛔ ET CELLES D'OP MESSAGES : sans `server-msg/node_modules`, les suites qui montent le VRAI service écrivent « banc non
+      # exécuté » et rendent « 0 ✓ 0 ✗ », code 0 — ce que le filet « SAUTÉ » ci-dessous ne voit pas. Mesuré le 3 octobre 2026 :
+      # `test-901` passait ainsi sur chaque poussée de main. Son propre déploiement les joue (deploiement-messages.yml), mais
+      # seulement quand `server-msg/` bouge : une poussée qui ne touche que les bancs ou l'interface n'en jouait aucune.
+      - name: Dépendances d'OP MESSAGES
+        if: always()
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
+
+      # `test-2705` fait parler la VRAIE fonction de la Tour au VRAI serveur de signature (`server-courrier/`) : sans `server-courrier/node_modules` il se SAUTE,
+      # et le compteur lit un saut comme un échec (PR n° 151, 19 octobre 2026 : le seul rouge de « Vérification des pages »). Rien n'est déployé : on installe pour tester.
+      - name: Dépendances d'OP Courrier (serveur de signature)
+        if: always()
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-courrier
+
+      # ⛔ APRÈS LES DÉPENDANCES, ET CE N'EST PAS UN DÉTAIL D'ORDRE. Six suites LANCENT le vrai
+      # serveur et sautent d'elles-mêmes leur partie exécutée si server/node_modules manque.
+      # Mesuré le 15 septembre 2026 : le total tombe alors de 1 923 à 1 758, sortie 0, sans un
+      # mot — la CI serait verte sur 165 vérifications qui n'ont pas eu lieu. Placé ici, et le
+      # plancher numérique ci-dessous le tient même si quelqu'un déplace à nouveau les étapes.
+      # ⛔ ESLINT, POUR QUE LA PARTIE « AUCUN NOM LU SANS EXISTER » DE test-818 SE JOUE ICI AUSSI (Justin, 28 septembre
+      # 2026 : « oui, répare »). Sans lui la suite écrivait « … SAUTÉ : ESLint absent » et passait : la CI rendait trois
+      # vérifications de moins que la machine de travail — exactement celles qui auraient attrapé la cloche qui plantait
+      # en v749. Même version que la machine de travail, épinglée : un banc ne change pas de juge d'une poussée à l'autre.
+      - name: ESLint pour test-818
+        if: always()
+        run: npm install -g eslint@10.1.0 --no-audit --no-fund
+
+      # ⛔ PLAYWRIGHT ET CHROMIUM, POUR LES BANCS QUI FONT TOURNER LA VRAIE PAGE DANS UN VRAI NAVIGATEUR
+      # (test-3252 : « Se connecter avec Google » ; test-3253 : la synchro de la bêta entre deux appareils).
+      # Sans eux ces bancs écrivent « … SAUTÉ : playwright absent » et le filet ci-dessous fait tomber le job
+      # (PR n° 304, 4 novembre 2026) — à juste titre : un saut n'est pas une preuve. Même version que la
+      # machine de travail, épinglée ; `require('playwright')` le trouve par NODE_PATH, comme ESLint.
+      - name: Playwright et Chromium pour les bancs navigateur
+        if: always()
+        run: |
+          npm install -g playwright@1.56.1 --no-audit --no-fund
+          npx -y playwright@1.56.1 install --with-deps chromium
+
+      - name: Les suites du dépôt passent (morceau ${{ matrix.morceau }}/6)
+        if: always()
+        env:
+          MORCEAU: ${{ matrix.morceau }}
+        run: |
+          # `require('eslint')` de test-818 trouve le paquet installé globalement à l'étape d'avant.
+          export NODE_PATH="$(npm root -g)"
+          # ⛔ `bash -e` EST ACTIF ICI (GitHub lance « /usr/bin/bash -e {0} »). Toute commande
+          # qui rend non-zéro tue l'étape sur place. Premier jet : un `grep -q … && {…}` a fait
+          # mourir cette étape EN ZÉRO SECONDE, sans lancer une seule suite — et la CI l'a
+          # comptée comme un échec de tests. Chaque commande qui peut légitimement ne rien
+          # trouver est donc soit dans un `if`, soit suivie de `|| true`.
+          total=0; rouge=0; echecs=""
+          # ⛔ LE MORCEAU : la liste TRIÉE (LC_ALL=C, la même sur toutes les machines), une suite sur six, par son rang —
+          # en alternance et non par tranches : les suites lentes se suivent (les agents dans les 2900, OP MESSAGES dans
+          # les 900), une tranche les aurait toutes données au même morceau. Le job « verifier » relit la liste jouée par
+          # chaque morceau et exige que leur réunion soit EXACTEMENT tests/test-*.js : une suite oubliée ou jouée deux fois
+          # le fait tomber.
+          mapfile -t tous < <(LC_ALL=C ls tests/test-*.js)
+          liste=()
+          for i in "${!tous[@]}"; do
+            if [ $(( i % MORCEAUX + 1 )) -eq "$MORCEAU" ]; then liste+=("${tous[$i]}"); fi
+          done
+          echo "morceau $MORCEAU/$MORCEAUX : ${#liste[@]} suites sur ${#tous[@]}"
+          for f in "${liste[@]}"; do
+            # ⛔ ON MONTRE LES DERNIÈRES LIGNES, PAS SEULEMENT LES ✗. Mesuré le 15 septembre :
+            # six suites PLANTAIENT (chemin absolu codé en dur), donc n'imprimaient aucun ✗ —
+            # le filtre ne montrait que « Node.js v22.23.2 », la dernière ligne d'une pile
+            # d'erreur. Un échec silencieux déguisé en échec illisible.
+            if sortie=$(node "$f" 2>&1); then :; else
+              rouge=1; echecs="$echecs $f"; echo "::error::$f échoue"
+              # ⛔ ET LES ✗ EUX-MÊMES, PAS SEULEMENT LA QUEUE : elle ne les montre que s'ils sont à la fin.
+              # Le 26 septembre 2026, test-735 est tombé en CI (223 ✓ 2 ✗) avec ses deux ✗ plus haut :
+              # impossible de savoir lesquels, et cinq passages en local sont restés verts.
+              echo "$sortie" | grep '✗' | grep -vE '(^|[^0-9])0 ✗' | head -12 | sed 's/^/      /' || true
+              echo "$sortie" | tail -8 | sed 's/^/      /'
+            fi
+            echo "$sortie" | tail -1
+            n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+' || true)
+            total=$((total + ${n:-0}))
+            # « SAUTÉ » couvre aussi « SAUTÉE » : test-818 écrit le masculin, et le filet ne cherchait que le féminin.
+            # ⛔ Le MÊME filet que `scripts/bancs-ci.sh` (2 octobre 2026) : les deux casses écrites à la main (`grep -i` ne replie
+            # « É » que dans une langue UTF-8 — ici oui, sur la machine de travail non), les lignes de RÉSULTAT écartées (un
+            # libellé « ✓ … aucune sautée en silence » faisait tomber test-905 et test-933), et sans `-q`. `test-933` les compare.
+            saut=$(printf '%s\n' "$sortie" | grep -avE '^[[:space:]]*(✓|✗|✔|✘)' | grep -aE '[Ss][Aa][Uu][Tt](É|é)' || true)
+            if [ -n "$saut" ]; then
+              echo "::error::$f a SAUTÉ une partie en silence : ${saut%%$'\n'*}"; rouge=1
+            fi
+          done
+          echo ""
+          echo "══ RÉCAPITULATIF DU MORCEAU $MORCEAU/$MORCEAUX ══"
+          # ⛔ LE RÉCAPITULATIF EST À LA FIN, ET C'EST TOUT L'INTÉRÊT. Le journal d'un job fait
+          # des centaines de lignes ; une étape qui noie le nom de la suite fautive au milieu
+          # oblige à tout dérouler pour savoir quoi réparer. Mesuré le 15 septembre 2026 : il a
+          # fallu quatre allers-retours pour retrouver une suite rouge. Les dernières lignes
+          # doivent suffire — ici pour le morceau, et le job « verifier » les réunit.
+          if [ -n "$echecs" ]; then echo "SUITES EN ÉCHEC :$echecs"; else echo "aucune suite en échec"; fi
+          echo "── $total vérifications sur ${#liste[@]} suites"
+          # Le bilan que lit le job « verifier » : ce qui a été joué (la liste), ce que ça a rendu. Le PLANCHER se juge là-bas,
+          # sur le total des six : un plancher par morceau ne dirait rien d'une suite qui saute sa partie exécutée.
+          mkdir -p bilan
+          { echo "suites=${#liste[@]}"; echo "total=$total"; echo "rouge=$rouge"; echo "echecs=$echecs"; } > "bilan/bilan-$MORCEAU.txt"
+          printf '%s\n' "${liste[@]}" > "bilan/liste-$MORCEAU.txt"
+          exit $rouge
+
+      # Le bilan voyage par un ARTEFACT : les sorties d'un job à matrice s'écrasent l'une l'autre (une seule survit).
+      - name: Le bilan du morceau part au job « verifier »
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bilan-${{ matrix.morceau }}
+          path: bilan/
+          if-no-files-found: error
+          retention-days: 3
+
+  verifier:
+    needs: [pages, suites]
+    # Même quand un morceau est tombé : c'est ici que le récapitulatif complet s'écrit.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Les bilans des six morceaux
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bilan-*
+          path: bilan
+          merge-multiple: true
+
+      - name: Les suites du dépôt passent
+        if: always()
+        env:
+          PAGES: ${{ needs.pages.result }}
+          SUITES: ${{ needs.suites.result }}
+        run: |
+          rouge=0; total=0; joues=0; echecs=""
+          for k in 1 2 3 4 5 6; do
+            b="bilan/bilan-$k.txt"
+            # ⛔ UN MORCEAU SANS BILAN N'EST PAS UN MORCEAU VERT : il s'est figé, a été coupé, ou n'a pas tourné.
+            if [ ! -f "$b" ]; then echo "::error::le morceau $k/6 n'a rendu aucun bilan — il s'est interrompu"; rouge=1; continue; fi
+            s=$(sed -n 's/^suites=//p' "$b"); t=$(sed -n 's/^total=//p' "$b"); r=$(sed -n 's/^rouge=//p' "$b"); e=$(sed -n 's/^echecs=//p' "$b")
+            etat="vert"; if [ "${r:-1}" != "0" ]; then etat="ROUGE"; rouge=1; fi
+            echo "morceau $k/6 : ${s:-?} suites, ${t:-?} vérifications — $etat"
+            joues=$((joues + ${s:-0})); total=$((total + ${t:-0})); echecs="$echecs$e"
+          done
+          # ⛔ CHAQUE SUITE UNE FOIS ET UNE SEULE : la réunion des listes jouées doit être EXACTEMENT tests/test-*.js.
+          # Un découpage faux (une suite dans deux morceaux, une autre dans aucun) garderait la bonne SOMME : on compare les noms.
+          LC_ALL=C ls tests/test-*.js > attendu.txt
+          cat bilan/liste-*.txt 2>/dev/null | LC_ALL=C sort > joue.txt || true
+          if ! cmp -s attendu.txt joue.txt; then
+            echo "::error::les morceaux n'ont pas joué chaque suite une fois et une seule ($joues jouées, $(wc -l < attendu.txt) attendues)"
+            diff attendu.txt joue.txt | head -20 || true
+            rouge=1
+          fi
+          if [ "$PAGES" != "success" ]; then echo "::error::le job « pages » est $PAGES (syntaxe, versions, connexion, bêta…)"; rouge=1; fi
+          if [ "$SUITES" != "success" ]; then echo "::error::un morceau des suites est $SUITES"; rouge=1; fi
+          echo ""
+          echo "══ RÉCAPITULATIF ══"
+          if [ -n "$echecs" ]; then echo "SUITES EN ÉCHEC :$echecs"; else echo "aucune suite en échec"; fi
+          echo "── $total vérifications sur $(ls tests/test-*.js | wc -l) suites"
+          # ⛔ UN PLANCHER, parce qu'une suite qui se saute elle-même sort en 0 sans rien dire.
+          # Mesuré le 15 septembre 2026 : sans server/node_modules, six suites sautent leur
+          # partie exécutée et le total tombe de 1 923 à 1 758 — vert, et aveugle sur 165
+          # vérifications. Le plancher tient même si quelqu'un déplace à nouveau les étapes —
+          # et il se juge sur le TOTAL des six morceaux, pas sur un seul.
+          if [ "$total" -lt 1900 ]; then
+            echo "::error::$total vérifications seulement — il en manque"; rouge=1
+          fi
+          exit $rouge
