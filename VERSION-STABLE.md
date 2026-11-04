@@ -1,5 +1,27 @@
 # Point stable TeamOP
 
+**Version stable : v798** — 4 novembre 2026 (Justin : « ok, tous les mails c'est bon, on envoie la mise à jour avec le devis et la facture
+corrigés »). C'est la bêta v798 entière : les v796 à v798. Ce qui change pour une entreprise :
+- **Ses documents partent par SA boîte mail, plus par TEAM OP** (v796, v797) : un devis, une facture, un rapport ou un bon envoyé à un client
+  part par la boîte connectée dans « Boîte mail ». Sans boîte, il part au nom de l'entreprise avec l'adresse de « Mon entreprise » en adresse
+  de réponse, sans aucune copie chez TEAM OP. Sans l'une ni l'autre, une étape s'ouvre au premier envoi : poser l'adresse de l'entreprise
+  (l'envoi reprend aussitôt) ou connecter la boîte ; un employé est renvoyé vers son administrateur. Une boîte qui refuse l'envoi le dit, et
+  la reprise par l'adresse de l'entreprise n'est que proposée. Une facture envoyée automatiquement n'ouvre aucune fenêtre : l'administrateur
+  est prévenu une fois par jour. Dans « Mon entreprise », l'e-mail devient obligatoire pour les envois et une adresse mal formée est refusée.
+- **Le DÉTAIL d'un devis ou d'une facture s'imprime en entier** (v798) : les lignes longues passent à la ligne au lieu d'être coupées par
+  « … », avec le retrait sous la puce, et le bloc continue sur la page suivante (« DÉTAIL (SUITE) ») s'il le faut. Même chose pour la
+  désignation des lignes, l'adresse et l'e-mail du client, l'IBAN et les conditions. Les devis et factures DÉJÀ faits en profitent sans être
+  refaits : le PDF est refabriqué à chaque aperçu, téléchargement et envoi ; une facture émise garde son numéro et ses montants.
+- **« Se connecter avec Google »** (v798) : une boîte Gmail se connecte en deux clics, sans mot de passe d'application — en haut de
+  « Connecter une boîte mail » et dans l'étape qui s'ouvre au premier envoi ; la connexion faite, l'envoi en attente repart. Une autorisation
+  retirée ou expirée se dit (« À reconnecter », bouton « Reconnecter ») et rien ne part par elle. Pas de bouton Microsoft tant que la connexion
+  Microsoft n'est pas posée sur le serveur. ⚠️ Google en mode test : seuls les comptes ajoutés aux « utilisateurs test » de la console Google
+  peuvent se connecter, et l'autorisation expire au bout de 7 jours (`server/OAUTH-BOITES.md`).
+Rien ne change dans les formats de données. Pas d'annonce par courriel depuis la Tour : le courriel aux entreprises est à valider par Justin.
+`tests/test-3250.js`, `test-3246`, `test-3247`, `test-3251`, `test-3252`, `scripts/controle/mails-a-z.js` (108 ✓).
+
+**Ancien point : v795.**
+
 **Version stable : v795** — 4 novembre 2026 (Justin : « une fois fait ça, tu publies pour la version publique avec tout ce qu'on vient de
 faire », puis « Tout publier »). C'est la bêta v795 entière : les v783 à v795. Ce qui change pour une entreprise :
 - **Ses documents à ses couleurs** (v783, v788, v793, v794) : dans Paramètres › « Tes documents », la couleur, le logo et le cachet de

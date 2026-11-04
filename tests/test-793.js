@@ -169,8 +169,14 @@ console.log('── 793 · 5. les courriels portent la même société que le do
   vrai('… un texte sans pièce jointe ne dit plus « ci-joint »', /\(joint\?'Veuillez trouver ci-joint votre ':'Voici votre '\)/.test(corps('genDocTexte')));
   vrai('la facture automatique part en PDF, signée de la société de l’intervention', /docPdfChaine\('factures',f\)/.test(SRC) && /Cordialement,\\n'\+soc;/.test(SRC));
   vrai('le bon envoyé au fournisseur : la société DU BON quand il en porte une — sinon le « Nom d’expéditeur » des Réglages e-mail, comme avant', /const ent=socNom\(b\.societe\)\?bcEntete\(b\):mailBrandName\(\);/.test(corps('envoiBonEmail')));
-  vrai('un envoi refusé ne met pas l’adresse du client dans le rapport d’erreur (/api/bug) — le domaine seulement',
-    /stack:'domaine du destinataire : '\+\(String\(to\|\|''\)\.split\('@'\)\[1\]\|\|'—'\)/.test(corps('srvMail')) && !/'destinataire '\+to/.test(corps('srvMail')));
+  /* v797 (essai des mails de A à Z) : le domaine d'une ENTREPRISE nomme le client — seul celui d'une messagerie publique reste, et une
+     adresse recopiée par le serveur de messagerie dans son refus ne part pas. La vraie `domaineDiag`, exécutée. */
+  { const dd = new Function(corps('domaineDiag') + '; return domaineDiag;')();
+    vrai('un envoi refusé ne met pas l’adresse du client dans le rapport d’erreur (/api/bug) — ni même le domaine d’une entreprise',
+      /stack:'domaine du destinataire : '\+domaineDiag\(to\)/.test(corps('srvMail')) && !/'destinataire '\+to/.test(corps('srvMail')) && !/split\('@'\)\[1\]\|\|'—'\)/.test(corps('srvMail'))
+      && dd('a.b@gmail.com') === 'gmail.com' && dd('x@orange.fr') === 'orange.fr' && dd('mme@client-dupont.fr') === 'domaine d’entreprise' && dd('') === '—',
+      [dd('a.b@gmail.com'), dd('mme@client-dupont.fr')]);
+    vrai('… et une adresse recopiée dans le message de refus est masquée', /String\(_srvMailErr\)\.replace\(\/\[\^\\s<>"'@\]\+@\[\^\\s<>"'@\]\+\/g,'\[adresse\]'\)/.test(corps('srvMail'))); }
   { const fx = corps('exportFacturX'), ach = fx.slice(fx.indexOf('<ram:BuyerTradeParty>'), fx.indexOf('</ram:BuyerTradeParty>'));
     vrai('Factur-X : l’adresse de l’acheteur suit l’ordre CII (code postal, puis rue, puis ville) — comme celle du vendeur',
       ach.length > 50 && ach.indexOf('<ram:PostcodeCode>') > 0 && ach.indexOf('<ram:PostcodeCode>') < ach.indexOf('<ram:LineOne>') && ach.indexOf('<ram:LineOne>') < ach.indexOf('<ram:CityName>'), ach.slice(0, 200)); }
@@ -251,9 +257,10 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
       const W = { console, Object, JSON, String, Math, Date, Array, Number, parseInt, __req: [], __boite: boite };
       W.fetch = async (u, o) => { W.__req.push(JSON.parse(o.body)); return { ok: true, status: 200, json: async () => ({}) }; };
       vm.createContext(W);
-      vm.runInContext([decoupe('async function srvMail('), decoupe('let _srvMailErr='),
+      vm.runInContext([decoupe('const ENVOI_ADR_RE='), decoupe('function envoiAdresseEnt('), decoupe('function domaineDiag('), decoupe('async function envoiBoiteResoudre('), decoupe('let _boiteEtapeFin='), decoupe('function envoiBoiteEtape('), decoupe('function envoiBoiteSignaler('), decoupe('async function srvMail('), decoupe('let _srvMailErr='),
         `const PUSH_API='http://essai'; async function enteteEquipe(h){ return h; } function syncTeam(){ return 't'; }
          function mailBoxFor(){ return __boite; } function can(){ return true; } var currentUser=null; function toast(){}
+         let _mailboxes=[]; const BETA_ESSAI=false; async function loadMailboxes(){ return _mailboxes; } function openModal(){} const document={ getElementById:()=>null };
          var db={ mailFrom:'Excellence Pro', entreprise:{ nom:'Nettoyage Excellence SARL' } };
          function mailBrandName(){ return 'Excellence Pro'; } const location={}; const navigator={ userAgent:'' };`].join('\n'), W);
       const ok = await W.srvMail('elise@exemple.fr', 'Devis', 'Bonjour', '', 'devis', null, opts);
@@ -269,7 +276,8 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
     r = await essai(BOITE, { brandName: 'x', societe: 'Alpha, "Nuisibles" <SAS>' });
     v('… un nom à virgule et guillemets ne fabrique ni deux adresses ni un en-tête cassé', (r.p.smtp || {}).from, '"Alpha, Nuisibles SAS" <contact@excellence.fr>');
     r = await essai(null, alpha);
-    v('sans boîte connectée : la plateforme envoie au nom d’Alpha', [(r.p.brand || {}).name, !!r.p.smtp], ['Alpha Nuisibles', false]); }
+    /* v796 (Justin, 4 novembre 2026 : « il n'y a rien qui passe par nous ») : sans boîte de l'entreprise, plus d'envoi par la plateforme — test-3250 */
+    v('sans boîte connectée : RIEN ne part (plus de mode simple par la plateforme)', [r.ok, !!r.p.to], [false, false]); }
 
   console.log('── 793 · 6. v780 : rien ne part au client sans le nom, l’adresse et le SIRET de la société qui émet ──');
   { const vide = { ...BASE, entreprise: { nom: 'Clim Ouest', logo: '' } };
