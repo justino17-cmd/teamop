@@ -28,7 +28,7 @@ function verifie(titre, condition, detail) {
 
 /* ── Ce qui ne doit PAS partir ─────────────────────────────────────────────────── */
 console.log("\nCe que le client garde pour lui");
-const envoi = APP.match(/body:JSON\.stringify\(\{team:syncTeam\(\)[^}]*\}\)\}\);/);
+const envoi = APP.match(/body:JSON\.stringify\(\{team:devisEquipe\(\)[^}]*\}\)\}\);/);   // v791 : l'équipe passe par devisEquipe() — syncTeam() hors bêta
 verifie("l'application n'envoie plus le client au générateur",
   !!envoi && !/client:/.test(envoi[0]), envoi && envoi[0].slice(0, 160));
 const deb = SRC.indexOf("app.post('/api/devis/generer'");
