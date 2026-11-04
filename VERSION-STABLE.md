@@ -1,5 +1,42 @@
 # Point stable TeamOP
 
+**Version stable : v795** — 4 novembre 2026 (Justin : « une fois fait ça, tu publies pour la version publique avec tout ce qu'on vient de
+faire », puis « Tout publier »). C'est la bêta v795 entière : les v783 à v795. Ce qui change pour une entreprise :
+- **Ses documents à ses couleurs** (v783, v788, v793, v794) : dans Paramètres › « Tes documents », la couleur, le logo et le cachet de
+  l'entreprise, avec un aperçu en direct ; ils vont sur les devis, factures, bons de commande et rapports, et survivent à la synchro (réglage
+  par réglage). Le cachet se pose au choix sur les devis et sur les factures, sans titre « Pour l'entreprise » ; sur le bon de commande, les
+  coordonnées passent sous le nom, plus sur le logo.
+- **Le logo et la couleur d'OP GESTION restent ceux d'OP GESTION** (v789, v792, v795) : le logo de l'entreprise ne remplace plus celui de
+  l'application, et la « Couleur dans l'application » du Business Premium n'existe plus. Une entreprise qui en avait posé une retrouve le thème
+  normal ; rien n'est effacé de ses données. Chaque personne garde « Thème et couleur » dans ses Paramètres.
+- **Les statistiques en dégradé de couleur, le Devis IA avec « nouveau client »** (choisir ou créer le client dans la même fenêtre), des listes
+  lisibles de nuit et les champs sans habit habillés comme le reste (v783).
+- **La nuit de la Tour dans OP GESTION** (v783, v784) : fond bleu nuit, cartes et barres en aplats bleu nuit, boutons bleu foncé.
+- **« Utilisateurs et abonnements »** (v790) : la ligne des Paramètres dit combien de comptes et combien d'abonnements, et ce qui manque.
+- Le Devis IA de la bêta parle au nom de l'espace bêta (v791) : sans effet en production.
+Rien ne change dans les formats de données (deux réglages datés de plus dans la fiche de l'entreprise, `_ms`). La page des tarifs et la
+récapitulation d'abonnement ne promettent plus de logo ni de couleur DANS l'application ; les conditions particulières Business et Business
+Premium le promettent encore — une nouvelle version est à valider par Justin. Pas d'annonce par courriel.
+
+**Ancien point : v786.**
+
+**Version stable : v786** — 3 novembre 2026, correctif (Justin, à cinq dossiers de la Tour chez Toka Clim — « corrige tout ce que tu peux
+corriger par rapport à ces erreurs », puis « Publié »). Ce qui change pour une entreprise : **sur une 4G faible, les modifications partent du premier
+coup** — l'envoi n'est plus coupé à 20 s pour recommencer depuis zéro, son délai suit la taille de la base (52 s pour 265 Ko, 90 s au plus) ; le
+message « tes modifications ne partent pas encore » attend en proportion (41 s pour 265 Ko, 45 s au plus). Côté Tour : les coupures que l'application
+fait exprès ne remontent plus, et un délai dépassé se dit « trop lent (pas de réponse en N s) » au lieu de « injoignable ». Rien d'autre ne change :
+c'est la v785 plus ce seul correctif (la bêta v787 le porte aussi). Pas d'annonce par courriel. `tests/test-3238.js`.
+
+**Ancien point : v785.**
+
+**Version stable : v785** — 2 novembre 2026, correctif (Justin, à « ça envoie l'utilisateur sur le même profil que moi », chez un client :
+« faut les corrections pour éviter les problèmes… gère ce problème et vérifie le »). Ce qui change pour une entreprise : **un employé qui se
+connecte sur un appareil où le patron est resté connecté arrive sur SON profil**, plus sur celui du patron — les identifiants qu'on vient de
+taper passent avant la session restée ouverte, et le patron qui retape les siens retrouve son compte. Rien d'autre ne change : c'est la v782
+plus ce seul correctif (les nouveautés de la bêta v784 n'y sont pas). Pas d'annonce par courriel. `tests/test-3235.js`.
+
+**Ancien point : v782.**
+
 **Version stable : v782** — 30 octobre 2026 (Justin : « ce qu'il faut, c'est que tu publies OP Gestion, vu que maintenant tous les packs sont
 terminés »). Ce qui change pour une entreprise :
 - **Les packs métier complets** : nettoyage (cahiers, relevés, catalogue), chauffage et plomberie (documents, catalogue, obligations, attestation
