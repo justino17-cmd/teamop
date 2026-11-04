@@ -38,7 +38,8 @@ function fauxFournisseur() {
       if (p.get('grant_type') === 'authorization_code') {
         const defi = fournisseur.defis.get(p.get('code'));
         if (!defi || b64u(crypto.createHash('sha256').update(String(p.get('code_verifier'))).digest()) !== defi) return rep(400, { error: 'invalid_grant' });
-        const idt = 'x.' + b64u(JSON.stringify({ email: 'testeur@boite-beta-qxz.fr' })) + '.y';
+        const em = { 'code-beta': 'testeur@boite-beta-qxz.fr', 'code-bruno': 'bruno@boite-beta-qxz.fr', 'code-dora': 'dora@boite-beta-qxz.fr' }[p.get('code')] || 'x@boite-beta-qxz.fr';
+        const idt = 'x.' + b64u(JSON.stringify({ email: em })) + '.y';
         return rep(200, { access_token: 'ACCES-QXZ-BETA', refresh_token: 'RENOUV-QXZ-BETA', expires_in: 3600, id_token: idt });
       }
       rep(200, { access_token: 'ACCES-QXZ-BETA', expires_in: 3600 });
@@ -65,11 +66,26 @@ function fauxSmtp() {
   });
 }
 
+/* Le faux IMAP : il ne laisse entrer personne, il RETIENT qui la relève essaie d'ouvrir (l'utilisateur de AUTHENTICATE XOAUTH2). */
+const imap = { essais: [] };
+function fauxImap() {
+  return require('net').createServer(c => {
+    c.on('error', () => {}); let tampon = '';
+    c.write('* OK [CAPABILITY IMAP4rev1 AUTH=XOAUTH2 SASL-IR] banc\r\n');
+    c.on('data', d => { tampon += d.toString('utf8'); let i;
+      while ((i = tampon.indexOf('\r\n')) >= 0) { const l = tampon.slice(0, i); tampon = tampon.slice(i + 2); const [tag, cmd, meca, ir] = l.split(' ');
+        if (/^CAPABILITY$/i.test(cmd || '')) { c.write('* CAPABILITY IMAP4rev1 AUTH=XOAUTH2 SASL-IR\r\n' + tag + ' OK\r\n'); continue; }
+        if (/^AUTHENTICATE$/i.test(cmd || '')) { const a = Buffer.from(ir || '', 'base64').toString('utf8'); imap.essais.push(((/user=([^\x01]*)/.exec(a) || [])[1] || '?').toLowerCase()); c.write(tag + ' NO non\r\n'); continue; }
+        if (/^LOGOUT$/i.test(cmd || '')) { c.write('* BYE\r\n' + tag + ' OK\r\n'); c.end(); continue; }
+        if (tag) c.write(tag + ' BAD\r\n'); } });
+  });
+}
+
 (async () => {
   let webpush;
   try { webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push')); }
   catch (e) { console.log('  … SAUTÉ : server/node_modules absent (cd server && npm i)'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(0); }
-  const portF = await ecoute(fauxFournisseur()), portS = await ecoute(fauxSmtp());
+  const portF = await ecoute(fauxFournisseur()), portS = await ecoute(fauxSmtp()), portI = await ecoute(fauxImap());
   const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
   const T = 'vraie-ent-3255', K = 'cle-propre-' + T;
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({ 'vraie-ent': { t: T, nom: 'Vraie Entreprise', email: 'patron@vraie-ent-qxz.fr', code: Buffer.from(JSON.stringify({ t: T, k: K })).toString('base64'), ts: Date.now() } }));
@@ -77,7 +93,11 @@ function fauxSmtp() {
   fs.writeFileSync(path.join(D, 'beta-comptes.json'), JSON.stringify([
     { id: 'b1a2b3c4d5', login: 'alice-qzw', nom: 'Alice', hash: sha('mdp-alice-qzw'), actif: true, apps: ['gestion'], ts: Date.now() },
     { id: 'b9e8d7c6b5', login: 'bruno-qzw', nom: 'Bruno', hash: sha('mdp-bruno-qzw'), actif: true, apps: ['gestion'], ts: Date.now() },
-    { id: 'b5c5c5c5c5', login: 'coupe-qzw', nom: 'Coupé', hash: sha('mdp-coupe-qzw'), actif: false, apps: ['gestion'], ts: Date.now() }]));
+    { id: 'b5c5c5c5c5', login: 'coupe-qzw', nom: 'Coupé', hash: sha('mdp-coupe-qzw'), actif: false, apps: ['gestion'], ts: Date.now() },
+    { id: 'bd0d0d0d0d', login: 'dora-qzw', nom: 'Dora', hash: sha('mdp-dora-qzw'), actif: true, apps: ['gestion'], ts: Date.now() }]));
+  /* du courrier déjà relevé : une ligne pour Alice, une pour la vraie entreprise (la purge d'Alice ne doit enlever que la sienne) */
+  fs.writeFileSync(path.join(D, 'replies.jsonl'), JSON.stringify({ ts: Date.now(), teamId: 'opgestion-beta~b1a2b3c4d5', from: 'client@dehors-qzw.fr', subject: 'Réponse à Alice QZW', text: 'x', mid: '<a@qzw>' }) + '\n'
+    + JSON.stringify({ ts: Date.now(), teamId: 'vraie-ent-3255', from: 'client@dehors-qzw.fr', subject: 'Réponse à la vraie entreprise QZW', text: 'y', mid: '<b@qzw>' }) + '\n');
   const vap = webpush.generateVAPIDKeys();
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc-3255'.padEnd(40, 'x'), adminPassHash: sha('mdp-patron-qzw'),
     oauth: { microsoft: { clientId: 'client-du-banc-QXZ', clientSecret: 'secret-du-banc-QXZ' } } }));
@@ -86,12 +106,12 @@ function fauxSmtp() {
   enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], { env: Object.assign({}, process.env, {
     TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_KEK: 'b8'.repeat(32),
     TEAMOP_OAUTH_MS_URL: 'http://127.0.0.1:' + portF,
-    TEAMOP_OAUTH_SERVEURS: JSON.stringify({ microsoft: { smtpHost: '127.0.0.1', smtpPort: portS, imapHost: '127.0.0.1', imapPort: 1, tlsAucun: true } }),
+    TEAMOP_OAUTH_SERVEURS: JSON.stringify({ microsoft: { smtpHost: '127.0.0.1', smtpPort: portS, imapHost: '127.0.0.1', imapPort: portI, tlsAucun: true } }),
     TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_FB_OAUTH_URL: 'http://127.0.0.1:1/token', TEAMOP_FIRESTORE_URL: 'http://127.0.0.1:1',
     TEAMOP_IDTK_URL: 'http://127.0.0.1:1/idtk', TEAMOP_FB_CERTS_URL: 'http://127.0.0.1:1/certs', TEAMOP_MSG_BETA_URL: 'http://127.0.0.1:1', TEAMOP_MSG_PROD_URL: 'http://127.0.0.1:1' }),
     stdio: ['ignore', 'pipe', 'pipe'] });
   enfant.stdout.on('data', d => journal += d); enfant.stderr.on('data', d => journal += d);
-  const B = 'http://127.0.0.1:' + PORT;
+  const B = 'http://127.0.0.1:' + PORT, depart = Date.now();
   let vivant = false;
   for (let i = 0; i < 150 && !vivant; i++) { try { vivant = (await fetch(B + '/health')).ok; } catch (e) {} if (!vivant) await dormir(100); }
   vrai('le vrai serveur démarre', vivant);
@@ -100,6 +120,16 @@ function fauxSmtp() {
     const txt = await r.text(); let j = {}; try { j = JSON.parse(txt); } catch (e) {} return { s: r.status, j, txt, ct: r.headers.get('content-type') || '' }; };
   const motifs = async () => (((await appel('/health')).j.mailRefus || {}).parMotif || {});
   const BETA = 'opgestion-beta', kPub = { 'x-teamop-kh': sha('CLE-PUBLIQUE-DE-LA-BETA-QZW') };
+
+  const relier = async (h, code) => { const r = await appel('/api/mailbox/oauth/start', { teamId: BETA, fournisseur: 'microsoft' }, h); const u = new URL(r.j.url || 'http://x/');
+    fournisseur.defis.set(code, u.searchParams.get('code_challenge')); const x = await fetch(B + '/api/mailbox/oauth/retour?' + new URLSearchParams({ code, state: u.searchParams.get('state') })); return x.status; };
+  const patron = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mdp-patron-qzw' })).j.token, P = { Authorization: 'Bearer ' + patron };
+  { const jb = (await appel('/api/beta/login', { login: 'bruno-qzw', pass: 'mdp-bruno-qzw' })).j.jeton, jd = (await appel('/api/beta/login', { login: 'dora-qzw', pass: 'mdp-dora-qzw' })).j.jeton;
+    await relier({ 'x-teamop-beta': jb }, 'code-bruno'); await relier({ 'x-teamop-beta': jd }, 'code-dora');
+    await dormir(600);   // l'import d'historique lancé à la connexion de chaque boîte a frappé : ce n'est pas la relève
+    await appel('/api/monitor/beta/toggle', { id: 'bd0d0d0d0d' }, P);   // Dora coupée AVANT la première relève
+    global.__apresCoupe = imap.essais.length;
+    vrai('(préparation) Bruno et Dora ont relié une boîte, Dora est coupée avant la première relève', fs.readFileSync(path.join(D, 'mailboxes.json'), 'utf8').includes('bruno@boite-beta-qxz.fr') && Date.now() - depart < 7000); }
 
   console.log('\n── 3255 · 1. la connexion bêta rend un jeton ──');
   const la = await appel('/api/beta/login', { login: 'alice-qzw', pass: 'mdp-alice-qzw' });
@@ -126,6 +156,26 @@ function fauxSmtp() {
   v('… et même avec le jeton de Bruno : 403 (seul le jeton compose l’espace)', r.s, 403);
   const m1 = await motifs();
   v('ces refus comptent « technique », jamais « inconnu » (l’alarme reste propre)', [(m1.technique || 0) - (m0.technique || 0) >= 4, (m1.inconnu || 0) - (m0.inconnu || 0)], [true, 0]);
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, { 'x-teamop-beta': la.j.jeton + '.' + la.j.jeton.split('.')[1] });
+  v('jeton à trois segments : 403', r.s, 403);
+  /* le plafond de 30 jours : la clé des jetons se dérive de la clé VAPID du serveur, que le banc connaît (c'est lui qui l'a posée) */
+  const cleJ = crypto.createHmac('sha256', vap.privateKey).update('teamop-beta-jeton-v1').digest();
+  const forger = (o) => { const corps = b64u(JSON.stringify(o)); return corps + '.' + b64u(crypto.createHmac('sha256', cleJ).update(corps).digest()); };
+  const J = 86400000, mt = Date.now();
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, { 'x-teamop-beta': forger({ i: 'b1a2b3c4d5', a: mt, l: mt - 31 * J, e: mt + J }) });
+  v('connexion vieille de 31 jours, même renouvelée hier : 403 (plafond absolu)', r.s, 403);
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, { 'x-teamop-beta': forger({ i: 'b1a2b3c4d5', a: mt, e: mt + J }) });
+  v('jeton sans heure de connexion : 403', r.s, 403);
+  const j29 = forger({ i: 'b1a2b3c4d5', a: mt, l: mt - 29 * J, e: mt + J });
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, { 'x-teamop-beta': j29 });
+  v('connexion de 29 jours : encore valable', r.s, 200);
+  const ren = await appel('/api/beta/etat', { login: 'alice-qzw', jeton: j29 });
+  const oR = JSON.parse(Buffer.from(String(ren.j.jeton || '.').split('.')[0].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString() || '{}');
+  v('… le renouveler garde l’heure de connexion et ne va pas au-delà de 30 jours', [oR.l === mt - 29 * J, oR.e <= mt - 29 * J + 30 * J + 5], [true, true]);
+  const pre = await fetch(B + '/api/mailboxes?teamId=' + BETA, { method: 'OPTIONS', headers: { Origin: 'https://teamop.fr', 'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'x-teamop-beta,x-teamop-kh' } });
+  vrai('requête préalable du navigateur : X-Teamop-Beta autorisé (sinon refus silencieux, que curl ne voit pas)', pre.status < 300 && /x-teamop-beta/i.test(pre.headers.get('access-control-allow-headers') || ''));
+  r = await appel('/api/mail/traduire', { teamId: BETA, texte: 'Hello QZW' }, JA);
+  v('« Traduire » refusé sur la bêta (un vrai mail ne part pas chez Anthropic), refus dit en JSON', [r.s, r.j.code], [403, 'beta_traduire']);
   r = await appel('/api/mailboxes?teamId=' + BETA, undefined, JA);
   v('avec son jeton, Alice lit ses boîtes (aucune encore)', [r.s, r.j.mailboxes], [200, []]);
 
@@ -137,7 +187,7 @@ function fauxSmtp() {
   v('retour : « Boîte connectée »', [x.status, /Boîte connectée/.test(await x.text())], [200, true]);
   const lA = await appel('/api/mailboxes?teamId=' + BETA, undefined, JA), lB = await appel('/api/mailboxes?teamId=' + BETA, undefined, JB);
   v('Alice voit sa boîte', (lA.j.mailboxes || []).map(b => b.email), ['testeur@boite-beta-qxz.fr']);
-  v('Bruno ne la voit pas', lB.j.mailboxes, []);
+  v('Bruno ne la voit pas (il ne voit que la sienne)', (lB.j.mailboxes || []).map(b => b.email), ['bruno@boite-beta-qxz.fr']);
   const mbA = ((lA.j.mailboxes || [])[0] || {}).id;
   const stock = JSON.parse(fs.readFileSync(path.join(D, 'mailboxes.json'), 'utf8') || '{}');
   vrai('rangée sous l’espace d’Alice (opgestion-beta~<son accès>), jamais sous l’espace partagé', Object.values(stock).some(b => b.teamId === BETA + '~b1a2b3c4d5') && !Object.values(stock).some(b => b.teamId === BETA));
@@ -153,13 +203,26 @@ function fauxSmtp() {
   v('… ni par des identifiants SMTP venus de la requête', [r.s, smtp.recus.length - n0], [403, 0]);
   r = await appel('/api/sendmail', envoi({ useMailbox: { id: mbA } }), JB);
   v('Bruno avec la boîte d’Alice : refusé, rien ne part', [r.s >= 400, smtp.recus.length - n0], [true, 0]);
+  r = await appel('/api/sendmail', envoi({ t: BETA + '~b1a2b3c4d5', useMailbox: { id: mbA } }), JB);
+  v('Bruno : teamId bêta + « t » composé vers Alice → les deux sont réécrits vers Bruno, rien ne part', [r.s >= 400, smtp.recus.length - n0], [true, 0]);
+  r = await appel('/api/sendmail', envoi({ teamId: BETA + '~b1a2b3c4d5', t: BETA, useMailbox: { id: mbA } }), JB);
+  v('… et l’inverse (teamId composé, t bêta) : refusé', [r.s, smtp.recus.length - n0], [403, 0]);
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, JA, 'GET');
+  { const rr = await fetch(B + '/api/sendmail', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, JA), body: JSON.stringify(envoi({ teamId: { toString: 'piège' } })) });
+    v('teamId piégé (un objet) : refus net, pas une erreur 500', rr.status < 500 && rr.status >= 400, true); }
   r = await appel('/api/sendmail', envoi({ useMailbox: { id: mbA } }), JA);
   v('Alice par SA boîte : parti, au client', [r.s, smtp.recus.length - n0, (smtp.recus[smtp.recus.length - 1] || {}).rcpt], [200, 1, ['client@dehors-qzw.fr']]);
 
   console.log('\n── 3255 · 5. coupé, puis supprimé depuis la Tour ──');
-  const patron = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mdp-patron-qzw' })).j.token;
   vrai('le patron de la Tour se connecte', typeof patron === 'string');
-  const P = { Authorization: 'Bearer ' + patron };
+  await dormir(5);
+  r = await appel('/api/monitor/beta/toggle', { id: 'b9e8d7c6b5' }, P); r = await appel('/api/monitor/beta/toggle', { id: 'b9e8d7c6b5' }, P);
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, JB);
+  v('Bruno coupé PUIS rouvert : son ancien jeton ne revit pas', r.s, 403);
+  const lb3 = await appel('/api/beta/login', { login: 'bruno-qzw', pass: 'mdp-bruno-qzw' });
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, { 'x-teamop-beta': lb3.j.jeton });
+  v('… il se reconnecte et retrouve SA boîte', (r.j.mailboxes || []).map(b => b.email), ['bruno@boite-beta-qxz.fr']);
+  await dormir(5);
   r = await appel('/api/monitor/beta/toggle', { id: 'b1a2b3c4d5' }, P);
   r = await appel('/api/mailboxes?teamId=' + BETA, undefined, JA);
   v('accès d’Alice coupé : son jeton ne lit plus rien', r.s, 403);
@@ -167,14 +230,22 @@ function fauxSmtp() {
   v('… et n’envoie plus', [r.s, smtp.recus.length - n0], [403, 1]);
   await dormir(5);
   r = await appel('/api/monitor/beta/mdp', { id: 'b9e8d7c6b5', pass: 'nouveau-mdp-bruno-qzw' }, P);
-  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, JB);
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, { 'x-teamop-beta': lb3.j.jeton });
   v('mot de passe de Bruno changé depuis la Tour : son ancien jeton tombe', r.s, 403);
   const lb2 = await appel('/api/beta/login', { login: 'bruno-qzw', pass: 'nouveau-mdp-bruno-qzw' });
   r = await appel('/api/mailboxes?teamId=' + BETA, undefined, { 'x-teamop-beta': lb2.j.jeton });
   v('… le nouveau, rendu à la reconnexion, ouvre de nouveau', r.s, 200);
-  await appel('/api/monitor/beta/delete', { id: 'b1a2b3c4d5' }, P);
+  const sup = await appel('/api/monitor/beta/delete', { id: 'b1a2b3c4d5' }, P);
   const stock2 = JSON.parse(fs.readFileSync(path.join(D, 'mailboxes.json'), 'utf8') || '{}');
   vrai('accès supprimé : sa boîte part avec lui', !Object.values(stock2).some(b => b.teamId === BETA + '~b1a2b3c4d5'));
+  const rep2 = fs.readFileSync(path.join(D, 'replies.jsonl'), 'utf8');
+  v('… et son courrier relevé aussi — celui de la vraie entreprise reste', [/Réponse à Alice QZW/.test(rep2), /Réponse à la vraie entreprise QZW/.test(rep2), sup.j.reponsesMail >= 1], [false, true, true]);
+
+  console.log('\n── 3255 · 5 bis. la relève saute la boîte d’un accès coupé ──');
+  while (Date.now() - depart < 13000) await dormir(250);
+  const apres = imap.essais.slice(global.__apresCoupe);
+  vrai('(population) la relève du démarrage a bien tourné : elle a frappé à la boîte de Bruno', apres.includes('bruno@boite-beta-qxz.fr'));
+  v('… et jamais à celle de Dora, coupée', apres.filter(x => x === 'dora@boite-beta-qxz.fr').length, 0);
 
   console.log('\n── 3255 · 6. une vraie entreprise : rien ne change ──');
   r = await appel('/api/mailboxes?teamId=' + T, undefined, { 'x-teamop-kh': sha(K) });

@@ -32,7 +32,16 @@ au report** (et y reporter, depuis la branche de la PR #306, `tests/test-3253.js
   ⚠️ **Le serveur doit partir AVANT la bêta 801** (sinon la bêta lit une route qui la refuse encore : message « reconnecte-toi » ou refus) ;
   le serveur seul ne change rien pour personne d'autre (ni production ni entreprises). Après déploiement, chaque testeur se **déconnecte puis
   se reconnecte** une fois à la bêta pour recevoir son jeton. Google en mode test : l'adresse doit être parmi les « utilisateurs test ».
-  ⚠️ Relecture `gardien` du diff serveur à faire avant le push sur `main` (pas faite par l'agent qui l'a écrit).
+  Relecture `gardien` faite (aucun bloquant de contrefaçon ni de cloisonnement) ; ses corrections sont posées : `jetonDepuis` (coupé PUIS
+  rouvert, supprimé, mot de passe changé → les jetons d'avant tombent ; `mdpTs` n'est pas réutilisé, OP MESSAGES le lit), plafond absolu de
+  30 jours depuis la connexion (le renouvellement ne prolonge pas), jeton à deux segments exactement, `teamId` piégé → 400 ; à la suppression
+  d'un accès, ses boîtes ET son courrier relevé (`replies.jsonl`, `sentmap`, par `purgeJournal`, désormais au niveau du module) partent, et
+  une relève en vol n'écrit plus pour un accès coupé ou supprimé ; la relève saute la boîte d'un accès coupé.
+  ⛔ **« Traduire » N'EST PAS ouvert à la bêta** (gardien) : le texte d'un vrai mail partirait chez Anthropic, flux non couvert par
+  `sous-traitance.html` ; refusé par le serveur (`beta_traduire`), bouton absent du Courrier de la bêta.
+  ⛔ **La bêta peut désormais contenir de VRAIS mails** (ceux des boîtes reliées par les testeurs) : la règle « navigateur piloté, bêta
+  uniquement » protégeait une bêta SANS données réelles — ne plus piloter une bêta où une vraie boîte est reliée sans y penser (ou le
+  faire sur une copie locale, comme les sondes du scratchpad, jamais sur teamop.fr/beta.html connecté).
 
 # 4 NOVEMBRE 2026 (nuit) — BÊTA 800 : LES DOSSIERS « RÉSEAU » DE LA TOUR NE S'OUVRENT PLUS POUR UNE COUPURE QUE LA SYNCHRO RENOUE
 
