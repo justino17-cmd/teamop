@@ -203,7 +203,7 @@ app.use((req, res, next) => {
        requête préalable que le navigateur refuse — et il bloque l'appel réel, silencieusement.
        Un test en ligne de commande ne peut pas l'attraper : CORS n'existe que dans le navigateur.
        X-Teamop-Kh porte la preuve de possession de la clé d'équipe sur les routes mail. */
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teamop-Devis, X-Teamop-Kh');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teamop-Devis, X-Teamop-Kh, X-Teamop-Beta');
   }
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
@@ -1242,6 +1242,23 @@ app.post('/api/nouveau-compte', (req, res) => {
 //    Les bons partent avec Reply-To = la boîte commandes ; le serveur la relève toutes les 2 min,
 //    rattache chaque réponse au bon (n° BC-… dans l'objet/le texte) et pousse une notification à l'équipe.
 const REPLIES_PATH = path.join(DATA_DIR, 'replies.jsonl');
+/* Réécrit un journal (une ligne JSON par entrée) sans les lignes que `garde` refuse. Rend le nombre de lignes retirées, ou NULL si
+   la purge a échoué — la distinction n'est pas cosmétique : sans elle, un fichier trop gros pour être lu d'un coup renvoyait 0, et
+   « 0 erreur retirée » se lit comme « il n'y en avait pas » alors que la purge n'a pas eu lieu du tout. Un échec doit se voir.
+   Sortie de la suppression totale d'une entreprise (4 novembre 2026) : la suppression d'un accès de la bêta s'en sert aussi. */
+function purgeJournal(chemin, garde) {
+  let n = 0;
+  try {
+    if (!fs.existsSync(chemin)) return 0;
+    const lignes = fs.readFileSync(chemin, 'utf8').split('\n');
+    const restant = lignes.filter(l => { if (!l.trim()) return false; try { if (!garde(JSON.parse(l))) { n++; return false; } } catch (err) {} return true; });
+    /* tmp + rename : un journal de plusieurs mégaoctets réécrit en place peut être tronqué
+       par une coupure au mauvais moment, et il n'y a pas de seconde copie. */
+    fs.writeFileSync(chemin + '.tmp', restant.length ? restant.join('\n') + '\n' : '');
+    fs.renameSync(chemin + '.tmp', chemin);
+  } catch (e) { console.error('purge', chemin, ':', e.message); return null; }
+  return n;
+}
 const SENTMAP_PATH = path.join(DATA_DIR, 'sentmap.jsonl');
 let sentMap = [];
 try { sentMap = fs.readFileSync(SENTMAP_PATH, 'utf8').trim().split('\n').map(l => JSON.parse(l)).slice(-2000); } catch (e) {}
@@ -1406,6 +1423,8 @@ app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox
    depuis la Tour avant l'étape 3. */
 function cleEquipeExige(req, res, next) {
   if (config.mailPreuveExigee === false) return next();
+  /* La bêta, prouvée par son JETON d'accès (`betaBoitePorte`, montée juste avant) : son espace a déjà été réécrit en `opgestion-beta~<compte>`. */
+  if (req.betaCompte) return next();
   const src = (req.method === 'GET') ? (req.query || {}) : (req.body || {});
   const t = String(src.teamId || src.t || '');
   let motif = '';
@@ -1463,6 +1482,50 @@ const mailRefus = { n: 0, parMotif: Object.create(null), parRoute: Object.create
    `/api/subscribe` et `/api/notify` restent OBSERVÉES : `espace.html` et `messages.html` les appellent sans jamais envoyer
    de preuve, leur fermer la porte les couperait. */
 const ROUTES_MAIL_REFUS_JSON = ['mailbox/connect', 'mailbox/disconnect', 'mailbox/oauth/start', 'sendmail'];
+/* ⛔⛔ LES BOÎTES MAIL DE LA BÊTA (Justin, 4 novembre 2026 : « En bêta, je devrais pouvoir me connecter avec mes boîtes mail pour pouvoir
+   tester. Active que je puisse me connecter avec mes boîtes mail. »). Jusque-là l'espace bêta (`opgestion-beta`, dans ESPACES_INTOUCHABLES)
+   était refusé ici d'office (« technique »). Il ne peut PAS passer par la preuve de clé : sa clé est la clé par défaut, écrite en clair dans
+   beta.html — la présenter ne prouve rien. Il passe donc par une AUTRE preuve : le jeton d'accès bêta (`betaJetonSigner`, rendu par
+   `/api/beta/login`, renouvelé par `/api/beta/etat`), en-tête `X-Teamop-Beta`. Trois règles :
+   · le jeton désigne UN accès de la Tour, relu à CHAQUE appel (`betaJetonCompte`) : coupé, supprimé ou mot de passe changé depuis → refus ;
+   · l'espace est RÉÉCRIT en `opgestion-beta~<compte>` avant la route : chaque testeur a SES boîtes, jamais celles d'un autre, et la route n'a
+     rien à savoir de la bêta (même filtre `teamId` partout) ;
+   · un envoi depuis la bêta ne part QUE par la boîte reliée du testeur (`/api/sendmail` le refuse autrement) : jamais par le relais de TEAM OP
+     au nom de « l'entreprise bêta ».
+   Seul `opgestion-beta` est concerné : `elan-gestion` et l'ancien `elan-gestion-beta` restent « technique », toute autre entreprise ne voit
+   rien changer. `tests/test-3255.js`. */
+const BETA_ESPACE = 'opgestion-beta';
+const BETA_BOITE_PREFIXE = BETA_ESPACE + '~';
+const betaBoiteT = (t) => { const m = /^opgestion-beta~(b[0-9a-z]{3,40})$/.exec(String(t || '')); return m ? m[1] : ''; };   // l'identifiant d'un accès (« b » + caractères simples)
+function betaBoitePorte(req, res, next) {
+  const surQuery = req.method === 'GET';
+  const src = surQuery ? (req.query || {}) : (req.body || {});
+  let t = ''; try { t = String(src.teamId || src.t || ''); } catch (e) { return res.status(400).json({ error: 'espace illisible' }); }   // un objet piégé (toString qui jette) : 400, pas 500
+  /* Un espace déjà composé reçu du dehors (« opgestion-beta~b… ») n'est pas une porte d'entrée : seul le jeton le compose. */
+  if (betaBoiteT(t)) return refusBeta(req, res, 'Sur l’espace de test, reconnecte-toi à la bêta (identifiant et code donnés par la Tour) pour utiliser ta boîte mail.');
+  if (t !== BETA_ESPACE) return next();
+  /* ⛔ « Traduire » n'est PAS ouvert à la bêta : le texte d'un vrai mail partirait chez Anthropic, et ce flux n'est pas couvert
+     (`sous-traitance.html`, aucune validation juridique pour un espace de test). Refus dit à l'écran. */
+  if (String(req.baseUrl || req.path || '').toLowerCase().indexOf('/api/mail/traduire') === 0) return res.status(403).json({ error: 'La traduction n’est pas disponible sur l’espace de test.', code: 'beta_traduire' });
+  const c = betaJetonCompte(req.get('x-teamop-beta'));
+  if (!c) return refusBeta(req, res, 'Sur l’espace de test, reconnecte-toi à la bêta (identifiant et code donnés par la Tour) pour utiliser ta boîte mail.');
+  const tc = BETA_BOITE_PREFIXE + c.id;
+  if (src.teamId !== undefined) src.teamId = tc;
+  if (src.t !== undefined) src.t = tc;
+  req.betaCompte = c;
+  next();
+}
+function refusBeta(req, res, message) {
+  const rt = String(req.baseUrl || req.path || '').toLowerCase().replace(/^\/api\//, '').slice(0, 24) || '?';
+  /* compté « technique », comme avant : c'est l'espace de la bêta sans son jeton (une session ouverte avant cette version, un accès
+     coupé) — un refus attendu, que la surveillance (`.github/scripts/surveillance.js`) range parmi les bénins. Un motif neuf y crierait. */
+  mailRefus.n++; mailRefus.parMotif.technique = (mailRefus.parMotif.technique || 0) + 1; mailRefus.ts = Date.now();
+  mailRefus.parRoute[rt] = (mailRefus.parRoute[rt] || 0) + 1;
+  /* même forme que `cleEquipeExige` : du JSON pour les routes qui écrivent, du texte pour les deux qui lisent (un refus lu ne devient jamais une liste vide) */
+  if (ROUTES_MAIL_REFUS_JSON.includes(rt) || rt === 'mail/traduire') return res.status(403).json({ error: message, code: 'beta_jeton' });
+  res.status(403).type('text/plain; charset=utf-8').send(message);
+}
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire'], betaBoitePorte);
 app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire'], cleEquipeExige);
 
 /* Le nombre d'essais de connexion à une boîte, par IP et par heure. La route tente un
@@ -1482,7 +1545,7 @@ app.post('/api/mailbox/connect', async (req, res) => {
      ligne suffisante : elle élève la marche, le quota au-dessus fait le vrai travail. */
   {
     const tCo = String((req.body || {}).teamId || '').slice(0, 80);
-    const connu = !!espaceParT(tCo) || Object.values(subs).some(x => abonneEntreprise(x, tCo)) || !!cnxData[tCo];
+    const connu = !!req.betaCompte || !!espaceParT(tCo) || Object.values(subs).some(x => abonneEntreprise(x, tCo)) || !!cnxData[tCo];
     if (!connu) {
       /* Pas de teamId ici non plus : /health est publique. */
       lastRefus = { ts: Date.now(), raison: 'mailbox/connect : espace inconnu' };
@@ -1526,7 +1589,11 @@ app.post('/api/mailbox/connect', async (req, res) => {
    fournisseur, sans clé : c'est le `state` signé, à usage unique, qui dit quel espace a demandé — rien du corps ni de la requête
    n'en décide autrement. */
 const oauthQuota = new Map();
-const espaceConnuBoite = (t) => !!espaceParT(t) || Object.values(subs).some(x => abonneEntreprise(x, t)) || !!cnxData[t];
+/* Une boîte de la BÊTA (`opgestion-beta~<compte>`) n'est connue que si son accès de la Tour vit encore — relu ici aussi au RETOUR d'OAuth :
+   un accès coupé pendant la connexion chez Google ne reçoit pas sa boîte. */
+const espaceConnuBoite = (t) => { const bid = betaBoiteT(t);
+  if (bid) { const c = betaComptes.find(x => x.id === bid); return !!(c && c.actif && betaApps(c).includes('gestion')); }
+  return !!espaceParT(t) || Object.values(subs).some(x => abonneEntreprise(x, t)) || !!cnxData[t]; };
 app.post('/api/mailbox/oauth/start', (req, res) => {
   if (oauthQuota.size > 5000) oauthQuota.clear();
   if (!quotaOk(oauthQuota, 'ip:' + (req.ip || '?'), 30, 3600000)) return res.status(429).json({ error: 'trop d\'essais de connexion — réessaie dans une heure' });
@@ -1675,7 +1742,7 @@ async function releveUneBoite(cfg, tag) {   // cfg = {host/port/user/pass} ; tag
            la purge. Pire : purgeJournal lit-filtre-renomme, donc les lignes ajoutées entre-temps par
            une AUTRE entreprise étaient perdues. entFermes est écrit en PREMIER par la suppression :
            le lire ici referme la fenêtre de lui-même. */
-        const ferme = entry.teamId && espaceFerme(entry.teamId);
+        const ferme = entry.teamId && (espaceFerme(entry.teamId) || (!!betaBoiteT(entry.teamId) && !espaceConnuBoite(entry.teamId)));   // un accès de la bêta coupé ou supprimé en cours de relève
         if (!ferme) { try { fs.appendFileSync(REPLIES_PATH, JSON.stringify(entry) + '\n'); } catch (_) {} }
         if (mid) seenMids.add(mid);
         /* On marque quand même le message comme lu, y compris pour un espace fermé : sinon la
@@ -1698,6 +1765,7 @@ async function releveBoite() {
     if (config.imap && config.imap.user && config.imap.pass) await releveUneBoite({ host: config.imap.host || 'ssl0.ovh.net', port: config.imap.port || 993, user: config.imap.user, pass: config.imap.pass }, null);
     for (const k of Object.keys(mailboxes)) { const b = mailboxes[k];
       if (b.etat === 'a_reconnecter') continue;   // autorisation retirée ou expirée : on ne harcèle pas le fournisseur, l'écran le dit
+      if (betaBoiteT(b.teamId) && !espaceConnuBoite(b.teamId)) continue;   // boîte d'un accès de la bêta coupé : plus relevée (rouverte, elle reprend)
       if (!b.histoDone) await importHistorique(b).catch(() => {});   // boîtes connectées avant cette mise à jour : historique importé au premier passage
       let auth; try { auth = await authBoite(b, 'imap'); } catch (e) { console.error('releve', masqueMail(b.email) + ':', e.code || 'jeton'); continue; }
       await releveUneBoite({ host: b.imapHost, port: b.imapPort, user: b.email, auth, tlsAucun: b.tlsAucun }, { teamId: b.teamId, email: b.email }); }
@@ -1876,7 +1944,7 @@ app.post('/api/sendmail', async (req, res) => {
      épuiser l'heure d'envoi d'une entreprise par des requêtes toutes refusées. */
   {
     const tEnv = String(teamId).slice(0, 80);
-    const connu = !!espaceParT(tEnv) || Object.values(subs).some(x => abonneEntreprise(x, tEnv)) || !!cnxData[tEnv];
+    const connu = !!req.betaCompte || !!espaceParT(tEnv) || Object.values(subs).some(x => abonneEntreprise(x, tEnv)) || !!cnxData[tEnv];
     if (!connu) {
       /* Pas de teamId dans lastRefus : /health est publique, et un teamId est la seule clé
          d'accès aux routes de messagerie. Le motif suffit au diagnostic. La règle vaut pour TOUS les
@@ -1909,6 +1977,9 @@ app.post('/api/sendmail', async (req, res) => {
      le mode simple : le document partait par le SMTP de TEAM OP alors que l'entreprise croyait envoyer de sa boîte — Justin : « il n'y a
      rien qui passe par nous ». On refuse, et on le dit. (Les mots sont choisis : ni « refus », ni « auth », ni « mot de passe ».) */
   if (useMailbox && useMailbox.id && !mb) return res.status(409).json({ error: 'boîte mail introuvable : reconnecte la boîte de l’entreprise (Paramètres → E-mails à tes clients)' });
+  /* ⛔ LA BÊTA N'ENVOIE QUE PAR LA BOÎTE RELIÉE DU TESTEUR (4 novembre 2026) : ni le relais de TEAM OP au nom de « l'entreprise bêta » (c'est le
+     chemin de la fuite du mail d'incident), ni des identifiants SMTP venus du corps de la requête. */
+  if ((req.betaCompte || betaBoiteT(teamId)) && !mb) return res.status(403).json({ error: 'sur la bêta, un envoi part seulement par ta boîte mail connectée (Boîte mail → Connecter)', code: 'beta_boite' });
   try {
     if (mb) {
       const nodemailer = require('nodemailer');
@@ -2973,7 +3044,7 @@ app.post('/api/monitor/beta/mdp', monPatronStrict, (req, res) => {
   if (!c) return res.status(404).json({ error: 'accès introuvable' });
   const pass = monStr((req.body || {}).pass, 200);
   if (pass.length < 8) return res.status(400).json({ error: 'mot de passe de 8 caractères minimum' });
-  c.hash = monHash(pass); c.mdpTs = Date.now(); betaSave();
+  c.hash = monHash(pass); c.mdpTs = Date.now(); c.jetonDepuis = c.mdpTs; betaSave();
   monLock.delete((betaApps(c)[0] === 'gestion' ? 'bêta:' : 'bêta-' + betaApps(c)[0] + ':') + c.login);   // un accès verrouillé par des essais ratés avec l'OUBLI repart propre
   console.log('Tour :', req.tourUser.nom, 'pose un nouveau mot de passe à l\'accès bêta', c.login, '(' + betaApps(c).join('+') + ')');   // identifiant d'accès, jamais le mot de passe
   res.json({ ok: true, compte: betaPublic(c) });
@@ -2981,15 +3052,60 @@ app.post('/api/monitor/beta/mdp', monPatronStrict, (req, res) => {
 app.post('/api/monitor/beta/toggle', monPatronStrict, (req, res) => {
   const c = betaComptes.find(x => x.id === (req.body || {}).id);
   if (!c) return res.status(404).json({ error: 'accès introuvable' });
-  c.actif = !c.actif; betaSave();
+  c.actif = !c.actif; c.jetonDepuis = Date.now(); betaSave();   // coupé OU rouvert : les jetons d'avant ne valent plus (on se reconnecte)
   res.json({ ok: true, actif: c.actif });
 });
 app.post('/api/monitor/beta/delete', monPatronStrict, (req, res) => {
   const id = (req.body || {}).id;
   if (!betaComptes.some(x => x.id === id)) return res.status(404).json({ error: 'accès introuvable' });
   betaComptes = betaComptes.filter(x => x.id !== id); betaSave();
-  res.json({ ok: true });
+  /* ses boîtes mail de la bêta partent avec lui, et ce qu'elles avaient relevé aussi : un accès supprimé ne garde ni boîte relevée pour
+     personne, ni courrier d'un vrai correspondant dans `replies.jsonl`. Une relève EN VOL ne réécrit rien : l'espace d'un accès disparu
+     compte pour fermé (`releveUneBoite`, `espaceConnuBoite`). */
+  const tc = BETA_BOITE_PREFIXE + id; let boites = 0;
+  try { for (const [k, b] of Object.entries(mailboxes)) if (b && b.teamId === tc) { try { boiteOauth.oublier(b); } catch (e) {} delete mailboxes[k]; boites++; } if (boites) saveMailboxes(); } catch (e) {}
+  const reponses = purgeJournal(REPLIES_PATH, r => !(r && r.teamId === tc));
+  const bons = purgeJournal(SENTMAP_PATH, x => !(x && x.teamId === tc));
+  sentMap = sentMap.filter(x => !(x && x.teamId === tc));   // la copie en mémoire aussi : sinon une réponse d'un fournisseur se rattacherait encore à lui
+  res.json({ ok: true, boites, reponsesMail: reponses, bonsEnvoyes: bons });
 });
+/* ⛔ LE JETON D'ACCÈS BÊTA (4 novembre 2026, boîtes mail de la bêta — voir `betaBoitePorte`). La session de beta.html vit dans le navigateur et
+   ne prouvait rien au serveur ; pour relier une VRAIE boîte, il faut une preuve. `{i: compte, a: émis le, e: expire le}` signé HMAC, sept jours,
+   renouvelé à chaque ouverture de la bêta (`/api/beta/etat`). Il ne VAUT que par l'accès qu'il désigne, relu à chaque appel : coupé, supprimé,
+   ou mot de passe posé depuis son émission (`mdpTs`) → nul. La clé se DÉRIVE de la clé VAPID (secrète, propre au VPS, stable d'un redémarrage
+   à l'autre) : rien de neuf à poser, et un redémarrage ne déconnecte personne. OP GESTION seulement (`apps` contient « gestion »). */
+const BETA_JETON_MS = 7 * 86400000;
+/* Plafond ABSOLU : trente jours après la connexion par mot de passe, le renouvellement glissant de `/api/beta/etat` ne prolonge plus —
+   on retape son mot de passe. (Relecture `gardien`, 4 novembre 2026.) */
+const BETA_JETON_MAX_MS = 30 * 86400000;
+const betaJetonCle = (() => { const v = String(config.vapidPrivateKey || ''); return v ? crypto.createHmac('sha256', v).update('teamop-beta-jeton-v1').digest() : crypto.randomBytes(32); })();
+const b64uBeta = (b) => Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+/* `l` : l'heure de la connexion par mot de passe, recopiée telle quelle au renouvellement — c'est elle qui porte le plafond. */
+function betaJetonSigner(c, depuisLogin) {
+  const maint = Date.now(), l = (typeof depuisLogin === 'number' && depuisLogin > 0) ? depuisLogin : maint;
+  const corps = b64uBeta(JSON.stringify({ i: c.id, a: maint, l, e: Math.min(maint + BETA_JETON_MS, l + BETA_JETON_MAX_MS) }));
+  return corps + '.' + b64uBeta(crypto.createHmac('sha256', betaJetonCle).update(corps).digest());
+}
+function betaJetonCompte(jeton) { const r = betaJetonLire(jeton); return r ? r.c : null; }
+/* ⛔ `jetonDepuis` (posé par la Tour à chaque coupure, réouverture, suppression ou mot de passe changé) : un jeton émis AVANT ne vaut plus —
+   sans lui, un accès coupé puis rouvert retrouvait ses anciens jetons. `mdpTs` n'est pas réutilisé : OP MESSAGES le lit pour ses sessions. */
+function betaJetonLire(jeton) {
+  try {
+    const j = String(jeton || ''); if (j.length > 400) return null;
+    const morceaux = j.split('.'); if (morceaux.length !== 2) return null;
+    const [corps, sig] = morceaux; if (!corps || !sig) return null;
+    const attendu = b64uBeta(crypto.createHmac('sha256', betaJetonCle).update(corps).digest());
+    if (sig.length !== attendu.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(attendu))) return null;
+    const o = JSON.parse(Buffer.from(corps.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+    const maint = Date.now();
+    if (!o || typeof o.i !== 'string' || !(o.e > maint) || typeof o.l !== 'number' || !(maint - o.l <= BETA_JETON_MAX_MS)) return null;
+    const c = betaComptes.find(x => x.id === o.i);
+    if (!c || !c.actif || !betaApps(c).includes('gestion')) return null;
+    if (c.mdpTs && !(o.a >= c.mdpTs)) return null;   // un mot de passe posé depuis : les jetons d'avant tombent
+    if (c.jetonDepuis && !(o.a >= c.jetonDepuis)) return null;   // coupé, rouvert, supprimé depuis : les jetons d'avant tombent
+    return { c, o };
+  } catch (e) { return null; }
+}
 // La porte elle-même. Publique (la bêta l'appelle depuis le navigateur), donc bornée comme
 // /api/monitor/login : même verrou par identifiant, et /api/beta figure dans ROUTES_SENSIBLES
 // pour le plafond par adresse. Réponse identique pour un identifiant inconnu et un mauvais
@@ -3015,7 +3131,7 @@ app.post('/api/beta/login', (req, res) => {
   // `id` : l'identifiant du COMPTE (b + hexadécimaux), jamais réutilisé. OP MESSAGES s'en sert pour reconnaître une
   // personne : un accès supprimé puis recréé sous le même `login` est une autre personne (relecture du gardien, 1er octobre 2026).
   // `apps` : ce que l'accès ouvre. L'autre service (OP MESSAGES) exige d'y lire SON nom : un OP GESTION d'avant ce champ ne le dit pas, et la porte reste fermée plutôt que d'ouvrir à tout accès.
-  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id, apps: betaApps(c) });
+  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id, apps: betaApps(c), ...(appVoulue === 'gestion' ? { jeton: betaJetonSigner(c) } : {}) });
 });
 // Un appareil resté connecté redemande si sa porte est toujours ouverte : « coupé » depuis
 // la Tour doit fermer aussi les sessions déjà ouvertes. Même réponse pour un accès inconnu.
@@ -3047,7 +3163,10 @@ app.post('/api/beta/etat', (req, res) => {
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   // L'accès d'OP GESTION de cet identifiant : un accès d'OP MESSAGES du même nom, rangé avant lui, ne doit pas fermer la bêta d'OP GESTION.
   const c = betaComptes.find(x => x.login === login && betaApps(x).includes(appVoulue));
-  res.json({ ouvert: ouvert(c) });
+  /* Le jeton présenté, s'il désigne CET accès et vaut encore, est renouvelé (sept jours de plus) : la bêta ouverte chaque semaine garde sa boîte
+     mail sans retaper son mot de passe. Un jeton d'un autre accès, périmé ou faux : rien n'est rendu (pas de renouvellement par un nom deviné). */
+  const lu = (req.body || {}).jeton ? betaJetonLire((req.body || {}).jeton) : null;
+  res.json({ ouvert: ouvert(c), ...(lu && c && lu.c.id === c.id ? { jeton: betaJetonSigner(c, lu.o.l) } : {}) });
 });
 
 /* ── Annuaire des espaces entreprise : « nom d'entreprise » → code de connexion ──
@@ -9580,19 +9699,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
      pas cosmétique : sans elle, un fichier trop gros pour être lu d'un coup renvoyait 0, et
      « 0 erreur retirée » se lit comme « il n'y en avait pas » alors que la purge n'a pas eu
      lieu du tout. Un échec doit se voir. */
-  const purgeJournal = (chemin, garde) => {
-    let n = 0;
-    try {
-      if (!fs.existsSync(chemin)) return 0;
-      const lignes = fs.readFileSync(chemin, 'utf8').split('\n');
-      const restant = lignes.filter(l => { if (!l.trim()) return false; try { if (!garde(JSON.parse(l))) { n++; return false; } } catch (err) {} return true; });
-      /* tmp + rename : un journal de plusieurs mégaoctets réécrit en place peut être tronqué
-         par une coupure au mauvais moment, et il n'y a pas de seconde copie. */
-      fs.writeFileSync(chemin + '.tmp', restant.length ? restant.join('\n') + '\n' : '');
-      fs.renameSync(chemin + '.tmp', chemin);
-    } catch (e) { console.error('purge', chemin, ':', e.message); return null; }
-    return n;
-  };
+  /* `purgeJournal` (niveau du module, plus haut) : la même pièce sert à la suppression d'un accès de la bêta. */
   fait.erreurs = purgeJournal(BUGS_PATH, b => !(b && b.team === t));
   fait.reponsesMail = purgeJournal(REPLIES_PATH, r => !(r && r.teamId === t));
   fait.bonsEnvoyes = purgeJournal(SENTMAP_PATH, x => !(x && x.teamId === t));
