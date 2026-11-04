@@ -13,6 +13,22 @@ de ligne du tout.
 
 ---
 
+# 📍 4 NOVEMBRE 2026 — BÊTA v796 : RIEN NE PART PAR TEAM OP (la boîte de l'entreprise, ou rien)
+
+Justin, après une facture de Toka Clim arrivée dans contact@teamop.fr : « ils doivent mettre leur adresse e-mail dans les paramètres de
+l'application et dans le système de boîte mail […] c'est leur e-mail à eux, pas à nous. Il n'y a rien qui passe par nous. » Sur la bêta
+(v796), `srvMail` n'envoie plus QUE par une boîte de l'entreprise : la boîte connectée (`_mailboxes`, mot de passe au serveur), une adresse
+d'envoi SMTP des Paramètres, ou l'adresse pro de l'utilisateur. Plus de « mode simple » par le SMTP de TEAM OP, plus de repli « via la
+plateforme » quand la boîte refuse (l'écran le dit). Sans boîte, « Envoyer » ouvre l'étape « Connecte ta boîte mail » (administrateur ; un
+autre compte est renvoyé à l'administrateur ; `_mailboxes === null` dit « impossible de vérifier ») et l'envoi REPREND une fois la boîte
+connectée. La facture envoyée automatiquement (`factureMailPayee`, `opts.auto`) n'ouvre aucune fenêtre : elle prévient l'administrateur une fois
+par jour. Paramètres : une seule rubrique « E-mails à tes clients » (adresse e-mail de l'entreprise `db.entreprise.email`, nom d'expéditeur,
+état de la boîte connectée). `tests/test-3250.js` (recensement des 18 appels + la vraie srvMail jouée ; `MUTER=1` la fait tomber),
+`test-2692`, `test-793`, `test-2940` mis à jour ; sonde `scratchpad/v796/sonde.js` (44 ✓).
+⚠️ **Avant de publier en production** : toute entreprise sans boîte connectée ne pourra plus RIEN envoyer à ses clients. Les compter dans la Tour
+et les prévenir AVANT (Justin). Le serveur garde son « mode simple » pour les appareils d'avant (correctif de la copie cachée, autre branche) :
+les appareils d'abord, la porte ensuite.
+
 # 📍 3 NOVEMBRE 2026 (nuit) — BÊTA v795 : PLUS DE « COULEUR DANS L'APPLICATION »
 
 Justin, devant le bloc « Couleur dans l'application — inclus avec Business Premium » des Paramètres : « ça sert à rien du coup, donc tu

@@ -360,9 +360,9 @@ nm.createTransport = function (o) {
 
     /* ── E. LES VRAIES FONCTIONS D'app.html CONTRE CE SERVEUR ── */
     console.log('\n6. ⛔ Les VRAIES fonctions d\'app.html (srvMail, mailDoConnect, mailDisconnect) contre ce serveur');
-    const FN = [extraire(APP, 'srvMail'), extraire(APP, 'mailDoConnect'), extraire(APP, 'mailDisconnect'), extraire(APP, 'enteteEquipe'),
+    const FN = [extraire(APP, 'envoiBoiteResoudre'), extraire(APP, 'envoiBoiteEtape'), extraire(APP, 'envoiBoiteSignaler'), extraire(APP, 'srvMail'), extraire(APP, 'mailDoConnect'), extraire(APP, 'mailDisconnect'), extraire(APP, 'enteteEquipe'),
       extraire(APP, 'khEquipe'), extraire(APP, 'syncSecret'), extraire(APP, 'sha256')];
-    vrai('population : les sept fonctions sont trouvées dans app.html (et ne sont pas des coquilles)', FN.every(f => f.length > 80), FN.map(f => f.length));
+    vrai('population : les dix fonctions sont trouvées dans app.html (et ne sont pas des coquilles) — srvMail et ses trois aides depuis la v796', FN.every(f => f.length > 80), FN.map(f => f.length));
     vrai('app.html présente la preuve sur CES trois appels (`enteteEquipe`), et sur aucun autre chemin d\'envoi',
       ['/api/sendmail', '/api/mailbox/connect', '/api/mailbox/disconnect'].every(rt => new RegExp("fetch\\(PUSH_API\\+'" + rt.replace(/\//g, '\\/') + "',\\{method:'POST',headers:await enteteEquipe\\(").test(sansCom(APP))));
     const sandbox = (cle, team) => {
@@ -377,7 +377,7 @@ nm.createTransport = function (o) {
       const champs = { 'mb-email': { value: 'jolie@exemple.fr' }, 'mb-pass': { value: 'pw-jolie' }, 'mb-btn': { textContent: '', disabled: false } };
       W.$ = id => champs[id] || null; W.__champs = champs;
       vm.createContext(W);
-      vm.runInContext("let _khCle='', _khVal=''; let _srvMailErr='';\n" + FN.join('\n') + '\nthis.srvMail=srvMail; this.mailDoConnect=mailDoConnect; this.mailDisconnect=mailDisconnect; this.__err=()=>_srvMailErr;', W);
+      vm.runInContext("let _khCle='', _khVal=''; let _srvMailErr=''; let _mailboxes=[]; const BETA_ESSAI=false; let _boiteEtapeFin=0, _boiteEtapeEnCours=null; function todayISO(){ return '2026-11-04'; } function pushNotify(){}\n" + FN.join('\n') + '\nthis.srvMail=srvMail; this.mailDoConnect=mailDoConnect; this.mailDisconnect=mailDisconnect; this.__err=()=>_srvMailErr;', W);
       return W;
     };
 
@@ -398,12 +398,12 @@ nm.createTransport = function (o) {
     vrai('… et la raison est gardée pour l\'écran de diagnostic (`_srvMailErr`)', /prouver la clé/.test(W.__err()), W.__err());
     await new Promise(x => setTimeout(x, 300));
     v('⛔ … rien n\'est parti', recusAvant() - nS2, 0);
-    /* Le repli de srvMail : une boîte pro configurée refusée → nouvel essai par la plateforme. Le serveur refuse aussi le second. */
+    /* Une boîte pro configurée refusée : depuis la v796, AUCUN nouvel essai par la plateforme (rien ne passe par TEAM OP, test-3250). */
     W = sandbox('UNE-AUTRE-CLE', 'ent-a-9x');
     W.mailBoxFor = () => ({ user: 'pro@exemple.fr', pass: 'x', host: '127.0.0.1', port: PS });
     const nS3 = recusAvant();
     res = await W.srvMail('client@dehors.fr', 'Sujet banc 2692 repli', 'Bonjour', '', 'devis', null, { sansMailto: true });
-    v('srvMail (boîte pro + mauvaise clé) : le repli « plateforme » est refusé lui aussi, pas contourné', res, false);
+    v('srvMail (boîte pro + mauvaise clé) : refusé, et aucun repli par la plateforme', res, false);
     await new Promise(x => setTimeout(x, 300));
     v('⛔ … rien n\'est parti, par aucun des deux chemins', recusAvant() - nS3, 0);
 

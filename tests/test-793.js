@@ -251,9 +251,10 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
       const W = { console, Object, JSON, String, Math, Date, Array, Number, parseInt, __req: [], __boite: boite };
       W.fetch = async (u, o) => { W.__req.push(JSON.parse(o.body)); return { ok: true, status: 200, json: async () => ({}) }; };
       vm.createContext(W);
-      vm.runInContext([decoupe('async function srvMail('), decoupe('let _srvMailErr='),
+      vm.runInContext([decoupe('async function envoiBoiteResoudre('), decoupe('let _boiteEtapeFin='), decoupe('function envoiBoiteEtape('), decoupe('function envoiBoiteSignaler('), decoupe('async function srvMail('), decoupe('let _srvMailErr='),
         `const PUSH_API='http://essai'; async function enteteEquipe(h){ return h; } function syncTeam(){ return 't'; }
          function mailBoxFor(){ return __boite; } function can(){ return true; } var currentUser=null; function toast(){}
+         let _mailboxes=[]; const BETA_ESSAI=false; async function loadMailboxes(){ return _mailboxes; } function openModal(){} const document={ getElementById:()=>null };
          var db={ mailFrom:'Excellence Pro', entreprise:{ nom:'Nettoyage Excellence SARL' } };
          function mailBrandName(){ return 'Excellence Pro'; } const location={}; const navigator={ userAgent:'' };`].join('\n'), W);
       const ok = await W.srvMail('elise@exemple.fr', 'Devis', 'Bonjour', '', 'devis', null, opts);
@@ -269,7 +270,8 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
     r = await essai(BOITE, { brandName: 'x', societe: 'Alpha, "Nuisibles" <SAS>' });
     v('… un nom à virgule et guillemets ne fabrique ni deux adresses ni un en-tête cassé', (r.p.smtp || {}).from, '"Alpha, Nuisibles SAS" <contact@excellence.fr>');
     r = await essai(null, alpha);
-    v('sans boîte connectée : la plateforme envoie au nom d’Alpha', [(r.p.brand || {}).name, !!r.p.smtp], ['Alpha Nuisibles', false]); }
+    /* v796 (Justin, 4 novembre 2026 : « il n'y a rien qui passe par nous ») : sans boîte de l'entreprise, plus d'envoi par la plateforme — test-3250 */
+    v('sans boîte connectée : RIEN ne part (plus de mode simple par la plateforme)', [r.ok, !!r.p.to], [false, false]); }
 
   console.log('── 793 · 6. v780 : rien ne part au client sans le nom, l’adresse et le SIRET de la société qui émet ──');
   { const vide = { ...BASE, entreprise: { nom: 'Clim Ouest', logo: '' } };
