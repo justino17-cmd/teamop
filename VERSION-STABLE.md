@@ -1,5 +1,15 @@
 # Point stable TeamOP
 
+**Version stable : v799** — 4 novembre 2026 (Justin : « regarde pour le message d'erreur que je t'ai envoyé […] règle tout ça, une fois que
+c'est publié tu me le dis »). La v798 et un seul changement, qui ne touche que la SURVEILLANCE (rien de ce que voit ou fait une entreprise) :
+- **Les dossiers « Réseau » de la Tour ne s'ouvrent plus pour une coupure que la synchro renoue seule** (bêta 800) : un appel resté sans
+  réponse ne se signale qu'après 2 minutes sans aucune réponse du serveur, page au premier plan — un dossier par panne et par appareil, plus
+  un par appel. Un écran verrouillé, un passage wifi → 4G, quelques secondes de redémarrage du serveur ne font plus rien remonter. Une
+  réponse 5xx se signale toujours comme avant. `tests/test-3254.js` (18 ✓ ; 10 ✗ contre la v798), `test-2856`, `test-3238`.
+Rien ne change dans les formats de données.
+
+**Ancien point : v798.**
+
 **Version stable : v798** — 4 novembre 2026 (Justin : « ok, tous les mails c'est bon, on envoie la mise à jour avec le devis et la facture
 corrigés »). C'est la bêta v798 entière : les v796 à v798. Ce qui change pour une entreprise :
 - **Ses documents partent par SA boîte mail, plus par TEAM OP** (v796, v797) : un devis, une facture, un rapport ou un bon envoyé à un client
