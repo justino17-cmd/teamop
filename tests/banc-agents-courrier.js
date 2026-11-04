@@ -169,7 +169,7 @@ function monter(o) {
   const chloe = require(S('agent-chloe.js'))({ agents, cerveau, brouillons, fichier, maintenant, conversations, louis, metiersPath: o.metiersPath,
     libelleMetier: m => ({ chauffage: 'Chauffage / Climatisation', nettoyage: 'Nettoyage' }[m] || ''),
     contexteClient: o.contexteClient || (() => ({ entreprise: 'Toka Clim', metier: 'chauffage', users: 4, formule: 'pro' })) });
-  const camille = require(S('agent-camille.js'))({ agents, cerveau, brouillons, mail, fichier, maintenant, conversations, louis, travail, outilsLecture, chloe: o.sansChloe ? null : chloe, dossierDe: o.dossierDe, domainesNotres: () => ['teamop.fr', 'notre-societe.fr'], adressesNotres: () => ['moi-meme@webmail-2863.example'] });
+  const camille = require(S('agent-camille.js'))({ agents, cerveau, brouillons, mail, fichier, maintenant, conversations, louis, travail, outilsLecture, chloe: o.sansChloe ? null : chloe, dossierDe: o.dossierDe, domainesNotres: () => ['teamop.fr', 'notre-societe.fr'], adressesNotres: () => ['moi-meme@webmail-2863.example'], reponseAEnvoiEntreprise: o.reponseAEnvoiEntreprise });
 
   const validations = async () => (await appeler('GET /api/monitor/agents/validations', { tourUser: PATRON, query: { statut: 'tout' } })).corps.validations;
   const journal = () => agents.lireJournal();

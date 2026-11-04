@@ -13,6 +13,24 @@ de ligne du tout.
 
 ---
 
+# ⛔ 4 NOVEMBRE 2026 — LES DOCUMENTS DES ENTREPRISES ARRIVAIENT CHEZ TEAM OP (corrigé côté serveur ; PURGE EN ATTENTE DE JUSTIN)
+
+Justin, capture de la Tour : contact@teamop.fr recevait les factures que les entreprises envoyaient à LEURS clients. **Cause** : le « mode
+simple » de `/api/sendmail` (l'entreprise n'a connecté ni boîte ni SMTP) passe par `mailerEnvoi`, qui posait une copie cachée vers notre
+adresse sur tout envoi extérieur (règle du 20 août 2026) ; le journal des e-mails (`mails-envoyes.json`, lu par la Tour) gardait
+destinataire, objet et texte ; sans adresse de réponse dans l'application, la réponse du client final arrivait chez nous, et Camille
+l'aurait traitée. **Correctif** (`server/index.js`, `server/agent-camille.js`) : un envoi `pourEntreprise` ne reçoit plus AUCUNE copie, ne
+laisse au journal qu'une trace sans contenu, part avec Reply-To = l'adresse de l'entreprise lue dans l'ANNUAIRE, et son Message-ID est retenu
+(`envois-entreprises.json`, 90 jours, aucune donnée personnelle) pour que Camille saute toute réponse à ce document ; `sentmap.jsonl` ne
+s'écrit plus sans boîte commandes partagée (`config.imap`), 90 jours sinon. Les e-mails de TEAM OP gardent leur copie. Bancs `test-3244`
+(vrai serveur, facteur SMTP qui lit l'enveloppe), `test-3245` (Camille).
+- **⛔ EN ATTENTE DE JUSTIN — la purge de ce qui est déjà stocké** (depuis le 20 août) : `server/purger-copies-entreprises.js` (constat par
+  défaut, `--faire` service arrêté) range `support-mails.json`, `mails-envoyes.json` et `sentmap.jsonl` ; la boîte contact@ elle-même se
+  trie à la main (procédure en tête du script). Rien n'est lancé.
+- **⚠️ Reste ouvert** : `/api/monitor/support/mails` et `/api/monitor/mails` sont en `monAdmin` (tout compte de la Tour) — à resserrer au
+  patron une fois la purge faite ; une entreprise SANS adresse dans l'annuaire envoie encore sans Reply-To (compté au journal du processus).
+  Juridique : données de clients de nos clients conservées hors `sous-traitance.html` du 20 août au 4 novembre — à porter à `juriste`.
+
 # 🚀 4 NOVEMBRE 2026 — OP GESTION v795 EN PRODUCTION (`app.html`, `sw.js` v996, `demo.html`) — la bêta v795 entière
 
 Justin : « une fois fait ça, tu publies pour la version publique avec tout ce qu'on vient de faire », puis « Tout publier » (les v783 à
