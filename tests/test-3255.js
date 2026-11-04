@@ -165,6 +165,13 @@ function fauxSmtp() {
   v('accès d’Alice coupé : son jeton ne lit plus rien', r.s, 403);
   r = await appel('/api/sendmail', envoi({ useMailbox: { id: mbA } }), JA);
   v('… et n’envoie plus', [r.s, smtp.recus.length - n0], [403, 1]);
+  await dormir(5);
+  r = await appel('/api/monitor/beta/mdp', { id: 'b9e8d7c6b5', pass: 'nouveau-mdp-bruno-qzw' }, P);
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, JB);
+  v('mot de passe de Bruno changé depuis la Tour : son ancien jeton tombe', r.s, 403);
+  const lb2 = await appel('/api/beta/login', { login: 'bruno-qzw', pass: 'nouveau-mdp-bruno-qzw' });
+  r = await appel('/api/mailboxes?teamId=' + BETA, undefined, { 'x-teamop-beta': lb2.j.jeton });
+  v('… le nouveau, rendu à la reconnexion, ouvre de nouveau', r.s, 200);
   await appel('/api/monitor/beta/delete', { id: 'b1a2b3c4d5' }, P);
   const stock2 = JSON.parse(fs.readFileSync(path.join(D, 'mailboxes.json'), 'utf8') || '{}');
   vrai('accès supprimé : sa boîte part avec lui', !Object.values(stock2).some(b => b.teamId === BETA + '~b1a2b3c4d5'));
