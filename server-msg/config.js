@@ -579,12 +579,15 @@ function boitesMailTest(env, instance) {
   let o; try { o = JSON.parse(brut); } catch (e) { throw err('OPMSG_TEST_BOITES n\'est pas du JSON'); }
   if (!o || typeof o !== 'object' || Array.isArray(o)) throw err('OPMSG_TEST_BOITES doit être un objet');
   const local = new RegExp('^http:' + '//127\\.0\\.0\\.1:\\d{2,5}$');
-  const res = { boucle: o.boucle === true, oauth: {}, serveurs: null, delaiMs: Number.isInteger(o.delaiMs) && o.delaiMs >= 200 && o.delaiMs <= 60000 ? o.delaiMs : 15000 };
+  const borne = (x, def) => Number.isInteger(x) && x >= 50 && x <= 60000 ? x : def;
+  const res = { boucle: o.boucle === true, oauth: {}, serveurs: null, delaiMs: Number.isInteger(o.delaiMs) && o.delaiMs >= 200 && o.delaiMs <= 60000 ? o.delaiMs : 15000, echeanceMs: borne(o.echeanceMs, 0) || 0, dnsMs: borne(o.dnsMs, 0) || 0 };
   for (const f of ['google', 'microsoft']) if (o.oauth && o.oauth[f] !== undefined) { if (!local.test(String(o.oauth[f]))) throw err('OPMSG_TEST_BOITES.oauth.' + f + ' doit valoir http://127.0.0.1:<port>'); res.oauth[f] = String(o.oauth[f]); }
   if (o.serveurs) {
     for (const k of ['imap', 'smtp']) { const x = o.serveurs[k]; if (!x || x.hote !== '127.0.0.1' || !Number.isInteger(x.port) || x.port < 1 || x.port > 65535) throw err('OPMSG_TEST_BOITES.serveurs.' + k + ' doit valoir {hote:"127.0.0.1", port}'); }
     res.serveurs = { imap: { hote: '127.0.0.1', port: o.serveurs.imap.port }, smtp: { hote: '127.0.0.1', port: o.serveurs.smtp.port } };
   }
+  /* ⛔ la boucle locale ne s'ouvre QUE vers de faux serveurs désignés (127.0.0.1:<port>) : `boucle` sans `serveurs` laisserait un hôte quelconque, saisi par une personne, joindre le réseau interne */
+  if (res.boucle && !res.serveurs) throw err('OPMSG_TEST_BOITES.boucle exige OPMSG_TEST_BOITES.serveurs (les seuls serveurs que la boucle locale ouvre)');
   return res;
 }
 

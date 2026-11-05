@@ -62,6 +62,7 @@
     plage_invalide: 'La partie demandée du fichier n\'existe pas.',
     quota_stockage: 'Ton espace de stockage est plein : supprime des messages qui contiennent des photos ou des fichiers, puis réessaie.',
     /* les boîtes mail d'une personne (la rubrique Courrier, 6 novembre 2026) */
+    boites_mail_erreur: 'Une erreur est survenue du côté du service. Réessaie dans un instant.',
     boites_mail_fermees: 'La connexion des boîtes mail n\'est pas encore ouverte sur ce service.',
     boite_adresse_invalide: 'Cette adresse e-mail n\'est pas valide.',
     mot_de_passe_requis: 'Entre le mot de passe (d\'application) de cette boîte.',

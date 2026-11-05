@@ -68,6 +68,9 @@ const b64 = (t) => Buffer.from(t).toString('base64');
     const r0 = await T.client(ferme.base).get('/api/boites-mail/oauth/retour?code=x&state=y');
     vrai('le retour d\'un fournisseur répond une page (200), qui renvoie vers l\'application avec un code d\'erreur, jamais une erreur JSON', r0.code === 200 && /refresh/.test(r0.txt) && /boites=erreur/.test(r0.txt));
     v('   ⛔ et le service n\'a ouvert AUCUNE connexion vers une boîte', lireJournal(journalImap).length, 0);
+    /* B10 : un service FERMÉ ne lit pas le corps — un corps de 8 Mo (au-delà des 7 Mo permis) répond 503 `boites_mail_fermees`, pas 413 : la fermeture est jugée AVANT le lecteur */
+    const gros0 = await A0.post('/api/boites-mail/bm_' + '0'.repeat(32) + '/envoyer', { a: 'a@b.fr', objet: 'x', texte: 'z'.repeat(8 * 1024 * 1024) });
+    v('⛔ B10 : fermé, l\'envoi répond 503 AVANT de lire un corps de 8 Mo (pas 413 : aucun octet n\'est analysé)', [gros0.code, gros0.j && gros0.j.error], [503, 'boites_mail_fermees']);
   } finally { await ferme.arreter(); }
 
   /* ══ 1. OUVERT : le service ══════════════════════════════════════════════════════════════════════════════ */

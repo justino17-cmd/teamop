@@ -4091,7 +4091,7 @@
     const PHRASES_RETOUR = { refuse: 'La connexion a été annulée chez le fournisseur.', state_rejoue: 'Ce lien de connexion a déjà servi ou a expiré : recommence.', state_expire: 'Ce lien de connexion a expiré : recommence.',
       state_invalide: 'Ce lien de connexion n’est pas valide : recommence.', sans_renouvellement: 'L’accès durable n’a pas été accordé : recommence et accepte toutes les autorisations.', echange_refuse: 'Le fournisseur a refusé la connexion.',
       adresse_inconnue: 'Le fournisseur n’a pas donné l’adresse de la boîte.', fournisseur_injoignable: 'Le fournisseur ne répond pas : réessaie dans un instant.', trop_de_boites: 'Tu as déjà cinq boîtes reliées : retires-en une avant d’en ajouter.',
-      oauth_non_configure: 'Cette connexion n’est pas encore disponible.', compte_inactif: 'Ton compte n’est plus actif.' };
+      navigateur_inconnu: 'La connexion doit se terminer dans le navigateur où tu l’as commencée : recommence là-bas.', oauth_non_configure: 'Cette connexion n’est pas encore disponible.', compte_inactif: 'Ton compte n’est plus actif.' };
     async function courrierOuvert() { try { const c = await A.config(); return !!c && (c.instance === 'beta' || !!(c.boitesMail && c.boitesMail.ouvert)); } catch (e) { return false; } }
     const idMessage = (id) => { const m = /^(bm_[0-9a-f]{32})\.([1-9][0-9]{0,9})$/.exec(String(id || '')); return m ? { boite: m[1], uid: m[2] } : null; };
     const courrierOauthDe = (fid, email) => {

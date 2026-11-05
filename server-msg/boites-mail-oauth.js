@@ -10,6 +10,10 @@
  * ⛔ LE JETON DE RENOUVELLEMENT EST UN MOT DE PASSE : il est rangé scellé avec le reste de la boîte (`stockage.boiteMailCreer`), jamais renvoyé
  * à une page, jamais journalisé. Le jeton d'ACCÈS (une heure) ne vit qu'en mémoire.
  *
+ * ⛔ LE `state` EST LIÉ AU NAVIGATEUR QUI A DEMANDÉ LA CONNEXION (gardien, 6 novembre 2026, A1). Un `state` signé prouve qu'il vient de nous, pas QUI le présente : Mallory démarre une
+ * connexion, envoie l'adresse de Google à une victime, la victime accepte — et SA boîte aurait été reliée au compte de Mallory. Au départ, le service pose donc dans le navigateur de celui
+ * qui demande un cookie dédié (`boites-mail.js` : HttpOnly, SameSite=Lax, limité au chemin du retour) dont seule l'EMPREINTE est gardée ici ; au retour, le cookie présenté doit
+ * correspondre. Sans lui, ou avec un autre, rien n'est relié.
  * ⛔ LE `state` EST LA SEULE PREUVE QUE LE RETOUR VIENT DE NOUS. Le retour arrive par le navigateur, SANS cookie de session (le cookie est
  * `SameSite=Strict` : une navigation qui vient de Google ne le porte pas) — c'est donc le `state` signé (HMAC, clé tirée au démarrage) qui dit QUI
  * a demandé la connexion. Il est à USAGE UNIQUE (le nonce s'efface au premier retour, même sur un échec), valable dix minutes, et il porte le
@@ -74,7 +78,8 @@ function creer(o) {
   const disponibles = () => ({ google: !!reglage('google'), microsoft: !!reglage('microsoft') });
   const signer = (txt) => b64u(crypto.createHmac('sha256', cleState).update(txt).digest());
 
-  function erreur(code, message, statut) { const e = new Error(message); e.code = code; e.statut = statut || 400; return e; }
+  function erreur(code, message, statut) { const e = new Error(message); e.code = code; e.statut = statut || 400; e.nous = true; return e; }
+  const empreinte = (x) => crypto.createHash('sha256').update(String(x)).digest();
 
   /* ── 1. Démarrer : l'adresse d'autorisation, avec un `state` signé qui lie la PERSONNE ── */
   function demarrer({ fournisseur, uid, email }) {
@@ -89,7 +94,8 @@ function creer(o) {
     const nonce = b64u(crypto.randomBytes(18));
     const verificateur = b64u(crypto.randomBytes(48));
     const defi = b64u(crypto.createHash('sha256').update(verificateur).digest());
-    attente.set(nonce, { verificateur, exp: now + DUREE_STATE, uid: String(uid), f: fournisseur });
+    const navigateur = b64u(crypto.randomBytes(24));          // le secret du NAVIGATEUR : il part dans un cookie, seule son empreinte reste ici
+    attente.set(nonce, { verificateur, exp: now + DUREE_STATE, uid: String(uid), f: fournisseur, nav: empreinte(navigateur) });
     const corps = b64u(JSON.stringify({ f: fournisseur, u: String(uid), n: nonce, exp: now + DUREE_STATE }));
     const state = corps + '.' + signer(corps);
     const q = new URLSearchParams(Object.assign({
@@ -97,11 +103,11 @@ function creer(o) {
       state, code_challenge: defi, code_challenge_method: 'S256',
     }, F.extra));
     if (typeof email === 'string' && RE_ADRESSE.test(email) && email.length <= 160) q.set('login_hint', email);   // pré-remplit le compte chez le fournisseur
-    return { url: adresses(fournisseur).autoriser + '?' + q.toString() };
+    return { url: adresses(fournisseur).autoriser + '?' + q.toString(), navigateur };
   }
 
   /* ── 2. Le retour : vérifier le `state` (signature, échéance, usage unique), échanger le code ── */
-  async function retour({ code, state }) {
+  async function retour({ code, state, navigateur }) {
     const s = String(state || '').slice(0, 2000); const i = s.lastIndexOf('.');
     if (i < 1) throw erreur('state_invalide', 'Lien de connexion invalide.');
     const corps = s.slice(0, i), sig = s.slice(i + 1);
@@ -112,6 +118,8 @@ function creer(o) {
     if (d && d.n) attente.delete(d.n);                       // usage unique : même un échec plus bas le consomme
     if (!a || a.uid !== d.u || a.f !== d.f) throw erreur('state_rejoue', 'Ce lien de connexion a déjà servi ou a expiré — recommence depuis OP MESSAGES.');
     if (maintenant() > d.exp || maintenant() > a.exp) throw erreur('state_expire', 'Ce lien de connexion a expiré — recommence depuis OP MESSAGES.');
+    /* ⛔ le navigateur qui REVIENT doit être celui qui est PARTI : son cookie, comparé à l'empreinte posée au départ */
+    if (typeof navigateur !== 'string' || !navigateur || !crypto.timingSafeEqual(empreinte(navigateur), a.nav)) throw erreur('navigateur_inconnu', 'Cette connexion doit se terminer dans le navigateur où tu l\'as commencée — recommence depuis OP MESSAGES.');
     const F = FOURNISSEURS[d.f], R = reglage(d.f);
     if (!F || !R) throw erreur('oauth_non_configure', 'Connexion indisponible.', 503);
     if (!code) throw erreur('code_absent', 'Connexion annulée.');

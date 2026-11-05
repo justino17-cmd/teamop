@@ -78,9 +78,13 @@ function fauxFournisseur(nom, clients) {
     if (r.code !== 200) return { r };
     const u = new URL(r.j.url); const state = u.searchParams.get('state');
     await fetch(r.j.url);
-    return { r, u, state, code: 'CODE-' + state, fournisseur };
+    /* le cookie que le service pose dans LE NAVIGATEUR de celui qui démarre (un autre navigateur ne l'a pas) */
+    const sc = (typeof r.h.getSetCookie === 'function' ? r.h.getSetCookie() : []).find(x => /^opm-oa=/.test(x)) || null;
+    return { r, u, state, code: 'CODE-' + state, fournisseur, setCookie: sc, cookie: sc ? sc.split(';')[0] : null };
   }
-  const retour = (d, over) => anon.get('/api/boites-mail/oauth/retour?' + new URLSearchParams(Object.assign({ code: d.code, state: d.state }, over || {})).toString());
+  /* le retour : par défaut avec le cookie du navigateur qui est parti (`d.cookie`) ; `{ sans: true }` sans aucun cookie ; `{ cookie }` avec un autre */
+  const retour = (d, over, opts) => anon.get('/api/boites-mail/oauth/retour?' + new URLSearchParams(Object.assign({ code: d.code, state: d.state }, over || {})).toString(),
+    { entetes: (opts && opts.sans) || !d.cookie ? {} : { Cookie: (opts && opts.cookie) || d.cookie } });
   const codeRetour = (r) => { const m = /url=([^"]+)"/.exec(r.txt || ''); return m ? decodeURIComponent(m[1]).replace(/#courrier$/, '') : null; };
   try {
     console.log('\n1. Le départ');
@@ -97,7 +101,10 @@ function fauxFournisseur(nom, clients) {
       [google.url, 'S256', REDIR, CLIENT.google.id, 'code', true, 'alice@gmail.test', 'offline']);
     vrai('   ⛔ le secret de l\'application n\'est pas dans l\'adresse (elle passe par le navigateur)', !d1.r.j.url.includes(CLIENT.google.secret));
 
-    console.log('\n2. Le retour : SANS cookie, la boîte va à la personne du `state`');
+    const sc1 = d1.setCookie || '';
+    v('⛔ A1 : le départ pose un cookie DÉDIÉ au navigateur — HttpOnly, SameSite=Lax, limité au chemin du retour, dix minutes (jamais Strict : il doit revenir de chez Google)', [!!d1.setCookie, /HttpOnly/i.test(sc1), /SameSite=Lax/i.test(sc1), /Path=\/api\/boites-mail\/oauth(;|$)/i.test(sc1), /Max-Age=600/i.test(sc1)], [true, true, true, true, true]);
+    vrai('   et son secret n\'est NI dans la réponse, NI dans l\'adresse d\'autorisation (seule son empreinte reste au service)', !!d1.cookie && !d1.r.txt.includes(d1.cookie.split('=')[1]) && !d1.r.j.url.includes(d1.cookie.split('=')[1]));
+    console.log('\n2. Le retour : la boîte va à la personne du `state`, DANS LE NAVIGATEUR qui est parti');
     const rr = await retour(d1);
     v('le retour répond une page (200) qui renvoie vers « / » avec ?boites=ok — et ne porte aucun script', [rr.code, codeRetour(rr), /<script/i.test(rr.txt)], [200, '/?boites=ok', false]);
     const l = (await A.get('/api/boites-mail')).j;
@@ -139,10 +146,23 @@ function fauxFournisseur(nom, clients) {
     v('le fournisseur ne donne pas d\'accès durable : refusé (sans_renouvellement), rien de relié de plus', [codeRetour(rs), (await A.get('/api/boites-mail')).j.boites.length], ['/?boites=erreur&c=sans_renouvellement', 1]);
     vrai('   ⛔ la page d\'erreur ne répète rien de ce qui arrive dans l\'adresse', !(await retour(d6, { state: '<script>alert(1)</script>' })).txt.includes('alert(1)'));
 
+    console.log('\n3 bis. ⛔ A1 : le lien d\'autorisation envoyé à une VICTIME ne relie pas SA boîte au compte de l\'attaquant');
+    const mallory = await demarrer(B, 'google', 'google');                            // Bob (« Mallory ») démarre, et envoie l'adresse de Google à Alice
+    const victime = await fetch(svc.base + '/api/boites-mail/oauth/retour?' + new URLSearchParams({ code: mallory.code, state: mallory.state }), { headers: { Cookie: A.enteteCookie().replace(/opm-oa=[^;]*;?\s*/, '') } });   // la VICTIME : sa session, PAS le cookie de Mallory
+    const pageV = await victime.text();
+    v('la victime revient chez nous avec le `state` de Mallory et sa propre session : REFUSÉ (navigateur_inconnu), et la page le dit', [victime.status, /c=navigateur_inconnu/.test(pageV), /doit se terminer dans le navigateur/.test(pageV)], [200, true, true]);
+    v('   ⛔ rien n\'est relié : ni au compte de Mallory, ni à celui de la victime', [(await B.get('/api/boites-mail')).j.boites.length, (await A.get('/api/boites-mail')).j.boites.length], [0, 1]);
+    const sansCk = await retour(mallory, undefined, { sans: true });
+    v('   le `state` est CONSOMMÉ par ce refus : même avec son propre navigateur, Mallory ne peut plus le rejouer', [codeRetour(sansCk), codeRetour(await retour(mallory))], ['/?boites=erreur&c=state_rejoue', '/?boites=erreur&c=state_rejoue']);
+    const m2 = await demarrer(B, 'google', 'google'), a2 = await demarrer(A, 'google', 'google');
+    const mauvais = await retour(m2, undefined, { cookie: a2.cookie });
+    v('un AUTRE cookie de flux (celui d\'une autre connexion), ou un cookie forgé : refusé', [codeRetour(mauvais), codeRetour(await retour(a2, undefined, { cookie: 'opm-oa=forge-forge-forge' }))], ['/?boites=erreur&c=navigateur_inconnu', '/?boites=erreur&c=navigateur_inconnu']);
+    const bon = await retour(await demarrer(A, 'google', 'google'));
+    vrai('(contre-épreuve) le navigateur qui est parti, avec son cookie, revient : relié — le refus ci-dessus n\'est pas une porte fermée à tout le monde', codeRetour(bon) === '/?boites=ok' && /opm-oa=;|opm-oa=$|Expires=Thu, 01 Jan 1970/i.test((bon.h.get('set-cookie') || '')));
     console.log('\n4. Bob connecté, Alice qui revient : la boîte va à Alice');
     const d7 = await demarrer(A, 'google', 'google');
     google.etat.email = 'autre.alice@exemple.test';
-    const rb = await fetch(svc.base + '/api/boites-mail/oauth/retour?' + new URLSearchParams({ code: d7.code, state: d7.state }), { headers: { Cookie: B.enteteCookie() } });
+    const rb = await fetch(svc.base + '/api/boites-mail/oauth/retour?' + new URLSearchParams({ code: d7.code, state: d7.state }), { headers: { Cookie: B.enteteCookie().replace(/opm-oa=[^;]*;?\s*/g, '') + '; ' + d7.cookie } });
     google.etat.email = 'google.utilisateur@exemple.test';
     v('le cookie de Bob accompagne le retour : la boîte est à ALICE (le `state`), Bob n\'a rien', [rb.status, (await B.get('/api/boites-mail')).j.boites.length, (await A.get('/api/boites-mail')).j.boites.map(b => b.adresse).sort()], [200, 0, ['autre.alice@exemple.test', 'google.utilisateur@exemple.test']]);
     const IDA2 = (await A.get('/api/boites-mail')).j.boites.find(b => b.adresse === 'autre.alice@exemple.test').id;

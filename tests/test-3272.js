@@ -37,12 +37,17 @@ const OK = { clientId: 'client-id-12345', clientSecret: 'secret-de-l-application
   v('⛔ la porte de test : absente = rien ; en production = refusée ; mal formée ou visant autre chose que 127.0.0.1 = refusée',
     [boitesMailTest({}, 'prod'), lance(() => boitesMailTest({ OPMSG_TEST_BOITES: '{"boucle":true}' }, 'prod')), lance(() => boitesMailTest({ OPMSG_TEST_BOITES: 'pas du json' }, 'beta')),
       lance(() => boitesMailTest({ OPMSG_TEST_BOITES: '{"oauth":{"google":"https://accounts.google.com"}}' }, 'beta')), lance(() => boitesMailTest({ OPMSG_TEST_BOITES: '{"serveurs":{"imap":{"hote":"10.0.0.1","port":993},"smtp":{"hote":"127.0.0.1","port":25}}}' }, 'beta')),
-      boitesMailTest({ OPMSG_TEST_BOITES: '{"boucle":true}' }, 'beta').boucle], [null, 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG', true]);
+      boitesMailTest({ OPMSG_TEST_BOITES: '{"boucle":true,"serveurs":{"imap":{"hote":"127.0.0.1","port":9993},"smtp":{"hote":"127.0.0.1","port":2525}}}' }, 'beta').boucle,
+      lance(() => boitesMailTest({ OPMSG_TEST_BOITES: '{"boucle":true}' }, 'beta'))], [null, 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG', true, 'CONFIG']);
+  v('⛔ B9 : la boucle locale exige des serveurs DÉSIGNÉS — « boucle » seul (n\'importe quel hôte saisi joindrait le réseau interne) refuse de démarrer', lance(() => boitesMailTest({ OPMSG_TEST_BOITES: '{"boucle":true,"delaiMs":500}' }, 'beta')), 'CONFIG');
 
   console.log('\n2. Les destinations : un serveur qu\'on nous donne est une destination');
-  const publiques = ['8.8.8.8', '1.1.1.1', '142.250.74.5', '2606:4700:4700::1111', '172.15.0.1', '172.32.0.1', '100.63.0.1', '100.128.0.1'];
+  const publiques = ['8.8.8.8', '1.1.1.1', '142.250.74.5', '2606:4700:4700::1111', '172.15.0.1', '172.32.0.1', '100.63.0.1', '100.128.0.1', '2000::1', '2a00:1450:4001:81b::200e', '0:0:0:0:0:0:0:0'.replace(/^0/, '2606')];
   const interdites = ['127.0.0.1', '127.1.2.3', '10.0.0.5', '172.16.0.1', '172.31.255.255', '192.168.1.1', '169.254.169.254', '0.0.0.0', '100.64.0.1', '198.18.0.1', '224.0.0.1', '255.255.255.255', '192.0.0.8',
-    '::1', '::', 'fe80::1', 'fc00::1', 'fd12:3456::1', 'ff02::1', '::ffff:127.0.0.1', '::ffff:10.0.0.1', '::ffff:169.254.169.254', '2001:db8::1', 'pas-une-ip', ''];
+    '::1', '::', 'fe80::1', 'fc00::1', 'fd12:3456::1', 'ff02::1', '::ffff:127.0.0.1', '::ffff:10.0.0.1', '::ffff:169.254.169.254', '2001:db8::1', 'pas-une-ip', '',
+    /* ⛔ B1 (gardien, 6 novembre 2026) : ce que la première liste laissait passer — et les plages de documentation */
+    '::7f00:1', '::127.0.0.1', 'fec0::1', '2002::1', '2002:7f00:1::1', '0:0:0:0:0:ffff:7f00:1', '0:0:0:0:0:0:7f00:1', '0:0:0:0:0:0:0:1', '2001::1', '2001:db8:ffff::1', '64:ff9b::7f00:1', '100::1',
+    '192.0.2.1', '198.51.100.7', '203.0.113.9', '012.0.0.1', '010.0.0.1', '127.1', '2130706433', '0x7f.0.0.1', '1.2.3', '256.1.1.1', '8.8.8.8 ', '169.254.0.1', '192.0.0.9'];
   v('adressePublique : le routage public passe', publiques.map(adressePublique), publiques.map(() => true));
   v('⛔ boucle, privé, lien local (métadonnées du nuage), multicast, partagé, IPv6 locale ou mappée : refusés', interdites.map(adressePublique), interdites.map(() => false));
   const quotas = { essai: () => ({ ok: true }) };

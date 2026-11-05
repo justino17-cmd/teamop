@@ -32,14 +32,15 @@
  * connexions IMAP simultanées par personne, 16 au total.
  */
 'use strict';
-const dns = require('dns');
 const net = require('net');
+const { hotePublic, adressePrivee } = require('./hote-public');
 const crypto = require('crypto');
 const { cleReseau } = require('./quotas');
 
 const BOITES_MAX = 5;
-const PAR_PERSONNE = 3, EN_TOUT = 16;
+const PAR_PERSONNE = 3, PAR_RESEAU = 6, EN_TOUT = 16, PIECES_EN_MEME_TEMPS = 2;
 const LISTE_N = 40;                                  // les messages de la réception qu'on rend
+const LISTE_OCTETS = 1536 * 1024;                    // au plus ce cumul d'octets lus pour UNE liste : un serveur qui ment sur `exists` ne remplit pas la mémoire
 const SOURCE_LISTE = 6000, SOURCE_MESSAGE = 3 * 1024 * 1024, SOURCE_PIECE = 15 * 1024 * 1024;
 const CORPS_MAX = 100000, APERCU_MAX = 140;
 const PJ_ENVOI_NB = 3, PJ_ENVOI_OCTETS = 4 * 1024 * 1024, DEST_MAX = 5, OBJET_MAX = 300, TEXTE_MAX = 200000;
@@ -72,33 +73,13 @@ const PRESETS = [
   { re: /^(zoho\.com|zohomail\.com)$/, f: 'imap', imap: 'imap.zoho.com', smtp: 'smtp.zoho.com', smtpPort: 465 },
 ];
 
-const erreur = (statut, code, message) => Object.assign(new Error(code), { statut, code, message });
+/* ⛔ `nous: true` : SEULES nos erreurs (un code et une phrase écrits ici) partent dans une réponse. Toute autre — une exception de bibliothèque, une erreur SQLite — devient `boites_mail_erreur` (500), sans son texte. */
+const erreur = (statut, code, message) => Object.assign(new Error(code), { statut, code, message, nous: true });
 
-/* ⛔ Une adresse est PUBLIQUE ou elle n'est pas une destination. IPv4 : tout ce qui n'est pas du routage public (0/8, 10/8, 100.64/10, 127/8, 169.254/16, 172.16/12, 192.0.0/24, 192.168/16,
-   198.18/15, 224+) ; IPv6 : boucle, non spécifiée, unique locale (fc00::/7), lien local (fe80::/10), multicast, et les adresses IPv4 « mappées » jugées comme IPv4. */
+/* ⛔ Une adresse est PUBLIQUE ou elle n'est pas une destination — le jugement est celui de `hote-public.js` (IPv4 en décimal strict, IPv6 DÉPLIÉE et jugée sur liste blanche 2000::/3). */
 function adressePublique(ip) {
-  const v = net.isIP(ip);
-  if (v === 4) {
-    const [a, b, c] = ip.split('.').map(Number);
-    if (a === 0 || a === 10 || a === 127 || a >= 224) return false;
-    if (a === 100 && b >= 64 && b <= 127) return false;
-    if (a === 169 && b === 254) return false;
-    if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a === 192 && b === 0 && c === 0) return false;
-    if (a === 198 && (b === 18 || b === 19)) return false;
-    return true;
-  }
-  if (v === 6) {
-    const s = ip.toLowerCase();
-    const m = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(s);
-    if (m) return adressePublique(m[1]);
-    if (s === '::' || s === '::1') return false;
-    if (/^f[cd]/.test(s) || /^fe[89ab]/.test(s) || /^ff/.test(s)) return false;
-    if (/^::ffff:/.test(s) || /^64:ff9b:/.test(s) || /^2001:db8/.test(s)) return false;
-    return true;
-  }
-  return false;
+  const f = net.isIP(String(ip));
+  return f !== 0 && !adressePrivee(String(ip), f);
 }
 
 function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth, crochet }) {
@@ -112,7 +93,9 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
   const oauthDispo = () => (oauth ? oauth.disponibles() : { google: false, microsoft: false });
   const delai = (test && test.delaiMs) || 15000;
   const enCours = new Map();                         // uid -> connexions IMAP ouvertes
-  let enTout = 0;
+  const enCoursReseau = new Map();                   // réseau (`req.ip`, /64 en IPv6) -> connexions IMAP ouvertes
+  let enTout = 0, piecesEnCours = 0;
+  const echeanceDe = (genre) => (test && test.echeanceMs) || (genre === 'liste' ? 45000 : genre === 'piece' ? 60000 : 30000);
 
   const fermee = (res) => { if (ouvert()) return false; refus(res, 503, 'boites_mail_fermees'); return true; };
   function plafond(res, cle, max, fenetreMs) {
@@ -121,17 +104,31 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     res.set('Retry-After', String(r.retry)); refus(res, 429, 'quota_atteint', { retry: r.retry });
     return false;
   }
+  /* ⛔ NOS CODES SEULEMENT : une erreur qui n'est pas une des nôtres (`nous`) — une exception de bibliothèque, une erreur SQLite — répond `boites_mail_erreur` (500), jamais son texte. */
+  const repErr = (res, e) => {
+    if (res.headersSent) return;
+    if (e && e.nous === true) return refus(res, e.statut || 500, e.code || 'boites_mail_erreur', e.message && e.message !== e.code ? { message: e.message } : undefined);
+    compteurs.echecs++; journal('boite_mail_echec', { motif: 'erreur_interne' });
+    return refus(res, 500, 'boites_mail_erreur');
+  };
+  const NOM_COOKIE_OA = (config.cookie && config.cookie.nom ? config.cookie.nom : 'opm') + '-oa';
+  const cookieDe = (req, nom) => {
+    const h = req.headers && req.headers.cookie; if (!h) return '';
+    for (const part of String(h).split(';')) { const i = part.indexOf('='); if (i > 0 && part.slice(0, i).trim() === nom) return part.slice(i + 1).trim().slice(0, 200); }
+    return '';
+  };
   const corps = (req) => (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
 
   /* ── La destination : un nom d'hôte public, résolu UNE fois ─────────────────────────────────────────────── */
   async function resoudre(hote) {
     if (test && test.boucle) return { ip: hote, nom: hote };
-    if (!RE_HOTE.test(hote) || net.isIP(hote) === 6) throw erreur(400, 'serveur_invalide', 'Ce nom de serveur n\'est pas valide.');
-    let l;
-    try { l = await dns.promises.lookup(hote, { all: true, verbatim: true }); }
-    catch (e) { throw erreur(502, 'serveur_introuvable', 'Ce serveur est introuvable : vérifie son nom, ou saisis les réglages du serveur de ta boîte.'); }
-    if (!l.length || !l.every(x => adressePublique(x.address))) throw erreur(400, 'serveur_refuse', 'Ce serveur n\'est pas une adresse publique de courrier.');
-    return { ip: l[0].address, nom: hote };
+    if (!RE_HOTE.test(hote)) throw erreur(400, 'serveur_invalide', 'Ce nom de serveur n\'est pas valide.');
+    try { return await hotePublic(hote, { delaiMs: (test && test.dnsMs) || 5000 }); }
+    catch (e) {
+      if (e && e.code === 'hote_invalide') throw erreur(400, 'serveur_invalide', 'Ce nom de serveur n\'est pas valide.');
+      if (e && e.code === 'hote_non_public') throw erreur(400, 'serveur_refuse', 'Ce serveur n\'est pas une adresse publique de courrier.');
+      throw erreur(502, 'serveur_introuvable', 'Ce serveur est introuvable : vérifie son nom, ou saisis les réglages du serveur de ta boîte.');
+    }
   }
 
   /* ── Les réglages d'une adresse : saisis, sinon ceux du fournisseur, sinon la convention ─────────────────── */
@@ -162,16 +159,17 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     const jeton = await oauth.jeton({ id: boite.id, fournisseur: boite.fournisseur, secret: boite.secret }, (nouveau) => { stockage.boiteMailSecretMaj(boite.uid, boite.id, nouveau); });
     return type === 'smtp' ? { type: 'OAuth2', user: boite.adresse, accessToken: jeton } : { user: boite.adresse, accessToken: jeton };
   }
-  const reserver = (uid) => {
-    if (enTout >= EN_TOUT || (enCours.get(uid) || 0) >= PAR_PERSONNE) throw erreur(429, 'trop_de_connexions', 'Trop de relevés en même temps — réessaie dans un instant.');
-    enTout++; enCours.set(uid, (enCours.get(uid) || 0) + 1);
+  /* ⛔ DES EMPLACEMENTS, par personne, par RÉSEAU (`req.ip`) et pour tout le service : un seul compte, ou dix comptes d'un même réseau, ne tiennent pas toutes les connexions. */
+  const reserver = (uid, reseau) => {
+    if (enTout >= EN_TOUT || (enCours.get(uid) || 0) >= PAR_PERSONNE || (enCoursReseau.get(reseau) || 0) >= PAR_RESEAU) throw erreur(429, 'trop_de_connexions', 'Trop de relevés en même temps — réessaie dans un instant.');
+    enTout++; enCours.set(uid, (enCours.get(uid) || 0) + 1); enCoursReseau.set(reseau, (enCoursReseau.get(reseau) || 0) + 1);
     let rendu = false;
-    return () => { if (rendu) return; rendu = true; enTout--; const n = (enCours.get(uid) || 1) - 1; if (n <= 0) enCours.delete(uid); else enCours.set(uid, n); };
+    const moins = (m, k) => { const n = (m.get(k) || 1) - 1; if (n <= 0) m.delete(k); else m.set(k, n); };
+    return () => { if (rendu) return; rendu = true; enTout--; moins(enCours, uid); moins(enCoursReseau, reseau); };
   };
   /* Traduit une panne de relevé en erreur DITE — sans jamais citer le message du serveur (il peut porter l'adresse ou un identifiant). */
   function panne(e, boite) {
-    if (e && e.statut && e.code) return e;                      // déjà une de nos erreurs
-    if (e && e.code === 'a_reconnecter') return erreur(409, 'a_reconnecter', 'Cette boîte doit être reconnectée.');
+    if (e && e.nous === true) return e;                          // déjà une de nos erreurs (les autres sont traduites, jamais citées)
     const c = String((e && (e.code || e.name)) || '');
     if (e && (e.authenticationFailed || /EAUTH|AUTH/i.test(c))) return erreur(401, 'identifiants_refuses', boite && boite.fournisseur !== 'imap'
       ? 'Le fournisseur a refusé la connexion à cette boîte — reconnecte-la.' : 'Le serveur a refusé l\'identifiant ou le mot de passe. (Gmail, iCloud et Yahoo demandent un mot de passe d\'application, pas celui du compte.)');
@@ -186,12 +184,14 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     }
     journal('boite_mail_echec', { motif: (e && e.code) || 'inconnue' });
   }
-  /* Ouvre la réception de `boite`, exécute `fn(client)`, referme TOUJOURS. */
-  async function avecImap(boite, fn) {
-    const ImapFlow = require('imapflow').ImapFlow;
-    const liberer = reserver(boite.uid);
-    let client = null;
+  /* Ouvre la réception de `boite`, exécute `fn(client)`, referme TOUJOURS.
+     ⛔ UNE ÉCHÉANCE GLOBALE par commande (`opts.genre` : liste 45 s, pièce 60 s, le reste 30 s), EN PLUS du délai d'inactivité de la prise : un serveur qui répond un octet de temps en temps tient
+     sinon l'emplacement pour toujours. Passé l'échéance, la connexion est fermée de force, l'emplacement rendu, et la personne reçoit « le serveur ne répond pas ». */
+  async function avecImap(boite, fn, opts) {
+    const liberer = reserver(boite.uid, boite.reseau || '?');
+    let client = null, minuterie = null;
     try {
+      const ImapFlow = require('imapflow').ImapFlow;
       const cible = await resoudre(boite.imap.hote);
       const auth = await authentification(boite, 'imap');
       client = new ImapFlow({
@@ -199,12 +199,14 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
         tls: { servername: cible.nom, minVersion: 'TLSv1.2' }, doSTARTTLS: false, connectionTimeout: delai, greetingTimeout: delai, socketTimeout: 30000, disableAutoIdle: true,
       });
       client.on('error', () => { /* absorbée : l'échec est traité par le try/catch — une erreur émise en événement tuerait le processus */ });
-      await client.connect();
-      return await fn(client);
+      const echeance = new Promise((ok, ko) => { minuterie = setTimeout(() => { try { client.close(); } catch (e) { /* déjà fermée */ } ko(erreur(502, 'serveur_injoignable', 'Le serveur de cette boîte ne répond pas — réessaie dans un instant.')); }, echeanceDe(opts && opts.genre)); });
+      echeance.catch(() => {});
+      return await Promise.race([(async () => { await client.connect(); return fn(client); })(), echeance]);
     } catch (e) {
       const p = panne(e, boite); await marquerPanne(p, boite); throw p;
     } finally {
-      try { if (client) { await client.logout().catch(() => { try { client.close(); } catch (e2) {} }); } } catch (e) { /* déjà fermée */ }
+      if (minuterie) clearTimeout(minuterie);
+      try { if (client) { await Promise.race([client.logout().catch(() => { try { client.close(); } catch (e2) {} }), new Promise(r => setTimeout(r, 2000))]); try { client.close(); } catch (e3) {} } } catch (e) { /* déjà fermée */ }
       liberer();
     }
   }
@@ -226,7 +228,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     const id = req.params.id;
     const b = ID_BOITE.test(String(id)) ? stockage.boiteMailLire(req.moi.id, id) : null;
     if (!b) { refus(res, 404, 'introuvable'); return null; }
-    return Object.assign(b, { uid: req.moi.id, imap: b.imap, smtp: b.smtp });
+    return Object.assign(b, { uid: req.moi.id, reseau: cleReseau(req.ip), imap: b.imap, smtp: b.smtp });
   }
   const vueBoite = (b) => ({ id: b.id, adresse: b.adresse, nom: b.nom, fournisseur: b.fournisseur, etat: b.etat });
 
@@ -257,7 +259,11 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
         const total = Number((client.mailbox && client.mailbox.exists) || 0);
         if (total > 0) {
           const plage = Math.max(1, total - LISTE_N + 1) + ':*';
+          let lus = 0, octets = 0;
           for await (const m of client.fetch(plage, { uid: true, envelope: true, flags: true, bodyStructure: true, source: { maxLength: SOURCE_LISTE }, headers: ['auto-submitted', 'precedence', 'list-unsubscribe'] })) {
+            /* ⛔ un serveur qui ment sur `exists` (ou rend plus que demandé) ne remplit pas la mémoire : au plus LISTE_N messages et LISTE_OCTETS octets lus */
+            lus++; octets += (m.source ? m.source.length : 0) + (m.headers ? m.headers.length : 0);
+            if (lus > LISTE_N || octets > LISTE_OCTETS) break;
             const env = m.envelope || {};
             const flags = m.flags || new Set();
             let automatique;
@@ -278,10 +284,13 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
         }
       } finally { verrou.release(); }
       return sortie.sort((x, y) => y.date - x.date);
-    });
+    }, { genre: 'liste' });
   }
   async function lireUn(boite, uid, pour) {
-    return avecImap(boite, async (client) => {
+    /* ⛔ DEUX LECTURES DE PIÈCE AU PLUS, pour tout le service : chacune tient jusqu'à 15 Mo de source plus son analyse en mémoire */
+    if (pour === 'piece') { if (piecesEnCours >= PIECES_EN_MEME_TEMPS) throw erreur(429, 'trop_de_connexions', 'Trop de relevés en même temps — réessaie dans un instant.'); piecesEnCours++; }
+    try {
+    return await avecImap(boite, async (client) => {
       const verrou = await client.getMailboxLock('INBOX');
       try {
         const max = pour === 'piece' ? SOURCE_PIECE : SOURCE_MESSAGE;
@@ -294,7 +303,8 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
         catch (e) { throw erreur(502, 'message_illisible', 'Ce message n\'a pas pu être lu.'); }
         return { parse: p, lu: (m.flags || new Set()).has('\\Seen'), tronque: Number(m.size) > max };
       } finally { verrou.release(); }
-    });
+    }, { genre: pour === 'piece' ? 'piece' : 'texte' });
+    } finally { if (pour === 'piece') piecesEnCours--; }
   }
 
   /* ── Les gestionnaires ─────────────────────────────────────────────────────────────────────────────────── */
@@ -316,18 +326,18 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     if (!mdp || mdp.length > 500 || /[\u0000\r\n]/.test(mdp)) return refus(res, 400, 'mot_de_passe_requis', { message: 'Entre le mot de passe (d\'application) de cette boîte.' });
     if (stockage.boitesMailDe(req.moi.id).length >= BOITES_MAX && !stockage.boitesMailDe(req.moi.id).some(x => x.adresse === adresse)) return refus(res, 409, 'trop_de_boites', { message: 'Tu as déjà ' + BOITES_MAX + ' boîtes reliées : retire-en une avant d\'en ajouter.' });
     let r;
-    try { r = reglagesPour(adresse, b.serveurs); } catch (e) { return refus(res, e.statut || 400, e.code || 'serveur_invalide', { message: e.message && e.message !== e.code ? e.message : e.message }); }
+    try { r = reglagesPour(adresse, b.serveurs); } catch (e) { return repErr(res, e); }
     if (r.fournisseur === 'microsoft') {
       /* Microsoft refuse les mots de passe dans toutes les applications : on le DIT avant de faire attendre (la voie est l'autorisation). */
       return refus(res, 400, 'microsoft_sans_mot_de_passe', { message: 'Microsoft refuse les mots de passe dans les applications : utilise « Continuer avec Microsoft ».' });
     }
-    const boite = { id: 'bm_essai', uid: req.moi.id, fournisseur: 'imap', adresse, secret: mdp, nom: '', imap: r.imap, smtp: r.smtp };
+    const boite = { id: 'bm_essai', uid: req.moi.id, reseau: cleReseau(req.ip), fournisseur: 'imap', adresse, secret: mdp, nom: '', imap: r.imap, smtp: r.smtp };
     try { await avecImap(boite, async () => true); }
-    catch (e) { return refus(res, e.statut || 502, e.code || 'boite_indisponible', { message: e.message }); }
+    catch (e) { return repErr(res, e); }
     const nom = ligne(b.nom, 80) || adresse.slice(0, adresse.indexOf('@'));
     let c;
     try { c = stockage.boiteMailCreer(req.moi.id, 'imap', { adresse, nom, imap: r.imap, smtp: r.smtp, secret: mdp }); }
-    catch (e) { if (e && e.code === 'trop_de_boites') return refus(res, 409, 'trop_de_boites', { message: 'Tu as déjà ' + BOITES_MAX + ' boîtes reliées : retire-en une avant d\'en ajouter.' }); throw e; }
+    catch (e) { if (e && e.code === 'trop_de_boites') return refus(res, 409, 'trop_de_boites', { message: 'Tu as déjà ' + BOITES_MAX + ' boîtes reliées : retire-en une avant d\'en ajouter.' }); return repErr(res, e); }
     if (!c) return refus(res, 401, 'session_requise');
     res.status(201).json({ boite: { id: c.id, adresse, nom, fournisseur: 'imap', etat: 'ok' } });
   };
@@ -345,7 +355,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     const b = boiteDe(req, res); if (!b) return;
     if (!plafond(res, 'bm_lec:' + req.moi.id, 240, 60000) || !plafond(res, 'bm_lec_ip:' + cleReseau(req.ip), 600, 60000)) return;
     try { res.json({ messages: await listerMessages(b) }); }
-    catch (e) { refus(res, e.statut || 502, e.code || 'boite_indisponible', { message: e.message }); }
+    catch (e) { repErr(res, e); }
   };
 
   H['boites.message'] = async (req, res) => {
@@ -360,7 +370,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
       if (r.tronque) t += '\n\n[Message très long : la suite n\'est pas affichée ici.]';
       const pj = (p.attachments || []).slice(0, 50).map((a, i) => ({ id: String(i + 1), nom: ligne(a.filename || 'pièce jointe', 150), taille: Math.max(0, Number(a.size) || 0), type: ligne(a.contentType || 'application/octet-stream', 80) }));
       res.json({ corps: t, pj });
-    } catch (e) { refus(res, e.statut || 502, e.code || 'boite_indisponible', { message: e.message }); }
+    } catch (e) { repErr(res, e); }
   };
 
   H['boites.piece'] = async (req, res) => {
@@ -377,7 +387,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
       res.set({ 'Content-Type': 'application/octet-stream', 'Content-Disposition': 'attachment; filename="piece"; filename*=UTF-8\'\'' + encodeURIComponent(nom).replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase()),
         'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': 'sandbox; default-src \'none\'', 'Cache-Control': 'no-store', 'Content-Length': String(a.content.length) });
       res.end(a.content);
-    } catch (e) { if (!res.headersSent) refus(res, e.statut || 502, e.code || 'boite_indisponible', { message: e.message }); }
+    } catch (e) { if (!res.headersSent) repErr(res, e); }
   };
 
   H['boites.marquer'] = async (req, res) => {
@@ -399,12 +409,12 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
         } finally { verrou.release(); }
       });
       res.json({ ok: true });
-    } catch (e) { refus(res, e.statut || 502, e.code || 'boite_indisponible', { message: e.message }); }
+    } catch (e) { repErr(res, e); }
   };
 
   /* L'envoi : un corps JSON JUSQU'À 7 Mo (des pièces en base64), lu APRÈS la garde de session — un anonyme n'a jamais fait lire un octet. */
   const lecteurEnvoi = require('express').json({ limit: '7mb', strict: true });
-  H['boites.envoyer'] = (req, res, next) => lecteurEnvoi(req, res, (err) => { if (err) return next(err); suiteEnvoi(req, res).catch(() => { if (!res.headersSent) refus(res, 500, 'erreur_interne'); }); });
+  H['boites.envoyer'] = (req, res, next) => { if (fermee(res)) return; lecteurEnvoi(req, res, (err) => { if (err) return next(err); suiteEnvoi(req, res).catch((e) => repErr(res, e)); }); };
   async function suiteEnvoi(req, res) {
     if (fermee(res)) return;
     const b = boiteDe(req, res); if (!b) return;
@@ -465,12 +475,17 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
       const adr = typeof d.email === 'string' ? d.email.trim().toLowerCase() : '';
       if (!stockage.boitesMailDe(req.moi.id).some(x => x.adresse === adr)) return refus(res, 409, 'trop_de_boites', { message: 'Tu as déjà ' + BOITES_MAX + ' boîtes reliées : retire-en une avant d\'en ajouter.' });
     }
-    try { res.json(oauth.demarrer({ fournisseur: d.fournisseur, uid: req.moi.id, email: typeof d.email === 'string' ? d.email.trim() : '' })); }
-    catch (e) { refus(res, e.statut || 400, e.code || 'oauth_indisponible', { message: e.statut ? e.message : undefined }); }
+    try {
+      const r = oauth.demarrer({ fournisseur: d.fournisseur, uid: req.moi.id, email: typeof d.email === 'string' ? d.email.trim() : '' });
+      /* ⛔ le cookie du NAVIGATEUR (A1) : HttpOnly (la page ne le lit pas), SameSite=Lax (il revient sur la navigation qui vient de Google — pas sur une requête d'un autre site), limité au chemin du retour, dix minutes */
+      res.cookie(NOM_COOKIE_OA, r.navigateur, { httpOnly: true, sameSite: 'lax', secure: !!(config.cookie && config.cookie.secure), path: '/api/boites-mail/oauth', maxAge: 10 * 60 * 1000 });
+      res.json({ url: r.url });
+    }
+    catch (e) { repErr(res, e); }
   };
   const MESSAGES_RETOUR = {
     ok: 'Ta boîte mail est reliée.', refuse: 'La connexion a été annulée.', state_invalide: 'Ce lien de connexion n\'est pas valide.', state_rejoue: 'Ce lien de connexion a déjà servi ou a expiré.',
-    state_expire: 'Ce lien de connexion a expiré.', sans_renouvellement: 'L\'accès durable n\'a pas été accordé.', echange_refuse: 'Le fournisseur a refusé la connexion.', adresse_inconnue: 'Le fournisseur n\'a pas donné l\'adresse de la boîte.',
+    state_expire: 'Ce lien de connexion a expiré.', navigateur_inconnu: 'Cette connexion doit se terminer dans le navigateur où tu l\'as commencée.', sans_renouvellement: 'L\'accès durable n\'a pas été accordé.', echange_refuse: 'Le fournisseur a refusé la connexion.', adresse_inconnue: 'Le fournisseur n\'a pas donné l\'adresse de la boîte.',
     fournisseur_injoignable: 'Le fournisseur ne répond pas.', oauth_non_configure: 'Cette connexion n\'est pas disponible.', trop_de_boites: 'Tu as déjà ' + BOITES_MAX + ' boîtes reliées.', compte_inactif: 'Ton compte n\'est plus actif.', erreur: 'La connexion n\'a pas pu aboutir.',
   };
   /* ⛔ LA PAGE DE RETOUR NE PORTE AUCUN SCRIPT (la politique de la page les refuse) et ne répète RIEN de ce qui arrive dans l'adresse : un code FIXE, jamais le texte du fournisseur. Elle
@@ -479,6 +494,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     const ok = code === 'ok';
     const cible = (ok ? '/?boites=ok' : '/?boites=erreur&c=' + encodeURIComponent(code)) + '#courrier';
     const msg = MESSAGES_RETOUR[code] || MESSAGES_RETOUR.erreur;
+    res.clearCookie(NOM_COOKIE_OA, { path: '/api/boites-mail/oauth' });   // le cookie du navigateur a servi (ou ne servira plus) : il part
     res.set({ 'Cache-Control': 'no-store', 'Content-Type': 'text/html; charset=utf-8' });
     res.status(200).send('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'
       + '<meta http-equiv="refresh" content="0;url=' + cible + '"><title>OP MESSAGES</title></head><body style="font-family:system-ui,-apple-system,sans-serif;padding:24px;line-height:1.5">'
@@ -489,11 +505,11 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     const q = req.query || {};
     if (typeof q.error === 'string') {
       /* le fournisseur refuse (« access_denied ») : on consomme quand même le `state` — il ne resservira pas */
-      try { await oauth.retour({ code: '', state: typeof q.state === 'string' ? q.state : '' }); } catch (e) { /* attendu : « code_absent » */ }
+      try { await oauth.retour({ code: '', state: typeof q.state === 'string' ? q.state : '', navigateur: cookieDe(req, NOM_COOKIE_OA) }); } catch (e) { /* attendu : « code_absent » */ }
       return pageRetour(res, 'refuse');
     }
     try {
-      const r = await oauth.retour({ code: typeof q.code === 'string' ? q.code : '', state: typeof q.state === 'string' ? q.state : '' });
+      const r = await oauth.retour({ code: typeof q.code === 'string' ? q.code : '', state: typeof q.state === 'string' ? q.state : '', navigateur: cookieDe(req, NOM_COOKIE_OA) });
       const s0 = oauth.serveurs(r.fournisseur);
       const s = test && test.serveurs ? { imapHost: test.serveurs.imap.hote, imapPort: test.serveurs.imap.port, smtpHost: test.serveurs.smtp.hote, smtpPort: test.serveurs.smtp.port } : s0;   // le crochet des bancs : de faux serveurs, jamais ceux du fournisseur
       let c;
@@ -509,6 +525,12 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
       return pageRetour(res, code);
     }
   };
+
+  /* ⛔ AUCUN GESTIONNAIRE NE REJETTE SANS RÉPONSE : un rejet non rattrapé ARRÊTE le processus (`index.js`) — chaque gestionnaire, synchrone ou asynchrone, est enveloppé ; ce qui lui échappe répond `boites_mail_erreur`. */
+  for (const k of Object.keys(H)) {
+    const f = H[k];
+    H[k] = (req, res, next) => { let r; try { r = f(req, res, next); } catch (e) { repErr(res, e); return; } if (r && typeof r.catch === 'function') r.catch((e) => repErr(res, e)); };
+  }
 
   function sante() {
     const o = oauthDispo();
