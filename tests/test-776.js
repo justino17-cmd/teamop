@@ -206,7 +206,7 @@ const iC = fI.indexOf('const card=i=>{'), fC = iC > 0 ? fI.slice(iC, fI.indexOf(
 vrai('population : le modèle de ligne est trouvé', fC.length > 1000, fC.length);
 vrai('la ligne, son heure, son compte à rebours et ses gestes portent leur classe',
   /class="pl-row int-l"/.test(fC) && /class="int-h"/.test(fC) && /class="int-cd"/.test(fC) && /class="int-a"/.test(fC));
-vrai('⛔ la liste est enveloppée dans le conteneur qu’on interroge', /list\.length\? `<div class="int-liste">\$\{body\}<\/div>(\$\{listeSuite\([^`]*\)\})?`/.test(fI));
+vrai('⛔ la liste est enveloppée dans le conteneur qu’on interroge', /list\.length\? `<div class="int-liste">\$\{body\}<\/div>`/.test(fI));
 vrai('… et ce conteneur est interrogeable sur sa largeur', /html\[data-refonte\] \.int-liste\{container-type:inline-size\}/.test(SRC));
 const cq = regle('html[data-refonte] .int-l{flex-wrap:wrap;row-gap:10px!important}');
 vrai('⛔ les deux étages dépendent de la largeur de la LISTE (requête de conteneur), pas de l’écran',

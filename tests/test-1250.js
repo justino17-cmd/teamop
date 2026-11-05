@@ -32,8 +32,6 @@ function bloc(debut) {
   return '';
 }
 const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
-/* nuit du 5 novembre 2026 (test-3291) : les longues listes s'affichent par pages — l'aide (`listeLim`, `listeSuite`…) est une pièce de plus du bac à sable */
-const LISTE_AIDE = () => [ligne('const LISTE_PAGE='), ligne('let _listeLim='), bloc('function listeLim('), bloc('function listePlus('), bloc('function listeSuite(')].join('\n').replace(/\blet _listeLim\b/, 'var _listeLim').replace(/\bconst (LISTE_\w+)/g, 'var $1');
 
 console.log('\n── 1250 · 0. la population ──');
 const VF = bloc('views.factures=function(){'), LATE = bloc('function factIsLate(f){'), DT = bloc('function docTot(d){'), DND = bloc('function docNumsDoubles(coll){'),
@@ -49,7 +47,7 @@ function monde(factures, interventions, devis) {
     db: { factures, interventions: interventions || [], devis: devis || [], clients: [{ id: 'c1', nom: 'Boulangerie Au Bon Pain' }] },
     currentUser: { id: 'u1' } };
   vm.createContext(ctx);
-  vm.runInContext(`${LISTE_AIDE()}\n
+  vm.runInContext(`
     function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
     let _NF; ${EUR}
     const FACT_ST={brouillon:{l:'En attente',c:'st-grey'},envoyee:{l:'Envoyée',c:'st-blue'},payee:{l:'Payée',c:'st-green'},retard:{l:'En retard',c:'st-red'}};
