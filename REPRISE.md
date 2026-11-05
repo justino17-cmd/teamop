@@ -38,6 +38,7 @@ côté, je veux que ce soit prêt à mon réveil ».
   script `configurer-boites-mail.js` (saisie masquée). **INERTE sans le bloc `boitesMail`** (503, « Bientôt »). Relu deux fois par `gardien` :
   `state` OAuth lié au navigateur par un cookie dédié (`__Host-opm-oa`, **Path=/** — sur un autre chemin le préfixe `__Host-` le fait rejeter),
   échéances par commande IMAP, emplacements par personne / réseau / service, réponses sans texte d'exception. Bancs 3270-3275.
+  ⏸️ **Justin, 5 novembre 2026 : « on le fera quand OP MESSAGES aura son serveur »** — reste éteint jusque-là (rappel planifié le 6/11 à 14 h).
   **Pour l'ouvrir (Justin)** : déployer la bêta d'OP MESSAGES (automatique après fusion), puis sur le VPS
   `OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-boites-mail.js ouvrir` (puis `google`, `microsoft`),
   `systemctl restart teamop-msg@beta` ; adresses de retour à déclarer chez Google et dans Azure :
