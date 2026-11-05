@@ -57,7 +57,7 @@ const lancer = (dossier, sortie) => spawnSync(process.execPath, [path.join(dossi
     ['forceUpdate', 'async function forceUpdate(){'], ['Assistant devis', "  if(!adCode()){\n    $('content').innerHTML=`<div class=\"card\"><div class=\"card-head\"><h3>🔒 Code d'accès requis</h3></div>"],
     ['Devis IA — message', "  if(demande.trim().length<5){ show('Décris la prestation d\\'abord.'); return; }\n"],
     ['Devis IA — état', "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  fetch(PUSH_API+'/api/devis/etat?team='"],
-    ['sms: (location.href)', "location.href='sms:'+"], ['mailto: (location.href)', "location.href='mailto:'+"], ['mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=']
+    ['sms: (location.href)', "location.href='sms:'+"], ['mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=']
   ];
   vrai('(population) ' + GARDES.length + ' gardes à éprouver, chacune avec un motif qui existe UNE fois ou plus dans app.html', GARDES.length >= 27 && GARDES.every(g => APP.indexOf(g[1]) >= 0));
   const tombees = [];
@@ -350,8 +350,9 @@ function fenetre(opts) {
     vrai('⛔ demoNav.href = sms: / mailto: : la page ne bouge pas, la personne lit « rien n\'est envoyé » et que la messagerie ne s\'ouvre pas', loc.href === 'http://127.0.0.1/demo.html' && toasts.length === 2
       && toasts.every(t => t.indexOf(MSG) >= 0 && /messagerie ne s’ouvre pas/.test(t)), toasts);
     const code = N;   // jamais le nettoyage « tout bloc /* … */ » : il avale du vrai code (CLAUDE.md)
-    egal('(population) sept affectations détournées vers demoNav.href dans la page ; AUCUNE affectation de location.href vers sms:, mailto: ou tel: ne subsiste',
-      [(code.match(/demoNav\.href\s*=/g) || []).length, /location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(code)], [7, false]);
+    /* six depuis la v802 : l'envoi d'un courriel n'ouvre plus de brouillon mailto: quand il échoue (srvMail) */
+    egal('(population) six affectations détournées vers demoNav.href dans la page ; AUCUNE affectation de location.href vers sms:, mailto: ou tel: ne subsiste',
+      [(code.match(/demoNav\.href\s*=/g) || []).length, /location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(code)], [6, false]);
   }
 
   console.log('\n   — les écrans qui promettaient une fonction absente d\'ici');

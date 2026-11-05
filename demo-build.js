@@ -113,9 +113,9 @@ remplacer('Devis IA — message', "  if(demande.trim().length<5){ show('Décris 
   "  if(demande.trim().length<5){ show('Décris la prestation d\\'abord.'); return; }\n  if(DEMO_PUBLIQUE){ show(demoPubliqueDevisIAMessage()); return; }\n");
 remplacer('Devis IA — état', "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  fetch(PUSH_API+'/api/devis/etat?team='",
   "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  if(DEMO_PUBLIQUE) demoPubliqueDevisIAEtat(); else fetch(PUSH_API+'/api/devis/etat?team='");
-/* les liens sms: et mailto: écrits par l'application ouvriraient la messagerie du visiteur avec le contenu de l'exemple : sept affectations, détournées vers `demoNav` */
+/* les liens sms: et mailto: écrits par l'application ouvriraient la messagerie du visiteur avec le contenu de l'exemple : six affectations, détournées vers `demoNav`
+   (sept jusqu'à la v802 : l'envoi d'un courriel n'ouvre plus de brouillon `mailto:` quand il échoue — `srvMail`) */
 remplacer('sms: (location.href)', "location.href='sms:'+", "demoNav.href='sms:'+", 4);
-remplacer('mailto: (location.href)', "location.href='mailto:'+", "demoNav.href='mailto:'+", 1);
 remplacer('mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=', 'demoNav.href=`mailto:${mail}?subject=', 2);
 if (/location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(s)) echec('une affectation de location.href vers sms:/mailto:/tel: subsiste : elle ouvrirait la messagerie du visiteur');
 

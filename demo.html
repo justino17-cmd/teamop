@@ -8513,6 +8513,26 @@ html[data-theme="light"] select option{ background-color:#FFFFFF; color:#14213A;
 .pdff-gestes .pdff-b:first-child{grid-column:1/-1}
 .pdff-gestes .pdff-b[disabled]{opacity:.45}
 html[data-theme="dark"] .pdff-carte{background:#14213A}
+/* v802 — la fenêtre PDF en plein écran : l'aperçu DANS l'application (Justin : « ça ouvre un autre lien, je voulais pas ça ») */
+.pdff.pdff-plein{align-items:stretch}
+.pdff-plein .pdff-carte{width:100%;height:100%;max-width:none;border-radius:0;display:flex;flex-direction:column;min-height:0;padding:calc(10px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom))}
+@media (min-width:700px){ .pdff.pdff-plein{align-items:center} .pdff-plein .pdff-carte{width:min(1120px,96vw);height:96dvh;border-radius:18px;padding:14px 16px 14px} }
+.pdff-plein .pdff-tete{margin-bottom:2px}
+.pdff-plein .pdff-tete b{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdff-zoom{display:flex;gap:4px;flex:0 0 auto}
+.pdff-zoom .btn,.pdff-plein .pdff-tete>.btn{min-width:40px;min-height:40px;justify-content:center;padding:0 10px}
+.pdff-plein .pdff-etat{margin-bottom:8px;font-size:12.5px}
+.pdff-vue{flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#525659;border-radius:12px;padding:10px}
+.pdff-vue canvas,.pdfap-pages canvas{display:block;margin:0 auto 10px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.35);max-width:none}
+.pdff-vue canvas:last-child,.pdfap-pages canvas:last-child{margin-bottom:0}
+.pdff-vue.pdfvue-iframe{padding:0;overflow:hidden}
+.pdff-vue iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+.pdfap-vue.pdfap-pages{overflow:auto;-webkit-overflow-scrolling:touch;padding:10px}
+.pdfap-vue.pdfap-pages.pdfvue-iframe{padding:0;overflow:hidden}
+.pdff-plein .pdff-gestes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pdff-plein .pdff-gestes .pdff-b{flex:1 1 0;min-width:0!important;min-height:46px;grid-column:auto;font-size:14px;padding-left:8px;padding-right:8px}
+.pdff-plein .pdff-gestes .pdff-b.primary{flex:1 1 100%}
+@media (min-width:700px){ .pdff-plein .pdff-gestes .pdff-b.primary{flex:1.4 1 0} .pdff-plein .pdff-gestes .pdff-b{font-size:15px} }
 
 /* v783 — LES CHAMPS NUS (Justin, 30 octobre 2026, capture de la fiche d'une intervention, « Produits & matériel » : « refaire les
    couleurs ici aussi, et vérifier s'il n'y en a pas d'autres »). Un <input>, un <select> ou un <textarea> écrit SANS classe et hors
@@ -24696,7 +24716,10 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
       try{ const r2=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(p2)});
         if(r2.ok){ _srvMailErr=''; toast(okMsg||('✉️ E-mail envoyé à '+to)); return true; }
         const d2=await r2.json().catch(()=>({})); _srvMailErr=d2.error||('erreur serveur HTTP '+r2.status); }catch(e2){ _srvMailErr='serveur d\'envoi injoignable'; } }
-    toast((d.code==='a_reconnecter'?'Rien n’est parti : ta boîte mail doit être reconnectée (Paramètres → E-mails à tes clients → Reconnecter)':'Envoi refusé ('+_srvMailErr+') : ta boîte mail a refusé l’envoi')+(opts&&opts.sansMailto?(d.code==='a_reconnecter'?'':' — rien n’est parti'):' — e-mail préparé dans Mail'));
+    /* v802 : rien ne part ailleurs — ni par la plateforme en silence, ni par un brouillon de Mail (voir plus bas) : le refus se DIT, longtemps
+       (9 s), avec QUI a refusé — la boîte de l'entreprise, ou le serveur d'envoi quand il n'y a pas de boîte. */
+    toast(d.code==='a_reconnecter'?'Rien n’est parti : ta boîte mail doit être reconnectée (Paramètres → E-mails à tes clients → Reconnecter)'
+      :'⚠️ Envoi refusé ('+_srvMailErr+') : '+((bt.mb||bt.smtp)?'ta boîte mail a refusé l’envoi':'le serveur d’envoi a refusé')+' — rien n’est parti',9000);
     /* v740 : le DOMAINE seulement. L'adresse d'un client n'a rien à faire dans un rapport d'erreur
        (pas de données personnelles de clients dans les journaux) ; le domaine suffit à voir qu'un
        fournisseur de messagerie refuse. */
@@ -24705,12 +24728,15 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
        publique (c'est ce qui sert à voir qu'Orange ou Gmail refuse), sinon « domaine d'entreprise » ; et une adresse que le serveur de
        la boîte recopie dans son refus (« 550 <x@y> unknown ») ne part pas non plus. */
     try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+String(_srvMailErr).replace(/[^\s<>"'@]+@[^\s<>"'@]+/g,'[adresse]'),src:'srvMail',line:0,stack:'domaine du destinataire : '+domaineDiag(to),ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
-  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable'+(opts&&opts.sansMailto?' — rien n’est parti, réessaie quand le réseau revient':' — e-mail préparé dans Mail')); }
-  /* ⛔ v740 — un courriel qui porte une PIÈCE JOINTE ne se rabat pas sur un brouillon : le lien
-     mailto: ne sait pas joindre de fichier, et le brouillon dirait « ci-joint » sans rien joindre.
-     L'appelant (le plan d'implantation) le demande par `sansMailto` ; il n'écrit alors rien. */
-  if(opts&&opts.sansMailto) return false;
-  demoNav.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent((opts&&opts.mailtoBody)||body);
+  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('⚠️ Serveur injoignable — rien n’est parti, réessaie quand le réseau revient',9000); }
+  /* ⛔ v802 — PLUS AUCUN BROUILLON `mailto:`, POUR AUCUN ENVOI (Justin, 5 novembre 2026, capture de l'application Mail du Mac ouverte
+     sur un devis : « pourquoi en mail le PDF s'ouvre pas, et pourquoi ça utilise pas le mail de l'application »). Quand l'envoi
+     échouait (boîte qui refuse, serveur qui refuse ou injoignable), srvMail ouvrait le logiciel de courrier de l'appareil avec le
+     TEXTE du document : sans le PDF (un lien mailto: ne joint rien), depuis l'adresse personnelle réglée dans ce logiciel, et sans
+     que l'application sache si quelqu'un appuyait sur « Envoyer ». Le client recevait au mieux un devis sans devis. Un envoi part
+     PAR L'APPLICATION ou il ne part pas, et ça se dit (toast ci-dessus) ; le document reste en brouillon (« Envoyé » ne se pose que
+     sur `true`). `sansMailto` et `mailtoBody` sont encore acceptés (des appelants les passent), ils ne changent plus rien.
+     `tests/test-3258.js`. */
   return false;
 }
 /* un courriel IDENTIQUE (destinataire, objet, texte, pièces, boîte) déjà en route ne repart pas : le second appel attend la
@@ -26724,14 +26750,9 @@ async function papImplDocument(cid,i,st){ if(!docNomGarde(null)) return {err:'In
 async function papImplApercu(cid,intId){
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   if(!papImplPlans(cid).length){ toast('Aucun plan avec des postes pour ce client'); return; }
-  const w=window.open('','_blank');            // ouverte dans le geste, sinon le navigateur la bloque
+  /* v802 : dans la fenêtre PDF de l'application, plus dans un onglet */
   const i=(db.interventions||[]).find(x=>x.id===intId)||null;
-  const d=await papImplDocument(cid,i,papImplEtat(cid));
-  if(d.err){ try{ w&&w.close(); }catch(e){} toast(d.err); return; }
-  const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
-  const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-  if(w) w.location.href=u; else toast('Autorise les pop-ups pour voir le PDF');
-  setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
+  return pdfFeuille({titre:'Plan d’implantation', nom:'plan-implantation', fabrique:()=>papImplDocument(cid,i,papImplEtat(cid))}); }
 /* L'envoi : le PDF d'abord, le courriel ensuite, la trace SEULEMENT si le courriel est parti.
    Aujourd'hui le plan était marqué « ✓ Envoyé » avant de savoir si le courriel partait. */
 let _papImplEnvoi=false;
@@ -34503,6 +34524,14 @@ function courrierSource(){
   let boites=[];   // les dernières boîtes lues : une réponse sans boîte nommée se range dans la première
   /* un refus se LIT sur le code d'abord ; son corps (JSON ou text/plain) ne sert qu'à dire pourquoi, et peut ne pas se lire */
   const refus=async(r,defaut)=>{ let d=null; try{ d=await r.json(); }catch(e){}
+    /* v802 — sur la BÊTA, un 403 ne parle pas de « clé » : il dit QUOI FAIRE (Justin, 5 novembre 2026, capture : « Boîtes mail illisibles —
+       la clé de l'entreprise n'est pas reconnue »). Deux causes, et deux gestes : l'appareil est sur un autre espace (il le rejoint, Paramètres
+       ou la fenêtre qui s'ouvre), ou sa session date d'avant la 801 et n'a pas de jeton d'accès (se déconnecter, se reconnecter une fois). */
+    if(BETA_ESSAI&&r.status===403){ let autre=''; try{ autre=(typeof betaEspaceAutre==='function')?betaEspaceAutre():''; }catch(e){}
+      let sansJeton=false; try{ sansJeton=!localStorage.getItem('elanD_beta_jeton'); }catch(e){}
+      if(autre){ if(!window._betaRejoindrePropose){ window._betaRejoindrePropose=true; setTimeout(()=>{ try{ if(typeof betaEspaceRejoindre==='function') betaEspaceRejoindre(); }catch(e){} },0); }
+        return new Error('Cet appareil est sur l’espace « '+autre+' », pas sur celui de la bêta : rejoins l’espace de la bêta (Paramètres → Outils de bêta) pour relier tes boîtes.'); }
+      if(sansJeton) return new Error('Ta connexion à la bêta date d’avant la mise à jour : déconnecte-toi puis reconnecte-toi une fois, et tes boîtes mail se relieront.'); }
     return new Error((d&&d.error)||(r.status===403?'accès refusé par le serveur — la clé de l’entreprise n’est pas reconnue':defaut+' (HTTP '+r.status+')')); };
   /* UNE lecture de /api/replies par relevé, partagée par les boîtes (le serveur rend toute la réception de l'entreprise d'un coup) */
   const reponses=()=>{ const t=Date.now(); if(_courrierRep&&t-_courrierRep.t<3000) return _courrierRep.p;
@@ -35360,12 +35389,8 @@ function bonQtyClose(){ const ov=$('bon-qty'); if(ov) ov.remove(); renderBonLign
 function bonQtyEchap(e){ if(e.key==='Escape' && document.getElementById('bon-qty')){ e.stopPropagation(); e.preventDefault(); bonQtyClose(); } }
 window.addEventListener('keydown',bonQtyEchap,true);
 /* Ouvre un PDF à partir d'un objet bon (réel ou brouillon) */
-function _bonPdfOpenObj(tmp){
-  try{ const s=bonPdfStr(tmp); const bytes=new Uint8Array(s.length); for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
-    const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-    if(!window.open(u,'_blank')) toast('Autorise les pop-ups pour voir le PDF');
-    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
-  }catch(e){ console.error(e); toast('Aperçu PDF impossible'); } }
+function _bonPdfOpenObj(tmp){   /* v802 : dans la fenêtre PDF de l'application, plus dans un onglet */
+  return pdfFeuille({titre:'Bon de commande '+((typeof bonNum==='function'&&bonNum(tmp))||''), nom:(typeof bonNum==='function'&&bonNum(tmp))||'bon-de-commande', fabrique:async()=>({pdf:bonPdfStr(tmp)})}); }
 /* Aperçu PDF du bon en cours de saisie — JAMAIS mélangé : si plusieurs fournisseurs, un PDF par fournisseur */
 let _bonDraftGroups=null;
 function bonPdfDraft(){ const form=$('bonform'); const f=form?Object.fromEntries(new FormData(form)):{};
@@ -36219,40 +36244,202 @@ function bonPdfDownload(id){ const b=db.bons.find(x=>x.id===id); if(!b) return;
    fenêtre posée PAR-DESSUS (la fiche d'en dessous reste ouverte, sa saisie aussi) ; chaque geste part
    ensuite d'un toucher, donc le navigateur l'accepte. Une couche à part, jamais #modal : l'attestation ou
    le document métier qu'on est en train de remplir ne doit pas disparaître pour un aperçu. */
+/* ══ L'APERÇU DES PDF, DANS L'APPLICATION ET SUR TOUS LES APPAREILS (v802) ═══════════════════════════════════════════════════════════
+   Justin, 5 novembre 2026, capture d'un onglet `https://teamop.fr/<uuid>` : « quand je fais aperçu pour le PDF, ça ouvre un autre lien,
+   je voulais pas ça ». L'aperçu ouvrait le lecteur du navigateur dans un nouvel onglet (et un <iframe> ne suffit pas : Safari sur iPhone
+   n'y montre que la PREMIÈRE page, Chrome sur Android n'y montre RIEN — il n'a pas de lecteur intégré). Les PDF de l'application sont tous
+   écrits par l'application (mêmes fabriques, aucune bibliothèque) avec un petit jeu d'opérateurs connu : on les DESSINE donc nous-mêmes,
+   page par page, sur des <canvas> — le même fichier que celui qu'on télécharge et qu'on envoie, lu objet par objet (table xref), sans
+   dépendance. Un opérateur inconnu ne casse rien : il est compté (`r.inconnus`) et l'aperçu bascule sur le lecteur du navigateur DANS
+   la fenêtre (iframe), jamais dans un onglet. `tests/test-3258.js` dessine chaque fabrique dans un faux canvas et compare la mise en page
+   au rendu de poppler (`pdftoppm`). */
+function pdfLire(s){   // s : la chaîne d'octets du PDF (un caractère = un octet)
+  const objs={}; const sx=s.lastIndexOf('startxref'); if(sx<0) throw new Error('pdf sans xref');
+  const xo=parseInt(s.slice(sx+9).trim(),10); const xr=s.slice(xo,s.indexOf('trailer',xo));
+  const lignes=xr.split('\n').map(x=>x.trim()).filter(Boolean); let num=0; const offs=[];
+  for(let k=1;k<lignes.length;k++){ const m=/^(\d+) (\d+)$/.exec(lignes[k]); if(m){ num=+m[1]; continue; } const e=/^(\d{10}) \d{5} ([nf])/.exec(lignes[k]); if(e){ if(e[2]==='n') offs.push([num,+e[1]]); num++; } }
+  offs.sort((a,b)=>a[1]-b[1]);
+  offs.forEach(([n,o],k)=>{ const fin=k+1<offs.length?offs[k+1][1]:xo; const t=s.slice(o,fin); const d=t.indexOf('obj')+3; let corps=t.slice(d); const e=corps.lastIndexOf('endobj'); if(e>=0) corps=corps.slice(0,e);
+    const st=corps.indexOf('stream'); if(st>=0&&/>>\s*$/.test(corps.slice(0,st))){ let a=st+6; if(corps[a]==='\r') a++; if(corps[a]==='\n') a++; let b=corps.lastIndexOf('endstream'); let flux=corps.slice(a,b); if(flux.endsWith('\n')) flux=flux.slice(0,-1); if(flux.endsWith('\r')) flux=flux.slice(0,-1); objs[n]={dict:corps.slice(0,st).trim(),flux}; }
+    else objs[n]={dict:corps.trim()}; });
+  const ref=(t,cle)=>{ const m=new RegExp('/'+cle+'\\s+(\\d+) 0 R').exec(t); return m?+m[1]:null; };
+  const pagesN=Object.keys(objs).find(n=>/\/Type\s*\/Pages\b/.test(objs[n].dict)); if(!pagesN) throw new Error('pdf sans pages');
+  const kids=[...(/\/Kids\s*\[([^\]]*)\]/.exec(objs[pagesN].dict)||['',''])[1].matchAll(/(\d+) 0 R/g)].map(m=>+m[1]);
+  return kids.map(kn=>{ const p=objs[kn].dict; const mb=(/\/MediaBox\s*\[([^\]]+)\]/.exec(p)||[0,'0 0 595 842'])[1].trim().split(/\s+/).map(Number);
+    const polices={}; const fm=/\/Font\s*<<([^>]*)>>/.exec(p); if(fm) for(const m of fm[1].matchAll(/\/(\w+)\s+(\d+) 0 R/g)){ const fd=(objs[+m[2]]||{}).dict||''; polices[m[1]]=(/\/BaseFont\s*\/([\w-]+)/.exec(fd)||[0,'Helvetica'])[1]; }
+    const images={}; const xm=/\/XObject\s*<<([^>]*)>>/.exec(p); if(xm) for(const m of xm[1].matchAll(/\/(\w+)\s+(\d+) 0 R/g)){ const o=objs[+m[2]]; if(o&&o.flux!==undefined) images[m[1]]={dict:o.dict,octets:o.flux}; }
+    let contenu=''; const cr=/\/Contents\s*(\[([^\]]*)\]|(\d+) 0 R)/.exec(p);
+    if(cr){ const ids=cr[2]?[...cr[2].matchAll(/(\d+) 0 R/g)].map(m=>+m[1]):[+cr[3]]; contenu=ids.map(i=>(objs[i]||{}).flux||'').join('\n'); }
+    return {l:mb[2]-mb[0], h:mb[3]-mb[1], x0:mb[0], y0:mb[1], polices, images, contenu}; }); }
+/* les octets WinAnsi d'une chaîne PDF → texte (128-159 : la table de la page de code 1252) */
+const _PDF_W1252={128:'€',130:'‚',131:'ƒ',132:'„',133:'…',134:'†',135:'‡',136:'ˆ',137:'‰',138:'Š',139:'‹',140:'Œ',142:'Ž',145:'‘',146:'’',147:'“',148:'”',149:'•',150:'–',151:'—',152:'˜',153:'™',154:'š',155:'›',156:'œ',158:'ž',159:'Ÿ'};
+function pdfJetons(c){ const t=[]; let i=0; const n=c.length;
+  while(i<n){ const ch=c[i];
+    if(ch===' '||ch==='\n'||ch==='\r'||ch==='\t'||ch==='\f'){ i++; continue; }
+    if(ch==='%'){ while(i<n&&c[i]!=='\n') i++; continue; }
+    if(ch==='('){ let p=1, o=''; i++; while(i<n&&p>0){ const x=c[i];
+        if(x==='\\'){ const y=c[i+1]; if(/[0-7]/.test(y)){ let m=/^[0-7]{1,3}/.exec(c.slice(i+1,i+4))[0]; o+=String.fromCharCode(parseInt(m,8)); i+=1+m.length; continue; }
+          o+=({n:'\n',r:'\r',t:'\t',b:'\b',f:'\f'})[y]||y; i+=2; continue; }
+        if(x==='(') p++; else if(x===')'){ p--; if(!p){ i++; break; } } o+=x; i++; }
+      t.push({s:[...o].map(x=>{ const k=x.charCodeAt(0); return _PDF_W1252[k]||x; }).join('')}); continue; }
+    if(ch==='['){ t.push({a:'['}); i++; continue; } if(ch===']'){ t.push({a:']'}); i++; continue; }
+    if(ch==='<'&&c[i+1]==='<'){ t.push({a:'<<'}); i+=2; continue; } if(ch==='>'&&c[i+1]==='>'){ t.push({a:'>>'}); i+=2; continue; }
+    if(ch==='<'){ const j=c.indexOf('>',i); const hx=c.slice(i+1,j).replace(/\s/g,''); let o=''; for(let k=0;k<hx.length;k+=2) o+=String.fromCharCode(parseInt((hx.slice(k,k+2)+'0').slice(0,2),16)); t.push({s:o}); i=j+1; continue; }
+    if(ch==='/'){ let j=i+1; while(j<n&&!/[\s\/\[\]\(\)<>%]/.test(c[j])) j++; t.push({nom:c.slice(i+1,j)}); i=j; continue; }
+    let j=i; while(j<n&&!/[\s\/\[\]\(\)<>%]/.test(c[j])) j++; if(j===i){ i++; continue; } const m=c.slice(i,j); i=j;
+    if(/^[+\-]?(\d+\.?\d*|\.\d+)$/.test(m)) t.push({n:+m}); else t.push({op:m}); }
+  return t; }
+const PDF_OPS_CONNUS=new Set(['q','Q','cm','w','J','j','M','d','ri','i','gs','re','m','l','c','v','y','h','S','s','f','F','f*','B','B*','b','b*','n','W','W*','rg','RG','g','G','k','K','cs','CS','sc','SC','scn','SCN','BT','ET','Tf','Td','TD','Tm','T*','TL','Tc','Tw','Tz','Ts','Tr','Tj','TJ',"'",'"','Do']);
+/* Dessine une page lue par pdfLire dans un contexte 2D (le canvas, ou un faux canvas dans un banc). `ech` : pixels par point PDF.
+   Rend {inconnus:[…]} — un opérateur hors de la liste n'est pas dessiné, il est NOMMÉ. Les images (JPEG) sont dessinées si `imgs[nom]`
+   (des HTMLImageElement déjà chargés) est fourni. */
+function pdfDessinerPage(ctx,pg,ech,imgs){
+  const inconnus=new Set(); imgs=imgs||{};
+  ctx.save(); ctx.setTransform(ech,0,0,-ech,-pg.x0*ech,(pg.h+pg.y0)*ech);
+  ctx.fillStyle='#fff'; ctx.fillRect(pg.x0,pg.y0,pg.l,pg.h); ctx.fillStyle='#000'; ctx.strokeStyle='#000'; ctx.lineWidth=1;
+  const pile=[]; let enTexte=false; const ts={police:'Helvetica',taille:12,Tc:0,Tw:0,Tz:1,TL:0,Ts:0};
+  let Tm=[1,0,0,1,0,0], Tlm=[1,0,0,1,0,0]; let chemin=false; let clipEnAttente=0;
+  const coul=(a)=>a.length===1?`rgb(${Math.round(a[0]*255)},${Math.round(a[0]*255)},${Math.round(a[0]*255)})`
+    :a.length===3?`rgb(${Math.round(a[0]*255)},${Math.round(a[1]*255)},${Math.round(a[2]*255)})`
+    :`rgb(${Math.round(255*(1-a[0])*(1-a[3]))},${Math.round(255*(1-a[1])*(1-a[3]))},${Math.round(255*(1-a[2])*(1-a[3]))})`;
+  const mul=(a,b)=>[a[0]*b[0]+a[1]*b[2],a[0]*b[1]+a[1]*b[3],a[2]*b[0]+a[3]*b[2],a[2]*b[1]+a[3]*b[3],a[4]*b[0]+a[5]*b[2]+b[4],a[4]*b[1]+a[5]*b[3]+b[5]];
+  const police=()=>{ const f=ts.police||'Helvetica'; const gras=/Bold/i.test(f), it=/Oblique|Italic/i.test(f);
+    return (it?'italic ':'')+(gras?'bold ':'')+'100px Helvetica, Arial, "Liberation Sans", sans-serif'; };
+  const fin=()=>{ if(clipEnAttente){ ctx.clip(clipEnAttente===2?'evenodd':'nonzero'); clipEnAttente=0; } ctx.beginPath(); chemin=false; };
+  /* la police à 100 px puis réduite : certains navigateurs arrondissent ou plafonnent une police de 1 px sur un canvas */
+  const ecrire=(txt)=>{ if(!txt) return; ctx.save(); const m=mul([ts.taille*ts.Tz,0,0,ts.taille,0,ts.Ts],Tm); ctx.transform(m[0],m[1],m[2],m[3],m[4],m[5]); ctx.scale(0.01,-0.01);
+    ctx.font=police(); ctx.textBaseline='alphabetic';
+    if(!ts.Tc&&!ts.Tw){ ctx.fillText(txt,0,0); const w=ctx.measureText(txt).width/100; ctx.restore(); Tm=mul([1,0,0,1,w*ts.taille*ts.Tz,0],Tm); return; }
+    let x=0; for(const ch of txt){ ctx.fillText(ch,x*100,0); x+=ctx.measureText(ch).width/100+(ts.Tc/ts.taille)+(ch===' '?ts.Tw/ts.taille:0); } ctx.restore(); Tm=mul([1,0,0,1,x*ts.taille*ts.Tz,0],Tm); };
+  const T=pdfJetons(pg.contenu); let o=[];
+  for(const j of T){
+    if(j.op===undefined){ o.push(j); continue; }
+    const op=j.op, N=k=>(o[k]&&o[k].n!==undefined)?o[k].n:0;
+    switch(op){
+      case 'q': ctx.save(); pile.push({ts:Object.assign({},ts)}); break;
+      case 'Q': ctx.restore(); { const p=pile.pop(); if(p) Object.assign(ts,p.ts); } break;
+      case 'cm': ctx.transform(N(0),N(1),N(2),N(3),N(4),N(5)); break;
+      case 'w': ctx.lineWidth=N(0)||0.1; break;
+      case 'J': ctx.lineCap=['butt','round','square'][N(0)]||'butt'; break;
+      case 'j': ctx.lineJoin=['miter','round','bevel'][N(0)]||'miter'; break;
+      case 'd': { const arr=[]; for(const x of o){ if(x.n!==undefined) arr.push(x.n); } const ph=arr.pop()||0; try{ ctx.setLineDash(arr); ctx.lineDashOffset=ph; }catch(e){} } break;
+      case 're': if(!chemin){ ctx.beginPath(); chemin=true; } ctx.rect(N(0),N(1),N(2),N(3)); break;
+      case 'm': if(!chemin){ ctx.beginPath(); chemin=true; } ctx.moveTo(N(0),N(1)); break;
+      case 'l': ctx.lineTo(N(0),N(1)); break;
+      case 'c': ctx.bezierCurveTo(N(0),N(1),N(2),N(3),N(4),N(5)); break;
+      case 'v': { /* premier point de contrôle = point courant : approximation par le second */ ctx.bezierCurveTo(N(0),N(1),N(0),N(1),N(2),N(3)); } break;
+      case 'y': ctx.bezierCurveTo(N(0),N(1),N(2),N(3),N(2),N(3)); break;
+      case 'h': ctx.closePath(); break;
+      case 'S': ctx.stroke(); fin(); break;
+      case 's': ctx.closePath(); ctx.stroke(); fin(); break;
+      case 'f': case 'F': ctx.fill('nonzero'); fin(); break;
+      case 'f*': ctx.fill('evenodd'); fin(); break;
+      case 'B': ctx.fill('nonzero'); ctx.stroke(); fin(); break;
+      case 'B*': ctx.fill('evenodd'); ctx.stroke(); fin(); break;
+      case 'b': ctx.closePath(); ctx.fill('nonzero'); ctx.stroke(); fin(); break;
+      case 'b*': ctx.closePath(); ctx.fill('evenodd'); ctx.stroke(); fin(); break;
+      case 'n': fin(); break;
+      case 'W': clipEnAttente=1; break; case 'W*': clipEnAttente=2; break;
+      case 'rg': ctx.fillStyle=coul([N(0),N(1),N(2)]); break;
+      case 'RG': ctx.strokeStyle=coul([N(0),N(1),N(2)]); break;
+      case 'g': ctx.fillStyle=coul([N(0)]); break;
+      case 'G': ctx.strokeStyle=coul([N(0)]); break;
+      case 'k': ctx.fillStyle=coul([N(0),N(1),N(2),N(3)]); break;
+      case 'K': ctx.strokeStyle=coul([N(0),N(1),N(2),N(3)]); break;
+      case 'BT': enTexte=true; Tm=[1,0,0,1,0,0]; Tlm=[1,0,0,1,0,0]; break;
+      case 'ET': enTexte=false; break;
+      case 'Tf': ts.police=pg.polices[(o[0]||{}).nom]||'Helvetica'; ts.taille=N(1)||12; break;
+      case 'Td': Tlm=mul([1,0,0,1,N(0),N(1)],Tlm); Tm=Tlm.slice(); break;
+      case 'TD': ts.TL=-N(1); Tlm=mul([1,0,0,1,N(0),N(1)],Tlm); Tm=Tlm.slice(); break;
+      case 'Tm': Tlm=[N(0),N(1),N(2),N(3),N(4),N(5)]; Tm=Tlm.slice(); break;
+      case 'T*': Tlm=mul([1,0,0,1,0,-ts.TL],Tlm); Tm=Tlm.slice(); break;
+      case 'TL': ts.TL=N(0); break; case 'Tc': ts.Tc=N(0); break; case 'Tw': ts.Tw=N(0); break; case 'Tz': ts.Tz=N(0)/100; break; case 'Ts': ts.Ts=N(0); break; case 'Tr': break;
+      case 'Tj': ecrire((o[0]||{}).s||''); break;
+      case "'": Tlm=mul([1,0,0,1,0,-ts.TL],Tlm); Tm=Tlm.slice(); ecrire((o[0]||{}).s||''); break;
+      case '"': ts.Tw=N(0); ts.Tc=N(1); Tlm=mul([1,0,0,1,0,-ts.TL],Tlm); Tm=Tlm.slice(); ecrire((o[2]||{}).s||''); break;
+      case 'TJ': for(const x of o){ if(x.s!==undefined) ecrire(x.s); else if(x.n!==undefined) Tm=mul([1,0,0,1,-x.n/1000*ts.taille*ts.Tz,0],Tm); } break;
+      case 'Do': { const nom=(o[0]||{}).nom, im=imgs[nom]; if(im){ ctx.save(); ctx.translate(0,1); ctx.scale(1,-1); try{ ctx.drawImage(im,0,0,1,1); }catch(e){} ctx.restore(); } else if(!pg.images[nom]) inconnus.add('Do:'+nom); } break;
+      default: if(!PDF_OPS_CONNUS.has(op)) inconnus.add(op);
+    }
+    void enTexte; o=[];
+  }
+  ctx.restore(); return {inconnus:[...inconnus]}; }
+/* Les images JPEG d'une page, chargées (promesse) : { nom → HTMLImageElement } */
+function pdfImagesPage(pg){ const out={}; return Promise.all(Object.keys(pg.images).map(nom=>new Promise(res=>{ const im=pg.images[nom];
+    if(!/DCTDecode/.test(im.dict)){ res(); return; }
+    const b=new Uint8Array(im.octets.length); for(let k=0;k<b.length;k++) b[k]=im.octets.charCodeAt(k)&255;
+    const u=URL.createObjectURL(new Blob([b],{type:'image/jpeg'})); const el=new Image(); el.onload=()=>{ out[nom]=el; res(); setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },5000); }; el.onerror=()=>res(); el.src=u; }))).then(()=>out); }
+/* Pose un PDF (chaîne d'octets) dans une zone : une page = un <canvas> à la largeur de la zone × `zoom`, à la densité de l'écran. Un échec du
+   lecteur maison, ou un opérateur qu'il ne connaît pas, et la zone reçoit le lecteur du navigateur (iframe) — DANS la zone, jamais un onglet.
+   Rend {mode:'canvas'|'iframe', pages, inconnus}. */
+async function pdfAfficher(zone,s,opts){ opts=opts||{}; if(!zone) return {mode:'aucun'};
+  const zoom=opts.zoom||1; let pages; try{ pages=pdfLire(s); }catch(e){ pages=null; }
+  const repli=(pourquoi)=>{ const u=opts.url||(()=>{ const u2=URL.createObjectURL(new Blob([pdfOctets(s)],{type:'application/pdf'})); zone._urlRepli=u2; return u2; })();
+    zone.innerHTML='<iframe title="Aperçu du document" src="'+u+'#toolbar=0&view=FitH"></iframe>'; zone.classList.add('pdfvue-iframe'); return {mode:'iframe',pourquoi}; };
+  if(!pages||!pages.length) return repli('lecture');
+  zone.classList.remove('pdfvue-iframe');
+  const largeurZone=Math.max(200,(zone.clientWidth||600)-20), hauteurZone=Math.max(200,(zone.clientHeight||800)-20), dpr=Math.min(3,window.devicePixelRatio||1);
+  const plafond=opts.plafond||920;   // une page A4 sur grand écran : lisible, sans devenir un poster
+  /* « page » : la page ENTIÈRE dans la zone (un écran plus large que haut : ordinateur, tablette couchée) ; « largeur » : la page à la largeur
+     (téléphone, ou sur demande) — `auto` choisit selon la forme de la zone */
+  const ajuster=opts.ajuster==='page'||(opts.ajuster!=='largeur'&&largeurZone>hauteurZone*0.9)?'page':'largeur';
+  const frag=document.createDocumentFragment(); const inconnus=new Set();
+  for(const pg of pages){ const base=ajuster==='page'?Math.min(largeurZone,plafond,hauteurZone*pg.l/pg.h):Math.min(largeurZone,plafond);
+    const cssW=Math.round(base*zoom), ech=cssW/pg.l;
+    const c=document.createElement('canvas'); c.width=Math.round(pg.l*ech*dpr); c.height=Math.round(pg.h*ech*dpr); c.style.width=cssW+'px'; c.style.height=Math.round(pg.h*ech)+'px';
+    c.setAttribute('role','img'); c.setAttribute('aria-label','Page '+(frag.childNodes.length+1)+' sur '+pages.length);
+    let r; try{ const imgs=await pdfImagesPage(pg); r=pdfDessinerPage(c.getContext('2d'),pg,ech*dpr,imgs); }catch(e){ return repli('dessin'); }
+    (r.inconnus||[]).forEach(x=>inconnus.add(x)); frag.appendChild(c); }
+  if(inconnus.size){ try{ console.warn('aperçu PDF : opérateurs non dessinés',[...inconnus]); }catch(e){} return Object.assign(repli('inconnus'),{inconnus:[...inconnus]}); }
+  zone.innerHTML=''; zone.appendChild(frag); return {mode:'canvas',pages:pages.length,inconnus:[],ajuster}; }
+
 let _pdfF=null;
 function pdfOctets(s){ const b=new Uint8Array(s.length); for(let k=0;k<s.length;k++) b[k]=s.charCodeAt(k)&255; return b; }
 function pdfFeuilleFermer(){ const el=document.getElementById('pdff'); if(el) el.remove();
   if(_pdfF&&_pdfF.url) setTimeout(((u)=>()=>{ try{URL.revokeObjectURL(u)}catch(e){} })(_pdfF.url),120000); _pdfF=null; }
 async function pdfFeuille(o){
   pdfFeuilleFermer();
-  const jeton={}; _pdfF={o,jeton,blob:null,url:'',nom:''};
-  const el=document.createElement('div'); el.id='pdff'; el.className='pdff'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','PDF — '+(o.titre||'document'));
+  const jeton={}; _pdfF={o,jeton,blob:null,url:'',nom:'',pdf:'',zoom:1,ajuster:'auto'};
+  const el=document.createElement('div'); el.id='pdff'; el.className='pdff pdff-plein'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','PDF — '+(o.titre||'document'));
   const b=(a,ic,lib,cls)=>`<button type="button" class="btn ${cls||'ghost'} pdff-b" data-a="${a}" onclick="pdfFAction('${a}')" disabled>${ic} ${lib}</button>`;
+  /* v802 — L'APERÇU EST DANS LA FENÊTRE, EN PLEIN ÉCRAN (Justin, 5 novembre 2026 : « quand je fais aperçu pour le PDF ça ouvre un autre lien, je
+     voulais pas ça »). Plus de bouton « Aperçu » qui ouvrait un onglet : le document se dessine ici dès qu'il est prêt (`pdfAfficher`), page après
+     page, et on zoome avec − / + ; les gestes (télécharger, partager, envoyer, imprimer) restent en bas, à portée de pouce. */
   el.innerHTML=`<div class="pdff-fond" onclick="pdfFeuilleFermer()"></div><div class="pdff-carte">
-    <div class="pdff-tete"><b>📄 ${esc(o.titre||'Document')}</b><button type="button" class="btn ghost sm" onclick="pdfFeuilleFermer()" aria-label="Fermer">✕</button></div>
+    <div class="pdff-tete"><b>📄 ${esc(o.titre||'Document')}</b><span class="pdff-zoom"><button type="button" class="btn ghost sm" onclick="pdfFZoom(-1)" aria-label="Réduire">−</button><button type="button" class="btn ghost sm pdff-ajust" onclick="pdfFZoom(0)" aria-label="Page entière ou à la largeur" title="Page entière / à la largeur">⤢</button><button type="button" class="btn ghost sm" onclick="pdfFZoom(1)" aria-label="Agrandir">+</button></span><button type="button" class="btn ghost sm" onclick="pdfFeuilleFermer()" aria-label="Fermer">✕</button></div>
     <div class="pdff-etat" id="pdff-etat">Préparation du PDF…</div>
-    <div class="pdff-gestes">${b('voir','👁','Aperçu','primary')}${b('dl','⬇️','Télécharger')}${b('partager','📤','Partager')}${o.envoyer?b('envoyer','✉️',o.envoyerLib||'Envoyer par e-mail'):''}${o.imprimer?b('imprimer','🖨️','Imprimer'):''}</div></div>`;
+    <div class="pdff-vue" id="pdff-vue"><div class="pdfap-msg">Préparation de l’aperçu…</div></div>
+    <div class="pdff-gestes">${o.envoyer?b('envoyer','✉️',o.envoyerLib||'Envoyer par e-mail','primary'):''}${b('dl','⬇️','Télécharger')}${b('partager','📤','Partager')}${o.imprimer?b('imprimer','🖨️','Imprimer'):''}</div></div>`;
   document.body.appendChild(el);
   let d; try{ d=await o.fabrique(); }catch(e){ console.error(e); d={err:'Le PDF n’a pas pu être préparé.'}; }
   if(!_pdfF||_pdfF.jeton!==jeton) return;   // fermée, ou une autre ouverte entre-temps
   const etat=document.getElementById('pdff-etat');
   if(!d||d.err){ if(d&&d.err) toast('⚠️ '+d.err,9000); if(etat) etat.textContent='⚠️ '+((d&&d.err)||'PDF indisponible');
     if(o.siErreur) try{ pdfFeuilleFermer(); o.siErreur(d); }catch(e){} return; }
-  let octets; if(d.pdf) octets=pdfOctets(d.pdf); else if(d.b64){ octets=pdfOctets(atob(d.b64)); }
+  let octets, chaine=''; if(d.pdf){ chaine=d.pdf; octets=pdfOctets(d.pdf); } else if(d.b64){ chaine=atob(d.b64); octets=pdfOctets(chaine); }
   if(!octets){ if(etat) etat.textContent='⚠️ PDF indisponible'; return; }
   const nom=String(d.nom||o.nom||'document').replace(/\.pdf$/i,'').replace(/[^\w\-À-ÿ]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
-  _pdfF.blob=new Blob([octets],{type:'application/pdf'}); _pdfF.url=URL.createObjectURL(_pdfF.blob); _pdfF.nom=nom;
+  _pdfF.blob=new Blob([octets],{type:'application/pdf'}); _pdfF.url=URL.createObjectURL(_pdfF.blob); _pdfF.nom=nom; _pdfF.pdf=chaine;
   if(etat) etat.innerHTML=`<span class="pdff-fic">${esc(nom)}</span> · ${Math.max(1,Math.round(octets.length/1024))} Ko`+(d.manque&&d.manque.length?`<br><span style="color:var(--org)">⚠️ Non joint : ${esc(d.manque.join(', '))}</span>`:'');
   if(d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', '),9000);   // dit aussi hors de la fenêtre : on la referme vite
   el.querySelectorAll('.pdff-b').forEach(x=>{ x.disabled=false; });
   if(!(navigator.canShare&&(()=>{ try{ return navigator.canShare({files:[new File([_pdfF.blob],nom,{type:'application/pdf'})]}); }catch(e){ return false; } })())){
-    const p=el.querySelector('[data-a="partager"]'); if(p) p.innerHTML='📤 Partager (télécharger)'; }
+    const p=el.querySelector('[data-a="partager"]'); if(p){ p.title='Cet appareil ne sait pas partager un fichier : le PDF est téléchargé'; } }
+  try{ _pdfF.rendu=await pdfAfficher(document.getElementById('pdff-vue'),chaine,{url:_pdfF.url,zoom:_pdfF.zoom,ajuster:_pdfF.ajuster}); if(_pdfF&&_pdfF.rendu) _pdfF.ajuster=_pdfF.rendu.ajuster||_pdfF.ajuster; }catch(e){ console.error(e); }
 }
+/* zoom de l'aperçu : −1 réduit, +1 agrandit, 0 bascule « page entière » ↔ « à la largeur » (et remet le zoom à 1) ; on redessine (net à toute
+   taille), on garde l'endroit lu */
+async function pdfFZoom(sens){ const F=_pdfF; if(!F||!F.pdf) return; const v=document.getElementById('pdff-vue'); if(!v) return;
+  const z0=F.zoom||1; if(sens===0){ F.zoom=1; F.ajuster=(F.ajuster==='page')?'largeur':'page'; } else F.zoom=Math.max(0.5,Math.min(4,Math.round((z0*(sens>0?1.25:0.8))*100)/100));
+  const ratioY=v.scrollHeight?v.scrollTop/v.scrollHeight:0;
+  F.rendu=await pdfAfficher(v,F.pdf,{url:F.url,zoom:F.zoom,ajuster:F.ajuster}); v.scrollTop=ratioY*v.scrollHeight; }
+/* l'écran tourne ou la fenêtre change de taille : la page suit la largeur */
+(function(){ let tm=0; try{ window.addEventListener('resize',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ const F=_pdfF, v=document.getElementById('pdff-vue'); if(F&&F.pdf&&v) pdfAfficher(v,F.pdf,{url:F.url,zoom:F.zoom,ajuster:F.ajuster}).then(r=>{ F.rendu=r; }); },250); }); }catch(e){} })();
 function pdfFTelecharger(){ const a=document.createElement('a'); a.href=_pdfF.url; a.download=_pdfF.nom; document.body.appendChild(a); a.click(); a.remove(); toast('⬇️ PDF téléchargé : '+_pdfF.nom); }
 async function pdfFAction(a){ const F=_pdfF; if(!F) return; const o=F.o;
   if(a==='envoyer'||a==='imprimer'){ pdfFeuilleFermer(); try{ await (a==='envoyer'?o.envoyer():o.imprimer()); }catch(e){ console.error(e); toast('Envoi impossible'); } return; }
   if(!F.blob) return;
-  if(a==='voir'){ const w=window.open(F.url,'_blank'); if(!w){ const l=document.createElement('a'); l.href=F.url; l.target='_blank'; l.rel='noopener'; document.body.appendChild(l); l.click(); l.remove(); } return; }
+  if(a==='voir'){ const v=document.getElementById('pdff-vue'); if(v) v.scrollTop=0; return; }   // v802 : l'aperçu est déjà là, dans la fenêtre
   if(a==='dl'){ pdfFTelecharger(); return; }
   if(a==='partager'){ const f=new File([F.blob],F.nom,{type:'application/pdf'});
     try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:o.titre||F.nom}); return; } }
@@ -39197,6 +39384,15 @@ views.parametres=function(){
         <button class="btn sm ghost" onclick="betaRemplir(true)">📚 Remplir en grand nombre</button>
         <button class="btn sm ghost" onclick="betaVider()">🧹 Tout vider</button>
       </div>
+      ${(()=>{ /* v802 — où cet appareil synchronise, et s'il peut relier ses boîtes mail : les deux causes de « je ne vois pas sur mon téléphone ce
+         que j'ai fait sur mon PC » et de « clé non reconnue », dites en clair, chacune avec son geste. */
+        let autre='', jeton=false; try{ autre=(typeof betaEspaceAutre==='function')?betaEspaceAutre():''; jeton=!!localStorage.getItem('elanD_beta_jeton'); }catch(e){}
+        return `<div style="margin-top:14px;padding:11px 12px;border:1px solid var(--brd2);border-radius:12px;font-size:13px;line-height:1.55">
+          ${autre?`⚠️ <b>Cet appareil travaille sur l’espace « ${esc(autre)} »</b>, pas sur celui de la bêta : il ne voit pas ce que tu fais sur tes autres appareils.
+            <div style="margin-top:8px"><button class="btn sm" onclick="betaEspaceRejoindre()">🔄 Rejoindre l’espace de la bêta</button></div>`
+          :`✅ <b>Cet appareil est sur l’espace de la bêta</b> : ce que tu y fais se retrouve sur tes autres appareils connectés à la bêta.`}
+          <div style="margin-top:8px">${jeton?'✅ Boîtes mail : ta connexion permet de relier tes boîtes.':'⚠️ Boîtes mail : ta connexion date d’avant la mise à jour — <b>déconnecte-toi puis reconnecte-toi une fois</b> pour relier tes boîtes.'}</div>
+        </div>`; })()}
       <!-- v777 — Justin, 28 octobre 2026 : « dans OPG bêta je veux pouvoir choisir le style d'entreprise, dératisation, clim,
            chauffage, enfin tout… je choisis le pack directement pour tester ». Un geste, les 23 packs : metierSet (journal,
            « ↩︎ Annuler »). La bêta seule — une entreprise ne voit que SON métier (plus bas, « Mon métier »). -->
@@ -40326,12 +40522,17 @@ function devisIAApercu(id){
    `pdfApercuPoser` y met le PDF (`view=FitH` : la page à la largeur de la zone, qui fait déjà toute la hauteur de l'écran), et
    « Ouvrir en grand » le donne au lecteur du navigateur — sur téléphone, c'est là qu'on zoome au doigt. */
 function pdfApercuHtml(boxId){ return '<div class="pdfap-vue" id="'+boxId+'"><div class="pdfap-msg">Préparation de l’aperçu…</div></div>'; }
-function pdfApercuPoser(boxId,blob){ const box=$(boxId); if(!box) return;
+/* v802 : le PDF se DESSINE dans la zone (`pdfAfficher`, toutes les pages, sur iPhone et Android aussi) ; « Ouvrir en grand » ouvre la fenêtre
+   PDF de l'application en plein écran (zoom, télécharger, partager) — plus un onglet du navigateur. */
+async function pdfApercuPoser(boxId,blob){ const box=$(boxId); if(!box) return;
   if(box._url){ const v=box._url; setTimeout(()=>{ try{URL.revokeObjectURL(v)}catch(e){} },120000); }
   const u=URL.createObjectURL(blob); box._url=u;
-  box.innerHTML='<iframe title="Aperçu du document" src="'+u+'#toolbar=0&view=FitH"></iframe>'; }
-function pdfApercuGrand(boxId){ const box=$(boxId), u=box&&box._url; if(!u){ toast('Aperçu pas encore prêt'); return; }
-  const w=window.open(u,'_blank'); if(!w){ const l=document.createElement('a'); l.href=u; l.target='_blank'; l.rel='noopener'; document.body.appendChild(l); l.click(); l.remove(); } }
+  let chaine=''; try{ const b=new Uint8Array(await blob.arrayBuffer()); for(let k=0;k<b.length;k+=0x8000) chaine+=String.fromCharCode.apply(null,b.subarray(k,k+0x8000)); }catch(e){ chaine=''; }
+  box._pdf=chaine; box.classList.add('pdfap-pages');
+  if(!chaine){ box.innerHTML='<iframe title="Aperçu du document" src="'+u+'#toolbar=0&view=FitH"></iframe>'; return; }
+  await pdfAfficher(box,chaine,{url:u}); }
+function pdfApercuGrand(boxId){ const box=$(boxId), c=box&&box._pdf; if(!c){ toast('Aperçu pas encore prêt'); return; }
+  pdfFeuille({titre:'Aperçu', nom:'apercu', fabrique:async()=>({pdf:c})}); }
 /* Le PDF affiché doit refléter le client courant : on le régénère à chaque
    changement plutôt que de montrer une version périmée. */
 async function devisIAApRendu(id){
@@ -45533,13 +45734,8 @@ function savePointage(e,id){ e.preventDefault();
 function ptPdf(){
   const list=ptListe();
   if(!list.length){ toast('Aucun pointage à exporter sur cette période'); return; }
-  try{
-    const s=ptPdfStr(list,ptBornes());
-    const bytes=new Uint8Array(s.length); for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
-    const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-    if(!window.open(u,'_blank')) toast('Autorise les pop-ups pour voir le PDF');
-    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
-  }catch(e){ console.error(e); toast('Export PDF impossible'); }
+  /* v802 : dans la fenêtre PDF de l'application (aperçu, télécharger, partager), plus dans un onglet */
+  return pdfFeuille({titre:'Feuille de temps', nom:'feuille-de-temps', fabrique:async()=>({pdf:ptPdfStr(list,ptBornes())})});
 }
 function ptPdfStr(list,b){
   const now=Date.now();

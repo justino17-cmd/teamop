@@ -23,9 +23,10 @@ const corps = (nom) => { const i = SRC.indexOf('function ' + nom + '('); if (i <
 console.log('\n── 3256 · 1. la pièce commune ──');
 const html = corps('pdfApercuHtml'), poser = corps('pdfApercuPoser'), grand = corps('pdfApercuGrand');
 vrai('pdfApercuHtml existe et pose une zone .pdfap-vue', /class="pdfap-vue"/.test(html), html.slice(0, 120));
-vrai('pdfApercuPoser met le PDF dans une iframe, page à la largeur (view=FitH)', /<iframe[^>]*src="'\+u\+'#toolbar=0&view=FitH"/.test(poser), poser.slice(0, 200));
+/* v802 : le PDF se DESSINE dans la zone (pdfAfficher, toutes les pages, sur iPhone et Android aussi) ; l'iframe n'est plus qu'un repli */
+vrai('pdfApercuPoser dessine le PDF dans la zone par pdfAfficher (l’iframe n’est qu’un repli)', /await pdfAfficher\(box,chaine,\{url:u\}\)/.test(poser), poser.slice(0, 300));
 vrai('… et libère l’adresse précédente (pas de fuite à chaque client changé)', /revokeObjectURL/.test(poser));
-vrai('« Ouvrir en grand » donne le PDF au lecteur du navigateur', /window\.open\(u,'_blank'\)/.test(grand));
+vrai('« Ouvrir en grand » ouvre la fenêtre PDF de l’application (pdfFeuille), plus un onglet', /pdfFeuille\(\{/.test(grand) && !/window\.open/.test(grand), grand.slice(0, 200));
 
 console.log('\n── 3256 · 2. le Devis IA s’en sert ──');
 const ap = corps('devisIAApercu'), rendu = corps('devisIAApRendu');
@@ -48,7 +49,7 @@ vrai('… et seuls les envois sont collés en bas', /\.pdfap-envoi\{position:sti
 
 console.log('\n── 3256 · 4. aucune autre petite boîte d’aperçu PDF ──');
 const autres = [...SRC.matchAll(/<iframe[^>]*src="'\+[a-z]+\+'#toolbar/g)].length;
-vrai('une seule iframe de PDF dans la page, celle de la pièce commune', autres === 1, autres);
+vrai('deux iframes de PDF au plus, toutes deux des REPLIS du lecteur maison (pdfAfficher, pdfApercuPoser sans octets)', autres === 2, autres);
 vrai('l’ancienne boîte (border-radius:10px;…height:46vh) a disparu', !/background:#fff;height:46vh/.test(SRC));
 
 console.log(`\n${ok} ✓ ${ko} ✗`);
