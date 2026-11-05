@@ -40,7 +40,7 @@ let reponduDNS = () => [{ address: IP_PUBLIQUE, family: 4 }];
 dns.promises.lookup = async (h) => reponduDNS(h);              // ⛔ le banc ne résout rien sur Internet
 
 const ID = (n) => 'bm_' + String(n).padStart(32, '0');
-const BOITE = (o) => Object.assign({ id: ID(1), fournisseur: 'imap', etat: 'ok', adresse: 'alice@exemple-public.test', nom: 'Alice', secret: 'MDP-APP-QXZ-123', imap: { hote: HOTE_IMAP, port: 993 }, smtp: { hote: HOTE_SMTP, port: 465 } }, o || {});
+const BOITE = (o) => Object.assign({ id: ID(1), fournisseur: 'imap', etat: 'ok', adresse: 'alice@exemple-public.test', nom: 'Alice', secret: 'MDP-APP-QXZ', imap: { hote: HOTE_IMAP, port: 993 }, smtp: { hote: HOTE_SMTP, port: 465 } }, o || {});
 const stockageDe = (over) => Object.assign({
   boiteMailLire: (uid, id) => BOITE({ id }), boitesMailDe: () => [], boiteMailCreer: () => ({ id: ID(9), remplacee: false }), boiteMailEtat: () => true, boiteMailSecretMaj: () => true, boiteMailSupprimer: () => true,
 }, over || {});

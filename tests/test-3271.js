@@ -16,7 +16,7 @@ T.sauterSiSansDependances();
 
 const MDP = { alice: 'pw-alice-oauth0001', bob: 'pw-bob-oauth00000001' };
 const b64u = (b) => Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-const CLIENT = { google: { id: 'gclient-id-123456', secret: 'gsecret-ZZ9988776655' }, microsoft: { id: 'mclient-id-123456', secret: 'msecret-YY1122334455' } };
+const CLIENT = { google: { id: 'gclient-id-123456', secret: 'gsecretZZ99' }, microsoft: { id: 'mclient-id-123456', secret: 'msecretYY11' } };
 
 /* un faux fournisseur : /authorize (note le défi), /token (échange un code, renouvelle un jeton), tout est noté */
 function fauxFournisseur(nom, clients) {

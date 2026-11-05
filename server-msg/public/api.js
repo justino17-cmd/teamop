@@ -77,7 +77,7 @@
     trop_de_boites: 'Tu as déjà cinq boîtes reliées : retires-en une avant d\'en ajouter.',
     trop_de_connexions: 'Trop de relevés en même temps. Réessaie dans un instant.',
     message_illisible: 'Ce message n\'a pas pu être lu.',
-    microsoft_sans_mot_de_passe: 'Microsoft refuse les mots de passe dans les applications : utilise « Continuer avec Microsoft ».',
+    'microsoft_sans_mot_de_passe': 'Microsoft refuse les mots de passe dans les applications : utilise « Continuer avec Microsoft ».',
     oauth_non_configure: 'Cette connexion n\'est pas encore disponible.',
     fournisseur_inconnu: 'Ce fournisseur ne se connecte pas par autorisation.',
     boite_destinataire_invalide: 'Une adresse de destinataire est absente ou n\'est pas valide (cinq au plus).',
