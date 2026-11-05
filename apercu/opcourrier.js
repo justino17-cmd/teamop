@@ -49,6 +49,7 @@
      traduire(texte,'fr')→ texte traduit (chaîne)  (seulement avec capacites().traduire : un geste, UN message, jamais tout seul ; rien n'est rangé)
      ajouterBoite(params)        → { id, email, … } ; params = { email, nom, mdp, fournisseur, cote, serveurs }
      retirerBoite(id)
+     gererBoites()               → rien                                            (seulement avec capacites().gererBoites : l'hôte ouvre SA gestion des boîtes — liste, déconnexion, reconnexion ; le lien « Gérer les boîtes » n'existe qu'avec elle)
      lireMX(domaine)             → [serveurs]                                      (facultatif : sans lui, jamais d'appel réseau pour reconnaître un domaine d'entreprise)
      simuler(quoi, {boite})                                                        (source de démonstration seulement, avec capacites().simulation)
      signature                   → { envoyer, etat, relancer, annuler, signe, preuve }   (la VRAIE signature : un OBJET, lu seulement avec capacites().signature === true ET ses six méthodes ;
@@ -1722,7 +1723,7 @@ var MARKUP = `
 
   // ---------- Ce que la source sait faire (SRC.capacites()) ----------
   // Tout est FAUX tant que la source ne dit pas le contraire : ce qu'elle ne sait pas faire, l'interface le dit (« Bientôt : … ») au lieu de faire semblant.
-  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,signatureReelle:false,traduire:false,
+  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,signatureReelle:false,traduire:false,boutonsFournisseurs:false,gererBoites:false,
     dossiers:["inbox"],destinataires:50,pj:{nombre:99,octets:25*1024*1024}};
   function appliquerCapacites(c){
     c=c&&typeof c==="object"?c:{};
@@ -1739,6 +1740,12 @@ var MARKUP = `
     // La VRAIE signature exige la déclaration ET les six méthodes de l'objet `signature` : sans elles, le module ne promet rien de plus qu'avant.
     var sg=SRC.signature;
     CAP.signatureReelle=c.signature===true&&!!sg&&typeof sg==="object"&&["envoyer","etat","relancer","annuler","signe","preuve"].every(function(k){ return typeof sg[k]==="function"; });
+    // 5 novembre 2026 (Justin : « je sais pas comment on déconnecte une boîte » / « pas de bouton Google ou Hotmail ») — deux gestes que seul l'HÔTE déclare :
+    // · boutonsFournisseurs : la feuille « Ajouter une boîte mail » s'ouvre sur TROIS gros boutons (Google, Microsoft, Autre messagerie) au lieu d'un champ à deviner ;
+    // · gererBoites : un lien « Gérer les boîtes » dans la liste des comptes, qui rend la main à l'hôte (SRC.gererBoites) — la gestion (liste, déconnexion) est la SIENNE.
+    // Faux par défaut : OP MESSAGES, qui ne les déclare pas, garde exactement la feuille d'avant.
+    CAP.boutonsFournisseurs=c.boutonsFournisseurs===true;
+    CAP.gererBoites=c.gererBoites===true&&typeof SRC.gererBoites==="function";
     CAP.moi=CAP.suivi&&typeof c.moi==="string"?c.moi.trim():"";   // le nom sous lequel la personne connectée est « assignée » (sans lui, « Assignés à moi » n'existe pas)
     if(!CAP.journalEnvois&&state.folder==="envois") state.folder="inbox";
     CAP.dossiers=Array.isArray(c.dossiers)&&c.dossiers.length?c.dossiers.filter(function(d){ var f=folderOfStrict(d); return !!f&&!f.journal; }):["inbox"];
@@ -2146,6 +2153,7 @@ var MARKUP = `
     var h=group("hAcc",UN_COTE?"Boîtes mail":cote==="pro"?"Comptes pro":"Comptes perso",
       (mine.length>1?[{id:K,name:cote==="pro"?"Toutes les boîtes pro":"Toutes les boîtes perso",sub:plural(mine.length,"compte","comptes"),title:emails(mine),
         tile:'<span class="ptile k-'+K+'" aria-hidden="true">'+(cote==="pro"?I.briefcase:I.house)+'</span>'}]:[]).concat(mine.map(acctRow)));
+    if(CAP.gererBoites&&mine.length) h=h.replace(/<\/div><\/section>$/,'<button type="button" class="srow add" data-gererboites="1"><span class="sic" aria-hidden="true">'+I.gear+'</span><span class="sl"><span class="sn">Gérer les boîtes</span></span></button></div></section>');
     if(!mine.length){ var vide=UN_COTE?"Boîtes mail":cote==="pro"?"Comptes pro":"Comptes perso";
       h+='<section class="sgroup"><h2 class="shead">'+vide+'</h2><div class="glist">'+
         (LOAD.boites==="wait"&&!ACCOUNTS.length?'<div class="srow add" role="status"><span class="sl"><span class="sn">Chargement…</span></span></div>':
@@ -3740,12 +3748,21 @@ var MARKUP = `
     var ov=makeOverlay("acct");
     var row=function(id,label,type,ph,extra){ return '<div class="fld"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+type+'" placeholder="'+H(ph)+'"'+(extra||"")+'></div>'; };
     var cote=coteCourant();
+    // Les trois gros boutons (hôte qui déclare boutonsFournisseurs). Un fournisseur que la source ne sait pas connecter n'est PAS un bouton qui échoue : il est grisé et la raison est écrite dessous.
+    var qk=CAP.boutonsFournisseurs, pG=provOf("gmail"), pM=provOf("microsoft"), okG=oauthOk(pG), okM=oauthOk(pM);
+    var quickRow=function(id,p,titre,sous,ok){ return '<button type="button" class="prov" id="'+id+'"'+(ok?'':' disabled aria-disabled="true"')+'>'+providerTile(p)+'<span class="pn"><b>'+H(titre)+'</b><span>'+H(ok?sous:"Pas encore disponible")+'</span></span><span class="go" aria-hidden="true">'+I.chevR+'</span></button>'; };
+    var quickHtml=!qk?'':'<div class="gcard" id="aQuick" role="group" aria-label="Choisir la messagerie">'+
+        quickRow("aQG",pG,"Se connecter avec Google","Gmail, Google Workspace",okG)+quickRow("aQM",pM,"Se connecter avec Microsoft","Outlook, Hotmail, Microsoft 365",okM)+
+        '<button type="button" class="prov" id="aQO" aria-expanded="false" aria-controls="aAutre"><span class="ptile" style="background:#5b6270" aria-hidden="true">'+I.at+'</span><span class="pn"><b>Autre messagerie</b><span>iCloud, Orange, Free, OVH…</span></span><span class="go" aria-hidden="true">'+I.chevR+'</span></button></div>'+
+      (okG&&okM?'':'<p class="gfoot-s" id="aQWhy">'+I.info+'<span>'+(okG?'':'La connexion Google n’est pas disponible pour l’instant : pour Gmail, passez par « Autre messagerie » avec un mot de passe d’application Google. ')+(okM?'':'La connexion Microsoft n’est pas disponible pour l’instant, et Microsoft refuse les mots de passe : Outlook et Hotmail ne peuvent pas être connectés tant qu’elle ne l’est pas.')+'</span></p>')+
+      '<p class="kind-err" id="aQErr" role="alert" hidden>'+I.warn+'<span></span></p>';
     ov.innerHTML='<div class="sheet acct" role="dialog" aria-modal="true" aria-labelledby="aTitle">'+
       sheetBar('<button class="btn" id="aClose" type="button" data-home="l" data-mac="foot" data-ord="1">Annuler</button>','<span class="t">Ajouter un compte</span>',
         '<button class="btn primary" id="aGo" type="button" data-home="r" data-mac="foot" data-ord="2" disabled>Continuer</button>',"aTitle")+
       '<div class="sheet-body"><div class="prov-intro"><span class="glyph" aria-hidden="true">'+I.mail+'</span><h3>Ajoutez une boîte mail</h3>'+
-        '<p>Tapez votre adresse : '+H(TITRE)+' reconnaît la messagerie toute seule — Gmail, Outlook, iCloud, Orange, Free, OVH, IONOS, Zimbra, Microsoft 365, Google Workspace…</p></div>'+
-      '<div class="gwrap"><div class="gcard">'+
+        (qk?'<p>Choisissez votre messagerie : Google et Microsoft se connectent en un geste, sans mot de passe à saisir ici.</p></div>':
+        '<p>Tapez votre adresse : '+H(TITRE)+' reconnaît la messagerie toute seule — Gmail, Outlook, iCloud, Orange, Free, OVH, IONOS, Zimbra, Microsoft 365, Google Workspace…</p></div>')+
+      '<div class="gwrap">'+(qk?quickHtml:'')+(qk?'<div id="aAutre" hidden><p class="gfoot-s" id="aAutreNote">'+I.info+'<span>iCloud, Orange, Free, OVH, Yahoo… : votre adresse et un mot de passe. Pour iCloud, Apple exige un « mot de passe pour app » : créez-le sur account.apple.com (Connexion et sécurité → Mots de passe pour app) ; votre mot de passe Apple habituel ne fonctionne pas ici.</span></p>':'')+'<div class="gcard">'+
         row("aMail","Adresse","email","vous@entreprise.fr",' autocomplete="email" autocapitalize="off" spellcheck="false" inputmode="email"')+
         row("aName","Nom","text","Votre nom affiché (facultatif)",' autocomplete="name"')+'</div>'+
       '<div class="ghead" aria-hidden="true">Logo (facultatif)</div>'+logoRowHtml({id:"-",email:"@"},"")+
@@ -3764,7 +3781,7 @@ var MARKUP = `
       '<p class="kind-err" id="aMailErr" role="alert" hidden>'+I.warn+'<span></span></p>'+
       '<p class="gfoot-s">'+I.info+'<span>'+(CAP.mx?"Pour un domaine d’entreprise, seul le nom de domaine est vérifié dans l’annuaire public (DNS), jamais votre adresse. ":"")+'Vos mails restent sur votre messagerie : '+H(TITRE)+' s’y connecte pour les lire et les envoyer.</span></p>'+
       '<button type="button" class="link-btn" id="aManual">Choisir le fournisseur manuellement</button>'+
-      '</div></div>'+SHEET_FOOT+'</div>';
+      (qk?'</div>':'')+'</div></div>'+SHEET_FOOT+'</div>';
     placeSheetChrome();
     var mIn=$("#aMail"), det=$("#aDet"), go=$("#aGo"), err=$("#aMailErr"), found=null, seq=0, tmr;
     var logoChoisi="";   // le logo choisi AVANT la connexion : il est rangé avec la boîte, une fois créée
@@ -3829,6 +3846,22 @@ var MARKUP = `
         if(ov.isConnected) closeOverlay(); },function(e){
         if(!ov.isConnected) return; go.disabled=false; go.textContent=avant; showErr(msgErr(e,"Connexion impossible.")); });
     };
+    if(qk){
+      go.style.display="none";   // « Continuer » n'a de sens que dans « Autre messagerie »
+      var qErr=$("#aQErr"), qBtns=$$("#aQuick .prov");
+      var qSay=function(t){ qErr.hidden=!t; qErr.querySelector("span").textContent=t||""; };
+      // ⛔ L'autorisation s'ouvre DANS le geste : connectAccount appelle la source tout de suite (voir plus bas), SANS rien attendre avant — Safari bloque une fenêtre ouverte après un await.
+      var quick=function(p){
+        qSay(""); qBtns.forEach(function(b){ b.disabled=true; });
+        var sub=(p.id==="gmail"?$("#aQG .pn span"):$("#aQM .pn span")), avant=sub.textContent; sub.textContent="Autorisation en cours dans la fenêtre ouverte…";
+        connectAccount(p,"","",kind,{mdp:"",imap:null,logo:logoChoisi}).then(function(){ if(ov.isConnected) closeOverlay(); },function(e){
+          if(!ov.isConnected) return; sub.textContent=avant; qBtns.forEach(function(b,i){ b.disabled=(i===0&&!okG)||(i===1&&!okM); }); qSay(msgErr(e,"Connexion impossible.")); });
+      };
+      if(okG) $("#aQG").onclick=function(){ quick(pG); };
+      if(okM) $("#aQM").onclick=function(){ quick(pM); };
+      $("#aQO").onclick=function(){ var a=$("#aAutre"), ouvrir=a.hidden; a.hidden=!ouvrir; this.setAttribute("aria-expanded",String(ouvrir)); go.style.display=ouvrir?"":"none"; if(ouvrir){ qSay(""); try{ mIn.focus(); }catch(x){} } };
+      setTimeout(function(){ var f=$("#aQG")&&!$("#aQG").disabled?$("#aQG"):$("#aQO"); if(f) f.focus({preventScroll:true}); },30);
+    } else
     setTimeout(function(){ mIn.focus({preventScroll:true}); },30);
   }
   // Repli : l'ancienne liste, pour les cas rares
@@ -3933,6 +3966,7 @@ var MARKUP = `
       var id=b&&b.id!=null?String(b.id):null; if(!id) throw new Error("réponse illisible");
       // l'adresse CONNECTÉE (le compte choisi chez Google ou Microsoft peut ne pas être celle tapée) ; celle tapée sinon
       if(b.email&&String(b.email).indexOf("@")>0) mail=String(b.email);
+      if(!name) name=mail.split("@")[0];   // « Se connecter avec Google » part sans adresse tapée : le nom se déduit de celle que le fournisseur rend
       SAVED.kinds[id]=kind==="pro"?"pro":"perso"; SAVED.names[id]=name; SAVED.sigs[id]=name;
       if(logoValide(extra.logo)) SAVED.logos[id]=extra.logo;
       if(!acctExists(id)) majBoites(ACCOUNTS.map(function(a){ return {id:a.sid,email:a.email}; }).concat([{id:b.id,email:mail,nom:name,cote:kind,fournisseur:p.id}]));
@@ -4034,6 +4068,7 @@ var MARKUP = `
   $("#sidebar").addEventListener("click",function(e){
     if(e.target.closest("[data-retry]")){ charger(false); return; }
     var add=e.target.closest("[data-addaccount]"); if(add){ openAddAccount(); return; }
+    if(e.target.closest("[data-gererboites]")){ if(CAP.gererBoites) Promise.resolve().then(function(){ return SRC.gererBoites(); }).catch(function(x){ toast("Gestion des boîtes indisponible : "+msgErr(x,"échec")); }); return; }
     if(e.target.closest("[data-settings]")){ openSettings(); return; }
     var sc=e.target.closest(".scope-row[data-scope]");
     if(sc){ state.scope=sc.getAttribute("data-scope"); app.setAttribute("data-scope",state.scope);
