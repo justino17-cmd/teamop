@@ -361,11 +361,15 @@ nm.createTransport = function (o) {
 
     /* ── E. LES VRAIES FONCTIONS D'app.html CONTRE CE SERVEUR ── */
     console.log('\n6. ⛔ Les VRAIES fonctions d\'app.html (srvMail, mailDoConnect, mailDisconnect) contre ce serveur');
-    const FN = [extraire(APP, 'envoiBoiteResoudre'), extraire(APP, 'envoiBoiteEtape'), extraire(APP, 'envoiBoiteSignaler'), extraire(APP, 'srvMail'), extraire(APP, 'mailDoConnect'), extraire(APP, 'mailDisconnect'), extraire(APP, 'enteteEquipe'),
+    const FN = [extraire(APP, 'envoiBoiteResoudre'), extraire(APP, 'envoiBoiteEtape'), extraire(APP, 'envoiBoiteSignaler'), extraire(APP, 'srvMail'), extraire(APP, 'mailDoConnect'), extraire(APP, 'boiteDeconnecter'), extraire(APP, 'enteteEquipe'),
       extraire(APP, 'khEquipe'), extraire(APP, 'syncSecret'), extraire(APP, 'sha256')];
     /* v797 : srvMail lit aussi l'adresse de Mon entreprise (envoiAdresseEnt) et masque le domaine du rapport d'erreur (domaineDiag) */
     const FN2 = [(APP.match(/const ENVOI_ADR_RE=[^\n]*/) || [''])[0], extraire(APP, 'envoiAdresseEnt'), extraire(APP, 'domaineDiag')];
-    vrai('population : les dix fonctions sont trouvées dans app.html (et ne sont pas des coquilles) — srvMail et ses trois aides depuis la v796', FN.every(f => f.length > 80), FN.map(f => f.length));
+    vrai('population : les dix fonctions sont trouvées dans app.html (et ne sont pas des coquilles) — srvMail et ses trois aides depuis la v796, boiteDeconnecter depuis la v803', FN.every(f => f.length > 80), FN.map(f => f.length));
+    /* v803 : `mailDisconnect` n'est plus qu'un renvoi vers `boiteDeconnecter`, le seul chemin de retrait (il lit `r.ok` et relit la liste). */
+    const FN_DISC = extraire(APP, 'mailDisconnect');
+    vrai('mailDisconnect renvoie au seul chemin de retrait (boiteDeconnecter)', /return boiteDeconnecter\(id\)/.test(FN_DISC), FN_DISC);
+    FN.push(FN_DISC);
     vrai('app.html présente la preuve sur CES trois appels (`enteteEquipe`), et sur aucun autre chemin d\'envoi',
       ['/api/sendmail', '/api/mailbox/connect', '/api/mailbox/disconnect'].every(rt => new RegExp("fetch\\(PUSH_API\\+'" + rt.replace(/\//g, '\\/') + "',\\{method:'POST',headers:await enteteEquipe\\(").test(sansCom(APP))));
     const sandbox = (cle, team) => {
@@ -374,13 +378,14 @@ nm.createTransport = function (o) {
         localStorage: { getItem: k => (k === 'elan_sync_secret' ? W.__cle : null) },
         toast: m => W.__toasts.push(String(m)), openModal: h => W.__modales.push(String(h)), closeModal: () => { W.__ferme++; },
         syncTeam: () => W.__t, mailBrandName: () => 'Entreprise A', mailBoxFor: () => null, can: () => true, currentUser: null, db: { mailReply: '' },
-        loadMailboxes: async () => { W.__charge++; }, mailBoxesManage: () => {}, setTimeout: () => 0,
+        loadMailboxes: async () => { W.__charge++; if (W.__relire) W.__boites(W.__relire()); }, mailBoxesManage: () => {}, setTimeout: () => 0,
+        boitesPeutGerer: () => true, document: { querySelectorAll: () => [] }, courrierRefusBeta: () => '', courrierRelire: () => {}, boitesToutPeindre: async () => {}, envoiBoiteCarteMaj: () => {},
         mailMdpApplication: () => null, mailMdpOublie: () => null, esc: s => String(s), confirm: () => true, alert: () => {}, location: {}, navigator: { userAgent: '' } };
       W.window = W;
       const champs = { 'mb-email': { value: 'jolie@exemple.fr' }, 'mb-pass': { value: 'pw-jolie' }, 'mb-btn': { textContent: '', disabled: false } };
       W.$ = id => champs[id] || null; W.__champs = champs;
       vm.createContext(W);
-      vm.runInContext("let _khCle='', _khVal=''; let _srvMailErr=''; let _mailboxes=[]; const BETA_ESSAI=false; let _boiteEtapeFin=0, _boiteEtapeEnCours=null; function todayISO(){ return '2026-11-04'; } function pushNotify(){}\n" + FN2.concat(FN).join('\n') + '\nthis.srvMail=srvMail; this.mailDoConnect=mailDoConnect; this.mailDisconnect=mailDisconnect; this.__err=()=>_srvMailErr;', W);
+      vm.runInContext("let _khCle='', _khVal=''; let _boiteOcc=false; let _srvMailErr=''; let _mailboxes=[]; const BETA_ESSAI=false; let _boiteEtapeFin=0, _boiteEtapeEnCours=null; function todayISO(){ return '2026-11-04'; } function pushNotify(){}\n" + FN2.concat(FN).join('\n') + '\nthis.srvMail=srvMail; this.mailDoConnect=mailDoConnect; this.mailDisconnect=mailDisconnect; this.__err=()=>_srvMailErr; this.__boites=(l)=>{ _mailboxes=l; };', W);
       return W;
     };
 
@@ -429,12 +434,16 @@ nm.createTransport = function (o) {
     vrai('⛔ … et aucune boîte n\'a été enregistrée', !Object.values(JSON.parse(lireBoites())).some(b => b.email === 'refusee@exemple.fr'));
 
     /* mailDisconnect : avec la clé juste, la boîte part ; avec une fausse, elle reste. */
-    W = sandbox('UNE-AUTRE-CLE', 'ent-a-9x');
+    /* comme l'application : la liste affichée est celle que le serveur rend pour l'entreprise, relue après le geste */
+    const listeA = () => Object.values(JSON.parse(lireBoites())).filter(b => b.teamId === 'ent-a-9x').map(b => ({ id: b.id, email: b.email }));
+    W = sandbox('UNE-AUTRE-CLE', 'ent-a-9x'); W.__boites(listeA()); W.__relire = listeA;
     await W.mailDisconnect(idJolie.id);
     vrai('⛔ mailDisconnect (mauvaise clé) : la boîte reste', !!JSON.parse(lireBoites())[idJolie.id]);
-    W = sandbox(CLE_A, 'ent-a-9x');
+    vrai('⛔ … et l\'écran DIT qu\'elle n\'a pas été déconnectée (jamais « Boîte déconnectée » sur un refus)', W.__toasts.some(t => /n’a pas été déconnectée/.test(t)) && !W.__toasts.some(t => /^Boîte déconnectée/.test(t)), W.__toasts);
+    W = sandbox(CLE_A, 'ent-a-9x'); W.__boites(listeA()); W.__relire = listeA;
     await W.mailDisconnect(idJolie.id);
     vrai('mailDisconnect (clé juste) : la boîte est retirée', !JSON.parse(lireBoites())[idJolie.id]);
+    vrai('… et l\'écran le dit (« Boîte déconnectée », la liste relue)', W.__toasts.some(t => /^Boîte déconnectée : jolie@exemple\.fr/.test(t)) && W.__charge >= 1, [W.__toasts, W.__charge]);
 
     /* Et un appareil de B qui connaîtrait le teamId de A : même verdict, avec les vraies fonctions. */
     W = sandbox(CLE_B, 'ent-a-9x');
