@@ -1727,6 +1727,9 @@ var MARKUP = `
   function appliquerCapacites(c){
     c=c&&typeof c==="object"?c:{};
     ["oauth","programmeServeur","signature","marquage","deplacement","simulation","reglagesServeur"].forEach(function(k){ CAP[k]=c[k]===true; });
+    // oauthVia (facultatif) : les fournisseurs que la source sait VRAIMENT connecter sans mot de passe (« Google », « Microsoft »…). Sans liste,
+    // oauth:true vaut pour tous, comme avant. Un fournisseur hors liste garde le mot de passe d'application (Yahoo) ou dit « Bientôt » (Microsoft).
+    CAP.oauthVia=CAP.oauth&&Array.isArray(c.oauthVia)?c.oauthVia.map(String):null;
     CAP.mx=typeof SRC.lireMX==="function";
     // Trois gestes qui exigent une MÉTHODE de la source en plus de la déclaration : sans elle, le module ne promet rien.
     CAP.journalEnvois=c.journalEnvois===true&&typeof SRC.envois==="function";
@@ -2191,7 +2194,7 @@ var MARKUP = `
       if(LOAD.boites==="ko") return '<div class="empty" role="alert">'+I.warn+'<b>Boîtes mail illisibles</b><span>'+H(LOAD.err||"On n’a pas pu savoir si une boîte est connectée.")+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
       return '<div class="empty">'+I.mail+'<b>Aucune boîte mail connectée</b><span>Connectez votre messagerie pour lire et envoyer vos mails ici.</span>'+pied([" primary"," data-addaccount=\"1\"","Ajouter une boîte mail"])+'</div>'; }
     if(ko&&ko.length&&!state.query) return '<div class="empty" role="alert">'+I.warn+'<b>Réception indisponible</b><span>'+H(ko.map(function(a){ return a.email+" : "+(LOAD.msgErr[a.id]||"échec"); }).join(" · "))+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
-    var txt=state.query?'Aucun résultat':(state.filter!=="all"?"Aucun message dans ce filtre":cl?"Aucun message dans "+cl:"Aucun message");
+    var txt=state.query?'Aucun message':(state.filter!=="all"?"Aucun message dans ce filtre":cl?"Aucun message dans "+cl:"Aucun message");
     // Une catégorie vide n'est pas une boîte vide : si les autres catégories portent des messages (une boîte qui ne reçoit que des notifications n'a rien dans « Principal »), on le DIT et on offre « Tout ».
     var ailleurs=(!state.query&&catActive()&&state.cat!=="tout")?folderMessages(state.folder).filter(matchesFilter).length:0;
     var sub=state.query?'pour « '+H(state.query)+' »':ailleurs?H(plural(ailleurs,"message","messages")+" dans les autres catégories"):H(f.name+" · "+scopeLabel());
@@ -3715,12 +3718,15 @@ var MARKUP = `
     return mxCache[d];
   }
   // Ce que l'on dit d'une messagerie reconnue : jamais un réglage que le serveur n'utilisera pas.
+  // Le fournisseur d'autorisation d'une messagerie : celui de la détection (via), sinon celui de la tuile choisie dans la liste.
+  function viaDe(p){ return (p&&(p.via||{gmail:"Google",gworkspace:"Google",microsoft:"Microsoft",m365:"Microsoft",icloud:"Apple",yahoo:"Yahoo"}[p.id]))||""; }
+  function oauthOk(p){ return !!p&&p.kind==="oauth"&&CAP.oauth&&(!CAP.oauthVia||CAP.oauthVia.indexOf(viaDe(p))>=0); }
   function provDetail(p){
-    if(p.kind==="oauth"&&!CAP.oauth&&p.via==="Microsoft") return "Bientôt : connexion sécurisée via Microsoft. Microsoft refuse les mots de passe dans toutes les applications : cette adresse ne peut pas être connectée pour l’instant.";
-    if(p.kind==="oauth") return CAP.oauth?"Connexion sécurisée via "+p.via+" — sans mot de passe à saisir ici.":"Bientôt : connexion sécurisée via "+p.via+", sans mot de passe. En attendant, saisissez un mot de passe d’application.";
+    if(p.kind==="oauth"&&!oauthOk(p)&&viaDe(p)==="Microsoft") return "Bientôt : connexion sécurisée via Microsoft. Microsoft refuse les mots de passe dans toutes les applications : cette adresse ne peut pas être connectée pour l’instant.";
+    if(p.kind==="oauth") return oauthOk(p)?"Connexion sécurisée via "+viaDe(p)+" — sans mot de passe à saisir ici.":"Bientôt : connexion sécurisée via "+viaDe(p)+", sans mot de passe. En attendant, saisissez un mot de passe d’application.";
     return (CAP.reglagesServeur?"IMAP "+p.imap+" · SMTP "+p.smtp:"Réglages reconnus à la connexion")+(p.note?" — "+p.note:""); }
-  function motDePasse(p){ return p&&(p.kind==="imap"||p.kind==="exchange"||(p.kind==="oauth"&&!CAP.oauth)); }
-  function sansVoie(p){ return !!p&&p.kind==="oauth"&&!CAP.oauth&&p.via==="Microsoft"; }   // ni OAuth ni mot de passe : rien à connecter pour l'instant
+  function motDePasse(p){ return p&&(p.kind==="imap"||p.kind==="exchange"||(p.kind==="oauth"&&!oauthOk(p))); }
+  function sansVoie(p){ return !!p&&p.kind==="oauth"&&!oauthOk(p)&&viaDe(p)==="Microsoft"; }   // ni OAuth ni mot de passe : rien à connecter pour l'instant
   function detectParMX(d,mx){
     if(!mx) return null;
     if(!mx.length) return {erreur:"Ce domaine ne reçoit pas d'e-mails (aucun serveur de réception trouvé). Vérifiez l'adresse."};
@@ -3780,7 +3786,7 @@ var MARKUP = `
       $("#aPassWrap").hidden=!imap; $("#aAdv").hidden=!imap;
       $("#aAdvFields").hidden=!CAP.reglagesServeur; $("#aAdvSoon").hidden=!!CAP.reglagesServeur;
       if(imap){ $("#aImap").value=p.imap||""; $("#aImapPort").value=p.imapPort||993; $("#aSmtp").value=p.smtp||""; $("#aSmtpPort").value=p.smtpPort||465; }
-      go.disabled=!p||sansVoie(p); go.textContent=!p||sansVoie(p)?"Continuer":(p.kind==="oauth"&&CAP.oauth)?"Continuer avec "+p.via:"Se connecter";
+      go.disabled=!p||sansVoie(p); go.textContent=!p||sansVoie(p)?"Continuer":oauthOk(p)?"Continuer avec "+viaDe(p):"Se connecter";
     }
     var enCours="";   // domaine dont le MX est en cours de lecture : un Entrée + un « change » ne font qu'une demande
     function detect(geste){
@@ -3817,7 +3823,7 @@ var MARKUP = `
       var pw=motDePasse(found);
       if(pw&&!$("#aPass").value){ showErr("Entrez le mot de passe de cette boîte."); $("#aPass").focus(); return; }
       if(pw&&CAP.reglagesServeur&&!$("#aImap").value.trim()){ showErr("Indiquez le serveur de réception."); $("#aAdvBody").hidden=false; $("#aImap").focus(); return; }
-      var avant=go.textContent; go.disabled=true; go.textContent=(found.kind==="oauth"&&CAP.oauth)?"Ouverture de "+found.via+"…":"Connexion…";
+      var avant=go.textContent; go.disabled=true; go.textContent=oauthOk(found)?"Ouverture de "+viaDe(found)+"…":"Connexion…";
       if(!PROVIDERS.some(function(x){ return x.id===found.id; })) PROVIDERS.splice(PROVIDERS.length-1,0,{id:found.id,name:found.name,sub:"",color:found.color,mono:found.mono||"",glyph:found.mono?null:(found.id.indexOf("icloud")===0?"cloud":"at"),kind:found.kind});
       connectAccount(provOf(found.id),mail,name||mail.split("@")[0],kind,{mdp:pw?$("#aPass").value:"",imap:pw&&CAP.reglagesServeur?{imap:$("#aImap").value.trim(),imapPort:+$("#aImapPort").value||993,smtp:$("#aSmtp").value.trim(),smtpPort:+$("#aSmtpPort").value||465}:null,logo:logoChoisi}).then(function(){
         if(ov.isConnected) closeOverlay(); },function(e){
@@ -3920,8 +3926,13 @@ var MARKUP = `
   function connectAccount(p,mail,name,kind,extra){
     if(acctByEmail(mail)) return Promise.reject(new Error("Cette adresse est déjà connectée."));
     extra=extra||{};
-    return Promise.resolve().then(function(){ return SRC.ajouterBoite({email:mail,nom:name,mdp:extra.mdp||"",fournisseur:p.id,cote:kind,serveurs:extra.imap||null}); }).then(function(b){
+    // ⛔ La source est appelée DANS le geste, pas dans une tâche suivante : une connexion par autorisation (Google, Microsoft) ouvre sa
+    // fenêtre tout de suite, et Safari bloque une fenêtre ouverte hors du geste. Le constructeur de la promesse s'exécute sur-le-champ
+    // et une exception y devient un rejet, comme avant.
+    return new Promise(function(ok){ ok(SRC.ajouterBoite({email:mail,nom:name,mdp:extra.mdp||"",fournisseur:p.id,cote:kind,serveurs:extra.imap||null})); }).then(function(b){
       var id=b&&b.id!=null?String(b.id):null; if(!id) throw new Error("réponse illisible");
+      // l'adresse CONNECTÉE (le compte choisi chez Google ou Microsoft peut ne pas être celle tapée) ; celle tapée sinon
+      if(b.email&&String(b.email).indexOf("@")>0) mail=String(b.email);
       SAVED.kinds[id]=kind==="pro"?"pro":"perso"; SAVED.names[id]=name; SAVED.sigs[id]=name;
       if(logoValide(extra.logo)) SAVED.logos[id]=extra.logo;
       if(!acctExists(id)) majBoites(ACCOUNTS.map(function(a){ return {id:a.sid,email:a.email}; }).concat([{id:b.id,email:mail,nom:name,cote:kind,fournisseur:p.id}]));
@@ -4100,7 +4111,10 @@ var MARKUP = `
   $("#btnCompose").onclick=function(){ if(state.folder==="sign") openSignRequest(); else openCompose(); };
   $("#btnNav").onclick=function(){ if(isPhone()) go("mailboxes"); else if(app.classList.contains("nav-open")) closeDrawer(); else openDrawer(); };
   $("#scrim").onclick=closeDrawer;
-  var sT; $("#search").addEventListener("input",function(e){ $("#searchRow").classList.toggle("has-q",!!e.target.value); clearTimeout(sT); sT=setTimeout(function(){ state.query=e.target.value; renderList(); renderReading(); },120); });
+  /* ⛔ La valeur se lit PENDANT l'événement (4 novembre 2026, « la barre de recherche ne marche pas ») : l'arbre est un arbre d'ombre, et à la
+     fin de la diffusion le navigateur VIDE `e.target` d'un événement né dans une ombre (spécification DOM, « clear targets »). Lu 120 ms plus
+     tard, `e.target.value` valait `undefined` : `state.query` restait vide, la liste ne filtrait jamais, sans une seule erreur à l'écran. */
+  var sT; $("#search").addEventListener("input",function(e){ var champ=e.currentTarget||e.target, v=String(champ.value||""); $("#searchRow").classList.toggle("has-q",!!v); clearTimeout(sT); sT=setTimeout(function(){ state.query=v; renderList(); renderReading(); },120); });
   function clearSearch(){ clearTimeout(sT); state.query=""; $("#search").value=""; $("#searchRow").classList.remove("has-q"); }
   // iPad/iPhone : bouton « Annuler » à côté du champ actif, comme une barre de recherche iOS
   $("#searchCancel").onclick=function(){ clearSearch(); var a=actif(); if(a&&a.blur) a.blur(); renderList(); renderReading(); };

@@ -93,8 +93,10 @@ remplacer('suiteRefresh', "const soOn=!!(can('opMessages')&&planOpMsg()&&opMsgDi
 if (/messages(-beta)?\.html/.test(s)) echec('un lien vers OP MESSAGES subsiste (messages.html)');
 
 /* la Boîte mail (OP Courrier) : aucune boîte ne se connecte ici — l'état « calme » du module, avec les mots de la démonstration */
-remplacer('boîtes du courrier', "if(BETA_ESSAI){ const e=new Error('Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }",
-  "if(BETA_ESSAI||DEMO_PUBLIQUE){ const e=new Error(DEMO_PUBLIQUE?'Dans la démonstration, aucune boîte mail ne se connecte : rien n\\'est reçu, rien n\\'est envoyé.':'Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }");
+/* v801 : la bêta lit désormais ses VRAIES boîtes (jeton d'accès de la Tour) — la ligne « Espace de test » a quitté app.html. La
+   démonstration, elle, n'en relie toujours aucune : son refus calme se pose en tête de `boites()` du Courrier. */
+remplacer('boîtes du courrier', "    async boites(){\n",
+  "    async boites(){\n      if(DEMO_PUBLIQUE){ const e=new Error('Dans la démonstration, aucune boîte mail ne se connecte : rien n\\'est reçu, rien n\\'est envoyé.'); e.calme=true; throw e; }\n");
 /* les cartes : le fond de carte vient d'un serveur de tuiles — rien ne sort d'ici. Le chargement de Leaflet échoue d'emblée (le code attend déjà un échec) et la zone dit pourquoi au lieu de rester un grand blanc */
 remplacer('loadLeaflet', 'function loadLeaflet(){ return new Promise((res,rej)=>{\n  if(window.L) return res();',
   "function loadLeaflet(){ return new Promise((res,rej)=>{\n  if(window.L) return res();\n  if(DEMO_PUBLIQUE){ try{ demoPubliqueCarteMessage(); }catch(e){} return rej(new Error('démonstration : pas de fond de carte')); }");
@@ -111,9 +113,9 @@ remplacer('Devis IA — message', "  if(demande.trim().length<5){ show('Décris 
   "  if(demande.trim().length<5){ show('Décris la prestation d\\'abord.'); return; }\n  if(DEMO_PUBLIQUE){ show(demoPubliqueDevisIAMessage()); return; }\n");
 remplacer('Devis IA — état', "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  fetch(PUSH_API+'/api/devis/etat?team='",
   "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  if(DEMO_PUBLIQUE) demoPubliqueDevisIAEtat(); else fetch(PUSH_API+'/api/devis/etat?team='");
-/* les liens sms: et mailto: écrits par l'application ouvriraient la messagerie du visiteur avec le contenu de l'exemple : sept affectations, détournées vers `demoNav` */
+/* les liens sms: et mailto: écrits par l'application ouvriraient la messagerie du visiteur avec le contenu de l'exemple : six affectations, détournées vers `demoNav`
+   (sept jusqu'à la v802 : l'envoi d'un courriel n'ouvre plus de brouillon `mailto:` quand il échoue — `srvMail`) */
 remplacer('sms: (location.href)', "location.href='sms:'+", "demoNav.href='sms:'+", 4);
-remplacer('mailto: (location.href)', "location.href='mailto:'+", "demoNav.href='mailto:'+", 1);
 remplacer('mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=', 'demoNav.href=`mailto:${mail}?subject=', 2);
 if (/location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(s)) echec('une affectation de location.href vers sms:/mailto:/tel: subsiste : elle ouvrirait la messagerie du visiteur');
 

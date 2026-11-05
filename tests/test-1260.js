@@ -86,6 +86,7 @@ function monde(opt) {
     ${CODE.clockFromMin}\n${CODE.toMin}\n${CODE.addMin}\n${CODE.intTechIds}\n${CODE.intNum}\n${CODE.intHisto}\n${CODE.clientsProposes}
     ${ligne('let _intReport')}
     ${CODE.planWeekVide}\n${CODE.planMultiVide}\n${CODE.formIntervention}\n${CODE.saveIntervention}\n${CODE._copieInt}\n${CODE.dupliquerIntervention}\n${CODE.ficheClient}\n${CODE.formDoc}\n${CODE.saveDoc}
+    ${ligne('const DOC_ST_ENVOI=')}\n${F('docEnvoyable')}\n${F('docStatutOptions')}\n${F('docEnvoiLib')}   /* le statut « Envoyé » se pose à l'envoi (fde69cee) */
   `, ctx);
   return ctx;
 }

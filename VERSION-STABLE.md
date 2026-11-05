@@ -1,5 +1,22 @@
 # Point stable TeamOP
 
+**Version stable : v800** — 5 novembre 2026, cette nuit (Justin : « fais tout ce qu'il faut et publie »). La v798 et ce qui suit
+(la v799 n'a jamais été publiée seule) :
+- **L'aperçu d'un PDF reste dans l'application** : devis, factures, rapports, bons s'ouvrent en plein écran DANS l'application, plus dans un
+  nouvel onglet ; boutons Télécharger / Envoyer / Fermer. Sur un téléphone, la page tient en largeur et se lit entière.
+- **Un envoi par e-mail part par l'application, PDF joint — jamais par Mail du Mac** : le repli `mailto:` (qui ouvrait l'application Mail
+  avec le texte, sans le PDF, quand le serveur refusait) est retiré ; un refus ou une panne se dit à l'écran et le devis reste en brouillon.
+- **« Envoyé » se pose quand le document est parti** (e-mail réussi, ou SMS confirmé au retour), avec la date et le canal ; « Envoyé » dans
+  le formulaire ouvre l'envoi (« Enregistrer et envoyer »). Accepté / Refusé restent manuels ; un « Envoyé » d'avant est gardé.
+- **Gmail et Hotmail / Outlook se relient depuis la Boîte mail** : « Ajouter une boîte mail » → « Continuer avec Google / Microsoft »
+  (connexion Microsoft validée en vrai par Justin le 5 novembre). Les autres boîtes gardent le mot de passe.
+- **L'aperçu du devis du Devis IA prend tout l'écran** (88 % de la hauteur sur téléphone, 94-95 % au bureau, au lieu de ~50 %).
+- **Surveillance** : les dossiers « Réseau » de la Tour ne s'ouvrent plus pour une coupure que la synchro renoue seule (2 min sans réponse).
+- La recherche de la Boîte mail (`opcourrier.js`) part avec, aussi dans OP MESSAGES (même module).
+Rien ne change dans les formats de données. `tests/test-3254`, `3256`, `3257`, `3259`, `3260`, `mails-a-z.js`.
+
+**Ancien point : v798.**
+
 **Version stable : v798** — 4 novembre 2026 (Justin : « ok, tous les mails c'est bon, on envoie la mise à jour avec le devis et la facture
 corrigés »). C'est la bêta v798 entière : les v796 à v798. Ce qui change pour une entreprise :
 - **Ses documents partent par SA boîte mail, plus par TEAM OP** (v796, v797) : un devis, une facture, un rapport ou un bon envoyé à un client

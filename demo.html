@@ -8513,6 +8513,26 @@ html[data-theme="light"] select option{ background-color:#FFFFFF; color:#14213A;
 .pdff-gestes .pdff-b:first-child{grid-column:1/-1}
 .pdff-gestes .pdff-b[disabled]{opacity:.45}
 html[data-theme="dark"] .pdff-carte{background:#14213A}
+/* v802 — la fenêtre PDF en plein écran : l'aperçu DANS l'application (Justin : « ça ouvre un autre lien, je voulais pas ça ») */
+.pdff.pdff-plein{align-items:stretch}
+.pdff-plein .pdff-carte{width:100%;height:100%;max-width:none;border-radius:0;display:flex;flex-direction:column;min-height:0;padding:calc(10px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom))}
+@media (min-width:700px){ .pdff.pdff-plein{align-items:center} .pdff-plein .pdff-carte{width:min(1120px,96vw);height:96dvh;border-radius:18px;padding:14px 16px 14px} }
+.pdff-plein .pdff-tete{margin-bottom:2px}
+.pdff-plein .pdff-tete b{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdff-zoom{display:flex;gap:4px;flex:0 0 auto}
+.pdff-zoom .btn,.pdff-plein .pdff-tete>.btn{min-width:40px;min-height:40px;justify-content:center;padding:0 10px}
+.pdff-plein .pdff-etat{margin-bottom:8px;font-size:12.5px}
+.pdff-vue{flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#525659;border-radius:12px;padding:10px}
+.pdff-vue canvas,.pdfap-pages canvas{display:block;margin:0 auto 10px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.35);max-width:none}
+.pdff-vue canvas:last-child,.pdfap-pages canvas:last-child{margin-bottom:0}
+.pdff-vue.pdfvue-iframe{padding:0;overflow:hidden}
+.pdff-vue iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+.pdfap-vue.pdfap-pages{overflow:auto;-webkit-overflow-scrolling:touch;padding:10px}
+.pdfap-vue.pdfap-pages.pdfvue-iframe{padding:0;overflow:hidden}
+.pdff-plein .pdff-gestes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pdff-plein .pdff-gestes .pdff-b{flex:1 1 0;min-width:0!important;min-height:46px;grid-column:auto;font-size:14px;padding-left:8px;padding-right:8px}
+.pdff-plein .pdff-gestes .pdff-b.primary{flex:1 1 100%}
+@media (min-width:700px){ .pdff-plein .pdff-gestes .pdff-b.primary{flex:1.4 1 0} .pdff-plein .pdff-gestes .pdff-b{font-size:15px} }
 
 /* v783 — LES CHAMPS NUS (Justin, 30 octobre 2026, capture de la fiche d'une intervention, « Produits & matériel » : « refaire les
    couleurs ici aussi, et vérifier s'il n'y en a pas d'autres »). Un <input>, un <select> ou un <textarea> écrit SANS classe et hors
@@ -8534,6 +8554,35 @@ select option,select optgroup{background-color:var(--bg);color:var(--t1)}
    règle des options). De nuit, le champ reçoit un fond OPAQUE (--bg1) ; le chevron (background-image) reste. */
 html[data-theme="dark"] select{background-color:var(--bg1,#17213A)!important}
 @media (pointer:coarse){ :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=hidden]),select,textarea):where(:not([class])){font-size:16px} }
+/* ══ L'APERÇU D'UN DOCUMENT PREND L'ÉCRAN (`.pdfap`) — Justin, 4 novembre 2026, capture du Devis IA : « il faudrait que ça prenne
+   toute la page, c'est beaucoup trop petit… le devis est coupé en 3 fois, c'est pas normal ». L'aperçu était une boîte de 46vh
+   (470 px sur un écran de 1 080) où l'on faisait défiler une page A4 en trois fois, sous un formulaire qui prenait le reste.
+   La règle : la VUE prend toute la hauteur de l'écran sous l'en-tête de la fenêtre ; ce qui sert à envoyer va À CÔTÉ sur un écran
+   large, DESSOUS sur un écran étroit, avec les deux boutons d'envoi collés en bas (on les a toujours sous le pouce). Hauteurs en
+   dvh : 100vh ment sur téléphone (barre d'adresse). Une seule pièce : tout aperçu de document intégré à une fenêtre la reprend
+   (`pdfApercuHtml`, `pdfApercuPoser`) — `tests/test-3256.js`. */
+.pdfap{--pdfap-h:calc(100dvh - 120px);display:grid;grid-template-columns:minmax(0,calc(var(--pdfap-h) * .74)) minmax(300px,420px);grid-template-rows:auto auto 1fr;
+  grid-template-areas:"vue cote" "vue envoi" "vue autres";column-gap:24px;justify-content:center;align-items:start}
+/* La largeur de la vue suit sa HAUTEUR (proportions d'une page A4, barre de défilement comprise) : la page entière se lit d'un coup
+   d'œil, au lieu d'une page à la largeur d'un écran de 1 920 px qu'il faudrait faire défiler sur deux écrans. */
+.pdfap-vue{grid-area:vue;height:var(--pdfap-h);min-height:420px;border:1px solid var(--brd2);border-radius:12px;overflow:hidden;background:#525659}
+.pdfap-vue iframe{display:block;width:100%;height:100%;border:0}
+.pdfap-vue .pdfap-msg{padding:16px;color:#eee;font-size:13px}
+.pdfap-cote{grid-area:cote;min-width:0}
+.pdfap-cote .form-sec:first-child{margin-top:0}
+.pdfap-envoi{grid-area:envoi;min-width:0;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.pdfap-envoi .btn{flex:1;min-width:150px;justify-content:center}
+.pdfap-autres{grid-area:autres;min-width:0;display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media (max-width:899px){
+  /* téléphone, tablette étroite : la page à la largeur de l'écran, sur toute la hauteur ; dessous, à qui l'envoyer ; les deux envois
+     collés en bas pendant qu'on fait défiler (sous le pouce), rien d'autre dans la barre collée */
+  .pdfap{--pdfap-h:calc(100dvh - 172px);grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-template-areas:"vue" "cote" "autres" "envoi";row-gap:14px}
+  .pdfap-vue{min-height:360px}
+  .pdfap-autres{margin-top:0}
+  .pdfap-envoi{position:sticky;bottom:0;z-index:4;margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:color-mix(in srgb,var(--bg1,#fff) 90%,transparent);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+    border-top:1px solid var(--brd)}
+}
 </style>
 </head>
 <body>
@@ -8835,42 +8884,68 @@ try{
          — typiquement pendant un redémarrage du serveur — et ne doivent pas polluer la surveillance. */
       var TM_HORS=/\/api\/(monitor|subscribe|unsubscribe|notify|bug|vapid|clients\/sync)/;
       if(/api\.teamop\.fr/.test(url)&&!TM_HORS.test(url)){ var ep=url.replace(/^https?:\/\/[^\/]+/,'').split('?')[0];
-        /* un échec isolé (serveur qui redémarre, wifi qui saute) n'est pas un incident :
-           on ne le signale qu'à la 2e fois en moins de 3 minutes sur le même appel.
+        /* un échec isolé (serveur qui redémarre, wifi qui saute) n'est pas un incident : une réponse 5xx ne se signale qu'à la 2e
+           fois en moins de 3 minutes sur le même appel, un appel SANS réponse qu'après 2 minutes de panne (v800, plus bas).
            ⛔ ET UN APPAREIL QUI N'A PAS DE RÉSEAU N'EST PAS UN SERVEUR INJOIGNABLE. 22 octobre 2026, deux dossiers de la Tour :
            « api.teamop.fr injoignable sur /api/mailboxes » ×3 et « … sur /api/replies », la même minute (01 h 46-47), un PC sous
            Chrome sur l'écran Messages — et le serveur tournait sans interruption depuis 48 h (`/health`, uptime). C'était
            l'appareil : un ordinateur qui sort de veille, un wifi qui revient. On ne signale donc rien quand l'appareil se sait
            hors ligne, ni dans la minute qui suit son retour (réseau revenu, page revenue au premier plan, page rendue par le
            cache d'historique) : une vraie panne dure plus d'une minute, et la surveillance horaire du serveur la voit aussi. */
-        var tmRet=function(msg,sansReponse){ try{
-          if(sansReponse&&navigator.onLine===false) return;
-          if(sansReponse&&Date.now()-(window.__tmRetour||0)<60000) return;   // une réponse 5xx, elle, prouve le réseau : elle se signale toujours
+        /* ⛔ v800 — UNE COUPURE QUE LA SYNCHRO RENOUE TOUTE SEULE N'EST PAS UN INCIDENT. Justin, 4 novembre 2026 : « ce message revient
+           beaucoup trop souvent de beaucoup de clients — il faut vraiment la corriger ». Tous les dossiers collés portaient la synchro
+           (/api/doc/attendre, /api/doc/lire, /api/doc/ecrire, /health), sur des iPhone et des Safari, serveur sain (uptime, aucune
+           écriture ratée). La règle d'avant — « 2e échec du même appel en 3 minutes » — comptait comme une panne ce qu'un téléphone de
+           terrain fait vingt fois par jour : l'écran verrouillé coupe l'écoute en cours (iOS rend « Load failed » au RETOUR, AVANT
+           l'événement qui ouvre la minute de grâce), un passage wifi → 4G coupe une connexion pendant que les autres répondent, et la
+           boucle de la synchro relit dans la seconde. Rien de tout ça ne gêne la personne : la synchro reprend seule.
+           La règle, désormais, pour un appel resté SANS RÉPONSE (coupure ou délai dépassé) : c'est peut-être une panne, et on la
+           CHRONOMÈTRE. Elle ne se signale qu'après 2 minutes sans aucune réponse du serveur (des échecs jamais à plus de 90 s l'un de
+           l'autre — donc au moins trois), page au premier plan tout du long — UN dossier par panne et par appareil, plus un par appel. L'horloge
+           repart de zéro à chaque réponse du serveur (le réseau marche : c'était UNE connexion perdue), à chaque passage au second
+           plan ou retour (l'écran verrouillé d'un iPhone coupe l'écoute en cours), au retour ou à la perte du réseau.
+           La minute de grâce qui suit un retour (plus haut) reste : une panne constatée au réveil se signale donc à 3 minutes.
+           ⚠️ Trois gardes de plus (« passée au second plan pendant l'appel », « une autre réponse pendant l'appel », « au moins
+           3 échecs ») ont été écrites puis retirées : la mutation a montré que les remises à zéro et l'écart de 90 s les
+           couvraient déjà entièrement.
+           Une réponse 5xx, elle, prouve le réseau : elle garde la règle d'avant (2e fois en 3 minutes sur le même appel) et se signale
+           toujours. `tests/test-3254.js`. */
+        var tmNet5xx=function(msg){ try{
           window.__tmNet=window.__tmNet||{};
           var n=Date.now(), pre=window.__tmNet[ep]||0;
           window.__tmNet[ep]=n;
           if(n-pre<180000) tmPush('reseau',msg,'','',0);
         }catch(_){ } };
-        p.then(function(r){ try{ if(r&&r.status>=500) tmRet('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
+        var tmSansReponse=function(msg){ try{
+          var n=Date.now();
+          if(navigator.onLine===false){ window.__tmPanne=null; return; }
+          if(n-(window.__tmRetour||0)<60000) return;
+          try{ if(document.visibilityState==='hidden') return; }catch(_){ }
+          var P=window.__tmPanne;
+          if(!P||n-P.dernier>90000) P=window.__tmPanne={debut:n,dernier:n,signale:false};
+          P.dernier=n;
+          if(!P.signale&&n-P.debut>=120000){ P.signale=true; tmPush('reseau',msg,'','',0); }
+        }catch(_){ } };
+        p.then(function(r){ try{ window.__tmPanne=null; if(r&&r.status>=500) tmNet5xx('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
                function(err){ try{
-                 /* ⛔ v787 — UNE DEMANDE QUE L'APPLICATION COUPE ELLE-MÊME N'EST PAS UN SERVEUR INJOIGNABLE. L'écoute des nouveautés
-                    est coupée exprès quand on revient sur l'application ou quand le réseau revient (`reveil`), et à l'arrêt de la
-                    synchro : la Tour recevait « injoignable sur /api/doc/attendre (Fetch is aborted) » pour un geste voulu. Une
-                    coupure par DÉLAI dépassé, elle, se dit pour ce qu'elle est : le serveur n'a pas répondu à temps à CET appareil. */
+                 /* ⛔ v787 — UNE DEMANDE QUE L'APPLICATION COUPE ELLE-MÊME N'EST PAS UN SERVEUR INJOIGNABLE (écoute coupée exprès au
+                    retour sur l'application, au retour du réseau, à l'arrêt de la synchro). Une coupure par DÉLAI dépassé se dit
+                    pour ce qu'elle est : le serveur n'a pas répondu à temps à CET appareil. */
                  var sg=null;
                  try{ sg=(tmArgs[1]&&tmArgs[1].signal)||(tmArgs[0]&&tmArgs[0].signal)||null; }catch(_){ }
                  if(sg&&sg.__opVolontaire) return;
                  var abandon=!!(err&&(err.name==='AbortError'||/abort/i.test(String(err.message||''))));
-                 if(abandon) tmRet('api.teamop.fr trop lent sur '+ep+' (pas de réponse'+(sg&&sg.__opDelai?' en '+Math.round(sg.__opDelai/1000)+' s':' dans le délai')+' — réseau de l’appareil ?)',true);
-                 else tmRet('api.teamop.fr injoignable sur '+ep+' ('+String((err&&err.message)||'échec').slice(0,80)+')',true); }catch(_){ } });
+                 if(abandon) tmSansReponse('api.teamop.fr ne répond plus à cet appareil depuis plus de 2 min — '+ep+' (pas de réponse'+(sg&&sg.__opDelai?' en '+Math.round(sg.__opDelai/1000)+' s':' dans le délai')+')');
+                 else tmSansReponse('api.teamop.fr injoignable depuis plus de 2 min sur cet appareil — '+ep+' ('+String((err&&err.message)||'échec').slice(0,80)+')'); }catch(_){ } });
       } }catch(_){ }
     return p; };
 }catch(_){ }
-try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); else window.__tmRetour=Date.now(); }); }catch(_){ }
+try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden'){ window.__tmPanne=null; tmFlush(); } else { window.__tmRetour=Date.now(); window.__tmPanne=null; } }); }catch(_){ }
 /* le retour de l'appareil : le réseau qui revient, la page rendue par le cache d'historique (voir tmRet, plus haut) — pas le
    premier chargement : une panne à l'ouverture de l'application se signale tout de suite */
-try{ window.addEventListener('online',function(){ window.__tmRetour=Date.now(); });
-  window.addEventListener('pageshow',function(e){ if(e&&e.persisted) window.__tmRetour=Date.now(); }); }catch(_){ }
+try{ window.addEventListener('online',function(){ window.__tmRetour=Date.now(); window.__tmPanne=null; });
+  window.addEventListener('offline',function(){ window.__tmPanne=null; });
+  window.addEventListener('pageshow',function(e){ if(e&&e.persisted){ window.__tmRetour=Date.now(); window.__tmPanne=null; } }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 /* ⛔ LA SEULE PORTE DE LA SENTINELLE VERS LE RESTE DE LA PAGE. Tout ce bloc est une fonction
    isolée : `tmPush` n'existe pas en dehors. Mesuré le 25 septembre 2026 : `syncDiagnostic`
@@ -8965,7 +9040,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '798-demo';
+const APP_VERSION = '800-demo';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13134,7 +13209,12 @@ async function khEquipe(){ try{
   const h=await sha256(k); if(!/^[0-9a-f]{64}$/.test(h||'')) return '';
   _khCle=k; _khVal=h; return h;
 }catch(e){ return ''; } }
-async function enteteEquipe(base){ const h=Object.assign({}, base||{}); const kh=await khEquipe(); if(kh) h['x-teamop-kh']=kh; return h; }
+async function enteteEquipe(base){ const h=Object.assign({}, base||{}); const kh=await khEquipe(); if(kh) h['x-teamop-kh']=kh;
+  /* v801 — LA BÊTA PROUVE UN COMPTE, PAS UNE CLÉ (Justin, 4 novembre 2026 : « en bêta, je devrais pouvoir me connecter avec mes boîtes
+     mail pour tester »). La clé de la bêta est publique : le serveur ne la croit pas. Il croit le JETON que `/api/beta/login` rend à un
+     accès de la Tour, présenté ici sur les routes mail ; chaque testeur y a SES boîtes. En production `BETA_ESSAI` vaut false : rien. */
+  if(BETA_ESSAI){ try{ const j=localStorage.getItem('elanD_beta_jeton'); if(j) h['x-teamop-beta']=j; }catch(e){} }
+  return h; }
 let _ck={};
 function _b64e(buf){ const b=new Uint8Array(buf); let s=''; const CH=0x8000; for(let i=0;i<b.length;i+=CH){ s+=String.fromCharCode.apply(null,b.subarray(i,i+CH)); } return btoa(s); }
 function _b64d(str){ const bin=atob(str); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a; }
@@ -15603,6 +15683,15 @@ function teamopLienActuel(){
 
    Le préfixe se lit sur STORE_KEY plutôt que d'être écrit en dur : la bêta le remplace par le
    sien, et une liste de clés figées raterait tout ce qui est construit à la volée. */
+/* v802 — LA BÊTA REJOINT SON ESPACE (`beta-build.js`, `betaEspaceUnique`). Un appareil de la bêta rattaché à un AUTRE espace (une entreprise, par
+   un lien) ne bouge pas tout seul : on ne mélange pas les données d'une entreprise dans l'espace de la bêta, dont la clé est publique. On le lui
+   PROPOSE (Outils de bêta, Boîte mail) : on quitte proprement (`espaceQuitter` : base locale, secrets, catégories), on se rattache, on recharge —
+   la base de la bêta arrive par la synchro ; rien n'est effacé chez l'autre espace. Seule la bêta appelle ces deux fonctions (`BETA_ESSAI`). */
+function betaEspaceAutre(){ try{ const t=(localStorage.getItem('elanD_sync_team')||'').trim(); return (t&&t!==FB_TEAM)?t:''; }catch(e){ return ''; } }
+function betaEspaceRejoindre(){ if(!BETA_ESSAI) return; const t=betaEspaceAutre(); if(!t){ toast('Cet appareil est déjà sur l’espace de la bêta'); return; }
+  if(!confirm('Cet appareil travaille sur l’espace « '+t+' », pas sur celui de la bêta.\n\nRejoindre l’espace de la bêta ? Cet appareil affichera alors les données de la bêta, les mêmes que tes autres appareils. Ce qui a été fait dans « '+t+' » y reste : rien n’y est effacé.')) return;
+  try{ espaceQuitter(); localStorage.setItem('elanD_sync_team',FB_TEAM); localStorage.setItem('elanD_sync_secret',SYNC_SECRET_DEFAULT); localStorage.setItem('elanD_sync_on','1'); }catch(e){}
+  location.reload(); }
 function espaceQuitter(){
   const P=STORE_KEY.split('_')[0]+'_';   // « elan_ » en production, « elanB_ » en bêta
   try{
@@ -24536,9 +24625,10 @@ async function envoiBoiteResoudre(cat,boxOverride,opts){
      connectée, l'envoi part par le serveur AU NOM de l'entreprise, avec l'adresse de « Mon entreprise » en adresse de réponse — aucune
      copie chez TEAM OP (serveur, 91641d89). Sans cette adresse, rien ne part. Quand on ne SAIT pas s'il y a une boîte (`null`), on ne
      choisit pas à sa place : une boîte qui existe ne se contourne pas en silence. */
-  if(Array.isArray(_mailboxes)||BETA_ESSAI){ const em=envoiAdresseEnt(); if(em) return {ent:em}; }
-  /* la bêta ne connecte aucune boîte, par construction (ESPACES_INTOUCHABLES) : elle n'en a AUCUNE, ce n'est pas « on ne sait pas » */
-  return {manque:(_mailboxes===null&&!BETA_ESSAI)?'inconnu':'aucune'};
+  /* v801 : sur la BÊTA, un envoi part seulement par la boîte reliée du testeur — le serveur refuse le relais au nom de « l'entreprise
+     bêta » (c'était le chemin de la fuite du mail d'incident). Pas de repli sur l'adresse de Mon entreprise ici. */
+  if(Array.isArray(_mailboxes)&&!BETA_ESSAI){ const em=envoiAdresseEnt(); if(em) return {ent:em}; }
+  return {manque:_mailboxes===null?'inconnu':'aucune'};
 }
 /* L'adresse e-mail de « Mon entreprise » — celle où ses clients répondent. Une adresse mal formée ne compte pas. */
 const ENVOI_ADR_RE=/^[^@\s<>"',;]+@[^@\s<>"',;]+\.[a-z]{2,}$/i;
@@ -24554,9 +24644,19 @@ function envoiBoiteEtape(manque){
   if(_boiteEtapeEnCours) return _boiteEtapeEnCours;
   if(Date.now()-_boiteEtapeFin<20000) return Promise.resolve(false);
   const admin=!!(currentUser&&currentUser.role==='admin');
-  const corps=manque==='inconnu'
+  let _sansJeton=false; if(BETA_ESSAI){ try{ _sansJeton=!localStorage.getItem('elanD_beta_jeton'); }catch(e){} }
+  const corps=(manque==='inconnu'&&_sansJeton)
+    ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Pour utiliser ta boîte mail sur la bêta, <b>déconnecte-toi puis reconnecte-toi</b> avec l’identifiant et le mot de passe donnés par la Tour. <b>Rien n’est parti.</b></p>
+      <button class="btn block" onclick="closeModal()">Compris</button>`
+    :manque==='inconnu'
     ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Impossible de vérifier ta boîte mail pour l’instant (le serveur n’a pas répondu). <b>Rien n’est parti</b> : réessaie dans un instant.</p>
       <button class="btn block" onclick="closeModal()">Compris</button>`
+    :(BETA_ESSAI&&admin)
+    /* v801 : la bêta n'envoie que par la boîte reliée du testeur — pas d'adresse « Mon entreprise » à poser ici, elle ne servirait pas */
+    ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:12px">Sur la bêta, un envoi part <b>seulement par ta boîte mail connectée</b> : connecte-la, et tes essais partiront vraiment de ton adresse.</p>
+        ${oauthBoutonsHtml('etape')}
+        <button class="btn block ghost" onclick="mailConnect()">🔗 Connecter ma boîte mail</button>
+        <button class="btn block ghost" style="margin-top:8px" onclick="closeModal()">Plus tard</button>`
     :admin
       ?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:12px">Pour envoyer à tes clients, OP GESTION a besoin de <b>l’adresse e-mail de ton entreprise</b> : c’est l’adresse où tes clients te répondront.</p>
         <div class="field"><label for="boite-etape-email">Adresse e-mail de mon entreprise</label><input id="boite-etape-email" type="email" inputmode="email" autocomplete="email" placeholder="contact@ton-entreprise.fr" value="${esc(String(((db&&db.entreprise)||{}).email||''))}" onkeydown="if(event.key==='Enter'){event.preventDefault();envoiAdresseEnregistrer();}"></div>
@@ -24625,7 +24725,10 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
       try{ const r2=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(p2)});
         if(r2.ok){ _srvMailErr=''; toast(okMsg||('✉️ E-mail envoyé à '+to)); return true; }
         const d2=await r2.json().catch(()=>({})); _srvMailErr=d2.error||('erreur serveur HTTP '+r2.status); }catch(e2){ _srvMailErr='serveur d\'envoi injoignable'; } }
-    toast((d.code==='a_reconnecter'?'Rien n’est parti : ta boîte mail doit être reconnectée (Paramètres → E-mails à tes clients → Reconnecter)':'Envoi refusé ('+_srvMailErr+') : ta boîte mail a refusé l’envoi')+(opts&&opts.sansMailto?(d.code==='a_reconnecter'?'':' — rien n’est parti'):' — e-mail préparé dans Mail'));
+    /* v802 : rien ne part ailleurs — ni par la plateforme en silence, ni par un brouillon de Mail (voir plus bas) : le refus se DIT, longtemps
+       (9 s), avec QUI a refusé — la boîte de l'entreprise, ou le serveur d'envoi quand il n'y a pas de boîte. */
+    toast(d.code==='a_reconnecter'?'Rien n’est parti : ta boîte mail doit être reconnectée (Paramètres → E-mails à tes clients → Reconnecter)'
+      :'⚠️ Envoi refusé ('+_srvMailErr+') : '+((bt.mb||bt.smtp)?'ta boîte mail a refusé l’envoi':'le serveur d’envoi a refusé')+' — rien n’est parti',9000);
     /* v740 : le DOMAINE seulement. L'adresse d'un client n'a rien à faire dans un rapport d'erreur
        (pas de données personnelles de clients dans les journaux) ; le domaine suffit à voir qu'un
        fournisseur de messagerie refuse. */
@@ -24634,12 +24737,15 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
        publique (c'est ce qui sert à voir qu'Orange ou Gmail refuse), sinon « domaine d'entreprise » ; et une adresse que le serveur de
        la boîte recopie dans son refus (« 550 <x@y> unknown ») ne part pas non plus. */
     try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+String(_srvMailErr).replace(/[^\s<>"'@]+@[^\s<>"'@]+/g,'[adresse]'),src:'srvMail',line:0,stack:'domaine du destinataire : '+domaineDiag(to),ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
-  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable'+(opts&&opts.sansMailto?' — rien n’est parti, réessaie quand le réseau revient':' — e-mail préparé dans Mail')); }
-  /* ⛔ v740 — un courriel qui porte une PIÈCE JOINTE ne se rabat pas sur un brouillon : le lien
-     mailto: ne sait pas joindre de fichier, et le brouillon dirait « ci-joint » sans rien joindre.
-     L'appelant (le plan d'implantation) le demande par `sansMailto` ; il n'écrit alors rien. */
-  if(opts&&opts.sansMailto) return false;
-  demoNav.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent((opts&&opts.mailtoBody)||body);
+  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('⚠️ Serveur injoignable — rien n’est parti, réessaie quand le réseau revient',9000); }
+  /* ⛔ v802 — PLUS AUCUN BROUILLON `mailto:`, POUR AUCUN ENVOI (Justin, 5 novembre 2026, capture de l'application Mail du Mac ouverte
+     sur un devis : « pourquoi en mail le PDF s'ouvre pas, et pourquoi ça utilise pas le mail de l'application »). Quand l'envoi
+     échouait (boîte qui refuse, serveur qui refuse ou injoignable), srvMail ouvrait le logiciel de courrier de l'appareil avec le
+     TEXTE du document : sans le PDF (un lien mailto: ne joint rien), depuis l'adresse personnelle réglée dans ce logiciel, et sans
+     que l'application sache si quelqu'un appuyait sur « Envoyer ». Le client recevait au mieux un devis sans devis. Un envoi part
+     PAR L'APPLICATION ou il ne part pas, et ça se dit (toast ci-dessus) ; le document reste en brouillon (« Envoyé » ne se pose que
+     sur `true`). `sansMailto` et `mailtoBody` sont encore acceptés (des appelants les passent), ils ne changent plus rien.
+     `tests/test-3260.js`. */
   return false;
 }
 /* un courriel IDENTIQUE (destinataire, objet, texte, pièces, boîte) déjà en route ne repart pas : le second appel attend la
@@ -24669,7 +24775,7 @@ async function envoiBoiteCarteMaj(){ const el=document.getElementById('envoi-boi
   try{ await loadMailboxes(); }catch(e){}
   if(!document.body.contains(el)) return;
   const adm=!!(currentUser&&currentUser.role==='admin'), smtp=(db.mailBoxes||[]).filter(b=>b&&b.user);
-  const liste=Array.isArray(_mailboxes)?_mailboxes:(BETA_ESSAI?[]:null);
+  const liste=Array.isArray(_mailboxes)?_mailboxes:null;
   if(liste===null){ el.innerHTML='<span style="color:var(--org)">Impossible de vérifier pour l’instant</span>'; if(ac) ac.innerHTML='<button class="btn sm ghost" onclick="envoiBoiteCarteMaj()">Réessayer</button>'; return; }
   if(liste.length){ el.innerHTML=liste.map(b=>b.etat==='a_reconnecter'?'<span style="color:var(--org);font-weight:700">À reconnecter : '+esc(b.email)+' — rien ne part par elle</span>':'<span style="color:var(--green);font-weight:700">Connectée : '+esc(b.email)+' ✓</span>').join('<br>'); if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailBoxesManage()">Gérer mes boîtes</button>':''; return; }
   if(smtp.length){ el.innerHTML='<span style="color:var(--green);font-weight:700">Adresse d’envoi : '+esc(smtp[0].user)+' ✓</span>'; if(ac) ac.innerHTML=adm?'<button class="btn sm ghost" onclick="mailConnect()">🔗 Connecter aussi la boîte (réponses dans l’app)</button>':''; return; }
@@ -26653,14 +26759,9 @@ async function papImplDocument(cid,i,st){ if(!docNomGarde(null)) return {err:'In
 async function papImplApercu(cid,intId){
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   if(!papImplPlans(cid).length){ toast('Aucun plan avec des postes pour ce client'); return; }
-  const w=window.open('','_blank');            // ouverte dans le geste, sinon le navigateur la bloque
+  /* v802 : dans la fenêtre PDF de l'application, plus dans un onglet */
   const i=(db.interventions||[]).find(x=>x.id===intId)||null;
-  const d=await papImplDocument(cid,i,papImplEtat(cid));
-  if(d.err){ try{ w&&w.close(); }catch(e){} toast(d.err); return; }
-  const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
-  const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-  if(w) w.location.href=u; else toast('Autorise les pop-ups pour voir le PDF');
-  setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
+  return pdfFeuille({titre:'Plan d’implantation', nom:'plan-implantation', fabrique:()=>papImplDocument(cid,i,papImplEtat(cid))}); }
 /* L'envoi : le PDF d'abord, le courriel ensuite, la trace SEULEMENT si le courriel est parti.
    Aujourd'hui le plan était marqué « ✓ Envoyé » avant de savoir si le courriel partait. */
 let _papImplEnvoi=false;
@@ -34428,10 +34529,22 @@ function mailAjusterVeiller(){
    la relisent. Ce que le serveur d'aujourd'hui ne sait pas faire (OAuth Google/Microsoft, envoi programmé application fermée, signature, dossiers IMAP au-delà de la réception,
    plusieurs destinataires, lu/non lu côté serveur) est dit « Bientôt » par le module — `capacites()` ci-dessous le déclare. */
 let _courrierInst=null, _courrierChargement=null, _courrierRep=null, _courrierVeille=false, _courrierRaf=0;
+/* Le 403 d'une route mail SUR LA BÊTA, dit en geste (voir `refus` ci-dessous) ; '' ailleurs, et en production. */
+function courrierRefusBeta(){ if(!BETA_ESSAI) return '';
+  let autre=''; try{ autre=(typeof betaEspaceAutre==='function')?betaEspaceAutre():''; }catch(e){}
+  let sansJeton=false; try{ sansJeton=!localStorage.getItem('elanD_beta_jeton'); }catch(e){}
+  if(autre){ if(!window._betaRejoindrePropose){ window._betaRejoindrePropose=true; setTimeout(()=>{ try{ if(typeof betaEspaceRejoindre==='function') betaEspaceRejoindre(); }catch(e){} },0); }
+    return 'Cet appareil est sur l’espace « '+autre+' », pas sur celui de la bêta : rejoins l’espace de la bêta (Paramètres → Outils de bêta) pour relier tes boîtes.'; }
+  if(sansJeton) return 'Ta connexion à la bêta date d’avant la mise à jour : déconnecte-toi puis reconnecte-toi une fois, et tes boîtes mail se relieront.';
+  return ''; }
 function courrierSource(){
   let boites=[];   // les dernières boîtes lues : une réponse sans boîte nommée se range dans la première
   /* un refus se LIT sur le code d'abord ; son corps (JSON ou text/plain) ne sert qu'à dire pourquoi, et peut ne pas se lire */
   const refus=async(r,defaut)=>{ let d=null; try{ d=await r.json(); }catch(e){}
+    /* v802 — sur la BÊTA, un 403 ne parle pas de « clé » : il dit QUOI FAIRE (Justin, 5 novembre 2026, capture : « Boîtes mail illisibles —
+       la clé de l'entreprise n'est pas reconnue »). Deux causes, et deux gestes : l'appareil est sur un autre espace (il le rejoint, Paramètres
+       ou la fenêtre qui s'ouvre), ou sa session date d'avant la 801 et n'a pas de jeton d'accès (se déconnecter, se reconnecter une fois). */
+    if(r.status===403){ const m=courrierRefusBeta(); if(m) return new Error(m); }
     return new Error((d&&d.error)||(r.status===403?'accès refusé par le serveur — la clé de l’entreprise n’est pas reconnue':defaut+' (HTTP '+r.status+')')); };
   /* UNE lecture de /api/replies par relevé, partagée par les boîtes (le serveur rend toute la réception de l'entreprise d'un coup) */
   const reponses=()=>{ const t=Date.now(); if(_courrierRep&&t-_courrierRep.t<3000) return _courrierRep.p;
@@ -34441,17 +34554,21 @@ function courrierSource(){
     _courrierRep={t,p}; p.catch(()=>{ if(_courrierRep&&_courrierRep.p===p) _courrierRep=null; }); return p; };
   const base64=async(f)=>{ const b=new Uint8Array(await f.arrayBuffer()); let s=''; for(let i=0;i<b.length;i+=0x8000) s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000)); return btoa(s); };
   return {
-    async capacites(){ return {oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
-      dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024},traduire:true}; },
+    /* v802 — « SE CONNECTER AVEC GOOGLE / MICROSOFT » DANS LE COURRIER (Justin, 5 novembre 2026 : « Ajouter une boîte mail » n'offrait ni
+       Google ni Microsoft). L'autorisation n'est déclarée que pour les fournisseurs que le serveur dit configurés (`/health` → `oauth`,
+       `oauthDispo`) : un fournisseur fermé garde le mot de passe d'application (Google) ou dit qu'il n'est pas encore ouvert (Microsoft). */
+    async capacites(){ const o=await oauthDispo(), via=Object.keys(OAUTH_NOMS).filter(k=>o[k]).map(k=>OAUTH_NOMS[k]);
+      return {oauth:via.length>0,oauthVia:via,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
+      dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024},traduire:!BETA_ESSAI}; },   /* la bêta : pas de traduction — le texte d'un vrai mail partirait chez Anthropic, flux non couvert (`sous-traitance.html`) ; le serveur la refuse aussi */
     /* « Traduire en français » (20 octobre 2026) : le texte d'UN mail, au geste, traduit par le serveur (`/api/mail/traduire`, gardé par la clé de l'entreprise) */
     async traduire(texte){
       const r=await fetch(PUSH_API+'/api/mail/traduire',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),texte:String(texte||'')})});
       if(!r.ok) throw await refus(r,'Traduction refusée');
       const d=await r.json(); if(!d||typeof d.texte!=='string') throw new Error('réponse du serveur illisible'); return d.texte; },
     async boites(){
+      if(DEMO_PUBLIQUE){ const e=new Error('Dans la démonstration, aucune boîte mail ne se connecte : rien n\'est reçu, rien n\'est envoyé.'); e.calme=true; throw e; }
       /* ⛔ L'espace de la BÊTA est refusé exprès sur les routes mail (aucun vrai courriel ne se lit, ne se connecte ni ne part d'ici) : ce n'est pas une panne, donc pas de « refusé » ni de
          « Réessayer ». `calme:true` le dit au module, qui affiche l'état tel quel. En production `BETA_ESSAI` vaut `false` : cette ligne ne s'exécute jamais, le chemin est celui d'avant. */
-      if(BETA_ESSAI||DEMO_PUBLIQUE){ const e=new Error(DEMO_PUBLIQUE?'Dans la démonstration, aucune boîte mail ne se connecte : rien n\'est reçu, rien n\'est envoyé.':'Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }
       const r=await fetch(PUSH_API+'/api/mailboxes?teamId='+encodeURIComponent(syncTeam()),{headers:await enteteEquipe()});
       if(!r.ok) throw await refus(r,'Lecture des boîtes refusée');
       const d=await r.json(); if(!Array.isArray(d.mailboxes)) throw new Error('réponse du serveur illisible');
@@ -34471,7 +34588,12 @@ function courrierSource(){
       if(!r.ok) throw await refus(r,'Envoi refusé'); },
     async ajouterBoite(p){
       const email=String(p.email||'').trim();
-      if(/@(hotmail|outlook|live|msn)\./i.test(email)) throw new Error('Microsoft (Hotmail / Outlook) refuse la connexion par mot de passe : cette adresse ne peut pas être connectée pour l’instant.');
+      /* ⛔ Rien n'est attendu avant `courrierOauth` : il ouvre la fenêtre d'autorisation, et Safari bloque une fenêtre ouverte hors du geste
+         (le module appelle cette fonction dans le clic). Google avec un mot de passe (d'application) reste le chemin du mot de passe ;
+         Microsoft refuse tout mot de passe, donc c'est l'autorisation ou rien. */
+      const f=courrierOauthDe(p.fournisseur,email), dispo=_oauthDispo||{};
+      if(f&&dispo[f]&&(f==='microsoft'||!p.mdp)) return courrierOauth(f,email);
+      if(f==='microsoft') throw new Error('La connexion Microsoft (Outlook, Hotmail, Microsoft 365) n’est pas encore ouverte sur le serveur, et Microsoft refuse les mots de passe : cette adresse ne peut pas être connectée pour l’instant.');
       const r=await fetch(PUSH_API+'/api/mailbox/connect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),email,pass:p.mdp,name:p.nom||mailBrandName()})});
       let d=null; try{ d=await r.json(); }catch(e){}
       if(!r.ok||!d||!d.ok) throw new Error((d&&d.error)||'Connexion refusée (HTTP '+r.status+')');
@@ -34482,6 +34604,14 @@ function courrierSource(){
       if(!r.ok) throw await refus(r,'Retrait refusé'); _courrierRep=null; }
   };
 }
+/* Le fournisseur d'autorisation d'une boîte : la tuile reconnue par le module (Gmail, Google Workspace, Outlook, Microsoft 365), sinon le
+   domaine de l'adresse. Une boîte d'entreprise sur un autre service rend '' : mot de passe. */
+function courrierOauthDe(fid,email){ const id=String(fid||'');
+  if(id==='gmail'||id==='gworkspace') return 'google'; if(id==='microsoft'||id==='m365') return 'microsoft';
+  if(/@(gmail|googlemail)\.com$/i.test(email)) return 'google'; if(/@(outlook|hotmail|live|msn)\.[a-z.]+$/i.test(email)) return 'microsoft'; return ''; }
+/* La connexion du Courrier par autorisation : le parcours de la v798 (`mailOauthDemarrer`), dont la fin REND la boîte au module au lieu de
+   l'annoncer : il l'ajoute, la nomme et la relit lui-même ; un échec revient dans sa feuille, qui le dit et reste ouverte. */
+function courrierOauth(f,email){ return new Promise((ok,ko)=>{ mailOauthDemarrer(f,{courrier:{ok,ko},email}).catch(e=>ko(e)); }); }
 /* v797 : la réponse d'un fournisseur rattachée à un bon (`bonNum`) porte son numéro dans le texte lu — on le lit, et la recherche le trouve. */
 function courrierCorps(x){ const t=String((x&&x.text)||''), n=String((x&&x.bonNum)||'').trim(); return n&&t.indexOf(n)<0?t+(t?'\n\n':'')+'Bon de commande '+n:t; }
 function courrierCharger(){
@@ -34772,37 +34902,48 @@ async function oauthBoutonsMontrer(){ const d=await oauthDispo();
     z.innerHTML=f.map(k=>`<div class="oauth-b-${k}" style="margin-bottom:${etape?8:12}px">${etape?'':`<div style="font-size:12.5px;font-weight:700;color:var(--t2);margin-bottom:6px">${k==='google'?'Gmail ?':'Outlook, Hotmail ou Microsoft 365 ?'}</div>`}<button class="btn block${etape?' ghost':''}" onclick="mailOauthDemarrer('${k}')">Se connecter avec ${OAUTH_NOMS[k]}</button></div>`).join('')
       +(etape?'':'<div style="font-size:12px;color:var(--t3);margin:0 0 12px;text-align:center">Pour les autres boîtes : l’adresse et le mot de passe, ci-dessous.</div>');
     z.style.display=''; }); }
-async function mailOauthDemarrer(f){
-  const nom=OAUTH_NOMS[f]; if(!nom) return false;
+async function mailOauthDemarrer(f,opts){
+  /* `opts.courrier` (v802) : le Courrier attend la boîte — chaque échec lui est RENDU (sa feuille le dit), au lieu d'un toast ; la fin
+     aussi (`oauthFinCourrier`). Sans lui : le parcours de la v798, tel quel. */
+  const cb=(opts&&opts.courrier)||null, email=String((opts&&opts.email)||'').trim();
+  const dire=m=>{ if(cb) cb.ko(new Error(m)); else toast(m); return false; };
+  const nom=OAUTH_NOMS[f]; if(!nom) return cb?dire('Ce fournisseur ne se connecte pas par autorisation'):false;
   let w=null; try{ w=window.open('','teamop-oauth','width=520,height=720'); }catch(e){ w=null; }
   if(w){ try{ w.document.title='OP GESTION'; w.document.body.style.cssText='font-family:system-ui,-apple-system,sans-serif;padding:24px;color:#334'; w.document.body.textContent='Ouverture de la connexion '+nom+'…'; }catch(e){} }
   const fermer=()=>{ try{ if(w&&!w.closed) w.close(); }catch(e){} };
+  const base=cb?loadMailboxes():null;   // le Courrier : les boîtes d'AVANT, pour reconnaître celle qui arrive
   let r=null, d={};
   try{ r=await fetch(PUSH_API+'/api/mailbox/oauth/start',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),fournisseur:f})});
     d=await r.json().catch(()=>({})); }
-  catch(e){ fermer(); toast('Serveur injoignable — rien n’a changé, réessaie dans un instant'); return false; }
+  catch(e){ fermer(); return dire('Serveur injoignable — rien n’a changé, réessaie dans un instant'); }
   if(!r.ok||!d||typeof d.url!=='string'||!/^https?:\/\//.test(d.url)){ fermer();
     if(r.status===503||(d&&d.code==='oauth_non_configure')){ _oauthDispo=Object.assign({},_oauthDispo||{},{[f]:false}); _oauthDispoTs=Date.now(); oauthBoutonsMontrer();
-      toast('La connexion '+nom+' n’est pas encore disponible — connecte la boîte avec son adresse et son mot de passe'); return false; }
-    toast('Connexion '+nom+' impossible : '+((d&&d.error)||('le serveur a répondu '+r.status))); return false; }
-  if(!w||w.closed){ if(confirm('Ton navigateur a bloqué la fenêtre de connexion '+nom+'.\n\nOuvrir la page '+nom+' ici ? Tu reviendras ensuite dans OP GESTION.')) location.href=d.url; return false; }
-  try{ w.location.href=d.url; }catch(e){ fermer(); toast('Connexion '+nom+' impossible : la fenêtre n’a pas pu s’ouvrir'); return false; }
-  oauthSuivre(w);
+      return dire('La connexion '+nom+' n’est pas encore disponible — '+(f==='microsoft'?'Microsoft refuse les mots de passe : cette adresse ne peut pas être connectée pour l’instant':'connecte la boîte avec son adresse et son mot de passe')); }
+    if(cb&&r.status===403){ const m=courrierRefusBeta(); if(m) return dire(m); }
+    return dire('Connexion '+nom+' impossible : '+((d&&d.error)||('le serveur a répondu '+r.status))); }
+  /* l'adresse tapée dans le Courrier pré-remplit le compte chez le fournisseur (login_hint : Google et Microsoft le lisent tous deux) */
+  const url=cb&&/^[^@\s]+@[^@\s]+$/.test(email)?d.url+(d.url.indexOf('?')<0?'?':'&')+'login_hint='+encodeURIComponent(email):d.url;
+  if(!w||w.closed){ if(confirm('Ton navigateur a bloqué la fenêtre de connexion '+nom+'.\n\nOuvrir la page '+nom+' ici ? Tu reviendras ensuite dans OP GESTION.')){ location.href=url; return false; }
+    return cb?dire('Ton navigateur a bloqué la fenêtre de connexion '+nom+' — autorise les fenêtres pour teamop.fr, puis recommence'):false; }
+  try{ w.location.href=url; }catch(e){ fermer(); return dire('Connexion '+nom+' impossible : la fenêtre n’a pas pu s’ouvrir'); }
+  oauthSuivre(w,cb,email,base);
   return true; }
 /* Le suivi d'UNE connexion : le message de la page de retour, ou la fenêtre fermée, ou le retour sur l'application — le premier qui
    arrive relit la liste ; les autres ne font plus rien. */
-function oauthSuivre(w){ if(_oauthSuivi) clearInterval(_oauthSuivi.t);
+function oauthSuivre(w,cb,email,base){ const prec=_oauthSuivi; if(prec){ clearInterval(prec.t); if(prec.cb&&!prec.conclu){ prec.conclu=true; prec.cb.ko(new Error('Une autre connexion a été lancée — celle-ci est abandonnée')); } }
   const avant=JSON.stringify((_mailboxes||[]).map(b=>b.id+':'+b.etat).sort());
-  const s={avant,w,debut:Date.now()};
+  const s={avant,w,debut:Date.now(),cb:cb||null,email:String(email||'').trim().toLowerCase(),base:base||null};
   s.t=setInterval(()=>{ let ferme=true; try{ ferme=!s.w||s.w.closed; }catch(e){}
-    if(ferme){ clearInterval(s.t); oauthFin(null,true); } else if(Date.now()-s.debut>15*60000) { clearInterval(s.t); if(_oauthSuivi===s) _oauthSuivi=null; } },1000);
+    if(ferme){ clearInterval(s.t); oauthFin(null,true); } else if(Date.now()-s.debut>15*60000) { clearInterval(s.t); if(_oauthSuivi===s) _oauthSuivi=null;
+      if(s.cb&&!s.conclu){ s.conclu=true; s.cb.ko(new Error('Connexion non terminée au bout de 15 minutes — rien n’a changé, recommence')); } } },1000);
   _oauthSuivi=s; }
 /* `ferme` : la fenêtre s'est fermée. Sans message ni fenêtre fermée (retour sur l'application), on ne fait que REGARDER : la connexion
    peut être encore en cours chez Google (un téléphone revient sur l'appli avant d'avoir fini), le suivi continue. */
 async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
   if(s&&s.lit&&!msg){ if(ferme) s.fermee=true; return; }   // une relecture est déjà en route : elle tiendra compte de la fermeture
   if(s) s.lit=true;
-  const avant=s?s.avant:'';
+  const lAvant=s&&s.base?await s.base.catch(()=>null):null;   // le Courrier : la liste lue au lancement (la sienne, pas `_mailboxes`, qu'il ne lit pas)
+  const avant=s&&s.base?JSON.stringify((Array.isArray(lAvant)?lAvant:[]).map(b=>b.id+':'+b.etat).sort()):(s?s.avant:'');
   await loadMailboxes();
   if(s){ s.lit=false; if(s.fermee) ferme=true; }
   if(s&&s.conclu) return;   // un autre chemin (le message de la page de retour, ou la fenêtre fermée) a déjà conclu
@@ -34810,6 +34951,7 @@ async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
   const change=Array.isArray(_mailboxes)&&apres!==avant;
   if(!msg&&!ferme&&!change) return;
   if(s) s.conclu=true; if(_oauthSuivi){ clearInterval(_oauthSuivi.t); _oauthSuivi=null; }
+  if(s&&s.cb) return oauthFinCourrier(s.cb,msg,lAvant,s.email);
   if(msg&&msg.ok===false){ toast('⚠️ '+(msg.message||'Connexion non terminée')+' — rien n’a changé'); return; }
   if(!Array.isArray(_mailboxes)){ toast('Impossible de vérifier la boîte pour l’instant — rouvre « Mes boîtes mail » dans un instant'); return; }
   if(!(msg&&msg.ok)&&!change) return;   // fenêtre fermée sans rien changer : on ne dit rien de faux
@@ -34817,6 +34959,17 @@ async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
   if(document.querySelector('#overlay.open #mb-email, #overlay.open #boite-etape')) closeModal();   // l'étape d'envoi fermée : l'envoi reprend
   try{ envoiBoiteCarteMaj(); }catch(e){}
   if(current==='boiteMail'){ _mailReplies=null; mailSel=null; views.boiteMail(); } }
+/* La fin d'une connexion lancée par le Courrier : la boîte arrivée (l'adresse demandée d'abord, sinon celle qui n'était pas là, sinon
+   celle qui a changé d'état), ou la raison pour laquelle il n'y en a pas — jamais « connectée » sur la seule fermeture de la fenêtre. */
+function oauthFinCourrier(cb,msg,lAvant,email){
+  if(msg&&msg.ok===false) return cb.ko(new Error((msg.message||'Connexion non terminée')+' — rien n’a changé'));
+  if(!Array.isArray(_mailboxes)) return cb.ko(new Error('Impossible de vérifier la boîte pour l’instant — rouvre la Boîte mail dans un instant'));
+  const connu=Array.isArray(lAvant), ids=new Set((lAvant||[]).map(b=>String(b.id))), etats=new Set((lAvant||[]).map(b=>b.id+':'+b.etat));
+  const neuve=b=>connu&&(!ids.has(String(b.id))||!etats.has(b.id+':'+b.etat)), meme=b=>!!email&&String(b.email||'').toLowerCase()===email;
+  const l=_mailboxes, b=l.find(x=>meme(x)&&(neuve(x)||!connu))||l.find(x=>connu&&!ids.has(String(x.id)))||l.find(neuve)||(msg&&msg.ok?l.find(meme):null);
+  if(!b) return cb.ko(new Error(msg&&msg.ok?'La connexion est revenue, mais aucune boîte n’est apparue — rouvre la Boîte mail dans un instant':'La fenêtre de connexion s’est fermée avant la fin — rien n’a changé'));
+  _courrierRep=null;
+  cb.ok({id:b.id,email:b.email||email,nom:b.name||String(b.email||email).split('@')[0],cote:'pro',importEnCours:true}); }
 window.addEventListener('message',e=>{ if(e.origin!==PUSH_API) return; const d=e.data;
   if(!d||typeof d!=='object'||d.type!=='teamop-boite') return; oauthFin({ok:!!d.ok,message:String(d.message||'').slice(0,200)}); });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&_oauthSuivi) setTimeout(()=>{ if(_oauthSuivi) oauthFin(null); },800); });
@@ -35289,12 +35442,8 @@ function bonQtyClose(){ const ov=$('bon-qty'); if(ov) ov.remove(); renderBonLign
 function bonQtyEchap(e){ if(e.key==='Escape' && document.getElementById('bon-qty')){ e.stopPropagation(); e.preventDefault(); bonQtyClose(); } }
 window.addEventListener('keydown',bonQtyEchap,true);
 /* Ouvre un PDF à partir d'un objet bon (réel ou brouillon) */
-function _bonPdfOpenObj(tmp){
-  try{ const s=bonPdfStr(tmp); const bytes=new Uint8Array(s.length); for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
-    const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-    if(!window.open(u,'_blank')) toast('Autorise les pop-ups pour voir le PDF');
-    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
-  }catch(e){ console.error(e); toast('Aperçu PDF impossible'); } }
+function _bonPdfOpenObj(tmp){   /* v802 : dans la fenêtre PDF de l'application, plus dans un onglet */
+  return pdfFeuille({titre:'Bon de commande '+((typeof bonNum==='function'&&bonNum(tmp))||''), nom:(typeof bonNum==='function'&&bonNum(tmp))||'bon-de-commande', fabrique:async()=>({pdf:bonPdfStr(tmp)})}); }
 /* Aperçu PDF du bon en cours de saisie — JAMAIS mélangé : si plusieurs fournisseurs, un PDF par fournisseur */
 let _bonDraftGroups=null;
 function bonPdfDraft(){ const form=$('bonform'); const f=form?Object.fromEntries(new FormData(form)):{};
@@ -36148,40 +36297,202 @@ function bonPdfDownload(id){ const b=db.bons.find(x=>x.id===id); if(!b) return;
    fenêtre posée PAR-DESSUS (la fiche d'en dessous reste ouverte, sa saisie aussi) ; chaque geste part
    ensuite d'un toucher, donc le navigateur l'accepte. Une couche à part, jamais #modal : l'attestation ou
    le document métier qu'on est en train de remplir ne doit pas disparaître pour un aperçu. */
+/* ══ L'APERÇU DES PDF, DANS L'APPLICATION ET SUR TOUS LES APPAREILS (v802) ═══════════════════════════════════════════════════════════
+   Justin, 5 novembre 2026, capture d'un onglet `https://teamop.fr/<uuid>` : « quand je fais aperçu pour le PDF, ça ouvre un autre lien,
+   je voulais pas ça ». L'aperçu ouvrait le lecteur du navigateur dans un nouvel onglet (et un <iframe> ne suffit pas : Safari sur iPhone
+   n'y montre que la PREMIÈRE page, Chrome sur Android n'y montre RIEN — il n'a pas de lecteur intégré). Les PDF de l'application sont tous
+   écrits par l'application (mêmes fabriques, aucune bibliothèque) avec un petit jeu d'opérateurs connu : on les DESSINE donc nous-mêmes,
+   page par page, sur des <canvas> — le même fichier que celui qu'on télécharge et qu'on envoie, lu objet par objet (table xref), sans
+   dépendance. Un opérateur inconnu ne casse rien : il est compté (`r.inconnus`) et l'aperçu bascule sur le lecteur du navigateur DANS
+   la fenêtre (iframe), jamais dans un onglet. `tests/test-3260.js` dessine chaque fabrique dans un faux canvas et compare la mise en page
+   au rendu de poppler (`pdftoppm`). */
+function pdfLire(s){   // s : la chaîne d'octets du PDF (un caractère = un octet)
+  const objs={}; const sx=s.lastIndexOf('startxref'); if(sx<0) throw new Error('pdf sans xref');
+  const xo=parseInt(s.slice(sx+9).trim(),10); const xr=s.slice(xo,s.indexOf('trailer',xo));
+  const lignes=xr.split('\n').map(x=>x.trim()).filter(Boolean); let num=0; const offs=[];
+  for(let k=1;k<lignes.length;k++){ const m=/^(\d+) (\d+)$/.exec(lignes[k]); if(m){ num=+m[1]; continue; } const e=/^(\d{10}) \d{5} ([nf])/.exec(lignes[k]); if(e){ if(e[2]==='n') offs.push([num,+e[1]]); num++; } }
+  offs.sort((a,b)=>a[1]-b[1]);
+  offs.forEach(([n,o],k)=>{ const fin=k+1<offs.length?offs[k+1][1]:xo; const t=s.slice(o,fin); const d=t.indexOf('obj')+3; let corps=t.slice(d); const e=corps.lastIndexOf('endobj'); if(e>=0) corps=corps.slice(0,e);
+    const st=corps.indexOf('stream'); if(st>=0&&/>>\s*$/.test(corps.slice(0,st))){ let a=st+6; if(corps[a]==='\r') a++; if(corps[a]==='\n') a++; let b=corps.lastIndexOf('endstream'); let flux=corps.slice(a,b); if(flux.endsWith('\n')) flux=flux.slice(0,-1); if(flux.endsWith('\r')) flux=flux.slice(0,-1); objs[n]={dict:corps.slice(0,st).trim(),flux}; }
+    else objs[n]={dict:corps.trim()}; });
+  const ref=(t,cle)=>{ const m=new RegExp('/'+cle+'\\s+(\\d+) 0 R').exec(t); return m?+m[1]:null; };
+  const pagesN=Object.keys(objs).find(n=>/\/Type\s*\/Pages\b/.test(objs[n].dict)); if(!pagesN) throw new Error('pdf sans pages');
+  const kids=[...(/\/Kids\s*\[([^\]]*)\]/.exec(objs[pagesN].dict)||['',''])[1].matchAll(/(\d+) 0 R/g)].map(m=>+m[1]);
+  return kids.map(kn=>{ const p=objs[kn].dict; const mb=(/\/MediaBox\s*\[([^\]]+)\]/.exec(p)||[0,'0 0 595 842'])[1].trim().split(/\s+/).map(Number);
+    const polices={}; const fm=/\/Font\s*<<([^>]*)>>/.exec(p); if(fm) for(const m of fm[1].matchAll(/\/(\w+)\s+(\d+) 0 R/g)){ const fd=(objs[+m[2]]||{}).dict||''; polices[m[1]]=(/\/BaseFont\s*\/([\w-]+)/.exec(fd)||[0,'Helvetica'])[1]; }
+    const images={}; const xm=/\/XObject\s*<<([^>]*)>>/.exec(p); if(xm) for(const m of xm[1].matchAll(/\/(\w+)\s+(\d+) 0 R/g)){ const o=objs[+m[2]]; if(o&&o.flux!==undefined) images[m[1]]={dict:o.dict,octets:o.flux}; }
+    let contenu=''; const cr=/\/Contents\s*(\[([^\]]*)\]|(\d+) 0 R)/.exec(p);
+    if(cr){ const ids=cr[2]?[...cr[2].matchAll(/(\d+) 0 R/g)].map(m=>+m[1]):[+cr[3]]; contenu=ids.map(i=>(objs[i]||{}).flux||'').join('\n'); }
+    return {l:mb[2]-mb[0], h:mb[3]-mb[1], x0:mb[0], y0:mb[1], polices, images, contenu}; }); }
+/* les octets WinAnsi d'une chaîne PDF → texte (128-159 : la table de la page de code 1252) */
+const _PDF_W1252={128:'€',130:'‚',131:'ƒ',132:'„',133:'…',134:'†',135:'‡',136:'ˆ',137:'‰',138:'Š',139:'‹',140:'Œ',142:'Ž',145:'‘',146:'’',147:'“',148:'”',149:'•',150:'–',151:'—',152:'˜',153:'™',154:'š',155:'›',156:'œ',158:'ž',159:'Ÿ'};
+function pdfJetons(c){ const t=[]; let i=0; const n=c.length;
+  while(i<n){ const ch=c[i];
+    if(ch===' '||ch==='\n'||ch==='\r'||ch==='\t'||ch==='\f'){ i++; continue; }
+    if(ch==='%'){ while(i<n&&c[i]!=='\n') i++; continue; }
+    if(ch==='('){ let p=1, o=''; i++; while(i<n&&p>0){ const x=c[i];
+        if(x==='\\'){ const y=c[i+1]; if(/[0-7]/.test(y)){ let m=/^[0-7]{1,3}/.exec(c.slice(i+1,i+4))[0]; o+=String.fromCharCode(parseInt(m,8)); i+=1+m.length; continue; }
+          o+=({n:'\n',r:'\r',t:'\t',b:'\b',f:'\f'})[y]||y; i+=2; continue; }
+        if(x==='(') p++; else if(x===')'){ p--; if(!p){ i++; break; } } o+=x; i++; }
+      t.push({s:[...o].map(x=>{ const k=x.charCodeAt(0); return _PDF_W1252[k]||x; }).join('')}); continue; }
+    if(ch==='['){ t.push({a:'['}); i++; continue; } if(ch===']'){ t.push({a:']'}); i++; continue; }
+    if(ch==='<'&&c[i+1]==='<'){ t.push({a:'<<'}); i+=2; continue; } if(ch==='>'&&c[i+1]==='>'){ t.push({a:'>>'}); i+=2; continue; }
+    if(ch==='<'){ const j=c.indexOf('>',i); const hx=c.slice(i+1,j).replace(/\s/g,''); let o=''; for(let k=0;k<hx.length;k+=2) o+=String.fromCharCode(parseInt((hx.slice(k,k+2)+'0').slice(0,2),16)); t.push({s:o}); i=j+1; continue; }
+    if(ch==='/'){ let j=i+1; while(j<n&&!/[\s\/\[\]\(\)<>%]/.test(c[j])) j++; t.push({nom:c.slice(i+1,j)}); i=j; continue; }
+    let j=i; while(j<n&&!/[\s\/\[\]\(\)<>%]/.test(c[j])) j++; if(j===i){ i++; continue; } const m=c.slice(i,j); i=j;
+    if(/^[+\-]?(\d+\.?\d*|\.\d+)$/.test(m)) t.push({n:+m}); else t.push({op:m}); }
+  return t; }
+const PDF_OPS_CONNUS=new Set(['q','Q','cm','w','J','j','M','d','ri','i','gs','re','m','l','c','v','y','h','S','s','f','F','f*','B','B*','b','b*','n','W','W*','rg','RG','g','G','k','K','cs','CS','sc','SC','scn','SCN','BT','ET','Tf','Td','TD','Tm','T*','TL','Tc','Tw','Tz','Ts','Tr','Tj','TJ',"'",'"','Do']);
+/* Dessine une page lue par pdfLire dans un contexte 2D (le canvas, ou un faux canvas dans un banc). `ech` : pixels par point PDF.
+   Rend {inconnus:[…]} — un opérateur hors de la liste n'est pas dessiné, il est NOMMÉ. Les images (JPEG) sont dessinées si `imgs[nom]`
+   (des HTMLImageElement déjà chargés) est fourni. */
+function pdfDessinerPage(ctx,pg,ech,imgs){
+  const inconnus=new Set(); imgs=imgs||{};
+  ctx.save(); ctx.setTransform(ech,0,0,-ech,-pg.x0*ech,(pg.h+pg.y0)*ech);
+  ctx.fillStyle='#fff'; ctx.fillRect(pg.x0,pg.y0,pg.l,pg.h); ctx.fillStyle='#000'; ctx.strokeStyle='#000'; ctx.lineWidth=1;
+  const pile=[]; let enTexte=false; const ts={police:'Helvetica',taille:12,Tc:0,Tw:0,Tz:1,TL:0,Ts:0};
+  let Tm=[1,0,0,1,0,0], Tlm=[1,0,0,1,0,0]; let chemin=false; let clipEnAttente=0;
+  const coul=(a)=>a.length===1?`rgb(${Math.round(a[0]*255)},${Math.round(a[0]*255)},${Math.round(a[0]*255)})`
+    :a.length===3?`rgb(${Math.round(a[0]*255)},${Math.round(a[1]*255)},${Math.round(a[2]*255)})`
+    :`rgb(${Math.round(255*(1-a[0])*(1-a[3]))},${Math.round(255*(1-a[1])*(1-a[3]))},${Math.round(255*(1-a[2])*(1-a[3]))})`;
+  const mul=(a,b)=>[a[0]*b[0]+a[1]*b[2],a[0]*b[1]+a[1]*b[3],a[2]*b[0]+a[3]*b[2],a[2]*b[1]+a[3]*b[3],a[4]*b[0]+a[5]*b[2]+b[4],a[4]*b[1]+a[5]*b[3]+b[5]];
+  const police=()=>{ const f=ts.police||'Helvetica'; const gras=/Bold/i.test(f), it=/Oblique|Italic/i.test(f);
+    return (it?'italic ':'')+(gras?'bold ':'')+'100px Helvetica, Arial, "Liberation Sans", sans-serif'; };
+  const fin=()=>{ if(clipEnAttente){ ctx.clip(clipEnAttente===2?'evenodd':'nonzero'); clipEnAttente=0; } ctx.beginPath(); chemin=false; };
+  /* la police à 100 px puis réduite : certains navigateurs arrondissent ou plafonnent une police de 1 px sur un canvas */
+  const ecrire=(txt)=>{ if(!txt) return; ctx.save(); const m=mul([ts.taille*ts.Tz,0,0,ts.taille,0,ts.Ts],Tm); ctx.transform(m[0],m[1],m[2],m[3],m[4],m[5]); ctx.scale(0.01,-0.01);
+    ctx.font=police(); ctx.textBaseline='alphabetic';
+    if(!ts.Tc&&!ts.Tw){ ctx.fillText(txt,0,0); const w=ctx.measureText(txt).width/100; ctx.restore(); Tm=mul([1,0,0,1,w*ts.taille*ts.Tz,0],Tm); return; }
+    let x=0; for(const ch of txt){ ctx.fillText(ch,x*100,0); x+=ctx.measureText(ch).width/100+(ts.Tc/ts.taille)+(ch===' '?ts.Tw/ts.taille:0); } ctx.restore(); Tm=mul([1,0,0,1,x*ts.taille*ts.Tz,0],Tm); };
+  const T=pdfJetons(pg.contenu); let o=[];
+  for(const j of T){
+    if(j.op===undefined){ o.push(j); continue; }
+    const op=j.op, N=k=>(o[k]&&o[k].n!==undefined)?o[k].n:0;
+    switch(op){
+      case 'q': ctx.save(); pile.push({ts:Object.assign({},ts)}); break;
+      case 'Q': ctx.restore(); { const p=pile.pop(); if(p) Object.assign(ts,p.ts); } break;
+      case 'cm': ctx.transform(N(0),N(1),N(2),N(3),N(4),N(5)); break;
+      case 'w': ctx.lineWidth=N(0)||0.1; break;
+      case 'J': ctx.lineCap=['butt','round','square'][N(0)]||'butt'; break;
+      case 'j': ctx.lineJoin=['miter','round','bevel'][N(0)]||'miter'; break;
+      case 'd': { const arr=[]; for(const x of o){ if(x.n!==undefined) arr.push(x.n); } const ph=arr.pop()||0; try{ ctx.setLineDash(arr); ctx.lineDashOffset=ph; }catch(e){} } break;
+      case 're': if(!chemin){ ctx.beginPath(); chemin=true; } ctx.rect(N(0),N(1),N(2),N(3)); break;
+      case 'm': if(!chemin){ ctx.beginPath(); chemin=true; } ctx.moveTo(N(0),N(1)); break;
+      case 'l': ctx.lineTo(N(0),N(1)); break;
+      case 'c': ctx.bezierCurveTo(N(0),N(1),N(2),N(3),N(4),N(5)); break;
+      case 'v': { /* premier point de contrôle = point courant : approximation par le second */ ctx.bezierCurveTo(N(0),N(1),N(0),N(1),N(2),N(3)); } break;
+      case 'y': ctx.bezierCurveTo(N(0),N(1),N(2),N(3),N(2),N(3)); break;
+      case 'h': ctx.closePath(); break;
+      case 'S': ctx.stroke(); fin(); break;
+      case 's': ctx.closePath(); ctx.stroke(); fin(); break;
+      case 'f': case 'F': ctx.fill('nonzero'); fin(); break;
+      case 'f*': ctx.fill('evenodd'); fin(); break;
+      case 'B': ctx.fill('nonzero'); ctx.stroke(); fin(); break;
+      case 'B*': ctx.fill('evenodd'); ctx.stroke(); fin(); break;
+      case 'b': ctx.closePath(); ctx.fill('nonzero'); ctx.stroke(); fin(); break;
+      case 'b*': ctx.closePath(); ctx.fill('evenodd'); ctx.stroke(); fin(); break;
+      case 'n': fin(); break;
+      case 'W': clipEnAttente=1; break; case 'W*': clipEnAttente=2; break;
+      case 'rg': ctx.fillStyle=coul([N(0),N(1),N(2)]); break;
+      case 'RG': ctx.strokeStyle=coul([N(0),N(1),N(2)]); break;
+      case 'g': ctx.fillStyle=coul([N(0)]); break;
+      case 'G': ctx.strokeStyle=coul([N(0)]); break;
+      case 'k': ctx.fillStyle=coul([N(0),N(1),N(2),N(3)]); break;
+      case 'K': ctx.strokeStyle=coul([N(0),N(1),N(2),N(3)]); break;
+      case 'BT': enTexte=true; Tm=[1,0,0,1,0,0]; Tlm=[1,0,0,1,0,0]; break;
+      case 'ET': enTexte=false; break;
+      case 'Tf': ts.police=pg.polices[(o[0]||{}).nom]||'Helvetica'; ts.taille=N(1)||12; break;
+      case 'Td': Tlm=mul([1,0,0,1,N(0),N(1)],Tlm); Tm=Tlm.slice(); break;
+      case 'TD': ts.TL=-N(1); Tlm=mul([1,0,0,1,N(0),N(1)],Tlm); Tm=Tlm.slice(); break;
+      case 'Tm': Tlm=[N(0),N(1),N(2),N(3),N(4),N(5)]; Tm=Tlm.slice(); break;
+      case 'T*': Tlm=mul([1,0,0,1,0,-ts.TL],Tlm); Tm=Tlm.slice(); break;
+      case 'TL': ts.TL=N(0); break; case 'Tc': ts.Tc=N(0); break; case 'Tw': ts.Tw=N(0); break; case 'Tz': ts.Tz=N(0)/100; break; case 'Ts': ts.Ts=N(0); break; case 'Tr': break;
+      case 'Tj': ecrire((o[0]||{}).s||''); break;
+      case "'": Tlm=mul([1,0,0,1,0,-ts.TL],Tlm); Tm=Tlm.slice(); ecrire((o[0]||{}).s||''); break;
+      case '"': ts.Tw=N(0); ts.Tc=N(1); Tlm=mul([1,0,0,1,0,-ts.TL],Tlm); Tm=Tlm.slice(); ecrire((o[2]||{}).s||''); break;
+      case 'TJ': for(const x of o){ if(x.s!==undefined) ecrire(x.s); else if(x.n!==undefined) Tm=mul([1,0,0,1,-x.n/1000*ts.taille*ts.Tz,0],Tm); } break;
+      case 'Do': { const nom=(o[0]||{}).nom, im=imgs[nom]; if(im){ ctx.save(); ctx.translate(0,1); ctx.scale(1,-1); try{ ctx.drawImage(im,0,0,1,1); }catch(e){} ctx.restore(); } else if(!pg.images[nom]) inconnus.add('Do:'+nom); } break;
+      default: if(!PDF_OPS_CONNUS.has(op)) inconnus.add(op);
+    }
+    void enTexte; o=[];
+  }
+  ctx.restore(); return {inconnus:[...inconnus]}; }
+/* Les images JPEG d'une page, chargées (promesse) : { nom → HTMLImageElement } */
+function pdfImagesPage(pg){ const out={}; return Promise.all(Object.keys(pg.images).map(nom=>new Promise(res=>{ const im=pg.images[nom];
+    if(!/DCTDecode/.test(im.dict)){ res(); return; }
+    const b=new Uint8Array(im.octets.length); for(let k=0;k<b.length;k++) b[k]=im.octets.charCodeAt(k)&255;
+    const u=URL.createObjectURL(new Blob([b],{type:'image/jpeg'})); const el=new Image(); el.onload=()=>{ out[nom]=el; res(); setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },5000); }; el.onerror=()=>res(); el.src=u; }))).then(()=>out); }
+/* Pose un PDF (chaîne d'octets) dans une zone : une page = un <canvas> à la largeur de la zone × `zoom`, à la densité de l'écran. Un échec du
+   lecteur maison, ou un opérateur qu'il ne connaît pas, et la zone reçoit le lecteur du navigateur (iframe) — DANS la zone, jamais un onglet.
+   Rend {mode:'canvas'|'iframe', pages, inconnus}. */
+async function pdfAfficher(zone,s,opts){ opts=opts||{}; if(!zone) return {mode:'aucun'};
+  const zoom=opts.zoom||1; let pages; try{ pages=pdfLire(s); }catch(e){ pages=null; }
+  const repli=(pourquoi)=>{ const u=opts.url||(()=>{ const u2=URL.createObjectURL(new Blob([pdfOctets(s)],{type:'application/pdf'})); zone._urlRepli=u2; return u2; })();
+    zone.innerHTML='<iframe title="Aperçu du document" src="'+u+'#toolbar=0&view=FitH"></iframe>'; zone.classList.add('pdfvue-iframe'); return {mode:'iframe',pourquoi}; };
+  if(!pages||!pages.length) return repli('lecture');
+  zone.classList.remove('pdfvue-iframe');
+  const largeurZone=Math.max(200,(zone.clientWidth||600)-20), hauteurZone=Math.max(200,(zone.clientHeight||800)-20), dpr=Math.min(3,window.devicePixelRatio||1);
+  const plafond=opts.plafond||920;   // une page A4 sur grand écran : lisible, sans devenir un poster
+  /* « page » : la page ENTIÈRE dans la zone (un écran plus large que haut : ordinateur, tablette couchée) ; « largeur » : la page à la largeur
+     (téléphone, ou sur demande) — `auto` choisit selon la forme de la zone */
+  const ajuster=opts.ajuster==='page'||(opts.ajuster!=='largeur'&&largeurZone>hauteurZone*0.9)?'page':'largeur';
+  const frag=document.createDocumentFragment(); const inconnus=new Set();
+  for(const pg of pages){ const base=ajuster==='page'?Math.min(largeurZone,plafond,hauteurZone*pg.l/pg.h):Math.min(largeurZone,plafond);
+    const cssW=Math.round(base*zoom), ech=cssW/pg.l;
+    const c=document.createElement('canvas'); c.width=Math.round(pg.l*ech*dpr); c.height=Math.round(pg.h*ech*dpr); c.style.width=cssW+'px'; c.style.height=Math.round(pg.h*ech)+'px';
+    c.setAttribute('role','img'); c.setAttribute('aria-label','Page '+(frag.childNodes.length+1)+' sur '+pages.length);
+    let r; try{ const imgs=await pdfImagesPage(pg); r=pdfDessinerPage(c.getContext('2d'),pg,ech*dpr,imgs); }catch(e){ return repli('dessin'); }
+    (r.inconnus||[]).forEach(x=>inconnus.add(x)); frag.appendChild(c); }
+  if(inconnus.size){ try{ console.warn('aperçu PDF : opérateurs non dessinés',[...inconnus]); }catch(e){} return Object.assign(repli('inconnus'),{inconnus:[...inconnus]}); }
+  zone.innerHTML=''; zone.appendChild(frag); return {mode:'canvas',pages:pages.length,inconnus:[],ajuster}; }
+
 let _pdfF=null;
 function pdfOctets(s){ const b=new Uint8Array(s.length); for(let k=0;k<s.length;k++) b[k]=s.charCodeAt(k)&255; return b; }
 function pdfFeuilleFermer(){ const el=document.getElementById('pdff'); if(el) el.remove();
   if(_pdfF&&_pdfF.url) setTimeout(((u)=>()=>{ try{URL.revokeObjectURL(u)}catch(e){} })(_pdfF.url),120000); _pdfF=null; }
 async function pdfFeuille(o){
   pdfFeuilleFermer();
-  const jeton={}; _pdfF={o,jeton,blob:null,url:'',nom:''};
-  const el=document.createElement('div'); el.id='pdff'; el.className='pdff'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','PDF — '+(o.titre||'document'));
+  const jeton={}; _pdfF={o,jeton,blob:null,url:'',nom:'',pdf:'',zoom:1,ajuster:'auto'};
+  const el=document.createElement('div'); el.id='pdff'; el.className='pdff pdff-plein'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','PDF — '+(o.titre||'document'));
   const b=(a,ic,lib,cls)=>`<button type="button" class="btn ${cls||'ghost'} pdff-b" data-a="${a}" onclick="pdfFAction('${a}')" disabled>${ic} ${lib}</button>`;
+  /* v802 — L'APERÇU EST DANS LA FENÊTRE, EN PLEIN ÉCRAN (Justin, 5 novembre 2026 : « quand je fais aperçu pour le PDF ça ouvre un autre lien, je
+     voulais pas ça »). Plus de bouton « Aperçu » qui ouvrait un onglet : le document se dessine ici dès qu'il est prêt (`pdfAfficher`), page après
+     page, et on zoome avec − / + ; les gestes (télécharger, partager, envoyer, imprimer) restent en bas, à portée de pouce. */
   el.innerHTML=`<div class="pdff-fond" onclick="pdfFeuilleFermer()"></div><div class="pdff-carte">
-    <div class="pdff-tete"><b>📄 ${esc(o.titre||'Document')}</b><button type="button" class="btn ghost sm" onclick="pdfFeuilleFermer()" aria-label="Fermer">✕</button></div>
+    <div class="pdff-tete"><b>📄 ${esc(o.titre||'Document')}</b><span class="pdff-zoom"><button type="button" class="btn ghost sm" onclick="pdfFZoom(-1)" aria-label="Réduire">−</button><button type="button" class="btn ghost sm pdff-ajust" onclick="pdfFZoom(0)" aria-label="Page entière ou à la largeur" title="Page entière / à la largeur">⤢</button><button type="button" class="btn ghost sm" onclick="pdfFZoom(1)" aria-label="Agrandir">+</button></span><button type="button" class="btn ghost sm" onclick="pdfFeuilleFermer()" aria-label="Fermer">✕</button></div>
     <div class="pdff-etat" id="pdff-etat">Préparation du PDF…</div>
-    <div class="pdff-gestes">${b('voir','👁','Aperçu','primary')}${b('dl','⬇️','Télécharger')}${b('partager','📤','Partager')}${o.envoyer?b('envoyer','✉️',o.envoyerLib||'Envoyer par e-mail'):''}${o.imprimer?b('imprimer','🖨️','Imprimer'):''}</div></div>`;
+    <div class="pdff-vue" id="pdff-vue"><div class="pdfap-msg">Préparation de l’aperçu…</div></div>
+    <div class="pdff-gestes">${o.envoyer?b('envoyer','✉️',o.envoyerLib||'Envoyer par e-mail','primary'):''}${b('dl','⬇️','Télécharger')}${b('partager','📤','Partager')}${o.imprimer?b('imprimer','🖨️','Imprimer'):''}</div></div>`;
   document.body.appendChild(el);
   let d; try{ d=await o.fabrique(); }catch(e){ console.error(e); d={err:'Le PDF n’a pas pu être préparé.'}; }
   if(!_pdfF||_pdfF.jeton!==jeton) return;   // fermée, ou une autre ouverte entre-temps
   const etat=document.getElementById('pdff-etat');
   if(!d||d.err){ if(d&&d.err) toast('⚠️ '+d.err,9000); if(etat) etat.textContent='⚠️ '+((d&&d.err)||'PDF indisponible');
     if(o.siErreur) try{ pdfFeuilleFermer(); o.siErreur(d); }catch(e){} return; }
-  let octets; if(d.pdf) octets=pdfOctets(d.pdf); else if(d.b64){ octets=pdfOctets(atob(d.b64)); }
+  let octets, chaine=''; if(d.pdf){ chaine=d.pdf; octets=pdfOctets(d.pdf); } else if(d.b64){ chaine=atob(d.b64); octets=pdfOctets(chaine); }
   if(!octets){ if(etat) etat.textContent='⚠️ PDF indisponible'; return; }
   const nom=String(d.nom||o.nom||'document').replace(/\.pdf$/i,'').replace(/[^\w\-À-ÿ]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
-  _pdfF.blob=new Blob([octets],{type:'application/pdf'}); _pdfF.url=URL.createObjectURL(_pdfF.blob); _pdfF.nom=nom;
+  _pdfF.blob=new Blob([octets],{type:'application/pdf'}); _pdfF.url=URL.createObjectURL(_pdfF.blob); _pdfF.nom=nom; _pdfF.pdf=chaine;
   if(etat) etat.innerHTML=`<span class="pdff-fic">${esc(nom)}</span> · ${Math.max(1,Math.round(octets.length/1024))} Ko`+(d.manque&&d.manque.length?`<br><span style="color:var(--org)">⚠️ Non joint : ${esc(d.manque.join(', '))}</span>`:'');
   if(d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', '),9000);   // dit aussi hors de la fenêtre : on la referme vite
   el.querySelectorAll('.pdff-b').forEach(x=>{ x.disabled=false; });
   if(!(navigator.canShare&&(()=>{ try{ return navigator.canShare({files:[new File([_pdfF.blob],nom,{type:'application/pdf'})]}); }catch(e){ return false; } })())){
-    const p=el.querySelector('[data-a="partager"]'); if(p) p.innerHTML='📤 Partager (télécharger)'; }
+    const p=el.querySelector('[data-a="partager"]'); if(p){ p.title='Cet appareil ne sait pas partager un fichier : le PDF est téléchargé'; } }
+  try{ _pdfF.rendu=await pdfAfficher(document.getElementById('pdff-vue'),chaine,{url:_pdfF.url,zoom:_pdfF.zoom,ajuster:_pdfF.ajuster}); if(_pdfF&&_pdfF.rendu) _pdfF.ajuster=_pdfF.rendu.ajuster||_pdfF.ajuster; }catch(e){ console.error(e); }
 }
+/* zoom de l'aperçu : −1 réduit, +1 agrandit, 0 bascule « page entière » ↔ « à la largeur » (et remet le zoom à 1) ; on redessine (net à toute
+   taille), on garde l'endroit lu */
+async function pdfFZoom(sens){ const F=_pdfF; if(!F||!F.pdf) return; const v=document.getElementById('pdff-vue'); if(!v) return;
+  const z0=F.zoom||1; if(sens===0){ F.zoom=1; F.ajuster=(F.ajuster==='page')?'largeur':'page'; } else F.zoom=Math.max(0.5,Math.min(4,Math.round((z0*(sens>0?1.25:0.8))*100)/100));
+  const ratioY=v.scrollHeight?v.scrollTop/v.scrollHeight:0;
+  F.rendu=await pdfAfficher(v,F.pdf,{url:F.url,zoom:F.zoom,ajuster:F.ajuster}); v.scrollTop=ratioY*v.scrollHeight; }
+/* l'écran tourne ou la fenêtre change de taille : la page suit la largeur */
+(function(){ let tm=0; try{ window.addEventListener('resize',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ const F=_pdfF, v=document.getElementById('pdff-vue'); if(F&&F.pdf&&v) pdfAfficher(v,F.pdf,{url:F.url,zoom:F.zoom,ajuster:F.ajuster}).then(r=>{ F.rendu=r; }); },250); }); }catch(e){} })();
 function pdfFTelecharger(){ const a=document.createElement('a'); a.href=_pdfF.url; a.download=_pdfF.nom; document.body.appendChild(a); a.click(); a.remove(); toast('⬇️ PDF téléchargé : '+_pdfF.nom); }
 async function pdfFAction(a){ const F=_pdfF; if(!F) return; const o=F.o;
   if(a==='envoyer'||a==='imprimer'){ pdfFeuilleFermer(); try{ await (a==='envoyer'?o.envoyer():o.imprimer()); }catch(e){ console.error(e); toast('Envoi impossible'); } return; }
   if(!F.blob) return;
-  if(a==='voir'){ const w=window.open(F.url,'_blank'); if(!w){ const l=document.createElement('a'); l.href=F.url; l.target='_blank'; l.rel='noopener'; document.body.appendChild(l); l.click(); l.remove(); } return; }
+  if(a==='voir'){ const v=document.getElementById('pdff-vue'); if(v) v.scrollTop=0; return; }   // v802 : l'aperçu est déjà là, dans la fenêtre
   if(a==='dl'){ pdfFTelecharger(); return; }
   if(a==='partager'){ const f=new File([F.blob],F.nom,{type:'application/pdf'});
     try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:o.titre||F.nom}); return; } }
@@ -39126,6 +39437,15 @@ views.parametres=function(){
         <button class="btn sm ghost" onclick="betaRemplir(true)">📚 Remplir en grand nombre</button>
         <button class="btn sm ghost" onclick="betaVider()">🧹 Tout vider</button>
       </div>
+      ${(()=>{ /* v802 — où cet appareil synchronise, et s'il peut relier ses boîtes mail : les deux causes de « je ne vois pas sur mon téléphone ce
+         que j'ai fait sur mon PC » et de « clé non reconnue », dites en clair, chacune avec son geste. */
+        let autre='', jeton=false; try{ autre=(typeof betaEspaceAutre==='function')?betaEspaceAutre():''; jeton=!!localStorage.getItem('elanD_beta_jeton'); }catch(e){}
+        return `<div style="margin-top:14px;padding:11px 12px;border:1px solid var(--brd2);border-radius:12px;font-size:13px;line-height:1.55">
+          ${autre?`⚠️ <b>Cet appareil travaille sur l’espace « ${esc(autre)} »</b>, pas sur celui de la bêta : il ne voit pas ce que tu fais sur tes autres appareils.
+            <div style="margin-top:8px"><button class="btn sm" onclick="betaEspaceRejoindre()">🔄 Rejoindre l’espace de la bêta</button></div>`
+          :`✅ <b>Cet appareil est sur l’espace de la bêta</b> : ce que tu y fais se retrouve sur tes autres appareils connectés à la bêta.`}
+          <div style="margin-top:8px">${jeton?'✅ Boîtes mail : ta connexion permet de relier tes boîtes.':'⚠️ Boîtes mail : ta connexion date d’avant la mise à jour — <b>déconnecte-toi puis reconnecte-toi une fois</b> pour relier tes boîtes.'}</div>
+        </div>`; })()}
       <!-- v777 — Justin, 28 octobre 2026 : « dans OPG bêta je veux pouvoir choisir le style d'entreprise, dératisation, clim,
            chauffage, enfin tout… je choisis le pack directement pour tester ». Un geste, les 23 packs : metierSet (journal,
            « ↩︎ Annuler »). La bêta seule — une entreprise ne voit que SON métier (plus bas, « Mon métier »). -->
@@ -40217,9 +40537,13 @@ function devisIAMic(){
 function devisIAApercu(id){
   const d=db.devis.find(x=>x.id===id); if(!d){ toast('Devis introuvable'); return; }
   const c=db.clients.find(x=>x.id===d.clientId)||{};
+  /* L'aperçu prend l'écran (`.pdfap`, Justin, 4 novembre 2026 : « il faut que ça utilise toute la page ») : la page à gauche, sur toute
+     la hauteur ; à qui l'envoyer et les gestes à côté — dessous sur téléphone, avec les deux envois collés en bas. */
   openModal(`<div class="modal-head"><h3>📄 Devis ${esc(d.num||'')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div id="dia-pdf-box" style="border:1px solid var(--brd2);border-radius:10px;overflow:hidden;background:#fff;height:46vh;min-height:280px"></div>
-    <div class="form-sec" style="margin-top:14px">À qui l'envoyer</div>
+    <div class="pdfap">
+    ${pdfApercuHtml('dia-pdf-box')}
+    <div class="pdfap-cote">
+    <div class="form-sec">À qui l'envoyer</div>
     <div class="field"><label>Client enregistré</label>
       <select id="dia-ap-client" onchange="devisIAApClient()">
         <option value="">— Nouveau client, à saisir ci-dessous —</option>
@@ -40234,24 +40558,40 @@ function devisIAApercu(id){
         <div class="field"><label>Ville</label><input id="dia-c-ville" value="${esc(c.ville||'')}"></div></div>
     </div>
     <div id="dia-ap-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:8px"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      <button class="btn" style="flex:1;min-width:150px;justify-content:center" onclick="devisIAEnvoyer('${id}','mail')">📧 Envoyer par e-mail</button>
-      <button class="btn ghost" style="flex:1;min-width:150px;justify-content:center" onclick="devisIAEnvoyer('${id}','sms')">💬 Envoyer par SMS</button>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <div class="pdfap-envoi">
+      <button class="btn" onclick="devisIAEnvoyer('${id}','mail')">📧 Envoyer par e-mail</button>
+      <button class="btn ghost" onclick="devisIAEnvoyer('${id}','sms')">💬 Envoyer par SMS</button>
+    </div>
+    <div class="pdfap-autres">
       <button class="btn ghost sm" onclick="devisPdfDownload('${id}')">⬇️ Télécharger le PDF</button>
+      <button class="btn ghost sm" onclick="pdfApercuGrand('dia-pdf-box')">⤢ Ouvrir en grand</button>
       <button class="btn ghost sm" onclick="devisIAAppliquer('${id}');closeModal();go('devis');setTimeout(()=>{try{formDoc('devis','${id}')}catch(e){}},150)">✎ Ajuster les lignes</button>
+    </div>
     </div>`);
   devisIAApRendu(id);
 }
+/* ══ L'APERÇU D'UN DOCUMENT DANS UNE FENÊTRE — UNE pièce (`.pdfap-vue`, styles en fin de feuille). `pdfApercuHtml` pose la zone,
+   `pdfApercuPoser` y met le PDF (`view=FitH` : la page à la largeur de la zone, qui fait déjà toute la hauteur de l'écran), et
+   « Ouvrir en grand » le donne au lecteur du navigateur — sur téléphone, c'est là qu'on zoome au doigt. */
+function pdfApercuHtml(boxId){ return '<div class="pdfap-vue" id="'+boxId+'"><div class="pdfap-msg">Préparation de l’aperçu…</div></div>'; }
+/* v802 : le PDF se DESSINE dans la zone (`pdfAfficher`, toutes les pages, sur iPhone et Android aussi) ; « Ouvrir en grand » ouvre la fenêtre
+   PDF de l'application en plein écran (zoom, télécharger, partager) — plus un onglet du navigateur. */
+async function pdfApercuPoser(boxId,blob){ const box=$(boxId); if(!box) return;
+  if(box._url){ const v=box._url; setTimeout(()=>{ try{URL.revokeObjectURL(v)}catch(e){} },120000); }
+  const u=URL.createObjectURL(blob); box._url=u;
+  let chaine=''; try{ const b=new Uint8Array(await blob.arrayBuffer()); for(let k=0;k<b.length;k+=0x8000) chaine+=String.fromCharCode.apply(null,b.subarray(k,k+0x8000)); }catch(e){ chaine=''; }
+  box._pdf=chaine; box.classList.add('pdfap-pages');
+  if(!chaine){ box.innerHTML='<iframe title="Aperçu du document" src="'+u+'#toolbar=0&view=FitH"></iframe>'; return; }
+  await pdfAfficher(box,chaine,{url:u}); }
+function pdfApercuGrand(boxId){ const box=$(boxId), c=box&&box._pdf; if(!c){ toast('Aperçu pas encore prêt'); return; }
+  pdfFeuille({titre:'Aperçu', nom:'apercu', fabrique:async()=>({pdf:c})}); }
 /* Le PDF affiché doit refléter le client courant : on le régénère à chaque
    changement plutôt que de montrer une version périmée. */
 async function devisIAApRendu(id){
   const box=$('dia-pdf-box'), d=db.devis.find(x=>x.id===id); if(!box||!d) return;
-  try{ const u=URL.createObjectURL(await devisPdfBlob(d));
-    box.innerHTML='<iframe src="'+u+'#toolbar=0" style="width:100%;height:100%;border:0"></iframe>';
-    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
-  }catch(e){ box.innerHTML='<div style="padding:16px;color:#666;font-size:13px">Aperçu indisponible — le PDF reste téléchargeable.</div>'; }
+  try{ pdfApercuPoser('dia-pdf-box',await devisPdfBlob(d)); }
+  catch(e){ box.innerHTML='<div class="pdfap-msg">Aperçu indisponible — le PDF reste téléchargeable.</div>'; }
 }
 function devisIAApClient(){
   const sel=($('dia-ap-client')||{}).value||'', bloc=$('dia-ap-neuf');
@@ -40556,7 +40896,7 @@ function docListView(kind,xyloOnly){
   const vMod=canCat('ventes','modifier');
   setHeader(titre, `${list.length} ${cfg.un}(s) · ${eur(total)} TTC`, canCat('ventes','ajouter')?headBtn:'');
   const rows=list.map(d=>{ const t=docTot(d);
-    return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShort(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}</td>
+    return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShort(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}${docEnvoiLib(d)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;white-space:nowrap">${esc(docEnvoiLib(d))}</div>`:''}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap">
       ${vMod?`<button class="btn sm" onclick="envoiDoc('${kind}','${d.id}','mail')" title="Envoyer par email">📧</button>
       <button class="btn ghost sm" onclick="envoiDoc('${kind}','${d.id}','sms')" title="Envoyer par SMS (exception)">💬</button>`:''}
@@ -40697,6 +41037,11 @@ function factQuitterPayee(f,nouveau){ if(!f||f.statut!=='payee'||nouveau==='paye
   factRegistreRetirer(f); return true; }
 function factSetStatut(id,st){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; if(!factQuitterPayee(f,st)) return; f.statut=st; if(st==='payee'&&!f.datePaiement)f.datePaiement=todayISO(); if(st!=='payee')delete f.datePaiement; logEvent('Facture '+((FACT_ST[st]||{}).l||st),f.num,'finance'); save(); views.factures(); toast('Facture mise à jour'); }
 /* Envoi d'une facture En attente : l'e-mail part (ou SMS si pas d'e-mail) et la facture passe « Envoyée » */
+/* v801 : une facture remise SANS l'application (en main propre, par courrier) se déclare comme telle — « Envoyée », canal « remis
+   autrement », avec sa date. Ce n'est plus un libellé coché : c'est une remise dite, et elle se lit sur la ligne. */
+function factRemiseAutrement(id){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f||f.statut!=='brouillon') return;
+  if(!confirm('As-tu remis la facture '+(f.num||'')+' au client autrement (en main propre, par courrier) ?\n\nElle passera « Envoyée », remise autrement, aujourd\'hui.')) return;
+  f.statut='envoyee'; f.envoi={date:todayISO(),ts:Date.now(),canal:'autre',a:''}; logEvent('Facture remise autrement',f.num,'finance'); save(); if(current==='factures') views.factures(); }
 function factEnvoyer(id){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return;
   const c=db.clients.find(x=>x.id===f.clientId)||{};
   if(!c.email&&!c.tel){ toast('Ajoute un e-mail (ou un téléphone) sur la fiche du client d\'abord'); return; }
@@ -40744,11 +41089,11 @@ views.factures=function(){
     return `<div class="pl-row lga">
       <div class="pl-info" style="cursor:pointer" onclick="${vMod?`formDoc('factures','${f.id}')`:`printDoc('factures','${f.id}')`}">
         <div class="pl-title">${esc(f.num||'—')} · <span style="white-space:nowrap">${eur(ttc(f))}</span></div>
-        <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)} · ${badge(FACT_ST,st)}${f.datePaiement?' · payée le '+fmtShort(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
+        <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)} · ${badge(FACT_ST,st)}${docEnvoiLib(f)?' · envoyée '+esc(docEnvoiLib(f)):''}${f.datePaiement?' · payée le '+fmtShort(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
       <span class="lga-a" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn ghost sm" onclick="pdfDoc('factures','${f.id}')" title="PDF : aperçu, télécharger, partager, envoyer">📄 PDF</button>
         <button class="btn ghost sm" onclick="exportFacturX('${f.id}')" title="Export Factur-X (facturation électronique)">FX</button>
-        ${vMod&&f.statut==='brouillon'?`<button class="btn sm" onclick="factEnvoyer('${f.id}')" title="Envoyer la facture au client par e-mail">📧 Envoyer</button><button class="btn ghost sm" onclick="factSetStatut('${f.id}','envoyee')" title="Marquer envoyée (si l'envoi a été fait autrement)">📤</button>`:''}
+        ${vMod&&f.statut==='brouillon'?`<button class="btn sm" onclick="factEnvoyer('${f.id}')" title="Envoyer la facture au client par e-mail">📧 Envoyer</button><button class="btn ghost sm" onclick="factRemiseAutrement('${f.id}')" title="Remise autrement (en main propre, par courrier) : la marquer envoyée">📤</button>`:''}
         ${vMod&&(f.statut==='envoyee')?`<button class="btn ghost sm" onclick="envoiDoc('factures','${f.id}','mail')" title="Relancer par email">📧</button>`:''}
         ${!vMod?'':f.statut!=='payee'?`<button class="btn sm" onclick="factSetStatut('${f.id}','payee')">Payée</button>`:`<button class="btn ghost sm" onclick="factSetStatut('${f.id}','envoyee')" title="Annuler le paiement">↩︎</button>`}
         ${f.statut==='payee'&&isFinanceMgr()?`<button class="btn ${f.valideCompta?'ghost':''} sm" onclick="factValider('${f.id}')" title="Validation comptable">${f.valideCompta?'Validée':'Valider'}</button>`:''}
@@ -42429,11 +42774,22 @@ function formDoc(kind,id,preset){
       <div class="field"><label>Lignes</label><div id="lignes-box"></div></div>
       <div id="lig-tot" style="text-align:right;font-size:14px;color:var(--t2);margin:6px 0 14px"></div>
       <div class="field-row"><div class="field"><label>TVA (%)</label><input id="f-tva" type="number" step="0.01" min="0" name="tva" value="${d.tva??20}" oninput="ligTot()"></div>
-        <div class="field"><label>Statut</label><select name="statut">${Object.entries(cfg.st).map(([k,v])=>`<option value="${k}" ${d.statut===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
+        <div class="field"><label>Statut</label><select name="statut">${docStatutOptions(kind,d)}</select>${docEnvoiLib(d)?`<div style="font-size:11.5px;color:var(--t3);margin-top:4px">Envoyé${cfg.fem?'e':''} ${esc(docEnvoiLib(d))}</div>`:''}</div></div>
       <div class="field"><label>Notes</label><textarea name="notes" rows="4">${esc(d.notes)}</textarea></div>
-      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
+      <input type="hidden" name="__apres" value="">
+      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button>${docEnvoyable(kind,d)?`<button type="submit" class="btn ghost" onclick="this.form.__apres.value='envoyer'">📤 ${id?'Enregistrer':'Créer'} et envoyer</button>`:''}<button type="submit" class="btn" onclick="this.form.__apres.value=''">${id?'Enregistrer':'Créer'}</button></div></form>`);
   renderLignes();
 }
+/* v801 — LE STATUT « ENVOYÉ » N'EST PLUS UN LIBELLÉ QU'ON COCHE. Justin, 4 novembre 2026 : « quand on fait un devis et qu'on coche
+   "envoyé", ça s'envoie pas ». Il se pose quand un envoi a réussi (`envoiDoc`, `marquer`). Dans le formulaire : un document pas
+   encore parti propose « Envoyé — l'envoyer maintenant… » (qui ouvre l'envoi après l'enregistrement) ; un document déjà parti garde
+   « Envoyé » (une base d'avant aussi). Accepté / Refusé, Payée / En retard restent des décisions. */
+const DOC_ST_ENVOI={devis:'envoye',factures:'envoyee'};
+function docEnvoyable(kind,d){ return canCat('ventes','modifier') && (!d||!d.statut||d.statut==='brouillon'); }
+function docStatutOptions(kind,d){ const cfg=DOC[kind], stE=DOC_ST_ENVOI[kind], cur=(d&&d.statut)||'brouillon';
+  return Object.entries(cfg.st).map(([k,v])=>{
+    if(k===stE&&cur==='brouillon') return docEnvoyable(kind,d)?`<option value="__envoyer">${v.l} — l’envoyer maintenant…</option>`:'';
+    return `<option value="${k}" ${cur===k?'selected':''}>${v.l}</option>`; }).join(''); }
 function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modifier':'ajouter',kind==='devis'?'un devis':'une facture')) return; const cfg=DOC[kind], f=Object.fromEntries(new FormData(e.target));
   /* v738 : la liste ne propose que les clients qu'on voit — l'enregistrement le vérifie aussi */
   const _av=id?(db[cfg.coll].find(x=>x.id===id)||{}):{};
@@ -42460,10 +42816,17 @@ function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modi
   const cli=canCat('crm','modifier')?db.clients.find(x=>x.id===f.clientId):null; if(cli){ const a=document.getElementById('doc-cli-adr'),v=document.getElementById('doc-cli-ville'),tl=document.getElementById('doc-cli-tel'),em=document.getElementById('doc-cli-email');
     if(a)cli.adresse=a.value.trim(); if(tl)cli.tel=tl.value.trim(); if(em)cli.email=em.value.trim();
     if(v&&v.value.trim()){ const mv=v.value.trim().match(/(\d{5})\s*(.*)/); if(mv){cli.codePostal=mv[1];cli.ville=mv[2].trim();} else cli.ville=v.value.trim(); } }
+  /* v801 : « Envoyé » ne se pose pas ici. Demandé (option « l'envoyer maintenant… », bouton « … et envoyer », ou un « envoye » venu d'un
+     formulaire d'avant pour un document qui n'était pas parti) : le document s'enregistre tel qu'il était — brouillon — et l'envoi s'ouvre. */
+  const stE=kind==='devis'?'envoye':'envoyee'; let envoyerApres=f.__apres==='envoyer';   /* = DOC_ST_ENVOI, écrit en ligne : saveDoc se joue seule dans des bancs */
+  if(f.statut==='__envoyer'||(f.statut===stE&&(!_av.statut||_av.statut==='brouillon'))){ envoyerApres=true; f.statut=_av.statut||'brouillon'; }   /* une facture PAYÉE qui revient « envoyée » (paiement annulé) n'est pas une demande d'envoi */
+  if(cfg.st&&!cfg.st[f.statut]) f.statut=_av.statut||'brouillon';
   const doc={num:f.num,clientId:f.clientId,date:f.date,tva:parseFloat(f.tva)||0,statut:f.statut,notes:f.notes,rapportModele:f.rapportModele||'',lignes:lignesOk};
   if(id){ const ix=db[cfg.coll].findIndex(x=>x.id===id); db[cfg.coll][ix]={...db[cfg.coll][ix],...doc}; toast(cfg.titre+(cfg.fem?' mise à jour':' mis à jour')); }
-  else{ db[cfg.coll].push({id:uid(),devisId:'',creePar:(currentUser&&currentUser.id)||'',...doc}); const cree=cfg.titre+(cfg.fem?' créée':' créé'); logEvent(cree,f.num+' — '+eur(docTot(doc).ttc),'finance'); toast(cree); }
+  let idEnv=id;
+  if(!id){ idEnv=uid(); db[cfg.coll].push({id:idEnv,devisId:'',creePar:(currentUser&&currentUser.id)||'',...doc}); const cree=cfg.titre+(cfg.fem?' créée':' créé'); logEvent(cree,f.num+' — '+eur(docTot(doc).ttc),'finance'); toast(cree); }
   save(); closeModal();
+  if(envoyerApres) setTimeout(()=>{ try{ if(docEnvoyable(kind,db[cfg.coll].find(x=>x.id===idEnv))) docEnvoyerChoix(kind,idEnv); }catch(e){} },120);
   if(kind==='devis'){ const cur=id?db.devis.find(x=>x.id===id):null; docListView('devis', !!(cur&&cur.xylo)); }
   /* g06 (facturation#10) : une facture enregistrée revient à l'écran Factures (cartes, filtres, boutons Payée / Valider /
      Envoyer / FX / Excel) — docListView('factures') montrait un tableau nu, sans rien de tout cela. */
@@ -42610,12 +42973,22 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
      courriel est asynchrone (PDF puis serveur) : le statut attend sa réponse. Un refus, ou un
      brouillon de secours ouvert dans Mail, laisse le document en brouillon — l'équipe ne croit plus
      envoyé ce que le client n'a jamais reçu. Rend une promesse : vrai si parti. */
-  const marquer=()=>{ if(kind==='devis'&&d.statut==='brouillon'){ d.statut='envoye'; save(); }
-    else if(kind==='factures'&&d.statut==='brouillon'){ d.statut='envoyee'; save(); } };
+  /* v801 — « Envoyé » DIT CE QUI EST PARTI, PAR OÙ ET QUAND (Justin, 4 novembre 2026 : « quand on fait un devis et qu'on coche
+     "envoyé", ça s'envoie pas »). Le statut ne se choisit plus à la main dans le formulaire : il se pose ICI, sur un envoi réussi, avec
+     `d.envoi` = {date, ts, canal, a} — lu par la liste (« Envoyé le 04/11 · e-mail »). Un document déjà « envoyé » d'une base
+     d'avant le garde. Accepté / Refusé (devis), Payée (facture) restent des décisions. */
+  const marquer=(canalOk,dest)=>{ if(kind==='devis'&&d.statut==='brouillon') d.statut='envoye';
+    else if(kind==='factures'&&d.statut==='brouillon') d.statut='envoyee';
+    d.envoi={date:(typeof todayISO==='function'?todayISO():new Date().toISOString().slice(0,10)),ts:Date.now(),canal:canalOk||'mail',a:String(dest||'').slice(0,120)};
+    save(); };
   if(canal==='sms'){
     const tel=(c.tel||'').replace(/\s/g,''); if(!tel){ toast('Pas de numéro pour ce client'); return Promise.resolve(false); }
+    /* Un SMS part de l'application Messages du TÉLÉPHONE (lien sms:) avec le texte du document — sans le PDF, qu'un SMS ne
+       porte pas. L'application ne peut pas savoir s'il est parti : c'est la personne qui le dit, au retour (`docSmsParti`).
+       « Pas envoyé » (ou un ordinateur sans messagerie) laisse le document en brouillon. */
     setTimeout(()=>{ demoNav.href='sms:'+tel+'?&body='+encodeURIComponent(texte); },700);
-    toast('SMS préparé pour '+(c.nom||tel)); marquer(); return Promise.resolve(true);
+    toast('SMS préparé pour '+(c.nom||tel)+' dans ton application Messages');
+    return new Promise(res=>{ setTimeout(()=>{ try{ docSmsParti(cfg,d,c,tel,ok=>{ if(ok){ marquer('sms',tel); if(current===kind&&views[kind]) views[kind](); } res(!!ok); }); }catch(e){ res(false); } },1200); });
   } else {
     if(!c.email){ if(confirm('Ce client n\'a pas d\'email. Envoyer par SMS à la place ?')){ return envoiDoc(kind,id,'sms'); } toast('Ajoute un email au client (fiche) ou utilise le SMS'); return Promise.resolve(false); }
     const sujet=cfg.titre+' '+(d.num||'')+' — '+soc;
@@ -42628,10 +43001,31 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
       if(pdf){ opts.atts=[{filename:(cfg.titre+'-'+(d.num||'document')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}];
         opts.mailtoBody=genDocTexte(kind,d,false); }
       const ok=await srvMail(c.email,sujet,genDocTexte(kind,d,!!pdf),'✉️ '+cfg.titre+(cfg.fem?' envoyée':' envoyé')+' à '+(c.nom||c.email)+(pdf?' (PDF joint)':''),'devis',null,Object.keys(opts).length?opts:undefined);
-      if(ok){ marquer(); if(current===kind&&views[kind]) views[kind](); }
+      if(ok){ marquer('mail',c.email); if(current===kind&&views[kind]) views[kind](); }
       return ok; });
   }
 }
+
+/* Le SMS est parti ? — demandé au retour de l'application Messages : seul « Oui » pose « Envoyé ». */
+function docSmsParti(cfg,d,c,tel,fin){ let fait=false; const repondre=v=>{ if(fait) return; fait=true; window._docSmsFin=null; closeModal(); fin(v); };
+  window._docSmsFin=repondre;
+  openModal(`<div class="modal-head"><h3>💬 Le SMS est-il parti ?</h3><button class="modal-close" onclick="window._docSmsFin&&window._docSmsFin(false)">✕</button></div>
+    <p style="font-size:14px;line-height:1.5;margin:0 0 6px">Ton application Messages s’est ouverte avec ${cfg.fem?'la':'le'} ${esc(cfg.un)} <b>${esc(d.num||'')}</b> pour <b>${esc(c.nom||tel)}</b> (${esc(tel)}).</p>
+    <p style="font-size:12.5px;color:var(--t3);margin:0 0 14px">Le SMS porte le texte ${cfg.fem?'de la facture':'du devis'} (lignes et total), pas le PDF. ${cfg.fem?'Elle':'Il'} ne passe « ${cfg.fem?'Envoyée':'Envoyé'} » que si tu le confirmes.</p>
+    <div class="modal-foot"><button type="button" class="btn ghost" onclick="window._docSmsFin&&window._docSmsFin(false)">Pas envoyé</button><button type="button" class="btn" onclick="window._docSmsFin&&window._docSmsFin(true)">✓ Il est parti</button></div>`,'carte'); }
+/* La ligne « Envoyé le 04/11 · e-mail » d'un document : rien pour une base d'avant (statut sans trace d'envoi). */
+function docEnvoiLib(d){ const e=d&&d.envoi; if(!e||!e.date) return '';
+  const can={mail:'e-mail',sms:'SMS',autre:'remis autrement'}[e.canal]||''; return 'le '+fmtShort(e.date)+(can?' · '+can:''); }
+/* Envoyer maintenant : par e-mail (PDF joint) ou par SMS (texte) — depuis « Enregistrer et envoyer » ou « Envoyé » choisi dans le formulaire. */
+function docEnvoyerChoix(kind,id){ const cfg=DOC[kind], d=(db[cfg.coll]||[]).find(x=>x.id===id); if(!d) return; const c=db.clients.find(x=>x.id===d.clientId)||{};
+  const em=!!c.email, tl=!!String(c.tel||'').trim();
+  openModal(`<div class="modal-head"><h3>📤 Envoyer ${cfg.fem?'la':'le'} ${esc(cfg.un)} ${esc(d.num||'')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="font-size:14px;margin:0 0 12px">À <b>${esc(c.nom||'—')}</b>. ${cfg.fem?'Elle':'Il'} passe « ${cfg.fem?'Envoyée':'Envoyé'} » une fois parti${cfg.fem?'e':''} — sinon ${cfg.fem?'elle reste en attente':'il reste en brouillon'}.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button type="button" class="btn" ${em?'':'disabled'} onclick="closeModal();envoiDoc('${kind}','${id}','mail')">📧 Par e-mail${em?' — '+esc(c.email)+' (PDF joint)':' — pas d’e-mail sur la fiche du client'}</button>
+      <button type="button" class="btn ghost" ${tl?'':'disabled'} onclick="closeModal();envoiDoc('${kind}','${id}','sms')">💬 Par SMS${tl?' — '+esc(c.tel)+' (texte, sans PDF)':' — pas de téléphone sur la fiche du client'}</button>
+      <button type="button" class="btn ghost" onclick="closeModal()">Plus tard</button>
+    </div>`,'carte'); }
 
 /* ═══════════════ CONTRATS DE MAINTENANCE ═══════════════ */
 const CTR_ST={actif:{l:'Actif',c:'st-green'},suspendu:{l:'Suspendu',c:'st-org'},expire:{l:'Expiré',c:'st-red'}};
@@ -45393,13 +45787,8 @@ function savePointage(e,id){ e.preventDefault();
 function ptPdf(){
   const list=ptListe();
   if(!list.length){ toast('Aucun pointage à exporter sur cette période'); return; }
-  try{
-    const s=ptPdfStr(list,ptBornes());
-    const bytes=new Uint8Array(s.length); for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
-    const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-    if(!window.open(u,'_blank')) toast('Autorise les pop-ups pour voir le PDF');
-    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
-  }catch(e){ console.error(e); toast('Export PDF impossible'); }
+  /* v802 : dans la fenêtre PDF de l'application (aperçu, télécharger, partager), plus dans un onglet */
+  return pdfFeuille({titre:'Feuille de temps', nom:'feuille-de-temps', fabrique:async()=>({pdf:ptPdfStr(list,ptBornes())})});
 }
 function ptPdfStr(list,b){
   const now=Date.now();
@@ -47537,8 +47926,10 @@ function enterApp(u){ currentUser=u;
   try{ setTimeout(function(){ annuaireDeposer(); },4000); }catch(e){}
   // Bêta : « coupé » depuis la Tour doit fermer aussi les sessions déjà ouvertes. On demande
   // au serveur, sans bloquer l'ouverture ; s'il dit non, on ressort proprement.
-  if(BETA_ESSAI&&u&&u.essai){ try{ fetch(PUSH_API+'/api/beta/etat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:u.login})})
-    .then(r=>r.json()).then(j=>{ if(j&&j.ouvert===false){ try{ localStorage.removeItem('elanD_session'); sessionStorage.removeItem('elanD_session'); }catch(_e){} alert('Cet accès d\'essai a été coupé depuis la Tour de contrôle.'); location.reload(); } }).catch(()=>{}); }catch(_e){} } try{ localStorage.removeItem('elanD_lien_ok'); localStorage.removeItem('elanD_ent_ok'); }catch(e){} try{ gpsAutoChrono(); }catch(e){} $('login').style.display='none'; $('app-root').style.display='flex';
+  if(BETA_ESSAI&&u&&u.essai){ try{ let _jt=''; try{ _jt=localStorage.getItem('elanD_beta_jeton')||''; }catch(_e){}
+    fetch(PUSH_API+'/api/beta/etat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:u.login,jeton:_jt})})
+    .then(r=>r.json()).then(j=>{ try{ if(j&&j.jeton) localStorage.setItem('elanD_beta_jeton',String(j.jeton)); }catch(_e){}
+      if(j&&j.ouvert===false){ try{ localStorage.removeItem('elanD_session'); sessionStorage.removeItem('elanD_session'); localStorage.removeItem('elanD_beta_jeton'); }catch(_e){} alert('Cet accès d\'essai a été coupé depuis la Tour de contrôle.'); location.reload(); } }).catch(()=>{}); }catch(_e){} } try{ localStorage.removeItem('elanD_lien_ok'); localStorage.removeItem('elanD_ent_ok'); }catch(e){} try{ gpsAutoChrono(); }catch(e){} $('login').style.display='none'; $('app-root').style.display='flex';
   /* ⛔ L'ENTRÉE EST UN FONDU, ET L'ACCUEIL NOMME LA PERSONNE. Passer de l'écran de connexion
      à un tableau de bord complet d'un seul coup, c'est un saut : on ne sait pas si on a
      changé d'écran ou si la page a rechargé. La classe se retire à la fin — sinon une
@@ -47838,6 +48229,7 @@ async function doLogin(e){ e.preventDefault();
       const c=document.querySelector('.login-card'); if(c){ c.classList.add('pin-err'); setTimeout(()=>c.classList.remove('pin-err'),400); }
       const p=$('li-pin'); if(p){ p.value=''; p.focus(); } return;
     }
+    try{ if(j.jeton) localStorage.setItem('elanD_beta_jeton',String(j.jeton)); else localStorage.removeItem('elanD_beta_jeton'); }catch(_e){}   // v801 : la preuve des boîtes mail de la bêta
     // le compte n'existe localement que comme reflet de l'accès serveur : même identifiant,
     // même mot de passe, administrateur de la bêta — jamais de mot de passe à « définir »
     let ub=db.users.find(x=>x.login&&x.login.toLowerCase()===j.login);
@@ -47919,7 +48311,7 @@ async function doLogin(e){ e.preventDefault();
     const p=$('li-pin'); if(p){ p.value=''; p.focus(); }
   }
 }
-function logout(){ logEvent('Déconnexion','','auth'); save(); try{ cnxSignaler('deconnexion'); }catch(e){} localStorage.removeItem('elanD_session'); sessionStorage.removeItem('elanD_session'); currentUser=null; _modalForcee=false; closeModal(true); closeNotif(); try{ const fb=document.getElementById('fdr-banner'); if(fb) fb.remove(); }catch(e){} renderLogin(); }
+function logout(){ logEvent('Déconnexion','','auth'); save(); try{ cnxSignaler('deconnexion'); }catch(e){} localStorage.removeItem('elanD_session'); try{ localStorage.removeItem('elanD_beta_jeton'); }catch(e){} sessionStorage.removeItem('elanD_session'); currentUser=null; _modalForcee=false; closeModal(true); closeNotif(); try{ const fb=document.getElementById('fdr-banner'); if(fb) fb.remove(); }catch(e){} renderLogin(); }
 /* ── Connexions remontées à la Tour de contrôle : qui se connecte, quand, depuis quel appareil,
    avec quelle version, par quel chemin — et les échecs. Jamais de mot de passe, jamais de données métier. ── */
 let _cnxVia='identifiants';

@@ -53,6 +53,7 @@ function monde(factures, interventions, devis) {
     const FACT_ST={brouillon:{l:'En attente',c:'st-grey'},envoyee:{l:'Envoyée',c:'st-blue'},payee:{l:'Payée',c:'st-green'},retard:{l:'En retard',c:'st-red'}};
     function badge(map,k){ return '<span class="st '+((map[k]||{}).c||'')+'">'+((map[k]||{}).l||k)+'</span>'; }
     ${LTL}\n${LHT}\n${DT}\n${DND}\n${LATE}\n${bloc('function docEmis(d){')}   /* « émis » : une définition (lot g17) */
+    ${bloc('function docEnvoiLib(d){')}   /* la ligne « Envoyé le … » de la liste (fde69cee) */
     let factFilter='tous'; function __ff(k){ factFilter=k; }
     function canCat(){ return true; } function isFinanceMgr(){ return true; }
     function visibleDocs(l){ return l; } function visibleInts(l){ return l; }
