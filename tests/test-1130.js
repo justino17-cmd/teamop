@@ -21,6 +21,8 @@ function bloc(debut) {
   return '';
 }
 const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
+/* nuit du 5 novembre 2026 (test-3291) : les longues listes s'affichent par pages — l'aide (`listeLim`, `listeSuite`…) est une pièce de plus du bac à sable */
+const LISTE_AIDE = () => [ligne('const LISTE_PAGE='), ligne('let _listeLim='), bloc('function listeLim('), bloc('function listePlus('), bloc('function listeSuite(')].join('\n').replace(/\blet _listeLim\b/, 'var _listeLim').replace(/\bconst (LISTE_\w+)/g, 'var $1');
 
 console.log('\n── 1130 · 0. la population ──');
 const VC = bloc('views.clients=function(){'), AT = ligne('function allTags(){'), TC = ligne('function tagChipsHtml(x){'), CP = ligne('function cliIsPro(c){'),
@@ -35,7 +37,7 @@ function monde(clients, interventions) {
     db: { clients, interventions: interventions || [], devis: [], factures: [] }, currentUser: { id: 'u1', role: 'admin' },
     __saves: 0 };
   vm.createContext(ctx);
-  vm.runInContext(`${ESC.replace('const ', 'var ')}\n${INI.replace('const ', 'var ')}\n${NM.replace('const ', 'var ')}\n${ETAT}\n${ETAT2}\n${AT}\n${TC}\n${CP}\n${TG}\nvar boxTxt = function (s) { return s; };\n${ES}
+  vm.runInContext(`${LISTE_AIDE()}\n${ESC.replace('const ', 'var ')}\n${INI.replace('const ', 'var ')}\n${NM.replace('const ', 'var ')}\n${ETAT}\n${ETAT2}\n${AT}\n${TC}\n${CP}\n${TG}\nvar boxTxt = function (s) { return s; };\n${ES}
     function $(id){ return id==='content' ? __page : (id==='cli-liste' ? __liste : { value:'', focus(){}, innerHTML:'' }); }
     function setHeader(t,s){ __sub=s; } function can(){ return true; } function visibleClients(l){ return l; }
     function save(){ __saves++; } function openTagEditor(){}
