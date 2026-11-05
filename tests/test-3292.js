@@ -56,6 +56,10 @@ function monde(retards, opts) {
     const n = await M.photosResoudre(liste);
     v('une pièce absente du serveur ne casse pas les autres (2 reçues sur 3)', n, 2);
     vrai('et son marqueur nu reste, pour un prochain essai', liste[1] === 'piece:' + ids[1] && liste[0].includes(':data:') && liste[2].includes(':data:'), liste.map(x => x.length)); }
+  { const ids = 'abcd'.split('').map(PID); const liste = ids.map(i => 'piece:' + i);
+    const M = monde({}, { reponses: { [ids[0]]: { absente: true }, [ids[1]]: { inconnu: true, motif: 'reseau' } } });
+    const n = await M.photosResoudre(liste);
+    v('deux pièces de suite introuvables (absente, réseau) n\'arrêtent pas les suivantes : 2 reçues sur 4', [n, liste.map(x => x.includes(':data:'))], [2, [false, false, true, true]]); }
   { /* une photo supprimée PENDANT l'attente décale les suivantes : l'écriture à l'ancien rang poserait le contenu d'une photo sur une autre */
     const ids = 'abcd'.split('').map(PID); const liste = ids.map(i => 'piece:' + i); const M = monde({ [ids[0]]: 60, [ids[1]]: 60, [ids[2]]: 10, [ids[3]]: 10 });
     const prom = M.photosResoudre(liste); await new Promise(r => setTimeout(r, 25)); liste.splice(0, 1);   // la première est supprimée, les autres glissent d'un rang
