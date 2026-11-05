@@ -13,6 +13,45 @@ de ligne du tout.
 
 ---
 
+# 5 NOVEMBRE 2026 (nuit) — v800 ET v801 PUBLIQUES, SÉCURITÉ DU SERVEUR, BOÎTE MAIL D'OP MESSAGES, PLAN DES STORES
+
+Justin (avant de dormir) : « fais tout ce qu'il faut et publie », puis « tout ce que je t'ai demandé, tu le fais… et tout ce que t'as mis de
+côté, je veux que ce soit prêt à mon réveil ».
+- **En ligne** : v800 (#308 : aperçu des PDF dans l'application, envoi par l'application seulement, Gmail/Outlook dans la Boîte mail, Devis IA
+  en plein écran, bêta 802 à un seul espace) puis **v801** (#309 : la synchro de Toka Clim n'abandonne plus en 4G faible — lecture chronométrée
+  à la taille de la base, `docDelaiLecture`, jusqu'à 90 s, `test-3238` § 4 ; Tour v2.131 : un espace supprimé ne se « rouvre » plus, `test-3265`).
+  Bêta 803. Vérifié servi sur teamop.fr.
+- **Serveur (#310, déployé)** : audit avec le skill `security-audit` (Cloudflare, MIT, recopié cette nuit : `.claude/skills/security-audit/`,
+  `PROVENANCE-cloudflare.md`). SkillSpector a été installé HORS du dépôt et a tourné en `--no-llm` : verdict brut DO_NOT_INSTALL, 14 constats
+  relus un par un = faux positifs de mots-clés (méthode d'audit, fixtures non recopiées). Corrigé : **SSRF du SMTP avancé** de `/api/sendmail`
+  (`server/hote-public.js` : tout hôte par `dns.lookup`, IPv6 dépliée sur liste blanche 2000::/3, interfaces locales refusées, connexion à
+  l'adresse normalisée avec `tls.servername`, ports 25/465/587/2525, DNS borné à 5 s, erreur du serveur joint jamais recopiée) — la 1re version
+  se contournait (`012.0.0.1`, `0:0:0:0:0:ffff:7f00:1`…), `gardien` l'a vu, corrigé, seconde relecture « prêt » ; **quota du Devis IA** vidable
+  par le nom de la bêta (60/h par adresse, 50/jour par entreprise `anthropic.quotaEquipeJour`, réserve bêta `anthropic.quotaBeta` = 40/jour hors
+  quota commun). `tests/test-3281.js` (78 ✓). ⚠️ **La bêta est limitée à 40 Devis IA par jour** (réglable dans `config.json`).
+  **À DÉCIDER (Justin)** : D1 `/api/espaces/lien` (un anonyme qui connaît `t` pose `clePerimee`) ; D2 `/api/compte/identifiants` (courriel sur
+  la seule foi du `teamId` — fermer demande `x-teamop-kh` dans `app.html`) ; remarques : mots de passe Tour/bêta en SHA-256 sans sel, verrou de
+  connexion par identifiant seul, clé en query string sur `/api/bugs` et `/api/mail/cles`, `state` OAuth d'OP GESTION non lié au navigateur
+  (même défaut que celui corrigé dans OP MESSAGES — à porter), un seul quota Devis IA par fiche (pas de champ par entreprise).
+- **OP MESSAGES — boîtes mail par personne** (branche `nuit/msg-courrier`, intégrée) : `server-msg/boites-mail.js`, `boites-mail-oauth.js`,
+  `hote-public.js` (recopié de `server/`, jamais importé), migration 31 (`boite_mail`, chiffré lié à `id|uid`), routes `/api/boites-mail/*`,
+  script `configurer-boites-mail.js` (saisie masquée). **INERTE sans le bloc `boitesMail`** (503, « Bientôt »). Relu deux fois par `gardien` :
+  `state` OAuth lié au navigateur par un cookie dédié (`__Host-opm-oa`, **Path=/** — sur un autre chemin le préfixe `__Host-` le fait rejeter),
+  échéances par commande IMAP, emplacements par personne / réseau / service, réponses sans texte d'exception. Bancs 3270-3275.
+  **Pour l'ouvrir (Justin)** : déployer la bêta d'OP MESSAGES (automatique après fusion), puis sur le VPS
+  `OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-boites-mail.js ouvrir` (puis `google`, `microsoft`),
+  `systemctl restart teamop-msg@beta` ; adresses de retour à déclarer chez Google et dans Azure :
+  `https://msg-beta.teamop.fr/api/boites-mail/oauth/retour` et `https://msg.teamop.fr/api/boites-mail/oauth/retour`. La migration 31 fait une
+  copie `msg.db.avant-v31` au premier démarrage (vérifier l'espace disque). Non traité (B3, B4, B6, B7, B8, B11) : essai de mots de passe
+  tiers, messages d'erreur qui distinguent introuvable/refusé, rafraîchissement du jeton sans verrou, adresse d'`id_token` non vérifiée,
+  déliaison sans révocation chez le fournisseur, pas d'`IPAddressDeny` dans l'unité systemd.
+- **Google OAuth (OP GESTION)** : en « mode test », la connexion Gmail **expire tous les 7 jours** ; ouvrir à tous demande la vérification de
+  Google ET un audit de sécurité annuel (portée restreinte `https://mail.google.com/` lue depuis notre serveur). En attendant : mot de passe
+  d'application pour Gmail. Décision de Justin.
+- **Plan des stores** (App Store / Play Store, Capacitor) : document « Plan des stores » (Claude Docs, https://claude.ai/artifact/PmbKVLFeb9utiA1duYhWmJ).
+- **Audit de performance de la bêta** : voir la section suivante quand il est intégré.
+- Rappels à 10 h (tâche planifiée) : TVA (mention 293 B / option), vérification d'éditeur Microsoft.
+
 # 4 NOVEMBRE 2026 (nuit) — BÊTA 801 : APERÇU DU DEVIS EN PLEIN ÉCRAN, « ENVOYÉ » QUAND C'EST PARTI, VRAIES BOÎTES MAIL SUR LA BÊTA
 
 Branche `claude/pdf-couleurs` (bêta 801). **`app.html` porte les deux premiers points mais reste numérotée 798 ici : monter son numéro
