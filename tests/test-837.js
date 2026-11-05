@@ -341,7 +341,9 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      commentaires retirés. Les APPLICATIONS en sont écartées, nommées : elles fabriquent des devis et des factures, où
      « Total HT » et « prix unitaire HT » sont justes et obligatoires. */
   console.log('4 bis. le prix se dit TTC partout');
-  const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta)\.html$/;
+  /* `apercu/prototype-op-gestion.html` (5 novembre 2026) : le PROTOTYPE de l'application, données fictives ; ses devis portent des prix HT
+     comme ceux d'OP GESTION — ce sont les documents d'une entreprise cliente, pas un prix de TEAM OP. */
+  const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta|prototype-op-gestion)\.html$/;
   const DIT_HT = /\bPrix HT\b|\bHT\s*\/\s*mois|\bHT par mois|€\s*HT\b/, HORS_TAXES = /hors[ -]taxes?/i;
   /* Les articles du blog qui expliquent la facture D'UN ARTISAN (ses mentions obligatoires, ses totaux hors taxe, l'autoliquidation) :
      « HT » y est le sujet, pas un prix de TEAM OP. Nommés un par un, et chacun doit encore en avoir besoin (contrôle ci-dessous). */

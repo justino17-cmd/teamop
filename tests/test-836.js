@@ -295,6 +295,7 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
     'scratchpad/courrier/essai.html': 'page d\'ESSAI du module OP Courrier (sondes, 127.0.0.1) : un hôte factice qui rejoue le data-theme d\'OP GESTION — ni une page du site, ni servie',
     'tour.html': 'la Tour : la console du patron, avec son propre jour et nuit — ce n\'est pas le site',
     'apercu/tour.html': 'la Tour en aperçu : même chose',
+    'apercu/prototype-op-gestion.html': 'le PROTOTYPE d\'OP GESTION (5 novembre 2026, données fictives, noindex) : une application, avec le réglage Jour / Nuit / Auto de l\'application — pas une page du site',
     'apercu/opmessages/index.html': 'OP MESSAGES en aperçu (écrans du paquet) : page d\'application, qui n\'a aucune feuille commune (CSP default-src \'none\') et déclare donc son color-scheme elle-même (meta + :root) — jour/nuit par prefers-color-scheme, sans bouton',
     /* (`apercu/site-apple.html`, la maquette de comparaison, est supprimée — Justin, 30 septembre 2026 : « pour le site on
        garde la maquette qu'on a à l'heure actuelle, l'ancienne tu peux les supprimer ») */
