@@ -8431,6 +8431,28 @@ html[data-theme="dark"] select{background-color:var(--bg1,#17213A)!important}
   </a>
 </div>
 
+<!-- ⛔ L'ÉCRAN DE DÉMARRAGE — LA PAGE N'EST PLUS BLANCHE PENDANT QU'ELLE ARRIVE (nuit du 5 novembre 2026, mesuré).
+     Le script de l'application (4 Mo) est EN LIGNE, à la fin de ce fichier : tant qu'il n'a pas fini d'arriver puis de
+     s'exécuter, rien n'est peint — `#login` et `#app-root` sont `display:none` dans le HTML. Mesuré sur un téléphone lent en
+     mauvaise 4G (processeur ×4, 1,6 Mbit/s, 400 ms d'aller-retour) : premier affichage à 9,2 s sur une première visite, 2,5 s
+     (×4) à 4,4 s (×6) à chaque ouverture depuis la copie du service worker, page blanche. Avec ce bloc, qui arrive dans les
+     premiers kilo-octets : 1,4 s. Il se retire SANS JavaScript, par le même mécanisme que `.login[style*="flex"] ~ #app-root`
+     plus haut : dès que l'application pose `display:flex` sur `#login` (connexion) ou sur `#app-root` (entrée), les deux seules
+     issues de `boot()`. Il vient APRÈS les deux dans le document, sinon le sélecteur frère ne le verrait pas. Le filet de 25 s
+     le retire si `boot()` n'aboutit jamais (une page blanche vaut mieux qu'un « chargement » éternel qui cache l'erreur).
+     Ne pas y mettre d'image du réseau autre que l'icône déjà rangée par le service worker, ni de script : il doit rester
+     peint avant tout le reste. -->
+<style>
+#demarrage{position:fixed;inset:0;z-index:190;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:var(--bg);color:var(--t1);font:700 15px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.14em;
+  animation:demarrageFiltre 0s linear 25s forwards}
+#demarrage img{width:76px;height:76px;border-radius:20px;object-fit:cover;display:block}
+#demarrage small{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--t3)}
+#login[style*="flex"] ~ #demarrage,#app-root[style*="flex"] ~ #demarrage{display:none}
+@keyframes demarrageFiltre{to{visibility:hidden}}
+</style>
+<div id="demarrage" aria-hidden="true"><img src="icons/icon-192.png" alt="" width="76" height="76"><span>OP&nbsp;GESTION</span><small>Chargement…</small></div>
+
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="overlay" id="overlay2" style="z-index:310"><div class="modal wide" id="modal2"></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
