@@ -13,6 +13,18 @@ de ligne du tout.
 
 ---
 
+# 5 NOVEMBRE 2026 (journée) — SKILL « AIDES PUBLIQUES » (SUBVENTO) POUR TROUVER DES FINANCEMENTS
+
+Justin : « cherche-moi un skill ou un agent qui pourrait trouver des fonds pour l'entreprise », puis « installe le skill ».
+- **Installé** : `.claude/skills/aides-publiques-entreprise/` (Subvento, MIT, `PROVENANCE-subvento.md`). Le connecteur distant
+  (`https://subvento.finance/mcp`) n'est PAS dans `.mcp.json`, exprès (un tiers dans chaque session) : appel ponctuel par `curl` après l'accord de
+  Justin, ou connecteur ajouté par lui dans claude.ai. Seulement le SIREN de TEAM OP ; chaque piste se vérifie à sa source officielle. `test-3140`.
+  ⚠️ SkillSpector n'a pas tourné (réinstallation refusée par la session) : relu à la main, balayage grossier, à rescanner.
+- **Ce que la recherche a trouvé pour TEAM OP** (non encore vérifié aux sources officielles) : prêt d'honneur Initiative Charente-Maritime et
+  Création-Reprise de Bpifrance, aide régionale « Innovation numérique responsable », ACRE (délai de 60 jours probablement passé) ; peut-être Bourse
+  French Tech (sociétés ?), CII (régime réel), JEI, ARCE. **Questions à Justin** : micro ou réel, chômage à la création, ACRE demandée, montant et usage.
+- **Rien n'a encore été envoyé à Subvento** (le SIREN attend son accord et ses besoins).
+
 # 5 NOVEMBRE 2026 (nuit) — v800 ET v801 PUBLIQUES, SÉCURITÉ DU SERVEUR, BOÎTE MAIL D'OP MESSAGES, PLAN DES STORES
 
 Justin (avant de dormir) : « fais tout ce qu'il faut et publie », puis « tout ce que je t'ai demandé, tu le fais… et tout ce que t'as mis de
@@ -38,6 +50,7 @@ côté, je veux que ce soit prêt à mon réveil ».
   script `configurer-boites-mail.js` (saisie masquée). **INERTE sans le bloc `boitesMail`** (503, « Bientôt »). Relu deux fois par `gardien` :
   `state` OAuth lié au navigateur par un cookie dédié (`__Host-opm-oa`, **Path=/** — sur un autre chemin le préfixe `__Host-` le fait rejeter),
   échéances par commande IMAP, emplacements par personne / réseau / service, réponses sans texte d'exception. Bancs 3270-3275.
+  ⏸️ **Justin, 5 novembre 2026 : « on le fera quand OP MESSAGES aura son serveur »** — reste éteint jusque-là (rappel planifié le 6/11 à 14 h).
   **Pour l'ouvrir (Justin)** : déployer la bêta d'OP MESSAGES (automatique après fusion), puis sur le VPS
   `OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-boites-mail.js ouvrir` (puis `google`, `microsoft`),
   `systemctl restart teamop-msg@beta` ; adresses de retour à déclarer chez Google et dans Azure :
