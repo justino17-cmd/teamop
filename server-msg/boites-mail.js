@@ -310,12 +310,12 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     const b = corps(req);
     const adresse = ligne(b.adresse, 254).toLowerCase();
     const mdp = typeof b.mdp === 'string' ? b.mdp : '';
-    if (!RE_ADRESSE.test(adresse)) return refus(res, 400, 'adresse_invalide', { message: 'Cette adresse e-mail n\'est pas valide.' });
+    if (!RE_ADRESSE.test(adresse)) return refus(res, 400, 'boite_adresse_invalide', { message: 'Cette adresse e-mail n\'est pas valide.' });
     if (!mdp || mdp.length > 500 || /[\u0000\r\n]/.test(mdp)) return refus(res, 400, 'mot_de_passe_requis', { message: 'Entre le mot de passe (d\'application) de cette boîte.' });
     if (stockage.boitesMailDe(req.moi.id).length >= BOITES_MAX && !stockage.boitesMailDe(req.moi.id).some(x => x.adresse === adresse)) return refus(res, 409, 'trop_de_boites', { message: 'Tu as déjà ' + BOITES_MAX + ' boîtes reliées : retire-en une avant d\'en ajouter.' });
     let r;
     try { r = reglagesPour(adresse, b.serveurs); } catch (e) { return refus(res, e.statut || 400, e.code || 'serveur_invalide', { message: e.message && e.message !== e.code ? e.message : e.message }); }
-    if (r.fournisseur === 'microsoft' && !(test && test.serveurs)) {
+    if (r.fournisseur === 'microsoft') {
       /* Microsoft refuse les mots de passe dans toutes les applications : on le DIT avant de faire attendre (la voie est l'autorisation). */
       return refus(res, 400, 'microsoft_sans_mot_de_passe', { message: 'Microsoft refuse les mots de passe dans les applications : utilise « Continuer avec Microsoft ».' });
     }
@@ -410,8 +410,8 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     if (!plafond(res, 'bm_env:' + req.moi.id, 30, 3600000) || !plafond(res, 'bm_env_j:' + req.moi.id, 100, 86400000) || !plafond(res, 'bm_env_ip:' + cleReseau(req.ip), 60, 3600000)) return;
     const d = corps(req);
     const dest = String(typeof d.a === 'string' ? d.a : '').split(/[,;]/).map(x => { const m = /<([^<>]+)>\s*$/.exec(x.trim()); return (m ? m[1] : x).trim(); }).filter(Boolean);
-    if (!dest.length || dest.length > DEST_MAX) return refus(res, 400, 'destinataire_invalide', { message: dest.length ? 'Au plus ' + DEST_MAX + ' destinataires.' : 'Indique un destinataire.' });
-    if (!dest.every(x => RE_ADRESSE.test(x) && x.length <= 254)) return refus(res, 400, 'destinataire_invalide', { message: 'Une adresse de destinataire n\'est pas valide.' });
+    if (!dest.length || dest.length > DEST_MAX) return refus(res, 400, 'boite_destinataire_invalide', { message: dest.length ? 'Au plus ' + DEST_MAX + ' destinataires.' : 'Indique un destinataire.' });
+    if (!dest.every(x => RE_ADRESSE.test(x) && x.length <= 254)) return refus(res, 400, 'boite_destinataire_invalide', { message: 'Une adresse de destinataire n\'est pas valide.' });
     const objet = ligne(d.objet, OBJET_MAX) || '(sans objet)';
     const txt = texte(d.texte, TEXTE_MAX);
     const pieces = [];
@@ -476,7 +476,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
      RENVOIE vers « / » par un rafraîchissement : la navigation vient alors d'une page de NOTRE site, donc le cookie de session (`SameSite=Strict`) repart — sur le retour direct de Google, non. */
   function pageRetour(res, code) {
     const ok = code === 'ok';
-    const cible = ok ? '/?boites=ok' : '/?boites=erreur&c=' + encodeURIComponent(code);
+    const cible = (ok ? '/?boites=ok' : '/?boites=erreur&c=' + encodeURIComponent(code)) + '#courrier';
     const msg = MESSAGES_RETOUR[code] || MESSAGES_RETOUR.erreur;
     res.set({ 'Cache-Control': 'no-store', 'Content-Type': 'text/html; charset=utf-8' });
     res.status(200).send('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'

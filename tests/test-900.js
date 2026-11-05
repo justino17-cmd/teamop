@@ -68,7 +68,17 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
     if (/\/(opt|etc)\/teamop/.test(c) && !permis.has(nom)) interdits.push(nom + ' : chemin /opt|/etc/teamop');
     /* ⛔ UNE SECONDE EXCEPTION, NOMMÉE : `push.js` porte la LISTE BLANCHE des services push des navigateurs — celui de Chrome s'appelle `fcm.googleapis.com`. Ce n'est pas Firebase (le produit) : c'est la
        boîte aux lettres que le navigateur d'une personne impose pour la réveiller. On retire de ce fichier les noms exacts de la liste (et rien d'autre : toute autre trace de Firebase y reste interdite). */
-    const sansListePush = nom === 'push.js' ? c.replace(/fcm\.googleapis\.com/g, '') : c;
+    /* ⛔ UNE ONZIÈME EXCEPTION, NOMMÉE ET FERMÉE : `boites-mail-oauth.js` (6 novembre 2026, « Continuer avec Google / Microsoft » dans la rubrique Courrier — décision de Justin). C'est le SEUL fichier du service qui
+       nomme un fournisseur d'autorisation, et il n'en nomme que CINQ adresses : le point d'autorisation et d'échange de Google (`accounts.google.com`, `oauth2.googleapis.com`), la portée IMAP/SMTP de Google
+       (`https://mail.google.com/`, un NOM de portée que le fournisseur compare comme une chaîne — jamais une destination), le point d'autorisation et d'échange de Microsoft (`login.microsoftonline.com`) et sa portée
+       (`outlook.office.com`). Toute autre adresse, dans ce fichier comme dans un autre, reste interdite. Le service n'y envoie que le code et le secret de SON application, jamais un message. */
+    const HOTES_OAUTH = ['accounts.google.com', 'oauth2.googleapis.com', 'mail.google.com', 'login.microsoftonline.com', 'outlook.office.com'];
+    if (nom === 'boites-mail-oauth.js') {
+      const trouves = [...new Set(Array.from(c.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)).map(m => m[1]))].filter(h => h !== '127.0.0.1').sort();
+      if (JSON.stringify(trouves) !== JSON.stringify(HOTES_OAUTH.slice().sort())) interdits.push(nom + ' : hôtes ' + JSON.stringify(trouves) + ' au lieu des cinq permis');
+    }
+    const sansOauth = (x) => nom === 'boites-mail-oauth.js' ? HOTES_OAUTH.reduce((y, h) => y.split(h).join(''), x) : x;
+    const sansListePush = sansOauth(nom === 'push.js' ? c.replace(/fcm\.googleapis\.com/g, '') : c);
     /* ⛔ UNE SEPTIÈME EXCEPTION, NOMMÉE ET COMPTÉE : `opmsg-ui.js` (la page) porte les deux adresses de « Y aller » (15 octobre 2026, Justin : « l'ouvrir à partir de n'importe quel GPS installé
        sur un téléphone ») — Google Maps et Waze. Ce sont des LIENS que la personne touche, vers l'application de guidage qu'elle choisit ; jamais une connexion de la page ni du service (ni
        `fetch`, ni image, ni script). Ces deux préfixes exacts, UNE fois chacun (dans `liensGps`), et rien d'autre : toute autre trace de Google, et tout autre hôte, y reste interdit. */
@@ -93,7 +103,7 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
        de connexion — un `postMessage` ne sort pas de l'appareil — et l'origine y est ÉCRITE pour qu'aucun autre site qui encadrerait la page ne reçoive « prêt » (jamais « * »). Cette ligne exacte, UNE fois, et rien d'autre. */
     const POIGNEE = "window.parent.postMessage({ opmsg: 'pret' }, 'https://teamop.fr')";
     if (nom === 'opmsg-ui.js') { const k = c.split(POIGNEE).length - 1; if (k !== 1) interdits.push(nom + ' : « ' + POIGNEE + ' » ' + k + ' fois (une seule, la poignée du cadre)'); }
-    const cM = nom === 'invite.html' ? MENTION.reduce((y, [m]) => y.split(m).join(''), c) : (nom === 'config.js' ? c.split(CADRE).join('') : (nom === 'opmsg-ui.js' ? c.split(POIGNEE).join('') : c));
+    const cM = nom === 'invite.html' ? MENTION.reduce((y, [m]) => y.split(m).join(''), c) : (nom === 'config.js' ? c.split(CADRE).join('') : (nom === 'opmsg-ui.js' ? c.split(POIGNEE).join('') : sansOauth(c)));
     for (const m of sansGps(cM).matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)) {
       if (/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(m[1])) continue;
       if (nom === 'sms-ovh.js' && /^(?:eu|ca)\.api\.ovh\.com$|^api\.us\.ovhcloud\.com$/.test(m[1])) continue;
@@ -153,7 +163,7 @@ console.log('\nLes dépendances sont celles d\'OP GESTION, aux mêmes versions')
 {
   const a = JSON.parse(fs.readFileSync(path.join(MSG, 'package.json'), 'utf8')), b = JSON.parse(fs.readFileSync(path.join(RACINE, 'server', 'package.json'), 'utf8'));
   const DECLAREES = Object.keys(a.dependencies).sort();
-  v('trois dépendances (surface d\'attaque) : express, nodemailer AVEC le code qui l\'importe (`courriel.js`, étape 6) et web-push AVEC le sien (`push.js`, étape 2)', DECLAREES, ['express', 'nodemailer', 'web-push']);
+  v('cinq dépendances (surface d\'attaque) : express, nodemailer AVEC le code qui l\'importe (`courriel.js`, étape 6), web-push AVEC le sien (`push.js`, étape 2) — et, depuis le 6 novembre 2026, imapflow et mailparser AVEC `boites-mail.js` (la lecture des boîtes mail d\'une personne), aux MÊMES versions que server/', DECLAREES, ['express', 'imapflow', 'mailparser', 'nodemailer', 'web-push']);
   /* ⛔ Une dépendance déclarée que personne n'importe est de la surface d'attaque pour rien (relecture du gardien, point 13) :
      chaque dépendance de package.json est `require`d par au moins un fichier du service. */
   const requis = new Set();
@@ -165,7 +175,12 @@ console.log('\nLes dépendances sont celles d\'OP GESTION, aux mêmes versions')
   v('versions RÉSOLUES identiques à celles d\'OP GESTION',
     DECLAREES.map(k => ((lock.packages['node_modules/' + k] || {}).version !== undefined) && (lock.packages['node_modules/' + k] || {}).version === (lockB.packages['node_modules/' + k] || {}).version), DECLAREES.map(() => true));
   v('⛔ le verrou porte nodemailer (parce que `courriel.js` l\'importe) et web-push (parce que `push.js` l\'importe) — et rien qu\'eux deux en plus d\'express : npm ci n\'installe rien d\'inutilisé', [Object.keys(lock.packages).filter(k => /node_modules\/nodemailer$/.test(k)), Object.keys(lock.packages).filter(k => /node_modules\/web-push$/.test(k))], [['node_modules/nodemailer'], ['node_modules/web-push']]);
-  v('⛔ nodemailer se charge au premier ENVOI, jamais au démarrage (un service sans relais ne le demande pas) : le seul `require(\'nodemailer\')` du service est dans la fonction qui crée le transport', sources.filter(p => /require\(\s*['"]nodemailer['"]\s*\)/.test(code(p))).map(rel), ['server-msg/courriel.js']);
+  v('⛔ nodemailer se charge au premier ENVOI, jamais au démarrage (un service sans relais ne le demande pas) : le seul `require(\'nodemailer\')` du service est dans la fonction qui crée le transport', sources.filter(p => /require\(\s*['"]nodemailer['"]\s*\)/.test(code(p))).map(rel), ['server-msg/boites-mail.js', 'server-msg/courriel.js']);
+  /* ⛔ ET imapflow / mailparser (6 novembre 2026) : un seul fichier les importe (`boites-mail.js`), et chaque `require` y est INDENTÉ — dans une fonction, au premier relevé —, jamais au chargement : un service sans boîte mail reliée ne charge ni l'un ni l'autre */
+  for (const dep of ['imapflow', 'mailparser']) {
+    const lignes = []; for (const p of sources) for (const l of code(p).split('\n')) if (new RegExp('require\\(\\s*[\'"]' + dep + '[\'"]\\s*\\)').test(l)) lignes.push([rel(p), /^\s+\S/.test(l)]);
+    v('⛔ ' + dep + ' : importé par `boites-mail.js` seul, et seulement DANS une fonction (jamais au chargement)', [lignes.length > 0, lignes.every(x => x[0] === 'server-msg/boites-mail.js' && x[1])], [true, true]);
+  }
   const gi = fs.readFileSync(path.join(RACINE, '.gitignore'), 'utf8');
   vrai('server-msg/node_modules est ignoré (jamais commité)', /^server-msg\/node_modules\/$/m.test(gi));
 }

@@ -81,7 +81,7 @@ function fauxFournisseur(nom, clients) {
     return { r, u, state, code: 'CODE-' + state, fournisseur };
   }
   const retour = (d, over) => anon.get('/api/boites-mail/oauth/retour?' + new URLSearchParams(Object.assign({ code: d.code, state: d.state }, over || {})).toString());
-  const codeRetour = (r) => { const m = /url=([^"]+)"/.exec(r.txt || ''); return m ? decodeURIComponent(m[1]) : null; };
+  const codeRetour = (r) => { const m = /url=([^"]+)"/.exec(r.txt || ''); return m ? decodeURIComponent(m[1]).replace(/#courrier$/, '') : null; };
   try {
     console.log('\n1. Le départ');
     const cfg = await anon.get('/api/config'), sante = await anon.get('/health');

@@ -99,7 +99,7 @@ const b64 = (t) => Buffer.from(t).toString('base64');
 
     console.log('\n2. Relier une boîte : le mot de passe ne va nulle part');
     const refusAdresse = await A.post('/api/boites-mail', { adresse: 'pas-une-adresse', mdp: SECRET_A }), refusMdp = await A.post('/api/boites-mail', { adresse: BOITE_A, mdp: '' });
-    v('une adresse invalide, un mot de passe absent : 400, sans connexion', [refusAdresse.code, refusAdresse.j.error, refusMdp.code, refusMdp.j.error, connexions()], [400, 'adresse_invalide', 400, 'mot_de_passe_requis', 0]);
+    v('une adresse invalide, un mot de passe absent : 400, sans connexion', [refusAdresse.code, refusAdresse.j.error, refusMdp.code, refusMdp.j.error, connexions()], [400, 'boite_adresse_invalide', 400, 'mot_de_passe_requis', 0]);
     ecrireImap(Object.assign(lireImap(), { pannes: { [BOITE_A]: 'AUTHENTICATIONFAILED pour ' + BOITE_A + ' ZZPANNEZZ' } }));
     const refuse = await A.post('/api/boites-mail', { adresse: BOITE_A, mdp: 'mauvais-mot-de-passe' });
     v('⛔ le fournisseur refuse l\'identifiant : 401 identifiants_refuses, un texte DIT par le service', [refuse.code, refuse.j.error, typeof refuse.j.message], [401, 'identifiants_refuses', 'string']);
@@ -190,7 +190,7 @@ const b64 = (t) => Buffer.from(t).toString('base64');
       await A.post('/api/boites-mail/' + IDA + '/envoyer', { a: 'a@b.fr', objet: 'x', texte: 'y', enReponseA: '<injecte@x>' }),
     ];
     v('les refus : destinataire absent, invalide, six destinataires, quatre pièces, pièce illisible, plus de 4 Mo, réponse à un identifiant forgé', refusEnv.map(r => [r.code, r.j.error]),
-      [[400, 'destinataire_invalide'], [400, 'destinataire_invalide'], [400, 'destinataire_invalide'], [400, 'pieces_invalides'], [400, 'pieces_invalides'], [413, 'trop_gros'], [400, 'champ_invalide']]);
+      [[400, 'boite_destinataire_invalide'], [400, 'boite_destinataire_invalide'], [400, 'boite_destinataire_invalide'], [400, 'pieces_invalides'], [400, 'pieces_invalides'], [413, 'trop_gros'], [400, 'champ_invalide']]);
     const nb1 = relais.messages.length;
     v('   ⛔ aucun de ces refus n\'a fait partir un message', relais.messages.length, nb1);
     const gros = await A.post('/api/boites-mail/' + IDA + '/envoyer', { a: 'a@b.fr', objet: 'x', texte: 'z'.repeat(8 * 1024 * 1024) });
