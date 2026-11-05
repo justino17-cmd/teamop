@@ -15443,6 +15443,15 @@ function teamopLienActuel(){
 
    Le préfixe se lit sur STORE_KEY plutôt que d'être écrit en dur : la bêta le remplace par le
    sien, et une liste de clés figées raterait tout ce qui est construit à la volée. */
+/* v802 — LA BÊTA REJOINT SON ESPACE (`beta-build.js`, `betaEspaceUnique`). Un appareil de la bêta rattaché à un AUTRE espace (une entreprise, par
+   un lien) ne bouge pas tout seul : on ne mélange pas les données d'une entreprise dans l'espace de la bêta, dont la clé est publique. On le lui
+   PROPOSE (Outils de bêta, Boîte mail) : on quitte proprement (`espaceQuitter` : base locale, secrets, catégories), on se rattache, on recharge —
+   la base de la bêta arrive par la synchro ; rien n'est effacé chez l'autre espace. Seule la bêta appelle ces deux fonctions (`BETA_ESSAI`). */
+function betaEspaceAutre(){ try{ const t=(localStorage.getItem('elan_sync_team')||'').trim(); return (t&&t!==FB_TEAM)?t:''; }catch(e){ return ''; } }
+function betaEspaceRejoindre(){ if(!BETA_ESSAI) return; const t=betaEspaceAutre(); if(!t){ toast('Cet appareil est déjà sur l’espace de la bêta'); return; }
+  if(!confirm('Cet appareil travaille sur l’espace « '+t+' », pas sur celui de la bêta.\n\nRejoindre l’espace de la bêta ? Cet appareil affichera alors les données de la bêta, les mêmes que tes autres appareils. Ce qui a été fait dans « '+t+' » y reste : rien n’y est effacé.')) return;
+  try{ espaceQuitter(); localStorage.setItem('elan_sync_team',FB_TEAM); localStorage.setItem('elan_sync_secret',SYNC_SECRET_DEFAULT); localStorage.setItem('elan_sync_on','1'); }catch(e){}
+  location.reload(); }
 function espaceQuitter(){
   const P=STORE_KEY.split('_')[0]+'_';   // « elan_ » en production, « elanB_ » en bêta
   try{

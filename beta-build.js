@@ -56,15 +56,8 @@ s = s.split(HERITE).join("(function betaEspaceUnique(){ try{ const t=(localStora
   + "  if(t==='elan-gestion-beta'||(!t&&sess)){ localStorage.setItem('elanB_sync_team',FB_TEAM); if(!localStorage.getItem('elanB_sync_secret')) localStorage.setItem('elanB_sync_secret',SYNC_SECRET_DEFAULT);\n"
   + "    if(localStorage.getItem('elanB_sync_on')!=='0') localStorage.setItem('elanB_sync_on','1'); if(t) localStorage.setItem('elanB_espace_migre',t); }\n"
   + "}catch(e){} })();   // beta-build.js : un seul espace pour la bêta (voir le générateur)\n" + HERITE);
-/* Rejoindre l'espace de la bêta depuis un autre espace : on quitte proprement (`espaceQuitter` : base locale, secrets, catégories), on se
-   rattache, on recharge — la base de la bêta arrive par la synchro. Rien n'est effacé chez l'autre espace. */
-const QUITTER = 'function espaceQuitter(){';
-if (s.split(QUITTER).length !== 2) { console.error('ÉCHEC : espaceQuitter doit être trouvé UNE fois'); process.exit(1); }
-s = s.split(QUITTER).join("function betaEspaceAutre(){ try{ const t=(localStorage.getItem('elanB_sync_team')||'').trim(); return (t&&t!==FB_TEAM)?t:''; }catch(e){ return ''; } }\n"
-  + "function betaEspaceRejoindre(){ const t=betaEspaceAutre(); if(!t){ toast('Cet appareil est déjà sur l’espace de la bêta'); return; }\n"
-  + "  if(!confirm('Cet appareil travaille sur l’espace « '+t+' », pas sur celui de la bêta.\\n\\nRejoindre l’espace de la bêta ? Cet appareil affichera alors les données de la bêta, les mêmes que tes autres appareils. Ce qui a été fait dans « '+t+' » y reste : rien n’y est effacé.')) return;\n"
-  + "  try{ espaceQuitter(); localStorage.setItem('elanB_sync_team',FB_TEAM); localStorage.setItem('elanB_sync_secret',SYNC_SECRET_DEFAULT); localStorage.setItem('elanB_sync_on','1'); }catch(e){}\n"
-  + "  location.reload(); }\n" + QUITTER);
+/* `betaEspaceAutre` et `betaEspaceRejoindre` vivent dans app.html (ESLint lit les noms de la page : test-818) ; seule la bêta les appelle. */
+
 /* ⛔ LA BÊTA A SA VERSION MINIMALE À ELLE (Justin, 6 octobre 2026 : « qu'on sépare la version bêta et la version publique »).
    L'application demande `/api/version` ; la bêta demande `/api/version?canal=beta` — le minimum que la Tour pose sur la carte
    « Bêta » d'OP GESTION, jamais celui des clients (et inversement : exiger une bêta ne bloque aucun client). Un serveur d'avant

@@ -115,7 +115,8 @@ const monde = (o) => { const M = { console, JSON, String, Math, Date, Array, Num
   console.log('\n── 3258 · 4. la bêta n\'a qu\'un espace ──');
   const bloc = tranche(BETA, '(function betaEspaceUnique(){', '(function espaceHerite(){');
   vrai('le bloc de convergence est dans beta.html, AVANT espaceHerite', bloc.length > 100 && BETA.indexOf('(function betaEspaceUnique(){') < BETA.indexOf('(function espaceHerite(){'), bloc.length);
-  vrai('… et il n\'existe pas dans app.html (la production n\'a qu\'une entreprise par appareil, choisie par son lien)', !APP.includes('betaEspaceUnique'));
+  vrai('… et il n\'existe pas dans app.html (la production n\'a qu\'une entreprise par appareil, choisie par son lien)', !APP.includes('(function betaEspaceUnique('));
+  vrai('betaEspaceRejoindre ne fait rien hors de la bêta', /function betaEspaceRejoindre\(\)\{ if\(!BETA_ESSAI\) return;/.test(APP));
   const joue = (ls, ss) => { const L = { _: Object.assign({}, ls), getItem(k) { return this._[k] === undefined ? null : this._[k]; }, setItem(k, x) { this._[k] = String(x); } };
     const S = { _: Object.assign({}, ss || {}), getItem(k) { return this._[k] === undefined ? null : this._[k]; } };
     const B = { localStorage: L, sessionStorage: S }; vm.createContext(B);

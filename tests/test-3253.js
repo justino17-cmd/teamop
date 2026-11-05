@@ -143,6 +143,17 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 4 min'); fini(1); }
     await P.page.evaluate(() => { db.clients.push({ id: 'cliZwqzw', nom: 'Client Zwazi Qzw', ville: 'Qzwville' }); save(); });
     vrai('et dans l\'autre sens', await attendre(() => A.page.evaluate(() => (db.clients || []).some(x => x.nom === 'Client Zwazi Qzw')), 30000));
     v('aucune erreur JavaScript sur les deux appareils', [A.erreurs, P.erreurs], [[], []]);
+
+    console.log('\n── 3253 · 5. un appareil resté sur l\'ANCIEN espace (elan-gestion-beta) rejoint celui de la bêta (v802) ──');
+    /* le Mac de Justin, 5 novembre 2026 : rattaché avant le renommage du 17 septembre, il écrivait seul dans `elan-gestion-beta` */
+    const M = await appareil({ elanB_sync_team: 'elan-gestion-beta', elanB_sync_on: '1' });
+    v('dès le chargement, avant toute connexion : il est passé sur opgestion-beta (et l\'ancien nom est noté)', await M.page.evaluate(() => [syncTeam(), localStorage.getItem('elanB_espace_migre')]), ['opgestion-beta', 'elan-gestion-beta']);
+    await connecter(M, 'justin-qzw', 'mdp-qzw-ouvert');
+    await M.page.evaluate(() => { db.clients = db.clients || []; db.clients.push({ id: 'cliMacqzw', nom: 'Client Mac Qzw', ville: 'Qzwville' }); save(); });
+    vrai('le client créé sur cet appareil paraît sur le téléphone', await attendre(() => P.page.evaluate(() => (db.clients || []).some(x => x.nom === 'Client Mac Qzw')), 30000));
+    vrai('… et il voit ce que les autres ont fait', await attendre(() => M.page.evaluate(() => (db.clients || []).some(x => x.nom === 'Client Kwazulu Qzw')), 30000));
+    v('⛔ il ne lit ni n\'écrit plus jamais l\'ancien espace', M.docs.filter(x => / elan-gestion-beta$/.test(x)), []);
+    v('aucune erreur JavaScript sur cet appareil', M.erreurs, []);
     v('rien n\'est parti hors du banc (ni teamop.fr réel, ni api.teamop.fr réel)', [...new Set(horsBanc)].filter(h => !/^(fonts\.(googleapis|gstatic)\.com|cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|unpkg\.com)$/.test(h)), []);
   } catch (e) { vrai('le banc s\'est déroulé sans exception', false, String(e && e.stack || e)); }
   await browser.close();
