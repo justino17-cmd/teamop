@@ -65,7 +65,7 @@
     boites_mail_fermees: 'La connexion des boîtes mail n\'est pas encore ouverte sur ce service.',
     boite_adresse_invalide: 'Cette adresse e-mail n\'est pas valide.',
     mot_de_passe_requis: 'Entre le mot de passe (d\'application) de cette boîte.',
-    identifiants_refuses: 'Le serveur de cette boîte a refusé l\'identifiant ou le mot de passe. (Gmail, iCloud et Yahoo demandent un mot de passe d\'application, pas celui du compte.)',
+    identifiants_refuses: 'Le serveur de cette boîte a refusé l\'identifiant ou le mot de passe. (Gmail, iCloud et Yahoo demandent un mot de passe d\'application, pas celui du compte).',
     serveur_introuvable: 'Ce serveur est introuvable : vérifie son nom, ou saisis les réglages du serveur de ta boîte.',
     serveur_injoignable: 'Le serveur de cette boîte ne répond pas. Réessaie dans un instant.',
     serveur_invalide: 'Ce nom de serveur n\'est pas valide.',
