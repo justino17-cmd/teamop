@@ -13,6 +13,24 @@ de ligne du tout.
 
 ---
 
+# 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
+
+Justin : « il faut publier ça » (la vitesse de la bêta 804, OP MESSAGES, D1 et D2).
+- **v802** = l'app.html de la bêta 804 (`ffb06c7a` : écran de démarrage, listes par pages, photos progressives, bancs 3290-3292) + l'en-tête
+  de preuve sur l'envoi des accès. Bêta 805. Serveur dans la même publication.
+- **D1 fermée** : `/api/espaces/lien` ne change plus d'état sur un `kh` faux. ⚠️ Contrepartie : un VRAI changement de clé n'est plus
+  détecté tout seul — le site sert l'ancien code jusqu'à ce que la Tour réinscrive l'entreprise (à arbitrer : une alerte par entreprise).
+- **D2 PAS ENCORE FERMÉE** : `/api/compte/identifiants` refuse une empreinte fausse, mais accepte l'appel SANS empreinte tant que la
+  version exigée est < 802 (la v801 en service n'en envoie pas). ⛔ Ne pas écrire « D2 fermée » avant : v802 publiée, la Tour sans
+  appareil sous 802, puis `min` = 802 (Firestore ET API). Compteur `identifiantsSansPreuve` sur `/api/mail/cles`. Réglage de secours
+  PROPRE : `"identifiantsPreuveExigee": false` (il ne rouvre plus la boîte mail). `tests/test-3295.js`.
+- **Dossiers « Réseau » de Toka Clim** (capture de Justin : « api.teamop.fr injoignable sur /api/doc/attendre (Fetch is aborted) » ×8,
+  « (Load failed) » ×7) : ce texte n'existe plus depuis la v800 — **leurs téléphones tournent encore sur une version d'avant la v800**.
+  Le serveur les range désormais en « Passager » (`monPassager`, `tests/test-3296.js`) ; le vrai remède est d'exiger la version dans la Tour.
+- **OP MESSAGES en public** : le bouton « Publier » de la Tour (Justin). **Boîtes mail** (boutons Google / Microsoft / Autre, carte dans
+  les Paramètres avec « Déconnecter ») : en cours sur `feat/boites-mail`, pour la bêta 806 — pas la production.
+- **Blog** : la file alterne les métiers ; demain (6/11) « logiciel plombier », couverture de Justin `contenu/blog/photos/logiciel-plombier.jpg`.
+
 # 5 NOVEMBRE 2026 (journée) — SKILL « AIDES PUBLIQUES » (SUBVENTO) POUR TROUVER DES FINANCEMENTS
 
 Justin : « cherche-moi un skill ou un agent qui pourrait trouver des fonds pour l'entreprise », puis « installe le skill ».
