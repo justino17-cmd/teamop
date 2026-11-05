@@ -478,7 +478,10 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     try {
       const r = oauth.demarrer({ fournisseur: d.fournisseur, uid: req.moi.id, email: typeof d.email === 'string' ? d.email.trim() : '' });
       /* ⛔ le cookie du NAVIGATEUR (A1) : HttpOnly (la page ne le lit pas), SameSite=Lax (il revient sur la navigation qui vient de Google — pas sur une requête d'un autre site), limité au chemin du retour, dix minutes */
-      res.cookie(NOM_COOKIE_OA, r.navigateur, { httpOnly: true, sameSite: 'lax', secure: !!(config.cookie && config.cookie.secure), path: '/api/boites-mail/oauth', maxAge: 10 * 60 * 1000 });
+      /* ⛔ `Path=/` (vérification de `gardien`) : en production le cookie de session s'appelle `__Host-opm`, donc celui-ci `__Host-opm-oa` — et le préfixe
+         `__Host-` IMPOSE `Secure`, aucun `Domain` et `Path=/`. Posé sur `/api/boites-mail/oauth`, le navigateur le rejetait : le retour arrivait sans
+         cookie et aucune connexion Google/Microsoft n'aboutissait. Le préfixe empêche aussi un sous-domaine frère (msg / msg-beta) de poser le sien. */
+      res.cookie(NOM_COOKIE_OA, r.navigateur, { httpOnly: true, sameSite: 'lax', secure: !!(config.cookie && config.cookie.secure), path: '/', maxAge: 10 * 60 * 1000 });
       res.json({ url: r.url });
     }
     catch (e) { repErr(res, e); }
@@ -494,7 +497,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     const ok = code === 'ok';
     const cible = (ok ? '/?boites=ok' : '/?boites=erreur&c=' + encodeURIComponent(code)) + '#courrier';
     const msg = MESSAGES_RETOUR[code] || MESSAGES_RETOUR.erreur;
-    res.clearCookie(NOM_COOKIE_OA, { path: '/api/boites-mail/oauth' });   // le cookie du navigateur a servi (ou ne servira plus) : il part
+    res.clearCookie(NOM_COOKIE_OA, { path: '/', httpOnly: true, sameSite: 'lax', secure: !!(config.cookie && config.cookie.secure) });   // le cookie du navigateur a servi (ou ne servira plus) : il part
     res.set({ 'Cache-Control': 'no-store', 'Content-Type': 'text/html; charset=utf-8' });
     res.status(200).send('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'
       + '<meta http-equiv="refresh" content="0;url=' + cible + '"><title>OP MESSAGES</title></head><body style="font-family:system-ui,-apple-system,sans-serif;padding:24px;line-height:1.5">'

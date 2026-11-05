@@ -102,7 +102,7 @@ function fauxFournisseur(nom, clients) {
     vrai('   ⛔ le secret de l\'application n\'est pas dans l\'adresse (elle passe par le navigateur)', !d1.r.j.url.includes(CLIENT.google.secret));
 
     const sc1 = d1.setCookie || '';
-    v('⛔ A1 : le départ pose un cookie DÉDIÉ au navigateur — HttpOnly, SameSite=Lax, limité au chemin du retour, dix minutes (jamais Strict : il doit revenir de chez Google)', [!!d1.setCookie, /HttpOnly/i.test(sc1), /SameSite=Lax/i.test(sc1), /Path=\/api\/boites-mail\/oauth(;|$)/i.test(sc1), /Max-Age=600/i.test(sc1)], [true, true, true, true, true]);
+    v('⛔ A1 : le départ pose un cookie DÉDIÉ au navigateur — HttpOnly, SameSite=Lax, Path=/ (le préfixe __Host- de la production l\'exige), dix minutes (jamais Strict : il doit revenir de chez Google)', [!!d1.setCookie, /HttpOnly/i.test(sc1), /SameSite=Lax/i.test(sc1), /Path=\/(;|$)/i.test(sc1), /Max-Age=600/i.test(sc1)], [true, true, true, true, true]);
     vrai('   et son secret n\'est NI dans la réponse, NI dans l\'adresse d\'autorisation (seule son empreinte reste au service)', !!d1.cookie && !d1.r.txt.includes(d1.cookie.split('=')[1]) && !d1.r.j.url.includes(d1.cookie.split('=')[1]));
     console.log('\n2. Le retour : la boîte va à la personne du `state`, DANS LE NAVIGATEUR qui est parti');
     const rr = await retour(d1);

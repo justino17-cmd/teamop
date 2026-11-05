@@ -125,7 +125,7 @@ function creer(o) {
     if (!code) throw erreur('code_absent', 'Connexion annulée.');
     let r;
     try {
-      r = await fetchFn(adresses(d.f).jeton, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      r = await fetchFn(adresses(d.f).jeton, { method: 'POST', signal: AbortSignal.timeout(15000), headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ grant_type: 'authorization_code', code: String(code).slice(0, 4000), redirect_uri: redirection,
           client_id: R.clientId, client_secret: R.clientSecret, code_verifier: a.verificateur }).toString() });
     } catch (e) { throw erreur('fournisseur_injoignable', F.nom + ' ne répond pas — réessaie dans un instant.', 502); }
@@ -151,7 +151,7 @@ function creer(o) {
     if (!boite.secret) throw erreur('a_reconnecter', 'Ta boîte mail doit être reconnectée.', 409);
     let r;
     try {
-      r = await fetchFn(adresses(boite.fournisseur).jeton, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      r = await fetchFn(adresses(boite.fournisseur).jeton, { method: 'POST', signal: AbortSignal.timeout(15000), headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: boite.secret, client_id: R.clientId, client_secret: R.clientSecret }).toString() });
     } catch (e) { throw erreur('fournisseur_injoignable', 'Le fournisseur de ta boîte mail ne répond pas — réessaie dans un instant.', 502); }
     let j = {}; try { j = await r.json(); } catch (e) {}
