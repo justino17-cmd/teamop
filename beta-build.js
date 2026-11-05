@@ -21,7 +21,7 @@ s = s.replace(/const APP_VERSION = '([0-9]+)'/, "const APP_VERSION = '$1-beta'")
    rattachement à la synchro, plus bas) change la bêta sans changer app.html : sans un numéro neuf, un appareil resté en 798-beta
    ne se mettrait jamais à jour (la bêta ne recharge que pour une version STRICTEMENT plus haute). Le plus grand des deux gagne :
    le jour où app.html dépasse ce nombre, il redevient la source, sans rien à toucher ici. */
-const BETA_NUMERO = 804;
+const BETA_NUMERO = 806;
 s = s.replace(/const APP_VERSION = '([0-9]+)-beta'/, (m, n) => "const APP_VERSION = '" + Math.max(parseInt(n, 10), BETA_NUMERO) + "-beta'");
 /* ⛔ UN APPAREIL NEUF QUI OUVRE LA BÊTA REJOINT LA SYNCHRO DE LA BÊTA (Justin, 4 novembre 2026 : « sur mon compte bêta je ne vois pas
    ce que j'ai fait sur mon PC sur les autres appareils, mon téléphone ou mon Mac »). La bêta ne rattachait un appareil à son espace

@@ -2112,6 +2112,12 @@ Deux règles :
 
 ## ⛔ RÈGLE DE TRAVAIL — tout le développement sur la BÊTA
 
+⛔⛔ **LA BÊTA DOIT MARCHER COMME LA VRAIE VERSION** — Justin, 5 novembre 2026 : « quand on fait un truc sur la bêta, il faut que tout
+fonctionne sur la bêta […] ça commence à me gaver de devoir faire des comptes publics pour tester avant les clients ». Une fonctionnalité
+livrée sur la bêta se joue de bout en bout SUR la bêta (vraies boîtes mail par le jeton d'accès, envois, documents) ; ce qu'elle ne peut
+pas y faire se DIT avant de la livrer, avec la raison. Et ce soir-là : « tout ce que tu fais sur la bêta, ça va sur la version finale »
+— pour ce lot (v802-v803), la publication suivait la bêta sur sa phrase.
+
 Posée par Justin le 11 septembre 2026, après une matinée où deux défauts sont remontés d'ELAN :
 **« tout le développement sur la bêta. Il ne faut pas que ça impacte ELAN, sinon ça va être
 compliqué. »** Ce n'est pas une préférence de confort : ELAN est une entreprise qui travaille,

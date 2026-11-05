@@ -8431,6 +8431,28 @@ html[data-theme="dark"] select{background-color:var(--bg1,#17213A)!important}
   </a>
 </div>
 
+<!-- ⛔ L'ÉCRAN DE DÉMARRAGE — LA PAGE N'EST PLUS BLANCHE PENDANT QU'ELLE ARRIVE (nuit du 5 novembre 2026, mesuré).
+     Le script de l'application (4 Mo) est EN LIGNE, à la fin de ce fichier : tant qu'il n'a pas fini d'arriver puis de
+     s'exécuter, rien n'est peint — `#login` et `#app-root` sont `display:none` dans le HTML. Mesuré sur un téléphone lent en
+     mauvaise 4G (processeur ×4, 1,6 Mbit/s, 400 ms d'aller-retour) : premier affichage à 9,2 s sur une première visite, 2,5 s
+     (×4) à 4,4 s (×6) à chaque ouverture depuis la copie du service worker, page blanche. Avec ce bloc, qui arrive dans les
+     premiers kilo-octets : 1,4 s. Il se retire SANS JavaScript, par le même mécanisme que `.login[style*="flex"] ~ #app-root`
+     plus haut : dès que l'application pose `display:flex` sur `#login` (connexion) ou sur `#app-root` (entrée), les deux seules
+     issues de `boot()`. Il vient APRÈS les deux dans le document, sinon le sélecteur frère ne le verrait pas. Le filet de 25 s
+     le retire si `boot()` n'aboutit jamais (une page blanche vaut mieux qu'un « chargement » éternel qui cache l'erreur).
+     Ne pas y mettre d'image du réseau autre que l'icône déjà rangée par le service worker, ni de script : il doit rester
+     peint avant tout le reste. -->
+<style>
+#demarrage{position:fixed;inset:0;z-index:190;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:var(--bg);color:var(--t1);font:700 15px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.14em;
+  animation:demarrageFiltre 0s linear 25s forwards}
+#demarrage img{width:76px;height:76px;border-radius:20px;object-fit:cover;display:block}
+#demarrage small{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--t3)}
+#login[style*="flex"] ~ #demarrage,#app-root[style*="flex"] ~ #demarrage{display:none}
+@keyframes demarrageFiltre{to{visibility:hidden}}
+</style>
+<div id="demarrage" aria-hidden="true"><img src="icons/icon-192.png" alt="" width="76" height="76"><span>OP&nbsp;GESTION</span><small>Chargement…</small></div>
+
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="overlay" id="overlay2" style="z-index:310"><div class="modal wide" id="modal2"></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -8804,7 +8826,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '801';
+const APP_VERSION = '803';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13780,15 +13802,33 @@ function photoMarquer(pid,data){ return pid?('piece:'+pid+(data?(':'+data):'')):
    résolution d'une photo de 180 Ko en 11 ms, identique à elle-même (245 783 octets reçus =
    attendus), la photo SANS identifiant laissée intacte à côté. Détail et banc reproductible :
    `scratchpad/sonde-pieces-navigateur.md`. */
-async function photosResoudre(liste){
+/* ⛔ DEUX À LA FOIS, ET CHAQUE PHOTO SE MONTRE DÈS QU'ELLE ARRIVE (nuit du 5 novembre 2026, mesuré). Avant : une à une, et l'écran ne se
+   redessinait qu'APRÈS la dernière — huit photos de 265 Ko en mauvaise 4G (400 ms d'aller-retour, 1,6 Mbit/s) : tuiles vides pendant
+   14,7 s, la première photo étant pourtant là à 1,8 s. Maintenant la première se montre à 1,8 s (`onUne(k)` : le rang de la photo qui
+   vient d'arriver), et le deuxième ouvrier chevauche l'aller-retour du premier. Pas plus de deux : au-delà, la bande passante se partage
+   et la première photo arriverait plus tard sans que le total gagne rien. ⛔ Le rang est revérifié AU RETOUR : une photo supprimée
+   pendant l'attente décale les suivantes, et l'écriture à l'ancien rang aurait posé le contenu d'une photo sur une autre. */
+async function photosResoudre(liste,onUne){
   if(!Array.isArray(liste)) return 0;
-  let n=0;
+  const aFaire=[];
   for(let k=0;k<liste.length;k++){
     const m=PH_MARQUE.exec(String(liste[k]||''));
     if(!m||m[2]) continue;                 // pas un marqueur, ou contenu déjà présent
-    const r=await pieceLire(m[1]);
-    if(r&&r.dataUrl){ liste[k]=photoMarquer(m[1],r.dataUrl); n++; }
+    aFaire.push([k,m[1]]);
   }
+  let n=0, suivant=0;
+  const ouvrier=async()=>{
+    while(suivant<aFaire.length){
+      const [k,pid]=aFaire[suivant++];
+      const r=await pieceLire(pid);
+      if(!(r&&r.dataUrl)) continue;
+      const m2=PH_MARQUE.exec(String(liste[k]||''));
+      if(!m2||m2[1]!==pid||m2[2]) continue;   // la liste a bougé pendant l'attente : ce rang n'est plus cette photo
+      liste[k]=photoMarquer(pid,r.dataUrl); n++;
+      if(onUne){ try{ onUne(k); }catch(_e){} }
+    }
+  };
+  await Promise.all([ouvrier(),ouvrier()]);
   return n;
 }
 /* ══ LA PHOTO D'UN PLAN D'APPÂTAGE EST UNE PIÈCE COMME LES AUTRES (v744) ═════════════════════
@@ -18812,6 +18852,7 @@ function rendreVueSure(view,remonter){
      écrit dans un `#content` que plus personne ne regarde. C'est le seul endroit qui écrit une vue :
      la garde est ICI, pas dans chacune des quarante. */
   if(!currentUser) return;
+  if(remonter) _listeLim={};   // une vraie navigation remet les longues listes à leur première page
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
   try{ const fr=fusionRangee(view), c=$('content'); if(fr&&c&&!c.querySelector('.fusion-rangee')) c.insertAdjacentHTML('afterbegin',fr); }catch(_e){}   // v780 : les écrans regroupés
@@ -19154,6 +19195,20 @@ function setHeader(title,sub,actions='',o){ title=t(title); $('page-title').text
       else { tb.style.display='none'; tb.removeAttribute('data-l'); } } }catch(e){}
   try{ document.body.classList.toggle('ctx', current!=='dashboard' && !!(title||actions)); }catch(e){} }
 function emptyState(ico,txt,btn,fn){ txt=boxTxt(txt); if(!fn) btn=boxTxt(btn); return `<div class="empty"><div class="e-ico">${ico}</div><p>${txt}</p>${btn?(fn?`<button class="btn" onclick="${fn}">${btn}</button>`:`<p style="color:var(--t3);font-size:13px;max-width:360px;margin:4px auto 0;line-height:1.5">${btn}</p>`):''}</div>`; }
+/* ⛔ LES LONGUES LISTES S'AFFICHENT PAR PAGES (nuit du 5 novembre 2026, mesuré processeur ×4, base de 3,5 Mo : 2 500 interventions,
+   800 clients, 500 factures, 300 devis). Chaque ligne coûte du JavaScript, 6 à 19 éléments à styler et mettre en page, puis le
+   remplacement des émojis par des icônes (`icones()`) : Factures 3,0 s, Clients 1,24 s, Devis 1,28 s, Interventions en liste 7,0 s
+   — l'écran se figeait avant de montrer sa première ligne. On en pose 60, et un bouton ajoute les suivantes (100 par 100).
+   ⛔ Ce qui reste caché ne se perd jamais de vue : le compte total est dit dans le bouton, les totaux (chiffres d'affaires,
+   « à encaisser », pastilles) se calculent sur TOUT, la recherche et les filtres s'appliquent AVANT la coupe, et une vraie
+   navigation (`go`) remet la page à 60. Une liste de moins de 60 lignes ne change pas d'un pixel. */
+const LISTE_PAGE=60, LISTE_PAS=100;
+let _listeLim={}; const LISTE_REND={};
+function listeLim(cle){ return _listeLim[cle]||LISTE_PAGE; }
+function listePlus(cle){ _listeLim[cle]=listeLim(cle)+LISTE_PAS; const f=LISTE_REND[cle]; if(f) f(); }
+/* Le bouton « Afficher la suite » : `total` lignes existent, `aff` sont dessinées. Vide quand tout est là. */
+function listeSuite(cle,total,aff,rend){ if(!(total>aff)) return ''; LISTE_REND[cle]=rend; const reste=total-aff;
+  return `<div class="liste-suite" style="text-align:center;margin:14px 0 8px"><button type="button" class="btn ghost" onclick="listePlus('${cle}')">Afficher ${Math.min(LISTE_PAS,reste)} de plus <span style="opacity:.7">(${reste} restant${reste>1?'s':''})</span></button></div>`; }
 function tableCard(headers, rows){
   return `<div class="card"><div class="tbl-wrap"><table class="tbl list-tbl"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
@@ -24774,6 +24829,9 @@ views.interventions=function(){
     else if(intPeriod==='semaine'){ const days=weekDays(todayISO()); list=list.filter(i=>days.includes(i.date)); }
     else if(intPeriod==='mois'){ const m=todayISO().slice(0,7); list=list.filter(i=>(i.date||'').indexOf(m)===0); }
     list.sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||'')));
+    /* ⛔ on ne coupe QUE l'historique (terminées, annulées) : une intervention à faire ou en cours ne se cache jamais derrière « Afficher la suite » */
+    const _totL=list.length, _limI=listeLim('int'); let _nHist=0;
+    list=list.filter(i=>(i.statut!=='terminee'&&i.statut!=='annulee')||(_nHist++)<_limI);
     // Groupes repliables : par jour (façon Organilog, À planifier en tête) ou par statut
     let body='';
     if(intHistF==='supprimees'){
@@ -24802,7 +24860,7 @@ views.interventions=function(){
       ${intHistF==='supprimees'?'':`<div class="filters" style="margin-top:6px">${Object.keys(labels).map(k=>`<div class="chip ${intFilter===k?'active':''}" onclick="intFilter='${k}';views.interventions()">${labels[k]} (${counts[k]})</div>`).join('')}</div>`}
       <div class="filters" style="margin-top:6px"><div class="chip ${!intTechF?'active':''}" onclick="intTechF='';views.interventions()">Tous</div>${db.techniciens.map(t=>`<div class="chip ${intTechF===t.id?'active':''}" onclick="intTechF='${t.id}';views.interventions()">${esc(t.nom)}</div>`).join('')}</div>
       <div class="filters" style="margin-top:6px">${[['tout','Toute période'],['jour','Aujourd’hui'],['semaine','Cette semaine'],['mois','Ce mois']].map(([k,l])=>`<div class="chip ${intPeriod===k?'active':''}" onclick="intPeriod='${k}';views.interventions()">${l}</div>`).join('')}<span style="width:10px"></span>${[['jour','Grouper : jour'],['statut','Grouper : statut']].map(([k,l])=>`<div class="chip ${intGroup===k?'active':''}" onclick="intGroup='${k}';views.interventions()">${l}</div>`).join('')}</div>
-      ${intHistF==='supprimees'?body:(list.length? `<div class="int-liste">${body}</div>` : `<div class="card" style="margin-top:12px">${emptyState('🧰',q?'Aucun résultat pour cette recherche.':'Aucune intervention dans ces filtres.','Nouvelle','formIntervention()')}</div>`)}`;
+      ${intHistF==='supprimees'?body:(list.length? `<div class="int-liste">${body}</div>${listeSuite('int',_totL,list.length,()=>views.interventions())}` : `<div class="card" style="margin-top:12px">${emptyState('🧰',q?'Aucun résultat pour cette recherche.':'Aucune intervention dans ces filtres.','Nouvelle','formIntervention()')}</div>`)}`;
     if(arguments[0]===true){ const si=$('int-search'); if(si){ si.focus(); try{ si.setSelectionRange(si.value.length,si.value.length); }catch(e){} } }
     return;
   }
@@ -27478,12 +27536,20 @@ function fic(n,sz=18){ const P={
    et il ne faut pas en ajouter : une photo recopiée dans la base repartirait dans le document
    de l'équipe à la première écriture, ce qui déferait tout le chantier en silence. */
 let _phEnCours=new Set();
+/* Une photo vient d'arriver : on pose son contenu sur SA tuile (repérée par son rang, `data-ph-ix`), sans redessiner la fiche — la fiche entière
+   se redessine une fois, à la fin, comme avant. Rien n'est écrit dans `db`. */
+function intPhotoMontrer(grille,id,champ,k){
+  try{ const g=document.getElementById(grille); if(!g||window._curIntId!==id) return;
+    const i=db.interventions.find(x=>x.id===id); const ph=i&&i[champ]&&i[champ][k]; if(!ph) return;
+    const src=photoSrc(ph); const im=g.querySelector('img[data-ph-ix="'+k+'"]'); if(im&&src) im.src=src;
+  }catch(_e){}
+}
 function intPhotosCombler(id){
   if(_phEnCours.has(id)) return;
   const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.photos)) return;
   if(!i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })) return;
   _phEnCours.add(id);
-  photosResoudre(i.photos).then(n=>{ _phEnCours.delete(id);
+  photosResoudre(i.photos,k=>intPhotoMontrer('int-detail-photos',id,'photos',k)).then(n=>{ _phEnCours.delete(id);
     if(n&&document.getElementById('int-detail-photos')) renderIntDetail(id); })
    .catch(()=>{ _phEnCours.delete(id); });
 }
@@ -27494,7 +27560,7 @@ function intPlansCombler(id){
   const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.plans)) return;
   if(!i.plans.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })) return;
   _phEnCours.add(k);
-  photosResoudre(i.plans).then(n=>{ _phEnCours.delete(k);
+  photosResoudre(i.plans,r=>intPhotoMontrer('int-detail-plans',id,'plans',r)).then(n=>{ _phEnCours.delete(k);
     if(n&&document.getElementById('int-detail-plans')) renderIntDetail(id); })
    .catch(()=>{ _phEnCours.delete(k); });
 }
@@ -27692,7 +27758,7 @@ function renderIntDetail(id){
       body=`${sub}
       <div id="int-detail-photos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
         ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="photoPlein(this,'Photo')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
+        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" data-ph-ix="${ix}" onclick="photoPlein(this,'Photo')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
       </div>
       <input type="file" id="int-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="intPhotoAdd(event,'${id}')">
       <input type="file" id="int-photo-file" accept="image/*" multiple style="display:none" onchange="intPhotoAdd(event,'${id}')">
@@ -27727,7 +27793,7 @@ function renderIntDetail(id){
     intPlansCombler(id);   // v744 : les photos de plan qui vivent sur le serveur arrivent après coup
     body=`<div id="int-detail-plans" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px">
       ${intEdit?`<div onclick="document.getElementById('int-plan-file').click()" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un plan</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un plan')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="photoPlein(this,'Plan')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
+      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" data-ph-ix="${ix}" onclick="photoPlein(this,'Plan')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
     </div>
     <input type="file" id="int-plan-file" accept="image/*" style="display:none" onchange="intPlanAdd(event,'${id}')">
     ${estMetier3D()?`<p style="color:var(--t3);font-size:12.5px">Plans du site : postes d'appâtage, zones traitées, accès… (photo ou capture du plan)</p>
@@ -28577,7 +28643,9 @@ function renderClientsList(){ const el=$('cli-liste'); if(!el) return;
   if(q) _clis=_clis.filter(c=>norm([c.nom,c.adresse,c.ville,c.codePostal,c.contact,c.email,c.tel].filter(Boolean).join(' ')).includes(q)
     || (qTel.length>=3&&String(c.tel||'').replace(/\D/g,'').includes(qTel)));   // le téléphone se compare en chiffres
   _clis=_clis.slice().sort((a,b)=>String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base'}));
-  const rows=_clis.map(c=>{ const n=db.interventions.filter(i=>i.clientId===c.id).length; const pro=cliIsPro(c);
+  const limC=listeLim('cli'), vusC=_clis.slice(0,limC);
+  const nParCli=new Map(); db.interventions.forEach(i=>nParCli.set(i.clientId,(nParCli.get(i.clientId)||0)+1));   // un passage, pas un filtre de toute la base PAR client
+  const rows=vusC.map(c=>{ const n=nParCli.get(c.id)||0; const pro=cliIsPro(c);
     const ou=(c.ville||'').trim()||(c.adresse||'').trim();
     const meta=[pro?'':'Particulier', esc(ou), esc(c.tel||'')].filter(Boolean).join(' · ');
     const metaT=[pro?'':'Particulier', ou, c.tel||''].filter(Boolean).join(' · ');
@@ -28590,7 +28658,7 @@ function renderClientsList(){ const el=$('cli-liste'); if(!el) return;
       </div>
       <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>`;}).join('');
-  el.innerHTML=_clis.length? `<div class="tf-groupe">${rows}</div>`
+  el.innerHTML=_clis.length? `<div class="tf-groupe">${rows}</div>${listeSuite('cli',_clis.length,vusC.length,()=>renderClientsList())}`
     : `<div class="card">${(_tous.length&&(cliTagFilter||q||cliTypeF!=='tous'))
         ? emptyState('🔎','Aucun client ne correspond.','Tout afficher',"cliTagFilter='';cliTypeF='tous';cliSearch='';views.clients()")
         : emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`;
@@ -34211,10 +34279,11 @@ function bonMoisBascule(bid,mk){ _bonMoisOuvert[bid]=mk; renderBonsList(); }
    Gmail. On ne demande JAMAIS ses identifiants à quelqu'un parce qu'un serveur a répondu 403.
    `!r.ok` autant que le catch : un 403 en text/plain ne jette qu'au r.json(), un 403 en JSON
    ne jetterait pas du tout — les deux doivent mener au même endroit. */
-let mailTab='recu'; let _mailboxes=null; let _mailReplies=null; let mailSearch=''; let mailSel=null; let mailBoxFiltre='';
+let mailTab='recu'; let _mailboxes=null; let _mailboxesCode=0;   /* pourquoi la liste est inconnue (null) : le code HTTP du refus, 0 = le serveur n'a pas répondu */ let _mailReplies=null; let mailSearch=''; let mailSel=null; let mailBoxFiltre='';
 async function loadMailboxes(){ try{ const r=await fetch(PUSH_API+'/api/mailboxes?teamId='+encodeURIComponent(syncTeam()),{headers:await enteteEquipe()});
+  _mailboxesCode=r.status;
   if(!r.ok){ _mailboxes=null; return _mailboxes; }
-  const d=await r.json(); _mailboxes=Array.isArray(d.mailboxes)?d.mailboxes:null; }catch(e){ _mailboxes=null; } return _mailboxes; }
+  const d=await r.json(); _mailboxes=Array.isArray(d.mailboxes)?d.mailboxes:null; if(!_mailboxes) _mailboxesCode=-1; }catch(e){ _mailboxes=null; _mailboxesCode=0; } return _mailboxes; }
 /* _mailChargeEnCours empêche la boucle décrite plus bas, à l'endroit où la Réception se
    recharge. Il vit ici pour être lisible à côté de la fonction qu'il garde. */
 let _mailChargeEnCours=false;
@@ -34330,7 +34399,7 @@ function courrierSource(){
        Google ni Microsoft). L'autorisation n'est déclarée que pour les fournisseurs que le serveur dit configurés (`/health` → `oauth`,
        `oauthDispo`) : un fournisseur fermé garde le mot de passe d'application (Google) ou dit qu'il n'est pas encore ouvert (Microsoft). */
     async capacites(){ const o=await oauthDispo(), via=Object.keys(OAUTH_NOMS).filter(k=>o[k]).map(k=>OAUTH_NOMS[k]);
-      return {oauth:via.length>0,oauthVia:via,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
+      return {oauth:via.length>0,oauthVia:via,boutonsFournisseurs:true,gererBoites:true,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
       dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024},traduire:!BETA_ESSAI}; },   /* la bêta : pas de traduction — le texte d'un vrai mail partirait chez Anthropic, flux non couvert (`sous-traitance.html`) ; le serveur la refuse aussi */
     /* « Traduire en français » (20 octobre 2026) : le texte d'UN mail, au geste, traduit par le serveur (`/api/mail/traduire`, gardé par la clé de l'entreprise) */
     async traduire(texte){
@@ -34370,6 +34439,8 @@ function courrierSource(){
       if(!r.ok||!d||!d.ok) throw new Error((d&&d.error)||'Connexion refusée (HTTP '+r.status+')');
       _courrierRep=null;
       return {id:d.id,email:d.email||email,nom:p.nom,cote:'pro',importEnCours:true}; },
+    /* v803 — le lien « Gérer les boîtes » de la liste des comptes : la gestion est celle de l'application (liste, déconnexion, reconnexion), la MÊME que la carte « Boîtes mail » des Paramètres */
+    async gererBoites(){ mailBoxesManage(); },
     async retirerBoite(id){
       const r=await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),id})});
       if(!r.ok) throw await refus(r,'Retrait refusé'); _courrierRep=null; }
@@ -34642,12 +34713,68 @@ function mailFromOptions(){ const o=[];
   (_mailboxes||[]).forEach(b=>o.push({kind:'mb',id:b.id,email:b.email}));
   if(!o.length||(db.mailBoxes||[]).length) o.push({kind:'plat',id:'',email:''});
   return o; }
-async function mailBoxesManage(){ await loadMailboxes();
-  openModal(`<div class="modal-head"><h3>📬 Mes boîtes mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    ${(_mailboxes||[]).map(b=>`<div class="pl-row"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(b.email)}</div><div class="pl-meta">${b.etat==='a_reconnecter'?'<span style="color:var(--org);font-weight:700">⚠️ À reconnecter — l’autorisation a expiré ou a été retirée, rien ne part par elle</span>':(OAUTH_NOMS[b.type]?'connectée avec '+OAUTH_NOMS[b.type]+' · ':'')+'envoi + réception + historique dans l\'app'}</div></div>${b.etat==='a_reconnecter'?`<button class="btn sm" style="margin-right:6px" onclick="${OAUTH_NOMS[b.type]?`mailOauthDemarrer('${esc(b.type)}')`:`mailConnect('${esc(b.email)}')`}">Reconnecter</button>`:''}<button class="btn danger sm" onclick="mailDisconnect('${b.id}')">Déconnecter</button></div>`).join('')}
-    ${_mailboxes===null?'<div style="color:var(--t3);text-align:center;padding:16px">Liste indisponible — le serveur n\'a pas répondu.</div>':(!_mailboxes.length?'<div style="color:var(--t3);text-align:center;padding:16px">Aucune boîte connectée.</div>':'')}
-    <button class="btn block" style="margin-top:12px" onclick="mailConnect()">＋ Connecter une boîte</button>`);
-}
+/* ═══ v803 — GÉRER LES BOÎTES MAIL (Justin, 5 novembre 2026 : « un système de déconnexion des boîtes mail, parce que là, je sais pas comment on fait ») ═══
+   UNE gestion, DEUX portes : la carte « Boîtes mail » des Paramètres et le lien « Gérer les boîtes » du Courrier (`gererBoites`) peignent le MÊME `boitesHtml`.
+   ⛔ Les TROIS états de `_mailboxes` restent trois : une liste (ses lignes), une liste vide (« Aucune boîte reliée »), `null` (« impossible de vérifier » + Réessayer,
+   JAMAIS « aucune boîte » — on n'invite pas à reconnecter une boîte qui marche). ⛔ `fetch` ne jette pas sur un refus : `boiteDeconnecter` lit `r.ok` (403, 5xx) et DIT l'échec ;
+   le serveur répond `{ok:true}` même pour une boîte inconnue, donc la liste est RELUE avant de dire « déconnectée ».
+   Qui peut : l'administrateur, comme pour connecter (Paramètres → « E-mails à tes clients » ne montre ces boutons qu'à lui) ; les autres voient la liste, sans gestes.
+   Déconnecter ne touche PAS aux mails (ils restent dans la messagerie) : le serveur retire la liaison, et l'autorisation Google/Microsoft avec (`boiteOauth.oublier`). */
+function boitesPeutGerer(){ return !!(currentUser&&currentUser.role==='admin'); }
+function boitesRaison(){ if(_mailboxesCode===403){ let m=''; try{ m=courrierRefusBeta(); }catch(e){} return m||'accès refusé par le serveur'; }
+  return _mailboxesCode>0?'le serveur a répondu '+_mailboxesCode:'le serveur n’a pas répondu'; }
+function boitesAjoutHtml(d){
+  const bt='min-height:48px;justify-content:center;margin-bottom:8px;width:100%;box-sizing:border-box;white-space:normal;text-align:center;line-height:1.3';
+  const un=(k,lib,sous)=>d[k]?`<button class="btn block" style="${bt}" onclick="mailOauthDemarrer('${k}')">${lib}</button>`
+    :`<button class="btn block" style="${bt}" disabled aria-disabled="true">${lib} — pas encore disponible</button>`;
+  const why=(d.google?'':'La connexion Google n’est pas disponible pour l’instant : pour Gmail, passe par « Autre messagerie » avec un mot de passe d’application Google. ')
+    +(d.microsoft?'':'La connexion Microsoft n’est pas disponible pour l’instant, et Microsoft refuse les mots de passe : Outlook et Hotmail ne peuvent pas être connectés tant qu’elle ne l’est pas.');
+  return `<div style="border-top:1px solid var(--brd);padding-top:12px;margin-top:2px"><div class="dt-lbl" style="margin-bottom:8px">Connecter une boîte</div>
+    ${un('google','Se connecter avec Google')}${un('microsoft','Se connecter avec Microsoft')}
+    <button class="btn block ghost" style="${bt};flex-direction:column;gap:2px;line-height:1.2" onclick="mailConnect()"><span>Autre messagerie</span><small style="display:block;font-weight:400;opacity:.8;font-size:12px">iCloud, Orange, Free, OVH…</small></button>
+    ${why?`<p style="font-size:12px;color:var(--t3);line-height:1.5;margin:0 0 6px">${why}</p>`:''}
+    <p style="font-size:12px;color:var(--t3);line-height:1.5;margin:0">iCloud : crée un « mot de passe pour app » sur account.apple.com (Connexion et sécurité → Mots de passe pour app) — ton mot de passe Apple habituel ne fonctionne pas.</p></div>`; }
+function boitesHtml(d){
+  const L=_mailboxes, gerer=boitesPeutGerer(), bt='min-height:44px';
+  if(L===null) return `<div role="alert" style="padding:12px 14px;border-radius:12px;border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);font-size:13px;line-height:1.55"><b style="color:var(--org)">Impossible de vérifier les boîtes pour l’instant</b><br>${esc(boitesRaison())}. Ce n’est pas « aucune boîte » : rien n’a été retiré.</div><button class="btn" style="${bt};margin-top:10px" onclick="boitesToutPeindre(true)">Réessayer</button>`;
+  const lignes=L.map(b=>{ const id=esc(String(b.id)), rec=b.etat==='a_reconnecter', f=OAUTH_NOMS[b.type]||'';
+    return `<div class="bx-ligne" data-bx="${id}" style="padding:12px 0;border-top:1px solid var(--brd)"><div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:20px;line-height:1.2" aria-hidden="true">📧</span><div style="min-width:0;flex:1"><div style="font-weight:700;overflow-wrap:anywhere">${esc(b.email)}</div>
+      <div style="font-size:12.5px;margin-top:2px;line-height:1.5;color:var(--t3)">${rec?'<b style="color:var(--org)">À reconnecter</b> — l’autorisation a expiré ou a été retirée, rien ne part par cette boîte':'<b style="color:var(--green)">Connectée</b>'}${f?' · avec '+f:' · adresse et mot de passe'}</div></div></div>
+      ${gerer?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${rec?`<button class="btn" style="${bt}" onclick="boiteReconnecter('${id}')">Reconnecter</button>`:''}<button class="btn danger" style="${bt}" onclick="boiteDeconnecter('${id}')">Déconnecter</button></div>`:''}</div>`; }).join('');
+  return (L.length?`<div>${lignes}</div>`:`<div style="padding:6px 0 14px;color:var(--t2);font-size:13.5px">Aucune boîte reliée à OP GESTION.</div>`)
+    +(gerer?boitesAjoutHtml(d):'<p style="font-size:12.5px;color:var(--t3);line-height:1.5;margin:10px 0 0">Seul l’administrateur connecte ou déconnecte une boîte ici.</p>'); }
+async function boitesPeindre(el,relire){ if(!el) return; const mon=(el._bx=(el._bx||0)+1);
+  if(relire){ el.setAttribute('aria-busy','true'); await loadMailboxes(); }
+  const d=_mailboxes!==null&&boitesPeutGerer()?await oauthDispo():{};
+  if(mon!==el._bx||!document.body.contains(el)) return;
+  el.removeAttribute('aria-busy'); el.innerHTML=boitesHtml(d); }
+async function boitesToutPeindre(relire){ const zs=[...document.querySelectorAll('.bx-zone')];
+  if(relire){ zs.forEach(z=>z.setAttribute('aria-busy','true')); await loadMailboxes(); }
+  zs.forEach(z=>boitesPeindre(z,false)); }
+/* Le Courrier ouvert se relit : une boîte retirée (ou reconnectée) doit disparaître (paraître) de sa liste sans qu'on le rouvre. */
+function courrierRelire(){ _courrierRep=null; if(current==='boiteMail'&&_courrierInst){ try{ _courrierInst.rafraichir(); }catch(e){} } }
+let _boiteOcc=false;
+async function boiteDeconnecter(id){ if(_boiteOcc||!boitesPeutGerer()) return;
+  const b=(_mailboxes||[]).find(x=>String(x.id)===String(id)), adr=b?b.email:'cette boîte';
+  if(!confirm('Déconnecter '+adr+' d’OP GESTION ?\n\nTes mails restent dans ta messagerie : seule la liaison avec OP GESTION est retirée. Les envois ne partiront plus de cette adresse.')) return;
+  _boiteOcc=true; document.querySelectorAll('.bx-zone button').forEach(x=>{ x.disabled=true; });
+  let msg='';
+  try{ const r=await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),id})});
+    let d=null; try{ d=await r.json(); }catch(e){}
+    if(!r.ok) msg=(r.status===403&&courrierRefusBeta())||(d&&d.error)||('le serveur a répondu '+r.status);
+    else if(!d||d.ok!==true) msg='réponse du serveur illisible'; }
+  catch(e){ msg='serveur injoignable'; }
+  await loadMailboxes(); _boiteOcc=false; courrierRelire(); await boitesToutPeindre(false);
+  if(msg){ toast('⚠️ '+adr+' n’a pas été déconnectée : '+msg); return; }
+  if(_mailboxes!==null&&_mailboxes.some(x=>String(x.id)===String(id))){ toast('⚠️ '+adr+' est toujours connectée — réessaie dans un instant'); return; }
+  toast('Boîte déconnectée : '+adr+' — tes mails restent dans ta messagerie'); try{ envoiBoiteCarteMaj(); }catch(e){} }
+function boiteReconnecter(id){ if(!boitesPeutGerer()) return; const b=(_mailboxes||[]).find(x=>String(x.id)===String(id)); if(!b) return;
+  if(OAUTH_NOMS[b.type]) mailOauthDemarrer(b.type); else mailConnect(b.email); }
+async function mailBoxesManage(){
+  openModal(`<div class="modal-head"><h3>📬 Boîtes mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--t2);font-size:13px;line-height:1.55;margin-bottom:10px">Les boîtes reliées à OP GESTION. Déconnecter une boîte retire seulement la liaison : tes mails restent dans ta messagerie.</p>
+    <div class="bx-zone" id="bx-modal" style="color:var(--t3)">Vérification…</div>`);
+  boitesPeindre($('bx-modal'),true); }
 /* v798 — « SE CONNECTER AVEC GOOGLE » (4 novembre 2026, Justin : « fais tout avant la mise à jour »). Le serveur (`/api/mailbox/oauth/*`,
    `server/OAUTH-BOITES.md`) ouvre l'autorisation chez le fournisseur ; la boîte revient connectée sans qu'aucun mot de passe passe par nous.
    ⛔ La fenêtre s'ouvre DANS le geste, avant tout `await` — ouverte après l'aller-retour au serveur, Safari la bloque —, vide, puis reçoit
@@ -34729,6 +34856,7 @@ async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
   toast('✅ Boîte mail connectée — tes envois partent maintenant de ton adresse');
   if(document.querySelector('#overlay.open #mb-email, #overlay.open #boite-etape')) closeModal();   // l'étape d'envoi fermée : l'envoi reprend
   try{ envoiBoiteCarteMaj(); }catch(e){}
+  try{ boitesToutPeindre(false); courrierRelire(); }catch(e){}
   if(current==='boiteMail'){ _mailReplies=null; mailSel=null; views.boiteMail(); } }
 /* La fin d'une connexion lancée par le Courrier : la boîte arrivée (l'adresse demandée d'abord, sinon celle qui n'était pas là, sinon
    celle qui a changé d'état), ou la raison pour laquelle il n'y en a pas — jamais « connectée » sur la seule fermeture de la fenêtre. */
@@ -34755,7 +34883,7 @@ function mailConnect(pre){
       ${ligne('✅','Orange · Free · SFR · La Poste','mot de passe habituel')}
       ${ligne('✅','Gmail','« Se connecter avec Google », ou mot de passe d\'application')}
       ${ligne('✅','Yahoo','mot de passe d\'application (guidé)')}
-      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;font-size:12.5px"><span style="flex-shrink:0">⏳</span><b style="flex-shrink:0">Hotmail / Outlook</b><span style="color:var(--t3);text-align:right;flex:1">bientôt — connexion officielle Microsoft en cours de demande</span></div>
+      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;font-size:12.5px"><span style="flex-shrink:0">${_oauthDispo&&_oauthDispo.microsoft?'✅':'⏳'}</span><b style="flex-shrink:0">Hotmail / Outlook</b><span style="color:var(--t3);text-align:right;flex:1">${_oauthDispo&&_oauthDispo.microsoft?'« Se connecter avec Microsoft »':'bientôt — connexion officielle Microsoft en cours de demande'}</span></div>
     </div>
     <div class="field"><label>Adresse e-mail</label><input id="mb-email" type="email" placeholder="toi@entreprise.fr" oninput="mailConnHelp()"></div>
     <div id="mb-help"></div>
@@ -34838,10 +34966,7 @@ async function mailDoConnect(){ const email=(($('mb-email')||{}).value||'').trim
         <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Fermer</button><button class="btn" onclick="mailConnect('${esc(email)}')">↩ Réessayer</button></div>`); }
   }catch(e){ if(btn){ btn.textContent='Connecter et vérifier'; btn.disabled=false; } toast('Serveur injoignable'); }
 }
-async function mailDisconnect(id){ if(!confirm('Déconnecter cette boîte mail de l\'application ?')) return;
-  try{ await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),id})}); }catch(e){}
-  await loadMailboxes(); mailBoxesManage(); if(current==='boiteMail') setTimeout(()=>views.boiteMail(),100);
-}
+async function mailDisconnect(id){ return boiteDeconnecter(id); }   /* v803 : le seul chemin de retrait (lit `r.ok`, relit la liste) */
 /* Choisir l'adresse d'envoi puis exécuter cb(option) — {kind:'mb'|'plat'} */
 let _mailPick=null; let _mailPickList=null;
 function mailChoisirBoite(titre,cb){
@@ -38416,7 +38541,7 @@ function lienConnexionEntreprise(){ return lienLisible()||'https://teamop.fr/con
 async function identifiantsParMail(u,pwd){
   const to=(u.email||'').trim(); if(!to) return {sans:true};
   try{
-    const r=await fetch(PUSH_API+'/api/compte/identifiants',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch(PUSH_API+'/api/compte/identifiants',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),
       body:JSON.stringify({teamId:syncTeam(),to,prenom:u.prenom||'',entreprise:entrepriseNom(),login:u.login,mdp:pwd,lien:lienConnexionEntreprise(),   /* jamais teamopLienActuel() : il porte « k » (voir lienSansSecret) */par:currentUser?fullName(currentUser):''})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok) return {err:(j&&j.error)||('erreur '+r.status)};
@@ -39471,9 +39596,13 @@ views.parametres=function(){
     </div>`; })():''}
     ${(()=>{ const bx=db.mailBoxes||[]; const asg=db.mailAssign||{}; const E=db.entreprise||{}; const adm=currentUser.role==='admin';
       setTimeout(envoiBoiteCarteMaj,0);   // l'état de la boîte connectée se lit au serveur : la carte se dessine, puis se complète
+      setTimeout(()=>boitesPeindre(document.getElementById('bx-carte'),true),0);   // v803 : la carte « Boîtes mail » (liste, déconnexion) se complète de même
       /* ⛔ v796 — plus de « mode simple » : tout part de la boîte de l'entreprise (srvMail), rien par TEAM OP. L'adresse de
          l'entreprise (celle de ses documents) et sa boîte connectée sont dans la MÊME rubrique. */
-      return `<div class="card" id="envoi-boite-carte"><div class="card-head"><h3>✉️ E-mails à tes clients</h3></div>
+      return `<div class="card" id="boites-carte"><div class="card-head"><h3>📬 Boîtes mail</h3></div>
+      <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:10px">Les boîtes reliées à OP GESTION : celles que tu lis et d’où tu envoies, dans la Boîte mail. Déconnecter une boîte retire seulement la liaison — tes mails restent dans ta messagerie.</p>
+      <div class="bx-zone" id="bx-carte" style="color:var(--t3)">Vérification…</div></div>
+      <div class="card" id="envoi-boite-carte"><div class="card-head"><h3>✉️ E-mails à tes clients</h3></div>
       <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Devis, factures, rapports, rappels de RDV, avis de passage, bons de commande : tout part de <b>la boîte mail de ton entreprise</b> si elle est connectée. Sinon OP GESTION les envoie <b>à ton nom</b>, et tes clients répondent à <b>l’adresse e-mail de ton entreprise</b> (obligatoire). TEAM OP n’en garde aucune copie.</p>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">Adresse e-mail de l'entreprise</span><div class="frow-val"><input id="ms-email" type="email" placeholder="contact@monentreprise.fr" value="${esc(E.email||(db.mailReply||'').trim())}" ${adm?'':'disabled'}></div></div>
@@ -40664,7 +40793,8 @@ function docListView(kind,xyloOnly){
   /* v738 : un bouton qui mène à un refus ne se montre pas — chacun lit la case de son geste */
   const vMod=canCat('ventes','modifier');
   setHeader(titre, `${list.length} ${cfg.un}(s) · ${eur(total)} TTC`, canCat('ventes','ajouter')?headBtn:'');
-  const rows=list.map(d=>{ const t=docTot(d);
+  const cleL='doc-'+kind+(xyloOnly?'x':''), limL=listeLim(cleL), vus=list.slice(0,limL);
+  const rows=vus.map(d=>{ const t=docTot(d);
     return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShort(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}${docEnvoiLib(d)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;white-space:nowrap">${esc(docEnvoiLib(d))}</div>`:''}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap">
       ${vMod?`<button class="btn sm" onclick="envoiDoc('${kind}','${d.id}','mail')" title="Envoyer par email">📧</button>
@@ -40680,7 +40810,7 @@ function docListView(kind,xyloOnly){
   const bandeau=dbl.length?`<div class="card" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);padding:12px 14px;margin-bottom:12px">
     <div style="font-weight:800;color:var(--org);font-size:13.5px">⚠️ ${dbl.length} numéro${dbl.length>1?'s':''} en double</div>
     <div style="font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.55"><span class="mono">${dbl.slice(0,6).map(esc).join(', ')}</span>${dbl.length>6?' et '+(dbl.length-6)+' autre(s)':''} — deux appareils ont émis le même numéro sans s'être vus. Ouvre le plus récent (✎) et donne-lui le numéro suivant : la numérotation doit rester continue.</div></div>`:'';
-  $('content').innerHTML=bandeau+(list.length? tableCard(['N°','Client','Date','TTC','Statut',''],rows):empty);
+  $('content').innerHTML=bandeau+(list.length? tableCard(['N°','Client','Date','TTC','Statut',''],rows)+listeSuite(cleL,list.length,vus.length,()=>docListView(kind,xyloOnly)):empty);
 }
 views.devis=()=>docListView('devis',false);
 views.devisXylo=()=>docListView('devis',true);
@@ -40886,7 +41016,7 @@ views.factures=function(){
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Le circuit : <b>Générer</b> → la facture arrive <b>En attente</b> → <b>Aperçu</b> pour la vérifier → <b>📧 Envoyer</b> au client → <b>Payée</b> une fois réglée${isFinanceMgr()?' → <b>Valider</b> (compta)':''}.</div>
     <div class="filters" style="margin:4px 0 12px;flex-wrap:wrap">${filters.map(([k,l,n])=>`<div class="chip ${factFilter===k?'active':''}" onclick="factFilter='${k}';views.factures()">${l}${n?` <span class="tag" style="font-size:10px">${n}</span>`:''}</div>`).join('')}</div>
     <div class="card"><div class="card-head"><h3>📋 ${filters.find(f=>f[0]===factFilter)[1]} (${list.length})</h3></div>
-    ${list.length? list.map(row).join('') : '<div style="color:var(--t3);font-size:13px;padding:8px 2px">Aucune facture dans cette catégorie.</div>'}</div>`;
+    ${list.length? list.slice(0,listeLim('fact')).map(row).join('')+listeSuite('fact',list.length,Math.min(list.length,listeLim('fact')),()=>views.factures()) : '<div style="color:var(--t3);font-size:13px;padding:8px 2px">Aucune facture dans cette catégorie.</div>'}</div>`;
 };
 /* ═══════════════ FINANCE : Comptabilité & Télécollecte (admin / DR) ═══════════════ */
 function isFinanceMgr(){ return !!currentUser && can('voirCompta'); }   // droit « Voir / gérer la comptabilité et les tarifs » (défaut : admin, DR, compta) — réglable par rôle ou par personne

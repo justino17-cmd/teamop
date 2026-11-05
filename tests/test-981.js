@@ -175,6 +175,8 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     {
       const r = await a1.post('/api/appels', { conv: directe, type: 'video' });
       appel1 = r.j && r.j.appel;
+      /* ⛔ une mesure qui échoue dit pourquoi : la CI est morte UNE fois ici sur « undefined.lie » (5 novembre 2026, 39 ✓), sans dire ce que le service avait rendu */
+      if (!appel1) { console.log('  ✗ lancer l\'appel n\'a pas rendu d\'appel : ' + r.code + ' ' + JSON.stringify(r.j || r.txt || '').slice(0, 300)); appel1 = { autre: {} }; }
       v('lancer par la conversation directe : 201 et la vue de l\'appelante (sortante, vidéo, Ben en face, appareil lié)', [r.code, appel1.etat, appel1.sens, appel1.type, appel1.autre.id, appel1.lie, /^a_[0-9a-f]{32}$/.test(appel1.id)], [201, 'sonne', 'sortant', 'video', ben.id, true, true]);
       const eB = await fB1.attendre(e => e.event === 'appel'), eB2 = await fB2.attendre(e => e.event === 'appel');
       v('⛔ Ben l\'apprend sur SES DEUX appareils, par l\'événement durable `appel` (vue entrante, aucun appareil lié) — Cleo, qui n\'y est pas, ne reçoit RIEN', [eB.data.etat, eB.data.sens, eB.data.lie, eB2.data.id === appel1.id], ['sonne', 'entrant', false, true]);

@@ -152,11 +152,18 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 5 min'); fini(1); }
     /* le bouton visible s'il y en a un (écran vide) ; sinon celui du menu des comptes, que le module écoute par délégation */
     const vis = P.page.locator('#courrier-zone [data-addaccount]:visible');
     if (await vis.count()) await vis.first().click();
-    else await P.page.evaluate(() => { const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); const R=h?h.shadowRoot:null; R.querySelector('[data-addaccount]').click(); }); await P.page.waitForSelector('#aMail', { timeout: 6000 });
+    else await P.page.evaluate(() => { const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); const R=h?h.shadowRoot:null; R.querySelector('[data-addaccount]').click(); });
+    /* v803 : la feuille s'ouvre sur trois gros boutons (Google, Microsoft, Autre messagerie) ; le champ d'adresse vit derrière « Autre
+       messagerie ». Ce chemin-là (taper son adresse) reste celui des sections ci-dessous ; les boutons ont leur section (2 bis). */
+    await P.page.waitForSelector('#aMail, #aQO', { timeout: 6000 });
+    if (await P.page.locator('#aQO').isVisible().catch(() => false) && !(await P.page.locator('#aMail').isVisible())) await P.page.click('#aQO');
+    await P.page.waitForSelector('#aMail', { timeout: 6000 });
     await P.page.fill('#aMail', adresse); await P.page.locator('#aMail').blur(); await P.page.waitForTimeout(700);
     return P.page.evaluate(() => { const R=(()=>{ const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); return h?h.shadowRoot:null; })();
       return { det: (R.getElementById('aDet') || {}).innerText || '', mdp: !R.getElementById('aPassWrap').hidden, go: R.getElementById('aGo').textContent.trim(), actif: !R.getElementById('aGo').disabled }; });
   };
+  const rapides = P => P.page.evaluate(() => { const R=(()=>{ const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); return h?h.shadowRoot:null; })(); return R ? Array.from(R.querySelectorAll('#aQuick .prov')).map(x => ({ t: (x.querySelector('.pn b') || {}).textContent || '', sous: (x.querySelector('.pn > span') || {}).textContent || '', inactif: !!x.disabled })) : []; });
+  const pourquoi = P => P.page.evaluate(() => { const R=(()=>{ const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); return h?h.shadowRoot:null; })(); const e = R && R.getElementById('aQWhy'); return e ? e.textContent : ''; });
   const erreurFeuille = P => P.page.evaluate(() => { const R=(()=>{ const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); return h?h.shadowRoot:null; })(); const e = R && R.getElementById('aMailErr'); return e && !e.hidden ? e.innerText.trim() : ''; });
   const zone = P => P.page.evaluate(() => { const R=(()=>{ const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); return h?h.shadowRoot:null; })(); return R ? Array.from(R.children).map(e => e.innerText || '').join(' ') : ''; });
   const goActif = P => P.page.evaluate(() => { const R=(()=>{ const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); return h?h.shadowRoot:null; })(); const g = R && R.getElementById('aGo'); return !!g && !g.disabled; });
@@ -190,10 +197,28 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 5 min'); fini(1); }
     v('aucune erreur de page', A.erreurs, []);
     await A.ctx.close();
 
+    console.log('\n── 3259 · 2 bis. les trois gros boutons (v803) : « Se connecter avec Google » en un geste, sans rien taper ──');
+    const Q = await ouvrir({ adresse: 'rapide.qzw@gmail.com' });
+    await Q.page.evaluate(() => { try { if (document.querySelector('#overlay.open')) closeModal(); } catch (e) {} }); await Q.page.waitForTimeout(300);
+    { const vis = Q.page.locator('#courrier-zone [data-addaccount]:visible'); if (await vis.count()) await vis.first().click(); else await Q.page.evaluate(() => { const R=(()=>{ const z=document.getElementById('courrier-zone'); const h=z&&[z].concat(Array.from(z.querySelectorAll('*'))).find(e=>e.shadowRoot); return h?h.shadowRoot:null; })(); R.querySelector('[data-addaccount]').click(); }); }
+    await Q.page.waitForSelector('#aQG', { timeout: 6000 });
+    v('la feuille s\'ouvre sur trois boutons, tous actifs', (await rapides(Q)).map(x => [x.t, x.inactif]), [['Se connecter avec Google', false], ['Se connecter avec Microsoft', false], ['Autre messagerie', false]]);
+    v('… le champ d\'adresse et « Continuer » attendent « Autre messagerie »', [await Q.page.locator('#aMail').isVisible(), await Q.page.locator('#aGo').isVisible()], [false, false]);
+    if (process.env.CAPTURES) await Q.page.screenshot({ path: path.join(process.env.CAPTURES, '3259-boutons.png') });
+    const [popQ] = await Promise.all([Q.page.waitForEvent('popup', { timeout: 15000 }).catch(() => null), Q.page.click('#aQG')]);
+    vrai('le clic sur « Se connecter avec Google » ouvre la fenêtre d\'autorisation, dans le geste', !!popQ);
+    vrai('le serveur liste la boîte « google » rendue par le fournisseur', await attendre(async () => (await listeServeur()).some(b => b[0] === 'rapide.qzw@gmail.com' && b[1] === 'google'), 20000), await listeServeur());
+    vrai('le Courrier la montre, et la feuille s\'est fermée d\'elle-même', await attendre(async () => /rapide\.qzw@gmail\.com/.test(await zone(Q)) && !(await Q.page.$('#aQG')), 15000), (await zone(Q)).slice(0, 300));
+    v('aucune erreur de page', Q.erreurs, []);
+    await Q.ctx.close();
+
     console.log('\n── 3259 · 3. Microsoft non configuré : Hotmail ne se connecte pas, et la feuille le dit ; Gmail, si ──');
     const C = await ouvrir({ sans: ['microsoft'] });
     f = await feuille(C, 'autre.qzw@outlook.fr');
     v('Hotmail / Outlook : « Bientôt… Microsoft refuse les mots de passe », pas de mot de passe, bouton inactif', [/Microsoft refuse les mots de passe/.test(f.det), f.mdp, f.actif], [true, false, false]);
+    { const rq = await rapides(C), w = await pourquoi(C);
+      v('… le bouton « Se connecter avec Microsoft » est grisé, « Pas encore disponible », et Google reste actif', rq.map(x => [x.t, x.inactif, x.inactif ? x.sous : '']), [['Se connecter avec Google', false, ''], ['Se connecter avec Microsoft', true, 'Pas encore disponible'], ['Autre messagerie', false, '']]);
+      vrai('… et la feuille dit pourquoi (Microsoft refuse les mots de passe)', /connexion Microsoft n’est pas disponible/.test(w) && /refuse les mots de passe/.test(w), w); }
     await C.page.click('#aClose').catch(() => {}); await C.page.waitForTimeout(400);
     f = await feuille(C, 'autre.qzw@gmail.com');
     v('… et Gmail reste « Continuer avec Google »', f.go, 'Continuer avec Google');

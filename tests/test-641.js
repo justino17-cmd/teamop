@@ -87,7 +87,10 @@ console.log('\n/api/replies et /api/mailboxes exigent la preuve de la clé d\'é
      `mailRefus` ne portant que mes propres essais). Une réinstallation ne peut plus rouvrir
      la porte en silence : `install.sh` pose le réglage, ET l'absence de réglage ferme. */
   v('le défaut du code est FERMÉ — seul le booléen false rouvre',
-    /if \(config\.mailPreuveExigee === false\) return next\(\);/.test(SRV), true);
+    /* depuis le 5 novembre 2026 (D2) le test est rangé dans `preuveMailRouverte()` : c'est elle qui ne rouvre que sur le booléen false, et
+       la porte des routes mail la lit en PREMIÈRE instruction */
+    /function preuveMailRouverte\(\) \{ return config\.mailPreuveExigee === false; \}/.test(SRV)
+      && /function cleEquipeExige\(req, res, next\) \{\s*if \(preuveMailRouverte\(\)\) return next\(\);/.test(SRV), true);
   v('et l\'installeur pose le réglage sur une configuration neuve',
     /"mailPreuveExigee": true,/.test(fs.readFileSync(path.join(RACINE, 'server', 'install.sh'), 'utf8')), true);
   v('…et le commentaire dit l\'ordre : les appareils d\'abord, la porte ensuite',
