@@ -56,7 +56,7 @@ const { hotePublic, adressePrivee } = require(path.join(RACINE, 'server', 'hote-
     const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     const bloc = (() => { const i = IDX.indexOf("cible = await hotePublic("); return i < 0 ? '' : IDX.slice(i, i + 2600); })();
     vrai('le bloc du SMTP avancé est trouvé', bloc.length > 500);
-    vrai('le port est borné aux ports d\'envoi, après le contrôle de l\'hôte', /PORTS_SMTP\.indexOf\(port\) < 0 && !ESSAI && process\.env\.TEAMOP_BANC_HOTES_LOCAUX !== '1'\) return res\.status\(400\)/.test(bloc));
+    vrai('le port est borné aux ports d\'envoi, après le contrôle de l\'hôte', /if \(PORTS_SMTP\.indexOf\(port\) < 0 && !ESSAI && process\.env\.TEAMOP_BANC_HOTES_LOCAUX !== '1'\) return res\.status\(400\)/.test(bloc));
     vrai('la connexion vise cible.ip, le certificat se vérifie sur cible.nom', /createTransport\(\{ host: cible\.ip, port, secure: port === 465, tls: \{ servername: cible\.nom \}/.test(bloc));
     vrai('l\'échec de l\'envoi avancé répond un message à nous, jamais e.message du serveur joint', /return res\.status\(500\)\.json\(\{ error: dit, code: c \|\| 'smtp' \}\)/.test(bloc) && !/sendMail\([^\n]*\n[^\n]*error: e\.message/.test(bloc));
     const { PORTS_SMTP } = require(path.join(RACINE, 'server', 'hote-public.js'));
