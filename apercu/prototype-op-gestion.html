@@ -1207,6 +1207,7 @@ body.dp-ouvert{overflow:hidden}
 .cr-conf .cr-g{display:flex;gap:8px;flex-wrap:wrap}
 .cr-abs{padding:12px 14px;display:flex;align-items:center;gap:10px;color:var(--doux);font-size:13.5px}
 .cr-glisse{font-size:12.5px;color:var(--doux)}
+.cr-autres{width:100%;justify-content:center}
 .cr-rang{display:flex;flex-direction:column}
 .cr-rang button{display:flex;align-items:center;gap:10px;padding:10px 4px;border:0;border-top:1px solid var(--trait);background:none;color:var(--encre);font:inherit;text-align:left;cursor:pointer;min-height:52px;width:100%}
 .cr-rang button:first-child{border-top:0}
@@ -1745,16 +1746,22 @@ function crProches(i){
 /* ce qui ne va pas, du plus grave au moins grave : chaque ligne ouvre l'intervention concernée */
 function crAlertes(d, T){
   const A = [];
-  crAConfier(d).forEach(i => { const p = crProches(i)[0]; A.push({ r:!!i.urgent, id:i.id, t:(i.urgent ? 'Urgent sans technicien' : 'À confier') + ' · ' + esc(CLIENTS[i.cli].nom) + ' à ' + i.h.replace(':', ' h '), s:p && p.ok ? `Le plus proche : ${p.t.nom.split(' ')[0]}, ${p.km < .3 ? p.ou : crKmTxt(p.km) + ' ' + p.ou}` : 'Personne n’est libre à cette heure' }); });
+  crAConfier(d).forEach(i => { const p = crProches(i)[0]; A.push({ r:!!i.urgent, id:i.id, proche:p && p.ok ? p.t.id : null, t:(i.urgent ? 'Urgent sans technicien' : 'À confier') + ' · ' + esc(CLIENTS[i.cli].nom) + ' à ' + i.h.replace(':', ' h '), s:p && p.ok ? `Le plus proche : ${p.t.nom.split(' ')[0]}, ${p.km < .3 ? p.ou : crKmTxt(p.km) + ' ' + p.ou}` : 'Personne n’est libre à cette heure' }); });
   T.forEach(({ t, S }) => S.forEach(s => { if (s.bureau) return;
-    if (s.retard) A.push({ r:true, id:s.i.id, t:`${t.nom.split(' ')[0]} arrivera vers ${crHTxt(s.arrivee)} chez ${esc(CLIENTS[s.i.cli].nom)}`, s:`Rendez-vous à ${crH(s.i.h)} : ${s.retard} min de retard · ${crMinTxt(s.tr.min)} de route depuis le passage d’avant` });
-    else if (s.tr.km > 25) A.push({ r:false, id:s.i.id, t:`Trajet long pour ${t.nom.split(' ')[0]} : ${crKmTxt(s.tr.km)}, ${crMinTxt(s.tr.min)}`, s:`${esc(CLIENTS[s.i.cli].nom)} est loin de ses autres passages` }); }));
+    if (s.retard) A.push({ r:true, id:s.i.id, tech:t.id, t:`${t.nom.split(' ')[0]} arrivera vers ${crHTxt(s.arrivee)} chez ${esc(CLIENTS[s.i.cli].nom)}`, s:`Rendez-vous à ${crH(s.i.h)} : ${s.retard} min de retard · ${crMinTxt(s.tr.min)} de route depuis le passage d’avant` });
+    else if (s.tr.km > 25) A.push({ r:false, id:s.i.id, tech:t.id, t:`Trajet long pour ${t.nom.split(' ')[0]} : ${crKmTxt(s.tr.km)}, ${crMinTxt(s.tr.min)}`, s:`${esc(CLIENTS[s.i.cli].nom)} est loin de ses autres passages` }); }));
   return A.sort((a, b) => b.r - a.r);
 }
 /* ── la vue ── */
 function vueCarte(){
   const d = plRef, T = crTournees(d), C = crAConfier(d), A = crAlertes(d, T), nb = T.reduce((s, x) => s + x.S.filter(y => !y.bureau).length, 0) + C.length;
   const km = T.reduce((s, x) => s + x.km, 0);
+  /* Justin, 6 novembre 2026 : « quand je choisis une seule personne, que à droite ça ne mette que les informations de la personne
+     sélectionnée ». Sa tournée, ses alertes (retard, trajet long), et les interventions à confier dont elle est la plus proche ;
+     les autres à confier restent comptées, à un geste de « Tout voir » : on ne les perd pas de vue. */
+  const F = crFocus ? T.find(x => x.t.id === crFocus) : null;
+  const Tv = F ? [F] : T, Cv = F ? C.filter(i => { const p = crProches(i)[0]; return p && p.ok && p.t.id === crFocus; }) : C;
+  const Av = F ? A.filter(a => a.tech === crFocus || a.proche === crFocus) : A, autresConf = C.length - Cv.length;
   if (crVJour !== d) { crV = null; crVJour = d; }
   setTimeout(crBrancher, 0);
   const tour = ({ t, ab, S, km, min, finJour, retour }) => {
@@ -1772,10 +1779,13 @@ function vueCarte(){
         <div class="cr-g">${p && p.ok ? `<button type="button" class="btn" data-crconf="${i.id}|${p.t.id}">Confier à ${p.t.nom.split(' ')[0]}</button>` : ''}<button type="button" class="btn gris" data-crchoix="${i.id}">Choisir quelqu’un…</button></div></div></div>`; };
   const liste = `<div class="cr-l ${crSel && crDansPanneau() ? 'cr-l-det' : ''}" id="cr-l"><button type="button" class="cr-poignee" data-crfeuille="1" aria-label="Agrandir ou réduire la liste"></button>
       <div class="cr-det" id="cr-det"></div><div class="cr-lc" id="cr-lc">
-      <div class="cr-resume"><b>${aMaj(jlong(d))}</b><span class="gris">${nb} intervention${nb > 1 ? 's' : ''} · ${T.filter(x => x.S.length).length} tournée${T.filter(x => x.S.length).length > 1 ? 's' : ''} · ${crKmTxt(km)} de route en tout</span></div>
-      ${A.length ? `<div class="carte cr-al"><div class="cr-al-t">À regarder · ${A.length}</div>${A.map(a => `<button type="button" data-crsel="${a.id}"><span class="ic ${a.r ? 'r' : ''}">!</span><span>${a.t}<small>${a.s}</small></span></button>`).join('')}</div>` : '<div class="carte cr-al"><div class="cr-al-t">Rien à signaler</div></div>'}
-      ${C.map(confier).join('')}
-      ${T.map(tour).join('')}
+      ${F ? (() => { const np = F.S.filter(s => !s.bureau).length;
+        return `<div class="cr-resume"><b>${F.t.nom}</b><span class="gris">${aMaj(jlong(d))} · ${F.ab ? absLib(F.ab) + ' : pas de tournée' : np ? `${np} passage${np > 1 ? 's' : ''} · ${crKmTxt(F.km)} de route · retour vers ${crHTxt(F.finJour)}` : 'rien de prévu · disponible'}</span></div>`; })()
+        : `<div class="cr-resume"><b>${aMaj(jlong(d))}</b><span class="gris">${nb} intervention${nb > 1 ? 's' : ''} · ${T.filter(x => x.S.length).length} tournée${T.filter(x => x.S.length).length > 1 ? 's' : ''} · ${crKmTxt(km)} de route en tout</span></div>`}
+      ${Av.length ? `<div class="carte cr-al"><div class="cr-al-t">À regarder · ${Av.length}</div>${Av.map(a => `<button type="button" data-crsel="${a.id}"><span class="ic ${a.r ? 'r' : ''}">!</span><span>${a.t}<small>${a.s}</small></span></button>`).join('')}</div>` : '<div class="carte cr-al"><div class="cr-al-t">Rien à signaler</div></div>'}
+      ${Cv.map(confier).join('')}
+      ${Tv.map(tour).join('')}
+      ${F && autresConf ? `<button type="button" class="btn gris cr-autres" data-crfocus="">${autresConf} autre${autresConf > 1 ? 's' : ''} intervention${autresConf > 1 ? 's' : ''} à confier · Tout voir</button>` : ''}
       ${tel() ? '' : '<span class="cr-glisse">Astuce : glisse une intervention de la liste sur la tournée de quelqu’un d’autre pour la lui confier.</span>'}</div></div>`;
   const chips = T.filter(x => x.S.length).map(({ t }) => `<button type="button" class="cr-chip ${crFocus && crFocus !== t.id ? 'off' : ''}" style="--tc:${t.c}" data-crfocus="${t.id}" aria-pressed="${crFocus === t.id}"><i></i>${t.nom.split(' ')[0]}</button>`).join('');
   const sombre = crSombre();
