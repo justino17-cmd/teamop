@@ -493,7 +493,8 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     }
     try {
       const r = await oauth.retour({ code: typeof q.code === 'string' ? q.code : '', state: typeof q.state === 'string' ? q.state : '' });
-      const s = oauth.serveurs(r.fournisseur);
+      const s0 = oauth.serveurs(r.fournisseur);
+      const s = test && test.serveurs ? { imapHost: test.serveurs.imap.hote, imapPort: test.serveurs.imap.port, smtpHost: test.serveurs.smtp.hote, smtpPort: test.serveurs.smtp.port } : s0;   // le crochet des bancs : de faux serveurs, jamais ceux du fournisseur
       let c;
       try {
         c = stockage.boiteMailCreer(r.uid, r.fournisseur, { adresse: r.email, nom: r.email.slice(0, r.email.indexOf('@')), imap: { hote: s.imapHost, port: s.imapPort }, smtp: { hote: s.smtpHost, port: s.smtpPort }, secret: r.refresh });
