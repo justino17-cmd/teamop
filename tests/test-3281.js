@@ -50,6 +50,8 @@ const { hotePublic, adressePrivee } = require(path.join(RACINE, 'server', 'hote-
                      '0:0:0:0:0:0:0:1', '0000:0000:0000:0000:0000:0000:0000:0001', '::0001', 'fec0::1', '2001:db8::1', '2002:7f00:1::', '64:ff9b::7f00:1', '127.1', '2130706433', '0x7f.0.0.1'])
       v('littéral piégé refusé : ' + h, await refuseVrai(h), 'hote_non_public');
     v('une adresse publique littérale passe, NORMALISÉE (IPv6 dépliée)', [await refuseVrai('8.8.8.8'), await refuseVrai('2a00:1450:400c:c0b::6c')], ['accepté 8.8.8.8', 'accepté 2a00:1450:400c:c0b:0:0:0:6c']);
+    { const t0 = Date.now(); v('un DNS qui ne répond jamais : « introuvable » au bout du délai, sans bloquer', await (async () => { try { await hotePublic('lent.attaquant.fr', { lookup: () => new Promise(() => {}), delaiMs: 300 }); return 'accepté'; } catch (e) { return e.code; } })(), 'hote_introuvable');
+      vrai('… dans le délai demandé (300 ms, pas une éternité)', Date.now() - t0 < 2000, Date.now() - t0); }
     v('un nom résolu en IPv6 non compressée de 127.0.0.1 est refusé', await refuse('ipv6.attaquant.fr', lookupDe([{ address: '0:0:0:0:0:ffff:7f00:1', family: 6 }])), 'hote_non_public');
     /* la route : l'hôte passe le contrôle, PUIS le port (25, 465, 587, 2525) ; on se connecte à l'ADRESSE normalisée, avec le nom en `servername` ;
        l'erreur du serveur joint n'est plus recopiée. Ces trois gardes se lisent dans le CODE (commentaires retirés) : sous le drapeau des bancs, le port est libre. */

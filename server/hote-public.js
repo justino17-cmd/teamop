@@ -94,7 +94,10 @@ async function hotePublic(hote, opts) {
   const nonPublic = () => erreur('hote_non_public', 'ce serveur de messagerie n\'est pas joignable depuis Internet');
   if (!autoriseLocal && (nom === 'localhost' || /\.(local|localhost|internal|lan|home|corp)$/.test(nom))) throw nonPublic();
   let liste;
-  try { liste = await (o.lookup || ((h) => dns.lookup(h, { all: true, verbatim: true })))(nom); }
+  /* 5 s au plus (seconde relecture de `gardien`) : `dns.lookup` passe par le pool de threads de Node, partagé avec les fichiers et le chiffrement —
+     un nom dont le serveur DNS traîne ne doit pas l'occuper. Délai dépassé = introuvable. */
+  const delai = (p) => new Promise((ok, ko) => { const t = setTimeout(() => ko(new Error('délai DNS')), o.delaiMs || 5000); p.then(v => { clearTimeout(t); ok(v); }, e => { clearTimeout(t); ko(e); }); });
+  try { liste = await delai(Promise.resolve().then(() => (o.lookup || ((h) => dns.lookup(h, { all: true, verbatim: true })))(nom))); }
   catch (e) { throw erreur('hote_introuvable', 'serveur de messagerie introuvable'); }
   if (!Array.isArray(liste) || !liste.length) throw erreur('hote_introuvable', 'serveur de messagerie introuvable');
   /* chaque adresse rendue, normalisée : l'IPv4 telle que `getaddrinfo` la rend, l'IPv6 dépliée ici (le système la rend telle que saisie) */
