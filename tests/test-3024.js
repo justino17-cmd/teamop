@@ -102,7 +102,15 @@ const sansBalise = h => [...h.matchAll(/<([a-z0-9]+)([^>]*)>/gi)].filter(t => /^
   const f1 = await bac.hoFermer();
   vrai('« Remettre aux heures normales » : le vrai serveur ferme l’ouverture forcée, la page ne dit plus « exceptionnellement »', f1.status === 200 && HO.d.ouvertJusqua === null && HO.d.maintenant.raison !== 'ouverture_forcee' && !/exceptionnellement/.test(bac.hoPhrase(AG.horaires)[1]), [f1.status, HO.d.maintenant.raison]);
   bac.hoDuree('24h'); const o2 = await bac.hoOuvrir(); vrai('24 h : accepté, fin = maintenant + 24 h', o2.status === 200 && Math.abs(HO.d.ouvertJusqua - (Date.now() + 86400000)) < 120000);
-  bac.hoDuree('minuit'); const o3 = await bac.hoOuvrir(); vrai('jusqu’à minuit : accepté, et c’est minuit à Paris', o3.status === 200 && (p => p.h === 0 && p.m === 0)(bac.hoParis(HO.d.ouvertJusqua)) && HO.d.ouvertJusqua > Date.now() + 60000 && HO.d.ouvertJusqua <= Date.now() + 25 * 3600000 + 60000, new Date(HO.d.ouvertJusqua).toISOString());
+  /* « jusqu'à minuit » dépend de l'HEURE où le banc tourne : dans la dernière minute avant minuit à Paris, la fin tombe sous le minimum
+   * d'une minute du serveur, qui refuse (400) — la CI l'a joué le 5 novembre 2026 à 23 h 59 min 59 s. Le banc juge donc chaque cas sur
+   * ce qui reste avant minuit, mesuré juste avant le geste : accepté au-delà de 2 min, refusé (et dit) sous 50 s, l'un ou l'autre entre les deux. */
+  bac.hoDuree('minuit'); const resteMinuit = bac.hoMinuit() - Date.now(), o3 = await bac.hoOuvrir();
+  const minuitAccepte = o3 && o3.status === 200 && (p => p.h === 0 && p.m === 0)(bac.hoParis(HO.d.ouvertJusqua)) && HO.d.ouvertJusqua > Date.now() && HO.d.ouvertJusqua <= Date.now() + 25 * 3600000 + 60000;
+  const minuitRefuse = o3 && o3.status === 400 && /moins d’une minute/.test(HO.msg) && HO.ko === true;
+  if (resteMinuit > 120000) vrai('jusqu’à minuit : accepté, et c’est minuit à Paris', minuitAccepte && HO.d.ouvertJusqua > Date.now() + 60000, new Date(HO.d.ouvertJusqua).toISOString());
+  else if (resteMinuit < 50000) vrai('jusqu’à minuit, dans la dernière minute avant minuit à Paris : le vrai serveur refuse (moins d’une minute), la page le dit', minuitRefuse, [o3 && o3.status, HO.msg]);
+  else vrai('jusqu’à minuit, une à deux minutes avant minuit à Paris : accepté à minuit, ou refusé et dit', minuitAccepte || minuitRefuse, [o3 && o3.status, HO.msg]);
   await bac.hoFermer();
 
   /* la permanence du week-end : jouée dès que le serveur la porte (PR n° 197) ; un serveur d'avant n'en parle pas, et la page ne montre alors aucune section */
