@@ -1422,8 +1422,10 @@ app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox
    le verdict est « absent », pas « inconnu » — ce sont donc des appareils qui PRÉSENTENT une
    preuve sur un espace absent de l'annuaire (la bêta l'est, le repli aussi). À regarder
    depuis la Tour avant l'étape 3. */
+/* UN SEUL réglage de secours pour toutes les routes qui exigent la preuve de clé (les cinq de la boîte mail ET `/api/compte/identifiants`) */
+function preuveMailRouverte() { return config.mailPreuveExigee === false; }
 function cleEquipeExige(req, res, next) {
-  if (config.mailPreuveExigee === false) return next();
+  if (preuveMailRouverte()) return next();
   /* La bêta, prouvée par son JETON d'accès (`betaBoitePorte`, montée juste avant) : son espace a déjà été réécrit en `opgestion-beta~<compte>`. */
   if (req.betaCompte) return next();
   const src = (req.method === 'GET') ? (req.query || {}) : (req.body || {});
@@ -1528,6 +1530,42 @@ function refusBeta(req, res, message) {
 }
 app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire'], betaBoitePorte);
 app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailbox/oauth/start', '/api/sendmail', '/api/mail/traduire'], cleEquipeExige);
+
+/* ⛔⛔ `/api/compte/identifiants` EXIGE LA PREUVE DE LA CLÉ D'ÉQUIPE — 5 novembre 2026 (audit de sécurité de la nuit, décision de Justin).
+   La route envoie un courriel OFFICIEL de TEAM OP (identifiant et mot de passe provisoire, CHOISIS PAR L'APPELANT) à n'importe quelle adresse
+   sur la seule foi d'un `teamId` — ni secret ni révocable : c'est un vecteur d'hameçonnage depuis notre propre domaine. Même mécanique que les
+   routes de boîte mail (`cleEquipeObserve` pose `req.cleEquipe`, ici on refuse), même réglage (`mailPreuveExigee: false` rouvre), même comptage
+   (`mailRefus`), même refus en JSON `{error}` : l'écran de l'application affiche « E-mail non envoyé (raison) », il ne dit jamais « envoyé ».
+   ⛔ LES APPAREILS D'ABORD, LA PORTE ENSUITE : la v801 en service n'envoie PAS l'empreinte (`X-Teamop-Kh`) sur cet appel. Une empreinte ABSENTE
+   passe donc tant que la version minimale exigée (`versionsCfg.min`, posée depuis la Tour) est inférieure à 802 — et elle est comptée
+   (`identifiantsSansPreuve`, lu par /api/mail/cles) ; dès que Justin exige la v802 la porte se ferme d'elle-même. Une empreinte PRÉSENTE qui ne
+   prouve pas (invalide, espace inconnu de l'annuaire, clé écrite en clair dans l'application) est refusée tout de suite : ce n'est pas un
+   ancien appareil, c'est quelqu'un qui devine.
+   La bêta se prouve par son JETON d'accès (`betaJetonCompte`), comme pour ses boîtes : sa clé est publique, la présenter ne prouve rien. */
+const IDENTIFIANTS_PREUVE_VER = 802;
+const identifiantsSansPreuve = { n: 0, ts: 0 };
+function identifiantsPorte(req, res, next) {
+  if (preuveMailRouverte()) return next();
+  let t = ''; try { t = String((req.body || {}).teamId || ''); } catch (e) {}
+  if (t === BETA_ESPACE && betaJetonCompte(req.get('x-teamop-beta'))) return next();
+  let motif = '';
+  if (ESPACES_INTOUCHABLES.includes(t)) motif = 'technique';
+  else if (req.cleEquipe === 'absent') {
+    if ((+versionsCfg.min || 0) < IDENTIFIANTS_PREUVE_VER) { identifiantsSansPreuve.n++; identifiantsSansPreuve.ts = Date.now(); return next(); }
+    motif = 'absent';
+  }
+  else if (req.cleEquipe !== 'valide') motif = req.cleEquipe || 'absent';
+  else if (cleEstPublique(t)) motif = 'partagee';
+  if (!motif) return next();
+  mailRefus.n++; mailRefus.parMotif[motif] = (mailRefus.parMotif[motif] || 0) + 1; mailRefus.ts = Date.now();
+  mailRefus.parRoute['compte/identifiants'] = (mailRefus.parRoute['compte/identifiants'] || 0) + 1;
+  return res.status(403).json({ error: motif === 'technique'
+    ? 'Cet espace de test n\'envoie aucun courriel d\'accès réel — transmets les accès toi-même.'
+    : motif === 'absent'
+      ? 'Cette version de l\'application est trop ancienne pour envoyer des accès — mets-la à jour, ou transmets les accès toi-même.'
+      : 'Cet appareil n\'a pas pu prouver la clé de son entreprise — ferme puis rouvre l\'application (ou reconnecte-toi avec ton lien), et réessaie, ou transmets les accès toi-même.' });
+}
+app.use('/api/compte/identifiants', cleEquipeObserve, identifiantsPorte);
 
 /* Le nombre d'essais de connexion à une boîte, par IP et par heure. La route tente un
    SMTP puis un IMAP chez le fournisseur et RENVOIE son message d'erreur : sans borne,
@@ -6890,7 +6928,7 @@ app.get('/api/mail/cles', (req, res) => {
   const espaces = Array.from(cleEquipeParEspace.entries())
     .map(([t, e]) => ({ t, slug: e.slug, valide: e.valide, absent: e.absent, invalide: e.invalide, inconnu: e.inconnu, vu: e.vu }))
     .sort((a, b) => (b.vu || 0) - (a.vu || 0)).slice(0, 300);
-  res.json({ total: cleEquipeVu, espaces });
+  res.json({ total: cleEquipeVu, espaces, identifiantsSansPreuve });
 });
 app.post('/api/espaces/etat', (req, res) => {
   const t = monStr((req.body || {}).t, 80);
@@ -8256,8 +8294,12 @@ app.post('/api/espaces/lien', (req, res) => {
   try { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); cleAnn = String(o.k || ''); identAdmin = String(o.a || ''); } catch (err) {}
   if (!cleAnn) return refus();
   if (crypto.createHash('sha256').update(cleAnn).digest('hex') !== kh) {
-    // l'appareil a une autre clé que l'annuaire : le code de l'annuaire est périmé → le site cesse de le servir
-    if (!espacesReg[e.slug].clePerimee) { espacesReg[e.slug].clePerimee = Date.now(); espacesEcrire(); lastRefus = { ts: Date.now(), raison: 'clé d\'équipe changée pour un espace inscrit — à réinscrire dans la Tour (le journal dit lequel)' }; console.warn('espace', e.slug, ': clé d\'équipe changée — lien de l\'annuaire périmé'); }
+    /* ⛔ UNE REQUÊTE QUI NE PROUVE PAS LA CLÉ DE L'ANNUAIRE NE CHANGE AUCUN ÉTAT (5 novembre 2026, audit de la nuit). Cette route est PUBLIQUE :
+       connaître `t` (ni secret ni révocable) suffisait, avec un `kh` forgé, à poser `clePerimee` et réécrire l'annuaire — le site cessait alors
+       de servir le code de connexion de l'entreprise jusqu'à ce que la Tour la réinscrive. Le serveur ne peut pas prouver qu'un `kh` différent
+       est la NOUVELLE clé (il ne connaît que celle de l'annuaire) : il répond, il signale à la Tour (`lastRefus`, sans donnée de client), il n'écrit rien. */
+    lastRefus = { ts: Date.now(), raison: 'clé d\'équipe différente de l\'annuaire pour un espace inscrit — à vérifier, et à réinscrire dans la Tour si la clé a vraiment changé (le journal dit lequel)' };
+    console.warn('espace', e.slug, ': un appareil présente une autre clé que l\'annuaire — rien n\'est modifié');
     return res.status(404).json({ error: 'la clé d\'équipe a changé depuis l\'inscription chez TEAM OP — l\'espace est à réinscrire dans la Tour', motif: 'cle_changee' });
   }
   if (espacesReg[e.slug].clePerimee) { delete espacesReg[e.slug].clePerimee; espacesEcrire(); }

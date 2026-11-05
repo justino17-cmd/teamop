@@ -481,3 +481,5 @@ tests/test-3255.js
 tests/test-3258.js
 # 5 novembre 2026 (audit de sécurité de la nuit) : `test-3281` — le SMTP « avancé » de /api/sendmail ne joint plus une adresse non publique (bannière interne et balayage de ports fermés, `server/hote-public.js`) ; le Devis IA ne se vide plus par un nom d'espace public (réserve de la bêta hors quota commun, bornes par entreprise et par adresse).
 tests/test-3281.js
+# 5 novembre 2026 (audit de la nuit, D1 et D2) : `test-3295` — `/api/espaces/lien` ne pose plus `clePerimee` ni ne réécrit l'annuaire sur un `kh` faux ; `/api/compte/identifiants` exige la preuve de la clé (sans empreinte tant que le minimum < 802, refus 403 JSON ensuite). Le vrai serveur (deux démarrages), un facteur SMTP local, la vraie `identifiantsParMail` d'app.html.
+tests/test-3295.js
