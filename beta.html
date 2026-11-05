@@ -8804,7 +8804,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '802-beta';
+const APP_VERSION = '803-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13233,6 +13233,14 @@ function docErreur(statut,motif){ const e=new Error('document d\'équipe : '+(mo
    a son propre espace ; c'est l'espace bêta (`opgestion-beta`) qui porte l'activation, d'office, côté serveur. Sur la bêta, le Devis IA
    parle donc au nom de l'espace bêta, quelle que soit l'entreprise de test ; en production, au nom de l'entreprise, comme avant. */
 function devisEquipe(){ return (typeof BETA_ESSAI!=='undefined'&&BETA_ESSAI)?'opgestion-beta':syncTeam(); }
+/* ⛔ v801 — UNE LECTURE SE CHRONOMÈTRE À CE QU'ELLE RAMÈNE (Toka Clim, 4 novembre 2026 : « premier instantané jamais reçu après
+   25 s », un iPhone sur une 4G faible, le serveur sain). La v787 avait allongé l'ENVOI (le corps qui part), pas la RÉCEPTION : une
+   lecture part avec un corps minuscule et ramène la base ENTIÈRE (265 Ko chez eux), et l'appareil coupait à 20 s, recommençait, puis
+   criait « bloquée ». La taille de ce qui revient se lit sur la base de l'appareil (même contenu, chiffré : on compte 1,4 fois), avec
+   le même barème que l'envoi : 20 s plus 120 ms par Ko, plafonné à 90 s. Sans base sur l'appareil, 20 s comme avant.
+   ⚠️ Appelée par `lire` (docEquipe) sous `typeof` : les bancs qui extraient docEquipe seule gardent les 20 s. `tests/test-3238.js`. */
+function docKoAttendus(){ try{ const s=localStorage.getItem(STORE_KEY); return Math.round(((s&&s.length)||0)*1.4/1024); }catch(e){ return 0; } }
+function docDelaiLecture(){ return Math.min(90000, 20000+docKoAttendus()*120); }
 async function docAppel(route,corps,ms){ const ctl=new AbortController(); const corpsTxt=JSON.stringify(corps);
   const delai=Math.max(ms||20000, Math.min(90000, 20000+Math.round(corpsTxt.length/1024)*120)); try{ ctl.signal.__opDelai=delai; }catch(e){}
   const to=setTimeout(()=>ctl.abort(),delai);
@@ -13266,7 +13274,7 @@ function docEquipe(){
   /* Rendre une écriture sans l'envoyer : ceux qui l'attendaient l'apprennent (la synchro le journalise). */
   const abandonner=(lot,motif)=>{ const e=docErreur(0,motif); const tous=lot.attentes.splice(0); if(ecriture===lot) ecriture=null; tous.forEach(a=>{ try{ a.ko(e); }catch(_e){} }); };
   const lire=async()=>{ if(horsJeu()) throw docErreur(0,motifHorsJeu()); const p=await docPreuve(); if(p.t!==tEq) throw docErreur(0,'espace_change'); let r;
-    try{ r=await docAppel('/api/doc/lire',p,20000); }catch(e){ throw docErreur(0,'reseau'); }
+    try{ r=await docAppel('/api/doc/lire',p,(typeof docDelaiLecture==='function')?docDelaiLecture():20000); }catch(e){ throw docErreur(0,'reseau'); }
     if(r.statut!==200) throw docErreur(r.statut,r.j&&r.j.motif);
     return docInstantane(r.j); };
   const dormir=ms=>new Promise(r=>setTimeout(r,ms));
@@ -13344,7 +13352,9 @@ function docEquipe(){
               if(!livre||s._v!==v){ livre=true; v=s._v; try{ cb(s); }catch(e){} }
               continue;
             }
-            const p=await docPreuve(); if(p.t!==tEq){ arreter(); break; } ctl=new AbortController(); const c=ctl; try{ c.signal.__opDelai=40000; }catch(e){} const to=setTimeout(()=>c.abort(),40000); const t0=Date.now();
+            /* v801 : l'écoute ramène la base entière quand elle change — son délai (40 s : 25 s d'attente au serveur, plus le
+               transfert) s'allonge du même supplément que la lecture sur une base lourde (Toka Clim, 4G faible). */
+            const p=await docPreuve(); if(p.t!==tEq){ arreter(); break; } ctl=new AbortController(); const c=ctl; const dA=40000+Math.max(0,((typeof docDelaiLecture==='function')?docDelaiLecture():20000)-20000); try{ c.signal.__opDelai=dA; }catch(e){} const to=setTimeout(()=>c.abort(),dA); const t0=Date.now();
             let r; try{ r=await fetch(PUSH_API+'/api/doc/attendre',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:p.t,kh:p.kh,v:v}),signal:c.signal,cache:'no-store'}); }
             finally{ clearTimeout(to); }
             let j=null; try{ j=await r.json(); }catch(e){}
@@ -13406,7 +13416,10 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
        Au bout de 25 s sans premier instantané, l'appareil remonte son état par le canal qui
        existe déjà (tmPush → /api/bug) : visible dans la Tour et envoyé par mail. Des COMPTEURS
        et l'identifiant d'espace, jamais un nom ni une adresse — même règle que /health. */
-    setTimeout(()=>{ if(!_syncGotInitial && _syncOn) syncDiagnostic('bloquée : premier instantané jamais reçu après 25 s'); },25000);
+    /* v801 : l'alerte attend la lecture entière (son délai, plus 10 s) et dit « réseau lent » quand la base est lourde —
+       sur une 4G faible, 265 Ko arrivent, mais pas en 25 s (Toka Clim). Petite base : 25 s, comme avant. */
+    { const lent=(typeof docDelaiLecture==='function')?docDelaiLecture():20000, attente=Math.max(25000,lent+10000);
+      setTimeout(()=>{ if(!_syncGotInitial && _syncOn) syncDiagnostic(attente>25000?('réseau lent : premier instantané pas encore reçu après '+Math.round(attente/1000)+' s (base ~'+docKoAttendus()+' Ko)'):'bloquée : premier instantané jamais reçu après 25 s'); },attente); }
     /* Le minimum exigé ne vit plus dans Firestore : le serveur le tient (`/api/version`, que
        `versionVerifier` lit au démarrage, au retour au premier plan et tous les quarts d'heure) et
        refuse lui-même une écriture en dessous (`documents.js`, 426). */

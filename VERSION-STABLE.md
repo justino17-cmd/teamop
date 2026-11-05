@@ -1,6 +1,16 @@
 # Point stable TeamOP
 
-**Version stable : v800** — 5 novembre 2026, cette nuit (Justin : « fais tout ce qu'il faut et publie »). La v798 et ce qui suit
+**Version stable : v801** — 5 novembre 2026, nuit (Justin : « tout ce que je t'ai demandé, tu le fais »). La v800 et deux réparations :
+- **La synchronisation n'abandonne plus sur une 4G faible** (Toka Clim : « premier instantané jamais reçu après 25 s ») : la lecture des
+  données de l'équipe attend selon leur taille, jusqu'à 90 s (65 s pour 265 Ko), au lieu de couper à 20 s ; l'écoute des nouveautés reçoit
+  le même supplément, et l'alerte dit « réseau lent » au lieu de « bloquée ». Rien ne change pour une petite base. `tests/test-3238.js`.
+- **La Tour (v2.131)** ne propose plus de « rouvrir » un espace supprimé (controle@teamop.fr) : elle demande au serveur si l'espace vit
+  encore, et la suppression totale oublie la trace gardée sur l'appareil. `tests/test-3265.js`.
+Rien ne change dans les formats de données.
+
+**Ancien point : v800.**
+
+**v800** — 5 novembre 2026, cette nuit (Justin : « fais tout ce qu'il faut et publie »). La v798 et ce qui suit
 (la v799 n'a jamais été publiée seule) :
 - **L'aperçu d'un PDF reste dans l'application** : devis, factures, rapports, bons s'ouvrent en plein écran DANS l'application, plus dans un
   nouvel onglet ; boutons Télécharger / Envoyer / Fermer. Sur un téléphone, la page tient en largeur et se lit entière.
