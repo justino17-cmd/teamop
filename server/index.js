@@ -2066,7 +2066,14 @@ app.post('/api/sendmail', async (req, res) => {
          c'est compté (agrégé, sans nom). */
       const valide = (a) => /^[^@\s<>"]+@[^@\s<>"]+\.[^@\s<>"]+$/.test(String(a || ''));
       let replyTo = (brand && valide(brand.replyTo)) ? String(brand.replyTo) : undefined;
-      if (!replyTo) { const esp = espaceParT(String(teamId).slice(0, 80)); if (esp && valide(esp.email)) replyTo = String(esp.email); else { envoisSansReponse++; console.log('sendmail : document parti sans adresse de réponse (' + envoisSansReponse + ' depuis le démarrage)'); } }
+      if (!replyTo) { const esp = espaceParT(String(teamId).slice(0, 80)); if (esp && valide(esp.email)) replyTo = String(esp.email); }
+      /* ⛔ SANS ADRESSE DE RÉPONSE, RIEN NE PART (Justin, 5 novembre 2026 : un « Merci de votre devis » d'un client final est arrivé dans
+         contact@teamop.fr). Le message part de NOTRE adresse d'envoi : sans Reply-To, la réponse du client de l'entreprise revient chez
+         nous — elle n'y a rien à faire, et l'entreprise ne la voit jamais. Ce cas reste ouvert aux appareils d'avant la v797 (ils
+         n'envoient l'adresse de réponse que si elle a été réglée à la main) pour un espace sans adresse dans l'annuaire : on refuse, et on
+         le DIT (409 JSON : `srvMail` affiche la raison). Compté, sans nom. `tests/test-3244.js`. */
+      if (!replyTo) { envoisSansReponse++; console.log('sendmail : envoi refusé, aucune adresse de réponse pour l\'entreprise (' + envoisSansReponse + ' depuis le démarrage)');
+        return res.status(409).json({ error: 'aucune adresse pour les réponses de tes clients : ajoute l’e-mail de ton entreprise (Paramètres → Mon entreprise) ou connecte ta boîte mail', code: 'adresse_reponse' }); }
       const addr = (config.smtp.from || config.smtp.user).match(/<([^>]+)>/) ? (config.smtp.from || config.smtp.user).match(/<([^>]+)>/)[1] : (config.smtp.user);
       await mailerEnvoi({ pourEntreprise: String(teamId).slice(0, 80), from: '"' + name + '" <' + addr + '>', replyTo, ...msg });
     }

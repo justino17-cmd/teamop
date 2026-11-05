@@ -8464,7 +8464,7 @@ function courrierSource(){
   };
   return {
     signature:signature,
-    capacites:function(){ return signaturePrete().then(function(pret){ return {oauth:false,programmeServeur:false,signature:pret,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
+    capacites:function(){ return signaturePrete().then(function(pret){ return {oauth:false,programmeServeur:false,signature:pret,signatureMaintenance:true,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
       dossiers:['inbox','drafts','sent','archive','junk','trash'],destinataires:20,pj:{nombre:12,octets:12*1024*1024},
       journalEnvois:true,telechargerPiece:true,suivi:true,traduire:true,moi:MYNOM}; }); },
     /* « Traduire en français » (20 octobre 2026) : le texte d'UN message, au geste, traduit par le serveur (`/api/monitor/mail/traduire`) */

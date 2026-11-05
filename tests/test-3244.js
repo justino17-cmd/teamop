@@ -116,11 +116,18 @@ const entete = (m, nom) => { const x = new RegExp('^' + nom + ': (.*(?:\\n[ \\t]
   vrai('accepté et reçu', r.s === 200 && await attendre(2));
   v('Reply-To = l\'adresse fournie', entete((facteurSrv.recus[1] || {}).texte, 'Reply-To'), 'bureau@clim-banc-3244.fr');
   v('… toujours sans copie', (facteurSrv.recus[1] || {}).rcpt, [CLIENT]);
+  /* 5 novembre 2026 (Justin : un « Merci de votre devis » est arrivé dans contact@teamop.fr) : sans adresse de réponse, le document
+     partait quand même, de NOTRE adresse — la réponse du client final revenait chez nous. Désormais RIEN ne part, et c'est dit. */
+  const nAvant = facteurSrv.recus.length;
   r = await post('/api/sendmail', { teamId: T2, to: CLIENT, subject: 'Devis DV-QXZ-2', text: 'Votre devis.', brand: { name: 'Sans Adresse' } });
-  vrai('accepté et reçu', r.s === 200 && await attendre(3));
-  v('espace sans adresse dans l\'annuaire : aucun Reply-To (la réponse n\'est pas détournée vers TEAM OP par un faux en-tête)', entete((facteurSrv.recus[2] || {}).texte, 'Reply-To'), '');
-  v('… et sans copie', (facteurSrv.recus[2] || {}).rcpt, [CLIENT]);
-  vrai('le serveur le compte, sans nom', /document parti sans adresse de réponse \(1 depuis le démarrage\)/.test(journalSrv) && !/sans-adresse-3244|Sans Adresse/.test(journalSrv.split('\n').filter(l => /sans adresse de réponse/.test(l)).join('')));
+  v('⛔ espace sans adresse dans l\'annuaire, aucune fournie : refusé (409 adresse_reponse)', [r.s, r.j.code], [409, 'adresse_reponse']);
+  vrai('… et l\'écran saura dire quoi faire (Mon entreprise, ou connecter sa boîte)', /Mon entreprise/.test(r.j.error || '') && /boîte mail/.test(r.j.error || ''));
+  await dormir(400);
+  v('⛔ … rien n\'est parti : la réponse du client ne peut plus revenir chez TEAM OP', facteurSrv.recus.length - nAvant, 0);
+  vrai('le serveur le compte, sans nom', /envoi refusé, aucune adresse de réponse pour l'entreprise \(1 depuis le démarrage\)/.test(journalSrv) && !/sans-adresse-3244|Sans Adresse/.test(journalSrv.split('\n').filter(l => /aucune adresse de réponse/.test(l)).join('')));
+  r = await post('/api/sendmail', { teamId: T2, to: CLIENT, subject: 'Devis DV-QXZ-3', text: 'Votre devis.', brand: { name: 'Sans Adresse', replyTo: 'bureau@sans-adresse-banc.fr' } });
+  vrai('le même espace, avec une adresse fournie par l\'application : accepté et reçu', r.s === 200 && await attendre(nAvant + 1));
+  v('… Reply-To = l\'adresse fournie', entete((facteurSrv.recus[nAvant] || {}).texte, 'Reply-To'), 'bureau@sans-adresse-banc.fr');
 
   console.log('\n── 3244 · 3. le journal des e-mails ne garde rien du client final ──');
   await dormir(300);
