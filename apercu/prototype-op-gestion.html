@@ -1208,6 +1208,12 @@ body.dp-ouvert{overflow:hidden}
 .cr-abs{padding:12px 14px;display:flex;align-items:center;gap:10px;color:var(--doux);font-size:13.5px}
 .cr-glisse{font-size:12.5px;color:var(--doux)}
 .cr-autres{width:100%;justify-content:center}
+.cr-chiffres{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cr-chiffres span{display:inline-flex;align-items:baseline;gap:4px;padding:5px 10px;border-radius:999px;background:var(--surf-in);font-size:13px;color:var(--doux)}
+.cr-chiffres b{font-size:14px;color:var(--encre)}
+.cr-chiffres .o b{color:var(--orange)}.cr-chiffres .r b{color:var(--rouge)}
+.cr-prop{margin:4px 10px;border:1.5px dashed var(--trait2);border-radius:14px;overflow:hidden}
+.cr-prop > .cr-arr{border-top:0}
 .cr-rang{display:flex;flex-direction:column}
 .cr-rang button{display:flex;align-items:center;gap:10px;padding:10px 4px;border:0;border-top:1px solid var(--trait);background:none;color:var(--encre);font:inherit;text-align:left;cursor:pointer;min-height:52px;width:100%}
 .cr-rang button:first-child{border-top:0}
@@ -1764,27 +1770,28 @@ function vueCarte(){
   const Av = F ? A.filter(a => a.tech === crFocus || a.proche === crFocus) : A, autresConf = C.length - Cv.length;
   if (crVJour !== d) { crV = null; crVJour = d; }
   setTimeout(crBrancher, 0);
-  const tour = ({ t, ab, S, km, min, finJour, retour }) => {
+  const tour = ({ t, ab, S, km, min, finJour, retour }, props = [], sansTete = false) => {
     const ouvert = !crFocus || crFocus === t.id;
     if (ab) return `<div class="carte cr-t estompe" style="--tc:${t.c}"><div class="cr-abs">${avatar(t)}<span><b>${t.nom}</b><br>${absLib(ab)} ce jour-là : pas de tournée</span></div></div>`;
     if (!S.length) return `<div class="carte cr-t" style="--tc:${t.c}" data-crcible="${t.id}"><div class="cr-abs">${avatar(t)}<span><b>${t.nom}</b><br>Rien de prévu · disponible</span></div></div>`;
     return `<div class="carte cr-t ${ouvert ? '' : 'estompe'}" style="--tc:${t.c}" data-crcible="${t.id}">
-      <button type="button" class="cr-th" data-crfocus="${t.id}" aria-pressed="${crFocus === t.id}"><i class="cr-barre"></i>${avatar(t)}<span><b>${t.nom}</b><small>${S.filter(s => !s.bureau).length} passage${S.filter(s => !s.bureau).length > 1 ? 's' : ''} · ${crKmTxt(km)} · ${crMinTxt(min)} de route · retour vers ${crHTxt(finJour)}</small></span></button>
-      ${S.map(s => `<div class="cr-tr ${s.retard ? 'retard' : s.tr.km > 25 ? 'long' : ''}">${s.tr.km ? `${crMinTxt(s.tr.min)} · ${crKmTxt(s.tr.km)}${s.retard ? ` · arrivée ${crHTxt(s.arrivee)}, ${s.retard} min de retard` : s.tr.km > 25 ? ' · trajet long' : ''}` : 'sur place'}</div>
+      ${sansTete ? '<div style="height:6px"></div>' : `<button type="button" class="cr-th" data-crfocus="${t.id}" aria-pressed="${crFocus === t.id}"><i class="cr-barre"></i>${avatar(t)}<span><b>${t.nom}</b><small>${S.filter(s => !s.bureau).length} passage${S.filter(s => !s.bureau).length > 1 ? 's' : ''} · ${crKmTxt(km)} · ${crMinTxt(min)} de route · retour vers ${crHTxt(finJour)}</small></span></button>`}
+      ${[...S.map(s => ({ h:s.i.h, s })), ...props.map(i => ({ h:i.h, i }))].sort((a, b) => a.h.localeCompare(b.h)).map(({ s, i }) => i ? `<div class="cr-prop">${confierCorps(i, true)}</div>` : `<div class="cr-tr ${s.retard ? 'retard' : s.tr.km > 25 ? 'long' : ''}">${s.tr.km ? `${crMinTxt(s.tr.min)} · ${crKmTxt(s.tr.km)}${s.retard ? ` · arrivée ${crHTxt(s.arrivee)}, ${s.retard} min de retard` : s.tr.km > 25 ? ' · trajet long' : ''}` : 'sur place'}</div>
         <button type="button" class="cr-arr ${crSel === s.i.id ? 'on' : ''}" data-crsel="${s.i.id}" ${s.bureau ? '' : `draggable="true" data-crdrag="${s.i.id}"`}><span class="cr-n ${s.bureau ? 'dep' : ''}">${s.bureau ? '⌂' : s.n}</span><span class="cr-h">${s.i.h}</span><span class="cr-q"><b>${s.bureau ? esc(s.i.titre) : esc(CLIENTS[s.i.cli].nom)}</b><small>${s.bureau ? 'Au dépôt · ' + duree(s.i.dur) : esc(s.i.titre) + ' · ' + duree(s.i.dur)}</small></span>${s.bureau ? '' : `<span class="st ${ST[s.i.st][1]}">${ST[s.i.st][0]}</span>`}</button>`).join('')}
       <div class="cr-tr">${crMinTxt(retour.min)} · ${crKmTxt(retour.km)} · retour au dépôt</div><div style="height:8px"></div></div>`; };
-  const confier = i => { const P = crProches(i), p = P[0];
-    return `<div class="carte cr-t" style="--tc:${i.urgent ? 'var(--rouge)' : 'var(--orange)'}"><button type="button" class="cr-arr ${crSel === i.id ? 'on' : ''}" data-crsel="${i.id}" draggable="true" data-crdrag="${i.id}"><span class="cr-n">!</span><span class="cr-h">${i.h}</span><span class="cr-q"><b>${esc(CLIENTS[i.cli].nom)}</b><small>${esc(i.titre)} · ${duree(i.dur)}</small></span><span class="st ${i.urgent ? 'st-r' : 'st-o'}">${i.urgent ? 'Urgent' : 'À confier'}</span></button>
-      <div class="cr-conf">${p && p.ok ? `<span class="cr-pr">Le plus proche : <b>${p.t.nom}</b>, ${p.km < .3 ? p.ou : crKmTxt(p.km) + ' ' + p.ou}, libre à ${crH(i.h)}</span>` : '<span class="cr-pr">Personne n’est libre à cette heure : change l’heure ou choisis quand même.</span>'}
-        <div class="cr-g">${p && p.ok ? `<button type="button" class="btn" data-crconf="${i.id}|${p.t.id}">Confier à ${p.t.nom.split(' ')[0]}</button>` : ''}<button type="button" class="btn gris" data-crchoix="${i.id}">Choisir quelqu’un…</button></div></div></div>`; };
+  const confierCorps = (i, dansTournee) => { const P = crProches(i), p = P[0];
+    return `<button type="button" class="cr-arr ${crSel === i.id ? 'on' : ''}" data-crsel="${i.id}" draggable="true" data-crdrag="${i.id}"><span class="cr-n">!</span><span class="cr-h">${i.h}</span><span class="cr-q"><b>${esc(CLIENTS[i.cli].nom)}</b><small>${esc(i.titre)} · ${duree(i.dur)}</small></span><span class="st ${i.urgent ? 'st-r' : 'st-o'}">${i.urgent ? 'Urgent' : 'À confier'}</span></button>
+      <div class="cr-conf">${p && p.ok && dansTournee ? `<span class="cr-pr"><b>À lui confier ?</b> ${p.km < .3 ? aMaj(p.ou) : crKmTxt(p.km) + ' ' + p.ou} · libre à ${crH(i.h)}</span>` : p && p.ok ? `<span class="cr-pr">Le plus proche : <b>${p.t.nom}</b>, ${p.km < .3 ? p.ou : crKmTxt(p.km) + ' ' + p.ou}, libre à ${crH(i.h)}</span>` : '<span class="cr-pr">Personne n’est libre à cette heure : change l’heure ou choisis quand même.</span>'}
+        <div class="cr-g">${p && p.ok ? `<button type="button" class="btn" data-crconf="${i.id}|${p.t.id}">Confier à ${p.t.nom.split(' ')[0]}</button>` : ''}<button type="button" class="btn gris" data-crchoix="${i.id}">Choisir quelqu’un…</button></div></div>`; };
+  const confier = i => `<div class="carte cr-t" style="--tc:${i.urgent ? 'var(--rouge)' : 'var(--orange)'}">${confierCorps(i)}</div>`;
   const liste = `<div class="cr-l ${crSel && crDansPanneau() ? 'cr-l-det' : ''}" id="cr-l"><button type="button" class="cr-poignee" data-crfeuille="1" aria-label="Agrandir ou réduire la liste"></button>
       <div class="cr-det" id="cr-det"></div><div class="cr-lc" id="cr-lc">
-      ${F ? (() => { const np = F.S.filter(s => !s.bureau).length;
-        return `<div class="cr-resume"><b>${F.t.nom}</b><span class="gris">${aMaj(jlong(d))} · ${F.ab ? absLib(F.ab) + ' : pas de tournée' : np ? `${np} passage${np > 1 ? 's' : ''} · ${crKmTxt(F.km)} de route · retour vers ${crHTxt(F.finJour)}` : 'rien de prévu · disponible'}</span></div>`; })()
+      ${F ? (() => { const np = F.S.filter(s => !s.bureau).length, nr = F.S.filter(s => s.retard).length;
+        const ch = F.ab ? [] : [[np, np > 1 ? 'passages' : 'passage'], ...(Cv.length ? [[Cv.length, 'à lui confier', 'o']] : []), ...(nr ? [[nr, nr > 1 ? 'retards' : 'retard', 'r']] : []), ...(np ? [[crKmTxt(F.km) + ' · ' + crMinTxt(F.min), 'de route'], [crHTxt(F.finJour), 'retour au dépôt']] : [])];
+        return `<div class="cr-resume"><b>${F.t.nom}</b><span class="gris">${aMaj(jlong(d))}${F.ab ? ' · ' + absLib(F.ab) + ' : pas de tournée' : np ? '' : ' · rien de prévu, disponible'}</span>${ch.length ? `<div class="cr-chiffres">${ch.map(([v, l, c]) => `<span class="${c || ''}"><b>${v}</b> ${l}</span>`).join('')}</div>` : ''}</div>`; })()
         : `<div class="cr-resume"><b>${aMaj(jlong(d))}</b><span class="gris">${nb} intervention${nb > 1 ? 's' : ''} · ${T.filter(x => x.S.length).length} tournée${T.filter(x => x.S.length).length > 1 ? 's' : ''} · ${crKmTxt(km)} de route en tout</span></div>`}
-      ${Av.length ? `<div class="carte cr-al"><div class="cr-al-t">À regarder · ${Av.length}</div>${Av.map(a => `<button type="button" data-crsel="${a.id}"><span class="ic ${a.r ? 'r' : ''}">!</span><span>${a.t}<small>${a.s}</small></span></button>`).join('')}</div>` : '<div class="carte cr-al"><div class="cr-al-t">Rien à signaler</div></div>'}
-      ${Cv.map(confier).join('')}
-      ${Tv.map(tour).join('')}
+      ${F ? '' : Av.length ? `<div class="carte cr-al"><div class="cr-al-t">À regarder · ${Av.length}</div>${Av.map(a => `<button type="button" data-crsel="${a.id}"><span class="ic ${a.r ? 'r' : ''}">!</span><span>${a.t}<small>${a.s}</small></span></button>`).join('')}</div>` : '<div class="carte cr-al"><div class="cr-al-t">Rien à signaler</div></div>'}
+      ${F ? (F.S.length ? tour(F, Cv, true) : Cv.map(confier).join('')) : C.map(confier).join('') + T.map(x => tour(x)).join('')}
       ${F && autresConf ? `<button type="button" class="btn gris cr-autres" data-crfocus="">${autresConf} autre${autresConf > 1 ? 's' : ''} intervention${autresConf > 1 ? 's' : ''} à confier · Tout voir</button>` : ''}
       ${tel() ? '' : '<span class="cr-glisse">Astuce : glisse une intervention de la liste sur la tournée de quelqu’un d’autre pour la lui confier.</span>'}</div></div>`;
   const chips = T.filter(x => x.S.length).map(({ t }) => `<button type="button" class="cr-chip ${crFocus && crFocus !== t.id ? 'off' : ''}" style="--tc:${t.c}" data-crfocus="${t.id}" aria-pressed="${crFocus === t.id}"><i></i>${t.nom.split(' ')[0]}</button>`).join('');
