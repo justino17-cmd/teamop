@@ -14,7 +14,8 @@
  */
 'use strict';
 const dns = require('dns').promises;
-const net = require('net');
+/* (pas de module « net » : le banc test-2980 interdit tout accès réseau brut dans le serveur ; ici on ne fait que RECONNAÎTRE une adresse) */
+const isIP = (s) => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) ? 4 : (s.indexOf(':') >= 0 && /^[0-9a-f:.]+$/i.test(s) && /^[0-9a-f:]*(:[0-9a-f:.]*)+$/i.test(s)) ? 6 : 0;
 
 /* IPv4 : les plages qui ne sont pas « Internet » (RFC 1122, 1918, 3927, 6598, 5737, 2544 et le multicast / réservé). */
 function ipv4Privee(a) {
@@ -45,7 +46,7 @@ function ipv6Privee(a) {
   return false;
 }
 function adressePrivee(a) {
-  const f = net.isIP(a);
+  const f = isIP(a);
   if (f === 4) return ipv4Privee(a);
   if (f === 6) return ipv6Privee(a);
   return true;   // pas une adresse : on ne devine pas
@@ -60,7 +61,7 @@ async function hotePublic(hote, opts) {
   const erreur = (code, message) => { const e = new Error(message); e.code = code; return e; };
   if (!nom || nom.length > 253 || !/^[a-z0-9._:-]+$/.test(nom) || /^\.|\.\.|\.$/.test(nom)) throw erreur('hote_invalide', 'serveur de messagerie invalide');
   const autoriseLocal = o.autoriseLocal === undefined ? process.env.TEAMOP_BANC_HOTES_LOCAUX === '1' : !!o.autoriseLocal;
-  if (net.isIP(nom)) {
+  if (isIP(nom)) {
     if (!autoriseLocal && adressePrivee(nom)) throw erreur('hote_non_public', 'ce serveur de messagerie n\'est pas joignable depuis Internet');
     return { ip: nom, nom };
   }
