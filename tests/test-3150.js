@@ -86,7 +86,7 @@ const CONTACT = 'contact@banc-courrier.fr', JUSTIN = 'justin@banc-courrier.fr'; 
     /* … et la règle, lue dans le code (la forme, pas une phrase) */
     const SRC = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     v('§2 la copie cachée compare des adresses nues, à toutes les adresses de l\'équipe', [/const nus = String\(opts\.to \|\| ''\)\.split\(','\)\.map\(adrNue\)/.test(SRC), /!nus\.some\(a => internes\.has\(a\)\)\) o2\.bcc = moi/.test(SRC)], [true, true]);
-    v('§2 « Corrigé » marque l\'envoi AVANT le premier courriel (deux appuis ne font pas deux envois)', /if \(statut === 'corrige' && !issue\.mailEnvoye\) \{\s*issue\.mailEnvoye = true;/.test(SRC), true);
+    v('§2 « Corrigé » marque l\'envoi AVANT le premier courriel (deux appuis ne font pas deux envois)', /if \(statut === 'corrige' && prevenir && !issue\.mailEnvoye\) \{\s*issue\.mailEnvoye = true;/.test(SRC), true);
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }
   finally { await S.fin(); console.log(`════ test-3150 : ${ok} ✓ ${ko} ✗ ════`); process.exit(ko ? 1 : 0); }
 })();

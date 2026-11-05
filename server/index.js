@@ -9947,7 +9947,13 @@ app.post('/api/monitor/status', monAdmin, async (req, res) => {
   const ACTION = { nouveau: 'Remis en « nouveau »', encours: 'Prise en charge', corrige: 'Marqué corrigé', ignore: 'Ignoré' };
   issue.historique = (issue.historique || []).concat([{ ts: Date.now(), par: req.tourUser.nom, action: ACTION[statut], note: monStr(note, 300) }]).slice(-30);
   let mails = 0, mailsSimules = 0;
-  if (statut === 'corrige' && !issue.mailEnvoye) {
+  /* ⛔ PLUS DE COURRIEL AUTOMATIQUE QUAND UN INCIDENT PASSE « CORRIGÉ » (Justin, 5 novembre 2026, capture du Courrier à l'appui :
+     « il faudrait que ça arrête d'envoyer des mails à chaque truc corrigé »). Un client recevait « Votre application a été améliorée »
+     à CHAQUE incident fermé — six fois dans la même conversation chez Toka Clim, pour des coupures de réseau de son propre téléphone.
+     Le courriel ne part plus que sur une demande EXPLICITE (`prevenir: true` dans le corps, qu'aucun écran de la Tour n'envoie
+     aujourd'hui) : prévenir un client redevient un geste conscient, jamais l'effet de bord d'un changement de statut. */
+  const prevenir = (req.body || {}).prevenir === true;
+  if (statut === 'corrige' && prevenir && !issue.mailEnvoye) {
     /* ⛔ LA MARQUE AVANT LE PREMIER ENVOI (2 novembre 2026, « mails en double ») : posée APRÈS la boucle d'`await`, deux appuis rapprochés
        sur « Corrigé » passaient tous les deux ce test et chaque entreprise recevait le courriel deux fois. */
     issue.mailEnvoye = true;
