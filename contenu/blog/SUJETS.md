@@ -47,11 +47,11 @@ publication.
 - [x] planning des techniciens — 2026-10-28 — `planning-des-techniciens`
 - [x] gestion de stock camionnette — 2026-11-02 — `gestion-de-stock-camionnette`
 - [x] facture d'intervention — 2026-11-04 — `facture-d-intervention`
-- [ ] registre sanitaire 3D — obligations, contenu, contrôles, biocides — /logiciel-registre-sanitaire.html
 - [ ] logiciel plombier — ce qu'un plombier doit attendre d'un logiciel, devis, dépannage, SAV — /logiciel-plombier.html
+- [ ] registre sanitaire 3D — obligations, contenu, contrôles, biocides — /logiciel-registre-sanitaire.html
+- [ ] logiciel entreprise de nettoyage — passages récurrents, contrôle qualité, sites multiples — /logiciel-nettoyage.html
 - [ ] contrat d'entretien — chaudière, climatisation : obligations, relances, planification — /logiciel-chauffage-climatisation.html
+- [ ] logiciel électricien — interventions, conformité, devis — /logiciel-electricien.html
 - [ ] pointage des heures techniciens — feuille d'heures, durée légale, nuits, équipes — /logiciel-pointage.html
 - [ ] bon de commande fournisseur — mentions, suivi des livraisons, lien avec le stock — /logiciel-bons-de-commande.html
-- [ ] logiciel entreprise de nettoyage — passages récurrents, contrôle qualité, sites multiples — /logiciel-nettoyage.html
 - [ ] devis artisan — mentions obligatoires, durée de validité, acompte — /logiciel-devis-factures.html
-- [ ] logiciel électricien — interventions, conformité, devis — /logiciel-electricien.html
