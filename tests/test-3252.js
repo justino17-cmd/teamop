@@ -192,7 +192,8 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 4 min'); fini(1); }
     const m2 = smtp.recus[n0] || {};
     vrai('le devis part par la boîte Google, au seul client, en XOAUTH2 avec un jeton d\'accès', r2 !== false && JSON.stringify(m2.rcpt) === JSON.stringify([CLIENT.email]) && /user=patron\.qzw@gmail\.com\x01auth=Bearer ACCES-QZW-/.test(m2.auth || ''), { r2, rcpt: m2.rcpt, auth: (m2.auth || '').replace(/Bearer \S+/, 'Bearer …') });
     await A.page.evaluate(() => mailBoxesManage()); await A.page.waitForTimeout(900);
-    vrai('« Mes boîtes mail » : « connectée avec Google »', /connectée avec Google/.test(await modalTexte(A.page)));
+    { const t = await modalTexte(A.page);   // v803 : « Connectée · avec Google » (l'écran des boîtes a été refait)
+      vrai('« Mes boîtes mail » : la boîte est « Connectée », « avec Google »', /Connectée/.test(t) && /avec Google/.test(t) && !/À reconnecter/.test(t), t.slice(0, 300)); }
     await A.page.evaluate(() => closeModal());
 
     console.log('\n── 3252 · 3. l\'étape du blocage d\'envoi : le bouton, et l\'envoi qui repart ──');
@@ -223,7 +224,12 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 4 min'); fini(1); }
     await A.page.evaluate(() => mailBoxesManage()); await A.page.waitForTimeout(900);
     const gm = await modalTexte(A.page);
     if (process.env.CAPTURES) await A.page.screenshot({ path: path.join(process.env.CAPTURES, '3252-reconnecter.png') });
-    vrai('« Mes boîtes mail » : « À reconnecter » et un bouton « Reconnecter »', /À reconnecter/.test(gm) && await A.page.evaluate(() => Array.from(document.querySelectorAll('#overlay.open button')).some(b => /^Reconnecter$/.test(b.innerText.trim()) && /mailOauthDemarrer\('google'\)/.test(b.getAttribute('onclick') || ''))), gm.slice(0, 300));
+    /* v803 : le bouton appelle boiteReconnecter(id), qui relit le fournisseur de la boîte. On le CLIQUE, l'ouverture chez le fournisseur
+       remplacée le temps du clic par un témoin : ce qui compte est ce que le bouton lance, pas le texte de son onclick. */
+    const lance = await A.page.evaluate(() => { const b = Array.from(document.querySelectorAll('#overlay.open button')).find(x => /^Reconnecter$/.test(x.innerText.trim()));
+      if (!b) return 'aucun bouton'; const vrai0 = window.mailOauthDemarrer; let vu = null; window.mailOauthDemarrer = (f) => { vu = f; };
+      try { b.click(); } finally { window.mailOauthDemarrer = vrai0; } return vu; });
+    vrai('« Mes boîtes mail » : « À reconnecter » et un bouton « Reconnecter » qui relance l\'autorisation Google', /À reconnecter/.test(gm) && lance === 'google', { lance, gm: gm.slice(0, 300) });
     await A.page.evaluate(() => closeModal());
     v('aucune erreur JavaScript sur la page', A.erreurs, []);
     await A.ctx.close();
