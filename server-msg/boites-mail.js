@@ -51,6 +51,8 @@ const RE_HOTE = /^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/;
 const PORTS_IMAP = [993], PORTS_SMTP = [465, 587];
 const CTRL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
 const ligne = (s, max) => Array.from(String(s === undefined || s === null ? '' : s).replace(CTRL, '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim()).slice(0, max).join('');
+/* ⛔ un lien d'un autre genre qu'un lien web (« [javascript:…] » que le texte tiré d'un HTML garde entre crochets) ne traverse ni dans le corps ni dans l'aperçu : même si la page ne lie que le web, rien ne s'y prête */
+const sansLiensDangereux = (t) => String(t).replace(/\[(?:javascript|vbscript|data|file|blob):[^\]\n]*\]/gi, '[lien retiré]');
 const texte = (s, max) => Array.from(String(s === undefined || s === null ? '' : s).replace(CTRL, '').replace(/\r\n?/g, '\n').replace(/\n{4,}/g, '\n\n\n')).slice(0, max).join('');
 
 /* Les réglages des grands fournisseurs, par domaine (les serveurs publiés par chacun). `oauth` : la voie sans mot de passe, quand ce fournisseur la propose.
@@ -244,7 +246,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     try {
       const { simpleParser } = require('mailparser');
       const p = await simpleParser(source, { skipImageLinks: true, skipTextToHtml: true, skipTextLinks: true });
-      return ligne(p.text || '', APERCU_MAX);
+      return ligne(sansLiensDangereux(p.text || ''), APERCU_MAX);
     } catch (e) { return ''; }
   }
   async function listerMessages(boite) {
@@ -354,8 +356,7 @@ function creerBoitesMail({ config, stockage, quotas, horloge, journaliser, oauth
     try {
       const r = await lireUn(b, Number(req.params.uid), 'texte');
       const p = r.parse;
-      /* ⛔ un lien d'un autre genre qu'un lien web (« [javascript:…] » que le texte tiré d'un HTML garde entre crochets) ne traverse pas : même si la page ne lie que le web, rien ne s'y prête */
-      let t = texte(p.text || '', CORPS_MAX).replace(/\[(?:javascript|vbscript|data|file|blob):[^\]\n]*\]/gi, '[lien retiré]');
+      let t = sansLiensDangereux(texte(p.text || '', CORPS_MAX));
       if (r.tronque) t += '\n\n[Message très long : la suite n\'est pas affichée ici.]';
       const pj = (p.attachments || []).slice(0, 50).map((a, i) => ({ id: String(i + 1), nom: ligne(a.filename || 'pièce jointe', 150), taille: Math.max(0, Number(a.size) || 0), type: ligne(a.contentType || 'application/octet-stream', 80) }));
       res.json({ corps: t, pj });
