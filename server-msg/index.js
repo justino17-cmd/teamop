@@ -45,6 +45,8 @@ const { creerAppels } = require('./appels');
 const { creerVisio } = require('./visio');
 const { creerTranscription } = require('./transcription');
 const { noterJournal } = require('./admin');
+const { creerBoitesMail } = require('./boites-mail');
+const boitesMailOauth = require('./boites-mail-oauth');
 
 const VERSION = '1.9.0-mise-a-jour';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays', 'gabarit']);   // `gabarit` : le NOM d'un gabarit fixe de courriel de compte (inscription, existe, reinit, change), jamais une adresse   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -110,6 +112,10 @@ function demarrer(env = process.env) {
   const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push, agenda });
   /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
+  /* ⛔ LES BOÎTES MAIL D'UNE PERSONNE (6 novembre 2026) : la rubrique Courrier. INERTE sans `boitesMail` dans la configuration (503 `boites_mail_fermees`, `/api/config` dit `ouvert:false`, la page garde « Bientôt »). Le
+     crochet des bancs (`OPMSG_TEST_BOITES`, bêta seulement) fait parler le module à de faux fournisseurs sur 127.0.0.1. */
+  const boitesOauth = boitesMailOauth.creer({ config: config.boitesMail, surcharges: config.testBoites ? config.testBoites.oauth : {} });
+  const boitesMail = creerBoitesMail({ config, stockage, quotas, horloge: Date.now, journaliser, oauth: boitesOauth, crochet: config.testBoites });
   /* ⛔ LES APPELS À DEUX : le relais (identifiants éphémères, jamais de STUN d'un tiers), les signaux relayés à la seule session liée, le balayeur (sonneries échues, appareils perdus), les pushs. L'horloge est injectée. Voir `appels.js`. */
   /* le SERVEUR DE VISIO (LiveKit) : absent de la configuration, il n'existe pas et les salles restent en maille (`visio.js`). Le journal ne reçoit que des lignes sans donnée personnelle. */
   const visio = creerVisio({ visio: config.appels.visio, journal: (ligne) => journaliser('visio', { etat: ligne }) });
@@ -153,7 +159,7 @@ function demarrer(env = process.env) {
   const versionClient = creerVersionClient({ config, versionPage, journaliser });
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, versionPage, versionClient, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda, trajet, visio, transcription,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, boitesMail, appels, agenda, trajet, visio, transcription,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -187,6 +193,9 @@ function demarrer(env = process.env) {
       /* ⛔ LA TRANSCRIPTION : installée ou non ; si elle l'est, l'ouvrier répond-il (la sonde), et des COMPTEURS depuis le démarrage (faites, sans parole, ratées) et la file. Jamais un texte,
          une conversation, une personne, ni le chemin d'un programme. La surveillance crie si elle est installée et ne répond plus : les demandes partent alors en échec. */
       transcription: transcription.sante(),
+      /* ⛔ LES BOÎTES MAIL : ouvertes ou non, quel fournisseur d'autorisation est configuré (des booléens), et deux COMPTEURS depuis le démarrage (relevés ou envois en échec, boîtes passées « à reconnecter »). Jamais une
+         adresse, une personne, ni combien de boîtes sont reliées (c'est une activité, et /health est publique). */
+      boitesMail: boitesMail.sante(),
       facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },
     }),
   };

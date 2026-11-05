@@ -215,6 +215,8 @@ function creerHandlers(ctx) {
     transcription: { ouverte: !!(ctx.transcription && ctx.transcription.configure), duree_max_s: ctx.transcription && ctx.transcription.configure ? ctx.transcription.dureeMaxS() : 0 },
     /* le trajet (13 octobre 2026) : le calcul de l'heure de départ est-il ouvert ? (un booléen — jamais l'adresse du service qui calcule) */
     trajet: { ouvert: !!(ctx.trajet && ctx.trajet.ouvert()) },
+    /* les boîtes mail d'une personne (la rubrique Courrier) : le service est-il ouvert, et « Continuer avec Google / Microsoft » est-il configuré pour chacun — des booléens, jamais un identifiant d'application */
+    boitesMail: { ouvert: !!(ctx.boitesMail && ctx.boitesMail.ouvert()), oauth: ctx.boitesMail ? ctx.boitesMail.oauthDispo() : { google: false, microsoft: false } },
   });
   };
 
