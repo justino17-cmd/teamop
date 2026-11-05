@@ -13789,15 +13789,33 @@ function photoMarquer(pid,data){ return pid?('piece:'+pid+(data?(':'+data):'')):
    résolution d'une photo de 180 Ko en 11 ms, identique à elle-même (245 783 octets reçus =
    attendus), la photo SANS identifiant laissée intacte à côté. Détail et banc reproductible :
    `scratchpad/sonde-pieces-navigateur.md`. */
-async function photosResoudre(liste){
+/* ⛔ DEUX À LA FOIS, ET CHAQUE PHOTO SE MONTRE DÈS QU'ELLE ARRIVE (nuit du 5 novembre 2026, mesuré). Avant : une à une, et l'écran ne se
+   redessinait qu'APRÈS la dernière — huit photos de 265 Ko en mauvaise 4G (400 ms d'aller-retour, 1,6 Mbit/s) : tuiles vides pendant
+   14,7 s, la première photo étant pourtant là à 1,8 s. Maintenant la première se montre à 1,8 s (`onUne(k)` : le rang de la photo qui
+   vient d'arriver), et le deuxième ouvrier chevauche l'aller-retour du premier. Pas plus de deux : au-delà, la bande passante se partage
+   et la première photo arriverait plus tard sans que le total gagne rien. ⛔ Le rang est revérifié AU RETOUR : une photo supprimée
+   pendant l'attente décale les suivantes, et l'écriture à l'ancien rang aurait posé le contenu d'une photo sur une autre. */
+async function photosResoudre(liste,onUne){
   if(!Array.isArray(liste)) return 0;
-  let n=0;
+  const aFaire=[];
   for(let k=0;k<liste.length;k++){
     const m=PH_MARQUE.exec(String(liste[k]||''));
     if(!m||m[2]) continue;                 // pas un marqueur, ou contenu déjà présent
-    const r=await pieceLire(m[1]);
-    if(r&&r.dataUrl){ liste[k]=photoMarquer(m[1],r.dataUrl); n++; }
+    aFaire.push([k,m[1]]);
   }
+  let n=0, suivant=0;
+  const ouvrier=async()=>{
+    while(suivant<aFaire.length){
+      const [k,pid]=aFaire[suivant++];
+      const r=await pieceLire(pid);
+      if(!(r&&r.dataUrl)) continue;
+      const m2=PH_MARQUE.exec(String(liste[k]||''));
+      if(!m2||m2[1]!==pid||m2[2]) continue;   // la liste a bougé pendant l'attente : ce rang n'est plus cette photo
+      liste[k]=photoMarquer(pid,r.dataUrl); n++;
+      if(onUne){ try{ onUne(k); }catch(_e){} }
+    }
+  };
+  await Promise.all([ouvrier(),ouvrier()]);
   return n;
 }
 /* ══ LA PHOTO D'UN PLAN D'APPÂTAGE EST UNE PIÈCE COMME LES AUTRES (v744) ═════════════════════
@@ -27505,12 +27523,20 @@ function fic(n,sz=18){ const P={
    et il ne faut pas en ajouter : une photo recopiée dans la base repartirait dans le document
    de l'équipe à la première écriture, ce qui déferait tout le chantier en silence. */
 let _phEnCours=new Set();
+/* Une photo vient d'arriver : on pose son contenu sur SA tuile (repérée par son rang, `data-ph-ix`), sans redessiner la fiche — la fiche entière
+   se redessine une fois, à la fin, comme avant. Rien n'est écrit dans `db`. */
+function intPhotoMontrer(grille,id,champ,k){
+  try{ const g=document.getElementById(grille); if(!g||window._curIntId!==id) return;
+    const i=db.interventions.find(x=>x.id===id); const ph=i&&i[champ]&&i[champ][k]; if(!ph) return;
+    const src=photoSrc(ph); const im=g.querySelector('img[data-ph-ix="'+k+'"]'); if(im&&src) im.src=src;
+  }catch(_e){}
+}
 function intPhotosCombler(id){
   if(_phEnCours.has(id)) return;
   const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.photos)) return;
   if(!i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })) return;
   _phEnCours.add(id);
-  photosResoudre(i.photos).then(n=>{ _phEnCours.delete(id);
+  photosResoudre(i.photos,k=>intPhotoMontrer('int-detail-photos',id,'photos',k)).then(n=>{ _phEnCours.delete(id);
     if(n&&document.getElementById('int-detail-photos')) renderIntDetail(id); })
    .catch(()=>{ _phEnCours.delete(id); });
 }
@@ -27521,7 +27547,7 @@ function intPlansCombler(id){
   const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.plans)) return;
   if(!i.plans.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })) return;
   _phEnCours.add(k);
-  photosResoudre(i.plans).then(n=>{ _phEnCours.delete(k);
+  photosResoudre(i.plans,r=>intPhotoMontrer('int-detail-plans',id,'plans',r)).then(n=>{ _phEnCours.delete(k);
     if(n&&document.getElementById('int-detail-plans')) renderIntDetail(id); })
    .catch(()=>{ _phEnCours.delete(k); });
 }
@@ -27719,7 +27745,7 @@ function renderIntDetail(id){
       body=`${sub}
       <div id="int-detail-photos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
         ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="photoPlein(this,'Photo')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
+        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" data-ph-ix="${ix}" onclick="photoPlein(this,'Photo')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
       </div>
       <input type="file" id="int-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="intPhotoAdd(event,'${id}')">
       <input type="file" id="int-photo-file" accept="image/*" multiple style="display:none" onchange="intPhotoAdd(event,'${id}')">
@@ -27754,7 +27780,7 @@ function renderIntDetail(id){
     intPlansCombler(id);   // v744 : les photos de plan qui vivent sur le serveur arrivent après coup
     body=`<div id="int-detail-plans" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px">
       ${intEdit?`<div onclick="document.getElementById('int-plan-file').click()" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un plan</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un plan')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="photoPlein(this,'Plan')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
+      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" data-ph-ix="${ix}" onclick="photoPlein(this,'Plan')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
     </div>
     <input type="file" id="int-plan-file" accept="image/*" style="display:none" onchange="intPlanAdd(event,'${id}')">
     ${estMetier3D()?`<p style="color:var(--t3);font-size:12.5px">Plans du site : postes d'appâtage, zones traitées, accès… (photo ou capture du plan)</p>
