@@ -68,7 +68,7 @@ console.log('\n── 2695 · 2. La source du service, la VRAIE, contre un vrai 
     const BIENTOT = 'Bientôt : la connexion de vos boîtes arrive avec le serveur d’OP Courrier.';
     v('⛔ « Ajouter une boîte mail » dit « Bientôt » — le serveur d\'OP Courrier n\'existe pas encore', await rej(c.ajouterBoite({ email: 'a@b.fr', mdp: 'x' })), BIENTOT);
     v('…envoyer et retirer aussi (rien ne part, rien ne se retire)', [await rej(c.envoyer({ a: 'a@b.fr', objet: 'x', texte: 'y' })), await rej(c.retirerBoite('b1'))], [BIENTOT, BIENTOT]);
-    v('⛔ l\'adaptateur ne fait AUCUN appel réseau (ni vers OP MESSAGES, ni vers OP GESTION : il est vide)', mb.requetes.length, avant);
+    v('⛔ l\'adaptateur d\'un service FERMÉ ne fait AUCUN appel de boîte (ni vers OP GESTION : il est vide) — il LIT seulement /api/config du service lui-même, pour savoir qu\'il est fermé (6 novembre 2026, les boîtes mail)', [...new Set(mb.requetes.slice(avant))], ['GET /api/config']);
     vrai('(population) le service avait bien reçu des appels avant (la mesure ci-dessus compte quelque chose)', avant >= 1, avant);
     vrai('le code de l\'adaptateur ne contient aucun fetch ni aucun chemin d\'OP GESTION', !/fetch|\/api\/monitor|api\.teamop\.fr|server\//.test(nu(corps(SRC, 'function courrierSource('))) && corps(SRC, 'function courrierSource(').length > 400);
 

@@ -117,7 +117,10 @@ poser(rel(), 20); PA.luLe = Date.now() - 120000; poser(rel(), 300); PA.luLe = Da
 vrai('l’âge ajoute le temps écoulé depuis la lecture : 300 s + 2 min = « il y a 7 min »', etat().lib === 'Dernier relevé il y a 7 min', etat());
 poser(rel(), 20); vrai('moins d’une minute : « à l’instant »', etat().lib === 'Dernier relevé à l’instant');
 poser(rel(), 3 * 3600 + 120); vrai('⛔ plus de 2 h sans relevé : en AMBRE, « Le Mac ne répond plus depuis 3 h »', etat().lib === 'Le Mac ne répond plus depuis 3 h' && etat().e === 'retard', etat());
-poser(rel(), 7200); vrai('pile 2 h : pas encore en retard (au-delà seulement)', etat().e === 'ok');
+/* « Pile 2 h » se joue À LA SECONDE PRÈS SOUS la borne : `paAge` ajoute le temps écoulé depuis la lecture (Date.now() − PA.luLe), et sur
+   une machine de CI chargée une seule milliseconde entre `poser` et `etat` faisait passer 7200 s au-dessus de 7200 (échec du 5 novembre
+   2026, suites 1/6). Le cas « au-delà » est joué plus haut (3 h). */
+poser(rel(), 7199); vrai('juste sous 2 h : pas encore en retard (au-delà seulement)', etat().e === 'ok');
 poser(rel(), 2 * 86400 + 5); vrai('deux jours : « depuis 2 j »', etat().lib === 'Le Mac ne répond plus depuis 2 j');
 PA.echec = true; vrai('une relecture qui échoue garde le relevé et le DIT', /relecture impossible/.test(etat().lib)); PA.echec = false;
 poser(rel(), 300);

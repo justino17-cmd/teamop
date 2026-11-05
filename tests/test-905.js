@@ -111,6 +111,19 @@ const MATRICE = {
   'agenda.supprimer':   { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/supprimer', {}], codes: [404] },
   'agenda.fait':        { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/fait', { fait: true }], codes: [404] },
   'agenda.reporter':    { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/reporter', { dans: 10 }], codes: [404] },
+  /* les boîtes mail d'une personne (6 novembre 2026) : S pour lister, délier, lire, marquer ; V pour relier et envoyer ; P pour le retour de Google / Microsoft. Le service de ce banc n'a PAS de bloc `boitesMail` : une
+     session qui passe la garde reçoit le refus de configuration (503 `boites_mail_fermees`) — jamais une connexion vers un fournisseur ; le retour public répond sa page (200). La lecture, l'isolement et l'envoi
+     sont joués par `test-3270` (le vrai service, ouvert), le retour d'un fournisseur par `test-3271`. */
+  'boites.lister':         { ok: () => ['GET', '/api/boites-mail'], codes: [503] },
+  'boites.ajouter':        { ok: () => ['POST', '/api/boites-mail', { adresse: 'a@exemple.test', mdp: 'x' }], codes: [503] },
+  'boites.oauth.demarrer': { ok: () => ['POST', '/api/boites-mail/oauth/demarrer', { fournisseur: 'google' }], codes: [503] },
+  'boites.oauth.retour':   { ok: () => ['GET', '/api/boites-mail/oauth/retour?code=x&state=y'], codes: [200] },
+  'boites.supprimer':      { ok: () => ['POST', '/api/boites-mail/bm_' + '0'.repeat(32) + '/supprimer', {}], codes: [503] },
+  'boites.messages':       { ok: () => ['GET', '/api/boites-mail/bm_' + '0'.repeat(32) + '/messages'], codes: [503] },
+  'boites.message':        { ok: () => ['GET', '/api/boites-mail/bm_' + '0'.repeat(32) + '/messages/1'], codes: [503] },
+  'boites.piece':          { ok: () => ['GET', '/api/boites-mail/bm_' + '0'.repeat(32) + '/messages/1/pieces/1'], codes: [503] },
+  'boites.marquer':        { ok: () => ['POST', '/api/boites-mail/bm_' + '0'.repeat(32) + '/messages/1/marquer', { lu: true }], codes: [503] },
+  'boites.envoyer':        { ok: () => ['POST', '/api/boites-mail/bm_' + '0'.repeat(32) + '/envoyer', { a: 'a@exemple.test', objet: 'x', texte: 'y' }], codes: [503] },
   /* le trajet (13 octobre 2026) : S. Le calcul est joué SANS lieu (400 `lieu_vide`, la garde a passé) — jamais chez l'IGN, ni le faux d'un banc (le seau horaire d'une personne n'y est pas
      touché) ; Domicile et Travail se lisent (200) et se retirent (200, sans calcul). Le calcul lui-même est joué par `test-1005`. */
   'trajet.calcul':      { ok: () => ['POST', '/api/trajet', { mode: 'voiture', vers: '' }], codes: [400] },

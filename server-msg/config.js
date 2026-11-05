@@ -530,6 +530,67 @@ function trajetConfig(cfg, instance, env = {}) {
   return o;
 }
 
+/* ⛔ LES BOÎTES MAIL D'UNE PERSONNE (6 novembre 2026, `boites-mail.js`) : « je veux qu'ils puissent avoir leur boîte mail dans l'application ». SANS bloc `boitesMail`, le module est INERTE et le dit
+   (`/api/config` : `boitesMail.ouvert:false`, ses routes répondent 503 `boites_mail_fermees`) — la page garde « Bientôt », exactement comme avant. Le bloc est un geste de Justin :
+     "boitesMail": { "ouvert": true, "oauth": { "google": {clientId, clientSecret}, "microsoft": {clientId, clientSecret} }, "redirection": "https://…/api/boites-mail/oauth/retour" }
+   · `ouvert: true` allume la connexion par mot de passe d'application (IMAP/SMTP) ; `oauth.<fournisseur>` allume « Continuer avec Google / Microsoft » pour ce fournisseur seulement ;
+   · `redirection` : l'adresse que Google et Microsoft rappellent (à déclarer dans leur console). Absente, elle se déduit de la PREMIÈRE origine du service ; ni l'une ni l'autre : refusé.
+   ⛔ Les secrets des applications (`clientSecret`) se posent par `configurer-boites-mail.js` (saisie masquée), jamais à la main ni affichés. Ils se lisent mais ne se COPIENT ni ne se SÉRIALISENT (non
+   énumérables, comme le mot de passe du relais SMTP) : un `JSON.stringify(config)` oublié dans un journal ne les emporte pas. Un bloc à moitié posé refuse le démarrage. */
+function boitesMailConfig(cfg, instance, orig) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const brut = cfg.boitesMail;
+  if (brut === undefined || brut === null) return null;
+  if (typeof brut !== 'object' || Array.isArray(brut)) throw err('boitesMail doit être un objet');
+  for (const k of Object.keys(brut)) if (!['ouvert', 'oauth', 'redirection'].includes(k)) throw err('boitesMail.' + k + ' est inconnu');
+  if (brut.ouvert !== true) return null;   // « ouvert » n'est allumé que par `true` : toute autre valeur laisse le module fermé
+  const o = { ouvert: true, oauth: {}, redirection: null };
+  let red = brut.redirection;
+  if (red === undefined || red === null || red === '') {
+    if (!orig || !orig.length) throw err('boitesMail.redirection est requise quand le service n\'a pas d\'origine configurée');
+    red = orig[0] + '/api/boites-mail/oauth/retour';
+  }
+  if (typeof red !== 'string' || !new RegExp('^https?:' + '//[A-Za-z0-9.-]+(:\\d{1,5})?/api/boites-mail/oauth/retour$').test(red)) throw err('boitesMail.redirection doit se terminer par /api/boites-mail/oauth/retour');
+  if (/^http:/.test(red) && !new RegExp('^http:' + '//(127\\.0\\.0\\.1|localhost)[:/]').test(red)) throw err('boitesMail.redirection doit être en https (le http n\'est permis que sur 127.0.0.1)');
+  if (instance === 'prod' && !/^https:/.test(red)) throw err('boitesMail.redirection doit être en https en production');
+  o.redirection = red;
+  if (brut.oauth !== undefined && brut.oauth !== null) {
+    if (typeof brut.oauth !== 'object' || Array.isArray(brut.oauth)) throw err('boitesMail.oauth doit être un objet');
+    for (const [f, c] of Object.entries(brut.oauth)) {
+      if (!['google', 'microsoft'].includes(f)) throw err('boitesMail.oauth.' + f + ' : fournisseur inconnu (google ou microsoft)');
+      if (!c || typeof c !== 'object' || typeof c.clientId !== 'string' || typeof c.clientSecret !== 'string') throw err('boitesMail.oauth.' + f + ' doit porter clientId et clientSecret (deux textes)');
+      if (/\s/.test(c.clientId) || c.clientId.length < 8 || c.clientId.length > 200 || /\s/.test(c.clientSecret) || c.clientSecret.length < 8 || c.clientSecret.length > 400) throw err('boitesMail.oauth.' + f + ' : identifiant ou secret de forme invalide');
+      const r = { clientId: c.clientId };
+      Object.defineProperty(r, 'clientSecret', { value: c.clientSecret, enumerable: false, writable: false, configurable: false });
+      o.oauth[f] = r;
+    }
+  }
+  return o;
+}
+
+/* ⛔ LA PORTE DE TEST DES BOÎTES MAIL, comme celle du trajet : `OPMSG_TEST_BOITES` (une variable d'environnement, jamais le fichier) est un JSON { boucle: true, oauth: {google, microsoft}, serveurs: {imap, smtp}, delaiMs }
+   qui fait parler le service à de FAUX fournisseurs sur 127.0.0.1 — les adresses d'autorisation, les serveurs IMAP/SMTP, et la levée des gardes qui interdisent la boucle locale (`boites-mail.js`). REFUSÉE en
+   production : une variable posée par erreur ne doit jamais rouvrir la porte du réseau interne. Absente : `null`, rien ne change. */
+function boitesMailTest(env, instance) {
+  const brut = env && env.OPMSG_TEST_BOITES ? String(env.OPMSG_TEST_BOITES) : null;
+  if (!brut) return null;
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  if (instance !== 'beta') throw err('OPMSG_TEST_BOITES (porte de test des boîtes mail) est refusée en production');
+  let o; try { o = JSON.parse(brut); } catch (e) { throw err('OPMSG_TEST_BOITES n\'est pas du JSON'); }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) throw err('OPMSG_TEST_BOITES doit être un objet');
+  const local = new RegExp('^http:' + '//127\\.0\\.0\\.1:\\d{2,5}$');
+  const borne = (x, def) => Number.isInteger(x) && x >= 50 && x <= 60000 ? x : def;
+  const res = { boucle: o.boucle === true, oauth: {}, serveurs: null, delaiMs: Number.isInteger(o.delaiMs) && o.delaiMs >= 200 && o.delaiMs <= 60000 ? o.delaiMs : 15000, echeanceMs: borne(o.echeanceMs, 0) || 0, dnsMs: borne(o.dnsMs, 0) || 0 };
+  for (const f of ['google', 'microsoft']) if (o.oauth && o.oauth[f] !== undefined) { if (!local.test(String(o.oauth[f]))) throw err('OPMSG_TEST_BOITES.oauth.' + f + ' doit valoir http://127.0.0.1:<port>'); res.oauth[f] = String(o.oauth[f]); }
+  if (o.serveurs) {
+    for (const k of ['imap', 'smtp']) { const x = o.serveurs[k]; if (!x || x.hote !== '127.0.0.1' || !Number.isInteger(x.port) || x.port < 1 || x.port > 65535) throw err('OPMSG_TEST_BOITES.serveurs.' + k + ' doit valoir {hote:"127.0.0.1", port}'); }
+    res.serveurs = { imap: { hote: '127.0.0.1', port: o.serveurs.imap.port }, smtp: { hote: '127.0.0.1', port: o.serveurs.smtp.port } };
+  }
+  /* ⛔ la boucle locale ne s'ouvre QUE vers de faux serveurs désignés (127.0.0.1:<port>) : `boucle` sans `serveurs` laisserait un hôte quelconque, saisi par une personne, joindre le réseau interne */
+  if (res.boucle && !res.serveurs) throw err('OPMSG_TEST_BOITES.boucle exige OPMSG_TEST_BOITES.serveurs (les seuls serveurs que la boucle locale ouvre)');
+  return res;
+}
+
 /* ⛔ L'ENCADREMENT : qui a le droit d'afficher la page d'OP MESSAGES dans un cadre (`frame-ancestors`). Le CODE nomme les origines possibles ; la configuration n'en choisit pas d'autres, elle allume.
    Refuser (et non ignorer) : une valeur ignorée laisse le cadre fermé SANS que personne le sache — la Tour afficherait « ne peut pas s'afficher » et on chercherait la panne ailleurs. Jamais de joker :
    `https://*.teamop.fr` ouvrirait la page à tout sous-domaine, y compris un qui serait un jour repris par un tiers. Jamais `http` : une page servie en clair peut être réécrite en chemin, et
@@ -594,6 +655,8 @@ function charger(env = process.env) {
     transcription: transcriptionConfig(cfg, instance),
     trajet: trajetConfig(cfg, instance, env),
     courriel: courrielConfig(cfg, instance),
+    testBoites: boitesMailTest(env, instance),   // la porte de test des bancs (bêta seulement)
+    boitesMail: boitesMailConfig(cfg, instance, origines(cfg)),   // les boîtes mail d'une personne (`boites-mail.js`) : absente = INERTE ; un bloc à moitié posé refuse le démarrage
     admin: adminConfig(cfg, kek),   // l'administration de la console interne : absente = INERTE ; invalide = démarrage refusé (voir `admin.js`)
     pont: pontConfig(cfg, instance, (adminConfig(cfg, kek) || {}).empreinte),   // le pont des agents de la Tour (`pont-agents.js`) : absent = INERTE ; invalide, ou en production = démarrage refusé
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
@@ -614,4 +677,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, encadrementConfig, PARENTS_POSSIBLES, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, trajetConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };
+module.exports = { boitesMailConfig, boitesMailTest, charger, encadrementConfig, PARENTS_POSSIBLES, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, trajetConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };

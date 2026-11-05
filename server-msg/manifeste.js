@@ -121,6 +121,18 @@ const MANIFESTE = [
   { id: 'agenda.supprimer',  m: 'POST', p: '/api/agenda/:id/supprimer',              garde: 'S' },
   { id: 'agenda.fait',       m: 'POST', p: '/api/agenda/:id/fait',                   garde: 'S' },
   { id: 'agenda.reporter',   m: 'POST', p: '/api/agenda/:id/reporter',               garde: 'S' },
+  /* LES BOÎTES MAIL D'UNE PERSONNE (6 novembre 2026, `boites-mail.js`) : la rubrique « Courrier ». Lire, délier, marquer : S (la session suffit). RELIER une boîte et ENVOYER depuis elle : V (agir au nom d'une adresse exige
+     l'adresse confirmée). Le retour de Google / Microsoft est P : il arrive SANS cookie (`SameSite=Strict`), le `state` signé et à usage unique dit qui a demandé la connexion. Inerte (503) sans `boitesMail` dans la configuration. */
+  { id: 'boites.lister',         m: 'GET',  p: '/api/boites-mail',                                      garde: 'S' },
+  { id: 'boites.ajouter',        m: 'POST', p: '/api/boites-mail',                                      garde: 'V' },
+  { id: 'boites.oauth.demarrer', m: 'POST', p: '/api/boites-mail/oauth/demarrer',                       garde: 'V' },
+  { id: 'boites.oauth.retour',   m: 'GET',  p: '/api/boites-mail/oauth/retour',                         garde: 'P' },
+  { id: 'boites.supprimer',      m: 'POST', p: '/api/boites-mail/:id/supprimer',                        garde: 'S' },
+  { id: 'boites.messages',       m: 'GET',  p: '/api/boites-mail/:id/messages',                         garde: 'S' },
+  { id: 'boites.message',        m: 'GET',  p: '/api/boites-mail/:id/messages/:uid',                    garde: 'S' },
+  { id: 'boites.piece',          m: 'GET',  p: '/api/boites-mail/:id/messages/:uid/pieces/:p',          garde: 'S' },
+  { id: 'boites.marquer',        m: 'POST', p: '/api/boites-mail/:id/messages/:uid/marquer',            garde: 'S' },
+  { id: 'boites.envoyer',        m: 'POST', p: '/api/boites-mail/:id/envoyer',                          garde: 'V' },
   /* LE TRAJET (13 octobre 2026, `routes-trajet.js`) : l'heure à laquelle partir. Le calcul passe par le service — la page ne parle à aucun tiers ; Domicile et Travail sont à SOI (S). */
   { id: 'trajet.calcul',     m: 'POST', p: '/api/trajet',                            garde: 'S' },
   { id: 'moi.lieux',         m: 'GET',  p: '/api/moi/lieux',                         garde: 'S' },

@@ -28,7 +28,7 @@ const code = sansCommentairesJs(fs.readFileSync(FICHIER, 'utf8'));
 vrai('une fois les commentaires retirés il reste du code (sinon les motifs ci-dessous passeraient sur du néant)', code.split('\n').filter(l => l.trim()).length > 40);
 v('le module n\'a rien lancé en étant chargé (main ne tourne que lancé en direct)', typeof S.evaluer, 'function');
 
-const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12, echecs: 0 }, stripeEchecMin: 0, facturation: { mode: 'test', toutOuvert: false }, pieces: { n: 4, octets: 123456, illisibles: 0, effacementsRates: 0 }, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
+const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12, echecs: 0 }, stripeEchecMin: 0, facturation: { mode: 'test', toutOuvert: false }, boitesMail: { ouvert: true, google: true, microsoft: false, echecs: 0, reconnexions: 0 }, pieces: { n: 4, octets: 123456, illisibles: 0, effacementsRates: 0 }, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
 
 /* ══ 1. L'ÉVALUATION ═════════════════════════════════════════════════════════════════════════════════ */
 v('un /health sain ne fait rien crier', S.evaluer(SAIN, 'beta'), []);

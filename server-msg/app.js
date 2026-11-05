@@ -131,7 +131,10 @@ function construireApp(ctx) {
   const AVIS_VISIO = /^\/api\/visio\/avis\/?$/i;
   /* ⛔ …ni la PHOTO que le pont des agents dépose : son corps est une image BRUTE, lue au fil de l'eau par sa route (qui juge le type de la requête elle-même, 415). Un corps étiqueté JSON ne doit pas être avalé ici. */
   const AVATAR_PONT = /^\/api\/pont\/avatar\/?$/i;
-  app.use((req, res, next) => (req.method === 'POST' && (/^\/api\/pieces\/?$/i.test(req.path) || AVIS_VISIO.test(req.path) || AVATAR_PONT.test(req.path))) ? next() : lecteurJson(req, res, next));
+  /* ⛔ …ni l'ENVOI d'un courriel depuis une boîte reliée (`/api/boites-mail/<id>/envoyer`) : ses pièces jointes (base64, 7 Mo au plus) se lisent APRÈS la garde de session, par la route (`boites-mail.js`) —
+     un anonyme n'a jamais fait lire un octet. Le lecteur de 64 Ko ne la voit pas. */
+  const ENVOI_BOITE = /^\/api\/boites-mail\/bm_[0-9a-f]{32}\/envoyer\/?$/i;
+  app.use((req, res, next) => (req.method === 'POST' && (/^\/api\/pieces\/?$/i.test(req.path) || AVIS_VISIO.test(req.path) || AVATAR_PONT.test(req.path) || ENVOI_BOITE.test(req.path))) ? next() : lecteurJson(req, res, next));
 
   /* ── Une écriture : l'origine de l'application ET l'en-tête maison ────────────────────── */
   const PONT = /^\/api\/pont\/[a-z]+\/?$/i;
@@ -323,6 +326,7 @@ function construireApp(ctx) {
   H['health'] = (req, res) => res.json(ctx.sante());
   ctx.compteCourriel = installerCompteCourriel(H, ctx);   // le compte PERSO par adresse e-mail, « comme Discord » (numéro facultatif) — inscriptions fermées par défaut
   installerTelephone(H, ctx);   // le compte PERSO par numéro : ses gestionnaires et la déconnexion qui coupe aussi le jeton d'appareil
+  Object.assign(H, ctx.boitesMail.handlers);   // les boîtes mail d'une personne : la rubrique Courrier (`boites-mail.js` ; INERTE et 503 sans `boitesMail` dans la configuration)
   if (ctx.agenda) Object.assign(H, ctx.agenda.handlers);   // l'agenda personnel : des événements à soi, avec un rappel (gratuit)
   installerTrajet(H, ctx);      // le trajet : l'heure à laquelle partir (le calcul chez l'IGN, par le service), Domicile et Travail
   installerPieces(H, ctx);      // les pièces : déposer, lire, photo de profil, espace utilisé
