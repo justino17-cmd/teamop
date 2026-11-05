@@ -771,6 +771,25 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS appel_part_uid ON appel_part(uid)`,
     `PRAGMA user_version = 30`,
   ] },
+  /* ── 31 (6 novembre 2026) : LES BOÎTES MAIL D'UNE PERSONNE — « je veux qu'ils puissent avoir leur boîte mail dans l'application ». Une ligne par boîte reliée (IMAP/SMTP avec un mot de passe
+         d'application, ou Google / Microsoft par autorisation). TOUT ce qui permet d'ouvrir la boîte — l'adresse, le nom, les serveurs, le mot de passe OU le jeton de renouvellement — est dans
+         UN seul chiffré (`donnees_ch`, lié à `id|uid` : recopié sur la ligne d'une autre personne, il ne s'ouvre plus) ; seule l'empreinte de l'adresse est en clair, pour qu'une adresse ne soit
+         reliée qu'une fois par personne. Aucun message n'est jamais rangé ici : le service les lit chez le fournisseur, à la demande. Aucune colonne d'avant n'est touchée. ── */
+  { v: 31, sql: [
+    `CREATE TABLE IF NOT EXISTS boite_mail (
+       id TEXT PRIMARY KEY,
+       uid TEXT NOT NULL REFERENCES personne(id),
+       fournisseur TEXT NOT NULL CHECK (fournisseur IN ('imap','google','microsoft')),
+       adresse_h TEXT NOT NULL,
+       donnees_ch BLOB NOT NULL,
+       etat TEXT NOT NULL DEFAULT 'ok' CHECK (etat IN ('ok','a_reconnecter')),
+       cree INTEGER NOT NULL,
+       maj INTEGER NOT NULL
+     )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS boite_mail_adresse ON boite_mail(uid, adresse_h)`,
+    `CREATE INDEX IF NOT EXISTS boite_mail_uid ON boite_mail(uid)`,
+    `PRAGMA user_version = 31`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -857,6 +876,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const COTES_AGENDA = versionActuelle() >= 25;   // une base d'avant la migration 25 : aucun événement n'a de côté (la page les range d'elle-même)
   const RDV_AGENDA = versionActuelle() >= 27;     // une base d'avant la migration 27 : aucun rendez-vous, un seul rappel par événement
   const TRAJETS = versionActuelle() >= 28;        // une base d'avant la migration 28 : aucun trajet, ni Domicile ni Travail
+  const BOITES_MAIL = versionActuelle() >= 31;     // une base d'avant la migration 31 : aucune boîte mail reliée
   const TRAJETS_REUNION = versionActuelle() >= 29; // une base d'avant la migration 29 : aucun trajet de réunion (celui d'un rendez-vous, oui)
   const PROGRAMMES = versionActuelle() >= 22;     // une base d'avant la migration 22 : pas d'envoi programmé
   const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
@@ -2811,6 +2831,77 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return true;
     });
   }
+  /* ── LES BOÎTES MAIL D'UNE PERSONNE (migration 31) ───────────────────────────────────────────────────────────────────────────────────────────────────
+     ⛔ `boiteMailLire` est la SEULE fonction qui rend le secret (mot de passe d'application ou jeton de renouvellement), et seulement au service (jamais à une route : les gestionnaires
+     ne renvoient que `boiteMailVue`). Toute lecture se fait POUR UNE PERSONNE (`uid`) : la boîte d'une autre répond `null`, comme une boîte qui n'existe pas. */
+  const BOITES_MAX = 5;
+  const aadBoite = (id, uid) => id + '|' + uid;
+  const boiteVue = (r, d) => ({ id: r.id, fournisseur: r.fournisseur, adresse: d.adresse, nom: d.nom, etat: r.etat, cree: num(r.cree) });
+  function boiteOuvrir(r) {
+    const x = ouvrirOuNull('boite_mail', 'donnees_ch', aadBoite(r.id, r.uid), r.donnees_ch);
+    if (!x) return null;
+    try { const d = JSON.parse(x); return d && typeof d.adresse === 'string' ? d : null; } catch (e) { return null; }
+  }
+  /* `d` : { adresse, nom, imap:{hote,port,securite}, smtp:{hote,port,securite}, secret }. Une adresse déjà reliée par la MÊME personne est REMPLACÉE (reconnecter : un jeton neuf, l'état « ok ») et garde
+     son identifiant ; une sixième boîte est refusée (`trop_de_boites`). `null` : la personne n'est plus active. */
+  function boiteMailCreer(uid, fournisseur, d) {
+    if (!BOITES_MAIL) return null;
+    return tx(() => {
+      const p = Q('SELECT etat FROM personne WHERE id = ?').get(uid);
+      if (!p || p.etat !== 'actif') return null;
+      const h = scelleur.hmac('boite_mail', 'adresse_h', String(d.adresse).toLowerCase());
+      const t = horloge();
+      const ex = Q('SELECT id FROM boite_mail WHERE uid = ? AND adresse_h = ?').get(uid, h);
+      if (ex) {
+        Q('UPDATE boite_mail SET fournisseur = ?, donnees_ch = ?, etat = \'ok\', maj = ? WHERE id = ?').run(fournisseur, sceller('boite_mail', 'donnees_ch', aadBoite(ex.id, uid), JSON.stringify(d)), t, ex.id);
+        return { id: ex.id, remplacee: true };
+      }
+      if (num(Q('SELECT COUNT(*) AS n FROM boite_mail WHERE uid = ?').get(uid).n) >= BOITES_MAX) throw erreur('trop_de_boites');
+      const id = nouvelId('bm');
+      Q('INSERT INTO boite_mail(id, uid, fournisseur, adresse_h, donnees_ch, etat, cree, maj) VALUES(?, ?, ?, ?, ?, \'ok\', ?, ?)').run(id, uid, fournisseur, h, sceller('boite_mail', 'donnees_ch', aadBoite(id, uid), JSON.stringify(d)), t, t);
+      return { id, remplacee: false };
+    });
+  }
+  /* la liste d'une personne : SANS secret ni serveur. Une ligne illisible est comptée (`illisibles`) et sautée. */
+  function boitesMailDe(uid) {
+    if (!BOITES_MAIL) return [];
+    const out = [];
+    for (const r of Q('SELECT id, uid, fournisseur, donnees_ch, etat, cree FROM boite_mail WHERE uid = ? ORDER BY cree, id').all(uid)) {
+      const d = boiteOuvrir(r); if (d) out.push(boiteVue(r, d));
+    }
+    return out;
+  }
+  /* UNE boîte POUR SA PERSONNE, avec ses serveurs et son secret — au service seul. */
+  function boiteMailLire(uid, id) {
+    if (!BOITES_MAIL || typeof id !== 'string') return null;
+    const r = Q('SELECT id, uid, fournisseur, donnees_ch, etat, cree FROM boite_mail WHERE id = ? AND uid = ?').get(id, uid);
+    if (!r) return null;
+    const d = boiteOuvrir(r);
+    return d ? { id: r.id, fournisseur: r.fournisseur, etat: r.etat, cree: num(r.cree), ...d } : null;
+  }
+  function boiteMailSecretMaj(uid, id, secret) {
+    if (!BOITES_MAIL) return false;
+    return tx(() => {
+      const r = Q('SELECT id, uid, donnees_ch FROM boite_mail WHERE id = ? AND uid = ?').get(id, uid); if (!r) return false;
+      const d = boiteOuvrir(r); if (!d) return false;
+      d.secret = String(secret);
+      return num(Q('UPDATE boite_mail SET donnees_ch = ?, maj = ? WHERE id = ? AND uid = ?').run(sceller('boite_mail', 'donnees_ch', aadBoite(id, uid), JSON.stringify(d)), horloge(), id, uid).changes) > 0;
+    });
+  }
+  function boiteMailEtat(uid, id, etat) {
+    if (!BOITES_MAIL || !['ok', 'a_reconnecter'].includes(etat)) return false;
+    return num(Q('UPDATE boite_mail SET etat = ?, maj = ? WHERE id = ? AND uid = ?').run(etat, horloge(), id, uid).changes) > 0;
+  }
+  /* délier : la ligne part, et son identifiant est noté au registre des purges (`boite_mail`) — une restauration d'une archive d'avant ne RELIE pas une boîte que la personne a déliée. */
+  function boiteMailSupprimer(uid, id) {
+    if (!BOITES_MAIL) return false;
+    return tx(() => {
+      const ok = num(Q('DELETE FROM boite_mail WHERE id = ? AND uid = ?').run(id, uid).changes) > 0;
+      if (ok) Q(`INSERT INTO purge(objet, genre, quand) VALUES(?, 'boite_mail', ?)`).run(id, horloge());
+      return ok;
+    });
+  }
+  function boitesMailCompter() { return BOITES_MAIL ? num(Q('SELECT COUNT(*) AS n FROM boite_mail').get().n) : 0; }
   /* L'âge et les conditions acceptés à l'inscription (colonnes prévues dès la migration 1) : la version des conditions est gardée, pour savoir lesquelles la personne a lues. */
   function personneConsentir(id, cguV) { return num(Q('UPDATE personne SET age_ok = 1, cgu_v = ? WHERE id = ?').run(String(cguV).slice(0, 20), id).changes) > 0; }
   /* `change: true` : un CHANGEMENT (pas la création du compte) — noté au registre des purges dans la même transaction, pour qu'une restauration ne ramène pas l'ancien mot de passe (C5). */
@@ -3214,6 +3305,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (versionActuelle() >= 12) Q('DELETE FROM appareil_mel WHERE personne = ?').run(uid);
       if (versionActuelle() >= 13) Q('DELETE FROM evenement WHERE uid = ?').run(uid);   // son agenda personnel part avec elle
       if (TRAJETS) Q('DELETE FROM lieu_perso WHERE uid = ?').run(uid);                   // son domicile et son travail aussi
+      if (BOITES_MAIL) { Q(`INSERT INTO purge(objet, genre, quand) SELECT id, 'boite_mail', ? FROM boite_mail WHERE uid = ?`).run(horloge(), uid); Q('DELETE FROM boite_mail WHERE uid = ?').run(uid); }   // ses boîtes mail reliées (mots de passe et jetons) partent avec elle
       if (PROGRAMMES) Q('DELETE FROM programme WHERE auteur = ?').run(uid);              // ses messages programmés ne partiront pas
       Q('DELETE FROM lien WHERE par = ?').run(uid);
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
@@ -5270,6 +5362,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         programme: non(() => Q('SELECT 1 FROM programme LIMIT 1')),
         transcription: non(() => Q('SELECT 1 FROM transcription LIMIT 1')),
         lieu_perso: non(() => Q('SELECT 1 FROM lieu_perso LIMIT 1')),
+        boite_mail: non(() => Q('SELECT 1 FROM boite_mail LIMIT 1')),
       },
     };
   }
@@ -5416,7 +5509,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     rejeuAFaire, rejeuTermine, purgeLignes,   // le rejeu des purges par le SERVICE après une restauration (rejeu.js)
     telCodePoser, telCodeEssayer, telCodeSupprimer, telCodeCree,
     melCodePoser, melCodeEssayer, melCodeSupprimer, melCodeCree, melCodesElaguer, mdpLire, mdpPoser, personneConsentir, appareilMelConnu, appareilMelNoter, appareilsMelOublier,
-    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, evenementRappelPasser, exportEvenements, lieuxLire, lieuPoser,
+    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, evenementRappelPasser, exportEvenements, lieuxLire, lieuPoser, boiteMailCreer, boitesMailDe, boiteMailLire, boiteMailSecretMaj, boiteMailEtat, boiteMailSupprimer, boitesMailCompter,
     telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
@@ -5447,7 +5540,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote', 'programme', 'transcription', 'lieu_perso'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote', 'programme', 'transcription', 'lieu_perso', 'boite_mail'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -5500,6 +5593,7 @@ function lignesDe(d) {
     programme: n(() => d.prepare('SELECT COUNT(*) AS n FROM programme')),
     transcription: n(() => d.prepare('SELECT COUNT(*) AS n FROM transcription')),
     lieu_perso: n(() => d.prepare('SELECT COUNT(*) AS n FROM lieu_perso')),
+    boite_mail: n(() => d.prepare('SELECT COUNT(*) AS n FROM boite_mail')),
   };
 }
 
@@ -5559,6 +5653,7 @@ const GENRES_PURGE = {
   evenement: 'copie',                // un événement de l'agenda personnel SUPPRIMÉ : sa ligne part
   lieu: 'copie',                     // Domicile ou Travail RETIRÉ ou REMPLACÉ : objet `personne|clé|instant` — la ligne plus ancienne que l'instant part (le domicile retiré ne revient pas)
   reunion_trajet: 'copie',           // le trajet d'un participant pour une réunion RETIRÉ ou REMPLACÉ : objet `réunion|personne|instant` — le trajet plus ancien que l'instant part (son adresse de départ ne revient pas)
+  boite_mail: 'copie',               // une boîte mail DÉLIÉE (ou son compte effacé) : son identifiant — une archive d'avant ne relie pas de nouveau une boîte que la personne a retirée
   programme: 'copie',                // un message PROGRAMMÉ parti ou annulé : sa ligne part — une archive d'avant ne le ferait pas repartir
   mdp: 'copie',                      // un mot de passe CHANGÉ (« mot de passe oublié ») : objet `personne|date` — une copie dont le mot de passe est plus ancien le perd (il faudra le réinitialiser), et ses sessions tombent
   suppression_annulee: 'service',    // l'ANNULATION (la personne est revenue) : une copie d'avant ne doit pas ramener l'échéance — idem
@@ -5639,6 +5734,7 @@ function rejouerPurge(chemin, registre, opts) {
     const sessionsAvant = d.prepare('DELETE FROM session WHERE personne = ? AND cree <= ?');
     const retirerEvenement = a('evenement') ? d.prepare('DELETE FROM evenement WHERE id = ?') : null;   // (migration 13 : une archive plus ancienne n'a pas la table)
     const retirerProgramme = a('programme') ? d.prepare('DELETE FROM programme WHERE id = ?') : null;   // (migration 22)
+    const retirerBoiteMail = a('boite_mail') ? d.prepare('DELETE FROM boite_mail WHERE id = ?') : null;   // (migration 31)
     const retirerLieu = a('lieu_perso') ? d.prepare('DELETE FROM lieu_perso WHERE uid = ? AND cle = ? AND maj < ?') : null;   // (migration 28) : seulement ce qui est PLUS ANCIEN que le retrait
     /* le trajet d'une réunion (migration 29) : une archive d'un schéma plus ancien n'a pas la colonne — rien à y retirer, la ligne du registre est quand même recopiée */
     const colonneTrajetReu = tableReunion && d.prepare(`SELECT 1 AS n FROM pragma_table_info('reunion_invite') WHERE name = 'trajet_le'`).get() !== undefined;
@@ -5706,6 +5802,8 @@ function rejouerPurge(chemin, registre, opts) {
           if (retirerEvenement) bilan.evenementsRetires = (bilan.evenementsRetires || 0) + Number(retirerEvenement.run(r.objet).changes);
         } else if (genre === 'programme') {
           if (retirerProgramme) bilan.programmesRetires = (bilan.programmesRetires || 0) + Number(retirerProgramme.run(r.objet).changes);
+        } else if (genre === 'boite_mail') {
+          if (retirerBoiteMail) bilan.boitesMailRetirees = (bilan.boitesMailRetirees || 0) + Number(retirerBoiteMail.run(r.objet).changes);
         } else if (genre === 'lieu') {
           const [uid, cle] = String(r.objet).split('|');
           if (uid && cle && retirerLieu) bilan.lieuxRetires = (bilan.lieuxRetires || 0) + Number(retirerLieu.run(uid, cle, Number(r.quand) || 0).changes);

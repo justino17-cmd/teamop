@@ -61,6 +61,28 @@
     piece_inconnue: 'Cette pièce n\'existe plus (elle a expiré ou a été supprimée) : renvoie-la.',
     plage_invalide: 'La partie demandée du fichier n\'existe pas.',
     quota_stockage: 'Ton espace de stockage est plein : supprime des messages qui contiennent des photos ou des fichiers, puis réessaie.',
+    /* les boîtes mail d'une personne (la rubrique Courrier, 6 novembre 2026) */
+    boites_mail_erreur: 'Une erreur est survenue du côté du service. Réessaie dans un instant.',
+    boites_mail_fermees: 'La connexion des boîtes mail n\'est pas encore ouverte sur ce service.',
+    boite_adresse_invalide: 'Cette adresse e-mail n\'est pas valide.',
+    mot_de_passe_requis: 'Entre le mot de passe (d\'application) de cette boîte.',
+    identifiants_refuses: 'Le serveur de cette boîte a refusé l\'identifiant ou le mot de passe. (Gmail, iCloud et Yahoo demandent un mot de passe d\'application, pas celui du compte).',
+    serveur_introuvable: 'Ce serveur est introuvable : vérifie son nom, ou saisis les réglages du serveur de ta boîte.',
+    serveur_injoignable: 'Le serveur de cette boîte ne répond pas. Réessaie dans un instant.',
+    serveur_invalide: 'Ce nom de serveur n\'est pas valide.',
+    serveur_refuse: 'Ce serveur n\'est pas une adresse publique de courrier.',
+    port_refuse: 'Les ports acceptés sont le 993 pour la réception, le 465 ou le 587 pour l\'envoi (connexion chiffrée).',
+    boite_indisponible: 'Cette boîte n\'a pas pu être lue pour l\'instant. Réessaie dans un instant.',
+    a_reconnecter: 'Cette boîte doit être reconnectée : retire-la puis ajoute-la de nouveau.',
+    trop_de_boites: 'Tu as déjà cinq boîtes reliées : retires-en une avant d\'en ajouter.',
+    trop_de_connexions: 'Trop de relevés en même temps. Réessaie dans un instant.',
+    message_illisible: 'Ce message n\'a pas pu être lu.',
+    microsoft_sans_mot_de_passe: 'Microsoft refuse les mots de passe dans les applications : utilise « Continuer avec Microsoft ».',
+    oauth_non_configure: 'Cette connexion n\'est pas encore disponible.',
+    fournisseur_inconnu: 'Ce fournisseur ne se connecte pas par autorisation.',
+    boite_destinataire_invalide: 'Une adresse de destinataire est absente ou n\'est pas valide (cinq au plus).',
+    pieces_invalides: 'Une pièce jointe est illisible, ou il y en a trop (trois au plus).',
+    envoi_refuse: 'Le message n\'a pas pu partir : le serveur d\'envoi de cette boîte l\'a refusé.',
     /* les notifications push, l'export des données, la suppression du compte */
     service_push_refuse: 'Le service de notification de ce navigateur n\'est pas pris en charge par OP MESSAGES.',
     push_indisponible: 'Les notifications sont momentanément indisponibles sur ce service.',
@@ -364,6 +386,22 @@
     const api = {
       base, appel,
       config: () => appel('GET', '/api/config'),
+      /* les boîtes mail d'une personne (rubrique Courrier) : le service lit chez le fournisseur À LA DEMANDE, la page ne garde rien */
+      boitesMail: () => appel('GET', '/api/boites-mail'),
+      boiteAjouter: (corps) => appel('POST', '/api/boites-mail', corps),
+      boiteOauth: (fournisseur, email) => appel('POST', '/api/boites-mail/oauth/demarrer', email ? { fournisseur, email } : { fournisseur }),
+      boiteSupprimer: (id) => appel('POST', '/api/boites-mail/' + e(id) + '/supprimer'),
+      boiteMessages: (id) => appel('GET', '/api/boites-mail/' + e(id) + '/messages'),
+      boiteMessage: (id, uid) => appel('GET', '/api/boites-mail/' + e(id) + '/messages/' + e(uid)),
+      boiteMarquer: (id, uid, champs) => appel('POST', '/api/boites-mail/' + e(id) + '/messages/' + e(uid) + '/marquer', champs),
+      boiteEnvoyer: (id, corps) => appel('POST', '/api/boites-mail/' + e(id) + '/envoyer', corps),
+      boitePiece: async (id, uid, p) => {
+        let r;
+        try { r = await f(base + '/api/boites-mail/' + e(id) + '/messages/' + e(uid) + '/pieces/' + e(p), { method: 'GET', credentials: 'same-origin', cache: 'no-store' }); }
+        catch (er) { throw new ErreurApi('reseau', 0, 0); }
+        if (!r.ok) await jsonDe(r);
+        try { return await r.blob(); } catch (er) { throw new ErreurApi('reseau', 0, 0); }
+      },
       /* l'agenda personnel : des événements à soi (l'heure LOCALE et son fuseau ; le service convertit) */
       agenda: async (du, au) => (await appel('GET', '/api/agenda' + rq({ du, au }))).evenements,
       creerEvenement: async (champs) => (await appel('POST', '/api/agenda', champs)).evenement,

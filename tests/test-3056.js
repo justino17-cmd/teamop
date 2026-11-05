@@ -26,7 +26,7 @@ const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
   try {
     console.log('1. une base au schéma 29 (le code d\'avant)');
     const anciennes = MIGRATIONS.filter(m => m.v <= 29);
-    vrai('population : la liste des migrations d\'avant compte 29 migrations', anciennes.length === 29 && MIGRATIONS.length >= 30 && MIGRATIONS[MIGRATIONS.length - 1].v === 30);
+    vrai('population : la liste des migrations d\'avant compte 29 migrations', anciennes.length === 29 && MIGRATIONS.length >= 30 && MIGRATIONS.some(m => m.v === 30));
     const S0 = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => horloge.t, migrations: anciennes });
     vrai('(le code d\'après ouvre une base d\'avant : son schéma n\'est pas encore le 30 à cet instant)', lire('PRAGMA user_version')[0].user_version === 29);
     const mk = (n) => S0.personneCreer({ identifiant: 'beta:' + n + crypto.randomBytes(2).toString('hex'), prenom: n, nom: 'Banc', origine: 'beta', verifie: true });
@@ -53,7 +53,7 @@ const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
     vrai('… preuve : écrire un `g_…` dans la salle d\'avant est REFUSÉ par la base (clé étrangère)', refuse !== null && /FOREIGN KEY/i.test(refuse));
 
     console.log('2. le code d\'après l\'ouvre');
-    const S1 = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => horloge.t });
+    const S1 = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => horloge.t, migrations: MIGRATIONS.filter(m => m.v <= 30) });
     v('le schéma passe à 30', lire('PRAGMA user_version')[0].user_version, 30);
     vrai('⛔ une copie cohérente de la base d\'avant est gardée (`.avant-v30`) — et elle est au schéma 29', fs.existsSync(chemin + '.avant-v30') && (() => { const d = brut(chemin + '.avant-v30'); try { return d.prepare('PRAGMA user_version').get().user_version === 29; } finally { d.close(); } })());
     const apres = lire('SELECT appel, uid, role, session, statut, grade, entre, gen, premier, sorti, cumul FROM appel_part ORDER BY uid');
@@ -107,7 +107,7 @@ const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
     const avantRejeu = lire('SELECT * FROM appel_part ORDER BY appel, uid');
     vrai('population : des lignes de salle existent à rejouer (' + avantRejeu.length + ')', avantRejeu.length >= 1);
     { const d = brut(); try { d.exec('PRAGMA user_version = 29'); } finally { d.close(); } }
-    let echec = null; try { ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => horloge.t }); } catch (e) { echec = String(e && e.message); }
+    let echec = null; try { ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => horloge.t, migrations: MIGRATIONS.filter(m => m.v <= 30) }); } catch (e) { echec = String(e && e.message); }
     v('⛔ la migration RE-jouée (compteur remis à 29, la colonne et les tables déjà là) ne casse pas', echec, null);
     v('… le schéma repasse à 30, les lignes de salle sont intactes et la clé étrangère toujours absente', [lire('PRAGMA user_version')[0].user_version, lire('SELECT * FROM appel_part ORDER BY appel, uid'), /REFERENCES personne/.test(lire('SELECT sql FROM sqlite_master WHERE name = \'appel_part\'')[0].sql)], [30, avantRejeu, false]);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }

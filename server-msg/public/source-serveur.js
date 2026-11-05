@@ -4072,20 +4072,114 @@
     /* ⛔ combien de messages n'ont PAS encore quitté l'appareil (réseau coupé, service muet) : la page les perd quand elle repart de zéro ou qu'on la ferme — rien n'est rangé sur
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
-    /* ── OP COURRIER (18 octobre 2026) — la rubrique « Courrier » du côté Pro, sur la BÊTA seulement ──
-       ⛔ `courrierOuvert` : le SERVICE dit où l'on est (`instance`, rendue par `/api/config`), la page ne devine rien. Pas pu savoir : rien n'est proposé.
-       ⛔ `courrierSource` : l'adaptateur de données du module `opcourrier.js` (le contrat est écrit en tête de ce fichier-là). Il part VIDE et ne parle à AUCUN serveur : le serveur d'OP Courrier
-       n'existe pas encore, et OP MESSAGES ne se branche jamais sur celui d'OP GESTION (ni sur ses boîtes — `test-900`). `capacites()` est tout à faux, aucune boîte, aucun message, aucune donnée
-       d'exemple ; « Ajouter une boîte mail » dit « Bientôt » au lieu de faire semblant. Quand le serveur d'OP Courrier existera, c'est CE SEUL objet qu'on remplace. */
-    async function courrierOuvert() { try { const c = await A.config(); return !!c && c.instance === 'beta'; } catch (e) { return false; } }
+    /* ── OP COURRIER — la rubrique « Courrier » du côté Pro : les BOÎTES MAIL de la personne (6 novembre 2026) ──
+       ⛔ `courrierOuvert` : le SERVICE dit si la rubrique existe (`/api/config` : la bêta, ou `boitesMail.ouvert`) — la page ne devine rien. Pas pu savoir : rien n'est proposé.
+       ⛔ `courrierSource` : l'adaptateur de données du module `opcourrier.js` (le contrat est écrit en tête de ce fichier-là). Tant que le service ne dit PAS `boitesMail.ouvert`, il reste VIDE comme avant :
+       `capacites()` tout à faux, aucune boîte, « Ajouter une boîte mail » dit « Bientôt ». Ouvert, il parle aux routes `/api/boites-mail/*` du SERVICE D'OP MESSAGES — jamais à OP GESTION ni à ses boîtes
+       (`test-900`) : le service lit chez le fournisseur À LA DEMANDE, cette page ne garde aucun message sur l'appareil ni aucun mot de passe (le mot de passe saisi part une fois, dans la requête d'ajout).
+       ⛔ GOOGLE ET MICROSOFT se connectent par une PAGE PLEINE, pas une fenêtre : la page d'OP MESSAGES pose `Cross-Origin-Opener-Policy: same-origin`, qui coupe le lien avec une fenêtre ouverte qui va chez
+       Google (`window.closed` y vaut vrai tout de suite). On part chez le fournisseur, il revient sur le service, qui renvoie vers `/?boites=ok#courrier` — lu ici au chargement. */
+    const RETOUR_BOITES = (() => {
+      try {
+        const loc = racine.location; if (!loc || !loc.search) return null;
+        const q = new URLSearchParams(loc.search), b = q.get('boites');
+        if (b !== 'ok' && b !== 'erreur') return null;
+        return { etat: b, code: /^[a-z_]{1,40}$/.test(q.get('c') || '') ? q.get('c') : 'erreur' };
+      } catch (e) { return null; }
+    })();
+    let retourDit = false;
+    const PHRASES_RETOUR = { refuse: 'La connexion a été annulée chez le fournisseur.', state_rejoue: 'Ce lien de connexion a déjà servi ou a expiré : recommence.', state_expire: 'Ce lien de connexion a expiré : recommence.',
+      state_invalide: 'Ce lien de connexion n’est pas valide : recommence.', sans_renouvellement: 'L’accès durable n’a pas été accordé : recommence et accepte toutes les autorisations.', echange_refuse: 'Le fournisseur a refusé la connexion.',
+      adresse_inconnue: 'Le fournisseur n’a pas donné l’adresse de la boîte.', fournisseur_injoignable: 'Le fournisseur ne répond pas : réessaie dans un instant.', trop_de_boites: 'Tu as déjà cinq boîtes reliées : retires-en une avant d’en ajouter.',
+      navigateur_inconnu: 'La connexion doit se terminer dans le navigateur où tu l’as commencée : recommence là-bas.', oauth_non_configure: 'Cette connexion n’est pas encore disponible.', compte_inactif: 'Ton compte n’est plus actif.' };
+    async function courrierOuvert() { try { const c = await A.config(); return !!c && (c.instance === 'beta' || !!(c.boitesMail && c.boitesMail.ouvert)); } catch (e) { return false; } }
+    const idMessage = (id) => { const m = /^(bm_[0-9a-f]{32})\.([1-9][0-9]{0,9})$/.exec(String(id || '')); return m ? { boite: m[1], uid: m[2] } : null; };
+    const courrierOauthDe = (fid, email) => {
+      const id = String(fid || '');
+      if (id === 'gmail' || id === 'gworkspace') return 'google'; if (id === 'microsoft' || id === 'm365') return 'microsoft';
+      if (/@(gmail|googlemail)\.com$/i.test(email)) return 'google'; if (/@(outlook|hotmail|live|msn)\.[a-z.]+$/i.test(email)) return 'microsoft'; return '';
+    };
+    const base64Fichier = async (f) => { const b = new Uint8Array(await f.arrayBuffer()); let t = ''; for (let i = 0; i < b.length; i += 0x8000) t += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(t); };
     function courrierSource() {
-      const BIENTOT = 'Bientôt : la connexion de vos boîtes arrive avec le serveur d\u2019OP Courrier.';
+      const BIENTOT = 'Bientôt : la connexion de vos boîtes arrive avec le serveur d’OP Courrier.';
       const bientot = () => Promise.reject(new Error(BIENTOT));
-      return {
+      const videSource = {
         capacites: () => Promise.resolve({ oauth: false, programmeServeur: false, signature: false, marquage: false, deplacement: false, reglagesServeur: false, simulation: false, dossiers: ['inbox'], destinataires: 1 }),
         boites: () => Promise.resolve([]),
         messages: () => Promise.resolve([]),
         envoyer: bientot, ajouterBoite: bientot, retirerBoite: bientot
+      };
+      let cfg = null;            // { ouvert, oauth:{google, microsoft} } lu au service ; null tant qu'on ne sait pas
+      const lireCfg = async () => { try { const c = await A.config(); cfg = (c && c.boitesMail && c.boitesMail.ouvert === true) ? { ouvert: true, oauth: c.boitesMail.oauth || {} } : { ouvert: false, oauth: {} }; } catch (e) { cfg = null; } return cfg; };
+      const dispo = () => (cfg && cfg.oauth) || {};
+      const ouvertSrv = () => !!(cfg && cfg.ouvert);
+      return {
+        capacites: async () => {
+          await lireCfg();
+          if (!ouvertSrv()) return videSource.capacites();
+          const via = []; if (dispo().google === true) via.push('Google'); if (dispo().microsoft === true) via.push('Microsoft');
+          return { oauth: via.length > 0, oauthVia: via, programmeServeur: false, signature: false, marquage: true, deplacement: false, reglagesServeur: true, simulation: false, telechargerPiece: true,
+            dossiers: ['inbox'], destinataires: 5, pj: { nombre: 3, octets: 4 * 1024 * 1024 } };
+        },
+        boites: async () => {
+          if (!cfg) await lireCfg();
+          if (!ouvertSrv()) return [];
+          /* le retour d'une connexion qui a échoué chez le fournisseur : dit UNE fois, par une panne lisible du module (« Réessayer » relit) */
+          if (RETOUR_BOITES && RETOUR_BOITES.etat === 'erreur' && !retourDit) { retourDit = true; throw new Error('La connexion de la boîte n’a pas abouti. ' + (PHRASES_RETOUR[RETOUR_BOITES.code] || 'Réessaie dans un instant.')); }
+          const r = await A.boitesMail();
+          if (!r || !Array.isArray(r.boites)) throw new Error('réponse du service illisible');
+          return r.boites.map((b) => ({ id: b.id, email: b.adresse, nom: b.nom || String(b.adresse).split('@')[0], cote: 'pro', fournisseur: b.fournisseur }));
+        },
+        messages: async (q) => {
+          if (!ouvertSrv() || !q || q.dossier !== 'inbox') return [];
+          const r = await A.boiteMessages(q.boite);
+          if (!r || !Array.isArray(r.messages)) throw new Error('réponse du service illisible');
+          return r.messages.map((m) => ({ id: m.id, dossier: 'inbox', de: m.de, a: m.a, objet: m.objet, apercu: m.apercu, date: m.date, lu: m.lu, drapeau: m.drapeau, pj: m.pj, destinataires: m.destinataires,
+            ...(typeof m.automatique === 'boolean' ? { automatique: m.automatique } : {}) }));
+        },
+        lire: async (id) => {
+          const x = idMessage(id); if (!x) throw erreurLocale('introuvable');
+          const r = await A.boiteMessage(x.boite, x.uid);
+          if (!r || typeof r.corps !== 'string') throw new Error('réponse du service illisible');
+          return { corps: r.corps, pj: Array.isArray(r.pj) ? r.pj : [] };
+        },
+        marquer: async (id, champs) => {
+          const x = idMessage(id); if (!x) throw erreurLocale('introuvable');
+          const c = {}; if (champs && typeof champs.lu === 'boolean') c.lu = champs.lu; if (champs && typeof champs.drapeau === 'boolean') c.drapeau = champs.drapeau;
+          if (!Object.keys(c).length) return;
+          await A.boiteMarquer(x.boite, x.uid, c);
+        },
+        piece: async (idMessageTxt, idPiece) => {
+          const x = idMessage(idMessageTxt); if (!x) throw erreurLocale('introuvable');
+          return A.boitePiece(x.boite, x.uid, String(idPiece));
+        },
+        envoyer: async (m) => {
+          if (!ouvertSrv()) return bientot();
+          const pieces = []; for (const f of (m.pieces || [])) pieces.push({ nom: f.name, type: f.type || 'application/octet-stream', b64: await base64Fichier(f) });
+          const corps = { a: String(m.a || ''), objet: String(m.objet || ''), texte: String(m.texte || '') };
+          if (pieces.length) corps.pieces = pieces;
+          const rep = idMessage(m.enReponseA); if (rep && rep.boite === m.boite) corps.enReponseA = rep.uid;
+          await A.boiteEnvoyer(m.boite, corps);
+        },
+        ajouterBoite: async (p) => {
+          if (!cfg) await lireCfg();
+          if (!ouvertSrv()) return bientot();
+          const email = String((p && p.email) || '').trim();
+          const f = courrierOauthDe(p && p.fournisseur, email);
+          /* Google avec un mot de passe (d'application) reste le chemin du mot de passe ; Microsoft refuse tout mot de passe, donc c'est l'autorisation ou rien */
+          if (f && dispo()[f] === true && (f === 'microsoft' || !p.mdp)) {
+            const r = await A.boiteOauth(f, /^[^@\s]+@[^@\s]+$/.test(email) ? email : undefined);
+            if (!r || typeof r.url !== 'string' || !/^https?:\/\//.test(r.url)) throw new Error('réponse du service illisible');
+            racine.location.assign(r.url);
+            return new Promise(() => { /* la page part chez le fournisseur : elle revient par /?boites=ok#courrier */ });
+          }
+          const corps = { adresse: email, nom: String((p && p.nom) || ''), mdp: String((p && p.mdp) || '') };
+          if (p && p.serveurs && typeof p.serveurs === 'object') corps.serveurs = { imap: p.serveurs.imap, imapPort: p.serveurs.imapPort, smtp: p.serveurs.smtp, smtpPort: p.serveurs.smtpPort };
+          const r = await A.boiteAjouter(corps);
+          if (!r || !r.boite || !r.boite.id) throw new Error('réponse du service illisible');
+          return { id: r.boite.id, email: r.boite.adresse, nom: r.boite.nom, cote: 'pro' };
+        },
+        retirerBoite: async (id) => { if (!ouvertSrv()) return bientot(); await A.boiteSupprimer(id); }
       };
     }
     const source = {

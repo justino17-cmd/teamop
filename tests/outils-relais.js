@@ -18,7 +18,7 @@ function fauxRelais(opts) {
     etat.connexions++;
     sockets.add(brut); brut.on('close', () => sockets.delete(brut));
     brut.on('error', () => { /* un client qui coupe n'est pas une erreur du relais */ });
-    const s = { sock: brut, chiffre, tampon: '', mode: 'cmd', enveloppe: { de: null, a: [] }, authentifie: !o.auth, attente: null };
+    const s = { sock: brut, chiffre, tampon: '', mode: 'cmd', enveloppe: { de: null, a: [] }, authentifie: !o.auth && !o.xoauth2, attente: null };
     const dire = (l) => { if (!s.sock.destroyed) s.sock.write(l + '\r\n'); };
     function attacher(sock) {
       sock.on('data', (d) => { s.tampon += d.toString('latin1'); traiter(); });
@@ -52,6 +52,7 @@ function fauxRelais(opts) {
       if (u.startsWith('EHLO') || u.startsWith('HELO')) {
         dire('250-relais.invalid');
         if (o.tls === 'starttls' && !s.chiffre) dire('250-STARTTLS');
+        if (o.xoauth2) dire('250-AUTH XOAUTH2');   // (3270) un relais d'autorisation : `xoauth2: { utilisateur, jeton }` — le jeton d'ACCÈS, jamais un mot de passe
         if ((o.auth && (!o.exigerTls || s.chiffre)) || o.annoncerAuth) dire('250-AUTH PLAIN LOGIN');   // `annoncerAuth` : un relais qui OFFRE l'authentification sans l'exiger (un relais local)
         dire('250 SIZE 10485760'); return;
       }
@@ -65,7 +66,7 @@ function fauxRelais(opts) {
         attacher(chiffreSock); return;
       }
       if (u.startsWith('AUTH')) {
-        if (!o.auth) return dire('503 5.5.1 pas d\'authentification ici');
+        if (!o.auth && !o.xoauth2) return dire('503 5.5.1 pas d\'authentification ici');
         if (o.exigerTls && !s.chiffre) return dire('530 5.7.0 STARTTLS d\'abord');
         const verifier = (utilisateur, mdp) => {
           const bon = utilisateur === o.auth.utilisateur && mdp === o.auth.mdp;
@@ -73,6 +74,12 @@ function fauxRelais(opts) {
           dire(bon ? '235 2.7.0 authentifié' : '535 5.7.8 ' + TEXTE_RELAIS + ' identifiant refusé');
         };
         const arg = l.split(/\s+/);
+        if (arg[1] && arg[1].toUpperCase() === 'XOAUTH2' && o.xoauth2) {
+          const brutX = Buffer.from(arg[2] || '', 'base64').toString('utf8'), mU = /user=([^\u0001]*)\u0001/.exec(brutX), mT = /auth=Bearer ([^\u0001]*)\u0001/.exec(brutX);
+          const bonX = !!mU && !!mT && mU[1] === o.xoauth2.utilisateur && mT[1] === o.xoauth2.jeton;
+          etat.auths.push(bonX); s.authentifie = bonX;
+          return dire(bonX ? '235 2.7.0 authentifié' : '535 5.7.8 ' + TEXTE_RELAIS + ' jeton refusé');
+        }
         if (arg[1] && arg[1].toUpperCase() === 'PLAIN') {
           if (arg[2]) { const p = Buffer.from(arg[2], 'base64').toString('utf8').split('\u0000'); return verifier(p[1], p[2]); }
           dire('334 '); s.attente = (rep) => { const p = Buffer.from(rep, 'base64').toString('utf8').split('\u0000'); verifier(p[1], p[2]); }; return;
