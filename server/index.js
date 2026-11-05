@@ -2510,6 +2510,22 @@ function monEntFusion(liste) {
   return [...par.values()];
 }
 // réception des rapports des sentinelles (public, quota par IP via le limiteur global)
+/* ── LES TRANSITOIRES CONNUS : ils se résolvent seuls (rechargement, réseau qui revient), donc « Passager », hors de « à traiter ».
+   ⛔ ET LE MESSAGE « RÉSEAU » DES VERSIONS D'AVANT LA v800 (Justin, 5 novembre 2026, capture de la Tour : Toka Clim, deux dossiers
+   « api.teamop.fr injoignable sur /api/doc/attendre (Fetch is aborted) » ×8 et « (Load failed) » ×7, rouverts après « Corrigé »). Ce
+   texte n'existe plus depuis la v800 (`app.html`, sentinelle : un appel sans réponse ne se signale qu'après 2 minutes de panne, avec
+   « depuis plus de 2 min » dans le message) ; il ne vient donc que d'un appareil resté sur une ancienne version, qui signale chaque
+   coupure que la synchro renoue seule (écran verrouillé, passage wifi → 4G). Le serveur tournait pendant ce temps. Ce n'est pas une
+   panne à traiter : c'est un appareil à mettre à jour (exiger la version dans la Tour). Le message des versions récentes, lui, garde
+   sa règle : 2 minutes sans aucune réponse, page au premier plan, c'est peut-être une vraie panne — il reste à traiter.
+   `tests/test-3296.js`. */
+function monPassager(type, message) {
+  const m = String(message || '');
+  /* ⛔ une panne de 2 minutes vue par la v800 ou plus récente se traite, même quand Safari la nomme « Load failed » */
+  if (type === 'reseau' && /depuis plus de 2 min/.test(m)) return false;
+  if (/Failed to update a ServiceWorker|ServiceWorker.*(register|update).*(fail|error)|NetworkError when attempting to fetch|Load failed/i.test(m)) return true;
+  return type === 'reseau' && /^api\.teamop\.fr injoignable sur \//.test(m);
+}
 app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb' }), (req, res) => {
   try {
     let body = req.body;
@@ -2575,7 +2591,7 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       const interne = (!!entEmail && internes.indexOf(entEmail) >= 0)
         || espacesInternes.indexOf(String(monStr(r.espace, 80) || '').toLowerCase()) >= 0;
       // 3. Transitoires connus : ils se résolvent seuls au rechargement suivant.
-      const transitoire = /Failed to update a ServiceWorker|ServiceWorker.*(register|update).*(fail|error)|NetworkError when attempting to fetch|Load failed/i.test(message);
+      const transitoire = monPassager(type, message);
       const triage = veille ? 'veille' : (interne ? 'interne' : (transitoire ? 'transitoire' : ''));
       let issue = monIssues.find(i => i.signature === signature);
       if (!issue) {
@@ -2589,7 +2605,11 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       }
       issue.count += count; issue.lastTs = now;
       if (monStr(r.version, 12)) issue.version = monStr(r.version, 12);
-      if (issue.statut === 'corrige' || issue.statut === 'ignore') { if (issue.statut === 'corrige') { issue.statut = 'nouveau'; issue.mailEnvoye = false; } }   // un « corrigé » qui revient redevient nouveau
+      if (issue.statut === 'corrige' || issue.statut === 'ignore') { if (issue.statut === 'corrige') { issue.statut = triage || 'nouveau'; issue.mailEnvoye = false; } }   // un « corrigé » qui revient redevient nouveau — sauf ce que le trieur classe (voir `monPassager`)
+      /* ⛔ LE TRI VAUT AUSSI POUR UN DOSSIER DÉJÀ OUVERT. La signature porte le message : tous les rapports d'un dossier ont le même, donc
+         le tri est une propriété du DOSSIER. Un « Nouveau » ouvert avant une règle du trieur (ou rouvert par un « corrigé » qui revenait)
+         passe dans son classement au rapport suivant. « En cours » ne bouge pas : quelqu'un y travaille. */
+      else if (issue.statut === 'nouveau' && triage) { issue.statut = triage; issue.triage = triage; }
       let ent = issue.entreprises.find(e => e.nom === entNom);
       if (!ent) { ent = { nom: entNom, email: entEmail, count: 0, lastTs: now }; if (issue.entreprises.length < 60) issue.entreprises.push(ent); }
       ent.count += count; ent.lastTs = now; if (entEmail && !ent.email) ent.email = entEmail;
