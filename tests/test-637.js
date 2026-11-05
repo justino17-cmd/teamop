@@ -32,8 +32,12 @@ console.log('Quitter un espace remet l\'appareil VRAIMENT à neuf — les QUATRE
   v('et les bases mises de côté',/deleteDatabase\(P\+'cote'\)/.test(q),true);
   const appels=APP.split(/\bespaceQuitter\(\);/).length-1;
   /* Deux depuis le 28 septembre 2026 : le « Code espace » collé (teamopJoin) a été retiré — « que des liens pour les
-     connexions ». Restent le lien de connexion (teamopLienCheck) et la fermeture par la Tour. */
-  v('les deux portes d\'app.html y passent (le lien, la fermeture par la Tour)',appels,2);
+     connexions ». Restent le lien de connexion (teamopLienCheck) et la fermeture par la Tour. Plus, depuis la v802, une
+     troisième qui ne sert que la BÊTA : « Rejoindre l'espace de la bêta » (betaEspaceRejoindre, gardée par BETA_ESSAI). */
+  v('les deux portes d\'app.html y passent (le lien, la fermeture par la Tour), plus celle de la bêta',appels,3);
+  const rej=(APP.match(/function betaEspaceRejoindre\(\)\{[^\n]*\n[^\n]*\n[^\n]*/)||[''])[0];
+  v('… la troisième est bien « Rejoindre l\'espace de la bêta », fermée hors bêta, et passe par espaceQuitter()',
+    [/^function betaEspaceRejoindre\(\)\{ if\(!BETA_ESSAI\) return;/.test(rej), /espaceQuitter\(\);/.test(rej)],[true,true]);
   v('plus une seule sortie d\'espace qui retire la base à la main',
     (APP.match(/removeItem\(STORE_KEY\)/g)||[]).length,1);
   v('resetData() a disparu — elle rejouait le semis sur un appareil resté rattaché',

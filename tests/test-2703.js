@@ -55,7 +55,10 @@ vrai('…écrit les non lus devant le titre de la page (titreDocument)', /titreD
 vrai('…décide le thème comme OP GESTION (data-theme de <html> : dark → nuit, light → jour, sinon l\'appareil)', /document\.documentElement\.getAttribute\('data-theme'\)/.test(VUE_C) && /t==='dark'\?'nuit':t==='light'\?'jour':null/.test(VUE_C));
 vrai('…ne reconstruit pas le module sur un rafraîchissement automatique de la rubrique (il perdrait la lecture en cours)', /if\(vivant&&_courrierInst&&vivant\.isConnected\)\{ courrierAjuster\(\); return; \}/.test(VUE_C));
 vrai('⛔ en quittant l\'entreprise, la clé du module est vidée (des mails écrits ne restent pas sur un appareil rendu)', /'espace_admin','courrier'\]/.test(APP) && /const P=STORE_KEY\.split\('_'\)\[0\]\+'_';/.test(fonction(APP, 'espaceQuitter')));
-const SRC_A = fonction(APP, 'courrierSource') + '\n' + fonction(APP, 'courrierCorps');   // v797 : le n° de bon dans le texte lu (courrierCorps)
+const SRC_A = fonction(APP, 'courrierSource') + '\n' + fonction(APP, 'courrierCorps')
+  /* v802 : l'autorisation Google / Microsoft que le serveur annonce (`/health` → `oauth`), le fournisseur d'une adresse, le 403 de la bêta dit en geste */
+  + '\nconst OAUTH_NOMS={google:\'Google\',microsoft:\'Microsoft\'}; let _oauthDispo=null, _oauthDispoTs=0;\nasync ' + fonction(APP, 'oauthDispo')
+  + '\n' + fonction(APP, 'courrierOauthDe') + '\n' + fonction(APP, 'courrierOauth') + '\n' + fonction(APP, 'courrierRefusBeta');   // v797 : le n° de bon dans le texte lu (courrierCorps)
 vrai('(tranche trouvée) l\'adaptateur courrierSource', SRC_A.length > 1500);
 v('l\'adaptateur n\'appelle que les routes de la boîte mail d\'aujourd\'hui (et une seule nouvelle, la traduction du 20 octobre 2026, gardée par la clé de l\'entreprise)', Array.from(new Set(Array.from(SRC_A.matchAll(/\/api\/[a-z/]+/g)).map(m => m[0]))).sort(), ['/api/mail/traduire', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailboxes', '/api/replies', '/api/sendmail']);
 v('⛔ il lit le CODE avant le corps d\'un refus (`!r.ok` avant `r.json()`), toutes ses lectures', (SRC_A.match(/if\(!r\.ok\) throw await refus\(r,/g) || []).length, 5);   // + la traduction (20 octobre 2026)
@@ -122,7 +125,7 @@ function facteur() {
   /* la VRAIE fonction de la page : ses dépendances (l'adresse du serveur, l'équipe, l'en-tête de preuve) sont celles de la page, fournies ; `fetch` est le vrai, espionné */
   let cle = CLE_A; const requetes = [];
   const espion = (u, o) => { requetes.push((o && o.method || 'GET') + ' ' + new URL(u).pathname); return fetch(u, o); };
-  const sb = { PUSH_API: B, syncTeam: () => 'ent-a-9x', enteteEquipe: async (base) => Object.assign({}, base || {}, cle ? { 'x-teamop-kh': kh(cle) } : {}), mailBrandName: () => 'Entreprise A', fetch: espion, _courrierRep: null, BETA_ESSAI: false,
+  const sb = { PUSH_API: B, syncTeam: () => 'ent-a-9x', enteteEquipe: async (base) => Object.assign({}, base || {}, cle ? { 'x-teamop-kh': kh(cle) } : {}), mailBrandName: () => 'Entreprise A', fetch: espion, _courrierRep: null, BETA_ESSAI: false, AbortController, setTimeout, clearTimeout,
     Date, JSON, Promise, Array, String, Uint8Array, btoa, encodeURIComponent, Error, URL };
   vm.createContext(sb);
   vm.runInContext(SRC_A + '\n;this.source = courrierSource();', sb);

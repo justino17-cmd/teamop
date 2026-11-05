@@ -34293,6 +34293,14 @@ function mailAjusterVeiller(){
    la relisent. Ce que le serveur d'aujourd'hui ne sait pas faire (OAuth Google/Microsoft, envoi programmé application fermée, signature, dossiers IMAP au-delà de la réception,
    plusieurs destinataires, lu/non lu côté serveur) est dit « Bientôt » par le module — `capacites()` ci-dessous le déclare. */
 let _courrierInst=null, _courrierChargement=null, _courrierRep=null, _courrierVeille=false, _courrierRaf=0;
+/* Le 403 d'une route mail SUR LA BÊTA, dit en geste (voir `refus` ci-dessous) ; '' ailleurs, et en production. */
+function courrierRefusBeta(){ if(!BETA_ESSAI) return '';
+  let autre=''; try{ autre=(typeof betaEspaceAutre==='function')?betaEspaceAutre():''; }catch(e){}
+  let sansJeton=false; try{ sansJeton=!localStorage.getItem('elanB_beta_jeton'); }catch(e){}
+  if(autre){ if(!window._betaRejoindrePropose){ window._betaRejoindrePropose=true; setTimeout(()=>{ try{ if(typeof betaEspaceRejoindre==='function') betaEspaceRejoindre(); }catch(e){} },0); }
+    return 'Cet appareil est sur l’espace « '+autre+' », pas sur celui de la bêta : rejoins l’espace de la bêta (Paramètres → Outils de bêta) pour relier tes boîtes.'; }
+  if(sansJeton) return 'Ta connexion à la bêta date d’avant la mise à jour : déconnecte-toi puis reconnecte-toi une fois, et tes boîtes mail se relieront.';
+  return ''; }
 function courrierSource(){
   let boites=[];   // les dernières boîtes lues : une réponse sans boîte nommée se range dans la première
   /* un refus se LIT sur le code d'abord ; son corps (JSON ou text/plain) ne sert qu'à dire pourquoi, et peut ne pas se lire */
@@ -34300,11 +34308,7 @@ function courrierSource(){
     /* v802 — sur la BÊTA, un 403 ne parle pas de « clé » : il dit QUOI FAIRE (Justin, 5 novembre 2026, capture : « Boîtes mail illisibles —
        la clé de l'entreprise n'est pas reconnue »). Deux causes, et deux gestes : l'appareil est sur un autre espace (il le rejoint, Paramètres
        ou la fenêtre qui s'ouvre), ou sa session date d'avant la 801 et n'a pas de jeton d'accès (se déconnecter, se reconnecter une fois). */
-    if(BETA_ESSAI&&r.status===403){ let autre=''; try{ autre=(typeof betaEspaceAutre==='function')?betaEspaceAutre():''; }catch(e){}
-      let sansJeton=false; try{ sansJeton=!localStorage.getItem('elanB_beta_jeton'); }catch(e){}
-      if(autre){ if(!window._betaRejoindrePropose){ window._betaRejoindrePropose=true; setTimeout(()=>{ try{ if(typeof betaEspaceRejoindre==='function') betaEspaceRejoindre(); }catch(e){} },0); }
-        return new Error('Cet appareil est sur l’espace « '+autre+' », pas sur celui de la bêta : rejoins l’espace de la bêta (Paramètres → Outils de bêta) pour relier tes boîtes.'); }
-      if(sansJeton) return new Error('Ta connexion à la bêta date d’avant la mise à jour : déconnecte-toi puis reconnecte-toi une fois, et tes boîtes mail se relieront.'); }
+    if(r.status===403){ const m=courrierRefusBeta(); if(m) return new Error(m); }
     return new Error((d&&d.error)||(r.status===403?'accès refusé par le serveur — la clé de l’entreprise n’est pas reconnue':defaut+' (HTTP '+r.status+')')); };
   /* UNE lecture de /api/replies par relevé, partagée par les boîtes (le serveur rend toute la réception de l'entreprise d'un coup) */
   const reponses=()=>{ const t=Date.now(); if(_courrierRep&&t-_courrierRep.t<3000) return _courrierRep.p;
@@ -34314,7 +34318,11 @@ function courrierSource(){
     _courrierRep={t,p}; p.catch(()=>{ if(_courrierRep&&_courrierRep.p===p) _courrierRep=null; }); return p; };
   const base64=async(f)=>{ const b=new Uint8Array(await f.arrayBuffer()); let s=''; for(let i=0;i<b.length;i+=0x8000) s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000)); return btoa(s); };
   return {
-    async capacites(){ return {oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
+    /* v802 — « SE CONNECTER AVEC GOOGLE / MICROSOFT » DANS LE COURRIER (Justin, 5 novembre 2026 : « Ajouter une boîte mail » n'offrait ni
+       Google ni Microsoft). L'autorisation n'est déclarée que pour les fournisseurs que le serveur dit configurés (`/health` → `oauth`,
+       `oauthDispo`) : un fournisseur fermé garde le mot de passe d'application (Google) ou dit qu'il n'est pas encore ouvert (Microsoft). */
+    async capacites(){ const o=await oauthDispo(), via=Object.keys(OAUTH_NOMS).filter(k=>o[k]).map(k=>OAUTH_NOMS[k]);
+      return {oauth:via.length>0,oauthVia:via,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
       dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024},traduire:!BETA_ESSAI}; },   /* la bêta : pas de traduction — le texte d'un vrai mail partirait chez Anthropic, flux non couvert (`sous-traitance.html`) ; le serveur la refuse aussi */
     /* « Traduire en français » (20 octobre 2026) : le texte d'UN mail, au geste, traduit par le serveur (`/api/mail/traduire`, gardé par la clé de l'entreprise) */
     async traduire(texte){
@@ -34343,7 +34351,12 @@ function courrierSource(){
       if(!r.ok) throw await refus(r,'Envoi refusé'); },
     async ajouterBoite(p){
       const email=String(p.email||'').trim();
-      if(/@(hotmail|outlook|live|msn)\./i.test(email)) throw new Error('Microsoft (Hotmail / Outlook) refuse la connexion par mot de passe : cette adresse ne peut pas être connectée pour l’instant.');
+      /* ⛔ Rien n'est attendu avant `courrierOauth` : il ouvre la fenêtre d'autorisation, et Safari bloque une fenêtre ouverte hors du geste
+         (le module appelle cette fonction dans le clic). Google avec un mot de passe (d'application) reste le chemin du mot de passe ;
+         Microsoft refuse tout mot de passe, donc c'est l'autorisation ou rien. */
+      const f=courrierOauthDe(p.fournisseur,email), dispo=_oauthDispo||{};
+      if(f&&dispo[f]&&(f==='microsoft'||!p.mdp)) return courrierOauth(f,email);
+      if(f==='microsoft') throw new Error('La connexion Microsoft (Outlook, Hotmail, Microsoft 365) n’est pas encore ouverte sur le serveur, et Microsoft refuse les mots de passe : cette adresse ne peut pas être connectée pour l’instant.');
       const r=await fetch(PUSH_API+'/api/mailbox/connect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),email,pass:p.mdp,name:p.nom||mailBrandName()})});
       let d=null; try{ d=await r.json(); }catch(e){}
       if(!r.ok||!d||!d.ok) throw new Error((d&&d.error)||'Connexion refusée (HTTP '+r.status+')');
@@ -34354,6 +34367,14 @@ function courrierSource(){
       if(!r.ok) throw await refus(r,'Retrait refusé'); _courrierRep=null; }
   };
 }
+/* Le fournisseur d'autorisation d'une boîte : la tuile reconnue par le module (Gmail, Google Workspace, Outlook, Microsoft 365), sinon le
+   domaine de l'adresse. Une boîte d'entreprise sur un autre service rend '' : mot de passe. */
+function courrierOauthDe(fid,email){ const id=String(fid||'');
+  if(id==='gmail'||id==='gworkspace') return 'google'; if(id==='microsoft'||id==='m365') return 'microsoft';
+  if(/@(gmail|googlemail)\.com$/i.test(email)) return 'google'; if(/@(outlook|hotmail|live|msn)\.[a-z.]+$/i.test(email)) return 'microsoft'; return ''; }
+/* La connexion du Courrier par autorisation : le parcours de la v798 (`mailOauthDemarrer`), dont la fin REND la boîte au module au lieu de
+   l'annoncer : il l'ajoute, la nomme et la relit lui-même ; un échec revient dans sa feuille, qui le dit et reste ouverte. */
+function courrierOauth(f,email){ return new Promise((ok,ko)=>{ mailOauthDemarrer(f,{courrier:{ok,ko},email}).catch(e=>ko(e)); }); }
 /* v797 : la réponse d'un fournisseur rattachée à un bon (`bonNum`) porte son numéro dans le texte lu — on le lit, et la recherche le trouve. */
 function courrierCorps(x){ const t=String((x&&x.text)||''), n=String((x&&x.bonNum)||'').trim(); return n&&t.indexOf(n)<0?t+(t?'\n\n':'')+'Bon de commande '+n:t; }
 function courrierCharger(){
@@ -34644,37 +34665,48 @@ async function oauthBoutonsMontrer(){ const d=await oauthDispo();
     z.innerHTML=f.map(k=>`<div class="oauth-b-${k}" style="margin-bottom:${etape?8:12}px">${etape?'':`<div style="font-size:12.5px;font-weight:700;color:var(--t2);margin-bottom:6px">${k==='google'?'Gmail ?':'Outlook, Hotmail ou Microsoft 365 ?'}</div>`}<button class="btn block${etape?' ghost':''}" onclick="mailOauthDemarrer('${k}')">Se connecter avec ${OAUTH_NOMS[k]}</button></div>`).join('')
       +(etape?'':'<div style="font-size:12px;color:var(--t3);margin:0 0 12px;text-align:center">Pour les autres boîtes : l’adresse et le mot de passe, ci-dessous.</div>');
     z.style.display=''; }); }
-async function mailOauthDemarrer(f){
-  const nom=OAUTH_NOMS[f]; if(!nom) return false;
+async function mailOauthDemarrer(f,opts){
+  /* `opts.courrier` (v802) : le Courrier attend la boîte — chaque échec lui est RENDU (sa feuille le dit), au lieu d'un toast ; la fin
+     aussi (`oauthFinCourrier`). Sans lui : le parcours de la v798, tel quel. */
+  const cb=(opts&&opts.courrier)||null, email=String((opts&&opts.email)||'').trim();
+  const dire=m=>{ if(cb) cb.ko(new Error(m)); else toast(m); return false; };
+  const nom=OAUTH_NOMS[f]; if(!nom) return cb?dire('Ce fournisseur ne se connecte pas par autorisation'):false;
   let w=null; try{ w=window.open('','teamop-oauth','width=520,height=720'); }catch(e){ w=null; }
   if(w){ try{ w.document.title='OP GESTION'; w.document.body.style.cssText='font-family:system-ui,-apple-system,sans-serif;padding:24px;color:#334'; w.document.body.textContent='Ouverture de la connexion '+nom+'…'; }catch(e){} }
   const fermer=()=>{ try{ if(w&&!w.closed) w.close(); }catch(e){} };
+  const base=cb?loadMailboxes():null;   // le Courrier : les boîtes d'AVANT, pour reconnaître celle qui arrive
   let r=null, d={};
   try{ r=await fetch(PUSH_API+'/api/mailbox/oauth/start',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),fournisseur:f})});
     d=await r.json().catch(()=>({})); }
-  catch(e){ fermer(); toast('Serveur injoignable — rien n’a changé, réessaie dans un instant'); return false; }
+  catch(e){ fermer(); return dire('Serveur injoignable — rien n’a changé, réessaie dans un instant'); }
   if(!r.ok||!d||typeof d.url!=='string'||!/^https?:\/\//.test(d.url)){ fermer();
     if(r.status===503||(d&&d.code==='oauth_non_configure')){ _oauthDispo=Object.assign({},_oauthDispo||{},{[f]:false}); _oauthDispoTs=Date.now(); oauthBoutonsMontrer();
-      toast('La connexion '+nom+' n’est pas encore disponible — connecte la boîte avec son adresse et son mot de passe'); return false; }
-    toast('Connexion '+nom+' impossible : '+((d&&d.error)||('le serveur a répondu '+r.status))); return false; }
-  if(!w||w.closed){ if(confirm('Ton navigateur a bloqué la fenêtre de connexion '+nom+'.\n\nOuvrir la page '+nom+' ici ? Tu reviendras ensuite dans OP GESTION.')) location.href=d.url; return false; }
-  try{ w.location.href=d.url; }catch(e){ fermer(); toast('Connexion '+nom+' impossible : la fenêtre n’a pas pu s’ouvrir'); return false; }
-  oauthSuivre(w);
+      return dire('La connexion '+nom+' n’est pas encore disponible — '+(f==='microsoft'?'Microsoft refuse les mots de passe : cette adresse ne peut pas être connectée pour l’instant':'connecte la boîte avec son adresse et son mot de passe')); }
+    if(cb&&r.status===403){ const m=courrierRefusBeta(); if(m) return dire(m); }
+    return dire('Connexion '+nom+' impossible : '+((d&&d.error)||('le serveur a répondu '+r.status))); }
+  /* l'adresse tapée dans le Courrier pré-remplit le compte chez le fournisseur (login_hint : Google et Microsoft le lisent tous deux) */
+  const url=cb&&/^[^@\s]+@[^@\s]+$/.test(email)?d.url+(d.url.indexOf('?')<0?'?':'&')+'login_hint='+encodeURIComponent(email):d.url;
+  if(!w||w.closed){ if(confirm('Ton navigateur a bloqué la fenêtre de connexion '+nom+'.\n\nOuvrir la page '+nom+' ici ? Tu reviendras ensuite dans OP GESTION.')){ location.href=url; return false; }
+    return cb?dire('Ton navigateur a bloqué la fenêtre de connexion '+nom+' — autorise les fenêtres pour teamop.fr, puis recommence'):false; }
+  try{ w.location.href=url; }catch(e){ fermer(); return dire('Connexion '+nom+' impossible : la fenêtre n’a pas pu s’ouvrir'); }
+  oauthSuivre(w,cb,email,base);
   return true; }
 /* Le suivi d'UNE connexion : le message de la page de retour, ou la fenêtre fermée, ou le retour sur l'application — le premier qui
    arrive relit la liste ; les autres ne font plus rien. */
-function oauthSuivre(w){ if(_oauthSuivi) clearInterval(_oauthSuivi.t);
+function oauthSuivre(w,cb,email,base){ const prec=_oauthSuivi; if(prec){ clearInterval(prec.t); if(prec.cb&&!prec.conclu){ prec.conclu=true; prec.cb.ko(new Error('Une autre connexion a été lancée — celle-ci est abandonnée')); } }
   const avant=JSON.stringify((_mailboxes||[]).map(b=>b.id+':'+b.etat).sort());
-  const s={avant,w,debut:Date.now()};
+  const s={avant,w,debut:Date.now(),cb:cb||null,email:String(email||'').trim().toLowerCase(),base:base||null};
   s.t=setInterval(()=>{ let ferme=true; try{ ferme=!s.w||s.w.closed; }catch(e){}
-    if(ferme){ clearInterval(s.t); oauthFin(null,true); } else if(Date.now()-s.debut>15*60000) { clearInterval(s.t); if(_oauthSuivi===s) _oauthSuivi=null; } },1000);
+    if(ferme){ clearInterval(s.t); oauthFin(null,true); } else if(Date.now()-s.debut>15*60000) { clearInterval(s.t); if(_oauthSuivi===s) _oauthSuivi=null;
+      if(s.cb&&!s.conclu){ s.conclu=true; s.cb.ko(new Error('Connexion non terminée au bout de 15 minutes — rien n’a changé, recommence')); } } },1000);
   _oauthSuivi=s; }
 /* `ferme` : la fenêtre s'est fermée. Sans message ni fenêtre fermée (retour sur l'application), on ne fait que REGARDER : la connexion
    peut être encore en cours chez Google (un téléphone revient sur l'appli avant d'avoir fini), le suivi continue. */
 async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
   if(s&&s.lit&&!msg){ if(ferme) s.fermee=true; return; }   // une relecture est déjà en route : elle tiendra compte de la fermeture
   if(s) s.lit=true;
-  const avant=s?s.avant:'';
+  const lAvant=s&&s.base?await s.base.catch(()=>null):null;   // le Courrier : la liste lue au lancement (la sienne, pas `_mailboxes`, qu'il ne lit pas)
+  const avant=s&&s.base?JSON.stringify((Array.isArray(lAvant)?lAvant:[]).map(b=>b.id+':'+b.etat).sort()):(s?s.avant:'');
   await loadMailboxes();
   if(s){ s.lit=false; if(s.fermee) ferme=true; }
   if(s&&s.conclu) return;   // un autre chemin (le message de la page de retour, ou la fenêtre fermée) a déjà conclu
@@ -34682,6 +34714,7 @@ async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
   const change=Array.isArray(_mailboxes)&&apres!==avant;
   if(!msg&&!ferme&&!change) return;
   if(s) s.conclu=true; if(_oauthSuivi){ clearInterval(_oauthSuivi.t); _oauthSuivi=null; }
+  if(s&&s.cb) return oauthFinCourrier(s.cb,msg,lAvant,s.email);
   if(msg&&msg.ok===false){ toast('⚠️ '+(msg.message||'Connexion non terminée')+' — rien n’a changé'); return; }
   if(!Array.isArray(_mailboxes)){ toast('Impossible de vérifier la boîte pour l’instant — rouvre « Mes boîtes mail » dans un instant'); return; }
   if(!(msg&&msg.ok)&&!change) return;   // fenêtre fermée sans rien changer : on ne dit rien de faux
@@ -34689,6 +34722,17 @@ async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
   if(document.querySelector('#overlay.open #mb-email, #overlay.open #boite-etape')) closeModal();   // l'étape d'envoi fermée : l'envoi reprend
   try{ envoiBoiteCarteMaj(); }catch(e){}
   if(current==='boiteMail'){ _mailReplies=null; mailSel=null; views.boiteMail(); } }
+/* La fin d'une connexion lancée par le Courrier : la boîte arrivée (l'adresse demandée d'abord, sinon celle qui n'était pas là, sinon
+   celle qui a changé d'état), ou la raison pour laquelle il n'y en a pas — jamais « connectée » sur la seule fermeture de la fenêtre. */
+function oauthFinCourrier(cb,msg,lAvant,email){
+  if(msg&&msg.ok===false) return cb.ko(new Error((msg.message||'Connexion non terminée')+' — rien n’a changé'));
+  if(!Array.isArray(_mailboxes)) return cb.ko(new Error('Impossible de vérifier la boîte pour l’instant — rouvre la Boîte mail dans un instant'));
+  const connu=Array.isArray(lAvant), ids=new Set((lAvant||[]).map(b=>String(b.id))), etats=new Set((lAvant||[]).map(b=>b.id+':'+b.etat));
+  const neuve=b=>connu&&(!ids.has(String(b.id))||!etats.has(b.id+':'+b.etat)), meme=b=>!!email&&String(b.email||'').toLowerCase()===email;
+  const l=_mailboxes, b=l.find(x=>meme(x)&&(neuve(x)||!connu))||l.find(x=>connu&&!ids.has(String(x.id)))||l.find(neuve)||(msg&&msg.ok?l.find(meme):null);
+  if(!b) return cb.ko(new Error(msg&&msg.ok?'La connexion est revenue, mais aucune boîte n’est apparue — rouvre la Boîte mail dans un instant':'La fenêtre de connexion s’est fermée avant la fin — rien n’a changé'));
+  _courrierRep=null;
+  cb.ok({id:b.id,email:b.email||email,nom:b.name||String(b.email||email).split('@')[0],cote:'pro',importEnCours:true}); }
 window.addEventListener('message',e=>{ if(e.origin!==PUSH_API) return; const d=e.data;
   if(!d||typeof d!=='object'||d.type!=='teamop-boite') return; oauthFin({ok:!!d.ok,message:String(d.message||'').slice(0,200)}); });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&_oauthSuivi) setTimeout(()=>{ if(_oauthSuivi) oauthFin(null); },800); });

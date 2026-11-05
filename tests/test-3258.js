@@ -132,6 +132,14 @@ const monde = (o) => { const M = { console, JSON, String, Math, Date, Array, Num
   v('une synchro coupée exprès (sync_on=0) le reste', joue({ elanB_sync_team: 'elan-gestion-beta', elanB_sync_on: '0' }).elanB_sync_on, '0');
   vrai('rejoindre la bêta depuis un autre espace passe par espaceQuitter (on n\'emporte pas les données d\'une entreprise) et une confirmation',
     /function betaEspaceRejoindre\(\)\{[\s\S]{0,700}confirm\([\s\S]{0,400}espaceQuitter\(\);/.test(BETA));
-  vrai('la Boîte mail de la bêta dit QUOI FAIRE sur un 403 (autre espace / se reconnecter), plus « clé non reconnue » seule', /if\(BETA_ESSAI&&r\.status===403\)/.test(CODE) && /déconnecte-toi puis reconnecte-toi une fois/.test(CODE));
+  /* le 403 d'une route mail, dit en geste : la VRAIE courrierRefusBeta (partagée par la Boîte mail et la connexion Google/Microsoft), jouée */
+  { const RB = decoupe('function courrierRefusBeta(){');
+    const joueRB = (beta, autre, jeton) => { const S = { BETA_ESSAI: beta, window: {}, setTimeout: () => 0, betaEspaceAutre: () => autre, betaEspaceRejoindre() {},
+      localStorage: { getItem: k => k === 'elan_beta_jeton' ? jeton : null } }; vm.createContext(S); vm.runInContext(RB + ';this.r=courrierRefusBeta();', S); return S.r; };
+    vrai('(tranche trouvée) courrierRefusBeta', RB.length > 200, RB.length);
+    v('la Boîte mail de la bêta dit QUOI FAIRE sur un 403 : autre espace → le rejoindre ; sans jeton → se reconnecter ; en règle → rien ; production → rien',
+      [/rejoins l’espace de la bêta/.test(joueRB(true, 'teste', 'j')), /déconnecte-toi puis reconnecte-toi une fois/.test(joueRB(true, '', null)), joueRB(true, '', 'j'), joueRB(false, 'teste', null)],
+      [true, true, '', '']);
+    vrai('… et la source du Courrier comme la connexion par autorisation passent par elle sur un 403', /if\(r\.status===403\)\{ const m=courrierRefusBeta\(\); if\(m\) return new Error\(m\); \}/.test(CODE) && /if\(cb&&r\.status===403\)\{ const m=courrierRefusBeta\(\); if\(m\) return dire\(m\); \}/.test(CODE)); }
   console.log(`\n${ok} ✓  ${ko} ✗`); process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ banc interrompu : ' + (e && e.stack || e)); console.log(`\n${ok} ✓  ${ko + 1} ✗`); process.exit(1); });
