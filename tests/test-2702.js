@@ -128,7 +128,7 @@ vrai('les raccourcis clavier n\'écoutent QUE l\'arbre du module (sr.addEventLis
 console.log('\n4. Le contrat de l\'adaptateur : ce que le module appelle est écrit en tête du fichier, et inversement');
 const TETE = MOD.slice(0, MOD.indexOf('(function () {'));
 const appelles = Array.from(new Set(Array.from(CODE.matchAll(/\bSRC\.(\w+)/g)).map(m => m[1]))).sort();
-const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envois', 'envoyer', 'lire', 'lireMX', 'marquer', 'messages', 'piece', 'retirerBoite', 'signature', 'simuler', 'suivi', 'traduire'];
+const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envois', 'envoyer', 'gererBoites', 'lire', 'lireMX', 'marquer', 'messages', 'piece', 'retirerBoite', 'signature', 'simuler', 'suivi', 'traduire'];
 v('(population) les méthodes de la source appelées par le module', appelles, documentes);
 v('⛔ chacune est DÉCRITE dans le contrat, en tête du fichier', documentes.filter(m => !(m === 'signature' ? /^     signature\s+→/m : new RegExp('\\b' + m + '\\(')).test(TETE)), []);
 v('⛔ …et les trois méthodes des gestes d\'avant (envois, piece, suivi) ont leur PROPRE ligne de contrat (une simple mention au passage ne suffit pas)', ['envois', 'piece', 'suivi', 'traduire'].filter(m => !new RegExp('^     ' + m + '\\(', 'm').test(TETE)), []);

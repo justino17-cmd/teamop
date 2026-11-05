@@ -34279,10 +34279,11 @@ function bonMoisBascule(bid,mk){ _bonMoisOuvert[bid]=mk; renderBonsList(); }
    Gmail. On ne demande JAMAIS ses identifiants à quelqu'un parce qu'un serveur a répondu 403.
    `!r.ok` autant que le catch : un 403 en text/plain ne jette qu'au r.json(), un 403 en JSON
    ne jetterait pas du tout — les deux doivent mener au même endroit. */
-let mailTab='recu'; let _mailboxes=null; let _mailReplies=null; let mailSearch=''; let mailSel=null; let mailBoxFiltre='';
+let mailTab='recu'; let _mailboxes=null; let _mailboxesCode=0;   /* pourquoi la liste est inconnue (null) : le code HTTP du refus, 0 = le serveur n'a pas répondu */ let _mailReplies=null; let mailSearch=''; let mailSel=null; let mailBoxFiltre='';
 async function loadMailboxes(){ try{ const r=await fetch(PUSH_API+'/api/mailboxes?teamId='+encodeURIComponent(syncTeam()),{headers:await enteteEquipe()});
+  _mailboxesCode=r.status;
   if(!r.ok){ _mailboxes=null; return _mailboxes; }
-  const d=await r.json(); _mailboxes=Array.isArray(d.mailboxes)?d.mailboxes:null; }catch(e){ _mailboxes=null; } return _mailboxes; }
+  const d=await r.json(); _mailboxes=Array.isArray(d.mailboxes)?d.mailboxes:null; if(!_mailboxes) _mailboxesCode=-1; }catch(e){ _mailboxes=null; _mailboxesCode=0; } return _mailboxes; }
 /* _mailChargeEnCours empêche la boucle décrite plus bas, à l'endroit où la Réception se
    recharge. Il vit ici pour être lisible à côté de la fonction qu'il garde. */
 let _mailChargeEnCours=false;
@@ -34398,7 +34399,7 @@ function courrierSource(){
        Google ni Microsoft). L'autorisation n'est déclarée que pour les fournisseurs que le serveur dit configurés (`/health` → `oauth`,
        `oauthDispo`) : un fournisseur fermé garde le mot de passe d'application (Google) ou dit qu'il n'est pas encore ouvert (Microsoft). */
     async capacites(){ const o=await oauthDispo(), via=Object.keys(OAUTH_NOMS).filter(k=>o[k]).map(k=>OAUTH_NOMS[k]);
-      return {oauth:via.length>0,oauthVia:via,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
+      return {oauth:via.length>0,oauthVia:via,boutonsFournisseurs:true,gererBoites:true,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
       dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024},traduire:!BETA_ESSAI}; },   /* la bêta : pas de traduction — le texte d'un vrai mail partirait chez Anthropic, flux non couvert (`sous-traitance.html`) ; le serveur la refuse aussi */
     /* « Traduire en français » (20 octobre 2026) : le texte d'UN mail, au geste, traduit par le serveur (`/api/mail/traduire`, gardé par la clé de l'entreprise) */
     async traduire(texte){
@@ -34438,6 +34439,8 @@ function courrierSource(){
       if(!r.ok||!d||!d.ok) throw new Error((d&&d.error)||'Connexion refusée (HTTP '+r.status+')');
       _courrierRep=null;
       return {id:d.id,email:d.email||email,nom:p.nom,cote:'pro',importEnCours:true}; },
+    /* v803 — le lien « Gérer les boîtes » de la liste des comptes : la gestion est celle de l'application (liste, déconnexion, reconnexion), la MÊME que la carte « Boîtes mail » des Paramètres */
+    async gererBoites(){ mailBoxesManage(); },
     async retirerBoite(id){
       const r=await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),id})});
       if(!r.ok) throw await refus(r,'Retrait refusé'); _courrierRep=null; }
@@ -34710,12 +34713,68 @@ function mailFromOptions(){ const o=[];
   (_mailboxes||[]).forEach(b=>o.push({kind:'mb',id:b.id,email:b.email}));
   if(!o.length||(db.mailBoxes||[]).length) o.push({kind:'plat',id:'',email:''});
   return o; }
-async function mailBoxesManage(){ await loadMailboxes();
-  openModal(`<div class="modal-head"><h3>📬 Mes boîtes mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    ${(_mailboxes||[]).map(b=>`<div class="pl-row"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(b.email)}</div><div class="pl-meta">${b.etat==='a_reconnecter'?'<span style="color:var(--org);font-weight:700">⚠️ À reconnecter — l’autorisation a expiré ou a été retirée, rien ne part par elle</span>':(OAUTH_NOMS[b.type]?'connectée avec '+OAUTH_NOMS[b.type]+' · ':'')+'envoi + réception + historique dans l\'app'}</div></div>${b.etat==='a_reconnecter'?`<button class="btn sm" style="margin-right:6px" onclick="${OAUTH_NOMS[b.type]?`mailOauthDemarrer('${esc(b.type)}')`:`mailConnect('${esc(b.email)}')`}">Reconnecter</button>`:''}<button class="btn danger sm" onclick="mailDisconnect('${b.id}')">Déconnecter</button></div>`).join('')}
-    ${_mailboxes===null?'<div style="color:var(--t3);text-align:center;padding:16px">Liste indisponible — le serveur n\'a pas répondu.</div>':(!_mailboxes.length?'<div style="color:var(--t3);text-align:center;padding:16px">Aucune boîte connectée.</div>':'')}
-    <button class="btn block" style="margin-top:12px" onclick="mailConnect()">＋ Connecter une boîte</button>`);
-}
+/* ═══ v803 — GÉRER LES BOÎTES MAIL (Justin, 5 novembre 2026 : « un système de déconnexion des boîtes mail, parce que là, je sais pas comment on fait ») ═══
+   UNE gestion, DEUX portes : la carte « Boîtes mail » des Paramètres et le lien « Gérer les boîtes » du Courrier (`gererBoites`) peignent le MÊME `boitesHtml`.
+   ⛔ Les TROIS états de `_mailboxes` restent trois : une liste (ses lignes), une liste vide (« Aucune boîte reliée »), `null` (« impossible de vérifier » + Réessayer,
+   JAMAIS « aucune boîte » — on n'invite pas à reconnecter une boîte qui marche). ⛔ `fetch` ne jette pas sur un refus : `boiteDeconnecter` lit `r.ok` (403, 5xx) et DIT l'échec ;
+   le serveur répond `{ok:true}` même pour une boîte inconnue, donc la liste est RELUE avant de dire « déconnectée ».
+   Qui peut : l'administrateur, comme pour connecter (Paramètres → « E-mails à tes clients » ne montre ces boutons qu'à lui) ; les autres voient la liste, sans gestes.
+   Déconnecter ne touche PAS aux mails (ils restent dans la messagerie) : le serveur retire la liaison, et l'autorisation Google/Microsoft avec (`boiteOauth.oublier`). */
+function boitesPeutGerer(){ return !!(currentUser&&currentUser.role==='admin'); }
+function boitesRaison(){ if(_mailboxesCode===403){ let m=''; try{ m=courrierRefusBeta(); }catch(e){} return m||'accès refusé par le serveur'; }
+  return _mailboxesCode>0?'le serveur a répondu '+_mailboxesCode:'le serveur n’a pas répondu'; }
+function boitesAjoutHtml(d){
+  const bt='min-height:48px;justify-content:center;margin-bottom:8px';
+  const un=(k,lib,sous)=>d[k]?`<button class="btn block" style="${bt}" onclick="mailOauthDemarrer('${k}')">${lib}</button>`
+    :`<button class="btn block" style="${bt}" disabled aria-disabled="true">${lib} — pas encore disponible</button>`;
+  const why=(d.google?'':'La connexion Google n’est pas disponible pour l’instant : pour Gmail, passe par « Autre messagerie » avec un mot de passe d’application Google. ')
+    +(d.microsoft?'':'La connexion Microsoft n’est pas disponible pour l’instant, et Microsoft refuse les mots de passe : Outlook et Hotmail ne peuvent pas être connectés tant qu’elle ne l’est pas.');
+  return `<div style="border-top:1px solid var(--brd);padding-top:12px;margin-top:2px"><div class="dt-lbl" style="margin-bottom:8px">Connecter une boîte</div>
+    ${un('google','Se connecter avec Google')}${un('microsoft','Se connecter avec Microsoft')}
+    <button class="btn block ghost" style="${bt}" onclick="mailConnect()">Autre messagerie (iCloud, Orange, Free, OVH…)</button>
+    ${why?`<p style="font-size:12px;color:var(--t3);line-height:1.5;margin:0 0 6px">${why}</p>`:''}
+    <p style="font-size:12px;color:var(--t3);line-height:1.5;margin:0">iCloud : crée un « mot de passe pour app » sur account.apple.com (Connexion et sécurité → Mots de passe pour app) — ton mot de passe Apple habituel ne fonctionne pas.</p></div>`; }
+function boitesHtml(d){
+  const L=_mailboxes, gerer=boitesPeutGerer(), bt='min-height:44px';
+  if(L===null) return `<div role="alert" style="padding:12px 14px;border-radius:12px;border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);font-size:13px;line-height:1.55"><b style="color:var(--org)">Impossible de vérifier les boîtes pour l’instant</b><br>${esc(boitesRaison())}. Ce n’est pas « aucune boîte » : rien n’a été retiré.</div><button class="btn" style="${bt};margin-top:10px" onclick="boitesToutPeindre(true)">Réessayer</button>`;
+  const lignes=L.map(b=>{ const id=esc(String(b.id)), rec=b.etat==='a_reconnecter', f=OAUTH_NOMS[b.type]||'';
+    return `<div class="bx-ligne" data-bx="${id}" style="padding:12px 0;border-top:1px solid var(--brd)"><div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:20px;line-height:1.2" aria-hidden="true">📧</span><div style="min-width:0;flex:1"><div style="font-weight:700;overflow-wrap:anywhere">${esc(b.email)}</div>
+      <div style="font-size:12.5px;margin-top:2px;line-height:1.5;color:var(--t3)">${rec?'<b style="color:var(--org)">À reconnecter</b> — l’autorisation a expiré ou a été retirée, rien ne part par cette boîte':'<b style="color:var(--green)">Connectée</b>'}${f?' · avec '+f:' · adresse et mot de passe'}</div></div></div>
+      ${gerer?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${rec?`<button class="btn" style="${bt}" onclick="boiteReconnecter('${id}')">Reconnecter</button>`:''}<button class="btn danger" style="${bt}" onclick="boiteDeconnecter('${id}')">Déconnecter</button></div>`:''}</div>`; }).join('');
+  return (L.length?`<div>${lignes}</div>`:`<div style="padding:6px 0 14px;color:var(--t2);font-size:13.5px">Aucune boîte reliée à OP GESTION.</div>`)
+    +(gerer?boitesAjoutHtml(d):'<p style="font-size:12.5px;color:var(--t3);line-height:1.5;margin:10px 0 0">Seul l’administrateur connecte ou déconnecte une boîte ici.</p>'); }
+async function boitesPeindre(el,relire){ if(!el) return; const mon=(el._bx=(el._bx||0)+1);
+  if(relire){ el.setAttribute('aria-busy','true'); await loadMailboxes(); }
+  const d=_mailboxes!==null&&boitesPeutGerer()?await oauthDispo():{};
+  if(mon!==el._bx||!document.body.contains(el)) return;
+  el.removeAttribute('aria-busy'); el.innerHTML=boitesHtml(d); }
+async function boitesToutPeindre(relire){ const zs=[...document.querySelectorAll('.bx-zone')];
+  if(relire){ zs.forEach(z=>z.setAttribute('aria-busy','true')); await loadMailboxes(); }
+  zs.forEach(z=>boitesPeindre(z,false)); }
+/* Le Courrier ouvert se relit : une boîte retirée (ou reconnectée) doit disparaître (paraître) de sa liste sans qu'on le rouvre. */
+function courrierRelire(){ _courrierRep=null; if(current==='boiteMail'&&_courrierInst){ try{ _courrierInst.rafraichir(); }catch(e){} } }
+let _boiteOcc=false;
+async function boiteDeconnecter(id){ if(_boiteOcc||!boitesPeutGerer()) return;
+  const b=(_mailboxes||[]).find(x=>String(x.id)===String(id)), adr=b?b.email:'cette boîte';
+  if(!confirm('Déconnecter '+adr+' d’OP GESTION ?\n\nTes mails restent dans ta messagerie : seule la liaison avec OP GESTION est retirée. Les envois ne partiront plus de cette adresse.')) return;
+  _boiteOcc=true; document.querySelectorAll('.bx-zone button').forEach(x=>{ x.disabled=true; });
+  let msg='';
+  try{ const r=await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),id})});
+    let d=null; try{ d=await r.json(); }catch(e){}
+    if(!r.ok) msg=(r.status===403&&courrierRefusBeta())||(d&&d.error)||('le serveur a répondu '+r.status);
+    else if(!d||d.ok!==true) msg='réponse du serveur illisible'; }
+  catch(e){ msg='serveur injoignable'; }
+  await loadMailboxes(); _boiteOcc=false; courrierRelire(); await boitesToutPeindre(false);
+  if(msg){ toast('⚠️ '+adr+' n’a pas été déconnectée : '+msg); return; }
+  if(_mailboxes!==null&&_mailboxes.some(x=>String(x.id)===String(id))){ toast('⚠️ '+adr+' est toujours connectée — réessaie dans un instant'); return; }
+  toast('Boîte déconnectée : '+adr+' — tes mails restent dans ta messagerie'); try{ envoiBoiteCarteMaj(); }catch(e){} }
+function boiteReconnecter(id){ if(!boitesPeutGerer()) return; const b=(_mailboxes||[]).find(x=>String(x.id)===String(id)); if(!b) return;
+  if(OAUTH_NOMS[b.type]) mailOauthDemarrer(b.type); else mailConnect(b.email); }
+async function mailBoxesManage(){
+  openModal(`<div class="modal-head"><h3>📬 Boîtes mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--t2);font-size:13px;line-height:1.55;margin-bottom:10px">Les boîtes reliées à OP GESTION. Déconnecter une boîte retire seulement la liaison : tes mails restent dans ta messagerie.</p>
+    <div class="bx-zone" id="bx-modal" style="color:var(--t3)">Vérification…</div>`);
+  boitesPeindre($('bx-modal'),true); }
 /* v798 — « SE CONNECTER AVEC GOOGLE » (4 novembre 2026, Justin : « fais tout avant la mise à jour »). Le serveur (`/api/mailbox/oauth/*`,
    `server/OAUTH-BOITES.md`) ouvre l'autorisation chez le fournisseur ; la boîte revient connectée sans qu'aucun mot de passe passe par nous.
    ⛔ La fenêtre s'ouvre DANS le geste, avant tout `await` — ouverte après l'aller-retour au serveur, Safari la bloque —, vide, puis reçoit
@@ -34797,6 +34856,7 @@ async function oauthFin(msg,ferme){ const s=_oauthSuivi; if(!s&&!msg) return;
   toast('✅ Boîte mail connectée — tes envois partent maintenant de ton adresse');
   if(document.querySelector('#overlay.open #mb-email, #overlay.open #boite-etape')) closeModal();   // l'étape d'envoi fermée : l'envoi reprend
   try{ envoiBoiteCarteMaj(); }catch(e){}
+  try{ boitesToutPeindre(false); courrierRelire(); }catch(e){}
   if(current==='boiteMail'){ _mailReplies=null; mailSel=null; views.boiteMail(); } }
 /* La fin d'une connexion lancée par le Courrier : la boîte arrivée (l'adresse demandée d'abord, sinon celle qui n'était pas là, sinon
    celle qui a changé d'état), ou la raison pour laquelle il n'y en a pas — jamais « connectée » sur la seule fermeture de la fenêtre. */
@@ -34823,7 +34883,7 @@ function mailConnect(pre){
       ${ligne('✅','Orange · Free · SFR · La Poste','mot de passe habituel')}
       ${ligne('✅','Gmail','« Se connecter avec Google », ou mot de passe d\'application')}
       ${ligne('✅','Yahoo','mot de passe d\'application (guidé)')}
-      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;font-size:12.5px"><span style="flex-shrink:0">⏳</span><b style="flex-shrink:0">Hotmail / Outlook</b><span style="color:var(--t3);text-align:right;flex:1">bientôt — connexion officielle Microsoft en cours de demande</span></div>
+      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;font-size:12.5px"><span style="flex-shrink:0">${_oauthDispo&&_oauthDispo.microsoft?'✅':'⏳'}</span><b style="flex-shrink:0">Hotmail / Outlook</b><span style="color:var(--t3);text-align:right;flex:1">${_oauthDispo&&_oauthDispo.microsoft?'« Se connecter avec Microsoft »':'bientôt — connexion officielle Microsoft en cours de demande'}</span></div>
     </div>
     <div class="field"><label>Adresse e-mail</label><input id="mb-email" type="email" placeholder="toi@entreprise.fr" oninput="mailConnHelp()"></div>
     <div id="mb-help"></div>
@@ -34906,10 +34966,7 @@ async function mailDoConnect(){ const email=(($('mb-email')||{}).value||'').trim
         <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Fermer</button><button class="btn" onclick="mailConnect('${esc(email)}')">↩ Réessayer</button></div>`); }
   }catch(e){ if(btn){ btn.textContent='Connecter et vérifier'; btn.disabled=false; } toast('Serveur injoignable'); }
 }
-async function mailDisconnect(id){ if(!confirm('Déconnecter cette boîte mail de l\'application ?')) return;
-  try{ await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),id})}); }catch(e){}
-  await loadMailboxes(); mailBoxesManage(); if(current==='boiteMail') setTimeout(()=>views.boiteMail(),100);
-}
+async function mailDisconnect(id){ return boiteDeconnecter(id); }   /* v803 : le seul chemin de retrait (lit `r.ok`, relit la liste) */
 /* Choisir l'adresse d'envoi puis exécuter cb(option) — {kind:'mb'|'plat'} */
 let _mailPick=null; let _mailPickList=null;
 function mailChoisirBoite(titre,cb){
@@ -39539,9 +39596,13 @@ views.parametres=function(){
     </div>`; })():''}
     ${(()=>{ const bx=db.mailBoxes||[]; const asg=db.mailAssign||{}; const E=db.entreprise||{}; const adm=currentUser.role==='admin';
       setTimeout(envoiBoiteCarteMaj,0);   // l'état de la boîte connectée se lit au serveur : la carte se dessine, puis se complète
+      setTimeout(()=>boitesPeindre(document.getElementById('bx-carte'),true),0);   // v803 : la carte « Boîtes mail » (liste, déconnexion) se complète de même
       /* ⛔ v796 — plus de « mode simple » : tout part de la boîte de l'entreprise (srvMail), rien par TEAM OP. L'adresse de
          l'entreprise (celle de ses documents) et sa boîte connectée sont dans la MÊME rubrique. */
-      return `<div class="card" id="envoi-boite-carte"><div class="card-head"><h3>✉️ E-mails à tes clients</h3></div>
+      return `<div class="card" id="boites-carte"><div class="card-head"><h3>📬 Boîtes mail</h3></div>
+      <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:10px">Les boîtes reliées à OP GESTION : celles que tu lis et d’où tu envoies, dans la Boîte mail. Déconnecter une boîte retire seulement la liaison — tes mails restent dans ta messagerie.</p>
+      <div class="bx-zone" id="bx-carte" style="color:var(--t3)">Vérification…</div></div>
+      <div class="card" id="envoi-boite-carte"><div class="card-head"><h3>✉️ E-mails à tes clients</h3></div>
       <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Devis, factures, rapports, rappels de RDV, avis de passage, bons de commande : tout part de <b>la boîte mail de ton entreprise</b> si elle est connectée. Sinon OP GESTION les envoie <b>à ton nom</b>, et tes clients répondent à <b>l’adresse e-mail de ton entreprise</b> (obligatoire). TEAM OP n’en garde aucune copie.</p>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">Adresse e-mail de l'entreprise</span><div class="frow-val"><input id="ms-email" type="email" placeholder="contact@monentreprise.fr" value="${esc(E.email||(db.mailReply||'').trim())}" ${adm?'':'disabled'}></div></div>
