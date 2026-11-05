@@ -38484,7 +38484,7 @@ function lienConnexionEntreprise(){ return lienLisible()||'https://teamop.fr/con
 async function identifiantsParMail(u,pwd){
   const to=(u.email||'').trim(); if(!to) return {sans:true};
   try{
-    const r=await fetch(PUSH_API+'/api/compte/identifiants',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch(PUSH_API+'/api/compte/identifiants',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),
       body:JSON.stringify({teamId:syncTeam(),to,prenom:u.prenom||'',entreprise:entrepriseNom(),login:u.login,mdp:pwd,lien:lienConnexionEntreprise(),   /* jamais teamopLienActuel() : il porte « k » (voir lienSansSecret) */par:currentUser?fullName(currentUser):''})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok) return {err:(j&&j.error)||('erreur '+r.status)};
