@@ -1285,7 +1285,7 @@ const MAILBOX_PATH = path.join(DATA_DIR, 'mailboxes.json');
 /* ⛔ LES MOTS DE PASSE DE CES BOÎTES SONT CHIFFRÉS SUR LE DISQUE (`coffre-boites.js`, clé maître du socle). En mémoire ils restent
    en clair — il faut les présenter à IMAP/SMTP — : `lire` déchiffre, `saveMailboxes` rechiffre. Un fichier d'avant (en clair) se lit
    tel quel et se réécrit chiffré dès le démarrage si la clé est là. Jamais un mot de passe dans une réponse ni un journal. */
-const { hotePublic } = require('./hote-public');
+const { hotePublic, PORTS_SMTP } = require('./hote-public');
 const coffreBoites = require('./coffre-boites');
 let mailboxes = {};   // clé "boxId" -> { id, teamId, email, pass, name, imapHost, imapPort, smtpHost, smtpPort }
 mailboxes = coffreBoites.lire(MAILBOX_PATH, {});
@@ -2001,8 +2001,22 @@ app.post('/api/sendmail', async (req, res) => {
       let cible;
       try { cible = await hotePublic(String(smtp.host).slice(0, 100), { autoriseLocal: ESSAI ? true : undefined }); }   // le serveur de TEST (ESSAI) n'a que 127.0.0.1
       catch (e) { return res.status(400).json({ error: String(e.message || 'serveur de messagerie invalide'), code: e.code || 'hote_invalide' }); }
+      /* v2 (relecture de `gardien`) : seuls les ports d'envoi de courriel — un port libre faisait sonder n'importe quel hôte public depuis notre adresse.
+         (Les bancs et le serveur de test, qui jouent un faux serveur d'envoi sur un port quelconque de 127.0.0.1, en sont exemptés.) */
+      if (PORTS_SMTP.indexOf(port) < 0 && !ESSAI && process.env.TEAMOP_BANC_HOTES_LOCAUX !== '1') return res.status(400).json({ error: 'port d\'envoi non autorisé (25, 465, 587 ou 2525)', code: 'port_non_autorise' });
       const t = nodemailer.createTransport({ host: cible.ip, port, secure: port === 465, tls: { servername: cible.nom }, auth: { user: String(smtp.user).slice(0, 120), pass: String(smtp.pass).slice(0, 200) } });
-      await t.sendMail({ from: String(smtp.from || smtp.user).slice(0, 160), ...msg });
+      /* v2 (relecture de `gardien`) : la réponse ne recopie plus le texte du serveur joint (sa bannière revenait mot pour mot) — elle dit
+         ce qui s'est passé, avec le code de nodemailer, ce qui suffit à l'écran pour guider l'utilisateur. */
+      try { await t.sendMail({ from: String(smtp.from || smtp.user).slice(0, 160), ...msg }); }
+      catch (e) {
+        lastRefus = { ts: Date.now(), raison: refusSmtp(e) };
+        const c = String((e && e.code) || '');
+        const dit = c === 'EAUTH' ? 'identifiant ou mot de passe refusé par le serveur d\'envoi'
+          : (['ECONNECTION', 'ETIMEDOUT', 'ESOCKET', 'EDNS', 'ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH', 'ENETUNREACH'].indexOf(c) >= 0 || /ECONN|ETIMEDOUT|EHOST|ENET/.test(String(e && e.message))) ? 'serveur d\'envoi injoignable (adresse ou port à vérifier)'
+          : c === 'EENVELOPE' ? 'le serveur d\'envoi a refusé un destinataire'
+          : 'le serveur d\'envoi a refusé le message';
+        return res.status(500).json({ error: dit, code: c || 'smtp' });
+      }
     } else {
       // Mode simple : la plateforme envoie au nom de l'entreprise (Reply-To vers elle)
       if (!mailer) return res.status(503).json({ error: 'email_off' });
@@ -12232,11 +12246,12 @@ app.post('/api/devis/generer', async (req, res) => {
     const surBeta = okEquipe && !okCode && devisEstBeta(teamKey);   // la réserve de la bêta est à part : elle ne touche pas au quota commun
     if (!surBeta && devisUtilises() >= devisQuotaJour()) { abus.rendre(); return res.status(429).json({ error: 'Quota du jour atteint (' + devisQuotaJour() + ' devis) — réessaie demain' }); }
 
-    /* La consigne suit le métier de l'ENTREPRISE (l'annuaire, jamais le corps pour qui y figure). Entreprise sans métier réglé : la 3D, mot pour mot. */
-    const metierDevis = devisMetierDe(teamKey, (req.body || {}).metier);
-    const sys = devisMetier.devisSysPour(metierDevis, devisMetier.est3D(metierDevis) ? null : devisVocabulaire(metierDevis));
     let devis;
     try {
+      /* La consigne suit le métier de l'ENTREPRISE (l'annuaire, jamais le corps pour qui y figure). Entreprise sans métier réglé : la 3D, mot pour mot.
+         ⚠️ DANS le try (relecture de `gardien`) : si la consigne jetait, la place réservée par `devisAbus` ne se rendait jamais. */
+      const metierDevis = devisMetierDe(teamKey, (req.body || {}).metier);
+      const sys = devisMetier.devisSysPour(metierDevis, devisMetier.est3D(metierDevis) ? null : devisVocabulaire(metierDevis));
       devis = await claudeGenere(sys,
         'Demande : ' + String(demande).slice(0, 2000)
           + (contexte ? '\nContexte : ' + String(contexte).slice(0, 1000) : ''),

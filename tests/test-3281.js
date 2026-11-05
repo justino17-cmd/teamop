@@ -43,6 +43,25 @@ const { hotePublic, adressePrivee } = require(path.join(RACINE, 'server', 'hote-
     v('un hôte à caractères de contrôle est refusé', await refuse('a b\r\nc', lookupDe([])), 'hote_invalide');
     v('le drapeau des bancs ouvre la boucle locale', (await hotePublic('127.0.0.1', { autoriseLocal: true })).ip, '127.0.0.1');
 
+    /* ── 0 bis. Les LITTÉRAUX que la relecture de `gardien` a fait passer (v1) : résolus par le VRAI `dns.lookup` (aucun réseau : forme numérique),
+       jugés après normalisation — l'octal de glibc (012 → 10), l'IPv6 non compressée, l'IPv4 encapsulée, le site-local. ── */
+    const refuseVrai = async (h) => { try { const x = await hotePublic(h, { autoriseLocal: false }); return 'accepté ' + x.ip; } catch (e) { return e.code; } };
+    for (const h of ['012.0.0.1', '172.032.0.1', '0177.0.0.1', '0:0:0:0:0:ffff:7f00:1', '0::ffff:127.0.0.1', '0:0:0:0:0:ffff:127.0.0.1', '::7f00:1', '::127.0.0.1',
+                     '0:0:0:0:0:0:0:1', '0000:0000:0000:0000:0000:0000:0000:0001', '::0001', 'fec0::1', '2001:db8::1', '2002:7f00:1::', '64:ff9b::7f00:1', '127.1', '2130706433', '0x7f.0.0.1'])
+      v('littéral piégé refusé : ' + h, await refuseVrai(h), 'hote_non_public');
+    v('une adresse publique littérale passe, NORMALISÉE (IPv6 dépliée)', [await refuseVrai('8.8.8.8'), await refuseVrai('2a00:1450:400c:c0b::6c')], ['accepté 8.8.8.8', 'accepté 2a00:1450:400c:c0b:0:0:0:6c']);
+    v('un nom résolu en IPv6 non compressée de 127.0.0.1 est refusé', await refuse('ipv6.attaquant.fr', lookupDe([{ address: '0:0:0:0:0:ffff:7f00:1', family: 6 }])), 'hote_non_public');
+    /* la route : l'hôte passe le contrôle, PUIS le port (25, 465, 587, 2525) ; on se connecte à l'ADRESSE normalisée, avec le nom en `servername` ;
+       l'erreur du serveur joint n'est plus recopiée. Ces trois gardes se lisent dans le CODE (commentaires retirés) : sous le drapeau des bancs, le port est libre. */
+    const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const bloc = (() => { const i = IDX.indexOf("cible = await hotePublic("); return i < 0 ? '' : IDX.slice(i, i + 2600); })();
+    vrai('le bloc du SMTP avancé est trouvé', bloc.length > 500);
+    vrai('le port est borné aux ports d\'envoi, après le contrôle de l\'hôte', /PORTS_SMTP\.indexOf\(port\) < 0 && !ESSAI && process\.env\.TEAMOP_BANC_HOTES_LOCAUX !== '1'\) return res\.status\(400\)/.test(bloc));
+    vrai('la connexion vise cible.ip, le certificat se vérifie sur cible.nom', /createTransport\(\{ host: cible\.ip, port, secure: port === 465, tls: \{ servername: cible\.nom \}/.test(bloc));
+    vrai('l\'échec de l\'envoi avancé répond un message à nous, jamais e.message du serveur joint', /return res\.status\(500\)\.json\(\{ error: dit, code: c \|\| 'smtp' \}\)/.test(bloc) && !/sendMail\([^\n]*\n[^\n]*error: e\.message/.test(bloc));
+    const { PORTS_SMTP } = require(path.join(RACINE, 'server', 'hote-public.js'));
+    v('les ports d\'envoi permis', PORTS_SMTP, [25, 465, 587, 2525]);
+
     /* ── le serveur, isolé ── */
     const interne = net.createServer(s => { interne.vues = (interne.vues || 0) + 1; s.on('error', () => {}); s.write('SSH-2.0-OpenSSH_9.6 BANNIERE-INTERNE-QZW\r\n'); s.end(); });
     await new Promise(res => interne.listen(0, '127.0.0.1', res)); fermer.push(interne);
