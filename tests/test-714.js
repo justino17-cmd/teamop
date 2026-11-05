@@ -102,7 +102,7 @@ console.log('\n── 714 · ⛔ LA BASE LOCALE N\'EST JAMAIS TOUCHÉE ──');
 console.log('\n── 714 · les six endroits qui affichent une photo passent par photoSrc ──');
 /* Un seul oublié, et un technicien voit un cadre vide à la place d'une preuve de traitement —
    sans aucune erreur en console, parce qu'un `src` inconnu échoue en silence. */
-[['onglet médias de la fiche', '<img src="${photoSrc(ph)}" onclick="photoPlein(this,\'Photo\')" style="width:100%'],
+[['onglet médias de la fiche', '<img src="${photoSrc(ph)}" data-ph-ix="${ix}" onclick="photoPlein(this,\'Photo\')" style="width:100%'],
  ['bloc Photos du détail', '<img src="${photoSrc(p)}" onclick="photoPlein(this,\'Photo\')" style="width:80px'],
  ['vignettes du rapport', 'rapPhotos.map((p,idx)=>`<div style="position:relative"><img src="${photoSrc(p)}"'],
  ['clôture guidée', "rapPhotos.map((p,ix)=>{ const tg=rapTags[ix]||''; p=photoSrc(p);"],
@@ -120,8 +120,9 @@ console.log('\n── 714 · les six endroits qui affichent une photo passent pa
    « Plans ». `tests/test-801.js` les éprouve. */
 /* … et 15 avec le rapport PDF (v744, B3) : `rapportDocument` lit ce qui manque encore
    (`manquePh`) puis le contenu de chaque photo pour la mettre en JPEG. `tests/test-802.js` l'éprouve. */
-v('⚠️ exactement 15 occurrences de photoSrc — une de plus doit faire rougir ce banc',
-  (APP.match(/photoSrc\(/g) || []).length, 15);
+/* … et 16 depuis la nuit du 5 novembre 2026 : `intPhotoMontrer` pose chaque photo sur SA tuile dès qu'elle arrive (test-3292). */
+v('⚠️ exactement 16 occurrences de photoSrc — une de plus doit faire rougir ce banc',
+  (APP.match(/photoSrc\(/g) || []).length, 16);
 { const rd = APP.slice(APP.indexOf('async function rapportDocument('), APP.indexOf('/* ── Export PDF d\'un rapport d\'intervention ── */'));
   v('   … dont deux dans rapportDocument', (rd.match(/photoSrc\(/g) || []).length, 2); }
 v('   … dont celle de planImgSrc', /function planImgSrc\(pl\)\{ return photoSrc\(pl&&pl\.img\); \}/.test(APP), true);
