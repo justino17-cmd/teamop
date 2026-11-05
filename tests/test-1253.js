@@ -62,7 +62,8 @@ function docMentionsManquantes(){ return []; } function docMentionsGarde(){ retu
     function visibleDocs(l){ return l; } function setHeader(){} function badge(m,k){ return '<i>'+((m[k]||{}).l||k)+'</i>'; }
     function tableCard(h,rows){ return '<table>'+rows+'</table>'; } function emptyState(){ return ''; }
     const __el={ set innerHTML(h){ __html=h; } }; function $(id){ return __el; }
-    ${CODE.join('\n')}`, ctx);
+    ${CODE.join('\n')}
+    ${bloc('function docEnvoiLib(')}   /* la ligne « Envoyé le … » de la liste (fde69cee) */`, ctx);
   // printDoc ouvre une fenêtre via window.open : le bac à sable la remplace APRÈS la définition de la fonction réelle
   ctx.printDoc = ctx.printDoc;
   return ctx;
