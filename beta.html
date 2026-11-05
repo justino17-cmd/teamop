@@ -18826,6 +18826,7 @@ function rendreVueSure(view,remonter){
      écrit dans un `#content` que plus personne ne regarde. C'est le seul endroit qui écrit une vue :
      la garde est ICI, pas dans chacune des quarante. */
   if(!currentUser) return;
+  if(remonter) _listeLim={};   // une vraie navigation remet les longues listes à leur première page
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
   try{ const fr=fusionRangee(view), c=$('content'); if(fr&&c&&!c.querySelector('.fusion-rangee')) c.insertAdjacentHTML('afterbegin',fr); }catch(_e){}   // v780 : les écrans regroupés
@@ -19168,6 +19169,20 @@ function setHeader(title,sub,actions='',o){ title=t(title); $('page-title').text
       else { tb.style.display='none'; tb.removeAttribute('data-l'); } } }catch(e){}
   try{ document.body.classList.toggle('ctx', current!=='dashboard' && !!(title||actions)); }catch(e){} }
 function emptyState(ico,txt,btn,fn){ txt=boxTxt(txt); if(!fn) btn=boxTxt(btn); return `<div class="empty"><div class="e-ico">${ico}</div><p>${txt}</p>${btn?(fn?`<button class="btn" onclick="${fn}">${btn}</button>`:`<p style="color:var(--t3);font-size:13px;max-width:360px;margin:4px auto 0;line-height:1.5">${btn}</p>`):''}</div>`; }
+/* ⛔ LES LONGUES LISTES S'AFFICHENT PAR PAGES (nuit du 5 novembre 2026, mesuré processeur ×4, base de 3,5 Mo : 2 500 interventions,
+   800 clients, 500 factures, 300 devis). Chaque ligne coûte du JavaScript, 6 à 19 éléments à styler et mettre en page, puis le
+   remplacement des émojis par des icônes (`icones()`) : Factures 3,0 s, Clients 1,24 s, Devis 1,28 s, Interventions en liste 7,0 s
+   — l'écran se figeait avant de montrer sa première ligne. On en pose 60, et un bouton ajoute les suivantes (100 par 100).
+   ⛔ Ce qui reste caché ne se perd jamais de vue : le compte total est dit dans le bouton, les totaux (chiffres d'affaires,
+   « à encaisser », pastilles) se calculent sur TOUT, la recherche et les filtres s'appliquent AVANT la coupe, et une vraie
+   navigation (`go`) remet la page à 60. Une liste de moins de 60 lignes ne change pas d'un pixel. */
+const LISTE_PAGE=60, LISTE_PAS=100;
+let _listeLim={}; const LISTE_REND={};
+function listeLim(cle){ return _listeLim[cle]||LISTE_PAGE; }
+function listePlus(cle){ _listeLim[cle]=listeLim(cle)+LISTE_PAS; const f=LISTE_REND[cle]; if(f) f(); }
+/* Le bouton « Afficher la suite » : `total` lignes existent, `aff` sont dessinées. Vide quand tout est là. */
+function listeSuite(cle,total,aff,rend){ if(!(total>aff)) return ''; LISTE_REND[cle]=rend; const reste=total-aff;
+  return `<div class="liste-suite" style="text-align:center;margin:14px 0 8px"><button type="button" class="btn ghost" onclick="listePlus('${cle}')">Afficher ${Math.min(LISTE_PAS,reste)} de plus <span style="opacity:.7">(${reste} restant${reste>1?'s':''})</span></button></div>`; }
 function tableCard(headers, rows){
   return `<div class="card"><div class="tbl-wrap"><table class="tbl list-tbl"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
@@ -24788,6 +24803,9 @@ views.interventions=function(){
     else if(intPeriod==='semaine'){ const days=weekDays(todayISO()); list=list.filter(i=>days.includes(i.date)); }
     else if(intPeriod==='mois'){ const m=todayISO().slice(0,7); list=list.filter(i=>(i.date||'').indexOf(m)===0); }
     list.sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||'')));
+    /* ⛔ on ne coupe QUE l'historique (terminées, annulées) : une intervention à faire ou en cours ne se cache jamais derrière « Afficher la suite » */
+    const _totL=list.length, _limI=listeLim('int'); let _nHist=0;
+    list=list.filter(i=>(i.statut!=='terminee'&&i.statut!=='annulee')||(_nHist++)<_limI);
     // Groupes repliables : par jour (façon Organilog, À planifier en tête) ou par statut
     let body='';
     if(intHistF==='supprimees'){
@@ -24816,7 +24834,7 @@ views.interventions=function(){
       ${intHistF==='supprimees'?'':`<div class="filters" style="margin-top:6px">${Object.keys(labels).map(k=>`<div class="chip ${intFilter===k?'active':''}" onclick="intFilter='${k}';views.interventions()">${labels[k]} (${counts[k]})</div>`).join('')}</div>`}
       <div class="filters" style="margin-top:6px"><div class="chip ${!intTechF?'active':''}" onclick="intTechF='';views.interventions()">Tous</div>${db.techniciens.map(t=>`<div class="chip ${intTechF===t.id?'active':''}" onclick="intTechF='${t.id}';views.interventions()">${esc(t.nom)}</div>`).join('')}</div>
       <div class="filters" style="margin-top:6px">${[['tout','Toute période'],['jour','Aujourd’hui'],['semaine','Cette semaine'],['mois','Ce mois']].map(([k,l])=>`<div class="chip ${intPeriod===k?'active':''}" onclick="intPeriod='${k}';views.interventions()">${l}</div>`).join('')}<span style="width:10px"></span>${[['jour','Grouper : jour'],['statut','Grouper : statut']].map(([k,l])=>`<div class="chip ${intGroup===k?'active':''}" onclick="intGroup='${k}';views.interventions()">${l}</div>`).join('')}</div>
-      ${intHistF==='supprimees'?body:(list.length? `<div class="int-liste">${body}</div>` : `<div class="card" style="margin-top:12px">${emptyState('🧰',q?'Aucun résultat pour cette recherche.':'Aucune intervention dans ces filtres.','Nouvelle','formIntervention()')}</div>`)}`;
+      ${intHistF==='supprimees'?body:(list.length? `<div class="int-liste">${body}</div>${listeSuite('int',_totL,list.length,()=>views.interventions())}` : `<div class="card" style="margin-top:12px">${emptyState('🧰',q?'Aucun résultat pour cette recherche.':'Aucune intervention dans ces filtres.','Nouvelle','formIntervention()')}</div>`)}`;
     if(arguments[0]===true){ const si=$('int-search'); if(si){ si.focus(); try{ si.setSelectionRange(si.value.length,si.value.length); }catch(e){} } }
     return;
   }
@@ -28591,7 +28609,9 @@ function renderClientsList(){ const el=$('cli-liste'); if(!el) return;
   if(q) _clis=_clis.filter(c=>norm([c.nom,c.adresse,c.ville,c.codePostal,c.contact,c.email,c.tel].filter(Boolean).join(' ')).includes(q)
     || (qTel.length>=3&&String(c.tel||'').replace(/\D/g,'').includes(qTel)));   // le téléphone se compare en chiffres
   _clis=_clis.slice().sort((a,b)=>String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base'}));
-  const rows=_clis.map(c=>{ const n=db.interventions.filter(i=>i.clientId===c.id).length; const pro=cliIsPro(c);
+  const limC=listeLim('cli'), vusC=_clis.slice(0,limC);
+  const nParCli=new Map(); db.interventions.forEach(i=>nParCli.set(i.clientId,(nParCli.get(i.clientId)||0)+1));   // un passage, pas un filtre de toute la base PAR client
+  const rows=vusC.map(c=>{ const n=nParCli.get(c.id)||0; const pro=cliIsPro(c);
     const ou=(c.ville||'').trim()||(c.adresse||'').trim();
     const meta=[pro?'':'Particulier', esc(ou), esc(c.tel||'')].filter(Boolean).join(' · ');
     const metaT=[pro?'':'Particulier', ou, c.tel||''].filter(Boolean).join(' · ');
@@ -28604,7 +28624,7 @@ function renderClientsList(){ const el=$('cli-liste'); if(!el) return;
       </div>
       <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>`;}).join('');
-  el.innerHTML=_clis.length? `<div class="tf-groupe">${rows}</div>`
+  el.innerHTML=_clis.length? `<div class="tf-groupe">${rows}</div>${listeSuite('cli',_clis.length,vusC.length,()=>renderClientsList())}`
     : `<div class="card">${(_tous.length&&(cliTagFilter||q||cliTypeF!=='tous'))
         ? emptyState('🔎','Aucun client ne correspond.','Tout afficher',"cliTagFilter='';cliTypeF='tous';cliSearch='';views.clients()")
         : emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`;
@@ -40678,7 +40698,8 @@ function docListView(kind,xyloOnly){
   /* v738 : un bouton qui mène à un refus ne se montre pas — chacun lit la case de son geste */
   const vMod=canCat('ventes','modifier');
   setHeader(titre, `${list.length} ${cfg.un}(s) · ${eur(total)} TTC`, canCat('ventes','ajouter')?headBtn:'');
-  const rows=list.map(d=>{ const t=docTot(d);
+  const cleL='doc-'+kind+(xyloOnly?'x':''), limL=listeLim(cleL), vus=list.slice(0,limL);
+  const rows=vus.map(d=>{ const t=docTot(d);
     return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShort(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}${docEnvoiLib(d)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;white-space:nowrap">${esc(docEnvoiLib(d))}</div>`:''}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap">
       ${vMod?`<button class="btn sm" onclick="envoiDoc('${kind}','${d.id}','mail')" title="Envoyer par email">📧</button>
@@ -40694,7 +40715,7 @@ function docListView(kind,xyloOnly){
   const bandeau=dbl.length?`<div class="card" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);padding:12px 14px;margin-bottom:12px">
     <div style="font-weight:800;color:var(--org);font-size:13.5px">⚠️ ${dbl.length} numéro${dbl.length>1?'s':''} en double</div>
     <div style="font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.55"><span class="mono">${dbl.slice(0,6).map(esc).join(', ')}</span>${dbl.length>6?' et '+(dbl.length-6)+' autre(s)':''} — deux appareils ont émis le même numéro sans s'être vus. Ouvre le plus récent (✎) et donne-lui le numéro suivant : la numérotation doit rester continue.</div></div>`:'';
-  $('content').innerHTML=bandeau+(list.length? tableCard(['N°','Client','Date','TTC','Statut',''],rows):empty);
+  $('content').innerHTML=bandeau+(list.length? tableCard(['N°','Client','Date','TTC','Statut',''],rows)+listeSuite(cleL,list.length,vus.length,()=>docListView(kind,xyloOnly)):empty);
 }
 views.devis=()=>docListView('devis',false);
 views.devisXylo=()=>docListView('devis',true);
@@ -40900,7 +40921,7 @@ views.factures=function(){
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Le circuit : <b>Générer</b> → la facture arrive <b>En attente</b> → <b>Aperçu</b> pour la vérifier → <b>📧 Envoyer</b> au client → <b>Payée</b> une fois réglée${isFinanceMgr()?' → <b>Valider</b> (compta)':''}.</div>
     <div class="filters" style="margin:4px 0 12px;flex-wrap:wrap">${filters.map(([k,l,n])=>`<div class="chip ${factFilter===k?'active':''}" onclick="factFilter='${k}';views.factures()">${l}${n?` <span class="tag" style="font-size:10px">${n}</span>`:''}</div>`).join('')}</div>
     <div class="card"><div class="card-head"><h3>📋 ${filters.find(f=>f[0]===factFilter)[1]} (${list.length})</h3></div>
-    ${list.length? list.map(row).join('') : '<div style="color:var(--t3);font-size:13px;padding:8px 2px">Aucune facture dans cette catégorie.</div>'}</div>`;
+    ${list.length? list.slice(0,listeLim('fact')).map(row).join('')+listeSuite('fact',list.length,Math.min(list.length,listeLim('fact')),()=>views.factures()) : '<div style="color:var(--t3);font-size:13px;padding:8px 2px">Aucune facture dans cette catégorie.</div>'}</div>`;
 };
 /* ═══════════════ FINANCE : Comptabilité & Télécollecte (admin / DR) ═══════════════ */
 function isFinanceMgr(){ return !!currentUser && can('voirCompta'); }   // droit « Voir / gérer la comptabilité et les tarifs » (défaut : admin, DR, compta) — réglable par rôle ou par personne
