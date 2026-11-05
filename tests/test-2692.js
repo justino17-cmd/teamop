@@ -167,7 +167,7 @@ nm.createTransport = function (o) {
   const lancer = (conf, dossier, port) => {
     const e = spawn(process.execPath, ['-r', path.join(RACINE, 'tests', 'faux-imap.js'), '-r', PRELOAD, path.join(RACINE, 'server', 'index.js')], {
       env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, conf), TEAMOP_DATA: path.join(banc, dossier), PORT: String(port),
-        FAUX_IMAP: path.join(banc, 'imap.json'), FAUX_IMAP_RACINE: path.join(RACINE, 'server') }),
+        FAUX_IMAP: path.join(banc, 'imap.json'), FAUX_IMAP_RACINE: path.join(RACINE, 'server'), TEAMOP_BANC_HOTES_LOCAUX: '1' /* le mode avancé joue un facteur sur 127.0.0.1 : sans ce drapeau, server/hote-public.js le refuse (audit du 5 novembre 2026, test-3281) */ }),
       stdio: 'ignore' });
     enfants.push(e);
     return e;

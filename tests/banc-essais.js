@@ -74,7 +74,7 @@ async function lancer(o) {
   const port = o.port || await libre(), B = 'http://127.0.0.1:' + port;
   let sortie = '', enfant = null, sortis = 0;
   const demarrer = async () => {
-    const env = Object.assign({}, process.env, { TEAMOP_CONFIG: CONFIG, TEAMOP_DATA: D, PORT: String(port), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json') },
+    const env = Object.assign({}, process.env, { TEAMOP_CONFIG: CONFIG, TEAMOP_DATA: D, PORT: String(port), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_BANC_HOTES_LOCAUX: '1' /* faux serveur d'envoi sur 127.0.0.1 : server/hote-public.js le refuse sans ce drapeau (test-3281) */ },
       o.anthropic ? { ANTHROPIC_BASE_URL: 'http://127.0.0.1:' + o.anthropic.s.address().port } : {}, o.env || {});
     /* `sansFbAdmin` : ne PAS poser TEAMOP_FB_ADMIN — la configuration que l'installeur du serveur de test produit (relecture adverse, 23 octobre 2026 : le banc la masquait) */
     if (o.sansFbAdmin) delete env.TEAMOP_FB_ADMIN;

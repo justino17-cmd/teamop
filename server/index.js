@@ -1285,6 +1285,7 @@ const MAILBOX_PATH = path.join(DATA_DIR, 'mailboxes.json');
 /* ⛔ LES MOTS DE PASSE DE CES BOÎTES SONT CHIFFRÉS SUR LE DISQUE (`coffre-boites.js`, clé maître du socle). En mémoire ils restent
    en clair — il faut les présenter à IMAP/SMTP — : `lire` déchiffre, `saveMailboxes` rechiffre. Un fichier d'avant (en clair) se lit
    tel quel et se réécrit chiffré dès le démarrage si la clé est là. Jamais un mot de passe dans une réponse ni un journal. */
+const { hotePublic, PORTS_SMTP } = require('./hote-public');
 const coffreBoites = require('./coffre-boites');
 let mailboxes = {};   // clé "boxId" -> { id, teamId, email, pass, name, imapHost, imapPort, smtpHost, smtpPort }
 mailboxes = coffreBoites.lire(MAILBOX_PATH, {});
@@ -1993,8 +1994,29 @@ app.post('/api/sendmail', async (req, res) => {
       // Mode avancé : boîte de l'entreprise / de l'utilisateur
       const nodemailer = require('nodemailer');
       const port = parseInt(smtp.port) || 465;
-      const t = nodemailer.createTransport({ host: String(smtp.host).slice(0, 100), port, secure: port === 465, auth: { user: String(smtp.user).slice(0, 120), pass: String(smtp.pass).slice(0, 200) } });
-      await t.sendMail({ from: String(smtp.from || smtp.user).slice(0, 160), ...msg });
+      /* ⛔ L'HÔTE DU CLIENT DOIT ÊTRE PUBLIC (audit du 5 novembre 2026, `server/hote-public.js`) : sans ce contrôle, `127.0.0.1`, un réseau privé ou les
+         métadonnées de l'hébergeur passaient, la bannière du service joint revenait dans l'erreur ci-dessous et un port fermé se disait `ECONNREFUSED` —
+         un balayeur de ports au service de toute entreprise cliente. On se connecte à l'ADRESSE résolue (jamais au nom, que le DNS pourrait changer
+         entre le contrôle et la connexion), le nom restant le `servername` du certificat. */
+      let cible;
+      try { cible = await hotePublic(String(smtp.host).slice(0, 100), { autoriseLocal: ESSAI ? true : undefined }); }   // le serveur de TEST (ESSAI) n'a que 127.0.0.1
+      catch (e) { return res.status(400).json({ error: String(e.message || 'serveur de messagerie invalide'), code: e.code || 'hote_invalide' }); }
+      /* v2 (relecture de `gardien`) : seuls les ports d'envoi de courriel — un port libre faisait sonder n'importe quel hôte public depuis notre adresse.
+         (Les bancs et le serveur de test, qui jouent un faux serveur d'envoi sur un port quelconque de 127.0.0.1, en sont exemptés.) */
+      if (PORTS_SMTP.indexOf(port) < 0 && !ESSAI && process.env.TEAMOP_BANC_HOTES_LOCAUX !== '1') return res.status(400).json({ error: 'port d\'envoi non autorisé (25, 465, 587 ou 2525)', code: 'port_non_autorise' });
+      const t = nodemailer.createTransport({ host: cible.ip, port, secure: port === 465, tls: { servername: cible.nom }, auth: { user: String(smtp.user).slice(0, 120), pass: String(smtp.pass).slice(0, 200) } });
+      /* v2 (relecture de `gardien`) : la réponse ne recopie plus le texte du serveur joint (sa bannière revenait mot pour mot) — elle dit
+         ce qui s'est passé, avec le code de nodemailer, ce qui suffit à l'écran pour guider l'utilisateur. */
+      try { await t.sendMail({ from: String(smtp.from || smtp.user).slice(0, 160), ...msg }); }
+      catch (e) {
+        lastRefus = { ts: Date.now(), raison: refusSmtp(e) };
+        const c = String((e && e.code) || '');
+        const dit = c === 'EAUTH' ? 'identifiant ou mot de passe refusé par le serveur d\'envoi'
+          : (['ECONNECTION', 'ETIMEDOUT', 'ESOCKET', 'EDNS', 'ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH', 'ENETUNREACH'].indexOf(c) >= 0 || /ECONN|ETIMEDOUT|EHOST|ENET/.test(String(e && e.message))) ? 'serveur d\'envoi injoignable (adresse ou port à vérifier)'
+          : c === 'EENVELOPE' ? 'le serveur d\'envoi a refusé un destinataire'
+          : 'le serveur d\'envoi a refusé le message';
+        return res.status(500).json({ error: dit, code: c || 'smtp' });
+      }
     } else {
       // Mode simple : la plateforme envoie au nom de l'entreprise (Reply-To vers elle)
       if (!mailer) return res.status(503).json({ error: 'email_off' });
@@ -12075,6 +12097,33 @@ function devisUtilises() {
   return devisQuota.n;
 }
 function devisCompte() { devisUtilises(); devisQuota.n++; try { fs.writeFileSync(DEVIS_QUOTA_PATH, JSON.stringify(devisQuota)); } catch (e) {} }
+/* ⛔ LE DEVIS IA NE SE VIDE PLUS PAR UN NOM D'ESPACE PUBLIC (audit du 5 novembre 2026). `/api/devis/generer` ne demande que le NOM d'une entreprise activée (ce nom n'est
+   pas un secret : il voyage dans les URL) — et l'espace de la bêta, `opgestion-beta`, est activé d'office ET écrit en clair dans `beta.html`. Joué sur le vrai serveur
+   (faux fournisseur de modèle) : un anonyme, 20 requêtes par minute, épuisait le quota GLOBAL de 100 devis du jour en cinq minutes — le Devis IA de TOUTES les entreprises
+   répondait 429 jusqu'au lendemain, et chaque appel coûtait un modèle payant. Trois bornes, toutes en mémoire (un redémarrage les remet à zéro, ce qui ne rouvre rien de grave) :
+   · par ADRESSE (`req.ip`, jamais l'en-tête brut) : 60 devis par heure ;
+   · par ENTREPRISE : `anthropic.quotaEquipeJour` (50 par défaut) par jour — un nom d'entreprise qui fuit ne vide pas la réserve commune ;
+   · la BÊTA a SA réserve, `anthropic.quotaBeta` (40 par défaut), HORS du quota global : on la teste sans priver un client, et elle ne peut pas lui en prendre.
+   La preuve de clé d'équipe (`x-teamop-kh`) est la vraie fermeture : l'application n'envoie que le nom aujourd'hui (`app.html` ne se touche pas sans la phrase de Justin). */
+const devisIpQuota = new Map();
+let devisJourAbus = { jour: '', n: Object.create(null) };
+const devisEnCours = Object.create(null);
+const devisEstBeta = (t) => String(t || '').trim() === DEVIS_BETA;
+const devisMaxEquipe = (t) => devisEstBeta(t) ? (Number(devisConf().quotaBeta) || 40) : (Number(devisConf().quotaEquipeJour) || 50);
+/* → { refus: {code, msg} } ou { rendre(), compter() } : `rendre` libère la place réservée (toujours, dans un `finally`), `compter` inscrit un devis réussi. */
+function devisAbus(req, teamKey, okEquipe, okCode) {
+  const auj = new Date().toISOString().slice(0, 10);
+  if (devisJourAbus.jour !== auj) devisJourAbus = { jour: auj, n: Object.create(null) };
+  if (devisIpQuota.size > 5000) devisIpQuota.clear();
+  if (!quotaOk(devisIpQuota, 'ip:' + (req.ip || '?'), 60, 3600000)) return { refus: { code: 429, msg: 'Trop de devis demandés depuis cette adresse — réessaie dans une heure' } };
+  if (!okEquipe || okCode) return { rendre() {}, compter() {} };   // le code de dépannage (secret de la Tour) : seule la borne par adresse s'applique
+  const cle = String(teamKey);
+  const deja = (devisJourAbus.n[cle] || 0) + (devisEnCours[cle] || 0);
+  if (deja >= devisMaxEquipe(cle)) return { refus: { code: 429, msg: (devisEstBeta(cle) ? 'Quota du jour de la bêta atteint (' : 'Quota du jour de cette entreprise atteint (') + devisMaxEquipe(cle) + ' devis) — réessaie demain' } };
+  devisEnCours[cle] = (devisEnCours[cle] || 0) + 1;
+  let rendu = false;
+  return { rendre() { if (!rendu) { rendu = true; devisEnCours[cle] = Math.max(0, (devisEnCours[cle] || 1) - 1); } }, compter() { devisJourAbus.n[cle] = (devisJourAbus.n[cle] || 0) + 1; } };
+}
 
 app.get('/api/devis/etat', (req, res) => {
   const team = String(req.query.team || '').trim().slice(0, 80);
@@ -12192,19 +12241,27 @@ app.post('/api/devis/generer', async (req, res) => {
     const okCode = !!(code && devisConf().secretDevis && String(code) === String(devisConf().secretDevis));
     if (!okEquipe && !okCode) return res.status(401).json({ error: "Devis IA non activé pour cette entreprise — demande l'activation à TeamOP" });
     if (!demande || String(demande).trim().length < 5) return res.status(400).json({ error: 'Décris la prestation à chiffrer' });
-    if (devisUtilises() >= devisQuotaJour()) return res.status(429).json({ error: 'Quota du jour atteint (' + devisQuotaJour() + ' devis) — réessaie demain' });
+    const abus = devisAbus(req, teamKey, okEquipe, okCode);
+    if (abus.refus) return res.status(abus.refus.code).json({ error: abus.refus.msg });
+    const surBeta = okEquipe && !okCode && devisEstBeta(teamKey);   // la réserve de la bêta est à part : elle ne touche pas au quota commun
+    if (!surBeta && devisUtilises() >= devisQuotaJour()) { abus.rendre(); return res.status(429).json({ error: 'Quota du jour atteint (' + devisQuotaJour() + ' devis) — réessaie demain' }); }
 
-    /* La consigne suit le métier de l'ENTREPRISE (l'annuaire, jamais le corps pour qui y figure). Entreprise sans métier réglé : la 3D, mot pour mot. */
-    const metierDevis = devisMetierDe(teamKey, (req.body || {}).metier);
-    const sys = devisMetier.devisSysPour(metierDevis, devisMetier.est3D(metierDevis) ? null : devisVocabulaire(metierDevis));
-    const devis = await claudeGenere(sys,
-      'Demande : ' + String(demande).slice(0, 2000)
-        + (contexte ? '\nContexte : ' + String(contexte).slice(0, 1000) : ''),
-      DEVIS_SCHEMA, devisMoteurChoisi(teamKey, (req.body || {}).profond));
+    let devis;
+    try {
+      /* La consigne suit le métier de l'ENTREPRISE (l'annuaire, jamais le corps pour qui y figure). Entreprise sans métier réglé : la 3D, mot pour mot.
+         ⚠️ DANS le try (relecture de `gardien`) : si la consigne jetait, la place réservée par `devisAbus` ne se rendait jamais. */
+      const metierDevis = devisMetierDe(teamKey, (req.body || {}).metier);
+      const sys = devisMetier.devisSysPour(metierDevis, devisMetier.est3D(metierDevis) ? null : devisVocabulaire(metierDevis));
+      devis = await claudeGenere(sys,
+        'Demande : ' + String(demande).slice(0, 2000)
+          + (contexte ? '\nContexte : ' + String(contexte).slice(0, 1000) : ''),
+        DEVIS_SCHEMA, devisMoteurChoisi(teamKey, (req.body || {}).profond));
+    } finally { abus.rendre(); }
     if (!devis || !Array.isArray(devis.lignes) || !devis.lignes.length) return res.status(502).json({ error: 'Réponse illisible, réessaie' });
-    devisCompte();
+    abus.compter();
+    if (!surBeta) devisCompte();
     if (okEquipe) { const t = devisAcces[teamKey]; t.n = (t.n || 0) + 1; t.dernier = new Date().toISOString().slice(0, 10); saveDevisAcces(); }
-    res.json({ ok: true, devis, restants: Math.max(0, devisQuotaJour() - devisUtilises()) });
+    res.json({ ok: true, devis, restants: surBeta ? Math.max(0, devisMaxEquipe(teamKey) - (devisJourAbus.n[teamKey] || 0)) : Math.max(0, devisQuotaJour() - devisUtilises()) });
   } catch (e) {
     if (e && e.refus) return res.status(422).json({ error: 'Demande refusée — reformule-la.' });
     if (e && e.geminiModele) return res.status(502).json({ error: 'Modèle Gemini introuvable — relance server/set-gemini.sh pour en choisir un disponible' });

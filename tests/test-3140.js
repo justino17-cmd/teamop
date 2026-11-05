@@ -52,7 +52,7 @@ v('chaque dossier de .claude/skills a un SKILL.md', sans, []);
 v('le name du front matter est le nom du dossier', mauvaisNom, []);
 v('chaque skill a une description', sansDesc, []);
 
-const NEUFS = ['prospecting', 'cold-email', 'sales-enablement', 'customer-research', 'directory-submissions', 'lead-magnets', 'differential-review', 'insecure-defaults', 'supply-chain-risk-auditor', 'scanner-skills'];
+const NEUFS = ['prospecting', 'cold-email', 'sales-enablement', 'customer-research', 'directory-submissions', 'lead-magnets', 'differential-review', 'insecure-defaults', 'supply-chain-risk-auditor', 'scanner-skills', 'security-audit'];
 for (const n of NEUFS) vrai('skill neuf présent : ' + n, fs.existsSync(path.join(SKILLS, n, 'SKILL.md')));
 const MARKETING = NEUFS.slice(0, 6);
 
@@ -64,7 +64,7 @@ const opus = [...fichiersSkills, ...fichiersAgents].filter(f => /^\s*model:\s*["
 v('⛔ aucun skill ni agent ne déclare model: opus (tout en Sonnet)', opus, []);
 
 /* ── 3. licences et provenances ── */
-const SOURCES = ['trailofbits', 'marketingskills'];
+const SOURCES = ['trailofbits', 'marketingskills', 'cloudflare'];
 for (const s of SOURCES) {
   vrai('LICENSE-' + s + ' existe et n\'est pas vide', fs.existsSync(path.join(SKILLS, 'LICENSE-' + s)) && lire(path.join(SKILLS, 'LICENSE-' + s)).length > 1000);
   const pf = path.join(SKILLS, 'PROVENANCE-' + s + '.md');

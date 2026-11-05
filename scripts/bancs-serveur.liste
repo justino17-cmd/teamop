@@ -479,3 +479,5 @@ tests/test-3246.js
 tests/test-3255.js
 # 5 novembre 2026 : `test-3258` (Justin : « il faudrait que ça arrête d'envoyer des mails à chaque truc corrigé ») — passer un incident « corrigé » n'écrit plus à aucune entreprise ; seul `prevenir: true`, qu'aucun écran de la Tour n'envoie, le fait. Le vrai serveur, sans SMTP (envoi simulé et compté). 9 vérifications.
 tests/test-3258.js
+# 5 novembre 2026 (audit de sécurité de la nuit) : `test-3281` — le SMTP « avancé » de /api/sendmail ne joint plus une adresse non publique (bannière interne et balayage de ports fermés, `server/hote-public.js`) ; le Devis IA ne se vide plus par un nom d'espace public (réserve de la bêta hors quota commun, bornes par entreprise et par adresse).
+tests/test-3281.js
