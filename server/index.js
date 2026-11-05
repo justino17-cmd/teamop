@@ -1545,7 +1545,9 @@ app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox
 const IDENTIFIANTS_PREUVE_VER = 802;
 const identifiantsSansPreuve = { n: 0, ts: 0 };
 function identifiantsPorte(req, res, next) {
-  if (preuveMailRouverte()) return next();
+  /* son PROPRE réglage de secours (`gardien`, 5 novembre 2026) : rouvrir l'envoi des accès ne doit pas rouvrir aussi la lecture de la
+     correspondance des entreprises (`mailPreuveExigee`), et l'inverse. */
+  if (config.identifiantsPreuveExigee === false) return next();
   let t = ''; try { t = String((req.body || {}).teamId || ''); } catch (e) {}
   if (t === BETA_ESPACE && betaJetonCompte(req.get('x-teamop-beta'))) return next();
   let motif = '';
@@ -8303,6 +8305,8 @@ const lienQuota = new Map();
 app.post('/api/espaces/lien', (req, res) => {
   const t = monStr((req.body || {}).t, 80), kh = monStr((req.body || {}).kh, 64).toLowerCase();
   if (!t || !/^[0-9a-f]{64}$/.test(kh)) return res.status(400).json({ error: 't et kh requis' });
+  /* borné (`gardien`) : `t` est choisi par l'appelant, une entrée par valeur inventée ferait grossir la table sans fin */
+  if (lienQuota.size > 5000) { const n0 = Date.now(); for (const [k, x] of lienQuota) if (x.reset < n0) lienQuota.delete(k); if (lienQuota.size > 5000) lienQuota.clear(); }
   const q = lienQuota.get(t) || { n: 0, reset: Date.now() + 3600000 };
   if (Date.now() > q.reset) { q.n = 0; q.reset = Date.now() + 3600000; }
   if (++q.n > 30) return res.status(429).json({ error: 'trop de demandes — réessaie plus tard' });
@@ -8319,7 +8323,7 @@ app.post('/api/espaces/lien', (req, res) => {
        de servir le code de connexion de l'entreprise jusqu'à ce que la Tour la réinscrive. Le serveur ne peut pas prouver qu'un `kh` différent
        est la NOUVELLE clé (il ne connaît que celle de l'annuaire) : il répond, il signale à la Tour (`lastRefus`, sans donnée de client), il n'écrit rien. */
     lastRefus = { ts: Date.now(), raison: 'clé d\'équipe différente de l\'annuaire pour un espace inscrit — à vérifier, et à réinscrire dans la Tour si la clé a vraiment changé (le journal dit lequel)' };
-    console.warn('espace', e.slug, ': un appareil présente une autre clé que l\'annuaire — rien n\'est modifié');
+    console.warn('lien d\'espace : un appareil présente une autre clé que l\'annuaire — rien n\'est modifié');   // sans le nom d'accès : il peut nommer une personne (gardien)
     return res.status(404).json({ error: 'la clé d\'équipe a changé depuis l\'inscription chez TEAM OP — l\'espace est à réinscrire dans la Tour', motif: 'cle_changee' });
   }
   if (espacesReg[e.slug].clePerimee) { delete espacesReg[e.slug].clePerimee; espacesEcrire(); }

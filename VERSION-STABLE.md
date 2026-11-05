@@ -1,5 +1,20 @@
 # Point stable TeamOP
 
+**Version stable : v802** — 5 novembre 2026, soir (Justin : « il faut publier ça »). La v801 et :
+- **L'application s'ouvre plus vite sur un téléphone lent** : un écran « OP GESTION — Chargement… » paraît dès les premiers kilo-octets
+  (premier affichage 9,2 s → 1,5 s en 4G faible), au lieu d'une page blanche. `tests/test-3290.js`.
+- **Les longues listes s'affichent par pages de 60**, avec « Afficher 100 de plus » (Clients 1,3 s → 0,4 s, Factures 2,9 s → 0,4 s,
+  Interventions 6,8 s → 1,8 s sur un téléphone lent). Seul l'historique se coupe, jamais le travail à faire ; les totaux et la recherche
+  portent sur tout. `tests/test-3291.js`.
+- **Les photos d'une intervention arrivent au fur et à mesure**, deux à la fois (première photo 15 s → 3,2 s). `tests/test-3292.js`.
+- **Le courriel « tes identifiants » prouve l'entreprise** (en-tête de la clé d'équipe) : la porte du serveur se fermera d'elle-même le
+  jour où la v802 sera exigée dans la Tour. `tests/test-3295.js`.
+Serveur (même publication) : `/api/espaces/lien` ne change plus d'état sur une empreinte fausse (D1), `/api/compte/identifiants` exige
+la preuve (D2), et le message réseau des versions d'avant la v800 se range en « Passager » au lieu de rouvrir des dossiers
+(`tests/test-3296.js`). Rien ne change dans les formats de données.
+
+**Ancien point : v801.**
+
 **Version stable : v801** — 5 novembre 2026, nuit (Justin : « tout ce que je t'ai demandé, tu le fais »). La v800 et deux réparations :
 - **La synchronisation n'abandonne plus sur une 4G faible** (Toka Clim : « premier instantané jamais reçu après 25 s ») : la lecture des
   données de l'équipe attend selon leur taille, jusqu'à 90 s (65 s pour 265 Ko), au lieu de couper à 20 s ; l'écoute des nouveautés reçoit

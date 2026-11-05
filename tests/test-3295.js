@@ -169,6 +169,15 @@ const nettoye = (s) => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \
     sandbox.identifiantsMailEtat(y, 'u1', 'Provis0ire');
     vrai('sur un refus 403 l\'écran dit « non envoyé » avec la raison, jamais « E-mail envoyé »', /E-mail non envoyé/.test(zone.innerHTML) && /prouver la clé/.test(zone.innerHTML) && !/<b>E-mail envoyé/.test(zone.innerHTML));
   }
+  /* relecture `gardien` (5 novembre 2026) : la porte des accès a SON réglage de secours, le journal ne nomme pas l'espace, le compteur est borné */
+  { const S = fs.readFileSync(path.join(__dirname, '..', 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const d = S.indexOf('function identifiantsPorte('), corpsP = S.slice(d, S.indexOf('\n}\n', d));
+    vrai('la porte est trouvée', d > 0);
+    vrai('⛔ la porte des accès a son propre réglage (identifiantsPreuveExigee), pas celui qui rouvre la correspondance', /config\.identifiantsPreuveExigee === false\) return next\(\)/.test(corpsP) && !/preuveMailRouverte\(\)/.test(corpsP));
+    const l = S.indexOf("app.post('/api/espaces/lien'"), corpsL = S.slice(l, S.indexOf('\n});', l));
+    vrai('la route du lien est trouvée', l > 0);
+    vrai('⛔ le journal du lien ne nomme pas l\'espace (e.slug)', !/console\.(warn|log|error)\([^)]*e\.slug/.test(corpsL));
+    vrai('le compteur des demandes de lien est borné', /lienQuota\.size > 5000/.test(S)); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ exception : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });
