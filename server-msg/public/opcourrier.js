@@ -698,7 +698,7 @@ var CSS = `
   .opc .pdfv .btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   .opc .pdfv .btn svg{width:17px;height:17px}
   .opc .swl .swsub{display:block;margin-top:2px;font-size:12px;font-weight:400;color:var(--label-2)}
-  .opc .att-btn{display:inline-flex;align-items:center;gap:6px}
+  .opc .att-btn{display:inline-flex;align-items:center;gap:6px}.opc .sign-maint{opacity:.6}.opc .sign-maint-note{margin:12px auto 0;max-width:34ch;font-size:13px;line-height:1.45;color:var(--label-2);text-align:center}
   .opc .att-btn svg{width:17px;height:17px}
   .opc .compose.drop{box-shadow:0 0 0 3px var(--tint)}
   .opc .csaved{font-size:12px;color:var(--label-2)}
@@ -1740,6 +1740,10 @@ var MARKUP = `
     // La VRAIE signature exige la déclaration ET les six méthodes de l'objet `signature` : sans elles, le module ne promet rien de plus qu'avant.
     var sg=SRC.signature;
     CAP.signatureReelle=c.signature===true&&!!sg&&typeof sg==="object"&&["envoyer","etat","relancer","annuler","signe","preuve"].every(function(k){ return typeof sg[k]==="function"; });
+    // 5 novembre 2026 (Justin : « vu qu'il n'était pas fini, on le met en indisponible, et le message : en cours de maintenance ») — l'HÔTE déclare
+    // `signatureMaintenance` : toute NOUVELLE demande, toute relance, tout « Signer maintenant » répond « en cours de maintenance » et rien ne part ;
+    // les demandes déjà faites restent lisibles, annulables, et leurs PDF signés téléchargeables. Faux par défaut (un hôte qui ne dit rien garde l'ancien circuit).
+    CAP.signatureMaintenance=c.signatureMaintenance===true;
     // 5 novembre 2026 (Justin : « je sais pas comment on déconnecte une boîte » / « pas de bouton Google ou Hotmail ») — deux gestes que seul l'HÔTE déclare :
     // · boutonsFournisseurs : la feuille « Ajouter une boîte mail » s'ouvre sur TROIS gros boutons (Google, Microsoft, Autre messagerie) au lieu d'un champ à deviner ;
     // · gererBoites : un lien « Gérer les boîtes » dans la liste des comptes, qui rend la main à l'hôte (SRC.gererBoites) — la gestion (liste, déconnexion) est la SIENNE.
@@ -2206,7 +2210,7 @@ var MARKUP = `
     // Une catégorie vide n'est pas une boîte vide : si les autres catégories portent des messages (une boîte qui ne reçoit que des notifications n'a rien dans « Principal »), on le DIT et on offre « Tout ».
     var ailleurs=(!state.query&&catActive()&&state.cat!=="tout")?folderMessages(state.folder).filter(matchesFilter).length:0;
     var sub=state.query?'pour « '+H(state.query)+' »':ailleurs?H(plural(ailleurs,"message","messages")+" dans les autres catégories"):H(f.name+" · "+scopeLabel());
-    return '<div class="empty" role="presentation">'+I.mail+'<b>'+txt+'</b><span>'+sub+'</span>'+(ailleurs?'<button type="button" class="btn" data-cat-tout="1" style="margin-top:12px">Voir tout</button>':'')+(f.id==="sign"&&!state.query?'<button type="button" class="btn primary" data-signnew="1" style="margin-top:12px">Envoyer un document à signer</button>':'')+'</div>'; }
+    return '<div class="empty" role="presentation">'+I.mail+'<b>'+txt+'</b><span>'+sub+'</span>'+(ailleurs?'<button type="button" class="btn" data-cat-tout="1" style="margin-top:12px">Voir tout</button>':'')+(f.id==="sign"&&!state.query?(CAP.signatureMaintenance?'<p class="sign-maint-note" role="note" style="margin-top:12px">'+H(signMaintMsg())+'</p>':'<button type="button" class="btn primary" data-signnew="1" style="margin-top:12px">Envoyer un document à signer</button>'):'')+'</div>'; }
   function statusHtml(){
     var cl=catLabel(), st2=H((cl?cl+" · ":"")+scopeLabel());
     if(state.filter!=="all") return '<span class="st1">Filtré par : <b>'+FILTER_NAMES[state.filter]+'</b></span><span class="st2">'+st2+'</span>';
@@ -2440,7 +2444,7 @@ var MARKUP = `
     // une feuille de calcul ou un .docx ouvraient une demande de signature sans document (vu le 24 octobre 2026 dans la Tour).
     var canSign=!m.sign&&k0==="pro"&&m.att.some(estPDF)&&m.folder!=="junk"&&m.folder!=="trash";
     var dlOk=!!m.src&&CAP.telechargerPiece&&typeof SRC.piece==="function";
-    var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(m.sign&&estPDF(a)?boutonApercu(i,"data-pv-att"):'')+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';
+    var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(m.sign&&estPDF(a)?boutonApercu(i,"data-pv-att"):'')+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn'+(CAP.signatureMaintenance?' sign-maint':'')+'" data-act="signFrom"'+(CAP.signatureMaintenance?' aria-disabled="true" title="'+H(signMaintMsg())+'"':'')+'>'+I.sign+'<span>Faire signer'+(CAP.signatureMaintenance?' · en maintenance':'')+'</span></button>':'')+'</div>':'';
     var vip=m.vip?'<span class="vip" title="VIP">'+I.star+'<span class="sr">VIP</span></span>':'';
     // Pas de réponse rapide à un indésirable (on ne répond pas à une arnaque d'un clic),
     // ni à un envoi automatique (notification, reçu, voyage, publicité, adresse « no-reply »)
@@ -2992,6 +2996,8 @@ var MARKUP = `
   var SIGN_EN_COURS={pending:1,viewed:1,counter:1};
   var SIGN_RAF={t:0,enCours:false,erreurDite:false}, signVue=false;
   function signSrv(m){ return !!(m&&m.sign&&m.sign.srv); }
+  function signMaintMsg(){ return "La signature électronique est en cours de maintenance — elle revient bientôt. Rien n’est parti."; }
+  function signMaint(){ toast(signMaintMsg()); }
   function signIndisponible(){ toast("Le service de signature n’est pas joignable pour l’instant — réessayez dans un instant."); }
   // Range la VUE que rend la source dans la demande. Rend vrai si quelque chose a changé (état, signataire, historique).
   function signAppliquer(m,vue){
@@ -3072,6 +3078,7 @@ var MARKUP = `
       if(g.signers.every(function(s){return s.st==="signed";})){ if(g.counter){ g.st="counter"; signLog(m,"En attente de votre contre-signature"); } else signDone(m); }
       else g.st="pending";
       signPreview(m); renderAll(); persist(); toast(g.st==="signed"?"Document signé par tous":g.st==="counter"?"Le client a signé — à vous de contresigner":"Signature reçue de "+(x.name||x.email)); }
+    else if(act==="signRemind"&&CAP.signatureMaintenance){ signMaint(); }
     else if(act==="signRemind"){ signLog(m,"Relance envoyée à "+g.signers.filter(function(s){return s.st!=="signed";}).map(function(s){return s.name||s.email;}).join(", ")); signPreview(m); renderAll(); persist(); toast("Relance envoyée"); }
     else if(act==="signCancel"){ g.st="cancelled"; fichiersEffacer(fichiersDe(m)); signLog(m,"Demande annulée — le lien de signature ne fonctionne plus"); signPreview(m); renderAll(); persist(); toast("Demande annulée"); }
     else if(act==="signSend"){
@@ -3095,6 +3102,7 @@ var MARKUP = `
     n.preview=firstLine(n.body.join(" ")); n.user=true; n.at=Date.now(); MESSAGES.push(n);
   }
   function openSignPad(m){
+    if(CAP.signatureMaintenance){ signMaint(); return; }
     closeOverlay(); var ov=makeOverlay("acct");
     ov.innerHTML='<div class="sheet acct" role="dialog" aria-modal="true" aria-labelledby="spTitle">'+
       sheetBar('<button class="btn" id="spCancel" type="button" data-home="l" data-mac="foot" data-ord="1">Annuler</button>','<span class="t">Contresigner</span>',
@@ -3122,6 +3130,7 @@ var MARKUP = `
     };
   }
   function openSignRequest(pre){
+    if(CAP.signatureMaintenance){ signMaint(); return; }
     if(!ACCOUNTS.length){ toast("Ajoutez d’abord une boîte mail"); return; }
     pre=pre||{};
     var pros=accountsOfKind("pro"); if(!pros.length){ toast("Ajoutez d’abord une boîte pro"); return; }
@@ -3338,7 +3347,7 @@ var MARKUP = `
         '<div class="fld"><label for="cFrom">De&nbsp;:</label><span class="from-tile" id="cFromTile" aria-hidden="true"></span><select id="cFrom">'+fromOpts+'</select></div>'+
         '<div class="fld"><label for="cSub">Objet&nbsp;:</label><input id="cSub" type="text" value="'+H(model.subject)+'" placeholder="Objet"></div>'+
         '<textarea class="cbody" id="cBody" aria-label="Message" placeholder="Écrivez votre message…"></textarea>'+
-        '<div class="catt-row"><button class="btn att-btn" id="cAttBtn" type="button">'+I.attach+'<span>Joindre un fichier</span></button><button class="btn att-btn" id="cSignBtn" type="button">'+I.sign+'<span>Faire signer</span></button><input type="file" id="cFile" multiple hidden>'+
+        '<div class="catt-row"><button class="btn att-btn" id="cAttBtn" type="button">'+I.attach+'<span>Joindre un fichier</span></button><button class="btn att-btn" id="cSignBtn" type="button"'+(CAP.signatureMaintenance?' aria-disabled="true" title="'+H(signMaintMsg())+'"':'')+'>'+I.sign+'<span>Faire signer'+(CAP.signatureMaintenance?' · en maintenance':'')+'</span></button><input type="file" id="cFile" multiple hidden>'+
           '<div class="catt" id="cAtt" role="list" aria-label="Pièces jointes" style="display:contents"></div></div>'+
         '<div class="cfoot"><span class="cnote"><span class="csaved" id="cSaved" role="status"></span></span>'+
           '<span class="cf-btns" data-slot="cf"><button class="btn" id="cDraft" type="button" data-home="cf" data-ord="2">Enregistrer le brouillon</button></span></div>'+

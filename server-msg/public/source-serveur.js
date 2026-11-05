@@ -4104,7 +4104,7 @@
       const BIENTOT = 'Bientôt : la connexion de vos boîtes arrive avec le serveur d’OP Courrier.';
       const bientot = () => Promise.reject(new Error(BIENTOT));
       const videSource = {
-        capacites: () => Promise.resolve({ oauth: false, programmeServeur: false, signature: false, marquage: false, deplacement: false, reglagesServeur: false, simulation: false, dossiers: ['inbox'], destinataires: 1 }),
+        capacites: () => Promise.resolve({ oauth: false, programmeServeur: false, signature: false, signatureMaintenance: true, marquage: false, deplacement: false, reglagesServeur: false, simulation: false, dossiers: ['inbox'], destinataires: 1 }),
         boites: () => Promise.resolve([]),
         messages: () => Promise.resolve([]),
         envoyer: bientot, ajouterBoite: bientot, retirerBoite: bientot
@@ -4118,7 +4118,7 @@
           await lireCfg();
           if (!ouvertSrv()) return videSource.capacites();
           const via = []; if (dispo().google === true) via.push('Google'); if (dispo().microsoft === true) via.push('Microsoft');
-          return { oauth: via.length > 0, oauthVia: via, programmeServeur: false, signature: false, marquage: true, deplacement: false, reglagesServeur: true, simulation: false, telechargerPiece: true,
+          return { oauth: via.length > 0, oauthVia: via, programmeServeur: false, signature: false, signatureMaintenance: true, marquage: true, deplacement: false, reglagesServeur: true, simulation: false, telechargerPiece: true,
             dossiers: ['inbox'], destinataires: 5, pj: { nombre: 3, octets: 4 * 1024 * 1024 } };
         },
         boites: async () => {

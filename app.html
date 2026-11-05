@@ -8826,7 +8826,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '803';
+const APP_VERSION = '804';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -34399,7 +34399,7 @@ function courrierSource(){
        Google ni Microsoft). L'autorisation n'est déclarée que pour les fournisseurs que le serveur dit configurés (`/health` → `oauth`,
        `oauthDispo`) : un fournisseur fermé garde le mot de passe d'application (Google) ou dit qu'il n'est pas encore ouvert (Microsoft). */
     async capacites(){ const o=await oauthDispo(), via=Object.keys(OAUTH_NOMS).filter(k=>o[k]).map(k=>OAUTH_NOMS[k]);
-      return {oauth:via.length>0,oauthVia:via,boutonsFournisseurs:true,gererBoites:true,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
+      return {oauth:via.length>0,oauthVia:via,boutonsFournisseurs:true,gererBoites:true,programmeServeur:false,signature:false,signatureMaintenance:true,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
       dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024},traduire:!BETA_ESSAI}; },   /* la bêta : pas de traduction — le texte d'un vrai mail partirait chez Anthropic, flux non couvert (`sous-traitance.html`) ; le serveur la refuse aussi */
     /* « Traduire en français » (20 octobre 2026) : le texte d'UN mail, au geste, traduit par le serveur (`/api/mail/traduire`, gardé par la clé de l'entreprise) */
     async traduire(texte){
