@@ -55,7 +55,10 @@ vrai('…écrit les non lus devant le titre de la page (titreDocument)', /titreD
 vrai('…décide le thème comme OP GESTION (data-theme de <html> : dark → nuit, light → jour, sinon l\'appareil)', /document\.documentElement\.getAttribute\('data-theme'\)/.test(VUE_C) && /t==='dark'\?'nuit':t==='light'\?'jour':null/.test(VUE_C));
 vrai('…ne reconstruit pas le module sur un rafraîchissement automatique de la rubrique (il perdrait la lecture en cours)', /if\(vivant&&_courrierInst&&vivant\.isConnected\)\{ courrierAjuster\(\); return; \}/.test(VUE_C));
 vrai('⛔ en quittant l\'entreprise, la clé du module est vidée (des mails écrits ne restent pas sur un appareil rendu)', /'espace_admin','courrier'\]/.test(APP) && /const P=STORE_KEY\.split\('_'\)\[0\]\+'_';/.test(fonction(APP, 'espaceQuitter')));
-const SRC_A = fonction(APP, 'courrierSource') + '\n' + fonction(APP, 'courrierCorps');   // v797 : le n° de bon dans le texte lu (courrierCorps)
+const SRC_A = fonction(APP, 'courrierSource') + '\n' + fonction(APP, 'courrierCorps')
+  /* v802 : l'autorisation Google / Microsoft que le serveur annonce (`/health` → `oauth`), le fournisseur d'une adresse, le 403 de la bêta dit en geste */
+  + '\nconst OAUTH_NOMS={google:\'Google\',microsoft:\'Microsoft\'}; let _oauthDispo=null, _oauthDispoTs=0;\nasync ' + fonction(APP, 'oauthDispo')
+  + '\n' + fonction(APP, 'courrierOauthDe') + '\n' + fonction(APP, 'courrierOauth') + '\n' + fonction(APP, 'courrierRefusBeta');   // v797 : le n° de bon dans le texte lu (courrierCorps)
 vrai('(tranche trouvée) l\'adaptateur courrierSource', SRC_A.length > 1500);
 v('l\'adaptateur n\'appelle que les routes de la boîte mail d\'aujourd\'hui (et une seule nouvelle, la traduction du 20 octobre 2026, gardée par la clé de l\'entreprise)', Array.from(new Set(Array.from(SRC_A.matchAll(/\/api\/[a-z/]+/g)).map(m => m[0]))).sort(), ['/api/mail/traduire', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/mailboxes', '/api/replies', '/api/sendmail']);
 v('⛔ il lit le CODE avant le corps d\'un refus (`!r.ok` avant `r.json()`), toutes ses lectures', (SRC_A.match(/if\(!r\.ok\) throw await refus\(r,/g) || []).length, 5);   // + la traduction (20 octobre 2026)
@@ -122,15 +125,17 @@ function facteur() {
   /* la VRAIE fonction de la page : ses dépendances (l'adresse du serveur, l'équipe, l'en-tête de preuve) sont celles de la page, fournies ; `fetch` est le vrai, espionné */
   let cle = CLE_A; const requetes = [];
   const espion = (u, o) => { requetes.push((o && o.method || 'GET') + ' ' + new URL(u).pathname); return fetch(u, o); };
-  const sb = { PUSH_API: B, syncTeam: () => 'ent-a-9x', enteteEquipe: async (base) => Object.assign({}, base || {}, cle ? { 'x-teamop-kh': kh(cle) } : {}), mailBrandName: () => 'Entreprise A', fetch: espion, _courrierRep: null, BETA_ESSAI: false,
+  const sb = { PUSH_API: B, syncTeam: () => 'ent-a-9x', enteteEquipe: async (base) => Object.assign({}, base || {}, cle ? { 'x-teamop-kh': kh(cle) } : {}), mailBrandName: () => 'Entreprise A', fetch: espion, _courrierRep: null, BETA_ESSAI: false, AbortController, setTimeout, clearTimeout,
     Date, JSON, Promise, Array, String, Uint8Array, btoa, encodeURIComponent, Error, URL };
   vm.createContext(sb);
   vm.runInContext(SRC_A + '\n;this.source = courrierSource();', sb);
-  /* v2.92 — l'ESPACE DE LA BÊTA n'est pas une panne : aucune route n'est appelée, l'erreur porte `calme:true` et le message de Justin ; en production le drapeau est faux et le chemin est celui d'avant */
-  { const pris = []; const sbB = Object.assign({}, sb, { BETA_ESSAI: true, fetch: async (u) => { pris.push(u); return { ok: false, status: 403, json: async () => ({ error: 'refusé' }) }; } }); vm.createContext(sbB);
+  /* v801 — Justin, 4 novembre 2026 : « en bêta, je devrais pouvoir me connecter avec mes boîtes mail pour tester ». La bêta LIT ses
+     boîtes : boites() appelle la route (le jeton d'accès bêta part dans l'en-tête, posé par enteteEquipe), et un refus se DIT — ce n'est
+     plus l'état « calme » d'un espace sans boîte (v2.92). */
+  { const pris = []; const sbB = Object.assign({}, sb, { BETA_ESSAI: true, fetch: async (u) => { pris.push(u); return { ok: false, status: 403, headers: { get: () => 'text/plain' }, text: async () => 'Espace de test : reconnecte-toi à la bêta', json: async () => ({ error: 'refusé' }) }; } }); vm.createContext(sbB);
     vm.runInContext(SRC_A + '\n;this.source = courrierSource();', sbB);
     let e = null; try { await sbB.source.boites(); } catch (x) { e = x; }
-    v('⛔ BÊTA : boites() ne parle à AUCUNE route et rend une erreur CALME (pas de « refusé », pas de panne)', [pris.length, !!e && e.calme === true, !!e && /^Espace de test : aucune vraie boîte mail ne se connecte ici\. Les vrais mails se testent dans la Tour\.$/.test(e.message), !!e && /refus|clé/i.test(e.message)], [0, true, true, false]);
+    v('⛔ BÊTA : boites() appelle la route des boîtes, et un refus se dit (pas l’ancien état « calme »)', [pris.length, /\/api\/mailboxes\?teamId=/.test(pris[0] || ''), !!e, !!e && e.calme === true], [1, true, true, false]);
     const nB = requetes.length; let e2 = null; try { await sb.source.boites(); } catch (x) { e2 = x; }
     vrai('⛔ PRODUCTION (BETA_ESSAI faux) : le chemin est celui d\'avant — la route est appelée', requetes.length === nB + 1 && !(e2 && e2.calme), requetes.slice(nB).join(',')); }
   const S = sb.source;

@@ -21,7 +21,7 @@ s = s.replace(/const APP_VERSION = '([0-9]+)'/, "const APP_VERSION = '$1-beta'")
    rattachement à la synchro, plus bas) change la bêta sans changer app.html : sans un numéro neuf, un appareil resté en 798-beta
    ne se mettrait jamais à jour (la bêta ne recharge que pour une version STRICTEMENT plus haute). Le plus grand des deux gagne :
    le jour où app.html dépasse ce nombre, il redevient la source, sans rien à toucher ici. */
-const BETA_NUMERO = 801;
+const BETA_NUMERO = 802;
 s = s.replace(/const APP_VERSION = '([0-9]+)-beta'/, (m, n) => "const APP_VERSION = '" + Math.max(parseInt(n, 10), BETA_NUMERO) + "-beta'");
 /* ⛔ UN APPAREIL NEUF QUI OUVRE LA BÊTA REJOINT LA SYNCHRO DE LA BÊTA (Justin, 4 novembre 2026 : « sur mon compte bêta je ne vois pas
    ce que j'ai fait sur mon PC sur les autres appareils, mon téléphone ou mon Mac »). La bêta ne rattachait un appareil à son espace
@@ -35,6 +35,29 @@ s = s.replace(/const APP_VERSION = '([0-9]+)-beta'/, (m, n) => "const APP_VERSIO
 const BETA_LOGIN_OK = '    ub.pwdHash=h; ub.actif=true; ub.essai=true; delete ub.mustChangePwd; delete ub.pinHash; delete ub.sansMdp; save();';
 if (s.split(BETA_LOGIN_OK).length !== 2) { console.error('ÉCHEC : la ligne de la connexion bêta acceptée doit être trouvée UNE fois dans app.html'); process.exit(1); }
 s = s.split(BETA_LOGIN_OK).join(BETA_LOGIN_OK + "\n    try{ if(!syncTeam()){ localStorage.setItem('elanB_sync_team',FB_TEAM); localStorage.setItem('elanB_sync_secret',SYNC_SECRET_DEFAULT); localStorage.setItem('elanB_sync_on','1'); } }catch(_e){}   // beta-build.js : un appareil neuf rejoint la synchro de la bêta");
+/* ⛔ v802 — LA BÊTA N'A QU'UN ESPACE : `opgestion-beta` (Justin, 5 novembre 2026 : « mon compte bêta ne synchronise toujours pas avec
+   ce que j'ai fait sur les autres appareils »). Mesuré ce soir-là, en lecture seule sur api.teamop.fr : DEUX documents de bêta vivaient
+   côte à côte. `elan-gestion-beta` (l'ancien nom, jusqu'au 17 septembre 2026) écrit à 23:38 UTC par une 801-beta (« teste », 2 devis,
+   7 clients : le Mac), `opgestion-beta` écrit pour la dernière fois à 20:00 UTC (0 devis, 0 client). Le renommage n'avait JAMAIS migré
+   les appareils déjà rattachés : leur `elanB_sync_team` gardait l'ancien nom, pour toujours ; et un appareil connecté avant la 799 ne
+   repassait jamais par la connexion qui rattache. Les routes de boîte mail de la 801 n'acceptent que `opgestion-beta` : d'où « clé de
+   l'entreprise non reconnue » dans la Boîte mail du Mac.
+   Au démarrage, AVANT `espaceHerite` : un appareil sur l'ancien nom, ou sans espace mais avec une session bêta ouverte (connecté avant la 799,
+   jamais repassé par la connexion qui rattache), passe d'office sur `opgestion-beta`, clé par défaut
+   (la même clé que l'ancien espace : rien ne devient illisible). Sa base locale reste : la première synchro la RÉUNIT au document de la
+   bêta (union par enregistrement, `fusionnerBases`), puis la renvoie — ce qu'il a fait n'est pas perdu, les autres appareils le voient.
+   Un appareil rattaché à un AUTRE espace (une entreprise, par un lien) ne bouge pas tout seul : on ne mélange jamais les données d'une
+   entreprise dans l'espace de la bêta, dont la clé est publique. `betaEspaceRejoindre()` le lui propose (Boîte mail, Paramètres), en
+   partant de la base de la bêta, sans emporter la sienne. `tests/test-3258.js`. */
+const HERITE = '(function espaceHerite(){ try{';
+if (s.split(HERITE).length !== 2) { console.error('ÉCHEC : espaceHerite doit être trouvé UNE fois'); process.exit(1); }
+s = s.split(HERITE).join("(function betaEspaceUnique(){ try{ const t=(localStorage.getItem('elanB_sync_team')||'').trim();\n"
+  + "  let sess=false; try{ sess=!!(localStorage.getItem('elanB_session')||sessionStorage.getItem('elanB_session')); }catch(e){}\n"
+  + "  if(t==='elan-gestion-beta'||(!t&&sess)){ localStorage.setItem('elanB_sync_team',FB_TEAM); if(!localStorage.getItem('elanB_sync_secret')) localStorage.setItem('elanB_sync_secret',SYNC_SECRET_DEFAULT);\n"
+  + "    if(localStorage.getItem('elanB_sync_on')!=='0') localStorage.setItem('elanB_sync_on','1'); if(t) localStorage.setItem('elanB_espace_migre',t); }\n"
+  + "}catch(e){} })();   // beta-build.js : un seul espace pour la bêta (voir le générateur)\n" + HERITE);
+/* `betaEspaceAutre` et `betaEspaceRejoindre` vivent dans app.html (ESLint lit les noms de la page : test-818) ; seule la bêta les appelle. */
+
 /* ⛔ LA BÊTA A SA VERSION MINIMALE À ELLE (Justin, 6 octobre 2026 : « qu'on sépare la version bêta et la version publique »).
    L'application demande `/api/version` ; la bêta demande `/api/version?canal=beta` — le minimum que la Tour pose sur la carte
    « Bêta » d'OP GESTION, jamais celui des clients (et inversement : exiger une bêta ne bloque aucun client). Un serveur d'avant

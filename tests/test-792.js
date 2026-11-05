@@ -247,7 +247,8 @@ console.log('── 792 · 10. la forme, là où l’exécution ne va pas ──
 { vrai('la carte de l’onglet Plan passe par papImplCarteHtml', /if\(canEd\) h\+=papImplCarteHtml\(i\);/.test(SRC));
   vrai('l’ancien envoi « délivré une fois » n’existe plus', !/function papPrintImplantation\(/.test(SRC) && !/délivré une fois/.test(APP));
   vrai('papImplantationEnvoyer : la trace s’écrit APRÈS le résultat de srvMail', (() => { const c = corps('papImplantationEnvoyer'); const k = c.indexOf('const ok=await srvMail('); return k > 0 && c.indexOf('if(!ok) return;') > k && c.indexOf('pl.implantationEnvoyee=') > c.indexOf('if(!ok) return;'); })());
-  vrai('srvMail : sansMailto rend false AVANT le lien mailto', (() => { const c = corps('srvMail'); const a = c.indexOf('if(opts&&opts.sansMailto) return false;'), b = c.indexOf("location.href='mailto:"); return a > 0 && b > a; })()); }
+  /* v802 : plus AUCUN brouillon mailto: — un envoi qui échoue le dit et ne part pas ailleurs (sansMailto est accepté, il ne change plus rien) */
+  vrai('srvMail n’ouvre plus jamais de brouillon mailto: (un envoi qui échoue le dit, rien ne part)', (() => { const c = corps('srvMail'); return c.length > 500 && /_srvMailErr/.test(c) && !/mailto:/.test(c); })(), corps('srvMail').length); }
 
 console.log(`\n════ test-792 : ${ok} ✓ ${ko} ✗ ════`);
 process.exit(ko ? 1 : 0);

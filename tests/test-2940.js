@@ -50,14 +50,14 @@ const lancer = (dossier, sortie) => spawnSync(process.execPath, [path.join(dossi
     ['secuAFaire', 'function secuAFaire(u){ if(BETA_ESSAI) return false;'], ['emailRappelModal', 'function emailRappelModal(passe){ if(BETA_ESSAI) return;'],
     ['horsLigneDebut', 'function horsLigneDebut(motif){'], ['battement', 'async function battement(){\n  clearTimeout(_hbTimer);'], ['rep()', 'function rep(msg,src,line,stack){ try{'],
     ['service worker', "navigator.serviceWorker.register('sw.js')"], ['manifeste', '<link rel="manifest" href="manifest.webmanifest">\n'], ['titre', '<title>OP GESTION</title>'],
-    ["Changer d'application", "<button class=\"btn ghost sm\" onclick=\"try{localStorage.removeItem('teamop_app')}catch(e){};location.href='index.html?hub=1'\">Changer d'application</button>"], ['loadLeaflet', 'function loadLeaflet(){ return new Promise((res,rej)=>{\n  if(window.L) return res();'], ['boîtes du courrier', "if(BETA_ESSAI){ const e=new Error('Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }"], ['rangée OP MESSAGES du menu', '<a id="suite-opmsg" href="messages.html"'], ['bouton flottant OP MESSAGES', '<a class="msg-flot" id="msg-flot" href="messages.html"'],
+    ["Changer d'application", "<button class=\"btn ghost sm\" onclick=\"try{localStorage.removeItem('teamop_app')}catch(e){};location.href='index.html?hub=1'\">Changer d'application</button>"], ['loadLeaflet', 'function loadLeaflet(){ return new Promise((res,rej)=>{\n  if(window.L) return res();'], ['boîtes du courrier', "    async boites(){\n"], ['rangée OP MESSAGES du menu', '<a id="suite-opmsg" href="messages.html"'], ['bouton flottant OP MESSAGES', '<a class="msg-flot" id="msg-flot" href="messages.html"'],
     ['suiteRefresh', "const soOn=!!(can('opMessages')&&planOpMsg()&&opMsgDisponible());"], ['bandeau', 'try{ multiProposer(view); }catch(_e){}'],
     ['démarrage', 'try{ txtAppliquer(); }catch(e){}\nboot();\n'], ['haut de page', '<meta charset="utf-8">\n'],
     ['code d\'équipe devis', "'op_devis_code'"], ['préfixe', "const STORE_KEY = 'elan_gestion_v2';"],
     ['forceUpdate', 'async function forceUpdate(){'], ['Assistant devis', "  if(!adCode()){\n    $('content').innerHTML=`<div class=\"card\"><div class=\"card-head\"><h3>🔒 Code d'accès requis</h3></div>"],
     ['Devis IA — message', "  if(demande.trim().length<5){ show('Décris la prestation d\\'abord.'); return; }\n"],
     ['Devis IA — état', "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  fetch(PUSH_API+'/api/devis/etat?team='"],
-    ['sms: (location.href)', "location.href='sms:'+"], ['mailto: (location.href)', "location.href='mailto:'+"], ['mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=']
+    ['sms: (location.href)', "location.href='sms:'+"], ['mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=']
   ];
   vrai('(population) ' + GARDES.length + ' gardes à éprouver, chacune avec un motif qui existe UNE fois ou plus dans app.html', GARDES.length >= 27 && GARDES.every(g => APP.indexOf(g[1]) >= 0));
   const tombees = [];
@@ -350,8 +350,9 @@ function fenetre(opts) {
     vrai('⛔ demoNav.href = sms: / mailto: : la page ne bouge pas, la personne lit « rien n\'est envoyé » et que la messagerie ne s\'ouvre pas', loc.href === 'http://127.0.0.1/demo.html' && toasts.length === 2
       && toasts.every(t => t.indexOf(MSG) >= 0 && /messagerie ne s’ouvre pas/.test(t)), toasts);
     const code = N;   // jamais le nettoyage « tout bloc /* … */ » : il avale du vrai code (CLAUDE.md)
-    egal('(population) sept affectations détournées vers demoNav.href dans la page ; AUCUNE affectation de location.href vers sms:, mailto: ou tel: ne subsiste',
-      [(code.match(/demoNav\.href\s*=/g) || []).length, /location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(code)], [7, false]);
+    /* six depuis la v802 : l'envoi d'un courriel n'ouvre plus de brouillon mailto: quand il échoue (srvMail) */
+    egal('(population) six affectations détournées vers demoNav.href dans la page ; AUCUNE affectation de location.href vers sms:, mailto: ou tel: ne subsiste',
+      [(code.match(/demoNav\.href\s*=/g) || []).length, /location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(code)], [6, false]);
   }
 
   console.log('\n   — les écrans qui promettaient une fonction absente d\'ici');
