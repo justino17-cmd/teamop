@@ -1,5 +1,16 @@
 # Point stable TeamOP
 
+**Version stable : v804** — 5 novembre 2026, soir (Justin : « tu me corriges ça tout de suite » ; « le système de signature […] on le met
+en indisponible, et le message : en cours de maintenance »). La v803 et :
+- **Une réponse de ton client ne peut plus arriver chez TEAM OP** : un devis ou une facture envoyé sans boîte mail reliée part au nom de
+  l'entreprise, avec son adresse en « Répondre à ». Quand le serveur ne connaît AUCUNE adresse de l'entreprise (appareil d'avant la v797,
+  fiche sans e-mail), il refuse désormais l'envoi et l'écran dit quoi faire (Mon entreprise, ou relier sa boîte). `tests/test-3244.js`.
+- **La signature électronique est « en cours de maintenance »** dans OP GESTION, la Tour et OP MESSAGES : « Faire signer » l'annonce, une
+  nouvelle demande, une relance ou « Signer maintenant » le disent et rien ne part ; les demandes déjà faites restent lisibles et
+  annulables. `tests/test-3297.js`.
+
+**Ancien point : v803.**
+
 **Version stable : v803** — 5 novembre 2026, soir (Justin : « pour les boîtes mail, je veux que ça soit sur la version finale aussi »).
 La v802 (jamais publiée seule) et :
 - **Relier une boîte mail se voit** : « Ajouter une boîte mail » s'ouvre sur trois boutons — « Se connecter avec Google » (Gmail,
