@@ -25,7 +25,7 @@ console.log('L\'appareil remonte son diagnostic tout seul');
 {
   v('la fonction existe', /function syncDiagnostic\(motif\)\{/.test(APP), true);
   v('elle part quand le premier instantané n\'arrive jamais',
-    /if\(!_syncGotInitial && _syncOn\) syncDiagnostic\('bloquée : premier instantané jamais reçu après 25 s'\);/.test(APP), true);
+    /if\(!_syncGotInitial && _syncOn\) syncDiagnostic\(attente>25000\?\('réseau lent : premier instantané pas encore reçu après '[^\n]*:'bloquée : premier instantané jamais reçu après 25 s'\); \},attente\);/.test(APP), true);   // v801 : attend la lecture entière sur une base lourde (test-3238)
   v('…et quand une écriture n\'est pas acquittée',
     /syncDiagnostic\('ecriture non acquittee en '\+Math\.round\(_delai\/1000\)\+' s/.test(APP), true);   // v787 : le message dit le vrai délai (test-3238)
   /* ⛔ Le canal est la PORTE de la sentinelle : `tmPush` vit dans une fonction isolée et valait

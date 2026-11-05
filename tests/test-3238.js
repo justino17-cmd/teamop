@@ -59,9 +59,31 @@ const tranche = (debut, fin) => { const i = SRC.indexOf(debut); const j = i < 0 
   console.log('\n── 3238 · 3. les coupures voulues sont marquées, et l’alerte d’écriture dit son vrai délai ──');
   vrai('reveil marque la coupure', /const reveil=\(\)=>\{[^\n]*ctl\.signal\.__opVolontaire=1; ctl\.abort\(\)/.test(SRC));
   vrai('arreter marque la coupure', /const arreter=\(\)=>\{ actif=false; try\{ if\(ctl\)\{ ctl\.signal\.__opVolontaire=1; ctl\.abort\(\)/.test(SRC));
-  vrai('l’écoute longue note ses 40 s', /c\.signal\.__opDelai=40000; \}catch\(e\)\{\} const to=setTimeout\(\(\)=>c\.abort\(\),40000\)/.test(SRC));
+  vrai('l’écoute longue note son délai (40 s, plus le supplément d’une base lourde — v801)', /const dA=40000\+Math\.max\(0,\(\(typeof docDelaiLecture==='function'\)\?docDelaiLecture\(\):20000\)-20000\); try\{ c\.signal\.__opDelai=dA; \}catch\(e\)\{\} const to=setTimeout\(\(\)=>c\.abort\(\),dA\)/.test(SRC));
   vrai('le délai d’acquittement suit la taille (41 s pour 265 Ko, au plus 45 s — test-660)', /const _delai=Math\.min\(45000, 15000\+Math\.round\(\(alle\.taille\|\|0\)\/10240\)\*1000\);/.test(SRC));
   vrai('le diagnostic n’écrit plus « 15 s » en dur', !/ecriture non acquittee en 15 s/.test(SRC) && /ecriture non acquittee en '\+Math\.round\(_delai\/1000\)\+' s/.test(SRC));
+
+  console.log('\n── 3238 · 4. v801 : la LECTURE se chronomètre à ce qu’elle ramène (Toka Clim, « premier instantané jamais reçu ») ──');
+  /* On exécute les vraies fonctions, avec un rangement d'appareil simulé : la base locale est ce que la lecture ramènera. */
+  const fLect = tranche('function docKoAttendus(', 'async function docAppel(');
+  vrai('docKoAttendus et docDelaiLecture sont trouvées', /function docDelaiLecture\(/.test(fLect));
+  let rangement = '';
+  const bac3 = { STORE_KEY: 'elan_gestion_v2', localStorage: { getItem: k => k === 'elan_gestion_v2' ? rangement : null }, Math, JSON };
+  vm.createContext(bac3); vm.runInContext(fLect, bac3);
+  rangement = ''; v('appareil sans base : 20 s, comme avant', bac3.docDelaiLecture(), 20000);
+  rangement = 'x'.repeat(265 * 1024); v('base de 265 Ko (Toka Clim) : ~65 s au lieu de 20', Math.round(bac3.docDelaiLecture() / 1000), 65);
+  rangement = 'x'.repeat(2 * 1024 * 1024); v('très grosse base : plafond de 90 s', bac3.docDelaiLecture(), 90000);
+  const bac4 = { STORE_KEY: 'k', localStorage: { getItem: () => { throw new Error('rangement refusé'); } }, Math, JSON };
+  vm.createContext(bac4); vm.runInContext(fLect, bac4);
+  v('rangement illisible : 20 s, sans jeter', bac4.docDelaiLecture(), 20000);
+  vrai('lire() demande ce délai à docAppel (sous typeof : les bancs qui extraient docEquipe seule gardent 20 s)',
+    /r=await docAppel\('\/api\/doc\/lire',p,\(typeof docDelaiLecture==='function'\)\?docDelaiLecture\(\):20000\)/.test(SRC));
+  /* … et docAppel garde bien ce délai demandé pour une lecture : on rejoue la vraie fonction avec le délai de 265 Ko. */
+  rangement = 'x'.repeat(265 * 1024);
+  await bac.docAppel('/api/doc/lire', { t: 'a', kh: 'b' }, bac3.docDelaiLecture());
+  v('docAppel note ce délai sur le signal d’une lecture', Math.round(notes[notes.length - 1].delai / 1000), 65);
+  vrai('l’alerte du premier instantané attend la lecture entière et dit « réseau lent » sur une base lourde',
+    /attente=Math\.max\(25000,lent\+10000\);/.test(SRC) && /'réseau lent : premier instantané pas encore reçu après '/.test(SRC));
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
