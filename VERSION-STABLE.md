@@ -1,5 +1,16 @@
 # Point stable TeamOP
 
+**Version stable : v803** — 5 novembre 2026, soir (Justin : « pour les boîtes mail, je veux que ça soit sur la version finale aussi »).
+La v802 (jamais publiée seule) et :
+- **Relier une boîte mail se voit** : « Ajouter une boîte mail » s'ouvre sur trois boutons — « Se connecter avec Google » (Gmail,
+  Workspace), « Se connecter avec Microsoft » (Outlook, Hotmail, 365), « Autre messagerie » (iCloud, Orange, Free, OVH… avec un mot de
+  passe d'application). Un fournisseur fermé sur le serveur est grisé, avec la raison.
+- **Une carte « Boîtes mail » dans les Paramètres** : toutes les boîtes reliées, « Connectée » / « À reconnecter », « Déconnecter »
+  (tes mails restent dans ta messagerie, seule la liaison part) et « Reconnecter » ; le Courrier a un lien « Gérer les boîtes ».
+  Réservé à l'administrateur, comme la connexion. `tests/test-3293.js`.
+
+**Ancien point : v802.**
+
 **Version stable : v802** — 5 novembre 2026, soir (Justin : « il faut publier ça »). La v801 et :
 - **L'application s'ouvre plus vite sur un téléphone lent** : un écran « OP GESTION — Chargement… » paraît dès les premiers kilo-octets
   (premier affichage 9,2 s → 1,5 s en 4G faible), au lieu d'une page blanche. `tests/test-3290.js`.
