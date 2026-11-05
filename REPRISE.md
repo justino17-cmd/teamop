@@ -49,7 +49,18 @@ côté, je veux que ce soit prêt à mon réveil ».
   Google ET un audit de sécurité annuel (portée restreinte `https://mail.google.com/` lue depuis notre serveur). En attendant : mot de passe
   d'application pour Gmail. Décision de Justin.
 - **Plan des stores** (App Store / Play Store, Capacitor) : document « Plan des stores » (Claude Docs, https://claude.ai/artifact/PmbKVLFeb9utiA1duYhWmJ).
-- **Audit de performance de la bêta** : voir la section suivante quand il est intégré.
+- **Performance (BÊTA 804 seulement, production gelée en v801)** — audit au navigateur (téléphone ×4/×6, « 4G faible »), rapport complet perdu
+  avec la session : les chiffres sont ici. Corrigé sur la bêta : **écran de démarrage** (premier affichage 9,2 s → 1,5 s en 4G faible, 2,3 s →
+  0,24 s depuis le cache), **listes par pages de 60** avec « Afficher 100 de plus » (Clients 1,3 s → 0,4 s, Factures 2,9 s → 0,4 s, Interventions
+  6,8 s → 1,8 s à ×4 ; seul l'historique se coupe, jamais le travail à faire ; totaux et recherche sur tout), **photos progressives** (première
+  photo 15 s → 3,2 s, deux téléchargements à la fois, chaque photo posée dès son arrivée). ⛔ **La source de la bêta 804 est l'`app.html` du
+  commit `ffb06c7a`** (branche `claude/op-gestion-interface-yb6p32`) avec ses bancs `test-3290` (démarrage), `3291` (listes), `3292` (photos) et
+  les adaptations de 714, 776, 1130, 1134, 1250, 1253, 1523, 1524 : `main` garde l'`app.html` v801 et la bêta part EN AVANCE. Au report en
+  production (sur la phrase de Justin) : reprendre ce commit, monter APP_VERSION et le cache, remettre ces bancs. Non fait, à décider :
+  retirer les 1,33 Mo de commentaires à la publication (−36 % de téléchargement, il faut un vrai outil type esbuild, jamais une regex : la copie
+  de mesure ne s'exécutait plus), précache du service worker allégé (1,14 Mo hors application à la première installation), `content-visibility`
+  sur les lignes de liste (−32 à −55 % sur Factures, à vérifier au pixel), Devis IA en flux (route serveur), puis découper le fichier de 4 Mo
+  (CSS 697 Ko et script 4,1 Mo en fichiers gardés par le service worker ; sortir de la production les outils de bêta ; données à la demande).
 - Rappels à 10 h (tâche planifiée) : TVA (mention 293 B / option), vérification d'éditeur Microsoft.
 
 # 4 NOVEMBRE 2026 (nuit) — BÊTA 801 : APERÇU DU DEVIS EN PLEIN ÉCRAN, « ENVOYÉ » QUAND C'EST PARTI, VRAIES BOÎTES MAIL SUR LA BÊTA
