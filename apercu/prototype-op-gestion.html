@@ -337,6 +337,32 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .fo-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}.fo-stats span{display:flex;flex-direction:column;gap:1px;font-size:12.5px;color:var(--doux);background:var(--surf2);border:1px solid var(--trait);border-radius:12px;padding:8px 10px}.fo-stats b{font-size:17px;color:var(--encre)}
 .fo-ajout{display:flex;flex-direction:column;gap:4px;text-align:left;border-style:dashed;cursor:pointer;color:var(--encre);font:inherit}.fo-ajout b{color:var(--lien)}
 @media (max-width:760px){.pr-vues{align-self:stretch}.pr-vues button{flex:1 1 auto;padding:0 8px;min-width:0}.pr-vues .l-long{display:none}.pr-vues .l-court{display:inline}.pr-vues button:not([data-pr="vue|commandes"]) .pr-nb{display:none}.cmd-l{grid-template-columns:minmax(0,1fr) auto 40px;gap:6px 8px}.cmd-x{width:40px}.fo-grille{grid-template-columns:1fr}.cmd-liste{padding:4px 8px}.cmd-c{flex-direction:column-reverse;gap:6px}}
+.cmd-outils{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.cmd-outils .seg button{gap:6px}
+.cmd-table{padding:4px 10px}.cmd-row{display:grid;grid-template-columns:150px minmax(0,1.5fr) 110px 150px minmax(0,1.2fr);gap:4px 16px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);padding:12px 6px;color:var(--encre);font:inherit;cursor:pointer;border-radius:12px}
+.cmd-table .cmd-row:last-child{border-bottom:0}.cmd-entete{cursor:default;font-size:12.5px;font-weight:650;color:var(--doux);text-transform:uppercase;letter-spacing:.04em;padding-top:8px;padding-bottom:8px}
+@media (hover:hover){button.cmd-row:hover{background:var(--survol)}}
+.c-num,.c-four,.c-st{display:flex;flex-direction:column;gap:3px;min-width:0}.c-st{align-items:flex-start}.c-four b{overflow-wrap:anywhere}.cmd-info{color:var(--orange)}
+.cmd-liens{display:flex;flex-wrap:wrap;gap:0 18px}
+.ced{display:flex;flex-direction:column}.ced-l{display:grid;grid-template-columns:minmax(0,1fr) 120px 110px 96px 44px;gap:6px 12px;align-items:center;border-bottom:1px solid var(--trait);padding:8px 0}
+.ced-entete{font-size:12.5px;font-weight:650;color:var(--doux);padding:4px 0}.ced-c{display:flex;align-items:center;gap:6px}.ced-c span{display:none}.ced-c i{font-style:normal;font-size:12.5px;color:var(--doux)}
+.ced-c input{width:100%;min-width:0;min-height:44px;border-radius:10px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);padding:6px 10px;font-size:16px;text-align:right}
+.ced-t{text-align:right;white-space:nowrap}.ced-ajout{position:relative;display:flex;flex-direction:column;gap:6px}.ced-res{display:flex;flex-direction:column;border-radius:14px;overflow:hidden}
+.ced-r{display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--surf2);border:1px solid var(--trait);border-top:0;padding:10px 12px;color:var(--encre);font:inherit;cursor:pointer;min-height:48px}.ced-r:first-child{border-top:1px solid var(--trait);border-radius:14px 14px 0 0}.ced-r:last-child{border-radius:0 0 14px 14px}.ced-r:only-child{border-radius:14px}
+@media (hover:hover){.ced-r:hover{background:var(--survol)}}
+.ced-tot,.bc-tot{display:grid;grid-template-columns:auto auto;justify-content:end;gap:4px 24px;font-size:15px}.ced-tot b,.bc-tot b{text-align:right}.ced-tot>:nth-last-child(-n+2),.bc-tot>:nth-last-child(-n+2){font-size:17px;font-weight:700}
+.bc-doc{background:#fff;color:#16202b;border:1px solid #d9dee5;border-radius:10px;padding:22px 24px;display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.bc-tete{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:2px solid #16202b;padding-bottom:12px}.bc-ent,.bc-titre{display:flex;flex-direction:column;gap:1px}.bc-ent b{font-size:16px}.bc-titre{text-align:right}.bc-titre b{font-size:17px;letter-spacing:.06em}
+.bc-blocs{display:grid;grid-template-columns:1fr 1fr;gap:12px}.bc-blocs>div{display:flex;flex-direction:column;gap:1px;background:#f3f5f8;border-radius:8px;padding:10px 12px}.bc-doc small{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5b6676}
+.bc-t{width:100%;border-collapse:collapse}.bc-t th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#5b6676;border-bottom:1px solid #d9dee5;padding:6px 4px}.bc-t td{border-bottom:1px solid #eceff3;padding:8px 4px;vertical-align:top}
+.bc-t th:not(:first-child),.bc-t td:not(:first-child){text-align:right;white-space:nowrap}.bc-t td span{display:block;color:#5b6676;font-size:12px}
+.bc-note{background:#f3f5f8;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}.bc-pied{display:flex;flex-direction:column;gap:6px;color:#5b6676;font-size:12px;border-top:1px solid #d9dee5;padding-top:10px}.bc-pied span:last-child{color:#16202b;font-weight:600}
+.bc-portail{border:1px solid var(--trait2);border-radius:var(--r2);padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--surf2)}.bc-ph{display:flex;flex-direction:column;gap:2px;padding-bottom:6px;border-bottom:1px solid var(--trait)}
+.bc-pl{display:grid;grid-template-columns:minmax(0,1fr) auto 160px;gap:6px 12px;align-items:center;border-bottom:1px solid var(--trait);padding:6px 0}.bc-pd{min-height:44px}
+.fo-mail .bc-doc{margin-top:6px}
+@media (max-width:760px){.cmd-row{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.cmd-entete{display:none}.c-num{grid-column:1}.c-ht{grid-column:2;grid-row:1;text-align:right}.c-four{grid-column:1/-1}.c-liv{grid-column:1}.c-st{grid-column:1/-1}
+  .cmd-outils .seg{width:100%}.cmd-outils .seg button{flex:1 1 auto;padding:0 6px;min-width:0;font-size:14.5px}.cmd-outils .seg .pr-nb:not(.chaud){display:none}
+  .ced-entete{display:none}.ced-l{grid-template-columns:1fr 1fr 40px;grid-template-areas:"n n x" "q p p" "t t t"}.ced-l>.fo-n{grid-area:n}.ced-l>.cmd-x{grid-area:x}.ced-l>.ced-c:nth-of-type(1){grid-area:q}.ced-l>.ced-c:nth-of-type(2){grid-area:p}.ced-t{grid-area:t}.ced-c span{display:inline;font-size:12.5px;color:var(--doux)}
+  .bc-doc{padding:14px;font-size:12.5px}.bc-blocs{grid-template-columns:1fr}.bc-titre{text-align:left}.bc-pl{grid-template-columns:1fr 1fr}.bc-pl>.fo-n{grid-column:1/-1}}
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -6586,7 +6612,7 @@ Object.assign(MES_FOURN.find(f => f.id === 'dko'), { dj:2, franco:300, port:25, 
 Object.assign(MES_FOURN.find(f => f.id === 'fd'), { dj:0, franco:0, port:0, hist:{ n:11, delai:0.6, heure:82 } });
 Object.assign(MES_FOURN.find(f => f.id === 'sp17'), { dj:0, franco:0, port:0, hist:{ n:9, delai:0.4, heure:100 } });
 Object.assign(MES_FOURN.find(f => f.id === 'cda'), { dj:2, franco:200, port:15, hist:{ n:7, delai:2.1, heure:86 } });
-const CMD_ST = { envoyee:['Envoyée', 'st-b'], confirmee:['Confirmée', 'st-b'], partielle:['Reçue en partie', 'st-o'], recue:['Reçue · facture à rapprocher', 'st-o'], facturee:['Terminée', 'st-v'], annulee:['Annulée', 'st-g'] };
+const CMD_ST = { brouillon:['Brouillon', 'st-g'], envoyee:['Envoyée', 'st-b'], confirmee:['Confirmée', 'st-b'], partielle:['Reçue en partie', 'st-o'], recue:['Reçue · facture à rapprocher', 'st-o'], facturee:['Terminée', 'st-v'], annulee:['Annulée', 'st-g'] };
 const MOIS_C = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 const jCourt = d => { const o = dObj(d); return (o.getDate() === 1 ? '1er' : o.getDate()) + ' ' + MOIS_C[o.getMonth()]; };
 const cmdL = (pid, q, pu, recu) => ({ pid, q, pu, recu:recu || 0 });
@@ -6636,9 +6662,9 @@ function cmdPourInter(){
 function cmdPaniers(){
   const P = {}, mettre = (four, ligne) => (P[four] = P[four] || { four, lignes:[] }).lignes.push(ligne);
   const inter = cmdPourInter(), vu = new Set();
-  inter.forEach(o => { const k = o.x ? o.x.id : 'lib-' + o.ref; if (CMD_HORS.has(k)) return; vu.add(k); const four = CMD_DEPL[k] || o.four;
+  inter.forEach(o => { const k = o.x ? o.x.id : 'lib-' + o.ref; if (CMD_HORS.has(k) || dansBrouillon(k)) return; vu.add(k); const four = CMD_DEPL[k] || o.four;
     mettre(four, { k, x:o.x, nom:o.nom, ref:o.ref, q:CMD_PANIER[k] || Math.max(o.q, o.x ? cmdSuggere(o.x).q : o.q), pu:o.x ? prixChez(o.x, four) : null, u:o.x ? o.x.u : 'u', inter:o, pourquoi:o.x && o.x.seuil ? `${prNum(o.q)} pour l’intervention, le reste remonte ton stock (${cmdSuggere(o.x).pourquoi})` : null }); });
-  aCommander().forEach(x => { if (vu.has(x.id) || CMD_HORS.has(x.id)) return; const four = CMD_DEPL[x.id] || x.four, s = cmdSuggere(x);
+  aCommander().forEach(x => { if (vu.has(x.id) || CMD_HORS.has(x.id) || dansBrouillon(x.id)) return; const four = CMD_DEPL[x.id] || x.four, s = cmdSuggere(x);
     mettre(four, { k:x.id, x, nom:x.nom, ref:x.ref, q:CMD_PANIER[x.id] || s.q, pu:prixChez(x, four), u:x.u, pourquoi:s.pourquoi }); });
   Object.keys(CMD_PANIER).filter(k => k.startsWith('+')).forEach(k => { const x = PRODUITS.find(o => o.id === k.slice(1)); if (!x || CMD_HORS.has(k)) return; const four = CMD_DEPL[k] || x.four;
     mettre(four, { k, x, nom:x.nom, ref:x.ref, q:CMD_PANIER[k], pu:prixChez(x, four), u:x.u, ajoute:true }); });
@@ -6654,11 +6680,26 @@ function cmdFranco(pan){ const f = foDe(pan.four), ht = pan.lignes.reduce((s, l)
   const dans = new Set(pan.lignes.map(l => l.x && l.x.id)), idees = PRODUITS.filter(x => !x.retire && x.four === pan.four && !dans.has(x.id) && x.seuil > 0 && x.q <= x.seuil * 1.8 && x.pa).sort((a, b) => a.q / a.seuil - b.q / b.seuil).slice(0, 2);
   return { ht, manque:Math.round((f.franco - ht) * 100) / 100, f, idees }; }
 
-/* ── l'onglet Commandes ── */
+/* ── l'onglet Commandes : ce qu'il faut commander, puis le suivi de toutes les commandes ──
+   Justin, 6 novembre 2026 : « un vrai système de commande pro avec suivi, système de bon de commande et tout ; qu'il puisse passer des
+   commandes ; que ça fonctionne avec les fournisseurs » — « un bon système de A à Z ».
+   A → Z : une commande se PRÉPARE (proposée par l'application, ou libre) → s'ÉDITE (articles, lignes libres, quantités, prix, livraison à
+   l'atelier, au comptoir ou sur le chantier, date souhaitée, intervention, note) → peut attendre en BROUILLON → part avec son BON DE
+   COMMANDE numéroté et un LIEN : le fournisseur confirme (sa référence, sa date) ou signale une rupture, sans compte → la commande se met à
+   jour seule → retard et silence se relancent → la RÉCEPTION (bon de livraison, reliquat) monte le stock → la FACTURE est rapprochée →
+   elle rejoint les achats. « Recommander » refait une commande à l'identique. */
+let cmdFiltre = 'traiter', cmdRech = '', CMD_ED = null;
+const cmdTVA = c => Math.round(c.lignes.reduce((s, l) => s + l.q * (l.pu || 0) * (l.tva != null ? l.tva : 20) / 100, 0) * 100) / 100;
+const cmdU = l => (cmdArt(l) || {}).u || l.u || 'u';
+const cmdBrouillonDe = four => COMMANDES.find(c => c.st === 'brouillon' && c.four === four);
+const dansBrouillon = k => COMMANDES.some(c => c.st === 'brouillon' && c.lignes.some(l => (l.pid || 'lib-' + l.ref) === k));
+const dFr = d => dObj(d).toLocaleDateString('fr-FR');
+const interLib = i => `${jCourt(i.d)} · ${CLIENTS[i.cli].nom} · ${i.titre}`;
+const interAVenir = () => INTS.filter(i => i.st !== 'fait' && i.d >= AUJ && CLIENTS[i.cli]).sort((a, b) => (a.d + a.h < b.d + b.h ? -1 : 1));
 function vueCommandes(){
-  const pans = cmdPaniers(), ouv = COMMANDES.filter(cmdOuverte), alertes = COMMANDES.filter(c => cmdAlerte(c));
-  const mois = COMMANDES.filter(c => c.st !== 'annulee' && c.env && c.env.slice(0, 7) === AUJ.slice(0, 7)).reduce((s, c) => s + cmdHT(c), 0);
-  const panier = pan => { const F = cmdFranco(pan), f = F.f;
+  const pans = cmdPaniers(), ouv = COMMANDES.filter(cmdOuverte), alertes = COMMANDES.filter(c => cmdAlerte(c)), brou = COMMANDES.filter(c => c.st === 'brouillon');
+  const mois = COMMANDES.filter(c => c.st !== 'annulee' && c.st !== 'brouillon' && c.env && c.env.slice(0, 7) === AUJ.slice(0, 7)).reduce((s, c) => s + cmdHT(c), 0);
+  const panier = pan => { const F = cmdFranco(pan), f = F.f, b = cmdBrouillonDe(pan.four);
     return `<section class="carte cmd-pan" id="pan-${foSlug(pan.four)}"><div class="cmd-pt"><div><h2>${esc(pan.four)}</h2><span class="gris petit">${f ? (f.dj === 0 ? 'Comptoir le jour même' : f.dj ? 'Livré en ' + f.dj + ' j' : 'Délai non renseigné') + (f.hist ? ` · ${f.hist.heure} % à l’heure` : '') : 'Fournisseur non enregistré'}</span></div><b class="cmd-ht">${eur(F.ht)} HT</b></div>
       ${pan.lignes.map(l => { const mc = cmdMoinsCher(l.x, pan.four), tard = l.inter && l.inter.i && f && f.dj != null && tJours(ajoute(AUJ, f.dj)) > tJours(l.inter.i.d);
         return `<div class="cmd-l"><span class="fo-n"><b>${esc(l.nom)}</b>
@@ -6668,70 +6709,223 @@ function vueCommandes(){
           <span class="cmd-q"><input inputmode="decimal" data-cmq="${esc(l.k)}" value="${prNum(l.q)}" aria-label="Quantité de ${esc(l.nom)}"><span class="gris petit">${esc(prU(l.q, l.u))}${l.pu ? ' · ' + eur(l.q * l.pu) : ''}</span></span>
           <button type="button" class="cmd-x" data-cm="hors|${esc(l.k)}" aria-label="Retirer ${esc(l.nom)} de la commande">✕</button></div>`; }).join('')}
       ${F.manque > 0 ? `<div class="cmd-franco"><div class="cmd-barre"><i style="width:${Math.min(100, Math.round(F.ht / f.franco * 100))}%"></i></div><span class="petit">Encore <b>${eur(F.manque)}</b> pour le franco de port (sinon ${eur(f.port)} de port)${F.idees.length ? ' · bientôt sous le seuil : ' + F.idees.map(x => `<button type="button" class="lien" data-cm="plus|${x.id}">＋ ${esc(x.nom)} (reste ${prNum(x.q)})</button>`).join(' ') : ''}</span></div>` : f && f.franco ? `<div class="cmd-franco ok petit">✓ Franco de port atteint (${eur(f.franco)})</div>` : ''}
-      <div class="actions"><button type="button" class="btn" data-cm="envoyer|${esc(pan.four)}" aria-label="Commander chez ${esc(pan.four)}">Commander · ${pan.lignes.length} article${pan.lignes.length > 1 ? 's' : ''}</button></div></section>`; };
-  const ligneCmd = c => { const a = cmdAlerte(c), e = CMD_ST[c.st], n = c.lignes.length;
-    return `<button type="button" class="cmd-c${a ? ' cmd-' + a.t : ''}" data-cm="voir|${c.id}"><span class="fo-n"><span><b>${esc(c.four)}</b> <span class="gris petit">${esc(c.num)}</span></span>
-      <span class="gris petit">${n} ligne${n > 1 ? 's' : ''} · ${eur(cmdHT(c))} HT · envoyée le ${jCourt(c.env)}${c.st === 'partielle' ? ` · reste ${c.lignes.filter(l => l.recu < l.q).map(l => esc(cmdNom(l))).join(', ')}` : c.prevue && cmdOuverte(c) ? ' · prévue le ' + jCourt(c.prevue) : ''}</span>
-      ${cmdEtapes(c)}${a ? `<span class="cmd-al">${a.t === 'facture' ? '🧾' : '⚠️'} ${esc(a.txt)}</span>` : ''}</span><span class="st ${e[1]}">${e[0]}</span></button>`; };
-  const liste = COMMANDES.filter(c => cmdOnglet === 'cours' ? c.st !== 'facturee' && c.st !== 'annulee' : c.st === 'facturee' || c.st === 'annulee').sort((a, b) => (cmdAlerte(b) ? 1 : 0) - (cmdAlerte(a) ? 1 : 0) || (a.env < b.env ? 1 : -1));
+      <div class="actions"><button type="button" class="btn" data-cm="preparer|${esc(pan.four)}">${b ? 'Ajouter au brouillon ' + esc(b.num) : 'Préparer la commande'}</button></div></section>`; };
+  const nb = k => COMMANDES.filter(c => cmdDansFiltre(c, k)).length;
+  const L = COMMANDES.filter(c => cmdDansFiltre(c, cmdFiltre) && cmdTrouve(c)).sort((a, b) => (cmdAlerte(b) ? 1 : 0) - (cmdAlerte(a) ? 1 : 0) || ((b.env || b.cree || '') > (a.env || a.cree || '') ? 1 : -1));
   return `<div class="kpis"><button type="button" class="kpi" data-cm="ancre|pans"><b style="color:${pans.length ? 'var(--orange)' : 'inherit'}">${pans.reduce((s, p) => s + p.lignes.length, 0)}</b><span>à commander${pans.length ? ' · chez ' + pans.length + ' fournisseur' + (pans.length > 1 ? 's' : '') : ''}</span></button>
-      <div class="kpi"><b>${ouv.length}</b><span>en cours · ${eur(ouv.reduce((s, c) => s + cmdHT(c), 0))} HT</span></div>
-      <div class="kpi"><b style="color:${alertes.length ? 'var(--rouge)' : 'inherit'}">${alertes.length}</b><span>à surveiller (retard, silence, facture)</span></div>
+      <button type="button" class="kpi" data-cm="filtre|cours"><b>${ouv.length}</b><span>en cours · ${eur(ouv.reduce((s, c) => s + cmdHT(c), 0))} HT</span></button>
+      <button type="button" class="kpi" data-cm="filtre|traiter"><b style="color:${alertes.length + brou.length ? 'var(--rouge)' : 'inherit'}">${alertes.length + brou.length}</b><span>à traiter (brouillons, retards, factures)</span></button>
       <div class="kpi"><b>${eur(mois)}</b><span>commandé en ${ST_MOIS_L[dObj(AUJ).getMonth()]} (HT)</span></div></div>
     <h2 class="cmd-titre" id="pans">À commander</h2>
-    ${pans.length ? `<span class="gris">Ce qui arrive au seuil d’alerte et les pièces des interventions, rangés par fournisseur. Les quantités suivent ta consommation ; change-les si tu veux.</span>${pans.map(panier).join('')}` : '<div class="carte gris">Rien à commander : tout est au-dessus de son seuil, et aucune intervention n’attend de pièce.</div>'}
-    <div class="cmd-tt"><h2 class="cmd-titre">Suivi des commandes</h2><div class="seg" role="tablist" aria-label="Commandes">${[['cours', 'En cours'], ['finies', 'Terminées']].map(([k, l]) => `<button type="button" role="tab" data-cm="onglet|${k}" aria-pressed="${cmdOnglet === k}" aria-selected="${cmdOnglet === k}">${l}</button>`).join('')}</div></div>
-    <div class="carte cmd-liste">${liste.map(ligneCmd).join('') || '<div class="gris" style="padding:8px 2px">Aucune commande ici.</div>'}</div>`;
+    ${pans.length ? `<span class="gris">Ce qui arrive au seuil d’alerte et les pièces des interventions, rangés par fournisseur. Les quantités suivent ta consommation ; « Préparer la commande » ouvre le bon pour le vérifier, le compléter et l’envoyer.</span>${pans.map(panier).join('')}` : '<div class="carte gris">Rien à commander : tout est au-dessus de son seuil, et aucune intervention n’attend de pièce.</div>'}
+    <div class="cmd-tt"><h2 class="cmd-titre" id="suivi">Suivi des commandes</h2><button type="button" class="btn gris" data-ce="nouvelle">＋ Nouvelle commande</button></div>
+    <div class="cmd-outils"><div class="seg" role="tablist" aria-label="Commandes">${[['traiter', 'À traiter'], ['cours', 'En cours'], ['finies', 'Terminées'], ['toutes', 'Toutes']].map(([k, l]) => `<button type="button" role="tab" data-cm="filtre|${k}" aria-pressed="${cmdFiltre === k}" aria-selected="${cmdFiltre === k}">${l}<span class="pr-nb${k === 'traiter' && nb(k) ? ' chaud' : ''}">${nb(k)}</span></button>`).join('')}</div>
+      <label class="pr-cherche"><input class="saisie" type="search" data-cmrech="1" value="${esc(cmdRech)}" placeholder="N° de commande, fournisseur, article, client…" aria-label="Chercher une commande"></label></div>
+    <div class="carte cmd-table"><div class="cmd-row cmd-entete" aria-hidden="true"><span>Commande</span><span>Fournisseur</span><span>Montant HT</span><span>Livraison</span><span>État</span></div>
+      ${L.map(cmdLigne).join('') || `<div class="gris" style="padding:12px 6px">${cmdRech ? 'Aucune commande ne correspond.' : cmdFiltre === 'traiter' ? 'Rien à traiter : pas de brouillon, aucun retard, aucune facture en attente.' : 'Aucune commande ici.'}</div>`}</div>`;
+}
+function cmdDansFiltre(c, k){
+  if (k === 'traiter') return c.st === 'brouillon' || !!cmdAlerte(c);
+  if (k === 'cours') return ['envoyee', 'confirmee', 'partielle', 'recue'].includes(c.st);
+  if (k === 'finies') return c.st === 'facturee' || c.st === 'annulee';
+  return true;
+}
+function cmdTrouve(c){ if (!cmdRech.trim()) return true; const i = c.pour && INTS.find(o => o.id === c.pour);
+  return prNorm([c.num, c.four, c.conf && c.conf.num, ...c.lignes.map(cmdNom), i && CLIENTS[i.cli].nom].filter(Boolean).join(' ')).includes(prNorm(cmdRech)); }
+function cmdLigne(c){
+  const a = cmdAlerte(c), e = CMD_ST[c.st], i = c.pour && INTS.find(o => o.id === c.pour), n = c.lignes.length, rupt = c.lignes.filter(l => l.rupture && l.recu < l.q);
+  const liv = c.st === 'brouillon' ? (c.souh ? 'souhaitée le ' + jCourt(c.souh) : '—') : c.recue ? 'reçue le ' + jCourt(c.recue) : c.st === 'partielle' ? 'reste le ' + jCourt(c.reliquat) : c.prevue ? 'prévue le ' + jCourt(c.prevue) : 'date non confirmée';
+  return `<button type="button" class="cmd-row${a ? ' cmd-' + a.t : ''}" data-cm="voir|${c.id}"><span class="c-num"><b>${esc(c.num)}</b><span class="gris petit">${c.env ? 'envoyée le ' + jCourt(c.env) : 'créée le ' + jCourt(c.cree || AUJ)}</span></span>
+    <span class="c-four"><b>${esc(c.four)}</b><span class="gris petit">${n} ligne${n > 1 ? 's' : ''}${i ? ' · pour ' + esc(CLIENTS[i.cli].nom) : ''}${c.lien && c.lien.lu && c.st === 'envoyee' ? ' · lue par le fournisseur' : ''}</span></span>
+    <span class="c-ht"><b>${eur(cmdHT(c))}</b></span><span class="c-liv petit">${liv}</span>
+    <span class="c-st"><span class="st ${e[1]}">${e[0]}</span>${a ? `<span class="cmd-al">${a.t === 'facture' ? '🧾' : '⚠️'} ${esc(a.txt)}</span>` : rupt.length ? `<span class="cmd-al cmd-info">Rupture : ${esc(cmdNom(rupt[0]))}, prévue le ${jCourt(rupt[0].rupture)}</span>` : ''}</span></button>`;
 }
 function cmdEtapes(c){
+  if (c.st === 'brouillon') return `<span class="cmd-pas"><span class="ok"><i></i>Brouillon · ${jCourt(c.cree || AUJ)}</span><span><i></i>Envoyée</span><span><i></i>Confirmée</span><span><i></i>Reçue</span><span><i></i>Facturée</span></span>`;
   const pas = [['Envoyée', c.env], ['Confirmée', c.conf && c.conf.le], [c.st === 'partielle' ? 'Reçue en partie' : 'Reçue', c.recue || (c.st === 'partielle' ? c.lignes.some(l => l.recu) && c.prevue : null)], ['Facturée', c.fac && c.fac.le]];
   return `<span class="cmd-pas">${pas.map(([l, d]) => `<span class="${d ? 'ok' : ''}"><i></i>${l}${d ? ' · ' + jCourt(d) : ''}</span>`).join('')}</span>`;
 }
 
-/* ── envoyer : l'e-mail écrit, le bon de commande numéroté ── */
-function cmdMail(four, lignes, num, liv){ const f = foDe(four) || {};
-  return `Objet : Commande ${num} · ${ENTREPRISE.nom}${f.compte ? ' (compte ' + f.compte + ')' : ''}\n\nBonjour,\n\nMerci de préparer la commande ${num} pour ${ENTREPRISE.nom} :\n${lignes.map(l => `- ${prNum(l.q)} ${prU(l.q, l.u || 'u')} · ${l.nom}${l.ref && l.ref !== '—' ? ' (réf. ' + l.ref + ')' : ''}`).join('\n')}\n\n${liv === 'comptoir' ? 'Nous passerons la retirer au comptoir.' : 'Livraison : ' + ENTREPRISE.adr + '.'}\nMerci de nous confirmer la date${f.compte ? '' : ' et de nous indiquer votre référence de commande'}.\n\nBonne journée,\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`; }
-function cmdEnvoyerPanneau(four){
-  const pan = cmdPaniers().find(p => p.four === four); if (!pan) return; const f = foDe(four), num = 'BC-2026-0' + cmdNum, comptoir = f && f.dj === 0;
-  foOuvrir(`<span class="surtitre">Commande ${num}</span><h2>${esc(four)}</h2>
-    <div class="fo-bloc">${pan.lignes.map(l => `<div class="fo-r"><span class="fo-n"><b>${esc(l.nom)}</b><span class="gris petit">${l.ref && l.ref !== '—' ? 'réf. ' + esc(l.ref) : 'sans référence'}</span></span><span class="fo-dr"><b>${prNum(l.q)} ${esc(prU(l.q, l.u))}</b>${l.pu ? `<span class="gris petit">${eur(l.q * l.pu)} HT</span>` : ''}</span></div>`).join('')}</div>
-    <label class="champ">Livraison<select id="cmd-liv"><option value="livraison" ${comptoir ? '' : 'selected'}>Livrée à l’atelier</option><option value="comptoir" ${comptoir ? 'selected' : ''}>Retrait au comptoir</option></select></label>
-    <div class="gris petit">${f && f.mail ? `Envoyée à <b>${esc(f.mail)}</b> depuis ta boîte, avec le bon de commande en PDF.` : 'Ce fournisseur n’a pas d’e-mail de commande : la commande sera notée, à passer par téléphone ou au comptoir.'}</div>
-    <details class="fo-mail" open><summary>L’e-mail</summary><pre id="cmd-mail">${esc(cmdMail(four, pan.lignes, num, comptoir ? 'comptoir' : 'livraison'))}</pre></details>
-    <div class="fo-pied"><button type="button" class="btn" data-cm="go|${esc(four)}">${f && f.mail ? 'Envoyer la commande' : 'Noter comme commandée'}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
+/* ── l'éditeur du bon de commande : une proposition de l'application, ou une commande libre ── */
+function cmdEdOuvrir(src){
+  const f = MES_FOURN[0];
+  CMD_ED = src || { id:null, num:'BC-2026-0' + cmdNum, four:f.nom, lignes:[], liv:'atelier', souh:ajoute(AUJ, f.dj || 1), pour:'', note:'' };
+  cmdEdVue();
 }
-function cmdCreer(four){
-  const pan = cmdPaniers().find(p => p.four === four); if (!pan) return; const f = foDe(four), liv = (document.getElementById('cmd-liv') || {}).value || 'livraison';
-  const c = { id:'c' + cmdNum, num:'BC-2026-0' + cmdNum, four, st:'envoyee', env:AUJ, liv, lignes:pan.lignes.map(l => ({ pid:l.x ? l.x.id : null, nom:l.x ? null : l.nom, ref:l.ref, u:l.u, q:l.q, pu:l.pu || 0, recu:0, inter:l.inter ? l.inter.t.id : null })),
-    journal:[[AUJ, (f && f.mail ? 'Envoyée par e-mail à ' + f.mail : 'Notée comme commandée (téléphone ou comptoir)') + ' · ' + (liv === 'comptoir' ? 'retrait au comptoir' : 'livraison à l’atelier')]] };
-  if (f && f.dj != null) c.prevue = ajoute(AUJ, Math.max(f.dj, liv === 'comptoir' ? 0 : 1));
-  cmdNum++; COMMANDES.unshift(c);
-  pan.lignes.forEach(l => { delete CMD_PANIER[l.k]; delete CMD_DEPL[l.k]; });
-  [...new Set(c.lignes.map(l => l.inter).filter(Boolean))].forEach(id => { const t = TACHES.find(o => o.id === id); if (t) { t.etat = 'commandee'; t.commandeLe = jCourt(AUJ); } });
-  fermerPanneau(); rendre();
-  toast(`${c.num} ${f && f.mail ? 'envoyée à ' + esc(four) : 'notée'} · ${eur(cmdHT(c))} HT. Elle est suivie dans « Suivi des commandes ».`, { lib:'Voir', fn:() => cmdFiche(c.id) });
+/* « Préparer la commande » d'un fournisseur : sa proposition, ajoutée à son brouillon s'il en a un */
+function cmdPreparer(four){
+  const pan = cmdPaniers().find(p => p.four === four), f = foDe(four) || {}, b = cmdBrouillonDe(four);
+  const lignes = pan ? pan.lignes.map(l => ({ pid:l.x ? l.x.id : null, nom:l.x ? null : l.nom, ref:l.ref, u:l.u, q:l.q, pu:l.pu, tva:20, recu:0, inter:l.inter ? l.inter.t.id : null, pourInter:l.inter && l.inter.i ? l.inter.i.id : null })) : [];
+  if (b) { const E = JSON.parse(JSON.stringify(b)); lignes.forEach(l => { if (!E.lignes.some(m => (m.pid && m.pid === l.pid) || (!m.pid && m.nom === l.nom))) E.lignes.push(l); }); return cmdEdOuvrir(E); }
+  const pour = (lignes.find(l => l.pourInter) || {}).pourInter || '';
+  cmdEdOuvrir({ id:null, num:'BC-2026-0' + cmdNum, four, lignes, liv:f.dj === 0 ? 'comptoir' : 'atelier', souh:pour ? INTS.find(i => i.id === pour).d : ajoute(AUJ, f.dj || 1), pour, note:'' });
+}
+function cmdEdVue(){
+  const E = CMD_ED, f = foDe(E.four) || {}, ht = cmdHT(E), tva = cmdTVA(E), i = E.pour && INTS.find(o => o.id === E.pour), F = f.franco ? Math.round((f.franco - ht) * 100) / 100 : 0;
+  foOuvrir(`<span class="surtitre">Bon de commande ${esc(E.num)}${E.id ? ' · brouillon' : ''}</span><h2>${E.id ? 'Modifier la commande' : 'Nouvelle commande'}</h2>
+    <label class="champ">Fournisseur<select data-ced="four">${MES_FOURN.map(o => `<option ${o.nom === E.four ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
+    <div class="gris petit">${[f.compte && 'compte ' + esc(f.compte), f.remise != null && 'remise ' + prNum(f.remise) + ' %', f.dj != null && (f.dj === 0 ? 'comptoir le jour même' : 'livré en ' + f.dj + ' j'), f.franco && 'franco ' + eur0(f.franco), f.mail ? 'commande à ' + esc(f.mail) : 'pas d’e-mail de commande'].filter(Boolean).join(' · ')}</div>
+    <div class="ced"><div class="ced-l ced-entete" aria-hidden="true"><span>Article</span><span>Quantité</span><span>Prix HT</span><span>Total HT</span><span></span></div>
+      ${E.lignes.map((l, j) => { const x = cmdArt(l);
+        return `<div class="ced-l"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${l.ref && l.ref !== '—' ? 'réf. ' + esc(l.ref) : 'sans référence'}${x ? ' · en stock ' + prNum(x.q) + ' ' + esc(prU(x.q, x.u)) : l.pid ? '' : ' · ligne libre'}${l.pourInter ? ' · pour l’intervention' : ''}</span></span>
+          <label class="ced-c"><span>Qté</span><input inputmode="decimal" data-cedl="${j}|q" value="${prNum(l.q)}" aria-label="Quantité de ${esc(cmdNom(l))}"><i>${esc(prU(l.q, cmdU(l)))}</i></label>
+          <label class="ced-c"><span>Prix HT</span><input inputmode="decimal" data-cedl="${j}|pu" value="${l.pu != null ? l.pu.toFixed(2).replace('.', ',') : ''}" placeholder="selon tarif" aria-label="Prix HT de ${esc(cmdNom(l))}"></label>
+          <b class="ced-t">${l.pu != null ? eur(l.q * l.pu) : '—'}</b>
+          <button type="button" class="cmd-x" data-ce="suppr|${j}" aria-label="Retirer ${esc(cmdNom(l))}">✕</button></div>`; }).join('') || '<div class="gris" style="padding:10px 2px">Aucune ligne : cherche un article ci-dessous.</div>'}</div>
+    <div class="ced-ajout"><input class="saisie" data-cedrech="1" placeholder="＋ Ajouter : nom d’article, référence…" autocomplete="off" aria-label="Ajouter un article"><div id="ced-res" class="ced-res"></div></div>
+    <div class="ced-tot"><span>Total HT</span><b>${eur(ht)}</b><span>TVA</span><b>${eur(tva)}</b><span>Total TTC</span><b>${eur(ht + tva)}</b></div>
+    ${f.franco ? (F > 0 ? `<div class="cmd-franco"><div class="cmd-barre"><i style="width:${Math.min(100, Math.round(ht / f.franco * 100))}%"></i></div><span class="petit">Encore <b>${eur(F)}</b> pour le franco de port (sinon ${eur(f.port)} de port)</span></div>` : `<div class="cmd-franco ok petit">✓ Franco de port atteint</div>`) : ''}
+    <div class="deux-champs"><label class="champ">Livraison<select data-ced="liv"><option value="atelier" ${E.liv === 'atelier' ? 'selected' : ''}>À l’atelier</option><option value="comptoir" ${E.liv === 'comptoir' ? 'selected' : ''}>Retrait au comptoir</option><option value="chantier" ${E.liv === 'chantier' ? 'selected' : ''} ${i ? '' : 'disabled'}>Sur le chantier${i ? '' : ' (choisis l’intervention)'}</option></select></label>
+      <label class="champ">${E.liv === 'comptoir' ? 'Retrait' : 'Livraison'} souhaitée le<input type="date" data-ced="souh" value="${E.souh || ''}"></label></div>
+    ${E.liv === 'chantier' && i ? `<div class="gris petit">Adresse du chantier : ${esc(CLIENTS[i.cli].adr)}</div>` : ''}
+    <label class="champ">Pour<select data-ced="pour"><option value="">Le stock de l’entreprise</option>${interAVenir().map(o => `<option value="${o.id}" ${o.id === E.pour ? 'selected' : ''}>${esc(interLib(o))}</option>`).join('')}</select></label>
+    <label class="champ">Note au fournisseur<textarea data-ced="note" rows="2" placeholder="ex. sonner à l’atelier, livrer avant 10 h">${esc(E.note || '')}</textarea></label>
+    <div class="fo-pied"><button type="button" class="btn" data-ce="envoi" ${E.lignes.length ? '' : 'disabled'}>Vérifier et envoyer</button><button type="button" class="btn gris" data-ce="brouillon" ${E.lignes.length ? '' : 'disabled'}>Enregistrer le brouillon</button><button type="button" class="btn gris" data-ce="bon" ${E.lignes.length ? '' : 'disabled'}>Voir le bon</button></div>`, true);
+}
+function cmdEdResultats(q){
+  const z = document.getElementById('ced-res'); if (!z) return; const E = CMD_ED, n = prNorm(q); if (n.length < 2) { z.innerHTML = ''; return; }
+  const dans = new Set(E.lignes.map(l => l.pid).filter(Boolean));
+  const art = PRODUITS.filter(x => !x.retire && !dans.has(x.id) && prNorm(x.nom + ' ' + x.ref).includes(n)).sort((a, b) => (b.four === E.four) - (a.four === E.four)).slice(0, 6);
+  const f = foDe(E.four), C = f ? foCats(f) : {}, typ = [];
+  Object.entries(C).forEach(([k, L]) => L.forEach(cn => { const c = PACKS[k].cats.find(o => o.n === cn); if (c) c.ex.forEach(([nom, u], j) => { if (typ.length < 4 && prNorm(nom).includes(n) && !PRODUITS.some(x => prNorm(x.nom) === prNorm(nom))) typ.push({ k, ci:PACKS[k].cats.indexOf(c), j, nom, u, cn }); }); }));
+  z.innerHTML = [...art.map(x => `<button type="button" class="ced-r" data-ce="add|a|${x.id}"><b>${esc(x.nom)}</b><span class="gris petit">${esc(x.ref)} · ${esc(x.four)}${prixChez(x, E.four) ? ' · ' + eur(prixChez(x, E.four)) + ' HT' : ''} · en stock ${prNum(x.q)}</span></button>`),
+    ...typ.map(t => `<button type="button" class="ced-r" data-ce="add|t|${t.k}:${t.ci}:${t.j}"><b>${esc(t.nom)}</b><span class="gris petit">nouvel article · ${PACKS[t.k].ic} ${esc(t.cn.replace(/ \(.*\)$/, ''))} · prix selon tarif</span></button>`),
+    `<button type="button" class="ced-r" data-ce="add|l|"><b>＋ Ligne libre : « ${esc(q.trim())} »</b><span class="gris petit">pour un article que tu n’as pas encore dans ta liste</span></button>`].join('');
+}
+function cmdEdEnregistrer(){
+  const E = CMD_ED; let c = E.id && COMMANDES.find(o => o.id === E.id);
+  if (!c) { c = { id:'c' + cmdNum, num:E.num, st:'brouillon', cree:AUJ, journal:[[AUJ, 'Brouillon créé']] }; cmdNum++; COMMANDES.unshift(c); E.id = c.id; }
+  else c.journal.push([AUJ, 'Brouillon modifié']);
+  Object.assign(c, { four:E.four, lignes:JSON.parse(JSON.stringify(E.lignes)), liv:E.liv, souh:E.souh, pour:E.pour, note:E.note });
+  return c;
+}
+/* le bon de commande : un document, au nom de l'entreprise (dans l'application : le PDF de bonPdfStr, avec l'en-tête de docEntete) */
+function cmdDoc(o){
+  const f = foDe(o.four) || {}, i = o.pour && INTS.find(x => x.id === o.pour), cli = i && CLIENTS[i.cli], ht = cmdHT(o), tva = cmdTVA(o);
+  const liv = o.liv === 'comptoir' ? 'Retrait au comptoir' : o.liv === 'chantier' && cli ? `Sur le chantier : ${cli.nom}, ${cli.adr}` : `À l’atelier : ${ENTREPRISE.adr}`;
+  return `<div class="bc-doc"><div class="bc-tete"><div class="bc-ent"><b>${esc(ENTREPRISE.nom)}</b><span>${esc(ENTREPRISE.adr)}</span><span>${esc(ENTREPRISE.tel)} · ${esc(ENTREPRISE.mail)}</span><span>SIRET ${esc(ENTREPRISE.siret)} · TVA ${esc(ENTREPRISE.tva)}</span></div>
+      <div class="bc-titre"><b>BON DE COMMANDE</b><span>N° ${esc(o.num)}</span><span>Du ${dFr(o.env || o.cree || AUJ)}</span></div></div>
+    <div class="bc-blocs"><div><small>Fournisseur</small><b>${esc(o.four)}</b>${f.compte ? `<span>Compte client ${esc(f.compte)}</span>` : ''}${f.mail ? `<span>${esc(f.mail)}</span>` : ''}</div>
+      <div><small>Livraison</small><b>${esc(liv)}</b>${o.souh ? `<span>Souhaitée le ${dFr(o.souh)}</span>` : ''}${i ? `<span>Réf. chantier : ${esc(cli.nom)} · ${esc(i.titre)}</span>` : ''}</div></div>
+    <table class="bc-t"><thead><tr><th>Désignation</th><th>Qté</th><th>PU HT</th><th>Total HT</th></tr></thead>
+      <tbody>${o.lignes.map(l => `<tr><td><b>${esc(cmdNom(l))}</b>${l.ref && l.ref !== '—' ? `<span>Réf. ${esc(l.ref)}</span>` : ''}</td><td>${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}</td><td>${l.pu != null ? eur(l.pu) : 'selon tarif'}</td><td>${l.pu != null ? eur(l.q * l.pu) : '—'}</td></tr>`).join('')}</tbody></table>
+    <div class="bc-tot"><span>Total HT</span><b>${eur(ht)}</b><span>TVA</span><b>${eur(tva)}</b><span>Total TTC</span><b>${eur(ht + tva)}</b></div>
+    ${o.note ? `<div class="bc-note"><small>Note</small>${esc(o.note)}</div>` : ''}
+    <div class="bc-pied"><span>Merci de confirmer cette commande (votre référence et la date de livraison) par le lien joint à l’e-mail, ou en y répondant.</span><span>Bon pour commande · ${esc(tNom('marc'))}, ${esc(ENTREPRISE.nom)}</span></div></div>`;
+}
+const cmdLien = c => 'teamop.fr/c/' + c.num.toLowerCase() + '-' + (c.num.length * 7919 % 9000 + 1000).toString(36);
+function cmdMail(c){ const f = foDe(c.four) || {};
+  return `Objet : Bon de commande ${c.num} · ${ENTREPRISE.nom}${f.compte ? ' (compte ' + f.compte + ')' : ''}\n\nBonjour,\n\nVeuillez trouver ci-joint notre bon de commande ${c.num} (${c.lignes.length} ligne${c.lignes.length > 1 ? 's' : ''}, ${eur(cmdHT(c))} HT)${c.souh ? ', ' + (c.liv === 'comptoir' ? 'à retirer' : 'à livrer') + ' le ' + jlong(c.souh) : ''}.\n\nConfirmez-la en un clic, ou signalez un article en rupture :\n${cmdLien(c)}\n\nMerci, bonne journée.\n${tNom('marc')} · ${ENTREPRISE.nom} · ${ENTREPRISE.tel}`; }
+function cmdEnvoiVue(id){
+  const c = COMMANDES.find(o => o.id === id), f = foDe(c.four) || {};
+  foOuvrir(`<span class="surtitre">Bon de commande ${esc(c.num)}</span><h2>Vérifier et envoyer</h2>
+    <div class="gris">${f.mail ? `Part à <b>${esc(f.mail)}</b> depuis ta boîte, avec le bon en PDF et un lien : ${esc(c.four)} confirme en un clic ou signale une rupture, sans compte. La commande se met à jour toute seule.` : `${esc(c.four)} n’a pas d’e-mail de commande : la commande sera notée comme passée (téléphone ou comptoir), et suivie de la même façon.`}</div>
+    <details class="fo-mail" open><summary>L’e-mail</summary><pre class="cmd-pre">${esc(cmdMail(c))}</pre></details>
+    <details class="fo-mail"><summary>Le bon de commande (PDF joint)</summary>${cmdDoc(c)}</details>
+    <div class="fo-pied"><button type="button" class="btn" data-ce="go|${c.id}">${f.mail ? 'Envoyer la commande' : 'Noter comme commandée'}</button><button type="button" class="btn gris" data-ce="modif|${c.id}">Modifier</button></div>`, true);
+}
+function cmdEnvoyer(id){
+  const c = COMMANDES.find(o => o.id === id), f = foDe(c.four) || {};
+  c.st = 'envoyee'; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) c.prevue = c.souh || ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2);
+  c.journal.push([AUJ, f.mail ? `Envoyée à ${f.mail} (bon ${c.num} en PDF, lien de confirmation)` : 'Notée comme commandée (téléphone ou comptoir)']);
+  [...new Set(c.lignes.map(l => l.inter).filter(Boolean))].forEach(t => { const T = TACHES.find(o => o.id === t); if (T) { T.etat = 'commandee'; T.commandeLe = jCourt(AUJ); } });
+  CMD_ED = null; fermerPanneau(); cmdFiltre = 'cours'; rendre();
+  toast(`${c.num} ${f.mail ? 'envoyée à ' + esc(c.four) : 'notée'} · ${eur(cmdHT(c))} HT. Elle est suivie dans « Suivi des commandes ».`, { lib:'Voir', fn:() => cmdFiche(c.id) });
+}
+/* ce que voit le fournisseur en ouvrant le lien de l'e-mail : la commande, et deux gestes (confirmer, signaler une rupture) — sans compte */
+function cmdPortail(id){
+  const c = COMMANDES.find(o => o.id === id), f = foDe(c.four) || {};
+  if (c.lien && !c.lien.lu) { c.lien.lu = AUJ; c.journal.push([AUJ, `Ouverte par ${c.four} (lien de l’e-mail)`]); }
+  foOuvrir(`<span class="surtitre">Aperçu · ce que voit ${esc(c.four)}</span><h2>Le lien du fournisseur</h2>
+    <span class="gris">${esc(cmdLien(c))} — sans compte ni mot de passe, valable jusqu’à la réception. Ce que le fournisseur y fait arrive tout seul dans ta commande.</span>
+    <div class="bc-portail"><div class="bc-ph"><b>${esc(ENTREPRISE.nom)}</b><span>vous a envoyé la commande ${esc(c.num)} le ${dFr(c.env || AUJ)}</span></div>
+      ${c.lignes.map((l, j) => `<div class="bc-pl"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}${l.ref && l.ref !== '—' ? ' · réf. ' + esc(l.ref) : ''}</span></span>
+        <label class="fo-garder"><input type="checkbox" data-cprupt="${j}" ${l.rupture ? 'checked' : ''}> En rupture</label><input type="date" class="saisie bc-pd" data-cprdate="${j}" value="${l.rupture || ajoute(AUJ, 5)}" aria-label="Disponible le"></div>`).join('')}
+      <div class="deux-champs"><label class="champ">Votre n° de commande<input id="cp-num" placeholder="ex. AR-55120" autocomplete="off"></label><label class="champ">Livraison prévue le<input id="cp-date" type="date" value="${c.souh || c.prevue || ajoute(AUJ, f.dj || 1)}"></label></div>
+      <button type="button" class="btn" data-ce="cpok|${c.id}">Confirmer la commande</button></div>
+    <button type="button" class="lien" data-cm="voir|${c.id}">‹ Retour à la commande</button>`, true);
+}
+function cmdPortailValider(id){
+  const c = COMMANDES.find(o => o.id === id), num = document.getElementById('cp-num').value.trim(), d = document.getElementById('cp-date').value || c.prevue, rupt = [];
+  document.querySelectorAll('[data-cprupt]').forEach(i => { const l = c.lignes[+i.dataset.cprupt]; if (i.checked) { l.rupture = document.querySelector(`[data-cprdate="${i.dataset.cprupt}"]`).value || ajoute(AUJ, 5); rupt.push(l); } else delete l.rupture; });
+  c.st = 'confirmee'; c.conf = { le:AUJ, num, lien:true }; c.prevue = d;
+  c.journal.push([AUJ, `Confirmée par ${c.four} depuis le lien${num ? ' (n° ' + num + ')' : ''}, livraison le ${jCourt(d)}${rupt.length ? ' · rupture : ' + rupt.map(l => cmdNom(l) + ' (prévu le ' + jCourt(l.rupture) + ')').join(', ') : ''}`]);
+  rendre(); cmdFiche(c.id);
+  toast(`${esc(c.four)} a confirmé ${esc(c.num)}${rupt.length ? ' : ' + rupt.length + ' article' + (rupt.length > 1 ? 's' : '') + ' en rupture, suivi' + (rupt.length > 1 ? 's' : '') : ''}. Tu n’as rien eu à saisir.`);
 }
 
 /* ── la fiche d'une commande : où elle en est, ce qui reste, les gestes du moment ── */
 function cmdFiche(id){
-  const c = COMMANDES.find(o => o.id === id); if (!c) return; const a = cmdAlerte(c), f = foDe(c.four), e = CMD_ST[c.st];
-  const gestes = [];
-  if (c.st === 'envoyee') gestes.push(`<button type="button" class="btn" data-cm="conf|${c.id}">Le fournisseur a confirmé</button>`);
-  if (['envoyee', 'confirmee', 'partielle'].includes(c.st)) gestes.push(`<button type="button" class="btn${c.st === 'envoyee' ? ' gris' : ''}" data-cm="recep|${c.id}">Réceptionner</button>`);
-  if (a && (a.t === 'retard' || a.t === 'silence')) gestes.push(`<button type="button" class="btn gris" data-cm="relance|${c.id}">Relancer</button>`);
-  if (c.st === 'recue') gestes.push(`<button type="button" class="btn" data-cm="rappro|${c.id}">${c.facLue ? 'Rapprocher la facture' : 'Lire la facture'}</button>`);
-  if (c.st === 'envoyee' || c.st === 'confirmee') gestes.push(`<button type="button" class="btn gris" data-cm="annuler|${c.id}">Annuler la commande</button>`);
+  const c = COMMANDES.find(o => o.id === id); if (!c) return; const a = cmdAlerte(c), f = foDe(c.four), e = CMD_ST[c.st], i = c.pour && INTS.find(o => o.id === c.pour);
+  const g = [];
+  if (c.st === 'brouillon') g.push(`<button type="button" class="btn" data-ce="envoi|${c.id}">Vérifier et envoyer</button>`, `<button type="button" class="btn gris" data-ce="modif|${c.id}">Modifier</button>`);
+  if (c.st === 'envoyee') g.push(`<button type="button" class="btn" data-cm="conf|${c.id}">Le fournisseur a confirmé</button>`);
+  if (['envoyee', 'confirmee', 'partielle'].includes(c.st)) g.push(`<button type="button" class="btn${c.st === 'envoyee' ? ' gris' : ''}" data-cm="recep|${c.id}">Réceptionner</button>`);
+  if (a && (a.t === 'retard' || a.t === 'silence')) g.push(`<button type="button" class="btn gris" data-cm="relance|${c.id}">Relancer</button>`);
+  if (c.st === 'recue') g.push(`<button type="button" class="btn" data-cm="rappro|${c.id}">${c.facLue ? 'Rapprocher la facture' : 'Lire la facture'}</button>`);
+  const g2 = [`<button type="button" class="lien" data-ce="voirbon|${c.id}">Voir le bon de commande</button>`];
+  if (['envoyee', 'confirmee', 'partielle'].includes(c.st)) g2.push(`<button type="button" class="lien" data-ce="portail|${c.id}">Ce que voit le fournisseur</button>`);
+  if (c.st !== 'brouillon') g2.push(`<button type="button" class="lien" data-ce="recommander|${c.id}">Recommander à l’identique</button>`);
+  if (c.st === 'brouillon') g2.push(`<button type="button" class="lien rouge" data-ce="jeter|${c.id}">Supprimer le brouillon</button>`);
+  if (c.st === 'envoyee' || c.st === 'confirmee') g2.push(`<button type="button" class="lien rouge" data-cm="annuler|${c.id}">Annuler la commande</button>`);
   foOuvrir(`<span class="surtitre">Commande ${esc(c.num)}${c.conf && c.conf.num ? ' · réf. fournisseur ' + esc(c.conf.num) : ''}</span><h2>${esc(c.four)}</h2>
-    <div class="puces"><span class="st ${e[1]}">${e[0]}</span>${a ? `<span class="st ${a.t === 'facture' ? 'st-o' : 'st-r'}">${esc(a.txt)}</span>` : ''}</div>
+    <div class="puces"><span class="st ${e[1]}">${e[0]}</span>${a ? `<span class="st ${a.t === 'facture' ? 'st-o' : 'st-r'}">${esc(a.txt)}</span>` : ''}${c.lien && c.lien.lu && c.st === 'envoyee' ? `<span class="st st-g">Lue par le fournisseur le ${jCourt(c.lien.lu)}</span>` : ''}</div>
     ${cmdEtapes(c)}
-    <div class="fo-bloc">${c.lignes.map(l => { const x = cmdArt(l), t = l.inter && TACHES.find(o => o.id === l.inter), i = t && INTS.find(o => o.id === t.inter);
-      return `<div class="fo-r"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${prNum(l.q)} commandé${l.q > 1 ? 's' : ''} · ${l.recu >= l.q ? '<span class="fo-down">tout reçu</span>' : l.recu ? `${prNum(l.recu)} reçu${l.recu > 1 ? 's' : ''}, <b class="fo-up">reste ${prNum(l.q - l.recu)}</b>` : 'rien reçu'}${i ? ` · pour ${esc(CLIENTS[i.cli].nom)}` : ''}</span></span><span class="fo-dr"><b>${eur(l.q * l.pu)}</b><span class="gris petit">${eur(l.pu)} l’unité</span></span></div>`; }).join('')}
-      <div class="fo-r"><span class="fo-n"><b>Total HT</b></span><b>${eur(cmdHT(c))}</b></div></div>
-    ${gestes.length ? `<div class="actions">${gestes.join('')}</div>` : ''}
+    <div class="gris petit">${c.liv === 'comptoir' ? 'Retrait au comptoir' : c.liv === 'chantier' && i ? 'Livraison sur le chantier · ' + esc(CLIENTS[i.cli].adr) : 'Livraison à l’atelier'}${c.prevue && c.st !== 'brouillon' ? ' · prévue le ' + jCourt(c.prevue) : c.souh ? ' · souhaitée le ' + jCourt(c.souh) : ''}${i ? ` · pour <button type="button" class="lien" data-tvoir="inter|${i.id}">${esc(interLib(i))}</button>` : ''}</div>
+    <div class="fo-bloc">${c.lignes.map(l => { const t = l.inter && TACHES.find(o => o.id === l.inter), ii = t && INTS.find(o => o.id === t.inter);
+      return `<div class="fo-r"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}${c.st === 'brouillon' ? '' : ' · ' + (l.recu >= l.q ? '<span class="fo-down">tout reçu</span>' : l.recu ? `${prNum(l.recu)} reçu${l.recu > 1 ? 's' : ''}, <b class="fo-up">reste ${prNum(l.q - l.recu)}</b>` : 'rien reçu')}${l.rupture && l.recu < l.q ? ` · <b class="fo-up">rupture, prévu le ${jCourt(l.rupture)}</b>` : ''}${ii ? ` · pour ${esc(CLIENTS[ii.cli].nom)}` : ''}</span></span><span class="fo-dr"><b>${l.pu != null ? eur(l.q * l.pu) : '—'}</b><span class="gris petit">${l.pu != null ? eur(l.pu) + ' l’unité' : 'selon tarif'}</span></span></div>`; }).join('')}
+      <div class="fo-r"><span class="fo-n"><b>Total HT</b><span class="gris petit">TTC ${eur(cmdHT(c) + cmdTVA(c))}</span></span><b>${eur(cmdHT(c))}</b></div></div>
+    ${c.note ? `<div class="gris petit">Note au fournisseur : ${esc(c.note)}</div>` : ''}
+    ${g.length ? `<div class="actions">${g.join('')}</div>` : ''}
+    <div class="cmd-liens">${g2.join('')}</div>
     <div class="groupe">Historique</div>
     <div class="cmd-journal">${[...c.journal].reverse().map(([d, t]) => `<div><span class="gris petit">${jCourt(d)}</span><span>${esc(t)}</span></div>`).join('')}</div>
     ${f ? `<button type="button" class="lien" data-fo="fiche|${f.id}">${esc(c.four)} : son compte et ses articles ›</button>` : ''}`, true);
 }
+
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-ce]'); if (!b) return;
+  const [a, x] = b.dataset.ce.split('|');
+  if (a === 'nouvelle') return cmdEdOuvrir();
+  if (a === 'suppr') { CMD_ED.lignes.splice(+x, 1); return foGarder(cmdEdVue); }
+  if (a === 'add') { const E = CMD_ED, [k2, ci, j] = (x === 't' || x === 'a' || x === 'l' ? b.dataset.ce.split('|')[2] || '' : '').split(':');
+    if (x === 'a') { const p = PRODUITS.find(o => o.id === k2); E.lignes.push({ pid:p.id, ref:p.ref, q:cmdSuggere(p).q, pu:prixChez(p, E.four), tva:p.tva || 20, recu:0 }); }
+    else if (x === 't') { const [nom, u] = PACKS[k2].cats[+ci].ex[+j]; E.lignes.push({ pid:null, nom, ref:'—', u, q:1, pu:null, tva:20, recu:0 }); }
+    else { const t = (document.querySelector('[data-cedrech]') || {}).value || ''; if (!t.trim()) return; E.lignes.push({ pid:null, nom:t.trim(), ref:'—', u:'u', q:1, pu:null, tva:20, recu:0 }); }
+    foGarder(cmdEdVue); const s = document.querySelector('[data-cedrech]'); if (s) s.focus(); return; }
+  if (a === 'brouillon') { const c = cmdEdEnregistrer(); CMD_ED = null; fermerPanneau(); cmdFiltre = 'traiter'; rendre(); return toast(`Brouillon ${esc(c.num)} enregistré : il attend dans « À traiter ».`, { lib:'Ouvrir', fn:() => cmdFiche(c.id) }); }
+  if (a === 'bon') { const E = CMD_ED; return foOuvrir(`<span class="surtitre">Aperçu du PDF</span><h2>Bon de commande ${esc(E.num)}</h2>${cmdDoc(E)}<div class="fo-pied"><button type="button" class="btn" data-ce="retour">‹ Revenir à la commande</button></div>`, true); }
+  if (a === 'retour') return cmdEdVue();
+  if (a === 'envoi') { if (x) return cmdEnvoiVue(x); const c = cmdEdEnregistrer(); return cmdEnvoiVue(c.id); }
+  if (a === 'go') return cmdEnvoyer(x);
+  if (a === 'modif') { const c = COMMANDES.find(o => o.id === x); return cmdEdOuvrir(JSON.parse(JSON.stringify({ id:c.id, num:c.num, four:c.four, lignes:c.lignes, liv:c.liv || 'atelier', souh:c.souh || '', pour:c.pour || '', note:c.note || '' }))); }
+  if (a === 'voirbon') { const c = COMMANDES.find(o => o.id === x); return foOuvrir(`<span class="surtitre">${c.st === 'brouillon' ? 'Aperçu du PDF' : 'Envoyé le ' + jCourt(c.env)}</span><h2>Bon de commande ${esc(c.num)}</h2>${cmdDoc(c)}<div class="fo-pied"><button type="button" class="btn gris" data-cm="voir|${c.id}">‹ Retour à la commande</button></div>`, true); }
+  if (a === 'portail') return cmdPortail(x);
+  if (a === 'cpok') return cmdPortailValider(x);
+  if (a === 'recommander') { const c = COMMANDES.find(o => o.id === x), f = foDe(c.four) || {};
+    return cmdEdOuvrir({ id:null, num:'BC-2026-0' + cmdNum, four:c.four, lignes:c.lignes.map(l => ({ pid:l.pid, nom:l.nom, ref:l.ref, u:l.u, q:l.q, pu:l.pid ? prixChez(cmdArt(l) || {}, c.four) || l.pu : l.pu, tva:l.tva || 20, recu:0 })), liv:c.liv || 'atelier', souh:ajoute(AUJ, f.dj || 1), pour:'', note:c.note || '' }); }
+  if (a === 'jeter') { const k = COMMANDES.findIndex(o => o.id === x), c = COMMANDES[k]; COMMANDES.splice(k, 1); fermerPanneau(); rendre();
+    return toast(`Brouillon ${esc(c.num)} supprimé.`, { lib:'Annuler', fn:() => { COMMANDES.splice(k, 0, c); rendre(); } }); }
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.matches('[data-ced]') && CMD_ED) { const k = t.dataset.ced, E = CMD_ED;
+    if (k === 'four') { E.four = t.value; E.lignes.forEach(l => { const x = cmdArt(l); if (x && !l.puMain) l.pu = prixChez(x, E.four); }); }
+    else if (k === 'pour') { E.pour = t.value; const i = INTS.find(o => o.id === E.pour); if (i && (!E.souh || E.souh > i.d)) E.souh = i.d; if (!i && E.liv === 'chantier') E.liv = 'atelier'; }
+    else E[k] = t.value;
+    if (k !== 'note') foGarder(cmdEdVue); return; }
+  if (t.matches('[data-cedl]') && CMD_ED) { const [j, k] = t.dataset.cedl.split('|'), l = CMD_ED.lignes[+j], n = foNum(t.value);
+    if (k === 'q') { if (n > 0) l.q = n; } else { l.pu = n != null && n >= 0 ? n : null; l.puMain = true; }
+    return foGarder(cmdEdVue); }
+  if (t.matches('[data-cprupt]')) return;
+});
+document.addEventListener('input', ev => {
+  if (ev.target.matches('[data-cedrech]')) return cmdEdResultats(ev.target.value);
+  if (!ev.target.matches('[data-cmrech]')) return;
+  cmdRech = ev.target.value; const pos = ev.target.selectionStart; rendre();
+  const i = document.querySelector('[data-cmrech]'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (e) {} }
+});
+
 function cmdConfirmer(id){ const c = COMMANDES.find(o => o.id === id), f = foDe(c.four);
   foOuvrir(`<span class="surtitre">${esc(c.num)} · ${esc(c.four)}</span><h2>Le fournisseur a confirmé</h2>
     <div class="deux-champs"><label class="champ">Sa référence de commande<input id="cmd-cnum" placeholder="ex. AR-55120" autocomplete="off"></label><label class="champ">Livraison prévue le<input id="cmd-cdate" type="date" value="${c.prevue || ajoute(AUJ, f && f.dj != null ? f.dj : 2)}"></label></div>
@@ -6748,7 +6942,7 @@ function cmdRelance(id){ const c = COMMANDES.find(o => o.id === id), f = foDe(c.
 function cmdReception(id){ const c = COMMANDES.find(o => o.id === id);
   foOuvrir(`<span class="surtitre">${esc(c.num)} · ${esc(c.four)}</span><h2>Réceptionner</h2><span class="gris">Ce qui est arrivé : le stock monte d’autant, le reste devient un reliquat suivi.</span>
     <div class="fo-bloc">${c.lignes.filter(l => l.recu < l.q).map(l => `<div class="fo-r"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">attendu ${prNum(l.q - l.recu)}</span></span><label class="fo-q"><span class="gris petit">Reçu</span><input inputmode="decimal" data-cmr="${c.lignes.indexOf(l)}" value="${prNum(l.q - l.recu)}" aria-label="Reçu : ${esc(cmdNom(l))}"></label></div>`).join('')}</div>
-    <label class="champ">S’il en manque, le reste est prévu le<input id="cmd-reliq" type="date" value="${ajoute(AUJ, 3)}"></label>
+    <div class="deux-champs"><label class="champ">N° du bon de livraison<input id="cmd-bl" placeholder="ex. BL-88120" autocomplete="off"></label><label class="champ">S’il en manque, le reste est prévu le<input id="cmd-reliq" type="date" value="${(c.lignes.find(l => l.rupture && l.recu < l.q) || {}).rupture || ajoute(AUJ, 3)}"></label></div>
     <div class="fo-pied"><button type="button" class="btn" data-cm="recok|${c.id}">Valider la réception</button><button type="button" class="btn gris" data-cm="voir|${c.id}">Retour</button></div>`, true);
 }
 function cmdReceptionner(id){
@@ -6757,7 +6951,8 @@ function cmdReceptionner(id){
   if (!recus.length) return toast('Rien de reçu : mets la quantité arrivée.');
   const tout = c.lignes.every(l => l.recu >= l.q);
   c.st = tout ? 'recue' : 'partielle'; if (tout) c.recue = AUJ; else c.reliquat = (document.getElementById('cmd-reliq') || {}).value || ajoute(AUJ, 3);
-  c.journal.push([AUJ, tout ? 'Reçue en totalité' : `Reçue en partie : il reste ${c.lignes.filter(l => l.recu < l.q).map(l => prNum(l.q - l.recu) + ' · ' + cmdNom(l)).join(', ')}, prévu le ${jCourt(c.reliquat)}`]);
+  const bl = ((document.getElementById('cmd-bl') || {}).value || '').trim(); if (bl) (c.bl = c.bl || []).push({ num:bl, d:AUJ });
+  c.journal.push([AUJ, (bl ? 'BL ' + bl + ' · ' : '') + (tout ? 'Reçue en totalité' : `Reçue en partie : il reste ${c.lignes.filter(l => l.recu < l.q).map(l => prNum(l.q - l.recu) + ' · ' + cmdNom(l)).join(', ')}, prévu le ${jCourt(c.reliquat)}`)]);
   const inter = [...new Set(c.lignes.filter(l => l.inter && l.recu >= l.q).map(l => l.inter))].map(t => TACHES.find(o => o.id === t)).filter(Boolean);
   inter.forEach(t => { t.etat = 'recue'; t.recueLe = jCourt(AUJ); });
   prCatalogueMaj(); rendre(); cmdFiche(c.id);
@@ -6791,13 +6986,12 @@ function cmdFacturer(id, conteste){
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-cm]'); if (!b) return;
   const [a, x, y] = b.dataset.cm.split('|');
-  if (a === 'onglet') { cmdOnglet = x; return rendre(); }
+  if (a === 'filtre') { cmdFiltre = x; rendre(); const s = document.getElementById('suivi'); if (s) s.scrollIntoView({ block:'start' }); return; }
+  if (a === 'preparer') return cmdPreparer(x);
   if (a === 'ancre') { const s = document.getElementById(x); if (s) s.scrollIntoView({ behavior:'smooth', block:'start' }); return; }
   if (a === 'hors') { CMD_HORS.add(x); rendre(); return toast('Retiré de cette commande.', { lib:'Annuler', fn:() => { CMD_HORS.delete(x); rendre(); } }); }
   if (a === 'plus') { CMD_PANIER['+' + x] = cmdSuggere(PRODUITS.find(o => o.id === x)).q; return rendre(); }
   if (a === 'depl') { CMD_DEPL[x] = y; rendre(); return toast(`Déplacé dans la commande ${esc(y)}.`, { lib:'Annuler', fn:() => { delete CMD_DEPL[x]; rendre(); } }); }
-  if (a === 'envoyer') return cmdEnvoyerPanneau(x);
-  if (a === 'go') return cmdCreer(x);
   if (a === 'voir') return cmdFiche(x);
   if (a === 'conf') return cmdConfirmer(x);
   if (a === 'confok') { const c = COMMANDES.find(o => o.id === x), n = document.getElementById('cmd-cnum').value.trim(), d = document.getElementById('cmd-cdate').value || c.prevue;
@@ -6815,7 +7009,6 @@ document.addEventListener('click', ev => {
 document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.matches('[data-cmq]')) { const n = foNum(t.value); if (n > 0) CMD_PANIER[t.dataset.cmq] = n; return rendre(); }
-  if (t.id === 'cmd-liv') { const four = (document.querySelector('[data-cm^="go|"]') || {}).dataset.cm.split('|')[1], pan = cmdPaniers().find(p => p.four === four), pre = document.getElementById('cmd-mail'); if (pan && pre) pre.textContent = cmdMail(four, pan.lignes, 'BC-2026-0' + cmdNum, t.value); }
 });
 
 /* ── l'onglet Fournisseurs : chacun avec ce qu'il te coûte et comment il tient ses délais ── */
@@ -6828,7 +7021,7 @@ function vueFournisseurs(){
       <div class="fo-stats"><span><b>${A.length}</b>article${A.length > 1 ? 's' : ''}</span><span><b>${eur0(cm)}</b>commandé ce mois</span>${f.hist ? `<span><b>${prNum(f.hist.delai)} j</b>délai réel moyen</span><span><b class="${f.hist.heure < 90 ? 'fo-up' : ''}">${f.hist.heure} %</b>livré à l’heure</span>` : '<span><b>—</b>pas encore d’historique</span>'}</div>
       ${al.length ? `<div class="cmd-al">⚠️ ${al.map(c => esc(c.num) + ' : ' + esc(cmdAlerte(c).txt.toLowerCase())).join(' · ')}</div>` : ouv.length ? `<div class="gris petit">${ouv.length} commande${ouv.length > 1 ? 's' : ''} en cours</div>` : ''}
       ${moinsCher ? `<div class="gris petit">${moinsCher} article${moinsCher > 1 ? 's' : ''} moins cher${moinsCher > 1 ? 's' : ''} chez un autre de tes fournisseurs</div>` : ''}
-      <div class="actions">${pan ? `<button type="button" class="btn" data-cm="envoyer|${esc(f.nom)}">Commander · ${pan.lignes.length} article${pan.lignes.length > 1 ? 's' : ''}</button>` : ''}<button type="button" class="btn gris" data-fo="tarifs|${f.id}">Importer ses tarifs</button></div></section>`; };
+      <div class="actions">${pan ? `<button type="button" class="btn" data-cm="preparer|${esc(f.nom)}">Commander · ${pan.lignes.length} article${pan.lignes.length > 1 ? 's' : ''}</button>` : ''}<button type="button" class="btn gris" data-fo="tarifs|${f.id}">Importer ses tarifs</button></div></section>`; };
   return `<div class="fo-grille">${MES_FOURN.map(carte).join('')}</div>
     <button type="button" class="carte fo-ajout" data-fo="liste"><b>＋ Ajouter un fournisseur</b><span class="gris petit">${foNbDir()} fournisseurs de tes métiers dans la liste de TEAM OP, ou ton fournisseur local</span></button>`;
 }
