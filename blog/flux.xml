@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Wed, 04 Nov 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 06 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Logiciel plombier : devis, dépannage, SAV, ce qu’il doit faire</title>
+<link>https://teamop.fr/blog/logiciel-plombier.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/logiciel-plombier.html</guid>
+<pubDate>Fri, 06 Nov 2026 06:00:00 GMT</pubDate>
+<description>Logiciel plombier : obligations avant un dépannage, mentions du devis et de la facture, garanties à suivre, grille de choix à cocher et budget calculé.</description>
+<enclosure url="https://teamop.fr/blog/img/logiciel-plombier-couverture.webp" type="image/webp" length="52248"/>
+</item>
 <item>
 <title>Facture d’intervention : mentions, délais et facture électronique</title>
 <link>https://teamop.fr/blog/facture-d-intervention.html</link>

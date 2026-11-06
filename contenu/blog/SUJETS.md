@@ -47,7 +47,7 @@ publication.
 - [x] planning des techniciens — 2026-10-28 — `planning-des-techniciens`
 - [x] gestion de stock camionnette — 2026-11-02 — `gestion-de-stock-camionnette`
 - [x] facture d'intervention — 2026-11-04 — `facture-d-intervention`
-- [ ] logiciel plombier — ce qu'un plombier doit attendre d'un logiciel, devis, dépannage, SAV — /logiciel-plombier.html
+- [x] logiciel plombier — 2026-11-06 — `logiciel-plombier`
 - [ ] registre sanitaire 3D — obligations, contenu, contrôles, biocides — /logiciel-registre-sanitaire.html
 - [ ] logiciel entreprise de nettoyage — passages récurrents, contrôle qualité, sites multiples — /logiciel-nettoyage.html
 - [ ] contrat d'entretien — chaudière, climatisation : obligations, relances, planification — /logiciel-chauffage-climatisation.html
