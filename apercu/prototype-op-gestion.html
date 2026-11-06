@@ -240,6 +240,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pc.retard{border-color:color-mix(in srgb,var(--rouge) 55%,transparent)}
 .pc.fait{opacity:.62}
 .pc.a-placer{animation:aPlacer 1s ease-in-out 4;z-index:5}
+.pc.pl-surl{outline:3px solid var(--lien);outline-offset:1px;z-index:5}
+.a-dec-i.pl{background:var(--lien)}
 @keyframes aPlacer{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px var(--orange),0 0 22px var(--orange)}}
 .kpi-l{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}
 .kpi-l-t{flex:1 1 220px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:none;border:0;color:var(--encre);font:inherit;cursor:pointer;padding:0;min-width:0}
@@ -2340,6 +2342,47 @@ function kpiPlacer(id){
   setTimeout(() => { const e = document.querySelector(`.pc[data-int="${id}"]`); if (e) { e.scrollIntoView({ block:'center', inline:'center', behavior:'smooth' }); e.classList.add('a-placer'); setTimeout(() => e.classList.remove('a-placer'), 4200); }
     toast(i.st === 'aplanifier' ? 'Glisse la carte qui clignote sur un technicien.' : 'Glisse la carte qui clignote à sa nouvelle place.'); }, 250);
 }
+/* « Voir au planning » d'une fiche (Justin, 6 novembre 2026 : « ça doit me ramener à l'intervention, en surbrillance ») :
+   le planning s'ouvre sur le jour de la SUITE que la fiche a créée (entretien annuel, ventilateur, retour), sa carte surlignée,
+   un bandeau qui dit laquelle, et « Revenir à la fiche ». Une fiche terminée de la démonstration n'avait pas encore sa suite :
+   elle est posée ici, une fois (même identifiant que « Terminer »), « à planifier ». */
+let plFlash = null;
+function suitesDe(i, F){
+  const L = [], veut = (id, o) => { let n = INTS.find(x => x.id === id); if (!n && o) { n = { id, tech:'', cli:i.cli, st:'aplanifier', ...o }; INTS.push(n); } if (n) L.push(n); };
+  if (F.etat === 'reprendre') veut('n-ret-' + i.id, null);
+  else {
+    if (F.suite.ventilo) veut('n-ven-' + i.id, { d:ajoute(i.d, 4), h:'13:30', dur:120, titre:'Remplacer le ventilateur (devis à faire)', type:'2ᵉ passage' });
+    if (F.suite.entretien) veut('n-ent-' + i.id, { d:ouvres(1, ajoute(i.d, 364))[0], h:'09:00', dur:60, titre:'Entretien annuel', type:'Entretien' });
+  }
+  return L;
+}
+const plSuiteTxt = n => `<b>${esc(n.titre)}</b> · ${aDate(n.d, true)} à ${n.h} · ${n.st === 'aplanifier' || !n.tech ? '<b class="t-retard">à planifier</b> : glisse la carte sur un technicien' : 'avec <b>' + tech(n.tech).nom + '</b>'}`;
+function plSuiteMontrer(id){
+  const n = INTS.find(o => o.id === id); if (!n) return;
+  plVue = 'jour'; plRef = n.d; plMasques = new Set(); if (route !== 'planning') aller('planning'); else rendre();
+  setTimeout(() => { const e = document.querySelector(`.pc[data-int="${id}"]`); if (e) { e.scrollIntoView({ block:'center', inline:'center', behavior:'smooth' }); e.classList.add('a-placer'); setTimeout(() => e.classList.remove('a-placer'), 4200); } }, 250);
+}
+function ficheVoirPlanning(id){
+  const i = INTS.find(o => o.id === id); if (!i) return;
+  const S = suitesDe(i, fiche(id)), L = S.length ? S : [i], cible = [...L].sort((a, b) => (a.d + a.h).localeCompare(b.d + b.h))[0];
+  plFlash = { titre:(S.length ? (S.length > 1 ? 'Les suites de « ' : 'La suite de « ') : '« ') + esc(i.titre) + ' » · ' + esc(CLIENTS[i.cli].nom), ids:L.map(n => n.id) };
+  RETOUR = { lib:'la fiche « ' + i.titre + ' »', route, h:route + (param ? '-x-' + param : ''), fn:null };
+  fermerPanneau(); plSuiteMontrer(cible.id);
+}
+(() => { const r0 = rendre; rendre = function(){
+  const v = r0.apply(this, arguments);
+  if (!plFlash) return v; if (route !== 'planning') { plFlash = null; return v; }
+  const tete = document.querySelector('#contenu .tete'), L = plFlash.ids.map(x => INTS.find(o => o.id === x)).filter(Boolean);
+  if (tete) tete.insertAdjacentHTML('afterend', `<div class="a-flash pl-flash" role="status"><span class="a-dec-i pl" aria-hidden="true">↪</span><span class="a-dec-c"><b>${plFlash.titre}</b>
+    ${L.map(n => `<span class="a-dec-m pl-suite">${plSuiteTxt(n)}${n.d === plRef ? '<span class="gris petit"> · surlignée ici</span>' : ` <button type="button" class="lien" data-plsuite="${n.id}">Voir ce jour ›</button>`}</span>`).join('')}</span><button type="button" class="tf-x" data-plflashx="1" aria-label="Fermer">✕</button></div>`);
+  L.forEach(n => document.querySelectorAll(`.pc[data-int="${n.id}"]`).forEach(e => e.classList.add('pl-surl')));
+  return v; }; })();
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-fichepl],[data-plsuite],[data-plflashx]'); if (!b) return;
+  if (b.dataset.fichepl) return ficheVoirPlanning(b.dataset.fichepl);
+  if (b.dataset.plsuite) return plSuiteMontrer(b.dataset.plsuite);
+  plFlash = null; rendre();
+});
 function kpiAbsence(n){
   const a = ABSENCES[n]; fermerPanneau(); const J = []; for (let d = a.du; d <= a.au && J.length < 7; d = ajoute(d, 1)) if (dObj(d).getDay() % 6) J.push(d);
   plVue = 'multi'; multiJours = J.length ? J : [a.du]; multiGrp = 'personne'; multiExclu = new Set(); plMasques = new Set(TECHS.map(t => t.id).filter(x => x !== a.tech && x !== ''));
@@ -2396,7 +2439,7 @@ function vueFiche(id){
   if (F.etat === 'bureau') return tete + finiEcran(i, F);
   if (F.etat === 'reprendre') return tete + `<div class="carte" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start"><span class="st st-o">À reprendre · ${esc(F.motif)}</span><h2>Le bureau est prévenu</h2>
     <p class="gris" style="margin:0">Une intervention de retour est créée « à planifier ». Le compte rendu dira « intervention à reprendre », jamais « réparé ». Aucune facture n’est préparée.</p>
-    <div class="actions"><button type="button" class="btn" data-go="planning">Voir au planning</button><button type="button" class="btn gris" data-action="reprise" data-id="${id}">Reprendre la fiche</button></div></div>`;
+    <div class="actions"><button type="button" class="btn" data-fichepl="${id}">Voir au planning</button><button type="button" class="btn gris" data-action="reprise" data-id="${id}">Reprendre la fiche</button></div></div>`;
   const man = manque(F), n = tousControles(F).filter(k => F.coches[k]).length, tot = tousControles(F).length;
   return tete + `
   <div class="actions" style="align-items:center"><span class="gris petit">Métier (pour l’essai) :</span><div class="seg" role="group" aria-label="Métier">${Object.entries(METIERS).map(([k,l])=>`<button type="button" data-metier="${k}" aria-pressed="${F.metier===k}">${l}</button>`).join('')}</div></div>
@@ -2445,7 +2488,7 @@ function finiEcran(i, F){
       <div class="fin-a">${i.fact && i.fact.mode === 'garantie' ? '' : f ? `<button type="button" class="btn" data-go="facture-x-${f.id}">Ouvrir la facture</button>` : `<button type="button" class="btn" data-action="prepFacture" data-id="${i.id}">Préparer la facture</button>`}</div></section>
     <section class="carte fin-c"><div class="fin-t"><h3>Suites à donner</h3><span class="st ${F.suite.ventilo || F.suite.entretien ? 'st-b' : 'st-g'}">${(F.suite.ventilo?1:0)+(F.suite.entretien?1:0) || 'Aucune'}${F.suite.ventilo || F.suite.entretien ? ' prévue' + ((F.suite.ventilo?1:0)+(F.suite.entretien?1:0) > 1 ? 's' : '') : ''}</span></div>
       <div class="fin-p">${F.suite.ventilo ? '<div class="ligne"><span>Remplacer le ventilateur</span><span class="st st-b">devis à faire</span></div>' : ''}${F.suite.entretien ? '<div class="ligne"><span>Entretien annuel</span><span class="st st-o">à planifier</span></div>' : ''}${!F.suite.ventilo && !F.suite.entretien ? '<span class="gris">Rien de prévu après ce passage.</span>' : ''}</div>
-      <div class="fin-a">${F.suite.ventilo || F.suite.entretien ? '<button type="button" class="btn gris" data-go="planning">Voir au planning</button>' : ''}</div></section>
+      <div class="fin-a">${F.suite.ventilo || F.suite.entretien ? `<button type="button" class="btn gris" data-fichepl="${i.id}">Voir au planning</button>` : ''}</div></section>
   </div>
   <div class="carte"><h3>Le compte rendu, tel que le client le reçoit</h3>${compteRenduPdf(i.id)}</div>
   ${i.id === 'i1' ? '<button type="button" class="btn gris" data-action="recommencer">Recommencer la mission (pour l’essai)</button>' : ''}`;
@@ -3183,7 +3226,7 @@ document.addEventListener('click', ev => {
 }, true);
 /* aller ailleurs en gardant le chemin du retour */
 function allerAvecRetour(h, lib, revenir){
-  RETOUR = { lib, route, fn:revenir }; fermerPanneau(); aller(h);
+  RETOUR = { lib, route, h:route + (param ? '-x-' + param : ''), fn:revenir }; fermerPanneau(); aller(h);
 }
 (() => { const r0 = rendre; rendre = function(){
   const v = r0.apply(this, arguments);
@@ -3193,7 +3236,7 @@ function allerAvecRetour(h, lib, revenir){
 document.addEventListener('click', ev => {
   if (ev.target.closest('[data-retourx]')) { RETOUR = null; document.querySelectorAll('.retour-barre').forEach(x => x.remove()); return; }
   if (!ev.target.closest('[data-retourva]') || !RETOUR) return;
-  const r = RETOUR; RETOUR = null; aller(r.route); setTimeout(() => r.fn && r.fn(), 60);
+  const r = RETOUR; RETOUR = null; aller(r.h || r.route); setTimeout(() => r.fn && r.fn(), 60);
 });
 /* ══ STATISTIQUES — refaite le 1er novembre 2026 (ordre décidé avec Justin : la première du bloc Tableau de bord)
    Une période au choix (mois, trimestre, 12 mois), comparée à la précédente ; la courbe de 12 mois ; devis, techniciens,
@@ -5359,7 +5402,7 @@ const ACTIONS = {
   terminer(b){ const id = b.dataset.id, F = fiche(id), man = manque(F), i = INTS.find(o => o.id === id);
     if (man.length) { ouvrirPanneau(`<h2>Pas encore</h2><p>Avant de terminer, il manque :</p><ul>${man.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul><p class="gris">Si tu ne peux pas tout faire, utilise « Je ne peux pas finir » : le bureau est prévenu et une intervention de retour est créée.</p>`); return; }
     F.etat = 'bureau'; i.st = 'fait'; factureDepuis(i);
-    if (F.suite.entretien) INTS.push({ id:'n-ent-' + id, d:ajoute(i.d, 364), h:'09:00', dur:60, tech:'', cli:i.cli, titre:'Entretien annuel', type:'Entretien', st:'aplanifier' });
+    if (F.suite.entretien) INTS.push({ id:'n-ent-' + id, d:ouvres(1, ajoute(i.d, 364))[0], h:'09:00', dur:60, tech:'', cli:i.cli, titre:'Entretien annuel', type:'Entretien', st:'aplanifier' });
     if (F.suite.ventilo) INTS.push({ id:'n-ven-' + id, d:ajoute(i.d, 4), h:'13:30', dur:120, tech:'', cli:i.cli, titre:'Remplacer le ventilateur (devis à faire)', type:'2ᵉ passage', st:'aplanifier' });
     if (reglages.auto) { const f = FACTURES.find(x => x.int === id); if (lignesDe(f).every(l => l.pu != null)) envoyerFacture(f); }
     rendre(); scrollTo({ top:0 }); toast('Terminée : le compte rendu part au client, la facture est préparée.'); },
