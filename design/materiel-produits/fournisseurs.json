@@ -1,0 +1,6701 @@
+{
+ "version": "2026-11-06",
+ "note": "Fournisseurs par métier pour « Mes fournisseurs » (Matériel & produits). Noms, sites et ce que chacun couvre, de connaissance du métier ; la page d'accueil de chaque site a été appelée le 6 novembre 2026 (siteRepond). Aucun tarif, aucun catalogue recopié : les prix viennent du client (fichier de tarifs, facture). Aucun lien commercial entre TEAM OP et ces entreprises.",
+ "packs": {
+  "3d": {
+   "conseils": "Les pros de la 3D (certifiés Certibiocide) commandent leurs biocides chez des distributeurs spécialisés, en ligne avec compte pro ou par téléphone, avec expédition sous 24 à 48 h et franco de port à partir d'un montant. Les produits biocides ne se vendent qu'aux professionnels certifiés : le compte pro demande la preuve du certificat. Matériel (postes, pièges, pulvérisateurs) et EPI se prennent en boutique en ligne ou chez les généralistes pro. Comparer les prix par gamme avant de grouper la commande.",
+   "fournisseurs": [
+    {
+     "nom": "ARMOSA",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://www.armosa3dfrance.fr",
+     "couverture": "national",
+     "categories": [
+      "TP14 - Rodenticides",
+      "TP18 - Insecticides",
+      "TP8 - Xylophages et termites",
+      "TP2/TP3 - Désinfection et hygiène",
+      "Piégeage et capture",
+      "Postes d'appâtage et box",
+      "Application et traitement (matériel)",
+      "EPI et sécurité"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "fiche de l'application (relevé existant)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "ENSYSTEX",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.ensystex-solution-pro.com",
+     "couverture": "national",
+     "categories": [
+      "TP8 - Xylophages et termites",
+      "TP18 - Insecticides",
+      "Postes d'appâtage et box"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "fiche de l'application (relevé existant)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "SODIF",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://www.sodif-france.com",
+     "couverture": "national",
+     "categories": [
+      "TP14 - Rodenticides",
+      "TP18 - Insecticides",
+      "Piégeage et capture",
+      "Postes d'appâtage et box",
+      "Détection et surveillance",
+      "Application et traitement (matériel)",
+      "EPI et sécurité"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "fiche de l'application (relevé existant)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "MABI",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://www.mabi.fr",
+     "couverture": "national",
+     "categories": [
+      "Piégeage et capture",
+      "Postes d'appâtage et box",
+      "Proofing et prévention",
+      "Détection et surveillance",
+      "Application et traitement (matériel)",
+      "EPI et sécurité",
+      "Consommables et hygiène d'atelier"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "fiche de l'application (relevé existant)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "ORCAD",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://www.orcad-vulcano.com",
+     "couverture": "national",
+     "categories": [
+      "TP14 - Rodenticides",
+      "TP18 - Insecticides",
+      "Piégeage et capture",
+      "Postes d'appâtage et box",
+      "Proofing et prévention",
+      "Application et traitement (matériel)"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "fiche de l'application (relevé existant)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bayer Environmental Science",
+     "groupe": "Bayer",
+     "type": "fabricant",
+     "site": "https://www.environmentalscience.bayer.fr",
+     "couverture": "national",
+     "categories": [
+      "TP14 - Rodenticides",
+      "TP18 - Insecticides",
+      "TP8 - Xylophages et termites",
+      "TP2/TP3 - Désinfection et hygiène"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Syngenta Professional Pest Management",
+     "groupe": "Syngenta",
+     "type": "fabricant",
+     "site": "https://www.syngenta.fr",
+     "couverture": "national",
+     "categories": [
+      "TP18 - Insecticides",
+      "TP14 - Rodenticides"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "BASF Pest Control Solutions",
+     "groupe": "BASF",
+     "type": "fabricant",
+     "site": "https://www.pestcontrol.basf.fr",
+     "couverture": "national",
+     "categories": [
+      "TP14 - Rodenticides",
+      "TP18 - Insecticides",
+      "TP8 - Xylophages et termites"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Liphatech",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.liphatech.fr",
+     "couverture": "national",
+     "categories": [
+      "TP14 - Rodenticides",
+      "Postes d'appâtage et box"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Dehon Service (3D)",
+     "groupe": "Dehon",
+     "type": "distributeur spécialisé",
+     "site": "https://www.dehon-service.fr",
+     "couverture": "national",
+     "categories": [
+      "TP2/TP3 - Désinfection et hygiène",
+      "Application et traitement (matériel)"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national (agences et commerciaux)",
+     "categories": [
+      "EPI et sécurité",
+      "Consommables et hygiène d'atelier",
+      "Application et traitement (matériel)"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "EPI et sécurité",
+      "Consommables et hygiène d'atelier",
+      "TP2/TP3 - Désinfection et hygiène"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Application et traitement (matériel)",
+      "EPI et sécurité"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    }
+   ]
+  },
+  "plomberie": {
+   "conseils": "Les plombiers passent le plus souvent au comptoir le matin chez un négoce spécialisé (Cedeo, Brossette, Richardson), avec un compte pro qui donne une remise sur prix public et un tarif négocié selon le volume. Le commerce en ligne pro et les généralistes (Würth, Foussier) complètent pour l'outillage et les petites fournitures. Les chantiers sont souvent commandés la veille pour retrait ou livraison.",
+   "fournisseurs": [
+    {
+     "nom": "Cedeo",
+     "groupe": "Saint-Gobain",
+     "type": "distributeur spécialisé",
+     "site": "https://www.cedeo.fr",
+     "couverture": "national",
+     "categories": [
+      "Tubes et tuyaux",
+      "Raccords et fittings",
+      "Robinetterie et mitigeurs",
+      "Flexibles et accessoires",
+      "Sanitaire et appareils",
+      "Évacuation et siphons",
+      "Chauffe-eau et production ECS",
+      "Traitement de l'eau",
+      "Débouchage et curage",
+      "Outillage de plombier"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique",
+     "notes": "Les agences Brossette ont rejoint Cedeo (brossette.fr renvoie vers cedeo.fr)."
+    },
+    {
+     "nom": "Point.P",
+     "groupe": "Saint-Gobain",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Tubes et tuyaux",
+      "Raccords et fittings",
+      "Évacuation et siphons",
+      "Flexibles et accessoires"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Richardson",
+     "groupe": "Richardson",
+     "type": "distributeur spécialisé",
+     "site": "https://www.richardson.fr",
+     "couverture": "national",
+     "categories": [
+      "Tubes et tuyaux",
+      "Raccords et fittings",
+      "Robinetterie et mitigeurs",
+      "Flexibles et accessoires",
+      "Sanitaire et appareils",
+      "Évacuation et siphons",
+      "Chauffe-eau et production ECS",
+      "Traitement de l'eau",
+      "Débouchage et curage"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Chausson Matériaux",
+     "groupe": "Chausson",
+     "type": "négoce matériaux",
+     "site": "https://www.chausson.fr",
+     "couverture": "régional (Sud et Sud-Est)",
+     "categories": [
+      "Tubes et tuyaux",
+      "Raccords et fittings",
+      "Robinetterie et mitigeurs",
+      "Évacuation et siphons",
+      "Sanitaire et appareils"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Frans Bonhomme",
+     "groupe": "Groupe Frans Bonhomme",
+     "type": "négoce matériaux",
+     "site": "https://www.frans-bonhomme.fr",
+     "couverture": "national",
+     "categories": [
+      "Tubes et tuyaux",
+      "Évacuation et siphons",
+      "Raccords et fittings"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Foussier",
+     "groupe": "Foussier",
+     "type": "distributeur généraliste",
+     "site": "https://www.foussier.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage de plombier",
+      "EPI et consommables d'atelier",
+      "Raccords et fittings",
+      "Flexibles et accessoires"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national (agences et commerciaux)",
+     "categories": [
+      "Flexibles et accessoires",
+      "Outillage de plombier",
+      "EPI et consommables d'atelier",
+      "Raccords et fittings"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage de plombier",
+      "EPI et consommables d'atelier",
+      "Flexibles et accessoires",
+      "Raccords et fittings"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manomano Pro",
+     "groupe": "ManoMano",
+     "type": "vente en ligne pro",
+     "site": "https://www.manomano.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage de plombier",
+      "Flexibles et accessoires",
+      "Robinetterie et mitigeurs",
+      "EPI et consommables d'atelier"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Grohe",
+     "groupe": "LIXIL",
+     "type": "fabricant",
+     "site": "https://www.grohe.fr",
+     "couverture": "national",
+     "categories": [
+      "Robinetterie et mitigeurs",
+      "Sanitaire et appareils"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Geberit",
+     "groupe": "Geberit",
+     "type": "fabricant",
+     "site": "https://www.geberit.fr",
+     "couverture": "national",
+     "categories": [
+      "Sanitaire et appareils",
+      "Évacuation et siphons",
+      "Raccords et fittings",
+      "Tubes et tuyaux"
+     ],
+     "tarifs": "catalogue PDF",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage de plombier",
+      "Débouchage et curage"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Brico Dépôt",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.bricodepot.fr",
+     "couverture": "national",
+     "categories": [
+      "Flexibles et accessoires",
+      "Tubes et tuyaux",
+      "Raccords et fittings",
+      "EPI et consommables d'atelier"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "chauffage": {
+   "conseils": "Les chauffagistes achètent générateurs et pièces détachées chez les négoces spécialisés, où le compte pro donne accès au tarif fabricant avec remise. Les pièces d'origine se commandent souvent directement auprès du fabricant ou de son réseau. Les consommables, l'outillage et l'analyse de combustion passent par les généralistes et la vente en ligne pro.",
+   "fournisseurs": [
+    {
+     "nom": "Cedeo",
+     "groupe": "Saint-Gobain",
+     "type": "distributeur spécialisé",
+     "site": "https://www.cedeo.fr",
+     "couverture": "national",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Circulateurs et hydraulique",
+      "Radiateurs et émetteurs",
+      "Désembouage et traitement de l'eau",
+      "Conduits et fumisterie",
+      "Régulation et thermostats",
+      "Production d'eau chaude et solaire",
+      "Outillage de chauffagiste",
+      "Mesure et analyse de combustion",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique",
+     "notes": "Les agences Brossette ont rejoint Cedeo (brossette.fr renvoie vers cedeo.fr)."
+    },
+    {
+     "nom": "Richardson",
+     "groupe": "Richardson",
+     "type": "distributeur spécialisé",
+     "site": "https://www.richardson.fr",
+     "couverture": "national",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Circulateurs et hydraulique",
+      "Radiateurs et émetteurs",
+      "Désembouage et traitement de l'eau",
+      "Conduits et fumisterie",
+      "Régulation et thermostats",
+      "Production d'eau chaude et solaire"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Chausson Matériaux",
+     "groupe": "Chausson",
+     "type": "négoce matériaux",
+     "site": "https://www.chausson.fr",
+     "couverture": "régional (Sud et Sud-Est)",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Radiateurs et émetteurs",
+      "Circulateurs et hydraulique"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur généraliste",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Conduits et fumisterie",
+      "Circulateurs et hydraulique",
+      "Mesure et analyse de combustion",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national (agences et commerciaux)",
+     "categories": [
+      "Outillage de chauffagiste",
+      "EPI et consommables",
+      "Pièces détachées chaudière"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Atlantic",
+     "groupe": "Groupe Atlantic",
+     "type": "fabricant",
+     "site": "https://www.atlantic.fr",
+     "couverture": "national",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Radiateurs et émetteurs",
+      "Régulation et thermostats",
+      "Production d'eau chaude et solaire"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Viessmann France",
+     "groupe": "Viessmann",
+     "type": "fabricant",
+     "site": "https://www.viessmann.fr",
+     "couverture": "national",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Régulation et thermostats",
+      "Production d'eau chaude et solaire"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "De Dietrich Thermique",
+     "groupe": "BDR Thermea",
+     "type": "fabricant",
+     "site": "https://www.dedietrich-thermique.fr",
+     "couverture": "national",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Régulation et thermostats"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Saunier Duval",
+     "groupe": "Vaillant Group",
+     "type": "fabricant",
+     "site": "https://www.saunierduval.fr",
+     "couverture": "national",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Régulation et thermostats",
+      "Production d'eau chaude et solaire"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Vaillant",
+     "groupe": "Vaillant Group",
+     "type": "fabricant",
+     "site": "https://www.vaillant.fr",
+     "couverture": "national",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Régulation et thermostats",
+      "Production d'eau chaude et solaire"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Frisquet",
+     "groupe": "Frisquet",
+     "type": "fabricant",
+     "site": "https://www.frisquet.com",
+     "couverture": "national",
+     "categories": [
+      "Chaudières et générateurs",
+      "Pièces détachées chaudière",
+      "Régulation et thermostats"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Testo",
+     "groupe": "Testo",
+     "type": "fabricant",
+     "site": "https://www.testo.com/fr-FR",
+     "couverture": "national",
+     "categories": [
+      "Mesure et analyse de combustion"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage de chauffagiste",
+      "EPI et consommables"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Poujoulat",
+     "groupe": "Poujoulat",
+     "type": "fabricant",
+     "site": "https://www.poujoulat.fr",
+     "couverture": "national",
+     "categories": [
+      "Radiateurs et émetteurs"
+     ],
+     "tarifs": "catalogue PDF",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "climatisation": {
+   "conseils": "Les frigoristes et climaticiens se fournissent en fluides, liaisons et outillage chez les spécialistes du froid (Climalife, Dehon), en équipements chez les fabricants et grossistes agréés, et en électricité chez Rexel. Le compte pro ouvre l'accès aux tarifs avec remise ; la manipulation des fluides exige l'attestation de capacité, demandée à l'ouverture du compte.",
+   "fournisseurs": [
+    {
+     "nom": "Climalife",
+     "groupe": "Dehon",
+     "type": "distributeur spécialisé",
+     "site": "https://climalife.com/fr/",
+     "couverture": "national",
+     "categories": [
+      "Fluides frigorigènes",
+      "Liaisons frigorifiques et isolation",
+      "Pièces détachées clim/PAC",
+      "Outillage frigoriste",
+      "Mesure et contrôle"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Dehon Service",
+     "groupe": "Dehon",
+     "type": "distributeur spécialisé",
+     "site": "https://www.dehon-service.fr",
+     "couverture": "national",
+     "categories": [
+      "Fluides frigorigènes",
+      "Pièces détachées clim/PAC",
+      "Outillage frigoriste",
+      "Mesure et contrôle",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Cedeo",
+     "groupe": "Saint-Gobain",
+     "type": "distributeur spécialisé",
+     "site": "https://www.cedeo.fr",
+     "couverture": "national",
+     "categories": [
+      "Climatiseurs et unités",
+      "Liaisons frigorifiques et isolation",
+      "Évacuation des condensats",
+      "Ventilation et VMC"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique",
+     "notes": "Les agences Brossette ont rejoint Cedeo (brossette.fr renvoie vers cedeo.fr)."
+    },
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur généraliste",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Climatiseurs et unités",
+      "Pièces détachées clim/PAC",
+      "Ventilation et VMC",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national (agences et commerciaux)",
+     "categories": [
+      "Outillage frigoriste",
+      "EPI et consommables",
+      "Liaisons frigorifiques et isolation"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Daikin France",
+     "groupe": "Daikin",
+     "type": "fabricant",
+     "site": "https://www.daikin.fr",
+     "couverture": "national",
+     "categories": [
+      "Climatiseurs et unités",
+      "Pièces détachées clim/PAC"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Mitsubishi Electric (climatisation)",
+     "groupe": "Mitsubishi Electric",
+     "type": "fabricant",
+     "site": "https://www.mitsubishielectric.fr",
+     "couverture": "national",
+     "categories": [
+      "Climatiseurs et unités",
+      "Pièces détachées clim/PAC"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "pas de réponse (délai dépassé)"
+    },
+    {
+     "nom": "Toshiba Climatisation",
+     "groupe": "Carrier",
+     "type": "fabricant",
+     "site": "https://www.toshiba-aircon.fr",
+     "couverture": "national",
+     "categories": [
+      "Climatiseurs et unités",
+      "Pièces détachées clim/PAC"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "pas de réponse (délai dépassé)"
+    },
+    {
+     "nom": "Atlantic",
+     "groupe": "Groupe Atlantic",
+     "type": "fabricant",
+     "site": "https://www.atlantic.fr",
+     "couverture": "national",
+     "categories": [
+      "Climatiseurs et unités",
+      "Ventilation et VMC",
+      "Pièces détachées clim/PAC"
+     ],
+     "tarifs": "fichier tarif",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Aldes",
+     "groupe": "Aldes",
+     "type": "fabricant",
+     "site": "https://www.aldes.fr",
+     "couverture": "national",
+     "categories": [
+      "Ventilation et VMC",
+      "Filtres, nettoyage et entretien"
+     ],
+     "tarifs": "catalogue PDF",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Testo",
+     "groupe": "Testo",
+     "type": "fabricant",
+     "site": "https://www.testo.com/fr-FR",
+     "couverture": "national",
+     "categories": [
+      "Mesure et contrôle"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage frigoriste"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage frigoriste",
+      "EPI et consommables"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "froid": {
+   "conseils": "Le froid commercial et industriel s'approvisionne auprès de spécialistes (Dehon, Climalife) pour fluides, pièces et compresseurs, et directement auprès des fabricants pour les composants techniques. Les fluides exigent l'attestation de capacité et une traçabilité (registre des fluides). L'électricité et la régulation passent par Rexel ou Sonepar, avec compte pro et tarif remisé.",
+   "fournisseurs": [
+    {
+     "nom": "Climalife",
+     "groupe": "Dehon",
+     "type": "distributeur spécialisé",
+     "site": "https://climalife.com/fr/",
+     "couverture": "national",
+     "categories": [
+      "Fluides frigorigènes et gaz",
+      "Détendeurs, vannes et régulation",
+      "Mesure et traçabilité"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Dehon Service",
+     "groupe": "Dehon",
+     "type": "distributeur spécialisé",
+     "site": "https://www.dehon-service.fr",
+     "couverture": "national",
+     "categories": [
+      "Fluides frigorigènes et gaz",
+      "Groupes et compresseurs",
+      "Évaporateurs et échangeurs",
+      "Détendeurs, vannes et régulation",
+      "Pièces et consommables froid",
+      "Tuyauterie et isolation",
+      "Outillage frigoriste",
+      "Mesure et traçabilité"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Copeland",
+     "groupe": "Emerson (cédé à Blackstone en 2023)",
+     "type": "fabricant",
+     "site": "https://www.copeland.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Groupes et compresseurs"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bitzer France",
+     "groupe": "Bitzer",
+     "type": "fabricant",
+     "site": "https://www.bitzer.de/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Groupes et compresseurs"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Danfoss France",
+     "groupe": "Danfoss",
+     "type": "fabricant",
+     "site": "https://www.danfoss.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Détendeurs, vannes et régulation",
+      "Groupes et compresseurs"
+     ],
+     "tarifs": "catalogue PDF",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Carel",
+     "groupe": "Carel",
+     "type": "fabricant",
+     "site": "https://www.carel.com",
+     "couverture": "national",
+     "categories": [
+      "Détendeurs, vannes et régulation",
+      "Mesure et traçabilité"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur généraliste",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Détendeurs, vannes et régulation",
+      "Pièces et consommables froid",
+      "EPI et sécurité"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sonepar France",
+     "groupe": "Sonepar",
+     "type": "distributeur généraliste",
+     "site": "https://www.sonepar.fr",
+     "couverture": "national",
+     "categories": [
+      "Détendeurs, vannes et régulation",
+      "Pièces et consommables froid",
+      "EPI et sécurité"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "EDI"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national (agences et commerciaux)",
+     "categories": [
+      "Outillage frigoriste",
+      "EPI et sécurité",
+      "Consommables d'atelier",
+      "Pièces et consommables froid"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Testo",
+     "groupe": "Testo",
+     "type": "fabricant",
+     "site": "https://www.testo.com/fr-FR",
+     "couverture": "national",
+     "categories": [
+      "Mesure et traçabilité"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage frigoriste"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage frigoriste",
+      "Consommables d'atelier"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "electricite": {
+   "conseils": "Les électriciens achètent le matin au comptoir des négoces spécialisés (Rexel, Sonepar et leurs enseignes, Yesss Electrique, CGED) avec un compte pro : remise sur prix public selon le volume, commande en ligne pour retrait en agence. Les fabricants (Legrand, Hager, Schneider) fixent le prix catalogue, le négoce applique la remise du client. Les fichiers tarifs au format FAB-DIS permettent d'importer les prix négociés.",
+   "fournisseurs": [
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur spécialisé",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Protection et différentiels",
+      "Tableaux et coffrets",
+      "Appareillage (prises, interrupteurs)",
+      "Câbles et fils",
+      "Cheminement (gaines, goulottes, conduits)",
+      "Connexions et petit matériel",
+      "Éclairage et luminaires",
+      "Chauffage et ventilation électriques",
+      "Domotique, interphonie et courants faibles",
+      "Bornes de recharge et comptage"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence, fichier FAB-DIS",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.rexel.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sonepar",
+     "groupe": "Sonepar",
+     "type": "distributeur spécialisé",
+     "site": "https://www.sonepar.fr",
+     "couverture": "national",
+     "categories": [
+      "Protection et différentiels",
+      "Tableaux et coffrets",
+      "Appareillage (prises, interrupteurs)",
+      "Câbles et fils",
+      "Cheminement (gaines, goulottes, conduits)",
+      "Connexions et petit matériel",
+      "Éclairage et luminaires",
+      "Chauffage et ventilation électriques",
+      "Domotique, interphonie et courants faibles",
+      "Bornes de recharge et comptage"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence, fichier FAB-DIS",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.sonepar.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Yesss Electrique",
+     "groupe": "Sonepar",
+     "type": "distributeur spécialisé",
+     "site": "https://www.yesss-electrique.fr",
+     "couverture": "national",
+     "categories": [
+      "Protection et différentiels",
+      "Tableaux et coffrets",
+      "Appareillage (prises, interrupteurs)",
+      "Câbles et fils",
+      "Cheminement (gaines, goulottes, conduits)",
+      "Connexions et petit matériel",
+      "Éclairage et luminaires",
+      "Outillage électrique à main"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "pas de réponse (délai dépassé)"
+    },
+    {
+     "nom": "CGED",
+     "groupe": "Sonepar",
+     "type": "distributeur spécialisé",
+     "site": "https://www.cged.fr",
+     "couverture": "régional",
+     "categories": [
+      "Protection et différentiels",
+      "Tableaux et coffrets",
+      "Appareillage (prises, interrupteurs)",
+      "Câbles et fils",
+      "Cheminement (gaines, goulottes, conduits)",
+      "Connexions et petit matériel",
+      "Éclairage et luminaires"
+     ],
+     "tarifs": "espace client en ligne, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.cged.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Legrand",
+     "groupe": "Legrand",
+     "type": "fabricant",
+     "site": "https://www.legrand.fr",
+     "couverture": "national",
+     "categories": [
+      "Protection et différentiels",
+      "Tableaux et coffrets",
+      "Appareillage (prises, interrupteurs)",
+      "Cheminement (gaines, goulottes, conduits)",
+      "Éclairage et luminaires",
+      "Domotique, interphonie et courants faibles",
+      "Bornes de recharge et comptage"
+     ],
+     "tarifs": "catalogue en ligne ; prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.legrand.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hager",
+     "groupe": "Hager Group",
+     "type": "fabricant",
+     "site": "https://hager.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Protection et différentiels",
+      "Tableaux et coffrets",
+      "Appareillage (prises, interrupteurs)",
+      "Cheminement (gaines, goulottes, conduits)",
+      "Bornes de recharge et comptage",
+      "Domotique, interphonie et courants faibles"
+     ],
+     "tarifs": "catalogue en ligne ; prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://hager.com/fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Schneider Electric",
+     "groupe": "Schneider Electric",
+     "type": "fabricant",
+     "site": "https://www.se.com/fr/fr/",
+     "couverture": "national",
+     "categories": [
+      "Protection et différentiels",
+      "Tableaux et coffrets",
+      "Appareillage (prises, interrupteurs)",
+      "Domotique, interphonie et courants faibles",
+      "Bornes de recharge et comptage"
+     ],
+     "tarifs": "catalogue en ligne ; prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.se.com/fr/fr/",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Fluke",
+     "groupe": "Fortive",
+     "type": "fabricant",
+     "site": "https://www.fluke.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Appareils de mesure et de contrôle"
+     ],
+     "tarifs": "prix publics sur le site, remises via distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.fluke.com/fr-fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Connexions et petit matériel",
+      "Outillage électrique à main",
+      "EPI et consommables de chantier",
+      "Cheminement (gaines, goulottes, conduits)"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "EPI et consommables de chantier",
+      "Outillage électrique à main"
+     ],
+     "tarifs": "prix publics sur le site, compte pro",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.manutan.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Connexions et petit matériel",
+      "Outillage électrique à main",
+      "EPI et consommables de chantier",
+      "Appareils de mesure et de contrôle"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricozor.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Appareils de mesure et de contrôle",
+      "EPI et consommables de chantier"
+     ],
+     "tarifs": "prix publics sur le site, devis sur demande",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.kiloutou.fr",
+     "siteRepond": "oui, refuse la lecture automatique"
+    }
+   ]
+  },
+  "energies": {
+   "conseils": "Les installateurs photovoltaïque et IRVE achètent surtout auprès de négoces électriques (Rexel, Sonepar) et de distributeurs solaires spécialisés, sur compte pro avec prix négociés, livraison chantier ou retrait. Les onduleurs et micro-onduleurs se commandent souvent par marque (SMA, Fronius, Enphase) via un distributeur agréé. Les prix des modules varient vite : demander un devis ou consulter l'espace client avant chaque commande.",
+   "fournisseurs": [
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur spécialisé",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Panneaux photovoltaïques",
+      "Onduleurs et micro-onduleurs",
+      "Batteries et stockage",
+      "Câbles solaires et connectique DC",
+      "Protections et coffrets AC/DC",
+      "Bornes de recharge (IRVE)",
+      "Comptage et délestage",
+      "Appareils de mesure et de contrôle",
+      "EPI et sécurité en hauteur"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence, fichier FAB-DIS",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.rexel.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sonepar",
+     "groupe": "Sonepar",
+     "type": "distributeur spécialisé",
+     "site": "https://www.sonepar.fr",
+     "couverture": "national",
+     "categories": [
+      "Panneaux photovoltaïques",
+      "Onduleurs et micro-onduleurs",
+      "Batteries et stockage",
+      "Câbles solaires et connectique DC",
+      "Protections et coffrets AC/DC",
+      "Bornes de recharge (IRVE)",
+      "Comptage et délestage",
+      "Appareils de mesure et de contrôle",
+      "EPI et sécurité en hauteur"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence, fichier FAB-DIS",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.sonepar.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hager",
+     "groupe": "Hager Group",
+     "type": "fabricant",
+     "site": "https://hager.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Protections et coffrets AC/DC",
+      "Bornes de recharge (IRVE)",
+      "Comptage et délestage"
+     ],
+     "tarifs": "catalogue en ligne ; prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://hager.com/fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Legrand",
+     "groupe": "Legrand",
+     "type": "fabricant",
+     "site": "https://www.legrand.fr",
+     "couverture": "national",
+     "categories": [
+      "Protections et coffrets AC/DC",
+      "Bornes de recharge (IRVE)",
+      "Comptage et délestage"
+     ],
+     "tarifs": "catalogue en ligne ; prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.legrand.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Schneider Electric",
+     "groupe": "Schneider Electric",
+     "type": "fabricant",
+     "site": "https://www.se.com/fr/fr/",
+     "couverture": "national",
+     "categories": [
+      "Protections et coffrets AC/DC",
+      "Bornes de recharge (IRVE)",
+      "Comptage et délestage"
+     ],
+     "tarifs": "catalogue en ligne ; prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.se.com/fr/fr/",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "SMA France",
+     "groupe": "SMA Solar Technology",
+     "type": "fabricant",
+     "site": "https://www.sma-france.com",
+     "couverture": "national",
+     "categories": [
+      "Onduleurs et micro-onduleurs",
+      "Batteries et stockage",
+      "Comptage et délestage"
+     ],
+     "tarifs": "prix pro via les distributeurs agréés",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.sma-france.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Fronius",
+     "groupe": "Fronius International",
+     "type": "fabricant",
+     "site": "https://www.fronius.com",
+     "couverture": "national",
+     "categories": [
+      "Onduleurs et micro-onduleurs",
+      "Batteries et stockage",
+      "Comptage et délestage"
+     ],
+     "tarifs": "prix pro via les distributeurs agréés",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.fronius.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "SolarEdge",
+     "groupe": "SolarEdge Technologies",
+     "type": "fabricant",
+     "site": "https://www.solaredge.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Onduleurs et micro-onduleurs",
+      "Batteries et stockage",
+      "Comptage et délestage"
+     ],
+     "tarifs": "prix pro via les distributeurs agréés",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Enphase Energy",
+     "groupe": "Enphase Energy",
+     "type": "fabricant",
+     "site": "https://www.enphase.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Onduleurs et micro-onduleurs",
+      "Batteries et stockage",
+      "Comptage et délestage"
+     ],
+     "tarifs": "prix pro via les distributeurs agréés",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.enphase.com/fr-fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Fluke",
+     "groupe": "Fortive",
+     "type": "fabricant",
+     "site": "https://www.fluke.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Appareils de mesure et de contrôle"
+     ],
+     "tarifs": "prix publics sur le site, remises via distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.fluke.com/fr-fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Fixation et structure",
+      "Outillage et pose",
+      "EPI et sécurité en hauteur",
+      "Accessoires de toiture et d'étanchéité"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Fixation et structure",
+      "Outillage et pose",
+      "EPI et sécurité en hauteur"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricozor.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage et pose",
+      "EPI et sécurité en hauteur"
+     ],
+     "tarifs": "prix publics sur le site, devis sur demande",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.kiloutou.fr",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage et pose",
+      "EPI et sécurité en hauteur"
+     ],
+     "tarifs": "prix publics sur le site, devis sur demande",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.loxam.fr",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "alarme": {
+   "conseils": "Les installateurs de sûreté s'approvisionnent chez des distributeurs spécialisés en sécurité électronique (ADI, Ubitech, SmartSD) avec un compte pro, et chez Rexel ou Sonepar pour câbles et petit matériel. Certains fabricants (Daitem, Ajax, Vanderbilt) ne vendent qu'aux installateurs agréés ou par distributeur. Les prix pro sont visibles après ouverture du compte ; retrait au comptoir ou livraison express.",
+   "fournisseurs": [
+    {
+     "nom": "ADI",
+     "groupe": "Resideo",
+     "type": "distributeur spécialisé",
+     "site": "https://www.adiglobal.fr",
+     "couverture": "national",
+     "categories": [
+      "Centrales et transmetteurs d'alarme",
+      "Détecteurs d'intrusion",
+      "Sirènes et signalisation",
+      "Caméras de vidéosurveillance",
+      "Enregistreurs et stockage vidéo",
+      "Contrôle d'accès",
+      "Alimentations et batteries",
+      "Câbles et connectique",
+      "Supports et boîtiers"
+     ],
+     "tarifs": "espace client en ligne, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.adiglobal.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Ubitech",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://www.ubitech.fr",
+     "couverture": "national",
+     "categories": [
+      "Caméras de vidéosurveillance",
+      "Enregistreurs et stockage vidéo",
+      "Câbles et connectique",
+      "Supports et boîtiers",
+      "Appareils de mesure et de contrôle",
+      "Alimentations et batteries"
+     ],
+     "tarifs": "espace client en ligne après ouverture de compte",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.ubitech.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "SmartSD",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://smartsd.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Centrales et transmetteurs d'alarme",
+      "Détecteurs d'intrusion",
+      "Caméras de vidéosurveillance",
+      "Enregistreurs et stockage vidéo",
+      "Contrôle d'accès",
+      "Alimentations et batteries",
+      "Supports et boîtiers"
+     ],
+     "tarifs": "espace client en ligne après ouverture de compte",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://smartsd.com/fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur généraliste",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Câbles et connectique",
+      "Alimentations et batteries",
+      "Supports et boîtiers",
+      "Outillage et pose",
+      "Appareils de mesure et de contrôle",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.rexel.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sonepar",
+     "groupe": "Sonepar",
+     "type": "distributeur généraliste",
+     "site": "https://www.sonepar.fr",
+     "couverture": "national",
+     "categories": [
+      "Câbles et connectique",
+      "Alimentations et batteries",
+      "Supports et boîtiers",
+      "Outillage et pose",
+      "Appareils de mesure et de contrôle",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.sonepar.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Daitem",
+     "groupe": "Hager Group",
+     "type": "fabricant",
+     "site": "https://daitem.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Centrales et transmetteurs d'alarme",
+      "Détecteurs d'intrusion",
+      "Sirènes et signalisation",
+      "Caméras de vidéosurveillance"
+     ],
+     "tarifs": "prix pro réservé aux installateurs agréés",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://daitem.com/fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Vanderbilt",
+     "groupe": "Vanderbilt International",
+     "type": "fabricant",
+     "site": "https://www.vanderbilt.eu",
+     "couverture": "national",
+     "categories": [
+      "Centrales et transmetteurs d'alarme",
+      "Détecteurs d'intrusion",
+      "Contrôle d'accès",
+      "Caméras de vidéosurveillance"
+     ],
+     "tarifs": "prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.vanderbilt.eu",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Ajax Systems",
+     "groupe": "Ajax Systems",
+     "type": "fabricant",
+     "site": "https://ajax.systems/fr",
+     "couverture": "national",
+     "categories": [
+      "Centrales et transmetteurs d'alarme",
+      "Détecteurs d'intrusion",
+      "Sirènes et signalisation",
+      "Caméras de vidéosurveillance"
+     ],
+     "tarifs": "prix pro via les distributeurs agréés",
+     "commande": [
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": true,
+     "source": "https://ajax.systems/fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hikvision",
+     "groupe": "Hikvision",
+     "type": "fabricant",
+     "site": "https://www.hikvision.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Caméras de vidéosurveillance",
+      "Enregistreurs et stockage vidéo",
+      "Contrôle d'accès"
+     ],
+     "tarifs": "prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Dahua Technology",
+     "groupe": "Dahua",
+     "type": "fabricant",
+     "site": "https://www.dahuasecurity.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Caméras de vidéosurveillance",
+      "Enregistreurs et stockage vidéo",
+      "Contrôle d'accès"
+     ],
+     "tarifs": "prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Urmet",
+     "groupe": "Urmet Group",
+     "type": "fabricant",
+     "site": "https://www.urmet.com",
+     "couverture": "national",
+     "categories": [
+      "Contrôle d'accès",
+      "Câbles et connectique"
+     ],
+     "tarifs": "prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.urmet.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Fluke",
+     "groupe": "Fortive",
+     "type": "fabricant",
+     "site": "https://www.fluke.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Appareils de mesure et de contrôle"
+     ],
+     "tarifs": "prix publics sur le site, remises via distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.fluke.com/fr-fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage et pose",
+      "EPI et consommables",
+      "Câbles et connectique"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage et pose",
+      "EPI et consommables"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricozor.com",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "portails": {
+   "conseils": "Les installateurs de portails commandent directement chez les fabricants d'automatismes (Nice, FAAC, CAME, Somfy, Hörmann…) sur compte pro, ou via des distributeurs spécialisés de pièces et de quincaillerie. Les tarifs pro sont accessibles après ouverture d'un compte installateur ; les pièces détachées se commandent par référence, livraison en 24 à 48 h. Rexel et Sonepar servent pour les câbles et l'électricité.",
+   "fournisseurs": [
+    {
+     "nom": "Nice France",
+     "groupe": "Nice Group",
+     "type": "fabricant",
+     "site": "https://www.niceforyou.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Motorisations de portail",
+      "Centrales et cartes de commande",
+      "Commandes et télécommandes",
+      "Sécurité et détection",
+      "Batteries et solaire"
+     ],
+     "tarifs": "espace installateur en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.niceforyou.com/fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "FAAC France",
+     "groupe": "FAAC Group",
+     "type": "fabricant",
+     "site": "https://www.faac.fr",
+     "couverture": "national",
+     "categories": [
+      "Motorisations de portail",
+      "Centrales et cartes de commande",
+      "Commandes et télécommandes",
+      "Sécurité et détection",
+      "Batteries et solaire"
+     ],
+     "tarifs": "espace installateur en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.faac.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "CAME",
+     "groupe": "Came Group",
+     "type": "fabricant",
+     "site": "https://www.came.com",
+     "couverture": "national",
+     "categories": [
+      "Motorisations de portail",
+      "Centrales et cartes de commande",
+      "Commandes et télécommandes",
+      "Sécurité et détection",
+      "Batteries et solaire"
+     ],
+     "tarifs": "catalogue en ligne ; prix pro sur compte installateur",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.came.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Somfy",
+     "groupe": "Somfy",
+     "type": "fabricant",
+     "site": "https://www.somfy.fr",
+     "couverture": "national",
+     "categories": [
+      "Motorisations de portail",
+      "Centrales et cartes de commande",
+      "Commandes et télécommandes",
+      "Sécurité et détection",
+      "Batteries et solaire"
+     ],
+     "tarifs": "espace pro en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.somfy.fr",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Hörmann France",
+     "groupe": "Hörmann",
+     "type": "fabricant",
+     "site": "https://www.hormann.fr",
+     "couverture": "national",
+     "categories": [
+      "Motorisations de portail",
+      "Centrales et cartes de commande",
+      "Commandes et télécommandes",
+      "Sécurité et détection",
+      "Portails, portes et lames",
+      "Ressorts, câbles et équilibrage"
+     ],
+     "tarifs": "espace partenaire en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.hormann.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sommer",
+     "groupe": "Sommer Antriebs- und Funktechnik",
+     "type": "fabricant",
+     "site": "https://www.sommer.eu",
+     "couverture": "national",
+     "categories": [
+      "Motorisations de portail",
+      "Centrales et cartes de commande",
+      "Commandes et télécommandes",
+      "Sécurité et détection"
+     ],
+     "tarifs": "prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.sommer.eu",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bénincà",
+     "groupe": "Bénincà",
+     "type": "fabricant",
+     "site": "https://www.beninca.com",
+     "couverture": "national",
+     "categories": [
+      "Motorisations de portail",
+      "Centrales et cartes de commande",
+      "Commandes et télécommandes",
+      "Sécurité et détection"
+     ],
+     "tarifs": "prix pro via les distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.beninca.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur généraliste",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Câbles et électricité",
+      "Batteries et solaire",
+      "Appareils de mesure et de contrôle",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.rexel.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sonepar",
+     "groupe": "Sonepar",
+     "type": "distributeur généraliste",
+     "site": "https://www.sonepar.fr",
+     "couverture": "national",
+     "categories": [
+      "Câbles et électricité",
+      "Batteries et solaire",
+      "Appareils de mesure et de contrôle",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.sonepar.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Pièces mécaniques et quincaillerie",
+      "Outillage et pose",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Pièces mécaniques et quincaillerie",
+      "Outillage et pose",
+      "EPI et consommables"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricozor.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "EPI et consommables",
+      "Outillage et pose"
+     ],
+     "tarifs": "prix publics sur le site, compte pro",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.manutan.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Fluke",
+     "groupe": "Fortive",
+     "type": "fabricant",
+     "site": "https://www.fluke.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Appareils de mesure et de contrôle"
+     ],
+     "tarifs": "prix publics sur le site, remises via distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.fluke.com/fr-fr",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "ascenseurs": {
+   "conseils": "Les ascensoristes indépendants achètent leurs pièces auprès de distributeurs multimarques (Euro-Ascenseurs) et de fabricants de composants (Sodimas, Wittur) par référence, sur compte pro. Les pièces propres à un constructeur (KONE, TK Elevator) se commandent auprès de lui ou via des filières de reconditionnement. Les consommables, EPI et outillage viennent de distributeurs généralistes.",
+   "fournisseurs": [
+    {
+     "nom": "Euro-Ascenseurs",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://euro-ascenseurs.fr",
+     "couverture": "national",
+     "categories": [
+      "Câbles et organes de suspension",
+      "Galets, patins et guidage",
+      "Contacts, fins de course et détecteurs",
+      "Cartes électroniques et automatismes",
+      "Pièces de portes",
+      "Machines, freins et moteurs",
+      "Sécurités et éléments de cabine",
+      "Huiles, graisses et lubrifiants",
+      "Visserie, joints et petit matériel"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sodimas",
+     "groupe": "Sodimas",
+     "type": "fabricant",
+     "site": "https://www.sodimas.com",
+     "couverture": "national",
+     "categories": [
+      "Pièces de portes",
+      "Cartes électroniques et automatismes",
+      "Sécurités et éléments de cabine"
+     ],
+     "tarifs": "prix pro sur compte client",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Wittur",
+     "groupe": "Wittur Group",
+     "type": "fabricant",
+     "site": "https://www.wittur.com",
+     "couverture": "national",
+     "categories": [
+      "Pièces de portes",
+      "Sécurités et éléments de cabine",
+      "Galets, patins et guidage"
+     ],
+     "tarifs": "prix pro sur compte client",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.wittur.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "TK Elevator France",
+     "groupe": "TK Elevator",
+     "type": "fabricant",
+     "site": "https://www.tkelevator.com/fr-fr/",
+     "couverture": "national",
+     "categories": [
+      "Cartes électroniques et automatismes",
+      "Pièces de portes",
+      "Machines, freins et moteurs"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.tkelevator.com/fr-fr/",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "KONE France",
+     "groupe": "KONE",
+     "type": "fabricant",
+     "site": "https://www.kone.fr",
+     "couverture": "national",
+     "categories": [
+      "Cartes électroniques et automatismes",
+      "Pièces de portes",
+      "Machines, freins et moteurs"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.kone.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur généraliste",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Contacts, fins de course et détecteurs",
+      "Cartes électroniques et automatismes",
+      "Visserie, joints et petit matériel",
+      "Appareils de mesure et de contrôle"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.rexel.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sonepar",
+     "groupe": "Sonepar",
+     "type": "distributeur généraliste",
+     "site": "https://www.sonepar.fr",
+     "couverture": "national",
+     "categories": [
+      "Contacts, fins de course et détecteurs",
+      "Cartes électroniques et automatismes",
+      "Visserie, joints et petit matériel",
+      "Appareils de mesure et de contrôle"
+     ],
+     "tarifs": "espace client en ligne avec prix négociés, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone",
+      "EDI"
+     ],
+     "verifie": true,
+     "source": "https://www.sonepar.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Visserie, joints et petit matériel",
+      "Huiles, graisses et lubrifiants",
+      "Outillage de maintenance",
+      "EPI et travail en hauteur"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "EPI et travail en hauteur",
+      "Outillage de maintenance",
+      "Huiles, graisses et lubrifiants"
+     ],
+     "tarifs": "prix publics sur le site, compte pro",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.manutan.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Visserie, joints et petit matériel",
+      "Outillage de maintenance",
+      "EPI et travail en hauteur"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricozor.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Fluke",
+     "groupe": "Fortive",
+     "type": "fabricant",
+     "site": "https://www.fluke.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Appareils de mesure et de contrôle"
+     ],
+     "tarifs": "prix publics sur le site, remises via distributeurs",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.fluke.com/fr-fr",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "nettoyage": {
+   "conseils": "Les entreprises de nettoyage s'approvisionnent surtout auprès de distributeurs d'hygiène professionnelle (compte pro, livraison à la semaine ou au mois) et de fabricants qui livrent en direct. Les prix pro se négocient à l'ouverture du compte, souvent avec remise de volume sur les produits et contrat d'entretien sur les machines. Les machines (autolaveuses, monobrosses) s'achètent aussi en location ou en leasing auprès du fabricant ou d'un loueur.",
+   "fournisseurs": [
+    {
+     "nom": "Diversey",
+     "groupe": "Diversey Holdings (Solenis)",
+     "type": "fabricant",
+     "site": "https://diversey.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Détergents et désinfectants",
+      "Produits sols",
+      "Sanitaires et hygiène des mains",
+      "Remise en état et traitements spéciaux"
+     ],
+     "tarifs": "compte pro (prix sur demande à l'ouverture du compte)",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Ecolab",
+     "groupe": "Ecolab",
+     "type": "fabricant",
+     "site": "https://fr.ecolab.com",
+     "couverture": "national",
+     "categories": [
+      "Détergents et désinfectants",
+      "Produits sols",
+      "Sanitaires et hygiène des mains",
+      "Remise en état et traitements spéciaux"
+     ],
+     "tarifs": "sur demande (contrat avec un commercial)",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "pas de réponse (délai dépassé)"
+    },
+    {
+     "nom": "Orapi Hygiène",
+     "groupe": "Groupe Orapi",
+     "type": "fabricant",
+     "site": "https://www.orapi.com",
+     "couverture": "national",
+     "categories": [
+      "Détergents et désinfectants",
+      "Produits sols",
+      "Vitrerie et surfaces vitrées",
+      "Sanitaires et hygiène des mains",
+      "Papier et consommables d'hygiène",
+      "Remise en état et traitements spéciaux"
+     ],
+     "tarifs": "sur demande, catalogue PDF",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hydrachim",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.hydrachim.fr",
+     "couverture": "national",
+     "categories": [
+      "Détergents et désinfectants",
+      "Produits sols",
+      "Sanitaires et hygiène des mains",
+      "Remise en état et traitements spéciaux"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kärcher Professional",
+     "groupe": "Kärcher",
+     "type": "fabricant",
+     "site": "https://www.kaercher.com/fr/",
+     "couverture": "national",
+     "categories": [
+      "Autolaveuses et monobrosses",
+      "Aspirateurs et nettoyeurs",
+      "Accessoires et pièces de machines"
+     ],
+     "tarifs": "sur demande auprès d'un revendeur ou du fabricant",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Nilfisk",
+     "groupe": "Nilfisk",
+     "type": "fabricant",
+     "site": "https://www.nilfisk.com/fr-fr/",
+     "couverture": "national",
+     "categories": [
+      "Autolaveuses et monobrosses",
+      "Aspirateurs et nettoyeurs",
+      "Accessoires et pièces de machines"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Tennant",
+     "groupe": "Tennant",
+     "type": "fabricant",
+     "site": "https://www.tennantco.com",
+     "couverture": "national",
+     "categories": [
+      "Autolaveuses et monobrosses",
+      "Accessoires et pièces de machines"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Numatic",
+     "groupe": "Numatic International",
+     "type": "fabricant",
+     "site": "https://www.numatic.fr",
+     "couverture": "national",
+     "categories": [
+      "Autolaveuses et monobrosses",
+      "Aspirateurs et nettoyeurs",
+      "Accessoires et pièces de machines"
+     ],
+     "tarifs": "sur demande auprès d'un revendeur",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Vileda Professional",
+     "groupe": "Freudenberg",
+     "type": "fabricant",
+     "site": "https://www.vileda-professional.fr",
+     "couverture": "national",
+     "categories": [
+      "Vitrerie et surfaces vitrées",
+      "Textiles, lavettes et microfibres",
+      "Balais, seaux et chariots"
+     ],
+     "tarifs": "sur demande, via distributeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Unger",
+     "groupe": "Unger Global",
+     "type": "fabricant",
+     "site": "https://www.ungerglobal.com",
+     "couverture": "national",
+     "categories": [
+      "Vitrerie et surfaces vitrées",
+      "Balais, seaux et chariots"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Tork",
+     "groupe": "Essity",
+     "type": "fabricant",
+     "site": "https://www.tork.fr",
+     "couverture": "national",
+     "categories": [
+      "Sanitaires et hygiène des mains",
+      "Papier et consommables d'hygiène"
+     ],
+     "tarifs": "inconnu, via distributeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kimberly-Clark Professional",
+     "groupe": "Kimberly-Clark",
+     "type": "fabricant",
+     "site": "https://www.kcprofessional.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Sanitaires et hygiène des mains",
+      "Papier et consommables d'hygiène",
+      "EPI et vêtements de travail"
+     ],
+     "tarifs": "inconnu, via distributeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "Papier et consommables d'hygiène",
+      "Sacs et collecte des déchets",
+      "Balais, seaux et chariots",
+      "EPI et vêtements de travail"
+     ],
+     "tarifs": "prix publics sur le site, tarifs négociés avec un compte",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wuerth.fr",
+     "couverture": "national",
+     "categories": [
+      "Remise en état et traitements spéciaux",
+      "EPI et vêtements de travail"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Autolaveuses et monobrosses",
+      "Aspirateurs et nettoyeurs"
+     ],
+     "tarifs": "prix de location sur le site, tarifs négociés pour comptes pro",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Autolaveuses et monobrosses",
+      "Aspirateurs et nettoyeurs"
+     ],
+     "tarifs": "prix de location sur le site, tarifs négociés pour comptes pro",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "assainissement": {
+   "conseils": "Les pros du curage et de la vidange achètent leurs consommables d'usure (flexibles, buses, joints) chez des spécialistes ou fabricants avec compte pro, et leurs raccords PVC chez les négoces sanitaires (agence le matin). Le matériel lourd (hydrocureuse, pompe à vide) passe par le constructeur ou son concessionnaire avec contrat d'entretien. Les EPI et détecteurs de gaz s'achètent chez un spécialiste sécurité avec calibrage périodique.",
+   "fournisseurs": [
+    {
+     "nom": "Graf France",
+     "groupe": "Graf",
+     "type": "fabricant",
+     "site": "https://www.graf.info/fr",
+     "couverture": "national",
+     "categories": [
+      "Fosses et dispositifs de traitement",
+      "Canalisations et raccords"
+     ],
+     "tarifs": "catalogue PDF, prix sur demande",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sebico",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://www.sebico.com",
+     "couverture": "national",
+     "categories": [
+      "Flexibles haute pression",
+      "Buses et têtes de curage",
+      "Pompes et groupes haute pression",
+      "Aspiration et vidange"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Rothenberger France",
+     "groupe": "Rothenberger",
+     "type": "fabricant",
+     "site": "https://www.rothenberger.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Flexibles haute pression",
+      "Buses et têtes de curage",
+      "Caméras d'inspection et détection",
+      "Furets et débouchage"
+     ],
+     "tarifs": "sur demande via distributeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "RIDGID",
+     "groupe": "Emerson",
+     "type": "fabricant",
+     "site": "https://www.ridgid.com/fr/fr",
+     "couverture": "national",
+     "categories": [
+      "Caméras d'inspection et détection",
+      "Furets et débouchage"
+     ],
+     "tarifs": "inconnu, via revendeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Kärcher Professional",
+     "groupe": "Kärcher",
+     "type": "fabricant",
+     "site": "https://www.kaercher.com/fr/",
+     "couverture": "national",
+     "categories": [
+      "Flexibles haute pression",
+      "Buses et têtes de curage",
+      "Pompes et groupes haute pression"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Wavin France",
+     "groupe": "Wavin (Orbia)",
+     "type": "fabricant",
+     "site": "https://www.wavin.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Canalisations et raccords",
+      "Fosses et dispositifs de traitement"
+     ],
+     "tarifs": "catalogue PDF, via négoces",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Nicoll",
+     "groupe": "Aliaxis",
+     "type": "fabricant",
+     "site": "https://www.nicoll.fr",
+     "couverture": "national",
+     "categories": [
+      "Canalisations et raccords",
+      "Fosses et dispositifs de traitement"
+     ],
+     "tarifs": "catalogue PDF, via négoces",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Cedeo",
+     "groupe": "Groupe Saint-Gobain",
+     "type": "distributeur spécialisé",
+     "site": "https://www.cedeo.fr",
+     "couverture": "national",
+     "categories": [
+      "Canalisations et raccords",
+      "Fosses et dispositifs de traitement"
+     ],
+     "tarifs": "espace client en ligne, remise sur prix public",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique",
+     "notes": "Les agences Brossette ont rejoint Cedeo (brossette.fr renvoie vers cedeo.fr)."
+    },
+    {
+     "nom": "Point.P",
+     "groupe": "Groupe Saint-Gobain",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Canalisations et raccords",
+      "Fosses et dispositifs de traitement"
+     ],
+     "tarifs": "espace client en ligne, remise sur prix public",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Dräger France",
+     "groupe": "Dräger",
+     "type": "fabricant",
+     "site": "https://www.draeger.com/fr_fr",
+     "couverture": "national",
+     "categories": [
+      "Gaz, sécurité et espaces confinés"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "pas de réponse (délai dépassé)"
+    },
+    {
+     "nom": "MSA Safety France",
+     "groupe": "MSA Safety",
+     "type": "fabricant",
+     "site": "https://fr.msasafety.com",
+     "couverture": "national",
+     "categories": [
+      "Gaz, sécurité et espaces confinés",
+      "EPI et tenues"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "Gestion des déchets et transport",
+      "EPI et tenues"
+     ],
+     "tarifs": "prix publics sur le site, tarifs négociés avec un compte",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wuerth.fr",
+     "couverture": "national",
+     "categories": [
+      "Furets et débouchage",
+      "EPI et tenues"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Pompes et groupes haute pression",
+      "Caméras d'inspection et détection"
+     ],
+     "tarifs": "prix de location sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    }
+   ]
+  },
+  "eau": {
+   "conseils": "Les installateurs de traitement de l'eau achètent leurs appareils et pièces directement chez les fabricants (revendeur agréé, parfois formation obligatoire) et leurs raccords et vannes chez les négoces sanitaires. Les consommables récurrents (cartouches, résines, sel) se commandent en ligne ou par téléphone pour alimenter les contrats d'entretien. Les prix pro s'obtiennent à l'ouverture du compte.",
+   "fournisseurs": [
+    {
+     "nom": "Culligan France",
+     "groupe": "Culligan",
+     "type": "fabricant",
+     "site": "https://www.culligan.fr",
+     "couverture": "national",
+     "categories": [
+      "Adoucisseurs et pièces",
+      "Résines et régénération",
+      "Filtres et préfiltres",
+      "Cartouches de filtration",
+      "Osmoseurs et membranes"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "BWT France",
+     "groupe": "BWT",
+     "type": "fabricant",
+     "site": "https://www.bwt.com/fr-fr/",
+     "couverture": "national",
+     "categories": [
+      "Adoucisseurs et pièces",
+      "Résines et régénération",
+      "Filtres et préfiltres",
+      "Cartouches de filtration",
+      "Osmoseurs et membranes",
+      "Désinfection et traitement bactérien",
+      "Anti-calcaire, dosage et inhibiteurs"
+     ],
+     "tarifs": "sur demande, espace revendeur",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Atlantic",
+     "groupe": "Groupe Atlantic",
+     "type": "fabricant",
+     "site": "https://www.atlantic.fr",
+     "couverture": "national",
+     "categories": [
+      "Adoucisseurs et pièces",
+      "Anti-calcaire, dosage et inhibiteurs"
+     ],
+     "tarifs": "espace pro, prix sur demande",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Pentair",
+     "groupe": "Pentair",
+     "type": "fabricant",
+     "site": "https://www.pentair.com",
+     "couverture": "national",
+     "categories": [
+      "Adoucisseurs et pièces",
+      "Résines et régénération",
+      "Filtres et préfiltres",
+      "Osmoseurs et membranes"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Judo",
+     "groupe": "Judo Wasseraufbereitung",
+     "type": "fabricant",
+     "site": "https://www.judo.eu",
+     "couverture": "national",
+     "categories": [
+      "Adoucisseurs et pièces",
+      "Filtres et préfiltres",
+      "Anti-calcaire, dosage et inhibiteurs",
+      "Neutralisation et correction du pH"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Cintropur",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.cintropur.com",
+     "couverture": "national",
+     "categories": [
+      "Filtres et préfiltres",
+      "Cartouches de filtration"
+     ],
+     "tarifs": "sur demande, via revendeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hach",
+     "groupe": "Danaher",
+     "type": "fabricant",
+     "site": "https://fr.hach.com",
+     "couverture": "national",
+     "categories": [
+      "Mesure et analyse de l'eau"
+     ],
+     "tarifs": "sur demande, catalogue en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Grundfos",
+     "groupe": "Grundfos",
+     "type": "fabricant",
+     "site": "https://www.grundfos.com",
+     "couverture": "national",
+     "categories": [
+      "Anti-calcaire, dosage et inhibiteurs",
+      "Raccords, vannes et tuyauterie"
+     ],
+     "tarifs": "sur demande via distributeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "pas de réponse (délai dépassé)"
+    },
+    {
+     "nom": "Cedeo",
+     "groupe": "Groupe Saint-Gobain",
+     "type": "distributeur spécialisé",
+     "site": "https://www.cedeo.fr",
+     "couverture": "national",
+     "categories": [
+      "Raccords, vannes et tuyauterie",
+      "Outillage et consommables"
+     ],
+     "tarifs": "espace client en ligne, remise sur prix public",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique",
+     "notes": "Les agences Brossette ont rejoint Cedeo (brossette.fr renvoie vers cedeo.fr)."
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wuerth.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage et consommables",
+      "EPI"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "EPI"
+     ],
+     "tarifs": "prix publics sur le site, tarifs négociés avec un compte",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "piscine": {
+   "conseils": "Les pisciniers achètent chez des distributeurs spécialisés piscine (comptoir en agence, compte pro, forte saisonnalité) ou en direct chez les grands fabricants, avec remise sur prix public selon le volume. Les produits de traitement se commandent par palettes avant la saison. Les matériaux de gros œuvre viennent des négoces matériaux et la location couvre le terrassement.",
+   "fournisseurs": [
+    {
+     "nom": "Fluidra Pro",
+     "groupe": "Fluidra",
+     "type": "fabricant",
+     "site": "https://pro.fluidra.com/fr_fr",
+     "couverture": "national",
+     "categories": [
+      "Électrolyseurs et régulation",
+      "Filtration et pompes",
+      "Pièces à sceller et hydraulique",
+      "Chauffage de l'eau",
+      "Éclairage et équipements",
+      "Construction et gros œuvre bassin"
+     ],
+     "tarifs": "espace professionnels, prix sur compte",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Zodiac Pool Care",
+     "groupe": "Fluidra",
+     "type": "fabricant",
+     "site": "https://www.zodiac-poolcare.fr",
+     "couverture": "national",
+     "categories": [
+      "Électrolyseurs et régulation",
+      "Robots et nettoyage du bassin",
+      "Filtration et pompes"
+     ],
+     "tarifs": "inconnu, via revendeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hayward France",
+     "groupe": "Hayward",
+     "type": "fabricant",
+     "site": "https://www.hayward.fr",
+     "couverture": "national",
+     "categories": [
+      "Électrolyseurs et régulation",
+      "Filtration et pompes",
+      "Éclairage et équipements"
+     ],
+     "tarifs": "inconnu, via revendeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bayrol France",
+     "groupe": "Bayrol",
+     "type": "fabricant",
+     "site": "https://www.bayrol.fr",
+     "couverture": "national",
+     "categories": [
+      "Produits de traitement de l'eau",
+      "Analyse et mesure",
+      "Électrolyseurs et régulation"
+     ],
+     "tarifs": "inconnu, via revendeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Maytronics",
+     "groupe": "Maytronics",
+     "type": "fabricant",
+     "site": "https://www.maytronics.fr",
+     "couverture": "national",
+     "categories": [
+      "Robots et nettoyage du bassin"
+     ],
+     "tarifs": "inconnu, via revendeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Pool Technologie",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://pool-technologie.com",
+     "couverture": "national",
+     "categories": [
+      "Électrolyseurs et régulation",
+      "Filtration et pompes",
+      "Pièces à sceller et hydraulique",
+      "Éclairage et équipements"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Renolit (Alkorplan)",
+     "groupe": "Renolit",
+     "type": "fabricant",
+     "site": "https://www.renolit.com",
+     "couverture": "national",
+     "categories": [
+      "Liner, PVC armé et revêtement"
+     ],
+     "tarifs": "inconnu, via distributeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Point.P",
+     "groupe": "Groupe Saint-Gobain",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Construction et gros œuvre bassin",
+      "Pièces à sceller et hydraulique"
+     ],
+     "tarifs": "espace client en ligne, remise sur prix public",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Cedeo",
+     "groupe": "Groupe Saint-Gobain",
+     "type": "distributeur spécialisé",
+     "site": "https://www.cedeo.fr",
+     "couverture": "national",
+     "categories": [
+      "Pièces à sceller et hydraulique"
+     ],
+     "tarifs": "espace client en ligne, remise sur prix public",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique",
+     "notes": "Les agences Brossette ont rejoint Cedeo (brossette.fr renvoie vers cedeo.fr)."
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wuerth.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage, machines et EPI"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Construction et gros œuvre bassin",
+      "Outillage, machines et EPI"
+     ],
+     "tarifs": "prix de location sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Construction et gros œuvre bassin",
+      "Outillage, machines et EPI"
+     ],
+     "tarifs": "prix de location sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Brico Dépôt",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.bricodepot.fr",
+     "couverture": "national",
+     "categories": [
+      "Construction et gros œuvre bassin",
+      "Outillage, machines et EPI"
+     ],
+     "tarifs": "prix publics en magasin, compte pro",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "ramonage": {
+   "conseils": "Les ramoneurs achètent matériel de ramonage et pièces de conduit directement chez les fabricants spécialisés (commande en ligne ou par téléphone, livraison rapide) et complètent au comptoir chez les négoces du bâtiment. Les instruments de mesure s'achètent chez le fabricant avec étalonnage annuel. Le tubage et les chapeaux se commandent au chantier, avec remise sur prix public selon le compte.",
+   "fournisseurs": [
+    {
+     "nom": "Poujoulat",
+     "groupe": "Poujoulat",
+     "type": "fabricant",
+     "site": "https://www.poujoulat.fr/fr/",
+     "couverture": "national",
+     "categories": [
+      "Tubage et conduits de fumée",
+      "Chapeaux et accessoires de toit",
+      "Joints, cordons et produits réfractaires"
+     ],
+     "tarifs": "espace pro en ligne, catalogue PDF",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Joncoux",
+     "groupe": "Isotip-Joncoux",
+     "type": "fabricant",
+     "site": "https://www.joncoux.fr/fr",
+     "couverture": "national",
+     "categories": [
+      "Cannes et rallonges",
+      "Hérissons, brosses et goupillons",
+      "Tubage et conduits de fumée",
+      "Chapeaux et accessoires de toit"
+     ],
+     "tarifs": "catalogue PDF, prix sur demande",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "SMSP",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://www.smsp.fr",
+     "couverture": "national",
+     "categories": [
+      "Cannes et rallonges",
+      "Hérissons, brosses et goupillons",
+      "Aspiration et protection du sol"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Tubest",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.tubest.fr",
+     "couverture": "national",
+     "categories": [
+      "Tubage et conduits de fumée",
+      "Chapeaux et accessoires de toit"
+     ],
+     "tarifs": "prix publics sur le site, tarifs pro sur compte",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Ubbink France",
+     "groupe": "Ubbink",
+     "type": "fabricant",
+     "site": "https://www.ubbink.fr",
+     "couverture": "national",
+     "categories": [
+      "Tubage et conduits de fumée",
+      "Chapeaux et accessoires de toit"
+     ],
+     "tarifs": "catalogue PDF, via négoces",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Wöhler France",
+     "groupe": "Wöhler",
+     "type": "fabricant",
+     "site": "https://www.woehler.fr",
+     "couverture": "national",
+     "categories": [
+      "Diagnostic et contrôle de combustion"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Testo",
+     "groupe": "Testo SE",
+     "type": "fabricant",
+     "site": "https://www.testo.com/fr-FR",
+     "couverture": "national",
+     "categories": [
+      "Diagnostic et contrôle de combustion"
+     ],
+     "tarifs": "sur demande, boutique en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Cox Geelen",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.coxgeelen.com",
+     "couverture": "national",
+     "categories": [
+      "Cannes et rallonges",
+      "Hérissons, brosses et goupillons",
+      "Aspiration et protection du sol"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Petzl",
+     "groupe": "Petzl",
+     "type": "fabricant",
+     "site": "https://www.petzl.com/FR/fr/Professionnel",
+     "couverture": "national",
+     "categories": [
+      "Accès à la toiture et antichute"
+     ],
+     "tarifs": "sur demande via revendeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wuerth.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage, EPI et combustibles"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "Aspiration et protection du sol",
+      "Outillage, EPI et combustibles"
+     ],
+     "tarifs": "prix publics sur le site, tarifs négociés avec un compte",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Point.P",
+     "groupe": "Groupe Saint-Gobain",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Tubage et conduits de fumée",
+      "Chapeaux et accessoires de toit",
+      "Joints, cordons et produits réfractaires"
+     ],
+     "tarifs": "espace client en ligne, remise sur prix public",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Brico Dépôt",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.bricodepot.fr",
+     "couverture": "national",
+     "categories": [
+      "Tubage et conduits de fumée",
+      "Chapeaux et accessoires de toit",
+      "Joints, cordons et produits réfractaires",
+      "Outillage, EPI et combustibles"
+     ],
+     "tarifs": "prix publics en magasin, compte pro",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "maconnerie": {
+   "conseils": "Les maçons s'approvisionnent surtout au négoce de matériaux (Point.P, Chausson, Gedimat, BigMat, Samse) : passage au comptoir le matin ou commande par téléphone avec livraison sur chantier par camion-grue. Les prix publics sont remisés selon un compte pro et le volume, souvent négociés par chantier. Le gros matériel (échafaudage, mini-pelle, bétonnière) se loue plutôt qu'il ne s'achète (Kiloutou, Loxam).",
+   "fournisseurs": [
+    {
+     "nom": "Point.P",
+     "groupe": "Saint-Gobain Distribution Bâtiment France",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Liants et ciments",
+      "Sables, graviers et granulats",
+      "Blocs, briques et éléments",
+      "Béton, mortiers et chapes",
+      "Ferraillage et armatures",
+      "Enduits et façades",
+      "Étanchéité et drainage",
+      "Isolation",
+      "Coffrage et planchers",
+      "Outillage de maçon",
+      "EPI et consommables de chantier"
+     ],
+     "tarifs": "espace client en ligne, remise négociée en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Chausson Matériaux",
+     "groupe": "Saint-Gobain Distribution Bâtiment France",
+     "type": "négoce matériaux",
+     "site": "https://www.chausson.fr",
+     "couverture": "régional",
+     "categories": [
+      "Liants et ciments",
+      "Sables, graviers et granulats",
+      "Blocs, briques et éléments",
+      "Béton, mortiers et chapes",
+      "Ferraillage et armatures",
+      "Enduits et façades",
+      "Étanchéité et drainage",
+      "Isolation",
+      "Coffrage et planchers",
+      "Outillage de maçon"
+     ],
+     "tarifs": "espace client en ligne, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.chausson.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Gedimat",
+     "groupe": "",
+     "type": "négoce matériaux",
+     "site": "https://www.gedimat.fr",
+     "couverture": "national",
+     "categories": [
+      "Liants et ciments",
+      "Sables, graviers et granulats",
+      "Blocs, briques et éléments",
+      "Béton, mortiers et chapes",
+      "Ferraillage et armatures",
+      "Enduits et façades",
+      "Étanchéité et drainage",
+      "Isolation",
+      "Coffrage et planchers",
+      "Outillage de maçon",
+      "EPI et consommables de chantier"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.gedimat.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "BigMat",
+     "groupe": "BigMat International",
+     "type": "négoce matériaux",
+     "site": "https://www.bigmat.fr",
+     "couverture": "national",
+     "categories": [
+      "Liants et ciments",
+      "Sables, graviers et granulats",
+      "Blocs, briques et éléments",
+      "Béton, mortiers et chapes",
+      "Ferraillage et armatures",
+      "Enduits et façades",
+      "Étanchéité et drainage",
+      "Isolation",
+      "Coffrage et planchers",
+      "Outillage de maçon"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Samse",
+     "groupe": "Groupe Samse",
+     "type": "négoce matériaux",
+     "site": "https://www.samse.fr",
+     "couverture": "régional",
+     "categories": [
+      "Liants et ciments",
+      "Sables, graviers et granulats",
+      "Blocs, briques et éléments",
+      "Béton, mortiers et chapes",
+      "Ferraillage et armatures",
+      "Enduits et façades",
+      "Isolation",
+      "Coffrage et planchers"
+     ],
+     "tarifs": "espace client en ligne, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.samse.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Brico Dépôt",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.bricodepot.fr",
+     "couverture": "national",
+     "categories": [
+      "Liants et ciments",
+      "Sables, graviers et granulats",
+      "Blocs, briques et éléments",
+      "Béton, mortiers et chapes",
+      "Isolation",
+      "Outillage de maçon",
+      "EPI et consommables de chantier"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricodepot.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Groupe Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage de maçon",
+      "EPI et consommables de chantier",
+      "Mesure, traçage et laser"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hilti",
+     "groupe": "Groupe Hilti",
+     "type": "fabricant",
+     "site": "https://www.hilti.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage de maçon",
+      "Mesure, traçage et laser",
+      "EPI et consommables de chantier"
+     ],
+     "tarifs": "espace client en ligne, Hilti Center",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.hilti.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Groupe Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Échafaudage, accès et levage",
+      "Outillage de maçon"
+     ],
+     "tarifs": "tarifs de location sur demande ou en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.kiloutou.fr",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Groupe Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Échafaudage, accès et levage",
+      "Outillage de maçon"
+     ],
+     "tarifs": "tarifs de location sur demande ou en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.loxam.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Weber (Saint-Gobain Weber)",
+     "groupe": "Saint-Gobain",
+     "type": "fabricant",
+     "site": "https://www.fr.weber",
+     "couverture": "national",
+     "categories": [
+      "Enduits et façades",
+      "Béton, mortiers et chapes",
+      "Étanchéité et drainage",
+      "Liants et ciments"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "PAREXLANKO",
+     "groupe": "Groupe Parex",
+     "type": "fabricant",
+     "site": "https://www.parexlanko.com",
+     "couverture": "national",
+     "categories": [
+      "Enduits et façades",
+      "Béton, mortiers et chapes",
+      "Étanchéité et drainage",
+      "Isolation"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.parexlanko.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Wienerberger France",
+     "groupe": "Wienerberger",
+     "type": "fabricant",
+     "site": "https://www.wienerberger.fr",
+     "couverture": "national",
+     "categories": [
+      "Blocs, briques et éléments"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.wienerberger.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Lafarge France",
+     "groupe": "Holcim",
+     "type": "fabricant",
+     "site": "https://www.lafarge.fr",
+     "couverture": "national",
+     "categories": [
+      "Liants et ciments",
+      "Béton, mortiers et chapes",
+      "Sables, graviers et granulats"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "menuiserie": {
+   "conseils": "Les menuisiers achètent le bois et les panneaux chez des négoces spécialisés (Dispano, Samse, Piveteau) souvent avec compte pro et livraison à l'atelier, la quincaillerie et la visserie chez Würth, Foussier ou en ligne (Bricozor), et l'outillage auprès des marques et des revendeurs pro. Les prix publics sont remisés selon le compte et le volume ; les menuiseries toutes faites (fenêtres, portes) se commandent sur devis.",
+   "fournisseurs": [
+    {
+     "nom": "Dispano",
+     "groupe": "Groupe Samse",
+     "type": "négoce matériaux",
+     "site": "https://www.dispano.fr",
+     "couverture": "national",
+     "categories": [
+      "Bois et panneaux",
+      "Parquet et sols",
+      "Portes et blocs-portes",
+      "Escaliers et agencement",
+      "Quincaillerie et ferrures",
+      "Colles, joints et mousses"
+     ],
+     "tarifs": "espace client en ligne, remise sur compte pro",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Samse",
+     "groupe": "Groupe Samse",
+     "type": "négoce matériaux",
+     "site": "https://www.samse.fr",
+     "couverture": "régional",
+     "categories": [
+      "Bois et panneaux",
+      "Parquet et sols",
+      "Fenêtres et baies",
+      "Portes et blocs-portes",
+      "Volets et fermetures",
+      "Colles, joints et mousses"
+     ],
+     "tarifs": "espace client en ligne, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.samse.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Lapeyre (offre professionnelle)",
+     "groupe": "Saint-Gobain",
+     "type": "distributeur généraliste",
+     "site": "https://www.lapeyre.fr",
+     "couverture": "national",
+     "categories": [
+      "Fenêtres et baies",
+      "Portes et blocs-portes",
+      "Volets et fermetures",
+      "Escaliers et agencement",
+      "Parquet et sols"
+     ],
+     "tarifs": "sur demande (offre pro)",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Point.P",
+     "groupe": "Saint-Gobain Distribution Bâtiment France",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Fenêtres et baies",
+      "Portes et blocs-portes",
+      "Volets et fermetures",
+      "Bois et panneaux",
+      "Colles, joints et mousses",
+      "Visserie et fixations"
+     ],
+     "tarifs": "espace client en ligne, remise négociée en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Gedimat",
+     "groupe": "",
+     "type": "négoce matériaux",
+     "site": "https://www.gedimat.fr",
+     "couverture": "national",
+     "categories": [
+      "Bois et panneaux",
+      "Portes et blocs-portes",
+      "Fenêtres et baies",
+      "Colles, joints et mousses",
+      "Visserie et fixations"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.gedimat.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Piveteau Bois",
+     "groupe": "Groupe Piveteau",
+     "type": "fabricant",
+     "site": "https://www.piveteaubois.com",
+     "couverture": "national",
+     "categories": [
+      "Bois et panneaux"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.piveteaubois.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Groupe Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Visserie et fixations",
+      "Colles, joints et mousses",
+      "Quincaillerie et ferrures",
+      "Outillage à main et mesure",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Foussier",
+     "groupe": "Groupe Foussier",
+     "type": "distributeur spécialisé",
+     "site": "https://www.foussier.fr",
+     "couverture": "national",
+     "categories": [
+      "Quincaillerie et ferrures",
+      "Visserie et fixations",
+      "Outillage à main et mesure",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne, tarifs pro",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.foussier.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Quincaillerie et ferrures",
+      "Visserie et fixations",
+      "Colles, joints et mousses",
+      "Outillage à main et mesure",
+      "EPI et consommables"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricozor.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hettich",
+     "groupe": "Hettich Group",
+     "type": "fabricant",
+     "site": "https://www.hettich.com/fr-fr",
+     "couverture": "national",
+     "categories": [
+      "Quincaillerie et ferrures"
+     ],
+     "tarifs": "catalogue PDF, vente via distributeurs",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Festool",
+     "groupe": "Groupe Festool",
+     "type": "fabricant",
+     "site": "https://www.festool.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage électroportatif",
+      "Outillage à main et mesure"
+     ],
+     "tarifs": "prix publics sur le site, revendeurs agréés",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.festool.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Brico Dépôt",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.bricodepot.fr",
+     "couverture": "national",
+     "categories": [
+      "Bois et panneaux",
+      "Visserie et fixations",
+      "Colles, joints et mousses",
+      "Outillage électroportatif",
+      "Outillage à main et mesure",
+      "EPI et consommables"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricodepot.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hilti",
+     "groupe": "Groupe Hilti",
+     "type": "fabricant",
+     "site": "https://www.hilti.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage électroportatif",
+      "Visserie et fixations",
+      "Colles, joints et mousses"
+     ],
+     "tarifs": "espace client en ligne, Hilti Center",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.hilti.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Groupe Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage électroportatif"
+     ],
+     "tarifs": "tarifs de location sur demande ou en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.kiloutou.fr",
+     "siteRepond": "oui, refuse la lecture automatique"
+    }
+   ]
+  },
+  "peinture": {
+   "conseils": "Les peintres achètent surtout chez les fabricants-distributeurs à réseau d'agences (Tollens, Zolpan, Seigneurie Gauthier), souvent le matin au comptoir ou en commande avec livraison, avec une remise sur prix public selon le compte pro. Les enduits de préparation viennent de Toupret ou des négoces, l'outillage d'application de spécialistes ou en ligne. L'échafaudage et les nacelles se louent.",
+   "fournisseurs": [
+    {
+     "nom": "Tollens",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.tollens.com",
+     "couverture": "national",
+     "categories": [
+      "Peintures intérieures",
+      "Peintures extérieures et façades",
+      "Sous-couches et impressions",
+      "Enduits et préparation",
+      "Lasures, vernis et bois",
+      "Sols souples et peintures de sol",
+      "Décapants et traitements des supports",
+      "Rouleaux, pinceaux et accessoires"
+     ],
+     "tarifs": "espace client en ligne, remise sur compte pro",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.tollens.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Zolpan",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.zolpan.fr",
+     "couverture": "national",
+     "categories": [
+      "Peintures intérieures",
+      "Peintures extérieures et façades",
+      "Sous-couches et impressions",
+      "Enduits et préparation",
+      "Lasures, vernis et bois",
+      "Revêtements muraux",
+      "Sols souples et peintures de sol",
+      "Décapants et traitements des supports"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.zolpan.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Comptoir Seigneurie Gauthier",
+     "groupe": "",
+     "type": "distributeur spécialisé",
+     "site": "https://www.seigneuriegauthier.com",
+     "couverture": "national",
+     "categories": [
+      "Peintures intérieures",
+      "Peintures extérieures et façades",
+      "Sous-couches et impressions",
+      "Enduits et préparation",
+      "Lasures, vernis et bois",
+      "Revêtements muraux",
+      "Sols souples et peintures de sol",
+      "Rouleaux, pinceaux et accessoires",
+      "Protection et masquage",
+      "Outillage de préparation"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.seigneuriegauthier.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sikkens",
+     "groupe": "AkzoNobel",
+     "type": "fabricant",
+     "site": "https://www.sikkens.fr",
+     "couverture": "national",
+     "categories": [
+      "Peintures extérieures et façades",
+      "Lasures, vernis et bois",
+      "Sous-couches et impressions",
+      "Peintures intérieures"
+     ],
+     "tarifs": "catalogue PDF, vente via distributeurs",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.sikkens.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Toupret",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.toupret.com",
+     "couverture": "national",
+     "categories": [
+      "Enduits et préparation",
+      "Sous-couches et impressions",
+      "Décapants et traitements des supports"
+     ],
+     "tarifs": "catalogue PDF, vente via distributeurs",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.toupret.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Point.P",
+     "groupe": "Saint-Gobain Distribution Bâtiment France",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Peintures intérieures",
+      "Peintures extérieures et façades",
+      "Enduits et préparation",
+      "Protection et masquage",
+      "Rouleaux, pinceaux et accessoires"
+     ],
+     "tarifs": "espace client en ligne, remise négociée en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "BigMat",
+     "groupe": "BigMat International",
+     "type": "négoce matériaux",
+     "site": "https://www.bigmat.fr",
+     "couverture": "national",
+     "categories": [
+      "Peintures intérieures",
+      "Peintures extérieures et façades",
+      "Enduits et préparation",
+      "Protection et masquage"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Gedimat",
+     "groupe": "",
+     "type": "négoce matériaux",
+     "site": "https://www.gedimat.fr",
+     "couverture": "national",
+     "categories": [
+      "Peintures intérieures",
+      "Peintures extérieures et façades",
+      "Enduits et préparation",
+      "Protection et masquage"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.gedimat.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Groupe Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Protection et masquage",
+      "Rouleaux, pinceaux et accessoires",
+      "Outillage de préparation",
+      "Échafaudage, accès et EPI",
+      "Décapants et traitements des supports"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Rouleaux, pinceaux et accessoires",
+      "Protection et masquage",
+      "Outillage de préparation",
+      "Échafaudage, accès et EPI"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricozor.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Brico Dépôt",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.bricodepot.fr",
+     "couverture": "national",
+     "categories": [
+      "Peintures intérieures",
+      "Peintures extérieures et façades",
+      "Sous-couches et impressions",
+      "Enduits et préparation",
+      "Revêtements muraux",
+      "Sols souples et peintures de sol",
+      "Rouleaux, pinceaux et accessoires",
+      "Protection et masquage"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricodepot.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Groupe Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Échafaudage, accès et EPI",
+      "Outillage de préparation"
+     ],
+     "tarifs": "tarifs de location sur demande ou en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.kiloutou.fr",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Groupe Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Échafaudage, accès et EPI",
+      "Outillage de préparation"
+     ],
+     "tarifs": "tarifs de location sur demande ou en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.loxam.fr",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "couverture": {
+   "conseils": "Les couvreurs commandent tuiles, ardoises, zinc et accessoires auprès de négoces spécialisés ou généralistes (Point.P, Chausson, Samse) avec livraison sur chantier par camion-grue, souvent sur devis par chantier. Les fabricants (Edilians, Terreal, VMZINC, Velux) fixent des tarifs que le négoce remise selon le compte pro. L'échafaudage et les nacelles se louent.",
+   "fournisseurs": [
+    {
+     "nom": "Point.P",
+     "groupe": "Saint-Gobain Distribution Bâtiment France",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Tuiles",
+      "Ardoises et couvertures naturelles",
+      "Zinc, métaux et bacs acier",
+      "Gouttières et descentes",
+      "Fixations et crochets",
+      "Accessoires de toiture",
+      "Isolation sous toiture",
+      "Écran sous toiture et étanchéité",
+      "Fenêtres de toit et verrières",
+      "Traitement et entretien"
+     ],
+     "tarifs": "espace client en ligne, remise négociée en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Chausson Matériaux",
+     "groupe": "Saint-Gobain Distribution Bâtiment France",
+     "type": "négoce matériaux",
+     "site": "https://www.chausson.fr",
+     "couverture": "régional",
+     "categories": [
+      "Tuiles",
+      "Ardoises et couvertures naturelles",
+      "Zinc, métaux et bacs acier",
+      "Gouttières et descentes",
+      "Accessoires de toiture",
+      "Isolation sous toiture",
+      "Écran sous toiture et étanchéité",
+      "Fenêtres de toit et verrières"
+     ],
+     "tarifs": "espace client en ligne, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.chausson.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Samse",
+     "groupe": "Groupe Samse",
+     "type": "négoce matériaux",
+     "site": "https://www.samse.fr",
+     "couverture": "régional",
+     "categories": [
+      "Tuiles",
+      "Ardoises et couvertures naturelles",
+      "Zinc, métaux et bacs acier",
+      "Gouttières et descentes",
+      "Isolation sous toiture",
+      "Écran sous toiture et étanchéité",
+      "Fenêtres de toit et verrières"
+     ],
+     "tarifs": "espace client en ligne, sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.samse.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Edilians",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.edilians.com",
+     "couverture": "national",
+     "categories": [
+      "Tuiles",
+      "Accessoires de toiture"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.edilians.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Terreal",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.terreal.com",
+     "couverture": "national",
+     "categories": [
+      "Tuiles",
+      "Ardoises et couvertures naturelles",
+      "Accessoires de toiture"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "BMI France (Monier)",
+     "groupe": "BMI Group",
+     "type": "fabricant",
+     "site": "https://www.bmigroup.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Tuiles",
+      "Ardoises et couvertures naturelles",
+      "Écran sous toiture et étanchéité",
+      "Accessoires de toiture"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "VMZINC",
+     "groupe": "",
+     "type": "fabricant",
+     "site": "https://www.vmzinc.fr",
+     "couverture": "national",
+     "categories": [
+      "Zinc, métaux et bacs acier",
+      "Gouttières et descentes",
+      "Accessoires de toiture"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.vmzinc.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "RHEINZINK France",
+     "groupe": "RHEINZINK",
+     "type": "fabricant",
+     "site": "https://www.rheinzink.fr",
+     "couverture": "national",
+     "categories": [
+      "Zinc, métaux et bacs acier",
+      "Gouttières et descentes"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.rheinzink.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Nicoll",
+     "groupe": "Aliaxis",
+     "type": "fabricant",
+     "site": "https://www.nicoll.fr",
+     "couverture": "national",
+     "categories": [
+      "Gouttières et descentes"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.nicoll.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Velux",
+     "groupe": "VELUX Group",
+     "type": "fabricant",
+     "site": "https://www.velux.fr",
+     "couverture": "national",
+     "categories": [
+      "Fenêtres de toit et verrières"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces et espace pro",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.velux.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Soprema",
+     "groupe": "Groupe Soprema",
+     "type": "fabricant",
+     "site": "https://www.soprema.fr",
+     "couverture": "national",
+     "categories": [
+      "Écran sous toiture et étanchéité",
+      "Isolation sous toiture"
+     ],
+     "tarifs": "catalogue PDF, vente via négoces",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.soprema.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Groupe Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Fixations et crochets",
+      "Outillage et consommables du couvreur",
+      "EPI antichute et protection"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Groupe Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Échafaudage, accès et sécurité",
+      "Outillage et consommables du couvreur"
+     ],
+     "tarifs": "tarifs de location sur demande ou en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.kiloutou.fr",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Groupe Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Échafaudage, accès et sécurité",
+      "Outillage et consommables du couvreur"
+     ],
+     "tarifs": "tarifs de location sur demande ou en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.loxam.fr",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "serrurerie": {
+   "conseils": "Les serruriers commandent cylindres, serrures et blindages chez les fabricants et distributeurs spécialisés (Vachette, ASSA ABLOY, Mul-T-Lock, Foussier), souvent par compte pro en ligne avec livraison le lendemain ; le dépannage d'urgence exige un stock de références courantes. Les clés brutes et machines à copier viennent de Silca ou de grossistes. Fixation, visserie et consommables se prennent chez Würth, Legallais ou en ligne.",
+   "fournisseurs": [
+    {
+     "nom": "Foussier",
+     "groupe": "Groupe Foussier",
+     "type": "distributeur spécialisé",
+     "site": "https://www.foussier.fr",
+     "couverture": "national",
+     "categories": [
+      "Cylindres et serrures",
+      "Serrures multipoints et blindage",
+      "Verrous et ferme-portes",
+      "Quincaillerie de porte",
+      "Coffres-forts et boîtes à clés",
+      "Métallerie, profilés et soudure",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne, tarifs pro",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.foussier.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Cylindres et serrures",
+      "Verrous et ferme-portes",
+      "Quincaillerie de porte",
+      "Coffres-forts et boîtes à clés",
+      "EPI et consommables"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.bricozor.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Legallais",
+     "groupe": "Groupe Legallais",
+     "type": "distributeur spécialisé",
+     "site": "https://www.legallais.com",
+     "couverture": "national",
+     "categories": [
+      "Cylindres et serrures",
+      "Verrous et ferme-portes",
+      "Quincaillerie de porte",
+      "Métallerie, profilés et soudure",
+      "Outillage d'ouverture et copie de clés",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Würth",
+     "groupe": "Groupe Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Quincaillerie de porte",
+      "Métallerie, profilés et soudure",
+      "Outillage d'ouverture et copie de clés",
+      "EPI et consommables"
+     ],
+     "tarifs": "espace client en ligne, catalogue",
+     "commande": [
+      "site pro avec compte",
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Vachette",
+     "groupe": "ASSA ABLOY",
+     "type": "fabricant",
+     "site": "https://www.vachette.fr",
+     "couverture": "national",
+     "categories": [
+      "Cylindres et serrures",
+      "Serrures multipoints et blindage",
+      "Verrous et ferme-portes",
+      "Clés et cylindres bruts",
+      "Portes blindées et blocs-portes"
+     ],
+     "tarifs": "catalogue PDF, vente via distributeurs",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.vachette.fr",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "ASSA ABLOY",
+     "groupe": "ASSA ABLOY",
+     "type": "fabricant",
+     "site": "https://www.assaabloy.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Cylindres et serrures",
+      "Contrôle d'accès",
+      "Verrous et ferme-portes",
+      "Serrures multipoints et blindage"
+     ],
+     "tarifs": "catalogue PDF, vente via distributeurs",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Mul-T-Lock",
+     "groupe": "ASSA ABLOY",
+     "type": "fabricant",
+     "site": "https://www.mul-t-lock.com",
+     "couverture": "national",
+     "categories": [
+      "Cylindres et serrures",
+      "Serrures multipoints et blindage",
+      "Clés et cylindres bruts"
+     ],
+     "tarifs": "catalogue PDF, vente via réseau de serruriers",
+     "commande": [
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": true,
+     "source": "https://www.mul-t-lock.com",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "ABUS France",
+     "groupe": "ABUS",
+     "type": "fabricant",
+     "site": "https://www.abus.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Cylindres et serrures",
+      "Verrous et ferme-portes",
+      "Coffres-forts et boîtes à clés",
+      "Contrôle d'accès"
+     ],
+     "tarifs": "catalogue PDF, vente via distributeurs",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "ISEO France",
+     "groupe": "ISEO",
+     "type": "fabricant",
+     "site": "https://www.iseo.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Cylindres et serrures",
+      "Serrures multipoints et blindage",
+      "Contrôle d'accès",
+      "Verrous et ferme-portes"
+     ],
+     "tarifs": "catalogue PDF, vente via distributeurs",
+     "commande": [
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier (site existant, lecture automatique refusée ou non faite)",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Silca",
+     "groupe": "Kaba/dormakaba",
+     "type": "fabricant",
+     "site": "https://www.silca.biz",
+     "couverture": "national",
+     "categories": [
+      "Clés et cylindres bruts",
+      "Outillage d'ouverture et copie de clés"
+     ],
+     "tarifs": "catalogue PDF, vente via revendeurs",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": true,
+     "source": "https://www.silca.biz",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hörmann France",
+     "groupe": "Hörmann",
+     "type": "fabricant",
+     "site": "https://www.hormann.fr",
+     "couverture": "national",
+     "categories": [
+      "Rideaux métalliques et volets",
+      "Portes blindées et blocs-portes"
+     ],
+     "tarifs": "catalogue PDF, vente via distributeurs",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": true,
+     "source": "https://www.hormann.fr",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "paysagiste": {
+   "conseils": "Les paysagistes achètent les végétaux en pépinière ou en négoce, au comptoir ou à la commande avec livraison sur chantier, les minéraux et paillages en négoce matériaux, et l'arrosage chez des spécialistes de l'irrigation. Les machines et l'élagage passent par des revendeurs agréés (Stihl, Husqvarna, Pellenc) ; la location sert aux gros engins. Les phytosanitaires exigent le Certiphyto. Une remise sur prix public se négocie par compte client.",
+   "fournisseurs": [
+    {
+     "nom": "Stihl France",
+     "groupe": "Stihl",
+     "type": "fabricant",
+     "site": "https://www.stihl.fr",
+     "couverture": "national (réseau de revendeurs agréés)",
+     "categories": [
+      "Machines et motoculture",
+      "Outillage à main et élagage",
+      "Consommables machines",
+      "EPI paysagiste"
+     ],
+     "tarifs": "sur demande chez le revendeur agréé",
+     "commande": [
+      "comptoir/agence",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Husqvarna",
+     "groupe": "Husqvarna Group",
+     "type": "fabricant",
+     "site": "https://www.husqvarna.com",
+     "couverture": "national (réseau de revendeurs)",
+     "categories": [
+      "Machines et motoculture",
+      "Consommables machines",
+      "EPI paysagiste"
+     ],
+     "tarifs": "sur demande chez le revendeur",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Pellenc",
+     "groupe": "Pellenc",
+     "type": "fabricant",
+     "site": "https://www.pellenc.com",
+     "couverture": "national (réseau de revendeurs)",
+     "categories": [
+      "Machines et motoculture",
+      "Outillage à main et élagage"
+     ],
+     "tarifs": "sur demande chez le revendeur",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Felco",
+     "groupe": "Felco",
+     "type": "fabricant",
+     "site": "https://www.felco.com",
+     "couverture": "national (réseau de revendeurs)",
+     "categories": [
+      "Outillage à main et élagage"
+     ],
+     "tarifs": "prix publics chez les revendeurs, remise pro sur demande",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Rain Bird",
+     "groupe": "Rain Bird",
+     "type": "fabricant",
+     "site": "https://www.rainbird.fr",
+     "couverture": "national (via négoces d'irrigation)",
+     "categories": [
+      "Arrosage et irrigation"
+     ],
+     "tarifs": "catalogue PDF, prix chez les distributeurs",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hunter Industries",
+     "groupe": "Hunter",
+     "type": "fabricant",
+     "site": "https://www.hunterirrigation.com",
+     "couverture": "national (via négoces d'irrigation)",
+     "categories": [
+      "Arrosage et irrigation"
+     ],
+     "tarifs": "catalogue PDF, prix chez les distributeurs",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Gardena",
+     "groupe": "Husqvarna Group",
+     "type": "fabricant",
+     "site": "https://www.gardena.com/fr/",
+     "couverture": "national",
+     "categories": [
+      "Arrosage et irrigation",
+      "Outillage à main et élagage"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Delbard",
+     "groupe": "Delbard",
+     "type": "fabricant",
+     "site": "https://www.delbard.fr",
+     "couverture": "national",
+     "categories": [
+      "Arbres et arbustes",
+      "Vivaces, gazon et semences",
+      "Terreaux et amendements",
+      "Engrais et fertilisants"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Pépinières Naudet",
+     "groupe": "Naudet",
+     "type": "vente en ligne pro",
+     "site": "https://www.naudet.fr",
+     "couverture": "national",
+     "categories": [
+      "Arbres et arbustes",
+      "Vivaces, gazon et semences",
+      "Terreaux et amendements"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Florentaise",
+     "groupe": "Florentaise",
+     "type": "fabricant",
+     "site": "https://www.florentaise.com/fr",
+     "couverture": "national",
+     "categories": [
+      "Terreaux et amendements",
+      "Engrais et fertilisants"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Barenbrug France",
+     "groupe": "Royal Barenbrug Group",
+     "type": "fabricant",
+     "site": "https://www.barenbrug.fr",
+     "couverture": "national",
+     "categories": [
+      "Vivaces, gazon et semences"
+     ],
+     "tarifs": "sur demande auprès de la marque ou d'un distributeur",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Point.P",
+     "groupe": "Saint-Gobain",
+     "type": "négoce matériaux",
+     "site": "https://www.pointp.fr",
+     "couverture": "national",
+     "categories": [
+      "Paillage et minéraux décoratifs",
+      "Clôtures, bordures et aménagements"
+     ],
+     "tarifs": "espace client en ligne, tarif négocié en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "Bricozor",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage à main et élagage",
+      "EPI paysagiste",
+      "Consommables machines"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Machines et motoculture"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Machines et motoculture"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "incendie": {
+   "conseils": "Les sociétés de maintenance d'extincteurs achètent pièces, recharges et appareils auprès des fabricants (Desautel, Sicli, Chubb) ou de distributeurs spécialisés, souvent par téléphone ou compte pro. Détection et éclairage de sécurité se prennent chez les grossistes électriques. Les pièces doivent correspondre au modèle de l'appareil et aux normes : se référer aux notices du fabricant.",
+   "fournisseurs": [
+    {
+     "nom": "Desautel",
+     "groupe": "Desautel",
+     "type": "fabricant",
+     "site": "https://www.desautel.fr",
+     "couverture": "national",
+     "categories": [
+      "Extincteurs portatifs",
+      "Extincteurs mobiles et spéciaux",
+      "Accessoires et pièces d'extincteurs",
+      "Première intervention"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sicli",
+     "groupe": "Sicli",
+     "type": "fabricant",
+     "site": "https://www.sicli.fr",
+     "couverture": "national",
+     "categories": [
+      "Extincteurs portatifs",
+      "Extincteurs mobiles et spéciaux",
+      "Accessoires et pièces d'extincteurs",
+      "RIA et colonnes"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Chubb Fire & Security France",
+     "groupe": "Carrier",
+     "type": "fabricant",
+     "site": "https://chubbfs.com/fr-fr/",
+     "couverture": "national",
+     "categories": [
+      "Extincteurs portatifs",
+      "Accessoires et pièces d'extincteurs",
+      "Alarme et détection incendie"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Mavil",
+     "groupe": "Mavil",
+     "type": "distributeur spécialisé",
+     "site": "https://www.mavil.fr",
+     "couverture": "national",
+     "categories": [
+      "Extincteurs portatifs",
+      "Accessoires et pièces d'extincteurs",
+      "RIA et colonnes",
+      "Première intervention",
+      "Signalétique et plans d'évacuation"
+     ],
+     "tarifs": "inconnu",
+     "commande": [
+      "téléphone",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Legrand",
+     "groupe": "Legrand",
+     "type": "fabricant",
+     "site": "https://www.legrand.fr",
+     "couverture": "national",
+     "categories": [
+      "Éclairage de sécurité",
+      "Alarme et détection incendie"
+     ],
+     "tarifs": "catalogue et prix via grossistes électriques",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kaufel",
+     "groupe": "Legrand",
+     "type": "fabricant",
+     "site": "https://www.kaufel.com",
+     "couverture": "national",
+     "categories": [
+      "Éclairage de sécurité"
+     ],
+     "tarifs": "sur demande, via grossistes",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hochiki Europe",
+     "groupe": "Hochiki",
+     "type": "fabricant",
+     "site": "https://www.hochikieurope.com",
+     "couverture": "national",
+     "categories": [
+      "Alarme et détection incendie"
+     ],
+     "tarifs": "sur demande via distributeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Colt",
+     "groupe": "Colt",
+     "type": "fabricant",
+     "site": "https://www.coltgroup.com/fr/",
+     "couverture": "national",
+     "categories": [
+      "Désenfumage"
+     ],
+     "tarifs": "sur demande",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Aldes",
+     "groupe": "Aldes",
+     "type": "fabricant",
+     "site": "https://www.aldes.fr",
+     "couverture": "national",
+     "categories": [
+      "Désenfumage"
+     ],
+     "tarifs": "sur demande, via distributeurs",
+     "commande": [
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Seton",
+     "groupe": "Brady",
+     "type": "vente en ligne pro",
+     "site": "https://www.seton.fr",
+     "couverture": "national",
+     "categories": [
+      "Signalétique et plans d'évacuation",
+      "Première intervention",
+      "EPI et tenues"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Promat",
+     "groupe": "Etex",
+     "type": "fabricant",
+     "site": "https://www.promat.com/fr-fr/",
+     "couverture": "national",
+     "categories": [
+      "Coupe-feu et protection passive"
+     ],
+     "tarifs": "sur demande, via distributeurs",
+     "commande": [
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hilti",
+     "groupe": "Hilti",
+     "type": "fabricant",
+     "site": "https://www.hilti.fr",
+     "couverture": "national",
+     "categories": [
+      "Coupe-feu et protection passive",
+      "Outillage et appareils de contrôle"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur spécialisé",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Éclairage de sécurité",
+      "Alarme et détection incendie",
+      "Coupe-feu et protection passive"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage et appareils de contrôle",
+      "EPI et tenues"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "multiservices": {
+   "conseils": "Un multiservices fait son plein le matin au comptoir des négoces spécialisés (plomberie, électricité) avec un compte pro à remise sur prix public, complété par Würth ou Hilti pour fixations et consommables. Les grandes surfaces de bricolage dépannent pour l'urgent. L'outillage lourd se loue (Kiloutou, Loxam).",
+   "fournisseurs": [
+    {
+     "nom": "Cedeo",
+     "groupe": "Saint-Gobain",
+     "type": "distributeur spécialisé",
+     "site": "https://www.cedeo.fr",
+     "couverture": "national",
+     "categories": [
+      "Plomberie : tubes et raccords",
+      "Robinetterie et sanitaire"
+     ],
+     "tarifs": "espace client en ligne, tarif négocié en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique",
+     "notes": "Les agences Brossette ont rejoint Cedeo (brossette.fr renvoie vers cedeo.fr)."
+    },
+    {
+     "nom": "Rexel",
+     "groupe": "Rexel",
+     "type": "distributeur spécialisé",
+     "site": "https://www.rexel.fr",
+     "couverture": "national",
+     "categories": [
+      "Électricité : appareillage et protection",
+      "Câbles, gaines et connectique",
+      "Éclairage et lampes"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte",
+      "application mobile"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Sonepar France",
+     "groupe": "Sonepar",
+     "type": "distributeur spécialisé",
+     "site": "https://www.sonepar.fr",
+     "couverture": "national",
+     "categories": [
+      "Électricité : appareillage et protection",
+      "Câbles, gaines et connectique",
+      "Éclairage et lampes"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Visserie et fixations",
+      "Serrurerie et quincaillerie",
+      "Colles, mastics et silicones",
+      "Chimie d'entretien et lubrifiants",
+      "Outillage à main et électroportatif",
+      "EPI"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hilti",
+     "groupe": "Hilti",
+     "type": "fabricant",
+     "site": "https://www.hilti.fr",
+     "couverture": "national",
+     "categories": [
+      "Visserie et fixations",
+      "Outillage à main et électroportatif",
+      "Mesure et contrôle"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "Bricozor",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage à main et électroportatif",
+      "Visserie et fixations",
+      "Serrurerie et quincaillerie",
+      "EPI",
+      "Colles, mastics et silicones"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Brico Dépôt",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.bricodepot.fr",
+     "couverture": "national",
+     "categories": [
+      "Peinture et revêtements",
+      "Visserie et fixations",
+      "Colles, mastics et silicones",
+      "Serrurerie et quincaillerie",
+      "Éclairage et lampes",
+      "Accès et protection de chantier"
+     ],
+     "tarifs": "prix publics en magasin et sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Leroy Merlin",
+     "groupe": "Adeo",
+     "type": "grande surface bricolage",
+     "site": "https://www.leroymerlin.fr",
+     "couverture": "national",
+     "categories": [
+      "Peinture et revêtements",
+      "Robinetterie et sanitaire",
+      "Électricité : appareillage et protection",
+      "Éclairage et lampes",
+      "Visserie et fixations"
+     ],
+     "tarifs": "prix publics ; remise pro sur compte",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Castorama",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.castorama.fr",
+     "couverture": "national",
+     "categories": [
+      "Peinture et revêtements",
+      "Visserie et fixations",
+      "Serrurerie et quincaillerie",
+      "Colles, mastics et silicones"
+     ],
+     "tarifs": "prix publics en magasin et sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "Accès et protection de chantier",
+      "EPI",
+      "Chimie d'entretien et lubrifiants"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Soudal",
+     "groupe": "Soudal",
+     "type": "fabricant",
+     "site": "https://www.soudal.fr",
+     "couverture": "national",
+     "categories": [
+      "Colles, mastics et silicones"
+     ],
+     "tarifs": "prix chez les distributeurs",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Facom",
+     "groupe": "Stanley Black & Decker",
+     "type": "fabricant",
+     "site": "https://www.facom.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage à main et électroportatif"
+     ],
+     "tarifs": "catalogue PDF, prix chez les distributeurs",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bosch Professional",
+     "groupe": "Bosch",
+     "type": "fabricant",
+     "site": "https://www.bosch-professional.com/fr/fr/",
+     "couverture": "national",
+     "categories": [
+      "Outillage à main et électroportatif",
+      "Mesure et contrôle"
+     ],
+     "tarifs": "prix chez les distributeurs",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Accès et protection de chantier",
+      "Outillage à main et électroportatif"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Accès et protection de chantier",
+      "Outillage à main et électroportatif"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  },
+  "autre": {
+   "conseils": "Pour un métier hors liste, les fournisseurs transverses suffisent souvent : Würth, Manutan, Lyreco ou Bruneau sur compte pro avec livraison, Bricozor en ligne, et les grandes surfaces de bricolage pour le dépannage. Demander à chacun une remise pro et un paiement différé ; l'outillage et les EPI se comparent entre fabricants et distributeurs.",
+   "fournisseurs": [
+    {
+     "nom": "Würth France",
+     "groupe": "Würth",
+     "type": "distributeur généraliste",
+     "site": "https://www.wurth.fr",
+     "couverture": "national",
+     "categories": [
+      "Quincaillerie et visserie",
+      "Produits chimiques et d'entretien",
+      "Outillage et petit matériel",
+      "EPI",
+      "Consommables et emballages"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone",
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Manutan",
+     "groupe": "Manutan",
+     "type": "distributeur généraliste",
+     "site": "https://www.manutan.fr",
+     "couverture": "national",
+     "categories": [
+      "Consommables et emballages",
+      "EPI",
+      "Outillage et petit matériel",
+      "Matières et fournitures"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Lyreco",
+     "groupe": "Lyreco",
+     "type": "distributeur généraliste",
+     "site": "https://www.lyreco.com",
+     "couverture": "national",
+     "categories": [
+      "Consommables et emballages",
+      "Matières et fournitures",
+      "EPI"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bruneau",
+     "groupe": "Bruneau",
+     "type": "distributeur généraliste",
+     "site": "https://www.bruneau.fr",
+     "couverture": "national",
+     "categories": [
+      "Consommables et emballages",
+      "Matières et fournitures"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Raja",
+     "groupe": "Raja",
+     "type": "distributeur généraliste",
+     "site": "https://www.raja.fr",
+     "couverture": "national",
+     "categories": [
+      "Consommables et emballages"
+     ],
+     "tarifs": "prix publics sur le site, remise sur volume",
+     "commande": [
+      "site pro avec compte",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Facom",
+     "groupe": "Stanley Black & Decker",
+     "type": "fabricant",
+     "site": "https://www.facom.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage et petit matériel",
+      "Machines et appareils"
+     ],
+     "tarifs": "catalogue PDF, prix chez les distributeurs",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bosch Professional",
+     "groupe": "Bosch",
+     "type": "fabricant",
+     "site": "https://www.bosch-professional.com/fr/fr/",
+     "couverture": "national",
+     "categories": [
+      "Outillage et petit matériel",
+      "Machines et appareils"
+     ],
+     "tarifs": "prix chez les distributeurs",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Makita France",
+     "groupe": "Makita",
+     "type": "fabricant",
+     "site": "https://www.makita.fr",
+     "couverture": "national",
+     "categories": [
+      "Outillage et petit matériel",
+      "Machines et appareils"
+     ],
+     "tarifs": "prix chez les distributeurs",
+     "commande": [
+      "comptoir/agence"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Hilti",
+     "groupe": "Hilti",
+     "type": "fabricant",
+     "site": "https://www.hilti.fr",
+     "couverture": "national",
+     "categories": [
+      "Quincaillerie et visserie",
+      "Outillage et petit matériel",
+      "Machines et appareils"
+     ],
+     "tarifs": "espace client en ligne",
+     "commande": [
+      "site pro avec compte",
+      "application mobile",
+      "téléphone"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Bricozor",
+     "groupe": "Bricozor",
+     "type": "vente en ligne pro",
+     "site": "https://www.bricozor.com",
+     "couverture": "national",
+     "categories": [
+      "Outillage et petit matériel",
+      "Quincaillerie et visserie",
+      "EPI",
+      "Produits chimiques et d'entretien"
+     ],
+     "tarifs": "prix publics sur le site",
+     "commande": [
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Brico Dépôt",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.bricodepot.fr",
+     "couverture": "national",
+     "categories": [
+      "Quincaillerie et visserie",
+      "Produits chimiques et d'entretien",
+      "Outillage et petit matériel"
+     ],
+     "tarifs": "prix publics en magasin et sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Castorama",
+     "groupe": "Kingfisher",
+     "type": "grande surface bricolage",
+     "site": "https://www.castorama.fr",
+     "couverture": "national",
+     "categories": [
+      "Quincaillerie et visserie",
+      "Produits chimiques et d'entretien",
+      "Outillage et petit matériel"
+     ],
+     "tarifs": "prix publics en magasin et sur le site",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    },
+    {
+     "nom": "Kiloutou",
+     "groupe": "Kiloutou",
+     "type": "location de matériel",
+     "site": "https://www.kiloutou.fr",
+     "couverture": "national",
+     "categories": [
+      "Machines et appareils"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui, refuse la lecture automatique"
+    },
+    {
+     "nom": "Loxam",
+     "groupe": "Loxam",
+     "type": "location de matériel",
+     "site": "https://www.loxam.fr",
+     "couverture": "national",
+     "categories": [
+      "Machines et appareils"
+     ],
+     "tarifs": "sur demande en agence",
+     "commande": [
+      "comptoir/agence",
+      "site pro avec compte"
+     ],
+     "verifie": false,
+     "source": "connaissance du métier",
+     "siteRepond": "oui"
+    }
+   ]
+  }
+ }
+}
