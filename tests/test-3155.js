@@ -233,6 +233,7 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   v('le patron retire son appareil de la Tour', [d1.s, d1.j.retire], [200, true]);
   v('…et ne retire pas, par cette route, l\'abonnement d\'une entreprise', (await brutA('POST', RD, { endpoint: EP('entreprise-ancienne') }, entPatron)).j.retire, false);
   await dormir(600);
+  await jusqua(() => noms().includes('entreprise-ancienne') && !noms().includes('tour-neuf'));   // le retrait du patron DOIT être écrit avant le relevé « rien n'a changé » plus bas
   vrai('…il est toujours là', noms().includes('entreprise-ancienne') && !noms().includes('tour-neuf'), noms());
 
   console.log('\n── 3155 · 1 bis. S2 / S3 ──');
