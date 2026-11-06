@@ -455,9 +455,9 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 .pm-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:30;width:340px;padding:14px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);display:flex;flex-direction:column;gap:12px;animation:pop .16s var(--ressort) both}
 .pm-pop-d{left:auto;right:0}
 .pm-raccourcis{display:flex;flex-wrap:wrap;gap:6px}.pm-raccourcis button{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);font-size:13.5px;font-weight:600}
-.pm-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.pm-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
 .pm-cal-t{font-size:12px;font-weight:700;color:var(--faible);padding:2px 0}
-.pm-cal button{aspect-ratio:1;min-height:38px;border:0;border-radius:50%;background:none;color:var(--encre);font-weight:600;font-variant-numeric:tabular-nums}
+.pm-cal button{width:40px;height:40px;justify-self:center;padding:0;border:0;border-radius:50%;background:none;color:var(--encre);font-weight:600;font-variant-numeric:tabular-nums}
 .pm-cal button:hover{background:var(--survol)}.pm-cal button.auj{color:var(--lien);box-shadow:inset 0 0 0 1.5px var(--lien)}
 .pm-cal button[aria-pressed="true"]{background:var(--fill);color:var(--on-fill)}
 .pm-autre{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:600;color:var(--doux)}.pm-autre input{min-height:40px;border-radius:10px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);padding:0 8px}
@@ -585,10 +585,10 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 .client-web.ordi .corps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:28px 32px;font-size:16px}
 .client-web.ordi .corps>:first-child,.client-web.ordi .corps>.bloc:nth-child(2),.client-web.ordi .corps>:nth-last-child(-n+2){grid-column:1 / -1}
 .client-web.ordi .paie-bloc{padding:12px 14px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait);margin-bottom:10px}
-.photos3{grid-template-columns:repeat(4,1fr)}
+.photos3{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:760px){.client-web.ordi .corps{grid-template-columns:minmax(0,1fr);padding:18px}}
 .bulle-sms{align-self:flex-end;max-width:92%;padding:12px 15px;border-radius:20px 20px 6px 20px;background:#0a84ff;color:#fff;font-size:15.5px;line-height:1.45}
-.photos3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.photos3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 /* ── étapes, historique ── */
 .etapes{display:flex;flex-direction:column}
 .etape{display:flex;gap:12px;align-items:flex-start;padding:7px 0;position:relative;color:var(--doux)}
@@ -930,9 +930,10 @@ body.dp-ouvert{overflow:hidden}
 /* une personne, mois par mois */
 .ac-p{display:flex;flex-direction:column;gap:10px}.ac-tot{display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center}
 .ac-ms{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin:12px 0}
-.ac-m h4{margin:0 0 8px;font-size:15px}.ac-mg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.ac-m h4{margin:0 0 8px;font-size:15px}.ac-mg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 .ac-mh{font-size:11px;font-weight:700;color:var(--faible);text-align:center}
-.ac-md{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:13px;font-weight:600;color:var(--encre);border:0;background:none;font-family:inherit;padding:0}
+.ac-md{width:100%;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:13px;font-weight:600;color:var(--encre);border:0;background:none;font-family:inherit;padding:0}
+@media (max-width:760px){.ac-md{height:42px}}
 .ac-md.we{color:var(--faible)}.ac-md.auj{box-shadow:inset 0 0 0 2px var(--lien);font-weight:800}
 .ac-md.abs{background:var(--c);color:#fff;cursor:pointer}.ac-md.att{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 30%,transparent) 0 4px,transparent 4px 8px);box-shadow:inset 0 0 0 1.5px var(--c);cursor:pointer}
 /* soldes */
@@ -1043,6 +1044,9 @@ body.dp-ouvert{overflow:hidden}
 .dt-btn svg{width:20px;height:20px;flex:0 0 auto;fill:none;stroke:var(--lien);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .dt-btn:hover{border-color:var(--lien)}
 #dtpop{z-index:200;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);padding:14px;display:flex;flex-direction:column;gap:10px;color:var(--encre)}
+/* Safari, 6 novembre 2026 (capture de Justin) : une case de calendrier en aspect-ratio dans une grille en 1fr y faisait exploser les
+   colonnes — un « 2 » de 140 px, la grille trois fois plus large que sa bulle. Les grilles de jours sont en minmax(0,1fr) et leurs cases ont
+   une taille écrite (calendrier des dates, planning de plusieurs jours, mini-mois des absences). */
 #dtpop.dt-bulle{position:fixed;width:330px;border-radius:18px;animation:pop .14s ease both}
 #dtpop.dt-feuille{position:fixed;left:0;right:0;bottom:0;border-radius:22px 22px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:80vh;overflow:auto}
 .dt-rac{display:flex;gap:6px;align-items:center}
@@ -1051,18 +1055,19 @@ body.dp-ouvert{overflow:hidden}
 .dt-val{flex:1;text-align:center;font-size:26px;font-variant-numeric:tabular-nums}
 .dt-tete{display:flex;align-items:center;justify-content:space-between}.dt-tete b{text-transform:capitalize;font-size:16px}
 .dt-tete button{width:40px;height:40px;border-radius:10px;border:0;background:none;color:var(--encre);font-size:22px;cursor:pointer}.dt-tete button:hover{background:var(--survol)}
-.dt-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.dt-grille{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
 .dt-grille small{font-size:12px;color:var(--doux);font-weight:600;padding:2px 0}
-.dt-grille button{aspect-ratio:1;min-height:38px;border-radius:50%;border:0;background:none;color:var(--encre);font:inherit;font-weight:600;font-size:14.5px;cursor:pointer;font-variant-numeric:tabular-nums}
+.dt-grille button{width:40px;height:40px;justify-self:center;padding:0;border-radius:50%;border:0;background:none;color:var(--encre);font:inherit;font-weight:600;font-size:14.5px;cursor:pointer;font-variant-numeric:tabular-nums}
 .dt-grille button.we{color:var(--doux)}
 .dt-grille button:hover{background:var(--survol)}
 .dt-grille button.auj{box-shadow:inset 0 0 0 1.5px var(--lien);color:var(--lien)}
 .dt-grille button.sel{background:var(--fill);color:var(--on-fill);box-shadow:none}
+@media (pointer:coarse){.dt-grille button{width:44px;height:44px}}
 .dt-sous{font-size:12px;font-weight:650;color:var(--doux);text-transform:uppercase;letter-spacing:.05em}
-.dt-h{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.dt-h{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
 .dt-h button{min-height:40px;border-radius:10px;border:1px solid var(--trait);background:var(--surf-in);color:var(--encre);font:inherit;font-weight:650;font-size:14.5px;font-variant-numeric:tabular-nums;cursor:pointer}
 .dt-h button[aria-pressed="true"]{background:var(--fill);color:var(--on-fill);border-color:transparent}
-.dt-mn{grid-template-columns:repeat(6,1fr)}
+.dt-mn{grid-template-columns:repeat(6,minmax(0,1fr))}
 .dt-ok{width:100%}
 /* ══ DEVIS (2 novembre 2026) ══ */
 .dv-liste{padding:6px 8px;display:flex;flex-direction:column}
