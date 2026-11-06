@@ -768,7 +768,13 @@ body.dp-ouvert{overflow:hidden}
 .a-dec-c{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.a-dec-m{font-size:14px}.a-dec-m::before{content:'↪ ';color:var(--doux)}
 .a-flash{display:flex;gap:12px;align-items:flex-start;padding:14px 14px 14px 16px;margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--vert) 10%,var(--feuille));border:1px solid color-mix(in srgb,var(--vert) 35%,transparent)}
 /* calendrier */
-.ac-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.ac-ctrl .ac-per{flex:none}.ac-nav b{min-width:150px;text-align:center}.ac-qui{width:auto;min-width:190px;margin-left:auto}
+.ac-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.ac-choix-g{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.ac-chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
+.ac-chip i{width:20px;height:20px;border-radius:50%;background:var(--tc);display:inline-block;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7)}
+.ac-chip.ac-tous{padding:0 14px}
+.ac-chip[aria-pressed="true"]{background:var(--feuille);box-shadow:0 0 0 2px var(--tc,var(--encre))}
+.ac-chip:not([aria-pressed="true"]) i{opacity:.55}.ac-ctrl .ac-per{flex:none}.ac-nav b{min-width:150px;text-align:center}.ac-qui{width:auto;min-width:190px;margin-left:auto}
 .ac{padding:0;overflow:hidden}.ac-defile{overflow-x:auto;overscroll-behavior-x:contain}.ac-g{display:flex;flex-direction:column;min-width:max-content}
 .ac-l{display:flex;align-items:stretch;min-height:52px;border-bottom:1px solid var(--trait)}.ac-l:last-child{border-bottom:0}
 .ac-nom{position:sticky;left:0;z-index:3;flex:none;width:200px;display:flex;align-items:center;gap:10px;padding:8px 12px;border:0;border-right:1px solid var(--trait);background:var(--feuille);color:var(--encre);font:inherit;text-align:left;cursor:pointer}
@@ -4175,6 +4181,11 @@ let DECISIONS_ABS = [
 ];
 let aComme = 'marc', aDepl = null;   // prototype : l'écran vu du bureau ou du technicien ; une absence qu'on déplace au toucher
 let aOnglet = 'valider', aRefusees = [], aCalPer = innerWidth > 760 ? 0.5 : 1, aCalSem = null, aCalDeb = null, aCalQui = 'tous', aFlash = null;
+/* Justin, 6 novembre 2026 : « comme le Planning, où on peut choisir plusieurs personnes, ou deux, pour comparer les congés ».
+   Les personnes cochées restent côte à côte dans la grille de l'équipe ; aucune cochée = toute l'équipe. (Toucher un nom ouvre
+   toujours son calendrier à elle seule.) */
+let aCalChoix = [];
+const aGensChoix = () => TECHS.filter(t => t.id && (!aCalChoix.length || aCalChoix.includes(t.id)));
 const A_MC = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const A_JS = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'], A_JL = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 const aMaj = s => s.replace(/^./, c => c.toUpperCase());
@@ -4280,13 +4291,13 @@ function aCtrl(avecQui){
       <div class="seg ac-per" role="group" aria-label="Période">${[0.5, 1, 2, 3, 6].map(n => `<button type="button" data-aper="${n}" aria-pressed="${aCalPer === n}">${n === 0.5 ? '2 semaines' : n + ' mois'}</button>`).join('')}</div>
       <div class="st-nav ac-nav"><button type="button" data-amois="-1" aria-label="Période précédente">‹</button><b>${aPerLib()}</b><button type="button" data-amois="1" aria-label="Période suivante">›</button></div>
       ${(aCalPer === 0.5 ? aCalSem : aCalDeb) ? '<button type="button" class="lien" data-amois="0">Revenir à aujourd’hui</button>' : ''}
-      ${avecQui ? `<select class="saisie ac-qui" data-aqui="1" aria-label="Qui">${[['tous', 'Toute l’équipe'], ...TECHS.filter(t => t.id).map(t => [t.id, t.nom])].map(([k, l]) => `<option value="${k}" ${aCalQui === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : ''}</div>`;
+      ${avecQui ? `<div class="ac-choix-g" role="group" aria-label="Qui afficher : une ou plusieurs personnes à comparer"><button type="button" class="ac-chip ac-tous" data-acqui="" aria-pressed="${!aCalChoix.length && aCalQui === 'tous'}">Toute l’équipe</button>${TECHS.filter(t => t.id).map(t => `<button type="button" class="ac-chip" style="--tc:${t.c}" data-acqui="${t.id}" aria-pressed="${aCalQui === 'tous' ? aCalChoix.includes(t.id) : aCalQui === t.id}"><i></i>${t.nom.split(' ')[0]}</button>`).join('')}</div>` : ''}</div>`;
 }
 function aCalendrier(){
   const J = aPerJours(), N = J.length, nomW = tel() ? 128 : 250, larg = aLargeurs() - nomW - 4;
   const minW = { 0.5:tel() ? 44 : 34, 1:tel() ? 40 : 24, 2:tel() ? 30 : 18, 3:tel() ? 26 : 15, 6:tel() ? 22 : 12 }[aCalPer];
   const W = Math.max(minW, Math.floor(larg / N * 100) / 100);   // au centième : la grille va jusqu'au bord
-  const gens = TECHS.filter(t => t.id && (aCalQui === 'tous' || t.id === aCalQui)), seul = aCalQui !== 'tous';
+  const gens = aCalQui === 'tous' ? aGensChoix() : TECHS.filter(t => t.id === aCalQui), seul = aCalQui !== 'tous';
   return aCalFin(aCtrl(true), seul, seul ? aCalMois(J, aCalQui) : aGrille(J, W, gens), J);
 }
 const aDeplCible = () => aDepl && (aDepl.k === 'd' ? DEMANDES_ABS : ABSENCES).find(x => x.id === aDepl.id);
@@ -4350,7 +4361,7 @@ function aCalMois(J, tid){ const T = tel(), dep = aDeplCible();
     return `<div class="carte acm"><h4 class="acm-t">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
 }
 function aCalFin(ctrl, seul, corps, J){ const lecture = aComme !== 'marc', souris = matchMedia('(hover:hover) and (pointer:fine)').matches, dep = aDeplCible();
-  const aide = seul ? (lecture ? '' : aCalSeulTete(aCalQui, J)) : `<div class="ac-aide"><span aria-hidden="true">👆</span><span>Une <b>case par jour</b> et par personne. Touche <b>un nom</b> pour ne voir que cette personne. Sur une absence : ${souris ? '<b>clic</b> pour le détail, <b>clic droit</b> pour les actions (valider, refuser, déplacer…), ou <b>glisse-la</b> pour la déplacer' : '<b>touche</b> pour le détail, <b>appui long</b> pour les actions (valider, refuser, déplacer…), appui long puis glisse pour la déplacer'}.</span></div>`;
+  const aide = seul ? (lecture ? '' : aCalSeulTete(aCalQui, J)) : `<div class="ac-aide"><span aria-hidden="true">👆</span><span>Une <b>case par jour</b> et par personne. Coche <b>une ou plusieurs personnes</b> en haut pour les comparer ; touche <b>un nom</b> pour ouvrir son calendrier à elle seule. Sur une absence : ${souris ? '<b>clic</b> pour le détail, <b>clic droit</b> pour les actions (valider, refuser, déplacer…), ou <b>glisse-la</b> pour la déplacer' : '<b>touche</b> pour le détail, <b>appui long</b> pour les actions (valider, refuser, déplacer…), appui long puis glisse pour la déplacer'}.</span></div>`;
   const bandeau = dep ? `<div class="ac-depl" role="status"><span>↔︎ Déplacer l’absence de <b>${tech(dep.tech).nom}</b> (${dep.type.toLowerCase()}, ${aPeriode(dep)}) : touche le <b>nouveau premier jour</b>, sur sa ligne.</span><button type="button" class="btn gris mini-btn" data-adeplx="1">Annuler</button></div>` : '';
   const leg = Object.entries(A_TYPES).map(([k, [c]]) => `<span><i style="background:color-mix(in srgb,${c} 50%,var(--carte-fond));box-shadow:inset 0 0 0 1px ${c}"></i>${k}</span>`).join('')
     + `<span><i class="att"></i>En attente${lecture ? '' : ' de ta décision'}</span><span><i class="demi"></i>Demi-journée</span>`
@@ -4494,16 +4505,17 @@ function aMontrerPlanning(d, moves, quoi){
 }; })();
 function aExport(){
   const J = aPerJours(), d0 = J[0], d1 = J[J.length - 1], qui = aCalQui === 'tous' ? null : aCalQui;
-  const L = ABSENCES.filter(a => a.du <= d1 && a.au >= d0 && (!qui || a.tech === qui)).sort((a, b) => a.du.localeCompare(b.du));
-  const titre = aPerLib() + (qui ? ' · ' + tech(qui).nom : '');
-  ouvrirPanneau(`<h2>Exporter les absences</h2><span class="gris">${qui ? tech(qui).nom + ', ' : 'Toute l’équipe, '}${aPerLib()} — la période et la personne choisies au calendrier.</span>
+  const ids = qui ? [qui] : aCalChoix.length ? aCalChoix : null, noms = ids && ids.map(x => tech(x).nom).join(', ');
+  const L = ABSENCES.filter(a => a.du <= d1 && a.au >= d0 && (!ids || ids.includes(a.tech))).sort((a, b) => a.du.localeCompare(b.du));
+  const titre = aPerLib() + (ids ? ' · ' + noms : '');
+  ouvrirPanneau(`<h2>Exporter les absences</h2><span class="gris">${ids ? noms + ', ' : 'Toute l’équipe, '}${aPerLib()} — la période et les personnes choisies au calendrier.</span>
   <div class="bil" role="document" data-nom="Absences ${titre}.pdf" data-objet="Relevé des absences — ${titre}">
     <header class="bil-tete"><div class="bil-ent"><div class="logo-ent">CS</div><div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
-      <div class="bil-titre"><small>Relevé des absences</small><b>${aPerLib()}</b><span>${qui ? tech(qui).nom + ' · ' : ''}du ${aDate(d0, true)} au ${aDate(d1, true)}</span></div></header>
+      <div class="bil-titre"><small>Relevé des absences</small><b>${aPerLib()}</b><span>${ids ? noms + ' · ' : ''}du ${aDate(d0, true)} au ${aDate(d1, true)}</span></div></header>
     <section><h5>Absences validées · ${L.length}</h5><table><thead><tr><th>Personne</th><th>Type</th><th>Période</th><th class="n">Jours ouvrés</th><th>Motif</th></tr></thead><tbody>
       ${L.map(a => `<tr><td>${tech(a.tech).nom}</td><td>${a.type}</td><td>${aPeriode(a)}</td><td class="n">${aNb(aJours(a, d0, d1))}</td><td>${esc(a.motif || '')}</td></tr>`).join('') || '<tr><td colspan="5">Aucune absence sur la période.</td></tr>'}</tbody></table></section>
     <section><h5>Soldes au ${aDate(AUJ, true)}</h5><table><thead><tr><th>Personne</th><th class="n">Congés payés restants</th><th class="n">RTT restants</th><th class="n">Maladie (2026)</th></tr></thead><tbody>
-      ${TECHS.filter(t => t.id && (!qui || t.id === qui)).map(t => `<tr><td>${t.nom}</td><td class="n">${aNb(aSolde(t.id, 'Congé payé').reste)} j</td><td class="n">${aNb(aSolde(t.id, 'RTT').reste)} j</td><td class="n">${aNb(aParMois(t.id).reduce((s, m) => s + (m['Maladie'] || 0), 0))} j</td></tr>`).join('')}</tbody></table></section>
+      ${TECHS.filter(t => t.id && (!ids || ids.includes(t.id))).map(t => `<tr><td>${t.nom}</td><td class="n">${aNb(aSolde(t.id, 'Congé payé').reste)} j</td><td class="n">${aNb(aSolde(t.id, 'RTT').reste)} j</td><td class="n">${aNb(aParMois(t.id).reduce((s, m) => s + (m['Maladie'] || 0), 0))} j</td></tr>`).join('')}</tbody></table></section>
     <footer class="bil-pied"><span>${ENTREPRISE.nom} · relevé établi avec OP GESTION le 2 novembre 2026 · jours ouvrés hors week-ends et jours fériés.</span></footer>
   </div>`, true);
 }
@@ -4525,7 +4537,7 @@ function aApercuModif(d){
 }
 const aLe = () => '02/11 · ' + hm(MAINT_MIN);
 document.addEventListener('click', ev => {
-  const b = ev.target.closest('[data-aint],[data-aplan],[data-aonglet],[data-aok],[data-anon],[data-anonok],[data-amois],[data-avoir],[data-adem],[data-asmois],[data-anouv],[data-anouvok],[data-aexport],[data-asuppr],[data-achoix],[data-amodif],[data-amodifok],[data-aprepond],[data-aper],[data-aqui-v],[data-aflashx],[data-asva]'); if (!b) return;
+  const b = ev.target.closest('[data-acqui],[data-aint],[data-aplan],[data-aonglet],[data-aok],[data-anon],[data-anonok],[data-amois],[data-avoir],[data-adem],[data-asmois],[data-anouv],[data-anouvok],[data-aexport],[data-asuppr],[data-achoix],[data-amodif],[data-amodifok],[data-aprepond],[data-aper],[data-aqui-v],[data-aflashx],[data-asva]'); if (!b) return;
   if (b.dataset.aonglet) { aOnglet = b.dataset.aonglet; return rendre(); }
   if (b.dataset.aflashx) { aFlash = null; return rendre(); }
   if (b.dataset.achoix) { const [did, iid, t] = b.dataset.achoix.split('|'), d = DEMANDES_ABS.find(x => x.id === did); d.choix[iid] = t; return rendre(); }
@@ -4556,6 +4568,11 @@ document.addEventListener('click', ev => {
     const d = DEMANDES_ABS.find(x => x.id === b.dataset.anonok); DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d); aRefusees.unshift({ ...d, raison:r });
     DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'refusee', le:'31/10', par:'marc', moves:[], raison:r });
     journalAjout('marc', 'equipe', 'a refusé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + ' · « ' + r + ' »' }); fermerPanneau(); rendre(); return toast('Demande refusée · ' + aPrenom(d.tech) + ' reçoit la raison'); }
+  if (b.dataset.acqui !== undefined) { const v = b.dataset.acqui, tous = TECHS.filter(t => t.id).length;
+    if (aCalQui !== 'tous') { aCalChoix = v ? [v] : []; aCalQui = 'tous'; }
+    else aCalChoix = !v ? [] : aCalChoix.includes(v) ? aCalChoix.filter(x => x !== v) : [...aCalChoix, v];
+    if (aCalChoix.length === tous) aCalChoix = [];
+    return rendre(); }
   if (b.dataset.aper) { aCalPer = +b.dataset.aper; return rendre(); }
   if (b.dataset.asva) { const e = document.getElementById('as-' + b.dataset.asva); if (e) e.scrollIntoView({ block:'start', behavior:'smooth' }); return; }
   if (b.dataset.aquiV) { aCalQui = b.dataset.aquiV; if (b.dataset.acal) { aOnglet = 'calendrier'; aCalPer = 2; aCalDeb = AUJ.slice(0, 7); } fermerPanneau(); rendre(); return scrollTo({ top:0 }); }
