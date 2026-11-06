@@ -5249,7 +5249,8 @@ const CATS = [   // regroupements décidés avec Justin le 1er novembre 2026 (36
   // Planning rouvert le 3 novembre 2026 : la carte des tournées y est neuve, Justin doit pouvoir l'essayer (à regriser quand il la valide)
   // Absences & congés grisée le 5 novembre 2026 (Justin : « Absences et congés, c'est parfait ») ; Planning reste ouvert (la carte à revoir), Tâches aussi (à la fin)
   // 6 novembre 2026, Justin : « parfait pour Planning, après je veux revoir Absences & congés » — Planning grisé, Absences & congés rouverte
-  ['Planification', [['planning','🗓️','Planning',1],['taches','✅','Tâches'],['absences','🏖️','Absences & congés']]],
+  // 6 novembre 2026, 1 h 20, Justin : « c'est parfait » — Absences & congés regrisée (demandes, pastilles, avis dans les deux sens, dates)
+  ['Planification', [['planning','🗓️','Planning',1],['taches','✅','Tâches'],['absences','🏖️','Absences & congés',1]]],
   ['Interventions', [['interventions','🧰','Interventions',1],['clientvoit','📱','Ce que voit le client',1]]],
   ['CRM', [['clients','🏢','Clients',1]]],
   ['Ventes', [['devis','💰','Devis',1],['factures','🧾','Factures',1],['contrats','📑','Contrats',1],['encaissements','💳','Encaissements',1],['comptabilite','📊','Comptabilité']]],
@@ -5265,7 +5266,7 @@ const A_REFAIRE = CAT_LIGNES.filter(c => !c.fait);
 const SOUS_FAITES = ['inter','facture','client','contrat','contrat-nouveau','signer'];
 const estGrise = r => !TOUT && (SOUS_FAITES.includes(r) || CAT_LIGNES.some(c => c.fait && c.k === r));
 // le prototype s'ouvre sur la catégorie EN COURS de revue avec Justin (Absences & congés, 6 novembre 2026) ; Tâches attend la fin
-const EN_REVUE = 'absences';
+const EN_REVUE = 'comptabilite';   // après Absences & congés (validée le 6 novembre 2026) ; Tâches reste pour la fin
 const premiereARefaire = () => (A_REFAIRE.find(c => c.k === EN_REVUE) || A_REFAIRE[0]).k;
 function vueARefaire(k){
   const c = CAT_LIGNES.find(x => x.k === k) || A_REFAIRE[0], n = A_REFAIRE.indexOf(c) + 1;
