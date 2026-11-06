@@ -4194,8 +4194,8 @@ function aAvisHtml(L, cote){ return L.map(v => `<div class="carte a-avis" role="
 const aChampMot = (pour, ph) => `<label class="champ a-mot"><span>Un mot pour ${pour} (facultatif)</span><textarea data-amot="1" rows="2" placeholder="${ph}"></textarea></label>`;
 /* ce qui a été décidé RESTE écrit, avec ce que la décision a déplacé au planning */
 let DECISIONS_ABS = [
-  { id:'x1', tech:'lr', type:'Congé payé', du:jour(-1), au:jour(3), decision:'validee', le:'24/10', par:'marc', moves:[] },
-  { id:'x2', tech:'sm', type:'RTT', du:'2026-10-16', au:'2026-10-16', decision:'validee', le:'09/10', par:'marc', moves:[{ iid:'i50', titre:'Entretien climatisation · Hôtel de la Plage', h:'09:00', d:'2026-10-16', vers:'kb' }] }
+  { id:'x1', tech:'lr', type:'Congé payé', du:jour(-1), au:jour(3), decision:'validee', demande:'20/10', le:'24/10', par:'marc', moves:[] },
+  { id:'x2', tech:'sm', type:'RTT', du:'2026-10-16', au:'2026-10-16', decision:'validee', demande:'06/10', le:'09/10', par:'marc', moves:[{ iid:'i50', titre:'Entretien climatisation · Hôtel de la Plage', h:'09:00', d:'2026-10-16', vers:'kb' }] }
 ];
 let aComme = 'marc', aDepl = null;   // prototype : l'écran vu du bureau ou du technicien ; une absence qu'on déplace au toucher
 let aOnglet = 'valider', aRefusees = [], aCalPer = innerWidth > 760 ? 0.5 : 1, aCalSem = null, aCalDeb = null, aCalQui = 'tous', aFlash = null;
@@ -4276,9 +4276,11 @@ function aCarteDemande(d){
     ${d.etat === 'proposee' ? '' : `<div class="t-gestes"><button type="button" class="btn vert" data-aok="${d.id}">✓ ${lib}</button><button type="button" class="btn gris" data-amodif="${d.id}">✎ Proposer d’autres dates</button><button type="button" class="btn gris" data-anon="${d.id}">Refuser…</button></div>`}
   </div>`;
 }
+/* Justin, 6 novembre 2026 : « les dates quand ça a été demandé, et quand ça a été validé » */
+const aDecDates = (x, parMarc) => (x.demande ? `demandé le ${x.demande} · ` : 'saisie par Marc · ') + (x.decision === 'validee' ? (x.accord ? 'validé sur accord le ' : 'validé le ') : 'refusé le ') + x.le + (parMarc && !x.accord ? ' par Marc' : '');
 function aCarteDecision(x){
   const t = tech(x.tech), ok = x.decision === 'validee';
-  return `<div class="a-dec"><span class="a-dec-i ${ok ? 'ok' : 'non'}" aria-hidden="true">${ok ? '✓' : '✕'}</span><span class="a-dec-c"><b>${ok ? (x.accord ? 'Validée sur accord' : 'Validée') : 'Refusée'} · ${t.nom} · ${x.type}</b><span class="gris petit">${aPeriode(x)} · décidé le ${x.le}</span>
+  return `<div class="a-dec"><span class="a-dec-i ${ok ? 'ok' : 'non'}" aria-hidden="true">${ok ? '✓' : '✕'}</span><span class="a-dec-c"><b>${ok ? (x.accord ? 'Validée sur accord' : 'Validée') : 'Refusée'} · ${t.nom} · ${x.type}</b><span class="gris petit">${aPeriode(x)} · ${aDecDates(x)}</span>
     ${x.moves && x.moves.length ? x.moves.map(m => `<span class="a-dec-m">${esc(m.titre)} (${m.h}) → ${m.vers ? '<b>' + tech(m.vers).nom + '</b>' : '<b class="t-retard">à planifier</b>'}</span>`).join('') : ok ? '<span class="gris petit">rien à déplacer au planning</span>' : ''}${x.raison ? `<span class="gris petit">« ${esc(x.raison)} »</span>` : ''}</span>
     ${ok ? `<button type="button" class="btn gris mini-btn" data-adecplan="${x.id}">Planning ›</button>` : ''}</div>`;
 }
@@ -4501,7 +4503,7 @@ function aValider(d, origine){
   });
   const ab = { tech:d.tech, du:d.du, au:d.au, demi:d.demi || null, type:d.type, motif:d.motif || '', id:'a' + Date.now() + Math.floor(Math.random() * 99), statut:'validee', decidePar:'marc' };
   ABSENCES.push(ab);
-  DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'validee', le:'31/10', par:'marc', moves });
+  DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'validee', demande:origine === 'saisie' ? null : d.le || null, le:'31/10', par:'marc', moves });
   if (origine === 'accord') DECISIONS_ABS[0].accord = true;
   journalAjout(origine === 'accord' ? d.tech : 'marc', 'equipe', origine === 'saisie' ? 'a ajouté une absence' : origine === 'accord' ? 'a accepté les dates proposées : absence validée' : 'a validé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + (moves.length ? ' · ' + moves.map(m => m.titre + ' → ' + (m.vers ? tech(m.vers).nom : 'à planifier')).join(', ') : '') });
   return moves;
@@ -4601,7 +4603,7 @@ document.addEventListener('click', ev => {
       <div class="actions"><button type="button" class="btn rouge" data-anonok="${d.id}">Refuser</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
   if (b.dataset.anonok) { const r = document.getElementById('an-raison').value.trim(); if (!r) { toast('Écris pourquoi : la personne le lira'); return document.getElementById('an-raison').focus(); }
     const d = DEMANDES_ABS.find(x => x.id === b.dataset.anonok); DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d); aRefusees.unshift({ ...d, raison:r });
-    DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'refusee', le:'31/10', par:'marc', moves:[], raison:r });
+    DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'refusee', demande:d.le || null, le:'31/10', par:'marc', moves:[], raison:r });
     journalAjout('marc', 'equipe', 'a refusé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + ' · « ' + r + ' »' });
     aAvis(d.tech, { ic:'non', titre:'Marc a refusé ta demande', det:`${d.type} · ${aPeriode(d)}`, msg:r, rep:true, ref:{ type:d.type, du:d.du, au:d.au, demi:d.demi || null } }); fermerPanneau(); rendre(); return toast('Demande refusée · ' + aPrenom(d.tech) + ' reçoit la raison'); }
   if (b.dataset.acqui !== undefined) { const v = b.dataset.acqui, tous = TECHS.filter(t => t.id).length;
@@ -4794,7 +4796,7 @@ function vueAbsencesTech(){ const tid = A_TECH, t = tech(tid), cp = aSolde(tid, 
       <div class="a-quand"><b>${aMaj(aPeriode(d))}</b><span>${aDuree(d)} · demandé le ${d.le}</span></div>${d.motif ? `<div class="gris">« ${esc(d.motif)} »</div>` : ''}
       ${d.etat === 'proposee' && d.prop ? `<div class="a-prop"><b>Marc propose ${aPeriode(d.prop)}</b>${d.prop.msg ? `<span class="gris">« ${esc(d.prop.msg)} »</span>` : ''}${aChampMot('Marc', 'Ex. Merci, ça me va. / Je préfère garder mes dates parce que…')}<div class="t-gestes"><button type="button" class="btn vert" data-atrep="${d.id}|oui">✓ Accepter ces dates</button><button type="button" class="btn gris" data-atrep="${d.id}|non">Garder mes dates</button></div></div>`
         : `<div class="t-gestes"><button type="button" class="btn gris mini-btn" data-atretire="${d.id}">Retirer ma demande</button></div>`}</div>`; };
-  const dec = x => `<div class="a-dec"><span class="a-dec-i ${x.decision === 'validee' ? 'ok' : 'non'}" aria-hidden="true">${x.decision === 'validee' ? '✓' : '✕'}</span><span class="a-dec-c"><b>${x.decision === 'validee' ? (x.accord ? 'Validée : tu as accepté les dates de Marc' : 'Validée') : 'Refusée'} · ${x.type}</b><span class="gris petit">${aMaj(aPeriode(x))} · décidé le ${x.le} par Marc</span>${x.raison ? `<span class="gris petit">Pourquoi : « ${esc(x.raison)} »</span>` : ''}</span></div>`;
+  const dec = x => `<div class="a-dec"><span class="a-dec-i ${x.decision === 'validee' ? 'ok' : 'non'}" aria-hidden="true">${x.decision === 'validee' ? '✓' : '✕'}</span><span class="a-dec-c"><b>${x.decision === 'validee' ? (x.accord ? 'Validée : tu as accepté les dates de Marc' : 'Validée') : 'Refusée'} · ${x.type}</b><span class="gris petit">${aMaj(aPeriode(x))} · ${aDecDates(x, true)}</span>${x.raison ? `<span class="gris petit">Pourquoi : « ${esc(x.raison)} »</span>` : ''}</span></div>`;
   return `<div class="tete"><div><span class="surtitre">Mon espace · ${t.nom}</span><h1>Mes absences & congés</h1><span class="gris">Tes demandes partent à Marc, qui les valide.</span></div>
     <div class="actions"><button type="button" class="btn" data-atdem="1">＋ Demande de congé</button></div></div>
     ${aCommeSeg()}
