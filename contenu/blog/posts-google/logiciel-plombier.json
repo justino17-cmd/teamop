@@ -1,0 +1,21 @@
+{
+  "slug": "logiciel-plombier",
+  "prepare": "2026-11-06",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Logiciel plombier : devis, dépannage, SAV, ce qu’il doit faire\n\nÀ retenir : Avant un dépannage chez un particulier, vous devez donner vos taux horaires TTC, le mode de décompte du temps, vos frais de déplacement s’il y en a et dire si le devis est payant.\nLe devis et la facture d’un plombier portent des mentions propres au bâtiment : assurance professionnelle, mention du taux réduit de TVA à 10 % ou 5,5 %.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/logiciel-plombier.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/logiciel-plombier-couverture-google.jpg"
+      }
+    ]
+  }
+}

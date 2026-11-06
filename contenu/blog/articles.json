@@ -1,5 +1,36 @@
 [
  {
+  "slug": "logiciel-plombier",
+  "titre": "Logiciel plombier : devis, dépannage, SAV, ce qu’il doit faire",
+  "description": "Logiciel plombier : obligations avant un dépannage, mentions du devis et de la facture, garanties à suivre, grille de choix à cocher et budget calculé.",
+  "date": "2026-11-06",
+  "image": "logiciel-plombier-couverture.webp",
+  "imageAlt": "Plombier en combinaison bleu marine, accroupi devant l’évier ouvert d’une cuisine, qui montre une tablette à une cliente ; sa caisse à outils rouge est posée au sol",
+  "faq": [
+   {
+    "q": "Quel est le meilleur logiciel pour un plombier ?",
+    "r": "Celui qui fait naître le devis, la fiche d’intervention et la facture de la même intervention, qui fonctionne sur le téléphone du technicien et qui garde l’historique de chaque client. Testez-le sur une vraie journée avec la grille de cet article avant de vous engager."
+   },
+   {
+    "q": "Un devis est-il obligatoire pour un dépannage de plomberie ?",
+    "r": "Oui, chez un particulier, un devis écrit est remis avant les travaux dès le premier euro pour un dépannage, une réparation ou un entretien. Vous devez aussi annoncer avant le contrat vos taux horaires TTC, vos frais de déplacement et le caractère payant ou gratuit du devis."
+   },
+   {
+    "q": "Quelles mentions propres au plombier sur une facture ?",
+    "r": "En plus des mentions de toute facture : l’assurance professionnelle obligatoire avec les coordonnées de l’assureur et la couverture géographique, et la mention qui justifie un taux réduit de TVA à 10 % ou 5,5 % pour des travaux dans un logement de plus de deux ans."
+   },
+   {
+    "q": "Combien de temps dure la garantie sur un chauffe-eau posé ?",
+    "r": "Un chauffe-eau est un équipement qu’on peut retirer sans abîmer le bâti : il relève de la garantie de bon fonctionnement, d’au moins deux ans après la réception des travaux. La garantie de parfait achèvement couvre en plus, pendant un an, tout désordre signalé."
+   },
+   {
+    "q": "Combien coûte un logiciel pour plombier ?",
+    "r": "Avec OP GESTION, de 15 € à 50 € par mois et par utilisateur selon la formule, TVA non applicable. Pour trois utilisateurs, comptez 45 € par mois en Pro et 75 € par mois en Business, la formule qui ajoute le stock de pièces et les bons de commande."
+   }
+  ],
+  "photo": "A plumber in a navy blue coverall kneeling in front of an open kitchen sink cabinet, showing a tablet to a smiling woman, with a red toolbox on the tiled floor"
+ },
+ {
   "slug": "facture-d-intervention",
   "titre": "Facture d’intervention : mentions, délais et facture électronique",
   "description": "Facture d’intervention : liste des mentions à cocher, deux factures calculées, délais de paiement, pénalités et calendrier de la facture électronique.",
