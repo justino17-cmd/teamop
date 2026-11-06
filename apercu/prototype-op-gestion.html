@@ -769,6 +769,9 @@ body.dp-ouvert{overflow:hidden}
 .a-flash{display:flex;gap:12px;align-items:flex-start;padding:14px 14px 14px 16px;margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--vert) 10%,var(--feuille));border:1px solid color-mix(in srgb,var(--vert) 35%,transparent)}
 /* calendrier */
 .ac-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.a-avis{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--vert)}
+.a-avis-c{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
+.a-mot{margin:10px 0 4px}.a-mot textarea{width:100%}.a-avis-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ac-choix-g{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
 .ac-chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
 .ac-chip i{width:20px;height:20px;border-radius:50%;background:var(--tc);display:inline-block;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7)}
@@ -4174,6 +4177,17 @@ let DEMANDES_ABS = [
   { id:'d2', tech:'tl', du:jour(3), au:jour(3), type:'RTT', motif:'Rendez-vous banque et notaire', le:'30/10', etat:'attente', fil:[] },
   { id:'d3', tech:'sm', du:jour(6), au:jour(6), type:'Autre', demi:'matin', motif:'Rendez-vous médical', le:'31/10', etat:'attente', fil:[] }
 ];
+/* Justin, 6 novembre 2026 : « quand il accepte, ça envoie une notification comme quoi il a accepté, et ça le valide automatiquement
+   sur le planning ». Marc a proposé ces dates lui-même : l'accord de la personne VAUT validation. L'avis reste en tête de « À valider »
+   jusqu'à ce que Marc l'ait vu. */
+let A_AVIS = [];
+/* Justin, même nuit : « pareil si c'est refusé, modifié, ça envoie une notification au technicien ; ils peuvent aussi répondre par écrit
+   quand ils acceptent ou si c'est refusé ». Un avis = { pour:'marc' ou la personne, ic, titre, det, msg (le mot de l'autre), plan, rep }. */
+const aAvis = (pour, o) => A_AVIS.unshift({ id:'v' + Date.now() + Math.floor(Math.random() * 999), pour, le:aLe(), ...o });
+const aMot = b => { const t = b && b.closest('.a-prop, .panneau') && b.closest('.a-prop, .panneau').querySelector('textarea[data-amot]'); return t ? t.value.trim() : ''; };
+function aAvisHtml(L, cote){ return L.map(v => `<div class="carte a-avis" role="status"><span class="a-dec-i ${v.ic === 'non' ? 'non' : v.ic === 'info' ? 'info' : 'ok'}" aria-hidden="true">${v.ic === 'non' ? '✕' : v.ic === 'info' ? '✎' : '✓'}</span><span class="a-avis-c"><b>${v.titre}</b><span class="gris petit">${v.det} · ${v.le}</span>${v.msg ? `<span class="a-avis-m">« ${esc(v.msg)} »</span>` : ''}</span>
+  <span class="a-avis-g">${v.plan ? `<button type="button" class="btn gris mini-btn" data-aplan="${v.plan}">Voir au planning ›</button>` : ''}${v.rep && !v.repondu ? `<button type="button" class="btn gris mini-btn" data-atrepondre="${v.id}">Répondre à Marc</button>` : ''}${v.repondu ? '<span class="gris petit">Tu as répondu</span>' : ''}<button type="button" class="lien" data-avu="${v.id}">Vu</button></span></div>`).join(''); }
+const aChampMot = (pour, ph) => `<label class="champ a-mot"><span>Un mot pour ${pour} (facultatif)</span><textarea data-amot="1" rows="2" placeholder="${ph}"></textarea></label>`;
 /* ce qui a été décidé RESTE écrit, avec ce que la décision a déplacé au planning */
 let DECISIONS_ABS = [
   { id:'x1', tech:'lr', type:'Congé payé', du:jour(-1), au:jour(3), decision:'validee', le:'24/10', par:'marc', moves:[] },
@@ -4260,7 +4274,7 @@ function aCarteDemande(d){
 }
 function aCarteDecision(x){
   const t = tech(x.tech), ok = x.decision === 'validee';
-  return `<div class="a-dec"><span class="a-dec-i ${ok ? 'ok' : 'non'}" aria-hidden="true">${ok ? '✓' : '✕'}</span><span class="a-dec-c"><b>${ok ? 'Validée' : 'Refusée'} · ${t.nom} · ${x.type}</b><span class="gris petit">${aPeriode(x)} · décidé le ${x.le}</span>
+  return `<div class="a-dec"><span class="a-dec-i ${ok ? 'ok' : 'non'}" aria-hidden="true">${ok ? '✓' : '✕'}</span><span class="a-dec-c"><b>${ok ? (x.accord ? 'Validée sur accord' : 'Validée') : 'Refusée'} · ${t.nom} · ${x.type}</b><span class="gris petit">${aPeriode(x)} · décidé le ${x.le}</span>
     ${x.moves && x.moves.length ? x.moves.map(m => `<span class="a-dec-m">${esc(m.titre)} (${m.h}) → ${m.vers ? '<b>' + tech(m.vers).nom + '</b>' : '<b class="t-retard">à planifier</b>'}</span>`).join('') : ok ? '<span class="gris petit">rien à déplacer au planning</span>' : ''}${x.raison ? `<span class="gris petit">« ${esc(x.raison)} »</span>` : ''}</span>
     ${ok ? `<button type="button" class="btn gris mini-btn" data-aplan="${x.du}|${x.tech}">Planning ›</button>` : ''}</div>`;
 }
@@ -4447,7 +4461,7 @@ function vueAbsences(){
     <div class="actions"><button type="button" class="btn gris" data-aexport="1">Exporter en PDF</button><button type="button" class="btn" data-anouv="1">＋ Absence</button></div></div>
   ${aCommeSeg()}
   <div class="seg" role="tablist" aria-label="Absences">${[['valider', 'À valider'], ['calendrier', 'Calendrier'], ['soldes', 'Soldes']].map(([k, l]) => `<button type="button" role="tab" data-aonglet="${k}" aria-pressed="${aOnglet === k}" aria-selected="${aOnglet === k}">${l}${k === 'valider' && n ? ` <span class="t-nb rouge">${n}</span>` : ''}</button>`).join('')}</div>
-  ${aOnglet === 'valider' ? (n ? DEMANDES_ABS.slice().sort((a, b) => a.du.localeCompare(b.du)).map(aCarteDemande).join('') : `<div class="t-vide"><b>Aucune demande à valider</b><span>Les demandes de l’équipe arrivent ici, envoyées depuis leur téléphone.</span></div>`)
+  ${aOnglet === 'valider' ? aAvisHtml(A_AVIS.filter(v => v.pour === 'marc'), 'marc') + (n ? DEMANDES_ABS.slice().sort((a, b) => a.du.localeCompare(b.du)).map(aCarteDemande).join('') : `<div class="t-vide"><b>Aucune demande à valider</b><span>Les demandes de l’équipe arrivent ici, envoyées depuis leur téléphone.</span></div>`)
     + (DECISIONS_ABS.length ? `<h3 class="t-sep">Décisions récentes</h3><div class="carte a-decs">${DECISIONS_ABS.slice(0, 8).map(aCarteDecision).join('')}</div>` : '')
     : aOnglet === 'calendrier' ? aCalendrier() : aSoldes()}`;
 }
@@ -4484,9 +4498,18 @@ function aValider(d, origine){
   const ab = { tech:d.tech, du:d.du, au:d.au, demi:d.demi || null, type:d.type, motif:d.motif || '', id:'a' + Date.now() + Math.floor(Math.random() * 99), statut:'validee', decidePar:'marc' };
   ABSENCES.push(ab);
   DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'validee', le:'31/10', par:'marc', moves });
-  journalAjout('marc', 'equipe', origine === 'saisie' ? 'a ajouté une absence' : 'a validé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + (moves.length ? ' · ' + moves.map(m => m.titre + ' → ' + (m.vers ? tech(m.vers).nom : 'à planifier')).join(', ') : '') });
+  if (origine === 'accord') DECISIONS_ABS[0].accord = true;
+  journalAjout(origine === 'accord' ? d.tech : 'marc', 'equipe', origine === 'saisie' ? 'a ajouté une absence' : origine === 'accord' ? 'a accepté les dates proposées : absence validée' : 'a validé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + (moves.length ? ' · ' + moves.map(m => m.titre + ' → ' + (m.vers ? tech(m.vers).nom : 'à planifier')).join(', ') : '') });
   return moves;
 }
+/* la personne accepte les dates proposées par Marc : nouvelles dates, validation d'office (planning, remplaçants), avis pour Marc */
+function aAccepterProp(d, mot){ const av = aPeriode(d); Object.assign(d, { du:d.prop.du, au:d.prop.au, demi:d.prop.demi });
+  (d.fil = d.fil || []).push({ qui:d.tech, quoi:`est d’accord : ${aPeriode(d)} (au lieu de ${av})${mot ? ' : « ' + mot + ' »' : ''}`, le:aLe() });
+  d.prop = null; d.choix = {}; DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d);
+  const moves = aValider(d, 'accord');
+  aAvis('marc', { ic:'ok', titre:`${aPrenom(d.tech)} a accepté tes nouvelles dates : c’est validé`, det:`${d.type} · ${aPeriode(d)} · posé au planning${moves.length ? ' · ' + moves.map(m => esc(m.titre) + ' → ' + (m.vers ? tech(m.vers).nom : 'à planifier')).join(', ') : ''}`, msg:mot, plan:d.du + '|' + d.tech });
+  return moves; }
+const aMovesTxt = moves => moves.length ? ' ' + moves.map(m => esc(m.titre) + ' → ' + (m.vers ? tech(m.vers).nom.split(' ')[0] : 'à planifier')).join(', ') + '.' : '';
 function aMontrerPlanning(d, moves, quoi){
   const j = moves.length ? moves[0].d : d.du;
   aFlash = { texte:quoi, d:j, tech:d.tech, moves };
@@ -4537,14 +4560,18 @@ function aApercuModif(d){
 }
 const aLe = () => '02/11 · ' + hm(MAINT_MIN);
 document.addEventListener('click', ev => {
-  const b = ev.target.closest('[data-acqui],[data-aint],[data-aplan],[data-aonglet],[data-aok],[data-anon],[data-anonok],[data-amois],[data-avoir],[data-adem],[data-asmois],[data-anouv],[data-anouvok],[data-aexport],[data-asuppr],[data-achoix],[data-amodif],[data-amodifok],[data-aprepond],[data-aper],[data-aqui-v],[data-aflashx],[data-asva]'); if (!b) return;
+  const b = ev.target.closest('[data-avu],[data-acqui],[data-aint],[data-aplan],[data-aonglet],[data-aok],[data-anon],[data-anonok],[data-amois],[data-avoir],[data-adem],[data-asmois],[data-anouv],[data-anouvok],[data-aexport],[data-asuppr],[data-achoix],[data-amodif],[data-amodifok],[data-aprepond],[data-aper],[data-aqui-v],[data-aflashx],[data-asva]'); if (!b) return;
   if (b.dataset.aonglet) { aOnglet = b.dataset.aonglet; return rendre(); }
   if (b.dataset.aflashx) { aFlash = null; return rendre(); }
   if (b.dataset.achoix) { const [did, iid, t] = b.dataset.achoix.split('|'), d = DEMANDES_ABS.find(x => x.id === did); d.choix[iid] = t; return rendre(); }
   if (b.dataset.aok) { const d = DEMANDES_ABS.find(x => x.id === b.dataset.aok); DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d); const moves = aValider(d); fermerPanneau();
+    aAvis(d.tech, { ic:'ok', titre:'Marc a validé ta demande', det:`${d.type} · ${aPeriode(d)} · c’est au planning`, plan:d.du + '|' + d.tech });
     const q = `Absence de ${aPrenom(d.tech)} validée`;
-    toast(`${q}. ${aPrenom(d.tech)} est prévenu${aE(d.tech)}.${moves.length ? ' ' + moves.filter(m => m.vers).map(m => tech(m.vers).nom.split(' ')[0] + ' aussi.').join(' ') : ''}`);
-    return aMontrerPlanning(d, moves, q + (moves.length ? ' · ' + moves.length + ' intervention' + (moves.length > 1 ? 's' : '') + ' ' + (moves.every(m => m.vers) ? 'confiée' + (moves.length > 1 ? 's' : '') : 'à reprendre') : '')); }
+    // Justin, 6 novembre 2026 : « quand je valide, ça m'envoie directement sur le planning, c'est un peu chiant » — on reste sur la liste,
+    // le planning est à un geste (le bouton du message)
+    rendre();
+    return toast(`${q}. ${aPrenom(d.tech)} est prévenu${aE(d.tech)}.${moves.length ? ' ' + moves.filter(m => m.vers).map(m => tech(m.vers).nom.split(' ')[0] + ' aussi.').join(' ') : ''}`,
+      { lib:'Voir au planning', fn:() => aMontrerPlanning(d, moves, q + (moves.length ? ' · ' + moves.length + ' intervention' + (moves.length > 1 ? 's' : '') + ' ' + (moves.every(m => m.vers) ? 'confiée' + (moves.length > 1 ? 's' : '') : 'à reprendre') : '')) }); }
   if (b.dataset.amodif) return aPanneauModif(DEMANDES_ABS.find(x => x.id === b.dataset.amodif));
   if (b.dataset.amodifok) { const d = DEMANDES_ABS.find(x => x.id === b.dataset.amodifok);
     const p = { du:document.getElementById('am-du').value, au:document.getElementById('am-au').value, demi:document.getElementById('am-demi').value || null, msg:document.getElementById('am-msg').value.trim() };
@@ -4552,13 +4579,17 @@ document.addEventListener('click', ev => {
     if (p.du === d.du && p.au === d.au && (p.demi || null) === (d.demi || null)) return toast('Ce sont les mêmes dates que sa demande');
     if (p.demi && p.du !== p.au) p.demi = null;
     d.prop = p; d.etat = 'proposee'; d.choix = {}; (d.fil = d.fil || []).push({ qui:'marc', quoi:`a proposé ${aPeriode(p)} au lieu de ${aPeriode(d)}${p.msg ? ' : « ' + p.msg + ' »' : ''}`, le:aLe() });
-    journalAjout('marc', 'equipe', 'a proposé d’autres dates', { lib:tech(d.tech).nom }, { avant:aPeriode(d), apres:aPeriode(p) }); fermerPanneau(); rendre();
+    journalAjout('marc', 'equipe', 'a proposé d’autres dates', { lib:tech(d.tech).nom }, { avant:aPeriode(d), apres:aPeriode(p) });
+    aAvis(d.tech, { ic:'info', titre:'Marc te propose d’autres dates', det:`${aMaj(aPeriode(p))} au lieu de ${aPeriode(d)} · réponds sous « Mes demandes »`, msg:p.msg }); fermerPanneau(); rendre();
     return toast(`Proposition envoyée à ${aPrenom(d.tech)}. Tu revalideras quand ${aE(d.tech) ? 'elle' : 'il'} aura répondu.`); }
   if (b.dataset.aprepond) { const [did, r] = b.dataset.aprepond.split('|'), d = DEMANDES_ABS.find(x => x.id === did);
-    if (r === 'oui') { const av = aPeriode(d); Object.assign(d, { du:d.prop.du, au:d.prop.au, demi:d.prop.demi }); d.etat = 'acceptee'; d.fil.push({ qui:d.tech, quoi:`est d’accord : ${aPeriode(d)} (au lieu de ${av})`, le:aLe() }); }
-    else { d.etat = 'attente'; d.fil.push({ qui:d.tech, quoi:`garde ses dates : ${aPeriode(d)}`, le:aLe() }); }
-    d.prop = null; d.choix = {}; journalAjout('marc', 'equipe', r === 'oui' ? 'a reçu l’accord sur les nouvelles dates' : 'a reçu un refus des nouvelles dates', { lib:tech(d.tech).nom }, { det:aPeriode(d) }); rendre();
-    return toast(r === 'oui' ? `${aPrenom(d.tech)} est d’accord. À toi de valider.` : `${aPrenom(d.tech)} garde ses dates. Valide, propose autre chose ou refuse.`); }
+    if (r === 'oui') { const moves = aAccepterProp(d); fermerPanneau(); rendre();
+      return toast(`${aPrenom(d.tech)} est d’accord : absence validée et posée au planning.${aMovesTxt(moves)}`, { lib:'Voir au planning', fn:() => aMontrerPlanning(d, moves, `Absence de ${aPrenom(d.tech)} validée (accord sur ta proposition)`) }); }
+    d.etat = 'attente'; d.fil.push({ qui:d.tech, quoi:`garde ses dates : ${aPeriode(d)}`, le:aLe() });
+    aAvis('marc', { ic:'info', titre:`${aPrenom(d.tech)} garde ses dates`, det:`${d.type} · ${aPeriode(d)} · à toi de valider, proposer autre chose ou refuser` });
+    d.prop = null; d.choix = {}; journalAjout('marc', 'equipe', 'a reçu un refus des nouvelles dates', { lib:tech(d.tech).nom }, { det:aPeriode(d) }); rendre();
+    return toast(`${aPrenom(d.tech)} garde ses dates. Valide, propose autre chose ou refuse.`); }
+  if (b.dataset.avu) { A_AVIS = A_AVIS.filter(v => v.id !== b.dataset.avu); return rendre(); }
   if (b.dataset.anon) { const d = DEMANDES_ABS.find(x => x.id === b.dataset.anon);
     return ouvrirPanneau(`<h2>Refuser la demande</h2><span class="gris">${tech(d.tech).nom} · ${d.type} · ${aPeriode(d)}</span>
       <div class="info">Plutôt que refuser, tu peux aussi <button type="button" class="lien" data-amodif="${d.id}">proposer d’autres dates</button>.</div>
@@ -4567,7 +4598,8 @@ document.addEventListener('click', ev => {
   if (b.dataset.anonok) { const r = document.getElementById('an-raison').value.trim(); if (!r) { toast('Écris pourquoi : la personne le lira'); return document.getElementById('an-raison').focus(); }
     const d = DEMANDES_ABS.find(x => x.id === b.dataset.anonok); DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d); aRefusees.unshift({ ...d, raison:r });
     DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'refusee', le:'31/10', par:'marc', moves:[], raison:r });
-    journalAjout('marc', 'equipe', 'a refusé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + ' · « ' + r + ' »' }); fermerPanneau(); rendre(); return toast('Demande refusée · ' + aPrenom(d.tech) + ' reçoit la raison'); }
+    journalAjout('marc', 'equipe', 'a refusé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + ' · « ' + r + ' »' });
+    aAvis(d.tech, { ic:'non', titre:'Marc a refusé ta demande', det:`${d.type} · ${aPeriode(d)}`, msg:r, rep:true, ref:{ type:d.type, du:d.du, au:d.au, demi:d.demi || null } }); fermerPanneau(); rendre(); return toast('Demande refusée · ' + aPrenom(d.tech) + ' reçoit la raison'); }
   if (b.dataset.acqui !== undefined) { const v = b.dataset.acqui, tous = TECHS.filter(t => t.id).length;
     if (aCalQui !== 'tous') { aCalChoix = v ? [v] : []; aCalQui = 'tous'; }
     else aCalChoix = !v ? [] : aCalChoix.includes(v) ? aCalChoix.filter(x => x !== v) : [...aCalChoix, v];
@@ -4596,8 +4628,8 @@ document.addEventListener('click', ev => {
     if (!a.du || !a.au || a.au < a.du) return toast('La date de fin est avant la date de début');
     if (a.demi && a.du !== a.au) a.demi = null;
     const moves = aValider(a, 'saisie'); fermerPanneau();
-    if (moves.length) return aMontrerPlanning(a, moves, `Absence de ${aPrenom(a.tech)} enregistrée · ${moves.length} intervention${moves.length > 1 ? 's' : ''} confiée${moves.length > 1 ? 's' : ''}`);
-    aOnglet = 'calendrier'; aCalQui = 'tous'; aCalDeb = a.du.slice(0, 7); rendre(); return toast('Absence enregistrée'); }
+    aOnglet = 'calendrier'; aCalQui = 'tous'; aCalDeb = a.du.slice(0, 7); rendre();
+    return toast(moves.length ? `Absence enregistrée · ${moves.length} intervention${moves.length > 1 ? 's' : ''} confiée${moves.length > 1 ? 's' : ''}` : 'Absence enregistrée', moves.length ? { lib:'Voir au planning', fn:() => aMontrerPlanning(a, moves, `Absence de ${aPrenom(a.tech)} enregistrée · ${moves.length} intervention${moves.length > 1 ? 's' : ''} confiée${moves.length > 1 ? 's' : ''}`) } : undefined); }
   if (b.dataset.aexport) return aExport();
   if (b.dataset.aint) return allerAvecRetour('inter-x-' + b.dataset.aint, 'Absences & congés', () => {});
   if (b.dataset.aplan) { const [d] = b.dataset.aplan.split('|'); fermerPanneau(); plRef = d; plVue = 'jour'; plMasques = new Set(); return allerAvecRetour('planning', 'Absences & congés', () => {}); }
@@ -4754,12 +4786,13 @@ function vueAbsencesTech(){ const tid = A_TECH, t = tech(tid), cp = aSolde(tid, 
   const carte = d => { const [e, c] = etat(d);
     return `<div class="carte at-d"><div class="a-dem-t at-dt">${aTag(d.type)}<span class="st ${c}">${e}</span></div>
       <div class="a-quand"><b>${aMaj(aPeriode(d))}</b><span>${aDuree(d)} · demandé le ${d.le}</span></div>${d.motif ? `<div class="gris">« ${esc(d.motif)} »</div>` : ''}
-      ${d.etat === 'proposee' && d.prop ? `<div class="a-prop"><b>Marc propose ${aPeriode(d.prop)}</b>${d.prop.msg ? `<span class="gris">« ${esc(d.prop.msg)} »</span>` : ''}<div class="t-gestes"><button type="button" class="btn vert" data-atrep="${d.id}|oui">✓ Accepter ces dates</button><button type="button" class="btn gris" data-atrep="${d.id}|non">Garder mes dates</button></div></div>`
+      ${d.etat === 'proposee' && d.prop ? `<div class="a-prop"><b>Marc propose ${aPeriode(d.prop)}</b>${d.prop.msg ? `<span class="gris">« ${esc(d.prop.msg)} »</span>` : ''}${aChampMot('Marc', 'Ex. Merci, ça me va. / Je préfère garder mes dates parce que…')}<div class="t-gestes"><button type="button" class="btn vert" data-atrep="${d.id}|oui">✓ Accepter ces dates</button><button type="button" class="btn gris" data-atrep="${d.id}|non">Garder mes dates</button></div></div>`
         : `<div class="t-gestes"><button type="button" class="btn gris mini-btn" data-atretire="${d.id}">Retirer ma demande</button></div>`}</div>`; };
-  const dec = x => `<div class="a-dec"><span class="a-dec-i ${x.decision === 'validee' ? 'ok' : 'non'}" aria-hidden="true">${x.decision === 'validee' ? '✓' : '✕'}</span><span class="a-dec-c"><b>${x.decision === 'validee' ? 'Validée' : 'Refusée'} · ${x.type}</b><span class="gris petit">${aMaj(aPeriode(x))} · décidé le ${x.le} par Marc</span>${x.raison ? `<span class="gris petit">Pourquoi : « ${esc(x.raison)} »</span>` : ''}</span></div>`;
+  const dec = x => `<div class="a-dec"><span class="a-dec-i ${x.decision === 'validee' ? 'ok' : 'non'}" aria-hidden="true">${x.decision === 'validee' ? '✓' : '✕'}</span><span class="a-dec-c"><b>${x.decision === 'validee' ? (x.accord ? 'Validée : tu as accepté les dates de Marc' : 'Validée') : 'Refusée'} · ${x.type}</b><span class="gris petit">${aMaj(aPeriode(x))} · décidé le ${x.le} par Marc</span>${x.raison ? `<span class="gris petit">Pourquoi : « ${esc(x.raison)} »</span>` : ''}</span></div>`;
   return `<div class="tete"><div><span class="surtitre">Mon espace · ${t.nom}</span><h1>Mes absences & congés</h1><span class="gris">Tes demandes partent à Marc, qui les valide.</span></div>
     <div class="actions"><button type="button" class="btn" data-atdem="1">＋ Demande de congé</button></div></div>
     ${aCommeSeg()}
+    ${aAvisHtml(A_AVIS.filter(v => v.pour === tid), tid)}
     <div class="at-soldes">${tuile('Congés payés', cp, A_TYPES['Congé payé'][0])}${tuile('RTT', rtt, A_TYPES['RTT'][0])}</div>
     <h3 class="t-sep">Mes demandes</h3>${mes.length ? mes.map(carte).join('') : '<div class="t-vide"><b>Aucune demande en cours</b><span>Touche « Demande de congé » pour en envoyer une à Marc.</span></div>'}
     ${decs.length ? `<h3 class="t-sep">Décisions de Marc</h3><div class="carte a-decs">${decs.map(dec).join('')}</div>` : ''}
@@ -4800,11 +4833,11 @@ function aApercuDemande(){ const el = document.getElementById('ad-apercu'); if (
 function aVoirTech(k, id){ const L = k === 'd' ? DEMANDES_ABS : ABSENCES, a = L.find(x => x.id === id); if (!a) return; const d = k === 'd' ? a : null;
   const e = d ? (d.etat === 'proposee' ? ['Marc te propose d’autres dates', 'st-b'] : d.etat === 'acceptee' ? ['Tu as accepté · Marc va valider', 'st-v'] : ['En attente de la décision de Marc', 'st-o']) : ['Validée', 'st-v'];
   ouvrirPanneau(`<span class="t-tetes">${aTag(a.type)}<span class="st ${e[1]}">${e[0]}</span></span><h2>${aMaj(aPeriode(a))}</h2><div class="a-quand"><span>${aDuree(a)}</span></div>${a.motif ? `<div class="gris">« ${esc(a.motif)} »</div>` : ''}
-    ${d && d.etat === 'proposee' && d.prop ? `<div class="a-prop"><b>Marc propose ${aPeriode(d.prop)}</b>${d.prop.msg ? `<span class="gris">« ${esc(d.prop.msg)} »</span>` : ''}<div class="t-gestes"><button type="button" class="btn vert" data-atrep="${d.id}|oui">✓ Accepter ces dates</button><button type="button" class="btn gris" data-atrep="${d.id}|non">Garder mes dates</button></div></div>` : ''}
+    ${d && d.etat === 'proposee' && d.prop ? `<div class="a-prop"><b>Marc propose ${aPeriode(d.prop)}</b>${d.prop.msg ? `<span class="gris">« ${esc(d.prop.msg)} »</span>` : ''}${aChampMot('Marc', 'Ex. Merci, ça me va. / Je préfère garder mes dates parce que…')}<div class="t-gestes"><button type="button" class="btn vert" data-atrep="${d.id}|oui">✓ Accepter ces dates</button><button type="button" class="btn gris" data-atrep="${d.id}|non">Garder mes dates</button></div></div>` : ''}
     ${d && d.etat !== 'proposee' ? `<div class="t-gestes"><button type="button" class="btn gris" data-atretire="${d.id}">Retirer ma demande</button></div>` : ''}
     ${!d ? '<span class="gris petit">Pour changer une absence validée, écris à Marc : c’est lui qui la modifie.</span>' : ''}`); }
 document.addEventListener('click', ev => {
-  const b = ev.target.closest && ev.target.closest('[data-adeplx],[data-acomme],[data-atdem],[data-atenvoi],[data-addemi],[data-atrep],[data-atretire],[data-atvoir],[data-arch],[data-archok],[data-axok],[data-acd]'); if (!b) return;
+  const b = ev.target.closest && ev.target.closest('[data-atrepondre],[data-atrepok],[data-adeplx],[data-acomme],[data-atdem],[data-atenvoi],[data-addemi],[data-atrep],[data-atretire],[data-atvoir],[data-arch],[data-archok],[data-axok],[data-acd]'); if (!b) return;
   if (b.dataset.acd) { if (!aDepl || aComme !== 'marc') return; const a = aDeplCible(); if (!a) { aDepl = null; return aRendreGarde(); }
     if (b.dataset.act !== a.tech) return toast(`Touche une case de la ligne de ${aPrenom(a.tech)}`);
     return aAppliquer(a, b.dataset.acd, ajoute(b.dataset.acd, aEcart(a.du, a.au)), a.demi); }
@@ -4819,19 +4852,29 @@ document.addEventListener('click', ev => {
     fermerPanneau(); rendre();
     return toast('Demande envoyée à Marc. Tu seras prévenu de sa décision.', { lib:'Voir comme Marc', fn:() => { aComme = 'marc'; aOnglet = 'valider'; rendre(); scrollTo({ top:0 }); } }); }
   if (b.dataset.atrep) { const [did, r] = b.dataset.atrep.split('|'), d = DEMANDES_ABS.find(x => x.id === did); if (!d || !d.prop) return;
-    if (r === 'oui') { const av = aPeriode(d); Object.assign(d, { du:d.prop.du, au:d.prop.au, demi:d.prop.demi }); d.etat = 'acceptee'; (d.fil = d.fil || []).push({ qui:d.tech, quoi:`est d’accord : ${aPeriode(d)} (au lieu de ${av})`, le:aLe() }); }
-    else { d.etat = 'attente'; (d.fil = d.fil || []).push({ qui:d.tech, quoi:`garde ses dates : ${aPeriode(d)}`, le:aLe() }); }
-    d.prop = null; d.choix = {}; fermerPanneau(); rendre(); return toast(r === 'oui' ? 'C’est noté : Marc va valider tes nouvelles dates.' : 'Marc sait que tu gardes tes dates.'); }
+    const mot = aMot(b);
+    if (r === 'oui') { aAccepterProp(d, mot); fermerPanneau(); rendre();
+      return toast(`C’est validé : ${d.type.toLowerCase()} ${aPeriode(d)}, posé au planning. Marc est prévenu.`, { lib:'Voir comme Marc', fn:() => { aComme = 'marc'; aOnglet = 'valider'; rendre(); scrollTo({ top:0 }); } }); }
+    d.etat = 'attente'; (d.fil = d.fil || []).push({ qui:d.tech, quoi:`garde ses dates : ${aPeriode(d)}${mot ? ' : « ' + mot + ' »' : ''}`, le:aLe() });
+    aAvis('marc', { ic:'info', titre:`${aPrenom(d.tech)} garde ses dates`, det:`${d.type} · ${aPeriode(d)} · à toi de valider, proposer autre chose ou refuser`, msg:mot });
+    d.prop = null; d.choix = {}; fermerPanneau(); rendre(); return toast('Marc est prévenu : tu gardes tes dates.'); }
   if (b.dataset.atretire) { const d = DEMANDES_ABS.find(x => x.id === b.dataset.atretire); if (!d) return; DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d); fermerPanneau(); rendre();
     return toast('Demande retirée', { lib:'Annuler', fn:() => { DEMANDES_ABS.push(d); rendre(); } }); }
   if (b.dataset.atvoir) { const [k, id] = b.dataset.atvoir.split('|'); return aVoirTech(k, id); }
+  if (b.dataset.atrepondre) { const v = A_AVIS.find(x => x.id === b.dataset.atrepondre); if (!v) return;
+    return ouvrirPanneau(`<h2>Répondre à Marc</h2><span class="gris">${v.det}${v.msg ? ' · il a écrit : « ' + esc(v.msg) + ' »' : ''}</span>${aChampMot('Marc', 'Ex. D’accord, je reporte à décembre. / Je peux m’arranger avec Tom pour cette semaine-là.')}
+      <div class="actions"><button type="button" class="btn" data-atrepok="${v.id}">Envoyer à Marc</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
+  if (b.dataset.atrepok) { const v = A_AVIS.find(x => x.id === b.dataset.atrepok), mot = aMot(b); if (!v) return; if (!mot) return toast('Écris ta réponse : Marc la lira');
+    v.repondu = true; aAvis('marc', { ic:'info', titre:`${aPrenom(A_TECH)} a répondu à ton refus`, det:`${v.ref.type} · ${aPeriode(v.ref)}`, msg:mot });
+    journalAjout(A_TECH, 'equipe', 'a répondu au refus de son absence', { lib:tech(A_TECH).nom }, { det:'« ' + mot + ' »' }); fermerPanneau(); rendre(); return toast('Réponse envoyée à Marc.'); }
   if (b.dataset.arch) { const [aid, iid, t] = b.dataset.arch.split('|'), a = ABSENCES.find(x => x.id === aid); if (!a) return; a.choix[iid] = t; return aPanneauReglage(a); }
   if (b.dataset.archok) { const a = ABSENCES.find(x => x.id === b.dataset.archok); if (!a) return; const c = aConflits(a), moves = [];
     c.ints.forEach(i => { const vers = a.choix && i.id in a.choix ? a.choix[i.id] : ''; moves.push({ iid:i.id, titre:i.titre + ' · ' + CLIENTS[i.cli].nom, h:i.h, d:i.d, vers:vers || null });
       if (vers) { i.tech = vers; i.st = 'planifiee'; journalAjout('marc', 'planning', 'a confié l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { avant:tech(a.tech).nom + ' (absent' + aE(a.tech) + ')', apres:tech(vers).nom }); }
       else { i.st = 'aplanifier'; i.tech = ''; if (typeof TACHES !== 'undefined') TACHES.push({ id:'t' + Date.now() + i.id, t:`Replanifier « ${i.titre} » (${tech(a.tech).nom} absent${aE(a.tech)})`, qui:'marc', d:AUJ, h:null, urgent:i.d <= jour(2), but:'planifier', lien:{ t:'inter', id:i.id, lib:i.titre, cli:i.cli }, note:`Prévue ${aDate(i.d, true)} à ${i.h} chez ${CLIENTS[i.cli].nom}.`, creePar:'marc', creeLe:'31/10', origine:'créée par le déplacement de l’absence' }); } });
-    delete a.choix; fermerPanneau();
-    return aMontrerPlanning(a, moves, `Absence de ${aPrenom(a.tech)} déplacée · ${moves.length} intervention${moves.length > 1 ? 's' : ''} ${moves.every(m => m.vers) ? 'confiée' + (moves.length > 1 ? 's' : '') : 'à reprendre'}`); }
+    delete a.choix; fermerPanneau(); rendre();
+    const qd = `Absence de ${aPrenom(a.tech)} déplacée · ${moves.length} intervention${moves.length > 1 ? 's' : ''} ${moves.every(m => m.vers) ? 'confiée' + (moves.length > 1 ? 's' : '') : 'à reprendre'}`;
+    return toast(qd, { lib:'Voir au planning', fn:() => aMontrerPlanning(a, moves, qd) }); }
   if (b.dataset.axok) { const a = ABSENCES.find(x => x.id === b.dataset.axok); if (!a) return;
     return aAppliquer(a, document.getElementById('ax-du').value, document.getElementById('ax-au').value, document.getElementById('ax-demi').value || null); }
 });
