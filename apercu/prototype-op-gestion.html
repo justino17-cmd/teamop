@@ -266,6 +266,17 @@ table.l tr.cp-ko td{background:color-mix(in srgb,var(--orange) 7%,transparent)}
 .cp-dr{text-align:right;flex:none;white-space:nowrap}.cp-dr .gris{white-space:normal}
 .cp-clos{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;align-items:flex-start}
 .cp-fec{font-family:var(--mono);font-size:12px;line-height:1.5;white-space:pre;overflow:auto;max-height:340px;padding:12px;border-radius:12px;background:var(--surf-in);border:1px solid var(--trait);margin:12px 0}
+/* Matériel & produits (6 novembre 2026) */
+.pr-outils{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.pr-cherche{flex:1 1 260px;display:flex}.pr-cherche .saisie{width:100%}
+.pr-cats{margin:2px 0 4px}.pr-info{margin:0}
+.pr-pack{display:flex;flex-direction:column;gap:2px}.pr-pt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.pr-pt h2{margin:0;font-size:20px}
+.pr-cat .groupe{padding-top:14px}
+.pr-l{display:grid;grid-template-columns:minmax(0,1fr) auto 128px;gap:6px 16px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);padding:11px 4px;color:var(--encre);font:inherit;cursor:pointer;border-radius:10px}
+@media (hover:hover){.pr-l:hover{background:var(--survol)}}.pr-cat .pr-l:last-child{border-bottom:0}
+.pr-n,.pr-s,.pr-p{display:flex;flex-direction:column;gap:2px;min-width:0}.pr-s{align-items:flex-start}.pr-p{align-items:flex-end;text-align:right}
+.pr-mat{font-weight:650;color:var(--doux);font-size:14px}
+.pr-vide{width:100%;text-align:left;background:none;border:1px dashed var(--trait2);border-radius:12px;padding:12px;color:var(--doux);font:inherit;cursor:pointer;margin-top:4px}
+@media (max-width:760px){.puces.pr-cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:2px -16px 4px;padding:0 16px}.pr-cats::-webkit-scrollbar{display:none}.pr-cats .puce-c{flex:none}.pr-l{grid-template-columns:minmax(0,1fr) auto}.pr-s{grid-column:1;grid-row:2;flex-direction:row;gap:8px;align-items:center}.pr-p{grid-column:2;grid-row:1 / span 2}}
 @keyframes aPlacer{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px var(--orange),0 0 22px var(--orange)}}
 .kpi-l{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}
 .kpi-l-t{flex:1 1 220px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:none;border:0;color:var(--encre);font:inherit;cursor:pointer;padding:0;min-width:0}
@@ -2477,7 +2488,7 @@ function vueFiche(id){
       <div class="carte"><h3>Relevés</h3><div class="trois-champs">${RELEVES[F.metier].map(([l,v,u])=>`<label class="champ">${l}${u?' ('+u+')':''}<input inputmode="decimal" value="${v}"></label>`).join('')}</div></div>
       ${i.prevues && i.prevues.length ? `<div class="carte"><h3>Pièces prévues par le bureau</h3>${i.prevues.map(p => `<label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : ça part sur la facture au prix du catalogue. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
       <div class="carte"><h3>Pièces et produits utilisés</h3>${F.pieces.map((p,k)=>`<div class="ligne"><span>${esc(p.nom)}</span><span style="display:flex;gap:10px;align-items:center"><b>${esc(p.q)}</b><button type="button" class="lien" data-action="pieceSuppr" data-k="${k}" data-id="${id}" aria-label="Retirer ${esc(p.nom)}">Retirer</button></span></div>`).join('')}
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px"><input class="saisie" id="p-nom" list="catalogue" placeholder="Chercher dans le stock…"><datalist id="catalogue"><option>Condensateur 5 µF</option><option>Ventilateur extérieur Daikin</option><option>Filtre à charbon</option><option>Fluide R32 (kg)</option><option>Pompe de relevage</option></datalist><input class="saisie" id="p-q" placeholder="Qté"><button type="button" class="btn gris" data-action="pieceAjout" data-id="${id}">Ajouter</button></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px"><input class="saisie" id="p-nom" list="catalogue" placeholder="Chercher dans le stock…"><datalist id="catalogue">${CATALOGUE.map(([n]) => `<option>${esc(n)}</option>`).join('')}</datalist><input class="saisie" id="p-q" placeholder="Qté"><button type="button" class="btn gris" data-action="pieceAjout" data-id="${id}">Ajouter</button></div>
         <div class="faible mini" style="margin-top:8px">Aucun prix ici : le bureau chiffre au moment de la facture.</div></div>
     </div>
     <div class="col">
@@ -5619,7 +5630,7 @@ const CATS = [   // regroupements décidés avec Justin le 1er novembre 2026 (36
   ['Interventions', [['interventions','🧰','Interventions',1],['clientvoit','📱','Ce que voit le client',1]]],
   ['CRM', [['clients','🏢','Clients',1]]],
   ['Ventes', [['devis','💰','Devis',1],['factures','🧾','Factures',1],['contrats','📑','Contrats',1],['encaissements','💳','Encaissements',1],['comptabilite','📊','Comptabilité',2]]],
-  ['Stock', [['produits','📦','Produits'],['stock','🗃️','Stock'],['boxes','🧱','Boxes']]],
+  ['Stock', [['produits','📦','Matériel & produits'],['stock','🗃️','Stock'],['boxes','🧱','Boxes']]],
   ['Temps & équipe', [['pointage','⏱️','Temps de travail'],['vehicules','🚐','Véhicules']]],
   ['Communication', [['boiteMail','📧','Boîte mail'],['messagerie','💬','Messagerie']]],
   ['Achats', [['achats','🛒','Achats']]],
@@ -5662,7 +5673,7 @@ function barreBas(base){
 const BASE = { inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
 function rendre(){
   document.getElementById('cr-ftel')?.remove();
-  const V = { accueil:vueAccueil, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, devis:() => param ? vueDevisFiche(param) : vueDevis() };
+  const V = { accueil:vueAccueil, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
   const base = BASE[route] || route, x = scrollX, defs = [...document.querySelectorAll('.pl-defile')].map(d => d.scrollLeft);
   document.getElementById('menu').innerHTML = menu(base);
   document.getElementById('contenu').innerHTML = `<div class="tete-tel"><span class="logo" style="padding:0"><i>OP</i><b>OP GESTION</b></span><div style="width:190px">${segMode()}</div></div>` + (V[route] && (!estGrise(route) || (typeof RETOUR !== 'undefined' && RETOUR)) ? V[route]() : CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? vueARefaire(route) : vueARefaire(premiereARefaire()));
@@ -5936,7 +5947,149 @@ queueMicrotask(lireHash);   // après tout le script : chaque écran trouve tout
 var CREA = null;
 const PARAMS = { debut:7*60, fin:18*60 };                      // horaires de travail de l'entreprise (Paramètres)
 const TARIFS = { horaire:65, minimum:60, arrondi:'heure', zone:{ 1:29.17, 2:45, 3:62 } };
-const CATALOGUE = [['Filtre à charbon', 24], ['Filtre G4 (lot de 2)', 16], ['Condensateur 5 µF', 18.5], ['Fluide R32 (le kg)', 62], ['Nettoyant échangeur (0,5 L)', 10.33], ['Pompe de relevage', 119], ['Dégrippant', 6.9]];
+/* ══ MATÉRIEL & PRODUITS ══
+   Justin, 6 novembre 2026 : « Produits était la base [d'un premier client] ; maintenant il faut changer le nom — ce sera Matériel et
+   produits — et ranger par catégorie, mais par catégorie de PACK qu'on vend. » Les packs et leurs catégories sont ceux de l'application
+   (`METIERS[k].produits` de beta.html, recopiés à l'identique) ; l'entreprise n'en voit que les siens (Clim Services 17 : climatisation,
+   chauffage, plomberie). Un article AVEC prix de vente est un produit (posé ou vendu, il part sur les devis et les factures) ; SANS prix de
+   vente, c'est du matériel de l'équipe (outillage, EPI, appareils). Le CATALOGUE des devis, des interventions et des factures est TIRÉ
+   de cette liste : un prix changé ici est le prix du prochain devis. Données fictives. */
+const PACKS = {
+  climatisation:{ nom:'Climatisation / Pompes à chaleur', ic:'❄️', cats:['Filtres et cartouches', 'Fluides frigorigènes (par type)', 'Pompes à chaleur et climatisation (unités et pièces)', 'Tuyauterie, liaisons frigorifiques et isolation', 'Outillage consommable', 'EPI'] },
+  chauffage:{ nom:'Chauffage', ic:'🔥', cats:['Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)', 'Filtres et cartouches', 'Radiateurs et robinets thermostatiques', 'Circulateurs et vases d\'expansion', 'Produits de désembouage et de traitement de l\'eau', 'Conduits et fumisterie', 'Régulation et thermostats', 'Outillage consommable', 'EPI'] },
+  plomberie:{ nom:'Plomberie', ic:'🔧', cats:['Raccords et fittings', 'Tubes (cuivre, PER, multicouche, PVC)', 'Robinetterie et mitigeurs', 'Flexibles et alimentation', 'Joints, filasse, pâtes', 'Sanitaire (WC, vasques)', 'Chauffe-eau et groupes de sécurité', 'Évacuation et siphons', 'Débouchage et curage (produits, furets)', 'Outillage consommable', 'EPI'] }
+};
+const PACKS_ENT = ['climatisation', 'chauffage', 'plomberie'];   // les packs pris par l'entreprise (réglage de la Tour)
+/* p : pack · cat : catégorie du pack · pa / pv : prix d'achat / de vente HT (pv vide = matériel de l'équipe) · q / seuil : stock et
+   alerte · o : ordre dans le catalogue des devis (les sept d'avant gardent leur place et leur prix) */
+let PRODUITS = [
+  { id:'p1', p:'climatisation', cat:'Filtres et cartouches', nom:'Filtre à charbon', ref:'FC-300', u:'u', pa:12.9, pv:24, tva:20, four:'Clim Pièces Atlantique', q:14, seuil:6, o:1 },
+  { id:'p2', p:'climatisation', cat:'Filtres et cartouches', nom:'Filtre G4 (lot de 2)', ref:'G4-2', u:'lot', pa:7.8, pv:16, tva:20, four:'Clim Pièces Atlantique', q:9, seuil:4, o:2 },
+  { id:'p3', p:'climatisation', cat:'Pompes à chaleur et climatisation (unités et pièces)', nom:'Condensateur 5 µF', ref:'CAP-5-450', u:'u', pa:8.4, pv:18.5, tva:20, four:'Clim Pièces Atlantique', q:0, seuil:3, o:3 },
+  { id:'p4', p:'climatisation', cat:'Fluides frigorigènes (par type)', nom:'Fluide R32 (le kg)', ref:'R32', u:'kg', pa:38, pv:62, tva:20, four:'Frigo Distribution 17', q:11.5, seuil:5, o:4 },
+  { id:'p5', p:'climatisation', cat:'Outillage consommable', nom:'Nettoyant échangeur (0,5 L)', ref:'NE-05', u:'flacon', pa:5.2, pv:10.33, tva:20, four:'Clim Pièces Atlantique', q:7, seuil:4, o:5 },
+  { id:'p6', p:'plomberie', cat:'Évacuation et siphons', nom:'Pompe de relevage', ref:'PR-250', u:'u', pa:72, pv:119, tva:20, four:'Sanitaire Pro 17', q:1, seuil:1, o:6 },
+  { id:'p7', p:'climatisation', cat:'Outillage consommable', nom:'Dégrippant', ref:'DG-400', u:'aérosol', pa:3.4, pv:6.9, tva:20, four:'Clim Pièces Atlantique', q:12, seuil:4, o:7 },
+  { id:'p8', p:'climatisation', cat:'Fluides frigorigènes (par type)', nom:'Fluide R410A (le kg)', ref:'R410A', u:'kg', pa:46, pv:74, tva:20, four:'Frigo Distribution 17', q:4, seuil:5 },
+  { id:'p9', p:'climatisation', cat:'Pompes à chaleur et climatisation (unités et pièces)', nom:'Ventilateur extérieur', ref:'VE-DK-35', u:'u', pa:142.5, pv:205, tva:20, four:'Clim Pièces Atlantique', q:0, seuil:0 },
+  { id:'p10', p:'climatisation', cat:'Pompes à chaleur et climatisation (unités et pièces)', nom:'Télécommande infrarouge universelle', ref:'TC-UNI', u:'u', pa:17, pv:39, tva:20, four:'Daikin Pro Ouest', q:3, seuil:2 },
+  { id:'p11', p:'climatisation', cat:'Pompes à chaleur et climatisation (unités et pièces)', nom:'Kit cassette 4 voies', ref:'DKO-K4V', u:'u', pa:612, pv:890, tva:20, four:'Daikin Pro Ouest', q:0, seuil:0 },
+  { id:'p12', p:'climatisation', cat:'Tuyauterie, liaisons frigorifiques et isolation', nom:'Liaison frigorifique 1/4 – 3/8 (le mètre)', ref:'LF-1438', u:'m', pa:7.9, pv:14, tva:20, four:'Frigo Distribution 17', q:35, seuil:15 },
+  { id:'p13', p:'climatisation', cat:'Tuyauterie, liaisons frigorifiques et isolation', nom:'Goulotte PVC 60 × 45 (2 m)', ref:'GT-6045', u:'u', pa:9.5, pv:19, tva:20, four:'Frigo Distribution 17', q:6, seuil:4 },
+  { id:'p14', p:'climatisation', cat:'EPI', nom:'Gants anti-coupure (la paire)', ref:'EPI-G5', u:'paire', pa:6.5, four:'Clim Pièces Atlantique', q:8, seuil:4 },
+  { id:'p15', p:'climatisation', cat:'EPI', nom:'Lunettes de protection', ref:'EPI-L1', u:'u', pa:4.9, four:'Clim Pièces Atlantique', q:5, seuil:2 },
+  { id:'p16', p:'chauffage', cat:'Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)', nom:'Électrode d’allumage', ref:'EL-ALL', u:'u', pa:11, pv:24, tva:20, four:'Chauffage Distribution Atlantique', q:4, seuil:2 },
+  { id:'p17', p:'chauffage', cat:'Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)', nom:'Thermocouple universel', ref:'TH-900', u:'u', pa:9, pv:21, tva:20, four:'Chauffage Distribution Atlantique', q:2, seuil:2 },
+  { id:'p18', p:'chauffage', cat:'Circulateurs et vases d\'expansion', nom:'Circulateur classe A', ref:'CIRC-A', u:'u', pa:118, pv:189, tva:20, four:'Chauffage Distribution Atlantique', q:1, seuil:1 },
+  { id:'p19', p:'chauffage', cat:'Circulateurs et vases d\'expansion', nom:'Vase d’expansion 8 L', ref:'VE-8', u:'u', pa:21, pv:39, tva:20, four:'Chauffage Distribution Atlantique', q:3, seuil:1 },
+  { id:'p20', p:'chauffage', cat:'Produits de désembouage et de traitement de l\'eau', nom:'Désembouant (1 L)', ref:'DES-1', u:'bidon', pa:14, pv:29, tva:20, four:'Chauffage Distribution Atlantique', q:5, seuil:2 },
+  { id:'p21', p:'chauffage', cat:'Radiateurs et robinets thermostatiques', nom:'Tête thermostatique', ref:'TT-28', u:'u', pa:13, pv:28, tva:20, four:'Chauffage Distribution Atlantique', q:6, seuil:3 },
+  { id:'p22', p:'chauffage', cat:'Régulation et thermostats', nom:'Thermostat d’ambiance sans fil', ref:'TA-SF', u:'u', pa:48, pv:89, tva:20, four:'Chauffage Distribution Atlantique', q:2, seuil:1 },
+  { id:'p23', p:'plomberie', cat:'Chauffe-eau et groupes de sécurité', nom:'Groupe de sécurité chauffe-eau', ref:'GS-20', u:'u', pa:15, pv:32, tva:20, four:'Sanitaire Pro 17', q:3, seuil:2 },
+  { id:'p24', p:'plomberie', cat:'Chauffe-eau et groupes de sécurité', nom:'Anode magnésium', ref:'AN-MG', u:'u', pa:11, pv:24, tva:20, four:'Sanitaire Pro 17', q:1, seuil:2 },
+  { id:'p25', p:'plomberie', cat:'Joints, filasse, pâtes', nom:'Joints fibre (sachet de 10)', ref:'JF-10', u:'sachet', pa:2.1, pv:4.9, tva:20, four:'Sanitaire Pro 17', q:15, seuil:5 },
+  { id:'p26', p:'plomberie', cat:'Raccords et fittings', nom:'Raccord à sertir 16 mm', ref:'RS-16', u:'u', pa:1.4, pv:3.2, tva:20, four:'Sanitaire Pro 17', q:40, seuil:20 },
+  { id:'p27', p:'plomberie', cat:'Flexibles et alimentation', nom:'Flexible inox 50 cm', ref:'FX-50', u:'u', pa:4.2, pv:9.5, tva:20, four:'Sanitaire Pro 17', q:10, seuil:4 },
+  { id:'p28', p:'plomberie', cat:'Débouchage et curage (produits, furets)', nom:'Furet manuel 10 m', ref:'FUR-10', u:'u', pa:38, four:'Sanitaire Pro 17', q:2, seuil:1 },
+  { id:'p29', p:'plomberie', cat:'EPI', nom:'Genouillères', ref:'EPI-GN', u:'paire', pa:19, four:'Sanitaire Pro 17', q:4, seuil:2 }
+];
+const prVend = x => x.pv != null && x.pv !== '';   // un prix de vente : produit ; sinon : matériel de l'équipe
+/* le catalogue des devis, des interventions et des factures se tire de cette liste : un tableau [nom, prix HT], les sept d'avant d'abord */
+function prCatalogue(){ return PRODUITS.filter(x => prVend(x) && !x.retire).sort((a, b) => (a.o || 99) - (b.o || 99)).map(x => [x.nom, x.pv]); }
+const CATALOGUE = prCatalogue();
+const prCatalogueMaj = () => CATALOGUE.splice(0, CATALOGUE.length, ...prCatalogue());   // le même tableau, partout (les écrans le lisent par référence)
+let prPack = 'tous', prCat = null, prQ = '', prAlerte = false;
+const prEtat = x => x.q <= 0 ? (x.seuil > 0 ? ['Épuisé', 'st-r'] : ['Sur commande', 'st-g']) : x.q <= x.seuil ? ['À commander', 'st-o'] : ['En stock', 'st-v'];
+const prNum = n => String(n).replace('.', ',');
+const prU = (q, u) => q > 1 && u.length > 2 && !/[sx]$/.test(u) ? u + 's' : u;   // « 9 lots », « 7 flacons » ; « 4 kg », « 35 m » ne bougent pas
+const prMarge = x => prVend(x) && x.pa ? Math.round((x.pv - x.pa) / x.pv * 100) : null;
+/* combien de fois l'article sert : posé sur une intervention ou prévu sur un devis */
+function prUsage(x){
+  const n = s => (s || '').toLowerCase() === x.nom.toLowerCase();
+  const inter = INTS.filter(i => (typeof FICHES === 'object' && FICHES[i.id] && (FICHES[i.id].pieces || []).some(p => n(p.nom))) || (i.prevues || []).some(p => n(p.nom))).length;
+  if (DV == null && typeof dvSync === 'function') dvSync();   // la liste des devis se construit à la première ouverture de Devis
+  const devis = Array.isArray(DV) ? DV.filter(d => (d.lignes || []).some(l => n(l[0]))).length : 0;
+  return { inter, devis };
+}
+function vueProduits(){
+  const packs = PACKS_ENT.filter(k => PACKS[k]), q = prQ.trim().toLowerCase();
+  const vis = PRODUITS.filter(x => !x.retire && (prPack === 'tous' || x.p === prPack) && (!prCat || x.cat === prCat) && (!prAlerte || (x.seuil > 0 && x.q <= x.seuil)) && (!q || (x.nom + ' ' + x.ref + ' ' + x.four).toLowerCase().includes(q)));
+  const tous = PRODUITS.filter(x => !x.retire), aCmd = tous.filter(x => x.seuil > 0 && x.q <= x.seuil), valeur = tous.reduce((s, x) => s + (x.pa || 0) * Math.max(0, x.q), 0);
+  const ligne = x => { const e = prEtat(x), m = prMarge(x);
+    return `<button type="button" class="pr-l" data-pr="fiche|${x.id}"><span class="pr-n"><b>${esc(x.nom)}</b><span class="gris petit">${esc(x.ref)} · ${esc(x.four)}</span></span>
+      <span class="pr-s"><span class="st ${e[1]}">${e[0]}</span><span class="gris petit">${prNum(x.q)} ${esc(prU(x.q, x.u))}${x.seuil ? ' · alerte à ' + prNum(x.seuil) : ''}</span></span>
+      <span class="pr-p">${prVend(x) ? `<b>${eur(x.pv)}</b><span class="gris petit">HT${m != null ? ' · marge ' + m + ' %' : ''}</span>` : '<span class="pr-mat">Matériel</span><span class="gris petit">pas facturé</span>'}</span></button>`; };
+  const blocPack = k => { const P = PACKS[k], L = vis.filter(x => x.p === k); if (!L.length && (prPack === 'tous' || q || prAlerte)) return '';
+    const cats = P.cats.filter(c => !prCat || c === prCat);
+    return `<section class="carte pr-pack"><div class="pr-pt"><h2><span aria-hidden="true">${P.ic}</span> ${esc(P.nom)}</h2><span class="gris petit">${L.length} article${L.length > 1 ? 's' : ''}</span></div>
+      ${cats.map(c => { const C = L.filter(x => x.cat === c); if (!C.length && (prPack === 'tous' || q || prAlerte)) return '';
+        return `<div class="pr-cat"><div class="groupe">${esc(c)} · ${C.length}</div>${C.map(ligne).join('') || `<button type="button" class="pr-vide" data-pr="nouveau|${k}|${esc(c)}">Rien ici pour l’instant · ＋ Ajouter un article</button>`}</div>`; }).join('')}</section>`; };
+  return `<div class="tete"><div><span class="surtitre">Stock</span><h1>Matériel &amp; produits</h1><span class="gris">Tout ce que ton équipe pose, vend ou utilise, rangé par métier. Les prix partent tout seuls dans les devis, les interventions et les factures.</span></div>
+    <div class="actions"><button type="button" class="btn" data-pr="nouveau|${prPack === 'tous' ? packs[0] : prPack}|${esc(prCat || '')}">＋ Ajouter</button></div></div>
+  <div class="kpis"><div class="kpi"><b>${tous.length}</b><span>articles · ${tous.filter(prVend).length} produits, ${tous.filter(x => !prVend(x)).length} matériel</span></div>
+    <button type="button" class="kpi" data-pr="alerte"><b style="color:${aCmd.length ? 'var(--orange)' : 'inherit'}">${aCmd.length}</b><span>à commander${prAlerte ? ' · filtre actif' : ''}</span></button>
+    <div class="kpi"><b>${eur(valeur)}</b><span>valeur du stock (prix d’achat HT)</span></div>
+    <div class="kpi"><b>${packs.length}</b><span>métier${packs.length > 1 ? 's' : ''} : ${packs.map(k => PACKS[k].ic).join(' ')}</span></div></div>
+  <div class="pr-outils"><div class="seg" role="group" aria-label="Métier">${[['tous','Tous'], ...packs.map(k => [k, PACKS[k].ic + ' ' + PACKS[k].nom.split(' /')[0]])].map(([k, l]) => `<button type="button" data-pr="pack|${k}" aria-pressed="${prPack === k}">${l}</button>`).join('')}</div>
+    <label class="pr-cherche"><input class="saisie" type="search" data-prq="1" aria-label="Chercher un article" value="${esc(prQ)}" placeholder="Chercher un article, une référence, un fournisseur…"></label></div>
+  ${prPack !== 'tous' ? `<div class="puces pr-cats"><button type="button" class="puce-c" data-pr="cat|" aria-pressed="${!prCat}">Toutes</button>${PACKS[prPack].cats.map(c => { const n = tous.filter(x => x.p === prPack && x.cat === c).length; return `<button type="button" class="puce-c" data-pr="cat|${esc(c)}" aria-pressed="${prCat === c}">${esc(c.replace(/ \(.*\)$/, ''))}${n ? ' · ' + n : ''}</button>`; }).join('')}</div>` : ''}
+  ${prAlerte ? `<div class="info petit pr-info">À commander : les articles arrivés à leur seuil d’alerte. <button type="button" class="lien" data-pr="alerte">Tout voir</button></div>` : ''}
+  ${(prPack === 'tous' ? packs : [prPack]).map(blocPack).join('') || `<div class="carte gris">Aucun article ne correspond. <button type="button" class="lien" data-pr="raz">Tout voir</button></div>`}`;
+}
+function prFiche(id){
+  const x = PRODUITS.find(o => o.id === id); if (!x) return; const e = prEtat(x), m = prMarge(x), u = prUsage(x), P = PACKS[x.p];
+  ouvrirPanneau(`<span class="surtitre">${P.ic} ${esc(P.nom)} › ${esc(x.cat)}</span><h2>${esc(x.nom)}</h2>
+    <div class="puces" style="margin:6px 0 4px"><span class="st ${e[1]}">${e[0]}</span><span class="st ${prVend(x) ? 'st-b' : 'st-g'}">${prVend(x) ? 'Produit facturé' : 'Matériel de l’équipe'}</span></div>
+    <div class="ligne"><span>Référence</span><b>${esc(x.ref)}</b></div><div class="ligne"><span>Fournisseur</span><b>${esc(x.four)}</b></div>
+    <div class="ligne"><span>En stock</span><b>${prNum(x.q)} ${esc(prU(x.q, x.u))}</b></div><div class="ligne"><span>Alerte quand il en reste</span><b>${prNum(x.seuil)} ${esc(prU(x.seuil, x.u))}</b></div>
+    <div class="ligne"><span>Prix d’achat HT</span><b>${x.pa ? eur(x.pa) : '—'}</b></div>
+    ${prVend(x) ? `<div class="ligne"><span>Prix de vente HT</span><b>${eur(x.pv)}</b></div><div class="ligne"><span>Marge</span><b>${m != null ? eur(x.pv - x.pa) + ' · ' + m + ' %' : '—'}</b></div><div class="ligne"><span>TVA</span><b>${prNum(x.tva)} %</b></div>` : ''}
+    <div class="ligne"><span>Utilisé</span><b>${u.inter} intervention${u.inter > 1 ? 's' : ''} · ${u.devis} devis</b></div>
+    <div class="actions" style="margin-top:12px"><button type="button" class="btn" data-pr="modif|${x.id}">Modifier</button>${x.seuil > 0 && x.q <= x.seuil ? `<button type="button" class="btn gris" data-pr="cmd|${x.id}">Commander</button>` : ''}<button type="button" class="btn gris" data-pr="retirer|${x.id}">Retirer</button></div>
+    <span class="gris petit">${prVend(x) ? 'Son prix de vente est celui que prennent les devis, les interventions et les factures.' : 'Le matériel n’est jamais facturé : il est suivi pour le stock et le rachat.'}</span>`);
+}
+function prFormulaire(x, pack, cat){
+  const k = x ? x.p : pack, P = PACKS[k], cats = P.cats;
+  ouvrirPanneau(`<h2>${x ? 'Modifier l’article' : 'Ajouter un article'}</h2>
+    <div class="deux-champs"><label class="champ">Métier<select id="pr-pack" data-prpack="1">${PACKS_ENT.map(p => `<option value="${p}" ${p === k ? 'selected' : ''}>${PACKS[p].ic} ${esc(PACKS[p].nom)}</option>`).join('')}</select></label>
+      <label class="champ">Catégorie<select id="pr-cat">${cats.map(c => `<option ${c === (x ? x.cat : cat) ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label></div>
+    <label class="champ">Nom<input id="pr-nom" value="${esc(x ? x.nom : '')}" placeholder="ex. Condensateur 5 µF"></label>
+    <div class="deux-champs"><label class="champ">Référence<input id="pr-ref" value="${esc(x ? x.ref : '')}"></label><label class="champ">Fournisseur<input id="pr-four" value="${esc(x ? x.four : '')}"></label></div>
+    <div class="trois-champs"><label class="champ">En stock<input id="pr-q" inputmode="decimal" value="${x ? prNum(x.q) : '0'}"></label><label class="champ">Unité<input id="pr-u" value="${esc(x ? x.u : 'u')}"></label><label class="champ">Alerte à<input id="pr-seuil" inputmode="decimal" value="${x ? prNum(x.seuil) : '0'}"></label></div>
+    <div class="trois-champs"><label class="champ">Achat HT (€)<input id="pr-pa" inputmode="decimal" value="${x && x.pa ? prNum(x.pa) : ''}"></label><label class="champ">Vente HT (€)<input id="pr-pv" inputmode="decimal" value="${x && prVend(x) ? prNum(x.pv) : ''}" placeholder="vide = matériel"></label><label class="champ">TVA<select id="pr-tva">${[20, 10, 5.5].map(t => `<option value="${t}" ${(x ? x.tva : 20) == t ? 'selected' : ''}>${prNum(t)} %</option>`).join('')}</select></label></div>
+    <span class="gris petit">Sans prix de vente, l’article est du matériel de l’équipe : suivi, jamais facturé.</span>
+    <div class="actions"><button type="button" class="btn" data-pr="garder|${x ? x.id : ''}">${x ? 'Enregistrer' : 'Ajouter'}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+const prLire = id => { const v = document.getElementById(id).value.trim().replace(',', '.'); return v === '' ? null : parseFloat(v); };
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-pr]'); if (!b) return;
+  const [a, x, y] = b.dataset.pr.split('|');
+  if (a === 'pack') { prPack = x; prCat = null; return rendre(); }
+  if (a === 'cat') { prCat = x || null; return rendre(); }
+  if (a === 'alerte') { prAlerte = !prAlerte; return rendre(); }
+  if (a === 'raz') { prPack = 'tous'; prCat = null; prQ = ''; prAlerte = false; return rendre(); }
+  if (a === 'fiche') return prFiche(x);
+  if (a === 'nouveau') return prFormulaire(null, x || PACKS_ENT[0], y || '');
+  if (a === 'modif') return prFormulaire(PRODUITS.find(o => o.id === x));
+  if (a === 'cmd') { const o = PRODUITS.find(z => z.id === x); fermerPanneau(); return toast(`${esc(o.nom)} ajouté à la prochaine commande chez ${esc(o.four)} (la catégorie Achats la préparera).`); }
+  if (a === 'retirer') { const o = PRODUITS.find(z => z.id === x); o.retire = true; prCatalogueMaj(); fermerPanneau(); rendre();
+    return toast(`${esc(o.nom)} retiré : il ne sera plus proposé dans les devis.`, { lib:'Annuler', fn:() => { o.retire = false; prCatalogueMaj(); rendre(); } }); }
+  if (a === 'garder') { const nom = document.getElementById('pr-nom').value.trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
+    const pv = prLire('pr-pv'), o = x ? PRODUITS.find(z => z.id === x) : { id:'p' + Date.now() };
+    Object.assign(o, { p:document.getElementById('pr-pack').value, cat:document.getElementById('pr-cat').value, nom, ref:document.getElementById('pr-ref').value.trim() || '—', four:document.getElementById('pr-four').value.trim() || '—',
+      q:prLire('pr-q') || 0, u:document.getElementById('pr-u').value.trim() || 'u', seuil:prLire('pr-seuil') || 0, pa:prLire('pr-pa'), pv:pv, tva:parseFloat(document.getElementById('pr-tva').value) });
+    if (!x) PRODUITS.push(o); prCatalogueMaj(); fermerPanneau(); prPack = o.p; prCat = null; rendre();
+    return toast(x ? 'Article enregistré' + (prVend(o) ? ' : le prochain devis prendra ce prix.' : '.') : 'Article ajouté' + (prVend(o) ? ' : il est proposé dans les devis.' : ' au matériel de l’équipe.')); }
+});
+document.addEventListener('change', ev => {
+  if (!ev.target.matches('[data-prpack]')) return;
+  const s = document.getElementById('pr-cat'); if (s) s.innerHTML = PACKS[ev.target.value].cats.map(c => `<option>${esc(c)}</option>`).join('');
+});
+document.addEventListener('input', ev => {
+  if (!ev.target.matches('[data-prq]')) return;
+  prQ = ev.target.value; const pos = ev.target.selectionStart; rendre();
+  const i = document.querySelector('[data-prq]'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (e) {} }
+});
 const prixCatalogue = nom => { const x = CATALOGUE.find(c => c[0] === nom); return x ? x[1] : null; };
 const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer le ventilateur extérieur', lignes:[['Ventilateur extérieur Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
                 md:{ num:'D-2026-031', objet:'Remplacement de la pompe de relevage', lignes:[['Pompe de relevage', 1, 119], ['Main-d’œuvre (1 h)', 1, 65], ['Déplacement', 1, 29.17]] } };
