@@ -218,7 +218,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pl-col.abs{background-color:color-mix(in srgb,var(--doux) 7%,transparent)}
 .pl-col.cible{background-color:color-mix(in srgb,var(--tc,var(--bleu)) 12%,transparent)}
 .pl-col.cible-non{background-color:color-mix(in srgb,var(--rouge) 12%,transparent)}
-.pl-abs{position:absolute;inset:4px;border-radius:12px;border:1px dashed var(--trait2);display:flex;align-items:flex-start;justify-content:center;padding-top:14px;font-weight:700;color:var(--doux);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--doux) 10%,transparent) 0 8px,transparent 8px 16px);pointer-events:none}
+.pl-abs{position:absolute;inset:4px;border-radius:12px;border:1px dashed color-mix(in srgb,var(--ac,var(--doux)) 60%,transparent);display:flex;align-items:flex-start;justify-content:center;padding-top:14px;font-weight:700;color:color-mix(in srgb,var(--ac,var(--doux)) 72%,var(--encre));background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ac,var(--doux)) 20%,transparent) 0 8px,color-mix(in srgb,var(--ac,var(--doux)) 6%,transparent) 8px 16px);pointer-events:none}
 .pl-maint{position:absolute;left:0;right:0;border-top:2px solid var(--rouge);z-index:3;pointer-events:none}
 .pl-maint::before{content:"";position:absolute;left:-5px;top:-6px;width:10px;height:10px;border-radius:50%;background:var(--rouge)}
 /* la carte d'intervention : l'heure en premier, en gros ; le titre ; le client */
@@ -304,8 +304,8 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 .pl-mrec-d{overflow-x:auto;padding:0 12px}.pl-mrec table{width:100%;border-collapse:collapse;font-size:13.5px}.pl-mrec th,.pl-mrec td{text-align:left;padding:7px 8px;border-top:1px solid var(--grille);white-space:nowrap}
 .pl-mrec thead th{font-size:12px;color:var(--doux);font-weight:700;border-top:0}.pl-mrec tbody th{display:flex;align-items:center;gap:8px;font-weight:650}
 .pl-mrec-a{display:inline-block;font-size:12px;font-weight:650;background:color-mix(in srgb,var(--c) 22%,transparent);border-left:3px solid var(--c);border-radius:5px;padding:1px 6px;margin:1px 0}
-.pl-mleg{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 16px 14px;font-size:12.5px;color:var(--doux)}.pl-mleg span{display:inline-flex;align-items:center;gap:6px}.pg-abs.demi{flex:0 0 auto;min-height:28px;margin-bottom:4px}.pl-jh small.pl-abs-l{color:var(--violet);font-weight:700}
-.pg-abs{flex:1;border-radius:12px;border:1px dashed var(--trait2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--doux);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--doux) 10%,transparent) 0 8px,transparent 8px 16px);min-height:80px}
+.pl-mleg{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 16px 14px;font-size:12.5px;color:var(--doux)}.pl-mleg span{display:inline-flex;align-items:center;gap:6px}.pg-abs.demi{flex:0 0 auto;min-height:28px;margin-bottom:4px}.pl-jh small.pl-abs-l{color:color-mix(in srgb,var(--ac,var(--violet)) 80%,var(--encre));font-weight:700}
+.pg-abs{flex:1;border-radius:12px;border:1px dashed color-mix(in srgb,var(--ac,var(--doux)) 60%,transparent);display:flex;align-items:center;justify-content:center;font-weight:700;color:color-mix(in srgb,var(--ac,var(--doux)) 72%,var(--encre));background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ac,var(--doux)) 20%,transparent) 0 8px,color-mix(in srgb,var(--ac,var(--doux)) 6%,transparent) 8px 16px);min-height:80px}
 .apercu{position:fixed;z-index:85;width:300px;padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);display:flex;flex-direction:column;gap:8px;pointer-events:none;animation:pop .16s var(--ressort) both;font-size:14.5px}
 .ap-h{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}.ap-h span{display:block;font-size:13px;font-weight:500;color:var(--doux)}
 .ap-t{font-size:16px;font-weight:700;line-height:1.3}.ap-l{line-height:1.4}.ap-motif{padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--orange) 10%,transparent)}
@@ -1366,6 +1366,7 @@ const CLIENTS = {
 };
 let INTS = [
   // la semaine passée : terminées
+  { id:'i50', d:'2026-10-16', h:'09:00', dur:90, tech:'kb', cli:'hp', titre:'Entretien climatisation', type:'Entretien', st:'fait' },   // confiée à Karim : Sophie en RTT ce jour-là (décision du 09/10)
   { id:'i20', d:jour(-5), h:'09:00', dur:90, tech:'sm', cli:'hp', titre:'Entretien climatisation — 6 cassettes', type:'Entretien', st:'fait' },
   { id:'i21', d:jour(-5), h:'14:00', dur:60, tech:'kb', cli:'cp', titre:'Dépannage — fuite d’eau', type:'Dépannage', st:'fait' },
   { id:'i22', d:jour(-4), h:'08:00', dur:120, tech:'tl', cli:'mi', titre:'Contrat — visite 2 sur 4', type:'Contrat', st:'fait' },
@@ -1474,6 +1475,9 @@ const absE = tid => tid === 'sm' || tid === 'lr' ? 'e' : '';
 const absDemi = a => a && a.demi && a.du === a.au ? a.demi : '';
 function absentA(tid, d, h){ const a = absent(tid, d); if (!a) return null; const dm = absDemi(a); if (!dm || h == null) return a;
   const hh = typeof h === 'number' ? hm(h) : String(h); return (dm === 'matin') === (hh < '13:00') ? a : null; }
+/* Justin, 6 novembre 2026 : « là où c'est gris, je voudrais la couleur du motif de congé, dans le même style, en transparent » —
+   la couleur du TYPE d'absence (celle de la légende d'Absences & congés) */
+const absCoul = a => ((typeof A_TYPES === 'object' && A_TYPES[a.type]) || ['var(--doux)'])[0];
 const absLib = a => 'Absent' + absE(a.tech) + ' · ' + a.type + (absDemi(a) ? ' · ' + (absDemi(a) === 'matin' ? 'matin' : 'après-midi') : '');
 function refusAbsent(tid, d, h){ const a = tid ? absentA(tid, d, h) : null; if (!a) return false; const e = absE(tid), dm = absDemi(a);
   toast(`Impossible de poser une intervention à <b>${tech(tid).nom}</b> : ${e ? 'elle' : 'il'} est absent${e} ${dm ? (dm === 'matin' ? 'ce matin-là' : 'cet après-midi-là') : 'ce jour-là'} (${a.type}).`); return true; }
@@ -1528,7 +1532,7 @@ function carteBur(b, pph, place){
 function colonne(tid, d, pph){
   const ab = absent(tid, d), L = intsDe(tid, d), B = BUREAU.filter(b => b.tech === tid && b.d === d), pl = couloirs([...L, ...B]);
   return `<div class="pl-col ${d===AUJ?'auj':''} ${ab && !absDemi(ab)?'abs':''}" data-col="1" data-tech="${tid}" data-d="${d}" data-pph="${pph}" style="--pph:${pph}px;height:${(H1-H0)*pph}px;--tc:${tech(tid).c}">
-    ${ab ? `<div class="pl-abs${absDemi(ab) ? ' demi' : ''}"${absDemi(ab) === 'matin' ? ` style="bottom:auto;height:${(13-H0)*pph-8}px"` : absDemi(ab) === 'aprem' ? ` style="top:${(13-H0)*pph+4}px"` : ''}>${absLib(ab)}</div>` : ''}${B.map(b => carteBur(b, pph, pl.get(b))).join('')}${L.map(i => carte(i, pph, pl.get(i))).join('')}
+    ${ab ? `<div class="pl-abs${absDemi(ab) ? ' demi' : ''}" style="--ac:${absCoul(ab)};${absDemi(ab) === 'matin' ? `bottom:auto;height:${(13-H0)*pph-8}px` : absDemi(ab) === 'aprem' ? `top:${(13-H0)*pph+4}px` : ''}">${absLib(ab)}</div>` : ''}${B.map(b => carteBur(b, pph, pl.get(b))).join('')}${L.map(i => carte(i, pph, pl.get(i))).join('')}
     ${d===AUJ ? `<div class="pl-maint" style="top:${(MAINT_MIN-H0*60)/60*pph}px" title="Maintenant · ${hm(MAINT_MIN)}"></div>` : ''}</div>`;
 }
 const echelle = (pph, cote='') => `<div class="pl-ech ${cote}" style="height:${(H1-H0)*pph}px">${Array.from({length:H1-H0+1},(_,k)=>`<span style="top:${k*pph}px">${String(H0+k).padStart(2,'0')}:00</span>`).join('')}<b class="pl-ech-maint" style="top:${(MAINT_MIN-H0*60)/60*pph}px" title="L’heure qu’il est">${hm(MAINT_MIN)}</b></div>`;
@@ -1551,7 +1555,7 @@ function vueJour(){
   // Justin, 5 nov. 2026 : la date et les heures À GAUCHE seulement — la colonne de droite les répétait ; les personnes récupèrent la place
   return `<div class="pl-g" style="grid-template-columns:56px repeat(${T.length},minmax(${cw}px,1fr));min-width:${56+T.length*cw}px">
     ${coin}${T.map(t => { const L = intsDe(t.id, d), mn = L.reduce((s,i)=>s+i.dur,0), ab = absent(t.id, d);
-      return `<div class="pl-jh" style="display:flex;align-items:center;gap:8px;justify-content:flex-start;text-transform:none;letter-spacing:0;cursor:default;padding:10px">${avatar(t,'p')}<span style="text-align:left;color:var(--encre);font-size:14.5px">${t.nom}<small${ab ? ' class="pl-abs-l"' : ''}>${ab ? absLib(ab) : t.id ? (L.length ? L.length + ' · ' + duree(mn) : 'libre') : L.length + ' à répartir'}</small></span></div>`; }).join('')}
+      return `<div class="pl-jh" style="display:flex;align-items:center;gap:8px;justify-content:flex-start;text-transform:none;letter-spacing:0;cursor:default;padding:10px">${avatar(t,'p')}<span style="text-align:left;color:var(--encre);font-size:14.5px">${t.nom}<small${ab ? ` class="pl-abs-l" style="--ac:${absCoul(ab)}"` : ''}>${ab ? absLib(ab) : t.id ? (L.length ? L.length + ' · ' + duree(mn) : 'libre') : L.length + ' à répartir'}</small></span></div>`; }).join('')}
     ${echelle(pph)}${T.map(t => colonne(t.id, d, pph)).join('')}</div>`;
 }
 /* Justin, 5 novembre 2026 (juillet affichait une grille VIDE avec « 2 absent » en haut) : chaque jour dit QUI est absent (une bande à la
@@ -1591,7 +1595,7 @@ function vueGenerale(){
   techsVus().forEach(t => { const mine = INTS.filter(i => i.tech === t.id && J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe).filter(i => i.tech === t.id)), mn = mine.reduce((s,i)=>s+i.dur,0);
     g += `<div class="pg-tec">${avatar(t)}<span><b>${t.nom}</b><small>${t.id ? (mine.length ? mine.length + ' · ' + duree(mn) : 'libre') : mine.length + ' à répartir'}</small></span></div>`;
     J.forEach(d => { const ab = absent(t.id, d), L = intsDe(t.id, d).sort((a,b)=>a.h.localeCompare(b.h)), B = BUREAU.filter(b => b.tech === t.id && b.d === d);
-      g += `<div class="pl-cel ${d===AUJ?'auj':''}" data-tech="${t.id}" data-d="${d}">${ab ? `<div class="pg-abs${absDemi(ab) ? ' demi' : ''}">${absLib(ab)}</div>` : ''}${ab && !absDemi(ab) ? '' : [...L.map(i => ({ h:i.h, html:`<div class="pc pg ${i.st==='retard'?'retard':''} ${i.st==='fait'?'fait':''}" tabindex="0" role="button" ${i.hist ? `data-hist="${i.id}"` : `data-int="${i.id}"`} style="--tc:${tech(i.tech).c}"><span class="h">${i.h} – ${fin(i.h,i.dur)}${i.st==='retard'?'<span class="ic" style="--c:var(--rouge)">retard</span>':i.st==='fait'?'<span class="ic" style="--c:var(--doux)">✓ fait</span>':''}</span><span class="t">${esc(i.titre)}</span><span class="c">${esc(CLIENTS[i.cli].nom)}</span></div>` })), ...B.map(b => ({ h:b.h, html:`<div class="pc pg bur" data-bur="${b.id}"><span class="h">${b.h} – ${fin(b.h,b.dur)}</span><span class="t">${esc(b.titre)}</span><span class="c">${b.indispo?'Indisponible':'Bureau'}</span></div>` }))].sort((a,b)=>a.h.localeCompare(b.h)).map(x => x.html).join('')}</div>`; }); });
+      g += `<div class="pl-cel ${d===AUJ?'auj':''}" data-tech="${t.id}" data-d="${d}">${ab ? `<div class="pg-abs${absDemi(ab) ? ' demi' : ''}" style="--ac:${absCoul(ab)}">${absLib(ab)}</div>` : ''}${ab && !absDemi(ab) ? '' : [...L.map(i => ({ h:i.h, html:`<div class="pc pg ${i.st==='retard'?'retard':''} ${i.st==='fait'?'fait':''}" tabindex="0" role="button" ${i.hist ? `data-hist="${i.id}"` : `data-int="${i.id}"`} style="--tc:${tech(i.tech).c}"><span class="h">${i.h} – ${fin(i.h,i.dur)}${i.st==='retard'?'<span class="ic" style="--c:var(--rouge)">retard</span>':i.st==='fait'?'<span class="ic" style="--c:var(--doux)">✓ fait</span>':''}</span><span class="t">${esc(i.titre)}</span><span class="c">${esc(CLIENTS[i.cli].nom)}</span></div>` })), ...B.map(b => ({ h:b.h, html:`<div class="pc pg bur" data-bur="${b.id}"><span class="h">${b.h} – ${fin(b.h,b.dur)}</span><span class="t">${esc(b.titre)}</span><span class="c">${b.indispo?'Indisponible':'Bureau'}</span></div>` }))].sort((a,b)=>a.h.localeCompare(b.h)).map(x => x.html).join('')}</div>`; }); });
   return `<div class="pl-g pg-g" style="grid-template-columns:${tel()?150:190}px repeat(${plJours},minmax(${cw}px,1fr));min-width:${(tel()?150:190)+plJours*cw}px">${g}</div>`;
 }
 /* ══ SUR MESURE (la vue « Multi » de la bêta) : les dates qu'on veut, les personnes qu'on veut, rangées par jour ou par personne ══ */
@@ -4186,12 +4190,12 @@ let A_AVIS = [];
 const aAvis = (pour, o) => A_AVIS.unshift({ id:'v' + Date.now() + Math.floor(Math.random() * 999), pour, le:aLe(), ...o });
 const aMot = b => { const t = b && b.closest('.a-prop, .panneau') && b.closest('.a-prop, .panneau').querySelector('textarea[data-amot]'); return t ? t.value.trim() : ''; };
 function aAvisHtml(L, cote){ return L.map(v => `<div class="carte a-avis" role="status"><span class="a-dec-i ${v.ic === 'non' ? 'non' : v.ic === 'info' ? 'info' : 'ok'}" aria-hidden="true">${v.ic === 'non' ? '✕' : v.ic === 'info' ? '✎' : '✓'}</span><span class="a-avis-c"><b>${v.titre}</b><span class="gris petit">${v.det} · ${v.le}</span>${v.msg ? `<span class="a-avis-m">« ${esc(v.msg)} »</span>` : ''}</span>
-  <span class="a-avis-g">${v.plan ? `<button type="button" class="btn gris mini-btn" data-aplan="${v.plan}">Voir au planning ›</button>` : ''}${v.rep && !v.repondu ? `<button type="button" class="btn gris mini-btn" data-atrepondre="${v.id}">Répondre à Marc</button>` : ''}${v.repondu ? '<span class="gris petit">Tu as répondu</span>' : ''}<button type="button" class="lien" data-avu="${v.id}">Vu</button></span></div>`).join(''); }
+  <span class="a-avis-g">${v.dec ? `<button type="button" class="btn gris mini-btn" data-adecplan="${v.dec}">Voir au planning ›</button>` : v.plan ? `<button type="button" class="btn gris mini-btn" data-aplan="${v.plan}">Voir au planning ›</button>` : ''}${v.rep && !v.repondu ? `<button type="button" class="btn gris mini-btn" data-atrepondre="${v.id}">Répondre à Marc</button>` : ''}${v.repondu ? '<span class="gris petit">Tu as répondu</span>' : ''}<button type="button" class="lien" data-avu="${v.id}">Vu</button></span></div>`).join(''); }
 const aChampMot = (pour, ph) => `<label class="champ a-mot"><span>Un mot pour ${pour} (facultatif)</span><textarea data-amot="1" rows="2" placeholder="${ph}"></textarea></label>`;
 /* ce qui a été décidé RESTE écrit, avec ce que la décision a déplacé au planning */
 let DECISIONS_ABS = [
   { id:'x1', tech:'lr', type:'Congé payé', du:jour(-1), au:jour(3), decision:'validee', le:'24/10', par:'marc', moves:[] },
-  { id:'x2', tech:'sm', type:'RTT', du:'2026-10-16', au:'2026-10-16', decision:'validee', le:'09/10', par:'marc', moves:[{ iid:null, titre:'Entretien climatisation · Hôtel de la Plage', h:'09:00', vers:'kb' }] }
+  { id:'x2', tech:'sm', type:'RTT', du:'2026-10-16', au:'2026-10-16', decision:'validee', le:'09/10', par:'marc', moves:[{ iid:'i50', titre:'Entretien climatisation · Hôtel de la Plage', h:'09:00', d:'2026-10-16', vers:'kb' }] }
 ];
 let aComme = 'marc', aDepl = null;   // prototype : l'écran vu du bureau ou du technicien ; une absence qu'on déplace au toucher
 let aOnglet = 'valider', aRefusees = [], aCalPer = innerWidth > 760 ? 0.5 : 1, aCalSem = null, aCalDeb = null, aCalQui = 'tous', aFlash = null;
@@ -4276,7 +4280,7 @@ function aCarteDecision(x){
   const t = tech(x.tech), ok = x.decision === 'validee';
   return `<div class="a-dec"><span class="a-dec-i ${ok ? 'ok' : 'non'}" aria-hidden="true">${ok ? '✓' : '✕'}</span><span class="a-dec-c"><b>${ok ? (x.accord ? 'Validée sur accord' : 'Validée') : 'Refusée'} · ${t.nom} · ${x.type}</b><span class="gris petit">${aPeriode(x)} · décidé le ${x.le}</span>
     ${x.moves && x.moves.length ? x.moves.map(m => `<span class="a-dec-m">${esc(m.titre)} (${m.h}) → ${m.vers ? '<b>' + tech(m.vers).nom + '</b>' : '<b class="t-retard">à planifier</b>'}</span>`).join('') : ok ? '<span class="gris petit">rien à déplacer au planning</span>' : ''}${x.raison ? `<span class="gris petit">« ${esc(x.raison)} »</span>` : ''}</span>
-    ${ok ? `<button type="button" class="btn gris mini-btn" data-aplan="${x.du}|${x.tech}">Planning ›</button>` : ''}</div>`;
+    ${ok ? `<button type="button" class="btn gris mini-btn" data-adecplan="${x.id}">Planning ›</button>` : ''}</div>`;
 }
 /* ══ LE CALENDRIER ══ */
 // aCalDeb = null : la fenêtre part du lundi de la semaine en cours (aujourd'hui ET les demandes qui arrivent) ;
@@ -4507,11 +4511,11 @@ function aAccepterProp(d, mot){ const av = aPeriode(d); Object.assign(d, { du:d.
   (d.fil = d.fil || []).push({ qui:d.tech, quoi:`est d’accord : ${aPeriode(d)} (au lieu de ${av})${mot ? ' : « ' + mot + ' »' : ''}`, le:aLe() });
   d.prop = null; d.choix = {}; DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d);
   const moves = aValider(d, 'accord');
-  aAvis('marc', { ic:'ok', titre:`${aPrenom(d.tech)} a accepté tes nouvelles dates : c’est validé`, det:`${d.type} · ${aPeriode(d)} · posé au planning${moves.length ? ' · ' + moves.map(m => esc(m.titre) + ' → ' + (m.vers ? tech(m.vers).nom : 'à planifier')).join(', ') : ''}`, msg:mot, plan:d.du + '|' + d.tech });
+  aAvis('marc', { ic:'ok', titre:`${aPrenom(d.tech)} a accepté tes nouvelles dates : c’est validé`, det:`${d.type} · ${aPeriode(d)} · posé au planning${moves.length ? ' · ' + moves.map(m => esc(m.titre) + ' → ' + (m.vers ? tech(m.vers).nom : 'à planifier')).join(', ') : ''}`, msg:mot, dec:DECISIONS_ABS[0].id });
   return moves; }
 const aMovesTxt = moves => moves.length ? ' ' + moves.map(m => esc(m.titre) + ' → ' + (m.vers ? tech(m.vers).nom.split(' ')[0] : 'à planifier')).join(', ') + '.' : '';
 function aMontrerPlanning(d, moves, quoi){
-  const j = moves.length ? moves[0].d : d.du;
+  const j = (moves.length && moves[0].d) || d.du;
   aFlash = { texte:quoi, d:j, tech:d.tech, moves };
   plVue = 'jour'; plRef = j; plMasques = new Set();
   allerAvecRetour('planning', 'Absences & congés', () => {});
@@ -4560,12 +4564,12 @@ function aApercuModif(d){
 }
 const aLe = () => '02/11 · ' + hm(MAINT_MIN);
 document.addEventListener('click', ev => {
-  const b = ev.target.closest('[data-avu],[data-acqui],[data-aint],[data-aplan],[data-aonglet],[data-aok],[data-anon],[data-anonok],[data-amois],[data-avoir],[data-adem],[data-asmois],[data-anouv],[data-anouvok],[data-aexport],[data-asuppr],[data-achoix],[data-amodif],[data-amodifok],[data-aprepond],[data-aper],[data-aqui-v],[data-aflashx],[data-asva]'); if (!b) return;
+  const b = ev.target.closest('[data-adecplan],[data-avu],[data-acqui],[data-aint],[data-aplan],[data-aonglet],[data-aok],[data-anon],[data-anonok],[data-amois],[data-avoir],[data-adem],[data-asmois],[data-anouv],[data-anouvok],[data-aexport],[data-asuppr],[data-achoix],[data-amodif],[data-amodifok],[data-aprepond],[data-aper],[data-aqui-v],[data-aflashx],[data-asva]'); if (!b) return;
   if (b.dataset.aonglet) { aOnglet = b.dataset.aonglet; return rendre(); }
   if (b.dataset.aflashx) { aFlash = null; return rendre(); }
   if (b.dataset.achoix) { const [did, iid, t] = b.dataset.achoix.split('|'), d = DEMANDES_ABS.find(x => x.id === did); d.choix[iid] = t; return rendre(); }
   if (b.dataset.aok) { const d = DEMANDES_ABS.find(x => x.id === b.dataset.aok); DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d); const moves = aValider(d); fermerPanneau();
-    aAvis(d.tech, { ic:'ok', titre:'Marc a validé ta demande', det:`${d.type} · ${aPeriode(d)} · c’est au planning`, plan:d.du + '|' + d.tech });
+    aAvis(d.tech, { ic:'ok', titre:'Marc a validé ta demande', det:`${d.type} · ${aPeriode(d)} · c’est au planning`, dec:DECISIONS_ABS[0].id });
     const q = `Absence de ${aPrenom(d.tech)} validée`;
     // Justin, 6 novembre 2026 : « quand je valide, ça m'envoie directement sur le planning, c'est un peu chiant » — on reste sur la liste,
     // le planning est à un geste (le bouton du message)
@@ -4632,6 +4636,8 @@ document.addEventListener('click', ev => {
     return toast(moves.length ? `Absence enregistrée · ${moves.length} intervention${moves.length > 1 ? 's' : ''} confiée${moves.length > 1 ? 's' : ''}` : 'Absence enregistrée', moves.length ? { lib:'Voir au planning', fn:() => aMontrerPlanning(a, moves, `Absence de ${aPrenom(a.tech)} enregistrée · ${moves.length} intervention${moves.length > 1 ? 's' : ''} confiée${moves.length > 1 ? 's' : ''}`) } : undefined); }
   if (b.dataset.aexport) return aExport();
   if (b.dataset.aint) return allerAvecRetour('inter-x-' + b.dataset.aint, 'Absences & congés', () => {});
+  if (b.dataset.adecplan) { const x = DECISIONS_ABS.find(y => y.id === b.dataset.adecplan); if (!x) return; fermerPanneau(); const mv = x.moves || [];
+    return aMontrerPlanning(x, mv, `Absence de ${aPrenom(x.tech)} · ${x.type.toLowerCase()}${mv.length ? ' · ' + mv.length + ' intervention' + (mv.length > 1 ? 's' : '') + ' ' + (mv.every(m => m.vers) ? 'confiée' + (mv.length > 1 ? 's' : '') : 'à reprendre') : ''}`); }
   if (b.dataset.aplan) { const [d] = b.dataset.aplan.split('|'); fermerPanneau(); plRef = d; plVue = 'jour'; plMasques = new Set(); return allerAvecRetour('planning', 'Absences & congés', () => {}); }
 });
 document.addEventListener('change', ev => {
