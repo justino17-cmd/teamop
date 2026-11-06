@@ -68,6 +68,8 @@ button{cursor:pointer}
 .menu a.on{background:var(--surf2);font-weight:650;box-shadow:var(--ombre)}
 .menu a .ic{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);flex:none}
 .menu a svg{width:17px;height:17px}
+.menu a .m-faite{margin-left:auto}
+.m-faite{padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--vert) 14%,transparent);color:var(--vert);font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em}
 .menu .pied{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:10px}
 .contenu{min-width:0;padding-block:22px 48px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
 .barre-bas,.tete-tel{display:none}
@@ -5242,7 +5244,7 @@ document.addEventListener('change', ev => {
    les autres se refont une par une. ?tout dans l'adresse rouvre tout (bancs du prototype). */
 // Justin, 2 novembre 2026 : « montre-moi tout le prototype, après tu pourras regriser quand je te le dis ».
 // TOUT_OUVERT à true : aucune catégorie grisée. Remettre à false pour regriser celles déjà refaites.
-const TOUT_OUVERT = false;   // regrisé le 2 novembre 2026, à la demande de Justin
+const TOUT_OUVERT = true;   // Justin, 6 novembre 2026 : « je veux bien voir tout ce qui est fait » — tout rouvert, les faites marquées ; regriser sur sa phrase
 const TOUT = TOUT_OUVERT || /[?&]tout\b/.test(location.search);
 const CATS = [   // regroupements décidés avec Justin le 1er novembre 2026 (36 catégories → 14 à refaire + 3 de la 3D)
   ['Tableau de bord', [['accueil','📊','Tableau de bord',1],['statistiques','📈','Statistiques',1],['historique','🕘','Historique',1]]],
@@ -5284,7 +5286,7 @@ function menu(base){
   const lien = c => {
     const ic = IC[c.k] ? svg(c.k) : `<span class="emo" aria-hidden="true">${c.ic}</span>`;
     if (estGrise(c.k)) return `<span class="m-grise" title="Déjà refaite — grisée pour l’instant" aria-disabled="true"><span class="ic">${ic}</span>${esc(c.l)}<small>faite</small></span>`;
-    return `<a href="#${c.k}" class="${base===c.k?'on':''}" ${base===c.k?'aria-current="page"':''}><span class="ic" style="--c:var(--lien)">${ic}</span>${esc(c.l)}</a>`;
+    return `<a href="#${c.k}" class="${base===c.k?'on':''}" ${base===c.k?'aria-current="page"':''}><span class="ic" style="--c:var(--lien)">${ic}</span>${esc(c.l)}${c.fait ? '<small class="m-faite" title="Déjà refaite">faite</small>' : ''}</a>`;
   };
   return `<div class="logo"><i>OP</i><span><b>OP GESTION</b><small>${ENTREPRISE.nom}</small></span></div>${CATS.map(([g, L]) => `<div class="grp">${esc(g)}</div>` + L.map(([k, ic, l, fait]) => lien({ k, ic, l, fait })).join('')).join('')}
   <div class="pied">${segMode()}<div class="bandeau-proto mini" style="padding:8px 10px">Prototype : rien n’est enregistré. Recharge pour repartir de zéro.</div></div>`;
@@ -5466,7 +5468,7 @@ document.addEventListener('click', ev => {
   if ((b = q('.pc[data-int]'))) { if (clicBloque || b.dataset.int === 'brouillon') return; { const n = INTS.find(x => x.id === b.dataset.int); if (n && n.demande && n.st === 'aplanifier') { panneauDemande(n.id); return; } } aller('inter-x-' + b.dataset.int); return; }
   if ((b = q('[data-blocchoix]'))) { document.getElementById('bl-titre').value = b.dataset.blocchoix; document.querySelectorAll('[data-blocchoix]').forEach(x => x.setAttribute('aria-pressed', x === b)); return; }
   if ((b = q('.pc[data-bur]'))) { if (clicBloque) return; const x = BUREAU.find(o => o.id === b.dataset.bur); toast(`${esc(x.titre)} · ${x.h} – ${fin(x.h, x.dur)} · ${tech(x.tech).nom}`, { lib:'Retirer', fn:() => { memo(); BUREAU = BUREAU.filter(o => o !== x); rendre(); toast('Retiré', ANNULER); } }); return; }
-  if ((b = q('[data-tab]'))) { const t = b.dataset.tab; if (t === 'plus') ouvrirPanneau(`<h2>Toutes les catégories</h2>${CATS.map(([g, L]) => `<div class="plus-grp">${esc(g)}</div>` + L.map(([r, ic, l]) => estGrise(r) ? `<div class="ligne-clic grise" aria-disabled="true"><span style="display:flex;gap:12px;align-items:center"><span class="emo">${ic}</span><b>${esc(l)}</b></span><small>faite</small></div>` : `<button type="button" class="ligne-clic" data-go="${r}"><span style="display:flex;gap:12px;align-items:center"><span class="emo">${ic}</span><b>${esc(l)}</b></span><span>›</span></button>`).join('')).join('')}<div style="margin-top:8px">${segMode()}</div>`); else aller(t); return; }
+  if ((b = q('[data-tab]'))) { const t = b.dataset.tab; if (t === 'plus') ouvrirPanneau(`<h2>Toutes les catégories</h2>${CATS.map(([g, L]) => `<div class="plus-grp">${esc(g)}</div>` + L.map(([r, ic, l, fait]) => estGrise(r) ? `<div class="ligne-clic grise" aria-disabled="true"><span style="display:flex;gap:12px;align-items:center"><span class="emo">${ic}</span><b>${esc(l)}</b></span><small>faite</small></div>` : `<button type="button" class="ligne-clic" data-go="${r}"><span style="display:flex;gap:12px;align-items:center"><span class="emo">${ic}</span><b>${esc(l)}</b></span><span style="display:flex;gap:8px;align-items:center">${fait ? '<small class="m-faite">faite</small>' : ''}›</span></button>`).join('')).join('')}<div style="margin-top:8px">${segMode()}</div>`); else aller(t); return; }
   if ((b = q('[data-plein]'))) { fermerPanneau(); aller(b.dataset.plein); return; }
   if ((b = q('[data-go]'))) { if (b.dataset.ff2) filtreF = b.dataset.ff2;
     // Chaque catégorie est indépendante : depuis une autre catégorie, une facture, un contrat, une intervention ou un client s'ouvre PAR-DESSUS, avec « ‹ Retour ».
