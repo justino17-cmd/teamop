@@ -140,6 +140,10 @@ https.request = function (o, cb) { if (o && typeof o === 'object' && /\\.banc315
   if (!A.vivant) { await A.fin(); process.exit(1); }
   const fichierSubs = () => { try { return JSON.parse(fs.readFileSync(path.join(A.D, 'subscriptions.json'), 'utf8')); } catch (e) { return null; } };
   const noms = () => Object.keys(fichierSubs() || {}).map(x => x.split('/p/')[1]).sort();
+  /* ⛔ LE SERVEUR RANGE subscriptions.json 300 ms APRÈS SA RÉPONSE (saveSubs, minuterie) : 600 ms d'attente fixe ont suffi ici et pas
+     toujours sur la CI (6 novembre 2026, morceau 4/6 : les deux contrôles D2 tombés, l'écriture arrivée après la relecture). Après un geste
+     qui DOIT écrire, on attend que le fichier le montre (jusqu'à 6 s) ; les 600 ms restent devant les contrôles « rien n'a changé ». */
+  const jusqua = async (cond, ms = 6000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { try { if (cond()) return true; } catch (e) {} await dormir(40); } return false; };
   const brutA = async (m, route, corps, entetes) => { const r = await fetch(A.B + route, { method: m, headers: Object.assign({ 'Content-Type': 'application/json', 'X-Forwarded-For': '10.31.' + Math.floor(Math.random() * 250) + '.' + Math.floor(Math.random() * 250) }, entetes || {}), body: JSON.stringify(corps) });
     const txt = await r.text(); let j = null; try { j = JSON.parse(txt); } catch (e) {} return { s: r.status, j: j || {}, txt }; };
   const sub = (c, e) => brutA('POST', '/api/subscribe', c, e);
@@ -169,6 +173,7 @@ https.request = function (o, cb) { if (o && typeof o === 'object' && /\\.banc315
   const norm = await sub({ sub: ABO('ent-1'), teamId: TEAM, userId: 'u9', userName: 'Zoé', tour: true }, { 'x-teamop-kh': crypto.randomBytes(16).toString('hex') });
   v('un abonnement normal (en-tête x-teamop-kh, corps habituel) passe', [norm.s, norm.j.ok], [200, true]);
   await dormir(600);
+  await jusqua(() => (fichierSubs() || {})[EP('ent-1')]);
   const e1 = (fichierSubs() || {})[EP('ent-1')];
   vrai('⛔ …il est écrit SANS tour:true, même si le corps publique en réclame un', e1 && e1.teamId === TEAM && !('tour' in e1), JSON.stringify(e1));
   const n1 = await notif({ teamId: TEAM, title: 'Bonjour', body: 'Équipe', url: '/app.html' });
@@ -187,15 +192,18 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   const entPatron = { Authorization: 'Bearer ' + A.TP };
   v('le patron s\'abonne : 200', (await brutA('POST', R, { sub: ABO('tour-neuf'), teamId: 't-ent-3155', tour: false }, entPatron)).j.ok, true);
   await dormir(600);
+  await jusqua(() => (fichierSubs() || {})[EP('tour-neuf')]);
   const tn = (fichierSubs() || {})[EP('tour-neuf')];
   vrai('⛔ …l\'abonnement porte tour:true et SON teamId (posé par le serveur, jamais lu du corps)', tn && tn.tour === true && tn.teamId === 'teamop-controle' && tn.userName === 'Patron', JSON.stringify(tn));
   const brutTour = 'https://PUSH.Banc3155.NET:443/p/Tour-Maj-3155';
   v('le patron s\'abonne avec une adresse en majuscules : 200', (await brutA('POST', R, { sub: { endpoint: brutTour, keys: CLES } }, entPatron)).s, 200);
   await dormir(600);
+  await jusqua(() => (fichierSubs() || {})['https://push.banc3155.net/p/Tour-Maj-3155']);
   const cTour = fichierSubs() || {};
   vrai('⛔ D2 — la route de la Tour range et appelle aussi l\'adresse NORMALISÉE', !!cTour['https://push.banc3155.net/p/Tour-Maj-3155'] && cTour['https://push.banc3155.net/p/Tour-Maj-3155'].sub.endpoint === 'https://push.banc3155.net/p/Tour-Maj-3155' && !cTour[brutTour], Object.keys(cTour));
   const retTour = (await brutA('POST', RD, { endpoint: brutTour }, entPatron)).j.retire;
   await dormir(600);
+  await jusqua(() => !Object.keys(fichierSubs() || {}).includes('https://push.banc3155.net/p/Tour-Maj-3155'));
   v('…et se désabonner avec le texte reçu du navigateur la retire', [retTour, !Object.keys(fichierSubs() || {}).includes('https://push.banc3155.net/p/Tour-Maj-3155')], [true, true]);
   v('sans clés de chiffrement : 400', (await brutA('POST', R, { sub: { endpoint: EP('tour-sans-cle') } }, entPatron)).s, 400);
   v('clés de mauvais type : 400', (await brutA('POST', R, { sub: { endpoint: EP('tour-sans-cle'), keys: { p256dh: 1, auth: {} } } }, entPatron)).s, 400);
@@ -210,6 +218,7 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   v('⛔ /api/unsubscribe (public) ne retire pas un appareil de la Tour', noms().filter(x => x.startsWith('tour-')), ['tour-ancien', 'tour-neuf']);
   await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-1') });
   await dormir(600);
+  await jusqua(() => !noms().includes('ent-1'));
   vrai('…mais retire toujours celui d\'une entreprise', !noms().includes('ent-1'), noms());
 
   console.log('\n── 3155 · 1. B1 : un envoi de la Tour n\'atteint que la Tour ──');
@@ -255,11 +264,13 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   const brutMaj = 'https://PUSH.Banc3155.NET:443/p/Maj-3155';
   v('une adresse en majuscules / avec le port par défaut : acceptée', (await sub({ sub: { endpoint: brutMaj, keys: CLES }, teamId: TEAM })).s, 200);
   await dormir(600);
+  await jusqua(() => Object.keys(fichierSubs() || {}).includes('https://push.banc3155.net/p/Maj-3155'));
   vrai('⛔ D2 — …rangée sous sa forme normalisée (hôte en minuscules, sans port), pas sous le texte reçu', Object.keys(fichierSubs() || {}).includes('https://push.banc3155.net/p/Maj-3155') && !Object.keys(fichierSubs() || {}).includes(brutMaj), Object.keys(fichierSubs() || {}));
   const rangee = (fichierSubs() || {})['https://push.banc3155.net/p/Maj-3155'];
   vrai('…et l\'objet appelé porte la même adresse normalisée', rangee && rangee.sub.endpoint === 'https://push.banc3155.net/p/Maj-3155', JSON.stringify(rangee));
   await brutA('POST', '/api/unsubscribe', { endpoint: brutMaj });
   await dormir(600);
+  await jusqua(() => !Object.keys(fichierSubs() || {}).includes('https://push.banc3155.net/p/Maj-3155'));
   vrai('…et se désabonner avec le texte que le navigateur avait donné la retire', !Object.keys(fichierSubs() || {}).includes('https://push.banc3155.net/p/Maj-3155'), Object.keys(fichierSubs() || {}));
   const bons = ['https://fcm.googleapis.com/fcm/send/dXNlcjpmY20', 'https://web.push.apple.com/QGxT7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'https://updates.push.services.mozilla.com/wpush/v2/gAAAAA', 'https://wns2-par02p.notify.windows.com/w/?token=BQYAAAA', 'https://fcm.googleapis.com./fcm/send/x'];
   const sb = [];
@@ -267,6 +278,7 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   v('⛔ aucun navigateur coupé : FCM, Apple, Mozilla, Windows passent', sb, bons.map(() => 200));
   for (const ep of bons) await brutA('POST', '/api/unsubscribe', { endpoint: ep });   // ils ne doivent PAS rester : un envoi ultérieur les appellerait pour de vrai
   await dormir(600);
+  await jusqua(() => noms().every(x => /^(entreprise-ancienne|tour-ancien)$/.test(x)));
   vrai('…et on les retire aussitôt (aucun envoi du banc ne doit viser un vrai service)', noms().every(x => /^(entreprise-ancienne|tour-ancien)$/.test(x)), noms());
 
   /* ══ 3. I1 — /api/email ══ */
