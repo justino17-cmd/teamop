@@ -5614,10 +5614,11 @@ const CATS = [   // regroupements décidés avec Justin le 1er novembre 2026 (36
   // Absences & congés grisée le 5 novembre 2026 (Justin : « Absences et congés, c'est parfait ») ; Planning reste ouvert (la carte à revoir), Tâches aussi (à la fin)
   // 6 novembre 2026, Justin : « parfait pour Planning, après je veux revoir Absences & congés » — Planning grisé, Absences & congés rouverte
   // 6 novembre 2026, 1 h 20, Justin : « c'est parfait » — Absences & congés regrisée (demandes, pastilles, avis dans les deux sens, dates)
-  ['Planification', [['planning','🗓️','Planning',1],['taches','✅','Tâches'],['absences','🏖️','Absences & congés',1]]],
+  // 6 novembre 2026, Justin : « Comptabilité, grise-la avec Tâches, on les fera en dernier » — 2 = grisée « plus tard » (pas encore faite)
+  ['Planification', [['planning','🗓️','Planning',1],['taches','✅','Tâches',2],['absences','🏖️','Absences & congés',1]]],
   ['Interventions', [['interventions','🧰','Interventions',1],['clientvoit','📱','Ce que voit le client',1]]],
   ['CRM', [['clients','🏢','Clients',1]]],
-  ['Ventes', [['devis','💰','Devis',1],['factures','🧾','Factures',1],['contrats','📑','Contrats',1],['encaissements','💳','Encaissements',1],['comptabilite','📊','Comptabilité']]],
+  ['Ventes', [['devis','💰','Devis',1],['factures','🧾','Factures',1],['contrats','📑','Contrats',1],['encaissements','💳','Encaissements',1],['comptabilite','📊','Comptabilité',2]]],
   ['Stock', [['produits','📦','Produits'],['stock','🗃️','Stock'],['boxes','🧱','Boxes']]],
   ['Temps & équipe', [['pointage','⏱️','Temps de travail'],['vehicules','🚐','Véhicules']]],
   ['Communication', [['boiteMail','📧','Boîte mail'],['messagerie','💬','Messagerie']]],
@@ -5625,12 +5626,13 @@ const CATS = [   // regroupements décidés avec Justin le 1er novembre 2026 (36
   ['Administration', [['equipe','👥','Équipe']]],
   ['Métier 3D (plus tard)', [['registre','📋','Registre sanitaire'],['carteBox','📍','Carte des box'],['devisXylo','🪵','Devis xylophage']]]
 ];
-const CAT_LIGNES = CATS.flatMap(([g, L]) => L.map(([k, ic, l, fait]) => ({ g, k, ic, l, fait:!!fait })));
+const CAT_LIGNES = CATS.flatMap(([g, L]) => L.map(([k, ic, l, fait]) => ({ g, k, ic, l, fait:!!fait, tard:fait === 2 })));
+const catTard = k => CAT_LIGNES.some(c => c.k === k && c.tard);   // grisée « pour plus tard », pas « déjà refaite »
 const A_REFAIRE = CAT_LIGNES.filter(c => !c.fait);
 const SOUS_FAITES = ['inter','facture','client','contrat','contrat-nouveau','signer'];
 const estGrise = r => !TOUT && (SOUS_FAITES.includes(r) || CAT_LIGNES.some(c => c.fait && c.k === r));
 // le prototype s'ouvre sur la catégorie EN COURS de revue avec Justin (Absences & congés, 6 novembre 2026) ; Tâches attend la fin
-const EN_REVUE = 'comptabilite';   // après Absences & congés (validée le 6 novembre 2026) ; Tâches reste pour la fin
+const EN_REVUE = 'produits';   // 6 novembre 2026 : Comptabilité et Tâches passent à la fin ; on reprend dans l’ordre, par Produits
 const premiereARefaire = () => (A_REFAIRE.find(c => c.k === EN_REVUE) || A_REFAIRE[0]).k;
 function vueARefaire(k){
   const c = CAT_LIGNES.find(x => x.k === k) || A_REFAIRE[0], n = A_REFAIRE.indexOf(c) + 1;
@@ -5647,15 +5649,15 @@ const segMode = () => `<div class="mode-seg" role="group" aria-label="Apparence"
 function menu(base){
   const lien = c => {
     const ic = IC[c.k] ? svg(c.k) : `<span class="emo" aria-hidden="true">${c.ic}</span>`;
-    if (estGrise(c.k)) return `<span class="m-grise" title="Déjà refaite — grisée pour l’instant" aria-disabled="true"><span class="ic">${ic}</span>${esc(c.l)}<small>faite</small></span>`;
-    return `<a href="#${c.k}" class="${base===c.k?'on':''}" ${base===c.k?'aria-current="page"':''}><span class="ic" style="--c:var(--lien)">${ic}</span>${esc(c.l)}${c.fait ? '<small class="m-faite" title="Déjà refaite">faite</small>' : ''}</a>`;
+    if (estGrise(c.k)) return `<span class="m-grise" title="${catTard(c.k) ? 'Pour plus tard' : 'Déjà refaite'} — grisée pour l’instant" aria-disabled="true"><span class="ic">${ic}</span>${esc(c.l)}<small>${catTard(c.k) ? 'plus tard' : 'faite'}</small></span>`;
+    return `<a href="#${c.k}" class="${base===c.k?'on':''}" ${base===c.k?'aria-current="page"':''}><span class="ic" style="--c:var(--lien)">${ic}</span>${esc(c.l)}${c.fait ? `<small class="m-faite" title="${catTard(c.k) ? 'Pour plus tard' : 'Déjà refaite'}">${catTard(c.k) ? 'plus tard' : 'faite'}</small>` : ''}</a>`;
   };
   return `<div class="logo"><i>OP</i><span><b>OP GESTION</b><small>${ENTREPRISE.nom}</small></span></div>${CATS.map(([g, L]) => `<div class="grp">${esc(g)}</div>` + L.map(([k, ic, l, fait]) => lien({ k, ic, l, fait })).join('')).join('')}
   <div class="pied">${segMode()}<div class="bandeau-proto mini" style="padding:8px 10px">Prototype : rien n’est enregistré. Recharge pour repartir de zéro.</div></div>`;
 }
 function barreBas(base){
   const T = [['accueil','Accueil'],['planning','Planning'],['interventions','Interv.'],['factures','Factures'],['plus','Plus']], plus = ['clientvoit','clients','contrats','encaissements'].includes(base) || CAT_LIGNES.some(c => c.k === base && !['accueil','planning','interventions','factures'].includes(c.k));
-  return `<nav class="opg-barre" aria-label="Catégories principales">${T.map(([k,l])=>estGrise(k)?`<button type="button" class="opg-tab grise" disabled aria-disabled="true" title="Déjà refaite">${svg(k)}<span>${l}</span></button>`:`<button type="button" class="opg-tab${(k===base||(k==='plus'&&plus))?' on':''}" data-tab="${k}">${svg(k)}<span>${l}</span></button>`).join('')}</nav>`;
+  return `<nav class="opg-barre" aria-label="Catégories principales">${T.map(([k,l])=>estGrise(k)?`<button type="button" class="opg-tab grise" disabled aria-disabled="true" title="${catTard(k) ? 'Pour plus tard' : 'Déjà refaite'}">${svg(k)}<span>${l}</span></button>`:`<button type="button" class="opg-tab${(k===base||(k==='plus'&&plus))?' on':''}" data-tab="${k}">${svg(k)}<span>${l}</span></button>`).join('')}</nav>`;
 }
 const BASE = { inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
 function rendre(){
@@ -5691,7 +5693,7 @@ function lireHash(){
   lireHash.deja = true;
   if (r === 'client' && p !== param) ongletClient = 'histo'; // un autre client s'ouvre sur son historique
   if (estGrise(r || 'accueil') && !(typeof RETOUR !== 'undefined' && RETOUR)) {   // par un lien (RETOUR posé), une catégorie déjà faite s'ouvre
- if (lireHash.deja2) toast('Catégorie déjà refaite — grisée pour l’instant.'); lireHash.deja2 = true; enRetour = true; history.replaceState(null, '', '#' + (CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? route : premiereARefaire())); return lireHash(); }
+ if (lireHash.deja2) toast(catTard(r) ? 'Catégorie prévue pour la fin — grisée pour l’instant.' : 'Catégorie déjà refaite — grisée pour l’instant.'); lireHash.deja2 = true; enRetour = true; history.replaceState(null, '', '#' + (CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? route : premiereARefaire())); return lireHash(); }
   lireHash.deja2 = true;
   route = r || 'accueil'; param = p || null; fermerPanneau(); fermerMenu(); rendre();
   document.getElementById('contenu').classList.remove('vue-entre'); void document.getElementById('contenu').offsetWidth; document.getElementById('contenu').classList.add('vue-entre');
@@ -5830,7 +5832,7 @@ document.addEventListener('click', ev => {
   if ((b = q('.pc[data-int]'))) { if (clicBloque || b.dataset.int === 'brouillon') return; { const n = INTS.find(x => x.id === b.dataset.int); if (n && n.demande && n.st === 'aplanifier') { panneauDemande(n.id); return; } } aller('inter-x-' + b.dataset.int); return; }
   if ((b = q('[data-blocchoix]'))) { document.getElementById('bl-titre').value = b.dataset.blocchoix; document.querySelectorAll('[data-blocchoix]').forEach(x => x.setAttribute('aria-pressed', x === b)); return; }
   if ((b = q('.pc[data-bur]'))) { if (clicBloque) return; const x = BUREAU.find(o => o.id === b.dataset.bur); toast(`${esc(x.titre)} · ${x.h} – ${fin(x.h, x.dur)} · ${tech(x.tech).nom}`, { lib:'Retirer', fn:() => { memo(); BUREAU = BUREAU.filter(o => o !== x); rendre(); toast('Retiré', ANNULER); } }); return; }
-  if ((b = q('[data-tab]'))) { const t = b.dataset.tab; if (t === 'plus') ouvrirPanneau(`<h2>Toutes les catégories</h2>${CATS.map(([g, L]) => `<div class="plus-grp">${esc(g)}</div>` + L.map(([r, ic, l, fait]) => estGrise(r) ? `<div class="ligne-clic grise" aria-disabled="true"><span style="display:flex;gap:12px;align-items:center"><span class="emo">${ic}</span><b>${esc(l)}</b></span><small>faite</small></div>` : `<button type="button" class="ligne-clic" data-go="${r}"><span style="display:flex;gap:12px;align-items:center"><span class="emo">${ic}</span><b>${esc(l)}</b></span><span style="display:flex;gap:8px;align-items:center">${fait ? '<small class="m-faite">faite</small>' : ''}›</span></button>`).join('')).join('')}<div style="margin-top:8px">${segMode()}</div>`); else aller(t); return; }
+  if ((b = q('[data-tab]'))) { const t = b.dataset.tab; if (t === 'plus') ouvrirPanneau(`<h2>Toutes les catégories</h2>${CATS.map(([g, L]) => `<div class="plus-grp">${esc(g)}</div>` + L.map(([r, ic, l, fait]) => estGrise(r) ? `<div class="ligne-clic grise" aria-disabled="true"><span style="display:flex;gap:12px;align-items:center"><span class="emo">${ic}</span><b>${esc(l)}</b></span><small>${catTard(r) ? 'plus tard' : 'faite'}</small></div>` : `<button type="button" class="ligne-clic" data-go="${r}"><span style="display:flex;gap:12px;align-items:center"><span class="emo">${ic}</span><b>${esc(l)}</b></span><span style="display:flex;gap:8px;align-items:center">${fait ? '<small class="m-faite">faite</small>' : ''}›</span></button>`).join('')).join('')}<div style="margin-top:8px">${segMode()}</div>`); else aller(t); return; }
   if ((b = q('[data-plein]'))) { fermerPanneau(); aller(b.dataset.plein); return; }
   if ((b = q('[data-go]'))) { if (b.dataset.ff2) filtreF = b.dataset.ff2;
     // Chaque catégorie est indépendante : depuis une autre catégorie, une facture, un contrat, une intervention ou un client s'ouvre PAR-DESSUS, avec « ‹ Retour ».
