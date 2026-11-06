@@ -242,6 +242,30 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pc.a-placer{animation:aPlacer 1s ease-in-out 4;z-index:5}
 .pc.pl-surl{outline:3px solid var(--lien);outline-offset:1px;z-index:5}
 .a-dec-i.pl{background:var(--lien)}
+/* Comptabilité (6 novembre 2026) */
+.cp-t{display:flex;justify-content:space-between;align-items:baseline;gap:6px 12px;flex-wrap:wrap;margin-bottom:6px}.cp-t h3{margin:0}
+.cp-etapes{display:flex;flex-direction:column}
+.cp-etape{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--trait)}.cp-etape:last-child{border-bottom:0}
+.cp-i{width:28px;height:28px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:var(--surf-in);color:var(--doux);border:1px solid var(--trait)}
+.cp-etape.ok .cp-i{background:color-mix(in srgb,var(--vert) 16%,transparent);color:var(--vert);border-color:color-mix(in srgb,var(--vert) 35%,transparent)}
+.cp-c{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.cp-etape.ok .cp-c>b{color:var(--doux);font-weight:600}
+.cp-n{text-align:right!important;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cp-m{font-variant-numeric:tabular-nums;white-space:nowrap}.cp-m.pos{color:var(--vert)}
+.cp-ecr td{padding:8px 12px;border-bottom:0}.cp-ecr tr.cp-debut td{border-top:1px solid var(--trait);padding-top:12px}.cp-ecr tbody tr:first-child td{border-top:0}
+.cp-expl{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.cp-expl-l{display:flex;gap:10px 14px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:12px 14px;margin-bottom:10px;border-radius:14px;background:color-mix(in srgb,var(--orange) 8%,transparent);border:1px solid color-mix(in srgb,var(--orange) 28%,transparent)}
+.cp-expl .cp-expl-l{margin-bottom:0}.cp-expl-l>span:first-child{flex:1 1 260px;min-width:0}
+.cp-act{display:flex;gap:8px;flex-wrap:wrap;max-width:100%}.cp-act .btn{white-space:normal;text-align:left;height:auto;max-width:100%}
+table.l tr.cp-ko td{background:color-mix(in srgb,var(--orange) 7%,transparent)}
+.cp-rien{display:flex;flex-direction:column;gap:6px}
+.cp-aide{display:flex;flex-direction:column;gap:14px;margin-top:14px}.cp-aide>div{display:flex;flex-direction:column;gap:3px;padding-left:12px;border-left:3px solid color-mix(in srgb,var(--lien) 45%,transparent)}
+.kpi .cp-k{display:block;font-style:normal;font-size:12px;color:var(--doux);margin-top:2px}
+.cp-rl{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--trait)}.cp-rl:last-child{border-bottom:0}
+.cp-rl-g{display:flex;flex-direction:column;gap:3px;min-width:0}.cp-rl-g .mono{white-space:normal;word-break:break-word}
+.cp-rl.ko{background:color-mix(in srgb,var(--orange) 7%,transparent);border-radius:10px;padding:11px 10px}
+.cp-dr{text-align:right;flex:none;white-space:nowrap}.cp-dr .gris{white-space:normal}
+.cp-clos{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;align-items:flex-start}
+.cp-fec{font-family:var(--mono);font-size:12px;line-height:1.5;white-space:pre;overflow:auto;max-height:340px;padding:12px;border-radius:12px;background:var(--surf-in);border:1px solid var(--trait);margin:12px 0}
 @keyframes aPlacer{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px var(--orange),0 0 22px var(--orange)}}
 .kpi-l{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}
 .kpi-l-t{flex:1 1 220px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:none;border:0;color:var(--encre);font:inherit;cursor:pointer;padding:0;min-width:0}
@@ -5282,6 +5306,301 @@ document.addEventListener('change', ev => {
   if (t.dataset.dvacompte) { x = DEVIS_REG[t.dataset.dvacompte]; x.acompte = +t.value; rendre(); return; }
 });
 
+/* ══ COMPTABILITÉ ══
+   Justin, 6 novembre 2026 : « un vrai système de comptabilité, logique, qui correspond à notre application » ; « logique avec les
+   factures et tout ce qui s'ensuit ». On ne saisit RIEN ici : chaque facture émise, chaque paiement reçu (au bureau ou par un technicien
+   sur place), chaque achat et chaque ligne du relevé de banque écrit sa comptabilité, recalculée à chaque affichage depuis FACTURES,
+   ENCAISSEMENTS, ACHATS et les fiches d'intervention. Expliquer une ligne de la banque comme le paiement d'une facture marque cette
+   facture payée (en partie) dans Factures, et le paiement paraît dans Encaissements : un seul fait, partout le même.
+   Relu le 6 novembre 2026 par l'agent `comptable` (15 points, appliqués ici) :
+   · prestations de services : TVA due au PAIEMENT (art. 269 du CGI, sauf option pour les débits) — à la facture elle va « en attente »
+     (44574), au paiement elle devient due (44571) ; un acompte encaissé AVANT la facture la rend due tout de suite (4191 + 44571) ;
+   · une TVA d'achat ne se récupère qu'avec une FACTURE (un ticket de carte ne suffit pas) ; sans elle, le TTC entier est une charge ;
+     celle d'un service se récupère au paiement, celle d'un bien à la facture ; UNE fonction le décide (`cpDedOct`), lue par le journal
+     ET la déclaration ;
+   · l'argent qu'un technicien encaisse sur place est écrit le JOUR où il l'encaisse (caisse des techniciens, 531), pas quand il le rend ;
+   · la TVA du mois est soldée par l'écriture de déclaration (44571 et 44566 vers 44551, l'arrondi en 658/758) ;
+   · un bilan d'ouverture (journal AN) précède octobre : sans lui, les soldes ne veulent rien dire ;
+   · l'export du mois est « au format FEC » ; le FEC légal couvre l'exercice entier et se produit à sa clôture ;
+   · « envoyé » n'est pas « figé » tant que la vraie version ne garde pas une copie scellée : ici, la copie envoyée et son empreinte
+     SHA-256 sont gardées, et octobre n'accepte plus de geste (une correction passe par novembre). L'inaltérabilité des encaissements
+     (CGI art. 286, I-3° bis) reste à traiter côté éditeur, hors prototype.
+   Données fictives ; plan de comptes et règles à valider avec un expert-comptable avant la vraie version. */
+const CP_COMPTES = { '110':'Report à nouveau (bilan d’ouverture)', '411':'Clients', '4191':'Clients · acomptes reçus', '401':'Fournisseurs', '512':'Banque', '530':'Caisse du bureau', '531':'Caisse des techniciens', '5112':'Chèques à remettre',
+  '706':'Prestations de services', '607':'Achats de pièces et fournitures', '6061':'Carburant', '6063':'Petit outillage', '616':'Assurances', '626':'Téléphone et internet', '627':'Frais bancaires', '658':'Écart d’arrondi (charge)', '758':'Écart d’arrondi (produit)',
+  '44571':'TVA collectée (due)', '44574':'TVA collectée en attente du paiement', '44566':'TVA déductible', '44551':'TVA à payer', '44567':'Crédit de TVA' };
+const CP_EXPERT = { cab:'Cabinet Atlantique Conseil', qui:'Claire Moreau', mail:'c.moreau@atlantique-conseil.fr' };
+let ACHATS = [   // factures et tickets des fournisseurs d'octobre (fictifs) — piece : 'facture' (au nom de l'entreprise), 'ticket' (de carte), 'autre'
+  { id:'a1', d:'03/10', fid:'cpa', four:'Clim Pièces Atlantique', objet:'Condensateurs, cosses, filtres', ht:186.40, tva:20, compte:'607', mode:'Virement', paye:'10/10', piece:'facture', ref:'FA-CPA-88412', just:'FA-CPA-88412.pdf' },
+  { id:'a0', d:'05/10', fid:'maaf', four:'MAAF Pro', objet:'Assurance responsabilité civile · octobre', ht:68.00, tva:0, compte:'616', mode:'Prélèvement', paye:'05/10', piece:'autre', ref:'ECH-MAAF-2026-10', just:'Échéancier 2026' },
+  { id:'a2', d:'08/10', fid:'dko', four:'Daikin Pro Ouest', objet:'Kit cassette (Hôtel de la Plage)', ht:612.00, tva:20, compte:'607', mode:'Virement', paye:'15/10', piece:'facture', ref:'DKO-2026-10-0193', just:'DKO-2026-10-0193.pdf' },
+  { id:'a3', d:'12/10', fid:'tote', four:'TotalEnergies', objet:'Gazole · camionnette AB-123-CD (utilitaire)', ht:79.17, tva:20, compte:'6061', mode:'Carte', paye:'12/10', piece:'ticket', ref:'TICKET-TOTAL-1210', just:'Ticket de carte photographié par Karim' },
+  { id:'a4', d:'17/10', fid:'fd17', four:'Frigo Distribution 17', objet:'Fluide R32 · 2 bouteilles', ht:240.00, tva:20, compte:'607', mode:'Carte', paye:'17/10', piece:null, ref:'CB-FD17-1710', just:null },
+  { id:'a5', d:'20/10', fid:'orange', four:'Orange Pro', objet:'Téléphones et internet · octobre', ht:54.99, tva:20, compte:'626', mode:'Prélèvement', paye:'20/10', piece:'facture', ref:'ORANGE-2026-10', just:'Facture Orange (reçue par e-mail)' },
+  { id:'a6', d:'26/10', fid:'lmpro', four:'Leroy Merlin Pro', objet:'Petit outillage', ht:45.83, tva:20, compte:'6063', mode:'Carte', paye:'26/10', piece:null, ref:'CB-LM-2610', just:null },
+  { id:'a7', d:'28/10', fid:'cpa', four:'Clim Pièces Atlantique', objet:'Ventilateur extérieur (Le Vieux Port)', ht:142.50, tva:20, compte:'607', mode:null, ech:'27/11', piece:'facture', ref:'FA-CPA-88790', just:'FA-CPA-88790.pdf' }
+];
+const CP_SOLDE_01 = 8412.36;   // solde du compte au 1er octobre
+const CP_RELEVE = [   // le relevé d'octobre, tel que la banque l'envoie (importé le 31/10 à 7 h)
+  { id:'r1', d:'02/10', lib:'REMISE CB 02/10', m:132.00 }, { id:'r2', d:'05/10', lib:'VIR SEPA HOTEL DE LA PLAGE', m:930.00 }, { id:'r3', d:'05/10', lib:'PRLV MAAF PRO', m:-68.00 },
+  { id:'r4', d:'09/10', lib:'VERSEMENT ESPECES', m:80.00 }, { id:'r5', d:'10/10', lib:'VIR CLIM PIECES ATLANTIQUE', m:-223.68 }, { id:'r6', d:'12/10', lib:'CB TOTALENERGIES 12/10', m:-95.00 },
+  { id:'r7', d:'13/10', lib:'REMISE CHEQUE N° 0004582', m:420.00 }, { id:'r8', d:'15/10', lib:'REMISE CB 15/10', m:242.00 }, { id:'r9', d:'15/10', lib:'VIR DAIKIN PRO OUEST', m:-734.40 },
+  { id:'r10', d:'17/10', lib:'CB FRIGO DISTRIBUTION 17', m:-288.00 }, { id:'r11', d:'19/10', lib:'VIR SEPA CABINET DENTAIRE MARTIN', m:114.00 }, { id:'r12', d:'20/10', lib:'PRLV ORANGE PRO', m:-65.99 },
+  { id:'r13', d:'22/10', lib:'REMISE CB 22/10', m:240.00 }, { id:'r14', d:'26/10', lib:'REMISE CB 26/10', m:95.00 }, { id:'r15', d:'26/10', lib:'CB LEROY MERLIN', m:-55.00 },
+  { id:'r16', d:'28/10', lib:'VIR SEPA HOTEL DE LA PLAGE', m:186.00 }, { id:'r17', d:'29/10', lib:'VIR SEPA M DURAND JEAN', m:300.00 }, { id:'r18', d:'30/10', lib:'VIR SEPA HOTEL DE LA PLAGE', m:186.00 },
+  { id:'r19', d:'31/10', lib:'COMMISSIONS CB OCTOBRE', m:-5.94 }, { id:'r20', d:'31/10', lib:'FRAIS TENUE DE COMPTE', m:-8.40 }
+];
+const CP = { onglet:'ensemble', jf:'tous', frais:{}, chq:{ '12/10|FAC-2026-0119':'12/10' }, depots:[{ d:'09/10', m:80, cles:['08/10|FAC-2026-0116'] }], remis:{}, envoye:null, empreinte:null };
+const cpCle = e => e.int ? 'i|' + e.int + '|' + e.mode : e.d + '|' + e.fac,   // reçu sur place : la même clé avant et après la facture (le dépôt ne se refait pas)
+      cpJ = d => { const [j, m] = d.split('/').map(Number); return m * 31 + j; }, cpTri = d => d.split('/').reverse().join('');
+const cpR = n => Math.round(n * 100) / 100, cpTTC = a => cpR(a.ht * (1 + a.tva / 100)), cpTVA = a => cpR(cpTTC(a) - a.ht);
+const cpOct = d => d && d.endsWith('/10'), cpDM = d => d.slice(8, 10) + '/' + d.slice(5, 7);
+const cpTvaEnc = e => cpR(e.ttc - e.ttc / (1 + e.tva / 100));
+const cpFac = num => FACTURES.find(f => f.num === num);
+/* la TVA d'un achat : récupérable avec une FACTURE seulement ; un bien à la facture, un service au paiement */
+const cpDed = a => !!a.tva && a.piece === 'facture', cpService = a => /^6[12]/.test(a.compte);
+const cpDedOct = a => cpDed(a) && (cpService(a) ? !!a.paye && cpOct(a.paye) : cpOct(a.d));
+/* ce qu'un technicien a encaissé sur place et qu'aucune facture émise n'a encore repris : c'est un encaissement, daté du jour où il l'a
+   reçu ; le taux est celui de la facture qui suivra (même règle que `factureDepuis`), à confirmer sur la facture */
+const cpTvaInt = i => (i.fact && i.fact.tva) || (CLIENTS[i.cli].type === 'part' ? 10 : 20);
+function cpPaieTerrain(){
+  return INTS.filter(i => i.st === 'fait' && i.tech && cpOct(cpDM(i.d))).map(i => ({ i, P:fiche(i.id).paiement }))
+    .filter(({ i, P }) => P && (P.etat === 'acompte' || P.etat === 'total') && (P.mode === 'Espèces' || P.mode === 'Chèque') && !FACTURES.some(f => f.int === i.id && f.num !== '—'))
+    .map(({ i, P }) => ({ d:cpDM(i.d), h:fin(i.h, i.dur), cli:i.cli, fac:'Reçu ' + i.id.toUpperCase(), int:i.id, mode:P.mode, ttc:parseFloat(String(P.montant).replace(',', '.')) || 0, tva:cpTvaInt(i), virtuel:true, preuve:'Noté sur la fiche par ' + tech(i.tech).nom.split(' ')[0] }))
+    .filter(e => e.ttc > 0);
+}
+const cpEncOct = () => [...ENCAISSEMENTS.filter(e => cpOct(e.d)), ...cpPaieTerrain()];
+const cpTechDe = e => { const i = e.int && INTS.find(o => o.id === e.int); return i && i.tech; };
+/* le rapprochement : chaque ligne de la banque cherche le fait de l'application qui l'explique (montant exact, à trois jours près) */
+function cpRapprocher(){
+  const pris = new Set(), E = cpEncOct();
+  const R = CP_RELEVE.map(r => {
+    const x = { ...r, avec:null };
+    if (CP.frais[r.id]) x.avec = { t:'frais' };
+    else if (r.m > 0 && /^VERSEMENT ESPECES/.test(r.lib)) { const dp = CP.depots.find(o => !pris.has(o) && Math.abs(o.m - r.m) < .01); if (dp) { pris.add(dp); x.avec = { t:'depot', dp }; } }
+    else if (r.m > 0 && /^REMISE CHEQUE/.test(r.lib)) { const e = E.find(o => !pris.has(o) && o.mode === 'Chèque' && CP.chq[cpCle(o)] && Math.abs(o.ttc - r.m) < .01 && Math.abs(cpJ(CP.chq[cpCle(o)]) - cpJ(r.d)) <= 3); if (e) { pris.add(e); x.avec = { t:'enc', e }; } }
+    else if (r.m > 0) { const mode = /^REMISE CB/.test(r.lib) ? 'Carte' : 'Virement'; const e = E.find(o => !pris.has(o) && o.mode === mode && Math.abs(o.ttc - r.m) < .01 && Math.abs(cpJ(o.d) - cpJ(r.d)) <= 3); if (e) { pris.add(e); x.avec = { t:'enc', e }; } }
+    else { const a = ACHATS.find(o => !pris.has(o) && o.paye && Math.abs(cpTTC(o) + r.m) < .01 && Math.abs(cpJ(o.paye) - cpJ(r.d)) <= 3); if (a) { pris.add(a); x.avec = { t:'achat', a }; } }
+    return x; });
+  const attente = [...E.filter(e => !pris.has(e) && (e.mode === 'Virement' || e.mode === 'Carte' || (e.mode === 'Chèque' && CP.chq[cpCle(e)]))).map(e => ({ t:'enc', e })), ...CP.depots.filter(o => !pris.has(o)).map(dp => ({ t:'depot', dp })), ...ACHATS.filter(a => a.paye && cpOct(a.paye) && !pris.has(a)).map(a => ({ t:'achat', a }))];
+  return { R, attente, aExpliquer:R.filter(r => !r.avec) };
+}
+/* la caisse : chez les techniciens (pas encore remis), au bureau (pas encore déposé), les chèques à remettre */
+function cpCaisse(){
+  const E = cpEncOct(), physique = e => e.mode === 'Espèces' || e.mode === 'Chèque', auBureau = e => !e.int || CP.remis[e.int], deposees = new Set(CP.depots.flatMap(o => o.cles));
+  const chezTech = E.filter(e => physique(e) && e.int && !CP.remis[e.int]);
+  const enCaisse = E.filter(e => e.mode === 'Espèces' && auBureau(e) && !deposees.has(cpCle(e))), chq = E.filter(e => e.mode === 'Chèque' && auBureau(e) && !CP.chq[cpCle(e)]);
+  return { esp:E.filter(e => e.mode === 'Espèces'), chezTech, enCaisse, solde:cpR(enCaisse.reduce((s, e) => s + e.ttc, 0)), chq };
+}
+/* les écritures : chaque fait de l'application écrit les siennes, débit = crédit */
+function cpEcritures(){
+  const L = [], aj = (j, d, piece, lib, lignes, go) => L.push({ j, d, piece, lib, lignes:lignes.filter(l => Math.abs(l.de || l.cr || 0) > .004), go });
+  const E = cpEncOct(), facOct = new Set(FACTURES.filter(f => cpOct(f.emise)).map(f => f.num));
+  /* le bilan d'ouverture : la banque au 1er octobre, et les factures de septembre que les clients ont payées en octobre (avec leur TVA en attente) */
+  const ouv = {}; E.filter(e => /^FAC-/.test(e.fac) && !facOct.has(e.fac)).forEach(e => { const o = ouv[e.cli] = ouv[e.cli] || { ttc:0, tva:0 }; o.ttc = cpR(o.ttc + e.ttc); o.tva = cpR(o.tva + cpTvaEnc(e)); });
+  const cr411 = Object.values(ouv).reduce((s, o) => s + o.ttc, 0), tvaOuv = cpR(Object.values(ouv).reduce((s, o) => s + o.tva, 0));
+  aj('AN', '01/10', 'Ouverture', 'Bilan d’ouverture d’octobre', [{ c:'512', de:CP_SOLDE_01 }, ...Object.entries(ouv).map(([k, o]) => ({ c:'411', aux:k, de:o.ttc })), { c:'44574', cr:tvaOuv }, { c:'110', cr:cpR(CP_SOLDE_01 + cr411 - tvaOuv) }]);
+  FACTURES.filter(f => cpOct(f.emise) && f.num !== '—').forEach(f => {
+    const ttc = cpR(ttcDe(f)), ht = cpR(f.st === 'avoir' ? -f.ht : htDe(f)), tva = cpR(ttc - ht), c = CLIENTS[f.cli].nom;
+    if (ttc >= 0) aj('VT', f.emise, f.num, 'Facture · ' + c, [{ c:'411', aux:f.cli, de:ttc }, { c:'706', cr:ht }, { c:'44574', cr:tva }], 'facture-x-' + f.id);
+    else { const orig = cpFac((f.objet.match(/FAC-\d{4}-\d+/) || [''])[0]), paye = orig && orig.st === 'payee';   // un avoir sur une facture déjà payée : sa TVA était déjà due (44571)
+      aj('VT', f.emise, f.num, 'Avoir · ' + c, [{ c:'706', de:-ht }, { c:paye ? '44571' : '44574', de:-tva }, { c:'411', aux:f.cli, cr:-ttc }], 'facture-x-' + f.id); }
+  });
+  E.forEach(e => {
+    const f = cpFac(e.fac), c = CLIENTS[e.cli].nom, tv = cpTvaEnc(e), tresor = e.mode === 'Espèces' ? (e.int ? '531' : '530') : e.mode === 'Chèque' ? '5112' : '512', jr = e.mode === 'Espèces' ? 'CA' : 'BQ';
+    if (e.virtuel) aj(jr, e.d, e.fac, 'Acompte encaissé sur place, avant la facture · ' + c, [{ c:tresor, de:e.ttc }, { c:'4191', aux:e.cli, cr:cpR(e.ttc - tv) }, { c:'44571', cr:tv }]);
+    else {
+      aj(jr, e.d, e.fac, 'Paiement ' + e.mode.toLowerCase() + ' · ' + c, [{ c:tresor, de:e.ttc }, { c:'411', aux:e.cli, cr:e.ttc }], f ? 'facture-x-' + f.id : null);
+      aj('OD', e.d, e.fac, 'TVA devenue due au paiement · ' + c, [{ c:'44574', de:tv }, { c:'44571', cr:tv }]);
+    }
+    if (e.mode === 'Chèque' && CP.chq[cpCle(e)]) aj('BQ', CP.chq[cpCle(e)], e.fac, 'Chèque remis en banque · ' + c, [{ c:'512', de:e.ttc }, { c:'5112', cr:e.ttc }]);
+  });
+  Object.entries(CP.remis).forEach(([int, d]) => { const m = cpR(E.filter(e => e.int === int && e.mode === 'Espèces').reduce((s, e) => s + e.ttc, 0)), t = INTS.find(o => o.id === int); if (m) aj('CA', d, 'Remise ' + int.toUpperCase(), 'Espèces remises au bureau par ' + tech(t.tech).nom, [{ c:'530', de:m }, { c:'531', cr:m }]); });
+  CP.depots.forEach(o => aj('BQ', o.d, 'Dépôt', 'Espèces déposées à la banque', [{ c:'512', de:o.m }, { c:'530', cr:o.m }]));
+  ACHATS.filter(a => cpOct(a.d)).forEach(a => {
+    const ded = cpDed(a);   // sans facture, la TVA ne se récupère pas : le TTC entier est une charge
+    aj('AC', a.d, a.ref, a.objet + ' · ' + a.four + (a.tva && !ded ? ' (sans facture : TVA non récupérable)' : ''), [{ c:a.compte, de:ded ? a.ht : cpTTC(a) }, ...(ded ? [{ c:'44566', de:cpTVA(a) }] : []), { c:'401', aux:a.fid, cr:cpTTC(a) }]);
+    if (a.paye && cpOct(a.paye)) aj('BQ', a.paye, a.ref, 'Paiement ' + a.four + ' (' + a.mode.toLowerCase() + ')', [{ c:'401', aux:a.fid, de:cpTTC(a) }, { c:'512', cr:cpTTC(a) }]);
+  });
+  CP_RELEVE.filter(r => CP.frais[r.id]).forEach(r => aj('BQ', r.d, 'Relevé ' + r.id.toUpperCase(), r.lib.charAt(0) + r.lib.slice(1).toLowerCase(), [{ c:'627', de:-r.m }, { c:'512', cr:-r.m }]));
+  /* la déclaration de TVA du mois solde 44571 et 44566 : ce qui reste à payer passe en 44551 (ou en crédit, 44567) ; l'arrondi par taux
+     de la déclaration et celui, paiement par paiement, du journal diffèrent parfois d'un centime : 658 / 758 */
+  const tv = cpTva(), du = cpR(L.reduce((s, x) => s + x.lignes.filter(l => l.c === '44571').reduce((t, l) => t + (l.cr || 0) - (l.de || 0), 0), 0)), arr = cpR(du - tv.col);
+  aj('OD', '31/10', 'TVA-2026-10', 'Déclaration de TVA d’octobre (à déposer en novembre)', [{ c:'44571', de:du }, { c:'44566', cr:tv.ded }, tv.aPayer >= 0 ? { c:'44551', cr:tv.aPayer } : { c:'44567', de:-tv.aPayer }, arr > 0 ? { c:'758', cr:arr } : { c:'658', de:-arr }]);
+  const ordre = { AN:0, VT:1, AC:2, BQ:3, CA:4, OD:5 }, n = {};
+  return L.sort((a, b) => cpTri(a.d).localeCompare(cpTri(b.d)) || ordre[a.j] - ordre[b.j]).map(x => (n[x.j] = (n[x.j] || 0) + 1, { ...x, num:x.j + '-' + String(n[x.j]).padStart(3, '0') }));
+}
+/* la TVA du mois : due sur ce qui a été PAYÉ (services), récupérable sur les achats qui ont leur facture */
+function cpTva(){
+  const E = cpEncOct(), taux = [...new Set(E.map(e => e.tva))].sort((a, b) => b - a).map(t => { const ttc = E.filter(e => e.tva === t).reduce((s, e) => s + e.ttc, 0), ht = cpR(ttc / (1 + t / 100)); return { t, ht, tva:cpR(ttc - ht) }; }).filter(x => x.ht);
+  const A = ACHATS.filter(a => cpOct(a.d) && a.tva), avec = ACHATS.filter(cpDedOct), sans = A.filter(a => !cpDed(a)), attente = A.filter(a => cpDed(a) && !cpDedOct(a));
+  const col = cpR(taux.reduce((s, x) => s + x.tva, 0)), ded = cpR(avec.reduce((s, a) => s + cpTVA(a), 0)), manque = cpR(sans.reduce((s, a) => s + cpTVA(a), 0));
+  return { taux, col, ded, manque, avec, sans, attente, aPayer:cpR(col - ded) };
+}
+const cpTechNoms = L => [...new Set(L.map(cpTechDe).filter(Boolean))].map(t => tech(t).nom.split(' ')[0]).join(', ');
+function cpEtapes(){
+  const rap = cpRapprocher(), ca = cpCaisse(), tv = cpTva(), avv = FACTURES.filter(f => f.st === 'avalider');
+  return [
+    { k:'fac', ok:!avv.length, t:'Les factures du mois sont toutes émises', d:avv.length ? `${avv.length} facture${avv.length > 1 ? 's' : ''} préparée${avv.length > 1 ? 's' : ''}, pas encore envoyée${avv.length > 1 ? 's' : ''} : ${avv.map(f => esc(CLIENTS[f.cli].nom) + ' (' + eur(ttcDe(f)) + ')').join(', ')}` : 'Une facture préparée devient une écriture le jour où elle part.', go:'factures' },
+    { k:'banque', ok:!rap.aExpliquer.length, t:'Chaque ligne de la banque est expliquée', d:rap.aExpliquer.length ? `${rap.aExpliquer.length} ligne${rap.aExpliquer.length > 1 ? 's' : ''} à expliquer : ${rap.aExpliquer.map(r => esc(r.lib) + ' (' + eur(r.m) + ')').join(', ')}` : `Les ${CP_RELEVE.length} lignes du relevé correspondent à une facture, un achat ou un dépôt.`, onglet:'banque' },
+    { k:'caisse', ok:!ca.chezTech.length && !ca.chq.length && !ca.solde, t:'L’argent liquide et les chèques sont à la banque', d:[ca.chezTech.length ? `${cpTechNoms(ca.chezTech)} a encore ${eur(ca.chezTech.reduce((s, e) => s + e.ttc, 0))} reçus sur place` : '', ca.solde ? `${eur(ca.solde)} d’espèces au bureau à déposer` : '', ca.chq.length ? `${ca.chq.length} chèque${ca.chq.length > 1 ? 's' : ''} à remettre (${eur(ca.chq.reduce((s, e) => s + e.ttc, 0))})` : ''].filter(Boolean).join(' · ') || 'Rien ne traîne dans un tiroir ou une camionnette.', onglet:'caisse' },
+    { k:'just', ok:!tv.sans.length, t:'Chaque achat a sa facture', d:tv.sans.length ? `${tv.sans.length} achat${tv.sans.length > 1 ? 's' : ''} sans facture : ${tv.sans.map(a => esc(a.four) + (a.piece === 'ticket' ? ' (ticket de carte seul)' : '')).join(', ')} — ${eur(tv.manque)} de TVA que tu ne récupères pas tant qu’elles manquent` : 'Les factures sont là ; ce qui se déduit vraiment (véhicule, repas…) se vérifie avec ton expert-comptable.', onglet:'tva' },
+    { k:'tva', ok:!rap.aExpliquer.length && !tv.sans.length, t:'La TVA d’octobre est calculée', d:`${eur(tv.aPayer)} à payer en novembre — à vérifier avec ton expert-comptable avant de déclarer${tv.sans.length || rap.aExpliquer.length ? ' ; montant provisoire tant que les points au-dessus restent ouverts' : ''}.`, onglet:'tva' }
+  ];
+}
+const cpLienFac = (num, lib) => { const f = cpFac(num); return f ? `<button type="button" class="lien" data-cp="fac|${f.id}">${esc(lib || num)}</button>` : esc(lib || num); };
+const cpM = m => `<b class="cp-m ${m < 0 ? 'neg' : 'pos'}">${m > 0 ? '+' : ''}${eur(m)}</b>`;
+const cpSolde = (E, c) => cpR(E.reduce((s, x) => s + x.lignes.filter(l => l.c === c).reduce((t, l) => t + (l.de || 0) - (l.cr || 0), 0), 0));
+function vueComptabilite(){
+  const O = CP.onglet, rap = cpRapprocher(), ca = cpCaisse(), tv = cpTva(), et = cpEtapes(), faits = et.filter(x => x.ok).length, terrain = cpPaieTerrain();
+  const facOct = FACTURES.filter(f => cpOct(f.emise) && f.num !== '—'), facHT = cpR(facOct.reduce((s, f) => s + (f.st === 'avoir' ? -f.ht : htDe(f)), 0)), encTTC = cpR(ENCAISSEMENTS.filter(e => cpOct(e.d)).reduce((s, e) => s + e.ttc, 0));
+  const achHT = cpR(ACHATS.filter(a => cpOct(a.d)).reduce((s, a) => s + (cpDed(a) || !a.tva ? a.ht : cpTTC(a)), 0) + CP_RELEVE.filter(r => CP.frais[r.id]).reduce((s, r) => s - r.m, 0));
+  const soldeBq = cpR(CP_SOLDE_01 + CP_RELEVE.reduce((s, r) => s + r.m, 0)), espTech = cpR(ca.chezTech.reduce((s, e) => s + e.ttc, 0));
+  const enRoute = cpR(rap.attente.reduce((s, x) => s + (x.t === 'enc' ? x.e.ttc : x.t === 'depot' ? x.dp.m : -cpTTC(x.a)), 0)), enMain = cpR(ca.solde + espTech + ca.chq.reduce((s, e) => s + e.ttc, 0));   // la banque, plus ce qui y va, plus ce qui est encore en main
+  const tabs = [['ensemble','Le mois'],['banque','Banque' + (rap.aExpliquer.length ? ' · ' + rap.aExpliquer.length : '')],['caisse','Caisse'],['tva','TVA'],['ecritures','Journal']];
+  const clos = CP.envoye ? `<div class="ok-bloc cp-clos"><b>Octobre est envoyé à ${esc(CP_EXPERT.qui)} (${esc(CP_EXPERT.cab)}) le ${CP.envoye}.</b><span class="gris petit">La copie envoyée est gardée telle quelle${CP.empreinte ? ' (empreinte ' + CP.empreinte + ')' : ''} et octobre n’accepte plus de geste : une erreur se corrige en novembre, par un avoir ou une écriture de correction. Rien ne s’efface.</span><button type="button" class="lien" data-cp="rouvrir">Rouvrir octobre (pour l’essai)</button></div>` : '';
+  return `<div class="tete"><div><span class="surtitre">Ventes</span><h1>Comptabilité</h1><span class="gris">Octobre 2026 · tout s’écrit tout seul depuis les factures, les paiements, les achats et la banque. Tu vérifies, tu envoies à ton expert-comptable.</span></div>
+    <div class="actions"><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button>${CP.envoye ? '' : `<button type="button" class="btn" data-cp="envoi">Envoyer octobre à ${esc(CP_EXPERT.qui.split(' ')[0])}</button>`}</div></div>
+  ${clos}
+  <div class="kpis">
+    <button type="button" class="kpi" data-cp="onglet|ecritures"><b>${eur(facHT)}</b><span>facturé en octobre (HT) · ${facOct.length} facture${facOct.length > 1 ? 's' : ''}</span></button>
+    <button type="button" class="kpi" data-cp="go|encaissements"><b style="color:var(--vert)">${eur(encTTC)}</b><span>encaissé en octobre (TTC)${terrain.length ? ` <i class="cp-k">+ ${eur(cpR(terrain.reduce((s, e) => s + e.ttc, 0)))} reçus sur place, pas encore sur une facture</i>` : ''}</span></button>
+    <button type="button" class="kpi" data-cp="onglet|ensemble"><b>${eur(cpR(facHT - achHT))}</b><span>facturé moins achats (HT, indicatif, avant salaires)</span></button>
+    <button type="button" class="kpi" data-cp="onglet|banque"><b>${eur(cpR(soldeBq + enRoute + enMain))}</b><span>trésorerie · banque ${eur(soldeBq)}${enRoute ? ' + en route ' + eur(enRoute) : ''}${enMain ? ' + en main ' + eur(enMain) : ''}</span></button>
+    <button type="button" class="kpi" data-cp="onglet|tva"><b style="color:var(--orange)">${eur(tv.aPayer)}</b><span>TVA d’octobre à payer en novembre</span></button></div>
+  <div class="seg" role="group" aria-label="Rubrique de la comptabilité">${tabs.map(([k, l]) => `<button type="button" data-cp="onglet|${k}" aria-pressed="${O === k}">${l}</button>`).join('')}</div>
+  ${O === 'ecritures' ? cpVueEcritures() : O === 'banque' ? cpVueBanque(rap, soldeBq) : O === 'caisse' ? cpVueCaisse(ca) : O === 'tva' ? cpVueTva(tv) : cpVueEnsemble(et, faits)}`;
+}
+function cpVueEnsemble(et, faits){
+  const dues = FACTURES.filter(f => ['envoyee','retard','partielle'].includes(f.st)), du = dues.reduce((s, f) => s + restant(f), 0), aPayer = ACHATS.filter(a => !a.paye);
+  return `<div class="grille2">
+    <div class="col"><div class="carte"><div class="cp-t"><h3>Clôturer octobre · ${faits + (CP.envoye ? 1 : 0)} sur ${et.length + 1}</h3><span class="st ${faits === et.length ? 'st-v' : 'st-o'}">${faits === et.length ? 'Prêt à envoyer' : 'Encore ' + (et.length - faits) + ' point' + (et.length - faits > 1 ? 's' : '')}</span></div>
+      <div class="cp-etapes">${et.map((x, k) => `<div class="cp-etape ${x.ok ? 'ok' : ''}"><span class="cp-i" aria-hidden="true">${x.ok ? '✓' : k + 1}</span><span class="cp-c"><b>${x.t}</b><span class="gris petit">${x.d}</span></span>${x.ok ? '' : `<button type="button" class="btn gris mini-btn" data-cp="${x.go ? 'go|' + x.go : 'onglet|' + x.onglet}">Voir ›</button>`}</div>`).join('')}
+        <div class="cp-etape ${CP.envoye ? 'ok' : ''}"><span class="cp-i" aria-hidden="true">${CP.envoye ? '✓' : et.length + 1}</span><span class="cp-c"><b>Envoyer à ton expert-comptable</b><span class="gris petit">${CP.envoye ? 'Envoyé le ' + CP.envoye + '.' : `${esc(CP_EXPERT.qui)} · ${esc(CP_EXPERT.cab)} reçoit les écritures du mois (au format FEC, celui que lit son logiciel), les factures et les justificatifs d’achat.`}</span></span>${CP.envoye ? '' : '<button type="button" class="btn mini-btn" data-cp="envoi">Envoyer ›</button>'}</div></div></div>
+      <div class="carte"><h3>Ce que tu n’as pas à faire</h3><div class="gris petit cp-rien"><span>• Ressaisir une facture ou un paiement : ils s’écrivent tout seuls, débit et crédit.</span><span>• Suivre la TVA : pour tes interventions (des services), elle est due quand le client paie ; l’application la suit paiement par paiement.</span><span>• Pointer le relevé de banque à la main : chaque ligne trouve sa facture, son achat ou son dépôt.</span></div></div></div>
+    <div class="col"><div class="carte"><h3>À encaisser · ${eur(du)}</h3>${dues.sort((a, b) => (b.st === 'retard') - (a.st === 'retard')).map(f => `<div class="ligne"><span>${cpLienFac(f.num, CLIENTS[f.cli].nom)}<br><span class="gris petit">${f.num} · échéance ${f.ech}${f.relances ? ' · ' + f.relances + ' relance' + (f.relances > 1 ? 's' : '') : ''}</span></span><span class="cp-dr"><b>${eur(restant(f))}</b><br><span class="st ${STF[f.st][1]}">${STF[f.st][0]}</span></span></div>`).join('') || '<span class="gris">Rien à encaisser.</span>'}</div>
+      <div class="carte"><h3>À payer aux fournisseurs · ${eur(aPayer.reduce((s, a) => s + cpTTC(a), 0))}</h3>${aPayer.map(a => `<div class="ligne"><span><b>${esc(a.four)}</b><br><span class="gris petit">${esc(a.objet)} · échéance ${a.ech}</span></span><span class="cp-dr"><b>${eur(cpTTC(a))}</b><br><button type="button" class="lien" data-cp="payer|${a.id}">Marquer payé</button></span></div>`).join('') || '<span class="gris">Rien à payer.</span>'}</div></div></div>`;
+}
+function cpVueEcritures(){
+  const E = cpEcritures(), J = { tous:'Toutes', AN:'Ouverture', VT:'Ventes', AC:'Achats', BQ:'Banque', CA:'Caisse', OD:'TVA' }, V = CP.jf === 'tous' ? E : E.filter(x => x.j === CP.jf);
+  const de = V.reduce((s, x) => s + x.lignes.reduce((t, l) => t + (l.de || 0), 0), 0), cr = V.reduce((s, x) => s + x.lignes.reduce((t, l) => t + (l.cr || 0), 0), 0);
+  return `<div class="carte"><div class="cp-t"><h3>Le journal comptable d’octobre · ${V.length} écritures</h3><span class="gris petit">La partie de ton expert-comptable : tu n’as rien à y faire. Aucune ligne n’a été tapée, chacune vient d’une facture, d’un paiement, d’un achat ou de la banque.</span></div>
+    <div class="seg" role="group" aria-label="Journal" style="margin:6px 0 10px">${Object.entries(J).map(([k, l]) => `<button type="button" data-cp="jf|${k}" aria-pressed="${CP.jf === k}">${l}${k === 'tous' ? '' : ' · ' + E.filter(x => x.j === k).length}</button>`).join('')}</div>
+    <div class="tableau"><table class="l cp-ecr"><thead><tr><th>Date</th><th>N°</th><th>Pièce</th><th>Compte</th><th>Libellé</th><th class="cp-n">Débit</th><th class="cp-n">Crédit</th></tr></thead>
+    <tbody>${V.map(x => x.lignes.map((l, k) => `<tr class="${k ? '' : 'cp-debut'}"><td>${k ? '' : x.d}</td><td class="mono">${k ? '' : x.num}</td><td>${k ? '' : x.go ? `<button type="button" class="lien mono" data-cp="go|${x.go}">${esc(x.piece)}</button>` : `<span class="mono">${esc(x.piece)}</span>`}</td><td><span class="mono">${l.c}</span> <span class="gris petit">${esc(CP_COMPTES[l.c] || '')}${l.aux ? ' · ' + esc(CLIENTS[l.aux] ? CLIENTS[l.aux].nom : (ACHATS.find(a => a.fid === l.aux) || {}).four || l.aux) : ''}</span></td><td>${k ? '' : esc(x.lib)}</td><td class="cp-n">${l.de ? eur(l.de) : ''}</td><td class="cp-n">${l.cr ? eur(l.cr) : ''}</td></tr>`).join('')).join('')}</tbody>
+    <tfoot><tr><td colspan="5">${Math.abs(de - cr) < .01 ? '<span class="st st-v">✓ Équilibré</span> débit = crédit' : '<span class="st st-r">Déséquilibré</span>'}</td><td class="cp-n">${eur(de)}</td><td class="cp-n">${eur(cr)}</td></tr></tfoot></table></div></div>`;
+}
+function cpVueBanque(rap, soldeBq){
+  const s512 = cpSolde(cpEcritures(), '512');
+  const lienDe = r => { const a = r.avec; if (!a) return '';
+    if (a.t === 'enc') return `<span class="st st-v">✓</span> ${a.e.mode === 'Chèque' ? 'Chèque remis · ' : ''}${cpLienFac(a.e.fac, a.e.fac + ' · ' + CLIENTS[a.e.cli].nom)}`;
+    if (a.t === 'achat') return `<span class="st st-v">✓</span> Achat · ${esc(a.a.four)}${a.a.tva && !cpDed(a.a) ? ' <span class="st st-o">facture manquante</span>' : ''}`;
+    if (a.t === 'depot') return `<span class="st st-v">✓</span> Espèces déposées le ${a.dp.d}`;
+    return `<span class="st st-v">✓</span> Frais bancaires (627)`; };
+  const action = r => { if (r.m < 0 && /FRAIS|COMMISSION/.test(r.lib)) return `<button type="button" class="btn gris mini-btn" data-cp="frais|${r.id}">Ce sont des frais bancaires</button>`;
+    const mots = r.lib.replace(/^VIR SEPA |^VIR /, '').split(/\s+/).filter(w => w.length > 3), dues = FACTURES.filter(f => ['envoyee','retard','partielle'].includes(f.st) && restant(f) >= r.m - .01 && mots.some(w => CLIENTS[f.cli].nom.toUpperCase().includes(w)));
+    return dues.map(f => `<button type="button" class="btn gris mini-btn" data-cp="paiement|${r.id}|${f.id}">C’est un paiement de ${f.num} (${esc(CLIENTS[f.cli].nom)}, ${eur(restant(f))} dû)</button>`).join('') || '<span class="gris petit">Aucune facture ne correspond : demande à ton expert-comptable.</span>'; };
+  return `<div class="grille2"><div class="col"><div class="carte"><div class="cp-t"><h3>Relevé d’octobre · Crédit Agricole ····4521</h3><span class="gris petit">importé le 31/10 à 7 h</span></div>
+      ${rap.aExpliquer.length ? `<div class="cp-expl">${rap.aExpliquer.map(r => `<div class="cp-expl-l"><span><b>${esc(r.lib)}</b> · ${r.d} · ${cpM(r.m)}<br><span class="gris petit">${r.m > 0 ? 'De l’argent est arrivé et aucun paiement de ce montant n’était attendu.' : 'Une sortie que l’application ne connaît pas encore.'}</span></span><span class="cp-act">${action(r)}</span></div>`).join('')}</div>` : '<div class="ok-bloc" style="margin-bottom:10px"><b>Tout le relevé est expliqué.</b></div>'}
+      <div class="cp-rel">${rap.R.map(r => `<div class="cp-rl${r.avec ? '' : ' ko'}"><span class="cp-rl-g"><span><span class="gris">${r.d}</span> · <span class="mono">${esc(r.lib)}</span></span><span class="petit">${r.avec ? lienDe(r) : '<span class="st st-o">à expliquer</span>'}</span></span>${cpM(r.m)}</div>`).join('')}</div></div></div>
+    <div class="col"><div class="carte"><h3>Le compte</h3><div class="ligne"><span>Solde au 1er octobre</span><b>${eur(CP_SOLDE_01)}</b></div><div class="ligne"><span>Entrées</span>${cpM(cpR(CP_RELEVE.filter(r => r.m > 0).reduce((s, r) => s + r.m, 0)))}</div><div class="ligne"><span>Sorties</span>${cpM(cpR(CP_RELEVE.filter(r => r.m < 0).reduce((s, r) => s + r.m, 0)))}</div><div class="ligne" style="font-size:18px"><span><b>Solde de la banque au 31 octobre</b></span><b>${eur(soldeBq)}</b></div>
+      <div class="ligne"><span>Solde du compte 512 en comptabilité</span><b>${eur(s512)}</b></div>
+      <span class="gris petit">${Math.abs(s512 - soldeBq) < .01 ? 'Les deux soldes sont égaux : la comptabilité et la banque disent la même chose.' : `Écart de ${eur(cpR(s512 - soldeBq))} : ${rap.aExpliquer.length ? rap.aExpliquer.length + ' ligne' + (rap.aExpliquer.length > 1 ? 's' : '') + ' de la banque à expliquer' : ''}${rap.aExpliquer.length && rap.attente.length ? ', et ' : ''}${rap.attente.length ? rap.attente.length + ' opération' + (rap.attente.length > 1 ? 's' : '') + ' que la banque n’a pas encore montrée' + (rap.attente.length > 1 ? 's' : '') : ''}.`}</span></div>
+      <div class="carte"><h3>Dans l’application, pas encore à la banque · ${rap.attente.length}</h3>${rap.attente.map(x => x.t === 'enc' ? `<div class="ligne"><span>${cpLienFac(x.e.fac, CLIENTS[x.e.cli].nom)}<br><span class="gris petit">${x.e.mode === 'Chèque' ? 'chèque remis le ' + CP.chq[cpCle(x.e)] : x.e.mode.toLowerCase() + ' du ' + x.e.d}</span></span><b>${eur(x.e.ttc)}</b></div>` : x.t === 'achat' ? `<div class="ligne"><span><b>${esc(x.a.four)}</b><br><span class="gris petit">payé le ${x.a.paye} · ${esc(x.a.objet)}</span></span>${cpM(-cpTTC(x.a))}</div>` : `<div class="ligne"><span><b>Espèces déposées</b><br><span class="gris petit">le ${x.dp.d}</span></span><b>${eur(x.dp.m)}</b></div>`).join('') || '<span class="gris">Rien en attente.</span>'}<span class="gris petit" style="display:block;margin-top:8px">C’est normal : la banque les montre sous un à trois jours. Ils se cocheront tout seuls au prochain relevé.</span></div></div></div>`;
+}
+function cpVueCaisse(ca){
+  const parTech = {}; ca.chezTech.forEach(e => { const t = cpTechDe(e); (parTech[t] = parTech[t] || []).push(e); });
+  return `<div class="grille2"><div class="col"><div class="carte"><h3>L’argent qui n’est pas encore à la banque</h3>
+      ${Object.entries(parTech).map(([t, L]) => `<div class="cp-expl-l"><span><b>Chez ${tech(t).nom} · <span class="cp-m">${eur(cpR(L.reduce((s, e) => s + e.ttc, 0)))}</span></b><br><span class="gris petit">${L.map(e => `${esc(CLIENTS[e.cli].nom)} · ${e.mode.toLowerCase()} reçu${e.mode === 'Espèces' ? 'es' : ''} le ${e.d} à ${e.h}${e.virtuel ? ' (acompte, avant la facture)' : ''}`).join(' · ')}. C’est écrit depuis ce moment-là, en caisse des techniciens.</span></span><span class="cp-act"><button type="button" class="btn mini-btn" data-cp="remis|${L.map(e => e.int).join(',')}">${tech(t).nom.split(' ')[0]} me l’a remis</button></span></div>`).join('')}
+      ${ca.enCaisse.length ? `<div class="cp-expl-l"><span><b>Au bureau · <span class="cp-m">${eur(ca.solde)}</span> en espèces</b><br><span class="gris petit">${ca.enCaisse.map(e => esc(CLIENTS[e.cli].nom) + ' (' + eur(e.ttc) + ', ' + e.d + ')').join(', ')}</span></span><span class="cp-act"><button type="button" class="btn gris mini-btn" data-cp="depot">Déposer ${eur(ca.solde)} à la banque</button></span></div>` : ''}
+      ${ca.chq.map(e => `<div class="cp-expl-l"><span><b>Chèque de ${esc(CLIENTS[e.cli].nom)} · <span class="cp-m">${eur(e.ttc)}</span></b><br><span class="gris petit">reçu le ${e.d} · ${cpLienFac(e.fac)}</span></span><span class="cp-act"><button type="button" class="btn gris mini-btn" data-cp="chq|${cpCle(e)}">Remis en banque aujourd’hui</button></span></div>`).join('')}
+      ${!ca.chezTech.length && !ca.enCaisse.length && !ca.chq.length ? '<div class="ok-bloc"><b>Rien ne traîne : tout l’argent reçu est à la banque.</b></div>' : ''}</div></div>
+    <div class="col"><div class="carte"><h3>Espèces d’octobre</h3>${ca.esp.map(e => `<div class="ligne"><span>${esc(CLIENTS[e.cli].nom)}<br><span class="gris petit">reçu le ${e.d}${e.preuve ? ' · ' + esc(e.preuve) : ''}</span></span><span class="cp-dr"><b>${eur(e.ttc)}</b><br><span class="gris petit">${CP.depots.some(o => o.cles.includes(cpCle(e))) ? 'déposé le ' + CP.depots.find(o => o.cles.includes(cpCle(e))).d : e.int && !CP.remis[e.int] ? 'chez ' + tech(cpTechDe(e)).nom.split(' ')[0] : 'au bureau'}</span></span></div>`).join('') || '<span class="gris">Aucune espèce ce mois-ci.</span>'}
+      <span class="gris petit" style="display:block;margin-top:8px">Le reçu signé par le client sur le téléphone du technicien sert de preuve. Un particulier qui vit en France ne peut pas payer plus de 1 000 € en espèces.</span></div></div></div>`;
+}
+function cpVueTva(tv){
+  const etat = a => cpDed(a) ? (cpDedOct(a) ? `<span class="gris petit">✓ ${esc(a.just)}</span>` : '<span class="gris petit">TVA récupérable au paiement (service)</span>') : a.piece === 'ticket' ? `<span class="gris petit">ticket de carte seul</span><br><label class="lien cp-just">＋ Ajouter la facture<input type="file" accept="image/*,application/pdf" capture="environment" data-cpjust="${a.id}" hidden></label>` : `<label class="lien cp-just">＋ Ajouter la facture<input type="file" accept="image/*,application/pdf" capture="environment" data-cpjust="${a.id}" hidden></label>`;
+  return `<div class="grille2"><div class="col"><div class="carte"><div class="cp-t"><h3>TVA d’octobre · à payer ${eur(tv.aPayer)}</h3><span class="gris petit">réel normal · déclaration mensuelle</span></div>
+      <div class="groupe">Due sur ce que les clients ont payé en octobre</div>${tv.taux.map(x => `<div class="ligne"><span>Base HT à ${String(x.t).replace('.', ',')} %</span><span>${eur(x.ht)} <span class="gris">→ TVA</span> <b>${eur(x.tva)}</b></span></div>`).join('')}
+      <div class="ligne"><span><b>TVA collectée</b></span><b>${eur(tv.col)}</b></div>
+      <div class="groupe">À déduire : la TVA de tes achats</div><div class="ligne"><span>${tv.avec.length} achat${tv.avec.length > 1 ? 's' : ''} avec leur facture</span><b>− ${eur(tv.ded)}</b></div>
+      <div class="ligne" style="font-size:18px"><span><b>TVA à payer</b></span><b style="color:var(--orange)">${eur(tv.aPayer)}</b></div>
+      <span class="gris petit" style="display:block;margin-top:8px">À déclarer en novembre (déclaration CA3 de la période d’octobre), avant ta date limite (espace professionnel impots.gouv.fr). L’écriture de déclaration est déjà passée dans le journal. Les lignes exactes se vérifient avec ton expert-comptable.</span></div>
+      <div class="carte"><h3>Pourquoi « sur ce qui a été payé » ?</h3><span class="gris petit">Tes interventions sont des services : leur TVA est due quand le client paie, pas quand la facture part. Une facture d’octobre payée en novembre compte en novembre ; une facture de septembre payée en octobre compte ici ; un acompte reçu sur place compte le jour où le technicien l’encaisse. (Une vente de pièces seules, sans pose, suit une autre règle : la TVA est due à la livraison.)</span>
+        <button type="button" class="lien" data-cp="regimes" style="margin-top:6px">Les autres régimes de TVA</button></div></div>
+    <div class="col"><div class="carte"><h3>Achats d’octobre · ${ACHATS.filter(a => cpOct(a.d)).length}</h3>${ACHATS.filter(a => cpOct(a.d)).map(a => `<div class="ligne"><span><b>${esc(a.four)}</b><br><span class="gris petit">${a.d} · ${esc(a.objet)} · ${a.tva ? 'TVA ' + eur(cpTVA(a)) : 'sans TVA'}</span></span><span class="cp-dr"><b>${eur(cpTTC(a))}</b><br>${a.tva ? etat(a) : `<span class="gris petit">✓ ${esc(a.just || '')}</span>`}</span></div>`).join('')}
+      ${tv.sans.length ? `<div class="info petit" style="margin-top:10px">${tv.sans.length} achat${tv.sans.length > 1 ? 's' : ''} sans facture : ${eur(tv.manque)} de TVA que tu ne peux pas récupérer tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}. Une photo de la facture suffit ; un ticket de carte seul ne permet pas de récupérer la TVA (la station ou le magasin te la donne sur demande).</div>` : ''}</div></div></div>`;
+}
+/* les écritures du mois au format FEC : 18 colonnes séparées par une tabulation, ce que lit un logiciel d'expert-comptable.
+   ⚠ Ce n'est pas le FEC légal : celui-là couvre l'exercice entier et se nomme à la date de sa clôture. */
+function cpFec(){
+  const t = ['JournalCode','JournalLib','EcritureNum','EcritureDate','CompteNum','CompteLib','CompAuxNum','CompAuxLib','PieceRef','PieceDate','EcritureLib','Debit','Credit','EcritureLet','DateLet','ValidDate','Montantdevise','Idevise'];
+  const JL = { AN:'A-nouveaux', VT:'Ventes', AC:'Achats', BQ:'Banque', CA:'Caisse', OD:'Operations diverses' }, dt = d => '2026' + d.split('/').reverse().join(''), m = n => n ? n.toFixed(2).replace('.', ',') : '0,00';
+  const net = s => String(s).replace(/[\t\r\n]+/g, ' ').replace(/·/g, '-').replace(/[’‘]/g, "'").replace(/[«»]/g, '"').trim();
+  const aux = c => CLIENTS[c] ? ['C' + c.toUpperCase(), CLIENTS[c].nom] : ['F' + c.toUpperCase(), (ACHATS.find(a => a.fid === c) || {}).four || c];
+  return [t.join('\t'), ...cpEcritures().flatMap(x => x.lignes.map(l => [x.j, JL[x.j], x.num, dt(x.d), l.c, CP_COMPTES[l.c] || '', ...(l.aux ? aux(l.aux) : ['', '']), x.piece, dt(x.d), x.lib, m(l.de), m(l.cr), '', '', CP.envoye ? dt(CP.envoye) : '', '', ''].map(net).join('\t')))].join('\r\n');
+}
+const cpFecNom = () => ENTREPRISE.siret.replace(/\s/g, '').slice(0, 9) + '_ecritures_2026-10_format-FEC.txt';
+async function cpFecTelecharger(){
+  const nom = cpFecNom(), data = new Blob([CP.fecEnvoye || cpFec()], { type:'text/plain' });
+  try { if (_telechargement === undefined) _telechargement = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (_telechargement) { const r = await _telechargement.save({ filename:nom, data }); if (r !== 'declined') toast('Fichier des écritures prêt'); return; } } catch (e) { if (e && e.code === 'declined') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(data); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Fichier des écritures téléchargé');
+}
+async function cpSceller(){
+  CP.fecEnvoye = cpFec(); CP.empreinte = null;
+  try { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(CP.fecEnvoye)); CP.empreinte = [...new Uint8Array(h)].slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join(''); } catch (e) {}
+  rendre();
+}
+function cpEnvoyer(){
+  const et = cpEtapes().filter(x => !x.ok), n = cpEcritures().length;
+  panneauEnvoi({ titre:'Envoyer octobre à ton expert-comptable', a:CP_EXPERT.mail, objet:`${ENTREPRISE.nom} — comptabilité d’octobre 2026`,
+    corps:`Bonjour ${CP_EXPERT.qui.split(' ')[0]},\n\nVoici la comptabilité d’octobre 2026 de ${ENTREPRISE.nom} : les ${n} écritures du mois au format FEC (bilan d’ouverture compris), les factures émises, les justificatifs d’achat et le relevé de banque rapproché.${et.length ? '\n\nPoints encore ouverts : ' + et.map(x => x.t.toLowerCase()).join(' ; ') + '.' : ''}\n\nBonne journée,\nMarc Le Gall`,
+    pj:`Octobre 2026 · écritures (format FEC), factures et justificatifs (zip)`, apres:() => { CP.envoye = '31/10'; cpSceller(); toast('Octobre envoyé'); } });
+  if (et.length) document.querySelector('.panneau h2').insertAdjacentHTML('afterend', `<div class="info petit">Encore ${et.length} point${et.length > 1 ? 's' : ''} ouvert${et.length > 1 ? 's' : ''} : ${et.map(x => esc(x.t.toLowerCase())).join(' · ')}. Tu peux envoyer quand même : ils sont écrits dans le message.</div>`);
+  document.querySelector('.panneau .mail-pj')?.insertAdjacentHTML('afterend', '<button type="button" class="lien" data-cp="fec">Voir les écritures au format FEC</button>');
+}
+const CP_GESTES_MOIS = ['frais', 'paiement', 'remis', 'depot', 'chq', 'payer', 'envoi'];
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-cp]'); if (!b) return;
+  const [a, x, y] = b.dataset.cp.split('|');
+  if (CP.envoye && CP_GESTES_MOIS.includes(a)) return toast('Octobre est envoyé : ce geste s’écrira en novembre.');
+  if (a === 'onglet') { CP.onglet = x; return rendre(); }
+  if (a === 'jf') { CP.jf = x; return rendre(); }
+  if (a === 'fac') return allerAvecRetour('facture-x-' + x, 'la Comptabilité', null);
+  if (a === 'go') return allerAvecRetour(x, 'la Comptabilité', null);
+  if (a === 'frais') { CP.frais[x] = '627'; rendre(); return toast('Écriture de frais bancaires créée (627) : la ligne est expliquée'); }
+  if (a === 'paiement') { const r = CP_RELEVE.find(o => o.id === x), f = FACTURES.find(o => o.id === y); if (!r || !f) return;
+    f.recu = cpR((f.recu || 0) + r.m); f.st = restant(f) <= .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = 'Virement'; f.paye = r.d; }
+    ENCAISSEMENTS.unshift({ d:r.d, h:'—', cli:f.cli, fac:f.num, mode:'Virement', ttc:r.m, tva:f.tva, preuve:'Relevé de banque · ' + r.lib });
+    rendre(); return toast(`${eur(r.m)} reçus sur ${f.num} : ${f.st === 'payee' ? 'facture payée' : 'reste ' + eur(restant(f)) + ' à payer'}. C’est aussi dans Factures et Encaissements.`); }
+  if (a === 'remis') { x.split(',').forEach(int => CP.remis[int] = '31/10'); rendre(); return toast('Remis au bureau : l’argent passe de la caisse des techniciens à celle du bureau.'); }
+  if (a === 'depot') { const c = cpCaisse(); if (!c.solde) return; CP.depots.push({ d:'31/10', m:c.solde, cles:c.enCaisse.map(cpCle) }); rendre(); return toast(`${eur(c.solde)} déposés : ils apparaîtront sur le prochain relevé`); }
+  if (a === 'chq') { CP.chq[b.dataset.cp.slice(4)] = '31/10'; rendre(); return toast('Chèque remis : il apparaîtra sur le prochain relevé'); }
+  if (a === 'payer') { const o = ACHATS.find(z => z.id === x); if (o) { o.paye = '31/10'; o.mode = 'Virement'; } rendre(); return toast('Paiement du fournisseur écrit (401 → 512)'); }
+  if (a === 'envoi') return cpEnvoyer();
+  if (a === 'fec') { const f = (CP.fecEnvoye || cpFec()).split('\r\n'); return ouvrirPanneau(`<h2>Les écritures d’octobre, au format FEC</h2><span class="gris">${f.length - 1} lignes, 18 colonnes : le format que lit le logiciel de ton expert-comptable. Le FEC officiel, celui que demande l’administration, couvre l’exercice entier : il se produit à la clôture de l’année.</span><pre class="cp-fec">${esc(f.slice(0, 14).join('\n'))}\n…</pre><div class="actions"><button type="button" class="btn" data-cp="fecdl">Télécharger le fichier</button><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`, true); }
+  if (a === 'fecdl') return cpFecTelecharger();
+  if (a === 'rouvrir') { CP.envoye = null; CP.empreinte = null; CP.fecEnvoye = null; rendre(); return toast('Octobre rouvert (pour l’essai)'); }
+  if (a === 'aide') return ouvrirPanneau(`<h2>Comment ça marche</h2><span class="gris">Tu ne tapes rien : tu travailles dans l’application, la comptabilité se fait toute seule. Toi, tu vérifies quatre choses à la fin du mois.</span>
+    <div class="cp-aide"><div><b>1 · Tu travailles normalement</b><span class="gris petit">Une facture envoyée, un paiement reçu (même en espèces par un technicien), un achat avec sa facture : chaque geste écrit sa ligne de comptabilité, au bon endroit, à la bonne date.</span></div>
+    <div><b>2 · La banque se pointe toute seule</b><span class="gris petit">Chaque ligne du relevé retrouve sa facture ou son achat. Si une ligne reste seule, l’application te demande ce que c’est, en un clic (« c’est un paiement de… », « ce sont des frais bancaires »).</span></div>
+    <div><b>3 · L’argent en main finit à la banque</b><span class="gris petit">Les espèces et les chèques reçus par un technicien sont suivis jusqu’au dépôt : rien ne se perd dans une camionnette.</span></div>
+    <div><b>4 · La TVA est calculée</b><span class="gris petit">Pour tes interventions, elle est due quand le client paie. Celle de tes achats se récupère quand tu as la facture : une photo suffit.</span></div>
+    <div><b>Et à la fin du mois, un bouton</b><span class="gris petit">« Envoyer à ton expert-comptable » : il reçoit tout, rangé, dans le format que lit son logiciel. Le mois est envoyé ; une erreur se corrige le mois suivant, rien ne s’efface.</span></div></div>`);
+  if (a === 'regimes') return ouvrirPanneau(`<h2>Les régimes de TVA</h2>
+    <div class="ligne"><span><b>Réel normal</b> (le tien)<br><span class="gris petit">Une déclaration chaque mois ; ce que montre cet écran.</span></span></div>
+    <div class="ligne"><span><b>Réel simplifié</b><br><span class="gris petit">Une déclaration par an et deux acomptes dans l’année.</span></span></div>
+    <div class="ligne"><span><b>Franchise en base</b><br><span class="gris petit">Pas de TVA sur les factures (« TVA non applicable, art. 293 B du CGI »), aucune à récupérer sur les achats, tant que le chiffre d’affaires reste sous un seuil.</span></span></div>
+    <div class="ligne"><span><b>Deux cas à part</b><br><span class="gris petit">L’option pour les débits (la TVA due à la facture, et non plus au paiement : c’est écrit sur la facture) ; la sous-traitance dans le bâtiment (autoliquidation : pas de TVA sur la facture, c’est le client qui la déclare).</span></span></div>
+    <span class="gris petit">Le régime dépend de ton chiffre d’affaires, avec des options possibles : il se règle avec ton expert-comptable, et il change aussi tes factures.</span>`);
+});
+document.addEventListener('change', ev => {
+  const i = ev.target.closest('[data-cpjust]'); if (!i || !i.files || !i.files[0]) return;
+  if (CP.envoye) { i.value = ''; return toast('Octobre est envoyé : ajoute cette facture en novembre (ton expert-comptable fera la correction).'); }
+  const a = ACHATS.find(o => o.id === i.dataset.cpjust); if (a) { a.just = i.files[0].name; a.piece = 'facture'; rendre(); toast(`Facture ajoutée : ${eur(cpTVA(a))} de TVA récupérable`); }
+});
+
 /* ══ TOUTES LES CATÉGORIES DE L'APPLICATION (menu de app.html, même ordre) ══
    Celles déjà refaites sont GRISÉES et fermées (décision de Justin, 1er novembre 2026 : « pour pas que je me perde ») ;
    les autres se refont une par une. ?tout dans l'adresse rouvre tout (bancs du prototype). */
@@ -5341,7 +5660,7 @@ function barreBas(base){
 const BASE = { inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
 function rendre(){
   document.getElementById('cr-ftel')?.remove();
-  const V = { accueil:vueAccueil, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, devis:() => param ? vueDevisFiche(param) : vueDevis() };
+  const V = { accueil:vueAccueil, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, devis:() => param ? vueDevisFiche(param) : vueDevis() };
   const base = BASE[route] || route, x = scrollX, defs = [...document.querySelectorAll('.pl-defile')].map(d => d.scrollLeft);
   document.getElementById('menu').innerHTML = menu(base);
   document.getElementById('contenu').innerHTML = `<div class="tete-tel"><span class="logo" style="padding:0"><i>OP</i><b>OP GESTION</b></span><div style="width:190px">${segMode()}</div></div>` + (V[route] && (!estGrise(route) || (typeof RETOUR !== 'undefined' && RETOUR)) ? V[route]() : CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? vueARefaire(route) : vueARefaire(premiereARefaire()));
@@ -5499,7 +5818,7 @@ function envoyerFacture(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (numSuiv
   const P = f.paieTech; if (!P || P.etat === 'rien') return;
   const ttc = ttcDe(f), v = P.etat === 'total' ? ttc : Math.min(ttc, parseFloat(String(P.montant).replace(',','.')) || 0); if (!v) return;
   f.recu = v; f.st = v >= ttc - .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
-  ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); }
+  ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); }
 function payer(f, m, o){ o = o || {}; const v = Math.min(restant(f), o.montant || restant(f)); f.recu = (f.recu || 0) + v; f.st = f.recu >= ttcDe(f) - .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = m; f.paye = o.d || '31/10'; }
   ENCAISSEMENTS.unshift({ d:o.d || '31/10', h:o.h || new Date().toTimeString().slice(0,5), cli:f.cli, fac:f.num, mode:m, ttc:v, tva:f.tva, photo:o.photo, preuve:o.photo ? undefined : undefined });
   toast(`${eur(v)} encaissés par ${m.toLowerCase()} le ${o.d || '31/10'} à ${ENCAISSEMENTS[0].h}${f.st === 'partielle' ? ' · reste ' + eur(restant(f)) : ''}.`); }
