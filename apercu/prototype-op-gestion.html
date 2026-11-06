@@ -5287,7 +5287,7 @@ document.addEventListener('change', ev => {
    les autres se refont une par une. ?tout dans l'adresse rouvre tout (bancs du prototype). */
 // Justin, 2 novembre 2026 : « montre-moi tout le prototype, après tu pourras regriser quand je te le dis ».
 // TOUT_OUVERT à true : aucune catégorie grisée. Remettre à false pour regriser celles déjà refaites.
-const TOUT_OUVERT = true;   // Justin, 6 novembre 2026 : « je veux bien voir tout ce qui est fait » — tout rouvert, les faites marquées ; regriser sur sa phrase
+const TOUT_OUVERT = false;   // 6 novembre 2026, 1 h 45, Justin : « grise le reste et on va faire Comptabilité » (rouvert une heure pour tout revoir)
 const TOUT = TOUT_OUVERT || /[?&]tout\b/.test(location.search);
 const CATS = [   // regroupements décidés avec Justin le 1er novembre 2026 (36 catégories → 14 à refaire + 3 de la 3D)
   ['Tableau de bord', [['accueil','📊','Tableau de bord',1],['statistiques','📈','Statistiques',1],['historique','🕘','Historique',1]]],
