@@ -413,52 +413,24 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .eq-sp{align-items:flex-start;padding:9px 0;border-top:1px solid var(--trait)}.eq-sp:first-child{border-top:0}.eq-sp input{margin-top:2px}.eq-sp span{line-height:1.35}
 @media (max-width:760px){.eq-dr{grid-template-columns:minmax(0,1fr) repeat(4,44px);padding-left:10px}.eq-dr>span:first-child{font-size:13.5px}.eq-dr-t span{font-size:10.5px;letter-spacing:0}}
 .eq-puces .eq-rouge{background:color-mix(in srgb,var(--rouge) 13%,transparent);color:var(--rouge)}.eq-puces .eq-abs{background:color-mix(in srgb,var(--violet) 13%,transparent);color:var(--violet)}
+/* mise en page « liste + lecture » de la Boîte mail — reprise de l’ancienne Messagerie (retirée le 7 novembre 2026) */
 .ms-app{display:grid;grid-template-columns:330px minmax(0,1fr);height:max(540px,calc(100dvh - 230px));background:var(--surf);border:1px solid var(--trait);border-radius:var(--r);box-shadow:var(--ombre);overflow:hidden;min-width:0}
 .ms-liste{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--trait)}
-.ms-cherche{padding:12px}.ms-cherche input{width:100%;min-height:40px;border-radius:12px;border:1px solid var(--trait);background:var(--surf-in);color:var(--encre);padding:0 12px;font:inherit;font-size:15px}
 .ms-defile{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
-.ms-grp{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--doux);padding:12px 16px 4px}
 .ms-l{display:flex;gap:11px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:9px 14px;color:var(--encre);font:inherit;cursor:pointer;min-height:58px;border-radius:0}
 .ms-l.on{background:color-mix(in srgb,var(--bleu) 11%,transparent)}@media (hover:hover){.ms-l:not(.on):hover{background:var(--survol)}}
-.ms-l .av,.ms-ft .av,.ms-ic{width:38px;height:38px;font-size:12.5px;flex:none}
-.ms-ic{border-radius:12px;display:grid;place-items:center;font-size:17px;font-weight:800;background:var(--surf2);color:var(--doux)}.ms-ic.ms-groupe{color:var(--bleu);font-size:19px}.ms-ic.ms-inter{background:color-mix(in srgb,var(--orange) 13%,transparent)}
+.ms-l .av,.ms-ft .av{width:38px;height:38px;font-size:12.5px;flex:none}
 .ms-lc{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .ms-l1,.ms-l2{display:flex;align-items:center;gap:8px;min-width:0}.ms-l1 b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}.ms-l1 .gris{flex:none}
 .ms-apercu{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ms-nb{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:12px;font-weight:700;background:var(--bleu);color:#fff}.ms-nb.muet{background:var(--surf-in);color:var(--doux)}
-.ms-muet{font-size:12px;flex:none}
 .ms-pt{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}.ms-pt.ms-vert{background:var(--vert)}.ms-pt.ms-orange{background:var(--orange)}.ms-pt.ms-violet{background:var(--violet)}
 .ms-pied{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--trait)}.ms-pied .btn{flex:1}
 .ms-fil{display:flex;flex-direction:column;min-height:0;min-width:0}.ms-vide{align-items:center;justify-content:center}
 .ms-cr{display:none}.ms-ft{display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid var(--trait);min-height:62px}.ms-ft .ms-lc b{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ms-fta{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .ms-retour{display:none;background:none;border:0;color:var(--lien);font-size:30px;line-height:1;width:40px;height:44px;margin-left:-8px;cursor:pointer}
-.ms-ep{display:flex;gap:8px;align-items:center;text-align:left;width:100%;border:0;border-bottom:1px solid var(--trait);background:color-mix(in srgb,var(--orange) 8%,transparent);color:var(--encre);font:inherit;font-size:13.5px;padding:8px 16px;cursor:pointer;min-height:40px}.ms-ep span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ms-msgs{padding:8px 16px 14px;display:flex;flex-direction:column}
-.ms-jour{text-align:center;margin:14px 0 6px}.ms-jour span{font-size:12px;font-weight:650;color:var(--doux);background:var(--surf2);padding:3px 10px;border-radius:999px}
-.ms-m{display:flex;gap:8px;align-items:flex-end;margin-top:10px;max-width:min(78%,620px)}.ms-m.suite{margin-top:3px}
-.ms-m .av,.ms-esp{width:30px;height:30px;font-size:10.5px;flex:none}
-.ms-m.moi{align-self:flex-end;flex-direction:row-reverse}.ms-m.moi .ms-esp{display:none}
-.ms-b{display:flex;flex-direction:column;gap:5px;padding:8px 12px 6px;border-radius:18px;background:var(--surf2);min-width:0}
-.ms-m.moi .ms-b{background:var(--bleu);color:#fff}.ms-m.moi .ms-b .ms-h{color:rgba(255,255,255,.78)}.ms-m.moi .ms-ment{color:#fff;text-decoration:underline}
-.ms-m.auto .ms-b{background:color-mix(in srgb,var(--bleu) 9%,var(--surf2));border:1px dashed color-mix(in srgb,var(--bleu) 35%,transparent)}
-.ms-qui{font-size:12.5px;font-weight:700;color:var(--doux)}
-.ms-t{font-size:15px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
-.ms-ment{color:var(--lien);font-weight:650}
-.ms-h{font-size:11.5px;color:var(--doux);align-self:flex-end}
-.ms-photo{display:flex;align-items:flex-end;width:min(240px,100%);aspect-ratio:4/3;border-radius:12px;background:linear-gradient(135deg,#6b7a8f,#3b475a 60%,#2a3342);color:#fff;font-size:12.5px;padding:8px;overflow:hidden}
-.ms-carte{display:flex;flex-direction:column;gap:2px;text-align:left;border:1px solid var(--trait);background:var(--surf);color:var(--encre);border-radius:12px;padding:9px 11px;font:inherit;cursor:pointer;min-width:min(240px,100%)}.ms-ct{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--doux)}
-.ms-plus{flex:none;align-self:center;width:32px;height:32px;border-radius:50%;border:0;background:none;color:var(--doux);font-size:18px;cursor:pointer;opacity:0}
-.ms-m:hover .ms-plus,.ms-plus:focus-visible{opacity:1}@media (hover:none){.ms-plus{opacity:.55}}
-.ms-acts{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px 38px}.ms-acts.moi{justify-content:flex-end;margin-left:0}
-.ms-flash .ms-b{outline:2px solid var(--orange);outline-offset:2px}
 .ms-comp{border-top:1px solid var(--trait);padding:10px 12px;background:var(--surf);position:relative}
-.ms-joindre{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.ms-saisie{display:flex;gap:8px;align-items:flex-end}
-.ms-saisie textarea{flex:1;min-width:0;resize:none;min-height:44px;max-height:140px;border-radius:22px;border:1px solid var(--trait);background:var(--surf-in);color:var(--encre);padding:11px 16px;font:inherit;font-size:16px;line-height:1.35}
-.ms-btn{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font-size:21px;line-height:1;cursor:pointer}.ms-btn.ms-env{background:var(--bleu);border-color:transparent;color:#fff;font-weight:800}
-.ms-ment-l{position:absolute;left:12px;right:12px;bottom:calc(100% + 4px);display:flex;flex-direction:column;background:var(--surf);border:1px solid var(--trait);border-radius:14px;box-shadow:var(--ombre-haute);overflow:hidden;z-index:3}
-.ms-ment-l[hidden]{display:none}.ms-ment-l button{display:flex;gap:10px;align-items:center;min-height:46px;padding:6px 12px;background:none;border:0;color:var(--encre);font:inherit;text-align:left;cursor:pointer}.ms-ment-l .av{width:28px;height:28px;font-size:10px}
+.ms-ct{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--doux)}
 @media (max-width:1080px) and (min-width:761px){.ms-app{grid-template-columns:280px minmax(0,1fr)}.ms-fta .btn{padding-inline:10px}}
 @media (max-width:760px){
   .ms-app{display:block;height:auto;background:none;border:0;box-shadow:none;overflow:visible;border-radius:0}
@@ -467,7 +439,6 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
   .ms-app:not(.ouvert) .ms-fil{display:none}.ms-app.ouvert .ms-liste{display:none}.ms-tete.ms-dans-fil{display:none}
   .ms-fil{margin-inline:-16px}.ms-ft{position:sticky;top:0;z-index:4;background:var(--surf);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:6px 12px;gap:9px}.ms-retour{display:block}
   .ms-fta{flex-wrap:nowrap}.ms-fta .btn{padding-inline:11px;min-height:38px;font-size:13.5px}.ms-lg{display:none}.ms-cr{display:inline}.ms-ft .ms-lc .gris{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ms-msgs{overflow:visible;padding:6px 12px 10px}.ms-m{max-width:88%}
   .ms-comp{position:sticky;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:4;border-top:1px solid var(--trait);border-radius:20px;margin:0 8px;box-shadow:var(--ombre-haute);border:1px solid var(--trait)}
 }
 .ml-filtres{display:flex;gap:6px;padding:12px 12px 6px;overflow-x:auto;scrollbar-width:none}.ml-filtres::-webkit-scrollbar{display:none}
@@ -485,7 +456,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .ml-barre{display:flex;gap:8px;flex-wrap:wrap}
 .ml-alerte{display:flex;gap:12px;align-items:center;padding:12px 16px}.ml-alerte .fo-n{flex:1}
 .ml-mod{flex-wrap:wrap}
-@media (max-width:760px){.ml-filtres{padding:0 0 6px;margin-inline:-16px;padding-inline:16px}.ml-l{padding-inline:4px}.ml-corps{padding:14px 12px}.ml-barre{position:sticky;bottom:calc(78px + env(safe-area-inset-bottom,0px))}.ml-barre .btn{flex:1 1 auto}.ml-alerte{flex-wrap:wrap}.ml-alerte .btn{width:100%}}
+@media (max-width:760px){.ml-filtres{padding:0 0 6px;margin-inline:-16px;padding-inline:16px}.ml-l{padding-inline:4px}.ml-corps{padding:14px 12px}.ml-barre{position:static;margin:6px 0 0;box-shadow:none;border-radius:16px}.ml-barre .btn{flex:1 1 auto}.ml-cache-tel{display:none}.ml-alerte{flex-wrap:wrap}.ml-alerte .btn{width:100%}}
 .ach-d{display:flex;flex-direction:column;gap:10px}.ach-pq{margin:0;font-size:14.5px;color:var(--encre);font-style:italic}
 .ach-l{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--trait);cursor:pointer;min-height:52px}.ach-l:first-of-type{border-top:0}.ach-l input{width:20px;height:20px;flex:none;accent-color:var(--bleu)}.ach-l .fo-n{flex:1;min-width:0}
 .ach-ech{font-size:13.5px;font-weight:600;white-space:nowrap}
@@ -494,6 +465,31 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .ach-m{display:flex;flex-direction:column;align-items:flex-end;text-align:right;flex:none}
 .ach-na{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:760px){.ach-l{flex-wrap:wrap;gap:8px 10px}.ach-l .fo-n{flex:1 1 calc(100% - 34px)}.ach-ech{margin-left:30px;flex:1}.ach-vir{flex-direction:column;align-items:stretch;bottom:calc(84px + env(safe-area-inset-bottom,0px))}.ach-bar{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.ach-bar .ach-jauge{grid-column:1 / -1;grid-row:2}.ach-n{flex-wrap:wrap}.ach-na{width:100%;justify-content:flex-start;padding-left:40px}}
+.d3-info{font-size:14px}.d3-cli{flex-wrap:wrap;align-self:flex-start}
+.d3-histo{display:flex;gap:14px;align-items:flex-end;min-height:150px;overflow-x:auto}
+.d3-h{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px}.d3-hb{display:flex;align-items:flex-end;width:34px;height:110px;border-radius:10px;background:var(--surf2);overflow:hidden}.d3-hb i{display:block;width:100%;border-radius:10px 10px 0 0}
+.d3-v{background:var(--vert)}.d3-o{background:var(--orange)}.d3-r{background:var(--rouge)}.d3-g{background:var(--doux)}
+.d3-reco{align-items:flex-start;padding:8px 0;border-top:1px solid var(--trait)}.d3-reco:first-of-type{border-top:0}.d3-reco input{margin-top:2px;flex:none}
+.d3-det{padding:4px 2px 12px 2px;display:flex;flex-direction:column;gap:6px}.d3-det p{margin:0;font-size:14.5px}
+.d3-tab{display:flex;flex-direction:column}.d3-tr{display:grid;grid-template-columns:70px minmax(0,1.6fr) 54px minmax(0,1.3fr) 70px 80px;gap:10px;padding:9px 0;border-top:1px solid var(--trait);font-size:14px;align-items:center}.d3-th{border-top:0;font-size:12px;font-weight:700;color:var(--doux);text-transform:uppercase;letter-spacing:.03em}
+.d3-lien{display:flex;gap:12px;align-items:center}
+.d3-carte-g{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:16px;align-items:start}
+.d3-plan{position:relative;width:100%;aspect-ratio:4/3;border-radius:14px;background:var(--surf2);border:1px solid var(--trait);overflow:hidden}.d3-plan.pose{cursor:crosshair;outline:2px dashed var(--bleu);outline-offset:3px}
+.d3-z{position:absolute;border:1.5px solid var(--trait2);border-radius:10px;background:var(--surf);pointer-events:none}.d3-z i{position:absolute;left:8px;top:6px;font-style:normal;font-size:12px;font-weight:700;color:var(--doux);text-transform:uppercase;letter-spacing:.03em}
+.d3-box{position:absolute;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:9px;border:2px solid #fff;color:#fff;font:700 12px/1 var(--police,inherit);display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);padding:0}
+.d3-box::after{content:"";position:absolute;inset:-8px}.d3-box.on{outline:3px solid var(--bleu);outline-offset:2px}
+.d3-leg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px;align-items:center}.d3-leg i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:-1px}
+.d3-cote{display:flex;flex-direction:column;gap:12px}.d3-fiche{display:flex;flex-direction:column;gap:8px}
+.d3-hist{display:flex;flex-direction:column;gap:0}.d3-hp{display:grid;grid-template-columns:14px 70px 1fr;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--trait);font-size:14px}.d3-hp i{width:12px;height:12px;border-radius:4px}
+.d3-saisie{display:flex;flex-direction:column}.d3-sl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--trait)}.d3-sl select{max-width:52%;min-height:40px}
+.xy-g{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr);gap:16px;align-items:start}.xy-f{display:flex;flex-direction:column;gap:12px}.xy-f .seg{flex-wrap:wrap;align-self:flex-start}
+.xy-u{display:flex;align-items:center;gap:8px}.xy-u input{flex:1;min-width:0}.xy-u i{font-style:normal;color:var(--doux);font-size:13.5px;white-space:nowrap}
+.xy-reg summary{cursor:pointer;font-weight:600;min-height:40px;display:flex;align-items:center}.xy-reg[open]{display:flex;flex-direction:column;gap:10px}
+.xy-r{display:flex;flex-direction:column;gap:2px;position:sticky;top:14px}.xy-r .ligne span{font-size:14px}.xy-t b,.xy-t span{font-weight:750}.xy-r .btn{margin-top:12px}
+@media (max-width:1080px){.d3-carte-g,.xy-g{grid-template-columns:1fr}.xy-r{position:static}}
+@media (max-width:760px){.d3-tr{grid-template-columns:62px minmax(0,1fr) auto;gap:2px 10px}.d3-tr>span:nth-child(3),.d3-tr>span:nth-child(4){display:none}.d3-tr>span:nth-child(5){grid-column:2;font-size:12.5px;color:var(--doux)}.d3-tr>span:nth-child(6){grid-column:3;grid-row:1}
+  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
+.t-ctx [data-taller]{font-weight:650}
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -5851,16 +5847,18 @@ const CATS = [   // regroupements décidés avec Justin le 1er novembre 2026 (36
   // 6 novembre 2026, Justin : « parfait pour Planning, après je veux revoir Absences & congés » — Planning grisé, Absences & congés rouverte
   // 6 novembre 2026, 1 h 20, Justin : « c'est parfait » — Absences & congés regrisée (demandes, pastilles, avis dans les deux sens, dates)
   // 6 novembre 2026, Justin : « Comptabilité, grise-la avec Tâches, on les fera en dernier » — 2 = grisée « plus tard » (pas encore faite)
-  ['Planification', [['planning','🗓️','Planning',1],['taches','✅','Tâches',2],['absences','🏖️','Absences & congés',1]]],
+  // 7 novembre 2026 : toutes les autres catégories sont refaites — Tâches et Comptabilité rouvertes, reliées aux nouvelles (Justin les verra en dernier)
+  ['Planification', [['planning','🗓️','Planning',1],['taches','✅','Tâches'],['absences','🏖️','Absences & congés',1]]],
   ['Interventions', [['interventions','🧰','Interventions',1],['clientvoit','📱','Ce que voit le client',1]]],
   ['CRM', [['clients','🏢','Clients',1]]],
-  ['Ventes', [['devis','💰','Devis',1],['factures','🧾','Factures',1],['contrats','📑','Contrats',1],['encaissements','💳','Encaissements',1],['comptabilite','📊','Comptabilité',2]]],
+  ['Ventes', [['devis','💰','Devis',1],['factures','🧾','Factures',1],['contrats','📑','Contrats',1],['encaissements','💳','Encaissements',1],['comptabilite','📊','Comptabilité']]],
   ['Stock', [['produits','📦','Fournisseurs, matériel & produits'],['stock','🗃️','Stock'],['boxes','🧱','Boxes']]],
   ['Temps & équipe', [['pointage','⏱️','Temps de travail'],['vehicules','🚐','Véhicules']]],
-  ['Communication', [['boiteMail','📧','Boîte mail'],['messagerie','💬','Messagerie']]],
+  // 7 novembre 2026, Justin : « Messagerie, je veux la supprimer, je n'en vois pas l'utilité » (OP MESSAGES existe pour ça)
+  ['Communication', [['boiteMail','📧','Boîte mail']]],
   ['Achats', [['achats','🛒','Achats']]],
   ['Administration', [['equipe','👥','Équipe']]],
-  ['Métier 3D (plus tard)', [['registre','📋','Registre sanitaire'],['carteBox','📍','Carte des box'],['devisXylo','🪵','Devis xylophage']]]
+  ['Métier 3D', [['registre','📋','Registre sanitaire'],['carteBox','📍','Carte des box'],['devisXylo','🪵','Devis xylophage']]]
 ];
 const CAT_LIGNES = CATS.flatMap(([g, L]) => L.map(([k, ic, l, fait]) => ({ g, k, ic, l, fait:!!fait, tard:fait === 2 })));
 const catTard = k => CAT_LIGNES.some(c => c.k === k && c.tard);   // grisée « pour plus tard », pas « déjà refaite »
@@ -5898,7 +5896,7 @@ function barreBas(base){
 const BASE = { inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
 function rendre(){
   document.getElementById('cr-ftel')?.remove();
-  const V = { accueil:vueAccueil, achats:vueAchats, boiteMail:vueBoiteMail, messagerie:vueMessagerie, equipe:vueEquipe, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
+  const V = { accueil:vueAccueil, devisXylo:vueDevisXylo, carteBox:vueCarteBox, registre:vueRegistre, achats:vueAchats, boiteMail:vueBoiteMail, equipe:vueEquipe, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
   const base = BASE[route] || route, x = scrollX, defs = [...document.querySelectorAll('.pl-defile')].map(d => d.scrollLeft);
   document.getElementById('menu').innerHTML = menu(base);
   document.getElementById('contenu').innerHTML = `<div class="tete-tel"><span class="logo" style="padding:0"><i>OP</i><b>OP GESTION</b></span><div style="width:190px">${segMode()}</div></div>` + (V[route] && (!estGrise(route) || (typeof RETOUR !== 'undefined' && RETOUR)) ? V[route]() : CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? vueARefaire(route) : vueARefaire(premiereARefaire()));
@@ -7641,7 +7639,7 @@ document.addEventListener('change', ev => {
    Et ce qui manquait : la fiche d'une personne réunit ce que les autres catégories savent d'elle — sa semaine au planning, ses heures
    pointées, son véhicule et le stock de son camion, ses congés, ses habilitations avec leur date de fin. Données fictives. */
 const DR_CATS = [['planif', 'Planning, tâches et absences'], ['inter', 'Interventions'], ['crm', 'Clients'], ['ventes', 'Devis, factures, contrats, encaissements'], ['compta', 'Comptabilité'],
-  ['stock', 'Fournisseurs, matériel, stock et boxes'], ['temps', 'Temps de travail et véhicules'], ['com', 'Boîte mail et messagerie'], ['achats', 'Achats'], ['admin', 'Équipe et réglages']];
+  ['stock', 'Fournisseurs, matériel, stock et boxes'], ['temps', 'Temps de travail et véhicules'], ['com', 'Boîte mail'], ['achats', 'Achats'], ['admin', 'Équipe et réglages']];
 const DR_SP = [['tout', 'Voir les interventions de toute l’équipe', 'sinon, seulement les siennes'], ['prix', 'Voir les prix d’achat et les marges', ''], ['atelier', 'Se servir à l’atelier sans validation', 'sinon, ses sorties attendent le responsable'],
   ['valstock', 'Valider les gestes de stock des autres', ''], ['commander', 'Envoyer des commandes aux fournisseurs', ''], ['corrpt', 'Corriger les pointages', 'les siens comme ceux des autres'], ['comptes', 'Créer des comptes', 'dans la limite des places']];
 const tousOui = () => Object.fromEntries(DR_CATS.map(([k]) => [k, { v:1, c:1, m:1, s:1 }]));
@@ -7700,7 +7698,7 @@ function eqFiche(k){
     <div class="groupe">Sa semaine</div>
     <div class="fo-stats"><span><b>${r.ints.length}</b>interventions</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>pointées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
     ${r.absEn || r.absPro ? `<div class="ve-e">🏖 ${r.absEn ? 'Absent : ' + esc(absTexte(r.absEn)) : 'Prochaine absence : ' + esc(absTexte(r.absPro))}${(r.absEn || r.absPro).motif ? ' · ' + esc((r.absEn || r.absPro).motif) : ''}</div>` : ''}
-    <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning">Voir au planning ›</button>' : ''}${k !== 'marc' ? `<button type="button" class="lien" data-ms="ecrire|${k}">Lui écrire ›</button>` : ''}<button type="button" class="lien" data-pt="pers|${k}">Ses heures ›</button>${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}</div>
+    <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning">Voir au planning ›</button>' : ''}${p.tel && k !== 'marc' ? `<a class="lien" href="tel:${esc(p.tel.replace(/ /g, ''))}">Appeler ›</a>` : ''}<button type="button" class="lien" data-pt="pers|${k}">Ses heures ›</button>${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}</div>
     <div class="groupe">Habilitations</div>
     <div class="fo-bloc">${p.habil.map(([n, d], j) => `<div class="fo-r"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${d ? (tJours(d) < 0 ? 'expirée le ' : 'valable jusqu’au ') + dFr(d) : 'sans date de fin'}${habFormation(k, d) && habEtat(d) !== 'v' ? ' · formation prévue le ' + jCourt(habFormation(k, d).du) : ''}</span></span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouvelée</button>` : ''}</div>`).join('') || '<div class="gris petit">Aucune.</div>'}</div>
     <button type="button" class="lien" data-eq="habajout|${k}">＋ Ajouter une habilitation</button>
@@ -7761,63 +7759,15 @@ document.addEventListener('input', ev => {
   if (z) z.innerHTML = h ? `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer.` : '';
 });
 
-/* ⟦module messagerie⟧ */
-/* ══ MESSAGERIE ══
-   La conversation de l'équipe, rangée comme on travaille : le fil de toute l'équipe, des groupes (Terrain, Bureau…), les messages
-   privés, et un fil par intervention (photos, remarques du technicien, réponses du bureau) qui s'ouvre aussi depuis l'intervention.
-   Ce qui la rend utile plutôt que bavarde :
-   · on sait, avant d'écrire, si la personne est disponible : en intervention (chez qui, jusqu'à quand), absente, en congé ;
-   · on joint une intervention ou une commande : le message porte une carte qui l'ouvre ;
-   · un message devient une tâche en un geste (pour qui, quand) ;
-   · OP GESTION écrit lui-même ce qui concerne quelqu'un : sa nouvelle intervention du jour, une commande arrivée, une demande à valider ;
-   · @Prénom prévient la personne, un groupe se met en sourdine, un message s'épingle.
-   Règles de l'application gardées : Général / privé / groupes, mentions, message automatique d'une nouvelle intervention du jour.
-   Données fictives. */
-const MS_MOI = 'marc';
-const MS_COLLEGUES = ['marc', 'julie', 'sm', 'kb', 'lr', 'tl'];
-let MS_CONVS = [
-  { id:'gen', type:'general', nom:'Toute l’équipe', membres:[...MS_COLLEGUES] },
-  { id:'terrain', type:'groupe', nom:'Terrain', membres:['marc', 'sm', 'kb', 'lr', 'tl'], creePar:'marc' },
-  { id:'bureau', type:'groupe', nom:'Bureau', membres:['marc', 'julie'], creePar:'marc' },
-  { id:'p-kb', type:'prive', membres:['marc', 'kb'] }, { id:'p-julie', type:'prive', membres:['marc', 'julie'] },
-  { id:'p-sm', type:'prive', membres:['marc', 'sm'] }, { id:'p-tl', type:'prive', membres:['marc', 'tl'] },
-  { id:'f-i1', type:'inter', inter:'i1', membres:['marc', 'julie', 'sm'] }, { id:'f-i25', type:'inter', inter:'i25', membres:['marc', 'julie', 'kb'] }
-];
-const msM = (conv, d, h, de, txt, x = {}) => ({ id:'m' + (msM.n = (msM.n || 0) + 1), conv, d, h, de, txt, lu:x.lu || MS_COLLEGUES.slice(), ...x });
-let MSGS = [
-  msM('gen', jour(-1), '08:02', 'julie', 'Bonjour à tous ! Le client du Camping Les Pins a appelé : il sera sur place à partir de 13 h aujourd’hui, pas avant.'),
-  msM('gen', jour(-1), '12:40', 'kb', 'Quelqu’un a une bouteille de R32 dans son camion ? Il m’en manque une pour cet après-midi.'),
-  msM('gen', jour(-1), '12:44', 'tl', '@Karim j’en ai deux, je te la dépose à 13 h 30 au dépôt. Je la sors de mon stock tout de suite.'),
-  msM('gen', jour(-1), '12:45', 'kb', 'Top, merci Tom 👍'),
-  msM('gen', AUJ, '07:30', 'auto', 'Astreinte de ce week-end : Karim Benali, 06 34 34 34 34.', { epingle:true }),
-  msM('gen', AUJ, '08:15', 'marc', 'Merci à tous pour la semaine. Pensez à vérifier vos heures avant lundi midi, je valide la paie lundi après-midi.', { lu:['marc', 'julie', 'sm'] }),
-  msM('terrain', jour(-1), '17:10', 'sm', 'Groupe extérieur du Restaurant Le Vieux Port : le support est rouillé, il faudra le changer. Je mets la photo.', { photo:'Support du groupe extérieur' }),
-  msM('terrain', jour(-1), '17:25', 'marc', 'Bien vu Sophie. On le chiffre lundi, j’appelle le client.'),
-  msM('terrain', AUJ, '07:05', 'lr', 'Bon week-end à tous, je reprends mercredi 🙂'),
-  msM('bureau', jour(-1), '16:05', 'julie', 'La commande de Chauffage Distribution Atlantique est arrivée, tout est rangé à l’atelier.', { carte:{ t:'cmd', id:'c36' } }),
-  msM('bureau', AUJ, '09:10', 'julie', 'Karim demande ses congés du 23 au 27 novembre, c’est dans « À valider » des absences. Personne d’autre n’est absent cette semaine-là.', { carte:{ t:'abs' }, lu:['julie'] }),
-  msM('p-kb', AUJ, '07:00', 'auto', 'Nouvelle intervention pour toi aujourd’hui.', { carte:{ t:'inter', id:'i4' } }),
-  msM('p-kb', AUJ, '08:20', 'kb', 'Je suis aux Mimosas, la récupération du fluide prend plus longtemps que prévu : la vanne est grippée. J’aurai une heure de retard.', { lu:['kb'] }),
-  msM('p-kb', AUJ, '08:21', 'kb', 'Tu peux prévenir le cabinet Martin pour 15 h ?', { lu:['kb'] }),
-  msM('p-julie', jour(-1), '18:30', 'julie', 'J’ai relancé la facture de la copropriété, ils paient la semaine prochaine.'),
-  msM('p-sm', jour(-1), '18:02', 'sm', 'J’ai posé une demande pour vendredi matin (rendez-vous médical). Je peux décaler mon intervention si besoin.', { carte:{ t:'abs' } }),
-  msM('p-tl', AUJ, '07:52', 'tl', 'Contrôle d’étanchéité fait chez Mme Roux, rien à signaler. Je pars vers le camping.'),
-  msM('f-i1', AUJ, '08:46', 'sm', 'Arrivée sur place. Le client signale une odeur de brûlé au démarrage.'),
-  msM('f-i1', AUJ, '09:20', 'sm', 'Carte électronique de l’unité intérieure grillée. Photo de la référence.', { photo:'Référence de la carte électronique', lu:['sm', 'julie'] }),
-  msM('f-i1', AUJ, '09:24', 'sm', '@Julie tu peux voir si un fournisseur l’a en stock pour lundi ?', { lu:['sm'] }),
-  msM('f-i25', jour(-1), '11:55', 'kb', 'Les 6 cassettes sont nettoyées, filtres changés sur 4. Deux filtres à commander.', { photo:'Filtres usés' }),
-  msM('f-i25', jour(-1), '14:10', 'julie', 'Filtres ajoutés à la prochaine commande Daikin.')
-];
-let msConv = null, msCherche = '', msBrouillon = {}, msMuets = new Set(), msActions = null, msJoindre = false, msDefiler = false;
-const msDe = id => MS_CONVS.find(c => c.id === id);
-const msMsgs = id => MSGS.filter(m => m.conv === id);
-const msNonLus = id => msMsgs(id).filter(m => m.de !== MS_MOI && !m.lu.includes(MS_MOI)).length;
-const msPrenom = k => (H_GENS[k] || {}).nom ? H_GENS[k].nom.split(' ')[0] : k;
-const msAutre = c => c.membres.find(k => k !== MS_MOI);
-const msNom = c => c.type === 'prive' ? H_NOM(msAutre(c)) : c.type === 'inter' ? (INTS.find(i => i.id === c.inter) || {}).titre || 'Intervention' : c.nom;
-const msSous = c => { if (c.type !== 'inter') return ''; const i = INTS.find(o => o.id === c.inter); return i ? CLIENTS[i.cli].nom + ' · ' + tPrevue({ d:i.d, h:i.h }) : ''; };
-/* où en est la personne, en ce moment : c'est ce qu'on veut savoir avant d'écrire à un technicien */
-function msDispo(k){
+/* ⟦module commun⟧ */
+/* ══ COMMUN : qui est connecté, l'équipe, où en est chacun, les notifications ══
+   La Messagerie a été retirée le 7 novembre 2026 (Justin : « je n'en vois pas l'utilité ») : OP MESSAGES existe pour ça. Ce qu'elle
+   portait et qui sert ailleurs vit ici : la disponibilité d'une personne (en intervention chez qui, absente, libre), lue avant de lui
+   confier un courriel ; et la notification qui prévient quelqu'un d'une décision (demande d'achat, note de frais). */
+const MOI = 'marc';
+const COLLEGUES = ['marc', 'julie', 'sm', 'kb', 'lr', 'tl'];
+const prenomDe = k => (H_GENS[k] || {}).nom ? H_GENS[k].nom.split(' ')[0] : k;
+function dispoDe(k){
   const a = ABSENCES.find(o => o.tech === k && o.du <= AUJ && AUJ <= o.au); if (a) return { c:'violet', t:a.type + ' jusqu’au ' + jCourt(a.au) };
   if (!['sm', 'kb', 'lr', 'tl'].includes(k)) return { c:'vert', t:'Au bureau' };
   const L = INTS.filter(i => i.tech === k && i.d === AUJ && i.st !== 'annulee').sort((x, y) => x.h.localeCompare(y.h));
@@ -7825,140 +7775,9 @@ function msDispo(k){
   if (en) return { c:'orange', t:`En intervention chez ${CLIENTS[en.cli].nom}${en.st === 'retard' ? ', en retard' : ' jusqu’à ' + hm(hmin(en.h) + en.dur)}` };
   const pro = L.find(i => hmin(i.h) > MAINT_MIN); return pro ? { c:'vert', t:`Libre · prochaine intervention à ${pro.h.replace(':', ' h ')}` } : { c:'vert', t:'Libre aujourd’hui' };
 }
-const msAv = c => c.type === 'prive' ? hAv(msAutre(c)) : `<span class="ms-ic ms-${c.type}" aria-hidden="true">${{ general:'👥', groupe:'#', inter:'🛠' }[c.type]}</span>`;
-const msQuand = m => m.d === AUJ ? m.h.replace(':', ' h ') : m.d === jour(-1) ? 'Hier' : jCourt(m.d);
-const msTexte = t => esc(t).replace(/@([A-ZÉÈ][a-zéèëï]+)/g, '<b class="ms-ment">@$1</b>');
-function msCarte(c){
-  if (c.t === 'inter') { const i = INTS.find(o => o.id === c.id); if (!i) return ''; return `<button type="button" class="ms-carte" data-tvoir="inter|${i.id}"><span class="ms-ct">Intervention · ${esc(tPrevue({ d:i.d, h:i.h }))}</span><b>${esc(i.titre)}</b><span class="gris petit">${esc(CLIENTS[i.cli].nom)}${i.tech ? ' · ' + esc(H_NOM(i.tech)) : ''}</span></button>`; }
-  if (c.t === 'cmd') { const o = COMMANDES.find(x => x.id === c.id); if (!o) return ''; return `<button type="button" class="ms-carte" data-ms="cmd|${o.id}"><span class="ms-ct">Commande · ${esc(o.num)}</span><b>${esc(o.four)}</b><span class="gris petit">${o.lignes.length} ligne${o.lignes.length > 1 ? 's' : ''} · ${o.recue ? 'reçue le ' + jCourt(o.recue) : 'livraison prévue le ' + jCourt(o.prevue || AUJ)}</span></button>`; }
-  if (c.t === 'mail') return typeof mlCarte === 'function' ? mlCarte(c.id) : '';
-  if (c.t === 'abs') { const n = typeof DEMANDES_ABS !== 'undefined' ? DEMANDES_ABS.filter(a => (a.etat || 'attente') === 'attente').length : 0; return `<button type="button" class="ms-carte" data-ms="abs"><span class="ms-ct">Absences</span><b>${n} demande${n > 1 ? 's' : ''} à valider</b><span class="gris petit">Ouvrir « À valider » ›</span></button>`; }
-  return '';
-}
-function msListe(){
-  const q = prNorm(msCherche), L = MS_CONVS.filter(c => !q || prNorm(msNom(c) + ' ' + msSous(c)).includes(q) || msMsgs(c.id).some(m => prNorm(m.txt).includes(q)));
-  const dernier = c => msMsgs(c.id).at(-1) || { d:'', h:'' }, tri = (a, b) => (dernier(b).d + dernier(b).h).localeCompare(dernier(a).d + dernier(a).h);
-  const ligne = c => { const m = dernier(c), n = msNonLus(c.id), mu = msMuets.has(c.id), dis = c.type === 'prive' ? msDispo(msAutre(c)) : null;
-    return `<button type="button" class="ms-l${msConv === c.id ? ' on' : ''}" data-ms="conv|${c.id}" ${msConv === c.id ? 'aria-current="true"' : ''}>${msAv(c)}<span class="ms-lc"><span class="ms-l1"><b>${esc(msNom(c))}</b><span class="gris petit">${m.txt ? msQuand(m) : ''}</span></span>
-      <span class="ms-l2"><span class="gris petit ms-apercu">${dis ? `<i class="ms-pt ms-${dis.c}" aria-hidden="true"></i>` : ''}${m.txt ? esc((m.de === MS_MOI ? 'Toi : ' : c.type !== 'prive' && m.de !== 'auto' ? msPrenom(m.de) + ' : ' : '') + (m.photo ? '📷 ' : '') + m.txt) : esc(msSous(c))}</span>${mu ? '<span class="ms-muet" title="En sourdine">🔕</span>' : ''}${n ? `<span class="ms-nb${mu ? ' muet' : ''}" aria-label="${n} non lu${n > 1 ? 's' : ''}">${n}</span>` : ''}</span></span></button>`; };
-  const grp = (t, arr) => arr.length ? `<div class="ms-grp">${t}</div>${arr.sort(tri).map(ligne).join('')}` : '';
-  return `<div class="ms-liste"><div class="ms-cherche"><input type="search" placeholder="Rechercher une personne, un message…" value="${esc(msCherche)}" data-mscherche="1" aria-label="Rechercher dans la messagerie"></div>
-    <div class="ms-defile">${grp('Équipe et groupes', L.filter(c => c.type === 'general' || c.type === 'groupe'))}${grp('Interventions', L.filter(c => c.type === 'inter'))}${grp('Messages privés', L.filter(c => c.type === 'prive'))}${L.length ? '' : '<p class="gris petit" style="padding:12px">Rien ne correspond.</p>'}</div>
-    <div class="ms-pied"><button type="button" class="btn gris petit" data-ms="nouveau">✎ Nouveau message</button><button type="button" class="btn gris petit" data-ms="groupe">＋ Groupe</button></div></div>`;
-}
-function msFil(){
-  const c = msDe(msConv); if (!c) return `<div class="ms-fil ms-vide"><span class="gris">Choisis une conversation à gauche.</span></div>`;
-  const L = msMsgs(c.id), ep = L.filter(m => m.epingle).at(-1), dis = c.type === 'prive' ? msDispo(msAutre(c)) : null; let jourAv = '', deAv = '';
-  const corps = L.map(m => { let h = ''; if (m.d !== jourAv) { h += `<div class="ms-jour"><span>${m.d === AUJ ? 'Aujourd’hui' : m.d === jour(-1) ? 'Hier' : jlong(m.d)}</span></div>`; jourAv = m.d; deAv = ''; }
-    const moi = m.de === MS_MOI, auto = m.de === 'auto', suite = deAv === m.de; deAv = m.de;
-    const vus = c.type !== 'prive' && moi ? m.lu.filter(k => k !== MS_MOI).length : null;
-    h += `<div class="ms-m${moi ? ' moi' : ''}${auto ? ' auto' : ''}${suite ? ' suite' : ''}" data-msid="${m.id}">${!moi && !suite ? hAv(auto ? 'auto' : m.de) : '<span class="ms-esp"></span>'}<div class="ms-b">${!moi && !suite && c.type !== 'prive' ? `<span class="ms-qui">${esc(auto ? 'OP GESTION' : H_NOM(m.de))}</span>` : ''}
-      ${m.photo ? `<span class="ms-photo" role="img" aria-label="Photo : ${esc(m.photo)}"><span>📷 ${esc(m.photo)}</span></span>` : ''}<span class="ms-t">${msTexte(m.txt)}</span>${m.carte ? msCarte(m.carte) : ''}
-      <span class="ms-h">${m.h.replace(':', ' h ')}${vus !== null ? ` · vu par ${vus}/${c.membres.length - 1}` : ''}${m.tache ? ' · ✓ tâche créée' : ''}</span></div>
-      ${auto ? '' : `<button type="button" class="ms-plus" data-ms="actions|${m.id}" aria-label="Actions sur ce message">⋯</button>`}</div>`;
-    if (msActions === m.id) h += `<div class="ms-acts${moi ? ' moi' : ''}"><button type="button" class="btn gris petit" data-ms="tache|${m.id}">✓ En faire une tâche</button><button type="button" class="btn gris petit" data-ms="epingle|${m.id}">${m.epingle ? 'Désépingler' : '📌 Épingler'}</button><button type="button" class="btn gris petit" data-ms="repondre|${m.id}">Répondre</button></div>`;
-    return h; }).join('');
-  const i = c.type === 'inter' && INTS.find(o => o.id === c.inter);
-  return `<div class="ms-fil"><div class="ms-ft"><button type="button" class="ms-retour" data-ms="liste" aria-label="Revenir aux conversations">‹</button>${msAv(c)}<span class="ms-lc"><b>${esc(msNom(c))}</b>
-      <span class="gris petit">${dis ? `<i class="ms-pt ms-${dis.c}" aria-hidden="true"></i>${esc(dis.t)}` : c.type === 'inter' ? esc(msSous(c)) : c.membres.length + ' personnes' + (msMuets.has(c.id) ? ' · en sourdine' : '')}</span></span>
-      <span class="ms-fta">${i ? `<button type="button" class="btn gris petit" data-tvoir="inter|${i.id}"><span class="ms-lg">Ouvrir l’intervention</span><span class="ms-cr">Ouvrir</span></button>` : ''}${c.type === 'prive' && ['sm', 'kb', 'lr', 'tl'].includes(msAutre(c)) ? `<button type="button" class="btn gris petit" data-ms="planning"><span class="ms-lg">Son planning</span><span class="ms-cr">Planning</span></button>` : ''}${c.type !== 'prive' ? `<button type="button" class="btn gris petit" data-ms="infos|${c.id}">${c.type === 'groupe' ? 'Membres' : 'Infos'}</button>` : ''}</span></div>
-    ${ep ? `<button type="button" class="ms-ep" data-ms="voirep|${ep.id}">📌 <span><b>Épinglé</b> · ${esc(ep.txt)}</span></button>` : ''}
-    <div class="ms-defile ms-msgs" id="ms-msgs" data-conv="${c.id}">${corps || '<p class="gris petit" style="text-align:center;margin-top:30px">Aucun message pour l’instant. Écris le premier.</p>'}</div>
-    <div class="ms-comp">${msJoindre ? `<div class="ms-joindre"><button type="button" class="btn gris petit" data-ms="jphoto">📷 Photo</button><button type="button" class="btn gris petit" data-ms="jinter">🛠 Une intervention</button><button type="button" class="btn gris petit" data-ms="jcmd">📦 Une commande</button></div>` : ''}
-      <div id="ms-ment" class="ms-ment-l" hidden></div>
-      <div class="ms-saisie"><button type="button" class="ms-btn" data-ms="joindre" aria-label="Joindre" aria-expanded="${msJoindre}">＋</button><textarea id="ms-txt" rows="1" placeholder="${c.type === 'prive' ? 'Écrire à ' + esc(msPrenom(msAutre(c))) : 'Écrire au groupe · @ pour prévenir quelqu’un'}…" aria-label="Message">${esc(msBrouillon[c.id] || '')}</textarea><button type="button" class="ms-btn ms-env" data-ms="envoyer" aria-label="Envoyer">↑</button></div></div></div>`;
-}
-function vueMessagerie(){
-  const nl = MS_CONVS.reduce((s, c) => s + (msMuets.has(c.id) ? 0 : msNonLus(c.id)), 0);
-  const z = document.getElementById('ms-msgs'), garde = z && msConv === z.dataset.conv ? z.scrollTop : null;   // un geste dans le fil ne le ramène pas en haut
-  setTimeout(() => { if (msDefiler) return msBas(); const n = document.getElementById('ms-msgs'); if (n && garde != null) n.scrollTop = garde; }, 0);
-  return `<div class="tete ms-tete${msConv ? ' ms-dans-fil' : ''}"><div><span class="surtitre">Communication</span><h1>Messagerie</h1><span class="gris">${nl ? nl + ' message' + (nl > 1 ? 's' : '') + ' non lu' + (nl > 1 ? 's' : '') + '. ' : ''}L’équipe, les groupes, les messages privés et un fil par intervention. On voit avant d’écrire si la personne est en intervention ou absente.</span></div></div>
-    <div class="ms-app${msConv ? ' ouvert' : ''}">${msListe()}${msFil()}</div>`;
-}
-function msBas(){ msDefiler = false; const z = document.getElementById('ms-msgs'); if (!z) return; if (innerWidth <= 760) scrollTo(0, document.documentElement.scrollHeight); else z.scrollTop = z.scrollHeight; }
-function msOuvrir(id){ msConv = id; msActions = null; msJoindre = false; msMsgs(id).forEach(m => { if (!m.lu.includes(MS_MOI)) m.lu.push(MS_MOI); }); msDefiler = true; if (route !== 'messagerie') aller('messagerie'); else rendre(); }
-function msEnvoyer(x = {}){
-  const t = document.getElementById('ms-txt'), txt = (x.txt != null ? x.txt : t ? t.value : '').trim(); if (!txt && !x.photo && !x.carte) return;
-  const c = msDe(msConv); MSGS.push(msM(msConv, AUJ, hm(MAINT_MIN), MS_MOI, txt, { lu:[MS_MOI], ...x }));
-  msBrouillon[msConv] = ''; msJoindre = false; msActions = null; msDefiler = true;
-  const ments = [...txt.matchAll(/@([A-ZÉÈ][a-zéèëï]+)/g)].map(o => o[1]), qui = c.membres.filter(k => k !== MS_MOI && ments.includes(msPrenom(k)));
-  rendre(); if (qui.length) toast(`${qui.map(msPrenom).join(' et ')} ${qui.length > 1 ? 'sont prévenus' : 'est prévenu'} par une notification.`);
-  const ab = c.type === 'prive' && ABSENCES.find(o => o.tech === msAutre(c) && o.du <= AUJ && AUJ <= o.au); if (ab) toast(`${msPrenom(msAutre(c))} est en ${ab.type.toLowerCase()} jusqu’au ${jCourt(ab.au)} : il le lira à son retour.`);
-  setTimeout(() => { const z = document.getElementById('ms-txt'); if (z && innerWidth > 760) z.focus(); }, 30);
-}
-function msChoix(titre, items){
-  ouvrirPanneau(`<span class="surtitre">Joindre</span><h2>${titre}</h2><div class="fo-bloc">${items.join('') || '<span class="gris">Rien à joindre.</span>'}</div><div class="actions"><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
-}
-function msNouveau(groupe){
-  const gens = MS_COLLEGUES.filter(k => k !== MS_MOI);
-  ouvrirPanneau(`<span class="surtitre">Messagerie</span><h2>${groupe ? 'Nouveau groupe' : 'Nouveau message'}</h2>
-    ${groupe ? `<label class="champ">Nom du groupe<input id="ms-gn" placeholder="ex. Chantier Mimosas" autocomplete="off"></label><div class="groupe">Membres</div>
-      <div class="fo-bloc">${gens.map(k => `<label class="fo-garder"><input type="checkbox" data-msg="${k}">${hAv(k)}<span>${esc(H_NOM(k))}<span class="gris petit"> · ${esc(msDispo(k).t)}</span></span></label>`).join('')}</div>
-      <div class="actions"><button type="button" class="btn" data-ms="groupeok">Créer le groupe</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`
-    : `<div class="fo-bloc">${gens.map(k => { const d = msDispo(k); return `<button type="button" class="ve-u" data-ms="ecrire|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`}`);
-}
-function msInfos(id){
-  const c = msDe(id), gens = MS_COLLEGUES.filter(k => !c.membres.includes(k));
-  ouvrirPanneau(`<span class="surtitre">${c.type === 'groupe' ? 'Groupe' : c.type === 'general' ? 'Toute l’équipe' : 'Fil d’intervention'}</span><h2>${esc(msNom(c))}</h2>
-    <label class="fo-garder"><input type="checkbox" data-msmuet="${c.id}" ${msMuets.has(c.id) ? 'checked' : ''}> En sourdine : pas de notification, sauf si on te mentionne</label>
-    <div class="groupe">${c.membres.length} membres</div>
-    <div class="fo-bloc">${c.membres.map(k => { const d = msDispo(k); return `<div class="fo-r">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}${k === MS_MOI ? ' (toi)' : ''}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span></span>${c.type === 'groupe' && k !== MS_MOI ? `<button type="button" class="btn gris petit" data-ms="retirer|${c.id}|${k}">Retirer</button>` : ''}</div>`; }).join('')}</div>
-    ${c.type === 'groupe' && gens.length ? `<div class="groupe">Ajouter</div><div class="cmd-liens">${gens.map(k => `<button type="button" class="lien" data-ms="ajouter|${c.id}|${k}">＋ ${esc(H_NOM(k))}</button>`).join('')}</div>` : ''}
-    ${c.type === 'general' ? '<span class="gris petit">Tous les comptes actifs de l’entreprise y sont, automatiquement.</span>' : ''}
-    ${c.type === 'groupe' ? `<div class="actions"><button type="button" class="btn gris" data-ms="supprgroupe|${c.id}">Supprimer le groupe</button></div>` : ''}`);
-}
-document.addEventListener('click', ev => {
-  const b = ev.target.closest('[data-ms]'); if (!b) return;
-  const [a, x, y] = b.dataset.ms.split('|'), c = msDe(msConv);
-  if (a === 'conv') return msOuvrir(x);
-  if (a === 'liste') { msConv = null; rendre(); return scrollTo(0, 0); }
-  if (a === 'envoyer') return msEnvoyer();
-  if (a === 'joindre') { msJoindre = !msJoindre; const t = document.getElementById('ms-txt'); if (t) msBrouillon[msConv] = t.value; return rendre(); }
-  if (a === 'jphoto') return msEnvoyer({ txt:(document.getElementById('ms-txt') || {}).value || '', photo:'Photo prise sur place' });
-  if (a === 'jinter') { const t = document.getElementById('ms-txt'); if (t) msBrouillon[msConv] = t.value; return msChoix('Une intervention', INTS.filter(i => i.d >= jour(-2) && i.d <= jour(7) && i.st !== 'annulee').sort((p, q) => (p.d + p.h).localeCompare(q.d + q.h)).slice(0, 14).map(i => `<button type="button" class="ve-u" data-ms="jintok|${i.id}"><span class="fo-n"><b>${esc(i.titre)}</b><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${esc(tPrevue({ d:i.d, h:i.h }))}${i.tech ? ' · ' + esc(H_NOM(i.tech)) : ' · à planifier'}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`)); }
-  if (a === 'jcmd') { const t = document.getElementById('ms-txt'); if (t) msBrouillon[msConv] = t.value; return msChoix('Une commande', COMMANDES.slice().reverse().map(o => `<button type="button" class="ve-u" data-ms="jcmdok|${o.id}"><span class="fo-n"><b>${esc(o.num)} · ${esc(o.four)}</b><span class="gris petit">${o.recue ? 'reçue le ' + jCourt(o.recue) : o.prevue ? 'prévue le ' + jCourt(o.prevue) : 'en préparation'}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`)); }
-  if (a === 'jintok' || a === 'jcmdok') { fermerPanneau(); return msEnvoyer({ txt:msBrouillon[msConv] || '', carte:{ t:a === 'jintok' ? 'inter' : 'cmd', id:x } }); }
-  if (a === 'actions') { msActions = msActions === x ? null : x; const t = document.getElementById('ms-txt'); if (t) msBrouillon[msConv] = t.value; rendre(); return; }
-  if (a === 'epingle') { const m = MSGS.find(o => o.id === x); if (!m.epingle) msMsgs(m.conv).forEach(o => o.epingle = false); m.epingle = !m.epingle; msActions = null; rendre(); return toast(m.epingle ? 'Message épinglé en haut de la conversation.' : 'Message désépinglé.'); }
-  if (a === 'voirep') { const z = document.querySelector(`[data-msid="${x}"]`); if (z) { z.scrollIntoView({ block:'center', behavior:'smooth' }); z.classList.add('ms-flash'); setTimeout(() => z.classList.remove('ms-flash'), 1400); } return; }
-  if (a === 'repondre') { const m = MSGS.find(o => o.id === x); msActions = null; msBrouillon[msConv] = (m.de !== MS_MOI && m.de !== 'auto' ? '@' + msPrenom(m.de) + ' ' : '') + '« ' + m.txt.slice(0, 50) + (m.txt.length > 50 ? '…' : '') + ' » '; rendre(); setTimeout(() => { const t = document.getElementById('ms-txt'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 30); return; }
-  if (a === 'tache') { const m = MSGS.find(o => o.id === x); msActions = null;
-    ouvrirPanneau(`<span class="surtitre">En faire une tâche</span><h2>${esc(m.txt.slice(0, 80))}${m.txt.length > 80 ? '…' : ''}</h2>
-      <label class="champ">Ce qu’il faut faire<input id="ms-tt" value="${esc(m.txt.slice(0, 120))}"></label>
-      <div class="deux-champs"><label class="champ">Pour qui<select id="ms-tq">${MS_COLLEGUES.map(k => `<option value="${k}" ${k === MS_MOI ? 'selected' : ''}>${esc(H_NOM(k))}</option>`).join('')}</select></label><label class="champ">Pour quand<input type="date" id="ms-td" value="${ajoute(AUJ, 2)}"></label></div>
-      <div class="actions"><button type="button" class="btn" data-ms="tacheok|${m.id}">Créer la tâche</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); return; }
-  if (a === 'tacheok') { const m = MSGS.find(o => o.id === x), t = document.getElementById('ms-tt').value.trim(), q = document.getElementById('ms-tq').value, d = document.getElementById('ms-td').value; if (!t) return toast('Écris ce qu’il faut faire.');
-    const cv = msDe(m.conv), i = cv.type === 'inter' ? INTS.find(o => o.id === cv.inter) : m.carte && m.carte.t === 'inter' ? INTS.find(o => o.id === m.carte.id) : null;
-    TACHES.push({ id:'t' + Date.now(), t, qui:q, d, h:null, creePar:MS_MOI, creeLe:'31/10', origine:'depuis un message de ' + (m.de === MS_MOI ? 'toi' : H_NOM(m.de)), lien:i ? { t:'inter', id:i.id, lib:i.titre } : undefined });
-    m.tache = true; fermerPanneau(); rendre(); return toast(`Tâche créée pour ${q === MS_MOI ? 'toi' : msPrenom(q)}, ${tPrevue({ d })}.`); }
-  if (a === 'nouveau' || a === 'groupe') return msNouveau(a === 'groupe');
-  if (a === 'ecrire') { let cv = MS_CONVS.find(o => o.type === 'prive' && o.membres.includes(x) && o.membres.includes(MS_MOI)); if (!cv) MS_CONVS.push(cv = { id:'p-' + x, type:'prive', membres:[MS_MOI, x] }); fermerPanneau(); return msOuvrir(cv.id); }
-  if (a === 'groupeok') { const n = document.getElementById('ms-gn').value.trim(), m = [...document.querySelectorAll('[data-msg]:checked')].map(o => o.dataset.msg); if (!n) return toast('Donne un nom au groupe.'); if (!m.length) return toast('Choisis au moins une personne.');
-    const id = 'g' + Date.now(); MS_CONVS.push({ id, type:'groupe', nom:n, membres:[MS_MOI, ...m], creePar:MS_MOI }); MSGS.push(msM(id, AUJ, hm(MAINT_MIN), 'auto', `${H_NOM(MS_MOI)} a créé le groupe avec ${m.map(msPrenom).join(', ')}.`)); fermerPanneau(); return msOuvrir(id); }
-  if (a === 'infos') return msInfos(x);
-  if (a === 'retirer' || a === 'ajouter') { const cv = msDe(x); if (a === 'retirer') cv.membres = cv.membres.filter(k => k !== y); else cv.membres.push(y); MSGS.push(msM(x, AUJ, hm(MAINT_MIN), 'auto', `${msPrenom(MS_MOI)} a ${a === 'retirer' ? 'retiré' : 'ajouté'} ${H_NOM(y)}.`)); rendre(); return msInfos(x); }
-  if (a === 'supprgroupe') { const cv = msDe(x), garde = [cv, MSGS.filter(m => m.conv === x)]; MS_CONVS = MS_CONVS.filter(o => o.id !== x); MSGS = MSGS.filter(m => m.conv !== x); msConv = null; fermerPanneau(); rendre(); return toast(`Groupe « ${esc(cv.nom)} » supprimé.`, { lib:'Annuler', fn:() => { MS_CONVS.push(garde[0]); MSGS.push(...garde[1]); rendre(); } }); }
-  if (a === 'cmd') return cmdFiche(x);
-  if (a === 'abs') { if (typeof aOnglet !== 'undefined') aOnglet = 'valider'; return aller('absences'); }
-  if (a === 'planning') return aller('planning');
-});
-document.addEventListener('input', ev => {
-  const t = ev.target;
-  if (t.matches('[data-mscherche]')) { msCherche = t.value; const z = document.querySelector('.ms-liste'); if (z) { const pos = t.selectionStart; z.outerHTML = msListe(); const n = document.querySelector('[data-mscherche]'); n.focus(); n.setSelectionRange(pos, pos); } return; }
-  if (t.id !== 'ms-txt') return;
-  msBrouillon[msConv] = t.value; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px';
-  const mm = t.value.slice(0, t.selectionStart).match(/@([^\s@]*)$/), z = document.getElementById('ms-ment'), c = msDe(msConv);
-  if (!mm || !z) { if (z) z.hidden = true; return; }
-  const L = c.membres.filter(k => k !== MS_MOI && prNorm(msPrenom(k)).startsWith(prNorm(mm[1])));
-  z.hidden = !L.length; z.innerHTML = L.map(k => `<button type="button" data-msmention="${k}">${hAv(k)}<b>${esc(H_NOM(k))}</b><span class="gris petit">${esc(msDispo(k).t)}</span></button>`).join('');
-});
-document.addEventListener('click', ev => {
-  const b = ev.target.closest('[data-msmention]'); if (!b) return;
-  const t = document.getElementById('ms-txt'), av = t.value.slice(0, t.selectionStart).replace(/@[^\s@]*$/, '@' + msPrenom(b.dataset.msmention) + ' '), ap = t.value.slice(t.selectionStart);
-  t.value = av + ap; msBrouillon[msConv] = t.value; document.getElementById('ms-ment').hidden = true; t.focus(); t.setSelectionRange(av.length, av.length);
-});
-document.addEventListener('keydown', ev => { if (ev.target.id === 'ms-txt' && ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && innerWidth > 760) { ev.preventDefault(); msEnvoyer(); } });
-document.addEventListener('change', ev => { const t = ev.target; if (t.matches('[data-msmuet]')) { t.checked ? msMuets.add(t.dataset.msmuet) : msMuets.delete(t.dataset.msmuet); rendre(); toast(t.checked ? 'En sourdine : tu ne seras prévenu que si on te mentionne.' : 'Notifications rétablies.'); } });
+/* une notification sur le téléphone de la personne : on garde la trace, l'envoi réel est celui de l'application */
+let NOTIFS = [];
+function notifier(k, txt){ NOTIFS.push({ k, txt, d:AUJ, h:hm(MAINT_MIN) }); }
 
 /* ⟦module boitemail⟧ */
 /* ══ BOÎTE MAIL ══
@@ -8056,13 +7875,13 @@ function mlLecture(){
   return `<div class="ms-fil ml-lect"><div class="ms-ft"><button type="button" class="ms-retour" data-ml="liste" aria-label="Revenir aux messages">‹</button><span class="ms-lc"><b>${esc(m.objet)}</b><span class="gris petit">${m.dossier === 'envoye' ? 'À ' + esc(m.a) : esc(m.de.nom) + ' · ' + esc(m.de.mail)} · ${jlong(m.d)}, ${m.h.replace(':', ' h ')} · ${esc(bo.adr)}</span></span></div>
     <div class="ms-defile ml-corps">${mlReconnu(m)}<div class="ml-txt">${esc(m.txt)}</div>${m.pj.length ? `<div class="ml-pj">${m.pj.map(([n, t]) => `<span class="ml-pjc">📄 ${esc(n)} <span class="gris petit">${t}</span></span>`).join('')}</div>` : ''}
       ${m.reponses ? m.reponses.map(r => `<div class="ml-rep"><span class="ms-ct">Ta réponse · ${r.h.replace(':', ' h ')}</span><div class="ml-txt">${esc(r.txt)}</div></div>`).join('') : ''}</div>
-    ${m.dossier === 'recu' ? `<div class="ms-comp ml-barre"><button type="button" class="btn petit" data-ml="repondre|${m.id}">↩ Répondre</button><button type="button" class="btn gris petit" data-ml="transferer|${m.id}">Transférer à l’équipe</button><button type="button" class="btn gris petit" data-ml="tache|${m.id}">✓ En faire une tâche</button></div>` : ''}</div>`;
+    ${m.dossier === 'recu' ? `<div class="ms-comp ml-barre"><button type="button" class="btn petit" data-ml="repondre|${m.id}">↩ Répondre</button><button type="button" class="btn gris petit" data-ml="confier|${m.id}">Confier à quelqu’un</button><button type="button" class="btn gris petit" data-ml="tache|${m.id}">✓ En faire une tâche</button></div>` : ''}</div>`;
 }
 function vueBoiteMail(){
   const reco = ML_BOITES.filter(b => b.etat !== 'ok'), nT = MAILS.filter(mlATraiter).length;
   return `<div class="tete ms-tete${mlSel ? ' ms-dans-fil' : ''}"><div><span class="surtitre">Communication</span><h1>Boîte mail</h1><span class="gris">${nT ? nT + ' message' + (nT > 1 ? 's' : '') + ' à traiter. ' : ''}Chaque courriel est reconnu (client, fournisseur, commande, facture, devis) et le geste qui suit est proposé, déjà rempli.</span></div>
       <div class="actions"><button type="button" class="btn gris" data-ml="boites">Boîtes connectées</button></div></div>
-    ${reco.map(b => `<div class="carte ml-alerte"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(b.adr)} (${b.fourni}) est à reconnecter</b><span class="gris petit">Ses messages ne sont plus lus depuis ${b.vu} : ils n’apparaissent pas ici tant qu’elle n’est pas reconnectée.</span></span><button type="button" class="btn petit" data-ml="reco|${b.id}">Reconnecter</button></div>`).join('')}
+    ${reco.map(b => `<div class="carte ml-alerte${mlSel ? ' ml-cache-tel' : ''}"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(b.adr)} (${b.fourni}) est à reconnecter</b><span class="gris petit">Ses messages ne sont plus lus depuis ${b.vu} : ils n’apparaissent pas ici tant qu’elle n’est pas reconnectée.</span></span><button type="button" class="btn petit" data-ml="reco|${b.id}">Reconnecter</button></div>`).join('')}
     <div class="ms-app${mlSel ? ' ouvert' : ''}">${mlListe()}${mlLecture()}</div>`;
 }
 function mlRepondre(m, modele){
@@ -8076,13 +7895,11 @@ function mlRepondre(m, modele){
   ouvrirPanneau(`<span class="surtitre">Répondre · depuis ${esc(ML_BOITES.find(o => o.id === m.boite).adr)}</span><h2>Re: ${esc(m.objet)}</h2>
     <div class="ligne"><span>À</span><b>${esc(m.de.nom)} · ${esc(m.de.mail)}</b></div>
     <div class="seg ml-mod" role="group" aria-label="Modèle">${[['recu', 'Accusé de réception'], ['creneau', 'Proposer un créneau'], ['devis', 'Envoyer un devis']].map(([k, l]) => `<button type="button" data-ml="modele|${m.id}|${k}" aria-pressed="${modele === k}">${l}</button>`).join('')}</div>
-    ${modele === 'creneau' ? `<div class="ve-e">Créneaux libres lus dans le planning (2 h, absences comprises) : ${cr.map(c => `<b>${esc(jCourt(c.d))} ${mlH(c.h)}</b> (${esc(msPrenom(c.t))})`).join(' · ')}</div>` : ''}
+    ${modele === 'creneau' ? `<div class="ve-e">Créneaux libres lus dans le planning (2 h, absences comprises) : ${cr.map(c => `<b>${esc(jCourt(c.d))} ${mlH(c.h)}</b> (${esc(prenomDe(c.t))})`).join(' · ')}</div>` : ''}
     <label class="champ">Message<textarea id="ml-txt" rows="9">${esc(MOD[modele])}</textarea></label>
     <div class="actions"><button type="button" class="btn" data-ml="envoyer|${m.id}">Envoyer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
 }
 function mlTraite(m, quoi, lien){ m.fait = quoi; m.faitLien = lien || ''; m.lu = true; }
-/* la carte d'un courriel transféré dans la Messagerie */
-function mlCarte(id){ const m = mlDe(id); return m ? `<button type="button" class="ms-carte" data-ml="ouvrir|${m.id}"><span class="ms-ct">Courriel · ${esc(m.de.nom)}</span><b>${esc(m.objet)}</b><span class="gris petit">${esc(ML_SUJET[mlLire(m).sujet] || 'Ouvrir le message')} ›</span></button>` : ''; }
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-ml]'); if (!b) return;
   const [a, x, y] = b.dataset.ml.split('|'), m = mlDe(x);
@@ -8116,10 +7933,12 @@ document.addEventListener('click', ev => {
   if (a === 'livraison') { const c = mlLire(m).cmd, av = c.prevue; c.prevue = jour(2); c.journal.push([AUJ, `Expédiée par ${c.four} (suivi FD-77812), livraison prévue le ${jCourt(c.prevue)} — lu dans leur courriel`]); mlTraite(m, `Livraison du ${c.num} mise au ${jCourt(c.prevue)}`, `data-ml="cmd|${c.id}"`); rendre(); return toast(`Commande ${esc(c.num)} : livraison prévue le ${jCourt(c.prevue)}${av && av !== c.prevue ? ' (au lieu du ' + jCourt(av) + ')' : ''}.`); }
   if (a === 'rappro') { const c = mlLire(m).cmd; mlTraite(m, `Facture rapprochée de ${c.num} et rangée dans les achats`, `data-ml="cmd|${c.id}"`); c.facLue = { num:'CDA-F-2026-1187', le:jour(-1), q:{}, pu:{} }; return cmdFacturer(c.id); }
   if (a === 'annonce') { const f = mlLire(m).facture; f.annonce = 'virement annoncé le ' + jCourt(m.d); mlTraite(m, 'Paiement annoncé noté sur la facture : elle sera marquée payée quand le virement arrivera', `data-tvoir="facture|${f.id}"`); rendre(); return toast(`Noté sur ${esc(f.num)}. On la marque payée à l’arrivée du virement, pas avant.`); }
-  if (a === 'transferer') return ouvrirPanneau(`<span class="surtitre">Transférer dans la Messagerie</span><h2>${esc(m.objet)}</h2><div class="fo-bloc">${MS_COLLEGUES.filter(k => k !== MS_MOI).map(k => `<button type="button" class="ve-u" data-ml="transok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit">${esc(msDispo(k).t)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>`);
-  if (a === 'transok') { let cv = MS_CONVS.find(o => o.type === 'prive' && o.membres.includes(y)); if (!cv) MS_CONVS.push(cv = { id:'p-' + y, type:'prive', membres:[MS_MOI, y] });
-    MSGS.push(msM(cv.id, AUJ, hm(MAINT_MIN), MS_MOI, 'Tu peux t’en occuper ?', { lu:[MS_MOI], carte:{ t:'mail', id:m.id } })); fermerPanneau(); return toast(`Transféré à ${esc(msPrenom(y))} dans la Messagerie.`, { lib:'Voir', fn:() => msOuvrir(cv.id) }); }
-  if (a === 'tache') { TACHES.push({ id:'t' + Date.now(), t:'Répondre : ' + m.objet, qui:MS_MOI, d:AUJ, h:null, creePar:MS_MOI, creeLe:'31/10', origine:'depuis le courriel de ' + m.de.nom }); return toast('Tâche ajoutée pour aujourd’hui.'); }
+  if (a === 'confier') return ouvrirPanneau(`<span class="surtitre">Confier ce courriel</span><h2>${esc(m.objet)}</h2><span class="gris petit">La personne le retrouve dans ses tâches, avec le courriel attaché, et reçoit une notification.</span><div class="fo-bloc">${COLLEGUES.filter(k => k !== MOI).map(k => { const d = dispoDe(k); return `<button type="button" class="ve-u" data-ml="confok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`);
+  if (a === 'confok') { const R = mlLire(m), quoi = ({ panne:'Organiser l’intervention', devis:'Préparer le devis', accord:'Planifier l’installation', facfour:'Rapprocher la facture', paiement:'Pointer le paiement', expedition:'Suivre la livraison' })[R.sujet] || 'Répondre';
+    TACHES.push({ id:'t' + Date.now(), t:`${quoi} : ${m.objet}`, qui:y, d:AUJ, h:null, urgent:!!R.urgent, cat:'mail', lien:{ t:'aller', id:'boiteMail|' + m.id, lib:'Boîte mail', cat:'Boîte mail' }, creePar:MOI, creeLe:'31/10', origine:'confiée depuis la Boîte mail' });
+    notifier(y, `${H_NOM(MOI)} te confie un courriel : ${m.objet}`); mlTraite(m, `Confié à ${prenomDe(y)} (dans ses tâches)`); fermerPanneau(); rendre();
+    return toast(`Confié à ${esc(prenomDe(y))} : c’est dans ses tâches, il est prévenu.`, { lib:'Voir les tâches', fn:() => aller('taches') }); }
+  if (a === 'tache') { TACHES.push({ id:'t' + Date.now(), t:'Répondre : ' + m.objet, qui:MOI, d:AUJ, h:null, creePar:MOI, creeLe:'31/10', origine:'depuis le courriel de ' + m.de.nom }); return toast('Tâche ajoutée pour aujourd’hui.'); }
 });
 
 /* ⟦module achats⟧ */
@@ -8127,7 +7946,7 @@ document.addEventListener('click', ev => {
    Tout ce que l'entreprise achète et dépense, du besoin au paiement :
    · les DEMANDES de l'équipe — avant d'acheter, OP GESTION regarde si l'atelier l'a déjà (un transfert vers le camion suffit),
      sinon chez quel fournisseur on l'achète d'habitude (la ligne part dans sa commande), sinon un achat en magasin à la carte ;
-     un refus part avec son motif, en message privé à la personne ;
+     un refus part avec son motif, en notification à la personne ;
    · les factures À PAYER, par échéance (en retard, cette semaine, plus tard), rapprochées de leur commande, payables en un
      virement groupé ;
    · les DÉPENSES du mois par nature (marchandises, carburant, outillage…) et les justificatifs qui manquent ;
@@ -8223,7 +8042,7 @@ function acVersCommande(s, q, d){
   return cmdEdOuvrir({ id:null, num:'BC-2026-0' + cmdNum, four:s.x.four, lignes:[l], liv:'atelier', souh:d.quand || ajoute(AUJ, s.f.dj || 1), pour:'', note:'Demande de ' + H_NOM(d.qui) });
 }
 const acNoter = (d, suite) => { d.etat = 'approuvee'; d.suite = suite; d.par = 'marc'; d.le = AUJ; };
-function acPrevenir(k, txt){ let cv = MS_CONVS.find(o => o.type === 'prive' && o.membres.includes(k)); if (!cv) MS_CONVS.push(cv = { id:'p-' + k, type:'prive', membres:[MS_MOI, k] }); MSGS.push(msM(cv.id, AUJ, hm(MAINT_MIN), MS_MOI, txt, { lu:[MS_MOI] })); }
+const acPrevenir = (k, txt) => notifier(k, txt);   // une notification sur son téléphone (la Messagerie a été retirée)
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-ac]'); if (!b) return;
   const [a, x] = b.dataset.ac.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x), A = ACHATS.find(o => o.id === x);
@@ -8240,9 +8059,9 @@ document.addEventListener('click', ev => {
   if (a === 'commande') { const s = acSource(d); acNoter(d, `ajouté à la commande ${s.f.nom}`); acPrevenir(d.qui, `« ${d.quoi} » est ajouté à la commande ${s.f.nom}. Tu seras prévenu à la réception.`); return acVersCommande(s, d.q, d); }
   if (a === 'magasin') { acNoter(d, 'achat en magasin approuvé, à la carte de l’entreprise : ticket à prendre en photo'); ACHATS.push({ id:'a' + Date.now(), d:dFr(AUJ).slice(0, 5), four:'Achat en magasin', objet:d.quoi + ' (' + H_NOM(d.qui) + ')', ht:d.est, tva:20, compte:d.est > 500 ? '2154' : '6063', mode:'Carte', paye:dFr(AUJ).slice(0, 5), piece:null, ref:'à justifier' });
     acPrevenir(d.qui, `C’est bon pour « ${d.quoi} » (environ ${eur0(d.est)}). Achète-le avec la carte de l’entreprise et prends le ticket en photo dans OP GESTION.`); rendre(); return toast(`Approuvé. ${esc(H_NOM(d.qui))} est prévenu ; le ticket est attendu dans « Justificatifs manquants ».`); }
-  if (a === 'refuser') return ouvrirPanneau(`<span class="surtitre">Refuser la demande</span><h2>${esc(d.quoi)}</h2><label class="champ">Pourquoi (${esc(msPrenom(d.qui))} le lira)<textarea id="ac-motif" rows="3" placeholder="ex. On en a commandé la semaine dernière, elles arrivent mardi."></textarea></label>
+  if (a === 'refuser') return ouvrirPanneau(`<span class="surtitre">Refuser la demande</span><h2>${esc(d.quoi)}</h2><label class="champ">Pourquoi (${esc(prenomDe(d.qui))} le lira)<textarea id="ac-motif" rows="3" placeholder="ex. On en a commandé la semaine dernière, elles arrivent mardi."></textarea></label>
     <div class="actions"><button type="button" class="btn" data-ac="refok|${d.id}">Refuser et prévenir</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
-  if (a === 'refok') { const mo = document.getElementById('ac-motif').value.trim(); if (!mo) return toast('Un refus s’explique : écris pourquoi.'); d.etat = 'refusee'; d.motif = mo; acPrevenir(d.qui, `Pour « ${d.quoi} » : pas cette fois. ${mo}`); fermerPanneau(); rendre(); return toast(`Refusée. ${esc(H_NOM(d.qui))} a le motif dans la Messagerie.`); }
+  if (a === 'refok') { const mo = document.getElementById('ac-motif').value.trim(); if (!mo) return toast('Un refus s’explique : écris pourquoi.'); d.etat = 'refusee'; d.motif = mo; acPrevenir(d.qui, `Pour « ${d.quoi} » : pas cette fois. ${mo}`); fermerPanneau(); rendre(); return toast(`Refusée. ${esc(H_NOM(d.qui))} est prévenu par une notification, avec le motif.`); }
   if (a === 'payer') { A.paye = dFr(AUJ).slice(0, 5); A.mode = 'Virement'; acSel.delete(A.id); rendre(); return toast(`${esc(A.ref)} payée par virement (${eur(acTTC(A))}) : rangée en comptabilité.`, { lib:'Annuler', fn:() => { A.paye = null; A.mode = null; rendre(); } }); }
   if (a === 'virement') { const L = acAPayer().filter(o => acSel.has(o.id)), tot = L.reduce((s, o) => s + acTTC(o), 0);
     return ouvrirPanneau(`<span class="surtitre">Virement groupé</span><h2>${L.length} facture${L.length > 1 ? 's' : ''} · ${eur(tot)}</h2><div class="fo-bloc">${L.map(o => `<div class="ligne"><span>${esc(o.four)} · ${esc(o.ref)}</span><b>${eur(acTTC(o))}</b></div>`).join('')}</div>
@@ -8251,11 +8070,220 @@ document.addEventListener('click', ev => {
   if (a === 'virok') { const L = acAPayer().filter(o => acSel.has(o.id)); L.forEach(o => { o.paye = dFr(AUJ).slice(0, 5); o.mode = 'Virement'; }); acSel.clear(); fermerPanneau(); rendre(); return toast(`Fichier de virement prêt (${L.length} factures). Elles sont marquées payées et rangées en comptabilité.`); }
   if (a === 'piece') { A.piece = 'ticket'; A.just = 'photo du ' + dFr(AUJ).slice(0, 5); if (A.ref === 'à justifier') A.ref = 'TICKET-' + dFr(AUJ).slice(0, 5).replace('/', ''); rendre(); return toast('Ticket ajouté : la TVA de cette dépense est récupérable.'); }
   if (a === 'ndfok') { n.etat = 'validee'; ACHATS.push({ id:'a' + n.id, d:dFr(n.d).slice(0, 5), four:'Note de frais · ' + H_NOM(n.qui), objet:n.objet, ht:Math.round(n.ttc / (1 + n.tva / 100) * 100) / 100, tva:n.tva, compte:'625', mode:'Note de frais', paye:null, piece:'ticket', ref:'NDF-' + n.id.toUpperCase() });
-    rendre(); return toast(`Validée : ${eur(n.ttc)} remboursés à ${esc(msPrenom(n.qui))} avec la paie de novembre.`); }
-  if (a === 'ndfticket') { acPrevenir(n.qui, `Pour ta note « ${n.objet} » (${eur(n.ttc)}), il me manque le ticket : prends-le en photo dans OP GESTION et je la valide.`); return toast(`Demande envoyée à ${esc(msPrenom(n.qui))} dans la Messagerie.`); }
+    rendre(); return toast(`Validée : ${eur(n.ttc)} remboursés à ${esc(prenomDe(n.qui))} avec la paie de novembre.`); }
+  if (a === 'ndfticket') { acPrevenir(n.qui, `Pour ta note « ${n.objet} » (${eur(n.ttc)}), il me manque le ticket : prends-le en photo dans OP GESTION et je la valide.`); return toast(`${esc(prenomDe(n.qui))} est prévenu par une notification.`); }
   if (a === 'ndfnon') { n.etat = 'refusee'; acPrevenir(n.qui, `Ta note « ${n.objet} » n’est pas remboursée : sans ticket, on ne peut pas.`); rendre(); return toast('Refusée, la personne est prévenue.'); }
 });
 document.addEventListener('change', ev => { const t = ev.target; if (!t.matches('[data-acsel]')) return; t.checked ? acSel.add(t.dataset.acsel) : acSel.delete(t.dataset.acsel); rendre(); });
+
+/* ⟦module metier3d⟧ */
+/* ══ MÉTIER 3D : REGISTRE SANITAIRE, CARTE DES BOX, DEVIS XYLOPHAGE ══
+   Ces trois écrans n'existent que pour une entreprise du métier 3D (dératisation, désinsectisation, désinfection). L'entreprise de
+   démonstration est en climatisation : ils ont donc LEURS clients fictifs, annoncés comme tels en haut de chaque écran.
+   Ils travaillent ensemble : un passage saisi met à jour la carte (l'état de chaque box) ET le registre (consommations, produits
+   posés avec leur lot, recommandations) ; la carte dit où sont les box et ce qui s'y passe ; le registre est ce que le client
+   montre au contrôle sanitaire. Le devis xylophage calcule un traitement du bois et devient un vrai devis. Données fictives. */
+const D3_CLI = {
+  t1:{ nom:'Restaurant La Marée', adr:'4 quai Duperré, La Rochelle', contrat:'8 passages par an', freq:45, haccp:true },
+  t2:{ nom:'Boulangerie Lemoine', adr:'21 rue du Palais, La Rochelle', contrat:'6 passages par an', freq:60, haccp:true },
+  t3:{ nom:'Entrepôt Logistique Atlantique', adr:'ZI de Périgny', contrat:'12 passages par an', freq:30 }
+};
+const D3_PROD = {
+  b1:{ nom:'Bloc appât rongeurs 25 ppm', tp:'TP14', amm:'FR-2026-0001 (exemple)', u:'g' },
+  g1:{ nom:'Gel appât blattes', tp:'TP18', amm:'FR-2026-0002 (exemple)', u:'g' },
+  p1:{ nom:'Plaque engluée (désinsectiseur)', tp:'—', amm:'sans biocide', u:'u' }
+};
+const D3_TYPES = { r:['Box rongeurs sécurisée', '🐀'], i:['Piège insectes rampants', '🪳'], v:['Désinsectiseur UV', '🪰'] };
+const D3_ZONES = { t1:[['Cuisine', 4, 6, 44, 52], ['Réserve', 52, 6, 44, 34], ['Salle', 4, 62, 60, 32], ['Cour', 68, 46, 28, 48]],
+  t2:[['Fournil', 4, 6, 56, 50], ['Boutique', 64, 6, 32, 50], ['Stockage farine', 4, 60, 92, 34]], t3:[['Quai de chargement', 4, 6, 92, 24], ['Stockage', 4, 34, 70, 60], ['Bureaux', 78, 34, 18, 60]] };
+let D3_POSTES = {
+  t1:[['P1', 'r', 'Cour', 74, 58], ['P2', 'r', 'Cour', 88, 82], ['P3', 'r', 'Réserve', 60, 18], ['P4', 'r', 'Réserve', 88, 30], ['P5', 'i', 'Cuisine', 12, 18], ['P6', 'i', 'Cuisine', 38, 44], ['P7', 'v', 'Cuisine', 34, 18], ['P8', 'i', 'Réserve', 74, 32], ['P9', 'r', 'Salle', 10, 86], ['P10', 'v', 'Salle', 50, 70]],
+  t2:[['P1', 'r', 'Stockage farine', 10, 70], ['P2', 'r', 'Stockage farine', 50, 88], ['P3', 'r', 'Stockage farine', 88, 70], ['P4', 'i', 'Fournil', 14, 20], ['P5', 'i', 'Fournil', 48, 46], ['P6', 'v', 'Boutique', 80, 20]],
+  t3:[['P1', 'r', 'Quai de chargement', 10, 16], ['P2', 'r', 'Quai de chargement', 40, 16], ['P3', 'r', 'Quai de chargement', 70, 16], ['P4', 'r', 'Stockage', 10, 50], ['P5', 'r', 'Stockage', 40, 50], ['P6', 'r', 'Stockage', 66, 50], ['P7', 'r', 'Stockage', 10, 86], ['P8', 'r', 'Stockage', 40, 86], ['P9', 'r', 'Stockage', 66, 86], ['P10', 'r', 'Bureaux', 86, 50]]
+};
+D3_POSTES = Object.fromEntries(Object.entries(D3_POSTES).map(([k, L]) => [k, L.map(([id, t, zone, x, y]) => ({ id, t, zone, x, y, actif:true, pose:'2026-03-02' }))]));
+/* un passage : l'état relevé de chaque box (0 intact, 25…100 % consommé, c capture, a absente, d dégradée), ce qui a été posé, ce qu'on recommande */
+const d3P = (cli, d, tech, etats, poses, obs, recos) => ({ id:'ps' + cli + d, cli, d, tech, etats, poses, obs, recos });
+let D3_PASSAGES = [
+  d3P('t1', jour(-104), 'Hugo Ferrand', { P1:25, P2:0, P3:0, P4:0, P5:0, P6:0, P7:'c', P8:0, P9:0, P10:'c' }, [['b1', 'L-2604', 80]], 'Activité faible côté cour.', []),
+  d3P('t1', jour(-59), 'Hugo Ferrand', { P1:50, P2:25, P3:25, P4:0, P5:0, P6:'c', P7:'c', P8:0, P9:0, P10:'c' }, [['b1', 'L-2604', 160], ['g1', 'G-1107', 10]], 'Consommation en hausse dans la cour et la réserve.', [['r1', 'Poser un bas de porte sur la porte de la réserve (passage sous la porte).', null]]),
+  d3P('t1', jour(-14), 'Hugo Ferrand', { P1:75, P2:50, P3:50, P4:25, P5:0, P6:'c', P7:'c', P8:'c', P9:0, P10:'c' }, [['b1', 'L-2611', 240], ['g1', 'G-1107', 15]], 'Activité moyenne : traces récentes près des poubelles de la cour. Box P1 à P4 réapprovisionnées.', [['r2', 'Fermer les conteneurs de la cour le soir.', null], ['r3', 'Ranger les cartons de la réserve sur étagères, à 20 cm du sol.', null]]),
+  d3P('t2', jour(-70), 'Hugo Ferrand', { P1:0, P2:0, P3:0, P4:0, P5:0, P6:'c' }, [['b1', 'L-2604', 60]], 'Rien à signaler.', []),
+  d3P('t2', jour(-10), 'Inès Morel', { P1:0, P2:25, P3:0, P4:'c', P5:0, P6:'c' }, [['b1', 'L-2611', 60], ['g1', 'G-1107', 5]], 'Une capture de blatte au fournil (P4).', [['r4', 'Reboucher la fissure derrière le pétrin.', null]]),
+  d3P('t3', jour(-33), 'Inès Morel', { P1:25, P2:0, P3:0, P4:0, P5:0, P6:'a', P7:0, P8:0, P9:0, P10:0 }, [['b1', 'L-2611', 200]], 'Box P6 disparue (chariot élévateur ?), remplacée.', []),
+  d3P('t3', jour(-3), 'Inès Morel', { P1:0, P2:0, P3:25, P4:0, P5:0, P6:0, P7:0, P8:0, P9:0, P10:0 }, [['b1', 'L-2611', 100]], 'Activité faible.', [])
+];
+D3_PASSAGES.find(p => p.cli === 't1' && p.d === jour(-59)).recos[0][2] = jour(-40);   // le bas de porte a été posé par le client
+let d3Cli = 't1', d3Sel = null, d3Mode = null, d3Ouvert = null;
+const D3_BANDEAU = `<div class="info d3-info">Exemple pour une entreprise du <b>métier 3D</b>, avec ses propres clients fictifs : ces écrans n’apparaissent que si le métier 3D est coché pour l’entreprise.</div>`;
+const d3Pass = c => D3_PASSAGES.filter(p => p.cli === c).sort((a, b) => a.d.localeCompare(b.d));
+const d3Dernier = c => d3Pass(c).at(-1);
+const d3Etat = (c, id) => { for (const p of d3Pass(c).slice().reverse()) if (p.etats[id] != null) return p.etats[id]; return 0; };
+const d3Classe = e => e === 'a' || e === 'd' ? 'g' : e === 'c' || e >= 75 ? 'r' : e >= 25 ? 'o' : 'v';
+const d3Lib = e => e === 'a' ? 'absente' : e === 'd' ? 'dégradée' : e === 'c' ? 'capture' : e ? 'consommée à ' + e + ' %' : 'intacte';
+const d3Activite = p => { const v = Object.values(p.etats), n = v.filter(e => e === 'c' || (typeof e === 'number' && e >= 25)).length, r = n / Math.max(1, v.length); return r >= .5 ? ['Forte', 'r'] : r >= .25 ? ['Moyenne', 'o'] : n ? ['Faible', 'v'] : ['Néant', 'v']; };
+const d3Recos = c => d3Pass(c).flatMap(p => p.recos.map(r => ({ p, id:r[0], txt:r[1], faite:r[2] })));
+const d3Choix = (rt) => `<div class="seg d3-cli" role="group" aria-label="Client">${Object.entries(D3_CLI).map(([k, c]) => `<button type="button" data-d3="cli|${k}" aria-pressed="${d3Cli === k}">${esc(c.nom)}</button>`).join('')}</div>`;
+function vueRegistre(){
+  const c = D3_CLI[d3Cli], P = d3Pass(d3Cli), der = P.at(-1), pro = ajoute(der.d, c.freq), act = d3Activite(der), R = d3Recos(d3Cli), ouv = R.filter(r => !r.faite);
+  const prods = P.flatMap(p => p.poses.map(([pid, lot, q]) => ({ p, x:D3_PROD[pid], lot, q }))).reverse();
+  return `<div class="tete"><div><span class="surtitre">Métier 3D</span><h1>Registre sanitaire</h1><span class="gris">Ce que le client montre au contrôle sanitaire : chaque passage, l’activité relevée, les produits posés avec leur lot, et les recommandations suivies.</span></div>
+      <div class="actions"><button type="button" class="btn" data-d3="passage">＋ Saisir un passage</button><button type="button" class="btn gris" data-d3="pdf">Registre en PDF</button></div></div>
+    ${D3_BANDEAU}${d3Choix()}
+    <div class="kpis"><div class="kpi"><b>${jCourt(der.d)}</b><span>dernier passage · ${esc(der.tech)}</span></div><div class="kpi"><b class="ve-${act[1]}t">${act[0]}</b><span>activité au dernier passage</span></div>
+      <div class="kpi"><b style="color:${tJours(pro) < 0 ? 'var(--rouge)' : 'inherit'}">${jCourt(pro)}</b><span>prochain passage · ${esc(c.contrat)}</span></div><div class="kpi"><b style="color:${ouv.length ? 'var(--orange)' : 'inherit'}">${ouv.length}</b><span>recommandation${ouv.length > 1 ? 's' : ''} en attente</span></div></div>
+    <div class="carte"><h2 class="cmd-titre" style="margin:0 0 10px">Activité, passage après passage</h2><div class="d3-histo">${P.map(p => { const a = d3Activite(p), v = Object.values(p.etats), n = v.filter(e => e === 'c' || (typeof e === 'number' && e >= 25)).length; return `<div class="d3-h"><span class="d3-hb"><i class="d3-${a[1]}" style="height:${Math.max(6, Math.round(n / v.length * 100))}%"></i></span><b>${n}/${v.length}</b><span class="gris petit">${jCourt(p.d)}</span></div>`; }).join('')}</div>
+      <span class="gris petit">Nombre de box avec consommation ou capture, sur les box relevées.</span></div>
+    ${R.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Recommandations au client</h2>${R.slice().reverse().map(r => `<label class="fo-garder d3-reco"><input type="checkbox" data-d3reco="${r.id}" ${r.faite ? 'checked' : ''}><span><b>${esc(r.txt)}</b><span class="gris petit"> · demandée le ${jCourt(r.p.d)}${r.faite ? ', faite le ' + jCourt(r.faite) : ''}</span></span></label>`).join('')}</div>` : ''}
+    <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Passages</h2>${P.slice().reverse().map(p => { const a = d3Activite(p), cons = Object.entries(p.etats).filter(([, e]) => e !== 0);
+      return `<button type="button" class="ve-u" data-d3="voir|${p.id}" aria-expanded="${d3Ouvert === p.id}"><span class="st st-${a[1]}">${a[0]}</span><span class="fo-n"><b>${esc(jlong(p.d))}</b><span class="gris petit">${esc(p.tech)} · ${cons.length ? cons.map(([id, e]) => id + ' ' + d3Lib(e)).join(', ') : 'toutes les box intactes'}</span></span><span class="fo-chev" aria-hidden="true">${d3Ouvert === p.id ? '⌄' : '›'}</span></button>
+        ${d3Ouvert === p.id ? `<div class="d3-det"><p>${esc(p.obs)}</p>${p.poses.length ? `<div class="gris petit">Posé : ${p.poses.map(([pid, lot, q]) => `${esc(D3_PROD[pid].nom)} ${q} ${D3_PROD[pid].u} (lot ${lot})`).join(' · ')}</div>` : ''}<button type="button" class="lien" data-d3="carte">Voir sur la carte des box ›</button></div>` : ''}`; }).join('')}</div>
+    <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Produits biocides posés · traçabilité</h2><div class="d3-tab"><div class="d3-tr d3-th" aria-hidden="true"><span>Date</span><span>Produit</span><span>Type</span><span>N° d’AMM</span><span>Lot</span><span>Quantité</span></div>
+      ${prods.map(o => `<div class="d3-tr"><span>${jCourt(o.p.d)}</span><b>${esc(o.x.nom)}</b><span>${o.x.tp}</span><span>${esc(o.x.amm)}</span><span>${esc(o.lot)}</span><span>${o.q} ${o.x.u}</span></div>`).join('')}</div>
+      <span class="gris petit">Posés par un applicateur certifié (Certibiocide). Le lot vient du stock : un rappel de lot se retrouve en une recherche.</span></div>
+    <div class="carte d3-lien"><span class="fo-n"><b>Lien permanent pour le contrôle sanitaire</b><span class="gris petit">Le client l’ouvre sur son téléphone devant l’inspecteur : registre à jour, sans compte à créer.</span></span><button type="button" class="btn gris petit" data-d3="lien">Copier le lien</button></div>`;
+}
+function vueCarteBox(){
+  const P = D3_POSTES[d3Cli].filter(p => p.actif), der = d3Dernier(d3Cli), att = P.filter(p => ['r', 'o', 'g'].includes(d3Classe(d3Etat(d3Cli, p.id)))), sel = d3Sel && P.find(p => p.id === d3Sel);
+  return `<div class="tete"><div><span class="surtitre">Métier 3D</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe au dernier passage. Touche une box pour son historique ; ajoute-en une en touchant le plan.</span></div>
+      <div class="actions"><button type="button" class="btn${d3Mode === 'ajout' ? '' : ' gris'}" data-d3="ajout">${d3Mode === 'ajout' ? 'Touche le plan pour poser la box…' : '＋ Ajouter une box'}</button></div></div>
+    ${D3_BANDEAU}${d3Choix()}
+    <div class="d3-carte-g"><div class="carte d3-plan-c"><div class="d3-plan${d3Mode ? ' pose' : ''}" data-d3plan="1" role="group" aria-label="Plan du site de ${esc(D3_CLI[d3Cli].nom)}">
+        ${D3_ZONES[d3Cli].map(([n, x, y, w, h]) => `<span class="d3-z" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><i>${esc(n)}</i></span>`).join('')}
+        ${P.map(p => { const e = d3Etat(d3Cli, p.id); return `<button type="button" class="d3-box d3-${d3Classe(e)}${d3Sel === p.id ? ' on' : ''}" style="left:${p.x}%;top:${p.y}%" data-d3="box|${p.id}" aria-label="${p.id}, ${esc(D3_TYPES[p.t][0])}, ${d3Lib(e)}"><span aria-hidden="true">${p.id.slice(1)}</span></button>`; }).join('')}</div>
+        <div class="d3-leg"><span><i class="d3-v"></i>intacte</span><span><i class="d3-o"></i>consommée</span><span><i class="d3-r"></i>forte ou capture</span><span><i class="d3-g"></i>absente ou dégradée</span><span class="gris">relevé du ${jCourt(der.d)} · ${esc(der.tech)}</span></div></div>
+      <div class="d3-cote">${sel ? d3FicheBox(sel) : `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">À regarder · ${att.length}</h2>${att.map(p => { const e = d3Etat(d3Cli, p.id); return `<button type="button" class="ve-u" data-d3="box|${p.id}"><span class="ve-pt ve-${d3Classe(e) === 'g' ? 'o' : d3Classe(e)}" aria-hidden="true"></span><span class="fo-n"><b>${p.id} · ${esc(D3_TYPES[p.t][0])}</b><span class="gris petit">${esc(p.zone)} · ${d3Lib(e)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('') || '<span class="gris">Toutes les box sont intactes.</span>'}
+        <div class="cmd-liens"><button type="button" class="lien" data-d3="registre">Registre sanitaire ›</button></div></div>
+        <div class="carte gris petit">${P.length} box actives : ${Object.keys(D3_TYPES).map(t => P.filter(p => p.t === t).length + ' ' + D3_TYPES[t][0].toLowerCase()).filter(s => !s.startsWith('0')).join(', ')}.</div>`}</div></div>`;
+}
+function d3FicheBox(p){
+  const H = d3Pass(d3Cli).filter(x => x.etats[p.id] != null);
+  return `<div class="carte d3-fiche"><span class="surtitre">${esc(p.zone)}</span><h2 style="margin:0">${p.id} · ${esc(D3_TYPES[p.t][1])} ${esc(D3_TYPES[p.t][0])}</h2><span class="gris petit">Posée le ${jCourt(p.pose)}</span>
+    <div class="d3-hist">${H.map(x => { const e = x.etats[p.id]; return `<span class="d3-hp"><i class="d3-${d3Classe(e)}" aria-hidden="true"></i><b>${jCourt(x.d)}</b><span class="gris petit">${d3Lib(e)}</span></span>`; }).join('')}</div>
+    <div class="actions"><button type="button" class="btn gris petit" data-d3="deplacer|${p.id}">${d3Mode === 'dep|' + p.id ? 'Touche le nouvel endroit…' : 'Déplacer'}</button><button type="button" class="btn gris petit" data-d3="retirer|${p.id}">Retirer</button><button type="button" class="btn gris petit" data-d3="fermer">Fermer</button></div></div>`;
+}
+function d3Saisie(){
+  const P = D3_POSTES[d3Cli].filter(p => p.actif);
+  ouvrirPanneau(`<span class="surtitre">${esc(D3_CLI[d3Cli].nom)} · ${esc(jlong(AUJ))}</span><h2>Saisir un passage</h2>
+    <div class="gris petit">Ce que le technicien relève sur son téléphone, box par box. Tout est déjà sur « intacte » : on ne touche que ce qui a bougé.</div>
+    <div class="d3-saisie">${P.map(p => `<label class="d3-sl"><span><b>${p.id}</b> <span class="gris petit">${esc(D3_TYPES[p.t][0])} · ${esc(p.zone)}</span></span><select data-d3e="${p.id}">${[0, 25, 50, 75, 100, 'c', 'a', 'd'].filter(e => p.t === 'r' ? e !== 'c' : typeof e !== 'number' || e === 0).map(e => `<option value="${e}">${d3Lib(e)}</option>`).join('')}</select></label>`).join('')}</div>
+    <div class="deux-champs"><label class="champ">Appât posé (g)<input id="d3-q" inputmode="numeric" value="120"></label><label class="champ">Lot<input id="d3-lot" value="L-2611"></label></div>
+    <label class="champ">Observations<textarea id="d3-obs" rows="2" placeholder="ex. traces près des poubelles"></textarea></label>
+    <label class="champ">Recommandation au client (facultatif)<input id="d3-reco" placeholder="ex. boucher l’accès sous la porte"></label>
+    <div class="actions"><button type="button" class="btn" data-d3="passageok">Enregistrer le passage</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
+}
+document.addEventListener('click', ev => {
+  const pl = ev.target.closest('[data-d3plan]');
+  if (pl && d3Mode && !ev.target.closest('.d3-box')) { const r = pl.getBoundingClientRect(), x = Math.round((ev.clientX - r.left) / r.width * 100), y = Math.round((ev.clientY - r.top) / r.height * 100), zone = (D3_ZONES[d3Cli].find(([, zx, zy, w, h]) => x >= zx && x <= zx + w && y >= zy && y <= zy + h) || ['hors zone'])[0];
+    if (d3Mode === 'ajout') { const L = D3_POSTES[d3Cli], id = 'P' + (Math.max(...L.map(p => +p.id.slice(1))) + 1); L.push({ id, t:'r', zone, x, y, actif:true, pose:AUJ }); d3Mode = null; d3Sel = id; rendre(); return toast(`Box ${id} posée (${esc(zone)}). Elle sera relevée au prochain passage.`); }
+    const p = D3_POSTES[d3Cli].find(o => 'dep|' + o.id === d3Mode); if (p) { p.x = x; p.y = y; p.zone = zone; d3Mode = null; rendre(); return toast(`${p.id} déplacée (${esc(zone)}).`); } }
+  const b = ev.target.closest('[data-d3]'); if (!b) return;
+  const [a, x] = b.dataset.d3.split('|');
+  if (a === 'cli') { d3Cli = x; d3Sel = null; d3Mode = null; d3Ouvert = null; return rendre(); }
+  if (a === 'voir') { d3Ouvert = d3Ouvert === x ? null : x; return rendre(); }
+  if (a === 'box') { d3Sel = d3Sel === x ? null : x; d3Mode = null; return rendre(); }
+  if (a === 'fermer') { d3Sel = null; d3Mode = null; return rendre(); }
+  if (a === 'ajout') { d3Mode = d3Mode === 'ajout' ? null : 'ajout'; d3Sel = null; return rendre(); }
+  if (a === 'deplacer') { d3Mode = d3Mode === 'dep|' + x ? null : 'dep|' + x; return rendre(); }
+  if (a === 'retirer') { const p = D3_POSTES[d3Cli].find(o => o.id === x); p.actif = false; d3Sel = null; rendre(); return toast(`${x} retirée. Son historique reste dans le registre.`, { lib:'Annuler', fn:() => { p.actif = true; rendre(); } }); }
+  if (a === 'carte') return aller('carteBox');
+  if (a === 'registre') return aller('registre');
+  if (a === 'passage') return d3Saisie();
+  if (a === 'passageok') { const et = {}; document.querySelectorAll('[data-d3e]').forEach(s => { et[s.dataset.d3e] = isNaN(+s.value) ? s.value : +s.value; }); const q = +document.getElementById('d3-q').value || 0, reco = document.getElementById('d3-reco').value.trim();
+    const p = d3P(d3Cli, AUJ, 'Hugo Ferrand', et, q ? [['b1', document.getElementById('d3-lot').value || '—', q]] : [], document.getElementById('d3-obs').value.trim() || 'Passage effectué.', reco ? [['r' + Date.now(), reco, null]] : []);
+    D3_PASSAGES = D3_PASSAGES.filter(o => o.id !== p.id).concat(p); fermerPanneau(); rendre(); return toast(`Passage enregistré : la carte des box et le registre sont à jour.`, { lib:route === 'registre' ? 'Voir la carte' : 'Voir le registre', fn:() => aller(route === 'registre' ? 'carteBox' : 'registre') }); }
+  if (a === 'pdf') return toast('Le registre part en PDF au nom de l’entreprise : passages, produits avec lot et AMM, recommandations, plan des box.');
+  if (a === 'lien') return toast('Lien copié. Il montre le registre à jour, en lecture seule.');
+});
+document.addEventListener('change', ev => { const t = ev.target; if (!t.matches('[data-d3reco]')) return; const r = D3_PASSAGES.flatMap(p => p.recos).find(o => o[0] === t.dataset.d3reco); r[2] = t.checked ? AUJ : null; rendre(); toast(t.checked ? 'Notée comme faite par le client.' : 'Remise en attente.'); });
+
+/* ── DEVIS XYLOPHAGE : un traitement du bois calculé, qui devient un vrai devis ── */
+let XY = { cli:'', nouveau:'', insecte:'capricorne', mode:'curatif', bois:42, planchers:0, murs:0, esp:0.3, dose:0.3, prixL:14, mh:12, taux:52, depl:45, tva:10 };
+const XY_INS = { termites:'Termites', capricorne:'Capricorne des maisons', vrillettes:'Vrillettes', merule:'Mérule (champignon)' };
+function xyLignes(){
+  const surf = XY.bois + XY.planchers, litres = Math.ceil(surf * XY.dose * 10) / 10, inj = XY.murs ? Math.ceil(XY.murs / XY.esp) : 0, h = Math.ceil((surf / XY.mh + inj * 0.08) * 2) / 2;
+  const L = [];
+  if (XY.mode === 'curatif' && XY.bois) L.push(['Bûchage et brossage des bois attaqués (' + XY.bois + ' m²)', 1, Math.round(XY.bois * 6.5)]);
+  if (surf) L.push([`Traitement des bois par pulvérisation, produit insecticide-fongicide (${prNum(litres)} L pour ${surf} m²)`, 1, Math.round(litres * XY.prixL * 100) / 100]);
+  if (inj) L.push([`Injection des murs et sols : ${inj} injecteurs (un tous les ${Math.round(XY.esp * 100)} cm sur ${XY.murs} m)`, inj, 4.5]);
+  L.push([`Main-d’œuvre (${prNum(h)} h)`, h, XY.taux]);
+  L.push(['Déplacement et mise en place du chantier', 1, XY.depl]);
+  L.push(['Attestation de traitement, avec garantie', 1, 0]);
+  return { L, surf, litres, inj, h, ht:L.reduce((s, l) => s + l[1] * l[2], 0) };
+}
+function vueDevisXylo(){
+  const R = xyLignes(), ttc = R.ht * (1 + XY.tva / 100), champ = (k, l, u) => `<label class="champ">${l}<span class="xy-u"><input inputmode="decimal" data-xy="${k}" value="${String(XY[k]).replace('.', ',')}">${u ? `<i>${u}</i>` : ''}</span></label>`;
+  return `<div class="tete"><div><span class="surtitre">Métier 3D</span><h1>Devis xylophage</h1><span class="gris">Le traitement du bois calculé à partir de ce qu’on a mesuré sur place ; le devis se crée en un geste et se signe en ligne.</span></div></div>
+    ${D3_BANDEAU}
+    <div class="xy-g"><div class="carte xy-f">
+      <div class="deux-champs"><label class="champ">Client<select data-xy="cli"><option value="">Nouveau client…</option>${Object.entries(CLIENTS).map(([k, c]) => `<option value="${k}" ${XY.cli === k ? 'selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></label>${XY.cli ? '<span></span>' : `<label class="champ">Nom du nouveau client<input data-xy="nouveau" value="${esc(XY.nouveau)}" placeholder="ex. M. et Mme Garnier"></label>`}</div>
+      <div class="groupe">Ce qui a été constaté</div>
+      <div class="seg" role="group" aria-label="Insecte">${Object.entries(XY_INS).map(([k, l]) => `<button type="button" data-xyb="insecte|${k}" aria-pressed="${XY.insecte === k}">${l}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="Traitement">${[['curatif', 'Curatif (bois attaqués)'], ['preventif', 'Préventif']].map(([k, l]) => `<button type="button" data-xyb="mode|${k}" aria-pressed="${XY.mode === k}">${l}</button>`).join('')}</div>
+      ${XY.insecte === 'merule' ? '<div class="ve-e">La mérule est un champignon : le traitement passe d’abord par la cause (l’humidité). Sa présence se déclare en mairie (c’est à l’occupant ou au propriétaire de le faire), et certaines communes sont en zone délimitée par arrêté préfectoral. Ce calcul ne la couvre pas.</div>' : ''}
+      ${XY.insecte === 'termites' ? '<div class="ve-e">Termites : leur présence se déclare en mairie, et la commune peut être en zone délimitée par arrêté préfectoral. À la vente, c’est l’« état relatif à la présence de termites » : un diagnostic, distinct du traitement.</div>' : ''}
+      <div class="groupe">Mesures</div>
+      <div class="deux-champs">${champ('bois', 'Bois de charpente à traiter', 'm²')}${champ('planchers', 'Planchers et parquets', 'm²')}</div>
+      <div class="deux-champs">${champ('murs', 'Murs et sols à injecter', 'm linéaires')}${champ('esp', 'Un injecteur tous les', 'm')}</div>
+      <details class="xy-reg"><summary>Réglages du calcul</summary><div class="deux-champs">${champ('dose', 'Dose du produit', 'L/m²')}${champ('prixL', 'Prix du produit', '€/L')}</div><div class="deux-champs">${champ('mh', 'Rendement', 'm²/h')}${champ('taux', 'Taux horaire', '€ HT')}</div><div class="deux-champs">${champ('depl', 'Déplacement', '€ HT')}<label class="champ">TVA<select data-xy="tva"><option value="10" ${XY.tva == 10 ? 'selected' : ''}>10 % (logement de plus de 2 ans)</option><option value="20" ${XY.tva == 20 ? 'selected' : ''}>20 %</option></select></label></div>
+        <span class="gris petit">La dose vient de la fiche technique du produit utilisé : elle se règle une fois, et sert à tous les devis.</span></details></div>
+    <div class="carte xy-r"><h2 class="cmd-titre" style="margin:0 0 6px">${esc(XY_INS[XY.insecte])} · ${XY.mode === 'curatif' ? 'curatif' : 'préventif'}</h2>
+      ${R.L.map(l => `<div class="ligne"><span>${esc(l[0])}</span><b>${l[2] ? eur(l[1] * l[2]) : 'inclus'}</b></div>`).join('')}
+      <div class="ligne xy-t"><span>Total HT</span><b>${eur(R.ht)}</b></div><div class="ligne"><span>TVA ${XY.tva} %</span><b>${eur(ttc - R.ht)}</b></div><div class="ligne xy-t"><span>Total TTC</span><b>${eur(ttc)}</b></div>
+      <button type="button" class="btn large" data-xyb="creer" ${R.ht > XY.depl + 1 ? '' : 'disabled'}>Créer le devis</button><span class="gris petit">Il s’ouvre dans Devis : relire, envoyer, faire signer.</span></div></div>`;
+}
+document.addEventListener('change', ev => { const t = ev.target; if (!t.matches('[data-xy]')) return; const k = t.dataset.xy; XY[k] = k === 'cli' || k === 'nouveau' ? t.value : Math.max(0, +String(t.value).replace(',', '.') || 0); if (k === 'esp' && !XY.esp) XY.esp = 0.3; rendre(); });
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-xyb]'); if (!b) return; const [a, x] = b.dataset.xyb.split('|');
+  if (a === 'insecte' || a === 'mode') { XY[a] = x; return rendre(); }
+  if (a === 'creer') { let k = XY.cli; if (!k) { if (!XY.nouveau.trim()) return toast('Choisis le client, ou écris le nom du nouveau client.'); k = 'x' + Date.now().toString(36); CLIENTS[k] = { nom:XY.nouveau.trim(), type:'part', contact:XY.nouveau.trim(), tel:'', mail:'', adr:'', acces:'', depuis:'2026', appareils:[] }; }
+    const R = xyLignes(); if (!DV) dvInit();
+    dvCreer({ cli:k, objet:`Traitement ${XY.mode} des bois · ${XY_INS[XY.insecte].toLowerCase()}`, lignes:R.L, source:'devis xylophage', trace:'Calculé par le devis xylophage' }); DV.at(-1).tva = +XY.tva;
+    return allerAvecRetour('devis-x-' + DV.at(-1).id, 'Devis xylophage', () => {}); }
+});
+
+/* ⟦module liens⟧ */
+/* ══ LES LIENS ENTRE CATÉGORIES : TÂCHES ET COMPTABILITÉ BRANCHÉES SUR LES NOUVELLES ══
+   Tâches propose déjà ce qui attend (factures en retard, devis sans réponse, contrats à renouveler). Les catégories refaites le
+   7 novembre 2026 y ajoutent leurs propres « à faire », et chaque tâche proposée se TERMINE TOUTE SEULE quand le geste a eu lieu
+   dans sa catégorie (la règle de Tâches depuis le 1er novembre : « Tâches comprend que c'est fait »).
+   La Comptabilité lit le même registre ACHATS que les Achats : on lui donne les comptes que les Achats utilisent. */
+Object.assign(CP_COMPTES, { '625':'Déplacements, missions et réceptions', '6155':'Entretien et réparations des véhicules', '2154':'Matériel et outillage (immobilisation)' });
+/* chaque source : les « à faire » qu'elle voit, et pour chacun la condition qui le dit fait */
+const LIENS_SOURCES = [
+  () => EQUIPE.filter(p => p.actif).flatMap(p => p.habil.map(([n, d], j) => ({ p, n, d, j })).filter(o => o.d && habEtat(o.d) !== 'v').map(o => ({ cle:`hab-${o.p.k}-${o.j}`, t:`Renouveler « ${o.n} » de ${o.p.prenom}`, pourquoi:tJours(o.d) < 0 ? `expirée depuis le ${jCourt(o.d)}` : `expire le ${jCourt(o.d)}${habFormation(o.p.k, o.d) ? ' · formation prévue le ' + jCourt(habFormation(o.p.k, o.d).du) : ''}`, urgent:tJours(o.d) < 0, cat:'Équipe', aller:`equipe|${o.p.k}` }))),
+  () => ACHATS.filter(a => !a.paye && a.mode !== 'Prélèvement' && a.mode !== 'Note de frais' && acEch(a) < AUJ).map(a => ({ cle:`achpay-${a.id}`, t:`Payer la facture ${a.ref} de ${a.four}`, pourquoi:`${eur(acTTC(a))} · échue le ${jCourt(acEch(a))}`, urgent:true, cat:'Achats', aller:'achats|payer' })),
+  () => DEM_ACHAT.filter(d => d.etat === 'attente').map(d => ({ cle:`dem-${d.id}`, t:`Décider la demande de ${prenomDe(d.qui)} : ${d.quoi}`, pourquoi:`demandée ${d.d === AUJ ? 'aujourd’hui' : 'le ' + jCourt(d.d)}${d.quand ? ' · pour le ' + jCourt(d.quand) : ''}`, urgent:!!d.quand && tJours(d.quand) <= 2, cat:'Achats', aller:'achats|demandes' })),
+  () => ACHATS.filter(a => !a.piece && a.paye).map(a => ({ cle:`piece-${a.id}`, t:`Retrouver le ticket : ${a.four}, ${eur(acTTC(a))}`, pourquoi:`${a.objet} · sans justificatif, la TVA ne se récupère pas`, cat:'Achats', aller:'achats|depenses' })),
+  () => MAILS.filter(m => mlATraiter(m) && (mlLire(m).urgent || m.d < AUJ)).map(m => { const R = mlLire(m); return { cle:`mail-${m.id}`, t:R.sujet === 'facfour' ? `Rapprocher la facture de ${m.de.nom}` : R.sujet === 'accord' ? `Noter l’accord de ${m.de.nom} sur le devis ${R.devis ? R.devis.num : ''}` : R.sujet === 'paiement' ? `Noter le paiement annoncé par ${m.de.nom}` : R.sujet === 'expedition' ? `Mettre à jour la livraison : ${m.objet}` : `Répondre à ${m.de.nom} : ${m.objet}`, pourquoi:`${ML_SUJET[mlLire(m).sujet] || 'courriel'} · reçu ${m.d === AUJ ? 'aujourd’hui à ' + m.h.replace(':', ' h ') : 'le ' + jCourt(m.d)}`, urgent:R.urgent, cat:'Boîte mail', aller:`boiteMail|${m.id}` }; }),
+  () => VEHICULES.flatMap(v => vehEcheances(v).filter(e => e.urg !== 'v').map(e => ({ cle:`veh-${v.id}-${e.k}`, t:`${e.k === 'ct' ? 'Prendre rendez-vous pour le contrôle technique' : e.k === 'assur' ? 'Renouveler l’assurance' : 'Prendre rendez-vous pour l’entretien'} · ${v.marque} ${v.modele} ${v.plaque}`, pourquoi:vehEchTxt(e), urgent:e.urg === 'r', cat:'Véhicules', aller:`vehicules|${v.id}` }))),
+  () => POINTAGES.filter(ptOuvert).map(p => ({ cle:`pt-${p.id}`, t:`Clôturer le pointage de ${prenomDe(p.qui)} (${jlong(p.date)})`, pourquoi:'resté ouvert : la journée ne compte pas tant qu’il n’est pas clôturé', urgent:true, cat:'Temps de travail', aller:`pointage|${p.qui}` }))
+];
+const liensAFaire = () => LIENS_SOURCES.flatMap(f => { try { return f(); } catch (e) { return []; } });
+(() => { const s0 = tSuggestions; tSuggestions = function(){ const S = s0(), deja = cle => TACHES.some(x => x.cle === cle) || tIgnorees.has(cle);
+  liensAFaire().filter(o => !deja(o.cle)).forEach(o => S.push({ cle:o.cle, t:o.t, pourquoi:o.pourquoi, urgent:o.urgent, lien:{ t:'aller', id:o.aller, lib:o.cat, cat:o.cat } })); return S; }; })();
+/* les tâches venues des nouvelles catégories se rangent sous leur sujet, pas dans « Autres » */
+T_CATS.splice(T_CATS.findIndex(c => c[0] === 'autre'), 0, ['achats', 'Achats et dépenses', '🛒'], ['mail', 'Boîte mail', '📧'], ['equipe', 'Équipe', '👥'], ['vehicules', 'Véhicules', '🚐'], ['temps', 'Temps de travail', '⏱️']);
+const LIENS_CAT = { 'Achats':'achats', 'Boîte mail':'mail', 'Équipe':'equipe', 'Véhicules':'vehicules', 'Temps de travail':'temps' };
+/* une tâche venue d'une catégorie se termine quand sa condition n'est plus vraie : on le vérifie à chaque affichage.
+   (Et une proposition acceptée n'avait ni auteur ni date de création : « créée par undefined » dans son détail.) */
+(() => { const r0 = rendre; rendre = function(){
+  TACHES.forEach(x => { if (!x.cat && x.lien && x.lien.t === 'aller') x.cat = LIENS_CAT[x.lien.cat] || 'autre'; if (!x.creePar) x.creePar = 'marc'; if (!x.creeLe) x.creeLe = '31/10'; });
+  const ouvertes = TACHES.filter(x => !x.fait && x.cle && /^(hab|achpay|dem|piece|mail|veh|pt)-/.test(x.cle));   // le plus souvent aucune : rien à recalculer
+  if (ouvertes.length) { const vivant = new Set(liensAFaire().map(o => o.cle)); ouvertes.filter(x => !vivant.has(x.cle)).forEach(x => tFaire(x, 'fait dans ' + ((x.lien || {}).cat || 'sa catégorie'))); }
+  return r0.apply(this, arguments); }; })();
+/* le détail d'une telle tâche montre d'où elle vient, et y mène */
+(() => { const d0 = tDetail; tDetail = function(id){ const v = d0.apply(this, arguments), x = TACHES.find(o => o.id === id);
+  if (x && x.lien && x.lien.t === 'aller') { const h = document.querySelector('.panneau h2'); if (h && !document.querySelector('.panneau [data-taller]')) h.insertAdjacentHTML('afterend', `<div class="carte t-ctx"><div><small>${esc(x.lien.cat)}</small><button type="button" class="lien" data-taller="${esc(x.lien.id)}">Ouvrir dans ${esc(x.lien.cat)} ›</button>${T_BUT_AUTO}</div></div>`); }
+  return v; }; })();
+const T_BUT_AUTO = '<span class="gris petit">Se termine toute seule quand c’est fait là-bas.</span>';
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-taller]'); if (!b) return;
+  const [r, x] = b.dataset.taller.split('|'); fermerPanneau();
+  if (r === 'achats') { acOnglet = x; return aller('achats'); }
+  if (r === 'boiteMail') { mlSel = x; const m = mlDe(x); if (m) m.lu = true; return aller('boiteMail'); }
+  aller(r); setTimeout(() => { if (r === 'equipe') eqFiche(x); else if (r === 'vehicules' && typeof vehFiche === 'function') vehFiche(x); else if (r === 'pointage') { const z = document.querySelector(`[data-pt="pers|${x}"]`); if (z) z.click(); } }, 80);
+});
 
 const prixCatalogue = nom => { const x = CATALOGUE.find(c => c[0] === nom); return x ? x[1] : null; };
 const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer le ventilateur extérieur', lignes:[['Ventilateur extérieur Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
