@@ -401,6 +401,99 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .pt-paie{padding:6px 14px}.pt-p{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:8px;padding:11px 2px;border-bottom:1px solid var(--trait);align-items:center;font-variant-numeric:tabular-nums}.pt-paie .pt-p:last-child{border-bottom:0}
 @media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}.pt-r{grid-template-columns:118px repeat(5,minmax(80px,1fr)) 100px 86px;min-width:780px}}
 .pt-alertes{display:flex;flex-direction:column;padding:14px 16px}
+.pt-frais{display:flex;gap:12px;align-items:center;padding:12px 16px}.pt-frais .fo-n{flex:1}
+.eq-av{width:40px;height:40px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:800;color:#fff;background:var(--c);text-shadow:0 1px 1px rgba(0,0,0,.25)}.eq-av.grand{width:52px;height:52px;font-size:17px}
+.eq-tete{display:flex;align-items:center;gap:12px;margin:2px 0 6px}.eq-tete h2{margin:0}
+.eq-c .bx-t .st{margin-left:auto;flex:none}.eq-off{opacity:.62}
+.eq-puces{display:flex;flex-wrap:wrap;gap:6px}.eq-puces span{font-size:13px;padding:4px 9px;border-radius:999px;background:var(--surf2);color:var(--encre);white-space:nowrap}.eq-puces .eq-alerte{background:color-mix(in srgb,var(--orange) 14%,transparent);color:var(--orange)}
+.eq-droits{flex:none;display:flex;flex-direction:column;border:1px solid var(--trait);border-radius:14px;overflow:hidden;margin:4px 0 10px}
+.eq-dr{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,52px);align-items:center;gap:0;border-top:1px solid var(--trait);padding:0 6px 0 12px;min-height:46px}.eq-dr:first-child{border-top:0}
+.eq-dr>span:first-child{font-size:14px;line-height:1.3;padding:6px 8px 6px 0}.eq-dr label{display:flex;align-items:center;justify-content:center;min-height:44px;cursor:pointer}.eq-dr input{width:20px;height:20px;accent-color:var(--bleu)}
+.eq-dr-t{min-height:34px;background:var(--surf2)}.eq-dr-t span{font-size:12px;font-weight:650;color:var(--doux);text-align:center;text-transform:uppercase;letter-spacing:.03em}
+.eq-sp{align-items:flex-start;padding:9px 0;border-top:1px solid var(--trait)}.eq-sp:first-child{border-top:0}.eq-sp input{margin-top:2px}.eq-sp span{line-height:1.35}
+@media (max-width:760px){.eq-dr{grid-template-columns:minmax(0,1fr) repeat(4,44px);padding-left:10px}.eq-dr>span:first-child{font-size:13.5px}.eq-dr-t span{font-size:10.5px;letter-spacing:0}}
+.eq-puces .eq-rouge{background:color-mix(in srgb,var(--rouge) 13%,transparent);color:var(--rouge)}.eq-puces .eq-abs{background:color-mix(in srgb,var(--violet) 13%,transparent);color:var(--violet)}
+.ms-app{display:grid;grid-template-columns:330px minmax(0,1fr);height:max(540px,calc(100dvh - 230px));background:var(--surf);border:1px solid var(--trait);border-radius:var(--r);box-shadow:var(--ombre);overflow:hidden;min-width:0}
+.ms-liste{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--trait)}
+.ms-cherche{padding:12px}.ms-cherche input{width:100%;min-height:40px;border-radius:12px;border:1px solid var(--trait);background:var(--surf-in);color:var(--encre);padding:0 12px;font:inherit;font-size:15px}
+.ms-defile{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.ms-grp{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--doux);padding:12px 16px 4px}
+.ms-l{display:flex;gap:11px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:9px 14px;color:var(--encre);font:inherit;cursor:pointer;min-height:58px;border-radius:0}
+.ms-l.on{background:color-mix(in srgb,var(--bleu) 11%,transparent)}@media (hover:hover){.ms-l:not(.on):hover{background:var(--survol)}}
+.ms-l .av,.ms-ft .av,.ms-ic{width:38px;height:38px;font-size:12.5px;flex:none}
+.ms-ic{border-radius:12px;display:grid;place-items:center;font-size:17px;font-weight:800;background:var(--surf2);color:var(--doux)}.ms-ic.ms-groupe{color:var(--bleu);font-size:19px}.ms-ic.ms-inter{background:color-mix(in srgb,var(--orange) 13%,transparent)}
+.ms-lc{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ms-l1,.ms-l2{display:flex;align-items:center;gap:8px;min-width:0}.ms-l1 b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}.ms-l1 .gris{flex:none}
+.ms-apercu{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-nb{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:12px;font-weight:700;background:var(--bleu);color:#fff}.ms-nb.muet{background:var(--surf-in);color:var(--doux)}
+.ms-muet{font-size:12px;flex:none}
+.ms-pt{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}.ms-pt.ms-vert{background:var(--vert)}.ms-pt.ms-orange{background:var(--orange)}.ms-pt.ms-violet{background:var(--violet)}
+.ms-pied{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--trait)}.ms-pied .btn{flex:1}
+.ms-fil{display:flex;flex-direction:column;min-height:0;min-width:0}.ms-vide{align-items:center;justify-content:center}
+.ms-cr{display:none}.ms-ft{display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid var(--trait);min-height:62px}.ms-ft .ms-lc b{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-fta{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.ms-retour{display:none;background:none;border:0;color:var(--lien);font-size:30px;line-height:1;width:40px;height:44px;margin-left:-8px;cursor:pointer}
+.ms-ep{display:flex;gap:8px;align-items:center;text-align:left;width:100%;border:0;border-bottom:1px solid var(--trait);background:color-mix(in srgb,var(--orange) 8%,transparent);color:var(--encre);font:inherit;font-size:13.5px;padding:8px 16px;cursor:pointer;min-height:40px}.ms-ep span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-msgs{padding:8px 16px 14px;display:flex;flex-direction:column}
+.ms-jour{text-align:center;margin:14px 0 6px}.ms-jour span{font-size:12px;font-weight:650;color:var(--doux);background:var(--surf2);padding:3px 10px;border-radius:999px}
+.ms-m{display:flex;gap:8px;align-items:flex-end;margin-top:10px;max-width:min(78%,620px)}.ms-m.suite{margin-top:3px}
+.ms-m .av,.ms-esp{width:30px;height:30px;font-size:10.5px;flex:none}
+.ms-m.moi{align-self:flex-end;flex-direction:row-reverse}.ms-m.moi .ms-esp{display:none}
+.ms-b{display:flex;flex-direction:column;gap:5px;padding:8px 12px 6px;border-radius:18px;background:var(--surf2);min-width:0}
+.ms-m.moi .ms-b{background:var(--bleu);color:#fff}.ms-m.moi .ms-b .ms-h{color:rgba(255,255,255,.78)}.ms-m.moi .ms-ment{color:#fff;text-decoration:underline}
+.ms-m.auto .ms-b{background:color-mix(in srgb,var(--bleu) 9%,var(--surf2));border:1px dashed color-mix(in srgb,var(--bleu) 35%,transparent)}
+.ms-qui{font-size:12.5px;font-weight:700;color:var(--doux)}
+.ms-t{font-size:15px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.ms-ment{color:var(--lien);font-weight:650}
+.ms-h{font-size:11.5px;color:var(--doux);align-self:flex-end}
+.ms-photo{display:flex;align-items:flex-end;width:min(240px,100%);aspect-ratio:4/3;border-radius:12px;background:linear-gradient(135deg,#6b7a8f,#3b475a 60%,#2a3342);color:#fff;font-size:12.5px;padding:8px;overflow:hidden}
+.ms-carte{display:flex;flex-direction:column;gap:2px;text-align:left;border:1px solid var(--trait);background:var(--surf);color:var(--encre);border-radius:12px;padding:9px 11px;font:inherit;cursor:pointer;min-width:min(240px,100%)}.ms-ct{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--doux)}
+.ms-plus{flex:none;align-self:center;width:32px;height:32px;border-radius:50%;border:0;background:none;color:var(--doux);font-size:18px;cursor:pointer;opacity:0}
+.ms-m:hover .ms-plus,.ms-plus:focus-visible{opacity:1}@media (hover:none){.ms-plus{opacity:.55}}
+.ms-acts{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px 38px}.ms-acts.moi{justify-content:flex-end;margin-left:0}
+.ms-flash .ms-b{outline:2px solid var(--orange);outline-offset:2px}
+.ms-comp{border-top:1px solid var(--trait);padding:10px 12px;background:var(--surf);position:relative}
+.ms-joindre{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ms-saisie{display:flex;gap:8px;align-items:flex-end}
+.ms-saisie textarea{flex:1;min-width:0;resize:none;min-height:44px;max-height:140px;border-radius:22px;border:1px solid var(--trait);background:var(--surf-in);color:var(--encre);padding:11px 16px;font:inherit;font-size:16px;line-height:1.35}
+.ms-btn{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font-size:21px;line-height:1;cursor:pointer}.ms-btn.ms-env{background:var(--bleu);border-color:transparent;color:#fff;font-weight:800}
+.ms-ment-l{position:absolute;left:12px;right:12px;bottom:calc(100% + 4px);display:flex;flex-direction:column;background:var(--surf);border:1px solid var(--trait);border-radius:14px;box-shadow:var(--ombre-haute);overflow:hidden;z-index:3}
+.ms-ment-l[hidden]{display:none}.ms-ment-l button{display:flex;gap:10px;align-items:center;min-height:46px;padding:6px 12px;background:none;border:0;color:var(--encre);font:inherit;text-align:left;cursor:pointer}.ms-ment-l .av{width:28px;height:28px;font-size:10px}
+@media (max-width:1080px) and (min-width:761px){.ms-app{grid-template-columns:280px minmax(0,1fr)}.ms-fta .btn{padding-inline:10px}}
+@media (max-width:760px){
+  .ms-app{display:block;height:auto;background:none;border:0;box-shadow:none;overflow:visible;border-radius:0}
+  .ms-liste{border:0}.ms-liste .ms-defile{overflow:visible}.ms-cherche{padding:0 0 6px}.ms-l{padding:9px 4px;border-radius:14px}.ms-grp{padding:12px 4px 4px}
+  .ms-pied{border:0;padding:12px 0 0}
+  .ms-app:not(.ouvert) .ms-fil{display:none}.ms-app.ouvert .ms-liste{display:none}.ms-tete.ms-dans-fil{display:none}
+  .ms-fil{margin-inline:-16px}.ms-ft{position:sticky;top:0;z-index:4;background:var(--surf);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:6px 12px;gap:9px}.ms-retour{display:block}
+  .ms-fta{flex-wrap:nowrap}.ms-fta .btn{padding-inline:11px;min-height:38px;font-size:13.5px}.ms-lg{display:none}.ms-cr{display:inline}.ms-ft .ms-lc .gris{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ms-msgs{overflow:visible;padding:6px 12px 10px}.ms-m{max-width:88%}
+  .ms-comp{position:sticky;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:4;border-top:1px solid var(--trait);border-radius:20px;margin:0 8px;box-shadow:var(--ombre-haute);border:1px solid var(--trait)}
+}
+.ml-filtres{display:flex;gap:6px;padding:12px 12px 6px;overflow-x:auto;scrollbar-width:none}.ml-filtres::-webkit-scrollbar{display:none}
+.ml-filtres button{flex:none;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}.ml-filtres button[aria-pressed="true"]{background:var(--encre);color:var(--page);border-color:transparent}
+.ml-l{align-items:flex-start;min-height:74px;border-top:1px solid var(--trait)}.ml-l .ms-l1 b{font-weight:600}.ml-l.nonlu .ms-l1 b,.ml-l.nonlu .ml-obj{font-weight:750}
+.ml-l.nonlu::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--bleu);flex:none;margin:7px -3px 0 -5px}
+.ml-obj{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ml-tag{flex:none;font-size:11.5px;padding:2px 7px}
+.ml-corps{padding:16px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.ml-reco{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--bleu) 7%,var(--surf2));border:1px solid color-mix(in srgb,var(--bleu) 22%,transparent)}.ml-reco.urgent{background:color-mix(in srgb,var(--orange) 9%,var(--surf2));border-color:color-mix(in srgb,var(--orange) 35%,transparent)}
+.ml-reco b{font-size:16px}.ml-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.ml-fait{margin-top:6px;font-size:14px;color:var(--vert);font-weight:600}
+.ml-txt{font-size:15px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.ml-pj{display:flex;gap:8px;flex-wrap:wrap}.ml-pjc{display:inline-flex;gap:6px;align-items:center;padding:8px 12px;border-radius:12px;border:1px solid var(--trait);background:var(--surf2);font-size:14px}
+.ml-rep{border-left:3px solid var(--bleu);padding:4px 0 4px 12px}
+.ml-barre{display:flex;gap:8px;flex-wrap:wrap}
+.ml-alerte{display:flex;gap:12px;align-items:center;padding:12px 16px}.ml-alerte .fo-n{flex:1}
+.ml-mod{flex-wrap:wrap}
+@media (max-width:760px){.ml-filtres{padding:0 0 6px;margin-inline:-16px;padding-inline:16px}.ml-l{padding-inline:4px}.ml-corps{padding:14px 12px}.ml-barre{position:sticky;bottom:calc(78px + env(safe-area-inset-bottom,0px))}.ml-barre .btn{flex:1 1 auto}.ml-alerte{flex-wrap:wrap}.ml-alerte .btn{width:100%}}
+.ach-d{display:flex;flex-direction:column;gap:10px}.ach-pq{margin:0;font-size:14.5px;color:var(--encre);font-style:italic}
+.ach-l{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--trait);cursor:pointer;min-height:52px}.ach-l:first-of-type{border-top:0}.ach-l input{width:20px;height:20px;flex:none;accent-color:var(--bleu)}.ach-l .fo-n{flex:1;min-width:0}
+.ach-ech{font-size:13.5px;font-weight:600;white-space:nowrap}
+.ach-vir{display:flex;gap:14px;align-items:center;position:sticky;bottom:12px;z-index:3}.ach-vir .fo-n{flex:1}
+.ach-bar{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr) auto;gap:12px;align-items:center;padding:6px 0;font-size:14px}.ach-jauge{height:10px;border-radius:999px;background:var(--surf2);overflow:hidden}.ach-jauge i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--bleu),color-mix(in srgb,var(--bleu) 55%,var(--vert)))}
+.ach-m{display:flex;flex-direction:column;align-items:flex-end;text-align:right;flex:none}
+.ach-na{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:760px){.ach-l{flex-wrap:wrap;gap:8px 10px}.ach-l .fo-n{flex:1 1 calc(100% - 34px)}.ach-ech{margin-left:30px;flex:1}.ach-vir{flex-direction:column;align-items:stretch;bottom:calc(84px + env(safe-area-inset-bottom,0px))}.ach-bar{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.ach-bar .ach-jauge{grid-column:1 / -1;grid-row:2}.ach-n{flex-wrap:wrap}.ach-na{width:100%;justify-content:flex-start;padding-left:40px}}
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -5805,7 +5898,7 @@ function barreBas(base){
 const BASE = { inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
 function rendre(){
   document.getElementById('cr-ftel')?.remove();
-  const V = { accueil:vueAccueil, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
+  const V = { accueil:vueAccueil, achats:vueAchats, boiteMail:vueBoiteMail, messagerie:vueMessagerie, equipe:vueEquipe, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
   const base = BASE[route] || route, x = scrollX, defs = [...document.querySelectorAll('.pl-defile')].map(d => d.scrollLeft);
   document.getElementById('menu').innerHTML = menu(base);
   document.getElementById('contenu').innerHTML = `<div class="tete-tel"><span class="logo" style="padding:0"><i>OP</i><b>OP GESTION</b></span><div style="width:190px">${segMode()}</div></div>` + (V[route] && (!estGrise(route) || (typeof RETOUR !== 'undefined' && RETOUR)) ? V[route]() : CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? vueARefaire(route) : vueARefaire(premiereARefaire()));
@@ -7497,6 +7590,8 @@ function ptVuePaie(){
     return { k, tot, s25, s50, abs }; });
   return `<div class="carte pt-paie"><div class="pt-p pt-entete" aria-hidden="true"><span>Personne</span><span>Heures</span><span>Sup. 25 %</span><span>Sup. 50 %</span><span>Absences</span></div>
     ${R.map(o => `<div class="pt-p"><b>${esc(H_NOM(o.k))}</b><span>${ptH(o.tot)}</span><span class="${o.s25 ? 'fo-up' : 'gris'}">${o.s25 ? ptH(o.s25) : '—'}</span><span class="${o.s50 ? 'fo-up' : 'gris'}">${o.s50 ? ptH(o.s50) : '—'}</span><span>${o.abs ? o.abs + ' j' : '—'}</span></div>`).join('')}</div>
+    ${(() => { const N = typeof NDF !== 'undefined' ? NDF.filter(n => n.etat === 'validee') : [], par = {}; N.forEach(n => { par[n.qui] = (par[n.qui] || 0) + n.ttc; });
+      return N.length ? `<div class="carte pt-frais"><span class="fo-n"><b>Notes de frais à rembourser avec cette paie</b><span class="gris petit">${Object.entries(par).map(([k, v]) => esc(H_NOM(k)) + ' ' + eur(v)).join(' · ')} — remboursement de frais, hors salaire, inclus dans l’envoi.</span></span><button type="button" class="lien" data-ac="allernotes">Voir ›</button></div>` : ''; })()}
     <div class="actions"><button type="button" class="btn" data-pt="export">Envoyer au cabinet de paie (CSV)</button><button type="button" class="btn gris" data-pt="export">Feuilles de temps en PDF</button></div>
     <span class="gris petit">Heures supplémentaires calculées semaine par semaine (au-delà de 35 h, 25 % jusqu’à 43 h, 50 % au-delà), sauf accord d’entreprise. Les absences viennent de « Absences & congés ».</span>`;
 }
@@ -7534,6 +7629,633 @@ document.addEventListener('change', ev => {
   else p[c] = v || (c === 'fin' ? null : p[c]);
   p.corrige = 'Marc · ' + hNow(); rendre(); foGarder(() => ptFicheJour(p.qui, p.date));
 });
+
+/* ⟦module equipe⟧ */
+/* ══ ÉQUIPE ══
+   Les personnes de l'entreprise et ce que chacune peut faire. Règles de l'application (septembre 2026), gardées ici :
+   · un RÔLE est un nom, rien de plus : ce qui ouvre ou ferme, ce sont des CASES (voir, créer, modifier, supprimer par catégorie, plus
+     quelques droits à part) ; un PROFIL pré-coche les cases, on peut ensuite en changer une ;
+   · deux comptes ne portent jamais le même prénom + nom (les noms servent de clé : « Pour qui ? », bons de remise, mouvements) ;
+   · prénom ET nom obligatoires ; on ne retire pas le dernier administrateur ;
+   · les places viennent de l'abonnement.
+   Et ce qui manquait : la fiche d'une personne réunit ce que les autres catégories savent d'elle — sa semaine au planning, ses heures
+   pointées, son véhicule et le stock de son camion, ses congés, ses habilitations avec leur date de fin. Données fictives. */
+const DR_CATS = [['planif', 'Planning, tâches et absences'], ['inter', 'Interventions'], ['crm', 'Clients'], ['ventes', 'Devis, factures, contrats, encaissements'], ['compta', 'Comptabilité'],
+  ['stock', 'Fournisseurs, matériel, stock et boxes'], ['temps', 'Temps de travail et véhicules'], ['com', 'Boîte mail et messagerie'], ['achats', 'Achats'], ['admin', 'Équipe et réglages']];
+const DR_SP = [['tout', 'Voir les interventions de toute l’équipe', 'sinon, seulement les siennes'], ['prix', 'Voir les prix d’achat et les marges', ''], ['atelier', 'Se servir à l’atelier sans validation', 'sinon, ses sorties attendent le responsable'],
+  ['valstock', 'Valider les gestes de stock des autres', ''], ['commander', 'Envoyer des commandes aux fournisseurs', ''], ['corrpt', 'Corriger les pointages', 'les siens comme ceux des autres'], ['comptes', 'Créer des comptes', 'dans la limite des places']];
+const tousOui = () => Object.fromEntries(DR_CATS.map(([k]) => [k, { v:1, c:1, m:1, s:1 }]));
+const PROFILS = {
+  admin:{ nom:'Administrateur', cats:tousOui(), sp:Object.fromEntries(DR_SP.map(([k]) => [k, 1])) },
+  resp:{ nom:'Responsable', cats:{ ...tousOui(), admin:{ v:1, c:0, m:0, s:0 }, compta:{ v:1, c:0, m:0, s:0 } }, sp:{ tout:1, prix:1, atelier:1, valstock:1, commander:1, corrpt:1, comptes:0 } },
+  secr:{ nom:'Secrétariat', cats:{ planif:{ v:1, c:1, m:1, s:0 }, inter:{ v:1, c:1, m:1, s:0 }, crm:{ v:1, c:1, m:1, s:0 }, ventes:{ v:1, c:1, m:1, s:0 }, compta:{ v:1, c:0, m:0, s:0 }, stock:{ v:1, c:1, m:1, s:0 }, temps:{ v:1, c:0, m:0, s:0 }, com:{ v:1, c:1, m:1, s:0 }, achats:{ v:1, c:1, m:1, s:0 }, admin:{ v:0, c:0, m:0, s:0 } }, sp:{ tout:1, prix:1, atelier:1, valstock:0, commander:1, corrpt:0, comptes:0 } },
+  tech:{ nom:'Technicien', cats:{ planif:{ v:1, c:0, m:0, s:0 }, inter:{ v:1, c:0, m:1, s:0 }, crm:{ v:1, c:0, m:0, s:0 }, ventes:{ v:0, c:0, m:0, s:0 }, compta:{ v:0, c:0, m:0, s:0 }, stock:{ v:1, c:0, m:0, s:0 }, temps:{ v:1, c:1, m:0, s:0 }, com:{ v:1, c:1, m:0, s:0 }, achats:{ v:1, c:1, m:0, s:0 }, admin:{ v:0, c:0, m:0, s:0 } }, sp:{ tout:0, prix:0, atelier:0, valstock:0, commander:0, corrpt:0, comptes:0 } }
+};
+const copieProfil = k => JSON.parse(JSON.stringify({ profil:k, cats:PROFILS[k].cats, sp:PROFILS[k].sp }));
+let EQUIPE = [
+  { k:'marc', prenom:'Marc', nom:'Leblanc', role:'Gérant', mail:'marc@climservices17.fr', tel:'06 11 22 33 44', actif:true, droits:copieProfil('admin'), habil:[['Attestation de capacité de l’entreprise (fluides)', jour(820)]] },
+  { k:'julie', prenom:'Julie', nom:'Petit', role:'Secrétariat', mail:'julie@climservices17.fr', tel:'06 55 66 77 88', actif:true, droits:copieProfil('secr'), habil:[] },
+  { k:'sm', prenom:'Sophie', nom:'Martin', role:'Technicienne', mail:'sophie@climservices17.fr', tel:'06 12 12 12 12', actif:true, droits:copieProfil('tech'), habil:[['Aptitude fluides frigorigènes, catégorie I', null], ['Habilitation électrique BR', jour(210)]] },
+  { k:'kb', prenom:'Karim', nom:'Benali', role:'Chef d’équipe', mail:'karim@climservices17.fr', tel:'06 34 34 34 34', actif:true, droits:{ ...copieProfil('tech'), profil:'tech*', sp:{ ...PROFILS.tech.sp, atelier:1, valstock:1 } }, habil:[['Aptitude fluides frigorigènes, catégorie I', null], ['Habilitation électrique BR', jour(24)]] },
+  { k:'lr', prenom:'Léa', nom:'Roux', role:'Technicienne', mail:'lea@climservices17.fr', tel:'06 56 56 56 56', actif:true, droits:copieProfil('tech'), habil:[['Habilitation électrique B1V', jour(410)], ['Prévention du risque amiante, sous-section 4', jour(-9)]] },
+  { k:'tl', prenom:'Tom', nom:'Leroy', role:'Technicien', mail:'tom@climservices17.fr', tel:'06 78 78 78 78', actif:true, droits:copieProfil('tech'), habil:[['Habilitation électrique BR', jour(95)]] }
+];
+const EQ_PLACES = 8;
+let eqSel = null, eqFiltre = 'tous';
+const eqDe = k => EQUIPE.find(p => p.k === k);
+const eqNom = p => p.prenom + ' ' + p.nom;
+const nomNorm = s => prNorm(s).replace(/ /g, '');
+const eqHomonyme = (prenom, nom, sauf) => EQUIPE.find(p => p.k !== sauf && nomNorm(p.prenom + p.nom) === nomNorm(prenom + nom));
+const habEtat = d => d == null ? 'v' : tJours(d) < 0 ? 'r' : tJours(d) <= 60 ? 'o' : 'v';
+function eqResume(p){
+  const ints = INTS.filter(i => i.tech === p.k && i.d >= lundi(AUJ) && i.d <= ajoute(lundi(AUJ), 6) && i.st !== 'annulee'), v = typeof VEHICULES !== 'undefined' && VEHICULES.find(o => o.conducteur === p.k);
+  const heures = typeof ptJourMin === 'function' ? Array.from({ length:7 }, (_, i) => ajoute(lundi(AUJ), i)).reduce((s, d) => s + ptJourMin(p.k, d), 0) : 0;
+  const absEn = ABSENCES.find(a => a.tech === p.k && a.du <= AUJ && AUJ <= a.au), absPro = ABSENCES.filter(a => a.tech === p.k && a.du > AUJ).sort((x, y) => x.du.localeCompare(y.du))[0];
+  const hab = p.habil.filter(([, d]) => habEtat(d) !== 'v'), cp = typeof aSolde === 'function' && ['sm', 'kb', 'lr', 'tl'].includes(p.k) ? aSolde(p.k, 'Congé payé') : null;
+  return { ints, v, heures, absEn, absPro, hab, cp };
+}
+/* une habilitation qui expire, et une formation déjà posée avant sa fin : on le dit au lieu de crier */
+const habFormation = (k, d) => d && ABSENCES.find(a => a.tech === k && a.type === 'Formation' && a.du >= AUJ && a.du <= d);
+const absTexte = a => a.du <= AUJ ? `${a.type} jusqu’au ${jCourt(a.au)}` : a.du === a.au ? `${a.type} le ${jCourt(a.du)}` : `${a.type} du ${a.du.slice(0, 7) === a.au.slice(0, 7) ? jCourt(a.du).split(' ')[0] : jCourt(a.du)} au ${jCourt(a.au)}`;
+function vueEquipe(){
+  const actifs = EQUIPE.filter(p => p.actif), hab = EQUIPE.flatMap(p => p.habil.filter(([, d]) => habEtat(d) !== 'v').map(h => ({ p, h }))), inv = EQUIPE.filter(p => p.invite);
+  const L = EQUIPE.filter(p => eqFiltre === 'tous' || (eqFiltre === 'terrain' ? ['sm', 'kb', 'lr', 'tl'].includes(p.k) || p.terrain : eqFiltre === 'bureau' ? !(['sm', 'kb', 'lr', 'tl'].includes(p.k) || p.terrain) : !p.actif));
+  return `<div class="tete"><div><span class="surtitre">Administration</span><h1>Équipe</h1><span class="gris">Les personnes de l’entreprise, ce que chacune peut faire, et tout ce que l’application sait d’elle : sa semaine, ses heures, son véhicule, ses congés, ses habilitations.</span></div>
+      <div class="actions"><button type="button" class="btn" data-eq="inviter">＋ Inviter une personne</button></div></div>
+    <div class="kpis"><div class="kpi"><b>${actifs.length} / ${EQ_PLACES}</b><span>places utilisées</span></div>
+      <div class="kpi"><b>${['sm', 'kb', 'lr', 'tl'].length}</b><span>sur le terrain</span></div>
+      <div class="kpi"><b style="color:${hab.length ? 'var(--orange)' : 'inherit'}">${hab.length}</b><span>habilitation${hab.length > 1 ? 's' : ''} à renouveler</span></div>
+      <div class="kpi"><b>${inv.length}</b><span>invitation${inv.length > 1 ? 's' : ''} en attente</span></div></div>
+    ${hab.length ? `<div class="carte ve-urg"><h2 class="cmd-titre" style="margin:0 0 6px">À renouveler</h2>${hab.map(({ p, h }) => `<button type="button" class="ve-u" data-eq="fiche|${p.k}"><span class="st st-${habEtat(h[1]) === 'r' ? 'r' : 'o'}">${tJours(h[1]) < 0 ? 'Expirée' : tJours(h[1]) + ' j'}</span><span class="fo-n"><b>${esc(h[0])}</b><span class="gris petit">${esc(eqNom(p))} · ${tJours(h[1]) < 0 ? 'expirée le' : 'fin le'} ${dFr(h[1])}${habFormation(p.k, h[1]) ? ` · <b class="ve-vt">formation prévue le ${jCourt(habFormation(p.k, h[1]).du)}</b>` : ''}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}
+    <div class="seg" role="group" aria-label="Filtre" style="align-self:flex-start">${[['tous', 'Tout le monde'], ['terrain', 'Terrain'], ['bureau', 'Bureau'], ['off', 'Désactivés']].map(([k, l]) => `<button type="button" data-eq="filtre|${k}" aria-pressed="${eqFiltre === k}">${l}</button>`).join('')}</div>
+    <div class="bx-grille eq-grille">${L.map(p => { const r = eqResume(p), c = (H_GENS[p.k] || {}).c || '#5b6676';
+      return `<button type="button" class="carte bx-c eq-c${p.actif ? '' : ' eq-off'}" data-eq="fiche|${p.k}"><span class="bx-t"><span class="eq-av" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><span class="fo-n"><b>${esc(eqNom(p))}</b><span class="gris petit">${esc(p.role)}</span></span>${!p.actif ? '<span class="st st-g">Désactivé</span>' : p.invite ? '<span class="st st-b">Invité</span>' : p.droits.profil === 'admin' ? '<span class="st st-p">Admin</span>' : ''}</span>
+        <span class="eq-puces">${r.ints.length ? `<span>🗓 ${r.ints.length} interv. cette semaine</span>` : ''}${r.heures ? `<span${r.heures > 48 * 60 ? ' class="eq-rouge" title="Au-delà de 48 h dans la semaine (Code du travail, L3121-20)"' : ''}>⏱ ${ptH(r.heures)} pointées</span>` : ''}${r.v ? `<span>🚐 ${esc(r.v.plaque)}</span>` : ''}${r.absEn ? `<span class="eq-abs">🏖 ${esc(absTexte(r.absEn))}</span>` : r.absPro && tJours(r.absPro.du) <= 21 ? `<span>🏖 ${esc(absTexte(r.absPro))}</span>` : ''}${r.hab.length ? `<span class="eq-alerte">⚠️ ${r.hab.length} habilitation${r.hab.length > 1 ? 's' : ''}</span>` : ''}</span></button>`; }).join('')}</div>`;
+}
+function eqFiche(k){
+  const p = eqDe(k), r = eqResume(p), c = (H_GENS[k] || {}).c || '#5b6676', admin = p.droits.profil === 'admin', seulAdmin = admin && EQUIPE.filter(o => o.actif && o.droits.profil === 'admin').length === 1;
+  const cas = (cat, x) => `<input type="checkbox" data-eqd="${k}|${cat}|${x}" ${p.droits.cats[cat][x] ? 'checked' : ''} ${admin ? 'disabled' : ''} aria-label="${esc(DR_CATS.find(o => o[0] === cat)[1])} : ${{ v:'voir', c:'créer', m:'modifier', s:'supprimer' }[x]}">`;
+  foOuvrir(`<span class="surtitre">${esc(p.role)}${p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
+    <div class="ligne"><span>E-mail</span><b>${esc(p.mail)}</b></div><div class="ligne"><span>Téléphone</span><b>${esc(p.tel || '—')}</b></div>
+    <div class="groupe">Sa semaine</div>
+    <div class="fo-stats"><span><b>${r.ints.length}</b>interventions</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>pointées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
+    ${r.absEn || r.absPro ? `<div class="ve-e">🏖 ${r.absEn ? 'Absent : ' + esc(absTexte(r.absEn)) : 'Prochaine absence : ' + esc(absTexte(r.absPro))}${(r.absEn || r.absPro).motif ? ' · ' + esc((r.absEn || r.absPro).motif) : ''}</div>` : ''}
+    <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning">Voir au planning ›</button>' : ''}${k !== 'marc' ? `<button type="button" class="lien" data-ms="ecrire|${k}">Lui écrire ›</button>` : ''}<button type="button" class="lien" data-pt="pers|${k}">Ses heures ›</button>${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}</div>
+    <div class="groupe">Habilitations</div>
+    <div class="fo-bloc">${p.habil.map(([n, d], j) => `<div class="fo-r"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${d ? (tJours(d) < 0 ? 'expirée le ' : 'valable jusqu’au ') + dFr(d) : 'sans date de fin'}${habFormation(k, d) && habEtat(d) !== 'v' ? ' · formation prévue le ' + jCourt(habFormation(k, d).du) : ''}</span></span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouvelée</button>` : ''}</div>`).join('') || '<div class="gris petit">Aucune.</div>'}</div>
+    <button type="button" class="lien" data-eq="habajout|${k}">＋ Ajouter une habilitation</button>
+    <div class="groupe">Droits · ${admin ? 'administrateur : tous les droits' : 'profil ' + esc(PROFILS[p.droits.profil.replace('*', '')] ? PROFILS[p.droits.profil.replace('*', '')].nom : 'sur mesure') + (p.droits.profil.endsWith('*') ? ', ajusté' : '')}</div>
+    ${admin ? '' : `<label class="champ">Appliquer un profil<select data-eqprof="${k}"><option value="">Choisir…</option>${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}">${esc(o.nom)}</option>`).join('')}</select></label>`}
+    <div class="eq-droits"><div class="eq-dr eq-dr-t" aria-hidden="true"><span></span><span>Voir</span><span>Créer</span><span>Modif.</span><span>Suppr.</span></div>
+      ${DR_CATS.map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${cas(cat, x)}</label>`).join('')}</div>`).join('')}</div>
+    <div class="fo-bloc">${DR_SP.map(([sp, lib, aide]) => `<label class="fo-garder eq-sp"><input type="checkbox" data-eqs="${k}|${sp}" ${p.droits.sp[sp] ? 'checked' : ''} ${admin ? 'disabled' : ''}><span><b>${esc(lib)}</b>${aide ? `<span class="gris petit"> · ${esc(aide)}</span>` : ''}</span></label>`).join('')}</div>
+    <div class="actions">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : `<button type="button" class="btn gris" data-eq="mdp|${k}">Envoyer un lien de mot de passe</button>`}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
+    ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
+}
+function eqInviter(){
+  ouvrirPanneau(`<span class="surtitre">Équipe</span><h2>Inviter une personne</h2>
+    <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" autocomplete="off"></label><label class="champ">Nom<input id="eq-n" autocomplete="off"></label></div>
+    <div id="eq-homo" class="gris petit" aria-live="polite"></div>
+    <div class="deux-champs"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off"></label><label class="champ">Rôle (un simple nom)<input id="eq-r" placeholder="ex. Technicien, Apprentie" autocomplete="off"></label></div>
+    <label class="champ">Ses droits de départ<select id="eq-prof">${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}" ${pk === 'tech' ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
+    <label class="fo-garder"><input type="checkbox" id="eq-terrain" checked> Travaille sur le terrain (apparaît au planning, peut avoir un camion)</label>
+    <span class="gris petit">${EQUIPE.filter(p => p.actif).length} comptes sur ${EQ_PLACES} places. La personne reçoit un lien pour choisir son mot de passe ; personne d’autre ne le connaît.</span>
+    <div class="actions"><button type="button" class="btn" data-eq="inviterok">Envoyer l’invitation</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-eq]'); if (!b) return;
+  const [a, x, y] = b.dataset.eq.split('|');
+  if (a === 'filtre') { eqFiltre = x; return rendre(); }
+  if (a === 'fiche') return eqFiche(x);
+  if (a === 'inviter') return eqInviter();
+  if (a === 'planning') { fermerPanneau(); return aller('planning'); }
+  if (a === 'conges') { fermerPanneau(); if (typeof aOnglet !== 'undefined') aOnglet = 'soldes'; return aller('absences'); }
+  if (a === 'inviterok') { const pr = document.getElementById('eq-p').value.trim(), no = document.getElementById('eq-n').value.trim(), m = document.getElementById('eq-m').value.trim();
+    if (!pr || !no) return toast('Prénom ET nom : les noms servent à savoir qui a reçu quoi.');
+    const h = eqHomonyme(pr, no); if (h) { document.getElementById('eq-homo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer (ex. ${esc(pr)} ${esc(no)} B.).`; return; }
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide pour envoyer le lien.');
+    if (EQUIPE.filter(p => p.actif).length >= EQ_PLACES) return toast('Toutes les places de l’abonnement sont prises.');
+    const k = 'u' + Date.now().toString(36), prof = document.getElementById('eq-prof').value;
+    EQUIPE.push({ k, prenom:pr, nom:no, role:document.getElementById('eq-r').value.trim() || PROFILS[prof].nom, mail:m, tel:'', actif:true, invite:true, terrain:document.getElementById('eq-terrain').checked, droits:copieProfil(prof), habil:[] });
+    H_GENS[k] = { nom:pr + ' ' + no, role:PROFILS[prof].nom, c:'#6b7280' };
+    fermerPanneau(); rendre(); return toast(`Invitation envoyée à ${esc(m)}.`, { lib:'Régler ses droits', fn:() => eqFiche(k) }); }
+  if (a === 'actif') { const p = eqDe(x); p.actif = !p.actif; rendre(); foGarder(() => eqFiche(x)); return toast(p.actif ? `${esc(eqNom(p))} est réactivé.` : `${esc(eqNom(p))} est désactivé : il ne peut plus se connecter, rien de ce qu’il a fait n’est effacé.`); }
+  if (a === 'mdp' || a === 'relancer') return toast(a === 'mdp' ? `Lien envoyé à ${esc(eqDe(x).mail)} : la personne choisit elle-même son nouveau mot de passe.` : `Invitation renvoyée à ${esc(eqDe(x).mail)}.`);
+  if (a === 'renouv') { const p = eqDe(x); p.habil[+y][1] = ajoute(AUJ, 3 * 365); rendre(); foGarder(() => eqFiche(x)); return toast('Habilitation renouvelée pour trois ans.'); }
+  if (a === 'habajout') { const p = eqDe(x); ouvrirPanneau(`<span class="surtitre">${esc(eqNom(p))}</span><h2>Ajouter une habilitation</h2><label class="champ">Laquelle<input id="eq-hn" list="eq-hl" autocomplete="off"><datalist id="eq-hl">${['Habilitation électrique BR', 'Habilitation électrique B1V', 'Aptitude fluides frigorigènes, catégorie I', 'Prévention du risque amiante, sous-section 4', 'Travail en hauteur', 'CACES R486 (nacelle)', 'Certibiocide'].map(o => `<option value="${o}">`).join('')}</datalist></label>
+      <label class="champ">Valable jusqu’au<input type="date" id="eq-hd" value="${ajoute(AUJ, 3 * 365)}"></label><div class="actions"><button type="button" class="btn" data-eq="habok|${x}">Ajouter</button><button type="button" class="btn gris" data-eq="fiche|${x}">Retour</button></div>`); return; }
+  if (a === 'habok') { const n = document.getElementById('eq-hn').value.trim(); if (!n) return toast('Donne le nom de l’habilitation.'); eqDe(x).habil.push([n, document.getElementById('eq-hd').value || null]); rendre(); return eqFiche(x); }
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.matches('[data-eqd]')) { const [k, cat, x] = t.dataset.eqd.split('|'), p = eqDe(k); p.droits.cats[cat][x] = t.checked ? 1 : 0;
+    if (x === 'v' && !t.checked) Object.assign(p.droits.cats[cat], { c:0, m:0, s:0 });   // ne pas voir une catégorie, c'est ne rien y faire
+    if (x !== 'v' && t.checked) p.droits.cats[cat].v = 1;
+    if (!p.droits.profil.endsWith('*')) p.droits.profil += '*'; rendre(); return foGarder(() => eqFiche(k)); }
+  if (t.matches('[data-eqs]')) { const [k, sp] = t.dataset.eqs.split('|'), p = eqDe(k); p.droits.sp[sp] = t.checked ? 1 : 0; if (!p.droits.profil.endsWith('*')) p.droits.profil += '*'; rendre(); return foGarder(() => eqFiche(k)); }
+  if (t.matches('[data-eqprof]') && t.value) { const p = eqDe(t.dataset.eqprof); p.droits = copieProfil(t.value); rendre(); foGarder(() => eqFiche(p.k)); return toast(`Profil « ${PROFILS[t.value].nom} » appliqué : toutes ses cases sont posées.`); }
+});
+document.addEventListener('input', ev => {
+  if (!ev.target.matches('#eq-p,#eq-n')) return;
+  const z = document.getElementById('eq-homo'), h = eqHomonyme(document.getElementById('eq-p').value, document.getElementById('eq-n').value);
+  if (z) z.innerHTML = h ? `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer.` : '';
+});
+
+/* ⟦module messagerie⟧ */
+/* ══ MESSAGERIE ══
+   La conversation de l'équipe, rangée comme on travaille : le fil de toute l'équipe, des groupes (Terrain, Bureau…), les messages
+   privés, et un fil par intervention (photos, remarques du technicien, réponses du bureau) qui s'ouvre aussi depuis l'intervention.
+   Ce qui la rend utile plutôt que bavarde :
+   · on sait, avant d'écrire, si la personne est disponible : en intervention (chez qui, jusqu'à quand), absente, en congé ;
+   · on joint une intervention ou une commande : le message porte une carte qui l'ouvre ;
+   · un message devient une tâche en un geste (pour qui, quand) ;
+   · OP GESTION écrit lui-même ce qui concerne quelqu'un : sa nouvelle intervention du jour, une commande arrivée, une demande à valider ;
+   · @Prénom prévient la personne, un groupe se met en sourdine, un message s'épingle.
+   Règles de l'application gardées : Général / privé / groupes, mentions, message automatique d'une nouvelle intervention du jour.
+   Données fictives. */
+const MS_MOI = 'marc';
+const MS_COLLEGUES = ['marc', 'julie', 'sm', 'kb', 'lr', 'tl'];
+let MS_CONVS = [
+  { id:'gen', type:'general', nom:'Toute l’équipe', membres:[...MS_COLLEGUES] },
+  { id:'terrain', type:'groupe', nom:'Terrain', membres:['marc', 'sm', 'kb', 'lr', 'tl'], creePar:'marc' },
+  { id:'bureau', type:'groupe', nom:'Bureau', membres:['marc', 'julie'], creePar:'marc' },
+  { id:'p-kb', type:'prive', membres:['marc', 'kb'] }, { id:'p-julie', type:'prive', membres:['marc', 'julie'] },
+  { id:'p-sm', type:'prive', membres:['marc', 'sm'] }, { id:'p-tl', type:'prive', membres:['marc', 'tl'] },
+  { id:'f-i1', type:'inter', inter:'i1', membres:['marc', 'julie', 'sm'] }, { id:'f-i25', type:'inter', inter:'i25', membres:['marc', 'julie', 'kb'] }
+];
+const msM = (conv, d, h, de, txt, x = {}) => ({ id:'m' + (msM.n = (msM.n || 0) + 1), conv, d, h, de, txt, lu:x.lu || MS_COLLEGUES.slice(), ...x });
+let MSGS = [
+  msM('gen', jour(-1), '08:02', 'julie', 'Bonjour à tous ! Le client du Camping Les Pins a appelé : il sera sur place à partir de 13 h aujourd’hui, pas avant.'),
+  msM('gen', jour(-1), '12:40', 'kb', 'Quelqu’un a une bouteille de R32 dans son camion ? Il m’en manque une pour cet après-midi.'),
+  msM('gen', jour(-1), '12:44', 'tl', '@Karim j’en ai deux, je te la dépose à 13 h 30 au dépôt. Je la sors de mon stock tout de suite.'),
+  msM('gen', jour(-1), '12:45', 'kb', 'Top, merci Tom 👍'),
+  msM('gen', AUJ, '07:30', 'auto', 'Astreinte de ce week-end : Karim Benali, 06 34 34 34 34.', { epingle:true }),
+  msM('gen', AUJ, '08:15', 'marc', 'Merci à tous pour la semaine. Pensez à vérifier vos heures avant lundi midi, je valide la paie lundi après-midi.', { lu:['marc', 'julie', 'sm'] }),
+  msM('terrain', jour(-1), '17:10', 'sm', 'Groupe extérieur du Restaurant Le Vieux Port : le support est rouillé, il faudra le changer. Je mets la photo.', { photo:'Support du groupe extérieur' }),
+  msM('terrain', jour(-1), '17:25', 'marc', 'Bien vu Sophie. On le chiffre lundi, j’appelle le client.'),
+  msM('terrain', AUJ, '07:05', 'lr', 'Bon week-end à tous, je reprends mercredi 🙂'),
+  msM('bureau', jour(-1), '16:05', 'julie', 'La commande de Chauffage Distribution Atlantique est arrivée, tout est rangé à l’atelier.', { carte:{ t:'cmd', id:'c36' } }),
+  msM('bureau', AUJ, '09:10', 'julie', 'Karim demande ses congés du 23 au 27 novembre, c’est dans « À valider » des absences. Personne d’autre n’est absent cette semaine-là.', { carte:{ t:'abs' }, lu:['julie'] }),
+  msM('p-kb', AUJ, '07:00', 'auto', 'Nouvelle intervention pour toi aujourd’hui.', { carte:{ t:'inter', id:'i4' } }),
+  msM('p-kb', AUJ, '08:20', 'kb', 'Je suis aux Mimosas, la récupération du fluide prend plus longtemps que prévu : la vanne est grippée. J’aurai une heure de retard.', { lu:['kb'] }),
+  msM('p-kb', AUJ, '08:21', 'kb', 'Tu peux prévenir le cabinet Martin pour 15 h ?', { lu:['kb'] }),
+  msM('p-julie', jour(-1), '18:30', 'julie', 'J’ai relancé la facture de la copropriété, ils paient la semaine prochaine.'),
+  msM('p-sm', jour(-1), '18:02', 'sm', 'J’ai posé une demande pour vendredi matin (rendez-vous médical). Je peux décaler mon intervention si besoin.', { carte:{ t:'abs' } }),
+  msM('p-tl', AUJ, '07:52', 'tl', 'Contrôle d’étanchéité fait chez Mme Roux, rien à signaler. Je pars vers le camping.'),
+  msM('f-i1', AUJ, '08:46', 'sm', 'Arrivée sur place. Le client signale une odeur de brûlé au démarrage.'),
+  msM('f-i1', AUJ, '09:20', 'sm', 'Carte électronique de l’unité intérieure grillée. Photo de la référence.', { photo:'Référence de la carte électronique', lu:['sm', 'julie'] }),
+  msM('f-i1', AUJ, '09:24', 'sm', '@Julie tu peux voir si un fournisseur l’a en stock pour lundi ?', { lu:['sm'] }),
+  msM('f-i25', jour(-1), '11:55', 'kb', 'Les 6 cassettes sont nettoyées, filtres changés sur 4. Deux filtres à commander.', { photo:'Filtres usés' }),
+  msM('f-i25', jour(-1), '14:10', 'julie', 'Filtres ajoutés à la prochaine commande Daikin.')
+];
+let msConv = null, msCherche = '', msBrouillon = {}, msMuets = new Set(), msActions = null, msJoindre = false, msDefiler = false;
+const msDe = id => MS_CONVS.find(c => c.id === id);
+const msMsgs = id => MSGS.filter(m => m.conv === id);
+const msNonLus = id => msMsgs(id).filter(m => m.de !== MS_MOI && !m.lu.includes(MS_MOI)).length;
+const msPrenom = k => (H_GENS[k] || {}).nom ? H_GENS[k].nom.split(' ')[0] : k;
+const msAutre = c => c.membres.find(k => k !== MS_MOI);
+const msNom = c => c.type === 'prive' ? H_NOM(msAutre(c)) : c.type === 'inter' ? (INTS.find(i => i.id === c.inter) || {}).titre || 'Intervention' : c.nom;
+const msSous = c => { if (c.type !== 'inter') return ''; const i = INTS.find(o => o.id === c.inter); return i ? CLIENTS[i.cli].nom + ' · ' + tPrevue({ d:i.d, h:i.h }) : ''; };
+/* où en est la personne, en ce moment : c'est ce qu'on veut savoir avant d'écrire à un technicien */
+function msDispo(k){
+  const a = ABSENCES.find(o => o.tech === k && o.du <= AUJ && AUJ <= o.au); if (a) return { c:'violet', t:a.type + ' jusqu’au ' + jCourt(a.au) };
+  if (!['sm', 'kb', 'lr', 'tl'].includes(k)) return { c:'vert', t:'Au bureau' };
+  const L = INTS.filter(i => i.tech === k && i.d === AUJ && i.st !== 'annulee').sort((x, y) => x.h.localeCompare(y.h));
+  const en = L.find(i => hmin(i.h) <= MAINT_MIN && MAINT_MIN < hmin(i.h) + i.dur) || L.find(i => i.st === 'encours' || i.st === 'retard');
+  if (en) return { c:'orange', t:`En intervention chez ${CLIENTS[en.cli].nom}${en.st === 'retard' ? ', en retard' : ' jusqu’à ' + hm(hmin(en.h) + en.dur)}` };
+  const pro = L.find(i => hmin(i.h) > MAINT_MIN); return pro ? { c:'vert', t:`Libre · prochaine intervention à ${pro.h.replace(':', ' h ')}` } : { c:'vert', t:'Libre aujourd’hui' };
+}
+const msAv = c => c.type === 'prive' ? hAv(msAutre(c)) : `<span class="ms-ic ms-${c.type}" aria-hidden="true">${{ general:'👥', groupe:'#', inter:'🛠' }[c.type]}</span>`;
+const msQuand = m => m.d === AUJ ? m.h.replace(':', ' h ') : m.d === jour(-1) ? 'Hier' : jCourt(m.d);
+const msTexte = t => esc(t).replace(/@([A-ZÉÈ][a-zéèëï]+)/g, '<b class="ms-ment">@$1</b>');
+function msCarte(c){
+  if (c.t === 'inter') { const i = INTS.find(o => o.id === c.id); if (!i) return ''; return `<button type="button" class="ms-carte" data-tvoir="inter|${i.id}"><span class="ms-ct">Intervention · ${esc(tPrevue({ d:i.d, h:i.h }))}</span><b>${esc(i.titre)}</b><span class="gris petit">${esc(CLIENTS[i.cli].nom)}${i.tech ? ' · ' + esc(H_NOM(i.tech)) : ''}</span></button>`; }
+  if (c.t === 'cmd') { const o = COMMANDES.find(x => x.id === c.id); if (!o) return ''; return `<button type="button" class="ms-carte" data-ms="cmd|${o.id}"><span class="ms-ct">Commande · ${esc(o.num)}</span><b>${esc(o.four)}</b><span class="gris petit">${o.lignes.length} ligne${o.lignes.length > 1 ? 's' : ''} · ${o.recue ? 'reçue le ' + jCourt(o.recue) : 'livraison prévue le ' + jCourt(o.prevue || AUJ)}</span></button>`; }
+  if (c.t === 'mail') return typeof mlCarte === 'function' ? mlCarte(c.id) : '';
+  if (c.t === 'abs') { const n = typeof DEMANDES_ABS !== 'undefined' ? DEMANDES_ABS.filter(a => (a.etat || 'attente') === 'attente').length : 0; return `<button type="button" class="ms-carte" data-ms="abs"><span class="ms-ct">Absences</span><b>${n} demande${n > 1 ? 's' : ''} à valider</b><span class="gris petit">Ouvrir « À valider » ›</span></button>`; }
+  return '';
+}
+function msListe(){
+  const q = prNorm(msCherche), L = MS_CONVS.filter(c => !q || prNorm(msNom(c) + ' ' + msSous(c)).includes(q) || msMsgs(c.id).some(m => prNorm(m.txt).includes(q)));
+  const dernier = c => msMsgs(c.id).at(-1) || { d:'', h:'' }, tri = (a, b) => (dernier(b).d + dernier(b).h).localeCompare(dernier(a).d + dernier(a).h);
+  const ligne = c => { const m = dernier(c), n = msNonLus(c.id), mu = msMuets.has(c.id), dis = c.type === 'prive' ? msDispo(msAutre(c)) : null;
+    return `<button type="button" class="ms-l${msConv === c.id ? ' on' : ''}" data-ms="conv|${c.id}" ${msConv === c.id ? 'aria-current="true"' : ''}>${msAv(c)}<span class="ms-lc"><span class="ms-l1"><b>${esc(msNom(c))}</b><span class="gris petit">${m.txt ? msQuand(m) : ''}</span></span>
+      <span class="ms-l2"><span class="gris petit ms-apercu">${dis ? `<i class="ms-pt ms-${dis.c}" aria-hidden="true"></i>` : ''}${m.txt ? esc((m.de === MS_MOI ? 'Toi : ' : c.type !== 'prive' && m.de !== 'auto' ? msPrenom(m.de) + ' : ' : '') + (m.photo ? '📷 ' : '') + m.txt) : esc(msSous(c))}</span>${mu ? '<span class="ms-muet" title="En sourdine">🔕</span>' : ''}${n ? `<span class="ms-nb${mu ? ' muet' : ''}" aria-label="${n} non lu${n > 1 ? 's' : ''}">${n}</span>` : ''}</span></span></button>`; };
+  const grp = (t, arr) => arr.length ? `<div class="ms-grp">${t}</div>${arr.sort(tri).map(ligne).join('')}` : '';
+  return `<div class="ms-liste"><div class="ms-cherche"><input type="search" placeholder="Rechercher une personne, un message…" value="${esc(msCherche)}" data-mscherche="1" aria-label="Rechercher dans la messagerie"></div>
+    <div class="ms-defile">${grp('Équipe et groupes', L.filter(c => c.type === 'general' || c.type === 'groupe'))}${grp('Interventions', L.filter(c => c.type === 'inter'))}${grp('Messages privés', L.filter(c => c.type === 'prive'))}${L.length ? '' : '<p class="gris petit" style="padding:12px">Rien ne correspond.</p>'}</div>
+    <div class="ms-pied"><button type="button" class="btn gris petit" data-ms="nouveau">✎ Nouveau message</button><button type="button" class="btn gris petit" data-ms="groupe">＋ Groupe</button></div></div>`;
+}
+function msFil(){
+  const c = msDe(msConv); if (!c) return `<div class="ms-fil ms-vide"><span class="gris">Choisis une conversation à gauche.</span></div>`;
+  const L = msMsgs(c.id), ep = L.filter(m => m.epingle).at(-1), dis = c.type === 'prive' ? msDispo(msAutre(c)) : null; let jourAv = '', deAv = '';
+  const corps = L.map(m => { let h = ''; if (m.d !== jourAv) { h += `<div class="ms-jour"><span>${m.d === AUJ ? 'Aujourd’hui' : m.d === jour(-1) ? 'Hier' : jlong(m.d)}</span></div>`; jourAv = m.d; deAv = ''; }
+    const moi = m.de === MS_MOI, auto = m.de === 'auto', suite = deAv === m.de; deAv = m.de;
+    const vus = c.type !== 'prive' && moi ? m.lu.filter(k => k !== MS_MOI).length : null;
+    h += `<div class="ms-m${moi ? ' moi' : ''}${auto ? ' auto' : ''}${suite ? ' suite' : ''}" data-msid="${m.id}">${!moi && !suite ? hAv(auto ? 'auto' : m.de) : '<span class="ms-esp"></span>'}<div class="ms-b">${!moi && !suite && c.type !== 'prive' ? `<span class="ms-qui">${esc(auto ? 'OP GESTION' : H_NOM(m.de))}</span>` : ''}
+      ${m.photo ? `<span class="ms-photo" role="img" aria-label="Photo : ${esc(m.photo)}"><span>📷 ${esc(m.photo)}</span></span>` : ''}<span class="ms-t">${msTexte(m.txt)}</span>${m.carte ? msCarte(m.carte) : ''}
+      <span class="ms-h">${m.h.replace(':', ' h ')}${vus !== null ? ` · vu par ${vus}/${c.membres.length - 1}` : ''}${m.tache ? ' · ✓ tâche créée' : ''}</span></div>
+      ${auto ? '' : `<button type="button" class="ms-plus" data-ms="actions|${m.id}" aria-label="Actions sur ce message">⋯</button>`}</div>`;
+    if (msActions === m.id) h += `<div class="ms-acts${moi ? ' moi' : ''}"><button type="button" class="btn gris petit" data-ms="tache|${m.id}">✓ En faire une tâche</button><button type="button" class="btn gris petit" data-ms="epingle|${m.id}">${m.epingle ? 'Désépingler' : '📌 Épingler'}</button><button type="button" class="btn gris petit" data-ms="repondre|${m.id}">Répondre</button></div>`;
+    return h; }).join('');
+  const i = c.type === 'inter' && INTS.find(o => o.id === c.inter);
+  return `<div class="ms-fil"><div class="ms-ft"><button type="button" class="ms-retour" data-ms="liste" aria-label="Revenir aux conversations">‹</button>${msAv(c)}<span class="ms-lc"><b>${esc(msNom(c))}</b>
+      <span class="gris petit">${dis ? `<i class="ms-pt ms-${dis.c}" aria-hidden="true"></i>${esc(dis.t)}` : c.type === 'inter' ? esc(msSous(c)) : c.membres.length + ' personnes' + (msMuets.has(c.id) ? ' · en sourdine' : '')}</span></span>
+      <span class="ms-fta">${i ? `<button type="button" class="btn gris petit" data-tvoir="inter|${i.id}"><span class="ms-lg">Ouvrir l’intervention</span><span class="ms-cr">Ouvrir</span></button>` : ''}${c.type === 'prive' && ['sm', 'kb', 'lr', 'tl'].includes(msAutre(c)) ? `<button type="button" class="btn gris petit" data-ms="planning"><span class="ms-lg">Son planning</span><span class="ms-cr">Planning</span></button>` : ''}${c.type !== 'prive' ? `<button type="button" class="btn gris petit" data-ms="infos|${c.id}">${c.type === 'groupe' ? 'Membres' : 'Infos'}</button>` : ''}</span></div>
+    ${ep ? `<button type="button" class="ms-ep" data-ms="voirep|${ep.id}">📌 <span><b>Épinglé</b> · ${esc(ep.txt)}</span></button>` : ''}
+    <div class="ms-defile ms-msgs" id="ms-msgs" data-conv="${c.id}">${corps || '<p class="gris petit" style="text-align:center;margin-top:30px">Aucun message pour l’instant. Écris le premier.</p>'}</div>
+    <div class="ms-comp">${msJoindre ? `<div class="ms-joindre"><button type="button" class="btn gris petit" data-ms="jphoto">📷 Photo</button><button type="button" class="btn gris petit" data-ms="jinter">🛠 Une intervention</button><button type="button" class="btn gris petit" data-ms="jcmd">📦 Une commande</button></div>` : ''}
+      <div id="ms-ment" class="ms-ment-l" hidden></div>
+      <div class="ms-saisie"><button type="button" class="ms-btn" data-ms="joindre" aria-label="Joindre" aria-expanded="${msJoindre}">＋</button><textarea id="ms-txt" rows="1" placeholder="${c.type === 'prive' ? 'Écrire à ' + esc(msPrenom(msAutre(c))) : 'Écrire au groupe · @ pour prévenir quelqu’un'}…" aria-label="Message">${esc(msBrouillon[c.id] || '')}</textarea><button type="button" class="ms-btn ms-env" data-ms="envoyer" aria-label="Envoyer">↑</button></div></div></div>`;
+}
+function vueMessagerie(){
+  const nl = MS_CONVS.reduce((s, c) => s + (msMuets.has(c.id) ? 0 : msNonLus(c.id)), 0);
+  const z = document.getElementById('ms-msgs'), garde = z && msConv === z.dataset.conv ? z.scrollTop : null;   // un geste dans le fil ne le ramène pas en haut
+  setTimeout(() => { if (msDefiler) return msBas(); const n = document.getElementById('ms-msgs'); if (n && garde != null) n.scrollTop = garde; }, 0);
+  return `<div class="tete ms-tete${msConv ? ' ms-dans-fil' : ''}"><div><span class="surtitre">Communication</span><h1>Messagerie</h1><span class="gris">${nl ? nl + ' message' + (nl > 1 ? 's' : '') + ' non lu' + (nl > 1 ? 's' : '') + '. ' : ''}L’équipe, les groupes, les messages privés et un fil par intervention. On voit avant d’écrire si la personne est en intervention ou absente.</span></div></div>
+    <div class="ms-app${msConv ? ' ouvert' : ''}">${msListe()}${msFil()}</div>`;
+}
+function msBas(){ msDefiler = false; const z = document.getElementById('ms-msgs'); if (!z) return; if (innerWidth <= 760) scrollTo(0, document.documentElement.scrollHeight); else z.scrollTop = z.scrollHeight; }
+function msOuvrir(id){ msConv = id; msActions = null; msJoindre = false; msMsgs(id).forEach(m => { if (!m.lu.includes(MS_MOI)) m.lu.push(MS_MOI); }); msDefiler = true; if (route !== 'messagerie') aller('messagerie'); else rendre(); }
+function msEnvoyer(x = {}){
+  const t = document.getElementById('ms-txt'), txt = (x.txt != null ? x.txt : t ? t.value : '').trim(); if (!txt && !x.photo && !x.carte) return;
+  const c = msDe(msConv); MSGS.push(msM(msConv, AUJ, hm(MAINT_MIN), MS_MOI, txt, { lu:[MS_MOI], ...x }));
+  msBrouillon[msConv] = ''; msJoindre = false; msActions = null; msDefiler = true;
+  const ments = [...txt.matchAll(/@([A-ZÉÈ][a-zéèëï]+)/g)].map(o => o[1]), qui = c.membres.filter(k => k !== MS_MOI && ments.includes(msPrenom(k)));
+  rendre(); if (qui.length) toast(`${qui.map(msPrenom).join(' et ')} ${qui.length > 1 ? 'sont prévenus' : 'est prévenu'} par une notification.`);
+  const ab = c.type === 'prive' && ABSENCES.find(o => o.tech === msAutre(c) && o.du <= AUJ && AUJ <= o.au); if (ab) toast(`${msPrenom(msAutre(c))} est en ${ab.type.toLowerCase()} jusqu’au ${jCourt(ab.au)} : il le lira à son retour.`);
+  setTimeout(() => { const z = document.getElementById('ms-txt'); if (z && innerWidth > 760) z.focus(); }, 30);
+}
+function msChoix(titre, items){
+  ouvrirPanneau(`<span class="surtitre">Joindre</span><h2>${titre}</h2><div class="fo-bloc">${items.join('') || '<span class="gris">Rien à joindre.</span>'}</div><div class="actions"><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+function msNouveau(groupe){
+  const gens = MS_COLLEGUES.filter(k => k !== MS_MOI);
+  ouvrirPanneau(`<span class="surtitre">Messagerie</span><h2>${groupe ? 'Nouveau groupe' : 'Nouveau message'}</h2>
+    ${groupe ? `<label class="champ">Nom du groupe<input id="ms-gn" placeholder="ex. Chantier Mimosas" autocomplete="off"></label><div class="groupe">Membres</div>
+      <div class="fo-bloc">${gens.map(k => `<label class="fo-garder"><input type="checkbox" data-msg="${k}">${hAv(k)}<span>${esc(H_NOM(k))}<span class="gris petit"> · ${esc(msDispo(k).t)}</span></span></label>`).join('')}</div>
+      <div class="actions"><button type="button" class="btn" data-ms="groupeok">Créer le groupe</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`
+    : `<div class="fo-bloc">${gens.map(k => { const d = msDispo(k); return `<button type="button" class="ve-u" data-ms="ecrire|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`}`);
+}
+function msInfos(id){
+  const c = msDe(id), gens = MS_COLLEGUES.filter(k => !c.membres.includes(k));
+  ouvrirPanneau(`<span class="surtitre">${c.type === 'groupe' ? 'Groupe' : c.type === 'general' ? 'Toute l’équipe' : 'Fil d’intervention'}</span><h2>${esc(msNom(c))}</h2>
+    <label class="fo-garder"><input type="checkbox" data-msmuet="${c.id}" ${msMuets.has(c.id) ? 'checked' : ''}> En sourdine : pas de notification, sauf si on te mentionne</label>
+    <div class="groupe">${c.membres.length} membres</div>
+    <div class="fo-bloc">${c.membres.map(k => { const d = msDispo(k); return `<div class="fo-r">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}${k === MS_MOI ? ' (toi)' : ''}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span></span>${c.type === 'groupe' && k !== MS_MOI ? `<button type="button" class="btn gris petit" data-ms="retirer|${c.id}|${k}">Retirer</button>` : ''}</div>`; }).join('')}</div>
+    ${c.type === 'groupe' && gens.length ? `<div class="groupe">Ajouter</div><div class="cmd-liens">${gens.map(k => `<button type="button" class="lien" data-ms="ajouter|${c.id}|${k}">＋ ${esc(H_NOM(k))}</button>`).join('')}</div>` : ''}
+    ${c.type === 'general' ? '<span class="gris petit">Tous les comptes actifs de l’entreprise y sont, automatiquement.</span>' : ''}
+    ${c.type === 'groupe' ? `<div class="actions"><button type="button" class="btn gris" data-ms="supprgroupe|${c.id}">Supprimer le groupe</button></div>` : ''}`);
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-ms]'); if (!b) return;
+  const [a, x, y] = b.dataset.ms.split('|'), c = msDe(msConv);
+  if (a === 'conv') return msOuvrir(x);
+  if (a === 'liste') { msConv = null; rendre(); return scrollTo(0, 0); }
+  if (a === 'envoyer') return msEnvoyer();
+  if (a === 'joindre') { msJoindre = !msJoindre; const t = document.getElementById('ms-txt'); if (t) msBrouillon[msConv] = t.value; return rendre(); }
+  if (a === 'jphoto') return msEnvoyer({ txt:(document.getElementById('ms-txt') || {}).value || '', photo:'Photo prise sur place' });
+  if (a === 'jinter') { const t = document.getElementById('ms-txt'); if (t) msBrouillon[msConv] = t.value; return msChoix('Une intervention', INTS.filter(i => i.d >= jour(-2) && i.d <= jour(7) && i.st !== 'annulee').sort((p, q) => (p.d + p.h).localeCompare(q.d + q.h)).slice(0, 14).map(i => `<button type="button" class="ve-u" data-ms="jintok|${i.id}"><span class="fo-n"><b>${esc(i.titre)}</b><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${esc(tPrevue({ d:i.d, h:i.h }))}${i.tech ? ' · ' + esc(H_NOM(i.tech)) : ' · à planifier'}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`)); }
+  if (a === 'jcmd') { const t = document.getElementById('ms-txt'); if (t) msBrouillon[msConv] = t.value; return msChoix('Une commande', COMMANDES.slice().reverse().map(o => `<button type="button" class="ve-u" data-ms="jcmdok|${o.id}"><span class="fo-n"><b>${esc(o.num)} · ${esc(o.four)}</b><span class="gris petit">${o.recue ? 'reçue le ' + jCourt(o.recue) : o.prevue ? 'prévue le ' + jCourt(o.prevue) : 'en préparation'}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`)); }
+  if (a === 'jintok' || a === 'jcmdok') { fermerPanneau(); return msEnvoyer({ txt:msBrouillon[msConv] || '', carte:{ t:a === 'jintok' ? 'inter' : 'cmd', id:x } }); }
+  if (a === 'actions') { msActions = msActions === x ? null : x; const t = document.getElementById('ms-txt'); if (t) msBrouillon[msConv] = t.value; rendre(); return; }
+  if (a === 'epingle') { const m = MSGS.find(o => o.id === x); if (!m.epingle) msMsgs(m.conv).forEach(o => o.epingle = false); m.epingle = !m.epingle; msActions = null; rendre(); return toast(m.epingle ? 'Message épinglé en haut de la conversation.' : 'Message désépinglé.'); }
+  if (a === 'voirep') { const z = document.querySelector(`[data-msid="${x}"]`); if (z) { z.scrollIntoView({ block:'center', behavior:'smooth' }); z.classList.add('ms-flash'); setTimeout(() => z.classList.remove('ms-flash'), 1400); } return; }
+  if (a === 'repondre') { const m = MSGS.find(o => o.id === x); msActions = null; msBrouillon[msConv] = (m.de !== MS_MOI && m.de !== 'auto' ? '@' + msPrenom(m.de) + ' ' : '') + '« ' + m.txt.slice(0, 50) + (m.txt.length > 50 ? '…' : '') + ' » '; rendre(); setTimeout(() => { const t = document.getElementById('ms-txt'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 30); return; }
+  if (a === 'tache') { const m = MSGS.find(o => o.id === x); msActions = null;
+    ouvrirPanneau(`<span class="surtitre">En faire une tâche</span><h2>${esc(m.txt.slice(0, 80))}${m.txt.length > 80 ? '…' : ''}</h2>
+      <label class="champ">Ce qu’il faut faire<input id="ms-tt" value="${esc(m.txt.slice(0, 120))}"></label>
+      <div class="deux-champs"><label class="champ">Pour qui<select id="ms-tq">${MS_COLLEGUES.map(k => `<option value="${k}" ${k === MS_MOI ? 'selected' : ''}>${esc(H_NOM(k))}</option>`).join('')}</select></label><label class="champ">Pour quand<input type="date" id="ms-td" value="${ajoute(AUJ, 2)}"></label></div>
+      <div class="actions"><button type="button" class="btn" data-ms="tacheok|${m.id}">Créer la tâche</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); return; }
+  if (a === 'tacheok') { const m = MSGS.find(o => o.id === x), t = document.getElementById('ms-tt').value.trim(), q = document.getElementById('ms-tq').value, d = document.getElementById('ms-td').value; if (!t) return toast('Écris ce qu’il faut faire.');
+    const cv = msDe(m.conv), i = cv.type === 'inter' ? INTS.find(o => o.id === cv.inter) : m.carte && m.carte.t === 'inter' ? INTS.find(o => o.id === m.carte.id) : null;
+    TACHES.push({ id:'t' + Date.now(), t, qui:q, d, h:null, creePar:MS_MOI, creeLe:'31/10', origine:'depuis un message de ' + (m.de === MS_MOI ? 'toi' : H_NOM(m.de)), lien:i ? { t:'inter', id:i.id, lib:i.titre } : undefined });
+    m.tache = true; fermerPanneau(); rendre(); return toast(`Tâche créée pour ${q === MS_MOI ? 'toi' : msPrenom(q)}, ${tPrevue({ d })}.`); }
+  if (a === 'nouveau' || a === 'groupe') return msNouveau(a === 'groupe');
+  if (a === 'ecrire') { let cv = MS_CONVS.find(o => o.type === 'prive' && o.membres.includes(x) && o.membres.includes(MS_MOI)); if (!cv) MS_CONVS.push(cv = { id:'p-' + x, type:'prive', membres:[MS_MOI, x] }); fermerPanneau(); return msOuvrir(cv.id); }
+  if (a === 'groupeok') { const n = document.getElementById('ms-gn').value.trim(), m = [...document.querySelectorAll('[data-msg]:checked')].map(o => o.dataset.msg); if (!n) return toast('Donne un nom au groupe.'); if (!m.length) return toast('Choisis au moins une personne.');
+    const id = 'g' + Date.now(); MS_CONVS.push({ id, type:'groupe', nom:n, membres:[MS_MOI, ...m], creePar:MS_MOI }); MSGS.push(msM(id, AUJ, hm(MAINT_MIN), 'auto', `${H_NOM(MS_MOI)} a créé le groupe avec ${m.map(msPrenom).join(', ')}.`)); fermerPanneau(); return msOuvrir(id); }
+  if (a === 'infos') return msInfos(x);
+  if (a === 'retirer' || a === 'ajouter') { const cv = msDe(x); if (a === 'retirer') cv.membres = cv.membres.filter(k => k !== y); else cv.membres.push(y); MSGS.push(msM(x, AUJ, hm(MAINT_MIN), 'auto', `${msPrenom(MS_MOI)} a ${a === 'retirer' ? 'retiré' : 'ajouté'} ${H_NOM(y)}.`)); rendre(); return msInfos(x); }
+  if (a === 'supprgroupe') { const cv = msDe(x), garde = [cv, MSGS.filter(m => m.conv === x)]; MS_CONVS = MS_CONVS.filter(o => o.id !== x); MSGS = MSGS.filter(m => m.conv !== x); msConv = null; fermerPanneau(); rendre(); return toast(`Groupe « ${esc(cv.nom)} » supprimé.`, { lib:'Annuler', fn:() => { MS_CONVS.push(garde[0]); MSGS.push(...garde[1]); rendre(); } }); }
+  if (a === 'cmd') return cmdFiche(x);
+  if (a === 'abs') { if (typeof aOnglet !== 'undefined') aOnglet = 'valider'; return aller('absences'); }
+  if (a === 'planning') return aller('planning');
+});
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.matches('[data-mscherche]')) { msCherche = t.value; const z = document.querySelector('.ms-liste'); if (z) { const pos = t.selectionStart; z.outerHTML = msListe(); const n = document.querySelector('[data-mscherche]'); n.focus(); n.setSelectionRange(pos, pos); } return; }
+  if (t.id !== 'ms-txt') return;
+  msBrouillon[msConv] = t.value; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px';
+  const mm = t.value.slice(0, t.selectionStart).match(/@([^\s@]*)$/), z = document.getElementById('ms-ment'), c = msDe(msConv);
+  if (!mm || !z) { if (z) z.hidden = true; return; }
+  const L = c.membres.filter(k => k !== MS_MOI && prNorm(msPrenom(k)).startsWith(prNorm(mm[1])));
+  z.hidden = !L.length; z.innerHTML = L.map(k => `<button type="button" data-msmention="${k}">${hAv(k)}<b>${esc(H_NOM(k))}</b><span class="gris petit">${esc(msDispo(k).t)}</span></button>`).join('');
+});
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-msmention]'); if (!b) return;
+  const t = document.getElementById('ms-txt'), av = t.value.slice(0, t.selectionStart).replace(/@[^\s@]*$/, '@' + msPrenom(b.dataset.msmention) + ' '), ap = t.value.slice(t.selectionStart);
+  t.value = av + ap; msBrouillon[msConv] = t.value; document.getElementById('ms-ment').hidden = true; t.focus(); t.setSelectionRange(av.length, av.length);
+});
+document.addEventListener('keydown', ev => { if (ev.target.id === 'ms-txt' && ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && innerWidth > 760) { ev.preventDefault(); msEnvoyer(); } });
+document.addEventListener('change', ev => { const t = ev.target; if (t.matches('[data-msmuet]')) { t.checked ? msMuets.add(t.dataset.msmuet) : msMuets.delete(t.dataset.msmuet); rendre(); toast(t.checked ? 'En sourdine : tu ne seras prévenu que si on te mentionne.' : 'Notifications rétablies.'); } });
+
+/* ⟦module boitemail⟧ */
+/* ══ BOÎTE MAIL ══
+   Les boîtes de l'entreprise (Google, Microsoft, ou n'importe quelle boîte par IMAP), lues dans OP GESTION. Ce qui en fait autre chose
+   qu'un lecteur de courriels : chaque message est RECONNU — qui l'envoie (un client, un fournisseur, un nouveau contact) et de quoi il
+   parle (une panne, une demande de devis, l'accord sur un devis, une commande expédiée, une facture fournisseur, un paiement annoncé) —
+   et le geste qui suit est proposé, déjà rempli : créer l'intervention, proposer un créneau LIBRE du planning, créer le client et son
+   devis, rapprocher la facture de sa commande et la ranger dans les achats, mettre à jour une livraison, noter l'accord du devis.
+   Règles de l'application gardées : une boîte qu'on ne peut pas lire se DIT (« à reconnecter »), on n'affiche jamais « aucun message »
+   à sa place ; une réponse à un bon de commande se range avec lui par son numéro. Données fictives. */
+let ML_BOITES = [
+  { id:'b1', adr:'contact@climservices17.fr', fourni:'Google', etat:'ok', vu:'il y a 2 min' },
+  { id:'b2', adr:'marc@climservices17.fr', fourni:'Microsoft', etat:'reco', vu:'le 28 oct.' }
+];
+const mlM = (id, d, h, de, objet, txt, x = {}) => ({ id, d, h, de, objet, txt, boite:'b1', dossier:'recu', lu:false, pj:[], ...x });
+let MAILS = [
+  mlM('m1', AUJ, '08:52', { nom:'Mme Bernard', mail:CLIENTS.hp.mail }, 'Climatisation chambre 214 en panne', 'Bonjour,\n\nLa climatisation de la chambre 214 ne souffle plus que de l’air chaud depuis ce matin. Un client arrive ce soir.\nPouvez-vous passer aujourd’hui, ou lundi au plus tard ?\n\nCordialement,\nMme Bernard\nDirection — Hôtel de la Plage'),
+  mlM('m5', AUJ, '09:31', { nom:'Claire Fontaine', mail:'c.fontaine@exemple.fr' }, 'Demande de devis climatisation', 'Bonjour,\n\nNous souhaitons installer une climatisation réversible dans notre salon (35 m²), à Aytré.\nPourriez-vous nous faire un devis ?\n\nTél. : 06 45 67 89 01\n\nClaire Fontaine'),
+  mlM('m2', AUJ, '07:40', { nom:'Frigo Distribution 17', mail:'contact@frigodistrib17.fr' }, 'Expédition de votre commande BC-2026-039', 'Bonjour,\n\nVotre commande BC-2026-039 a été expédiée. Livraison prévue le lundi 2 novembre avant 12 h.\nNuméro de suivi : FD-77812.\n\nLe service client'),
+  mlM('m9', jour(-1), '17:48', { nom:'Syndic des Mimosas', mail:CLIENTS.mi.mail }, 'Re: Devis D-2026-027', 'Bonjour,\n\nLe conseil syndical a validé votre devis D-2026-027 pour le déshumidificateur du local technique.\nVous pouvez programmer l’installation, de préférence un matin.\n\nBien cordialement,\nLe syndic'),
+  mlM('m3', jour(-1), '16:30', { nom:'Chauffage Distribution Atlantique', mail:'commandes@chauffage-distrib-atl.fr' }, 'Facture CDA-F-2026-1187 — commande BC-2026-036', 'Bonjour,\n\nVeuillez trouver ci-joint la facture CDA-F-2026-1187 correspondant à votre commande BC-2026-036, livrée le ' + jCourt(jour(-4)) + '.\nRèglement à 30 jours.\n\nLa comptabilité', { pj:[['CDA-F-2026-1187.pdf', '84 Ko']] }),
+  mlM('m4', jour(-1), '11:05', { nom:'M. Durand', mail:CLIENTS.md.mail }, 'Paiement facture FAC-2026-0144', 'Bonjour,\n\nJe vous ai fait le virement de 121 € ce matin pour la facture FAC-2026-0144.\n\nCordialement,\nM. Durand', { lu:true }),
+  mlM('m6', jour(-2), '10:00', { nom:'Daikin Pro Ouest', mail:'pro-ouest@daikin-distrib.fr' }, 'Nouveautés de la gamme 2027 et salon de Nantes', 'Découvrez les nouveautés de la gamme 2027…', { lu:true, info:true }),
+  mlM('m7', jour(-1), '10:20', { nom:'Toi', mail:'contact@climservices17.fr' }, 'Votre facture FAC-2026-0144', 'Bonjour M. Durand,\n\nVous trouverez ci-joint la facture FAC-2026-0144 pour le réglage de votre pompe à chaleur.\n\nBien cordialement,\nMarc Leblanc — Clim Services 17', { dossier:'envoye', lu:true, a:CLIENTS.md.mail, pj:[['FAC-2026-0144.pdf', '61 Ko']] })
+];
+let mlSel = null, mlFiltre = 'traiter', mlRep = null;
+const mlDe = id => MAILS.find(m => m.id === id);
+/* QUI et QUOI : la reconnaissance. Elle ne devine pas : une adresse connue, un numéro de document écrit dans le message. */
+function mlLire(m){
+  const mail = m.de.mail.toLowerCase(), cli = Object.keys(CLIENTS).find(k => (CLIENTS[k].mail || '').toLowerCase() === mail), f = MES_FOURN.find(o => (o.mail || '').toLowerCase() === mail);
+  const t = m.objet + ' ' + m.txt, bc = (t.match(/BC-\d{4}-\d{3}/) || [])[0], fac = (t.match(/FAC-\d{4}-\d{4}/) || [])[0], dvn = (t.match(/D-\d{4}-\d{3}/) || [])[0];
+  if (!DV) dvInit();
+  const R = { cli, four:f, cmd:bc && COMMANDES.find(c => c.num === bc), facture:fac && FACTURES.find(o => o.num === fac), devis:dvn && DV.find(o => o.num === dvn), qui:cli ? 'client' : f ? 'four' : m.dossier === 'envoye' ? 'moi' : 'nouveau' };
+  if (m.info) R.sujet = 'info';
+  else if (R.four && /factur/i.test(m.objet) && R.cmd) R.sujet = 'facfour';
+  else if (R.four && R.cmd) R.sujet = 'expedition';
+  else if (R.devis && /valid|accord|bon pour|accept/i.test(m.txt)) R.sujet = 'accord';
+  else if (R.facture && /virement|pay|règlement/i.test(t)) R.sujet = 'paiement';
+  else if (/panne|ne (marche|fonctionne|souffle)|fuite|plus de chauffage/i.test(t)) R.sujet = 'panne';
+  else if (/devis/i.test(t)) R.sujet = 'devis';
+  R.tel = (m.txt.match(/0\d(?: \d\d){4}/) || [])[0]; R.ville = (m.txt.match(/à ([A-ZÉ][a-zéèêë-]+)/) || [])[1]; R.urgent = /aujourd’hui|ce soir|urgent/i.test(m.txt);
+  return R;
+}
+const ML_TAG = { client:['Client', 'b'], four:['Fournisseur', 'p'], nouveau:['Nouveau contact', 'o'], moi:['Envoyé', 'g'] };
+const ML_SUJET = { panne:'Demande d’intervention', devis:'Demande de devis', accord:'Accord sur un devis', expedition:'Commande expédiée', facfour:'Facture fournisseur', paiement:'Paiement annoncé', info:'Information' };
+const mlATraiter = m => m.dossier === 'recu' && !m.fait && !m.info && !!mlLire(m).sujet;
+/* trois créneaux libres pour une intervention de 2 h, au plus tôt : on lit le planning et les absences, pas une liste figée */
+function mlCreneaux(n = 3){
+  const L = [], gens = ['sm', 'kb', 'lr', 'tl'];
+  for (let j = 0; j < 8 && L.length < n; j++) { const d = ajoute(AUJ, j); if (!(dObj(d).getDay() % 6) && d !== AUJ) continue;
+    for (const h of [j ? '09:00' : '', '14:00', '16:00'].filter(Boolean)) { if (d === AUJ && hmin(h) < MAINT_MIN + 60) continue;
+      const t = gens.find(k => !absent(k, d) && !INTS.some(i => i.tech === k && i.d === d && i.st !== 'annulee' && hmin(i.h) < hmin(h) + 120 && hmin(h) < hmin(i.h) + i.dur));
+      if (t && !L.some(o => o.d === d)) { L.push({ d, h, t }); break; } } }
+  return L;
+}
+const mlH = h => String(+h.slice(0, 2)) + ' h' + (h.slice(3) === '00' ? '' : ' ' + h.slice(3));
+const mlQuand = m => m.d === AUJ ? m.h.replace(':', ' h ') : m.d === jour(-1) ? 'Hier' : jCourt(m.d);
+function mlListe(){
+  const F = { traiter:m => mlATraiter(m), tout:m => m.dossier === 'recu', clients:m => m.dossier === 'recu' && mlLire(m).qui === 'client', four:m => m.dossier === 'recu' && mlLire(m).qui === 'four', envoyes:m => m.dossier === 'envoye' };
+  const L = MAILS.filter(F[mlFiltre]).sort((a, b) => (b.d + b.h).localeCompare(a.d + a.h)), nT = MAILS.filter(mlATraiter).length;
+  return `<div class="ms-liste ml-liste"><div class="ml-filtres" role="group" aria-label="Dossiers">${[['traiter', 'À traiter' + (nT ? ' · ' + nT : '')], ['tout', 'Reçus'], ['clients', 'Clients'], ['four', 'Fournisseurs'], ['envoyes', 'Envoyés']].map(([k, l]) => `<button type="button" data-ml="filtre|${k}" aria-pressed="${mlFiltre === k}">${l}</button>`).join('')}</div>
+    <div class="ms-defile">${L.map(m => { const R = mlLire(m), tg = ML_TAG[R.qui];
+      return `<button type="button" class="ms-l ml-l${mlSel === m.id ? ' on' : ''}${m.lu ? '' : ' nonlu'}" data-ml="ouvrir|${m.id}"><span class="ms-lc"><span class="ms-l1"><b>${esc(m.dossier === 'envoye' ? 'À ' + (Object.values(CLIENTS).find(c => c.mail === m.a) || { nom:m.a }).nom : m.de.nom)}</b><span class="gris petit">${m.pj.length ? '📎 ' : ''}${mlQuand(m)}</span></span>
+        <span class="ml-obj">${esc(m.objet)}</span><span class="ms-l2"><span class="st st-${tg[1]} ml-tag">${tg[0]}</span>${R.sujet && !m.fait ? `<span class="gris petit ms-apercu">${esc(ML_SUJET[R.sujet])}${R.urgent ? ' · urgent' : ''}</span>` : m.fait ? `<span class="gris petit ms-apercu">✓ ${esc(m.fait)}</span>` : `<span class="gris petit ms-apercu">${esc(m.txt.replace(/\s+/g, ' ').slice(0, 70))}</span>`}</span></span></button>`; }).join('')
+      || `<p class="gris petit" style="padding:16px">${mlFiltre === 'traiter' ? 'Tout est traité. Les messages restent dans « Reçus ».' : 'Aucun message ici.'}</p>`}</div>
+    <div class="ms-pied"><button type="button" class="btn gris petit" data-ml="ecrire">✎ Nouveau courriel</button></div></div>`;
+}
+function mlActions(m, R){
+  const A = [], b = (k, l, p) => A.push(`<button type="button" class="btn${p ? '' : ' gris'} petit" data-ml="${k}|${m.id}">${l}</button>`);
+  if (m.fait) return `<div class="ml-fait">✓ ${esc(m.fait)}${m.faitLien ? ` · <button type="button" class="lien" ${m.faitLien}>Ouvrir ›</button>` : ''}</div>`;
+  if (R.sujet === 'panne') { b('creerint', 'Créer l’intervention', 1); b('creneau', 'Proposer un créneau'); }
+  if (R.sujet === 'devis' && R.qui === 'nouveau') { b('nvdevis', 'Créer le client et son devis', 1); b('creneau', 'Proposer une visite'); }
+  if (R.sujet === 'devis' && R.cli) b('dvcli', 'Préparer un devis', 1);
+  if (R.sujet === 'accord' && R.devis) { if (R.devis.e !== 'accepte') b('accord', 'Noter l’accord du devis', 1); b('planifdv', 'Planifier l’installation', R.devis.e === 'accepte'); }
+  if (R.sujet === 'expedition' && R.cmd) b('livraison', 'Mettre à jour la livraison prévue', 1);
+  if (R.sujet === 'facfour' && R.cmd) b('rappro', 'Rapprocher et ranger dans les achats', 1);
+  if (R.sujet === 'paiement' && R.facture) b('annonce', 'Noter le paiement annoncé', 1);
+  return A.length ? `<div class="ml-acts">${A.join('')}</div>` : '';
+}
+function mlReconnu(m){
+  const R = mlLire(m); if (m.dossier === 'envoye') return '';
+  const liens = [];
+  if (R.cli) liens.push(`<button type="button" class="lien" data-tvoir="client|${R.cli}">${esc(CLIENTS[R.cli].nom)} ›</button>`);
+  if (R.four) liens.push(`<button type="button" class="lien" data-ml="four|${R.four.id}">${esc(R.four.nom)} ›</button>`);
+  if (R.cmd) liens.push(`<button type="button" class="lien" data-ml="cmd|${R.cmd.id}">Commande ${esc(R.cmd.num)} ›</button>`);
+  if (R.facture) liens.push(`<button type="button" class="lien" data-tvoir="facture|${R.facture.id}">Facture ${esc(R.facture.num)} ›</button>`);
+  if (R.devis) liens.push(`<button type="button" class="lien" data-tvoir="devis|${R.devis.num}">Devis ${esc(R.devis.num)} ›</button>`);
+  const det = R.sujet === 'facfour' && R.cmd ? ` · ${eur(R.cmd.lignes.reduce((s, l) => s + (l.recu != null ? l.recu : l.q) * l.pu, 0))} HT attendus d’après la commande` : R.sujet === 'expedition' && R.cmd ? ` · livraison prévue aujourd’hui dans OP GESTION : ${R.cmd.prevue ? jCourt(R.cmd.prevue) : 'aucune'}` : R.sujet === 'paiement' && R.facture ? ` · ${eur(R.facture.ht * (1 + R.facture.tva / 100))} TTC, ${R.facture.st === 'payee' ? 'déjà payée' : 'pas encore réglée'}` : R.qui === 'nouveau' ? ` · inconnu dans tes clients${R.tel ? ', tél. ' + R.tel : ''}${R.ville ? ', ' + R.ville : ''}` : '';
+  return `<div class="ml-reco${R.urgent && !m.fait ? ' urgent' : ''}"><span class="ms-ct">OP GESTION a reconnu</span><b>${esc(ML_SUJET[R.sujet] || 'Un message')}${R.urgent && !m.fait ? ' · urgent' : ''}</b><span class="gris petit">${esc(ML_TAG[R.qui][0])}${esc(det)}</span>
+    ${liens.length ? `<div class="cmd-liens">${liens.join('')}</div>` : ''}${mlActions(m, R)}</div>`;
+}
+function mlLecture(){
+  const m = mlDe(mlSel); if (!m) return `<div class="ms-fil ms-vide"><span class="gris">Choisis un message.</span></div>`;
+  const bo = ML_BOITES.find(o => o.id === m.boite);
+  return `<div class="ms-fil ml-lect"><div class="ms-ft"><button type="button" class="ms-retour" data-ml="liste" aria-label="Revenir aux messages">‹</button><span class="ms-lc"><b>${esc(m.objet)}</b><span class="gris petit">${m.dossier === 'envoye' ? 'À ' + esc(m.a) : esc(m.de.nom) + ' · ' + esc(m.de.mail)} · ${jlong(m.d)}, ${m.h.replace(':', ' h ')} · ${esc(bo.adr)}</span></span></div>
+    <div class="ms-defile ml-corps">${mlReconnu(m)}<div class="ml-txt">${esc(m.txt)}</div>${m.pj.length ? `<div class="ml-pj">${m.pj.map(([n, t]) => `<span class="ml-pjc">📄 ${esc(n)} <span class="gris petit">${t}</span></span>`).join('')}</div>` : ''}
+      ${m.reponses ? m.reponses.map(r => `<div class="ml-rep"><span class="ms-ct">Ta réponse · ${r.h.replace(':', ' h ')}</span><div class="ml-txt">${esc(r.txt)}</div></div>`).join('') : ''}</div>
+    ${m.dossier === 'recu' ? `<div class="ms-comp ml-barre"><button type="button" class="btn petit" data-ml="repondre|${m.id}">↩ Répondre</button><button type="button" class="btn gris petit" data-ml="transferer|${m.id}">Transférer à l’équipe</button><button type="button" class="btn gris petit" data-ml="tache|${m.id}">✓ En faire une tâche</button></div>` : ''}</div>`;
+}
+function vueBoiteMail(){
+  const reco = ML_BOITES.filter(b => b.etat !== 'ok'), nT = MAILS.filter(mlATraiter).length;
+  return `<div class="tete ms-tete${mlSel ? ' ms-dans-fil' : ''}"><div><span class="surtitre">Communication</span><h1>Boîte mail</h1><span class="gris">${nT ? nT + ' message' + (nT > 1 ? 's' : '') + ' à traiter. ' : ''}Chaque courriel est reconnu (client, fournisseur, commande, facture, devis) et le geste qui suit est proposé, déjà rempli.</span></div>
+      <div class="actions"><button type="button" class="btn gris" data-ml="boites">Boîtes connectées</button></div></div>
+    ${reco.map(b => `<div class="carte ml-alerte"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(b.adr)} (${b.fourni}) est à reconnecter</b><span class="gris petit">Ses messages ne sont plus lus depuis ${b.vu} : ils n’apparaissent pas ici tant qu’elle n’est pas reconnectée.</span></span><button type="button" class="btn petit" data-ml="reco|${b.id}">Reconnecter</button></div>`).join('')}
+    <div class="ms-app${mlSel ? ' ouvert' : ''}">${mlListe()}${mlLecture()}</div>`;
+}
+function mlRepondre(m, modele){
+  const R = mlLire(m), cr = mlCreneaux(), qui = m.de.nom;
+  const MOD = {
+    recu:`Bonjour ${qui},\n\nNous avons bien reçu votre message et revenons vers vous très vite.\n\nBien cordialement,\nMarc Leblanc — Clim Services 17\n05 46 00 00 17`,
+    creneau:`Bonjour ${qui},\n\nNous pouvons intervenir ${cr.map(c => `${jlong(c.d)} à ${mlH(c.h)}`).join(', ou ')}.\nDites-nous le créneau qui vous convient et nous le réservons.\n\nBien cordialement,\nMarc Leblanc — Clim Services 17`,
+    devis:`Bonjour ${qui},\n\nMerci pour votre demande. Vous trouverez notre devis ci-joint ; il est valable 30 jours et se signe en ligne.\n\nBien cordialement,\nMarc Leblanc — Clim Services 17`
+  };
+  mlRep = { id:m.id, modele };
+  ouvrirPanneau(`<span class="surtitre">Répondre · depuis ${esc(ML_BOITES.find(o => o.id === m.boite).adr)}</span><h2>Re: ${esc(m.objet)}</h2>
+    <div class="ligne"><span>À</span><b>${esc(m.de.nom)} · ${esc(m.de.mail)}</b></div>
+    <div class="seg ml-mod" role="group" aria-label="Modèle">${[['recu', 'Accusé de réception'], ['creneau', 'Proposer un créneau'], ['devis', 'Envoyer un devis']].map(([k, l]) => `<button type="button" data-ml="modele|${m.id}|${k}" aria-pressed="${modele === k}">${l}</button>`).join('')}</div>
+    ${modele === 'creneau' ? `<div class="ve-e">Créneaux libres lus dans le planning (2 h, absences comprises) : ${cr.map(c => `<b>${esc(jCourt(c.d))} ${mlH(c.h)}</b> (${esc(msPrenom(c.t))})`).join(' · ')}</div>` : ''}
+    <label class="champ">Message<textarea id="ml-txt" rows="9">${esc(MOD[modele])}</textarea></label>
+    <div class="actions"><button type="button" class="btn" data-ml="envoyer|${m.id}">Envoyer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
+}
+function mlTraite(m, quoi, lien){ m.fait = quoi; m.faitLien = lien || ''; m.lu = true; }
+/* la carte d'un courriel transféré dans la Messagerie */
+function mlCarte(id){ const m = mlDe(id); return m ? `<button type="button" class="ms-carte" data-ml="ouvrir|${m.id}"><span class="ms-ct">Courriel · ${esc(m.de.nom)}</span><b>${esc(m.objet)}</b><span class="gris petit">${esc(ML_SUJET[mlLire(m).sujet] || 'Ouvrir le message')} ›</span></button>` : ''; }
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-ml]'); if (!b) return;
+  const [a, x, y] = b.dataset.ml.split('|'), m = mlDe(x);
+  if (a === 'filtre') { mlFiltre = x; return rendre(); }
+  if (a === 'ouvrir') { mlSel = x; m.lu = true; if (route !== 'boiteMail') { fermerPanneau(); aller('boiteMail'); } else rendre(); return scrollTo(0, 0); }
+  if (a === 'liste') { mlSel = null; rendre(); return scrollTo(0, 0); }
+  if (a === 'reco') { const bo = ML_BOITES.find(o => o.id === x); bo.etat = 'ok'; bo.vu = 'à l’instant'; MAILS.push(mlM('m' + Date.now(), jour(-2), '15:12', { nom:'Clim Pièces Atlantique', mail:'commandes@climpieces-atlantique.fr' }, 'Votre compte professionnel', 'Bonjour,\n\nVotre remise de 32 % est reconduite pour 2027.\n\nL’équipe commerciale', { boite:'b2', info:true })); rendre(); return toast(`${esc(bo.adr)} est reconnectée : ses messages sont de nouveau lus.`); }
+  if (a === 'boites') return ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span>${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-ml="reco|${bo.id}">Reconnecter</button>`}</div>`).join('')}</div>
+    <div class="groupe">Ajouter une boîte</div><div class="cmd-liens"><button type="button" class="lien" data-ml="ajout|Google">Google ›</button><button type="button" class="lien" data-ml="ajout|Microsoft">Microsoft ›</button><button type="button" class="lien" data-ml="ajout|IMAP">Autre boîte (IMAP) ›</button></div>
+    <span class="gris petit">Le mot de passe de la boîte n’est jamais montré ; une boîte qui ne répond plus est signalée ici et en haut de la Boîte mail.</span>`);
+  if (a === 'ajout') return toast(x === 'IMAP' ? 'Dans l’application, on saisit l’adresse du serveur et le mot de passe d’application de la boîte.' : `Dans l’application, la connexion s’ouvre chez ${x}, qui demande ton accord.`);
+  if (a === 'four') { fermerPanneau(); return typeof fournFiche === 'function' ? fournFiche(x) : aller('fournisseurs'); }
+  if (a === 'cmd') return cmdFiche(x);
+  if (a === 'ecrire') return toast('Nouveau courriel : à, objet, message, et la boîte d’envoi. (Prototype)');
+  if (a === 'repondre') return mlRepondre(m, mlLire(m).sujet === 'panne' ? 'creneau' : mlLire(m).sujet === 'devis' ? 'creneau' : 'recu');
+  if (a === 'modele') return mlRepondre(m, y);
+  if (a === 'creneau') return mlRepondre(m, 'creneau');
+  if (a === 'envoyer') { const t = document.getElementById('ml-txt').value.trim(); if (!t) return toast('Le message est vide.'); (m.reponses = m.reponses || []).push({ h:hm(MAINT_MIN), txt:t });
+    MAILS.push(mlM('m' + Date.now(), AUJ, hm(MAINT_MIN), { nom:'Toi', mail:ML_BOITES.find(o => o.id === m.boite).adr }, 'Re: ' + m.objet, t, { dossier:'envoye', lu:true, a:m.de.mail }));
+    if (!m.fait) mlTraite(m, mlRep && mlRep.modele === 'creneau' ? 'Créneaux proposés, en attente de sa réponse' : 'Répondu');
+    fermerPanneau(); rendre(); return toast(`Réponse envoyée à ${esc(m.de.nom)}.`); }
+  if (a === 'creerint') { const R = mlLire(m); ouvrirCreation({ cli:R.cli }); CREA.type = 'Dépannage'; CREA.titre = m.objet; CREA.titreTouche = true; CREA.motif = m.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); rendreCreation();
+    mlTraite(m, 'Intervention en création depuis ce courriel'); return toast('Intervention préremplie : client, titre et motif viennent du courriel. Choisis le créneau.'); }
+  if (a === 'nvdevis' || a === 'dvcli') { const R = mlLire(m); let k = R.cli;
+    if (!k) { k = 'c' + Date.now().toString(36); CLIENTS[k] = { nom:m.de.nom, type:'part', contact:m.de.nom, tel:R.tel || '', mail:m.de.mail, adr:R.ville ? R.ville + ' (adresse à compléter)' : '', acces:'', depuis:'2026', appareils:[] }; }
+    mlTraite(m, 'Devis préparé' + (R.cli ? '' : ', client créé'), `data-tvoir="client|${k}"`);
+    dvCreer({ cli:k, objet:'Climatisation réversible, salon 35 m²', lignes:[['Climatiseur réversible mono-split 3,5 kW, fourni et posé', 1, 1890], ['Mise en service, contrôle d’étanchéité et attestation', 1, 180], ['Déplacement', 1, 29.17]], source:'courriel', trace:'Préparé depuis le courriel de ' + m.de.nom });
+    return allerAvecRetour('devis-x-' + DV.at(-1).id, 'la Boîte mail', () => {}); }   // Devis est une catégorie déjà validée : on y va avec un retour
+  if (a === 'accord') { const R = mlLire(m); dvAccepter(R.devis, { via:'e-mail', par:m.de.nom }); rendre(); return toast(`Devis ${esc(R.devis.num)} accepté : l’accord par e-mail est noté dans son historique.`, { lib:'Planifier', fn:() => dvCreerInt(R.devis) }); }
+  if (a === 'planifdv') { const R = mlLire(m); mlTraite(m, 'Accord noté, installation en cours de planification'); return dvCreerInt(R.devis); }
+  if (a === 'livraison') { const c = mlLire(m).cmd, av = c.prevue; c.prevue = jour(2); c.journal.push([AUJ, `Expédiée par ${c.four} (suivi FD-77812), livraison prévue le ${jCourt(c.prevue)} — lu dans leur courriel`]); mlTraite(m, `Livraison du ${c.num} mise au ${jCourt(c.prevue)}`, `data-ml="cmd|${c.id}"`); rendre(); return toast(`Commande ${esc(c.num)} : livraison prévue le ${jCourt(c.prevue)}${av && av !== c.prevue ? ' (au lieu du ' + jCourt(av) + ')' : ''}.`); }
+  if (a === 'rappro') { const c = mlLire(m).cmd; mlTraite(m, `Facture rapprochée de ${c.num} et rangée dans les achats`, `data-ml="cmd|${c.id}"`); c.facLue = { num:'CDA-F-2026-1187', le:jour(-1), q:{}, pu:{} }; return cmdFacturer(c.id); }
+  if (a === 'annonce') { const f = mlLire(m).facture; f.annonce = 'virement annoncé le ' + jCourt(m.d); mlTraite(m, 'Paiement annoncé noté sur la facture : elle sera marquée payée quand le virement arrivera', `data-tvoir="facture|${f.id}"`); rendre(); return toast(`Noté sur ${esc(f.num)}. On la marque payée à l’arrivée du virement, pas avant.`); }
+  if (a === 'transferer') return ouvrirPanneau(`<span class="surtitre">Transférer dans la Messagerie</span><h2>${esc(m.objet)}</h2><div class="fo-bloc">${MS_COLLEGUES.filter(k => k !== MS_MOI).map(k => `<button type="button" class="ve-u" data-ml="transok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit">${esc(msDispo(k).t)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>`);
+  if (a === 'transok') { let cv = MS_CONVS.find(o => o.type === 'prive' && o.membres.includes(y)); if (!cv) MS_CONVS.push(cv = { id:'p-' + y, type:'prive', membres:[MS_MOI, y] });
+    MSGS.push(msM(cv.id, AUJ, hm(MAINT_MIN), MS_MOI, 'Tu peux t’en occuper ?', { lu:[MS_MOI], carte:{ t:'mail', id:m.id } })); fermerPanneau(); return toast(`Transféré à ${esc(msPrenom(y))} dans la Messagerie.`, { lib:'Voir', fn:() => msOuvrir(cv.id) }); }
+  if (a === 'tache') { TACHES.push({ id:'t' + Date.now(), t:'Répondre : ' + m.objet, qui:MS_MOI, d:AUJ, h:null, creePar:MS_MOI, creeLe:'31/10', origine:'depuis le courriel de ' + m.de.nom }); return toast('Tâche ajoutée pour aujourd’hui.'); }
+});
+
+/* ⟦module achats⟧ */
+/* ══ ACHATS & DÉPENSES ══
+   Tout ce que l'entreprise achète et dépense, du besoin au paiement :
+   · les DEMANDES de l'équipe — avant d'acheter, OP GESTION regarde si l'atelier l'a déjà (un transfert vers le camion suffit),
+     sinon chez quel fournisseur on l'achète d'habitude (la ligne part dans sa commande), sinon un achat en magasin à la carte ;
+     un refus part avec son motif, en message privé à la personne ;
+   · les factures À PAYER, par échéance (en retard, cette semaine, plus tard), rapprochées de leur commande, payables en un
+     virement groupé ;
+   · les DÉPENSES du mois par nature (marchandises, carburant, outillage…) et les justificatifs qui manquent ;
+   · les NOTES DE FRAIS des techniciens (repas, péage, parking), validées puis remboursées avec la paie.
+   Ce qui est payé ici est ce que lit la Comptabilité : un seul registre, ACHATS. Données fictives. */
+let DEM_ACHAT = [
+  { id:'da1', qui:'tl', d:AUJ, h:'07:58', quoi:'Fluide R32', q:10, u:'kg', pid:'p4', pourquoi:'J’ai donné une bouteille à Karim hier, il m’en faut pour lundi (mise en service aux Pins).', est:380, quand:jour(2), etat:'attente' },
+  { id:'da2', qui:'kb', d:jour(-1), h:'18:12', quoi:'Perceuse-visseuse à percussion 18 V', q:1, u:'u', pourquoi:'La mienne ne tient plus la charge, je perds du temps sur chaque chantier.', est:189, quand:null, etat:'attente' },
+  { id:'da3', qui:'sm', d:jour(-2), h:'12:30', quoi:'Échelle 3 plans aluminium', q:1, u:'u', pourquoi:'Pour les groupes en toiture : l’échelle du camion est trop courte.', est:245, quand:null, etat:'attente' },
+  { id:'da4', qui:'lr', d:jour(-6), h:'09:05', quoi:'Gants anti-coupure (lot de 10)', q:1, u:'lot', pourquoi:'', est:42, etat:'approuvee', suite:'acheté en magasin le ' + jCourt(jour(-5)) }
+];
+let NDF = [
+  { id:'n1', qui:'tl', d:jour(-1), objet:'Repas, chantier de Rochefort', ttc:16.5, tva:10, recu:true, etat:'attente' },
+  { id:'n2', qui:'kb', d:jour(-2), objet:'Péage A10, Saintes', ttc:8.2, tva:20, recu:true, etat:'attente' },
+  { id:'n3', qui:'sm', d:jour(-3), objet:'Parking, centre-ville de La Rochelle', ttc:6, tva:20, recu:false, etat:'attente' },
+  { id:'n4', qui:'kb', d:jour(-9), objet:'Repas, formation Saintes', ttc:14.9, tva:10, recu:true, etat:'validee' }
+];
+ACHATS.push(
+  { id:'a8', d:'22/10', fid:'sp17', four:'Sanitaire Pro 17', objet:'Raccords, vannes, flexibles', ht:318.4, tva:20, compte:'607', mode:null, paye:null, piece:'facture', ref:'SP17-4410', ech:'05/11' },
+  { id:'a9', d:'15/10', fid:'dko', four:'Daikin Pro Ouest', objet:'Carte électronique et sonde (dépannages)', ht:286, tva:20, compte:'607', mode:null, paye:null, piece:'facture', ref:'DKO-2026-10-0241', ech:'29/10' }
+);
+let acOnglet = 'demandes', acSel = new Set();
+const ACOMPTES = { '607':'Achats de matériel et pièces', '6061':'Carburant', '6063':'Petit outillage', '6155':'Entretien des véhicules', '616':'Assurances', '626':'Téléphone et internet', '625':'Déplacements et repas' };
+const acJ = s => s ? '2026-' + s.slice(3, 5) + '-' + s.slice(0, 2) : null;   // « 05/11 » → date ISO de l'année du prototype
+const acTTC = a => Math.round(a.ht * (1 + (a.tva || 0) / 100) * 100) / 100;
+const acEch = a => a.ech ? acJ(a.ech) : ajoute(acJ(a.d), 30);
+const acAPayer = () => ACHATS.filter(a => !a.paye && a.mode !== 'Prélèvement').sort((x, y) => acEch(x).localeCompare(acEch(y)));
+const acSansPiece = () => ACHATS.filter(a => !a.piece);
+const acCmd = a => COMMANDES.find(c => (c.fac || {}).num === a.ref || 'a' + c.id === a.id);
+/* d'où la demande peut être servie : l'atelier d'abord, puis le fournisseur habituel, sinon un magasin */
+function acSource(d){
+  const x = d.pid && PRODUITS.find(p => p.id === d.pid), at = x ? stkAt(x, 'atelier') : 0, f = x && foDe(x.four);
+  const camion = LIEUX.find(l => l.tech === d.qui);
+  return { x, at, f, camion, versLe:camion ? 'le ' + camion.nom.charAt(0).toLowerCase() + camion.nom.slice(1) : 'son camion', reste:x ? Math.max(0, d.q - Math.max(0, at)) : d.q };
+}
+function acDemandes(){
+  const att = DEM_ACHAT.filter(d => d.etat === 'attente'), fini = DEM_ACHAT.filter(d => d.etat !== 'attente');
+  const carte = d => { const s = acSource(d);
+    const prop = s.x && s.at > 0 && !s.reste ? `<b class="ve-vt">L’atelier en a ${prNum(s.at)} ${esc(s.x.u)}</b> : un transfert vers ${esc(s.versLe)} suffit, rien à acheter.`
+      : s.x && s.at > 0 ? `<b class="ve-vt">L’atelier en a ${prNum(s.at)} ${esc(s.x.u)} sur ${prNum(d.q)}</b> : on les transfère vers ${esc(s.versLe)}, et les ${prNum(s.reste)} ${esc(s.x.u)} qui manquent partent dans la commande ${esc(s.f ? s.f.nom : '')}.`
+      : s.f ? `Pas en stock : on l’achète d’habitude chez <b>${esc(s.f.nom)}</b> (${esc(s.f.delai)}).` : 'Pas au catalogue : achat en magasin, avec la carte de l’entreprise.';
+    return `<div class="carte ach-d"><div class="bx-t">${hAv(d.qui)}<span class="fo-n"><b>${esc(d.quoi)}${d.q > 1 ? ` · ${prNum(d.q)} ${esc(d.u)}` : ''}</b><span class="gris petit">${esc(H_NOM(d.qui))} · ${d.d === AUJ ? 'aujourd’hui ' + d.h.replace(':', ' h ') : jCourt(d.d)}${d.quand ? ' · pour le ' + jCourt(d.quand) : ''} · environ ${eur0(d.est)} HT</span></span></div>
+      ${d.pourquoi ? `<p class="ach-pq">« ${esc(d.pourquoi)} »</p>` : ''}<div class="ve-e">${prop}</div>
+      <div class="actions">${s.x && s.at > 0 ? `<button type="button" class="btn petit" data-ac="transfert|${d.id}">${s.reste && s.f ? `Transférer ${prNum(s.at)} ${esc(s.x.u)} et commander ${prNum(s.reste)} ${esc(s.x.u)}` : 'Transférer depuis l’atelier'}</button>` : ''}${s.f ? `<button type="button" class="btn${s.x && s.at > 0 ? ' gris' : ''} petit" data-ac="commande|${d.id}">${s.x && s.at > 0 ? 'Tout commander' : 'Ajouter à la commande ' + esc(s.f.nom)}</button>` : ''}
+        <button type="button" class="btn${s.f ? ' gris' : ''} petit" data-ac="magasin|${d.id}">Achat en magasin</button><button type="button" class="btn gris petit" data-ac="refuser|${d.id}">Refuser</button></div></div>`; };
+  return `${att.length ? att.map(carte).join('') : '<div class="carte gris">Aucune demande en attente. Les techniciens demandent depuis leur téléphone : « Il me faut… ».</div>'}
+    ${fini.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Déjà décidées</h2>${fini.map(d => `<div class="fo-r">${hAv(d.qui)}<span class="fo-n"><b>${esc(d.quoi)}</b><span class="gris petit">${esc(H_NOM(d.qui))} · ${d.etat === 'refusee' ? 'refusée : ' + esc(d.motif) : esc(d.suite)}</span></span><span class="st st-${d.etat === 'refusee' ? 'r' : 'v'}">${d.etat === 'refusee' ? 'Refusée' : 'Approuvée'}</span></div>`).join('')}</div>` : ''}`;
+}
+function acPayer(){
+  const L = acAPayer(), gr = [['retard', 'En retard', a => acEch(a) < AUJ], ['semaine', 'Cette semaine', a => acEch(a) >= AUJ && acEch(a) <= ajoute(AUJ, 7)], ['tard', 'Plus tard', a => acEch(a) > ajoute(AUJ, 7)]];
+  const sel = L.filter(a => acSel.has(a.id)), tot = sel.reduce((s, a) => s + acTTC(a), 0);
+  return `${gr.map(([k, t, f]) => { const G = L.filter(f); return G.length ? `<div class="carte ach-g"><h2 class="cmd-titre" style="margin:0 0 4px">${t} · ${eur(G.reduce((s, a) => s + acTTC(a), 0))}</h2>
+      ${G.map(a => { const c = acCmd(a), j = tJours(acEch(a)); return `<label class="ach-l"><input type="checkbox" data-acsel="${a.id}" ${acSel.has(a.id) ? 'checked' : ''} aria-label="Choisir ${esc(a.ref)}"><span class="fo-n"><b>${esc(a.four)} · ${eur(acTTC(a))}</b><span class="gris petit">${esc(a.ref)} · ${esc(a.objet)}${c ? ` · rapprochée de ${esc(c.num)}` : ''}</span></span>
+        <span class="ach-ech ${j < 0 ? 've-rt' : j <= 7 ? 've-ot' : ''}">${j < 0 ? 'échue depuis ' + -j + ' j' : j === 0 ? 'échue aujourd’hui' : 'le ' + jCourt(acEch(a))}</span><button type="button" class="btn gris petit" data-ac="payer|${a.id}">Payer</button></label>`; }).join('')}</div>` : ''; }).join('') || '<div class="carte gris">Rien à payer. Les prélèvements (assurance, téléphone) passent seuls et sont déjà rangés.</div>'}
+    ${L.length ? `<div class="carte ach-vir"><span class="fo-n"><b>${sel.length ? `${sel.length} facture${sel.length > 1 ? 's' : ''} choisie${sel.length > 1 ? 's' : ''} · ${eur(tot)}` : 'Coche les factures à régler ensemble'}</b><span class="gris petit">Un seul virement groupé, préparé pour ta banque (fichier SEPA). Chaque facture est marquée payée et rangée en comptabilité.</span></span><button type="button" class="btn" data-ac="virement" ${sel.length ? '' : 'disabled'}>Préparer le virement</button></div>` : ''}`;
+}
+function acDepenses(){
+  const mois = ACHATS.filter(a => acJ(a.d) >= '2026-10-01' && acJ(a.d) <= '2026-10-31'), tot = mois.reduce((s, a) => s + acTTC(a), 0);
+  const par = {}; mois.forEach(a => { par[a.compte] = (par[a.compte] || 0) + acTTC(a); });
+  const max = Math.max(...Object.values(par), 1), sp = acSansPiece();
+  return `${sp.length ? `<div class="carte ve-urg"><h2 class="cmd-titre" style="margin:0 0 6px">Justificatifs manquants · ${sp.length}</h2><span class="gris petit">Sans ticket ni facture, la TVA ne se récupère pas et la dépense ne se justifie pas en cas de contrôle.</span>
+      ${sp.map(a => `<div class="fo-r"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(a.four)} · ${eur(acTTC(a))}</b><span class="gris petit">${esc(a.objet)} · ${esc(a.d)} · ${esc(a.mode || '')}</span></span><button type="button" class="btn petit" data-ac="piece|${a.id}">📷 Ajouter le ticket</button></div>`).join('')}</div>` : ''}
+    <div class="carte"><h2 class="cmd-titre" style="margin:0 0 10px">Octobre · ${eur(tot)} TTC</h2>
+      ${Object.entries(par).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="ach-bar"><span>${esc(ACOMPTES[k] || 'Compte ' + k)}</span><span class="ach-jauge"><i style="width:${Math.round(v / max * 100)}%"></i></span><b>${eur(v)}</b></div>`).join('')}</div>
+    <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Toutes les dépenses d’octobre</h2>
+      ${mois.slice().sort((a, b) => acJ(b.d).localeCompare(acJ(a.d))).map(a => { const v = typeof VEHICULES !== 'undefined' && VEHICULES.find(o => a.objet.includes(o.plaque)); return `<div class="fo-r"><span class="fo-n"><b>${esc(a.four)}</b><span class="gris petit">${esc(a.d)} · ${esc(a.objet)}${v ? ' · 🚐 ' + esc(v.plaque) : ''} · ${esc(ACOMPTES[a.compte] || a.compte)}</span></span><span class="ach-m"><b>${eur(acTTC(a))}</b><span class="gris petit">${a.paye ? esc(a.mode || 'payé') : 'à payer'}${a.piece ? '' : ' · sans pièce'}</span></span></div>`; }).join('')}</div>`;
+}
+function acNotes(){
+  const att = NDF.filter(n => n.etat === 'attente'), val = NDF.filter(n => n.etat === 'validee'), parQui = {};
+  val.forEach(n => { parQui[n.qui] = (parQui[n.qui] || 0) + n.ttc; });
+  return `${att.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">À valider · ${att.length}</h2>${att.map(n => `<div class="fo-r ach-n">${hAv(n.qui)}<span class="fo-n"><b>${esc(n.objet)} · ${eur(n.ttc)}</b><span class="gris petit">${esc(H_NOM(n.qui))} · ${jCourt(n.d)} · ${n.recu ? '📎 ticket joint' : '<span class="ve-ot">pas de ticket</span>'}</span></span>
+      <span class="ach-na"><button type="button" class="btn petit" data-ac="ndfok|${n.id}" ${n.recu ? '' : 'disabled title="Il faut le ticket pour rembourser"'}>Valider</button>${n.recu ? '' : `<button type="button" class="btn gris petit" data-ac="ndfticket|${n.id}">Demander le ticket</button>`}<button type="button" class="btn gris petit" data-ac="ndfnon|${n.id}">Refuser</button></span></div>`).join('')}</div>` : '<div class="carte gris">Aucune note de frais à valider.</div>'}
+    <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">À rembourser avec la paie de novembre</h2>
+      ${Object.keys(parQui).length ? Object.entries(parQui).map(([k, v]) => `<div class="fo-r">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit">${val.filter(n => n.qui === k).map(n => esc(n.objet)).join(' · ')}</span></span><b>${eur(v)}</b></div>`).join('') : '<span class="gris">Rien pour l’instant.</span>'}
+      <span class="gris petit">Ajouté à l’export de paie (Temps de travail → Paie), en remboursement de frais, hors salaire.</span></div>`;
+}
+function vueAchats(){
+  const nd = DEM_ACHAT.filter(d => d.etat === 'attente').length, ap = acAPayer(), ret = ap.filter(a => acEch(a) < AUJ), sp = acSansPiece().length, nn = NDF.filter(n => n.etat === 'attente').length;
+  const oct = ACHATS.filter(a => acJ(a.d) >= '2026-10-01' && acJ(a.d) <= '2026-10-31').reduce((s, a) => s + acTTC(a), 0);
+  const O = [['demandes', 'Demandes', 'Demandes', nd], ['payer', 'À payer', 'À payer', ap.length], ['depenses', 'Dépenses', 'Dépenses', sp], ['notes', 'Notes de frais', 'Frais', nn]];
+  return `<div class="tete"><div><span class="surtitre">Achats</span><h1>Achats & dépenses</h1><span class="gris">Du besoin au paiement : ce que l’équipe demande, les factures à régler, ce qui a été dépensé et les justificatifs qui manquent.</span></div></div>
+    <div class="kpis"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} à décider</span></button>
+      <button type="button" class="kpi" data-ac="onglet|payer"><b>${eur0(ap.reduce((s, a) => s + acTTC(a), 0))}</b><span>à payer${ret.length ? ` · <span class="ve-rt">${ret.length} en retard</span>` : ''}</span></button>
+      <button type="button" class="kpi" data-ac="onglet|depenses"><b>${eur0(oct)}</b><span>dépensés en octobre</span></button>
+      <button type="button" class="kpi" data-ac="onglet|depenses"><b style="color:${sp ? 'var(--orange)' : 'inherit'}">${sp}</b><span>justificatif${sp > 1 ? 's' : ''} manquant${sp > 1 ? 's' : ''}</span></button></div>
+    <div class="seg pr-vues" role="tablist" aria-label="Vues">${O.map(([k, l, c, n]) => `<button type="button" role="tab" data-ac="onglet|${k}" aria-selected="${acOnglet === k}"><span class="l-long">${l}</span><span class="l-court">${c}</span>${n ? ` <span class="pr-nb${k === 'demandes' || k === 'notes' ? ' chaud' : ''}">${n}</span>` : ''}</button>`).join('')}</div>
+    ${{ demandes:acDemandes, payer:acPayer, depenses:acDepenses, notes:acNotes }[acOnglet]()}`;
+}
+/* la ligne part dans le brouillon de commande du fournisseur s'il y en a un, sinon dans une commande neuve : on la relit avant l'envoi */
+function acVersCommande(s, q, d){
+  const l = { pid:s.x.id, nom:null, ref:s.x.ref, u:s.x.u, q, pu:s.x.pa, tva:s.x.tva || 20, recu:0 }, br = cmdBrouillonDe(s.x.four);
+  if (br) { const E = JSON.parse(JSON.stringify(br)), m = E.lignes.find(o => o.pid === l.pid); if (m) m.q += q; else E.lignes.push(l); return cmdEdOuvrir(E); }
+  return cmdEdOuvrir({ id:null, num:'BC-2026-0' + cmdNum, four:s.x.four, lignes:[l], liv:'atelier', souh:d.quand || ajoute(AUJ, s.f.dj || 1), pour:'', note:'Demande de ' + H_NOM(d.qui) });
+}
+const acNoter = (d, suite) => { d.etat = 'approuvee'; d.suite = suite; d.par = 'marc'; d.le = AUJ; };
+function acPrevenir(k, txt){ let cv = MS_CONVS.find(o => o.type === 'prive' && o.membres.includes(k)); if (!cv) MS_CONVS.push(cv = { id:'p-' + k, type:'prive', membres:[MS_MOI, k] }); MSGS.push(msM(cv.id, AUJ, hm(MAINT_MIN), MS_MOI, txt, { lu:[MS_MOI] })); }
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-ac]'); if (!b) return;
+  const [a, x] = b.dataset.ac.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x), A = ACHATS.find(o => o.id === x);
+  if (a === 'onglet') { acOnglet = x; return rendre(); }
+  if (a === 'allernotes') { acOnglet = 'notes'; return aller('achats'); }
+  if (a === 'transfert') { const s = acSource(d), q = Math.min(d.q, s.at), m = { type:'transfert', pid:s.x.id, q, de:'atelier', vers:s.camion.id };
+    stkAppliquer(m); MVTS.unshift({ id:'m' + Date.now().toString(36), d:AUJ, h:hm(MAINT_MIN), type:'transfert', pid:s.x.id, q:m.q, de:'atelier', vers:s.camion.id, qui:'marc', motif:'Demande de ' + H_NOM(d.qui) });
+    const reste = Math.max(0, d.q - m.q);
+    acNoter(d, `${prNum(m.q)} ${s.x.u} transférés de l’atelier vers ${s.versLe}${reste && s.f ? `, ${prNum(reste)} ${s.x.u} commandés chez ${s.f.nom}` : ''}`);
+    acPrevenir(d.qui, `C’est bon pour « ${d.quoi} » : ${prNum(m.q)} ${s.x.u} t’attendent à l’atelier, je les ai mis sur ton camion dans le stock.${reste && s.f ? ` Les ${prNum(reste)} ${s.x.u} qui manquent sont commandés.` : ''}`);
+    rendre();
+    if (reste && s.f) { toast(`${prNum(m.q)} ${esc(s.x.u)} transférés vers ${esc(s.versLe)}. Les ${prNum(reste)} ${esc(s.x.u)} restants sont ajoutés à la commande ${esc(s.f.nom)}.`); return acVersCommande(s, reste, d); }
+    return toast(`Rien acheté : ${prNum(m.q)} ${esc(s.x.u)} passent de l’atelier vers ${esc(s.versLe)}. ${esc(H_NOM(d.qui))} est prévenu.`, { lib:'Voir le stock', fn:() => aller('stock') }); }
+  if (a === 'commande') { const s = acSource(d); acNoter(d, `ajouté à la commande ${s.f.nom}`); acPrevenir(d.qui, `« ${d.quoi} » est ajouté à la commande ${s.f.nom}. Tu seras prévenu à la réception.`); return acVersCommande(s, d.q, d); }
+  if (a === 'magasin') { acNoter(d, 'achat en magasin approuvé, à la carte de l’entreprise : ticket à prendre en photo'); ACHATS.push({ id:'a' + Date.now(), d:dFr(AUJ).slice(0, 5), four:'Achat en magasin', objet:d.quoi + ' (' + H_NOM(d.qui) + ')', ht:d.est, tva:20, compte:d.est > 500 ? '2154' : '6063', mode:'Carte', paye:dFr(AUJ).slice(0, 5), piece:null, ref:'à justifier' });
+    acPrevenir(d.qui, `C’est bon pour « ${d.quoi} » (environ ${eur0(d.est)}). Achète-le avec la carte de l’entreprise et prends le ticket en photo dans OP GESTION.`); rendre(); return toast(`Approuvé. ${esc(H_NOM(d.qui))} est prévenu ; le ticket est attendu dans « Justificatifs manquants ».`); }
+  if (a === 'refuser') return ouvrirPanneau(`<span class="surtitre">Refuser la demande</span><h2>${esc(d.quoi)}</h2><label class="champ">Pourquoi (${esc(msPrenom(d.qui))} le lira)<textarea id="ac-motif" rows="3" placeholder="ex. On en a commandé la semaine dernière, elles arrivent mardi."></textarea></label>
+    <div class="actions"><button type="button" class="btn" data-ac="refok|${d.id}">Refuser et prévenir</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+  if (a === 'refok') { const mo = document.getElementById('ac-motif').value.trim(); if (!mo) return toast('Un refus s’explique : écris pourquoi.'); d.etat = 'refusee'; d.motif = mo; acPrevenir(d.qui, `Pour « ${d.quoi} » : pas cette fois. ${mo}`); fermerPanneau(); rendre(); return toast(`Refusée. ${esc(H_NOM(d.qui))} a le motif dans la Messagerie.`); }
+  if (a === 'payer') { A.paye = dFr(AUJ).slice(0, 5); A.mode = 'Virement'; acSel.delete(A.id); rendre(); return toast(`${esc(A.ref)} payée par virement (${eur(acTTC(A))}) : rangée en comptabilité.`, { lib:'Annuler', fn:() => { A.paye = null; A.mode = null; rendre(); } }); }
+  if (a === 'virement') { const L = acAPayer().filter(o => acSel.has(o.id)), tot = L.reduce((s, o) => s + acTTC(o), 0);
+    return ouvrirPanneau(`<span class="surtitre">Virement groupé</span><h2>${L.length} facture${L.length > 1 ? 's' : ''} · ${eur(tot)}</h2><div class="fo-bloc">${L.map(o => `<div class="ligne"><span>${esc(o.four)} · ${esc(o.ref)}</span><b>${eur(acTTC(o))}</b></div>`).join('')}</div>
+      <span class="gris petit">Les IBAN viennent des fiches fournisseurs. Le fichier se dépose dans l’espace de ta banque ; rien ne part sans ta validation chez elle.</span>
+      <div class="actions"><button type="button" class="btn" data-ac="virok">Télécharger le fichier et marquer payées</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
+  if (a === 'virok') { const L = acAPayer().filter(o => acSel.has(o.id)); L.forEach(o => { o.paye = dFr(AUJ).slice(0, 5); o.mode = 'Virement'; }); acSel.clear(); fermerPanneau(); rendre(); return toast(`Fichier de virement prêt (${L.length} factures). Elles sont marquées payées et rangées en comptabilité.`); }
+  if (a === 'piece') { A.piece = 'ticket'; A.just = 'photo du ' + dFr(AUJ).slice(0, 5); if (A.ref === 'à justifier') A.ref = 'TICKET-' + dFr(AUJ).slice(0, 5).replace('/', ''); rendre(); return toast('Ticket ajouté : la TVA de cette dépense est récupérable.'); }
+  if (a === 'ndfok') { n.etat = 'validee'; ACHATS.push({ id:'a' + n.id, d:dFr(n.d).slice(0, 5), four:'Note de frais · ' + H_NOM(n.qui), objet:n.objet, ht:Math.round(n.ttc / (1 + n.tva / 100) * 100) / 100, tva:n.tva, compte:'625', mode:'Note de frais', paye:null, piece:'ticket', ref:'NDF-' + n.id.toUpperCase() });
+    rendre(); return toast(`Validée : ${eur(n.ttc)} remboursés à ${esc(msPrenom(n.qui))} avec la paie de novembre.`); }
+  if (a === 'ndfticket') { acPrevenir(n.qui, `Pour ta note « ${n.objet} » (${eur(n.ttc)}), il me manque le ticket : prends-le en photo dans OP GESTION et je la valide.`); return toast(`Demande envoyée à ${esc(msPrenom(n.qui))} dans la Messagerie.`); }
+  if (a === 'ndfnon') { n.etat = 'refusee'; acPrevenir(n.qui, `Ta note « ${n.objet} » n’est pas remboursée : sans ticket, on ne peut pas.`); rendre(); return toast('Refusée, la personne est prévenue.'); }
+});
+document.addEventListener('change', ev => { const t = ev.target; if (!t.matches('[data-acsel]')) return; t.checked ? acSel.add(t.dataset.acsel) : acSel.delete(t.dataset.acsel); rendre(); });
 
 const prixCatalogue = nom => { const x = CATALOGUE.find(c => c[0] === nom); return x ? x[1] : null; };
 const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer le ventilateur extérieur', lignes:[['Ventilateur extérieur Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
