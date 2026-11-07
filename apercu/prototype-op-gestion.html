@@ -363,6 +363,44 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
   .cmd-outils .seg{width:100%}.cmd-outils .seg button{flex:1 1 auto;padding:0 6px;min-width:0;font-size:14.5px}.cmd-outils .seg .pr-nb:not(.chaud){display:none}
   .ced-entete{display:none}.ced-l{grid-template-columns:1fr 1fr 40px;grid-template-areas:"n n x" "q p p" "t t t"}.ced-l>.fo-n{grid-area:n}.ced-l>.cmd-x{grid-area:x}.ced-l>.ced-c:nth-of-type(1){grid-area:q}.ced-l>.ced-c:nth-of-type(2){grid-area:p}.ced-t{grid-area:t}.ced-c span{display:inline;font-size:12.5px;color:var(--doux)}
   .bc-doc{padding:14px;font-size:12.5px}.bc-blocs{grid-template-columns:1fr}.bc-titre{text-align:left}.bc-pl{grid-template-columns:1fr 1fr}.bc-pl>.fo-n{grid-column:1/-1}}
+.sk-lieux{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.sk-lieu{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--surf);border:1px solid var(--trait);border-radius:var(--r2);padding:12px;color:var(--encre);font:inherit;cursor:pointer;box-shadow:var(--ombre);min-width:0}
+@media (hover:hover){.sk-lieu:hover,.sk-l:hover,.bx-c:hover{background:var(--survol)}}
+.sk-li{font-size:20px;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--surf2);border:1px solid var(--trait);flex:none}
+.sk-m{font-size:12.5px;font-weight:650;color:var(--orange)}.sk-ok{font-size:12.5px;font-weight:600;color:var(--vert)}
+.sk-liste{padding:6px 14px}.sk-liste .groupe{display:flex;align-items:center;gap:6px}
+.sk-l{display:flex;justify-content:space-between;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);padding:10px 4px;color:var(--encre);font:inherit;cursor:pointer;min-height:56px;border-radius:10px}
+.sk-rep{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:13px;color:var(--doux)}.sk-rep b{color:var(--encre)}.sk-ec{color:var(--lien);font-weight:600}
+.mv-l{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--trait);padding:10px 2px;flex-wrap:wrap}.mv-l>.fo-n{flex:1 1 220px}
+.mv-ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;flex:none;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c)}
+.mv-q{font-weight:700;margin-left:4px;white-space:nowrap}.mv-lien{min-height:28px;font-size:13px}.mv-att{background:color-mix(in srgb,var(--orange) 7%,transparent);border-radius:12px;padding:10px;margin:4px 0}
+.mv-gestes{display:flex;gap:8px;margin-left:auto}
+.sk-sel{flex:0 1 280px;min-width:0}.sk-e{width:56px;text-align:right;font-weight:700;flex:none}.sk-pied{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px}
+.bx-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.bx-c{display:flex;flex-direction:column;gap:10px;text-align:left;color:var(--encre);font:inherit;cursor:pointer}.bx-t{display:flex;gap:10px;align-items:flex-start}
+@media (max-width:760px){.sk-lieux{grid-template-columns:1fr 1fr}.sk-lieu{padding:10px}.sk-li{width:32px;height:32px;font-size:17px}.mv-gestes{width:100%}.mv-gestes .btn{flex:1}.bx-grille{grid-template-columns:1fr}.sk-liste{padding:4px 10px}}
+.ve-urg{display:flex;flex-direction:column;padding:14px 16px}.ve-u{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--trait);padding:10px 2px;color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
+@media (hover:hover){.ve-u:hover{background:var(--survol)}}
+.ve-l2{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ve-plaque{display:inline-block;white-space:nowrap;align-self:flex-start;font:600 12.5px/1 var(--mono);letter-spacing:.04em;padding:3px 7px;border-radius:6px;border:1px solid var(--trait2);background:var(--surf2)}
+.ve-e{font-size:13.5px;padding:7px 10px;border-radius:10px;background:var(--surf2)}.ve-e.ve-o{background:color-mix(in srgb,var(--orange) 12%,transparent)}.ve-e.ve-r{background:color-mix(in srgb,var(--rouge) 12%,transparent)}
+.ve-pt{width:10px;height:10px;border-radius:50%;flex:none}.ve-pt.ve-v{background:var(--vert)}.ve-pt.ve-o{background:var(--orange)}.ve-pt.ve-r{background:var(--rouge)}
+.ve-ot{color:var(--orange)}.ve-rt{color:var(--rouge)}.ve-vt{color:var(--vert)}
+.ve-mat{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0 12px}
+.ve-c .fo-stats i{font-style:normal}
+@media (max-width:760px){.ve-mat{grid-template-columns:1fr 1fr}}
+.pt-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pt-nav b{font-size:16px}
+.pt-grille{padding:6px 10px;overflow-x:auto}
+.pt-r{display:grid;grid-template-columns:170px repeat(5,minmax(86px,1fr)) 112px 92px;gap:6px;align-items:stretch;border-bottom:1px solid var(--trait);padding:8px 0;min-width:840px}
+.pt-grille .pt-r:last-child{border-bottom:0}.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);text-transform:capitalize;padding:6px 0}
+.pt-qui{display:flex;flex-direction:column;justify-content:center;text-align:left;background:none;border:0;color:var(--encre);font:inherit;cursor:pointer;padding:4px;border-radius:10px}
+.pt-j{display:flex;flex-direction:column;gap:1px;align-items:flex-start;justify-content:center;text-align:left;border:1px solid var(--trait);background:var(--surf2);border-radius:10px;padding:6px 8px;color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
+@media (hover:hover){.pt-j:hover,.pt-qui:hover{background:var(--survol)}}
+.pt-j span{font-size:12px;color:var(--doux)}.pt-j b{font-size:14.5px;font-variant-numeric:tabular-nums}
+.pt-abs{background:color-mix(in srgb,var(--violet) 12%,transparent)}.pt-ouv{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 10%,transparent)}.pt-manque{border-style:dashed;border-color:var(--rouge)}
+.pt-tot{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;font-variant-numeric:tabular-nums}.pt-val{display:flex;align-items:center;justify-content:flex-end}
+.pt-al{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;padding:0 4px}
+.pt-paie{padding:6px 14px}.pt-p{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:8px;padding:11px 2px;border-bottom:1px solid var(--trait);align-items:center;font-variant-numeric:tabular-nums}.pt-paie .pt-p:last-child{border-bottom:0}
+@media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}.pt-r{grid-template-columns:118px repeat(5,minmax(80px,1fr)) 100px 86px;min-width:780px}}
+.pt-alertes{display:flex;flex-direction:column;padding:14px 16px}
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -5767,7 +5805,7 @@ function barreBas(base){
 const BASE = { inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
 function rendre(){
   document.getElementById('cr-ftel')?.remove();
-  const V = { accueil:vueAccueil, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
+  const V = { accueil:vueAccueil, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
   const base = BASE[route] || route, x = scrollX, defs = [...document.querySelectorAll('.pl-defile')].map(d => d.scrollLeft);
   document.getElementById('menu').innerHTML = menu(base);
   document.getElementById('contenu').innerHTML = `<div class="tete-tel"><span class="logo" style="padding:0"><i>OP</i><b>OP GESTION</b></span><div style="width:190px">${segMode()}</div></div>` + (V[route] && (!estGrise(route) || (typeof RETOUR !== 'undefined' && RETOUR)) ? V[route]() : CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? vueARefaire(route) : vueARefaire(premiereARefaire()));
@@ -6544,7 +6582,7 @@ function foFactureVue(){
 function foFactureValider(){
   const F = FO_FAC, avant = JSON.parse(JSON.stringify(PRODUITS)), nA = ACHATS.length;
   F.L.forEach(o => {
-    if (o.x) { if (F.stock) o.x.q = Math.round((o.x.q + o.q) * 100) / 100; if (F.prix && o.x.pa && Math.abs(o.pu - o.x.pa) >= .01) { if (F.marges && prVend(o.x)) o.x.pv = foArr(o.x.pv * o.pu / o.x.pa); o.x.paAvant = o.x.pa; o.x.pa = o.pu; } }
+    if (o.x) { if (F.stock) { o.x.q = Math.round((o.x.q + o.q) * 100) / 100; stkJournalEntree(o.x.id, o.q, 'Facture ' + F.num + ' de ' + F.f.nom + ' (lue en photo)'); } if (F.prix && o.x.pa && Math.abs(o.pu - o.x.pa) >= .01) { if (F.marges && prVend(o.x)) o.x.pv = foArr(o.x.pv * o.pu / o.x.pa); o.x.paAvant = o.x.pa; o.x.pa = o.pu; } }
     else PRODUITS.push({ id:'p' + Date.now().toString(36) + PRODUITS.length, p:o.r.p, cat:o.r.cat, nom:o.nom, ref:'—', u:o.u, pa:o.pu, pv:o.r.t === 'm' ? null : foArr(o.pu * foCoef(o.r.p, o.r.cat)), tva:20, four:F.f.nom, q:F.stock ? o.q : 0, seuil:0 });
   });
   if (F.achats) ACHATS.push({ id:'a' + Date.now().toString(36), d:F.d, fid:F.f.id, four:F.f.nom, objet:F.L.map(o => o.nom).slice(0, 3).join(', '), ht:F.ht, tva:20, compte:'607', mode:null, piece:'facture', ref:F.num, just:F.num + ' (photo)' });
@@ -6952,7 +6990,7 @@ function cmdReception(id){ const c = COMMANDES.find(o => o.id === id);
 }
 function cmdReceptionner(id){
   const c = COMMANDES.find(o => o.id === id), avant = JSON.parse(JSON.stringify({ c, p:PRODUITS })), recus = [];
-  document.querySelectorAll('[data-cmr]').forEach(i => { const l = c.lignes[+i.dataset.cmr], n = Math.max(0, Math.min(l.q - l.recu, foNum(i.value) || 0)); if (!n) return; l.recu += n; const x = cmdArt(l); if (x) x.q = Math.round((x.q + n) * 100) / 100; recus.push([l, n]); });
+  document.querySelectorAll('[data-cmr]').forEach(i => { const l = c.lignes[+i.dataset.cmr], n = Math.max(0, Math.min(l.q - l.recu, foNum(i.value) || 0)); if (!n) return; l.recu += n; const x = cmdArt(l); if (x) { x.q = Math.round((x.q + n) * 100) / 100; stkJournalEntree(x.id, n, 'Réception de la commande ' + c.num, c.id); } recus.push([l, n]); });
   if (!recus.length) return toast('Rien de reçu : mets la quantité arrivée.');
   const tout = c.lignes.every(l => l.recu >= l.q);
   c.st = tout ? 'recue' : 'partielle'; if (tout) c.recue = AUJ; else c.reliquat = (document.getElementById('cmd-reliq') || {}).value || ajoute(AUJ, 3);
@@ -7030,6 +7068,472 @@ function vueFournisseurs(){
   return `<div class="fo-grille">${MES_FOURN.map(carte).join('')}</div>
     <button type="button" class="carte fo-ajout" data-fo="liste"><b>＋ Ajouter un fournisseur</b><span class="gris petit">${foNbDir()} fournisseurs de tes métiers dans la liste de TEAM OP, ou ton fournisseur local</span></button>`;
 }
+
+/* ⟦module stock⟧ */
+/* ══ STOCK ET LIEUX DE STOCK (Boxes) ══
+   Justin, 7 novembre 2026 : « fais toutes les catégories qui restent, une par une, logiques ; si certaines doivent fonctionner avec
+   d'autres, mets-les en relation ». Le stock d'une entreprise de terrain est à plusieurs ENDROITS : l'atelier, chaque camion, et parfois
+   une réserve laissée chez un client sous contrat (pour la 3D, les box posées chez les clients). Un seul modèle les tient tous :
+   · un article garde son total (x.q, celui des devis, des commandes et des alertes) ; ce qui est HORS de l'atelier est rangé par lieu
+     (x.loc) ; l'atelier, c'est le reste — une réception de commande entre donc à l'atelier sans rien demander à personne ;
+   · le stock ne bouge QUE par un geste qui dit QUI (règle de l'application, 24 septembre 2026) : une entrée (réception, arrivage),
+     un transfert (atelier → camion), une sortie « Pour qui ? » (utilisé chez un client, donné à un collègue, cassé), une correction
+     d'inventaire. Une intervention ne déduit rien toute seule : le technicien déclare ce qu'il a pris ;
+   · réglage de l'entreprise : les sorties d'un technicien passent par la VALIDATION du responsable avant de toucher au stock ;
+   · chaque camion a sa DOTATION (ce qu'il doit toujours avoir à bord) : « Réassort des camions » propose les transferts, et ce que
+     l'atelier n'a plus part dans les commandes ;
+   · une trace dit ce qui a BOUGÉ, jamais ce qui était demandé (on ne sort pas 4 d'un lieu qui en a 1). Données fictives. */
+const LIEUX = [
+  { id:'atelier', nom:'Atelier', type:'atelier', resp:'marc', adr:'4 rue du Port, 17000 La Rochelle', acces:['marc', 'julie', 'sm', 'kb', 'lr', 'tl'] },
+  { id:'v1', nom:'Camion de Sophie', type:'vehicule', tech:'sm', dot:'clim' }, { id:'v2', nom:'Camion de Karim', type:'vehicule', tech:'kb', dot:'clim' },
+  { id:'v3', nom:'Camion de Léa', type:'vehicule', tech:'lr', dot:'plomb' }, { id:'v4', nom:'Camion de Tom', type:'vehicule', tech:'tl', dot:'plomb' },
+  { id:'d-hp', nom:'Réserve de l’Hôtel de la Plage', type:'depot', cli:'hp', resp:'kb', note:'Filtres et pièces laissés sur place pour le contrat d’entretien · local technique, 2ᵉ sous-sol, badge à l’accueil' }
+];
+const LIEU_IC = { atelier:'🏬', vehicule:'🚐', depot:'📦' };
+const DOTATION = { clim:{ p1:3, p2:2, p4:3, p5:1, p7:1, p12:10, p14:1 }, plomb:{ p23:1, p25:3, p26:10, p27:3, p7:1, p14:1 } };   // ce qu'un camion doit toujours avoir à bord
+[['p1', { v1:2, v2:3, 'd-hp':4 }], ['p2', { v1:2, 'd-hp':2 }], ['p4', { v1:2.5, v2:3 }], ['p5', { v2:1 }], ['p7', { v1:1, v2:1, v3:1, v4:1 }], ['p12', { v1:10, v2:6 }],
+ ['p14', { v1:1, v3:1, v4:1 }], ['p25', { v3:3, v4:1 }], ['p26', { v3:10, v4:8 }], ['p27', { v3:3 }], ['p23', { v3:1 }]].forEach(([id, loc]) => { const x = PRODUITS.find(p => p.id === id); if (x) x.loc = loc; });
+const H_NOM = k => (H_GENS[k] || {}).nom || k;
+let STK_VALID = true;   // réglage de l'entreprise : les sorties des techniciens passent par le responsable
+let brNum = 18, stkOnglet = 'ensemble', stkQ = '', stkFiltre = 'tous', mvFiltre = 'tous', mvRech = '', invLieu = null, INV = {};
+let MVTS = [
+  { id:'m1', d:jour(-14), h:'16:10', type:'entree', pid:'p11', q:1, vers:'atelier', qui:'marc', motif:'Réception de la commande BC-2026-035', bc:'c35' },
+  { id:'m2', d:jour(-4), h:'09:05', type:'entree', pid:'p18', q:1, vers:'atelier', qui:'julie', motif:'Réception de la commande BC-2026-036', bc:'c36' },
+  { id:'m3', d:jour(-4), h:'09:05', type:'entree', pid:'p21', q:6, vers:'atelier', qui:'julie', motif:'Réception de la commande BC-2026-036', bc:'c36' },
+  { id:'m4', d:jour(-3), h:'07:40', type:'transfert', pid:'p1', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Réassort du camion', valPar:'marc' },
+  { id:'m5', d:jour(-3), h:'07:40', type:'transfert', pid:'p4', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Réassort du camion', valPar:'marc' },
+  { id:'m6', d:jour(-3), h:'17:20', type:'entree', pid:'p25', q:2, vers:'atelier', qui:'julie', motif:'Réception partielle de BC-2026-038', bc:'c38' },
+  { id:'m7', d:jour(-2), h:'11:30', type:'sortie', pid:'p3', q:1, de:'v1', qui:'sm', pourQui:'sm', motif:'Utilisé chez le client', inter:'i3', valPar:'marc' },
+  { id:'m8', d:jour(-1), h:'08:15', type:'sortie', pid:'p27', q:2, de:'atelier', qui:'julie', pourQui:'lr', motif:'Donné à un collègue', br:'BR-2026-017', valPar:'marc' },
+  { id:'m9', d:jour(-1), h:'18:05', type:'correction', pid:'p26', q:-2, de:'v4', qui:'marc', motif:'Inventaire (Camion de Tom) : 2 de moins que prévu' }
+];
+let MVTS_ATT = [   // déclarés par un technicien, pas encore appliqués au stock
+  { id:'a1', d:AUJ, h:'07:52', type:'transfert', pid:'p7', q:2, de:'atelier', vers:'v4', qui:'tl', motif:'Pris pour mon camion' },
+  { id:'a2', d:AUJ, h:'10:12', type:'sortie', pid:'p4', q:1.5, de:'v1', qui:'sm', pourQui:'sm', motif:'Utilisé chez le client', inter:'i1' }
+];
+const lieu = id => LIEUX.find(l => l.id === id) || { id, nom:id, type:'atelier' };
+const lieuNom = id => lieu(id).nom;
+const stkR = n => Math.round(n * 100) / 100;
+const stkAt = (x, l) => l === 'atelier' ? stkR(x.q - Object.values(x.loc || {}).reduce((s, v) => s + v, 0)) : ((x.loc || {})[l] || 0);
+function stkPoser(x, l, d){ if (l === 'atelier') return; x.loc = x.loc || {}; x.loc[l] = stkR((x.loc[l] || 0) + d); if (!x.loc[l]) delete x.loc[l]; }
+/* appliquer un mouvement : la seule porte qui change une quantité de stock (plafonnée à ce qui est vraiment là) */
+function stkAppliquer(m){
+  const x = PRODUITS.find(p => p.id === m.pid); if (!x) return 0;
+  if (m.type === 'entree') { stkPoser(x, m.vers, m.q); x.q = stkR(x.q + m.q); return m.q; }
+  if (m.type === 'correction') { const q = Math.max(m.q, -stkAt(x, m.de)); stkPoser(x, m.de, q); x.q = stkR(x.q + q); m.q = q; return q; }
+  const q = Math.min(m.q, stkAt(x, m.de)); if (q <= 0) return 0; m.q = q;
+  if (m.type === 'transfert') { stkPoser(x, m.de, -q); stkPoser(x, m.vers, q); }
+  else { stkPoser(x, m.de, -q); x.q = stkR(x.q - q); }
+  return q;
+}
+const hNow = () => hm(MAINT_MIN);
+/* une réception de commande ou une facture lue entre aussi au journal (Commandes → Stock) */
+function stkJournalEntree(pid, q, motif, bc){ MVTS.unshift({ id:'m' + Date.now().toString(36) + MVTS.length, d:AUJ, h:hNow(), type:'entree', pid, q, vers:'atelier', qui:'marc', motif, bc }); }
+const lieuValeur = l => PRODUITS.filter(x => !x.retire).reduce((s, x) => s + (x.pa || 0) * Math.max(0, stkAt(x, l)), 0);
+const lieuArticles = l => PRODUITS.filter(x => !x.retire && stkAt(x, l) > 0);
+function lieuManques(l){ const L = lieu(l), D = L.dot ? DOTATION[L.dot] : null; if (!D) return [];
+  return Object.entries(D).map(([pid, cible]) => { const x = PRODUITS.find(p => p.id === pid); return x && !x.retire ? { x, cible, a:stkAt(x, l), manque:stkR(cible - stkAt(x, l)) } : null; }).filter(o => o && o.manque > 0); }
+const MV_IC = { entree:['↓', 'Entrée', 'st-v'], sortie:['↑', 'Sortie', 'st-o'], transfert:['⇄', 'Transfert', 'st-b'], correction:['≠', 'Correction', 'st-g'] };
+function mvTexte(m){ const x = PRODUITS.find(p => p.id === m.pid) || { nom:'?', u:'u' }, i = m.inter && INTS.find(o => o.id === m.inter);
+  const ou = m.type === 'transfert' ? `${lieuNom(m.de)} → ${lieuNom(m.vers)}` : m.type === 'entree' ? `→ ${lieuNom(m.vers)}` : `${lieuNom(m.de)}`;
+  return { x, ou, i, quoi:`${m.type === 'correction' && m.q > 0 ? '+' : m.type === 'sortie' || m.q < 0 ? '−' : '+'}${prNum(Math.abs(m.q))} ${prU(Math.abs(m.q), x.u)}` }; }
+function mvLigne(m, att){ const t = mvTexte(m), ic = MV_IC[m.type];
+  return `<div class="mv-l${att ? ' mv-att' : ''}"><span class="mv-ic ${ic[2]}" aria-hidden="true">${ic[0]}</span><span class="fo-n"><b>${esc(t.x.nom)} <span class="mv-q">${t.quoi}</span></b>
+    <span class="gris petit">${esc(t.ou)} · ${esc(m.motif || ic[1])}${m.pourQui && m.pourQui !== m.qui ? ' · pour ' + esc(H_NOM(m.pourQui)) : ''}${t.i ? ` · <button type="button" class="lien mv-lien" data-tvoir="inter|${t.i.id}">${esc(CLIENTS[t.i.cli].nom)}</button>` : ''}${m.bc ? ` · <button type="button" class="lien mv-lien" data-cm="voir|${m.bc}">${esc((COMMANDES.find(c => c.id === m.bc) || {}).num || 'commande')}</button>` : ''}${m.br ? ` · <button type="button" class="lien mv-lien" data-sk="br|${m.id}">${esc(m.br)}</button>` : ''}</span></span>
+    <span class="fo-dr"><span class="petit">${esc(H_NOM(m.qui))}</span><span class="gris petit">${jCourt(m.d)} · ${m.h}${m.valPar ? ' · validé' : ''}</span></span>
+    ${att ? `<span class="mv-gestes"><button type="button" class="btn petit" data-sk="val|${m.id}">Valider</button><button type="button" class="btn gris petit" data-sk="ref|${m.id}">Refuser</button></span>` : ''}</div>`; }
+
+function vueStock(){
+  const tous = PRODUITS.filter(x => !x.retire), val = tous.reduce((s, x) => s + (x.pa || 0) * Math.max(0, x.q), 0), camions = LIEUX.filter(l => l.type === 'vehicule');
+  const valCam = camions.reduce((s, l) => s + lieuValeur(l.id), 0), aCmd = aCommander(), manques = camions.reduce((s, l) => s + lieuManques(l.id).length, 0);
+  const onglets = `<div class="seg pr-vues" role="tablist" aria-label="Stock">${[['ensemble', 'Vue d’ensemble', 'Ensemble'], ['mvts', 'Mouvements', 'Mouvements'], ['inventaire', 'Inventaire', 'Inventaire'], ['valider', 'À valider', 'Valider', MVTS_ATT.length]].map(([k, l, c, n]) => `<button type="button" role="tab" data-sk="onglet|${k}" aria-pressed="${stkOnglet === k}" aria-selected="${stkOnglet === k}" aria-label="${l}${n ? ' · ' + n : ''}"><span class="l-long">${l}</span><span class="l-court" aria-hidden="true">${c}</span>${n ? `<span class="pr-nb chaud" aria-hidden="true">${n}</span>` : ''}</button>`).join('')}</div>`;
+  const tete = `<div class="tete"><div><span class="surtitre">Stock</span><h1>Stock</h1><span class="gris">Où est chaque article — l’atelier, les camions, les réserves chez les clients —, qui l’a pris, et ce qui manque.</span></div>
+    <div class="actions"><button type="button" class="btn gris" data-sk="sortie|">Sortie</button><button type="button" class="btn gris" data-sk="transfert|">Transfert</button><button type="button" class="btn" data-sk="reassort">Réassort des camions${manques ? ' · ' + manques : ''}</button></div></div>${onglets}`;
+  if (stkOnglet === 'mvts') return tete + stkVueMouvements();
+  if (stkOnglet === 'inventaire') return tete + stkVueInventaire();
+  if (stkOnglet === 'valider') return tete + stkVueValider();
+  const q = prNorm(stkQ), L = tous.filter(x => (!q || prNorm(x.nom + ' ' + x.ref + ' ' + x.four).includes(q)) && (stkFiltre === 'tous' || (stkFiltre === 'manque' ? x.seuil > 0 && x.q <= x.seuil : stkFiltre === 'camions' ? Object.keys(x.loc || {}).some(k => lieu(k).type === 'vehicule') : true)));
+  const etat = x => x.q <= 0 ? 0 : x.seuil > 0 && x.q <= x.seuil ? 1 : 2, G = [['Épuisé', 'st-r'], ['À commander', 'st-o'], ['En stock', 'st-v']];
+  const ligne = x => { const rep = [['atelier', stkAt(x, 'atelier')], ...Object.entries(x.loc || {})].filter(([, v]) => v > 0), ec = enCommande(x);
+    return `<button type="button" class="sk-l" data-pr="fiche|${x.id}"><span class="fo-n"><b>${esc(x.nom)}</b><span class="sk-rep">${rep.map(([k, v]) => `<span>${LIEU_IC[lieu(k).type]} ${esc(lieu(k).type === 'vehicule' ? H_NOM(lieu(k).tech).split(' ')[0] : lieu(k).type === 'depot' ? 'Réserve client' : 'Atelier')} <b>${prNum(v)}</b></span>`).join('') || '<span class="gris">nulle part</span>'}${ec ? `<span class="sk-ec">🛒 ${prNum(ec)} en commande</span>` : ''}</span></span>
+      <span class="fo-dr"><b>${prNum(x.q)} ${esc(prU(x.q, x.u))}</b><span class="gris petit">${x.seuil ? 'alerte à ' + prNum(x.seuil) : 'pas d’alerte'}</span></span></button>`; };
+  const groupes = G.map((g, k) => { const M = L.filter(x => etat(x) === k); return M.length ? `<div class="groupe"><span class="st ${g[1]}">${g[0]}</span> · ${M.length}</div>${M.map(ligne).join('')}` : ''; }).join('');
+  return tete + `<div class="kpis"><div class="kpi"><b>${eur(val)}</b><span>valeur du stock (prix d’achat HT)</span></div>
+      <button type="button" class="kpi" data-sk="filtre|camions"><b>${eur(valCam)}</b><span>dans les ${camions.length} camions</span></button>
+      <button type="button" class="kpi" data-sk="vers-cmd"><b style="color:${aCmd.length ? 'var(--orange)' : 'inherit'}">${aCmd.length}</b><span>à commander ›</span></button>
+      <button type="button" class="kpi" data-sk="onglet|valider"><b style="color:${MVTS_ATT.length ? 'var(--rouge)' : 'inherit'}">${MVTS_ATT.length}</b><span>mouvement${MVTS_ATT.length > 1 ? 's' : ''} à valider</span></button></div>
+    <div class="sk-lieux">${LIEUX.map(l => { const n = lieuArticles(l.id).length, m = lieuManques(l.id);
+      return `<button type="button" class="sk-lieu" data-sk="lieu|${l.id}"><span class="sk-li">${LIEU_IC[l.type]}</span><span class="fo-n"><b>${esc(l.nom)}</b><span class="gris petit">${n} article${n > 1 ? 's' : ''} · ${eur0(lieuValeur(l.id))}</span>${m.length ? `<span class="sk-m">${m.length} à remettre à bord</span>` : l.type === 'vehicule' ? '<span class="sk-ok">dotation complète</span>' : ''}</span></button>`; }).join('')}</div>
+    <div class="pr-outils"><div class="seg" role="group" aria-label="Filtre">${[['tous', 'Tout'], ['manque', 'À commander'], ['camions', 'Dans les camions']].map(([k, l]) => `<button type="button" data-sk="filtre|${k}" aria-pressed="${stkFiltre === k}">${l}</button>`).join('')}</div>
+      <label class="pr-cherche"><input class="saisie" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="Chercher un article, une référence…" aria-label="Chercher un article"></label></div>
+    <div class="carte sk-liste">${groupes || '<div class="gris">Aucun article ne correspond.</div>'}</div>`;
+}
+function stkVueMouvements(){
+  const q = prNorm(mvRech), L = MVTS.filter(m => (mvFiltre === 'tous' || m.type === mvFiltre || m.de === mvFiltre || m.vers === mvFiltre) && (!q || prNorm([(PRODUITS.find(p => p.id === m.pid) || {}).nom, H_NOM(m.qui), m.pourQui && H_NOM(m.pourQui), m.motif, m.br].join(' ')).includes(q)));
+  const jours = [...new Set(L.map(m => m.d))];
+  return `<div class="pr-outils"><select class="saisie sk-sel" data-skmvf="1" aria-label="Filtrer les mouvements"><option value="tous">Tous les mouvements</option>${Object.entries(MV_IC).map(([k, v]) => `<option value="${k}" ${mvFiltre === k ? 'selected' : ''}>${v[1]}s</option>`).join('')}${LIEUX.map(l => `<option value="${l.id}" ${mvFiltre === l.id ? 'selected' : ''}>${esc(l.nom)}</option>`).join('')}</select>
+      <label class="pr-cherche"><input class="saisie" type="search" data-skmvq="1" value="${esc(mvRech)}" placeholder="Article, personne, bon de remise…" aria-label="Chercher un mouvement"></label></div>
+    <div class="carte sk-liste">${jours.map(d => `<div class="groupe">${esc(jlong(d))}</div>${L.filter(m => m.d === d).map(m => mvLigne(m)).join('')}`).join('') || '<div class="gris">Aucun mouvement.</div>'}</div>
+    <span class="gris petit">Une ligne dit ce qui a vraiment bougé. Une intervention ne retire rien toute seule : c’est le geste de la personne qui fait la ligne.</span>`;
+}
+function stkVueValider(){
+  return `<div class="info petit">${STK_VALID ? 'Les sorties et les prises des techniciens attendent ta validation : tant qu’elles ne sont pas validées, le stock ne bouge pas.' : 'La validation est coupée : les gestes des techniciens touchent le stock tout de suite.'} <label class="fo-garder" style="display:inline-flex;min-height:36px"><input type="checkbox" data-skvalid="1" ${STK_VALID ? 'checked' : ''}> Valider les gestes des techniciens</label></div>
+    <div class="carte sk-liste">${MVTS_ATT.map(m => mvLigne(m, true)).join('') || '<div class="gris">Rien à valider.</div>'}</div>`;
+}
+function stkVueInventaire(){
+  const l = invLieu ? lieu(invLieu) : null;
+  if (!l) return `<span class="gris">Compter un lieu : chaque écart devient une correction tracée, avec sa valeur. Commence par ce qui vaut le plus ou ce qui n’a pas été compté depuis longtemps.</span>
+    <div class="sk-lieux">${LIEUX.map(o => { const d = MVTS.find(m => m.type === 'correction' && m.de === o.id && /^Inventaire/.test(m.motif)); return `<button type="button" class="sk-lieu" data-sk="inv|${o.id}"><span class="sk-li">${LIEU_IC[o.type]}</span><span class="fo-n"><b>${esc(o.nom)}</b><span class="gris petit">${lieuArticles(o.id).length} articles · ${eur0(lieuValeur(o.id))}</span><span class="${d ? 'gris' : 'sk-m'} petit">${d ? 'compté le ' + jCourt(d.d) : 'jamais compté'}</span></span></button>`; }).join('')}</div>`;
+  const A = PRODUITS.filter(x => !x.retire && (stkAt(x, l.id) > 0 || (l.dot && DOTATION[l.dot][x.id]))).sort((a, b) => (b.pa || 0) * stkAt(b, l.id) - (a.pa || 0) * stkAt(a, l.id));
+  const ecarts = A.filter(x => INV[x.id] != null && INV[x.id] !== stkAt(x, l.id)), vEcart = ecarts.reduce((s, x) => s + (INV[x.id] - stkAt(x, l.id)) * (x.pa || 0), 0);
+  return `<div class="cmd-tt"><h2 class="cmd-titre">${LIEU_IC[l.type]} Inventaire · ${esc(l.nom)}</h2><button type="button" class="btn gris" data-sk="inv|">Changer de lieu</button></div>
+    <div class="carte sk-liste">${A.map(x => { const a = stkAt(x, l.id), c = INV[x.id], e = c != null ? stkR(c - a) : null;
+      return `<div class="mv-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${esc(x.ref)} · prévu ${prNum(a)} ${esc(prU(a, x.u))}</span></span><label class="fo-q"><span class="gris petit">Compté</span><input inputmode="decimal" data-skinv="${x.id}" value="${c != null ? prNum(c) : ''}" placeholder="${prNum(a)}" aria-label="Compté : ${esc(x.nom)}"></label><span class="sk-e ${e > 0 ? 'fo-down' : e < 0 ? 'fo-up' : 'gris'}">${e == null ? '—' : e === 0 ? '✓' : (e > 0 ? '+' : '') + prNum(e)}</span></div>`; }).join('')}</div>
+    <div class="carte sk-pied"><span class="petit">${ecarts.length ? `<b>${ecarts.length} écart${ecarts.length > 1 ? 's' : ''}</b> · ${vEcart >= 0 ? '+' : ''}${eur(vEcart)}` : 'Tape ce que tu comptes ; laisse vide ce qui est juste.'}</span><button type="button" class="btn" data-sk="invok" ${ecarts.length ? '' : 'disabled'}>Valider l’inventaire</button></div>`;
+}
+/* la fiche d'un lieu (atelier, camion, réserve) : ce qu'il y a, ce qui manque à sa dotation, son historique */
+function lieuFiche(id){
+  const l = lieu(id), A = lieuArticles(id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), m = lieuManques(id), V = typeof VEHICULES !== 'undefined' && VEHICULES.find(v => v.lieu === id);
+  ouvrirPanneau(`<span class="surtitre">${LIEU_IC[l.type]} ${l.type === 'vehicule' ? 'Stock embarqué' : l.type === 'depot' ? 'Réserve chez un client' : 'Stock principal'}</span><h2>${esc(l.nom)}</h2>
+    <div class="gris petit">${l.type === 'vehicule' ? 'Conduit par ' + esc(H_NOM(l.tech)) + (V ? ` · <button type="button" class="lien" data-ve="fiche|${V.id}">${esc(V.plaque)} ›</button>` : '') : l.type === 'depot' ? esc(CLIENTS[l.cli].nom) + ' · responsable ' + esc(H_NOM(l.resp)) + (l.note ? ' · ' + esc(l.note) : '') : 'Responsable ' + esc(H_NOM(l.resp)) + ' · ' + esc(l.adr)}</div>
+    <div class="kpis"><div class="kpi"><b>${A.length}</b><span>articles</span></div><div class="kpi"><b>${eur0(lieuValeur(id))}</b><span>valeur</span></div></div>
+    ${m.length ? `<div class="info petit fo-alerte"><b>${m.length} article${m.length > 1 ? 's' : ''} sous la dotation du camion</b> : ${m.map(o => esc(o.x.nom) + ' (' + prNum(o.a) + '/' + prNum(o.cible) + ')').join(', ')}. <button type="button" class="lien" data-sk="reassort|${id}">Réassort</button></div>` : ''}
+    <div class="fo-bloc">${A.map(x => `<div class="fo-r"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${esc(x.ref)}${l.dot && DOTATION[l.dot][x.id] ? ' · dotation ' + prNum(DOTATION[l.dot][x.id]) : ''}</span></span><b>${prNum(stkAt(x, id))} ${esc(prU(stkAt(x, id), x.u))}</b></div>`).join('') || '<div class="gris">Vide.</div>'}</div>
+    <div class="actions"><button type="button" class="btn" data-sk="sortie|${id}">Sortie</button><button type="button" class="btn gris" data-sk="transfert|${id}">Transfert</button><button type="button" class="btn gris" data-sk="invlieu|${id}">Inventaire</button></div>
+    <div class="groupe">Derniers mouvements</div><div class="fo-bloc">${MVTS.filter(o => o.de === id || o.vers === id).slice(0, 6).map(o => mvLigne(o)).join('') || '<div class="gris">Aucun.</div>'}</div>`, true);
+}
+/* sortie et transfert : un seul formulaire, qui dit d'où, vers où ou pour qui, et pourquoi */
+let SK_F = null;
+function stkForm(type, de){
+  SK_F = { type, de:de || (type === 'transfert' ? 'atelier' : 'atelier'), vers:type === 'transfert' ? (de && de !== 'atelier' ? 'atelier' : 'v1') : null, pourQui:'marc', motif:type === 'transfert' ? 'Réassort du camion' : 'Utilisé chez le client', inter:'', lignes:[] };
+  stkFormVue();
+}
+function stkFormVue(){
+  const F = SK_F, dispo = PRODUITS.filter(x => !x.retire && stkAt(x, F.de) > 0 && !F.lignes.some(l => l.pid === x.id)), t = F.type === 'transfert';
+  const motifs = t ? ['Réassort du camion', 'Retour à l’atelier', 'Prêt à un collègue'] : ['Utilisé chez le client', 'Donné à un collègue', 'Cassé ou perdu', 'Retour au fournisseur'];
+  foOuvrir(`<span class="surtitre">${t ? 'Transfert' : 'Sortie'} de stock</span><h2>${t ? 'Déplacer du stock' : 'Sortir du stock'}</h2>
+    <div class="deux-champs"><label class="champ">De<select data-skf="de">${LIEUX.map(l => `<option value="${l.id}" ${F.de === l.id ? 'selected' : ''}>${esc(l.nom)}</option>`).join('')}</select></label>
+      ${t ? `<label class="champ">Vers<select data-skf="vers">${LIEUX.filter(l => l.id !== F.de).map(l => `<option value="${l.id}" ${F.vers === l.id ? 'selected' : ''}>${esc(l.nom)}</option>`).join('')}</select></label>`
+        : `<label class="champ">Pour qui ?<select data-skf="pourQui">${Object.entries(H_GENS).map(([k, g]) => `<option value="${k}" ${F.pourQui === k ? 'selected' : ''}>${esc(g.nom)}${k === 'marc' ? ' (moi)' : ''}</option>`).join('')}</select></label>`}</div>
+    <label class="champ">Pourquoi<select data-skf="motif">${motifs.map(o => `<option ${F.motif === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>
+    ${!t && F.motif === 'Utilisé chez le client' ? `<label class="champ">Sur quelle intervention<select data-skf="inter"><option value="">Choisir…</option>${INTS.filter(i => i.d <= jour(1) && i.d >= jour(-7) && CLIENTS[i.cli]).map(i => `<option value="${i.id}" ${F.inter === i.id ? 'selected' : ''}>${esc(interLib(i))}</option>`).join('')}</select></label>` : ''}
+    <div class="fo-bloc">${F.lignes.map((l, j) => { const x = PRODUITS.find(p => p.id === l.pid), a = stkAt(x, F.de); return `<div class="fo-r"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">là : ${prNum(a)} ${esc(prU(a, x.u))}</span></span><label class="fo-q"><span class="gris petit">Qté</span><input inputmode="decimal" data-skl="${j}" value="${prNum(l.q)}" aria-label="Quantité de ${esc(x.nom)}"></label><button type="button" class="cmd-x" data-sk="lx|${j}" aria-label="Retirer ${esc(x.nom)}">✕</button></div>`; }).join('') || '<div class="gris" style="padding:8px 2px">Choisis les articles ci-dessous.</div>'}</div>
+    <label class="champ">Ajouter un article<select data-skadd="1"><option value="">${dispo.length} article${dispo.length > 1 ? 's' : ''} dans ${esc(lieuNom(F.de))}…</option>${dispo.map(x => `<option value="${x.id}">${esc(x.nom)} · ${prNum(stkAt(x, F.de))} ${esc(prU(stkAt(x, F.de), x.u))}</option>`).join('')}</select></label>
+    ${!t && F.pourQui !== 'marc' ? `<div class="gris petit">Un bon de remise est créé au nom de ${esc(H_NOM(F.pourQui))} : il dit qui a reçu quoi.</div>` : ''}
+    <div class="fo-pied"><button type="button" class="btn" data-sk="fok" ${F.lignes.length ? '' : 'disabled'}>${t ? 'Transférer' : 'Sortir'}${F.lignes.length ? ' · ' + F.lignes.length + ' article' + (F.lignes.length > 1 ? 's' : '') : ''}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
+}
+function stkFormValider(){
+  const F = SK_F, br = !F.type.startsWith('t') && F.pourQui !== 'marc' ? 'BR-2026-0' + (++brNum) : null, n = [];
+  F.lignes.forEach(l => { const m = { id:'m' + Date.now().toString(36) + n.length, d:AUJ, h:hNow(), type:F.type === 'transfert' ? 'transfert' : 'sortie', pid:l.pid, q:l.q, de:F.de, vers:F.vers, qui:'marc', pourQui:F.type === 'transfert' ? null : F.pourQui, motif:F.motif, inter:F.inter || null, br };
+    if (stkAppliquer(m) > 0) { MVTS.unshift(m); n.push(m); } });
+  fermerPanneau(); rendre();
+  toast(`${n.length} mouvement${n.length > 1 ? 's' : ''} enregistré${n.length > 1 ? 's' : ''}${br ? ' · bon de remise ' + br : ''}.`, br ? { lib:'Voir le bon', fn:() => stkBon(n[0].id) } : null);
+}
+/* le réassort : ce qui manque à chaque camion pour sa dotation, pris à l'atelier ; ce que l'atelier n'a plus part dans les commandes */
+function stkReassort(seul){
+  const C = LIEUX.filter(l => l.type === 'vehicule' && (!seul || l.id === seul)).map(l => ({ l, M:lieuManques(l.id) })).filter(o => o.M.length);
+  const reste = {}; PRODUITS.forEach(x => { reste[x.id] = stkAt(x, 'atelier'); });
+  const plan = C.map(o => ({ l:o.l, L:o.M.map(m => { const q = Math.min(m.manque, Math.max(0, reste[m.x.id])); reste[m.x.id] -= q; return { ...m, q }; }) }));
+  const manqueAtelier = plan.flatMap(p => p.L.filter(m => m.q < m.manque).map(m => m.x)).filter((x, i, a) => a.indexOf(x) === i);
+  foOuvrir(`<span class="surtitre">Stock</span><h2>Réassort des camions</h2><span class="gris">Ce qui manque à chaque camion pour sa dotation (ce qu’il doit toujours avoir à bord), pris à l’atelier.</span>
+    ${plan.map(p => `<div class="groupe">🚐 ${esc(p.l.nom)}</div><div class="fo-bloc">${p.L.map(m => `<div class="fo-r"><span class="fo-n"><b>${esc(m.x.nom)}</b><span class="gris petit">à bord ${prNum(m.a)} sur ${prNum(m.cible)}${m.q < m.manque ? ` · <b class="fo-up">l’atelier n’en a que ${prNum(m.q)}</b>` : ''}</span></span><b>${m.q ? '+' + prNum(m.q) + ' ' + esc(prU(m.q, m.x.u)) : '—'}</b></div>`).join('')}</div>`).join('') || '<div class="carte gris">Tous les camions ont leur dotation complète.</div>'}
+    ${manqueAtelier.length ? `<div class="info petit fo-alerte">L’atelier manque de ${manqueAtelier.map(x => esc(x.nom)).join(', ')} : <button type="button" class="lien" data-sk="vers-cmd">les voir dans Commandes</button></div>` : ''}
+    ${plan.length ? `<div class="fo-pied"><button type="button" class="btn" data-sk="reassok|${seul || ''}">Transférer tout · ${plan.reduce((s, p) => s + p.L.filter(m => m.q > 0).length, 0)} lignes</button><button type="button" class="btn gris" data-ferme="1">Plus tard</button></div>` : ''}`, true);
+  stkReassort.plan = plan;
+}
+function stkBon(mid){
+  const m = MVTS.find(o => o.id === mid), L = MVTS.filter(o => o.br === m.br);
+  ouvrirPanneau(`<span class="surtitre">Bon de remise</span><h2>${esc(m.br)}</h2><div class="bc-doc"><div class="bc-tete"><div class="bc-ent"><b>${esc(ENTREPRISE.nom)}</b><span>${esc(ENTREPRISE.adr)}</span></div><div class="bc-titre"><b>BON DE REMISE</b><span>N° ${esc(m.br)}</span><span>Du ${dFr(m.d)} à ${m.h}</span></div></div>
+    <div class="bc-blocs"><div><small>Remis par</small><b>${esc(H_NOM(m.qui))}</b><span>depuis ${esc(lieuNom(m.de))}</span></div><div><small>Remis à</small><b>${esc(H_NOM(m.pourQui))}</b><span>${esc(m.motif)}</span></div></div>
+    <table class="bc-t"><thead><tr><th>Désignation</th><th>Qté</th></tr></thead><tbody>${L.map(o => { const x = PRODUITS.find(p => p.id === o.pid); return `<tr><td><b>${esc(x.nom)}</b><span>Réf. ${esc(x.ref)}</span></td><td>${prNum(o.q)} ${esc(prU(o.q, x.u))}</td></tr>`; }).join('')}</tbody></table>
+    <div class="bc-pied"><span>Ce bon dit qui a reçu quoi : il reste dans les mouvements du stock.</span></div></div>`, true);
+}
+
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-sk]'); if (!b) return;
+  const [a, x] = b.dataset.sk.split('|');
+  if (a === 'onglet') { stkOnglet = x; return rendre(); }
+  if (a === 'filtre') { stkFiltre = x; stkOnglet = 'ensemble'; return rendre(); }
+  if (a === 'lieu') return lieuFiche(x);
+  if (a === 'sortie') return stkForm('sortie', x);
+  if (a === 'transfert') return stkForm('transfert', x);
+  if (a === 'lx') { SK_F.lignes.splice(+x, 1); return foGarder(stkFormVue); }
+  if (a === 'fok') return stkFormValider();
+  if (a === 'reassort') return stkReassort(x);
+  if (a === 'reassok') { const n = []; (stkReassort.plan || []).forEach(p => p.L.filter(m => m.q > 0).forEach(m => { const o = { id:'m' + Date.now().toString(36) + n.length, d:AUJ, h:hNow(), type:'transfert', pid:m.x.id, q:m.q, de:'atelier', vers:p.l.id, qui:'marc', motif:'Réassort du camion' }; if (stkAppliquer(o)) { MVTS.unshift(o); n.push(o); } }));
+    fermerPanneau(); rendre(); return toast(`Réassort fait : ${n.length} transfert${n.length > 1 ? 's' : ''} de l’atelier vers les camions.`); }
+  if (a === 'vers-cmd') { fermerPanneau(); prVue = 'commandes'; return aller('produits'); }
+  if (a === 'val') { const k = MVTS_ATT.findIndex(o => o.id === x), m = MVTS_ATT[k]; const q = stkAppliquer(m); MVTS_ATT.splice(k, 1); if (q) { m.valPar = 'marc'; MVTS.unshift(m); }
+    rendre(); return toast(q ? `Validé : ${esc(H_NOM(m.qui))} · ${esc((PRODUITS.find(p => p.id === m.pid) || {}).nom)} ${prNum(q)}.` : 'Rien à sortir : ce lieu n’en a plus.'); }
+  if (a === 'ref') { const k = MVTS_ATT.findIndex(o => o.id === x), m = MVTS_ATT.splice(k, 1)[0]; rendre();
+    return toast(`Refusé : le stock ne bouge pas. ${esc(H_NOM(m.qui))} est prévenu.`, { lib:'Annuler', fn:() => { MVTS_ATT.splice(k, 0, m); rendre(); } }); }
+  if (a === 'inv') { invLieu = x || null; INV = {}; return rendre(); }
+  if (a === 'invlieu') { fermerPanneau(); stkOnglet = 'inventaire'; invLieu = x; INV = {}; return aller('stock'); }
+  if (a === 'invok') { const l = invLieu, n = []; Object.entries(INV).forEach(([pid, c]) => { const x = PRODUITS.find(p => p.id === pid), e = stkR(c - stkAt(x, l)); if (!e) return;
+      const m = { id:'m' + Date.now().toString(36) + n.length, d:AUJ, h:hNow(), type:'correction', pid, q:e, de:l, qui:'marc', motif:`Inventaire (${lieuNom(l)}) : ${prNum(Math.abs(e))} de ${e > 0 ? 'plus' : 'moins'} que prévu` }; stkAppliquer(m); MVTS.unshift(m); n.push(m); });
+    INV = {}; invLieu = null; prCatalogueMaj(); rendre(); return toast(`Inventaire validé : ${n.length} correction${n.length > 1 ? 's' : ''} tracée${n.length > 1 ? 's' : ''}.`); }
+  if (a === 'br') return stkBon(x);
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.matches('[data-skf]') && SK_F) { const k = t.dataset.skf; SK_F[k] = t.value; if (k === 'de') { SK_F.lignes = []; if (SK_F.vers === t.value) SK_F.vers = LIEUX.find(l => l.id !== t.value).id; } return foGarder(stkFormVue); }
+  if (t.matches('[data-skadd]') && SK_F && t.value) { const x = PRODUITS.find(p => p.id === t.value); SK_F.lignes.push({ pid:x.id, q:Math.min(1, stkAt(x, SK_F.de)) || stkAt(x, SK_F.de) }); return foGarder(stkFormVue); }
+  if (t.matches('[data-skl]') && SK_F) { const l = SK_F.lignes[+t.dataset.skl], x = PRODUITS.find(p => p.id === l.pid), n = foNum(t.value); if (n > 0) l.q = Math.min(n, stkAt(x, SK_F.de)); return foGarder(stkFormVue); }
+  if (t.matches('[data-skinv]')) { const n = foNum(t.value); if (n == null) delete INV[t.dataset.skinv]; else INV[t.dataset.skinv] = Math.max(0, n); return rendre(); }
+  if (t.matches('[data-skmvf]')) { mvFiltre = t.value; return rendre(); }
+  if (t.matches('[data-skvalid]')) { STK_VALID = t.checked; return rendre(); }
+});
+document.addEventListener('input', ev => {
+  const t = ev.target; if (!t.matches('[data-skq],[data-skmvq]')) return;
+  if (t.matches('[data-skq]')) stkQ = t.value; else mvRech = t.value;
+  const sel = t.matches('[data-skq]') ? '[data-skq]' : '[data-skmvq]', pos = t.selectionStart; rendre();
+  const i = document.querySelector(sel); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (e) {} }
+});
+
+/* ══ BOXES : les lieux de stock, chacun avec sa fiche ══ (pour la 3D, s'y ajoutent les box posées chez les clients, avec leurs relevés) */
+function vueBoxes(){
+  const T = [['vehicule', 'Les camions'], ['atelier', 'L’atelier'], ['depot', 'Les réserves chez les clients']];
+  return `<div class="tete"><div><span class="surtitre">Stock</span><h1>Boxes</h1><span class="gris">Chaque lieu où l’entreprise garde du stock : l’atelier, les camions, les réserves laissées chez les clients. Ouvre un lieu pour voir ce qu’il contient, le compter ou le réapprovisionner.</span></div>
+      <div class="actions"><button type="button" class="btn gris" data-sk="reassort">Réassort des camions</button><button type="button" class="btn" data-bx="nouveau">＋ Nouvelle réserve</button></div></div>
+    ${T.map(([k, lib]) => { const L = LIEUX.filter(l => l.type === k); return L.length ? `<h2 class="cmd-titre">${lib}</h2><div class="bx-grille">${L.map(l => { const A = lieuArticles(l.id), m = lieuManques(l.id), dm = MVTS.find(o => o.de === l.id || o.vers === l.id);
+      return `<button type="button" class="carte bx-c" data-sk="lieu|${l.id}"><span class="bx-t"><span class="sk-li">${LIEU_IC[l.type]}</span><span class="fo-n"><b>${esc(l.nom)}</b><span class="gris petit">${l.type === 'vehicule' ? esc(H_NOM(l.tech)) : l.type === 'depot' ? esc(CLIENTS[l.cli].nom) : 'Responsable ' + esc(H_NOM(l.resp))}</span></span></span>
+        <span class="fo-stats"><span><b>${A.length}</b>articles</span><span><b>${eur0(lieuValeur(l.id))}</b>valeur</span></span>
+        ${m.length ? `<span class="sk-m">${m.length} à remettre à bord</span>` : l.type === 'vehicule' ? '<span class="sk-ok">Dotation complète</span>' : ''}<span class="gris petit">${dm ? 'Dernier mouvement le ' + jCourt(dm.d) : 'Aucun mouvement'}</span></button>`; }).join('')}</div>` : ''; }).join('')}`;
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-bx]'); if (!b) return;
+  const [a] = b.dataset.bx.split('|');
+  if (a === 'nouveau') return ouvrirPanneau(`<span class="surtitre">Boxes</span><h2>Nouvelle réserve chez un client</h2><label class="champ">Client<select id="bx-cli">${Object.entries(CLIENTS).filter(([, c]) => c.type === 'pro').map(([k, c]) => `<option value="${k}">${esc(c.nom)}</option>`).join('')}</select></label>
+    <label class="champ">Responsable<select id="bx-resp">${Object.entries(H_GENS).map(([k, g]) => `<option value="${k}">${esc(g.nom)}</option>`).join('')}</select></label><label class="champ">Où, comment y accéder<input id="bx-note" placeholder="ex. local technique, clé à l’accueil"></label>
+    <div class="actions"><button type="button" class="btn" data-bx="creer">Créer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+  if (a === 'creer') { const cli = document.getElementById('bx-cli').value, l = { id:'d-' + cli + LIEUX.length, nom:'Réserve — ' + CLIENTS[cli].nom, type:'depot', cli, resp:document.getElementById('bx-resp').value, note:document.getElementById('bx-note').value.trim() };
+    LIEUX.push(l); fermerPanneau(); rendre(); return toast(`${esc(l.nom)} créée : fais un transfert pour la remplir.`, { lib:'Transfert', fn:() => { stkForm('transfert', 'atelier'); SK_F.vers = l.id; foGarder(stkFormVue); } }); }
+});
+
+/* ⟦module vehicules⟧ */
+/* ══ VÉHICULES ══
+   La flotte : une fiche par véhicule, et ce qui compte vraiment pour l'entreprise — les ÉCHÉANCES (assurance, contrôle technique,
+   entretien au kilomètre ou à la date) avant qu'elles tombent, ce qu'il y a À BORD (le stock du camion, relié au Stock), qui le CONDUIT
+   (l'équipe, le planning du jour) et ce qu'il COÛTE (carburant, entretien : les tickets et factures rangés dans les achats, donc dans la
+   comptabilité). Un plein ou une facture de garage se saisit ici et part au bon compte. Données fictives. */
+const VEH_STATUT = { service:['En service', 'st-v'], atelier:['Au garage', 'st-o'], hs:['Hors service', 'st-r'] };
+const VEH_MATERIEL = ['Extincteur', 'Gilet', 'Triangle', 'Trousse de secours', 'Roue de secours', 'Constat amiable', 'Lampe', 'Câbles de démarrage'];
+let VEHICULES = [
+  { id:'veh1', plaque:'GH-482-KL', marque:'Renault', modele:'Trafic L2H1', annee:2022, km:48210, conducteur:'sm', lieu:'v1', statut:'service', energie:'Gazole',
+    assur:{ cie:'MAAF Pro', contrat:'FL-77120', fin:jour(41) }, ct:jour(205), entretien:{ km:50000, date:jour(62), lib:'Révision 50 000 km' },
+    materiel:{ fait:jour(-40), ok:VEH_MATERIEL.filter(m => m !== 'Constat amiable') }, frais:[[jour(-58), 'Pneus avant (2)', 214], [jour(-21), 'Vidange et filtres', 168.5]] },
+  { id:'veh2', plaque:'AB-123-CD', marque:'Peugeot', modele:'Expert', annee:2019, km:121540, conducteur:'kb', lieu:'v2', statut:'service', energie:'Gazole',
+    assur:{ cie:'MAAF Pro', contrat:'FL-77121', fin:jour(41) }, ct:jour(12), entretien:{ km:122000, date:jour(20), lib:'Courroie de distribution' },
+    materiel:{ fait:jour(-120), ok:VEH_MATERIEL.filter(m => !['Extincteur', 'Lampe'].includes(m)) }, frais:[[jour(-35), 'Plaquettes de frein', 189]] },
+  { id:'veh3', plaque:'FZ-905-PR', marque:'Citroën', modele:'Berlingo', annee:2021, km:67380, conducteur:'lr', lieu:'v3', statut:'service', energie:'Gazole',
+    assur:{ cie:'MAAF Pro', contrat:'FL-77122', fin:jour(41) }, ct:jour(330), entretien:{ km:75000, date:jour(140), lib:'Révision 75 000 km' },
+    materiel:{ fait:jour(-15), ok:VEH_MATERIEL.slice() }, frais:[] },
+  { id:'veh4', plaque:'EK-317-TB', marque:'Renault', modele:'Kangoo Van E-Tech', annee:2023, km:23870, conducteur:'tl', lieu:'v4', statut:'atelier', energie:'Électrique',
+    assur:{ cie:'MAAF Pro', contrat:'FL-77123', fin:jour(41) }, ct:jour(880), entretien:{ km:30000, date:jour(-3), lib:'Révision (rappel constructeur)' },
+    materiel:{ fait:jour(-60), ok:VEH_MATERIEL.filter(m => m !== 'Roue de secours') }, frais:[[jour(-2), 'Diagnostic batterie (garage Renault Pro)', 96]], garage:'Rappel constructeur · rendu prévu le ' + 'lundi' }
+];
+let vehFiltre = 'tous';
+const vehDe = id => VEHICULES.find(v => v.id === id);
+/* les échéances : ce qui tombe bientôt, du plus pressé au moins pressé (assurance, contrôle technique, entretien à la date OU au km) */
+function vehEcheances(v){
+  const E = [], j = d => tJours(d);
+  E.push({ k:'assur', lib:'Assurance ' + v.assur.cie, d:v.assur.fin, n:j(v.assur.fin) });
+  E.push({ k:'ct', lib:'Contrôle technique', d:v.ct, n:j(v.ct) });
+  const resteKm = v.entretien.km - v.km;
+  E.push({ k:'entretien', lib:v.entretien.lib, d:v.entretien.date, n:j(v.entretien.date), km:resteKm });
+  return E.map(e => ({ ...e, urg:e.n < 0 || (e.km != null && e.km < 0) ? 'r' : e.n <= 30 || (e.km != null && e.km <= 1500) ? 'o' : 'v' })).sort((a, b) => a.n - b.n);
+}
+const vehEchTxt = e => e.n < 0 ? `dépassé depuis ${-e.n} j` : e.n === 0 ? 'aujourd’hui' : `dans ${e.n} j${e.n > 30 ? '' : ''}` + (e.km != null ? ` ou ${e.km < 0 ? 'dépassé de ' + (-e.km).toLocaleString('fr-FR') + ' km' : (e.km).toLocaleString('fr-FR') + ' km'}` : '');
+/* ce qu'il coûte : ses frais propres et les achats qui portent sa plaque (carburant, garage) — ceux-là sont déjà dans la comptabilité */
+function vehFrais(v){ const A = ACHATS.filter(a => (a.objet + ' ' + (a.just || '')).includes(v.plaque)).map(a => ({ d:a.d.includes('/') ? '2026-' + a.d.split('/').reverse().join('-') : a.d, lib:a.objet.replace(' · ' + v.plaque, ''), ht:a.ht, achat:a.id }));
+  return [...v.frais.map(([d, lib, ht]) => ({ d, lib, ht })), ...A].sort((a, b) => b.d.localeCompare(a.d)); }
+const vehMois = v => vehFrais(v).filter(f => f.d.slice(0, 7) === AUJ.slice(0, 7)).reduce((s, f) => s + f.ht, 0);
+function vueVehicules(){
+  const urg = VEHICULES.flatMap(v => vehEcheances(v).filter(e => e.urg !== 'v').map(e => ({ v, e }))).sort((a, b) => a.e.n - b.e.n);
+  const L = VEHICULES.filter(v => vehFiltre === 'tous' || (vehFiltre === 'alerte' ? vehEcheances(v).some(e => e.urg !== 'v') : v.statut !== 'service'));
+  return `<div class="tete"><div><span class="surtitre">Temps & équipe</span><h1>Véhicules</h1><span class="gris">La flotte : les échéances avant qu’elles tombent, ce qu’il y a à bord, qui conduit et ce que chaque véhicule coûte.</span></div>
+      <div class="actions"><button type="button" class="btn gris" data-ve="plein|">Saisir un plein</button><button type="button" class="btn" data-ve="nouveau">＋ Véhicule</button></div></div>
+    <div class="kpis"><div class="kpi"><b>${VEHICULES.filter(v => v.statut === 'service').length} / ${VEHICULES.length}</b><span>en service</span></div>
+      <button type="button" class="kpi" data-ve="filtre|alerte"><b style="color:${urg.length ? 'var(--orange)' : 'inherit'}">${urg.length}</b><span>échéance${urg.length > 1 ? 's' : ''} dans les 30 jours</span></button>
+      <div class="kpi"><b>${eur0(VEHICULES.reduce((s, v) => s + vehMois(v), 0))}</b><span>frais en ${ST_MOIS_L[dObj(AUJ).getMonth()]} (HT)</span></div>
+      <div class="kpi"><b>${eur0(VEHICULES.reduce((s, v) => s + lieuValeur(v.lieu), 0))}</b><span>de stock à bord</span></div></div>
+    ${urg.length ? `<div class="carte ve-urg"><h2 class="cmd-titre" style="margin:0 0 6px">À prévoir</h2>${urg.map(({ v, e }) => `<button type="button" class="ve-u" data-ve="fiche|${v.id}"><span class="st st-${e.urg === 'r' ? 'r' : 'o'}">${e.n < 0 ? 'En retard' : e.n + ' j'}</span><span class="fo-n"><b>${esc(e.lib)}</b><span class="gris petit">${esc(v.marque + ' ' + v.modele)} · ${esc(v.plaque)} · ${esc(H_NOM(v.conducteur))} · ${vehEchTxt(e)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}
+    <div class="seg" role="group" aria-label="Filtre" style="align-self:flex-start">${[['tous', 'Tous'], ['alerte', 'À prévoir'], ['arret', 'Immobilisés']].map(([k, l]) => `<button type="button" data-ve="filtre|${k}" aria-pressed="${vehFiltre === k}">${l}</button>`).join('')}</div>
+    <div class="bx-grille ve-grille">${L.map(v => { const s = VEH_STATUT[v.statut], e = vehEcheances(v)[0], A = lieuArticles(v.lieu), m = lieuManques(v.lieu), aujd = INTS.filter(i => i.tech === v.conducteur && i.d === AUJ);
+      return `<button type="button" class="carte bx-c ve-c" data-ve="fiche|${v.id}"><span class="bx-t"><span class="sk-li">🚐</span><span class="fo-n"><b>${esc(v.marque + ' ' + v.modele)}</b><span class="ve-l2"><span class="ve-plaque">${esc(v.plaque)}</span><span class="st ${s[1]}">${s[0]}</span></span></span></span>
+        <span class="gris petit">${esc(H_NOM(v.conducteur))} · ${v.km.toLocaleString('fr-FR')} km · ${esc(v.energie)}</span>
+        <span class="ve-e ve-${e.urg}"><b>${esc(e.lib)}</b> · ${vehEchTxt(e)}</span>
+        <span class="fo-stats"><span><b>${A.length}</b>articles à bord${m.length ? ` · <i class="sk-m">${m.length} manquent</i>` : ''}</span><span><b>${aujd.length}</b>intervention${aujd.length > 1 ? 's' : ''} aujourd’hui</span></span>${v.garage ? `<span class="gris petit">🔧 ${esc(v.garage)}</span>` : ''}</button>`; }).join('')}</div>`;
+}
+function vehFiche(id){
+  const v = vehDe(id), s = VEH_STATUT[v.statut], F = vehFrais(v), A = lieuArticles(v.lieu), m = lieuManques(v.lieu), aujd = INTS.filter(i => i.tech === v.conducteur && i.d >= AUJ && i.d <= jour(1)).sort((a, b) => (a.d + a.h).localeCompare(b.d + b.h));
+  const manque = VEH_MATERIEL.filter(x => !v.materiel.ok.includes(x)), tot12 = F.reduce((s2, f) => s2 + f.ht, 0);
+  foOuvrir(`<span class="surtitre">${esc(v.plaque)} · ${v.annee} · ${esc(v.energie)}</span><h2>${esc(v.marque + ' ' + v.modele)}</h2>
+    <div class="puces"><span class="st ${s[1]}">${s[0]}</span>${v.garage ? `<span class="st st-g">${esc(v.garage)}</span>` : ''}</div>
+    <div class="ligne"><span>Conducteur</span><b>${esc(H_NOM(v.conducteur))}</b></div>
+    <div class="ligne"><span>Kilométrage</span><span class="fo-dr"><b>${v.km.toLocaleString('fr-FR')} km</b><button type="button" class="lien" data-ve="km|${v.id}">Relever le compteur</button></span></div>
+    <div class="groupe">Échéances</div><div class="fo-bloc">${vehEcheances(v).map(e => `<div class="fo-r"><span class="ve-pt ve-${e.urg}" aria-hidden="true"></span><span class="fo-n"><b>${esc(e.lib)}</b><span class="gris petit">${dFr(e.d)}${e.k === 'assur' ? ' · contrat ' + esc(v.assur.contrat) : ''}</span></span><b class="ve-${e.urg}t">${vehEchTxt(e)}</b></div>`).join('')}</div>
+    <div class="actions"><button type="button" class="btn gris" data-ve="rdv|${v.id}">Prendre rendez-vous au garage</button><button type="button" class="btn gris" data-ve="statut|${v.id}">${v.statut === 'service' ? 'Mettre au garage' : 'Remettre en service'}</button></div>
+    <div class="groupe">À bord · ${A.length} articles · ${eur0(lieuValeur(v.lieu))}</div>
+    <div class="gris petit">${m.length ? `<b class="fo-up">${m.length} sous la dotation</b> : ${m.map(o => esc(o.x.nom)).join(', ')} · ` : 'Dotation complète · '}<button type="button" class="lien" data-sk="lieu|${v.lieu}">Voir le stock du camion ›</button></div>
+    <div class="groupe">Aujourd’hui et demain avec ${esc(H_NOM(v.conducteur).split(' ')[0])}</div>
+    <div class="fo-bloc">${aujd.map(i => `<button type="button" class="fo-l" data-tvoir="inter|${i.id}"><span class="fo-n"><b>${esc(i.titre)}</b><span class="gris petit">${esc(tPrevue({ d:i.d, h:i.h }))} · ${esc(CLIENTS[i.cli] ? CLIENTS[i.cli].nom : '')}</span></span><span class="fo-chev">›</span></button>`).join('') || '<div class="gris petit">Rien de prévu.</div>'}</div>
+    <div class="groupe">Matériel de sécurité · contrôlé le ${jCourt(v.materiel.fait)}</div>
+    <div class="ve-mat">${VEH_MATERIEL.map(x => `<label class="fo-garder"><input type="checkbox" data-vemat="${v.id}|${x}" ${v.materiel.ok.includes(x) ? 'checked' : ''}> ${x}</label>`).join('')}</div>
+    ${manque.length ? `<div class="gris petit"><b class="fo-up">Manque : ${manque.join(', ')}</b></div>` : ''}
+    <div class="groupe">Frais · ${eur(tot12)} HT</div>
+    <div class="fo-bloc">${F.map(f => `<div class="fo-r"><span class="fo-n"><b>${esc(f.lib)}</b><span class="gris petit">${dFr(f.d)}${f.achat ? ' · dans les achats' : ''}</span></span><b>${eur(f.ht)}</b></div>`).join('') || '<div class="gris petit">Aucun frais.</div>'}</div>
+    <div class="actions"><button type="button" class="btn" data-ve="plein|${v.id}">Saisir un plein ou une facture</button></div>`, true);
+}
+function vehPlein(id){
+  const v = vehDe(id) || VEHICULES[0];
+  ouvrirPanneau(`<span class="surtitre">Véhicules</span><h2>Un plein ou une facture</h2>
+    <label class="champ">Véhicule<select id="ve-v">${VEHICULES.map(o => `<option value="${o.id}" ${o === v ? 'selected' : ''}>${esc(o.marque + ' ' + o.modele)} · ${esc(o.plaque)}</option>`).join('')}</select></label>
+    <div class="deux-champs"><label class="champ">Quoi<select id="ve-t"><option>Carburant</option><option>Recharge électrique</option><option>Garage, entretien</option><option>Péage, parking</option></select></label><label class="champ">Montant TTC (€)<input id="ve-m" inputmode="decimal" placeholder="ex. 84,60"></label></div>
+    <label class="champ">Kilométrage au compteur<input id="ve-km" inputmode="numeric" placeholder="${v.km}"></label>
+    <span class="gris petit">Le ticket rejoint les achats du mois (TVA récupérée sur le gazole à 80 % pour un utilitaire : c’est la comptabilité qui le calcule).</span>
+    <div class="actions"><button type="button" class="btn" data-ve="pleinok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-ve]'); if (!b) return;
+  const [a, x] = b.dataset.ve.split('|');
+  if (a === 'filtre') { vehFiltre = x; if (route !== 'vehicules') return aller('vehicules'); return rendre(); }
+  if (a === 'fiche') return vehFiche(x);
+  if (a === 'plein') return vehPlein(x);
+  if (a === 'pleinok') { const v = vehDe(document.getElementById('ve-v').value), t = document.getElementById('ve-t').value, ttc = foNum(document.getElementById('ve-m').value), km = parseInt(document.getElementById('ve-km').value, 10);
+    if (!ttc) { document.getElementById('ve-m').focus(); return toast('Donne le montant du ticket.'); }
+    if (km > v.km) v.km = km;
+    const ht = Math.round(ttc / 1.2 * 100) / 100, fr = t === 'Carburant' ? 'TotalEnergies' : t === 'Recharge électrique' ? 'Recharge (borne)' : t === 'Garage, entretien' ? 'Garage' : 'Péage / parking';
+    ACHATS.push({ id:'a' + Date.now().toString(36), d:'31/10', fid:'veh', four:fr, objet:t + ' · ' + v.plaque, ht, tva:20, compte:t === 'Garage, entretien' ? '6155' : '6061', mode:'Carte', paye:'31/10', piece:'ticket', ref:'TICKET-' + v.plaque, just:'Ticket photographié · ' + v.plaque });
+    fermerPanneau(); rendre(); return toast(`${t} enregistré pour ${esc(v.plaque)} : ${eur(ttc)} TTC, rangé dans les achats.`, { lib:'Voir le véhicule', fn:() => vehFiche(v.id) }); }
+  if (a === 'km') { const v = vehDe(x); ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Relever le compteur</h2><label class="champ">Kilométrage<input id="ve-nkm" inputmode="numeric" value="${v.km}"></label><div class="actions"><button type="button" class="btn" data-ve="kmok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-ve="fiche|${v.id}">Retour</button></div>`); return; }
+  if (a === 'kmok') { const v = vehDe(x), n = parseInt(document.getElementById('ve-nkm').value, 10); if (!(n >= v.km)) return toast('Le compteur ne recule pas : donne un kilométrage plus grand.'); v.km = n; rendre(); vehFiche(v.id); return toast(`Compteur à ${n.toLocaleString('fr-FR')} km : l’entretien est recalculé.`); }
+  if (a === 'statut') { const v = vehDe(x); v.statut = v.statut === 'service' ? 'atelier' : 'service'; if (v.statut === 'service') delete v.garage; rendre(); return vehFiche(v.id); }
+  if (a === 'rdv') { const v = vehDe(x), e = vehEcheances(v)[0]; TACHES.push({ id:'t' + Date.now().toString(36), t:`Garage : ${e.lib} · ${v.marque} ${v.modele} (${v.plaque})`, d:jour(3), qui:'marc', creePar:'marc', creeLe:'31/10' }); vehFiche(v.id);
+    return toast(`Tâche créée : prendre rendez-vous au garage pour ${esc(v.plaque)} (${esc(e.lib)}).`); }
+  if (a === 'nouveau') return ouvrirPanneau(`<span class="surtitre">Véhicules</span><h2>Nouveau véhicule</h2><div class="deux-champs"><label class="champ">Plaque<input id="vn-p" placeholder="AA-123-BB" autocomplete="off"></label><label class="champ">Marque et modèle<input id="vn-m" placeholder="ex. Renault Master"></label></div>
+    <div class="deux-champs"><label class="champ">Conducteur<select id="vn-c">${['sm', 'kb', 'lr', 'tl', 'marc'].map(k => `<option value="${k}">${esc(H_NOM(k))}</option>`).join('')}</select></label><label class="champ">Kilométrage<input id="vn-k" inputmode="numeric" value="0"></label></div>
+    <div class="actions"><button type="button" class="btn" data-ve="creer">Ajouter</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+  if (a === 'creer') { const p = document.getElementById('vn-p').value.trim().toUpperCase(), norm = s => s.replace(/[\s-]/g, '');
+    if (!p) { document.getElementById('vn-p').focus(); return toast('La plaque est obligatoire.'); }
+    if (VEHICULES.some(v => norm(v.plaque) === norm(p))) return toast('Cette plaque est déjà dans la flotte.');
+    const [marque, ...mod] = (document.getElementById('vn-m').value.trim() || 'Véhicule').split(' '), c = document.getElementById('vn-c').value, id = 'veh' + (VEHICULES.length + 1), l = { id:'v' + id, nom:'Véhicule ' + p, type:'vehicule', tech:c, dot:'clim' };
+    LIEUX.push(l); VEHICULES.push({ id, plaque:p, marque, modele:mod.join(' '), annee:2026, km:parseInt(document.getElementById('vn-k').value, 10) || 0, conducteur:c, lieu:l.id, statut:'service', energie:'Gazole', assur:{ cie:'À renseigner', contrat:'—', fin:jour(365) }, ct:jour(4 * 365), entretien:{ km:20000, date:jour(365), lib:'Première révision' }, materiel:{ fait:AUJ, ok:[] }, frais:[] });
+    fermerPanneau(); rendre(); return toast(`${esc(p)} ajouté : son stock à bord apparaît dans les Boxes.`); }
+});
+document.addEventListener('change', ev => {
+  const t = ev.target; if (!t.matches('[data-vemat]')) return;
+  const [id, x] = t.dataset.vemat.split('|'), v = vehDe(id); v.materiel.ok = t.checked ? [...new Set([...v.materiel.ok, x])] : v.materiel.ok.filter(o => o !== x); v.materiel.fait = AUJ;
+  foGarder(() => vehFiche(id));
+});
+
+/* ⟦module pointage⟧ */
+/* ══ TEMPS DE TRAVAIL ══
+   Chacun pointe sa journée (début, fin, pauses) ; le responsable voit la semaine de l'équipe, corrige, valide, et sort la paie du mois.
+   Relié au PLANNING (le temps prévu par les interventions, à côté du temps pointé : un jour planifié sans pointage se voit), aux
+   ABSENCES (un congé n'est pas un oubli), à l'ÉQUIPE (qui). Les repères du Code du travail sont vérifiés tout seuls, sauf accord
+   d'entreprise : 10 h par jour (L3121-18), 48 h par semaine (L3121-20), 11 h de repos entre deux journées (L3131-1) ; heures
+   supplémentaires au-delà de 35 h, majorées de 25 % jusqu'à 43 h puis 50 % (L3121-36). Une heure se garde en « HH:MM » ET en
+   minutes depuis minuit du jour d'embauche : une fin plus petite que le début est une nuit, jamais une journée vide.
+   Un pointage resté ouvert se clôture à l'heure qu'on dit, jamais à l'heure qu'il est. Données fictives. */
+const PT_GENS = ['sm', 'kb', 'lr', 'tl', 'julie', 'marc'];
+const ptMin = h => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };
+const ptJ = d => ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'][dObj(d).getDay()] + ' ' + dObj(d).getDate();
+const ptH = m => (m < 0 ? '−' : '') + Math.floor(Math.abs(m) / 60) + 'h' + String(Math.round(Math.abs(m) % 60)).padStart(2, '0');
+let POINTAGES = (() => { const P = [], h = (k, j) => [...(k + j)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 11);
+  for (let w = -4; w <= 0; w++) for (let j = 0; j < 5; j++) { const d = ajoute(lundi(AUJ), w * 7 + j); if (d > AUJ) continue;
+    PT_GENS.forEach(k => { if (ABSENCES.some(a => a.tech === k && a.du <= d && d <= a.au)) return; const x = h(k, d);
+      const deb = 450 + (x % 25), fin = 990 + (x % 40), pause = 60;   // autour de 8 h par jour, 40 h la semaine
+      P.push({ id:'p' + k + d, qui:k, date:d, debut:hm(deb), fin:hm(fin), pause }); }); }
+  const set = (k, d, o) => { const p = P.find(o2 => o2.qui === k && o2.date === d); if (p) Object.assign(p, o); else P.push({ id:'p' + k + d, qui:k, date:d, pause:30, ...o }); };
+  set('kb', jour(-3), { debut:'07:40', fin:'21:30', pause:45, note:'Dépannage du soir à l’Hôtel de la Plage' });   // mercredi : 13 h 05
+  set('kb', jour(-2), { debut:'07:00', fin:'19:10', pause:30 });   // jeudi : repos de 9 h 30 seulement
+  set('tl', jour(-1), { debut:'07:55', fin:null, pause:0 });   // vendredi : resté ouvert
+  P.push({ id:'pkbauj', qui:'kb', date:AUJ, debut:'08:05', fin:null, pause:0, note:'Astreinte du samedi' });
+  return P; })();
+let ptOnglet = 'semaine', ptSem = 0, PT_VALIDE = {};
+const ptDuree = p => { if (!p.fin) return null; let f = ptMin(p.fin); const d = ptMin(p.debut); if (f < d) f += 1440; return f - d - (p.pause || 0); };
+const ptOuvert = p => !p.fin && p.date < AUJ;
+const ptJour = (k, d) => POINTAGES.filter(p => p.qui === k && p.date === d);
+const ptJourMin = (k, d) => ptJour(k, d).reduce((s, p) => s + (ptDuree(p) || 0), 0);
+const prevuMin = (k, d) => INTS.filter(i => i.tech === k && i.d === d).reduce((s, i) => s + (i.dur || 60), 0);
+const absDe = (k, d) => ABSENCES.find(a => a.tech === k && a.du <= d && d <= a.au);
+/* les repères légaux de la semaine d'une personne */
+function ptAlertes(k, jours){
+  const A = [], tot = jours.reduce((s, d) => s + ptJourMin(k, d), 0);
+  jours.forEach((d, i) => { const m = ptJourMin(k, d); if (m > 600) A.push({ g:'r', t:`${ptJ(d)} : ${ptH(m)} travaillées (10 h au plus par jour)` });
+    const P = ptJour(k, d)[0], hier = i > 0 && ptJour(k, jours[i - 1])[0];
+    if (P && hier && hier.fin) { let fin = ptMin(hier.fin); if (fin < ptMin(hier.debut)) fin += 1440; const repos = 1440 - fin + ptMin(P.debut); if (repos < 660) A.push({ g:'r', t:`${ptJ(d)} : ${ptH(repos)} de repos depuis la veille (11 h au moins)` }); }
+    if (!ptJour(k, d).length && prevuMin(k, d) && !absDe(k, d) && d < AUJ) A.push({ g:'o', t:`${ptJ(d)} : pas de pointage alors que ${ptH(prevuMin(k, d))} étaient planifiées` }); });
+  if (tot > 2880) A.push({ g:'r', t:`${ptH(tot)} sur la semaine (48 h au plus)` });
+  POINTAGES.filter(p => p.qui === k && ptOuvert(p) && jours.includes(p.date)).forEach(p => A.push({ g:'o', t:`${ptJ(p.date)} : journée restée ouverte depuis ${p.debut}`, ouvert:p.id }));
+  return { A, tot, sup25:Math.max(0, Math.min(tot, 2580) - 2100), sup50:Math.max(0, tot - 2580) };
+}
+function vuePointage(){
+  const L0 = ajoute(lundi(AUJ), ptSem * 7), J = Array.from({ length:5 }, (_, i) => ajoute(L0, i)), S = ajoute(L0, 5), moi = POINTAGES.find(p => p.qui === 'marc' && p.date === AUJ && !p.fin);
+  const enCours = POINTAGES.filter(p => p.date === AUJ && !p.fin), ouverts = POINTAGES.filter(ptOuvert);
+  const onglets = `<div class="seg pr-vues" role="tablist" aria-label="Temps de travail">${[['semaine', 'La semaine de l’équipe', 'Semaine'], ['paie', 'Paie du mois', 'Paie']].map(([k, l, c]) => `<button type="button" role="tab" data-pt="onglet|${k}" aria-pressed="${ptOnglet === k}" aria-selected="${ptOnglet === k}"><span class="l-long">${l}</span><span class="l-court" aria-hidden="true">${c}</span></button>`).join('')}</div>`;
+  const tete = `<div class="tete"><div><span class="surtitre">Temps & équipe</span><h1>Temps de travail</h1><span class="gris">Les heures de chacun, à côté de ce que le planning prévoyait. Les repères du Code du travail sont vérifiés tout seuls.</span></div>
+      <div class="actions"><button type="button" class="btn${moi ? ' gris' : ''}" data-pt="${moi ? 'fin' : 'debut'}">${moi ? 'Fin de ma journée · depuis ' + moi.debut : 'Début de ma journée'}</button></div></div>
+    ${enCours.length ? `<div class="info petit">En ce moment : ${enCours.map(p => `<b>${esc(H_NOM(p.qui))}</b> depuis ${p.debut}${p.note ? ' (' + esc(p.note) + ')' : ''}`).join(', ')}.</div>` : ''}
+    ${ouverts.length ? `<div class="info petit fo-alerte">${ouverts.map(p => `<b>${esc(H_NOM(p.qui))}</b> n’a pas fermé sa journée du ${jlong(p.date)} (début ${p.debut}). <button type="button" class="lien" data-pt="clore|${p.id}">Clôturer à l’heure dite</button>`).join('<br>')}</div>` : ''}${onglets}`;
+  if (ptOnglet === 'paie') return tete + ptVuePaie();
+  const rows = PT_GENS.map(k => { const al = ptAlertes(k, J), v = PT_VALIDE[k + L0];
+    return `<div class="pt-r"><button type="button" class="pt-qui" data-pt="pers|${k}"><b>${esc(H_NOM(k))}</b><span class="gris petit">${esc((H_GENS[k] || {}).role || '')}</span></button>
+      ${J.map(d => { const a = absDe(k, d), m = ptJourMin(k, d), pr = prevuMin(k, d), P = ptJour(k, d)[0], ouv = P && ptOuvert(P);
+        return `<button type="button" class="pt-j${a ? ' pt-abs' : ''}${ouv ? ' pt-ouv' : ''}${!P && pr && !a && d < AUJ ? ' pt-manque' : ''}" data-pt="jour|${k}|${d}" aria-label="${esc(H_NOM(k))}, ${ptJ(d)}"><b>${a ? esc(a.type) : P ? (ouv ? 'ouvert' : ptH(m)) : '—'}</b><span>${P && !a ? P.debut + '–' + (P.fin || '…') : pr ? 'prévu ' + ptH(pr) : ''}</span></button>`; }).join('')}
+      <span class="pt-tot"><b>${ptH(al.tot)}</b><span class="${al.sup25 + al.sup50 ? 'fo-up' : 'gris'} petit">${al.sup25 + al.sup50 ? '+' + ptH(al.sup25 + al.sup50) + ' sup.' : 'pas d’heure sup.'}</span></span>
+      <span class="pt-val">${v ? '<span class="st st-v">Validée</span>' : `<button type="button" class="btn gris petit" data-pt="valider|${k}|${L0}">Valider</button>`}</span></div>`; }).join('');
+  const AL = PT_GENS.flatMap(k => ptAlertes(k, J).A.map(o => ({ ...o, k })));
+  return tete + `<div class="pt-nav"><button type="button" class="btn gris petit" data-pt="sem|-1" aria-label="Semaine précédente">‹</button><b>Semaine du ${jCourt(L0)} au ${jCourt(ajoute(L0, 4))}</b><button type="button" class="btn gris petit" data-pt="sem|1" aria-label="Semaine suivante" ${ptSem >= 0 ? 'disabled' : ''}>›</button>${ptSem ? '<button type="button" class="lien" data-pt="sem|0">Cette semaine</button>' : ''}</div>
+    ${AL.length ? `<div class="carte pt-alertes"><h2 class="cmd-titre" style="margin:0 0 4px">À regarder cette semaine · ${AL.length}</h2>${AL.map(o => `<button type="button" class="ve-u" data-pt="${o.ouvert ? 'clore|' + o.ouvert : 'pers|' + o.k}"><span class="ve-pt ve-${o.g === 'r' ? 'r' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(H_NOM(o.k))}</b><span class="gris petit">${esc(o.t)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}
+    <div class="carte pt-grille"><div class="pt-r pt-entete" aria-hidden="true"><span></span>${J.map(d => `<span>${ptJ(d)}</span>`).join('')}<span>Semaine</span><span></span></div>${rows}</div>
+    <span class="gris petit">Touche une case pour voir la journée, la comparer au planning ou la corriger. « Valider » fige la semaine pour la paie.</span>`;
+}
+function ptVuePaie(){
+  const m = AUJ.slice(0, 7), lundis = [...new Set(POINTAGES.filter(p => p.date.slice(0, 7) === m).map(p => lundi(p.date)))].sort();
+  const R = PT_GENS.map(k => { let tot = 0, s25 = 0, s50 = 0; lundis.forEach(L => { const a = ptAlertes(k, Array.from({ length:5 }, (_, i) => ajoute(L, i)).filter(d => d.slice(0, 7) === m)); tot += a.tot; s25 += a.sup25; s50 += a.sup50; });
+    const abs = POINTAGES.length && Array.from({ length:31 }, (_, i) => m + '-' + String(i + 1).padStart(2, '0')).filter(d => !isNaN(dObj(d)) && dObj(d).getMonth() + 1 === +m.slice(5) && absDe(k, d) && dObj(d).getDay() % 6).length;
+    return { k, tot, s25, s50, abs }; });
+  return `<div class="carte pt-paie"><div class="pt-p pt-entete" aria-hidden="true"><span>Personne</span><span>Heures</span><span>Sup. 25 %</span><span>Sup. 50 %</span><span>Absences</span></div>
+    ${R.map(o => `<div class="pt-p"><b>${esc(H_NOM(o.k))}</b><span>${ptH(o.tot)}</span><span class="${o.s25 ? 'fo-up' : 'gris'}">${o.s25 ? ptH(o.s25) : '—'}</span><span class="${o.s50 ? 'fo-up' : 'gris'}">${o.s50 ? ptH(o.s50) : '—'}</span><span>${o.abs ? o.abs + ' j' : '—'}</span></div>`).join('')}</div>
+    <div class="actions"><button type="button" class="btn" data-pt="export">Envoyer au cabinet de paie (CSV)</button><button type="button" class="btn gris" data-pt="export">Feuilles de temps en PDF</button></div>
+    <span class="gris petit">Heures supplémentaires calculées semaine par semaine (au-delà de 35 h, 25 % jusqu’à 43 h, 50 % au-delà), sauf accord d’entreprise. Les absences viennent de « Absences & congés ».</span>`;
+}
+function ptFicheJour(k, d){
+  const P = ptJour(k, d), a = absDe(k, d), I = INTS.filter(i => i.tech === k && i.d === d).sort((x, y) => x.h.localeCompare(y.h));
+  foOuvrir(`<span class="surtitre">${esc(H_NOM(k))}</span><h2>${esc(jlong(d))}</h2>
+    ${a ? `<div class="info petit">${esc(a.type)} ce jour-là (Absences & congés).</div>` : ''}
+    <div class="kpis"><div class="kpi"><b>${ptH(ptJourMin(k, d))}</b><span>pointées</span></div><div class="kpi"><b>${ptH(prevuMin(k, d))}</b><span>prévues au planning</span></div></div>
+    <div class="groupe">Pointage</div>${P.map(p => `<div class="deux-champs"><label class="champ">Début<input type="time" data-ptc="${p.id}|debut" value="${p.debut}"></label><label class="champ">Fin<input type="time" data-ptc="${p.id}|fin" value="${p.fin || ''}"></label></div>
+      <div class="deux-champs"><label class="champ">Pause (minutes)<input inputmode="numeric" data-ptc="${p.id}|pause" value="${p.pause || 0}"></label><label class="champ">Note<input data-ptc="${p.id}|note" value="${esc(p.note || '')}" placeholder="ex. dépannage du soir"></label></div>`).join('') || `<div class="gris">Aucun pointage ce jour-là.</div><button type="button" class="btn gris" data-pt="ajout|${k}|${d}">Ajouter un pointage</button>`}
+    <div class="groupe">Au planning</div><div class="fo-bloc">${I.map(i => `<button type="button" class="fo-l" data-tvoir="inter|${i.id}"><span class="fo-n"><b>${i.h} · ${esc(i.titre)}</b><span class="gris petit">${esc(CLIENTS[i.cli] ? CLIENTS[i.cli].nom : '')} · ${ptH(i.dur || 60)}</span></span><span class="fo-chev">›</span></button>`).join('') || '<div class="gris petit">Rien de planifié.</div>'}</div>
+    <span class="gris petit">Une correction est tracée (qui, quand) ; une fin avant le début compte comme une nuit ; une heure dans le futur est refusée.</span>`, true);
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-pt]'); if (!b) return;
+  const [a, x, y] = b.dataset.pt.split('|');
+  if (a === 'onglet') { ptOnglet = x; return rendre(); }
+  if (a === 'sem') { ptSem = x === '0' ? 0 : Math.min(0, ptSem + +x); return rendre(); }
+  if (a === 'jour') return ptFicheJour(x, y);
+  if (a === 'pers') { ptOnglet = 'semaine'; return ptFicheJour(x, ptJour(x, AUJ).length ? AUJ : jour(-1)); }
+  if (a === 'debut') { POINTAGES.push({ id:'pmarc' + AUJ, qui:'marc', date:AUJ, debut:hNow(), fin:null, pause:0 }); rendre(); return toast(`Journée commencée à ${hNow()}.`); }
+  if (a === 'fin') { const p = POINTAGES.find(o => o.qui === 'marc' && o.date === AUJ && !o.fin); p.fin = hm(Math.max(MAINT_MIN, ptMin(p.debut) + 1)); rendre(); return toast(`Journée terminée : ${ptH(ptDuree(p))}.`); }
+  if (a === 'clore') { const p = POINTAGES.find(o => o.id === x); return ouvrirPanneau(`<span class="surtitre">${esc(H_NOM(p.qui))} · ${esc(jlong(p.date))}</span><h2>Clôturer la journée</h2><span class="gris">Commencée à ${p.debut} et jamais fermée. À quelle heure s’est-elle vraiment terminée ? (On ne compte jamais jusqu’à maintenant.)</span>
+      <label class="champ">Fin réelle<input type="time" id="pt-fin" value="17:30"></label><div class="actions"><button type="button" class="btn" data-pt="closok|${p.id}">Clôturer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
+  if (a === 'closok') { const p = POINTAGES.find(o => o.id === x), f = document.getElementById('pt-fin').value; if (!f) return toast('Donne l’heure de fin.'); p.fin = f; p.pause = p.pause || 45; p.note = (p.note ? p.note + ' · ' : '') + 'clôturée par Marc'; fermerPanneau(); rendre(); return toast(`Journée clôturée : ${ptH(ptDuree(p))}.`); }
+  if (a === 'valider') { PT_VALIDE[x + y] = true; rendre(); return toast(`Semaine de ${esc(H_NOM(x))} validée pour la paie.`); }
+  if (a === 'ajout') { POINTAGES.push({ id:'p' + x + y + 'm', qui:x, date:y, debut:'08:00', fin:'17:00', pause:60, note:'ajouté par Marc' }); rendre(); return ptFicheJour(x, y); }
+  if (a === 'export') return toast('Prototype : le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois.');
+});
+document.addEventListener('change', ev => {
+  const t = ev.target; if (!t.matches('[data-ptc]')) return;
+  const [id, c] = t.dataset.ptc.split('|'), p = POINTAGES.find(o => o.id === id), v = t.value.trim();
+  if ((c === 'debut' || c === 'fin') && v && p.date === AUJ && ptMin(v) > MAINT_MIN) { t.value = p[c] || ''; return toast('Une heure dans le futur ne se pointe pas.'); }
+  if (c === 'pause') { const n = parseInt(v, 10) || 0; const avant = p.pause; p.pause = n; if (ptDuree(p) != null && ptDuree(p) < 0) { p.pause = avant; t.value = avant; return toast('La pause est plus longue que la journée.'); } }
+  else p[c] = v || (c === 'fin' ? null : p[c]);
+  p.corrige = 'Marc · ' + hNow(); rendre(); foGarder(() => ptFicheJour(p.qui, p.date));
+});
 
 const prixCatalogue = nom => { const x = CATALOGUE.find(c => c[0] === nom); return x ? x[1] : null; };
 const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer le ventilateur extérieur', lignes:[['Ventilateur extérieur Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
