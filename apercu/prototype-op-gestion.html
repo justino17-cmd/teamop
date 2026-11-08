@@ -9,7 +9,7 @@
      l'application. DONNÉES ENTIÈREMENT FICTIVES (« Clim Services 17 »), aucun appel au serveur de TEAM OP, rien ne s'enregistre. -->
 </head>
 <body>
-<title>Prototype OP GESTION</title>
+<title>Prototype OP GESTION</title><title>Prototype OP GESTION</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Prototype OP GESTION — thème TEAM OP (design/THEME-REFERENCE.md), jour / nuit / auto.
@@ -699,6 +699,14 @@ button.cx-bal:hover{background:var(--survol)}
 @media (max-width:760px){ .cx-vis-doc{transform:none;margin:0} .cx-vis-doc .cx-jphoto,.cx-vis-doc .cx-jpdf{transform:none} .cx-ffour{width:min(340px,86vw)} }
 .ndf-sans{display:flex;flex-direction:column;gap:6px;margin:12px 0;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--orange) 9%,transparent);font-size:15px}
 .cx-trace{display:block;margin-top:4px;color:var(--orange);font-size:13.5px;font-weight:600}
+.cx-enligne{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.cx-enligne-barre{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.cx-enligne-barre .gris{flex:1 1 260px}
+.cx-enligne iframe{width:100%;height:max(640px,78vh);border:1px solid var(--trait);border-radius:16px;background:#fff}
+.cx-enligne.plein{position:fixed;inset:0;z-index:99999;margin:0;padding:10px 12px;background:var(--fond,#0e1420)}
+.cx-enligne.plein .cx-enligne-barre{color:#fff}.cx-enligne.plein iframe{height:calc(100vh - 70px);border-radius:12px}
+.cx-enligne-barre .btn{flex:0 0 auto;margin-left:auto}
+/* le plein écran se mesure sur l'écran, pas sur la zone de contenu : la vue qui entre porte une transformation, qui ferait du module un bloc « fixe » DANS la zone (le menu restait visible) */
+body.cx-plein #contenu{transform:none!important;animation:none!important}
 /* ══ Rangement en six espaces et contrôle « aux normes » (8 novembre 2026) ══ */
 .cx-nav1{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
 .cx-nav1 button{min-height:64px;padding:8px 10px;border-radius:16px;border:1px solid var(--trait);background:var(--surf2);color:var(--doux);font-weight:600;font-size:14.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;text-align:center;line-height:1.2}
@@ -857,6 +865,29 @@ button.cx-bal:hover{background:var(--survol)}
 .gd-lance{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 6px;padding:14px 16px;border-radius:16px;background:color-mix(in srgb,#4f8cff 9%,var(--surf));border:1px solid color-mix(in srgb,#4f8cff 35%,var(--trait))}
 .gd-lance > div:first-child{display:flex;flex-direction:column;gap:3px;flex:1 1 240px}
 @media (max-width:760px){ .gd-bulle{width:auto} .gd-t{font-size:16px} .gd-p{font-size:14.5px} }
+/* la visite par partie : le nom de l'espace, le bouton Apprendre, le panneau des visites, la petite bulle qui attend */
+.gd-cat{align-self:flex-start;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#59606b;margin-top:-2px}
+[data-mode="nuit"] .gd-cat{color:#aab3c2}
+.gd-bulle.mini{transform:translateX(-50%);width:min(560px,calc(100vw - 24px));flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:10px 12px 10px 16px;border-radius:16px}
+.gd-bulle.mini .gd-mini-t{font-weight:700;font-size:15px;flex:1 1 auto;min-width:0}
+.gd-bulle.mini .gd-mini-p{order:3;width:100%;font-size:13.5px;color:#59606b}[data-mode="nuit"] .gd-bulle.mini .gd-mini-p{color:#aab3c2}
+.gd-bulle.mini .gd-x{order:2}
+.rl-app{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,#4f8cff 45%,var(--trait));background:color-mix(in srgb,#4f8cff 10%,var(--surf));color:var(--lien);font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.rl-app + .rl-az{margin-left:0}
+.gd-ap{display:flex;flex-direction:column;gap:10px;margin:12px 0;padding:14px 16px;border-radius:16px;border:1px solid var(--trait);background:var(--surf)}
+.gd-ap-t{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gd-ap-t > div{display:flex;flex-direction:column;gap:2px;flex:1 1 200px;min-width:0}.gd-ap-t b{font-size:16px}
+.gd-ap-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;background:var(--surf-in);flex:none}
+.gd-ap-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.gd-ap-l li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--trait)}
+.gd-ap-n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--surf-in);color:var(--doux)}
+.gd-ap-l li.ok .gd-ap-n{background:color-mix(in srgb,var(--vert) 16%,transparent);color:var(--vert)}
+.gd-ap-c{display:flex;flex-direction:column;gap:1px;min-width:0}.gd-ap-c b{font-size:15px;font-weight:600}
+.gd-ap-cat{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--doux)}
+.gd-ap-l .btn{min-width:44px;justify-content:center}
+.gd-ap-bientot{background:var(--surf-in);border-style:dashed}
+.gd-ap-bientot ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+@media (max-width:760px){ .rl-app{margin-left:0;flex:1 1 auto;justify-content:center} .rl-app + .rl-az{flex:1 1 auto;justify-content:center} }
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -8721,7 +8752,7 @@ const CX_NAV = [
   ['pilotage', 'Pilotage', '📊', [['ensemble', 'Tableau de bord'], ['cloture', 'Clôture du mois']]],
   ['ventes', 'Ventes', '🧾', [['dossiers', 'Par intervention'], ['fventes', 'Factures & avoirs'], ['clients', 'Comptes clients'], ['contrats', 'Contrats']]],
   ['achats', 'Achats', '📦', [['fachats', 'Factures & dépenses'], ['ndf', 'Notes de frais'], ['fournisseurs', 'Comptes fournisseurs']]],
-  ['tresorerie', 'Trésorerie', '🏦', [['paiements', 'Paiements'], ['banque', 'Banque'], ['caisse', 'Caisse & chèques']]],
+  ['tresorerie', 'Trésorerie', '🏦', [['paiements', 'Paiements'], ['banque', 'Banque'], ['caisse', 'Caisse & chèques'], ['enligne', 'Paiement en ligne']]],
   ['fiscal', 'Fiscal & comptable', '📒', [['tva', 'TVA'], ['ecritures', 'Journal'], ['balance', 'Balance'], ['grandlivre', 'Grand livre'], ['resultat', 'Résultat'], ['envoi', 'Envoi au comptable']], 'Fiscal'],
   ['conformite', 'Conformité', '✅', [['normes', 'Aux normes'], ['archives', 'Archives & exports']]]
 ];
@@ -8780,10 +8811,10 @@ vueComptabilite = function(){
   const clos = CP.envoye ? `<div class="ok-bloc cp-clos"><b>Octobre est envoyé à ${esc(CP_EXPERT.qui)} (${esc(CP_EXPERT.cab)}) le ${CP.envoye}.</b><span class="gris petit">La copie envoyée est gardée telle quelle${CP.empreinte ? ' (empreinte ' + CP.empreinte + ')' : ''} : octobre n’accepte plus de geste, une erreur se corrige en novembre.</span></div>` : '';
   const E = ['balance', 'grandlivre', 'resultat', 'envoi'].includes(O) ? cpEcritures() : null;
   const corps = { ensemble:() => cxVueTableau(K, D, DD, conf), cloture:() => cxVueCloture(), dossiers:() => cxVueDossiers(DD), fventes:() => cxVueFactures(D, 'ventes'), clients:() => cxVueClients(DD), contrats:() => cxVueContrats(),
-    fachats:() => cxVueFactures(D, 'achats'), ndf:() => cxVueNdf(D), fournisseurs:() => cxVueFournisseurs(), paiements:() => cxVuePaiements(K), banque:() => cpVueBanque(K.rap, K.soldeBq), caisse:() => cpVueCaisse(K.ca),
+    fachats:() => cxVueFactures(D, 'achats'), ndf:() => cxVueNdf(D), fournisseurs:() => cxVueFournisseurs(), paiements:() => cxVuePaiements(K), banque:() => cpVueBanque(K.rap, K.soldeBq), caisse:() => cpVueCaisse(K.ca), enligne:() => cxVueEnLigne(),
     tva:() => cpVueTva(K.tv), ecritures:() => cpVueEcritures(), balance:() => cxBalance(E), grandlivre:() => cxGrandLivre(E), resultat:() => cxResultat(E), envoi:() => cxEnvoi(E), normes:() => cxVueNormes(conf), archives:() => cxVueArchives(K, D) }[O]();
   return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris">Tes ventes, tes achats, ta trésorerie et ta TVA, rangés comme chez un expert-comptable. Tout s’écrit tout seul ; tu vérifies, tu envoies.</span></div>
-    <div class="actions"><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Ajouter</button></div></div>
+    <div class="actions"><button type="button" class="btn gris" data-gd="apprendre">📘 Visite guidée</button><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Ajouter</button></div></div>
   ${clos}
   <nav class="cx-nav1" aria-label="Espaces de la comptabilité">${CX_NAV.map(g => `<button type="button" data-cx="grp|${g[0]}" aria-current="${G[0] === g[0] ? 'page' : 'false'}"><span class="cx-gi" aria-hidden="true">${g[2]}</span><span class="cx-gl1">${g[1]}</span><span class="cx-gl2">${g[4] || g[1]}</span>${nbG(g) ? `<span class="cx-nb">${nbG(g)}</span>` : ''}</button>`).join('')}</nav>
   <div class="cx-sous" role="tablist" aria-label="${esc(G[1])}">${G[3].map(([k, l]) => `<button type="button" role="tab" data-cx="sec|${k}" aria-selected="${O === k}">${l}${nb[k] ? `<span class="cx-nb">${nb[k]}</span>` : ''}</button>`).join('')}</div>
@@ -9621,6 +9652,18 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && document
 /* une photo ajoutée à un achat (« ＋ Ajouter la facture ») se garde, pour pouvoir la revoir */
 document.addEventListener('change', ev => { const i = ev.target.closest('[data-cpjust]'); if (!i || !i.files || !i.files[0] || CP.envoye) return; const a = ACHATS.find(o => o.id === i.dataset.cpjust); if (a) { a.photo = URL.createObjectURL(i.files[0]); a.photoType = i.files[0].type; } }, true);
 
+/* ─── Trésorerie › Paiement en ligne (8 novembre 2026, Justin : « le système de paiement que tu avais fait en prototype, il faudrait
+   l'ajouter en comptabilité, que je teste tout ») : le simulateur de paiement, tel quel, dans un cadre — ses écrans, ses coulisses
+   (prestataire, banque), son guide de 25 tests. Il garde pour l'instant SES factures d'exemple : on le dit, plutôt que de laisser
+   croire que ce sont celles de la Comptabilité. Le cadre peut passer en plein écran sans recharger (son état est gardé). */
+function cxVueEnLigne(){
+  return `<div class="cx-explique"><span aria-hidden="true">💳</span><span><b>Paiement en ligne</b> · le module qui fait payer tes clients : par carte depuis un lien, par virement, par prélèvement, en trois fois. Le prestataire de paiement garde l’argent quelques jours, puis le verse sur ta banque moins ses frais ; chaque étape s’écrit en comptabilité. Ses 25 essais guidés sont dans « Tous les tests », le panneau du guide du module.</span></div>
+  <div class="cx-enligne" id="cx-enligne"><div class="cx-enligne-barre"><b>Module de paiement en ligne</b><span class="gris petit">Pour l’instant, il a ses propres factures d’exemple ; dans la vraie version, ce sont celles de ta Comptabilité.</span><button type="button" class="btn gris petit" data-cx="enlignePlein">⤢ Plein écran</button></div>
+    <iframe src="prototype-paiement.html" title="Module de paiement en ligne"></iframe></div>`;
+}
+document.addEventListener('click', ev => { const b = ev.target.closest('[data-cx="enlignePlein"]'); if (!b) return; const z = document.getElementById('cx-enligne'); if (!z) return; const on = z.classList.toggle('plein'); b.textContent = on ? '✕ Quitter le plein écran' : '⤢ Plein écran'; document.body.style.overflow = on ? 'hidden' : ''; document.body.classList.toggle('cx-plein', on); });
+document.addEventListener('keydown', ev => { const z = document.getElementById('cx-enligne'); if (ev.key === 'Escape' && z && z.classList.contains('plein')) { z.classList.remove('plein'); document.body.style.overflow = ''; document.body.classList.remove('cx-plein'); const b = z.querySelector('[data-cx="enlignePlein"]'); if (b) b.textContent = '⤢ Plein écran'; } });
+
 /* ⟦module roles⟧ */
 /* ══ TESTER EN TANT QUE… — 8 novembre 2026 ══
    Justin : « je veux pouvoir tout tester de A à Z, que je sois technicien, que je gère les factures, que je sois client ; je veux
@@ -10062,16 +10105,23 @@ const GD_GESTES = [
     { c:'.panneau [data-mailenvoi]', t:'Envoie', p:'Octobre est gardé tel quel : une erreur se corrigera en novembre, rien ne s’efface.', ok:() => !!CP.envoye } ]
 ];
 const gdDevis = () => { dvInit(); const d = DV.find(x => x.num === DEVIS_SUITE.num); return !!d && d.e === 'accepte'; };
-const gdGeste = () => (GD_GESTES[GD.e] || [])[GD.s];
+/* les visites : le test de A à Z, et une visite par partie de l'application (8 novembre 2026, Justin : « je veux un système de suivi
+   de A à Z, catégorie par catégorie, avec les surbrillances et les explications, pour pouvoir l'expliquer à mes clients »).
+   Une visite = des chapitres { r (le rôle), cat, t, d, go (le bon écran), gestes } ; un geste = { c (la cible : un sélecteur, ou une
+   fonction qui rend l'élément), t, p, ok | suivant, si (sauté si faux), debut (au début du geste) }. */
+const GD_TOURS = { az:{ nom:'Le test de A à Z', chap:() => rlEtapes().map((e, k) => ({ ...e, gestes:GD_GESTES[k] })), fin:'Tu as vu la même histoire avec les yeux des quatre personnes : le technicien, le client, la gestion et le patron. Chaque geste de l’un est apparu tout seul chez l’autre.' } };
+const GD_FAITS = new Set();
+const gdChap = () => GD_TOURS[GD.tour || 'az'].chap();
+const gdGeste = () => ((gdChap()[GD.e] || {}).gestes || [])[GD.s];
 const gdCible = g => typeof g.c === 'function' ? g.c() : g.c;
-function gdCommencer(k){
-  GD.actif = true; GD.e = k || 0; GD.s = 0; GD.pause = false; fermerPanneau();
+function gdCommencer(k, tour){
+  GD.tour = tour || 'az'; GD.actif = true; GD.e = k || 0; GD.s = 0; GD.pause = false; fermerPanneau();
   document.body.classList.add('gd-on'); gdEntrer(true);
 }
 function gdQuitter(){ GD.actif = false; document.body.classList.remove('gd-on'); document.getElementById('gd-spot')?.remove(); document.getElementById('gd-bulle')?.remove(); }
 /* entrer dans une étape du parcours : le bon rôle, le bon écran, puis le premier geste qui n'est pas déjà fait */
 function gdEntrer(direct){
-  const E = rlEtapes()[GD.e]; if (!E) return gdFin();
+  const E = gdChap()[GD.e]; if (!E) return gdFin();
   if (!direct) { GD.pause = true; return gdBulle(null); }
   GD.pause = false; GD.s = 0; GD.prep = true; E.go();
   setTimeout(() => { GD.prep = false; gdSauter(); gdPlacer(); }, 500);   // on juge où l'on en est une fois l'écran affiché, pas avant
@@ -10079,42 +10129,56 @@ function gdEntrer(direct){
 function gdSauter(){ let g; while ((g = gdGeste()) && !g.suivant && g.ok && g.ok()) GD.s++; }
 function gdSuivant(){
   GD.s++; gdSauter();
-  if (!gdGeste()) { GD.e++; if (GD.e >= GD_GESTES.length) return gdFin(); return gdEntrer(false); }
+  if (!gdGeste()) { GD_FAITS.add(GD.tour + ':' + GD.e); GD.e++; if (GD.e >= gdChap().length) return gdFin(); return gdEntrer(false); }
   setTimeout(gdPlacer, 250);
 }
 function gdFin(){ GD.pause = true; gdBulle('fin'); }
 /* la bulle : le geste, le pourquoi, où on en est */
 function gdBulle(mode){
   let b = document.getElementById('gd-bulle'); if (!b) { b = document.createElement('div'); b.id = 'gd-bulle'; b.className = 'gd-bulle'; b.setAttribute('role', 'dialog'); b.setAttribute('aria-live', 'polite'); document.body.appendChild(b); }
-  const E = rlEtapes(), e = E[GD.e], R = e ? ROLES[e.r] : null, n = E.length, g = gdGeste(), qui = e ? (e.cli ? CLIENTS[e.cli].nom + ' (client)' : H_NOM(R.qui) + ' · ' + R.l.toLowerCase()) : '';
-  const tete = `<div class="gd-tete"><span class="gd-n">Étape ${Math.min(GD.e + 1, n)} sur ${n}</span><span class="gd-points">${E.map((x, k) => `<i class="${k < GD.e ? 'ok' : k === GD.e ? 'ici' : ''}"></i>`).join('')}</span><button type="button" class="gd-x" data-gd="quitter" aria-label="Quitter le test guidé">✕</button></div>`;
-  if (mode === 'fin') b.innerHTML = `${tete.replace(/Étape \d+ sur \d+/, 'Terminé')}<b class="gd-t">Le test est fini 🎉</b><p class="gd-p">Tu as vu la même histoire avec les yeux des quatre personnes : le technicien, le client, la gestion et le patron. Chaque geste de l’un est apparu tout seul chez l’autre.</p><div class="gd-a"><button type="button" class="btn" data-gd="quitter">Fermer</button></div>`;
-  else if (mode === null) b.innerHTML = `${tete}<span class="gd-role">${R.ic} Maintenant, tu es ${esc(qui)}</span><b class="gd-t">${esc(e.t)}</b><p class="gd-p">${esc(e.d)}</p><div class="gd-a"><button type="button" class="btn" data-gd="entrer">C’est parti</button><button type="button" class="btn gris" data-gd="quitter">Quitter</button></div>`;
+  const E = gdChap(), e = E[GD.e], R = e ? ROLES[e.r] : null, n = E.length, g = gdGeste(), qui = e ? (e.cli ? CLIENTS[e.cli].nom + ' (client)' : H_NOM(R.qui) + ' · ' + R.l.toLowerCase()) : '';
+  const mot = GD.tour === 'az' ? 'Étape' : 'Partie', tete = `<div class="gd-tete"><span class="gd-n">${mot} ${Math.min(GD.e + 1, n)} sur ${n}</span><span class="gd-points">${E.map((x, k) => `<i class="${k < GD.e ? 'ok' : k === GD.e ? 'ici' : ''}"></i>`).join('')}</span><button type="button" class="gd-x" data-gd="quitter" aria-label="Quitter le test guidé">✕</button></div>`;
+  if (mode === 'fin') b.innerHTML = `${tete.replace(/(Étape|Partie) \d+ sur \d+/, 'Terminé')}<b class="gd-t">${esc(GD_TOURS[GD.tour].nom)} : fini 🎉</b><p class="gd-p">${esc(GD_TOURS[GD.tour].fin)}</p><div class="gd-a"><button type="button" class="btn" data-gd="apprendre">Choisir une autre visite</button><button type="button" class="btn gris" data-gd="quitter">Fermer</button></div>`;
+  else if (mode === null) b.innerHTML = `${tete}<span class="gd-role">${R.ic} ${GD.tour === 'az' ? 'Maintenant, tu es ' + esc(qui) : esc(qui)}</span>${e.cat ? `<span class="gd-cat">${esc(e.cat)}</span>` : ''}<b class="gd-t">${esc(e.t)}</b><p class="gd-p">${esc(e.d)}</p><div class="gd-a"><button type="button" class="btn" data-gd="entrer">C’est parti</button>${GD.tour !== 'az' ? '<button type="button" class="btn gris" data-gd="apprendre">Choisir une partie</button>' : ''}<button type="button" class="btn gris" data-gd="quitter">Quitter</button></div>`;
   else if (mode === 'perdu') b.innerHTML = `${tete}<span class="gd-role">${R.ic} ${esc(qui)}</span><b class="gd-t">${esc(g.t)}</b><p class="gd-p">Ce qu’il faut toucher n’est pas sur cet écran.</p><div class="gd-a"><button type="button" class="btn" data-gd="remettre">Me remettre au bon endroit</button><button type="button" class="btn gris" data-gd="quitter">Quitter</button></div>`;
+  else if (mode === 'cache') b.innerHTML = `<span class="gd-mini-t">📘 ${esc(g.t)}</span><span class="gd-mini-p">${esc(g.p)}</span><button type="button" class="gd-x" data-gd="quitter" aria-label="Quitter la visite">✕</button>`;
   else b.innerHTML = `${tete}<span class="gd-role">${R.ic} ${esc(qui)}</span><b class="gd-t">👉 ${esc(g.t)}</b><p class="gd-p"><span class="gd-pq">Pourquoi ?</span> ${esc(g.p)}</p><div class="gd-a">${g.suivant ? '<button type="button" class="btn" data-gd="suivant">J’ai vu, suivant</button>' : '<span class="gd-attente">Fais-le sur l’écran : le guide avance tout seul.</span>'}${g.saut ? '<button type="button" class="lien" data-gd="suivant">Passer</button>' : ''}</div>`;
-  b.classList.toggle('centre', mode !== undefined);
+  b.classList.toggle('centre', mode !== undefined && mode !== 'cache'); b.classList.toggle('mini', mode === 'cache');
   return b;
 }
 /* éclairer la cible : un trou dans l'ombre, la bulle à côté (au téléphone : en haut ou en bas, à l'opposé de la cible) */
 function gdPlacer(){
   if (!GD.actif || GD.pause) { document.getElementById('gd-spot')?.remove(); return; }
   const g = gdGeste(); if (!g) return;
-  const sel = gdCible(g), el0 = sel && gdQ(sel), el = el0 && ((el0.matches('input[type=checkbox],input[type=radio]') && el0.closest('label')) || el0);   // une case s'éclaire avec son libellé
+  if (g.cache) {   // un geste qui se fait ailleurs (un module en plein écran) : pas de lumière, une petite bulle en bas qui attend
+    document.getElementById('gd-spot')?.remove(); const b0 = document.getElementById('gd-bulle'), cle = GD.e + '.' + GD.s;
+    if (!b0 || b0.dataset.cle !== cle) { const b = gdBulle('cache'); b.dataset.cle = cle; b.style.left = '50%'; b.style.right = 'auto'; b.style.top = 'auto'; b.style.bottom = 'calc(14px + env(safe-area-inset-bottom))'; }
+    return; }
+  const sel = gdCible(g), el0 = sel instanceof Element ? sel : sel && gdQ(sel), el = el0 && ((el0.matches('input[type=checkbox],input[type=radio]') && el0.closest('label')) || el0);   // une case s'éclaire avec son libellé
   let s = document.getElementById('gd-spot');
-  if (!el) { GD.attente++; if (GD.attente > 6) { s?.remove(); gdBulle('perdu'); } return; }
-  if (GD.attente || !s || s.dataset.cle !== GD.e + '.' + GD.s) { GD.attente = 0; const r0 = el.getBoundingClientRect(); if (r0.top < 70 || r0.bottom > innerHeight - 160) el.scrollIntoView({ block:'center', behavior:'smooth' }); }
+  if (!el) { if (g.si && !g.si()) return gdSuivant(); GD.attente++; if (GD.attente > 6) { s?.remove(); gdBulle('perdu'); } return; }
+  if (GD.attente || !s || s.dataset.cle !== GD.e + '.' + GD.s) { GD.attente = 0; const r0 = el.getBoundingClientRect(), grand = r0.height > innerHeight * .42;
+    if (grand) { if (r0.top < 56 || r0.top > 110) scrollBy({ top:r0.top - 80, behavior:'smooth' }); } else if (r0.top < 70 || r0.bottom > innerHeight - 160) el.scrollIntoView({ block:'center', behavior:'smooth' }); }
   if (!s) { s = document.createElement('div'); s.id = 'gd-spot'; s.className = 'gd-spot'; document.body.appendChild(s); }
-  const cle = GD.e + '.' + GD.s, neuf = s.dataset.cle !== cle; s.dataset.cle = cle;
+  const cle = GD.e + '.' + GD.s, neuf = s.dataset.cle !== cle; s.dataset.cle = cle; if (neuf && g.debut) g.debut();
   const r = el.getBoundingClientRect(), m = 6;
-  Object.assign(s.style, { left:(r.left - m) + 'px', top:(r.top - m) + 'px', width:(r.width + 2 * m) + 'px', height:(r.height + 2 * m) + 'px' });
   const b = neuf || !document.getElementById('gd-bulle') || document.getElementById('gd-bulle').classList.contains('centre') ? gdBulle() : document.getElementById('gd-bulle');
   const tel = innerWidth <= 760, bh = b.offsetHeight, bw = b.offsetWidth;
-  if (tel) { const enBas = r.top + r.height / 2 < innerHeight / 2; b.style.left = '12px'; b.style.right = '12px'; b.style.top = enBas ? 'auto' : '12px'; b.style.bottom = enBas ? 'calc(12px + env(safe-area-inset-bottom))' : 'auto'; }
+  let bas = Math.min(r.bottom, innerHeight);   // jusqu'où la lumière descend : une grande carte s'éclaire jusqu'au-dessus de la bulle, jamais dessous
+  const enBasDuTout = () => { const top = innerHeight - bh - 14; bas = Math.min(bas, top - 10); return top; };
+  if (tel) { b.style.left = '12px'; b.style.right = '12px';
+    const placeBas = innerHeight - bh - 12 - 14 > r.bottom, placeHaut = bh + 12 + 14 < r.top;
+    if (placeBas || !placeHaut) { if (!placeBas) enBasDuTout(); b.style.top = 'auto'; b.style.bottom = 'calc(12px + env(safe-area-inset-bottom))'; }
+    else { b.style.top = '12px'; b.style.bottom = 'auto'; } }
   else { b.style.right = 'auto'; b.style.bottom = 'auto';
+    const gauche = r.left > innerWidth - r.right, cote = gauche ? r.left - 14 - bw >= 12 : r.right + 14 + bw <= innerWidth - 12;
     if (r.bottom + 14 + bh < innerHeight || r.top - 14 - bh > 12) { const top = r.bottom + 14 + bh < innerHeight ? r.bottom + 14 : r.top - 14 - bh;
       b.style.top = top + 'px'; b.style.left = Math.min(Math.max(12, r.left + r.width / 2 - bw / 2), innerWidth - bw - 12) + 'px'; }
-    else { const gauche = r.left > innerWidth - r.right;   // ni dessous ni dessus : à côté, du côté qui a le plus de place, sans jamais couvrir la cible
-      b.style.top = Math.min(Math.max(12, r.top + r.height / 2 - bh / 2), innerHeight - bh - 12) + 'px'; b.style.left = (gauche ? Math.max(12, r.left - 14 - bw) : Math.min(innerWidth - bw - 12, r.right + 14)) + 'px'; } }
+    else if (cote) {   // ni dessous ni dessus : à côté, du côté qui a le plus de place, sans jamais couvrir la cible
+      b.style.top = Math.min(Math.max(12, r.top + r.height / 2 - bh / 2), innerHeight - bh - 12) + 'px'; b.style.left = (gauche ? r.left - 14 - bw : r.right + 14) + 'px'; }
+    else { b.style.top = enBasDuTout() + 'px'; b.style.left = Math.min(Math.max(12, r.left + r.width / 2 - bw / 2), innerWidth - bw - 12) + 'px'; } }
+  const haut = Math.max(r.top, 0);
+  Object.assign(s.style, { left:(r.left - m) + 'px', top:(haut - m) + 'px', width:(r.width + 2 * m) + 'px', height:Math.max(24, bas - haut + 2 * m) + 'px' });
 }
 /* le guide regarde : chaque geste fait le fait avancer, et la lumière suit la cible si la page bouge */
 setInterval(() => { if (!GD.actif || GD.pause || GD.prep) return; const g = gdGeste(); if (g && !g.suivant && g.ok && g.ok()) return gdSuivant(); gdPlacer(); }, 300);
@@ -10126,13 +10190,124 @@ document.addEventListener('click', ev => {
   if (a === 'quitter') return gdQuitter();
   if (a === 'entrer') return gdEntrer(true);
   if (a === 'suivant') return gdSuivant();
-  if (a === 'remettre') { GD.attente = 0; const E = rlEtapes()[GD.e]; E.go(); return setTimeout(gdPlacer, 350); }
-  if (a === 'debut') return gdCommencer(+b.dataset.k || 0);
+  if (a === 'remettre') { GD.attente = 0; const E = gdChap()[GD.e]; E.go(); return setTimeout(gdPlacer, 350); }
+  if (a === 'debut') return gdCommencer(+b.dataset.k || 0, b.dataset.tour || 'az');
+  if (a === 'apprendre') { gdQuitter(); return gdApprendre(); }
 });
 /* le panneau « De A à Z » propose le test guidé, depuis le début ou depuis l'étape en cours */
 (() => { const p0 = rlParcours; rlParcours = function(){ p0.apply(this, arguments);
   const k = rlEtapes().findIndex(e => !e.ok()), h = document.querySelector('.panneau h2');
   if (h) h.insertAdjacentHTML('afterend', `<div class="gd-lance"><div><b>Le test guidé</b><span class="gris petit">L’écran éclaire ce que tu dois toucher, et une bulle te dit pourquoi. Tu passes d’une personne à l’autre sans rien chercher.</span></div><div class="actions"><button type="button" class="btn" data-gd="debut" data-k="${k < 0 ? 0 : k}">▶ ${k > 0 ? 'Reprendre à l’étape ' + (k + 1) : 'Commencer le test guidé'}</button>${k > 0 ? '<button type="button" class="btn gris" data-gd="debut" data-k="0">Depuis le début</button>' : ''}</div></div>`); }; })();
+
+/* ══ LA VISITE DE LA COMPTABILITÉ — 8 novembre 2026 ══
+   Justin : « je vais tester tout le système de comptabilité de A à Z, mais catégorie par catégorie, que je comprenne bien le suivi
+   total de la boucle ». Douze parties, dans l'ordre où l'argent circule : ce qui est à faire → la vente → la relance → le paiement
+   qui arrive à la banque → la caisse → les achats → la TVA → les normes → la clôture envoyée à l'expert-comptable. On suit UN client
+   d'un bout à l'autre (M. et Mme Durand, une facture en retard) pour voir la boucle se refermer. On est Julie, à la gestion. */
+const gdCompta = o => () => { fermerPanneau(); CX.st = 'tous'; CX.psens = 'tous'; CX.pmode = 'tous'; CP.onglet = o; const z = document.getElementById('cx-enligne'); if (z) z.classList.remove('plein'); document.body.style.overflow = ''; document.body.classList.remove('cx-plein'); rlChanger('gestion', { h:'comptabilite', muet:true }); };
+const gdIci = o => route === 'comptabilite' && CP.onglet === o;
+const gdF128 = () => FACTURES.find(f => f.id === 'f128');
+const gdAExpl = () => cpRapprocher().aExpliquer;
+const gdOnglet = (o, l, p) => ({ c:`.cx-sous [data-cx="sec|${o}"]`, t:`Touche l’onglet « ${l} »`, p, ok:() => gdIci(o) });
+const gdFermer = { c:'#calque .panneau .x', t:'Ferme ce panneau', p:'La croix en haut, ou à côté du panneau. Rien n’est perdu : tout est déjà enregistré.', ok:() => !gdPanneau(), si:() => gdPanneau() };
+const TOUR_COMPTA = [
+  { r:'gestion', cat:'Pilotage', t:'Le tableau de bord : ce qui t’attend', d:'Tu es Julie, à la gestion. Tout ce qui touche à l’argent est ici, rangé en six espaces. Cette première partie t’apprend à lire la page d’accueil de la Comptabilité et à te déplacer.', go:gdCompta('ensemble'), gestes:[
+    { c:'.cx-nav1', t:'Les six espaces de ta comptabilité', p:'Pilotage : où tu en es. Ventes : ce que tes clients te doivent. Achats : ce que tu dois. Trésorerie : l’argent qui bouge vraiment. Fiscal : la TVA et les comptes, pour ton expert-comptable. Conformité : être en règle. Un petit nombre sur un espace = des choses à traiter dedans.', suivant:1 },
+    { c:'.cx-sous', t:'Chaque espace a ses onglets', p:'Ici, Pilotage a deux onglets : le tableau de bord et la clôture du mois. Les onglets changent selon l’espace choisi au-dessus.', suivant:1 },
+    { c:'.cx-kpis', t:'Tes chiffres du mois, calculés tout seuls', p:'Ce que tu as facturé, encaissé, dépensé, ton résultat provisoire, l’argent disponible et tes points de conformité. Tu ne tapes rien ici : tout vient de tes factures, de tes paiements, de tes achats et de ta banque.', suivant:1 },
+    { c:'.cx-afaire', t:'« À faire » : la seule liste à regarder chaque matin', p:'Le plus urgent en haut. Chaque ligne dit ce qui attend et mène directement là où ça se règle. Quand c’est réglé, la ligne disparaît toute seule.', suivant:1 },
+    { c:'.cx-afaire [data-cx]', t:'Touche « Relancer » sur la facture en retard', p:'C’est la facture de M. et Mme Durand : on va la suivre jusqu’au bout. Le bouton t’emmène directement au bon endroit, avec le bon filtre déjà posé.', ok:() => route === 'comptabilite' && CP.onglet !== 'ensemble' },
+    { c:'.cx-nav1 [data-cx="grp|pilotage"]', t:'Reviens au tableau de bord : touche « Pilotage »', p:'Tu viens de passer dans Ventes › Factures, filtré sur « En retard ». Pour revenir, on touche l’espace voulu en haut : chaque espace rouvre le dernier onglet où tu étais.', ok:() => gdIci('ensemble') } ] },
+  { r:'gestion', cat:'Ventes', t:'Par intervention : le chemin de chaque chantier', d:'Une vente commence toujours par une intervention. Cet onglet suit chaque intervention de bout en bout : faite, facturée, payée, arrivée à la banque.', go:gdCompta('dossiers'), gestes:[
+    { c:'.cx-kpis4', t:'Les quatre questions de la gestion', p:'Qu’est-ce qui est fini et pas encore facturé ? Qu’est-ce qu’on attend des clients ? Qu’est-ce qui est en retard ? Combien ont rapporté les interventions du mois, une fois les pièces déduites ? Touche une case : la liste se filtre.', suivant:1 },
+    { c:() => gdQ('#cx-dliste [data-cx="dossier|f:f128"]') || gdQ('#cx-dliste [data-cx^="dossier|"]'), t:'Ouvre la mise en service des Durand (12 octobre)', p:'Chaque ligne = une intervention, sa facture et son paiement. La barre montre combien est déjà payé. On suit les Durand : leur facture n’est pas payée.', ok:() => gdPanneau() },
+    { c:'#calque .panneau .cx-tl', t:'La frise : du devis au paiement', p:'Chaque étape s’est écrite toute seule au moment où elle a eu lieu : la facture, son envoi, les relances, et plus tard le paiement. C’est l’histoire complète du chantier, sans rien chercher.', suivant:1, si:() => gdPanneau() },
+    { c:'#calque .panneau .cx-argent', t:'Ce que l’intervention a rapporté', p:'Le prix facturé, moins les pièces et les achats faits pour elle : la marge. C’est ce qui dit si un type de chantier est rentable.', suivant:1, si:() => gdPanneau() },
+    gdFermer ] },
+  { r:'gestion', cat:'Ventes', t:'Factures & avoirs : relancer un client en retard', d:'Toutes tes factures clients au même endroit. On retrouve la facture des Durand, en retard depuis le 26 octobre, et on les relance.', go:gdCompta('fventes'), gestes:[
+    { c:'.cx-outils .seg', t:'Les quatre filtres', p:'Toutes, à traiter (à envoyer, à valider), en retard, payées. On cherche le retard.', suivant:1 },
+    { c:'.cx-outils [data-cx="st|retard"]', t:'Touche « En retard »', p:'Il ne reste que les factures dont l’échéance est passée et qui ne sont pas payées.', ok:() => CX.st === 'retard' || route !== 'comptabilite' },
+    { c:'#cx-liste [data-cx="doc|fac|f128"]', t:'Ouvre la facture FAC-2026-0128 des Durand', p:'1 240 € dus depuis le 26 octobre, déjà relancée deux fois.', ok:() => route === 'facture' && param === 'f128' },
+    { c:'#contenu [data-action="relance"]', t:'Touche « Relancer maintenant »', p:'Une facture qui est partie ne se modifie plus : c’est la loi. On peut la relancer, l’encaisser, ou faire un avoir pour l’annuler. Ici, on relance.', ok:() => !!document.querySelector('#calque .panneau [data-action="relanceOk"]') || gdF128().relances > (GD.memo.rel ?? 99), debut:() => { GD.memo.rel = gdF128().relances; } },
+    { c:'#calque .panneau [data-action="relanceOk"]', t:'Lis le message, puis envoie la relance', p:'Le message est poli, il rappelle le montant et l’échéance, et il contient un lien pour payer par carte. Le client paie en un clic : c’est ce qui fait rentrer l’argent.', ok:() => gdF128().relances > (GD.memo.rel ?? 99) },
+    { c:'.rl-retour', t:'Reviens à la Comptabilité avec « ‹ Retour »', p:'Le bouton Retour te ramène exactement là d’où tu viens, avec le même filtre.', ok:() => route === 'comptabilite', si:() => route !== 'comptabilite' } ] },
+  { r:'gestion', cat:'Ventes', t:'Comptes clients & contrats : qui te doit quoi', d:'Le compte de chaque client : tout ce qui a été facturé, payé, et ce qui reste. Et les contrats d’entretien, qui se facturent à l’échéance.', go:gdCompta('clients'), gestes:[
+    { c:'.cx-liste .cx-crow', t:'Une ligne par client', p:'Combien il a été facturé, combien il a payé, ce qu’il doit encore, et s’il est en retard. Les Durand doivent encore 1 240 €.', suivant:1 },
+    { c:'[data-cx="releve|md"]', t:'Ouvre le relevé des Durand', p:'Le relevé, c’est la liste de toutes leurs factures et de tous leurs paiements, comme un relevé de banque.', ok:() => gdPanneau() },
+    { c:'#calque .panneau .cx-bal-tot', t:'Le solde : ce qu’ils te doivent', p:'Le total en bas, c’est ce qui reste à payer. Le bouton « Relancer » à côté relance le client pour tout ce qu’il doit, en un seul message.', suivant:1, si:() => gdPanneau() },
+    gdFermer,
+    gdOnglet('contrats', 'Contrats', 'Les contrats d’entretien : un prix à l’année, des visites prévues.'),
+    { c:'.cx-liste .cx-krow', t:'Chaque contrat, ses visites et sa facturation', p:'Combien de visites sont faites, combien est déjà facturé et payé, et la prochaine échéance. Rien ne s’oublie : l’échéance arrive aussi dans « À faire ».', suivant:1 } ] },
+  { r:'gestion', cat:'Trésorerie', t:'Paiement en ligne : faire payer tes clients', d:'Le lien « payer par carte » de la relance, c’est ce module. Il fait aussi le virement, le prélèvement et le paiement en trois fois. Il a son propre guide de 25 tests.', go:gdCompta('enligne'), gestes:[
+    { c:'.cx-explique', t:'Comment l’argent arrive', p:'Le client paie : le prestataire de paiement garde l’argent quelques jours, puis le verse sur ta banque, moins ses frais. Chaque étape s’écrit toute seule en comptabilité.', suivant:1 },
+    { c:'[data-cx="enlignePlein"]', t:'Touche « ⤢ Plein écran »', p:'Le module s’ouvre en grand pour que tu puisses le tester à l’aise.', ok:() => !!document.querySelector('.cx-enligne.plein') },
+    { cache:1, t:'Essaie le module : « Tous les tests » te mène pas à pas', p:'Le guide de la Comptabilité se met de côté. Pour revenir, touche « ✕ Quitter le plein écran » en haut, ou la touche Échap.', ok:() => !document.querySelector('.cx-enligne.plein'), si:() => true } ] },
+  { r:'gestion', cat:'Trésorerie', t:'Banque : chaque ligne du relevé a son explication', d:'Le relevé de ta banque arrive tout seul. OP GESTION reconnaît presque toutes les lignes ; tu expliques les dernières. Et justement : les Durand ont fait un virement.', go:gdCompta('banque'), gestes:[
+    { c:'.cp-rel', t:'Le relevé « pointé »', p:'Chaque ligne avec un ✓ a été reliée toute seule à une facture, un achat ou un dépôt. C’est ce qu’un expert-comptable appelle « rapprocher la banque ».', suivant:1 },
+    { c:'.cp-expl', t:'Les lignes qui restent à expliquer', p:'L’application ne sait pas d’où elles viennent. Pour chacune, elle propose la réponse la plus probable : tu n’as qu’à confirmer.', suivant:1, si:() => gdAExpl().length > 0 },
+    { c:'[data-cp="paiement|r17|f128"]', t:'Les 300 € des Durand : touche « C’est un paiement de FAC-2026-0128 »', p:'La boucle se referme : la facture relancée reçoit son paiement, son reste à payer baisse, et le compte du client, la trésorerie et la TVA se mettent à jour en même temps.', ok:() => !gdAExpl().some(r => r.id === 'r17') },
+    { c:() => gdQ('[data-cp^="frais|"]'), t:'Les frais de la banque : touche « Ce sont des frais bancaires »', p:'Une écriture de frais bancaires est créée (compte 627). Fais-le pour les deux lignes.', ok:() => !gdAExpl().some(r => r.m < 0) } ] },
+  { r:'gestion', cat:'Trésorerie', t:'Caisse, chèques et paiements', d:'L’argent qui n’est pas encore à la banque : les espèces chez un technicien, un chèque à déposer. Puis la liste de TOUT l’argent qui entre et qui sort.', go:gdCompta('caisse'), gestes:[
+    { c:'.grille2 > :first-child', t:'L’argent qui n’est pas encore à la banque', p:'Tom a reçu 40 € en espèces chez Mme Roux, et un chèque de 420 € attend d’être déposé. Tant que ce n’est pas fait, la clôture du mois ne passe pas.', suivant:1 },
+    { c:'#contenu [data-cp^="remis|"]', t:'Tom t’a remis les 40 € : touche « Tom me l’a remis »', p:'L’argent passe de la caisse des techniciens à celle du bureau. On sait toujours qui a l’argent en main.', ok:() => gdIci('caisse') && !document.querySelector('#contenu [data-cp^="remis|"]') },
+    { c:'#contenu [data-cp^="chq|"]', t:'Le chèque est déposé : touche « Remis en banque aujourd’hui »', p:'Il apparaîtra sur le prochain relevé, et sera pointé tout seul.', ok:() => gdIci('caisse') && !document.querySelector('#contenu [data-cp^="chq|"]') },
+    gdOnglet('paiements', 'Paiements', 'Tout l’argent du mois, dans les deux sens.'),
+    { c:'#contenu .kpis', t:'Reçu, payé, à recevoir, à payer', p:'Les quatre chiffres de ta trésorerie. « Encore à recevoir » = ce que tes clients te doivent ; « encore à payer » = ce que tu dois à tes fournisseurs.', suivant:1 },
+    { c:'.cx-outils [data-cx="psens|in"]', t:'Touche « Reçus »', p:'Il ne reste que l’argent reçu des clients, avec le moyen de paiement : carte, virement, chèque, espèces. Le virement des Durand y est déjà.', ok:() => CX.psens === 'in' } ] },
+  { r:'gestion', cat:'Achats', t:'Factures & dépenses : ce que tu achètes', d:'L’autre moitié de la boucle : les factures de tes fournisseurs et tes dépenses. Chaque achat a besoin de sa facture, pour la TVA et pour ton expert-comptable.', go:gdCompta('fachats'), gestes:[
+    { c:'.cx-cats', t:'Les achats rangés par catégorie', p:'Matériel et produits, véhicules et carburant, frais généraux. Le rangement se fait tout seul selon le fournisseur.', suivant:1 },
+    { c:'.cx-outils [data-cx="st|sanspiece"]', t:'Touche « Sans facture »', p:'Les achats payés dont on n’a pas encore la facture. Sans elle, la TVA de l’achat ne se récupère pas.', ok:() => CX.st === 'sanspiece' },
+    { c:'#cx-liste [data-cx^="doc|ach|"]', t:'Ouvre un achat sans facture', p:'On voit ce qui a été payé, quand, à qui, et ce qui manque.', ok:() => gdPanneau() },
+    { c:'#calque .panneau .cx-bloc', t:'La pièce justificative', p:'Une photo de la facture suffit : prise au téléphone ou glissée depuis un e-mail, elle est rangée avec l’achat et envoyée à ton expert-comptable.', suivant:1, si:() => gdPanneau() },
+    gdFermer,
+    { c:'.tete [data-cx="nouveau"]', t:'« ＋ Ajouter » : un achat, une dépense, un paiement', p:'Pour ce qui n’arrive pas tout seul. Le reste (commandes aux fournisseurs, notes de frais, banque) s’écrit sans que tu le tapes.', suivant:1 } ] },
+  { r:'gestion', cat:'Achats', t:'Notes de frais & fournisseurs', d:'Ce que l’équipe avance de sa poche (un repas, un plein, un parking), et ce que tu dois à chaque fournisseur.', go:gdCompta('ndf'), gestes:[
+    { c:'.cx-explique', t:'Comment marche une note de frais', p:'Le technicien prend le ticket en photo depuis son téléphone. Tu valides, c’est remboursé avec la paie.', suivant:1 },
+    { c:'input[data-ndfregle]', t:'Les notes sans ticket : un réglage du patron', p:'Certains patrons acceptent de rembourser sans ticket. Si la case est cochée, on peut valider sans ticket, mais une question est posée à chaque fois. Seul le patron peut changer ce réglage.', suivant:1 },
+    { c:'#cx-liste [data-cx="doc|ndf|n1"]', t:'Ouvre la note de Tom (repas à Rochefort)', p:'Tu vois le montant, la date, et la photo du ticket.', ok:() => gdPanneau() || NDF.find(n => n.id === 'n1').etat !== 'attente' },
+    { c:'#calque .panneau .cx-jmini', t:'Le ticket', p:'Touche-le pour le voir en grand : tu vérifies que le montant correspond.', suivant:1, si:() => gdPanneau() },
+    { c:'#calque .panneau [data-ac="ndfok|n1"]', t:'Valide la note', p:'Elle devient une dépense de l’entreprise (et la TVA du repas se récupère), et elle part au remboursement avec la paie.', ok:() => NDF.find(n => n.id === 'n1').etat !== 'attente' },
+    gdOnglet('fournisseurs', 'Comptes fournisseurs', 'Le pendant des comptes clients : ce que tu dois à chacun.'),
+    { c:'.cx-liste .cx-crow', t:'Une ligne par fournisseur', p:'Ce que tu lui as acheté ce mois-ci, ce qui reste à payer, et les achats dont la facture manque. Touche-en un : son relevé s’ouvre, comme pour un client.', suivant:1 } ] },
+  { r:'gestion', cat:'Fiscal & comptable', t:'TVA, journal, balance, résultat', d:'La partie de ton expert-comptable. Tu n’as rien à y taper : tout s’écrit depuis les factures, les paiements, les achats et la banque. Mais il faut savoir la lire.', go:gdCompta('tva'), gestes:[
+    { c:'.grille2 > :first-child', t:'La TVA du mois', p:'La TVA que tes clients t’ont payée, moins celle de tes achats (avec leur facture) : la différence est à reverser. Le montant est préparé ; vérifie-le avec ton expert-comptable avant de déclarer.', suivant:1 },
+    gdOnglet('ecritures', 'Journal', 'Le livre où s’écrit chaque mouvement d’argent.'),
+    { c:'#contenu .cp-ecr', t:'Aucune ligne n’a été tapée', p:'Chaque écriture vient d’une facture, d’un paiement, d’un achat ou de la banque. Celles des Durand y sont déjà, avec leur pièce.', suivant:1 },
+    gdOnglet('balance', 'Balance', 'Tous les comptes de l’entreprise, sur une page.'),
+    { c:'#contenu .cx-bal-tot', t:'Débit = crédit', p:'La règle de toute comptabilité : chaque euro qui sort d’un compte entre dans un autre. Les deux totaux sont toujours égaux, sinon il y a une erreur.', suivant:1 },
+    { c:'[data-cx="gl|512"]', t:'Touche le compte 512 · Banque', p:'Le « grand livre » s’ouvre : le détail de chaque mouvement de ce compte.', ok:() => gdIci('grandlivre') },
+    gdOnglet('resultat', 'Résultat', 'Ce que l’entreprise a gagné ou perdu ce mois-ci.'),
+    { c:'#contenu .cx-res', t:'Le résultat provisoire', p:'Facturé moins dépensé. Il manque les salaires, les charges sociales et l’impôt : c’est ton expert-comptable qui les ajoute.', suivant:1 } ] },
+  { r:'gestion', cat:'Conformité', t:'Aux normes : être en règle', d:'Ce que la loi demande à une entreprise qui facture : les mentions sur les factures, la facture électronique, les archives… OP GESTION le vérifie sur tes vraies données.', go:gdCompta('normes'), gestes:[
+    { c:'.cx-score', t:'Ton score', p:'En règle, à régler, à surveiller, à préparer, et ce que le logiciel garantit tout seul. Chaque point se vérifie sur tes données, pas sur une déclaration.', suivant:1 },
+    { c:'.cx-norme.cx-n-non', t:'Un point à régler', p:'Il dit ce qui manque, pourquoi c’est important, et le texte de loi. Le bouton mène à l’endroit où ça se règle.', suivant:1 },
+    { c:'[data-cx="fiche"]', t:'Ouvre ta fiche légale', p:'Forme juridique, immatriculation, assurance, médiateur : tout ce que tes factures doivent dire de toi.', ok:() => gdPanneau() },
+    { c:'#calque .panneau .cx-montants', t:'Rempli une fois, écrit partout', p:'Une fois la fiche remplie, chaque facture et chaque devis portent les bonnes mentions tout seuls.', suivant:1, si:() => gdPanneau() },
+    gdFermer,
+    gdOnglet('archives', 'Archives & exports', 'Ce qu’on doit garder, et ce qu’on donne à son expert-comptable.'),
+    { c:'#contenu .grille2', t:'Les exports et les archives', p:'Le fichier FEC (celui que lit le logiciel de ton expert-comptable), le bilan du mois en PDF, et les archives gardées dix ans.', suivant:1 } ] },
+  { r:'gestion', cat:'Pilotage', t:'La clôture du mois : tout envoyer à l’expert-comptable', d:'La fin de la boucle. Cinq vérifications, puis un envoi. Si tu as fait la banque et la caisse dans les parties d’avant, elles sont déjà vertes.', go:gdCompta('cloture'), gestes:[
+    { c:'.cp-etapes', t:'Les cinq vérifications', p:'Factures émises, banque expliquée, liquide déposé, achats avec leur facture, TVA calculée. Une étape pas verte dit ce qui manque et mène où le régler.', suivant:1 },
+    { c:'[data-cp="envoi"]', t:'Touche « Envoyer octobre »', p:'Tu vas voir exactement ce qui part : les écritures, les factures, les justificatifs et le relevé pointé.', ok:() => gdPanneau() || !!CP.envoye, si:() => !CP.envoye },
+    { c:'#calque .panneau [data-mailenvoi]', t:'Envoie le mois à Claire Moreau', p:'Une fois envoyé, octobre est gardé tel quel, avec une empreinte qui prouve qu’il n’a pas bougé. Une erreur se corrige en novembre.', ok:() => !!CP.envoye, si:() => !CP.envoye },
+    { c:'.cp-clos', t:'Octobre est clos', p:'La boucle est complète : une intervention, sa facture, la relance, le paiement à la banque, la TVA, et l’envoi à ton expert-comptable. Chaque mois, c’est la même chose.', suivant:1 } ] }
+];
+GD.memo = {};
+GD_TOURS.compta = { nom:'La comptabilité de A à Z', ic:'💶', chap:() => TOUR_COMPTA, fin:'Tu as suivi la boucle entière : l’intervention, la facture, la relance, le paiement arrivé à la banque, la caisse, les achats, la TVA, les normes et la clôture. C’est ce que tu montreras à tes clients.' };
+
+/* le panneau « Apprendre » : toutes les visites, partie par partie */
+function gdApprendre(){
+  const T = GD_TOURS.compta, C = T.chap(), faitsC = C.filter((_, k) => GD_FAITS.has('compta:' + k)).length, az = rlEtapes(), faitsA = az.filter(e => e.ok()).length;
+  const avenir = [['👔', 'Patron', 'les réglages, l’équipe, les chiffres'], ['🧾', 'Gestion', 'devis, factures, planning, clients'], ['🔧', 'Technicien', 'sa journée, le terrain, les frais'], ['🏠', 'Client', 'son espace : payer, signer, demander']];
+  ouvrirPanneau(`<h2>Apprendre OP GESTION</h2>
+    <p class="gris">Des visites guidées : l’écran éclaire ce qu’il faut toucher, une bulle dit quoi faire et pourquoi. Tu peux faire une partie toute seule, et la reprendre quand tu veux.</p>
+    <div class="gd-ap"><div class="gd-ap-t"><span class="gd-ap-ic" aria-hidden="true">${T.ic}</span><div><b>${esc(T.nom)}</b><span class="gris petit">${C.length} parties · la boucle de l’argent, dans l’ordre · ${faitsC}/${C.length} faites</span></div><button type="button" class="btn" data-gd="debut" data-tour="compta" data-k="0">▶ Tout</button></div>
+      <ol class="gd-ap-l">${C.map((e, k) => `<li class="${GD_FAITS.has('compta:' + k) ? 'ok' : ''}"><span class="gd-ap-n">${GD_FAITS.has('compta:' + k) ? '✓' : k + 1}</span><span class="gd-ap-c"><span class="gd-ap-cat">${esc(e.cat)}</span><b>${esc(e.t)}</b></span><button type="button" class="btn gris petit" data-gd="debut" data-tour="compta" data-k="${k}" aria-label="Commencer la partie ${k + 1} : ${esc(e.t)}">▶</button></li>`).join('')}</ol></div>
+    <div class="gd-ap"><div class="gd-ap-t"><span class="gd-ap-ic" aria-hidden="true">🔁</span><div><b>Le test de A à Z</b><span class="gris petit">Une histoire vécue par les quatre personnes : technicien, client, gestion, patron · ${faitsA}/${az.length}</span></div><button type="button" class="btn gris" data-gd="debut" data-tour="az" data-k="0">▶ Commencer</button></div></div>
+    <div class="gd-ap gd-ap-bientot"><b>Bientôt : une visite par rôle</b><ul>${avenir.map(([i, l, d]) => `<li><span aria-hidden="true">${i}</span> <b>${l}</b> <span class="gris petit">· ${d}</span></li>`).join('')}</ul></div>`);
+}
+/* la bande « Tester en tant que » porte le bouton Apprendre */
+(() => { const b0 = rlBande; rlBande = function(){ return b0.apply(this, arguments).replace('<button type="button" class="rl-az"', '<button type="button" class="rl-app" data-gd="apprendre"><span aria-hidden="true">📘</span> Apprendre</button><button type="button" class="rl-az"'); }; })();
 
 const prixCatalogue = nom => { const x = CATALOGUE.find(c => c[0] === nom); return x ? x[1] : null; };
 const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer le ventilateur extérieur', lignes:[['Ventilateur extérieur Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
