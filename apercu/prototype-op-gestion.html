@@ -707,6 +707,13 @@ button.cx-bal:hover{background:var(--survol)}
 .cx-enligne-barre .btn{flex:0 0 auto;margin-left:auto}
 /* le plein écran se mesure sur l'écran, pas sur la zone de contenu : la vue qui entre porte une transformation, qui ferait du module un bloc « fixe » DANS la zone (le menu restait visible) */
 body.cx-plein #contenu{transform:none!important;animation:none!important}
+/* la grande fenêtre de la Comptabilité : au milieu, large, arrondie ; au téléphone, une feuille qui monte presque jusqu'en haut */
+.voile.fenetre{justify-content:center;align-items:center;padding:28px}
+.panneau.fenetre{width:min(1080px,100%);height:auto;max-height:100%;border-radius:24px;border:1px solid var(--trait2);padding:22px 30px 28px;animation:fenetreEntre .28s var(--ressort) both}
+.panneau.fenetre.courte{width:min(760px,100%)}
+@keyframes fenetreEntre{from{opacity:0;transform:translateY(14px) scale(.97)}}
+@media (prefers-reduced-motion:reduce){.panneau.fenetre{animation:fondu .2s ease both}}
+@media (max-width:760px){.voile.fenetre{padding:0;align-items:flex-end}.panneau.fenetre,.panneau.fenetre.courte{width:100%;max-height:96vh;border-radius:26px 26px 0 0;border-width:1px 0 0;padding:16px 16px calc(22px + env(safe-area-inset-bottom,0px));animation:entreB .3s var(--ressort) both}}
 /* ══ Rangement en six espaces et contrôle « aux normes » (8 novembre 2026) ══ */
 .cx-nav1{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
 .cx-nav1 button{min-height:64px;padding:8px 10px;border-radius:16px;border:1px solid var(--trait);background:var(--surf2);color:var(--doux);font-weight:600;font-size:14.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;text-align:center;line-height:1.2}
@@ -9663,6 +9670,18 @@ function cxVueEnLigne(){
 }
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-cx="enlignePlein"]'); if (!b) return; const z = document.getElementById('cx-enligne'); if (!z) return; const on = z.classList.toggle('plein'); b.textContent = on ? '✕ Quitter le plein écran' : '⤢ Plein écran'; document.body.style.overflow = on ? 'hidden' : ''; document.body.classList.toggle('cx-plein', on); });
 document.addEventListener('keydown', ev => { const z = document.getElementById('cx-enligne'); if (ev.key === 'Escape' && z && z.classList.contains('plein')) { z.classList.remove('plein'); document.body.style.overflow = ''; document.body.classList.remove('cx-plein'); const b = z.querySelector('[data-cx="enlignePlein"]'); if (b) b.textContent = '⤢ Plein écran'; } });
+
+/* ══ Dans la Comptabilité, un panneau s'ouvre en GRANDE FENÊTRE au milieu de l'écran (Justin, 8 novembre 2026, capture d'un
+   bon de commande ouvert sur le côté : « dans comptabilité, je voudrais qu'il s'ouvre dans une vraie fenêtre grande, qu'on
+   puisse tout bien faire »). Ailleurs, le panneau de côté reste. Une fenêtre au contenu court (une confirmation, un petit
+   formulaire) garde une largeur à sa mesure : une boîte de mille pixels autour de deux boutons se lit mal. On ajoute une
+   classe : la fenêtre reste un `.panneau`, la pile des fenêtres, « ‹ Retour » et la visite guidée la retrouvent telle quelle. ══ */
+(() => { const o0 = ouvrirPanneau;
+  ouvrirPanneau = function(){ const r = o0.apply(this, arguments);
+    if (route === 'comptabilite') { const v = document.querySelector('#calque .voile'), pn = v && v.querySelector('.panneau');
+      if (pn) { v.classList.add('fenetre'); pn.classList.add('fenetre'); pn.classList.toggle('courte', pn.scrollHeight < 540); } }
+    return r; };
+})();
 
 /* ⟦module roles⟧ */
 /* ══ TESTER EN TANT QUE… — 8 novembre 2026 ══
