@@ -670,6 +670,35 @@ button.cx-bal:hover{background:var(--survol)}
 }
 .cx-fil-dos{margin-left:auto}
 
+/* ══ Les justificatifs se voient (8 novembre 2026) ══ */
+.cx-jmini{position:relative;display:block;width:100%;max-width:300px;height:190px;margin:8px 0 6px;padding:0;border:1px solid var(--trait);border-radius:14px;overflow:hidden;background:#eef0f3;cursor:zoom-in}
+.cx-jmini-doc{display:flex;justify-content:center;padding:12px;transform:scale(.82);transform-origin:top center;pointer-events:none}
+.cx-jmini::after{content:"";position:absolute;inset:auto 0 0 0;height:70px;background:linear-gradient(rgba(238,240,243,0),#eef0f3)}
+.cx-jmini-voir{position:absolute;right:10px;bottom:10px;z-index:1;padding:6px 12px;border-radius:999px;background:rgba(11,20,38,.82);color:#fff;font-weight:600;font-size:13.5px}
+.cx-jmini .cx-jphoto{width:100%;height:auto;display:block}
+.cx-ticket{width:250px;padding:16px 16px 18px;background:#fff;color:#1d232c;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.45;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.tk-t{font-weight:700;font-size:14px;text-align:center;text-transform:uppercase;letter-spacing:.04em}
+.tk-s{text-align:center;color:#59606b;font-size:11.5px}
+.tk-sep{border-top:1px dashed #9aa1ab;margin:8px 0}
+.tk-l{display:flex;justify-content:space-between;gap:10px}.tk-l span:first-child{min-width:0}
+.tk-tot{font-size:14px;margin:4px 0 6px}
+.cx-ffour{width:340px;padding:18px;background:#fff;color:#1d232c;font-size:12.5px;line-height:1.45;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:8px}
+.ff-h{display:flex;justify-content:space-between;gap:10px}.ff-h b{font-size:15px}.ff-h span{text-align:right;color:#59606b}
+.ff-a{display:flex;flex-direction:column;padding:8px 10px;background:#f3f5f8;border-radius:6px}.ff-a span:first-child{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#59606b}
+.ff-l{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e5e8ec;padding-bottom:4px}.ff-tot{font-size:14px;border-bottom:0}
+.ff-p{color:#59606b}
+.cx-vis{position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;background:rgba(8,12,20,.86);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.cx-vis-barre{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px calc(12px);padding-top:max(12px,env(safe-area-inset-top));color:#fff}
+.cx-vis-barre b{font-size:16px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx-vis-x{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:20px}
+.cx-vis-fond{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px 16px max(24px,env(safe-area-inset-bottom))}
+.cx-vis-doc{transform:scale(1.35);transform-origin:center;margin:60px 0}
+.cx-vis-doc .cx-jphoto{display:block;max-width:min(92vw,900px);max-height:78vh;border-radius:8px;transform:scale(calc(1/1.35))}
+.cx-vis-doc .cx-jpdf{width:min(92vw,820px);height:76vh;border:0;border-radius:8px;background:#fff;transform:scale(calc(1/1.35))}
+.cx-vis-note{color:rgba(255,255,255,.75);font-size:13.5px;text-align:center;max-width:420px}
+@media (max-width:760px){ .cx-vis-doc{transform:none;margin:0} .cx-vis-doc .cx-jphoto,.cx-vis-doc .cx-jpdf{transform:none} .cx-ffour{width:min(340px,86vw)} }
+.ndf-sans{display:flex;flex-direction:column;gap:6px;margin:12px 0;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--orange) 9%,transparent);font-size:15px}
+.cx-trace{display:block;margin-top:4px;color:var(--orange);font-size:13.5px;font-weight:600}
 /* ══ Rangement en six espaces et contrôle « aux normes » (8 novembre 2026) ══ */
 .cx-nav1{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
 .cx-nav1 button{min-height:64px;padding:8px 10px;border-radius:16px;border:1px solid var(--trait);background:var(--surf2);color:var(--doux);font-weight:600;font-size:14.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;text-align:center;line-height:1.2}
@@ -799,6 +828,35 @@ button.cx-bal:hover{background:var(--survol)}
 .rl-retour-a{color:var(--doux);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .rl-retour:hover{border-color:var(--trait2)}
 @media (max-width:760px){ .rl-retour{font-size:14.5px} }
+/* placer une demande, visite pour un devis, notes de frais du technicien */
+.rl-placer .actions{margin-top:6px}
+.rl-photos{display:flex;flex-wrap:wrap;gap:8px}
+.rl-ph{width:96px;height:96px;border-radius:12px;background:var(--surf-in) center/cover no-repeat;border:1px solid var(--trait);display:grid;place-items:center;font-weight:600;font-size:14px;color:var(--doux)}
+.rl-ph-plus{cursor:pointer;border-style:dashed}
+.rl-ndf .rl-dr .btn{margin-top:2px}
+.rl-suppr{color:var(--rouge);align-self:flex-start;margin-top:4px}
+/* ══ Le test guidé (8 novembre 2026) : l'ombre, la lumière sur la cible, la bulle ══ */
+.gd-spot{position:fixed;z-index:100001;border-radius:14px;pointer-events:none;box-shadow:0 0 0 9999px rgba(6,10,18,.58),0 0 0 3px #4f8cff,0 0 22px 4px rgba(79,140,255,.65);transition:left .25s ease,top .25s ease,width .25s ease,height .25s ease;animation:gd-pouls 1.6s ease-in-out infinite}
+@keyframes gd-pouls{50%{box-shadow:0 0 0 9999px rgba(6,10,18,.58),0 0 0 5px #4f8cff,0 0 30px 8px rgba(79,140,255,.75)}}
+@media (prefers-reduced-motion:reduce){.gd-spot{animation:none;transition:none}}
+.gd-bulle{position:fixed;z-index:100002;width:min(400px,calc(100vw - 24px));padding:16px 18px;border-radius:18px;background:#fff;color:#141a24;border:1px solid rgba(0,0,0,.08);box-shadow:0 18px 50px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:8px}
+[data-mode="nuit"] .gd-bulle{background:#1c2433;color:#eef2f8;border-color:rgba(255,255,255,.1)}
+.gd-bulle .gd-p,.gd-bulle .gd-n,.gd-bulle .gd-attente{color:#59606b}[data-mode="nuit"] .gd-bulle .gd-p,[data-mode="nuit"] .gd-bulle .gd-n,[data-mode="nuit"] .gd-bulle .gd-attente{color:#aab3c2}
+.gd-bulle .gd-pq{color:inherit}
+.gd-bulle.centre{left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)}
+.gd-tete{display:flex;align-items:center;gap:10px}
+.gd-n{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--doux);white-space:nowrap}
+.gd-points{display:flex;gap:3px;flex:1;min-width:0}.gd-points i{flex:1;height:4px;border-radius:4px;background:var(--surf-in)}.gd-points i.ok{background:var(--vert)}.gd-points i.ici{background:#4f8cff}
+.gd-x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:var(--surf-in);color:var(--doux);font-size:15px}
+.gd-role{align-self:flex-start;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;background:color-mix(in srgb,#4f8cff 14%,transparent);color:var(--lien)}
+.gd-t{font-size:17px;line-height:1.3}
+.gd-p{margin:0;font-size:15px;line-height:1.45;color:var(--doux)}
+.gd-pq{font-weight:700;color:var(--encre)}
+.gd-a{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+.gd-attente{font-size:13.5px;color:var(--doux);font-style:italic}
+.gd-lance{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 6px;padding:14px 16px;border-radius:16px;background:color-mix(in srgb,#4f8cff 9%,var(--surf));border:1px solid color-mix(in srgb,#4f8cff 35%,var(--trait))}
+.gd-lance > div:first-child{display:flex;flex-direction:column;gap:3px;flex:1 1 240px}
+@media (max-width:760px){ .gd-bulle{width:auto} .gd-t{font-size:16px} .gd-p{font-size:14.5px} }
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -8270,6 +8328,21 @@ let DEM_ACHAT = [
   { id:'da3', qui:'sm', d:jour(-2), h:'12:30', quoi:'Échelle 3 plans aluminium', q:1, u:'u', pourquoi:'Pour les groupes en toiture : l’échelle du camion est trop courte.', est:245, quand:null, etat:'attente' },
   { id:'da4', qui:'lr', d:jour(-6), h:'09:05', quoi:'Gants anti-coupure (lot de 10)', q:1, u:'lot', pourquoi:'', est:42, etat:'approuvee', suite:'acheté en magasin le ' + jCourt(jour(-5)) }
 ];
+/* 8 novembre 2026, Justin : « on peut faire un système qui valide les notes de frais sans ticket ; selon les patrons, il y en a
+   qui le font » ; « ça met un message à ceux qui valident : êtes-vous sûr de vouloir valider sans justificatif ? Ils disent oui ou
+   non ». Le patron choisit (NDF_REGLE) ; chaque validation sans ticket se confirme, et la note garde la trace : qui, quand. Elle
+   reste une dépense SANS justificatif : sa TVA ne se récupère pas, et la comptabilité la signale. */
+const NDF_REGLE = { sansTicket:true };
+const ndfValideur = () => typeof ROLE !== 'undefined' && typeof rlQui === 'function' && ['patron', 'gestion'].includes(ROLE) && RL_ACTIF ? rlQui() : 'marc';
+function ndfConfirmerSans(n){
+  const ht = Math.round(n.ttc / (1 + n.tva / 100) * 100) / 100, tva = Math.round((n.ttc - ht) * 100) / 100;
+  ouvrirPanneau(`<span class="surtitre">Note de frais · sans justificatif</span><h2>Valider sans justificatif ?</h2>
+    <span class="gris">${esc(H_NOM(n.qui))} · ${esc(n.objet)} · ${eur(n.ttc)} TTC. Aucun ticket n’est joint.</span>
+    <div class="ndf-sans"><span>• Elle sera remboursée avec la paie, comme les autres.</span><span>• Sa TVA (${eur(tva)}) ne se récupère pas : toute la dépense compte comme une charge.</span>
+      <span>• Elle restera marquée « validée sans justificatif », avec ton nom et la date ; ton expert-comptable la verra.</span><span>• En cas de contrôle, une dépense sans justificatif peut être remise en cause.</span></div>
+    <div class="actions"><button type="button" class="btn" data-ac="ndfoksans|${n.id}">Oui, valider sans justificatif</button><button type="button" class="btn gris" data-ferme="1">Non</button></div>
+    <button type="button" class="lien" data-ac="ndfticket|${n.id}">Plutôt demander le ticket à ${esc(prenomDe(n.qui))}</button>`);
+}
 let NDF = [
   { id:'n1', qui:'tl', d:jour(-1), objet:'Repas, chantier de Rochefort', ttc:16.5, tva:10, recu:true, etat:'attente' },
   { id:'n2', qui:'kb', d:jour(-2), objet:'Péage A10, Saintes', ttc:8.2, tva:20, recu:true, etat:'attente' },
@@ -8330,7 +8403,7 @@ function acNotes(){
   const att = NDF.filter(n => n.etat === 'attente'), val = NDF.filter(n => n.etat === 'validee'), parQui = {};
   val.forEach(n => { parQui[n.qui] = (parQui[n.qui] || 0) + n.ttc; });
   return `${att.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">À valider · ${att.length}</h2>${att.map(n => `<div class="fo-r ach-n">${hAv(n.qui)}<span class="fo-n"><b>${esc(n.objet)} · ${eur(n.ttc)}</b><span class="gris petit">${esc(H_NOM(n.qui))} · ${jCourt(n.d)} · ${n.recu ? '📎 ticket joint' : '<span class="ve-ot">pas de ticket</span>'}</span></span>
-      <span class="ach-na"><button type="button" class="btn petit" data-ac="ndfok|${n.id}" ${n.recu ? '' : 'disabled title="Il faut le ticket pour rembourser"'}>Valider</button>${n.recu ? '' : `<button type="button" class="btn gris petit" data-ac="ndfticket|${n.id}">Demander le ticket</button>`}<button type="button" class="btn gris petit" data-ac="ndfnon|${n.id}">Refuser</button></span></div>`).join('')}</div>` : '<div class="carte gris">Aucune note de frais à valider.</div>'}
+      <span class="ach-na">${n.recu ? `<button type="button" class="btn petit" data-ac="ndfok|${n.id}">Valider</button>` : NDF_REGLE.sansTicket ? `<button type="button" class="btn gris petit" data-ac="ndfsans|${n.id}">Valider sans ticket…</button>` : '<button type="button" class="btn petit" disabled title="Il faut le ticket pour rembourser">Valider</button>'}${n.recu ? '' : `<button type="button" class="btn gris petit" data-ac="ndfticket|${n.id}">Demander le ticket</button>`}<button type="button" class="btn gris petit" data-ac="ndfnon|${n.id}">Refuser</button></span></div>`).join('')}</div>` : '<div class="carte gris">Aucune note de frais à valider.</div>'}
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">À rembourser avec la paie de novembre</h2>
       ${Object.keys(parQui).length ? Object.entries(parQui).map(([k, v]) => `<div class="fo-r">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit">${val.filter(n => n.qui === k).map(n => esc(n.objet)).join(' · ')}</span></span><b>${eur(v)}</b></div>`).join('') : '<span class="gris">Rien pour l’instant.</span>'}
       <span class="gris petit">Ajouté à l’export de paie (Temps de travail → Paie), en remboursement de frais, hors salaire.</span></div>`;
@@ -8382,7 +8455,11 @@ document.addEventListener('click', ev => {
       <div class="actions"><button type="button" class="btn" data-ac="virok">Télécharger le fichier et marquer payées</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
   if (a === 'virok') { const L = acAPayer().filter(o => acSel.has(o.id)); L.forEach(o => { o.paye = dFr(AUJ).slice(0, 5); o.mode = 'Virement'; }); acSel.clear(); fermerPanneau(); rendre(); return toast(`Fichier de virement prêt (${L.length} factures). Elles sont marquées payées et rangées en comptabilité.`); }
   if (a === 'piece') { A.piece = 'ticket'; A.just = 'photo du ' + dFr(AUJ).slice(0, 5); if (A.ref === 'à justifier') A.ref = 'TICKET-' + dFr(AUJ).slice(0, 5).replace('/', ''); rendre(); return toast('Ticket ajouté : la TVA de cette dépense est récupérable.'); }
-  if (a === 'ndfok') { n.etat = 'validee'; ACHATS.push({ id:'a' + n.id, d:dFr(n.d).slice(0, 5), four:'Note de frais · ' + H_NOM(n.qui), objet:n.objet, ht:Math.round(n.ttc / (1 + n.tva / 100) * 100) / 100, tva:n.tva, compte:'625', mode:'Note de frais', paye:null, piece:'ticket', ref:'NDF-' + n.id.toUpperCase() });
+  if (a === 'ndfsans') { if (!NDF_REGLE.sansTicket) return toast('Le patron demande un ticket pour chaque note de frais.'); return ndfConfirmerSans(n); }
+  if (a === 'ndfoksans') { if (!NDF_REGLE.sansTicket || n.recu) return; const qui = ndfValideur(); n.etat = 'validee'; n.sansJustif = { par:qui, le:dFr(AUJ).slice(0, 5) };
+    ACHATS.push({ id:'a' + n.id, d:dFr(n.d).slice(0, 5), four:'Note de frais · ' + H_NOM(n.qui), objet:n.objet, ht:Math.round(n.ttc / (1 + n.tva / 100) * 100) / 100, tva:n.tva, compte:'625', mode:'Note de frais', paye:null, piece:null, just:null, sansJustif:true, ref:'NDF-' + n.id.toUpperCase() });
+    fermerPanneau(); rendre(); return toast(`Validée sans justificatif par ${esc(H_NOM(qui))} : ${eur(n.ttc)} remboursés à ${esc(prenomDe(n.qui))} avec la paie. La trace est gardée.`); }
+  if (a === 'ndfok') { if (!n.recu) return NDF_REGLE.sansTicket ? ndfConfirmerSans(n) : toast('Il faut le ticket pour rembourser.'); n.etat = 'validee'; ACHATS.push({ id:'a' + n.id, d:dFr(n.d).slice(0, 5), four:'Note de frais · ' + H_NOM(n.qui), objet:n.objet, ht:Math.round(n.ttc / (1 + n.tva / 100) * 100) / 100, tva:n.tva, compte:'625', mode:'Note de frais', paye:null, piece:'ticket', ref:'NDF-' + n.id.toUpperCase() });
     rendre(); return toast(`Validée : ${eur(n.ttc)} remboursés à ${esc(prenomDe(n.qui))} avec la paie de novembre.`); }
   if (a === 'ndfticket') { acPrevenir(n.qui, `Pour ta note « ${n.objet} » (${eur(n.ttc)}), il me manque le ticket : prends-le en photo dans OP GESTION et je la valide.`); return toast(`${esc(prenomDe(n.qui))} est prévenu par une notification.`); }
   if (a === 'ndfnon') { n.etat = 'refusee'; acPrevenir(n.qui, `Ta note « ${n.objet} » n’est pas remboursée : sans ticket, on ne peut pas.`); rendre(); return toast('Refusée, la personne est prévenue.'); }
@@ -8762,7 +8839,7 @@ function cxFicheAchat(id){
       : `<label class="champ">Ce que c’est<select class="saisie" data-cxcpt="${a.id}">${cxNatures(a.compte)}</select></label>
       <span class="gris petit">${c.k === 'ndf' ? `Note de frais : elle reste dans « Notes de frais » ; la nature dit ce que c’est. ` : `Catégorie « ${esc(c.l)} ». `}Compte ${a.compte} · ${esc(CP_COMPTES[a.compte] || '')}. Mal rangée ? Change la nature tant que le mois n’est pas envoyé : l’écriture suit, et le changement reste noté.</span>`}
       ${(a.histo || []).map(h => `<span class="gris mini">Reclassée le ${h.d} : ${h.de} → ${h.vers} (${esc(h.qui)})</span>`).join('')}</div>
-    <div class="cx-bloc"><h3>Justificatif et TVA</h3>${a.piece === 'facture' ? `<div class="ligne"><span>📎 ${esc(a.just || 'Facture')}</span><span class="st st-v">Facture</span></div>` : a.piece === 'ticket' ? `<div class="ligne"><span>🧾 ${esc(a.just || 'Ticket de carte')}</span><span class="st st-o">Ticket seul</span></div>` : a.piece === 'autre' ? `<div class="ligne"><span>📄 ${esc(a.just || 'Échéancier')}</span><span class="st st-b">Échéancier</span></div>` : '<div class="ligne"><span class="cx-rt">Aucun justificatif</span></div>'}
+    <div class="cx-bloc"><h3>Justificatif et TVA</h3>${cxJustifLigne(a)}
       <span class="gris petit">${a.autoliq ? 'Autoliquidation (sous-traitance du bâtiment) : pas de TVA sur la facture ; c’est toi qui la déclares et la récupères en même temps. Ton expert-comptable la porte sur la déclaration : à confirmer avec lui.' : !a.tva ? 'Pas de TVA sur cette dépense (une assurance, par exemple).' : ded ? `${eur(tva)} de TVA récupérable${cpService(a) ? ', au paiement (c’est un service)' : ', à la date de la facture (c’est un bien)'}.` : `${eur(tva)} de TVA que tu ne récupères pas tant que la facture au nom de l’entreprise manque : sans elle, le TTC entier est une charge.`}</span>
       ${a.piece !== 'facture' ? `<label class="btn gris" style="cursor:pointer;margin-top:8px">📎 Ajouter la facture<input type="file" accept="image/*,application/pdf" data-cpjust="${a.id}" hidden></label>` : ''}</div>
     ${cmd ? `<div class="cx-bloc"><h3>Commande</h3><div class="ligne"><span>Rapprochée de la commande <b>${esc(cmd.num)}</b></span></div></div>` : ''}
@@ -8774,9 +8851,9 @@ const cxEcr = E => E.map(e => `<div class="cx-ecr"><div class="cx-ecr-t"><span c
 function cxFicheNdf(id){
   const n = NDF.find(o => o.id === id); if (!n) return;
   ouvrirPanneau(`<span class="surtitre">Note de frais · à valider</span><h2>${esc(n.objet)}</h2><span class="gris">${esc(H_NOM(n.qui))} · ${jCourt(n.d)} · ${eur(n.ttc)} TTC (TVA ${String(n.tva).replace('.', ',')} %)</span>
-    <div class="cx-bloc"><h3>Le ticket</h3>${n.recu ? '<div class="ligne"><span>📎 Ticket joint par la personne</span><span class="st st-v">Joint</span></div>' : '<div class="ligne"><span class="cx-rt">Pas de ticket</span></div><span class="gris petit">Sans ticket, la note ne se rembourse pas : demande-le.</span>'}</div>
+    <div class="cx-bloc"><h3>Le ticket</h3>${n.recu ? cxJustifMini('ndf', n.id) + '<span class="gris petit">Vérifie le montant, la date et ce qui a été acheté avant de valider.</span>' : cxNdfSansTicket(n)}</div>
     <div class="cx-bloc"><h3>Une fois validée</h3><span class="gris petit">Elle est rangée dans « Notes de frais » et remboursée à ${esc(prenomDe(n.qui))} avec la paie de novembre, hors salaire.</span></div>
-    <div class="actions"><button type="button" class="btn" data-ac="ndfok|${n.id}" ${n.recu ? '' : 'disabled'}>Valider</button>${n.recu ? '' : `<button type="button" class="btn gris" data-ac="ndfticket|${n.id}">Demander le ticket</button>`}<button type="button" class="btn gris" data-ac="ndfnon|${n.id}">Refuser</button></div>`);
+    <div class="actions">${n.recu ? `<button type="button" class="btn" data-ac="ndfok|${n.id}">Valider</button>` : NDF_REGLE.sansTicket ? `<button type="button" class="btn" data-ac="ndfsans|${n.id}">Valider sans ticket…</button>` : '<button type="button" class="btn" disabled title="Il faut le ticket pour rembourser">Valider</button>'}${n.recu ? '' : `<button type="button" class="btn gris" data-ac="ndfticket|${n.id}">Demander le ticket</button>`}<button type="button" class="btn gris" data-ac="ndfnon|${n.id}">Refuser</button></div>`);
 }
 function cxFicheReleve(id){
   const r = CP_RELEVE.find(o => o.id === id); if (!r) return;
@@ -8949,7 +9026,7 @@ document.addEventListener('click', ev => {
     return toast(`Rangée dans ${cat.l} : ${eur(cpTTC(A))} TTC${autoliq ? ', TVA autoliquidée' : tva ? ', ' + (cpDed(A) ? eur(cpTVA(A)) + ' de TVA récupérable' : 'TVA pas récupérable tant que la facture manque') : ''}.`, { lib:'Voir', fn:() => cxFicheAchat(A.id) }); }
 });
 /* fermer la fiche d'une note de frais une fois décidée (les gestes eux-mêmes sont ceux des Achats) */
-document.addEventListener('click', ev => { if (ev.target.closest('.panneau [data-ac^="ndf"]') && !ev.target.closest('[data-ac^="ndfticket"]')) fermerPanneau(); });
+document.addEventListener('click', ev => { if (ev.target.closest('.panneau [data-ac^="ndf"]') && !ev.target.closest('[data-ac^="ndfticket"], [data-ac^="ndfsans|"]')) fermerPanneau(); });   // « valider sans ticket » ouvre sa question : on ne la referme pas
 document.addEventListener('input', ev => {
   const t = ev.target;
   if (t.matches('[data-cxq]')) { CX.q = t.value; const z = document.getElementById('cx-liste'); if (z) z.innerHTML = cxListe(cxDocs()); return; }
@@ -9338,8 +9415,21 @@ const cxVueCloture = () => { const et = cpEtapes(); return `<div class="cx-expli
 /* ─── Achats · notes de frais, et comptes fournisseurs ─── */
 function cxVueNdf(D){
   return `<div class="cx-explique"><span aria-hidden="true">🧑‍🔧</span><span><b>Notes de frais</b> · ce que l’équipe avance de sa poche (carburant, repas, petit achat). Le technicien prend le ticket en photo depuis son téléphone, tu valides, c’est remboursé avec la paie, hors salaire.</span></div>
-    <div id="cx-liste">${cxListe(D)}</div>`;
+    <div id="cx-liste">${cxListe(D)}</div>
+    <div class="carte"><h3>Les notes sans ticket</h3><label class="case"><input type="checkbox" data-ndfregle="1" ${NDF_REGLE.sansTicket ? 'checked' : ''} ${cxEstPatron() ? '' : 'disabled'}><span><b>Permettre de valider une note de frais sans ticket</b><br><span class="faible mini">À chaque fois, la question « Valider sans justificatif ? » est posée à celui qui valide, et la note garde la trace de qui l’a validée et quand. Sa TVA ne se récupère pas.${cxEstPatron() ? '' : ' C’est le patron qui décide de ce réglage.'}</span></span></label>
+      ${NDF.some(n => n.sansJustif) ? `<div class="groupe">Validées sans justificatif · ${NDF.filter(n => n.sansJustif).length}</div>${NDF.filter(n => n.sansJustif).map(n => `<div class="ligne"><span>${esc(n.objet)}<br><span class="gris petit">${esc(H_NOM(n.qui))} · validée par ${esc(H_NOM(n.sansJustif.par))} le ${esc(n.sansJustif.le)}</span></span><b>${eur(n.ttc)}</b></div>`).join('')}` : ''}</div>`;
 }
+const cxEstPatron = () => typeof ROLE === 'undefined' || typeof RL_ACTIF === 'undefined' || !RL_ACTIF || ROLE === 'patron';
+function cxNdfSansTicket(n){
+  return `<div class="ligne"><span class="cx-rt">Pas de ticket</span></div><span class="gris petit">${NDF_REGLE.sansTicket ? `Demande-le à ${esc(prenomDe(n.qui))}, ajoute-le si tu l’as reçu autrement, ou valide sans justificatif : la question te sera posée, et la trace gardée.` : 'Sans ticket, la note ne se rembourse pas : demande-le, ou ajoute-le si tu l’as reçu autrement.'}</span>
+    <label class="btn gris" style="cursor:pointer;margin-top:8px;align-self:flex-start">📷 Ajouter le ticket<input type="file" accept="image/*,application/pdf" data-ndfticket="${n.id}" hidden></label>`;
+}
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.matches('[data-ndfregle]')) { NDF_REGLE.sansTicket = t.checked; rendre(); return toast(t.checked ? 'Les notes sans ticket peuvent être validées, avec confirmation à chaque fois.' : 'Un ticket est maintenant demandé pour chaque note de frais.'); }
+  if (t.matches('[data-ndfticket]') && t.files && t.files[0]) { const n = NDF.find(o => o.id === t.dataset.ndfticket); if (!n) return;
+    n.recu = true; n.photo = URL.createObjectURL(t.files[0]); n.photoType = t.files[0].type; rendre(); cxFicheNdf(n.id); return toast('Ticket ajouté à la note.'); }
+});
 function cxFournisseurs(){
   const F = {};
   ACHATS.filter(a => a.mode !== 'Note de frais').forEach(a => { const k = a.fid || a.four; (F[k] = F[k] || { k, nom:a.four, L:[] }).L.push(a); });
@@ -9467,6 +9557,69 @@ document.addEventListener('click', ev => {
     <div class="cp-aide">${CX_NAV.map(g => `<div><b>${g[2]} ${g[1]}</b><span class="gris petit">${{ pilotage:'Ce qui attend, dans une seule liste, et la clôture du mois en cinq vérifications.', ventes:'Chaque intervention avec son devis, sa facture et ses paiements ; les factures et les avoirs ; le compte de chaque client ; les contrats.', achats:'Les factures des fournisseurs et les dépenses, rangées par catégorie ; les notes de frais de l’équipe ; le compte de chaque fournisseur.', tresorerie:'Ce qui est reçu et payé, la banque qui se pointe toute seule, les espèces et les chèques suivis jusqu’au dépôt.', fiscal:'La TVA calculée, le journal, la balance, le grand livre, le résultat, et l’envoi à ton expert-comptable.', conformite:'Un contrôle qui vérifie tout seul que tes factures, ta TVA et tes archives sont aux normes, et dit quoi faire sinon.' }[g[0]]}</span><span class="gris mini">${g[3].map(x => x[1]).join(' · ')}</span></div>`).join('')}
     <div><b>Et à la fin du mois, un bouton</b><span class="gris petit">« Envoyer à ton expert-comptable » : il reçoit tout, rangé, dans le format que lit son logiciel. Le mois est envoyé ; une erreur se corrige le mois suivant, rien ne s’efface.</span></div></div>`);
 }, true);
+
+/* ─── voir un justificatif (8 novembre 2026, Justin, sur la fiche d'une note de frais : « comment on voit le ticket ») ───
+   Une fiche qui dit « ticket joint » le MONTRE : une vignette dans la fiche, un toucher l'ouvre en grand. Si une vraie photo a été
+   prise (par le technicien, ou ajoutée à un achat), c'est elle ; sinon, pour les données de démonstration, un aperçu fictif du
+   document, dit comme tel. Valable pour les notes de frais et pour les justificatifs des achats (facture, ticket, échéancier). */
+const cxNdfDe = a => NDF.find(n => 'a' + n.id === a.id);
+const cxHeure = id => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) % 997; return (11 + h % 8) + ':' + String(h % 60).padStart(2, '0'); };
+function cxLieuTicket(objet){
+  const ou = (objet.split(',')[1] || '').trim().replace(/^chantier de |^formation |^centre-ville de /i, '');
+  return /repas/i.test(objet) ? 'Restaurant' + (ou ? ' · ' + ou : '') : /péage/i.test(objet) ? 'Péage autoroutier' + (ou ? ' · ' + ou : '') : /parking/i.test(objet) ? 'Parking' + (ou ? ' · ' + ou : '') : /carburant|gazole|plein/i.test(objet) ? 'Station-service' + (ou ? ' · ' + ou : '') : /matériel|outillage/i.test(objet) ? 'Magasin de bricolage' + (ou ? ' · ' + ou : '') : objet.split(',')[0];
+}
+function cxTicketFictif(o){   // o : { lieu, objet, d (texte), h, ttc, tva }
+  const ht = cpR(o.ttc / (1 + (o.tva || 0) / 100)), t = cpR(o.ttc - ht);
+  return `<div class="cx-ticket"><div class="tk-t">${esc(o.lieu)}</div><div class="tk-s">${esc(o.d)} · ${o.h}</div><div class="tk-sep"></div>
+    <div class="tk-l"><span>${esc(o.objet)}</span><b>${eur(o.ttc)}</b></div><div class="tk-sep"></div>
+    <div class="tk-l"><span>Total HT</span><span>${eur(ht)}</span></div><div class="tk-l"><span>TVA ${String(o.tva || 0).replace('.', ',')} %</span><span>${eur(t)}</span></div>
+    <div class="tk-l tk-tot"><span>TOTAL TTC</span><b>${eur(o.ttc)}</b></div><div class="tk-s">Payé par carte bancaire · merci de votre visite</div></div>`;
+}
+function cxFactureFictive(a){
+  const ttc = cpTTC(a), tva = cpTVA(a);
+  return `<div class="cx-ffour"><div class="ff-h"><b>${esc(a.four)}</b><span>${a.piece === 'autre' ? 'Échéancier' : 'Facture'} n° ${esc(a.ref)}<br>du ${esc(a.d)}/2026</span></div>
+    <div class="ff-a"><span>Facturé à</span><b>${esc(ENTREPRISE.nom)}</b><span>${esc(ENTREPRISE.adr)}</span></div>
+    <div class="ff-l"><span>${esc(a.objet)}</span><b>${eur(a.ht)}</b></div>
+    <div class="ff-l"><span>Total HT</span><span>${eur(a.ht)}</span></div><div class="ff-l"><span>${a.autoliq ? 'TVA : autoliquidation' : a.tva ? 'TVA ' + String(a.tva).replace('.', ',') + ' %' : 'Pas de TVA'}</span><span>${eur(tva)}</span></div>
+    <div class="ff-l ff-tot"><span>Total TTC</span><b>${eur(ttc)}</b></div>${a.ech ? `<div class="ff-p">À payer avant le ${esc(a.ech)}/2026</div>` : ''}</div>`;
+}
+const cxPhotoHtml = (url, type) => /pdf/.test(type || '') ? `<iframe class="cx-jpdf" src="${url}" title="Justificatif"></iframe>` : `<img class="cx-jphoto" src="${url}" alt="Photo du justificatif">`;
+function cxJustifDoc(type, id){   // { titre, html, vraie }
+  if (type === 'ndf') { const n = NDF.find(x => x.id === id); if (!n) return null;
+    return { titre:'Ticket · ' + n.objet, vraie:!!n.photo, html:n.photo ? cxPhotoHtml(n.photo, n.photoType) : cxTicketFictif({ lieu:cxLieuTicket(n.objet), objet:n.objet.split(',')[0], d:jlong(n.d), h:cxHeure(n.id), ttc:n.ttc, tva:n.tva }) }; }
+  const a = ACHATS.find(x => x.id === id); if (!a) return null; const n = cxNdfDe(a);
+  if (n && n.photo) return { titre:'Ticket · ' + a.objet, vraie:true, html:cxPhotoHtml(n.photo, n.photoType) };
+  if (a.photo) return { titre:(a.piece === 'ticket' ? 'Ticket · ' : 'Facture · ') + a.four, vraie:true, html:cxPhotoHtml(a.photo, a.photoType) };
+  if (!a.piece) return null;
+  return { titre:(a.piece === 'ticket' || n ? 'Ticket · ' : a.piece === 'autre' ? 'Échéancier · ' : 'Facture · ') + a.four, vraie:false,
+    html:a.piece === 'ticket' || n ? cxTicketFictif({ lieu:n ? cxLieuTicket(n.objet) : a.four, objet:a.objet.split(' · ')[0], d:a.d + '/2026', h:cxHeure(a.id), ttc:cpTTC(a), tva:a.tva }) : cxFactureFictive(a) };
+}
+function cxJustifMini(type, id){
+  const J = cxJustifDoc(type, id); if (!J) return '';
+  return `<button type="button" class="cx-jmini" data-cx="justif|${type}|${id}" aria-label="Voir en grand : ${esc(J.titre)}"><span class="cx-jmini-doc">${J.html}</span><span class="cx-jmini-voir">Voir en grand</span></button>${J.vraie ? '' : '<span class="gris mini">Aperçu fictif (données de démonstration) : dans la vraie version, c’est la photo prise par la personne.</span>'}`;
+}
+function cxJustifLigne(a){
+  const L = a.piece === 'facture' ? ['📎', a.just || 'Facture', 'Facture', 'st-v'] : a.piece === 'ticket' ? ['🧾', a.just || 'Ticket de carte', 'Ticket seul', 'st-o'] : a.piece === 'autre' ? ['📄', a.just || 'Échéancier', 'Échéancier', 'st-b'] : null;
+  const nd = cxNdfDe(a), trace = nd && nd.sansJustif ? `<span class="cx-trace">Validée sans justificatif par ${esc(H_NOM(nd.sansJustif.par))} le ${esc(nd.sansJustif.le)}</span>` : '';
+  if (!L) return '<div class="ligne"><span class="cx-rt">Aucun justificatif</span></div>' + trace;
+  return `<div class="ligne"><span>${L[0]} ${esc(L[1])}</span><span class="st ${L[3]}">${L[2]}</span></div>${cxJustifMini('ach', a.id)}`;
+}
+function cxVoir(type, id){
+  const J = cxJustifDoc(type, id); if (!J) return;
+  document.getElementById('cx-vis')?.remove();
+  const z = document.createElement('div'); z.id = 'cx-vis'; z.className = 'cx-vis'; z.setAttribute('role', 'dialog'); z.setAttribute('aria-modal', 'true'); z.setAttribute('aria-label', J.titre);
+  z.innerHTML = `<div class="cx-vis-barre"><b>${esc(J.titre)}</b><button type="button" class="cx-vis-x" data-cxvis="1" aria-label="Fermer">✕</button></div><div class="cx-vis-fond" data-cxvis="1"><div class="cx-vis-doc">${J.html}</div>${J.vraie ? '' : '<span class="cx-vis-note">Aperçu fictif : dans la vraie version, c’est la photo prise par la personne.</span>'}</div>`;
+  document.body.appendChild(z); z.querySelector('.cx-vis-x').focus();
+}
+const cxVoirFermer = () => document.getElementById('cx-vis')?.remove();
+document.addEventListener('click', ev => {
+  const v = ev.target.closest('[data-cxvis]'); if (v && (ev.target === v || v.classList.contains('cx-vis-x'))) return cxVoirFermer();
+  const b = ev.target.closest('[data-cx^="justif|"]'); if (!b) return;
+  const [, t, id] = b.dataset.cx.split('|'); cxVoir(t, id);
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && document.getElementById('cx-vis')) { ev.stopPropagation(); cxVoirFermer(); } }, true);
+/* une photo ajoutée à un achat (« ＋ Ajouter la facture ») se garde, pour pouvoir la revoir */
+document.addEventListener('change', ev => { const i = ev.target.closest('[data-cpjust]'); if (!i || !i.files || !i.files[0] || CP.envoye) return; const a = ACHATS.find(o => o.id === i.dataset.cpjust); if (a) { a.photo = URL.createObjectURL(i.files[0]); a.photoType = i.files[0].type; } }, true);
 
 /* ⟦module roles⟧ */
 /* ══ TESTER EN TANT QUE… — 8 novembre 2026 ══
@@ -9607,9 +9760,21 @@ function vueMaJournee(){
    <div class="col"><div class="carte"><h3>Les prochains jours</h3>${apres.map(i => `<div class="ligne"><span><b>${jcourt(i.d)} · ${i.h}</b> · ${esc(CLIENTS[i.cli].nom)}<br><span class="gris petit">${esc(i.titre)}</span></span></div>`).join('') || '<span class="gris petit">Rien de prévu.</span>'}</div></div></div>`;
 }
 function vueTechFrais(){
-  const moi = rlQui(), L = NDF.filter(n => n.qui === moi).sort((a, b) => b.d.localeCompare(a.d)), ET = { attente:['En attente', 'st-o'], validee:['Validée · remboursée avec la paie', 'st-v'], refusee:['Refusée', 'st-r'] };
-  return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mes notes de frais</h1><span class="gris">Ce que tu avances de ta poche pour le travail. Une photo du ticket suffit ; le bureau valide, c’est remboursé avec la paie, hors salaire.</span></div><button type="button" class="btn" data-rl="ndf">＋ Note de frais</button></div>
-    <div class="carte">${L.map(n => `<div class="ligne"><span><b>${esc(n.objet)}</b><br><span class="gris petit">${jcourt(n.d)} · TVA ${String(n.tva).replace('.', ',')} % · ${n.recu ? '📎 ticket joint' : '<span class="cx-rt">sans ticket</span>'}</span></span><span class="rl-dr"><b>${eur(n.ttc)}</b><span class="st ${ET[n.etat][1]}">${ET[n.etat][0]}</span></span></div>`).join('') || '<span class="gris">Aucune note.</span>'}</div>`;
+  const moi = rlQui(), L = NDF.filter(n => n.qui === moi).sort((a, b) => b.d.localeCompare(a.d));
+  const et = n => n.etat === 'attente' ? ['En attente', 'st-o'] : n.etat === 'refusee' ? ['Refusée', 'st-r'] : n.sansJustif ? ['Validée sans ticket', 'st-v'] : ['Validée · remboursée avec la paie', 'st-v'];
+  return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mes notes de frais</h1><span class="gris">Ce que tu avances de ta poche pour le travail. Une photo du ticket suffit ; le bureau valide, c’est remboursé avec la paie, hors salaire. Tant qu’elle est en attente, tu peux la modifier ou ajouter le ticket.</span></div><button type="button" class="btn" data-rl="ndf">＋ Note de frais</button></div>
+    <div class="carte">${L.map(n => { const e = et(n); return `<div class="ligne rl-ndf"><span><b>${esc(n.objet)}</b><br><span class="gris petit">${jcourt(n.d)} · TVA ${String(n.tva).replace('.', ',')} % · ${n.recu ? `<button type="button" class="lien" data-cx="justif|ndf|${n.id}">📎 voir le ticket</button>` : '<span class="cx-rt">sans ticket</span>'}</span></span>
+      <span class="rl-dr"><b>${eur(n.ttc)}</b><span class="st ${e[1]}">${e[0]}</span>${n.etat === 'attente' ? `<button type="button" class="btn ${n.recu ? 'gris ' : ''}petit" data-rl="ndfmod|${n.id}">${n.recu ? 'Modifier' : '📷 Ajouter le ticket'}</button>` : ''}</span></div>`; }).join('') || '<span class="gris">Aucune note.</span>'}</div>`;
+}
+function rlNdfModifier(id){
+  const n = NDF.find(o => o.id === id); if (!n || n.etat !== 'attente') return toast('Cette note est déjà traitée par le bureau : elle ne se modifie plus.');
+  ouvrirPanneau(`<span class="surtitre">Note de frais · en attente</span><h2>Modifier ma note</h2>
+    ${n.recu ? cxJustifMini('ndf', n.id) : '<div class="ligne"><span class="cx-rt">Pas encore de ticket</span></div>'}
+    <label class="btn ${n.recu ? 'gris' : ''}" style="cursor:pointer">📷 ${n.recu ? 'Remplacer la photo du ticket' : 'Prendre le ticket en photo'} <span class="faible" id="rm-pn"></span><input type="file" accept="image/*,application/pdf" capture="environment" id="rm-p" hidden></label>
+    <label class="champ">C’est quoi ?<input class="saisie" id="rm-o" value="${esc(n.objet)}"></label>
+    <div class="cx-2"><label class="champ" style="flex:1 1 140px">Montant payé (TTC, €)<input class="saisie" id="rm-m" inputmode="decimal" value="${String(n.ttc).replace('.', ',')}"></label><label class="champ" style="flex:1 1 140px">TVA sur le ticket<select class="saisie" id="rm-t">${[[20, '20 %'], [10, '10 % (repas)'], [5.5, '5,5 %'], [0, 'Pas de TVA']].map(([v, l]) => `<option value="${v}" ${n.tva === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+    <div class="actions"><button type="button" class="btn" data-rl="ndfmodok|${n.id}">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>
+    <button type="button" class="lien rl-suppr" data-rl="ndfsuppr|${n.id}">Supprimer cette note</button>`);
 }
 function rlNdfForm(){
   ouvrirPanneau(`<span class="surtitre">Note de frais</span><h2>Ce que tu as payé de ta poche</h2>
@@ -9686,7 +9851,8 @@ function rlEtapes(){
     { r:'tech', t:'Envoyer une note de frais', d:'Sophie a fait un plein de sa poche : elle prend le ticket en photo depuis « Ma journée ».', ok:() => !!n, go:() => rlChanger('tech', { h:'majournee', muet:true }) },
     { r:'gestion', t:'Valider la note de frais', d:'Julie la retrouve dans Comptabilité › Achats › Notes de frais : ticket joint, elle la valide ; elle sera remboursée avec la paie.', ok:() => !!n && n.etat !== 'attente', go:() => { CP.onglet = 'ndf'; rlChanger('gestion', { h:'comptabilite', muet:true }); } },
     { r:'client', cli:'md', t:'Demander une intervention', d:'M. et Mme Durand ont une panne : ils la décrivent depuis leur espace client.', ok:() => INTS.some(i => i.origine === 'client'), go:() => rlChanger('client', { cli:'md', ec:'accueil', muet:true }) },
-    { r:'patron', t:'Voir la demande et le dossier complet', d:'Marc voit la demande « à planifier » dans les Interventions, puis, dans Comptabilité › Ventes › Par intervention, le dossier du Vieux Port : devis, compte rendu, facture, paiement et marge, rassemblés.', ok:() => !!RL_VU.dossier, go:() => { filtreInt = 'plan'; rlChanger('patron', { h:'interventions', muet:true }); } },
+    { r:'patron', t:'Placer la demande au planning', d:'Marc ouvre la demande « à planifier » : il lit ce que le client a dit, puis choisit le jour, l’heure et le technicien (un créneau déjà pris est refusé). Elle apparaît dans la journée du technicien.', ok:() => INTS.some(i => i.origine === 'client' && i.st !== 'aplanifier'), go:() => { const d = INTS.find(i => i.origine === 'client' && i.st === 'aplanifier') || INTS.find(i => i.origine === 'client'); filtreInt = 'plan'; rlChanger('patron', { h:d ? 'inter-x-' + d.id : 'interventions', muet:true }); } },
+    { r:'patron', t:'Voir le dossier complet', d:'Dans Comptabilité › Ventes › Par intervention, le dossier du Vieux Port : devis, compte rendu, facture, paiement et marge, rassemblés.', ok:() => !!RL_VU.dossier, go:() => { CP.onglet = 'dossiers'; rlChanger('patron', { h:'comptabilite', muet:true }); } },
     { r:'gestion', t:'Clôturer le mois', d:'Comptabilité › Pilotage › Clôture du mois : les cinq vérifications, puis l’envoi à l’expert-comptable. Octobre est alors gardé tel quel.', ok:() => !!CP.envoye, go:() => { CP.onglet = 'cloture'; rlChanger('gestion', { h:'comptabilite', muet:true }); } }
   ];
 }
@@ -9715,13 +9881,22 @@ document.addEventListener('click', ev => {
     const m = cxNum((document.getElementById('rn-m') || {}).value), ph = (document.getElementById('rn-p') || {}).files[0], o = document.getElementById('rn-o').value, iid = document.getElementById('rn-i').value, t = +document.getElementById('rn-t').value;
     if (!(m > 0)) return toast('Indique le montant payé.');
     const i = iid && INTS.find(z => z.id === iid);
-    NDF.unshift({ id:'n' + Date.now().toString(36), qui:rlQui(), d:AUJ, objet:o + (i ? ', ' + CLIENTS[i.cli].nom : ''), ttc:cpR(m), tva:t, recu:!!ph, etat:'attente', rl:true });
+    NDF.unshift({ id:'n' + Date.now().toString(36), qui:rlQui(), d:AUJ, objet:o + (i ? ', ' + CLIENTS[i.cli].nom : ''), ttc:cpR(m), tva:t, recu:!!ph, photo:ph ? URL.createObjectURL(ph) : null, photoType:ph ? ph.type : null, etat:'attente', rl:true });
     fermerPanneau(); rendre(); return toast(ph ? 'Note envoyée au bureau, avec le ticket.' : 'Note envoyée, sans ticket : le bureau te le demandera avant de la rembourser.'); }
+  if (a === 'ndfmod') return rlNdfModifier(x);
+  if (a === 'ndfmodok') { const n = NDF.find(o => o.id === x); if (!n || n.etat !== 'attente') return fermerPanneau();
+    const o = document.getElementById('rm-o').value.trim(), m = cxNum(document.getElementById('rm-m').value), t = +document.getElementById('rm-t').value, ph = (document.getElementById('rm-p') || {}).files[0];
+    if (!o) return toast('Dis ce que c’est.'); if (!(m > 0)) return toast('Indique le montant payé.');
+    const ajout = ph && !n.recu; Object.assign(n, { objet:o, ttc:cpR(m), tva:t }); if (ph) Object.assign(n, { recu:true, photo:URL.createObjectURL(ph), photoType:ph.type });
+    fermerPanneau(); rendre(); return toast(ajout ? 'Ticket ajouté : le bureau peut valider ta note.' : 'Note mise à jour : le bureau voit la nouvelle version.'); }
+  if (a === 'ndfsuppr') { const k = NDF.findIndex(o => o.id === x); if (k < 0 || NDF[k].etat !== 'attente') return; const n = NDF.splice(k, 1)[0]; fermerPanneau(); rendre();
+    return toast('Note supprimée.', { lib:'Annuler', fn:() => { NDF.splice(k, 0, n); rendre(); } }); }
   if (a === 'remis') { const moi = rlQui(), ints = cpCaisse().chezTech.filter(e => cpTechDe(e) === moi).map(e => e.int).filter(Boolean); ints.forEach(id => CP.remis[id] = '31/10'); rendre(); return toast('Noté : l’argent est au bureau, dans la caisse.'); }
 });
 document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.matches('[data-rlcli]')) { RL_CLI.cli = t.value; EC.tab = 'accueil'; return rendre(); }
+  if (t.id === 'rm-p' && t.files[0]) { const n = document.getElementById('rm-pn'); if (n) n.textContent = '· ' + t.files[0].name; }
   if (t.id === 'rn-p' && t.files[0]) { const n = document.getElementById('rn-pn'); if (n) n.textContent = '· ' + t.files[0].name; }
 });
 document.addEventListener('click', ev => {
@@ -9753,6 +9928,211 @@ document.addEventListener('click', ev => {
 document.addEventListener('click', ev => { if (ev.target.closest('[data-cx^="dossier|i1"]') && ROLE === 'patron') RL_VU.dossier = true; }, true);
 /* un clic qui a fermé un vrai « retour » (la croix de sa barre) ne doit pas faire retomber le test dans la revue grisée */
 document.addEventListener('click', () => { if (RL_ACTIF && !RETOUR) RETOUR = RL_PASSE; });
+
+/* ══ UNE DEMANDE À PLANIFIER SE PLACE ; UNE VISITE POUR UN DEVIS NE SE TERMINE PAS COMME UN DÉPANNAGE ══
+   Justin, 8 novembre 2026, sur la demande « Visite pour un devis » d'un client : « ça me dit de terminer, il manque la signature du
+   client ; mais là, c'est pour placer, une intervention de devis ; ça faut revoir ». Deux écrans à la place de la fiche de terrain :
+   · une intervention « à planifier » s'ouvre sur ce qu'il faut pour la PLACER : ce que le client a dit, puis date, heure, durée et
+     technicien (un créneau déjà pris chez ce technicien est refusé et nommé), ou le planning avec la carte à glisser ;
+   · une visite pour un devis se fait sans contrôles, sans signature ni paiement : ce qu'il faut prévoir, les mesures, les photos,
+     un mot pour le bureau ; « Terminer la visite » prépare le devis à chiffrer, au bureau. */
+const RL_TYPES = { Visite:'Une visite pour un devis : le technicien regarde sur place, prend les mesures et les photos ; le devis se prépare ensuite au bureau, et c’est lui que le client signera.', 'Dépannage':'Un dépannage : le technicien répare, fait signer le compte rendu et peut encaisser sur place.', Entretien:'Un entretien : contrôles, nettoyage et compte rendu signé.' };
+(() => { const f0 = vueFiche; vueFiche = function(id){ const i = INTS.find(o => o.id === id);
+  if (i && i.st === 'aplanifier') return rlFicheAPlanifier(i);
+  if (i && i.type === 'Visite') return rlFicheVisite(i);
+  return f0.apply(this, arguments); }; })();
+const rlCreneaux = () => { const L = []; for (let m = 7 * 60 + 30; m <= 17 * 60 + 30; m += 30) L.push(hm(m)); return L; };
+function rlFicheAPlanifier(i){
+  const c = CLIENTS[i.cli], jour = i.d >= AUJ && dObj(i.d).getDay() % 6 ? i.d : ouvres(1, AUJ)[0], T = TECHS.filter(t => t.id);
+  const charge = t => INTS.filter(o => o.tech === t.id && o.d === jour && o.st !== 'aplanifier').length;
+  return `<div class="tete"><div><span><span class="st st-o">À planifier</span> <span class="gris petit">${i.origine === 'client' ? 'demandée en ligne par le client' : 'pas encore de date ni de technicien'}</span></span><h1>${esc(i.titre)}</h1>
+    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris">${esc(c.adr)} · ${esc(c.tel)}</span></div>
+    <div class="actions"><a class="btn gris" href="tel:${c.tel.replace(/ /g, '')}">Appeler le client</a></div></div>
+  <div class="grille2"><div class="col">
+    ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div><div class="gris petit" style="margin-top:6px">${esc(c.contact)}${i.origine === 'client' ? ' · par son espace client' : ''}</div></div>` : ''}
+    <div class="carte"><h3>Ce que c’est</h3><div>${esc(RL_TYPES[i.type] || i.type)}</div></div>
+    <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div></div>
+   <div class="col"><div class="carte rl-placer"><h3>La placer</h3>
+      <div class="cx-2"><label class="champ" style="flex:1 1 150px">Jour<input class="saisie" type="date" id="pl-d" value="${jour}" min="${AUJ}"></label><label class="champ" style="flex:1 1 110px">Heure<select class="saisie" id="pl-h">${rlCreneaux().map(h => `<option ${h === (i.h && i.h !== '08:00' ? i.h : '09:00') ? 'selected' : ''}>${h}</option>`).join('')}</select></label></div>
+      <label class="champ">Durée<select class="saisie" id="pl-u">${[[30, '30 min'], [60, '1 h'], [90, '1 h 30'], [120, '2 h'], [180, '3 h'], [240, '4 h']].map(([v, l]) => `<option value="${v}" ${v === (i.dur || 60) ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="champ">Technicien<select class="saisie" id="pl-t">${T.map(t => `<option value="${t.id}">${esc(t.nom)} · ${charge(t)} intervention${charge(t) > 1 ? 's' : ''} ce jour-là</option>`).join('')}</select></label>
+      <div class="actions"><button type="button" class="btn" data-rl="placer|${i.id}">Planifier</button><button type="button" class="btn gris" data-rl="auplanning|${i.id}">Voir au planning</button></div>
+      <span class="gris petit">« Voir au planning » ouvre la journée avec la carte à glisser sur un technicien. Une fois placée, elle apparaît dans la journée du technicien.</span></div></div></div>`;
+}
+function rlFicheVisite(i){
+  const c = CLIENTS[i.cli], F = fiche(i.id), t = tech(i.tech), tech_ = typeof ROLE !== 'undefined' && RL_ACTIF && ROLE === 'tech';
+  F.besoin = F.besoin || ''; F.mesures = F.mesures || ''; F.noteBureau = F.noteBureau || '';
+  const tete = `<div class="tete"><div><span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span> <span class="gris petit">${jlong(i.d)} · ${i.h} – ${fin(i.h, i.dur)} · ${esc(t.nom)}</span></span><h1>${esc(i.titre)}</h1>
+    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris">${esc(c.adr)}</span></div>
+    <div class="actions"><a class="btn gris" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener">Y aller</a><a class="btn gris" href="tel:${c.tel.replace(/ /g, '')}">Appeler</a></div></div>`;
+  if (i.st === 'fait') { const d = i.devisBr && DEVIS_REG[i.devisBr];
+    return tete + `<div class="ok-bloc"><b>Visite faite le ${jlong(i.d)}</b><span class="gris petit">${tech_ ? 'Le bureau prépare le devis à partir de ce que tu as relevé.' : 'Le devis à chiffrer est prêt : ' + (d ? 'il reprend ce que le technicien a relevé.' : 'il se prépare au bureau.')}</span>${d && !tech_ ? `<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-rl="go|devis-x-${d.id}">Chiffrer le devis</button></div>` : ''}</div>
+      <div class="grille2"><div class="col"><div class="carte"><h3>Ce qu’il faut prévoir</h3><div style="white-space:pre-line">${esc(F.besoin) || '—'}</div></div><div class="carte"><h3>Mesures et relevés</h3><div style="white-space:pre-line">${esc(F.mesures) || '—'}</div></div></div>
+      <div class="col"><div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="rl-photos">${F.photos.map(p => `<span class="rl-ph" style="background-image:url(${p.src})"></span>`).join('') || '<span class="gris petit">Aucune.</span>'}</div></div>${F.noteBureau ? `<div class="carte"><h3>Note pour le bureau</h3><div>${esc(F.noteBureau)}</div></div>` : ''}</div></div>`; }
+  const manque = F.besoin.trim() ? [] : ['ce qu’il faut prévoir pour le devis'];
+  return tete + `<div class="info petit" style="margin-bottom:12px">Visite pour un devis : pas de contrôles, pas de signature, pas de paiement. Tu relèves ce qu’il faut pour chiffrer ; le client signera le devis.</div>
+  <div class="grille2"><div class="col">
+    ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div></div>` : ''}
+    <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
+    <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="rl-photos">${F.photos.map(p => `<span class="rl-ph" style="background-image:url(${p.src})"></span>`).join('')}<label class="rl-ph rl-ph-plus">＋ Photo<input type="file" accept="image/*" capture="environment" multiple data-rlvph="${i.id}" hidden></label></div></div></div>
+   <div class="col">
+    <div class="carte"><h3>Ce qu’il faut prévoir pour le devis</h3><label class="champ"><span class="faible">Le matériel, les travaux, les difficultés. Écris, ou dicte avec le micro du clavier.</span><textarea data-rlv="besoin|${i.id}" placeholder="ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.">${esc(F.besoin)}</textarea></label></div>
+    <div class="carte"><h3>Mesures et relevés</h3><label class="champ"><span class="faible">Dimensions, puissance, distances, accès…</span><textarea data-rlv="mesures|${i.id}">${esc(F.mesures)}</textarea></label></div>
+    <div class="carte"><h3>Un mot pour le bureau</h3><label class="champ"><span class="faible">Facultatif : disponibilités du client, budget évoqué…</span><textarea data-rlv="noteBureau|${i.id}">${esc(F.noteBureau)}</textarea></label></div></div></div>
+  <div class="collant" id="rl-collant">${manque.length ? `<div class="manque">Il manque : ${manque.join(', ')}</div>` : '<div class="ok-msg">✓ Prêt : le bureau pourra chiffrer</div>'}
+    <div class="deux-boutons"><button type="button" class="btn gris" data-action="pasFini" data-id="${i.id}">Je ne peux pas finir</button><button type="button" class="btn ${manque.length ? '' : 'vert'}" data-rl="visitefin|${i.id}">Terminer la visite</button></div></div>`;
+}
+document.addEventListener('input', ev => { const t = ev.target.closest('[data-rlv]'); if (!t) return; const [k, id] = t.dataset.rlv.split('|'); fiche(id)[k] = t.value;
+  if (k === 'besoin') { const c = document.getElementById('rl-collant'); if (c) { const ok = !!t.value.trim(); c.querySelector('.manque, .ok-msg').outerHTML = ok ? '<div class="ok-msg">✓ Prêt : le bureau pourra chiffrer</div>' : '<div class="manque">Il manque : ce qu’il faut prévoir pour le devis</div>'; c.querySelector('[data-rl^="visitefin"]').classList.toggle('vert', ok); } } });
+document.addEventListener('change', ev => { const t = ev.target.closest('[data-rlvph]'); if (!t || !t.files) return; const F = fiche(t.dataset.rlvph); [...t.files].forEach((f, k) => F.photos.push({ nom:'Visite ' + (F.photos.length + 1), src:URL.createObjectURL(f) })); rendre(); });
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-rl]'); if (!b) return;
+  const [a, x] = b.dataset.rl.split('|'), i = INTS.find(o => o.id === x);
+  if (a === 'auplanning' && i) return kpiPlacer(i.id);
+  if (a === 'placer' && i) {
+    const d = document.getElementById('pl-d').value, h = document.getElementById('pl-h').value, u = +document.getElementById('pl-u').value, t = document.getElementById('pl-t').value;
+    if (!d || d < AUJ) return toast('Choisis un jour à partir d’aujourd’hui.');
+    if (!(dObj(d).getDay() % 6)) return toast('C’est un week-end : choisis un jour de semaine.');
+    const deb = hmin(h), gene = INTS.find(o => o.id !== i.id && o.tech === t && o.d === d && o.st !== 'aplanifier' && hmin(o.h) < deb + u && deb < hmin(o.h) + o.dur);
+    if (gene) return toast(`${tech(t).nom.split(' ')[0]} est déjà chez ${CLIENTS[gene.cli].nom} de ${gene.h} à ${fin(gene.h, gene.dur)} : choisis une autre heure ou un autre technicien.`);
+    Object.assign(i, { d, h, dur:u, tech:t, st:'planifiee' });
+    if (typeof TACHES !== 'undefined') TACHES.filter(z => z.lien && z.lien.id === i.id && !z.fait).forEach(z => { z.fait = { par:'marc', quand:'31/10', quoi:'planifiée' }; });
+    journalAjout('marc', 'intervention', 'a planifié l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:jlong(d) + ' à ' + h + ' · ' + tech(t).nom });
+    rendre(); scrollTo({ top:0 }); return toast(`Planifiée ${jlong(d)} à ${h} avec ${tech(t).nom.split(' ')[0]} : elle apparaît dans sa journée.`); }
+  if (a === 'visitefin' && i) { const F = fiche(i.id); if (!F.besoin.trim()) return toast('Écris ce qu’il faut prévoir : c’est ce que le bureau chiffrera.');
+    F.etat = 'bureau'; i.st = 'fait'; dvInit();
+    const x = { id:'BR' + Date.now().toString(36).toUpperCase(), num:null, cli:i.cli, objet:'Devis suite à la visite du ' + jcourt(i.d), d:AUJ, e:'brouillon', source:`Visite de ${tech(i.tech).nom} le ${jcourt(i.d)}`, int0:i.id,
+      lignes:[...F.besoin.split(/\n|;/).map(z => z.trim()).filter(Boolean).slice(0, 6).map(z => [z.replace(/^[-•]\s*/, ''), 1, null]), ['Déplacement', 1, 29.17]],
+      tva:CLIENTS[i.cli].type === 'part' ? 10 : 20, valid:30, acompte:0, relances:0, trace:[[jcourt(AUJ), `Préparé à la fin de la visite de ${tech(i.tech).nom.split(' ')[0]} : à chiffrer`]] };
+    DV.push(x); DEVIS_REG[x.id] = x; i.devisBr = x.id;
+    if (typeof TACHES !== 'undefined') TACHES.push({ id:'t' + Date.now(), t:`Chiffrer le devis de ${CLIENTS[i.cli].nom} (visite du ${jcourt(i.d)})`, qui:'marc', d:AUJ, h:null, urgent:false, lien:{ t:'devis', id:x.id, lib:'Devis à chiffrer', cli:i.cli }, note:F.besoin, origine:'visite terminée' });
+    journalAjout(i.tech || 'marc', 'intervention', 'a terminé la visite pour un devis', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:F.besoin.slice(0, 80) });
+    rendre(); scrollTo({ top:0 }); return toast('Visite terminée : le devis à chiffrer est prêt au bureau.'); }
+});
+
+/* ⟦module guide⟧ */
+/* ══ LE TEST GUIDÉ — 8 novembre 2026 ══
+   Justin : « je veux refaire le test de A à Z, mais il faudrait que ça mette en surbrillance ce que je dois faire, pourquoi je
+   le fais, que ça m'explique tout ». Par-dessus le parcours (rlEtapes) : l'écran s'assombrit, SEUL ce qu'il faut toucher reste
+   éclairé, et une bulle dit quoi faire, pourquoi, et ce qui se passe ensuite. L'étape avance toute seule quand le geste est fait
+   (on lit l'état des registres, jamais un clic supposé). Entre deux étapes, une bulle annonce le changement de rôle : « tu deviens
+   le client ». Le guide n'empêche rien : on peut toucher ailleurs, le quitter, y revenir ; si ce qu'il faut toucher n'est pas sur
+   l'écran, il propose de remettre au bon endroit. */
+const GD = { actif:false, e:0, s:0, pause:false, attente:0 };
+const gdQ = s => { const L = [...document.querySelectorAll(s)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; }); return L[0] || null; };
+const gdFac = () => FACTURES.find(f => f.int === 'i1');
+const gdNdf = () => NDF.find(n => n.rl);
+const gdDem = () => INTS.find(i => i.origine === 'client');
+const gdPanneau = () => !!document.querySelector('#calque .panneau');
+/* les gestes de chaque étape du parcours : c (ce qu'on éclaire), t (le geste), p (pourquoi), ok (fait ?) ; « suivant » : une étape
+   qu'on lit, sans geste à faire */
+const GD_GESTES = [
+  [ { c:'[data-rl="go|inter-x-i1"]', t:'Ouvre l’intervention du Restaurant Le Vieux Port', p:'Tu es Sophie, technicienne. Voici ta journée sur ton téléphone : ta première intervention est un dépannage de climatisation.', ok:() => route === 'inter' && param === 'i1' },
+    { c:'#contenu input[data-ctrl]:not(:checked)', t:'Coche les contrôles que tu as faits', p:'Ils partent dans le compte rendu du client : c’est la preuve du travail fait. Coche-les tous.', ok:() => tousControles(fiche('i1')).every(k => fiche('i1').coches[k]) },
+    { c:'#contenu textarea[data-champ="compte"]', t:'Écris en une phrase ce que tu as fait', p:'C’est ce que le client lira dans son compte rendu. Par exemple : « Condensateur remplacé, la clim refroidit de nouveau. »', ok:() => !!fiche('i1').compte.trim() },
+    { c:'#signe', t:'Fais signer le client, avec le doigt ou la souris', p:'La signature valide le compte rendu : le client confirme que l’intervention a été faite.', ok:() => !!fiche('i1').signature },
+    { c:'#contenu input[data-paie][value="acompte"]', t:'Le client te donne un acompte : choisis « Acompte versé sur place »', p:'Puis le moyen (Carte) et le montant (50). Le bureau le voit tout de suite : la facture partira avec l’acompte déduit.', ok:() => fiche('i1').paiement.etat !== 'rien' && !!fiche('i1').paiement.montant },
+    { c:'#contenu [data-action="terminer"]', t:'Appuie sur « Terminer »', p:'Le compte rendu part au client, et la facture se prépare toute seule au bureau. Tu n’as rien d’autre à faire.', ok:() => fiche('i1').etat === 'bureau' } ],
+  [ { c:'[data-ec="cr|i1"]', t:'Ouvre le compte rendu de ce matin', p:'Tu es maintenant le client. Dans ton espace en ligne, le compte rendu signé est arrivé tout seul, avec ce qui a été fait.', ok:() => !!RL_VU.cr } ],
+  [ { c:'[data-ec^="signer|"]', t:'Ouvre le devis du ventilateur', p:'Le dépannage a laissé une suite : un devis pour remplacer le ventilateur. Le client le lit et le signe en ligne.', ok:() => !!document.getElementById('dv-ok') || gdDevis() },
+    { c:'#dv-ok', t:'Coche « bon pour accord »', p:'C’est ce qui dit que tu acceptes le devis.', ok:() => (document.getElementById('dv-ok') || {}).checked || gdDevis() },
+    { c:'#dv-signe', t:'Signe avec le doigt', p:'La signature engage le client : le devis devient une commande.', ok:() => !!(document.getElementById('dv-signe') || { dataset:{} }).dataset.signe || gdDevis() },
+    { c:'.panneau [data-dv^="signer|"]', t:'Appuie sur « Accepter et signer »', p:'Chez le patron, l’intervention du remplacement arrive « à planifier ».', ok:() => gdDevis() } ],
+  [ { c:'#contenu input[data-prix]', t:'Une ligne n’a pas de prix : tape-le (par exemple 35)', p:'Tu es Julie, à la gestion. La facture s’est préparée toute seule avec les lignes de l’intervention ; une pièce n’avait pas de prix connu.', ok:() => { const f = gdFac(); return !f || f.st !== 'avalider' || lignesDe(f).every(l => l.pu != null); }, saut:true },
+    { c:'#contenu [data-action="apercuEnvoi"]', t:'Appuie sur « Aperçu et envoi »', p:'Tu vois la facture telle que le client la recevra, avec l’acompte de Sophie déjà déduit.', ok:() => !!document.querySelector('.panneau [data-action="envoyer"]') || (gdFac() || {}).st !== 'avalider' },
+    { c:'.panneau [data-action="envoyer"]', t:'Envoie la facture', p:'Elle prend son numéro maintenant, et le client la reçoit dans son espace.', ok:() => (gdFac() || {}).st !== 'avalider' } ],
+  [ { c:'[data-ec^="payer|f-i1"]', t:'Appuie sur « Payer »', p:'Tu es de nouveau le client : la facture est arrivée, il reste à payer après l’acompte.', ok:() => !!document.querySelector('.panneau [data-ec^="payok|"]') || (gdFac() || {}).st === 'payee' },
+    { c:'.panneau [data-ec^="payok|"]', t:'Paie avec la carte d’essai', p:'Aucun argent ne bouge : la carte est déjà remplie. La facture passe payée toute seule.', ok:() => (gdFac() || {}).st === 'payee' } ],
+  [ { c:'#contenu .cx-row.cx-p', t:'Voici le paiement du client', p:'Tu es Julie : dans Trésorerie › Paiements, le paiement en ligne est arrivé tout seul, « en route vers la banque ». Rien à saisir.', suivant:true } ],
+  [ { c:'#contenu [data-rl="ndf"]', t:'Appuie sur « ＋ Note de frais »', p:'Tu es Sophie : tu as fait un plein d’essence avec ton argent. La note de frais te le fait rembourser.', ok:() => !!document.getElementById('rn-m') || !!gdNdf() },
+    { c:'#rn-m', t:'Tape le montant payé (par exemple 62,40)', p:'Tu peux aussi prendre le ticket en photo juste au-dessus ; sans ticket, le bureau devra le valider « sans justificatif ».', ok:() => cxNum((document.getElementById('rn-m') || {}).value) > 0 || !!gdNdf() },
+    { c:'.panneau [data-rl="ndfok"]', t:'Envoie la note au bureau', p:'Elle part tout de suite chez la personne qui valide les notes de frais.', ok:() => !!gdNdf() } ],
+  [ { c:() => gdNdf() && `#cx-liste [data-cx="doc|ndf|${gdNdf().id}"]`, t:'Ouvre la note de Sophie', p:'Tu es Julie : dans Achats › Notes de frais, la note est arrivée. Tu vérifies le ticket.', ok:() => gdPanneau() || (gdNdf() || {}).etat !== 'attente' },
+    { c:() => gdNdf() && `.panneau [data-ac="ndfok|${gdNdf().id}"], .panneau [data-ac="ndfsans|${gdNdf().id}"]`, t:'Valide la note', p:'Elle sera remboursée à Sophie avec la paie. S’il n’y a pas de ticket, l’application te demandera si tu es sûr.', ok:() => (gdNdf() || {}).etat !== 'attente' || !!document.querySelector('.panneau [data-ac^="ndfoksans|"]') },
+    { c:() => gdNdf() && `.panneau [data-ac="ndfoksans|${gdNdf().id}"]`, t:'Pas de ticket : confirme « Oui, valider sans justificatif »', p:'C’est le réglage du patron : il permet de valider sans ticket, mais on le confirme à chaque fois, et la note gardera la trace de qui l’a validée et quand.', ok:() => (gdNdf() || {}).etat !== 'attente' } ],
+  [ { c:'#contenu [data-ec="demande"]', t:'Appuie sur « Demander une intervention »', p:'Tu es M. Durand, un autre client : ta pompe à chaleur se met en panne. Tu le dis depuis ton espace.', ok:() => !!document.getElementById('ed-m') || !!gdDem() },
+    { c:'#ed-m', t:'Décris le problème en une phrase', p:'Par exemple : « La pompe à chaleur se met en sécurité tous les soirs. »', ok:() => !!((document.getElementById('ed-m') || {}).value || '').trim() || !!gdDem() },
+    { c:'.panneau [data-ec="demandeok"]', t:'Envoie la demande', p:'Elle arrive chez le patron, « à planifier », avec ta phrase.', ok:() => !!gdDem() } ],
+  [ { c:'#contenu .rl-placer', t:'Choisis le jour, l’heure et le technicien', p:'Tu es Marc, le patron. La demande arrive avec ce que le client a dit. Si le technicien est déjà pris à cette heure-là, l’écran te le dit.', suivant:true },
+    { c:'#contenu [data-rl^="placer|"]', t:'Appuie sur « Planifier »', p:'L’intervention apparaît dans la journée du technicien choisi.', ok:() => !!gdDem() && gdDem().st !== 'aplanifier' } ],
+  [ { c:'[data-cx="dossier|i1"]', t:'Ouvre le dossier du Restaurant Le Vieux Port', p:'Toujours le patron : dans Comptabilité › Ventes › Par intervention, chaque intervention rassemble tout ce qui la concerne.', ok:() => !!RL_VU.dossier },
+    { c:'.panneau .cx-argent', t:'Tout est là', p:'Prévu, facturé, encaissé, reste à encaisser et la marge ; en dessous, la frise du devis au paiement. Rien n’a été saisi deux fois.', suivant:true } ],
+  [ { c:'#contenu .cp-etapes', t:'Les vérifications du mois', p:'Tu es Julie : avant d’envoyer le mois à l’expert-comptable, ces points se vérifient tout seuls. Ceux qui restent ouverts sont écrits dans le message.', suivant:true },
+    { c:'#contenu [data-cp="envoi"]', t:'Appuie sur « Envoyer octobre »', p:'L’expert-comptable reçoit tout, rangé, dans le format que lit son logiciel.', ok:() => !!document.querySelector('.panneau [data-mailenvoi]') || !!CP.envoye },
+    { c:'.panneau [data-mailenvoi]', t:'Envoie', p:'Octobre est gardé tel quel : une erreur se corrigera en novembre, rien ne s’efface.', ok:() => !!CP.envoye } ]
+];
+const gdDevis = () => { dvInit(); const d = DV.find(x => x.num === DEVIS_SUITE.num); return !!d && d.e === 'accepte'; };
+const gdGeste = () => (GD_GESTES[GD.e] || [])[GD.s];
+const gdCible = g => typeof g.c === 'function' ? g.c() : g.c;
+function gdCommencer(k){
+  GD.actif = true; GD.e = k || 0; GD.s = 0; GD.pause = false; fermerPanneau();
+  document.body.classList.add('gd-on'); gdEntrer(true);
+}
+function gdQuitter(){ GD.actif = false; document.body.classList.remove('gd-on'); document.getElementById('gd-spot')?.remove(); document.getElementById('gd-bulle')?.remove(); }
+/* entrer dans une étape du parcours : le bon rôle, le bon écran, puis le premier geste qui n'est pas déjà fait */
+function gdEntrer(direct){
+  const E = rlEtapes()[GD.e]; if (!E) return gdFin();
+  if (!direct) { GD.pause = true; return gdBulle(null); }
+  GD.pause = false; GD.s = 0; GD.prep = true; E.go();
+  setTimeout(() => { GD.prep = false; gdSauter(); gdPlacer(); }, 500);   // on juge où l'on en est une fois l'écran affiché, pas avant
+}
+function gdSauter(){ let g; while ((g = gdGeste()) && !g.suivant && g.ok && g.ok()) GD.s++; }
+function gdSuivant(){
+  GD.s++; gdSauter();
+  if (!gdGeste()) { GD.e++; if (GD.e >= GD_GESTES.length) return gdFin(); return gdEntrer(false); }
+  setTimeout(gdPlacer, 250);
+}
+function gdFin(){ GD.pause = true; gdBulle('fin'); }
+/* la bulle : le geste, le pourquoi, où on en est */
+function gdBulle(mode){
+  let b = document.getElementById('gd-bulle'); if (!b) { b = document.createElement('div'); b.id = 'gd-bulle'; b.className = 'gd-bulle'; b.setAttribute('role', 'dialog'); b.setAttribute('aria-live', 'polite'); document.body.appendChild(b); }
+  const E = rlEtapes(), e = E[GD.e], R = e ? ROLES[e.r] : null, n = E.length, g = gdGeste(), qui = e ? (e.cli ? CLIENTS[e.cli].nom + ' (client)' : H_NOM(R.qui) + ' · ' + R.l.toLowerCase()) : '';
+  const tete = `<div class="gd-tete"><span class="gd-n">Étape ${Math.min(GD.e + 1, n)} sur ${n}</span><span class="gd-points">${E.map((x, k) => `<i class="${k < GD.e ? 'ok' : k === GD.e ? 'ici' : ''}"></i>`).join('')}</span><button type="button" class="gd-x" data-gd="quitter" aria-label="Quitter le test guidé">✕</button></div>`;
+  if (mode === 'fin') b.innerHTML = `${tete.replace(/Étape \d+ sur \d+/, 'Terminé')}<b class="gd-t">Le test est fini 🎉</b><p class="gd-p">Tu as vu la même histoire avec les yeux des quatre personnes : le technicien, le client, la gestion et le patron. Chaque geste de l’un est apparu tout seul chez l’autre.</p><div class="gd-a"><button type="button" class="btn" data-gd="quitter">Fermer</button></div>`;
+  else if (mode === null) b.innerHTML = `${tete}<span class="gd-role">${R.ic} Maintenant, tu es ${esc(qui)}</span><b class="gd-t">${esc(e.t)}</b><p class="gd-p">${esc(e.d)}</p><div class="gd-a"><button type="button" class="btn" data-gd="entrer">C’est parti</button><button type="button" class="btn gris" data-gd="quitter">Quitter</button></div>`;
+  else if (mode === 'perdu') b.innerHTML = `${tete}<span class="gd-role">${R.ic} ${esc(qui)}</span><b class="gd-t">${esc(g.t)}</b><p class="gd-p">Ce qu’il faut toucher n’est pas sur cet écran.</p><div class="gd-a"><button type="button" class="btn" data-gd="remettre">Me remettre au bon endroit</button><button type="button" class="btn gris" data-gd="quitter">Quitter</button></div>`;
+  else b.innerHTML = `${tete}<span class="gd-role">${R.ic} ${esc(qui)}</span><b class="gd-t">👉 ${esc(g.t)}</b><p class="gd-p"><span class="gd-pq">Pourquoi ?</span> ${esc(g.p)}</p><div class="gd-a">${g.suivant ? '<button type="button" class="btn" data-gd="suivant">J’ai vu, suivant</button>' : '<span class="gd-attente">Fais-le sur l’écran : le guide avance tout seul.</span>'}${g.saut ? '<button type="button" class="lien" data-gd="suivant">Passer</button>' : ''}</div>`;
+  b.classList.toggle('centre', mode !== undefined);
+  return b;
+}
+/* éclairer la cible : un trou dans l'ombre, la bulle à côté (au téléphone : en haut ou en bas, à l'opposé de la cible) */
+function gdPlacer(){
+  if (!GD.actif || GD.pause) { document.getElementById('gd-spot')?.remove(); return; }
+  const g = gdGeste(); if (!g) return;
+  const sel = gdCible(g), el0 = sel && gdQ(sel), el = el0 && ((el0.matches('input[type=checkbox],input[type=radio]') && el0.closest('label')) || el0);   // une case s'éclaire avec son libellé
+  let s = document.getElementById('gd-spot');
+  if (!el) { GD.attente++; if (GD.attente > 6) { s?.remove(); gdBulle('perdu'); } return; }
+  if (GD.attente || !s || s.dataset.cle !== GD.e + '.' + GD.s) { GD.attente = 0; const r0 = el.getBoundingClientRect(); if (r0.top < 70 || r0.bottom > innerHeight - 160) el.scrollIntoView({ block:'center', behavior:'smooth' }); }
+  if (!s) { s = document.createElement('div'); s.id = 'gd-spot'; s.className = 'gd-spot'; document.body.appendChild(s); }
+  const cle = GD.e + '.' + GD.s, neuf = s.dataset.cle !== cle; s.dataset.cle = cle;
+  const r = el.getBoundingClientRect(), m = 6;
+  Object.assign(s.style, { left:(r.left - m) + 'px', top:(r.top - m) + 'px', width:(r.width + 2 * m) + 'px', height:(r.height + 2 * m) + 'px' });
+  const b = neuf || !document.getElementById('gd-bulle') || document.getElementById('gd-bulle').classList.contains('centre') ? gdBulle() : document.getElementById('gd-bulle');
+  const tel = innerWidth <= 760, bh = b.offsetHeight, bw = b.offsetWidth;
+  if (tel) { const enBas = r.top + r.height / 2 < innerHeight / 2; b.style.left = '12px'; b.style.right = '12px'; b.style.top = enBas ? 'auto' : '12px'; b.style.bottom = enBas ? 'calc(12px + env(safe-area-inset-bottom))' : 'auto'; }
+  else { b.style.right = 'auto'; b.style.bottom = 'auto';
+    if (r.bottom + 14 + bh < innerHeight || r.top - 14 - bh > 12) { const top = r.bottom + 14 + bh < innerHeight ? r.bottom + 14 : r.top - 14 - bh;
+      b.style.top = top + 'px'; b.style.left = Math.min(Math.max(12, r.left + r.width / 2 - bw / 2), innerWidth - bw - 12) + 'px'; }
+    else { const gauche = r.left > innerWidth - r.right;   // ni dessous ni dessus : à côté, du côté qui a le plus de place, sans jamais couvrir la cible
+      b.style.top = Math.min(Math.max(12, r.top + r.height / 2 - bh / 2), innerHeight - bh - 12) + 'px'; b.style.left = (gauche ? Math.max(12, r.left - 14 - bw) : Math.min(innerWidth - bw - 12, r.right + 14)) + 'px'; } }
+}
+/* le guide regarde : chaque geste fait le fait avancer, et la lumière suit la cible si la page bouge */
+setInterval(() => { if (!GD.actif || GD.pause || GD.prep) return; const g = gdGeste(); if (g && !g.suivant && g.ok && g.ok()) return gdSuivant(); gdPlacer(); }, 300);
+addEventListener('scroll', () => { if (GD.actif && !GD.pause) gdPlacer(); }, { passive:true });
+addEventListener('resize', () => { if (GD.actif && !GD.pause) gdPlacer(); });
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-gd]'); if (!b) return;
+  const a = b.dataset.gd;
+  if (a === 'quitter') return gdQuitter();
+  if (a === 'entrer') return gdEntrer(true);
+  if (a === 'suivant') return gdSuivant();
+  if (a === 'remettre') { GD.attente = 0; const E = rlEtapes()[GD.e]; E.go(); return setTimeout(gdPlacer, 350); }
+  if (a === 'debut') return gdCommencer(+b.dataset.k || 0);
+});
+/* le panneau « De A à Z » propose le test guidé, depuis le début ou depuis l'étape en cours */
+(() => { const p0 = rlParcours; rlParcours = function(){ p0.apply(this, arguments);
+  const k = rlEtapes().findIndex(e => !e.ok()), h = document.querySelector('.panneau h2');
+  if (h) h.insertAdjacentHTML('afterend', `<div class="gd-lance"><div><b>Le test guidé</b><span class="gris petit">L’écran éclaire ce que tu dois toucher, et une bulle te dit pourquoi. Tu passes d’une personne à l’autre sans rien chercher.</span></div><div class="actions"><button type="button" class="btn" data-gd="debut" data-k="${k < 0 ? 0 : k}">▶ ${k > 0 ? 'Reprendre à l’étape ' + (k + 1) : 'Commencer le test guidé'}</button>${k > 0 ? '<button type="button" class="btn gris" data-gd="debut" data-k="0">Depuis le début</button>' : ''}</div></div>`); }; })();
 
 const prixCatalogue = nom => { const x = CATALOGUE.find(c => c[0] === nom); return x ? x[1] : null; };
 const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer le ventilateur extérieur', lignes:[['Ventilateur extérieur Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
