@@ -615,6 +615,60 @@ button.cx-bal:hover{background:var(--survol)}
   .cx-gl .saisie{min-width:0;width:100%}.cx-gl{flex-wrap:wrap;width:100%}
   .cx-ecr-l{grid-template-columns:minmax(0,1fr) 80px 80px;font-size:13px}
 }
+/* ══ Par intervention (8 novembre 2026) ══ */
+.cx-kpis4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.cx-pont{display:flex;align-items:center;gap:14px;text-align:left;padding:16px 18px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--bleu) 30%,var(--trait));background:color-mix(in srgb,var(--bleu) 6%,var(--surf));color:var(--encre);box-shadow:var(--ombre)}
+.cx-dentete,.cx-drow{display:grid;grid-template-columns:70px minmax(0,1.6fr) minmax(0,1.3fr) 128px minmax(0,.9fr) minmax(0,1fr);gap:12px;align-items:center}
+.cx-dentete{padding:8px 10px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--doux);border-bottom:1px solid var(--trait)}
+.cx-dentete .n{text-align:right}
+.cx-drow{width:100%;padding:12px 10px;border:0;border-bottom:1px solid var(--trait);background:none;color:var(--encre);text-align:left;font-size:15px}
+.cx-drow:hover{background:var(--survol)}
+.cx-dgrp{padding:14px 10px 6px;border-bottom:1px solid var(--trait)}
+.cx-dgrp h3{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--encre)}
+.cx-lks{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.cx-lk{font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surf-in);color:var(--doux);white-space:nowrap}
+.cx-paye{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cx-barre{display:block;height:6px;border-radius:9px;background:var(--surf-in);overflow:hidden;max-width:120px}.cx-barre i{display:block;height:100%;border-radius:9px;background:var(--vert)}
+.cx-dos-etat{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
+.cx-argent{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0 6px}
+.cx-argent div{padding:11px 13px;border-radius:14px;background:var(--surf-in);display:flex;flex-direction:column;gap:2px}
+.cx-argent span{font-size:13px;color:var(--doux)}.cx-argent b{font-size:20px;font-variant-numeric:tabular-nums}.cx-argent small{font-size:12px;color:var(--faible)}
+.cx-tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.cx-tl li{display:grid;grid-template-columns:30px 64px minmax(0,1fr);gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid var(--trait);font-size:15px}
+.cx-tl li:last-child{border-bottom:0}
+.cx-tl-i{font-size:18px;text-align:center}.cx-tl-d{color:var(--doux);font-size:14px;white-space:nowrap;padding-top:1px}
+.cx-rel{display:grid;grid-template-columns:62px 116px minmax(0,1.6fr) repeat(3,minmax(0,.7fr));gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--trait);font-size:14.5px;font-variant-numeric:tabular-nums}
+.cx-rel .n{text-align:right}.cx-rel .lien{min-height:0}
+.cx-rel-t{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--doux);margin-top:10px}
+.cx-centete,.cx-crow{display:grid;grid-template-columns:minmax(0,1.8fr) repeat(3,minmax(0,.8fr)) minmax(0,1fr);gap:12px;align-items:center}
+.cx-ktete,.cx-krow{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,.9fr) repeat(3,minmax(0,.7fr)) minmax(0,.8fr);gap:12px;align-items:center}
+.cx-centete,.cx-ktete{padding:8px 10px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--doux);border-bottom:1px solid var(--trait)}
+.cx-centete .n,.cx-ktete .n,.cx-crow .n,.cx-krow .n{text-align:right;font-variant-numeric:tabular-nums}
+.cx-crow,.cx-krow{width:100%;padding:13px 10px;border:0;border-bottom:1px solid var(--trait);background:none;color:var(--encre);text-align:left;font-size:15px}
+.cx-crow:hover,.cx-krow:hover{background:var(--survol)}
+.cx-crow .cx-st{flex-direction:row;flex-wrap:wrap}
+@media (max-width:1100px){
+  .cx-dentete,.cx-drow{grid-template-columns:64px minmax(0,1.6fr) 120px minmax(0,.9fr) minmax(0,1fr)}
+  .cx-dentete span:nth-child(3),.cx-drow .cx-lks{display:none}
+  .cx-kpis4{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .cx-nav{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .cx-nav button{font-size:13.5px;padding:0 4px}
+  .cx-dentete,.cx-centete,.cx-ktete{display:none}
+  .cx-drow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"doc m" "lks st" "paye paye";gap:6px 10px;padding:13px 6px}
+  .cx-drow .cx-d{display:none}.cx-drow .cx-doc{grid-area:doc}.cx-drow .cx-m{grid-area:m}.cx-drow .cx-st{grid-area:st;align-items:flex-end}
+  .cx-drow .cx-lks{grid-area:lks;display:flex}.cx-drow .cx-paye{grid-area:paye;flex-direction:row;align-items:center;gap:10px}.cx-drow .cx-barre{flex:1;max-width:none}
+  .cx-crow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"doc du" "st st";gap:6px 10px}
+  .cx-crow .cx-doc{grid-area:doc}.cx-crow span:nth-child(2),.cx-crow span:nth-child(3){display:none}.cx-crow span:nth-child(4){grid-area:du}.cx-crow .cx-st{grid-area:st}
+  .cx-krow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"doc reste" "paye ech";gap:6px 10px}
+  .cx-krow .cx-doc{grid-area:doc}.cx-krow .cx-paye{grid-area:paye}.cx-krow span:nth-child(3),.cx-krow span:nth-child(4){display:none}.cx-krow span:nth-child(5){grid-area:reste}.cx-krow .cx-ech{grid-area:ech;display:block;text-align:right}
+  .cx-rel{grid-template-columns:52px minmax(0,1fr) 84px;font-size:13.5px}
+  .cx-rel span:nth-child(2),.cx-rel span:nth-child(4),.cx-rel span:nth-child(5){display:none}
+  .cx-tl li{grid-template-columns:26px 54px minmax(0,1fr);font-size:14.5px}
+  .cx-argent{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+.cx-fil-dos{margin-left:auto}
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -8493,9 +8547,9 @@ function cxChiffres(){
 /* la page : remplace celle d'avant (même nom, même place dans le menu) ; c'est voulu, pas un doublon oublié */
 vueComptabilite = function(){
   const S = cxSection(CP.onglet), K = cxChiffres(), D = cxDocs(), aTraiter = D.filter(x => CX_A_TRAITER.includes(x.st)).length;
-  const nb = { factures:aTraiter, banque:K.rap.aExpliquer.length };
+  const nb = { dossiers:cxDossiers().filter(x => ['afacturer', 'avalider', 'retard'].includes(x.st)).length, factures:aTraiter, banque:K.rap.aExpliquer.length };
   const clos = CP.envoye ? `<div class="ok-bloc cp-clos"><b>Octobre est envoyé à ${esc(CP_EXPERT.qui)} (${esc(CP_EXPERT.cab)}) le ${CP.envoye}.</b><span class="gris petit">La copie envoyée est gardée telle quelle${CP.empreinte ? ' (empreinte ' + CP.empreinte + ')' : ''} : octobre n’accepte plus de geste, une erreur se corrige en novembre.</span></div>` : '';
-  const corps = S === 'factures' ? cxVueFactures(D) : S === 'paiements' ? cxVuePaiements(K) : S === 'banque' ? cxVueBanque(K) : S === 'tva' ? cpVueTva(K.tv) : S === 'ecritures' ? cxVueComptable(K) : cxVueEnsemble(K, D);
+  const corps = S === 'dossiers' ? cxVueDossiers() : S === 'factures' ? cxVueFactures(D) : S === 'paiements' ? cxVuePaiements(K) : S === 'banque' ? cxVueBanque(K) : S === 'tva' ? cpVueTva(K.tv) : S === 'ecritures' ? cxVueComptable(K) : cxVueEnsemble(K, D);
   return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris">Factures, paiements, banque et TVA : tout l’argent de l’entreprise au même endroit. Tout s’écrit tout seul ; tu vérifies, tu envoies à ton expert-comptable.</span></div>
     <div class="actions"><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Ajouter</button></div></div>
   ${clos}
@@ -8510,6 +8564,8 @@ function cxVueEnsemble(K, D){
     const t = L.filter(x => CX_A_TRAITER.includes(x.st)), rt = t.filter(x => x.st === 'retard'), tot = cpR(L.reduce((s, x) => s + (x.ttc || 0), 0));
     return `<button type="button" class="cx-tuile" data-cx="cat|${c.k}"><span class="cx-ti" aria-hidden="true">${c.ic}</span><span class="cx-tc"><b>${c.l}</b><span class="gris petit">${L.length} pièce${L.length > 1 ? 's' : ''} · ${eur(Math.abs(tot))} TTC</span>
       ${t.length ? `<span class="cx-tt${rt.length ? ' rt' : ''}">${t.length} à traiter${rt.length ? ' · ' + rt.length + ' en retard' : ''}</span>` : '<span class="cx-tt ok">À jour</span>'}</span><span class="cx-chev" aria-hidden="true">›</span></button>`; }).join('');
+  const DD = cxDossiers(), daf = DD.filter(x => ['afacturer', 'avalider'].includes(x.st)).length, dae = DD.filter(x => ['aencaisser', 'retard'].includes(x.st)).length, drt = DD.filter(x => x.st === 'retard').length;
+  const pont = `<button type="button" class="cx-pont" data-cx="sec|dossiers"><span class="cx-ti" aria-hidden="true">🧰</span><span class="cx-tc"><b>Par intervention</b><span class="gris petit">Le devis, le contrat, la facture et les paiements de chaque intervention, rassemblés · ${daf} à facturer · ${dae} à encaisser${drt ? ' · ' + drt + ' en retard' : ''}</span></span><span class="cx-chev" aria-hidden="true">›</span></button>`;
   return `<div class="kpis cx-kpis">
     <button type="button" class="kpi" data-cx="sec|factures|clients"><b>${eur(K.facHT)}</b><span>facturé en octobre (HT) · ${K.facOct.length} facture${K.facOct.length > 1 ? 's' : ''}</span></button>
     <button type="button" class="kpi" data-cx="sec|paiements"><b style="color:var(--vert)">${eur(K.encTTC)}</b><span>encaissé en octobre (TTC)${K.terrain.length ? ` <i class="cp-k">+ ${eur(cpR(K.terrain.reduce((s, e) => s + e.ttc, 0)))} reçus sur place, pas encore sur une facture</i>` : ''}</span></button>
@@ -8517,6 +8573,7 @@ function cxVueEnsemble(K, D){
     <button type="button" class="kpi" data-cx="cpt|resultat"><b style="color:${K.resultat < 0 ? 'var(--rouge)' : 'inherit'}">${eur(K.resultat)}</b><span>résultat provisoire d’octobre : facturé moins dépenses, sans salaires ni charges sociales</span></button>
     <button type="button" class="kpi" data-cx="sec|banque"><b>${eur(K.treso)}</b><span>trésorerie · banque ${eur(K.soldeBq)}${K.enRoute ? ' + en route ' + eur(K.enRoute) : ''}${K.enMain ? ' + en main ' + eur(K.enMain) : ''}</span></button>
     <button type="button" class="kpi" data-cx="sec|tva"><b style="color:var(--orange)">${eur(K.tv.aPayer)}</b><span>TVA d’octobre à payer en novembre</span></button></div>
+  ${pont}
   <div class="carte"><div class="cx-t"><h3>Tes factures, par catégorie</h3><button type="button" class="lien" data-cx="sec|factures|tous">Toutes les factures ›</button></div>
     <div class="cx-tuiles">${tuiles}</div></div>
   ${cpVueEnsemble(et, faits)}`;
@@ -8805,12 +8862,196 @@ vueEncaissements = function(){ CP.onglet = 'paiements'; route = 'comptabilite'; 
 ACTIONS.nouvelleFacture = () => cxNouvelleFacture();
 /* une facture client s'ouvre en page : on dit où l'on est */
 (() => { const f0 = vueFacture; vueFacture = function(id){ const h = f0.apply(this, arguments), f = FACTURES.find(o => o.id === id); if (!f) return h;
-  return `<nav class="cx-fil" aria-label="Où tu es"><button type="button" class="lien" data-cx="sec|ensemble">Comptabilité</button><span aria-hidden="true">›</span><button type="button" class="lien" data-cx="sec|factures|${f.st === 'avoir' ? 'avoirs' : 'clients'}">${f.st === 'avoir' ? 'Avoirs' : 'Factures clients'}</button><span aria-hidden="true">›</span><span>${f.num === '—' ? 'Facture préparée' : esc(f.num)}</span></nav>` + h; }; })();
+  return `<nav class="cx-fil" aria-label="Où tu es"><button type="button" class="lien" data-cx="sec|ensemble">Comptabilité</button><span aria-hidden="true">›</span><button type="button" class="lien" data-cx="sec|factures|${f.st === 'avoir' ? 'avoirs' : 'clients'}">${f.st === 'avoir' ? 'Avoirs' : 'Factures clients'}</button><span aria-hidden="true">›</span><span>${f.num === '—' ? 'Facture préparée' : esc(f.num)}</span>${f.int ? `<button type="button" class="lien cx-fil-dos" data-cx="dossier|${f.int}">Tout le dossier de l’intervention ›</button>` : ''}</nav>` + h; }; })();
 /* la barre du bas du téléphone : « Compta » à la place de « Factures » */
 barreBas = function(base){
   const T = [['accueil', 'Accueil'], ['planning', 'Planning'], ['interventions', 'Interv.'], ['comptabilite', 'Compta'], ['plus', 'Plus']], plus = ['clientvoit', 'clients', 'contrats'].includes(base) || CAT_LIGNES.some(c => c.k === base && !['accueil', 'planning', 'interventions', 'comptabilite'].includes(c.k));
   return `<nav class="opg-barre" aria-label="Catégories principales">${T.map(([k, l]) => estGrise(k) ? `<button type="button" class="opg-tab grise" disabled aria-disabled="true" title="${catTard(k) ? 'Pour plus tard' : 'Déjà refaite'}">${svg(k)}<span>${l}</span></button>` : `<button type="button" class="opg-tab${(k === base || (k === 'plus' && plus)) ? ' on' : ''}" data-tab="${k}">${svg(k)}<span>${l}</span></button>`).join('')}</nav>`;
 };
+
+/* ══ PAR INTERVENTION — 8 novembre 2026 ══
+   Justin : « rassemble tout ce qui est contrats, factures, historique des paiements, par intervention ; tout ce qui doit être
+   dans la comptabilité, vraiment logique et compréhensible, facile d'utilisation ; inspire-toi des meilleurs logiciels pros et
+   fais mieux ». Les logiciels de chantier suivent une « affaire » ; ici, chaque intervention EST son dossier, rassemblé tout seul :
+   le devis qu'elle réalise (et celui qu'elle a fait naître), le contrat dont elle est une visite, sa facture, l'argent reçu sur
+   place par le technicien, les paiements et où ils en sont à la banque, les relances, ce qu'elle a coûté (pièces au prix
+   d'achat, achats faits pour elle) et donc sa marge. Rangés par ce qu'il reste à FAIRE, pas par date. Deux autres vues :
+   le relevé de compte de chaque client (factures et paiements, solde qui court) et l'avancement de chaque contrat.
+   Rien ne se saisit deux fois : tout est lu dans INTS, FACTURES, ENCAISSEMENTS, ACHATS, CONTRATS et les devis. */
+const CX_DEVIS_INT = { 'D-2026-034':'i13', 'D-2026-040':'i8' };   // devis accepté → l'intervention qu'il a posée (la vraie version garde ce lien dès l'acceptation)
+const CX_ACHAT_INT = { a7:'i13' };   // achat fait pour une intervention (la vraie version le demande à la saisie : « Pour quelle intervention ? »)
+const CX_DOS = { vue:'inter', f:'tous', q:'' };
+const CX_DST = { arealiser:['À réaliser', 'st-g'], afacturer:['À facturer', 'st-o'], avalider:['Facture à valider', 'st-o'], aencaisser:['À encaisser', 'st-b'], retard:['Paiement en retard', 'st-r'], payee:['Réglée', 'st-v'], garantie:['Sans facture · garantie', 'st-g'], contrat:['Couverte par le contrat', 'st-p'] };
+const CX_DGROUPES = [['maintenant', 'À faire maintenant', ['retard', 'afacturer', 'avalider']], ['attente', 'En attente du paiement', ['aencaisser']], ['regle', 'Réglé', ['payee', 'garantie', 'contrat']], ['avenir', 'À venir', ['arealiser']]];
+const cxQ = v => parseFloat(String(v || '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+const cxDevisDe = i => dvInit().filter(d => d.num && (d.int === i.id || CX_DEVIS_INT[d.num] === i.id));
+function cxDossier(i, fSeule){
+  if (fSeule) { const f = fSeule, emise = f.num !== '—', ttc = emise ? cpR(ttcDe(f)) : 0, enc = ENCAISSEMENTS.filter(e => e.fac === f.num), encaisse = cpR(enc.reduce((s, e) => s + e.ttc, 0));
+    return { id:'f:' + f.id, i:null, c:CLIENTS[f.cli], cli:f.cli, d:cxIso(f.emise), titre:f.objet, facs:[f], prepa:emise ? null : f, devis:[], devisNe:[], contrat:null, enc, terrain:[], factureTTC:ttc, encaisse, reste:cpR(Math.max(0, ttc - encaisse)), htFac:emise ? cpR(htDe(f)) : 0, prevuHT:null, pieces:[], achats:[], cout:0, marge:null,
+      st:!emise ? 'avalider' : f.st === 'retard' ? 'retard' : ['envoyee', 'partielle'].includes(f.st) ? 'aencaisser' : 'payee' }; }
+  const F = fiche(i.id), facs = FACTURES.filter(f => f.int === i.id), emises = facs.filter(f => f.num !== '—'), nums = new Set(emises.map(f => f.num));
+  const devis = cxDevisDe(i), devisNe = dvInit().filter(d => (d.int0 === i.id || d.suite === i.id) && !devis.includes(d));
+  const contrat = i.type === 'Contrat' ? CONTRATS.find(k => k.cli === i.cli && k.st === 'signe') || null : null;
+  const enc = ENCAISSEMENTS.filter(e => nums.has(e.fac)), terrain = cpPaieTerrain().filter(e => e.int === i.id);
+  const factureTTC = cpR(emises.reduce((s, f) => s + ttcDe(f), 0)), encaisse = cpR([...enc, ...terrain].reduce((s, e) => s + e.ttc, 0)), prepa = facs.find(f => f.num === '—') || null;
+  const htFac = cpR(emises.reduce((s, f) => s + (f.st === 'avoir' ? -f.ht : htDe(f)), 0));
+  const prevuHT = devis.length ? cpR(devis.reduce((s, d) => s + dvHT(d), 0)) : contrat ? cpR(contrat.prix / contrat.freq) : prepa && lignesDe(prepa).every(l => l.pu != null) ? cpR(htDe(prepa)) : null;
+  const pieces = i.st === 'fait' ? (F.pieces || []).map(p => { const x = PRODUITS.find(o => o.nom === p.nom), q = cxQ(p.q) || 1; return { nom:p.nom, q:p.q, cout:x && x.pa != null ? cpR(x.pa * q) : null }; }) : [];
+  const achats = ACHATS.filter(a => a.int === i.id || CX_ACHAT_INT[a.id] === i.id);
+  const cout = cpR(pieces.reduce((s, p) => s + (p.cout || 0), 0) + achats.reduce((s, a) => s + a.ht, 0)), base = htFac || prevuHT || 0;
+  let st;
+  if (i.st !== 'fait') st = 'arealiser';
+  else if (i.fact && i.fact.mode === 'garantie') st = 'garantie';
+  else if (contrat && contrat.fact === 'an') st = 'contrat';
+  else if (!emises.length) st = prepa ? 'avalider' : 'afacturer';
+  else st = emises.some(f => f.st === 'retard') ? 'retard' : emises.some(f => ['envoyee', 'partielle'].includes(f.st)) ? 'aencaisser' : 'payee';
+  return { id:i.id, i, c:CLIENTS[i.cli], cli:i.cli, d:i.d, titre:i.titre, F, facs, emises, prepa, devis, devisNe, contrat, enc, terrain, factureTTC, encaisse, reste:cpR(Math.max(0, factureTTC - encaisse)), htFac, prevuHT, pieces, achats, cout, marge:base ? cpR(base - cout) : null, st };
+}
+function cxDossiers(){
+  const D = INTS.map(i => cxDossier(i));
+  FACTURES.filter(f => !f.int && (cpOct(f.emise) || f.num === '—' || ['envoyee', 'retard', 'partielle'].includes(f.st))).forEach(f => D.push(cxDossier(null, f)));
+  return D;
+}
+const cxDosGarde = x => (CX_DOS.f === 'tous' || (CX_DOS.f === 'afacturer' ? ['afacturer', 'avalider'].includes(x.st) : CX_DOS.f === 'aencaisser' ? ['aencaisser', 'retard'].includes(x.st) : x.st === CX_DOS.f))
+  && (!CX_DOS.q || (x.c.nom + ' ' + x.titre + ' ' + x.facs.map(f => f.num).join(' ') + ' ' + x.devis.map(d => d.num).join(' ')).toLowerCase().includes(CX_DOS.q.toLowerCase()));
+
+function cxVueDossiers(){
+  const D = cxDossiers(), af = D.filter(x => ['afacturer', 'avalider'].includes(x.st)), ae = D.filter(x => ['aencaisser', 'retard'].includes(x.st)), rt = D.filter(x => x.st === 'retard');
+  const octFait = D.filter(x => x.i && x.i.st === 'fait' && x.d && x.d.slice(5, 7) === '10' && x.marge != null);
+  const vues = [['inter', 'Par intervention'], ['client', 'Par client'], ['contrat', 'Par contrat']];
+  return `<div class="kpis cx-kpis4">
+      <button type="button" class="kpi" data-cx="dosf|afacturer"><b style="color:${af.length ? 'var(--orange)' : 'inherit'}">${af.length}</b><span>intervention${af.length > 1 ? 's' : ''} terminée${af.length > 1 ? 's' : ''} à facturer${af.some(x => x.prevuHT != null) ? ' · au moins ' + eur(cpR(af.reduce((s, x) => s + (x.prevuHT || 0), 0))) + ' HT' : ''}</span></button>
+      <button type="button" class="kpi" data-cx="dosf|aencaisser"><b>${eur(cpR(ae.reduce((s, x) => s + x.reste, 0)))}</b><span>à encaisser sur ${ae.length} intervention${ae.length > 1 ? 's' : ''}</span></button>
+      <button type="button" class="kpi" data-cx="dosf|retard"><b style="color:${rt.length ? 'var(--rouge)' : 'inherit'}">${eur(cpR(rt.reduce((s, x) => s + x.reste, 0)))}</b><span>en retard · ${rt.length}</span></button>
+      <button type="button" class="kpi" data-cx="dosf|payee"><b style="color:var(--vert)">${eur(cpR(octFait.reduce((s, x) => s + x.marge, 0)))}</b><span>marge des interventions d’octobre (HT, pièces et achats déduits)</span></button></div>
+    <div class="seg" role="group" aria-label="Regrouper">${vues.map(([k, l]) => `<button type="button" data-cx="dosv|${k}" aria-pressed="${CX_DOS.vue === k}">${l}</button>`).join('')}</div>
+    ${CX_DOS.vue === 'client' ? cxVueClients(D) : CX_DOS.vue === 'contrat' ? cxVueContrats() : cxVueInter(D)}`;
+}
+function cxVueInter(D){
+  const filtres = [['tous', 'Toutes'], ['afacturer', 'À facturer'], ['aencaisser', 'À encaisser'], ['retard', 'En retard'], ['payee', 'Réglées'], ['arealiser', 'À venir']];
+  return `<div class="cx-outils"><div class="seg" role="group" aria-label="Où en est l’argent">${filtres.map(([k, l]) => `<button type="button" data-cx="dosf|${k}" aria-pressed="${CX_DOS.f === k}">${l}</button>`).join('')}</div>
+      <input class="saisie cx-q" type="search" placeholder="Chercher un client, une facture, un devis…" value="${esc(CX_DOS.q)}" data-cxdq="1" aria-label="Chercher une intervention"></div>
+    <div id="cx-dliste">${cxDListe(D)}</div>`;
+}
+function cxDListe(D){
+  const L = D.filter(cxDosGarde);
+  const ligne = x => { const s = CX_DST[x.st], tot = x.factureTTC, pc = tot ? Math.min(100, Math.round(x.encaisse / tot * 100)) : x.encaisse ? 100 : 0;
+    const liens = [...x.devis.map(d => `<span class="cx-lk">💰 ${esc(d.num)}</span>`), x.contrat ? `<span class="cx-lk">📑 ${esc(x.contrat.num)}</span>` : '', ...x.facs.map(f => `<span class="cx-lk">🧾 ${f.num === '—' ? 'préparée' : esc(f.num)}</span>`), x.terrain.length ? '<span class="cx-lk">💶 reçu sur place</span>' : ''].join('');
+    return `<button type="button" class="cx-drow" data-cx="dossier|${x.id}">
+      <span class="cx-d">${x.d ? jCourt(x.d) : '—'}</span>
+      <span class="cx-doc"><b>${esc(x.c.nom)}</b><span class="gris petit">${esc(x.titre)}${x.i && x.i.tech ? ' · ' + esc(tech(x.i.tech).nom.split(' ')[0]) : ''}${!x.i ? ' · facture sans intervention' : ''}</span></span>
+      <span class="cx-lks">${liens || '<span class="gris mini">—</span>'}</span>
+      <span class="cx-m"><b>${tot ? eur(tot) : x.prevuHT != null ? eur(x.prevuHT) + ' HT' : '—'}</b><span class="gris mini">${tot ? 'facturé TTC' : x.prevuHT != null ? (x.devis.length ? 'prévu au devis' : x.contrat ? 'prévu au contrat' : 'à facturer') : ''}</span></span>
+      <span class="cx-paye">${tot || x.encaisse ? `<span class="cx-barre" aria-hidden="true"><i style="width:${pc}%"></i></span><span class="gris mini">${x.reste > .01 ? 'reste ' + eur(x.reste) : x.encaisse && !tot ? eur(x.encaisse) + ' reçus' : 'tout reçu'}</span>` : '<span class="gris mini">—</span>'}</span>
+      <span class="cx-st"><span class="st ${s[1]}">${s[0]}</span>${x.marge != null && x.i && x.i.st === 'fait' ? `<span class="gris mini">marge ${eur(x.marge)} HT</span>` : ''}</span></button>`; };
+  const parGroupe = CX_DGROUPES.map(([k, t, sts]) => { const G = L.filter(x => sts.includes(x.st)).sort((a, b) => (b.d || '').localeCompare(a.d || '')); if (k === 'avenir') G.reverse();
+    return G.length ? `<div class="cx-dgrp"><h3>${t} <span class="gris">· ${G.length}</span></h3></div>${G.map(ligne).join('')}` : ''; }).join('');
+  return `<div class="carte cx-liste">${L.length ? `<div class="cx-dentete" aria-hidden="true"><span>Date</span><span>Intervention</span><span>Rassemblé</span><span class="n">Montant</span><span>Payé</span><span>Où elle en est</span></div>${parGroupe}` : '<p class="gris" style="margin:6px 0">Rien ici avec ces filtres.</p>'}</div>`;
+}
+
+/* le dossier d'une intervention : tout ce qui la concerne, du devis au paiement, et la suite à donner */
+function cxOuvrirDossier(id){
+  const x = id.startsWith('f:') ? cxDossier(null, FACTURES.find(f => f.id === id.slice(2))) : cxDossier(INTS.find(o => o.id === id)); if (!x) return;
+  const s = CX_DST[x.st], K = cxChiffres(), M = cxMouvements(K), nums = new Set(x.facs.map(f => f.num));
+  const ev = [];   // [date ISO, ordre, icône, texte]
+  x.devis.forEach(d => (d.trace || []).forEach(([j, t]) => ev.push([cxIso(j) || d.d, 0, '💰', `Devis ${esc(d.num)} · ${esc(t)}`])));
+  if (x.i) { const F = x.F, t = x.i.tech && tech(x.i.tech).nom;
+    ev.push([x.i.d, 1, '🧰', x.i.st === 'fait' ? `Intervention réalisée${t ? ' par ' + esc(t) : ''}${F.debut ? `, sur place ${F.debut} – ${F.fin}` : ''}${F.signature ? ' · compte rendu signé' + (F.signeNom ? ' par ' + esc(F.signeNom) : '') : ''}` : `Intervention ${x.i.st === 'aplanifier' ? 'à planifier' : 'prévue le ' + jlong(x.i.d)}${t ? ' avec ' + esc(t) : ''}`]);
+    x.terrain.forEach(e => ev.push([x.i.d, 2, '💶', `${eur(e.ttc)} reçus sur place en ${e.mode.toLowerCase()} par ${esc(t || 'le technicien')} · ${esc(M.find(m => m.piece === 'facture à venir' && m.m === e.ttc) ? M.find(m => m.piece === 'facture à venir' && m.m === e.ttc).ou[0] : '')}`]));
+    x.devisNe.forEach(d => ev.push([d.d, 3, '💰', `Devis ${esc(d.num || 'en brouillon')} préparé pour la suite (${esc(d.objet)}) · ${d.e === 'accepte' ? 'accepté' : d.e === 'refuse' ? 'refusé' : 'en attente du client'}`])); }
+  x.facs.forEach(f => { if (f.num === '—') ev.push([x.i ? x.i.d : AUJ, 4, '🧾', 'Facture préparée toute seule, à valider']);
+    else { ev.push([cxIso(f.emise), 4, '🧾', `Facture ${esc(f.num)} envoyée · ${eur(ttcDe(f))} TTC · échéance ${esc(f.ech)}`]); if (f.relances) ev.push([cxIso(f.ech) || cxIso(f.emise), 5, '🔔', `Relancée ${f.relances} fois${f.st === 'retard' ? ' · toujours pas réglée' : ''}`]); } });
+  M.filter(m => m.sens === 'in' && nums.has(m.piece)).forEach(m => ev.push([m.d, 6, '✅', `${eur(m.m)} reçus par ${esc(String(m.mode).toLowerCase())}${m.h && m.h !== '—' ? ' à ' + m.h.replace(':', ' h ') : ''} · ${esc(m.ou[0])}${m.preuve ? ' · 📎 ' + esc(m.preuve) : ''}`]));
+  ev.sort((a, b) => (a[0] || '').localeCompare(b[0] || '') || a[1] - b[1]);
+  const docs = [x.i ? `<button type="button" class="btn gris petit" data-cp="go|inter-x-${x.i.id}">🧰 L’intervention</button>` : '', ...x.devis.map(d => `<button type="button" class="btn gris petit" data-cp="go|devis-x-${encodeURIComponent(d.num)}">💰 Devis ${esc(d.num)}</button>`),
+    x.contrat ? `<button type="button" class="btn gris petit" data-cp="go|contrat-x-${x.contrat.id}">📑 Contrat ${esc(x.contrat.num)}</button>` : '', ...x.facs.map(f => `<button type="button" class="btn gris petit" data-cp="go|facture-x-${f.id}">🧾 ${f.num === '—' ? 'La facture préparée' : 'Facture ' + esc(f.num)}</button>`),
+    x.i && x.i.st === 'fait' ? `<button type="button" class="btn gris petit" data-voirclient="${x.i.id}|pdf">📄 Compte rendu</button>` : ''].join('');
+  const suite = { afacturer:x.i ? `<button type="button" class="btn" data-cx="dosfac|${x.i.id}">Préparer la facture</button>` : '', avalider:x.prepa ? `<button type="button" class="btn" data-cp="go|facture-x-${x.prepa.id}">Relire et envoyer la facture</button>` : '',
+    aencaisser:`<button type="button" class="btn" data-action="ajoutEnc">Enregistrer un paiement</button>${x.facs.filter(f => ['envoyee', 'partielle'].includes(f.st)).map(f => `<button type="button" class="btn gris" data-action="relance" data-id="${f.id}">Relancer</button>`).join('')}`,
+    retard:`${x.facs.filter(f => f.st === 'retard').map(f => `<button type="button" class="btn" data-action="relance" data-id="${f.id}">Relancer ${esc(CLIENTS[f.cli].nom)}</button>`).join('')}<button type="button" class="btn gris" data-action="ajoutEnc">Enregistrer un paiement</button>` }[x.st] || '';
+  const conseil = { afacturer:'Terminée, pas encore facturée : la facture se prépare toute seule avec les lignes de l’intervention.', avalider:'La facture est prête : relis-la et envoie-la.', aencaisser:'Facture envoyée : on attend le paiement du client.', retard:'L’échéance est passée : relance le client, ou note son paiement s’il a payé.', payee:'Tout est réglé : rien à faire.', arealiser:'Pas encore faite : la facture se préparera à la fin de l’intervention.', garantie:'Sous garantie : pas de facture.', contrat:'Visite couverte par le contrat, déjà facturé à la signature.' }[x.st];
+  ouvrirPanneau(`<span class="surtitre">${x.i ? 'Intervention · ' + jlong(x.i.d) : 'Facture sans intervention'}</span><h2>${esc(x.c.nom)} · ${esc(x.titre)}</h2>
+    <div class="cx-dos-etat"><span class="st ${s[1]}">${s[0]}</span><span class="gris petit">${conseil}</span></div>
+    ${suite ? `<div class="actions" style="margin:4px 0 10px">${suite}</div>` : ''}
+    <div class="cx-argent">
+      <div><span>${x.devis.length ? 'Prévu au devis' : x.contrat ? 'Prévu au contrat' : 'Prévu'}</span><b>${x.prevuHT != null ? eur(x.prevuHT) : '—'}</b><small>HT</small></div>
+      <div><span>Facturé</span><b>${x.factureTTC ? eur(x.factureTTC) : '—'}</b><small>TTC</small></div>
+      <div><span>Encaissé</span><b class="${x.encaisse ? 'cx-in' : ''}">${x.encaisse ? eur(x.encaisse) : '—'}</b><small>TTC</small></div>
+      <div><span>Reste à encaisser</span><b class="${x.st === 'retard' ? 'cx-rt' : ''}">${eur(x.reste)}</b><small>TTC</small></div>
+      <div><span>Marge</span><b>${x.marge != null ? eur(x.marge) : '—'}</b><small>HT · coûts ${eur(x.cout)}${x.pieces.some(p => p.cout == null) ? ', un prix d’achat manque' : ''}</small></div></div>
+    <div class="cx-bloc"><h3>Du devis au paiement</h3>${ev.length ? `<ol class="cx-tl">${ev.map(e => `<li><span class="cx-tl-i" aria-hidden="true">${e[2]}</span><span class="cx-tl-d">${e[0] ? jCourt(e[0]) : ''}</span><span>${e[3]}</span></li>`).join('')}</ol>` : '<span class="gris petit">Rien encore.</span>'}</div>
+    <div class="cx-bloc"><h3>Ce qu’elle a coûté</h3>${x.pieces.length || x.achats.length ? `${x.pieces.map(p => `<div class="ligne"><span>${esc(p.nom)} <span class="gris petit">· ${esc(p.q)} · pris dans le stock</span></span><b>${p.cout != null ? eur(p.cout) : '<span class="gris petit">prix d’achat inconnu</span>'}</b></div>`).join('')}
+      ${x.achats.map(a => `<div class="ligne"><button type="button" class="lien" data-cx="doc|ach|${a.id}">${esc(a.four)} · ${esc(a.objet)}</button><b>${eur(a.ht)} HT</b></div>`).join('')}
+      <div class="ligne"><b>Total des coûts${x.pieces.some(p => p.cout == null) ? ' connus' : ''}</b><b>${eur(x.cout)} HT</b></div>${x.pieces.some(p => p.cout == null) ? '<span class="gris petit">Une pièce n’a pas de prix d’achat dans le stock : la marge est un peu trop haute tant qu’il manque.</span>' : ''}` : '<span class="gris petit">Aucune pièce ni achat pour cette intervention. Dans la vraie version, la main-d’œuvre (heures pointées) s’ajoutera ici.</span>'}</div>
+    <div class="cx-bloc"><h3>Les documents</h3><div class="actions">${docs}</div></div>`, true);
+}
+
+/* le relevé de compte d'un client : chaque facture et chaque paiement, avec le solde qui court (le grand livre du client, en clair) */
+function cxReleve(k){
+  const fOct = FACTURES.filter(f => f.cli === k && f.num !== '—' && cpOct(f.emise)), numsOct = new Set(fOct.map(f => f.num));
+  const anciennes = FACTURES.filter(f => f.cli === k && f.num !== '—' && !cpOct(f.emise) && ['envoyee', 'retard', 'partielle'].includes(f.st));
+  const encOct = ENCAISSEMENTS.filter(e => e.cli === k && cpOct(e.d)), terrain = cpPaieTerrain().filter(e => e.cli === k);
+  const ouverture = cpR(encOct.filter(e => !numsOct.has(e.fac)).reduce((s, e) => s + e.ttc, 0) + anciennes.reduce((s, f) => s + restant(f), 0));
+  const L = [...fOct.map(f => ({ d:cxIso(f.emise), o:0, piece:f.num, lib:f.st === 'avoir' ? 'Avoir' : 'Facture · ' + f.objet, de:f.st === 'avoir' ? 0 : cpR(ttcDe(f)), cr:f.st === 'avoir' ? cpR(-ttcDe(f)) : 0, go:'facture-x-' + f.id })),
+    ...encOct.map(e => ({ d:cxIso(e.d), o:1, piece:e.fac, lib:'Paiement par ' + e.mode.toLowerCase(), de:0, cr:e.ttc })),
+    ...terrain.map(e => ({ d:cxIso(e.d), o:1, piece:'Sur place', lib:'Acompte reçu sur place (' + e.mode.toLowerCase() + '), facture à venir', de:0, cr:e.ttc }))].sort((a, b) => a.d.localeCompare(b.d) || a.o - b.o);
+  let solde = ouverture;
+  const c = CLIENTS[k];
+  ouvrirPanneau(`<span class="surtitre">Relevé de compte · octobre 2026</span><h2>${esc(c.nom)}</h2><span class="gris">${c.type === 'pro' ? 'Client professionnel' : 'Client particulier'} · tout ce qui a été facturé et payé, avec ce qu’il doit à chaque date.</span>
+    <div class="cx-rel cx-rel-t" aria-hidden="true"><span>Date</span><span>Pièce</span><span>Libellé</span><span class="n">Facturé</span><span class="n">Payé</span><span class="n">Doit</span></div>
+    <div class="cx-rel"><span>1er oct.</span><span></span><span>Ce qu’il devait au 1er octobre</span><span></span><span></span><span class="n"><b>${eur(ouverture)}</b></span></div>
+    ${L.map(l => { solde = cpR(solde + l.de - l.cr); return `<div class="cx-rel"><span>${jCourt(l.d)}</span><span class="mono">${l.go ? `<button type="button" class="lien" data-cp="go|${l.go}">${esc(l.piece)}</button>` : esc(l.piece)}</span><span>${esc(l.lib)}</span><span class="n">${l.de ? eur(l.de) : ''}</span><span class="n">${l.cr ? eur(l.cr) : ''}</span><span class="n"><b>${eur(solde)}</b></span></div>`; }).join('')}
+    <div class="cx-rel cx-bal-tot"><span></span><span></span><span>${solde > .01 ? 'Il te doit au 31 octobre' : solde < -.01 ? 'Tu lui dois (acompte reçu d’avance)' : 'Il ne doit rien au 31 octobre'}</span><span></span><span></span><span class="n"><b class="${solde > .01 ? 'cx-rt' : ''}">${eur(Math.abs(solde))}</b></span></div>
+    ${FACTURES.some(f => f.cli === k && f.st === 'retard') ? `<div class="actions" style="margin-top:12px">${FACTURES.filter(f => f.cli === k && f.st === 'retard').map(f => `<button type="button" class="btn" data-action="relance" data-id="${f.id}">Relancer ${esc(f.num)}</button>`).join('')}</div>` : ''}`, true);
+}
+function cxVueClients(D){
+  const C = Object.keys(CLIENTS).map(k => { const X = D.filter(x => x.cli === k), fac = cpR(FACTURES.filter(f => f.cli === k && f.num !== '—' && cpOct(f.emise)).reduce((s, f) => s + ttcDe(f), 0)), enc = cpR(ENCAISSEMENTS.filter(e => e.cli === k && cpOct(e.d)).reduce((s, e) => s + e.ttc, 0));
+    const du = cpR(FACTURES.filter(f => f.cli === k && ['envoyee', 'retard', 'partielle'].includes(f.st)).reduce((s, f) => s + restant(f), 0)), rt = FACTURES.filter(f => f.cli === k && f.st === 'retard');
+    return { k, c:CLIENTS[k], n:X.filter(x => x.i).length, af:X.filter(x => ['afacturer', 'avalider'].includes(x.st)).length, fac, enc, du, rt, ctr:CONTRATS.filter(o => o.cli === k && o.st === 'signe').length }; }).sort((a, b) => b.du - a.du || b.fac - a.fac);
+  return `<div class="carte cx-liste"><div class="cx-centete" aria-hidden="true"><span>Client</span><span class="n">Facturé en oct.</span><span class="n">Payé en oct.</span><span class="n">Doit aujourd’hui</span><span>À suivre</span></div>
+    ${C.map(o => `<button type="button" class="cx-crow" data-cx="releve|${o.k}"><span class="cx-doc"><b>${esc(o.c.nom)}</b><span class="gris petit">${o.n} intervention${o.n > 1 ? 's' : ''}${o.ctr ? ' · contrat' : ''} · ${o.c.type === 'pro' ? 'professionnel' : 'particulier'}</span></span>
+      <span class="n">${o.fac ? eur(o.fac) : '—'}</span><span class="n">${o.enc ? eur(o.enc) : '—'}</span><span class="n"><b class="${o.rt.length ? 'cx-rt' : ''}">${o.du ? eur(o.du) : '—'}</b></span>
+      <span class="cx-st">${o.rt.length ? `<span class="st st-r">${o.rt.length} en retard</span>` : ''}${o.af ? `<span class="st st-o">${o.af} à facturer</span>` : ''}${!o.rt.length && !o.af ? '<span class="gris mini">à jour</span>' : ''}</span></button>`).join('')}</div>
+    <span class="gris petit">Touche un client : son relevé de compte, facture par facture et paiement par paiement, avec ce qu’il doit à chaque date.</span>`;
+}
+/* chaque contrat : ce qui est prévu, fait, facturé, et ce qui reste */
+function cxContrat(o){
+  const visites = INTS.filter(i => i.type === 'Contrat' && i.cli === o.cli).sort((a, b) => a.d.localeCompare(b.d)), parVisite = cpR(o.prix / o.freq);
+  const facture = o.st !== 'signe' ? 0 : o.fact === 'an' ? o.prix : o.fact === 'mois' ? cpR(o.prix / 12 * 10) : cpR(o.faites * parVisite), prochaine = visites.find(i => i.st !== 'fait');
+  return { visites, parVisite, facture:cpR(facture), reste:cpR(o.st === 'signe' ? o.prix - facture : o.prix), prochaine };
+}
+function cxVueContrats(){
+  return `<div class="carte cx-liste"><div class="cx-ktete" aria-hidden="true"><span>Contrat</span><span>Visites</span><span class="n">Par an (HT)</span><span class="n">Facturé</span><span class="n">Reste à facturer</span><span>Prochaine visite</span></div>
+    ${CONTRATS.map(o => { const k = cxContrat(o), pc = Math.round(o.faites / o.freq * 100);
+      return `<button type="button" class="cx-krow" data-cx="ctr|${o.id}"><span class="cx-doc"><b>${esc(CLIENTS[o.cli].nom)}</b><span class="gris petit">${esc(o.num)} · ${esc(o.titre)} · ${o.st === 'signe' ? 'signé' : 'pas encore signé'}</span></span>
+        <span class="cx-paye"><span class="cx-barre" aria-hidden="true"><i style="width:${pc}%"></i></span><span class="gris mini">${o.faites} sur ${o.freq} faite${o.faites > 1 ? 's' : ''}</span></span>
+        <span class="n">${eur(o.prix)}</span><span class="n">${eur(k.facture)}</span><span class="n"><b>${eur(k.reste)}</b></span>
+        <span class="cx-ech">${k.prochaine ? jCourt(k.prochaine.d) : o.st === 'signe' ? '<span class="gris mini">à planifier</span>' : '<span class="st st-o">à faire signer</span>'}</span></button>`; }).join('')}</div>
+    <span class="gris petit">Facturé : ${esc(FACT_LIB.visite)} pour la plupart ; un contrat payé à la signature est facturé en entier d’un coup.</span>`;
+}
+function cxOuvrirContrat(id){
+  const o = CONTRATS.find(z => z.id === id); if (!o) return; const k = cxContrat(o);
+  ouvrirPanneau(`<span class="surtitre">Contrat · ${esc(o.num)}</span><h2>${esc(CLIENTS[o.cli].nom)} · ${esc(o.titre)}</h2>
+    <div class="cx-argent"><div><span>Par an</span><b>${eur(o.prix)}</b><small>HT · ${o.freq} visite${o.freq > 1 ? 's' : ''}</small></div><div><span>Facturé</span><b>${eur(k.facture)}</b><small>HT · ${esc(FACT_LIB[o.fact] || o.fact)}</small></div><div><span>Reste à facturer</span><b>${eur(k.reste)}</b><small>HT</small></div><div><span>Visites faites</span><b>${o.faites} / ${o.freq}</b><small>${o.st === 'signe' ? 'signé le ' + esc(o.signe) : 'pas encore signé'}</small></div></div>
+    <div class="cx-bloc"><h3>Les visites dans l’application</h3>${k.visites.length ? k.visites.map(i => { const x = cxDossier(i), s = CX_DST[x.st]; return `<div class="ligne"><button type="button" class="lien" data-cx="dossier|${i.id}">${jCourt(i.d)} · ${esc(i.titre)}</button><span class="st ${s[1]}">${s[0]}</span></div>`; }).join('') : '<span class="gris petit">Aucune visite planifiée pour l’instant.</span>'}
+      ${o.faites > k.visites.filter(i => i.st === 'fait').length ? `<span class="gris petit">${o.faites - k.visites.filter(i => i.st === 'fait').length} visite${o.faites - k.visites.filter(i => i.st === 'fait').length > 1 ? 's' : ''} faite${o.faites - k.visites.filter(i => i.st === 'fait').length > 1 ? 's' : ''} avant octobre.</span>` : ''}</div>
+    <div class="cx-bloc"><div class="actions"><button type="button" class="btn gris" data-cp="go|contrat-x-${o.id}">📑 Ouvrir le contrat</button><button type="button" class="btn gris" data-cx="releve|${o.cli}">Relevé de compte du client</button></div></div>`, true);
+}
+
+/* les gestes de la rubrique */
+CX_SECTIONS.splice(1, 0, ['dossiers', 'Par intervention', 'Interv.']);
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-cx]'); if (!b) return;
+  const [a, x] = b.dataset.cx.split('|');
+  if (a === 'dosv') { CX_DOS.vue = x; return rendre(); }
+  if (a === 'dosf') { CX_DOS.f = x; CX_DOS.vue = 'inter'; if (CP.onglet !== 'dossiers') return cxAller('dossiers'); return rendre(); }
+  if (a === 'dossier') return cxOuvrirDossier(x);
+  if (a === 'releve') return cxReleve(x);
+  if (a === 'ctr') return cxOuvrirContrat(x);
+  if (a === 'dosfac') { const i = INTS.find(o => o.id === x); if (!i) return; factureDepuis(i); const f = FACTURES.find(o => o.int === i.id); fermerPanneau(); if (f) { aller('facture-x-' + f.id); toast('Facture préparée avec les lignes de l’intervention : relis-la, puis « Aperçu et envoi ».'); } }
+});
+document.addEventListener('input', ev => { if (!ev.target.matches('[data-cxdq]')) return; CX_DOS.q = ev.target.value; const z = document.getElementById('cx-dliste'); if (z) z.innerHTML = cxDListe(cxDossiers()); });
+
 
 const prixCatalogue = nom => { const x = CATALOGUE.find(c => c[0] === nom); return x ? x[1] : null; };
 const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer le ventilateur extérieur', lignes:[['Ventilateur extérieur Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
