@@ -793,6 +793,12 @@ button.cx-bal:hover{background:var(--survol)}
   .rl-et li{grid-template-columns:30px minmax(0,1fr)}
   .rl-et li .btn{grid-column:2;justify-self:start}
 }
+/* le retour du rôle : un seul, en haut, qui dit où il ramène */
+.rl-retour{justify-self:start;align-self:flex-start;width:fit-content;display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:44px;margin:-4px 0 12px;padding:0 16px 0 12px;border-radius:999px;border:1px solid var(--trait);background:var(--surf);color:var(--lien);font-weight:600;font-size:15px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.rl-retour > span:first-child{font-size:20px;line-height:1;margin-top:-2px}
+.rl-retour-a{color:var(--doux);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rl-retour:hover{border-color:var(--trait2)}
+@media (max-width:760px){ .rl-retour{font-size:14.5px} }
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -9487,6 +9493,24 @@ const ROLES = {
   client:{ ic:'🙋', l:'Client', court:'Client', accueil:'espaceclient', d:'Son espace en ligne : ses factures à payer, ses devis à signer, ses comptes rendus, demander une intervention.',
     routes:['espaceclient'] }
 };
+/* le chemin parcouru dans le rôle (8 novembre 2026, Justin : « quand je suis dans gestion et je clique sur un truc, j'aimerais
+   bien pouvoir retourner ») : chaque écran — et chaque onglet de la Comptabilité ou de l'espace client — est un « lieu » ; un seul
+   bouton « ‹ Retour » ramène au précédent, avec son onglet. Il remplace les retours de chaque page, pour n'en voir qu'un. */
+const RL_PILE = []; let rlEnRetour = false;
+const rlCle = L => L.route + '|' + (L.param || '') + '|' + (L.o || '');
+function rlLieu(c){
+  const o = route === 'comptabilite' ? CP.onglet : route === 'espaceclient' ? EC.tab : route === 'interventions' ? filtreInt : '';
+  const sous = c.querySelector('.cx-sous [aria-selected="true"], .ec-seg [aria-selected="true"]'), h1 = c.querySelector('h1');
+  const t = route === 'comptabilite' && sous ? 'Comptabilité › ' + cxGroupe(CP.onglet)[1] + ' › ' + sous.firstChild.textContent.trim() : route === 'espaceclient' && sous ? 'Mon espace › ' + sous.textContent.replace(/·.*/, '').trim() : { accueil:'Tableau de bord', majournee:'Ma journée', techfrais:'Mes notes de frais' }[route] || (h1 ? h1.textContent.trim() : route);
+  return { route, param, o, cat:CX.cat, st:CX.st, t:t.length > 48 ? t.slice(0, 46) + '…' : t };
+}
+function rlRetourBouton(c){
+  const n = RL_PILE.length, prec = RL_PILE[n - 2], vrai = RETOUR && RETOUR !== RL_PASSE && RETOUR.parti;
+  c.querySelectorAll('.retour-barre, [data-retour="1"]').forEach(e => e.remove());
+  if (!prec && !vrai) return;
+  const lib = vrai ? RETOUR.lib : prec.t, at = vrai ? 'data-retourva="1"' : 'data-rl="retour"';
+  const bande = c.querySelector('.rl-bande'); if (bande) bande.insertAdjacentHTML('afterend', `<button type="button" class="rl-retour" ${at}><span aria-hidden="true">‹</span> Retour<span class="rl-retour-a"> · ${esc(lib)}</span></button>`);
+}
 const RL_PASSE = { lib:'', h:'', fn:null, parti:false, rl:true, get route(){ return route; } };
 const rlQui = () => ROLES[ROLE].qui;
 const rlPermis = r => ROLE === 'patron' ? !['majournee', 'techfrais', 'espaceclient'].includes(r) : ROLES[ROLE].routes.includes(r);
@@ -9537,8 +9561,16 @@ function rlBarre(base){
   const c = document.getElementById('contenu');
   if (c) {
     const tt = c.querySelector('.tete-tel'); (tt || c.firstChild) ? (tt ? tt.insertAdjacentHTML('afterend', rlBande()) : c.insertAdjacentHTML('afterbegin', rlBande())) : c.insertAdjacentHTML('afterbegin', rlBande());
-    if (RL_ACTIF) { if (RETOUR === RL_PASSE) c.querySelectorAll('.retour-barre').forEach(e => e.remove()); document.getElementById('menu').innerHTML = rlMenu(base); document.getElementById('barre-bas').innerHTML = rlBarre(base); }
+    if (RL_ACTIF) { document.getElementById('menu').innerHTML = rlMenu(base); document.getElementById('barre-bas').innerHTML = rlBarre(base); }
     if (ROLE === 'tech') rlTechNettoyer(c);
+    if (RL_ACTIF) {
+      const L = rlLieu(c), k = rlCle(L), n = RL_PILE.length;
+      if (rlEnRetour) { rlEnRetour = false; if (n) RL_PILE[n - 1] = L; }
+      else if (n && rlCle(RL_PILE[n - 1]) === k) RL_PILE[n - 1] = L;   // le même écran redessiné (un filtre, un geste) : on garde sa place
+      else if (n > 1 && rlCle(RL_PILE[n - 2]) === k) RL_PILE.pop();     // revenu à l'écran d'avant par un autre chemin (lien, navigateur)
+      else { RL_PILE.push(L); if (RL_PILE.length > 40) RL_PILE.shift(); }
+      rlRetourBouton(c);
+    }
     if (ROLE === 'client' && route === 'espaceclient') document.body.classList.add('rl-client'); else document.body.classList.remove('rl-client');
   }
   document.body.dataset.role = ROLE;
@@ -9548,10 +9580,9 @@ function rlBarre(base){
 function rlTechNettoyer(c){
   c.querySelectorAll('[data-action="modifInt"]').forEach(e => e.remove());
   c.querySelectorAll('[data-go^="facture-x-"], [data-action="prepFacture"]').forEach(e => e.replaceWith(Object.assign(document.createElement('span'), { className:'gris petit', textContent:'Le bureau s’occupe de la facture.' })));
-  c.querySelectorAll('[data-retour="1"]').forEach(e => { e.removeAttribute('data-retour'); e.setAttribute('href', '#majournee'); e.addEventListener('click', () => aller('majournee')); e.textContent = '‹ Ma journée'; });
 }
 function rlChanger(k, o){
-  o = o || {}; ROLE = k; RL_ACTIF = true; if (o.cli) RL_CLI.cli = o.cli;
+  o = o || {}; ROLE = k; RL_ACTIF = true; if (o.cli) RL_CLI.cli = o.cli; RL_PILE.length = 0; rlEnRetour = false;
   if (!RETOUR) RETOUR = RL_PASSE;
   if (o.ec) EC.tab = o.ec;
   fermerPanneau(); const h = o.h || (k === 'patron' ? (rlPermis(route) ? route + (param ? '-x-' + param : '') : 'accueil') : ROLES[k].accueil);
@@ -9567,7 +9598,7 @@ function vueMaJournee(){
   const carte = i => { const c = CLIENTS[i.cli], F = fiche(i.id), fini = i.st === 'fait';
     return `<div class="rl-int ${fini ? 'fini' : ''}"><div class="rl-int-h"><b>${i.h}</b><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></div>
       <div class="rl-int-c"><b>${esc(c.nom)}</b><span>${esc(i.titre)}</span><span class="gris petit">${esc(c.adr)}</span>${i.motif ? `<span class="rl-motif">« ${esc(i.motif)} »</span>` : ''}${fini ? `<span class="gris petit">Terminée · ${F.absent ? 'client absent' : 'signée par ' + esc(F.signeNom)} · ${esc(paiementTexte(F.paiement))}</span>` : ''}</div>
-      <div class="actions">${fini ? `<button type="button" class="btn gris petit" data-go="inter-x-${i.id}">Revoir</button>` : `<button type="button" class="btn petit" data-go="inter-x-${i.id}">${i.st === 'encours' ? 'Continuer' : 'Commencer'}</button><a class="btn gris petit" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener">Y aller</a><a class="btn gris petit" href="tel:${c.tel.replace(/ /g, '')}">Appeler</a>`}</div></div>`; };
+      <div class="actions">${fini ? `<button type="button" class="btn gris petit" data-rl="go|inter-x-${i.id}">Revoir</button>` : `<button type="button" class="btn petit" data-rl="go|inter-x-${i.id}">${i.st === 'encours' ? 'Continuer' : 'Commencer'}</button><a class="btn gris petit" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener">Y aller</a><a class="btn gris petit" href="tel:${c.tel.replace(/ /g, '')}">Appeler</a>`}</div></div>`; };
   return `<div class="tete"><div><span class="surtitre">${jlong(AUJ)}</span><h1>Bonjour ${esc(p)}</h1><span class="gris">${auj.length} intervention${auj.length > 1 ? 's' : ''} aujourd’hui${auj.filter(i => i.st === 'fait').length ? ' · ' + auj.filter(i => i.st === 'fait').length + ' terminée' + (auj.filter(i => i.st === 'fait').length > 1 ? 's' : '') : ''}.</span></div></div>
   <div class="rl-jour">${auj.map(carte).join('') || '<div class="carte gris">Rien de prévu aujourd’hui.</div>'}</div>
   <div class="grille2"><div class="col">
@@ -9671,6 +9702,12 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-rl]'); if (!b) return;
   const [a, x] = b.dataset.rl.split('|');
   if (a === 'role') return rlChanger(x);
+  if (a === 'go') return aller(x);   // la journée du technicien ouvre SA fiche de terrain, pas l'aperçu par-dessus du bureau
+  if (a === 'retour') { if (RL_PILE.length < 2) return; RL_PILE.pop(); const L = RL_PILE[RL_PILE.length - 1];
+    if (L.route === 'comptabilite') { CP.onglet = L.o; CX.cat = L.cat; CX.st = L.st; }
+    if (L.route === 'espaceclient') EC.tab = L.o;
+    if (L.route === 'interventions') filtreInt = L.o;
+    rlEnRetour = true; fermerPanneau(); aller(L.route + (L.param ? '-x-' + L.param : '')); return scrollTo({ top:0 }); }
   if (a === 'parcours') return rlParcours();
   if (a === 'etape') { const e = rlEtapes()[+x]; if (!e) return; fermerPanneau(); e.go(); setTimeout(() => toast(`Étape ${+x + 1} · ${e.t} — tu es ${e.cli ? CLIENTS[e.cli].nom + ' (client)' : H_NOM(ROLES[e.r].qui) + ' (' + ROLES[e.r].l.toLowerCase() + ')'}.`), 80); return; }
   if (a === 'ndf') return rlNdfForm();
