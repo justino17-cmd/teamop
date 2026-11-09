@@ -910,6 +910,15 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 .paie-al{font-size:13px;color:var(--doux);padding:0 0 8px 2px;display:block;line-height:1.5}.paie-al .ve-pt{display:inline-block;margin-right:6px;vertical-align:middle}
 .paie-g>.paie-semaines{grid-column:1 / -1}
 :root[data-mode="nuit"] .cp-etape.paie-ici .cp-i{color:#0b1426}
+.paie-mode{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.paie-r.paie-f{grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr)) minmax(0,1.1fr)}
+.paie-r.paie-s{grid-template-columns:minmax(0,1.6fr) repeat(5,minmax(0,1fr))}
+.paie-tot{border-top:1px solid var(--trait2);font-weight:650;min-height:48px}
+.paie-bul-doc table td,.paie-bul-doc table th{font-size:12px}
+@media (max-width:760px){.paie-r.paie-f,.paie-r.paie-s{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* la Comptabilité a sept espaces depuis que la paie y est entrée */
+@media (min-width:761px){.cx-nav1{grid-template-columns:repeat(7,minmax(0,1fr))}}
+@media (max-width:760px){.cx-nav1 button:last-child:nth-child(3n+1){grid-column:1 / -1}}
 /* ══ Le test guidé (8 novembre 2026) : l'ombre, la lumière sur la cible, la bulle ══ */
 .gd-spot{position:fixed;z-index:100001;border-radius:14px;pointer-events:none;box-shadow:0 0 0 9999px rgba(6,10,18,.58),0 0 0 3px #4f8cff,0 0 22px 4px rgba(79,140,255,.65);transition:left .25s ease,top .25s ease,width .25s ease,height .25s ease;animation:gd-pouls 1.6s ease-in-out infinite}
 @keyframes gd-pouls{50%{box-shadow:0 0 0 9999px rgba(6,10,18,.58),0 0 0 5px #4f8cff,0 0 30px 8px rgba(79,140,255,.75)}}
@@ -6179,7 +6188,7 @@ function cpVueEnsemble(et, faits){
       <div class="carte"><h3>À payer aux fournisseurs · ${eur(aPayer.reduce((s, a) => s + cpTTC(a), 0))}</h3>${aPayer.map(a => `<div class="ligne"><span><b>${esc(a.four)}</b><br><span class="gris petit">${esc(a.objet)} · échéance ${a.ech}</span></span><span class="cp-dr"><b>${eur(cpTTC(a))}</b><br><button type="button" class="lien" data-cp="payer|${a.id}">Marquer payé</button></span></div>`).join('') || '<span class="gris">Rien à payer.</span>'}</div></div></div>`;
 }
 function cpVueEcritures(){
-  const E = cpEcritures(), J = { tous:'Toutes', AN:'Ouverture', VT:'Ventes', AC:'Achats', BQ:'Banque', CA:'Caisse', OD:'TVA' }, V = CP.jf === 'tous' ? E : E.filter(x => x.j === CP.jf);
+  const E = cpEcritures(), J = { tous:'Toutes', AN:'Ouverture', VT:'Ventes', AC:'Achats', BQ:'Banque', CA:'Caisse', OD:'TVA', PA:'Paie' }, V = CP.jf === 'tous' ? E : E.filter(x => x.j === CP.jf);
   const de = V.reduce((s, x) => s + x.lignes.reduce((t, l) => t + (l.de || 0), 0), 0), cr = V.reduce((s, x) => s + x.lignes.reduce((t, l) => t + (l.cr || 0), 0), 0);
   return `<div class="carte"><div class="cp-t"><h3>Le journal comptable d’octobre · ${V.length} écritures</h3><span class="gris petit">La partie de ton expert-comptable : tu n’as rien à y faire. Aucune ligne n’a été tapée, chacune vient d’une facture, d’un paiement, d’un achat ou de la banque.</span></div>
     <div class="seg" role="group" aria-label="Journal" style="margin:6px 0 10px">${Object.entries(J).map(([k, l]) => `<button type="button" data-cp="jf|${k}" aria-pressed="${CP.jf === k}">${l}${k === 'tous' ? '' : ' · ' + E.filter(x => x.j === k).length}</button>`).join('')}</div>
@@ -6232,7 +6241,7 @@ function cpVueTva(tv){
    ⚠ Ce n'est pas le FEC légal : celui-là couvre l'exercice entier et se nomme à la date de sa clôture. */
 function cpFec(){
   const t = ['JournalCode','JournalLib','EcritureNum','EcritureDate','CompteNum','CompteLib','CompAuxNum','CompAuxLib','PieceRef','PieceDate','EcritureLib','Debit','Credit','EcritureLet','DateLet','ValidDate','Montantdevise','Idevise'];
-  const JL = { AN:'A-nouveaux', VT:'Ventes', AC:'Achats', BQ:'Banque', CA:'Caisse', OD:'Operations diverses' }, dt = d => '2026' + d.split('/').reverse().join(''), m = n => n ? n.toFixed(2).replace('.', ',') : '0,00';
+  const JL = { AN:'A-nouveaux', VT:'Ventes', AC:'Achats', BQ:'Banque', CA:'Caisse', OD:'Operations diverses', PA:'Paie' }, dt = d => '2026' + d.split('/').reverse().join(''), m = n => n ? n.toFixed(2).replace('.', ',') : '0,00';
   const net = s => String(s).replace(/[\t\r\n]+/g, ' ').replace(/·/g, '-').replace(/[’‘]/g, "'").replace(/[«»]/g, '"').trim();
   const aux = c => CLIENTS[c] ? ['C' + c.toUpperCase(), CLIENTS[c].nom] : ['F' + c.toUpperCase(), (ACHATS.find(a => a.fid === c) || {}).four || c];
   return [t.join('\t'), ...cpEcritures().flatMap(x => x.lignes.map(l => [x.j, JL[x.j], x.num, dt(x.d), l.c, CP_COMPTES[l.c] || '', ...(l.aux ? aux(l.aux) : ['', '']), x.piece, dt(x.d), x.lib, m(l.de), m(l.cr), '', '', CP.envoye ? dt(CP.envoye) : '', '', ''].map(net).join('\t')))].join('\r\n');
@@ -8879,7 +8888,7 @@ vueComptabilite = function(){
   const E = ['balance', 'grandlivre', 'resultat', 'envoi'].includes(O) ? cpEcritures() : null;
   const corps = { ensemble:() => cxVueTableau(K, D, DD, conf), cloture:() => cxVueCloture(), dossiers:() => cxVueDossiers(DD), fventes:() => cxVueFactures(D, 'ventes'), clients:() => cxVueClients(DD), contrats:() => cxVueContrats(),
     fachats:() => cxVueFactures(D, 'achats'), ndf:() => cxVueNdf(D), fournisseurs:() => cxVueFournisseurs(), paiements:() => cxVuePaiements(K), banque:() => cpVueBanque(K.rap, K.soldeBq), caisse:() => cpVueCaisse(K.ca), enligne:() => cxVueEnLigne(),
-    tva:() => cpVueTva(K.tv), ecritures:() => cpVueEcritures(), balance:() => cxBalance(E), grandlivre:() => cxGrandLivre(E), resultat:() => cxResultat(E), envoi:() => cxEnvoi(E), normes:() => cxVueNormes(conf), archives:() => cxVueArchives(K, D) }[O]();
+    tva:() => cpVueTva(K.tv), ecritures:() => cpVueEcritures(), balance:() => cxBalance(E), grandlivre:() => cxGrandLivre(E), resultat:() => cxResultat(E), envoi:() => cxEnvoi(E), normes:() => cxVueNormes(conf), archives:() => cxVueArchives(K, D), paiemois:() => paieVueMois(), fiches:() => paieVueFiches(), salaries:() => paieVueSalaries(), charges:() => paieVueCharges() }[O]();
   return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris">Tes ventes, tes achats, ta trésorerie et ta TVA, rangés comme chez un expert-comptable. Tout s’écrit tout seul ; tu vérifies, tu envoies.</span></div>
     <div class="actions"><button type="button" class="btn gris" data-gd="apprendre">📘 Visite guidée</button><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Ajouter</button></div></div>
   ${clos}
@@ -10200,25 +10209,38 @@ const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${t.toLowerCas
 function paieEtapes(V){
   const ouverts = V.reduce((s, v) => s + v.ouverts.length, 0), nonVal = V.reduce((s, v) => s + v.nonValidees, 0), sig = V.filter(v => v.signale), conf = V.filter(v => v.confirme).length;
   return [
-    { ok:!ouverts && !nonVal && !sig.length, t:'Les heures sont justes', d:ouverts || nonVal || sig.length ? [ouverts && `${ouverts} journée${ouverts > 1 ? 's' : ''} restée${ouverts > 1 ? 's' : ''} ouverte${ouverts > 1 ? 's' : ''}`, nonVal && `${nonVal} semaine${nonVal > 1 ? 's' : ''} pas encore validée${nonVal > 1 ? 's' : ''} (${V.filter(v => v.nonValidees).map(v => paieNomPers(v.k).split(' ')[0]).join(', ')})`, sig.length && `${sig.length} erreur${sig.length > 1 ? 's' : ''} signalée${sig.length > 1 ? 's' : ''} par ${sig.map(v => paieNomPers(v.k)).join(', ')}`].filter(Boolean).join(' · ') : 'Toutes les journées sont fermées, les semaines validées, aucune erreur signalée.' },
-    { ok:conf === V.length || paieVerrouille(), t:'Chacun a confirmé son relevé', d:conf === V.length ? 'Tous les salariés ont confirmé leurs heures.' : paieVerrouille() ? `${conf} sur ${V.length} au verrouillage : les autres relevés partent avec la mention « non confirmé ».` : `${conf} sur ${V.length} · on peut verrouiller sans toutes les confirmations, mais c’est noté sur le relevé.` },
-    { ok:paieVerrouille(), t:'Le mois est verrouillé', d:paieVerrouille() ? `Verrouillé le ${PAIE.verrou.le} par ${paieNomPers(PAIE.verrou.par)} (empreinte ${PAIE.verrou.emp}). Une erreur trouvée après coup se régularise sur le mois suivant.` : 'Plus aucune heure du mois ne peut changer : ce qui part au cabinet est figé.' },
-    { ok:!!PAIE.envoi, t:'Envoyé au cabinet de paie', d:PAIE.envoi ? `Parti le ${PAIE.envoi.le} à ${esc(PAIE.envoi.a)} : ${V.length} relevés en PDF, le fichier d’import et les notes de frais.` : `${esc(PAIE_CAB.nom)} reçoit les relevés de chacun et le fichier d’import : rien à ressaisir.` },
-    { ok:!!PAIE.distribue, t:'Fiches de paie reçues et distribuées', d:PAIE.distribue ? `Distribuées le ${PAIE.distribue.le} : chaque salarié retrouve la sienne dans « Mes heures ».` : Object.keys(PAIE.bulletins).length ? `${Object.keys(PAIE.bulletins).length} fiche${Object.keys(PAIE.bulletins).length > 1 ? 's' : ''} reçue${Object.keys(PAIE.bulletins).length > 1 ? 's' : ''}, pas encore distribuée${Object.keys(PAIE.bulletins).length > 1 ? 's' : ''}.` : 'Le cabinet renvoie les fiches de paie ; tu les déposes ici, chacun reçoit la sienne.' }
+    { k:'heures', ok:!ouverts && !nonVal && !sig.length, t:'Les heures sont justes', d:ouverts || nonVal || sig.length ? [ouverts && `${ouverts} journée${ouverts > 1 ? 's' : ''} restée${ouverts > 1 ? 's' : ''} ouverte${ouverts > 1 ? 's' : ''}`, nonVal && `${nonVal} semaine${nonVal > 1 ? 's' : ''} pas encore validée${nonVal > 1 ? 's' : ''} (${V.filter(v => v.nonValidees).map(v => paieNomPers(v.k).split(' ')[0]).join(', ')})`, sig.length && `${sig.length} erreur${sig.length > 1 ? 's' : ''} signalée${sig.length > 1 ? 's' : ''} par ${sig.map(v => paieNomPers(v.k)).join(', ')}`].filter(Boolean).join(' · ') : 'Toutes les journées sont fermées, les semaines validées, aucune erreur signalée.' },
+    { k:'conf', ok:conf === V.length || paieVerrouille(), t:'Chacun a confirmé son relevé', d:conf === V.length ? 'Tous les salariés ont confirmé leurs heures.' : paieVerrouille() ? `${conf} sur ${V.length} au verrouillage : les autres relevés partent avec la mention « non confirmé ».` : `${conf} sur ${V.length} · on peut verrouiller sans toutes les confirmations, mais c’est noté sur le relevé.` },
+    { k:'verrou', ok:paieVerrouille(), t:'Le mois est verrouillé', d:paieVerrouille() ? `Verrouillé le ${PAIE.verrou.le} par ${paieNomPers(PAIE.verrou.par)} (empreinte ${PAIE.verrou.emp}). Une erreur trouvée après coup se régularise sur le mois suivant.` : 'Plus aucune heure du mois ne peut changer : les fiches de paie se font sur des heures figées.' },
+    ...(PAIE.mode === 'cabinet' ? [
+    { k:'envoi', ok:!!PAIE.envoi, t:'Envoyé au cabinet de paie', d:PAIE.envoi ? `Parti le ${PAIE.envoi.le} à ${esc(PAIE.envoi.a)} : ${V.length} relevés en PDF, le fichier d’import et les notes de frais.` : `${esc(PAIE_CAB.nom)} reçoit les relevés de chacun et le fichier d’import : rien à ressaisir.` },
+    { k:'recus', ok:!!PAIE.distribue, t:'Fiches de paie reçues et distribuées', d:PAIE.distribue ? `Distribuées le ${PAIE.distribue.le} : chaque salarié retrouve la sienne dans « Mes heures ».` : Object.keys(PAIE.bulletins).length ? `${Object.keys(PAIE.bulletins).length} fiche${Object.keys(PAIE.bulletins).length > 1 ? 's' : ''} reçue${Object.keys(PAIE.bulletins).length > 1 ? 's' : ''}, pas encore distribuée${Object.keys(PAIE.bulletins).length > 1 ? 's' : ''}.` : 'Le cabinet renvoie les fiches de paie ; tu les déposes ici, chacun reçoit la sienne.' }] : [
+    { k:'calc', ok:!!PAIE.calc, t:'Les fiches de paie sont calculées', d:PAIE.calc ? `Calculées le ${PAIE.calc.le} à partir des heures verrouillées : ${eur(paieTot(paieFiches(), 'netPaye'))} de nets à verser.` : 'OP GESTION calcule chaque fiche : salaire, heures supplémentaires, primes, paniers, cotisations, impôt prélevé.' },
+    { k:'valide', ok:!!PAIE.valide, t:'Les fiches sont vérifiées et validées', d:PAIE.valide ? `Validées le ${PAIE.valide.le} par ${paieNomPers(PAIE.valide.par)} : elles ne bougent plus.` : 'Ouvre chaque fiche, vérifie-la, puis valide-les toutes.' },
+    { k:'distrib', ok:!!PAIE.distribue, t:'Chaque salarié a reçu la sienne', d:PAIE.distribue ? `Distribuées le ${PAIE.distribue.le} : chacun la retrouve dans « Mes heures ».` : 'Chaque salarié la reçoit dans son espace, personne ne voit celle d’un autre.' }]),
+    { k:'compta', ok:!!PAIE.compta, t:'La paie est en comptabilité', d:PAIE.compta ? `Écriture de paie passée le ${PAIE.compta.le} (journal Paie).` : 'Une écriture : salaires, charges, ce qui est dû aux salariés et à chaque organisme.' },
+    { k:'dsn', ok:!!PAIE.dsn || PAIE.mode === 'cabinet', t:'La déclaration sociale est prête', d:PAIE.mode === 'cabinet' ? 'Le cabinet dépose la DSN.' : PAIE.dsn ? `DSN préparée le ${PAIE.dsn.le}, à déposer avant le 15 novembre.` : 'Une seule déclaration pour l’URSSAF, la retraite, la mutuelle et l’impôt prélevé : avant le 15 novembre.' }
   ];
 }
 /* l'onglet « Paie » du Temps de travail */
 ptVuePaie = function(){
   const V = PT_GENS.map(paieVariables), E = paieEtapes(V), k0 = E.findIndex(e => !e.ok), verr = paieVerrouille();
-  const action = i => {
-    if (i === 0) return `<button type="button" class="btn gris mini-btn" data-paie="validertout">Valider les semaines sans alerte</button>`;
-    if (i === 1) return `<button type="button" class="btn gris mini-btn" data-paie="relancer">Demander aux salariés de confirmer</button>`;
-    if (i === 2) return verr ? '' : `<button type="button" class="btn mini-btn" data-paie="verrouiller">Verrouiller ${esc(PAIE_NOM_MOIS.split(' ')[0])}</button>`;
-    if (i === 3) return verr && !PAIE.envoi ? `<button type="button" class="btn mini-btn" data-paie="envoyer">Envoyer au cabinet</button>` : '';
-    if (i === 4) return PAIE.envoi && !PAIE.distribue ? `<button type="button" class="btn mini-btn" data-paie="recevoir">${Object.keys(PAIE.bulletins).length ? 'Distribuer' : 'Déposer les fiches reçues'}</button>` : '';
+  const fichesOk = PAIE.mode === 'cabinet' ? PAIE.distribue : PAIE.valide;
+  const action = i => { const k = E[i].k, b = (a, l, g) => `<button type="button" class="btn ${g ? 'gris ' : ''}mini-btn" data-paie="${a}">${l}</button>`;
+    if (k === 'heures') return b('validertout', 'Valider les semaines sans alerte', 1);
+    if (k === 'conf') return b('relancer', 'Demander aux salariés de confirmer', 1);
+    if (k === 'verrou') return verr ? '' : b('verrouiller', 'Verrouiller ' + esc(PAIE_NOM_MOIS.split(' ')[0]));
+    if (k === 'envoi') return verr && !PAIE.envoi ? b('envoyer', 'Envoyer au cabinet') : '';
+    if (k === 'recus') return PAIE.envoi && !PAIE.distribue ? b('recevoir', Object.keys(PAIE.bulletins).length ? 'Distribuer' : 'Déposer les fiches reçues') : '';
+    if (k === 'calc') return verr ? b('calculer', 'Calculer les fiches') : '';
+    if (k === 'valide') return PAIE.calc ? b('voirfiches', 'Voir et valider les fiches') : '';
+    if (k === 'distrib') return PAIE.valide ? b('distribuer', 'Distribuer') : '';
+    if (k === 'compta') return fichesOk ? b('comptabiliser', 'Passer l’écriture') : '';
+    if (k === 'dsn') return PAIE.valide ? b('dsn', 'Préparer la DSN') : '';
     return ''; };
   const statut = v => v.signale ? '<span class="st st-r">Erreur signalée</span>' : v.confirme ? '<span class="st st-v">Confirmé</span>' : '<span class="st st-o">À confirmer</span>';
-  return `<div class="cx-explique"><span aria-hidden="true">💶</span><span><b>Paie ${esc(paieDe(PAIE_NOM_MOIS))}.</b> OP GESTION prépare tout ce qui sert à faire les fiches de paie : les heures, les heures supplémentaires, la nuit, les absences, les primes et les frais de chacun. Le cabinet de paie calcule les fiches ; elles reviennent ici, et chacun reçoit la sienne.</span></div>
+  return `<div class="cx-explique"><span aria-hidden="true">💶</span><span><b>Paie ${esc(paieDe(PAIE_NOM_MOIS))}.</b> Des heures pointées à la fiche de paie de chacun, puis à la comptabilité et à la déclaration sociale. Les heures, les heures supplémentaires, les absences, les primes et les paniers viennent tout seuls du Temps de travail.</span></div>
+    <div class="paie-mode"><span class="gris petit">Qui fait les fiches de paie ?</span><div class="seg" role="group" aria-label="Qui fait les fiches de paie">${[['op', 'OP GESTION les calcule'], ['cabinet', 'Le cabinet les fait']].map(([k, l]) => `<button type="button" data-paie="mode|${k}" aria-pressed="${PAIE.mode === k}" ${PAIE.calc || PAIE.envoi ? 'disabled' : ''}>${l}</button>`).join('')}</div></div>
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 8px">Le mois, étape par étape</h2>
       <div class="cp-etapes">${E.map((x, i) => `<div class="cp-etape ${x.ok ? 'ok' : ''}${i === k0 ? ' paie-ici' : ''}"><span class="cp-i" aria-hidden="true">${x.ok ? '✓' : i + 1}</span><span class="cp-c"><b>${x.t}</b><span class="gris petit">${x.d}</span></span>${x.ok ? '' : action(i)}</div>`).join('')}</div></div>
     ${verr ? `<div class="info petit">🔒 ${esc(PAIE_MOIS_MAJ)} est verrouillé : les heures du mois ne changent plus. Une erreur trouvée après coup se régularise sur la paie suivante.</div>` : ''}
@@ -10227,7 +10249,7 @@ ptVuePaie = function(){
         <span data-l="Heures">${ptH(v.tot)}</span><span data-l="Sup. 25 %" class="${v.s25 ? 'fo-up' : 'gris'}">${v.s25 ? ptH(v.s25) : '—'}</span><span data-l="Sup. 50 %" class="${v.s50 ? 'fo-up' : 'gris'}">${v.s50 ? ptH(v.s50) : '—'}</span>
         <span data-l="Nuit" class="${v.nuit ? '' : 'gris'}">${v.nuit ? ptH(v.nuit) : '—'}</span><span data-l="Absences" class="${v.nAbs ? '' : 'gris'}">${v.nAbs ? v.nAbs + ' j' : '—'}</span>
         <span data-l="Corrections" class="${v.trace.length ? '' : 'gris'}">${v.trace.length ? '✎ ' + v.trace.length : '—'}</span><span class="paie-st">${statut(v)}<span class="fo-chev" aria-hidden="true">›</span></span></button>`).join('')}</div>
-    <span class="gris petit">Heures supplémentaires calculées par semaine civile, du lundi au dimanche (au-delà de 35 h : 25 % jusqu’à 43 h, 50 % au-delà), sauf accord d’entreprise ; une semaine à cheval sur deux mois les compte sur le mois où elle se termine. La nuit compte les heures entre 21 h et 6 h. Le cabinet applique les taux de ta convention collective : vérifie ces repères avec lui ou avec ton expert-comptable.</span>`;
+    <span class="gris petit">Heures supplémentaires calculées par semaine civile, du lundi au dimanche (au-delà de 35 h : 25 % jusqu’à 43 h, 50 % au-delà), sauf accord d’entreprise ; une semaine à cheval sur deux mois les compte sur le mois où elle se termine. La nuit compte les heures entre 21 h et 6 h. Les taux de ta convention collective s’appliquent sur la fiche : vérifie ces repères avec ton expert-comptable.</span>`;
 };
 /* le relevé d'un salarié, en grande fenêtre */
 function paieFenetre(html, remplace){ if (remplace) ouvrirPanneau.remplace = true; ouvrirPanneau(html, true); const v = document.querySelector('#calque .voile'), pn = v && v.querySelector('.panneau'); if (pn) { v.classList.add('fenetre'); pn.classList.add('fenetre'); } }
@@ -10324,8 +10346,23 @@ document.addEventListener('click', ev => {
   if (a === 'envoiok') { const f = document.getElementById('pa-format'); if (f) PAIE.format = f.value; PAIE.envoi = { le:'31/10 · ' + hNow(), a:PAIE_CAB.mail }; PAIE.etape = 'envoye'; fermerPanneau(); rendre(); return toast(`Parti chez ${PAIE_CAB.nom} : ${PT_GENS.length} relevés et le fichier d’import.`); }
   if (a === 'recevoir') return paieRecevoir();
   if (a === 'simuler') { PT_GENS.forEach(k => { if (!PAIE.bulletins[k]) PAIE.bulletins[k] = { nom:`Bulletin ${PAIE_NOM_MOIS} - ${paieNomPers(k)}.pdf`, le:'31/10', url:null }; }); return paieRecevoirMaj(); }
-  if (a === 'distribuer') { PAIE.distribue = { le:'31/10 · ' + hNow() }; PAIE.etape = 'fini'; fermerPanneau(); rendre(); return toast(`Distribuées : chaque salarié a reçu une notification et retrouve sa fiche de paie dans « Mes heures ».`); }
+  if (a === 'distribuer') { if (PAIE.mode === 'op' && !PAIE.valide) return toast('D’abord valider les fiches de paie.'); if (PAIE.mode === 'op') PT_GENS.forEach(k => { PAIE.bulletins[k] = { nom:`Fiche de paie ${PAIE_NOM_MOIS} - ${paieNomPers(k)}.pdf`, le:'31/10', url:null, calc:true }; });
+    PAIE.distribue = { le:'31/10 · ' + hNow() }; PAIE.etape = 'fini'; fermerPanneau(); rendre(); return toast(`Distribuées : chaque salarié a reçu une notification et retrouve sa fiche de paie dans « Mes heures ».`); }
   if (a === 'bulletin') return paieBulletinVoir(x, y);
+  if (a === 'aller') return paieAller(x);
+  if (a === 'mode') { if (PAIE.calc || PAIE.envoi) return toast('Le choix est fait pour ce mois-ci.'); PAIE.mode = x; return rendre(); }
+  if (a === 'calculer') { if (!paieVerrouille()) return toast('D’abord verrouiller le mois : les fiches se calculent sur des heures figées.'); PAIE.fiches = {}; PT_GENS.forEach(k => { PAIE.fiches[k] = paieBulletin(k); }); PAIE.calc = { le:'31/10 · ' + hNow() }; rendre(); return toast(`${PT_GENS.length} fiches de paie calculées : ${eur(paieTot(paieFiches(), 'netPaye'))} de nets à verser.`); }
+  if (a === 'recalculer') { if (PAIE.valide) return toast('Les fiches sont validées : elles ne bougent plus.'); PT_GENS.forEach(k => { PAIE.fiches[k] = paieBulletin(k); }); rendre(); return toast('Fiches recalculées.'); }
+  if (a === 'voirfiches') return paieAller('fiches');
+  if (a === 'fiche') { if (PAIE.mode === 'cabinet') return paieBulletinVoir(x); return paieDocPlein(paieBulletinDoc(x)); }
+  if (a === 'validerfiches') { if (!PAIE.calc) return toast('D’abord calculer les fiches.'); PAIE.valide = { le:'31/10 · ' + hNow(), par:paieQui() }; rendre(); return toast('Fiches validées : elles ne bougent plus.'); }
+  if (a === 'sal') return paieSalarie(x);
+  if (a === 'salok') { const bse = parseFloat(String(document.getElementById('ps-base').value).replace(/\s/g, '').replace(',', '.')), tx = parseFloat(String(document.getElementById('ps-pas').value).replace(',', '.'));
+    if (!(bse >= PAIE_TX.smic)) return toast(`Le salaire de base ne peut pas être sous le SMIC (${nbFr(PAIE_TX.smic)} € pour 151,67 h, exemple).`); if (!(tx >= 0 && tx <= 43)) return toast('Le taux d’impôt est entre 0 et 43 %.');
+    PAIE_SAL[x].base = cpRp(bse); PAIE_SAL[x].pas = cpRp(tx); if (PAIE.calc && !PAIE.valide) PAIE.fiches[x] = paieBulletin(x); fermerPanneau(); rendre();
+    return toast(PAIE.valide ? 'Enregistré : les fiches d’octobre sont validées, le changement vaudra pour novembre.' : `Enregistré${PAIE.calc ? ' : sa fiche est recalculée' : ''}.`); }
+  if (a === 'comptabiliser') { if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.'); }
+  if (a === 'dsn') { if (!PAIE.valide) return toast('D’abord valider les fiches de paie.'); PAIE.dsn = { le:'31/10 · ' + hNow() }; rendre(); return toast('DSN d’octobre préparée : à déposer avant le 15 novembre.'); }
   if (a === 'confirme') { PAIE.confirmes[x] = { le:'31/10 · ' + hNow() }; delete PAIE.signales[x]; rendre(); return toast('Merci : tes heures sont confirmées, le bureau le voit.'); }
   if (a === 'signaler') return ouvrirPanneau(`<span class="surtitre">Mes heures · ${esc(PAIE_NOM_MOIS)}</span><h2>Signaler une erreur</h2><span class="gris">Dis quel jour et ce qui ne va pas : le bureau corrige, et tu confirmes ensuite.</span><label class="champ">Ce qui ne va pas<textarea id="pa-sig" rows="4" placeholder="ex. Le mardi 27, j’ai fini à 18 h et pas à 17 h"></textarea></label><div class="actions"><button type="button" class="btn" data-paie="signalok|${x}">Envoyer au bureau</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   if (a === 'signalok') { const m = document.getElementById('pa-sig').value.trim(); if (!m) return toast('Écris ce qui ne va pas.'); PAIE.signales[x] = { msg:m, le:'31/10 · ' + hNow() }; delete PAIE.confirmes[x]; fermerPanneau(); rendre(); return toast('Parti au bureau : tu seras prévenu quand c’est corrigé.'); }
@@ -10349,6 +10386,7 @@ document.addEventListener('change', ev => {
 function paieBulletinVoir(k, mois){
   const b = mois ? null : PAIE.bulletins[k];
   if (b && b.url) return window.open(b.url, '_blank', 'noopener');
+  if (PAIE.mode === 'op' && (!b || b.calc)) { const ym = mois ? '2026-' + String(['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre'].indexOf(mois.split(' ')[0]) + 1).padStart(2, '0') : null; return paieDocPlein(paieBulletinDoc(k, ym)); }
   ouvrirPanneau(`<span class="surtitre">Fiche de paie · ${esc(mois || PAIE_NOM_MOIS)}</span><h2>${esc(paieNomPers(k))}</h2>
     <div class="paie-bul"><span aria-hidden="true">📄</span><b>${esc(b ? b.nom : 'Bulletin ' + mois + ' - ' + paieNomPers(k) + '.pdf')}</b><span class="gris petit">Dans la vraie version, c’est le PDF envoyé par ${esc(PAIE_CAB.nom)} qui s’ouvre ici, tel quel. Le prototype n’invente pas de fiche de paie : ses montants viennent du cabinet.</span></div>
     <div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
@@ -10367,9 +10405,9 @@ function vueMesHeures(){
     <div class="carte"><h3>Semaine par semaine</h3>${v.semaines.map(w => paieSemLigne(w)).join('')}${v.reporte ? `<span class="gris petit">Les heures sup. de la semaine qui finit en ${paieMoisVoisin(1)} seront sur ta paie ${paieDe(paieMoisVoisin(1))}.</span>` : ''}</div>
     <div class="carte"><h3>Heures corrigées par le bureau</h3>${v.trace.map(paieTraceLigne).join('') || '<span class="gris petit">Aucune de tes heures n’a été modifiée ce mois-ci.</span>'}</div>
     ${v.primes.length || v.frais ? `<div class="carte"><h3>Primes et frais</h3>${v.primes.map(p => `<div class="paie-sem"><span>${esc(p.lib)}</span><b>${eur(+p.m || 0)}</b></div>`).join('')}${v.frais ? `<div class="paie-sem"><span>Notes de frais remboursées avec la paie</span><b>${eur(v.frais)}</b></div>` : ''}</div>` : ''}
-    <div class="carte"><h3>Mes fiches de paie</h3><span class="gris petit" style="display:block;margin-bottom:6px">Envoyées par ${esc(PAIE_CAB.nom)}. Toi seul les vois (et ton patron).</span>
+    <div class="carte"><h3>Mes fiches de paie</h3><span class="gris petit" style="display:block;margin-bottom:6px">${PAIE.mode === 'cabinet' ? 'Envoyées par ' + esc(PAIE_CAB.nom) : 'Calculées avec tes heures et validées par ' + esc(ENTREPRISE.nom)}. Toi seul les vois (et ton patron).</span>
       ${recues.map(([m, id, le]) => `<button type="button" class="fo-l" data-paie="bulletin|${k}|${id ? m : ''}"><span class="fo-n"><b>📄 ${esc(m.charAt(0).toUpperCase() + m.slice(1))}</b><span class="gris petit">reçue le ${esc(le)}</span></span>${!id ? '<span class="st st-v">Nouvelle</span>' : ''}<span class="fo-chev">›</span></button>`).join('')}
-      ${!PAIE.distribue ? `<span class="gris petit">Celle ${esc(paieDe(PAIE_NOM_MOIS.split(' ')[0]))} arrivera ici quand le cabinet l’aura faite.</span>` : ''}</div>`;
+      ${!PAIE.distribue ? `<span class="gris petit">Celle ${esc(paieDe(PAIE_NOM_MOIS.split(' ')[0]))} arrivera ici ${PAIE.mode === 'cabinet' ? 'quand le cabinet l’aura faite' : 'quand elle sera validée'}.</span>` : ''}</div>`;
 }
 
 /* ══ la trace : chaque heure corrigée garde l'heure d'avant, qui, quand, pourquoi — et un mois verrouillé ne bouge plus ══ */
@@ -10437,6 +10475,161 @@ if (typeof rlBarre === 'function') (() => { const b0 = rlBarre; rlBarre = functi
   return `<nav class="opg-barre" aria-label="Catégories principales" style="grid-template-columns:repeat(${T.length},minmax(0,1fr))">${T.map(([k, l]) => `<button type="button" class="opg-tab${k === base || (k === 'majournee' && base === 'inter') ? ' on' : ''}" data-tab="${k}">${svg(k)}<span>${l}</span></button>`).join('')}</nav>`; }; })();
 /* ouvrir « Mes heures » après la distribution : la fiche nouvelle est vue */
 (() => { const r0 = rendre; rendre = function(){ if (route === 'mesheures' && typeof ROLE !== 'undefined' && ROLE === 'tech' && PAIE.distribue && PAIE.bulletins[ROLES.tech.qui]) PAIE.vus[ROLES.tech.qui] = true; return r0.apply(this, arguments); }; })();
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   LA PAIE DANS LA COMPTABILITÉ — 9 novembre 2026, Justin : « mettre tout ce qui est fiche de paye dans la comptabilité, et avoir un
+   vrai système de gestion de fiches de paye ». Un espace « Paie » de la Comptabilité : le mois (heures, corrections, verrou), les fiches
+   de paie CALCULÉES par OP GESTION (ou faites par le cabinet, au choix), les salariés, les charges et la déclaration sociale, et
+   l'écriture de paie dans le journal. Les taux sont des EXEMPLES (barèmes 2025, de mémoire) : un vrai calcul passe par un moteur de
+   paie tenu à jour (barèmes, conventions collectives, DSN). Tout se dit sur l'écran et sur chaque fiche. Données fictives.
+   ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const PAIE_TX = { pmss:3925, smic:1801.80, mal:7.00, atmp:2.90, vpS:6.90, vpP:8.55, vdS:0.40, vdP:2.02, fam:3.45, t1S:3.15, t1P:4.72, cegS:0.86, cegP:1.29, apecS:0.024, apecP:0.036,
+  prevCadre:1.50, chom:4.00, ags:0.25, fnal:0.10, csa:0.30, form:0.55, appr:0.59, dial:0.016, oppbtp:0.11, csgD:6.80, csgN:2.40, crds:0.50, baseCsg:98.25, mutS:32, mutP:32, panier:11.20, redHS:11.31, dedHS:1.50, fillonT:0.3194 };
+const PAIE_SAL = {
+  marc:{ emploi:'Gérant (assimilé salarié)', statut:'cadre', mandataire:true, conv:'Mandataire social, sans convention collective', niveau:'—', entree:'2019-03-01', base:3800, pas:7.4, secu:'1 78 •• •• ••• ••• 41' },
+  julie:{ emploi:'Secrétaire administrative', statut:'ETAM', conv:'ETAM du bâtiment (IDCC 2609)', niveau:'Niveau C', entree:'2021-09-06', base:2300, pas:2.1, secu:'2 94 •• •• ••• ••• 12' },
+  sm:{ emploi:'Technicienne frigoriste', statut:'ouvrier', conv:'Ouvriers du bâtiment, entreprises jusqu’à 10 salariés (IDCC 1596)', niveau:'N III, position 2', entree:'2022-04-11', base:2450, pas:3.3, secu:'2 96 •• •• ••• ••• 07' },
+  kb:{ emploi:'Chef d’équipe frigoriste', statut:'ouvrier', conv:'Ouvriers du bâtiment, entreprises jusqu’à 10 salariés (IDCC 1596)', niveau:'N IV, position 1', entree:'2020-01-06', base:2900, pas:4.6, secu:'1 88 •• •• ••• ••• 33' },
+  lr:{ emploi:'Technicienne frigoriste', statut:'ouvrier', conv:'Ouvriers du bâtiment, entreprises jusqu’à 10 salariés (IDCC 1596)', niveau:'N III, position 1', entree:'2023-06-12', base:2400, pas:0, secu:'2 99 •• •• ••• ••• 58' },
+  tl:{ emploi:'Technicien frigoriste', statut:'ouvrier', conv:'Ouvriers du bâtiment, entreprises jusqu’à 10 salariés (IDCC 1596)', niveau:'N II, position 2', entree:'2024-09-02', base:2200, pas:1.2, secu:'1 01 •• •• ••• ••• 26' }
+};
+Object.assign(PAIE, { mode:'op', calc:null, valide:null, compta:null, dsn:null, vire:null, fiches:{} });
+const cpRp = x => Math.round((+x || 0) * 100) / 100;
+/* la fiche de paie d'un salarié, pour un mois : brut, cotisations par rubrique (salarié et employeur), net, impôt, net payé */
+function paieBulletin(k, ym){
+  ym = ym || PAIE_MOIS; const S = PAIE_SAL[k], T = PAIE_TX, oct = ym === PAIE_MOIS, v = oct ? paieVariables(k) : null;
+  const tH = cpRp(S.base / 151.67), h25 = oct && !S.mandataire ? cpRp(v.s25 / 60) : 0, h50 = oct && !S.mandataire ? cpRp(v.s50 / 60) : 0;   // un mandataire social n'a pas d'heures supplémentaires
+  const brutL = [['Salaire de base', '151,67 h', tH, S.base]];
+  if (h25) brutL.push(['Heures supplémentaires à 25 %', nbFr(h25) + ' h', cpRp(tH * 1.25), cpRp(h25 * tH * 1.25)]);
+  if (h50) brutL.push(['Heures supplémentaires à 50 %', nbFr(h50) + ' h', cpRp(tH * 1.5), cpRp(h50 * tH * 1.5)]);
+  (oct ? PAIE.primes[k] || [] : []).forEach(p => brutL.push([p.lib, '', null, cpRp(+p.m || 0)]));
+  const brut = cpRp(brutL.reduce((s, l) => s + l[3], 0)), hsM = cpRp(brutL.filter(l => /supplémentaires/.test(l[0])).reduce((s, l) => s + l[3], 0)), plaf = Math.min(brut, T.pmss);
+  const absences = oct ? Object.entries(v.abs).map(([t, n]) => `${t} · ${n} j` + (/maladie/i.test(t) ? ' (salaire maintenu, indemnités journalières en subrogation : non simulées)' : /congé/i.test(t) && S.statut !== 'cadre' ? ' (payés par la caisse des congés payés du BTP)' : '')) : [];
+  const L = [];   // [rubrique, libellé, base, taux salarié, part salarié, taux employeur, part employeur, organisme]
+  const c = (rub, lib, base, tS, tP, org) => L.push([rub, lib, base, tS, tS == null ? 0 : cpRp(base * tS / 100), tP, tP == null ? 0 : cpRp(base * tP / 100), org]);
+  c('Santé', 'Sécurité sociale · maladie, maternité, invalidité, décès', brut, null, T.mal, 'urssaf');
+  L.push(['Santé', 'Complémentaire santé (forfait)', null, null, T.mutS, null, T.mutP, 'mutuelle']);
+  if (S.statut === 'cadre') c('Santé', 'Prévoyance des cadres (tranche 1)', plaf, null, T.prevCadre, 'retraite');
+  c('Accidents du travail · maladies professionnelles', 'Accidents du travail (taux de l’entreprise)', brut, null, T.atmp, 'urssaf');
+  c('Retraite', 'Sécurité sociale plafonnée', plaf, T.vpS, T.vpP, 'urssaf'); c('Retraite', 'Sécurité sociale déplafonnée', brut, T.vdS, T.vdP, 'urssaf');
+  c('Retraite', 'Complémentaire tranche 1', plaf, T.t1S, T.t1P, 'retraite'); c('Retraite', 'Contribution d’équilibre général tranche 1', plaf, T.cegS, T.cegP, 'retraite');
+  if (S.statut === 'cadre') c('Retraite', 'APEC', brut, T.apecS, T.apecP, 'retraite');
+  c('Famille', 'Allocations familiales', brut, null, T.fam, 'urssaf');
+  if (!S.mandataire) { c('Assurance chômage', 'Chômage', brut, null, T.chom, 'urssaf'); c('Assurance chômage', 'Garantie des salaires (AGS)', brut, null, T.ags, 'urssaf'); }
+  c('Autres contributions dues par l’employeur', 'FNAL, solidarité autonomie, formation, apprentissage, dialogue social', brut, null, cpRp(T.fnal + T.csa + T.form + T.appr + T.dial), 'urssaf');
+  c('Autres contributions dues par l’employeur', 'OPPBTP (prévention du bâtiment)', brut, null, T.oppbtp, 'btp');
+  const baseCsg = cpRp((brut + T.mutP + (S.statut === 'cadre' ? cpRp(plaf * T.prevCadre / 100) : 0)) * T.baseCsg / 100);
+  c('CSG et CRDS', 'CSG déductible de l’impôt sur le revenu', baseCsg, T.csgD, null, 'urssaf'); c('CSG et CRDS', 'CSG et CRDS non déductibles', baseCsg, cpRp(T.csgN + T.crds), null, 'urssaf');
+  if (hsM) L.push(['Exonérations', 'Réduction de cotisations salariales (heures supplémentaires)', hsM, -T.redHS, -cpRp(hsM * T.redHS / 100), null, 0, 'urssaf']);
+  const smicRef = T.smic * (151.67 + h25 + h50) / 151.67, coef = S.mandataire ? 0 : Math.max(0, Math.min(T.fillonT, T.fillonT / 0.6 * (1.6 * smicRef / brut - 1)));
+  const allegements = [];
+  if (coef) allegements.push(['Réduction générale des cotisations patronales (estimation)', cpRp(coef * brut)]);
+  if (h25 + h50 && !S.mandataire) allegements.push(['Déduction patronale sur heures supplémentaires', cpRp((h25 + h50) * T.dedHS)]);
+  const totS = cpRp(L.reduce((s, l) => s + l[4], 0)), totPBrut = cpRp(L.reduce((s, l) => s + l[6], 0)), totAll = cpRp(allegements.reduce((s, a) => s + a[1], 0)), totP = cpRp(totPBrut - totAll);
+  const netAvant = cpRp(brut - totS), csgN = L.find(l => /non déductibles/.test(l[1]))[4];
+  const netImposable = cpRp(netAvant + csgN + T.mutP + (S.statut === 'cadre' ? cpRp(plaf * T.prevCadre / 100) : 0) - hsM);
+  const pas = cpRp(netImposable * S.pas / 100), paniers = oct ? cpRp(v.jours6 * T.panier) : cpRp(20 * T.panier * (S.statut === 'ouvrier' ? 1 : 0));
+  const paniersOk = S.statut === 'ouvrier' ? paniers : 0;
+  const netPaye = cpRp(netAvant - pas + paniersOk);
+  const cotisSoc = cpRp(L.filter(l => l[0] !== 'CSG et CRDS' && l[0] !== 'Exonérations').reduce((s, l) => s + l[4], 0));
+  const netSocial = cpRp(brut + T.mutP - cotisSoc);
+  const cout = cpRp(brut + totP + paniersOk);
+  const mois = +ym.slice(5, 7), cumulBrut = cpRp(S.base * (mois - 1) + brut), cumulImp = cpRp(netImposable * mois);
+  const org = o => cpRp(L.filter(l => l[7] === o).reduce((s, l) => s + l[4] + l[6], 0) - (o === 'urssaf' ? totAll : 0));
+  return { k, ym, S, tH, h25, h50, brutL, brut, hsM, absences, L, allegements, totS, totP, totAll, netAvant, netImposable, pas, paniers:paniersOk, joursPanier:oct ? v.jours6 : 20, netPaye, netSocial, cout, cumulBrut, cumulImp,
+    orgs:{ urssaf:org('urssaf'), retraite:org('retraite'), mutuelle:org('mutuelle'), btp:org('btp'), dgfip:pas } };
+}
+const nbFr = n => n.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+const paieFiches = () => PT_GENS.map(k => PAIE.fiches[k] || paieBulletin(k));
+const paieTot = (F, k) => cpRp(F.reduce((s, b) => s + b[k], 0));
+/* la fiche de paie en document : le bulletin clarifié, rubrique par rubrique */
+function paieBulletinDoc(k, ym){
+  const b = ym && ym !== PAIE_MOIS ? paieBulletin(k, ym) : (PAIE.fiches[k] || paieBulletin(k)), S = b.S, nomM = ym && ym !== PAIE_MOIS ? ym : PAIE_NOM_MOIS;
+  const fin = new Date(+b.ym.slice(0, 4), +b.ym.slice(5, 7), 0).getDate(), per = `du 01/${b.ym.slice(5, 7)}/${b.ym.slice(0, 4)} au ${fin}/${b.ym.slice(5, 7)}/${b.ym.slice(0, 4)}`;
+  const td = x => x == null || x === '' ? '' : typeof x === 'number' ? nbFr(x) : esc(x);
+  const tx = x => x == null ? '' : nbFr(Math.abs(x)).replace(/,?0+$/, m => m === ',00' ? '' : m) + ' %';
+  const rubs = [...new Set(b.L.map(l => l[0]))];
+  return `<div class="pdf paie-bul-doc" data-nom="Fiche de paie ${esc(nomM)} - ${esc(paieNomPers(k))}.pdf" data-a="${esc((H_GENS[k] || {}).mail || '')}" data-objet="Fiche de paie ${esc(nomM)}">
+    <div class="pdf-tete"><div class="logo-ent">CS</div><div><b style="font-size:15px">${esc(ENTREPRISE.nom)}</b><br>${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)} · APE 4322B</div><div style="text-align:right;margin-left:auto"><b style="font-size:16px">Bulletin de paie</b><br>Période ${per}<br>Payé le 30/${b.ym.slice(5, 7)}/${b.ym.slice(0, 4)} par virement</div></div>
+    <div class="deux"><div><h6>Salarié</h6><b>${esc(paieNomPers(k))}</b><br>${esc(S.emploi)} · ${esc(S.niveau)}<br>Entré le ${esc(S.entree.split('-').reverse().join('/'))} · n° de sécurité sociale ${esc(S.secu)}</div><div><h6>Convention</h6>${esc(S.conv)}<br>Statut ${esc(S.statut)} · 151,67 h par mois · taux horaire ${nbFr(b.tH)} €</div></div>
+    <table><thead><tr><th>Éléments de paie</th><th style="text-align:right">Base</th><th style="text-align:right">Taux</th><th style="text-align:right">À payer</th></tr></thead><tbody>
+      ${b.brutL.map(l => `<tr><td>${esc(l[0])}</td><td style="text-align:right">${esc(l[1])}</td><td style="text-align:right">${l[2] == null ? '' : nbFr(l[2])}</td><td style="text-align:right">${nbFr(l[3])}</td></tr>`).join('')}
+      ${b.absences.map(a => `<tr><td colspan="4" style="color:#5a6578">${esc(a)}</td></tr>`).join('')}
+      <tr><td><b>Salaire brut</b></td><td></td><td></td><td style="text-align:right"><b>${nbFr(b.brut)}</b></td></tr></tbody></table>
+    <table style="margin-top:10px"><thead><tr><th>Cotisations et contributions</th><th style="text-align:right">Base</th><th style="text-align:right">Taux salarié</th><th style="text-align:right">Part salarié</th><th style="text-align:right">Taux employeur</th><th style="text-align:right">Part employeur</th></tr></thead><tbody>
+      ${rubs.map(r => { const Lr = b.L.filter(l => l[0] === r); return `<tr><td colspan="6" style="font-weight:700;padding-top:7px">${esc(r)}</td></tr>` + Lr.map(l => `<tr><td style="padding-left:12px">${esc(l[1])}</td><td style="text-align:right">${td(l[2])}</td><td style="text-align:right">${l[0] === 'Santé' && /forfait/.test(l[1]) ? '' : tx(l[3])}</td><td style="text-align:right">${l[4] ? (l[4] < 0 ? '−' : '') + nbFr(Math.abs(l[4])) : ''}</td><td style="text-align:right">${l[0] === 'Santé' && /forfait/.test(l[1]) ? '' : tx(l[5])}</td><td style="text-align:right">${l[6] ? nbFr(l[6]) : ''}</td></tr>`).join(''); }).join('')}
+      <tr><td><b>Total des cotisations et contributions</b></td><td></td><td></td><td style="text-align:right"><b>${nbFr(b.totS)}</b></td><td></td><td style="text-align:right"><b>${nbFr(cpRp(b.totP + b.totAll))}</b></td></tr>
+      ${b.allegements.map(a => `<tr><td style="padding-left:12px">${esc(a[0])}</td><td></td><td></td><td></td><td></td><td style="text-align:right">−${nbFr(a[1])}</td></tr>`).join('')}
+    </tbody></table>
+    <table style="margin-top:10px"><tbody>
+      <tr><td><b>Net à payer avant impôt sur le revenu</b></td><td style="text-align:right"><b>${nbFr(b.netAvant)}</b></td></tr>
+      ${b.hsM ? `<tr><td>dont heures supplémentaires exonérées d’impôt</td><td style="text-align:right">${nbFr(b.hsM)}</td></tr>` : ''}
+      <tr><td>Impôt sur le revenu prélevé à la source · base ${nbFr(b.netImposable)} · taux personnalisé ${nbFr(S.pas)} %</td><td style="text-align:right">−${nbFr(b.pas)}</td></tr>
+      ${b.paniers ? `<tr><td>Indemnités de repas (paniers) · ${b.joursPanier} jours × ${nbFr(PAIE_TX.panier)} € · non soumises</td><td style="text-align:right">${nbFr(b.paniers)}</td></tr>` : ''}
+      <tr><td><b style="font-size:15px">Net payé</b></td><td style="text-align:right"><b style="font-size:15px">${nbFr(b.netPaye)} €</b></td></tr>
+      <tr><td>Montant net social</td><td style="text-align:right">${nbFr(b.netSocial)}</td></tr>
+      <tr><td>Total versé par l’employeur</td><td style="text-align:right">${nbFr(b.cout)}</td></tr></tbody></table>
+    <div class="deux" style="margin-top:10px"><div><h6>Cumuls de l’année</h6>Salaire brut ${nbFr(b.cumulBrut)} € · net imposable ${nbFr(b.cumulImp)} €</div><div><h6>Congés payés</h6>${S.statut === 'cadre' ? 'Selon le mandat social' : 'Gérés par la caisse des congés payés du bâtiment (CIBTP)'}</div></div>
+    <div class="pdf-pied">Prototype : taux d’exemple (barèmes 2025), plafond de la sécurité sociale ${nbFr(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin est calculé avec les barèmes en vigueur et la convention collective, puis déclaré en DSN : à faire valider par l’expert-comptable. Conservez ce bulletin sans limitation de durée.</div></div>`;
+}
+
+/* ─── l'espace « Paie » de la Comptabilité ─── */
+CX_NAV.splice(3, 0, ['paie', 'Paie', '💶', [['paiemois', 'Le mois'], ['fiches', 'Fiches de paie'], ['salaries', 'Salariés'], ['charges', 'Charges et déclarations']]]);
+const paieOk = (o, m) => `<div class="ok-bloc petit">✓ ${m}</div>`;
+const paieAller = o => { fermerPanneau(); CP.onglet = o; if (route === 'comptabilite') rendre(); else aller('comptabilite'); };
+function paieVueMois(){ return ptVuePaie(); }
+function paieVueFiches(){
+  const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Pas encore calculée</span>';
+  const cab = PAIE.mode === 'cabinet';
+  return `<div class="cx-explique"><span aria-hidden="true">🧾</span><span><b>Fiches de paie ${esc(paieDe(PAIE_NOM_MOIS))}.</b> ${cab ? `C’est ${esc(PAIE_CAB.nom)} qui les fait : elles arrivent en PDF et se rangent chez chaque salarié.` : 'OP GESTION les calcule à partir des heures validées, des heures supplémentaires, des primes, des paniers et des absences. Taux d’exemple dans ce prototype : un vrai calcul suit les barèmes en vigueur et la convention collective.'}</span></div>
+    ${cab ? '' : `<div class="actions">${!PAIE.calc ? `<button type="button" class="btn" data-paie="calculer" ${paieVerrouille() ? '' : 'aria-disabled="true"'}>Calculer les fiches</button><span class="gris petit">${paieVerrouille() ? 'Le mois est verrouillé : les heures ne bougeront plus.' : 'D’abord verrouiller le mois, dans « Le mois ».'}</span>` : !PAIE.valide ? `<button type="button" class="btn" data-paie="validerfiches">Valider les ${F.length} fiches</button><button type="button" class="btn gris" data-paie="recalculer">Recalculer</button>` : !PAIE.distribue ? `<button type="button" class="btn" data-paie="distribuer">Distribuer aux salariés</button>` : ''}</div>`}
+    <div class="carte pt-paie paie-liste"><div class="paie-r paie-f pt-entete" aria-hidden="true"><span>Salarié</span><span>Brut</span><span>Cotisations salarié</span><span>Net payé</span><span>Coût employeur</span><span>Fiche</span></div>
+      ${F.map(b => `<button type="button" class="paie-r paie-f" data-paie="fiche|${b.k}"><span class="paie-qui"><b>${esc(paieNomPers(b.k))}</b><span class="gris petit">${esc(b.S.emploi)}</span></span><span data-l="Brut">${eur(b.brut)}</span><span data-l="Cotisations salarié">${eur(b.totS)}</span><span data-l="Net payé"><b>${eur(b.netPaye)}</b></span><span data-l="Coût employeur">${eur(b.cout)}</span><span class="paie-st">${cab ? (PAIE.bulletins[b.k] ? '<span class="st st-v">Reçue</span>' : '<span class="st">Attendue</span>') : etat}<span class="fo-chev" aria-hidden="true">›</span></span></button>`).join('')}
+      <div class="paie-r paie-f paie-tot"><span class="paie-qui"><b>Total</b></span><span data-l="Brut">${eur(paieTot(F, 'brut'))}</span><span data-l="Cotisations salarié">${eur(paieTot(F, 'totS'))}</span><span data-l="Net payé"><b>${eur(paieTot(F, 'netPaye'))}</b></span><span data-l="Coût employeur">${eur(paieTot(F, 'cout'))}</span><span></span></div></div>
+    <div class="carte"><h3>Les mois d’avant</h3><div class="fo-bloc">${['septembre 2026', 'août 2026', 'juillet 2026'].map((m, i) => { const ym = '2026-' + String(9 - i).padStart(2, '0'); return `<div class="fo-l"><span class="fo-n"><b>${m.charAt(0).toUpperCase() + m.slice(1)}</b><span class="gris petit">${PT_GENS.length} fiches · net payé ${eur(paieTot(PT_GENS.map(k => paieBulletin(k, ym)), 'netPaye'))}</span></span><span class="st st-v">Distribuées</span></div>`; }).join('')}</div></div>`;
+}
+function paieVueSalaries(){
+  return `<div class="cx-explique"><span aria-hidden="true">👥</span><span><b>Les salariés.</b> Ce qui sert à faire leur fiche de paie : emploi, convention collective, salaire de base, taux d’impôt transmis par l’administration. Touche une ligne pour la modifier.</span></div>
+    <div class="carte pt-paie paie-liste"><div class="paie-r paie-s pt-entete" aria-hidden="true"><span>Salarié</span><span>Statut</span><span>Entré le</span><span>Salaire de base</span><span>Taux horaire</span><span>Impôt (taux)</span></div>
+      ${PT_GENS.map(k => { const S = PAIE_SAL[k]; return `<button type="button" class="paie-r paie-s" data-paie="sal|${k}"><span class="paie-qui"><b>${esc(paieNomPers(k))}</b><span class="gris petit">${esc(S.emploi)}</span></span><span data-l="Statut">${esc(S.statut)}</span><span data-l="Entré le">${esc(S.entree.split('-').reverse().join('/'))}</span><span data-l="Salaire de base">${eur(S.base)}</span><span data-l="Taux horaire">${nbFr(cpRp(S.base / 151.67))} €</span><span data-l="Impôt (taux)" class="paie-st">${nbFr(S.pas)} %<span class="fo-chev" aria-hidden="true">›</span></span></button>`; }).join('')}</div>
+    <div class="info petit">Dans le bâtiment, les congés payés passent par la caisse des congés payés (CIBTP) : elle verse l’indemnité au salarié, l’entreprise y cotise chaque mois (non détaillé dans ce prototype). Conventions et niveaux à vérifier avec l’expert-comptable.</div>`;
+}
+function paieSalarie(k, remplace){
+  const S = PAIE_SAL[k];
+  paieFenetre(`<span class="surtitre">Salarié</span><h2>${esc(paieNomPers(k))}</h2>
+    <div class="grille2"><div class="carte"><h3>Le contrat</h3>${[['Emploi', S.emploi], ['Statut', S.statut], ['Convention', S.conv], ['Niveau', S.niveau], ['Entré le', S.entree.split('-').reverse().join('/')], ['Durée du travail', '35 h par semaine · 151,67 h par mois'], ['N° de sécurité sociale', S.secu]].map(([a, b]) => `<div class="paie-sem"><span class="gris">${a}</span><b style="text-align:right">${esc(b)}</b></div>`).join('')}</div>
+      <div class="carte"><h3>Pour la fiche de paie</h3><label class="champ">Salaire de base mensuel (€)<input id="ps-base" inputmode="decimal" value="${nbFr(S.base)}"></label><label class="champ">Taux de prélèvement à la source (%)<input id="ps-pas" inputmode="decimal" value="${nbFr(S.pas)}"></label>
+        <span class="gris petit">Le taux d’impôt arrive chaque mois de l’administration, par le retour de la déclaration sociale (DSN).</span>
+        <div class="actions"><button type="button" class="btn" data-paie="salok|${k}">Enregistrer</button></div></div></div>`, remplace);
+}
+function paieOrgs(F){ const o = k => cpRp(F.reduce((s, b) => s + b.orgs[k], 0)); return [['urssaf', 'URSSAF', 'sécurité sociale, chômage, CSG et CRDS, formation', o('urssaf'), '15/11'], ['retraite', 'Retraite complémentaire et prévoyance', 'caisse du bâtiment', o('retraite'), '15/11'], ['mutuelle', 'Complémentaire santé', 'organisme de mutuelle', o('mutuelle'), '05/11'], ['btp', 'OPPBTP', 'prévention du bâtiment', o('btp'), 'trimestriel'], ['dgfip', 'Impôt prélevé à la source', 'reversé à l’administration fiscale', o('dgfip'), '15/11']]; }
+function paieEcritureLignes(){
+  const F = paieFiches(), O = paieOrgs(F), brut = paieTot(F, 'brut'), pan = paieTot(F, 'paniers'), pat = paieTot(F, 'totP'), net = paieTot(F, 'netPaye');
+  const C = { urssaf:'431', retraite:'437', mutuelle:'437', btp:'437', dgfip:'4421' };
+  const L = [{ c:'641', de:brut }, { c:'6414', de:pan }, { c:'645', de:pat }, { c:'421', cr:net }, ...O.filter(o => o[3]).map(o => ({ c:C[o[0]], cr:o[3], lib:o[1] }))];
+  const ec = cpRp(L.reduce((s, l) => s + (l.de || 0) - (l.cr || 0), 0)); if (ec) L.push(ec > 0 ? { c:'431', cr:ec, lib:'arrondi' } : { c:'431', de:-ec, lib:'arrondi' });
+  return L;
+}
+Object.assign(CP_COMPTES, { '641':'Salaires bruts', '6414':'Indemnités de repas (paniers)', '645':'Charges sociales patronales', '421':'Salariés · net à payer', '431':'URSSAF', '437':'Retraite, prévoyance, mutuelle, OPPBTP', '4421':'Prélèvement à la source' });
+(() => { const c0 = cpEcritures; cpEcritures = function(){ const L = c0.apply(this, arguments); if (PAIE.compta) L.push({ j:'PA', d:'31/10', piece:'PAIE-2026-10', lib:'Paie d’octobre · ' + PT_GENS.length + ' salariés (fiches de paie)', lignes:paieEcritureLignes().filter(l => Math.abs(l.de || l.cr || 0) > .004), go:null, num:'PA-001' }); return L; }; })();
+function paieVueCharges(){
+  const F = paieFiches(), O = paieOrgs(F), L = paieEcritureLignes(), td = cpRp(L.reduce((s, l) => s + (l.de || 0), 0));
+  return `<div class="cx-explique"><span aria-hidden="true">🏛️</span><span><b>Charges et déclarations.</b> Ce que la paie d’octobre coûte, ce qu’on doit à chaque organisme, l’écriture qui la range dans la comptabilité, et la déclaration sociale (DSN) du 15 novembre.</span></div>
+    <div class="kpis paie-kpis"><div class="kpi"><b>${eur(paieTot(F, 'brut'))}</b><span>salaires bruts</span></div><div class="kpi"><b>${eur(paieTot(F, 'totP'))}</b><span>charges patronales (après allègements)</span></div><div class="kpi"><b>${eur(paieTot(F, 'netPaye'))}</b><span>nets versés aux salariés</span></div><div class="kpi"><b>${eur(paieTot(F, 'cout'))}</b><span>coût total pour l’entreprise</span></div></div>
+    <div class="grille2"><div class="carte"><h3>À verser aux organismes</h3>${O.map(o => `<div class="paie-sem"><span>${o[1]}<small class="gris" style="display:block">${o[2]}</small></span><b>${eur(o[3])}</b><span class="gris petit" style="min-width:90px;text-align:right">${o[4] === 'trimestriel' ? 'au trimestre' : 'le ' + o[4]}</span></div>`).join('')}
+        <div class="paie-sem"><b>Total</b><b>${eur(cpRp(O.reduce((s, o) => s + o[3], 0)))}</b><span style="min-width:90px"></span></div></div>
+      <div class="carte"><h3>La déclaration sociale (DSN)</h3><span class="gris petit">Chaque mois, une seule déclaration envoie les salaires et les cotisations à l’URSSAF, aux caisses de retraite, à la mutuelle et à l’administration fiscale (pour l’impôt prélevé). Moins de 50 salariés : avant le 15 du mois suivant.</span>
+        ${PAIE.dsn ? paieOk('', `DSN d’octobre préparée le ${esc(PAIE.dsn.le)} · ${PT_GENS.length} salariés · ${eur(cpRp(O.reduce((s, o) => s + o[3], 0)))} de cotisations et d’impôt. Dans la vraie version, elle part sur net-entreprises.fr.`) : `<div class="actions"><button type="button" class="btn" data-paie="dsn" ${PAIE.valide || PAIE.mode === 'cabinet' ? '' : 'aria-disabled="true"'}>Préparer la DSN d’octobre</button></div>${PAIE.valide || PAIE.mode === 'cabinet' ? '' : '<span class="gris petit">Une fois les fiches validées.</span>'}`}</div></div>
+    <div class="carte"><h3>L’écriture de paie · journal Paie</h3><div class="cx-ecr"><table class="cx-tab"><thead><tr><th>Compte</th><th>Libellé</th><th style="text-align:right">Débit</th><th style="text-align:right">Crédit</th></tr></thead><tbody>
+      ${L.filter(l => Math.abs(l.de || l.cr || 0) > .004).map(l => `<tr><td class="mono">${l.c}</td><td>${esc(l.lib || CP_COMPTES[l.c] || '')}</td><td style="text-align:right">${l.de ? nbFr(l.de) : ''}</td><td style="text-align:right">${l.cr ? nbFr(l.cr) : ''}</td></tr>`).join('')}
+      <tr><td></td><td><b>Total</b></td><td style="text-align:right"><b>${nbFr(td)}</b></td><td style="text-align:right"><b>${nbFr(td)}</b></td></tr></tbody></table></div>
+      ${PAIE.compta ? paieOk('', `Passée le ${esc(PAIE.compta.le)} : elle est dans le journal, la balance et le résultat d’octobre.`) + `<button type="button" class="lien" data-cx="sec|ecritures">Voir le journal</button>` : `<div class="actions"><button type="button" class="btn" data-paie="comptabiliser" ${PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue) ? '' : 'aria-disabled="true"'}>Passer l’écriture de paie</button></div>${PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue) ? '' : '<span class="gris petit">Une fois les fiches validées.</span>'}`}</div>
+    <span class="gris petit">Les salaires nets se virent le 30 ; URSSAF, retraite et impôt prélevé partent avec la DSN. Montants calculés avec des taux d’exemple.</span>`;
+}
+
+/* le Temps de travail garde les heures ; la paie est partie dans la Comptabilité (Justin, 9 novembre 2026) */
+(() => { const v0 = vuePointage; vuePointage = function(){ if (ptOnglet === 'paie') ptOnglet = 'semaine'; const h = v0.apply(this, arguments);
+  return h.replace(/<div class="seg pr-vues"[\s\S]*?<\/div>/, `<div class="info petit paie-lien">💶 La paie du mois (relevés, fiches de paie, charges, déclaration) est dans <button type="button" class="lien" data-paie="aller|paiemois">Comptabilité › Paie</button>.</div>`); }; })();
 
 /* ⟦module guide⟧ */
 /* ══ LE TEST GUIDÉ — 8 novembre 2026 ══
@@ -10681,19 +10874,21 @@ GD.memo = {};
 GD_TOURS.compta = { nom:'La comptabilité de A à Z', ic:'💶', chap:() => TOUR_COMPTA, fin:'Tu as suivi la boucle entière : l’intervention, la facture, la relance, le paiement arrivé à la banque, la caisse, les achats, la TVA, les normes et la clôture. C’est ce que tu montreras à tes clients.' };
 
 /* ══ la visite de la PAIE (9 novembre 2026) : la boucle entière, avec les yeux du patron puis du salarié ══ */
-const gdPaie = () => { fermerPanneau(); docPleinFermer(); ptOnglet = 'paie'; rlChanger('patron', { h:'pointage', muet:true }); rendre(); };
+const gdPaie = o => () => { fermerPanneau(); docPleinFermer(); CP.onglet = o || 'paiemois'; rlChanger('patron', { h:'comptabilite', muet:true }); rendre(); };
 const gdMesHeures = () => { fermerPanneau(); docPleinFermer(); rlChanger('tech', { h:'mesheures', muet:true }); };
 const gdPaieAttente = () => PT_GENS.find(k => paieVariables(k).nonValidees);
+const gdDoc = () => !!document.getElementById('docplein');
 const TOUR_PAIE = [
-  { r:'patron', cat:'Le mois', t:'La paie du mois : où tu en es', d:'Tu es Marc, le patron. Ici, OP GESTION prépare tout ce qui sert à faire les fiches de paie. Cette partie t’apprend à lire l’écran.', go:gdPaie, gestes:[
-    { c:'#contenu .cx-explique', t:'Ce que fait OP GESTION, et ce qu’il laisse au cabinet', p:'Il rassemble les heures, les heures supplémentaires, la nuit, les absences, les primes et les frais de chacun. Le calcul de la fiche de paie (cotisations, déclarations) reste au cabinet ou au logiciel de paie : c’est son métier.', suivant:1 },
-    { c:'#contenu .cp-etapes', t:'Cinq étapes, dans l’ordre', p:'Les heures justes, les relevés confirmés, le mois verrouillé, l’envoi au cabinet, puis le retour des fiches. L’étape en bleu est celle où tu en es ; chacune dit ce qui manque.', suivant:1 },
-    { c:'#contenu .paie-liste', t:'Une ligne par salarié', p:'Ses heures du mois, ses heures supplémentaires à 25 et 50 % (comptées par semaine civile), la nuit, les absences, les heures corrigées, et s’il a confirmé son relevé.', suivant:1 } ] },
-  { r:'patron', cat:'Corriger', t:'Une erreur signalée : corriger, avec une trace', d:'Tom a signalé une heure de fin oubliée. On corrige sa journée : l’heure d’avant, la nouvelle, qui et pourquoi restent écrits.', go:gdPaie, gestes:[
+  { r:'patron', cat:'Le mois', t:'La paie dans la Comptabilité', d:'Tu es Marc, le patron. La paie a son espace dans la Comptabilité : le mois, les fiches de paie, les salariés, les charges. Cette partie t’apprend à lire l’écran.', go:gdPaie('paiemois'), gestes:[
+    { c:'.cx-nav1 [data-cx="grp|paie"]', t:'L’espace « Paie » de la Comptabilité', p:'À côté des ventes, des achats et de la trésorerie : la paie est une dépense de l’entreprise, elle se range avec le reste de l’argent.', suivant:1 },
+    { c:'#contenu .paie-mode', t:'Qui fait les fiches de paie ?', p:'OP GESTION peut les calculer, ou le cabinet les fait et les renvoie. On suit ici le premier chemin.', suivant:1 },
+    { c:'#contenu .cp-etapes', t:'Huit étapes, dans l’ordre', p:'Des heures justes à la déclaration sociale. L’étape en bleu est celle où tu en es ; chacune dit ce qui manque.', suivant:1 },
+    { c:'#contenu .paie-liste', t:'Une ligne par salarié', p:'Ses heures du mois, ses heures supplémentaires (comptées par semaine civile), la nuit, les absences, les heures corrigées, et s’il a confirmé son relevé.', suivant:1 } ] },
+  { r:'patron', cat:'Corriger', t:'Une erreur signalée : corriger, avec une trace', d:'Tom a signalé une heure de fin oubliée. On corrige sa journée : l’heure d’avant, la nouvelle, qui et pourquoi restent écrits.', go:gdPaie('paiemois'), gestes:[
     { c:'#contenu [data-paie="releve|tl"]', t:'Ouvre le relevé de Tom', p:'Sa ligne dit « Erreur signalée ». Le relevé s’ouvre en grand.', ok:() => gdPanneau() },
     { c:'#calque .paie-etat', t:'Ce que Tom a écrit', p:'Son message arrive ici, avec la date. Le bouton « Corriger la journée » ouvre directement le bon jour.', suivant:1, si:() => !!PAIE.signales.tl },
     { c:'#calque [data-paie="corriger|tl"]', t:'Touche « Corriger la journée »', p:'La fiche du jour s’ouvre : les heures pointées, et ce qui était prévu au planning.', ok:() => !!document.getElementById('pt-motif'), si:() => !!PAIE.signales.tl },
-    { c:'#pt-motif', t:'Écris pourquoi tu corriges', p:'C’est obligatoire : sans motif, l’heure ne change pas. Tom le lira sur son relevé, et le cabinet aussi.', ok:() => ((document.getElementById('pt-motif') || {}).value || '').trim().length > 3, si:() => !!document.getElementById('pt-motif') },
+    { c:'#pt-motif', t:'Écris pourquoi tu corriges', p:'C’est obligatoire : sans motif, l’heure ne change pas. Tom le lira sur son relevé.', ok:() => ((document.getElementById('pt-motif') || {}).value || '').trim().length > 3, si:() => !!document.getElementById('pt-motif') },
     { c:() => { const s = PAIE.signales.tl, d = s && paieJourSignale('tl'), p = d && POINTAGES.find(o => o.qui === 'tl' && o.date === d), i = p && document.querySelector(`#calque [data-ptc="${p.id}|fin"]`); return i ? (i.nextElementSibling && i.nextElementSibling.classList.contains('dt-btn') ? i.nextElementSibling : i) : null; },
       t:'Mets l’heure de fin que Tom indique', get p(){ const a = (PAIE.signales.tl || {}).apres; return a ? `Touche l’heure de fin, puis choisis ${+a.slice(0, 2)} h et ${a.slice(3)} : c’est l’heure que Tom donne. La trace s’écrit toute seule.` : 'Touche l’heure de fin et choisis l’heure que Tom donne : la trace s’écrit toute seule.'; }, ok:() => PT_TRACE.some(t => t.qui === 'tl' && t.champ === 'fin' && /^31\/10/.test(t.le)) },
     { c:'#calque .paie-trs', t:'La trace est écrite', p:'L’heure d’avant barrée, la nouvelle, qui l’a changée, quand, et pourquoi. Si Tom avait déjà confirmé, il devrait reconfirmer.', suivant:1, si:() => !!document.querySelector('#calque .paie-trs') },
@@ -10703,34 +10898,37 @@ const TOUR_PAIE = [
     { c:'#calque [data-pt^="clore|"]', t:'Sa journée de vendredi est restée ouverte : clôture-la', p:'Il a oublié de pointer en partant. On ne compte jamais jusqu’à maintenant : tu donnes l’heure réelle de fin.', ok:() => !!document.getElementById('pt-fin') || !POINTAGES.some(p => p.qui === 'tl' && ptOuvert(p)), si:() => POINTAGES.some(p => p.qui === 'tl' && ptOuvert(p)) },
     { c:'#calque [data-pt^="closok|"]', t:'Touche « Clôturer »', p:'La clôture est tracée elle aussi.', ok:() => !POINTAGES.some(p => p.qui === 'tl' && ptOuvert(p)), si:() => POINTAGES.some(p => p.qui === 'tl' && ptOuvert(p)) },
     gdFermer ] },
-  { r:'patron', cat:'Valider', t:'Valider les semaines', d:'Une semaine validée part telle quelle au cabinet. Celles qui portent une alerte du Code du travail se regardent d’abord.', go:gdPaie, gestes:[
+  { r:'patron', cat:'Valider', t:'Valider les semaines', d:'Une semaine validée part telle quelle sur la fiche de paie. Celles qui portent une alerte du Code du travail se regardent d’abord.', go:gdPaie('paiemois'), gestes:[
     { c:'#contenu [data-paie="validertout"]', t:'Touche « Valider les semaines sans alerte »', p:'Toutes les semaines sans alerte se valident d’un coup. Les autres sont nommées : on va les regarder.', ok:() => PT_GENS.every(k => paieVariables(k).semaines.every(w => w.valide || w.alertes.some(o => o.g === 'r' || o.ouvert))) },
     { c:() => gdPaieAttente() && gdQ(`#contenu [data-paie="releve|${gdPaieAttente()}"]`), t:'Ouvre le relevé de Karim', p:'Ses deux dernières semaines ont une alerte : plus de 10 h un jour, un repos trop court, plus de 48 h dans la semaine.', ok:() => gdPanneau() || !gdPaieAttente(), si:() => !!gdPaieAttente() },
     { c:'#calque .paie-al', t:'L’alerte, sous la semaine', p:'C’est à toi de juger : une astreinte, un dépannage du soir… Si c’est justifié, tu valides quand même. La loi fixe des maximums : à regarder avec le salarié pour la suite.', suivant:1, si:() => !!document.querySelector('#calque .paie-al') },
-    { c:'#calque [data-paie^="valsem|"]', t:'Touche « Valider quand même » sur chaque semaine', p:'Une fois validée, la semaine part au cabinet telle quelle.', ok:() => !gdPaieAttente(), si:() => !!gdPaieAttente() },
+    { c:'#calque [data-paie^="valsem|"]', t:'Touche « Valider quand même » sur chaque semaine', p:'Une fois validée, la semaine part sur la fiche de paie telle quelle.', ok:() => !gdPaieAttente(), si:() => !!gdPaieAttente() },
     gdFermer ] },
-  { r:'tech', cat:'Le salarié', t:'Sophie confirme ses heures', d:'Tu es maintenant Sophie, technicienne. Dans « Mes heures », elle voit son relevé tel qu’il partira, et le confirme.', go:gdMesHeures, gestes:[
+  { r:'tech', cat:'Le salarié', t:'Sophie confirme ses heures', d:'Tu es maintenant Sophie, technicienne. Dans « Mes heures », elle voit son relevé tel qu’il servira à sa fiche de paie, et le confirme.', go:gdMesHeures, gestes:[
     { c:'#contenu .paie-conf', t:'Son relevé est prêt', p:'Elle vérifie ses heures, ses heures supplémentaires, ses absences.', suivant:1, si:() => !PAIE.confirmes.sm },
     { c:'#contenu .paie-tr', t:'La correction du bureau, en clair', p:'Elle voit l’heure d’avant, la nouvelle, qui l’a changée et pourquoi. Rien ne se modifie dans son dos.', suivant:1 },
     { c:'#contenu [data-paie="confirme|sm"]', t:'Touche « Je confirme mes heures »', p:'Si quelque chose n’allait pas, « Signaler une erreur » enverrait un message au bureau, comme Tom l’a fait.', ok:() => !!PAIE.confirmes.sm } ] },
-  { r:'patron', cat:'Verrouiller', t:'Verrouiller le mois', d:'De retour chez Marc. Une fois le mois verrouillé, plus aucune heure d’octobre ne change : ce qui part au cabinet est figé.', go:gdPaie, gestes:[
+  { r:'patron', cat:'Verrouiller', t:'Verrouiller le mois', d:'De retour chez Marc. Une fois le mois verrouillé, plus aucune heure d’octobre ne change : les fiches de paie se font sur des heures figées.', go:gdPaie('paiemois'), gestes:[
     { c:'#contenu [data-paie="verrouiller"]', t:'Touche « Verrouiller octobre »', p:'OP GESTION te dit qui n’a pas encore confirmé : son relevé portera « non confirmé ».', ok:() => gdPanneau() || paieVerrouille() },
-    { c:'#calque [data-paie="verrouok"]', t:'Touche « Verrouiller »', p:'Une empreinte est calculée : elle prouve que ce qui part au cabinet n’a pas bougé depuis. Une erreur trouvée après se régularise sur le mois suivant.', ok:() => paieVerrouille() } ] },
-  { r:'patron', cat:'Envoyer', t:'Envoyer au cabinet de paie', d:'Le cabinet reçoit un relevé par salarié et un fichier d’import : il n’a rien à ressaisir.', go:gdPaie, gestes:[
-    { c:'#contenu [data-paie="envoyer"]', t:'Touche « Envoyer au cabinet »', p:'Le message est prêt, avec ses pièces jointes.', ok:() => gdPanneau() || !!PAIE.envoi },
-    { c:'#calque [data-paie="pdf|sm"]', t:'Ouvre le relevé de Sophie', p:'C’est ce que le cabinet reçoit pour elle : ses heures, semaine par semaine, ses corrections, sa confirmation.', ok:() => !!document.getElementById('docplein') || !!PAIE.envoi },
-    { c:'#docplein [data-dpfermer]', t:'Ferme le document', p:'Le fichier d’import, juste en dessous, porte une ligne par salarié.', ok:() => !document.getElementById('docplein') },
-    { c:'#calque [data-paie="envoiok"]', t:'Touche « Envoyer »', p:'C’est parti chez le cabinet. L’étape 4 passe au vert.', ok:() => !!PAIE.envoi } ] },
-  { r:'patron', cat:'Fiches de paie', t:'Les fiches de paie reviennent', d:'Le cabinet renvoie les fiches de paie en PDF. Tu les déposes, et chacun reçoit la sienne.', go:gdPaie, gestes:[
-    { c:'#contenu [data-paie="recevoir"]', t:'Touche « Déposer les fiches reçues »', p:'Chaque PDF est rangé chez son salarié d’après son nom.', ok:() => gdPanneau() || !!PAIE.distribue },
-    { c:'#calque .paie-depot', t:'Ici, tu déposes les PDF', p:'Tu peux les glisser tous d’un coup. Pour l’essai, on simule leur arrivée.', suivant:1, si:() => !PAIE.distribue },
-    { c:'#calque [data-paie="simuler"]', t:'Touche « Simuler la réception »', p:'Les six fiches arrivent, chacune au nom de son salarié.', ok:() => Object.keys(PAIE.bulletins).length >= PT_GENS.length || !!PAIE.distribue },
-    { c:'#calque [data-paie="distribuer"]', t:'Touche « Distribuer à chacun »', p:'Chaque salarié reçoit une notification ; personne ne voit la fiche d’un autre.', ok:() => !!PAIE.distribue } ] },
+    { c:'#calque [data-paie="verrouok"]', t:'Touche « Verrouiller »', p:'Une empreinte est calculée : elle prouve que les heures n’ont pas bougé depuis. Une erreur trouvée après se régularise sur le mois suivant.', ok:() => paieVerrouille() } ] },
+  { r:'patron', cat:'Fiches de paie', t:'Calculer et vérifier les fiches de paie', d:'OP GESTION calcule chaque fiche : salaire, heures supplémentaires, primes, paniers, cotisations par rubrique, impôt prélevé à la source.', go:gdPaie('paiemois'), gestes:[
+    { c:'#contenu [data-paie="calculer"]', t:'Touche « Calculer les fiches »', p:'Six fiches, à partir des heures verrouillées. Les taux sont des exemples dans ce prototype.', ok:() => !!PAIE.calc },
+    { c:'#contenu [data-paie="voirfiches"]', t:'Touche « Voir et valider les fiches »', p:'L’onglet « Fiches de paie » montre chaque salarié : brut, cotisations, net payé, coût pour l’entreprise.', ok:() => CP.onglet === 'fiches' },
+    { c:'#contenu [data-paie="fiche|sm"]', t:'Ouvre la fiche de Sophie', p:'Elle s’ouvre comme un document, prête à télécharger ou à envoyer.', ok:() => gdDoc() },
+    { c:'#docplein .pdf', t:'Le bulletin, rubrique par rubrique', p:'Santé, accidents du travail, retraite, famille, chômage, CSG : la part du salarié et celle de l’employeur. Puis le net avant impôt, l’impôt prélevé, le net payé et le montant net social.', suivant:1, si:() => gdDoc() },
+    { c:'#docplein [data-dpfermer]', t:'Ferme la fiche', p:'Si un salaire ou un taux d’impôt était faux, l’onglet « Salariés » le corrige, et la fiche se recalcule.', ok:() => !gdDoc() },
+    { c:'#contenu [data-paie="validerfiches"]', t:'Touche « Valider les 6 fiches »', p:'Validées, elles ne bougent plus.', ok:() => !!PAIE.valide } ] },
+  { r:'patron', cat:'Comptabilité', t:'Distribuer, comptabiliser, déclarer', d:'Chaque salarié reçoit sa fiche, la paie entre dans la comptabilité, et la déclaration sociale se prépare.', go:gdPaie('fiches'), gestes:[
+    { c:'#contenu [data-paie="distribuer"]', t:'Touche « Distribuer aux salariés »', p:'Chacun reçoit une notification et retrouve sa fiche dans « Mes heures ». Personne ne voit celle d’un autre.', ok:() => !!PAIE.distribue },
+    { c:'.cx-sous [data-cx="sec|charges"]', t:'Ouvre « Charges et déclarations »', p:'Ce que la paie coûte, et ce qu’on doit à chaque organisme.', ok:() => CP.onglet === 'charges' },
+    { c:'#contenu .cx-ecr', t:'L’écriture de paie', p:'Les salaires et les charges au débit ; au crédit, ce qu’on doit aux salariés, à l’URSSAF, aux caisses et à l’impôt. Elle s’équilibre au centime.', suivant:1 },
+    { c:'#contenu [data-paie="comptabiliser"]', t:'Touche « Passer l’écriture de paie »', p:'Elle entre dans le journal, la balance et le résultat d’octobre.', ok:() => !!PAIE.compta },
+    { c:'#contenu [data-paie="dsn"]', t:'Touche « Préparer la DSN d’octobre »', p:'Une seule déclaration pour l’URSSAF, la retraite, la mutuelle et l’impôt prélevé, avant le 15 novembre.', ok:() => !!PAIE.dsn } ] },
   { r:'tech', cat:'Le salarié', t:'Sophie reçoit sa fiche de paie', d:'Retour chez Sophie : sa fiche d’octobre l’attend dans « Mes heures ».', go:gdMesHeures, gestes:[
-    { c:'#contenu [data-paie="bulletin|sm|"]', t:'Sa fiche d’octobre est arrivée', p:'Marquée « Nouvelle ». Elle la retrouve ici, avec les mois d’avant.', ok:() => gdPanneau() },
-    gdFermer ] }
+    { c:'#contenu [data-paie="bulletin|sm|"]', t:'Sa fiche d’octobre est arrivée', p:'Marquée « Nouvelle ». Elle la retrouve ici, avec les mois d’avant.', ok:() => gdDoc() },
+    { c:'#docplein [data-dpfermer]', t:'Ferme la fiche', p:'C’est la même que celle validée par Marc.', ok:() => !gdDoc() } ] }
 ];
-GD_TOURS.paie = { nom:'La paie du mois', ic:'🕐', chap:() => TOUR_PAIE, fin:'Tu as suivi la paie de bout en bout : une erreur signalée et corrigée avec sa trace, les semaines validées, le relevé confirmé par le salarié, le mois verrouillé, l’envoi au cabinet et le retour des fiches de paie.' };
+GD_TOURS.paie = { nom:'La paie, des heures à la fiche', ic:'💶', chap:() => TOUR_PAIE, fin:'Tu as suivi la paie de bout en bout : une erreur corrigée avec sa trace, les semaines validées, le relevé confirmé, le mois verrouillé, les fiches calculées, vérifiées, validées et distribuées, l’écriture de paie et la déclaration sociale.' };
 
 /* le panneau « Apprendre » : toutes les visites, partie par partie */
 function gdApBloc(cle, sous){
