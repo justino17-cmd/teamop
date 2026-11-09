@@ -162,7 +162,10 @@ jobs:
 
   suites:
     name: suites ${{ matrix.morceau }}/6
-    runs-on: ubuntu-latest
+    # ⛔ ÉPINGLÉ, PAS `ubuntu-latest` (9 novembre 2026) : `ubuntu-latest` est passé à Ubuntu 26.04, où Playwright 1.56.1
+    # refuse d'installer Chromium (« Playwright does not support chromium on ubuntu26.04-x64 ») — les six morceaux tombaient
+    # à l'installation, avant la première suite. On dépinglera en même temps qu'on montera la version de Playwright.
+    runs-on: ubuntu-24.04
     # Un morceau joue un sixième de la suite (~6 min) plus ses installations (~2 min) : 30 minutes ne se touchent que si un
     # banc se fige — c'est la garde, pas la durée normale.
     timeout-minutes: 30

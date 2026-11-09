@@ -1,0 +1,1237 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>
+<title>Paiement des factures</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Mise en page : trois côtés d'un même paiement — l'entreprise dans OP GESTION, le téléphone de son client, les coulisses
+   (sa banque, son compte de paiement, la banque du client) — et un GUIDE qui explique chaque geste. Une barre fixe en haut
+   porte l'horloge de la simulation. Sur ordinateur le guide est une colonne à droite ; plus étroit, un panneau en bas.
+   Police du système, comme l'application. Tout est grand exprès : on lit ça en réunion, sur un écran partagé. */
+:root{
+  --bg:#f3f5f8; --surf:#ffffff; --surf2:#eef2f7; --ink:#142030; --mute:#56637a; --line:#d9e0e9;
+  --accent:#0a5fc2; --accent-ink:#ffffff; --ok:#17804f; --ok-bg:#e3f4ec; --warn:#a85a00; --warn-bg:#fdf0dd; --bad:#b4332a; --bad-bg:#fbe6e3;
+  --coul:#20262f; --coul-ink:#e9edf2; --coul-mute:#a6b0bd; --coul-line:#343c48; --coul-surf:#2a313c;
+  --phone:#0f1720; --phone-screen:#ffffff;
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:18px; --haut:76px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d131a; --surf:#151e28; --surf2:#1c2733; --ink:#e7edf4; --mute:#9eabbb; --line:#2a3747;
+  --accent:#4d9bff; --accent-ink:#06121f; --ok:#45cf8f; --ok-bg:#12301f; --warn:#f2a54a; --warn-bg:#33240e; --bad:#ff7b6e; --bad-bg:#3a1714;
+  --coul:#0a0f14; --coul-ink:#e9edf2; --coul-mute:#9aa6b4; --coul-line:#28313c; --coul-surf:#151c24;
+  --phone:#05080b; --phone-screen:#101820; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d131a; --surf:#151e28; --surf2:#1c2733; --ink:#e7edf4; --mute:#9eabbb; --line:#2a3747;
+  --accent:#4d9bff; --accent-ink:#06121f; --ok:#45cf8f; --ok-bg:#12301f; --warn:#f2a54a; --warn-bg:#33240e; --bad:#ff7b6e; --bad-bg:#3a1714;
+  --coul:#0a0f14; --coul-ink:#e9edf2; --coul-mute:#9aa6b4; --coul-line:#28313c; --coul-surf:#151c24;
+  --phone:#05080b; --phone-screen:#101820; color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:calc(var(--haut) + 12px)}
+body{background:var(--bg);color:var(--ink);font:17px/1.5 var(--f);margin:0;padding:0 0 56px}
+.page{max-width:1760px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:22px}
+h1{font-size:36px;line-height:1.12;margin:0;letter-spacing:-.015em;text-wrap:balance}
+h2{font-size:20px;margin:0;text-wrap:balance}
+h3{font-size:17px;margin:0}
+p{margin:0}
+.mute{color:var(--mute)}.petit{font-size:14.5px}.num{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tete{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.tete .intro{display:flex;flex-direction:column;gap:8px;max-width:80ch}
+.sur{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.btn{min-height:46px;padding:0 20px;border-radius:999px;border:1px solid var(--line);background:var(--surf);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.btn.plein{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
+.btn.ok{background:var(--ok);border-color:transparent;color:#fff}
+.btn.rouge{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+.btn.petit{min-height:42px;padding:0 15px;font-size:15.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.carte{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.rangee{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* la barre du haut : l'horloge de la simulation, toujours à portée */
+.barre-haut{position:sticky;top:0;z-index:12;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--line);padding:max(10px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.barre-in{max-width:1760px;margin:0 auto;display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap}
+.b-date{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.b-date b{font-size:20px}.b-date .b-sur,#b-proche{font-size:14px;color:var(--mute)}
+.b-temps{display:flex;gap:8px;flex-wrap:wrap}
+.b-tests{margin-left:auto}
+.b-tests .jauge{width:70px}
+.lt-c{display:none}
+.onglets{display:flex;gap:4px;background:var(--surf2);border:1px solid var(--line);border-radius:14px;padding:4px;overflow-x:auto;scrollbar-width:none}
+.onglets button{flex:1;min-height:44px;border:0;background:none;border-radius:10px;font-weight:600;font-size:16px;color:var(--mute);white-space:nowrap;padding:0 14px}
+.onglets button[aria-selected="true"]{background:var(--surf);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.barre-haut .cote-sel{display:none;flex-basis:100%}
+.jauge{height:8px;border-radius:9px;background:var(--surf2);overflow:hidden;display:block}.jauge i{display:block;height:100%;background:var(--ok);border-radius:9px}
+
+/* la scène : trois côtés et le guide */
+.scene{display:grid;grid-template-columns:minmax(0,1fr) 430px 400px;grid-template-areas:"ent tel guide" "coul tel guide";grid-template-rows:auto 1fr;gap:20px;align-items:start}
+.ent{grid-area:ent;display:flex;flex-direction:column;gap:14px;min-width:0}
+.appli-tete{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:11px;background:#14804f;color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:none}
+.ligne{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.ligne:first-child{border-top:0}
+.ligne>.g{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bascule{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--line)}
+.bascule:first-of-type{border-top:0}
+.bascule .g{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.inter{position:relative;width:52px;height:32px;flex:none;border-radius:999px;border:0;background:var(--line);transition:background .2s}
+.inter::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.inter[aria-checked="true"]{background:var(--ok)}.inter[aria-checked="true"]::after{transform:translateX(20px)}
+.inter:disabled{opacity:.4}
+.ic{width:40px;height:40px;border-radius:11px;background:var(--surf2);display:grid;place-items:center;font-size:20px;flex:none}
+.etat{font-size:14px;font-weight:700;padding:4px 11px;border-radius:999px;white-space:nowrap;background:var(--surf2);color:var(--mute)}
+.etat.ok{background:var(--ok-bg);color:var(--ok)}.etat.att{background:var(--warn-bg);color:var(--warn)}.etat.bleu{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}.etat.mal{background:var(--bad-bg);color:var(--bad)}
+.fac{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;padding:14px 0;border-top:1px solid var(--line)}
+.fac:first-child{border-top:0}
+.fac .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.fac .suivi{grid-column:1/-1;font-size:14.5px;color:var(--mute)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpi{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-size:24px;font-variant-numeric:tabular-nums}.kpi span{font-size:14px;color:var(--mute)}
+.tab{width:100%;border-collapse:collapse;font-size:15.5px;font-variant-numeric:tabular-nums}
+.tab th{text-align:left;font-size:13px;color:var(--mute);font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:8px;border-bottom:1px solid var(--line)}
+.tab td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tab td.m,.tab th.m{text-align:right;white-space:nowrap}
+.defil{overflow-x:auto}
+.ecr{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.ecr-t{display:flex;justify-content:space-between;gap:10px;padding:9px 14px;background:var(--surf2);font-size:15px}
+.ecr table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.ecr td{padding:7px 14px;border-top:1px solid var(--line)}.ecr td.m{text-align:right;width:110px}
+.soldes{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.solde{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.solde b{font-variant-numeric:tabular-nums;font-size:19px}.solde span{font-size:14px;color:var(--mute)}
+.note{font-size:14.5px;color:var(--mute);background:var(--surf2);border-radius:14px;padding:12px 14px}
+.dlg{border:2px solid var(--accent);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;background:color-mix(in srgb,var(--accent) 5%,var(--surf))}
+.etapes{display:flex;gap:6px}.etapes i{flex:1;height:5px;border-radius:9px;background:var(--line)}.etapes i.on{background:var(--accent)}
+label.ch{display:flex;flex-direction:column;gap:5px;font-size:15px;font-weight:600}
+label.ch input,label.ch select,select.saisie{min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surf);color:var(--ink);padding:0 14px;font:inherit;font-weight:400}
+.ctrl{font-size:14.5px;color:var(--ok);font-weight:600}.ctrl.mal{color:var(--bad)}
+
+/* le téléphone */
+.tel{grid-area:tel;position:sticky;top:calc(var(--haut) + 14px);display:flex;flex-direction:column;gap:8px;align-items:center;min-width:0}
+.tel-cadre{width:100%;max-width:430px;background:var(--phone);border-radius:52px;padding:12px;box-shadow:0 22px 56px rgba(10,20,35,.2)}
+.tel-ecran{background:var(--phone-screen);border-radius:41px;height:calc(100vh - var(--haut) - 86px);max-height:900px;min-height:600px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;overscroll-behavior:contain}
+.tel-barre{display:flex;justify-content:space-between;padding:14px 26px 4px;font-size:14px;font-weight:700}
+.tel-corps{padding:10px 18px 24px;display:flex;flex-direction:column;gap:14px;flex:1}
+.tel-leg{font-size:14px;color:var(--mute);text-align:center}
+.msg{display:flex;gap:12px;align-items:flex-start;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:12px 2px;width:100%}
+.msg:first-of-type{border-top:0}.msg .g{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.msg .g span{font-size:14px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg .pt-lu{width:9px;height:9px;border-radius:50%;background:var(--accent);margin-top:8px;flex:none}.msg .pt-lu.lu{background:transparent}
+.f-tete{display:flex;gap:12px;align-items:center}
+.f-tot{font-size:38px;font-weight:750;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.choix{display:flex;flex-direction:column;gap:10px}
+.choix button{display:flex;gap:12px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--surf);border-radius:16px;padding:12px 14px;min-height:66px}
+.choix button .g{flex:1;display:flex;flex-direction:column;gap:2px}.choix button .g span{font-size:14px;color:var(--mute)}
+.reco{font-size:12.5px;font-weight:700;color:var(--ok);background:var(--ok-bg);padding:3px 9px;border-radius:999px}
+.retour{align-self:flex-start;border:0;background:none;color:var(--accent);font-weight:600;padding:4px 0;min-height:42px}
+.champ-tel{display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--mute);min-width:0}
+.champ-tel input,.champ-tel select{width:100%;min-width:0;min-height:50px;border:1px solid var(--line);border-radius:13px;padding:0 13px;font:17px var(--f);background:var(--surf);color:var(--ink)}
+.demo{border:1px dashed color-mix(in srgb,var(--warn) 60%,transparent);background:var(--warn-bg);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.demo .champ-tel{color:var(--warn)}
+.radios{display:flex;flex-direction:column;gap:8px}.radios label{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16px}.radios input{margin-top:4px;width:18px;height:18px}
+.iban{font-family:var(--mono);font-size:15.5px;letter-spacing:.02em;word-break:break-word;user-select:all}
+.paybtn{min-height:56px;border-radius:16px;border:0;background:#000;color:#fff;font-weight:700;font-size:18px}
+.qr{width:150px;height:150px;align-self:center;border-radius:8px;background:#fff;padding:7px}
+.merci{align-items:center;text-align:center}
+.rond{width:72px;height:72px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:36px;font-weight:800}
+.rond.mal{background:var(--bad)}.rond.att{background:var(--warn)}
+.attente{display:flex;align-items:center;justify-content:center;gap:12px;min-height:56px;color:var(--mute)}
+.roue{width:20px;height:20px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:tour .8s linear infinite}
+@keyframes tour{to{transform:rotate(360deg)}}
+.securite{font-size:13.5px;color:var(--mute);text-align:center;margin-top:auto}
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 4px}
+.app{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;border:0;background:none;font-size:14px;font-weight:600;color:var(--ink)}
+.app-ic{width:68px;height:68px;border-radius:18px;display:grid;place-items:center;font-size:32px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.badge{position:absolute;top:-7px;right:calc(50% - 42px);min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:#e5383b;color:#fff;font-size:13px;font-style:normal;font-weight:800;display:grid;place-items:center}
+.barre-accueil{flex:none;border:0;background:none;padding:12px 0 16px;display:flex;justify-content:center}.barre-accueil i{width:130px;height:5px;border-radius:9px;background:var(--ink);opacity:.35;display:block}
+.err{color:var(--bad);font-size:14px;font-weight:600}.champ-tel input[aria-invalid="true"]{border-color:var(--bad)}
+.lien-tel{border:0;background:none;color:var(--accent);font-weight:600;padding:6px 0;min-height:40px}
+.pdf{background:#fff;color:#1a1a1a;border:1px solid #d9d9d9;border-radius:6px;padding:14px;font-size:12.5px;line-height:1.45;display:flex;flex-direction:column;gap:10px;font-family:Georgia,"Times New Roman",serif}
+.pdf-t{width:100%;border-collapse:collapse}.pdf-t th,.pdf-t td{border-bottom:1px solid #ddd;padding:4px;text-align:left}.pdf-t th{font-weight:700}
+.banque-app{border-radius:20px;background:linear-gradient(160deg,#1d3557,#274c77);color:#fff;padding:18px;display:flex;flex-direction:column;gap:12px}
+.banque-app .btn{background:#fff;color:#1d3557;border:0}.banque-app .btn.rouge{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55)}
+
+/* les coulisses */
+.coul{grid-area:coul;background:var(--coul);color:var(--coul-ink);border-radius:var(--r);padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;align-items:start;min-width:0}
+.coul>.titre-coul{grid-column:1/-1;display:flex;flex-direction:column;gap:4px}
+.coul h2{font-size:18px}.coul .mute{color:var(--coul-mute)}
+.coul .bloc{background:var(--coul-surf);border:1px solid var(--coul-line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.coul .btn{background:var(--coul-surf);border-color:var(--coul-line);color:var(--coul-ink)}
+.coul .btn.plein{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.op{display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:8px;font-size:14.5px;padding:7px 0;border-top:1px solid var(--coul-line);font-variant-numeric:tabular-nums}
+.op:first-of-type{border-top:0}.op .p{color:#7fe3a9;font-weight:700}.op .n{color:#ff9d92;font-weight:700}
+.op small{display:block;color:var(--coul-mute);font-size:13px}
+.evt{display:flex;gap:10px;font-size:14.5px;padding:6px 0;border-top:1px solid var(--coul-line)}.evt:first-of-type{border-top:0}.evt b{color:var(--coul-mute);font-weight:600;flex:none;width:52px}
+
+/* le guide */
+.guide{grid-area:guide;position:sticky;top:calc(var(--haut) + 14px);max-height:calc(100vh - var(--haut) - 28px);overflow-y:auto;overscroll-behavior:contain;background:var(--surf);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;min-width:0;box-shadow:0 8px 28px rgba(10,20,35,.07)}
+.g-tete{display:none}
+.g-ongl{position:sticky;top:0;z-index:2;background:var(--surf);padding:12px 14px;border-bottom:1px solid var(--line)}
+.g-ongl .onglets button{font-size:15.5px}
+.g-corps{padding:16px 18px 22px;display:flex;flex-direction:column;gap:18px}
+.g-sur{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+.g-titre{font-size:22px;line-height:1.25;font-weight:750;letter-spacing:-.01em;text-wrap:balance}
+.g-sec{display:flex;flex-direction:column;gap:8px}
+.g-sec>h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+.g-sec>p{font-size:16.5px}
+.qui{display:flex;flex-direction:column;gap:10px}
+.qui>div{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:start;font-size:16px}
+.qui i{font-style:normal;width:36px;height:36px;border-radius:11px;background:var(--surf2);display:grid;place-items:center;font-size:18px}
+.qui b{display:block}
+.g-ecr{border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;flex-direction:column}
+.g-ecr>b{font-size:15px;padding-bottom:4px}
+.mvt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:15.5px;padding:6px 0;border-top:1px solid var(--line)}
+.mvt .s{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mvt .k{color:var(--mute);font-size:13.5px}
+.g-evt{font-size:15.5px;display:flex;gap:8px}
+.g-ok{background:var(--ok-bg);color:var(--ok);font-weight:700;border-radius:14px;padding:12px 14px;font-size:16px}
+.g-alerte{background:var(--warn-bg);color:var(--warn);border-radius:14px;padding:12px 14px;font-size:15.5px;font-weight:600}
+.g-carte{border:2px solid var(--accent);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;background:color-mix(in srgb,var(--accent) 6%,var(--surf))}
+.g-etapes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:e}
+.g-etapes>li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;font-size:16px;color:var(--mute)}
+.g-etapes>li::before{counter-increment:e;content:counter(e);width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13.5px;font-weight:800;color:var(--mute)}
+.g-etapes>li.fait{color:var(--ink)}.g-etapes>li.fait::before{content:"✓";background:var(--ok);border-color:var(--ok);color:#fff}
+.g-etapes>li.en{color:var(--ink);font-weight:650}.g-etapes>li.en::before{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.g-ou{display:block;font-size:14px;color:var(--mute);font-weight:500}
+.g-liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.g-liste button{width:100%;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--surf);border-radius:14px;padding:11px 14px;min-height:60px}
+.g-liste button .g{display:flex;flex-direction:column;gap:1px;min-width:0}.g-liste button .g span{font-size:14px;color:var(--mute)}
+.g-liste button.fait{background:var(--ok-bg);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.g-liste .chev{color:var(--mute);font-size:22px}
+.pt{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff}
+.fait .pt{background:var(--ok);border-color:var(--ok)}
+.g-groupe{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);margin-top:6px}
+.g-bascule{display:flex;align-items:center;gap:12px;justify-content:space-between;font-weight:600;font-size:15.5px;background:var(--surf2);border-radius:14px;padding:10px 14px}
+.g-carte .btn{white-space:normal;line-height:1.3;padding-block:9px;text-align:left}
+.g-retour{align-self:flex-start;border:0;background:none;color:var(--accent);font-weight:600;padding:0;min-height:40px}
+
+/* ce qu'il faut toucher, en mode guidé */
+.cible{outline:3px solid var(--accent)!important;outline-offset:3px;animation:cible 1.5s ease-in-out infinite;position:relative;z-index:1}
+@keyframes cible{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 50%,transparent)}50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--accent) 0%,transparent)}}
+
+.toast{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));margin:0 auto;width:max-content;bottom:calc(22px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:14px 18px;border-radius:16px;font-size:16px;max-width:min(620px,calc(100vw - 32px));box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;z-index:20;pointer-events:none}
+.toast[hidden]{display:none}   /* sinon la bulle vide reste peinte : « display:flex » l'emporte sur l'attribut */
+.toast button{pointer-events:auto;border:0;background:none;color:inherit;font-weight:700;text-decoration:underline;white-space:nowrap;min-height:40px}
+.l-c{display:none}
+.tab td:first-child,.tab .nw{white-space:nowrap}
+/* la colonne de l'entreprise se règle sur SA largeur, pas sur celle de l'écran : onglets courts, puis sur deux rangées */
+.ent{container-type:inline-size}
+@container (max-width:680px){ .ent .onglets .l-l{display:none} .ent .onglets .l-c{display:inline} .ent .onglets button{padding:0 10px} .ent .tab{font-size:14.5px} .ent .tab td,.ent .tab th{padding-inline:6px} }
+/* le tableau des paiements, dans une colonne étroite : une fiche par paiement, la date en marge */
+@container (max-width:680px){
+  .ent .tab-pay thead{display:none}
+  .ent .tab-pay tr{display:grid;grid-template-columns:52px minmax(0,1fr) auto;grid-template-areas:"da fac mt" "da moy fr" "da et et";gap:4px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .ent .tab-pay td{border:0;padding:0}
+  .ent .tab-pay td:nth-child(1){grid-area:da;color:var(--mute)} .ent .tab-pay td:nth-child(2){grid-area:fac} .ent .tab-pay td:nth-child(3){grid-area:moy;color:var(--mute)}
+  .ent .tab-pay td:nth-child(4){grid-area:mt;font-weight:700} .ent .tab-pay td:nth-child(5){grid-area:fr;color:var(--mute)} .ent .tab-pay td:nth-child(5)::before{content:"frais "} .ent .tab-pay td:nth-child(6){grid-area:et}
+}
+@container (max-width:520px){ .ent .onglets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))} .ent .onglets button{font-size:15px} }
+/* sur ordinateur, la bulle se pose en bas à gauche : le téléphone, au milieu, reste dégagé */
+@media (min-width:1400px){ .toast{right:auto;margin:0;left:max(16px,calc((100vw - 1760px) / 2 + 16px));max-width:520px} }
+@media (prefers-reduced-motion:reduce){.roue,.cible,.g-tete.flash{animation:none}.inter,.inter::after{transition:none}}
+
+/* plus étroit : le guide devient un panneau en bas, qu'on ouvre d'un geste */
+@media (max-width:1399px){
+  .scene{grid-template-columns:minmax(0,1fr) 420px;grid-template-areas:"ent tel" "coul tel"}
+  .tel-ecran{height:calc(100vh - var(--haut) - 128px);min-height:540px}   /* le panneau du guide occupe le bas : le téléphone s'arrête au-dessus */
+  .guide{position:fixed;left:0;right:0;bottom:0;top:auto;margin:0 auto;max-width:820px;z-index:16;max-height:min(74vh,700px);border-radius:24px 24px 0 0;border-bottom:0;box-shadow:0 -14px 44px rgba(10,20,35,.24)}
+  .g-tete{display:flex;align-items:center;gap:12px;padding:12px max(18px,env(safe-area-inset-right,0px)) 12px max(18px,env(safe-area-inset-left,0px));cursor:pointer;border:0;background:var(--surf);width:100%;text-align:left;position:sticky;top:0;z-index:3;min-height:74px}
+  .g-tete .g-res{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .g-tete .g-res b{font-size:16.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .g-tete .g-plier{flex:none;font-weight:700;color:var(--accent);font-size:15.5px;padding:8px 12px;border-radius:999px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+  .g-tete.flash{animation:flash .7s ease-out}
+  @keyframes flash{0%{background:color-mix(in srgb,var(--accent) 22%,var(--surf))}100%{background:var(--surf)}}
+  .g-ongl{top:74px}
+  .guide:not(.ouvert){overflow:hidden}
+  .guide:not(.ouvert) .g-ongl,.guide:not(.ouvert) .g-corps{display:none}
+  .guide{padding-bottom:env(safe-area-inset-bottom,0px)}
+  body{padding-bottom:150px}
+  .toast{bottom:auto;top:calc(var(--haut) + 12px)}   /* le panneau du guide occupe le bas */
+}
+@media (max-width:980px){
+  .scene{grid-template-columns:minmax(0,1fr);grid-template-areas:"ent" "tel" "coul"}
+  .barre-haut .cote-sel{display:flex}
+  body[data-cote="ent"] .tel,body[data-cote="ent"] .coul{display:none}
+  body[data-cote="cli"] .ent,body[data-cote="cli"] .coul{display:none}
+  body[data-cote="coul"] .ent,body[data-cote="coul"] .tel{display:none}
+  .tel{position:static}.tel-ecran{height:auto;max-height:none;min-height:660px}
+  .l-l{display:none}.l-c{display:inline}
+  .b-tests{margin-left:0}
+}
+@media (max-width:600px){
+  body{font-size:16.5px}
+  h1{font-size:28px}
+  .lt-l{display:none}.lt-c{display:inline}
+  .b-date span.b-sur,#b-proche{display:none}
+  .b-date b{font-size:17px}
+  .b-temps .btn.petit{padding:0 12px}
+  .b-tests{display:none}
+  .barre-in{gap:8px 8px}
+  .tel-cadre{padding:9px;border-radius:42px}.tel-ecran{border-radius:34px}
+  .tel-corps{padding-inline:14px}
+  .fac{grid-template-columns:minmax(0,1fr)}
+  .g-titre{font-size:20px}
+}
+</style>
+
+<header class="barre-haut" id="barre">
+  <div class="barre-in">
+    <div class="b-date"><span class="b-sur">Nous sommes le</span><b id="b-jour"></b><span id="b-proche"></span></div>
+    <div class="b-temps" role="group" aria-label="Faire passer le temps">
+      <button type="button" class="btn petit" data-act="avancer|1"><span class="lt-l">+ 1 jour</span><span class="lt-c">+1 j</span></button>
+      <button type="button" class="btn petit" data-act="avancer|7"><span class="lt-l">+ 1 semaine</span><span class="lt-c">+7 j</span></button>
+      <button type="button" class="btn plein petit" data-act="prochain" id="b-prochain"><span class="lt-l">Jusqu’au prochain événement</span><span class="lt-c">Prochain ›</span></button>
+    </div>
+    <button type="button" class="btn petit b-tests" data-guide="tests" id="b-tests"></button>
+    <div class="onglets cote-sel" role="tablist" aria-label="Côté">
+      <button type="button" role="tab" data-cote="ent" aria-selected="true">L’entreprise</button>
+      <button type="button" role="tab" data-cote="cli" aria-selected="false">Son client</button>
+      <button type="button" role="tab" data-cote="coul" aria-selected="false">Coulisses</button>
+    </div>
+  </div>
+</header>
+<div class="page">
+  <header class="tete">
+    <div class="intro">
+      <span class="sur">Prototype · OP GESTION</span>
+      <h1>Paiement des factures</h1>
+      <p class="mute">Trois côtés d’un même paiement : l’entreprise dans OP GESTION, le téléphone de son client, et les coulisses (sa banque, son compte de paiement, la banque du client). Le guide explique chaque bouton que tu touches, et peut te mener pas à pas dans chacun des 25 tests. Tout est simulé : aucun argent ne bouge, aucune donnée n’est réelle.</p>
+    </div>
+    <button type="button" class="btn" id="reset">Recommencer</button>
+  </header>
+
+  <main class="scene">
+    <section class="ent" aria-label="L’entreprise dans OP GESTION">
+      <div class="appli-tete"><span class="logo">OP</span><div><b>OP GESTION</b><div class="petit mute" id="ent-date"></div></div></div>
+      <div class="onglets" role="tablist" aria-label="OP GESTION" id="ong"></div>
+      <div id="panneau"></div>
+    </section>
+    <section class="tel" aria-label="Le téléphone du client">
+      <div class="tel-cadre"><div class="tel-ecran" id="ecran"></div></div>
+      <p class="tel-leg" id="tel-leg">Le téléphone du client</p>
+    </section>
+    <aside class="coul" id="coul" aria-label="Coulisses de la simulation"></aside>
+    <aside class="guide" id="guide" aria-label="Le guide"></aside>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ════ DONNÉES FIXES ════ */
+const ENT = { nom:'Clim Services 17', mail:'contact@climservices17.fr', iban:'FR76 1234 5678 9012 3456 7890 123', bic:'EXEMPFRPP', adr:'12 rue des Artisans, 17000 La Rochelle' };
+const NOM_MODE = { carte:'carte bancaire', carte_hors:'carte bancaire (hors Europe)', wallet:'Apple Pay', gpay:'Google Pay', sepa:'prélèvement SEPA', x3:'paiement en 3 fois', virement:'virement', cheque:'chèque', especes:'espèces' };
+const PRESTA = ['carte', 'carte_hors', 'wallet', 'gpay', 'sepa', 'x3'];      // passent par le compte de paiement de l'entreprise
+const r2 = n => Math.round(n * 100) / 100;
+/* frais d'exemple : ceux du prestataire choisi s'appliquent */
+const FRAIS = { carte:m => r2(m * .015 + .25), carte_hors:m => r2(m * .0325 + .25), wallet:m => r2(m * .015 + .25), gpay:m => r2(m * .015 + .25), sepa:() => .35, x3:m => r2(m * .03), virement:() => 0, cheque:() => 0, especes:() => 0 };
+const FRAIS_REJET = 7.5, FRAIS_LITIGE = 15, PLAFOND_ESPECES = 1000;
+const COMPTES = { '411':'Clients', '467':'Compte de paiement (prestataire)', '512':'Banque', '5112':'Chèques à encaisser', '53':'Caisse', '627':'Frais de paiement', '706':'Prestations de services', '44574':'TVA en attente du paiement', '44571':'TVA due' };
+const MOYENS = [['virement', 'Virement', 'Instantané ou classique · gratuit', '🏦', false], ['carte', 'Carte bancaire', 'Avec Apple Pay et Google Pay', '💳', true], ['sepa', 'Prélèvement SEPA', 'Le client signe un mandat, prélevé en quelques jours', '🔁', true], ['x3', 'En 3 fois', 'Tu es payé en une fois par le partenaire', '📆', true], ['cheque', 'Chèque', 'Tu notes sa réception, puis tu le remets en banque', '✍️', false], ['especes', 'Espèces', `Jusqu’à ${PLAFOND_ESPECES} € : au-delà, la loi l’interdit`, '💶', false]];
+const TESTS = [
+  ['carte_ok', 'Carte acceptée', 'Payer par carte avec la carte qui passe'],
+  ['carte_3ds', 'Validation par la banque', 'Carte « avec validation » : confirmer dans l’appli de la banque'],
+  ['carte_3ds_refus', 'Validation refusée', 'Même carte, mais refuser dans l’appli de la banque'],
+  ['carte_refus', 'Carte refusée', 'Choisir « fonds insuffisants » ou « carte expirée »'],
+  ['carte_hors', 'Carte hors Europe', 'Frais plus élevés, visibles côté entreprise'],
+  ['wallet', 'Apple Pay ou Google Pay', 'Les boutons en haut de l’écran carte'],
+  ['carte_saisie', 'Erreur de saisie de carte', 'Taper un mauvais numéro ou une date passée : l’erreur s’affiche, rien ne part'],
+  ['sepa_ok', 'Prélèvement réglé', 'Signer le mandat, puis avancer de 3 jours ouvrés'],
+  ['sepa_rejet', 'Prélèvement rejeté', 'Compte de test « non approvisionné », puis avancer'],
+  ['vir_inst', 'Virement instantané', 'Il arrive tout de suite sur le compte de l’entreprise'],
+  ['vir_auto', 'Virement reconnu tout seul', 'Relier la banque (Réglages), puis payer par virement'],
+  ['vir_manuel', 'Virement noté à la main', 'Banque non reliée : l’entreprise touche « Reçu »'],
+  ['partiel', 'Paiement partiel', 'Virer moins que le total : la facture garde son reste dû'],
+  ['x3_ok', 'En 3 fois accepté', 'Le partenaire accepte : l’entreprise est payée en une fois'],
+  ['x3_refus', 'En 3 fois refusé', 'Le partenaire refuse : le client paie autrement'],
+  ['cheque', 'Chèque remis en banque', 'Chèque reçu, remis en banque, crédité le lendemain'],
+  ['especes', 'Espèces', 'Sur une facture de 1 000 € ou moins'],
+  ['remboursement', 'Remboursement avec avoir', 'Paiements reçus → Rembourser'],
+  ['sepa_8sem', 'Prélèvement remboursé au client', 'Appli « Ma banque » du client : demander le remboursement d’un prélèvement'],
+  ['litige_gagne', 'Contestation gagnée', 'Appli « Ma banque » du client (ou coulisses) : contester ; preuves ; décision'],
+  ['litige_perdu', 'Contestation perdue', 'Même chose, mais la banque donne raison au client'],
+  ['sms', 'Facture reçue par SMS', 'Ouvrir la facture depuis l’appli Messages du téléphone'],
+  ['pdf', 'Facture en PDF', 'Sur la facture du client : « Voir le PDF »'],
+  ['relance', 'Relance automatique', 'Avancer jusqu’à la relance d’une facture impayée'],
+  ['versement', 'Versement sur le compte', 'Avancer : le prestataire verse, la banque le montre']
+];
+const MODELES = [['Boulangerie Lemoine', 'M. Lemoine', 'Entretien de la chambre froide', 200, 20], ['Mme Roux', 'Mme Roux', 'Dépannage de la chaudière', 150, 10], ['Copropriété Les Mimosas', 'Le syndic', 'Remplacement du circulateur', 820, 10], ['Garage Rochefort Auto', 'M. Petit', 'Entretien des deux climatiseurs', 310, 20], ['Cabinet dentaire Martin', 'Dr Martin', 'Mise en service d’une pompe à chaleur', 2100, 20]];
+
+/* ════ OUTILS ════ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
+const eur = n => n.toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
+const dObj = d => new Date(d + 'T12:00:00');
+const iso = x => x.toISOString().slice(0, 10);
+const jour = (d, l) => dObj(d).toLocaleDateString('fr-FR', l ? { weekday:'long', day:'numeric', month:'long' } : { day:'numeric', month:'short' });
+const plusJours = (d, n) => { const x = dObj(d); x.setDate(x.getDate() + n); return iso(x); };
+const ouvre = d => dObj(d).getDay() % 6 !== 0;
+const plusOuvres = (d, n) => { let x = d; while (n > 0){ x = plusJours(x, 1); if (ouvre(x)) n--; } return x; };
+let S, idn = 0;
+const nid = p => p + (++idn);
+const facDe = id => S.factures.find(f => f.id === id);
+const payDe = id => S.paiements.find(p => p.id === id);
+const ttc = f => r2(f.ht * (1 + f.tva / 100));
+const tvaDe = f => r2(ttc(f) - f.ht);
+const tvaPart = (f, m) => r2(m * f.tva / (100 + f.tva));
+const avoirs = f => r2(S.avoirs.filter(a => a.fid === f.id).reduce((s, a) => s + a.m, 0));
+const du = f => r2(ttc(f) - avoirs(f));
+/* ce qui a été réellement reçu et gardé : paiements réussis, moins ce qui a été remboursé */
+const regle = f => r2(S.paiements.filter(p => p.fid === f.id && p.etat === 'reussi').reduce((s, p) => s + p.m - (p.rembourse || 0), 0));
+const reste = f => Math.max(0, r2(du(f) - regle(f)));
+function etatFac(f){
+  if (!f.emise) return 'brouillon';
+  if (avoirs(f) >= ttc(f) - .005 && regle(f) <= .005) return 'annulee';
+  if (du(f) > 0 && reste(f) <= .005) return 'payee';
+  if (S.paiements.some(p => p.fid === f.id && p.etat === 'litige')) return 'litige';
+  if (S.paiements.some(p => p.fid === f.id && p.etat === 'en_cours')) return 'sepa';
+  if (f.annonce) return 'annonce';
+  if (regle(f) > .005) return 'partielle';
+  return 'envoyee';
+}
+const ETATS = { brouillon:['Brouillon', ''], envoyee:['Envoyée', 'bleu'], annonce:['Paiement annoncé', 'att'], sepa:['Prélèvement en cours', 'att'], partielle:['Payée en partie', 'att'], litige:['Contestée', 'mal'], payee:['Payée', 'ok'], annulee:['Annulée par avoir', ''] };
+const impayee = f => f.emise && ['envoyee', 'partielle'].includes(etatFac(f));   // un paiement annoncé ne se relance pas
+
+/* ════ LA COMPTABILITÉ : chaque geste écrit ses lignes, débit = crédit ════ */
+function ecrire(lib, lignes){ S.journal.push({ d:S.jour, lib, lignes:lignes.filter(l => l[1] || l[2]) }); }
+function soldes(){ const R = {}; S.journal.forEach(e => e.lignes.forEach(([c, d, k]) => { R[c] = r2((R[c] || 0) + d - k); })); return R; }
+function banque(lib, m, rap){ S.banque.push({ id:nid('b'), d:S.jour, lib, m:r2(m), rap:rap || null }); }
+const SOLDE_DEPART = 8420.15;   // solde d'exemple du compte bancaire avant la démonstration
+const soldeBanque = () => r2(S.banque.reduce((s, l) => s + l.m, 0) + SOLDE_DEPART);
+function evt(txt, ic){ S.evts.push({ d:S.jour, txt, ic:ic || '•' }); }
+function courriel(type, fid, x){ const f = facDe(fid); S.boite.push({ id:nid('m'), d:S.jour, type, fid, lu:false, canal:['facture', 'relance'].includes(type) && f.canal === 'sms' ? 'sms' : 'mail', ...(x || {}) }); }
+/* l'appli bancaire du client : ce qui sort de son compte et ce qui y revient */
+function opCli(lib, m, x){ S.cliOps.push({ id:nid('o'), d:S.jour, lib, m:r2(m), ...(x || {}) }); }
+const CLI_DEPART = 9800;
+function cocher(k){ if (!S.tests[k]){ S.tests[k] = true; if (!S.init) S.nouveauxTests.push(k); } }
+
+/* ════ LES GESTES ════ */
+function emettre(f, canal){
+  f.emise = S.jour; f.ech = f.ech || plusJours(S.jour, 30); f.canal = canal || 'mail';
+  ecrire(`Facture ${f.num} · ${f.cli}`, [['411', ttc(f), 0], ['706', 0, f.ht], ['44574', 0, tvaDe(f)]]);
+  courriel('facture', f.id); evt(`Facture ${f.num} envoyée à ${f.cli} (${canal === 'sms' ? 'SMS' : 'e-mail'})`, '📤');
+}
+function nouveauPaiement(f, mode, m, x){ const p = { id:nid('p'), fid:f.id, mode, m:r2(m), frais:FRAIS[mode](m), etat:'cree', d:S.jour, ...(x || {}) }; S.paiements.push(p); return p; }
+/* un paiement qui réussit : l'argent est reçu (en banque, en caisse, ou sur le compte de paiement) */
+function reussir(p){
+  const f = facDe(p.fid), avant = reste(f); p.etat = 'reussi'; p.d = S.jour;
+  const via = PRESTA.includes(p.mode) ? '467' : p.mode === 'cheque' ? '5112' : p.mode === 'especes' ? '53' : '512';
+  ecrire(`Paiement ${f.num} par ${NOM_MODE[p.mode]}`, [[via, p.m, 0], ['411', 0, p.m], ['627', p.frais, 0], ['467', 0, p.frais], ['44574', tvaPart(f, p.m), 0], ['44571', 0, tvaPart(f, p.m)]]);
+  if (PRESTA.includes(p.mode)) p.dispo = plusOuvres(S.jour, 2);
+  if (!S.init && PRESTA.includes(p.mode)) opCli(p.mode === 'sepa' ? `PRLV SEPA ${ENT.nom.toUpperCase()} ${f.num}` : p.mode === 'x3' ? `PARTENAIRE 3X · ÉCHÉANCE 1/3 · ${ENT.nom}` : `CB ${ENT.nom.toUpperCase()}${p.mode === 'wallet' ? ' (Apple Pay)' : p.mode === 'gpay' ? ' (Google Pay)' : ''}`, -(p.mode === 'x3' ? r2(p.m / 3) : p.m), { pid:p.id, sorte:p.mode === 'sepa' ? 'sepa' : p.mode === 'x3' ? 'x3' : 'carte' });
+  f.annonce = null;
+  courriel('recu', f.id, { pid:p.id }); evt(`${eur(p.m)} reçus pour ${f.num} par ${NOM_MODE[p.mode]}${p.frais ? ` (frais ${eur(p.frais)})` : ''}`, '✅');
+  if (p.m < avant - .005) cocher('partiel');
+}
+/* un virement arrive sur le compte bancaire : reconnu tout seul si la banque est reliée */
+function virementArrive(fid, m, inst){
+  const f = facDe(fid), l = { id:nid('b'), d:S.jour, lib:`VIR ${inst ? 'INST ' : ''}${f.cli.toUpperCase()} ${f.num}`, m:r2(m), rap:null, ref:f.num, inst };
+  S.banque.push(l); evt(`Virement ${inst ? 'instantané ' : ''}de ${eur(m)} arrivé sur le compte bancaire (réf. ${f.num})`, '🏦');
+  if (inst) cocher('vir_inst');
+  if (S.banqueReliee && reste(f) > .005) { rapprocher(l, f, true); cocher('vir_auto'); }
+}
+function rapprocher(l, f, auto){
+  const p = nouveauPaiement(f, 'virement', l.m, { banque:l.id }); l.rap = { t:'paiement', id:p.id };
+  reussir(p); if (!auto) cocher('vir_manuel');
+}
+/* les versements du prestataire : chaque jour ouvré, ce qui est disponible part sur le compte bancaire */
+function dispoAuj(){   // ce qui peut partir aujourd'hui : le solde du compte de paiement, moins les paiements pas encore disponibles
+  const pas = S.paiements.filter(p => PRESTA.includes(p.mode) && p.etat === 'reussi' && !p.verse && p.dispo > S.jour).reduce((s, p) => s + p.m - p.frais - (p.rembourse || 0), 0);
+  return r2((soldes()['467'] || 0) - pas);
+}
+function verser(){
+  if (!ouvre(S.jour)) return;
+  const prets = S.paiements.filter(p => PRESTA.includes(p.mode) && p.dispo && !p.verse && p.dispo <= S.jour), net = dispoAuj();
+  prets.forEach(p => { p.verse = S.jour; });
+  const solde = soldes()['467'] || 0;
+  if (solde < -.005) {   // remboursements et contestations ont vidé le compte : le prestataire reprend la différence sur la banque
+    ecrire('Le prestataire reprend le solde négatif sur le compte bancaire', [['467', r2(-solde), 0], ['512', 0, r2(-solde)]]);
+    banque(`PRLV ${S.prest.toUpperCase()} SOLDE NEGATIF`, solde, { t:'versement', id:'reprise' });
+    return evt(`Le compte de paiement était à ${eur(solde)} : ${S.prest} reprend ${eur(-solde)} sur le compte bancaire`, '🏦');
+  }
+  if (net <= .005) { if (prets.length) evt('Rien à verser aujourd’hui : le compte de paiement est vide après les remboursements et contestations', 'ℹ️'); return; }
+  const v = { id:nid('v'), d:S.jour, m:net, pids:prets.filter(p => p.etat === 'reussi').map(p => p.id) }; S.versements.push(v);
+  ecrire(`Versement du prestataire sur le compte bancaire`, [['512', net, 0], ['467', 0, net]]);
+  banque(`VERSEMENT ${S.prest.toUpperCase()} ${ENT.nom.toUpperCase()}`, net, { t:'versement', id:v.id });
+  evt(`Versement de ${eur(net)} sur le compte bancaire`, '🏦'); cocher('versement');
+}
+/* les relances : 7 et 15 jours après l'échéance, tant que la facture n'est pas réglée */
+function relancer(){
+  if (!S.relances) return;
+  S.factures.filter(impayee).forEach(f => {
+    f.relancesFaites = f.relancesFaites || [];
+    [7, 15].forEach(n => { if (S.jour >= plusJours(f.ech, n) && !f.relancesFaites.includes(n)) { f.relancesFaites.push(n); courriel('relance', f.id, { n }); evt(`Relance automatique de ${f.num} (${n} jours après l’échéance), avec le lien de paiement`, '🔔'); cocher('relance'); } });
+  });
+}
+function traiterJour(){
+  S.planifie.filter(e => e.d <= S.jour && !e.fait).forEach(e => { e.fait = true;
+    if (e.t === 'sepa') { const p = payDe(e.pid), f = facDe(p.fid);
+      if (e.ok) { reussir(p); evt(`Prélèvement réglé pour ${f.num}`, '🔁'); cocher('sepa_ok'); }
+      else { p.etat = 'rejete'; p.frais = FRAIS_REJET; ecrire(`Frais de rejet du prélèvement ${f.num}`, [['627', FRAIS_REJET, 0], ['467', 0, FRAIS_REJET]]); courriel('rejet', f.id, { pid:p.id }); evt(`Prélèvement rejeté pour ${f.num} : compte du client non approvisionné (frais ${eur(FRAIS_REJET)})`, '⛔'); cocher('sepa_rejet'); } }
+    if (e.t === 'vir') virementArrive(e.fid, e.m, false);
+    if (e.t === 'cheque') { const p = payDe(e.pid), f = facDe(p.fid); p.encaisse = S.jour; ecrire(`Remise du chèque ${f.num} en banque`, [['512', p.m, 0], ['5112', 0, p.m]]); banque(`REMISE CHEQUE ${f.cli.toUpperCase()}`, p.m, { t:'paiement', id:p.id }); opCli(`CHÈQUE ENCAISSÉ · ${ENT.nom}`, -p.m, { pid:p.id, sorte:'cheque' }); evt(`Chèque de ${eur(p.m)} crédité sur le compte bancaire`, '🏦'); cocher('cheque'); }
+  });
+  verser(); relancer();
+}
+function avancer(n){ for (let i = 0; i < n; i++) { S.jour = plusJours(S.jour, 1); traiterJour(); } }
+function prochainEvenement(){
+  const c = [...S.planifie.filter(e => !e.fait).map(e => e.d), ...S.paiements.filter(p => PRESTA.includes(p.mode) && p.etat === 'reussi' && !p.verse).map(p => { let d = p.dispo; while (!ouvre(d)) d = plusJours(d, 1); return d; })];
+  if (dispoAuj() > .005 || (soldes()['467'] || 0) < -.005) c.push(plusOuvres(S.jour, 1));   // un solde disponible (contestation gagnée, par exemple) part au prochain jour ouvré
+  if (S.relances) S.factures.filter(impayee).forEach(f => [7, 15].forEach(n => { if (!(f.relancesFaites || []).includes(n)) c.push(plusJours(f.ech, n)); }));
+  return c.filter(d => d > S.jour).sort()[0] || null;
+}
+function rembourser(p, m, motif){
+  const f = facDe(p.fid), num = 'AV-2026-' + String(S.avoirs.length + 1).padStart(3, '0'), ht = r2(m / (1 + f.tva / 100));
+  S.avoirs.push({ num, fid:f.id, m:r2(m), d:S.jour, motif });
+  ecrire(`Avoir ${num} sur ${f.num} · ${motif || 'remboursement'}`, [['706', ht, 0], ['44571', r2(m - ht), 0], ['411', 0, r2(m)]]);
+  p.rembourse = r2((p.rembourse || 0) + m);
+  if (PRESTA.includes(p.mode)) ecrire(`Remboursement de ${f.cli} par ${NOM_MODE[p.mode]}`, [['411', r2(m), 0], ['467', 0, r2(m)]]);
+  else { ecrire(`Remboursement de ${f.cli} par virement`, [['411', r2(m), 0], ['512', 0, r2(m)]]); banque(`VIR EMIS REMBOURSEMENT ${f.cli.toUpperCase()}`, -m, { t:'avoir', id:num }); }
+  opCli(`REMBOURSEMENT ${ENT.nom.toUpperCase()} · avoir ${num}`, m, { pid:p.id, sorte:'remb' });
+  courriel('remboursement', f.id, { m, num, mode:p.mode }); evt(`Remboursement de ${eur(m)} à ${f.cli}, avoir ${num}`, '↩️'); cocher('remboursement');
+}
+function contester(p){
+  const f = facDe(p.fid); p.etat = 'litige'; p.litige = { d:S.jour, limite:plusJours(S.jour, 7), preuves:false };
+  ecrire(`Contestation du paiement ${f.num} par la banque du client`, [['411', p.m, 0], ['467', 0, p.m], ['627', FRAIS_LITIGE, 0], ['467', 0, FRAIS_LITIGE], ['44571', tvaPart(f, p.m), 0], ['44574', 0, tvaPart(f, p.m)]]);
+  opCli(`CONTESTATION EN COURS · ${ENT.nom} · somme recréditée`, p.m, { pid:p.id, sorte:'litige' });
+  evt(`${f.cli} conteste le paiement de ${eur(p.m)} auprès de sa banque : la somme est retenue, frais ${eur(FRAIS_LITIGE)}`, '⚠️');
+}
+function decider(p, gagne){
+  const f = facDe(p.fid);
+  if (gagne) { p.etat = 'reussi'; p.litige.issue = 'gagnée'; ecrire(`Contestation ${f.num} gagnée : la somme revient`, [['467', p.m, 0], ['411', 0, p.m], ['44574', tvaPart(f, p.m), 0], ['44571', 0, tvaPart(f, p.m)]]); opCli(`CONTESTATION REJETÉE · ${ENT.nom} · somme redébitée`, -p.m, { pid:p.id, sorte:'litige' }); evt(`Contestation gagnée pour ${f.num} : ${eur(p.m)} reviennent sur le compte de paiement`, '✅'); cocher('litige_gagne'); }
+  else { p.etat = 'perdu'; p.litige.issue = 'perdue'; evt(`Contestation perdue pour ${f.num} : la banque donne raison au client, ${eur(p.m)} restent dus`, '⛔'); cocher('litige_perdu'); }
+}
+
+function sepaRembourse(p){
+  const f = facDe(p.fid); p.etat = 'perdu'; p.raison = 'remboursé au client par sa banque (prélèvement contesté)';
+  ecrire(`Prélèvement ${f.num} remboursé au client par sa banque`, [['411', p.m, 0], ['467', 0, p.m], ['627', FRAIS_REJET, 0], ['467', 0, FRAIS_REJET], ['44571', tvaPart(f, p.m), 0], ['44574', 0, tvaPart(f, p.m)]]);
+  opCli(`REMBOURSEMENT PRLV SEPA ${ENT.nom.toUpperCase()}`, p.m, { pid:p.id, sorte:'remb' });
+  evt(`${f.cli} se fait rembourser le prélèvement de ${eur(p.m)} par sa banque : la facture redevient due (frais ${eur(FRAIS_REJET)})`, '⚠️'); cocher('sepa_8sem');
+}
+/* ════ L'ÉTAT DE DÉPART : un petit historique rejoué par les mêmes gestes ════ */
+function etatInitial(){
+  idn = 0; const gen = S ? (S.gen || 0) + 1 : 1;
+  S = { gen, sel:{}, init:true, jour:'2026-10-20', vue:'ent', ong:'factures', ecran:'accueil', fid:null, msg:null, relie:true, cliOps:[], cerr:null, assist:0, prest:'Stripe', banqueReliee:false, remb:null,
+    moyens:{ virement:true, carte:true, sepa:true, x3:true, cheque:true, especes:true }, relances:true, numFac:146, nouveauxTests:[],
+    factures:[
+      { id:'f146', num:'FAC-2026-0146', cli:'Restaurant Le Vieux Port', contact:'Marc Durand', objet:'Remplacement du ventilateur extérieur', ht:1070, tva:20 },
+      { id:'f144', num:'FAC-2026-0144', cli:'M. et Mme Durand', contact:'M. Durand', objet:'Réglage de la pompe à chaleur', ht:110, tva:10 },
+      { id:'f145', num:'FAC-2026-0145', cli:'Hôtel de la Plage', contact:'Mme Bernard', objet:'Entretien climatisation, 6 cassettes', ht:155, tva:20 },
+      { id:'f143', num:'FAC-2026-0143', cli:'Camping Les Pins', contact:'M. Garcia', objet:'Dépannage, fuite d’eau', ht:400, tva:20 }
+    ], paiements:[], avoirs:[], versements:[], banque:[], journal:[], evts:[], boite:[], planifie:[], tests:{} };
+  const f = facDe;
+  emettre(f('f143'));
+  S.jour = '2026-10-29'; emettre(f('f144'));
+  S.jour = '2026-10-30'; emettre(f('f145'));
+  S.jour = '2026-11-03'; virementArrive('f143', 480, false); rapprocher(S.banque.at(-1), f('f143'), true);
+  S.jour = '2026-11-04'; reussir(nouveauPaiement(f('f145'), 'carte', 186));
+  S.jour = '2026-11-05'; traiterJour(); S.jour = '2026-11-06'; traiterJour(); S.jour = '2026-11-07';
+  f('f144').vue = '2026-10-30';
+  S.boite.forEach(m => { m.lu = true; }); S.tests = {}; S.init = false; S.nouveauxTests = [];
+}
+etatInitial();
+
+/* ════ CÔTÉ ENTREPRISE ════ */
+const ONGLETS = [['reglages', 'Réglages', 'Réglages'], ['factures', 'Factures', 'Factures'], ['paiements', 'Paiements reçus', 'Paiements'], ['banque', 'Banque', 'Banque'], ['compta', 'Comptabilité', 'Compta']];
+const moyenOuvert = k => S.moyens[k] && (!MOYENS.find(m => m[0] === k)[4] || S.relie);
+function rendreEnt(){
+  $('ent-date').textContent = `${ENT.nom} · ${jour(S.jour, true)}`;
+  $('ong').innerHTML = ONGLETS.map(([k, l, c]) => `<button type="button" role="tab" data-ong="${k}" aria-selected="${S.ong === k}"><span class="l-l">${l}</span><span class="l-c">${c}</span></button>`).join('');
+  $('panneau').innerHTML = { reglages:vReglages, factures:vFactures, paiements:vPaiements, banque:vBanque, compta:vCompta }[S.ong]();
+}
+function vReglages(){
+  const as = S.assist;
+  return `<div class="carte"><h2>Compte de paiement en ligne</h2>
+      <p class="petit mute">Pour la carte, le prélèvement et le paiement en plusieurs fois. Ouvert chez un prestataire de paiement, au nom de l’entreprise : l’argent est à elle, TeamOP n’y a pas accès.</p>
+      ${S.relie ? `<div class="ligne"><div class="g"><b>Relié · ${esc(S.prest)}</b><span class="petit mute">Au nom de ${ENT.nom} · versements sur …${ENT.iban.slice(-7)}</span></div><span class="etat ok">Actif</span></div><div class="rangee"><button type="button" class="btn petit" data-act="delier">Délier, pour rejouer la mise en route</button></div>`
+      : as ? `<div class="dlg"><div class="etapes">${[1, 2, 3].map(n => `<i class="${n <= as ? 'on' : ''}"></i>`).join('')}</div>
+          ${as === 1 ? `<h3>1. L’entreprise</h3><label class="ch">SIREN<input id="a-siren" value="912 345 678" inputmode="numeric"></label><p class="petit mute">Le prestataire vérifie l’entreprise : c’est obligatoire pour recevoir des paiements.</p>`
+          : as === 2 ? `<h3>2. Le dirigeant</h3><label class="ch">Nom<input id="a-nom" value="Marc Leblanc"></label><p class="petit mute">Une pièce d’identité est demandée par le prestataire, une seule fois. TeamOP ne la voit pas.</p>`
+          : `<h3>3. Où verser l’argent</h3><label class="ch">IBAN de l’entreprise<input id="a-iban" value="${ENT.iban}"></label><p class="petit mute">Les paiements par carte et prélèvement seront versés ici.</p>`}
+          <div class="rangee"><button type="button" class="btn plein" data-act="assist-suite">${as < 3 ? 'Continuer' : 'Relier mon compte'}</button><button type="button" class="btn" data-act="assist-stop">Annuler</button></div></div>`
+      : `<label class="ch">Prestataire<select id="prest">${['Stripe', 'Le module de ta banque', 'SumUp'].map(n => `<option ${S.prest === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label><button type="button" class="btn plein" data-act="assist">Relier mon compte (environ 10 minutes)</button>`}</div>
+    <div class="carte"><h2>Ta banque</h2>
+      <div class="ligne"><div class="g"><span class="petit mute">Les virements arrivent ici, directement</span><span class="iban">${ENT.iban}</span><span class="petit mute">IBAN d’exemple · BIC ${ENT.bic}</span></div></div>
+      <div class="bascule"><div class="g"><b>Lire mes opérations bancaires</b><span class="petit mute">${S.banqueReliee ? 'Relié : les virements reçus sont reconnus par leur référence, la facture passe payée toute seule' : 'Sans ça, OP GESTION ne voit pas ton compte : tu touches « Reçu » sur la facture quand le virement est arrivé'}</span></div><button type="button" class="inter" role="switch" aria-checked="${S.banqueReliee}" aria-label="Lire mes opérations bancaires" data-act="banque-relier"></button></div>
+      <p class="petit mute">Dans la vraie version, ce lien passe par un prestataire agréé pour lire les comptes, avec l’accord de l’entreprise.</p></div>
+    <div class="carte"><h2>Ce que tes clients peuvent utiliser</h2>
+      ${MOYENS.map(([k, l, s, ic, besoin]) => { const off = besoin && !S.relie; return `<div class="bascule"><span class="ic" aria-hidden="true">${ic}</span><div class="g"><b>${l}</b><span class="petit mute">${off ? 'Relie d’abord ton compte de paiement' : s}</span></div><button type="button" class="inter" role="switch" aria-checked="${moyenOuvert(k)}" aria-label="${l}" data-moyen="${k}" ${off ? 'disabled' : ''}></button></div>`; }).join('')}</div>
+    <div class="carte"><h2>Frais et relances</h2>
+      <div class="defil"><table class="tab"><thead><tr><th>Moyen</th><th class="m">Sur 1 000 €</th><th>Qui paie</th></tr></thead><tbody>
+        ${[['virement', 'Virement'], ['carte', 'Carte (Europe), Apple Pay'], ['carte_hors', 'Carte hors Europe'], ['sepa', 'Prélèvement'], ['x3', 'En 3 fois'], ['cheque', 'Chèque, espèces']].map(([k, l]) => `<tr><td>${l}</td><td class="m">${eur(FRAIS[k](1000))}</td><td>${FRAIS[k](1000) ? 'L’entreprise' : '—'}</td></tr>`).join('')}
+        <tr><td>Prélèvement rejeté</td><td class="m">${eur(FRAIS_REJET)}</td><td>L’entreprise</td></tr><tr><td>Contestation</td><td class="m">${eur(FRAIS_LITIGE)}</td><td>L’entreprise</td></tr></tbody></table></div>
+      <p class="petit mute">Tarifs d’exemple : ceux du prestataire choisi s’appliquent. En France, l’entreprise ne peut pas ajouter ces frais au prix d’un paiement par carte.</p>
+      <div class="bascule"><div class="g"><b>Relancer avec le lien de paiement</b><span class="petit mute">7 et 15 jours après l’échéance ; ça s’arrête dès que la facture est réglée</span></div><button type="button" class="inter" role="switch" aria-checked="${S.relances}" aria-label="Relances" data-act="relances"></button></div></div>`;
+}
+function suiviFac(f){
+  const e = etatFac(f), P = S.paiements.filter(p => p.fid === f.id), refus = P.filter(p => p.etat === 'refuse').length, B = [];
+  if (e === 'brouillon') return 'Prête à partir : le client recevra la facture et un bouton « Payer ».';
+  B.push(`Envoyée le ${jour(f.emise)}`, f.vue ? `vue le ${jour(f.vue)}` : 'pas encore ouverte', `échéance le ${jour(f.ech)}`);
+  if (refus) B.push(`${refus} paiement${refus > 1 ? 's' : ''} refusé${refus > 1 ? 's' : ''} par la banque du client`);
+  if (f.annonce) B.push(f.annonce.mode === 'virement' ? `le client dit avoir fait un virement${f.annonce.inst ? ' instantané' : ''}${S.banqueReliee ? ' : il sera reconnu à son arrivée' : ' : vérifie ta banque, puis touche « Reçu »'}` : f.annonce.mode === 'cheque' ? 'le client paie par chèque' : 'le client paiera en espèces au technicien');
+  if (e === 'sepa') B.push('mandat signé : prélèvement dans 3 jours ouvrés');
+  if (regle(f) > .005 && e !== 'payee') B.push(`payé ${eur(regle(f))}, reste ${eur(reste(f))}`);
+  if (e === 'litige') B.push('le client conteste un paiement : envoie tes preuves (Paiements reçus)');
+  if (P.some(p => p.etat === 'perdu')) B.push('contestation perdue : la somme reste due');
+  if (e === 'payee') B.push(`payée par ${[...new Set(P.filter(p => p.etat === 'reussi').map(p => NOM_MODE[p.mode]))].join(' et ')}, reçu envoyé`);
+  if (avoirs(f)) B.push(`avoir de ${eur(avoirs(f))}`);
+  if ((f.relancesFaites || []).length) B.push(`${f.relancesFaites.length} relance${f.relancesFaites.length > 1 ? 's' : ''} envoyée${f.relancesFaites.length > 1 ? 's' : ''}`);
+  else if (S.relances && impayee(f)) B.push(`relance prévue le ${jour(plusJours(f.ech, 7))}`);
+  return B.join(' · ');
+}
+function vFactures(){
+  return `<div class="rangee"><button type="button" class="btn" data-act="nouvelle">＋ Nouvelle facture de test</button><span class="petit mute">Une facture neuve pour chaque essai.</span></div>
+    <div class="carte">${S.factures.slice().sort((a, b) => b.num.localeCompare(a.num)).map(f => { const e = etatFac(f);
+      return `<div class="fac"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><b>${f.num} · ${esc(f.cli)}</b><span class="petit mute">${esc(f.objet)}</span></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><b class="num">${eur(ttc(f))}</b><span class="etat ${ETATS[e][1]}">${ETATS[e][0]}</span></div>
+      <p class="suivi">${suiviFac(f)}</p>
+      <div class="actions">${e === 'brouillon' ? `<button type="button" class="btn plein petit" data-act="envoyer|${f.id}|mail">Envoyer par e-mail</button><button type="button" class="btn petit" data-act="envoyer|${f.id}|sms">Envoyer par SMS</button>`
+        : `<button type="button" class="btn petit" data-act="voir|${f.id}">Voir chez le client</button>`}
+        ${f.annonce && f.annonce.mode === 'virement' ? `<button type="button" class="btn ok petit" data-act="recu|${f.id}">Reçu sur mon compte</button>` : ''}
+        ${f.annonce && f.annonce.mode === 'cheque' ? `<button type="button" class="btn ok petit" data-act="cheque-recu|${f.id}">Chèque reçu</button>` : ''}
+        ${f.annonce && f.annonce.mode === 'especes' ? `<button type="button" class="btn ok petit" data-act="especes-recu|${f.id}">Espèces reçues</button>` : ''}
+        ${S.paiements.filter(p => p.fid === f.id && p.mode === 'cheque' && p.etat === 'reussi' && !p.remis).map(p => `<button type="button" class="btn petit" data-act="remettre|${p.id}">Remettre le chèque en banque</button>`).join('')}</div></div>`; }).join('')}</div>`;
+}
+function vPaiements(){
+  const P = S.paiements.filter(p => p.etat !== 'cree').sort((a, b) => b.d.localeCompare(a.d) || +b.id.slice(1) - +a.id.slice(1));
+  const so = soldes(), enc = S.paiements.filter(p => p.etat === 'reussi').reduce((s, p) => s + p.m - (p.rembourse || 0), 0), fr = so['627'] || 0;
+  const restant = S.factures.filter(f => f.emise).reduce((s, f) => s + reste(f), 0);
+  const ETP = { reussi:['Reçu', 'ok'], litige:['Contesté', 'mal'], perdu:['Contestation perdue', 'mal'], rejete:['Rejeté', 'mal'], refuse:['Refusé', 'mal'], en_cours:['En cours', 'att'] };
+  const rb = S.remb && payDe(S.remb), lit = P.filter(p => p.etat === 'litige');
+  return `<div class="kpis"><div class="kpi"><b>${eur(r2(enc))}</b><span>encaissé (net des remboursements)</span></div><div class="kpi"><b>${eur(fr)}</b><span>frais de paiement</span></div><div class="kpi"><b>${eur(Math.max(0, so['467'] || 0))}</b><span>en route vers ta banque</span></div><div class="kpi"><b>${eur(r2(restant))}</b><span>reste à encaisser</span></div></div>
+    ${lit.map(p => { const f = facDe(p.fid); return `<div class="carte" style="border-color:var(--bad)"><h2>Contestation · ${f.num}</h2><p class="petit">${esc(f.cli)} conteste le paiement de ${eur(p.m)} auprès de sa banque. La somme est retenue en attendant la décision.</p>
+      ${p.litige.preuves ? `<p class="ctrl">Preuves envoyées le ${jour(p.litige.preuves)} : facture, rapport d’intervention signé par le client. La décision se prend dans les coulisses.</p>` : `<p class="petit mute">Réponds avant le ${jour(p.litige.limite)} avec la facture, le rapport d’intervention et la signature du client : OP GESTION les a déjà.</p><div class="rangee"><button type="button" class="btn plein" data-act="preuves|${p.id}">Envoyer les preuves</button></div>`}</div>`; }).join('')}
+    ${rb ? `<div class="dlg"><h3>Rembourser ${esc(facDe(rb.fid).cli)}</h3><p class="petit mute">Un remboursement passe par un avoir : la facture reste, l’avoir l’annule en tout ou en partie. ${PRESTA.includes(rb.mode) ? 'L’argent repart sur le moyen de paiement du client, depuis ton compte de paiement.' : 'Tu le rembourses par virement depuis ta banque.'}</p>
+      <label class="ch">Montant<input id="r-m" inputmode="decimal" value="${String(r2(rb.m - (rb.rembourse || 0))).replace('.', ',')}"></label><label class="ch">Motif<input id="r-motif" value="Geste commercial"></label>
+      <div class="rangee"><button type="button" class="btn plein" data-act="rembok|${rb.id}">Rembourser et faire l’avoir</button><button type="button" class="btn" data-act="rembstop">Annuler</button></div></div>` : ''}
+    <div class="carte"><h2>Tous les paiements et tentatives</h2><div class="defil"><table class="tab tab-pay"><thead><tr><th>Date</th><th>Facture</th><th>Moyen</th><th class="m">Montant</th><th class="m">Frais</th><th>État</th></tr></thead><tbody>
+      ${P.map(p => { const f = facDe(p.fid); return `<tr><td>${jour(p.d)}</td><td><span class="nw">${f.num}</span><br><span class="petit mute">${esc(f.cli)}</span></td><td>${NOM_MODE[p.mode]}${p.raison ? `<br><span class="petit mute">${esc(p.raison)}</span>` : ''}</td><td class="m">${eur(p.m)}${p.rembourse ? `<br><span class="petit mute">remboursé ${eur(p.rembourse)}</span>` : ''}</td><td class="m">${p.frais ? eur(p.frais) : '—'}</td>
+        <td><span class="etat ${ETP[p.etat][1]}">${p.etat === 'perdu' && p.mode === 'sepa' ? 'Remboursé au client' : ETP[p.etat][0]}</span>${p.etat === 'reussi' && PRESTA.includes(p.mode) ? `<br><span class="petit mute">${p.verse ? 'versé le ' + jour(p.verse) : 'versé à partir du ' + jour(p.dispo)}</span>` : ''}${p.mode === 'cheque' && p.etat === 'reussi' ? `<br><span class="petit mute">${p.encaisse ? 'crédité le ' + jour(p.encaisse) : p.remis ? 'remis en banque' : 'à remettre en banque'}</span>` : ''}${p.etat === 'reussi' && (p.rembourse || 0) < p.m - .005 ? `<div style="margin-top:8px"><button type="button" class="btn petit" data-act="remb|${p.id}">Rembourser</button></div>` : ''}</td></tr>`; }).join('')}</tbody></table></div></div>
+    ${S.versements.length ? `<div class="carte"><h2>Versements du prestataire</h2>${S.versements.slice().reverse().map(v => `<div class="ligne"><div class="g"><b>${jour(v.d, true)}</b><span class="petit mute">${v.pids.map(id => facDe(payDe(id).fid).num).join(', ')}</span></div><b class="num">${eur(v.m)}</b></div>`).join('')}</div>` : ''}`;
+}
+function vBanque(){
+  if (!S.banqueReliee) return `<div class="carte"><h2>Ta banque n’est pas reliée</h2><p class="mute">OP GESTION ne voit pas ton compte bancaire. Les virements reçus se notent à la main (« Reçu » sur la facture). Pour qu’ils soient reconnus tout seuls, relie ta banque dans les Réglages.</p><div class="rangee"><button type="button" class="btn plein" data-ong="reglages">Aller aux réglages</button></div><p class="petit mute">Ce que montre vraiment ta banque est dans les coulisses.</p></div>`;
+  const L = S.banque.slice().reverse(), libres = L.filter(l => !l.rap && l.m > 0), ouvertes = S.factures.filter(f => f.emise && reste(f) > .005);
+  return `<div class="kpis"><div class="kpi"><b>${eur(soldeBanque())}</b><span>solde du compte</span></div><div class="kpi"><b>${L.length - libres.length}</b><span>opérations rapprochées</span></div><div class="kpi"><b style="color:${libres.length ? 'var(--warn)' : 'inherit'}">${libres.length}</b><span>à rapprocher</span></div><div class="kpi"><b>${S.versements.length}</b><span>versements reçus</span></div></div>
+    <div class="carte"><h2>Opérations lues sur ton compte</h2><div class="defil"><table class="tab"><thead><tr><th>Date</th><th>Libellé de la banque</th><th class="m">Montant</th><th>Rapprochement</th></tr></thead><tbody>
+      ${L.map(l => `<tr><td>${jour(l.d)}</td><td>${esc(l.lib)}</td><td class="m" style="color:${l.m < 0 ? 'var(--bad)' : 'var(--ok)'}">${l.m > 0 ? '+' : ''}${eur(l.m)}</td><td>${l.rap ? `<span class="ctrl">✓ ${l.rap.t === 'versement' ? (l.m < 0 ? 'reprise du prestataire' : 'versement du prestataire') : l.rap.t === 'avoir' ? 'remboursement, avoir ' + l.rap.id : facDe(payDe(l.rap.id).fid).num}</span>`
+        : ouvertes.length ? `<div class="rangee"><select class="saisie" id="rap-${l.id}" aria-label="Facture à rapprocher">${ouvertes.map(f => `<option value="${f.id}" ${f.num === l.ref ? 'selected' : ''}>${f.num} · reste ${eur(reste(f))}</option>`).join('')}</select><button type="button" class="btn petit" data-act="rap|${l.id}">Rapprocher</button></div>` : '<span class="petit mute">aucune facture ouverte</span>'}</td></tr>`).join('')}</tbody></table></div></div>`;
+}
+function controle(){
+  const so = soldes(), cl = r2(S.factures.filter(f => f.emise).reduce((s, f) => s + du(f) - regle(f), 0));
+  const bq = r2(S.banque.filter(l => l.rap).reduce((s, l) => s + l.m, 0)), libres = S.banque.filter(l => !l.rap);
+  return { equilibre:S.journal.every(e => Math.abs(e.lignes.reduce((s, l) => s + l[1] - l[2], 0)) < .005), clients:Math.abs((so['411'] || 0) - cl) < .01, banque:Math.abs((so['512'] || 0) - bq) < .01, s411:so['411'] || 0, cl, s467:so['467'] || 0, s512:so['512'] || 0, bq, libres:libres.length, enAttente:r2(libres.reduce((s, l) => s + l.m, 0)) };
+}
+function vCompta(){
+  const so = soldes(), J = S.journal.slice().reverse(), c = controle();
+  return `<div class="carte"><h2>Où en sont les comptes</h2><div class="soldes">
+      ${[['411', 'dû par les clients'], ['467', 'chez le prestataire, pas encore versé'], ['512', 'mouvements de la banque'], ['5112', 'chèques pas encore crédités'], ['53', 'espèces en caisse'], ['627', 'frais de paiement'], ['706', 'chiffre d’affaires (net des avoirs)'], ['44574', 'TVA en attente du paiement'], ['44571', 'TVA due']].map(([k, l]) => `<div class="solde"><span>${k} · ${COMPTES[k]}</span><b>${eur(Math.abs(so[k] || 0))}</b><span>${l}</span></div>`).join('')}</div>
+      <p class="ctrl ${c.equilibre ? '' : 'mal'}">${c.equilibre ? '✓' : '✗'} Chaque écriture est équilibrée (débits = crédits).</p>
+      <p class="ctrl ${c.clients ? '' : 'mal'}">${c.clients ? '✓' : '✗'} Le compte clients égale le total des restes dus (${eur(c.cl)}).</p>
+      <p class="ctrl ${c.banque ? '' : 'mal'}">${c.banque ? '✓' : '✗'} Le compte banque suit exactement le relevé de la banque${c.libres ? ` (hors ${c.libres} virement${c.libres > 1 ? 's' : ''} arrivé${c.libres > 1 ? 's' : ''} mais pas encore rapproché${c.libres > 1 ? 's' : ''} : ${eur(c.enAttente)}, à noter avec « Reçu » ou dans l’onglet Banque)` : ''}.</p>
+      <p class="note">Pour des prestations de services, la TVA est due quand le client paie (sauf option pour les débits) : elle attend en 44574 et passe en 44571 au paiement. Une contestation la remet en attente, un avoir la diminue.</p></div>
+    <div class="carte"><h2>Écritures, la plus récente en haut</h2>
+      ${J.map(e => `<div class="ecr"><div class="ecr-t"><b>${esc(e.lib)}</b><span class="mute num">${jour(e.d)}</span></div><table><tbody>${e.lignes.map(([k, d, cr]) => `<tr><td>${k} · ${COMPTES[k]}</td><td class="m">${d ? eur(d) : ''}</td><td class="m">${cr ? eur(cr) : ''}</td></tr>`).join('')}</tbody></table></div>`).join('')}</div>`;
+}
+
+/* ════ CÔTÉ CLIENT : SON TÉLÉPHONE ════ */
+const choisi = (id, v) => S.sel[id] === v ? 'selected' : '';
+const SUJET = { facture:f => `Facture ${f.num} · ${eur(ttc(f))}`, relance:f => `Rappel : facture ${f.num}`, recu:f => `Reçu de paiement · ${f.num}`, rejet:f => `Prélèvement rejeté · ${f.num}`, remboursement:(f, m) => `Remboursement de ${eur(m.m || 0)} · ${f.num}` };   // m.m n'existe que sur un remboursement
+function ecranTel(){
+  const f = S.fid && facDe(S.fid), du0 = f && reste(f), lu = S.boite.filter(m => !m.lu).length;
+  const retour = `<button type="button" class="retour" data-cli="facture">‹ Retour</button>`;
+  switch (S.ecran){
+    case 'accueil': { const nm = S.boite.filter(m => !m.lu && m.canal === 'mail').length, ns = S.boite.filter(m => !m.lu && m.canal === 'sms').length;
+      return `<div class="tel-corps"><p class="petit mute" style="text-align:center">${jour(S.jour, true)}</p>
+        <div class="apps"><button type="button" class="app" data-cli="app|boite"><span class="app-ic" style="background:#1e7cf2">✉️</span>Mail${nm ? `<i class="badge">${nm}</i>` : ''}</button>
+          <button type="button" class="app" data-cli="app|sms"><span class="app-ic" style="background:#2fb24c">💬</span>Messages${ns ? `<i class="badge">${ns}</i>` : ''}</button>
+          <button type="button" class="app" data-cli="app|banque"><span class="app-ic" style="background:#274c77">🏦</span>Ma banque</button></div>
+        <div class="demo" style="margin-top:auto"><b class="petit">Pour la démonstration</b><span class="petit">Faire arriver une facture de ${ENT.nom} sur ce téléphone :</span><div class="rangee"><button type="button" class="btn petit" data-cli="demo|mail">Par e-mail</button><button type="button" class="btn petit" data-cli="demo|sms">Par SMS</button></div></div></div>`; }
+    case 'boite': case 'sms': { const sms = S.ecran === 'sms', L = S.boite.filter(m => m.canal === (sms ? 'sms' : 'mail')), lu = L.filter(m => !m.lu).length;
+      return `<div class="tel-corps"><button type="button" class="retour" data-cli="accueil">‹ Accueil</button><h2>${sms ? 'Messages' : 'Boîte de réception'}${lu ? ` · ${lu} non lu${lu > 1 ? 's' : ''}` : ''}</h2>
+      ${L.length ? L.slice().reverse().map(m => { const g = facDe(m.fid); return `<button type="button" class="msg" data-cli="lire|${m.id}"><span class="pt-lu${m.lu ? ' lu' : ''}" aria-hidden="true"></span><span class="g"><b>${sms ? ENT.nom : esc(SUJET[m.type](g, m))}</b><span>${sms ? esc(SUJET[m.type](g, m)) : ENT.nom + ' → ' + esc(g.contact)}</span></span><span class="petit mute">${jour(m.d)}</span></button>`; }).join('') : `<p class="mute">Aucun ${sms ? 'SMS' : 'message'}. Envoie une facture ${sms ? 'par SMS ' : ''}depuis OP GESTION, ou depuis l’écran d’accueil.</p>`}
+      <p class="petit mute">Pour la démonstration, ce téléphone reçoit les messages de tous les clients.</p></div>`; }
+    case 'banque': { const solde = r2(CLI_DEPART + S.cliOps.reduce((t, o) => t + o.m, 0));
+      return `<div class="tel-corps"><button type="button" class="retour" data-cli="accueil">‹ Accueil</button><div class="banque-app"><span class="petit" style="opacity:.8">Compte courant du client (exemple)</span><b style="font-size:28px" class="num">${eur(solde)}</b></div>
+        <h3>Opérations</h3>${S.cliOps.length ? S.cliOps.slice().reverse().map(o => { const q = o.pid && payDe(o.pid);
+          const contester = q && o.sorte === 'carte' && q.etat === 'reussi' && !q.litige && (q.rembourse || 0) < q.m - .005, rembPrlv = q && o.sorte === 'sepa' && q.etat === 'reussi';
+          return `<div class="ligne" style="align-items:flex-start"><div class="g"><b class="petit">${esc(o.lib)}</b><span class="petit mute">${jour(o.d)}</span>${contester ? `<button type="button" class="btn petit rouge" style="margin-top:6px;align-self:flex-start" data-cli="contester|${q.id}">Contester ce paiement</button>` : ''}${rembPrlv ? `<button type="button" class="btn petit rouge" style="margin-top:6px;align-self:flex-start" data-cli="sepa8|${q.id}">Demander le remboursement</button>` : ''}</div><b class="num" style="color:${o.m < 0 ? 'var(--ink)' : 'var(--ok)'}">${o.m > 0 ? '+' : ''}${eur(o.m)}</b></div>`; }).join('') : '<p class="mute petit">Aucune opération pour l’instant : payez une facture pour la voir ici.</p>'}
+        <p class="petit mute">Une carte se conteste auprès de sa banque ; un prélèvement peut être remboursé sur simple demande pendant 8 semaines.</p></div>`; }
+    case 'pdf': return `<div class="tel-corps"><button type="button" class="retour" data-cli="facture">‹ Retour à la facture</button>
+      <div class="pdf"><div class="rangee" style="justify-content:space-between;align-items:flex-start"><div><b>${ENT.nom}</b><br><span>${ENT.adr}</span><br><span>SIRET 912 345 678 00014 (exemple) · TVA FR12 912345678</span></div><b style="font-size:15px">FACTURE<br>${f.num}</b></div>
+        <div><b>Client</b><br>${esc(f.cli)}<br><span>Émise le ${dObj(f.emise).toLocaleDateString('fr-FR')} · échéance le ${dObj(f.ech).toLocaleDateString('fr-FR')}</span></div>
+        <table class="pdf-t"><tr><th>Désignation</th><th>Qté</th><th>P.U. HT</th><th>Total HT</th></tr><tr><td>${esc(f.objet)}</td><td>1</td><td>${eur(f.ht)}</td><td>${eur(f.ht)}</td></tr></table>
+        <div style="text-align:right">Total HT ${eur(f.ht)}<br>TVA ${f.tva} % ${eur(tvaDe(f))}<br><b>Total TTC ${eur(ttc(f))}</b></div>
+        <p>Paiement à réception, en ligne par le lien de la facture, ou par virement sur ${ENT.iban} (exemple). Pas d’escompte pour paiement anticipé. En cas de retard pour un professionnel : pénalités au taux légal en vigueur et indemnité forfaitaire de 40 € pour frais de recouvrement.</p></div>
+      <p class="petit mute">Aperçu simplifié : le vrai PDF est celui d’OP GESTION, au nom et aux couleurs de l’entreprise.</p></div>`;
+    case 'lire': { const m = S.boite.find(x => x.id === S.msg), g = facDe(m.fid), p = m.pid && payDe(m.pid), e = etatFac(g);
+      const corps = { facture:`Bonjour ${esc(g.contact)},<br>voici votre facture pour : ${esc(g.objet.toLowerCase())}. Vous pouvez la régler en ligne, en quelques secondes.`,
+        relance:`Bonjour ${esc(g.contact)},<br>sauf erreur de notre part, la facture ${g.num} n’est pas encore réglée. Vous pouvez la payer ici.`,
+        recu:`Merci ${esc(g.contact)}. Nous avons bien reçu ${p ? eur(p.m) : ''} par ${p ? NOM_MODE[p.mode] : ''} pour la facture ${g.num}.`,
+        rejet:`Bonjour ${esc(g.contact)},<br>votre banque a rejeté le prélèvement de la facture ${g.num}. Vous pouvez la régler autrement.`,
+        remboursement:`Bonjour ${esc(g.contact)},<br>nous vous remboursons ${eur(m.m || 0)} (avoir ${m.num}) ${PRESTA.includes(m.mode) ? 'sur le moyen de paiement utilisé' : 'par virement'}. L’avoir est joint.` }[m.type];
+      const payable = ['facture', 'relance', 'rejet'].includes(m.type) && reste(g) > .005 && !['sepa', 'litige', 'annulee'].includes(e) && !g.annonce;
+      return `<div class="tel-corps"><button type="button" class="retour" data-cli="app|${m.canal === 'sms' ? 'sms' : 'boite'}">‹ ${m.canal === 'sms' ? 'Messages' : 'Boîte de réception'}</button><b>${esc(SUJET[m.type](g, m))}</b><p class="petit mute">${ENT.nom} · ${ENT.mail}</p><p>${corps}</p>
+        ${['facture', 'relance', 'rejet'].includes(m.type) ? `<button type="button" class="btn ${payable ? 'plein' : ''}" data-cli="ouvrir|${g.id}">${payable ? (m.type === 'facture' ? 'Voir et payer la facture' : 'Payer maintenant') : 'Voir la facture'}</button>` : ''}</div>`; }
+    case 'facture': { const e = etatFac(f), ok = MOYENS.map(m => m[0]).filter(moyenOuvert).filter(k => k !== 'especes' || du0 <= PLAFOND_ESPECES);
+      const paye = du0 <= .005, bloque = ['sepa', 'litige', 'annulee'].includes(e) || (f.annonce && !paye);
+      return `<div class="tel-corps"><button type="button" class="retour" data-cli="app|${S.depuis || 'accueil'}">‹ ${{ boite:'Boîte de réception', sms:'Messages', accueil:'Accueil' }[S.depuis || 'accueil']}</button>
+        <div class="f-tete"><span class="logo" style="background:var(--accent)">CS</span><div><b>${ENT.nom}</b><div class="petit mute">Facture ${f.num}</div></div></div>
+        <div><div class="f-tot">${eur(paye ? ttc(f) : du0)}</div><p class="petit mute">${paye ? 'réglée, merci' : regle(f) > .005 ? `reste à payer sur ${eur(du(f))}` : `à régler avant le ${jour(f.ech, true)}`}</p></div>
+        <div class="carte" style="padding:12px 14px;gap:0"><div class="ligne"><span>${esc(f.objet)}</span></div><div class="ligne"><span class="mute">Total HT</span><span class="num">${eur(f.ht)}</span></div><div class="ligne"><span class="mute">TVA ${f.tva} %</span><span class="num">${eur(tvaDe(f))}</span></div><div class="ligne"><b>Total TTC</b><b class="num">${eur(ttc(f))}</b></div><div class="ligne"><span class="petit mute">Facture complète</span><button type="button" class="lien-tel" data-cli="pdf">Voir le PDF</button></div>${regle(f) > .005 ? `<div class="ligne"><span class="mute">Déjà payé</span><span class="num">− ${eur(regle(f))}</span></div>` : ''}${avoirs(f) ? `<div class="ligne"><span class="mute">Avoir</span><span class="num">− ${eur(avoirs(f))}</span></div>` : ''}</div>
+        ${paye ? `<p class="ctrl" style="text-align:center">✓ Facture réglée</p>` : bloque ? `<p class="note">${e === 'sepa' ? 'Votre prélèvement est en cours.' : e === 'litige' ? 'Votre contestation est en cours auprès de votre banque.' : e === 'annulee' ? 'Cette facture a été annulée par un avoir.' : f.annonce.mode === 'virement' ? 'Votre virement est en route.' : 'Votre paiement est annoncé à l’entreprise.'}</p>`
+        : `<h3>Comment voulez-vous payer ?</h3><div class="choix">${MOYENS.filter(m => ok.includes(m[0])).map(([k, l, s, ic]) => `<button type="button" data-cli="moyen|${k}"><span class="ic" aria-hidden="true">${ic}</span><span class="g"><b>${l}</b><span>${{ virement:'Gratuit, depuis votre application bancaire', carte:'Carte, Apple Pay ou Google Pay', sepa:'Prélevé sur votre compte dans quelques jours', x3:`3 × ${eur(r2(du0 / 3))}`, cheque:'À l’ordre de ' + ENT.nom, especes:'Au technicien, contre un reçu' }[k]}</span></span>${k === 'virement' ? '<span class="reco">Gratuit</span>' : ''}</button>`).join('')}</div>
+          ${du0 > PLAFOND_ESPECES && moyenOuvert('especes') ? `<p class="petit mute">Les espèces ne sont pas proposées au-delà de ${PLAFOND_ESPECES} €.</p>` : ''}`}
+        <p class="securite">L’argent va directement à ${ENT.nom}. Ni ${ENT.nom} ni TeamOP ne voient votre numéro de carte.</p></div>`; }
+    case 'virement': return `<div class="tel-corps">${retour}<h2>Virement</h2>
+      <div class="radios" role="radiogroup" aria-label="Type de virement"><label><input type="radio" name="vt" value="inst" checked><span><b>Instantané</b><br><span class="petit mute">Arrive en quelques secondes</span></span></label><label><input type="radio" name="vt" value="classique"><span><b>Classique</b><br><span class="petit mute">Arrive le jour ouvré suivant</span></span></label></div>
+      <canvas class="qr" id="qr" width="126" height="126" aria-label="QR code de virement (exemple)"></canvas>
+      <div class="carte" style="padding:12px 14px;gap:0"><div class="ligne"><span class="mute">Bénéficiaire</span><b>${ENT.nom}</b></div><div class="ligne" style="flex-wrap:wrap"><span class="mute">IBAN</span><span class="iban" id="iban-cli">${ENT.iban}</span></div><div class="ligne"><span class="mute">Référence</span><b>${f.num}</b></div></div>
+      <label class="champ-tel">Montant viré<input id="v-m" inputmode="decimal" value="${String(du0).replace('.', ',')}"></label>
+      <p class="petit mute">Pour tester un paiement partiel, virez moins que le total.</p>
+      <button type="button" class="btn" data-cli="copier">Copier l’IBAN</button><button type="button" class="btn plein" data-cli="virer">J’ai fait le virement</button></div>`;
+    case 'carte': { const e = S.cerr || {}, v = S.cval || { num:'1234 5678 9012 3456', exp:'12 / 28', cvc:'123' };
+      return `<div class="tel-corps">${retour}<h2>Payer ${eur(du0)}</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button type="button" class="paybtn" data-cli="wallet|apple"> Pay</button><button type="button" class="paybtn" data-cli="wallet|google">G Pay</button></div><p class="petit mute" style="text-align:center">ou avec une carte</p>
+      <div class="demo"><label class="champ-tel">Carte de test<select id="c-test"><option value="ok" ${choisi('c-test', 'ok')}>Carte qui passe</option><option value="3ds" ${choisi('c-test', '3ds')}>Carte avec validation par la banque</option><option value="fonds" ${choisi('c-test', 'fonds')}>Carte refusée : fonds insuffisants</option><option value="expiree" ${choisi('c-test', 'expiree')}>Carte expirée</option><option value="hors" ${choisi('c-test', 'hors')}>Carte hors Europe (frais plus élevés)</option></select></label></div>
+      <label class="champ-tel">Numéro de carte<input id="c-num" value="${esc(v.num)}" inputmode="numeric" autocomplete="off" aria-invalid="${!!e.num}">${e.num ? `<span class="err">${e.num}</span>` : ''}</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="champ-tel">Expiration (MM / AA)<input id="c-exp" value="${esc(v.exp)}" aria-invalid="${!!e.exp}">${e.exp ? `<span class="err">${e.exp}</span>` : ''}</label><label class="champ-tel">Code au dos<input id="c-cvc" value="${esc(v.cvc)}" inputmode="numeric" aria-invalid="${!!e.cvc}">${e.cvc ? `<span class="err">${e.cvc}</span>` : ''}</label></div>
+      <button type="button" class="btn plein" style="min-height:50px" data-cli="payer-carte">Payer ${eur(du0)}</button></div>`; }
+    case '3ds': return `<div class="tel-corps"><div class="banque-app"><b>Votre banque</b><p>Confirmez-vous le paiement de <b>${eur(du0)}</b> à <b>${ENT.nom}</b> ?</p><p class="petit" style="opacity:.8">Validation demandée par votre banque (3-D Secure).</p>
+      <button type="button" class="btn" data-cli="3ds|ok">Confirmer</button><button type="button" class="btn rouge" data-cli="3ds|non">Refuser</button></div></div>`;
+    case 'wallet': return `<div class="tel-corps" style="justify-content:flex-end"><div class="carte" style="gap:12px;border-radius:22px"><b>${S.wallet === 'google' ? 'G Pay' : ' Pay'}</b><div class="ligne"><span>${ENT.nom}</span><b class="num">${eur(du0)}</b></div><p class="petit mute">Carte enregistrée sur ce téléphone</p><button type="button" class="paybtn" data-cli="wallet-ok">${S.wallet === 'google' ? 'Confirmer avec l’empreinte' : 'Confirmer avec Face ID'}</button><button type="button" class="btn" data-cli="moyen|carte">Annuler</button></div></div>`;
+    case 'sepa': return `<div class="tel-corps">${retour}<h2>Prélèvement</h2>
+      <label class="champ-tel">Votre IBAN<input value="FR76 9876 5432 1098 7654 3210 987" aria-label="Votre IBAN (exemple)"></label>
+      <div class="demo"><label class="champ-tel">Compte de test<select id="s-test"><option value="ok" ${choisi('s-test', 'ok')}>Compte approvisionné</option><option value="non" ${choisi('s-test', 'non')}>Compte non approvisionné (le prélèvement sera rejeté)</option></select></label></div>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px"><input type="checkbox" id="mandat" style="margin-top:4px;width:20px;height:20px;flex:none" ${S.sel.mandat ? 'checked' : ''}><span>J’autorise ${ENT.nom} à prélever ${eur(du0)} sur mon compte pour la facture ${f.num}. Je peux contester ce prélèvement auprès de ma banque.</span></label>
+      <button type="button" class="btn plein" style="min-height:50px" data-cli="mandat">Valider le prélèvement</button></div>`;
+    case 'x3': return `<div class="tel-corps">${retour}<h2>En 3 fois</h2>
+      <div class="carte" style="padding:12px 14px;gap:0">${[0, 30, 60].map((n, i) => `<div class="ligne"><span>${i ? 'Dans ' + n + ' jours' : 'Aujourd’hui'}</span><b class="num">${eur(r2(du0 / 3))}</b></div>`).join('')}</div>
+      <p class="petit mute">Un partenaire avance la somme : ${ENT.nom} est payé en une fois, vous remboursez le partenaire en trois fois. Il étudie votre demande avant d’accepter.</p>
+      <div class="demo"><label class="champ-tel">Réponse du partenaire (test)<select id="x-test"><option value="ok" ${choisi('x-test', 'ok')}>Il accepte</option><option value="non" ${choisi('x-test', 'non')}>Il refuse</option></select></label></div>
+      <button type="button" class="btn plein" style="min-height:50px" data-cli="x3">Envoyer ma demande</button></div>`;
+    case 'cheque': return `<div class="tel-corps">${retour}<h2>Chèque</h2><div class="carte" style="padding:12px 14px;gap:0"><div class="ligne"><span class="mute">À l’ordre de</span><b>${ENT.nom}</b></div><div class="ligne"><span class="mute">Montant</span><b class="num">${eur(du0)}</b></div><div class="ligne" style="flex-wrap:wrap"><span class="mute">À envoyer à</span><span>${ENT.adr}</span></div></div>
+      <button type="button" class="btn plein" style="min-height:50px" data-cli="cheque">Je paie par chèque</button></div>`;
+    case 'especes': return `<div class="tel-corps">${retour}<h2>Espèces</h2><p>Vous remettez ${eur(du0)} au technicien lors de son passage ; il vous donne un reçu.</p><p class="petit mute">Au-delà de ${PLAFOND_ESPECES} €, le paiement en espèces n’est pas permis.</p><button type="button" class="btn plein" style="min-height:50px" data-cli="especes">Je paierai en espèces</button></div>`;
+    case 'attente': return `<div class="tel-corps" style="justify-content:center"><div class="attente"><span class="roue" aria-hidden="true"></span>${esc(S.attente || 'Paiement en cours…')}</div></div>`;
+    case 'fin': { const r = S.fin; return `<div class="tel-corps merci" style="justify-content:center"><span class="rond ${r.c || ''}" aria-hidden="true">${r.c === 'mal' ? '✕' : r.c === 'att' ? '…' : '✓'}</span><h2>${esc(r.t)}</h2><p class="petit">${r.p}</p>
+      ${r.c === 'mal' ? `<button type="button" class="btn plein" data-cli="facture">Payer autrement</button>` : `<button type="button" class="btn" data-cli="boite">Boîte de réception</button>`}<button type="button" class="btn" data-act="cote|ent">Voir côté entreprise</button></div>`; }
+  }
+  return '';
+}
+function rendreTel(){ $('ecran').innerHTML = `<div class="tel-barre"><span>9:41</span><span>●●● 📶</span></div>` + ecranTel() + (S.ecran === 'accueil' ? '' : `<button type="button" class="barre-accueil" data-cli="accueil" aria-label="Revenir à l’écran d’accueil du téléphone"><i></i></button>`); if (S.ecran === 'virement') dessinerQR(S.fid); }
+/* un QR code d'exemple, dessiné pour la démonstration (il ne se lit pas) */
+function dessinerQR(graine){
+  const c = $('qr'); if (!c) return; const x = c.getContext('2d'), n = 29, p = Math.floor(c.width / n); let h = 7;
+  for (const ch of graine + ENT.iban) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.fillStyle = '#111';
+  const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (rnd() > .52) x.fillRect(i * p, j * p, p, p);
+  [[0, 0], [n - 7, 0], [0, n - 7]].forEach(([a, b]) => { x.fillStyle = '#fff'; x.fillRect(Math.max(0, a - 1) * p, Math.max(0, b - 1) * p, 9 * p, 9 * p); x.fillStyle = '#111'; x.fillRect(a * p, b * p, 7 * p, 7 * p); x.fillStyle = '#fff'; x.fillRect((a + 1) * p, (b + 1) * p, 5 * p, 5 * p); x.fillStyle = '#111'; x.fillRect((a + 2) * p, (b + 2) * p, 3 * p, 3 * p); });
+}
+
+/* ════ LES COULISSES ════ */
+function rendreCoul(){
+  const so = soldes(), attente = S.paiements.filter(p => PRESTA.includes(p.mode) && p.etat === 'reussi' && !p.verse);
+  const contestables = S.paiements.filter(p => ['carte', 'carte_hors', 'wallet', 'gpay'].includes(p.mode) && p.etat === 'reussi' && !p.litige && (p.rembourse || 0) < p.m), litiges = S.paiements.filter(p => p.etat === 'litige');
+  $('coul').innerHTML = `<div class="titre-coul"><span class="sur" style="color:var(--coul-mute)">Coulisses · simulation</span><h2>Ce qui se passe en vrai</h2><p class="petit mute">La banque de l’entreprise, son compte de paiement, et la banque du client quand il conteste.</p></div>
+    <div class="bloc"><h2>Banque de ${ENT.nom}</h2><span class="mute petit">Ce que l’entreprise voit dans l’appli de sa banque · solde ${eur(soldeBanque())}</span>
+      ${S.banque.slice().reverse().slice(0, 8).map(l => `<div class="op"><span>${jour(l.d)}</span><span>${esc(l.lib)}<small>${l.rap ? 'rapproché dans OP GESTION' : 'pas encore rapproché'}</small></span><span class="${l.m < 0 ? 'n' : 'p'}">${l.m > 0 ? '+' : ''}${eur(l.m)}</span></div>`).join('')}</div>
+    <div class="bloc"><h2>Compte de paiement · ${esc(S.prest)}</h2>${S.relie || attente.length ? `<span class="mute petit">Au nom de ${ENT.nom}</span>
+      <div class="op"><span></span><span>Solde, pas encore versé</span><span class="${(so['467'] || 0) < 0 ? 'n' : 'p'}">${eur(so['467'] || 0)}</span></div>
+      ${attente.map(p => `<div class="op"><span>${jour(p.dispo)}</span><span>${facDe(p.fid).num} disponible<small>versé le premier jour ouvré à partir de cette date</small></span><span>${eur(r2(p.m - p.frais - (p.rembourse || 0)))}</span></div>`).join('')}` : '<span class="mute petit">Pas encore relié (Réglages de l’entreprise).</span>'}</div>
+    ${contestables.length || litiges.length ? `<div class="bloc"><h2>Contestations</h2><span class="mute petit">Un client peut contester un paiement par carte auprès de sa banque.</span>
+      ${contestables.map(p => `<div class="rangee"><span class="petit" style="flex:1">${facDe(p.fid).num} · ${eur(p.m)}</span><button type="button" class="btn petit" data-act="contester|${p.id}">Le client conteste</button></div>`).join('')}
+      ${litiges.map(p => `<div class="petit">${facDe(p.fid).num} : ${p.litige.preuves ? 'preuves de l’entreprise reçues' : 'en attente des preuves de l’entreprise'}</div><div class="rangee"><button type="button" class="btn petit" data-act="decider|${p.id}|1">Raison à l’entreprise</button><button type="button" class="btn petit" data-act="decider|${p.id}|0">Raison au client</button></div>`).join('')}</div>` : ''}
+    <div class="bloc"><h2>Ce qui vient de se passer</h2>${S.evts.slice().reverse().slice(0, 12).map(e => `<div class="evt"><b>${jour(e.d)}</b><span>${e.ic} ${esc(e.txt)}</span></div>`).join('')}</div>`;
+}
+
+/* ════ TOUT TESTER ════ */
+
+/* ════ AFFICHAGE ET GESTES ════ */
+function rendre(){
+  majCote();   // « data-cote » sur le corps, jamais « data-vue » : il porterait un attribut que cherchent les clics
+  rendreBarre(); rendreEnt(); rendreTel(); rendreCoul(); guide();
+  if (S.nouveauxTests.length) { const k = S.nouveauxTests; S.nouveauxTests = []; toast(`✓ Testé : ${k.map(x => TESTS.find(t => t[0] === x)[1]).join(', ')}`); }
+}
+let tt;
+function toast(msg, act){ const t = $('toast'); t.innerHTML = `<span>${msg}</span>${act ? `<button type="button" id="toast-act">${act[0]}</button>` : ''}`; t.hidden = false; if (act) $('toast-act').onclick = () => { t.hidden = true; act[1](); }; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 5000); }
+const etroit = () => matchMedia('(max-width:980px)').matches;
+function cote(c){ S.vue = c; rendre(); if (etroit()) { const y = document.querySelector('.scene').getBoundingClientRect().top + scrollY - $('barre').offsetHeight - 10; if (scrollY > y) scrollTo({ top:y, behavior:'smooth' }); } }
+const lent = () => matchMedia('(prefers-reduced-motion:reduce)').matches ? 150 : 1100;
+function finTel(t, p, c){ S.fin = { t, p, c }; S.ecran = 'fin'; }
+const montantSaisi = (id, max) => { const v = parseFloat(String(($(id) || {}).value || '').replace(/\s/g, '').replace(',', '.')); return isNaN(v) ? null : r2(Math.min(v, max)); };
+function choisirIban(){ const z = $('iban-cli'); if (!z) return; const r = document.createRange(); r.selectNodeContents(z); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('IBAN sélectionné : copiez-le avec le menu de votre appareil.'); }
+
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act],[data-cli],[data-ong],.cote-sel [data-cote],[data-moyen],#reset'); if (!b) return;
+  if (b.id === 'reset') { etatInitial(); rendre(); return toast('Démonstration remise au départ.'); }
+  if (b.dataset.cote) return cote(b.dataset.cote);
+  if (b.dataset.ong) { S.ong = b.dataset.ong; S.vue = 'ent'; return rendre(); }
+  if (b.dataset.moyen) { const k = b.dataset.moyen; S.moyens[k] = !S.moyens[k]; if (!MOYENS.some(m => moyenOuvert(m[0]))) { S.moyens[k] = true; return toast('Garde au moins un moyen de paiement.'); } rendre(); return toast(`${MOYENS.find(m => m[0] === k)[1]} : ${S.moyens[k] ? 'proposé à tes clients' : 'retiré'}.`); }
+  if (b.dataset.act) {
+    const [a, x, y] = b.dataset.act.split('|'), f = x && facDe(x), p = x && payDe(x);
+    if (a === 'assist') { const s = $('prest'); if (s) S.prest = s.value; S.assist = 1; return rendre(); }
+    if (a === 'assist-stop') { S.assist = 0; return rendre(); }
+    if (a === 'delier') { S.relie = false; evt('Compte de paiement délié (démonstration)', '🔗'); rendre(); return toast('Délié : la carte, le prélèvement et le 3 fois ne sont plus proposés tant que le compte n’est pas relié.'); }
+    if (a === 'assist-suite') { if (S.assist < 3) { S.assist++; return rendre(); } S.assist = 0; S.relie = true; S.moyens.carte = S.moyens.sepa = S.moyens.x3 = true; evt(`Compte de paiement relié chez ${S.prest}`, '🔗'); rendre(); return toast('Compte relié : carte, Apple Pay, prélèvement et paiement en 3 fois sont proposés.'); }
+    if (a === 'banque-relier') { S.banqueReliee = !S.banqueReliee; if (S.banqueReliee) { evt('Banque reliée : OP GESTION lit les opérations du compte', '🔗'); S.banque.filter(l => !l.rap && l.ref && l.m > 0).forEach(l => { const g = S.factures.find(o => o.num === l.ref); if (g && reste(g) > .005) { rapprocher(l, g, true); cocher('vir_auto'); } }); } rendre(); return toast(S.banqueReliee ? 'Banque reliée : les virements reçus seront reconnus tout seuls.' : 'Banque déliée : les virements se notent à la main.'); }
+    if (a === 'relances') { S.relances = !S.relances; return rendre(); }
+    if (a === 'nouvelle') { const m = MODELES[(S.numFac - 146) % MODELES.length]; S.numFac++; const g = { id:'f' + S.numFac, num:'FAC-2026-0' + S.numFac, cli:m[0], contact:m[1], objet:m[2], ht:m[3], tva:m[4] }; S.factures.push(g); rendre(); return toast(`${g.num} créée (${eur(ttc(g))}), prête à envoyer.`); }
+    if (a === 'envoyer') { emettre(f, y); S.fid = f.id; S.ecran = y === 'sms' ? 'sms' : 'boite'; rendre(); return toast(`Facture envoyée par ${y === 'sms' ? 'SMS' : 'e-mail'}, avec son lien de paiement.`, ['Voir chez le client', () => cote('cli')]); }
+    if (a === 'voir') { S.fid = f.id; S.ecran = 'facture'; S.depuis = f.canal === 'sms' ? 'sms' : 'boite'; if (!f.vue) f.vue = S.jour; return cote('cli'); }
+    if (a === 'recu') { const l = S.banque.find(o => !o.rap && o.ref === f.num && o.m > 0); if (!l) return toast('Rien n’est encore arrivé sur ton compte pour cette facture. Un virement classique arrive le jour ouvré suivant : avance l’horloge dans les coulisses.'); rapprocher(l, f, false); rendre(); return; }
+    if (a === 'cheque-recu') { reussir(nouveauPaiement(f, 'cheque', reste(f))); rendre(); return toast('Chèque noté. Remets-le en banque : il sera crédité le jour ouvré suivant.'); }
+    if (a === 'remettre') { p.remis = S.jour; S.planifie.push({ t:'cheque', d:plusOuvres(S.jour, 1), pid:p.id }); evt(`Chèque ${facDe(p.fid).num} remis en banque`, '🏦'); rendre(); return toast('Remis en banque : crédité le jour ouvré suivant (avance l’horloge dans les coulisses).'); }
+    if (a === 'especes-recu') { reussir(nouveauPaiement(f, 'especes', reste(f))); cocher('especes'); rendre(); return; }
+    if (a === 'remb') { S.remb = x; S.ong = 'paiements'; return rendre(); }
+    if (a === 'rembstop') { S.remb = null; return rendre(); }
+    if (a === 'rembok') { const m = montantSaisi('r-m', r2(p.m - (p.rembourse || 0))); if (!m || m <= 0) return toast('Indique un montant à rembourser.'); rembourser(p, m, ($('r-motif') || {}).value || ''); S.remb = null; return rendre(); }
+    if (a === 'preuves') { p.litige.preuves = S.jour; evt(`Preuves envoyées pour ${facDe(p.fid).num} : facture, rapport signé`, '📎'); rendre(); return toast('Preuves envoyées. La décision se prend dans les coulisses.'); }
+    if (a === 'contester') { contester(p); rendre(); return toast(`Contestation ouverte pour ${facDe(p.fid).num} : l’entreprise la voit dans « Paiements reçus ».`); }
+    if (a === 'decider') { decider(p, y === '1'); return rendre(); }
+    if (a === 'avancer') { avancer(+x); rendre(); return S.nouveauxTests.length ? null : toast(`Nous sommes le ${jour(S.jour, true)}.`); }
+    if (a === 'prochain') { const d = prochainEvenement(); if (d) while (S.jour < d) avancer(1); rendre(); return; }
+    if (a === 'rap') { const l = S.banque.find(o => o.id === x), g = facDe($('rap-' + x).value); rapprocher(l, g, false); rendre(); return; }
+    if (a === 'cote') return cote(x);
+  }
+  if (b.dataset.cli) {
+    const [a, x] = b.dataset.cli.split('|'), f = S.fid && facDe(S.fid), m = f && reste(f);
+    if (a === 'boite' || a === 'accueil') { S.ecran = a; return rendre(); }
+    if (a === 'app') { S.ecran = x; return rendre(); }
+    if (a === 'demo') { const mo = MODELES[(S.numFac - 146) % MODELES.length]; S.numFac++; const g = { id:'f' + S.numFac, num:'FAC-2026-0' + S.numFac, cli:mo[0], contact:mo[1], objet:mo[2], ht:mo[3], tva:mo[4] }; S.factures.push(g); emettre(g, x); S.ecran = x === 'sms' ? 'sms' : 'boite'; rendre(); return toast(`${g.num} (${eur(ttc(g))}) vient d’arriver par ${x === 'sms' ? 'SMS' : 'e-mail'}.`); }
+    if (a === 'pdf') { S.ecran = 'pdf'; cocher('pdf'); return rendre(); }
+    if (a === 'contester') { const q = payDe(x); contester(q); rendre(); return toast(`Contestation envoyée à la banque. ${ENT.nom} la voit dans « Paiements reçus » ; la décision se prend dans les coulisses.`); }
+    if (a === 'sepa8') { sepaRembourse(payDe(x)); return rendre(); }
+    if (a === 'lire') { const msg = S.boite.find(o => o.id === x); msg.lu = true; S.msg = x; S.fid = msg.fid; S.ecran = 'lire'; return rendre(); }
+    if (a === 'ouvrir') { S.fid = x; const g = facDe(x), msg = S.boite.find(o => o.id === S.msg); S.depuis = msg && msg.canal === 'sms' ? 'sms' : 'boite'; if (S.depuis === 'sms') cocher('sms'); if (!g.vue) g.vue = S.jour; S.ecran = 'facture'; return rendre(); }
+    if (a === 'facture') { S.ecran = 'facture'; return rendre(); }
+    if (a === 'moyen') { S.ecran = x; S.cerr = null; S.cval = null; return rendre(); }
+    if (a === 'copier') { const t = ENT.iban.replace(/ /g, ''); try { navigator.clipboard.writeText(t).then(() => toast('IBAN copié.'), choisirIban); } catch (e) { choisirIban(); } return; }
+    if (a === 'virer') { const v = montantSaisi('v-m', m), inst = (document.querySelector('input[name="vt"]:checked') || {}).value === 'inst'; if (!v || v <= 0) return toast('Indiquez le montant viré.');
+      f.annonce = { mode:'virement', inst, d:S.jour }; opCli(`VIR ${inst ? 'INST ' : ''}VERS ${ENT.nom.toUpperCase()} · ${f.num}`, -v, { sorte:'virement' });
+      if (inst) virementArrive(f.id, v, true); else S.planifie.push({ t:'vir', d:plusOuvres(S.jour, 1), fid:f.id, m:v });
+      finTel('Merci', `${ENT.nom} est prévenu. ${inst ? 'Le virement est arrivé sur son compte.' : 'Il arrivera sur son compte le ' + jour(plusOuvres(S.jour, 1), true) + '.'}`, inst && S.banqueReliee ? '' : 'att'); return rendre(); }
+    if (a === 'payer-carte') { const t = $('c-test').value, num = $('c-num').value.replace(/\s/g, ''), exp = $('c-exp').value.replace(/\s/g, ''), cvc = $('c-cvc').value.trim(), e = {};
+      S.cval = { num:$('c-num').value, exp:$('c-exp').value, cvc };
+      if (!/^\d{16}$/.test(num)) e.num = 'Numéro incomplet : 16 chiffres.';
+      const mm = exp.match(/^(\d{2})\/?(\d{2})$/); if (!mm || +mm[1] < 1 || +mm[1] > 12) e.exp = 'Date au format MM / AA.'; else if ('20' + mm[2] + '-' + mm[1] < S.jour.slice(0, 7)) e.exp = 'Cette date est passée.';
+      if (!/^\d{3}$/.test(cvc)) e.cvc = '3 chiffres.';
+      if (Object.keys(e).length) { S.cerr = e; cocher('carte_saisie'); rendre(); return toast('Corrigez les champs en rouge : rien n’a été envoyé à la banque.'); }
+      S.cerr = null;
+      if (t === '3ds') { S.ecran = '3ds'; return rendre(); }
+      S.attente = 'Paiement en cours…'; S.ecran = 'attente'; rendreTel();
+      return setTimeout(() => {
+        if (t === 'fonds' || t === 'expiree') { const q = nouveauPaiement(f, 'carte', m); q.etat = 'refuse'; q.frais = 0; q.raison = t === 'fonds' ? 'fonds insuffisants' : 'carte expirée'; evt(`Paiement par carte refusé pour ${f.num} (${q.raison}) : rien n’est encaissé`, '⛔'); cocher('carte_refus'); finTel('Paiement refusé', t === 'fonds' ? 'Votre banque a refusé le paiement : fonds insuffisants. Rien n’a été débité.' : 'Cette carte est expirée. Rien n’a été débité.', 'mal'); return rendre(); }
+        reussir(nouveauPaiement(f, t === 'hors' ? 'carte_hors' : 'carte', m)); cocher('carte_ok'); if (t === 'hors') cocher('carte_hors');
+        finTel('Paiement reçu', `${eur(m)} payés à ${ENT.nom}. Votre reçu vient de partir par e-mail.`); rendre(); }, lent()); }
+    if (a === '3ds') { if (x === 'non') { const q = nouveauPaiement(f, 'carte', m); q.etat = 'refuse'; q.frais = 0; q.raison = 'validation refusée dans l’appli de la banque'; evt(`Validation bancaire refusée pour ${f.num} : rien n’est encaissé`, '⛔'); cocher('carte_3ds_refus'); finTel('Paiement annulé', 'Vous avez refusé la validation dans l’application de votre banque. Rien n’a été débité.', 'mal'); return rendre(); }
+      reussir(nouveauPaiement(f, 'carte', m)); cocher('carte_3ds'); cocher('carte_ok'); finTel('Paiement reçu', `${eur(m)} payés à ${ENT.nom}, validé par votre banque.`); return rendre(); }
+    if (a === 'wallet') { S.wallet = x; S.ecran = 'wallet'; return rendre(); }
+    if (a === 'wallet-ok') { reussir(nouveauPaiement(f, S.wallet === 'google' ? 'gpay' : 'wallet', m)); cocher('wallet'); finTel('Paiement reçu', `${eur(m)} payés avec ${S.wallet === 'google' ? 'Google Pay' : 'Apple Pay'}.`); return rendre(); }
+    if (a === 'mandat') { if (!$('mandat').checked) return toast('Cochez l’autorisation de prélèvement pour continuer.'); S.sel.mandat = false; const ok = $('s-test').value === 'ok', q = nouveauPaiement(f, 'sepa', m), d = plusOuvres(S.jour, 3); q.etat = 'en_cours'; S.planifie.push({ t:'sepa', d, pid:q.id, ok }); evt(`Mandat de prélèvement signé pour ${f.num} : prélèvement le ${jour(d)}`, '🔁'); finTel('Prélèvement programmé', `${eur(m)} seront prélevés le ${jour(d, true)}. Avancez l’horloge dans les coulisses pour voir la suite.`, 'att'); return rendre(); }
+    if (a === 'x3') { const ok = $('x-test').value === 'ok'; S.attente = 'Le partenaire étudie votre demande…'; S.ecran = 'attente'; rendreTel();
+      return setTimeout(() => { if (!ok) { evt(`Paiement en 3 fois refusé par le partenaire pour ${f.num}`, '⛔'); cocher('x3_refus'); finTel('Demande refusée', 'Le partenaire n’a pas accepté le paiement en 3 fois. Vous pouvez payer autrement.', 'mal'); return rendre(); }
+        reussir(nouveauPaiement(f, 'x3', m)); cocher('x3_ok'); finTel('Accepté', `Le partenaire a payé ${eur(m)} à ${ENT.nom}. Vous le remboursez en 3 fois.`); rendre(); }, lent()); }
+    if (a === 'cheque') { f.annonce = { mode:'cheque', d:S.jour }; evt(`${f.cli} annonce un chèque pour ${f.num}`, '✍️'); finTel('C’est noté', `${ENT.nom} attend votre chèque de ${eur(m)}.`, 'att'); return rendre(); }
+    if (a === 'especes') { f.annonce = { mode:'especes', d:S.jour }; evt(`${f.cli} paiera ${f.num} en espèces au technicien`, '💶'); finTel('C’est noté', `Vous remettrez ${eur(m)} au technicien, contre un reçu.`, 'att'); return rendre(); }
+  }
+});
+document.addEventListener('change', ev => { if (ev.target.id === 'prest') S.prest = ev.target.value; });
+/* ════ LE GUIDE : LES TEXTES ════
+   Pour chaque bouton : à quoi il sert, qui fait quoi, ce qui arrive à l'argent. Ce que le clic a VRAIMENT changé
+   (événements, écritures) n'est pas écrit ici : le guide le lit dans l'état de la simulation, après le clic. */
+const ACT = { ent:['🏢', 'L’entreprise'], cli:['📱', 'Le client'], bqcli:['🏦', 'La banque du client'], bqent:['🏛️', 'La banque de l’entreprise'], presta:['💳', 'Le prestataire de paiement'], part:['🤝', 'Le partenaire du 3 fois'], op:['⚙️', 'OP GESTION'], teamop:['🔒', 'TeamOP'] };
+const MOTS = { '411':'Ce que les clients doivent', '467':'L’argent chez le prestataire', '512':'L’argent en banque', '5112':'Les chèques pas encore remis', '53':'Les espèces en caisse', '627':'Les frais de paiement', '706':'Le chiffre d’affaires', '44574':'La TVA qui attend le paiement', '44571':'La TVA à reverser à l’État' };
+const AU_CREDIT = ['706', '44574', '44571'];   // ces comptes grandissent au crédit : on inverse le signe pour dire « augmente »
+const MOYEN_EX = {
+  virement:['le virement', 'Gratuit pour les deux : l’argent arrive directement sur la banque de l’entreprise, sans intermédiaire.', [['bqcli', 'envoie l’argent quand le client fait le virement'], ['bqent', 'le reçoit, directement'], ['op', 'reconnaît le virement tout seul si la banque est reliée']]],
+  carte:['la carte bancaire', 'Passe par le compte de paiement de l’entreprise. Frais d’exemple : 1,5 % + 0,25 € par paiement. Apple Pay et Google Pay sont compris.', [['presta', 'encaisse, puis verse sur la banque de l’entreprise 2 jours ouvrés plus tard']]],
+  sepa:['le prélèvement', 'Le client signe un mandat, l’argent est prélevé 3 jours ouvrés plus tard. Frais d’exemple : 0,35 €, quel que soit le montant. Idéal pour les gros montants.', [['presta', 'présente le prélèvement à la banque du client']]],
+  x3:['le paiement en 3 fois', 'Un partenaire paie l’entreprise en une fois et se fait rembourser par le client en 3 mensualités. Commission d’exemple : 3 %.', [['part', 'avance l’argent et porte le risque d’impayé']]],
+  cheque:['le chèque', 'Le client l’envoie, l’entreprise le note puis le remet à sa banque. Aucun frais.', [['bqent', 'crédite le chèque le jour ouvré suivant la remise']]],
+  especes:['les espèces', 'Payées au technicien contre un reçu, seulement jusqu’à 1 000 €. Aucun frais.', [['ent', 'le technicien encaisse, puis l’entreprise le note dans OP GESTION']]]
+};
+const EX_CARTE = {
+  ok:{ t:'Paiement par carte accepté', sert:'La banque du client dit oui. La facture est payée tout de suite, le reçu part tout seul, et l’argent arrive sur le compte de paiement de l’entreprise. Il sera versé sur sa banque 2 jours ouvrés plus tard.', qui:[['cli', 'a tapé sa carte sur la page de paiement'], ['presta', 'a reçu la carte (l’entreprise ne la voit jamais) et demandé l’accord à la banque'], ['bqcli', 'a accepté et débité le client'], ['op', 'a marqué la facture payée, envoyé le reçu et écrit la comptabilité']], argent:'L’argent va sur le compte de paiement (467), moins les frais (627). La TVA passe de « en attente » à « due » : pour une prestation de services, elle est due au paiement.', ensuite:'Touche « Jusqu’au prochain événement » dans la barre du haut pour voir le versement arriver sur la banque.' },
+  '3ds':{ t:'Validation par la banque (3-D Secure)', sert:'La banque du client demande une confirmation dans son application (Face ID, code). En Europe, c’est obligatoire pour la plupart des paiements en ligne : ça prouve que c’est bien le titulaire de la carte qui paie.', qui:[['bqcli', 'envoie la demande de confirmation dans son appli'], ['cli', 'confirme ou refuse'], ['presta', 'attend la réponse avant de dire « payé »']], ensuite:'Touche « Confirmer » pour le voir réussir, ou « Refuser » pour voir ce qui se passe quand ce n’est pas le titulaire.' },
+  fonds:{ t:'Carte refusée : fonds insuffisants', sert:'La banque du client dit non. Rien n’est débité, rien n’est encaissé, aucun frais. Le client comprend pourquoi et peut payer autrement depuis la même page.', qui:[['bqcli', 'refuse'], ['presta', 'transmet le refus, sans frais'], ['cli', 'voit le motif et choisit un autre moyen'], ['ent', 'voit la tentative refusée sur la facture et dans « Paiements reçus »']] },
+  expiree:{ t:'Carte expirée', sert:'La banque refuse une carte expirée. Rien n’est débité, aucun frais ; le client peut payer avec une autre carte ou un autre moyen.', qui:[['bqcli', 'refuse'], ['cli', 'paie autrement'], ['ent', 'voit la tentative refusée']] },
+  hors:{ t:'Carte émise hors d’Europe', sert:'Le paiement passe comme une carte normale, mais le prestataire prend des frais plus élevés (exemple : 3,25 % + 0,25 €). Le client paie le même prix : c’est l’entreprise qui supporte la différence.', qui:[['cli', 'paie avec une carte étrangère'], ['presta', 'applique son tarif « hors Europe »'], ['ent', 'voit ces frais dans « Paiements reçus »']], argent:'Même chemin qu’une carte européenne ; seule la ligne des frais (627) est plus grosse.' }
+};
+const EX_SAISIE = { t:'Erreur de saisie de la carte', sert:'La page de paiement vérifie le numéro (16 chiffres), la date (pas passée) et le code (3 chiffres) AVANT d’envoyer quoi que ce soit. L’erreur s’affiche en rouge sous le bon champ ; rien ne part à la banque, rien n’est débité.', qui:[['cli', 's’est trompé en tapant'], ['op', 'la page de paiement le dit, au bon endroit']], ensuite:'Corrige les champs (numéro 1234 5678 9012 3456, date 12 / 28, code 123) et touche « Payer » à nouveau.' };
+const EX = {
+  reset:{ t:'Recommencer', sert:'Tout revient au départ : factures, paiements, banque, horloge, et la liste des tests à cocher. Pratique pour refaire une démonstration propre.' },
+  'cote|ent':{ t:'Le côté de l’entreprise', sert:'Ce que l’entreprise voit dans OP GESTION : ses réglages de paiement, ses factures, les paiements reçus, sa banque et sa comptabilité.' },
+  'cote|cli':{ t:'Le côté du client', sert:'Le téléphone du client de l’entreprise : ses e-mails, ses SMS, la page de paiement, et l’appli de sa banque. Il n’a aucun compte ni mot de passe à créer : tout part du lien reçu avec la facture.' },
+  'cote|coul':{ t:'Les coulisses', sert:'Ce que personne ne voit d’un coup en vrai : la banque de l’entreprise, son compte de paiement chez le prestataire, et la banque du client qui tranche les contestations. La simulation les montre pour comprendre où va l’argent, à chaque instant.' },
+  'ong|reglages':{ t:'Les réglages du paiement', sert:'L’entreprise décide ici comment ses clients peuvent payer. Elle relie son compte de paiement en ligne (pour la carte, le prélèvement et le 3 fois), relie sa banque pour que les virements soient reconnus tout seuls, et choisit les moyens proposés sur ses factures.', qui:[['ent', 'règle tout ça une fois, puis n’y touche plus'], ['op', 'applique ces choix à chaque facture'], ['teamop', 'ne touche jamais l’argent : le compte de paiement est ouvert au nom de l’entreprise, chez le prestataire']], ensuite:'Coupe un moyen (les espèces, par exemple), puis regarde la facture sur le téléphone : il a disparu.' },
+  'ong|factures':{ t:'Les factures', sert:'Chaque facture avec, en une ligne, où en est son paiement : envoyée, vue par le client, paiement annoncé, payée, relances. C’est aussi d’ici que l’entreprise note ce qu’OP GESTION ne peut pas voir : un chèque reçu, des espèces, un virement quand la banque n’est pas reliée.', qui:[['ent', 'envoie, suit, et note à la main ce qui arrive hors ligne'], ['op', 'met l’état à jour tout seul dès qu’un paiement en ligne réussit']], ensuite:'Touche « Nouvelle facture de test », puis « Envoyer par e-mail ».' },
+  'ong|paiements':{ t:'Les paiements reçus', sert:'Tous les paiements et toutes les tentatives, même refusées, avec leurs frais et leur date de versement sur la banque. C’est ici qu’on rembourse un client et qu’on répond à une contestation.', qui:[['presta', 'encaisse les paiements en ligne et les verse sur la banque de l’entreprise'], ['ent', 'rembourse, ou envoie ses preuves si un paiement est contesté']], argent:'En haut : ce qui est encaissé, ce que coûtent les frais, ce qui est « en route » chez le prestataire, et ce que les clients doivent encore.' },
+  'ong|banque':{ t:'La banque vue par OP GESTION', sert:'Quand l’entreprise a relié sa banque, OP GESTION lit les opérations de son compte et les rapproche des factures : un virement qui porte le numéro de facture en référence la marque payée tout seul. Ce qui n’est pas reconnu se rapproche à la main.', qui:[['bqent', 'transmet les opérations, en lecture seule, avec l’accord de l’entreprise'], ['op', 'reconnaît la référence et rapproche'], ['ent', 'rapproche ce qui n’a pas été reconnu']] },
+  'ong|compta':{ t:'La comptabilité', sert:'Chaque geste écrit ses écritures, comme OP GESTION le fera pour l’export vers le comptable. Personne n’a rien à saisir.', qui:[['op', 'écrit tout seul : ventes, paiements, frais, remboursements, versements'], ['ent', 'exporte pour son comptable']], argent:'Trois contrôles tournent en permanence : chaque écriture est équilibrée, le compte clients égale ce qui reste dû, le compte banque suit le relevé. S’ils restent verts quoi que tu fasses, la logique tient.' },
+  assist:{ t:'Relier le compte de paiement', sert:'Ouvre l’assistant qui crée le compte de paiement de l’entreprise chez le prestataire choisi (une dizaine de minutes en vrai). Sans lui : pas de carte, pas de prélèvement, pas de 3 fois. Seulement le virement, le chèque et les espèces.', qui:[['ent', 'donne son SIREN, l’identité du dirigeant et son IBAN'], ['presta', 'vérifie l’entreprise : c’est la loi, contre le blanchiment'], ['teamop', 'ne voit ni la pièce d’identité ni l’argent']] },
+  'assist-suite':() => S.relie ? { t:'Compte de paiement relié', sert:'C’est fait : la carte, Apple Pay, Google Pay, le prélèvement et le paiement en 3 fois s’allument sur les factures. L’argent payé en ligne arrivera sur le compte de paiement de l’entreprise, puis sur sa banque.', qui:[['presta', 'a ouvert le compte au nom de l’entreprise'], ['op', 'propose maintenant ces moyens au client']] } : { t:`Assistant : étape ${S.assist} sur 3`, sert:'Chaque étape correspond à ce que le prestataire demande vraiment : 1. l’entreprise (SIREN), 2. le dirigeant (pièce d’identité), 3. l’IBAN où verser l’argent. À la dernière, le compte est relié.' },
+  'assist-stop':{ t:'Annuler l’assistant', sert:'Rien n’est enregistré : l’entreprise peut reprendre plus tard.' },
+  delier:{ t:'Délier le compte de paiement', sert:'Pour rejouer la mise en route. Délié, la facture du client ne propose plus que le virement, le chèque et les espèces. Les paiements déjà reçus restent, et ce qui est en route est quand même versé.' },
+  'banque-relier':() => S.banqueReliee ? { t:'Banque reliée', sert:'OP GESTION lit maintenant les opérations du compte bancaire de l’entreprise. Un virement qui porte le numéro de facture en référence est reconnu : la facture passe payée toute seule. Les virements déjà arrivés et pas encore rapprochés le sont tout de suite.', qui:[['ent', 'donne son accord, une fois, et peut le retirer quand elle veut'], ['bqent', 'partage les opérations, en lecture seule'], ['op', 'rapproche les virements des factures']], argent:'Lire le compte ne déplace pas d’argent. En vrai, ce lien passe par un prestataire agréé pour lire les comptes bancaires.' } : { t:'Banque déliée', sert:'OP GESTION ne voit plus le compte bancaire : un virement reçu se note à la main, avec « Reçu sur mon compte » sur la facture.', qui:[['ent', 'regarde sa banque et confirme elle-même']] },
+  relances:() => ({ t:S.relances ? 'Relances automatiques allumées' : 'Relances automatiques coupées', sert:'OP GESTION renvoie la facture avec son lien de paiement 7 jours puis 15 jours après l’échéance, tant qu’elle n’est pas réglée. Il s’arrête tout seul dès le paiement, ou dès qu’un paiement est annoncé (chèque, virement en route, prélèvement en cours).', qui:[['op', 'surveille les échéances et envoie'], ['ent', 'n’a rien à faire']] }),
+  nouvelle:{ t:'Nouvelle facture de test', sert:'Crée une facture neuve, en brouillon, pour un essai propre. Rien ne part tant qu’on ne l’envoie pas.', argent:'Un brouillon n’écrit rien : la comptabilité commence à l’envoi.', ensuite:'Touche « Envoyer par e-mail » ou « Envoyer par SMS » sur cette facture.' },
+  'envoyer|mail':{ t:'Envoyer la facture par e-mail', sert:'La facture part avec un bouton « Payer » qui ouvre la page de paiement : le client voit le montant, la facture en PDF, et les moyens que l’entreprise propose.', qui:[['ent', 'envoie'], ['op', 'numérote, envoie, suit l’ouverture et prépare les relances'], ['cli', 'reçoit le message sur son téléphone']], argent:'L’envoi écrit la vente : le client doit le TTC (411), le chiffre d’affaires est le HT (706), et la TVA attend le paiement (44574).', ensuite:'Regarde le téléphone : le message est dans l’appli Mail.' },
+  'envoyer|sms':{ t:'Envoyer la facture par SMS', sert:'Un SMS court avec le lien de paiement. Beaucoup de clients lisent leurs SMS bien plus vite que leurs e-mails.', qui:[['ent', 'envoie'], ['op', 'envoie le SMS et suit l’ouverture'], ['cli', 'touche le lien']], argent:'Comme par e-mail : l’envoi écrit la vente (411, 706, 44574).', ensuite:'Regarde le téléphone : le SMS est dans l’appli Messages.' },
+  voir:{ t:'Voir chez le client', sert:'Ouvre sur le téléphone la page que le client voit pour cette facture. Pratique pour vérifier ce qu’il voit, à chaque étape.' },
+  recu:x => x.trouve ? { t:'Reçu sur mon compte', sert:'Banque non reliée : OP GESTION ne voit pas le virement arriver. L’entreprise a regardé sa banque et confirme. OP GESTION retrouve le virement sur le relevé, le rapproche de la facture, et la marque payée.', qui:[['cli', 'a fait le virement depuis sa banque'], ['bqent', 'a reçu l’argent directement'], ['ent', 'confirme'], ['op', 'rapproche, marque payé, envoie le reçu']], argent:'La banque (512) augmente, ce que doit le client (411) diminue, et la TVA devient due.' } : { t:'Reçu sur mon compte : rien n’est arrivé', sert:'Le virement n’est pas encore sur le compte. Un virement classique arrive le jour ouvré suivant : fais passer le temps avec la barre du haut, puis touche « Reçu » à nouveau.' },
+  'cheque-recu':{ t:'Chèque reçu', sert:'Le client avait annoncé un chèque ; l’entreprise le reçoit et le note. La facture est payée, mais l’argent n’est pas encore en banque : il faut remettre le chèque.', qui:[['ent', 'note la réception'], ['op', 'marque payé et envoie le reçu']], argent:'Le chèque va dans « chèques à encaisser » (5112) jusqu’à la remise en banque.', ensuite:'Touche « Remettre le chèque en banque ».' },
+  remettre:{ t:'Remettre le chèque en banque', sert:'L’entreprise dépose le chèque. Sa banque le crédite le jour ouvré suivant.', qui:[['ent', 'dépose le chèque'], ['bqent', 'le crédite le lendemain ouvré']], argent:'À l’arrivée : « chèques à encaisser » (5112) se vide, la banque (512) augmente.', ensuite:'Touche « Jusqu’au prochain événement » dans la barre du haut.' },
+  'especes-recu':{ t:'Espèces reçues', sert:'Le technicien a reçu les espèces et donné un reçu. La facture est payée, l’argent est en caisse.', qui:[['ent', 'note l’encaissement'], ['op', 'marque payé, envoie le reçu']], argent:'La caisse (53) augmente, ce que doit le client (411) diminue, la TVA devient due. Aucun frais.' },
+  remb:{ t:'Rembourser', sert:'Ouvre le remboursement de ce paiement. En France, on n’efface pas une facture : un remboursement passe par un avoir, qui l’annule en tout ou en partie.', ensuite:'Choisis le montant (tout ou partie) et le motif, puis touche « Rembourser et faire l’avoir ».' },
+  rembstop:{ t:'Annuler le remboursement', sert:'Rien n’est fait : pas d’avoir, pas d’argent qui sort.' },
+  rembok:{ t:'Rembourser et faire l’avoir', sert:'L’avoir est créé et numéroté, le client est remboursé et reçoit un message avec l’avoir.', qui:[['ent', 'a choisi le montant et le motif'], ['presta', 'renvoie l’argent sur la carte ou le compte du client, pour un paiement en ligne'], ['bqent', 'émet un virement, pour un virement, un chèque ou des espèces'], ['op', 'fait l’avoir, l’envoie et écrit la comptabilité']], argent:'L’avoir diminue le chiffre d’affaires (706) et la TVA due (44571). L’argent sort du compte de paiement (467) ou de la banque (512).', ensuite:'Ouvre « Ma banque » sur le téléphone : le client voit l’argent revenir.' },
+  preuves:{ t:'Envoyer les preuves', sert:'Quand un client conteste un paiement par carte, sa banque demande des preuves à l’entreprise. OP GESTION les a déjà : la facture, le rapport d’intervention, la signature du client. Un clic les envoie.', qui:[['ent', 'envoie'], ['presta', 'transmet à la banque du client'], ['bqcli', 'examine et décide']], ensuite:'Dans les coulisses, choisis la décision de la banque.' },
+  rap:{ t:'Rapprocher à la main', sert:'Une opération de la banque qu’OP GESTION n’a pas reconnue (référence absente ou fausse) : l’entreprise choisit la facture qu’elle règle.', qui:[['ent', 'choisit la facture'], ['op', 'marque payé et écrit la comptabilité']] },
+  avancer:{ t:'Faire passer le temps', sert:'L’horloge de la simulation. Beaucoup de choses prennent du temps en vrai : un prélèvement (3 jours ouvrés), un versement du prestataire (2 jours ouvrés), un virement classique (le jour ouvré suivant), une relance (7 et 15 jours après l’échéance). Les week-ends ne comptent pas comme jours ouvrés.' },
+  prochain:{ t:'Jusqu’au prochain événement', sert:'Avance jusqu’au prochain jour où quelque chose est prévu (prélèvement, versement, virement, chèque, relance), sans rien rater en route.' },
+  contester:{ t:'Contester un paiement par carte', sert:'Le client dit à sa banque qu’il ne reconnaît pas le paiement, ou que la prestation n’a pas été faite. Sa banque lui rend la somme tout de suite et la reprend à l’entreprise le temps d’examiner. L’entreprise doit envoyer ses preuves.', qui:[['cli', 'conteste dans l’appli de sa banque'], ['bqcli', 'lui rend la somme et arbitre'], ['presta', 'reprend la somme sur le compte de paiement et facture des frais'], ['ent', 'répond avec ses preuves'], ['op', 'rassemble les preuves et suit le délai']], argent:'La somme repart du compte de paiement (467), le client redoit (411), la TVA retourne « en attente », et 15 € de frais (exemple) restent à l’entreprise.', ensuite:'Côté entreprise, « Paiements reçus » : touche « Envoyer les preuves ».' },
+  'decider|1':{ t:'La banque donne raison à l’entreprise', sert:'Les preuves suffisent : la somme revient sur le compte de paiement et sera versée sur la banque. Le client la voit de nouveau débitée.', qui:[['bqcli', 'tranche pour l’entreprise'], ['presta', 'rend la somme']], argent:'La somme revient en 467, ce que doit le client se solde à nouveau, la TVA redevient due. Les frais de contestation restent à l’entreprise.', ensuite:'Touche « Jusqu’au prochain événement » pour la voir versée.' },
+  'decider|0':{ t:'La banque donne raison au client', sert:'La somme reste au client. La facture redevient due : l’entreprise doit se faire payer autrement (relance, autre moyen). Les frais de contestation restent.', qui:[['bqcli', 'tranche pour le client'], ['op', 'remet la facture dans les impayés']], argent:'Rien ne revient sur 467 ; le client redoit (411) et la TVA reste en attente.' },
+  accueil:{ t:'L’écran d’accueil du téléphone', sert:'Le téléphone du client, avec trois applis : Mail, Messages et sa banque. Le cadre jaune « Pour la démonstration » fait arriver une facture sans passer par l’entreprise.' },
+  'app|boite':{ t:'L’appli Mail du client', sert:'Ce que le client reçoit par e-mail : factures, relances, reçus, avis de rejet et remboursements. Un point bleu marque ce qui n’est pas lu.' },
+  'app|sms':{ t:'L’appli Messages du client', sert:'Les factures envoyées par SMS : un message court avec le lien de paiement.' },
+  'app|banque':{ t:'L’appli bancaire du client', sert:'Ce que le client voit de son côté : ce qui sort de son compte quand il paie, ce qui revient quand il est remboursé. C’est aussi d’ici qu’il conteste un paiement par carte ou se fait rembourser un prélèvement.', qui:[['bqcli', 'tient le compte du client (solde de départ fictif)']] },
+  'demo|mail':{ t:'Faire arriver une facture par e-mail', sert:'Raccourci de démonstration : une facture est créée et envoyée au téléphone, comme si l’entreprise l’avait envoyée depuis OP GESTION.', argent:'Comme un vrai envoi : la vente est écrite (411, 706, 44574).' },
+  'demo|sms':{ t:'Faire arriver une facture par SMS', sert:'Raccourci de démonstration : une facture est créée et envoyée par SMS, comme si l’entreprise l’avait envoyée depuis OP GESTION.', argent:'Comme un vrai envoi : la vente est écrite (411, 706, 44574).' },
+  'lire|facture':{ t:'Le message de la facture', sert:'Le client lit le mot de l’entreprise et touche un bouton qui ouvre la facture et la page de paiement. Ni compte ni mot de passe.', qui:[['cli', 'lit et ouvre'], ['op', 'note que la facture a été vue : l’entreprise le voit sur sa facture']] },
+  'lire|relance':{ t:'Une relance', sert:'Envoyée par OP GESTION tout seul, avec le même lien de paiement. Elle ne part pas si la facture est réglée ou si un paiement est annoncé.' },
+  'lire|recu':{ t:'Le reçu de paiement', sert:'Envoyé tout seul dès que le paiement est reçu : le client a une trace, l’entreprise n’a rien à faire.' },
+  'lire|rejet':{ t:'Avis de prélèvement rejeté', sert:'Le prélèvement n’est pas passé (compte vide, opposition). La facture redevient à payer ; le client peut la régler autrement depuis le même lien.' },
+  'lire|remboursement':{ t:'Avis de remboursement', sert:'Le client est prévenu du remboursement et reçoit l’avoir. L’argent revient sur sa carte ou son compte.' },
+  ouvrir:{ t:'La page de paiement', sert:'Le client voit le montant, le détail, le PDF, et les moyens de paiement que l’entreprise a choisis. Les espèces disparaissent au-delà de 1 000 €. Si un paiement est déjà en cours, la page le dit au lieu de proposer de payer deux fois.', qui:[['cli', 'choisit comment payer'], ['op', 'affiche les moyens du moment et empêche de payer deux fois'], ['teamop', 'héberge la page ; la carte se tape chez le prestataire, jamais chez TeamOP']] },
+  facture:{ t:'Retour à la facture', sert:'La page de paiement de la facture, avec ce qui reste à payer.' },
+  pdf:{ t:'La facture en PDF', sert:'La facture complète, avec ses mentions (numéro, dates, TVA, pénalités de retard pour un professionnel). Ici, un aperçu simplifié : le vrai PDF est celui d’OP GESTION, au nom de l’entreprise.' },
+  copier:{ t:'Copier l’IBAN', sert:'Pour le coller dans l’appli de sa banque. Le QR code fait la même chose en vrai : il remplit le virement tout seul (ici il est seulement dessiné).' },
+  virer:x => ({ t:`Virement ${x.inst ? 'instantané' : 'classique'} envoyé`, sert:x.inst ? 'Le virement instantané arrive en quelques secondes sur la banque de l’entreprise. ' + (S.banqueReliee ? 'La banque est reliée : OP GESTION le reconnaît grâce au numéro de facture, et la facture passe payée toute seule.' : 'La banque n’est pas reliée : l’argent est là, mais OP GESTION ne le voit pas. L’entreprise touche « Reçu sur mon compte » sur la facture.') : 'Le virement classique arrive le jour ouvré suivant. En attendant, la facture affiche « paiement annoncé » et ne se relance pas.', qui:[['cli', 'a fait le virement depuis sa banque'], ['bqcli', 'envoie l’argent'], ['bqent', 'le reçoit directement, sans intermédiaire'], ['op', S.banqueReliee ? 'reconnaît la référence et rapproche' : 'attend que l’entreprise confirme']], argent:'Aucun frais. À la reconnaissance : la banque (512) augmente, ce que doit le client (411) diminue, la TVA devient due.', ensuite:x.inst ? (S.banqueReliee ? 'Regarde l’onglet Banque : la ligne est rapprochée.' : 'Côté entreprise, Factures : touche « Reçu sur mon compte ».') : 'Fais passer le temps avec la barre du haut.' }),
+  'payer-carte':x => S.cerr ? EX_SAISIE : EX_CARTE[x.carte] || EX_CARTE.ok,
+  '3ds|ok':{ ...EX_CARTE.ok, t:'Confirmé dans l’appli de la banque' },
+  '3ds|non':{ t:'Refusé dans l’appli de la banque', sert:'Le client (ou un fraudeur qui aurait la carte) refuse la confirmation : rien n’est débité. C’est exactement ce qui protège contre la fraude à la carte.', qui:[['cli', 'refuse'], ['bqcli', 'annule le paiement'], ['op', 'note la tentative refusée']], argent:'Aucun mouvement, aucun frais.' },
+  'wallet|apple':{ t:'Apple Pay', sert:'La carte est déjà enregistrée dans le téléphone : le client confirme avec son visage. Pas de numéro à taper, la validation bancaire est comprise.', qui:[['cli', 'confirme avec Face ID'], ['presta', 'traite le paiement comme une carte']] },
+  'wallet|google':{ t:'Google Pay', sert:'La carte est déjà enregistrée dans le téléphone : le client confirme avec son empreinte. Pas de numéro à taper, la validation bancaire est comprise.', qui:[['cli', 'confirme avec son empreinte'], ['presta', 'traite le paiement comme une carte']] },
+  'wallet-ok':{ ...EX_CARTE.ok, t:'Paiement Apple Pay ou Google Pay accepté', argent:'Mêmes frais et même chemin qu’une carte : le compte de paiement (467), puis la banque.' },
+  mandat:x => !x.coche ? { t:'L’autorisation n’est pas cochée', sert:'Sans la case cochée, pas de prélèvement : c’est elle, le mandat SEPA, qui donne à l’entreprise le droit de prélever.' } : { t:x.compte === 'non' ? 'Prélèvement programmé (sur un compte vide)' : 'Prélèvement programmé', sert:'Le mandat est signé. Le prélèvement part dans 3 jours ouvrés' + (x.compte === 'non' ? ' et la banque du client le rejettera : le compte de test est vide. L’entreprise paiera des frais de rejet, le client sera prévenu et pourra payer autrement.' : '. En attendant, la facture affiche « prélèvement en cours » et ne se relance pas.'), qui:[['cli', 'a donné son IBAN et coché l’autorisation'], ['presta', 'présentera le prélèvement à la banque du client'], ['bqcli', x.compte === 'non' ? 'le rejettera' : 'paiera au jour dit']], argent:'Rien n’est encaissé à la signature : on n’écrit le paiement que le jour où il passe.', ensuite:'Touche « Jusqu’au prochain événement » dans la barre du haut.' },
+  x3:x => x.rep === 'non' ? { t:'Le partenaire refuse le 3 fois', sert:'Il étudie chaque demande, comme un petit crédit, et peut refuser. Rien n’est encaissé ; le client paie autrement.', qui:[['part', 'refuse'], ['cli', 'choisit un autre moyen']], argent:'Aucun mouvement.' } : { t:'Le partenaire accepte le 3 fois', sert:'Le partenaire paie toute la somme à l’entreprise, moins sa commission ; le client lui doit 3 mensualités. Si le client ne paie pas ses mensualités, c’est le problème du partenaire, pas de l’entreprise.', qui:[['part', 'accepte, paie l’entreprise, puis prélève le client 3 fois'], ['op', 'marque la facture payée']], argent:'Toute la somme arrive sur le compte de paiement (467), moins la commission (627, exemple 3 %).' },
+  cheque:{ t:'Le client paiera par chèque', sert:'Le client annonce son chèque. Rien n’est encaissé tant que l’entreprise ne l’a pas reçu, mais la facture affiche « paiement annoncé » et les relances s’arrêtent.', qui:[['cli', 'envoie son chèque'], ['ent', 'touchera « Chèque reçu » à réception']], argent:'Rien encore : on n’écrit que ce qui est reçu.', ensuite:'Côté entreprise, Factures : touche « Chèque reçu ».' },
+  especes:{ t:'Le client paiera en espèces', sert:'Le client paiera au technicien, contre un reçu. La facture affiche « paiement annoncé » et les relances s’arrêtent.', qui:[['cli', 'paiera au passage du technicien'], ['ent', 'touchera « Espèces reçues »']], argent:'Rien encore : on n’écrit que ce qui est reçu.', ensuite:'Côté entreprise, Factures : touche « Espèces reçues ».' },
+  sepa8:{ t:'Le prélèvement est remboursé au client', sert:'Règle du prélèvement SEPA : pendant 8 semaines, le client peut se faire rembourser par sa banque un prélèvement qu’il avait autorisé, sans se justifier. La facture redevient due.', qui:[['cli', 'demande le remboursement'], ['bqcli', 'le rembourse sans discuter'], ['presta', 'reprend la somme à l’entreprise et facture des frais'], ['op', 'remet la facture à payer']], argent:'La somme repart du compte de paiement (467), le client redoit (411), la TVA retourne en attente ; frais d’exemple 7,50 €.' },
+  'c-test|ok':{ t:'Carte de test : la carte qui passe', sert:'Quand tu toucheras « Payer », la banque fictive acceptera tout de suite.' },
+  'c-test|3ds':{ t:'Carte de test : avec validation', sert:'Quand tu toucheras « Payer », la banque fictive demandera une confirmation dans son application, comme le font la plupart des banques européennes.' },
+  'c-test|fonds':{ t:'Carte de test : fonds insuffisants', sert:'Quand tu toucheras « Payer », la banque fictive refusera. Rien ne sera débité.' },
+  'c-test|expiree':{ t:'Carte de test : carte expirée', sert:'Quand tu toucheras « Payer », la banque fictive refusera la carte. Rien ne sera débité.' },
+  'c-test|hors':{ t:'Carte de test : hors Europe', sert:'Le paiement passera, avec des frais plus élevés pour l’entreprise.' },
+  's-test|ok':{ t:'Compte de test : approvisionné', sert:'Le prélèvement passera au jour dit.' },
+  's-test|non':{ t:'Compte de test : non approvisionné', sert:'Au jour du prélèvement, la banque du client le rejettera. L’entreprise paiera des frais de rejet.' },
+  'x-test|ok':{ t:'Réponse de test : le partenaire accepte', sert:'La demande de 3 fois sera acceptée.' },
+  'x-test|non':{ t:'Réponse de test : le partenaire refuse', sert:'La demande de 3 fois sera refusée ; le client devra payer autrement.' }
+};
+['virement', 'carte', 'sepa', 'x3', 'cheque', 'especes'].forEach(k => {
+  const [nom, txt, qui] = MOYEN_EX[k];
+  EX['moyen|' + k] = { t:`Payer par ${nom}`, sert:{ virement:'Le client fait le virement depuis l’appli de sa banque, avec l’IBAN de l’entreprise et le numéro de facture en référence. ', carte:'Formulaire de carte, ou Apple Pay et Google Pay en haut. Le cadre jaune « Carte de test » choisit ce que la banque fictive va répondre. ', sepa:'Le client donne son IBAN et coche l’autorisation (le mandat). Le cadre jaune choisit si son compte est approvisionné. ', x3:'Le client voit ses 3 mensualités et envoie sa demande au partenaire. Le cadre jaune choisit sa réponse. ', cheque:'L’écran dit à quel ordre et où envoyer le chèque. ', especes:'Le client paiera au technicien, contre un reçu. ' }[k] + txt, qui:[['cli', 'choisit ce moyen'], ...qui] };
+  EX['moyen-ent|' + k] = () => ({ t:`${S.moyens[k] ? 'Proposer' : 'Ne plus proposer'} ${nom}`, sert:`L’interrupteur décide si ${nom} apparaît sur la page de paiement du client. Il s’applique tout de suite, même aux factures déjà envoyées : la page montre toujours les moyens du moment. ` + txt, qui:[['ent', 'choisit ce qu’elle accepte'], ...qui], ensuite:'Ouvre une facture sur le téléphone pour voir la différence.' });
+});
+
+/* ════ LES 25 TESTS : à quoi ils servent, qui fait quoi, et le chemin guidé ════ */
+const OU = { ent:'Côté entreprise, dans OP GESTION', cli:'Sur le téléphone du client', coul:'Dans les coulisses', barre:'Dans la barre du haut' };
+const ET = {
+  carte:{ t:'Sur la facture, touche « Carte bancaire »', sel:'[data-cli="moyen|carte"]', cote:'cli' },
+  payer:{ t:'Touche « Payer »', sel:'[data-cli="payer-carte"]', cote:'cli' },
+  choix:(v, l) => ({ t:`Dans le cadre jaune « Carte de test », choisis « ${l} »`, sel:'#c-test', cote:'cli', ev:'change', val:v }),
+  sepa:{ t:'Sur la facture, touche « Prélèvement SEPA »', sel:'[data-cli="moyen|sepa"]', cote:'cli' },
+  mandat:{ t:'Coche la case « J’autorise … à prélever »', sel:'#mandat', cote:'cli', ev:'change', coche:true },
+  valider:{ t:'Touche « Valider le prélèvement »', sel:'[data-cli="mandat"]', cote:'cli' },
+  prochain:t => ({ t, sel:'[data-act="prochain"]', cote:'barre', rep:true }),
+  virement:{ t:'Sur la facture, touche « Virement »', sel:'[data-cli="moyen|virement"]', cote:'cli' },
+  virer:{ t:'Touche « J’ai fait le virement »', sel:'[data-cli="virer"]', cote:'cli' },
+  x3:{ t:'Sur la facture, touche « En 3 fois »', sel:'[data-cli="moyen|x3"]', cote:'cli' },
+  demande:{ t:'Touche « Envoyer ma demande »', sel:'[data-cli="x3"]', cote:'cli' },
+  maBanque:{ t:'Sur l’écran d’accueil du téléphone, ouvre l’appli « Ma banque »', sel:'[data-cli="app|banque"]', cote:'cli' }
+};
+const PREP_F = 'Une facture neuve part par e-mail et s’ouvre sur le téléphone du client.';
+const prepFacture = (...moyens) => () => { gPret(...moyens); const { g, m } = gFacture('mail'); gOuvrir(g, m); return { fid:g.id }; };
+const prepPaye = (mode, ou) => () => { gPret(mode); const { g, p } = gPaye(mode); ou(); return { fid:g.id, pid:p.id }; };
+const litige = gagne => ({ prep:prepPaye('carte', () => { S.ecran = 'accueil'; S.vue = 'cli'; S.ong = 'paiements'; }), prepTxt:'Une facture neuve est payée par carte ; le téléphone du client revient à l’accueil.',
+  etapes:[ET.maBanque, { t:'Sur la ligne du paiement « CB … », touche « Contester ce paiement »', sel:c => `[data-cli="contester|${c.pid}"]`, cote:'cli' }, { t:'Côté entreprise, dans « Paiements reçus », touche « Envoyer les preuves »', sel:c => `[data-act="preuves|${c.pid}"]`, cote:'ent', ong:'paiements' }, { t:`Dans les coulisses, la banque du client décide : touche « ${gagne ? 'Raison à l’entreprise' : 'Raison au client'} »`, sel:c => `[data-act="decider|${c.pid}|${gagne ? 1 : 0}"]`, cote:'coul' }] });
+const TX = {
+  carte_ok:{ sert:'Le cas le plus courant : le client paie la facture par carte, depuis le lien reçu. On vérifie que la facture passe payée tout de suite, que le reçu part, et que l’argent suit son chemin jusqu’à la banque de l’entreprise.', qui:[['cli', 'tape sa carte sur la page de paiement'], ['presta', 'reçoit la carte (l’entreprise ne la voit jamais) et demande l’accord à la banque'], ['bqcli', 'accepte et débite le client'], ['op', 'marque la facture payée, envoie le reçu, écrit la comptabilité'], ['bqent', 'reçoit le versement du prestataire 2 jours ouvrés plus tard']], argent:'L’argent arrive sur le compte de paiement de l’entreprise (467), moins les frais (exemple : 1,5 % + 0,25 €), puis il est versé sur sa banque (512). La TVA devient due au paiement.',
+    prep:prepFacture('carte'), prepTxt:PREP_F, etapes:[ET.carte, { ...ET.payer, t:'Laisse « Carte qui passe » dans le cadre jaune, puis touche « Payer »' }], voir:['paiements', 'Dans « Paiements reçus » : le paiement, ses frais, et sa date de versement sur la banque.'] },
+  carte_3ds:{ sert:'En Europe, la banque du client demande souvent une confirmation dans son application (Face ID, code) : c’est l’authentification forte, dite 3-D Secure. On vérifie que le paiement attend cette confirmation, puis réussit.', qui:[['cli', 'confirme dans l’appli de sa banque'], ['bqcli', 'demande la confirmation, puis accepte'], ['presta', 'attend la réponse de la banque'], ['op', 'ne marque payé qu’après la confirmation']], argent:'Comme un paiement par carte normal, une fois confirmé : compte de paiement (467), frais (627), TVA due.',
+    prep:prepFacture('carte'), prepTxt:PREP_F, etapes:[ET.carte, ET.choix('3ds', 'Carte avec validation par la banque'), ET.payer, { t:'L’appli de la banque s’ouvre sur le téléphone : touche « Confirmer »', sel:'[data-cli="3ds|ok"]', cote:'cli' }] },
+  carte_3ds_refus:{ sert:'Si la personne ne confirme pas (ou si ce n’est pas le titulaire de la carte), rien n’est débité. On vérifie que la facture reste à payer et que l’entreprise voit la tentative refusée.', qui:[['cli', 'refuse dans l’appli de sa banque'], ['bqcli', 'annule le paiement'], ['op', 'note la tentative refusée, ne change rien d’autre']], argent:'Aucun mouvement d’argent, aucun frais, aucune écriture.',
+    prep:prepFacture('carte'), prepTxt:PREP_F, etapes:[ET.carte, ET.choix('3ds', 'Carte avec validation par la banque'), ET.payer, { t:'L’appli de la banque s’ouvre sur le téléphone : touche « Refuser »', sel:'[data-cli="3ds|non"]', cote:'cli' }], voir:['factures', 'La facture reste à payer ; sa ligne de suivi compte la tentative refusée.'] },
+  carte_refus:{ sert:'La banque refuse la carte (fonds insuffisants, carte expirée). On vérifie que rien n’est encaissé, que le client comprend pourquoi, et qu’il peut payer autrement depuis la même page.', qui:[['bqcli', 'refuse'], ['presta', 'transmet le refus'], ['cli', 'voit le motif et choisit un autre moyen'], ['ent', 'voit la tentative refusée sur la facture et dans « Paiements reçus »']], argent:'Rien ne bouge : un refus ne coûte rien.',
+    prep:prepFacture('carte'), prepTxt:PREP_F, etapes:[ET.carte, ET.choix('fonds', 'Carte refusée : fonds insuffisants'), ET.payer], voir:['paiements', 'La tentative refusée est dans « Paiements reçus », sans frais.'] },
+  carte_hors:{ sert:'Une carte émise hors d’Europe coûte plus cher en frais. On vérifie que le client paie le même prix et que c’est l’entreprise qui voit des frais plus élevés.', qui:[['cli', 'paie avec une carte étrangère'], ['presta', 'applique son tarif « hors Europe » (exemple : 3,25 % + 0,25 €)'], ['ent', 'voit les frais dans « Paiements reçus »']], argent:'Même chemin qu’une carte normale ; seule la ligne des frais (627) est plus grosse.',
+    prep:prepFacture('carte'), prepTxt:PREP_F, etapes:[ET.carte, ET.choix('hors', 'Carte hors Europe'), ET.payer], voir:['paiements', 'Compare la colonne « Frais » avec un paiement par carte européenne.'] },
+  wallet:{ sert:'Apple Pay et Google Pay : la carte est déjà dans le téléphone, le client confirme avec son visage ou son empreinte. C’est le paiement le plus rapide sur mobile.', qui:[['cli', 'confirme avec Face ID ou son empreinte'], ['presta', 'traite le paiement comme une carte'], ['op', 'marque payé, envoie le reçu']], argent:'Mêmes frais et même chemin qu’une carte.',
+    prep:prepFacture('carte'), prepTxt:PREP_F, etapes:[ET.carte, { t:'En haut de l’écran, touche «  Pay » ou « G Pay »', sel:'[data-cli^="wallet|"]', cote:'cli' }, { t:'Confirme (Face ID ou empreinte, simulés)', sel:'[data-cli="wallet-ok"]', cote:'cli' }] },
+  carte_saisie:{ sert:'Un numéro incomplet, une date passée, un code à 2 chiffres : le formulaire doit le dire avant d’envoyer quoi que ce soit. On vérifie que l’erreur s’affiche au bon endroit et que rien ne part à la banque.', qui:[['cli', 'se trompe en tapant'], ['op', 'la page de paiement vérifie le format et affiche l’erreur en rouge']], argent:'Rien n’est envoyé à la banque : aucun mouvement.',
+    prep:prepFacture('carte'), prepTxt:PREP_F, etapes:[ET.carte, { t:'Efface un chiffre du numéro de carte (ou mets une date passée, comme 01 / 24)', sel:'#c-num, #c-exp', cote:'cli', ev:'input', ok:el => el.id === 'c-exp' || !/^\d{16}$/.test(el.value.replace(/\s/g, '')) }, { ...ET.payer, t:'Touche « Payer » : l’erreur s’affiche en rouge, rien ne part' }] },
+  sepa_ok:{ sert:'Le prélèvement : le client donne son IBAN et signe un mandat, puis l’argent est prélevé quelques jours plus tard. Idéal pour les gros montants et les contrats : les frais sont fixes et faibles.', qui:[['cli', 'donne son IBAN et coche l’autorisation (le mandat)'], ['presta', 'présente le prélèvement à la banque du client'], ['bqcli', 'paie 3 jours ouvrés plus tard'], ['op', 'affiche « prélèvement en cours », ne relance pas, puis marque payé']], argent:'Rien n’est encaissé à la signature. Au jour du prélèvement : l’argent arrive sur le compte de paiement (467), frais d’exemple 0,35 €, puis il est versé sur la banque.',
+    prep:prepFacture('sepa'), prepTxt:PREP_F, etapes:[ET.sepa, ET.mandat, ET.valider, ET.prochain('Dans la barre du haut, touche « Jusqu’au prochain événement » : le prélèvement passe 3 jours ouvrés plus tard')] },
+  sepa_rejet:{ sert:'Un prélèvement peut être rejeté quelques jours après (compte vide, opposition). On vérifie que la facture redevient à payer, que le client est prévenu, et que l’entreprise voit le rejet et ses frais.', qui:[['bqcli', 'rejette le prélèvement'], ['presta', 'facture des frais de rejet à l’entreprise (exemple : 7,50 €)'], ['op', 'remet la facture à payer et prévient le client'], ['cli', 'reçoit un message et peut payer autrement']], argent:'Pas d’argent reçu ; seuls les frais de rejet sont écrits (627).',
+    prep:prepFacture('sepa'), prepTxt:PREP_F, etapes:[ET.sepa, { t:'Dans le cadre jaune, choisis « Compte non approvisionné »', sel:'#s-test', cote:'cli', ev:'change', val:'non' }, ET.mandat, ET.valider, ET.prochain('Dans la barre du haut, touche « Jusqu’au prochain événement » : 3 jours ouvrés plus tard, la banque rejette')], voir:['cli:boite', 'Le client a reçu l’avis de rejet, avec un lien pour payer autrement.'] },
+  sepa_8sem:{ sert:'Règle du prélèvement SEPA : pendant 8 semaines, le client peut se faire rembourser par sa banque un prélèvement qu’il avait autorisé, sans se justifier. On vérifie que la facture redevient due et que l’entreprise le voit.', qui:[['cli', 'demande le remboursement dans l’appli de sa banque'], ['bqcli', 'le rembourse sans discuter'], ['presta', 'reprend la somme et facture des frais'], ['op', 'remet la facture à payer']], argent:'La somme repart du compte de paiement (467), le client redoit (411), la TVA retourne en attente ; frais d’exemple 7,50 €.',
+    prep:prepPaye('sepa', () => { S.ecran = 'accueil'; S.vue = 'cli'; }), prepTxt:'Une facture neuve est payée par prélèvement (déjà passé) ; le téléphone du client revient à l’accueil.', etapes:[ET.maBanque, { t:'Sur la ligne « PRLV SEPA … », touche « Demander le remboursement »', sel:c => `[data-cli="sepa8|${c.pid}"]`, cote:'cli' }], voir:['factures', 'La facture est de nouveau due : à relancer, ou à payer autrement.'] },
+  vir_inst:{ sert:'Le virement instantané arrive en quelques secondes sur la banque de l’entreprise. Gratuit pour les deux, sans intermédiaire.', qui:[['cli', 'vire depuis l’appli de sa banque, avec le numéro de facture en référence'], ['bqcli', 'envoie tout de suite'], ['bqent', 'reçoit tout de suite'], ['op', 'reconnaît le virement si la banque est reliée']], argent:'L’argent arrive directement en banque (512), sans frais. La facture est payée dès que le virement est reconnu : tout seul, ou par « Reçu sur mon compte ».',
+    prep:prepFacture('virement'), prepTxt:PREP_F, etapes:[ET.virement, { ...ET.virer, t:'Laisse « Instantané » coché, puis touche « J’ai fait le virement »' }], voir:['banque', 'Dans les coulisses comme dans l’onglet Banque : la ligne « VIR INST » est arrivée.'] },
+  vir_auto:{ sert:'Le confort maximal : la banque de l’entreprise est reliée à OP GESTION, qui lit le relevé et reconnaît le virement grâce au numéro de facture. La facture passe payée sans que personne ne touche à rien.', qui:[['ent', 'autorise une fois la lecture de son compte'], ['bqent', 'partage ses opérations, en lecture seule'], ['op', 'repère la référence, rapproche, marque payé, envoie le reçu']], argent:'Banque (512) en hausse, ce que doit le client (411) en baisse, la TVA devient due. Dans l’onglet Banque, la ligne est « rapprochée ».',
+    prep:() => { gPret('virement'); S.banqueReliee = false; const { g, m } = gFacture('mail'); gOuvrir(g, m); S.ong = 'reglages'; S.vue = 'ent'; return { fid:g.id }; }, prepTxt:'Une facture neuve s’ouvre sur le téléphone, et la banque de l’entreprise est déliée pour que tu la relies toi-même.',
+    etapes:[{ t:'Côté entreprise, dans Réglages, allume « Lire mes opérations bancaires »', sel:'[data-act="banque-relier"]', cote:'ent', ong:'reglages' }, ET.virement, ET.virer], voir:['banque', 'Dans l’onglet Banque, la ligne du virement est « rapprochée » toute seule.'] },
+  vir_manuel:{ sert:'Sans banque reliée, OP GESTION ne voit pas le virement arriver. L’entreprise vérifie sa banque, puis touche « Reçu sur mon compte » : OP GESTION retrouve le virement et règle la facture.', qui:[['cli', 'fait le virement et prévient'], ['ent', 'vérifie sa banque et confirme'], ['op', 'rapproche et marque payé']], argent:'Mêmes écritures que le virement reconnu tout seul ; seule la confirmation se fait à la main.',
+    prep:() => { gPret('virement'); S.banqueReliee = false; const { g, m } = gFacture('mail'); gOuvrir(g, m); return { fid:g.id }; }, prepTxt:'Une facture neuve s’ouvre sur le téléphone ; la banque de l’entreprise n’est pas reliée.',
+    etapes:[ET.virement, ET.virer, { t:'Côté entreprise, dans Factures, touche « Reçu sur mon compte »', sel:c => `[data-act="recu|${c.fid}"]`, cote:'ent', ong:'factures' }] },
+  partiel:{ sert:'Un client qui ne paie qu’une partie (acompte, erreur). On vérifie que la facture affiche « payée en partie », garde le bon reste à payer, et que le client peut payer le reste plus tard.', qui:[['cli', 'vire moins que le total'], ['op', 'enregistre la part reçue, calcule le reste, continue de relancer pour le reste']], argent:'Seule la somme reçue est écrite ; le compte clients (411) garde le reste dû.',
+    prep:() => { gPret('virement'); S.banqueReliee = true; const { g, m } = gFacture('mail'); gOuvrir(g, m); return { fid:g.id }; }, prepTxt:'Une facture neuve s’ouvre sur le téléphone ; la banque de l’entreprise est reliée.',
+    etapes:[ET.virement, { t:'Dans « Montant viré », mets moins que le total (la moitié, par exemple)', sel:'#v-m', cote:'cli', ev:'input', ok:el => { const v = parseFloat(el.value.replace(/\s/g, '').replace(',', '.')); return v > 0 && v < reste(facDe(S.fid)) - .005; } }, ET.virer], voir:['factures', 'La facture est « Payée en partie », avec son reste à payer ; le client peut régler le reste depuis le même lien.'] },
+  x3_ok:{ sert:'Le paiement en 3 fois : un partenaire paie l’entreprise en une seule fois, puis se fait rembourser par le client en 3 mensualités. L’entreprise est payée tout de suite et ne porte pas le risque d’impayé.', qui:[['cli', 'demande le 3 fois'], ['part', 'étudie la demande, accepte, paie l’entreprise, puis prélève le client 3 fois'], ['op', 'marque payé']], argent:'Toute la somme arrive sur le compte de paiement (467), moins la commission (exemple : 3 %).',
+    prep:prepFacture('x3'), prepTxt:PREP_F, etapes:[ET.x3, { ...ET.demande, t:'Laisse « Il accepte » dans le cadre jaune, puis touche « Envoyer ma demande »' }] },
+  x3_refus:{ sert:'Le partenaire peut refuser, comme pour un petit crédit. On vérifie que rien n’est encaissé et que le client peut payer autrement.', qui:[['part', 'refuse'], ['cli', 'choisit un autre moyen']], argent:'Rien ne bouge.',
+    prep:prepFacture('x3'), prepTxt:PREP_F, etapes:[ET.x3, { t:'Dans le cadre jaune, choisis « Il refuse »', sel:'#x-test', cote:'cli', ev:'change', val:'non' }, ET.demande] },
+  cheque:{ sert:'Le chèque en trois temps : le client l’annonce, l’entreprise le reçoit, puis le dépose à sa banque. On vérifie que la facture est payée à réception, mais que l’argent n’est en banque qu’après la remise.', qui:[['cli', 'annonce et envoie son chèque'], ['ent', 'note la réception, puis le remet en banque'], ['bqent', 'crédite le jour ouvré suivant'], ['op', 'arrête les relances dès l’annonce']], argent:'À la réception : « chèques à encaisser » (5112). À la remise : la banque (512). Aucun frais.',
+    prep:() => { const c = prepFacture('cheque')(); S.ong = 'factures'; return c; }, prepTxt:PREP_F,
+    etapes:[{ t:'Sur la facture, touche « Chèque »', sel:'[data-cli="moyen|cheque"]', cote:'cli' }, { t:'Touche « Je paie par chèque »', sel:'[data-cli="cheque"]', cote:'cli' }, { t:'Côté entreprise, dans Factures : le chèque est arrivé, touche « Chèque reçu »', sel:c => `[data-act="cheque-recu|${c.fid}"]`, cote:'ent', ong:'factures' }, { t:'Touche « Remettre le chèque en banque »', sel:c => { const p = S.paiements.find(q => q.fid === c.fid && q.mode === 'cheque'); return p ? `[data-act="remettre|${p.id}"]` : '[data-act^="remettre|"]'; }, cote:'ent', ong:'factures' }, ET.prochain('Dans la barre du haut, touche « Jusqu’au prochain événement » : la banque crédite le chèque le jour ouvré suivant')] },
+  especes:{ sert:'Le client paie le technicien en liquide, contre un reçu. Proposé seulement jusqu’à 1 000 € : au-delà, la loi l’interdit.', qui:[['cli', 'annonce qu’il paiera en espèces'], ['ent', 'le technicien encaisse, l’entreprise touche « Espèces reçues »'], ['op', 'marque payé, envoie le reçu']], argent:'L’argent est en caisse (53). Aucun frais.',
+    prep:() => { gPret('especes'); const { g, m } = gFacture('mail', true); gOuvrir(g, m); S.ong = 'factures'; return { fid:g.id }; }, prepTxt:'Une facture neuve de moins de 1 000 € s’ouvre sur le téléphone du client.',
+    etapes:[{ t:'Sur la facture, touche « Espèces »', sel:'[data-cli="moyen|especes"]', cote:'cli' }, { t:'Touche « Je paierai en espèces »', sel:'[data-cli="especes"]', cote:'cli' }, { t:'Côté entreprise, dans Factures : le technicien a l’argent, touche « Espèces reçues »', sel:c => `[data-act="especes-recu|${c.fid}"]`, cote:'ent', ong:'factures' }] },
+  remboursement:{ sert:'Rembourser un client (geste commercial, prestation annulée). En France, on n’efface pas une facture : on fait un avoir. On vérifie l’avoir, le remboursement par le bon chemin, et le message au client.', qui:[['ent', 'choisit le montant et le motif'], ['op', 'crée l’avoir numéroté, l’envoie, écrit la comptabilité'], ['presta', 'renvoie l’argent sur la carte du client, pour un paiement en ligne'], ['bqent', 'émet un virement, pour un virement, un chèque ou des espèces']], argent:'L’avoir baisse le chiffre d’affaires (706) et la TVA due (44571) ; l’argent sort du compte de paiement (467) ou de la banque (512). Le client le voit revenir dans « Ma banque ».',
+    prep:prepPaye('carte', () => { S.vue = 'ent'; S.ong = 'paiements'; }), prepTxt:'Une facture neuve est payée par carte.',
+    etapes:[{ t:'Dans « Paiements reçus », sur la ligne de la nouvelle facture, touche « Rembourser »', sel:c => `[data-act="remb|${c.pid}"]`, cote:'ent', ong:'paiements' }, { t:'Garde le montant (ou baisse-le pour un remboursement partiel), puis touche « Rembourser et faire l’avoir »', sel:c => `[data-act="rembok|${c.pid}"]`, cote:'ent', ong:'paiements' }], voir:['cli:banque', 'Le client voit l’argent revenir dans l’appli de sa banque ; l’avoir est dans la Comptabilité.'] },
+  litige_gagne:{ sert:'Le client conteste un paiement par carte auprès de sa banque. La somme est retenue, l’entreprise envoie ses preuves (OP GESTION les a déjà : facture, rapport signé), et la banque donne raison à l’entreprise.', qui:[['cli', 'conteste dans l’appli de sa banque'], ['bqcli', 'lui rend la somme, demande des preuves, puis tranche'], ['presta', 'retient la somme et facture des frais de contestation'], ['ent', 'envoie ses preuves en un clic'], ['op', 'rassemble les preuves et suit le délai']], argent:'À la contestation : la somme sort de 467, le client redoit, frais 15 € (exemple). Gagnée : la somme revient en 467 et sera versée ; les frais restent.',
+    ...litige(true), voir:['coul', 'La somme est revenue sur le compte de paiement : fais passer le temps pour la voir versée.'] },
+  litige_perdu:{ sert:'Même chose, mais la banque donne raison au client. On vérifie que la facture redevient due, que la somme ne revient pas, et que les frais restent à l’entreprise.', qui:[['bqcli', 'donne raison au client'], ['ent', 'doit se faire payer autrement'], ['op', 'remet la facture dans les impayés']], argent:'La somme reste sortie de 467, le client redoit (411), la TVA reste en attente.',
+    ...litige(false), voir:['factures', 'La facture est de nouveau due, avec « contestation perdue » dans son suivi.'] },
+  versement:{ sert:'L’argent payé en ligne n’arrive pas directement en banque : il passe par le compte de paiement, puis le prestataire le verse (ici 2 jours ouvrés après). On fait passer le temps jusqu’au versement.', qui:[['presta', 'regroupe les paiements disponibles et les verse chaque jour ouvré'], ['bqent', 'reçoit le versement'], ['op', 'le voit sur le relevé et le rapproche']], argent:'Le compte de paiement (467) baisse, la banque (512) monte du même montant ; les frais sont déjà déduits.',
+    prep:prepPaye('carte', () => { S.vue = 'coul'; }), prepTxt:'Une facture neuve est payée par carte : l’argent est sur le compte de paiement, pas encore en banque.', etapes:[ET.prochain('Dans la barre du haut, touche « Jusqu’au prochain événement » : le prestataire verse 2 jours ouvrés après le paiement')], voir:['coul', 'Dans les coulisses, la banque de l’entreprise montre la ligne « VERSEMENT ».'] },
+  sms:{ sert:'Beaucoup de clients lisent leurs SMS bien avant leurs e-mails. On vérifie que la facture arrive par SMS, avec un lien qui ouvre la même page de paiement.', qui:[['ent', 'choisit « Envoyer par SMS »'], ['op', 'envoie un SMS court avec le lien'], ['cli', 'touche le lien']], argent:'Comme par e-mail : la vente est écrite à l’envoi.',
+    prep:() => { gPret(); const { g, m } = gFacture('sms'); S.fid = g.id; S.ecran = 'sms'; S.vue = 'cli'; return { fid:g.id, mid:m.id }; }, prepTxt:'Une facture neuve part par SMS ; le téléphone est ouvert sur l’appli Messages.',
+    etapes:[{ t:`Touche le SMS de ${ENT.nom}`, sel:c => `[data-cli="lire|${c.mid}"]`, cote:'cli' }, { t:'Touche « Voir et payer la facture »', sel:c => `[data-cli="ouvrir|${c.fid}"]`, cote:'cli' }] },
+  pdf:{ sert:'Le client doit pouvoir lire et garder sa facture complète. On ouvre le PDF depuis la page de paiement.', qui:[['op', 'fabrique le PDF au nom de l’entreprise, avec ses mentions'], ['cli', 'le consulte ou le télécharge']], argent:'Aucun mouvement.',
+    prep:prepFacture(), prepTxt:PREP_F, etapes:[{ t:'Sur la facture, touche « Voir le PDF »', sel:'[data-cli="pdf"]', cote:'cli' }] },
+  relance:{ sert:'Les relances partent toutes seules 7 puis 15 jours après l’échéance, avec le lien de paiement, et s’arrêtent dès que la facture est réglée. On fait passer le temps jusqu’à la première relance.', qui:[['op', 'surveille les échéances et envoie la relance'], ['cli', 'reçoit le rappel avec « Payer maintenant »'], ['ent', 'n’a rien à faire']], argent:'Aucun mouvement : une relance n’écrit rien.',
+    prep:() => { gPret(); S.relances = true; const { g } = gFacture('mail'); g.ech = S.jour; S.vue = 'ent'; S.ong = 'factures'; return { fid:g.id }; }, prepTxt:'Une facture neuve part, avec une échéance au jour même (pour ne pas attendre 30 jours).',
+    etapes:[{ t:'Dans la barre du haut, touche « + 1 semaine » : 7 jours après l’échéance, la relance part', sel:'[data-act="avancer|7"]', cote:'barre', rep:true }], voir:['cli:boite', 'La relance est dans l’appli Mail du client, avec le bouton « Payer maintenant ».'] }
+};
+const GROUPES = [['Carte bancaire', ['carte_ok', 'carte_3ds', 'carte_3ds_refus', 'carte_refus', 'carte_hors', 'wallet', 'carte_saisie']], ['Prélèvement', ['sepa_ok', 'sepa_rejet', 'sepa_8sem']], ['Virement', ['vir_inst', 'vir_auto', 'vir_manuel', 'partiel']], ['En 3 fois', ['x3_ok', 'x3_refus']], ['Chèque et espèces', ['cheque', 'especes']], ['Après le paiement', ['remboursement', 'litige_gagne', 'litige_perdu', 'versement']], ['La facture du client', ['sms', 'pdf', 'relance']]];
+
+/* ════ LE GUIDE : LA MÉCANIQUE ════
+   Un clic est lu AVANT que la page ne se redessine (phase de capture) : on garde sa clé et une photo de l'état
+   (nombre d'écritures, d'événements, tests cochés). Après le clic, le guide montre la différence — ce que le geste a
+   vraiment fait, y compris une seconde plus tard quand la banque fictive répond. */
+const G = { expl:true, onglet:'expl', cle:null, extra:{}, lib:'', snap:null, test:null, mode:null, ouvert:false, vu:null, html:'', avance:false, introuvable:false, flash:false };
+const largeGuide = () => matchMedia('(min-width:1400px)').matches;
+const reduit = () => matchMedia('(prefers-reduced-motion:reduce)').matches;
+const titreTest = k => TESTS.find(t => t[0] === k)[1];
+const instantane = () => ({ j:S.journal.length, e:S.evts.length, t:TESTS.filter(t => S.tests[t[0]]).map(t => t[0]), gen:S.gen });
+const exDe = (cle, x) => { const e = EX[cle]; return typeof e === 'function' ? e(x || {}) : e; };
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const sec = (h, c) => `<div class="g-sec"><h3>${h}</h3>${c}</div>`;
+const quiHtml = q => `<div class="qui">${q.map(([a, t]) => `<div><i aria-hidden="true">${ACT[a][0]}</i><span><b>${ACT[a][1]}</b>${cap(t)}</span></div>`).join('')}</div>`;
+function majCote(){ document.body.dataset.cote = S.vue; document.querySelectorAll('.cote-sel [data-cote]').forEach(b => b.setAttribute('aria-selected', b.dataset.cote === S.vue)); }
+
+function cleDe(b){
+  if (b.id === 'reset') return 'reset';
+  if (b.dataset.cote) return 'cote|' + b.dataset.cote;
+  if (b.dataset.ong) return 'ong|' + b.dataset.ong;
+  if (b.dataset.moyen) return 'moyen-ent|' + b.dataset.moyen;
+  if (b.dataset.act) { const [a, x, y] = b.dataset.act.split('|');
+    return a === 'envoyer' ? 'envoyer|' + y : a === 'decider' ? 'decider|' + y : a === 'cote' ? 'cote|' + x : a; }
+  const [a, x] = b.dataset.cli.split('|');
+  if (['app', 'demo', 'moyen', 'wallet', '3ds'].includes(a)) return a + '|' + x;
+  if (a === 'lire') { const m = S.boite.find(o => o.id === x); return 'lire|' + (m ? m.type : 'facture'); }
+  return a === 'boite' ? 'app|boite' : a;
+}
+function extraDe(b, cle){
+  if (cle === 'payer-carte') return { carte:($('c-test') || {}).value };
+  if (cle === 'mandat') return { coche:!!($('mandat') || {}).checked, compte:($('s-test') || {}).value };
+  if (cle === 'x3') return { rep:($('x-test') || {}).value };
+  if (cle === 'virer') return { inst:(document.querySelector('input[name="vt"]:checked') || {}).value === 'inst' };
+  if (cle === 'recu') { const f = facDe(b.dataset.act.split('|')[1]); return { trouve:!!S.banque.find(o => !o.rap && o.ref === f.num && o.m > 0) }; }
+  return {};
+}
+
+/* ─── le mode guidé ─── */
+const gEtape = () => { const m = G.mode; return m && !m.fini ? TX[m.k].etapes[m.i] : null; };
+const gSel = st => typeof st.sel === 'function' ? st.sel(G.mode.ctx) : st.sel;
+function gAvancer(){ G.mode.i++; G.vu = null; G.flash = true; }
+function gFacture(canal, petite){   // une facture neuve, envoyée par les mêmes gestes que l'entreprise
+  const mo = petite ? MODELES[1] : MODELES[(S.numFac - 146) % MODELES.length]; S.numFac++;
+  const g = { id:'f' + S.numFac, num:'FAC-2026-0' + S.numFac, cli:mo[0], contact:mo[1], objet:mo[2], ht:mo[3], tva:mo[4] };
+  S.factures.push(g); emettre(g, canal || 'mail');
+  return { g, m:S.boite.at(-1) };
+}
+function gOuvrir(g, m){ if (m) { m.lu = true; S.msg = m.id; } S.fid = g.id; S.depuis = g.canal === 'sms' ? 'sms' : 'boite'; g.vue = g.vue || S.jour; S.ecran = 'facture'; S.vue = 'cli'; }
+function gPret(...moyens){ S.relie = true; moyens.forEach(k => { S.moyens[k] = true; }); S.sel = {}; S.cerr = null; S.cval = null; S.remb = null; S.assist = 0; }
+function gPaye(mode){ const { g, m } = gFacture('mail'); if (m) m.lu = true; const p = nouveauPaiement(g, mode, reste(g)); reussir(p); return { g, p }; }
+function guider(k){
+  if (G.mode && !G.mode.fini && G.mode.avant && !S.tests[G.mode.k]) S.tests[G.mode.k] = true;
+  const avant = !!S.tests[k]; delete S.tests[k];   // on le refait : la case se recoche quand le geste réussit
+  S.nouveauxTests = [];
+  G.mode = { k, i:0, ctx:{}, fini:false, avant };
+  G.mode.ctx = TX[k].prep() || {};
+  S.nouveauxTests = [];
+  G.snap = instantane(); G.cle = null; G.onglet = 'expl'; G.ouvert = false; G.vu = null; G.flash = true;
+  rendre();   // c'est la cible de la première étape qui décide où la page défile (amener), pas un second défilement concurrent
+  toast(`Préparé : ${TX[k].prepTxt}`);
+}
+function arreter(){ const m = G.mode; if (m && !m.fini && m.avant && !S.tests[m.k]) S.tests[m.k] = true; G.mode = null; }
+function prochainTest(){ const ordre = GROUPES.flatMap(g => g[1]), d = G.mode ? ordre.indexOf(G.mode.k) : -1; return [...ordre.slice(d + 1), ...ordre.slice(0, d + 1)].find(k => !S.tests[k]); }
+/* amener un élément sous les yeux : d'abord dans l'écran du téléphone (qui défile seul), puis dans la page */
+function amener(el){
+  if (!el.isConnected || $('barre').contains(el)) return;   // la barre du haut est toujours visible
+  const ecr = $('ecran');
+  if (ecr.contains(el)) { const r = el.getBoundingClientRect(), er = ecr.getBoundingClientRect(); if (r.top < er.top + 8 || r.bottom > er.bottom - 8) ecr.scrollTop += (r.top + r.height / 2) - (er.top + er.height / 2); }
+  const r = el.getBoundingClientRect(), haut = $('barre').offsetHeight, bas = innerHeight - (largeGuide() ? 0 : $('guide').offsetHeight);
+  if (r.top < haut + 8 || r.bottom > bas - 8) scrollBy({ top:(r.top + r.height / 2) - (haut + bas) / 2, behavior:reduit() ? 'auto' : 'smooth' });
+}
+function appliquerCible(){
+  document.querySelectorAll('.cible').forEach(e => e.classList.remove('cible'));
+  G.introuvable = false;
+  const st = gEtape(); if (!st) return;
+  if (etroit() && ['ent', 'cli', 'coul'].includes(st.cote) && S.vue !== st.cote) { S.vue = st.cote; majCote(); }
+  if (st.ong && S.ong !== st.ong) { S.ong = st.ong; rendreEnt(); }
+  const els = [...document.querySelectorAll(gSel(st))].filter(e => e.getClientRects().length);
+  els.forEach(e => e.classList.add('cible'));
+  G.introuvable = !els.length && S.ecran !== 'attente';
+  const cle = G.mode.k + ':' + G.mode.i;
+  if (els[0] && G.vu !== cle) { G.vu = cle; requestAnimationFrame(() => amener(els[0])); }
+}
+function montrer(v){
+  const ou = v[0];
+  if (ou === 'coul') S.vue = 'coul';
+  else if (ou.startsWith('cli:')) { S.ecran = ou.slice(4); S.vue = 'cli'; }
+  else { S.ong = ou; S.vue = 'ent'; }
+  G.ouvert = false; rendre();
+  const el = ou === 'coul' ? $('coul') : ou.startsWith('cli:') ? document.querySelector('.tel') : document.querySelector('.ent');
+  const y = el.getBoundingClientRect().top + scrollY - $('barre').offsetHeight - 12;
+  if (Math.abs(y - scrollY) > 40 && !(ou.startsWith('cli:') && !etroit())) scrollTo({ top:y, behavior:reduit() ? 'auto' : 'smooth' });
+}
+
+/* ─── ce que le clic a changé ─── */
+function lignesNettes(lignes){ const R = {}; lignes.forEach(([c, d, k]) => { R[c] = r2((R[c] || 0) + d - k); }); return Object.entries(R).filter(([, v]) => Math.abs(v) > .004); }
+const ecrituresHtml = E => E.map(e => `<div class="g-ecr"><b>${esc(e.lib)}</b>${lignesNettes(e.lignes).map(([c, v]) => { const s = AU_CREDIT.includes(c) ? -v : v; return `<div class="mvt"><span>${MOTS[c]} <span class="k">· ${c}</span></span><span class="s">${s >= 0 ? '↑ +' : '↓ −'}${eur(Math.abs(s))}</span></div>`; }).join('')}</div>`).join('');
+function depuisHtml(){
+  const s = G.snap; if (!s || s.gen !== S.gen) return '';
+  const ev = S.evts.slice(s.e), E = S.journal.slice(s.j), T = TESTS.filter(t => S.tests[t[0]] && !s.t.includes(t[0]));
+  if (S.ecran === 'attente' && !ev.length) return sec('Ce que ton clic a changé', '<p class="mute">La banque répond… (une seconde)</p>');
+  if (!ev.length && !E.length) return sec('Ce que ton clic a changé', '<p class="mute">Aucun mouvement d’argent, aucune écriture comptable.</p>');
+  const evv = ev.slice(-14);
+  return (T.length ? `<p class="g-ok">✓ Test réussi : ${T.map(t => t[1]).join(', ')}</p>` : '')
+    + (ev.length ? sec('Ce qui vient de se passer', (ev.length > evv.length ? `<p class="petit mute">… et ${ev.length - evv.length} événements plus anciens</p>` : '') + evv.map(e => `<div class="g-evt"><span aria-hidden="true">${e.ic}</span><span>${esc(e.txt)}</span></div>`).join('')) : '')
+    + (E.length ? sec('Les écritures comptables', `<p class="petit mute">↑ augmente, ↓ diminue. Le numéro est celui du plan comptable ; tout est dans l’onglet Comptabilité.</p>${ecrituresHtml(E.slice(-12))}`) : '');
+}
+
+/* ─── l'affichage ─── */
+function gResume(n){
+  const m = G.mode;
+  if (m && m.fini) return ['Test guidé', '✓ Réussi : ' + titreTest(m.k)];
+  if (m) { const st = gEtape(), N = TX[m.k].etapes.length; return [`Test guidé · étape ${Math.min(m.i + 1, N)} sur ${N}`, S.ecran === 'attente' ? 'La banque répond…' : st ? st.t : 'Le test n’est pas coché : reprends-le']; }
+  if (G.onglet === 'tests') return G.test ? ['Test', titreTest(G.test)] : ['Tout tester', `${n} tests réussis sur ${TESTS.length}`];
+  if (G.cle && G.expl) { const ex = exDe(G.cle, G.extra); return ['Tu viens de toucher', ex ? ex.t : G.lib]; }
+  return ['Le guide', 'Touche un bouton : je t’explique à quoi il sert'];
+}
+function carteGuidee(){
+  const m = G.mode, T = TX[m.k];
+  if (m.fini) { const nx = prochainTest();
+    return `<div class="g-carte"><span class="g-sur">Test guidé</span><b class="g-titre">${titreTest(m.k)}</b><p class="g-ok">✓ Réussi : la case est cochée.</p>
+      ${T.voir ? `<p>${T.voir[1]}</p><div class="rangee"><button type="button" class="btn petit" data-guide="voir|${m.k}">Me montrer</button></div>` : ''}
+      <div class="rangee">${nx ? `<button type="button" class="btn plein petit" data-guide="test|${nx}">Test suivant : ${titreTest(nx)}</button>` : '<span class="g-ok">Les 25 tests sont faits.</span>'}<button type="button" class="btn petit" data-guide="stop">Fermer</button></div></div>`; }
+  const st = gEtape(), attend = S.ecran === 'attente';
+  return `<div class="g-carte"><span class="g-sur">Test guidé · étape ${Math.min(m.i + 1, T.etapes.length)} sur ${T.etapes.length}</span><b class="g-titre">${titreTest(m.k)}</b>
+    <ol class="g-etapes"><li class="fait prep"><span>${T.prepTxt}</span></li>${T.etapes.map((e, i) => `<li class="${i < m.i ? 'fait' : i === m.i ? 'en' : ''}"><span>${e.t}${i === m.i ? `<span class="g-ou">${OU[e.cote]}${e.rep ? ' · plusieurs fois si besoin' : ''} · le bouton clignote</span>` : ''}</span></li>`).join('')}</ol>
+    ${attend ? '<p class="mute">La banque répond… (une seconde)</p>' : !st ? '<p class="g-alerte">Les étapes sont passées, mais le test n’est pas coché : un choix a dû être différent. Reprends-le.</p>' : G.introuvable ? '<p class="g-alerte">Je ne vois pas ce bouton à l’écran : tu es peut-être passé par un autre chemin.</p>' : ''}
+    <div class="rangee">${!attend && (!st || G.introuvable) ? `<button type="button" class="btn plein petit" data-guide="prep|${m.k}">Reprendre ce test</button>` : ''}<button type="button" class="btn petit" data-guide="stop">Arrêter le guide</button></div></div>`;
+}
+function ongletExpl(){
+  const bascule = `<div class="g-bascule"><span id="g-lbl">Expliquer chaque clic</span><button type="button" class="inter" role="switch" aria-checked="${G.expl}" aria-labelledby="g-lbl" data-guide="expl"></button></div>`;
+  if (!G.expl) return bascule + '<p class="mute">Les explications des clics sont coupées. La liste des tests et le mode guidé marchent toujours.</p>';
+  if (!G.cle && G.mode) return bascule + '<p class="mute">Chaque geste que tu fais s’expliquera ici, sous le test : à quoi il sert, qui fait quoi, et ce qu’il a changé.</p>';
+  if (!G.cle) return bascule + `<div class="g-sec"><b class="g-titre">Touche n’importe quel bouton</b><p>Côté entreprise, sur le téléphone ou dans les coulisses, chaque bouton s’explique ici : à quoi il sert, qui fait quoi, et ce que ton clic vient de changer, l’argent et les écritures comptables comprises.</p><p>Pour être mené pas à pas, ouvre « Tous les tests » et choisis-en un : le guide prépare la situation, puis fait clignoter le bouton à toucher.</p></div><div class="rangee"><button type="button" class="btn plein" data-guide="ong|tests">Voir les 25 tests</button></div>`;
+  const ex = exDe(G.cle, G.extra) || { t:G.lib || 'Ce bouton', sert:'' };
+  return bascule + `<div class="g-sec"><span class="g-sur">Tu viens de toucher</span><b class="g-titre">${esc(ex.t)}</b></div>`
+    + (ex.sert ? sec('À quoi ça sert', `<p>${ex.sert}</p>`) : '') + (ex.qui ? sec('Qui fait quoi', quiHtml(ex.qui)) : '')
+    + (ex.argent ? sec('L’argent', `<p>${ex.argent}</p>`) : '') + depuisHtml() + (ex.ensuite ? sec('Essaie ensuite', `<p>${ex.ensuite}</p>`) : '');
+}
+function detailTest(k){
+  const T = TX[k], i = TESTS.findIndex(t => t[0] === k) + 1;
+  return `<button type="button" class="g-retour" data-guide="retour">‹ Tous les tests</button>
+    <div class="g-sec"><span class="g-sur">Test ${i} sur ${TESTS.length} · ${S.tests[k] ? '✓ réussi' : 'pas encore fait'}</span><b class="g-titre">${titreTest(k)}</b></div>
+    ${sec('À quoi ça sert', `<p>${T.sert}</p>`)}${sec('Qui fait quoi', quiHtml(T.qui))}${sec('L’argent et la comptabilité', `<p>${T.argent}</p>`)}
+    ${sec('Comment le tester', `<ol class="g-etapes"><li><span>${T.prepTxt}<span class="g-ou">« Préparer et me guider » le fait pour toi</span></span></li>${T.etapes.map(e => `<li><span>${e.t}<span class="g-ou">${OU[e.cote]}</span></span></li>`).join('')}</ol>`)}
+    <div class="rangee"><button type="button" class="btn plein" data-guide="prep|${k}">Préparer et me guider</button></div>
+    <p class="petit mute">Tu peux aussi le faire seul, sans préparer : la case se coche dès que le geste est fait.</p>`;
+}
+function ongletTests(n){
+  if (G.test) return detailTest(G.test);
+  return `<div class="g-sec"><b class="g-titre">Tout tester · ${n} / ${TESTS.length}</b><span class="jauge" aria-hidden="true"><i style="width:${Math.round(n / TESTS.length * 100)}%"></i></span><p>Touche un test : il dit à quoi il sert, qui fait quoi, et peut te mener pas à pas.</p></div>`
+    + GROUPES.map(([g, ks]) => `<div class="g-groupe">${g}</div><ul class="g-liste">${ks.map(k => { const t = TESTS.find(x => x[0] === k); return `<li><button type="button" class="${S.tests[k] ? 'fait' : ''}" data-guide="test|${k}"><span class="pt" aria-hidden="true">${S.tests[k] ? '✓' : ''}</span><span class="g"><b>${t[1]}</b><span>${t[2]}</span></span><span class="chev" aria-hidden="true">›</span></button></li>`; }).join('')}</ul>`).join('');
+}
+function rendreGuide(){
+  const n = TESTS.filter(t => S.tests[t[0]]).length, [sur, titre] = gResume(n), el = $('guide');
+  const html = `<button type="button" class="g-tete" data-guide="plier" aria-expanded="${G.ouvert}"><span class="g-res"><span class="g-sur">${esc(sur)}</span><b>${esc(titre)}</b></span><span class="g-plier">${G.ouvert ? 'Réduire' : 'Lire'}</span></button>
+    <div class="g-ongl"><div class="onglets" role="tablist" aria-label="Le guide"><button type="button" role="tab" data-guide="ong|expl" aria-selected="${G.onglet === 'expl'}">Explication</button><button type="button" role="tab" data-guide="ong|tests" aria-selected="${G.onglet === 'tests'}">Tous les tests · ${n}/${TESTS.length}</button></div></div>
+    <div class="g-corps">${G.mode ? carteGuidee() : ''}${G.onglet === 'tests' ? ongletTests(n) : ongletExpl()}</div>`;
+  el.classList.toggle('ouvert', G.ouvert);
+  if (html !== G.html) { el.innerHTML = html; G.html = html; el.scrollTop = 0; }
+  if (G.flash) { G.flash = false; const t = el.querySelector('.g-tete'); if (t && !G.ouvert && !largeGuide()) { t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); } }
+}
+function guide(){
+  const m = G.mode;
+  if (m && !m.fini) { let st; while ((st = gEtape()) && st.saut && st.saut(m.ctx)) m.i++; if (S.tests[m.k]) { m.fini = true; G.flash = true; G.onglet = 'expl'; } }
+  appliquerCible(); rendreGuide();
+}
+function rendreBarre(){
+  const proche = prochainEvenement(), n = TESTS.filter(t => S.tests[t[0]]).length;
+  $('b-jour').innerHTML = `<span class="lt-l">${jour(S.jour, true)}</span><span class="lt-c">${dObj(S.jour).toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' })}</span>`;
+  $('b-proche').textContent = proche ? 'Prochain événement : ' + jour(proche, true) : 'Rien de prévu pour l’instant';
+  $('b-prochain').disabled = !proche;
+  $('b-tests').innerHTML = `Tests ${n} / ${TESTS.length}<span class="jauge" aria-hidden="true"><i style="width:${Math.round(n / TESTS.length * 100)}%"></i></span>`;
+  document.documentElement.style.setProperty('--haut', $('barre').offsetHeight + 'px');
+}
+
+/* ─── les écouteurs ─── */
+document.addEventListener('click', ev => {   // capture : avant que la page ne se redessine
+  const st = gEtape();
+  if (st && !st.rep && !st.ev && ev.target.closest && ev.target.closest(gSel(st))) G.avance = true;
+  const b = ev.target.closest('[data-act],[data-cli],[data-ong],.cote-sel [data-cote],[data-moyen],#reset'); if (!b) return;
+  if (b.id === 'reset') arreter();
+  if (!G.expl) return;
+  G.cle = cleDe(b); G.extra = extraDe(b, G.cle); G.lib = b.textContent.trim().replace(/\s+/g, ' ').slice(0, 80); G.snap = instantane(); G.onglet = 'expl'; G.flash = true;
+}, true);
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-guide]');
+  if (b) { const [a, x] = b.dataset.guide.split('|');
+    if (a === 'plier') G.ouvert = !G.ouvert;
+    if (a === 'ong') { G.onglet = x; if (x === 'tests') G.test = null; }
+    if (a === 'tests') { G.onglet = 'tests'; G.test = null; G.ouvert = true; }
+    if (a === 'test') { G.onglet = 'tests'; G.test = x; G.ouvert = true; if (G.mode && G.mode.fini) G.mode = null; }
+    if (a === 'retour') G.test = null;
+    if (a === 'expl') G.expl = !G.expl;
+    if (a === 'stop') arreter();
+    if (a === 'prep') return guider(x);
+    if (a === 'voir') return montrer(TX[x].voir);
+  }
+  if (G.avance) { G.avance = false; if (gEtape()) gAvancer(); }
+  guide();
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (['c-test', 's-test', 'x-test'].includes(t.id)) { S.sel[t.id] = t.value; if (G.expl) { G.cle = t.id + '|' + t.value; G.extra = {}; G.snap = instantane(); G.onglet = 'expl'; G.flash = true; } }
+  if (t.id === 'mandat') S.sel.mandat = t.checked;
+  const st = gEtape();
+  if (st && st.ev === 'change' && t.matches(gSel(st)) && (!st.val || t.value === st.val) && (!st.coche || t.checked)) gAvancer();
+  guide();
+});
+document.addEventListener('input', ev => { const st = gEtape(); if (st && st.ev === 'input' && ev.target.matches(gSel(st)) && (!st.ok || st.ok(ev.target))) { gAvancer(); guide(); } });
+addEventListener('resize', () => { document.documentElement.style.setProperty('--haut', $('barre').offsetHeight + 'px'); });
+
+rendre();
+</script>
+
+</body></html>

@@ -5,8 +5,26 @@ coche ici avec sa date et son slug, et ouvre une demande de fusion. **La publica
 2026 : « je veux que les publications soient automatiques et que les images soient gérées avec Gemini ») :
 `.github/workflows/blog-publication.yml` fait dessiner les images par Gemini, refait les pages, repasse les bancs du blog,
 fusionne et publie. Une demande qui touche autre chose que le blog, ou un banc qui tombe, n'est PAS fusionnée.
-Quand il reste moins de cinq sujets non cochés, la tâche en ajoute dix (recherche des questions que posent les entreprises
-de terrain, mots-clés que le site ne couvre pas encore), à la fin de la file.
+Quand il reste moins de cinq sujets non cochés, la tâche ajoute les DEUX SEMAINES suivantes, selon la règle « Un métier
+par semaine » ci-dessous (recherche des questions que posent les patrons de ce métier, mots-clés que le site ne couvre pas
+encore), à la fin de la file.
+
+## Un métier par semaine (Justin, 9 novembre 2026)
+
+« Choisis un métier qu'on n'a pas encore fait, et ça serait bien qu'on varie toutes les semaines un métier. » La file se
+range par SEMAINE : les trois articles d'une semaine (lundi, mercredi, vendredi) parlent du MÊME métier, et la semaine
+suivante passe à un autre. Un sujet commun à tous les métiers (pointage, bon de commande, devis…) s'écrit sous l'angle du
+métier de la semaine, avec ses exemples. On prend d'abord les métiers qu'aucun article n'a encore traités (liste « Métiers
+à venir », dans l'ordre), parmi ceux qu'OP GESTION propose. Chaque semaine commence par un titre `### Semaine du <date> —
+<métier>` ; la tâche continue de prendre simplement le premier sujet non coché.
+
+Déjà traités : interventions et planning (tous métiers), plomberie (6 novembre), 3D (9 novembre).
+
+Métiers à venir, dans l'ordre : sécurité incendie, ramonage, paysagiste / espaces verts, assainissement / vidange,
+portes et portails automatiques, photovoltaïque et bornes de recharge, froid commercial / frigoriste, menuiserie,
+peinture / revêtements, couverture / zinguerie, maçonnerie / gros œuvre, multiservices / maintenance, ascenseurs.
+Pour un métier sans page `logiciel-….html`, citer `/metiers.html`, `/op-gestion.html` et la page du thème (planning,
+devis-factures, pointage…).
 
 Ajouter un sujet : une ligne `- [ ] mot-clé visé — angle — page du site à citer`. L'ordre de la liste est l'ordre de
 publication.
@@ -49,9 +67,28 @@ publication.
 - [x] facture d'intervention — 2026-11-04 — `facture-d-intervention`
 - [x] logiciel plombier — 2026-11-06 — `logiciel-plombier`
 - [x] registre sanitaire 3D — 2026-11-09 — `registre-sanitaire-3d`
+
+### Semaine du 9 novembre — Électricité (le lundi : registre sanitaire 3D, déjà parti ; mardi 10, exceptionnellement, un article de plus)
+- [ ] logiciel électricien — interventions, dépannages, mises en conformité, devis — /logiciel-electricien.html
+- [ ] attestation de conformité Consuel — quand l'électricien en a besoin, comment la préparer, ce qu'il garde au dossier — /logiciel-electricien.html
+- [ ] mise en conformité électrique d'un logement — diagnostic, travaux, ce que l'électricien remet au client — /logiciel-electricien.html
+
+### Semaine du 16 novembre — Nettoyage / propreté
 - [ ] logiciel entreprise de nettoyage — passages récurrents, contrôle qualité, sites multiples — /logiciel-nettoyage.html
-- [ ] contrat d'entretien — chaudière, climatisation : obligations, relances, planification — /logiciel-chauffage-climatisation.html
-- [ ] logiciel électricien — interventions, conformité, devis — /logiciel-electricien.html
-- [ ] pointage des heures techniciens — feuille d'heures, durée légale, nuits, équipes — /logiciel-pointage.html
-- [ ] bon de commande fournisseur — mentions, suivi des livraisons, lien avec le stock — /logiciel-bons-de-commande.html
-- [ ] devis artisan — mentions obligatoires, durée de validité, acompte — /logiciel-devis-factures.html
+- [ ] contrat de nettoyage de bureaux — fréquences, cahier des charges, contrôle qualité, révision du prix — /logiciel-nettoyage.html
+- [ ] pointage des heures des agents de propreté — horaires décalés, plusieurs sites, durée légale — /logiciel-pointage.html
+
+### Semaine du 23 novembre — Chauffage
+- [ ] contrat d'entretien de chaudière — obligation annuelle, relances, planification des visites — /logiciel-chauffage-climatisation.html
+- [ ] attestation d'entretien de chaudière — ce qu'elle contient, le délai pour la remettre, combien de temps la garder — /logiciel-chauffage-climatisation.html
+- [ ] devis chauffagiste — mentions obligatoires, TVA des travaux de rénovation, acompte, durée de validité — /logiciel-devis-factures.html
+
+### Semaine du 30 novembre — Climatisation / pompes à chaleur
+- [ ] entretien de climatisation et de pompe à chaleur — ce qui est obligatoire, à quelle fréquence, chez qui — /logiciel-chauffage-climatisation.html
+- [ ] fluides frigorigènes — attestation de capacité, fiche d'intervention, contrôle d'étanchéité — /logiciel-chauffage-climatisation.html
+- [ ] bon de commande fournisseur pour un climaticien — pièces, délais, suivi des livraisons, lien avec le stock — /logiciel-bons-de-commande.html
+
+### Semaine du 7 décembre — Serrurerie
+- [ ] dépannage en serrurerie — information du client avant l'intervention, devis, prix — /logiciel-devis-factures.html
+- [ ] logiciel serrurier — urgences, planning des dépanneurs, devis et factures sur place — /metiers.html
+- [ ] facture de dépannage — mentions, déplacement, main-d'œuvre, pièces, délai de paiement — /logiciel-devis-factures.html
