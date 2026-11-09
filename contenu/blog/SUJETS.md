@@ -68,9 +68,10 @@ publication.
 - [x] logiciel plombier — 2026-11-06 — `logiciel-plombier`
 - [x] registre sanitaire 3D — 2026-11-09 — `registre-sanitaire-3d`
 
-### Semaine du 9 novembre — Électricité (le lundi : registre sanitaire 3D, déjà parti)
+### Semaine du 9 novembre — Électricité (le lundi : registre sanitaire 3D, déjà parti ; mardi 10, exceptionnellement, un article de plus)
 - [ ] logiciel électricien — interventions, dépannages, mises en conformité, devis — /logiciel-electricien.html
 - [ ] attestation de conformité Consuel — quand l'électricien en a besoin, comment la préparer, ce qu'il garde au dossier — /logiciel-electricien.html
+- [ ] mise en conformité électrique d'un logement — diagnostic, travaux, ce que l'électricien remet au client — /logiciel-electricien.html
 
 ### Semaine du 16 novembre — Nettoyage / propreté
 - [ ] logiciel entreprise de nettoyage — passages récurrents, contrôle qualité, sites multiples — /logiciel-nettoyage.html
