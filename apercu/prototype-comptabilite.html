@@ -1,0 +1,1410 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>
+<title>Comptabilité Clim Services 17</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex,nofollow">
+<style>
+/* Mise en page : un logiciel de comptabilité. Menu des rubriques à gauche (sur téléphone, un tiroir), le travail au centre,
+   le détail d'une écriture, d'une pièce ou d'un compte dans un panneau qui glisse à droite. Police du système, comme
+   OP GESTION ; chiffres alignés (tabulaires), numéros de comptes et codes de lettrage en chasse fixe : on lit des colonnes. */
+:root{
+  --bg:#f2f4f7; --surf:#ffffff; --surf2:#eef1f5; --surf3:#e6eaf0; --ink:#121b2a; --mute:#5a6578; --faible:#7b8597; --line:#dde2ea; --line2:#c9d0db;
+  --accent:#0a5fc2; --accent-ink:#ffffff; --accent-bg:#e7f0fb;
+  --ok:#17804f; --ok-bg:#e2f3ea; --warn:#9a5600; --warn-bg:#fcefd9; --bad:#b4332a; --bad-bg:#fbe6e3; --essai:#6b45a8; --essai-bg:#efe8fa;
+  --debit:#121b2a; --credit:#121b2a; --ombre:0 1px 2px rgba(18,27,42,.06),0 8px 24px rgba(18,27,42,.07); --voile:rgba(18,27,42,.34);
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:14px; --menu:252px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e141c; --surf:#161f2b; --surf2:#1c2734; --surf3:#233040; --ink:#e8edf4; --mute:#a2adbd; --faible:#8792a3; --line:#2a3646; --line2:#3a485b;
+  --accent:#5ea2ff; --accent-ink:#06121f; --accent-bg:#14263d;
+  --ok:#4fd295; --ok-bg:#123224; --warn:#f2a94e; --warn-bg:#352610; --bad:#ff8378; --bad-bg:#3b1815; --essai:#c4a6ff; --essai-bg:#2a2140;
+  --debit:#e8edf4; --credit:#e8edf4; --ombre:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35); --voile:rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --surf:#161f2b; --surf2:#1c2734; --surf3:#233040; --ink:#e8edf4; --mute:#a2adbd; --faible:#8792a3; --line:#2a3646; --line2:#3a485b;
+  --accent:#5ea2ff; --accent-ink:#06121f; --accent-bg:#14263d;
+  --ok:#4fd295; --ok-bg:#123224; --warn:#f2a94e; --warn-bg:#352610; --bad:#ff8378; --bad-bg:#3b1815; --essai:#c4a6ff; --essai-bg:#2a2140;
+  --debit:#e8edf4; --credit:#e8edf4; --ombre:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35); --voile:rgba(0,0,0,.55); color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:15.5px/1.5 var(--f);margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+h1{font-size:28px;line-height:1.15;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:18px;margin:0;text-wrap:balance}
+h3{font-size:15.5px;margin:0}
+p{margin:0}
+.mute{color:var(--mute)}.petit{font-size:13.5px}.n,.num{font-variant-numeric:tabular-nums}.mono{font-family:var(--mono);font-size:.92em}
+[hidden]{display:none!important}
+.seul-tel{display:none!important}
+.cache-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ─── la charpente ─── */
+.app{display:grid;grid-template-columns:var(--menu) minmax(0,1fr);min-height:100vh}
+.menu{position:sticky;top:0;height:100vh;overflow:auto;background:var(--surf);border-right:1px solid var(--line);padding:16px 12px 24px;display:flex;flex-direction:column;gap:2px}
+.marque{display:flex;gap:10px;align-items:center;padding:4px 8px 14px}
+.marque i{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 13px/1 var(--f);font-style:normal;letter-spacing:.02em;flex:none}
+.marque b{display:block;font-size:15px}.marque small{color:var(--mute);font-size:12.5px}
+.menu .grp{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faible);padding:14px 10px 4px}
+.menu a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;color:var(--ink);text-decoration:none;font-size:14.5px;min-height:38px}
+.menu a:hover{background:var(--surf2)}
+.menu a[aria-current="page"]{background:var(--accent-bg);color:var(--accent);font-weight:650}
+.menu a .nb{margin-left:auto;min-width:22px;height:20px;padding:0 6px;border-radius:999px;background:var(--warn-bg);color:var(--warn);font-size:12px;font-weight:700;display:grid;place-items:center}
+.menu a .nb.ok{background:var(--ok-bg);color:var(--ok)}
+.menu svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.centre{min-width:0;display:flex;flex-direction:column}
+.barre{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(20px,env(safe-area-inset-left,0px));display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;min-height:58px}
+.barre .ouvrir-menu{display:none}
+.barre .dossier{display:flex;flex-direction:column;line-height:1.25}.barre .dossier b{font-size:14.5px}.barre .dossier span{font-size:12.5px;color:var(--mute)}
+.barre .puces{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.puce{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--surf);border:1px solid var(--line);font-size:13px;white-space:nowrap}
+.puce i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.puce.ouvert i{background:var(--warn)}
+.contenu{padding:24px max(16px,env(safe-area-inset-right,0px)) 64px max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:18px;max-width:1440px;width:100%}
+.tete{display:flex;gap:12px 20px;align-items:flex-end;flex-wrap:wrap}
+.tete>div:first-child{flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.surtitre{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.tete .actions{display:flex;gap:8px;flex-wrap:wrap}
+.consigne{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--r);background:var(--accent-bg);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+.consigne b{display:block}.consigne .x{margin-left:auto}
+
+/* ─── les pièces de base ─── */
+.carte{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0}
+.carte>h2,.carte>h3{margin-bottom:10px}
+.grille{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.kpi{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0;text-align:left}
+button.kpi:hover{border-color:var(--line2)}
+@media (min-width:1001px){.kpis.six{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.kpi span{font-size:13px;color:var(--mute)}.kpi b{font-size:24px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}.kpi small{font-size:12.5px;color:var(--mute)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 16px;border-radius:10px;border:1px solid transparent;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:14.5px;white-space:nowrap;text-decoration:none}
+.btn:hover{filter:brightness(1.06)}
+.btn.gris{background:var(--surf);color:var(--ink);border-color:var(--line2)}
+.btn.gris:hover{background:var(--surf2);filter:none}
+.btn.danger{background:var(--surf);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.btn.petit{min-height:32px;padding:0 11px;font-size:13.5px;border-radius:8px}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed;filter:none}
+.lien{background:none;border:0;padding:0;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.st{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:650;white-space:nowrap;background:var(--surf2);color:var(--mute)}
+.st.ok{background:var(--ok-bg);color:var(--ok)}.st.warn{background:var(--warn-bg);color:var(--warn)}.st.bad{background:var(--bad-bg);color:var(--bad)}.st.info{background:var(--accent-bg);color:var(--accent)}.st.essai{background:var(--essai-bg);color:var(--essai)}
+.jn{display:inline-grid;place-items:center;min-width:30px;height:22px;padding:0 6px;border-radius:6px;background:var(--surf3);font:700 11.5px/1 var(--mono);letter-spacing:.02em}
+.let{font:700 12px/1 var(--mono);color:var(--ok)}
+.seg{display:inline-flex;flex-wrap:wrap;gap:4px;padding:3px;border-radius:11px;background:var(--surf2);border:1px solid var(--line)}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--mute);min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--surf);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.outils{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.champ{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute);font-weight:600;min-width:0}
+.saisie,.champ input,.champ select,.champ textarea{min-height:40px;border:1px solid var(--line2);border-radius:9px;background:var(--surf);padding:0 10px;font-size:15px;font-weight:400;color:var(--ink);width:100%}
+.champ textarea{padding:8px 10px;min-height:70px}
+.case{display:flex;gap:8px;align-items:center;font-size:14.5px;min-height:36px}
+.case input{width:18px;height:18px;accent-color:var(--accent)}
+.info{padding:11px 14px;border-radius:12px;background:var(--accent-bg);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);font-size:14.5px}
+.alerte{padding:11px 14px;border-radius:12px;background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);font-size:14.5px}
+.erreur{padding:11px 14px;border-radius:12px;background:var(--bad-bg);border:1px solid color-mix(in srgb,var(--bad) 30%,transparent);color:var(--ink);font-size:14.5px}
+.bon{padding:11px 14px;border-radius:12px;background:var(--ok-bg);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);font-size:14.5px}
+.vide{padding:28px;text-align:center;color:var(--mute)}
+
+/* ─── les tableaux comptables ─── */
+.defile{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:var(--r);background:var(--surf)}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+.t th{text-align:left;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faible);padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surf);position:sticky;top:0;white-space:nowrap}
+.t td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.t tr:last-child td{border-bottom:0}
+.t td.n,.t th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t td.c{white-space:nowrap}
+.t tbody tr.clic{cursor:pointer}.t tbody tr.clic:hover td{background:var(--surf2)}
+.t tr.total td{font-weight:700;background:var(--surf2);border-top:1px solid var(--line2)}
+.t tr.sous td{background:color-mix(in srgb,var(--surf2) 55%,transparent);font-weight:650}
+.t tr.essai td{background:color-mix(in srgb,var(--essai-bg) 55%,transparent)}
+.t tr.brouil td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.t input.saisie{min-height:34px;font-size:14px;padding:0 8px}
+.t .compte{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.t td .sec{display:block;font-size:12.5px;color:var(--mute)}
+
+/* ─── le panneau de détail ─── */
+.voile{position:fixed;inset:0;background:var(--voile);z-index:40;display:flex;justify-content:flex-end;animation:fondu .18s ease}
+.panneau{width:min(760px,100%);height:100%;overflow:auto;background:var(--bg);border-left:1px solid var(--line);box-shadow:var(--ombre);padding:20px max(20px,env(safe-area-inset-right,0px)) 40px 22px;display:flex;flex-direction:column;gap:14px;animation:glisse .26s cubic-bezier(.32,.72,0,1)}
+.panneau.large{width:min(1040px,100%)}
+.panneau .haut{display:flex;gap:10px;align-items:flex-start}
+.panneau .haut>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.fermer{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surf);font-size:18px;flex:none;display:grid;place-items:center}
+@keyframes fondu{from{opacity:0}}@keyframes glisse{from{transform:translateX(40px);opacity:.6}}
+@media (prefers-reduced-motion:reduce){.voile,.panneau{animation:none}}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-size:14.5px;z-index:60;max-width:min(560px,calc(100% - 32px));box-shadow:var(--ombre);pointer-events:none}
+
+/* ─── la pièce justificative (un document fictif) ─── */
+.doc{background:#fff;color:#1b2330;border:1px solid #d7dce4;border-radius:10px;padding:18px 20px;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.doc .dtete{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #e3e7ee;padding-bottom:10px;margin-bottom:10px}
+.doc b{color:#111}.doc table{width:100%;border-collapse:collapse;margin-top:8px}.doc td,.doc th{padding:5px 4px;border-bottom:1px solid #eef1f5;text-align:left}.doc .n{text-align:right}
+.doc .tot{margin-left:auto;width:min(260px,100%);margin-top:8px}.doc .tot div{display:flex;justify-content:space-between;padding:2px 0}.doc .tot div:last-child{font-weight:700;border-top:1px solid #d7dce4;padding-top:5px}
+
+/* ─── l'équilibre d'une écriture ─── */
+.balance-ecr{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:14px}
+.balance-ecr .ecart{font-weight:700}
+.balance-ecr .ecart.ok{color:var(--ok)}.balance-ecr .ecart.ko{color:var(--bad)}
+
+/* ─── les étapes (à faire, clôture) ─── */
+.etapes{display:flex;flex-direction:column}
+.etape{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.etape:last-child{border-bottom:0}
+.etape .rond{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;font-size:13px;font-weight:800;background:var(--surf2);color:var(--mute);border:1px solid var(--line)}
+.etape.ok .rond{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.etape .txt{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:1px}
+.etape.ok .txt b{color:var(--mute);font-weight:600}
+
+/* ─── le bilan ─── */
+.bilan{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.graph svg{width:100%;height:auto;display:block}
+.graph text{fill:var(--mute);font-size:11px;font-family:var(--f)}
+
+/* ─── le parcours d'essai ─── */
+.essais{display:flex;flex-direction:column;gap:8px}
+.essai-l{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--surf);border:1px solid var(--line);flex-wrap:wrap}
+.essai-l .rond{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none;font-weight:800;font-size:13px;background:var(--surf2);color:var(--mute)}
+.essai-l.ok .rond{background:var(--ok-bg);color:var(--ok)}
+.essai-l .txt{flex:1 1 280px;min-width:0}
+
+/* ─── téléphone et tablette ─── */
+@media (max-width:1000px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .menu{position:fixed;inset:0 auto 0 0;width:min(300px,86vw);z-index:50;transform:translateX(-105%);transition:transform .25s cubic-bezier(.32,.72,0,1);box-shadow:var(--ombre);padding-top:calc(16px + env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px))}
+  body.menu-ouvert .menu{transform:none}
+  body.menu-ouvert::after{content:"";position:fixed;inset:0;background:var(--voile);z-index:45}
+  .barre .ouvrir-menu{display:inline-flex}
+  .g3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:700px){
+  h1{font-size:23px}
+  .g2,.g3,.bilan{grid-template-columns:minmax(0,1fr)}
+  .contenu{padding-top:18px;gap:14px}
+  .barre .puces{margin-left:0;width:100%}
+  .kpi b{font-size:20px}
+  .panneau{padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .t{font-size:13.5px}.t td,.t th{padding:8px 9px}
+  .masque-tel{display:none}
+  .seul-tel{display:block!important}
+  .barre .puce.exo,.barre .dossier span{display:none}
+  .carte{padding:14px}
+  .kpis.six{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (pointer:coarse){.btn.petit{min-height:40px}.seg button{min-height:40px}}
+</style>
+<div class="app"><nav class="menu" id="menu" aria-label="Rubriques"></nav><div class="centre"><header class="barre" id="barre"></header><main class="contenu" id="contenu" tabindex="-1"></main></div></div>
+<div id="calque"></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script>
+/* ══ LE MOTEUR COMPTABLE — partie double, journaux, lettrage, TVA, immobilisations, clôtures ══
+   Une écriture = des lignes au débit et au crédit qui s'équilibrent. Tant qu'elle est au BROUILLARD, on la corrige ou on la
+   supprime ; une fois VALIDÉE, elle reçoit son numéro définitif dans son journal et ne se modifie plus : on la contrepasse
+   (principe d'intangibilité, PCG art. 420-5 — à faire confirmer). Une période CLÔTURÉE ne reçoit plus aucune écriture.
+   Tout est calculé en centimes pour qu'aucune somme ne dérive. Données fictives (Clim Services 17, l'entreprise du prototype
+   OP GESTION) : dix mois d'activité, de janvier au 31 octobre 2026. */
+const AUJ = '2026-10-31';
+const EXO = { debut:'2026-01-01', fin:'2026-12-31', annee:2026, prec:'2025' };
+const DOSSIER = { nom:'Clim Services 17', forme:'SARL au capital de 10 000 €', siren:'123456789', siret:'123 456 789 00012', adr:'4 rue du Port, 17000 La Rochelle',
+  ape:'43.22B · Travaux d’installation d’équipements thermiques et de climatisation', cab:'Cabinet Atlantique Conseil', cabQui:'Claire Moreau', moi:'Julie Petit',
+  tva:'Régime réel normal · déclaration mensuelle (CA3)', exig:'TVA sur les encaissements (prestations de services)', is:'Impôt sur les sociétés' };
+const r2 = x => Math.round((+x || 0) * 100) / 100;
+const cts = x => Math.round((+x || 0) * 100);
+const eur = (n, z) => (n === 0 && z ? '—' : (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €');
+const nb = n => n.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+const dObj = d => new Date(d + 'T12:00:00');
+const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+const ajoute = (d, n) => { const x = dObj(d); x.setDate(x.getDate() + n); return iso(x); };
+const finMois = ym => iso(new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0, 12));
+const ouvre = d => { const w = dObj(d).getDay(); return w === 6 ? ajoute(d, 2) : w === 0 ? ajoute(d, 1) : d; };
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const MOIS_C = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const nomMois = ym => MOIS[+ym.slice(5, 7) - 1] + ' ' + ym.slice(0, 4);
+const dCourt = d => d ? d.slice(8) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
+const dJM = d => d ? d.slice(8) + '/' + d.slice(5, 7) : '';
+const jours = (a, b) => Math.round((dObj(b) - dObj(a)) / 864e5);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]);
+
+/* ─── le plan comptable (Plan comptable général, comptes à six chiffres) ─── */
+const PCG = [
+  ['101000', 'Capital social'], ['106100', 'Réserve légale'], ['106800', 'Autres réserves'], ['110000', 'Report à nouveau'], ['120000', 'Résultat de l’exercice (bénéfice)'], ['129000', 'Résultat de l’exercice (perte)'],
+  ['164000', 'Emprunts auprès des banques'],
+  ['215400', 'Matériel et outillage'], ['218200', 'Matériel de transport'], ['218300', 'Matériel de bureau et informatique'],
+  ['281540', 'Amortissements du matériel et outillage'], ['281820', 'Amortissements du matériel de transport'], ['281830', 'Amortissements du matériel informatique'],
+  ['310000', 'Stock de matériel et fournitures'],
+  ['401000', 'Fournisseurs'], ['404000', 'Fournisseurs d’immobilisations'], ['408000', 'Fournisseurs · factures non parvenues'],
+  ['411000', 'Clients'], ['418000', 'Clients · factures à établir'],
+  ['421000', 'Personnel · rémunérations dues'], ['428200', 'Dettes provisionnées pour congés à payer'],
+  ['431000', 'Sécurité sociale (URSSAF)'], ['437000', 'Autres organismes sociaux (retraite, prévoyance)'], ['438200', 'Charges sociales sur congés à payer'],
+  ['442100', 'Prélèvement à la source'], ['444000', 'État · impôt sur les sociétés'],
+  ['445510', 'TVA à décaisser'], ['445620', 'TVA déductible sur immobilisations'], ['445660', 'TVA déductible sur autres biens et services'], ['445670', 'Crédit de TVA à reporter'],
+  ['445710', 'TVA collectée'], ['445740', 'TVA collectée en attente d’encaissement'], ['445860', 'TVA sur factures non parvenues'], ['445870', 'TVA sur factures à établir'],
+  ['467100', 'Prestataire de paiement (cartes)'], ['471000', 'Compte d’attente'], ['486000', 'Charges constatées d’avance'], ['487000', 'Produits constatés d’avance'],
+  ['511200', 'Chèques à encaisser'], ['512000', 'Banque'], ['530000', 'Caisse'],
+  ['601000', 'Achats de matériel et fournitures'], ['603100', 'Variation des stocks de matériel'], ['606100', 'Carburant'], ['606300', 'Petit outillage'], ['606400', 'Fournitures administratives'],
+  ['613200', 'Loyer du local'], ['613500', 'Location de véhicule'], ['615500', 'Entretien des véhicules'], ['616000', 'Assurances'], ['622600', 'Honoraires'], ['623000', 'Publicité'], ['625100', 'Déplacements et péages'],
+  ['626000', 'Téléphone et internet'], ['627000', 'Frais bancaires'], ['635110', 'Cotisation foncière des entreprises'],
+  ['641000', 'Salaires'], ['641200', 'Congés payés'], ['645000', 'Charges sociales'], ['661100', 'Intérêts des emprunts'], ['681100', 'Dotations aux amortissements'], ['695000', 'Impôt sur les sociétés'],
+  ['706000', 'Prestations de services'], ['708500', 'Déplacements refacturés'], ['709000', 'Remises accordées']
+].map(([n, l]) => ({ n, l }));
+const cpt = n => PCG.find(c => c.n === n);
+const libCpt = n => (cpt(n) || {}).l || n;
+const COLLECTIFS = { '411000':'clients', '401000':'fournisseurs', '404000':'fournisseurs' };
+
+/* ─── les journaux ─── */
+const JOURNAUX = { VE:'Ventes', AC:'Achats', BQ:'Banque', CA:'Caisse', PS:'Paiements par carte', OD:'Opérations diverses', PA:'Paie', AN:'À-nouveaux' };
+
+/* ─── les tiers : les clients du prototype OP GESTION, et d'autres ─── */
+const CLIENTS = [
+  ['C-VIEUXPORT', 'Restaurant Le Vieux Port', 'pro'], ['C-HOTELPLAGE', 'Hôtel de la Plage', 'pro'], ['C-DURAND', 'M. et Mme Durand', 'part'], ['C-MIMOSAS', 'Copropriété Les Mimosas', 'pro'],
+  ['C-DENTAIRE', 'Cabinet dentaire Martin', 'pro'], ['C-CAMPING', 'Camping Les Pins', 'pro'], ['C-ROUX', 'Mme Roux', 'part'], ['C-BONNET', 'M. Bonnet', 'part'], ['C-GARNIER', 'Mme Garnier', 'part'],
+  ['C-FAURE', 'M. et Mme Faure', 'part'], ['C-MOREAU', 'Boulangerie Moreau', 'pro'], ['C-PHARMA', 'Pharmacie du Marché', 'pro'], ['C-REMPARTS', 'SCI Les Remparts', 'pro'],
+  ['C-LAMBERT', 'Mme Lambert', 'part'], ['C-CHEVALIER', 'M. Chevalier', 'part'], ['C-CRECHE', 'Crèche Les Moussaillons', 'pro'], ['C-OCEANE', 'Agence Océane Immobilier', 'pro'],
+  ['C-PERRIN', 'M. Perrin', 'part'], ['C-GIRARD', 'Mme Girard', 'part'], ['C-MOUETTES', 'Hôtel Les Mouettes', 'pro']
+].map(([k, nom, type]) => ({ k, nom, type, c:'411000' }));
+const FOURNISSEURS = [
+  ['F-CDO', 'Clim Distribution Ouest', '401000'], ['F-FPA', 'Frigo Pièces Atlantique', '401000'], ['F-EP17', 'Électricité Pro 17', '401000'], ['F-SCI', 'SCI du Port (loyer)', '401000'],
+  ['F-CAB', 'Cabinet Atlantique Conseil', '401000'], ['F-ATL', 'Atlantel (téléphone, internet)', '401000'], ['F-GAR', 'Garage du Port', '401000'], ['F-LLD', 'Loueur Utilitaires Atlantique', '401000'], ['F-ASS', 'Mutuelle des Artisans du Littoral', '401000'],
+  ['F-IMP', 'Imprimerie Rochelaise', '401000'], ['F-OUT', 'Outillage Froid Services', '404000'], ['F-INF', 'Informatique Littoral', '404000']
+].map(([k, nom, c]) => ({ k, nom, c }));
+const TIERS = [...CLIENTS, ...FOURNISSEURS];
+const tiers = k => TIERS.find(t => t.k === k);
+const nomTiers = k => (tiers(k) || {}).nom || k;
+
+/* ─── l'état du dossier ─── */
+const E = [];                                  // toutes les écritures
+const PER = {};                                // 'AAAA-MM' → 'cloturee'
+const TVA_DECL = {};                           // 'AAAA-MM' → { decl:date, paye:date, l:{…} }
+const RELEVE = [];                             // le relevé de la banque : { id, date, lib, m (+ crédit, − débit), ref, pointe:ligneRef|null }
+const PIECES = [];                             // les pièces reçues à traiter
+const IMMOS = [];                              // le registre des immobilisations
+const JOURNAL_ACTIONS = [];                    // la piste d'audit : qui a fait quoi
+let SEQ = 0, LET_SEQ = {};
+
+function ecr(o){
+  const e = { id:'e' + (++SEQ), j:o.j, date:o.date, piece:o.piece || '', lib:o.lib, etat:o.etat || 'valide', orig:o.orig || 'saisie', ech:o.ech || null, pj:o.pj === undefined ? (o.piece ? o.piece + '.pdf' : null) : o.pj,
+    num:null, valideLe:null, creeLe:o.creeLe || o.date, par:o.par || DOSSIER.moi, essai:!!o.essai, contre:o.contre || null, note:o.note || '', banque:o.banque || null,
+    lignes:o.l.filter(x => x).map(([c, aux, d, cr, lib, t]) => ({ c, aux:aux || null, d:r2(d), cr:r2(cr), lib:lib || o.lib, let:null, dlet:null, t:t || null })) };
+  E.push(e); return e;
+}
+const ref = (e, i) => e.id + ':' + i;
+const ligne = r => { const [id, i] = r.split(':'); const e = E.find(x => x.id === id); return e && e.lignes[+i]; };
+const ecrDe = r => E.find(x => x.id === r.split(':')[0]);
+const equilibre = e => e.lignes.reduce((s, l) => s + cts(l.d) - cts(l.cr), 0) === 0;
+const totalD = e => r2(e.lignes.reduce((s, l) => s + cts(l.d), 0) / 100);
+const periodeClose = d => PER[d.slice(0, 7)] === 'cloturee';
+
+/* ─── les lectures : soldes, balance, comptes ─── */
+/* opts : du, au (dates incluses), brouillard (true par défaut), essai (false par défaut : la répétition de clôture n'entre que si on le demande) */
+function lignesDe(filtre, o){
+  o = o || {}; const R = [];
+  for (const e of E) {
+    if (e.etat === 'supprimee') continue;
+    if (e.essai && !o.essai) continue;
+    if (e.etat === 'brouillard' && o.brouillard === false) continue;
+    if (o.du && e.date < o.du) continue;
+    if (o.au && e.date > o.au) continue;
+    if (o.j && e.j !== o.j) continue;
+    e.lignes.forEach((l, i) => { if (filtre(l, e)) R.push({ e, l, i, r:ref(e, i) }); });
+  }
+  return R;
+}
+const soldeCts = (prefixe, o) => lignesDe(l => l.c.startsWith(prefixe), o).reduce((s, x) => s + cts(x.l.d) - cts(x.l.cr), 0);
+const solde = (prefixe, o) => soldeCts(prefixe, o) / 100;                               // débit − crédit
+const soldeTiersCts = (aux, o) => lignesDe(l => l.aux === aux, o).reduce((s, x) => s + cts(x.l.d) - cts(x.l.cr), 0);
+function balance(o){
+  const B = {};
+  for (const x of lignesDe(() => true, o)) { const b = B[x.l.c] || (B[x.l.c] = { n:x.l.c, d:0, c:0 }); b.d += cts(x.l.d); b.c += cts(x.l.cr); }
+  return Object.values(B).sort((a, b) => a.n.localeCompare(b.n)).map(b => ({ n:b.n, l:libCpt(b.n), d:b.d / 100, c:b.c / 100, s:(b.d - b.c) / 100 }));
+}
+
+/* ─── valider, contrepasser, supprimer ─── */
+const NUMS = {};
+function prochainNum(j){ NUMS[j] = (NUMS[j] || 0) + 1; return j + '-' + EXO.annee + '-' + String(NUMS[j]).padStart(5, '0'); }
+function trace(quoi, o){ JOURNAL_ACTIONS.unshift({ le:o && o.le || (AUJ + ' ' + horloge()), par:DOSSIER.moi, quoi, ref:o && o.ref || '' }); }
+let MIN = 10 * 60 + 40; const horloge = () => { MIN = Math.min(MIN + 1, 23 * 60); return String(Math.floor(MIN / 60)).padStart(2, '0') + ':' + String(MIN % 60).padStart(2, '0'); };
+function refusEcriture(e){
+  if (!e.lignes.length) return 'L’écriture n’a aucune ligne.';
+  if (e.lignes.some(l => !cpt(l.c))) return 'Un compte n’existe pas dans le plan comptable.';
+  if (e.lignes.some(l => l.d < 0 || l.cr < 0)) return 'Un montant est négatif : inverse le débit et le crédit.';
+  if (e.lignes.some(l => l.d && l.cr)) return 'Une ligne porte à la fois un débit et un crédit.';
+  if (e.lignes.some(l => !l.d && !l.cr)) return 'Une ligne n’a pas de montant.';
+  if (!equilibre(e)) return `L’écriture ne s’équilibre pas : ${eur(totalD(e))} au débit, ${eur(r2(e.lignes.reduce((s, l) => s + cts(l.cr), 0) / 100))} au crédit.`;
+  if (e.lignes.some(l => COLLECTIFS[l.c] && !l.aux)) return 'Une ligne sur un compte de clients ou de fournisseurs doit dire de qui il s’agit.';
+  if (!e.essai && e.date < EXO.debut) return 'Cette date est avant le début de l’exercice.';
+  if (!e.essai && periodeClose(e.date)) return `${nomMois(e.date.slice(0, 7))} est clôturé : aucune écriture ne peut plus y entrer.`;
+  if (!e.essai && e.date > AUJ) return 'Une écriture ne se date pas dans le futur.';
+  return '';
+}
+/* l'empreinte d'une écriture validée : si une ligne bougeait après coup, le contrôle le verrait */
+function empreinte(e){ const t = JSON.stringify([e.j, e.date, e.num, e.piece, e.lib, e.lignes.map(l => [l.c, l.aux, l.d, l.cr, l.lib])]); let h = 2166136261; for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619) >>> 0; return h.toString(16).padStart(8, '0'); }
+function valider(e){
+  if (e.etat !== 'brouillard') return 'Elle est déjà validée.';
+  const r = refusEcriture(e); if (r) return r;
+  e.etat = 'valide'; e.num = prochainNum(e.j); e.valideLe = AUJ; e.emp = empreinte(e); trace(`Écriture validée ${e.num}`, { ref:e.id }); return '';
+}
+function contrepasser(e, date){
+  const c = ecr({ j:e.j, date:date || e.date, piece:e.piece, lib:'Contrepassation · ' + e.lib, etat:'brouillard', orig:'contrepassation', contre:e.id, pj:e.pj,
+    l:e.lignes.map(l => [l.c, l.aux, l.cr, l.d, 'Contrepassation · ' + l.lib, l.t && { ...l.t, base:-l.t.base }]) });
+  e.contrePar = c.id; trace(`Contrepassation de ${e.num || e.id} préparée au brouillard`, { ref:c.id }); return c;
+}
+function supprimer(e){
+  if (e.etat !== 'brouillard') return 'Une écriture validée ne se supprime pas : contrepasse-la.';
+  e.lignes.forEach((l, i) => { if (l.let) delettrer(l.aux, l.let); });
+  e.etat = 'supprimee'; trace('Écriture du brouillard supprimée', { ref:e.id }); return '';
+}
+
+/* ─── le lettrage : rapprocher, sur un compte de tiers, une facture et son paiement ─── */
+function codeSuivant(aux){ const n = LET_SEQ[aux] = (LET_SEQ[aux] || 0) + 1; let s = '', k = n; while (k > 0) { k--; s = String.fromCharCode(65 + k % 26) + s; k = Math.floor(k / 26); } return s; }
+function lettrer(refs, date){
+  const L = refs.map(ligne); if (L.some(l => !l || !l.aux)) return { err:'Choisis des lignes d’un compte de client ou de fournisseur.' };
+  if (new Set(L.map(l => l.aux)).size > 1) return { err:'Les lignes doivent être du même client ou du même fournisseur.' };
+  if (L.some(l => l.let)) return { err:'Une des lignes est déjà lettrée.' };
+  const s = L.reduce((a, l) => a + cts(l.d) - cts(l.cr), 0); if (s !== 0) return { err:`Les lignes choisies ne s’annulent pas : il reste ${eur(s / 100)}. Le lettrage rapproche une facture et ce qui la paie, pour le même montant.` };
+  const code = codeSuivant(L[0].aux); L.forEach(l => { l.let = code; l.dlet = date || AUJ; }); return { code };
+}
+function delettrer(aux, code){ lignesDe(l => l.aux === aux && l.let === code, { essai:true }).forEach(x => { x.l.let = null; x.l.dlet = null; }); }
+const nonLettrees = (aux, o) => lignesDe(l => l.aux === aux && !l.let, o);
+/* lettrage automatique : une facture et un paiement du même montant, la référence de pièce d'abord, puis le montant seul */
+function lettrageAuto(aux){
+  let n = 0; const L = nonLettrees(aux).filter(x => x.e.etat === 'valide');
+  const deb = L.filter(x => x.l.d), cre = L.filter(x => x.l.cr);
+  for (const a of deb) { if (a.l.let) continue;
+    const b = cre.find(x => !x.l.let && cts(x.l.cr) === cts(a.l.d) && x.e.piece && x.e.piece === a.e.piece) || cre.find(x => !x.l.let && cts(x.l.cr) === cts(a.l.d));
+    if (b) { const r = lettrer([a.r, b.r], b.e.date > a.e.date ? b.e.date : a.e.date); if (!r.err) n++; } }
+  return n;
+}
+
+/* ─── les immobilisations : amortissement linéaire, au prorata du temps (année de 360 jours) ─── */
+const DUREES = { '215400':5, '218200':5, '218300':3 };
+const AMORT = { '215400':'281540', '218200':'281820', '218300':'281830' };
+function jours360(a, b){ const [y1, m1, d1] = a.split('-').map(Number), [y2, m2, d2] = b.split('-').map(Number); return (y2 - y1) * 360 + (m2 - m1) * 30 + (Math.min(d2, 30) - Math.min(d1, 30)) + 1; }
+function amortCumule(im, au){
+  if (au < im.date) return 0; const fin = ajoute(im.date, im.duree * 365); const j = Math.min(jours360(im.date, au), im.duree * 360);
+  return r2(Math.min(im.val, im.val * j / (im.duree * 360)));
+}
+const dotation = (im, du, au) => r2(amortCumule(im, au) - amortCumule(im, ajoute(du, -1)));
+function planAmort(im){ const P = []; let cum = 0; for (let a = +im.date.slice(0, 4); cum < im.val - .005 && a < +im.date.slice(0, 4) + im.duree + 2; a++) { const d = dotation(im, a + '-01-01', a + '-12-31'); cum = r2(cum + d); P.push({ a, d, cum, vnc:r2(im.val - cum) }); } return P; }
+
+/* ─── la TVA du mois : ce qui a été encaissé (collectée) et ce qui se déduit, à partir des comptes ─── */
+function tvaMois(ym){
+  const du = ym + '-01', au = finMois(ym), o = { du, au, brouillard:true };
+  const col = lignesDe(l => l.c === '445710' && l.t, o).filter(x => x.e.orig !== 'tva');
+  const parTaux = {}; col.forEach(x => { const t = x.l.t.taux, p = parTaux[t] || (parTaux[t] = { base:0, tva:0 }); p.base += cts(x.l.t.base); p.tva += cts(x.l.cr) - cts(x.l.d); });
+  const dedImmo = lignesDe(l => l.c === '445620', o).filter(x => x.e.orig !== 'tva').reduce((s, x) => s + cts(x.l.d) - cts(x.l.cr), 0);
+  const dedAbs = lignesDe(l => l.c === '445660', o).filter(x => x.e.orig !== 'tva').reduce((s, x) => s + cts(x.l.d) - cts(x.l.cr), 0);
+  const brute = Object.values(parTaux).reduce((s, p) => s + p.tva, 0), ded = dedImmo + dedAbs;
+  const credPrec = (() => { const p = TVA_DECL[moisPrec(ym)]; return p && p.l && p.l.credit ? cts(p.l.credit) : 0; })();
+  const nette = brute - ded - credPrec;
+  return { ym, parTaux:Object.fromEntries(Object.entries(parTaux).map(([t, p]) => [t, { base:p.base / 100, tva:p.tva / 100 }])), baseTot:Object.values(parTaux).reduce((s, p) => s + p.base, 0) / 100,
+    brute:brute / 100, dedImmo:dedImmo / 100, dedAbs:dedAbs / 100, ded:ded / 100, credPrec:credPrec / 100, due:Math.max(0, nette) / 100, credit:Math.max(0, -nette) / 100 };
+}
+const moisPrec = ym => { const [a, m] = ym.split('-').map(Number); return m === 1 ? (a - 1) + '-12' : a + '-' + String(m - 1).padStart(2, '0'); };
+const moisSuiv = ym => { const [a, m] = ym.split('-').map(Number); return m === 12 ? (a + 1) + '-01' : a + '-' + String(m + 1).padStart(2, '0'); };
+function tvaLiquider(ym, o){
+  const T = tvaMois(ym); o = o || {};
+  const e = ecr({ j:'OD', date:finMois(ym), piece:'CA3-' + ym, lib:'TVA de ' + nomMois(ym) + ' · déclaration CA3', orig:'tva', etat:o.etat || 'valide', pj:'CA3-' + ym + '.pdf',
+    l:[T.brute && ['445710', null, T.brute, 0, 'TVA collectée de ' + nomMois(ym)], T.dedAbs > 0 && ['445660', null, 0, T.dedAbs, 'TVA déductible de ' + nomMois(ym)], T.dedAbs < 0 && ['445660', null, -T.dedAbs, 0, 'TVA déductible (avoirs) de ' + nomMois(ym)],
+      T.dedImmo && ['445620', null, 0, T.dedImmo, 'TVA déductible sur immobilisations'], T.credPrec && ['445670', null, 0, T.credPrec, 'Crédit de TVA reporté'],
+      T.due && ['445510', null, 0, T.due, 'TVA à payer'], T.credit && ['445670', null, T.credit, 0, 'Crédit de TVA à reporter']] });
+  TVA_DECL[ym] = { ...(TVA_DECL[ym] || {}), liq:e.id, l:T };
+  return e;
+}
+
+/* ─── la banque : le relevé et le rapprochement ─── */
+const lignes512 = o => lignesDe(l => l.c === '512000', o);
+function soldeReleve(au){ return r2(RELEVE.filter(r => r.date <= au).reduce((s, r) => s + cts(r.m), 0) / 100 + SOLDE_BANQUE_AN); }
+let SOLDE_BANQUE_AN = 0;
+function etatRapprochement(au){
+  const pointees = new Set(RELEVE.filter(r => r.pointe).map(r => r.pointe));
+  const comptaNonReleve = lignes512({ au }).filter(x => x.e.orig !== 'an' && !pointees.has(x.r));
+  const releveNonCompta = RELEVE.filter(r => r.date <= au && !r.pointe);
+  return { compta:solde('512000', { au }), releve:soldeReleve(au), comptaNonReleve, releveNonCompta };
+}
+/* ══ LES DONNÉES DU DOSSIER — dix mois de Clim Services 17, fabriqués une fois, toujours les mêmes ══
+   Ventes venues d'OP GESTION (installations, entretiens, dépannages), achats, banque, caisse, cartes, paie, emprunt, TVA, impôt.
+   Janvier à septembre sont clôturés ; octobre est en cours, avec ce qu'un vrai mois laisse à faire : des pièces reçues à traiter,
+   des lignes de banque à rapprocher, des factures au brouillard, la TVA à préparer. Tout est fictif. */
+(() => {
+  let graine = 20261031;
+  const rnd = () => { graine = graine + 0x6D2B79F5 | 0; let t = Math.imul(graine ^ graine >>> 15, 1 | graine); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const entre = (a, b, pas) => Math.round((a + rnd() * (b - a)) / (pas || 1)) * (pas || 1);
+  const choix = L => L[Math.floor(rnd() * L.length)];
+  const jourOuvre = (ym, min, max) => { for (let k = 0; k < 40; k++) { const d = ym + '-' + String(entre(min || 1, max || +finMois(ym).slice(8))).padStart(2, '0'); if (dObj(d).getDay() % 6) return d; } return ouvre(ym + '-0' + (min || 1)); };
+  const tvaDe = (ht, taux) => { const ttc = r2(ht * (1 + taux / 100)); return { ht:r2(ht), tva:r2(ttc - ht), ttc }; };
+  const MOISA = Array.from({ length:10 }, (_, i) => '2026-' + String(i + 1).padStart(2, '0'));
+
+  /* ─── le registre des immobilisations et l'emprunt du second fourgon ─── */
+  IMMOS.push(
+    { id:'I1', lib:'Fourgon utilitaire n° 1', c:'218200', date:'2023-03-15', val:28500, duree:5, fourn:'Concession utilitaires' },
+    { id:'I2', lib:'Fourgon utilitaire n° 2', c:'218200', date:'2025-06-10', val:31200, duree:5, fourn:'Concession utilitaires' },
+    { id:'I3', lib:'Station de récupération des fluides et détecteur de fuites', c:'215400', date:'2024-02-01', val:4800, duree:5, fourn:'Outillage Froid Services' },
+    { id:'I4', lib:'Ordinateurs du bureau', c:'218300', date:'2025-09-01', val:2400, duree:3, fourn:'Informatique Littoral' });
+  const EMP = { capital:30000, taux:4.2, n:60, debut:'2025-07-10' }; const ti = EMP.taux / 1200, mens = r2(EMP.capital * ti / (1 - Math.pow(1 + ti, -EMP.n)));
+  const echeancier = []; { let crd = EMP.capital; for (let k = 0; k < EMP.n; k++) { const d = ouvre(iso(new Date(2025, 6 + k, 10, 12))), int = r2(crd * ti), cap = k === EMP.n - 1 ? crd : r2(mens - int); crd = r2(crd - cap); echeancier.push({ d, int, cap, crd }); } }
+  window.EMPRUNT = { ...EMP, mens, echeancier };
+  const crd2025 = echeancier.filter(x => x.d <= '2025-12-31').slice(-1)[0].crd;
+
+  /* ─── les à-nouveaux : le bilan du 31 décembre 2025 ─── */
+  const ouvertsClients = [['C-HOTELPLAGE', 'FAC-2025-0149', '2025-12-15', 2200, 20, '2026-01-12', 'vir'], ['C-GARNIER', 'FAC-2025-0151', '2025-12-19', 900, 10, '2026-01-09', 'chq'], ['C-MIMOSAS', 'FAC-2025-0153', '2025-12-22', 1290, 20, '2026-01-27', 'vir']];
+  const ouvertsFourn = [['F-CDO', 'CDO-77412', '2025-12-18', 4400, '2026-01-30'], ['F-FPA', 'FPA-4410', '2025-12-20', 620, '2026-01-20']];
+  const anL = [];
+  const brut = c => IMMOS.filter(i => i.c === c).reduce((s, i) => s + i.val, 0), amCum = c => r2(IMMOS.filter(i => i.c === c).reduce((s, i) => s + amortCumule(i, '2025-12-31'), 0));
+  ['218200', '215400', '218300'].forEach(c => { anL.push([c, null, brut(c), 0, 'À-nouveau']); anL.push([AMORT[c], null, 0, amCum(c), 'À-nouveau']); });
+  anL.push(['310000', null, 6200, 0, 'Stock au 31/12/2025']);
+  let attente = 0;
+  ouvertsClients.forEach(([k, p, d, ht, t]) => { const v = tvaDe(ht, t); anL.push(['411000', k, v.ttc, 0, p + ' · ' + nomTiers(k)]); attente += cts(v.tva); });
+  ouvertsFourn.forEach(([k, p, d, ht]) => { const v = tvaDe(ht, 20); anL.push(['401000', k, 0, v.ttc, p + ' · ' + nomTiers(k)]); });
+  SOLDE_BANQUE_AN = 67900;
+  anL.push(['512000', null, SOLDE_BANQUE_AN, 0, 'Banque au 31/12/2025'], ['530000', null, 420, 0, 'Caisse au 31/12/2025']);
+  anL.push(['445740', null, 0, attente / 100, 'TVA en attente sur factures non encaissées'], ['445510', null, 0, 3950, 'TVA de décembre 2025'],
+    ['431000', null, 0, 4980, 'URSSAF de décembre 2025'], ['437000', null, 0, 1950, 'Retraite de décembre 2025'], ['442100', null, 0, 510, 'Prélèvement à la source de décembre 2025'],
+    ['444000', null, 0, 1375, 'Solde de l’impôt sur les sociétés 2025'], ['428200', null, 0, 11200, 'Congés payés acquis au 31/12/2025'], ['438200', null, 0, 4704, 'Charges sur congés payés au 31/12/2025'], ['164000', null, 0, crd2025, 'Capital restant dû'],
+    ['101000', null, 0, 10000, 'Capital'], ['106100', null, 0, 1000, 'Réserve légale'], ['106800', null, 0, 8000, 'Autres réserves'], ['120000', null, 0, 41525, 'Résultat 2025']);
+  const ecart = anL.reduce((s, l) => s + cts(l[2]) - cts(l[3]), 0);
+  anL.push(['110000', null, ecart < 0 ? -ecart / 100 : 0, ecart > 0 ? ecart / 100 : 0, 'Report à nouveau']);
+  ecr({ j:'AN', date:'2026-01-01', piece:'AN-2026', lib:'À-nouveaux de l’exercice 2026', orig:'an', pj:'Bilan-2025.pdf', l:anL });
+  const tvaEnc = (v, t, lib) => [['445740', null, v.tva, 0, 'TVA à encaisser · ' + lib], ['445710', null, 0, v.tva, 'TVA collectée · ' + lib, { taux:t, base:v.ht }]];
+  ouvertsClients.forEach(([k, p, d, ht, t, pay, mode]) => { const v = tvaDe(ht, t);
+    ecr({ j:'BQ', date:pay, piece:p, lib:(mode === 'vir' ? 'Virement ' : 'Chèque ') + nomTiers(k), orig:'banque', pj:null, l:[['512000', null, v.ttc, 0], ['411000', k, 0, v.ttc, p + ' · ' + nomTiers(k)], ...tvaEnc(v, t, p)] }); });
+  ouvertsFourn.forEach(([k, p, d, ht, pay]) => { const v = tvaDe(ht, 20); ecr({ j:'BQ', date:ouvre(pay), piece:p, lib:'Virement ' + nomTiers(k), orig:'banque', pj:null, l:[['401000', k, v.ttc, 0, p + ' · ' + nomTiers(k)], ['512000', null, 0, v.ttc]] }); });
+  ecr({ j:'BQ', date:'2026-01-19', piece:'CA3-2025-12', lib:'Paiement de la TVA de décembre 2025', orig:'banque', pj:null, l:[['445510', null, 3950, 0], ['512000', null, 0, 3950]] });
+  [['431000', 4980, 'URSSAF'], ['437000', 1950, 'Retraite complémentaire'], ['442100', 510, 'DGFiP · prélèvement à la source']].forEach(([c, m, l]) => ecr({ j:'BQ', date:'2026-01-15', piece:'DSN-2025-12', lib:l + ' · décembre 2025', orig:'banque', pj:null, l:[[c, null, m, 0], ['512000', null, 0, m]] }));
+  ecr({ j:'BQ', date:'2026-05-15', piece:'IS-2025', lib:'Solde de l’impôt sur les sociétés 2025', orig:'banque', pj:'Releve-IS-2025.pdf', l:[['444000', null, 1375, 0], ['512000', null, 0, 1375]] });
+  ecr({ j:'OD', date:'2026-06-30', piece:'AGO-2026', lib:'Affectation du résultat 2025 (assemblée du 26 juin)', orig:'saisie', pj:'PV-AGO-2026.pdf', l:[['120000', null, 41525, 0], ['106800', null, 0, 41525]] });
+  ['2026-03-16', '2026-06-15', '2026-09-15'].forEach((d, k) => ecr({ j:'BQ', date:d, piece:'IS-AC' + (k + 1), lib:`Acompte d’impôt sur les sociétés n° ${k + 1}`, orig:'banque', pj:null, l:[['444000', null, 2044, 0], ['512000', null, 0, 2044]] }));
+
+  /* ─── les ventes : générées puis numérotées sans trou ; la facture des Durand reste la FAC-2026-0128 ─── */
+  const VOL = [11, 11, 13, 14, 16, 17, 17, 15, 15, 14];
+  const FACT = [];
+  const nouvelleFacture = (ym, force) => {
+    const c = force && force.cli ? CLIENTS.find(x => x.k === force.cli) : choix(CLIENTS), type = force && force.type || (rnd() < .5 ? 'install' : rnd() < .5 ? 'entretien' : 'depannage');
+    const ht = force && force.ht || (type === 'install' ? entre(2600, 8600, 10) : type === 'entretien' ? entre(160, 420, 5) : entre(95, 380, 5));
+    const taux = force && force.taux || (c.type === 'part' ? 10 : 20), date = force && force.date || jourOuvre(ym);
+    return { cli:c.k, type, ...tvaDe(ht, taux), taux, date, ech:ajoute(date, c.type === 'part' ? 15 : 30), force };
+  };
+  MOISA.forEach((ym, k) => { for (let n = 0; n < VOL[k]; n++) FACT.push(nouvelleFacture(ym)); });
+  const durand = { cli:'C-DURAND', type:'install', ht:1127.27, taux:10, date:'2026-09-26', special:'durand' };
+  FACT.push({ ...nouvelleFacture('2026-09', durand), special:'durand', ech:'2026-10-26', ouverte:true, relances:2, lib:'Remplacement d’un split mural' });
+  // payées par virement fin octobre : sur le relevé de la banque, pas encore dans la comptabilité
+  FACT.push({ ...nouvelleFacture('2026-10', { cli:'C-BONNET', type:'depannage', ht:240, taux:10, date:'2026-10-14' }), ouverte:true, virFin:'2026-10-27' });
+  FACT.push({ ...nouvelleFacture('2026-09', { cli:'C-MIMOSAS', type:'entretien', ht:410, taux:20, date:'2026-09-25' }), ouverte:true, virFin:'2026-10-28' });
+  // l'Hôtel de la Plage règle deux factures d'un seul virement, le 30 octobre
+  FACT.push({ ...nouvelleFacture('2026-10', { cli:'C-HOTELPLAGE', type:'entretien', ht:420, taux:20, date:'2026-10-06' }), ouverte:true, virFin:'2026-10-30', groupe:'hp' });
+  FACT.push({ ...nouvelleFacture('2026-10', { cli:'C-HOTELPLAGE', type:'depannage', ht:185, taux:20, date:'2026-10-13' }), ouverte:true, virFin:'2026-10-30', groupe:'hp' });
+  // deux paiements par carte la semaine du 19 octobre : le prestataire les versera le 27, net de ses frais
+  FACT.push({ ...nouvelleFacture('2026-10', { cli:'C-ROUX', type:'depannage', ht:185, taux:10, date:'2026-10-12' }), payForce:{ mode:'carte', d:'2026-10-20' } });
+  FACT.push({ ...nouvelleFacture('2026-10', { cli:'C-LAMBERT', type:'entretien', ht:190, taux:10, date:'2026-10-15' }), payForce:{ mode:'carte', d:'2026-10-22' } });
+  FACT.push({ ...nouvelleFacture('2026-08', { cli:'C-CAMPING', type:'install', ht:6400, taux:20, date:'2026-08-28' }), ouverte:true, relances:1, lib:'Installation de 4 climatiseurs, accueil et sanitaires' });
+  FACT.push({ ...nouvelleFacture('2026-10', { cli:'C-VIEUXPORT', type:'entretien', ht:380, taux:20, date:'2026-10-02' }), ouverte:true });
+  FACT.sort((a, b) => a.date.localeCompare(b.date));
+  // la facture des Durand doit être la 128e : on ajuste le nombre de petites factures d'entretien avant elle
+  const trier = () => FACT.sort((a, b) => a.date.localeCompare(b.date) || (a.special === 'durand') - (b.special === 'durand'));
+  trier();
+  for (let k = 0; k < 300; k++) {
+    const avant = FACT.findIndex(f => f.special === 'durand'); if (avant === 127) break;
+    if (avant < 127) FACT.push(nouvelleFacture(choix(MOISA.slice(0, 8)), { type:'entretien' }));
+    else FACT.splice(FACT.findIndex(f => f.date < '2026-09-01' && f.type !== 'install' && !f.force), 1);
+    trier();
+  }
+  FACT.forEach((f, i) => { f.num = 'FAC-2026-' + String(i + 1).padStart(4, '0'); });
+  window.FACTURES = FACT;
+  const LIB = { install:['Installation d’un climatiseur réversible', 'Pose d’une pompe à chaleur air-air', 'Installation multi-split, 3 pièces', 'Remplacement d’une unité extérieure'], entretien:['Entretien annuel de la climatisation', 'Visite d’entretien, contrat annuel', 'Contrôle d’étanchéité et nettoyage des filtres'], depannage:['Dépannage, recharge en fluide', 'Dépannage, remplacement d’un condensateur', 'Dépannage, fuite d’eau sur l’unité intérieure'] };
+  const paiementsCarte = [];
+  const cheques = [];
+  FACT.forEach(f => {
+    f.lib = f.lib || choix(LIB[f.type]);
+    const brouillard = f.date >= '2026-10-26';
+    ecr({ j:'VE', date:f.date, piece:f.num, lib:f.lib + ' · ' + nomTiers(f.cli), orig:'opgestion', etat:brouillard ? 'brouillard' : 'valide', ech:f.ech, creeLe:f.date, par:'OP GESTION (facturation)',
+      l:[['411000', f.cli, f.ttc, 0, f.num + ' · ' + nomTiers(f.cli)], ['706000', null, 0, f.ht, f.lib], ['445740', null, 0, f.tva, 'TVA ' + String(f.taux).replace('.', ',') + ' % à encaisser']] });
+    f.ecr = E[E.length - 1].id;
+    if (brouillard) f.ouverte = true;
+    if (f.ouverte) return;
+    const c = tiers(f.cli), r = rnd();
+    let mode = c.type === 'part' ? (r < .35 ? 'vir' : r < .65 ? 'carte' : r < .95 ? 'chq' : 'esp') : (r < .8 ? 'vir' : r < .95 ? 'chq' : 'carte');
+    if (mode === 'esp' && f.ttc > 320) mode = 'chq';
+    const delai = c.type === 'part' ? entre(0, 18) : entre(10, 45) + (rnd() < .06 ? 20 : 0);
+    let pay = ouvre(ajoute(f.date, delai));
+    if (f.payForce) { mode = f.payForce.mode; pay = f.payForce.d; }
+    else if (mode === 'carte' && pay >= '2026-10-19' && pay <= '2026-10-25') pay = '2026-10-26';
+    if (pay > AUJ) { f.ouverte = true; return; }
+    f.paye = pay; f.mode = mode;
+    const v = { ht:f.ht, tva:f.tva, ttc:f.ttc }, t = tvaEnc(v, f.taux, f.num);
+    if (mode === 'vir') ecr({ j:'BQ', date:pay, piece:f.num, lib:'Virement ' + nomTiers(f.cli), orig:'banque', pj:null, l:[['512000', null, f.ttc, 0], ['411000', f.cli, 0, f.ttc, f.num + ' · ' + nomTiers(f.cli)], ...t] });
+    else if (mode === 'carte') { ecr({ j:'PS', date:pay, piece:f.num, lib:'Paiement par carte (lien de paiement) · ' + nomTiers(f.cli), orig:'carte', pj:null, l:[['467100', null, f.ttc, 0], ['411000', f.cli, 0, f.ttc, f.num + ' · ' + nomTiers(f.cli)], ...t] }); paiementsCarte.push({ d:pay, m:f.ttc }); }
+    else if (mode === 'chq') { ecr({ j:'BQ', date:pay, piece:f.num, lib:'Chèque reçu · ' + nomTiers(f.cli), orig:'banque', pj:null, l:[['511200', null, f.ttc, 0], ['411000', f.cli, 0, f.ttc, f.num + ' · ' + nomTiers(f.cli)], ...t] }); cheques.push({ d:pay, m:f.ttc }); }
+    else ecr({ j:'CA', date:pay, piece:f.num, lib:'Règlement en espèces · ' + nomTiers(f.cli), orig:'caisse', pj:null, l:[['530000', null, f.ttc, 0], ['411000', f.cli, 0, f.ttc, f.num + ' · ' + nomTiers(f.cli)], ...t] });
+  });
+  // remises de chèques : chaque vendredi ; la dernière (30 octobre) n'est créditée que le 2 novembre
+  const vendredis = []; for (let d = '2026-01-02'; d <= AUJ; d = ajoute(d, 1)) if (dObj(d).getDay() === 5) vendredis.push(d);
+  vendredis.forEach(v => { const C = cheques.filter(c => c.d <= v && c.d > ajoute(v, -7)); if (!C.length) return; const m = r2(C.reduce((s, c) => s + cts(c.m), 0) / 100);
+    ecr({ j:'BQ', date:v, piece:'REM-' + v.replace(/-/g, '').slice(2), lib:`Remise de ${C.length} chèque${C.length > 1 ? 's' : ''} en banque`, orig:'banque', pj:'Bordereau-remise.pdf', l:[['512000', null, m, 0], ['511200', null, 0, m]], banque:ouvre(ajoute(v, 1)) }); });
+  // versements du prestataire de paiement : chaque mardi, les paiements de la semaine d'avant, moins ses frais (1,4 % + 0,25 € par paiement, fictifs)
+  const mardis = []; for (let d = '2026-01-06'; d <= AUJ; d = ajoute(d, 1)) if (dObj(d).getDay() === 2) mardis.push(d);
+  window.VERSEMENTS = [];
+  mardis.forEach(t => { const P = paiementsCarte.filter(p => p.d < ajoute(t, -1) && p.d >= ajoute(t, -8)); if (!P.length) return;
+    const brutC = P.reduce((s, p) => s + cts(p.m), 0), frais = P.reduce((s, p) => s + Math.round(cts(p.m) * .014) + 25, 0), net = brutC - frais;
+    const v = { d:t, brut:brutC / 100, frais:frais / 100, net:net / 100, n:P.length };
+    if (t === '2026-10-27') { VERSEMENTS.push({ ...v, passe:false }); return; }
+    VERSEMENTS.push({ ...v, passe:true });
+    ecr({ j:'BQ', date:t, piece:'PSP-' + t.replace(/-/g, '').slice(2), lib:`Versement du prestataire de paiement (${P.length} paiement${P.length > 1 ? 's' : ''} par carte)`, orig:'banque', pj:'Releve-prestataire.pdf', l:[['512000', null, net / 100, 0], ['627000', null, frais / 100, 0, 'Frais du prestataire de paiement'], ['467100', null, 0, brutC / 100]] }); });
+  // dépôts d'espèces : le dernier vendredi du mois, en gardant 300 € de fond de caisse
+  MOISA.forEach(ym => { const v = vendredis.filter(d => d.slice(0, 7) === ym).slice(-1)[0]; if (!v || v > AUJ) return; const s = solde('530000', { au:v }); if (s <= 300) return; const m = r2(s - 300);
+    ecr({ j:'BQ', date:v, piece:'DEP-' + ym.replace('-', ''), lib:'Dépôt d’espèces en banque', orig:'banque', pj:'Bordereau-depot.pdf', l:[['512000', null, m, 0], ['530000', null, 0, m]] }); });
+
+  /* ─── les achats et les frais ─── */
+  const achat = (k, date, ht, c, lib, o) => { o = o || {}; const v = tvaDe(ht, o.taux === undefined ? 20 : o.taux), p = o.piece || (k.slice(2) + '-' + entre(10000, 99999));
+    const e = ecr({ j:'AC', date, piece:p, lib:lib + ' · ' + nomTiers(k), orig:'achat', ech:o.ech || ajoute(finMois(date.slice(0, 7)), 30), pj:p + '.pdf',
+      l:[[c, null, v.ht, 0, lib], v.tva && [c.startsWith('2') ? '445620' : '445660', null, v.tva, 0, 'TVA déductible', { taux:20, base:v.ht }], [tiers(k).c, k, 0, v.ttc, p + ' · ' + nomTiers(k)]] });
+    if (o.paye !== false) { const pay = ouvre(o.paye || e.ech); if (pay <= AUJ) ecr({ j:'BQ', date:pay, piece:p, lib:(o.mode || 'Virement') + ' ' + nomTiers(k), orig:'banque', pj:null, l:[[tiers(k).c, k, v.ttc, 0, p + ' · ' + nomTiers(k)], ['512000', null, 0, v.ttc]], banque:o.banque }); }
+    return e; };
+  const NCDO = [3, 3, 4, 4, 4, 5, 4, 3, 4, 3];
+  MOISA.forEach((ym, k) => {
+    for (let n = 0; n < NCDO[k]; n++) achat('F-CDO', jourOuvre(ym), entre(2800, 6200, 10), '601000', choix(['Unités murales et groupes extérieurs', 'Pompe à chaleur air-air et accessoires', 'Climatiseurs gainables', 'Cassettes et platines']));
+    for (let n = 0; n < 1 + (rnd() < .6 ? 1 : 0); n++) achat('F-FPA', jourOuvre(ym), entre(180, 900, 5), '601000', choix(['Fluide R32 et raccords', 'Pièces détachées, condensateurs', 'Liaisons frigorifiques et isolants']));
+    achat('F-EP17', jourOuvre(ym), entre(120, 600, 5), '601000', 'Câbles, disjoncteurs, goulottes');
+    achat('F-LLD', ym + '-02', 590, '613500', 'Location longue durée du fourgon n° 3 · ' + nomMois(ym), { piece:'LLD-' + ym.replace('-', ''), paye:ym + '-08', mode:'Prélèvement' });
+    achat('F-SCI', ym + '-01', 850, '613200', 'Loyer du local · ' + nomMois(ym), { piece:'LOY-' + ym.replace('-', ''), paye:ym + '-05', mode:'Prélèvement' });
+    achat('F-CAB', finMois(ym), 290, '622600', 'Honoraires comptables · ' + nomMois(ym), { piece:'CAB-' + ym.replace('-', ''), paye:moisSuiv(ym) + '-10', mode:'Prélèvement' });
+    if (ym !== '2026-10') achat('F-ATL', ym + '-03', 85, '626000', 'Téléphone et internet · ' + nomMois(ym), { piece:'ATL-' + ym.replace('-', ''), paye:ym + '-06', mode:'Prélèvement' });
+    // carburant : deux pleins par semaine, payés à la carte de l'entreprise
+    for (let d = ym + '-01'; d <= finMois(ym) && d <= '2026-10-28'; d = ajoute(d, 1)) if ([1, 4].includes(dObj(d).getDay())) {
+      const ttc = entre(5500, 11000) / 100, ht = r2(ttc / 1.2), tva = r2(ttc - ht);
+      ecr({ j:'BQ', date:d, piece:'CB-' + d.replace(/-/g, '').slice(2), lib:'Carburant · fourgon ' + (dObj(d).getDay() === 1 ? 'n° 1' : 'n° 2'), orig:'banque', pj:'Ticket-carburant.jpg', l:[['606100', null, ht, 0, 'Gazole'], ['445660', null, tva, 0, 'TVA déductible', { taux:20, base:ht }], ['512000', null, 0, ttc]] }); }
+    const peage = entre(1200, 3800) / 100; ecr({ j:'BQ', date:jourOuvre(ym), piece:'PEAGE-' + ym.replace('-', ''), lib:'Péages du mois', orig:'banque', pj:'Releve-telepeage.pdf', l:[['625100', null, r2(peage / 1.2), 0], ['445660', null, r2(peage - r2(peage / 1.2)), 0, 'TVA déductible', { taux:20, base:r2(peage / 1.2) }], ['512000', null, 0, peage]] });
+    ecr({ j:'BQ', date:ouvre(ym + '-02'), piece:'FRAIS-' + ym.replace('-', ''), lib:'Frais de tenue de compte', orig:'banque', pj:'Releve-banque.pdf', l:[['627000', null, 24.9, 0], ['512000', null, 0, 24.9]] });
+    // l'échéance de l'emprunt du second fourgon
+    const ech = echeancier.find(x => x.d.slice(0, 7) === ym); if (ech) ecr({ j:'BQ', date:ech.d, piece:'PRET-' + ym.replace('-', ''), lib:'Échéance du prêt du fourgon n° 2', orig:'banque', pj:'Tableau-amortissement-pret.pdf', l:[['164000', null, ech.cap, 0, 'Capital remboursé'], ['661100', null, ech.int, 0, 'Intérêts'], ['512000', null, 0, r2(ech.cap + ech.int)]] });
+  });
+  achat('F-GAR', '2026-02-17', 285, '615500', 'Révision du fourgon n° 1', { paye:'2026-03-02' });
+  achat('F-GAR', '2026-06-09', 610, '615500', 'Pneus et freins du fourgon n° 2', { paye:'2026-06-24' });
+  achat('F-GAR', '2026-09-22', 340, '615500', 'Révision du fourgon n° 2', { paye:'2026-10-07' });
+  achat('F-GAR', '2026-10-14', 196, '615500', 'Vidange du fourgon n° 1', { piece:'GAR-55190', paye:'2026-10-29', mode:'Chèque n° 1245 à', banque:'2026-11-03' });
+  achat('F-ASS', '2026-04-01', 4800, '616000', 'Assurance responsabilité décennale et flotte, du 1er avril 2026 au 31 mars 2027', { taux:0, piece:'MAL-2026-118', paye:'2026-04-06', mode:'Prélèvement' });
+  achat('F-IMP', '2026-03-12', 650, '623000', 'Flyers et cartes de visite', { paye:'2026-03-31' });
+  achat('F-OUT', '2026-05-12', 1850, '215400', 'Pompe à vide et manifold électronique', { piece:'OFS-2231', paye:'2026-06-10' });
+  IMMOS.push({ id:'I5', lib:'Pompe à vide et manifold électronique', c:'215400', date:'2026-05-12', val:1850, duree:5, fourn:'Outillage Froid Services' });
+  ecr({ j:'OD', date:'2026-02-27', piece:'PETIT-OUT', lib:'Petit outillage acheté en magasin', orig:'saisie', pj:'Ticket-magasin.jpg', l:[['606300', null, 140, 0], ['445660', null, 28, 0, 'TVA déductible', { taux:20, base:140 }], ['512000', null, 0, 168]] });
+
+  /* ─── la paie : le journal du cabinet, chaque fin de mois (octobre arrive en pièce à traiter) ─── */
+  const BRUTS = { 'Marc Leblanc':3800, 'Julie Petit':2300, 'Sophie Martin':2450, 'Karim Benali':2900, 'Léa Roux':2400, 'Tom Leroy':2200 };
+  window.PAIE_MOIS = {};
+  const paieDe = ym => { const sup = entre(380, 1250, 5), brutT = Object.values(BRUTS).reduce((s, b) => s + b, 0) + sup;
+    const sal1 = r2(brutT * .15), sal2 = r2(brutT * .07), pat1 = r2(brutT * .18), pat2 = r2(brutT * .09), pas = r2(brutT * .035), net = r2(brutT - sal1 - sal2 - pas);
+    return { ym, brut:brutT, sup, sal1, sal2, pat1, pat2, pas, net, urssaf:r2(sal1 + pat1), retraite:r2(sal2 + pat2), patron:r2(pat1 + pat2) }; };
+  const lignesPaie = p => [['641000', null, p.brut, 0, 'Salaires bruts · ' + nomMois(p.ym)], ['645000', null, p.patron, 0, 'Charges patronales'], ['421000', null, 0, p.net, 'Net à payer'],
+    ['431000', null, 0, p.urssaf, 'URSSAF (parts salariale et patronale)'], ['437000', null, 0, p.retraite, 'Retraite complémentaire et prévoyance'], ['442100', null, 0, p.pas, 'Prélèvement à la source']];
+  window.lignesPaie = lignesPaie;
+  MOISA.forEach(ym => { const p = paieDe(ym); PAIE_MOIS[ym] = p;
+    if (ym !== '2026-10') ecr({ j:'PA', date:finMois(ym), piece:'PAIE-' + ym.replace('-', ''), lib:'Journal de paie · ' + nomMois(ym), orig:'paie', par:'Import du cabinet', pj:'Journal-de-paie-' + ym + '.pdf', l:lignesPaie(p) });
+    let v = finMois(ym); while (!(dObj(v).getDay() % 6)) v = ajoute(v, -1); if (ym !== '2026-10') ecr({ j:'BQ', date:v, piece:'SAL-' + ym.replace('-', ''), lib:'Virement des salaires · ' + nomMois(ym), orig:'banque', pj:null, l:[['421000', null, p.net, 0], ['512000', null, 0, p.net]] });
+    if (ym !== '2026-10') { const d = ouvre(moisSuiv(ym) + '-15'); if (d <= AUJ) [['431000', p.urssaf, 'URSSAF'], ['437000', p.retraite, 'Retraite complémentaire'], ['442100', p.pas, 'DGFiP · prélèvement à la source']].forEach(([c, m, l]) => ecr({ j:'BQ', date:d, piece:'DSN-' + ym.replace('-', ''), lib:l + ' · ' + nomMois(ym), orig:'banque', pj:null, l:[[c, null, m, 0], ['512000', null, 0, m]] })); } });
+
+  /* ─── la TVA : janvier à septembre déclarés et payés ; octobre à préparer ─── */
+  MOISA.slice(0, 9).forEach(ym => { tvaLiquider(ym); const T = TVA_DECL[ym].l, pay = ouvre(moisSuiv(ym) + '-19');
+    TVA_DECL[ym].decl = ajoute(pay, -3);
+    if (T.due && pay <= AUJ) { ecr({ j:'BQ', date:pay, piece:'CA3-' + ym, lib:'Paiement de la TVA de ' + nomMois(ym), orig:'banque', pj:null, l:[['445510', null, T.due, 0], ['512000', null, 0, T.due]] }); TVA_DECL[ym].paye = pay; } });
+
+  /* ─── numérotation définitive des écritures validées : par journal, dans l'ordre des dates ─── */
+  E.filter(e => e.etat === 'valide').sort((a, b) => a.date.localeCompare(b.date) || (+a.id.slice(1)) - (+b.id.slice(1))).forEach(e => {
+    e.num = prochainNum(e.j); e.valideLe = e.orig === 'opgestion' ? e.date : [AUJ, ajoute(e.date, 3), finMois(e.date.slice(0, 7))].sort()[0]; e.emp = empreinte(e); });
+  /* le lettrage de ce qui s'est rapproché : facture et paiement, sur chaque compte de tiers */
+  TIERS.forEach(t => lettrageAuto(t.k));
+  /* les périodes : janvier à septembre clôturées */
+  MOISA.slice(0, 9).forEach(ym => { PER[ym] = 'cloturee'; });
+
+  /* ─── le relevé de la banque : chaque mouvement passé, à sa date de banque — et ce que la banque connaît, pas encore la comptabilité ─── */
+  const libBanque = e => e.orig === 'banque' && e.lib.startsWith('Virement ') && e.lignes.some(l => l.c === '411000') ? 'VIR SEPA ' + e.lib.slice(9).toUpperCase() + ' ' + e.piece : e.lib.toUpperCase();
+  lignes512().filter(x => x.e.orig !== 'an').forEach(x => { const d = x.e.banque || x.e.date; if (d > AUJ) return; RELEVE.push({ id:'R' + (RELEVE.length + 1), date:d, lib:libBanque(x.e), m:r2(x.l.d - x.l.cr), pointe:x.r }); });
+  const aPasser = [];
+  FACT.filter(f => f.virFin && !f.groupe).forEach(f => aPasser.push({ date:f.virFin, lib:`VIR SEPA ${nomTiers(f.cli).toUpperCase()} ${f.num}`, m:f.ttc, aide:{ type:'client', cli:f.cli, fac:[f.num] } }));
+  { const H = FACT.filter(f => f.groupe === 'hp');
+    aPasser.push({ date:'2026-10-30', lib:`VIR SEPA HOTEL DE LA PLAGE FACTURES ${H.map(f => f.num.slice(-4)).join(' ET ')}`, m:r2(H.reduce((s, f) => s + cts(f.ttc), 0) / 100), aide:{ type:'client', cli:'C-HOTELPLAGE', fac:H.map(f => f.num) } }); }
+  const vv = VERSEMENTS.find(v => !v.passe); if (vv) aPasser.push({ date:vv.d, lib:`VERSEMENT PRESTATAIRE CARTES ${vv.n} PAIEMENTS`, m:vv.net, aide:{ type:'psp', brut:vv.brut, frais:vv.frais } });
+  aPasser.push({ date:'2026-10-06', lib:'PRLV SEPA ATLANTEL FACTURE ATL-202610', m:-102, aide:{ type:'fourn', four:'F-ATL', piece:'ATL-202610' } });
+  aPasser.push({ date:'2026-10-16', lib:'PRLV SEPA REF 88412 ICS FR29ZZZ', m:-42, aide:{ type:'inconnu' } });
+  aPasser.push({ date:'2026-10-21', lib:'COMMISSION D’INTERVENTION', m:-8, aide:{ type:'frais' } });
+  aPasser.push({ date:'2026-10-30', lib:'CB STATION DU PORT 29/10', m:-92.4, aide:{ type:'piece', piece:'P2' } });
+  aPasser.push({ date:'2026-10-30', lib:'VIREMENTS SALAIRES OCTOBRE (6)', m:-PAIE_MOIS['2026-10'].net, aide:{ type:'salaires' } });
+  aPasser.forEach(a => RELEVE.push({ id:'R' + (RELEVE.length + 1), ...a, pointe:null }));
+  RELEVE.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id, 'fr', { numeric:true }));
+
+  /* ─── les pièces reçues en octobre, à traiter ─── */
+  const pOct = PAIE_MOIS['2026-10'];
+  PIECES.push(
+    { id:'P1', type:'Facture fournisseur', de:'F-CDO', date:'2026-10-28', ref:'CDO-80931', ech:'2026-11-30', l:[['Unité murale 3,5 kW', 2, 980], ['Unité murale 2,5 kW', 1, 820], ['Groupe extérieur bi-split 5 kW', 1, 1480]], taux:20, statut:'a_traiter' },
+    { id:'P2', type:'Ticket de carte', de:null, emetteur:'Station du Port', date:'2026-10-29', ref:'CB-261029', l:[['Gazole 52,30 L', 1, 77]], taux:20, paye:'carte', statut:'a_traiter' },
+    { id:'P3', type:'Facture fournisseur', de:'F-ATL', date:'2026-10-03', ref:'ATL-202610', ech:'2026-10-06', l:[['Forfait téléphone et internet · octobre 2026', 1, 85]], taux:20, statut:'a_traiter' },
+    { id:'P4', type:'Avoir fournisseur', de:'F-FPA', date:'2026-10-27', ref:'FPA-AV-1192', l:[['Retour d’un détendeur électronique (erreur de référence)', 1, 145]], taux:20, avoir:true, statut:'a_traiter' },
+    { id:'P5', type:'Facture d’immobilisation', de:'F-INF', date:'2026-10-28', ref:'INF-30477', ech:'2026-11-27', l:[['Ordinateur portable 15 pouces, garantie 3 ans', 1, 1290]], taux:20, immo:{ c:'218300', duree:3, lib:'Ordinateur portable du bureau' }, statut:'a_traiter' },
+    { id:'P6', type:'Journal de paie', de:null, emetteur:DOSSIER.cab, date:'2026-10-31', ref:'PAIE-202610', paie:pOct, statut:'a_traiter' });
+  window.PAIE_OCT = pOct;
+})();
+/* ══ LES ÉCRANS (1) : la charpente, le tableau de bord, la saisie, le brouillard, les journaux, le grand livre, la balance ══ */
+const $ = s => document.querySelector(s);
+const UI = { route:'accueil', j:'tous', mois:'2026-10', q:'', max:150, gl:'512000', glAux:'', bal:{ au:AUJ, classe:'tous', brouil:true }, tiersTab:'clients', banqueVue:'a', tvaMois:'2026-10',
+  avecEssai:false, consigne:null, saisie:null, sel:new Set(), vus:new Set(), essaisFaits:new Set() };
+const ICONES = {
+  accueil:'<path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z"/>', parcours:'<path d="M5 4v16M5 5h11l-2 3.5L16 12H5"/>',
+  pieces:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>', saisie:'<path d="M5 19h4L19 9l-4-4L5 15z"/><path d="M13 7l4 4"/>', brouillard:'<path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h5"/>',
+  journaux:'<path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/>', 'grand-livre':'<path d="M4 6h16M4 12h16M4 18h16M9 6v12"/>', balance:'<path d="M12 4v16M6 8h12M6 8l-3 6h6zM18 8l-3 6h6z"/>',
+  tiers:'<circle cx="9" cy="9" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><path d="M16 6.5a3 3 0 0 1 0 5.6M18 14.6c1.4.7 2.3 2.2 2.6 4.4"/>',
+  banque:'<path d="M3 9l9-5 9 5M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>', tva:'<path d="M6 18L18 6"/><circle cx="7.5" cy="7.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/>', immos:'<path d="M3 17h13l3-4V9h-5l-2-3H3z"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="18" r="2"/>',
+  paie:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>', clotures:'<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  bilan:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', resultat:'<path d="M4 18l6-6 4 4 6-8"/>', fec:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', controles:'<path d="M5 12l4 4 10-10"/>', dossier:'<path d="M3 7h6l2 2h10v10H3z"/>'
+};
+const svgI = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONES[k] || ''}</svg>`;
+const MENU = [['Pilotage', [['accueil', 'Tableau de bord'], ['parcours', 'Parcours d’essai']]], ['Saisie', [['pieces', 'Pièces à traiter'], ['saisie', 'Saisir une écriture'], ['brouillard', 'Brouillard']]],
+  ['Comptes', [['journaux', 'Journaux'], ['grand-livre', 'Grand livre'], ['balance', 'Balance'], ['tiers', 'Clients et fournisseurs']]], ['Trésorerie', [['banque', 'Banque et rapprochement']]],
+  ['Fiscal et social', [['tva', 'TVA'], ['immos', 'Immobilisations'], ['paie', 'Paie']]], ['Clôture et états', [['clotures', 'Clôtures'], ['bilan', 'Bilan'], ['resultat', 'Compte de résultat'], ['fec', 'Fichier des écritures (FEC)'], ['controles', 'Contrôles']]],
+  ['Dossier', [['dossier', 'Dossier et plan comptable']]]];
+const ROUTES = MENU.flatMap(([, L]) => L.map(([k]) => k));
+
+/* ─── ce qui reste à faire : la même liste pour le menu, le tableau de bord et la clôture d'octobre ─── */
+const piecesATraiter = () => PIECES.filter(p => p.statut === 'a_traiter');
+const brouillardOct = () => E.filter(e => e.etat === 'brouillard' && !e.essai);
+const releveAPasser = () => RELEVE.filter(r => !r.pointe && r.date <= AUJ);
+const tvaPreparee = ym => { const d = TVA_DECL[ym]; return !!(d && d.liq) && tvaReste(ym).vide; };
+function aFaire(){
+  const att = solde('471000', { au:AUJ });
+  return [
+    { k:'pieces', ok:!piecesATraiter().length, t:'Traiter les pièces reçues', d:piecesATraiter().length ? `${piecesATraiter().length} pièce${piecesATraiter().length > 1 ? 's' : ''} reçue${piecesATraiter().length > 1 ? 's' : ''} : factures, ticket, avoir, journal de paie.` : 'Toutes les pièces d’octobre sont en comptabilité.' },
+    { k:'banque', ok:!releveAPasser().length, t:'Rapprocher la banque', d:releveAPasser().length ? `${releveAPasser().length} ligne${releveAPasser().length > 1 ? 's' : ''} du relevé pas encore en comptabilité.` : 'Chaque ligne du relevé a son écriture.' },
+    { k:'grand-livre', gl:'471000', ok:Math.abs(att) < .005, t:'Solder le compte d’attente', d:Math.abs(att) < .005 ? 'Le compte 471 est à zéro.' : `${eur(Math.abs(att))} attendent d’être expliqués (compte 471).` },
+    { k:'brouillard', ok:!brouillardOct().length, t:'Valider le brouillard', d:brouillardOct().length ? `${brouillardOct().length} écriture${brouillardOct().length > 1 ? 's' : ''} à vérifier puis valider.` : 'Tout est validé.' },
+    { k:'tva', ok:tvaPreparee('2026-10'), t:'Préparer la TVA d’octobre', d:tvaPreparee('2026-10') ? 'La déclaration est prête et son écriture passée.' : 'À déclarer avant le 19 novembre.' }
+  ];
+}
+
+/* ─── la charpente ─── */
+function rendreMenu(){
+  const nb = { pieces:piecesATraiter().length, brouillard:brouillardOct().length, banque:releveAPasser().length };
+  $('#menu').innerHTML = `<div class="marque"><i>CS</i><span><b>${esc(DOSSIER.nom)}</b><small>Comptabilité · exercice ${EXO.annee}</small></span></div>` +
+    MENU.map(([g, L]) => `<div class="grp">${g}</div>` + L.map(([k, l]) => `<a href="#${k}" ${UI.route === k ? 'aria-current="page"' : ''}>${svgI(k)}<span>${l}</span>${nb[k] ? `<span class="nb">${nb[k]}</span>` : ''}</a>`).join('')).join('');
+}
+function rendreBarre(){
+  const ouvert = !periodeClose('2026-10-01');
+  $('#barre').innerHTML = `<button type="button" class="btn gris petit ouvrir-menu" data-a="menu" aria-label="Ouvrir les rubriques">☰ Rubriques</button>
+    <div class="dossier"><b>${esc(DOSSIER.nom)}</b><span>SIREN ${DOSSIER.siren.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')} · ${esc(DOSSIER.forme)}</span></div>
+    <div class="puces"><span class="puce exo">Exercice du 01/01/${EXO.annee} au 31/12/${EXO.annee}</span><span class="puce ${ouvert ? 'ouvert' : ''}"><i></i>${ouvert ? 'Octobre ouvert' : 'Octobre clôturé'}</span><span class="puce">Nous sommes le 31/10/2026</span></div>`;
+}
+let VUES = {};
+function rendre(){
+  rendreMenu(); rendreBarre();
+  const v = VUES[UI.route] || VUES.accueil;
+  const c = $('#contenu'); c.innerHTML = consigneHtml() + v();
+  document.body.classList.remove('menu-ouvert');
+  UI.vus.add(UI.route); parcoursVerifier();
+}
+function aller(r, o){ Object.assign(UI, o || {}); if (location.hash.slice(1) === r) rendre(); else location.hash = r; scrollTo({ top:0 }); }
+addEventListener('hashchange', () => { const r = location.hash.slice(1); UI.route = ROUTES.includes(r) ? r : 'accueil'; rendre(); });
+function ouvrir(html, large){ $('#calque').innerHTML = `<div class="voile" data-a="fermer-voile"><div class="panneau ${large ? 'large' : ''}" role="dialog" aria-modal="true">${html}</div></div>`; const f = $('#calque .fermer'); if (f) f.focus(); }
+function fermer(){ $('#calque').innerHTML = ''; }
+addEventListener('keydown', ev => { if (ev.key === 'Escape') { if ($('#calque').innerHTML) fermer(); else document.body.classList.remove('menu-ouvert'); } });
+let toastMin = 0;
+function toast(m){ const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toastMin); toastMin = setTimeout(() => { t.hidden = true; }, 4200); }
+const haut = (titre, sous, mono) => `<div class="haut"><div>${mono ? `<span class="surtitre">${mono}</span>` : ''}<h2>${titre}</h2>${sous ? `<span class="mute petit">${sous}</span>` : ''}</div><button type="button" class="fermer" data-a="fermer" aria-label="Fermer">✕</button></div>`;
+const tete = (sur, titre, sous, actions) => `<div class="tete"><div><span class="surtitre">${sur}</span><h1>${titre}</h1>${sous ? `<p class="mute">${sous}</p>` : ''}</div>${actions ? `<div class="actions">${actions}</div>` : ''}</div>`;
+const montantCell = x => x ? nb(x) : '';
+const stEcr = e => e.essai ? '<span class="st essai">Essai</span>' : e.etat === 'brouillard' ? '<span class="st warn">Brouillard</span>' : '<span class="st ok">Validée</span>';
+const comptesOptions = () => `<datalist id="dl-comptes">${PCG.map(c => `<option value="${c.n}">${esc(c.l)}</option>`).join('')}</datalist>`;
+
+/* ─── le tableau de bord ─── */
+VUES.accueil = () => {
+  const ca = -solde('70', { au:AUJ }), charges = solde('6', { au:AUJ }), res = ca - charges, treso = solde('512000', { au:AUJ }) + solde('530000', { au:AUJ });
+  const clients = solde('411000', { au:AUJ }), retard = lignesDe(l => l.c === '411000' && !l.let && l.d > 0).filter(x => x.e.ech && x.e.ech < AUJ).reduce((s, x) => s + x.l.d, 0);
+  const fourn = -solde('401000', { au:AUJ }) - solde('404000', { au:AUJ }), T = tvaMois('2026-10'), F = aFaire(), faits = F.filter(x => x.ok).length;
+  const mois = Array.from({ length:10 }, (_, i) => '2026-' + String(i + 1).padStart(2, '0')).map(m => ({ m, ca:-solde('70', { du:m + '-01', au:finMois(m) }), ch:solde('6', { du:m + '-01', au:finMois(m) }) }));
+  const mx = Math.max(...mois.map(x => Math.max(x.ca, x.ch))) * 1.08, H = 170, W = 640, bw = 22;
+  const graph = `<svg viewBox="0 0 ${W} ${H + 34}" role="img" aria-label="Produits et charges par mois, de janvier à octobre">${[0, .25, .5, .75, 1].map(f => `<line x1="40" x2="${W}" y1="${H - f * H + 6}" y2="${H - f * H + 6}" stroke="var(--line)" stroke-width="1"/><text x="34" y="${H - f * H + 10}" text-anchor="end">${Math.round(mx * f / 1000)} k</text>`).join('')}
+    ${mois.map((x, i) => { const cx = 62 + i * ((W - 70) / 10); return `<rect x="${cx}" y="${H - x.ca / mx * H + 6}" width="${bw}" height="${x.ca / mx * H}" rx="3" fill="var(--accent)"><title>${nomMois(x.m)} · produits ${eur(x.ca)}</title></rect><rect x="${cx + bw + 3}" y="${H - x.ch / mx * H + 6}" width="${bw}" height="${x.ch / mx * H}" rx="3" fill="var(--line2)"><title>${nomMois(x.m)} · charges ${eur(x.ch)}</title></rect><text x="${cx + bw}" y="${H + 26}" text-anchor="middle">${MOIS_C[i]}</text>`; }).join('')}</svg>`;
+  return tete('Pilotage', 'Tableau de bord', `Octobre 2026 est en cours. Janvier à septembre sont clôturés.`, `<a class="btn gris" href="#parcours">Parcours d’essai</a>`) +
+    `<div class="kpis six">
+      <button type="button" class="kpi" data-a="aller" data-r="resultat"><span>Chiffre d’affaires 2026 (HT)</span><b>${eur(ca)}</b><small>janvier à octobre</small></button>
+      <button type="button" class="kpi" data-a="aller" data-r="resultat"><span>Résultat provisoire</span><b style="color:${res >= 0 ? 'var(--ok)' : 'var(--bad)'}">${eur(res)}</b><small>avant clôture et impôt</small></button>
+      <button type="button" class="kpi" data-a="aller" data-r="banque"><span>Trésorerie</span><b>${eur(treso)}</b><small>banque et caisse, en comptabilité</small></button>
+      <button type="button" class="kpi" data-a="aller" data-r="tiers" data-tab="clients"><span>Clients à encaisser</span><b>${eur(clients)}</b><small>${retard ? 'dont ' + eur(retard) + ' en retard' : 'rien en retard'}</small></button>
+      <button type="button" class="kpi" data-a="aller" data-r="tiers" data-tab="fournisseurs"><span>Fournisseurs à payer</span><b>${eur(fourn)}</b><small>factures reçues, pas encore payées</small></button>
+      <button type="button" class="kpi" data-a="aller" data-r="tva"><span>TVA d’octobre</span><b>${eur(T.brute ? T.due : (TVA_DECL['2026-10'] || { l:T }).l.due)}</b><small>à payer le 19 novembre</small></button>
+    </div>
+    <div class="grille g2">
+      <div class="carte"><h2>Avant de clôturer octobre · ${faits}/${F.length}</h2>
+        <div class="etapes">${F.map((x, i) => `<div class="etape ${x.ok ? 'ok' : ''}"><span class="rond">${x.ok ? '✓' : i + 1}</span><span class="txt"><b>${x.t}</b><span class="mute petit">${x.d}</span></span>${x.ok ? '' : `<button type="button" class="btn gris petit" data-a="aller" data-r="${x.k}" ${x.gl ? `data-gl="${x.gl}"` : ''}>Y aller</button>`}</div>`).join('')}
+          <div class="etape ${PER['2026-10'] ? 'ok' : ''}"><span class="rond">${PER['2026-10'] ? '✓' : F.length + 1}</span><span class="txt"><b>Clôturer octobre</b><span class="mute petit">${PER['2026-10'] ? 'Octobre est clôturé : plus rien n’y entre.' : 'Quand tout le reste est fait.'}</span></span>${PER['2026-10'] ? '' : `<button type="button" class="btn petit" data-a="aller" data-r="clotures">Ouvrir</button>`}</div></div></div>
+      <div class="carte graph"><h2>Produits et charges, mois par mois</h2>${graph}<div class="outils petit mute"><span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent)"></span> produits</span><span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--line2)"></span> charges</span><span>Octobre n’est pas encore complet : sa paie et ses dernières pièces manquent.</span></div></div>
+    </div>`;
+};
+
+/* ─── les pièces à traiter ─── */
+const ligneDoc = P => P.l ? P.l.map(([d, q, pu]) => ({ d, q, pu, t:r2(q * pu) })) : [];
+const htDe = P => r2(ligneDoc(P).reduce((s, x) => s + cts(x.t), 0) / 100);
+function proposition(P){
+  const ht = htDe(P), tva = r2(ht * (P.taux || 0) / 100), ttc = r2(ht + tva), t = P.de && tiers(P.de);
+  const DEF = { 'F-CDO':'601000', 'F-FPA':'601000', 'F-EP17':'601000', 'F-ATL':'626000', 'F-GAR':'615500' };
+  if (P.paie) return { j:'PA', date:P.date, piece:P.ref, lib:'Journal de paie · octobre 2026', l:lignesPaie(P.paie) };
+  if (P.immo) return { j:'AC', date:P.date, piece:P.ref, lib:P.immo.lib + ' · ' + t.nom, ech:P.ech, l:[[P.immo.c, null, ht, 0, P.immo.lib], ['445620', null, tva, 0, 'TVA déductible sur immobilisation', { taux:P.taux, base:ht }], [t.c, P.de, 0, ttc, P.ref + ' · ' + t.nom]] };
+  if (P.avoir) return { j:'AC', date:P.date, piece:P.ref, lib:'Avoir · ' + t.nom, l:[[t.c, P.de, ttc, 0, P.ref + ' · ' + t.nom], ['601000', null, 0, ht, P.l[0][0]], ['445660', null, 0, tva, 'TVA déductible à reprendre', { taux:P.taux, base:-ht }]] };
+  if (P.paye === 'carte') return { j:'BQ', date:P.date, piece:P.ref, lib:'Carburant · ' + P.emetteur, l:[['606100', null, ht, 0, P.l[0][0]], ['445660', null, tva, 0, 'TVA déductible', { taux:P.taux, base:ht }], ['512000', null, 0, ttc, 'Carte de l’entreprise']] };
+  return { j:'AC', date:P.date, piece:P.ref, lib:P.l[0][0] + ' · ' + t.nom, ech:P.ech, l:[[DEF[P.de] || '601000', null, ht, 0, P.l.length > 1 ? 'Matériel de climatisation' : P.l[0][0]], ['445660', null, tva, 0, 'TVA déductible', { taux:P.taux, base:ht }], [t.c, P.de, 0, ttc, P.ref + ' · ' + t.nom]] };
+}
+const emetteur = P => P.de ? nomTiers(P.de) : P.emetteur;
+function docHtml(P){
+  if (P.paie) { const p = P.paie; return `<div class="doc"><div class="dtete"><div><b>${esc(DOSSIER.cab)}</b><br>Journal de paie</div><div style="text-align:right"><b>${esc(DOSSIER.nom)}</b><br>Octobre 2026 · 6 salariés</div></div>
+    <table><tbody>${[['Salaires bruts (dont ' + nb(p.sup) + ' € d’heures supplémentaires)', p.brut], ['Cotisations salariales URSSAF', p.sal1], ['Cotisations salariales retraite et prévoyance', p.sal2], ['Prélèvement à la source', p.pas], ['Net à payer', p.net], ['Cotisations patronales URSSAF', p.pat1], ['Cotisations patronales retraite et prévoyance', p.pat2]].map(([l, m]) => `<tr><td>${l}</td><td class="n">${nb(m)} €</td></tr>`).join('')}</tbody></table>
+    <p style="margin-top:8px;color:#5a6578">Montants fictifs. Le détail par salarié est dans les fiches de paie.</p></div>`; }
+  const L = ligneDoc(P), ht = htDe(P), tva = r2(ht * P.taux / 100);
+  return `<div class="doc"><div class="dtete"><div><b>${esc(emetteur(P))}</b><br>${P.type}${P.avoir ? '' : ''}</div><div style="text-align:right"><b>${P.ref}</b><br>du ${dCourt(P.date)}${P.ech ? '<br>échéance ' + dCourt(P.ech) : ''}</div></div>
+    <div>Client : <b>${esc(DOSSIER.nom)}</b>, ${esc(DOSSIER.adr)}</div>
+    <table><thead><tr><th>Désignation</th><th class="n">Qté</th><th class="n">P.U. HT</th><th class="n">Total HT</th></tr></thead><tbody>${L.map(x => `<tr><td>${esc(x.d)}</td><td class="n">${x.q}</td><td class="n">${nb(x.pu)}</td><td class="n">${nb(x.t)}</td></tr>`).join('')}</tbody></table>
+    <div class="tot"><div><span>Total HT</span><span>${nb(ht)} €</span></div><div><span>TVA ${P.taux} %</span><span>${nb(tva)} €</span></div><div><span>${P.avoir ? 'Avoir TTC' : 'Total TTC'}</span><span>${nb(r2(ht + tva))} €</span></div></div>
+    ${P.paye === 'carte' ? '<p style="margin-top:8px">Payé par carte bancaire le 29/10/2026.</p>' : ''}</div>`;
+}
+VUES.pieces = () => {
+  const A = piecesATraiter(), T = PIECES.filter(p => p.statut !== 'a_traiter');
+  const ligneP = P => { const ttc = P.paie ? P.paie.brut : r2(htDe(P) * (1 + P.taux / 100)); return `<tr class="clic" data-a="piece" data-id="${P.id}"><td class="c">${dCourt(P.date)}</td><td>${esc(P.type)}<span class="sec">${esc(emetteur(P))}</span></td><td class="mono masque-tel">${P.ref}</td><td class="n">${P.paie ? 'brut ' : ''}${nb(ttc)} €</td><td>${P.statut === 'a_traiter' ? '<span class="st warn">À traiter</span>' : `<span class="st ok">En comptabilité</span>`}</td></tr>`; };
+  return tete('Saisie', 'Pièces à traiter', 'Ce qui arrive : factures de fournisseurs, tickets, avoirs, journal de paie. Chaque pièce propose son écriture ; tu la vérifies, puis tu l’enregistres.') +
+    `<div class="defile"><table class="t"><thead><tr><th>Reçue</th><th>Pièce</th><th class="masque-tel">Référence</th><th class="n">Montant TTC</th><th>État</th></tr></thead><tbody>${[...A, ...T].map(ligneP).join('') || '<tr><td colspan="5" class="vide">Rien à traiter.</td></tr>'}</tbody></table></div>
+    <p class="mute petit">Les factures de vente n’arrivent pas ici : OP GESTION les envoie directement au journal des ventes.</p>`;
+};
+function lignesEditables(L, o){
+  o = o || {};
+  const tiersOpts = c => (c === '411000' ? CLIENTS : c === '401000' || c === '404000' ? FOURNISSEURS : []);
+  return `<div class="defile"><table class="t lignes-ed"><thead><tr><th>Compte</th><th>Tiers</th><th>Libellé</th><th class="n">Débit</th><th class="n">Crédit</th>${o.suppr ? '<th></th>' : ''}</tr></thead><tbody>
+    ${L.map(([c, aux, d, cr, lib], i) => `<tr data-i="${i}"><td><input class="saisie mono" data-l="c" list="dl-comptes" value="${esc(c)}" aria-label="Compte, ligne ${i + 1}" style="width:96px" inputmode="numeric"><span class="sec">${esc(c && cpt(c) ? cpt(c).l : c ? 'compte inconnu' : '')}</span></td>
+      <td>${COLLECTIFS[c] ? `<select class="saisie" data-l="aux" aria-label="Tiers, ligne ${i + 1}" style="min-width:150px"><option value="">— choisir —</option>${tiersOpts(c).map(t => `<option value="${t.k}" ${t.k === aux ? 'selected' : ''}>${esc(t.nom)}</option>`).join('')}</select>` : '<span class="mute petit">—</span>'}</td>
+      <td><input class="saisie" data-l="lib" value="${esc(lib || '')}" aria-label="Libellé, ligne ${i + 1}" style="min-width:180px"></td>
+      <td class="n"><input class="saisie n" data-l="d" value="${d ? nb(d).replace(/\s/g, ' ') : ''}" inputmode="decimal" aria-label="Débit, ligne ${i + 1}" style="width:110px;text-align:right"></td>
+      <td class="n"><input class="saisie n" data-l="cr" value="${cr ? nb(cr).replace(/\s/g, ' ') : ''}" inputmode="decimal" aria-label="Crédit, ligne ${i + 1}" style="width:110px;text-align:right"></td>
+      ${o.suppr ? `<td><button type="button" class="btn gris petit" data-a="ligne-suppr" data-i="${i}" aria-label="Retirer la ligne ${i + 1}">✕</button></td>` : ''}</tr>`).join('')}
+  </tbody></table></div><div class="balance-ecr" data-equilibre="1"></div>`;
+}
+const lireNombre = v => { const x = parseFloat(String(v || '').replace(/\s| /g, '').replace(',', '.')); return isNaN(x) ? 0 : r2(x); };
+function lireLignes(zone, orig){
+  return [...zone.querySelectorAll('.lignes-ed tbody tr')].map((tr, i) => { const g = k => { const e = tr.querySelector(`[data-l="${k}"]`); return e ? e.value : ''; };
+    const c = (g('c').match(/\d{6}/) || [g('c').trim()])[0]; return [c, COLLECTIFS[c] ? g('aux') || null : null, lireNombre(g('d')), lireNombre(g('cr')), g('lib').trim(), orig && orig[i] && orig[i][5]]; });
+}
+function equilibreHtml(L){
+  const d = L.reduce((s, l) => s + cts(l[2]), 0), c = L.reduce((s, l) => s + cts(l[3]), 0), e = d - c;
+  return `<span>Total débit <b class="num">${nb(d / 100)} €</b></span><span>Total crédit <b class="num">${nb(c / 100)} €</b></span><span class="ecart ${e ? 'ko' : 'ok'}">${e ? 'Écart ' + nb(e / 100) + ' €' : '✓ Équilibrée'}</span>`;
+}
+document.addEventListener('input', ev => { const z = ev.target.closest('[data-ecriture]'); if (!z || !ev.target.closest('.lignes-ed')) return; const q = z.querySelector('[data-equilibre]'); if (q) q.innerHTML = equilibreHtml(lireLignes(z)); });
+function ouvrirPiece(id){
+  const P = PIECES.find(p => p.id === id), pr = proposition(P), fait = P.statut !== 'a_traiter';
+  const e = fait && E.find(x => x.id === P.ecr);
+  ouvrir(haut(esc(P.type) + ' · ' + esc(emetteur(P)), `${P.ref} · reçue le ${dCourt(P.date)}`, 'Pièce à traiter') + `<div class="grille g2">${docHtml(P)}
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">${fait ? `<div class="bon">Passée en comptabilité : ${e ? `<button type="button" class="lien" data-a="ecr" data-id="${e.id}">${e.num || 'écriture au brouillard'}</button>` : ''}.</div>` :
+      `<div class="info petit">${P.paie ? 'Le cabinet envoie le total de la paie : salaires bruts, charges, net à payer, et ce qui est dû aux organismes.' : P.immo ? `Plus de 500 € HT et durable : ce n’est pas une charge mais une immobilisation, amortie sur ${P.immo.duree} ans (seuil de tolérance usuel, à confirmer avec l’expert-comptable).` : P.avoir ? 'Un avoir fait l’inverse d’une facture : il diminue ce qu’on doit au fournisseur et la TVA déductible.' : P.paye === 'carte' ? 'Payé tout de suite par carte : l’écriture va au journal de banque, sans passer par le compte du fournisseur.' : 'Proposition faite à partir de la facture : le compte de charge du fournisseur, la TVA déductible, et ce qu’on lui doit.'}</div>`}
+    </div></div>
+    ${fait ? '' : `<div data-ecriture="piece" data-id="${P.id}" style="display:flex;flex-direction:column;gap:10px">
+      <div class="outils"><span class="jn">${pr.j}</span><b>${JOURNAUX[pr.j]}</b><span class="mute">· ${dCourt(pr.date)} · ${esc(pr.piece)}</span></div>
+      ${lignesEditables(pr.l)}
+      ${P.immo ? `<label class="case"><input type="checkbox" id="pi-immo" checked> Inscrire au registre des immobilisations : « ${esc(P.immo.lib)} », amortie sur <select id="pi-duree" class="saisie" style="width:auto;min-height:32px">${[2, 3, 4, 5].map(n => `<option ${n === P.immo.duree ? 'selected' : ''}>${n}</option>`).join('')}</select> ans</label>` : ''}
+      <div id="pi-err"></div>
+      <div class="outils"><button type="button" class="btn" data-a="piece-ok" data-id="${P.id}" data-valider="1">Enregistrer et valider</button><button type="button" class="btn gris" data-a="piece-ok" data-id="${P.id}">Enregistrer au brouillard</button></div></div>`}`, true);
+  const z = $('#calque [data-ecriture]'); if (z) z.querySelector('[data-equilibre]').innerHTML = equilibreHtml(pr.l);
+}
+function enregistrerPiece(id, val){
+  const P = PIECES.find(p => p.id === id), pr = proposition(P), z = $('#calque [data-ecriture]'), L = lireLignes(z, pr.l);
+  const e = { j:pr.j, date:pr.date, piece:pr.piece, lib:pr.lib, etat:'brouillard', orig:'piece', ech:pr.ech, pj:pr.piece + (P.paye === 'carte' ? '.jpg' : '.pdf'), l:L };
+  const essai = ecr(e); const r = refusEcriture(essai);
+  if (r) { essai.etat = 'supprimee'; $('#pi-err').innerHTML = `<div class="erreur">${esc(r)}</div>`; return; }
+  if (val) { const m = valider(essai); if (m) { $('#pi-err').innerHTML = `<div class="erreur">${esc(m)}</div>`; return; } }
+  P.statut = 'traitee'; P.ecr = essai.id; trace(`Pièce ${P.ref} passée en comptabilité`, { ref:essai.id });
+  if (P.immo && $('#pi-immo') && $('#pi-immo').checked) { IMMOS.push({ id:'I' + (IMMOS.length + 1), lib:P.immo.lib, c:P.immo.c, date:P.date, val:htDe(P), duree:+$('#pi-duree').value, fourn:nomTiers(P.de), ecr:essai.id }); }
+  if (P.de) lettrageAuto(P.de);
+  fermer(); rendre(); toast(val ? `Pièce ${P.ref} en comptabilité : ${essai.num}.` : `Pièce ${P.ref} au brouillard : à valider.`);
+}
+
+/* ─── saisir une écriture ─── */
+const saisieNeuve = () => ({ j:'OD', date:AUJ, piece:'', lib:'', l:[['', null, 0, 0, ''], ['', null, 0, 0, '']], edit:null });
+const MODELES = { frais:{ j:'BQ', lib:'Frais bancaires', l:[['627000', null, 0, 0, 'Frais bancaires'], ['512000', null, 0, 0, '']] }, cca:{ j:'OD', lib:'Charge payée d’avance', l:[['486000', null, 0, 0, 'Charges constatées d’avance'], ['616000', null, 0, 0, 'Part qui concerne l’exercice suivant']] },
+  remise:{ j:'BQ', lib:'Remise de chèques', l:[['512000', null, 0, 0, ''], ['511200', null, 0, 0, 'Chèques remis']] } };
+VUES.saisie = () => {
+  const S = UI.saisie || (UI.saisie = saisieNeuve());
+  return tete('Saisie', S.edit ? 'Modifier une écriture du brouillard' : 'Saisir une écriture', 'Pour ce qui n’arrive pas tout seul : une opération diverse, une correction, une régularisation. L’écriture va au brouillard ; elle se valide ensuite.') +
+    `<div class="carte" data-ecriture="saisie" style="display:flex;flex-direction:column;gap:12px">
+      <div class="outils"><span class="mute petit">Modèles :</span>${Object.entries({ frais:'Frais bancaires', remise:'Remise de chèques', cca:'Charge payée d’avance' }).map(([k, l]) => `<button type="button" class="btn gris petit" data-a="modele" data-k="${k}">${l}</button>`).join('')}</div>
+      <div class="grille g3" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+        <label class="champ">Journal<select id="s-j">${Object.entries(JOURNAUX).filter(([k]) => k !== 'AN').map(([k, l]) => `<option value="${k}" ${S.j === k ? 'selected' : ''}>${k} · ${l}</option>`).join('')}</select></label>
+        <label class="champ">Date<input id="s-date" type="date" value="${S.date}" min="${EXO.debut}" max="${AUJ}"></label>
+        <label class="champ">Pièce<input id="s-piece" value="${esc(S.piece)}" placeholder="ex. OD-2026-12"></label>
+        <label class="champ" style="grid-column:span 2">Libellé<input id="s-lib" value="${esc(S.lib)}" placeholder="ce que dit l’écriture"></label>
+      </div>
+      ${lignesEditables(S.l, { suppr:true })}
+      <div id="s-err"></div>
+      <div class="outils"><button type="button" class="btn gris petit" data-a="ligne-plus">+ Ligne</button><span style="flex:1"></span><button type="button" class="btn gris" data-a="saisie-vider">Effacer</button><button type="button" class="btn" data-a="saisie-ok">${S.edit ? 'Enregistrer les changements' : 'Enregistrer au brouillard'}</button></div>
+    </div>
+    <div class="info petit">Chaque ligne est au débit <b>ou</b> au crédit, et le total des débits égale celui des crédits. Un compte de clients (411) ou de fournisseurs (401, 404) dit toujours de qui il s’agit.</div>`;
+};
+function lireSaisie(){ const z = $('[data-ecriture="saisie"]'); const S = UI.saisie; S.j = $('#s-j').value; S.date = $('#s-date').value; S.piece = $('#s-piece').value.trim(); S.lib = $('#s-lib').value.trim(); S.l = lireLignes(z, S.l); return S; }
+function enregistrerSaisie(){
+  const S = lireSaisie(); if (!S.lib) return ($('#s-err').innerHTML = '<div class="erreur">Donne un libellé à l’écriture.</div>');
+  const lignes = S.l.filter(l => l[0] || l[2] || l[3]);
+  if (S.edit) { const e = E.find(x => x.id === S.edit); const avant = JSON.stringify(e.lignes);
+    const copie = { ...e, j:S.j, date:S.date, piece:S.piece, lib:S.lib, lignes:lignes.map(([c, aux, d, cr, lib, t]) => ({ c, aux, d, cr, lib:lib || S.lib, let:null, dlet:null, t:t || null })) };
+    const r = refusEcriture(copie); if (r) return ($('#s-err').innerHTML = `<div class="erreur">${esc(r)}</div>`);
+    Object.assign(e, { j:copie.j, date:copie.date, piece:copie.piece, lib:copie.lib, lignes:copie.lignes }); trace('Écriture du brouillard modifiée', { ref:e.id }); UI.saisie = null; toast('Écriture modifiée, toujours au brouillard.'); return aller('brouillard'); }
+  const e = ecr({ j:S.j, date:S.date, piece:S.piece, lib:S.lib, etat:'brouillard', orig:'saisie', pj:S.piece ? S.piece + '.pdf' : null, l:lignes });
+  const r = refusEcriture(e); if (r) { e.etat = 'supprimee'; return ($('#s-err').innerHTML = `<div class="erreur">${esc(r)}</div>`); }
+  trace('Écriture saisie au brouillard', { ref:e.id }); UI.saisie = null; toast('Écriture enregistrée au brouillard.'); aller('brouillard');
+}
+
+/* ─── le brouillard ─── */
+VUES.brouillard = () => {
+  const B = brouillardOct();
+  return tete('Saisie', 'Brouillard', 'Les écritures pas encore validées. Ici, on corrige ou on supprime. Une fois validée, une écriture reçoit son numéro définitif et ne bouge plus.',
+    B.length ? `<button type="button" class="btn gris" data-a="valider-sel">Valider la sélection</button><button type="button" class="btn" data-a="valider-tout">Tout valider (${B.length})</button>` : '') +
+    (B.length ? `<div class="defile"><table class="t"><thead><tr><th><span class="cache-sr">Choisir</span></th><th>Date</th><th>Journal</th><th>Pièce</th><th>Libellé</th><th class="n">Montant</th><th class="masque-tel">Origine</th><th></th></tr></thead><tbody>
+      ${B.sort((a, b) => a.date.localeCompare(b.date)).map(e => { const r = refusEcriture(e); return `<tr class="brouil"><td><input type="checkbox" data-sel="${e.id}" ${UI.sel.has(e.id) ? 'checked' : ''} aria-label="Choisir ${esc(e.lib)}"></td><td class="c">${dCourt(e.date)}</td><td><span class="jn">${e.j}</span></td><td class="mono">${esc(e.piece)}</td>
+        <td><button type="button" class="lien" data-a="ecr" data-id="${e.id}">${esc(e.lib)}</button>${r ? `<span class="sec" style="color:var(--bad)">${esc(r)}</span>` : ''}</td><td class="n">${nb(totalD(e))}</td><td class="masque-tel petit mute">${{ opgestion:'OP GESTION', piece:'Pièce', saisie:'Saisie', contrepassation:'Contrepassation' }[e.orig] || e.orig}</td>
+        <td class="c"><button type="button" class="btn gris petit" data-a="ecr-modifier" data-id="${e.id}">Modifier</button> <button type="button" class="btn danger petit" data-a="ecr-supprimer" data-id="${e.id}">Supprimer</button></td></tr>`; }).join('')}</tbody></table></div>` : '<div class="carte vide">Le brouillard est vide : tout est validé.</div>');
+};
+function validerListe(ids){
+  const L = ids.map(id => E.find(e => e.id === id)).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date)); let ok = 0; const ko = [];
+  L.forEach(e => { const m = valider(e); if (m) ko.push(e.lib + ' : ' + m); else ok++; });
+  TIERS.forEach(t => lettrageAuto(t.k)); UI.sel.clear(); rendre();
+  toast(`${ok} écriture${ok > 1 ? 's' : ''} validée${ok > 1 ? 's' : ''}${ko.length ? ' · ' + ko.length + ' refusée' + (ko.length > 1 ? 's' : '') + ' : ' + ko[0] : ''}.`);
+}
+
+/* ─── les journaux et le détail d'une écriture ─── */
+const MOIS_LISTE = Array.from({ length:10 }, (_, i) => '2026-' + String(i + 1).padStart(2, '0'));
+VUES.journaux = () => {
+  const q = UI.q.toLowerCase();
+  let L = E.filter(e => e.etat !== 'supprimee' && (UI.avecEssai || !e.essai) && (UI.j === 'tous' || e.j === UI.j) && (UI.mois === 'tous' || e.date.slice(0, 7) === UI.mois) && (!q || (e.lib + ' ' + e.piece + ' ' + (e.num || '')).toLowerCase().includes(q)));
+  L.sort((a, b) => b.date.localeCompare(a.date) || (b.num || 'zz').localeCompare(a.num || 'zz'));
+  const tot = L.reduce((s, e) => s + cts(totalD(e)), 0);
+  return tete('Comptes', 'Journaux', 'Chaque opération, dans son journal, avec son numéro. Touche une écriture pour voir ses lignes, sa pièce et qui l’a passée.') +
+    `<div class="outils"><div class="seg" role="group" aria-label="Journal">${[['tous', 'Tous'], ...Object.keys(JOURNAUX).map(k => [k, k])].map(([k, l]) => `<button type="button" aria-pressed="${UI.j === k}" data-a="j" data-k="${k}" title="${k === 'tous' ? 'Tous les journaux' : JOURNAUX[k]}">${l}</button>`).join('')}</div>
+      <label class="champ" style="flex-direction:row;align-items:center;gap:8px">Mois<select class="saisie" data-a-change="mois" style="width:auto">${[['tous', 'Toute l’année'], ...MOIS_LISTE.map(m => [m, nomMois(m)])].map(([k, l]) => `<option value="${k}" ${UI.mois === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <input class="saisie" type="search" placeholder="Chercher un libellé, une pièce, un numéro" value="${esc(UI.q)}" data-a-input="q" style="flex:1 1 220px;width:auto" aria-label="Chercher"></div>
+    <p class="mute petit">${L.length} écriture${L.length > 1 ? 's' : ''} · ${nb(tot / 100)} € au débit${UI.j !== 'tous' ? ' · journal ' + JOURNAUX[UI.j] : ''}</p>
+    <div class="defile"><table class="t"><thead><tr><th>N°</th><th>Date</th><th>Jnl</th><th class="masque-tel">Pièce</th><th>Libellé</th><th class="n">Montant</th><th>État</th></tr></thead><tbody>
+      ${L.slice(0, UI.max).map(e => `<tr class="clic ${e.etat === 'brouillard' ? 'brouil' : ''} ${e.essai ? 'essai' : ''}" data-a="ecr" data-id="${e.id}"><td class="mono c">${e.num ? e.num.slice(3) : '—'}</td><td class="c">${dJM(e.date)}</td><td><span class="jn">${e.j}</span></td><td class="mono masque-tel">${esc(e.piece)}</td><td>${esc(e.lib)}</td><td class="n">${nb(totalD(e))}</td><td>${stEcr(e)}</td></tr>`).join('') || '<tr><td colspan="7" class="vide">Aucune écriture.</td></tr>'}
+    </tbody></table></div>${L.length > UI.max ? `<button type="button" class="btn gris" data-a="plus">Afficher ${Math.min(150, L.length - UI.max)} de plus</button>` : ''}`;
+};
+function ouvrirEcriture(id){
+  const e = E.find(x => x.id === id); if (!e) return;
+  const td = e.lignes.reduce((s, l) => s + cts(l.d), 0), tc = e.lignes.reduce((s, l) => s + cts(l.cr), 0), contre = e.contre && E.find(x => x.id === e.contre), par = e.contrePar && E.find(x => x.id === e.contrePar);
+  ouvrir(haut(esc(e.lib), `${JOURNAUX[e.j]} · ${dCourt(e.date)}${e.piece ? ' · pièce ' + esc(e.piece) : ''}`, e.num || (e.essai ? 'Écriture d’essai' : 'Brouillard')) + `
+    <div class="outils">${stEcr(e)}${e.ech ? `<span class="puce">échéance ${dCourt(e.ech)}</span>` : ''}${e.pj ? `<span class="puce">📎 ${esc(e.pj)}</span>` : (e.j === 'AC' ? '<span class="st bad">Sans pièce justificative</span>' : '')}</div>
+    <div class="defile"><table class="t"><thead><tr><th>Compte</th><th class="masque-tel">Libellé</th><th class="n">Débit</th><th class="n">Crédit</th><th>Let.</th></tr></thead><tbody>
+      ${e.lignes.map(l => `<tr><td class="compte">${l.c}<span class="sec" style="font-family:var(--f)">${esc(libCpt(l.c))}${l.aux ? ' · ' + esc(nomTiers(l.aux)) : ''}</span><span class="sec seul-tel" style="font-family:var(--f);white-space:normal">${esc(l.lib)}</span></td><td class="masque-tel">${esc(l.lib)}</td><td class="n">${montantCell(l.d)}</td><td class="n">${montantCell(l.cr)}</td><td>${l.let ? `<span class="let" title="Lettré le ${dCourt(l.dlet)}">${l.let}</span>` : ''}</td></tr>`).join('')}
+      <tr class="total"><td>Total</td><td class="masque-tel"></td><td class="n">${nb(td / 100)}</td><td class="n">${nb(tc / 100)}</td><td>${td === tc ? '✓' : '✗'}</td></tr></tbody></table></div>
+    <div class="carte petit"><h3>Piste d’audit</h3><div>Créée le ${dCourt(e.creeLe)} par ${esc(e.par)}${e.orig === 'opgestion' ? ' (envoyée par OP GESTION à l’émission de la facture)' : ''}.</div>${e.valideLe ? `<div>Validée le ${dCourt(e.valideLe)} : numéro ${e.num}, elle ne peut plus être modifiée.</div>` : ''}${contre ? `<div>Contrepasse l’écriture <button type="button" class="lien" data-a="ecr" data-id="${contre.id}">${contre.num || contre.id}</button>.</div>` : ''}${par ? `<div>Contrepassée par <button type="button" class="lien" data-a="ecr" data-id="${par.id}">${par.num || 'une écriture au brouillard'}</button>.</div>` : ''}</div>
+    <div id="ecr-msg"></div>
+    <div class="outils">${e.essai ? '<span class="mute petit">Écriture d’essai de la répétition de clôture : elle s’efface depuis Clôtures.</span>' : e.etat === 'brouillard' ? `<button type="button" class="btn" data-a="ecr-valider" data-id="${e.id}">Valider</button><button type="button" class="btn gris" data-a="ecr-modifier" data-id="${e.id}">Modifier</button><button type="button" class="btn danger" data-a="ecr-supprimer" data-id="${e.id}">Supprimer</button>` :
+      `<button type="button" class="btn gris" data-a="ecr-modifier-valide" data-id="${e.id}">Modifier</button>${e.orig !== 'an' && !e.contrePar && !e.contre ? `<button type="button" class="btn gris" data-a="ecr-contrepasser" data-id="${e.id}">Contrepasser</button>` : ''}`}</div>`);
+}
+
+/* ─── le grand livre ─── */
+VUES['grand-livre'] = () => {
+  const avec = [...new Set(lignesDe(() => true, { essai:UI.avecEssai }).map(x => x.l.c))].sort();
+  if (!avec.includes(UI.gl)) avec.push(UI.gl);
+  const L = lignesDe(l => l.c === UI.gl && (!UI.glAux || l.aux === UI.glAux), { essai:UI.avecEssai }).sort((a, b) => a.e.date.localeCompare(b.e.date) || (a.e.num || 'zz').localeCompare(b.e.num || 'zz'));
+  let s = 0; const tiersDuCompte = COLLECTIFS[UI.gl] ? [...new Set(L.map(x => x.l.aux))].filter(Boolean) : [];
+  const td = L.reduce((a, x) => a + cts(x.l.d), 0), tc = L.reduce((a, x) => a + cts(x.l.cr), 0);
+  return tete('Comptes', 'Grand livre', 'Toutes les lignes d’un compte, avec le solde qui avance ligne après ligne.') +
+    `<div class="outils"><label class="champ" style="flex:1 1 280px">Compte<select class="saisie" data-a-change="gl">${avec.sort().map(n => `<option value="${n}" ${n === UI.gl ? 'selected' : ''}>${n} · ${esc(libCpt(n))}</option>`).join('')}</select></label>
+      ${tiersDuCompte.length ? `<label class="champ" style="flex:1 1 220px">Tiers<select class="saisie" data-a-change="glAux"><option value="">Tous</option>${tiersDuCompte.map(k => `<option value="${k}" ${UI.glAux === k ? 'selected' : ''}>${esc(nomTiers(k))}</option>`).join('')}</select></label>` : ''}</div>
+    <div class="kpis"><div class="kpi"><span>Total débit</span><b>${eur(td / 100)}</b></div><div class="kpi"><span>Total crédit</span><b>${eur(tc / 100)}</b></div><div class="kpi"><span>Solde au 31/10</span><b>${eur(Math.abs(td - tc) / 100)}</b><small>${td - tc > 0 ? 'débiteur' : td - tc < 0 ? 'créditeur' : 'soldé'}</small></div></div>
+    ${UI.gl === '471000' && td !== tc ? `<div class="carte" style="display:flex;flex-direction:column;gap:10px"><h2>Expliquer le compte d’attente</h2><p class="mute petit">Le prélèvement de la référence 88412 vient de l’assureur du terminal de paiement par carte : c’est une assurance. On sort le montant du compte d’attente vers le bon compte.</p>
+      <div class="outils"><label class="champ" style="flex:1 1 160px">Compte<input class="saisie mono" id="att-c" list="dl-comptes" value="616000" inputmode="numeric"></label><label class="champ" style="flex:2 1 240px">Libellé<input class="saisie" id="att-lib" value="Assurance du terminal de paiement · octobre"></label><button type="button" class="btn" data-a="attente-expliquer">Solder le compte d’attente</button></div><div id="att-msg"></div></div>` : ''}
+    <div class="defile"><table class="t"><thead><tr><th>Date</th><th>Jnl</th><th class="masque-tel">Pièce</th><th>Libellé</th><th class="n">Débit</th><th class="n">Crédit</th><th class="n">Solde</th><th>Let.</th></tr></thead><tbody>
+      ${L.map(x => { s += cts(x.l.d) - cts(x.l.cr); return `<tr class="clic ${x.e.etat === 'brouillard' ? 'brouil' : ''} ${x.e.essai ? 'essai' : ''}" data-a="ecr" data-id="${x.e.id}"><td class="c">${dJM(x.e.date)}</td><td><span class="jn">${x.e.j}</span></td><td class="mono masque-tel">${esc(x.e.piece)}</td><td>${esc(x.l.lib)}${x.l.aux && !UI.glAux ? `<span class="sec">${esc(nomTiers(x.l.aux))}</span>` : ''}</td><td class="n">${montantCell(x.l.d)}</td><td class="n">${montantCell(x.l.cr)}</td><td class="n">${nb(Math.abs(s) / 100)} ${s > 0 ? 'D' : s < 0 ? 'C' : ''}</td><td>${x.l.let ? `<span class="let">${x.l.let}</span>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="8" class="vide">Aucune ligne sur ce compte.</td></tr>'}
+    </tbody></table></div>`;
+};
+
+/* ─── la balance ─── */
+VUES.balance = () => {
+  const o = { au:UI.bal.au, brouillard:UI.bal.brouil, essai:UI.avecEssai };
+  const B = balance(o).filter(b => UI.bal.classe === 'tous' || b.n[0] === UI.bal.classe);
+  const td = B.reduce((s, b) => s + cts(b.d), 0), tc = B.reduce((s, b) => s + cts(b.c), 0), sd = B.reduce((s, b) => s + Math.max(0, cts(b.s)), 0), sc = B.reduce((s, b) => s + Math.max(0, -cts(b.s)), 0);
+  const CL = { '1':'Capitaux', '2':'Immobilisations', '3':'Stocks', '4':'Tiers', '5':'Financier', '6':'Charges', '7':'Produits' };
+  return tete('Comptes', 'Balance', 'Chaque compte, ses débits, ses crédits et son solde. Le total des débits égale toujours celui des crédits : c’est la preuve que la comptabilité tient.') +
+    `<div class="outils"><div class="seg" role="group" aria-label="Classe de comptes">${[['tous', 'Toutes'], ...Object.entries(CL)].map(([k, l]) => `<button type="button" aria-pressed="${UI.bal.classe === k}" data-a="bal-classe" data-k="${k}">${k === 'tous' ? l : k + ' · ' + l}</button>`).join('')}</div>
+      <label class="champ" style="flex-direction:row;align-items:center;gap:8px">Au<select class="saisie" data-a-change="bal-au" style="width:auto">${MOIS_LISTE.map(m => `<option value="${finMois(m)}" ${UI.bal.au === finMois(m) ? 'selected' : ''}>${dCourt(finMois(m))}</option>`).join('')}</select></label>
+      <label class="case"><input type="checkbox" data-a-change="bal-brouil" ${UI.bal.brouil ? 'checked' : ''}> Brouillard compris</label>
+      ${E.some(e => e.essai && e.etat !== 'supprimee') ? `<label class="case"><input type="checkbox" data-a-change="essai" ${UI.avecEssai ? 'checked' : ''}> Avec la répétition de clôture</label>` : ''}</div>
+    <div class="${td === tc ? 'bon' : 'erreur'} petit">${td === tc ? `✓ Équilibrée : ${nb(td / 100)} € au débit comme au crédit.` : 'La balance ne s’équilibre pas : une écriture est fausse.'}</div>
+    <div class="defile"><table class="t"><thead><tr><th>Compte</th><th>Intitulé</th><th class="n masque-tel">Débit</th><th class="n masque-tel">Crédit</th><th class="n">Solde débiteur</th><th class="n">Solde créditeur</th></tr></thead><tbody>
+      ${B.map(b => `<tr class="clic" data-a="vers-gl" data-c="${b.n}"><td class="compte">${b.n}</td><td>${esc(b.l)}</td><td class="n masque-tel">${nb(b.d)}</td><td class="n masque-tel">${nb(b.c)}</td><td class="n">${b.s > 0 ? nb(b.s) : ''}</td><td class="n">${b.s < 0 ? nb(-b.s) : ''}</td></tr>`).join('')}
+      <tr class="total"><td colspan="2">Total</td><td class="n masque-tel">${nb(td / 100)}</td><td class="n masque-tel">${nb(tc / 100)}</td><td class="n">${nb(sd / 100)}</td><td class="n">${nb(sc / 100)}</td></tr></tbody></table></div>`;
+};
+/* ══ LES ÉCRANS (2) : tiers et lettrage, banque, TVA, immobilisations, paie, clôtures, bilan, résultat, FEC, contrôles, dossier ══ */
+
+/* ─── clients et fournisseurs : soldes, échus, lettrage, balance âgée ─── */
+function etatTiers(t){
+  const L = lignesDe(l => l.aux === t.k), nl = L.filter(x => !x.l.let), s = L.reduce((a, x) => a + cts(x.l.d) - cts(x.l.cr), 0);
+  const sens = t.c === '411000' ? 1 : -1, echu = nl.filter(x => x.e.ech && x.e.ech < AUJ && (sens > 0 ? x.l.d : x.l.cr)).reduce((a, x) => a + cts(sens > 0 ? x.l.d : x.l.cr), 0);
+  const plusVieux = nl.filter(x => x.e.ech && (sens > 0 ? x.l.d : x.l.cr)).map(x => x.e.ech).sort()[0];
+  return { t, s:s * sens / 100, echu:echu / 100, nl:nl.length, plusVieux, n:L.length };
+}
+function ageDe(x){ const j = jours(x.e.ech || x.e.date, AUJ); return j <= 0 ? 'non' : j <= 30 ? 'a30' : j <= 60 ? 'a60' : 'plus'; }
+VUES.tiers = () => {
+  const cl = UI.tiersTab !== 'fournisseurs', L = (cl ? CLIENTS : FOURNISSEURS).map(etatTiers).filter(x => x.n).sort((a, b) => b.s - a.s);
+  const age = UI.tiersTab === 'age';
+  let corps;
+  if (age) {
+    const B = CLIENTS.map(t => { const o = { t, non:0, a30:0, a60:0, plus:0 }; lignesDe(l => l.aux === t.k && !l.let).forEach(x => { o[ageDe(x)] += cts(x.l.d) - cts(x.l.cr); }); o.tot = o.non + o.a30 + o.a60 + o.plus; return o; }).filter(o => o.tot).sort((a, b) => b.plus + b.a60 - a.plus - a.a60);
+    const T = k => B.reduce((s, o) => s + o[k], 0);
+    corps = `<p class="mute petit">Ce que chaque client doit, rangé selon le retard sur l’échéance de la facture, au 31/10/2026.</p><div class="defile"><table class="t"><thead><tr><th>Client</th><th class="n">Pas encore dû</th><th class="n">1 à 30 j</th><th class="n">31 à 60 j</th><th class="n">Plus de 60 j</th><th class="n">Total</th></tr></thead><tbody>
+      ${B.map(o => `<tr class="clic" data-a="tiers" data-k="${o.t.k}"><td>${esc(o.t.nom)}</td>${['non', 'a30', 'a60', 'plus'].map(k => `<td class="n" ${k !== 'non' && o[k] ? 'style="color:var(--bad);font-weight:650"' : ''}>${o[k] ? nb(o[k] / 100) : ''}</td>`).join('')}<td class="n"><b>${nb(o.tot / 100)}</b></td></tr>`).join('')}
+      <tr class="total"><td>Total</td>${['non', 'a30', 'a60', 'plus', 'tot'].map(k => `<td class="n">${nb(T(k) / 100)}</td>`).join('')}</tr></tbody></table></div>`;
+  } else corps = `<div class="outils"><button type="button" class="btn gris" data-a="lettrage-tous">Lettrage automatique de tous les comptes</button><span class="mute petit">Rapproche chaque facture et son paiement de même montant.</span></div>
+    <div class="defile"><table class="t"><thead><tr><th>${cl ? 'Client' : 'Fournisseur'}</th><th class="n">${cl ? 'Doit encore' : 'À payer'}</th><th class="n">Dont échu</th><th class="masque-tel">Plus ancienne échéance</th><th class="n masque-tel">Lignes non lettrées</th></tr></thead><tbody>
+      ${L.map(x => `<tr class="clic" data-a="tiers" data-k="${x.t.k}"><td>${esc(x.t.nom)}<span class="sec mono">${x.t.k}</span></td><td class="n">${nb(x.s)}</td><td class="n" ${x.echu ? 'style="color:var(--bad);font-weight:650"' : ''}>${x.echu ? nb(x.echu) : ''}</td><td class="masque-tel">${x.plusVieux ? dCourt(x.plusVieux) : '—'}</td><td class="n masque-tel">${x.nl || ''}</td></tr>`).join('')}
+      <tr class="total"><td>Total</td><td class="n">${nb(L.reduce((s, x) => s + x.s, 0))}</td><td class="n">${nb(L.reduce((s, x) => s + x.echu, 0))}</td><td class="masque-tel"></td><td class="masque-tel"></td></tr></tbody></table></div>`;
+  return tete('Comptes', 'Clients et fournisseurs', 'Un compte par client et par fournisseur. Lettrer, c’est marquer qu’une facture et son paiement vont ensemble : ce qui reste non lettré est ce qui reste dû.') +
+    `<div class="seg" role="group" aria-label="Comptes de tiers">${[['clients', 'Clients'], ['fournisseurs', 'Fournisseurs'], ['age', 'Balance âgée des clients']].map(([k, l]) => `<button type="button" aria-pressed="${UI.tiersTab === k}" data-a="tiers-tab" data-k="${k}">${l}</button>`).join('')}</div>` + corps;
+};
+function ouvrirTiers(k){
+  const t = tiers(k), L = lignesDe(l => l.aux === k).sort((a, b) => a.e.date.localeCompare(b.e.date)), x = etatTiers(t), cl = t.c === '411000';
+  if (k === 'C-DURAND') UI.durandVu = true;
+  const ligneT = y => `<tr class="${y.l.let ? '' : 'nl'}"><td>${y.l.let ? '' : `<input type="checkbox" data-let="${y.r}" aria-label="Choisir ${esc(y.l.lib)}">`}</td><td class="c">${dCourt(y.e.date)}</td><td><span class="jn">${y.e.j}</span></td><td class="mono">${esc(y.e.piece)}</td><td>${esc(y.l.lib)}${y.e.ech && !y.l.let && (cl ? y.l.d : y.l.cr) ? `<span class="sec" ${y.e.ech < AUJ ? 'style="color:var(--bad)"' : ''}>échéance ${dCourt(y.e.ech)}${y.e.ech < AUJ ? ' · en retard de ' + jours(y.e.ech, AUJ) + ' j' : ''}</span>` : ''}</td><td class="n">${montantCell(y.l.d)}</td><td class="n">${montantCell(y.l.cr)}</td><td>${y.l.let ? `<button type="button" class="lien let" data-a="delettrer" data-k="${k}" data-code="${y.l.let}" title="Délettrer ${y.l.let}">${y.l.let}</button>` : ''}</td></tr>`;
+  const relances = cl && FACTURES.filter(f => f.cli === k && f.relances);
+  ouvrir(haut(esc(t.nom), `Compte ${t.c} · ${t.k}`, cl ? 'Client' : 'Fournisseur') + `
+    <div class="kpis"><div class="kpi"><span>${cl ? 'Doit encore' : 'À payer'}</span><b>${eur(x.s)}</b></div><div class="kpi"><span>Dont échu</span><b style="${x.echu ? 'color:var(--bad)' : ''}">${eur(x.echu)}</b></div><div class="kpi"><span>Lignes non lettrées</span><b>${x.nl}</b></div></div>
+    ${relances && relances.length ? `<div class="alerte petit">${relances.map(f => `${f.num} : relancée ${f.relances} fois depuis OP GESTION (dernière relance le 28/10).`).join('<br>')}</div>` : ''}
+    <div id="let-msg"></div>
+    <div class="outils"><button type="button" class="btn" data-a="lettrer" data-k="${k}">Lettrer les lignes cochées</button><button type="button" class="btn gris" data-a="lettrage-auto" data-k="${k}">Lettrage automatique</button><label class="case"><input type="checkbox" data-a-change="tiers-nl" ${UI.tiersNl ? 'checked' : ''}> Seulement le non-lettré</label></div>
+    <div class="defile"><table class="t"><thead><tr><th></th><th>Date</th><th>Jnl</th><th>Pièce</th><th>Libellé</th><th class="n">Débit</th><th class="n">Crédit</th><th>Let.</th></tr></thead><tbody>${L.filter(y => !UI.tiersNl || !y.l.let).map(ligneT).join('')}</tbody></table></div>
+    <p class="mute petit">Coche une facture et ce qui la paie : si les montants s’annulent, « Lettrer » leur donne le même code. Touche un code pour le défaire.</p>`, true);
+}
+
+/* ─── la banque : le relevé, le rapprochement, l'état de rapprochement ─── */
+function factureDe(num){ const e = E.find(x => x.j === 'VE' && x.piece === num && x.etat !== 'supprimee'); if (!e) return null; const l411 = e.lignes.find(l => l.c === '411000'); const tva = e.lignes.filter(l => l.c === '445740').reduce((s, l) => s + l.cr, 0), ht = e.lignes.filter(l => l.c.startsWith('70')).reduce((s, l) => s + l.cr, 0);
+  return { e, ttc:l411.d, tva:r2(tva), ht:r2(ht), taux:ht ? Math.round(tva / ht * 1000) / 10 : 0, ref:ref(e, e.lignes.indexOf(l411)), lettree:!!l411.let }; }
+const ouvertesDe = cli => lignesDe(l => l.aux === cli && !l.let && l.d > 0).map(x => factureDe(x.e.piece)).filter(f => f && !f.lettree);
+VUES.banque = () => {
+  const R = etatRapprochement(AUJ), aP = releveAPasser();
+  const L = RELEVE.filter(r => UI.banqueVue === 'tout' ? r.date >= '2026-10-01' : !r.pointe).sort((a, b) => a.date.localeCompare(b.date));
+  const ecartExpl = cts(R.releve) - cts(R.compta);
+  return tete('Trésorerie', 'Banque et rapprochement', 'Le relevé de la banque d’un côté, le compte 512 de l’autre. Rapprocher, c’est donner à chaque ligne du relevé son écriture. Janvier à septembre sont rapprochés.') +
+    `<div class="kpis"><div class="kpi"><span>Solde du relevé au 31/10</span><b>${eur(R.releve)}</b><small>ce que dit la banque</small></div><div class="kpi"><span>Solde du compte 512</span><b>${eur(R.compta)}</b><small>ce que dit la comptabilité</small></div><div class="kpi"><span>Lignes à rapprocher</span><b style="${aP.length ? 'color:var(--warn)' : 'color:var(--ok)'}">${aP.length}</b><small>${aP.length ? 'sur le relevé, pas encore en compta' : 'tout est rapproché'}</small></div></div>
+    <div class="seg" role="group" aria-label="Lignes du relevé">${[['a', 'À rapprocher'], ['tout', 'Tout octobre']].map(([k, l]) => `<button type="button" aria-pressed="${UI.banqueVue === k}" data-a="banque-vue" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="defile"><table class="t"><thead><tr><th>Date</th><th>Libellé de la banque</th><th class="n">Montant</th><th>État</th></tr></thead><tbody>
+      ${L.map(r => { const e = r.pointe && ecrDe(r.pointe); return `<tr class="${r.pointe ? '' : 'clic'}" ${r.pointe ? '' : `data-a="rappro" data-id="${r.id}"`}><td class="c">${dCourt(r.date)}</td><td class="mono" style="font-size:12.5px">${esc(r.lib)}</td><td class="n" style="color:${r.m >= 0 ? 'var(--ok)' : 'var(--ink)'}">${r.m >= 0 ? '+' : '−'}${nb(Math.abs(r.m))}</td>
+        <td>${r.pointe ? `<button type="button" class="lien" data-a="ecr" data-id="${e.id}">${e.num || 'brouillard'}</button>` : '<button type="button" class="btn petit" data-a="rappro" data-id="' + r.id + '">Rapprocher</button>'}</td></tr>`; }).join('') || '<tr><td colspan="4" class="vide">Toutes les lignes du relevé sont rapprochées.</td></tr>'}</tbody></table></div>
+    <div class="carte"><h2>État de rapprochement au 31/10/2026</h2>
+      <div class="defile" style="border:0"><table class="t"><tbody>
+        <tr><td>Solde du relevé de la banque</td><td class="n">${nb(R.releve)}</td></tr>
+        ${R.comptaNonReleve.map(x => `<tr><td>${x.l.d ? '+' : '−'} ${esc(x.e.lib)} (${dCourt(x.e.date)}) <span class="sec">en comptabilité, pas encore passé à la banque</span></td><td class="n">${x.l.d ? '+' : '−'}${nb(Math.abs(x.l.d - x.l.cr))}</td></tr>`).join('')}
+        ${aP.map(r => `<tr><td>${r.m >= 0 ? '−' : '+'} ${esc(r.lib)} (${dCourt(r.date)}) <span class="sec">sur le relevé, pas encore en comptabilité</span></td><td class="n">${r.m >= 0 ? '−' : '+'}${nb(Math.abs(r.m))}</td></tr>`).join('')}
+        <tr class="total"><td>= Solde du compte 512</td><td class="n">${nb(R.compta)}</td></tr></tbody></table></div>
+      <p class="${aP.length ? 'mute' : ''} petit" style="margin-top:8px">${aP.length ? `Écart entre la banque et la comptabilité : ${eur(ecartExpl / 100)}, entièrement expliqué par les lignes ci-dessus.` : '✓ Plus rien à passer : il ne reste que des opérations en chemin (un chèque émis pas encore débité, une remise pas encore créditée). C’est normal.'}</p></div>`;
+};
+function ouvrirRappro(id){
+  const r = RELEVE.find(x => x.id === id), a = r.aide || {}; let corps = '';
+  const memeMontant = lignes512().filter(x => x.e.orig !== 'an' && !RELEVE.some(z => z.pointe === x.r) && cts(x.l.d - x.l.cr) === cts(r.m) && Math.abs(jours(x.e.date, r.date)) <= 10);
+  if (a.type === 'client') {
+    const F = ouvertesDe(a.cli);
+    corps = `<h3>Encaissement de ${esc(nomTiers(a.cli))}</h3><p class="mute petit">Coche les factures que ce virement paie. La TVA de chacune devient exigible aujourd’hui (TVA sur les encaissements).</p>
+      <div class="defile"><table class="t"><thead><tr><th></th><th>Facture</th><th>Date</th><th class="n">TTC</th></tr></thead><tbody>${F.map(f => `<tr><td><input type="checkbox" data-fac="${esc(f.e.piece)}" ${a.fac && a.fac.includes(f.e.piece) ? 'checked' : ''} aria-label="${esc(f.e.piece)}"></td><td class="mono">${esc(f.e.piece)}</td><td>${dCourt(f.e.date)}</td><td class="n">${nb(f.ttc)}</td></tr>`).join('') || '<tr><td colspan="4" class="vide">Aucune facture ouverte pour ce client.</td></tr>'}</tbody></table></div>
+      <button type="button" class="btn" data-a="rappro-ok" data-k="client" data-id="${id}">Passer l’encaissement et lettrer</button>`;
+  } else if (a.type === 'psp') corps = `<h3>Versement du prestataire de paiement</h3><p class="mute petit">Le prestataire a encaissé ${eur(a.brut)} de paiements par carte la semaine passée et en garde ${eur(a.frais)} de frais : il verse ${eur(r.m)}.</p>
+      <div class="defile"><table class="t"><tbody><tr><td class="compte">512000 Banque</td><td class="n">${nb(r.m)}</td><td></td></tr><tr><td class="compte">627000 Frais bancaires</td><td class="n">${nb(a.frais)}</td><td></td></tr><tr><td class="compte">467100 Prestataire de paiement</td><td></td><td class="n">${nb(a.brut)}</td></tr></tbody></table></div>
+      <button type="button" class="btn" data-a="rappro-ok" data-k="psp" data-id="${id}">Passer le versement</button>`;
+  else if (a.type === 'fourn') { const o = lignesDe(l => l.aux === a.four && !l.let && cts(l.cr) === cts(-r.m)); corps = o.length ? `<h3>Prélèvement de ${esc(nomTiers(a.four))}</h3><p class="mute petit">La facture ${esc(o[0].e.piece)} de ${eur(-r.m)} est en comptabilité : on la paie et on lettre.</p><button type="button" class="btn" data-a="rappro-ok" data-k="fourn" data-id="${id}">Passer le paiement et lettrer</button>`
+      : `<div class="alerte">La facture ${esc(a.piece)} de ${esc(nomTiers(a.four))} n’est pas encore en comptabilité. Traite-la d’abord : le prélèvement viendra la payer.</div><button type="button" class="btn" data-a="piece-depuis-banque" data-p="P3">Ouvrir la facture</button>`; }
+  else if (a.type === 'piece') corps = memeMontant.length ? `<h3>Ticket de carburant</h3><p class="mute petit">L’écriture du ticket est passée : on la pointe avec cette ligne.</p><button type="button" class="btn" data-a="rappro-pointer" data-id="${id}" data-r="${memeMontant[0].r}">Pointer avec « ${esc(memeMontant[0].e.lib)} »</button>`
+      : `<div class="alerte">Ce paiement par carte correspond au ticket de la Station du Port, reçu dans les pièces. Traite le ticket d’abord : son écriture se pointera ici.</div><button type="button" class="btn" data-a="piece-depuis-banque" data-p="P2">Ouvrir le ticket</button>`;
+  else if (a.type === 'salaires') { const s421 = solde('421000', { au:AUJ }); corps = `<h3>Virement des salaires d’octobre</h3><p class="mute petit">${Math.abs(s421 + r.m) < .01 ? 'Le journal de paie d’octobre est passé : le compte 421 attend exactement ce montant.' : 'Le journal de paie d’octobre n’est pas encore passé : en attendant, le compte 421 sera débiteur. Il se soldera quand la paie sera comptabilisée.'}</p>
+      <button type="button" class="btn" data-a="rappro-ok" data-k="salaires" data-id="${id}">Passer le virement des salaires</button>`; }
+  else if (a.type === 'frais') corps = `<h3>Frais bancaires</h3><p class="mute petit">Une commission prélevée par la banque : une charge, au compte 627.</p><button type="button" class="btn" data-a="rappro-ok" data-k="frais" data-id="${id}">Passer en frais bancaires</button>`;
+  else if (a.type === 'inconnu') corps = `<h3>Un prélèvement qu’on ne reconnaît pas</h3><p class="mute petit">On ne laisse pas une ligne de banque sans écriture : elle va au compte d’attente 471, le temps de savoir. Le compte d’attente doit être vide à la clôture.</p><button type="button" class="btn" data-a="rappro-ok" data-k="inconnu" data-id="${id}">Mettre en compte d’attente</button>`;
+  const autre = `<details class="carte"><summary><b>Autre choix</b></summary><div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+    ${memeMontant.length && a.type !== 'piece' ? `<div>Pointer avec une écriture déjà passée : ${memeMontant.map(x => `<button type="button" class="btn gris petit" data-a="rappro-pointer" data-id="${id}" data-r="${x.r}">${esc(x.e.lib)} · ${dCourt(x.e.date)}</button>`).join(' ')}</div>` : ''}
+    <div class="outils"><label class="champ" style="flex:1 1 200px">Contrepartie<input class="saisie mono" id="ra-c" list="dl-comptes" placeholder="ex. 616000" inputmode="numeric"></label><label class="champ" style="flex:2 1 240px">Libellé<input class="saisie" id="ra-lib" value="${esc(r.lib)}"></label><button type="button" class="btn gris" data-a="rappro-ok" data-k="autre" data-id="${id}">Passer</button></div></div></details>`;
+  ouvrir(haut('Rapprocher une ligne du relevé', `${dCourt(r.date)} · ${r.m >= 0 ? 'crédit' : 'débit'} de ${eur(Math.abs(r.m))}`, 'Banque') + `<div class="carte mono petit">${esc(r.lib)}</div><div id="ra-msg"></div>${corps}${autre}`);
+}
+function passerBanque(r, lignes, lib, o){
+  const e = ecr({ j:'BQ', date:r.date, piece:(o && o.piece) || 'REL-' + r.id, lib, orig:'banque', pj:'Releve-octobre-2026.pdf', etat:'brouillard', l:lignes });
+  const m = refusEcriture(e); if (m) { e.etat = 'supprimee'; return m; }
+  valider(e); r.pointe = ref(e, e.lignes.findIndex(l => l.c === '512000')); trace(`Ligne du relevé rapprochée : ${r.lib}`, { ref:e.id }); return e;
+}
+function rapprocher(id, k){
+  const r = RELEVE.find(x => x.id === id), a = r.aide || {}, err = m => { $('#ra-msg').innerHTML = `<div class="erreur">${esc(m)}</div>`; };
+  let e;
+  if (k === 'client') {
+    const nums = [...document.querySelectorAll('#calque [data-fac]:checked')].map(i => i.dataset.fac), F = nums.map(factureDe);
+    if (!F.length) return err('Coche au moins une facture.');
+    const s = F.reduce((t, f) => t + cts(f.ttc), 0); if (s !== cts(r.m)) return err(`Les factures cochées font ${eur(s / 100)} ; le virement est de ${eur(r.m)}. Coche celles qu’il paie vraiment.`);
+    e = passerBanque(r, [['512000', null, r.m, 0, 'Virement reçu'], ...F.flatMap(f => [['411000', a.cli, 0, f.ttc, f.e.piece + ' · ' + nomTiers(a.cli)], ['445740', null, f.tva, 0, 'TVA à encaisser · ' + f.e.piece], ['445710', null, 0, f.tva, 'TVA collectée · ' + f.e.piece, { taux:f.taux, base:f.ht }]])], 'Virement ' + nomTiers(a.cli), { piece:F.map(f => f.e.piece).join(' + ') });
+    if (typeof e === 'string') return err(e);
+    F.forEach(f => { const i = e.lignes.findIndex(l => l.c === '411000' && l.lib.startsWith(f.e.piece)); lettrer([f.ref, ref(e, i)], r.date); });
+    if (a.cli === 'C-HOTELPLAGE') UI.essaisFaits.add('hp');
+  } else if (k === 'psp') e = passerBanque(r, [['512000', null, r.m, 0], ['627000', null, a.frais, 0, 'Frais du prestataire de paiement'], ['467100', null, 0, a.brut, 'Paiements par carte de la semaine']], 'Versement du prestataire de paiement');
+  else if (k === 'fourn') { const o = lignesDe(l => l.aux === a.four && !l.let && cts(l.cr) === cts(-r.m))[0];
+    e = passerBanque(r, [[tiers(a.four).c, a.four, -r.m, 0, o.e.piece + ' · ' + nomTiers(a.four)], ['512000', null, 0, -r.m]], 'Prélèvement ' + nomTiers(a.four), { piece:o.e.piece });
+    if (typeof e !== 'string') lettrer([o.r, ref(e, 0)], r.date); }
+  else if (k === 'salaires') e = passerBanque(r, [['421000', null, -r.m, 0, 'Salaires nets d’octobre'], ['512000', null, 0, -r.m]], 'Virement des salaires · octobre 2026');
+  else if (k === 'frais') e = passerBanque(r, [['627000', null, -r.m, 0, 'Commission d’intervention'], ['512000', null, 0, -r.m]], 'Commission d’intervention de la banque');
+  else if (k === 'inconnu') e = passerBanque(r, [['471000', null, -r.m, 0, 'Prélèvement à identifier · réf. 88412'], ['512000', null, 0, -r.m]], 'Prélèvement à identifier (compte d’attente)');
+  else if (k === 'autre') { const c = ($('#ra-c').value.match(/\d{6}/) || [''])[0], lib = $('#ra-lib').value.trim() || r.lib;
+    if (!cpt(c)) return err('Choisis un compte du plan comptable.'); if (COLLECTIFS[c]) return err('Pour un client ou un fournisseur, utilise le rapprochement proposé : il lettre la facture.');
+    e = passerBanque(r, r.m >= 0 ? [['512000', null, r.m, 0], [c, null, 0, r.m, lib]] : [[c, null, -r.m, 0, lib], ['512000', null, 0, -r.m]], lib); }
+  if (typeof e === 'string') return err(e);
+  fermer(); rendre(); toast(`Ligne rapprochée : ${e.num}.`);
+}
+function expliquerAttente(){
+  const c = ($('#att-c').value.match(/\d{6}/) || [''])[0], lib = $('#att-lib').value.trim(), s = solde('471000', { au:AUJ });
+  if (!cpt(c) || c === '471000') return ($('#att-msg').innerHTML = '<div class="erreur">Choisis le compte où va ce montant.</div>');
+  const e = ecr({ j:'OD', date:AUJ, piece:'OD-471', lib:lib || 'Compte d’attente expliqué', etat:'brouillard', orig:'saisie', pj:'Avis-de-prelevement.pdf', l:s > 0 ? [[c, null, s, 0, lib], ['471000', null, 0, s, 'Compte d’attente soldé']] : [['471000', null, -s, 0, 'Compte d’attente soldé'], [c, null, 0, -s, lib]] });
+  const m = refusEcriture(e); if (m) { e.etat = 'supprimee'; return ($('#att-msg').innerHTML = `<div class="erreur">${esc(m)}</div>`); }
+  rendre(); toast('Compte d’attente soldé : l’écriture est au brouillard, à valider.');
+}
+
+/* ─── la TVA ─── */
+function tvaReste(ym){ const o = { du:ym + '-01', au:finMois(ym) }; const s = c => soldeCts(c, o); const r = { col:s('445710'), abs:s('445660'), imm:s('445620') }; r.vide = !r.col && !r.abs && !r.imm; return r; }
+VUES.tva = () => {
+  const ym = UI.tvaMois, D = TVA_DECL[ym] || {}, T = tvaMois(ym), reste = tvaReste(ym), declaree = !!D.decl, encours = ym === '2026-10';
+  const ligne = (code, lib, base, taxe, fort) => `<tr ${fort ? 'class="sous"' : ''}><td class="mono">${code}</td><td>${lib}</td><td class="n">${base === null ? '' : nb(base)}</td><td class="n">${taxe === null ? '' : nb(taxe)}</td></tr>`;
+  const t20 = T.parTaux['20'] || { base:0, tva:0 }, t10 = T.parTaux['10'] || { base:0, tva:0 };
+  const nbEnc = lignesDe(l => l.c === '445710' && l.t, { du:ym + '-01', au:finMois(ym) }).filter(x => x.e.orig !== 'tva').length;
+  return tete('Fiscal', 'TVA', `${DOSSIER.tva}. ${DOSSIER.exig} : la TVA d’une facture est due quand le client paie, pas quand elle est émise (sauf option pour les débits).`) +
+    `<div class="seg" role="group" aria-label="Mois">${MOIS_LISTE.map(m => `<button type="button" aria-pressed="${UI.tvaMois === m}" data-a="tva-mois" data-k="${m}">${MOIS_C[+m.slice(5) - 1]}</button>`).join('')}</div>
+    <div class="grille g2"><div class="carte"><h2>Déclaration CA3 · ${nomMois(ym)}</h2>
+      <div class="defile" style="border:0"><table class="t"><thead><tr><th>Ligne</th><th>Opération</th><th class="n">Base HT</th><th class="n">Taxe</th></tr></thead><tbody>
+        ${ligne('01', 'Ventes et prestations de services encaissées', T.baseTot, null)}
+        ${ligne('08', 'Taux normal 20 %', t20.base, t20.tva)}${ligne('9B', 'Taux réduit 10 %', t10.base, t10.tva)}
+        ${ligne('16', 'Total de la TVA brute due', null, T.brute, 1)}
+        ${ligne('19', 'TVA déductible sur immobilisations', null, T.dedImmo)}${ligne('20', 'TVA déductible sur autres biens et services', null, T.dedAbs)}${T.credPrec ? ligne('22', 'Report du crédit du mois précédent', null, T.credPrec) : ''}
+        ${ligne('23', 'Total de la TVA déductible', null, r2(T.ded + T.credPrec), 1)}
+        ${T.due ? ligne('28', 'TVA nette due', null, T.due, 1) : ligne('25', 'Crédit de TVA', null, T.credit, 1)}${ligne('32', 'Total à payer', null, T.due, 1)}
+      </tbody></table></div>
+      <p class="mute petit" style="margin-top:8px">Calculée à partir des comptes : ${nbEnc} encaissement${nbEnc > 1 ? 's' : ''} de clients dans le mois (445710) et la TVA des achats (445660, 445620). Numéros de ligne du formulaire 3310-CA3 : à faire vérifier par l’expert-comptable avant le dépôt.</p></div>
+      <div class="carte" style="display:flex;flex-direction:column;gap:10px"><h2>Où on en est</h2>
+        <div class="etapes">
+          <div class="etape ${D.liq ? 'ok' : ''}"><span class="rond">${D.liq ? '✓' : 1}</span><span class="txt"><b>L’écriture de TVA</b><span class="mute petit">${D.liq ? 'Passée : la TVA collectée et déductible du mois sont soldées vers le compte 445510.' : 'Elle solde la TVA du mois et fait apparaître ce qu’on doit (445510).'}</span></span>${!D.liq && encours ? `<button type="button" class="btn petit" data-a="tva-liquider" data-k="${ym}">Passer l’écriture</button>` : ''}</div>
+          ${D.liq && !reste.vide ? `<div class="etape"><span class="rond">!</span><span class="txt"><b>Des encaissements sont arrivés depuis</b><span class="mute petit">${eur(Math.abs(reste.col) / 100)} de TVA collectée en plus : complète l’écriture pour que la déclaration soit juste.</span></span><button type="button" class="btn petit" data-a="tva-complement" data-k="${ym}">Compléter</button></div>` : ''}
+          <div class="etape ${declaree ? 'ok' : ''}"><span class="rond">${declaree ? '✓' : 2}</span><span class="txt"><b>Déclarée sur impots.gouv.fr</b><span class="mute petit">${declaree ? 'le ' + dCourt(D.decl) : 'Avant le 19 du mois suivant (date selon le dossier).'}</span></span>${!declaree && D.liq && reste.vide ? `<button type="button" class="btn gris petit" data-a="tva-declarer" data-k="${ym}">C’est déclaré</button>` : ''}</div>
+          <div class="etape ${D.paye || (declaree && !T.due) ? 'ok' : ''}"><span class="rond">${D.paye || (declaree && !T.due) ? '✓' : 3}</span><span class="txt"><b>Payée</b><span class="mute petit">${D.paye ? 'Prélevée le ' + dCourt(D.paye) + ' (passée en banque).' : T.due ? `Le prélèvement de ${eur(T.due)} partira le ${dCourt(ouvre(moisSuiv(ym) + '-19'))} : il se rapprochera avec le relevé de novembre.` : 'Rien à payer : le crédit se reporte sur le mois suivant.'}</span></span></div>
+        </div>
+        ${encours && !D.liq && releveAPasser().some(r => r.aide && r.aide.type === 'client') ? '<div class="alerte petit">Des virements de clients sont encore à rapprocher en banque : rapproche-les d’abord, leur TVA est due ce mois-ci.</div>' : ''}
+      </div></div>`;
+};
+function tvaComplement(ym){
+  const r = tvaReste(ym); const col = -r.col / 100, abs = r.abs / 100, imm = r.imm / 100, net = r2(col - abs - imm);
+  const e = ecr({ j:'OD', date:finMois(ym), piece:'CA3-' + ym, lib:'Complément de la TVA de ' + nomMois(ym), orig:'tva', etat:'brouillard', pj:'CA3-' + ym + '.pdf',
+    l:[col && ['445710', null, col > 0 ? col : 0, col < 0 ? -col : 0], abs && ['445660', null, abs < 0 ? -abs : 0, abs > 0 ? abs : 0], imm && ['445620', null, imm < 0 ? -imm : 0, imm > 0 ? imm : 0], net && (net > 0 ? ['445510', null, 0, net, 'TVA à payer'] : ['445670', null, -net, 0, 'Crédit de TVA'])] });
+  const m = valider(e); if (m) { e.etat = 'supprimee'; return toast(m); }
+  TVA_DECL[ym].l = tvaMois(ym); rendre(); toast('Écriture de TVA complétée : ' + e.num + '.');
+}
+
+/* ─── les immobilisations ─── */
+VUES.immos = () => {
+  const L = IMMOS.map(i => ({ i, cum25:amortCumule(i, '2025-12-31'), dot26:dotation(i, '2026-01-01', '2026-12-31'), vnc26:r2(i.val - amortCumule(i, '2026-12-31')) }));
+  const T = k => L.reduce((s, x) => s + cts(x[k] !== undefined ? x[k] : x.i.val), 0) / 100;
+  return tete('Fiscal', 'Immobilisations', 'Ce que l’entreprise achète pour durer : fourgons, outillage, ordinateurs. On ne le passe pas en charge d’un coup : on l’amortit, un peu chaque année.') +
+    `<div class="defile"><table class="t"><thead><tr><th>Bien</th><th class="masque-tel">Compte</th><th>Mis en service</th><th class="n">Valeur HT</th><th class="n">Durée</th><th class="n masque-tel">Amorti au 31/12/2025</th><th class="n">Dotation 2026</th><th class="n">Valeur nette fin 2026</th></tr></thead><tbody>
+      ${L.map(x => `<tr class="clic" data-a="immo" data-id="${x.i.id}"><td>${esc(x.i.lib)}<span class="sec">${esc(x.i.fourn || '')}</span></td><td class="compte masque-tel">${x.i.c}</td><td class="c">${dCourt(x.i.date)}</td><td class="n">${nb(x.i.val)}</td><td class="n">${x.i.duree} ans</td><td class="n masque-tel">${nb(x.cum25)}</td><td class="n">${nb(x.dot26)}</td><td class="n">${nb(x.vnc26)}</td></tr>`).join('')}
+      <tr class="total"><td>Total</td><td class="masque-tel"></td><td></td><td class="n">${nb(T('val'))}</td><td></td><td class="n masque-tel">${nb(T('cum25'))}</td><td class="n">${nb(T('dot26'))}</td><td class="n">${nb(T('vnc26'))}</td></tr></tbody></table></div>
+    <div class="info petit">Amortissement linéaire, à partir de la date de mise en service, au prorata du temps (année de 360 jours). Les dotations de l’année se passent à la clôture : la répétition dans « Clôtures » les calcule au 31 octobre.</div>`;
+};
+function ouvrirImmo(id){
+  const i = IMMOS.find(x => x.id === id), P = planAmort(i);
+  ouvrir(haut(esc(i.lib), `${i.c} · ${libCpt(i.c)} · mis en service le ${dCourt(i.date)}`, 'Immobilisation') + `<div class="kpis"><div class="kpi"><span>Valeur d’origine</span><b>${eur(i.val)}</b></div><div class="kpi"><span>Durée</span><b>${i.duree} ans</b><small>${r2(100 / i.duree)} % par an</small></div><div class="kpi"><span>Amortissement</span><b>${AMORT[i.c]}</b><small>${esc(libCpt(AMORT[i.c]))}</small></div></div>
+    <div class="defile"><table class="t"><thead><tr><th>Exercice</th><th class="n">Dotation</th><th class="n">Cumul</th><th class="n">Valeur nette</th></tr></thead><tbody>${P.map(p => `<tr ${p.a === 2026 ? 'class="sous"' : ''}><td>${p.a}</td><td class="n">${nb(p.d)}</td><td class="n">${nb(p.cum)}</td><td class="n">${nb(p.vnc)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="mute petit">La première et la dernière année sont incomplètes : l’amortissement commence le jour de la mise en service.</p>`);
+}
+
+/* ─── la paie ─── */
+VUES.paie = () => {
+  const P6 = PIECES.find(p => p.id === 'P6');
+  return tete('Social', 'Paie', 'La paie se prépare dans OP GESTION (heures, absences, primes), le cabinet fait les fiches de paie, et son journal de paie arrive ici chaque mois.') +
+    `<div class="carte"><h2>Le chemin de la paie</h2><div class="etapes">
+      ${[['OP GESTION', 'Les heures pointées, corrigées et confirmées par chaque salarié, le mois verrouillé.'], [DOSSIER.cab, 'Calcule les fiches de paie et les cotisations, dépose la déclaration sociale (DSN).'], ['La comptabilité', 'Reçoit le journal de paie : une écriture par mois au journal PA.'], ['La banque', 'Les salaires nets fin de mois ; URSSAF, retraite et prélèvement à la source le 15 du mois suivant.']].map(([t, d], i) => `<div class="etape ok"><span class="rond">${i + 1}</span><span class="txt"><b>${t}</b><span class="mute petit">${d}</span></span></div>`).join('')}</div></div>
+    <div class="defile"><table class="t"><thead><tr><th>Mois</th><th class="n">Salaires bruts</th><th class="n masque-tel">Charges patronales</th><th class="n">Net versé</th><th class="n masque-tel">Dû aux organismes</th><th>Comptabilité</th></tr></thead><tbody>
+      ${MOIS_LISTE.map(m => { const p = PAIE_MOIS[m], e = E.find(x => x.j === 'PA' && x.date === finMois(m) && x.etat !== 'supprimee'); return `<tr><td>${nomMois(m)}</td><td class="n">${nb(p.brut)}</td><td class="n masque-tel">${nb(p.patron)}</td><td class="n">${nb(p.net)}</td><td class="n masque-tel">${nb(r2(p.urssaf + p.retraite + p.pas))}</td>
+        <td>${e ? `<button type="button" class="lien" data-a="ecr" data-id="${e.id}">${e.num || 'au brouillard'}</button>` : `<button type="button" class="btn petit" data-a="piece" data-id="P6">Passer le journal</button>`}</td></tr>`; }).join('')}</tbody></table></div>
+    <div class="carte petit"><h3>L’écriture d’un mois de paie</h3><div class="defile" style="border:0"><table class="t"><tbody>
+      <tr><td class="compte">641000</td><td>Salaires bruts</td><td>au débit</td></tr><tr><td class="compte">645000</td><td>Charges patronales</td><td>au débit</td></tr><tr><td class="compte">421000</td><td>Net à payer aux salariés</td><td>au crédit</td></tr><tr><td class="compte">431000</td><td>URSSAF, parts salariale et patronale</td><td>au crédit</td></tr><tr><td class="compte">437000</td><td>Retraite complémentaire et prévoyance</td><td>au crédit</td></tr><tr><td class="compte">442100</td><td>Prélèvement à la source</td><td>au crédit</td></tr></tbody></table></div>
+    <p class="mute" style="margin-top:6px">Montants fictifs. Les taux réels dépendent de la convention collective et de chaque salarié : c’est le métier du cabinet.</p></div>
+    ${P6 && P6.statut === 'a_traiter' ? '<div class="alerte petit">Le journal de paie d’octobre est arrivé du cabinet : il attend dans les pièces à traiter.</div>' : ''}`;
+};
+
+/* ─── les clôtures : le mois, et la répétition de la clôture de l'exercice ─── */
+const STOCK_FINAL = 7450, CP_SAL = [['Marc Leblanc', 12, 3800], ['Julie Petit', 14, 2300], ['Sophie Martin', 11, 2450], ['Karim Benali', 9, 2900], ['Léa Roux', 13, 2400], ['Tom Leroy', 10, 2200]];
+const CP_AN = 11200, CP_AN_CH = 4704;
+const CP_TOTAL = r2(CP_SAL.reduce((s, [, j, b]) => s + cts(j * b * 1.1 / 21.67), 0) / 100), CP_CHARGES = r2(CP_TOTAL * .42);
+const ETAPES_CLOTURE = [
+  { k:'amort', t:'Amortissements de l’année', d:'La part de l’usure des biens, du 1er janvier au 31 octobre.', l:() => { const P = {}; IMMOS.forEach(i => { const d = dotation(i, '2026-01-01', '2026-10-31'); if (d) P[AMORT[i.c]] = r2((P[AMORT[i.c]] || 0) + d); }); const tot = r2(Object.values(P).reduce((s, x) => s + cts(x), 0) / 100); return [['681100', null, tot, 0, 'Dotations aux amortissements'], ...Object.entries(P).map(([c, m]) => [c, null, 0, m, libCpt(c)])]; } },
+  { k:'stock', t:'Stock de matériel', m:() => r2(STOCK_FINAL - 6200), d:`On sort le stock du début d’année (6 200 €) et on entre celui compté au 31 octobre (${nb(STOCK_FINAL)} €, inventaire fictif).`, l:() => [['603100', null, 6200, 0, 'Stock initial'], ['310000', null, 0, 6200, 'Stock initial sorti'], ['310000', null, STOCK_FINAL, 0, 'Stock final compté'], ['603100', null, 0, STOCK_FINAL, 'Stock final']] },
+  { k:'cca', t:'Charge payée d’avance', d:'L’assurance de 4 800 € couvre avril 2026 à mars 2027 : 5 mois concernent la suite (novembre à mars).', l:() => [['486000', null, 2000, 0, 'Assurance de novembre 2026 à mars 2027'], ['616000', null, 0, 2000, 'Part de l’assurance qui concerne la suite']] },
+  { k:'fnp', t:'Facture pas encore reçue', d:'Électricité Pro 17 a livré le 27 octobre ; sa facture (380 € HT) n’est pas arrivée. La charge appartient à octobre.', l:() => [['601000', null, 380, 0, 'Livraison du 27/10, facture à recevoir'], ['445860', null, 76, 0, 'TVA sur facture à recevoir'], ['408000', null, 0, 456, 'Électricité Pro 17 · facture non parvenue']] },
+  { k:'fae', t:'Travail fait, pas encore facturé', d:'L’entretien de l’Hôtel Les Mouettes, fait le 30 octobre, sera facturé en novembre (640 € HT). Le produit appartient à octobre.', l:() => [['418000', null, 768, 0, 'Hôtel Les Mouettes · facture à établir'], ['706000', null, 0, 640, 'Entretien du 30/10'], ['445870', null, 0, 128, 'TVA sur facture à établir']] },
+  { k:'cp', t:'Congés payés acquis', d:`Les jours acquis et pas encore pris par les six salariés (${CP_SAL.reduce((s, x) => s + x[1], 0)} jours, ${nb(CP_TOTAL)} € et ${nb(CP_CHARGES)} € de charges à 42 %, taux moyen fictif) remplacent la provision du 31/12/2025 (${nb(CP_AN)} € et ${nb(CP_AN_CH)} €) : seule la différence passe.`,
+    l:() => { const d = r2(CP_TOTAL - CP_AN), c = r2(CP_CHARGES - CP_AN_CH), L = [];
+      if (d) L.push(d > 0 ? ['641200', null, d, 0, 'Congés payés : provision augmentée'] : ['428200', null, -d, 0, 'Congés payés : provision diminuée'], d > 0 ? ['428200', null, 0, d, 'Dettes provisionnées pour congés'] : ['641200', null, 0, -d, 'Reprise sur congés payés']);
+      if (c) L.push(c > 0 ? ['645000', null, c, 0, 'Charges sur congés payés'] : ['438200', null, -c, 0, 'Charges sur congés : provision diminuée'], c > 0 ? ['438200', null, 0, c, 'Charges sociales sur congés'] : ['645000', null, 0, -c, 'Reprise des charges sur congés']);
+      return L; } },
+  { k:'is', t:'Impôt sur les sociétés', d:'Estimé sur le résultat de la situation : 15 % jusqu’à 42 500 €, 25 % au-delà (taux réduit des PME, sous conditions à vérifier).', l:() => { const r = resultatAvantIS(true), is = isDe(r); return is ? [['695000', null, is, 0, 'Impôt sur les sociétés estimé'], ['444000', null, 0, is, 'Impôt dû']] : []; } }
+];
+const resultatAvantIS = essai => -(soldeCts('6', { au:AUJ, essai }) + soldeCts('7', { au:AUJ, essai }) - soldeCts('695', { au:AUJ, essai })) / 100;
+const isDe = r => r <= 0 ? 0 : r2(Math.min(r, 42500) * .15 + Math.max(0, r - 42500) * .25);
+const etapeFaite = k => E.find(e => e.essai && e.etat !== 'supprimee' && e.etape === k);
+VUES.clotures = () => {
+  const F = aFaire(), pret = F.every(x => x.ok), oct = PER['2026-10'] === 'cloturee', faites = ETAPES_CLOTURE.filter(s => etapeFaite(s.k)).length;
+  const resEssai = -(soldeCts('6', { au:AUJ, essai:true }) + soldeCts('7', { au:AUJ, essai:true })) / 100;
+  return tete('Clôture', 'Clôtures', 'Chaque mois se ferme une fois tout passé : plus aucune écriture n’y entre ensuite. L’exercice se clôture le 31 décembre ; ici, on peut répéter cette clôture sur les dix premiers mois.') +
+    `<div class="grille g2"><div class="carte"><h2>Clôture mensuelle</h2>
+      <div class="defile" style="border:0"><table class="t"><tbody>${MOIS_LISTE.map(m => `<tr><td>${nomMois(m)}</td><td>${PER[m] === 'cloturee' ? '<span class="st ok">Clôturé</span>' : '<span class="st warn">En cours</span>'}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="carte" style="display:flex;flex-direction:column;gap:10px"><h2>Clôturer octobre</h2>
+        <div class="etapes">${F.map((x, i) => `<div class="etape ${x.ok ? 'ok' : ''}"><span class="rond">${x.ok ? '✓' : i + 1}</span><span class="txt"><b>${x.t}</b><span class="mute petit">${x.d}</span></span>${x.ok || oct ? '' : `<button type="button" class="btn gris petit" data-a="aller" data-r="${x.k}" ${x.gl ? `data-gl="${x.gl}"` : ''}>Y aller</button>`}</div>`).join('')}</div>
+        ${oct ? '<div class="bon">Octobre est clôturé. Une erreur trouvée maintenant se corrige en novembre, par une nouvelle écriture.</div>' : `<button type="button" class="btn" data-a="cloturer-oct" ${pret ? '' : 'aria-disabled="true"'}>Clôturer octobre</button><p class="mute petit">${pret ? 'Tout est prêt. Une période clôturée ne se rouvre pas.' : 'Le bouton s’ouvre quand toutes les étapes sont faites.'}</p>`}</div></div>
+    <div class="carte" style="display:flex;flex-direction:column;gap:10px"><h2>Répétition de la clôture de l’exercice · ${faites}/${ETAPES_CLOTURE.length}</h2>
+      <p class="mute petit">Les écritures de fin d’année, calculées au 31 octobre. Ce sont des écritures d’essai : elles ne touchent ni la TVA, ni le FEC, ni les contrôles, et s’effacent d’un geste. Le bilan et le compte de résultat peuvent les inclure.</p>
+      <div class="etapes">${ETAPES_CLOTURE.map((s, i) => { const f = etapeFaite(s.k), L = f || s.m ? null : s.l(), m = s.m ? s.m() : f ? totalD(f) : r2(L.reduce((t, l) => t + cts(l[2]), 0) / 100); return `<div class="etape ${f ? 'ok' : ''}"><span class="rond">${f ? '✓' : i + 1}</span><span class="txt"><b>${s.t} · ${s.m ? (m >= 0 ? '+' : '') : ''}${eur(m)}</b><span class="mute petit">${s.d}</span></span>${f ? `<button type="button" class="lien" data-a="ecr" data-id="${f.id}">Voir l’écriture</button>` : `<button type="button" class="btn gris petit" data-a="cloture-etape" data-k="${s.k}">Passer l’écriture d’essai</button>`}</div>`; }).join('')}</div>
+      ${faites ? `<div class="kpis"><div class="kpi"><span>Résultat de la situation au 31/10</span><b style="color:${resEssai >= 0 ? 'var(--ok)' : 'var(--bad)'}">${eur(resEssai)}</b><small>avec les ${faites} écriture${faites > 1 ? 's' : ''} d’essai</small></div></div>
+        <div class="outils"><button type="button" class="btn" data-a="voir-bilan-essai">Voir le bilan avec la répétition</button><button type="button" class="btn gris" data-a="aller" data-r="resultat" data-essai="1">Voir le compte de résultat</button><button type="button" class="btn danger" data-a="cloture-effacer">Effacer la répétition</button></div>` : ''}
+      ${faites === ETAPES_CLOTURE.length ? `<div class="info petit"><b>Et au 1er janvier 2027 ?</b> Les comptes de bilan (classes 1 à 5) repartent de leur solde dans une écriture d’à-nouveaux ; les charges et les produits repartent de zéro. Le résultat attend au compte 120 que l’assemblée des associés décide de son affectation (réserves, dividendes), dans les six mois.</div>` : ''}</div>`;
+};
+function passerEtape(k){
+  const s = ETAPES_CLOTURE.find(x => x.k === k), L = s.l(); if (!L.length) return toast('Rien à passer : le résultat est négatif, pas d’impôt.');
+  const e = ecr({ j:'OD', date:AUJ, piece:'CLO-' + k.toUpperCase(), lib:'Répétition de clôture · ' + s.t, etat:'brouillard', orig:'cloture', essai:true, pj:null, l:L }); e.etape = k;
+  const m = refusEcriture(e); if (m) { e.etat = 'supprimee'; return toast(m); }
+  trace('Répétition de clôture : ' + s.t, { ref:e.id }); rendre(); toast('Écriture d’essai passée : ' + s.t + '.');
+}
+
+/* ─── le bilan et le compte de résultat ─── */
+function soldesDe(o){ const S = {}; balance(o).forEach(b => { S[b.n] = cts(b.s); }); return S; }
+function bilanDe(S){
+  /* chaque compte de bilan va d'un côté selon son solde : un fournisseur débiteur devient une créance, un client créditeur une dette */
+  const R = { brut:0, amort:0, stock:0, clients:0, autresCre:0, dispo:0, capital:0, reserves:0, ran:0, res12:0, emprunts:0, fourn:0, fisc:0, autresDet:0 }, res67 = [];
+  const dans = (n, L) => L.some(p => n.startsWith(p));
+  Object.entries(S).forEach(([n, s]) => {
+    if (n[0] === '6' || n[0] === '7') return res67.push(s);
+    if (n.startsWith('21')) R.brut += s; else if (n.startsWith('28')) R.amort -= s; else if (n.startsWith('3')) R.stock += s;
+    else if (n.startsWith('101')) R.capital -= s; else if (n.startsWith('106')) R.reserves -= s; else if (n.startsWith('11')) R.ran -= s; else if (n.startsWith('12')) R.res12 -= s; else if (n.startsWith('16')) R.emprunts -= s;
+    else if (dans(n, ['512', '530'])) { if (s >= 0) R.dispo += s; else R.emprunts -= s; }
+    else if (dans(n, ['411', '418'])) { if (s >= 0) R.clients += s; else R.autresDet -= s; }
+    else if (dans(n, ['401', '404', '408'])) { if (s <= 0) R.fourn -= s; else R.autresCre += s; }
+    else if (dans(n, ['421', '428', '431', '437', '438', '4421', '444', '4455', '4457', '44587', '447'])) { if (s <= 0) R.fisc -= s; else R.autresCre += s; }
+    else { if (s >= 0) R.autresCre += s; else R.autresDet -= s; }
+  });
+  const resultat = R.res12 - res67.reduce((t, s) => t + s, 0);
+  const actif = [['Immobilisations corporelles', null], ['Valeur brute', R.brut, 1], ['Amortissements', -R.amort, 1], ['Valeur nette', R.brut - R.amort], ['Stock de matériel', R.stock], ['Créances clients', R.clients], ['Autres créances', R.autresCre], ['Disponibilités', R.dispo]];
+  const passif = [['Capital', R.capital], ['Réserves', R.reserves], ['Report à nouveau', R.ran], ['Résultat de l’exercice', resultat], ['Emprunts', R.emprunts], ['Fournisseurs', R.fourn], ['Dettes fiscales et sociales', R.fisc], ['Autres dettes', R.autresDet]];
+  const tA = R.brut - R.amort + R.stock + R.clients + R.autresCre + R.dispo, tP = passif.reduce((t, x) => t + x[1], 0);
+  return { actif, passif, tA, tP, resultat };
+}
+VUES.bilan = () => {
+  if (UI.avecEssai) UI.bilanEssaiVu = true;
+  const N = bilanDe(soldesDe({ au:AUJ, essai:UI.avecEssai })), N1 = bilanDe(soldesDe({ j:'AN' })), essais = E.some(e => e.essai && e.etat !== 'supprimee');
+  const col = (lib, n, n1, o) => `<tr class="${o === 1 ? '' : o === 2 ? 'total' : ''}"><td style="${o === 1 ? 'padding-left:26px;color:var(--mute)' : ''}">${lib}</td><td class="n">${n === null ? '' : nb(n / 100)}</td><td class="n">${n1 === null ? '' : nb(n1 / 100)}</td></tr>`;
+  const cote = (titre, A, A1, t, t1) => `<div class="carte"><h2>${titre}</h2><div class="defile" style="border:0"><table class="t"><thead><tr><th></th><th class="n">31/10/2026</th><th class="n">31/12/2025</th></tr></thead><tbody>${A.map((x, i) => col(x[0], x[1], A1[i][1], x[2])).join('')}${col('Total', t, t1, 2)}</tbody></table></div></div>`;
+  return tete('États', 'Bilan', 'Ce que l’entreprise possède (actif) et ce qu’elle doit (passif), à une date. Les deux côtés sont toujours égaux : le résultat fait la différence.') +
+    `<div class="outils">${essais ? `<label class="case"><input type="checkbox" data-a-change="essai" ${UI.avecEssai ? 'checked' : ''}> Avec la répétition de clôture</label>` : '<span class="mute petit">Situation au 31/10, sans les écritures de fin d’année (amortissements, stock, congés, impôt) : la répétition dans « Clôtures » les ajoute.</span>'}</div>
+    <div class="${N.tA === N.tP ? 'bon' : 'erreur'} petit">${N.tA === N.tP ? `✓ Actif = passif = ${eur(N.tA / 100)}` : `Écart entre actif et passif : ${eur((N.tA - N.tP) / 100)}`}</div>
+    <div class="bilan">${cote('Actif', N.actif, N1.actif, N.tA, N1.tA)}${cote('Passif', N.passif, N1.passif, N.tP, N1.tP)}</div>
+    <p class="mute petit">31/12/2025 : le bilan de l’exercice précédent, repris dans les à-nouveaux. 31/10/2026 : une situation en cours d’exercice${UI.avecEssai ? ', avec les écritures d’essai de la répétition' : ''}.</p>`;
+};
+const CR_2025 = { ca:512400, achats:178300, varStock:-900, ext:31660, impots:2850, salaires:186200, sociales:50300, dotations:13650, interets:640, is:8175 };
+VUES.resultat = () => {
+  const o = { au:AUJ, essai:UI.avecEssai }, s = p => soldeCts(p, o) / 100, g = (...P) => P.reduce((t, p) => t + s(p), 0);
+  const ca = -g('706', '708', '709'), achats = s('601'), varStock = s('603'), ext = g('606', '613', '615', '616', '622', '623', '625', '626', '627'), impots = s('635'), sal = s('641'), soc = s('645'), dot = s('681'), interets = s('661'), is = s('695');
+  const re = ca - achats - varStock - ext - impots - sal - soc - dot, rc = re - interets, rn = rc - is, P = CR_2025, re1 = P.ca - P.achats - P.varStock - P.ext - P.impots - P.salaires - P.sociales - P.dotations, rn1 = re1 - P.interets - P.is;
+  const L = (lib, a, b, cl) => `<tr class="${cl || ''}"><td>${lib}</td><td class="n">${nb(a)}</td><td class="n">${nb(b)}</td></tr>`;
+  const va = ca - achats - varStock - ext, va1 = P.ca - P.achats - P.varStock - P.ext, ebe = va - impots - sal - soc, ebe1 = va1 - P.impots - P.salaires - P.sociales;
+  return tete('États', 'Compte de résultat', 'Ce que l’activité a rapporté (produits) et coûté (charges). La différence est le résultat.') +
+    `${E.some(e => e.essai && e.etat !== 'supprimee') ? `<label class="case"><input type="checkbox" data-a-change="essai" ${UI.avecEssai ? 'checked' : ''}> Avec la répétition de clôture</label>` : ''}
+    <div class="grille g2"><div class="defile"><table class="t"><thead><tr><th></th><th class="n">2026 · 10 mois</th><th class="n">2025 · 12 mois</th></tr></thead><tbody>
+      ${L('Prestations vendues', ca, P.ca, 'sous')}
+      ${L('Achats de matériel et fournitures', achats, P.achats)}${L('Variation du stock', varStock, P.varStock)}${L('Autres achats et charges externes', ext, P.ext)}${L('Impôts et taxes', impots, P.impots)}${L('Salaires', sal, P.salaires)}${L('Charges sociales', soc, P.sociales)}${L('Dotations aux amortissements', dot, P.dotations)}
+      ${L('Résultat d’exploitation', re, re1, 'sous')}${L('Intérêts des emprunts', interets, P.interets)}${L('Résultat courant avant impôt', rc, re1 - P.interets, 'sous')}${L('Impôt sur les sociétés', is, P.is)}${L('Résultat net', rn, rn1, 'total')}
+    </tbody></table></div>
+    <div class="carte"><h2>Soldes intermédiaires de gestion</h2><div class="defile" style="border:0"><table class="t"><thead><tr><th></th><th class="n">2026</th><th class="n">2025</th></tr></thead><tbody>
+      ${L('Production vendue', ca, P.ca)}${L('Valeur ajoutée', va, va1, 'sous')}${L('Excédent brut d’exploitation', ebe, ebe1, 'sous')}${L('Marge nette', rn, rn1)}</tbody></table></div>
+      <p class="mute petit" style="margin-top:8px">Valeur ajoutée en part du chiffre d’affaires : ${ca ? Math.round(va / ca * 100) : 0} % en 2026, ${Math.round(va1 / P.ca * 100)} % en 2025. ${UI.avecEssai ? '' : 'Sans les écritures de fin d’année, le résultat de 2026 est provisoire : amortissements, congés payés et impôt manquent.'}</p></div></div>`;
+};
+
+/* ─── le fichier des écritures comptables (FEC) ─── */
+const FEC_COLS = ['JournalCode', 'JournalLib', 'EcritureNum', 'EcritureDate', 'CompteNum', 'CompteLib', 'CompAuxNum', 'CompAuxLib', 'PieceRef', 'PieceDate', 'EcritureLib', 'Debit', 'Credit', 'EcritureLet', 'DateLet', 'ValidDate', 'Montantdevise', 'Idevise'];
+function fecLignes(){
+  const d8 = d => d ? d.replace(/-/g, '') : '', m = x => x.toFixed(2).replace('.', ','), net = s => String(s || '').replace(/[|\r\n]/g, ' ');
+  return E.filter(e => e.etat === 'valide' && !e.essai).sort((a, b) => (a.valideLe + a.num).localeCompare(b.valideLe + b.num)).flatMap(e => e.lignes.map(l => [e.j, JOURNAUX[e.j], e.num, d8(e.date), l.c, libCpt(l.c), l.aux || '', l.aux ? nomTiers(l.aux) : '', e.piece || e.num, d8(e.date), net(l.lib), m(l.d), m(l.cr), l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map(net)));
+}
+const fecNom = () => DOSSIER.siren + 'FEC' + EXO.fin.replace(/-/g, '') + '.txt';
+VUES.fec = () => {
+  const L = fecLignes(), V = E.filter(e => e.etat === 'valide' && !e.essai), cont = Object.keys(JOURNAUX).every(j => { const N = V.filter(e => e.j === j).map(e => +e.num.slice(-5)).sort((a, b) => a - b); return N.every((n, i) => n === i + 1); });
+  const C = [[L.every(x => x.length === 18), '18 colonnes, dans l’ordre réglementaire'], [V.every(equilibre), 'Chaque écriture s’équilibre'], [cont, 'Numéros continus dans chaque journal'], [V.every(e => e.date >= EXO.debut && e.date <= EXO.fin), 'Toutes les dates dans l’exercice'], [V.every(e => e.lignes.every(l => cpt(l.c))), 'Tous les comptes au plan comptable'], [true, 'Seulement des écritures validées (ni brouillard, ni essai)']];
+  return tete('États', 'Fichier des écritures comptables', 'Le FEC est le fichier que l’administration fiscale demande en cas de contrôle : toutes les écritures de l’exercice, ligne par ligne. Il se produit après la clôture ; celui-ci, provisoire, s’arrête au 31 octobre.',
+    `<button type="button" class="btn" data-a="fec-dl">Télécharger le FEC</button>`) +
+    `<div class="grille g2"><div class="carte"><h2>Contrôles du fichier</h2><div class="etapes">${C.map(([ok, t]) => `<div class="etape ${ok ? 'ok' : ''}"><span class="rond">${ok ? '✓' : '!'}</span><span class="txt"><b>${t}</b></span></div>`).join('')}</div></div>
+      <div class="carte petit"><h2>Le fichier</h2><div>Nom : <span class="mono">${fecNom()}</span> (SIREN, « FEC », date de clôture).</div><div>${L.length} lignes, ${V.length} écritures. Séparateur « | », montants avec une virgule, dates en AAAAMMJJ.</div>
+        <div class="mute" style="margin-top:6px">Format décrit à l’article A47 A-1 du livre des procédures fiscales : à faire vérifier par l’expert-comptable, qui le contrôle avec l’outil Test Compta Demat de l’administration.</div><div id="fec-msg" style="margin-top:8px"></div></div></div>
+    <div class="defile"><table class="t" style="font-size:12px"><thead><tr>${FEC_COLS.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${L.slice(0, 40).map(x => `<tr>${x.map((v, i) => `<td class="${[11, 12].includes(i) ? 'n' : ''} ${[2, 4, 6].includes(i) ? 'mono' : ''}" style="white-space:nowrap">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="mute petit">Les 40 premières lignes sur ${L.length}.</p>`;
+};
+async function fecTelecharger(){
+  const txt = [FEC_COLS.join('|'), ...fecLignes().map(x => x.join('|'))].join('\r\n'); UI.fecFait = true;
+  let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  const msg = $('#fec-msg');
+  if (!dl) { if (msg) msg.innerHTML = `<div class="info">Le téléchargement n’est pas disponible ici. Voici le début du fichier :</div><textarea class="saisie mono" readonly style="width:100%;height:160px;font-size:11px;margin-top:6px">${esc(txt.slice(0, 4000))}</textarea>`; parcoursVerifier(); return; }
+  try { await dl.save({ filename:fecNom(), data:txt }); toast('FEC enregistré : ' + fecNom() + '.'); }
+  catch (e) { if (msg) msg.innerHTML = `<div class="${e && e.code === 'declined' ? 'info' : 'erreur'}">${e && e.code === 'declined' ? 'Téléchargement annulé.' : 'Le téléchargement n’a pas abouti ici.'}</div>`; }
+  parcoursVerifier();
+}
+
+/* ─── les contrôles ─── */
+function controles(){
+  const A = E.filter(e => e.etat !== 'supprimee' && !e.essai), V = A.filter(e => e.etat === 'valide'), B = balance({ au:AUJ });
+  const cont = Object.keys(JOURNAUX).every(j => { const N = V.filter(e => e.j === j).map(e => +e.num.slice(-5)).sort((a, b) => a - b); return N.every((n, i) => n === i + 1); });
+  const intactes = V.filter(e => e.emp && e.emp !== empreinte(e));
+  const sansPj = A.filter(e => e.j === 'AC' && !e.pj);
+  let c = 0, minC = 0; lignesDe(l => l.c === '530000').sort((a, b) => a.e.date.localeCompare(b.e.date)).forEach(x => { c += cts(x.l.d) - cts(x.l.cr); minC = Math.min(minC, c); });
+  const tvaOk = MOIS_LISTE.slice(0, 9).every(m => tvaReste(m).vide);
+  const retard = lignesDe(l => l.c === '411000' && !l.let && l.d > 0).filter(x => x.e.ech && jours(x.e.ech, AUJ) > 30);
+  const brouilClos = A.filter(e => e.etat === 'brouillard' && periodeClose(e.date));
+  return [
+    { ok:A.every(equilibre), t:'Chaque écriture s’équilibre', d:'Débit = crédit, écriture par écriture.' },
+    { ok:B.reduce((s, b) => s + cts(b.d) - cts(b.c), 0) === 0, t:'La balance s’équilibre', d:'Le total des débits égale celui des crédits.' },
+    { ok:cont, t:'Les numéros se suivent sans trou', d:'Dans chaque journal, dans l’ordre de validation.' },
+    { ok:!intactes.length, t:'Aucune écriture validée n’a bougé', d:intactes.length ? `${intactes.length} écriture(s) modifiée(s) après validation.` : 'Chaque écriture validée garde l’empreinte prise à sa validation.' },
+    { ok:!sansPj.length, t:'Chaque achat a sa pièce justificative', d:sansPj.length ? `${sansPj.length} achat(s) sans pièce.` : 'Facture ou ticket attaché à chaque écriture d’achat.' },
+    { ok:!brouilClos.length, t:'Rien au brouillard dans un mois clôturé', d:'Une période fermée ne contient que des écritures validées.' },
+    { ok:Math.abs(solde('471000', { au:AUJ })) < .005, t:'Le compte d’attente est vide', k:'grand-livre', gl:'471000', d:'Tout ce qui y est entré a été expliqué.' },
+    { ok:!releveAPasser().length, t:'La banque est rapprochée au 31/10', k:'banque', d:releveAPasser().length ? `${releveAPasser().length} ligne(s) du relevé à passer.` : 'Chaque ligne du relevé a son écriture.' },
+    { ok:minC >= 0, t:'La caisse n’est jamais négative', d:'On ne sort pas plus d’espèces qu’il n’y en a.' },
+    { ok:tvaOk, t:'La TVA de chaque mois déclaré est soldée', k:'tva', d:'Janvier à septembre : TVA collectée et déductible ramenées à zéro par leur déclaration.' },
+    { ok:tvaPreparee('2026-10'), t:'La TVA d’octobre est préparée', k:'tva', d:tvaPreparee('2026-10') ? 'Déclaration prête.' : 'À préparer avant le 19 novembre.', warn:true },
+    { ok:!brouillardOct().length, t:'Le brouillard est vide', k:'brouillard', d:brouillardOct().length ? `${brouillardOct().length} écriture(s) à valider.` : 'Tout est validé.', warn:true },
+    { ok:!retard.length, t:'Aucun client en retard de plus de 30 jours', k:'tiers', d:retard.length ? `${retard.length} facture(s) : ${[...new Set(retard.map(x => nomTiers(x.l.aux)))].join(', ')}. À relancer depuis OP GESTION.` : 'Rien de très en retard.', warn:true }
+  ];
+}
+VUES.controles = () => {
+  const C = controles(), ok = C.filter(x => x.ok).length, bloquants = C.filter(x => !x.ok && !x.warn).length;
+  return tete('Clôture', 'Contrôles', 'Ce qu’un expert-comptable vérifie d’abord. Chaque contrôle se recalcule à chaque ouverture.') +
+    `<div class="${bloquants ? 'erreur' : ok === C.length ? 'bon' : 'alerte'}">${ok}/${C.length} contrôles au vert${bloquants ? ` · ${bloquants} bloquant${bloquants > 1 ? 's' : ''}` : ok === C.length ? '' : ' · ce qui reste en orange se suit, sans bloquer'}.</div>
+    <div class="carte"><div class="etapes">${C.map(x => `<div class="etape ${x.ok ? 'ok' : ''}"><span class="rond" ${x.ok ? '' : `style="background:${x.warn ? 'var(--warn-bg)' : 'var(--bad-bg)'};color:${x.warn ? 'var(--warn)' : 'var(--bad)'}"`}>${x.ok ? '✓' : '!'}</span><span class="txt"><b>${x.t}</b><span class="mute petit">${x.d}</span></span>${!x.ok && x.k ? `<button type="button" class="btn gris petit" data-a="aller" data-r="${x.k}" ${x.gl ? `data-gl="${x.gl}"` : ''}>Y aller</button>` : ''}</div>`).join('')}</div></div>`;
+};
+
+/* ─── le dossier et le plan comptable ─── */
+VUES.dossier = () => {
+  const q = (UI.qp || '').toLowerCase(), L = PCG.filter(c => !q || (c.n + ' ' + c.l).toLowerCase().includes(q));
+  return tete('Dossier', 'Dossier et plan comptable', 'Les informations de l’entreprise, ses journaux et ses comptes.') +
+    `<div class="grille g2"><div class="carte petit"><h2>L’entreprise</h2>${[['Raison sociale', DOSSIER.nom], ['Forme', DOSSIER.forme], ['SIRET', DOSSIER.siret], ['Adresse', DOSSIER.adr], ['Activité', DOSSIER.ape], ['Exercice', `du 01/01/${EXO.annee} au 31/12/${EXO.annee}`], ['TVA', DOSSIER.tva + ' · ' + DOSSIER.exig], ['Impôt', DOSSIER.is], ['Expert-comptable', DOSSIER.cab + ', ' + DOSSIER.cabQui]].map(([a, b]) => `<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)"><span class="mute" style="width:130px;flex:none">${a}</span><span>${esc(b)}</span></div>`).join('')}<p class="mute" style="margin-top:8px">Entreprise fictive.</p></div>
+      <div class="carte petit"><h2>Les journaux</h2>${Object.entries(JOURNAUX).map(([k, l]) => `<div style="display:flex;gap:10px;align-items:center;padding:5px 0"><span class="jn">${k}</span>${l}<span class="mute" style="margin-left:auto">${E.filter(e => e.j === k && e.etat === 'valide').length} écritures</span></div>`).join('')}</div></div>
+    <div class="carte"><h2>Plan comptable · ${PCG.length} comptes</h2>
+      <div class="outils" style="margin-bottom:10px"><input class="saisie" type="search" placeholder="Chercher un compte" value="${esc(UI.qp || '')}" data-a-input="qp" style="flex:1 1 200px;width:auto" aria-label="Chercher un compte">
+        <input class="saisie mono" id="nc-n" placeholder="Numéro (6 chiffres)" inputmode="numeric" style="width:170px" aria-label="Numéro du nouveau compte"><input class="saisie" id="nc-l" placeholder="Intitulé" style="flex:1 1 200px;width:auto" aria-label="Intitulé du nouveau compte"><button type="button" class="btn gris" data-a="compte-ajout">Ajouter le compte</button></div><div id="nc-msg"></div>
+      <div class="defile"><table class="t"><thead><tr><th>Compte</th><th>Intitulé</th><th class="n">Solde au 31/10</th></tr></thead><tbody>${L.map(c => { const s = solde(c.n, { au:AUJ }); return `<tr class="clic" data-a="vers-gl" data-c="${c.n}"><td class="compte">${c.n}</td><td>${esc(c.l)}</td><td class="n">${s ? nb(Math.abs(s)) + (s > 0 ? ' D' : ' C') : ''}</td></tr>`; }).join('')}</tbody></table></div></div>
+    <div class="carte petit"><h2>Piste d’audit · derniers gestes</h2>${JOURNAL_ACTIONS.slice(0, 15).map(a => `<div style="padding:4px 0;border-bottom:1px solid var(--line)"><span class="mute">${esc(a.le)} · ${esc(a.par)}</span> — ${esc(a.quoi)}</div>`).join('') || '<span class="mute">Aucun geste pour l’instant : tout ce que tu feras s’écrira ici.</span>'}</div>`;
+};
+function ajouterCompte(){
+  const n = $('#nc-n').value.trim(), l = $('#nc-l').value.trim(), m = t => ($('#nc-msg').innerHTML = `<div class="erreur" style="margin-bottom:8px">${t}</div>`);
+  if (!/^[1-7]\d{5}$/.test(n)) return m('Le numéro a six chiffres et commence par la classe (1 à 7).');
+  if (cpt(n)) return m(`Le compte ${n} existe déjà : ${esc(libCpt(n))}.`);
+  if (!l) return m('Donne un intitulé au compte.');
+  PCG.push({ n, l }); PCG.sort((a, b) => a.n.localeCompare(b.n)); trace(`Compte ${n} créé : ${l}`); UI.qp = n; rendre(); toast(`Compte ${n} ajouté au plan comptable.`);
+}
+/* ══ LE PARCOURS D'ESSAI — tout le mois d'octobre, du premier ticket au FEC, chaque essai coché tout seul quand il est fait ══ */
+const piece = id => PIECES.find(p => p.id === id);
+const relevePasse = t => RELEVE.some(r => r.aide && r.aide.type === t && r.pointe);
+const ESSAIS = [
+  { k:'p1', r:'pieces', t:'Traiter une facture de fournisseur', p:'Ouvre la facture de Clim Distribution Ouest : l’écriture est proposée (matériel, TVA déductible, dette au fournisseur). Vérifie-la, puis « Enregistrer et valider ».', ok:() => piece('P1').statut !== 'a_traiter' },
+  { k:'p5', r:'pieces', t:'Inscrire un ordinateur en immobilisation', p:'La facture d’Informatique Littoral (1 290 € HT) ne va pas en charge : elle part au compte 218300 et au registre des immobilisations, amortie sur 3 ans.', ok:() => piece('P5').statut !== 'a_traiter' && IMMOS.some(i => i.ecr) },
+  { k:'p4', r:'pieces', t:'Enregistrer un avoir', p:'Frigo Pièces Atlantique rembourse un détendeur renvoyé : l’avoir fait l’inverse d’une facture.', ok:() => piece('P4').statut !== 'a_traiter' },
+  { k:'p6', r:'pieces', t:'Comptabiliser la paie d’octobre', p:'Le journal de paie du cabinet : salaires bruts, charges patronales, net à payer, ce qui est dû à l’URSSAF, à la retraite et à l’impôt.', ok:() => piece('P6').statut !== 'a_traiter' },
+  { k:'p2', r:'pieces', t:'Passer le ticket de carburant puis la facture de téléphone', p:'Le ticket payé par carte va droit en banque ; la facture d’Atlantel attend son prélèvement.', ok:() => piece('P2').statut !== 'a_traiter' && piece('P3').statut !== 'a_traiter' },
+  { k:'modif', r:'journaux', t:'Essayer de modifier une écriture validée', p:'Ouvre n’importe quelle écriture validée et touche « Modifier » : c’est refusé. On la contrepasse à la place.', ok:() => !!UI.modifRefusee },
+  { k:'hp', r:'banque', t:'Rapprocher un virement qui paie deux factures', p:'L’Hôtel de la Plage a réglé deux factures d’un seul virement le 30 octobre : coche les deux, la TVA de chacune devient due.', ok:() => RELEVE.some(r => r.aide && r.aide.cli === 'C-HOTELPLAGE' && r.pointe) },
+  { k:'psp', r:'banque', t:'Passer le versement du prestataire de paiement', p:'Les paiements par carte arrivent en banque groupés, moins les frais du prestataire.', ok:() => relevePasse('psp') },
+  { k:'att', r:'banque', t:'Mettre un prélèvement inconnu en attente, puis l’expliquer', p:'Le prélèvement « REF 88412 » va au compte 471 ; dans le grand livre du 471, on le sort vers le bon compte.', ok:() => relevePasse('inconnu') && Math.abs(solde('471000', { au:AUJ })) < .005 },
+  { k:'banque', r:'banque', t:'Rapprocher toute la banque', p:'Chaque ligne du relevé d’octobre reçoit son écriture. L’état de rapprochement n’explique plus que ce qui est en chemin.', ok:() => !releveAPasser().length },
+  { k:'durand', r:'tiers', t:'Lire le compte d’un client en retard', p:'Ouvre M. et Mme Durand : la facture FAC-2026-0128 est due depuis le 26 octobre et déjà relancée. Puis regarde la balance âgée.', ok:() => !!UI.durandVu },
+  { k:'brouil', r:'brouillard', t:'Valider le brouillard', p:'Les factures de fin octobre envoyées par OP GESTION et tes écritures attendent : « Tout valider » leur donne leur numéro définitif.', ok:() => !brouillardOct().length },
+  { k:'tva', r:'tva', t:'Préparer la TVA d’octobre', p:'La déclaration se calcule à partir des comptes. Passe l’écriture, puis marque-la déclarée.', ok:() => tvaPreparee('2026-10') },
+  { k:'clo', r:'clotures', t:'Clôturer octobre', p:'Quand tout est fait, le mois se ferme : plus aucune écriture n’y entre.', ok:() => PER['2026-10'] === 'cloturee' },
+  { k:'rep', r:'clotures', t:'Répéter la clôture de l’exercice', p:'Amortissements, stock, charge payée d’avance, facture pas reçue, travail pas facturé, congés payés, impôt : sept écritures d’essai.', ok:() => ETAPES_CLOTURE.every(s => etapeFaite(s.k)) },
+  { k:'bilan', r:'bilan', t:'Lire le bilan avec la répétition', p:'Coche « Avec la répétition de clôture » : actif et passif restent égaux, le résultat change.', ok:() => !!UI.bilanEssaiVu },
+  { k:'fec', r:'fec', t:'Produire le fichier des écritures (FEC)', p:'Le fichier que l’administration demande en cas de contrôle : vérifie ses contrôles, puis télécharge-le.', ok:() => !!UI.fecFait },
+  { k:'ctrl', r:'controles', t:'Les contrôles bloquants au vert', p:'Le dernier regard avant d’envoyer le dossier à l’expert-comptable. Les points orange (un client en retard, par exemple) se suivent, ils ne bloquent pas.', ok:() => controles().every(c => c.ok || c.warn) }
+];
+function parcoursVerifier(){ ESSAIS.forEach(x => { if (!UI.essaisFaits.has(x.k) && x.ok()) { UI.essaisFaits.add(x.k); if (UI.consigne === x.k) { UI.consigne = null; setTimeout(() => toast('Essai réussi : ' + x.t + '.'), 400); } } }); }
+function consigneHtml(){
+  const x = UI.consigne && ESSAIS.find(y => y.k === UI.consigne); if (!x || UI.route !== x.r) return '';
+  return `<div class="consigne" role="status"><span aria-hidden="true">🧭</span><div><b>Essai ${ESSAIS.indexOf(x) + 1} · ${x.t}</b><span class="petit">${x.p}</span></div><button type="button" class="btn gris petit x" data-a="consigne-x" aria-label="Fermer la consigne">✕</button></div>`;
+}
+VUES.parcours = () => {
+  parcoursVerifier(); const n = ESSAIS.filter(x => UI.essaisFaits.has(x.k)).length;
+  return tete('Pilotage', 'Parcours d’essai', `Dix-huit essais pour faire tourner une vraie comptabilité : traiter les pièces, rapprocher la banque, déclarer la TVA, clôturer, produire le FEC. Chacun se coche tout seul quand il est fait · ${n}/${ESSAIS.length}.`) +
+    `<div class="essais">${ESSAIS.map((x, i) => { const ok = UI.essaisFaits.has(x.k); return `<div class="essai-l ${ok ? 'ok' : ''}"><span class="rond">${ok ? '✓' : i + 1}</span><div class="txt"><b>${x.t}</b><div class="mute petit">${x.p}</div></div>${ok ? '<span class="st ok">Fait</span>' : `<button type="button" class="btn petit" data-a="essai" data-k="${x.k}">Y aller</button>`}</div>`; }).join('')}</div>
+    <p class="mute petit">Rien n’est enregistré : recharger la page remet le dossier au 31 octobre au matin.</p>`;
+};
+
+/* ══ LES GESTES ══ */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-a]'); if (!b) return;
+  const a = b.dataset.a, id = b.dataset.id, k = b.dataset.k;
+  if (a === 'fermer-voile') { if (ev.target === b) fermer(); return; }
+  if (a === 'menu') return document.body.classList.toggle('menu-ouvert');
+  if (a === 'fermer') return fermer();
+  if (a === 'aller') { if (b.dataset.gl) { UI.gl = b.dataset.gl; UI.glAux = ''; } if (b.dataset.tab) UI.tiersTab = b.dataset.tab; if (b.dataset.essai) UI.avecEssai = true; fermer(); return aller(b.dataset.r); }
+  if (a === 'essai') { const x = ESSAIS.find(y => y.k === k); UI.consigne = k; if (x.k === 'att' && relevePasse('inconnu')) { UI.gl = '471000'; return aller('grand-livre'); } if (x.k === 'durand') UI.tiersTab = 'clients'; return aller(x.r); }
+  if (a === 'consigne-x') { UI.consigne = null; return rendre(); }
+  if (a === 'piece') return ouvrirPiece(id);
+  if (a === 'piece-ok') return enregistrerPiece(id, !!b.dataset.valider);
+  if (a === 'piece-depuis-banque') { fermer(); return ouvrirPiece(b.dataset.p); }
+  if (a === 'ecr') return ouvrirEcriture(id);
+  if (a === 'ecr-valider') { const e = E.find(x => x.id === id), m = valider(e); if (m) return ($('#ecr-msg').innerHTML = `<div class="erreur">${esc(m)}</div>`); TIERS.forEach(t => lettrageAuto(t.k)); fermer(); rendre(); return toast('Écriture validée : ' + e.num + '.'); }
+  if (a === 'ecr-supprimer') { const m = supprimer(E.find(x => x.id === id)); if (m) return toast(m); fermer(); rendre(); return toast('Écriture du brouillard supprimée.'); }
+  if (a === 'ecr-modifier') { const e = E.find(x => x.id === id); if (e.etat !== 'brouillard') return; UI.saisie = { j:e.j, date:e.date, piece:e.piece, lib:e.lib, l:e.lignes.map(l => [l.c, l.aux, l.d, l.cr, l.lib, l.t]), edit:e.id }; fermer(); return aller('saisie'); }
+  if (a === 'ecr-modifier-valide') { UI.modifRefusee = true; const e = E.find(x => x.id === id); $('#ecr-msg').innerHTML = `<div class="erreur"><b>Une écriture validée ne se modifie plus.</b> Elle a reçu le numéro ${e.num} le ${dCourt(e.valideLe)} : la changer effacerait la trace de ce qui a été enregistré. Pour la corriger, on la <b>contrepasse</b> (une écriture inverse qui l’annule) puis on saisit la bonne.</div>`; return parcoursVerifier(); }
+  if (a === 'ecr-contrepasser') { const e = E.find(x => x.id === id); const c = contrepasser(e, periodeClose(e.date) ? AUJ : e.date); fermer(); rendre(); ouvrirEcriture(c.id); return toast('Contrepassation prête au brouillard : vérifie-la, puis valide-la.'); }
+  if (a === 'valider-tout') return validerListe(brouillardOct().map(e => e.id));
+  if (a === 'valider-sel') { if (!UI.sel.size) return toast('Coche d’abord les écritures à valider.'); return validerListe([...UI.sel]); }
+  if (a === 'j') { UI.j = k; UI.max = 150; return rendre(); }
+  if (a === 'plus') { UI.max += 150; return rendre(); }
+  if (a === 'vers-gl') { UI.gl = b.dataset.c; UI.glAux = ''; return aller('grand-livre'); }
+  if (a === 'bal-classe') { UI.bal.classe = k; return rendre(); }
+  if (a === 'modele') { const M = MODELES[k]; UI.saisie = { ...saisieNeuve(), j:M.j, lib:M.lib, l:M.l.map(x => [...x]) }; return rendre(); }
+  if (a === 'ligne-plus') { lireSaisie(); UI.saisie.l.push(['', null, 0, 0, '']); return rendre(); }
+  if (a === 'ligne-suppr') { lireSaisie(); if (UI.saisie.l.length > 2) UI.saisie.l.splice(+b.dataset.i, 1); return rendre(); }
+  if (a === 'saisie-vider') { UI.saisie = saisieNeuve(); return rendre(); }
+  if (a === 'saisie-ok') return enregistrerSaisie();
+  if (a === 'tiers-tab') { UI.tiersTab = k; return rendre(); }
+  if (a === 'tiers') return ouvrirTiers(k);
+  if (a === 'lettrer') { const refs = [...document.querySelectorAll('#calque [data-let]:checked')].map(i => i.dataset.let); if (refs.length < 2) return ($('#let-msg').innerHTML = '<div class="alerte">Coche au moins deux lignes : une facture et ce qui la paie.</div>'); const r = lettrer(refs, AUJ); if (r.err) return ($('#let-msg').innerHTML = `<div class="erreur">${esc(r.err)}</div>`); trace(`Lettrage ${r.code} sur ${nomTiers(k)}`); ouvrirTiers(k); rendre(); return toast(`Lettré : code ${r.code}.`); }
+  if (a === 'lettrage-auto') { const n = lettrageAuto(k); ouvrirTiers(k); rendre(); return toast(n ? `${n} rapprochement${n > 1 ? 's' : ''} fait${n > 1 ? 's' : ''}.` : 'Rien à lettrer automatiquement : aucune facture et aucun paiement du même montant.'); }
+  if (a === 'lettrage-tous') { const n = TIERS.reduce((s, t) => s + lettrageAuto(t.k), 0); rendre(); return toast(n ? `${n} rapprochement${n > 1 ? 's' : ''} fait${n > 1 ? 's' : ''}.` : 'Tout ce qui pouvait l’être est déjà lettré.'); }
+  if (a === 'delettrer') { delettrer(k, b.dataset.code); trace(`Lettrage ${b.dataset.code} défait sur ${nomTiers(k)}`); ouvrirTiers(k); rendre(); return toast('Lettrage défait.'); }
+  if (a === 'banque-vue') { UI.banqueVue = k; return rendre(); }
+  if (a === 'rappro') return ouvrirRappro(id);
+  if (a === 'rappro-ok') return rapprocher(id, k);
+  if (a === 'rappro-pointer') { const r = RELEVE.find(x => x.id === id); r.pointe = b.dataset.r; trace(`Ligne du relevé pointée : ${r.lib}`); fermer(); rendre(); return toast('Ligne pointée avec son écriture.'); }
+  if (a === 'attente-expliquer') return expliquerAttente();
+  if (a === 'tva-mois') { UI.tvaMois = k; return rendre(); }
+  if (a === 'tva-liquider') { const e = tvaLiquider(k, { etat:'brouillard' }), m = valider(e); if (m) { e.etat = 'supprimee'; delete TVA_DECL[k].liq; return toast(m); } rendre(); return toast('Écriture de TVA passée : ' + e.num + '.'); }
+  if (a === 'tva-complement') return tvaComplement(k);
+  if (a === 'tva-declarer') { TVA_DECL[k].decl = AUJ; trace('TVA de ' + nomMois(k) + ' déclarée'); rendre(); return toast('TVA de ' + nomMois(k) + ' déclarée.'); }
+  if (a === 'immo') return ouvrirImmo(id);
+  if (a === 'cloturer-oct') { if (!aFaire().every(x => x.ok)) return toast('Pas encore : ' + aFaire().filter(x => !x.ok).map(x => x.t.toLowerCase()).join(', ') + '.'); PER['2026-10'] = 'cloturee'; trace('Octobre 2026 clôturé'); rendre(); return toast('Octobre est clôturé.'); }
+  if (a === 'cloture-etape') return passerEtape(k);
+  if (a === 'cloture-effacer') { E.filter(e => e.essai).forEach(e => { e.etat = 'supprimee'; }); UI.avecEssai = false; trace('Répétition de clôture effacée'); rendre(); return toast('Répétition effacée : le dossier est revenu à la situation réelle.'); }
+  if (a === 'voir-bilan-essai') { UI.avecEssai = true; return aller('bilan'); }
+  if (a === 'fec-dl') return fecTelecharger();
+  if (a === 'compte-ajout') return ajouterCompte();
+});
+document.addEventListener('change', ev => {
+  const t = ev.target, k = t.dataset.aChange;
+  if (t.dataset.sel) { t.checked ? UI.sel.add(t.dataset.sel) : UI.sel.delete(t.dataset.sel); return; }
+  if (t.matches('.lignes-ed [data-l="c"]')) { const z = t.closest('[data-ecriture]'); if (z.dataset.ecriture === 'saisie') { lireSaisie(); return rendre(); }
+    const L = lireLignes(z, proposition(PIECES.find(p => p.id === z.dataset.id)).l); z.querySelector('.defile').outerHTML = lignesEditables(L).replace(/<div class="balance-ecr"[^>]*><\/div>$/, ''); z.querySelector('[data-equilibre]').innerHTML = equilibreHtml(L); return; }
+  if (!k) return;
+  if (k === 'mois') UI.mois = t.value; else if (k === 'gl') { UI.gl = t.value; UI.glAux = ''; } else if (k === 'glAux') UI.glAux = t.value;
+  else if (k === 'bal-au') UI.bal.au = t.value; else if (k === 'bal-brouil') UI.bal.brouil = t.checked; else if (k === 'essai') UI.avecEssai = t.checked;
+  else if (k === 'tiers-nl') { UI.tiersNl = t.checked; const h = $('#calque h2'); const tk = [...TIERS].find(x => h && x.nom === h.textContent); if (tk) return ouvrirTiers(tk.k); return; }
+  rendre();
+});
+let rechMin = 0;
+document.addEventListener('input', ev => { const t = ev.target, k = t.dataset.aInput; if (!k) return; UI[k] = t.value; UI.max = 150; clearTimeout(rechMin);
+  rechMin = setTimeout(() => { const pos = t.selectionStart; rendre(); const n = document.querySelector(`[data-a-input="${k}"]`); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }, 220); });
+
+/* ══ LE DÉMARRAGE ══ */
+document.body.insertAdjacentHTML('beforeend', comptesOptions());
+UI.route = ROUTES.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'accueil';
+rendre();
+</script>
+
+</body>
+</html>
