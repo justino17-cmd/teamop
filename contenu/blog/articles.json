@@ -1,5 +1,36 @@
 [
  {
+  "slug": "registre-sanitaire-3d",
+  "titre": "Registre sanitaire 3D : contenu, contrôles et Certibiocide",
+  "description": "Registre sanitaire 3D : ce qu’il contient, ce que regarde l’inspecteur, le Certibiocide de vos techniciens, un modèle à recopier et une liste à cocher.",
+  "date": "2026-11-09",
+  "image": "registre-sanitaire-3d-couverture.webp",
+  "imageAlt": "Couverture de l’article : le titre « Registre sanitaire 3D : contenu, contrôles et Certibiocide » sur le panneau bleu nuit de TEAM OP",
+  "photo": "A pest control technician in a navy blue uniform kneeling in a restaurant storage room, checking a numbered black bait station along the wall and writing on a tablet",
+  "faq": [
+   {
+    "q": "Le registre sanitaire est-il obligatoire pour une entreprise 3D ?",
+    "r": "Aucun texte que nous avons lu n’impose un modèle appelé « registre sanitaire ». Mais vos clients du secteur alimentaire doivent présenter des documents à jour sur la gestion des nuisibles lors d’un contrôle : c’est votre registre qui les leur fournit."
+   },
+   {
+    "q": "Que doit contenir le registre sanitaire d’un client ?",
+    "r": "Le contrat, le plan légendé des postes, les produits avec leur numéro d’AMM et leur fiche de données de sécurité, puis pour chaque passage : date, technicien, relevé de chaque poste, produits et quantités, observations, recommandations, actions correctives et signatures."
+   },
+   {
+    "q": "Tous les techniciens doivent-ils avoir le Certibiocide ?",
+    "r": "Oui, chaque personne qui applique des produits des types 14, 18 ou 20 doit détenir un Certibiocide « nuisibles » à son nom. Un nouveau salarié peut travailler six mois accompagné d’un titulaire, dans la limite d’un dixième des effectifs à temps plein, ou d’une personne."
+   },
+   {
+    "q": "Combien de temps le Certibiocide est-il valable ?",
+    "r": "Cinq ans. Il se renouvelle dans les mêmes conditions : formation dans un organisme habilité, 21 heures pour les nuisibles, puis un test de 30 questions dont au moins 20 bonnes réponses."
+   },
+   {
+    "q": "Quelle déclaration une entreprise 3D doit-elle faire chaque année ?",
+    "r": "Avant le 31 mars, sur le site Certibiocide : raison sociale, SIRET, nombre de personnes qui exercent l’activité avec leurs numéros de certificat, et nombre de personnes qui bénéficient du délai de six mois."
+   }
+  ]
+ },
+ {
   "slug": "logiciel-plombier",
   "titre": "Logiciel plombier : devis, dépannage, SAV, ce qu’il doit faire",
   "description": "Logiciel plombier : obligations avant un dépannage, mentions du devis et de la facture, garanties à suivre, grille de choix à cocher et budget calculé.",

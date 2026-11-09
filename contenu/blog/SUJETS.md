@@ -48,7 +48,7 @@ publication.
 - [x] gestion de stock camionnette — 2026-11-02 — `gestion-de-stock-camionnette`
 - [x] facture d'intervention — 2026-11-04 — `facture-d-intervention`
 - [x] logiciel plombier — 2026-11-06 — `logiciel-plombier`
-- [ ] registre sanitaire 3D — obligations, contenu, contrôles, biocides — /logiciel-registre-sanitaire.html
+- [x] registre sanitaire 3D — 2026-11-09 — `registre-sanitaire-3d`
 - [ ] logiciel entreprise de nettoyage — passages récurrents, contrôle qualité, sites multiples — /logiciel-nettoyage.html
 - [ ] contrat d'entretien — chaudière, climatisation : obligations, relances, planification — /logiciel-chauffage-climatisation.html
 - [ ] logiciel électricien — interventions, conformité, devis — /logiciel-electricien.html
