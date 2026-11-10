@@ -343,7 +343,10 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   console.log('4 bis. le prix se dit TTC partout');
   /* `apercu/prototype-op-gestion.html` (5 novembre 2026) : le PROTOTYPE de l'application, données fictives ; ses devis portent des prix HT
      comme ceux d'OP GESTION — ce sont les documents d'une entreprise cliente, pas un prix de TEAM OP. */
-  const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta|prototype-op-gestion)\.html$/;
+  /* `apercu/prototype-comptabilite.html` (10 novembre 2026) : le prototype de la COMPTABILITÉ, données fictives ; une comptabilité compte
+     en hors taxe (« plus de 500 € HT », « 1 290,00 € HT ») — ce sont les montants d'une entreprise inventée, pas un prix de TEAM OP.
+     Le banc l'avait vu dès la première version de la page (le commit du prototype n'avait lancé que ses propres bancs). */
+  const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta|prototype-op-gestion|prototype-comptabilite)\.html$/;
   const DIT_HT = /\bPrix HT\b|\bHT\s*\/\s*mois|\bHT par mois|€\s*HT\b/, HORS_TAXES = /hors[ -]taxes?/i;
   /* Les articles du blog qui expliquent la facture D'UN ARTISAN (ses mentions obligatoires, ses totaux hors taxe, l'autoliquidation) :
      « HT » y est le sujet, pas un prix de TEAM OP. Nommés un par un, et chacun doit encore en avoir besoin (contrôle ci-dessous). */

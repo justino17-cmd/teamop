@@ -4,20 +4,21 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="robots" content="noindex,nofollow">
 <script>
-/* Avant la première image : le mode (jour, nuit, auto) et le thème (TEAM OP, OP GESTION). En « auto », on suit le choix de la page
+/* Avant la première image : le mode (jour, nuit, auto). Une seule couleur, le bleu de TEAM OP, de jour comme de nuit (Justin,
+   10 novembre 2026 : « le mode jour et le mode nuit bleu, pas le reste »). En « auto », on suit le choix de la page
    qui héberge (data-theme) s'il existe, sinon celui de l'appareil. Le rangement de l'appareil peut manquer : on fait sans. */
-(function(){ var R = document.documentElement, mode = 'auto', marque = 'teamop'; if (!R.lang) R.lang = 'fr';   /* la langue : sans elle, les mots longs d'un tableau ne se coupent pas proprement sur téléphone */
-  try { mode = localStorage.getItem('opc_mode') || 'auto'; marque = localStorage.getItem('opc_marque') || 'teamop'; } catch (e) {}
-  window.OPC_APPARENCE = { mode: mode, marque: marque };
+(function(){ var R = document.documentElement, mode = 'auto'; if (!R.lang) R.lang = 'fr';   /* la langue : sans elle, les mots longs d'un tableau ne se coupent pas proprement sur téléphone */
+  try { mode = localStorage.getItem('opc_mode') || 'auto'; } catch (e) {}
+  window.OPC_APPARENCE = { mode: mode };
   window.opcAppliquer = function(){ var a = window.OPC_APPARENCE, th = R.getAttribute('data-theme');
     var nuit = a.mode === 'nuit' || (a.mode === 'auto' && (th ? th === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches));
-    R.setAttribute('data-mode', nuit ? 'nuit' : 'jour'); R.setAttribute('data-marque', a.marque === 'opgestion' ? 'opgestion' : 'teamop'); };
+    R.setAttribute('data-mode', nuit ? 'nuit' : 'jour'); };
   window.opcAppliquer();
   try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', window.opcAppliquer); new MutationObserver(window.opcAppliquer).observe(R, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
 })();
 </script>
 <style>
-/* Comptabilité d'OP GESTION — thème TEAM OP (marine) ou OP GESTION (vert forêt), jour / nuit / auto : design/THEME-REFERENCE.md et la
+/* Comptabilité d'OP GESTION — le bleu de TEAM OP (marine), jour / nuit / auto : design/THEME-REFERENCE.md et la
    coque du prototype OP GESTION. Ordinateur : menu à gauche, barre d'état en haut. Téléphone : la barre du bas d'OP GESTION, le tiroir
    par « Plus ». Verre sur les surfaces, pilules pour les boutons, chiffres alignés, numéros de comptes en chasse fixe. */
 :root{
@@ -53,26 +54,6 @@
   --tab-fond:rgba(52,59,74,.6); --tab-lise:rgba(255,255,255,.16); --tab-cur:rgba(34,59,110,.72); --tab-cur-ink:#f0f3f8; --tab-ink:#abb3c2;
   --spot:#6ea8ff; --serie1:#3987e6; --serie2:#d07a1a; --tuile:20%;
   --c-gris:#a2a2a8; --c-bleu:#4c9dff; --c-orange:#ff9f0a; --c-indigo:#9896f5; --c-violet:#cf7df5; --c-vert:#30d158; --c-sapin:#34c759; --c-cyan:#40c8e0; --c-rouge:#ff6b7f; --c-ambre:#ffd60a; --c-ciel:#64d2ff; --c-ardoise:#aeaeb2;
-}
-:root[data-marque="opgestion"]{
-  --encre:#0b3b2e; --doux:#3a584e; --faible:#556f65;
-  --surf:rgba(255,255,255,.6); --surf-in:rgba(11,59,46,.05); --survol:rgba(11,59,46,.07); --trait:rgba(11,59,46,.11); --trait2:rgba(11,59,46,.19);
-  --ombre:0 1px 2px rgba(11,59,46,.05),0 10px 30px rgba(11,59,46,.09); --ombre-haute:0 24px 60px rgba(11,59,46,.24);
-  --lien:#0d6449; --fill:#0b3b2e; --seg-ink:#0b3b2e; --feuille:#f6faf8; --voile:rgba(11,59,46,.34); --bande:#ecf6f1;
-  --page:radial-gradient(120% 90% at 0% 0%,#dcf3ea 0%,rgba(220,243,234,0) 55%),radial-gradient(110% 80% at 100% 100%,#e3f0e2 0%,rgba(227,240,226,0) 60%),linear-gradient(160deg,#eef8f4,#e4efea);
-  --tab-cur-ink:#0b3b2e; --tab-ink:#48645a; --spot:#12936b;
-}
-:root[data-marque="opgestion"][data-mode="nuit"]{
-  --encre:#e4efea; --doux:#b7d1c7; --faible:#b4ccc4;
-  --vert:#98e8ac; --orange:#ffc976; --rouge:#ffc2cb; --bleu:#b9d8ff; --violet:#e6c8fa;
-  --c-gris:#adadb2; --c-bleu:#73b3ff; --c-indigo:#a7a6f7; --c-violet:#d58ef6; --c-rouge:#ff7e90;
-  --seg-cur:#6aa896; --tab-cur:rgba(106,168,150,.34);
-  --surf:#17503f; --surf2:#1e5c49; --surf-in:rgba(255,255,255,.06); --survol:rgba(255,255,255,.08); --trait:rgba(255,255,255,.11); --trait2:rgba(255,255,255,.18);
-  --ombre:0 1px 2px rgba(0,0,0,.22),0 12px 32px rgba(0,0,0,.26); --ombre-haute:0 24px 60px rgba(0,0,0,.5);
-  --lien:#8fd9c0; --fill:#6aa896; --on-fill:#0b1426; --seg-ink:#0b1426; --menu-fond:#0d4234; --feuille:#0f4a3a; --voile:rgba(2,12,9,.6); --carte-fond:#17503f; --bande:#0f4a3a;
-  --page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.05) 58.2%),linear-gradient(160deg,#0f4a3a 0%,#0b3b2e 100%);
-  --tab-fond:rgba(40,78,65,.62); --tab-cur-ink:#f0f3f8; --tab-ink:#b4cdc3; --spot:#8fd9c0; --serie1:#3987e6; --serie2:#d07a1a;
-  --graph-fond:#0b3b2e; --graph-marge:10px; --graph-anneau:#0b3b2e; --barre:#8fd9c0;
 }
 *{box-sizing:border-box}
 html{background:var(--page) fixed;background-color:var(--bande);-webkit-text-size-adjust:100%}
@@ -245,6 +226,7 @@ body.guide-on .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 .doc.bul table{font-size:12.5px;min-width:520px}
 .doc.bul .bul-large{overflow-x:auto;-webkit-overflow-scrolling:touch}.doc.bul .bul-note{font-size:11.5px;color:#5a6578;margin:10px 0 0}
 .doc.bul .bul-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:10px 0 4px;padding:10px 12px;border:1px solid #e3e7ee;border-radius:8px;background:#f7f9fb;text-align:left;font-weight:400}
+.doc.bul td.n,.doc.bul th.n{white-space:nowrap}
 .doc.bul td.rub{font-weight:700;background:#f2f5f9;color:#33405a;font-size:12px}
 .doc.bul tr.fort td{font-weight:700;border-top:1px solid #cfd6e0}
 .doc.bul tr.net td{font-weight:800;font-size:15px;background:#eaf2fd;color:#0a3f80}
@@ -333,6 +315,7 @@ body.guide-on .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 
 /* ─── la journée en direct : à gauche OP GESTION, à droite la comptabilité ─── */
 .jr-tete{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+.jr-tete .s-c{min-width:0;display:flex;flex-direction:column;gap:3px}
 .jr{display:flex;flex-direction:column}
 .jr-e{display:grid;grid-template-columns:64px minmax(0,1fr) 26px minmax(0,1fr);gap:0 12px;align-items:stretch;padding:10px 0;position:relative}
 .jr-h{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;color:var(--doux);padding-top:13px;text-align:right}
@@ -364,7 +347,7 @@ body.guide-on .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 #spot.glisse{transition:left .25s ease,top .25s ease,width .25s ease,height .25s ease}
 #spot.ombre{box-shadow:0 0 0 9999px rgba(6,10,18,.46),0 0 0 3px var(--spot),0 0 22px 4px color-mix(in srgb,var(--spot) 60%,transparent)}
 @keyframes spot{50%{outline:3px solid color-mix(in srgb,var(--spot) 35%,transparent);outline-offset:3px}}
-.guide{position:fixed;right:max(20px,env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:min(430px,calc(100vw - 32px));max-height:min(66vh,580px);overflow:hidden;z-index:80;
+.guide{position:fixed;right:max(20px,env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:min(430px,calc(100vw - 32px));max-height:min(66vh,600px);overflow:hidden;z-index:80;
   background:var(--feuille);color:var(--encre);border:1px solid var(--trait2);border-radius:20px;box-shadow:var(--ombre-haute);padding:15px 17px;display:flex;flex-direction:column;gap:10px;animation:monte .28s var(--ressort) both}
 @keyframes monte{from{transform:translateY(14px);opacity:0}}
 .g-tete{display:flex;gap:10px;align-items:flex-start}.g-tete>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
@@ -374,7 +357,13 @@ body.guide-on .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 /* la bulle a une hauteur bornée : c'est son TEXTE qui défile, jamais ses boutons (sur un petit téléphone, un texte long passait PAR-DESSUS « Test suivant », qui ne se touchait plus) */
 .guide>*{flex:none}.guide>.g-txt,.guide>.g-fin{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .g-txt{font-size:15.5px}
+.guide>.g-txt.suite,.guide>.g-fin.suite{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 38px),rgba(0,0,0,.12));mask-image:linear-gradient(to bottom,#000 calc(100% - 38px),rgba(0,0,0,.12))}
+.guide>.g-txt:focus-visible,.guide>.g-fin:focus-visible{outline-offset:-2px}
+.guide:has(>.g-fin){max-height:min(84vh,calc(100vh - 100px))}
 .g-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* les trois boutons de la démo tiennent sur une rangée, en pause aussi (« Reprendre ») : la bulle fait la largeur de l'écran moins 16 px sur téléphone */
+@media (max-width:415px){.g-mot-v{display:none}}
+@media (max-width:365px){.g-mot-p{display:none}}
 .g-fin{display:flex;flex-direction:column;gap:6px;font-size:15px}.g-ok{color:var(--vert);font-size:16px}
 .g-temps{height:3px;border-radius:2px;background:var(--surf-in);overflow:hidden}
 .g-temps i{display:block;height:100%;width:0;background:var(--spot);border-radius:2px}
@@ -486,6 +475,7 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
   .guide .g-txt{font-size:15px}.guide .g-tete b{font-size:15.5px}
 }
 @media (max-width:340px){.kpi b{font-size:16px!important}}
+@media (max-width:760px) and (max-height:700px){.guide{max-height:min(66vh,calc(100vh - 190px))}}
 @media (max-width:420px){.t{font-size:13.5px}.t td,.t th{padding:8px 6px}.t td.n{font-size:13px}.t td.ret{padding-left:14px}.replie-c .kpis{grid-template-columns:minmax(0,1fr)}}
 /* ─── très petit téléphone (320 à 380 px) ─── */
 @media (max-width:380px){
@@ -1127,6 +1117,7 @@ function rendre(){
   rendreMenu(); rendreBarre();
   const v = VUES[UI.route] || VUES.accueil;
   const c = $('#contenu'); c.innerHTML = consigneHtml() + v(); lignesClavier(c);
+  typo(c); typo($('#menu')); typo($('#barre')); typo($('#barre-bas'));
   document.body.classList.remove('menu-ouvert');
   UI.vus.add(UI.route); parcoursVerifier();
 }
@@ -1140,10 +1131,11 @@ function ouvrir(html, large){
   const c = $('#calque'); if (!c.innerHTML) ouvertDepuis = document.activeElement && document.activeElement !== document.body ? document.activeElement : (performance.now() - dernierClicA < 1000 ? dernierClic : null);   // d'où l'on vient : le focus y retournera à la fermeture (null : ouverte sans geste, par la démo)
   c.innerHTML = `<div class="voile" data-a="fermer-voile"><div class="panneau ${large ? 'large' : ''}" role="dialog" aria-modal="true">${html}</div></div>`;
   const p = c.querySelector('.panneau'), h = p.querySelector('h2'); if (h) { h.id = 'fenetre-titre'; p.setAttribute('aria-labelledby', 'fenetre-titre'); } else p.setAttribute('aria-label', 'Fenêtre');
-  derriere(true); lignesClavier(c); const f = c.querySelector('.fermer') || p; if (f === p) p.tabIndex = -1; f.focus();
+  derriere(true); lignesClavier(c); typo(c); const f = c.querySelector('.fermer') || p; if (f === p) p.tabIndex = -1; f.focus();
 }
 function fermer(){
   const c = $('#calque'), etait = !!c.innerHTML; c.innerHTML = ''; derriere(false); if (!etait) return;
+  if (UI.redimDu) { UI.redimDu = false; if (['previsions', 'pilotage'].includes(UI.route)) rendre(); }          // l'écran a changé de largeur pendant que la fenêtre était ouverte : la courbe se redessine à la bonne taille
   let d = ouvertDepuis; ouvertDepuis = null; if (!d) return;          // ouverte sans geste : on ne déplace pas le focus
   /* la page a pu être redessinée pendant que la fenêtre était ouverte : on retrouve alors le même bouton par ce qu'il fait */
   if (d && !d.isConnected && d.dataset && d.dataset.a) { const q = '[data-a="' + d.dataset.a + '"]' + (d.dataset.id ? '[data-id="' + d.dataset.id + '"]' : '') + (d.dataset.k ? '[data-k="' + d.dataset.k + '"]' : ''); try { d = document.querySelector(q); } catch (e) { d = null; } }
@@ -1157,7 +1149,14 @@ addEventListener('keydown', ev => {
   if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches && ev.target.matches('tr.clic[data-a]')) { ev.preventDefault(); ev.target.click(); }
 });
 let toastMin = 0;
-function toast(m){ const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toastMin); toastMin = setTimeout(() => { t.hidden = true; }, 4200); }
+/* typographie française : jamais de « : », « ; », « ? », « ! » ni de guillemet fermant en début de ligne, jamais de guillemet ouvrant en fin de ligne — l'espace qui les touche devient insécable. Sur un téléphone, où tout passe à la ligne, un « : » se retrouvait seul au début de la suivante. */
+const typoTxt = s => String(s).replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u00a0');
+function typo(racine){
+  if (!racine) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
+  while ((n = tw.nextNode())) { const t = n.nodeValue; if (t.indexOf(' ') < 0) continue; const p = n.parentElement; if (!p || p.closest('svg, pre, code, .mono, textarea, script, style')) continue;
+    const u = typoTxt(t); if (u !== t) n.nodeValue = u; }
+}
+function toast(m){ const t = $('#toast'); t.textContent = typoTxt(m); t.hidden = false; clearTimeout(toastMin); toastMin = setTimeout(() => { t.hidden = true; }, 4200); }
 const haut = (titre, sous, mono) => `<div class="haut"><div>${mono ? `<span class="surtitre">${mono}</span>` : ''}<h2>${titre}</h2>${sous ? `<span class="mute petit">${sous}</span>` : ''}</div><button type="button" class="fermer" data-a="fermer" aria-label="Fermer">✕</button></div>`;
 const tete = (sur, titre, sous, actions) => `<div class="tete"><div><span class="surtitre">${sur}</span><h1>${titre}</h1>${sous ? `<p class="mute">${sous}</p>` : ''}</div>${actions ? `<div class="actions">${actions}</div>` : ''}</div>`;
 const montantCell = x => x ? nb(x) : '';
@@ -1420,7 +1419,7 @@ function ouvrirTiers(k){
   const relances = cl && FACTURES.filter(f => f.cli === k && f.relances);
   ouvrir(haut(esc(t.nom), `Compte ${t.c} · ${t.k}`, cl ? 'Client' : 'Fournisseur') + `
     <div class="kpis"><div class="kpi"><span>${cl ? 'Doit encore' : 'À payer'}</span><b>${eur(x.s)}</b></div><div class="kpi"><span>Dont échu</span><b style="${x.echu ? 'color:var(--bad)' : ''}">${eur(x.echu)}</b></div><div class="kpi"><span>Lignes non lettrées</span><b>${x.nl}</b></div></div>
-    ${relances && relances.length ? `<div class="alerte petit">${relances.map(f => `${f.num} : relancée ${f.relances} fois depuis OP GESTION (dernière relance le 28/10).`).join('<br>')}</div>` : ''}
+    ${relances && relances.length ? `<div class="alerte petit">${relances.map(f => `${f.num} : relancée ${f.relances} fois depuis OP GESTION (dernière relance le ${f.num === 'FAC-2026-0128' && AUTO.terrain.relance ? '31/10' : '28/10'}).`).join('<br>')}</div>` : ''}
     <div id="let-msg"></div>
     <div class="outils"><button type="button" class="btn" data-a="lettrer" data-k="${k}">Lettrer les lignes cochées</button><button type="button" class="btn gris" data-a="lettrage-auto" data-k="${k}">Lettrage automatique</button><label class="case"><input type="checkbox" data-a-change="tiers-nl" ${UI.tiersNl ? 'checked' : ''}> Seulement le non-lettré</label></div>
     <div class="defile"><table class="t"><thead><tr><th></th><th>Date</th><th>Jnl</th><th>Pièce</th><th>Libellé</th><th class="n">Débit</th><th class="n">Crédit</th><th>Let.</th></tr></thead><tbody>${L.filter(y => !UI.tiersNl || !y.l.let).map(ligneT).join('')}</tbody></table></div>
@@ -1454,14 +1453,14 @@ function ouvrirRappro(id){
   const memeMontant = lignes512().filter(x => x.e.orig !== 'an' && !RELEVE.some(z => z.pointe === x.r) && cts(x.l.d - x.l.cr) === cts(r.m) && Math.abs(jours(x.e.date, r.date)) <= 10);
   if (a.type === 'client') {
     const F = ouvertesDe(a.cli);
-    corps = `<h3>Encaissement de ${esc(nomTiers(a.cli))}</h3><p class="mute petit">Coche les factures que ce virement paie. La TVA de chacune devient exigible aujourd’hui (TVA sur les encaissements).</p>
+    corps = `<h3>Encaissement · ${esc(nomTiers(a.cli))}</h3><p class="mute petit">Coche les factures que ce virement paie. La TVA de chacune devient exigible aujourd’hui (TVA sur les encaissements).</p>
       <div class="defile"><table class="t"><thead><tr><th></th><th>Facture</th><th>Date</th><th class="n">TTC</th></tr></thead><tbody>${F.map(f => `<tr><td><input type="checkbox" data-fac="${esc(f.e.piece)}" ${a.fac && a.fac.includes(f.e.piece) ? 'checked' : ''} aria-label="${esc(f.e.piece)}"></td><td class="mono">${esc(f.e.piece)}</td><td>${dCourt(f.e.date)}</td><td class="n">${nb(f.ttc)}</td></tr>`).join('') || '<tr><td colspan="4" class="vide">Aucune facture ouverte pour ce client.</td></tr>'}</tbody></table></div>
       <button type="button" class="btn" data-a="rappro-ok" data-k="client" data-id="${id}">Passer l’encaissement et lettrer</button>`;
   } else if (a.type === 'psp') corps = `<h3>Versement du prestataire de paiement</h3><p class="mute petit">Le prestataire a encaissé ${eur(a.brut)} de paiements par carte ces derniers jours et en garde ${eur(a.frais)} de frais : il verse ${eur(r.m)}.</p>
       <div class="defile"><table class="t"><tbody><tr><td class="compte">512000 Banque</td><td class="n">${nb(r.m)}</td><td></td></tr><tr><td class="compte">627000 Frais bancaires</td><td class="n">${nb(a.frais)}</td><td></td></tr><tr><td class="compte">467100 Prestataire de paiement</td><td></td><td class="n">${nb(a.brut)}</td></tr></tbody></table></div>
       <button type="button" class="btn" data-a="rappro-ok" data-k="psp" data-id="${id}">Passer le versement</button>`;
-  else if (a.type === 'fourn') { const o = lignesDe(l => l.aux === a.four && !l.let && cts(l.cr) === cts(-r.m)); corps = o.length ? `<h3>Prélèvement de ${esc(nomTiers(a.four))}</h3><p class="mute petit">La facture ${esc(o[0].e.piece)} de ${eur(-r.m)} est en comptabilité : on la paie et on lettre.</p><button type="button" class="btn" data-a="rappro-ok" data-k="fourn" data-id="${id}">Passer le paiement et lettrer</button>`
-      : `<div class="alerte">La facture ${esc(a.piece)} de ${esc(nomTiers(a.four))} n’est pas encore en comptabilité. Traite-la d’abord : le prélèvement viendra la payer.</div><button type="button" class="btn" data-a="piece-depuis-banque" data-p="P3">Ouvrir la facture</button>`; }
+  else if (a.type === 'fourn') { const o = lignesDe(l => l.aux === a.four && !l.let && cts(l.cr) === cts(-r.m)); corps = o.length ? `<h3>Prélèvement · ${esc(nomTiers(a.four))}</h3><p class="mute petit">La facture ${esc(o[0].e.piece)} de ${eur(-r.m)} est en comptabilité : on la paie et on lettre.</p><button type="button" class="btn" data-a="rappro-ok" data-k="fourn" data-id="${id}">Passer le paiement et lettrer</button>`
+      : `<div class="alerte">La facture ${esc(a.piece)} du fournisseur ${esc(nomTiers(a.four))} n’est pas encore en comptabilité. Traite-la d’abord : le prélèvement viendra la payer.</div><button type="button" class="btn" data-a="piece-depuis-banque" data-p="P3">Ouvrir la facture</button>`; }
   else if (a.type === 'piece') corps = memeMontant.length ? `<h3>Ticket de carburant</h3><p class="mute petit">L’écriture du ticket est passée : on la pointe avec cette ligne.</p><button type="button" class="btn" data-a="rappro-pointer" data-id="${id}" data-r="${memeMontant[0].r}">Pointer avec « ${esc(memeMontant[0].e.lib)} »</button>`
       : `<div class="alerte">Ce paiement par carte correspond au ticket de la Station du Port, reçu dans les pièces. Traite le ticket d’abord : son écriture se pointera ici.</div><button type="button" class="btn" data-a="piece-depuis-banque" data-p="P2">Ouvrir le ticket</button>`;
   else if (a.type === 'salaires') { const s421 = solde('421000', { au:AUJ }); corps = `<h3>Virement des salaires d’octobre</h3><p class="mute petit">${Math.abs(s421 + r.m) < .01 ? 'Le journal de paie d’octobre est passé : le compte 421 attend exactement ce montant.' : 'Le journal de paie d’octobre n’est pas encore passé : en attendant, le compte 421 sera débiteur. Il se soldera quand la paie sera comptabilisée.'}</p>
@@ -1489,7 +1488,7 @@ function rapprocher(id, k){
     if (typeof e === 'string') return err(e);
     F.forEach(f => { const i = e.lignes.findIndex(l => l.c === '411000' && l.lib.startsWith(f.e.piece)); lettrer([f.ref, ref(e, i)], r.date); });
     if (a.cli === 'C-HOTELPLAGE') UI.essaisFaits.add('hp');
-  } else if (k === 'psp') e = passerBanque(r, [['512000', null, r.m, 0], ['627000', null, a.frais, 0, 'Frais du prestataire de paiement'], ['467100', null, 0, a.brut, 'Paiements par carte de la semaine']], 'Versement du prestataire de paiement');
+  } else if (k === 'psp') e = passerBanque(r, [['512000', null, r.m, 0], ['627000', null, a.frais, 0, 'Frais du prestataire de paiement'], ['467100', null, 0, a.brut, 'Paiements par carte des derniers jours']], 'Versement du prestataire de paiement');
   else if (k === 'fourn') { const o = lignesDe(l => l.aux === a.four && !l.let && cts(l.cr) === cts(-r.m))[0];
     e = passerBanque(r, [[tiers(a.four).c, a.four, -r.m, 0, o.e.piece + ' · ' + nomTiers(a.four)], ['512000', null, 0, -r.m], ...tvaAttente(o.e)], 'Prélèvement ' + nomTiers(a.four), { piece:o.e.piece });
     if (typeof e !== 'string') lettrer([o.r, ref(e, 0)], r.date); }
@@ -1772,7 +1771,7 @@ const ecrTag = t => (filTag(t) || { ecr:[] }).ecr[0];
   E.filter(e => e.date >= '2026-10-26' && e.etat === 'valide').sort((a, b) => a.date.localeCompare(b.date)).forEach(e => {
     const m = eur(r2(e.lignes.filter(l => l.c === '411000').reduce((s, l) => s + cts(l.d) + cts(l.cr), 0) / 100)), cli = (e.lignes.find(l => l.aux) || {}).aux, chq = e.lignes.some(l => l.c === '511200');
     if (e.orig === 'opgestion') FIL.unshift({ h:dJM(e.date), src:'OP GESTION', t:`Facture ${e.piece} écrite au journal des ventes`, p:`L’intervention est terminée : OP GESTION a envoyé la facture à ${nomTiers(cli)} et l’a écrite toute seule. Le client doit ${m} ; la TVA ne sera due qu’à son paiement.`, ecr:[e.id], tag:'' });
-    else if (e.orig === 'carte') FIL.unshift({ h:dJM(e.date), src:'OP GESTION', t:`Paiement par carte de ${nomTiers(cli)} · ${m}`, p:'Le client a payé avec le terminal ou le lien de paiement : la facture est notée payée, sa TVA devient due. Le prestataire de cartes verse l’argent le vendredi, moins ses frais.', ecr:[e.id], tag:'' });
+    else if (e.orig === 'carte') FIL.unshift({ h:dJM(e.date), src:'OP GESTION', t:`Paiement par carte · ${nomTiers(cli)} · ${m}`, p:'Le client a payé avec le terminal ou le lien de paiement : la facture est notée payée, sa TVA devient due. Le prestataire de cartes verse l’argent le vendredi, moins ses frais.', ecr:[e.id], tag:'' });
     else if (e.orig === 'banque' && cli && e.lignes.some(l => l.c === '411000')) FIL.unshift({ h:dJM(e.date), src:'Banque', t:`${e.lib} · ${m}`, p:chq ? 'Le chèque a été pris en photo dans OP GESTION, sur la facture qu’il paie : elle est notée payée tout de suite. Il part à la banque avec la remise du vendredi.' : 'Le virement portait le numéro de la facture : elle est notée payée toute seule, sans personne.', ecr:[e.id], tag:'' });
   });
 })();
@@ -1803,11 +1802,11 @@ function traiterLigne(r){
     e.sansJustif = true;
     fil('Règle', `${r.lib} · ${eur(Math.abs(r.m))}`, `Rangé en « ${libCpt(g.c).toLowerCase()} » par la règle retenue ce matin (« ${g.motif} »). Personne n’a eu à le regarder.`, [e.id], 'regle'); return { etat:'auto' }; }
   if (a.type === 'client') { const e = encaisserBanque(r, a.cli, a.fac); if (typeof e === 'string') { r.averifier = 'client'; return { etat:'averifier' }; }
-    fil('Banque', `Virement de ${nomTiers(a.cli)} · ${eur(r.m)}`, `Le libellé cite ${a.fac.length > 1 ? 'les factures ' + a.fac.join(' et ') + ' : elles sont notées payées' : 'la facture ' + a.fac[0] + ' : elle est notée payée'}, sans personne. La TVA de ${a.fac.length > 1 ? 'ces factures' : 'cette facture'} devient due ce mois-ci, puisque le client a payé.`, [e.id], a.cli === 'C-HOTELPLAGE' ? 'vir-hp' : 'vir-client'); return { etat:'auto' }; }
-  if (a.type === 'psp') { const e = passerBanque(r, [['512000', null, r.m, 0], ['627000', null, a.frais, 0, 'Frais du prestataire de paiement'], ['467100', null, 0, a.brut, 'Paiements par carte de la semaine']], 'Versement du prestataire de paiement'); if (typeof e === 'string') return { etat:'erreur', m:e };
+    fil('Banque', `Virement reçu · ${nomTiers(a.cli)} · ${eur(r.m)}`, `Le libellé cite ${a.fac.length > 1 ? 'les factures ' + a.fac.join(' et ') + ' : elles sont notées payées' : 'la facture ' + a.fac[0] + ' : elle est notée payée'}, sans personne. La TVA de ${a.fac.length > 1 ? 'ces factures' : 'cette facture'} devient due ce mois-ci, puisque le client a payé.`, [e.id], a.cli === 'C-HOTELPLAGE' ? 'vir-hp' : 'vir-client'); return { etat:'auto' }; }
+  if (a.type === 'psp') { const e = passerBanque(r, [['512000', null, r.m, 0], ['627000', null, a.frais, 0, 'Frais du prestataire de paiement'], ['467100', null, 0, a.brut, 'Paiements par carte des derniers jours']], 'Versement du prestataire de paiement'); if (typeof e === 'string') return { etat:'erreur', m:e };
     fil('Banque', `Versement du prestataire de cartes · ${eur(r.m)}`, `${eur(a.brut)} de paiements par carte des jours précédents, moins ${eur(a.frais)} de frais : les frais vont en charges, le reste arrive en banque.`, [e.id], 'psp'); return { etat:'auto' }; }
   if (a.type === 'fourn') { const o = lignesDe(l => l.aux === a.four && !l.let && cts(l.cr) === cts(-r.m))[0];
-    if (!o) { r.attente = `la facture ${a.piece} de ${nomTiers(a.four)}`; return { etat:'attente' }; }
+    if (!o) { r.attente = `la facture ${a.piece} du fournisseur ${nomTiers(a.four)}`; return { etat:'attente' }; }
     const tvaP = tvaAttente(o.e);
     const e = passerBanque(r, [[tiers(a.four).c, a.four, -r.m, 0, o.e.piece + ' · ' + nomTiers(a.four)], ['512000', null, 0, -r.m], ...tvaP], 'Prélèvement ' + nomTiers(a.four), { piece:o.e.piece }); if (typeof e === 'string') return { etat:'erreur', m:e };
     lettrer([o.r, ref(e, 0)], r.date); r.attente = null;
@@ -2010,7 +2009,7 @@ const JOUR = [
   { k:'tva', h:'17:00', src:'TVA', ic:'tva', fam:'ambre', pilote:true, vers:'tva', ou:'pilote automatique', t:'La TVA d’octobre est arrêtée', d:'TVA des ventes payées dans le mois, moins celle des achats.',
     ok:() => !!(TVA_DECL['2026-10'] || {}).decl, peut:() => !toutLu() ? 'La banque et les documents ne sont pas encore lus.' : aVerifier().some(x => x.kind === 'immo' || x.kind === 'ligne') ? 'Une question attend une réponse.' : '',
     faire:() => { const m = tvaDeclarer('2026-10'); if (m) return m; const T = TVA_DECL['2026-10'].l; SIM.res.tva = `${eur(T.due)} à payer : la déclaration est prête à déposer.`; decision('tva', `TVA d’octobre arrêtée · ${eur(T.due)}`, 'Tout le mois est lu et aucune question n’attend : le calcul est complet.', [TVA_DECL['2026-10'].liq]); return ''; }, tags:['tva'] },
-  { k:'cloture', h:'18:00', src:'Clôture', ic:'clotures', fam:'ardoise', pilote:true, vers:'clotures', ou:'pilote automatique', t:'Octobre se ferme et part au cabinet', d:'Banque à jour, documents lus, paie validée, rien d’inexpliqué, TVA arrêtée.',
+  { k:'cloture', h:'18:00', src:'Clôture', ic:'clotures', fam:'ardoise', pilote:true, vers:'clotures', ou:'pilote automatique', t:'Octobre se ferme et part au cabinet', d:'Banque à jour, documents lus, paie validée, rien d’inexpliqué, écritures toutes validées, TVA arrêtée.',
     ok:() => PER['2026-10'] === 'cloturee', peut:() => aFaire().every(x => x.ok) ? '' : 'Il reste : ' + aFaire().filter(x => !x.ok).map(x => x.manque).join(', ') + '.',
     faire:() => { const m = cloturerEnvoyer(); if (m) return m; SIM.res.cloture = `Octobre est clôturé ; ${DOSSIER.cab} a reçu le dossier complet.`; decision('cloture', 'Octobre clôturé et envoyé au cabinet', 'Les six étapes du mois étaient vertes.', []); return ''; }, tags:['cloture'] }
 ];
@@ -2069,7 +2068,7 @@ function recurrences(){
 function previsions(habitude){
   const F = [], fin = ajoute(AUJ, 56), aj = (d, lib, m, sur, cat) => { if (d > AUJ && d <= fin && Math.abs(m) > .004) F.push({ d, lib, m:r2(m), sur, cat }); };
   // ce que les clients doivent : à l'échéance ; en retard : on compte deux semaines, sans certitude
-  lignesDe(l => l.c === '411000' && !l.let && l.d > 0, { au:AUJ }).forEach(x => { const enRetard = !x.e.ech || x.e.ech <= AUJ; aj(enRetard ? ajoute(AUJ, 14) : x.e.ech, `${x.e.piece} · ${nomTiers(x.l.aux)}${enRetard ? ' (en retard)' : ''}`, x.l.d, !enRetard, 'client'); });
+  lignesDe(l => l.c === '411000' && !l.let && l.d > 0, { au:AUJ }).forEach(x => { const dejaDue = !x.e.ech || x.e.ech <= AUJ, enRetard = !x.e.ech || x.e.ech < AUJ; aj(dejaDue ? ajoute(AUJ, 14) : x.e.ech, `${x.e.piece} · ${nomTiers(x.l.aux)}${enRetard ? ' (en retard)' : dejaDue ? ' (échéance aujourd’hui)' : ''}`, x.l.d, !dejaDue, 'client'); });
   const chq = solde('511200', { au:AUJ }), cb = solde('467100', { au:AUJ });
   aj(prochainVendredi(AUJ), 'Remise des chèques en attente', chq, true, 'client'); aj(prochainVendredi(AUJ), 'Versement du prestataire de cartes (net de frais)', cb * .984, true, 'client');
   // les dépenses qui reviennent chaque mois, reconnues dans le compte en banque
@@ -2150,18 +2149,17 @@ const apresTete = (h, ajout) => { const i = h.indexOf('</div></div>'); return h.
 const replie = (cle, titre, html) => `<details class="carte replie" data-garde="${cle}" ${UI.ouvert[cle] ? 'open' : ''}><summary><b>${titre}</b><span class="mute petit">le détail du comptable</span></summary><div class="replie-c">${html}</div></details>`;
 document.addEventListener('toggle', ev => { const d = ev.target; if (d && d.dataset && d.dataset.garde) UI.ouvert[d.dataset.garde] = d.open; }, true);
 
-/* ─── les réglages : la vue, le pilote, l'apparence, le thème ─── */
+/* ─── les réglages : la vue, le pilote, l'apparence (jour, nuit, auto) ─── */
 const segs = (a, cur, L, cl) => `<div class="${cl || 'mode-seg'}" role="group">${L.map(([k, l]) => `<button type="button" data-a="${a}" data-k="${k}" aria-pressed="${String(cur) === String(k)}">${l}</button>`).join('')}</div>`;
 const segVue = cl => segs('vue', UI.expert ? 'expert' : 'simple', [['simple', 'Simple'], ['expert', 'Comptable']], cl);
 const segPilote = cl => segs('pilote', UI.pilote ? 1 : 0, [[1, 'Pilote automatique'], [0, 'Je valide moi-même']], cl);
 const segMode = () => segs('mode', OPC_APPARENCE.mode, [['jour', 'Jour'], ['nuit', 'Nuit'], ['auto', 'Auto']]);
-const segMarque = () => segs('marque', OPC_APPARENCE.marque, [['teamop', 'TEAM OP'], ['opgestion', 'OP GESTION']]);
-/* les réglages en une ligne, pour le pied du menu : la vue, qui décide, l'apparence, les couleurs */
-const reglagesResume = () => [{ jour:'Jour', nuit:'Nuit', auto:'Auto' }[OPC_APPARENCE.mode], OPC_APPARENCE.marque === 'opgestion' ? 'OP GESTION' : 'TEAM OP', UI.expert ? 'comptable' : 'simple'].join(' · ');
+/* les réglages en une ligne, pour le pied du menu : l'apparence et la vue */
+const reglagesResume = () => [{ jour:'Jour', nuit:'Nuit', auto:'Auto' }[OPC_APPARENCE.mode], UI.expert ? 'vue comptable' : 'vue simple'].join(' · ');
 const reglagesListe = () => `<div class="regl"><span>Vue</span>${segVue()}</div><div class="regl"><span>Qui décide</span>${segPilote()}</div>
-    <div class="regl"><span>Apparence</span>${segMode()}</div><div class="regl"><span>Couleurs</span>${segMarque()}</div>`;
+    <div class="regl"><span>Apparence</span>${segMode()}</div>`;
 const reglagesNote = () => UI.pilote ? 'Le pilote automatique tranche ce qui peut l’être (questions, paie, TVA, fin de mois) et note chaque décision. Tu restes responsable de tes déclarations : tu peux reprendre la main à tout moment.' : 'Tu valides toi-même les questions, la paie, la TVA et la fin de mois. Tout le reste continue de se faire seul.';
-function ouvrirReglages(){ ouvrir(haut('Réglages', 'La vue, qui décide, le jour ou la nuit, et les couleurs : TEAM OP (marine) ou OP GESTION (vert).', 'Affichage') +
+function ouvrirReglages(){ ouvrir(haut('Réglages', 'La vue, qui décide, et le jour ou la nuit.', 'Affichage') +
   `<div class="reglages col regl-panneau">${reglagesListe()}</div><p class="mute petit">${reglagesNote()}</p><p class="mute petit">« Auto » suit le réglage de ton appareil, et passe du jour à la nuit avec lui.</p>`); }
 const reglagesHtml = () => `<div class="carte" id="reglages"><h3>Réglages</h3><div class="reglages">${reglagesListe()}</div>
   <p class="mute petit" style="margin-top:10px">${reglagesNote()}</p></div>`;
@@ -2208,7 +2206,7 @@ function enClair(l){
   const c = l.c, deb = l.d > 0, m = eur(deb ? l.d : l.cr), qui = l.aux ? nomTiers(l.aux) : '';
   if (c === '512000') return deb ? `${m} arrivent sur ton compte en banque.` : `${m} sortent de ton compte en banque.`;
   if (c === '530000') return deb ? `${m} entrent dans la caisse.` : `${m} sortent de la caisse.`;
-  if (c === '411000') return deb ? `${qui} te doit ${m}.` : `${qui} a payé ${m} : cette somme ne t’est plus due.`;
+  if (c === '411000') { const pl = /^M\. et Mme /.test(qui); return deb ? `${qui} ${pl ? 'te doivent' : 'te doit'} ${m}.` : `${qui} ${pl ? 'ont' : 'a'} payé ${m} : cette somme ne t’est plus due.`; }
   if (c === '401000' || c === '404000') return deb ? `Tu ne dois plus ${m} à ${qui} (payé, ou remboursé par un avoir).` : `Tu dois ${m} à ${qui}.`;
   if (c.startsWith('70')) return deb ? `Ton chiffre d’affaires baisse de ${m}.` : `Ton chiffre d’affaires augmente de ${m} : ce que tu as gagné, hors taxes.`;
   if (c === '445740') return deb ? `Ces ${m} de TVA ne sont plus « en attente » : le client a payé.` : `${m} de TVA mis en attente : ils ne seront dus à l’État qu’au paiement du client.`;
@@ -2277,7 +2275,7 @@ VUES.accueil = () => {
       ${kpi('ventes', 'Les clients te doivent', eur(clients), retard ? `dont ${eur(retard)} en retard` : 'rien en retard')}
       ${kpi('achats', 'Tu dois aux fournisseurs', eur(fourn), 'factures reçues, pas encore payées')}
       ${kpi('tva', 'TVA d’octobre', eur(tva), D.decl ? (D.pret ? 'arrêtée · à déposer d’ici le 23/11' : 'déposée · prélevée le 23/11') : 'à déposer au plus tard le 23/11')}
-      ${kpi('resultat', 'Bénéfice de l’année', eur(res), 'janvier à octobre, avant impôt')}
+      ${kpi('resultat', 'Bénéfice de l’année', eur(res), PAIE.valide ? 'janvier à octobre, avant impôt' : 'avant impôt · octobre n’a pas encore sa paie')}
       ${kpi('fil', 'Fait tout seul en octobre', pct + ' %', P.auto === P.n ? `${P.n} écritures, toutes seules` : `${P.auto} écritures sur ${P.n}`)}
     </div>
     <div class="carte" id="mois-etapes"><h2>Ton mois d’octobre · ${faits}/${F.length}</h2>
@@ -2639,7 +2637,9 @@ const TESTS = [
       { r:'previsions', sel:'#prev', txt:'La courbe part du solde d’aujourd’hui et descend ou monte à chaque somme attendue : factures à encaisser, fournisseurs, salaires, cotisations, TVA. Le point le plus bas est marqué.', lire:1 }],
     fin:() => '<p>Rien n’a été écrit : la prévision se calcule à partir des écritures, des échéances et des dépenses qui reviennent chaque mois.</p>' },
   { k:'etats', g:'Comprendre', t:'Lire le bilan et le compte de résultat', but:'Les deux documents de fin d’année.', etapes:[
-      { r:'bilan', sel:'.bilan', txt:'Le bilan : à gauche ce que l’entreprise possède (banque, créances clients, matériel), à droite ce qu’elle doit et ses capitaux. Les deux côtés sont toujours égaux.', lire:1 },
+      { r:'bilan', sel:'.bilan', txt:() => { const b = document.querySelector('.bilan'), pile = !!(b && b.children[1] && b.children[1].offsetTop > b.children[0].offsetTop);          // sur téléphone et tablette étroite, les deux cartes sont l'une sous l'autre
+          return pile ? 'Le bilan : en haut ce que l’entreprise possède (banque, créances clients, matériel), en dessous ce qu’elle doit et ses capitaux. Les deux totaux sont toujours égaux.'
+            : 'Le bilan : à gauche ce que l’entreprise possède (banque, créances clients, matériel), à droite ce qu’elle doit et ses capitaux. Les deux côtés sont toujours égaux.'; }, lire:1 },
       { r:'resultat', sel:'#contenu .t', txt:'Le compte de résultat : ce qu’elle a gagné (produits) moins ce qu’elle a dépensé (charges). La différence est le bénéfice.', lire:1 }],
     fin:() => '<p>Rien n’a été écrit : ces états se calculent à partir des écritures, à tout moment.</p>' },
   { k:'comptable', g:'Comprendre', t:'La vue du comptable et le FEC', but:'Ce que voit le cabinet.', etapes:[
@@ -2671,6 +2671,9 @@ function spotBoucle(){ if (spotRaf) return; spotRaf = requestAnimationFrame(() =
 function spotMontrer(el, ombre){ const avant = spotCible; document.querySelectorAll('.cible').forEach(n => n.classList.remove('cible')); spotCible = el || null; const s = $('#spot'); if (!s) return; if (!el) { s.hidden = true; return; } el.classList.add('cible');
   if (avant !== el && !s.hidden) { s.classList.add('glisse'); spotGlisse = performance.now() + 320; } else if (s.hidden) { s.classList.remove('glisse'); spotGlisse = 0; }
   s.classList.toggle('ombre', !!ombre); spotPlacer(); spotBoucle(); }
+/* un défilement doux peut partir TARD sur un appareil lent : passé 650 ms, on pose la page d'un coup (sauf si la personne a pris la main entre-temps : molette, doigt, clavier, clic) */
+let amenerT = 0;
+function amenerFinir(fn){ clearTimeout(amenerT); const annule = () => clearTimeout(amenerT); ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(e => addEventListener(e, annule, { once:true, passive:true, capture:true })); amenerT = setTimeout(fn, 650); }
 function amener(c, lisse){
   const comp = lisse === undefined ? (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth') : (lisse ? 'smooth' : 'auto');
   if (c.closest('#barre')) return;
@@ -2680,7 +2683,7 @@ function amener(c, lisse){
     if (!c || c.closest('#barre')) return;
     if (c.closest('#calque')) { /* dans une fenêtre : rien si le haut de la cible se voit déjà ; sinon on l'amène en haut (centrée, une cible plus haute que la fenêtre perdait son début) */
       const r = c.getBoundingClientRect(), g = $('#guide'), pn = c.closest('.panneau'), haut = pn ? pn.getBoundingClientRect().top : 0, bas = (g.hidden ? innerHeight : g.getBoundingClientRect().top) - 12;
-      if (r.top >= haut && r.top < bas - 80) return; return c.scrollIntoView({ block:r.height < bas - haut ? 'center' : 'start', behavior:comp }); }
+      if (r.top >= haut && r.top < bas - 80) return; const bloc = r.height < bas - haut ? 'center' : 'start'; c.scrollIntoView({ block:bloc, behavior:comp }); if (comp === 'smooth') amenerFinir(() => { if (c.isConnected) c.scrollIntoView({ block:bloc, behavior:'auto' }); }); return; }
     /* la cible doit tomber entre la barre du haut (collante) et la bulle du guide, pas dessous */
     const r = c.getBoundingClientRect(), g = $('#guide'), haut = Math.max(0, $('#barre').getBoundingClientRect().bottom) + 6, bas = (g.hidden ? innerHeight : g.getBoundingClientRect().top) - 6;   /* 6 px de marge : sur un petit téléphone, 12 px de chaque côté faisaient passer le bas d'une carte sous la bulle */
     if (r.top >= haut && r.bottom <= bas) return;
@@ -2688,10 +2691,21 @@ function amener(c, lisse){
     /* une cible à plusieurs écrans de là : on s'en approche d'un coup et on ne finit en douceur que la dernière longueur (un long défilement doux traîne sur un téléphone modeste) */
     if (comp === 'smooth' && Math.abs(d) > innerHeight * 1.2) scrollTo({ top:y - Math.sign(d) * 140, behavior:'auto' });
     scrollTo({ top:y, behavior:comp });
+    if (comp === 'smooth') amenerFinir(() => { const but = Math.max(0, Math.min(y, document.documentElement.scrollHeight - innerHeight)); if (Math.abs(scrollY - but) > 2) scrollTo({ top:but, behavior:'auto' }); });
   }, 30);
 }
 /* la bulle ne se réécrit que si son contenu change ; le bouton qui avait le focus le retrouve ; ce qui est NEUF se dit une fois, dans une zone à part (la bulle entière, relue à chaque geste, noyait le lecteur d'écran) */
 function guideDire(t){ const n = $('#guide-dit'); if (n && n.textContent !== t) n.textContent = t; }
+/* le texte de la bulle peut dépasser sa place (petit téléphone, longue explication à la fin d'un test) : la zone défile, un fondu en bas dit qu'il y a une suite et s'efface une fois au bout ; tant qu'elle défile, la zone se prend au clavier */
+function guideSuite(){
+  const g = $('#guide'); if (!g || g.hidden) return;
+  typo(g);          // avant de mesurer : une espace insécable peut changer le passage à la ligne
+  g.querySelectorAll('.g-txt, .g-fin').forEach(z => { const defile = z.scrollHeight - z.clientHeight > 2;
+    z.classList.toggle('suite', z.scrollHeight - z.clientHeight - z.scrollTop > 4);
+    if (defile) z.tabIndex = 0; else z.removeAttribute('tabindex'); });
+}
+document.addEventListener('scroll', ev => { if (ev.target && ev.target.closest && ev.target.closest('#guide')) guideSuite(); }, true);
+addEventListener('resize', guideSuite);
 function guideEcrire(g, html, dit){
   if (g._html === html) return false;
   const foc = document.activeElement && g.contains(document.activeElement) ? document.activeElement.dataset.a : null;
@@ -2722,7 +2736,7 @@ function guideMaj(){
     spotMontrer(cible && (!calque || dedans) ? cible : null, false);
     if (cible && !UI.test.montre && (!calque || dedans)) { UI.test.montre = true; amener(cible); }
   }
-  document.body.style.setProperty('--guide-h', g.offsetHeight + 'px');
+  document.body.style.setProperty('--guide-h', g.offsetHeight + 'px'); guideSuite();
 }
 VUES.tests = () => {
   const ok = UI.testsOk.size, groupes = [...new Set(TESTS.map(T => T.g))], tout = JOUR.every(e => e.ok()), proch = testSuivant();   // un seul bouton plein dans la liste : le prochain test ; vingt et un boutons pleins ne désignaient plus rien
@@ -2775,15 +2789,23 @@ function tvaGarde(){
 }
 let largeurVue = document.documentElement.clientWidth;
 addEventListener('resize', () => { const l = document.documentElement.clientWidth; if (l === largeurVue) return; largeurVue = l;          // la hauteur seule (barre d'adresse du téléphone) ne compte pas
-  if (['previsions', 'pilotage'].includes(UI.route) && !$('#calque').innerHTML) { clearTimeout(UI._redim); UI._redim = setTimeout(rendre, 180); } });
+  if (!['previsions', 'pilotage'].includes(UI.route)) return;
+  if ($('#calque').innerHTML) { UI.redimDu = true; return; }          // une fenêtre est ouverte : la courbe se redessinera à sa fermeture (elle restait dessinée à l'ancienne largeur, étirée)
+  clearTimeout(UI._redim); UI._redim = setTimeout(rendre, 180); });
 function apparence(cle, v){ OPC_APPARENCE[cle] = v; try { localStorage.setItem('opc_' + cle, v); } catch (e) {} opcAppliquer(); rendre(); }
+/* les gestes qui CHANGENT le dossier : la démo les refuse tant qu'elle joue (elle raconte la journée dans l'ordre ; un geste à la main la ferait avancer sous elle) */
+const FILM_GESTES = new Set(['journee', 'tout-traiter', 'synchro', 'lire-pieces', 'av', 'av-ligne', 'regle-essai', 'terrain', 'paie-calc', 'paie-valider', 'tva-auto', 'cloturer-envoyer',
+  'cloture-effacer', 'cloture-etape', 'cloturer-oct', 'compte-ajout', 'delettrer', 'ecr-contrepasser', 'ecr-modifier-valide', 'ecr-supprimer', 'ecr-valider', 'lettrage-auto', 'lettrage-tous', 'lettrer',
+  'piece-ok', 'piece-depuis-banque', 'rappro-ok', 'rappro-pointer', 'saisie-ok', 'tva-complement', 'tva-declarer', 'tva-liquider', 'valider-sel', 'valider-tout']);
 document.addEventListener('click', ev => {
   if (document.body.classList.contains('menu-ouvert') && ((!ev.target.closest('#menu') && !ev.target.closest('[data-a="menu"]')) || ev.target.closest('#menu a'))) document.body.classList.remove('menu-ouvert');
   const b = ev.target.closest('[data-a]'); if (!b) return;
   const a = b.dataset.a, id = b.dataset.id, k = b.dataset.k, refus = m => { toast(m); return true; };
+  /* pendant la démo, on regarde : « Laisser la journée se dérouler » ou « Jouer maintenant » faisaient avancer la journée sous le film (la bulle disait « 10 h 20 » sur un mois déjà clôturé). Les écouteurs suivants ne reçoivent pas le geste non plus. */
+  if (CINE.actif && !CINE.fin && FILM_GESTES.has(a) && !(a === 'av' && String(k || '').startsWith('aller|'))) { ev.stopImmediatePropagation(); return refus('La démo joue déjà la journée. Pour faire ce geste toi-même, quitte-la d’abord (✕).'); }
   if (b.getAttribute('aria-disabled') === 'true' && a === 'cloturer-envoyer') return refus(cloturerEnvoyer());
   if (a === 'reglages') { document.body.classList.remove('menu-ouvert'); return ouvrirReglages(); }
-  if (a === 'vue' || a === 'pilote' || a === 'mode' || a === 'marque') { const dansFenetre = !!b.closest('#calque'); let m = '';
+  if (a === 'vue' || a === 'pilote' || a === 'mode') { const dansFenetre = !!b.closest('#calque'); let m = '';
     const change = a === 'pilote' ? (k === '1') !== UI.pilote : a === 'vue' ? (k === 'expert') !== UI.expert : false, quitte = change && CINE.actif && !CINE.fin; if (quitte) filmQuitter(true, a === 'pilote' && k !== '1');   // on la quitte en coupant le pilote : il ne décide alors plus rien à ta place
     if (a === 'vue') { UI.expert = k === 'expert'; rendre(); m = UI.expert ? 'Vue comptable : toutes les rubriques du logiciel.' : 'Vue simple : l’essentiel, en clair.'; }
     else if (a === 'pilote') { if (CINE.actif && !CINE.fin && !change) return;          // pendant la démo, toucher le réglage déjà choisi ne fait rien (il faisait avancer la nuit sous le film)
@@ -2828,7 +2850,7 @@ document.body.insertAdjacentHTML('beforeend', '<div id="guide" class="guide" rol
 new MutationObserver(() => { const o = document.body.classList.contains('menu-ouvert'); document.querySelectorAll('[data-a="menu"]').forEach(b => { if (b.getAttribute('aria-expanded') !== String(o)) b.setAttribute('aria-expanded', o); }); }).observe(document.body, { attributes:true, attributeFilter:['class'] });
 /* ══ LA DÉMO — la journée du 31 octobre se joue toute seule, et une bulle dit ce qui se passe ══
    Justin, 10 novembre 2026 : « avec une démo ». Rien à toucher : chaque plan ouvre le bon écran, joue le moment de la journée
-   (les vraies fonctions du moteur, pas une vidéo), éclaire ce qui vient de changer et l'explique en deux phrases. On peut
+   (les vraies fonctions du moteur, pas une vidéo), éclaire ce qui vient de changer et l'explique en quelques phrases. On peut
    mettre en pause, passer au plan suivant, accélérer, quitter. Un lien qui finit par « #film » lance la démo à l'ouverture. */
 const CINE = { actif:false, i:-1, pause:false, vitesse:1, min:0, min2:0, reste:0, total:0, debut:0, fin:false, pret:false, rendu:'' };
 const FILM = [
@@ -2907,6 +2929,9 @@ function filmFin(){
 }
 const filmLien = k => { const e = jourDe(k); return `<div class="g-lien"><div class="opg-c">${e.qui ? avatar(e.qui) : tuile(e.ic, e.fam)}<div><span class="qui">OP GESTION${e.qui ? ' · ' + esc(QUI[e.qui][0]) : ''} · ${esc(e.ou)}</span><b>${esc(e.t)}</b></div></div>
   <span class="fl">${ico('fleche')} dans la seconde</span><div class="cpt-c" style="border-style:solid">${tuile('coche', 'vert', 'p')}<div><span class="qui">En comptabilité</span><b>${esc(SIM.res[k] || 'En cours…')}</b></div></div></div>`; };
+/* le libellé du bouton de vitesse : un seul élément dans le bouton (deux éléments seraient écartés comme une icône de son texte) ; sur écran étroit le mot s'efface, il reste « × 1 » */
+const vitLib = v => '<span><span class="g-mot-v">Vitesse </span>× ' + v + '</span>';
+const pauseLib = () => svgI(CINE.pause ? 'lecture' : 'pause') + '<span class="g-mot-p">' + (CINE.pause ? 'Reprendre' : 'Pause') + '</span>', pauseNom = () => CINE.pause ? 'Reprendre la démo' : 'Mettre la démo en pause';
 function filmMaj(){
   const g = $('#guide'); if (!g || !CINE.actif) return;
   g.hidden = false; document.body.classList.add('guide-on'); document.body.classList.toggle('film-on', !CINE.fin);
@@ -2923,25 +2948,26 @@ function filmMaj(){
     if (CINE.rendu !== cle) {
       g.innerHTML = `<div class="g-tete"><div><span class="g-n">Démo · ${esc(s.ch)} · ${CINE.i + 1}/${FILM.length}</span><b>${esc(s.t)}</b></div><button type="button" class="fermer" data-a="film-quitter" aria-label="Quitter la démo">✕</button></div>
         <div class="g-temps" aria-hidden="true"><i id="g-temps"></i></div>${s.lien && CINE.pret ? filmLien(s.lien) : ''}<p class="g-txt">${esc(s.d)}</p>
-        <div class="g-act"><button type="button" class="btn gris petit" data-a="film-pause" data-etat="${CINE.pause}">${svgI(CINE.pause ? 'lecture' : 'pause')}${CINE.pause ? 'Reprendre' : 'Pause'}</button><button type="button" class="btn petit" data-a="film-suivant">Suivant${svgI('suivant')}</button><button type="button" class="btn gris petit" data-a="film-vitesse" data-etat="${vit}" aria-label="Vitesse de la démo : ${vit}">Vitesse × ${vit}</button></div>`;
+        <div class="g-act"><button type="button" class="btn gris petit" data-a="film-pause" data-etat="${CINE.pause}" aria-label="${pauseNom()}">${pauseLib()}</button><button type="button" class="btn petit" data-a="film-suivant">Suivant${svgI('suivant')}</button><button type="button" class="btn gris petit" data-a="film-vitesse" data-etat="${vit}" aria-label="Vitesse de la démo : × ${vit}">${vitLib(vit)}</button></div>`;
       g._html = ''; CINE.rendu = cle; filmBarre(); refoc(); if (CINE.pret) guideDire(s.t + '. ' + s.d);
     }
     /* Pause et Vitesse : le bouton reste en place et ne change que son libellé (réécrite, la bulle détruisait le bouton qu'on venait d'activer : au clavier, un second appui ne faisait plus rien) */
     const bp = g.querySelector('[data-a="film-pause"]'), bv = g.querySelector('[data-a="film-vitesse"]');
-    if (bp && bp.dataset.etat !== String(CINE.pause)) { bp.innerHTML = svgI(CINE.pause ? 'lecture' : 'pause') + (CINE.pause ? 'Reprendre' : 'Pause'); bp.dataset.etat = String(CINE.pause); }
-    if (bv && bv.dataset.etat !== vit) { bv.textContent = 'Vitesse × ' + vit; bv.setAttribute('aria-label', 'Vitesse de la démo : ' + vit); bv.dataset.etat = vit; }
+    if (bp && bp.dataset.etat !== String(CINE.pause)) { bp.innerHTML = pauseLib(); bp.setAttribute('aria-label', pauseNom()); bp.dataset.etat = String(CINE.pause); }
+    if (bv && bv.dataset.etat !== vit) { bv.innerHTML = vitLib(vit); bv.setAttribute('aria-label', 'Vitesse de la démo : × ' + vit); bv.dataset.etat = vit; }
     const cible = CINE.pret && s.sel ? document.querySelector(s.sel) : null;
     spotMontrer(cible, true);
     if (cible && CINE.amene !== CINE.i) { CINE.amene = CINE.i; amener(cible); }
   }
-  document.body.style.setProperty('--guide-h', g.offsetHeight + 'px');
+  document.body.style.setProperty('--guide-h', g.offsetHeight + 'px'); guideSuite();
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && CINE.actif && !CINE.pause) filmPause(true); });
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a;
   if (a === 'film-pause') return filmPause();
   if (a === 'film-suivant') return filmAller(CINE.i + 1);
-  if (a === 'film-vitesse') { const v = CINE.vitesse === 1 ? 1.5 : CINE.vitesse === 1.5 ? 2 : 1; if (CINE.pret && !CINE.pause) { CINE.reste = Math.max(0, CINE.reste - (performance.now() - CINE.debut)) * CINE.vitesse / v; CINE.total = CINE.total * CINE.vitesse / v; CINE.debut = performance.now(); clearTimeout(CINE.min); const i = CINE.i; CINE.min = setTimeout(() => filmAller(i + 1), CINE.reste); } CINE.vitesse = v; filmMaj(); return filmBarre(); }
+  if (a === 'film-vitesse') { const v = CINE.vitesse === 1 ? 1.5 : CINE.vitesse === 1.5 ? 2 : 1; if (CINE.pret) { const ecoule = CINE.pause ? 0 : performance.now() - CINE.debut;          // en pause, le temps restant est déjà arrêté : il se remet seulement à l'échelle de la nouvelle vitesse (elle ne prenait qu'au plan suivant)
+      CINE.reste = Math.max(0, CINE.reste - ecoule) * CINE.vitesse / v; CINE.total = CINE.total * CINE.vitesse / v; CINE.debut = performance.now(); if (!CINE.pause) { clearTimeout(CINE.min); const i = CINE.i; CINE.min = setTimeout(() => filmAller(i + 1), CINE.reste); } } CINE.vitesse = v; filmMaj(); return filmBarre(); }
   if (a === 'film-quitter') return filmQuitter();
   if (a === 'reset-tests') { location.hash = 'tests'; return location.reload(); }
 });
@@ -2950,7 +2976,7 @@ document.addEventListener('click', ev => {
 VUES.demo = () => {
   const chap = [...new Set(FILM.map(s => s.ch))], frais = UI.mode === 'choix' && !FIL.some(f => f.h.includes(':'));
   return tete('Apprendre', 'La démo', `Environ ${filmDureeTexte()}, sans rien toucher : la journée du 31 octobre se joue toute seule, de la banque de la nuit à la clôture du mois. Ce n’est pas une vidéo : ce sont les vrais écrans, qui avancent seuls.`) +
-    `<div class="carte hero"><div class="h-t"><h2>Regarder la comptabilité se faire</h2><p>Chaque plan ouvre le bon écran, joue un moment de la journée, éclaire ce qui vient de changer et l’explique en deux phrases. Tu peux mettre en pause, passer au plan suivant ou accélérer.</p>
+    `<div class="carte hero"><div class="h-t"><h2>Regarder la comptabilité se faire</h2><p>Chaque plan ouvre le bon écran, joue un moment de la journée, éclaire ce qui vient de changer et l’explique en quelques phrases. Tu peux mettre en pause, passer au plan suivant ou accélérer.</p>
         <p class="mute petit">${frais ? 'La démo part du 31 octobre au petit matin.' : 'Le dossier a déjà avancé : la démo le remet d’abord au 31 octobre au matin.'}</p></div>
       <div class="h-a"><button type="button" class="choix premier" id="demo-lancer" data-a="film">${tuile('lecture', 'gris', 'g')}<span><b>${frais ? 'Lancer la démo' : 'Relancer la démo depuis le début'}</b><small>${FILM.length} plans · environ ${filmDureeTexte()}</small></span></button>
         <button type="button" class="choix" data-a="essayer">${tuile('tests', 'indigo', 'g')}<span><b>Essayer moi-même</b><small>Les mêmes gestes, à la main, avec une bulle</small></span></button></div></div>
