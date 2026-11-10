@@ -1,0 +1,8 @@
+{
+  "appId": "fr.teamop.gestion",
+  "appName": "OP GESTION",
+  "webDir": "www",
+  "backgroundColor": "#0f1a30",
+  "ios": { "contentInset": "never", "preferredContentMode": "mobile" },
+  "android": { "allowMixedContent": false }
+}
