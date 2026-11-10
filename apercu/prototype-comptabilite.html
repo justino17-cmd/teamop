@@ -15,7 +15,7 @@
     R.setAttribute('data-mode', nuit ? 'nuit' : 'jour'); };
   window.opcAppliquer();
   /* ouverte dans OP GESTION (dans un cadre), elle suit le réglage Jour / Nuit qu'OP GESTION lui écrit */
-  try { addEventListener('message', function(e){ var m = e.data && e.data.opc_mode; if (m === 'jour' || m === 'nuit' || m === 'auto') { window.OPC_APPARENCE.mode = m; window.opcAppliquer(); } }); } catch (e) {}
+  try { addEventListener('message', function(e){ var m = e.data && e.data.opc_mode; if (m === 'jour' || m === 'nuit' || m === 'auto') { window.OPC_APPARENCE.mode = m; window.opcAppliquer(); if (window.opcRafraichir) window.opcRafraichir(); } }); } catch (e) {}
   try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', window.opcAppliquer); new MutationObserver(window.opcAppliquer).observe(R, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
 })();
 </script>
@@ -116,6 +116,8 @@ svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .mode-seg button[aria-pressed="true"]{background:var(--seg-cur);color:var(--seg-ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .bandeau-proto{padding:8px 10px;border-radius:14px;background:color-mix(in srgb,var(--orange) 10%,transparent);border:1px solid color-mix(in srgb,var(--orange) 30%,transparent);color:var(--encre);font-size:13px}
 .bandeau-proto b{color:var(--orange)}
+.nuit-note{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px;border-color:color-mix(in srgb,var(--orange) 45%,transparent)}
+.nuit-note .lien{flex:none;min-height:44px}
 .centre{min-width:0;display:flex;flex-direction:column}
 .barre{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;min-height:60px;padding:9px max(28px,env(safe-area-inset-right,0px)) 9px max(28px,env(safe-area-inset-left,0px));
   background:color-mix(in srgb,var(--bande) 78%,transparent);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid var(--trait)}
@@ -1171,7 +1173,7 @@ function typo(racine){
   while ((n = tw.nextNode())) { const t = n.nodeValue; if (t.indexOf(' ') < 0) continue; const p = n.parentElement; if (!p || p.closest('svg, pre, code, .mono, textarea, script, style')) continue;
     const u = typoTxt(t); if (u !== t) n.nodeValue = u; }
 }
-function toast(m){ const t = $('#toast'); t.textContent = typoTxt(m); t.hidden = false; clearTimeout(toastMin); toastMin = setTimeout(() => { t.hidden = true; }, 4200); }
+function toast(m, ms){ const t = $('#toast'); t.textContent = typoTxt(m); t.hidden = false; clearTimeout(toastMin); toastMin = setTimeout(() => { t.hidden = true; }, ms || 4200); }
 const haut = (titre, sous, mono) => `<div class="haut"><div>${mono ? `<span class="surtitre">${mono}</span>` : ''}<h2>${titre}</h2>${sous ? `<span class="mute petit">${sous}</span>` : ''}</div><button type="button" class="fermer" data-a="fermer" aria-label="Fermer">✕</button></div>`;
 const tete = (sur, titre, sous, actions) => `<div class="tete"><div><span class="surtitre">${sur}</span><h1>${titre}</h1>${sous ? `<p class="mute">${sous}</p>` : ''}</div>${actions ? `<div class="actions">${actions}</div>` : ''}</div>`;
 const montantCell = x => x ? nb(x) : '';
@@ -1657,6 +1659,7 @@ VUES.bilan = () => {
   const col = (lib, n, n1, o) => `<tr class="${o === 1 ? '' : o === 2 ? 'total' : ''}"><td class="${o === 1 ? 'ret' : ''}">${lib}</td><td class="n">${n === null ? '' : nb(n / 100)}</td><td class="n masque-etroit">${n1 === null ? '' : nb(n1 / 100)}</td></tr>`;
   const cote = (titre, A, A1, t, t1) => `<div class="carte"><h2>${titre}</h2><div class="defile" style="border:0"><table class="t"><thead><tr><th></th><th class="n">31/10/2026</th><th class="n masque-etroit">31/12/2025</th></tr></thead><tbody>${A.map((x, i) => col(x[0], x[1], A1[i][1], x[2])).join('')}${col('Total', t, t1, 2)}</tbody></table></div></div>`;
   return tete('États', 'Bilan', 'Ce que l’entreprise possède (actif) et ce qu’elle doit (passif), à une date. Les deux côtés sont toujours égaux : le résultat fait la différence.') +
+    (PAIE.valide ? '' : '<div class="info petit">Octobre n’a pas encore sa paie : les salaires d’octobre ne sont pas encore dans le bilan (ni dans le résultat qui le complète).</div>') +
     `<div class="outils">${essais ? `<label class="case"><input type="checkbox" data-a-change="essai" ${UI.avecEssai ? 'checked' : ''}> Avec la répétition de clôture</label>` : '<span class="mute petit">Situation au 31/10, sans les écritures de fin d’année (amortissements, stock, charges payées d’avance, factures à recevoir ou à établir, impôt) : la répétition dans « ' + (UI.expert ? 'Clôtures' : 'Fin de mois') + ' » les ajoute.</span>'}</div>
     <div class="${N.tA === N.tP ? 'bon' : 'erreur'} petit">${N.tA === N.tP ? `✓ Actif = passif = ${eur(N.tA / 100)}` : `Écart entre actif et passif : ${eur((N.tA - N.tP) / 100)}`}</div>
     <div class="bilan">${cote('Actif', N.actif, N1.actif, N.tA, N1.tA)}${cote('Passif', N.passif, N1.passif, N.tP, N1.tP)}</div>
@@ -1670,6 +1673,7 @@ VUES.resultat = () => {
   const L = (lib, a, b, cl) => `<tr class="${cl || ''}"><td>${lib}</td><td class="n">${nb(a)}</td><td class="n masque-etroit">${nb(b)}</td></tr>`;
   const va = ca - achats - varStock - ext, va1 = P.ca - P.achats - P.varStock - P.ext, ebe = va - impots - sal - soc, ebe1 = va1 - P.impots - P.salaires - P.sociales;
   return tete('États', 'Compte de résultat', 'Ce que l’activité a rapporté (produits) et coûté (charges). La différence est le résultat.') +
+    (PAIE.valide ? '' : '<div class="info petit">Octobre n’a pas encore sa paie : les salaires et les charges sociales d’octobre ne sont pas encore dans ces chiffres, le résultat est donc trop haut d’autant.</div>') +
     `${E.some(e => e.essai && e.etat !== 'supprimee') ? `<label class="case"><input type="checkbox" data-a-change="essai" ${UI.avecEssai ? 'checked' : ''}> Avec la répétition de clôture</label>` : ''}
     <div class="grille g2"><div class="defile"><table class="t"><thead><tr><th></th><th class="n">2026 · 10 mois</th><th class="n masque-etroit">2025 · 12 mois</th></tr></thead><tbody>
       ${L('Prestations vendues', ca, P.ca, 'sous')}
@@ -2066,7 +2070,7 @@ function journeeDerouler(delai){
   SIM.min = setTimeout(tic, 500); rendre();
 }
 /* entrer sans regarder la démo : la nuit s'est déjà traitée */
-function entrerLibre(){ if (UI.mode !== 'choix') return; UI.mode = 'libre'; const n = nuitJouer(); if (n) setTimeout(() => toast('Cette nuit, tout s’est rangé tout seul : ' + plur(FIL.filter(f => f.h.includes(':')).length, 'action') + '.'), 300); }
+function entrerLibre(){ if (UI.mode !== 'choix') return; UI.mode = 'libre'; const n = nuitJouer(); if (n) { UI.nuitNote = { n:FIL.filter(f => f.h.includes(':')).length, montre:false }; setTimeout(() => toast('Cette nuit, tout s’est rangé tout seul : ' + plur(UI.nuitNote ? UI.nuitNote.n : 0, 'action') + '.', matchMedia('(max-width:700px)').matches ? 1800 : 4200), 300); } }   /* [n°1][n°14] la ligne en tête du tableau de bord reste ; le message bref, lui, est court au téléphone pour ne pas couvrir ce qu'on vient d'ouvrir */
 
 /* ─── la trésorerie à venir : ce qui est connu, jour par jour, sur huit semaines ─── */
 const MOIS_RE = /(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre) \d{4}/gi;
@@ -2201,9 +2205,14 @@ rendreBarre = () => {
 const ouvrirBase = ouvrir, fermerBase = fermer, rendreBase = rendre;
 ouvrir = (h, l) => { ouvrirBase(h, l); guideMaj(); };
 fermer = () => { fermerBase(); guideMaj(); };
-rendre = () => { if (UI.mode === 'choix' && !['accueil', 'demo', 'tests', 'aide', 'film'].includes(UI.route)) entrerLibre(); rendreBase();  fenetreHabiller(); };
+rendre = () => { if (UI.mode === 'choix' && !['accueil', 'demo', 'tests', 'aide', 'film'].includes(UI.route)) entrerLibre(); rendreBase();  fenetreHabiller(); nuitNoteHabiller(); };
+/* [n°1] la nuit se lit et se range quand on quitte l'ouverture : au retour sur le tableau de bord, une ligne dit que les chiffres ont changé pour cette raison ; elle s'en va quand on l'a vue (on repart ailleurs) ou qu'on la ferme */
+function nuitNoteHabiller(){ const N = UI.nuitNote; if (!N) return; if (UI.route !== 'accueil') { if (N.montre) UI.nuitNote = null; return; }
+  const c = $('#contenu'); if (!c || c.querySelector('.nuit-note')) return; N.montre = true;
+  c.insertAdjacentHTML('afterbegin', `<div class="carte nuit-note" role="status"><span><b>La nuit vient d’être lue et rangée.</b> ${plur(N.n, 'action faite', 'actions faites')} toute${N.n > 1 ? 's' : ''} seule${N.n > 1 ? 's' : ''} depuis ton arrivée : les chiffres ci-dessous ont changé pour cette raison.</span><button type="button" class="lien" data-nuit-ok="1">J’ai compris</button></div>`); }
+document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('[data-nuit-ok]')) { UI.nuitNote = null; const n = $('#contenu .nuit-note'); if (n) n.remove(); } });
 /* chaque rubrique s'ouvre comme une fenêtre : barre de titre, retour au tableau de bord, croix pour fermer ; le tableau de bord, lui, reste la page */
-const fenetreTitre = r => { for (const M of [MENU_SIMPLE, MENU_EXPERT]) for (const [, L] of M) for (const [k, l] of L) if (k === r) return l; return ''; };
+const fenetreTitre = r => { for (const M of (UI.expert ? [MENU_EXPERT, MENU_SIMPLE] : [MENU_SIMPLE, MENU_EXPERT])) for (const [, L] of M) for (const [k, l] of L) if (k === r) return l; return ''; };
 function fenetreHabiller(){
   const c = $('#contenu'), fen = UI.route !== 'accueil' && !!VUES[UI.route];
   c.classList.toggle('fen', fen);
@@ -2445,7 +2454,7 @@ VUES.banque = () => {
       ${REGLES.map(g => `<tr><td><span class="mono">${esc(g.motif)}</span> <span class="st info">règle apprise</span></td><td>${esc(libCpt(g.c).toLowerCase())}</td></tr>`).join('')}
       <tr><td>Rien de tout ça</td><td>${UI.pilote ? 'le pilote applique la réponse la plus probable et la note' : 'une question dans « À vérifier »'}</td></tr></tbody></table></div></div>`;
   if (UI.expert) return apresTete(banqueDetail(), carte);
-  return tete('Trésorerie', 'Banque', 'Ce que la banque a envoyé, et ce qu’OP GESTION en a fait. Chaque ligne du relevé trouve son écriture toute seule ; celle qui n’y arrive pas devient une question dans « À vérifier ».') + carte + replie('banque', 'Le relevé ligne par ligne', sansTete(banqueDetail()));
+  return tete('Trésorerie', 'Banque', 'Ce que la banque a envoyé, et ce qu’OP GESTION en a fait. Chaque ligne du relevé trouve son écriture toute seule ; celle qui n’y arrive pas devient une question dans « À vérifier ».') + `<div class="carte banque-solde"><span class="mute petit">Solde du compte en banque</span><b style="display:block;font-size:24px">${eur(solde('512000', { au:AUJ }))}</b><span class="mute petit">C’est ce chiffre-là, sans la caisse. Le tableau de bord, lui, affiche « Argent en banque » : ce compte plus la caisse (${eur(solde('530000', { au:AUJ }))}), soit ${eur(solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }))}.</span></div>` + carte + replie('banque', 'Le relevé ligne par ligne', sansTete(banqueDetail()));
 };
 VUES.tva = () => {
   const D = TVA_DECL['2026-10'] || {}, T = D.decl ? D.l : tvaMois('2026-10'), oct = UI.tvaMois === '2026-10';
@@ -2591,6 +2600,7 @@ VUES.aide = () => tete('Apprendre', 'Comment ça marche', 'La comptabilité de t
     <li>Les règles de ce prototype ont été relues sur les sources officielles en novembre 2026, mais restent <b>à faire valider par l’expert-comptable</b> avant tout usage réel.</li></ul></div>`;
 
 /* ══ LES TESTS GUIDÉS — une bulle qui accompagne chaque geste, chaque test se coche tout seul et dit ce qui a été écrit ══ */
+const tvaQuestionsEnAttente = () => aVerifier().filter(x => x.kind === 'immo' || x.kind === 'ligne').length;
 const PRE = { r:'accueil', sel:'[data-a="tout-traiter"]', txt:'D’abord, laisse OP GESTION lire ce qui est arrivé cette nuit : touche « Tout traiter ».', ok:toutLu };
 const PRE_PAIE = { r:'paie', sel:'[data-a="paie-calc"]', txt:'Les fiches de paie ne sont pas encore calculées : touche « Calculer maintenant ».', ok:() => !!PAIE.calc };
 const immoOrdi = () => { const P5 = PIECES.find(p => p.id === 'P5'); return P5 && P5.ecr ? IMMOS.find(i => i.ecr === P5.ecr) : null; };   // l'ordinateur au registre, si la réponse a été « l'étaler »
@@ -2651,7 +2661,9 @@ const TESTS = [
       { r:'paie', sel:'[data-a="paie-valider"]', txt:'Touche « Valider la paie » : l’écriture, les virements et la déclaration sociale suivent.', ok:() => !!PAIE.valide }],
     fin:() => `<p>L’écriture de paie est passée, le fichier de virements est parti et sa ligne de banque s’est rangée toute seule, la DSN est prête.</p>${clairMini(PAIE.ecr)}` },
   { k:'tva', g:'La fin du mois', t:'La TVA du mois', but:'Une déclaration préparée toute seule.', etapes:[PRE,
-      { r:'tva', sel:'#tva-auto [data-a="tva-auto"]', txt:'La TVA d’octobre est calculée : celle des ventes payées, moins celle des achats. Touche « Arrêter la TVA d’octobre ». Si une question attend dans « À vérifier », réponds-y d’abord.', ok:() => !!(TVA_DECL['2026-10'] || {}).decl }],
+      /* [n°9] tant qu'une question attend dans « À vérifier », le serveur refuse d'arrêter la TVA : la bulle y mène (« Y aller »), puis revient à la TVA toute seule */
+      { get r(){ return tvaQuestionsEnAttente() ? 'averifier' : 'tva'; }, get sel(){ return tvaQuestionsEnAttente() ? '[data-av]' : '#tva-auto [data-a="tva-auto"]'; },
+        txt:() => tvaQuestionsEnAttente() ? `Avant la TVA, ${tvaQuestionsEnAttente() > 1 ? 'il reste ' + tvaQuestionsEnAttente() + ' questions' : 'il reste une question'} dans « À vérifier » : une réponse peut changer la TVA du mois. Réponds-y ici, puis la bulle te ramène à la TVA.` : 'La TVA d’octobre est calculée : celle des ventes payées, moins celle des achats. Touche « Arrêter la TVA d’octobre ».', ok:() => !!(TVA_DECL['2026-10'] || {}).decl }],
     fin:() => `<p>La TVA collectée et la TVA déductible du mois sont soldées en une seule somme à payer. La déclaration est prête à déposer, au plus tard le lundi 23 novembre ; ici, rien n’est transmis.</p>${clairMini((TVA_DECL['2026-10'] || {}).liq)}` },
   { k:'cloture', g:'La fin du mois', t:'Fermer octobre et l’envoyer au cabinet', but:'Le mois est complet, le comptable reçoit tout.', etapes:[
       { r:'clotures', sel:'#fin-mois .etapes', txt:'Toutes les étapes doivent être vertes. S’il en manque une, touche « Y aller ».', ok:() => aFaire().every(x => x.ok) },
@@ -2678,7 +2690,7 @@ const TESTS = [
       { r:'demo', sel:'#demo-lancer', txt:'Tout ce que tu as fait à la main dans ces tests, le pilote automatique le fait seul, et note chaque décision. La démo le montre en moins de quatre minutes.', lire:1 }],
     fin:() => '<p>Tu connais maintenant chaque geste que le pilote fait pour toi. « Tout recommencer », puis ouvre « La démo » et touche « Lancer la démo », pour le voir se dérouler.</p>' }
 ];
-TESTS.forEach(T => T.etapes = T.etapes.map((s, i) => ({ ...s, id:T.k + '-' + i })));
+TESTS.forEach(T => T.etapes = T.etapes.map((s, i) => Object.defineProperties({}, { ...Object.getOwnPropertyDescriptors(s), id:{ value:T.k + '-' + i, enumerable:true } })));   /* les descripteurs, pas une copie des valeurs : une étape (n°9) peut avoir une route qui change avec l'état du dossier */
 const etapeOk = s => s.lire ? UI.lus.has(s.id) : !!s.ok();
 const testDe = k => TESTS.find(x => x.k === k);
 const testSuivant = () => TESTS.find(T => !UI.testsOk.has(T.k));
@@ -2816,7 +2828,10 @@ addEventListener('resize', () => { const l = document.documentElement.clientWidt
   if (!['previsions', 'pilotage'].includes(UI.route)) return;
   if ($('#calque').innerHTML) { UI.redimDu = true; return; }          // une fenêtre est ouverte : la courbe se redessinera à sa fermeture (elle restait dessinée à l'ancienne largeur, étirée)
   clearTimeout(UI._redim); UI._redim = setTimeout(rendre, 180); });
-function apparence(cle, v){ OPC_APPARENCE[cle] = v; try { localStorage.setItem('opc_' + cle, v); } catch (e) {} opcAppliquer(); rendre(); }
+function apparence(cle, v){ OPC_APPARENCE[cle] = v; try { localStorage.setItem('opc_' + cle, v); } catch (e) {} opcAppliquer(); rendre();
+  if (cle === 'mode') { try { if (parent !== window) parent.postMessage({ opc_mode_choisi:v }, '*'); } catch (e) {} } }   /* [n°4] ouverte dans OP GESTION, elle dit son choix à la page qui l'héberge, pour que la barre de la fenêtre suive */
+/* [n°5] OP GESTION peut forcer le jour ou la nuit : le pied du menu et le panneau Réglages ouvert disent alors le mode réellement appliqué (aucun message n'est renvoyé : pas de boucle) */
+window.opcRafraichir = () => { try { rendreMenu(); typo($('#menu')); const h = $('#calque h2'); if (h && h.textContent.trim() === 'Réglages') ouvrirReglages(); } catch (e) {} };
 /* les gestes qui CHANGENT le dossier : la démo les refuse tant qu'elle joue (elle raconte la journée dans l'ordre ; un geste à la main la ferait avancer sous elle) */
 const FILM_GESTES = new Set(['journee', 'tout-traiter', 'synchro', 'lire-pieces', 'av', 'av-ligne', 'regle-essai', 'terrain', 'paie-calc', 'paie-valider', 'tva-auto', 'cloturer-envoyer',
   'cloture-effacer', 'cloture-etape', 'cloturer-oct', 'compte-ajout', 'delettrer', 'ecr-contrepasser', 'ecr-modifier-valide', 'ecr-supprimer', 'ecr-valider', 'lettrage-auto', 'lettrage-tous', 'lettrer',
@@ -2872,6 +2887,11 @@ document.addEventListener('click', ev => {
 document.body.insertAdjacentHTML('beforeend', '<div id="guide" class="guide" role="region" aria-label="Guide" hidden></div><div id="guide-dit" class="sr" role="status" aria-live="polite"></div>');
 /* le bouton du tiroir dit s'il est ouvert : la classe change à plusieurs endroits (rendu, Échap, clic dehors), on la suit donc à la source */
 new MutationObserver(() => { const o = document.body.classList.contains('menu-ouvert'); document.querySelectorAll('[data-a="menu"]').forEach(b => { if (b.getAttribute('aria-expanded') !== String(o)) b.setAttribute('aria-expanded', o); }); }).observe(document.body, { attributes:true, attributeFilter:['class'] });
+
+/* [n°8] la touche Échap tapée dans le cadre n'arrive jamais à la page qui l'héberge : on la lui relaie, mais seulement si rien ne s'ouvre ici (fenêtre, menu du téléphone, bulle d'infobulle de graphique, guide) — dans ce cas Échap ferme d'abord cela */
+window.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || ev.defaultPrevented || parent === window) return;
+  if ($('#calque').innerHTML || document.body.classList.contains('menu-ouvert') || document.body.classList.contains('guide-on') || document.querySelector('.prev-bulle:not([hidden])')) return;
+  try { parent.postMessage({ opc_echap:true }, '*'); } catch (e) {} }, true);
 /* ══ LA DÉMO — la journée du 31 octobre se joue toute seule, et une bulle dit ce qui se passe ══
    Justin, 10 novembre 2026 : « avec une démo ». Rien à toucher : chaque plan ouvre le bon écran, joue le moment de la journée
    (les vraies fonctions du moteur, pas une vidéo), éclaire ce qui vient de changer et l'explique en quelques phrases. On peut
@@ -3064,10 +3084,17 @@ document.addEventListener('click', ev => {
   if (a === 'fec-dl') return fecTelecharger();
   if (a === 'compte-ajout') return ajouterCompte();
 });
+/* [n°3] sortir du champ Compte redessine les lignes : le champ où le doigt ou la touche Tab allait prendre la main a disparu avec elles. On retient le geste (Tab, ou toucher sur un champ) et on rend la main au même champ du dessin neuf. */
+let gesteChamp = { tab:0, maj:false, lib:'', t:0 };
+document.addEventListener('keydown', ev => { if (ev.key === 'Tab') gesteChamp = { tab:1, maj:ev.shiftKey, lib:'', t:performance.now() }; }, true);
+document.addEventListener('pointerdown', ev => { const e = ev.target.closest && ev.target.closest('.lignes-ed [data-l]'); gesteChamp = { tab:0, maj:false, lib:e ? e.getAttribute('aria-label') : '', t:performance.now() }; }, true);
+function focusApresCompte(idx){ const g = gesteChamp; setTimeout(() => { const a = document.activeElement; if (a && a !== document.body && document.contains(a)) return; if (performance.now() - g.t > 1500) return;
+  const L = [...document.querySelectorAll('.lignes-ed [data-l]')]; const n = g.tab ? L[idx + (g.maj ? -1 : 1)] : g.lib ? L.find(e => e.getAttribute('aria-label') === g.lib) : null; if (n) n.focus({ preventScroll:true }); }, 0); }
 document.addEventListener('change', ev => {
   const t = ev.target, k = t.dataset.aChange;
   if (t.dataset.sel) { t.checked ? UI.sel.add(t.dataset.sel) : UI.sel.delete(t.dataset.sel); return; }
-  if (t.matches('.lignes-ed [data-l="c"]')) { const z = t.closest('[data-ecriture]'); if (z.dataset.ecriture === 'saisie') { lireSaisie(); return rendre(); }
+  if (t.matches('.lignes-ed [data-l="c"]')) { const z = t.closest('[data-ecriture]'), idxC = [...z.querySelectorAll('.lignes-ed [data-l]')].indexOf(t); focusApresCompte(idxC);
+    if (z.dataset.ecriture === 'saisie') { lireSaisie(); return rendre(); }
     const L = lireLignes(z, proposition(PIECES.find(p => p.id === z.dataset.id)).l); z.querySelector('.defile').outerHTML = lignesEditables(L).replace(/<div class="balance-ecr"[^>]*><\/div>$/, ''); z.querySelector('[data-equilibre]').innerHTML = equilibreHtml(L); return; }
   if (!k) return;
   if (k === 'mois') UI.mois = t.value; else if (k === 'gl') { UI.gl = t.value; UI.glAux = ''; } else if (k === 'glAux') UI.glAux = t.value;
