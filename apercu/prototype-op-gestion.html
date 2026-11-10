@@ -31,7 +31,7 @@
   --menu-fond:rgba(255,255,255,.4); --feuille:#f8f9fc; --voile:rgba(11,20,38,.32);
   --cel-auj:rgba(10,95,194,.05); --grille:rgba(11,20,38,.07); --grille-forte:rgba(11,20,38,.13);
   --carte-fond:#ffffff; --mix-carte:#ffffff; --ink-sur-tech:#0b1426;
-  --page:radial-gradient(120% 90% at 0% 0%,#dfe9ff 0%,rgba(223,233,255,0) 55%),radial-gradient(110% 80% at 100% 100%,#e6dff6 0%,rgba(230,223,246,0) 60%),linear-gradient(160deg,#eef3fb,#f0f3f8);
+  --page:radial-gradient(120% 90% at 0% 0%,#dfe9ff 0%,rgba(223,233,255,0) 55%),radial-gradient(110% 80% at 100% 100%,#d9e6fb 0%,rgba(217,230,251,0) 60%),linear-gradient(160deg,#eef3fb,#f0f3f8);
   --tab-fond:rgba(255,255,255,.62); --tab-lise:rgba(255,255,255,.9); --tab-cur:rgba(255,255,255,.92); --tab-cur-ink:#0b1426; --tab-ink:#4a556b;
 }
 :root[data-mode="nuit"]{
@@ -45,7 +45,7 @@
   --menu-fond:#15213A; --feuille:#15213A; --voile:rgba(2,5,12,.6);
   --cel-auj:rgba(100,168,255,.07); --grille:rgba(255,255,255,.06); --grille-forte:rgba(255,255,255,.12);
   --carte-fond:#1E2A42; --mix-carte:#1E2A42; --ink-sur-tech:#f0f3f8;
-  --page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),radial-gradient(120% 90% at 0% 0%,#1A2A4D 0%,rgba(26,42,77,0) 55%),radial-gradient(110% 80% at 100% 100%,#1C1636 0%,rgba(28,22,54,0) 60%),linear-gradient(160deg,#0F1A30 0%,#070B16 100%);
+  --page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),radial-gradient(120% 90% at 0% 0%,#1A2A4D 0%,rgba(26,42,77,0) 55%),radial-gradient(110% 80% at 100% 100%,#12234A 0%,rgba(18,35,74,0) 60%),linear-gradient(160deg,#0F1A30 0%,#070B16 100%);
   --tab-fond:rgba(52,59,74,.6); --tab-lise:rgba(255,255,255,.16); --tab-cur:rgba(34,59,110,.72); --tab-cur-ink:#f0f3f8; --tab-ink:#abb3c2;
 }
 *{box-sizing:border-box}
@@ -60,7 +60,7 @@ button{cursor:pointer}
 .app{display:grid;grid-template-columns:256px minmax(0,1fr);min-height:100vh}
 .menu{position:sticky;top:0;height:100vh;padding:18px 12px 14px;border-right:1px solid var(--trait);display:flex;flex-direction:column;gap:2px;background:var(--menu-fond);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);overflow-y:auto}
 .logo{display:flex;align-items:center;gap:10px;padding:2px 8px 16px}
-.logo i{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1f9d6b,#0b3b2e);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:13px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.logo i{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#12306b);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:13px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
 .logo b{display:block;font-size:16px;letter-spacing:.01em}.logo small{display:block;color:var(--doux);font-size:12px}
 .menu .grp{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faible);padding:12px 12px 4px}
 .menu a{display:flex;align-items:center;gap:11px;min-height:44px;padding:0 12px;border-radius:12px;color:var(--encre);text-decoration:none;font-weight:500;font-size:15px}
@@ -189,6 +189,19 @@ body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sino
 .opg-tab.on{background:var(--tab-cur);color:var(--tab-cur-ink);box-shadow:0 6px 16px rgba(11,20,38,.18),inset 0 1px 0 rgba(255,255,255,.3)}
 @media (prefers-reduced-motion:no-preference){.vue-entre{animation:vueEntre .28s var(--ressort) both}@keyframes vueEntre{from{opacity:0;transform:translateY(6px)}}}
 @media (prefers-reduced-motion:reduce){*,::before,::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important}}
+
+/* ── la Comptabilité complète s'ouvre comme une fenêtre par-dessus OP GESTION (Justin, 10 novembre 2026) ── */
+#cpsys{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc)}
+#cpsys[hidden]{display:none}
+.cpsys-barre{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--trait);background:var(--feuille,#f8f9fc)}
+.cpsys-barre b{flex:1;min-width:0;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cpsys-barre button{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);font-weight:600;font-size:14px;white-space:nowrap}
+#cpsys iframe{flex:1;min-height:0;width:100%;border:0;background:var(--feuille,#f8f9fc)}
+.cpsys-attente{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+@media (max-width:520px){.cpsys-barre b{display:none}.cpsys-barre{justify-content:space-between}}
+@media (pointer:coarse){.cpsys-barre button{min-height:44px}}
+
+.gd-voix{font-size:16px}.gd-bulle.mini .gd-voix{margin-left:auto}
 </style>
 <style>
 /* ── PLANNING : celui de la bêta (semaine par personne avec l'échelle des heures, jour, mois), en plus lisible ── */
@@ -3387,7 +3400,7 @@ function fiche(id){
   const i = INTS.find(o => o.id === id), fait = i && i.st === 'fait', met = i && /chauffe-eau|chaudi|relevage/i.test(i.titre) ? 'plomb' : 'clim';
   const toutes = Object.fromEntries(CONTROLES[met].flatMap(g => g[1]).map(k => [k, fait]));
   return FICHES[id] = { metier:met, coches:toutes, photos: fait ? [{ nom:'Avant', moment:'avant' }, { nom:'Après', moment:'apres' }] : [], trouve: fait ? (i.type === 'Dépannage' ? 'Problème identifié et corrigé.' : 'Appareil propre, aucune anomalie.') : '',
-    compte: fait ? (i.type === 'Dépannage' ? 'Intervention réalisée, essai de fonctionnement fait. Tout fonctionne normalement.' : 'Entretien réalisé : nettoyage, contrôles et essai. Tout fonctionne normalement.') : '', pieces: fait ? [{ nom:'Nettoyant échangeur', q:'0,5 L', pu:10.33 }] : [],
+    compte: fait ? (i.type === 'Dépannage' ? 'Intervention réalisée, essai de fonctionnement fait. Tout fonctionne normalement.' : 'Entretien réalisé : nettoyage, contrôles et essai. Tout fonctionne normalement.') : '', pieces: fait && !/fuite/i.test(i.titre) ? [{ nom:'Nettoyant échangeur', q:'0,5 L', pu:10.33 }] : [],
     absent:false, signature: fait ? 'signee' : null, signeNom: CLIENTS[i.cli].contact.split(',')[0], suite:{ entretien:i.type !== 'Contrat' }, paiement:(PAIE_DEMO[id] || { etat:'rien', mode:'Carte', montant:'', ticket:false }), etat: fait ? 'bureau' : 'encours', envoye:fait, debut:i.h, fin:fin(i.h, i.dur) };
 }
 const tousControles = F => CONTROLES[F.metier].flatMap(g => g[1]);
@@ -4286,7 +4299,13 @@ const ST_CLIENTS = [['hp', .24], ['mi', .21], ['md', .16], ['vp', .12], ['cp', .
 const ST_GENRE = [['Dépannage','Dépannage climatisation',60],['Entretien','Entretien climatisation',60],['Dépannage','Dépannage — fuite d’eau',90],['Contrat','Contrat — visite d’entretien',120],
   ['Entretien','Entretien pompe à chaleur',90],['Installation','Installation d’un split mural',180],['Mise en service','Mise en service pompe à chaleur',90],['Dépannage','Remplacement condensateur',60],['2ᵉ passage','2ᵉ passage — pièce posée',60]];
 const ST_GRAINE = { sm:1, kb:2, tl:3, lr:4 };
-const stTechMois = (tid, k) => Math.max(0, Math.round(STH[k].ints * ST_TECH[tid]));
+const _stPart = {};
+function stTechMois(tid, k){   // parts entières dont la somme vaut STH[k].ints : chaque arrondi isolé donnait ±1 entre « Interventions » et « Par type »
+  if (!_stPart[k]) { const T = Object.keys(ST_TECH), brut = T.map(t => STH[k].ints * ST_TECH[t]), bas = brut.map(Math.floor); let manque = Math.max(0, Math.round(STH[k].ints) - bas.reduce((a, b) => a + b, 0));
+    T.map((t, i) => [brut[i] - bas[i], i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).forEach(([, i]) => { if (manque > 0) { bas[i]++; manque--; } });
+    _stPart[k] = Object.fromEntries(T.map((t, i) => [t, bas[i]])); }
+  return _stPart[k][tid];
+}
 const _stCache = {};
 function stIntsTech(tid, k){
   const cle = tid + k; if (k !== ST_FIN && _stCache[cle]) return _stCache[cle];   // octobre suit les gestes : jamais en cache
@@ -6633,7 +6652,7 @@ document.addEventListener('change', ev => {
    les autres se refont une par une. ?tout dans l'adresse rouvre tout (bancs du prototype). */
 // Justin, 2 novembre 2026 : « montre-moi tout le prototype, après tu pourras regriser quand je te le dis ».
 // TOUT_OUVERT à true : aucune catégorie grisée. Remettre à false pour regriser celles déjà refaites.
-const TOUT_OUVERT = false;   // 6 novembre 2026, 1 h 45, Justin : « grise le reste et on va faire Comptabilité » (rouvert une heure pour tout revoir)
+const TOUT_OUVERT = true;   // 10 novembre 2026, Justin : « oui », tout est rouvert (avant : 6 novembre 2026, 1 h 45, Justin : « grise le reste et on va faire Comptabilité » (rouvert une heure pour tout revoir)
 const TOUT = TOUT_OUVERT || /[?&]tout\b/.test(location.search);
 const CATS = [   // regroupements décidés avec Justin le 1er novembre 2026 (36 catégories → 14 à refaire + 3 de la 3D)
   ['Tableau de bord', [['accueil','📊','Tableau de bord',1],['statistiques','📈','Statistiques',1],['historique','🕘','Historique',1]]],
@@ -6696,7 +6715,7 @@ function barreBas(base){
 const BASE = { inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
 function rendre(){
   document.getElementById('cr-ftel')?.remove();
-  const V = { accueil:vueAccueil, mesheures:vueMesHeures, espaceclient:vueEspaceClient, techfrais:vueTechFrais, majournee:vueMaJournee, devisXylo:vueDevisXylo, carteBox:vueCarteBox, registre:vueRegistre, achats:vueAchats, boiteMail:vueBoiteMail, equipe:vueEquipe, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:vueComptabilite, produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
+  const V = { accueil:vueAccueil, mesheures:vueMesHeures, espaceclient:vueEspaceClient, techfrais:vueTechFrais, majournee:vueMaJournee, devisXylo:vueDevisXylo, carteBox:vueCarteBox, registre:vueRegistre, achats:vueAchats, boiteMail:vueBoiteMail, equipe:vueEquipe, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:() => cpSysteme ? vueComptaSysteme() : vueComptabilite(), produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() };
   const base = BASE[route] || route, x = scrollX, defs = [...document.querySelectorAll('.pl-defile')].map(d => d.scrollLeft);
   document.getElementById('menu').innerHTML = menu(base);
   document.getElementById('contenu').innerHTML = `<div class="tete-tel"><span class="logo" style="padding:0"><i>OP</i><b>OP GESTION</b></span><div style="width:190px">${segMode()}</div></div>` + (V[route] && (!estGrise(route) || (typeof RETOUR !== 'undefined' && RETOUR)) ? V[route]() : CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? vueARefaire(route) : vueARefaire(premiereARefaire()));
@@ -9470,7 +9489,7 @@ function cxDepense(){
 
 /* ─── les gestes ─── */
 const cxNum = v => parseFloat(String(v || '').replace(/\s/g, '').replace(',', '.'));
-function cxAller(sec, o){ o = o || {}; CP.onglet = sec; if (o.cat) CX.cat = o.cat; if (o.st) CX.st = o.st; if (route !== 'comptabilite') aller('comptabilite'); else { rendre(); scrollTo({ top:0, behavior:'smooth' }); } }
+function cxAller(sec, o){ o = o || {}; cpSysteme = false; CP.onglet = sec; if (o.cat) CX.cat = o.cat; if (o.st) CX.st = o.st; if (route !== 'comptabilite') aller('comptabilite'); else { rendre(); scrollTo({ top:0, behavior:'smooth' }); } }
 document.addEventListener('click', ev => {
   /* les anciennes portes (étapes de clôture, tableaux de bord) mènent aux rubriques d'ici, sans quitter la Comptabilité */
   const g = ev.target.closest('[data-cp^="go|factures"], [data-cp^="go|encaissements"]');
@@ -9553,8 +9572,8 @@ document.addEventListener('change', ev => {
   Object.assign(BASE, { facture:'comptabilite', factures:'comptabilite', encaissements:'comptabilite' });
   IC.comptabilite = '<circle cx="12" cy="12" r="8.6"/><path d="M15.2 9.1a3.7 3.7 0 1 0 0 5.8M7.4 11h5.4M7.4 13.2h5.4"/>';
 })();
-vueFactures = function(){ CP.onglet = 'factures'; CX.cat = 'clients'; CX.st = 'tous'; route = 'comptabilite'; history.replaceState(null, '', '#comptabilite'); return vueComptabilite(); };
-vueEncaissements = function(){ CP.onglet = 'paiements'; route = 'comptabilite'; history.replaceState(null, '', '#comptabilite'); return vueComptabilite(); };
+vueFactures = function(){ cpSysteme = false; CP.onglet = 'factures'; CX.cat = 'clients'; CX.st = 'tous'; route = 'comptabilite'; history.replaceState(null, '', '#comptabilite'); return vueComptabilite(); };
+vueEncaissements = function(){ cpSysteme = false; CP.onglet = 'paiements'; route = 'comptabilite'; history.replaceState(null, '', '#comptabilite'); return vueComptabilite(); };
 ACTIONS.nouvelleFacture = () => cxNouvelleFacture();
 /* une facture client s'ouvre en page : on dit où l'on est */
 (() => { const f0 = vueFacture; vueFacture = function(id){ const h = f0.apply(this, arguments), f = FACTURES.find(o => o.id === id); if (!f) return h;
@@ -10971,7 +10990,7 @@ function paieBulletinDoc(k, ym){
 /* ─── l'espace « Paie » de la Comptabilité ─── */
 CX_NAV.splice(3, 0, ['paie', 'Paie', '💶', [['paiemois', 'Le mois'], ['fiches', 'Fiches de paie'], ['salaries', 'Salariés'], ['charges', 'Charges et déclarations']]]);
 const paieOk = (o, m) => `<div class="ok-bloc petit">✓ ${m}</div>`;
-const paieAller = o => { fermerPanneau(); CP.onglet = o; if (route === 'comptabilite') rendre(); else aller('comptabilite'); };
+const paieAller = o => { cpSysteme = false; fermerPanneau(); CP.onglet = o; if (route === 'comptabilite') rendre(); else aller('comptabilite'); };
 function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
@@ -11177,7 +11196,7 @@ document.addEventListener('click', ev => {
    total de la boucle ». Douze parties, dans l'ordre où l'argent circule : ce qui est à faire → la vente → la relance → le paiement
    qui arrive à la banque → la caisse → les achats → la TVA → les normes → la clôture envoyée à l'expert-comptable. On suit UN client
    d'un bout à l'autre (M. et Mme Durand, une facture en retard) pour voir la boucle se refermer. On est Julie, à la gestion. */
-const gdCompta = o => () => { fermerPanneau(); CX.st = 'tous'; CX.psens = 'tous'; CX.pmode = 'tous'; CP.onglet = o; const z = document.getElementById('cx-enligne'); if (z) z.classList.remove('plein'); document.body.style.overflow = ''; document.body.classList.remove('cx-plein'); rlChanger('gestion', { h:'comptabilite', muet:true }); };
+const gdCompta = o => () => { cpSysteme = false; fermerPanneau(); CX.st = 'tous'; CX.psens = 'tous'; CX.pmode = 'tous'; CP.onglet = o; const z = document.getElementById('cx-enligne'); if (z) z.classList.remove('plein'); document.body.style.overflow = ''; document.body.classList.remove('cx-plein'); rlChanger('gestion', { h:'comptabilite', muet:true }); };
 const gdIci = o => route === 'comptabilite' && CP.onglet === o;
 const gdF128 = () => FACTURES.find(f => f.id === 'f128');
 const gdAExpl = () => cpRapprocher().aExpliquer;
@@ -11335,7 +11354,8 @@ function gdApprendre(){
   const az = rlEtapes(), faitsA = az.filter(e => e.ok()).length;
   const avenir = [['👔', 'Patron', 'les réglages, l’équipe, les chiffres'], ['🧾', 'Gestion', 'devis, factures, planning, clients'], ['🔧', 'Technicien', 'sa journée, le terrain, les frais'], ['🏠', 'Client', 'son espace : payer, signer, demander']];
   ouvrirPanneau(`<h2>Apprendre OP GESTION</h2>
-    <p class="gris">Des visites guidées : l’écran éclaire ce qu’il faut toucher, une bulle dit quoi faire et pourquoi. Tu peux faire une partie toute seule, et la reprendre quand tu veux.</p>
+    <p class="gris">Des visites guidées : l’écran éclaire ce qu’il faut toucher, une bulle dit quoi faire et pourquoi, et une voix te le lit (le bouton 🔊 de la bulle la coupe). Tu peux faire une partie toute seule, et la reprendre quand tu veux.</p>
+    ${gdApBloc('app', 'chaque catégorie expliquée : à quoi elle sert, quoi y faire')}
     ${gdApBloc('compta', 'la boucle de l’argent, dans l’ordre')}
     ${gdApBloc('paie', 'des heures pointées à la fiche de paie')}
     <div class="gd-ap"><div class="gd-ap-t"><span class="gd-ap-ic" aria-hidden="true">🔁</span><div><b>Le test de A à Z</b><span class="gris petit">Une histoire vécue par les quatre personnes : technicien, client, gestion, patron · ${faitsA}/${az.length}</span></div><button type="button" class="btn gris" data-gd="debut" data-tour="az" data-k="0">▶ Commencer</button></div></div>
@@ -11614,6 +11634,130 @@ addEventListener('resize', () => dtOuvert && dtRendre());
 document.addEventListener('scroll', ev => { if (dtOuvert && !ev.target.closest?.('#dtpop') && innerWidth > 760) dtRendre(); }, true);
 new MutationObserver(() => { dtAmeliorer(); if (dtOuvert && !document.contains(dtOuvert.inp)) dtFermer(); }).observe(document.body, { childList:true, subtree:true });
 dtAmeliorer();
+/* ══ LA COMPTABILITÉ COMPLÈTE DANS OP GESTION (Justin, 10 novembre 2026 : « quand on clique sur Comptabilité, que ça ouvre ce menu
+      que tu m'as fait avec tout ce qu'il y avait dedans »). Le système de comptabilité (À vérifier, Ce qui s'est fait tout seul, La
+      journée en direct, Fin de mois, Ventes, Achats, Paie, Banque, Trésorerie, TVA, Bilan, Compte de résultat, La démo, Tests guidés,
+      Comment ça marche) s'ouvre dans une fenêtre plein écran, avec son propre menu. On y entre par « Comptabilité » (menu ou barre du
+      bas) ; « ‹ OP GESTION » ramène d'où l'on vient ; « Factures et paiements » mène aux écrans du quotidien (factures, paiements,
+      achats, caisse, notes de frais), qui restent ceux d'avant. La fenêtre garde son état tant que la page vit : on la masque,
+      on ne la détruit pas. ══ */
+var cpSysteme = false, cpSysDe = null;
+function vueComptaSysteme(){ return `<div class="tete"><div><h1>Comptabilité</h1><span class="gris">La comptabilité s’ouvre dans sa fenêtre.</span></div></div><div class="carte cpsys-attente"><span class="gris">Si elle ne s’est pas ouverte, rouvre-la.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" data-cpsys="ouvrir">Ouvrir la comptabilité</button><button type="button" class="btn gris" data-cpsys="quotidien">Factures et paiements</button></div></div>`; }
+function cpSysMode(){ const f = document.querySelector('#cpsys iframe'); if (!f) return; const m = document.documentElement.dataset.mode === 'nuit' ? 'nuit' : 'jour';
+  try { const w = f.contentWindow; if (w && w.OPC_APPARENCE && w.opcAppliquer) { w.OPC_APPARENCE.mode = m; w.opcAppliquer(); return; } } catch (e) { /* cadre d'une autre origine (fichier ouvert du disque) : on lui écrit */ }
+  try { f.contentWindow.postMessage({ opc_mode:m }, '*'); } catch (e) {} }
+function cpSysMaj(){
+  let z = document.getElementById('cpsys'); const voulu = route === 'comptabilite' && cpSysteme;
+  if (!voulu) { if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } return; }
+  if (!z) { z = document.createElement('div'); z.id = 'cpsys'; z.setAttribute('role', 'dialog'); z.setAttribute('aria-label', 'Comptabilité');
+    z.innerHTML = '<div class="cpsys-barre"><button type="button" data-cpsys="retour" aria-label="Revenir à OP GESTION">‹ OP GESTION</button><b>Comptabilité</b><button type="button" data-cpsys="quotidien">Factures et paiements</button></div><iframe title="Comptabilité d’OP GESTION" src="prototype-comptabilite.html"></iframe>';
+    document.body.appendChild(z); z.querySelector('iframe').addEventListener('load', cpSysMode); }
+  if (z.hidden !== false || !z.dataset.vu) { z.hidden = false; z.dataset.vu = '1'; document.body.style.overflow = 'hidden'; cpSysMode(); const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.focus({ preventScroll:true }); }
+}
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); cpSysMaj(); return v; }; })();
+(() => { const m0 = cxEnLigneMode; cxEnLigneMode = function(){ m0(); cpSysMode(); }; })();
+document.addEventListener('click', ev => {
+  const t = ev.target.closest ? ev.target : ev.target.parentElement; if (!t) return;
+  const porte = t.closest('#menu a[href="#comptabilite"],[data-tab="comptabilite"],.ligne-clic[data-go="comptabilite"]');
+  if (porte) { if (route !== 'comptabilite' || !cpSysteme) cpSysDe = route === 'comptabilite' ? cpSysDe : route; cpSysteme = true; if (location.hash.slice(1) === 'comptabilite') setTimeout(rendre, 0); return; }
+  const b = t.closest('[data-cpsys]'); if (!b) return; const a = b.dataset.cpsys;
+  if (a === 'ouvrir') { cpSysteme = true; rendre(); }
+  else if (a === 'quotidien') { cpSysteme = false; CP.onglet = 'ensemble'; if (route === 'comptabilite') { rendre(); scrollTo({ top:0 }); } else aller('comptabilite'); }
+  else if (a === 'retour') { cpSysteme = false; const d = cpSysDe && cpSysDe !== 'comptabilite' ? cpSysDe : 'accueil'; cpSysDe = null; aller(d); }
+}, true);
+document.addEventListener('keydown', ev => { const z = document.getElementById('cpsys'); if (ev.key === 'Escape' && z && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
+/* ══ LA VOIX DU GUIDE (Justin, 10 novembre 2026 : « un guide avec une voix qui me parle, qui m'explique tout, à quoi ça consiste,
+      quoi faire »). C'est la voix de l'appareil (synthèse vocale du navigateur, en français) : rien n'est envoyé nulle part, aucun
+      fichier son. Elle lit chaque bulle au moment où elle paraît ; un bouton sur la bulle la coupe et la remet. Sans synthèse
+      vocale sur l'appareil, il n'y a simplement pas de bouton : le guide reste écrit. ══ */
+const VOIX = { on:true, ok:typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance !== 'undefined', dit:null, debut:0, vivant:false };
+const voixPropre = t => String(t || '').replace(/[\u{1F000}-\u{1FFFF}\u{2190}-\u{2BFF}\u{FE0F}\u{200D}]/gu, ' ').replace(/[›→]/g, ', ').replace(/\s·\s/g, ', ').replace(/\s+/g, ' ').trim();
+function voixChoisir(){ const V = speechSynthesis.getVoices().filter(v => /^fr/i.test(v.lang)); return V.find(v => /^fr[-_]FR/i.test(v.lang) && /natural|premium|enhanced|google|am[ée]lie|audrey|thomas|denise/i.test(v.name)) || V.find(v => /^fr[-_]FR/i.test(v.lang)) || V[0] || null; }
+function voixTaire(){ if (!VOIX.ok) return; VOIX.vivant = false; try { speechSynthesis.cancel(); } catch (e) {} }
+function voixDire(texte){
+  if (!VOIX.ok || !VOIX.on) return; const t = voixPropre(texte); if (!t) return;
+  try { speechSynthesis.cancel(); const v = voixChoisir(); VOIX.debut = Date.now(); VOIX.vivant = false;
+    /* phrase par phrase : une longue lecture d'un seul tenant se coupe toute seule sur certains navigateurs */
+    const P = (t.match(/[^.!?:;]+[.!?:;]*/g) || [t]).map(x => x.trim()).filter(Boolean), marque = VOIX.debut;
+    P.forEach((ph, k) => { const u = new SpeechSynthesisUtterance(ph); u.lang = 'fr-FR'; if (v) u.voice = v; u.rate = 1;
+      /* « elle parle » ne se croit que si l'appareil a vraiment commencé à parler : sans voix installée, rien ne démarre et personne n'attend */
+      u.onstart = () => { if (VOIX.debut === marque) VOIX.vivant = true; };
+      if (k === P.length - 1) u.onend = u.onerror = () => { if (VOIX.debut === marque) VOIX.vivant = false; };
+      speechSynthesis.speak(u); });
+  } catch (e) { /* la voix est un plus : le guide écrit suffit */ }
+}
+const voixParle = () => VOIX.ok && VOIX.on && VOIX.vivant && Date.now() - VOIX.debut < 45000;
+const voixBoutonHtml = cls => `<button type="button" class="${cls}" data-voix="1" aria-pressed="${VOIX.on}" aria-label="${VOIX.on ? 'Couper la voix du guide' : 'Remettre la voix du guide'}" title="${VOIX.on ? 'Couper la voix' : 'Remettre la voix'}">${VOIX.on ? '🔊' : '🔇'}</button>`;
+/* ══ LE TOUR DE L'APPLICATION, ÉCRAN PAR ÉCRAN — une partie par catégorie : à quoi elle sert, ce qu'on y fait. On est le patron
+      (il voit tout). Chaque bulle se lit et s'écoute ; « J'ai vu, suivant » avance. ══ */
+const tourAller = h => () => { cpSysteme = false; fermerPanneau(); rlChanger('patron', { h, muet:true }); };
+const tourPartie = (h, cat, t, d, G) => ({ r:'patron', cat, t, d, go:tourAller(h), gestes:G.map(([c, gt, gp]) => ({ c:() => gdQ(c) || gdQ('#contenu h1'), t:gt, p:gp, suivant:1 })) });
+const TOUR_APP = [
+  tourPartie('accueil', 'Tableau de bord', 'Le tableau de bord : ta journée en un regard', 'C’est l’écran d’ouverture. Il dit ce qui se passe aujourd’hui, ce qui attend de l’argent, et ce qu’il faut faire maintenant, sans rien chercher.', [
+    ['#contenu .kpis', 'Les quatre chiffres du jour', 'Les interventions d’aujourd’hui, l’argent à recevoir, ce qui est encaissé ce mois-ci et le montant de tes contrats. Touche un chiffre : il ouvre le détail.'],
+    ['#contenu .grille2', 'À gauche l’équipe, à droite ce qui t’attend', 'À gauche, chaque intervention du jour avec son heure, son technicien et son état. À droite, les tâches à faire maintenant, la plus urgente en haut. Une ligne touchée ouvre la bonne fiche.']]),
+  tourPartie('statistiques', 'Statistiques', 'Les statistiques : comment va l’entreprise', 'Ici tu vois si l’entreprise avance : le facturé, l’encaissé, les devis, le travail de chacun. Tu choisis la période, tout se recalcule.', [
+    ['#contenu .st-barre-per', 'Choisis la période', 'Un mois, trois mois ou douze mois, et les flèches pour reculer. Chaque chiffre est comparé à la période d’avant.'],
+    ['#contenu .st-kpis', 'Les chiffres clés', 'Le facturé, l’encaissé, le nombre d’interventions, les devis acceptés. Plus bas : la courbe sur douze mois, le détail par technicien, par type d’intervention et par client. « Bilan du mois en PDF » prépare le document pour ton comptable.']]),
+  tourPartie('historique', 'Historique', 'L’historique : qui a fait quoi, et quand', 'Chaque geste fait dans l’application s’écrit ici tout seul, avec le nom de la personne et l’heure. Rien ne s’y efface, rien ne s’y modifie : c’est ta preuve en cas de question.', [
+    ['#contenu .h-filtres', 'Retrouve un geste', 'Filtre par personne, par catégorie ou par mot. Tu peux aussi exporter la période en PDF.']]),
+  tourPartie('planning', 'Planning', 'Le planning : qui va où, et quand', 'C’est ici que tu organises les journées de l’équipe. Tu vois chaque technicien, ses interventions, ses absences, et tu déplaces une intervention en la faisant glisser.', [
+    ['#contenu .pl-barre', 'Change de vue', 'Jour, semaine, mois, vue d’ensemble, ou la carte des tournées. Les flèches changent de date. « Plus Intervention » en crée une directement à la bonne heure.'],
+    ['#contenu .pl-equipe', 'L’équipe du jour', 'Chaque technicien avec sa charge. Une intervention sans technicien attend dans « À planifier » : tu la confies en un geste.']]),
+  tourPartie('taches', 'Tâches', 'Les tâches : ce que chacun a à faire', 'La liste se remplit toute seule : un devis à relancer, une facture en retard, une pièce à commander. Tu ne coches rien : la tâche se termine quand le travail est fait dans sa catégorie.', [
+    ['#contenu .t-haut', 'Aujourd’hui, à venir, faites', 'Trois onglets. Chaque tâche dit qui doit la faire et pour quand, et un toucher t’emmène là où elle se règle.']]),
+  tourPartie('absences', 'Absences & congés', 'Les absences et les congés', 'Les salariés demandent leurs congés depuis leur téléphone. Toi, tu acceptes ou tu refuses ici, et le planning se met à jour tout seul.', [
+    ['#contenu .seg', 'À valider, calendrier, soldes', '« À valider » montre les demandes en attente. « Calendrier » montre qui est absent quel jour. « Soldes » donne les jours qui restent à chacun.']]),
+  tourPartie('interventions', 'Interventions', 'Les interventions : le cœur du métier', 'Chaque passage chez un client est une intervention : prévue, en cours, terminée. Le technicien la remplit sur place, le client signe, et la facture se prépare toute seule.', [
+    ['#contenu .seg', 'Range par moment', 'Aujourd’hui, à venir, à planifier, terminées. Touche une ligne pour ouvrir la fiche : le compte rendu, les photos, les pièces posées, la signature.']]),
+  tourPartie('clientvoit', 'Ce que voit le client', 'Ce que voit le client', 'Ici tu regardes avec les yeux de ton client : le PDF qu’il reçoit à la fin de l’intervention, et le lien qu’il ouvre sur son téléphone pour signer ou payer.', [
+    ['#contenu .seg', 'Trois aperçus', 'Le PDF, le lien sur téléphone, le lien sur ordinateur. Ce que tu vois ici est exactement ce qu’il recevra.']]),
+  tourPartie('clients', 'Clients', 'Les clients : toute l’histoire de chacun', 'Une fiche par client : ses coordonnées, ses appareils, ses interventions, ses devis, ses factures et ses contrats. Tout ce qui le concerne est au même endroit.', [
+    ['#contenu .cartes-clients', 'Ouvre une fiche', 'Cherche par nom en haut, ou touche une carte. Depuis la fiche tu peux créer une intervention, un devis ou un contrat pour ce client.']]),
+  tourPartie('devis', 'Devis', 'Les devis : préparer, envoyer, faire signer', 'Tu prépares le devis, ou tu le dictes à voix haute. Le client le reçoit, l’accepte et le signe en ligne. L’intervention et la facture suivent toutes seules.', [
+    ['#contenu .kpis', 'Où en sont tes devis', 'Ceux à envoyer, ceux en attente de réponse, ceux acceptés, avec leur montant. Les onglets dessous trient la liste de la même façon.'],
+    ['#contenu .tete', 'Créer un devis', '« Dicter un devis » : tu parles, le devis s’écrit. « Plus Devis » : tu le remplis à la main, avec les prix de ton catalogue.']]),
+  tourPartie('contrats', 'Contrats', 'Les contrats d’entretien', 'Un contrat, c’est un client qui paie chaque année pour des visites régulières. L’application prépare le PDF, l’envoie à signer, range la copie signée et pose les visites au planning.', [
+    ['#contenu .kpis', 'Ce que rapportent tes contrats', 'Le montant signé par an, les contrats en attente de signature et ceux à renouveler bientôt. « Plus Nouveau contrat » part d’un modèle de ton métier.']]),
+  { r:'patron', cat:'Comptabilité', t:'La comptabilité : elle se tient toute seule', d:'Quand tu touches « Comptabilité », la comptabilité complète s’ouvre dans sa fenêtre : ce qu’il faut vérifier, ce qui s’est fait tout seul, la journée en direct, la fin de mois, la banque, la T V A, le bilan. Elle a sa propre démonstration et ses tests guidés, avec la voix aussi.',
+    go:() => { fermerPanneau(); rlChanger('patron', { h:'accueil', muet:true }); setTimeout(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }, 60); }, gestes:[
+    { c:'#cpsys .cpsys-barre', t:'La fenêtre de la Comptabilité', p:'En haut à gauche, « OP GESTION » te ramène d’où tu viens. À droite, « Factures et paiements » ouvre les écrans de tous les jours : les factures, les paiements reçus, les achats et la caisse. Dans la fenêtre, commence par « La démo » : la journée se joue toute seule et t’explique tout.', suivant:1 }] },
+  tourPartie('produits', 'Fournisseurs, matériel & produits', 'Ton catalogue : fournisseurs, matériel et produits', 'Tout ce que l’équipe pose, vend ou utilise, rangé par métier, avec son prix d’achat et son prix de vente. Ces prix partent tout seuls dans les devis, les interventions et les factures.', [
+    ['#contenu .pr-vues', 'Trois vues', 'Le matériel et les produits, les commandes passées aux fournisseurs, et la liste des fournisseurs. « Plus Ajouter » crée un article ou une commande.']]),
+  tourPartie('stock', 'Stock', 'Le stock : où est chaque article', 'Tu sais ce qu’il y a à l’atelier, dans chaque camion et dans les réserves chez les clients, qui a pris quoi, et ce qui manque.', [
+    ['#contenu .kpis', 'Ce qui demande ton attention', 'Les articles à commander et les mouvements à valider. Les boutons du haut enregistrent une sortie, un transfert entre deux lieux, ou le réassort des camions.']]),
+  tourPartie('boxes', 'Boxes', 'Les boxes : chaque lieu de stockage', 'Une box, c’est un endroit où l’entreprise garde du stock : l’atelier, un camion, une réserve laissée chez un client. Ouvre un lieu pour voir ce qu’il contient, le compter ou le réapprovisionner.', [
+    ['#contenu .bx-grille', 'Ouvre un lieu', 'Chaque carte dit ce que le lieu contient et ce qui y manque. Un toucher ouvre le détail, article par article.']]),
+  tourPartie('pointage', 'Temps de travail', 'Le temps de travail et la paie', 'Les heures de chacun, à côté de ce que le planning prévoyait. Les repères du Code du travail sont vérifiés tout seuls, et en fin de mois les heures validées deviennent les fiches de paie.', [
+    ['#contenu .pt-nav', 'Semaine par semaine', 'Tu vois les heures pointées de chaque salarié, tu corriges une erreur avec sa trace, puis tu valides la semaine. Les alertes au-dessus signalent un dépassement ou un oubli.']]),
+  tourPartie('vehicules', 'Véhicules', 'Les véhicules de l’entreprise', 'La flotte : le contrôle technique, l’assurance et l’entretien avant qu’ils tombent, ce qu’il y a à bord, qui conduit, et ce que chaque véhicule coûte.', [
+    ['#contenu .ve-grille', 'Une carte par véhicule', 'Touche un véhicule pour son carnet : échéances, pleins, entretiens, stock à bord. « Saisir un plein » ajoute une dépense de carburant.']]),
+  tourPartie('boiteMail', 'Boîte mail', 'La boîte mail : chaque courriel reconnu', 'Tes courriels arrivent ici. L’application reconnaît s’il vient d’un client ou d’un fournisseur, et te propose le geste qui suit, déjà rempli : créer l’intervention, ranger la facture, répondre.', [
+    ['#contenu .ms-app', 'Traite un message', 'À gauche la liste, à droite le message. Les boutons proposés sous le message font le travail en un geste.']]),
+  tourPartie('achats', 'Achats', 'Les achats : les demandes et les notes de frais', 'Un salarié demande du matériel ou envoie la photo d’un ticket. Toi, tu acceptes ou tu refuses ici. Les factures des fournisseurs et leur paiement, eux, sont dans la Comptabilité.', [
+    ['#contenu .pr-vues', 'Demandes et notes de frais', 'Deux onglets. Chaque carte montre qui demande, quoi, pour combien, avec le justificatif. Accepter une note de frais la fait rembourser sur la prochaine paie.']]),
+  tourPartie('equipe', 'Équipe', 'L’équipe : les personnes et leurs droits', 'Chaque personne de l’entreprise, ce qu’elle a le droit de voir et de faire, et tout ce que l’application sait d’elle : sa semaine, ses heures, son véhicule, ses congés, ses habilitations.', [
+    ['#contenu .eq-grille', 'Une carte par personne', 'Touche une personne pour sa fiche et ses droits. « Plus Inviter une personne » lui envoie son accès. « À renouveler » signale une habilitation qui arrive à échéance.']]),
+  tourPartie('registre', 'Registre sanitaire', 'Le registre sanitaire (métier de l’hygiène)', 'C’est ce que ton client montre au contrôle sanitaire : chaque passage, l’activité relevée, les produits posés avec leur lot, et les recommandations suivies.', [
+    ['#contenu .d3-cli', 'Choisis le client', 'Un registre par site. « Plus Saisir un passage » ajoute une visite, « Registre en PDF » sort le document à remettre.']]),
+  tourPartie('carteBox', 'Carte des box', 'La carte des box (métier de l’hygiène)', 'Le plan du site du client, avec chaque poste d’appâtage à sa place et ce qui s’y est passé au dernier passage.', [
+    ['#contenu .d3-carte-g', 'Le plan du site', 'Touche une box pour son historique. Touche le plan pour en ajouter une là où tu l’as posée.']]),
+  tourPartie('devisXylo', 'Devis xylophage', 'Le devis de traitement du bois', 'Tu saisis ce que tu as mesuré sur place, l’application calcule le traitement et le prix. Le devis se crée en un geste et se signe en ligne.', [
+    ['#contenu .xy-g', 'Mesure, puis devis', 'Choisis l’insecte ou le champignon, curatif ou préventif, puis les surfaces. Le total se met à jour à chaque saisie.']])
+];
+/* la première partie s'ouvre sans bulle d'introduction (on entre directement) : son premier geste dit où l'on est */
+TOUR_APP[0].gestes.unshift({ c:'#contenu h1', t:'Tu es sur le tableau de bord', p:TOUR_APP[0].d, suivant:1 });
+GD_TOURS.app = { nom:'Le tour de l’application', ic:'🧭', chap:() => TOUR_APP, fin:'Tu as fait le tour de toutes les catégories d’OP GESTION. Pour aller plus loin, suis « La comptabilité de A à Z », « La paie », ou « Le test de A à Z » : la même histoire vécue par le technicien, le client, la gestion et le patron.' };
+(() => { const b0 = gdBulle; gdBulle = function(){ const b = b0.apply(this, arguments);
+    if (VOIX.ok && !b.querySelector('[data-voix]')) { const x = b.querySelector('.gd-x'); if (x) x.insertAdjacentHTML('beforebegin', voixBoutonHtml('gd-x gd-voix')); }
+    /* la clé de ce qui est dit est le TEXTE : la bulle d'introduction d'une partie et un de ses gestes portent la même marque */
+    const txt = /^perdu/.test(b.dataset.m) ? '' : [...b.querySelectorAll('.gd-t, .gd-p, .gd-mini-t, .gd-mini-p')].map(e => e.textContent.replace(/^\s*Pourquoi \?/, '').trim().replace(/[.!?]*$/, '.')).join(' ');
+    if (txt && txt !== VOIX.dit) { VOIX.dit = txt; voixDire(txt); }
+    return b; }; })();
+(() => { const q0 = gdQuitter; gdQuitter = function(){ voixTaire(); VOIX.dit = null; return q0.apply(this, arguments); }; })();
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-voix]'); if (!b) return; ev.stopPropagation(); ev.preventDefault();
+  VOIX.on = !VOIX.on; if (!VOIX.on) voixTaire(); else { const g = document.getElementById('gd-bulle'); if (g) { const txt = [...g.querySelectorAll('.gd-t, .gd-p, .gd-mini-t, .gd-mini-p')].map(e => e.textContent.replace(/^\s*Pourquoi \?/, '').trim().replace(/[.!?]*$/, '.')).join(' '); VOIX.dit = txt; voixDire(txt); } }
+  document.querySelectorAll('[data-voix]').forEach(x => { x.outerHTML = voixBoutonHtml(x.className); }); }, true);
 </script>
 
 </body>

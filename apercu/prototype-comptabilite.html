@@ -14,6 +14,8 @@
     var nuit = a.mode === 'nuit' || (a.mode === 'auto' && (th ? th === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches));
     R.setAttribute('data-mode', nuit ? 'nuit' : 'jour'); };
   window.opcAppliquer();
+  /* ouverte dans OP GESTION (dans un cadre), elle suit le réglage Jour / Nuit qu'OP GESTION lui écrit */
+  try { addEventListener('message', function(e){ var m = e.data && e.data.opc_mode; if (m === 'jour' || m === 'nuit' || m === 'auto') { window.OPC_APPARENCE.mode = m; window.opcAppliquer(); } }); } catch (e) {}
   try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', window.opcAppliquer); new MutationObserver(window.opcAppliquer).observe(R, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
 })();
 </script>
@@ -33,7 +35,7 @@
   --lien:#0a5fc2; --fill:#0b1426; --on-fill:#fff; --seg-cur:rgba(255,255,255,.95); --seg-ink:#0b1426;
   --vert:#196e34; --orange:#994900; --rouge:#b0263c; --bleu:#0a5cbc; --violet:#7d3c98; --ambre:#8a5300;
   --menu-fond:rgba(255,255,255,.4); --feuille:#f8f9fc; --voile:rgba(11,20,38,.32); --carte-fond:#ffffff; --bande:#eef2f9;
-  --page:radial-gradient(120% 90% at 0% 0%,#dfe9ff 0%,rgba(223,233,255,0) 55%),radial-gradient(110% 80% at 100% 100%,#e6dff6 0%,rgba(230,223,246,0) 60%),linear-gradient(160deg,#eef3fb,#f0f3f8);
+  --page:radial-gradient(120% 90% at 0% 0%,#dfe9ff 0%,rgba(223,233,255,0) 55%),radial-gradient(110% 80% at 100% 100%,#d9e6fb 0%,rgba(217,230,251,0) 60%),linear-gradient(160deg,#eef3fb,#f0f3f8);
   --tab-fond:rgba(255,255,255,.62); --tab-lise:rgba(255,255,255,.9); --tab-cur:rgba(255,255,255,.92); --tab-cur-ink:#0b1426; --tab-ink:#4a556b;
   --spot:#2f7bf0; --serie1:#0a5fc2; --serie2:#c25e00; --tuile:13%; --graph-fond:transparent; --graph-marge:0px; --graph-anneau:var(--carte-fond); --barre:var(--serie1);
   --c-gris:#636366; --c-bleu:#0a5fc2; --c-orange:#c25e00; --c-indigo:#4b48c9; --c-violet:#8e44ad; --c-vert:#1c7a3a; --c-sapin:#1f7a5c; --c-cyan:#0a7c8a; --c-rouge:#b0263c; --c-ambre:#8a5300; --c-ciel:#0a5fc2; --c-ardoise:#636366;
@@ -50,7 +52,7 @@
   --lien:#8fb4ff; --fill:#2c3d63; --on-fill:#f0f3f8; --seg-cur:rgba(255,255,255,.22); --seg-ink:#f0f3f8;
   --vert:#30d158; --orange:#ff9f0a; --rouge:#ff7d8e; --bleu:#6aabff; --violet:#cb90f5; --ambre:#ffd60a;
   --menu-fond:#15213a; --feuille:#15213a; --voile:rgba(2,5,12,.6); --carte-fond:#1e2a42; --bande:#0f1a30;
-  --page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),radial-gradient(120% 90% at 0% 0%,#1a2a4d 0%,rgba(26,42,77,0) 55%),radial-gradient(110% 80% at 100% 100%,#1c1636 0%,rgba(28,22,54,0) 60%),linear-gradient(160deg,#0f1a30 0%,#070b16 100%);
+  --page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),radial-gradient(120% 90% at 0% 0%,#1a2a4d 0%,rgba(26,42,77,0) 55%),radial-gradient(110% 80% at 100% 100%,#12234a 0%,rgba(18,35,74,0) 60%),linear-gradient(160deg,#0f1a30 0%,#070b16 100%);
   --tab-fond:rgba(52,59,74,.6); --tab-lise:rgba(255,255,255,.16); --tab-cur:rgba(34,59,110,.72); --tab-cur-ink:#f0f3f8; --tab-ink:#abb3c2;
   --spot:#6ea8ff; --serie1:#3987e6; --serie2:#d07a1a; --tuile:20%;
   --c-gris:#a2a2a8; --c-bleu:#4c9dff; --c-orange:#ff9f0a; --c-indigo:#9896f5; --c-violet:#cf7df5; --c-vert:#30d158; --c-sapin:#34c759; --c-cyan:#40c8e0; --c-rouge:#ff6b7f; --c-ambre:#ffd60a; --c-ciel:#64d2ff; --c-ardoise:#aeaeb2;
@@ -89,7 +91,7 @@ svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .app{display:grid;grid-template-columns:var(--menu) minmax(0,1fr);min-height:100vh}
 .menu{position:sticky;top:0;height:100vh;height:100dvh;overflow:hidden;padding:18px 12px 14px;border-right:1px solid var(--trait);display:flex;flex-direction:column;gap:2px;background:var(--menu-fond);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%)}
 .logo{display:flex;align-items:center;gap:10px;padding:2px 8px 14px;min-width:0}
-.logo i{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1f9d6b,#0b3b2e);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:13px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25);flex:none}
+.logo i{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#12306b);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:13px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25);flex:none}
 .logo span{min-width:0;display:flex;flex-direction:column}
 .logo b{font-size:16px;letter-spacing:.01em;white-space:nowrap}.logo small{color:var(--doux);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .menu .grp{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faible);padding:12px 12px 4px}
@@ -126,7 +128,7 @@ button.chip:hover{border-color:var(--trait2)}
 .chip.attente .pt{background:var(--orange)}
 .chip .h{font-variant-numeric:tabular-nums;color:var(--doux);font-weight:600}
 @keyframes pouls{70%{box-shadow:0 0 0 7px color-mix(in srgb,var(--vert) 0%,transparent)}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--vert) 0%,transparent)}}
-.contenu{padding-block:22px 56px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px;max-width:1480px;width:100%}
+.contenu{padding-block:22px 56px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px;width:100%}
 .barre-bas{display:none}
 .tete{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap}
 .tete>div:first-child{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:4px}
@@ -352,7 +354,9 @@ body.guide-on .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 @keyframes monte{from{transform:translateY(14px);opacity:0}}
 .g-tete{display:flex;gap:10px;align-items:flex-start}.g-tete>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .g-n{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lien)}
-.guide .fermer{width:38px;height:38px;font-size:14px}
+.guide .fermer{width:38px;height:38px;font-size:14px}.guide .g-voix{font-size:15px}
+/* très petit téléphone : le bouton de la voix ne prend aucune place dans l'en-tête de la bulle (il rétrécissait le titre, et le texte se coupait) ; il se pose au bout de la petite ligne du haut, avec une zone de toucher de 44 px */
+@media (max-width:380px){.guide .g-tete{position:relative}.guide .g-voix{position:absolute;right:48px;top:-13px;width:44px;height:44px;background:none;font-size:14px;display:grid;place-items:start end;padding:11px 2px 0 0}}
 .g-prog{display:flex;gap:4px}.g-prog i{flex:1;height:4px;border-radius:2px;background:var(--surf-in)}.g-prog i.ok{background:var(--vert)}.g-prog i.cur{background:var(--spot)}
 /* la bulle a une hauteur bornée : c'est son TEXTE qui défile, jamais ses boutons (sur un petit téléphone, un texte long passait PAR-DESSUS « Test suivant », qui ne se touchait plus) */
 .guide>*{flex:none}.guide>.g-txt,.guide>.g-fin{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
@@ -381,6 +385,17 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 .opg-tab .nb{position:absolute;top:3px;left:calc(50% + 6px);margin:0;min-width:18px;height:18px;padding:0 5px;font-size:11px;background:var(--rouge);color:#fff}
 :root[data-mode="nuit"] .opg-tab .nb{color:#0b1426}
 
+/* ── chaque rubrique s'ouvre comme une fenêtre (Justin, 10 novembre 2026) : un cadre qui prend tout l'écran, sa barre de titre, son bouton pour fermer ── */
+.fen-tete{display:flex;align-items:center;gap:12px;min-height:44px;margin:-4px 0 0;padding-bottom:12px;border-bottom:1px solid var(--trait)}
+.fen-tete b{flex:1;min-width:0;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.fen-tete a{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;min-width:40px;padding:0 12px;border-radius:999px;color:var(--encre);text-decoration:none;font-weight:600;font-size:14px;border:1px solid var(--trait2);background:var(--carte-fond);white-space:nowrap}
+.fen-tete a:hover{border-color:var(--encre)}
+.fen-tete a.fen-x{padding:0;font-size:18px;line-height:1}
+@media (min-width:761px){
+  .contenu.fen{width:auto;align-self:stretch;margin:14px 16px 20px;padding-top:16px;border:1px solid var(--trait2);border-radius:24px;background:color-mix(in srgb,var(--feuille) 82%,transparent);box-shadow:var(--ombre-haute);min-height:calc(100vh - 96px);min-height:calc(100dvh - 96px)}
+}
+@media (max-width:760px){.fen-tete .fen-r span{display:none}.fen-tete b{text-align:left}}
+@media (prefers-reduced-motion:no-preference){.contenu.fen-ouvre{animation:fenOuvre .3s var(--ressort) both;transform-origin:50% 0}@keyframes fenOuvre{from{opacity:0;transform:translateY(18px) scale(.975)}}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 @media (prefers-reduced-motion:no-preference){.vue-entre{animation:vueEntre .28s var(--ressort) both}@keyframes vueEntre{from{opacity:0;transform:translateY(6px)}}}
 
@@ -2186,7 +2201,16 @@ rendreBarre = () => {
 const ouvrirBase = ouvrir, fermerBase = fermer, rendreBase = rendre;
 ouvrir = (h, l) => { ouvrirBase(h, l); guideMaj(); };
 fermer = () => { fermerBase(); guideMaj(); };
-rendre = () => { if (UI.mode === 'choix' && !['accueil', 'demo', 'tests', 'aide', 'film'].includes(UI.route)) entrerLibre(); rendreBase(); };
+rendre = () => { if (UI.mode === 'choix' && !['accueil', 'demo', 'tests', 'aide', 'film'].includes(UI.route)) entrerLibre(); rendreBase();  fenetreHabiller(); };
+/* chaque rubrique s'ouvre comme une fenêtre : barre de titre, retour au tableau de bord, croix pour fermer ; le tableau de bord, lui, reste la page */
+const fenetreTitre = r => { for (const M of [MENU_SIMPLE, MENU_EXPERT]) for (const [, L] of M) for (const [k, l] of L) if (k === r) return l; return ''; };
+function fenetreHabiller(){
+  const c = $('#contenu'), fen = UI.route !== 'accueil' && !!VUES[UI.route];
+  c.classList.toggle('fen', fen);
+  if (fen) c.insertAdjacentHTML('afterbegin', `<div class="fen-tete"><a class="fen-r" href="#accueil" aria-label="Revenir au tableau de bord">‹ <span>Tableau de bord</span></a><b>${esc(fenetreTitre(UI.route))}</b><a class="fen-x" href="#accueil" aria-label="Fermer la fenêtre">×</a></div>`);
+}
+/* l'ouverture ne s'anime que sur un vrai changement de rubrique, jamais pendant un test guidé ou la démo (leur repère se mesure sur l'écran posé) */
+addEventListener('hashchange', () => { const c = $('#contenu'); if (document.body.classList.contains('guide-on') || !c.classList.contains('fen')) return; c.classList.remove('fen-ouvre'); void c.offsetWidth; c.classList.add('fen-ouvre'); c.addEventListener('animationend', () => c.classList.remove('fen-ouvre'), { once:true }); });
 
 /* ─── ce qui reste à faire pour fermer le mois : la même liste pour le tableau de bord, la fin de mois et le pilotage ─── */
 aFaire = () => {
@@ -3060,6 +3084,45 @@ document.body.insertAdjacentHTML('beforeend', comptesOptions());
 UI.route = ROUTES.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'accueil';
 rendre();
 if (UI.route === 'film') filmLancer();   /* un lien qui finit par « #film » lance la démo à l'ouverture */
+/* ══ LA VOIX DU GUIDE (Justin, 10 novembre 2026 : « un guide avec une voix qui me parle, qui m'explique tout, à quoi ça consiste,
+      quoi faire »). C'est la voix de l'appareil (synthèse vocale du navigateur, en français) : rien n'est envoyé nulle part, aucun
+      fichier son. Elle lit chaque bulle au moment où elle paraît ; un bouton sur la bulle la coupe et la remet. Sans synthèse
+      vocale sur l'appareil, il n'y a simplement pas de bouton : le guide reste écrit. ══ */
+const VOIX = { on:true, ok:typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance !== 'undefined', dit:null, debut:0, vivant:false };
+const voixPropre = t => String(t || '').replace(/[\u{1F000}-\u{1FFFF}\u{2190}-\u{2BFF}\u{FE0F}\u{200D}]/gu, ' ').replace(/[›→]/g, ', ').replace(/\s·\s/g, ', ').replace(/\s+/g, ' ').trim();
+function voixChoisir(){ const V = speechSynthesis.getVoices().filter(v => /^fr/i.test(v.lang)); return V.find(v => /^fr[-_]FR/i.test(v.lang) && /natural|premium|enhanced|google|am[ée]lie|audrey|thomas|denise/i.test(v.name)) || V.find(v => /^fr[-_]FR/i.test(v.lang)) || V[0] || null; }
+function voixTaire(){ if (!VOIX.ok) return; VOIX.vivant = false; try { speechSynthesis.cancel(); } catch (e) {} }
+function voixDire(texte){
+  if (!VOIX.ok || !VOIX.on) return; const t = voixPropre(texte); if (!t) return;
+  try { speechSynthesis.cancel(); const v = voixChoisir(); VOIX.debut = Date.now(); VOIX.vivant = false;
+    /* phrase par phrase : une longue lecture d'un seul tenant se coupe toute seule sur certains navigateurs */
+    const P = (t.match(/[^.!?:;]+[.!?:;]*/g) || [t]).map(x => x.trim()).filter(Boolean), marque = VOIX.debut;
+    P.forEach((ph, k) => { const u = new SpeechSynthesisUtterance(ph); u.lang = 'fr-FR'; if (v) u.voice = v; u.rate = 1;
+      /* « elle parle » ne se croit que si l'appareil a vraiment commencé à parler : sans voix installée, rien ne démarre et personne n'attend */
+      u.onstart = () => { if (VOIX.debut === marque) VOIX.vivant = true; };
+      if (k === P.length - 1) u.onend = u.onerror = () => { if (VOIX.debut === marque) VOIX.vivant = false; };
+      speechSynthesis.speak(u); });
+  } catch (e) { /* la voix est un plus : le guide écrit suffit */ }
+}
+const voixParle = () => VOIX.ok && VOIX.on && VOIX.vivant && Date.now() - VOIX.debut < 45000;
+const voixBoutonHtml = cls => `<button type="button" class="${cls}" data-voix="1" aria-pressed="${VOIX.on}" aria-label="${VOIX.on ? 'Couper la voix du guide' : 'Remettre la voix du guide'}" title="${VOIX.on ? 'Couper la voix' : 'Remettre la voix'}">${VOIX.on ? '🔊' : '🔇'}</button>`;
+
+/* la bulle du guide (tests guidés et démo) se lit à voix haute quand son texte change ; le bouton vit dans son en-tête */
+(() => {
+  if (!VOIX.ok) return;
+  const texteDe = g => [g.querySelector('.g-tete b'), g.querySelector('.g-txt'), g.querySelector('.g-fin')].filter(Boolean).map(e => e.textContent.trim().replace(/[.!?]*$/, '.')).join(' ');
+  const voir = () => { const g = document.querySelector('.guide'); if (!g || g.hidden) { if (VOIX.dit) { VOIX.dit = null; voixTaire(); } return; }
+    const t = g.querySelector('.g-tete'); if (t && !t.querySelector('[data-voix]')) { const f = t.querySelector('.fermer'); if (f) { f.insertAdjacentHTML('beforebegin', voixBoutonHtml('fermer g-voix')); if (typeof guideSuite === 'function') guideSuite(); } }   /* le bouton rétrécit le titre : on remesure si le texte défile */
+    const txt = texteDe(g); if (txt && txt !== VOIX.dit) { VOIX.dit = txt; voixDire(txt); } };
+  new MutationObserver(voir).observe(document.body, { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['hidden'] });
+  document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-voix]'); if (!b) return; ev.stopPropagation(); ev.preventDefault();
+    VOIX.on = !VOIX.on; if (!VOIX.on) voixTaire(); else { const g = document.querySelector('.guide'); if (g && !g.hidden) { VOIX.dit = texteDe(g); voixDire(VOIX.dit); } }
+    document.querySelectorAll('[data-voix]').forEach(x => { x.outerHTML = voixBoutonHtml(x.className); }); }, true);
+  /* la démo avance toute seule : elle attend que la voix ait fini sa phrase (45 secondes au plus), sauf si l'on touche « suivant » */
+  if (typeof filmAller === 'function') { const a0 = filmAller; let force = false;
+    document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('.guide button:not([data-voix])')) { force = true; voixTaire(); setTimeout(() => { force = false; }, 0); } }, true);
+    filmAller = function(i){ if (!force && typeof CINE !== 'undefined' && CINE.actif && !CINE.pause && i === CINE.i + 1 && voixParle()) { clearTimeout(CINE.min); CINE.min = setTimeout(() => filmAller(i), 400); return; } return a0.apply(this, arguments); }; }
+})();
 </script>
 
 </body>
