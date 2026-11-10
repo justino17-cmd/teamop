@@ -1,0 +1,21 @@
+{
+  "slug": "logiciel-electricien",
+  "prepare": "2026-11-10",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Logiciel électricien : dépannage, devis, habilitations, le guide\n\nLogiciel électricien : règles avant un dépannage, modèle de fiche à recopier, suivi des habilitations et budget calculé pour une équipe de quatre.\n\nÀ retenir : En urgence, une coupure de courant par exemple, le client ne bénéficie pas du droit de rétractation, mais les travaux se limitent au strict nécessaire.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/logiciel-electricien.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/logiciel-electricien-couverture-google.jpg"
+      }
+    ]
+  }
+}

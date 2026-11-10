@@ -1,5 +1,36 @@
 [
  {
+  "slug": "logiciel-electricien",
+  "titre": "Logiciel électricien : dépannage, devis, habilitations, le guide",
+  "description": "Logiciel électricien : règles avant un dépannage, modèle de fiche à recopier, suivi des habilitations et budget calculé pour une équipe de quatre.",
+  "date": "2026-11-10",
+  "image": "logiciel-electricien-couverture.webp",
+  "imageAlt": "Électricien en combinaison bleu marine, un genou au sol dans un couloir, qui teste un tableau électrique ouvert avec un tournevis tout en tenant une tablette",
+  "photo": "An electrician in a navy blue coverall kneeling in a bright apartment hallway, checking an open electrical panel with a screwdriver while holding a tablet.",
+  "faq": [
+   {
+    "q": "Quel logiciel choisir quand on est électricien ?",
+    "r": "Celui qui fait naître le devis, la fiche d’intervention et la facture de la même intervention, qui fonctionne sur le téléphone du technicien et qui garde l’historique de chaque installation, relevés et photos compris. Essayez-le sur une vraie journée de dépannages avant de vous engager."
+   },
+   {
+    "q": "Un devis est-il obligatoire pour un dépannage électrique ?",
+    "r": "Oui, chez un particulier, un devis est remis avant un dépannage à domicile, et vous devez annoncer avant le contrat vos taux horaires TTC, vos frais de déplacement et le caractère payant ou gratuit du devis. Une facture est ensuite obligatoire dès que la prestation dépasse 25 € TTC."
+   },
+   {
+    "q": "Qui délivre l’habilitation électrique ?",
+    "r": "L’employeur, par un titre écrit, après une formation et un avis d’aptitude du médecin du travail. L’INRS conseille un recyclage tous les trois ans et une revue des habilitations chaque année."
+   },
+   {
+    "q": "Que noter sur une fiche de dépannage électrique ?",
+    "r": "Le constat à l’arrivée, les essais réalisés et leur résultat, le matériel remplacé, des photos avant et après, l’état dans lequel l’installation est laissée, vos recommandations et la signature du client."
+   },
+   {
+    "q": "Combien coûte un logiciel pour électricien ?",
+    "r": "Avec OP GESTION, de 15 € à 50 € par mois et par utilisateur selon la formule, TVA non applicable. Pour quatre utilisateurs, comptez 60 € par mois en Pro et 100 € par mois en Business, la formule qui ajoute le stock de matériel et les bons de commande."
+   }
+  ]
+ },
+ {
   "slug": "registre-sanitaire-3d",
   "titre": "Registre sanitaire 3D : contenu, contrôles et Certibiocide",
   "description": "Registre sanitaire 3D : ce qu’il contient, ce que regarde l’inspecteur, le Certibiocide de vos techniciens, un modèle à recopier et une liste à cocher.",
