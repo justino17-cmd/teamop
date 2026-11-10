@@ -9,7 +9,7 @@ Le plan complet, les règles des stores et le calendrier sont dans le document �
 
 ## Ce que la coque contient aujourd'hui
 
-- **Identifiant** : `fr.teamop.gestion` — ⚠️ à confirmer AVANT la première publication : il ne change plus ensuite.
+- **Identifiant** : `fr.teamop.gestion` — confirmé par Justin le 10 novembre 2026. Il ne change plus après la première publication.
 - **Nom** : OP GESTION · langue : français · icône : le carré OP GESTION (agrandi depuis `icons/opgestion-512.png` ;
   un original en 1024 × 1024 serait plus net).
 - **Contenu embarqué** : le **prototype** OP GESTION (entreprise et chiffres fictifs, aucun serveur, rien ne s'enregistre),
