@@ -69,7 +69,7 @@ publication.
 - [x] registre sanitaire 3D — 2026-11-09 — `registre-sanitaire-3d`
 
 ### Semaine du 9 novembre — Électricité (le lundi : registre sanitaire 3D, déjà parti ; mardi 10, exceptionnellement, un article de plus)
-- [ ] logiciel électricien — interventions, dépannages, mises en conformité, devis — /logiciel-electricien.html
+- [x] logiciel électricien — 2026-11-10 — `logiciel-electricien`
 - [ ] attestation de conformité Consuel — quand l'électricien en a besoin, comment la préparer, ce qu'il garde au dossier — /logiciel-electricien.html
 - [ ] mise en conformité électrique d'un logement — diagnostic, travaux, ce que l'électricien remet au client — /logiciel-electricien.html
 

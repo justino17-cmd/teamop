@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Mon, 09 Nov 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Tue, 10 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Logiciel électricien : dépannage, devis, habilitations, le guide</title>
+<link>https://teamop.fr/blog/logiciel-electricien.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/logiciel-electricien.html</guid>
+<pubDate>Tue, 10 Nov 2026 06:00:00 GMT</pubDate>
+<description>Logiciel électricien : règles avant un dépannage, modèle de fiche à recopier, suivi des habilitations et budget calculé pour une équipe de quatre.</description>
+<enclosure url="https://teamop.fr/blog/img/logiciel-electricien-couverture.webp" type="image/webp" length="44810"/>
+</item>
 <item>
 <title>Registre sanitaire 3D : contenu, contrôles et Certibiocide</title>
 <link>https://teamop.fr/blog/registre-sanitaire-3d.html</link>
