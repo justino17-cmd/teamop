@@ -352,7 +352,9 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      « HT » y est le sujet, pas un prix de TEAM OP. Nommés un par un, et chacun doit encore en avoir besoin (contrôle ci-dessous). */
   /* `blog/logiciel-plombier.html` (6 novembre 2026) : « des frais de déplacement à 45 € HT » est le tarif D'UN PLOMBIER, pris en exemple,
      pas un prix de TEAM OP. */
-  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html'];
+  /* `blog/logiciel-electricien.html` (10 novembre 2026) : « un taux horaire facturé de 55 € HT » est le tarif D'UN ÉLECTRICIEN, pris en exemple,
+     pas un prix de TEAM OP. */
+  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html'];
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f) && ARTICLES_FACTURE.indexOf(f) < 0);
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
   const ht = [];
