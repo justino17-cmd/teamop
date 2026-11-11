@@ -559,6 +559,7 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 .cmpt-hero-mini .cmpt-l{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .cmpt-hero-mini .btn{min-height:44px}
 .cmpt-replier{margin-top:6px}
+@media (max-width:760px){.cmpt-hero-mini .cmpt-l:first-child{display:none}.cmpt-hero-mini .btn[data-a="explorer"]{display:none}.cmpt-hero-mini ~ .cmpt-attend .cmpt-att .mute{display:none !important}.cmpt-hero-mini{margin-bottom:8px}.cmpt-hero-mini ~ .cmpt-attend{padding-top:10px;padding-bottom:6px;margin-top:0;margin-bottom:10px}.cmpt-hero-mini ~ .cmpt-attend h2{margin-bottom:2px}}
 .cmpt-ecart{margin:0 0 12px}
 @media (max-width:760px){.cmpt-att{gap:10px}.cmpt-att .btn{padding:0 14px;font-size:14px}.cmpt-attend{padding:14px 16px}.cmpt-hero-mini{padding:10px 14px;gap:6px 10px}.cmpt-hero-mini .btn{padding:0 12px;font-size:14px}.cmpt-frise .etape{flex-wrap:wrap}.cmpt-frise .cmpt-b{justify-content:flex-start;width:100%}}
 @media (max-width:760px){ table.tiers-t td.lt-d{grid-column:1;grid-row:1} table.tiers-t td.lt-k{grid-column:2;grid-row:1;justify-self:end;order:0} table.tiers-t td:empty{display:none} }
@@ -1481,25 +1482,25 @@ VUES.tiers = () => {
     corps = `<p class="mute petit">Ce que chaque client doit, rangé selon le retard sur l’échéance de la facture, au 31/10/2026.</p><div class="defile"><table class="t"><thead><tr><th>Client</th><th class="n">Pas encore dû</th><th class="n">1 à 30 j</th><th class="n">31 à 60 j</th><th class="n">Plus de 60 j</th><th class="n">Total</th></tr></thead><tbody>
       ${B.map(o => `<tr class="clic" data-a="tiers" data-k="${o.t.k}"><td>${esc(o.t.nom)}</td>${['non', 'a30', 'a60', 'plus'].map(k => `<td class="n" ${k !== 'non' && o[k] ? 'style="color:var(--bad);font-weight:650"' : ''}>${o[k] ? nb(o[k] / 100) : ''}</td>`).join('')}<td class="n"><b>${nb(o.tot / 100)}</b></td></tr>`).join('')}
       <tr class="total"><td>Total</td>${['non', 'a30', 'a60', 'plus', 'tot'].map(k => `<td class="n">${nb(T(k) / 100)}</td>`).join('')}</tr></tbody></table></div>`;
-  } else corps = `<div class="outils"><button type="button" class="btn gris" data-a="lettrage-tous">Lettrage automatique de tous les comptes</button><span class="mute petit">Rapproche chaque facture et son paiement de même montant.</span></div>
-    <div class="defile"><table class="t"><thead><tr><th>${cl ? 'Client' : 'Fournisseur'}</th><th class="n">${cl ? 'Doit encore' : 'À payer'}</th><th class="n">Dont échu</th><th class="masque-tel">Plus ancienne échéance</th><th class="n masque-tel">Lignes non lettrées</th></tr></thead><tbody>
+  } else corps = `<div class="outils"><button type="button" class="btn gris" data-a="lettrage-tous">${UI.expert ? 'Lettrage automatique de tous les comptes' : 'Rapprocher automatiquement tous les comptes'}</button><span class="mute petit">Relie chaque facture et son paiement de même montant.</span></div>
+    <div class="defile"><table class="t"><thead><tr><th>${cl ? 'Client' : 'Fournisseur'}</th><th class="n">${cl ? 'Doit encore' : 'À payer'}</th><th class="n">Dont échu</th><th class="masque-tel">Plus ancienne échéance</th><th class="n masque-tel">${UI.expert ? 'Lignes non lettrées' : 'Lignes à rapprocher'}</th></tr></thead><tbody>
       ${L.map(x => `<tr class="clic" data-a="tiers" data-k="${x.t.k}"><td>${esc(x.t.nom)}<span class="sec mono">${x.t.k}</span></td><td class="n">${nb(x.s)}</td><td class="n" ${x.echu ? 'style="color:var(--bad);font-weight:650"' : ''}>${x.echu ? nb(x.echu) : ''}</td><td class="masque-tel">${x.plusVieux ? dCourt(x.plusVieux) : '—'}</td><td class="n masque-tel">${x.nl || ''}</td></tr>`).join('')}
       <tr class="total"><td>Total</td><td class="n">${nb(L.reduce((s, x) => s + x.s, 0))}</td><td class="n">${nb(L.reduce((s, x) => s + x.echu, 0))}</td><td class="masque-tel"></td><td class="masque-tel"></td></tr></tbody></table></div>`;
-  return tete('Comptes', 'Clients et fournisseurs', 'Un compte par client et par fournisseur. Lettrer, c’est marquer qu’une facture et son paiement vont ensemble : ce qui reste non lettré est ce qui reste dû.') +
+  return tete('Comptes', 'Clients et fournisseurs', 'Un compte par client et par fournisseur. ' + (UI.expert ? 'Lettrer, c’est marquer qu’une facture et son paiement vont ensemble : ce qui reste non lettré est ce qui reste dû.' : 'Rapprocher, c’est marquer qu’une facture et son paiement vont ensemble : ce qui reste à rapprocher est ce qui reste dû.')) +
     `<div class="seg" role="group" aria-label="Comptes de tiers">${[['clients', 'Clients'], ['fournisseurs', 'Fournisseurs'], ['age', 'Balance âgée des clients']].map(([k, l]) => `<button type="button" aria-pressed="${UI.tiersTab === k}" data-a="tiers-tab" data-k="${k}">${l}</button>`).join('')}</div>` + corps;
 };
 function ouvrirTiers(k){
   const t = tiers(k), L = lignesDe(l => l.aux === k).sort((a, b) => a.e.date.localeCompare(b.e.date)), x = etatTiers(t), cl = t.c === '411000';
   if (k === 'C-DURAND') UI.durandVu = true;
-  const ligneT = y => `<tr role="row" class="${y.l.let ? '' : 'nl'}"><td class="lt-k" role="cell">${y.l.let ? '' : `<input type="checkbox" data-let="${y.r}" aria-label="Choisir ${esc(y.l.lib)}">`}</td><td class="c lt-d" role="cell">${dCourt(y.e.date)}</td><td class="masque-tel" role="cell"><span class="jn">${y.e.j}</span></td><td class="mono masque-tel" role="cell">${esc(y.e.piece)}</td><td class="lt-t" role="cell">${esc(y.l.lib)}${y.e.ech && !y.l.let && (cl ? y.l.d : y.l.cr) ? `<span class="sec" ${y.e.ech < AUJ ? 'style="color:var(--bad)"' : ''}>échéance ${dCourt(y.e.ech)}${y.e.ech < AUJ ? ' · en retard de ' + jours(y.e.ech, AUJ) + ' j' : ''}</span>` : ''}</td><td class="n lt-m" role="cell">${montantCell(y.l.d)}</td><td class="n lt-m" role="cell">${montantCell(y.l.cr)}</td><td class="lt-e" role="cell">${y.l.let ? `<button type="button" class="lien let" data-a="delettrer" data-k="${k}" data-code="${y.l.let}" title="Délettrer ${y.l.let}">${y.l.let}</button>` : ''}</td></tr>`;
+  const ligneT = y => `<tr role="row" class="${y.l.let ? '' : 'nl'}"><td class="lt-k" role="cell">${y.l.let ? '' : `<input type="checkbox" data-let="${y.r}" aria-label="Choisir ${esc(y.l.lib)}">`}</td><td class="c lt-d" role="cell">${dCourt(y.e.date)}</td><td class="masque-tel" role="cell"${UI.expert ? '' : ' style="display:none"'}><span class="jn">${y.e.j}</span></td><td class="mono masque-tel" role="cell">${esc(y.e.piece)}</td><td class="lt-t" role="cell">${esc(y.l.lib)}${y.e.ech && !y.l.let && (cl ? y.l.d : y.l.cr) ? `<span class="sec" ${y.e.ech < AUJ ? 'style="color:var(--bad)"' : ''}>échéance ${dCourt(y.e.ech)}${y.e.ech < AUJ ? ' · en retard de ' + jours(y.e.ech, AUJ) + ' j' : ''}</span>` : ''}</td><td class="n lt-m" role="cell">${montantCell(y.l.d)}</td><td class="n lt-m" role="cell">${montantCell(y.l.cr)}</td><td class="lt-e" role="cell">${y.l.let ? `<button type="button" class="lien let" data-a="delettrer" data-k="${k}" data-code="${y.l.let}" title="${UI.expert ? 'Délettrer' : 'Défaire le rapprochement'} ${y.l.let}">${y.l.let}</button>` : ''}</td></tr>`;
   const relances = cl && FACTURES.filter(f => f.cli === k && f.relances);
   ouvrir(haut(esc(t.nom), UI.expert ? `Compte ${t.c} · ${t.k}` : cl ? 'Ce qu’il te doit et ce qui est déjà payé' : 'Ce que tu lui dois et ce qui est déjà payé', cl ? 'Client' : 'Fournisseur') + `
-    <div class="kpis"><div class="kpi"><span>${cl ? 'Doit encore' : 'À payer'}</span><b>${eur(x.s)}</b></div><div class="kpi"><span>Dont échu</span><b style="${x.echu ? 'color:var(--bad)' : ''}">${eur(x.echu)}</b></div><div class="kpi"><span>Lignes non lettrées</span><b>${x.nl}</b></div></div>
-    ${relances && relances.length ? `<div class="alerte petit">${relances.map(f => `${f.num} : relancée ${f.relances} fois depuis OP GESTION (dernière relance le ${f.num === 'FAC-2026-0128' && AUTO.terrain.relance ? '31/10' : '28/10'}).`).join('<br>')}</div>` : ''}
+    <div class="kpis"><div class="kpi"><span>${cl ? 'Doit encore' : 'À payer'}</span><b>${eur(x.s)}</b></div><div class="kpi"><span>Dont échu</span><b style="${x.echu ? 'color:var(--bad)' : ''}">${eur(x.echu)}</b></div><div class="kpi"><span>${UI.expert ? 'Lignes non lettrées' : 'Lignes à rapprocher'}</span><b>${x.nl}</b></div></div>
+    ${relances && relances.length ? `<div class="alerte petit">${relances.map(f => `${f.num} : relancée ${f.relances} fois depuis OP GESTION (dernière relance le ${f.relanceLe || (f.num === 'FAC-2026-0128' && AUTO.terrain.relance ? '31/10' : '28/10')}).`).join('<br>')}</div>` : ''}
     <div id="let-msg"></div>
-    <div class="outils"><button type="button" class="btn" data-a="lettrer" data-k="${k}">Lettrer les lignes cochées</button><button type="button" class="btn gris" data-a="lettrage-auto" data-k="${k}">Lettrage automatique</button><label class="case"><input type="checkbox" data-a-change="tiers-nl" ${UI.tiersNl ? 'checked' : ''}> Seulement le non-lettré</label></div>
-    <div class="defile"><table class="t liste-tel tiers-t" role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader"></th><th role="columnheader">Date</th><th class="masque-tel" role="columnheader">Jnl</th><th class="masque-tel" role="columnheader">Pièce</th><th role="columnheader">Libellé</th><th class="n" role="columnheader">Débit</th><th class="n" role="columnheader">Crédit</th><th role="columnheader">Let.</th></tr></thead><tbody role="rowgroup">${L.filter(y => !UI.tiersNl || !y.l.let).map(ligneT).join('')}</tbody></table></div>
-    <p class="mute petit">Coche une facture et ce qui la paie : si les montants s’annulent, « Lettrer » leur donne le même code. Touche un code pour le défaire.</p>`, true);
+    <div class="outils"><button type="button" class="btn" data-a="lettrer" data-k="${k}">${UI.expert ? 'Lettrer les lignes cochées' : 'Rapprocher les lignes cochées'}</button><button type="button" class="btn gris" data-a="lettrage-auto" data-k="${k}">${UI.expert ? 'Lettrage automatique' : 'Rapprocher automatiquement'}</button><label class="case"><input type="checkbox" data-a-change="tiers-nl" ${UI.tiersNl ? 'checked' : ''}> ${UI.expert ? 'Seulement le non-lettré' : 'Seulement ce qui reste à rapprocher'}</label></div>
+    <div class="defile"><table class="t liste-tel tiers-t" role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader"></th><th role="columnheader">Date</th><th class="masque-tel" role="columnheader"${UI.expert ? '' : ' style="display:none"'}>Jnl</th><th class="masque-tel" role="columnheader">Pièce</th><th role="columnheader">Libellé</th><th class="n" role="columnheader">Débit</th><th class="n" role="columnheader">Crédit</th><th role="columnheader">${UI.expert ? 'Let.' : 'Rapproché'}</th></tr></thead><tbody role="rowgroup">${L.filter(y => !UI.tiersNl || !y.l.let).map(ligneT).join('')}</tbody></table></div>
+    <p class="mute petit">Coche une facture et ce qui la paie : si les montants s’annulent, « ${UI.expert ? 'Lettrer' : 'Rapprocher'} » leur donne le même code. Touche un code pour le défaire.</p>`, true);
 }
 
 /* ─── la banque : le relevé, le rapprochement, l'état de rapprochement ─── */
@@ -1542,7 +1543,7 @@ function ouvrirRappro(id){
   else if (a.type === 'salaires') { const s421 = solde('421000', { au:AUJ }); corps = `<h3>Virement des salaires d’octobre</h3><p class="mute petit">${Math.abs(s421 + r.m) < .01 ? 'Le journal de paie d’octobre est passé : le compte 421 attend exactement ce montant.' : 'Le journal de paie d’octobre n’est pas encore passé : en attendant, le compte 421 sera débiteur. Il se soldera quand la paie sera comptabilisée.'}</p>
       <button type="button" class="btn" data-a="rappro-ok" data-k="salaires" data-id="${id}">Passer le virement des salaires</button>`; }
   else if (a.type === 'frais') corps = `<h3>Frais bancaires</h3><p class="mute petit">Une commission prélevée par la banque : une charge, au compte 627.</p><button type="button" class="btn" data-a="rappro-ok" data-k="frais" data-id="${id}">Passer en frais bancaires</button>`;
-  else if (a.type === 'inconnu') corps = `<h3>Un prélèvement qu’on ne reconnaît pas</h3><p class="mute petit">On ne laisse pas une ligne de banque sans écriture : elle va au compte d’attente 471, le temps de savoir. Le compte d’attente doit être vide à la clôture.</p><button type="button" class="btn" data-a="rappro-ok" data-k="inconnu" data-id="${id}">Mettre en compte d’attente</button>`;
+  else if (a.type === 'inconnu') corps = `<h3>Un prélèvement qu’on ne reconnaît pas</h3><p class="mute petit">On ne laisse pas une ligne de banque sans écriture : elle va dans le compte d’attente, le temps de savoir. Le compte d’attente doit être vide à la clôture.</p><button type="button" class="btn" data-a="rappro-ok" data-k="inconnu" data-id="${id}">Mettre en compte d’attente</button>`;
   const autre = `<details class="carte"><summary><b>Autre choix</b></summary><div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
     ${memeMontant.length && a.type !== 'piece' ? `<div>Pointer avec une écriture déjà passée : ${memeMontant.map(x => `<button type="button" class="btn gris petit" data-a="rappro-pointer" data-id="${id}" data-r="${x.r}">${esc(x.e.lib)} · ${dCourt(x.e.date)}</button>`).join(' ')}</div>` : ''}
     <div class="outils"><label class="champ" style="flex:1 1 200px">Contrepartie<input class="saisie mono" id="ra-c" list="dl-comptes" placeholder="ex. 616000" inputmode="numeric"></label><label class="champ" style="flex:2 1 240px">Libellé<input class="saisie" id="ra-lib" value="${esc(r.lib)}"></label><button type="button" class="btn gris" data-a="rappro-ok" data-k="autre" data-id="${id}">Passer</button></div></div></details>`;
@@ -2370,7 +2371,7 @@ VUES.accueil = () => {
       ${kpi('resultat', 'Bénéfice de l’année', eur(res), PAIE.valide ? 'janvier à octobre, avant impôt' : 'avant impôt · octobre n’a pas encore sa paie')}
       ${kpi('fil', 'Fait tout seul en octobre', pct + ' %', P.auto === P.n ? `${P.n} écritures, toutes seules` : `${P.auto} écritures sur ${P.n}`)}
     </div>
-    <div class="carte" id="mois-etapes"><h2>Ton mois d’octobre · ${faits}/${F.length} avant la clôture</h2>
+    <div class="carte" id="mois-etapes"><h2>Ton mois d’octobre · ${oct ? 'clôturé' : faits + '/' + F.length + ' avant la clôture'}</h2>
       <div class="etapes">${F.map((x, i) => `<div class="etape ${x.ok ? 'ok' : ''}"><span class="rond">${x.ok ? '✓' : i + 1}</span><span class="txt"><b>${x.t}</b><span class="mute petit">${x.d}</span></span>${x.ok ? '' : `<button type="button" class="btn gris petit" data-a="aller" data-r="${x.k}" ${x.gl ? `data-gl="${x.gl}"` : ''}>Y aller</button>`}</div>`).join('')}
         <div class="etape ${oct ? 'ok' : ''}"><span class="rond">${oct ? '✓' : F.length + 1}</span><span class="txt"><b>Clôturer octobre et l’envoyer au cabinet</b><span class="mute petit">${oct ? 'Fait : ' + esc(DOSSIER.cab) + ' a tout reçu.' : 'Quand tout le reste est vert.'}</span></span>${oct ? '' : `<button type="button" class="btn gris petit" data-a="aller" data-r="clotures">Ouvrir</button>`}</div></div></div>
     <div class="grille g2"><div class="carte"><h2>${AV.length || !DECISIONS.length ? 'À vérifier' : 'Décidé par le pilote'}</h2>${AV.length ? AV.slice(0, 3).map(avCompact).join('') + (AV.length > 3 ? `<p class="mute petit">et ${AV.length - 3} autre${AV.length > 4 ? 's' : ''}.</p>` : '')
@@ -2994,7 +2995,7 @@ function filmAller(i){
   const prec = FILM[CINE.i]; if (prec) { [].concat(prec.ev || []).forEach(k => jourJouer(k)); if (prec.apres) prec.apres(); }   // un plan passé d'un geste a quand même eu lieu
   if ($('#calque').innerHTML) fermerBase();
   if (i >= FILM.length) return filmFin();
-  const s = FILM[i]; Object.assign(CINE, { i, pret:false, rendu:'', pause:false });
+  const s = FILM[i]; Object.assign(CINE, { i, pret:false, rendu:'', pause:!!CINE.pause });
   UI.expert = !!s.expert; UI.route = s.vue; try { history.replaceState(null, '', '#' + s.vue); } catch (e) {}
   rendre(); scrollTo(0, 0);
   CINE.min2 = setTimeout(() => {
@@ -3002,7 +3003,7 @@ function filmAller(i){
     if (s.ev) { [].concat(s.ev).forEach(k => jourJouer(k)); rendre(); }
     if (s.avant) s.avant();
     CINE.pret = true; CINE.rendu = ''; CINE.total = CINE.reste = filmDuree(s); CINE.debut = performance.now(); filmMaj();
-    CINE.min = setTimeout(() => filmAller(i + 1), CINE.reste);
+    if (!CINE.pause) CINE.min = setTimeout(() => filmAller(i + 1), CINE.reste);
   }, s.ev ? 700 : 280);
 }
 function filmBarre(){
@@ -3122,10 +3123,10 @@ document.addEventListener('click', ev => {
   if (a === 'saisie-ok') return enregistrerSaisie();
   if (a === 'tiers-tab') { UI.tiersTab = k; return rendre(); }
   if (a === 'tiers') return ouvrirTiers(k);
-  if (a === 'lettrer') { const refs = [...document.querySelectorAll('#calque [data-let]:checked')].map(i => i.dataset.let); if (refs.length < 2) return ($('#let-msg').innerHTML = '<div class="alerte">Coche au moins deux lignes : une facture et ce qui la paie.</div>'); const r = lettrer(refs, AUJ); if (r.err) return ($('#let-msg').innerHTML = `<div class="erreur">${esc(r.err)}</div>`); trace(`Lettrage ${r.code} sur ${nomTiers(k)}`); ouvrirTiers(k); rendre(); return toast(`Lettré : code ${r.code}.`); }
-  if (a === 'lettrage-auto') { const n = lettrageAuto(k); ouvrirTiers(k); rendre(); return toast(n ? `${n} lettrage${n > 1 ? 's' : ''} fait${n > 1 ? 's' : ''}.` : 'Rien à lettrer automatiquement : aucune facture et aucun paiement du même montant.'); }
-  if (a === 'lettrage-tous') { const n = TIERS.reduce((s, t) => s + lettrageAuto(t.k), 0); rendre(); return toast(n ? `${n} lettrage${n > 1 ? 's' : ''} fait${n > 1 ? 's' : ''}.` : 'Tout ce qui pouvait l’être est déjà lettré.'); }
-  if (a === 'delettrer') { delettrer(k, b.dataset.code); trace(`Lettrage ${b.dataset.code} défait sur ${nomTiers(k)}`); ouvrirTiers(k); rendre(); return toast('Lettrage défait.'); }
+  if (a === 'lettrer') { const refs = [...document.querySelectorAll('#calque [data-let]:checked')].map(i => i.dataset.let); if (refs.length < 2) return ($('#let-msg').innerHTML = '<div class="alerte">Coche au moins deux lignes : une facture et ce qui la paie.</div>'); const r = lettrer(refs, AUJ); if (r.err) return ($('#let-msg').innerHTML = `<div class="erreur">${esc(r.err)}</div>`); trace(`Lettrage ${r.code} sur ${nomTiers(k)}`); ouvrirTiers(k); rendre(); return toast(UI.expert ? `Lettré : code ${r.code}.` : `Rapproché : code ${r.code}.`); }
+  if (a === 'lettrage-auto') { const n = lettrageAuto(k); ouvrirTiers(k); rendre(); return toast(UI.expert ? (n ? `${n} lettrage${n > 1 ? 's' : ''} fait${n > 1 ? 's' : ''}.` : 'Rien à lettrer automatiquement : aucune facture et aucun paiement du même montant.') : (n ? `${n} rapprochement${n > 1 ? 's' : ''} fait${n > 1 ? 's' : ''}.` : 'Rien à rapprocher automatiquement : aucune facture et aucun paiement du même montant.')); }
+  if (a === 'lettrage-tous') { const n = TIERS.reduce((s, t) => s + lettrageAuto(t.k), 0); rendre(); return toast(UI.expert ? (n ? `${n} lettrage${n > 1 ? 's' : ''} fait${n > 1 ? 's' : ''}.` : 'Tout ce qui pouvait l’être est déjà lettré.') : (n ? `${n} rapprochement${n > 1 ? 's' : ''} fait${n > 1 ? 's' : ''}.` : 'Tout ce qui pouvait l’être est déjà rapproché.')); }
+  if (a === 'delettrer') { delettrer(k, b.dataset.code); trace(`Lettrage ${b.dataset.code} défait sur ${nomTiers(k)}`); ouvrirTiers(k); rendre(); return toast(UI.expert ? 'Lettrage défait.' : 'Rapprochement défait.'); }
   if (a === 'banque-vue') { UI.banqueVue = k; return rendre(); }
   if (a === 'rappro') return ouvrirRappro(id);
   if (a === 'rappro-ok') return rapprocher(id, k);
@@ -3257,7 +3258,7 @@ function cmptFactureBloc(num){
   return `<div class="carte cmpt-fac" data-fac-etat="${esc(num)}"><h3>Où en est cette facture</h3><ul class="cmpt-etat">
       ${li('ok', '✓', `Envoyée par OP GESTION le ${dCourt(F.e.date)} · ${eur(due)} TTC`)}
       ${p ? li('ok', '✓', `Payée le ${dCourt(p.date)} (${p.mode})`) : late ? li('mal', '!', `En retard : échue le ${dCourt(F.e.ech)}, il y a ${cmptPluriel(jr, 'jour')}`) : li('att', '…', `À encaisser${F.e.ech ? ' avant le ' + dCourt(F.e.ech) : ''}`)}
-      ${!p ? li(rel ? 'ok' : 'att', rel ? '✓' : '…', rel ? `Relancée ${cmptPluriel(rel, 'fois', 'fois')} par OP GESTION${num === 'FAC-2026-0128' ? ' (dernière relance le ' + (AUTO.terrain.relance ? '31/10' : '28/10') + ')' : ''}` : 'Pas encore relancée') : ''}
+      ${!p ? li(rel ? 'ok' : 'att', rel ? '✓' : '…', rel ? `Relancée ${cmptPluriel(rel, 'fois', 'fois')} par OP GESTION${num === 'FAC-2026-0128' || f.relanceLe ? ' (dernière relance le ' + (f.relanceLe || (AUTO.terrain.relance ? '31/10' : '28/10')) + ')' : ''}` : 'Pas encore relancée') : ''}
       ${!p ? li(late ? 'mal' : 'att', '€', `Reste dû : <b>${eur(due)}</b>`) : ''}</ul>
     <div class="cmpt-outils">${p ? '' : `<button type="button" class="btn petit" data-cmpt="relancer" data-cle="${esc(num)}">Relancer maintenant</button>`}<button type="button" class="btn gris petit" data-cmpt="pdf" data-cle="${esc(num)}">Voir le PDF</button></div></div>`;
 }
@@ -3281,7 +3282,7 @@ function cmptRelancer(num){
     <div class="outils"><button type="button" class="btn" data-cmpt="relancer-ok" data-cle="${esc(num)}">Envoyer la relance</button><button type="button" class="btn gris" data-a="fermer">Annuler</button></div>`);
 }
 function cmptRelancerOk(num){
-  const S = cmptEtatFacture(num); if (!S) return; const { f } = S; f.relances = (f.relances || 0) + 1; fermer();
+  const S = cmptEtatFacture(num); if (!S) return; const { f } = S; f.relances = (f.relances || 0) + 1; f.relanceLe = dCourt(AUJ).slice(0, 5); cmptParent({ opc_relance:{ num, n:f.relances } }); fermer();
   fil('OP GESTION', `Relance envoyée · ${num} · ${nomTiers(f.cli)}`, `${cmptPluriel(f.relances, 'relance')} au total : un rappel poli avec le lien pour payer par carte. Rien ne s’écrit en comptabilité tant que le client n’a pas payé.`, [], 'relance-main');
   rendre(); toast(`Relance ${f.relances} envoyée à ${nomTiers(f.cli)} · ${num}. Elle est notée dans « Ce qui s’est fait tout seul ».`, 5200);
 }
@@ -3343,7 +3344,7 @@ nuitNoteHabiller = function(){
   const N = UI.nuitNote; if (!N) return; if (!N.dep) N.dep = UI.route;
   if (UI.route !== N.dep && UI.route !== 'accueil') { UI.nuitNote = null; return; }
   const c = $('#contenu'); if (!c || c.querySelector('.nuit-note')) return;
-  const html = `<div class="carte nuit-note" role="status"><span><b>Cette nuit :</b> ${cmptPluriel(N.lignes || 0, 'ligne de banque', 'lignes de banque')} et ${cmptPluriel(N.docs || 0, 'document')} lus, ${cmptPluriel(N.n, 'action faite', 'actions faites')} toute${N.n > 1 ? 's' : ''} seule${N.n > 1 ? 's' : ''}. Les chiffres ont changé pour cette raison. <a href="#fil">Voir ce qui s’est fait tout seul</a></span><button type="button" class="lien" data-nuit-ok="1">J’ai compris</button></div>`;
+  const html = `<div class="carte nuit-note" role="status"><span><b>Cette nuit :</b> ${cmptPluriel(N.lignes || 0, 'ligne de banque', 'lignes de banque')} et ${cmptPluriel(N.docs || 0, 'document')} lus, ${cmptPluriel(N.n, 'action faite', 'actions faites')} toute${N.n > 1 ? 's' : ''} seule${N.n > 1 ? 's' : ''}. Les chiffres ont changé pour cette raison. ${UI.route === 'fil' ? '' : '<a href="#fil">Voir ce qui s’est fait tout seul</a>'}</span><button type="button" class="lien" data-nuit-ok="1">J’ai compris</button></div>`;
   const t = c.querySelector('.fen-tete'); if (t) t.insertAdjacentHTML('afterend', html); else c.insertAdjacentHTML('afterbegin', html);
 };
 
@@ -3495,6 +3496,7 @@ function cmptMenuMaj(){
 }
 document.addEventListener('scroll', ev => { if (ev.target && ev.target.classList && ev.target.classList.contains('menu-liste')) cmptMenuMaj(); }, true);
 addEventListener('resize', cmptMenuMaj);
+(() => { const m1 = rendreMenu; rendreMenu = function(){ const v = m1.apply(this, arguments); try { cmptMenuMaj(); } catch (e) {} return v; }; })();
 (() => { const r1 = rendre; rendre = function(){ const v = r1.apply(this, arguments); try { cmptMenuMaj(); } catch (e) {} return v; }; })();
 
 /* ─── un seul écouteur pour les gestes d'ici (data-cmpt="geste|argument") ─── */
