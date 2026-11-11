@@ -1199,7 +1199,7 @@ function rendre(){
   UI.vus.add(UI.route); parcoursVerifier();
 }
 function aller(r, o){ Object.assign(UI, o || {}); if (location.hash.slice(1) === r) { if (ROUTES.includes(r)) UI.route = r; rendre(); } else location.hash = r; scrollTo({ top:0 }); }
-addEventListener('hashchange', () => { const r = location.hash.slice(1); UI.route = ROUTES.includes(r) ? r : 'accueil'; rendre(); });
+addEventListener('hashchange', () => { const r = location.hash.slice(1); UI.route = ROUTES.includes(r) ? r : 'accueil'; rendre(); scrollTo({ top:0, behavior:'auto' }); });
 let ouvertDepuis = null, dernierClic = null, dernierClicA = 0;
 /* au doigt (et à la souris sous Safari), un bouton touché ne prend pas le focus : on retient donc ce qui vient d'être touché, pour savoir où revenir */
 document.addEventListener('click', ev => { dernierClic = ev.target.closest ? ev.target.closest('[data-a], a, button') : null; dernierClicA = performance.now(); }, true);
@@ -1498,9 +1498,9 @@ function ouvrirTiers(k){
     <div class="kpis"><div class="kpi"><span>${cl ? 'Doit encore' : 'À payer'}</span><b>${eur(x.s)}</b></div><div class="kpi"><span>Dont échu</span><b style="${x.echu ? 'color:var(--bad)' : ''}">${eur(x.echu)}</b></div><div class="kpi"><span>${UI.expert ? 'Lignes non lettrées' : 'Lignes à rapprocher'}</span><b>${x.nl}</b></div></div>
     ${relances && relances.length ? `<div class="alerte petit">${relances.map(f => `${f.num} : relancée ${f.relances} fois depuis OP GESTION (dernière relance le ${f.relanceLe || (f.num === 'FAC-2026-0128' && AUTO.terrain.relance ? '31/10' : '28/10')}).`).join('<br>')}</div>` : ''}
     <div id="let-msg"></div>
-    <div class="outils"><button type="button" class="btn" data-a="lettrer" data-k="${k}">${UI.expert ? 'Lettrer les lignes cochées' : 'Rapprocher les lignes cochées'}</button><button type="button" class="btn gris" data-a="lettrage-auto" data-k="${k}">${UI.expert ? 'Lettrage automatique' : 'Rapprocher automatiquement'}</button><label class="case"><input type="checkbox" data-a-change="tiers-nl" ${UI.tiersNl ? 'checked' : ''}> ${UI.expert ? 'Seulement le non-lettré' : 'Seulement ce qui reste à rapprocher'}</label></div>
-    <div class="defile"><table class="t liste-tel tiers-t" role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader"></th><th role="columnheader">Date</th><th class="masque-tel" role="columnheader"${UI.expert ? '' : ' style="display:none"'}>Jnl</th><th class="masque-tel" role="columnheader">Pièce</th><th role="columnheader">Libellé</th><th class="n" role="columnheader">Débit</th><th class="n" role="columnheader">Crédit</th><th role="columnheader">${UI.expert ? 'Let.' : 'Rapproché'}</th></tr></thead><tbody role="rowgroup">${L.filter(y => !UI.tiersNl || !y.l.let).map(ligneT).join('')}</tbody></table></div>
-    <p class="mute petit">Coche une facture et ce qui la paie : si les montants s’annulent, « ${UI.expert ? 'Lettrer' : 'Rapprocher'} » leur donne le même code. Touche un code pour le défaire.</p>`, true);
+    <div class="outils"><button type="button" class="btn" data-a="lettrer" data-k="${k}">${UI.expert ? 'Lettrer les lignes cochées' : 'Rapprocher les lignes cochées'}</button><button type="button" class="btn gris" data-a="lettrage-auto" data-k="${k}">${UI.expert ? 'Lettrage automatique' : 'Rapprocher automatiquement'}</button><label class="case"><input type="checkbox" data-a-change="tiers-nl" ${UI.tiersNl !== false ? 'checked' : ''}> ${UI.expert ? 'Seulement le non-lettré' : 'Seulement ce qui reste à rapprocher'}</label></div>
+    <div class="defile"><table class="t liste-tel tiers-t" role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader"></th><th role="columnheader">Date</th><th class="masque-tel" role="columnheader"${UI.expert ? '' : ' style="display:none"'}>Jnl</th><th class="masque-tel" role="columnheader">Pièce</th><th role="columnheader">Libellé</th><th class="n" role="columnheader">Débit</th><th class="n" role="columnheader">Crédit</th><th role="columnheader">${UI.expert ? 'Let.' : 'Rapproché'}</th></tr></thead><tbody role="rowgroup">${L.filter(y => UI.tiersNl === false || !y.l.let).map(ligneT).join('')}</tbody></table></div>
+    <p class="mute petit">${UI.tiersNl !== false && L.some(y => y.l.let) ? (n => n + ' ligne' + (n > 1 ? 's' : '') + (UI.expert ? ' lettrée' : ' déjà rapprochée') + (n > 1 ? 's' : '') + (n > 1 ? ' sont cachées' : ' est cachée') + ' : décoche la case pour revoir tout l’historique. ')(L.filter(y => y.l.let).length) : ''}Coche une facture et ce qui la paie : si les montants s’annulent, « ${UI.expert ? 'Lettrer' : 'Rapprocher'} » leur donne le même code. Touche un code pour le défaire.</p>`, true);
 }
 
 /* ─── la banque : le relevé, le rapprochement, l'état de rapprochement ─── */
@@ -2089,7 +2089,7 @@ const JOUR = [
     ok:() => !!(TVA_DECL['2026-10'] || {}).decl, peut:() => !toutLu() ? 'La banque et les documents ne sont pas encore lus.' : aVerifier().some(x => x.kind === 'immo' || x.kind === 'ligne') ? 'Une question attend une réponse.' : '',
     faire:() => { const m = tvaDeclarer('2026-10'); if (m) return m; const T = TVA_DECL['2026-10'].l; SIM.res.tva = `${eur(T.due)} à payer : la déclaration est prête à déposer.`; decision('tva', `TVA d’octobre arrêtée · ${eur(T.due)}`, 'Tout le mois est lu et aucune question n’attend : le calcul est complet.', [TVA_DECL['2026-10'].liq]); return ''; }, tags:['tva'] },
   { k:'cloture', h:'18:00', src:'Clôture', ic:'clotures', fam:'ardoise', pilote:true, vers:'clotures', ou:'pilote automatique', t:'Octobre se ferme et part au cabinet', d:'Banque à jour, documents lus, paie validée, rien d’inexpliqué, écritures toutes validées, TVA arrêtée.',
-    ok:() => PER['2026-10'] === 'cloturee', peut:() => aFaire().every(x => x.ok) ? '' : 'Il reste : ' + aFaire().filter(x => !x.ok).map(x => x.manque).join(', ') + '.',
+    ok:() => PER['2026-10'] === 'cloturee', peut:() => aFaire().every(x => x.ok) ? '' : 'Il reste : ' + aFaire().filter(x => !x.ok).map(x => x.manque).filter((m, i, a) => a.indexOf(m) === i).join(', ') + '.',
     faire:() => { const m = cloturerEnvoyer(); if (m) return m; SIM.res.cloture = `Octobre est clôturé ; ${DOSSIER.cab} a reçu le dossier complet.`; decision('cloture', 'Octobre clôturé et envoyé au cabinet', 'Les six étapes du mois étaient vertes.', []); return ''; }, tags:['cloture'] }
 ];
 const jourDe = k => JOUR.find(e => e.k === k);
@@ -2285,10 +2285,10 @@ addEventListener('hashchange', () => { const c = $('#contenu'); if (document.bod
 aFaire = () => {
   const att = solde('471000', { au:AUJ }), nouv = nouvellesLignes().length, banq = releveAPasser().length, pAtt = PIECES.filter(p => p.statut !== 'traitee').length, D = TVA_DECL['2026-10'] || {};
   return [
-    { k:'banque', ok:!nouv && !banq, t:nouv ? 'Banque à lire' : 'Banque à jour', manque:nouv ? 'la banque à lire' : 'des lignes de banque en attente d’une réponse', d:nouv ? `${plur(nouv, 'ligne arrivée', 'lignes arrivées')} cette nuit, pas encore lue${nouv > 1 ? 's' : ''}.` : banq ? `${plur(banq, 'ligne attend', 'lignes attendent')} une réponse.` : 'Chaque ligne du relevé a son écriture.' },
+    { k:'banque', ok:!nouv && !banq, t:nouv ? 'Banque à lire' : banq ? 'Banque à traiter' : 'Banque à jour', manque:nouv ? 'la banque à lire' : 'des lignes de banque en attente d’une réponse', d:nouv ? `${plur(nouv, 'ligne arrivée', 'lignes arrivées')} cette nuit, pas encore lue${nouv > 1 ? 's' : ''}.` : banq ? `${plur(banq, 'ligne attend', 'lignes attendent')} une réponse.` : 'Chaque ligne du relevé a son écriture.' },
     { k:'achats', ok:!pAtt, t:pAtt ? 'Factures et tickets à lire' : 'Factures et tickets lus', manque:'des documents à lire', d:pAtt ? `${plur(pAtt, 'document')} pas encore en comptabilité.` : 'Tous les documents du mois sont écrits, avec leur justificatif.' },
     { k:'paie', ok:!!PAIE.valide, t:'Paie d’octobre validée', manque:'la paie à valider', d:PAIE.valide ? 'Fiches validées, salaires virés, DSN préparée.' : PAIE.calc ? 'Les fiches sont calculées : à vérifier puis valider.' : 'Les fiches se calculent quand la nuit est traitée.' },
-    { k:'grand-livre', gl:'471000', ok:Math.abs(att) < .005, t:'Rien d’inexpliqué sur la banque', manque:'un mouvement de banque à expliquer', d:Math.abs(att) < .005 ? 'Chaque mouvement sait ce qu’il est.' : `${eur(Math.abs(att))} attendent une explication${UI.expert ? ' (compte d’attente 471)' : ''}.` },
+    { k:Math.abs(att) < .005 && (nouv || banq) ? 'banque' : 'grand-livre', gl:Math.abs(att) < .005 && (nouv || banq) ? undefined : '471000', ok:Math.abs(att) < .005 && !nouv && !banq, t:'Rien d’inexpliqué sur la banque', manque:Math.abs(att) < .005 ? (nouv ? 'la banque à lire' : 'des lignes de banque en attente d’une réponse') : 'un mouvement de banque à expliquer', d:Math.abs(att) < .005 ? (nouv || banq ? 'Pas encore : des lignes de banque attendent d’être lues et expliquées.' : 'Chaque mouvement sait ce qu’il est.') : `${eur(Math.abs(att))} attendent une explication${UI.expert ? ' (compte d’attente 471)' : ''}.` },
     { k:'brouillard', ok:!brouillardOct().length, t:'Tout est validé', manque:'des écritures à valider', d:brouillardOct().length ? `${plur(brouillardOct().length, 'écriture')} ${UI.expert ? 'au brouillard' : 'pas encore validée' + (brouillardOct().length > 1 ? 's' : '')}.` : 'Chaque écriture a son numéro définitif.' },
     { k:'tva', ok:!!D.decl, t:'TVA d’octobre arrêtée', manque:'la TVA à arrêter', d:D.decl ? (D.pret ? `${eur(D.l.due)} : déclaration prête à déposer, au plus tard le lundi 23 novembre.` : `${eur(D.l.due)} : déclaration notée comme déposée.`) : 'Elle s’arrête en fin de journée ; la déclaration se dépose au plus tard le lundi 23 novembre.' }
   ];
@@ -2478,7 +2478,7 @@ VUES.paie = () => {
   const et = [['Heures du mois reçues d’OP GESTION', true, '6 salariés : heures supplémentaires semaine par semaine, absences, paniers, primes, notes de frais.'],
     ['Fiches de paie calculées', !!D.calc, D.calc ? 'Calculées toutes seules ce matin à ' + D.calc.le + '.' : 'Elles se calculent dès que la nuit est traitée.'],
     ['Contrôlées et validées', !!D.valide, D.valide ? 'Validées à ' + D.valide.le + ' : l’écriture de paie est passée.' : UI.pilote ? 'Le pilote les valide si les quatre contrôles passent.' : 'Ouvre deux ou trois fiches, puis valide.'],
-    ['Salaires virés', !!D.vire, D.vire ? `${eur(D.vire.total)} en un seul fichier de virements ; sa ligne sur le relevé de la banque s’est rangée toute seule.` : 'Un fichier de virements part à la banque au moment de la validation.'],
+    ['Salaires virés', !!D.vire, D.vire ? `${eur(D.vire.total)} en un seul fichier de virements${F && D.vire.total - paieTotal(F, 'netPaye') > 0.005 ? ' : les nets (' + eur(paieTotal(F, 'netPaye')) + ') plus ' + eur(r2(D.vire.total - paieTotal(F, 'netPaye'))) + ' de notes de frais remboursées' : ''} ; sa ligne sur le relevé de la banque s’est rangée toute seule.` : 'Un fichier de virements part à la banque au moment de la validation.'],
     ['Déclaration sociale (DSN) préparée', !!D.dsn, D.dsn ? 'Prête : à déposer au plus tard le lundi 16 novembre (le 15 tombe un dimanche).' : 'Préparée au moment de la validation.'],
     ['Cotisations payées', false, 'Le 15 novembre (reporté au lundi 16) : URSSAF, retraite et impôt prélevé à la source, par prélèvement.']];
   const mois = MOIS_LISTE.slice(0, 9).map(m => { const G = paieFichesDe(m); return { m, brut:paieTotal(G, 'brut'), net:paieTotal(G, 'netPaye'), pat:paieTotal(G, 'totP') }; });
@@ -2535,7 +2535,7 @@ VUES.clotures = () => {
   return tete('Pilotage', 'Fin de mois', 'Chaque mois se ferme quand tout est vert : le pilote le fait seul, ou tu le fais d’un geste. Le 31 décembre, le cabinet fait la clôture de l’année : tu peux la répéter ici pour voir ce qu’elle change.') + carte + replie('clo', 'La clôture de l’exercice, en répétition', sansTete(cloturesDetail()));
 };
 function cloturerEnvoyer(){
-  const F = aFaire(); if (!F.every(x => x.ok)) return 'Pas encore. Il reste : ' + F.filter(x => !x.ok).map(x => x.manque).join(', ') + '.';
+  const F = aFaire(); if (!F.every(x => x.ok)) return 'Pas encore. Il reste : ' + F.filter(x => !x.ok).map(x => x.manque).filter((m, i, a) => a.indexOf(m) === i).join(', ') + '.';
   if (PER['2026-10'] === 'cloturee') return 'Octobre est déjà clôturé.';
   PER['2026-10'] = 'cloturee'; trace('Octobre 2026 clôturé');
   const pj = E.filter(e => e.etat === 'valide' && !e.essai && e.date >= '2026-10-01' && e.pj).length;
@@ -3479,7 +3479,7 @@ function cmptSimFenetre(){
 }
 document.addEventListener('change', ev => { const t = ev.target; if (!t) return;
   if (t.id === 'cmpt-sim-t') { const a = document.getElementById('cmpt-sim-a'), b = document.getElementById('cmpt-sim-b'); if (a) a.hidden = t.value !== 'retard'; if (b) b.hidden = t.value !== 'depense'; }
-  if (t.id === 'cmpt-seuil-val') { if (+t.value < 0) toast('Un seuil ne peut pas être négatif : je l’ai remis à 0 €.'); CMPT.seuil = Math.max(0, +t.value || 0); rendre(); } });
+  if (t.id === 'cmpt-seuil-val') { if (+t.value < 0) toast('Un seuil ne peut pas être négatif : je l’ai remis à 0 €.'); CMPT.seuil = Math.max(0, +t.value || 0); if (!CMPT.seuilOn && +t.value >= 0 && t.value !== '') { CMPT.seuilOn = true; toast('C’est noté : je te préviens si le compte passe sous ' + eur(CMPT.seuil) + '.'); } rendre(); } });
 function cmptSimOk(){
   const t = (document.getElementById('cmpt-sim-t') || {}).value;
   if (t === 'retard') { const sel = document.getElementById('cmpt-sim-f'), cle = sel && sel.value; if (!cle) return toast('Aucune facture en attente à tester.'); CMPT.sim = { type:'retard', cle, desc:`${sel.options[sel.selectedIndex].text.split(' · ').slice(0, 2).join(' · ')} paie 15 jours plus tard` }; }
