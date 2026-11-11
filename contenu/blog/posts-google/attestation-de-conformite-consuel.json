@@ -1,0 +1,21 @@
+{
+  "slug": "attestation-de-conformite-consuel",
+  "prepare": "2026-11-11",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Attestation Consuel : quand l’exiger, la préparer, le tarif 2026\n\nAttestation de conformité Consuel : les cas obligatoires, le bon formulaire, le délai de vingt jours, le tarif pro 2026 calculé et une liste à cocher.\n\nÀ retenir : Trois cas rendent l’attestation obligatoire avant la mise sous tension : installation neuve, rénovation totale avec coupure demandée au distributeur, production de moins de 250 kVA qui touche l’installation intérieure.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/attestation-de-conformite-consuel.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/attestation-de-conformite-consuel-couverture-google.jpg"
+      }
+    ]
+  }
+}

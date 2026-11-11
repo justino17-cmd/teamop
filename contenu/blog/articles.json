@@ -1,5 +1,36 @@
 [
  {
+  "slug": "attestation-de-conformite-consuel",
+  "titre": "Attestation Consuel : quand l’exiger, la préparer, le tarif 2026",
+  "description": "Attestation de conformité Consuel : les cas obligatoires, le bon formulaire, le délai de vingt jours, le tarif pro 2026 calculé et une liste à cocher.",
+  "date": "2026-11-11",
+  "image": "attestation-de-conformite-consuel-couverture.webp",
+  "imageAlt": "Couverture bleu nuit du blog TEAM OP portant le titre de l’article sur l’attestation de conformité Consuel",
+  "photo": "An electrician in a navy blue coverall standing in front of a new, neatly labelled residential electrical panel, filling in a form on a tablet before power-on.",
+  "faq": [
+   {
+    "q": "Qui doit faire la demande de Consuel ?",
+    "r": "L’installateur qui a réalisé l’installation, ou le maître d’ouvrage qui fait les travaux lui-même ou sous sa responsabilité. Lui seul peut acheter le formulaire, et il ne peut pas le céder à quelqu’un d’autre."
+   },
+   {
+    "q": "Le Consuel est-il obligatoire pour un changement de tableau ?",
+    "r": "Pas en soi : tout dépend de l’ampleur des travaux et de la coupure. L’attestation est exigée pour une installation neuve, pour une rénovation totale après une coupure demandée au distributeur, et pour une installation mise hors tension par le distributeur à la demande du client pour des travaux de remise en conformité. Si votre changement de tableau entre dans l’un de ces cas, prévoyez le formulaire."
+   },
+   {
+    "q": "Combien de temps avant la mise en service envoyer l’attestation ?",
+    "r": "Vingt jours au moins avant la date probable de mise en service. Si le Consuel décide de visiter l’installation, il annonce la date et l’heure : prévoyez quelqu’un pour ouvrir le chantier."
+   },
+   {
+    "q": "Combien coûte une attestation Consuel pour un électricien ?",
+    "r": "Au tarif professionnel du 1er septembre 2026, un formulaire jaune électronique coûte (84,21 € + 26,51 € × N) × 1,20 TTC pour N formulaires commandés, soit 132,86 € à l’unité et 41,92 € par formulaire pour une commande de dix. Un particulier paie 147,66 €."
+   },
+   {
+    "q": "Que se passe-t-il en cas de non-conformité ?",
+    "r": "Vous corrigez, vous déclarez par écrit la mise en conformité, et le Consuel peut revenir (238,44 € TTC). Le visa n’est donné qu’une fois toute l’installation conforme."
+   }
+  ]
+ },
+ {
   "slug": "logiciel-electricien",
   "titre": "Logiciel électricien : dépannage, devis, habilitations, le guide",
   "description": "Logiciel électricien : règles avant un dépannage, modèle de fiche à recopier, suivi des habilitations et budget calculé pour une équipe de quatre.",

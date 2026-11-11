@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Tue, 10 Nov 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 11 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Attestation Consuel : quand l’exiger, la préparer, le tarif 2026</title>
+<link>https://teamop.fr/blog/attestation-de-conformite-consuel.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/attestation-de-conformite-consuel.html</guid>
+<pubDate>Wed, 11 Nov 2026 06:00:00 GMT</pubDate>
+<description>Attestation de conformité Consuel : les cas obligatoires, le bon formulaire, le délai de vingt jours, le tarif pro 2026 calculé et une liste à cocher.</description>
+<enclosure url="https://teamop.fr/blog/img/attestation-de-conformite-consuel-couverture.webp" type="image/webp" length="18264"/>
+</item>
 <item>
 <title>Logiciel électricien : dépannage, devis, habilitations, le guide</title>
 <link>https://teamop.fr/blog/logiciel-electricien.html</link>
