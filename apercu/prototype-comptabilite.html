@@ -504,6 +504,63 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
   h1{font-size:25px}
 }
 @media (pointer:coarse){.t input.saisie,.t select.saisie{font-size:16px;min-height:44px}button.chip{min-height:44px}.btn.petit{min-height:44px}.seg button{min-height:42px}.mode-seg button{min-height:40px}.lien{min-height:44px}.guide .fermer{width:44px;height:44px}}
+/* ── comptabilite ── (lot Comptabilité : le pont avec OP GESTION, les gestes rapides, les listes qui se filtrent) */
+.cmpt-liens{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.cmpt-liens .btn{min-height:44px}
+.cmpt-fac{margin-bottom:12px}
+.cmpt-fac h3{margin:0 0 10px}
+.cmpt-etat{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.cmpt-etat li{display:flex;gap:10px;align-items:baseline}
+.cmpt-etat li i{font-style:normal;flex:none;width:20px;text-align:center;font-weight:700}
+.cmpt-etat li.ok i{color:var(--vert)}.cmpt-etat li.mal i{color:var(--rouge)}.cmpt-etat li.att i{color:var(--orange)}
+.cmpt-outils{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cmpt-filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.cmpt-filtres .seg{flex:0 1 auto;max-width:100%;overflow-x:auto}
+.cmpt-rech{flex:1 1 220px;min-width:0;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:16px}
+.cmpt-note{margin:10px 0 0;color:var(--doux);font-size:14px}
+.cmpt-ligne{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:12px}
+.cmpt-ligne .cmpt-l{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;min-width:0}
+.cmpt-ligne .btn{min-height:44px}
+.cmpt-attend{margin-bottom:12px}
+.cmpt-attend h2{margin-bottom:8px}
+.cmpt-att{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--trait)}
+.cmpt-att:first-of-type{border-top:0}
+.cmpt-att>span{min-width:0;flex:1 1 auto}
+.cmpt-att .btn{flex:none;min-height:44px}
+.cmpt-avant{margin:10px 2px 14px;font-size:14px;color:var(--doux)}
+.cmpt-depots{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 0}
+.cmpt-depots .btn{min-height:44px}
+.cmpt-adresse{display:inline-block;padding:6px 12px;border-radius:12px;background:var(--surf2);border:1px solid var(--trait);font-family:var(--mono);font-size:13.5px;overflow-wrap:anywhere}
+.cmpt-total{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:space-between;align-items:baseline;padding:10px 0 2px;border-top:1px solid var(--trait);margin-top:8px;font-size:15px}
+.cmpt-total b{font-size:17px}
+.cmpt-frise{margin:12px 0}
+.cmpt-frise .etape .btn,.cmpt-frise .etape .cmpt-b{flex:none}
+.cmpt-frise .cmpt-b{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.cmpt-bascule{display:inline-flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
+.cmpt-bascule input{width:22px;height:22px}
+.cmpt-seuil{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 12px}
+.cmpt-seuil input[type=number],.cmpt-sim input,.cmpt-sim select{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:16px;max-width:100%}
+.cmpt-seuil input[type=number]{width:9em}
+.cmpt-sim{display:flex;flex-direction:column;gap:12px}
+.cmpt-sim label{display:flex;flex-direction:column;gap:6px;font-weight:600}
+.cmpt-sim .cmpt-champs{display:flex;flex-wrap:wrap;gap:10px}
+.cmpt-simbande{margin:0 0 12px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.cmpt-surligne td{background:color-mix(in srgb,var(--orange) 16%,transparent)}
+.cmpt-pdf{background:#fff;color:#1b2430;border-radius:12px;padding:18px;border:1px solid var(--trait2);font-size:14px}
+.cmpt-pdf h3{color:#1b2430;margin:0 0 6px;text-transform:none;letter-spacing:0;font-size:18px}
+.cmpt-pdf table{width:100%;border-collapse:collapse;margin-top:10px}
+.cmpt-pdf td,.cmpt-pdf th{padding:6px 4px;border-bottom:1px solid #d8dde6;text-align:left}
+.cmpt-pdf .n{text-align:right}
+.cmpt-plus{flex:none;display:none;align-items:center;justify-content:center;gap:6px;min-height:36px;border:0;background:none;color:var(--doux);font-size:13px;font-weight:600;cursor:pointer}
+.menu.cmpt-coupe .cmpt-plus{display:flex}
+.menu.cmpt-coupe .menu-liste{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 44px),transparent)}
+@media (min-width:761px){.menu a{min-height:40px}}
+.cmpt-hero-mini{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:12px}
+.cmpt-hero-mini .cmpt-l{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cmpt-hero-mini .btn{min-height:44px}
+.cmpt-replier{margin-top:6px}
+.cmpt-ecart{margin:0 0 12px}
+@media (max-width:760px){.cmpt-att{gap:10px}.cmpt-att .btn{padding:0 14px;font-size:14px}.cmpt-attend{padding:14px 16px}.cmpt-hero-mini{padding:10px 14px;gap:6px 10px}.cmpt-hero-mini .btn{padding:0 12px;font-size:14px}.cmpt-frise .etape{flex-wrap:wrap}.cmpt-frise .cmpt-b{justify-content:flex-start;width:100%}}
 </style>
 <div class="app"><nav class="menu" id="menu" aria-label="Rubriques"></nav><div class="centre"><header class="barre" id="barre"></header><main class="contenu" id="contenu" tabindex="-1"></main></div></div>
 <div class="barre-bas" id="barre-bas"></div><div id="spot" hidden></div>
@@ -952,6 +1009,7 @@ function paieBulletinDoc(k, ym){
     trier();
   }
   FACT.forEach((f, i) => { f.num = 'FAC-2026-' + String(i + 1).padStart(4, '0'); });
+  { const dur = FACT.find(f => f.special === 'durand'); if (dur) { dur.date = '2026-10-12'; dur.lib = 'Installation pompe à chaleur'; } }
   window.FACTURES = FACT;
   const LIB = { install:['Installation d’un climatiseur réversible', 'Pose d’une pompe à chaleur air-air', 'Installation multi-split, 3 pièces', 'Remplacement d’une unité extérieure'], entretien:['Entretien annuel de la climatisation', 'Visite d’entretien, contrat annuel', 'Contrôle d’étanchéité et nettoyage des filtres'], depannage:['Dépannage, recharge en fluide', 'Dépannage, remplacement d’un condensateur', 'Dépannage, fuite d’eau sur l’unité intérieure'] };
   const paiementsCarte = [];
@@ -1547,7 +1605,7 @@ VUES.tva = () => {
       <p class="mute petit" style="margin-top:8px">Calculée à partir des comptes : ${nbEnc} encaissement${nbEnc > 1 ? 's' : ''} de clients dans le mois (445710) et la TVA des achats (445660, 445620). Numéros de ligne du formulaire 3310-CA3-SD de 2026, relus sur le formulaire officiel ; à garder sous les yeux avant le dépôt.</p></div>
       <div class="carte" style="display:flex;flex-direction:column;gap:10px"><h2>Où on en est</h2>
         <div class="etapes">
-          <div class="etape ${D.liq ? 'ok' : ''}"><span class="rond">${D.liq ? '✓' : 1}</span><span class="txt"><b>L’écriture de TVA</b><span class="mute petit">${D.liq ? 'Passée : la TVA collectée et déductible du mois sont soldées vers le compte 445510.' : 'Elle solde la TVA du mois et fait apparaître ce qu’on doit (445510).'}</span></span>${!D.liq && encours ? `<button type="button" class="btn petit" data-a="tva-liquider" data-k="${ym}">Passer l’écriture</button>` : ''}</div>
+          <div class="etape ${D.liq ? 'ok' : ''}"><span class="rond">${D.liq ? '✓' : 1}</span><span class="txt"><b>L’écriture de TVA</b><span class="mute petit">${D.liq ? 'Passée : la TVA collectée et déductible du mois sont soldées vers le compte 445510.' : 'Elle solde la TVA du mois et fait apparaître ce qu’on doit (445510).'}</span></span>${!D.liq && encours ? `<button type="button" class="btn petit" data-a="tva-liquider" data-k="${ym}">Enregistrer dans la comptabilité</button>` : ''}</div>
           ${D.liq && !reste.vide ? `<div class="etape"><span class="rond">!</span><span class="txt"><b>Des encaissements sont arrivés depuis</b><span class="mute petit">${eur(Math.abs(reste.col) / 100)} de TVA collectée en plus : complète l’écriture pour que la déclaration soit juste.</span></span><button type="button" class="btn petit" data-a="tva-complement" data-k="${ym}">Compléter</button></div>` : ''}
           <div class="etape ${declaree ? 'ok' : ''}"><span class="rond">${declaree ? '✓' : 2}</span><span class="txt"><b>${declaree ? 'Déclarée sur impots.gouv.fr' : 'À déposer sur impots.gouv.fr'}</b><span class="mute petit">${declaree ? 'le ' + dCourt(D.decl) : D.pret ? `Prête depuis le ${dCourt(D.decl)} : à déposer au plus tard le ${limite}. Ici, rien n’est transmis.` : `Au plus tard le ${limite} (le 21 du mois suivant, reporté au premier jour ouvré ; ta date exacte est dans ton espace professionnel).`}</span></span>${!declaree && D.liq && reste.vide ? `<button type="button" class="btn gris petit" data-a="tva-declarer" data-k="${ym}">Je l’ai déposée</button>` : ''}</div>
           <div class="etape ${D.paye || (declaree && !T.due) ? 'ok' : ''}"><span class="rond">${D.paye || (declaree && !T.due) ? '✓' : 3}</span><span class="txt"><b>Payée</b><span class="mute petit">${D.paye ? 'Prélevée le ' + dCourt(D.paye) + ' (passée en banque).' : T.due ? `Le prélèvement de ${eur(T.due)} partira le ${dCourt(ouvre(moisSuiv(ym) + '-21'))} : il se rapprochera avec le relevé de novembre.` : 'Rien à payer : le crédit se reporte sur le mois suivant.'}</span></span></div>
@@ -2070,7 +2128,7 @@ function journeeDerouler(delai){
   SIM.min = setTimeout(tic, 500); rendre();
 }
 /* entrer sans regarder la démo : la nuit s'est déjà traitée */
-function entrerLibre(){ if (UI.mode !== 'choix') return; UI.mode = 'libre'; const n = nuitJouer(); if (n) { UI.nuitNote = { n:FIL.filter(f => f.h.includes(':')).length, montre:false }; setTimeout(() => toast('Cette nuit, tout s’est rangé tout seul : ' + plur(UI.nuitNote ? UI.nuitNote.n : 0, 'action') + '.', matchMedia('(max-width:700px)').matches ? 1800 : 4200), 300); } }   /* [n°1][n°14] la ligne en tête du tableau de bord reste ; le message bref, lui, est court au téléphone pour ne pas couvrir ce qu'on vient d'ouvrir */
+function entrerLibre(){ if (UI.mode !== 'choix') return; UI.mode = 'libre'; const nl = nouvellesLignes().length, nd = PIECES.filter(p => p.statut === 'a_traiter').length; const n = nuitJouer(); if (n) { UI.nuitNote = { n:FIL.filter(f => f.h.includes(':')).length, lignes:nl, docs:nd, montre:false }; if (false) setTimeout(() => toast('Cette nuit, tout s’est rangé tout seul : ' + plur(UI.nuitNote ? UI.nuitNote.n : 0, 'action') + '.', matchMedia('(max-width:700px)').matches ? 1800 : 4200), 300); } }   /* [n°1][n°14] la ligne en tête du tableau de bord reste ; le message bref, lui, est court au téléphone pour ne pas couvrir ce qu'on vient d'ouvrir */
 
 /* ─── la trésorerie à venir : ce qui est connu, jour par jour, sur huit semaines ─── */
 const MOIS_RE = /(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre) \d{4}/gi;
@@ -2155,10 +2213,10 @@ const MENU_SIMPLE = [['Pilotage', [['accueil', 'Tableau de bord'], ['averifier',
   ['Trésorerie', [['banque', 'Banque'], ['previsions', 'Trésorerie à venir']]], ['Fiscal', [['tva', 'TVA'], ['bilan', 'Bilan'], ['resultat', 'Compte de résultat']]],
   ['Apprendre', [['demo', 'La démo'], ['tests', 'Tests guidés'], ['aide', 'Comment ça marche']]]];
 const MENU_EXPERT = [['Pilotage', [['accueil', 'Tableau de bord'], ['averifier', 'À vérifier'], ['fil', 'Ce qui s’est fait tout seul'], ['terrain', 'La journée en direct'], ['clotures', 'Clôtures'], ['pilotage', 'Pilotage du comptable']]],
-  ['Ventes', [['ventes', 'Ventes et encaissements'], ['tiers', 'Comptes clients et fournisseurs']]], ['Achats', [['achats', 'Achats et dépenses'], ['pieces', 'Pièces']]], ['Paie', [['paie', 'Paie']]],
+  ['Ventes', [['ventes', 'Ventes et encaissements'], ['tiers', 'Clients et fournisseurs']]], ['Achats', [['achats', 'Achats et dépenses'], ['pieces', 'Pièces à traiter']]], ['Paie', [['paie', 'Paie']]],
   ['Trésorerie', [['banque', 'Banque et rapprochement'], ['previsions', 'Trésorerie à venir']]],
   ['Fiscal et comptable', [['tva', 'TVA'], ['immos', 'Immobilisations'], ['journaux', 'Journaux'], ['grand-livre', 'Grand livre'], ['balance', 'Balance'], ['saisie', 'Saisir une écriture'], ['brouillard', 'Brouillard'], ['bilan', 'Bilan'], ['resultat', 'Compte de résultat']]],
-  ['Conformité', [['controles', 'Contrôles'], ['fec', 'Fichier des écritures (FEC)'], ['dossier', 'Dossier et plan comptable']]],
+  ['Conformité', [['controles', 'Contrôles'], ['fec', 'Fichier des écritures comptables'], ['dossier', 'Dossier et plan comptable']]],
   ['Apprendre', [['demo', 'La démo'], ['tests', 'Tests guidés'], ['aide', 'Comment ça marche']]]];
 ['averifier', 'fil', 'terrain', 'ventes', 'achats', 'tests', 'aide', 'pilotage', 'previsions', 'demo', 'film'].forEach(k => { if (!ROUTES.includes(k)) ROUTES.push(k); });
 const nomRoute = r => ([...MENU_SIMPLE, ...MENU_EXPERT].flatMap(([, L]) => L).find(([k]) => k === r) || [r, r])[1];
@@ -2198,7 +2256,7 @@ rendreBarre = () => {
   const oct = PER['2026-10'] === 'cloturee';
   $('#barre').innerHTML = `<button type="button" class="ouvrir-menu" data-a="menu" aria-label="Ouvrir les rubriques" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONES.menu}</svg></button>
     <span class="logo"><i>OP</i><span><b>OP GESTION</b><small>Comptabilité</small></span></span>
-    <button type="button" class="chip ${SIM.marche ? 'vivant' : ''}" data-a="aller" data-r="terrain" aria-label="La journée en direct : il est ${SIM.h}"><span class="pt"></span><span class="lg">Relié à OP GESTION ·</span><span class="h"><span class="chip-date">31/10 · </span>${SIM.h}</span></button>
+    <button type="button" class="chip ${SIM.marche ? 'vivant' : ''}" data-cmpt="lecture" aria-haspopup="dialog" aria-label="Relié à OP GESTION, dernière lecture à ${SIM.h} : voir le détail"><span class="pt"></span><span class="lg">Relié à OP GESTION ·</span><span class="h"><span class="chip-date">31/10 · </span>${SIM.h}</span></button>
     <span class="chip mois ${oct ? '' : 'attente'}"><span class="pt"></span>${oct ? 'Octobre clôturé' : 'Octobre ouvert'}</span>
     <div class="droite">${segPilote('seg')}</div>`;
 };
@@ -2490,7 +2548,7 @@ const pasJoli = x => { const p = Math.pow(10, Math.floor(Math.log10(x))), m = x 
 const kEur = x => Math.abs(x) >= 1000 ? nb(x / 1000).replace(/,00$/, '').replace(/(,\d)0$/, '$1') + ' k€' : Math.round(x) + ' €';
 VUES.previsions = () => {
   const P = previsions(UI.prevHab); UI._prev = P;
-  const lc = document.documentElement.clientWidth, tel = lc <= 760, W = tel ? Math.max(250, lc - 66) : 760, H = tel ? 230 : 270, g = tel ? 44 : 58, d = tel ? 10 : 16, h = 18, b = 30, n = P.J.length, vals = P.J.map(j => j.s), mn = Math.min(0, ...vals), mx = Math.max(...vals);   // tel : une unité du dessin = un pixel de l'écran, le texte garde sa taille
+  const lc = document.documentElement.clientWidth, tel = lc <= 760, W = tel ? Math.max(250, lc - 66) : 760, H = tel ? 230 : 270, g = tel ? 44 : 58, d = tel ? 10 : 16, h = 18, b = 30, n = P.J.length, vals = P.J.map(j => j.s), vb = (P.base ? P.base.J.map(j => j.s) : []), mn = Math.min(0, ...vals, ...vb), mx = Math.max(...vals, ...vb);   // tel : une unité du dessin = un pixel de l'écran, le texte garde sa taille
   const pas = pasJoli((mx - mn) / 4), y0 = Math.floor(mn / pas) * pas, y1 = Math.ceil(mx / pas) * pas, X = i => g + i * (W - g - d) / (n - 1), Y = v => h + (y1 - v) * (H - h - b) / (y1 - y0);
   UI._prevY0 = y0; UI._prevY1 = y1;
   let ch = `M${X(0).toFixed(1)} ${Y(vals[0]).toFixed(1)}`; for (let i = 1; i < n; i++) ch += ` H${X(i).toFixed(1)} V${Y(vals[i]).toFixed(1)}`;
@@ -2505,7 +2563,7 @@ VUES.previsions = () => {
       ${grad.map(v => `<line x1="${g}" x2="${W - d}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--trait${Math.abs(v) < .01 && mn < 0 ? '2' : ''})" stroke-width="1"/><text x="${g - 8}" y="${Y(v) + 4}" text-anchor="end">${kEur(v)}</text>`).join('')}
       ${P.J.map((j, i) => i % (tel ? 14 : 7) === 2 ? `<text x="${X(i)}" y="${H - 8}" text-anchor="middle">${dJM(j.d)}</text>` : '').join('')}
       <path d="${ch} V${Y(Math.max(y0, 0))} H${X(0).toFixed(1)} Z" fill="var(--serie1)" fill-opacity=".1"/>
-      <path d="${ch}" fill="none" stroke="var(--serie1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${ch}" fill="none" stroke="var(--serie1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${P.base ? cmptTraitBase(P, X, Y) : ''}
       ${etiqBas ? `<circle cx="${xB}" cy="${Y(P.bas.s)}" r="5" fill="var(--serie1)" stroke="var(--graph-anneau)" stroke-width="2"/><text class="etiq" x="${xEtiq}" y="${yB}" text-anchor="${aGauche ? 'end' : 'start'}">point bas · ${iBas ? eur(P.bas.s) : 'aujourd’hui'}</text>` : ''}
       <circle cx="${X(n - 1)}" cy="${Y(P.fin.s)}" r="5" fill="var(--serie1)" stroke="var(--graph-anneau)" stroke-width="2"/><text class="etiq" x="${X(n - 1) - 9}" y="${yFin}" text-anchor="end">${finEstBas ? 'point bas · ' : ''}${eur(P.fin.s)}</text>
       <line id="prev-fil" x1="0" x2="0" y1="${h}" y2="${H - b}" stroke="var(--trait2)" stroke-width="1" visibility="hidden"/><circle id="prev-pt" r="5" fill="var(--serie1)" stroke="var(--graph-anneau)" stroke-width="2" visibility="hidden"/>
@@ -3150,6 +3208,324 @@ const voixBoutonHtml = cls => `<button type="button" class="${cls}" data-voix="1
     document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('.guide button:not([data-voix])')) { force = true; voixTaire(); setTimeout(() => { force = false; }, 0); } }, true);
     filmAller = function(i){ if (!force && typeof CINE !== 'undefined' && CINE.actif && !CINE.pause && i === CINE.i + 1 && voixParle()) { clearTimeout(CINE.min); CINE.min = setTimeout(() => filmAller(i), 400); return; } return a0.apply(this, arguments); }; }
 })();
+/* ── comptabilite ── Lot Comptabilité (fenêtre) : le pont avec OP GESTION, un tableau de bord stable, des listes qui se filtrent, la suite de la TVA.
+   Rien ici n'écrit d'écriture de son cru : on lit les comptes, on enchaîne les gestes qui existent, on dit clairement où l'on en est. */
+const CMPT = { role:'gestion', prenom:'Julie', liens:{}, heroReplie:false, sim:null, seuil:20000, seuilOn:false, rappelTva:true, depots:0 };
+try { CMPT.heroReplie = localStorage.getItem('cmpt_hero_replie') === '1'; } catch (e) {}
+Object.assign(UI, { vf:'toutes', vq:'', ach:'tous', bq:'tous', bqq:'' });
+const cmptParent = m => { try { if (parent !== window) { parent.postMessage(m, '*'); return true; } } catch (e) {} return false; };
+const cmptPluriel = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
+/* un message d'OP GESTION : qui regarde (le titre et « Ce qui t'attend »), ou « ouvre-moi cette rubrique avec ce filtre » */
+addEventListener('message', ev => {
+  const d = ev.data; if (!d || typeof d !== 'object') return;
+  if (d.opc_role) { CMPT.role = d.opc_role.role === 'patron' ? 'patron' : 'gestion'; if (d.opc_role.prenom) CMPT.prenom = String(d.opc_role.prenom).slice(0, 30); if (UI.route === 'accueil') rendre(); }
+  if (d.opc_aller) cmptAller(d.opc_aller);
+  if (d.opc_liens) cmptLiensRecus(d.opc_liens);
+});
+function cmptAller(o){
+  const r = o && o.r; if (!r || !ROUTES.includes(r)) return;
+  if (o.vf) UI.vf = o.vf; if (typeof o.q === 'string') UI.vq = o.q; if (o.expert) UI.expert = true;
+  if (document.body.classList.contains('menu-ouvert')) document.body.classList.remove('menu-ouvert');
+  fermer(); aller(r);
+  if (o.ouvre) setTimeout(() => { const l = document.querySelector('[data-fac="' + o.ouvre + '"]');
+    if (l && (!o.cli || cmptNorm(l.textContent).includes(cmptNorm(o.cli)))) l.click(); else if (o.cli) { UI.vq = o.cli; rendre(); } }, 160);   /* le même numéro chez un autre client : on montre les factures du bon client, on n'ouvre pas la mauvaise */
+}
+function cmptLiensRecus(o){ if (!o || !o.cle) return; CMPT.liens[o.cle] = o; const z = document.querySelector('.cmpt-liens[data-cle="' + o.cle + '"]'); if (!z) return;
+  z.querySelectorAll('[data-cmpt]').forEach(b => { const k = b.dataset.cmpt.split('|')[1]; if (k in o) b.hidden = !o[k]; }); }   /* OP GESTION dit ce qui existe de son côté : un bouton qui ne mène nulle part ne paraît pas */
+/* les liens que porte une écriture : sa facture, son client, et ce qu'OP GESTION en sait (l'intervention, le devis) */
+function cmptLiensDe(e){
+  const txt = [e.piece, e.lib].concat((e.lignes || []).map(l => l.lib || '')).join(' '), num = (txt.match(/FAC-\d{4}-\d{4}/) || [])[0] || null;
+  const l = (e.lignes || []).find(x => x.aux && /^C-/.test(x.aux)), cli = l ? nomTiers(l.aux) : null;
+  return { num, cli };
+}
+function cmptLiensBloc(L){
+  if (!L.num && !L.cli) return '';
+  const cle = L.num || L.cli, c = esc(L.cli || '');
+  return `<div class="cmpt-liens" data-cle="${esc(cle)}" role="group" aria-label="Ouvrir dans OP GESTION">${L.num ? `<button type="button" class="btn gris" data-cmpt="ouvrir|facture" data-cle="${esc(L.num)}" data-cli="${c}">Ouvrir la facture</button>` : ''}${L.cli ? `<button type="button" class="btn gris" data-cmpt="ouvrir|client" data-cle="${esc(L.cli)}" data-cli="${c}">Ouvrir le client</button>` : ''}${L.num ? `<button type="button" class="btn gris" data-cmpt="ouvrir|inter" data-cle="${esc(L.num)}" data-cli="${c}" hidden>Ouvrir l’intervention</button><button type="button" class="btn gris" data-cmpt="ouvrir|devis" data-cle="${esc(L.num)}" data-cli="${c}" hidden>Voir le devis</button>` : ''}</div>`;
+}
+/* « Où en est cette facture » : ce qu'on veut savoir avant de lire une écriture */
+const cmptEtatFacture = num => {
+  const f = FACTURES.find(x => x.num === num), F = factureDe(num); if (!f || !F) return null;
+  const p = paiementDe(F), late = !F.lettree && F.e.ech && F.e.ech < AUJ, jr = late ? jours(F.e.ech, AUJ) : 0;
+  return { f, F, p, late, jr };
+};
+function cmptFactureBloc(num){
+  const S = cmptEtatFacture(num); if (!S) return '';
+  const { f, F, p, late, jr } = S, rel = f.relances || 0, due = r2(F.ttc);
+  const li = (cl, ic, t) => `<li class="${cl}"><i aria-hidden="true">${ic}</i><span>${t}</span></li>`;
+  return `<div class="carte cmpt-fac" data-fac-etat="${esc(num)}"><h3>Où en est cette facture</h3><ul class="cmpt-etat">
+      ${li('ok', '✓', `Envoyée par OP GESTION le ${dCourt(F.e.date)} · ${eur(due)} TTC`)}
+      ${p ? li('ok', '✓', `Payée le ${dCourt(p.date)} (${p.mode})`) : late ? li('mal', '!', `En retard : échue le ${dCourt(F.e.ech)}, il y a ${cmptPluriel(jr, 'jour')}`) : li('att', '…', `À encaisser${F.e.ech ? ' avant le ' + dCourt(F.e.ech) : ''}`)}
+      ${!p ? li(rel ? 'ok' : 'att', rel ? '✓' : '…', rel ? `Relancée ${cmptPluriel(rel, 'fois')} par OP GESTION${num === 'FAC-2026-0128' ? ' (dernière relance le ' + (AUTO.terrain.relance ? '31/10' : '28/10') + ')' : ''}` : 'Pas encore relancée') : ''}
+      ${!p ? li(late ? 'mal' : 'att', '€', `Reste dû : <b>${eur(due)}</b>`) : ''}</ul>
+    <div class="cmpt-outils">${p ? '' : `<button type="button" class="btn petit" data-cmpt="relancer" data-cle="${esc(num)}">Relancer maintenant</button>`}<button type="button" class="btn gris petit" data-cmpt="pdf" data-cle="${esc(num)}">Voir le PDF</button></div></div>`;
+}
+(() => { const o0 = ouvrirExplication;
+  ouvrirExplication = function(id){
+    const r = o0.apply(this, arguments);
+    try { const e = E.find(x => x.id === id), p = document.querySelector('#calque .panneau'); if (!e || !p) return r;
+      const L = cmptLiensDe(e), h = p.querySelector('.haut'); let bloc = '';
+      if (e.j === 'VE' && L.num) bloc += cmptFactureBloc(L.num);
+      bloc = cmptLiensBloc(L) + bloc;
+      if (bloc && h) { h.insertAdjacentHTML('afterend', bloc); const g = p.querySelector('[data-a="ecr"]'); if (g) { g.className = 'lien'; g.textContent = 'Voir l’écriture du comptable'; } }
+      if (L.num || L.cli) cmptParent({ opc_lien_q:{ cle:L.num || L.cli, num:L.num, cli:L.cli } });
+    } catch (x) {}
+    return r; };
+})();
+/* le panneau d'une facture : relancer (aperçu avant l'envoi) et voir le PDF */
+function cmptRelancer(num){
+  const S = cmptEtatFacture(num); if (!S) return; const { f, F } = S, c = nomTiers(f.cli);
+  ouvrir(haut('Relancer ' + esc(c), `${esc(num)} · ${eur(r2(F.ttc))} TTC`, 'Relance') + `<div class="carte"><p class="mute petit">Aperçu du message, tel qu’il part : poli, avec le lien pour payer par carte. Tu peux le modifier avant de l’envoyer.</p>
+    <label class="champ" for="cmpt-rel-txt">Message<textarea id="cmpt-rel-txt" rows="7" style="width:100%;font:inherit;font-size:16px;min-height:160px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);padding:10px">Bonjour,\n\nSauf erreur de notre part, la facture ${num} de ${eur(r2(F.ttc))}${S.late ? ', échue le ' + dCourt(F.e.ech) + ',' : ''} n’est pas encore réglée. Vous pouvez la payer par carte en un clic avec le lien ci-dessous, ou par virement.\n\nSi le paiement est déjà parti, merci de ne pas tenir compte de ce message.\n\nBien à vous,\n${esc(DOSSIER.nom)}</textarea></label></div>
+    <div class="outils"><button type="button" class="btn" data-cmpt="relancer-ok" data-cle="${esc(num)}">Envoyer la relance</button><button type="button" class="btn gris" data-a="fermer">Annuler</button></div>`);
+}
+function cmptRelancerOk(num){
+  const S = cmptEtatFacture(num); if (!S) return; const { f } = S; f.relances = (f.relances || 0) + 1; fermer();
+  fil('OP GESTION', `Relance envoyée · ${num} · ${nomTiers(f.cli)}`, `${cmptPluriel(f.relances, 'relance')} au total : un rappel poli avec le lien pour payer par carte. Rien ne s’écrit en comptabilité tant que le client n’a pas payé.`, [], 'relance-main');
+  rendre(); toast(`Relance ${f.relances} envoyée à ${nomTiers(f.cli)} · ${num}. Elle est notée dans « Ce qui s’est fait tout seul ».`, 5200);
+}
+function cmptPdf(num){
+  const S = cmptEtatFacture(num); if (!S) return; const { f, F } = S, tx = F.taux ? String(F.taux).replace('.', ',') : '0';
+  ouvrir(haut('Facture ' + esc(num), `${esc(nomTiers(f.cli))} · ${dCourt(F.e.date)}`, 'Aperçu du PDF') + `<div class="cmpt-pdf"><h3>${esc(DOSSIER.nom)}</h3><span>${esc(DOSSIER.adr)} · SIRET ${esc(DOSSIER.siret)}</span>
+    <p style="margin:12px 0 0"><b>Facture ${esc(num)}</b> du ${dCourt(F.e.date)}<br>Client : ${esc(nomTiers(f.cli))}<br>Échéance : ${F.e.ech ? dCourt(F.e.ech) : '—'}</p>
+    <table><thead><tr><th>Désignation</th><th class="n">HT</th><th class="n">TVA ${tx} %</th><th class="n">TTC</th></tr></thead><tbody><tr><td>${esc(f.lib)}</td><td class="n">${nb(F.ht)}</td><td class="n">${nb(F.tva)}</td><td class="n">${nb(F.ttc)}</td></tr></tbody></table>
+    <p style="text-align:right;margin:10px 0 0"><b>Total à payer : ${eur(r2(F.ttc))}</b></p></div><p class="mute petit">Aperçu de démonstration : le vrai PDF part avec la facture, depuis OP GESTION.</p>`, true);
+}
+/* la pastille « Relié à OP GESTION » dit où en est la lecture, et relit à la demande */
+function cmptLecture(){
+  const n = nouvellesLignes().length, pa = PIECES.filter(p => p.statut === 'a_traiter').length;
+  ouvrir(haut('Relié à OP GESTION', 'Ce que la comptabilité lit toute seule', 'Lecture') + `<div class="carte"><p>Dernière lecture : <b>31/10 à ${esc(SIM.h)}</b>. La comptabilité lit les factures, les paiements, les heures et les notes de frais d’OP GESTION, et la banque chaque nuit.</p>
+    <p class="mute petit">${n || pa ? `À lire : ${cmptPluriel(n, 'ligne de banque', 'lignes de banque')} et ${cmptPluriel(pa, 'document')}.` : 'Tout est lu : rien n’attend.'}</p></div>
+    <div class="outils"><button type="button" class="btn" data-cmpt="relire">Relire maintenant</button><button type="button" class="btn gris" data-a="aller" data-r="terrain">La journée en direct</button></div>`);
+}
+function cmptRelire(){
+  if (CINE.actif && !CINE.fin) return toast('La démo joue déjà la journée. Pour relire toi-même, quitte-la d’abord (✕).');
+  const n = nouvellesLignes().length, pa = PIECES.filter(p => p.statut === 'a_traiter').length; fermer();
+  if (!n && !pa) return toast('Tout est déjà lu : rien de nouveau depuis ' + SIM.h + '.');
+  if (UI.mode === 'choix') UI.mode = 'libre';
+  const r = toutTraiter(); rendre(); toast(`Relu : ${cmptPluriel(r.ecrits, 'écriture passée', 'écritures passées')} · ${cmptPluriel(r.questions, 'question')} pour toi.`);
+}
+/* ─── le tableau de bord : le bon prénom, ce qui attend le patron, une présentation qui se replie, des chiffres dont on sait d'où ils viennent ─── */
+const cmptNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const cmptHeroMini = () => `<div class="carte cmpt-hero-mini" id="hero"><span class="cmpt-l"><span class="surtitre">Démonstration · données fictives</span></span><span class="cmpt-l"><button type="button" class="btn gris petit" data-a="film">Regarder la démo</button><a class="btn gris petit" href="#tests">Tests guidés (${UI.testsOk.size}/${TESTS.length})</a><button type="button" class="btn gris petit" data-a="explorer">Explorer librement</button><button type="button" class="lien" data-cmpt="hero|0">Afficher la présentation</button></span></div>`;
+function cmptCreux(){ if (!CMPT.seuilOn) return null; try { const P = previsions(UI.prevHab || false), j = P.J.find(x => x.s < CMPT.seuil); return j ? { d:j.d, s:j.s } : null; } catch (e) { return null; } }
+function cmptAttendHtml(){
+  const D = TVA_DECL['2026-10'] || {}, AV = questions(), retard = FACTURES.filter(f => { const F = factureDe(f.num); return F && !F.lettree && F.e.ech && F.e.ech < AUJ; }), L = [];
+  if (!PAIE.valide) L.push(['Valider la paie d’octobre', PAIE.calc ? 'Les fiches sont prêtes : relis-les, puis valide.' : 'Les fiches se calculent avec les heures validées dans OP GESTION.', 'paie', 'Voir']);
+  if (!D.decl) L.push(['Arrêter la TVA d’octobre', 'Calculée toute seule : tu l’arrêtes quand le mois est complet.', 'tva', 'Voir']);
+  if (retard.length) L.push([`${cmptPluriel(retard.length, 'facture')} en retard`, retard.map(f => nomTiers(f.cli)).join(' · '), 'ventes|retard', 'Voir']);
+  if (AV.length) L.push([`${cmptPluriel(AV.length, 'question t’attend', 'questions t’attendent')}`, 'Ce que la comptabilité ne tranche pas sans toi.', 'averifier', 'Répondre']);
+  const cr = cmptCreux(); if (cr) L.push([`Trésorerie : le ${dCourt(cr.d)} le compte descendrait à ${eur(cr.s)}`, `Sous ton seuil de ${eur(CMPT.seuil)}.`, 'previsions', 'Voir']);
+  return `<div class="carte cmpt-attend" id="cmpt-attend"><h2>Ce qui t’attend</h2>${L.length ? L.map(([t, d, r, b]) => `<div class="cmpt-att"><span><b>${esc(t)}</b><span class="mute petit" style="display:block">${esc(d)}</span></span><button type="button" class="btn gris" data-cmpt="attend|${r}" aria-label="${esc(b + ' : ' + t)}">${b}</button></div>`).join('') : '<p class="mute">Rien ne t’attend : tout est à jour.</p>'}</div>`;
+}
+const cmptAcc0 = VUES.accueil;
+VUES.accueil = () => {
+  let h = cmptAcc0(); const choix = UI.mode === 'choix', pat = CMPT.role === 'patron';
+  h = h.replace(/<h1>Bonjour [^<]*<\/h1>/, '<h1>Bonjour ' + esc(CMPT.prenom) + '</h1>');
+  const i = h.indexOf('<div class="carte hero" id="hero">'), j = h.indexOf('<div class="kpis six"');
+  if (choix && i >= 0 && j > i) {
+    if (CMPT.heroReplie) h = h.slice(0, i) + cmptHeroMini() + h.slice(j);
+    else h = h.replace('<p class="mute petit">Nous sommes le samedi 31 octobre 2026, au petit matin.</p>', '<p class="mute petit">Nous sommes le samedi 31 octobre 2026, au petit matin.</p><button type="button" class="lien cmpt-replier" data-cmpt="hero|1">Replier la présentation</button>');
+    h = h.replace('La nuit est déjà traitée : regarde où en est le mois', 'La nuit est lue et rangée à ton arrivée : tu vois où en est le mois');
+    const n = nouvellesLignes().length, pa = PIECES.filter(p => p.statut === 'a_traiter').length;
+    h = h.replace('<div class="carte" id="mois-etapes">', `<p class="cmpt-avant" id="cmpt-avant">Ces chiffres datent d’avant la lecture de la nuit : ${cmptPluriel(n, 'ligne de banque', 'lignes de banque')} et ${cmptPluriel(pa, 'document')} ne sont pas encore lus. Ils se mettent à jour dès que tu ouvres une rubrique.</p><div class="carte" id="mois-etapes">`);
+  }
+  if (pat && j > 0) h = h.replace('<div class="kpis six"', cmptAttendHtml() + '<div class="kpis six"');
+  else { const cr = cmptCreux(); if (cr) h = h.replace('<div class="kpis six"', `<div class="alerte cmpt-ecart" role="status"><b>Trésorerie :</b> le ${dCourt(cr.d)}, le compte descendrait à ${eur(cr.s)}, sous ton seuil de ${eur(CMPT.seuil)}. <button type="button" class="lien" data-cmpt="attend|previsions">Voir la courbe</button></div><div class="kpis six"`); }
+  h = h.replace('à déposer au plus tard le 23/11', 'calculée sur les paiements reçus au 31/10 · à déposer d’ici le 23/11');
+  if (!PAIE.valide) { const F = paieFichesDe('2026-10'), cout = r2(paieTotal(F, 'brut') + paieTotal(F, 'paniers') + paieTotal(F, 'totP')), res = -(solde('6', { au:AUJ }) + solde('7', { au:AUJ }));
+    h = h.replace(/<button type="button" class="kpi" data-a="aller" data-r="resultat">[\s\S]*?<\/button>/, kpi('resultat', 'Bénéfice de l’année estimé', eur(r2(res - cout)), `avec la paie d’octobre prévue (− ${eur(cout)}) · ${eur(res)} avant la paie`)); }
+  return h;
+};
+/* la nuit lue : une ligne fixe qui dit ce qui a changé, au lieu d'un message qui passe et couvre l'écran */
+nuitNoteHabiller = function(){
+  const N = UI.nuitNote; if (!N) return; if (!N.dep) N.dep = UI.route;
+  if (UI.route !== N.dep && UI.route !== 'accueil') { UI.nuitNote = null; return; }
+  const c = $('#contenu'); if (!c || c.querySelector('.nuit-note')) return;
+  const html = `<div class="carte nuit-note" role="status"><span><b>Cette nuit :</b> ${cmptPluriel(N.lignes || 0, 'ligne de banque', 'lignes de banque')} et ${cmptPluriel(N.docs || 0, 'document')} lus, ${cmptPluriel(N.n, 'action faite', 'actions faites')} toute${N.n > 1 ? 's' : ''} seule${N.n > 1 ? 's' : ''}. Les chiffres ont changé pour cette raison. <a href="#fil">Voir ce qui s’est fait tout seul</a></span><button type="button" class="lien" data-nuit-ok="1">J’ai compris</button></div>`;
+  const t = c.querySelector('.fen-tete'); if (t) t.insertAdjacentHTML('afterend', html); else c.insertAdjacentHTML('afterbegin', html);
+};
+
+/* ─── Ventes et encaissements : filtrer, chercher, savoir lesquelles sont en retard ─── */
+VUES.ventes = () => {
+  const L0 = E.filter(e => e.j === 'VE' && e.etat !== 'supprimee' && !e.essai).map(e => factureDe(e.piece)).filter(f => f && (f.e.date >= '2026-10-01' || !f.lettree)).sort((a, b) => b.e.date.localeCompare(a.e.date) || b.e.piece.localeCompare(a.e.piece));
+  const o = { du:'2026-10-01', au:AUJ }, facture = -solde('70', o), encaisse = lignesDe(l => l.c === '411000' && l.cr > 0, o).reduce((s, x) => s + cts(x.l.cr), 0) / 100;
+  const late = f => !f.lettree && f.e.ech && f.e.ech < AUJ, retard = L0.filter(late), dues = L0.filter(f => !f.lettree), payees = L0.filter(f => f.lettree);
+  const cliDe = f => f.e.lignes.find(l => l.aux).aux, q = cmptNorm(UI.vq).trim();
+  const base = UI.vf === 'retard' ? retard : UI.vf === 'encaisser' ? dues : UI.vf === 'payees' ? payees : L0;
+  const L = q ? base.filter(f => cmptNorm([f.e.piece, nomTiers(cliDe(f)), f.e.lib].join(' ')).includes(q)) : base;
+  const pil = [['toutes', 'Toutes', L0.length], ['encaisser', 'À encaisser', dues.length], ['retard', 'En retard', retard.length], ['payees', 'Payées', payees.length]];
+  return tete('Ventes', 'Ventes et encaissements', 'Chaque facture envoyée par OP GESTION s’écrit toute seule ; chaque paiement (carte, lien, virement, chèque) la solde tout seul. Ici, tu vois qui a payé et qui doit encore.') +
+    `<div class="kpis"><div class="kpi"><span>Facturé en octobre</span><b>${eur(facture)}</b><small>hors taxes</small></div><div class="kpi"><span>Encaissé en octobre</span><b>${eur(encaisse)}</b><small>TVA comprise</small></div><div class="kpi"><span>Reste à encaisser</span><b>${eur(solde('411000', { au:AUJ }))}</b><small>toutes factures</small></div><button type="button" class="kpi" data-cmpt="vf|retard" aria-label="${retard.length ? cmptPluriel(retard.length, 'facture') + ' en retard : les afficher' : 'Aucune facture en retard'}"><span>En retard</span><b>${retard.length}</b><small>${retard.length ? 'touche pour les voir' : 'aucune'}</small></button></div>
+    <div class="cmpt-filtres"><div class="seg" role="group" aria-label="Filtrer les factures">${pil.map(([k, l, n]) => `<button type="button" aria-pressed="${UI.vf === k}" data-cmpt="vf|${k}">${l} (${n})</button>`).join('')}</div>
+      <input type="search" class="cmpt-rech" data-a-input="vq" value="${esc(UI.vq)}" placeholder="Chercher un client ou un numéro" aria-label="Chercher un client ou un numéro" autocomplete="off"></div>
+    <div class="defile"><table class="t liste-tel" role="table"><thead role="rowgroup"><tr role="row"><th class="masque-tel" role="columnheader">Facture</th><th role="columnheader">Client</th><th class="masque-tel" role="columnheader">Date</th><th class="n" role="columnheader">TTC</th><th role="columnheader">État</th></tr></thead><tbody role="rowgroup">
+      ${L.map(f => { const p = paiementDe(f), F = FACTURES.find(x => x.num === f.e.piece) || {}, cli = cliDe(f), en = late(f);
+        return `<tr class="clic" role="row" data-fac="${esc(f.e.piece)}" data-a="expliquer" data-id="${f.e.id}" data-tag="fac"><td class="mono masque-tel" role="cell">${esc(f.e.piece)}</td><td class="lt-t" role="cell">${esc(nomTiers(cli))}<span class="sec">${esc(f.e.lib.split(' · ')[0])}</span><span class="sec seul-tel mono">${esc(f.e.piece)}</span></td><td class="c masque-tel" role="cell">${dCourt(f.e.date)}</td><td class="n lt-m" role="cell">${nb(f.ttc)}</td>
+          <td class="lt-e" role="cell">${p ? `<span class="st ok">Payée · ${p.mode}</span><span class="sec">le ${dCourt(p.date)}</span>` : en ? `<span class="st bad">En retard</span><span class="sec">due le ${dCourt(f.e.ech)}${F.relances ? ' · ' + plur(F.relances, 'relance') : ''}</span>` : `<span class="st warn">À encaisser</span><span class="sec">${f.e.ech ? 'due le ' + dCourt(f.e.ech) : ''}</span>`}</td></tr>`; }).join('') || `<tr role="row"><td role="cell" colspan="5" class="vide">${q ? 'Aucune facture ne correspond à « ' + esc(UI.vq.trim()) + ' ».' : 'Aucune facture dans ce filtre.'}</td></tr>`}</tbody></table></div>
+    <p class="mute petit">${L.length === L0.length ? '' : cmptPluriel(L.length, 'facture affichée', 'factures affichées') + ' sur ' + L0.length + '. '}Touche une facture pour voir où elle en est : relancer, voir le PDF, l’ouvrir dans OP GESTION. ${UI.expert ? 'Le compte de chaque client est dans « Clients et fournisseurs ».' : ''}</p>`;
+};
+
+/* ─── Achats et dépenses : où envoyer les factures, ce qui reste à payer, et pourquoi ça fait ce total ─── */
+const cmptAch0 = VUES.achats;
+function cmptDepot(kind){
+  if (CMPT.depotEnCours) return; CMPT.depotEnCours = true; const n = ++CMPT.depots;
+  (UI.depotsListe = UI.depotsListe || []).unshift({ id:n, kind, lu:false }); toast(kind === 'photo' ? 'Ticket photographié : lecture en cours…' : 'Fichier reçu : lecture en cours…', 2600); if (UI.route === 'achats') rendre();
+  setTimeout(() => { const d = (UI.depotsListe || []).find(x => x.id === n); if (d) d.lu = true; CMPT.depotEnCours = false; if (UI.route === 'achats') rendre(); toast('Lu. Il sera écrit en comptabilité à la prochaine passe : rien n’est perdu.', 4200); }, 2000);
+}
+VUES.achats = () => {
+  let h = cmptAch0(); const adr = 'factures@' + DOSSIER.nom.toLowerCase().replace(/[^a-z0-9]+/g, '') + '.opgestion.fr';
+  const dep = (UI.depotsListe || []).map(d => `<tr role="row"><td class="lt-t" role="cell">${d.kind === 'photo' ? 'Ticket photographié' : 'Fichier déposé'}<span class="sec">à l’instant · ${esc(DOSSIER.moi)}</span></td><td class="masque-tel" role="cell">${d.kind === 'photo' ? 'Photo' : 'Document'}</td><td class="masque-tel" role="cell"><span class="via">${ico(d.kind === 'photo' ? 'photo' : 'mail')}${d.kind === 'photo' ? 'photo' : 'déposé ici'}</span></td><td class="n lt-m" role="cell">…</td><td class="lt-e" role="cell">${d.lu ? '<span class="st info">Lu · sera écrit à la prochaine passe</span>' : '<span class="st">Lecture en cours…</span>'}</td></tr>`).join('');
+  const bandeau = `<div class="carte cmpt-ligne" id="cmpt-depot"><div class="cmpt-l"><b>Reçois tes factures ici :</b><span class="cmpt-adresse">${esc(adr)}</span><button type="button" class="btn gris petit" data-cmpt="copier" data-txt="${esc(adr)}">Copier</button></div><div class="cmpt-depots"><button type="button" class="btn gris" data-cmpt="depot|photo">Photographier un ticket</button><button type="button" class="btn gris" data-cmpt="depot|fichier">Déposer un fichier</button></div></div>`;
+  h = apresTete(h, bandeau);
+  if (dep) h = h.replace('<tbody role="rowgroup">', '<tbody role="rowgroup">' + dep);
+  /* la carte « À payer aux fournisseurs » est refaite : échéance, statut, total qui tombe juste, avoir expliqué */
+  const k = h.indexOf('<div class="carte"><h2>À payer aux fournisseurs</h2>'); if (k < 0) return h;
+  const dues = lignesDe(l => (l.c === '401000' || l.c === '404000') && !l.let && l.cr > 0, { au:AUJ }).sort((a, b) => (a.e.ech || a.e.date).localeCompare(b.e.ech || b.e.date));
+  const avoirs = lignesDe(l => (l.c === '401000' || l.c === '404000') && !l.let && l.d > 0 && l.aux, { au:AUJ });
+  const tard = x => x.e.ech && x.e.ech < AUJ, nbT = dues.filter(tard).length, f = UI.ach;
+  const L = f === 'retard' ? dues.filter(tard) : f === 'apayer' ? dues.filter(x => !tard(x)) : dues;
+  const tot = r2(dues.reduce((s, x) => s + x.l.cr, 0)), tAv = r2(avoirs.reduce((s, x) => s + x.l.d, 0)), net = r2(tot - tAv), tuile = r2(-solde('401000', { au:AUJ }) - solde('404000', { au:AUJ }));
+  const pil = [['tous', 'Toutes', dues.length], ['retard', 'En retard', nbT], ['apayer', 'À payer', dues.length - nbT]];
+  const carte = `<div class="carte" id="cmpt-apayer"><h2>À payer aux fournisseurs · ${eur(net)}</h2>
+    <div class="cmpt-filtres"><div class="seg" role="group" aria-label="Filtrer ce qui reste à payer">${pil.map(([k2, l, n]) => `<button type="button" aria-pressed="${f === k2}" data-cmpt="ach|${k2}">${l} (${n})</button>`).join('')}</div></div>
+    ${dues.length ? `<div class="defile"><table class="t liste-tel" role="table"><tbody role="rowgroup">${L.map(x => `<tr role="row"><td class="lt-t" role="cell"><button type="button" class="lien" data-cmpt="tiers|${esc(x.l.aux)}">${esc(nomTiers(x.l.aux))}</button><span class="sec">${esc(x.e.piece)}</span></td><td class="c lt-e" role="cell">${x.e.ech ? 'à payer avant le ' + dCourt(x.e.ech) : ''}<br>${tard(x) ? '<span class="st bad">En retard</span>' : '<span class="st warn">À payer</span>'}</td><td class="n lt-m" role="cell">${nb(x.l.cr)}</td></tr>`).join('') || '<tr role="row"><td role="cell" colspan="3" class="vide">Rien dans ce filtre.</td></tr>'}${f === 'tous' ? avoirs.map(x => `<tr role="row"><td class="lt-t" role="cell"><button type="button" class="lien" data-cmpt="tiers|${esc(x.l.aux)}">${esc(nomTiers(x.l.aux))}</button><span class="sec">Avoir ${esc(x.e.piece)} · à déduire</span></td><td class="c lt-e" role="cell"><span class="st info">Avoir</span></td><td class="n lt-m" role="cell">− ${nb(x.l.d)}</td></tr>`).join('') : ''}</tbody></table></div>
+      <div class="cmpt-total"><span>${eur(tot)} de factures${tAv ? ` − ${eur(tAv)} d’avoir` : ''}</span><b>${eur(net)}</b></div>
+      <p class="mute petit">${net === tuile ? 'C’est le chiffre « Tu dois aux fournisseurs » du tableau de bord.' : 'Le tableau de bord affiche ' + eur(tuile) + '.'} Le paiement se reconnaît tout seul sur le relevé de la banque : la facture est alors notée payée.</p>` : '<p class="mute">Rien à payer.</p>'}</div>`;
+  return h.slice(0, k) + carte + '</div>';
+};
+
+/* ─── Banque : un relevé qu'un non-comptable lit, et un écart expliqué ─── */
+const cmptBq0 = VUES.banque;
+function cmptCatBq(r){
+  const e = r.pointe && ecrDe(r.pointe);
+  if (e) { const cs = e.lignes.map(l => l.c); if (cs.some(c => c === '411000' || c === '467100' || c === '511200')) return 'clients'; if (cs.some(c => /^40[14]/.test(c))) return 'fournisseurs'; if (cs.some(c => /^(4455|431|437|4421|444|645|646)/.test(c))) return 'impots'; return 'autres'; }
+  const t = r.aide && r.aide.type; return t === 'client' || t === 'psp' ? 'clients' : t === 'fourn' ? 'fournisseurs' : t === 'salaires' ? 'impots' : 'autres';
+}
+function cmptEcartBanque(){
+  const R = etatRapprochement(AUJ), aP = releveAPasser(), ecart = r2(R.compta - R.releve);
+  const expl = r2(R.comptaNonReleve.reduce((s, x) => s + x.l.d - x.l.cr, 0) - aP.reduce((s, r) => s + r.m, 0)), nonExpl = r2(ecart - expl);
+  if (Math.abs(ecart) < .005) return `<div class="bon cmpt-ecart"><b>Les deux soldes sont identiques :</b> ce que dit la banque est ce que dit ta comptabilité.</div>`;
+  const items = R.comptaNonReleve.map(x => `${esc(x.e.lib)} (${x.l.d ? '+' : '−'} ${eur(Math.abs(x.l.d - x.l.cr))})`).concat(aP.map(r => `${esc(r.lib)} (${r.m >= 0 ? '+' : '−'} ${eur(Math.abs(r.m))}, sur le relevé)`));
+  if (Math.abs(nonExpl) >= .005) return `<div class="alerte cmpt-ecart"><b>${eur(Math.abs(nonExpl))} non expliqués.</b> L’écart entre la banque et ta comptabilité est de ${eur(Math.abs(ecart))}${items.length ? ', dont ' + eur(Math.abs(expl)) + ' s’expliquent : ' + items.join(' ; ') : ''}. Le reste est à chercher avec ton expert-comptable.</div>`;
+  return `<div class="info cmpt-ecart"><b>Écart de ${eur(Math.abs(ecart))}</b> entre la banque et ta comptabilité : ${aP.length + R.comptaNonReleve.length > 1 ? cmptPluriel(aP.length + R.comptaNonReleve.length, 'opération') + ' en route' : 'une opération en route'}. ${items.join(' ; ')}. ${aP.length ? '' : 'Elles ne sont pas encore passées par la banque : c’est normal, rien n’est perdu.'}</div>`;
+}
+function cmptReleve(){
+  const R = RELEVE.filter(r => !r.nouveau && r.date >= '2026-10-01').sort((a, b) => b.date.localeCompare(a.date)), q = cmptNorm(UI.bqq).trim(), f = UI.bq, aP = releveAPasser();
+  const pass = r => { if (f === 'a') return !r.pointe; if (f === 'entrees') return r.m >= 0; if (f === 'sorties') return r.m < 0; if (['clients', 'fournisseurs', 'impots'].includes(f)) return cmptCatBq(r) === f; return true; };
+  const clair = r => { const e = r.pointe && ecrDe(r.pointe); return e ? { t:e.lib, s:[e.piece, e.num].filter(Boolean).join(' · '), id:e.id } : { t:'À rapprocher : ' + r.lib, s:'', id:null }; };
+  const L = R.filter(pass).filter(r => { if (!q) return true; const c = clair(r); return cmptNorm([c.t, c.s, r.lib].join(' ')).includes(q); });
+  const pil = [['tous', 'Tout octobre'], ['a', 'À rapprocher (' + aP.length + ')'], ['entrees', 'Entrées'], ['sorties', 'Sorties'], ['clients', 'Clients'], ['fournisseurs', 'Fournisseurs'], ['impots', 'Impôts et charges']];
+  const Rr = etatRapprochement(AUJ);
+  return `<div class="kpis"><div class="kpi"><span>Ce que dit la banque</span><b>${eur(Rr.releve)}</b><small>solde du relevé au 31/10</small></div><div class="kpi"><span>Ce que dit ta comptabilité</span><b>${eur(Rr.compta)}</b><small>le même compte, côté écritures</small></div><div class="kpi"><span>Lignes à rapprocher</span><b style="${aP.length ? 'color:var(--warn)' : 'color:var(--ok)'}">${aP.length}</b><small>${aP.length ? 'sur le relevé, pas encore en comptabilité' : 'toutes les lignes du relevé ont leur écriture'}</small></div></div>
+    ${cmptEcartBanque()}
+    <div class="carte" id="cmpt-releve"><h2>Le relevé, en clair</h2><div class="cmpt-filtres"><div class="seg" role="group" aria-label="Filtrer le relevé">${pil.map(([k, l]) => `<button type="button" aria-pressed="${f === k}" data-cmpt="bq|${k}">${l}</button>`).join('')}</div>
+      <input type="search" class="cmpt-rech" data-a-input="bqq" value="${esc(UI.bqq)}" placeholder="Chercher dans le relevé" aria-label="Chercher dans le relevé" autocomplete="off"></div>
+      <div class="defile"><table class="t liste-tel" role="table"><thead role="rowgroup"><tr role="row"><th role="columnheader">Date</th><th role="columnheader">Ce qui s’est passé</th><th class="n" role="columnheader">Montant</th><th class="masque-tel" role="columnheader">État</th></tr></thead><tbody role="rowgroup">
+      ${L.map(r => { const c = clair(r); return `<tr class="clic" role="row" ${c.id ? `data-a="expliquer" data-id="${c.id}" data-tag="banque-ligne"` : `data-a="rappro" data-id="${r.id}"`}><td class="c lt-d" role="cell">${dCourt(r.date)}</td><td class="lt-t" role="cell">${esc(c.t)}<span class="sec">${esc(r.lib)}</span>${c.s ? `<span class="sec mono">${esc(c.s)}</span>` : ''}</td><td class="n lt-m" role="cell" style="color:${r.m >= 0 ? 'var(--ok)' : 'var(--ink)'}">${r.m >= 0 ? '+' : '−'}${nb(Math.abs(r.m))}</td><td class="masque-tel lt-e" role="cell">${r.pointe ? '<span class="st ok">Rangée</span>' : '<span class="st warn">À rapprocher</span>'}</td></tr>`; }).join('') || `<tr role="row"><td role="cell" colspan="4" class="vide">${q ? 'Aucune ligne ne correspond à « ' + esc(UI.bqq.trim()) + ' ».' : 'Aucune ligne dans ce filtre.'}</td></tr>`}</tbody></table></div>
+      <p class="mute petit">Touche une ligne pour la lire en clair ; le code de l’écriture reste là pour ton expert-comptable. ${cmptPluriel(L.length, 'ligne affichée', 'lignes affichées')}.</p></div>`;
+}
+VUES.banque = () => { const h = cmptBq0(); if (UI.expert) return h; const k = h.indexOf('<details class="carte replie" data-garde="banque"'); return k < 0 ? h : h.slice(0, k) + cmptReleve(); };
+
+/* ─── TVA : après « Arrêter », trois étapes visibles et ce qui vient ensuite ─── */
+const cmptTva0 = VUES.tva;
+VUES.tva = () => {
+  const h = cmptTva0(); if (UI.expert) return h; const D = TVA_DECL['2026-10'] || {}, k = h.indexOf('<details class="carte replie" data-garde="tva"'); if (!D.decl || k < 0) return h;
+  const ym = '2026-10', T = D.l, declaree = !D.pret, reste = tvaReste(ym), lim = dCourt(ouvre(moisSuiv(ym) + '-21')), prels = '23/11';
+  const prec = ['2026-09', '2026-08', '2026-07'].map(m => [m, TVA_DECL[m]]).filter(([, d]) => d && d.l);
+  const peutDeposer = D.liq && reste.vide;
+  const frise = `<div class="carte cmpt-frise" id="cmpt-tva-suite"><h2>La suite, en trois étapes</h2><div class="etapes">
+      <div class="etape ok"><span class="rond">✓</span><span class="txt"><b>Arrêtée</b><span class="mute petit">${eur(T.due)} à payer, écrits dans la comptabilité le ${dCourt(D.decl)}.</span></span></div>
+      <div class="etape ${declaree ? 'ok' : ''}"><span class="rond">${declaree ? '✓' : 2}</span><span class="txt"><b>${declaree ? 'Déposée sur impots.gouv.fr' : 'À déposer sur impots.gouv.fr'}</b><span class="mute petit">${declaree ? 'Notée comme déposée.' : 'Au plus tard le ' + lim + '. Ici, rien n’est transmis : tu notes que c’est fait.'}</span></span>${declaree ? '' : `<span class="cmpt-b"><button type="button" class="btn gris petit" data-cmpt="impots">Ouvrir mon espace impôts</button>${peutDeposer ? `<button type="button" class="btn petit" data-a="tva-declarer" data-k="${ym}">Je l’ai déposée</button>` : `<button type="button" class="btn petit" data-a="tva-complement" data-k="${ym}">Compléter l’écriture</button>`}</span>`}</div>
+      <div class="etape"><span class="rond">3</span><span class="txt"><b>Payée</b><span class="mute petit">Le prélèvement de ${eur(T.due)} part le ${prels} : il sera reconnu tout seul sur le relevé de la banque, et la TVA notée payée.</span></span></div></div>
+    <div class="cmpt-outils" style="margin-top:12px"><label class="cmpt-bascule"><input type="checkbox" data-cmpt="rappel" ${CMPT.rappelTva ? 'checked' : ''}> <span>Rappel : un message le 16/11 (sept jours avant) puis le 22/11</span></label><button type="button" class="btn gris" data-cmpt="treso-tva">Voir l’effet sur ma trésorerie</button></div>
+    ${prec.length ? `<p class="mute petit" style="margin:12px 0 0"><b>Mois précédents :</b> ${prec.map(([m, d]) => `${MOIS_C[+m.slice(5) - 1]} ${eur(d.l.due)}${d.paye ? ' payée le ' + dCourt(d.paye) : ''}`).join(' · ')}</p>` : ''}</div>`;
+  return h.slice(0, k) + frise + h.slice(k);
+};
+
+/* ─── Trésorerie à venir : un seuil qui prévient, et « et si… » sans rien écrire ─── */
+const cmptPrev0 = previsions;
+previsions = function(){
+  const P = cmptPrev0.apply(this, arguments); if (!CMPT.sim || !CMPT.dansPrev) return P;
+  const S = CMPT.sim, F = P.F.map(f => ({ ...f })), fin = ajoute(AUJ, 56);
+  let G = F;
+  if (S.type === 'retard') G = F.map(f => f.lib.startsWith(S.cle) && f.cat === 'client' ? { ...f, d:ajoute(f.d, 15), sur:false } : f).filter(f => f.d <= fin);
+  else G.push({ d:S.d, lib:'Dépense simulée', m:-S.m, sur:false, cat:'sim' });
+  G.sort((a, b) => a.d.localeCompare(b.d) || b.m - a.m);
+  let s = cts(P.depart); const J = [{ d:AUJ, s:P.depart, F:[] }];
+  for (let d = ajoute(AUJ, 1); d <= fin; d = ajoute(d, 1)) { const Lj = G.filter(f => f.d === d); Lj.forEach(f => { s += cts(f.m); }); J.push({ d, s:s / 100, F:Lj }); }
+  return { F:G, J, depart:P.depart, bas:J.reduce((m, j) => j.s < m.s ? j : m, J[0]), fin:J[J.length - 1], base:P };
+};
+function cmptTraitBase(P, X, Y){ const v = P.base.J.map(j => j.s); let d = `M${X(0).toFixed(1)} ${Y(v[0]).toFixed(1)}`; for (let i = 1; i < v.length; i++) d += ` H${X(i).toFixed(1)} V${Y(v[i]).toFixed(1)}`; return `<path d="${d}" fill="none" stroke="var(--doux)" stroke-width="1.5" stroke-dasharray="5 5" stroke-linejoin="round"/>`; }
+const cmptPrevVue0 = VUES.previsions;
+VUES.previsions = () => {
+  CMPT.dansPrev = true; let h; try { h = cmptPrevVue0(); } finally { CMPT.dansPrev = false; }
+  const P = UI._prev, cr = CMPT.seuilOn && P ? P.J.find(j => j.s < CMPT.seuil) : null, S = CMPT.sim;
+  const ligneSeuil = `<div class="cmpt-seuil"><label class="cmpt-bascule"><input type="checkbox" data-cmpt="seuil" ${CMPT.seuilOn ? 'checked' : ''}> <span>Me prévenir si le compte passe sous</span></label><label class="cmpt-bascule"><input type="number" id="cmpt-seuil-val" value="${CMPT.seuil}" min="0" step="1000" inputmode="numeric" aria-label="Seuil en euros"> €</label><button type="button" class="btn gris" data-cmpt="sim">Et si…</button></div>`;
+  const alerte = cr ? `<div class="alerte cmpt-ecart" role="status"><b>Le ${dCourt(cr.d)}, le compte descendrait à ${eur(cr.s)}</b>, sous ton seuil de ${eur(CMPT.seuil)}. Relancer les factures en retard ou décaler une dépense suffit souvent.</div>` : '';
+  const sim = S ? `<div class="info cmpt-simbande" role="status"><span><b>Simulation :</b> ${esc(S.desc)}. Rien n’est écrit dans la comptabilité ; le trait pointillé est la courbe sans cette simulation.</span><button type="button" class="btn gris petit" data-cmpt="sim-fin">Annuler la simulation</button></div>` : '';
+  h = apresTete(h, ligneSeuil + alerte + sim);
+  if (UI.prevSurligne === 'tva') { h = h.replace(/<tr role="row">(<td class="c lt-d" role="cell">[^<]*<\/td><td class="lt-t" role="cell">TVA )/g, '<tr role="row" class="cmpt-surligne">$1'); UI.prevSurligne = null; }
+  return h;
+};
+function cmptSimFenetre(){
+  const P = cmptPrev0(UI.prevHab), cl = P.F.filter(f => f.cat === 'client' && /^FAC-/.test(f.lib));
+  ouvrir(haut('Et si…', 'Un essai : rien n’est écrit dans la comptabilité', 'Trésorerie') + `<div class="cmpt-sim"><label>Que veux-tu tester ?<select id="cmpt-sim-t"><option value="retard">Un client paie 15 jours plus tard</option><option value="depense">J’ajoute une dépense</option></select></label>
+    <label id="cmpt-sim-a">Quelle facture ?<select id="cmpt-sim-f">${cl.map(f => `<option value="${esc(f.lib.split(' · ')[0])}">${esc(f.lib)} · ${nb(f.m)} €</option>`).join('') || '<option value="">Aucune facture en attente</option>'}</select></label>
+    <div id="cmpt-sim-b" class="cmpt-champs" hidden><label>Montant (€)<input type="number" id="cmpt-sim-m" value="25000" min="0" step="100" inputmode="decimal"></label><label>Le<input type="date" id="cmpt-sim-d" value="2026-11-12" min="${ajoute(AUJ, 1)}" max="${ajoute(AUJ, 56)}"></label></div>
+    <div class="outils"><button type="button" class="btn" data-cmpt="sim-ok">Voir la courbe</button><button type="button" class="btn gris" data-a="fermer">Annuler</button></div></div>`);
+}
+document.addEventListener('change', ev => { const t = ev.target; if (!t) return;
+  if (t.id === 'cmpt-sim-t') { const a = document.getElementById('cmpt-sim-a'), b = document.getElementById('cmpt-sim-b'); if (a) a.hidden = t.value !== 'retard'; if (b) b.hidden = t.value !== 'depense'; }
+  if (t.id === 'cmpt-seuil-val') { CMPT.seuil = Math.max(0, +t.value || 0); rendre(); } });
+function cmptSimOk(){
+  const t = (document.getElementById('cmpt-sim-t') || {}).value;
+  if (t === 'retard') { const sel = document.getElementById('cmpt-sim-f'), cle = sel && sel.value; if (!cle) return toast('Aucune facture en attente à tester.'); CMPT.sim = { type:'retard', cle, desc:`${sel.options[sel.selectedIndex].text.split(' · ').slice(0, 2).join(' · ')} paie 15 jours plus tard` }; }
+  else { const m = Math.max(0, +(document.getElementById('cmpt-sim-m') || {}).value || 0), d = (document.getElementById('cmpt-sim-d') || {}).value;
+    if (!m) return toast('Indique le montant de la dépense.'); if (!d || d <= AUJ || d > ajoute(AUJ, 56)) return toast('Choisis une date dans les huit prochaines semaines.'); CMPT.sim = { type:'depense', m, d, desc:`une dépense de ${eur(m)} le ${dCourt(d)}` }; }
+  fermer(); rendre();
+}
+
+/* ─── le menu : une ombre en bas et une flèche tant qu'il reste des rubriques cachées ─── */
+function cmptMenuMaj(){
+  const m = document.getElementById('menu'), l = m && m.querySelector('.menu-liste'); if (!l) return;
+  if (!m.querySelector('.cmpt-plus')) { const p = document.createElement('button'); p.type = 'button'; p.className = 'cmpt-plus'; p.dataset.cmpt = 'defiler'; p.setAttribute('aria-label', 'Voir les rubriques suivantes'); p.innerHTML = '<span aria-hidden="true">⌄</span> Plus bas'; l.after(p); }
+  m.classList.toggle('cmpt-coupe', l.scrollHeight - l.scrollTop - l.clientHeight > 6);
+}
+document.addEventListener('scroll', ev => { if (ev.target && ev.target.classList && ev.target.classList.contains('menu-liste')) cmptMenuMaj(); }, true);
+addEventListener('resize', cmptMenuMaj);
+(() => { const r1 = rendre; rendre = function(){ const v = r1.apply(this, arguments); try { cmptMenuMaj(); } catch (e) {} return v; }; })();
+
+/* ─── un seul écouteur pour les gestes d'ici (data-cmpt="geste|argument") ─── */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-cmpt]'); if (!b) return; const [a, x, y] = b.dataset.cmpt.split('|'), cle = b.dataset.cle, film = CINE.actif && !CINE.fin;
+  if (a === 'ouvrir') return cmptParent({ opc_ouvrir:{ sorte:x, cle, cli:b.dataset.cli || '' } }) ? undefined : toast('Cette fiche s’ouvre dans OP GESTION : ici, la comptabilité est ouverte seule.');
+  if (a === 'relancer') return film ? toast('La démo joue déjà la journée. Pour relancer toi-même, quitte-la d’abord (✕).') : cmptRelancer(cle);
+  if (a === 'relancer-ok') return cmptRelancerOk(cle);
+  if (a === 'pdf') return cmptPdf(cle);
+  if (a === 'vf') { UI.vf = x; return rendre(); }
+  if (a === 'ach') { UI.ach = x; return rendre(); }
+  if (a === 'bq') { UI.bq = x; return rendre(); }
+  if (a === 'tiers') return ouvrirTiers(x);
+  if (a === 'lecture') return cmptLecture();
+  if (a === 'relire') return cmptRelire();
+  if (a === 'copier') { try { navigator.clipboard.writeText(b.dataset.txt || ''); } catch (e) {} return toast('Adresse copiée : donne-la à tes fournisseurs.'); }
+  if (a === 'depot') return film ? toast('La démo joue déjà la journée.') : cmptDepot(x);
+  if (a === 'hero') { CMPT.heroReplie = x === '1'; try { localStorage.setItem('cmpt_hero_replie', x); } catch (e) {} return rendre(); }
+  if (a === 'attend') { if (y) UI.vf = y; return aller(x); }
+  if (a === 'impots') return toast('Dans la vraie version, ton espace impots.gouv.fr s’ouvre ici. Dans la démonstration, rien n’est transmis.');
+  if (a === 'rappel') { CMPT.rappelTva = !CMPT.rappelTva; return toast(CMPT.rappelTva ? 'Rappels activés : un message le 16/11 (sept jours avant) puis le 22/11.' : 'Rappels coupés pour la TVA.'); }
+  if (a === 'treso-tva') { UI.prevTout = true; UI.prevSurligne = 'tva'; return aller('previsions'); }
+  if (a === 'seuil') { CMPT.seuilOn = !CMPT.seuilOn; return rendre(); }
+  if (a === 'sim') return cmptSimFenetre();
+  if (a === 'sim-ok') return cmptSimOk();
+  if (a === 'sim-fin') { CMPT.sim = null; return rendre(); }
+  if (a === 'defiler') { const l = document.querySelector('#menu .menu-liste'); if (l) l.scrollBy({ top:Math.max(120, l.clientHeight * .7), behavior:'smooth' }); return; }
+});
+/* OP GESTION est prévenu que la fenêtre est prête : il répond avec qui regarde, et ce qui était demandé */
+cmptParent({ opc_pret:1 });
+try { cmptMenuMaj(); } catch (e) {}
+
 </script>
 
 </body>
