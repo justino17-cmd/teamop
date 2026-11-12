@@ -1694,7 +1694,7 @@ complète) ; le formulaire d'intervention passé à « Terminée » ne pose ni `
 les zones de dépôt du planning sans `data-drop` (puces de jour, rangées de techniciens) n'ont pas de dépôt au doigt ; la case nue `appearance:none`
 reste sur « Box active », la fiche « Active »… ; les véhicules créés par un technicien avant le correctif (sans `creePar`) restent invisibles pour lui,
 l'administrateur les attribue ; le formulaire Box n'a pas la reprise de brouillon (règle « le stock d'une box ne se réécrit jamais en bloc ») ;
-`test-984` tombe encore sous forte charge (course au chronomètre du relais, tâche #95). Re-test final : deux changements de LARGEUR dans le même rendu
+`test-984` tombe encore sous forte charge (course au chronomètre du relais, tâche #95). ✅ Trouvée et fermée le 12 novembre 2026 : ce n'était pas le minuteur du renouvellement mais la PREMIÈRE lecture des identifiants de l'appelant (`GET /api/ice`), encore en route quand le banc avançait l'horloge du service — le banc attend désormais sa réponse (rejoué : 2 rouges sur 6 avec cette lecture retardée de 120 ms, 0 sur 6 après ; aucun code de production touché). Re-test final : deux changements de LARGEUR dans le même rendu
 (moins de 50 ms, aucun geste humain ne le fait) laissent la liste de la Messagerie décalée (défaut d'avant, inchangé) ; le rapport de présence suit la règle de
 `jourFinDit` — un séjour de moins de 24 h qui passe minuit garde l'heure seule (« 10:00 → 09:00 · 23 h 00 », la durée à côté), et en direct « Depuis »
 dit le jour d'une arrivée d'hier même pour une soirée.
