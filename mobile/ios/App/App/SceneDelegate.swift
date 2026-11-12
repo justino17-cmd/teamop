@@ -43,6 +43,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 WKUserScript(source: SceneDelegate.echelleMac, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         }
         vue.evaluateJavaScript(SceneDelegate.echelleMac, completionHandler: nil)
+        // Le trackpad : deux doigts vers la gauche ou la droite reviennent à l'écran précédent ou suivant.
+        vue.allowsBackForwardNavigationGestures = true
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {

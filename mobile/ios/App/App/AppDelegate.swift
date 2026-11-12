@@ -41,4 +41,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         config.delegateClass = SceneDelegate.self
         return config
     }
+
+    // ── La barre de menus du Mac : un menu « Aller » avec les raccourcis de l'application ──
+    // Chaque commande appelle `window.opgRaccourci(nom)` dans la page de la fenêtre active ; la page garde aussi ses
+    // propres écouteurs de clavier (un navigateur n'a pas cette barre de menus). Sans effet visible sur iPhone.
+    override func buildMenu(with builder: UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        guard builder.system == UIMenuSystem.main else { return }
+        let rechercher = UIKeyCommand(title: "Rechercher ou aller à…", action: #selector(opgPalette), input: "k", modifierFlags: .command)
+        let precedent = UIKeyCommand(title: "Écran précédent", action: #selector(opgPrecedent), input: "[", modifierFlags: .command)
+        let suivant = UIKeyCommand(title: "Écran suivant", action: #selector(opgSuivant), input: "]", modifierFlags: .command)
+        var rubriques: [UIKeyCommand] = []
+        for n in 1...9 {
+            rubriques.append(UIKeyCommand(title: "Rubrique \(n) du menu", action: #selector(opgRubrique(_:)), input: "\(n)", modifierFlags: .command, propertyList: n))
+        }
+        let aide = UICommand(title: "Raccourcis clavier et gestes", action: #selector(opgAide))
+        let aller = UIMenu(title: "Aller", children: [
+            UIMenu(title: "", options: .displayInline, children: [rechercher]),
+            UIMenu(title: "", options: .displayInline, children: [precedent, suivant]),
+            UIMenu(title: "", options: .displayInline, children: rubriques),
+            UIMenu(title: "", options: .displayInline, children: [aide])
+        ])
+        builder.insertSibling(aller, afterMenu: .view)
+    }
+
+    private func opgEnvoyer(_ nom: String) {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let scene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
+        let fenetre = scene?.windows.first(where: { $0.isKeyWindow }) ?? scene?.windows.first
+        guard let pont = fenetre?.rootViewController as? CAPBridgeViewController else { return }
+        pont.webView?.evaluateJavaScript("window.opgRaccourci && window.opgRaccourci('\(nom)')", completionHandler: nil)
+    }
+
+    @objc func opgPalette() { opgEnvoyer("palette") }
+    @objc func opgPrecedent() { opgEnvoyer("precedent") }
+    @objc func opgSuivant() { opgEnvoyer("suivant") }
+    @objc func opgAide() { opgEnvoyer("aide") }
+    @objc func opgRubrique(_ commande: UICommand) {
+        if let n = commande.propertyList as? Int { opgEnvoyer("rubrique\(n)") }
+    }
 }
