@@ -498,7 +498,7 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 @media (max-width:380px){
   .masque-etroit{display:none!important}.seul-etroit{display:block!important}
   .t th.n{white-space:nowrap}          /* une seule colonne de chiffres reste : son en-tête tient sur une ligne */
-  .barre .chip .chip-date{display:none}.barre .logo b{font-size:14px}.barre{gap:8px}
+  .barre .chip .chip-date{display:none}.barre .logo b{font-size:13px;letter-spacing:0}.barre .logo i{display:none}.barre{gap:8px}
   .kpi b{font-size:18px}
   .btn{white-space:normal;line-height:1.2;padding-block:9px;text-align:center}
   h1{font-size:25px}
@@ -3529,6 +3529,23 @@ document.addEventListener('click', ev => {
 cmptParent({ opc_pret:1 });
 try { cmptMenuMaj(); } catch (e) {}
 
+
+/* ── OP COMPTABLE · 12 novembre 2026 ──
+   Justin : « quand on clique sur la comptabilité, que ça mette en haut bienvenue dans OP COMPTABLE ; on va en faire aussi une
+   application à part, pour des cabinets de comptabilité ». La marque de cette fenêtre devient OP COMPTABLE ; le lien avec
+   OP GESTION reste dit (« Relié à OP GESTION »). Avec `?app=1` (l'application), la démonstration guidée et les tests s'effacent ;
+   avec `seul=1`, c'est le compte d'un comptable qui n'a que cette fenêtre. */
+const OPC_APP = /[?&]app=1\b/.test(location.search), OPC_SEUL = /[?&]seul=1\b/.test(location.search);
+document.title = 'OP COMPTABLE';
+if (OPC_APP) { document.documentElement.dataset.app = '1';
+  document.head.insertAdjacentHTML('beforeend', '<style id="opc-app">html[data-app] .bandeau-proto, html[data-app] #hero, html[data-app] [data-a="film"], html[data-app] [data-a="essayer"], html[data-app] a[href="#tests"]{display:none!important}</style>');
+  if (UI.mode === 'choix') UI.mode = 'libre'; }
+function opcMarque(){
+  document.querySelectorAll('#menu .logo, #barre .logo').forEach(l => { const b = l.querySelector('b'), s = l.querySelector('small'); if (b && b.textContent !== 'OP COMPTABLE') b.textContent = 'OP COMPTABLE'; const v = l.closest('#menu') ? DOSSIER.nom : ''; if (s && s.textContent !== v) s.textContent = v; });
+  if (UI.route === 'accueil') { const st = document.querySelector('#contenu .tete .surtitre, #contenu .surtitre'); if (st && /^Pilotage$/i.test(st.textContent.trim())) st.textContent = 'Bienvenue dans OP COMPTABLE'; } }
+{ let enCours = false; const obs = new MutationObserver(() => { if (enCours) return; enCours = true; try { opcMarque(); } finally { enCours = false; } });
+  ['menu', 'barre', 'contenu'].forEach(id => { const e = document.getElementById(id); if (e) obs.observe(e, { childList:true, subtree:true }); });
+  opcMarque(); if (OPC_APP && typeof rendre === 'function') rendre(); }
 </script>
 
 </body>

@@ -19090,7 +19090,7 @@ document.addEventListener('click', ev => {   // une ligne réglée dans la liste
 let CMPT_PRET = false, CMPT_FILE = [];
 const cmptCadre = () => { const z = document.getElementById('cpsys'); return z && z.querySelector('iframe'); };
 function cmptEnvoyer(m){ const f = cmptCadre(); if (f && CMPT_PRET) { try { f.contentWindow.postMessage(m, '*'); return; } catch (e) {} } if (!m.opc_role) CMPT_FILE.push(m); }   /* le rôle courant est envoyé de toute façon quand la fenêtre dit qu'elle est prête */
-const cmptRole = () => ({ role:ROLE === 'patron' ? 'patron' : 'gestion', prenom:ROLE === 'patron' ? 'Marc' : 'Julie' });
+const cmptRole = () => { const q = ROLE !== 'patron' && ROLES[ROLE] && typeof eqDe === 'function' && eqDe(ROLES[ROLE].qui); return { role:ROLE === 'patron' ? 'patron' : 'gestion', prenom:ROLE === 'patron' ? 'Marc' : q ? q.prenom : 'Julie' }; };
 const cmptNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 function cmptVersFenetre(o){
   cpSysDe = route + (param ? '-x-' + param : ''); cpSysteme = true; cmptEnvoyer({ opc_aller:o });
@@ -20687,20 +20687,20 @@ function mbEcrire(L){ mbMem = L; try { if (L) localStorage.setItem(MB_CLE, JSON.
 /* ce qu'on peut mettre dans la barre : exactement les lignes du menu du patron (celles que son entreprise voit), plus « Plus » */
 function mbChoix(){ const d = document.createElement('div'); d.innerHTML = rlMenu('');
   const L = [...d.querySelectorAll('a[href^="#"]')].map(a => { const k = a.getAttribute('href').slice(1), ic = a.querySelector('.ic'), icH = ic ? ic.innerHTML : ''; if (ic) ic.remove(); return [k, a.textContent.trim(), icH]; });
-  L.push(['plus', 'Plus (toutes les catégories)', svg('plus')]); return L; }
-const MB_DEFAUT = ['accueil', 'planning', 'interventions', 'comptabilite', 'plus'];
-const mbHabiller = (h, base) => { const M = ROLE === 'patron' ? mbLire() : null; if (!M || !h) return h;
+  if (!(typeof MODE_APP !== 'undefined' && MODE_APP)) L.push(['plus', 'Plus (toutes les catégories)', svg('plus')]); return L; }
+const MB_DEFAUT = ['accueil', 'planning', 'interventions', 'comptabilite', 'plus'], MB_APP = ['accueil', 'planning', 'interventions', 'clients', 'comptabilite'];
+const mbHabiller = (h, base) => { const app = typeof MODE_APP !== 'undefined' && MODE_APP; let M = ROLE === 'patron' ? (mbLire() || (app ? MB_APP : null)) : null; if (M && app) { M = M.filter(k => k !== 'plus'); if (!M.length) M = MB_APP; } if (!M || !h) return h;
   const C = mbChoix(), T = M.map(k => C.find(c => c[0] === k)).filter(Boolean); if (!T.length) return h;
   const dedans = T.some(c => c[0] === base);
   return tkxPastillePlus(`<nav class="opg-barre" aria-label="Catégories principales" style="grid-template-columns:repeat(${T.length},minmax(0,1fr))">${T.map(([k, l, ic]) => `<button type="button" class="opg-tab${k === base || (k === 'plus' && !dedans) ? ' on' : ''}" data-tab="${k}">${ic}<span>${esc(MB_COURT[k] || l)}</span></button>`).join('')}</nav>`); };
 { const b0 = rlBarre; rlBarre = function(base){ return mbHabiller(b0.apply(this, arguments), base); }; }
 { const b0 = barreBas; barreBas = function(base){ return mbHabiller(b0.apply(this, arguments), base); }; }
-function mbPanneau(dit, non){ const C = mbChoix(), M = mbLire() || MB_DEFAUT;
+function mbPanneau(dit, non){ const app = typeof MODE_APP !== 'undefined' && MODE_APP, C = mbChoix(), M = ((mbLire() || (app ? MB_APP : MB_DEFAUT)).filter(k => !app || k !== 'plus'));
   ouvrirPanneau(`<h2>Ma barre</h2><p class="mini" style="margin:0">Choisis jusqu’à ${MB_MAX} boutons pour la barre du bas. Ils s’y rangent dans l’ordre où tu les coches. Tout le reste est dans le menu, en haut à gauche.</p>
   <p class="mb-dit${non ? ' non' : ''}" role="status">${esc(dit || M.length + ' sur ' + MB_MAX + ' choisis')}</p>
   ${C.map(([k, l, ic]) => { const n = M.indexOf(k); return `<button type="button" class="mb-l${n >= 0 ? ' on' : ''}" data-mabarre="${k}" aria-pressed="${n >= 0}"><span class="ic">${ic}</span><b>${esc(l)}</b><i aria-hidden="true">${n >= 0 ? n + 1 : ''}</i></button>`; }).join('')}
   <div style="display:flex;gap:8px;margin-top:14px"><button type="button" class="btn" data-mabarre="~defaut" style="flex:1">Barre d’origine</button><button type="button" class="btn plein" data-mabarre="~ok" style="flex:1">Terminé</button></div>`); }
-function mbBasculer(k){ let M = (mbLire() || MB_DEFAUT).slice();
+function mbBasculer(k){ const app = typeof MODE_APP !== 'undefined' && MODE_APP; let M = (mbLire() || (app ? MB_APP : MB_DEFAUT)).filter(x => !app || x !== 'plus');
   if (k === '~ok') { fermerPanneau(); return; }
   if (k === '~defaut') { mbEcrire(null); rendre(); mbPanneau('Barre d’origine remise'); return; }
   const n = M.indexOf(k); let dit = '', non = false;
@@ -20805,7 +20805,7 @@ const RC_LISTE = [
 ];
 function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
 /* ce que la barre de menus du Mac (ou un raccourci) déclenche par son nom */
-function opgRaccourci(nom){ if (!rcBureau()) return false; const R = rcRubriques();
+function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; const R = rcRubriques();
   if (nom === 'palette') { PAL ? palFermer(true) : palOuvrir(); return true; }
   if (nom === 'aide') { palFermer(false); rcAide(); return true; }
   if (nom === 'precedent') { history.back(); return true; }
@@ -20816,7 +20816,7 @@ function opgRaccourci(nom){ if (!rcBureau()) return false; const R = rcRubriques
   const m = /^rubrique(\d)$/.exec(nom); if (m && R[+m[1] - 1]) { palFermer(false); aller(R[+m[1] - 1].k); return true; }
   return false; }
 window.opgRaccourci = opgRaccourci;
-document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing) return;
+document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing || document.getElementById('cnx')) return;
   const cmd = MAC ? ev.metaKey && !ev.ctrlKey : ev.ctrlKey && !ev.metaKey, k = ev.key;
   if (PAL) { if (k === 'Escape') { ev.preventDefault(); ev.stopPropagation(); palFermer(true); return; }
     if (k === 'ArrowDown' || k === 'ArrowUp') { ev.preventDefault(); const n = (PAL.L || []).length; if (n) { PAL.i = (PAL.i + (k === 'ArrowDown' ? 1 : n - 1)) % n; palDessiner(); } return; }
@@ -20921,6 +20921,184 @@ html[data-app] .m-faite, html[data-app] .bandeau-proto, html[data-app] [data-gd=
   { const t0 = toast; toast = function(msg, action){ return t0.call(this, typeof msg === 'string' ? msg.replace(/^Prototype\s*:\s*/, '').replace(/^./, c => c.toUpperCase()) : msg, action); }; }
   if (typeof scrollX === 'number' && document.getElementById('contenu')) rendre();
 }
+
+/* ── OP COMPTABLE, le compte « Comptable », et la connexion · 12 novembre 2026 ──
+   Justin : « que ça mette OP COMPTABLE, un bandeau plus petit, "retourner à OP GESTION" ; dans les utilisateurs, qu'on puisse
+   ne donner que l'accès à la comptabilité : je crée un utilisateur comptable, quand il ouvre l'application il est directement
+   dans la comptabilité » ; « un petit chargement rapide avec le logo TEAM OP ; voir comment ça se passe pour les connexions ».
+   · La fenêtre de la Comptabilité s'appelle OP COMPTABLE (elle deviendra une application à part).
+   · Un profil de droits « Comptable » : la comptabilité, rien d'autre. Son compte ouvre l'application DANS OP COMPTABLE.
+   · En mode application : écran de chargement, puis connexion. Chaque compte de l'Équipe arrive dans SON interface.
+     Les comptes et le mot de passe sont ceux de la démonstration (rien n'est vérifié par un serveur : il n'y en a pas ici). */
+document.head.insertAdjacentHTML('beforeend', `<style id="opc-session">
+@media (min-width:761px){ .cpsys-barre{min-height:40px!important;padding-top:calc(4px + env(safe-area-inset-top,0px))!important;padding-bottom:4px!important}
+  .cpsys-barre button{min-height:30px!important;padding:0 12px!important;font-size:13px!important} .cpsys-barre b{font-size:13.5px!important;letter-spacing:.02em} }
+#cnx{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;overflow:auto;background:var(--page) fixed;background-color:#eef2f8;color:var(--encre);
+  padding:calc(20px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+[data-mode="nuit"] #cnx{background-color:#0b1426}
+#cnx.charge{background:#0b1426;color:#fff;flex-direction:column;gap:18px}
+.cn-logo{width:96px;height:96px;border-radius:24px;box-shadow:0 18px 44px rgba(0,0,0,.45)}
+.cn-nom{font-size:15px;font-weight:700;letter-spacing:.22em;opacity:.92}
+.cn-barre{width:120px;height:3px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
+.cn-barre i{display:block;height:100%;width:40%;border-radius:3px;background:#fff;animation:cnGlisse 1s ease-in-out infinite}
+@keyframes cnGlisse{from{transform:translateX(-110%)}to{transform:translateX(310%)}}
+@media (prefers-reduced-motion:reduce){.cn-barre i{animation:none;width:100%;opacity:.5}}
+.cn-carte{width:min(420px,100%);display:flex;flex-direction:column;gap:14px;padding:26px 22px;border-radius:26px;background:var(--feuille,#f8f9fc);border:1px solid var(--trait);box-shadow:var(--ombre-haute, 0 30px 70px rgba(0,0,0,.18));margin:auto}
+.cn-carte .logo{padding:0}.cn-carte h1{margin:4px 0 0;font-size:24px}
+.cn-carte label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
+.cn-carte input{min-height:48px;padding:0 14px;border-radius:14px;border:1px solid var(--trait2);background:var(--surf);color:var(--encre);font:inherit;font-size:16px}
+.cn-carte input:focus-visible{outline:2px solid var(--lien);outline-offset:1px}
+.cn-err{min-height:20px;margin:0;font-size:14px;color:var(--rouge)}
+.cn-carte .btn{min-height:48px;justify-content:center}
+.cn-lien{align-self:center;border:0;background:none;color:var(--lien);font:inherit;font-size:14px;min-height:40px;cursor:pointer}
+.cn-demo{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--trait)}
+.cn-demo > span{font-size:12.5px;color:var(--doux);line-height:1.4}
+.cn-d{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border-radius:12px;border:1px solid var(--trait);background:var(--surf);color:var(--encre);font:inherit;text-align:left;cursor:pointer}
+.cn-d b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cn-d small{flex:none;color:var(--doux)}
+.cn-out{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:0 10px;margin-bottom:8px;border-radius:12px;border:1px solid var(--trait);background:none;color:var(--encre);font:inherit;font-size:14px;cursor:pointer;text-align:left}
+.cn-out b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.cn-out span{color:var(--doux);flex:none}
+</style>`);
+/* le profil de droits : la comptabilité, et rien d'autre */
+PROFILS.compta = { nom:'Comptable (comptabilité seule)', cats:Object.fromEntries(DR_CATS.map(([c]) => [c, c === 'compta' ? { v:1, c:1, m:1, s:1 } : { v:0, c:0, m:0, s:0 }])), sp:Object.fromEntries(DR_SP.map(([k]) => [k, 0])) };
+ROLES.compta = { ic:'📒', l:'Comptable', court:'Comptable', qui:null, accueil:'comptabilite', d:'La comptabilité, et rien d’autre : son compte ouvre l’application directement dans OP COMPTABLE.', routes:['comptabilite'] };
+/* la bande d'essai du prototype garde ses quatre rôles : le comptable s'ouvre depuis sa fiche de l'Équipe (ou en se connectant) */
+{ const b0 = rlBande; rlBande = function(){ return b0.apply(this, arguments).replace(/<button type="button" data-rl="role\|compta"[\s\S]*?<\/button>/, ''); }; }
+var SESSION = null;
+const SESSION_CLE = 'opg_proto_session', SESSION_MDP = 'teamop';
+const sessionRole = p => { const pr = (p.droits.profil || '').replace('*', ''); return pr === 'admin' ? 'patron' : pr === 'compta' ? 'compta' : pr === 'tech' ? 'tech' : 'gestion'; };
+function sessionOuvrir(k){ const p = eqDe(k); if (!p || !p.actif) return false; const role = sessionRole(p);
+  if (p.invite) p.invite = false;                                  // se connecter pour la première fois, c'est accepter l'invitation
+  if (role !== 'patron') ROLES[role].qui = k;
+  SESSION = k; try { localStorage.setItem(SESSION_CLE, k); } catch (e) {}
+  const z = document.getElementById('cnx'); if (z) z.remove();
+  rlChanger(role, { muet:true, h:role === 'patron' ? 'accueil' : undefined });
+  if (role === 'compta') { cpSysteme = true; cpSysDe = null; rendre(); }
+  return true; }
+function sessionFermer(){ SESSION = null; try { localStorage.removeItem(SESSION_CLE); } catch (e) {}
+  if (typeof gdQuitter === 'function' && GD.actif) gdQuitter(); fermerPanneau(); fermerMenu();
+  cpSysteme = false; rlChanger('patron', { muet:true, h:'accueil' }); cnxMontrer(); }
+/* ── la fenêtre OP COMPTABLE : son nom, son bandeau, et ce qu'elle montre au comptable ── */
+{ const m0 = cpSysMaj; cpSysMaj = function(){ const neuf = !document.getElementById('cpsys'), v = m0.apply(this, arguments), z = document.getElementById('cpsys'); if (!z) return v;
+  const f = z.querySelector('iframe'), ret = z.querySelector('[data-cpsys="retour"]'), quo = z.querySelector('[data-cpsys="quotidien"]'), t = z.querySelector('.cpsys-barre b'), seul = ROLE === 'compta';
+  if (neuf && f && MODE_APP) f.src = 'prototype-comptabilite.html?app=1';
+  if (f) f.title = 'OP COMPTABLE'; z.setAttribute('aria-label', 'OP COMPTABLE'); if (t && t.textContent !== 'OP COMPTABLE') t.textContent = 'OP COMPTABLE';
+  if (ret) { const l = seul ? (MODE_APP ? 'Se déconnecter' : '‹ Revenir au compte de Marc') : '‹ Retourner à OP GESTION'; if (ret.textContent !== l) { ret.textContent = l; ret.setAttribute('aria-label', l.replace('‹ ', '')); } }
+  if (quo) quo.hidden = seul;
+  return v; }; }
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('#cpsys [data-cpsys="retour"]'); if (!b || ROLE !== 'compta') return;
+  ev.stopPropagation(); ev.preventDefault(); if (MODE_APP) sessionFermer(); else { sessionOuvrir('marc'); aller('equipe'); } }, true);
+/* ── la fiche d'une personne : « ouvrir l'application comme elle » (c'est ce que fait sa connexion) ── */
+{ const f0 = eqFiche; eqFiche = function(k){ const v = f0.apply(this, arguments), p = eqDe(k), P = document.querySelector('#calque .panneau'), A = P && [...P.querySelectorAll('.actions')].pop();
+  if (p && p.actif && k !== 'marc' && A && !P.querySelector('[data-cnx^="comme"]')) A.insertAdjacentHTML('afterbegin', `<button type="button" class="btn" data-cnx="comme|${k}">Ouvrir l’application comme ${esc(p.prenom)}</button>`);
+  if (P && MODE_APP) P.querySelectorAll('.gris.petit').forEach(e => { if (/^Dans ce prototype/.test(e.textContent.trim())) e.remove(); });
+  return v; }; }
+/* ── l'écran de chargement et la connexion (mode application) ── */
+const CNX_LOGO = 'data:image/png;base64,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';
+function cnxCharger(suite){ document.getElementById('cnx')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `<div id="cnx" class="charge" role="status" aria-label="Chargement d’OP GESTION"><img class="cn-logo" src="${CNX_LOGO}" alt="TEAM OP" width="96" height="96"><span class="cn-nom">TEAM OP</span><span class="cn-barre" aria-hidden="true"><i></i></span></div>`);
+  setTimeout(suite, 1100); }
+function cnxMontrer(err, mail){ document.getElementById('cnx')?.remove();
+  const D = EQUIPE.filter(p => p.actif);
+  document.body.insertAdjacentHTML('beforeend', `<div id="cnx" role="dialog" aria-modal="true" aria-label="Connexion à OP GESTION"><form class="cn-carte" id="cn-form" novalidate>
+    <div class="logo"><i>OP</i><span><b>OP GESTION</b><small>${esc(ENTREPRISE.nom)}</small></span></div>
+    <h1>Connexion</h1>
+    <label>Adresse e-mail<input id="cn-mail" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" value="${esc(mail || '')}"></label>
+    <label>Mot de passe<input id="cn-mdp" type="password" autocomplete="current-password"></label>
+    <p class="cn-err" id="cn-err" role="alert">${esc(err || '')}</p>
+    <button type="submit" class="btn plein">Se connecter</button>
+    <button type="button" class="cn-lien" data-cnx="oubli">Mot de passe oublié ?</button>
+    <div class="cn-demo"><span>Démonstration : touche un compte pour remplir son adresse. Le mot de passe de tous les comptes est <b>${SESSION_MDP}</b>.</span>
+      ${D.map(p => `<button type="button" class="cn-d" data-cnx="demo|${p.k}"><b>${esc(eqNom(p))}</b><small>${esc(p.role)}</small></button>`).join('')}</div>
+  </form></div>`);
+  const m = document.getElementById('cn-mail'); if (m && !tel()) (m.value ? document.getElementById('cn-mdp') : m).focus(); }
+function cnxValider(){ const mail = document.getElementById('cn-mail').value.trim().toLowerCase(), mdp = document.getElementById('cn-mdp').value, e = document.getElementById('cn-err');
+  const dire = t => { e.textContent = ''; requestAnimationFrame(() => { e.textContent = t; }); };
+  if (!mail || !mdp) return dire('Renseigne ton adresse e-mail et ton mot de passe.');
+  const p = EQUIPE.find(o => o.mail.toLowerCase() === mail);
+  if (!p || mdp !== SESSION_MDP) return dire('Adresse e-mail ou mot de passe incorrect.');   // la même phrase dans les deux cas : on ne dit pas quelle adresse existe
+  if (!p.actif) return dire('Ce compte est désactivé. Demande à ton responsable de le réactiver.');
+  sessionOuvrir(p.k); toast('Bonjour ' + p.prenom); }
+document.addEventListener('submit', ev => { if (ev.target.id === 'cn-form') { ev.preventDefault(); cnxValider(); } });
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-cnx]'); if (!b) return; const [a, x] = b.dataset.cnx.split('|');
+  if (a === 'demo') { const p = eqDe(x); document.getElementById('cn-mail').value = p.mail; document.getElementById('cn-err').textContent = ''; const m = document.getElementById('cn-mdp'); m.value = ''; m.focus(); }
+  else if (a === 'oubli') { const m = document.getElementById('cn-mail').value.trim(), e = document.getElementById('cn-err'); e.style.color = 'var(--doux)'; e.textContent = m ? 'Si un compte existe à cette adresse, il recevrait un lien pour choisir un nouveau mot de passe (démonstration : rien n’est envoyé).' : 'Écris d’abord ton adresse e-mail.'; }
+  else if (a === 'sortir') { ev.stopPropagation(); sessionFermer(); }
+  else if (a === 'comme') { ev.stopPropagation(); fermerPanneau(); sessionOuvrir(x); toast('Tu vois l’application comme ' + eqDe(x).prenom + '.' + (MODE_APP ? '' : ' Pour revenir : « Tester en tant que » › Patron.')); }
+  else if (a === 'compte') { const p = eqDe(SESSION) || eqDe('marc'); ouvrirPanneau(`<span class="surtitre">Mon compte</span><h2>${esc(eqNom(p))}</h2><div class="ligne"><span>Rôle</span><b>${esc(p.role)}</b></div><div class="ligne"><span>E-mail</span><b>${esc(p.mail)}</b></div><div style="margin:14px 0">${segMode()}</div><button type="button" class="btn gris" data-cnx="sortir" style="width:100%">Se déconnecter</button>`); }
+});
+if (MODE_APP) {
+  /* où se déconnecter : au pied du menu (ordinateur), dans « Toutes les catégories » ou « Mon compte » (téléphone) */
+  { const m0 = rlMenu; rlMenu = function(){ const p = eqDe(SESSION) || eqDe('marc'); return m0.apply(this, arguments).replace('<div class="pied">', `<div class="pied"><button type="button" class="cn-out" data-cnx="sortir" aria-label="Se déconnecter du compte de ${esc(eqNom(p))}"><b>${esc(eqNom(p))}</b><span>Se déconnecter</span></button>`); }; }
+  { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments), tt = document.querySelector('#contenu .tete-tel');
+    if (tt && ROLE !== 'patron' && ROLE !== 'client' && !tt.querySelector('.tt-menu')) tt.insertAdjacentHTML('afterbegin', `<button type="button" class="tt-menu" data-cnx="compte" aria-label="Mon compte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>`);
+    return v; }; }
+  document.addEventListener('click', ev => { if (!ev.target.closest('[data-tab="plus"]') || ROLE !== 'patron') return;
+    setTimeout(() => { const P = document.querySelector('#calque .panneau'); if (P && !P.querySelector('[data-cnx="sortir"]') && /Toutes les catégories/.test((P.querySelector('h2') || {}).textContent || '')) P.insertAdjacentHTML('beforeend', `<button type="button" class="btn gris" data-cnx="sortir" style="width:100%;margin-top:8px">Se déconnecter</button>`); }, 0); });
+  if (typeof scrollX === 'number' && document.getElementById('contenu')) {
+    const auto = (/[?&]auto=([a-z0-9]+)/.exec(location.search) || [])[1]; let garde = null; try { garde = localStorage.getItem(SESSION_CLE); } catch (e) {}
+    if (auto && eqDe(auto)) sessionOuvrir(auto);                    // ?auto=marc : les sondes entrent sans passer par l'écran
+    else cnxCharger(() => { if (garde && eqDe(garde) && eqDe(garde).actif) sessionOuvrir(garde); else cnxMontrer(); });
+  }
+}
+
+/* ── l'application sur iPhone : la barre et les gestes · 12 novembre 2026 ──
+   Justin : « plus de bouton Plus dans la barre (le menu est en haut à gauche) ; avec le doigt, glisser entre les icônes ;
+   que la barre disparaisse quand on descend ; glisser comme sur Instagram pour changer d'onglet ; que ça prenne tout l'iPhone ».
+   Le doigt s'écoute en TACTILE (le flux de pointeur est annulé par le navigateur au premier mouvement horizontal). Un geste =
+   une navigation : le clic qui suit un glissé est avalé. Rien de tout cela hors du mode application, ni sur ordinateur. */
+if (MODE_APP) {
+  document.head.insertAdjacentHTML('beforeend', `<style id="app-iphone">
+@media (max-width:760px){
+  html{overscroll-behavior-y:none}
+  body::before{background:color-mix(in srgb, var(--surf, #fff) 72%, transparent)!important;-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6)}
+  .barre-bas{transition:transform .28s cubic-bezier(.2,.8,.2,1);will-change:transform}
+  body.barre-cachee .barre-bas{transform:translateY(calc(100% + 12px))}
+  .opg-barre.glisse .opg-tab{transition:none}
+  .opg-barre.glisse .opg-tab.on:not(.vise){background:none;color:var(--tab-ink);box-shadow:none}
+  .opg-barre.glisse .opg-tab.vise{background:var(--tab-cur);color:var(--tab-cur-ink);box-shadow:0 6px 16px rgba(11,20,38,.18),inset 0 1px 0 rgba(255,255,255,.3);transform:scale(1.06)}
+  #contenu.arrive-d{animation:appArriveD .22s cubic-bezier(.2,.8,.2,1)} #contenu.arrive-g{animation:appArriveG .22s cubic-bezier(.2,.8,.2,1)}
+}
+@keyframes appArriveD{from{transform:translateX(28px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes appArriveG{from{transform:translateX(-28px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){ .barre-bas{transition:none} #contenu.arrive-d,#contenu.arrive-g{animation:none} }
+</style>`);
+  const appTel = () => innerWidth <= 760;
+  const appOnglets = () => [...document.querySelectorAll('#barre-bas .opg-tab[data-tab]')].filter(b => !b.disabled);
+  const appLibre = () => !document.querySelector('#cnx, #calque .voile, .fen-voile, .ctx, #pal, #gd-bulle, #docplein, #cx-vis') && (document.getElementById('cpsys') || { hidden:true }).hidden;
+  let avaleClic = 0;
+  document.addEventListener('click', ev => { if (avaleClic && Date.now() - avaleClic < 450) { avaleClic = 0; ev.stopPropagation(); ev.preventDefault(); } else avaleClic = 0; }, true);
+  const appAllerOnglet = (b, sens) => { if (!b) return; const c = document.getElementById('contenu'); b.click();
+    if (c && sens) { c.classList.remove('arrive-d', 'arrive-g'); void c.offsetWidth; c.classList.add(sens > 0 ? 'arrive-d' : 'arrive-g'); setTimeout(() => c.classList.remove('arrive-d', 'arrive-g'), 260); } };
+  /* 1. la barre : poser le doigt et glisser d'une icône à l'autre ; relâcher ouvre celle qu'on vise */
+  { let g = null;
+    const sous = x => { const T = appOnglets(); return T.find(b => { const r = b.getBoundingClientRect(); return x >= r.left && x < r.right; }) || (x < (T[0] ? T[0].getBoundingClientRect().left : 0) ? T[0] : T[T.length - 1]); };
+    const viser = b => { document.querySelectorAll('#barre-bas .opg-tab.vise').forEach(e => e.classList.remove('vise')); if (b) b.classList.add('vise'); };
+    document.addEventListener('touchstart', ev => { g = null; if (!appTel() || ev.touches.length !== 1 || !(ev.target.closest && ev.target.closest('#barre-bas .opg-barre'))) return; g = { x:ev.touches[0].clientX, y:ev.touches[0].clientY, glisse:false, cible:null }; }, { passive:true });
+    document.addEventListener('touchmove', ev => { if (!g || !ev.touches[0]) return; const x = ev.touches[0].clientX;
+      if (!g.glisse && Math.abs(x - g.x) > 12) { g.glisse = true; const B = document.querySelector('#barre-bas .opg-barre'); if (B) B.classList.add('glisse'); }
+      if (g.glisse) { g.cible = sous(x); viser(g.cible); } }, { passive:true });
+    const fin = annule => { if (!g) return; const c = g.glisse && !annule ? g.cible : null, etait = g.glisse; g = null; viser(null); const B = document.querySelector('#barre-bas .opg-barre'); if (B) B.classList.remove('glisse');
+      if (etait) avaleClic = Date.now(); if (c && !c.classList.contains('on')) { const T = appOnglets(), i0 = T.findIndex(b => b.classList.contains('on')); setTimeout(() => { avaleClic = 0; appAllerOnglet(c, T.indexOf(c) > i0 ? 1 : -1); }, 0); } };
+    document.addEventListener('touchend', () => fin(false), { passive:true }); document.addEventListener('touchcancel', () => fin(true), { passive:true }); }
+  /* 2. glisser sur l'écran pour passer à l'onglet d'à côté. Jamais depuis une zone qui défile de côté, une carte, un champ, une signature. */
+  { let s = null;
+    const defileCote = el => { for (let e = el; e && e !== document.body; e = e.parentElement) { if (e.matches && e.matches('#cr-svg, #cr-lf, canvas, input, textarea, select, .pl-defile, [data-sansglisse]')) return true; if (e.scrollWidth > e.clientWidth + 6) { const o = getComputedStyle(e).overflowX; if (o === 'auto' || o === 'scroll') return true; } } return false; };
+    document.addEventListener('touchstart', ev => { s = null; if (!appTel() || ev.touches.length !== 1 || !appLibre() || ROLE === 'client') return; const t = ev.target;
+      if (!(t.closest && t.closest('#contenu')) || defileCote(t)) return; s = { x:ev.touches[0].clientX, y:ev.touches[0].clientY, t:Date.now(), dx:0, dy:0 }; }, { passive:true });
+    document.addEventListener('touchmove', ev => { if (!s || !ev.touches[0]) return; if (ev.touches.length > 1) { s = null; return; } s.dx = ev.touches[0].clientX - s.x; s.dy = ev.touches[0].clientY - s.y; if (Math.abs(s.dy) > 40 && Math.abs(s.dy) > Math.abs(s.dx)) s = null; }, { passive:true });
+    document.addEventListener('touchend', () => { const g = s; s = null; if (!g || Date.now() - g.t > 700 || Math.abs(g.dx) < 70 || Math.abs(g.dx) < 2.2 * Math.abs(g.dy) || !appLibre()) return;
+      const T = appOnglets(), i = T.findIndex(b => b.classList.contains('on')); if (i < 0) return; const n = i + (g.dx < 0 ? 1 : -1); if (n < 0 || n >= T.length) return;
+      avaleClic = Date.now(); setTimeout(() => { avaleClic = 0; appAllerOnglet(T[n], g.dx < 0 ? 1 : -1); }, 0); }, { passive:true });
+    document.addEventListener('touchcancel', () => { s = null; }, { passive:true }); }
+  /* 3. la barre s'efface quand on descend dans la page et revient dès qu'on remonte (ou en haut, ou tout en bas) */
+  { let y0 = 0, tic = false;
+    const juger = () => { tic = false; const y = Math.max(0, scrollY), d = y - y0, bas = innerHeight + y >= document.documentElement.scrollHeight - 24;
+      if (!appTel() || !appLibre() || y < 60 || bas) document.body.classList.remove('barre-cachee'); else if (d > 10) document.body.classList.add('barre-cachee'); else if (d < -10) document.body.classList.remove('barre-cachee');
+      if (Math.abs(d) > 10) y0 = y; };
+    addEventListener('scroll', () => { if (!tic) { tic = true; requestAnimationFrame(juger); } }, { passive:true });
+    const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); if (appRoute !== route) { appRoute = route; document.body.classList.remove('barre-cachee'); y0 = Math.max(0, scrollY); } return v; }; }
+}
+var appRoute = null;
 </script>
 
 </body>
