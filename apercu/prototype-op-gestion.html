@@ -20778,6 +20778,7 @@ function palEntrees(){ const R = rcRubriques(), E = [];
     Object.entries(CLIENTS).forEach(([id, c]) => E.push({ g:'Clients', l:c.nom, ic:'🏢', d:(c.adr || '').split(',').pop().trim(), m:[c.contact, c.tel, c.mail, c.adr].join(' '), fn:() => aller('client-x-' + id) })); }
   E.push({ g:'Affichage', l:'Mode jour', ic:'☀️', fn:() => rcMode('jour') }, { g:'Affichage', l:'Mode nuit', ic:'🌙', fn:() => rcMode('nuit') }, { g:'Affichage', l:'Mode automatique (suit l’appareil)', ic:'🌗', fn:() => rcMode('auto') },
     { g:'Aide', l:'Raccourcis clavier', ic:'⌨️', d:'?', fn:() => rcAide() });
+  if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof immLancer === 'function') E.push({ g:'Aide', l:'Découvrir l’application (visite parlée)', ic:'🎧', fn:() => immLancer(0) });
   return E; }
 function rcMode(k){ const b = document.querySelector(`[data-modetheme="${k}"]`); if (b) b.click(); }
 function palOuvrir(){ if (PAL || !rcBureau()) return; fermerMenu();
@@ -20896,6 +20897,29 @@ document.addEventListener('contextmenu', ev => { if (ev.defaultPrevented || !rcB
   if (m[1] === 'client' && CLIENTS[m[2]]) { const c = CLIENTS[m[2]]; if (c.tel) I.push({ ic:'☎', l:'Copier le téléphone', s:c.tel, fn:() => rcCopier(c.tel) }); if (c.mail) I.push({ ic:'✉', l:'Copier l’adresse e-mail', fn:() => rcCopier(c.mail) }); if (c.adr) I.push({ ic:'⌖', l:'Copier l’adresse', fn:() => rcCopier(c.adr) }); }
   if (titre) I.push('---', { ic:'⧉', l:'Copier « ' + esc(titre.length > 28 ? titre.slice(0, 27) + '…' : titre) + ' »', fn:() => rcCopier(titre) });
   ouvrirMenu(ev.clientX, ev.clientY, esc(titre), I); });
+
+/* ── mode application · 12 novembre 2026 ──
+   Justin : « la version finale comme si c'était l'application ; pas les tests de A à Z ; comme si j'étais un utilisateur ».
+   Quand la page tourne dans la coque (mobile/fabriquer.js pose `window.OPG_MODE_APP`) ou avec `?app=1`, tout l'échafaudage du
+   prototype disparaît : la bande « Tester en tant que », les pastilles « faite », les mentions « Prototype ». L'utilisateur est
+   le patron. Le prototype publié (sans le drapeau) garde tout : c'est lui qui sert à éprouver. */
+var MODE_APP = !!window.OPG_MODE_APP || /[?&]app=1\b/.test(location.search);
+if (MODE_APP) {
+  document.documentElement.dataset.app = '1'; document.title = 'OP GESTION';
+  document.head.insertAdjacentHTML('beforeend', `<style id="mode-app">
+html[data-app] .rl-bande, html[data-app] .m-faite, html[data-app] .bandeau-proto, html[data-app] [data-gd="apprendre"]{display:none!important}
+</style>`);
+  { const b0 = rlBande; rlBande = function(){ return ''; }; }
+  /* les mentions « Prototype : … » écrites dans les écrans : une note entière s'efface, une étiquette devient « Démonstration » */
+  const appNettoyer = racine => { if (!racine || !racine.querySelectorAll) return;
+    racine.querySelectorAll('.faible, .info, small, span, .pdf-pied, p').forEach(e => { if (e.children.length > 2) return; const t = e.textContent.trim();
+      if (/^Prototype\s*:/.test(t) && e.matches('.faible, .info, .pdf-pied, p')) e.remove();
+      else if (/^Prototype\s*·/.test(t) && e.childElementCount === 0) e.textContent = t.replace(/^Prototype\s*·\s*/, 'Démonstration · '); }); };
+  { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); appNettoyer(document.getElementById('contenu')); return v; }; }
+  { const o0 = ouvrirPanneau; ouvrirPanneau = function(){ const v = o0.apply(this, arguments); appNettoyer(document.getElementById('calque')); return v; }; }
+  { const t0 = toast; toast = function(msg, action){ return t0.call(this, typeof msg === 'string' ? msg.replace(/^Prototype\s*:\s*/, '').replace(/^./, c => c.toUpperCase()) : msg, action); }; }
+  if (typeof scrollX === 'number' && document.getElementById('contenu')) rendre();
+}
 </script>
 
 </body>

@@ -30,6 +30,15 @@ let page = lire('apercu/prototype-op-gestion.html');
 /* dans l'application, pas de moteur de recherche : la balise robots de l'aperçu ne sert à rien, on la laisse ; mais la page
    doit se dire « application » pour que le prototype sache qu'il tourne dans la coque (encoches gérées par la coque) */
 if (!/<meta name="viewport"[^>]*viewport-fit=cover/.test(page)) { console.error('✗ la page n’annonce pas viewport-fit=cover : les encoches de l’iPhone ne seraient pas gérées'); process.exit(1); }
+/* ⛔ L'APPLICATION N'EST PAS LE PROTOTYPE QU'ON ÉPROUVE : dans la coque, la page se sait « application » et retire tout
+   l'échafaudage (bande « Tester en tant que », « De A à Z », pastilles « faite », mentions « Prototype »). Justin, 12 novembre
+   2026 : « la version finale comme si c'était l'application ; comme si j'étais un utilisateur ». `node fabriquer.js prototype essai`
+   garde l'échafaudage, pour éprouver dans la coque. */
+if (process.argv[3] !== 'essai') {
+  if (!/var MODE_APP = !!window\.OPG_MODE_APP/.test(page)) { console.error('✗ la page ne connaît pas le mode application : l’aperçu du dépôt est trop ancien'); process.exit(1); }
+  const avant = page; page = page.replace(/<body[^>]*>/, m => m + '\n<script>window.OPG_MODE_APP = true;</script>');
+  if (page === avant) { console.error('✗ balise <body> introuvable : le mode application n’a pas pu être posé'); process.exit(1); }
+}
 fs.writeFileSync(path.join(WWW, 'index.html'), page);
 /* le module de paiement en ligne vit dans un cadre : même dossier, même nom */
 const paiement = lire('apercu/prototype-paiement.html');
@@ -42,5 +51,5 @@ fs.writeFileSync(path.join(WWW, 'prototype-comptabilite.html'), lire('apercu/pro
 /* garde-fous : rien de distant, rien de payant vers l'extérieur */
 const distants = [...page.matchAll(/(?:src|href)=["'](https?:\/\/[^"']+)["']/g)].map(m => m[1]).filter(u => !/^https?:\/\/(www\.)?(teamop\.fr|w3\.org)/.test(u));
 const octets = fs.readdirSync(WWW).reduce((s, f) => s + fs.statSync(path.join(WWW, f)).size, 0);
-console.log('✓ contenu « prototype » fabriqué dans mobile/www : ' + fs.readdirSync(WWW).join(', ') + ' · ' + Math.round(octets / 1024) + ' Ko');
+console.log('✓ contenu « prototype » (' + (process.argv[3] === 'essai' ? 'avec les outils d’essai' : 'mode application') + ') fabriqué dans mobile/www : ' + fs.readdirSync(WWW).join(', ') + ' · ' + Math.round(octets / 1024) + ' Ko');
 if (distants.length) console.log('⚠ ' + distants.length + ' adresse(s) distante(s) chargée(s) par la page : ' + [...new Set(distants)].slice(0, 5).join(' , '));
