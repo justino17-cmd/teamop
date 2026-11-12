@@ -20907,9 +20907,10 @@ var MODE_APP = !!window.OPG_MODE_APP || /[?&]app=1\b/.test(location.search);
 if (MODE_APP) {
   document.documentElement.dataset.app = '1'; document.title = 'OP GESTION';
   document.head.insertAdjacentHTML('beforeend', `<style id="mode-app">
-html[data-app] .rl-bande, html[data-app] .m-faite, html[data-app] .bandeau-proto, html[data-app] [data-gd="apprendre"]{display:none!important}
+html[data-app] .m-faite, html[data-app] .bandeau-proto, html[data-app] [data-gd="apprendre"]{display:none!important}
 </style>`);
-  { const b0 = rlBande; rlBande = function(){ return ''; }; }
+  /* la bande des rôles ne revient que pendant la visite parlée, qui la montre et s'en sert pour passer d'un rôle à l'autre */
+  { const b0 = rlBande; rlBande = function(){ return (typeof GD !== 'undefined' && GD && GD.actif && GD.tour === 'imm') ? b0.apply(this, arguments) : ''; }; }
   /* les mentions « Prototype : … » écrites dans les écrans : une note entière s'efface, une étiquette devient « Démonstration » */
   const appNettoyer = racine => { if (!racine || !racine.querySelectorAll) return;
     racine.querySelectorAll('.faible, .info, small, span, .pdf-pied, p').forEach(e => { if (e.children.length > 2) return; const t = e.textContent.trim();
