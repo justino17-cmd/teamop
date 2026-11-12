@@ -46,6 +46,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 WKUserScript(source: SceneDelegate.echelleMac, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         }
         vue.evaluateJavaScript(SceneDelegate.echelleMac, completionHandler: nil)
+        // La barre grise en bas de la fenêtre (Justin, 12 novembre 2026) : c'est la barre d'aide à la saisie d'iOS
+        // (précédent, suivant, OK), vide sur un Mac, qui se pose sur la page dès qu'un champ a été touché.
+        vue.retirerBarreDeSaisie()
         // Le trackpad : deux doigts vers la gauche ou la droite reviennent à l'écran précédent ou suivant.
         vue.allowsBackForwardNavigationGestures = true
     }
@@ -72,5 +75,29 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         SceneDelegateProxy.shared.scene(scene, continue: userActivity)
+    }
+}
+
+
+// La barre d'aide à la saisie que WKWebView pose au-dessus du clavier n'a pas de sens sur un Mac (il n'y a pas de clavier
+// à l'écran) : elle y paraît comme une bande grise vide en bas de la fenêtre. On la retire en donnant à la vue de contenu
+// une sous-classe dont `inputAccessoryView` rend toujours rien.
+private final class SansBarreDeSaisie: NSObject {
+    @objc var inputAccessoryView: AnyObject? { nil }
+}
+
+extension WKWebView {
+    func retirerBarreDeSaisie() {
+        guard let cible = scrollView.subviews.first(where: { String(describing: type(of: $0)).hasPrefix("WKContent") }),
+              let classe: AnyClass = object_getClass(cible) else { return }
+        let nom = "\(classe)_SansBarreDeSaisie"
+        if String(describing: classe).hasSuffix("_SansBarreDeSaisie") { return }
+        if let existante = NSClassFromString(nom) { object_setClass(cible, existante); return }
+        let selecteur = #selector(getter: SansBarreDeSaisie.inputAccessoryView)
+        guard let nouvelle = objc_allocateClassPair(classe, nom, 0),
+              let methode = class_getInstanceMethod(SansBarreDeSaisie.self, selecteur) else { return }
+        class_addMethod(nouvelle, selecteur, method_getImplementation(methode), method_getTypeEncoding(methode))
+        objc_registerClassPair(nouvelle)
+        object_setClass(cible, nouvelle)
     }
 }
