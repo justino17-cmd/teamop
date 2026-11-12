@@ -20734,6 +20734,168 @@ document.addEventListener('click', ev => { if (!ev.target.closest('[data-tab="pl
   document.addEventListener('contextmenu', ev => { if (ev.target.closest('.opg-barre')) ev.preventDefault(); });
   document.addEventListener('click', ev => { if (avale && Date.now() - avale < 500) { avale = 0; ev.stopPropagation(); ev.preventDefault(); } else avale = 0; }, true); }
 if (typeof rendre === 'function' && typeof scrollX === 'number' && document.getElementById('contenu')) rendre();
+
+/* ── ordinateur · clavier et trackpad · 12 novembre 2026 ──
+   Justin : « l'application hyper optimisée au niveau du trackpad, de chaque geste, des raccourcis, sur Mac ».
+   Une recherche rapide (Cmd K), des raccourcis qui ne volent jamais une frappe dans un champ, et la carte qui obéit au trackpad
+   (deux doigts déplacent, le pincement zoome). Rien ici ne s'allume sur un téléphone : pas de clavier, pas de palette. */
+document.head.insertAdjacentHTML('beforeend', `<style id="app-mac">
+#pal{position:fixed;inset:0;z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;background:rgba(8,14,28,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.pal-b{width:min(640px,100%);max-height:70vh;display:flex;flex-direction:column;border-radius:20px;background:var(--feuille,#f8f9fc);border:1px solid var(--trait);box-shadow:0 40px 90px rgba(0,0,0,.38);overflow:hidden;color:var(--encre)}
+.pal-c{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--trait)}
+.pal-c svg{flex:none;width:20px;height:20px;color:var(--doux)}
+.pal-c input{flex:1;min-width:0;border:0;outline:0;background:none;color:inherit;font:inherit;font-size:18px}
+.pal-c kbd,.rc-l kbd{flex:none;font:inherit;font-size:12px;font-weight:600;padding:3px 7px;border-radius:7px;border:1px solid var(--trait2);color:var(--doux);background:var(--surf)}
+.pal-l{overflow:auto;padding:6px;overscroll-behavior:contain}
+.pal-g{padding:10px 12px 4px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--doux)}
+.pal-i{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:8px 12px;border:0;border-radius:12px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pal-i .ic{flex:none;width:26px;display:inline-flex;justify-content:center}.pal-i .ic svg{width:20px;height:20px}
+.pal-i b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pal-i small{flex:none;color:var(--doux);font-size:13px}
+.pal-i.on{background:var(--lien);color:#fff}.pal-i.on small{color:rgba(255,255,255,.82)}.pal-i.on kbd{color:#fff;border-color:rgba(255,255,255,.5);background:none}
+.pal-v{padding:22px 16px;color:var(--doux);text-align:center}
+[data-mode="nuit"] .pal-i.on,[data-mode="nuit"] .pal-i.on small{color:#0b1426}[data-mode="nuit"] .pal-i.on kbd{color:#0b1426;border-color:rgba(11,20,38,.45)}
+.rc-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:4px 28px}
+.rc-l{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:38px;border-bottom:1px solid var(--trait)}
+.rc-l span:last-child{display:inline-flex;gap:4px;flex:none}
+.rc-t{margin:16px 0 4px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--doux)}
+@media (hover:hover) and (pointer:fine){ .menu a:focus-visible,.btn:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--lien);outline-offset:2px} }
+</style>`);
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform || '') || /Macintosh/.test(navigator.userAgent || '');
+const RC_CMD = MAC ? '⌘' : 'Ctrl';
+const rcBureau = () => innerWidth > 760;
+const rcSaisie = t => !!(t && t.closest && t.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]'));
+const rcSansAccent = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+/* les rubriques du rôle en cours, dans l'ordre du menu : la source des raccourcis Cmd 1 à 9 et de la recherche */
+function rcRubriques(){ const d = document.createElement('div'); d.innerHTML = rlMenu('');
+  return [...d.querySelectorAll('a[href^="#"]')].map(a => { const k = a.getAttribute('href').slice(1), ic = a.querySelector('.ic'), icH = ic ? ic.innerHTML : ''; if (ic) ic.remove(); return { k, l:a.textContent.trim(), ic:icH }; }); }
+function rcChampRecherche(){ return [...document.querySelectorAll('#contenu input[type="search"],#contenu input[placeholder^="Recherch"],#contenu input[placeholder^="Cherch"],#contenu input[placeholder^="Trouver"]')].find(i => i.offsetParent !== null && !i.disabled) || null; }
+let PAL = null;
+function palEntrees(){ const R = rcRubriques(), E = [];
+  R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', fn:() => aller(r.k) }));
+  if (ROLE === 'patron') { E.push({ g:'Faire', l:'Nouvelle intervention', ic:'＋', d:'N', fn:() => ouvrirCreation({}) });
+    RC_CREER.forEach(c => { if (rlPermis(c.k)) E.push({ g:'Faire', l:c.l, ic:'＋', d:c.t, fn:() => rcCreer(c.nom) }); });
+    Object.entries(CLIENTS).forEach(([id, c]) => E.push({ g:'Clients', l:c.nom, ic:'🏢', d:(c.adr || '').split(',').pop().trim(), m:[c.contact, c.tel, c.mail, c.adr].join(' '), fn:() => aller('client-x-' + id) })); }
+  E.push({ g:'Affichage', l:'Mode jour', ic:'☀️', fn:() => rcMode('jour') }, { g:'Affichage', l:'Mode nuit', ic:'🌙', fn:() => rcMode('nuit') }, { g:'Affichage', l:'Mode automatique (suit l’appareil)', ic:'🌗', fn:() => rcMode('auto') },
+    { g:'Aide', l:'Raccourcis clavier', ic:'⌨️', d:'?', fn:() => rcAide() });
+  return E; }
+function rcMode(k){ const b = document.querySelector(`[data-modetheme="${k}"]`); if (b) b.click(); }
+function palOuvrir(){ if (PAL || !rcBureau()) return; fermerMenu();
+  PAL = { E:palEntrees(), q:'', i:0, avant:document.activeElement };
+  document.body.insertAdjacentHTML('beforeend', `<div id="pal" role="dialog" aria-modal="true" aria-label="Rechercher ou aller à"><div class="pal-b"><div class="pal-c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="pal-q" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Une rubrique, un client, une action…" aria-label="Rechercher ou aller à" aria-controls="pal-l"><kbd>Échap</kbd></div><div class="pal-l" id="pal-l" role="listbox"></div></div></div>`);
+  palDessiner(); document.getElementById('pal-q').focus(); }
+function palFermer(rendreFocus){ const z = document.getElementById('pal'); if (z) z.remove(); const av = PAL && PAL.avant; PAL = null; if (rendreFocus && av && av.isConnected && av.focus) av.focus(); }
+function palFiltre(){ const q = rcSansAccent(PAL.q).trim(); if (!q) return PAL.E.filter(e => e.g !== 'Clients');
+  const mots = q.split(/\s+/); return PAL.E.filter(e => { const t = rcSansAccent(e.l + ' ' + (e.m || '') + ' ' + e.g); return mots.every(m => t.includes(m)); })
+    .sort((a, b) => (rcSansAccent(b.l).startsWith(q) ? 1 : 0) - (rcSansAccent(a.l).startsWith(q) ? 1 : 0)); }
+function palDessiner(){ const L = palFiltre(); PAL.L = L; PAL.i = Math.max(0, Math.min(PAL.i, L.length - 1)); let g = '';
+  document.getElementById('pal-l').innerHTML = L.length ? L.map((e, n) => `${e.g !== g ? `<div class="pal-g">${esc(g = e.g)}</div>` : ''}<button type="button" class="pal-i${n === PAL.i ? ' on' : ''}" role="option" aria-selected="${n === PAL.i}" data-pal="${n}"><span class="ic" aria-hidden="true">${e.ic || ''}</span><b>${esc(e.l)}</b>${e.d ? (/^(⌘|Ctrl|[NDCA]$|\?$)/.test(e.d) ? `<kbd>${esc(e.d)}</kbd>` : `<small>${esc(e.d)}</small>`) : ''}</button>`).join('') : `<div class="pal-v">Rien ne correspond à « ${esc(PAL.q)} ».</div>`;
+  const on = document.querySelector('#pal .pal-i.on'); if (on) on.scrollIntoView({ block:'nearest' }); }
+function palJouer(n){ const e = PAL && PAL.L[n]; if (!e) return; palFermer(false); e.fn(); }
+document.addEventListener('input', ev => { if (PAL && ev.target.id === 'pal-q') { PAL.q = ev.target.value; PAL.i = 0; palDessiner(); } });
+document.addEventListener('click', ev => { if (!PAL) return; const b = ev.target.closest('[data-pal]'); if (b) { ev.stopPropagation(); palJouer(+b.dataset.pal); } else if (!ev.target.closest('.pal-b')) palFermer(true); }, true);
+document.addEventListener('mousemove', ev => { if (!PAL) return; const b = ev.target.closest && ev.target.closest('[data-pal]'); if (b && +b.dataset.pal !== PAL.i) { PAL.i = +b.dataset.pal; document.querySelectorAll('#pal .pal-i').forEach(x => { const on = +x.dataset.pal === PAL.i; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); }); } });
+const RC_LISTE = [
+  ['Partout', [['Rechercher, aller à une rubrique ou à un client', [RC_CMD, 'K']], ['Aller à la rubrique 1 à 9 du menu', [RC_CMD, '1…9']], ['Écran précédent', [RC_CMD, '[']], ['Écran suivant', [RC_CMD, ']']], ['Chercher dans l’écran', ['/']], ['Annuler le dernier geste', [RC_CMD, 'Z']], ['Fermer la fenêtre ou le panneau', ['Échap']], ['Afficher ces raccourcis', ['?']]]],
+  ['Créer', [['Nouvelle intervention', ['N']], ['Nouveau devis', ['D']], ['Nouveau client', ['C']], ['Nouvelle tâche', ['A']]]],
+  ['Listes', [['Ligne suivante', ['↓']], ['Ligne précédente', ['↑']], ['Ouvrir la ligne choisie', ['Entrée']], ['Menu de la ligne', ['Clic droit']]]],
+  ['Planning', [['Période précédente', ['←']], ['Période suivante', ['→']], ['Revenir à aujourd’hui', ['T']]]],
+  ['Trackpad', [['Écran précédent ou suivant', ['2 doigts ← →']], ['Déplacer la carte', ['2 doigts']], ['Zoomer la carte', ['Pincer']], ['Menu d’une intervention, d’une case du planning', ['Clic droit']]]],
+];
+function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
+/* ce que la barre de menus du Mac (ou un raccourci) déclenche par son nom */
+function opgRaccourci(nom){ if (!rcBureau()) return false; const R = rcRubriques();
+  if (nom === 'palette') { PAL ? palFermer(true) : palOuvrir(); return true; }
+  if (nom === 'aide') { palFermer(false); rcAide(); return true; }
+  if (nom === 'precedent') { history.back(); return true; }
+  if (nom === 'suivant') { history.forward(); return true; }
+  if (nom === 'chercher') { const c = rcChampRecherche(); if (c) { c.focus(); c.select && c.select(); } else palOuvrir(); return true; }
+  if (nom === 'intervention') { if (ROLE !== 'patron') return false; palFermer(false); ouvrirCreation({}); return true; }
+  if (RC_CREER.some(c => c.nom === nom)) { palFermer(false); return rcCreer(nom); }
+  const m = /^rubrique(\d)$/.exec(nom); if (m && R[+m[1] - 1]) { palFermer(false); aller(R[+m[1] - 1].k); return true; }
+  return false; }
+window.opgRaccourci = opgRaccourci;
+document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing) return;
+  const cmd = MAC ? ev.metaKey && !ev.ctrlKey : ev.ctrlKey && !ev.metaKey, k = ev.key;
+  if (PAL) { if (k === 'Escape') { ev.preventDefault(); ev.stopPropagation(); palFermer(true); return; }
+    if (k === 'ArrowDown' || k === 'ArrowUp') { ev.preventDefault(); const n = (PAL.L || []).length; if (n) { PAL.i = (PAL.i + (k === 'ArrowDown' ? 1 : n - 1)) % n; palDessiner(); } return; }
+    if (k === 'Enter') { ev.preventDefault(); ev.stopPropagation(); palJouer(PAL.i); return; }
+    if (k === 'Tab') { ev.preventDefault(); return; }
+    if (cmd && !ev.shiftKey && !ev.altKey && k.toLowerCase() === 'k') { ev.preventDefault(); palFermer(true); }
+    return; }
+  if (cmd && !ev.altKey && !ev.shiftKey) {
+    if (k.toLowerCase() === 'k') { ev.preventDefault(); opgRaccourci('palette'); return; }
+    if (/^[1-9]$/.test(k)) { if (opgRaccourci('rubrique' + k)) ev.preventDefault(); return; }
+    if (k === '[') { ev.preventDefault(); opgRaccourci('precedent'); return; }
+    if (k === ']') { ev.preventDefault(); opgRaccourci('suivant'); return; }
+    return; }
+  if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(ev.target)) return;
+  const ouvert = document.querySelector('#calque .voile, .fen-voile, .ctx, #cpsys:not([hidden]), #gd-bulle');
+  if (k === '?') { ev.preventDefault(); opgRaccourci('aide'); return; }
+  if (ouvert) return;
+  if (k === '/') { ev.preventDefault(); opgRaccourci('chercher'); return; }
+  if (k.toLowerCase() === 'n' && !ev.shiftKey) { if (opgRaccourci('intervention')) ev.preventDefault(); return; }
+  { const c = !ev.shiftKey && RC_CREER.find(c => c.t.toLowerCase() === k.toLowerCase()); if (c) { if (opgRaccourci(c.nom)) ev.preventDefault(); return; } }
+  if ((k === 'ArrowDown' || k === 'ArrowUp') && !ev.shiftKey && rcLigneBouger(k === 'ArrowDown' ? 1 : -1, ev.target)) { ev.preventDefault(); return; }
+  if (route === 'planning' && !ev.shiftKey && !CREA) { const b = k === 'ArrowLeft' ? '[data-plnav="-1"]' : k === 'ArrowRight' ? '[data-plnav="1"]' : k.toLowerCase() === 't' ? '[data-plnav="0"]' : '';
+    const el = b && document.querySelector('#contenu ' + b); if (el && !ev.target.closest('.pl-defile,#cr-svg,[role="tablist"],[role="radiogroup"]')) { ev.preventDefault(); el.click(); } }
+}, true);
+/* la carte et le trackpad d'un Mac : deux doigts DÉPLACENT, pincer (ou Cmd + défilement) ZOOME. Avant, tout défilement zoomait,
+   et la page ne défilait plus dès que le pointeur passait sur la carte. Ailleurs que sur Mac, la molette garde son zoom. */
+if (MAC) document.addEventListener('wheel', ev => { const svgc = ev.target.closest && ev.target.closest('#cr-svg'); if (!svgc || !crV) return;
+  ev.preventDefault(); ev.stopImmediatePropagation();
+  if (ev.ctrlKey || ev.metaKey) { const r = svgc.getBoundingClientRect(), px = ev.clientX - r.left, py = ev.clientY - r.top, W = svgc.clientWidth, H = svgc.clientHeight;
+    const ns = Math.max(3, Math.min(160, crV.s * Math.exp(-ev.deltaY * (ev.ctrlKey ? .012 : .0025)))), kx = crV.cx + (px - W / 2) / crV.s, ky = crV.cy + (py - H / 2) / crV.s;
+    crV = { s:ns, cx:kx - (px - W / 2) / ns, cy:ky - (py - H / 2) / ns }; }
+  else crV = { ...crV, cx:crV.cx + ev.deltaX / crV.s, cy:crV.cy + ev.deltaY / crV.s };
+  crDessiner(); }, { passive:false, capture:true });
+/* la vraie carte (tuiles) suit la même règle sur Mac : deux doigts déplacent, pincer zoome d'un cran quand le geste est franc */
+{ let pince = 0;
+  if (MAC) document.addEventListener('wheel', ev => { const el = ev.target.closest && ev.target.closest('#cr-lf'); if (!el || !crLf || !crLf.map || !crLf.el.isConnected) return;
+    ev.preventDefault(); ev.stopPropagation(); const m = crLf.map;
+    if (ev.ctrlKey || ev.metaKey) { pince += ev.deltaY * (ev.ctrlKey ? 1 : .25); if (Math.abs(pince) >= 14) { const r = el.getBoundingClientRect(); try { m.setZoomAround(m.containerPointToLatLng([ev.clientX - r.left, ev.clientY - r.top]), m.getZoom() + (pince < 0 ? 1 : -1)); } catch (e) {} pince = 0; } }
+    else { pince = 0; try { m.panBy([ev.deltaX, ev.deltaY], { animate:false }); } catch (e) {} }
+  }, { passive:false, capture:true }); }
+/* une carte dont l'élément a quitté la page est démontée tout de suite : son animation de zoom, restée en route, jetait une erreur
+   (« _leaflet_pos ») quand on changeait d'écran pendant le zoom. */
+{ const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments);
+  if (crLf && crLf.map && crLf.el && !crLf.el.isConnected) { try { crLf.map.stop(); crLf.map.remove(); } catch (e) {} crLf = null; }
+  return v; }; }
+
+/* ── ordinateur · listes et créations d'une touche · 12 novembre 2026 ──
+   Justin : « vas-y, fais tout ce qu'il faut ». Trois gestes de plus : D, C, A créent un devis, un client, une tâche d'où que l'on soit ;
+   ↓ et ↑ parcourent les lignes d'un écran (Entrée ouvre) ; le clic droit sur une ligne ouvre son menu. */
+var RC_CREER = [
+  { nom:'devis', t:'D', k:'devis', l:'Nouveau devis', sel:'#contenu [data-dv="nouveau"]' },
+  { nom:'client', t:'C', k:'clients', l:'Nouveau client', sel:'#contenu [data-action="clientNouveau"]' },
+  { nom:'tache', t:'A', k:'taches', l:'Nouvelle tâche', sel:'#contenu input[data-tkxajout], #contenu input[data-tajout]', saisie:true },
+];
+/* on va sur l'écran, puis on fait le geste de SON bouton : la création passe par le chemin que l'écran connaît déjà */
+function rcCreer(nom){ const c = RC_CREER.find(x => x.nom === nom); if (!c || ROLE !== 'patron' || !rlPermis(c.k)) return false;
+  let essais = 0; const faire = () => { const el = [...document.querySelectorAll(c.sel)].find(e => e.offsetParent !== null);
+    if (el && (BASE[route] || route) === c.k) { if (c.saisie) { el.scrollIntoView({ block:'center' }); el.focus(); } else el.click(); return; }
+    if (++essais < 25) setTimeout(faire, 40); };
+  if ((BASE[route] || route) !== c.k || param) aller(c.k); faire(); return true; }
+/* les lignes d'un écran : tout ce qui mène quelque part (data-go) et qui se voit */
+function rcLignes(){ return [...document.querySelectorAll('#contenu [data-go]')].filter(e => e.offsetParent !== null && !e.disabled && !e.closest('.tete,.actions,.pl-defile,[aria-disabled="true"]') && e.getBoundingClientRect().width > 200); }
+function rcLigneBouger(sens, cible){ if (cible && cible.closest && cible.closest('[role="radiogroup"],[role="tablist"],[role="listbox"],[role="menu"],.seg,#cr-svg,#cr-lf')) return false;
+  const L = rcLignes(); if (L.length < 2) return false; const i = L.indexOf(document.activeElement && document.activeElement.closest('[data-go]'));
+  const n = i < 0 ? (sens > 0 ? 0 : L.length - 1) : i + sens; if (n < 0 || n >= L.length) return i >= 0;
+  const el = L[n]; if (!/^(BUTTON|A)$/.test(el.tagName) && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+  el.focus({ preventScroll:true }); el.scrollIntoView({ block:'nearest' }); return true; }
+/* une ligne qui n'est pas un bouton s'ouvre aussi avec Entrée, une fois choisie au clavier */
+document.addEventListener('keydown', ev => { if (ev.key !== 'Enter' || !rcBureau()) return; const el = ev.target.closest && ev.target.closest('#contenu [data-go][tabindex]'); if (el && !/^(BUTTON|A)$/.test(el.tagName)) { ev.preventDefault(); el.click(); } });
+const RC_TYPES = { client:'le client', inter:'l’intervention', devis:'le devis', facture:'la facture', contrat:'le contrat' };
+function rcCopier(t){ try { navigator.clipboard.writeText(t).then(() => toast('Copié : ' + t), () => toast('La copie n’a pas pu se faire')); } catch (e) { toast('La copie n’a pas pu se faire'); } }
+document.addEventListener('contextmenu', ev => { if (ev.defaultPrevented || !rcBureau()) return;
+  const el = ev.target.closest && ev.target.closest('#contenu [data-go]'); if (!el || el.closest('.pl-defile')) return;
+  const m = /^(client|inter|devis|facture|contrat)-x-(.+)$/.exec(el.dataset.go); if (!m) return; ev.preventDefault();
+  const it0 = m[1] === 'inter' ? INTS.find(x => x.id === m[2]) : null;
+  const titre = (it0 ? it0.titre + (CLIENTS[it0.cli] ? ' · ' + CLIENTS[it0.cli].nom : '') : m[1] === 'client' && CLIENTS[m[2]] ? CLIENTS[m[2]].nom : (el.querySelector('b,strong,h3') || el).textContent.trim().replace(/\s+/g, ' ')).slice(0, 60), I = [{ ic:'◉', l:'Ouvrir ' + RC_TYPES[m[1]], fn:() => aller(el.dataset.go) }];
+  if (m[1] === 'inter') { const it = INTS.find(x => x.id === m[2]); if (it && it.cli && CLIENTS[it.cli]) I.push({ ic:'🏢', l:'Voir le client', s:CLIENTS[it.cli].nom, fn:() => aller('client-x-' + it.cli) }); }
+  if (m[1] === 'client' && CLIENTS[m[2]]) { const c = CLIENTS[m[2]]; if (c.tel) I.push({ ic:'☎', l:'Copier le téléphone', s:c.tel, fn:() => rcCopier(c.tel) }); if (c.mail) I.push({ ic:'✉', l:'Copier l’adresse e-mail', fn:() => rcCopier(c.mail) }); if (c.adr) I.push({ ic:'⌖', l:'Copier l’adresse', fn:() => rcCopier(c.adr) }); }
+  if (titre) I.push('---', { ic:'⧉', l:'Copier « ' + esc(titre.length > 28 ? titre.slice(0, 27) + '…' : titre) + ' »', fn:() => rcCopier(titre) });
+  ouvrirMenu(ev.clientX, ev.clientY, esc(titre), I); });
 </script>
 
 </body>
