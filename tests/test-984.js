@@ -641,6 +641,10 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       await R1.entrer(); await R2.entrer();
       const s = await R1.src.demarrerAppel({ membres: [ben.id], video: false });
       await R2.attendreEv(e => e.type === 'appel-entrant' && e.id === s.id);
+      /* ⛔ L'HORLOGE N'AVANCE QU'UNE FOIS LES PREMIERS IDENTIFIANTS DE L'APPELANT RENDUS PAR LE SERVICE. `demarrerAppel` rend la main alors que sa lecture (`GET /api/ice`) est encore EN ROUTE : si le service la
+         traitait après `avancer`, les premiers identifiants portaient déjà l'heure avancée, et les renouvelés (200 ms plus tard) tombaient dans la MÊME seconde — même échéance, contrôle au rouge sans défaut
+         (vu deux fois sur GitHub le 12 novembre 2026 ; rejoué ici en retardant cette lecture de 120 ms : 2 passages sur 6). On attend le geste — la réponse arrivée —, pas un délai. */
+      vrai('population : les premiers identifiants de l\'appelant ont été rendus par le service AVANT que son horloge avance (une lecture, une réponse)', !!(await att(() => R1.ordre.includes('rep GET /api/ice'))) && R1.requetes(/GET \/api\/ice$/).length === 1);
       svc.avancer(8000);                                        // l'horloge du service avance : les identifiants renouvelés auront une AUTRE échéance — ⛔ de MOINS que `perduMs` (20 s) : à 30 s, le balayeur (100 ms) passait avant le prochain pouls de l'appelant et jugeait l'appel perdu AVANT que l'appelé n'ait répondu (pris sous charge, par le témoin des mutations)
       await R2.src.repondreAppel(s.id, true);
       await att(() => R1.monde.dernier() && R2.monde.dernier());
