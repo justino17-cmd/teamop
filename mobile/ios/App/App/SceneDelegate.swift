@@ -11,6 +11,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.rootViewController = CAPBridgeViewController()
         window?.makeKeyAndVisible()
 
+        // Sur un Mac : la fenêtre porte le nom de l'application et ne se réduit pas sous la largeur où la page
+        // passerait en mise en page de téléphone (760 px de page, soit environ 1 000 points au zoom de 130 %).
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            windowScene.title = "OP GESTION"
+            windowScene.sizeRestrictions?.minimumSize = CGSize(width: 1040, height: 680)
+        }
+
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
     }
 
