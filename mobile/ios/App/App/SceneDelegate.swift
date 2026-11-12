@@ -20,6 +20,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+        if let url = connectionOptions.urlContexts.first?.url {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in self?.ouvrirLien(url) }
+        }
     }
 
     // Sur un Mac, une application iPad est affichée réduite (environ 77 %) : tout paraît plus petit que dans un navigateur.
@@ -47,7 +50,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         vue.allowsBackForwardNavigationGestures = true
     }
 
+    // Le lien de connexion : opgestion://lien/<compte> ouvre l'application et connecte ce compte (démonstration).
+    // La page peut ne pas être encore chargée (application lancée PAR le lien) : on réessaie jusqu'à ce qu'elle réponde.
+    private func ouvrirLien(_ url: URL, essai: Int = 0) {
+        guard url.scheme == "opgestion", url.host == "lien" else { return }
+        let compte = url.lastPathComponent.lowercased().filter { $0.isLetter || $0.isNumber }
+        guard !compte.isEmpty, compte.count <= 24,
+              let pont = window?.rootViewController as? CAPBridgeViewController,
+              let vue = pont.webView else { return }
+        vue.evaluateJavaScript("typeof window.opgLien === 'function' ? window.opgLien('\(compte)') : false") { [weak self] resultat, _ in
+            if (resultat as? Bool) != true, essai < 12 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self?.ouvrirLien(url, essai: essai + 1) }
+            }
+        }
+    }
+
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        if let url = URLContexts.first?.url { ouvrirLien(url) }
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 
