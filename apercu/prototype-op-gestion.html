@@ -998,6 +998,14 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .deux-champs.pr-met{grid-template-columns:minmax(0,1fr)}
 #calque .panneau .pr-sugg{flex:none}
 @media (max-width:760px){.fo-r:has(> .st):has(> .btn){flex-wrap:wrap}.fo-r:has(> .st):has(> .btn) > .fo-n{flex:1 1 100%}}
+/* l'immersion : la lecture automatique */
+.imm-carte{border:1px solid var(--lien);border-radius:16px;padding:14px 16px;margin:12px 0;background:color-mix(in srgb,var(--lien) 8%,var(--carte-fond));display:flex;flex-direction:column;gap:10px}
+.imm-carte .actions{display:flex;gap:8px;flex-wrap:wrap}
+.imm-barre{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;padding-top:8px;border-top:1px solid rgba(128,128,128,.25)}
+.imm-barre .btn{min-height:40px}
+.imm-etat{font-size:12.5px;opacity:.75;flex:1 1 120px;min-width:0}
+.imm-liste summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650}
+@media (pointer:coarse){.imm-barre .btn{min-height:44px}}
 </style>
 <style>
 /* ── PLANNING : celui de la bêta (semaine par personne avec l'échelle des heures, jour, mois), en plus lisible ── */
@@ -12202,6 +12210,7 @@ function gdApprendre(){
   const avenir = [['👔', 'Patron', 'les réglages, l’équipe, les chiffres'], ['🧾', 'Gestion', 'devis, factures, planning, clients'], ['🔧', 'Technicien', 'sa journée, le terrain, les frais'], ['🏠', 'Client', 'son espace : payer, signer, demander']];
   ouvrirPanneau(`<h2>Apprendre OP GESTION</h2>
     <p class="gris">Des visites guidées : l’écran éclaire ce qu’il faut toucher, une bulle dit quoi faire et pourquoi, et une voix te le lit (le bouton 🔊 de la bulle la coupe). Tu peux faire une partie toute seule, et la reprendre quand tu veux.</p>
+    ${typeof immBlocApprendre === 'function' ? immBlocApprendre() : ''}
     ${gdApBloc('app', 'chaque catégorie expliquée : à quoi elle sert, quoi y faire')}
     ${gdApBloc('compta', 'la boucle de l’argent, dans l’ordre')}
     ${gdApBloc('paie', 'des heures pointées à la fiche de paie')}
@@ -19721,6 +19730,930 @@ function rgAccPart(sorties, v){ const us = Object.keys(sorties), tot = us.reduce
   ajouter('peinture', 'Peintures intérieures', ['dulux valentine']);
   Object.keys(metiersIdx).forEach(k => delete metiersIdx[k]);
 })();
+/* ══ L'IMMERSION COMPLÈTE — Justin, 12 novembre 2026 : « une immersion découverte totale de la nouvelle application, avec la voix qui
+   m'explique tout de A à Z par catégorie, avec un fonctionnement complet ». C'est une visite de plus du guide (GD_TOURS.imm), mais elle se
+   JOUE TOUTE SEULE : la voix lit la bulle, puis le geste se fait à l'écran (un clic, un panneau qui s'ouvre), puis on passe à la suite.
+   On peut mettre en pause, avancer à la main, ou choisir un chapitre. Un chapitre = une catégorie (plus trois chapitres de rôle). ══ */
+const IMM = { auto:true, pause:false, cle:null, t0:0, joue:false, aParle:false, packs:null, perdus:[] };
+const IMM_CHAPS = {};
+const IMM_ORDRE = ['accueil', 'statistiques', 'historique', 'planning', 'taches', 'absences', 'interventions', 'clientvoit', 'clients', 'devis', 'contrats', 'comptabilite', 'produits', 'stock', 'boxes', 'achats', 'pointage', 'vehicules', 'boiteMail', 'equipe', 'registre', 'carteBox', 'devisXylo', 'tech', 'client', 'gestion'];
+/* un geste joué par l'immersion : un vrai clic sur l'élément visible (rend faux si l'élément n'est pas là) */
+const immClic = sel => { const e = gdQ(sel); if (e) e.click(); else if (!IMM.perdus.includes('clic ' + sel)) IMM.perdus.push('clic ' + sel); return !!e; };
+/* écrire dans un champ comme quelqu'un qui tape (les écrans écoutent « input » et « change ») */
+const immEcrire = (sel, v) => { const e = gdQ(sel); if (!e) { if (!IMM.perdus.includes('champ ' + sel)) IMM.perdus.push('champ ' + sel); return false; } e.value = v; e.dispatchEvent(new Event('input', { bubbles:true })); e.dispatchEvent(new Event('change', { bubbles:true })); return true; };
+const immAller = (h, o) => () => { cpSysteme = false; fermerPanneau(); if (typeof docPleinFermer === 'function') docPleinFermer();
+  if (o.metier && !PACKS_ENT.includes(o.metier)) { IMM.packs = IMM.packs || PACKS_ENT.slice(); PACKS_ENT.push(o.metier); }
+  rlChanger(o.role || 'patron', Object.assign({ h, muet:true }, o.cli ? { cli:o.cli } : {})); scrollTo({ top:0 }); };
+/* immChap(clé, route, catégorie, titre, introduction, pas, options) — un pas : { c:sélecteur éclairé, t:titre court, p:ce que la voix dit,
+   jouer:() => geste fait tout seul APRÈS la lecture, manuel:true (la personne touche « J'ai vu, suivant ») } ;
+   options : { role:'patron'|'gestion'|'tech'|'client', cli:clé du client (rôle client), metier:'3d' } */
+function immChap(cle, h, cat, t, d, pas, o){ o = o || {};
+  IMM_CHAPS[cle] = { r:o.role || 'patron', cli:o.role === 'client' ? (o.cli || Object.keys(CLIENTS)[0]) : undefined, cat, t, d, cle, go:immAller(h, o),
+    gestes:[{ c:'#contenu h1', t, p:d }].concat(pas).map(q => ({ sel:q.c, t:q.t, p:q.p, suivant:1, jouer:q.jouer, manuel:q.manuel,
+      c:() => { const e = q.c && gdQ(q.c); if (q.c && !e && !IMM.joue && !IMM.perdus.includes(cle + ' : ' + q.c)) IMM.perdus.push(cle + ' : ' + q.c); return e || gdQ('#calque .panneau h2') || gdQ('#contenu h1') || gdQ('#contenu'); } })) }; }
+GD_TOURS.imm = { nom:'L’immersion complète', ic:'🎬', chap:() => IMM_ORDRE.map(k => IMM_CHAPS[k]).filter(Boolean),
+  fin:'Tu as vu toute l’application, catégorie par catégorie. Maintenant, à toi : ferme le guide et refais les gestes toi-même. « Le test de A à Z » te fait vivre une histoire complète avec les quatre personnes.' };
+const immActif = () => GD.actif && GD.tour === 'imm';
+function immRendrePacks(){ if (IMM.packs) { PACKS_ENT.splice(0, PACKS_ENT.length, ...IMM.packs); IMM.packs = null; rendre(); } }
+function immLancer(k){ IMM.auto = true; IMM.pause = false; IMM.cle = null; IMM.perdus = []; fermerPanneau(); gdCommencer(k || 0, 'imm'); }
+function immBlocApprendre(){
+  const C = GD_TOURS.imm.chap(); if (!C.length) return '';
+  return `<div class="imm-carte"><div><b>🎬 L’immersion complète</b><br><span class="gris petit">Installe-toi : la voix t’explique toute l’application, catégorie par catégorie, et les gestes se jouent tout seuls à l’écran. Tu peux mettre en pause, avancer, ou reprendre à un chapitre. ${C.length} chapitres · une trentaine de minutes.</span></div>
+    <div class="actions"><button type="button" class="btn" data-imm="lancer|0">▶ Lancer l’immersion</button></div>
+    <details class="imm-liste"><summary>Choisir un chapitre</summary><ol class="gd-ap-l">${C.map((e, k) => `<li class="${GD_FAITS.has('imm:' + k) ? 'ok' : ''}"><span class="gd-ap-n">${GD_FAITS.has('imm:' + k) ? '✓' : k + 1}</span><span class="gd-ap-c"><span class="gd-ap-cat">${esc(e.cat)}</span><b>${esc(e.t)}</b></span><button type="button" class="btn gris petit" data-imm="lancer|${k}" aria-label="Commencer au chapitre ${k + 1} : ${esc(e.t)}">▶</button></li>`).join('')}</ol></details></div>`;
+}
+/* la bulle de l'immersion porte sa barre : pause, lecture automatique */
+(() => { const b0 = gdBulle; gdBulle = function(){ const b = b0.apply(this, arguments);
+    if (immActif() && !/^fin/.test(b.dataset.m || '') && !b.classList.contains('mini') && !b.querySelector('.imm-barre')) {
+      const g = gdGeste(), manuel = !GD.pause && g && g.manuel;
+      /* une narration, pas un exercice : « Chapitre », pas de « 👉 » ni de « Pourquoi ? », et « Suivant » pour avancer à la main */
+      const n = b.querySelector('.gd-n'); if (n) n.textContent = n.textContent.replace('Partie', 'Chapitre');
+      const tt = b.querySelector('.gd-t'); if (tt) tt.textContent = tt.textContent.replace(/^👉\s*/, ''); const pq = b.querySelector('.gd-pq'); if (pq) pq.remove();
+      const sv = b.querySelector('[data-gd="suivant"]'); if (sv) sv.textContent = 'Suivant ›';
+      b.insertAdjacentHTML('beforeend', `<div class="imm-barre"><button type="button" class="btn gris" data-imm="pause" aria-pressed="${IMM.pause}">${IMM.pause ? '▶ Reprendre' : '⏸ Pause'}</button><span class="imm-etat">${manuel ? 'Prends ton temps, puis touche « J’ai vu, suivant ».' : IMM.pause ? 'En pause.' : 'Lecture automatique : la suite arrive toute seule.'}</span></div>`); }
+    return b; }; })();
+(() => { const q0 = gdQuitter; gdQuitter = function(){ const imm = GD.tour === 'imm'; const v = q0.apply(this, arguments); if (imm) immRendrePacks(); return v; }; })();
+(() => { const f0 = gdFin; gdFin = function(){ const v = f0.apply(this, arguments); if (GD.tour === 'imm') immRendrePacks(); return v; }; })();
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-imm]'); if (!b) return; const [a, x] = b.dataset.imm.split('|');
+  if (a === 'lancer') return immLancer(+x || 0);
+  if (a === 'pause') { IMM.pause = !IMM.pause; if (IMM.pause) voixTaire(); else { IMM.t0 = Date.now(); IMM.aParle = false; const g = document.getElementById('gd-bulle'); if (g && VOIX.on) { VOIX.dit = null; const txt = [...g.querySelectorAll('.gd-t, .gd-p')].map(e => e.textContent.replace(/^\s*Pourquoi \?/, '').trim().replace(/[.!?]*$/, '.')).join(' '); VOIX.dit = txt; voixDire(txt); } }
+    const z = document.querySelector('#gd-bulle .imm-barre'); if (z) { z.querySelector('[data-imm="pause"]').textContent = IMM.pause ? '▶ Reprendre' : '⏸ Pause'; z.querySelector('[data-imm="pause"]').setAttribute('aria-pressed', IMM.pause); z.querySelector('.imm-etat').textContent = IMM.pause ? 'En pause.' : 'Lecture automatique : la suite arrive toute seule.'; } }
+});
+/* « J'ai vu, suivant » touché à la main : le geste du pas se joue quand même avant d'avancer (sinon le pas suivant ne trouverait pas son écran) */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-gd="suivant"]'); if (!b || !immActif() || GD.pause) return; const g = gdGeste();
+  if (g && g.jouer && !IMM.joue) { ev.stopPropagation(); ev.preventDefault(); IMM.joue = true; try { g.jouer(); } catch (e) { IMM.perdus.push('jouer : ' + e.message); } setTimeout(() => { if (immActif()) gdSuivant(); }, 500); }
+}, true);
+/* le déroulé automatique : on attend que la voix ait fini (ou, sans voix, le temps de lire), on joue le geste, on avance */
+setInterval(() => {
+  if (!immActif() || !IMM.auto || IMM.pause || GD.prep) return;
+  const b = document.getElementById('gd-bulle'); if (!b) return; const cle = b.dataset.m || '';
+  if (IMM.cle !== cle) { IMM.cle = cle; IMM.t0 = Date.now(); IMM.joue = false; IMM.aParle = false; return; }
+  if (/^fin/.test(cle)) return;
+  if (GD.pause) { if (Date.now() - IMM.t0 > 350) gdEntrer(true); return; }   // entre deux chapitres : on entre tout de suite, c'est le premier pas qui présente la catégorie
+  const parle = voixParle(); if (parle) { IMM.aParle = true; return; }
+  const dt = Date.now() - IMM.t0, lecture = window.__immRapide ? 250 : IMM.aParle ? 900 : Math.max(3500, b.textContent.length * 55);
+  if (dt < lecture) return;
+  if (/^perdu/.test(cle)) { GD.attente = 0; return gdSuivant(); }
+  const g = gdGeste(); if (!g || g.manuel) return;
+  if (g.jouer && !IMM.joue) { IMM.joue = true; IMM.t0 = Date.now() - lecture + (window.__immRapide ? 200 : 1600); IMM.aParle = false; try { g.jouer(); } catch (e) { IMM.perdus.push('jouer ' + cle + ' : ' + e.message); } return; }
+  gdSuivant();
+}, 300);
+
+/* ── chapitre 1 : le tableau de bord (les autres chapitres sont ajoutés plus bas, un bloc par catégorie) ── */
+immChap('accueil', 'accueil', 'Tableau de bord', 'Le tableau de bord : ta journée en un regard',
+  'Bienvenue dans OP GESTION. Je vais te montrer toute l’application, catégorie par catégorie. Tu n’as rien à faire : regarde, les gestes se jouent tout seuls. On commence par l’écran d’ouverture, le tableau de bord.', [
+  { c:'#contenu .kpis', t:'Les chiffres du jour', p:'En haut, quatre chiffres : les interventions d’aujourd’hui, l’argent à recevoir, ce qui est encaissé ce mois-ci, et tes contrats. Chaque chiffre se touche et ouvre son détail.' },
+  { c:'#contenu .grille2', t:'L’équipe à gauche, ce qui t’attend à droite', p:'À gauche, chaque intervention du jour avec son heure, son technicien et son état. À droite, ce qu’il faut faire maintenant, le plus urgent en haut. Rien à chercher : une ligne touchée ouvre la bonne fiche.' },
+  { c:'[data-kdash="jour"]', t:'Un chiffre ouvre son détail', p:'Par exemple, je touche le nombre d’interventions du jour : le planning s’ouvre sur la journée.', jouer:() => immClic('[data-kdash="jour"]') },
+  { c:'#contenu h1', t:'Le planning du jour', p:'Voilà la journée, technicien par technicien. Un bouton « Retour » ramène toujours d’où l’on vient. Passons à la suite.' }]);
+
+/* ── immersion · pilotage ── */
+/* Les trois chapitres du pilotage (Statistiques, Historique, Planning) jouent des gestes qui touchent à l’état de la démonstration
+   (période, filtres, vue du planning, une tâche ajoutée, une intervention confiée) : on remet tout comme avant au début et à la fin. */
+const IMMP = { j0:null, t0:null, a0:null, jp:null };
+const immPilotageAttendre = (f, ms) => { if (window.__immRapide) f(); else setTimeout(f, ms); };
+function immPilotageStats(){
+  fermerPanneau();
+  if (IMMP.j0 !== null) { JOURNAL.length = IMMP.j0; TACHES.length = IMMP.t0; AFAIRE_AJOUTS.length = IMMP.a0; IMMP.j0 = null; }
+  stPer = 'mois'; stK = ST_FIN;
+}
+function immPilotageHisto(){
+  fermerPanneau(); hQui = 'tous'; hType = 'tous'; hCli = 'tous'; hCherche = ''; hJourSel = 'tous';
+}
+function immPilotagePlanning(){
+  fermerPanneau(); if (typeof fermerMenu === 'function') fermerMenu(); if (CREA) fermerCreation();
+  /* confier une intervention écrit une ligne dans l’Historique, et « Annuler » ne la retire pas : on la retire, la démonstration n’a rien fait */
+  if (IMMP.jp !== null) { JOURNAL.length = IMMP.jp; IMMP.jp = null; }
+  crSel = null; plVue = innerWidth <= 760 ? 'jour' : 'semaine'; plRef = AUJ;
+}
+const immPilotageRendre = () => { if (typeof rendre === 'function') rendre(); };
+
+immChap('statistiques', 'statistiques', 'Statistiques', 'Les statistiques : comment va l’entreprise',
+  'Statistiques répond à une seule question : comment va l’entreprise ? Tu y lis ce que tu as facturé, ce que tu as encaissé, ce que valent tes devis et ce que rapporte chaque technicien. Tout se calcule tout seul, à partir de ce que ton équipe saisit.', [
+  { c:'.st-kpis', t:'Les cinq chiffres du mois', p:'En haut, cinq chiffres sur octobre : 2 071 euros facturés hors taxes, 3 045 euros encaissés, 9 interventions faites, 33 pour cent de devis acceptés, et 20 jours pour être payé. Chaque flèche te compare au mois d’avant.' },
+  { c:'.st-barre-per', t:'Choisis la période', p:'Ici, tu choisis la période : le mois, les 3 derniers mois, ou les 12 derniers mois. Les flèches reculent ou avancent dans le temps. Je touche « 3 mois ».', jouer:() => immClic('[data-stper="trimestre"]') },
+  { c:'.st-kpis', t:'Tout se recalcule', p:'Sur 3 mois, tu as facturé 9 212 euros hors taxes, avec 64 interventions faites et 53 pour cent de devis acceptés. La comparaison se fait avec les 3 mois d’avant. Je reviens au mois.', jouer:() => immClic('[data-stper="mois"]') },
+  { c:'.st-graph', t:'Douze mois d’un coup d’œil', p:'Plus bas, une barre par mois pour le facturé, et une ligne pour l’encaissé. Tu vois tout de suite les mois forts, comme juillet, et les creux. Toucher un mois ouvre son détail.' },
+  { c:'.st-grille', t:'Les devis et les paiements', p:'Voici tes devis : 6 envoyés en octobre, 2 acceptés, 3 sans réponse. Juste à côté, les paiements : comment tes clients règlent, par virement, carte, chèque ou espèces, avec la facture en retard à relancer.' },
+  { c:'.st-table', t:'Le détail par technicien', p:'Ce tableau donne, pour chaque technicien, ses interventions, ses heures et ce qu’il a facturé. Karim Benali est en tête : 4 interventions, 8 heures. Je touche sa ligne.', jouer:() => immClic('[data-stdet="tech-kb"]') },
+  { c:'#calque .panneau', t:'Ce que Karim a fait', p:'Voilà ses 4 interventions, chacune avec sa facture et son état : payée, à payer, ou en retard. Un bouton ouvre l’intervention, et « Relancer » prépare le message de relance au client.', jouer:() => fermerPanneau() },
+  { c:'.st-ctr-l', t:'Les contrats à renouveler', p:'Plus bas, les contrats qui se terminent bientôt. Pour celui des Mimosas, je touche « À faire » : une tâche se crée pour toi, à retrouver dans Tâches. Dans cette démonstration, je la retire ensuite.',
+    jouer:() => { if (IMMP.j0 === null) { IMMP.j0 = JOURNAL.length; IMMP.t0 = TACHES.length; IMMP.a0 = AFAIRE_AJOUTS.length; } immClic('.st-ctr-l [data-afaire]'); } },
+  { c:'[data-stbilan]', t:'Le bilan pour ton comptable', p:'La tâche est créée. Et tout en haut, « Bilan du mois en PDF » : un document prêt à envoyer à ton comptable, avec les chiffres, les encaissements et les factures à surveiller. Je l’ouvre.', jouer:() => immClic('[data-stbilan]') },
+  { c:'#calque .panneau .bil', t:'Le document tel qu’il part', p:'Voici le document, avec le nom de l’entreprise, la synthèse, puis une page par mois. Trois boutons : voir en grand, télécharger, ou envoyer par e-mail. Je touche « Envoyer par e-mail ».', jouer:() => immClic('#calque [data-pdfmail]') },
+  { c:'#calque .panneau', t:'Prêt pour ta comptable', p:'Le message est déjà prêt : l’adresse de ta comptable, l’objet, un mot d’accueil, et le bilan en pièce jointe. Dans cette démonstration, rien ne part. Ces chiffres viennent des interventions, des devis et de la Comptabilité.',
+    jouer:() => { immPilotageStats(); immPilotageRendre(); } }]);
+(() => { const c = IMM_CHAPS.statistiques, g = c.go; c.go = () => { immPilotageStats(); g(); }; })();
+
+immChap('historique', 'historique', 'Historique', 'L’historique : qui a fait quoi, et quand',
+  'L’Historique garde la trace de tout ce qui se passe dans l’entreprise : qui a fait quoi, et à quelle heure. Rien ne s’y efface et rien ne s’y modifie, même pour le gérant. C’est ta preuve en cas de doute, et le moyen de retrouver une action.', [
+  { c:'.h-jour.ouvert', t:'Un journal rangé par jour', p:'Le journal est rangé par jour, le plus récent en haut. Chaque jour dit combien d’actions ont eu lieu et qui les a faites. Aujourd’hui est déjà ouvert : à chaque ligne, l’heure, la personne, ce qu’elle a fait, et pour quel client.' },
+  { c:'.h-jour.ouvert .h-l:nth-child(3)', t:'Le logiciel écrit aussi', p:'Cette ligne n’a pas été faite par une personne : c’est OP GESTION lui-même qui a envoyé le compte rendu au client, dès que le technicien a terminé. Tout ce que le logiciel fait tout seul est écrit ici.' },
+  { c:'.h-filtres', t:'Retrouver une action', p:'Pour retrouver une action, tu as la recherche, les puces par type, et les listes Personne, Jour et Client. Les puces suivent les catégories de l’application. Je touche « Factures et paiements ».', jouer:() => immClic('[data-htype="facture"]') },
+  { c:'.h-jour', t:'Seulement les factures', p:'Il ne reste que 12 actions : les factures envoyées et les paiements enregistrés, avec le montant et le moyen de paiement. Les jours sans facture disparaissent de la liste.' },
+  { c:'[data-hcherche]', t:'La recherche', p:'La recherche fouille tout : un nom de client, un numéro de facture, un mot du détail, sans tenir compte des accents. Je tape « durand ».', jouer:() => immEcrire('[data-hcherche]', 'durand') },
+  { c:'.h-l', t:'Quelques lignes seulement', p:'Il ne reste que 2 actions pour Monsieur et Madame Durand : une facture envoyée jeudi, et une relance faite par Marc. Je touche la première pour l’ouvrir.', jouer:() => immClic('.h-l') },
+  { c:'#calque .panneau', t:'Le détail d’une action', p:'Voilà tout ce qu’on sait : quand, qui, sur quoi, pour quel client, et depuis quel appareil. En bas, la mention : cette ligne ne peut être ni modifiée ni supprimée. Un bouton mène à la facture. Je le touche.', jouer:() => immClic('#calque [data-hvoir]') },
+  { c:'#calque .panneau', t:'On arrive sur l’objet', p:'Voici la facture elle-même, avec son déroulé : préparée toute seule à la fin de l’intervention, validée et envoyée, ouverte par le client. L’historique mène toujours à l’objet concerné.', jouer:() => { fermerPanneau(); immPilotageHisto(); immPilotageRendre(); } },
+  { c:'[data-hexport]', t:'Exporter le journal', p:'Pour un contrôle ou pour ton comptable, « Exporter en PDF » sort le journal tel qu’il est filtré à l’écran. Je l’ouvre.', jouer:() => immClic('[data-hexport]') },
+  { c:'#calque .panneau', t:'Le journal en document', p:'Le journal devient un document daté, jour par jour : l’heure, qui, l’action, le détail. Tu peux le télécharger ou l’envoyer. L’Historique est relié à toutes les catégories : chacune y écrit ses gestes.', jouer:() => fermerPanneau() }]);
+(() => { const c = IMM_CHAPS.historique, g = c.go; c.go = () => { immPilotageHisto(); g(); }; })();
+
+immChap('planning', 'planning', 'Planning', 'Le planning : qui fait quoi, quand',
+  'Le planning montre qui fait quoi et quand : les interventions, les absences et les créneaux bloqués, technicien par technicien. C’est l’écran du bureau pour organiser la semaine, confier une urgence ou caser une nouvelle intervention.', [
+  { c:'.pl-barre', t:'Six façons de voir le planning', p:'En haut, tu choisis la vue : Jour, Semaine, Mois, Vue d’ensemble, Sur mesure ou Carte. Les flèches changent de date, et chaque vue montre l’équipe autrement. Je touche Carte.', jouer:() => immClic('[data-plvue="carte"]') },
+  { c:'.cr-al', t:'Ce qu’il faut regarder', p:'La carte te signale trois choses : une urgence sans technicien, un retard à prévoir pour Sophie, et une intervention à confier. Le logiciel propose le technicien le plus proche. Je confie l’urgence à Tom.', jouer:() => { if (IMMP.jp === null) IMMP.jp = JOURNAL.length; immClic('[data-crconf="i17|tl"]'); } },
+  { c:'.kpis-rang', t:'Confiée en un geste', p:'L’urgence est chez Tom, de 11 heures 30 à 12 heures 30, et le compteur « à planifier » est passé à 2. Le logiciel prévient si l’horaire chevauche un autre ou si la personne est absente. Je clique sur Annuler.',
+    jouer:() => { if (typeof pile !== 'undefined' && pile.length) annuler(); crSel = null; immPilotageRendre(); } },
+  { c:'[data-kpi="plan"]', t:'Ce qui reste à planifier', p:'Ce chiffre orange compte les interventions qui n’ont pas encore de technicien ou d’heure : 3 en ce moment. Je le touche pour voir la liste.', jouer:() => immClic('[data-kpi="plan"]') },
+  { c:'#calque .panneau', t:'La liste à planifier', p:'Voici les trois : un entretien de chaudière, un dépannage, et une urgence chez Madame Roux. « Placer au planning » ouvre le bon jour et fait clignoter la carte. Je choisis l’entretien de l’hôtel.', jouer:() => immClic('#calque [data-kplacer="i5"]') },
+  { c:'.pc.a-placer', t:'La carte clignote', p:'Le jour s’ouvre, et l’entretien clignote dans la colonne « Non assigné ». Pour le placer, tu le glisses sur un technicien, ou sur téléphone, appui long puis glisser. Rien n’est enregistré tant que tu ne lâches pas.', jouer:() => { immPilotagePlanning(); immPilotageRendre(); } },
+  { c:'[data-creer]', t:'Créer une intervention', p:'Pour une nouvelle intervention, c’est le bouton Intervention, en haut. Une seule fenêtre, en quatre étapes : le client, l’intervention, le jour et la personne, la facturation. Je l’ouvre.', jouer:() => immClic('[data-creer]') },
+  { c:'#fenetre .fen-corps', t:'Le client, le type, le créneau', p:'Je choisis l’Hôtel de la Plage, un entretien, puis une case « Disponible » : Sophie, lundi 2 novembre, à 7 heures. Les cases libres tiennent compte des absences et de ce qui est déjà posé.',
+    jouer:() => { immClic('#fenetre [data-ccli="hp"]'); immClic('#fenetre [data-ctype="Entretien"]'); immClic('#fenetre [data-dispo^="sm|"]');
+      /* sur téléphone, le récapitulatif est au bas de la fenêtre : on l’amène sous les yeux avant d’en parler */
+      const z = gdQ('#fenetre .fen-cote'); if (z && innerWidth <= 760) z.scrollIntoView({ block:'start' }); } },
+  { c:'#fenetre .fen-cote', t:'Le logiciel prépare la facture', p:'Voici le récapitulatif. Comme l’hôtel a un contrat d’entretien, le logiciel prépare tout seul la facture de la visite : 310 euros hors taxes. Dans cette démonstration, je ne l’enregistre pas.', jouer:() => immClic('#fenetre .fen-pied [data-action="cFermer"]') },
+  { c:'[data-rrouvrir]', t:'Rendez-vous en ligne', p:'Ce bouton règle les rendez-vous que tes clients prennent eux-mêmes depuis leur lien, après un devis accepté. Je l’ouvre.', jouer:() => immClic('[data-rrouvrir]') },
+  { c:'#calque .panneau', t:'Tes règles de réservation', p:'Tu choisis les jours et les demi-journées ouverts, un délai minimum, et jusqu’à quand à l’avance. Les créneaux proposés suivent toujours le planning. Le planning est relié aux interventions, aux absences et aux tâches.', jouer:() => fermerPanneau() }]);
+(() => { const c = IMM_CHAPS.planning, g = c.go; c.go = () => { immPilotagePlanning(); g(); }; })();
+
+/* ── immersion · taches-absences-temps ── */
+/* Les gestes joués par ces trois chapitres écrivent vraiment dans les données du prototype (tâches créées, absence validée, semaine validée…) :
+   on en garde une photo à l’entrée du chapitre et on la remet à sa fin, pour que les chapitres suivants retrouvent les chiffres d’origine. */
+const immTatListe = () => ({ TACHES, TKX_AVIS, FACTURES, ENVOIS, JOURNAL, MAILS, NOTIFS, INTS, ABSENCES, DEMANDES_ABS, A_AVIS, DECISIONS_ABS, POINTAGES, PAIE, PT_TRACE, TOUR_PAIE });
+let immTatPhoto = null;
+function immTatPrendre(){ immTatPhoto = {}; const L = immTatListe(); Object.keys(L).forEach(n => { const j = JSON.stringify(L[n]); if (j !== undefined) immTatPhoto[n] = j; }); }
+function immTatRendre(){ if (!immTatPhoto) return; const L = immTatListe();
+  Object.keys(immTatPhoto).forEach(n => { const v = L[n], j = JSON.parse(immTatPhoto[n]);
+    if (Array.isArray(v)) v.splice(0, v.length, ...j); else if (v && typeof v === 'object') { Object.keys(v).forEach(k => delete v[k]); Object.assign(v, j); } });
+  immTatPhoto = null; aOnglet = 'valider'; tOnglet = 'auj'; ptMotif = ''; tkxSugSel.clear(); rendre(); }
+/* un geste de clavier : la touche Entrée dans un champ */
+const immTatEntree = sel => { const e = gdQ(sel); if (e) e.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true, cancelable:true })); else if (!IMM.perdus.includes('entrée ' + sel)) IMM.perdus.push('entrée ' + sel); return !!e; };
+const immTatPlus = (f, ms) => setTimeout(f, window.__immRapide ? 80 : ms);
+(() => { const q0 = gdQuitter; gdQuitter = function(){ const imm = GD.tour === 'imm', v = q0.apply(this, arguments); if (imm && immTatPhoto) immTatRendre(); return v; }; })();
+
+immChap('taches', 'taches', 'Tâches', 'Les tâches : qui fait quoi',
+  'Les tâches, c’est ce que chacun a à faire. Tu vas les ajouter d’une phrase, les recevoir proposées, et les voir se terminer seules.', [
+  { c:'.tkx-resume', t:'Les retards, d’un coup d’œil', p:'En haut, le bandeau rouge dit qui est en retard : Marc en a 1, Julie 1. Dessous, tu choisis Aujourd’hui, À venir ou Faites, tu cherches, tu filtres sur les retards, et tu ranges par sujet, par heure ou par personne.' },
+  { c:'.t-ajout', t:'Écris une phrase, il comprend', p:'Pour ajouter une tâche, tu écris comme tu parles. Par exemple : Appeler M. Durand demain 14h pour Julie, urgent. Je la tape dans la ligne Nouvelle tâche.',
+    jouer:() => immEcrire('[data-tajout]', 'Appeler M. Durand demain 14h pour Julie urgent') },
+  { c:'[data-tkxcompris]', t:'Ce qu’il a compris', p:'Regarde dessous : il a compris le jour, demain, l’heure, 14 heures, la personne, Julie, l’urgence, et même le client, M. et Mme Durand. Une étiquette s’efface d’un toucher si ce n’est pas ça. J’appuie sur Entrée.',
+    jouer:() => immTatEntree('[data-tajout]') },
+  { c:'.t-bandeau', t:'OP GESTION te propose des tâches', p:'Ici, le logiciel lit tes données et te propose ce qui manque : une facture en retard, un devis sans réponse, une pièce à commander. Il y en a 26, dont 8 urgentes. J’ouvre la liste.',
+    jouer:() => immClic('[data-tsuggs]') },
+  { c:'#calque .panneau .tkx-s-haut', t:'Les urgentes d’abord', p:'La liste est rangée par sujet, l’urgent en haut avec un point d’exclamation rouge. Sur chaque ligne, Pour qui et Quand sont déjà remplis, et tu peux ajouter, repousser ou ignorer. Je touche Ajouter les 8 urgentes.',
+    jouer:() => immClic('[data-tkxs="urg|"]') },
+  { c:'#calque .panneau h2', t:'Huit tâches d’un coup', p:'Voilà, huit tâches créées en un seul geste, et juste après, un bouton Annuler peut tout défaire. Il reste 18 propositions pour plus tard. Je ferme, et j’ouvre une tâche en retard.',
+    jouer:() => { fermerPanneau(); immTatPlus(() => immClic('[data-tmodif="t13"]'), 600); } },
+  { c:'#calque .panneau .tkx-haut, #calque .panneau .tkx-barre', t:'L’action principale, dans la fiche', p:'Dans la fiche, tu vois la facture, le client et ses derniers passages, et un gros bouton qui fait le travail : ici, Relancer maintenant. Je le touche.',
+    jouer:() => immClic('#calque .panneau [data-trelfac]') },
+  { c:'#calque .panneau .btn:not(.gris)', t:'Le message est déjà prêt', p:'Le message de relance est écrit, avec la facture jointe, et il part de l’adresse de l’entreprise. Dans cette démonstration, l’envoi est simulé : je touche Envoyer.',
+    jouer:() => immClic('#calque .panneau .btn:not(.gris)') },
+  { c:'#calque .panneau .t-quand', t:'La tâche se termine toute seule', p:'La relance est partie, et la tâche est passée à Faite sans que je touche rien, avec mon nom et l’heure. Comme c’est la troisième relance, le logiciel m’a prévu une autre tâche : appeler le client dans 2 jours. Maintenant, confions une tâche.',
+    jouer:() => { fermerPanneau(); immTatPlus(() => immClic('[data-tmodif="t11"]'), 600); } },
+  { c:'#calque .panneau .t-confier', t:'Confier à quelqu’un', p:'Une tâche peut changer de main. Dans Confier à, je choisis Karim : elle passe dans son écran Mes tâches, avec un avis, et il la coche lui-même.',
+    jouer:() => { immEcrire('#calque .panneau [data-tconfier]', 'kb'); const pn = gdQ('#calque .panneau'); if (pn) pn.scrollTop = 0; } },
+  { c:'#calque .panneau .t-qui-l', t:'Elle est chez Karim', p:'La tâche est maintenant à Karim, et l’Historique le note. Tu retrouves aussi les tâches sur la fiche du client, de la facture ou du devis concernés.',
+    jouer:() => { fermerPanneau(); immTatRendre(); } }]);
+
+immChap('absences', 'absences', 'Absences & congés', 'Les absences et les congés',
+  'Chacun demande ses congés depuis son téléphone, et toi, tu décides ici, sans casser le planning. Le logiciel pose la décision tout seul.', [
+  { c:'[data-ademid="d2"] .a-solde-l', t:'Une demande, avec son solde', p:'Tom demande un jour de RTT, un jour de repos en plus, le 3 novembre. Le logiciel compte en jours ouvrés et te montre son solde : 10 jours aujourd’hui, 9 après cette absence.' },
+  { c:'[data-ademid="d2"] .a-remp', t:'Ce qu’il faut régler avant', p:'Tom a une intervention ce jour-là, chez les Mimosas. Le logiciel propose les collègues libres, du même secteur d’abord. Karim est déjà choisi.' },
+  { c:'[data-ademid="d2"] .t-gestes', t:'Un bouton pour décider', p:'Un seul bouton : Valider et confier à Karim. Tu peux aussi proposer d’autres dates, ou refuser. Je valide.',
+    jouer:() => immClic('[data-aok="d2"]') },
+  { c:'.a-decs .a-dec', t:'C’est posé au planning', p:'L’absence de Tom est validée, Tom est prévenu et Karim aussi. L’intervention des Mimosas passe chez Karim, et la décision s’écrit dans les décisions récentes, avec un lien vers le planning.' },
+  { c:'[data-amodif="d3"]', t:'Proposer d’autres dates', p:'Pour la demande de Sophie, si la date t’arrange mal, tu n’es pas obligé de refuser : tu proposes d’autres dates. Je touche Proposer d’autres dates.',
+    jouer:() => immClic('[data-amodif="d3"]') },
+  { c:'#calque .panneau .deux-champs', t:'Tu choisis les nouvelles dates', p:'Tu choisis le jour qui t’arrange et tu écris un petit mot. Ici, le jeudi 5 novembre au lieu du vendredi 6. Le logiciel vérifie qu’aucune intervention n’est prévue. J’envoie la proposition.',
+    jouer:() => { immEcrire('#am-du', '2026-11-05'); immEcrire('#am-au', '2026-11-05'); immEcrire('#am-demi', ''); immEcrire('#am-msg', 'On a une visite chez un client le vendredi. Le jeudi 5, ça te va ?');
+      immTatPlus(() => immClic('[data-amodifok]'), 800); } },
+  { c:'[data-ademid="d3"]', t:'Sophie répond sur son téléphone', p:'La proposition est partie sur le téléphone de Sophie : elle peut accepter ou garder ses dates. Dans cette démonstration, je simule sa réponse : je touche D’accord.',
+    jouer:() => { immClic('[data-aprepond="d3|oui"]'); const a = gdQ('.a-avis'); if (a) a.scrollIntoView({ block:'center' }); } },
+  { c:'.a-avis', t:'Validé sans rien refaire', p:'Sophie est d’accord : l’absence est validée toute seule et posée au planning, et un avis te le dit. Voyons maintenant le calendrier de l’équipe.',
+    jouer:() => immClic('[data-aonglet="calendrier"]') },
+  { c:'.ac-zone', t:'Le calendrier de l’équipe', p:'Une ligne par personne, une case par jour : les congés en vert, les jours fériés comme la Toussaint en gris. Tu règles la durée affichée. Je passe aux soldes.',
+    jouer:() => immClic('[data-aonglet="soldes"]') },
+  { c:'.as-res', t:'Les soldes de chacun', p:'Congés payés et RTT restants, jours en attente, et une alerte pour Léa, presque à court de congés. Les absences se voient aussi au planning et dans Temps de travail.',
+    jouer:() => immTatRendre() }]);
+
+immChap('pointage', 'pointage', 'Temps de travail', 'Le temps de travail',
+  'Chaque salarié pointe lui-même. Ici, tu vérifies les heures, tu corriges avec un motif, et tu valides pour la paie.', [
+  { c:'.ptx-auj', t:'Qui travaille aujourd’hui', p:'Ce bloc dit qui est au travail, qui est absent, et qui est attendu sans avoir pointé. Le rappel est déjà parti à 9 heures 30. Et Tom a oublié de fermer sa journée de vendredi.' },
+  { c:'.ptx-sig', t:'Les demandes des salariés', p:'Quand un salarié se trompe, il te le signale. Tom dit avoir fini à 17 heures 40 mercredi, pas à 16 heures 42. Un clic sur Corriger applique l’heure, écrit la trace et le prévient. Je clique.',
+    jouer:() => immClic('[data-ptx="corrige|tl"]') },
+  { c:'.pt-grille, .ptx-cartes', t:'La semaine sur 7 jours', p:'Du lundi au dimanche, comme la paie : les heures de chacun, le total de la semaine et les heures en plus. La journée de Tom est corrigée.' },
+  { c:'.pt-alertes', t:'Les alertes du Code du travail', p:'Voilà ce qu’il faut regarder : Karim a dépassé 10 heures dans une journée. Chaque alerte donne sa référence du Code du travail. Je touche la première.',
+    jouer:() => immClic('.pt-alertes [data-pt="jour|kb|2026-10-28"]') },
+  { c:'#pt-motif', t:'Corriger avec un motif', p:'Voici la journée de Karim, heure par heure. Le motif de la correction est obligatoire : le salarié le verra. Je corrige la fin à 21 heures.',
+    jouer:() => { immEcrire('#pt-motif', 'Fin confirmée à 21 h avec Karim'); immEcrire('[data-ptc="pkb2026-10-28|fin"]', '21:00'); } },
+  { c:'#calque .panneau .groupe + .paie-trs', t:'Chaque correction laisse une trace', p:'La correction est tracée : qui l’a faite, quand, et pourquoi. Karim est prévenu et doit reconfirmer son relevé. Rien ne se corrige en cachette. Je ferme, et je valide les semaines en règle.',
+    jouer:() => fermerPanneau() },
+  { c:'.ptx-tout', t:'Valider en un seul geste', p:'Quand une semaine est en règle, tu la valides pour la paie. Un seul bouton valide d’un coup toutes les semaines sans alerte. Je le touche.',
+    jouer:() => immClic('[data-ptx="validertous"]') },
+  { c:'#calque .panneau h2', t:'Qui est concerné', p:'Le logiciel dit qui est concerné : quatre personnes sans alerte, et Karim et Tom à regarder d’abord. Ces heures partiront sur la fiche de paie. Je valide.',
+    jouer:() => immClic('#calque .panneau .btn:not(.gris)') },
+  { c:'.paie-lien', t:'Le lien vers la paie', p:'Les semaines sont validées. La paie du mois, avec les relevés d’heures, les fiches de paie et la déclaration, se prépare dans Comptabilité, puis Paie : un lien t’y mène directement.',
+    jouer:() => immTatRendre() }]);
+
+['taches', 'absences', 'pointage'].forEach(k => { const c = IMM_CHAPS[k], g0 = c.go; c.go = function(){ immTatRendre(); immTatPrendre(); return g0.apply(this, arguments); }; });
+
+/* ── immersion · interventions-clients ── */
+/* Les trois chapitres (Interventions, Ce que voit le client, Clients) jouent des gestes qui touchent à l’état de la démonstration : une fiche
+   terminée (facture préparée, ligne d’Historique, suites au planning), le client regardé, un contrat proposé depuis une fiche. On range tout
+   comme avant au début et à la fin de chaque chapitre, et si la personne quitte la visite en route. */
+const IMMIC = { s:null, b:null, v:null };
+function immIcSauver(){
+  if (IMMIC.s) return;
+  IMMIC.s = { ints:JSON.stringify(INTS), fac:JSON.stringify(FACTURES), jour:JSON.stringify(JOURNAL), m:JSON.stringify(M), suite:JSON.stringify(SUITE_ETAT) };
+}
+function immIcRemettre(){
+  if (IMMIC.s) { const a = IMMIC.s; IMMIC.s = null;
+    INTS.splice(0, INTS.length, ...JSON.parse(a.ints)); FACTURES.splice(0, FACTURES.length, ...JSON.parse(a.fac)); JOURNAL.splice(0, JOURNAL.length, ...JSON.parse(a.jour));
+    Object.keys(M).forEach(k => delete M[k]); Object.assign(M, JSON.parse(a.m));
+    Object.keys(SUITE_ETAT).forEach(k => delete SUITE_ETAT[k]); Object.assign(SUITE_ETAT, JSON.parse(a.suite));
+    SX.IS = null; }
+  if (IMMIC.b) { const b = IMMIC.b; IMMIC.b = null; Object.keys(BROUILLON).forEach(k => delete BROUILLON[k]); Object.assign(BROUILLON, JSON.parse(b)); }
+  if (IMMIC.v) { IMMIC.v = null; voirInt = 'i1'; modeClient = 'pdf'; }
+  filtreInt = 'auj'; chercheClient = ''; rangClients = 'tous'; ongletClient = 'histo';
+}
+/* Quand la fiche d’une intervention s’ouvre, ses champs d’heure cachés (« dt-cache », invisibles) sont une image à pleine largeur avant d’être rangés :
+   pendant quelques millisecondes la page a une barre de défilement latérale. Le champ caché ne dépasse plus sa taille rangée (aucun effet visible). */
+(() => { const st = document.createElement('style'); st.id = 'imm-ic-style'; st.textContent = '.dt-cache{max-width:26px!important}'; document.head.appendChild(st); })();
+function immIcToast(){ const t = document.getElementById('toast'); if (t) t.classList.remove('on'); }
+function immIcFermer(){ fermerPanneau(); if (typeof CREA !== 'undefined' && CREA) fermerCreation(); }
+/* « le client signe au doigt » : dans la démonstration on pose la signature à sa place, et la barre du bas se met à jour */
+function immIcSigner(){ fiche('i1').signature = 'signee'; majCollant('i1'); }
+(() => { const q0 = gdQuitter; gdQuitter = function(){ const imm = GD.tour === 'imm', v = q0.apply(this, arguments); if (imm && (IMMIC.s || IMMIC.b || IMMIC.v)) { immIcRemettre(); rendre(); } return v; }; })();
+
+immChap('interventions', 'interventions', 'Interventions', 'Les interventions : de la demande jusqu’à la facture',
+  'Interventions, c’est le cœur du travail : chaque passage chez un client, de la demande à la facture. Le logiciel prépare tout le reste.', [
+  { c:'#contenu .seg', t:'Cinq onglets pour s’y retrouver', p:'En haut, cinq onglets : aujourd’hui, à venir, à planifier, terminées, et toutes. Le chiffre à côté dit combien il y en a. Je touche « À planifier ».', jouer:() => immClic('[data-filtreint="plan"]') },
+  { c:'.liste-bureau, .liste-tel', t:'Ce qui attend une date', p:'Voilà ce qui attend d’être planifié : des interventions encore sans technicien, marquées « À planifier ». Pour chacune, il reste à choisir qui y va et quand. Je reviens à aujourd’hui, et je crée une intervention.',
+    jouer:() => { immClic('[data-filtreint="auj"]'); immClic('[data-creer="1"]'); } },
+  { c:'#fenetre .fen-corps', t:'Créer en trois temps', p:'Une intervention se crée en trois temps : le client, ce qu’il y a à faire, puis le créneau. Je choisis le Restaurant Le Vieux Port, un entretien, et le premier créneau libre.',
+    jouer:() => { immClic('#fenetre [data-ccli="vp"]'); immClic('#fenetre [data-ctype="Entretien"]'); immClic('#fenetre [data-action="cPlusTot"]');
+      /* au téléphone le récapitulatif est tout en bas de la fenêtre : on l’amène sous les yeux pour le pas suivant */
+      if (innerWidth <= 760) setTimeout(() => { const e = gdQ('#fenetre .fen-cote'); if (e) e.scrollIntoView({ block:'start' }); }, 150); } },
+  { c:'#fenetre .fen-cote > :first-child', t:'Le récapitulatif se remplit seul', p:'Le récapitulatif s’est rempli : le client, le planning, et Sophie, libre lundi à 7 heures. La facture prévue se calcule déjà. Je ne crée rien ici : ouvrons l’intervention de Sophie.',
+    jouer:() => { fermerCreation(); immIcToast(); immIcSauver(); immClic('[data-go="inter-x-i1"]'); } },
+  { c:'#contenu .grille2', t:'Tout ce que le technicien voit', p:'Voici la fiche, celle que Sophie ouvre sur son téléphone. Elle réunit ce que le client a dit, les consignes d’accès, les appareils, les photos, puis les contrôles, le compte rendu, la signature et le paiement.' },
+  { c:'#contenu .carte:has([data-action="pieceAjout"])', t:'Les pièces, avec le stock en direct', p:'Les pièces utilisées se notent ici. Sous chacune, le logiciel regarde ton stock : le dégrippant est à bord du camion, le nettoyant n’y est pas, mais il en reste 6 flacons à l’atelier.' },
+  { c:'#contenu .carte:has([data-ctrl])', t:'Les contrôles à cocher', p:'Voici la liste des contrôles du métier. Il en reste deux à faire : le nettoyage des filtres et l’essai de fonctionnement. Je les coche.',
+    jouer:() => { immClic('[data-ctrl="Nettoyage des filtres"]'); immClic('[data-ctrl="Essai de fonctionnement"]'); } },
+  { c:'#collant', t:'Ce qu’il manque, en bas', p:'En bas, une barre dit ce qui manque avant de terminer : il ne manque que la signature. Le client signe au doigt sur l’écran. Dans cette démonstration, je la pose, puis je touche « Terminer ».',
+    jouer:() => { immIcSigner(); immClic('[data-action="terminer"]'); } },
+  { c:'#calque .panneau .fo-bloc', t:'Le stock propose, rien ne sort seul', p:'La fiche est terminée, et le logiciel propose de sortir du stock ce qui a servi. Rien ne sort tout seul : tu confirmes ce qui a vraiment servi, et le stock suit après la validation du bureau.', jouer:() => fermerPanneau() },
+  { c:'#contenu .fin3', t:'Le compte rendu part, la suite est notée', p:'C’est terminé : le compte rendu est parti chez le client, la facture est préparée, et les suites sont notées : un devis pour le ventilateur, et l’entretien dans un an. J’ouvre la facture.', jouer:() => immClic('[data-go="facture-x-f-i1"]') },
+  { c:'#calque .panneau .kpis', t:'Une facture préparée toute seule', p:'La facture est déjà prête, sans que personne ne l’ait écrite. Elle affiche « à chiffrer » parce que le dégrippant n’a pas encore de prix : le bureau le complète, valide, et l’envoie. Elle suit ensuite ses étapes jusqu’au paiement, dans la Comptabilité.',
+    jouer:() => { immIcFermer(); immIcRemettre(); aller('interventions'); } }]);
+(() => { const c = IMM_CHAPS.interventions, g = c.go; c.go = () => { immIcFermer(); immIcRemettre(); g(); }; })();
+
+immChap('clientvoit', 'clientvoit', 'Ce que voit le client', 'Ce que voit le client : le lien et le PDF',
+  'Cet écran montre ce que ton client reçoit à la fin de l’intervention : un courriel, un PDF et un lien. Je te le fais voir.', [
+  { c:'#contenu .comment', t:'Le parcours en quatre étapes', p:'Voici ce que vit ton client, en quatre étapes. Le technicien termine, le client reçoit un e-mail à ton nom, le lien s’ouvre sans mot de passe, et il peut agir tout de suite. Tu n’as rien à faire.' },
+  { c:'[data-voirint]', t:'Choisis l’intervention à regarder', p:'Ici, tu choisis l’intervention à regarder. Celle du Restaurant Le Vieux Port est encore en cours, c’est un aperçu. Je prends plutôt une intervention terminée, celle de monsieur et madame Durand.',
+    jouer:() => { IMMIC.v = 1; immEcrire('[data-voirint]', 'i24'); } },
+  { c:'[data-action="envoiMail"]', t:'Envoyer ou renvoyer', p:'Le courriel part tout seul quand le technicien termine. Ces deux boutons servent à le renvoyer, par e-mail ou par SMS. Je touche « e-mail » pour voir le message.', jouer:() => immClic('[data-action="envoiMail"]') },
+  { c:'#calque .panneau', t:'Le message tel qu’il part', p:'Voilà le message : il part de ton entreprise, avec le lien vers le compte rendu et le PDF joint. La réponse du client arrive dans ta boîte. Ici, je ferme sans envoyer.', jouer:() => fermerPanneau() },
+  { c:'#contenu .seg', t:'Trois façons de voir', p:'Ces trois boutons montrent ce que reçoit le client : le PDF, le lien sur téléphone, et le lien sur ordinateur. Je commence par le lien sur téléphone.', jouer:() => immClic('[data-vc="web"]') },
+  { c:'.client-web', t:'Sur son téléphone', p:'Voici la page que le client ouvre : ton nom, un lien privé, sans compte ni mot de passe. Il y lit ce qui a été fait, les contrôles, les photos, la suite prévue, et la facture avec un bouton « Payer en ligne ».', jouer:() => immClic('[data-vc="ordi"]') },
+  { c:'.client-web', t:'Et sur ordinateur', p:'C’est le même contenu, présenté pour un grand écran. Le client n’installe rien et ne crée aucun compte. Je passe maintenant au PDF.', jouer:() => immClic('[data-vc="pdf"]') },
+  { c:'#contenu .pdf', t:'Le PDF joint au courriel', p:'Et voici le PDF joint au courriel : le compte rendu complet, au nom de ton entreprise, avec les contrôles, les pièces, les photos et les signatures. Il ne vaut pas facture : la facture part à part.' },
+  { c:'#contenu .comment > div:nth-child(4)', t:'Il peut agir tout de suite', p:'Dernière étape : le client télécharge le PDF, paie la facture en ligne, et prend son prochain rendez-vous, qui arrive chez toi « à planifier ». Ce qu’il fait revient donc dans Interventions et dans la Comptabilité.',
+    jouer:() => { immIcRemettre(); rendre(); } }]);
+(() => { const c = IMM_CHAPS.clientvoit, g = c.go; c.go = () => { immIcFermer(); immIcRemettre(); voirInt = 'i1'; modeClient = 'pdf'; g(); }; })();
+
+immChap('clients', 'clients', 'Clients', 'Les clients : tout ce que tu sais sur chacun',
+  'Clients garde tout ce qui concerne chaque client : coordonnées, appareils, devis, contrats et factures. Tu agis directement depuis sa fiche.', [
+  { c:'.cartes-clients', t:'Une carte par client', p:'Voici tous tes clients, une carte chacun. Tu y lis son contact, sa ville, ce qu’il a déjà payé, ce qu’il te doit, et la date de son prochain passage. Une pastille verte marque un contrat en cours.' },
+  { c:'[data-cherche]', t:'Chercher un client', p:'Pour en retrouver un, tape dans la recherche : le nom, le contact, l’adresse ou le téléphone. Les accents et les espaces sont ignorés. Je tape « vieux port ».', jouer:() => immEcrire('[data-cherche]', 'vieux port') },
+  { c:'[data-go="client-x-vp"]', t:'Un seul client reste', p:'La liste se réduit tout de suite à un seul client. Je touche sa carte pour ouvrir sa fiche.', jouer:() => immClic('[data-go="client-x-vp"]') },
+  { c:'.tete-client', t:'La fiche d’un client', p:'En haut, son nom, son contact, son téléphone et son adresse. Quatre boutons : appeler, écrire un e-mail, préparer un devis, ou planifier une intervention. Dessous, quatre chiffres : ce qu’il a payé, ce qu’il te doit, son prochain passage et ses appareils.' },
+  { c:'.alerte', t:'Le logiciel repère ce qui se répète', p:'Cette bannière vient de l’historique : le ventilateur extérieur a déjà eu deux pannes, et le roulement lâche aujourd’hui. À dire au client, et à vérifier côté garantie du fabricant.' },
+  { c:'[role="tablist"]', t:'Six onglets pour tout retrouver', p:'Sous la bannière, six onglets : l’historique de tout ce qui s’est passé, les factures, les appareils, les contrats, les documents, et les infos du client. Je touche « Appareils ».', jouer:() => immClic('[role="tablist"] [data-oc="appareils"]') },
+  { c:'#contenu .grille2', t:'Les appareils et ce qui les entoure', p:'Chaque appareil du client est là, avec son modèle, son âge et son nombre de passages. Sur le deuxième, une étiquette rouge prévient : trois pannes du ventilateur en 14 mois. À côté, les pièces remplacées, ses devis et son contrat.' },
+  { c:'[data-action="clientDevis"]', t:'Un devis depuis la fiche', p:'Pour préparer un devis à ce client, je touche « Devis », ici, dans sa fiche.', jouer:() => immClic('[data-action="clientDevis"]') },
+  { c:'#calque .panneau', t:'Le client est déjà choisi', p:'Le devis s’ouvre avec le client déjà rempli. Il ne reste qu’à donner l’objet, ou à partir d’un modèle comme « Entretien annuel » ou « Dépannage ». Je ferme, et j’ouvre maintenant une intervention pour ce client.', jouer:() => { fermerPanneau(); immClic('[data-creer="1"]'); } },
+  { c:'#fenetre .fen-corps', t:'Une intervention pour ce client', p:'La fenêtre s’ouvre avec le client déjà choisi : il reste le type, la durée et le créneau. Je ferme, et je propose un contrat à ce client.', jouer:() => { fermerCreation(); if (!IMMIC.b) IMMIC.b = JSON.stringify(BROUILLON); immClic('[data-action="contratPour"]'); } },
+  { c:'#contenu .grille2', t:'Un contrat prérempli', p:'Le contrat s’ouvre déjà rempli : le client, ses deux appareils, le prix et les clauses, avec le document tel que le client le signera. Un bouton l’envoie à signer. La fiche d’un client est ainsi reliée aux devis, aux contrats et aux interventions.',
+    jouer:() => { immClic('.rl-retour'); immIcRemettre(); rendre(); } }]);
+(() => { const c = IMM_CHAPS.clients, g = c.go; c.go = () => { immIcFermer(); immIcRemettre(); g(); }; })();
+
+/* ── immersion · devis-contrats-compta ── */
+/* Les trois chapitres (Devis, Contrats, Comptabilité) jouent de vrais gestes : un devis dicté, envoyé et signé, un contrat créé et signé,
+   une relance envoyée, une facture encaissée. On range tout comme avant à la fin de chaque chapitre, au début du suivant, et si la personne
+   quitte la visite en route : l’état de la démonstration ne garde rien de ce que la visite a joué. */
+const IMMDCC = { s:null };
+function immDccPhoto(){
+  if (IMMDCC.s) return; dvInit();
+  const t = a => a.map(o => ({ o, j:JSON.stringify(o) }));
+  IMMDCC.s = { dv:t(DV), reg:Object.keys(DEVIS_REG).map(k => [k, DEVIS_REG[k]]), ints:t(INTS), fac:t(FACTURES), jour:t(JOURNAL), tach:t(TACHES), enc:t(ENCAISSEMENTS), ctr:t(CONTRATS),
+    env:ENVOIS.slice(), br:JSON.stringify(BROUILLON), seq:dvSeq, num:DVN, cp:CP.onglet };
+}
+function immDccRemettre(){
+  const a = IMMDCC.s; if (!a) return; IMMDCC.s = null;
+  const r = (arr, ph) => { arr.splice(0, arr.length, ...ph.map(p => p.o)); ph.forEach(p => { Object.keys(p.o).forEach(k => delete p.o[k]); Object.assign(p.o, JSON.parse(p.j)); }); };
+  r(DV, a.dv); r(INTS, a.ints); r(FACTURES, a.fac); r(JOURNAL, a.jour); r(TACHES, a.tach); r(ENCAISSEMENTS, a.enc); r(CONTRATS, a.ctr);
+  Object.keys(DEVIS_REG).forEach(k => delete DEVIS_REG[k]); a.reg.forEach(([k, x]) => { DEVIS_REG[k] = x; });
+  ENVOIS.splice(0, ENVOIS.length, ...a.env); Object.keys(BROUILLON).forEach(k => delete BROUILLON[k]); Object.assign(BROUILLON, JSON.parse(a.br));
+  dvSeq = a.seq; DVN = a.num; DVN_F = null; DVD = null; dvFiltre = 'aenvoyer'; dvFocus = null; CP.onglet = a.cp;
+  if (typeof SX !== 'undefined' && SX) SX.IS = null;
+}
+function immDccFermer(){ fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); }
+/* le dessin d’une signature au doigt, posé à la place de la personne (le cadre de signature lit « data-signe ») */
+function immDccTrace(id){ const cv = document.getElementById(id); if (!cv) return false; const x = cv.getContext('2d'); x.lineWidth = 4; x.lineCap = 'round'; x.strokeStyle = '#0b1426';
+  x.beginPath(); x.moveTo(60, 120); x.bezierCurveTo(120, 20, 170, 170, 240, 70); x.bezierCurveTo(290, 20, 330, 150, 420, 60); x.stroke(); cv.dataset.signe = cv.toDataURL('image/png'); return true; }
+/* le contrat créé dans la démonstration n’a pas de date de fin, et la page Tâches la lit pour proposer les renouvellements : on la pose (un an moins un jour) */
+function immDccFinContrat(){ const k = CONTRATS[CONTRATS.length - 1]; if (!k || k.fin || !k.debut) return; const [j, m, a] = k.debut.split('/').map(Number), d = new Date(Date.UTC(a + 1, m - 1, j - 1)); k.fin = String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear(); }
+/* on range aussi quand la personne quitte la visite en route, et quand elle reprend un de ces chapitres au début */
+/* ⚠️ on range AVANT d’appeler la sortie d’avant : les autres chapitres rangent leur propre état dans la leur, et c’est leur état d’origine qui doit gagner */
+(() => { const q0 = gdQuitter; gdQuitter = function(){ const sale = GD.tour === 'imm' && !!IMMDCC.s; if (sale) { immDccFermer(); immDccRemettre(); cpSysteme = false; } const v = q0.apply(this, arguments); if (sale) rendre(); return v; }; })();
+const immDccDebut = (cle, fn) => { const c = IMM_CHAPS[cle], g = c.go; c.go = function(){ immDccRemettre(); immDccPhoto(); if (fn) fn(); return g.apply(this, arguments); }; };
+/* la bulle garde sa position d’avant quand son texte change, et glisse vers la nouvelle : une bulle plus longue, posée tout en bas, ou une bulle qui
+   quitte le centre, dépassait de l’écran le temps du glissement (mesuré : 8 à 330 px hors de l’écran, une image à la fois). On coupe le glissement
+   et on la remet dans l’écran dès qu’elle est écrite ; le glissement vers sa vraie place reprend à l’image suivante. */
+(() => { const b0 = gdBulle; gdBulle = function(){ const b = b0.apply(this, arguments);
+  try { if (b && b.id === 'gd-bulle') { const dehors = r => r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight;
+    if (dehors(b.getBoundingClientRect())) { b.style.transition = 'none'; const r = b.getBoundingClientRect();
+      if (innerWidth <= 760) { if (dehors(r)) { b.style.top = 'auto'; b.style.bottom = 'calc(12px + env(safe-area-inset-bottom))'; } }
+      else if (r.bottom > innerHeight - 8) b.style.top = Math.max(12, innerHeight - r.height - 12) + 'px';
+      void b.offsetWidth; requestAnimationFrame(() => { b.style.transition = ''; }); } } } catch (e) {}
+  return b; }; })();
+/* à la fin d’un chapitre : tout remis comme avant, écran propre */
+const immDccFin = h => () => { immDccFermer(); immDccRemettre(); cpSysteme = false; aller(h); };
+
+immChap('devis', 'devis', 'Devis', 'Les devis : de la dictée jusqu’à la signature',
+  'Le devis, c’est le début de la vente. Tu le prépares, ou tu le dictes. Le client le reçoit, l’accepte et le signe sur son téléphone. Ensuite, l’intervention et la facture se préparent toutes seules.', [
+  { c:'#contenu .kpis', t:'Où en sont tes devis', p:'En haut, quatre chiffres : les devis à finir et envoyer, l’argent qui attend une réponse, ce qui est accepté, et la part des devis qui aboutissent. Je touche « En attente » pour voir ceux qui attendent.', jouer:() => immClic('.kpis [data-dvf="attente"]') },
+  { c:'#contenu .dv-liste', t:'Les devis envoyés', p:'Chaque ligne dit le client, le sujet, le montant, et depuis quand le devis attend. Passé 7 jours sans réponse, le logiciel te propose de relancer, ici et dans Tâches. Je touche « Devis » pour en créer un à la main.', jouer:() => immClic('[data-dv="nouveau"]') },
+  { c:'#calque .panneau', t:'Créer un devis à la main', p:'À la main, tu choisis le client, ou tu le crées en même temps, tu donnes l’objet, puis tu pars d’un modèle : entretien, dépannage, installation. Le numéro ne se donne qu’à l’envoi. Voyons maintenant la méthode rapide : la dictée.', jouer:() => { fermerPanneau(); DVN_F = null; immClic('[data-dv="dicter"]'); } },
+  { c:'#calque .panneau', t:'Dicter au micro', p:'Je touche le micro et je parle : devis pour Madame Roux, une pompe de relevage, une heure de main-d’œuvre, et le déplacement. Dans cette démonstration, la voix est simulée.', jouer:() => { immEcrire('#dvd-t', DVD_EX); immClic('[data-dvd="mic"]'); } },
+  { c:'#dvd-t', t:'Le texte est écrit tout seul', p:'Voilà ce que j’ai dit, écrit tout seul. Je peux le corriger si le micro s’est trompé. Je touche « Préparer le devis » : le logiciel reconnaît la cliente, retrouve la pompe dans ton catalogue, compte l’heure et le déplacement.',
+    jouer:() => { if (DVD) DVD.etat = 'pret'; const t = document.getElementById('dvd-t'); if (t && !t.value.trim()) t.value = DVD_EX; dvdPreparer(); } },
+  { c:'#contenu .carte:has(.dv-lgs)', t:'Le devis est prêt, à relire', p:'Voilà le devis : la pompe, l’heure de main-d’œuvre et le déplacement, chacun avec son prix. La TVA et le total se calculent tout seuls. Je choisis un acompte de 30 pour cent à l’accord, puis j’ouvre l’aperçu et l’envoi.',
+    jouer:() => { immEcrire('[data-dvacompte]', '30'); immClic('[data-dv^="envoyer|"]'); } },
+  { c:'#calque .panneau', t:'Le message est prêt', p:'Le message au client est déjà écrit, avec le devis en PDF joint, et il parle de l’acompte. Le numéro du devis se donne maintenant. Je touche « Envoyer ». Dans cette démonstration, rien ne part vraiment.', jouer:() => immClic('[data-mailenvoi]') },
+  { c:'#contenu .carte:has(.etapes)', t:'La frise suit le devis', p:'Le devis a son numéro, et la frise suit son chemin : préparé, envoyé, puis ouvert par le client, accepté et signé, intervention planifiée, facturé. Chaque case se coche toute seule. Voyons ce que voit le client.', jouer:() => immClic('[data-dv^="client|"]') },
+  { c:'#calque .dv-cv', t:'Ce que voit le client', p:'Voici l’écran du client sur son téléphone : les lignes, le total, la case « bon pour accord », son nom, et sa signature au doigt. Dans cette démonstration, je coche, je signe, puis je touche « Accepter et signer ».',
+    jouer:() => { const ok = document.getElementById('dv-ok'); if (ok) ok.checked = true; immDccTrace('dv-signe'); immClic('[data-dv^="signer|"]'); } },
+  { c:'#contenu .ok-bloc', t:'Ce qui se crée tout seul', p:'Le devis est accepté et signé. Sans que tu touches à rien, le logiciel a créé l’intervention, à planifier, et préparé la facture d’acompte, à valider dans Factures. Chaque étape s’est écrite dans l’historique du devis.', jouer:() => { const t = document.getElementById('toast'); if (t) t.classList.remove('on'); } },
+  { c:'#contenu .grille2 > .col:last-child > .carte:has([data-go^="facture-x-"])', t:'Relié au reste de l’application', p:'Voilà la suite, toute seule : l’intervention à planifier, la facture d’acompte, puis la facture du solde à la fin du chantier. Chaque ligne s’ouvre d’un toucher. Le devis est relié aux Interventions, au Planning et aux Factures. Je remets la démonstration comme avant.', jouer:immDccFin('devis') }
+], {});
+immDccDebut('devis');
+
+immChap('contrats', 'contrats', 'Contrats', 'Les contrats d’entretien : de la création au renouvellement',
+  'Un contrat d’entretien, c’est un client qui paie chaque année pour des visites régulières. Le logiciel rédige le contrat, l’envoie à signer, range la copie signée et pose les visites au planning.', [
+  { c:'#contenu .kpis', t:'Tes contrats en un coup d’œil', p:'En haut : les contrats signés, ce qu’ils rapportent chaque année, les visites à venir, et ceux qui attendent une signature. Dessous, la liste dit pour chacun les visites faites, le prix et l’état. Je touche « Nouveau contrat ».', jouer:() => immClic('[data-go="contrat-nouveau"]') },
+  { c:'#contenu .grille2 > :first-child', t:'Un modèle selon ton métier', p:'Le contrat part d’un modèle de ton métier : climatisation, chauffage ou plomberie. Je choisis le chauffage, et les prestations couvertes changent toutes seules dans le contrat.', jouer:() => immEcrire('[data-b="modele"]', 'chauffage') },
+  { c:'#contenu .pdf', t:'Le contrat se rédige seul', p:'Voici le contrat, déjà rédigé : l’objet, ce qui est compris, les visites, le prix, la durée et la révision du prix. Je choisis le client, 2 visites par an et un prix de 140 euros, et tout se met à jour.',
+    jouer:() => { immEcrire('[data-b="cli"]', 'cp'); immEcrire('[data-b="freq"]', '2'); immEcrire('[data-b="prix"]', '140'); } },
+  { c:'[data-action="creerContrat"]', t:'Envoyer à signer', p:'Un seul bouton envoie le contrat : le client reçoit un lien, il lit, coche et signe au doigt. La copie signée revient toute seule. Je touche « Envoyer à signer ». Dans cette démonstration, rien ne part vraiment.', jouer:() => { immClic('[data-action="creerContrat"]'); immDccFinContrat(); } },
+  { c:'#contenu .carte:has(.etapes)', t:'Le chemin du contrat', p:'Le contrat a son numéro, et son chemin : préparé, envoyé, signé, visites posées au planning. Tant que le client n’a pas signé, je peux lui renvoyer le lien. Voyons ce que le client voit.', jouer:() => immClic('[data-go^="signer-x-"]') },
+  { c:'#contenu .client-web', t:'Ce que voit le client', p:'Voici la page du client : le résumé, le contrat à lire en entier, la case « J’ai lu et j’accepte », et sa signature au doigt. Dans cette démonstration, je coche, je signe, puis je touche « Signer le contrat ».',
+    jouer:() => { const l = document.getElementById('lu'); if (l) l.checked = true; immDccTrace('signe-ctr'); immClic('[data-action="signerContrat"]'); } },
+  { c:'#contenu .col .carte:nth-child(2)', t:'Les visites sont posées', p:'Le contrat est signé. Le logiciel a posé les 2 visites de l’année, à planifier, et la facture de chaque visite se prépare toute seule. Je touche la première visite.', jouer:() => immClic('#contenu [data-go^="inter-x-n-ctr-"]') },
+  { c:'#calque .apercu-dans', t:'Une vraie intervention', p:'La visite est une vraie intervention, au nom du client, avec la mention contrat. Il ne reste qu’à choisir qui y va et quand : elle apparaît dans Interventions, à planifier. Voyons maintenant le renouvellement.', jouer:() => { immDccFermer(); aller('taches'); } },
+  { c:'[data-tsuggs]', t:'Le logiciel propose, tu décides', p:'Dans Tâches, le logiciel te propose ce qui n’est pas encore une tâche, d’après tes données. Je l’ouvre : tu y trouves les contrats qui arrivent à échéance.', jouer:() => { immClic('[data-tsuggs]'); const b = gdQ('[data-tkxs="add|ctr-c1"]'); if (b) b.scrollIntoView({ block:'center', behavior:'instant' }); } },
+  { c:'#calque .tkx-sl:has([data-tkxs="add|ctr-c1"])', t:'Le renouvellement est proposé', p:'Voilà : proposer le renouvellement du contrat de la copropriété, qui se termine dans 61 jours. Je peux l’ajouter à mes tâches : un bouton prépare alors le message de renouvellement. Ainsi, aucun contrat ne s’arrête sans que tu l’aies vu. Je remets la démonstration comme avant.', jouer:immDccFin('contrats') }
+], {});
+immDccDebut('contrats');
+
+immChap('comptabilite', 'comptabilite', 'Comptabilité', 'La comptabilité : elle se tient toute seule',
+  'La comptabilité d’OP GESTION se tient toute seule : tes factures, tes paiements et ta banque s’écrivent à partir de ce que ton équipe fait. Je te montre d’abord l’écran de tous les jours, puis la grande fenêtre de la comptabilité complète.', [
+  { c:'#contenu .cx-kpis', t:'Tes chiffres du mois', p:'Voici l’écran de tous les jours, « Factures et paiements ». Six chiffres : ce que tu as facturé, encaissé et dépensé en octobre, ton résultat provisoire, ta trésorerie, et tes points de conformité. Chaque chiffre ouvre son détail.' },
+  { c:'#contenu .cx-afaire', t:'Ce qu’il y a à faire', p:'Dessous, la liste « À faire », le plus urgent en haut : une facture en retard, des interventions à facturer, des lignes de banque à expliquer. Chaque bouton fait le geste. Je touche « Relancer » sur la facture en retard.', jouer:() => cmptPanneauRelance() },
+  { c:'#calque .cmpt-rel', t:'La relance est déjà écrite', p:'Le message de relance est écrit, avec un lien pour payer par carte, et je peux le modifier. Je touche « Envoyer la relance » : dans cette démonstration, rien ne part, mais elle est comptée, notée dans l’Historique, et la tâche liée se termine.',
+    jouer:() => { immClic('[data-cmpt^="relance"]'); immClic('[data-cx="grp|ventes"]'); immClic('[data-cx="sec|fventes"]'); } },
+  { c:'#contenu .cx-liste', t:'Toutes les factures clients', p:'Dans « Ventes », les factures et les avoirs : pour chacune, le client, l’échéance, le montant, et où elle en est : payée, à encaisser ou en retard. Les filtres du haut trient la liste. J’ouvre la facture des Durand, en retard.', jouer:() => immClic('[data-cx="doc|fac|f128"]') },
+  { c:'#contenu .carte:has([data-payer])', t:'Encaisser un paiement', p:'Voici la fiche de la facture. Pour encaisser, je choisis le moyen de paiement : carte, virement, chèque ou espèces, ou un paiement en partie. Je touche « Carte » : dans cette démonstration, le client vient de payer.', jouer:() => immClic('[data-payer="f128|Carte"]') },
+  { c:'#contenu .carte:has(.etapes)', t:'Payée, et rangée toute seule', p:'La facture est payée. Le paiement est rangé dans la comptabilité, la tâche de relance se termine, et chaque geste laisse sa ligne dans l’Historique. Rien à ressaisir. Passons aux achats.',
+    jouer:() => { immDccFermer(); cpSysteme = false; route = 'comptabilite'; param = null; history.replaceState(null, '', '#comptabilite'); rendre(); immClic('[data-cx="grp|achats"]'); } },
+  { c:'#contenu .cx-liste', t:'Tes achats et tes frais', p:'Dans « Achats », tout ce que tu paies : le matériel, les véhicules, les frais généraux et les notes de frais de l’équipe. Chaque ligne dit si elle est à valider, à payer ou en retard, et s’il manque une facture.', jouer:() => { immClic('[data-cx="grp|tresorerie"]'); immClic('[data-cx="sec|banque"]'); } },
+  { c:'#contenu .grille2 > .col:last-child > .carte:first-child', t:'La banque, expliquée', p:'Voici la banque. Le solde de la banque et celui de ta comptabilité sont côte à côte, et l’écart est dit en une phrase : ici, trois lignes du relevé restent à expliquer. Pour chacune, le logiciel propose la bonne réponse.', jouer:() => immClic('[data-cx="grp|fiscal"]') },
+  { c:'#contenu .grille2 > .col:first-child > .carte:first-child', t:'La TVA se calcule seule', p:'La TVA du mois est calculée toute seule, sur ce que les clients ont payé : la TVA collectée, moins la TVA récupérée sur tes achats, donne ce que tu dois verser le mois suivant. Tu la vérifies avec ton expert-comptable avant de la déclarer.', jouer:() => { immClic('[data-cx="grp|pilotage"]'); immClic('[data-cx="sec|cloture"]'); } },
+  { c:'#contenu .grille2 > .col:first-child > .carte:first-child', t:'La clôture du mois', p:'Pour clôturer octobre : cinq vérifications, puis l’envoi à ton expert-comptable. Les factures sont émises, la banque est expliquée, l’argent est déposé, chaque achat a sa facture, la TVA est calculée. J’ouvre la comptabilité complète.', jouer:() => immClic('[data-cmptv^="rubrique"]') },
+  { c:'#cpsys', t:'La comptabilité complète', p:'Voici la comptabilité complète : le tableau de bord, ce qu’il faut vérifier, ce qui s’est fait tout seul, la journée en direct, la fin de mois, les ventes, les achats, la paie, la banque, la trésorerie, la TVA, le bilan, le compte de résultat.' },
+  { c:'#cpsys .cpsys-barre', t:'Sa démonstration, et le retour', p:'C’est comme un second logiciel, avec son menu et sa propre démonstration parlée, « La démo », à lancer quand tu veux. En haut, « OP GESTION » te ramène ici. Elle est reliée aux factures, aux interventions, aux achats et à la paie. Je la referme.', jouer:immDccFin('comptabilite') }
+], {});
+immDccDebut('comptabilite', () => { CP.onglet = 'ensemble'; });
+
+/* ── immersion · stock ── */
+/* Les trois chapitres (produits, stock, boxes) jouent de vrais gestes : un article ajouté, une commande envoyée puis reçue, une sortie, un réassort,
+   des validations, un comptage. On garde une photo des données à l’entrée du chapitre et on la remet à sa fin (ou si on quitte la visite), pour que
+   le chapitre suivant retrouve les chiffres d’origine, et on remet aussi à zéro l’état des écrans (filtres, onglets, formulaires). */
+const IMMS = { photo:null, cle:null, suite:false };
+const immStockPlus = (f, ms) => setTimeout(f, window.__immRapide ? 60 : ms);
+/* un message bref posé par un geste joué ne doit pas rester sur la zone éclairée du pas suivant */
+const immStockToast = ms => immStockPlus(() => { const t = document.getElementById('toast'); if (t) t.classList.remove('on'); }, ms || 1100);
+const immStockDonnees = () => ({ PRODUITS, COMMANDES, MVTS, MVTS_ATT, NOTIFS, JOURNAL });
+/* l’état des écrans de ces catégories : leurs valeurs de départ */
+function immStockRegler(){
+  prPack = 'tous'; prCat = null; prQ = ''; prAlerte = false; prAC = false; prVue = 'articles'; PDX.etat = 'tous'; PDX.tri = 'rangement';
+  cmdFiltre = 'traiter'; cmdOnglet = 'cours'; cmdRech = ''; CMD_ED = null;
+  stkOnglet = 'ensemble'; stkQ = ''; stkFiltre = 'tous'; mvFiltre = 'tous'; mvRech = ''; invLieu = null; INV = {}; SK_F = null;
+  Object.assign(SX, { lieuF:'tous', F:null, M:null, E:null, D:null, IS:null, dernier:null });
+  Object.assign(BX, { ou:'', q:'', hl:null, fiche:null, sel:new Set(), cfg:null, inv:{}, invLieu:null, invPlus:[], mod:null, nou:null, dem:[], vs:null });
+}
+function immStockGarder(cle){
+  if (IMMS.photo && IMMS.cle === cle) return;   // « Me remettre au bon endroit » rappelle l’entrée : on garde la photo d’origine
+  immStockRendre();
+  const D = immStockDonnees(), d = {}; Object.keys(D).forEach(n => { d[n] = JSON.stringify(D[n]); });
+  IMMS.photo = { d, cmdNum, brNum }; IMMS.cle = cle; immStockRegler();
+}
+function immStockRendre(){
+  const ph = IMMS.photo; if (!ph) return;
+  IMMS.photo = null; IMMS.cle = null;
+  const D = immStockDonnees(); Object.keys(ph.d).forEach(n => { D[n].splice(0, D[n].length, ...JSON.parse(ph.d[n])); });
+  cmdNum = ph.cmdNum; brNum = ph.brNum;
+  immStockRegler(); fermerPanneau();
+  Object.keys(metiersIdx).forEach(k => delete metiersIdx[k]); if (typeof prIdx === 'object') Object.keys(prIdx).forEach(k => delete prIdx[k]);
+  prCatalogueMaj();
+  const t = document.getElementById('toast'); if (t) t.classList.remove('on');
+  rendre();
+}
+/* le dernier pas ferme son panneau, mais ne remet PAS les données tout de suite : l’écran se redessinerait sous la bulle, qui changerait de place et
+   glisserait hors de l’écran avant que la carte du chapitre suivant ne la remplace. Les données reviennent dès que la visite change de chapitre ou s’arrête. */
+function immStockFin(){ fermerPanneau(); IMMS.suite = true; }
+(() => { const q0 = gdQuitter; gdQuitter = function(){ const imm = GD.tour === 'imm', v = q0.apply(this, arguments); if (imm && IMMS.photo) immStockRendre(); return v; };
+  /* la bulle glisse d’une place à l’autre (transition de la feuille) : quand la carte d’un chapitre, plus haute que la bulle d’avant, prend sa place, elle traverse un instant le bas de l’écran,
+     surtout au téléphone. Dans ces trois chapitres, et pour la carte qui les suit, la bulle se pose sans glisser. */
+  const b0 = gdBulle; gdBulle = function(mode){ const b = b0.apply(this, arguments);
+    if (b && immActif()) { const cle = (GD_TOURS.imm.chap()[GD.e] || {}).cle, mien = ['produits', 'stock', 'boxes'].includes(cle);
+      if (!mien && mode !== null) IMMS.suite = false;
+      b.style.transition = mien || IMMS.suite ? 'none' : ''; }
+    return b; };
+  const l0 = immLancer; immLancer = function(){ immStockRendre(); return l0.apply(this, arguments); }; })();
+/* à chaque entrée d’un de ces chapitres : la photo ; dès que la visite passe à un autre chapitre (ou s’arrête), on remet les données */
+const immStockEntrer = cle => { const g0 = IMM_CHAPS[cle].go; IMM_CHAPS[cle].go = () => { immStockGarder(cle); g0(); }; };
+setInterval(() => { if (IMMS.photo && immActif() && (GD_TOURS.imm.chap()[GD.e] || {}).cle !== IMMS.cle) immStockRendre(); }, 150);
+
+immChap('produits', 'produits', 'Fournisseurs, matériel & produits', 'Les produits : acheter, ranger, recevoir',
+  'Cette catégorie réunit tout ce que ton équipe achète, pose et vend : les articles, les commandes aux fournisseurs, et les fournisseurs eux-mêmes. Je te montre comment ajouter un article, passer une commande et la recevoir.', [
+  { c:'#contenu .pr-vues', t:'Trois vues, une seule catégorie', p:'En haut, trois vues. Matériel et produits, avec tes 29 articles. Commandes, pour acheter et suivre. Et Fournisseurs, avec les 5 chez qui tu achètes. Tu passes de l’une à l’autre d’un seul toucher.' },
+  { c:'#contenu .pr-pack', t:'Rangé par métier, puis par catégorie', p:'Les articles sont rangés par métier : climatisation, chauffage, plomberie. Dans chaque métier, les catégories sont celles de ce métier, comme les fluides ou les filtres. Chaque ligne montre l’état, le stock avec son seuil d’alerte, le prix de vente et la marge.' },
+  { c:'[data-pr^="nouveau|"]', t:'Ajouter un article', p:'Pour ajouter un article, je touche Ajouter. Un formulaire s’ouvre, et l’application va remplir presque tout toute seule.',
+    jouer:() => { immStockRegler(); immClic('[data-pr^="nouveau|"]'); } },
+  { c:'#calque .panneau', t:'Il se range tout seul', p:'Je tape le nom : siphon de condensats. L’application le range toute seule dans la bonne catégorie, avec le fournisseur habituel et l’alerte. Je mets 4 euros à l’achat : elle propose 8 euros à la vente, avec la marge de la catégorie.',
+    jouer:() => { immEcrire('#pr-nom', 'Siphon de condensats'); immStockPlus(() => { immEcrire('#pr-pa', '4'); immStockPlus(() => immClic('[data-pdx^="prop|"]'), 250); }, 250); } },
+  { c:'[data-pr="garder|"]', t:'Les protections de l’application', p:'Avant d’enregistrer, l’application te protège : elle prévient d’un doublon, refuse un prix négatif, et te demande confirmation si tu vends à perte. Je touche Ajouter.',
+    jouer:() => { immClic('[data-pr="garder|"]'); immStockToast(900); immStockPlus(() => immEcrire('[data-prq]', 'siphon'), 250); } },
+  { c:'#contenu .pr-pack .pr-l', t:'L’article est dans la liste', p:'Le voilà, rangé dans la catégorie Évacuation des condensats. Il est marqué épuisé, puisque je n’ai rien mis en stock. Son prix de vente est de 8 euros, et il est déjà proposé dans les devis. Je passe aux fournisseurs.',
+    jouer:() => { immEcrire('[data-prq]', ''); immStockPlus(() => immClic('[data-pr="vue|fournisseurs"]'), 250); } },
+  { c:'.fo-fc:has([data-cm="preparer|Sanitaire Pro 17"])', t:'Un fournisseur, une carte', p:'Chaque fournisseur a sa carte : son délai réel, et la part de ses livraisons à l’heure. Sanitaire Pro 17 a un article à commander : la pompe de relevage, tombée sous son seuil d’alerte. Je touche Commander.',
+    jouer:() => immClic('[data-cm="preparer|Sanitaire Pro 17"]') },
+  { c:'#calque .panneau', t:'Le bon de commande est prêt', p:'Le bon est déjà rempli : la pompe de relevage, 72 euros hors taxes, à retirer au comptoir. Je vérifie, j’envoie : l’e-mail part avec le bon en pièce jointe et un lien de confirmation. Dans cette démonstration, rien ne part vraiment.',
+    jouer:() => { immClic('[data-ce="envoi"]'); immStockPlus(() => { immClic('[data-ce^="go|"]'); immStockToast(900); immStockPlus(() => immClic('[data-pr="vue|commandes"]'), 300); }, 300); } },
+  { get c(){ return COMMANDES[0] ? '[data-cm="voir|' + COMMANDES[0].id + '"]' : '#contenu .cmd-table'; }, t:'La commande se suit toute seule', p:'La voilà dans le suivi, avec l’état Envoyée. Elle passera à Confirmée quand le fournisseur clique sur le lien, puis à Reçue. Si la date passe sans livraison, elle devient en retard et une relance est prête. Je l’ouvre.',
+    jouer:() => immClic(COMMANDES[0] ? '[data-cm="voir|' + COMMANDES[0].id + '"]' : '[data-cm^="voir|"]') },
+  { c:'[data-cm^="recep|"]', t:'Recevoir la marchandise', p:'Quand la marchandise arrive, je touche Réceptionner. Je dis ce qui est arrivé et où je le range : à l’atelier ou dans un camion. Je valide : le stock monte d’autant.',
+    jouer:() => { immClic('[data-cm^="recep|"]'); immStockPlus(() => { immClic('[data-cm^="recok|"]'); immStockToast(500); }, 300); } },
+  { c:'#calque .panneau', t:'Le stock a monté', p:'La commande est reçue, et l’historique le dit : une pompe de relevage rangée à l’atelier. L’article n’est plus à commander. Le bouton Lire la facture rapproche ensuite la facture, sans compter le stock deux fois. Les Achats gèrent les demandes des techniciens.',
+    jouer:() => { fermerPanneau(); immStockFin(); } }], {});
+
+immChap('stock', 'stock', 'Stock', 'Le stock : ce que tu as, et où',
+  'Le stock, c’est ce que tu as, et où il se trouve : à l’atelier, dans chaque camion, dans les réserves chez les clients. Il te dit aussi ce qui manque, et c’est toi qui valides ce que les techniciens déclarent.', [
+  { c:'#contenu .sx-afaire', t:'D’abord, ce qui t’attend', p:'En ouvrant le Stock, tu tombes sur « À faire maintenant » : deux gestes de techniciens à valider, et trois camions à compléter. Chaque ligne a son bouton. Les autres choses arrivent ensuite, quand celles-ci sont faites.' },
+  { c:'#contenu .sk-lieux', t:'Chaque lieu a sa carte', p:'Ici, chaque endroit où tu gardes du stock : l’atelier, les quatre camions et une réserve chez un client. Chaque carte dit combien d’articles, ce que ça vaut, et ce qui manque à bord.' },
+  { c:'#contenu .sk-liste', t:'Les alertes de seuil', p:'La liste range les articles par état : épuisé d’abord, puis à commander. Chaque article a un seuil d’alerte, et dès que le stock passe dessous, il change d’état. Chaque ligne dit aussi où se trouve l’article.' },
+  { c:'#contenu .tete .actions', t:'Quatre gestes en haut', p:'Quatre boutons en haut. Sortie, pour sortir un article. Transfert, pour le déplacer d’un lieu à un autre. Entrée, pour ranger un arrivage. Et Réassort, pour remplir les camions. Je commence par une sortie.',
+    jouer:() => { immStockRegler(); immClic('[data-sk="sortie|"]'); } },
+  { c:'#calque .panneau', t:'Une sortie dit qui prend quoi', p:'Je choisis le lieu, ici l’atelier, puis l’article, pour qui, et pourquoi. Par exemple un filtre à charbon, donné à Karim. Chaque sortie dit qui a pris quoi : c’est la trace du stock.',
+    jouer:() => { immEcrire('[data-skadd]', 'p1'); immStockPlus(() => { immEcrire('[data-skf="pourQui"]', 'kb'); immStockPlus(() => immEcrire('[data-skf="motif"]', 'Donné à un collègue'), 250); }, 250); } },
+  { c:'[data-sk="fok"]', t:'Je valide la sortie', p:'Je touche Sortir. Le stock baisse tout de suite, un bon de remise est fait pour Karim, et un bouton Annuler reste proposé quelques secondes si je me suis trompé.',
+    jouer:() => { immClic('[data-sk="fok"]'); immStockToast(); } },
+  { c:'[data-sk="reassort"]', t:'Remplir les camions', p:'Le réassort complète les camions : chacun doit toujours avoir à bord une dotation, et le logiciel calcule ce qui manque. Je touche Réassort des camions.',
+    jouer:() => immClic('[data-sk="reassort"]') },
+  { c:'#calque .panneau', t:'Tu coches, il transfère', p:'Voilà ce qui manque à chaque camion, pris à l’atelier, une case par ligne. Le camion de Tom est au garage : ses lignes sont décochées, on ne le remplit pas d’office. Je touche Transférer la sélection.',
+    jouer:() => { immClic('#bxl-rok'); immStockToast(); } },
+  { c:'#contenu .sx-afaire', t:'Les camions sont remplis', p:'Les camions de Sophie et de Karim ont quitté la liste : ils sont complets, et les techniciens sont prévenus. Celui de Tom, au garage, attend son retour. Il reste les gestes des techniciens : je touche Valider.',
+    jouer:() => immClic('[data-sk="onglet|valider"]') },
+  { c:'#contenu .sk-liste', t:'Ce que déclarent les techniciens', p:'Voilà ce que Tom et Sophie ont déclaré depuis leur écran Mon camion. Rien ne bouge avant ton accord : chaque ligne dit ce qui restera en stock, et tu peux Valider, ou Refuser avec un motif. Je touche Tout valider.',
+    jouer:() => { immClic('[data-sx="toutval"]'); immStockToast(); } },
+  { c:'#contenu .sk-liste', t:'Tout est à jour', p:'Plus rien n’attend. Les stocks ont bougé et les techniciens sont prévenus. Tu peux annuler un geste juste après. Le Stock est relié aux Boxes, pour compter les lieux, et aux Produits, pour commander ce qui manque.',
+    jouer:() => immStockFin() }], {});
+
+immChap('boxes', 'boxes', 'Boxes', 'Les boxes : tes lieux de stock',
+  'Boxes, ce sont tes lieux de stock : l’atelier, les camions et les réserves laissées chez les clients. Je te montre ce que la page te dit de faire, comment compléter un camion, et comment retrouver un article.', [
+  { c:'#contenu .bxl-af', t:'La page te dit quoi faire', p:'D’abord, « À faire maintenant » : six choses aujourd’hui. Des mouvements à valider, des pièces qui manquent avant les visites, des camions et une réserve à remettre à bord, un camion au garage, des lieux à compter. S’il n’y a rien, une ligne verte le dit.' },
+  { c:'#contenu .bx-c', t:'Un camion, une carte', p:'Chaque camion a sa carte : son conducteur, son nombre d’articles, sa valeur, et ce qui manque à bord. Celui de Sophie a 3 articles sous sa dotation. Je touche Compléter.',
+    jouer:() => { immStockRegler(); immClic('[data-bxl="comp|v1"]'); } },
+  { c:'#calque .panneau', t:'Tu décoches ce que tu n’envoies pas', p:'Voilà les trois lignes : filtre à charbon, fluide R32 et nettoyant échangeur, chacune cochée. Je décoche le nettoyant : je ne veux pas l’envoyer maintenant.',
+    jouer:() => immClic('[data-bxl-ck="v1|p5"]') },
+  { c:'#bxl-rok', t:'Je transfère la sélection', p:'Le bouton compte les lignes cochées : deux. Je transfère. Le stock passe de l’atelier au camion, Sophie est prévenue, et un bouton Annuler remet tout comme avant.',
+    jouer:() => { immClic('#bxl-rok'); immStockToast(); } },
+  { c:'#contenu .bx-c', t:'Le camion est presque complet', p:'La carte de Sophie ne demande plus qu’un article : le nettoyant que j’ai décoché. Le logiciel a écrit les mouvements et prévenu Sophie. Un camion au garage, lui, n’est pas réapprovisionné d’office.' },
+  { c:'[data-bxl-ou]', t:'Où est cet article ?', p:'Pour savoir qui a quoi, je tape un article dans « Où est ? ». Par exemple, filtre.',
+    jouer:() => immEcrire('[data-bxl-ou]', 'filtre') },
+  { c:'[data-bxl^="ou|"]', t:'Chaque lieu qui en a', p:'Chaque lieu qui en a affiche sa quantité, sous sa carte. Je touche celle du camion de Sophie pour ouvrir sa fiche.',
+    jouer:() => immClic('[data-bxl^="ou|"]') },
+  { c:'#calque .panneau', t:'La fiche du lieu', p:'La fiche montre tout ce que contient le camion, avec ce qui manque à sa dotation. En haut : compléter, sortir, transférer, compter, et modifier le nom ou la dotation. Je touche Compter.',
+    jouer:() => immClic('[data-bxl^="inv|"]') },
+  { c:'#calque .panneau', t:'Un comptage, même sans écart', p:'Je compte ce qu’il y a vraiment à bord, ligne par ligne. Si tout est juste, je n’ai rien à taper : tout est juste se valide aussi, et le lieu garde la date de son comptage.',
+    jouer:() => { immClic('[data-bxl="invok"]'); immStockToast(); } },
+  { c:'[data-bxl="nou"]', t:'Une réserve chez un client', p:'Le camion de Sophie est compté, avec sa date. Pour une réserve laissée chez un client, je touche Nouvelle réserve.',
+    jouer:() => { immEcrire('[data-bxl-ou]', ''); immStockPlus(() => immClic('[data-bxl="nou"]'), 200); } },
+  { c:'#calque .panneau', t:'Elle démarre avec un kit', p:'Je choisis le client, un responsable, et un contenu de départ : vide, un kit d’entretien climatisation, ou comme une autre réserve. Dans cette démonstration, je ne la crée pas. Boxes est relié au Stock, qui valide les mouvements.',
+    jouer:() => { immClic('[data-bxl="kit|entretien"]'); immStockPlus(() => immStockFin(), 1100); } }], {});
+['produits', 'stock', 'boxes'].forEach(immStockEntrer);
+
+
+/* ── immersion · achats-vehicules-mail-equipe ── */
+/* Ces quatre chapitres (Achats, Véhicules, Boîte mail, Équipe) jouent de vrais gestes : une demande transférée, une note validée, un contrôle
+   passé, un plein saisi, un courriel qui ouvre une intervention, une habilitation renouvelée… On garde une photo des données juste avant le
+   premier geste du chapitre, et on la remet dès que la visite change de chapitre ou s’arrête : le chapitre suivant retrouve les chiffres d’origine. */
+const IMMAVME = { ph:null, cle:null };
+const immAvmePlus = (f, ms) => setTimeout(f, window.__immRapide ? 80 : ms);
+const immAvmeListe = () => ({ DEM_ACHAT, NDF, ACHATS, COMMANDES, MVTS, MVTS_ATT, PRODUITS, NOTIFS, JOURNAL, TACHES, VEHICULES, MAILS, EQUIPE, INTS, AX, VX, MBX });
+const immAvmeEtat = () => ({ cmdNum, acOnglet, mlSel, mlFiltre, mlRep });
+function immAvmeGarder(cle){
+  if (IMMAVME.ph && IMMAVME.cle === cle) return;   // un geste de plus du même chapitre : la photo d’entrée reste la bonne
+  immAvmeRendre();
+  const L = immAvmeListe(), d = {}; Object.keys(L).forEach(n => { d[n] = JSON.stringify(L[n]); });
+  IMMAVME.ph = { d, e:JSON.stringify(immAvmeEtat()) }; IMMAVME.cle = cle;
+}
+function immAvmeRendre(){
+  const ph = IMMAVME.ph; if (!ph) return;
+  IMMAVME.ph = null; IMMAVME.cle = null;
+  fermerPanneau(); if (typeof CREA !== 'undefined' && CREA) fermerCreation();
+  const L = immAvmeListe();
+  Object.keys(ph.d).forEach(n => { const v = L[n], j = JSON.parse(ph.d[n]); if (Array.isArray(v)) v.splice(0, v.length, ...j); else { Object.keys(v).forEach(k => delete v[k]); Object.assign(v, j); } });
+  ({ cmdNum, acOnglet, mlSel, mlFiltre, mlRep } = JSON.parse(ph.e));
+  const t = document.getElementById('toast'); if (t) t.classList.remove('on');
+  rendre();
+}
+/* un geste joué prend d’abord la photo du chapitre, puis se fait */
+const immAvmeJ = (cle, f) => () => { immAvmeGarder(cle); f(); };
+const immAvmeFermer = () => { if (!immClic('#calque .panneau .x')) fermerPanneau(); };
+const immAvmeToast = ms => immAvmePlus(() => { const t = document.getElementById('toast'); if (t) t.classList.remove('on'); }, ms || 1400);
+/* ouvrir un courriel : au téléphone, la liste est cachée tant qu’un message est ouvert — on revient d’abord à la liste */
+const immAvmeCourriel = id => { const sel = '[data-ml="ouvrir|' + id + '"]'; if (!gdQ(sel)) { const r = gdQ('.ms-retour'); if (r) r.click(); } return immClic(sel); };
+/* au téléphone, « Boîtes connectées » est dans l’en-tête de la liste : on y revient d’abord */
+const immAvmeBoites = () => { if (!gdQ('[data-mbx="boites"]')) { const r = gdQ('.ms-retour'); if (r) r.click(); } return immClic('[data-mbx="boites"]'); };
+/* la bulle se pose sans glisser dans ces chapitres : d’une carte plus haute à une plus basse, elle traversait un instant le bas de l’écran */
+(() => { const b0 = gdBulle; gdBulle = function(mode){ const b = b0.apply(this, arguments);
+    if (b && immActif() && ['achats', 'vehicules', 'boiteMail', 'equipe'].includes((GD_TOURS.imm.chap()[GD.e] || {}).cle)) b.style.transition = 'none';
+    return b; }; })();
+(() => { const q0 = gdQuitter; gdQuitter = function(){ const imm = GD.tour === 'imm', v = q0.apply(this, arguments); if (imm && IMMAVME.ph) immAvmeRendre(); return v; };
+  const l0 = immLancer; immLancer = function(){ immAvmeRendre(); return l0.apply(this, arguments); }; })();
+setInterval(() => { if (IMMAVME.ph && immActif() && (GD_TOURS.imm.chap()[GD.e] || {}).cle !== IMMAVME.cle) immAvmeRendre(); }, 150);
+
+immChap('achats', 'achats', 'Achats', 'Les achats : décider vite, tout se relie',
+  'Les achats, c’est tout ce que ton équipe te demande de payer : du matériel, des pièces, et les notes de frais. Je te montre comment décider en quelques secondes, pendant que le logiciel prépare le reste.', [
+  { c:'#contenu .kpis', t:'Ce qui attend ta décision', p:'En haut, quatre chiffres : 3 demandes à décider, 896 euros de factures à payer, 4 achats qui n’ont pas encore de facture, et 3 notes de frais à valider. Les deux du milieu t’emmènent dans la Comptabilité.' },
+  { c:'[data-axid="da1"]', t:'Une demande de Tom', p:'Tom demande 10 kilos de fluide pour le 2 novembre, parce qu’il en a donné une bouteille à Karim. Il a écrit pourquoi, et le montant estimé, 380 euros, se corrige d’un geste avant de décider.' },
+  { c:'[data-axid="da1"] .ve-e', t:'Le logiciel regarde ton stock d’abord', p:'Avant d’acheter, il regarde l’atelier : il en reste 6 kilos sur 10. Il propose de les transférer au camion de Tom, et de ne commander que les 4 qui manquent. Dessous, il rappelle ce que ce poste a déjà coûté en octobre.' },
+  { c:'[data-axid="da1"] .actions', t:'Cinq réponses possibles', p:'Transférer et commander, tout commander, acheter en magasin, demander une précision, ou refuser. Je touche la première : transférer les 6 kilos, et commander les 4 qui manquent.',
+    jouer:immAvmeJ('achats', () => { immClic('[data-ac="transfert|da1"]'); immAvmeToast(700); }) },
+  { c:'#calque .panneau', t:'Le brouillon de commande est prêt', p:'Les 6 kilos sont partis au camion de Tom. Et voici la commande déjà écrite chez Frigo Distribution 17 : 4 kilos de fluide, au prix du tarif, avec le total. Il reste à la vérifier, puis à l’envoyer. Je ferme.',
+    jouer:() => { immAvmeFermer(); immAvmeToast(900); } },
+  { c:'[data-axid="da3"] .actions', t:'Une demande qu’on refuse', p:'Il ne reste plus que 2 demandes. Celle de Sophie, une échelle, n’est pas au catalogue : ce serait un achat en magasin. Imaginons que tu ne veuilles pas. Je touche Refuser.',
+    jouer:immAvmeJ('achats', () => immClic('[data-ac="refuser|da3"]')) },
+  { c:'#calque .panneau', t:'Un refus s’explique toujours', p:'Un refus s’explique toujours : Sophie lira ton message. Trois phrases toutes prêtes t’évitent de taper. Je touche la deuxième : pas cette semaine, on en reparle lundi.',
+    jouer:() => immClic('#calque .panneau [data-axa^="chip|"]:nth-child(2)') },
+  { c:'#ac-motif', t:'Sophie saura pourquoi', p:'La phrase est écrite dans le message. Le bouton Refuser et prévenir l’enverrait tout de suite à Sophie. Dans cette démonstration, je ne l’envoie pas : je ferme.',
+    jouer:() => immAvmeFermer() },
+  { c:'.pr-vues', t:'Les notes de frais', p:'Passons aux notes de frais. Le technicien photographie son ticket, dit ce qu’il a payé, et choisit la date. Chaque note arrive dans cet onglet, 3 à valider. Je l’ouvre.',
+    jouer:immAvmeJ('achats', () => immClic('.pr-vues [data-ac="onglet|notes"]')) },
+  { c:'[data-axid="n1"]', t:'Le ticket se voit avant de valider', p:'Tom a avancé 16 euros 50 pour un repas de chantier. Tu vois le ticket en petit, la TVA lue dessus, et deux boutons. Je touche Valider : la note part au remboursement avec la paie de novembre.',
+    jouer:immAvmeJ('achats', () => immClic('[data-ac="ndfok|n1"]')) },
+  { c:'[data-cx="sec|factures|achats|sanspiece"]', t:'Tout se relie', p:'Un bouton Annuler défait la validation. Regarde cette tuile : la dépense est déjà dans la Comptabilité, les achats sans facture passent de 4 à 5. Les commandes se suivent dans Produits, et les notes validées partent avec la paie.' }]);
+
+immChap('vehicules', 'vehicules', 'Véhicules', 'Les véhicules : rien ne tombe sans prévenir',
+  'Les véhicules, c’est ta flotte : les échéances avant qu’elles tombent, ce qu’il y a à bord, qui conduit, et ce que chaque véhicule coûte. Je te montre comment ne rien laisser passer.', [
+  { c:'.vx-bande', t:'Ce qu’il faut faire maintenant', p:'En haut, trois lignes, une par véhicule : la révision du Kangoo est en retard, le contrôle technique de la Peugeot arrive, et l’assurance des 4 véhicules tient en une seule ligne. Je touche Prendre rendez-vous, pour la révision.',
+    jouer:immAvmeJ('vehicules', () => immClic('[data-vx="rdv|veh4|entretien"]')) },
+  { c:'[data-vx="fait|veh2|ct|liste"]', t:'Le contrôle est passé', p:'Une tâche est créée pour prendre rendez-vous au garage, et le bouton du Kangoo dit maintenant Rendez-vous demandé : jamais deux tâches pour la même chose. Le contrôle de la Peugeot vient d’être passé : je touche Contrôle fait.',
+    jouer:immAvmeJ('vehicules', () => { immClic('[data-vx="fait|veh2|ct|liste"]'); immAvmeToast(900); }) },
+  { c:'#calque .panneau', t:'La prochaine date est proposée', p:'Le logiciel propose la date du jour, le kilométrage du compteur, et le prochain contrôle dans 2 ans, le 31 octobre 2028. À toi de la corriger avec le procès-verbal. Je tape le montant payé : 79 euros.',
+    jouer:() => immEcrire('#vx-fm', '79') },
+  { c:'#calque .panneau [data-vx^="faitok|"]', t:'Valider, et tout se range', p:'Je valide. Le frais part dans les achats, et la prochaine échéance de la Peugeot est enregistrée. Un bouton Annuler remet tout comme avant, si tu t’es trompé.',
+    jouer:() => immClic('#calque .panneau [data-vx^="faitok|"]') },
+  { c:'.ve-grille [data-ve="fiche|veh2"]', t:'La carte se met à jour', p:'La carte de la Peugeot annonce maintenant sa prochaine échéance, la courroie, dans 20 jours. Chaque carte montre la plaque, le conducteur, le kilométrage et ce qu’il y a à bord. Je touche la carte pour ouvrir la fiche.',
+    jouer:() => immClic('.ve-grille [data-ve="fiche|veh2"]') },
+  { c:'#calque .panneau .fo-bloc', t:'La fiche du véhicule', p:'Dans la fiche : les échéances, chacune avec son bouton, le conducteur qu’on change en un clic, le matériel de sécurité à cocher, et les photos de la carte grise et de l’attestation. Plus bas, un bouton met le véhicule au garage.' },
+  { c:'#calque .panneau .vx-tuiles', t:'Ce que ça coûte', p:'Plus bas, ce que ça coûte : le total, le coût par mois et au kilomètre, avec un graphique mois par mois : carburant, entretien, assurance. Je ferme la fiche.',
+    jouer:() => immAvmeFermer() },
+  { c:'[data-ve="plein|"]', t:'Saisir un plein', p:'Pour un plein, je touche Saisir un plein. Le technicien peut le faire lui-même depuis son téléphone. Il choisit le véhicule, le montant payé et les litres.',
+    jouer:() => immClic('[data-ve="plein|"]') },
+  { c:'#calque .panneau', t:'Le prix au litre se calcule', p:'Je choisis la Peugeot, 84 euros 60, 49 litres et le compteur. Le logiciel calcule seul le prix au litre. On peut joindre la photo du ticket : sans photo, une tâche rappellera de le retrouver.',
+    jouer:() => { immEcrire('#vx-v', 'veh2'); immEcrire('#vx-m', '84,60'); immEcrire('#vx-l', '49'); immEcrire('#vx-km', '121890'); } },
+  { c:'#calque .panneau [data-vx="pleinok"]', t:'Enregistrer le plein', p:'Le prix au litre est là : 1 euro 73. J’enregistre. Le plein rejoint les achats du mois, rangé au bon compte de la comptabilité, et le compteur du véhicule suit.',
+    jouer:() => { immClic('#calque .panneau [data-vx="pleinok"]'); immAvmeToast(900); } },
+  { c:'[data-ve="nouveau"]', t:'Un nouveau véhicule', p:'Pour ajouter un véhicule, je touche Plus Véhicule : plaque, marque, conducteur, assurance, contrôle technique et révision. Ses échéances se suivent alors comme les autres. Les véhicules sont reliés au Planning, aux Achats et aux Tâches.' }]);
+
+immChap('boiteMail', 'boiteMail', 'Boîte mail', 'La boîte mail : chaque courriel a son geste',
+  'La Boîte mail lit chaque courriel pour toi. Elle reconnaît si c’est un client ou un fournisseur, de quoi il parle, et te propose le geste qui suit, déjà prérempli. Voyons trois courriels et leurs trois gestes.', [
+  { c:'.ml-liste', t:'Les messages, déjà classés', p:'À gauche, tes messages, chacun avec une étiquette : Client, Fournisseur, ou Nouveau contact. Les 7 qui attendent une réponse sont dans À traiter, le plus urgent en haut. Je touche le premier, un message d’un hôtel.',
+    jouer:immAvmeJ('boiteMail', () => immClic('[data-ml="ouvrir|m1"]')) },
+  { get c() { return tel() ? '[data-ml="creerint|m1"]' : '.ml-reco'; }, t:'Le logiciel a déjà compris', p:'Sous le message, un bandeau : OP GESTION a reconnu une demande d’intervention urgente, et retrouvé le client, l’Hôtel de la Plage. Le geste proposé : créer l’intervention. Je touche ce bouton.',
+    jouer:immAvmeJ('boiteMail', () => immClic('[data-ml="creerint|m1"]')) },
+  { c:'#fenetre .fen-corps', t:'L’intervention est préremplie', p:'La fenêtre s’ouvre avec le client déjà choisi, le titre repris du courriel et le motif tiré du texte. Il reste à choisir le créneau. Une fois créée, un bouton Prévenir le client prépare le message. Je ferme, et j’ouvre le courriel suivant.',
+    jouer:() => { if (typeof CREA !== 'undefined' && CREA) fermerCreation(); immAvmeToast(300); immAvmeCourriel('m3'); } },
+  { get c() { return tel() ? '[data-ml="rappro|m3"]' : '.ml-reco'; }, t:'Une facture de fournisseur', p:'Ce courriel vient d’un fournisseur : une facture. Le logiciel a lu 197 euros 20 dedans, retrouvé ta commande de 196 euros, et signale l’écart de 1 euro 20 avant que tu paies. Je touche Rapprocher.',
+    jouer:immAvmeJ('boiteMail', () => immClic('[data-ml="rappro|m3"]')) },
+  { c:'#calque .panneau', t:'La facture comparée à la commande', p:'La facture est comparée ligne par ligne à ce que tu as commandé et reçu : le circulateur est facturé 1 euro 20 de plus. Tu peux accepter l’écart, ta marge est gardée, ou le contester. Je ferme sans rien décider.',
+    jouer:() => { immAvmeFermer(); immAvmeCourriel('m5'); } },
+  { get c() { return tel() ? '[data-mbx="devis|m5"]' : '.ml-reco'; }, t:'Un inconnu demande un devis', p:'Claire Fontaine, que tu ne connais pas, demande un devis pour une climatisation à Aytré. Le logiciel la range en nouveau contact et propose de créer le client et son devis d’un geste, ou une visite. Je touche Répondre.',
+    jouer:immAvmeJ('boiteMail', () => immClic('[data-mbx="repondre|m5"]')) },
+  { c:'#calque .panneau', t:'Une réponse déjà écrite', p:'Je choisis un modèle qui correspond au sujet : annoncer un devis, poser une question, ou proposer un créneau. Le texte est écrit pour toi, avec le nom de la personne et ta signature à la fin. Je prends Proposer un créneau.',
+    jouer:() => immClic('#calque .panneau [data-ml="modele|m5|creneau"]') },
+  { c:'#ml-txt', t:'Trois créneaux dans le message', p:'Trois créneaux libres, lus dans le planning : samedi à 16 heures, lundi et mardi à 9 heures. Une fois envoyé, le courriel porte Répondu, puis remonte avec un bouton Relancer si le client se tait. Je n’envoie rien ici : je ferme.',
+    jouer:() => immAvmeFermer() },
+  { c:'.ml-barre', t:'Les gestes sous chaque message', p:'Sous chaque message : répondre, confier à quelqu’un, en faire une tâche, ou archiver. Je touche Confier, pour passer ce courriel à un collègue.',
+    jouer:immAvmeJ('boiteMail', () => immClic('[data-mbx="confier|m5"]')) },
+  { c:'#calque .panneau', t:'Confier un courriel', p:'La personne reçoit une tâche et une notification. Si elle n’a pas accès à ta Boîte mail, elle reçoit ce courriel seul, en lecture, avec le geste proposé : rien d’autre de ta boîte. Je ferme, puis j’ouvre les boîtes connectées.',
+    jouer:() => { immAvmeFermer(); immAvmePlus(immAvmeBoites, 500); } },
+  { c:'#calque .panneau', t:'Les boîtes connectées', p:'Ici, tes boîtes : contact est lue il y a 2 minutes, marc est à reconnecter. Tu peux en ajouter une, régler ta signature et le délai de relance. La Boîte mail est reliée aux clients, aux interventions et aux tâches.',
+    jouer:() => immAvmeFermer() }]);
+
+immChap('equipe', 'equipe', 'Équipe', 'L’équipe : qui fait quoi, avec quels droits',
+  'L’équipe, c’est qui travaille avec toi, ce que chacun peut faire, et ses habilitations. Je te montre comment inviter quelqu’un, régler ses droits, et ne jamais oublier un renouvellement.', [
+  { c:'#contenu .kpis', t:'L’équipe d’un coup d’œil', p:'Ici, 6 places utilisées sur 8, 4 personnes sur le terrain, 2 habilitations à renouveler, et aucune invitation en attente. Chaque tuile se touche pour filtrer la liste.' },
+  { c:'#eqx-renouv', t:'Les habilitations à renouveler', p:'Les habilitations qui arrivent à échéance sont rassemblées ici. Celle de Karim, électrique, finit dans 24 jours, et sa formation est prévue. Celle de Léa, sur l’amiante, est expirée : un bouton planifie la formation.' },
+  { c:'.eq-grille [data-eq="fiche|kb"]', t:'Une carte par personne', p:'Chaque personne a sa carte : son rôle, ses heures pointées, son véhicule, ses absences. Sur celle de Karim, les 48 heures 45 sont en rouge : c’est au-delà de la limite de 48 heures dans la semaine. J’ouvre sa fiche.',
+    jouer:immAvmeJ('equipe', () => immClic('.eq-grille [data-eq="fiche|kb"]')) },
+  { c:'#calque .panneau .fo-stats', t:'La fiche de Karim', p:'La fiche donne sa semaine : 4 interventions, ses heures, ses congés restants. Plus bas, des liens mènent à son planning, son véhicule et son historique, puis viennent ses habilitations.' },
+  { c:'#calque .panneau [data-eq="renouv|kb|1"]', t:'Renouveler une habilitation', p:'L’habilitation électrique de Karim est valable jusqu’au 24 novembre. Je touche Renouveler : le logiciel va me demander ce qui s’est passé.',
+    jouer:() => immClic('#calque .panneau [data-eq="renouv|kb|1"]') },
+  { c:'#calque .panneau', t:'Les dates sont proposées', p:'Il demande la date de passage, la nouvelle fin de validité, proposée pour 3 ans, l’organisme, et l’attestation en pièce jointe. J’écris l’organisme, puis j’enregistre.',
+    jouer:() => { immEcrire('#eqx-ho', 'Organisme de formation'); immAvmePlus(() => immClic('#calque .panneau [data-eqx^="renouvok|"]'), 700); } },
+  { c:'#calque .panneau .fo-bloc', t:'L’ancienne date est gardée', p:'C’est renouvelé : la nouvelle date remplace l’ancienne, qui reste sous Voir les anciennes. Maintenant ses droits : je choisis le profil Responsable.',
+    jouer:() => { const s = gdQ('#calque .panneau [data-eqprof="kb"]'); if (s) { s.value = 'resp'; s.dispatchEvent(new Event('change', { bubbles:true })); } else IMM.perdus.push('champ profil'); } },
+  { c:'#calque .panneau .a-alerte', t:'Ce qu’il pourra faire en plus', p:'Avant d’appliquer, le logiciel montre ce que Karim pourra faire en plus : créer des clients, voir les devis et factures, corriger les pointages. Chaque changement s’écrit ensuite dans l’Historique, avec un bouton Annuler. Je ne l’applique pas.',
+    jouer:() => fermerPanneau() },
+  { c:'[data-eq="inviter"]', t:'Inviter une nouvelle personne', p:'Pour faire entrer quelqu’un dans l’équipe, je touche Inviter une personne. Un petit formulaire s’ouvre, et la personne recevra son invitation par courriel.',
+    jouer:() => immClic('[data-eq="inviter"]') },
+  { c:'#calque .panneau', t:'Quatre champs suffisent', p:'Je tape le prénom, le nom, l’adresse e-mail et son rôle, un simple nom. La personne recevra un lien pour choisir son mot de passe : personne d’autre ne le connaît.',
+    jouer:() => { immEcrire('#eq-p', 'Camille'); immEcrire('#eq-n', 'Dupont'); immEcrire('#eq-m', 'camille@exemple.fr'); immEcrire('#eq-r', 'Apprenti'); } },
+  { c:'#eqx-profdit', t:'Des droits de départ', p:'Je choisis ses droits de départ, ici Technicien : une phrase dit ce que ce profil ouvre. La case terrain est cochée toute seule : il apparaîtra au planning, aux interventions et aux véhicules. Je n’envoie pas l’invitation : je ferme.',
+    jouer:() => immAvmeFermer() }]);
+
+
+/* ── immersion · metier-3d ── */
+/* Les trois chapitres du métier 3D (registre, carte des box, devis xylophage) jouent de vrais gestes : un passage enregistré, un relevé sur le plan, une box posée,
+   un devis créé. On garde une photo des données à l’entrée du chapitre et on la remet dès que la visite en sort (ou s’arrête), pour que la suite retrouve les chiffres
+   d’origine ; on remet aussi à zéro l’état de ces écrans (site choisi, relevé en cours, devis en préparation). */
+const IMM3D = { photo:null, cle:null };
+const IMM3D_CLES = ['registre', 'carteBox', 'devisXylo'];
+/* un geste à la suite des autres : le premier tout de suite, les suivants espacés (très courts en lecture accélérée) */
+const immMetier3dSerie = (fns, ecart) => fns.forEach((f, k) => { const go = () => { try { f(); } catch (e) { IMM.perdus.push('jouer metier-3d : ' + e.message); } };
+  if (!k) go(); else setTimeout(go, window.__immRapide ? k * 20 : k * (ecart || 380)); });
+/* les données que ces écrans peuvent changer : un nom, de quoi la lire, de quoi la remplacer quand elle a été réaffectée */
+const IMM3D_VARS = [
+  ['D3_PASSAGES', () => D3_PASSAGES, v => { D3_PASSAGES = v; }], ['D3_POSTES', () => D3_POSTES, v => { D3_POSTES = v; }],
+  ['RG_RECO', () => RG_RECO], ['RG_LIEN', () => RG_LIEN], ['RG_CAMION', () => RG_CAMION], ['CB_STOCK', () => CB_STOCK],
+  ['INTS', () => INTS, v => { INTS = v; }], ['TACHES', () => TACHES, v => { TACHES = v; }], ['JOURNAL', () => JOURNAL, v => { JOURNAL = v; }],
+  ['MVTS', () => MVTS, v => { MVTS = v; }], ['NOTIFS', () => NOTIFS, v => { NOTIFS = v; }], ['PRODUITS', () => PRODUITS, v => { PRODUITS = v; }],
+  ['CLIENTS', () => CLIENTS], ['FICHES', () => FICHES], ['DV', () => DV, v => { DV = v; }], ['DEVIS_REG', () => DEVIS_REG],
+  ['DX_REL', () => DX_REL, v => { DX_REL = v; }], ['DX_PREF', () => DX_PREF, v => { DX_PREF = v; }], ['DX', () => DX, v => { DX = v; }], ['DXR', () => DXR, v => { DXR = v; }]];
+/* remet la photo dans l’objet vivant SANS changer les objets : d’autres écrans en gardent la référence (le guide du technicien tient l’intervention du registre) */
+const immMetier3dPlacer = (cur, v) => {
+  if (Array.isArray(cur) && Array.isArray(v)) { cur.length = v.length; v.forEach((x, k) => { cur[k] = immMetier3dPlacer(cur[k], x); }); return cur; }
+  if (cur && v && typeof cur === 'object' && typeof v === 'object' && !Array.isArray(cur) && !Array.isArray(v)) {
+    Object.keys(cur).forEach(k => { if (!(k in v)) delete cur[k]; }); Object.keys(v).forEach(k => { cur[k] = immMetier3dPlacer(cur[k], v[k]); }); return cur; }
+  return v; };
+const immMetier3dPrim = () => ({ dvSeq, DX_SEQ, dvFiltre, dvFocus });
+const immMetier3dPoser = q => { dvSeq = q.dvSeq; DX_SEQ = q.DX_SEQ; dvFiltre = q.dvFiltre; dvFocus = q.dvFocus; };
+/* l’état des écrans de ces trois catégories : leurs valeurs de départ */
+function immMetier3dRegler(){
+  d3Cli = 't1'; d3Sel = null; d3Mode = null; d3Ouvert = null; window.d3TypePose = undefined;
+  rgTous = true; rgQ = ''; rgPer = '12'; rgSaisie = null; rgPdfPer = '12';
+  cbPoseL = []; cbFiltre = 'tout'; cbZone = ''; cbReleve = null; cbPoses = 0; cbContinuer = true; cbPlusOuvert = false; cbEdit = null; cbSaisieOk = false; cbAvant = null; cbPrep = null;
+  DX = null; DXR = null; window.xyRegOuvert = false;
+}
+function immMetier3dPrendre(cle){
+  if (typeof rgdSync === 'function') rgdSync();   // le métier vient d’être activé : l’exemple du registre (clients, contrôle du jour) doit être DANS la photo, sinon la remise en place le retirerait
+  const d = {}; IMM3D_VARS.forEach(([n, g]) => { const v = g(); d[n] = JSON.stringify(v === undefined ? null : v); });
+  IMM3D.photo = { d, q:immMetier3dPrim() }; IMM3D.cle = cle;
+}
+function immMetier3dRendre(redessiner){
+  const ph = IMM3D.photo; if (!ph) return;
+  IMM3D.photo = null; IMM3D.cle = null;
+  IMM3D_VARS.forEach(([n, g, s]) => { const cur = g(), nv = immMetier3dPlacer(cur, JSON.parse(ph.d[n])); if (nv !== cur && s) s(nv); });
+  immMetier3dPoser(ph.q); immMetier3dRegler(); fermerPanneau(); if (typeof docPleinFermer === 'function') docPleinFermer();
+  const t = document.getElementById('toast'); if (t) t.classList.remove('on');
+  if (redessiner) rendre();
+}
+/* à chaque entrée d’un de ces chapitres : on remet les écrans à zéro, on va à l’écran (c’est là que le métier s’active et que l’exemple du registre entre dans les données),
+   et SEULEMENT ALORS on prend la photo ; dès que la visite en sort, on remet les données (avant que le chapitre suivant ne prenne la sienne).
+   « Me remettre au bon endroit » rappelle l’entrée du même chapitre : on garde alors la photo d’origine. */
+const immMetier3dEntrer = cle => { const g0 = IMM_CHAPS[cle].go;
+  IMM_CHAPS[cle].go = () => { const repasse = IMM3D.photo && IMM3D.cle === cle;
+    if (!repasse) { immMetier3dRendre(false); immMetier3dRegler(); }
+    g0(); if (!repasse) immMetier3dPrendre(cle); }; };
+(() => { const q0 = gdQuitter; gdQuitter = function(){ const imm = GD.tour === 'imm', v = q0.apply(this, arguments); if (imm && IMM3D.photo) immMetier3dRendre(true); return v; };
+  const f0 = gdFin; gdFin = function(){ const imm = GD.tour === 'imm', v = f0.apply(this, arguments); if (imm && IMM3D.photo) immMetier3dRendre(true); return v; };
+  const e0 = gdEntrer; gdEntrer = function(direct){ if (!direct && immActif() && IMM3D.photo) immMetier3dRendre(false); return e0.apply(this, arguments); };
+  /* la bulle glisse d’une place à l’autre : quand l’introduction d’un chapitre, plus haute que le dernier pas d’avant, prend sa place, elle traverse un instant le bas de l’écran (téléphone).
+     Dans ces trois chapitres, et pour la carte qui les suit, la bulle se pose sans glisser. */
+  const b0 = gdBulle; gdBulle = function(mode){ const b = b0.apply(this, arguments);
+    if (b && immActif()) { const mien = IMM3D_CLES.includes((GD_TOURS.imm.chap()[GD.e] || {}).cle);
+      if (mien) IMM3D.suite = true; else if (mode !== null) IMM3D.suite = false;
+      b.style.transition = mien || IMM3D.suite ? 'none' : ''; }
+    return b; };
+  const l0 = immLancer; immLancer = function(){ immMetier3dRendre(true); return l0.apply(this, arguments); }; })();
+setInterval(() => { if (IMM3D.photo && immActif() && !IMM3D_CLES.includes((GD_TOURS.imm.chap()[GD.e] || {}).cle)) immMetier3dRendre(true); }, 150);
+
+/* ── chapitre : le registre sanitaire ── */
+immChap('registre', 'registre', 'Registre sanitaire', 'Le registre sanitaire : la preuve de ton travail',
+  'Ces trois écrans, le registre, la carte des box et le devis xylophage, n’existent que pour une entreprise du métier 3D : hygiène, dératisation, désinsectisation. Je l’active le temps de la visite. Le registre, c’est ce que ton client montre à un contrôleur : chaque passage, ce qui a été relevé, les produits posés avec leur lot.', [
+  { c:'.rg-faire', t:'Les sites qui demandent une action', p:'Tu arrives sur tous les sites. Le logiciel pointe seul ceux qui demandent une action : ici, une activité forte au dernier passage chez La Marée et chez Lemoine. Je touche Ouvrir pour La Marée.',
+    jouer:() => immClic('.rg-faire [data-rg="cli|t1"]') },
+  { c:'#contenu .kpis', t:'Le registre d’un site', p:'Voici le registre de La Marée : dernier passage le 17 octobre, activité forte, prochain passage le 31 octobre, et le compteur du contrat, 3 passages sur 8. Plus bas, les recommandations au client, avec leur échéance.' },
+  { c:'.rg-filtre', t:'Retrouver un lot en une recherche', p:'Plus bas, les produits posés, avec leur lot. Si un fabricant rappelle un lot, je le tape ici : le logiciel me dit chez quels clients il est parti, et me propose de les prévenir. Je cherche L 2604.',
+    jouer:() => immEcrire('#rg-q', 'L-2604') },
+  { c:'[data-rg="passage"]', t:'Saisir un passage', p:'Quand un technicien a fini chez le client, il inscrit son passage. Je touche Saisir un passage. Le logiciel demande l’applicateur, et refuse d’enregistrer si son certificat Certibiocide n’est pas valable.',
+    jouer:() => immMetier3dSerie([() => immEcrire('#rg-q', ''), () => immClic('[data-rg="passage"]')], 350) },
+  { c:'.rg-bandeau', t:'Chaque box doit être relevée', p:'Le panneau liste les box du site, zone par zone, et le compteur dit combien il en reste : 10. Je note P3 à 75 pour cent consommée, puis je touche Tout est intact pour le reste.',
+    jouer:() => immMetier3dSerie([() => immClic('[data-rg="etat|P3|75"]'), () => immClic('[data-rg="toutok"]')], 450) },
+  { c:'#rg-prods', t:'Le produit posé et son lot', p:'Je choisis le produit posé, le bloc d’appât pour rongeurs. Le logiciel propose le lot le plus ancien du camion, L 2611, et je mets 200 grammes. Le stock du camion descendra de cette quantité.',
+    jouer:() => immMetier3dSerie([() => immEcrire('[data-rgf="pid"]', 'b1'), () => immClic('[data-rg="qte|0|200"]')], 450) },
+  { c:'[data-rg="ok"]', t:'Enregistrer le passage', p:'Je touche Enregistrer le passage. Le logiciel l’inscrit au registre, retire 200 grammes du camion de Sophie, et laisse un bouton Annuler si je me suis trompé.',
+    jouer:() => immClic('[data-rg="ok"]') },
+  { c:'.carte:has(.ve-u)', t:'Le passage est inscrit', p:'Le passage du 31 octobre est en tête de la liste, avec Sophie Martin et la box P3 à 75 pour cent. L’activité est faible, et le tableau des produits, plus bas, a sa nouvelle ligne avec le lot.' },
+  { c:'[data-rg="pdf|t1"]', t:'Le document à remettre', p:'Le registre en PDF est le document que le client garde ou montre à un contrôle. Je touche Registre en PDF.',
+    jouer:() => immClic('[data-rg="pdf|t1"]') },
+  { c:'#calque .panneau', t:'L’aperçu du PDF', p:'Voici l’aperçu : l’en-tête de l’entreprise avec son SIRET, la période, le tableau des passages, celui des produits avec leur lot, les recommandations et le plan des box. Je peux le télécharger ou l’envoyer au client.',
+    jouer:() => fermerPanneau() },
+  { c:'.rg-lienb', t:'Le lien de contrôle', p:'Dernier outil : le lien de contrôle. Le client l’ouvre devant l’inspecteur, registre à jour, sans prix ni compte. Je montre son code QR. Le plan des box, juste après, alimente ce registre.',
+    jouer:() => immClic('[data-rg="lien|qr"]') }],
+  { metier:'3d' });
+immMetier3dEntrer('registre');
+
+/* ── chapitre : la carte des box ── */
+immChap('carteBox', 'carteBox', 'Carte des box', 'La carte des box : le plan de chaque site',
+  'La carte des box, c’est le plan du site de ton client, avec chaque piège posé dessus. En haut, quatre chiffres : le dernier passage, l’activité, le prochain passage et le nombre de box à regarder. Voyons comment on relève sur place.', [
+  { c:'.cb-planc', t:'Le plan et l’état de chaque box', p:'Voici le plan du restaurant La Marée, avec ses 4 zones et ses 10 box. Chaque box prend la couleur de son état : vert intacte, orange consommée, rouge forte consommation ou capture. Des filtres isolent les rongeurs, les insectes ou une zone.' },
+  { c:'.ve-u[data-d3="box|P6"]', t:'Les box à regarder en premier', p:'Le logiciel classe les box à regarder, du plus grave au moins grave, et propose de planifier un passage de contrôle quand l’activité est forte. Je touche P6, en tête : un piège à insectes en capture.',
+    jouer:() => immClic('.ve-u[data-d3="box|P6"]') },
+  { c:'.d3-cote', t:'La fiche d’une box', p:'La fiche de P6 : un piège à insectes de la cuisine, posé le 2 mars. Sa capture est en hausse sur 3 passages, et la dernière pose était du gel appât blattes, lot G 1107. Sur place, je touche Relever les box.',
+    jouer:() => immClic('[data-cbx="rel"]') },
+  { c:'.cb-rel', t:'Le relevé sur le plan', p:'Le plan passe en mode relevé. Une barre compte les box relevées, 0 sur 10, la box en cours est cerclée, et la bulle propose Rien, Capture, Absente ou Abîmée. Pour P5, je touche Rien.',
+    jouer:() => immClic('[data-cbx="etat|0"]') },
+  { c:'.cb-bulle', t:'La suivante s’ouvre toute seule', p:'P5 est relevée, la barre avance, et la suivante s’ouvre toute seule : P6. C’est une capture : je dis combien, de 2 à 5, et quoi, des blattes. La case Rechargée est cochée d’avance.',
+    jouer:() => immMetier3dSerie([() => immClic('[data-cbx="etat|c"]'), () => immClic('[data-cbx="comb|2-5"]'), () => immClic('[data-cbx="quoi|blattes"]'), () => immClic('[data-cbx="suiv"]')], 380) },
+  { c:'[data-cbx="tout-intact"]', t:'Tout le reste est intact', p:'Il reste 8 box. Si tout est en ordre, je touche Tout est intact : les 8 autres sont notées intactes d’un seul geste, avec un bouton Annuler. Une box que je ne relève pas ne devient jamais intacte toute seule.',
+    jouer:() => immClic('[data-cbx="tout-intact"]') },
+  { c:'[data-cbx="rel-fin"]', t:'Terminer le relevé', p:'La barre est pleine : 10 sur 10. Je touche Terminer le relevé. Le logiciel ouvre le passage déjà rempli avec les états que je viens de relever.',
+    jouer:() => immClic('[data-cbx="rel-fin"]') },
+  { c:'#rg-prods', t:'Le produit se calcule tout seul', p:'Il ne reste que le produit. Le logiciel a compté le gel posé dans la box rechargée : 10 grammes, avec le lot le plus ancien du camion, G 1107. Il retirera cette quantité du stock. J’enregistre.',
+    jouer:() => immClic('#calque [data-rg="ok"]') },
+  { c:'.cb-planc', t:'Le plan a changé', p:'Le plan a pris ses nouvelles couleurs : 9 box intactes, 1 en capture, relevé du 31 octobre. Il ne reste qu’une box à regarder, P6, et comme la capture se répète, le logiciel propose d’ajouter une recommandation au registre.' },
+  { c:'[data-d3="ajout"]', t:'Ajouter une box', p:'Pour une box neuve, je touche Ajouter une box, je choisis le type, un piège à insectes, puis je touche le plan à l’endroit où je la pose.',
+    jouer:() => immMetier3dSerie([() => immClic('[data-d3="ajout"]'), () => immClic('[data-d3type="i"]'),
+      () => { const pl = gdQ('.d3-plan'); if (!pl) return IMM.perdus.push('plan'); const r = pl.getBoundingClientRect();
+        pl.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, clientX:r.left + r.width * 0.3, clientY:r.top + r.height * 0.8, view:window })); },
+      () => immClic('[data-cbx="ajout-fin"]')], 380) },
+  { c:'[data-d3="box|P11"]', t:'Une box neuve à relever', p:'La box P11 est posée en gris pointillé : à relever au prochain passage. Je peux lui donner un repère, comme derrière le frigo, et imprimer les étiquettes avec leur code QR. Chaque relevé alimente le registre.' }],
+  { metier:'3d' });
+immMetier3dEntrer('carteBox');
+
+/* ── chapitre : le devis xylophage ── */
+immChap('devisXylo', 'devisXylo', 'Devis xylophage', 'Le devis xylophage : le traitement du bois',
+  'Le devis xylophage, c’est l’écran du traitement du bois. Tu donnes ce qui a été constaté et mesuré sur place, le logiciel calcule le prix, et le devis arrive dans la catégorie Devis.', [
+  { c:'[data-dx="cli"]', t:'Choisir le client', p:'D’abord le client. Je choisis l’Hôtel de la Plage. Je pourrais aussi créer un nouveau client, avec son téléphone et son e-mail, sans quitter l’écran.',
+    jouer:() => immEcrire('[data-dx="cli"]', 'hp') },
+  { c:'[data-dx="chantier"]', t:'L’adresse du chantier', p:'L’adresse du chantier est déjà celle du client, à Châtelaillon. Si les travaux sont ailleurs, je la change, et le déplacement suit cette adresse : 45 euros ici.' },
+  { c:'.xy-f .seg[aria-label="Insecte"]', t:'Quel insecte attaque le bois', p:'Ensuite, l’insecte : termites, capricorne, vrillettes ou mérule. Chacun règle le calcul à sa façon. Je touche Termites.',
+    jouer:() => immClic('[data-dxb="insecte|termites"]') },
+  { c:'#dx-res', t:'Le calcul s’est réglé tout seul', p:'Plus de bûchage, des postes de suivi, et un passage de contrôle à 6 mois compris. La TVA est à 20 pour cent car l’hôtel est un professionnel ; pour un particulier, ce serait 10. Tout reste modifiable dans les réglages.' },
+  { c:'.xy-f .seg[aria-label="Traitement"]', t:'Curatif ou préventif', p:'Le traitement curatif, pour des bois déjà attaqués, compte 2 passes de produit. Le préventif n’en compte qu’une. Je touche Préventif.',
+    jouer:() => immClic('[data-dxb="mode|preventif"]') },
+  { c:'.dx-sugg', t:'Les mesures, zone par zone', p:'Je mesure par zone avec les puces : combles, charpente, plancher, cave ou murs. Pour chacune, la surface, et un accès difficile ajoute 30 pour cent. J’ajoute les combles : 30 mètres carrés.',
+    jouer:() => immMetier3dSerie([() => immClic('[data-dxb="zadd|Combles|bois"]'), () => { const L = [...document.querySelectorAll('[data-dx^="zm|"]')]; const e = L[L.length - 1];
+      if (!e) return IMM.perdus.push('champ zone'); e.value = '30'; e.dispatchEvent(new Event('input', { bubbles:true })); e.dispatchEvent(new Event('change', { bubbles:true })); }], 380) },
+  { c:'.dx-tech', t:'Un ou deux techniciens', p:'Je dis si vous serez un ou deux techniciens sur place. Le temps facturé ne change pas, mais le temps passé chez le client est divisé. Je touche 2.',
+    jouer:() => immClic('[data-dxb="techs|2"]') },
+  { c:'#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]', t:'Créer le devis', p:'Le total se met à jour à chaque saisie. Sur téléphone, une barre en bas garde le prix et le bouton sous le pouce. Je touche Créer le devis.',
+    jouer:() => immClic('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]') },
+  { c:'#contenu h1', t:'Le devis est dans Devis', p:'Le devis s’est ouvert dans Devis, en brouillon, avec une ligne par poste du calcul. Il garde ses mesures : le bouton Modifier les mesures rouvre le calcul. Voyons la liste des devis.',
+    jouer:() => rlChanger('patron', { h:'devis', muet:true }) },
+  { c:'.dv-liste .dv-l', t:'Du devis au traitement', p:'Le brouillon de l’hôtel est en tête, à envoyer. À l’accord du client, l’intervention Traitement du bois se crée avec la bonne durée. À la fin, l’attestation, et le contrôle à 6 mois est proposé dans Tâches.' }],
+  { metier:'3d' });
+immMetier3dEntrer('devisXylo');
+
+/* ── immersion · roles ── */
+/* Trois chapitres où l’on change de personne : le technicien (Sophie, au téléphone), le client (monsieur Durand, dans son espace en ligne) et la
+   gestion (Julie). Leurs gestes écrivent dans la démonstration (une journée commencée, une facture payée, un devis signé, une facture envoyée…) :
+   on remet tout comme avant au début de chaque chapitre, à la fin de la visite, et si la personne quitte en route. */
+/* le délai avant le geste suivant d’un même pas : assez long pour VOIR le résultat à vitesse normale, quasi nul en lecture accélérée (la sonde) */
+const immRolesD = () => window.__immRapide ? 40 : 900;
+/* une phrase écrite dans la saisie de tâche, validée par Entrée (le logiciel comprend « demain ») */
+const immRolesPhrase = txt => { if (!immEcrire('#tkx-ma-saisie', txt)) return false; const e = gdQ('#tkx-ma-saisie'); e.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true, cancelable:true })); return true; };
+/* le dessin d’une signature au doigt, posé à la place de la personne (le cadre de signature lit « data-signe ») */
+const immRolesTrace = id => { const cv = document.getElementById(id); if (!cv) return false; const x = cv.getContext('2d'); x.lineWidth = 4; x.lineCap = 'round'; x.strokeStyle = '#0b1426';
+  x.beginPath(); x.moveTo(60, 120); x.bezierCurveTo(120, 20, 170, 170, 240, 70); x.bezierCurveTo(290, 20, 330, 150, 420, 60); x.stroke(); cv.dataset.signe = cv.toDataURL('image/png'); return true; };
+/* le changement d’écran se fait quand le pas SUIVANT commence, pas à la fin du geste : le résultat du geste reste sous les yeux pendant que sa bulle parle,
+   et le pas suivant arrive sur son écran (le sélecteur est cherché de nouveau tant qu’il n’est pas là) */
+/* en lecture accélérée seulement (la sonde) : l’animation d’entrée d’un écran fait déborder la page quelques instants, le temps que le pas suivant paraisse */
+const immRolesCalme = () => { if (window.__immRapide) { const c = document.getElementById('contenu'); if (c) c.classList.remove('vue-entre'); } };
+const immRolesToutes = () => { fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); };
+const immRolesAvant = (cle, k, fait, va) => { const g = IMM_CHAPS[cle].gestes[k], c0 = g.c; g.c = function(){ if (!fait()) { immRolesToutes(); va(); } return c0.apply(this, arguments); }; };
+/* on change d’écran sur place : l’adresse est posée SANS événement (un seul dessin, pas deux), et l’écran est là tout de suite. Un champ d’heure ou de date naît à pleine largeur, puis rétrécit à 1 pixel en glissant
+   (transition de largeur) : la page déborde de 193 px pendant quelques images. On le cache tout de suite, sans glissement. */
+const immRolesNav = h => { fermerPanneau(); history.replaceState(null, '', '#' + h); lireHash(); if (typeof dtAmeliorer === 'function') dtAmeliorer(); document.querySelectorAll('input.dt-cache').forEach(e => { e.style.transition = 'none'; }); immRolesCalme(); };
+const immRolesEcran = (cle, k, h) => immRolesAvant(cle, k, () => route === h, () => immRolesNav(h));
+const immRolesOnglet = (cle, k, tab) => immRolesAvant(cle, k, () => EC.tab === tab, () => immClic('#contenu [data-ec="tab|' + tab + '"]'));
+/* un écran que la personne n’a pas le droit d’ouvrir : on essaie par l’adresse, comme elle le ferait, et le logiciel refuse */
+const immRolesVa = h => { location.hash = h; };
+
+/* ── l’état de la démonstration : photographié à l’entrée d’un de ces chapitres, remis à la sortie ── */
+const IMMROLES = { s:null };
+const immRolesCibles = () => ({ INTS, FACTURES, ENCAISSEMENTS, FICHES, DEVIS_REG, JOURNAL, TACHES, DV, MVTS_ATT, POINTAGES, MAILS, PAIE, SX, RL_VU, CX_DER });
+const immRolesCopie = v => Array.isArray(v) ? { a:v.map(o => ({ o, j:JSON.stringify(o) })) } : v && typeof v === 'object' ? { d:Object.keys(v).map(k => ({ k, o:v[k], j:JSON.stringify(v[k]) })) } : { x:v };
+/* on remplit l’objet d’origine à la place (les autres écrans le tiennent par son identité), sans le remplacer */
+const immRolesRefill = (o, j) => { if (!o || typeof o !== 'object' || j === undefined) return; const x = JSON.parse(j);
+  if (Array.isArray(o)) o.splice(0, o.length, ...x); else { Object.keys(o).forEach(k => delete o[k]); Object.assign(o, x); } };
+function immRolesPhoto(){
+  if (IMMROLES.s) return; if (typeof dvInit === 'function') dvInit();
+  const C = immRolesCibles(), s = { num:numSuiv, cli:RL_CLI.cli, c:{} }; Object.keys(C).forEach(n => { s.c[n] = immRolesCopie(C[n]); }); IMMROLES.s = s;
+}
+function immRolesRemettre(){
+  const a = IMMROLES.s; if (!a) return; IMMROLES.s = null; const C = immRolesCibles();
+  Object.keys(a.c).forEach(n => { const cible = C[n], c = a.c[n]; if (!cible) return;
+    if (c.a) { cible.splice(0, cible.length, ...c.a.map(q => q.o)); c.a.forEach(q => immRolesRefill(q.o, q.j)); }
+    else if (c.d) { Object.keys(cible).forEach(k => { if (!c.d.some(q => q.k === k)) delete cible[k]; }); c.d.forEach(q => { cible[q.k] = q.o; immRolesRefill(q.o, q.j); }); } });
+  numSuiv = a.num; RL_CLI.cli = a.cli;
+}
+const immRolesDebut = cle => { const c = IMM_CHAPS[cle], g = c.go; c.go = function(){ immRolesRemettre(); immRolesPhoto(); return g.apply(this, arguments); }; };
+/* à la sortie de la visite, en route ou à la fin : tout remis comme avant, et on redevient le patron */
+(() => { const q0 = gdQuitter; gdQuitter = function(){ const sale = GD.tour === 'imm' && !!IMMROLES.s;
+  if (sale) { fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); immRolesRemettre(); cpSysteme = false; rlChanger('patron', { h:'accueil', muet:true }); }
+  const v = q0.apply(this, arguments); if (sale) rendre(); return v; }; })();
+
+/* la bulle reste dans l’écran dès qu’elle est écrite : elle garde sa place d’avant quand son texte change et glisse vers la nouvelle, et une bulle plus longue,
+   posée tout en bas, dépassait de quelques pixels le temps du glissement. On coupe le glissement, on la remet dans l’écran, et il reprend à l’image suivante. */
+(() => { const b0 = gdBulle; gdBulle = function(){ const b = b0.apply(this, arguments);
+  try { if (b && b.id === 'gd-bulle') { const dehors = q => q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight;
+    if (dehors(b.getBoundingClientRect())) { b.style.transition = 'none'; const q = b.getBoundingClientRect();
+      if (innerWidth <= 760) { if (dehors(q)) { b.style.top = 'auto'; b.style.bottom = 'calc(12px + env(safe-area-inset-bottom))'; } }
+      else if (q.bottom > innerHeight - 8) b.style.top = Math.max(12, innerHeight - q.height - 12) + 'px';
+      void b.offsetWidth; requestAnimationFrame(() => { b.style.transition = ''; }); }
+    /* la première bulle d’un chapitre arrive de la bulle centrée du chapitre d’avant : sans glissement, elle ne passe pas un instant hors de l’écran */
+    else if (/\.0$/.test(b.dataset.m || '')) { b.style.transition = 'none'; void b.offsetWidth; requestAnimationFrame(() => { b.style.transition = ''; }); } } } catch (e) {}
+  return b; }; })();
+
+/* ── 1. le technicien ── */
+immChap('tech', 'majournee', 'Le technicien', 'Le technicien : sa journée sur le téléphone',
+  'Maintenant, on change de personne. Tu deviens Sophie, technicienne chez Clim Services 17. Elle travaille sur son téléphone, chez les clients. Elle ne voit ni le planning, ni la comptabilité, ni l’équipe : seulement sa journée, son camion, ses heures et ses frais.', [
+  { c:'.ptx-carte', t:'Commencer sa journée', p:'Sophie ouvre l’application le matin. Le logiciel lui a déjà envoyé un rappel, parce qu’elle n’a pas commencé. Je touche « Je commence ma journée » : l’heure est notée, et le bureau voit que sa journée est en cours.', jouer:() => immClic('[data-ptx^="debut"]') },
+  { c:'.rl-jour', t:'Ses interventions du jour', p:'Voilà ses trois interventions, dans l’ordre : l’heure, le client, l’adresse, et ce que le client a dit au téléphone. « Y aller » ouvre l’itinéraire, « Appeler » compose le numéro. Je touche « Continuer » sur la première.', jouer:() => { immRolesToutes(); immRolesNav('inter-x-i1'); } },
+  { c:'.grille2 .carte:nth-child(2)', t:'Tout savoir avant d’entrer', p:'La fiche réunit ce qu’il faut savoir avant d’entrer : l’accès, ici l’entrée par la cour, et le dernier passage, un condensateur remplacé en février. Au-dessus, ce que le client a dit ; dessous, ses appareils avec leur numéro.' },
+  { c:'.carte:has([data-ctrl])', t:'Les contrôles à cocher', p:'Plus bas, les contrôles à cocher : 4 sur 6 sont faits. Je coche les deux derniers, le nettoyage des filtres et l’essai de fonctionnement.',
+    jouer:() => { immClic('[data-ctrl="Nettoyage des filtres"]'); immClic('[data-ctrl="Essai de fonctionnement"]'); } },
+  { c:'.collant', t:'Le bouton Terminer', p:'En bas, le logiciel dit ce qui manque avant de terminer : il ne reste que la signature du client, qu’il trace du doigt sur l’écran. Je touche « Terminer » quand même, pour voir ce que le logiciel répond.', jouer:() => immClic('.collant [data-action="terminer"]') },
+  { c:'#calque .panneau', t:'Il refuse, et il explique', p:'Le logiciel refuse de terminer et nomme ce qui manque. Si Sophie ne peut vraiment pas finir, « Je ne peux pas finir » prévient le bureau et crée une intervention de retour. Je ferme, et j’ouvre ses tâches.', jouer:() => fermerPanneau() },
+  { c:'.tkx-bloc', t:'Ses tâches du jour', p:'Voici ses tâches. Celle-ci est liée à l’intervention : prévenir monsieur Durand avant la mise en service. Je la termine, puis j’écris « Racheter des cosses demain » : le logiciel comprend « demain » et date la tâche.',
+    jouer:() => { immClic('[data-tfait="t11"]'); immRolesPhrase('Racheter des cosses demain'); } },
+  { c:'.carte:has([data-sx^="priseun"])', t:'Son camion, ce qui manque', p:'Le logiciel compare ce que Sophie a à bord avec ce qu’il lui faut, et liste ce qui manque. Je touche « Je l’ai pris » sur le fluide : une feuille s’ouvre, déjà remplie, et l’envoi part au bureau.',
+    jouer:() => { immClic('[data-sx="priseun|p4"]'); setTimeout(() => immClic('#calque .panneau [data-sx="envoi"]'), immRolesD()); } },
+  { c:'.carte:has([data-bxl^="retire"])', t:'Ce qui part au bureau', p:'L’envoi apparaît dans « Mes envois », « En attente du bureau ». Le stock ne bouge qu’à la validation du bureau : rien ne se perd, et chaque sortie est notée, avec le client chez qui elle a servi.' },
+  { c:'.paie-conf', t:'Ses heures et sa paie', p:'Dans « Mes heures », Sophie retrouve ce qu’elle a pointé en octobre : 170 heures, dont les heures supplémentaires. Si une journée est fausse, « Ce n’est pas ça » prévient le bureau. Je touche « Je confirme mes heures ».',
+    jouer:() => immClic('[data-paie="confirme|sm"]') },
+  { c:'.carte:has([data-rl^="ndfmod"])', t:'Ses frais, remboursés avec la paie', p:'Dernier écran : ses frais. Sophie a avancé 6 euros de parking, mais le ticket manque et le bureau le demande. Elle l’ajoute en photo, le bureau valide, et c’est remboursé avec la paie. La gestion les valide.' }
+], { role:'tech' });
+
+/* ── 2. le client ── */
+immChap('client', 'espaceclient', 'Le client', 'Le client : son espace en ligne',
+  'Après le technicien, voici le client. Tu deviens monsieur Durand, client de Clim Services 17. Il ouvre son espace en ligne et ne voit que ce qui le concerne : ses rendez-vous, ses comptes rendus, ses factures, ses devis.', [
+  { c:'.ec-tuiles', t:'Ce qui l’attend', p:'Dès l’accueil, trois tuiles : 1 361 euros à régler, un devis à signer, et la prochaine visite, le 31 octobre à 14 heures. Chaque tuile a son bouton : tout se fait sans téléphoner.' },
+  { c:'#contenu .carte:has([data-ec^="cr|"])', t:'Sa dernière intervention', p:'En dessous, sa dernière intervention, faite le 29 octobre par Sophie. Le client peut relire ce qui a été fait chez lui. Je touche « Compte rendu ».', jouer:() => immClic('[data-ec^="cr|"]') },
+  { c:'#calque .pdf', t:'Le compte rendu', p:'Voilà le compte rendu rempli par Sophie : ce qui a été fait, ce qui a été constaté, les relevés, les contrôles, les pièces et les photos. Le client lit, il n’a rien à demander. Je ferme, et j’ouvre ses factures.', jouer:() => fermerPanneau() },
+  { c:'#contenu .carte:has([data-ec="payer|f144"])', t:'Payer en ligne', p:'Deux factures à régler : une de 121 euros, et une de 1 240 euros, en retard. Le client paie directement par carte, sans rien envoyer. Je touche « Payer 121 euros ».', jouer:() => immClic('[data-ec="payer|f144"]') },
+  { c:'#calque .panneau', t:'La page de paiement', p:'Le montant et le numéro de facture sont déjà là. Dans la vraie version, c’est la page sécurisée de la banque ; ici, une carte d’essai : aucun argent ne bouge. Je touche « Payer ».', jouer:() => immClic('[data-ec="payok|f144"]') },
+  { c:'#contenu .carte:has([data-ec="fpdf|f144"])', t:'Payée, reçu envoyé', p:'La facture passe à « Payée » aussitôt, et un reçu part par courriel. Il reste celle de 1 240 euros, en retard : la gestion la voit de son côté. Je passe aux devis.',  },
+  { c:'#contenu .carte:has([data-ec^="signer"])', t:'Un devis à signer', p:'Voilà le devis de la pompe de relevage, 234 euros 49, envoyé il y a 11 jours. Le client n’a rien à imprimer : il lit et signe ici. Je touche « Lire et signer ».', jouer:() => immClic('[data-ec^="signer"]') },
+  { c:'#calque .dv-cv', t:'Lire, cocher, signer', p:'Le client lit les lignes et le total, coche « bon pour accord », vérifie son nom et signe du doigt. Dans cette démonstration, je coche, je trace une signature, puis je touche « Accepter et signer ».',
+    jouer:() => { const ok = document.getElementById('dv-ok'); if (ok) ok.checked = true; immRolesTrace('dv-signe'); immClic('[data-dv^="signer|"]'); } },
+  { c:'#contenu .carte:has(.ec-dr)', t:'Accepté, et la suite est automatique', p:'Le devis passe à « Accepté ». Côté bureau, le logiciel crée tout seul l’intervention, à planifier : le client n’a rien d’autre à faire. Il reste à voir comment il demande un dépannage.',  },
+  { c:'#contenu .carte:has([data-ec="demande"])', t:'Demander une intervention', p:'Une panne ? Sur l’accueil, « Demander une intervention » : le client choisit l’appareil, dit ce qui se passe, et quand il est disponible. Je touche le bouton.', jouer:() => immClic('#contenu [data-ec="demande"]') },
+  { c:'#calque .panneau', t:'La demande part au bureau', p:'Il écrit ce qui se passe, ici « la pompe à chaleur ne chauffe plus depuis ce matin », et il envoie. La demande arrive chez le patron, « à planifier », avec sa phrase : elle est reliée au planning et aux interventions.',
+    jouer:() => { immEcrire('#ed-m', 'La pompe à chaleur ne chauffe plus depuis ce matin.'); setTimeout(() => immClic('#calque .panneau [data-ec="demandeok"]'), immRolesD()); } }
+], { role:'client', cli:'md' });
+
+/* ── 3. la gestion ── */
+immChap('gestion', 'comptabilite', 'La gestion', 'La gestion : les factures, sans le planning',
+  'Troisième personne : Julie, à la gestion des factures. Elle s’occupe de l’argent et des clients, pas du terrain. Elle voit les interventions, les devis, les factures et la comptabilité, mais ni le planning ni l’équipe.', [
+  { c:'#menu, .opg-barre', t:'Un menu plus court', p:'Son menu est court, centré sur l’argent et les clients : la comptabilité, les devis, les clients, les interventions, ses tâches. J’essaie d’ouvrir le planning : le logiciel répond que cette page n’est pas dans son espace.', jouer:() => immRolesVa('planning') },
+  { c:'#contenu .cx-afaire', t:'Ce qu’il y a à faire', p:'Elle reste sur la comptabilité. La liste « À faire » met le plus urgent en haut : une facture en retard, deux interventions terminées sans facture, des notes de frais à valider. Je touche « Facturer ».', jouer:() => cmptAFaire('facturer') },
+  { c:'#calque .panneau', t:'Deux interventions à facturer', p:'Le logiciel a repéré deux interventions terminées sans facture : l’Hôtel de la Plage et madame Roux. La facture se prépare avec les lignes de l’intervention. Je touche « Préparer la facture » pour l’hôtel.', jouer:() => immClic('#calque .panneau [data-cx^="dosfac|"]') },
+  { c:'.carte:has([data-prix])', t:'La facture est déjà préparée', p:'Les lignes viennent toutes seules de l’intervention : la main-d’œuvre, le déplacement, le nettoyant utilisé par Karim. Julie relit, corrige un prix si besoin, puis touche « Aperçu et envoi ».', jouer:() => immClic('[data-action="apercuEnvoi"]') },
+  { c:'#calque .pdf', t:'Un aperçu avant d’envoyer', p:'Voilà la facture telle que le client la recevra : le numéro, l’échéance, les mentions obligatoires posées toutes seules, et le compte rendu de l’intervention joint. Je touche « Valider et envoyer ». Dans cette démonstration, rien ne part.', jouer:() => immClic('#calque [data-action="envoyer"]') },
+  { c:'#contenu .carte:has(.etapes)', t:'Elle est envoyée', p:'La facture a son numéro et son chemin : préparée toute seule, validée et envoyée, puis ouverte par le client, puis payée. Chaque case se coche d’elle-même. Julie n’a plus qu’à attendre le paiement, ou à relancer.',  },
+  { c:'#contenu .t-liste', t:'Ses tâches, rangées par sujet', p:'Ses tâches sont rangées par sujet : les devis à relancer, les factures à vérifier. Une tâche se termine toute seule quand le travail est fait dans sa catégorie. Ici, relancer monsieur Durand pour son devis, et rappeler l’hôtel.',  },
+  { c:'#contenu .kpis', t:'Les devis, d’un coup d’œil', p:'Les devis, d’un coup d’œil : un à finir et envoyer, 2 950 euros en attente de réponse dont deux à relancer, 2 571 euros acceptés. Quand un devis est signé, l’intervention arrive « à planifier » : Julie ne la planifie pas.',  },
+  { c:'.cartes-clients', t:'Ses clients et ce qu’ils doivent', p:'Ses clients, avec ce qui compte pour elle : ce qu’ils ont payé, ce qu’il leur reste à payer, et le prochain passage. monsieur et madame Durand doivent encore 1 361 euros. Un toucher ouvre la fiche du client.',  },
+  { c:'#contenu .liste-bureau, #contenu .liste-tel', t:'Les interventions, sans le planning', p:'Les interventions : elle voit qui y va, quand, et où ça en est, terminée, en cours, à planifier. Elle n’a pas le planning pour les déplacer. Les terminées sont celles qu’elle facture.' },
+  { c:'.rl-seg', t:'La visite est finie', p:'La visite est finie : tu as vu toute l’application, du patron au client. Maintenant, à toi. Ferme le guide, choisis une personne en haut, patron, gestion, technicien ou client, et refais les gestes toi-même. Rien n’est enregistré.', jouer:() => { fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); immRolesRemettre(); cpSysteme = false; rlChanger('patron', { h:'accueil', muet:true }); } }
+], { role:'gestion' });
+['tech', 'client', 'gestion'].forEach(immRolesDebut);
+immRolesEcran('tech', 7, 'majournee'); immRolesEcran('tech', 8, 'moncamion'); immRolesEcran('tech', 10, 'mesheures'); immRolesEcran('tech', 11, 'techfrais');
+immRolesOnglet('client', 4, 'factures'); immRolesOnglet('client', 7, 'devis'); immRolesOnglet('client', 10, 'accueil');
+immRolesEcran('gestion', 7, 'taches'); immRolesEcran('gestion', 8, 'devis'); immRolesEcran('gestion', 9, 'clients'); immRolesEcran('gestion', 10, 'interventions');
 </script>
 
 </body>
