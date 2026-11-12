@@ -63,6 +63,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             UIMenu(title: "", options: .displayInline, children: [aide])
         ])
         builder.insertSibling(aller, afterMenu: .view)
+        // Un menu « Créer » : les mêmes gestes que les touches N, D, C et A de la page (sans raccourci ici : une lettre seule
+        // dans la barre de menus volerait la frappe dans un champ).
+        let creer = UIMenu(title: "Créer", children: [
+            UICommand(title: "Nouvelle intervention", action: #selector(opgCreer(_:)), propertyList: "intervention"),
+            UICommand(title: "Nouveau devis", action: #selector(opgCreer(_:)), propertyList: "devis"),
+            UICommand(title: "Nouveau client", action: #selector(opgCreer(_:)), propertyList: "client"),
+            UICommand(title: "Nouvelle tâche", action: #selector(opgCreer(_:)), propertyList: "tache")
+        ])
+        builder.insertSibling(creer, afterMenu: .view)
     }
 
     private func opgEnvoyer(_ nom: String) {
@@ -77,6 +86,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     @objc func opgPrecedent() { opgEnvoyer("precedent") }
     @objc func opgSuivant() { opgEnvoyer("suivant") }
     @objc func opgAide() { opgEnvoyer("aide") }
+    @objc func opgCreer(_ commande: UICommand) {
+        if let nom = commande.propertyList as? String { opgEnvoyer(nom) }
+    }
     @objc func opgRubrique(_ commande: UICommand) {
         if let n = commande.propertyList as? Int { opgEnvoyer("rubrique\(n)") }
     }
