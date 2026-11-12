@@ -50,12 +50,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         vue.allowsBackForwardNavigationGestures = true
     }
 
-    // Le lien de connexion : opgestion://lien/<compte> ouvre l'application et connecte ce compte (démonstration).
+    // Le lien de connexion : opgestion://e/<entreprise> ouvre l'application et relie l'appareil à l'espace de cette entreprise.
     // La page peut ne pas être encore chargée (application lancée PAR le lien) : on réessaie jusqu'à ce qu'elle réponde.
     private func ouvrirLien(_ url: URL, essai: Int = 0) {
-        guard url.scheme == "opgestion", url.host == "lien" else { return }
-        let compte = url.lastPathComponent.lowercased().filter { $0.isLetter || $0.isNumber }
-        guard !compte.isEmpty, compte.count <= 24,
+        guard url.scheme == "opgestion", url.host == "e" || url.host == "lien" else { return }
+        let compte = url.lastPathComponent.lowercased().filter { ($0.isASCII && ($0.isLetter || $0.isNumber)) || $0 == "-" }
+        guard !compte.isEmpty, compte.count <= 60,
               let pont = window?.rootViewController as? CAPBridgeViewController,
               let vue = pont.webView else { return }
         vue.evaluateJavaScript("typeof window.opgLien === 'function' ? window.opgLien('\(compte)') : false") { [weak self] resultat, _ in
