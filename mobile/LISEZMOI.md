@@ -35,6 +35,10 @@ Dans Xcode :
 
 Sur ton iPhone, la première fois : Réglages › Général › VPN et gestion de l'appareil › fais confiance à ton compte.
 
+Sur un Mac (« Mac (Designed for iPad) »), l'application s'affiche à la taille du Web (zoom de la page à 130 %, réglé dans
+`ios/App/App/SceneDelegate.swift`) et accepte plusieurs fenêtres : Fichier › Nouvelle fenêtre (Cmd + N). Sur iPad,
+plusieurs fenêtres côte à côte aussi. ⚠️ Écrit sans pouvoir compiler (pas de Mac dans la session) : à confirmer dans Xcode.
+
 Pour Android : installe **Android Studio**, puis `npm run android`, et ▶ dans Android Studio.
 
 Après un changement du prototype dans le dépôt : `npm run ios` (ou `android`) refait tout.
