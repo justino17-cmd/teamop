@@ -35,7 +35,7 @@ Dans Xcode :
 
 Sur ton iPhone, la première fois : Réglages › Général › VPN et gestion de l'appareil › fais confiance à ton compte.
 
-Sur un Mac (« Mac (Designed for iPad) »), l'application s'affiche à la taille du Web (zoom de la page à 130 %, réglé dans
+Sur un Mac (« Mac (Designed for iPad) »), l'application s'affiche à la taille du Web (échelle 1,3 posée sur la balise « viewport », pour que la page se remette en page dans la fenêtre ; réglé dans
 `ios/App/App/SceneDelegate.swift`) et accepte plusieurs fenêtres : Fichier › Nouvelle fenêtre (Cmd + N). Sur iPad,
 plusieurs fenêtres côte à côte aussi. ⚠️ Écrit sans pouvoir compiler (pas de Mac dans la session) : à confirmer dans Xcode.
 

@@ -1,4 +1,5 @@
 import UIKit
+import WebKit
 import Capacitor
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
@@ -22,12 +23,26 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     // Sur un Mac, une application iPad est affichée réduite (environ 77 %) : tout paraît plus petit que dans un navigateur.
-    // On rend à la page la taille qu'elle a sur le Web. Sans effet sur iPhone et iPad.
+    // On agrandit par la balise « viewport » de la page (échelle 1,3) : la page se REMET EN PAGE dans la largeur de la fenêtre.
+    // ⛔ Pas `pageZoom` : il grossit sans remettre en page, et la fenêtre défilait de côté (Justin, 12 novembre 2026).
+    // Sans effet sur iPhone et iPad.
+    private static let echelleMac = """
+    (function(){var f=function(){var m=document.querySelector('meta[name="viewport"]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}
+    m.setAttribute('content','initial-scale=1.3,minimum-scale=1.3,maximum-scale=1.3,viewport-fit=cover');};
+    if(document.head)f();document.addEventListener('DOMContentLoaded',f);})();
+    """
+    private var echellePosee = false
+
     func sceneDidBecomeActive(_ scene: UIScene) {
         guard ProcessInfo.processInfo.isiOSAppOnMac,
               let pont = window?.rootViewController as? CAPBridgeViewController,
-              let vue = pont.webView, vue.pageZoom != 1.3 else { return }
-        vue.pageZoom = 1.3
+              let vue = pont.webView else { return }
+        if !echellePosee {
+            echellePosee = true
+            vue.configuration.userContentController.addUserScript(
+                WKUserScript(source: SceneDelegate.echelleMac, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        }
+        vue.evaluateJavaScript(SceneDelegate.echelleMac, completionHandler: nil)
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
