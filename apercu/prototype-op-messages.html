@@ -69,7 +69,7 @@ h1,h2,h3,p{margin:0}
 h1{font-size:30px;line-height:1.15;font-weight:700;letter-spacing:.01em}
 h2{font-size:20px;font-weight:700}
 h3{font-size:13px;font-weight:600;color:var(--faible);text-transform:uppercase;letter-spacing:.04em}
-.gris{color:var(--doux)} .faible{color:var(--faible)} .petit{font-size:14px} .mini{font-size:12.5px} .gras{font-weight:600}
+.gris{color:var(--doux)} .faible{color:var(--faible)} .petit{font-size:14px} .mini{font-size:12.5px}
 .rouge{color:var(--rouge)} .vert{color:var(--vert)} .tab{font-variant-numeric:tabular-nums}
 svg{width:22px;height:22px;flex:none}
 
@@ -85,8 +85,8 @@ svg{width:22px;height:22px;flex:none}
 .logo{display:flex;align-items:center;gap:10px;padding:4px 8px 12px;font-weight:700;font-size:15px;letter-spacing:.02em}
 .logo i{width:34px;height:34px;border-radius:9px;background:linear-gradient(150deg,#4f78d6,#2a4a9c);display:grid;place-items:center;color:#fff;font:800 10px/1 var(--police);font-style:normal;text-align:center}
 .logo .pro{font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--fill);color:var(--sur-fill)}
-.menu a,.menu button.lien-menu{display:flex;align-items:center;gap:11px;min-height:40px;padding:6px 10px;border-radius:10px;color:var(--encre);text-decoration:none;font-size:15px;width:100%}
-.menu a:hover,.menu button.lien-menu:hover{background:var(--survol)}
+.menu a{display:flex;align-items:center;gap:11px;min-height:40px;padding:6px 10px;border-radius:10px;color:var(--encre);text-decoration:none;font-size:15px;width:100%}
+.menu a:hover{background:var(--survol)}
 .menu a.on{background:var(--fill-doux);color:var(--accent);font-weight:600}
 .menu a svg{color:var(--accent)}
 .menu .n{margin-left:auto;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--fill);color:var(--sur-fill);font-size:12px;font-weight:600;display:grid;place-items:center}
@@ -1512,16 +1512,12 @@ const IC = {
   main: '<path d="M8 11V5.500a1.500 1.500 0 0 1 3 0V10M11 10V4.500a1.500 1.500 0 0 1 3 0V10M14 10V5.500a1.500 1.500 0 0 1 3 0V13M8 11l-1.300-1.800a1.500 1.500 0 0 0-2.500 1.700L7 16c1 2.500 3 4.500 6 4.500 3.500 0 5-2.500 5-6V8.500a1.500 1.500 0 0 0-3 0"/>',
   sourire: '<circle cx="12" cy="12" r="8.500"/><path d="M8.500 14a4 4 0 0 0 7 0M9 9.500h.01M15 9.500h.01"/>',
   points: '<circle cx="5.500" cy="12" r="1.300"/><circle cx="12" cy="12" r="1.300"/><circle cx="18.500" cy="12" r="1.300"/>',
-  epingle: '<path d="M9 3.500h6l-1 6 3.500 3.500h-11L10 9.500zM12 13v7.500"/>',
   cloche: '<path d="M6 16.500V11a6 6 0 0 1 12 0v5.500l1.500 2h-15zM10 20.500a2 2 0 0 0 4 0"/>',
   horloge: '<circle cx="12" cy="12" r="8.500"/><path d="M12 7.500V12l3 2"/>',
   coche: '<path d="m5 12.500 4.500 4.500L19 7.500"/>',
   corbeille: '<path d="M4.500 7h15M9.500 7V4.500h5V7M6.500 7l1 12.500h9l1-12.500M10 11v5M14 11v5"/>',
-  archive: '<rect x="3.500" y="4.500" width="17" height="4.500" rx="1.500"/><path d="M5 9v9a1.500 1.500 0 0 0 1.500 1.500h11A1.500 1.500 0 0 0 19 18V9M10 13h4"/>',
   repondre: '<path d="M10 7 4.500 12l5.500 5v-3.500c5 0 8 1.500 9.500 5 0-6-3-10-9.500-10z"/>',
   transferer: '<path d="m14 7 5.500 5-5.500 5v-3.500c-5 0-8 1.500-9.500 5 0-6 3-10 9.500-10z"/>',
-  etoile: '<path d="m12 3.500 2.600 5.400 5.900.800-4.300 4.100 1.100 5.800L12 16.800l-5.300 2.800 1.100-5.800-4.300-4.100 5.900-.800z"/>',
-  trombone: '<path d="m19.500 11-7.800 7.800a4.500 4.500 0 0 1-6.400-6.400l8.200-8.200a3 3 0 0 1 4.300 4.300l-8.200 8.200a1.500 1.500 0 0 1-2.200-2.200l7.400-7.400"/>',
   doc: '<path d="M6.500 3.500h7.500l4 4V19a1.500 1.500 0 0 1-1.500 1.500h-10A1.500 1.500 0 0 1 5 19V5a1.500 1.500 0 0 1 1.500-1.500zM13.500 3.500V8h4.500M8.500 12.500h7M8.500 16h5"/>',
   traduire: '<path d="M3.500 5.500h9M8 3.500v2M5 5.500c.5 3.500 3 6.500 6.500 8M11 5.500c-.500 3.500-3 6.500-7 8M12.500 20.500l4-9.500 4 9.500M14 17.500h5"/>',
   eclat: '<path d="M11 3.500 12.800 9l5.700 2-5.700 2L11 18.500 9.200 13l-5.700-2 5.700-2zM18.500 3v3M17 4.500h3M19 16.500v3M17.500 18h3"/>',
@@ -1532,9 +1528,7 @@ const IC = {
   entrant: '<path d="M17 7 7 17M7 9v8h8"/>', sortant: '<path d="M7 17 17 7M9 7h8v8"/>',
   jouer: '<path d="M8 5.500v13l10.500-6.500z" fill="currentColor"/>',
   stylo: '<path d="M4 20h4L19 9l-4-4L4 16zM13.500 6.500l4 4"/>',
-  dossier: '<path d="M3.500 7A2 2 0 0 1 5.500 5h4l2 2.500h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
   boiteR: '<path d="M4 13.500 6.500 5h11L20 13.500V18a1.500 1.500 0 0 1-1.500 1.500h-13A1.500 1.500 0 0 1 4 18zM4 13.500h4.500a3.500 3.500 0 0 0 7 0H20"/>',
-  avion: '<path d="M20.500 3.500 3.500 10.500l6.500 2.500 2.500 6.500zM10 13l4-4"/>',
   soustitres: '<rect x="3" y="5.500" width="18" height="13" rx="3"/><path d="M7 11.500h4M13.500 11.500H17M7 15h2.500M12 15h5"/>',
   tableau: '<rect x="3.500" y="4.500" width="17" height="12" rx="2"/><path d="m7 13 3-3.500 2.500 2 4-4.500M9 20l3-3.500 3 3.500"/>',
   groupe: '<rect x="3.500" y="4" width="7" height="7" rx="2"/><rect x="13.500" y="4" width="7" height="7" rx="2"/><rect x="3.500" y="13.500" width="7" height="7" rx="2"/><rect x="13.500" y="13.500" width="7" height="7" rx="2"/>',
@@ -1546,7 +1540,6 @@ const IC = {
   sonde: '<path d="M5 19V10M12 19V5M19 19v-6"/>',
   minuteur: '<circle cx="12" cy="13.500" r="7"/><path d="M12 10v3.500l2.500 1.500M9.500 3.500h5"/>',
   flou: '<circle cx="12" cy="9" r="3.500"/><path d="M5 20c.8-3.500 3.600-5.500 7-5.500s6.200 2 7 5.500"/><path d="M3 5h.01M6 3h.01M21 5h.01M18 3h.01M3 12h.01M21 12h.01" stroke-width="2.4"/>',
-  maison: '<path d="M4 11 12 4.500 20 11v8a1.500 1.500 0 0 1-1.500 1.500h-4v-6h-5v6h-4A1.500 1.500 0 0 1 4 19z"/>',
 };
 const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IC[k] || '') + '</svg>';
 
