@@ -1,5 +1,36 @@
 [
  {
+  "slug": "mise-en-conformite-electrique-logement",
+  "titre": "Mise en conformité électrique d’un logement : guide de l’électricien",
+  "description": "Mise en conformité électrique d’un logement : les six points du diagnostic, les travaux qui y répondent, un devis à TVA 10 % calculé et ce que vous remettez.",
+  "date": "2026-11-13",
+  "image": "mise-en-conformite-electrique-logement-couverture.webp",
+  "imageAlt": "Couverture bleu nuit du blog TEAM OP portant le titre de l’article sur la mise en conformité électrique d’un logement",
+  "photo": "An electrician in a navy blue coverall replacing an old fuse board with a modern residential electrical panel in an older apartment, a printed diagnostic report on a tablet beside him.",
+  "faq": [
+   {
+    "q": "Un propriétaire est-il obligé de faire les travaux après un diagnostic électrique ?",
+    "r": "Le diagnostic lui-même n’impose pas de travaux : il informe l’acquéreur ou le locataire de l’état de l’installation. Ce qui est sanctionné, c’est de ne pas le transmettre. Le propriétaire décide ensuite, avec son électricien, des anomalies à corriger."
+   },
+   {
+    "q": "Quelle TVA pour une mise en conformité électrique ?",
+    "r": "Dans un logement achevé depuis plus de deux ans, les travaux d’amélioration ou d’entretien peuvent relever du taux de 10 %. Depuis la loi de finances pour 2025, une mention sur le devis ou la facture, qui atteste que les conditions sont remplies, remplace l’attestation que le client remplissait."
+   },
+   {
+    "q": "Faut-il un Consuel pour une mise en sécurité ?",
+    "r": "Pas si les travaux se font sans coupure demandée au distributeur. L’attestation est exigée quand l’installation a été mise hors tension par le distributeur à la demande du client pour des travaux de remise en conformité, ou quand elle est entièrement rénovée après une telle coupure."
+   },
+   {
+    "q": "Combien de temps un diagnostic électricité est-il valable ?",
+    "r": "Trois ans pour une vente, à la date de la promesse ou de l’acte authentique ; six ans pour une location, à la date de signature du bail. Pour une location, une attestation de conformité Consuel de moins de six ans peut en tenir lieu."
+   },
+   {
+    "q": "Que doit remettre l’électricien à la fin des travaux ?",
+    "r": "La facture avec les mentions du bâtiment, un rapport qui reprend les anomalies traitées une par une, les mesures, les photos avant et après, le repérage des circuits et, en cas de coupure par le distributeur, l’attestation Consuel visée. Si le client refuse certains travaux, faites-lui signer la liste des anomalies non traitées."
+   }
+  ]
+ },
+ {
   "slug": "attestation-de-conformite-consuel",
   "titre": "Attestation Consuel : quand l’exiger, la préparer, le tarif 2026",
   "description": "Attestation de conformité Consuel : les cas obligatoires, le bon formulaire, le délai de vingt jours, le tarif pro 2026 calculé et une liste à cocher.",

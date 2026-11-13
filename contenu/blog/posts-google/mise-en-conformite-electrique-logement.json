@@ -1,0 +1,21 @@
+{
+  "slug": "mise-en-conformite-electrique-logement",
+  "prepare": "2026-11-13",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Mise en conformité électrique d’un logement : guide de l’électricien\n\nMise en conformité électrique d’un logement : les six points du diagnostic, les travaux qui y répondent, un devis à TVA 10 % calculé et ce que vous remettez.\n\nÀ retenir : Le diagnostic électricité est obligatoire pour vendre ou louer un logement dont l’installation a plus de 15 ans : valable 3 ans pour une vente, 6 ans pour une location.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/mise-en-conformite-electrique-logement.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/mise-en-conformite-electrique-logement-couverture-google.jpg"
+      }
+    ]
+  }
+}
