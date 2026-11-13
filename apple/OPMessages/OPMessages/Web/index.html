@@ -570,6 +570,10 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
 .bascule{width:42px;height:25px;border-radius:13px} .bascule::after{width:21px;height:21px} .bascule[aria-checked="true"]::after{transform:translateX(17px)}
 .av.xl{width:84px;height:84px;font-size:30px} .av.g{width:56px;height:56px;font-size:20px}
 
+/* — les gestes d'une fiche (appel, contact) : des carrés arrondis égaux, l'icône au-dessus du mot, comme la fiche d'un contact d'iOS — */
+.actions.gestes{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:8px;width:min(420px,100%);margin:4px auto 0}
+.actions.gestes .btn{flex-direction:column;gap:3px;min-height:54px;padding:6px 4px;border-radius:12px;background:var(--carte);color:var(--accent);font-size:11px;font-weight:500;white-space:normal;line-height:1.15}
+.actions.gestes .btn svg{width:20px;height:20px}
 /* — les feuilles — */
 .voile:not(.centre) .panneau{height:100%;margin:0;border-radius:0;width:min(420px,100%)} .voile:not(.centre) .panneau.large{width:min(640px,100%)}
 .voile.centre .panneau{border-radius:14px;width:min(460px,100%)} .voile.centre .panneau.large{width:min(680px,100%)}
@@ -618,19 +622,22 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
   /* les pages */
   .page{padding:8px 16px 120px} .page>.dedans{gap:18px}
   .carte,.kpi,.idee-c{border-radius:22px} .carte{padding:16px;gap:10px}
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px} .kpi{padding:14px 16px} .kpi b{font-size:28px;line-height:34px} .kpi span{font-size:13px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px} .kpi{padding:11px 14px;border-radius:16px} .kpi b{font-size:22px;line-height:26px} .kpi span{font-size:13px;line-height:17px}
   .rang{min-height:52px;padding:9px 16px;gap:12px} .rang .t b{font-size:17px;line-height:22px;font-weight:400} .rang .t span{font-size:15px;line-height:20px}
   .rang .ic{width:30px;height:30px} .rang .ic svg{width:17px;height:17px} .rang:has(> .ic)+.rang::before{left:58px} .rang+.rang::before{left:16px}
-  .rang.souple{flex-wrap:wrap} .rang.souple .t{flex:1 1 60%} .rang.souple .t b,.rang.souple .t span{white-space:normal} .rang.souple>.btn{margin-left:42px}
+  /* une ligne et son geste : le texte garde toute la largeur, le geste passe dessous en PETITE capsule (à droite, il écrasait le texte sur six lignes) */
+  .rang.souple{flex-wrap:wrap;align-items:center;row-gap:6px} .rang.souple .t{flex:1 1 60%} .rang.souple .t b,.rang.souple .t span{white-space:normal}
+  .rang.souple>.btn{flex:none;margin:0 0 4px 42px;min-height:30px;padding:0 13px;font-size:15px;font-weight:600;border-radius:999px}
   .evt{padding:12px 16px} .evt .h{font-size:15px;width:52px} .evt .h span{font-size:13px} .evt .t span{font-size:15px}
   .semaine button{font-size:12px} .semaine button b{font-size:18px}
   .creneaux button{font-size:15px} .creneaux button span{font-size:13px}
   .info{font-size:15px;border-radius:14px;flex-wrap:wrap} .info .t{flex:1 1 180px} .idee-c p{font-size:15px}
-  .btn{min-height:50px;font-size:17px;padding:0 20px} .btn.petit{min-height:36px;font-size:15px;padding:0 14px} .btn.large{min-height:50px} .btn svg{width:18px;height:18px}
+  .btn{min-height:44px;font-size:16px;padding:0 18px} .btn.petit{min-height:34px;font-size:14px;padding:0 13px} .btn.large{min-height:50px;font-size:17px} .btn svg{width:17px;height:17px}
+  .actions.gestes .btn{min-height:58px;font-size:12px;padding:7px 4px} .actions.gestes .btn svg{width:22px;height:22px}
   .bande .btn{min-height:30px;font-size:13px;padding:0 6px} .bande .seg button{min-height:30px;font-size:13px;padding:0 8px;min-width:44px}
   .champ{font-size:13px} .champ input,.champ select,.champ textarea{min-height:44px;font-size:17px;border-radius:12px;padding:9px 12px}
   .bascule{width:51px;height:31px;border-radius:16px} .bascule::after{width:27px;height:27px} .bascule[aria-checked="true"]::after{transform:translateX(20px)}
-  .av.xl{width:104px;height:104px;font-size:38px}
+  .av.xl{width:84px;height:84px;font-size:30px}
   /* la capsule d'onglets : lentille grise sous l'onglet choisi, comme l'interface validée */
   .barre-bas .groupe-bas{max-width:480px;margin:0 auto;pointer-events:none} .barre-bas .groupe-bas>*{pointer-events:auto}
   .barre-bas .capsule{margin:0;padding:4px;border-radius:34px;min-height:60px;align-items:stretch}
@@ -648,6 +655,7 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
    dessin et c'est sa ZONE QUI RÉPOND qui déborde. */
 @media (pointer:coarse){
   .btn.petit,.btn-s,button.pastille-s,.sondage button{min-height:44px}
+  .rang.souple>.btn.petit{min-height:30px;position:relative} .rang.souple>.btn.petit::before{content:"";position:absolute;inset:-8px -2px}
   .rond,.barre-conv .rond,.compo .rond{position:relative} .rond::before{content:"";position:absolute;inset:-6px}
   .tete .l1 .rond::before{inset:-6px}
   .volet .v-tete .rond{width:44px;height:44px}
@@ -6104,7 +6112,7 @@ let _larg = tel(); addEventListener('resize', () => { if (tel() !== _larg) { _la
 function typo(racine) {
   if (!racine) return;
   const w = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.parentNode && /^(TEXTAREA|SCRIPT|STYLE|INPUT|OPTION)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
-  let n; while ((n = w.nextNode())) { const t = n.nodeValue; if (!/[:;!?»«]/.test(t)) continue; const u = t.replace(/ ([;!?»])/g, '\u202f$1').replace(/ :(?=\s|$)/g, '\u00a0:').replace(/« /g, '«\u00a0'); if (u !== t) n.nodeValue = u; }
+  let n; while ((n = w.nextNode())) { const t = n.nodeValue; if (!/[:;!?»«]|\d (h|min|s)\b/.test(t)) continue; const u = t.replace(/ ([;!?»])/g, '\u202f$1').replace(/ :(?=\s|$)/g, '\u00a0:').replace(/« /g, '«\u00a0').replace(/(\d) (h|min|s|px|Ko|Mo|°C)(?=[\s.,;:!?»)]|$)/g, '$1\u00a0$2').replace(/(\d\u00a0h) (\d)/g, '$1\u00a0$2'); if (u !== t) n.nodeValue = u; }
 }
 function ouvrir(html, o) {
   o = o || {};
@@ -6148,7 +6156,7 @@ VUES.aujourdhui = () => {
   const jour = EVTS.filter((e) => e.cote === k && e.j === 0).sort((a, b) => a.deb.localeCompare(b.deb));
   return { une: true, html: `<section class="page"><div class="dedans">
     <div class="actions"><div style="flex:1;min-width:0"><p class="faible petit">${maj(jlong(0))}</p><h1>Bonjour Julie</h1></div><button class="tel-seul" data-action="menu-tel" aria-label="Mon profil et le menu">${av('moi')}</button></div>
-    <div class="kpis" data-gd="kpis">${kpi(nl, 'messages non lus', 'messages')}${kpi(am, am > 1 ? 'appels manqués' : 'appel manqué', 'appels')}${kpi(cm, cm > 1 ? 'courriels non lus' : 'courriel non lu', 'courrier')}${kpi(jour.length, jour.length > 1 ? 'rendez-vous aujourd’hui' : 'rendez-vous aujourd’hui', 'agenda')}</div>
+    <div class="kpis" data-gd="kpis">${kpi(nl, 'messages non lus', 'messages')}${kpi(am, am > 1 ? 'appels manqués' : 'appel manqué', 'appels')}${kpi(cm, cm > 1 ? 'courriels non lus' : 'courriel non lu', 'courrier')}${kpi(jour.length, 'rendez-vous', 'agenda')}</div>
     <div class="grille2"><div class="col">
       ${proch ? `<div class="carte sur-fill" data-gd="prochaine" style="background:var(--fill);color:var(--sur-fill)">
         <div class="actions"><span class="et" style="background:rgba(255,255,255,.2);color:#fff">${proch.bientot ? 'Dans 19 min' : 'À ' + proch.deb.replace(':', ' h ')}</span><span style="flex:1"></span>${etIdee(15)}</div>
@@ -6312,7 +6320,7 @@ VUES.appels = () => {
     detail = `<section class="detail"><div class="barre-conv"><button class="rond retour-tel" data-go="appels" aria-label="Retour aux appels">${svg('retour')}</button><span class="qui"><b>Détail de l’appel</b></span></div>
     <div class="lecture" style="align-items:stretch"><div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:8px 0">${q.av('xl')}<h2>${esc(q.n)}</h2><p class="gris">${esc(q.r)}</p>
         <p class="${a.sens === 'manque' ? 'rouge' : 'gris'} petit">${a.sens === 'manque' ? 'Appel manqué' : a.sens === 'sortant' ? 'Appel sortant' : 'Appel entrant'} ${a.video ? 'vidéo' : 'audio'} · ${jcourt(a.j).toLowerCase()} à ${a.h}${a.duree ? ' · ' + a.duree : ''}</p>
-        <div class="actions" style="justify-content:center"><button class="btn" data-appeler="${a.qui}">${svg('tel')}${a.sens === 'manque' ? 'Rappeler' : 'Appeler'}</button><button class="btn gris" data-appeler="${a.qui}" data-video="1">${svg('video')}Vidéo</button>${a.grp ? '' : `<button class="btn gris" data-ecrire="${a.qui}">${svg('bulle')}Message</button>`}<button class="btn gris" data-action="rappel-appel" data-id="${a.id}">${svg('horloge')}Me le rappeler</button></div></div>
+        <div class="actions gestes"><button class="btn" data-appeler="${a.qui}">${svg('tel')}${a.sens === 'manque' ? 'Rappeler' : 'Appeler'}</button><button class="btn gris" data-appeler="${a.qui}" data-video="1">${svg('video')}Vidéo</button>${a.grp ? '' : `<button class="btn gris" data-ecrire="${a.qui}">${svg('bulle')}Message</button>`}<button class="btn gris" data-action="rappel-appel" data-id="${a.id}">${svg('horloge')}Rappel</button></div></div>
       ${a.vocal ? `<div class="carte" data-gd="vocal"><div class="actions"><h3 style="flex:1">Message vocal · ${a.vocal.d}</h3>${etIdee(11)}</div>
         <div class="vocal" style="color:var(--accent)"><button class="jouer" data-action="jouer" aria-label="Écouter">${svg('jouer')}</button><span class="onde">${onde.map((h) => `<i style="height:${h}px"></i>`).join('')}</span><small>${a.vocal.d}</small></div>
         <p>« ${esc(a.vocal.transc)} »</p><p class="mini faible">Transcrit automatiquement : tu lis le message sans décrocher le téléphone, même en réunion.</p></div>` : ''}
@@ -6585,7 +6593,7 @@ VUES.contacts = () => {
   if (p && p.id !== 'moi') { const ch = chronologie(p.id); const c = C.find((x) => x.avec === p.id);
     detail = `<section class="detail"><div class="barre-conv"><button class="rond retour-tel" data-go="contacts" aria-label="Retour aux contacts">${svg('retour')}</button><span class="qui"><b>Fiche contact</b></span></div>
     <div class="lecture" style="align-items:stretch"><div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${av(p.id, 'xl')}<h2>${esc(p.n)}</h2><p class="gris">${esc(p.r)}</p>${p.stt ? `<span class="statut ${p.st === 'occ' ? 'occ' : ''}"><i></i>${esc(p.stt)}</span>` : ''}
-        <div class="actions" style="justify-content:center"><button class="btn" data-ecrire="${p.id}">${svg('bulle')}Message</button><button class="btn gris" data-appeler="${p.id}">${svg('tel')}Appeler</button><button class="btn gris" data-appeler="${p.id}" data-video="1">${svg('video')}Vidéo</button></div>
+        <div class="actions gestes"><button class="btn" data-ecrire="${p.id}">${svg('bulle')}Message</button><button class="btn gris" data-appeler="${p.id}">${svg('tel')}Appeler</button><button class="btn gris" data-appeler="${p.id}" data-video="1">${svg('video')}Vidéo</button></div>
         <p class="mini faible">${esc(p.tel || '')}</p></div>
       <div class="carte serre" data-gd="chrono"><div style="padding:14px 16px 6px;display:flex;gap:8px;align-items:center"><h3 style="flex:1">Tout ce que vous avez échangé</h3>${etIdee(20)}</div>
         ${ch.map((x) => `<button class="rang" data-go="${x.go}"><span class="ic" style="--c:${x.c}">${svg(x.ic)}</span><span class="t"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></span><time class="mini faible">${x.j === 0 ? x.h : jcourt(x.j)}</time></button>`).join('') || '<p class="gris petit" style="padding:8px 16px 16px">Aucun échange pour l’instant.</p>'}</div>
