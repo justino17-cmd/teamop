@@ -28,7 +28,7 @@ message, appel, appel vidéo, système de réunion, mail ; revois ma boîte mail
   rendez-vous, préparation avant réunion, sous-titres traduits, temps de parole, compte rendu, trouver un créneau, tri du courrier
   « Clients / Factures / Notifications / Lettres d'info », reporter / programmer / annuler l'envoi / relancer, courriel → conversation, tâche,
   réunion, devis, désabonnement en un geste.
-- ⛔ **Sept idées reposent sur une IA** (résumés, traduction, transcription, compte rendu, réponses proposées) : marquées « avec IA, à
+- ⛔ **Six idées reposent sur une IA** (résumés, traduction, transcription, compte rendu, réponses proposées) : marquées « avec IA, à
   décider ». Elles envoient du texte à un sous-traitant : décision de Justin, puis `sous-traitance.html` et `registre-traitements.html`.
 - ⚠️ **Rien n'est construit dans le produit** : c'est une maquette. Le Courrier y garde la séparation Pro / Perso décidée le 18 octobre.
 - **Mesuré** : `scratchpad/sonde-proto-messages.js` (16 routes × Mac, Windows, iPad, iPhone, Android × jour et nuit : 160 écrans, 0 erreur
