@@ -66,6 +66,12 @@ puisse tester en application sur Mac, iPhone ; après, on le fera pour Windows e
 - ⛔ **Ni ouvert ni compilé par Xcode** (session Linux, pas de Swift) : le fichier de projet est fabriqué et contrôlé par `fabriquer-projet.py`
   (structure, références), le secours est `project.yml` (XcodeGen). Safari n'a pas été essayé non plus : le premier lancement chez Justin est le test.
 - **Mesuré** (Chromium) : 116 gestes sur Mac et iPhone, 130 écrans sur cinq profils de jour et de nuit, 0 faute ; captures relues sur Mac et iPhone.
+- **Test de tout ce qui se clique** (Justin : « un test complet de A à Z de toute chose cliquable ») : `scratchpad/sonde-proto-messages-clics.js` —
+  95 scènes (écrans des trois rôles, feuilles, appel, réunion), chaque cible retrouvée par sa signature, cliquée pour de vrai, l'état comparé avant et
+  après. Dernier passage : **1 966 clics (1 111 Mac, 855 iPhone), tous ont porté, aucun défaut**. Trouvé et corrigé en route : l'étiquette « Idée 27 »
+  des Réglages qui n'ouvrait rien (idée renumérotée), « Envoyer » et « Ajouter » muets en réunion sur un champ vide, un message du bas qui recouvrait
+  « Joindre », et 283 cibles sous 40 px sur iPhone (toutes répondent sur 44 px au doigt, la sonde mesure la ZONE QUI RÉPOND). ⚠️ Le Courrier n'est
+  pas recliqué par cette sonde (ses propres sondes le couvrent) ; les champs de saisie et les listes déroulantes ne sont pas « cliqués » non plus.
 - Suite annoncée par Justin : Windows et Android, même page, une enveloppe par système.
 
 **Attend Justin** : le premier lancement dans Xcode (et le message exact s'il y a une erreur) ; quelles idées il garde, dans quel ordre ; si la
