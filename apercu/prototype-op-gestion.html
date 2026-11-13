@@ -21415,6 +21415,23 @@ document.head.insertAdjacentHTML('beforeend', `<style id="cnx-motion-d">
 @keyframes cnDoux{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.cn-tuile.trace,.trace .cn-sombre,.trace .cn-op,.trace .cn-filet,.trace .cn-team tspan,.charge.trace .cn-halo,#cnx.charge.trace .cn-nom span{animation:none}.charge.trace .cn-anneau{display:none}}
 </style>`);
+
+/* ── l'écran de lancement suit le jour et la nuit · 13 novembre 2026 ──
+   Justin : « je voudrais que le menu de démarrage de l'application soit en mode jour et en mode nuit ».
+   Il n'existait qu'en bleu nuit. De jour (réglage de l'application, ou « Auto » sur un appareil clair) : fond clair de
+   TEAM OP, nom et barre en marine, ombre douce sous la tuile. La nuit garde le bleu profond. L'écran de démarrage natif
+   (avant que la page ne s'affiche) a lui aussi ses deux images, claire et sombre, selon l'appareil. */
+document.head.insertAdjacentHTML('beforeend', `<style id="cnx-jour">
+html:not([data-mode="nuit"]) #cnx.charge{background:radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #eef2f8 46%, #dbe4f1 100%);color:#0e182d}
+html:not([data-mode="nuit"]) .cn-sous{color:rgba(14,24,45,.6)}
+html:not([data-mode="nuit"]) .cn-etat{color:rgba(14,24,45,.66)}
+html:not([data-mode="nuit"]) #cnx.charge .cn-barre{background:rgba(14,24,45,.12)}
+html:not([data-mode="nuit"]) #cnx.charge .cn-barre i{background:linear-gradient(90deg,#3f7bff,#0e182d)}
+html:not([data-mode="nuit"]) .cn-halo{background:radial-gradient(closest-side, rgba(63,123,255,.26), rgba(63,123,255,0) 70%)}
+html:not([data-mode="nuit"]) .cn-orbe{opacity:.2}
+html:not([data-mode="nuit"]) .cn-tuile.trace::before, html:not([data-mode="nuit"]) .cn-tuile:not(.trace){box-shadow:0 22px 46px rgba(14,24,45,.2), 0 0 0 1px rgba(14,24,45,.08)}
+html:not([data-mode="nuit"]) .cn-anneau{background:conic-gradient(from 0deg, rgba(14,24,45,0) 0 62%, rgba(63,123,255,.9) 86%, #0e182d 100%)}
+</style>`);
 </script>
 
 </body>
