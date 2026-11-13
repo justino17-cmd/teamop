@@ -44,6 +44,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             echellePosee = true
             vue.configuration.userContentController.addUserScript(
                 WKUserScript(source: SceneDelegate.echelleMac, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+            // Le pincement du trackpad : la page ne le reçoit pas dans une application iPad lancée sur un Mac.
+            // On le capte ici et on le transmet à la carte du Planning (window.opgPince), qui zoome autour du curseur.
+            let pince = UIPinchGestureRecognizer(target: self, action: #selector(pinceTrackpad(_:)))
+            pince.delegate = self
+            vue.addGestureRecognizer(pince)
         }
         vue.evaluateJavaScript(SceneDelegate.echelleMac, completionHandler: nil)
         // La barre grise en bas de la fenêtre (Justin, 12 novembre 2026) : c'est la barre d'aide à la saisie d'iOS
@@ -73,11 +78,33 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 
+    @objc func pinceTrackpad(_ geste: UIPinchGestureRecognizer) {
+        guard let vue = geste.view as? WKWebView, vue.bounds.width > 0, vue.bounds.height > 0 else { return }
+        let point = geste.location(in: vue)
+        let etat: String
+        switch geste.state {
+        case .began: etat = "debut"
+        case .changed: etat = "change"
+        default: etat = "fin"
+        }
+        let js = String(format: "window.opgPince && window.opgPince('%@', %.4f, %.5f, %.5f)", etat,
+                        Double(geste.scale), Double(point.x / vue.bounds.width), Double(point.y / vue.bounds.height))
+        vue.evaluateJavaScript(js, completionHandler: nil)
+    }
+
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         SceneDelegateProxy.shared.scene(scene, continue: userActivity)
     }
 }
 
+
+// Le pincement doit pouvoir se reconnaître en même temps que les gestes de la vue web (défilement, sélection).
+extension SceneDelegate: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+}
 
 // La barre d'aide à la saisie que WKWebView pose au-dessus du clavier n'a pas de sens sur un Mac (il n'y a pas de clavier
 // à l'écran) : elle y paraît comme une bande grise vide en bas de la fenêtre. On la retire en donnant à la vue de contenu

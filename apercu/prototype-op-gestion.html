@@ -21145,13 +21145,13 @@ const CNX_DESSIN = `<svg class="cn-svg" viewBox="0 0 512 512" role="img" aria-la
   </g>
   <rect class="cn-contour" x="4" y="4" width="504" height="504" rx="124" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" pathLength="1"/>
 </svg>`;
-function cnxCharger(suite, etat, duree){ document.getElementById('cnx')?.remove(); const trace = !duree; duree = duree || 2700;
-  const t0 = trace ? 1.5 : .28;
+function cnxCharger(suite, etat, duree){ document.getElementById('cnx')?.remove(); const trace = !duree; duree = duree || 4400;   /* « un peu plus long, qu'on voie bien tout » (Justin, 13 novembre 2026) */
+  const t0 = trace ? 2.35 : .28;
   const nom = [...'OP GESTION'].map((c, i) => `<span style="animation-delay:${(t0 + i * .045).toFixed(3)}s">${c}</span>`).join('');
   document.body.insertAdjacentHTML('beforeend', `<div id="cnx" class="charge${trace ? ' trace' : ''}" role="status" aria-label="${esc(etat || 'Chargement d’OP GESTION')}" style="--cn-duree:${duree}ms">
     <span class="cn-orbe a" aria-hidden="true"></span><span class="cn-orbe b" aria-hidden="true"></span>
     <div class="cn-scene" aria-hidden="true"><span class="cn-halo"></span><span class="cn-anneau"></span>${trace ? '<span class="cn-onde"></span><span class="cn-onde deux"></span>' + Array.from({ length:12 }, (_, i) => `<i class="cn-etincelle" style="--a:${i * 30}deg;--d:${(i % 3) * .04}s"></i>`).join('') : ''}<span class="cn-tuile${trace ? ' trace' : ''}">${CNX_DESSIN}${trace ? '<span class="cn-reflet"></span>' : ''}</span></div>
-    <span class="cn-nom" aria-hidden="true">${nom}</span><span class="cn-sous" aria-hidden="true"${trace ? ' style="animation-delay:2.05s"' : ''}>par TEAM OP</span>
+    <span class="cn-nom" aria-hidden="true">${nom}</span><span class="cn-sous" aria-hidden="true"${trace ? ' style="animation-delay:3s"' : ''}>par TEAM OP</span>
     <span class="cn-barre" aria-hidden="true"><i></i></span><span class="cn-etat">${esc(etat || 'Chargement…')}</span></div>`);
   const z = document.getElementById('cnx');
   setTimeout(() => { if (document.getElementById('cnx') !== z) return; z.classList.add('sort'); setTimeout(() => { if (document.getElementById('cnx') === z) suite(); }, 340); }, duree); }
@@ -21400,15 +21400,15 @@ document.head.insertAdjacentHTML('beforeend', `<style id="cnx-motion-d">
 .charge.trace .cn-scene{animation:none}
 .trace .cn-contour,.trace .cn-diag{animation:none;filter:none}
 .trace .cn-onde,.trace .cn-etincelle{display:none}
-.cn-tuile.trace{animation:cnLeve 1s cubic-bezier(.2,.9,.25,1) both}
+.cn-tuile.trace{animation:cnLeve 1.35s cubic-bezier(.2,.9,.25,1) both}
 .cn-tuile.trace::before{animation:none}
 .trace .cn-clair{animation:none}
-.trace .cn-sombre{animation:cnDeploie .75s .45s cubic-bezier(.3,.8,.2,1) both}
-.trace .cn-op{stroke-dasharray:none;transform-box:fill-box;transform-origin:50% 60%;animation:cnDoux .7s .85s cubic-bezier(.2,.8,.2,1) both}
-.trace .cn-filet{animation:cnTrait .5s 1.1s cubic-bezier(.6,0,.2,1) both}
-.trace .cn-team tspan{animation:cnApparait .6s ease both;animation-delay:1.15s!important}
-.cn-tuile.trace .cn-reflet::after{animation-delay:1.9s}
-.charge.trace .cn-halo{animation:cnFondu .9s .3s ease both, cnHalo 2.4s 1.2s ease-in-out infinite}
+.trace .cn-sombre{animation:cnDeploie 1s .75s cubic-bezier(.3,.8,.2,1) both}
+.trace .cn-op{stroke-dasharray:none;transform-box:fill-box;transform-origin:50% 60%;animation:cnDoux .95s 1.4s cubic-bezier(.2,.8,.2,1) both}
+.trace .cn-filet{animation:cnTrait .65s 1.85s cubic-bezier(.6,0,.2,1) both}
+.trace .cn-team tspan{animation:cnApparait .7s ease both;animation-delay:1.95s!important}
+.cn-tuile.trace .cn-reflet::after{animation-delay:2.9s}
+.charge.trace .cn-halo{animation:cnFondu 1.2s .4s ease both, cnHalo 2.4s 1.6s ease-in-out infinite}
 .charge.trace .cn-anneau{display:none}
 #cnx.charge.trace .cn-nom{animation:none}
 #cnx.charge.trace .cn-nom span{animation:cnLettre .5s cubic-bezier(.2,.9,.3,1) both}
@@ -21441,12 +21441,21 @@ html:not([data-mode="nuit"]) .cn-anneau{background:conic-gradient(from 0deg, rgb
    · ⌘ + défilement zoome ; double-clic zoome, ⌥ + double-clic dézoome ; Maj + glisser encadre une zone ;
    · le curseur sur la carte, le clavier suit : + et − zooment, les flèches déplacent, 0 recadre sur la tournée, S bascule
      Plan / Satellite. Rien de tout cela ne fait défiler la page derrière. */
-{ let g0 = null;
+{ let g0 = null, pinceNatif = null;
   const carte = ev => { const el = ev.target && ev.target.closest && ev.target.closest('#cr-lf'); return el && crLf && crLf.map && crLf.el.isConnected ? el : null; };
   document.addEventListener('gesturestart', ev => { const el = carte(ev); if (!el) return; ev.preventDefault(); g0 = { z:crLf.map.getZoom() }; }, { passive:false, capture:true });
-  document.addEventListener('gesturechange', ev => { const el = carte(ev); if (!el || !g0) return; ev.preventDefault(); const m = crLf.map, r = el.getBoundingClientRect();
+  document.addEventListener('gesturechange', ev => { const el = carte(ev); if (!el || !g0 || pinceNatif) return; ev.preventDefault(); const m = crLf.map, r = el.getBoundingClientRect();
     const z = Math.max(m.getMinZoom(), Math.min(m.getMaxZoom(), g0.z + Math.log2(Math.max(.05, ev.scale || 1))));
     try { m.setZoomAround(m.containerPointToLatLng([ev.clientX - r.left, ev.clientY - r.top]), z, { animate:false }); } catch (e) {} }, { passive:false, capture:true });
+  /* dans l'application Mac, le pincement du trackpad n'arrive pas jusqu'à la page (Justin, 13 novembre 2026 : « ça serait bien
+     que le zoom de la carte marche avec le trackpad ») : l'application le capte elle-même et l'envoie ici. x et y sont des
+     fractions de la fenêtre (0 à 1) ; l'échelle est celle du geste depuis son début. */
+  window.opgPince = (etat, echelle, fx, fy) => { const x = fx * innerWidth, y = fy * innerHeight;
+    if (etat === 'debut') { const t = document.elementFromPoint(x, y), el = t && t.closest && t.closest('#cr-lf'); pinceNatif = el && crLf && crLf.map && crLf.el.isConnected ? { z:crLf.map.getZoom() } : null; return !!pinceNatif; }
+    if (!pinceNatif) return false;
+    if (etat === 'change' && crLf && crLf.map && crLf.el.isConnected) { const m = crLf.map, r = crLf.el.getBoundingClientRect(), z = Math.max(m.getMinZoom(), Math.min(m.getMaxZoom(), pinceNatif.z + Math.log2(Math.max(.05, echelle || 1))));
+      try { m.setZoomAround(m.containerPointToLatLng([x - r.left, y - r.top]), z, { animate:false }); } catch (e) {} return true; }
+    pinceNatif = null; return true; };
   document.addEventListener('gestureend', ev => { if (g0) { ev.preventDefault(); g0 = null; } }, { passive:false, capture:true });
   document.addEventListener('dblclick', ev => { const el = carte(ev); if (!el || !ev.altKey) return; ev.preventDefault(); ev.stopPropagation(); const m = crLf.map, r = el.getBoundingClientRect();
     try { m.setZoomAround(m.containerPointToLatLng([ev.clientX - r.left, ev.clientY - r.top]), m.getZoom() - 1); } catch (e) {} }, true);
