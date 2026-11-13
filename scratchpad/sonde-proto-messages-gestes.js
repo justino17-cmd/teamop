@@ -86,6 +86,7 @@ let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko
     v('courrier : le vrai module est monté (arbre d’ombre) et montre des courriels d’exemple', lignes0 > 0, lignes0);
     v('courrier : la pastille de l’onglet reprend le nombre annoncé par le module', await E(() => COUR.nl.pro > 0 && compte('courrier') === COUR.nl.pro && new RegExp('Courrier\\s*' + COUR.nl.pro).test(document.querySelector(innerWidth <= 760 ? '#barre-bas' : '#menu').textContent)), await E(() => COUR.nl.pro));
     v('courrier : côté Pro seul, sans sélecteur Pro / Perso', await E((h) => Array.from(eval(h).shadowRoot.querySelectorAll('.sptab')).every((x) => x.offsetWidth === 0), OMB('pro')));
+    v('⛔ courrier : côté Pro, AUCUN courriel de la boîte personnelle (les deux côtés ne se mélangent pas)', await E((h) => { const x = eval(h).shadowRoot.textContent; return /Nouvelle intervention assignée/.test(x) && !/Match de dimanche|Déjeuner vendredi/.test(x); }, OMB('pro')));
     await cap('courrier');
     await page.locator('#zone-courrier-pro #rows .msg').first().click(); await page.waitForTimeout(350);
     v('courrier : toucher un courriel l’ouvre en lecture', await E((h) => { const r = eval(h).shadowRoot.querySelector('.reading'); return !!r && r.textContent.trim().length > 80; }, OMB('pro')));
@@ -101,7 +102,7 @@ let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko
     await clic('[data-role="perso"]'); await go('messages');
     v('côté Perso : Maman est là, aucun client', await E(() => /Maman/.test(document.querySelector('#scene').textContent) && !/Marc Dubois/.test(document.querySelector('#scene').textContent)));
     await go('courrier'); await page.waitForFunction((h) => { const e = eval(h); return e && e.shadowRoot && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('perso'), { timeout: 8000 }).catch(() => {});
-    v('côté Perso : SA boîte mail, un second montage, la zone Pro masquée', await E((h) => { const e = eval(h); return !!e && e.shadowRoot.querySelectorAll('#rows .msg').length > 0 && document.querySelector('#zone-courrier-pro').hidden && !document.querySelector('#zone-courrier-perso').hidden && /messagerie-essai\.example|Camille/.test(e.shadowRoot.textContent); }, OMB('perso')));
+    v('côté Perso : SA boîte mail, un second montage, la zone Pro masquée', await E((h) => { const e = eval(h); return !!e && e.shadowRoot.querySelectorAll('#rows .msg').length > 0 && document.querySelector('#zone-courrier-pro').hidden && !document.querySelector('#zone-courrier-perso').hidden && !/Nouvelle intervention assignée/.test(e.shadowRoot.textContent) && /Match de dimanche|Déjeuner vendredi/.test(e.shadowRoot.textContent); }, OMB('perso')));
     await clic('[data-role="invite"]'); v('invité : la page d’invitation', await E(() => location.hash === '#invite' && /t’invite à une réunion/.test(document.querySelector('#scene').textContent)));
     await cap('invite'); await clic('[data-rejoindre="e0"]'); await clic('[data-salle="entrer"]'); v('invité : il attend qu’on le laisse entrer', await E(() => S.salle.etape === 'attente'));
     await page.waitForTimeout(2500); v('invité : il est entré, sans le volet « Plus »', await E(() => S.salle.etape === 'salle' && !document.querySelector('[data-salle="volet-plus"]')));

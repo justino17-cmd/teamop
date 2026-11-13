@@ -2064,7 +2064,10 @@ function placerCourrier() {
   if (!window.OPCourrier || !window.OPCourrierDemo) { $('#zone-courrier-' + k).innerHTML = '<div class="vide"><div>La boîte mail n’a pas pu se charger dans ce prototype.</div></div>'; return; }
   if (COUR[k]) { COUR[k].rafraichir({ donnees: false }); return; }
   try {
-    COUR[k] = OPCourrier.monter($('#zone-courrier-' + k), { source: OPCourrierDemo.creer({ mode: 'demo' }), cotes: [k], cote: k, cleStockage: 'protoOpmsg_courrier_' + k, titre: 'OP Courrier', intervalle: 0, theme: themeHote,
+    /* ⛔ la source de démonstration rend ses DEUX boîtes (une pro, une perso) : chaque côté ne reçoit que les siennes, sinon le Pro montrerait le courrier personnel */
+    const source = OPCourrierDemo.creer({ mode: 'demo' }), toutes = source.boites.bind(source);
+    source.boites = () => Promise.resolve(toutes()).then((l) => l.filter((b) => b.cote === k));
+    COUR[k] = OPCourrier.monter($('#zone-courrier-' + k), { source, cotes: [k], cote: k, cleStockage: 'protoOpmsg_courrier_' + k, titre: 'OP Courrier', intervalle: 0, theme: themeHote,
       onCompter: (n) => { COUR.nl[k] = n; majPastilles(); } });
   } catch (e) { $('#zone-courrier-' + k).innerHTML = '<div class="vide"><div>La boîte mail n’a pas pu s’ouvrir dans ce prototype.</div></div>'; }
 }

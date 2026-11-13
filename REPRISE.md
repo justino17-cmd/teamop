@@ -13,28 +13,45 @@ de ligne du tout.
 
 ---
 
-# 13 NOVEMBRE 2026 (nuit) — PROTOTYPE D'OP MESSAGES (aperçu, données fictives) — ATTEND LE CHOIX DE JUSTIN, IDÉE PAR IDÉE
+# 13 NOVEMBRE 2026 — PROTOTYPE D'OP MESSAGES (aperçu, données fictives) ET BOÎTE MAIL VÉRIFIÉE — ATTEND LE CHOIX DE JUSTIN, IDÉE PAR IDÉE
 
 Justin, 12 novembre au soir : « je veux que tu revois tout en prototype, que tu apportes des idées pour avoir la meilleure application de
-message, appel, appel vidéo, système de réunion, mail ; revois ma boîte mail actuelle ». Même forme que `apercu/prototype-op-gestion.html`.
+message, appel, appel vidéo, système de réunion, mail ». Puis, le 13 : **« la boîte mail, je veux celle qui était, juste la vérifier et
+corriger »** et « après, revois tout bien, que ça soit rangé, vérifié, testé ».
 
-- **La page** : `apercu/prototype-op-messages.html` (une page, ~205 Ko, aucune dépendance, aucun appel réseau, adresses en `.example`).
-  Thème d'OP MESSAGES (`design/opmessages/THEME-OPMESSAGES.md`), réglage Jour / Nuit / Auto **du prototype seulement**. Trois rôles : Pro,
-  Perso (les deux côtés ne se mélangent pas), Invité sans compte. Visite guidée en 12 étapes. Ce n'est PAS la vraie OP MESSAGES
-  (`server-msg/` n'est pas touché) ; servie sur teamop.fr seulement quand la branche rejoint `main` (dossier `apercu/`).
-- **28 idées**, chacune visible et essayable, listées dans la rubrique « Les idées » avec un bouton « Voir » : un écran « Aujourd'hui »,
-  5 onglets au lieu de 7 (Réunions + Agenda réunis), recherche partout, fiche « tout sur une personne », fils de réponse, message → tâche /
-  rappel / réunion, boîte partagée, carte OP GESTION dans la conversation, messagerie vocale écrite, notes d'appel, lien d'appel et de
-  rendez-vous, préparation avant réunion, sous-titres traduits, temps de parole, compte rendu, trouver un créneau, tri du courrier
-  « Clients / Factures / Notifications / Lettres d'info », reporter / programmer / annuler l'envoi / relancer, courriel → conversation, tâche,
-  réunion, devis, désabonnement en un geste.
-- ⛔ **Six idées reposent sur une IA** (résumés, traduction, transcription, compte rendu, réponses proposées) : marquées « avec IA, à
-  décider ». Elles envoient du texte à un sous-traitant : décision de Justin, puis `sous-traitance.html` et `registre-traitements.html`.
-- ⚠️ **Rien n'est construit dans le produit** : c'est une maquette. Le Courrier y garde la séparation Pro / Perso décidée le 18 octobre.
-- **Mesuré** : `scratchpad/sonde-proto-messages.js` (16 routes × Mac, Windows, iPad, iPhone, Android × jour et nuit : 160 écrans, 0 erreur
-  JavaScript, 0 débordement) ; `scratchpad/sonde-proto-messages-gestes.js` (110 contrôles, Mac et iPhone, gestes touchés pour de vrai ;
-  trois défauts remis dans une copie la font tomber). Captures relues à l'œil sur Mac, iPhone, iPad. `test-836` déclare la page.
-- **Attend Justin** : quelles idées il garde, dans quel ordre ; et si la navigation à 5 onglets lui va.
+**Le prototype** — `apercu/prototype-op-messages.html`, même forme que `apercu/prototype-op-gestion.html`.
+- Une page, aucun appel réseau, adresses en `.example`, thème d'OP MESSAGES, réglage Jour / Nuit / Auto **du prototype seulement**. Trois
+  rôles : Pro, Perso (ils ne se mélangent pas), Invité sans compte. Visite guidée. Ce n'est PAS la vraie OP MESSAGES (`server-msg/` n'est
+  touché que par la copie du module de courrier, voir plus bas) ; servie sur teamop.fr seulement quand la branche rejoint `main`.
+- **23 idées** dans la rubrique « Les idées », chacune avec son bouton « Voir » : écran « Aujourd'hui », 5 onglets au lieu de 7, recherche
+  partout, fiche « tout sur une personne », fils de réponse, message → tâche / rappel / réunion, boîte partagée, carte OP GESTION dans la
+  conversation, messagerie vocale écrite, notes d'appel, lien d'appel et de rendez-vous, préparation avant réunion, sous-titres traduits,
+  temps de parole, compte rendu, trouver un créneau.
+- ⛔ **Le Courrier n'y est PAS redessiné** : l'onglet monte le VRAI module (`apercu/opcourrier.js`, chargé à côté de la page) avec la source
+  de démonstration recopiée de `scratchpad/courrier/source-demo.js`. Un montage par côté, les boîtes filtrées par côté. Une première version
+  redessinée (reporter, annuler l'envoi, tri « Clients / Factures »…) a été retirée le jour même sur sa phrase : ne pas la refaire.
+- ⛔ **Cinq idées reposent sur une IA** (résumé des non-lus, traduction, messagerie vocale écrite, sous-titres, compte rendu) : marquées « avec
+  IA, à décider ». Décision de Justin d'abord, puis `sous-traitance.html` et `registre-traitements.html`.
+- La page du dépôt n'a plus de sources séparées : elle se modifie directement (le bloc de la source de démonstration est une copie).
+- **Mesuré** : `scratchpad/sonde-proto-messages.js` (13 routes × Mac, Windows, iPad, iPhone, Android × jour et nuit : 130 écrans, 0 erreur,
+  0 débordement) ; `scratchpad/sonde-proto-messages-gestes.js` (112 contrôles, Mac et iPhone, gestes touchés pour de vrai ; retirer le filtre
+  par côté du courrier fait tomber 4 contrôles). Captures relues à l'œil sur Mac, Windows, iPad, iPhone. `test-836` et `test-837` déclarent la page.
+
+**La boîte mail (OP Courrier) vérifiée** — le module `opcourrier.js` (trois copies identiques).
+- Trouvé et corrigé : **trois cibles trop petites au doigt sur tablette** (« Sélectionner » 28 px, réponses rapides 30 px, segmenté
+  « Tous / Non lus / Marqués » 30 px sur iPad en paysage). Le plancher était posé sur le format téléphone, pas sur le doigt :
+  `(pointer:coarse)` désormais. `tests/test-3298.js` (4 mutations tombent), `scratchpad/courrier/cibles-tactiles.js` (199 cibles relevées).
+- Rien d'autre de cassé dans le module : 6 sondes vertes (`sonde-module` 119, `ctx_check` 16, `miss_check` 50, `sign_check` 48,
+  `sonde-signature` 38, `sonde-son-apercu` 39), contraste bon (Mac, iPad, iPhone, jour et nuit), 70 états sur cinq appareils sans erreur ni
+  débordement, 24 bancs du courrier verts.
+- Deux sondes étaient en retard sur le module (champ « Titre » à la place du sélecteur de type ; contre-signature décochée par défaut depuis
+  le 19 octobre) : remises à jour. ⚠️ **Trois sondes d'hôte restent en retard sur des décisions prises depuis** et le disent en tête de
+  fichier : `sonde-gestion.js` (la bêta relie de vraies boîtes depuis la bêta 801), `sonde-opmsg.js` (Courrier ouvert en Pro),
+  `sonde-tour.js` (signature en maintenance). À réécrire avant de s'en resservir ; les bancs officiels couvrent ces hôtes.
+- ⚠️ Le correctif tactile touche `opcourrier.js` : il n'atteint OP GESTION, la Tour et OP MESSAGES qu'au report sur `main` (phrase de Justin).
+- Restent sous 40 px, par choix : les champs de saisie (recherche, À, Objet : 36 px).
+
+**Attend Justin** : quelles idées il garde, dans quel ordre ; si la navigation à 5 onglets lui va ; la publication du correctif tactile.
 
 # 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
 
