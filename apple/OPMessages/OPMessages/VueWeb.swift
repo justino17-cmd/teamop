@@ -37,7 +37,8 @@ struct VueWeb: VueNative {
         let vue = WKWebView(frame: .zero, configuration: reglages)
         vue.navigationDelegate = coordinateur
         vue.uiDelegate = coordinateur
-        vue.allowsBackForwardNavigationGestures = false
+        // Le geste du bord de l'écran (iPhone, iPad) et les deux doigts sur le pavé (Mac) reviennent à l'écran d'avant : la page tient son historique d'écrans.
+        vue.allowsBackForwardNavigationGestures = true
         if #available(iOS 16.4, macOS 13.3, *) { vue.isInspectable = true }
 
         // Le fond derrière la page : celui du thème d'OP MESSAGES, de jour comme de nuit (jamais un éclair blanc à l'ouverture).

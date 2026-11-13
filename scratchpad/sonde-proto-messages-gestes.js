@@ -9,8 +9,10 @@ const CAPS = process.env.CAPS || path.join(require('os').tmpdir(), 'proto-opmsg-
 let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko++; console.log('  ✗', nom, detail === undefined ? '' : JSON.stringify(detail)); } };
 (async () => {
   const b = await chromium.launch();
-  for (const p of [{ n: 'mac', w: 1440, h: 900 }, { n: 'iphone', w: 393, h: 852, tactile: true }]) {
-    const ctx = await b.newContext({ viewport: { width: p.w, height: p.h }, hasTouch: !!p.tactile, isMobile: !!p.tactile, deviceScaleFactor: 2, colorScheme: p.n === 'mac' ? 'light' : 'dark' });
+  const UAS = { mac: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15', iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', android: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36', windows: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' };
+  for (const p of [{ n: 'mac', w: 1440, h: 900 }, { n: 'iphone', w: 393, h: 852, tactile: true }, { n: 'android', w: 360, h: 780, tactile: true }, { n: 'windows', w: 1280, h: 720 }, { n: 'ipad', w: 820, h: 1180, tactile: true, large: true, ua: 'mac' }]) {
+    if (process.env.PROFILS && !process.env.PROFILS.split(',').includes(p.n)) continue;
+    const ctx = await b.newContext({ viewport: { width: p.w, height: p.h }, hasTouch: !!p.tactile, isMobile: !!p.tactile && !p.large, deviceScaleFactor: 2, colorScheme: p.n === 'mac' || p.n === 'windows' ? 'light' : 'dark', userAgent: UAS[p.ua || p.n] });
     const page = await ctx.newPage(); const errs = [];
     page.on('pageerror', (e) => errs.push(e.message)); page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
     await page.goto(FICHIER); await page.waitForTimeout(250);
@@ -24,6 +26,20 @@ let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko
     v('Aujourd’hui : le nombre de courriels non lus vient du module, sans ouvrir le Courrier', await E(() => COUR.nl.pro > 0 && new RegExp('(^|\\D)' + COUR.nl.pro + '\\s*courriels? non lus?').test(document.querySelector('.kpis').textContent.replace(/\s+/g, ' '))), await E(() => document.querySelector('.kpis').textContent.replace(/\s+/g, ' ').slice(0, 120)));
     v('⛔ la boîte mail masquée est HORS de l’écran (elle transparaissait derrière l’accueil), et la scène a un fond opaque', await E(() => { const h = document.querySelector('#zone-courrier-pro [data-opcourrier]'), r = h.getBoundingClientRect(), f = getComputedStyle(document.querySelector('#scene')).backgroundColor; return r.width > 100 && r.right <= 0 && /^rgb\(/.test(f); }), await E(() => JSON.stringify(document.querySelector('#zone-courrier-pro [data-opcourrier]').getBoundingClientRect())));
     v('la zone du courrier, masquée, ne couvre pas l’écran (le point au centre est à la scène)', await E(() => { const e = document.elementFromPoint(innerWidth / 2, innerHeight / 2); return !!e && !e.closest('#courrier-fixe'); }));
+    /* 0 bis. CE QUE CHAQUE APPAREIL ATTEND */
+    v('appareil reconnu, et le raccourci porte son nom (⌘K sur Apple, Ctrl K ailleurs)', await E(() => [document.documentElement.getAttribute('data-os'), RACCOURCI].join(' ')) === ({ mac: 'mac ⌘K', iphone: 'ios ⌘K', android: 'android Ctrl K', windows: 'windows Ctrl K', ipad: 'mac ⌘K' })[p.n], await E(() => [document.documentElement.getAttribute('data-os'), RACCOURCI].join(' ')));
+    await go('messages'); await E(() => ouvrirRecherche()); await page.waitForTimeout(150);
+    await page.goBack(); await page.waitForTimeout(350);
+    v('⛔ la touche RETOUR ferme la feuille ouverte (elle ne reste pas posée sur l’écran d’avant)', await E(() => !document.querySelector('#calque').innerHTML));
+    if (!p.tactile) { await go('messages-x-karim'); await page.locator('.bulle[data-menu-msg]').first().click({ button: 'right' }); await page.waitForTimeout(200);
+      v('clic droit sur un message : son menu s’ouvre (ordinateur)', await E(() => /Répondre dans un fil/.test(document.querySelector('#calque').textContent))); await E(() => fermer()); }
+    if (p.tactile && !p.large) { await E(() => ouvrirRecherche()); await page.waitForTimeout(450);
+      await E(async () => { const x = document.querySelector('#calque .panneau'), r = x.getBoundingClientRect(), cx = r.left + r.width / 2; const t = (y) => new Touch({ identifier: 1, target: x, clientX: cx, clientY: y });
+        x.dispatchEvent(new TouchEvent('touchstart', { touches: [t(r.top + 12)], bubbles: true })); for (let k = 1; k <= 6; k++) { x.dispatchEvent(new TouchEvent('touchmove', { touches: [t(r.top + 12 + k * 30)], bubbles: true })); await new Promise((ok) => setTimeout(ok, 16)); }
+        x.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t(r.top + 192)], bubbles: true })); });
+      await page.waitForTimeout(200); v('une feuille se ferme en la TIRANT vers le bas (téléphone)', await E(() => !document.querySelector('#calque').innerHTML)); }
+    if (p.large || p.n === 'android') v('au doigt sur grand écran : tailles de tablette ; sur Android : libellés d’onglets à 12 px', await E((large) => large ? parseFloat(getComputedStyle(document.body).fontSize) >= 15 : getComputedStyle(document.querySelector('.capsule a')).fontSize === '12px', !!p.large));
+    await go('aujourdhui');
     /* 1. Aujourd'hui → donner l'accord */
     await clic('[data-action="accord"]');
     v('accord : on arrive dans le groupe, le message est parti', await E(() => location.hash === '#messages-x-equipe' && /Accord pour le compresseur/.test(conv('equipe').msgs.slice(-1)[0].t)));

@@ -96,9 +96,10 @@ const DANS_LA_PAGE = `
 (async () => {
   const seuls = process.env.PROFILS ? process.env.PROFILS.split(',') : null, scenesSeules = process.env.SCENES ? process.env.SCENES.split(',') : null;
   const b = await chromium.launch(); const rapport = []; let total = 0, portes = 0;
-  for (const p of [{ n: 'mac', w: 1440, h: 900 }, { n: 'iphone', w: 393, h: 852, tactile: true }]) {
+  /* « tout type d'appareil » : le Mac à la souris, l'iPhone et l'Android au doigt, l'iPad au doigt sur grand écran (menu réduit, tailles de tablette), Windows à la souris */
+  for (const p of [{ n: 'mac', w: 1440, h: 900 }, { n: 'iphone', w: 393, h: 852, tactile: true }, { n: 'android', w: 360, h: 780, tactile: true }, { n: 'ipad', w: 820, h: 1180, tactile: true, large: true }, { n: 'windows', w: 1280, h: 720 }]) {
     if (seuls && !seuls.includes(p.n)) continue;
-    const ctx = await b.newContext({ viewport: { width: p.w, height: p.h }, hasTouch: !!p.tactile, isMobile: !!p.tactile, colorScheme: 'light', reducedMotion: 'reduce' });
+    const ctx = await b.newContext({ viewport: { width: p.w, height: p.h }, hasTouch: !!p.tactile, isMobile: !!p.tactile && !p.large, colorScheme: 'light', reducedMotion: 'reduce' });
     await ctx.addInitScript(DANS_LA_PAGE);
     const page = await ctx.newPage(); let errs = [];
     page.on('pageerror', (e) => errs.push('JS : ' + e.message)); page.on('console', (m) => { if (m.type() === 'error') errs.push('console : ' + m.text()); });
@@ -109,7 +110,7 @@ const DANS_LA_PAGE = `
     };
     for (const sc of SCENES) {
       if (scenesSeules && !scenesSeules.includes(sc.n)) continue;
-      if (sc.tel && !p.tactile) continue;
+      if (sc.tel && (!p.tactile || p.large)) continue;
       errs = []; let sigs;
       try { await installer(sc); sigs = await E((z) => window.__cibles(z), sc.zones); } catch (e) { rapport.push({ p: p.n, scene: sc.n, genre: 'scène impossible', detail: String(e.message).slice(0, 200) }); continue; }
       if (errs.length) rapport.push({ p: p.n, scene: sc.n, genre: 'erreur à l’ouverture', detail: errs.join(' ; ').slice(0, 300) });

@@ -9,6 +9,9 @@ const CAPS = process.env.CAPS || path.join(require('os').tmpdir(), 'proto-opmsg-
 const PROFILS = [
   { n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 }, { n: 'ipad', w: 820, h: 1180, tactile: true },
   { n: 'iphone', w: 393, h: 852, tactile: true, dsf: 3 }, { n: 'android', w: 360, h: 780, tactile: true, dsf: 3 },
+  /* 13 novembre 2026, « tout type d'appareil » : la tablette couchée, la tablette Android, le téléphone couché, le petit portable, le grand écran */
+  { n: 'ipad-paysage', w: 1180, h: 820, tactile: true }, { n: 'android-tablette', w: 800, h: 1280, tactile: true }, { n: 'iphone-paysage', w: 852, h: 393, tactile: true },
+  { n: 'android-grand', w: 412, h: 915, tactile: true }, { n: 'portable', w: 1024, h: 700 }, { n: 'grand-ecran', w: 1920, h: 1080 },
 ];
 const ROUTES = ['aujourdhui', 'messages', 'messages-x-equipe', 'messages-x-marc', 'messages-x-james', 'appels', 'appels-x-a1', 'agenda', 'agenda-x-e0', 'courrier', 'contacts-x-marc', 'reglages', 'idees'];
 (async () => {

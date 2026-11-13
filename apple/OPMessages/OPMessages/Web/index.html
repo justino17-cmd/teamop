@@ -77,7 +77,7 @@ h3{font-size:13px;font-weight:600;color:var(--faible);text-transform:uppercase;l
 svg{width:22px;height:22px;flex:none}
 
 /* ── le cadre ── */
-.cadre{height:100%;display:flex;flex-direction:column}
+.cadre{height:var(--haut,100%);display:flex;flex-direction:column}
 .bande{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px max(16px,env(safe-area-inset-right,0px)) 7px max(16px,env(safe-area-inset-left,0px));
   background:var(--idee-fond);border-bottom:.5px solid var(--trait);font-size:13px}
 .bande b{color:var(--idee)}
@@ -578,6 +578,30 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
 .voile:not(.centre) .panneau{height:100%;margin:0;border-radius:0;width:min(420px,100%)} .voile:not(.centre) .panneau.large{width:min(640px,100%)}
 .voile.centre .panneau{border-radius:14px;width:min(460px,100%)} .voile.centre .panneau.large{width:min(680px,100%)}
 .panneau{padding:18px 18px 20px;gap:12px} .panneau .x{width:26px;height:26px;top:14px;right:14px;background:var(--champ)} .panneau .x svg{width:12px;height:12px}
+
+/* ═══ FENÊTRE ÉTROITE D'ORDINATEUR, TABLETTE EN PORTRAIT, TÉLÉPHONE COUCHÉ (761 à 1000 px) : le menu se réduit à ses icônes ═══ */
+@media (min-width:761px) and (max-width:1000px){
+  .app{grid-template-columns:64px minmax(0,1fr)}
+  .menu{padding:12px 8px;align-items:center} .menu a{justify-content:center;padding:0;width:44px;min-height:44px;position:relative} .menu a>span:not(.n),.menu .grp,.menu .logo>span,.menu .cherche>span,.menu .cherche kbd,.moi .t,.moi>svg{display:none}
+  .menu .n{position:absolute;top:2px;right:0;font-size:10px;background:var(--fill)!important;color:#fff!important;min-width:16px!important;height:16px!important;border-radius:8px;display:grid;place-items:center;padding:0 4px!important}
+  .menu .cherche{width:44px;justify-content:center;padding:0;height:36px} .logo{padding:4px 0 12px} .moi{justify-content:center;padding:4px}
+  .scene{grid-template-columns:clamp(260px,38vw,340px) minmax(0,1fr)}
+  .bande .long{display:none}
+}
+/* ═══ TABLETTE ET ORDINATEUR TACTILE (large, au doigt) : les tailles d'iPadOS, pas celles de la souris ═══ */
+@media (min-width:761px) and (pointer:coarse){
+  body{font-size:15px} h1{font-size:26px;line-height:32px} .tete .l1 h1{font-size:17px}
+  .menu a{font-size:17px} .conv .l1 b{font-size:17px;line-height:22px} .conv .l1 time{font-size:15px} .conv .ap{font-size:15px;line-height:20px} .conv .av{width:48px;height:48px}
+  .bulle{font-size:17px;line-height:22px;padding:7px 13px;border-radius:19px} .msg .aut-h{font-size:12px} .jour-sep{font-size:12px}
+  .rang .t b{font-size:16px;line-height:21px} .rang .t span{font-size:14px;line-height:19px} .evt .t b{font-size:16px} .evt .t span,.evt .h span{font-size:13px} .evt .h{font-size:15px;width:50px}
+  .btn{min-height:40px;font-size:15px} .cherche{height:36px} .cherche input{font-size:16px}
+  .compo textarea{min-height:38px;font-size:17px;border-radius:19px} .compo .rond{width:36px;height:36px}
+  .champ input,.champ select,.champ textarea{min-height:40px;font-size:16px} .kpi span,.info,.idee-c p{font-size:14px} .petit{font-size:13px}
+  .barre-conv{min-height:54px} .tete .l1{height:54px}
+}
+[data-os="android"] .capsule a{font-size:12px}
+/* un téléphone COUCHÉ : peu de hauteur — les marges verticales se resserrent, l'écran d'appel garde ses commandes à l'écran */
+@media (max-height:480px){ .page{padding-top:10px} .appel .centre .av.xl{width:56px;height:56px;font-size:20px} .appel .centre h2{font-size:20px} .cmd{grid-template-columns:repeat(8,minmax(0,1fr));max-width:none} .cmd button i{width:44px;height:44px} .prepa .apercu{max-height:46vh;aspect-ratio:auto;min-height:120px} .salle .bas{padding-block:4px} .ctl{padding:4px 6px} }
 
 /* ═══ TÉLÉPHONE (iOS) ═══ */
 @media (max-width:760px){
@@ -5866,6 +5890,12 @@ const jcourt = (n) => n === 0 ? 'Aujourd’hui' : n === -1 ? 'Hier' : n === 1 ? 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = (s, r) => (r || document).querySelector(s);
 const tel = () => innerWidth <= 760;
+/* L'APPAREIL : il ne change que ce qui dépend vraiment de lui — le nom du raccourci (⌘K sur Apple, Ctrl K ailleurs), la taille des libellés d'onglets (12 px
+   sur Android). Le reste se décide par CAPACITÉ (largeur, doigt ou souris), jamais par le nom de l'appareil. */
+const UA = navigator.userAgent || '';
+const OS = /Android/i.test(UA) ? 'android' : (/iPhone|iPad|iPod/i.test(UA) || (/Mac/i.test(UA) && navigator.maxTouchPoints > 1)) ? 'ios' : /Mac/i.test(UA) ? 'mac' : /Windows/i.test(UA) ? 'windows' : 'autre';
+document.documentElement.setAttribute('data-os', OS);
+const RACCOURCI = OS === 'mac' || OS === 'ios' ? '⌘K' : 'Ctrl K';
 let _uid = 1000; const uid = () => 'n' + (++_uid);
 
 /* ── les personnes ── */
@@ -6054,7 +6084,7 @@ const compte = (r) => {
 function menu() {
   const lien = (r, l, ic) => { const n = compte(r); return `<a href="#${r}" class="${S.route === r ? 'on' : ''}" data-go="${r}">${svg(ic)}<span>${l}</span>${n ? `<span class="n">${n}</span>` : ''}</a>`; };
   return `<div class="logo"><i>OP<br>MSG</i><span>OP MESSAGES</span>${S.role === 'pro' ? '<span class="pro">PRO</span>' : ''}</div>
-    <button class="cherche" data-action="chercher" style="margin:0 2px 8px" data-gd="cherche">${svg('cherche')}<span style="flex:1;text-align:left">Rechercher</span><kbd>Ctrl K</kbd></button>
+    <button class="cherche" data-action="chercher" style="margin:0 2px 8px" data-gd="cherche">${svg('cherche')}<span style="flex:1;text-align:left">Rechercher</span><kbd>${RACCOURCI}</kbd></button>
     ${NAV.map((x) => lien(x[0], x[1], x[2])).join('')}
     <div class="grp">Et aussi</div>
     ${lien('contacts', 'Contacts', 'contacts')}${lien('reglages', 'Réglages', 'reglages')}
@@ -6095,8 +6125,12 @@ function rendre() {
   const f = $('.fil'); if (f) { const z = $('#resume-zone'); if (z && !_bas) f.scrollTop = Math.max(0, z.offsetTop - f.offsetTop - 60); else f.scrollTop = f.scrollHeight; } _bas = false;
   miniAppel(); placerCourrier(); typo(sc); typo($('#menu'));
 }
-function aller(h) { if (location.hash === '#' + h) lireHash(); else location.hash = h; }
+let _navVoulue = false;                              // vrai : le changement d'adresse vient de l'application (pas de la touche Retour)
+function aller(h) { _navVoulue = true; if (location.hash === '#' + h) lireHash(); else location.hash = h; }
 function lireHash() {
+  /* la touche RETOUR (Android, navigateur, geste du bord sur iPhone) : une feuille ouverte se ferme en même temps que l'écran revient en arrière */
+  if (!_navVoulue && $('#calque') && $('#calque').innerHTML) fermer();
+  _navVoulue = false;
   const h = decodeURIComponent(location.hash.slice(1)) || 'aujourdhui';
   const [r, p] = h.split('-x-');
   S.route = VUES[r] ? r : 'aujourdhui'; S.param = p || '';
@@ -6116,10 +6150,12 @@ function typo(racine) {
 }
 function ouvrir(html, o) {
   o = o || {};
+  if (!$('#calque').innerHTML) _avantFeuille = document.activeElement;
   $('#calque').innerHTML = `<div class="voile ${o.centre ? 'centre' : ''}" data-ferme="1"><div class="panneau ${o.large ? 'large' : ''}" role="dialog" aria-modal="true"><button class="x" data-ferme="1" aria-label="Fermer">${svg('x')}</button>${html}</div></div>`;
   const p = $('#calque .panneau'); typo(p); const c = p.querySelector('[autofocus]'); if (c && !tel()) c.focus();
 }
-function fermer() { $('#calque').innerHTML = ''; }
+let _avantFeuille = null;                            // ce qui avait le clavier avant la feuille : on le lui rend à la fermeture
+function fermer() { $('#calque').innerHTML = ''; if (_avantFeuille && _avantFeuille.isConnected && !tel()) { try { _avantFeuille.focus({ preventScroll: true }); } catch (e) { /* rien */ } } _avantFeuille = null; }
 let _tt;
 function toast(msg, action, fn, ms) {
   let t = $('#toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
@@ -6906,6 +6942,18 @@ document.addEventListener('keydown', (ev) => {
     else if (ev.target.matches && ev.target.matches('.bulle[data-menu-msg]')) ev.target.click();
   }
 });
+
+/* ═══ CE QUE CHAQUE APPAREIL ATTEND ═══ */
+/* clic droit sur un message (ordinateur) : le menu du message, comme le clic droit de Messages sur Mac */
+document.addEventListener('contextmenu', (ev) => { const b = ev.target.closest && ev.target.closest('.bulle[data-menu-msg]'); if (b && conv(S.param)) { ev.preventDefault(); menuMsg(conv(S.param), conv(S.param).msgs.find((x) => x.id === b.dataset.menuMsg)); } });
+/* le clavier du téléphone : la page se cale sur la hauteur VISIBLE, pour que la zone de saisie reste au-dessus du clavier (iPhone ne réduit pas la page de lui-même) */
+if (window.visualViewport) { const caler = () => { const v = visualViewport, ouvert = v.height < innerHeight - 80; document.documentElement.style.setProperty('--haut', ouvert ? v.height + 'px' : '100%'); if (ouvert) { scrollTo(0, 0); const f = $('.fil'); if (f) f.scrollTop = f.scrollHeight; } }; visualViewport.addEventListener('resize', caler); }
+/* une feuille se FERME EN LA TIRANT vers le bas (téléphone) : le geste part de sa poignée ou de son haut, elle suit le doigt, et revient si on relâche trop tôt */
+(() => { let y0 = null, p = null, dy = 0;
+  document.addEventListener('touchstart', (ev) => { const x = ev.target.closest && ev.target.closest('#calque .panneau'); if (!x || !tel() || x.scrollTop > 0) return; const t = ev.touches[0]; if (t.clientY - x.getBoundingClientRect().top > 64 || ev.target.closest('button,input,textarea,select')) return; y0 = t.clientY; p = x; dy = 0; }, { passive: true });
+  document.addEventListener('touchmove', (ev) => { if (!p) return; dy = Math.max(0, ev.touches[0].clientY - y0); p.style.transition = 'none'; p.style.transform = 'translateY(' + dy + 'px)'; }, { passive: true });
+  const fin = () => { if (!p) return; const x = p; p = null; if (dy > 90) { fermer(); } else { x.style.transition = 'transform .25s var(--ressort)'; x.style.transform = ''; } y0 = null; };
+  document.addEventListener('touchend', fin); document.addEventListener('touchcancel', fin); })();
 
 /* ═══ DÉMARRAGE ═══ */
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', appliquerMode); } catch (e) { /* ancien navigateur */ }
