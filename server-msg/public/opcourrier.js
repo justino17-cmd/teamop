@@ -471,6 +471,10 @@ var CSS = `
   .opc .seltog{flex:none;height:28px;padding:0 10px;border-radius:7px;font-size:13px;font-weight:600;color:var(--tint);white-space:nowrap}
   .opc .seltog:hover{background:var(--hover)}
   .opc .seltog[aria-pressed="true"]{background:var(--tint-soft-2)}
+  /* AU DOIGT (tablette comprise, quel que soit le format) : « Sélectionner » faisait 28 px de haut et les réponses rapides 30 px sur iPad — mesuré le 13 novembre 2026.
+     Le plancher se pose sur le DOIGT (pointer:coarse), pas sur la largeur : un iPad est large et se touche. Les réponses rapides gardent leur dessin ;
+     c'est leur zone qui répond qui grandit (4 px au-dessus et au-dessous, soit 44 px), comme le format téléphone le faisait déjà. */
+  @media (pointer:coarse) { .opc .seltog{min-height:44px} .opc .rquick button{min-height:36px;position:relative} .opc .rquick button::before{content:"";position:absolute;inset:-4px 0} }
   .opc .app.multi-on .compose-fixed{display:none !important}
   .opc .list.multi .msg{padding-left:44px}
   .opc .list.multi .msg .quick,.opc .list.multi .msg .m-chev{display:none !important}
@@ -1030,7 +1034,8 @@ var CSS = `
     .opc:where([data-fmt="mac"]) .acts-mac{display:none}
     .opc:where([data-fmt="mac"]) .acts-nav{display:flex;align-items:center}
     .opc:where([data-fmt="mac"]) .acts-touch{display:flex;align-items:center;gap:2px;margin-left:auto}
-    .opc:where([data-fmt="mac"]) .seg button{height:30px;font-size:13px}
+    .opc:where([data-fmt="mac"]) .seg button{height:36px;font-size:13px}
+    .opc:where([data-fmt="mac"]) .seg button::before{content:"";position:absolute;inset:-4px 0}      /* au doigt (un iPad en paysage prend ce format) : 36 px dessinés, 44 px qui répondent — mesuré à 30 px le 13 novembre 2026 */
     .opc:where([data-fmt="mac"]) .search{height:36px;border-radius:10px}
     .opc:where([data-fmt="mac"]) .search input{font-size:15px}
     .opc:where([data-fmt="mac"]) .btn{height:44px}

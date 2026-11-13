@@ -1,4 +1,7 @@
-/* Sonde Tour × OP Courrier — le Courrier de `apercu/tour.html` (v2.92) est le MODULE `opcourrier.js`, branché sur les VRAIES routes de `server/mail.js`.
+/* ⚠️ EN RETARD SUR LE PRODUIT (constaté le 13 novembre 2026, arrêt sur `#sgN0`) : elle ouvre la feuille « Envoyer pour signature » de la Tour, or la Tour déclare
+   `signatureMaintenance:true` depuis la v804 (la feuille ne s'ouvre plus, « en cours de maintenance »). Son scénario de signature est à retirer ou à réécrire le jour où la signature rouvre.
+
+   Sonde Tour × OP Courrier — le Courrier de `apercu/tour.html` (v2.92) est le MODULE `opcourrier.js`, branché sur les VRAIES routes de `server/mail.js`.
    ⛔ 127.0.0.1 UNIQUEMENT : l'aperçu de la Tour servi en local ; les appels vers api.teamop.fr sont RÉPONDUS par le VRAI serveur isolé (`serveur-banc.js` : configuration et données jetables,
    fausse boîte IMAP, faux relais SMTP) — jamais joints. Tout le reste qui sort de 127.0.0.1 est refusé ET compté. UNE instance de navigateur à la fois.
      1. le module n'est chargé QU'à l'ouverture du Courrier ; l'écran est VIDE (aucune donnée d'exemple, aucune boîte reprise en silence) et invite à ajouter une boîte ;

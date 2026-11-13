@@ -1,4 +1,7 @@
-/* Sonde OP MESSAGES × OP Courrier — la rubrique « Courrier » du côté Pro d'OP MESSAGES : la VRAIE page servie (`server-msg/public/`), par le VRAI service, sur 127.0.0.1.
+/* ⚠️ EN RETARD SUR LE PRODUIT (constaté le 13 novembre 2026, 26 ✓ · 2 ✗) : elle attend le menu Pro d'avant (« reunions » seul, Courrier en bêta seulement). Le menu porte
+   maintenant « reunions-liste » et le Courrier est ouvert côté Pro. Ses deux contrôles de menu sont faux par décision ; la sonde tenue à jour est `tests/sonde-opmessages-courrier.js`.
+
+   Sonde OP MESSAGES × OP Courrier — la rubrique « Courrier » du côté Pro d'OP MESSAGES : la VRAIE page servie (`server-msg/public/`), par le VRAI service, sur 127.0.0.1.
    ⛔ 127.0.0.1 UNIQUEMENT (le service de banc `tests/outils-msg.js`, un OP GESTION de poche pour la porte bêta) — tout ce qui sort est refusé ET compté. Jamais msg.teamop.fr, jamais msg-beta.teamop.fr.
    ⛔ Le canal : « bêta » = le service lancé avec l'instance `beta` (c'est ce que /api/config dit à la page) ; « production » = la MÊME page dont /api/config est répondu `prod` par la sonde (un service de
       production n'a pas la porte bêta : on ne s'y connecterait pas). `test-2695` joue, lui, un VRAI service `prod` et lit ce qu'il dit.

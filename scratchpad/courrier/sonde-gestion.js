@@ -1,4 +1,8 @@
-/* Sonde OP GESTION × OP Courrier — la « Boîte mail » de `beta.html` est le MODULE `opcourrier.js`, branché sur les vraies routes (ici répondues par la sonde).
+/* ⚠️ EN RETARD SUR LE PRODUIT (constaté le 13 novembre 2026, 16 ✓ puis arrêt) : cette sonde suppose que la bêta ne relie AUCUNE vraie boîte (« Espace de test… ») et que
+   opcourrier.js se charge en `?v=769`. Depuis la bêta 801 (Justin, 4 novembre 2026) la bêta relie de vraies boîtes par le jeton d'accès bêta — c'est `tests/test-3255.js` qui le garde —,
+   et la version a changé. Ses contrôles « espace de test » et « version » sont donc faux par décision, pas par défaut du module. À réécrire avant de s'en resservir.
+
+   Sonde OP GESTION × OP Courrier — la « Boîte mail » de `beta.html` est le MODULE `opcourrier.js`, branché sur les vraies routes (ici répondues par la sonde).
    ⛔ BÊTA UNIQUEMENT (beta.html servie en 127.0.0.1, espace bêta isolé, aucune donnée d'entreprise) — jamais app.html, jamais teamop.fr. Les appels vers api.teamop.fr sont RÉPONDUS
    par la sonde (jamais joints) ; tout le reste qui sort de 127.0.0.1 est refusé ET compté.
      1. la vue : Boîte mail ouvre le module dans la zone de contenu, la barre / le menu d'OP GESTION restent utilisables (on change de rubrique et on revient) ;
