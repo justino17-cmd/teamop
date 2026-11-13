@@ -3823,7 +3823,7 @@ function crReel(){ if (crReelEtat === 'ko') return; const el = document.getEleme
 function crMonter(el){
   if (!el.isConnected || el._m) return;
   if (crLf && crLf.map) { try { crLf.map.remove(); } catch (e) {} }
-  const map = L.map(el, { zoomControl:false, attributionControl:true, zoomSnap:.25, zoomDelta:1, wheelPxPerZoomLevel:90 })   /* zoom ENTIER : un demi-zoom agrandit les tuiles d'un niveau sur celles d'un autre, et la couture se voyait (un rectangle clair au milieu de la carte, 5 novembre 2026) */; el._m = map;
+  const map = L.map(el, { zoomControl:false, attributionControl:true, zoomSnap:MAC ? 0 : .25, zoomDelta:1, wheelPxPerZoomLevel:90, maxZoom:19, minZoom:4 })   /* zoom ENTIER : un demi-zoom agrandit les tuiles d'un niveau sur celles d'un autre, et la couture se voyait (un rectangle clair au milieu de la carte, 5 novembre 2026) */; el._m = map;
   if (!crGlPossible()) { try { map.remove(); } catch (e) {} el._m = null; return crRepli('cet appareil ne sait pas dessiner la carte'); }
   const gl = L.maplibreGL({ style:crStyle(), attributionControl:false }).addTo(map);
   crLf = { map, gl, el, couche:L.layerGroup().addTo(map) };
@@ -20905,7 +20905,8 @@ if (MAC) document.addEventListener('wheel', ev => { const svgc = ev.target.close
 { let pince = 0;
   if (MAC) document.addEventListener('wheel', ev => { const el = ev.target.closest && ev.target.closest('#cr-lf'); if (!el || !crLf || !crLf.map || !crLf.el.isConnected) return;
     ev.preventDefault(); ev.stopPropagation(); const m = crLf.map;
-    if (ev.ctrlKey || ev.metaKey) { pince += ev.deltaY * (ev.ctrlKey ? 1 : .25); if (Math.abs(pince) >= 14) { const r = el.getBoundingClientRect(); try { m.setZoomAround(m.containerPointToLatLng([ev.clientX - r.left, ev.clientY - r.top]), m.getZoom() + (pince < 0 ? 1 : -1)); } catch (e) {} pince = 0; } }
+    if (ev.ctrlKey || ev.metaKey) { const r = el.getBoundingClientRect(), z = Math.max(m.getMinZoom(), Math.min(m.getMaxZoom(), m.getZoom() - ev.deltaY * (ev.ctrlKey ? .012 : .004)));
+      try { m.setZoomAround(m.containerPointToLatLng([ev.clientX - r.left, ev.clientY - r.top]), z, { animate:false }); } catch (e) {} }
     else { pince = 0; try { m.panBy([ev.deltaX, ev.deltaY], { animate:false }); } catch (e) {} }
   }, { passive:false, capture:true }); }
 /* une carte dont l'élément a quitté la page est démontée tout de suite : son animation de zoom, restée en route, jetait une erreur
@@ -21432,6 +21433,32 @@ html:not([data-mode="nuit"]) .cn-orbe{opacity:.2}
 html:not([data-mode="nuit"]) .cn-tuile.trace::before, html:not([data-mode="nuit"]) .cn-tuile:not(.trace){box-shadow:0 22px 46px rgba(14,24,45,.2), 0 0 0 1px rgba(14,24,45,.08)}
 html:not([data-mode="nuit"]) .cn-anneau{background:conic-gradient(from 0deg, rgba(14,24,45,0) 0 62%, rgba(63,123,255,.9) 86%, #0e182d 100%)}
 </style>`);
+
+/* ── la carte au trackpad · 13 novembre 2026 ──
+   Justin : « sur la carte, j'aimerais pouvoir utiliser un maximum le trackpad ».
+   · deux doigts : la carte glisse (avec l'élan du trackpad) ; pincer : zoom CONTINU autour du curseur, plus par crans ;
+   · dans l'application Mac (et Safari), le pincement arrive par les événements « gesture » et non par la molette : on les écoute ;
+   · ⌘ + défilement zoome ; double-clic zoome, ⌥ + double-clic dézoome ; Maj + glisser encadre une zone ;
+   · le curseur sur la carte, le clavier suit : + et − zooment, les flèches déplacent, 0 recadre sur la tournée, S bascule
+     Plan / Satellite. Rien de tout cela ne fait défiler la page derrière. */
+{ let g0 = null;
+  const carte = ev => { const el = ev.target && ev.target.closest && ev.target.closest('#cr-lf'); return el && crLf && crLf.map && crLf.el.isConnected ? el : null; };
+  document.addEventListener('gesturestart', ev => { const el = carte(ev); if (!el) return; ev.preventDefault(); g0 = { z:crLf.map.getZoom() }; }, { passive:false, capture:true });
+  document.addEventListener('gesturechange', ev => { const el = carte(ev); if (!el || !g0) return; ev.preventDefault(); const m = crLf.map, r = el.getBoundingClientRect();
+    const z = Math.max(m.getMinZoom(), Math.min(m.getMaxZoom(), g0.z + Math.log2(Math.max(.05, ev.scale || 1))));
+    try { m.setZoomAround(m.containerPointToLatLng([ev.clientX - r.left, ev.clientY - r.top]), z, { animate:false }); } catch (e) {} }, { passive:false, capture:true });
+  document.addEventListener('gestureend', ev => { if (g0) { ev.preventDefault(); g0 = null; } }, { passive:false, capture:true });
+  document.addEventListener('dblclick', ev => { const el = carte(ev); if (!el || !ev.altKey) return; ev.preventDefault(); ev.stopPropagation(); const m = crLf.map, r = el.getBoundingClientRect();
+    try { m.setZoomAround(m.containerPointToLatLng([ev.clientX - r.left, ev.clientY - r.top]), m.getZoom() - 1); } catch (e) {} }, true);
+  /* sur la FENÊTRE, en capture : avant les raccourcis du Planning (← → y changent de jour), qui écoutent le document */
+  window.addEventListener('keydown', ev => { if (!crLf || !crLf.map || !crLf.el.isConnected || !crLf.el.matches(':hover') || ev.metaKey || ev.ctrlKey || ev.altKey || ev.isComposing) return;
+    const t = ev.target; if (t && t.closest && t.closest('input,textarea,select,[contenteditable]')) return; if (document.getElementById('cnx') || document.querySelector('#calque .panneau, .fen')) return;
+    const m = crLf.map, k = ev.key, pas = ev.shiftKey ? 240 : 90;
+    const fait = k === '+' || k === '=' ? (m.zoomIn(1), 1) : k === '-' || k === '_' ? (m.zoomOut(1), 1) : k === '0' ? (crCadrerReel(true), 1)
+      : k === 'ArrowLeft' ? (m.panBy([-pas, 0]), 1) : k === 'ArrowRight' ? (m.panBy([pas, 0]), 1) : k === 'ArrowUp' ? (m.panBy([0, -pas]), 1) : k === 'ArrowDown' ? (m.panBy([0, pas]), 1)
+      : (k === 's' || k === 'S') ? (document.querySelector(`[data-crfond="${crFondType === 'sat' ? 'plan' : 'sat'}"]`)?.click(), 1) : 0;
+    if (fait) { ev.preventDefault(); ev.stopImmediatePropagation(); } }, true);
+}
 </script>
 
 </body>
