@@ -597,6 +597,12 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
   .compo textarea{min-height:38px;font-size:17px;border-radius:19px} .compo .rond{width:36px;height:36px}
   .champ input,.champ select,.champ textarea{min-height:40px;font-size:16px} .kpi span,.info,.idee-c p{font-size:14px} .petit{font-size:13px}
   .barre-conv{min-height:54px} .tete .l1{height:54px}
+  /* sonde des clics, iPad : 105 cibles sous 40 px — elles gardaient les tailles de la souris */
+  .seg button,.bande .seg button{min-height:40px;font-size:14px} .bande .btn{min-height:40px}
+  .menu .cherche{height:44px}
+  .barre-conv .qui{min-height:44px} .barre-conv .rond{width:44px;height:44px}
+  .bascule{width:50px;height:30px;border-radius:15px} .bascule::after{width:26px;height:26px} .bascule[aria-checked="true"]::after{transform:translateX(20px)}
+  .bascule::before{inset:-7px -4px}
 }
 [data-os="android"] .capsule a{font-size:12px}
 /* un téléphone COUCHÉ : peu de hauteur — les marges verticales se resserrent, l'écran d'appel garde ses commandes à l'écran */
@@ -671,6 +677,8 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
   .panneau::before{content:"";flex:none;align-self:center;width:36px;height:5px;border-radius:3px;background:var(--tenu);margin-bottom:6px}
   .scene.entre.a-detail .detail,.scene.entre.une .page{animation:pousse .35s var(--ressort)}
   #toast{border-radius:999px;font-size:15px}
+  /* à 360 px (Android), sept jours avec 6 px d'écart tombaient à 37 px de large */
+  .semaine{gap:0}
 }
 @keyframes pousse{from{transform:translateX(24%);opacity:.5}}
 @media (pointer:coarse){ .rang{min-height:52px} .menu a{min-height:44px} }
@@ -689,7 +697,8 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
   .seg button::before,.puce::before{content:"";position:absolute;inset:-7px 0}
   .jouer::before{content:"";position:absolute;inset:-6px}
   .bascule::before{content:"";position:absolute;inset:-7px -4px}
-  .bulle{min-height:38px} .bulle[data-menu-msg]::before{content:"";position:absolute;inset:-4px 0}
+  .mini-appel{min-height:44px}
+  .bulle{min-height:40px} .bulle[data-menu-msg]::before{content:"";position:absolute;inset:-4px 0}
   /* une rangée de pastilles défile de côté, donc elle COUPE toute zone qui déborde : au doigt, la pastille elle-même fait 40 px */
   .puce,.compo .rapides .puce,.page .actions .puce,#pe-invites .puce{min-height:40px}
 }
