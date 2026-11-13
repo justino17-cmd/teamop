@@ -22,6 +22,7 @@ let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko
     /* 0. le compteur du courrier est juste DÈS L'OUVERTURE, sans avoir ouvert la boîte mail (elle se monte au départ, masquée, à sa taille) — et masquée, elle ne prend aucun clic */
     await page.waitForFunction(() => COUR.nl.pro > 0, null, { timeout: 8000 }).catch(() => {});
     v('Aujourd’hui : le nombre de courriels non lus vient du module, sans ouvrir le Courrier', await E(() => COUR.nl.pro > 0 && new RegExp('(^|\\D)' + COUR.nl.pro + '\\s*courriels? non lus?').test(document.querySelector('.kpis').textContent.replace(/\s+/g, ' '))), await E(() => document.querySelector('.kpis').textContent.replace(/\s+/g, ' ').slice(0, 120)));
+    v('⛔ la boîte mail masquée est HORS de l’écran (elle transparaissait derrière l’accueil), et la scène a un fond opaque', await E(() => { const h = document.querySelector('#zone-courrier-pro [data-opcourrier]'), r = h.getBoundingClientRect(), f = getComputedStyle(document.querySelector('#scene')).backgroundColor; return r.width > 100 && r.right <= 0 && /^rgb\(/.test(f); }), await E(() => JSON.stringify(document.querySelector('#zone-courrier-pro [data-opcourrier]').getBoundingClientRect())));
     v('la zone du courrier, masquée, ne couvre pas l’écran (le point au centre est à la scène)', await E(() => { const e = document.elementFromPoint(innerWidth / 2, innerHeight / 2); return !!e && !e.closest('#courrier-fixe'); }));
     /* 1. Aujourd'hui → donner l'accord */
     await clic('[data-action="accord"]');

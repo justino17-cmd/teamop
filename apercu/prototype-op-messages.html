@@ -254,7 +254,10 @@ svg{width:22px;height:22px;flex:none}
 .scene,#courrier-fixe{grid-column:-2/-1;grid-row:1}
 #courrier-fixe{min-width:0;min-height:0;z-index:2;background:var(--fond);display:flex}
 .scene{z-index:1}
-#courrier-fixe.masquee{visibility:hidden;pointer-events:none;z-index:0}      /* masquée mais À SA TAILLE : le module s'y met en page dès le départ (une zone sans taille l'ouvrait sur le mauvais écran) */
+/* ⛔ MASQUÉE = SORTIE DE L'ÉCRAN, à sa taille. `visibility:hidden` ne suffisait pas : le module rend certains de ses éléments visibles lui-même, et sa
+   boîte de réception transparaissait derrière l'écran d'accueil (vu par Justin dans Safari, 13 novembre 2026). La scène a aussi son propre fond. */
+#courrier-fixe.masquee{transform:translateX(-300vw);opacity:0;pointer-events:none;z-index:0}
+.scene{background:var(--fond)}      /* masquée mais À SA TAILLE : le module s'y met en page dès le départ (une zone sans taille l'ouvrait sur le mauvais écran) */
 .zone-courrier{flex:1;min-width:0;min-height:0;position:relative}
 /* ── agenda ── */
 .semaine{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
