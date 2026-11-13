@@ -2671,8 +2671,8 @@ body.dp-ouvert{overflow:hidden}
 .cr-carte[data-fond="reel"] .cr-svg,.cr-carte[data-fond="reel"] .cr-echelle{display:none}
 .cr-carte:not([data-fond="reel"]) .cr-fonds{display:none}
 .cr-lf.leaflet-container{font:inherit;background:var(--cr-mer)}
-.cr-carte.cr-sombre .cr-tu-plan{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.86) saturate(.75)}
-.cr-carte.cr-sombre .cr-lf.leaflet-container{background:#0e1726}
+.cr-lf .maplibregl-canvas{outline:0}
+.cr-carte.cr-sombre .cr-lf.leaflet-container{background:#0f1b33}
 .cr-lf .leaflet-control-attribution{font-size:10.5px;background:color-mix(in srgb,var(--feuille) 80%,transparent);color:var(--doux)}
 .cr-lf .leaflet-control-attribution a{color:var(--doux)}
 .cr-lf .leaflet-control-scale-line{border-color:var(--cr-txt-fort);color:var(--cr-txt-fort);background:color-mix(in srgb,var(--feuille) 70%,transparent);font-weight:700}
@@ -3754,14 +3754,66 @@ const crRedessiner = () => { crDessiner(); if (crLf && crLf.map && crLf.el.isCon
 function crAjusterHauteur(){ const cr = document.querySelector('.cr'); if (!cr) return;
   if (crEmpile() || crPlein) { cr.style.removeProperty('--cr-h'); return; }
   const top = cr.getBoundingClientRect().top + scrollY; cr.style.setProperty('--cr-h', Math.max(440, Math.floor(innerHeight - top - 16)) + 'px'); }
+/* ── LA CARTE DE TEAM OP · 13 novembre 2026 ──
+   Justin : « recrée une carte qui se mettra à jour à chaque mise à jour, aux couleurs de TEAM OP en mode sombre et aussi en
+   mode jour, avec un système satellite style Apple ».
+   La carte n'est plus une image d'un fournisseur qu'on assombrit par un filtre : elle est DESSINÉE ici, à partir des données
+   d'OpenStreetMap (tuiles vectorielles d'OpenFreeMap, régénérées chaque semaine : une rue neuve y arrive toute seule).
+   On choisit donc chaque couleur : marine et clair de TEAM OP, de jour comme de nuit, les routes dans le bleu de la marque.
+   « Satellite » : la photo aérienne (Esri) avec, par-dessus, les grandes routes en filigrane et les noms — la vue hybride
+   d'Apple Plans. Les tournées, les arrêts et les trajets se posent dessus comme avant.
+   ⚠️ Conditions d'usage à valider avant une vraie sortie : OpenFreeMap demande la mention de la source (elle est affichée) ;
+   la photo aérienne d'Esri demande un compte dès qu'on dépasse l'essai. */
+const crGlPossible = () => { try { const c = document.createElement('canvas'); return !!(window.maplibregl && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; } };
+const crCredit = () => crFondType === 'sat' ? 'Photo aérienne © Esri, Maxar · noms © OpenStreetMap' : '© OpenStreetMap · OpenFreeMap';
+const CR_PAL = {
+  jour:{ terre:'#eef2f8', eau:'#b7cdec', vert:'#d6e6dd', bois:'#cbdfd3', bati:'#e3e9f2', immeuble:'#d6deeb', rue:'#ffffff', rueBord:'#cfd8e6', axe:'#ffffff', axeBord:'#b9c6dc', voie:'#8fa9d8', voieBord:'#6f8cc3', rail:'#b4bfd1', limite:'#9aa8c0',
+    ville:'#0e182d', bourg:'#2c3a55', rueTxt:'#5a6984', eauTxt:'#4a70ad', halo:'#ffffff' },
+  nuit:{ terre:'#0f1b33', eau:'#070f20', vert:'#10273a', bois:'#0e2434', bati:'#13223f', immeuble:'#1b2c4d', rue:'#22355a', rueBord:'#0b1528', axe:'#31497a', axeBord:'#0b1528', voie:'#4c6eb0', voieBord:'#0b1528', rail:'#2a3b5e', limite:'#42577f',
+    ville:'#eaf0fb', bourg:'#b5c3dd', rueTxt:'#8698ba', eauTxt:'#5b7cb4', halo:'#0a1326' },
+  sat:{ terre:'#0b1220', rue:'rgba(255,255,255,.28)', rueBord:'rgba(0,0,0,0)', axe:'rgba(255,255,255,.42)', axeBord:'rgba(0,0,0,.25)', voie:'rgba(255,224,130,.75)', voieBord:'rgba(0,0,0,.35)', rail:'rgba(255,255,255,.3)', limite:'rgba(255,255,255,.55)',
+    ville:'#ffffff', bourg:'#f2f5fa', rueTxt:'#ffffff', eauTxt:'#d8e6ff', halo:'rgba(0,0,0,.75)' } };
+function crStyle(){ const sat = crFondType === 'sat', P = CR_PAL[sat ? 'sat' : crSombre() ? 'nuit' : 'jour'];
+  const larg = (a, b, c) => ['interpolate', ['exponential', 1.5], ['zoom'], 6, a, 12, b, 18, c];
+  const nom = ['coalesce', ['get', 'name:fr'], ['get', 'name']];
+  const voie = (id, classes, min, coul, bord, w) => [
+    { id:id + '-bord', type:'line', source:'omt', 'source-layer':'transportation', minzoom:min, filter:['all', ['in', 'class', ...classes], ['!=', 'brunnel', 'tunnel']], layout:{ 'line-cap':'round', 'line-join':'round' }, paint:{ 'line-color':bord, 'line-width':larg(w[0] + 1, w[1] + 2, w[2] + 4) } },
+    { id, type:'line', source:'omt', 'source-layer':'transportation', minzoom:min, filter:['all', ['in', 'class', ...classes], ['!=', 'brunnel', 'tunnel']], layout:{ 'line-cap':'round', 'line-join':'round' }, paint:{ 'line-color':coul, 'line-width':larg(...w) } } ];
+  const texte = (id, couche, filtre, min, taille, coul, gras, extra) => ({ id, type:'symbol', source:'omt', 'source-layer':couche, minzoom:min, ...(filtre ? { filter:filtre } : {}),
+    layout:{ 'text-field':nom, 'text-font':[gras ? 'Noto Sans Bold' : 'Noto Sans Regular'], 'text-size':taille, 'text-max-width':8, ...(extra || {}) }, paint:{ 'text-color':coul, 'text-halo-color':P.halo, 'text-halo-width':sat ? 1.6 : 1.3 } });
+  const fonds = sat ? [{ id:'photo', type:'raster', source:'photo' }] : [
+    { id:'bois', type:'fill', source:'omt', 'source-layer':'landcover', filter:['in', 'class', 'wood', 'grass', 'farmland'], paint:{ 'fill-color':['match', ['get', 'class'], 'wood', P.bois, P.vert], 'fill-opacity':['match', ['get', 'class'], 'farmland', .35, .9] } },
+    { id:'bati', type:'fill', source:'omt', 'source-layer':'landuse', filter:['in', 'class', 'residential', 'commercial', 'industrial', 'retail'], paint:{ 'fill-color':P.bati } },
+    { id:'parc', type:'fill', source:'omt', 'source-layer':'park', paint:{ 'fill-color':P.vert, 'fill-opacity':.8 } },
+    { id:'eau', type:'fill', source:'omt', 'source-layer':'water', paint:{ 'fill-color':P.eau } },
+    { id:'cours-eau', type:'line', source:'omt', 'source-layer':'waterway', minzoom:9, paint:{ 'line-color':P.eau, 'line-width':larg(.4, 1.2, 4) } },
+    { id:'immeubles', type:'fill', source:'omt', 'source-layer':'building', minzoom:14, paint:{ 'fill-color':P.immeuble, 'fill-opacity':['interpolate', ['linear'], ['zoom'], 14, 0, 15, 1] } } ];
+  return { version:8, glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+    sources:{ omt:{ type:'vector', url:'https://tiles.openfreemap.org/planet' }, ...(sat ? { photo:{ type:'raster', tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize:256, maxzoom:19 } } : {}) },
+    layers:[ { id:'terre', type:'background', paint:{ 'background-color':P.terre } }, ...fonds,
+      ...voie('rues', ['minor', 'service', 'track'], sat ? 14 : 12, P.rue, P.rueBord, [.3, 1.2, 9]),
+      ...voie('axes2', ['tertiary', 'secondary'], 9, P.axe, P.axeBord, [.5, 2, 13]),
+      ...voie('axes', ['primary', 'trunk'], 7, P.axe, P.axeBord, [.8, 2.8, 16]),
+      ...voie('voies', ['motorway'], 5, P.voie, P.voieBord, [1, 3.4, 18]),
+      { id:'rail', type:'line', source:'omt', 'source-layer':'transportation', minzoom:10, filter:['==', 'class', 'rail'], paint:{ 'line-color':P.rail, 'line-width':larg(.4, 1, 3), 'line-dasharray':[3, 2] } },
+      { id:'limites', type:'line', source:'omt', 'source-layer':'boundary', filter:['all', ['<=', 'admin_level', 4], ['!=', 'maritime', 1]], paint:{ 'line-color':P.limite, 'line-width':1, 'line-dasharray':[4, 3], 'line-opacity':.7 } },
+      texte('noms-rues', 'transportation_name', null, 13, ['interpolate', ['linear'], ['zoom'], 13, 10, 18, 14], P.rueTxt, false, { 'symbol-placement':'line', 'text-max-angle':30 }),
+      texte('noms-eau', 'water_name', null, 8, 12, P.eauTxt, false, { 'text-letter-spacing':.12 }),
+      texte('villages', 'place', ['in', 'class', 'village', 'suburb', 'hamlet', 'neighbourhood'], 10, ['interpolate', ['linear'], ['zoom'], 10, 10.5, 15, 14], P.bourg, false),
+      texte('bourgs', 'place', ['==', 'class', 'town'], 7, ['interpolate', ['linear'], ['zoom'], 7, 11, 14, 16], P.bourg, true),
+      texte('villes', 'place', ['==', 'class', 'city'], 4, ['interpolate', ['linear'], ['zoom'], 4, 12, 12, 20], P.ville, true) ] }; }
+function crStyleAppliquer(){ if (!crLf || !crLf.gl) return; const g = crLf.gl.getMaplibreMap(); if (g) g.setStyle(crStyle());
+  const a = crLf.map.attributionControl; if (a) { ['Photo aérienne © Esri, Maxar · noms © OpenStreetMap', '© OpenStreetMap · OpenFreeMap'].forEach(t => a.removeAttribution(t)); a.addAttribution(crCredit()); } }
 function crChargerLeaflet(){
   if (window.L && L.map) return Promise.resolve();
   if (crLeaflet) return crLeaflet;
   crLeaflet = new Promise((ok, ko) => {
     const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(c);
     const j = document.createElement('script'); j.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-    j.onload = () => window.L && L.map ? ok() : ko(new Error('bibliothèque illisible')); j.onerror = () => ko(new Error('bibliothèque de carte injoignable')); document.head.appendChild(j);
-    setTimeout(() => ko(new Error('bibliothèque de carte trop lente')), 8000); });
+    const suite = (src, test, puis) => { const x = document.createElement('script'); x.src = src; x.onload = () => test() ? puis() : ko(new Error('bibliothèque illisible')); x.onerror = () => ko(new Error('bibliothèque de carte injoignable')); document.head.appendChild(x); };
+    const c2 = document.createElement('link'); c2.rel = 'stylesheet'; c2.href = 'https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css'; document.head.appendChild(c2);
+    j.onload = () => window.L && L.map ? suite('https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js', () => !!window.maplibregl, () => suite('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js', () => !!L.maplibreGL, ok)) : ko(new Error('bibliothèque illisible')); j.onerror = () => ko(new Error('bibliothèque de carte injoignable')); document.head.appendChild(j);
+    setTimeout(() => ko(new Error('bibliothèque de carte trop lente')), 12000); });
   crLeaflet.catch(() => { crLeaflet = null; });
   return crLeaflet;
 }
@@ -3771,12 +3823,11 @@ function crReel(){ if (crReelEtat === 'ko') return; const el = document.getEleme
 function crMonter(el){
   if (!el.isConnected || el._m) return;
   if (crLf && crLf.map) { try { crLf.map.remove(); } catch (e) {} }
-  const map = L.map(el, { zoomControl:false, attributionControl:true, zoomSnap:1, wheelPxPerZoomLevel:90 })   /* zoom ENTIER : un demi-zoom agrandit les tuiles d'un niveau sur celles d'un autre, et la couture se voyait (un rectangle clair au milieu de la carte, 5 novembre 2026) */; el._m = map;
-  const opt = { subdomains:['mt0', 'mt1', 'mt2', 'mt3'], maxZoom:20, attribution:'© Google' };
-  const plan = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', Object.assign({ className:'cr-tu-plan' }, opt));
-  const sat = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', Object.assign({ className:'cr-tu-sat' }, opt));
-  crLf = { map, plan, sat, el, couche:L.layerGroup().addTo(map) };
-  (crFondType === 'sat' ? sat : plan).addTo(map);
+  const map = L.map(el, { zoomControl:false, attributionControl:true, zoomSnap:.25, zoomDelta:1, wheelPxPerZoomLevel:90 })   /* zoom ENTIER : un demi-zoom agrandit les tuiles d'un niveau sur celles d'un autre, et la couture se voyait (un rectangle clair au milieu de la carte, 5 novembre 2026) */; el._m = map;
+  if (!crGlPossible()) { try { map.remove(); } catch (e) {} el._m = null; return crRepli('cet appareil ne sait pas dessiner la carte'); }
+  const gl = L.maplibreGL({ style:crStyle(), attributionControl:false }).addTo(map);
+  crLf = { map, gl, el, couche:L.layerGroup().addTo(map) };
+  map.attributionControl.addAttribution(crCredit());
   L.control.scale({ imperial:false, position:'bottomleft' }).addTo(map);
   map.attributionControl.setPrefix(false);
   if (crLV && crLV.jour === plRef && crLV.focus === crFocus) map.setView(crLV.c, crLV.z, { animate:false }); else crCadrerReel(false);
@@ -3785,9 +3836,9 @@ function crMonter(el){
   map.on('click', () => { if (crSel) crChoisir(null, true); });
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
-    const t = setTimeout(() => { if (!fini) { fini = true; crRepli('aucune tuile reçue en 6 s'); } }, 6000);
+    const t = setTimeout(() => { if (!fini) { fini = true; crRepli('aucune donnée de carte reçue en 10 s'); } }, 10000);
     const recue = () => { if (fini) return; fini = true; clearTimeout(t); crReelEtat = 'ok'; const c = document.getElementById('cr-carte'); if (c) c.dataset.fond = 'reel'; };
-    [plan, sat].forEach(c => { c.on('tileload', recue); c.on('tileerror', () => { if (fini) return; if (++erreurs >= 3) { fini = true; clearTimeout(t); crRepli('les images de la carte sont refusées'); } }); });
+    const g = gl.getMaplibreMap(); if (g) { g.on('sourcedata', e => { if (e.isSourceLoaded) recue(); }); g.on('error', () => { if (fini) return; if (++erreurs >= 4) { fini = true; clearTimeout(t); crRepli('les données de la carte sont refusées'); } }); }
   }
   crTracerReel();
 }
@@ -3825,10 +3876,10 @@ document.addEventListener('click', ev => {
   if ((b = q('[data-crplein]'))) { crPlein = !crPlein; rendre(); return; }
   if ((b = q('[data-crreessayer]'))) { crReelEtat = 'inconnu'; crReelRaison = ''; rendre(); return; }
   if ((b = q('[data-crfond]'))) { crFondType = b.dataset.crfond;
-    if (crLf && crLf.map) { const on = crFondType === 'sat' ? crLf.sat : crLf.plan, off = crFondType === 'sat' ? crLf.plan : crLf.sat; crLf.map.removeLayer(off); on.addTo(crLf.map); }
+    crStyleAppliquer();
     document.querySelectorAll('[data-crfond]').forEach(x => x.setAttribute('aria-pressed', x.dataset.crfond === crFondType));
     document.querySelectorAll('[data-crtheme]').forEach(x => { x.disabled = crFondType === 'sat'; x.title = crFondType === 'sat' ? 'Le satellite ne change pas la nuit' : ''; }); return; }
-  if ((b = q('[data-crtheme]'))) { crTheme = b.dataset.crtheme; document.getElementById('cr-carte')?.classList.toggle('cr-sombre', crSombre());
+  if ((b = q('[data-crtheme]'))) { crTheme = b.dataset.crtheme; document.getElementById('cr-carte')?.classList.toggle('cr-sombre', crSombre()); crStyleAppliquer();
     document.querySelectorAll('[data-crtheme]').forEach(x => x.setAttribute('aria-pressed', x.dataset.crtheme === crTheme)); return; }
   if ((b = q('[data-crchoix]'))) { crChoix(b.dataset.crchoix); return; }
   if ((b = q('[data-crconf]'))) { if (b.disabled) return; const [id, tid] = b.dataset.crconf.split('|'); crConfier(id, tid); return; }
