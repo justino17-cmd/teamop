@@ -1,0 +1,32 @@
+# SECOURS — à n'utiliser que si Xcode refuse d'ouvrir OPMessages.xcodeproj (il a été écrit sans Xcode, voir LISEZMOI.md).
+# XcodeGen refabrique alors le projet à partir de cette description :
+#     brew install xcodegen && cd apple/OPMessages && xcodegen generate
+name: OPMessages
+options:
+  bundleIdPrefix: fr.teamop
+  developmentLanguage: fr
+  deploymentTarget:
+    iOS: "17.0"
+    macOS: "14.0"
+targets:
+  OPMessages:
+    type: application
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: OPMessages
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fr.teamop.opmessages.prototype
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: OP MESSAGES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.business
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        CODE_SIGN_ENTITLEMENTS: OPMessages/OPMessages.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"

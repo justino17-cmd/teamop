@@ -51,7 +51,25 @@ corriger »** et « après, revois tout bien, que ça soit rangé, vérifié, te
 - ⚠️ Le correctif tactile touche `opcourrier.js` : il n'atteint OP GESTION, la Tour et OP MESSAGES qu'au report sur `main` (phrase de Justin).
 - Restent sous 40 px, par choix : les champs de saisie (recherche, À, Objet : 36 px).
 
-**Attend Justin** : quelles idées il garde, dans quel ordre ; si la navigation à 5 onglets lui va ; la publication du correctif tactile.
+**Le dessin Apple et l'application Xcode** — Justin, 13 novembre : « fais tout au style Apple, design Apple ; prépare tout pour Xcode, pour que je
+puisse tester en application sur Mac, iPhone ; après, on le fera pour Windows et Android ».
+- **Couche Apple du prototype** (HIG, Liquid Glass d'iOS 26 / macOS 26), sans changer une couleur du thème d'OP MESSAGES : échelle typographique
+  d'Apple (Large Title 34, Body 17), listes groupées à filets en retrait et flèche de suite, barres de fiche en pastilles de verre qui flottent,
+  capsule d'onglets avec loupe détachée, feuilles à poignée, menu de l'ordinateur en panneau de verre, retours au toucher (`:active`), survols
+  réservés à la souris, fiche qui arrive de la droite au téléphone, espaces insécables françaises. Le Courrier n'est pas touché (il a le dessin de Mail).
+- La boîte mail se monte dès le départ, masquée mais À SA TAILLE : son nombre de non-lus est juste sans l'avoir ouverte. ⚠️ Trois pièges payés ce
+  jour-là : une zone sans taille ouvre le module sur le mauvais écran ; le module annonce son compte PENDANT son montage (garde `COUR.montage`,
+  sinon le rendu le remontait sans fin et la page ne finissait pas de charger) ; masquée, la zone doit passer SOUS la scène (elle prenait les clics).
+- **`apple/OPMessages/`** : projet Xcode à UNE cible (iPhone, iPad, Mac), SwiftUI + WKWebView, qui ouvre la page embarquée
+  `OPMessages/Web/index.html` — FABRIQUÉE par `apple/OPMessages/synchroniser.js` depuis le prototype (module de courrier mis en ligne), jamais
+  modifiée à la main (`tests/test-3299.js`). Icône d'OP MESSAGES, signature locale sur Mac, mode d'emploi dans `LISEZMOI.md`.
+- ⛔ **Ni ouvert ni compilé par Xcode** (session Linux, pas de Swift) : le fichier de projet est fabriqué et contrôlé par `fabriquer-projet.py`
+  (structure, références), le secours est `project.yml` (XcodeGen). Safari n'a pas été essayé non plus : le premier lancement chez Justin est le test.
+- **Mesuré** (Chromium) : 116 gestes sur Mac et iPhone, 130 écrans sur cinq profils de jour et de nuit, 0 faute ; captures relues sur Mac et iPhone.
+- Suite annoncée par Justin : Windows et Android, même page, une enveloppe par système.
+
+**Attend Justin** : le premier lancement dans Xcode (et le message exact s'il y a une erreur) ; quelles idées il garde, dans quel ordre ; si la
+navigation à 5 onglets lui va ; la publication du correctif tactile de la boîte mail.
 
 # 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
 

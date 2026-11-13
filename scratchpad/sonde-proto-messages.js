@@ -21,7 +21,7 @@ const ROUTES = ['aujourdhui', 'messages', 'messages-x-equipe', 'messages-x-marc'
       page.on('pageerror', (e) => errs.push('JS ' + e.message)); page.on('console', (m) => { if (m.type() === 'error') errs.push('console ' + m.text()); });
       await page.goto(FICHIER); await page.waitForTimeout(200);
       for (const r of ROUTES) {
-        await page.evaluate((h) => { location.hash = h; }, r); await page.waitForTimeout(160);
+        await page.evaluate((h) => { location.hash = h; }, r); await page.waitForTimeout(520);
         if (r === 'courrier') await page.waitForFunction(() => { const h = document.querySelector('#zone-courrier-pro [data-opcourrier]'); return h && h.shadowRoot && h.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, null, { timeout: 8000 }).catch(() => {});
         const m = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth,
           /* le Courrier est le VRAI module (arbre d'ombre) : on compte ses lignes, pas le texte de la scène */

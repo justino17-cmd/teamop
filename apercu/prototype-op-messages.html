@@ -2,8 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b1633">
 <!-- Aperçu de travail (13 novembre 2026) : le PROTOTYPE d'OP MESSAGES demandé par Justin (« revois tout en prototype, apporte des idées » :
      messages, appels, appels vidéo, réunions). Même forme que apercu/prototype-op-gestion.html : une page, un réglage Jour / Nuit / Auto,
      des rôles à essayer, une visite guidée. DONNÉES ENTIÈREMENT FICTIVES (« Clim Services 17 », adresses en .example), aucun appel à un serveur,
@@ -86,14 +88,12 @@ svg{width:22px;height:22px;flex:none}
 .logo i{width:34px;height:34px;border-radius:9px;background:linear-gradient(150deg,#4f78d6,#2a4a9c);display:grid;place-items:center;color:#fff;font:800 10px/1 var(--police);font-style:normal;text-align:center}
 .logo .pro{font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--fill);color:var(--sur-fill)}
 .menu a{display:flex;align-items:center;gap:11px;min-height:40px;padding:6px 10px;border-radius:10px;color:var(--encre);text-decoration:none;font-size:15px;width:100%}
-.menu a:hover{background:var(--survol)}
 .menu a.on{background:var(--fill-doux);color:var(--accent);font-weight:600}
 .menu a svg{color:var(--accent)}
 .menu .n{margin-left:auto;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--fill);color:var(--sur-fill);font-size:12px;font-weight:600;display:grid;place-items:center}
 .menu .grp{font-size:11px;font-weight:600;color:var(--faible);text-transform:uppercase;letter-spacing:.05em;padding:14px 10px 4px}
 .menu .pied{margin-top:auto;padding-top:10px}
 .moi{display:flex;align-items:center;gap:10px;padding:8px;border-radius:14px;width:100%}
-.moi:hover{background:var(--survol)}
 .moi .t{min-width:0;flex:1}
 .moi .t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .statut{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--doux)}
@@ -115,7 +115,6 @@ svg{width:22px;height:22px;flex:none}
 
 /* ── pièces ── */
 .rond{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--accent);flex:none}
-.rond:hover{background:var(--survol)}
 .rond.plein{background:var(--fill);color:var(--sur-fill)}
 .rond.gris{background:var(--champ)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;background:var(--fill);color:var(--sur-fill);font-weight:600;font-size:15px;white-space:nowrap}
@@ -158,7 +157,6 @@ svg{width:22px;height:22px;flex:none}
 .col{display:flex;flex-direction:column;gap:18px;min-width:0}
 .rang{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 16px;width:100%;position:relative}
 .rang+.rang::before{content:"";position:absolute;left:16px;right:0;top:0;border-top:.5px solid var(--trait)}
-button.rang:hover,a.rang:hover{background:var(--survol)}
 .rang .t{flex:1;min-width:0}
 .rang .t b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rang .t span{display:block;color:var(--doux);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -180,7 +178,6 @@ button.rang:hover,a.rang:hover{background:var(--survol)}
 
 /* ── liste de conversations / courriels ── */
 .conv{display:flex;gap:11px;align-items:flex-start;padding:10px 10px;border-radius:14px;width:100%;position:relative}
-.conv:hover{background:var(--survol)}
 .conv.on{background:var(--fill-doux)}
 .conv .t{flex:1;min-width:0}
 .conv .l1{display:flex;align-items:baseline;gap:8px}
@@ -219,9 +216,7 @@ button.rang:hover,a.rang:hover{background:var(--survol)}
 .msg.moi-m .reac{right:auto;left:10px}
 .msg.a-reac{margin-bottom:12px}
 .msg .outils{display:none;align-self:center;gap:2px}
-.msg:hover .outils,.msg:focus-within .outils{display:flex}
 .msg .outils button{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--faible)}
-.msg .outils button:hover{background:var(--survol);color:var(--accent)}
 .msg .outils svg{width:17px;height:17px}
 .lu{align-self:flex-end;font-size:12px;color:var(--faible);padding:1px 4px 4px}
 .vocal{display:flex;align-items:center;gap:9px;min-width:210px}
@@ -257,8 +252,9 @@ button.rang:hover,a.rang:hover{background:var(--survol)}
 .lecture{flex:1;min-height:0;overflow-y:auto;padding:18px max(22px,env(safe-area-inset-right,0px)) 30px 22px;display:flex;flex-direction:column;gap:14px}
 /* ── le courrier : la zone où se monte le vrai module (elle recouvre la scène, et reste dans la page même masquée) ── */
 .scene,#courrier-fixe{grid-column:-2/-1;grid-row:1}
-#courrier-fixe{min-width:0;min-height:0;z-index:1;background:var(--fond);display:flex}
-#courrier-fixe[hidden]{display:none}
+#courrier-fixe{min-width:0;min-height:0;z-index:2;background:var(--fond);display:flex}
+.scene{z-index:1}
+#courrier-fixe.masquee{visibility:hidden;pointer-events:none;z-index:0}      /* masquée mais À SA TAILLE : le module s'y met en page dès le départ (une zone sans taille l'ouvrait sur le mauvais écran) */
 .zone-courrier{flex:1;min-width:0;min-height:0;position:relative}
 /* ── agenda ── */
 .semaine{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
@@ -269,7 +265,6 @@ button.rang:hover,a.rang:hover{background:var(--survol)}
 .semaine button i{width:5px;height:5px;border-radius:50%;background:var(--accent)} .semaine button[aria-pressed="true"] i{background:#fff}
 .evt{display:flex;gap:12px;padding:12px 16px;position:relative;width:100%;align-items:flex-start}
 .evt+.evt::before{content:"";position:absolute;left:16px;right:0;top:0;border-top:.5px solid var(--trait)}
-button.evt:hover{background:var(--survol)}
 .evt .h{width:52px;flex:none;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 .evt .h span{display:block;font-weight:400;color:var(--faible);font-size:12.5px}
 .evt .bar{width:4px;align-self:stretch;border-radius:2px;background:var(--c,var(--fill));flex:none}
@@ -336,7 +331,6 @@ button.evt:hover{background:var(--survol)}
 .volet label.coche{display:flex;gap:8px;align-items:flex-start}
 .salle .bas{flex:none;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:10px max(10px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
 .ctl{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:62px;padding:7px 8px;border-radius:14px;font-size:11.5px;color:rgba(255,255,255,.92)}
-.ctl:hover{background:rgba(255,255,255,.1)}
 .ctl[aria-pressed="true"]{background:rgba(126,162,240,.32)}
 .ctl.off svg{color:#ff8a82}
 .ctl.quitter{background:#ff453a;color:#fff;flex-direction:row;padding:0 18px;font-size:14px;font-weight:600;min-height:48px}
@@ -396,7 +390,6 @@ button.evt:hover{background:var(--survol)}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .kpi{background:var(--carte);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;text-align:left}
 .kpi b{font-size:26px;font-variant-numeric:tabular-nums;line-height:1.1} .kpi span{font-size:13.5px;color:var(--doux)}
-button.kpi:hover{background:var(--survol)}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (prefers-reduced-transparency:reduce){.barre-conv,.panneau,.banniere,.capsule{backdrop-filter:none;-webkit-backdrop-filter:none}}
@@ -434,11 +427,141 @@ button.kpi:hover{background:var(--survol)}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cherche kbd{display:none}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+   LA COUCHE APPLE (13 novembre 2026, Justin : « tout au style Apple, design Apple ») — HIG et Liquid Glass d'iOS 26 / macOS 26.
+   Ce qu'elle pose : l'échelle typographique d'Apple, les listes groupées à filets en retrait, les barres et les boutons en verre
+   qui FLOTTENT au-dessus du contenu, les feuilles avec poignée, la capsule d'onglets et sa loupe détachée, les retours au toucher.
+   Elle ne change AUCUNE couleur du thème d'OP MESSAGES (design/opmessages/THEME-OPMESSAGES.md). Le Courrier (opcourrier.js) n'est
+   pas touché : il a déjà le dessin de Mail.
+   ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+:root{ --r:26px; --verre:rgba(255,255,255,.62); --verre-bord:rgba(255,255,255,.7); --flou:blur(24px) saturate(190%);
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 13'%3E%3Cpath d='M1.500 1.500 6.500 6.500 1.500 11.500' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){ --verre:rgba(46,66,122,.58); --verre-bord:rgba(255,255,255,.14); }}
+:root[data-theme="dark"]{ --verre:rgba(46,66,122,.58); --verre-bord:rgba(255,255,255,.14); }
+
+.scene,.app{overflow:hidden}                   /* une fiche qui ARRIVE de la droite ne doit pas élargir la page le temps de son mouvement */
+/* — le socle d'une application : pas de zoom de texte en paysage, pas de rebond de page, pas de sélection sur un bouton — */
+html{-webkit-text-size-adjust:100%;overscroll-behavior:none} body{overscroll-behavior:none}
+button,a,[role="button"],label{touch-action:manipulation}
+button,.et,.puce,.capsule a,.menu a,.seg,.titre-grp,h3{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.defile,.page,.fil,.lecture,.panneau,.volet .v-corps,.menu{overscroll-behavior:contain}
+button,a{cursor:pointer}
+
+/* — typographie (HIG) : Large Title 34, Title 28 / 22, Headline 17 semibold, Body 17, Subhead 15, Footnote 13 — */
+h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:.012em}
+h2{font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.012em}
+h3{font-size:13px;line-height:18px;font-weight:600;letter-spacing:-.005em;text-transform:none;color:var(--faible)}
+.conv .l1 b{font-size:17px;line-height:22px;letter-spacing:-.022em} .conv .ap{font-size:15px;line-height:20px;letter-spacing:-.012em} .conv .l1 time{font-size:15px}
+.bulle{font-size:17px;line-height:22px;letter-spacing:-.022em;padding:7px 13px}
+.rang .t b{font-size:17px;line-height:22px;letter-spacing:-.022em;font-weight:400} .rang .t span{font-size:15px;line-height:20px}
+.rang.souple .t b,.evt .t b{font-weight:600}
+.titre-grp{text-transform:none;font-size:13px;letter-spacing:-.005em;padding:16px 16px 6px}
+.kpi b{font-size:28px;line-height:34px;letter-spacing:.012em} .kpi span{font-size:13px}
+.menu .grp{text-transform:none;font-size:13px;letter-spacing:-.005em}
+
+/* — formes : rayons concentriques, coins « soufflés » là où le navigateur sait les dessiner — */
+.carte,.kpi,.idee-c{border-radius:var(--r)} .rang .ic{border-radius:8px}
+@supports (corner-shape: squircle){ .carte,.kpi,.idee-c,.rang .ic,.logo i,.av.grp,.photo,.fiche-lien,.tuile,.banniere .logo-n{corner-shape:squircle} .carte,.kpi,.idee-c{border-radius:calc(var(--r) * 1.25)} }
+
+/* — listes groupées : le filet part du TEXTE (après l'icône ou l'avatar), une flèche de suite sur ce qui mène ailleurs — */
+.rang{min-height:52px;padding:9px 16px}
+.rang:has(> .ic)+.rang::before,.rang:has(> .av)+.rang::before{left:60px}
+.rang:has(> .av.m)+.rang::before{left:64px}
+button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:8px;height:13px;flex:none;background:var(--tenu);-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat}
+.conv{border-radius:16px;padding:10px 12px}
+.conv+.conv::before{content:"";position:absolute;left:67px;right:4px;top:0;border-top:.5px solid var(--trait)}
+.conv.on::before,.conv.on+.conv::before{border-color:transparent}
+
+/* — le verre : une teinte légère, le flou de ce qui passe dessous, un reflet sur l'arête — */
+.verre,.rond.gris,.barre-conv .rond,.barre-conv .qui,.cherche,.mini-appel{background:var(--verre);-webkit-backdrop-filter:var(--flou);backdrop-filter:var(--flou);box-shadow:0 2px 10px rgba(0,0,0,.08),inset 0 0 0 .5px var(--verre-bord),inset 0 1px 0 var(--verre-bord)}
+.cherche{box-shadow:none;background:var(--champ);-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:999px;height:40px;padding:0 14px}
+.rond{width:40px;height:40px;transition:transform .16s var(--ressort),background-color .12s}
+.rond:active{transform:scale(.9)}
+.btn{min-height:44px;letter-spacing:-.012em;transition:transform .16s var(--ressort),filter .12s} .btn:active{transform:scale(.96);filter:brightness(.94)}
+.btn.gris{background:var(--fill-doux);color:var(--accent)}
+.btn.petit{min-height:34px}
+.conv:active,button.rang:active,button.evt:active,button.kpi:active,.menu a:active,.moi:active{background:var(--survol)}
+.puce{transition:transform .14s var(--ressort)} .puce:active{transform:scale(.95)}
+.seg{border-radius:999px;padding:3px} .seg button{border-radius:999px;min-height:32px;transition:background-color .2s}
+
+/* — la barre d'une fiche FLOTTE : plus de bandeau plein, des pastilles de verre au-dessus du contenu qui défile dessous — */
+.barre-conv{position:absolute;top:0;left:0;right:0;background:none;border:0;-webkit-backdrop-filter:none;backdrop-filter:none;padding:10px max(12px,env(safe-area-inset-right,0px)) 0 12px;min-height:0;z-index:3;gap:8px;pointer-events:none}
+.barre-conv>*{pointer-events:auto}
+.barre-conv .rond{width:44px;height:44px;color:var(--accent)}
+.barre-conv .qui{flex:0 1 auto;min-width:0;margin:0 auto;height:44px;padding:0 16px 0 5px;border-radius:999px;gap:8px}
+.barre-conv .qui:not(:has(.av)){padding:0 18px}
+.barre-conv .qui b{font-size:15px;line-height:18px;letter-spacing:-.012em} .barre-conv .qui .sous{font-size:11.500px;line-height:14px}
+.barre-conv .qui .av.m{width:34px;height:34px;font-size:12.500px}
+.detail::before{content:"";position:absolute;top:0;left:0;right:0;height:74px;z-index:2;pointer-events:none;background:linear-gradient(var(--fond) 12%,color-mix(in srgb,var(--fond) 0%,transparent))}
+.detail:has(.vide)::before{display:none}
+.fil{padding-top:70px} .lecture{padding-top:74px}
+.detail>.info{margin-top:66px!important;position:relative;z-index:1}
+.detail>.info+.fil{padding-top:12px}
+.compo{border-top:0;background:linear-gradient(color-mix(in srgb,var(--fond) 0%,transparent),var(--fond) 40%)}
+.compo textarea{border-radius:22px;min-height:44px;padding:11px 16px;background:var(--verre);-webkit-backdrop-filter:var(--flou);backdrop-filter:var(--flou);border:.5px solid var(--trait)}
+.compo .rond{width:44px;height:44px}
+
+/* — ordinateur (macOS 26) : le menu est un panneau de verre qui flotte, la feuille de droite aussi — */
+.menu{margin:8px 0 8px 8px;border-radius:22px;border:0;box-shadow:0 6px 24px rgba(0,0,0,.08),inset 0 0 0 .5px var(--verre-bord);-webkit-backdrop-filter:var(--flou);backdrop-filter:var(--flou)}
+.menu a{border-radius:12px;min-height:36px;font-size:14.500px;letter-spacing:-.012em}
+.menu a.on{background:var(--fill);color:var(--sur-fill)} .menu a.on svg{color:var(--sur-fill)} .menu a.on .n{background:rgba(255,255,255,.26)}
+.liste{border-right:0} .liste+.detail{border-left:.5px solid var(--trait)}
+.bande{background:var(--barre);-webkit-backdrop-filter:var(--flou);backdrop-filter:var(--flou)} .bande b{padding:2px 8px;border-radius:7px;background:var(--idee-fond)}
+.voile:not(.centre) .panneau{height:calc(100% - 20px);margin:10px;border-radius:26px}
+.panneau .x{width:32px;height:32px;background:var(--champ)}
+.voile.centre .panneau{border-radius:28px}
+
+/* — téléphone (iOS 26) — */
+@media (max-width:760px){
+  body{font-size:17px;line-height:22px}
+  h1{font-size:34px;line-height:41px;letter-spacing:.011em}
+  .menu{margin:0}
+  .tete{padding-top:6px}
+  .rond.gris{width:44px;height:44px}
+  .btn{min-height:50px;font-size:17px} .btn.petit{min-height:38px;font-size:15px}
+  .seg button{min-height:36px;font-size:15px} .puce{min-height:36px;font-size:15px}
+  .bande{flex-wrap:nowrap;gap:6px;overflow:hidden} .bande b{padding:2px 6px;font-size:12px} .bande .seg button{min-height:30px;font-size:13.500px;padding:0 8px} .bande .btn{min-height:34px;font-size:14px;padding:0 12px}
+  .info{flex-wrap:wrap} .info .t{flex:1 1 180px}
+  .cherche{height:44px} .cherche input{font-size:17px}
+  .champ input,.champ select,.champ textarea{min-height:50px;font-size:17px;border-radius:14px}
+  /* la capsule d'onglets et sa LOUPE détachée, comme la barre d'iOS 26 */
+  .barre-bas .groupe-bas{display:flex;gap:10px;align-items:center;max-width:480px;margin:0 auto;pointer-events:none} .barre-bas .groupe-bas>*{pointer-events:auto}
+  .barre-bas .capsule{flex:1;margin:0;padding:4px;border-radius:36px;min-height:62px;align-items:stretch}
+  .capsule a{font-size:10.500px;letter-spacing:-.005em;gap:1px;justify-content:center;border-radius:30px;transition:background-color .25s var(--ressort)}
+  .capsule a svg{width:25px;height:25px}
+  .barre-bas .loupe{width:62px;height:62px;flex:none;border-radius:50%;color:var(--onglet-off);background:var(--onglets);-webkit-backdrop-filter:blur(24px) saturate(200%);backdrop-filter:blur(24px) saturate(200%);box-shadow:var(--ombre),var(--reflet);display:grid;place-items:center}
+  .barre-bas .loupe svg{width:25px;height:25px} .barre-bas .loupe:active{transform:scale(.92)}
+  /* la feuille monte du bas, avec sa poignée ; son rayon épouse celui de l'écran */
+  .panneau,.panneau.large,.voile.centre .panneau,.voile:not(.centre) .panneau{margin:0;height:auto;border-radius:36px 36px 0 0;padding-top:10px}
+  .panneau::before{content:"";flex:none;align-self:center;width:36px;height:5px;border-radius:3px;background:var(--tenu);margin-bottom:6px}
+  .panneau .x{top:20px;right:16px}
+  /* une fiche qu'on ouvre ARRIVE de la droite (seulement après une navigation, jamais à chaque rafraîchissement) */
+  .scene.entre.a-detail .detail,.scene.entre.une .page{animation:pousse .38s var(--ressort)}
+  .scene.entre:not(.a-detail):not(.une) .liste{animation:revient .38s var(--ressort)}
+  #toast{border-radius:999px}
+}
+@keyframes pousse{from{transform:translateX(28%);opacity:.4}} @keyframes revient{from{transform:translateX(-12%);opacity:.5}}
+@media (pointer:coarse){ .rond{width:44px;height:44px} .rang{min-height:56px} .menu a{min-height:44px} .bascule{width:51px;height:31px} .bascule::after{width:27px;height:27px} }
+@media (hover:hover) and (pointer:fine){
+  .menu a:hover{background:var(--survol)}
+  .moi:hover{background:var(--survol)}
+  .rond:hover{background:var(--survol)}
+  button.rang:hover,a.rang:hover{background:var(--survol)}
+  .conv:hover{background:var(--survol)}
+  .msg:hover .outils,.msg:focus-within .outils{display:flex}
+  .msg .outils button:hover{background:var(--survol);color:var(--accent)}
+  button.evt:hover{background:var(--survol)}
+  .ctl:hover{background:rgba(255,255,255,.1)}
+  button.kpi:hover{background:var(--survol)}
+}
+@media (prefers-reduced-transparency:reduce){ .verre,.rond.gris,.barre-conv .rond,.barre-conv .qui,.menu,.bande,.compo textarea,.barre-bas .loupe{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--carte)} }
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <div class="cadre">
   <div class="bande" id="bande"></div>
   <div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="scene" id="scene"></main>
-    <div id="courrier-fixe" hidden><div class="zone-courrier" id="zone-courrier-pro"></div><div class="zone-courrier" id="zone-courrier-perso" hidden></div></div></div>
+    <div id="courrier-fixe" class="masquee" aria-hidden="true"><div class="zone-courrier" id="zone-courrier-pro"></div><div class="zone-courrier" id="zone-courrier-perso" hidden></div></div></div>
 </div>
 <div class="barre-bas" id="barre-bas"></div>
 <div id="plein"></div><div id="calque"></div><div id="notif" aria-live="polite"></div>
@@ -1568,7 +1691,7 @@ function menu() {
 const STATUTS = { ok: ['Disponible', ''], occ: ['En intervention', 'occ'], npd: ['Ne pas déranger', 'npd'], abs: ['Absente', 'abs'] };
 const statutHtml = () => `<span class="statut ${STATUTS[S.statut][1]}"><i></i>${S.statut === 'ok' && S.salle ? 'En réunion' : STATUTS[S.statut][0]}</span>`;
 function barreBas() {
-  return `<nav class="capsule" aria-label="Onglets">${NAV.map((x) => { const n = compte(x[0]); return `<a href="#${x[0]}" data-go="${x[0]}" class="${S.route === x[0] ? 'on' : ''}">${svg(x[2])}<span>${x[1]}</span>${n ? `<span class="n">${n}</span>` : ''}</a>`; }).join('')}</nav>`;
+  return `<div class="groupe-bas"><nav class="capsule" aria-label="Onglets">${NAV.map((x) => { const n = compte(x[0]); return `<a href="#${x[0]}" data-go="${x[0]}" class="${S.route === x[0] ? 'on' : ''}">${svg(x[2])}<span>${x[1]}</span>${n ? `<span class="n">${n}</span>` : ''}</a>`; }).join('')}</nav><button class="loupe" data-action="chercher" aria-label="Rechercher partout">${svg('cherche')}</button></div>`;
 }
 function bande() {
   const seg = (k, l) => `<button aria-pressed="${S.role === k}" data-role="${k}">${l}</button>`;
@@ -1596,7 +1719,7 @@ function rendre() {
   bb.innerHTML = S.role === 'invite' ? '' : barreBas();
   bb.classList.toggle('cachee', !!(v.sansBarre && S.param) || S.role === 'invite');
   const f = $('.fil'); if (f) { const z = $('#resume-zone'); if (z && !_bas) f.scrollTop = Math.max(0, z.offsetTop - f.offsetTop - 60); else f.scrollTop = f.scrollHeight; } _bas = false;
-  miniAppel(); placerCourrier();
+  miniAppel(); placerCourrier(); typo(sc); typo($('#menu'));
 }
 function aller(h) { if (location.hash === '#' + h) lireHash(); else location.hash = h; }
 function lireHash() {
@@ -1605,15 +1728,22 @@ function lireHash() {
   S.route = VUES[r] ? r : 'aujourdhui'; S.param = p || '';
   if (S.route !== 'messages') { S.fil = null; S.repondA = null; }
   rendre();
+  $('#scene').classList.add('entre');             // une NAVIGATION : la fiche arrive de la droite (un simple rafraîchissement ne rejoue rien)
 }
 addEventListener('hashchange', lireHash);
 let _larg = tel(); addEventListener('resize', () => { if (tel() !== _larg) { _larg = tel(); rendre(); } });
 
 /* ── feuilles, bannières, toasts ── */
+/* Typographie française : une espace INSÉCABLE devant : ; ! ? » et après « — sans elle, le signe passe seul à la ligne (les champs de saisie ne sont pas touchés) */
+function typo(racine) {
+  if (!racine) return;
+  const w = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.parentNode && /^(TEXTAREA|SCRIPT|STYLE|INPUT|OPTION)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+  let n; while ((n = w.nextNode())) { const t = n.nodeValue; if (!/[:;!?»«]/.test(t)) continue; const u = t.replace(/ ([;!?»])/g, '\u202f$1').replace(/ :(?=\s|$)/g, '\u00a0:').replace(/« /g, '«\u00a0'); if (u !== t) n.nodeValue = u; }
+}
 function ouvrir(html, o) {
   o = o || {};
   $('#calque').innerHTML = `<div class="voile ${o.centre ? 'centre' : ''}" data-ferme="1"><div class="panneau ${o.large ? 'large' : ''}" role="dialog" aria-modal="true"><button class="x" data-ferme="1" aria-label="Fermer">${svg('x')}</button>${html}</div></div>`;
-  const p = $('#calque .panneau'); const c = p.querySelector('[autofocus]'); if (c && !tel()) c.focus();
+  const p = $('#calque .panneau'); typo(p); const c = p.querySelector('[autofocus]'); if (c && !tel()) c.focus();
 }
 function fermer() { $('#calque').innerHTML = ''; }
 let _tt;
@@ -2045,23 +2175,27 @@ function feuilleProgrammer(pre) {
    Justin, 13 novembre 2026 : « la boîte mail, je veux celle qui était, juste la vérifier et corriger ». Rien n'est redessiné ici : le prototype
    monte le module avec sa source de DÉMONSTRATION (noms et adresses inventés, domaines en .example). Un montage par côté : le Pro et le Perso ne se
    mélangent pas. ⛔ La zone reste TOUJOURS dans la page (on la masque) : le module se démonte de lui-même dès que son conteneur quitte le document. */
-const COUR = { pro: null, perso: null, nl: { pro: 0, perso: 0 } };
+const COUR = { pro: null, perso: null, nl: { pro: 0, perso: 0 }, montage: {} };
 const themeHote = () => (S.mode === 'dark' || (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'nuit' : 'jour');
 VUES.courrier = () => ({ une: true, html: '<section class="page"></section>' });
 function majPastilles() { if (S.role === 'invite') return; $('#menu').innerHTML = menu(); $('#barre-bas').innerHTML = barreBas(); }
 function placerCourrier() {
   const f = $('#courrier-fixe'), vu = S.route === 'courrier' && S.role !== 'invite', k = cote();
-  f.hidden = !vu;
+  f.classList.toggle('masquee', !vu); f.setAttribute('aria-hidden', String(!vu));
   ['pro', 'perso'].forEach((c) => { $('#zone-courrier-' + c).hidden = c !== k; });
-  if (!vu) return;
+  /* le module se monte DÈS LE DÉPART, zone masquée : c'est lui qui annonce le nombre de non lus (pastille de l'onglet, écran « Aujourd'hui ») —
+     sans ça, « 0 courriel non lu » s'affichait tant qu'on n'avait pas ouvert le Courrier */
+  if (S.role === 'invite') return;
   if (!window.OPCourrier || !window.OPCourrierDemo) { $('#zone-courrier-' + k).innerHTML = '<div class="vide"><div>La boîte mail n’a pas pu se charger dans ce prototype.</div></div>'; return; }
-  if (COUR[k]) { COUR[k].rafraichir({ donnees: false }); return; }
+  if (COUR[k]) { if (vu) COUR[k].rafraichir({ donnees: false }); return; }
+  if (COUR.montage[k]) return;                    // ⛔ le module peut annoncer son compte PENDANT son montage : sans cette garde, le rendu qu'il déclenche le remontait, sans fin
+  COUR.montage[k] = true;
   try {
     /* ⛔ la source de démonstration rend ses DEUX boîtes (une pro, une perso) : chaque côté ne reçoit que les siennes, sinon le Pro montrerait le courrier personnel */
     const source = OPCourrierDemo.creer({ mode: 'demo' }), toutes = source.boites.bind(source);
     source.boites = () => Promise.resolve(toutes()).then((l) => l.filter((b) => b.cote === k));
     COUR[k] = OPCourrier.monter($('#zone-courrier-' + k), { source, cotes: [k], cote: k, cleStockage: 'protoOpmsg_courrier_' + k, titre: 'OP Courrier', intervalle: 0, theme: themeHote,
-      onCompter: (n) => { COUR.nl[k] = n; majPastilles(); } });
+      onCompter: (n) => { if (COUR.nl[k] === n) return; COUR.nl[k] = n; setTimeout(() => { majPastilles(); if (S.route === 'aujourdhui' && !$('#calque').innerHTML && GD.i < 0 && !S.appel && !S.salle) rendre(); }, 0); } });
   } catch (e) { $('#zone-courrier-' + k).innerHTML = '<div class="vide"><div>La boîte mail n’a pas pu s’ouvrir dans ce prototype.</div></div>'; }
 }
 
@@ -2193,7 +2327,7 @@ function gdAller(i) {
   if (e[0] === 'messages-x-equipe') { const x = conv('equipe'); if (x.nonlu < 4) { x.nonlu = 12; x.resume = 0; } }      // l'étape montre le bloc « Résumer » : elle remet le groupe dans l'état où il existe
   if (S.role !== 'pro') { S.role = 'pro'; }
   fermer(); aller(e[0]);
-  setTimeout(() => gdPlacer(true), 380);
+  setTimeout(() => gdPlacer(true), 560);          // après la fin du mouvement d'arrivée de la fiche (0,38 s) : la cible est à sa place
 }
 function gdPlacer(defile) {
   if (GD.i < 0) return; const e = ETAPES[GD.i];

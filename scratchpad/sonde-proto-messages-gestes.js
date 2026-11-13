@@ -19,6 +19,10 @@ let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko
     const cap = async (nom) => { await page.waitForTimeout(420); return page.screenshot({ path: path.join(CAPS, `g-${p.n}-${nom}.png`) }); };
     console.log('—', p.n);
 
+    /* 0. le compteur du courrier est juste DÈS L'OUVERTURE, sans avoir ouvert la boîte mail (elle se monte au départ, masquée, à sa taille) — et masquée, elle ne prend aucun clic */
+    await page.waitForFunction(() => COUR.nl.pro > 0, null, { timeout: 8000 }).catch(() => {});
+    v('Aujourd’hui : le nombre de courriels non lus vient du module, sans ouvrir le Courrier', await E(() => COUR.nl.pro > 0 && new RegExp('(^|\\D)' + COUR.nl.pro + '\\s*courriels? non lus?').test(document.querySelector('.kpis').textContent.replace(/\s+/g, ' '))), await E(() => document.querySelector('.kpis').textContent.replace(/\s+/g, ' ').slice(0, 120)));
+    v('la zone du courrier, masquée, ne couvre pas l’écran (le point au centre est à la scène)', await E(() => { const e = document.elementFromPoint(innerWidth / 2, innerHeight / 2); return !!e && !e.closest('#courrier-fixe'); }));
     /* 1. Aujourd'hui → donner l'accord */
     await clic('[data-action="accord"]');
     v('accord : on arrive dans le groupe, le message est parti', await E(() => location.hash === '#messages-x-equipe' && /Accord pour le compresseur/.test(conv('equipe').msgs.slice(-1)[0].t)));
@@ -92,8 +96,8 @@ let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko
     v('courrier : toucher un courriel l’ouvre en lecture', await E((h) => { const r = eval(h).shadowRoot.querySelector('.reading'); return !!r && r.textContent.trim().length > 80; }, OMB('pro')));
     await cap('courrier-lecture');
     await go('messages'); await page.waitForTimeout(1200); await go('courrier'); await page.waitForTimeout(300);
-    v('courrier : après un détour par une autre rubrique, le module vit toujours (il ne s’est pas démonté)', await E((h) => { const e = eval(h); return !document.querySelector('#courrier-fixe').hidden && e.isConnected && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('pro')));
-    await go('messages'); v('courrier : hors de sa rubrique, la zone est masquée et ne couvre rien', await E(() => document.querySelector('#courrier-fixe').hidden && !!document.querySelector('#scene .liste')));
+    v('courrier : après un détour par une autre rubrique, le module vit toujours (il ne s’est pas démonté)', await E((h) => { const e = eval(h); return !document.querySelector('#courrier-fixe').classList.contains('masquee') && e.isConnected && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('pro')));
+    await go('messages'); v('courrier : hors de sa rubrique, la zone est masquée et ne couvre rien', await E(() => document.querySelector('#courrier-fixe').classList.contains('masquee') && !!document.querySelector('#scene .liste')));
     /* 9. recherche partout */
     await E(() => ouvrirRecherche()); await page.fill('#rech-tout', 'dubois'); await page.waitForTimeout(100); await cap('recherche');
     v('la recherche trouve dans plusieurs rubriques', await E(() => document.querySelectorAll('#rech-res h3').length >= 3), await E(() => document.querySelectorAll('#rech-res h3').length));
