@@ -13,6 +13,29 @@ de ligne du tout.
 
 ---
 
+# 13 NOVEMBRE 2026 (nuit) — PROTOTYPE D'OP MESSAGES (aperçu, données fictives) — ATTEND LE CHOIX DE JUSTIN, IDÉE PAR IDÉE
+
+Justin, 12 novembre au soir : « je veux que tu revois tout en prototype, que tu apportes des idées pour avoir la meilleure application de
+message, appel, appel vidéo, système de réunion, mail ; revois ma boîte mail actuelle ». Même forme que `apercu/prototype-op-gestion.html`.
+
+- **La page** : `apercu/prototype-op-messages.html` (une page, ~205 Ko, aucune dépendance, aucun appel réseau, adresses en `.example`).
+  Thème d'OP MESSAGES (`design/opmessages/THEME-OPMESSAGES.md`), réglage Jour / Nuit / Auto **du prototype seulement**. Trois rôles : Pro,
+  Perso (les deux côtés ne se mélangent pas), Invité sans compte. Visite guidée en 12 étapes. Ce n'est PAS la vraie OP MESSAGES
+  (`server-msg/` n'est pas touché) ; servie sur teamop.fr seulement quand la branche rejoint `main` (dossier `apercu/`).
+- **28 idées**, chacune visible et essayable, listées dans la rubrique « Les idées » avec un bouton « Voir » : un écran « Aujourd'hui »,
+  5 onglets au lieu de 7 (Réunions + Agenda réunis), recherche partout, fiche « tout sur une personne », fils de réponse, message → tâche /
+  rappel / réunion, boîte partagée, carte OP GESTION dans la conversation, messagerie vocale écrite, notes d'appel, lien d'appel et de
+  rendez-vous, préparation avant réunion, sous-titres traduits, temps de parole, compte rendu, trouver un créneau, tri du courrier
+  « Clients / Factures / Notifications / Lettres d'info », reporter / programmer / annuler l'envoi / relancer, courriel → conversation, tâche,
+  réunion, devis, désabonnement en un geste.
+- ⛔ **Sept idées reposent sur une IA** (résumés, traduction, transcription, compte rendu, réponses proposées) : marquées « avec IA, à
+  décider ». Elles envoient du texte à un sous-traitant : décision de Justin, puis `sous-traitance.html` et `registre-traitements.html`.
+- ⚠️ **Rien n'est construit dans le produit** : c'est une maquette. Le Courrier y garde la séparation Pro / Perso décidée le 18 octobre.
+- **Mesuré** : `scratchpad/sonde-proto-messages.js` (16 routes × Mac, Windows, iPad, iPhone, Android × jour et nuit : 160 écrans, 0 erreur
+  JavaScript, 0 débordement) ; `scratchpad/sonde-proto-messages-gestes.js` (110 contrôles, Mac et iPhone, gestes touchés pour de vrai ;
+  trois défauts remis dans une copie la font tomber). Captures relues à l'œil sur Mac, iPhone, iPad. `test-836` déclare la page.
+- **Attend Justin** : quelles idées il garde, dans quel ordre ; et si la navigation à 5 onglets lui va.
+
 # 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
 
 Justin : « il faut publier ça » (la vitesse de la bêta 804, OP MESSAGES, D1 et D2).
