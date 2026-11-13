@@ -123,7 +123,11 @@ const DANS_LA_PAGE = `
             const r = e.getBoundingClientRect(), x = Math.min(Math.max(r.left + r.width / 2, 2), innerWidth - 2), y = Math.min(Math.max(r.top + r.height / 2, 2), innerHeight - 2);
             const haut = document.elementFromPoint(x, y); const lab = e.closest('label');
             const ok = !!haut && (haut === e || e.contains(haut) || haut.contains(e) || (lab && lab.contains(haut)));
-            return { x, y, w: Math.round(r.width), h: Math.round(Math.max(r.height, lab ? lab.getBoundingClientRect().height : 0)), ok, couvre: ok ? '' : (haut ? (haut.id ? '#' + haut.id : '.' + String(haut.className).split(' ')[0]) + ' ' + (haut.textContent || '').trim().slice(0, 30) : 'rien'),
+            /* la ZONE QUI RÉPOND : un doigt touche un point — on demande à la page, de part et d'autre du centre, jusqu'où c'est encore cette commande (ou son libellé) qui reçoit */
+            const mien = (px, py) => { const t = document.elementFromPoint(px, py); return !!t && (t === e || e.contains(t) || (lab && lab.contains(t))); };
+            const portee = (dx, dy) => { let n = 0; for (let k = 1; k <= 30; k++) { if (mien(x + dx * k * 2, y + dy * k * 2)) n = k * 2; else break; } return n; };
+            const zh = ok ? portee(0, -1) + portee(0, 1) : 0, zw = ok ? portee(-1, 0) + portee(1, 0) : 0;
+            return { x, y, w: Math.round(Math.max(r.width, zw)), h: Math.round(Math.max(r.height, zh)), ok, couvre: ok ? '' : (haut ? (haut.id ? '#' + haut.id : '.' + String(haut.className).split(' ')[0]) + ' ' + (haut.textContent || '').trim().slice(0, 30) : 'rien'),
               go: e.dataset.go || '', voir: e.dataset.voir || '', role: e.dataset.role || '', mode: e.dataset.modetheme || '', rejoindre: e.dataset.rejoindre || '', appeler: e.dataset.appeler || '', ecrire: e.dataset.ecrire || '', idee: e.dataset.idee || '', actif: e.getAttribute('aria-pressed') === 'true' || e.classList.contains('on'), avant: window.__etat() }; }, { z: sc.zones, sig });
           if (pos.absent) { rapport.push({ p: p.n, scene: sc.n, sig, genre: 'cible introuvable après rechargement' }); continue; }
           if (!pos.ok) { rapport.push({ p: p.n, scene: sc.n, sig, genre: 'recouvert', detail: pos.couvre }); continue; }

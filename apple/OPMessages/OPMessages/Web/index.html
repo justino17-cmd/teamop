@@ -320,6 +320,7 @@ svg{width:22px;height:22px;flex:none}
 .volet{width:330px;flex:none;border-radius:16px;background:rgba(255,255,255,.1);border:.5px solid rgba(255,255,255,.18);display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .volet .v-tete{display:flex;align-items:center;padding:10px 12px;gap:8px;border-bottom:.5px solid rgba(255,255,255,.14)}
 .volet .v-tete b{flex:1}
+.volet .v-tete .rond{width:32px;height:32px;color:#fff}
 .volet .v-corps{flex:1;min-height:0;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:9px;font-size:14.5px}
 .volet .v-pied{padding:8px 10px;border-top:.5px solid rgba(255,255,255,.14);display:flex;gap:6px}
 .volet .v-pied input,.volet textarea{flex:1;min-width:0;background:rgba(255,255,255,.12);border:0;border-radius:12px;padding:9px 12px;color:#fff;outline:0;font-size:16px}
@@ -544,6 +545,23 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:8px;height:1
 }
 @keyframes pousse{from{transform:translateX(28%);opacity:.4}} @keyframes revient{from{transform:translateX(-12%);opacity:.5}}
 @media (pointer:coarse){ .rond{width:44px;height:44px} .rang{min-height:56px} .menu a{min-height:44px} .bascule{width:51px;height:31px} .bascule::after{width:27px;height:27px} }
+/* ⛔ AU DOIGT, TOUT CE QUI SE TOUCHE RÉPOND SUR 44 PX — trouvé par la sonde des clics (13 novembre 2026 : 283 cibles sous 40 px sur iPhone, 143 familles).
+   Deux manières : la commande grandit (boutons), ou elle garde son dessin et c'est sa ZONE QUI RÉPOND qui déborde (étiquettes, interrupteurs, segments). */
+@media (pointer:coarse){
+  .btn.petit,.btn-s,button.pastille-s,.sondage button{min-height:44px}
+  .volet .v-tete .rond{width:44px;height:44px}
+  .compo .rapides,.puces{padding-block:5px;margin-block:-5px}      /* la rangée défile de côté, donc elle coupe ce qui dépasse : on lui rend la place de la zone qui répond */
+  .volet label.coche{min-height:44px;align-items:center} .volet label.coche input{width:22px;height:22px}
+  .panneau .x{width:44px;height:44px;background:none;isolation:isolate;top:14px;right:10px} .panneau .x::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--champ);z-index:-1}
+  .et.idee[data-idee],.seg button,.puce,.jouer,.lien,.date-d,.bascule{position:relative}
+  .et.idee[data-idee]::before,.lien::before,.date-d::before{content:"";position:absolute;inset:-12px -4px}
+  .seg button::before,.puce::before{content:"";position:absolute;inset:-5px 0}
+  .jouer::before{content:"";position:absolute;inset:-6px}
+  .bascule::before{content:"";position:absolute;inset:-7px -4px}
+  .bande .seg button{min-height:34px}
+}
+/* un message en bas de l'écran est du TEXTE : il ne prend pas le clic de ce qu'il couvre (seul son bouton répond) */
+#toast.on{pointer-events:none} #toast button{pointer-events:auto}
 @media (hover:hover) and (pointer:fine){
   .menu a:hover{background:var(--survol)}
   .moi:hover{background:var(--survol)}
@@ -6295,7 +6313,7 @@ function paroleHtml() { const s = S.salle; const tot = Object.values(s.parole).r
   return s.presents.map((p) => `<div><div class="l-p">${av(p, 'p')}<span>${esc(P[p].n)}</span><span class="tab">${Math.round((s.parole[p] || 0) / tot * 100)} %</span></div><div class="barre-p" style="margin-top:4px"><i style="width:${Math.round((s.parole[p] || 0) / tot * 100)}%"></i></div></div>`).join(''); }
 function voletHtml() {
   const s = S.salle, v = s.volet; if (!v) return '';
-  const tete = (t) => `<div class="v-tete"><b>${t}</b><button class="rond" style="color:#fff;width:30px;height:30px" data-salle="volet" data-v="" aria-label="Fermer le volet">${svg('x')}</button></div>`;
+  const tete = (t) => `<div class="v-tete"><b>${t}</b><button class="rond" data-salle="volet" data-v="" aria-label="Fermer le volet">${svg('x')}</button></div>`;
   if (v === 'participants') return `<aside class="volet">${tete('Participants · ' + (s.presents.length + 1))}<div class="v-corps">
       ${s.attente.map((p) => `<div class="l-p" style="background:rgba(255,255,255,.1);padding:8px;border-radius:12px">${av(p, 'p')}<span>${esc(P[p].n)}<br><small style="opacity:.7">attend d’entrer</small></span><button class="btn-s ok" data-salle="admettre" data-p="${p}">Admettre</button></div>`).join('')}
       <div class="l-p">${av('moi', 'p')}<span>Toi <small style="opacity:.7">· organisatrice</small></span></div>
@@ -6479,7 +6497,7 @@ VUES.reglages = () => {
   const g = (t, c) => `<div class="col" style="gap:6px"><h3 style="padding:0 16px">${t}</h3><div class="carte serre">${c}</div></div>`;
   return { une: true, html: `<section class="page"><div class="dedans" style="max-width:760px"><h1>Réglages</h1>
     <div class="carte" style="flex-direction:row;align-items:center;gap:14px">${av('moi', 'g')}<div style="flex:1;min-width:0"><b style="font-size:18px">${esc(P.moi.n)}</b><p class="gris petit">${S.role === 'pro' ? 'Clim Services 17 · offre Pro' : 'Compte personnel · gratuit'}</p></div><button class="btn petit gris" data-action="statut">Mon statut</button></div>
-    ${g('Tranquillité', b('npd', 'Ne pas déranger de 19 h à 7 h 30', 'Hors de tes heures de travail, seuls les messages « Urgent » et tes favoris sonnent.', 27) + b('concentration', 'Mode concentration', 'Pendant une réunion ou une intervention, les notifications attendent la fin.', 27) + b('urgent', 'Relancer un message urgent', 'Un message « Urgent » non lu sonne à nouveau au bout de 5 minutes, puis 15.', 7) + b('statutAuto', 'Statut automatique', 'Ton statut suit ton agenda : « En réunion », « En intervention », « Disponible ».', 8))}
+    ${g('Tranquillité', b('npd', 'Ne pas déranger de 19 h à 7 h 30', 'Hors de tes heures de travail, seuls les messages « Urgent » et tes favoris sonnent.', 21) + b('concentration', 'Mode concentration', 'Pendant une réunion ou une intervention, les notifications attendent la fin.', 21) + b('urgent', 'Relancer un message urgent', 'Un message « Urgent » non lu sonne à nouveau au bout de 5 minutes, puis 15.', 7) + b('statutAuto', 'Statut automatique', 'Ton statut suit ton agenda : « En réunion », « En intervention », « Disponible ».', 8))}
     ${g('Appels', b('vocalTransc', 'Transcrire les messages vocaux', 'Tu lis le message laissé par quelqu’un qui n’a pas pu te joindre.', 11) + b('economie', 'Économie de données', 'Coupe la vidéo dès que le réseau faiblit, pour garder une voix nette.', 13))}
     ${g('Assistant', b('ia', 'Résumés et brouillons de réponse', 'Désactivé par défaut. Activé, le texte du message concerné est envoyé à notre sous-traitant pour être résumé, au geste, jamais en arrière-plan.', 5))}
     ${g('Confidentialité', b('lecture', 'Confirmations de lecture', 'Les autres voient « Lu » ; tu vois le leur.') + b('enligne', 'Montrer que je suis en ligne', 'Le point vert à côté de ton nom.'))}
@@ -6637,8 +6655,8 @@ document.addEventListener('click', (ev) => {
     else if (k === 'cohote') { s.cohote = s.cohote === b.dataset.p ? null : b.dataset.p; }
     else if (k === 'inviter') { toast('Lien d’invitation copié'); return; }
     else if (k === 'tout-couper') { toast('Tous les micros sont coupés'); return; }
-    else if (k === 'chat') { const i = $('#salle-msg'); if (i && i.value.trim()) s.chat.push({ de: 'moi', t: i.value.trim() }); }
-    else if (k === 'action') { const i = $('#salle-action'); if (i && i.value.trim()) s.actions.push([i.value.trim(), $('#salle-action-qui').value]); }
+    else if (k === 'chat') { const i = $('#salle-msg'); if (i && i.value.trim()) s.chat.push({ de: 'moi', t: i.value.trim() }); else { if (i) i.focus(); return; } }
+    else if (k === 'action') { const i = $('#salle-action'); if (i && i.value.trim()) s.actions.push([i.value.trim(), $('#salle-action-qui').value]); else { if (i) i.focus(); return; } }
     else if (k === 'sondage') { s.sondage = s.sondage ? null : { q: 'On démarre lundi ?', o: [['Oui', 2], ['Non', 0]], v: null }; }
     else if (k === 'voter') { const i = +b.dataset.i; if (s.sondage.v !== i) { if (s.sondage.v != null) s.sondage.o[s.sondage.v][1]--; s.sondage.o[i][1]++; s.sondage.v = i; } }
     else if (k === 'sondage-fin') { toast('Sondage clos : ' + s.sondage.o.map((o) => o[0] + ' ' + o[1]).join(', ')); s.sondage = null; }
