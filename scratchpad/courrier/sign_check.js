@@ -16,12 +16,15 @@ async function run(b,label,vp,scheme){
   log(await p.locator('#sgGo').count()===1,label+': feuille « Envoyer pour signature »');
   await p.locator('#sgGo').click(); await p.waitForTimeout(100);
   log((await p.textContent('#toast')).includes('PDF'),label+': refus sans PDF');
-  await p.selectOption('#sgType','Contrat de maintenance');
+  await p.fill('#sgName','Contrat de maintenance');
   await p.fill('#sgN0','Claire Dubois'); await p.fill('#sgE0','claire.dubois@sarl-mercier.fr');
   await p.locator('#sgTpl').click(); await p.waitForTimeout(100);
   await p.locator('#sgGo').click(); await p.waitForTimeout(100);
   log((await p.textContent('#toast')).includes('Mobile'),label+': mobile exigé en signature avancée');
   await p.fill('#sgP0','06 12 34 56 78');
+  /* la contre-signature est DÉCOCHÉE par défaut depuis le 19 octobre 2026 (Justin) : ce scénario la joue, il la coche donc lui-même — et donne le mobile qu'elle demande */
+  await p.locator('label[for="sgCounter"]').click(); await p.waitForTimeout(80);
+  if (await p.locator('#sgMe').isVisible()) await p.fill('#sgMe','06 98 76 54 32');
   await p.locator('#sgGo').click(); await p.waitForTimeout(400);
   log(await p.locator('.sign-card').count()===1,label+': demande créée et suivie');
   log((await p.textContent('#rows')).includes('En attente'),label+': statut dans la liste');
@@ -44,7 +47,7 @@ async function run(b,label,vp,scheme){
   await p.fill('#cTo','t.berger@berger-batiment.fr'); await p.fill('#cSub','Devis cuisine');
   await p.setInputFiles('#cFile',[{name:'Devis-cuisine.pdf',mimeType:'application/pdf',buffer:Buffer.alloc(9000)}]);
   await p.locator('#cSignBtn').click(); await p.waitForTimeout(250);
-  log(await p.inputValue('#sgE0')==='t.berger@berger-batiment.fr' && (await p.textContent('#sgDocs')).includes('Devis-cuisine.pdf') && await p.inputValue('#sgType')==='Devis',label+': « Faire signer » depuis le composer pré-remplit');
+  log(await p.inputValue('#sgE0')==='t.berger@berger-batiment.fr' && (await p.textContent('#sgDocs')).includes('Devis-cuisine.pdf') && await p.inputValue('#sgName')==='Devis cuisine',label+': « Faire signer » depuis le composer pré-remplit (destinataire, PDF, titre = objet du courriel)');
   await p.locator('#sgCancel').click(); await p.waitForTimeout(150);
   // reading entry
   const devis=p.locator('#rows .msg',{hasText:'Devis chantier'}); if(await devis.count()){ await devis.first().click(); await p.waitForTimeout(350);

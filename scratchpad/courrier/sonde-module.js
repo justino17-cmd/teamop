@@ -136,7 +136,7 @@ const SR = "document.querySelector('[data-opcourrier]').shadowRoot";
     await p.locator('.folder[data-folder="sign"]').click(); await p.waitForTimeout(250);
     log(await p.locator('#rows [data-signnew]').count() === 1 && !/Bientôt/.test(await p.textContent('#rows')), 'signature : le dossier Signatures a son bouton « Envoyer un document à signer » (la fonction est là)');
     await p.locator('#rows [data-signnew]').click(); await p.waitForTimeout(250);
-    await p.selectOption('#sgType', 'Contrat de maintenance'); await p.fill('#sgN0', 'Claire Dubois'); await p.fill('#sgE0', 'claire.dubois@sarl-mercier.fr'); await p.fill('#sgP0', '06 12 34 56 78'); await p.locator('#sgTpl').click(); await p.waitForTimeout(100);
+    await p.fill('#sgName', 'Contrat de maintenance'); await p.fill('#sgN0', 'Claire Dubois'); await p.fill('#sgE0', 'claire.dubois@sarl-mercier.fr'); await p.fill('#sgP0', '06 12 34 56 78'); await p.locator('#sgTpl').click(); await p.waitForTimeout(100);
     await p.locator('#sgGo').click(); await p.waitForTimeout(200);
     log(/Rien n’est parti/.test(await p.textContent('#toast')) && await p.locator('#sgGo').count() === 0 && /Prête — en attente de Yousign/.test(await p.textContent('.sign-card')), 'signature : le parcours va jusqu’à « Envoyer » ; sans prestataire la fenêtre SE FERME et la demande est rangée dans Signatures « Prête — en attente de Yousign » (v2.92)');
     log(await p.locator('#rows .msg').count() === 1 && await p.locator('[data-act="signSim"]').count() === 0 && !/Signé le|Envoyé à/.test(await p.textContent('.sign-card')), 'signature : une seule demande rangée, AUCUN « Simuler la signature », aucune fausse signature ni faux « Envoyé »');

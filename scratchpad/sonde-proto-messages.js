@@ -10,7 +10,7 @@ const PROFILS = [
   { n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 }, { n: 'ipad', w: 820, h: 1180, tactile: true },
   { n: 'iphone', w: 393, h: 852, tactile: true, dsf: 3 }, { n: 'android', w: 360, h: 780, tactile: true, dsf: 3 },
 ];
-const ROUTES = ['aujourdhui', 'messages', 'messages-x-equipe', 'messages-x-marc', 'messages-x-james', 'appels', 'appels-x-a1', 'agenda', 'agenda-x-e0', 'courrier', 'courrier-x-m1', 'courrier-x-m4', 'courrier-x-m8', 'contacts-x-marc', 'reglages', 'idees'];
+const ROUTES = ['aujourdhui', 'messages', 'messages-x-equipe', 'messages-x-marc', 'messages-x-james', 'appels', 'appels-x-a1', 'agenda', 'agenda-x-e0', 'courrier', 'contacts-x-marc', 'reglages', 'idees'];
 (async () => {
   const seuls = process.env.PROFILS ? process.env.PROFILS.split(',') : null;
   const b = await chromium.launch(); let fautes = 0, vus = 0;
@@ -22,8 +22,11 @@ const ROUTES = ['aujourdhui', 'messages', 'messages-x-equipe', 'messages-x-marc'
       await page.goto(FICHIER); await page.waitForTimeout(200);
       for (const r of ROUTES) {
         await page.evaluate((h) => { location.hash = h; }, r); await page.waitForTimeout(160);
-        const m = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, sc: document.querySelector('#scene').innerHTML.length,
-          hors: Array.from(document.querySelectorAll('#scene *, #bande *, #barre-bas *')).filter((e) => { const r = e.getBoundingClientRect(); if (!r.width) return false; let a = e.parentElement; while (a) { const o = getComputedStyle(a).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') { const ar = a.getBoundingClientRect(); if (r.right > ar.right + 1 || r.left < ar.left - 1) return false; } a = a.parentElement; } return r.right > innerWidth + 1 || r.left < -1; }).slice(0, 3).map((e) => e.className + ' ' + Math.round(e.getBoundingClientRect().right)) }));
+        if (r === 'courrier') await page.waitForFunction(() => { const h = document.querySelector('#zone-courrier-pro [data-opcourrier]'); return h && h.shadowRoot && h.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, null, { timeout: 8000 }).catch(() => {});
+        const m = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth,
+          /* le Courrier est le VRAI module (arbre d'ombre) : on compte ses lignes, pas le texte de la scène */
+          sc: location.hash === '#courrier' ? (() => { const h = document.querySelector('#zone-courrier-pro [data-opcourrier]'); return h && h.shadowRoot ? h.shadowRoot.querySelectorAll('#rows .msg').length * 1000 : 0; })() : document.querySelector('#scene').innerHTML.length,
+          hors: Array.from(document.querySelectorAll('#scene *, #bande *, #barre-bas *, #courrier-fixe, #courrier-fixe > div:not([hidden])')).filter((e) => { const r = e.getBoundingClientRect(); if (!r.width) return false; let a = e.parentElement; while (a) { const o = getComputedStyle(a).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') { const ar = a.getBoundingClientRect(); if (r.right > ar.right + 1 || r.left < ar.left - 1) return false; } a = a.parentElement; } return r.right > innerWidth + 1 || r.left < -1; }).slice(0, 3).map((e) => e.className + ' ' + Math.round(e.getBoundingClientRect().right)) }));
         vus++;
         if (m.sw > p.w + 1 || m.hors.length || m.sc < 200) { fautes++; console.log('✗', p.n, theme, r, JSON.stringify(m)); }
         if (process.env.CAP && (process.env.CAP === 'tout' || process.env.CAP.split(',').includes(r))) await page.screenshot({ path: path.join(CAPS, `${p.n}-${theme}-${r}.png`) });

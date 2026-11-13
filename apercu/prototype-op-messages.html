@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <!-- Aperçu de travail (13 novembre 2026) : le PROTOTYPE d'OP MESSAGES demandé par Justin (« revois tout en prototype, apporte des idées » :
-     messages, appels, appels vidéo, réunions, courrier). Même forme que apercu/prototype-op-gestion.html : une page, un réglage Jour / Nuit / Auto,
+     messages, appels, appels vidéo, réunions). Même forme que apercu/prototype-op-gestion.html : une page, un réglage Jour / Nuit / Auto,
      des rôles à essayer, une visite guidée. DONNÉES ENTIÈREMENT FICTIVES (« Clim Services 17 », adresses en .example), aucun appel à un serveur,
-     rien ne s'enregistre. Ce n'est PAS OP MESSAGES : la vraie page est servie par server-msg/. -->
+     rien ne s'enregistre. Ce n'est PAS OP MESSAGES : la vraie page est servie par server-msg/.
+     ⛔ LE COURRIER N'EST PAS UNE MAQUETTE (Justin : « la boîte mail, je veux celle qui était ») : l'onglet monte le VRAI module opcourrier.js,
+     chargé à côté de cette page, avec sa source de démonstration recopiée de scratchpad/courrier/source-demo.js. -->
 </head>
 <body>
 <title>Prototype OP MESSAGES</title>
@@ -251,23 +253,13 @@ button.rang:hover,a.rang:hover{background:var(--survol)}
 .compo .repond{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--doux);padding:2px 6px}
 .compo .repond b{color:var(--accent)}
 
-/* ── courriel ── */
+/* ── une fiche qui défile (détail d'un appel, fiche d'un contact) ── */
 .lecture{flex:1;min-height:0;overflow-y:auto;padding:18px max(22px,env(safe-area-inset-right,0px)) 30px 22px;display:flex;flex-direction:column;gap:14px}
-.lecture .objet{font-size:22px;font-weight:700;line-height:1.2}
-.lecture .exp{display:flex;gap:11px;align-items:center}
-.lecture .corps{font-size:16px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;max-width:70ch}
-.pj{display:inline-flex;align-items:center;gap:9px;padding:8px 12px;border-radius:12px;background:var(--carte);font-size:14px;max-width:100%}
-.pj svg{color:var(--rouge);width:20px;height:20px}
-.pj b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
-.pj span{color:var(--faible);font-size:12.5px}
-.outils-mail{flex:none;display:flex;align-items:center;gap:2px;padding:8px 12px;border-bottom:.5px solid var(--trait);background:var(--barre);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);overflow-x:auto;scrollbar-width:none}
-.outils-mail .pousse{flex:1}
-.boites{padding:0 8px 6px;display:flex;flex-direction:column;gap:1px}
-.dos{display:flex;align-items:center;gap:10px;min-height:38px;padding:4px 10px;border-radius:10px;width:100%;font-size:15px}
-.dos:hover{background:var(--survol)} .dos.on{background:var(--fill-doux);color:var(--accent);font-weight:600}
-.dos svg{width:19px;height:19px;color:var(--accent)} .dos .c{margin-left:auto;font-size:13px;color:var(--faible)}
-.dos .pt{width:9px;height:9px;border-radius:50%;background:var(--c,#2a4a9c);flex:none}
-
+/* ── le courrier : la zone où se monte le vrai module (elle recouvre la scène, et reste dans la page même masquée) ── */
+.scene,#courrier-fixe{grid-column:-2/-1;grid-row:1}
+#courrier-fixe{min-width:0;min-height:0;z-index:1;background:var(--fond);display:flex}
+#courrier-fixe[hidden]{display:none}
+.zone-courrier{flex:1;min-width:0;min-height:0;position:relative}
 /* ── agenda ── */
 .semaine{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .semaine button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:14px;font-size:12px;color:var(--doux);position:relative}
@@ -407,7 +399,7 @@ button.evt:hover{background:var(--survol)}
 button.kpi:hover{background:var(--survol)}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media (prefers-reduced-transparency:reduce){.barre-conv,.outils-mail,.panneau,.banniere,.capsule{backdrop-filter:none;-webkit-backdrop-filter:none}}
+@media (prefers-reduced-transparency:reduce){.barre-conv,.panneau,.banniere,.capsule{backdrop-filter:none;-webkit-backdrop-filter:none}}
 @media (max-width:1100px){.grille2{grid-template-columns:minmax(0,1fr)} .volet{width:290px} .bande .long{display:none}}
 @media (max-width:760px){
   .app{grid-template-columns:minmax(0,1fr)} .menu{display:none}
@@ -423,6 +415,7 @@ button.kpi:hover{background:var(--survol)}
   .barre-bas .capsule{pointer-events:auto;max-width:460px;margin:0 auto}
   .barre-bas.cachee{display:none}
   .retour-tel{display:grid}
+  #courrier-fixe{padding-bottom:calc(78px + env(safe-area-inset-bottom,0px))}      /* la capsule d'onglets flotte : la boîte mail s'arrête au-dessus */
   .rang.souple{flex-wrap:wrap} .rang.souple .t{flex:1 1 60%} .rang.souple .t b,.rang.souple .t span{white-space:normal} .rang.souple>.btn{margin-left:44px}
   :root{--onglets:rgba(255,255,255,.86)}
   h1{font-size:28px}
@@ -444,10 +437,925 @@ button.kpi:hover{background:var(--survol)}
 </style>
 <div class="cadre">
   <div class="bande" id="bande"></div>
-  <div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="scene" id="scene"></main></div>
+  <div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="scene" id="scene"></main>
+    <div id="courrier-fixe" hidden><div class="zone-courrier" id="zone-courrier-pro"></div><div class="zone-courrier" id="zone-courrier-perso" hidden></div></div></div>
 </div>
 <div class="barre-bas" id="barre-bas"></div>
 <div id="plein"></div><div id="calque"></div><div id="notif" aria-live="polite"></div>
+<script src="opcourrier.js"></script>
+<script>
+/* Source de DÉMONSTRATION du courrier : copie de scratchpad/courrier/source-demo.js (noms et adresses inventés). Ne pas modifier ici. */
+/* Source de DÉMONSTRATION d'OP Courrier — pour la page d'essai (scratchpad/courrier/essai.html) et les sondes du module. Rien d'autre ne la charge.
+   ⛔ Les données d'exemple vivent ICI et nulle part ailleurs : `opcourrier.js` et `beta.html` n'en contiennent aucune (tests/test-2702.js le garde).
+   Noms et adresses INVENTÉS (domaines en .example) ; les expéditeurs « arnaque / hameçonnage » servent à éprouver le tri automatique.
+   Modes (paramètre ?mode= de la page d'essai) :
+     demo        tout allumé (OAuth, envoi programmé, signature, simulation) — c'est le mode de la maquette validée
+     reel        ce que sait faire le serveur d'OP GESTION aujourd'hui : rien de tout cela, seule la réception est remplie
+     vide        aucune boîte connectée (l'état vide des applications)
+     panne       boites() échoue ; panne-messages : les messages d'une boîte échouent ; refus : envoyer() échoue ; differe : le corps se lit à l'ouverture
+   Les messages d'exemple sont rendus tels qu'une source les rend (contrat en tête d'opcourrier.js) ; leur âge est relatif au moment du chargement. */
+(function () {
+"use strict";
+var MIN = 60000, HR = 3600000, DAY = 86400000;
+var CLE = "opcourrierEssai_v1";
+var BOITES = [
+  { id: "a1", email: "camille.moreau@atelier-moreau.example", nom: "Camille Moreau", cote: "pro", fournisseur: "microsoft", signature: "Camille Moreau\nAtelier Moreau" },
+  { id: "a2", email: "camille.essai@messagerie-essai.example", nom: "Camille", cote: "perso", fournisseur: "gmail", signature: "— Camille" }
+];
+var MESSAGES = [
+ {
+  "id": "m1",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Gestion Essai",
+   "email": "notifications@gestion-essai.example"
+  },
+  "a": "Camille",
+  "objet": "Nouvelle intervention assignée — Chantier Villeurbanne",
+  "apercu": "Une intervention vient de vous être assignée pour jeudi 9 h. Client : SARL Mercier. Pensez à confirmer votre passage.",
+  "corps": [
+   "Bonjour Camille,",
+   "Une nouvelle intervention vient de vous être assignée dans Gestion Essai.",
+   "Client : SARL Mercier\nDate : jeudi, 9 h 00\nObjet : maintenance préventive — groupe froid",
+   "Ouvrez l'intervention pour confirmer votre passage et préparer le rapport.",
+   "— Gestion Essai"
+  ],
+  "agoMs": 1080000,
+  "lu": false,
+  "drapeau": false,
+  "vip": true,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m2",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Léa Fontaine",
+   "email": "lea.fontaine@atelier-nord.fr"
+  },
+  "a": "Camille",
+  "objet": "Compte rendu de la réunion de mardi",
+  "apercu": "Merci à tous pour cet échange. Voici les trois décisions actées pour le trimestre, et le compte rendu complet en pièce jointe.",
+  "corps": [
+   "Bonjour Camille,",
+   "Merci à tous pour cet échange de mardi. Voici les trois décisions que nous avons actées :",
+   "1. Le lancement de la nouvelle offre est confirmé pour le 2 du mois prochain.\n2. Camille reprend le suivi des comptes clés.\n3. Point hebdomadaire le mardi à 9 h 30.",
+   "Le compte rendu complet est en pièce jointe. Dis-moi si j'ai oublié quelque chose.",
+   "Bonne journée,\nLéa"
+  ],
+  "agoMs": 7200000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": [
+   {
+    "nom": "CR-reunion-mardi.pdf",
+    "taille": "184 Ko",
+    "type": "doc"
+   }
+  ]
+ },
+ {
+  "id": "m3",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Thomas Berger",
+   "email": "t.berger@berger-batiment.fr"
+  },
+  "a": "Camille",
+  "objet": "Devis chantier Rue Victor Hugo",
+  "apercu": "Comme convenu, je vous envoie le devis pour la rénovation. N'hésitez pas à revenir vers moi pour ajuster les postes.",
+  "corps": [
+   "Bonjour,",
+   "Comme convenu au téléphone, je vous joins le devis pour le chantier de la rue Victor Hugo.",
+   "Le montant tient compte de la remise de 8 % dont nous avions parlé. Délai : trois semaines à compter de la signature.",
+   "Je reste disponible pour en discuter.",
+   "Cordialement,\nThomas Berger"
+  ],
+  "agoMs": 18000000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": [
+   {
+    "nom": "Devis-VictorHugo.pdf",
+    "taille": "96 Ko",
+    "type": "doc"
+   }
+  ]
+ },
+ {
+  "id": "m4",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Camille Roy",
+   "email": "camille.roy@gmail.com"
+  },
+  "a": "Camille",
+  "objet": "Déjeuner vendredi ?",
+  "apercu": "Tu es dispo vendredi midi ? Il y a la nouvelle adresse près du parc dont tout le monde parle. Je réserve si tu me dis oui.",
+  "corps": [
+   "Coucou,",
+   "Tu es dispo vendredi midi pour déjeuner ? Il y a cette nouvelle adresse près du parc dont tout le monde parle.",
+   "Je peux réserver pour 12 h 30 si ça te va. Dis-moi vite.",
+   "Bisous,\nCamille"
+  ],
+  "agoMs": 28800000,
+  "lu": false,
+  "drapeau": true,
+  "vip": true,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m5",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "OP MESSAGES",
+   "email": "no-reply@messagerie-essai.example"
+  },
+  "a": "Camille",
+  "objet": "Vous avez 3 nouveaux messages dans l'équipe",
+  "apercu": "L'équipe Atelier Nord a échangé pendant votre absence. Ouvrez OP MESSAGES pour reprendre la conversation.",
+  "corps": [
+   "Bonjour Camille,",
+   "Pendant votre absence, 3 messages ont été échangés dans l'équipe « Atelier Nord » sur OP MESSAGES.",
+   "Reprenez la conversation à tout moment depuis l'application.",
+   "— OP MESSAGES"
+  ],
+  "agoMs": 39600000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m6",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "SNCF Connect",
+   "email": "confirmation@sncf-connect.com"
+  },
+  "a": "Camille",
+  "objet": "Votre billet pour Paris — 12 nov.",
+  "apercu": "Votre voyage est confirmé. Retrouvez votre billet en pièce jointe et présentez-le à l'embarquement.",
+  "corps": [
+   "Bonjour,",
+   "Votre réservation est confirmée.",
+   "Départ : 12 novembre, 08 h 04 — Lyon Part-Dieu\nArrivée : 10 h 02 — Paris Gare de Lyon\nVoiture 12, place 34, côté fenêtre.",
+   "Votre billet est en pièce jointe.",
+   "Bon voyage,\nSNCF Connect"
+  ],
+  "agoMs": 93600000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": [
+   {
+    "nom": "Billet-Paris.pdf",
+    "taille": "72 Ko",
+    "type": "doc"
+   }
+  ]
+ },
+ {
+  "id": "m7",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Marc Lefèvre",
+   "email": "m.lefevre@atelier-nord.fr"
+  },
+  "a": "Camille, Léa",
+  "objet": "Re: Planning des interventions",
+  "apercu": "Parfait pour moi. Je prends le secteur sud lundi et mardi, et je laisse le nord à l'équipe de Karim.",
+  "corps": [
+   "Parfait pour moi.",
+   "Je prends le secteur sud lundi et mardi, et je laisse le nord à l'équipe de Karim comme discuté.",
+   "On refait le point mercredi.",
+   "Marc",
+   [
+    "quote",
+    "Le 10 nov., Camille a écrit :\n> Est-ce que tu peux prendre le secteur sud en début de semaine ? On est un peu justes côté planning."
+   ]
+  ],
+  "agoMs": 108000000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m8",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Sophie",
+   "email": "sophie.m@icloud.com"
+  },
+  "a": "Camille",
+  "objet": "Photos du week-end",
+  "apercu": "Je t'envoie quelques photos de la rando de samedi, elles sont superbes avec la lumière de fin de journée.",
+  "corps": [
+   "Hello !",
+   "Je t'envoie quelques photos de la rando de samedi. La lumière de fin de journée était incroyable.",
+   "Merci encore pour l'organisation, c'était une super journée.",
+   "À très vite,\nSophie"
+  ],
+  "agoMs": 172800000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": [
+   {
+    "nom": "IMG_4821.jpg",
+    "taille": "3,2 Mo",
+    "type": "img"
+   },
+   {
+    "nom": "IMG_4830.jpg",
+    "taille": "2,8 Mo",
+    "type": "img"
+   }
+  ]
+ },
+ {
+  "id": "m11",
+  "boite": "a1",
+  "dossier": "sent",
+  "de": null,
+  "a": "lea.fontaine@atelier-nord.fr",
+  "objet": "Re: Compte rendu de la réunion de mardi",
+  "apercu": "Merci Léa, c'est très clair. Je valide les trois points. Je m'occupe de prévenir l'équipe technique pour le lancement.",
+  "corps": [
+   "Merci Léa, c'est très clair.",
+   "Je valide les trois points. Je m'occupe de prévenir l'équipe technique pour le lancement du 2.",
+   "À mardi,\nCamille"
+  ],
+  "agoMs": 900000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m12",
+  "boite": "a2",
+  "dossier": "sent",
+  "de": null,
+  "a": "camille.roy@gmail.com",
+  "objet": "Re: Déjeuner vendredi ?",
+  "apercu": "Oui avec plaisir ! 12 h 30 ça me va parfaitement. Réserve, je m'occupe du dessert pour la prochaine fois.",
+  "corps": [
+   "Oui avec plaisir !",
+   "12 h 30 ça me va parfaitement. Réserve, et je m'occupe du dessert pour la prochaine fois.",
+   "À vendredi,\nCamille"
+  ],
+  "agoMs": 25200000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m13",
+  "boite": "a2",
+  "dossier": "archive",
+  "de": {
+   "nom": "UX Weekly",
+   "email": "hello@uxweekly.com"
+  },
+  "a": "Camille",
+  "objet": "Les 5 tendances d'interface de la semaine",
+  "apercu": "Cette semaine : le retour des interfaces denses, les dégradés maîtrisés, et pourquoi la typographie système revient en force.",
+  "corps": [
+   "Au programme cette semaine :",
+   "— Le retour des interfaces denses et des listes à trois panneaux.\n— Les dégradés maîtrisés, loin des arcs-en-ciel.\n— Pourquoi la typographie système revient en force.",
+   "Bonne lecture,\nL'équipe UX Weekly"
+  ],
+  "agoMs": 518400000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m14",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "GRAND CONCOURS",
+   "email": "gagnant@promo-express-xyz.net"
+  },
+  "a": "Camille",
+  "objet": "Vous avez été TIRÉ AU SORT",
+  "apercu": "Félicitations ! Cliquez immédiatement pour réclamer votre cadeau exceptionnel avant expiration dans 24 h.",
+  "corps": [
+   "FÉLICITATIONS !",
+   "Vous avez été tiré au sort pour recevoir un cadeau exceptionnel.",
+   "Cliquez vite avant expiration…",
+   "(Ce message est un exemple de courrier indésirable.)"
+  ],
+  "agoMs": 32400000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m15",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Claire Dubois",
+   "email": "claire.dubois@sarl-mercier.fr"
+  },
+  "a": "Camille",
+  "objet": "Intervention de jeudi — accès au site",
+  "apercu": "Bonjour Camille, pour jeudi, le portail côté rue sera fermé. Je vous attendrai à l'entrée de service à partir de 8 h 45.",
+  "corps": [
+   "Bonjour Camille,",
+   "Pour l'intervention de jeudi, le portail côté rue sera fermé pour travaux. Je vous attendrai à l'entrée de service, rue des Tanneurs, à partir de 8 h 45.",
+   "Le groupe froid est au sous-sol ; je préviens le gardien de votre passage.",
+   "Merci et à jeudi,\nClaire Dubois\nSARL Mercier"
+  ],
+  "agoMs": 10800000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m16",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Distri'Élec Pro",
+   "email": "facturation@distrielec-pro.fr"
+  },
+  "a": "Camille Moreau",
+  "objet": "Votre facture n° FA-2026-10482 est disponible",
+  "apercu": "Facture n° FA-2026-10482 du 16/10/2026 — Montant TTC : 1 284,60 €. Échéance de paiement : 15/11/2026.",
+  "corps": [
+   "Bonjour,",
+   "Votre facture n° FA-2026-10482 est disponible dans votre espace client.",
+   "Commande : câbles et disjoncteurs — chantier Villeurbanne\nMontant HT : 1 070,50 €\nMontant TTC : 1 284,60 €\nÉchéance : 15/11/2026 (virement à 30 jours)",
+   "Merci de votre confiance,\nLe service facturation — Distri'Élec Pro"
+  ],
+  "agoMs": 21600000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": [
+   {
+    "nom": "FA-2026-10482.pdf",
+    "taille": "64 Ko",
+    "type": "doc"
+   }
+  ]
+ },
+ {
+  "id": "m17",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "SNCF Connect",
+   "email": "confirmation@sncf-connect.com"
+  },
+  "a": "Camille Moreau",
+  "objet": "Vos e-billets Lyon → Marseille — 23 oct.",
+  "apercu": "Réservation confirmée pour votre déplacement : aller le 23 octobre à 7 h 34, retour le soir même à 18 h 52.",
+  "corps": [
+   "Bonjour Camille,",
+   "Votre réservation est confirmée.",
+   "Aller : 23 octobre, 07 h 34 — Lyon Part-Dieu → 09 h 15 Marseille Saint-Charles, voiture 4, place 61\nRetour : 23 octobre, 18 h 52 — Marseille Saint-Charles → 20 h 33 Lyon Part-Dieu, voiture 7, place 22",
+   "Vos e-billets sont en pièce jointe. Présentez-les à l'embarquement.",
+   "Bon voyage,\nSNCF Connect"
+  ],
+  "agoMs": 33600000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": [
+   {
+    "nom": "E-billets-Marseille.pdf",
+    "taille": "88 Ko",
+    "type": "doc"
+   }
+  ]
+ },
+ {
+  "id": "m18",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "BatInfo Pro",
+   "email": "newsletter@batinfo-pro.fr"
+  },
+  "a": "Camille",
+  "objet": "La lettre du bâtiment — RE2020, aides 2027, salons de novembre",
+  "apercu": "Au sommaire cette semaine : ce qui change avec la RE2020 au 1er janvier, les aides à la rénovation 2027 et notre webinaire du 6 novembre.",
+  "corps": [
+   "Au sommaire cette semaine :",
+   "— RE2020 : ce qui change au 1er janvier pour les installateurs.\n— Aides à la rénovation 2027 : le point complet.\n— Webinaire gratuit le 6 novembre : « Réussir ses chantiers d'hiver ». Inscrivez-vous en un clic.",
+   "Bonne lecture,\nLa rédaction BatInfo Pro",
+   "Vous recevez cette newsletter car vous êtes abonné. Se désinscrire."
+  ],
+  "agoMs": 90000000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": true,
+  "pj": []
+ },
+ {
+  "id": "m19",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Microsoft",
+   "email": "microsoft-noreply@microsoft.com"
+  },
+  "a": "Camille Moreau",
+  "objet": "Votre facture Microsoft 365 Business Standard",
+  "apercu": "Votre facture du 15 octobre 2026 est disponible. Montant total : 15,00 € TTC pour 1 licence.",
+  "corps": [
+   "Bonjour Camille,",
+   "Votre facture du 15 octobre 2026 pour l'abonnement Microsoft 365 Business Standard est disponible dans le Centre d'administration.",
+   "Organisation : Gestion Essai\nLicences : 1\nMontant total : 15,00 € TTC (12,50 € HT)\nPrélèvement le 20 octobre 2026",
+   "L'équipe Microsoft 365"
+  ],
+  "agoMs": 183600000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m20",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Distri'Élec Pro",
+   "email": "offres@distrielec-pro.fr"
+  },
+  "a": "Camille",
+  "objet": "-20 % sur l'outillage électroportatif jusqu'à dimanche",
+  "apercu": "Profitez de -20 % sur toute la gamme outillage avec le code PRO20. Offre valable jusqu'au 20 octobre, en agence et en ligne.",
+  "corps": [
+   "Cette semaine seulement :",
+   "-20 % sur toute la gamme d'outillage électroportatif avec le code PRO20.\nLivraison offerte sur chantier dès 150 € HT.",
+   "Offre valable jusqu'au 20 octobre 2026, en agence et en ligne.",
+   "Se désinscrire de nos offres"
+  ],
+  "agoMs": 190800000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": true,
+  "pj": []
+ },
+ {
+  "id": "m21",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Philippe Garnier — Direction",
+   "email": "p.garnier.direction@gmail.com"
+  },
+  "a": "Camille",
+  "objet": "Urgent et confidentiel",
+  "apercu": "Camille, es-tu à ton bureau ? J'ai besoin que tu fasses un virement urgent aujourd'hui pour un dossier d'acquisition. Je suis en réunion.",
+  "corps": [
+   "Camille,",
+   "Es-tu à ton bureau ? J'ai besoin que tu fasses un virement urgent aujourd'hui pour un dossier d'acquisition strictement confidentiel.",
+   "Je suis en réunion toute la journée et je ne peux pas prendre d'appel. N'en parle à personne pour l'instant, je t'envoie les coordonnées bancaires dans un instant.",
+   "Philippe Garnier\nDirection",
+   "(Ce message est un exemple d'arnaque au président.)"
+  ],
+  "agoMs": 14400000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m22",
+  "boite": "a1",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Colissimo",
+   "email": "suivi@colissimo-livraison-fr.com"
+  },
+  "a": "Client",
+  "objet": "Votre colis est en attente — frais de livraison impayés",
+  "apercu": "Votre colis n° 6A21458795 est en attente. Des frais de livraison impayés de 1,99 € doivent être réglés sous 48 h.",
+  "corps": [
+   "Bonjour,",
+   "Votre colis n° 6A21458795 est en attente au centre de distribution : des frais de livraison impayés de 1,99 € restent à régler.",
+   "Réglez-les sous 48 h pour programmer une nouvelle livraison. Passé ce délai, le colis sera retourné à l'expéditeur.",
+   "Service client Colissimo",
+   "(Ce message est un exemple de faux avis de colis.)"
+  ],
+  "agoMs": 100800000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m23",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Google",
+   "email": "no-reply@accounts.google.com"
+  },
+  "a": "camille.essai@messagerie-essai.example",
+  "objet": "Alerte de sécurité : nouvelle connexion sur un Mac",
+  "apercu": "Nouvelle connexion à votre compte Google camille.essai@messagerie-essai.example depuis un Mac, à Lyon. Si c'était vous, vous n'avez rien à faire.",
+  "corps": [
+   "Nouvelle connexion sur Mac",
+   "Votre compte Google camille.essai@messagerie-essai.example vient d'être utilisé pour vous connecter sur un nouvel appareil Mac, à Lyon (France).",
+   "Si c'était vous, vous n'avez rien à faire. Sinon, sécurisez votre compte depuis la page Sécurité de votre compte Google.",
+   "L'équipe Comptes Google"
+  ],
+  "agoMs": 2400000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m24",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Vélo Passion",
+   "email": "newsletter@velopassion.fr"
+  },
+  "a": "Camille",
+  "objet": "Soldes d'automne : jusqu'à -30 % sur les vélos de route",
+  "apercu": "Derniers jours ! Jusqu'à -30 % sur une sélection de vélos de route et gravel, et la révision offerte pour tout achat.",
+  "corps": [
+   "Derniers jours pour profiter des soldes d'automne :",
+   "Jusqu'à -30 % sur une sélection de vélos de route et gravel.\nRévision offerte pendant un an pour tout achat d'un vélo.",
+   "Offre valable jusqu'au 26 octobre 2026, en magasin et en ligne.",
+   "Vous recevez cet e-mail car vous êtes inscrit à la newsletter Vélo Passion. Se désinscrire."
+  ],
+  "agoMs": 18000000,
+  "lu": false,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": true,
+  "pj": []
+ },
+ {
+  "id": "m25",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Crédit Agricole",
+   "email": "alerte@credit-agricole-securite.com"
+  },
+  "a": "Client",
+  "objet": "Action requise : votre accès en ligne sera suspendu",
+  "apercu": "Nous avons détecté une activité inhabituelle. Vérifiez votre identité sous 24 h pour éviter la suspension de votre compte.",
+  "corps": [
+   "Cher client,",
+   "Nous avons détecté une activité inhabituelle sur votre espace en ligne. Par mesure de sécurité, votre accès en ligne sera suspendu.",
+   "Vérifiez votre identité sous 24 h en confirmant vos coordonnées bancaires sur notre page sécurisée.",
+   "Service sécurité — Crédit Agricole",
+   "(Ce message est un exemple d'hameçonnage : le domaine imite celui de la banque.)"
+  ],
+  "agoMs": 46800000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m26",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Doctolib",
+   "email": "no-reply@doctolib.fr"
+  },
+  "a": "Camille",
+  "objet": "Rappel : rendez-vous demain à 10 h 30",
+  "apercu": "Rendez-vous demain à 10 h 30 avec le Dr Anne Mercadier, médecin généraliste, 12 rue Victor Hugo, Lyon 6e.",
+  "corps": [
+   "Bonjour Camille,",
+   "Nous vous rappelons votre rendez-vous :",
+   "Demain, 10 h 30\nDr Anne Mercadier — médecin généraliste\n12 rue Victor Hugo, 69006 Lyon",
+   "En cas d'empêchement, pensez à annuler votre rendez-vous pour libérer le créneau.",
+   "L'équipe Doctolib"
+  ],
+  "agoMs": 86400000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m27",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Antoine Leroy",
+   "email": "antoine.leroy@orange.fr"
+  },
+  "a": "Camille",
+  "objet": "Match de dimanche ?",
+  "apercu": "Salut ! On joue dimanche à 10 h au city stade, il nous manque un gardien. Tu es partant ? Je prends les maillots.",
+  "corps": [
+   "Salut !",
+   "On joue dimanche à 10 h au city stade, et il nous manque un gardien. Tu es partant ?",
+   "Je m'occupe des maillots, ramène juste tes crampons.",
+   "À+\nAntoine"
+  ],
+  "agoMs": 97200000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m28",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Apple",
+   "email": "no_reply@email.apple.com"
+  },
+  "a": "Camille",
+  "objet": "Votre reçu Apple",
+  "apercu": "Reçu du 16 octobre 2026 — iCloud+ avec 50 Go de stockage (mensuel) : 2,99 €. Facturé sur votre moyen de paiement enregistré.",
+  "corps": [
+   "Reçu",
+   "Identifiant Apple : camille.essai@messagerie-essai.example\nDate : 16 octobre 2026\nCommande n° MQ7Z2K4LP",
+   "iCloud+ avec 50 Go de stockage (mensuel) — 2,99 €\nTotal payé : 2,99 € TTC",
+   "Renouvellement automatique le 16 novembre 2026. Vous pouvez gérer votre abonnement dans Réglages."
+  ],
+  "agoMs": 111600000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m29",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Le Petit Gourmet",
+   "email": "bonjour@lepetitgourmet.fr"
+  },
+  "a": "Camille",
+  "objet": "5 recettes de saison pour la semaine",
+  "apercu": "Au sommaire : velouté de potimarron, tarte fine aux pommes, risotto aux champignons… et les nouveautés de l'épicerie.",
+  "corps": [
+   "Au sommaire cette semaine :",
+   "— Velouté de potimarron et noisettes torréfiées\n— Risotto crémeux aux champignons des bois\n— Tarte fine aux pommes et caramel au beurre salé",
+   "Et découvrez les nouveautés de notre épicerie fine.",
+   "Bon appétit !\nL'équipe du Petit Gourmet",
+   "Se désinscrire de la lettre d'information"
+  ],
+  "agoMs": 180000000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": true,
+  "pj": []
+ },
+ {
+  "id": "m30",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Free Mobile",
+   "email": "noreply@free-mobile.fr"
+  },
+  "a": "Camille",
+  "objet": "Votre facture Free Mobile d'octobre est disponible",
+  "apercu": "Votre facture du mois d'octobre est disponible dans votre Espace Abonné. Montant : 15,99 €, prélevé le 22 octobre.",
+  "corps": [
+   "Bonjour,",
+   "Votre facture du mois d'octobre 2026 est disponible dans votre Espace Abonné.",
+   "Forfait Free 5G 150 Go\nMontant : 15,99 € TTC\nPrélèvement prévu le 22 octobre 2026 sur votre compte se terminant par 42.",
+   "Cordialement,\nFree Mobile"
+  ],
+  "agoMs": 266400000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m31",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Booking.com",
+   "email": "noreply@booking.com"
+  },
+  "a": "Camille",
+  "objet": "Réservation confirmée — Hôtel Les Galets, Biarritz",
+  "apercu": "Votre séjour est confirmé : 2 nuits du 7 au 9 novembre. Arrivée à partir de 15 h, départ avant 11 h.",
+  "corps": [
+   "Bonjour Camille,",
+   "Votre réservation à l'Hôtel Les Galets est confirmée.",
+   "Arrivée : vendredi 7 novembre, à partir de 15 h 00\nDépart : dimanche 9 novembre, avant 11 h 00\n2 nuits · chambre double vue mer · petit-déjeuner inclus",
+   "Numéro de confirmation : 4821.553.907",
+   "Bon séjour,\nBooking.com"
+  ],
+  "agoMs": 280800000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m32",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Maison Lumen",
+   "email": "commandes@maisonlumen.fr"
+  },
+  "a": "Camille",
+  "objet": "Confirmation de votre commande n° 48213",
+  "apercu": "Merci pour votre commande ! Lampe de bureau Arc (laiton) × 1 — Total payé : 64,90 €. Expédition prévue demain.",
+  "corps": [
+   "Bonjour Camille,",
+   "Merci pour votre commande n° 48213 passée le 13 octobre 2026.",
+   "Lampe de bureau Arc, laiton × 1 — 59,90 €\nLivraison à domicile — 5,00 €\nTotal payé : 64,90 € TTC (carte bancaire)",
+   "Vous recevrez un e-mail dès l'expédition de votre colis.",
+   "L'équipe Maison Lumen"
+  ],
+  "agoMs": 349200000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": false,
+  "pj": []
+ },
+ {
+  "id": "m33",
+  "boite": "a2",
+  "dossier": "inbox",
+  "de": {
+   "nom": "Le Petit Gourmet",
+   "email": "bonjour@lepetitgourmet.fr"
+  },
+  "a": "Camille",
+  "objet": "Menu d'automne : 4 plats mijotés faciles",
+  "apercu": "Au sommaire : bœuf bourguignon, poule au pot, curry de légumes et notre programme de la semaine pour cuisiner malin.",
+  "corps": [
+   "Au sommaire cette semaine :",
+   "— Bœuf bourguignon comme chez mamie\n— Poule au pot et ses légumes d'hiver\n— Curry de légumes au lait de coco",
+   "Le programme de la semaine pour cuisiner malin vous attend.",
+   "L'équipe du Petit Gourmet",
+   "Se désinscrire de la lettre d'information"
+  ],
+  "agoMs": 777600000,
+  "lu": true,
+  "drapeau": false,
+  "vip": false,
+  "desinscription": true,
+  "pj": []
+ }
+];
+var ARRIVEES = {
+  pro: [{ de: { nom: "Claire Dubois", email: "claire.dubois@sarl-mercier.fr" }, objet: "Re: Intervention de jeudi — accès au site", corps: ["Bonjour,", "Le badge d’accès sera à l’accueil à partir de 8 h 30. Le gardien est prévenu.", "Bonne journée,\nClaire Dubois"] },
+        { de: { nom: "Thomas Berger", email: "t.berger@berger-batiment.fr" }, objet: "Re: Devis chantier Rue Victor Hugo", corps: ["Bonjour,", "Petite précision : le devis reste valable 30 jours. Je peux démarrer le 4 novembre si vous validez cette semaine.", "Cordialement,\nThomas Berger"] }],
+  perso: [{ de: { nom: "Camille Roy", email: "camille.roy@gmail.com" }, objet: "Re: Déjeuner vendredi ?", corps: ["Parfait pour 12 h 30 ! Je réserve une table.", "Camille"] },
+          { de: { nom: "Antoine Leroy", email: "antoine.leroy@orange.fr" }, objet: "Re: Match de dimanche ?", corps: ["On a un terrain à 10 h, tu es partant ?", "Antoine"] }]
+};
+
+function creer(o) {
+  o = o || {};
+  var mode = o.mode || "demo";
+  var etat = { retirees: [], ajoutees: [], arrivees: [], n: 0, suiv: { pro: 0, perso: 0 } };
+  try { var r = JSON.parse(localStorage.getItem(CLE) || "null"); if (r && r.retirees) etat = r; } catch (e) {}
+  function garder() { try { localStorage.setItem(CLE, JSON.stringify(etat)); } catch (e) {} }
+  var t0 = Date.now();
+  var api = { envoyes: [], appels: [], mode: mode };
+  function note(x) { api.appels.push(x); }
+  function liste() {
+    if (mode === "vide") return etat.ajoutees.slice();
+    return BOITES.filter(function (b) { return etat.retirees.indexOf(b.id) < 0; }).concat(etat.ajoutees);
+  }
+  function brut(m) { var c = { id: m.id, dossier: m.dossier, de: m.de, a: m.a, objet: m.objet, apercu: m.apercu, date: m.date != null ? m.date : t0 - (m.agoMs || 0),
+      lu: m.lu, drapeau: m.drapeau, vip: m.vip, desinscription: m.desinscription, pj: m.pj };
+    if (mode !== "differe") c.corps = m.corps; return c; }
+  api.capacites = function () {
+    note("capacites");
+    if (mode === "signature")   // v2.95 : la source sait signer pour de vrai (faux service piloté par la sonde : window.__sigServeur)
+      return Promise.resolve({ signature: true, dossiers: ["inbox"], destinataires: 1, pj: { nombre: 3, octets: 4 * 1024 * 1024 } });
+    if (mode === "reel" || mode === "vide" || mode === "panne" || mode === "panne-messages" || mode === "refus" || mode === "differe")
+      return Promise.resolve({ dossiers: ["inbox"], destinataires: 1, pj: { nombre: 3, octets: 4 * 1024 * 1024 } });
+    return Promise.resolve({ oauth: true, programmeServeur: true, signature: true, reglagesServeur: true, simulation: true,
+      dossiers: ["inbox", "sent", "archive"], destinataires: 50, pj: { nombre: 99, octets: 25 * 1024 * 1024 } });
+  };
+  api.boites = function () { note("boites"); if (mode === "panne") return Promise.reject(new Error("serveur injoignable (essai)")); return Promise.resolve(liste().map(function (b) { return { id: b.id, email: b.email, nom: b.nom, cote: b.cote, fournisseur: b.fournisseur }; })); };
+  api.messages = function (q) {
+    note("messages:" + q.boite + ":" + q.dossier);
+    if (mode === "panne-messages" && q.boite === "a2") return Promise.reject(new Error("boîte injoignable (essai)"));
+    if (mode === "vide") return Promise.resolve([]);
+    var out = MESSAGES.filter(function (m) { return m.boite === q.boite && m.dossier === q.dossier; }).map(brut)
+      .concat(etat.arrivees.filter(function (m) { return m.boite === q.boite && m.dossier === q.dossier; }).map(brut));
+    return Promise.resolve(out);
+  };
+  api.lire = function (id) { note("lire:" + id);
+    var m = MESSAGES.concat(etat.arrivees).filter(function (x) { return x.id === id; })[0];
+    return m ? Promise.resolve({ corps: m.corps }) : Promise.reject(new Error("message introuvable (essai)")); };
+  api.envoyer = function (mail) { note("envoyer"); api.envoyes.push({ boite: mail.boite, de: mail.de, a: mail.a, objet: mail.objet, texte: mail.texte, pieces: (mail.pieces || []).map(function (f) { return f.name; }) });
+    if (mode === "refus") return Promise.reject(new Error("refusé par le serveur (essai)"));
+    return new Promise(function (ok) { setTimeout(ok, 30); }); };
+  api.ajouterBoite = function (p) { note("ajouterBoite");
+    if (/refus/i.test(p.email)) return Promise.reject(new Error("Connexion réception (IMAP) refusée : identifiants incorrects (essai)"));
+    var id = "acct" + (etat.n + 1) + "_" + p.email.replace(/[^a-z0-9]/gi, "").slice(0, 6); etat.n++;
+    var b = { id: id, email: p.email, nom: p.nom, cote: p.cote, fournisseur: p.fournisseur };
+    etat.ajoutees.push(b);
+    etat.arrivees.push({ id: "w" + etat.n, boite: id, dossier: "inbox", de: { nom: "Messagerie", email: "bienvenue@messagerie-essai.example" }, a: p.nom, objet: "Bienvenue — " + p.email + " est connecté",
+      apercu: "Votre compte est relié.", corps: ["Bonjour " + p.nom + ",", "Votre compte est relié."], date: Date.now(), lu: false, drapeau: false, pj: [] });
+    garder(); return Promise.resolve(b); };
+  api.retirerBoite = function (id) { note("retirerBoite:" + id); etat.retirees.push(id); etat.ajoutees = etat.ajoutees.filter(function (b) { return b.id !== id; }); garder(); return Promise.resolve(); };
+  /* le service MX n'existe que dans le mode de démonstration : le serveur d'OP GESTION n'en offre pas (mode=reel → aucun appel réseau pour un domaine d'entreprise) */
+  if (mode === "signature") {
+    var SRV = window.__sigServeur = { demandes: {}, echec: {}, appels: [], n: 0,
+      fixer: function (id, patch) { Object.assign(SRV.demandes[id].vue, patch); } };
+    var PDFX = function (m) { return new Blob(["%PDF-1.4\n% " + m + "\n%%EOF\n"], { type: "application/pdf" }); };
+    var vueDe = function (id) { return JSON.parse(JSON.stringify(SRV.demandes[id].vue)); };
+    var trouve = function (id) { if (!SRV.demandes[id]) return Promise.reject(new Error("Demande introuvable (elle a peut-être été effacée du service).")); return null; };
+    var refus = function (quoi) { return SRV.echec[quoi] ? Promise.reject(new Error(SRV.echec[quoi])) : null; };
+    api.signature = {
+      envoyer: function (dem, fichiers) { SRV.appels.push("envoyer"); var r = refus("envoyer"); if (r) return r;
+        var id = ("d" + (++SRV.n) + "0000000000000000000000").slice(0, 24).replace(/[^0-9a-f]/g, "a");
+        var liste = dem.signataires.map(function (x) { return { nom: x.nom, email: x.email, contre: false, etat: "pending" }; });
+        if (dem.contresignature) liste.push({ nom: dem.contresignature.nom, email: dem.contresignature.email, contre: true, etat: "pending" });
+        SRV.demandes[id] = { dem: dem, fichiers: fichiers.map(function (f) { return { nom: f.nom, taille: f.blob.size }; }),
+          vue: { id: id, etat: "en_attente", echeance: Date.now() + dem.jours * DAY, signataires: liste, documents: fichiers.map(function (f, i) { return { n: i + 1, nom: f.nom, taille: f.blob.size, signe: false }; }), preuves: 0, evenements: [{ t: Date.now(), x: "Demande préparée" }, { t: Date.now(), x: "Envoyé à " + dem.signataires.map(function (x) { return x.nom; }).join(", ") }] } };
+        return Promise.resolve(vueDe(id)); },
+      etat: function (id) { SRV.appels.push("etat"); return trouve(id) || refus("etat") || Promise.resolve(vueDe(id)); },
+      relancer: function (id) { SRV.appels.push("relancer"); return trouve(id) || refus("relancer") || (SRV.demandes[id].vue.evenements.push({ t: Date.now(), x: "Relance envoyée" }), Promise.resolve(vueDe(id))); },
+      annuler: function (id) { SRV.appels.push("annuler"); return trouve(id) || refus("annuler") || (SRV.demandes[id].vue.etat = "annule", Promise.resolve(vueDe(id))); },
+      signe: function (id, n) { SRV.appels.push("signe:" + n); return trouve(id) || refus("signe") || Promise.resolve(PDFX("SIGNE " + id + " " + n)); },
+      preuve: function (id, i) { SRV.appels.push("preuve:" + i); return trouve(id) || refus("preuve") || Promise.resolve(PDFX("PREUVE " + id + " " + i)); }
+    };
+  }
+  if (mode === "demo") api.lireMX = function (d) { note("lireMX:" + d);
+    var essai = function (url, headers) { return new Promise(function (ok, ko) {
+      var ctl = typeof AbortController !== "undefined" ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); ko(new Error("délai")); }, 3500);
+      fetch(url, { headers: headers || {}, signal: ctl ? ctl.signal : undefined }).then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t);
+        if (!j || j.Status !== 0) return ok([]);
+        ok((j.Answer || []).filter(function (a) { return a.type === 15; }).map(function (a) { return String(a.data).toLowerCase().split(" ").pop(); }));
+      }).catch(function (e) { clearTimeout(t); ko(e); }); }); };
+    var q = encodeURIComponent(d);
+    return essai("https://dns.google/resolve?name=" + q + "&type=MX").catch(function () { return essai("https://cloudflare-dns.com/dns-query?name=" + q + "&type=MX", { accept: "application/dns-json" }); }); };
+  api.simuler = function (quoi, p) { note("simuler:" + quoi);
+    var b = liste().filter(function (x) { return x.id === (p && p.boite); })[0] || liste()[0]; if (!b) return Promise.reject(new Error("aucune boîte"));
+    var k = b.cote === "pro" ? "pro" : "perso", t = ARRIVEES[k][etat.suiv[k]++ % ARRIVEES[k].length]; etat.n++;
+    etat.arrivees.push({ id: "r" + etat.n, boite: b.id, dossier: "inbox", de: t.de, a: b.nom, objet: t.objet, corps: t.corps, apercu: t.corps.join(" ").slice(0, 200), date: Date.now(), lu: false, drapeau: false, pj: [] });
+    garder(); return Promise.resolve(); };
+  if (mode === "demo") setTimeout(function () { api.simuler("recevoir", { boite: "a1" }); }, 180000);
+  return api;
+}
+window.OPCourrierDemo = { creer: creer, boites: BOITES, messages: MESSAGES };
+})();
+</script>
 <script>
 /* ═══ PROTOTYPE OP MESSAGES — données ENTIÈREMENT FICTIVES, aucun appel réseau, rien ne s'enregistre. ═══ */
 'use strict';
@@ -469,10 +1377,10 @@ const P = {
   karim:  { n: 'Karim Benali', r: 'Technicien', eq: 1, st: 'occ', stt: 'En intervention jusqu’à 11 h', a: ['#59b98a', '#1f6e9c'], tel: '06 00 00 00 11' },
   leo:    { n: 'Léo Faure', r: 'Technicien', eq: 1, st: 'ok', stt: 'Disponible', a: ['#f0a35e', '#d9487a'], tel: '06 00 00 00 12' },
   sophie: { n: 'Sophie Renard', r: 'Assistante · bureau', eq: 1, st: 'ok', stt: 'Disponible', a: ['#a070e0', '#4a3fb0'], tel: '06 00 00 00 13' },
-  marc:   { n: 'Marc Dubois', r: 'Client · Boulangerie Dubois', a: ['#8e8e93', '#55555a'], tel: '06 00 00 00 21', mel: 'marc@boulangerie-dubois.example' },
-  james:  { n: 'James Carter', r: 'Client · Hôtel des Remparts', a: ['#3fc1d6', '#3a4fb8'], tel: '06 00 00 00 22', mel: 'j.carter@hotel-remparts.example' },
-  thomas: { n: 'Thomas Girard', r: 'Fournisseur · Froid Atlantique', a: ['#f0a35e', '#c9562f'], tel: '05 00 00 00 31', mel: 'thomas@froid-atlantique.example' },
-  camille:{ n: 'Camille Roy', r: 'Comptable · Cabinet Roy', a: ['#59b98a', '#1f6e63'], tel: '05 00 00 00 32', mel: 'c.roy@cabinet-roy.example' },
+  marc:   { n: 'Marc Dubois', r: 'Client · Boulangerie Dubois', a: ['#8e8e93', '#55555a'], tel: '06 00 00 00 21' },
+  james:  { n: 'James Carter', r: 'Client · Hôtel des Remparts', a: ['#3fc1d6', '#3a4fb8'], tel: '06 00 00 00 22' },
+  thomas: { n: 'Thomas Girard', r: 'Fournisseur · Froid Atlantique', a: ['#f0a35e', '#c9562f'], tel: '05 00 00 00 31' },
+  camille:{ n: 'Camille Roy', r: 'Comptable · Cabinet Roy', a: ['#59b98a', '#1f6e63'], tel: '05 00 00 00 32' },
   helene: { n: 'Maman', r: 'Hélène Martin', perso: 1, st: 'ok', a: ['#f0a35e', '#d9487a'], tel: '06 00 00 00 41' },
   antoine:{ n: 'Antoine Petit', r: 'Ami', perso: 1, a: ['#3fc1d6', '#3a4fb8'], tel: '06 00 00 00 42' },
   nora:   { n: 'Nora Lefèvre', r: 'Club de voile', perso: 1, st: 'ok', a: ['#a070e0', '#4a3fb0'], tel: '06 00 00 00 43' },
@@ -569,47 +1477,11 @@ const EVTS = [
 ];
 const evt = (id) => EVTS.find((e) => e.id === id);
 
-/* ── le courrier ── */
-const BOITES = [
-  { id: 'contact', cote: 'pro', n: 'Contact', a: 'contact@clim-services17.example', c: '#2a4a9c', partagee: 1 },
-  { id: 'julie', cote: 'pro', n: 'Julie', a: 'julie@clim-services17.example', c: '#7d3c98' },
-  { id: 'perso', cote: 'perso', n: 'Personnelle', a: 'julie.martin@courriel.example', c: '#c9562f' },
-];
-const CATS = { principal: ['Principal', '#2a4a9c'], clients: ['Clients', '#1c7a3a'], factures: ['Factures', '#a04a00'], notifs: ['Notifications', '#7d3c98'], promos: ['Lettres d’info', '#8e8e93'] };
-const MAILS = [
-  { id: 'm1', boite: 'contact', de: ['James Carter', 'j.carter@hotel-remparts.example', 'james'], objet: 'Contrat d’entretien 2027 — à signer', cat: 'clients', j: 0, h: '08:31', lu: 0, fil: 3,
-    corps: 'Bonjour Madame Martin,\n\nNous sommes d’accord sur le contrat d’entretien 2027 pour les 14 climatiseurs, au tarif de 2 380 € HT par an.\n\nPouvez-vous nous envoyer le contrat à signer avant vendredi ? Notre directeur part en congé lundi.\n\nNous aimerions aussi caler la visite de printemps, plutôt la semaine du 12 avril.\n\nBien cordialement,\nJames Carter\nHôtel des Remparts',
-    resume: ['Le client accepte le contrat 2027 : 14 climatiseurs, 2 380 € HT par an.', 'Il veut le contrat à signer avant vendredi.', 'Il propose la visite de printemps la semaine du 12 avril.'],
-    reponses: ['Bonjour, je vous envoie le contrat à signer aujourd’hui.', 'Bonjour, c’est noté pour la semaine du 12 avril.', 'Bonjour, pouvons-nous en parler dix minutes au téléphone ?'], pj: [['Contrat-entretien-2027.pdf', '184 Ko']] },
-  { id: 'm2', boite: 'contact', de: ['Marc Dubois', 'marc@boulangerie-dubois.example', 'marc'], objet: 'Demande de devis — compresseur chambre froide', cat: 'clients', j: 0, h: '09:14', lu: 0, suivi: 'À traiter', assigne: 'sophie',
-    corps: 'Bonjour,\n\nComme vu avec votre technicien ce matin, merci de m’envoyer le devis pour le remplacement du compresseur.\n\nSi possible, intervention demain avant 6 h.\n\nMarc Dubois',
-    resume: ['Il demande le devis du compresseur.', 'Il souhaite l’intervention demain avant 6 h.'], reponses: ['Bonjour, le devis part dans l’heure.', 'Bonjour, nous pouvons intervenir demain à 5 h.'] },
-  { id: 'm3', boite: 'julie', de: ['Camille Roy', 'c.roy@cabinet-roy.example', 'camille'], objet: 'Justificatifs manquants — octobre', cat: 'principal', j: -3, h: '15:28', lu: 1, marque: 1,
-    corps: 'Bonjour Julie,\n\nIl me manque trois justificatifs pour clôturer octobre :\n- carburant du 6 octobre (84,20 €)\n- péage du 14 octobre (23,60 €)\n- repas du 21 octobre (46,00 €)\n\nPouvez-vous me les transmettre avant le 15 ?\n\nCamille', resume: ['Trois justificatifs d’octobre manquent (carburant, péage, repas).', 'À transmettre avant le 15.'], reponses: ['Bonjour Camille, je vous les envoie demain.'] },
-  { id: 'm4', boite: 'julie', de: ['Froid Atlantique', 'facturation@froid-atlantique.example', 'thomas'], objet: 'Facture F-2611-0412 — 2 316,00 € TTC', cat: 'factures', j: -1, h: '10:05', lu: 0, pj: [['F-2611-0412.pdf', '92 Ko']], montant: '2 316,00 €', echeance: '30 novembre',
-    corps: 'Bonjour,\n\nVeuillez trouver ci-joint notre facture F-2611-0412 d’un montant de 2 316,00 € TTC, à régler avant le 30 novembre.\n\nService facturation' },
-  { id: 'm5', boite: 'julie', de: ['Assurance Pro Ouest', 'ne-pas-repondre@assurance-pro-ouest.example'], objet: 'Votre attestation décennale 2027 est disponible', cat: 'notifs', j: -1, h: '07:02', lu: 1, pj: [['Attestation-decennale-2027.pdf', '310 Ko']],
-    corps: 'Bonjour,\n\nVotre attestation d’assurance décennale 2027 est disponible en pièce jointe.\n\nCeci est un message automatique.' },
-  { id: 'm6', boite: 'julie', de: ['Salon du Froid', 'infos@salon-du-froid.example'], objet: 'Les nouveautés du salon : fluides, pompes à chaleur', cat: 'promos', j: -1, h: '06:30', lu: 0, desabo: 1,
-    corps: 'Découvrez le programme du salon et réservez votre badge.\n\nPour ne plus recevoir ces messages, utilisez le lien de désinscription.' },
-  { id: 'm7', boite: 'julie', de: ['Outillage Direct', 'promo@outillage-direct.example'], objet: '-20 % sur les manifolds cette semaine', cat: 'promos', j: -2, h: '06:10', lu: 0, desabo: 1, corps: 'Offre valable jusqu’à dimanche.' },
-  { id: 'm8', boite: 'contact', dossier: 'envoyes', de: ['Julie Martin', 'contact@clim-services17.example'], a: ['Résidence Les Minimes', 'syndic@les-minimes.example'], objet: 'Devis D-2026-118 — climatisation du hall', cat: 'clients', j: -4, h: '16:20', lu: 1, attente: 4,
-    corps: 'Bonjour,\n\nVeuillez trouver notre devis D-2026-118 pour la climatisation du hall.\n\nJe reste à votre disposition.\n\nJulie Martin' , pj: [['D-2026-118.pdf', '140 Ko']] },
-  { id: 'm9', boite: 'contact', dossier: 'programmes', de: ['Julie Martin', 'contact@clim-services17.example'], a: ['Boulangerie Dubois', 'marc@boulangerie-dubois.example'], objet: 'Rappel : entretien annuel de la chambre froide', cat: 'clients', j: 1, h: '08:00', lu: 1, programme: 'Demain à 8 h 00', corps: 'Bonjour Monsieur Dubois,\n\nVotre entretien annuel est à prévoir en décembre. Quel jour vous conviendrait ?\n\nJulie Martin' },
-  { id: 'm10', boite: 'perso', de: ['Hélène Martin', 'helene.martin@courriel.example', 'helene'], objet: 'Photos des vacances', cat: 'principal', j: -1, h: '20:14', lu: 0, pj: [['plage.jpg', '2,1 Mo'], ['port.jpg', '1,8 Mo']], corps: 'Coucou,\n\nJe t’envoie les photos de cet été, enfin !\n\nBises,\nMaman', reponses: ['Merci Maman, elles sont superbes !'] },
-  { id: 'm11', boite: 'perso', de: ['Club de voile', 'bureau@club-voile.example', 'nora'], objet: 'Cotisation 2027 et calendrier des régates', cat: 'principal', j: -2, h: '18:40', lu: 1, corps: 'Bonjour à tous,\n\nLa cotisation 2027 est de 180 €, à régler avant le 15 janvier.\n\nLe calendrier des régates est en ligne.\n\nLe bureau', resume: ['Cotisation 2027 : 180 € avant le 15 janvier.', 'Le calendrier des régates est en ligne.'] },
-  { id: 'm12', boite: 'perso', de: ['Billetterie Rail', 'billets@billetterie-rail.example'], objet: 'Votre billet La Rochelle → Paris, samedi 21 novembre', cat: 'notifs', j: -2, h: '12:03', lu: 1, pj: [['billet.pdf', '64 Ko']], corps: 'Départ 7 h 12, arrivée 10 h 04. Voiture 6, place 42.' },
-];
-MAILS.forEach((m) => { m.dossier = m.dossier || 'recu'; });
-const mail = (id) => MAILS.find((m) => m.id === id);
-const boite = (id) => BOITES.find((b) => b.id === id);
-
 /* ── l'état de la page (jamais rangé : recharger repart de zéro) ── */
 const S = {
   role: 'pro', route: 'aujourdhui', param: '', mode: 'auto', statut: 'ok',
   filtreMsg: 'tous', rechMsg: '', repondA: null, fil: null,
   filtreAppel: 'tous', jourSel: 0, vueAgenda: 'liste',
-  dossier: 'recu', boiteSel: 'toutes', catMail: 'tout', rechMail: '',
   appel: null, salle: null, idFiltre: 'tous',
   taches: [{ id: 't1', t: 'Prévenir le syndic de la coupure d’eau', src: 'Réunion de chantier', fait: 0 }],
   rappels: [],
@@ -686,7 +1558,7 @@ const compte = (r) => {
   const k = cote();
   if (r === 'messages') return C.filter((c) => c.cote === k).reduce((n, c) => n + (c.nonlu || 0), 0);
   if (r === 'appels') return APPELS.filter((a) => a.cote === k && a.sens === 'manque' && !a.vu).length;
-  if (r === 'courrier') return MAILS.filter((m) => boite(m.boite).cote === k && m.dossier === 'recu' && !m.lu && m.cat !== 'promos').length;
+  if (r === 'courrier') return COUR.nl[k] || 0;                   // le nombre que le module de courrier annonce lui-même (onCompter)
   return 0;
 };
 function menu() {
@@ -731,7 +1603,7 @@ function rendre() {
   bb.innerHTML = S.role === 'invite' ? '' : barreBas();
   bb.classList.toggle('cachee', !!(v.sansBarre && S.param) || S.role === 'invite');
   const f = $('.fil'); if (f) { const z = $('#resume-zone'); if (z && !_bas) f.scrollTop = Math.max(0, z.offsetTop - f.offsetTop - 60); else f.scrollTop = f.scrollHeight; } _bas = false;
-  miniAppel();
+  miniAppel(); placerCourrier();
 }
 function aller(h) { if (location.hash === '#' + h) lireHash(); else location.hash = h; }
 function lireHash() {
@@ -766,7 +1638,7 @@ function notifier(titre, texte, go) {
 }
 const etI = (n) => `<span class="et idee">${svg('ampoule')}Idée ${n}</span>`;      // la même étiquette, sans geste : pour l'intérieur d'un bouton
 const etIdee = (n) => `<button class="et idee" data-idee="${n}" title="Voir l’idée ${n}">${svg('ampoule')}Idée ${n}</button>`;
-function appliquerMode() { const r = document.documentElement; if (S.mode === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', S.mode); }
+function appliquerMode() { const r = document.documentElement; if (S.mode === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', S.mode); ['pro', 'perso'].forEach((k) => { if (COUR[k]) COUR[k].rafraichir({ donnees: false }); }); }
 /* ═══ AUJOURD'HUI : un seul écran pour ce qui attend (idée 1) ═══ */
 VUES.aujourdhui = () => {
   const k = cote(), pro = k === 'pro';
@@ -778,17 +1650,16 @@ VUES.aujourdhui = () => {
     ligne('urgent', '#d70015', 'Karim attend ton accord', 'Compresseur à 1 480 € HT · « le client attend » · il y a 39 min', `<button class="btn petit" data-action="accord">Donner l’accord</button>`, 'messages-x-equipe'),
     ligne('tel', '#d70015', 'Appel manqué · Marc Dubois', 'Message vocal : « La chambre froide ne refroidit plus, rappelez-moi… »', `<button class="btn petit gris" data-appeler="marc">Rappeler</button>`, 'appels-x-a1'),
     ligne('bulle', '#1c7a3a', 'Marc Dubois · 2 messages', 'Boîte partagée · suivi par Sophie · il demande le devis', '', 'messages-x-marc'),
-    ligne('mail', '#2a4a9c', 'Contrat 2027 à envoyer pour signature', 'James Carter · Hôtel des Remparts · avant vendredi', `<button class="btn petit gris" data-go="courrier-x-m1">Ouvrir</button>`, 'courrier-x-m1'),
-    ligne('horloge', '#a04a00', 'Devis D-2026-118 sans réponse depuis 4 jours', 'Résidence Les Minimes · envoyé le ' + jourD(-4).getDate() + ' novembre', `<button class="btn petit gris" data-action="relancer" data-id="m8">Relancer</button>`, 'courrier-x-m8'),
+    ligne('mail', '#2a4a9c', 'Ta boîte mail', COUR.nl.pro ? COUR.nl.pro + ' non lu' + (COUR.nl.pro > 1 ? 's' : '') + ' en réception' : 'La même que dans OP GESTION et la Tour', `<button class="btn petit gris" data-go="courrier">Ouvrir</button>`, 'courrier'),
   ] : [
     ligne('bulle', '#d9487a', 'Maman · 1 message', '« Tu penses à apporter le dessert dimanche ? »', '', 'messages-x-maman'),
     ligne('tel', '#d70015', 'Appel manqué · Antoine Petit', 'Avant-hier à 20 h 15', `<button class="btn petit gris" data-appeler="antoine">Rappeler</button>`, 'appels-x-a7'),
-    ligne('mail', '#c9562f', 'Photos des vacances', 'Hélène Martin · 2 pièces jointes', '', 'courrier-x-m10'),
+    ligne('mail', '#c9562f', 'Ta boîte mail personnelle', COUR.nl.perso ? COUR.nl.perso + ' non lu' + (COUR.nl.perso > 1 ? 's' : '') + ' en réception' : 'Séparée de la boîte professionnelle', '', 'courrier'),
   ];
   const jour = EVTS.filter((e) => e.cote === k && e.j === 0).sort((a, b) => a.deb.localeCompare(b.deb));
   return { une: true, html: `<section class="page"><div class="dedans">
     <div class="actions"><div style="flex:1;min-width:0"><p class="faible petit">${maj(jlong(0))}</p><h1>Bonjour Julie</h1></div><button class="tel-seul" data-action="menu-tel" aria-label="Mon profil et le menu">${av('moi')}</button></div>
-    <div class="kpis" data-gd="kpis">${kpi(nl, 'messages non lus', 'messages')}${kpi(am, am > 1 ? 'appels manqués' : 'appel manqué', 'appels')}${kpi(cm, 'courriels à lire', 'courrier')}${kpi(jour.length, jour.length > 1 ? 'rendez-vous aujourd’hui' : 'rendez-vous aujourd’hui', 'agenda')}</div>
+    <div class="kpis" data-gd="kpis">${kpi(nl, 'messages non lus', 'messages')}${kpi(am, am > 1 ? 'appels manqués' : 'appel manqué', 'appels')}${kpi(cm, cm > 1 ? 'courriels non lus' : 'courriel non lu', 'courrier')}${kpi(jour.length, jour.length > 1 ? 'rendez-vous aujourd’hui' : 'rendez-vous aujourd’hui', 'agenda')}</div>
     <div class="grille2"><div class="col">
       ${proch ? `<div class="carte sur-fill" data-gd="prochaine" style="background:var(--fill);color:var(--sur-fill)">
         <div class="actions"><span class="et" style="background:rgba(255,255,255,.2);color:#fff">${proch.bientot ? 'Dans 19 min' : 'À ' + proch.deb.replace(':', ' h ')}</span><span style="flex:1"></span>${etIdee(15)}</div>
@@ -1177,71 +2048,25 @@ function feuilleProgrammer(pre) {
     <div class="pied"><button class="btn gris" data-ferme="1">Annuler</button><button class="btn" data-action="creer-evt">Ajouter à l’agenda</button></div>`);
 }
 
-/* ═══ COURRIER ═══ */
-const DOSSIERS = [['recu', 'Réception', 'boiteR'], ['reportes', 'Reportés', 'horloge'], ['envoyes', 'Envoyés', 'avion'], ['programmes', 'Programmés', 'agenda'], ['archive', 'Archive', 'archive'], ['corbeille', 'Corbeille', 'corbeille']];
-function listeMails() {
-  const k = cote(); let l = MAILS.filter((m) => boite(m.boite).cote === k && m.dossier === S.dossier);
-  if (S.boiteSel !== 'toutes') l = l.filter((m) => m.boite === S.boiteSel);
-  if (S.dossier === 'recu' && S.catMail !== 'tout') l = l.filter((m) => m.cat === S.catMail);
-  const q = S.rechMail.trim().toLowerCase();
-  if (q) l = l.filter((m) => (m.de[0] + ' ' + m.objet + ' ' + m.corps).toLowerCase().includes(q));
-  return l.sort((a, b) => (b.j - a.j) || b.h.localeCompare(a.h));
-}
-VUES.courrier = () => {
-  const k = cote();
-  const bs = BOITES.filter((b) => b.cote === k);
-  if (S.boiteSel !== 'toutes' && !bs.some((b) => b.id === S.boiteSel)) S.boiteSel = 'toutes';
-  const l = listeMails();
-  const nbCat = (c) => MAILS.filter((m) => boite(m.boite).cote === k && m.dossier === 'recu' && !m.lu && (c === 'tout' || m.cat === c) && (S.boiteSel === 'toutes' || m.boite === S.boiteSel)).length;
-  const rang = (m) => { const b = boite(m.boite); const envoi = m.dossier === 'envoyes' || m.dossier === 'programmes';
-    return `<button class="conv ${m.lu ? '' : 'nonlu'} ${S.param === m.id ? 'on' : ''}" data-go="courrier-x-${m.id}">${m.lu ? '' : '<i class="nl"></i>'}
-      ${m.de[2] ? av(m.de[2]) : av({ n: m.de[0], a: ['#8e8e93', '#55555a'] })}<span class="t"><span class="l1"><b>${esc(envoi ? 'À : ' + m.a[0] : m.de[0])}</b><time>${m.dossier === 'programmes' ? 'Programmé' : m.j === 0 ? m.h : jcourt(m.j)}</time></span>
-      <span class="ap"><b>${esc(m.objet)}</b><br>${esc(m.corps.replace(/\n+/g, ' ').slice(0, 90))}</span>
-      <span class="bas"><span class="et" style="background:color-mix(in srgb,${CATS[m.cat][1]} 16%,transparent);color:var(--doux)"><i style="width:8px;height:8px;border-radius:50%;background:${CATS[m.cat][1]}"></i>${CATS[m.cat][0]}</span>${bs.length > 1 && S.boiteSel === 'toutes' ? `<span class="et"><i style="width:8px;height:8px;border-radius:50%;background:${b.c}"></i>${esc(b.n)}</span>` : ''}${m.pj ? `<span class="et">${svg('trombone')}${m.pj.length}</span>` : ''}${m.suivi ? `<span class="et ${m.suivi === 'Résolu' ? 'v' : 'o'}">${esc(m.suivi)}${m.assigne ? ' · ' + prenom(m.assigne) : ''}</span>` : ''}${m.attente ? `<span class="et r">Sans réponse depuis ${m.attente} j</span>` : ''}${m.programme ? `<span class="et b">${esc(m.programme)}</span>` : ''}${m.reporte ? `<span class="et b">Revient ${esc(m.reporte)}</span>` : ''}${m.marque ? `<span class="et o">${svg('etoile')}</span>` : ''}</span></span></button>`; };
-  const promosNL = S.dossier === 'recu' && (S.catMail === 'promos' || S.catMail === 'tout') ? l.filter((m) => m.cat === 'promos') : [];
-  const liste = `<section class="liste"><div class="tete"><div class="l1"><h1>Courrier</h1><button class="rond gris" data-action="ecrire-mail" aria-label="Écrire un courriel" title="Écrire" data-gd="ecrire">${svg('stylo')}</button></div>
-      <button class="cherche" data-action="boites" style="justify-content:space-between;color:var(--encre)" data-gd="boites"><span style="display:flex;align-items:center;gap:8px;min-width:0"><i style="width:10px;height:10px;border-radius:50%;background:${S.boiteSel === 'toutes' ? 'var(--fill)' : boite(S.boiteSel).c};flex:none"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${S.boiteSel === 'toutes' ? 'Toutes les boîtes ' + (k === 'pro' ? 'pro' : 'perso') : esc(boite(S.boiteSel).a)}</span></span>${svg('bas')}</button>
-      <label class="cherche">${svg('cherche')}<input id="rech-mail" placeholder="Rechercher dans le courrier" value="${esc(S.rechMail)}" autocomplete="off"></label>
-      <div class="puces">${DOSSIERS.map((d) => `<button class="puce" aria-pressed="${S.dossier === d[0]}" data-dossier="${d[0]}">${d[1]}</button>`).join('')}</div>
-      ${S.dossier === 'recu' ? `<div class="puces" data-gd="cats">${[['tout', 'Tout']].concat(Object.keys(CATS).map((c) => [c, CATS[c][0]])).map((c) => { const n = nbCat(c[0]); return `<button class="puce" aria-pressed="${S.catMail === c[0]}" data-cat="${c[0]}">${c[1]}${n ? `<span class="c">${n}</span>` : ''}</button>`; }).join('')}</div>` : ''}</div>
-    <div class="defile" id="liste-mail">${promosNL.length > 1 && S.catMail === 'promos' ? `<div class="info idee" style="margin:0 4px 8px">${svg('eclat')}<span class="t"><b>${promosNL.length} lettres d’info.</b> Tu ne les ouvres presque jamais.</span><span class="actions"><button class="btn petit gris" data-action="archiver-promos">Tout archiver</button>${etIdee(24)}</span></div>` : ''}
-      ${l.map(rang).join('') || `<p class="vide">${S.dossier === 'reportes' ? 'Aucun courriel reporté. « Reporter » fait revenir un courriel en haut de la réception au moment choisi.' : 'Aucun courriel ici.'}</p>`}</div></section>`;
-  const m = mail(S.param);
-  const detail = m && boite(m.boite).cote === k ? lectureMail(m) : `<section class="detail"><div class="vide"><div>${svg('mail')}Choisis un courriel.<br><span class="petit">Chaque boîte reste celle de son propriétaire : rien ne passe par TEAM OP.</span></div></div></section>`;
-  return { html: liste + detail, sansBarre: true };
-};
-function lectureMail(m) {
-  const b = boite(m.boite), pro = b.cote === 'pro'; m.lu = 1;
-  const o = (k, ic, l) => `<button class="rond" data-mail="${k}" data-id="${m.id}" aria-label="${l}" title="${l}">${svg(ic)}</button>`;
-  const envoi = m.dossier === 'envoyes' || m.dossier === 'programmes';
-  return `<section class="detail"><div class="outils-mail"><button class="rond retour-tel" data-go="courrier" aria-label="Retour au courrier">${svg('retour')}</button>
-      ${o('repondre', 'repondre', 'Répondre')}${o('transferer', 'transferer', 'Transférer')}<span class="pousse"></span>${o('reporter', 'horloge', 'Reporter')}${o('archiver', 'archive', 'Archiver')}${o('marquer', 'etoile', m.marque ? 'Retirer le marquage' : 'Marquer')}${o('supprimer', 'corbeille', 'Supprimer')}${o('plus', 'points', 'Plus : partager, tâche, réunion, devis')}</div>
-    <div class="lecture">
-      <div class="actions"><span class="et" style="background:color-mix(in srgb,${CATS[m.cat][1]} 16%,transparent);color:var(--doux)"><i style="width:8px;height:8px;border-radius:50%;background:${CATS[m.cat][1]}"></i>${CATS[m.cat][0]}</span><button class="lien mini" data-mail="pourquoi" data-id="${m.id}">Pourquoi ici ?</button>${m.fil ? `<span class="et">${m.fil} messages dans ce fil</span>` : ''}${m.suivi ? `<button class="et o" data-mail="suivi" data-id="${m.id}">${esc(m.suivi)}${m.assigne ? ' · ' + prenom(m.assigne) : ''}</button>` : ''}</div>
-      <p class="objet">${esc(m.objet)}</p>
-      <div class="exp">${m.de[2] ? av(m.de[2]) : av({ n: m.de[0], a: ['#8e8e93', '#55555a'] })}<div style="min-width:0;flex:1"><b>${esc(m.de[0])}</b><p class="mini gris" style="overflow-wrap:anywhere">${esc(m.de[1])} · ${envoi ? 'à ' + esc(m.a[1]) : 'reçu sur ' + esc(b.a)}</p></div><time class="mini faible">${jcourt(m.j)} ${m.h}</time></div>
-      ${m.attente ? `<div class="info idee" data-gd="relance">${svg('horloge')}<span class="t"><b>Pas de réponse depuis ${m.attente} jours.</b> Tu avais demandé à être prévenue.</span><span class="actions"><button class="btn petit" data-action="relancer" data-id="${m.id}">Relancer</button>${etIdee(21)}</span></div>` : ''}
-      ${m.programme ? `<div class="info">${svg('agenda')}<span class="t"><b>Envoi programmé : ${esc(m.programme)}.</b> Il part même si l’application est fermée.</span><button class="btn petit gris" data-mail="annuler-prog" data-id="${m.id}">Annuler l’envoi</button></div>` : ''}
-      ${m.desabo ? `<div class="info idee">${svg('sourdine')}<span class="t"><b>Lettre d’information.</b> Tu n’as ouvert aucun des 6 derniers messages de cet expéditeur.</span><span class="actions"><button class="btn petit" data-mail="desabo" data-id="${m.id}">Se désabonner</button>${etIdee(24)}</span></div>` : ''}
-      ${m.resume ? `<div class="info idee" data-gd="resume-mail">${svg('eclat')}<span class="t"><b>En bref</b><br>${m.resume.map((r) => '• ' + esc(r)).join('<br>')}<br><span class="mini faible">Résumé automatique : le texte complet est juste en dessous.</span></span>${etIdee(22)}</div>` : ''}
-      ${m.montant ? `<div class="carte" data-gd="facture"><div class="actions"><h3 style="flex:1">Facture reconnue</h3>${etIdee(20)}</div><div class="actions"><b style="font-size:22px" class="tab">${m.montant}</b><span class="gris">à régler avant le ${esc(m.echeance)}</span></div>
-        <div class="actions"><button class="btn petit gris" data-action="rappel-facture" data-id="${m.id}">${svg('cloche')}Me le rappeler 3 jours avant</button><button class="btn petit gris" data-action="vers-compta" data-id="${m.id}">${svg('transferer')}Envoyer à la comptable</button></div></div>` : ''}
-      <div class="corps">${esc(m.corps)}</div>
-      ${m.pj ? `<div class="actions">${m.pj.map((p) => `<span class="pj">${svg('doc')}<span style="min-width:0"><b>${esc(p[0])}</b><span>${p[1]}</span></span><button class="lien petit" data-action="apercu-pj">Aperçu</button>${/Contrat/.test(p[0]) ? `<button class="btn petit" data-action="signer" data-id="${m.id}" data-gd="signer">Faire signer</button>` : ''}</span>`).join('')}</div>` : ''}
-      ${m.reponses && !envoi ? `<div data-gd="suggestions"><div class="actions" style="margin-bottom:6px"><h3 style="flex:1">Réponses proposées</h3>${etIdee(22)}</div><div class="actions">${m.reponses.map((r, i) => `<button class="puce" style="white-space:normal;text-align:left;padding:8px 12px;height:auto;border-radius:14px" data-rep-mail="${m.id}" data-i="${i}">${esc(r)}</button>`).join('')}</div><p class="mini faible" style="margin-top:6px">Un brouillon que tu relis et modifies : rien ne part sans toi.</p></div>` : ''}
-      ${!envoi ? `<div class="actions"><button class="btn" data-mail="repondre" data-id="${m.id}">${svg('repondre')}Répondre</button><button class="btn gris" data-mail="plus" data-id="${m.id}" data-gd="mail-plus">${svg('eclat')}En faire quelque chose</button></div>` : ''}
-    </div></section>`;
-}
-function ecrireMail(pre) {
-  pre = pre || {}; const k = cote(); const bs = BOITES.filter((b) => b.cote === k);
-  ouvrir(`<h2>${pre.titre || 'Nouveau courriel'}</h2>
-    <label class="champ">De<select id="em-de">${bs.map((b) => `<option value="${b.id}" ${b.id === pre.boite ? 'selected' : ''}>${esc(b.a)}</option>`).join('')}</select></label>
-    <label class="champ">À<input id="em-a" value="${esc(pre.a || '')}" placeholder="Nom ou adresse" list="em-carnet" autocomplete="off" ${pre.a ? '' : 'autofocus'}></label><datalist id="em-carnet">${Object.values(P).filter((p) => p.mel).map((p) => `<option value="${esc(p.mel)}">${esc(p.n)}</option>`).join('')}</datalist>
-    <label class="champ">Objet<input id="em-objet" value="${esc(pre.objet || '')}"></label>
-    <label class="champ">Message<textarea id="em-corps" style="min-height:170px" ${pre.a ? 'autofocus' : ''}>${esc((pre.corps || '') + '\n\n--\nJulie Martin\n' + (k === 'pro' ? 'Clim Services 17 · 05 00 00 00 17' : ''))}</textarea></label>
-    <div class="actions"><button class="btn petit gris" data-action="em-pj">${svg('trombone')}Joindre</button><button class="btn petit gris" data-action="em-modele">${svg('doc')}Texte type</button>${k === 'pro' ? `<button class="btn petit gris" data-action="signer">${svg('stylo')}Faire signer</button>` : ''}</div>
-    <div class="rang" style="padding:0"><span class="t"><b>Me prévenir sans réponse sous 3 jours</b><span>Le courriel revient en haut avec « Relancer »</span></span><button class="bascule" role="switch" aria-checked="${pre.suivre ? 'true' : 'false'}" data-bascule="1" id="em-suivre" aria-label="Suivre la réponse"></button></div>
-    <div class="pied"><button class="btn gris" data-action="em-programmer">${svg('horloge')}Programmer</button><button class="btn" data-action="em-envoyer">${svg('avion')}Envoyer</button></div>`, { large: true });
+/* ═══ COURRIER : la VRAIE boîte mail — le module `opcourrier.js` (celui d'OP GESTION, de la Tour et d'OP MESSAGES Pro), monté tel quel ═══
+   Justin, 13 novembre 2026 : « la boîte mail, je veux celle qui était, juste la vérifier et corriger ». Rien n'est redessiné ici : le prototype
+   monte le module avec sa source de DÉMONSTRATION (noms et adresses inventés, domaines en .example). Un montage par côté : le Pro et le Perso ne se
+   mélangent pas. ⛔ La zone reste TOUJOURS dans la page (on la masque) : le module se démonte de lui-même dès que son conteneur quitte le document. */
+const COUR = { pro: null, perso: null, nl: { pro: 0, perso: 0 } };
+const themeHote = () => (S.mode === 'dark' || (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'nuit' : 'jour');
+VUES.courrier = () => ({ une: true, html: '<section class="page"></section>' });
+function majPastilles() { if (S.role === 'invite') return; $('#menu').innerHTML = menu(); $('#barre-bas').innerHTML = barreBas(); }
+function placerCourrier() {
+  const f = $('#courrier-fixe'), vu = S.route === 'courrier' && S.role !== 'invite', k = cote();
+  f.hidden = !vu;
+  ['pro', 'perso'].forEach((c) => { $('#zone-courrier-' + c).hidden = c !== k; });
+  if (!vu) return;
+  if (!window.OPCourrier || !window.OPCourrierDemo) { $('#zone-courrier-' + k).innerHTML = '<div class="vide"><div>La boîte mail n’a pas pu se charger dans ce prototype.</div></div>'; return; }
+  if (COUR[k]) { COUR[k].rafraichir({ donnees: false }); return; }
+  try {
+    COUR[k] = OPCourrier.monter($('#zone-courrier-' + k), { source: OPCourrierDemo.creer({ mode: 'demo' }), cotes: [k], cote: k, cleStockage: 'protoOpmsg_courrier_' + k, titre: 'OP Courrier', intervalle: 0, theme: themeHote,
+      onCompter: (n) => { COUR.nl[k] = n; majPastilles(); } });
+  } catch (e) { $('#zone-courrier-' + k).innerHTML = '<div class="vide"><div>La boîte mail n’a pas pu s’ouvrir dans ce prototype.</div></div>'; }
 }
 
 /* ═══ CONTACTS : tout sur une personne (idée 26) ═══ */
@@ -1249,7 +2074,6 @@ function chronologie(pid) {
   const l = [];
   C.forEach((c) => { if (c.avec === pid || (c.grp && c.membres.includes(pid))) c.msgs.filter((m) => m.de === pid || (!c.grp && m.de === 'moi')).slice(-3).forEach((m) => l.push({ j: m.j, h: m.h, ic: 'bulle', c: '#2a4a9c', t: (m.de === 'moi' ? 'Toi : ' : '') + (m.t || m.transc || m.leg || m.b || m.q), s: c.grp ? 'Dans ' + c.n : 'Message', go: 'messages-x-' + c.id })); });
   APPELS.filter((a) => a.qui === pid).forEach((a) => l.push({ j: a.j, h: a.h, ic: 'tel', c: a.sens === 'manque' ? '#d70015' : '#1c7a3a', t: a.sens === 'manque' ? 'Appel manqué' + (a.vocal ? ' · message vocal' : '') : 'Appel ' + (a.video ? 'vidéo' : 'audio') + (a.duree ? ' · ' + a.duree : ''), s: a.notes || (a.vocal ? '« ' + a.vocal.transc + ' »' : 'Appel'), go: 'appels-x-' + a.id }));
-  MAILS.filter((m) => m.de[2] === pid).forEach((m) => l.push({ j: m.j, h: m.h, ic: 'mail', c: '#7d3c98', t: m.objet, s: 'Courriel', go: 'courrier-x-' + m.id }));
   EVTS.filter((e) => (e.invites || []).some((i) => i[0] === pid)).forEach((e) => l.push({ j: e.j, h: e.deb, ic: 'agenda', c: '#a04a00', t: e.titre, s: e.j > 0 || (e.j === 0 && !e.passe) ? 'À venir' : 'Réunion passée', go: 'agenda-x-' + e.id }));
   return l.sort((a, b) => (b.j - a.j) || b.h.localeCompare(a.h));
 }
@@ -1264,16 +2088,16 @@ VUES.contacts = () => {
   if (p && p.id !== 'moi') { const ch = chronologie(p.id); const c = C.find((x) => x.avec === p.id);
     detail = `<section class="detail"><div class="barre-conv"><button class="rond retour-tel" data-go="contacts" aria-label="Retour aux contacts">${svg('retour')}</button><span class="qui"><b>Fiche contact</b></span></div>
     <div class="lecture" style="align-items:stretch"><div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${av(p.id, 'xl')}<h2>${esc(p.n)}</h2><p class="gris">${esc(p.r)}</p>${p.stt ? `<span class="statut ${p.st === 'occ' ? 'occ' : ''}"><i></i>${esc(p.stt)}</span>` : ''}
-        <div class="actions" style="justify-content:center"><button class="btn" data-ecrire="${p.id}">${svg('bulle')}Message</button><button class="btn gris" data-appeler="${p.id}">${svg('tel')}Appeler</button><button class="btn gris" data-appeler="${p.id}" data-video="1">${svg('video')}Vidéo</button>${p.mel ? `<button class="btn gris" data-action="ecrire-mail" data-a="${esc(p.mel)}">${svg('mail')}Courriel</button>` : ''}</div>
-        <p class="mini faible">${esc(p.tel || '')}${p.mel ? ' · ' + esc(p.mel) : ''}</p></div>
-      <div class="carte serre" data-gd="chrono"><div style="padding:14px 16px 6px;display:flex;gap:8px;align-items:center"><h3 style="flex:1">Tout ce que vous avez échangé</h3>${etIdee(26)}</div>
+        <div class="actions" style="justify-content:center"><button class="btn" data-ecrire="${p.id}">${svg('bulle')}Message</button><button class="btn gris" data-appeler="${p.id}">${svg('tel')}Appeler</button><button class="btn gris" data-appeler="${p.id}" data-video="1">${svg('video')}Vidéo</button></div>
+        <p class="mini faible">${esc(p.tel || '')}</p></div>
+      <div class="carte serre" data-gd="chrono"><div style="padding:14px 16px 6px;display:flex;gap:8px;align-items:center"><h3 style="flex:1">Tout ce que vous avez échangé</h3>${etIdee(20)}</div>
         ${ch.map((x) => `<button class="rang" data-go="${x.go}"><span class="ic" style="--c:${x.c}">${svg(x.ic)}</span><span class="t"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></span><time class="mini faible">${x.j === 0 ? x.h : jcourt(x.j)}</time></button>`).join('') || '<p class="gris petit" style="padding:8px 16px 16px">Aucun échange pour l’instant.</p>'}</div>
     </div></section>`; }
   return { html: liste + detail, sansBarre: true };
 };
 
 /* ═══ RÉGLAGES ═══ */
-const REGL = { npd: true, concentration: false, lecture: true, enligne: true, vocalTransc: true, economie: false, annule: true, tri: true, ia: false, urgent: true, statutAuto: true };
+const REGL = { npd: true, concentration: false, lecture: true, enligne: true, vocalTransc: true, economie: false, ia: false, urgent: true, statutAuto: true };
 VUES.reglages = () => {
   const b = (k, t, d, n) => `<div class="rang"><span class="t"><b>${t}</b><span style="white-space:normal">${d}</span></span>${n ? etIdee(n) : ''}<button class="bascule" role="switch" aria-checked="${REGL[k]}" data-regl="${k}" aria-label="${t}"></button></div>`;
   const g = (t, c) => `<div class="col" style="gap:6px"><h3 style="padding:0 16px">${t}</h3><div class="carte serre">${c}</div></div>`;
@@ -1281,7 +2105,6 @@ VUES.reglages = () => {
     <div class="carte" style="flex-direction:row;align-items:center;gap:14px">${av('moi', 'g')}<div style="flex:1;min-width:0"><b style="font-size:18px">${esc(P.moi.n)}</b><p class="gris petit">${S.role === 'pro' ? 'Clim Services 17 · offre Pro' : 'Compte personnel · gratuit'}</p></div><button class="btn petit gris" data-action="statut">Mon statut</button></div>
     ${g('Tranquillité', b('npd', 'Ne pas déranger de 19 h à 7 h 30', 'Hors de tes heures de travail, seuls les messages « Urgent » et tes favoris sonnent.', 27) + b('concentration', 'Mode concentration', 'Pendant une réunion ou une intervention, les notifications attendent la fin.', 27) + b('urgent', 'Relancer un message urgent', 'Un message « Urgent » non lu sonne à nouveau au bout de 5 minutes, puis 15.', 7) + b('statutAuto', 'Statut automatique', 'Ton statut suit ton agenda : « En réunion », « En intervention », « Disponible ».', 8))}
     ${g('Appels', b('vocalTransc', 'Transcrire les messages vocaux', 'Tu lis le message laissé par quelqu’un qui n’a pas pu te joindre.', 11) + b('economie', 'Économie de données', 'Coupe la vidéo dès que le réseau faiblit, pour garder une voix nette.', 13))}
-    ${g('Courrier', b('annule', 'Annuler un envoi pendant 10 secondes', 'Le courriel attend 10 secondes avant de partir.', 21) + b('tri', 'Tri automatique', 'Clients, Factures, Notifications, Lettres d’info. Le tri se fait sur ton appareil.', 20))}
     ${g('Assistant', b('ia', 'Résumés et brouillons de réponse', 'Désactivé par défaut. Activé, le texte du message concerné est envoyé à notre sous-traitant pour être résumé, au geste, jamais en arrière-plan.', 5))}
     ${g('Confidentialité', b('lecture', 'Confirmations de lecture', 'Les autres voient « Lu » ; tu vois le leur.') + b('enligne', 'Montrer que je suis en ligne', 'Le point vert à côté de ton nom.'))}
     <p class="mini faible" style="padding:0 16px">Apparence : en production, OP MESSAGES suit le jour et la nuit de l’appareil, sans bouton. Le réglage Jour / Nuit / Auto en haut de cette page n’existe que dans le prototype.</p>
@@ -1297,11 +2120,11 @@ VUES.invite = () => ({ une: true, html: `<section class="page"><div class="dedan
 
 /* ═══ LES IDÉES ═══ */
 const IDEES = [
-  [1, 'partout', 'Aujourd’hui : un seul écran pour ce qui attend', 'Au lieu d’ouvrir quatre rubriques, tu vois d’un coup le message urgent, l’appel manqué avec son message vocal, le courriel à traiter, la prochaine réunion et tes tâches.', 'neuf', 'aujourdhui'],
-  [28, 'partout', 'Cinq onglets au lieu de sept', 'Réunions et Agenda ne font plus qu’un ; les Contacts se trouvent par la recherche et le menu. Sur téléphone, la barre respire et chaque onglet reste lisible.', 'neuf', 'aujourdhui'],
-  [2, 'partout', 'Rechercher partout', 'Une seule recherche (Ctrl K) qui trouve dans les messages, les courriels, les contacts et les réunions, au lieu d’une recherche par rubrique.', 'neuf', 'chercher'],
-  [26, 'partout', 'Tout sur une personne', 'La fiche d’un contact montre, dans l’ordre, les messages, les appels, les courriels et les réunions échangés avec lui. Idéal avant de rappeler un client.', 'neuf', 'contacts-x-marc'],
-  [27, 'partout', 'Ne pas déranger programmé, mode concentration', 'Les notifications se taisent hors des heures de travail et pendant une réunion ; seuls les messages « Urgent » et les favoris passent.', 'neuf', 'reglages'],
+  [1, 'partout', 'Aujourd’hui : un seul écran pour ce qui attend', 'Au lieu d’ouvrir quatre rubriques, tu vois d’un coup le message urgent, l’appel manqué avec son message vocal, la prochaine réunion et tes tâches.', 'neuf', 'aujourdhui'],
+  [22, 'partout', 'Cinq onglets au lieu de sept', 'Réunions et Agenda ne font plus qu’un ; les Contacts se trouvent par la recherche et le menu. Sur téléphone, la barre respire et chaque onglet reste lisible.', 'neuf', 'aujourdhui'],
+  [2, 'partout', 'Rechercher partout', 'Une seule recherche (Ctrl K) qui trouve dans les messages, les contacts, les réunions et les appels, au lieu d’une recherche par rubrique. Le courrier garde sa propre recherche.', 'neuf', 'chercher'],
+  [20, 'partout', 'Tout sur une personne', 'La fiche d’un contact montre, dans l’ordre, les messages, les appels et les réunions échangés avec lui. Idéal avant de rappeler un client.', 'neuf', 'contacts-x-marc'],
+  [21, 'partout', 'Ne pas déranger programmé, mode concentration', 'Les notifications se taisent hors des heures de travail et pendant une réunion ; seuls les messages « Urgent » et les favoris passent.', 'neuf', 'reglages'],
   [8, 'partout', 'Un statut qui suit l’agenda', '« En intervention jusqu’à 11 h », « En réunion » : le statut se met tout seul, et les collègues savent quand écrire ou appeler.', 'neuf', 'contacts-x-karim'],
   [3, 'messages', 'Fils de réponse', 'Répondre « dans un fil » range la discussion sous le message d’origine. Un groupe de dix personnes ne se noie plus.', 'neuf', 'messages-x-equipe'],
   [4, 'messages', 'Un message devient une action', 'Me le rappeler, en faire une tâche, programmer une réunion. Et une date écrite dans un message (« jeudi à 14 h ») se touche pour créer le rendez-vous.', 'neuf', 'messages-x-equipe'],
@@ -1319,18 +2142,13 @@ const IDEES = [
   [17, 'reunions', 'Le compte rendu écrit tout seul', 'À la fin : résumé, décisions, actions avec leur responsable, présence, enregistrement. Envoyé dans la conversation de l’équipe, les actions deviennent des tâches.', 'ia', 'agenda-x-e4'],
   [18, 'reunions', 'Trouver un créneau', 'OP MESSAGES lit l’agenda de chaque invité et propose les moments où tout le monde est libre.', 'neuf', 'agenda'],
   [19, 'reunions', 'Un invité entre sans compte', 'Existe déjà : un lien suffit. Amélioré ici par l’écran de préparation et la salle d’attente côté organisateur.', 'existe', 'invite'],
-  [20, 'courrier', 'Un tri qui parle métier', 'Clients, Factures, Notifications, Lettres d’info, à la place de catégories pensées pour le grand public. Une facture est reconnue : montant, échéance, rappel, envoi à la comptable.', 'neuf', 'courrier-x-m4'],
-  [21, 'courrier', 'Reporter, programmer, annuler, relancer', 'Reporter un courriel à lundi ; programmer un envoi qui part application fermée ; 10 secondes pour annuler ; et « sans réponse depuis 4 jours : relancer ».', 'neuf', 'courrier-x-m8'],
-  [22, 'courrier', 'Le fil en trois lignes, des réponses proposées', 'Un long échange résumé en haut du courriel, et trois réponses prêtes à relire à la place des quatre phrases figées d’aujourd’hui.', 'ia', 'courrier-x-m1'],
-  [23, 'courrier', 'Un courriel devient autre chose', 'Le partager dans une conversation d’équipe, en faire une tâche, programmer une réunion avec l’expéditeur, créer le devis dans OP GESTION.', 'neuf', 'courrier-x-m2'],
-  [24, 'courrier', 'Se désabonner en un geste', 'Une lettre d’info jamais ouverte : « Se désabonner » en haut du message, et « Tout archiver » pour la catégorie.', 'neuf', 'courrier-x-m6'],
-  [25, 'courrier', 'Faire signer depuis la pièce jointe', 'Existe déjà (en maintenance) : ici le bouton « Faire signer » est posé directement sur le contrat reçu.', 'existe', 'courrier-x-m1'],
+  [23, 'courrier', 'Le Courrier reste celui que tu as validé', 'Aucune refonte : c’est la boîte mail d’OP GESTION, de la Tour et d’OP MESSAGES Pro, montée telle quelle dans ce prototype avec des courriels d’exemple. Elle a été vérifiée et corrigée à part.', 'existe', 'courrier'],
 ];
 const DOM_I = { partout: 'Partout', messages: 'Messages', appels: 'Appels', reunions: 'Réunions', courrier: 'Courrier' };
 const ST_I = { neuf: ['Nouveau', 'b'], ia: ['Nouveau · avec IA, à décider', 'o'], existe: ['Existe déjà · amélioré', 'v'] };
 VUES.idees = () => {
   const l = IDEES.filter((i) => S.idFiltre === 'tous' || i[1] === S.idFiltre);
-  return { une: true, html: `<section class="page"><div class="dedans"><div><h1>Les idées</h1><p class="gris" style="max-width:70ch;margin-top:6px">${IDEES.length} propositions pour OP MESSAGES. Chacune se voit et s’essaie dans ce prototype : le bouton « Voir » t’y amène. Celles marquées « avec IA » envoient du texte à un sous-traitant : elles demandent ta décision, et une mise à jour des pages juridiques.</p></div>
+  return { une: true, html: `<section class="page"><div class="dedans"><div><h1>Les idées</h1><p class="gris" style="max-width:70ch;margin-top:6px">${IDEES.length} propositions pour OP MESSAGES. Chacune se voit et s’essaie dans ce prototype : le bouton « Voir » t’y amène. Celles marquées « avec IA » envoient du texte à un sous-traitant : elles demandent ta décision, et une mise à jour des pages juridiques. Le Courrier n’est pas redessiné : c’est ta boîte mail actuelle.</p></div>
     <div class="puces">${[['tous', 'Toutes']].concat(Object.entries(DOM_I)).map((d) => `<button class="puce" aria-pressed="${S.idFiltre === d[0]}" data-id-filtre="${d[0]}">${d[1]}<span class="c">${d[0] === 'tous' ? IDEES.length : IDEES.filter((i) => i[1] === d[0]).length}</span></button>`).join('')}</div>
     <div class="grille3">${l.map((i) => `<div class="idee-c" id="idee-${i[0]}"><div class="h"><span class="et idee">${svg('ampoule')}Idée ${i[0]}</span><span class="et">${DOM_I[i[1]]}</span></div><b style="font-size:17px">${esc(i[2])}</b><p>${esc(i[3])}</p><div class="h" style="margin-top:auto"><span class="et ${ST_I[i[4]][1]}">${ST_I[i[4]][0]}</span><span style="flex:1"></span><button class="btn petit" data-voir="${i[5]}">Voir</button></div></div>`).join('')}</div>
   </div></section>` };
@@ -1343,18 +2161,17 @@ function voirIdee(n) {
 /* ═══ RECHERCHER PARTOUT (idée 2) ═══ */
 function resultats(q) {
   q = q.trim().toLowerCase(); const k = cote();
-  if (!q) return `<p class="gris petit">Essaie « compresseur », « Dubois », « contrat », « jeudi »…</p>`;
+  if (!q) return `<p class="gris petit">Essaie « compresseur », « Dubois », « chantier », « jeudi »…</p>`;
   const bloc = (t, l) => l.length ? `<h3>${t}</h3><div class="carte serre">${l.join('')}</div>` : '';
   const r = (ic, c, b, s, go) => `<button class="rang" data-go="${go}" data-ferme="1"><span class="ic" style="--c:${c}">${svg(ic)}</span><span class="t"><b>${esc(b)}</b><span>${esc(s)}</span></span></button>`;
   const ms = []; C.filter((c) => c.cote === k).forEach((c) => c.msgs.forEach((m) => { const t = m.t || m.transc || m.leg || ''; if (t.toLowerCase().includes(q) && ms.length < 6) ms.push(r('bulle', '#2a4a9c', t.slice(0, 80), (m.de === 'moi' ? 'Toi' : P[m.de].n) + ' · ' + convNom(c) + ' · ' + hm(m), 'messages-x-' + c.id)); }));
   const cs = Object.values(P).filter((p) => p.id !== 'moi' && (k === 'pro' ? !p.perso : p.perso) && (p.n + ' ' + p.r).toLowerCase().includes(q)).map((p) => r('contacts', '#1c7a3a', p.n, p.r, 'contacts-x-' + p.id));
-  const ml = MAILS.filter((m) => boite(m.boite).cote === k && (m.objet + ' ' + m.de[0] + ' ' + m.corps).toLowerCase().includes(q)).slice(0, 6).map((m) => r('mail', '#7d3c98', m.objet, m.de[0] + ' · ' + jcourt(m.j), 'courrier-x-' + m.id));
   const es = EVTS.filter((e) => e.cote === k && (e.titre + ' ' + jlong(e.j)).toLowerCase().includes(q)).map((e) => r('agenda', '#a04a00', e.titre, jlong(e.j) + ' · ' + e.deb, 'agenda-x-' + e.id));
   const ap = APPELS.filter((a) => a.cote === k && ((a.notes || '') + ' ' + (a.vocal ? a.vocal.transc : '')).toLowerCase().includes(q)).map((a) => r('tel', '#d70015', a.notes || a.vocal.transc, quiAppel(a).n + ' · ' + (a.vocal ? 'message vocal' : 'notes d’appel'), 'appels-x-' + a.id));
-  return bloc('Contacts', cs) + bloc('Messages', ms) + bloc('Courriels', ml) + bloc('Agenda', es) + bloc('Appels', ap) || `<p class="gris petit">Rien trouvé pour « ${esc(q)} ».</p>`;
+  return bloc('Contacts', cs) + bloc('Messages', ms) + bloc('Agenda', es) + bloc('Appels', ap) || `<p class="gris petit">Rien trouvé pour « ${esc(q)} ».</p>`;
 }
 function ouvrirRecherche() {
-  ouvrir(`<h2>Rechercher partout</h2><label class="cherche">${svg('cherche')}<input id="rech-tout" placeholder="Messages, courriels, contacts, réunions, appels" autocomplete="off" autofocus></label><div id="rech-res" style="display:flex;flex-direction:column;gap:10px">${resultats('')}</div>`, { centre: true, large: true });
+  ouvrir(`<h2>Rechercher partout</h2><label class="cherche">${svg('cherche')}<input id="rech-tout" placeholder="Messages, contacts, réunions, appels" autocomplete="off" autofocus></label><div id="rech-res" style="display:flex;flex-direction:column;gap:10px">${resultats('')}</div>`, { centre: true, large: true });
   const i = $('#rech-tout'); if (i) i.focus();
 }
 
@@ -1369,9 +2186,8 @@ const ETAPES = [
   ['appels-x-a1', '[data-gd="vocal"]', 'Un appel manqué qui se lit', 'Le message vocal est déjà écrit. Tu sais pourquoi on t’appelait avant de rappeler.'],
   ['agenda', '[data-gd="creneau"]', 'Trouver un créneau', 'Les moments où tous les invités sont libres, sans échanger dix messages.'],
   ['agenda', '[data-gd="crs"]', 'Le compte rendu d’une réunion', 'Résumé, décisions, actions et leur responsable, présence, enregistrement. Ouvre celui d’hier.'],
-  ['courrier-x-m1', '[data-gd="resume-mail"]', 'Le courriel en trois lignes', 'Le résumé en haut, le contrat à faire signer en un geste, et trois réponses proposées en bas.'],
-  ['courrier-x-m8', '[data-gd="relance"]', 'Un devis sans réponse', 'Quatre jours sans réponse : le courriel remonte avec « Relancer ».'],
-  ['contacts-x-marc', '[data-gd="chrono"]', 'Tout sur une personne', 'Messages, appels, courriels et réunions avec ce client, dans l’ordre.'],
+  ['courrier', '#courrier-fixe', 'Ta boîte mail, telle qu’elle est', 'Ici rien n’est redessiné : c’est le Courrier d’OP GESTION et de la Tour, avec des courriels d’exemple. Il a été vérifié et corrigé à part.'],
+  ['contacts-x-marc', '[data-gd="chrono"]', 'Tout sur une personne', 'Messages, appels et réunions avec ce client, dans l’ordre.'],
   ['idees', null, 'Toutes les idées', IDEES.length + ' propositions, chacune avec son bouton « Voir ». Dis-moi lesquelles tu gardes.'],
 ];
 function gdAller(i) {
@@ -1406,15 +2222,6 @@ document.addEventListener('scroll', () => gdPlacer(false), true);
 /* ═══ LES GESTES ═══ */
 const garderSalle = () => { const n = $('#salle-notes'); if (n && S.salle) S.salle.notes = n.value; };
 const garderAppel = () => { const n = $('#appel-notes'); if (n && S.appel) S.appel.texte = n.value; };
-function retirerMail(m, dossier, mot) {
-  const avant = m.dossier; m.dossier = dossier; if (S.param === m.id) aller('courrier'); else rendre();
-  toast(mot, 'Annuler', () => { m.dossier = avant; m.reporte = null; rendre(); });
-}
-function envoyerMail(o, quand) {
-  const b = boite(o.boite);
-  MAILS.push({ id: uid(), boite: o.boite, dossier: quand ? 'programmes' : 'envoyes', de: ['Julie Martin', b.a], a: [o.a || 'Destinataire', o.a || ''], objet: o.objet || '(sans objet)', cat: 'principal', j: 0, h: '09:42', lu: 1, corps: o.corps, programme: quand || undefined, suivre: o.suivre });
-  rendre();
-}
 function feuilleChoix(titre, sous, opts, attr) {
   ouvrir(`<h2>${titre}</h2>${sous ? `<p class="gris petit">${sous}</p>` : ''}<div class="carte serre">${opts.map((o) => `<button class="rang" ${attr}="${esc(o[0])}"><span class="ic" style="--c:${o[3] || '#2a4a9c'}">${svg(o[2] || 'horloge')}</span><span class="t"><b>${esc(o[0])}</b>${o[1] ? `<span>${esc(o[1])}</span>` : ''}</span></button>`).join('')}</div>`, { centre: true });
 }
@@ -1509,35 +2316,7 @@ document.addEventListener('click', (ev) => {
   if ((b = q('[data-tache]'))) { const t = S.taches.find((x) => x.id === b.dataset.tache); t.fait = b.checked ? 1 : 0; rendre(); return; }
   if ((b = q('[data-salle-odj]'))) { S.salle.odjFait[+b.dataset.salleOdj] = b.checked; garderSalle(); peindreSalle(); return; }
 
-  /* — courrier — */
-  if ((b = q('[data-dossier]'))) { S.dossier = b.dataset.dossier; S.param = ''; aller('courrier'); rendre(); return; }
-  if ((b = q('[data-cat]'))) { S.catMail = b.dataset.cat; rendre(); return; }
-  if ((b = q('[data-boite]'))) { S.boiteSel = b.dataset.boite; fermer(); rendre(); return; }
-  if ((b = q('[data-rep-mail]'))) { const m = mail(b.dataset.repMail); ecrireMail({ titre: 'Répondre', boite: m.boite, a: m.de[1], objet: 'Re: ' + m.objet, corps: m.reponses[+b.dataset.i] }); return; }
-  if ((b = q('[data-reporter]'))) { const m = mail(_ctx); m.reporte = b.dataset.reporter.toLowerCase(); fermer(); retirerMail(m, 'reportes', 'Reporté : il revient ' + m.reporte); return; }
-  if ((b = q('[data-prog]'))) { const o = _ctx; fermer(); envoyerMail(o, b.dataset.prog); toast('Programmé : ' + b.dataset.prog.toLowerCase() + '. Il part même application fermée.'); return; }
-  if ((b = q('[data-partager-conv]'))) { const m = mail(_ctx), x = conv(b.dataset.partagerConv); x.msgs.push({ id: uid(), de: 'moi', j: 0, h: '09:42', type: 'fiche', genre: 'devis', b: 'Courriel · ' + m.objet, s: m.de[0] + ' · ' + jcourt(m.j), c: '#7d3c98' }); fermer(); toast('Partagé dans « ' + convNom(x) + ' »', 'Voir', () => aller('messages-x-' + x.id)); return; }
-  if ((b = q('[data-ranger]'))) { const m = mail(_ctx); const k = Object.keys(CATS).find((x) => CATS[x][0] === b.dataset.ranger); m.cat = k; fermer(); rendre(); toast('Les courriels de ' + m.de[0] + ' iront toujours dans « ' + CATS[k][0] + ' »'); return; }
   if ((b = q('[data-statut]'))) { const k = Object.keys(STATUTS).find((x) => STATUTS[x][0] === b.dataset.statut); S.statut = k; fermer(); rendre(); return; }
-  if ((b = q('[data-mail]'))) { const m = mail(b.dataset.id), k = b.dataset.mail; _ctx = m.id;
-    if (k === 'repondre') ecrireMail({ titre: 'Répondre', boite: m.boite, a: m.de[1], objet: 'Re: ' + m.objet });
-    else if (k === 'transferer') ecrireMail({ titre: 'Transférer', boite: m.boite, objet: 'Tr: ' + m.objet, corps: '\n\n---- Message transféré ----\nDe : ' + m.de[0] + '\n\n' + m.corps });
-    else if (k === 'reporter') feuilleChoix('Reporter ce courriel', 'Il quitte la réception et revient en haut au moment choisi.', [['Ce soir', 'À 18 h 00'], ['Demain matin', 'À 8 h 00'], ['Lundi', 'À 8 h 00'], ['Dans une semaine', 'Jeudi 19 novembre']], 'data-reporter');
-    else if (k === 'archiver') retirerMail(m, 'archive', 'Archivé');
-    else if (k === 'supprimer') retirerMail(m, 'corbeille', 'Mis à la corbeille');
-    else if (k === 'marquer') { m.marque = !m.marque; rendre(); }
-    else if (k === 'suivi') { m.suivi = m.suivi === 'À traiter' ? 'En cours' : m.suivi === 'En cours' ? 'Résolu' : 'À traiter'; rendre(); }
-    else if (k === 'annuler-prog') { retirerMail(m, 'corbeille', 'Envoi annulé'); }
-    else if (k === 'desabo') { MAILS.filter((x) => x.de[1] === m.de[1]).forEach((x) => { x.dossier = 'archive'; }); aller('courrier'); rendre(); toast('Désabonnement demandé à ' + m.de[0] + '. Ses messages sont archivés.'); }
-    else if (k === 'pourquoi') feuilleChoix('Pourquoi dans « ' + CATS[m.cat][0] + ' » ?', (m.cat === 'clients' ? 'L’expéditeur est un de tes clients.' : m.cat === 'factures' ? 'Le message contient une facture en pièce jointe et un montant.' : m.cat === 'promos' ? 'Message envoyé en masse, avec un lien de désinscription.' : m.cat === 'notifs' ? 'Message automatique (« ne pas répondre »).' : 'Écrit par une personne que tu connais.') + ' Le tri se fait sur ton appareil. Pour toujours ranger cet expéditeur ailleurs :', Object.values(CATS).map((x) => [x[0], '', 'dossier', x[1]]), 'data-ranger');
-    else if (k === 'plus') { const pro = cote() === 'pro'; const l = (ic, t, s, a, col) => `<button class="rang" data-action="${a}" data-id="${m.id}"><span class="ic" style="--c:${col || '#2a4a9c'}">${svg(ic)}</span><span class="t"><b>${t}</b><span>${s}</span></span></button>`;
-      ouvrir(`<h2>En faire quelque chose</h2><p class="gris petit">${esc(m.objet)}</p><div class="actions">${etIdee(23)}</div><div class="carte serre">
-        ${l('bulle', 'Partager dans une conversation', 'L’équipe en discute sans transférer le courriel dix fois', 'mail-partager')}
-        ${l('tache', 'En faire une tâche', 'Elle arrive dans « Aujourd’hui »', 'mail-tache', '#1c7a3a')}
-        ${l('agenda', 'Programmer une réunion', 'Avec ' + esc(m.de[0]), 'mail-reunion', '#a04a00')}
-        ${pro ? l('doc', 'Créer le devis dans OP GESTION', 'Le client et sa demande sont déjà remplis', 'mail-devis', '#1c7a3a') : ''}
-        ${pro ? l('contacts', 'Confier à quelqu’un', 'Sophie, Karim, Léo : « à traiter », visible par tous', 'mail-confier', '#7d3c98') : ''}</div>`, { centre: true }); }
-    return; }
   if ((b = q('[data-id-filtre]'))) { S.idFiltre = b.dataset.idFiltre; rendre(); return; }
 
   /* — actions nommées — */
@@ -1547,13 +2326,12 @@ document.addEventListener('click', (ev) => {
       'menu-tel': () => { const l = (ic, t, s, attr, col) => `<button class="rang" ${attr} data-ferme="1"><span class="ic" style="--c:${col || '#2a4a9c'}">${svg(ic)}</span><span class="t"><b>${t}</b><span>${s}</span></span></button>`;
         const m = (k, t) => `<button aria-pressed="${S.mode === k}" data-modetheme="${k}">${t}</button>`;
         ouvrir(`<div class="actions">${av('moi', 'g')}<div style="flex:1;min-width:0"><b style="font-size:18px">${esc(P.moi.n)}</b><br>${statutHtml()}</div></div>
-          <div class="carte serre">${l('cherche', 'Rechercher partout', 'Messages, courriels, contacts, réunions', 'data-action="chercher"')}${l('contacts', 'Contacts', 'Tout ce que tu as échangé avec chacun', 'data-go="contacts"', '#1c7a3a')}${l('coche', 'Mon statut', 'Disponible, en intervention, ne pas déranger', 'data-action="statut"', '#1f8a3f')}${l('reglages', 'Réglages', 'Tranquillité, appels, courrier, confidentialité', 'data-go="reglages"', '#8e8e93')}</div>
-          <h3>Prototype</h3><div class="carte serre">${l('ampoule', 'Les idées', IDEES.length + ' propositions à essayer', 'data-go="idees"', '#a04a00')}${l('eclat', 'Visite guidée', 'Douze étapes, cinq minutes', 'data-action="visite"', '#7d3c98')}</div>
+          <div class="carte serre">${l('cherche', 'Rechercher partout', 'Messages, contacts, réunions, appels', 'data-action="chercher"')}${l('contacts', 'Contacts', 'Tout ce que tu as échangé avec chacun', 'data-go="contacts"', '#1c7a3a')}${l('coche', 'Mon statut', 'Disponible, en intervention, ne pas déranger', 'data-action="statut"', '#1f8a3f')}${l('reglages', 'Réglages', 'Tranquillité, appels, confidentialité', 'data-go="reglages"', '#8e8e93')}</div>
+          <h3>Prototype</h3><div class="carte serre">${l('ampoule', 'Les idées', IDEES.length + ' propositions à essayer', 'data-go="idees"', '#a04a00')}${l('eclat', 'Visite guidée', ETAPES.length + ' étapes, cinq minutes', 'data-action="visite"', '#7d3c98')}</div>
           <div class="actions"><span class="gris petit" style="flex:1">Apparence</span><span class="seg" role="group" aria-label="Apparence">${m('light', 'Jour')}${m('dark', 'Nuit')}${m('auto', 'Auto')}</span></div>`); },
       visite: () => { fermer(); gdAller(0); },
       statut: () => feuilleChoix('Mon statut', 'Avec « Statut automatique », il suit ton agenda : ' + etIdee(8), Object.values(STATUTS).map((s, i) => [s[0], ['Tout le monde peut t’écrire et t’appeler', 'Tes collègues voient jusqu’à quelle heure', 'Seuls les messages « Urgent » sonnent', 'Les messages attendent ton retour'][i], 'coche', ['#1f8a3f', '#c77700', '#d70015', '#8e8e93'][i]]), 'data-statut'),
       accord: () => { const x = conv('equipe'); x.msgs.push({ id: uid(), de: 'moi', j: 0, h: '09:42', t: 'Accord pour le compresseur à 1 480 € HT. Karim, tu peux commander.', cite: 'Karim : il me faut ton accord pour commander le compresseur' }); x.nonlu = 0; conv('karim').nonlu = 0; aller('messages-x-equipe'); rendre(); toast('Accord envoyé à l’équipe'); },
-      relancer: () => { const m = mail(id); ecrireMail({ titre: 'Relancer', boite: m.boite, a: m.a ? m.a[1] : m.de[1], objet: 'Re: ' + m.objet, corps: 'Bonjour,\n\nJe me permets de revenir vers vous au sujet de notre devis envoyé le ' + jourD(m.j).getDate() + ' novembre. Avez-vous pu en prendre connaissance ?', suivre: true }); },
       'nouveau-msg': () => { const gens = Object.values(P).filter((p) => p.id !== 'moi' && (cote() === 'pro' ? !p.perso : p.perso)); ouvrir(`<h2>Nouvelle conversation</h2><div class="carte serre"><button class="rang" data-action="proto" data-mot="Prototype : la création de groupe existe déjà (photo, nom, membres, messages éphémères)"><span class="ic">${svg('contacts')}</span><span class="t"><b>Nouveau groupe</b><span>Photo, nom, membres, messages éphémères</span></span></button></div><div class="carte serre">${gens.map((p) => `<button class="rang" data-ecrire="${p.id}">${av(p.id, 'm')}<span class="t"><b>${esc(p.n)}</b><span>${esc(p.r)}</span></span></button>`).join('')}</div>`); },
       'infos-conv': () => { const c2 = conv(S.param); ouvrir(`<h2>${esc(convNom(c2))}</h2><div style="align-self:center">${convAv(c2, 'xl')}</div>${c2.grp ? `<div class="carte serre">${c2.membres.map((p) => `<button class="rang" data-go="contacts-x-${p}" data-ferme="1">${av(p, 'm')}<span class="t"><b>${esc(P[p].n)}</b><span>${esc(P[p].stt || P[p].r)}</span></span></button>`).join('')}</div>` : `<button class="btn gris" data-go="contacts-x-${c2.avec}" data-ferme="1">Voir tout ce que vous avez échangé</button>`}
         <div class="carte serre"><div class="rang"><span class="t"><b>Sourdine</b><span>Plus de notification, sauf « Urgent » et mentions</span></span><button class="bascule" role="switch" aria-checked="${!!c2.sourdine}" data-bascule="1" aria-label="Sourdine"></button></div><div class="rang"><span class="t"><b>Messages éphémères</b><span>Désactivés · 24 h · 7 jours · 90 jours</span></span><span class="et">Désactivés</span></div><div class="rang"><span class="t"><b>Photos, fichiers et liens</b><span>Tout ce qui a été partagé ici</span></span></div></div>`); },
@@ -1597,27 +2375,6 @@ document.addEventListener('click', (ev) => {
         const e = { id: 'e' + uid(), cote: cote(), type, titre: t, j, deb: h, fin, invites: inv.length ? inv : undefined, c: type === 'reunion' ? '#2a4a9c' : '#a04a00', odj: $('#pe-odj').value.split('\n').map((x) => x.trim()).filter(Boolean), rappel: $('#pe-rappel').value, lien: type === 'reunion' ? 'op-messages.example/r/' + uid() : undefined };
         EVTS.push(e); fermer(); S.jourSel = Math.min(3, j); aller('agenda-x-' + e.id); rendre();
         notifier('Ajouté à l’agenda', t + ' · ' + jlong(j) + ' à ' + h + (inv.length ? '. Invitation envoyée à ' + inv.map((x) => prenom(x[0])).join(', ') + '.' : ''), 'agenda-x-' + e.id); },
-      'ecrire-mail': () => ecrireMail({ a: b.dataset.a || '' }),
-      boites: () => { const k = cote(), bs = BOITES.filter((x) => x.cote === k); ouvrir(`<h2>Boîtes ${k === 'pro' ? 'pro' : 'perso'}</h2><p class="gris petit">Le côté Pro et le côté Perso ne se mélangent jamais. Change de côté avec le sélecteur Pro / Perso.</p><div class="carte serre"><button class="rang" data-boite="toutes"><span class="ic">${svg('boiteR')}</span><span class="t"><b>Toutes les boîtes ${k === 'pro' ? 'pro' : 'perso'}</b><span>${bs.length} boîte${bs.length > 1 ? 's' : ''} réunie${bs.length > 1 ? 's' : ''}</span></span></button>${bs.map((x) => `<button class="rang" data-boite="${x.id}"><span class="ic" style="--c:${x.c}">${svg('mail')}</span><span class="t"><b>${esc(x.n)}${x.partagee ? ' · partagée avec l’équipe' : ''}</b><span>${esc(x.a)}</span></span></button>`).join('')}</div>
-        <div class="info">${svg('cadenas')}<span class="t"><b>Connecter une autre boîte</b><br><span class="petit">Gmail, Microsoft 365, iCloud, Orange, Free, OVH… C’est ta boîte : les messages restent chez ton fournisseur, rien ne passe par TEAM OP.</span></span><button class="btn petit gris" data-action="proto" data-mot="Prototype : la connexion d’une boîte existe déjà">Connecter</button></div>`); },
-      'archiver-promos': () => { const l = MAILS.filter((m) => m.cat === 'promos' && m.dossier === 'recu' && boite(m.boite).cote === cote()); l.forEach((m) => { m.dossier = 'archive'; }); rendre(); toast(l.length + ' lettres d’info archivées', 'Annuler', () => { l.forEach((m) => { m.dossier = 'recu'; }); rendre(); }); },
-      'rappel-facture': () => { S.rappels.push({ t: 'Régler la facture F-2611-0412 (2 316,00 €)', q: 'le 27 novembre, 3 jours avant l’échéance' }); toast('Rappel posé le 27 novembre', 'Voir', () => aller('aujourdhui')); },
-      'vers-compta': () => { const m = mail(id); ecrireMail({ titre: 'Envoyer à la comptable', boite: m.boite, a: P.camille.mel, objet: 'Tr: ' + m.objet, corps: 'Bonjour Camille,\n\nVoici la facture Froid Atlantique de novembre.' }); },
-      'apercu-pj': () => ouvrir(`<h2>Aperçu</h2><div style="background:#fff;color:#16244b;border-radius:14px;padding:26px;min-height:300px;box-shadow:0 2px 10px rgba(0,0,0,.15)"><b style="font-size:18px">Contrat d’entretien 2027</b><p style="margin-top:10px;color:#46526a">Entre Clim Services 17 et l’Hôtel des Remparts.<br>Objet : entretien annuel de 14 climatiseurs.<br>Montant : 2 380,00 € HT par an.</p><p style="margin-top:14px;color:#6a7590;font-size:13px">Document fictif du prototype.</p></div><div class="pied"><button class="btn" data-ferme="1">Fermer</button></div>`, { centre: true, large: true }),
-      signer: () => ouvrir(`<h2>Envoyer pour signature</h2><div class="actions">${etIdee(25)}</div><label class="champ">Document<input value="Contrat-entretien-2027.pdf" readonly></label><label class="champ">Signataire<input value="James Carter · j.carter@hotel-remparts.example"></label><div class="deux"><label class="champ">Vérification<select><option>Code par SMS</option><option>Code par courriel</option></select></label><label class="champ">Délai<select><option>7 jours</option><option>15 jours</option><option>30 jours</option></select></label></div>
-        <div class="rang" style="padding:0"><span class="t"><b>Je contresigne après le client</b><span>Tu reçois le document signé à valider</span></span><button class="bascule" role="switch" aria-checked="false" data-bascule="1" aria-label="Contre-signature"></button></div>
-        <div class="pied"><button class="btn gris" data-ferme="1">Annuler</button><button class="btn" data-action="proto" data-mot="Prototype : la demande de signature serait envoyée. Tu suivrais « En attente », « Ouvert », « Signé »." data-ferme-apres="1">Envoyer pour signature</button></div>`, { centre: true }),
-      'em-pj': () => toast('Prototype : on choisit ici un fichier, ou on le dépose dans la fenêtre'),
-      'em-modele': () => { const t = $('#em-corps'); t.value = 'Bonjour,\n\nNous vous remercions pour votre demande. Vous trouverez notre devis en pièce jointe.\n\nNous restons à votre disposition.' + t.value.slice(t.value.indexOf('\n\n--')); toast('Texte type inséré : « Envoi de devis »'); },
-      'em-programmer': () => { _ctx = { boite: $('#em-de').value, a: $('#em-a').value, objet: $('#em-objet').value, corps: $('#em-corps').value }; feuilleChoix('Programmer l’envoi', 'Le courriel part au moment choisi, même si l’application est fermée.', [['Ce soir à 18 h 00', ''], ['Demain à 8 h 00', 'Pendant les heures de bureau du destinataire'], ['Lundi à 8 h 00', '']], 'data-prog'); },
-      'em-envoyer': () => { const o = { boite: $('#em-de').value, a: $('#em-a').value, objet: $('#em-objet').value, corps: $('#em-corps').value, suivre: $('#em-suivre').getAttribute('aria-checked') === 'true' }; fermer();
-        let annule = false; toast('Envoi dans 10 secondes…', 'Annuler l’envoi', () => { annule = true; ecrireMail({ boite: o.boite, a: o.a, objet: o.objet, corps: o.corps.split('\n\n--')[0], suivre: o.suivre }); toast('Envoi annulé : ton courriel est revenu en brouillon'); }, 10000);
-        setTimeout(() => { if (!annule) { envoyerMail(o); toast(o.suivre ? 'Envoyé. Tu seras prévenue sans réponse sous 3 jours.' : 'Envoyé'); } }, 10000); },
-      'mail-partager': () => { _ctx = id; feuilleChoix('Partager dans', mail(id).objet, C.filter((x) => x.cote === cote()).map((x) => [x.id, '', 'bulle']).map((x) => [x[0]]), 'data-partager-conv'); document.querySelectorAll('[data-partager-conv]').forEach((e) => { const x = conv(e.dataset.partagerConv); e.querySelector('b').textContent = convNom(x); }); },
-      'mail-tache': () => { const m = mail(id); S.taches.push({ id: uid(), t: m.objet, src: 'Courriel de ' + m.de[0], fait: 0 }); fermer(); toast('Ajouté à tes tâches', 'Voir', () => aller('aujourdhui')); },
-      'mail-reunion': () => { const m = mail(id); feuilleProgrammer({ titre: 'Échange avec ' + m.de[0], invites: m.de[2] ? [m.de[2]] : [] }); },
-      'mail-devis': () => { fermer(); toast('Prototype : OP GESTION s’ouvre sur un devis déjà rempli (client, demande)'); },
-      'mail-confier': () => { const m = mail(id); m.suivi = 'À traiter'; m.assigne = m.assigne === 'sophie' ? 'karim' : 'sophie'; fermer(); rendre(); toast('Confié à ' + prenom(m.assigne) + ' : « à traiter », visible par toute l’équipe'); },
       'ajouter-contact': () => ouvrir(`<h2>Ajouter un contact</h2><label class="champ">Identifiant ou numéro<input placeholder="Prénom#1234 ou 06…" autofocus></label><div class="info">${svg('qr')}<span class="t"><b>Ou montre ton code</b><br><span class="petit">L’autre personne le scanne : vous êtes en contact, sans échanger de numéro.</span></span></div><div class="pied"><button class="btn gris" data-ferme="1">Annuler</button><button class="btn" data-action="proto" data-mot="Prototype : la demande de contact serait envoyée" data-ferme-apres="1">Envoyer la demande</button></div>`, { centre: true }),
       proto: () => { if (b.dataset.fermeApres) fermer(); toast(b.dataset.mot); },
     };

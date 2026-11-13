@@ -1,6 +1,6 @@
 /* Sonde du PROTOTYPE d'OP MESSAGES (apercu/prototype-op-messages.html, 13 novembre 2026) — page autonome, données fictives.
    Lancer depuis la racine du dépôt : node scratchpad/sonde-proto-messages-gestes.js   (captures dans le dossier donné par CAPS, sinon aucune capture n'est gardée ailleurs que dans cap/)
-   Les GESTES, touchés pour de vrai sur Mac et iPhone, et l'état relu après chacun (accord, résumé, fil, appel, réunion, compte rendu, courrier annulable, recherche, rôles, visite guidée, jour et nuit). */
+   Les GESTES, touchés pour de vrai sur Mac et iPhone, et l'état relu après chacun (accord, résumé, fil, appel, réunion, compte rendu, le vrai module de courrier monté, recherche, rôles, visite guidée, jour et nuit). */
 // Sonde des GESTES du prototype : on touche pour de vrai et on relit l'état. Ordinateur et iPhone. Captures des états plein écran.
 const { chromium } = require('playwright');
 const path = require('path'), fs = require('fs');
@@ -79,26 +79,29 @@ let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko
     v('compte rendu ouvert à la sortie, avec l’action', await E(() => !S.salle && /Compte rendu/.test(document.querySelector('#calque h2').textContent) && /Prévenir la réception/.test(document.querySelector('#calque').textContent)));
     await cap('compte-rendu'); const m0 = await E(() => conv('equipe').msgs.length);
     await clic('[data-action="cr-envoyer"]'); v('compte rendu envoyé dans le groupe', await E((n) => conv('equipe').msgs.length === n + 1, m0));
-    /* 8. courrier : réponse proposée, envoi annulable, reporter, archiver + annuler */
-    await go('courrier-x-m1'); await clic('[data-rep-mail]', 0);
-    v('le brouillon reprend la réponse proposée', await E(() => /je vous envoie le contrat/.test(document.querySelector('#em-corps').value) && document.querySelector('#em-a').value === 'j.carter@hotel-remparts.example'));
-    await cap('ecrire'); const ml = await E(() => MAILS.length);
-    await clic('[data-action="em-envoyer"]'); v('envoi en attente, annulable', await E(() => /Envoi dans 10 secondes/.test(document.querySelector('#toast').textContent)));
-    await clic('#toast-a'); const tAnnule = Date.now(); v('annulé : rien n’est parti, le brouillon est rouvert', await E((n) => MAILS.length === n && !!document.querySelector('#em-corps'), ml));
-    await E(() => fermer());
-    await go('courrier-x-m3'); await clic('[data-mail="reporter"]'); await clic('[data-reporter]', 1);
-    v('reporté : sorti de la réception, rangé dans Reportés', await E(() => mail('m3').dossier === 'reportes' && /demain matin/.test(mail('m3').reporte)));
-    await go('courrier-x-m5'); await clic('[data-mail="archiver"]'); await clic('#toast-a'); v('archiver puis annuler : revenu en réception', await E(() => mail('m5').dossier === 'recu'));
-    await go('courrier-x-m2'); await clic('[data-mail="plus"]'); await cap('mail-plus'); await clic('[data-action="mail-partager"]'); await clic('[data-partager-conv="equipe"]');
-    v('courriel partagé dans le groupe', await E(() => /^Courriel · /.test(conv('equipe').msgs.slice(-1)[0].b)));
+    /* 8. le Courrier est le VRAI module opcourrier.js, monté tel quel (rien n'est redessiné) : il s'ouvre, il compte, il lit, il survit à un changement de rubrique */
+    const OMB = (c) => `document.querySelector('#zone-courrier-${c} [data-opcourrier]')`;
+    await go('courrier'); await page.waitForFunction((h) => { const e = eval(h); return e && e.shadowRoot && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('pro'), { timeout: 8000 }).catch(() => {});
+    const lignes0 = await E((h) => { const e = eval(h); return e && e.shadowRoot ? e.shadowRoot.querySelectorAll('#rows .msg').length : 0; }, OMB('pro'));
+    v('courrier : le vrai module est monté (arbre d’ombre) et montre des courriels d’exemple', lignes0 > 0, lignes0);
+    v('courrier : la pastille de l’onglet reprend le nombre annoncé par le module', await E(() => COUR.nl.pro > 0 && compte('courrier') === COUR.nl.pro && new RegExp('Courrier\\s*' + COUR.nl.pro).test(document.querySelector(innerWidth <= 760 ? '#barre-bas' : '#menu').textContent)), await E(() => COUR.nl.pro));
+    v('courrier : côté Pro seul, sans sélecteur Pro / Perso', await E((h) => Array.from(eval(h).shadowRoot.querySelectorAll('.sptab')).every((x) => x.offsetWidth === 0), OMB('pro')));
+    await cap('courrier');
+    await page.locator('#zone-courrier-pro #rows .msg').first().click(); await page.waitForTimeout(350);
+    v('courrier : toucher un courriel l’ouvre en lecture', await E((h) => { const r = eval(h).shadowRoot.querySelector('.reading'); return !!r && r.textContent.trim().length > 80; }, OMB('pro')));
+    await cap('courrier-lecture');
+    await go('messages'); await page.waitForTimeout(1200); await go('courrier'); await page.waitForTimeout(300);
+    v('courrier : après un détour par une autre rubrique, le module vit toujours (il ne s’est pas démonté)', await E((h) => { const e = eval(h); return !document.querySelector('#courrier-fixe').hidden && e.isConnected && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('pro')));
+    await go('messages'); v('courrier : hors de sa rubrique, la zone est masquée et ne couvre rien', await E(() => document.querySelector('#courrier-fixe').hidden && !!document.querySelector('#scene .liste')));
     /* 9. recherche partout */
-    await E(() => ouvrirRecherche()); await page.fill('#rech-tout', 'compresseur'); await page.waitForTimeout(100); await cap('recherche');
+    await E(() => ouvrirRecherche()); await page.fill('#rech-tout', 'dubois'); await page.waitForTimeout(100); await cap('recherche');
     v('la recherche trouve dans plusieurs rubriques', await E(() => document.querySelectorAll('#rech-res h3').length >= 3), await E(() => document.querySelectorAll('#rech-res h3').length));
     await E(() => fermer());
     /* 10. rôles */
     await clic('[data-role="perso"]'); await go('messages');
     v('côté Perso : Maman est là, aucun client', await E(() => /Maman/.test(document.querySelector('#scene').textContent) && !/Marc Dubois/.test(document.querySelector('#scene').textContent)));
-    await go('courrier'); v('côté Perso : seule la boîte perso', await E(() => !/Contrat d’entretien/.test(document.querySelector('#scene').textContent) && /Photos des vacances/.test(document.querySelector('#scene').textContent)));
+    await go('courrier'); await page.waitForFunction((h) => { const e = eval(h); return e && e.shadowRoot && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('perso'), { timeout: 8000 }).catch(() => {});
+    v('côté Perso : SA boîte mail, un second montage, la zone Pro masquée', await E((h) => { const e = eval(h); return !!e && e.shadowRoot.querySelectorAll('#rows .msg').length > 0 && document.querySelector('#zone-courrier-pro').hidden && !document.querySelector('#zone-courrier-perso').hidden && /messagerie-essai\.example|Camille/.test(e.shadowRoot.textContent); }, OMB('perso')));
     await clic('[data-role="invite"]'); v('invité : la page d’invitation', await E(() => location.hash === '#invite' && /t’invite à une réunion/.test(document.querySelector('#scene').textContent)));
     await cap('invite'); await clic('[data-rejoindre="e0"]'); await clic('[data-salle="entrer"]'); v('invité : il attend qu’on le laisse entrer', await E(() => S.salle.etape === 'attente'));
     await page.waitForTimeout(2500); v('invité : il est entré, sans le volet « Plus »', await E(() => S.salle.etape === 'salle' && !document.querySelector('[data-salle="volet-plus"]')));
@@ -109,11 +112,11 @@ let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko
       if (s.w > 0) spots++; else if (i < etapes - 1) console.log('    étape sans cible', i + 1, await E(() => ETAPES[GD.i][1])); v('visite ' + (i + 1) + ' : la bulle est entière à l’écran', s.vis, s); if (i === 3 || i === 8) await cap('visite-' + (i + 1));
       await clic('[data-gd-act="suiv"]'); }
     v('visite : chaque étape qui vise un élément l’a trouvé', spots === etapes - 1, spots); v('visite terminée', await E(() => GD.i === -1 && !document.querySelector('#gd-bulle')));
-    /* ⛔ l'envoi ANNULÉ ne part jamais : on relit APRÈS les dix secondes (sans ça, un envoi qui partait quand même passait la sonde — mutation m2) */
-    await page.waitForTimeout(Math.max(0, 10600 - (Date.now() - tAnnule)));
-    v('dix secondes après, le courriel annulé n’est toujours pas parti', await E(() => !MAILS.some((m) => m.dossier === 'envoyes' && /^Re: Contrat/.test(m.objet))));
     /* 12. jour / nuit */
     await E(() => { S.mode = 'dark'; appliquerMode(); }); v('Nuit : bleu nuit, jamais noir', await E(() => getComputedStyle(document.body).backgroundColor) === 'rgb(11, 22, 51)');
+    await go('courrier'); await page.waitForTimeout(300);
+    v('Nuit : la boîte mail suit le réglage du prototype (thème « nuit » posé sur le module)', await E((h) => eval(h).shadowRoot.querySelector('.opc').getAttribute('data-theme'), OMB('pro')) === 'nuit');
+    await E(() => { S.mode = 'light'; appliquerMode(); }); v('Jour : la boîte mail repasse en « jour »', await E((h) => eval(h).shadowRoot.querySelector('.opc').getAttribute('data-theme'), OMB('pro')) === 'jour');
     await E(() => { S.mode = 'light'; appliquerMode(); }); v('Jour : fond clair', await E(() => getComputedStyle(document.body).backgroundColor) === 'rgb(242, 242, 247)');
     v('aucune erreur JavaScript', errs.length === 0, errs.slice(0, 4));
     await ctx.close();
