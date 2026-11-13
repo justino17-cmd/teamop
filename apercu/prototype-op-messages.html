@@ -158,6 +158,7 @@ svg{width:22px;height:22px;flex:none}
 .rang{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 16px;width:100%;position:relative}
 .rang+.rang::before{content:"";position:absolute;left:16px;right:0;top:0;border-top:.5px solid var(--trait)}
 .rang .t{flex:1;min-width:0}
+.rang.regl .t b{white-space:normal}
 .rang .t b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rang .t span{display:block;color:var(--doux);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rang .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--c,var(--fill));color:#fff;flex:none}
@@ -600,7 +601,7 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
   /* sonde des clics, iPad : 105 cibles sous 40 px — elles gardaient les tailles de la souris */
   .seg button,.bande .seg button{min-height:40px;font-size:14px} .bande .btn{min-height:40px}
   .menu .cherche{height:44px}
-  .barre-conv .qui{min-height:44px} .barre-conv .rond{width:44px;height:44px}
+  .barre-conv .qui{min-height:44px} .barre-conv .rond{width:44px;height:44px} .rang .rond{width:44px;height:44px}
   .bascule{width:50px;height:30px;border-radius:15px} .bascule::after{width:26px;height:26px} .bascule[aria-checked="true"]::after{transform:translateX(20px)}
   .bascule::before{inset:-7px -4px}
 }
@@ -677,6 +678,9 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
   .panneau::before{content:"";flex:none;align-self:center;width:36px;height:5px;border-radius:3px;background:var(--tenu);margin-bottom:6px}
   .scene.entre.a-detail .detail,.scene.entre.une .page{animation:pousse .35s var(--ressort)}
   #toast{border-radius:999px;font-size:15px}
+  /* un réglage, au téléphone : l'étiquette d'idée prenait la place du NOM de l'option (« Mode concentra… ») — elle passe sous le texte */
+  .rang.regl{display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:6px;align-items:center}
+  .rang.regl .et{grid-column:1;grid-row:2;justify-self:start} .rang.regl:has(.et) .bascule{grid-column:2;grid-row:1 / span 2}
   /* à 360 px (Android), sept jours avec 6 px d'écart tombaient à 37 px de large */
   .semaine{gap:0}
 }
@@ -2403,7 +2407,7 @@ VUES.contacts = () => {
 /* ═══ RÉGLAGES ═══ */
 const REGL = { npd: true, concentration: false, lecture: true, enligne: true, vocalTransc: true, economie: false, ia: false, urgent: true, statutAuto: true };
 VUES.reglages = () => {
-  const b = (k, t, d, n) => `<div class="rang"><span class="t"><b>${t}</b><span style="white-space:normal">${d}</span></span>${n ? etIdee(n) : ''}<button class="bascule" role="switch" aria-checked="${REGL[k]}" data-regl="${k}" aria-label="${t}"></button></div>`;
+  const b = (k, t, d, n) => `<div class="rang regl"><span class="t"><b>${t}</b><span style="white-space:normal">${d}</span></span>${n ? etIdee(n) : ''}<button class="bascule" role="switch" aria-checked="${REGL[k]}" data-regl="${k}" aria-label="${t}"></button></div>`;
   const g = (t, c) => `<div class="col" style="gap:6px"><h3 style="padding:0 16px">${t}</h3><div class="carte serre">${c}</div></div>`;
   return { une: true, html: `<section class="page"><div class="dedans" style="max-width:760px"><h1>Réglages</h1>
     <div class="carte" style="flex-direction:row;align-items:center;gap:14px">${av('moi', 'g')}<div style="flex:1;min-width:0"><b style="font-size:18px">${esc(P.moi.n)}</b><p class="gris petit">${S.role === 'pro' ? 'Clim Services 17 · offre Pro' : 'Compte personnel · gratuit'}</p></div><button class="btn petit gris" data-action="statut">Mon statut</button></div>

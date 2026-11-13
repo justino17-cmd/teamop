@@ -84,6 +84,18 @@ puisse tester en application sur Mac, iPhone ; après, on le fera pour Windows e
 
 **Attend Justin** : le premier lancement dans Xcode (et le message exact s'il y a une erreur) ; quelles idées il garde, dans quel ordre ; si la
 navigation à 5 onglets lui va ; la publication du correctif tactile de la boîte mail.
+**Tous les appareils (13 novembre, soir)** — Justin : « une application sur tout type d'appareil, plus version web […] comme chez Apple ».
+Ajouté : la feuille se tire vers le bas au téléphone ; la touche Retour (Android, navigateur) ferme la feuille ouverte ; clic droit sur un
+message à l'ordinateur ; ⌘K sur Apple, Ctrl K ailleurs ; menu réduit aux icônes entre 761 et 1000 px ; tailles du doigt sur tablette
+(`(min-width:761px) and (pointer:coarse)`) ; zone de saisie calée sur `visualViewport` ; geste du bord dans l'application Xcode.
+Mesuré : gestes 311 ✓ sur Mac, iPhone, Android, Windows, iPad ; 286 écrans (11 profils, jour et nuit), 0 faute ; tout ce qui se clique sur
+cinq appareils (853 cibles au téléphone, 1 111 ailleurs, toutes les frappes ont porté) — Mac, Windows, iPhone sans défaut, **105 cibles
+sous 40 px sur iPad et 15 sur Android**, corrigées puis rejouées (Android entier, iPad entier puis les scènes touchées : aucun défaut).
+Vu à l'œil : au téléphone, l'étiquette d'idée coupait le NOM d'un réglage (« Mode concentra… ») — elle passe sous le texte.
+⚠️ Non vérifié : Safari/WebKit et Firefox (seul Chromium existe dans une session du cloud), la compilation Xcode, un vrai clavier de
+téléphone. Les sources en parties du prototype vivaient dans le scratchpad de la session : la page du dépôt se modifie désormais en direct
+(puis `node apple/OPMessages/synchroniser.js`).
+
 
 # 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
 
