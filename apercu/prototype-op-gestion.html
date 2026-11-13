@@ -21237,6 +21237,19 @@ if (MODE_APP) {
     const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); if (appRoute !== route) { appRoute = route; document.body.classList.remove('barre-cachee'); y0 = Math.max(0, scrollY); } return v; }; }
 }
 var appRoute = null;
+
+/* ── le Planning ne retient plus le défilement · 13 novembre 2026 ──
+   Justin, vidéo du Mac : dans le Planning, la page ne descend pas, elle rebondit sur place, et le curseur porte un « + » vert.
+   · `.pl-defile{overflow-x:auto}` rend aussi le défilement VERTICAL automatique (CSS : un axe « auto » entraîne l'autre) ; son
+     contenu dépassait de quelques pixels : la grille devenait un petit ascenseur de 9 px qui avalait le geste, et la page
+     derrière ne bougeait pas. Une boîte qui ne défile que de côté le dit sur les deux axes.
+   · `cursor:copy` (le « + » vert) est le curseur d'un glisser-déposer : sur une case vide, il faisait croire qu'on déplaçait
+     quelque chose. `cell` dit « ici, on ajoute » sans ce malentendu. */
+document.head.insertAdjacentHTML('beforeend', `<style id="defile-cote">
+.pl-defile{overflow-y:hidden}
+.pl-col,.pl-mj,.pl-cel{cursor:cell}
+@media (max-width:760px){ .st-graph{overflow-y:hidden} }   /* même piège : le graphique des Statistiques, qui ne défile que de côté */
+</style>`);
 </script>
 
 </body>
