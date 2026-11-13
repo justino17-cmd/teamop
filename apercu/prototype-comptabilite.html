@@ -3537,6 +3537,10 @@ try { cmptMenuMaj(); } catch (e) {}
    avec `seul=1`, c'est le compte d'un comptable qui n'a que cette fenêtre. */
 const OPC_APP = /[?&]app=1\b/.test(location.search), OPC_SEUL = /[?&]seul=1\b/.test(location.search);
 document.title = 'OP COMPTABLE';
+/* dans la fenêtre d'OP GESTION (un cadre), l'encoche du téléphone est déjà dégagée par la barre du dessus : la compter une
+   seconde fois laissait un vide sous « Retourner à OP GESTION » et glissait le titre sous l'en-tête (iPhone, 13 novembre 2026) */
+if (window.parent !== window) { document.documentElement.classList.add('cadre');
+  document.head.insertAdjacentHTML('beforeend', '<style id="opc-cadre">html.cadre{padding-top:0!important}html.cadre body::before{display:none}html.cadre .barre{top:0}html.cadre body.guide-on .toast{top:14px}</style>'); }
 if (OPC_APP) { document.documentElement.dataset.app = '1';
   document.head.insertAdjacentHTML('beforeend', '<style id="opc-app">html[data-app] .bandeau-proto, html[data-app] #hero, html[data-app] [data-a="film"], html[data-app] [data-a="essayer"], html[data-app] a[href="#tests"]{display:none!important}</style>');
   if (UI.mode === 'choix') UI.mode = 'libre'; }

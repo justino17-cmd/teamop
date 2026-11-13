@@ -21022,6 +21022,7 @@ function sessionOuvrir(k){ const p = eqDe(k); if (!p || !p.actif) return false; 
   if (p.invite) p.invite = false;                                  // se connecter pour la première fois, c'est accepter l'invitation
   if (role !== 'patron') ROLES[role].qui = k;
   SESSION = k; try { localStorage.setItem(SESSION_CLE, k); } catch (e) {}
+  try { if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); } catch (e) {}   /* le champ actif rend la main : sur Mac, la barre du clavier s'en va avec lui */
   const z = document.getElementById('cnx'); if (z) z.remove();
   rlChanger(role, { muet:true, h:role === 'patron' ? 'accueil' : undefined });
   if (role === 'compta') { cpSysteme = true; cpSysDe = null; rendre(); }
@@ -21034,8 +21035,8 @@ function sessionFermer(){ SESSION = null; try { localStorage.removeItem(SESSION_
   const f = z.querySelector('iframe'), ret = z.querySelector('[data-cpsys="retour"]'), quo = z.querySelector('[data-cpsys="quotidien"]'), t = z.querySelector('.cpsys-barre b'), seul = ROLE === 'compta';
   if (neuf && f && MODE_APP) f.src = 'prototype-comptabilite.html?app=1';
   if (f) f.title = 'OP COMPTABLE'; z.setAttribute('aria-label', 'OP COMPTABLE'); if (t && t.textContent !== 'OP COMPTABLE') t.textContent = 'OP COMPTABLE';
-  if (ret) { const l = seul ? (MODE_APP ? 'Se déconnecter' : '‹ Revenir au compte de Marc') : '‹ Retourner à OP GESTION'; if (ret.textContent !== l) { ret.textContent = l; ret.setAttribute('aria-label', l.replace('‹ ', '')); } }
-  if (quo) quo.hidden = seul;
+  if (ret) { const l = seul ? (MODE_APP ? 'Se déconnecter' : '‹ Revenir au compte de Marc') : (tel() ? '‹ OP GESTION' : '‹ Retourner à OP GESTION'); if (ret.textContent !== l) { ret.textContent = l; ret.setAttribute('aria-label', l.replace('‹ ', '')); } }
+  if (quo) { quo.hidden = seul; const lq = tel() ? 'Factures' : 'Factures et paiements'; if (quo.textContent !== lq) { quo.textContent = lq; quo.setAttribute('aria-label', 'Factures et paiements'); } }
   return v; }; }
 document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('#cpsys [data-cpsys="retour"]'); if (!b || ROLE !== 'compta') return;
   ev.stopPropagation(); ev.preventDefault(); if (MODE_APP) sessionFermer(); else { sessionOuvrir('marc'); aller('equipe'); } }, true);
@@ -21145,13 +21146,13 @@ const CNX_DESSIN = `<svg class="cn-svg" viewBox="0 0 512 512" role="img" aria-la
   </g>
   <rect class="cn-contour" x="4" y="4" width="504" height="504" rx="124" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" pathLength="1"/>
 </svg>`;
-function cnxCharger(suite, etat, duree){ document.getElementById('cnx')?.remove(); const trace = !duree; duree = duree || 4400;   /* « un peu plus long, qu'on voie bien tout » (Justin, 13 novembre 2026) */
-  const t0 = trace ? 2.35 : .28;
+function cnxCharger(suite, etat, duree){ document.getElementById('cnx')?.remove(); const court = !!duree, trace = true; duree = court ? Math.max(duree, 2500) : 4400;   /* lancement : 4,4 s (« qu'on voie bien tout ») ; entre deux écrans : le même, en 2,5 s */
+  const t0 = court ? 1.3 : 2.35;
   const nom = [...'OP GESTION'].map((c, i) => `<span style="animation-delay:${(t0 + i * .045).toFixed(3)}s">${c}</span>`).join('');
-  document.body.insertAdjacentHTML('beforeend', `<div id="cnx" class="charge${trace ? ' trace' : ''}" role="status" aria-label="${esc(etat || 'Chargement d’OP GESTION')}" style="--cn-duree:${duree}ms">
+  document.body.insertAdjacentHTML('beforeend', `<div id="cnx" class="charge${trace ? ' trace' : ''}${court ? ' court' : ''}" role="status" aria-label="${esc(etat || 'Chargement d’OP GESTION')}" style="--cn-duree:${duree}ms">
     <span class="cn-orbe a" aria-hidden="true"></span><span class="cn-orbe b" aria-hidden="true"></span>
     <div class="cn-scene" aria-hidden="true"><span class="cn-halo"></span><span class="cn-anneau"></span>${trace ? '<span class="cn-onde"></span><span class="cn-onde deux"></span>' + Array.from({ length:12 }, (_, i) => `<i class="cn-etincelle" style="--a:${i * 30}deg;--d:${(i % 3) * .04}s"></i>`).join('') : ''}<span class="cn-tuile${trace ? ' trace' : ''}">${CNX_DESSIN}${trace ? '<span class="cn-reflet"></span>' : ''}</span></div>
-    <span class="cn-nom" aria-hidden="true">${nom}</span><span class="cn-sous" aria-hidden="true"${trace ? ' style="animation-delay:3s"' : ''}>par TEAM OP</span>
+    <span class="cn-nom" aria-hidden="true">${nom}</span><span class="cn-sous" aria-hidden="true" style="animation-delay:${court ? 1.75 : 3}s">par TEAM OP</span>
     <span class="cn-barre" aria-hidden="true"><i></i></span><span class="cn-etat">${esc(etat || 'Chargement…')}</span></div>`);
   const z = document.getElementById('cnx');
   setTimeout(() => { if (document.getElementById('cnx') !== z) return; z.classList.add('sort'); setTimeout(() => { if (document.getElementById('cnx') === z) suite(); }, 340); }, duree); }
@@ -21200,7 +21201,7 @@ function cnxMontrer(err, ident){ document.getElementById('cnx')?.remove();
       <button type="submit" class="btn plein">Continuer</button>
     </form>
     <p class="cn-expl" style="text-align:center;font-size:13px">Pas de lien ? Demande-le à l’administrateur de ton entreprise : il le trouve dans Équipe.</p></div></div>`);
-    const l = document.getElementById('cn-lien'); if (l && !tel()) l.focus(); return; }
+    const l = document.getElementById('cn-lien'); if (l && !tel() && !window.Capacitor) l.focus(); return; }
   document.body.insertAdjacentHTML('beforeend', `<div id="cnx" role="dialog" aria-modal="true" aria-label="Connexion à OP GESTION"><div class="cn-col">${cnxTete()}
     <span class="cn-pastille"><span>✓ ${esc(ENTREPRISE.nom)} · lien vérifié</span></span>
     <form class="cn-carte" id="cn-form" novalidate>
@@ -21212,13 +21213,54 @@ function cnxMontrer(err, ident){ document.getElementById('cnx')?.remove();
       <button type="submit" class="btn plein">Se connecter</button>
     </form>
     <div class="cn-bas"><button type="button" class="cn-lien" data-cnx="oubli">Mot de passe oublié ?</button><button type="button" class="cn-lien" data-cnx="quitter">Changer d’entreprise</button></div></div></div>`);
-  const m = document.getElementById('cn-id'); if (m && !tel()) (m.value ? document.getElementById('cn-mdp') : m).focus(); }
+  const m = document.getElementById('cn-id'); if (m && !tel() && !window.Capacitor) (m.value ? document.getElementById('cn-mdp') : m).focus(); }
 const cnxDire = t => { const e = document.getElementById('cn-err'); if (!e) return; e.style.color = ''; e.textContent = ''; requestAnimationFrame(() => { e.textContent = t; }); };
 /* relier l'appareil : le lien est vérifié, puis l'écran de connexion de l'entreprise */
-function cnxRelier(texte){ const sl = cnxLienLire(texte);
-  cnxCharger(() => { if (sl !== ESPACE_SLUG) return cnxMontrer('Lien de connexion invalide — redemande-le à ton entreprise.');
-    ESPACE = ESPACE_SLUG; cnxGarder(); cnxMontrer(); toast('Appareil relié à ' + ENTREPRISE.nom); }, 'Vérification du lien…', 1300); }
-function cnxEntrer(p, reste){ cnxCharger(() => { sessionOuvrir(p.k); if (!reste) { try { localStorage.removeItem(SESSION_CLE); } catch (e) {} } toast('Bonjour ' + p.prenom); }, 'Connexion de ' + p.prenom + '…', 1100); }
+/* ── d'un écran de connexion à l'autre : on reste sur place · 13 novembre 2026 ──
+   Justin : « l'animation entre le lien et les identifiants, il faut la changer, j'aime pas ». Elle repassait par l'écran de
+   chargement plein écran (le logo, la barre) pour une seconde de vérification : un écran de trop, et un à-coup.
+   Maintenant : le bouton dit ce qui se passe (« Vérification du lien… », une petite roue), puis la carte glisse et la
+   suivante arrive du côté opposé ; le logo et le nom ne bougent pas ; « ✓ lien vérifié » se pose. À la connexion, l'écran
+   s'efface sur l'application déjà prête derrière. Le chargement plein écran reste pour le LANCEMENT (et un lien ouvert du dehors). */
+document.head.insertAdjacentHTML('beforeend', `<style id="cnx-passage">
+#cnx-sort{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--page) fixed;background-color:#eef2f8;color:var(--encre);pointer-events:none;
+  padding:calc(20px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));animation:cnDehors .46s cubic-bezier(.4,0,.2,1) forwards}
+[data-mode="nuit"] #cnx-sort{background-color:#0b1426}
+/* la colonne part du haut, pas du milieu : d'un écran à l'autre le logo et le nom ne bougent pas, quelle que soit la hauteur de la carte */
+#cnx:has(.cn-col),#cnx-sort:has(.cn-col){align-items:flex-start}
+#cnx .cn-col,#cnx-sort .cn-col{margin:clamp(8px,7vh,90px) auto 24px}
+.cn-col.cn-fixe{animation:none}
+.cn-col.cn-part .cn-carte,.cn-col.cn-part .cn-bas,.cn-col.cn-part .cn-pastille,.cn-col.cn-part > p{animation:cnSortG .22s ease-in both}
+.cn-col.cn-arrive .cn-carte{animation:cnEntreD .44s cubic-bezier(.2,.9,.25,1) both}
+.cn-col.cn-arrive .cn-bas,.cn-col.cn-arrive > p{animation:cnFondu .4s .16s ease both}
+.cn-col.cn-arrive .cn-pastille{animation:cnPastille .5s .12s cubic-bezier(.3,1.5,.5,1) both}
+.cn-roue{display:inline-block;width:16px;height:16px;margin-right:9px;vertical-align:-3px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:cnTourne .7s linear infinite}
+.cn-carte .btn[disabled]{opacity:.9;cursor:progress}
+@keyframes cnSortG{to{opacity:0;transform:translateX(-34px)}}
+@keyframes cnEntreD{from{opacity:0;transform:translateX(42px)}to{opacity:1;transform:none}}
+@keyframes cnPastille{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+@keyframes cnDehors{to{opacity:0;transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.cn-col.cn-part .cn-carte,.cn-col.cn-part .cn-bas,.cn-col.cn-part .cn-pastille,.cn-col.cn-part > p,.cn-col.cn-arrive .cn-carte,.cn-col.cn-arrive .cn-bas,.cn-col.cn-arrive > p,.cn-col.cn-arrive .cn-pastille,.cn-roue{animation:none}#cnx-sort{animation:cnFonduSort .2s ease forwards}}
+@keyframes cnFonduSort{to{opacity:0}}
+</style>`);
+/* le bouton de l'écran dit qu'on travaille ; rend de quoi le remettre */
+function cnxOccupe(texte){ const b = document.querySelector('#cnx form button[type=submit]'); if (!b) return () => {};
+  const h = b.innerHTML; b.disabled = true; b.innerHTML = '<span class="cn-roue" aria-hidden="true"></span>' + esc(texte); return () => { if (b.isConnected) { b.disabled = false; b.innerHTML = h; } }; }
+/* passer à l'écran suivant sans quitter la page : la carte part, la suivante arrive */
+function cnxGlisser(suite){ const col = document.querySelector('#cnx .cn-col');
+  if (!col) { suite(); return; }
+  col.classList.add('cn-fixe', 'cn-part');
+  setTimeout(() => { suite(); const n = document.querySelector('#cnx .cn-col'); if (n) n.classList.add('cn-fixe', 'cn-arrive'); }, 230); }
+function cnxRelier(texte){ const sl = cnxLienLire(texte), surPlace = false;   /* un écran de chargement, dans le style du lancement (Justin, 13 novembre 2026) */
+  const fin = () => { if (sl !== ESPACE_SLUG) return false; ESPACE = ESPACE_SLUG; cnxGarder(); return true; };
+  if (!surPlace) { cnxCharger(() => { if (!fin()) return cnxMontrer('Lien de connexion invalide — redemande-le à ton entreprise.'); cnxMontrer(); toast('Appareil relié à ' + ENTREPRISE.nom); }, 'Vérification du lien…', 1300); return; }
+  const rendre = cnxOccupe('Vérification du lien…');
+  setTimeout(() => { if (!fin()) { rendre(); return cnxDire('Lien de connexion invalide — redemande-le à ton entreprise.'); } cnxGlisser(() => cnxMontrer()); }, 750); }
+function cnxEntrer(p, reste){ const z = document.getElementById('cnx'), surPlace = false;
+  const entrer = () => { sessionOuvrir(p.k); if (!reste) { try { localStorage.removeItem(SESSION_CLE); } catch (e) {} } toast('Bonjour ' + p.prenom); };
+  if (!surPlace) { cnxCharger(entrer, 'Connexion de ' + p.prenom + '…', 1100); return; }
+  cnxOccupe('Connexion de ' + p.prenom + '…');
+  setTimeout(() => { if (!z.isConnected) return; z.id = 'cnx-sort'; z.removeAttribute('role'); z.setAttribute('aria-hidden', 'true'); entrer(); setTimeout(() => z.remove(), 480); }, 650); }
 /* première connexion : le mot de passe provisoire laisse la place à un mot de passe personnel */
 function cnxPremier(p, reste){ document.getElementById('cnx')?.remove();
   document.body.insertAdjacentHTML('beforeend', `<div id="cnx" role="dialog" aria-modal="true" aria-label="Choisir ton mot de passe"><div class="cn-col">${cnxTete()}
@@ -21233,13 +21275,13 @@ function cnxPremier(p, reste){ document.getElementById('cnx')?.remove();
       <button type="submit" class="btn plein">Enregistrer et entrer</button>
     </form>
     <div class="cn-bas"><button type="button" class="cn-lien" data-cnx="retour">Revenir à la connexion</button></div></div></div>`);
-  if (!tel()) document.getElementById('cn-n1').focus(); }
+  if (!tel() && !window.Capacitor) document.getElementById('cn-n1').focus(); }
 function cnxValider(){ const id = document.getElementById('cn-id').value.trim().toLowerCase(), mdp = document.getElementById('cn-mdp').value, reste = document.getElementById('cn-reste').checked;
   if (!id || !mdp) return cnxDire('Écris ton identifiant et ton mot de passe.');
   const p = EQUIPE.find(o => cnxLogin(o) === id);
   if (!p || mdp !== (MDP[p.k] || MDP_PROVISOIRE)) return cnxDire('Identifiant ou mot de passe incorrect.');     // la même phrase dans les deux cas
   if (!p.actif) return cnxDire('Ton compte a été désactivé par ton entreprise : tu ne peux plus te connecter. Contacte ton administrateur.');
-  if (!MDP[p.k]) return cnxPremier(p, reste);
+  if (!MDP[p.k]) return cnxGlisser(() => cnxPremier(p, reste));
   cnxEntrer(p, reste); }
 function cnxPremierValider(f){ const p = eqDe(f.dataset.k), a = document.getElementById('cn-n1').value, b = document.getElementById('cn-n2').value;
   if (a.length < 8) return cnxDire('8 caractères minimum.');
@@ -21257,8 +21299,8 @@ window.opgLien = opgLien;
 document.addEventListener('submit', ev => { if (ev.target.id === 'cn-form') { ev.preventDefault(); cnxValider(); } });
 document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-cnx]'); if (!b) return; const [a, x] = b.dataset.cnx.split('|');
   if (a === 'oubli') { const e = document.getElementById('cn-err'); e.style.color = 'var(--doux)'; e.textContent = 'Demande à l’administrateur de ton entreprise de te poser un nouveau mot de passe provisoire : il le fait dans Équipe, sur ta fiche.'; }
-  else if (a === 'quitter') { ESPACE = null; cnxGarder(); cnxMontrer(); }
-  else if (a === 'retour') cnxMontrer();
+  else if (a === 'quitter') { ESPACE = null; cnxGarder(); cnxGlisser(() => cnxMontrer()); }
+  else if (a === 'retour') cnxGlisser(() => cnxMontrer());
   else if (a === 'repose') { ev.stopPropagation(); const p = eqDe(x); delete MDP[x]; cnxGarder(); eqFiche(x); toast('Mot de passe provisoire reposé. À sa prochaine connexion, ' + p.prenom + ' choisira le sien.'); }
   else if (a === 'copier') { ev.stopPropagation(); const t = b.dataset.t; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copié.'), () => toast('Sélectionne le texte pour le copier.')); }
   else if (a === 'sortir') { ev.stopPropagation(); sessionFermer(); }
@@ -21272,7 +21314,7 @@ if (MODE_APP) {
     if (tt && ROLE !== 'patron' && ROLE !== 'client' && !tt.querySelector('.tt-menu')) tt.insertAdjacentHTML('afterbegin', `<button type="button" class="tt-menu" data-cnx="compte" aria-label="Mon compte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>`);
     return v; }; }
   document.addEventListener('click', ev => { if (!ev.target.closest('[data-tab="plus"]') || ROLE !== 'patron') return;
-    setTimeout(() => { const P = document.querySelector('#calque .panneau'); if (P && !P.querySelector('[data-cnx="sortir"]') && /Toutes les catégories/.test((P.querySelector('h2') || {}).textContent || '')) P.insertAdjacentHTML('beforeend', `<button type="button" class="btn gris" data-cnx="sortir" style="width:100%;margin-top:8px">Se déconnecter</button>`); }, 0); });
+    setTimeout(() => { const P = document.querySelector('#calque .panneau'); if (P && !P.querySelector('[data-cnx="sortir"]') && /Toutes les catégories/.test((P.querySelector('h2') || {}).textContent || '')) P.insertAdjacentHTML('beforeend', `<div class="app-apparence"><span class="surtitre">Apparence</span>${segMode()}</div><button type="button" class="btn gris" data-cnx="sortir" style="width:100%;margin-top:8px">Se déconnecter</button>`); }, 0); });
   if (typeof scrollX === 'number' && document.getElementById('contenu')) {
     const auto = (/[?&]auto=([a-z0-9]+)/.exec(location.search) || [])[1]; let garde = null; try { garde = localStorage.getItem(SESSION_CLE); } catch (e) {}
     const lienK = (/[?&]lien=([a-z0-9-]+)/.exec(location.search) || /^#lien-([a-z0-9-]+)$/.exec(location.hash) || [])[1];
@@ -21370,7 +21412,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="cnx-motion2">
 .cn-tuile.trace::before,.cn-tuile.trace .cn-reflet{border-radius:calc(var(--cn-t) * .25)}
 .cn-halo{inset:calc(var(--cn-t) * -.62)}
 .cn-anneau{inset:-13px}
-.cn-orbe{position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(60px);opacity:.34;pointer-events:none}
+/* pas de flou : le dégradé s'éteint déjà seul vers le bord, et un flou de 60 px sur deux disques de la taille de l'écran, animés, faisait tomber le moteur de rendu des essais à la taille d'un Mac (13 novembre 2026) */
+.cn-orbe{position:absolute;width:70vmax;height:70vmax;border-radius:50%;opacity:.34;pointer-events:none}
 .cn-orbe.a{left:-22vmax;top:-18vmax;background:radial-gradient(closest-side,#2f6bff,rgba(47,107,255,0));animation:cnDerive 9s ease-in-out infinite alternate}
 .cn-orbe.b{right:-24vmax;bottom:-22vmax;background:radial-gradient(closest-side,#5b3dff,rgba(91,61,255,0));animation:cnDerive 11s ease-in-out infinite alternate-reverse}
 #cnx.charge > :not(.cn-orbe){position:relative;z-index:1}
@@ -21468,6 +21511,39 @@ html:not([data-mode="nuit"]) .cn-anneau{background:conic-gradient(from 0deg, rgb
       : (k === 's' || k === 'S') ? (document.querySelector(`[data-crfond="${crFondType === 'sat' ? 'plan' : 'sat'}"]`)?.click(), 1) : 0;
     if (fait) { ev.preventDefault(); ev.stopImmediatePropagation(); } }, true);
 }
+
+/* ── l'application sur iPhone, deuxième passe · 13 novembre 2026 ──
+   Justin : « maintenant, je veux que tu optimises l'application pour l'iPhone ». Revue écran par écran (encoches posées) :
+   · la barre du haut portait « Jour · Nuit · Auto » sur tous les écrans : un réglage, pas une commande de tous les instants.
+     Il descend dans le menu ☰ (« Apparence ») ; la barre garde le menu et le nom ;
+   · Planning : deux boutons pleine largeur l'un sous l'autre repoussaient le planning sous le pli ; ils tiennent côte à côte ;
+   · OP COMPTABLE : « Factures et paiements » sortait de l'écran et la barre faisait 116 px ; les deux boutons tiennent sur
+     une ligne, le nom (déjà écrit juste dessous) ne se répète pas. */
+document.head.insertAdjacentHTML('beforeend', `<style id="app-iphone2">
+.app-apparence{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+@media (max-width:760px){
+  html[data-app] .tete-tel > div:has(> .mode-seg){display:none}
+  html[data-app] .tete-tel .logo{flex:1;min-width:0}
+  html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+  html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{min-height:46px;padding:0 10px;font-size:14.5px;white-space:nowrap;min-width:0;justify-content:center}
+  .cpsys-barre{gap:8px!important;padding-left:max(12px,env(safe-area-inset-left,0px))!important;padding-right:max(12px,env(safe-area-inset-right,0px))!important;flex-wrap:nowrap!important}
+  .cpsys-barre b{display:none!important}
+  .cpsys-barre button{min-height:40px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .cpsys-barre button[data-cpsys="quotidien"]{margin-left:auto}
+}
+@media (max-width:340px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){grid-template-columns:1fr} }
+</style>`);
+
+/* le même écran de chargement, en plus court, entre deux écrans (vérification du lien, connexion) */
+document.head.insertAdjacentHTML('beforeend', `<style id="cnx-court">
+.charge.court .cn-tuile.trace{animation-duration:.85s}
+.charge.court .cn-sombre{animation-duration:.65s;animation-delay:.4s}
+.charge.court .cn-op{animation-duration:.6s;animation-delay:.75s}
+.charge.court .cn-filet{animation-duration:.45s;animation-delay:1s}
+.charge.court .cn-team tspan{animation-duration:.45s;animation-delay:1.05s!important}
+.charge.court .cn-tuile.trace .cn-reflet::after{animation-delay:1.55s}
+.charge.court .cn-halo{animation:cnFondu .7s .2s ease both, cnHalo 2.4s .9s ease-in-out infinite}
+</style>`);
 </script>
 
 </body>

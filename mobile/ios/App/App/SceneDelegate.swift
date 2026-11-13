@@ -54,6 +54,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // La barre grise en bas de la fenêtre (Justin, 12 novembre 2026) : c'est la barre d'aide à la saisie d'iOS
         // (précédent, suivant, OK), vide sur un Mac, qui se pose sur la page dès qu'un champ a été touché.
         vue.retirerBarreDeSaisie()
+        surveillerBarreClavier()
+        masquerBarreClavier()
         // Le trackpad : deux doigts vers la gauche ou la droite reviennent à l'écran précédent ou suivant.
         vue.allowsBackForwardNavigationGestures = true
     }
@@ -76,6 +78,42 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         if let url = URLContexts.first?.url { ouvrirLien(url) }
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+    }
+
+    // Troisième garde contre la bande grise du bas (elle restait même sans champ actif, capture du 13 novembre 2026) :
+    // sur un Mac il n'y a pas de clavier à l'écran, donc tout ce que le système pose pour lui (barre de raccourcis,
+    // fond du clavier) est masqué dès qu'il paraît. Sans effet sur iPhone et iPad.
+    private var barreSurveillee = false
+
+    private func surveillerBarreClavier() {
+        guard ProcessInfo.processInfo.isiOSAppOnMac, !barreSurveillee else { return }
+        barreSurveillee = true
+        let noms: [Notification.Name] = [UIResponder.keyboardWillShowNotification, UIResponder.keyboardDidShowNotification,
+                                         UIResponder.keyboardWillChangeFrameNotification, UIResponder.keyboardDidChangeFrameNotification]
+        for nom in noms {
+            NotificationCenter.default.addObserver(forName: nom, object: nil, queue: .main) { [weak self] _ in
+                self?.masquerBarreClavier()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self?.masquerBarreClavier() }
+            }
+        }
+    }
+
+    private func masquerBarreClavier() {
+        guard ProcessInfo.processInfo.isiOSAppOnMac else { return }
+        for scene in UIApplication.shared.connectedScenes {
+            guard let fenetres = (scene as? UIWindowScene)?.windows else { continue }
+            for fenetre in fenetres { masquerVuesClavier(dans: fenetre) }
+        }
+    }
+
+    private func masquerVuesClavier(dans vue: UIView) {
+        let nom = String(describing: type(of: vue))
+        if nom.contains("InputAssistant") || nom.contains("InputSetHostView") || nom.contains("KBInputBackdrop") || nom.contains("InputSetContainerView") {
+            vue.isHidden = true
+            vue.alpha = 0
+            return
+        }
+        for sous in vue.subviews { masquerVuesClavier(dans: sous) }
     }
 
     @objc func pinceTrackpad(_ geste: UIPinchGestureRecognizer) {
