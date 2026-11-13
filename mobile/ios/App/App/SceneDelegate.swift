@@ -117,6 +117,12 @@ extension WKWebView {
     func retirerBarreDeSaisie() {
         guard let cible = scrollView.subviews.first(where: { String(describing: type(of: $0)).hasPrefix("WKContent") }),
               let classe: AnyClass = object_getClass(cible) else { return }
+        // La bande grise en bas de la fenêtre (capture de Justin, 13 novembre 2026, champ « Lien de connexion » actif) est
+        // la barre de raccourcis du clavier d'iPadOS (annuler, coller, suggestions). Sur un Mac elle est vide : on retire
+        // ses deux groupes de boutons, ce qui la fait disparaître.
+        let assistant = cible.inputAssistantItem
+        assistant.leadingBarButtonGroups = []
+        assistant.trailingBarButtonGroups = []
         let nom = "\(classe)_SansBarreDeSaisie"
         if String(describing: classe).hasSuffix("_SansBarreDeSaisie") { return }
         if let existante = NSClassFromString(nom) { object_setClass(cible, existante); return }
