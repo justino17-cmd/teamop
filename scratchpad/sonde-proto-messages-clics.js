@@ -137,7 +137,9 @@ const DANS_LA_PAGE = `
           const ap = await E(() => ({ etat: window.__etat(), hash: location.hash, role: S.role, mode: S.mode, theme: document.documentElement.getAttribute('data-theme') || '', prepa: !!document.querySelector('#plein .prepa'), appel: !!document.querySelector('#plein .appel'), calque: document.querySelector('#calque').textContent.slice(0, 200) }));
           if (errs.length) rapport.push({ p: p.n, scene: sc.n, sig, genre: 'erreur JavaScript', detail: errs.join(' ; ').slice(0, 300) });
           /* un onglet, un segment ou une puce DÉJÀ choisis ne font rien, et c'est juste : on ne les compte pas comme morts */
-          if (ap.etat === pos.avant && !pos.actif) rapport.push({ p: p.n, scene: sc.n, sig, genre: 'aucun effet' });
+          /* … ni un lien vers la fiche DÉJÀ ouverte (le raccourci épinglé de la conversation affichée, la ligne d'agenda de la fiche affichée) */
+          const dejaLa = pos.go && JSON.parse(pos.avant)[0] === '#' + pos.go;
+          if (ap.etat === pos.avant && !pos.actif && !dejaLa) rapport.push({ p: p.n, scene: sc.n, sig, genre: 'aucun effet' });
           const faux = (m) => rapport.push({ p: p.n, scene: sc.n, sig, genre: 'mauvaise destination', detail: m });
           if (pos.go && ap.hash !== '#' + pos.go && !(pos.go === 'invite' || sc.role === 'invite')) faux('attendu #' + pos.go + ', obtenu ' + ap.hash);
           if (pos.voir && pos.voir !== 'chercher' && ap.hash !== '#' + pos.voir) faux('« Voir » attendu #' + pos.voir + ', obtenu ' + ap.hash);

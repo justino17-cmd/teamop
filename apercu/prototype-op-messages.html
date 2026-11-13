@@ -553,11 +553,12 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:8px;height:1
   .volet label.coche{min-height:44px;align-items:center} .volet label.coche input{width:22px;height:22px}
   .panneau .x{width:44px;height:44px;background:none;isolation:isolate;top:14px;right:10px} .panneau .x::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--champ);z-index:-1}
   .et.idee[data-idee],.seg button,.puce,.jouer,.lien,.date-d,.bascule{position:relative}
-  .et.idee[data-idee]::before,.lien::before,.date-d::before{content:"";position:absolute;inset:-12px -4px}
+  .et.idee[data-idee]{z-index:1} .et.idee[data-idee]::before,.lien::before,.date-d::before{content:"";position:absolute;inset:-13px -4px}
+  .bulle{padding-block:9px} .bulle[data-menu-msg]::before{content:"";position:absolute;inset:-4px 0}      /* une bulle d'une ligne fait 36 px : elle répond sur 44 */
   .seg button::before,.puce::before{content:"";position:absolute;inset:-5px 0}
   .jouer::before{content:"";position:absolute;inset:-6px}
   .bascule::before{content:"";position:absolute;inset:-7px -4px}
-  .bande .seg button{min-height:34px}
+  .bande .seg button{min-height:34px;min-width:44px}
 }
 /* un message en bas de l'écran est du TEXTE : il ne prend pas le clic de ce qu'il couvre (seul son bouton répond) */
 #toast.on{pointer-events:none} #toast button{pointer-events:auto}
