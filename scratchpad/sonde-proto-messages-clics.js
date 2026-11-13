@@ -39,7 +39,6 @@ const SCENES = [
   { n: 'feuille:nouvelle-conversation', role: 'pro', prep: `aller('messages'); await dort(250); ${premier('[data-action="nouveau-msg"]')}.click()`, zones: ['calque'] },
   { n: 'feuille:infos-groupe', role: 'pro', prep: `aller('messages-x-equipe'); await dort(250); ${premier('[data-action="infos-conv"]')}.click()`, zones: ['calque'] },
   { n: 'feuille:infos-personne', role: 'pro', prep: `aller('messages-x-karim'); await dort(250); ${premier('[data-action="infos-conv"]')}.click()`, zones: ['calque'] },
-  { n: 'feuille:fiche-gestion', role: 'pro', prep: "aller('messages-x-karim'); await dort(250); document.querySelector('.fiche-lien').click()", zones: ['calque'] },
   { n: 'feuille:programmer', role: 'pro', prep: "feuilleProgrammer({ invites: ['karim'] })", zones: ['calque'] },
   { n: 'feuille:programmer-perso', role: 'perso', prep: "feuilleProgrammer({})", zones: ['calque'] },
   { n: 'feuille:date-dans-message', role: 'pro', prep: "aller('messages-x-equipe'); await dort(250); document.querySelector('.date-d').click()", zones: ['calque'] },

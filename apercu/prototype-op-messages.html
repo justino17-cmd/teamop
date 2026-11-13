@@ -1704,7 +1704,7 @@ const C = [
   { id: 'karim', cote: 'pro', avec: 'karim', nonlu: 1, msgs: [
     { de: 'moi', j: -1, h: '16:10', t: 'Tu peux passer chez la boulangerie Dubois demain à 8 h ? Leur chambre froide ne tient plus le froid.' },
     { de: 'karim', j: -1, h: '16:12', t: 'Oui, c’est noté.' },
-    { de: 'moi', j: -1, h: '16:13', type: 'fiche', genre: 'int', b: 'Intervention · Boulangerie Dubois', s: 'Jeu. 12 nov. · 8 h 00 · Dépannage chambre froide', c: '#1c7a3a' },
+    { de: 'moi', j: -1, h: '16:13', t: 'Dépannage de la chambre froide à la boulangerie Dubois, demain à 8 h.' },
     { de: 'karim', j: 0, h: '09:03', t: 'Je t’ai mis le détail dans le groupe. Dis-moi vite, le client attend.', urgent: 1 },
   ] },
   { id: 'marc', cote: 'pro', avec: 'marc', partage: { a: 'sophie', etat: 'ouvert', via: 'QR « Écrivez-nous »' }, nonlu: 2, msgs: [
@@ -1761,7 +1761,7 @@ const APPELS = [
 const EVTS = [
   { id: 'e1', cote: 'pro', type: 'reunion', titre: 'Point d’équipe', j: 0, deb: '14:00', fin: '14:30', invites: [['karim', 'ok'], ['leo', 'ok'], ['sophie', 'ok']], c: '#2a4a9c', odj: ['Chantiers de la semaine prochaine', 'Astreinte de décembre', 'Stock de fluide'], rappel: '15 min' },
   { id: 'e0', cote: 'pro', type: 'reunion', titre: 'Visio client · Hôtel des Remparts', j: 0, deb: '10:00', fin: '10:30', invites: [['james', 'attente'], ['sophie', 'ok']], c: '#7d3c98', odj: ['Ordre des chambres', 'Accès au toit'], rappel: '15 min', lien: 'op-messages.example/r/remparts-12nov', bientot: 1 },
-  { id: 'e2', cote: 'pro', type: 'rdv', titre: 'Entretien annuel · Hôtel des Remparts', j: 0, deb: '15:00', fin: '18:00', lieu: '12 rue des Remparts, La Rochelle', c: '#1c7a3a', gestion: 1 },
+  { id: 'e2', cote: 'pro', type: 'rdv', titre: 'Entretien annuel · Hôtel des Remparts', j: 0, deb: '15:00', fin: '18:00', lieu: '12 rue des Remparts, La Rochelle', c: '#1c7a3a' },
   { id: 'e3', cote: 'pro', type: 'reunion', titre: 'Bilan d’octobre avec la comptable', j: 1, deb: '11:00', fin: '11:45', invites: [['camille', 'ok']], c: '#2a4a9c', rappel: '1 h' },
   { id: 'e4', cote: 'pro', type: 'reunion', titre: 'Réunion de chantier · Résidence Les Minimes', j: -1, deb: '09:00', fin: '09:24', invites: [['karim', 'ok'], ['leo', 'ok'], ['sophie', 'ok']], c: '#2a4a9c', passe: 1,
     cr: { resume: 'Le chantier démarre lundi. Deux équipes de deux, livraison des unités extérieures mardi matin.', decisions: ['Démarrage lundi 16 à 8 h', 'Léo est chef de chantier'], actions: [['Commander la nacelle pour mardi', 'sophie', 0], ['Prévenir le syndic de la coupure d’eau', 'moi', 0], ['Vérifier le stock de liaisons frigorifiques', 'karim', 1]], presence: [['karim', '24 min'], ['leo', '24 min'], ['sophie', '19 min']], enr: '24 min' } },
@@ -1950,7 +1950,7 @@ VUES.aujourdhui = () => {
     ligne('urgent', '#d70015', 'Karim attend ton accord', 'Compresseur à 1 480 € HT · « le client attend » · il y a 39 min', `<button class="btn petit" data-action="accord">Donner l’accord</button>`, 'messages-x-equipe'),
     ligne('tel', '#d70015', 'Appel manqué · Marc Dubois', 'Message vocal : « La chambre froide ne refroidit plus, rappelez-moi… »', `<button class="btn petit gris" data-appeler="marc">Rappeler</button>`, 'appels-x-a1'),
     ligne('bulle', '#1c7a3a', 'Marc Dubois · 2 messages', 'Boîte partagée · suivi par Sophie · il demande le devis', '', 'messages-x-marc'),
-    ligne('mail', '#2a4a9c', 'Ta boîte mail', COUR.nl.pro ? COUR.nl.pro + ' non lu' + (COUR.nl.pro > 1 ? 's' : '') + ' en réception' : 'La même que dans OP GESTION et la Tour', `<button class="btn petit gris" data-go="courrier">Ouvrir</button>`, 'courrier'),
+    ligne('mail', '#2a4a9c', 'Ta boîte mail', COUR.nl.pro ? COUR.nl.pro + ' non lu' + (COUR.nl.pro > 1 ? 's' : '') + ' en réception' : 'Ta boîte mail actuelle', `<button class="btn petit gris" data-go="courrier">Ouvrir</button>`, 'courrier'),
   ] : [
     ligne('bulle', '#d9487a', 'Maman · 1 message', '« Tu penses à apporter le dessert dimanche ? »', '', 'messages-x-maman'),
     ligne('tel', '#d70015', 'Appel manqué · Antoine Petit', 'Avant-hier à 20 h 15', `<button class="btn petit gris" data-appeler="antoine">Rappeler</button>`, 'appels-x-a7'),
@@ -2019,7 +2019,7 @@ function bulleHtml(c, m) {
   let corps = '';
   if (m.type === 'vocal') corps = `<span class="vocal"><button class="jouer" data-action="jouer" aria-label="Écouter">${svg('jouer')}</button><span class="onde">${onde.map((h) => `<i style="height:${h}px"></i>`).join('')}</span><small>${m.d}</small></span>${m.transc ? `<span class="transc">« ${esc(m.transc)} »</span>` : ''}`;
   else if (m.type === 'photo') corps = `<span class="photo ${m.cls || ''}">${svg('doc')}</span><span style="display:block;font-size:14px;margin-top:5px">${esc(m.leg)}</span>`;
-  else if (m.type === 'fiche') corps = `<button class="fiche-lien" data-action="fiche-gestion"><span class="ic" style="--c:${m.c}">${svg(m.genre === 'devis' ? 'doc' : 'tache')}</span><span><b>${esc(m.b)}</b><span>${esc(m.s)}</span></span></button>`;
+  else if (m.type === 'fiche') corps = `<div class="fiche-lien"><span class="ic" style="--c:${m.c}">${svg(m.genre === 'devis' ? 'doc' : 'tache')}</span><span><b>${esc(m.b)}</b><span>${esc(m.s)}</span></span></div>`;
   else if (m.type === 'sondage') { const tot = m.opts.reduce((n, o) => n + o[1], 0) || 1; corps = `<span class="sondage"><b>📊 ${esc(m.q)}</b>${m.opts.map((o, i) => `<button data-vote="${m.id}" data-i="${i}"><i style="width:${Math.round(o[1] / tot * 100)}%"></i><span>${esc(o[0])}${m.vote === i ? ' ✓' : ''}</span><span>${o[1]}</span></button>`).join('')}</span>`; }
   else {
     let t = esc(m.t);
@@ -2059,7 +2059,7 @@ function filConv(c) {
     <div class="compo">
       ${rep ? `<div class="repond">${svg('repondre')}<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Réponse à <b>${esc(rep.de === 'moi' ? 'toi' : prenom(rep.de))}</b> : ${esc(rep.t || rep.leg || 'message')}</span><button class="rond" style="width:28px;height:28px" data-action="annuler-rep" aria-label="Annuler la réponse">${svg('x')}</button></div>` : ''}
       ${rapides ? `<div class="rapides" data-gd="rapides">${rapides.map((r) => `<button class="puce" data-rapide="${esc(r)}">${esc(r)}</button>`).join('')}</div>` : ''}
-      <div class="l"><button class="rond" data-action="joindre" aria-label="Joindre" title="Joindre : photo, fichier, position, sondage, devis">${svg('plus')}</button>
+      <div class="l"><button class="rond" data-action="joindre" aria-label="Joindre" title="Joindre : photo, fichier, sondage, créneau">${svg('plus')}</button>
         <textarea id="saisie" rows="1" placeholder="${pro && c.partage ? 'Répondre au client…' : 'Message'}" aria-label="Message"></textarea>
         <button class="rond" data-action="plus-tard" aria-label="Envoyer plus tard" title="Envoyer plus tard">${svg('horloge')}</button>
         <button class="rond plein" data-action="envoyer" aria-label="Envoyer">${svg('envoyer')}</button></div></div>
@@ -2306,13 +2306,13 @@ function quitterSalle() {
 const TYPES_E = { reunion: 'Réunion en visio', rdv: 'Rendez-vous', evt: 'Événement' };
 function ficheEvt(e) {
   const inv = e.invites || [];
-  return `<div class="carte" data-gd="fiche-evt"><div class="actions"><span class="et b">${TYPES_E[e.type]}</span>${e.gestion ? '<span class="et v">Vient d’OP GESTION</span>' : ''}${e.passe ? '<span class="et">Terminée</span>' : e.bientot ? '<span class="et o">Dans 19 min</span>' : ''}</div>
+  return `<div class="carte" data-gd="fiche-evt"><div class="actions"><span class="et b">${TYPES_E[e.type]}</span>${e.passe ? '<span class="et">Terminée</span>' : e.bientot ? '<span class="et o">Dans 19 min</span>' : ''}</div>
     <h2>${esc(e.titre)}</h2><p class="gris">${maj(jlong(e.j))} · ${e.deb} – ${e.fin}</p>${e.lieu ? `<p class="gris petit">${esc(e.lieu)}</p>` : ''}
     ${inv.length ? `<div><h3 style="margin-bottom:6px">Invités</h3>${inv.map((i) => `<div class="rang" style="padding:6px 0;min-height:44px">${av(i[0], 'p')}<span class="t"><b>${esc(P[i[0]].n)}</b></span><span class="et ${i[1] === 'ok' ? 'v' : 'o'}">${i[1] === 'ok' ? 'A accepté' : 'En attente'}</span></div>`).join('')}</div>` : ''}
     ${e.odj && e.odj.length ? `<div><h3 style="margin-bottom:6px">Ordre du jour</h3>${e.odj.map((o, i) => `<p>${i + 1}. ${esc(o)}</p>`).join('')}</div>` : ''}
     ${e.rappel ? `<p class="petit gris">${svg('cloche').replace('<svg', '<svg style="width:15px;height:15px;vertical-align:-2px"')} Rappel ${esc(e.rappel)} avant</p>` : ''}
     ${e.lien ? `<div class="info">${svg('lien')}<span class="t"><b>Lien pour un invité sans compte</b><br><span class="mini" style="overflow-wrap:anywhere">${esc(e.lien)}</span></span><button class="btn petit gris" data-action="copier-lien">Copier</button></div>` : ''}
-    <div class="actions">${e.type === 'reunion' && !e.passe ? `<button class="btn" data-rejoindre="${e.id}">${svg('video')}Rejoindre</button>` : ''}${e.cr ? `<button class="btn" data-action="cr" data-id="${e.id}">${svg('doc')}Lire le compte rendu</button>` : ''}${e.gestion ? `<button class="btn gris" data-action="fiche-gestion">Ouvrir l’intervention</button>` : ''}${!e.passe ? `<button class="btn gris" data-action="suppr-evt" data-id="${e.id}">Supprimer</button>` : ''}</div></div>`;
+    <div class="actions">${e.type === 'reunion' && !e.passe ? `<button class="btn" data-rejoindre="${e.id}">${svg('video')}Rejoindre</button>` : ''}${e.cr ? `<button class="btn" data-action="cr" data-id="${e.id}">${svg('doc')}Lire le compte rendu</button>` : ''}${!e.passe ? `<button class="btn gris" data-action="suppr-evt" data-id="${e.id}">Supprimer</button>` : ''}</div></div>`;
 }
 VUES.agenda = () => {
   const k = cote(), pro = k === 'pro';
@@ -2440,7 +2440,6 @@ const IDEES = [
   [6, 'messages', 'Traduire un message', 'Un client écrit en anglais : la traduction s’affiche sous son message, l’original reste visible.', 'ia', 'messages-x-james'],
   [7, 'messages', 'Urgent, relancé tant qu’il n’est pas lu', 'Un message marqué « Urgent » sonne à nouveau après 5 puis 15 minutes, et passe malgré « Ne pas déranger ».', 'neuf', 'messages-x-karim'],
   [9, 'messages', 'Boîte partagée avec les clients', 'Les messages des clients (QR « Écrivez-nous », site) arrivent dans une boîte que l’équipe se partage : qui s’en occupe, ouvert ou traité, réponses rapides.', 'neuf', 'messages-x-marc'],
-  [10, 'messages', 'OP GESTION dans la conversation', 'Une intervention ou un devis se partage comme une carte : le technicien ouvre la fiche en un geste. Aucun concurrent ne peut le faire.', 'neuf', 'messages-x-karim'],
   [11, 'appels', 'Messagerie vocale écrite', 'L’appel manqué arrive avec le message vocal déjà transcrit : tu sais pourquoi on t’appelait sans rien écouter.', 'ia', 'appels-x-a1'],
   [12, 'appels', 'Notes d’appel, ajouter quelqu’un, changer d’appareil', 'Un bloc-notes pendant l’appel, attaché à l’appel et au contact. « Ajouter » transforme l’appel en réunion ; « Transférer » le passe du téléphone à l’ordinateur.', 'neuf', 'appels-x-a2'],
   [13, 'appels', 'Le réseau faiblit : la voix d’abord', 'L’état du réseau se voit. Quand il faiblit, la vidéo se met en pause toute seule pour garder une voix nette, puis revient.', 'neuf', 'appels'],
@@ -2450,7 +2449,7 @@ const IDEES = [
   [17, 'reunions', 'Le compte rendu écrit tout seul', 'À la fin : résumé, décisions, actions avec leur responsable, présence, enregistrement. Envoyé dans la conversation de l’équipe, les actions deviennent des tâches.', 'ia', 'agenda-x-e4'],
   [18, 'reunions', 'Trouver un créneau', 'OP MESSAGES lit l’agenda de chaque invité et propose les moments où tout le monde est libre.', 'neuf', 'agenda'],
   [19, 'reunions', 'Un invité entre sans compte', 'Existe déjà : un lien suffit. Amélioré ici par l’écran de préparation et la salle d’attente côté organisateur.', 'existe', 'invite'],
-  [23, 'courrier', 'Le Courrier reste celui que tu as validé', 'Aucune refonte : c’est la boîte mail d’OP GESTION, de la Tour et d’OP MESSAGES Pro, montée telle quelle dans ce prototype avec des courriels d’exemple. Elle a été vérifiée et corrigée à part.', 'existe', 'courrier'],
+  [23, 'courrier', 'Le Courrier reste celui que tu as validé', 'Aucune refonte : c’est ta boîte mail actuelle, montée telle quelle dans ce prototype avec des courriels d’exemple. Elle a été vérifiée et corrigée à part.', 'existe', 'courrier'],
 ];
 const DOM_I = { partout: 'Partout', messages: 'Messages', appels: 'Appels', reunions: 'Réunions', courrier: 'Courrier' };
 const ST_I = { neuf: ['Nouveau', 'b'], ia: ['Nouveau · avec IA, à décider', 'o'], existe: ['Existe déjà · amélioré', 'v'] };
@@ -2494,7 +2493,7 @@ const ETAPES = [
   ['appels-x-a1', '[data-gd="vocal"]', 'Un appel manqué qui se lit', 'Le message vocal est déjà écrit. Tu sais pourquoi on t’appelait avant de rappeler.'],
   ['agenda', '[data-gd="creneau"]', 'Trouver un créneau', 'Les moments où tous les invités sont libres, sans échanger dix messages.'],
   ['agenda', '[data-gd="crs"]', 'Le compte rendu d’une réunion', 'Résumé, décisions, actions et leur responsable, présence, enregistrement. Ouvre celui d’hier.'],
-  ['courrier', '#courrier-fixe', 'Ta boîte mail, telle qu’elle est', 'Ici rien n’est redessiné : c’est le Courrier d’OP GESTION et de la Tour, avec des courriels d’exemple. Il a été vérifié et corrigé à part.'],
+  ['courrier', '#courrier-fixe', 'Ta boîte mail, telle qu’elle est', 'Ici rien n’est redessiné : c’est ta boîte mail actuelle, avec des courriels d’exemple. Il a été vérifié et corrigé à part.'],
   ['contacts-x-marc', '[data-gd="chrono"]', 'Tout sur une personne', 'Messages, appels et réunions avec ce client, dans l’ordre.'],
   ['idees', null, 'Toutes les idées', IDEES.length + ' propositions, chacune avec son bouton « Voir ». Dis-moi lesquelles tu gardes.'],
 ];
@@ -2648,18 +2647,15 @@ document.addEventListener('click', (ev) => {
       'fermer-demande': () => { const x = conv(S.param); x.partage.etat = x.partage.etat === 'ouvert' ? 'traite' : 'ouvert'; rendre(); toast(x.partage.etat === 'traite' ? 'Demande traitée' : 'Demande rouverte'); },
       'annuler-rep': () => { S.repondA = null; rendre(); },
       joindre: () => { const pro = cote() === 'pro'; const l = (ic, t, s, col, k) => `<button class="rang" data-action="joint" data-k="${k}"><span class="ic" style="--c:${col}">${svg(ic)}</span><span class="t"><b>${t}</b><span>${s}</span></span></button>`;
-        ouvrir(`<h2>Joindre</h2><div class="carte serre">${l('doc', 'Photo ou fichier', 'Depuis l’appareil', '#2a4a9c', 'photo')}${l('sonde', 'Sondage', 'Une question, des réponses à voter', '#7d3c98', 'sondage')}${l('agenda', 'Proposer un créneau', 'Tes moments libres, à choisir en un geste', '#a04a00', 'creneau')}${pro ? l('tache', 'Intervention OP GESTION', 'La fiche s’ouvre en un geste pour le technicien', '#1c7a3a', 'int') + l('doc', 'Devis OP GESTION', 'Le client le lit et l’accepte dans la conversation', '#1c7a3a', 'devis') : ''}</div>${pro ? `<div class="actions">${etIdee(10)}</div>` : ''}`, { centre: true }); },
+        ouvrir(`<h2>Joindre</h2><div class="carte serre">${l('doc', 'Photo ou fichier', 'Depuis l’appareil', '#2a4a9c', 'photo')}${l('sonde', 'Sondage', 'Une question, des réponses à voter', '#7d3c98', 'sondage')}${l('agenda', 'Proposer un créneau', 'Tes moments libres, à choisir en un geste', '#a04a00', 'creneau')}</div>`, { centre: true }); },
       joint: () => { const x = conv(S.param), k = b.dataset.k; fermer();
         if (k === 'photo') envoyerMsg(x, '', { type: 'photo', leg: 'Photo', cls: 'b', t: undefined });
         else if (k === 'sondage') envoyerMsg(x, '', { type: 'sondage', q: 'Quel jour vous convient ?', opts: [['Lundi', 0], ['Mardi', 0]], t: undefined });
-        else if (k === 'creneau') envoyerMsg(x, 'Je suis libre demain à 9 h ou à 16 h, ou lundi à 8 h. Lequel te convient ?');
-        else if (k === 'int') envoyerMsg(x, '', { type: 'fiche', genre: 'int', b: 'Intervention · Boulangerie Dubois', s: 'Ven. 13 nov. · 5 h 00 · Remplacement du compresseur', c: '#1c7a3a', t: undefined });
-        else envoyerMsg(x, '', { type: 'fiche', genre: 'devis', b: 'Devis D-2026-131 · 1 890,00 € TTC', s: 'Remplacement du compresseur · à accepter', c: '#1c7a3a', t: undefined }); },
+        else envoyerMsg(x, 'Je suis libre demain à 9 h ou à 16 h, ou lundi à 8 h. Lequel te convient ?'); },
       'plus-tard': () => { const s = $('#saisie'); if (!s || !s.value.trim()) { toast('Écris d’abord ton message'); return; } _ctx = s.value.trim(); feuilleChoix('Envoyer plus tard', '« ' + _ctx.slice(0, 80) + ' »', [['Dans 1 heure', 'À 10 h 41'], ['Demain matin', 'À 8 h 00, pendant ses heures de travail'], ['Lundi', 'À 8 h 00']], 'data-plus-tard'); },
       envoyer: () => { const s = $('#saisie'); if (s && s.value.trim()) envoyerMsg(conv(S.param), s.value.trim()); },
       'envoyer-fil': () => { const x = conv(S.param), m = x.msgs.find((y) => y.id === id), s = $('#saisie-fil'); if (s && s.value.trim()) { m.fil = m.fil || []; m.fil.push({ de: 'moi', t: s.value.trim() }); rendre(); ouvrirFil(x, m); } },
       jouer: () => toast('Prototype : la lecture audio n’est pas jouée ici'),
-      'fiche-gestion': () => ouvrir(`<h2>Ouvert depuis OP GESTION</h2><div class="info">${svg('lien')}<span class="t">Dans la vraie application, ce geste ouvre la fiche dans OP GESTION, pour les entreprises qui ont les deux. Les deux applications restent séparées : seul le lien passe. ${etIdee(10)}</span></div><div class="carte"><h3>Intervention</h3><b>Boulangerie Dubois · dépannage chambre froide</b><p class="gris petit">Technicien : Karim Benali · jeudi 12 novembre · 8 h 00</p><p class="gris petit">Compte rendu : compresseur ZB45 hors service, à remplacer.</p></div><div class="pied"><button class="btn" data-ferme="1">Fermer</button></div>`, { centre: true }),
       'nouvel-appel': () => { const gens = Object.values(P).filter((p) => p.id !== 'moi' && (cote() === 'pro' ? !p.perso : p.perso)); ouvrir(`<h2>Nouvel appel</h2><div class="carte serre">${gens.map((p) => `<div class="rang">${av(p.id, 'm', true)}<span class="t"><b>${esc(p.n)}</b><span>${esc(p.stt || p.r)}</span></span><button class="rond gris" data-appeler="${p.id}" aria-label="Appel audio">${svg('tel')}</button><button class="rond gris" data-appeler="${p.id}" data-video="1" aria-label="Appel vidéo">${svg('video')}</button></div>`).join('')}</div>`); },
       'lien-appel': () => ouvrir(`<h2>Parler à Julie Martin</h2><p class="gris">Clim Services 17 · la page que ton client ouvre avec ton lien</p><div class="info idee">${svg('ampoule')}<span class="t">Le client n’a besoin d’aucun compte. Il sonne si tu es disponible, sinon il choisit un créneau libre de ton agenda. ${etIdee(14)}</span></div>
         <button class="btn large vert" data-action="proto" data-mot="Chez le client, ton téléphone sonne : « Appel depuis ton lien »">${svg('tel')}Julie est disponible : appeler maintenant</button>
