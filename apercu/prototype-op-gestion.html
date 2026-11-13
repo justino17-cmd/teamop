@@ -21097,7 +21097,8 @@ function cnxCharger(suite, etat, duree){ document.getElementById('cnx')?.remove(
   const t0 = trace ? 1.9 : .28;
   const nom = [...'OP GESTION'].map((c, i) => `<span style="animation-delay:${(t0 + i * .045).toFixed(3)}s">${c}</span>`).join('');
   document.body.insertAdjacentHTML('beforeend', `<div id="cnx" class="charge${trace ? ' trace' : ''}" role="status" aria-label="${esc(etat || 'Chargement d’OP GESTION')}" style="--cn-duree:${duree}ms">
-    <div class="cn-scene" aria-hidden="true"><span class="cn-halo"></span><span class="cn-anneau"></span><span class="cn-tuile${trace ? ' trace' : ''}">${CNX_DESSIN}${trace ? '<span class="cn-reflet"></span>' : ''}</span></div>
+    <span class="cn-orbe a" aria-hidden="true"></span><span class="cn-orbe b" aria-hidden="true"></span>
+    <div class="cn-scene" aria-hidden="true"><span class="cn-halo"></span><span class="cn-anneau"></span>${trace ? '<span class="cn-onde"></span><span class="cn-onde deux"></span>' + Array.from({ length:12 }, (_, i) => `<i class="cn-etincelle" style="--a:${i * 30}deg;--d:${(i % 3) * .04}s"></i>`).join('') : ''}<span class="cn-tuile${trace ? ' trace' : ''}">${CNX_DESSIN}${trace ? '<span class="cn-reflet"></span>' : ''}</span></div>
     <span class="cn-nom" aria-hidden="true">${nom}</span><span class="cn-sous" aria-hidden="true"${trace ? ' style="animation-delay:2.4s"' : ''}>par TEAM OP</span>
     <span class="cn-barre" aria-hidden="true"><i></i></span><span class="cn-etat">${esc(etat || 'Chargement…')}</span></div>`);
   const z = document.getElementById('cnx');
@@ -21300,6 +21301,43 @@ document.head.insertAdjacentHTML('beforeend', `<style id="defile-cote">
 .pl-defile{overflow-y:hidden}
 .pl-col,.pl-mj,.pl-cel{cursor:cell}
 @media (max-width:760px){ .st-graph{overflow-y:hidden} }   /* même piège : le graphique des Statistiques, qui ne défile que de côté */
+</style>`);
+
+/* ── le logo au lancement : plus grand, et un mouvement plus marqué · 13 novembre 2026 ──
+   Justin : « sur Mac, le logo, j'aime bien ; juste, plus gros. Sur téléphone pareil, et accentue : un vrai beau motion design ».
+   · la tuile grandit (148 px au téléphone, 208 px sur ordinateur) ; tout ce qui l'entoure se mesure sur elle (--cn-t) ;
+   · la scène arrive de près et se redresse pendant que le logo se trace (un mouvement de caméra) ; le trait porte sa lumière ;
+   · quand la tuile se pose : deux ondes partent et douze étincelles s'échappent ; deux lueurs dérivent dans le fond ;
+   · le nom arrive flou et large, puis se resserre et se met au net. « Mouvement réduit » : rien de tout cela, le logo entier. */
+document.head.insertAdjacentHTML('beforeend', `<style id="cnx-motion2">
+#cnx.charge{--cn-t:148px}
+@media (min-width:761px){ #cnx.charge{--cn-t:208px} #cnx.charge .cn-nom{font-size:28px} .cn-sous{font-size:14px} #cnx.charge .cn-barre{width:230px} .cn-etat{font-size:14px} }
+#cnx.charge .cn-nom{font-size:23px}
+.cn-scene{width:calc(var(--cn-t) + 30px);height:calc(var(--cn-t) + 30px);margin-bottom:38px}
+.cn-tuile{width:var(--cn-t);height:var(--cn-t);border-radius:calc(var(--cn-t) * .25)}
+.cn-tuile.trace::before,.cn-tuile.trace .cn-reflet{border-radius:calc(var(--cn-t) * .25)}
+.cn-halo{inset:calc(var(--cn-t) * -.62)}
+.cn-anneau{inset:-13px}
+.cn-orbe{position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(60px);opacity:.34;pointer-events:none}
+.cn-orbe.a{left:-22vmax;top:-18vmax;background:radial-gradient(closest-side,#2f6bff,rgba(47,107,255,0));animation:cnDerive 9s ease-in-out infinite alternate}
+.cn-orbe.b{right:-24vmax;bottom:-22vmax;background:radial-gradient(closest-side,#5b3dff,rgba(91,61,255,0));animation:cnDerive 11s ease-in-out infinite alternate-reverse}
+#cnx.charge > :not(.cn-orbe){position:relative;z-index:1}
+.charge.trace .cn-scene{animation:cnCamera 2.05s cubic-bezier(.2,.7,.2,1) both}
+.trace .cn-contour,.trace .cn-diag{filter:drop-shadow(0 0 5px rgba(150,190,255,.95)) drop-shadow(0 0 14px rgba(90,140,255,.7))}
+.cn-onde{position:absolute;inset:0;border-radius:calc(var(--cn-t) * .3);border:2px solid rgba(160,195,255,.85);opacity:0;animation:cnOnde .95s 2.12s cubic-bezier(.2,.7,.3,1) forwards}
+.cn-onde.deux{animation-delay:2.3s;border-color:rgba(160,195,255,.5)}
+.cn-etincelle{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:#fff;box-shadow:0 0 10px 2px rgba(140,180,255,.9);opacity:0;animation:cnEtincelle .8s calc(2.1s + var(--d)) cubic-bezier(.15,.7,.3,1) both}
+.cn-tuile.trace{animation:cnPose2 .7s 2.02s cubic-bezier(.3,1.7,.45,1) both}
+#cnx.charge.trace .cn-nom span{animation:cnNom .62s cubic-bezier(.2,.85,.25,1) both}
+#cnx.charge.trace .cn-nom{animation:cnSerre 1s 1.9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes cnCamera{from{transform:scale(1.5) rotate(-9deg)}to{transform:none}}
+@keyframes cnPose2{0%{transform:scale(1)}32%{transform:scale(1.13)}62%{transform:scale(.975)}100%{transform:scale(1)}}
+@keyframes cnOnde{from{opacity:.9;transform:scale(1)}to{opacity:0;transform:scale(1.9)}}
+@keyframes cnEtincelle{0%{opacity:0;transform:rotate(var(--a)) translateY(calc(var(--cn-t) * -.5)) scale(.4)}18%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(calc(var(--cn-t) * -1.02)) scale(1)}}
+@keyframes cnNom{from{opacity:0;filter:blur(9px);transform:translateY(14px) scale(1.25)}to{opacity:1;filter:blur(0);transform:none}}
+@keyframes cnSerre{from{letter-spacing:.46em}to{letter-spacing:.2em}}
+@keyframes cnDerive{from{transform:translate(0,0)}to{transform:translate(6vmax,4vmax)}}
+@media (prefers-reduced-motion:reduce){.cn-orbe,.charge.trace .cn-scene,.cn-tuile.trace,#cnx.charge.trace .cn-nom,#cnx.charge.trace .cn-nom span{animation:none}.cn-onde,.cn-etincelle{display:none}}
 </style>`);
 </script>
 
