@@ -9,8 +9,26 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
-        window?.makeKeyAndVisible()
+        // Une fenêtre de PLUS (clic droit › « Ouvrir dans une nouvelle fenêtre », ou Fichier › Nouvelle fenêtre) ne relance pas
+        // l'application : avant de charger sa page, on demande à une fenêtre déjà ouverte de lui laisser un passage
+        // (qui est connecté, quel écran). La page le lit à son démarrage et arrive directement dessus, sans écran de
+        // lancement ni identifiants (Justin, 13 novembre 2026). La première fenêtre, elle, se charge tout de suite.
+        let poser: () -> Void = { [weak self] in
+            guard let moi = self, moi.window?.rootViewController == nil else { return }
+            moi.window?.rootViewController = CAPBridgeViewController()
+            moi.window?.makeKeyAndVisible()
+            DispatchQueue.main.async { moi.sceneDidBecomeActive(windowScene) }
+        }
+        let dejaOuverte = UIApplication.shared.connectedScenes
+            .filter { $0 !== scene }
+            .compactMap { (($0.delegate as? SceneDelegate)?.window?.rootViewController as? CAPBridgeViewController)?.webView }
+            .first
+        if let source = dejaOuverte {
+            source.evaluateJavaScript("typeof window.opgFenetrePasse === 'function' ? window.opgFenetrePasse() : false") { _, _ in poser() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { poser() }   // si la page ne répond pas, on ouvre quand même
+        } else {
+            poser()
+        }
 
         // Sur un Mac : la fenêtre porte le nom de l'application et ne se réduit pas sous la largeur où la page
         // passerait en mise en page de téléphone (760 px de page, soit environ 1 000 points au zoom de 130 %).
@@ -49,6 +67,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             let pince = UIPinchGestureRecognizer(target: self, action: #selector(pinceTrackpad(_:)))
             pince.delegate = self
             vue.addGestureRecognizer(pince)
+            // Les fenêtres : la page demande une fenêtre de plus, et dit le titre de celle-ci (menu Fenêtre du Mac).
+            vue.configuration.userContentController.add(PontFenetres(scene: window?.windowScene), name: "opgFenetre")
         }
         vue.evaluateJavaScript(SceneDelegate.echelleMac, completionHandler: nil)
         // La barre grise en bas de la fenêtre (Justin, 12 novembre 2026) : c'est la barre d'aide à la saisie d'iOS
@@ -135,6 +155,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 }
 
+
+// Ce que la page demande à la coque à propos des fenêtres : `{a:'fenetre'}` en ouvre une de plus (le passage est déjà
+// rangé par la page), `{a:'titre', t:'…'}` nomme la fenêtre d'après la rubrique affichée.
+final class PontFenetres: NSObject, WKScriptMessageHandler {
+    weak var scene: UIWindowScene?
+    init(scene: UIWindowScene?) { self.scene = scene }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let corps = message.body as? [String: Any], let action = corps["a"] as? String else { return }
+        if action == "titre", let titre = corps["t"] as? String {
+            scene?.title = String(titre.prefix(60))
+        } else if action == "fenetre", UIApplication.shared.supportsMultipleScenes {
+            UIApplication.shared.requestSceneSessionActivation(nil, userActivity: nil, options: nil, errorHandler: nil)
+        }
+    }
+}
 
 // Le pincement doit pouvoir se reconnaître en même temps que les gestes de la vue web (défilement, sélection).
 extension SceneDelegate: UIGestureRecognizerDelegate {

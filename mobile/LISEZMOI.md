@@ -36,7 +36,10 @@ Dans Xcode :
 Sur ton iPhone, la première fois : Réglages › Général › VPN et gestion de l'appareil › fais confiance à ton compte.
 
 Sur un Mac (« Mac (Designed for iPad) »), l'application s'affiche à la taille du Web (échelle 1,3 posée sur la balise « viewport », pour que la page se remette en page dans la fenêtre ; réglé dans
-`ios/App/App/SceneDelegate.swift`) et accepte plusieurs fenêtres : Fichier › Nouvelle fenêtre (Cmd + N). Sur iPad,
+`ios/App/App/SceneDelegate.swift`) et accepte plusieurs fenêtres : clic droit sur une rubrique du menu ou sur une ligne (client,
+intervention, devis, facture, contrat) › « Ouvrir dans une nouvelle fenêtre », Cmd + clic, ou Fichier › Nouvelle fenêtre
+(Cmd + N). La nouvelle fenêtre arrive déjà connectée, sur l'écran demandé, sans écran de lancement : la page laisse un
+passage (valable vingt secondes, lu une fois) que la fenêtre suivante lit à son démarrage. Sur iPad,
 plusieurs fenêtres côte à côte aussi. ⚠️ Écrit sans pouvoir compiler (pas de Mac dans la session) : à confirmer dans Xcode.
 
 Pour Android : installe **Android Studio**, puis `npm run android`, et ▶ dans Android Studio.
