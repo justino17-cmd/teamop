@@ -72,6 +72,14 @@ puisse tester en application sur Mac, iPhone ; après, on le fera pour Windows e
   des Réglages qui n'ouvrait rien (idée renumérotée), « Envoyer » et « Ajouter » muets en réunion sur un champ vide, un message du bas qui recouvrait
   « Joindre », et 283 cibles sous 40 px sur iPhone (toutes répondent sur 44 px au doigt, la sonde mesure la ZONE QUI RÉPOND). ⚠️ Le Courrier n'est
   pas recliqué par cette sonde (ses propres sondes le couvrent) ; les champs de saisie et les listes déroulantes ne sont pas « cliqués » non plus.
+- ⛔ **Le dessin a été REFAIT d'après l'interface validée** (`apercu/opmessages/index.html`) après le retour de Justin, 13 novembre au soir : « je
+  trouve ça gros au niveau des messages, pas du tout au style Apple comme j'aime ; revois toute l'interface ». La première couche (pastilles de verre
+  qui flottent, sélection bleue du menu, bandeau orange, loupe détachée, tailles d'iPhone sur le Mac) est ABANDONNÉE : ne pas y revenir. La règle
+  retenue : **avant de dessiner pour OP MESSAGES, ouvrir l'interface validée et recopier ses mesures** — corps 13 px sur Mac (bulles 14), 17 sur
+  iPhone ; menu plat à sélection grise ; barres blanches à filet ; petit titre de colonne ; liste en carte blanche sur iPhone ; nom de l'auteur
+  au-dessus de la bulle, sans avatar ; filtres en segmenté gris. Dernier passage de la sonde des clics sur ce dessin : 1 964 clics, aucun défaut sur
+  Mac, 29 pastilles sous 40 px sur iPhone corrigées ensuite (scènes concernées rejouées, pas le passage entier).
+- La boîte mail masquée transparaissait derrière l'accueil dans Safari (capture de Justin) : masquée, elle SORT de l'écran et la scène a un fond opaque.
 - Suite annoncée par Justin : Windows et Android, même page, une enveloppe par système.
 
 **Attend Justin** : le premier lancement dans Xcode (et le message exact s'il y a une erreur) ; quelles idées il garde, dans quel ordre ; si la

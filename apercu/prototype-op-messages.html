@@ -658,7 +658,8 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:1
   .jouer::before{content:"";position:absolute;inset:-6px}
   .bascule::before{content:"";position:absolute;inset:-7px -4px}
   .bulle{min-height:38px} .bulle[data-menu-msg]::before{content:"";position:absolute;inset:-4px 0}
-  .compo .rapides,.puces{margin-block:0}
+  /* une rangée de pastilles défile de côté, donc elle COUPE toute zone qui déborde : au doigt, la pastille elle-même fait 40 px */
+  .puce,.compo .rapides .puce,.page .actions .puce,#pe-invites .puce{min-height:40px}
 }
 #toast.on{pointer-events:none} #toast button{pointer-events:auto}
 @media (hover:hover) and (pointer:fine){
