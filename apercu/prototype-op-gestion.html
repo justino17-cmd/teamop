@@ -21054,7 +21054,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="cnx-motion">
 .cn-svg{display:block;width:100%;height:100%}
 .cn-svg text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Helvetica Neue",Arial,sans-serif}
 .cn-svg .cn-op{font-size:246px;font-weight:800;fill:var(--c);stroke:var(--c);stroke-width:0;stroke-linejoin:round}
-.cn-svg .cn-team{font-size:46px;font-weight:500;fill:#9aaac4;letter-spacing:15px}
+.cn-svg .cn-team{font-size:40px;font-weight:600;fill:#9aaac4;letter-spacing:11px}
 .cn-svg .cn-contour,.cn-svg .cn-diag{opacity:0}
 .cn-tuile.trace{animation:cnPose .55s 2.05s cubic-bezier(.3,1.55,.5,1) both;box-shadow:none;overflow:visible}
 .cn-tuile.trace::before{content:"";position:absolute;inset:0;border-radius:27px;box-shadow:0 22px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.08);animation:cnFondu .5s 1.05s ease both}
@@ -21080,12 +21080,12 @@ document.head.insertAdjacentHTML('beforeend', `<style id="cnx-motion">
 @keyframes cnPose{0%{transform:scale(1)}45%{transform:scale(1.07)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.cn-tuile.trace,.cn-tuile.trace::before,.cn-tuile.trace .cn-reflet::after,.trace .cn-contour,.trace .cn-diag,.trace .cn-clair,.trace .cn-sombre,.trace .cn-op,.trace .cn-filet,.trace .cn-team tspan,.charge.trace .cn-halo{animation:none}.charge.trace .cn-anneau{display:none}}
 </style>`);
-const CNX_DESSIN = `<svg class="cn-svg" viewBox="0 0 512 512" role="img" aria-label="TEAM OP">
+const CNX_DESSIN = `<svg class="cn-svg" viewBox="0 0 512 512" role="img" aria-label="OP GESTION">
   <defs><clipPath id="cn-ct"><rect width="512" height="512" rx="128"/></clipPath><clipPath id="cn-cs"><polygon points="512,0 512,512 172,512"/></clipPath><clipPath id="cn-cc"><polygon points="0,0 512,0 172,512 0,512"/></clipPath></defs>
   <g clip-path="url(#cn-ct)">
     <rect class="cn-clair" width="512" height="512" fill="#eef2f8"/>
     <polygon class="cn-sombre" points="512,0 512,512 172,512" fill="#0e182d"/>
-    <text class="cn-team" x="249" y="172" text-anchor="middle">${[...'TEAM'].map((c, i) => `<tspan style="animation-delay:${(1.62 + i * .085).toFixed(3)}s">${c}</tspan>`).join('')}</text>
+    <text class="cn-team" x="262" y="170" text-anchor="middle">${[...'GESTION'].map((c, i) => `<tspan style="animation-delay:${(1.6 + i * .055).toFixed(3)}s">${c}</tspan>`).join('')}</text>
     <line class="cn-filet" x1="60" y1="204" x2="420" y2="204" stroke="#dce3ee" stroke-width="2" pathLength="1"/>
     <g clip-path="url(#cn-cc)"><text class="cn-op" x="76" y="438" textLength="360" lengthAdjust="spacingAndGlyphs" style="--c:#0e182d">OP</text></g>
     <g clip-path="url(#cn-cs)"><text class="cn-op" x="76" y="438" textLength="360" lengthAdjust="spacingAndGlyphs" style="--c:#ffffff">OP</text></g>
@@ -21137,7 +21137,7 @@ function cnxLogin(p){ const b = o => cnxSlug(o.prenom).replace(/-/g, ''), i = EQ
   return EQUIPE.some((o, j) => j < i && b(o) === b(p)) ? b(p) + '.' + cnxSlug(p.nom || '').replace(/-/g, '') : b(p); }
 /* ce qu'on colle : le lien entier, l'adresse de l'application, ou le nom de l'entreprise */
 const cnxLienLire = t => cnxSlug(String(t || '').trim().replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop());
-const cnxTete = () => `<img class="cn-logo" src="${CNX_LOGO}" alt="" width="84" height="84"><span class="cn-app">OP GESTION</span>`;
+const cnxTete = () => `<span class="cn-logo" style="display:block;overflow:hidden">${CNX_DESSIN}</span><span class="cn-app">OP GESTION</span>`;
 function cnxMontrer(err, ident){ document.getElementById('cnx')?.remove();
   if (!ESPACE) { document.body.insertAdjacentHTML('beforeend', `<div id="cnx" role="dialog" aria-modal="true" aria-label="Relier cet appareil à ton entreprise"><div class="cn-col">${cnxTete()}
     <form class="cn-carte" id="cn-form-lien" novalidate>
