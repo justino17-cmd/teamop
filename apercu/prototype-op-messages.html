@@ -433,137 +433,233 @@ svg{width:22px;height:22px;flex:none}
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-   LA COUCHE APPLE (13 novembre 2026, Justin : « tout au style Apple, design Apple ») — HIG et Liquid Glass d'iOS 26 / macOS 26.
-   Ce qu'elle pose : l'échelle typographique d'Apple, les listes groupées à filets en retrait, les barres et les boutons en verre
-   qui FLOTTENT au-dessus du contenu, les feuilles avec poignée, la capsule d'onglets et sa loupe détachée, les retours au toucher.
-   Elle ne change AUCUNE couleur du thème d'OP MESSAGES (design/opmessages/THEME-OPMESSAGES.md). Le Courrier (opcourrier.js) n'est
-   pas touché : il a déjà le dessin de Mail.
+   LE DESSIN D'OP MESSAGES — celui de l'interface que Justin a validée (apercu/opmessages/index.html, « 100 % Apple »).
+   13 novembre 2026, après son retour sur une première couche (« je trouve ça gros au niveau des messages, pas du tout au style Apple
+   comme j'aime ») : cette couche-là posait des pastilles de verre partout, une sélection bleue, un bandeau orange et les tailles de
+   l'iPhone jusque sur le Mac. Celle-ci RECOPIE les mesures de l'interface validée :
+     · ordinateur : corps 13 px, menu PLAT à sélection grise, barres blanches à filet, petit titre de colonne, lignes de 44 px ;
+     · téléphone : grand titre 34, liste en CARTE blanche (rayon 22), avatar 50, capsule d'onglets à lentille grise ;
+     · conversation : barre blanche (avatar et nom), nom de l'auteur AU-DESSUS de la bulle, pas d'avatar à côté, date au centre.
+   Aucune couleur du thème ne change. Le Courrier (opcourrier.js) n'est pas touché.
    ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-:root{ --r:26px; --verre:rgba(255,255,255,.62); --verre-bord:rgba(255,255,255,.7); --flou:blur(24px) saturate(190%);
-  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 13'%3E%3Cpath d='M1.500 1.500 6.500 6.500 1.500 11.500' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){ --verre:rgba(46,66,122,.58); --verre-bord:rgba(255,255,255,.14); }}
-:root[data-theme="dark"]{ --verre:rgba(46,66,122,.58); --verre-bord:rgba(255,255,255,.14); }
+:root{ --r:14px; --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 13'%3E%3Cpath d='M1.500 1.500 6.500 6.500 1.500 11.500' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.scene,.app{overflow:hidden}
 
-.scene,.app{overflow:hidden}                   /* une fiche qui ARRIVE de la droite ne doit pas élargir la page le temps de son mouvement */
-/* — le socle d'une application : pas de zoom de texte en paysage, pas de rebond de page, pas de sélection sur un bouton — */
-html{-webkit-text-size-adjust:100%;overscroll-behavior:none} body{overscroll-behavior:none}
+/* — le socle d'une application — */
+html{-webkit-text-size-adjust:100%;overscroll-behavior:none} body{overscroll-behavior:none;font-size:13px;line-height:1.3}
 button,a,[role="button"],label{touch-action:manipulation}
 button,.et,.puce,.capsule a,.menu a,.seg,.titre-grp,h3{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .defile,.page,.fil,.lecture,.panneau,.volet .v-corps,.menu{overscroll-behavior:contain}
 button,a{cursor:pointer}
+svg{width:20px;height:20px}
 
-/* — typographie (HIG) : Large Title 34, Title 28 / 22, Headline 17 semibold, Body 17, Subhead 15, Footnote 13 — */
-h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:.012em}
-h2{font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.012em}
-h3{font-size:13px;line-height:18px;font-weight:600;letter-spacing:-.005em;text-transform:none;color:var(--faible)}
-.conv .l1 b{font-size:17px;line-height:22px;letter-spacing:-.022em} .conv .ap{font-size:15px;line-height:20px;letter-spacing:-.012em} .conv .l1 time{font-size:15px}
-.bulle{font-size:17px;line-height:22px;letter-spacing:-.022em;padding:7px 13px}
-.rang .t b{font-size:17px;line-height:22px;letter-spacing:-.022em;font-weight:400} .rang .t span{font-size:15px;line-height:20px}
-.rang.souple .t b,.evt .t b{font-weight:600}
-.titre-grp{text-transform:none;font-size:13px;letter-spacing:-.005em;padding:16px 16px 6px}
-.kpi b{font-size:28px;line-height:34px;letter-spacing:.012em} .kpi span{font-size:13px}
-.menu .grp{text-transform:none;font-size:13px;letter-spacing:-.005em}
+/* — typographie de l'ordinateur — */
+h1{font-size:22px;line-height:28px;font-weight:700;letter-spacing:0}
+h2{font-size:17px;line-height:22px;font-weight:600;letter-spacing:0}
+h3{font-size:12px;line-height:16px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--faible)}
+.petit{font-size:12px} .mini{font-size:11px}
 
-/* — formes : rayons concentriques, coins « soufflés » là où le navigateur sait les dessiner — */
-.carte,.kpi,.idee-c{border-radius:var(--r)} .rang .ic{border-radius:8px}
-@supports (corner-shape: squircle){ .carte,.kpi,.idee-c,.rang .ic,.logo i,.av.grp,.photo,.fiche-lien,.tuile,.banniere .logo-n{corner-shape:squircle} .carte,.kpi,.idee-c{border-radius:calc(var(--r) * 1.25)} }
+/* — le bandeau du prototype : discret, plus d'orange — */
+.bande{background:var(--barre);font-size:12px;padding-block:5px;gap:8px} .bande b{color:var(--faible);font-weight:600;background:none;padding:0}
+.bande .seg button{min-height:24px;font-size:12px;padding:0 10px}
+.bande .btn{background:none;color:var(--accent);min-height:24px;padding:0 6px;font-size:12px;font-weight:500} .bande .btn svg{width:14px;height:14px}
 
-/* — listes groupées : le filet part du TEXTE (après l'icône ou l'avatar), une flèche de suite sur ce qui mène ailleurs — */
-.rang{min-height:52px;padding:9px 16px}
-.rang:has(> .ic)+.rang::before,.rang:has(> .av)+.rang::before{left:60px}
-.rang:has(> .av.m)+.rang::before{left:64px}
-button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:8px;height:13px;flex:none;background:var(--tenu);-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat}
-.conv{border-radius:16px;padding:10px 12px}
-.conv+.conv::before{content:"";position:absolute;left:67px;right:4px;top:0;border-top:.5px solid var(--trait)}
+/* — le menu : PLAT, sélection grise, icônes au bleu — */
+.app{grid-template-columns:220px minmax(0,1fr)}
+.menu{margin:0;border-radius:0;box-shadow:none;border-right:.5px solid var(--trait);padding:12px 10px;gap:1px;-webkit-backdrop-filter:none;backdrop-filter:none}
+.logo{font-size:14px;font-weight:700;padding:4px 6px 14px;letter-spacing:0;white-space:nowrap;gap:8px} .logo .pro{font-size:9px;padding:2px 5px} .logo i{width:30px;height:30px;border-radius:8px;font-size:9px}
+.menu a{min-height:36px;padding:5px 10px;border-radius:9px;font-size:15px;font-weight:500;letter-spacing:0;gap:11px}
+.menu a svg{width:20px;height:20px}
+.menu a.on{background:var(--onglet-on);color:var(--encre);font-weight:500} .menu a.on svg{color:var(--accent)}
+.menu .n,.menu a.on .n{background:none;color:var(--faible);font-size:13px;font-weight:400;min-width:0;height:auto;padding:0}
+.menu .grp{font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;padding:16px 10px 4px}
+.menu .cherche{height:32px;border-radius:9px;font-size:13px;margin:0 0 10px!important} .cherche kbd{font-size:10px}
+.moi .t b{font-size:15px;font-weight:600} .statut{font-size:13px}
+
+/* — une colonne de liste : barre blanche à petit titre, recherche en rectangle arrondi — */
+.scene{grid-template-columns:clamp(300px,29vw,400px) minmax(0,1fr)}
+.liste{border-right:.5px solid var(--trait)} .liste+.detail{border-left:0}
+.tete{padding:0 0 8px;gap:8px}
+.tete .l1{height:49px;padding:0 10px 0 16px;background:var(--barre);border-bottom:.5px solid var(--trait)}
+.tete .l1 h1{font-size:15px;line-height:20px;font-weight:600}
+.tete>*:not(.l1){margin-inline:12px}
+.cherche{height:32px;border-radius:9px;background:var(--champ);padding:0 9px;gap:6px;box-shadow:none} .cherche input{font-size:13px} .cherche svg{width:15px;height:15px}
+.rond,.rond.gris{width:30px;height:30px;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;color:var(--accent);transition:opacity .12s}
+.rond:active{opacity:.5} .rond.plein{background:var(--fill);color:var(--sur-fill)}
+.rond svg{width:20px;height:20px}
+/* les filtres : un segmenté gris à pastille blanche, pas des pastilles pleines */
+.puces{background:var(--seg);border-radius:9px;padding:2px;gap:2px}
+.puce{flex:1 1 auto;justify-content:center;min-height:26px;padding:0 10px;border-radius:7px;background:none;font-size:12px;font-weight:500;color:var(--encre)}
+.puce[aria-pressed="true"]{background:var(--seg-on);color:var(--encre);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.puce .c{opacity:.6}
+.compo .rapides{background:none;padding:0;gap:6px} .compo .rapides .puce,.page .actions .puce,#pe-invites .puce{flex:none;background:var(--champ);border-radius:999px;min-height:28px}
+#pe-invites .puce[aria-pressed="true"]{background:var(--fill);color:var(--sur-fill);box-shadow:none}
+.seg{border-radius:9px;padding:2px} .seg button{border-radius:7px;min-height:26px;font-size:12px;padding:0 10px}
+
+/* — les lignes d'une liste : avatar 44, nom en gras, aperçu gris, filet en retrait ; la ligne choisie est pleine — */
+.defile{padding:0 8px 16px}
+.conv{padding:9px 10px;border-radius:10px;gap:10px;align-items:center}
+.conv .av{width:44px;height:44px;font-size:16px}
+.conv .l1 b{font-size:15px;line-height:19px;font-weight:600;letter-spacing:0} .conv .l1 time{font-size:13px}
+.conv .ap{font-size:14px;line-height:18px;letter-spacing:0;-webkit-line-clamp:1}
+.conv .bas{margin-top:3px;gap:5px}
+.conv+.conv::before{content:"";position:absolute;left:64px;right:6px;top:0;border-top:.5px solid var(--trait)}
 .conv.on::before,.conv.on+.conv::before{border-color:transparent}
+.conv.on{background:var(--fill);color:var(--sur-fill)}
+.conv.on .l1 time,.conv.on .ap,.conv.on .ap b{color:rgba(255,255,255,.86)} .conv.on .nl{background:#fff}
+.conv.on .et{background:rgba(255,255,255,.2)!important;color:#fff!important}
+.conv .cpt{display:none} .conv .nl{left:1px;top:calc(50% - 4px);width:7px;height:7px}
+.conv{padding-left:14px}
+.conv.nonlu .l1 b{font-weight:700}
+.et{height:18px;padding:0 6px;border-radius:5px;font-size:11px;font-weight:600}
+.et.idee{background:none;color:var(--idee);border:.5px solid color-mix(in srgb,var(--idee) 45%,transparent);font-weight:500}
+.sur-fill .et.idee{border-color:rgba(255,255,255,.5)}
+.titre-grp{text-transform:none;font-size:12px;letter-spacing:0;padding:14px 12px 4px}
+.epingles{gap:16px;padding:6px 8px 12px} .epingles button{width:68px;font-size:12px;color:var(--encre)} .epingles .av{width:60px;height:60px;font-size:22px;border-radius:50%}
+.av.grp{border-radius:50%}
+.vide svg{width:26px;height:26px;padding:19px;box-sizing:content-box;border-radius:50%;background:var(--fill-doux);color:var(--accent)}
+.vide{font-size:15px;color:var(--doux)}
 
-/* — le verre : une teinte légère, le flou de ce qui passe dessous, un reflet sur l'arête — */
-.verre,.rond.gris,.barre-conv .rond,.barre-conv .qui,.cherche,.mini-appel{background:var(--verre);-webkit-backdrop-filter:var(--flou);backdrop-filter:var(--flou);box-shadow:0 2px 10px rgba(0,0,0,.08),inset 0 0 0 .5px var(--verre-bord),inset 0 1px 0 var(--verre-bord)}
-.cherche{box-shadow:none;background:var(--champ);-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:999px;height:40px;padding:0 14px}
-.rond{width:40px;height:40px;transition:transform .16s var(--ressort),background-color .12s}
-.rond:active{transform:scale(.9)}
-.btn{min-height:44px;letter-spacing:-.012em;transition:transform .16s var(--ressort),filter .12s} .btn:active{transform:scale(.96);filter:brightness(.94)}
-.btn.gris{background:var(--fill-doux);color:var(--accent)}
-.btn.petit{min-height:34px}
-.conv:active,button.rang:active,button.evt:active,button.kpi:active,.menu a:active,.moi:active{background:var(--survol)}
-.puce{transition:transform .14s var(--ressort)} .puce:active{transform:scale(.95)}
-.seg{border-radius:999px;padding:3px} .seg button{border-radius:999px;min-height:32px;transition:background-color .2s}
+/* — une fiche (conversation, appel, contact) : barre BLANCHE à filet, l'avatar et le nom, les gestes en simples icônes — */
+.barre-conv{position:static;background:var(--barre);border-bottom:.5px solid var(--trait);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);padding:0 12px 0 16px;min-height:49px;gap:6px;pointer-events:auto}
+.barre-conv .rond{width:34px;height:34px;background:none;box-shadow:none}
+.barre-conv .qui{flex:1;margin:0;height:auto;padding:0;border-radius:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;gap:9px}
+.barre-conv .qui .av.m{width:32px;height:32px;font-size:12px}
+.barre-conv .qui b{font-size:15px;line-height:19px;font-weight:600} .barre-conv .qui .sous{font-size:11.500px;line-height:14px}
+.barre-conv .qui b::after{content:"";display:inline-block;width:6px;height:10px;margin-left:5px;background:var(--tenu);-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat}
+.barre-conv .qui:not(:has(.av)) b::after{display:none}
+.detail::before{display:none}
+.fil{padding:12px 16px 10px;gap:2px} .lecture{padding:18px 22px 30px}
+.detail>.info{margin:8px 12px 0!important;position:static}
+.jour-sep{font-size:11px;font-weight:600;color:var(--faible);padding:10px 0 8px}
+.msg{max-width:min(70%,520px);gap:0;flex-direction:column;align-items:flex-start} .msg.moi-m{flex-direction:column;align-items:flex-end}
+.msg .aut-h{font-size:11px;color:var(--faible);margin:6px 0 2px 12px}
+.bulle{font-size:14px;line-height:19px;letter-spacing:0;padding:6px 12px;border-radius:17px}
+.msg.moi-m .bulle{border-bottom-right-radius:17px} .msg:not(.moi-m) .bulle{border-bottom-left-radius:17px}
+.msg .outils{position:absolute;left:100%;top:50%;transform:translateY(-50%);padding-left:4px} .msg.moi-m .outils{left:auto;right:100%;padding:0 4px 0 0}
+.msg .outils button{width:26px;height:26px} .msg .outils svg{width:15px;height:15px}
+.lu{font-size:11px} .sys{font-size:11px} .saisie{font-size:12px}
+.photo{width:200px;border-radius:12px}
+.compo{background:var(--barre);border-top:.5px solid var(--trait);padding:8px 12px 10px}
+.compo textarea{min-height:32px;padding:6px 12px;border-radius:16px;font-size:14px;background:var(--carte);-webkit-backdrop-filter:none;backdrop-filter:none;border:.5px solid var(--trait)}
+.compo .rond{width:32px;height:32px} .compo .rond.plein{width:30px;height:30px} .compo .rond.plein svg{width:17px;height:17px}
 
-/* — la barre d'une fiche FLOTTE : plus de bandeau plein, des pastilles de verre au-dessus du contenu qui défile dessous — */
-.barre-conv{position:absolute;top:0;left:0;right:0;background:none;border:0;-webkit-backdrop-filter:none;backdrop-filter:none;padding:10px max(12px,env(safe-area-inset-right,0px)) 0 12px;min-height:0;z-index:3;gap:8px;pointer-events:none}
-.barre-conv>*{pointer-events:auto}
-.barre-conv .rond{width:44px;height:44px;color:var(--accent)}
-.barre-conv .qui{flex:0 1 auto;min-width:0;margin:0 auto;height:44px;padding:0 16px 0 5px;border-radius:999px;gap:8px}
-.barre-conv .qui:not(:has(.av)){padding:0 18px}
-.barre-conv .qui b{font-size:15px;line-height:18px;letter-spacing:-.012em} .barre-conv .qui .sous{font-size:11.500px;line-height:14px}
-.barre-conv .qui .av.m{width:34px;height:34px;font-size:12.500px}
-.detail::before{content:"";position:absolute;top:0;left:0;right:0;height:74px;z-index:2;pointer-events:none;background:linear-gradient(var(--fond) 12%,color-mix(in srgb,var(--fond) 0%,transparent))}
-.detail:has(.vide)::before{display:none}
-.fil{padding-top:70px} .lecture{padding-top:74px}
-.detail>.info{margin-top:66px!important;position:relative;z-index:1}
-.detail>.info+.fil{padding-top:12px}
-.compo{border-top:0;background:linear-gradient(color-mix(in srgb,var(--fond) 0%,transparent),var(--fond) 40%)}
-.compo textarea{border-radius:22px;min-height:44px;padding:11px 16px;background:var(--verre);-webkit-backdrop-filter:var(--flou);backdrop-filter:var(--flou);border:.5px solid var(--trait)}
-.compo .rond{width:44px;height:44px}
+/* — les pages (Aujourd'hui, Agenda, Réglages, Idées) : cartes blanches sobres, listes groupées — */
+.page{padding:20px 24px 40px} .page>.dedans{gap:16px;max-width:980px}
+.carte,.kpi,.idee-c{border-radius:var(--r)} .carte{padding:14px 16px;gap:8px}
+.grille2{gap:16px} .col{gap:16px} .kpis{gap:10px}
+.kpi{padding:12px 14px} .kpi b{font-size:22px;line-height:26px;letter-spacing:0} .kpi span{font-size:12px}
+.rang{min-height:44px;padding:7px 14px;gap:10px}
+.rang .t b{font-size:13px;line-height:17px;font-weight:500;letter-spacing:0} .rang .t span{font-size:12px;line-height:16px}
+.rang.souple .t b,.evt .t b{font-weight:600}
+.rang .ic{width:26px;height:26px;border-radius:7px} .rang .ic svg{width:15px;height:15px}
+.rang+.rang::before{left:14px} .rang:has(> .ic)+.rang::before{left:50px} .rang:has(> .av)+.rang::before{left:56px}
+button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:7px;height:11px;flex:none;background:var(--tenu);-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat}
+.evt{padding:10px 14px;gap:10px} .evt .h{font-size:13px;width:44px} .evt .h span{font-size:11px} .evt .t span{font-size:12px}
+.semaine button{font-size:11px;border-radius:10px;padding:6px 2px} .semaine button b{font-size:15px}
+.creneaux button{font-size:13px;border-radius:10px;padding:8px 10px} .creneaux button span{font-size:11px}
+.info{font-size:13px;border-radius:10px;padding:9px 12px} .info svg{width:16px;height:16px}
+.info.idee{background:var(--fill-doux)} .info.idee svg{color:var(--accent)}
+.idee-c{padding:14px 16px} .idee-c p{font-size:13px}
+.btn{min-height:32px;padding:0 14px;font-size:13px;font-weight:600;letter-spacing:0;transition:opacity .12s} .btn:active{transform:none;filter:none;opacity:.6}
+.btn.gris{background:var(--champ);color:var(--accent)} .btn.petit{min-height:26px;padding:0 10px;font-size:12px} .btn.large{min-height:40px}
+.btn svg{width:15px;height:15px}
+.conv:active,button.rang:active,button.evt:active,button.kpi:active,.menu a:active,.moi:active{background:var(--survol)} .conv.on:active{background:var(--fill)}
+.champ{font-size:12px} .champ input,.champ select,.champ textarea{min-height:32px;padding:5px 10px;border-radius:8px;font-size:13px}
+.bascule{width:42px;height:25px;border-radius:13px} .bascule::after{width:21px;height:21px} .bascule[aria-checked="true"]::after{transform:translateX(17px)}
+.av.xl{width:84px;height:84px;font-size:30px} .av.g{width:56px;height:56px;font-size:20px}
 
-/* — ordinateur (macOS 26) : le menu est un panneau de verre qui flotte, la feuille de droite aussi — */
-.menu{margin:8px 0 8px 8px;border-radius:22px;border:0;box-shadow:0 6px 24px rgba(0,0,0,.08),inset 0 0 0 .5px var(--verre-bord);-webkit-backdrop-filter:var(--flou);backdrop-filter:var(--flou)}
-.menu a{border-radius:12px;min-height:36px;font-size:14.500px;letter-spacing:-.012em}
-.menu a.on{background:var(--fill);color:var(--sur-fill)} .menu a.on svg{color:var(--sur-fill)} .menu a.on .n{background:rgba(255,255,255,.26)}
-.liste{border-right:0} .liste+.detail{border-left:.5px solid var(--trait)}
-.bande{background:var(--barre);-webkit-backdrop-filter:var(--flou);backdrop-filter:var(--flou)} .bande b{padding:2px 8px;border-radius:7px;background:var(--idee-fond)}
-.voile:not(.centre) .panneau{height:calc(100% - 20px);margin:10px;border-radius:26px}
-.panneau .x{width:32px;height:32px;background:var(--champ)}
-.voile.centre .panneau{border-radius:28px}
+/* — les feuilles — */
+.voile:not(.centre) .panneau{height:100%;margin:0;border-radius:0;width:min(420px,100%)} .voile:not(.centre) .panneau.large{width:min(640px,100%)}
+.voile.centre .panneau{border-radius:14px;width:min(460px,100%)} .voile.centre .panneau.large{width:min(680px,100%)}
+.panneau{padding:18px 18px 20px;gap:12px} .panneau .x{width:26px;height:26px;top:14px;right:14px;background:var(--champ)} .panneau .x svg{width:12px;height:12px}
 
-/* — téléphone (iOS 26) — */
+/* ═══ TÉLÉPHONE (iOS) ═══ */
 @media (max-width:760px){
   body{font-size:17px;line-height:22px}
-  h1{font-size:34px;line-height:41px;letter-spacing:.011em}
-  .menu{margin:0}
-  .tete{padding-top:6px}
-  .rond.gris{width:44px;height:44px}
-  .btn{min-height:50px;font-size:17px} .btn.petit{min-height:38px;font-size:15px}
-  .seg button{min-height:36px;font-size:15px} .puce{min-height:36px;font-size:15px}
-  .bande{flex-wrap:nowrap;gap:6px;overflow:hidden} .bande b{padding:2px 6px;font-size:12px} .bande .seg button{min-height:30px;font-size:13.500px;padding:0 8px} .bande .btn{min-height:34px;font-size:14px;padding:0 12px}
-  .info{flex-wrap:wrap} .info .t{flex:1 1 180px}
-  .cherche{height:44px} .cherche input{font-size:17px}
-  .champ input,.champ select,.champ textarea{min-height:50px;font-size:17px;border-radius:14px}
-  /* la capsule d'onglets et sa LOUPE détachée, comme la barre d'iOS 26 */
-  .barre-bas .groupe-bas{display:flex;gap:10px;align-items:center;max-width:480px;margin:0 auto;pointer-events:none} .barre-bas .groupe-bas>*{pointer-events:auto}
-  .barre-bas .capsule{flex:1;margin:0;padding:4px;border-radius:36px;min-height:62px;align-items:stretch}
-  .capsule a{font-size:10.500px;letter-spacing:-.005em;gap:1px;justify-content:center;border-radius:30px;transition:background-color .25s var(--ressort)}
-  .capsule a svg{width:25px;height:25px}
-  .barre-bas .loupe{width:62px;height:62px;flex:none;border-radius:50%;color:var(--onglet-off);background:var(--onglets);-webkit-backdrop-filter:blur(24px) saturate(200%);backdrop-filter:blur(24px) saturate(200%);box-shadow:var(--ombre),var(--reflet);display:grid;place-items:center}
-  .barre-bas .loupe svg{width:25px;height:25px} .barre-bas .loupe:active{transform:scale(.92)}
-  /* la feuille monte du bas, avec sa poignée ; son rayon épouse celui de l'écran */
-  .panneau,.panneau.large,.voile.centre .panneau,.voile:not(.centre) .panneau{margin:0;height:auto;border-radius:36px 36px 0 0;padding-top:10px}
+  svg{width:22px;height:22px}
+  h1{font-size:34px;line-height:41px;letter-spacing:.011em} h2{font-size:22px;line-height:28px;font-weight:700} h3{font-size:13px}
+  .petit{font-size:15px} .mini{font-size:13px}
+  .app{grid-template-columns:minmax(0,1fr)} .scene{grid-template-columns:minmax(0,1fr)}
+  .bande{font-size:12px;flex-wrap:nowrap;gap:6px;overflow:hidden} .bande .long,.ordi{display:none!important}
+  /* l'en-tête d'une liste : le geste en haut à droite (pastille bleue), puis le GRAND TITRE et l'avatar */
+  .tete{padding:4px 0 6px;gap:10px} .tete>*:not(.l1){margin-inline:16px}
+  .tete .l1{height:auto;background:none;border:0;padding:0 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;row-gap:2px}
+  .tete .l1 h1{grid-row:2;grid-column:1;font-size:34px;line-height:41px;font-weight:700}
+  .tete .l1 .rond{grid-row:1;grid-column:2;justify-self:end;width:32px;height:32px;background:var(--fill);color:var(--sur-fill);border-radius:50%} .tete .l1 .rond svg{width:18px;height:18px}
+  .tete .l1 .moi-pastille{grid-row:2;grid-column:2}
+  .cherche{height:36px;border-radius:10px;padding:0 8px} .cherche input{font-size:17px} .cherche svg{width:17px;height:17px}
+  .puce{min-height:32px;font-size:13px} .seg button{min-height:32px;font-size:13px}
+  /* la liste est une CARTE blanche */
+  .defile{padding:0 16px 110px}
+  .defile>.conv:first-of-type{border-radius:22px 22px 0 0} .defile>.conv:last-of-type{border-radius:0 0 22px 22px} .defile>.conv:first-of-type:last-of-type{border-radius:22px}
+  .defile>.conv{background:var(--carte);border-radius:0;padding:10px 12px 10px 24px;gap:12px}
+  .conv .av{width:50px;height:50px;font-size:18px}
+  .conv .l1 b{font-size:17px;line-height:22px} .conv .l1 time{font-size:15px} .conv .ap{font-size:15px;line-height:20px;-webkit-line-clamp:2}
+  .conv .l1::after{content:"";width:7px;height:12px;flex:none;align-self:center;background:var(--tenu);-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat}
+  .conv+.conv::before{left:86px;right:0} .conv .nl{left:8px}
+  .titre-grp{padding:18px 4px 6px;font-size:13px}
+  .epingles{padding:6px 0 14px;gap:14px}
+  .et{height:20px;font-size:12px}
+  /* la barre d'une conversation : retour à gauche, avatar AU-DESSUS du nom au centre, les gestes à droite */
+  .barre-conv{min-height:62px;padding:4px 8px;position:relative}
+  .barre-conv .rond{width:40px;height:40px} .barre-conv .rond svg{width:24px;height:24px}
+  .barre-conv .qui{position:absolute;left:50%;top:4px;transform:translateX(-50%);flex-direction:column;gap:1px;max-width:52%;text-align:center}
+  .barre-conv .qui .av.m{width:36px;height:36px;font-size:13px} .barre-conv .qui b{font-size:12px;line-height:15px;font-weight:500} .barre-conv .qui .sous{display:none}
+  .barre-conv .qui:not(:has(.av)){position:static;transform:none;flex:1;max-width:none;flex-direction:row} .barre-conv .qui:not(:has(.av)) b{font-size:17px;font-weight:600;line-height:22px}
+  .barre-conv .pousse-b{flex:1}
+  .fil{padding:10px 16px} .lecture{padding:14px 16px calc(30px + env(safe-area-inset-bottom,0px))}
+  .msg{max-width:78%} .msg .aut-h{font-size:12px;margin-left:13px}
+  .bulle{font-size:17px;line-height:22px;padding:7px 13px;border-radius:20px} .msg.moi-m .bulle{border-bottom-right-radius:20px} .msg:not(.moi-m) .bulle{border-bottom-left-radius:20px}
+  .jour-sep{font-size:12px} .lu,.sys{font-size:12px}
+  .compo{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))} .compo textarea{min-height:38px;padding:8px 14px;border-radius:19px;font-size:17px}
+  .compo .rond{width:36px;height:36px} .compo .rond.plein{width:34px;height:34px}
+  /* les pages */
+  .page{padding:8px 16px 120px} .page>.dedans{gap:18px}
+  .carte,.kpi,.idee-c{border-radius:22px} .carte{padding:16px;gap:10px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px} .kpi{padding:14px 16px} .kpi b{font-size:28px;line-height:34px} .kpi span{font-size:13px}
+  .rang{min-height:52px;padding:9px 16px;gap:12px} .rang .t b{font-size:17px;line-height:22px;font-weight:400} .rang .t span{font-size:15px;line-height:20px}
+  .rang .ic{width:30px;height:30px} .rang .ic svg{width:17px;height:17px} .rang:has(> .ic)+.rang::before{left:58px} .rang+.rang::before{left:16px}
+  .rang.souple{flex-wrap:wrap} .rang.souple .t{flex:1 1 60%} .rang.souple .t b,.rang.souple .t span{white-space:normal} .rang.souple>.btn{margin-left:42px}
+  .evt{padding:12px 16px} .evt .h{font-size:15px;width:52px} .evt .h span{font-size:13px} .evt .t span{font-size:15px}
+  .semaine button{font-size:12px} .semaine button b{font-size:18px}
+  .creneaux button{font-size:15px} .creneaux button span{font-size:13px}
+  .info{font-size:15px;border-radius:14px;flex-wrap:wrap} .info .t{flex:1 1 180px} .idee-c p{font-size:15px}
+  .btn{min-height:50px;font-size:17px;padding:0 20px} .btn.petit{min-height:36px;font-size:15px;padding:0 14px} .btn.large{min-height:50px} .btn svg{width:18px;height:18px}
+  .bande .btn{min-height:30px;font-size:13px;padding:0 6px} .bande .seg button{min-height:30px;font-size:13px;padding:0 8px;min-width:44px}
+  .champ{font-size:13px} .champ input,.champ select,.champ textarea{min-height:44px;font-size:17px;border-radius:12px;padding:9px 12px}
+  .bascule{width:51px;height:31px;border-radius:16px} .bascule::after{width:27px;height:27px} .bascule[aria-checked="true"]::after{transform:translateX(20px)}
+  .av.xl{width:104px;height:104px;font-size:38px}
+  /* la capsule d'onglets : lentille grise sous l'onglet choisi, comme l'interface validée */
+  .barre-bas .groupe-bas{max-width:480px;margin:0 auto;pointer-events:none} .barre-bas .groupe-bas>*{pointer-events:auto}
+  .barre-bas .capsule{margin:0;padding:4px;border-radius:34px;min-height:60px;align-items:stretch}
+  .capsule a{font-size:11px;font-weight:500;gap:2px;justify-content:center;border-radius:30px} .capsule a.on{font-weight:600}
+  .capsule a svg{width:24px;height:24px} .barre-bas .loupe{display:none}
+  /* la feuille monte du bas, avec sa poignée */
+  .panneau,.panneau.large,.voile.centre .panneau,.voile:not(.centre) .panneau,.voile.centre .panneau.large,.voile:not(.centre) .panneau.large{width:100%;margin:0;height:auto;max-height:92%;border-radius:22px 22px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom,0px))}
   .panneau::before{content:"";flex:none;align-self:center;width:36px;height:5px;border-radius:3px;background:var(--tenu);margin-bottom:6px}
-  .panneau .x{top:20px;right:16px}
-  /* une fiche qu'on ouvre ARRIVE de la droite (seulement après une navigation, jamais à chaque rafraîchissement) */
-  .scene.entre.a-detail .detail,.scene.entre.une .page{animation:pousse .38s var(--ressort)}
-  .scene.entre:not(.a-detail):not(.une) .liste{animation:revient .38s var(--ressort)}
-  #toast{border-radius:999px}
+  .scene.entre.a-detail .detail,.scene.entre.une .page{animation:pousse .35s var(--ressort)}
+  #toast{border-radius:999px;font-size:15px}
 }
-@keyframes pousse{from{transform:translateX(28%);opacity:.4}} @keyframes revient{from{transform:translateX(-12%);opacity:.5}}
-@media (pointer:coarse){ .rond{width:44px;height:44px} .rang{min-height:56px} .menu a{min-height:44px} .bascule{width:51px;height:31px} .bascule::after{width:27px;height:27px} }
-/* ⛔ AU DOIGT, TOUT CE QUI SE TOUCHE RÉPOND SUR 44 PX — trouvé par la sonde des clics (13 novembre 2026 : 283 cibles sous 40 px sur iPhone, 143 familles).
-   Deux manières : la commande grandit (boutons), ou elle garde son dessin et c'est sa ZONE QUI RÉPOND qui déborde (étiquettes, interrupteurs, segments). */
+@keyframes pousse{from{transform:translateX(24%);opacity:.5}}
+@media (pointer:coarse){ .rang{min-height:52px} .menu a{min-height:44px} }
+/* ⛔ AU DOIGT, TOUT CE QUI SE TOUCHE RÉPOND SUR 44 PX (sonde des clics : 283 cibles sous 40 px au premier passage). La commande grandit, ou garde son
+   dessin et c'est sa ZONE QUI RÉPOND qui déborde. */
 @media (pointer:coarse){
   .btn.petit,.btn-s,button.pastille-s,.sondage button{min-height:44px}
+  .rond,.barre-conv .rond,.compo .rond{position:relative} .rond::before{content:"";position:absolute;inset:-6px}
+  .tete .l1 .rond::before{inset:-6px}
   .volet .v-tete .rond{width:44px;height:44px}
-  .compo .rapides,.puces{padding-block:5px;margin-block:-5px}      /* la rangée défile de côté, donc elle coupe ce qui dépasse : on lui rend la place de la zone qui répond */
   .volet label.coche{min-height:44px;align-items:center} .volet label.coche input{width:22px;height:22px}
-  .panneau .x{width:44px;height:44px;background:none;isolation:isolate;top:14px;right:10px} .panneau .x::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--champ);z-index:-1}
+  .panneau .x{width:44px;height:44px;background:none;isolation:isolate;top:8px;right:8px} .panneau .x::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--champ);z-index:-1} .panneau .x svg{width:14px;height:14px}
   .et.idee[data-idee],.seg button,.puce,.jouer,.lien,.date-d,.bascule{position:relative}
   .et.idee[data-idee]{z-index:1} .et.idee[data-idee]::before,.lien::before,.date-d::before{content:"";position:absolute;inset:-13px -4px}
-  .bulle{padding-block:9px} .bulle[data-menu-msg]::before{content:"";position:absolute;inset:-4px 0}      /* une bulle d'une ligne fait 36 px : elle répond sur 44 */
-  .seg button::before,.puce::before{content:"";position:absolute;inset:-5px 0}
+  .seg button::before,.puce::before{content:"";position:absolute;inset:-7px 0}
   .jouer::before{content:"";position:absolute;inset:-6px}
   .bascule::before{content:"";position:absolute;inset:-7px -4px}
-  .bande .seg button{min-height:34px;min-width:44px}
+  .bulle{min-height:38px} .bulle[data-menu-msg]::before{content:"";position:absolute;inset:-4px 0}
+  .compo .rapides,.puces{margin-block:0}
 }
-/* un message en bas de l'écran est du TEXTE : il ne prend pas le clic de ce qu'il couvre (seul son bouton répond) */
 #toast.on{pointer-events:none} #toast button{pointer-events:auto}
 @media (hover:hover) and (pointer:fine){
   .menu a:hover{background:var(--survol)}
@@ -576,8 +672,9 @@ button.rang[data-go]::after,a.rang[data-go]::after{content:"";width:8px;height:1
   button.evt:hover{background:var(--survol)}
   .ctl:hover{background:rgba(255,255,255,.1)}
   button.kpi:hover{background:var(--survol)}
+  .conv.on:hover{background:var(--fill)} .rond:hover{background:none;opacity:.7}
 }
-@media (prefers-reduced-transparency:reduce){ .verre,.rond.gris,.barre-conv .rond,.barre-conv .qui,.menu,.bande,.compo textarea,.barre-bas .loupe{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--carte)} }
+@media (prefers-reduced-transparency:reduce){ .barre-conv,.bande,.capsule{-webkit-backdrop-filter:none;backdrop-filter:none} }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <div class="cadre">
@@ -1875,8 +1972,8 @@ function bulleHtml(c, m) {
   const reac = m.reac && m.reac.length ? `<span class="reac">${m.reac.join('')}</span>` : '';
   const filL = m.fil && m.fil.length ? `<button class="lien mini" data-fil="${m.id}" style="display:block;margin-top:5px;color:inherit;text-decoration:underline">${m.fil.length} réponse${m.fil.length > 1 ? 's' : ''} dans le fil</button>` : '';
   return `${m.sys ? `<p class="sys">${esc(m.sys)}</p>` : ''}<div class="msg ${moi ? 'moi-m' : ''} ${reac ? 'a-reac' : ''}" data-m="${m.id}">
-    ${!moi && c.grp ? av(m.de, 'p') : ''}
-    <div class="bulle" data-menu-msg="${m.id}" tabindex="0" role="button" aria-label="Actions sur le message">${!moi && c.grp ? `<span class="aut">${esc(P[m.de].n)}</span>` : ''}${m.cite ? `<span class="cite">${esc(m.cite)}</span>` : ''}${m.urgent ? `<span class="et r" style="margin-bottom:4px">${svg('urgent')}Urgent</span><br>` : ''}${corps}${filL}${reac}</div>
+    ${!moi && c.grp && !m.suite ? `<span class="aut-h">${esc(prenom(m.de))}</span>` : ''}
+    <div class="bulle" data-menu-msg="${m.id}" tabindex="0" role="button" aria-label="Actions sur le message">${m.cite ? `<span class="cite">${esc(m.cite)}</span>` : ''}${m.urgent ? `<span class="et r" style="margin-bottom:4px">${svg('urgent')}Urgent</span><br>` : ''}${corps}${filL}${reac}</div>
     <span class="outils"><button data-reagir="${m.id}" aria-label="Réagir" title="Réagir">${svg('sourire')}</button><button data-repondre="${m.id}" aria-label="Répondre" title="Répondre">${svg('repondre')}</button><button data-menu-msg="${m.id}" aria-label="Plus d’actions" title="Plus d’actions">${svg('points')}</button></span></div>`;
 }
 function filConv(c) {
@@ -1884,7 +1981,8 @@ function filConv(c) {
   let h = '', j = null;
   const premierNL = c.nonlu ? Math.max(0, c.msgs.length - c.nonlu) : -1;      // le prototype ne montre que les derniers messages : le repère ne sort jamais de la liste
   c.msgs.forEach((m, i) => {
-    if (m.j !== j) { j = m.j; h += `<p class="jour-sep">${jcourt(m.j)}</p>`; }
+    const prec = c.msgs[i - 1]; m.suite = !!prec && prec.de === m.de && prec.j === m.j;      // deux messages de suite du même auteur : son nom ne se répète pas
+    if (m.j !== j) { j = m.j; h += `<p class="jour-sep">${jcourt(m.j)} ${m.h}</p>`; }
     if (i === premierNL && c.nonlu >= 4) h += `<div class="resume" id="resume-zone" data-gd="resumer">${c.resume ? resumeHtml(c) : `<div class="info idee">${svg('eclat')}<span class="t"><b>${c.nonlu} messages non lus.</b> Tu peux en lire l’essentiel en quatre lignes.</span><span class="actions"><button class="btn petit" data-action="resumer">Résumer</button>${etIdee(5)}</span></div>`}</div>`;
     h += bulleHtml(c, m);
   });
@@ -1894,7 +1992,7 @@ function filConv(c) {
   const rapides = c.partage ? ['Bonjour, nous nous en occupons.', 'Le devis part dans l’heure.', 'Nous pouvons passer demain à 5 h.', 'Merci, bonne journée !'] : null;
   const rep = S.repondA ? c.msgs.find((m) => m.id === S.repondA) : null;
   return `<section class="detail">
-    <div class="barre-conv"><button class="rond retour-tel" data-go="messages" aria-label="Retour aux conversations">${svg('retour')}</button>
+    <div class="barre-conv"><button class="rond retour-tel" data-go="messages" aria-label="Retour aux conversations">${svg('retour')}</button><span class="pousse-b tel-seul"></span>
       <button class="qui" data-action="infos-conv">${convAv(c, 'm')}<span style="min-width:0"><b>${esc(convNom(c))}</b><span class="sous">${c.grp ? c.membres.map(prenom).join(', ') + ' et toi' : (p.stt || p.r)}</span></span></button>
       <button class="rond" data-appeler="${c.grp ? c.id : c.avec}" aria-label="Appel audio" title="Appel audio">${svg('tel')}</button>
       <button class="rond" data-appeler="${c.grp ? c.id : c.avec}" data-video="1" aria-label="Appel vidéo" title="Appel vidéo">${svg('video')}</button></div>
