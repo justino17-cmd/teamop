@@ -70,8 +70,8 @@ publication.
 
 ### Semaine du 9 novembre — Électricité (le lundi : registre sanitaire 3D, déjà parti ; mardi 10, exceptionnellement, un article de plus)
 - [x] logiciel électricien — 2026-11-10 — `logiciel-electricien`
-- [ ] attestation de conformité Consuel — quand l'électricien en a besoin, comment la préparer, ce qu'il garde au dossier — /logiciel-electricien.html
-- [ ] mise en conformité électrique d'un logement — diagnostic, travaux, ce que l'électricien remet au client — /logiciel-electricien.html
+- [x] attestation de conformité Consuel — 2026-11-11 — `attestation-de-conformite-consuel` — quand l'électricien en a besoin, comment la préparer, ce qu'il garde au dossier — /logiciel-electricien.html
+- [x] mise en conformité électrique d’un logement — 2026-11-13 — `mise-en-conformite-electrique-logement` — diagnostic, travaux, ce que l'électricien remet au client — /logiciel-electricien.html
 
 ### Semaine du 16 novembre — Nettoyage / propreté
 - [ ] logiciel entreprise de nettoyage — passages récurrents, contrôle qualité, sites multiples — /logiciel-nettoyage.html
