@@ -68,7 +68,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .scene{display:grid;grid-template-columns:minmax(0,1fr) 430px 400px;grid-template-areas:"ent tel guide" "coul tel guide";grid-template-rows:auto 1fr;gap:20px;align-items:start}
 .ent{grid-area:ent;display:flex;flex-direction:column;gap:14px;min-width:0}
 .appli-tete{display:flex;align-items:center;gap:12px}
-.logo{width:40px;height:40px;border-radius:11px;background:#14804f;color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:none}
+.logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,#3b82f6,#12306b);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:none}
 .ligne{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .ligne:first-child{border-top:0}
 .ligne>.g{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -512,21 +512,21 @@ function sepaRembourse(p){
 function etatInitial(){
   idn = 0; const gen = S ? (S.gen || 0) + 1 : 1;
   S = { gen, sel:{}, init:true, jour:'2026-10-20', vue:'ent', ong:'factures', ecran:'accueil', fid:null, msg:null, relie:true, cliOps:[], cerr:null, assist:0, prest:'Stripe', banqueReliee:false, remb:null,
-    moyens:{ virement:true, carte:true, sepa:true, x3:true, cheque:true, especes:true }, relances:true, numFac:146, nouveauxTests:[],
+    moyens:{ virement:true, carte:true, sepa:true, x3:true, cheque:true, especes:true }, relances:true, numFac:147, nouveauxTests:[],
     factures:[
       { id:'f146', num:'FAC-2026-0146', cli:'Restaurant Le Vieux Port', contact:'Marc Durand', objet:'Remplacement du ventilateur extérieur', ht:1070, tva:20 },
       { id:'f144', num:'FAC-2026-0144', cli:'M. et Mme Durand', contact:'M. Durand', objet:'Réglage de la pompe à chaleur', ht:110, tva:10 },
       { id:'f145', num:'FAC-2026-0145', cli:'Hôtel de la Plage', contact:'Mme Bernard', objet:'Entretien climatisation, 6 cassettes', ht:155, tva:20 },
-      { id:'f143', num:'FAC-2026-0143', cli:'Camping Les Pins', contact:'M. Garcia', objet:'Dépannage, fuite d’eau', ht:400, tva:20 }
+      { id:'f143', num:'FAC-2026-0143', cli:'Cabinet dentaire Martin', contact:'Dr Martin', objet:'Contrôle du chauffe-eau', ht:95, tva:20 }
     ], paiements:[], avoirs:[], versements:[], banque:[], journal:[], evts:[], boite:[], planifie:[], tests:{} };
   const f = facDe;
-  emettre(f('f143'));
+  S.jour = '2026-10-28'; emettre(f('f143'));   // envoyée le 28/10, toujours à encaisser (comme dans OP GESTION)
   S.jour = '2026-10-29'; emettre(f('f144'));
   S.jour = '2026-10-30'; emettre(f('f145'));
-  S.jour = '2026-11-03'; virementArrive('f143', 480, false); rapprocher(S.banque.at(-1), f('f143'), true);
-  S.jour = '2026-11-04'; reussir(nouveauPaiement(f('f145'), 'carte', 186));
-  S.jour = '2026-11-05'; traiterJour(); S.jour = '2026-11-06'; traiterJour(); S.jour = '2026-11-07';
+  S.jour = '2026-10-30'; virementArrive('f145', 186, false); rapprocher(S.banque.at(-1), f('f145'), true);   // l'hôtel a payé par virement le 30/10
+  S.jour = '2026-10-31'; traiterJour();   // aujourd'hui : le samedi 31 octobre, comme dans toute l'application
   f('f144').vue = '2026-10-30';
+  S.factures.forEach(g => { if (!g.emise && g.num === 'FAC-2026-0146') g.num = 'FAC-2026-0147'; });   // le 0146 est celui d'OP GESTION (Mme Roux) · 13 novembre 2026
   S.boite.forEach(m => { m.lu = true; }); S.tests = {}; S.init = false; S.nouveauxTests = [];
 }
 etatInitial();
