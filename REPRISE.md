@@ -23,7 +23,7 @@ corriger »** et « après, revois tout bien, que ça soit rangé, vérifié, te
 - Une page, aucun appel réseau, adresses en `.example`, thème d'OP MESSAGES, réglage Jour / Nuit / Auto **du prototype seulement**. Trois
   rôles : Pro, Perso (ils ne se mélangent pas), Invité sans compte. Visite guidée. Ce n'est PAS la vraie OP MESSAGES (`server-msg/` n'est
   touché que par la copie du module de courrier, voir plus bas) ; servie sur teamop.fr seulement quand la branche rejoint `main`.
-- **23 idées** dans la rubrique « Les idées », chacune avec son bouton « Voir » : écran « Aujourd'hui », 5 onglets au lieu de 7, recherche
+- **23 idées** (24 numéros : la 10 est retirée, la 24 ajoutée le 14 novembre — voir plus bas) dans la rubrique « Les idées », chacune avec son bouton « Voir » : écran « Aujourd'hui », 5 onglets au lieu de 7, recherche
   partout, fiche « tout sur une personne », fils de réponse, message → tâche / rappel / réunion, boîte partagée, carte OP GESTION dans la
   conversation, messagerie vocale écrite, notes d'appel, lien d'appel et de rendez-vous, préparation avant réunion, sous-titres traduits,
   temps de parole, compte rendu, trouver un créneau.
@@ -84,6 +84,18 @@ puisse tester en application sur Mac, iPhone ; après, on le fera pour Windows e
 
 **Attend Justin** : le premier lancement dans Xcode (et le message exact s'il y a une erreur) ; quelles idées il garde, dans quel ordre ; si la
 navigation à 5 onglets lui va ; la publication du correctif tactile de la boîte mail.
+**Dessiner sur le partage d'écran (14 novembre)** — Justin : « dans réunion je veux pouvoir dessiner sur le partage d'écran avec toutes
+les fonctions de Zoom ». Idée 24, dans la salle de réunion dès qu'on partage : déplacer, sélection, texte, dessin (crayon, surligneur, ligne,
+flèche, double flèche, rectangle et ellipse, vides ou pleins), six tampons, projecteur (pointeur laser, flèche à son nom, crayon qui s'efface),
+gomme, format (8 couleurs, 3 épaisseurs), annuler / rétablir, effacer (tout, les miens, ceux des autres), enregistrer, options (les participants
+peuvent dessiner, nom de l'auteur, tableau blanc), et le zoom de ce qui est partagé (boutons, Ctrl + molette, pincement, double clic).
+Document et dessins vivent dans UN svg (un dessin reste sur ce qu'il désigne à tout zoom) ; la tuile du partage n'est plus reconstruite par le
+rafraîchissement des tuiles (toutes les 3 s : il coupait le trait en cours). Le partage garde 210 px au moins : dans une réunion chargée sur
+Android, les vignettes le réduisaient à 4 px et aucun outil ne répondait (trouvé par la sonde des clics). `scratchpad/sonde-proto-messages-dessin.js`
+dessine pour de vrai, à la souris et au doigt : 294 ✓ sur six appareils. ⚠️ « Enregistrer » et les dessins des autres sont simulés (prototype).
+**OP GESTION retiré du prototype (13 novembre)** — Justin : « OP MESSAGES n'a rien à voir avec OP GESTION ». Plus d'idée 10, plus de fiche
+d'intervention ni de devis dans « Joindre », plus de mention dans le Courrier.
+
 **Tous les appareils (13 novembre, soir)** — Justin : « une application sur tout type d'appareil, plus version web […] comme chez Apple ».
 Ajouté : la feuille se tire vers le bas au téléphone ; la touche Retour (Android, navigateur) ferme la feuille ouverte ; clic droit sur un
 message à l'ordinateur ; ⌘K sur Apple, Ctrl K ailleurs ; menu réduit aux icônes entre 761 et 1000 px ; tailles du doigt sur tablette
