@@ -352,9 +352,12 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      « HT » y est le sujet, pas un prix de TEAM OP. Nommés un par un, et chacun doit encore en avoir besoin (contrôle ci-dessous). */
   /* `blog/logiciel-plombier.html` (6 novembre 2026) : « des frais de déplacement à 45 € HT » est le tarif D'UN PLOMBIER, pris en exemple,
      pas un prix de TEAM OP. */
-  /* `blog/logiciel-electricien.html` (10 novembre 2026) : « un taux horaire facturé de 55 € HT » est le tarif D'UN ÉLECTRICIEN, pris en exemple,
-     pas un prix de TEAM OP. */
-  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html'];
+  /* `blog/logiciel-electricien.html` (10 novembre 2026) : « un taux horaire facturé de 55 € HT » est le taux D'UN ÉLECTRICIEN, posé « à titre
+     d'exemple » pour chiffrer le temps perdu ; `blog/mise-en-conformite-electrique-logement.html` (13 novembre 2026) : « 850 + 160 + 180 + 60 + 40
+     = 1 290,00 € HT », puis la TVA à 10 % et le total TTC, est le DEVIS d'un électricien, déroulé pour montrer ce que change le taux réduit —
+     le hors taxe y est le sujet. Ni l'un ni l'autre n'est un prix de TEAM OP. Ces deux articles sont arrivés sur `main` sans leur ligne ici :
+     la « Vérification des pages » y est restée rouge, et avec elle toutes les demandes de fusion (834 suites vertes sur 835). */
+  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html', 'blog/mise-en-conformite-electrique-logement.html'];
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f) && ARTICLES_FACTURE.indexOf(f) < 0);
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
   const ht = [];
