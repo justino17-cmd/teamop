@@ -494,6 +494,8 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 @media (max-width:340px){.kpi b{font-size:16px!important}}
 @media (max-width:760px) and (max-height:700px){.guide{max-height:min(66vh,calc(100vh - 190px))}}
 @media (max-width:420px){.t{font-size:13.5px}.t td,.t th{padding:8px 6px}.t td.n{font-size:13px}.t td.ret{padding-left:14px}.replie-c .kpis{grid-template-columns:minmax(0,1fr)}}
+/* le nom du système tient en entier (iPhone 390 : « OP COMPTAB… ») : la date de la pastille cède la place, jamais le nom · 13 novembre 2026 */
+@media (max-width:440px){ .barre .chip .chip-date{display:none} .barre .logo b{overflow:visible;text-overflow:clip} }
 /* ─── très petit téléphone (320 à 380 px) ─── */
 @media (max-width:380px){
   .masque-etroit{display:none!important}.seul-etroit{display:block!important}
@@ -645,6 +647,43 @@ const FOURNISSEURS = [
 const TIERS = [...CLIENTS, ...FOURNISSEURS];
 const tiers = k => TIERS.find(t => t.k === k);
 const nomTiers = k => (tiers(k) || {}).nom || k;
+/* ══ UNE SEULE COMPTABILITÉ · 13 novembre 2026 ══
+   Justin : « une seule comptabilité ». Ouverte DANS OP GESTION (cadre, ?app=1), cette fenêtre ne fabrique plus ses propres factures de
+   vente : celles de l'application, leurs paiements et leurs relances SONT les siens. L'application les donne à l'ouverture (paramètre
+   « liaison » de l'adresse du cadre) puis à chaque changement (message opc_ventes). Ouverte seule, sans ce paramètre : le jeu
+   d'exemple d'avant, rien ne change. */
+let LIA = null, OPL_NUMS = new Set(), OPL_EN_COURS = false;
+try { const m = /[?&]liaison=([^&#]+)/.exec(location.search); if (m && window.parent !== window && /[?&]app=1\b/.test(location.search)) LIA = JSON.parse(decodeURIComponent(m[1])); } catch (e) { LIA = null; }
+if (LIA && !Array.isArray(LIA.factures)) LIA = null;
+const oplNorm = x => String(x == null ? '' : x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const oplMode = m => /^carte/i.test(m || '') ? 'carte' : /^ch/i.test(m || '') ? 'chq' : /^esp/i.test(m || '') ? 'esp' : 'vir';
+const oplISO = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
+function oplClient(nom, type, id){
+  const n = oplNorm(nom); let c = CLIENTS.find(x => oplNorm(x.nom) === n);
+  if (!c) { c = { k:'C-H-' + String(id || n).toUpperCase().replace(/[^A-Z0-9]+/g, ''), nom:String(nom || id || 'Client'), type:type === 'pro' ? 'pro' : 'part', c:'411000' }; CLIENTS.push(c); TIERS.push(c); }
+  return c.k;
+}
+/* ce que l'application dit, remis en factures : celles qu'elle liste, et celles que seuls ses paiements d'octobre laissent deviner
+   (FAC-2026-0130 est payée le 19/10 mais l'application ne la liste pas : la comptabilité la connaît d'avant octobre, payée) */
+function oplSpecs(P){
+  const dec = x => Math.round((+x || 0) * 100) / 100, ttcDe = (ht, t) => r2(ht * (1 + t / 100));
+  const F = [], stubs = [], enc = P.enc || [], vus = new Set();
+  (P.factures || []).forEach(f => {
+    if (!f || !f.num || f.num === '—' || !oplISO(f.emise)) return; vus.add(f.num);
+    const der = enc.filter(e => e.fac === f.num)[0];   // l'application range le plus récent en tête
+    const s = { num:f.num, cli:oplClient(f.nom, f.type, f.cli), lib:String(f.objet || 'Prestation').replace(/\s·\s\d{2}\/\d{2}$/, ''), ht:dec(f.ht), taux:+f.taux || 0, date:f.emise,
+      ech:oplISO(f.ech) ? f.ech : ajoute(f.emise, 30), relances:+f.relances || 0, avoir:f.st === 'avoir', recu:dec(f.recu), pay:null, paye:false };
+    if (s.avoir) { F.push(s); return; }
+    if (f.st === 'payee') { let d = oplISO(f.paye) ? f.paye : (der && oplISO(der.d) ? der.d : AUJ); if (d < s.date) d = s.date; if (d > AUJ) d = AUJ; s.pay = { d, mode:oplMode(f.mode || (der && der.mode)) }; s.paye = true; }
+    else if (der && s.recu > 0 && oplISO(der.d)) s.pay = { d:der.d > AUJ ? AUJ : der.d < s.date ? s.date : der.d, mode:oplMode(der.mode) };
+    F.push(s); });
+  const grp = {}; enc.forEach(e => { if (e && e.fac && e.fac !== '—' && !vus.has(e.fac) && oplISO(e.d)) (grp[e.fac] = grp[e.fac] || []).push(e); });
+  Object.keys(grp).forEach(num => { const L = grp[num], ttc = dec(L.reduce((a, e) => a + (+e.ttc || 0), 0)), taux = +L[0].tva || 0, der = L[0]; if (!(ttc > 0)) return;
+    let ht = dec(ttc / (1 + taux / 100)); [0, .01, -.01, .02, -.02].some(k => { if (ttcDe(dec(ht + k), taux) === ttc) { ht = dec(ht + k); return true; } return false; });
+    const dates = L.map(e => e.d).sort(); let date = ajoute(dates[0], -30); if (date > '2026-09-30') date = '2026-09-30';
+    stubs.push({ num, cli:oplClient(der.nom, der.type, der.cli), lib:'Prestation de service', ht, taux, date, ech:ajoute(date, 30), relances:0, avoir:false, recu:0, paye:true, pay:{ d:dates[dates.length - 1] > AUJ ? AUJ : dates[dates.length - 1], mode:oplMode(der.mode) } }); });
+  return { F, stubs };
+}
 
 /* ─── l'état du dossier ─── */
 const E = [];                                  // toutes les écritures
@@ -1014,6 +1053,7 @@ function paieBulletinDoc(k, ym){
   { const dur = FACT.find(f => f.special === 'durand'); if (dur) { dur.date = '2026-10-12'; dur.lib = 'Installation pompe à chaleur'; } }
   window.FACTURES = FACT;
   const LIB = { install:['Installation d’un climatiseur réversible', 'Pose d’une pompe à chaleur air-air', 'Installation multi-split, 3 pièces', 'Remplacement d’une unité extérieure'], entretien:['Entretien annuel de la climatisation', 'Visite d’entretien, contrat annuel', 'Contrôle d’étanchéité et nettoyage des filtres'], depannage:['Dépannage, recharge en fluide', 'Dépannage, remplacement d’un condensateur', 'Dépannage, fuite d’eau sur l’unité intérieure'] };
+  const ventesEcrire = () => {
   const paiementsCarte = [];
   const cheques = [];
   FACT.forEach(f => {
@@ -1055,6 +1095,22 @@ function paieBulletinDoc(k, ym){
   // dépôts d'espèces : le dernier vendredi du mois, en gardant 300 € de fond de caisse
   MOISA.forEach(ym => { const v = vendredis.filter(d => d.slice(0, 7) === ym).slice(-1)[0]; if (!v || v > AUJ) return; const s = solde('530000', { au:v }); if (s <= 300) return; const m = r2(s - 300);
     ecr({ j:'BQ', date:v, piece:'DEP-' + ym.replace('-', ''), lib:'Dépôt d’espèces en banque', orig:'banque', pj:'Bordereau-depot.pdf', l:[['512000', null, m, 0], ['530000', null, 0, m]] }); });
+  };
+  if (!LIA) ventesEcrire();
+  else {
+    /* UNE SEULE COMPTABILITÉ : 1er passage à blanc, pour que le tirage au sort finisse exactement où il finissait (achats, paie… inchangés) ; on
+       jette ses écritures, on garde ce qui s'est PAYÉ AVANT octobre (clos, déjà déclaré), et on y met les factures de l'application. */
+    const e0 = E.length, s0 = SEQ;
+    ventesEcrire();
+    const hasard = graine; E.length = e0; SEQ = s0;
+    const S = oplSpecs(LIA), pris = new Set([...S.F, ...S.stubs].map(x => x.num));
+    const garde = FACT.filter(f => !f.ouverte && f.paye && f.paye < '2026-10-01' && f.date < '2026-10-01').sort((a, b) => a.date.localeCompare(b.date) || a.num.localeCompare(b.num));
+    let n = 0; garde.forEach(f => { do { n++; } while (pris.has('FAC-2026-' + String(n).padStart(4, '0'))); f.num = 'FAC-2026-' + String(n).padStart(4, '0'); f.payForce = { mode:f.mode, d:f.paye }; });   // leurs numéros ne heurtent plus ceux de l'application
+    const hote = [...S.F.filter(x => !x.avoir), ...S.stubs].sort((a, b) => a.date.localeCompare(b.date) || a.num.localeCompare(b.num))
+      .map(x => ({ cli:x.cli, type:'entretien', ...tvaDe(x.ht, x.taux), taux:x.taux, date:x.date, ech:x.ech, lib:x.lib, num:x.num, relances:x.relances, ...(x.paye && x.pay ? { payForce:{ mode:x.pay.mode, d:x.pay.d } } : { ouverte:true }) }));
+    FACT.splice(0, FACT.length, ...garde, ...hote);
+    ventesEcrire(); graine = hasard;
+  }
 
   /* ─── les achats et les frais ─── */
   const achat = (k, date, ht, c, lib, o) => { o = o || {}; const v = tvaDe(ht, o.taux === undefined ? 20 : o.taux), p = o.piece || (k.slice(2) + '-' + entre(10000, 99999));
@@ -1122,7 +1178,7 @@ function paieBulletinDoc(k, ym){
   const aPasser = [];
   FACT.filter(f => f.virFin && !f.groupe).forEach(f => aPasser.push({ date:f.virFin, lib:`VIR SEPA ${nomTiers(f.cli).toUpperCase()} ${f.num}`, m:f.ttc, aide:{ type:'client', cli:f.cli, fac:[f.num] } }));
   { const H = FACT.filter(f => f.groupe === 'hp');
-    aPasser.push({ date:'2026-10-30', lib:`VIR SEPA HOTEL DE LA PLAGE FACTURES ${H.map(f => f.num.slice(-4)).join(' ET ')}`, m:r2(H.reduce((s, f) => s + cts(f.ttc), 0) / 100), aide:{ type:'client', cli:'C-HOTELPLAGE', fac:H.map(f => f.num) } }); }
+    if (H.length) aPasser.push({ date:'2026-10-30', lib:`VIR SEPA HOTEL DE LA PLAGE FACTURES ${H.map(f => f.num.slice(-4)).join(' ET ')}`, m:r2(H.reduce((s, f) => s + cts(f.ttc), 0) / 100), aide:{ type:'client', cli:'C-HOTELPLAGE', fac:H.map(f => f.num) } }); }
   const vv = VERSEMENTS.find(v => !v.passe); if (vv) aPasser.push({ date:vv.d, lib:`VERSEMENT PRESTATAIRE CARTES ${vv.n} PAIEMENTS`, m:vv.net, aide:{ type:'psp', brut:vv.brut, frais:vv.frais } });
   aPasser.push({ date:'2026-10-30', lib:'PRLV SEPA ATLANTEL FACTURE ATL-202610', m:-102, aide:{ type:'fourn', four:'F-ATL', piece:'ATL-202610' } });
   aPasser.push({ date:'2026-10-30', lib:'PRLV SEPA ATLANTIQUE ASSURANCES REF 88412', m:-42, aide:{ type:'inconnu' } });
@@ -1244,7 +1300,7 @@ const comptesOptions = () => `<datalist id="dl-comptes">${PCG.map(c => `<option 
 VUES.accueil = () => {
   const ca = -solde('70', { au:AUJ }), charges = solde('6', { au:AUJ }), res = ca - charges, treso = solde('512000', { au:AUJ }) + solde('530000', { au:AUJ });
   const clients = solde('411000', { au:AUJ }), retard = lignesDe(l => l.c === '411000' && !l.let && l.d > 0).filter(x => x.e.ech && x.e.ech < AUJ).reduce((s, x) => s + x.l.d, 0);
-  const fourn = -solde('401000', { au:AUJ }) - solde('404000', { au:AUJ }), T = tvaMois('2026-10'), F = aFaire(), faits = F.filter(x => x.ok).length;
+  const fourn = -solde('401000', { au:AUJ }) - solde('404000', { au:AUJ }), T = tvaMois('2026-10'), F = aFaireVu(), faits = F.filter(x => x.ok).length;
   const mois = Array.from({ length:10 }, (_, i) => '2026-' + String(i + 1).padStart(2, '0')).map(m => ({ m, ca:-solde('70', { du:m + '-01', au:finMois(m) }), ch:solde('6', { du:m + '-01', au:finMois(m) }) }));
   const mx = Math.max(...mois.map(x => Math.max(x.ca, x.ch))) * 1.08, H = 170, W = 640, bw = 22;
   const graph = `<svg viewBox="0 0 ${W} ${H + 34}" role="img" aria-label="Produits et charges par mois, de janvier à octobre">${[0, .25, .5, .75, 1].map(f => `<line x1="40" x2="${W}" y1="${H - f * H + 6}" y2="${H - f * H + 6}" stroke="var(--line)" stroke-width="1"/><text x="34" y="${H - f * H + 10}" text-anchor="end">${Math.round(mx * f / 1000)} k</text>`).join('')}
@@ -1467,7 +1523,7 @@ VUES.balance = () => {
 /* ─── clients et fournisseurs : soldes, échus, lettrage, balance âgée ─── */
 function etatTiers(t){
   const L = lignesDe(l => l.aux === t.k), nl = L.filter(x => !x.l.let), s = L.reduce((a, x) => a + cts(x.l.d) - cts(x.l.cr), 0);
-  const sens = t.c === '411000' ? 1 : -1, echu = nl.filter(x => x.e.ech && x.e.ech < AUJ && (sens > 0 ? x.l.d : x.l.cr)).reduce((a, x) => a + cts(sens > 0 ? x.l.d : x.l.cr), 0);
+  const sens = t.c === '411000' ? 1 : -1, echu = nl.filter(x => x.e.ech && x.e.ech < AUJ && (sens > 0 ? x.l.d : x.l.cr)).reduce((a, x) => a + cts(sens > 0 ? x.l.d - oplDejaRegle(x) : x.l.cr), 0);
   const plusVieux = nl.filter(x => x.e.ech && (sens > 0 ? x.l.d : x.l.cr)).map(x => x.e.ech).sort()[0];
   return { t, s:s * sens / 100, echu:echu / 100, nl:nl.length, plusVieux, n:L.length };
 }
@@ -1669,14 +1725,14 @@ const resultatAvantIS = essai => -(soldeCts('6', { au:AUJ, essai }) + soldeCts('
 const isDe = r => r <= 0 ? 0 : r2(Math.min(r, 42500) * .15 + Math.max(0, r - 42500) * .25);
 const etapeFaite = k => E.find(e => e.essai && e.etat !== 'supprimee' && e.etape === k);
 VUES.clotures = () => {
-  const F = aFaire(), pret = F.every(x => x.ok), oct = PER['2026-10'] === 'cloturee', faites = ETAPES_CLOTURE.filter(s => etapeFaite(s.k)).length;
+  const F = aFaireVu(), pret = aFaire().every(x => x.ok), oct = PER['2026-10'] === 'cloturee', faites = ETAPES_CLOTURE.filter(s => etapeFaite(s.k)).length;
   const resEssai = -(soldeCts('6', { au:AUJ, essai:true }) + soldeCts('7', { au:AUJ, essai:true })) / 100;
   return tete('Clôture', 'Clôtures', 'Chaque mois se ferme une fois tout passé : plus aucune écriture n’y entre ensuite. L’exercice se clôture le 31 décembre ; ici, on peut répéter cette clôture sur les dix premiers mois.') +
     `<div class="grille g2"><div class="carte"><h2>Clôture mensuelle</h2>
       <div class="defile" style="border:0"><table class="t"><tbody>${MOIS_LISTE.map(m => `<tr><td>${nomMois(m)}</td><td>${PER[m] === 'cloturee' ? '<span class="st ok">Clôturé</span>' : '<span class="st warn">En cours</span>'}</td></tr>`).join('')}</tbody></table></div></div>
       <div class="carte" style="display:flex;flex-direction:column;gap:10px"><h2>Clôturer octobre</h2>
         <div class="etapes">${F.map((x, i) => `<div class="etape ${x.ok ? 'ok' : ''}"><span class="rond">${x.ok ? '✓' : i + 1}</span><span class="txt"><b>${x.t}</b><span class="mute petit">${x.d}</span></span>${x.ok || oct ? '' : `<button type="button" class="btn gris petit" data-a="aller" data-r="${x.k}" ${x.gl ? `data-gl="${x.gl}"` : ''}>Y aller</button>`}</div>`).join('')}</div>
-        ${oct ? `<div class="bon">Octobre est clôturé${AUTO.envoye ? ' et envoyé au cabinet' : ''}. Une erreur trouvée maintenant se corrige en novembre, par une nouvelle écriture.</div>` : `<button type="button" class="btn" data-a="cloturer-oct" ${pret ? '' : 'aria-disabled="true"'}>Clôturer octobre et l’envoyer au cabinet</button><p class="mute petit">${pret ? 'Tout est prêt. Une période clôturée ne se rouvre pas.' : 'Le bouton s’ouvre quand toutes les étapes sont faites.'}</p>`}</div></div>
+        ${oct ? `<div class="bon">Octobre est clôturé${AUTO.envoye ? ' et envoyé au cabinet' : ''}. Une erreur trouvée maintenant se corrige en novembre, par une nouvelle écriture.</div>` : `<button type="button" class="btn" data-a="cloturer-oct" ${pret ? '' : 'aria-disabled="true"'}>Clôturer octobre et l’envoyer au cabinet</button><p class="mute petit">${pret ? 'Tout est prêt. Une période clôturée ne se rouvre pas.' : (F.every(x => x.ok) ? 'Une étape réservée au patron reste à faire : le bouton s’ouvrira quand il l’aura faite.' : 'Le bouton s’ouvre quand toutes les étapes sont faites.')}</p>`}</div></div>
     <div class="carte" style="display:flex;flex-direction:column;gap:10px"><h2>Répétition de la clôture de l’exercice · ${faites}/${ETAPES_CLOTURE.length}</h2>
       <p class="mute petit">Les écritures de fin d’année, calculées au 31 octobre. Ce sont des écritures d’essai : elles ne touchent ni la TVA, ni le FEC, ni les contrôles, et s’effacent d’un geste. Les congés payés n’y figurent pas : pour les ouvriers du bâtiment, la caisse de congés payés les verse et l’entreprise cotise chaque mois, il n’y a donc rien à provisionner. Pour les autres salariés (la secrétaire, le gérant), cela dépend de l’affiliation à la caisse : à confirmer avec elle et avec l’expert-comptable. Le bilan et le compte de résultat peuvent les inclure.</p>
       <div class="etapes">${ETAPES_CLOTURE.map((s, i) => { const f = etapeFaite(s.k), L = f || s.m ? null : s.l(), m = s.m ? s.m() : f ? totalD(f) : r2(L.reduce((t, l) => t + cts(l[2]), 0) / 100); return `<div class="etape ${f ? 'ok' : ''}"><span class="rond">${f ? '✓' : i + 1}</span><span class="txt"><b>${s.t} · ${s.m ? (m >= 0 ? '+' : '') : ''}${eur(m)}</b><span class="mute petit">${s.d}</span></span>${f ? `<button type="button" class="lien" data-a="ecr" data-id="${f.id}">Voir l’écriture</button>` : `<button type="button" class="btn gris petit" data-a="cloture-etape" data-k="${s.k}">Passer l’écriture d’essai</button>`}</div>`; }).join('')}</div>
@@ -1973,7 +2029,7 @@ function aVerifier(){
     choix:[['immo-oui|' + P.id, `Oui, l’étaler sur ${P.immo.duree} ans`, true], ['immo-non|' + P.id, 'Non, c’est une petite dépense']] }));
   RELEVE.filter(r => !r.pointe && !r.nouveau && r.averifier).forEach(r => L.push({ k:'ligne|' + r.id, kind:'ligne', ic:'banque', fam:'cyan', t:`${r.lib} · ${eur(Math.abs(r.m))}`, ligne:r,
     d:r.averifier === 'client' ? `Un virement de ${eur(r.m)} le ${dCourt(r.date)} ne correspond à aucune facture ouverte : associe-le à la main à sa facture.` : `Le ${dCourt(r.date)}, la banque a prélevé ${eur(Math.abs(r.m))}. Ni facture, ni règle connue. Le nom du créancier, sur le relevé, fait penser à une assurance.` }));
-  if (PAIE.calc && !PAIE.valide) L.push({ k:'paie', kind:'paie', ic:'paie', fam:'indigo', t:`Les 6 fiches de paie d’octobre sont prêtes · ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets`, d:'Calculées avec les heures validées dans OP GESTION. Ouvre-les, vérifie, puis valide : l’écriture, les virements et la déclaration sociale suivent tout seuls.', choix:[['aller|paie', 'Vérifier et valider', true]] });
+  if (PAIE.calc && !PAIE.valide && opcPaieOuverte()) L.push({ k:'paie', kind:'paie', ic:'paie', fam:'indigo', t:`Les 6 fiches de paie d’octobre sont prêtes · ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets`, d:'Calculées avec les heures validées dans OP GESTION. Ouvre-les, vérifie, puis valide : l’écriture, les virements et la déclaration sociale suivent tout seuls.', choix:[['aller|paie', 'Vérifier et valider', true]] });
   if (toutLu() && !L.some(x => x.kind === 'immo' || x.kind === 'ligne') && !(TVA_DECL['2026-10'] || {}).decl) L.push({ k:'tva', kind:'tva', ic:'tva', fam:'ambre', t:`La TVA d’octobre est prête · ${eur(tvaMois('2026-10').due)} à payer`, d:'Calculée sur les paiements reçus et les achats du mois. Arrête-la d’un geste : la déclaration sera prête à déposer, au plus tard le lundi 23 novembre.' + (typeof terrainReste === 'function' && terrainReste().length ? ' La journée n’est pas finie : mieux vaut attendre ce soir, chaque paiement reçu d’ici là compte encore dans la TVA du mois.' : ''), choix:[['tva-auto|2026-10', 'Arrêter la TVA', true], ['aller|tva', 'Voir le détail']] });
   return L;
 }
@@ -2006,7 +2062,7 @@ function ligneDecider(id, c, retenir, par){
 }
 
 /* ─── le terrain : ce qui se passe dans OP GESTION pendant la journée ─── */
-const prochainNumFacture = () => 'FAC-2026-' + String(Math.max(...E.filter(e => e.j === 'VE' && /^FAC-2026-/.test(e.piece)).map(e => +e.piece.slice(-4))) + 1).padStart(4, '0');
+const prochainNumFacture = () => LIA && LIA.prochain ? 'FAC-2026-' + String(LIA.prochain).padStart(4, '0') : 'FAC-2026-' + String(Math.max(...E.filter(e => e.j === 'VE' && /^FAC-2026-/.test(e.piece)).map(e => +e.piece.slice(-4))) + 1).padStart(4, '0');
 const TERRAIN = [
   { k:'inter', h:'09:40', ic:'terrain', fam:'bleu', qui:'kb', ou:'sur son téléphone', t:'Karim termine le dépannage chez Mme Girard', d:'Astreinte du samedi : climatiseur en panne, recharge en fluide. 210 € HT, TVA à 10 % (logement de plus de deux ans).', ok:() => !!AUTO.terrain.girard,
     faire:() => { const num = prochainNumFacture(), ht = 210, tva = 21, ttc = 231;
@@ -2067,7 +2123,7 @@ const JOUR = [
   { k:'pieces', h:'06:05', src:'Pièces', ic:'pieces', fam:'violet', ou:'boîte factures@ et photos du terrain', t:'Les factures reçues et le ticket photographié sont lus', d:'Quatre documents arrivés par mail (trois factures et un avoir), un ticket de gazole photographié par Karim.',
     ok:() => !PIECES.some(p => p.statut === 'a_traiter'), faire:() => { const r = lirePieces(); SIM.res.pieces = `${plur(r.auto, 'document écrit', 'documents écrits')} avec ${r.auto > 1 ? 'leur' : 'son'} justificatif${r.averifier ? `, ${plur(r.averifier, 'question')}` : ''}. Les lignes de banque qui attendaient leur facture se rangent.`; return ''; }, tags:['piece-P1', 'piece-P2', 'piece-P3', 'piece-P4', 'prlv-fourn', 'cb-station'] },
   { k:'paie-calc', h:'06:10', src:'Paie', ic:'paie', fam:'indigo', ou:'heures validées dans OP GESTION', t:'Les heures d’octobre deviennent les fiches de paie', d:'Heures supplémentaires semaine par semaine, absences, paniers, primes et notes de frais des six salariés.',
-    ok:() => !!PAIE.calc, faire:() => { paieCalculer(); SIM.res['paie-calc'] = `6 fiches calculées : ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets à payer.`; return ''; }, tags:['paie-calc'] },
+    ok:() => !!PAIE.calc, faire:() => { paieCalculer(); SIM.res['paie-calc'] = opcPaieOuverte() ? `6 fiches calculées : ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets à payer.` : 'Les fiches sont calculées.'; return ''; }, tags:['paie-calc'] },
   { k:'q-immo', h:'06:15', src:'Pilote', ic:'ordinateur', fam:'ardoise', pilote:true, vers:'averifier', ou:'une facture reçue par mail', t:'Un ordinateur à 1 290 € : un achat qui dure', d:'La facture d’Informatique Littoral demandait un avis : dépense d’un coup, ou étalée sur trois ans ?',
     ok:() => (PIECES.find(p => p.id === 'P5') || {}).statut === 'traitee', peut:() => (PIECES.find(p => p.id === 'P5') || {}).statut === 'a_verifier' ? '' : 'Les documents ne sont pas encore lus.',
     faire:() => { const m = immoDecider('P5', true, 'pilote'); if (m) return m; SIM.res['q-immo'] = 'Inscrit au registre des immobilisations, étalé sur 3 ans.'; decision('q-immo', 'Ordinateur portable · 1 290,00 € HT : étalé sur 3 ans', 'Plus de 500 € HT et un usage de plusieurs années : la règle habituelle est de l’immobiliser. Durée d’usage courante d’un ordinateur : 3 ans.', [ecrTag('piece-P5')]); return ''; }, tags:['piece-P5'] },
@@ -2084,14 +2140,17 @@ const JOUR = [
       synchroniserBanque(); const r = RELEVE.find(x => x.essaiRegle); SIM.res.regle = r.pointe ? 'Rangé tout seul par la règle retenue ce matin : aucune question.' : 'Aucune règle : une question dans « À vérifier ».'; return ''; }, tags:['regle'] },
   { k:'paie', h:'16:00', src:'Paie', ic:'paie', fam:'indigo', pilote:true, vers:'paie', ou:'pilote automatique', t:'Les fiches de paie passent leurs contrôles', d:'Heures validées, aucune fiche anormale, masse salariale proche du mois dernier.',
     ok:() => !!PAIE.valide, peut:() => !PAIE.calc ? 'Les fiches ne sont pas encore calculées.' : paieControles().every(c => c.ok) ? '' : 'Un contrôle de paie demande ton regard.',
-    faire:() => { const m = paieValider(); if (m) return m; SIM.res.paie = `Paie validée : écriture passée, ${eur(PAIE.vire.total)} virés aux salariés, DSN prête.`; decision('paie', 'Paie d’octobre validée', 'Les quatre contrôles sont passés : heures validées, aucune fiche anormale, pas d’heures hors norme, masse salariale proche de septembre.', [PAIE.ecr]); return ''; }, tags:['paie', 'vir-salaires'] },
+    faire:() => { const m = paieValider(); if (m) return m; SIM.res.paie = opcPaieOuverte() ? `Paie validée : écriture passée, ${eur(PAIE.vire.total)} virés aux salariés, DSN prête.` : 'La paie est validée.'; decision('paie', 'Paie d’octobre validée', 'Les quatre contrôles sont passés : heures validées, aucune fiche anormale, pas d’heures hors norme, masse salariale proche de septembre.', [PAIE.ecr]); return ''; }, tags:['paie', 'vir-salaires'] },
   { k:'tva', h:'17:00', src:'TVA', ic:'tva', fam:'ambre', pilote:true, vers:'tva', ou:'pilote automatique', t:'La TVA d’octobre est arrêtée', d:'TVA des ventes payées dans le mois, moins celle des achats.',
     ok:() => !!(TVA_DECL['2026-10'] || {}).decl, peut:() => !toutLu() ? 'La banque et les documents ne sont pas encore lus.' : aVerifier().some(x => x.kind === 'immo' || x.kind === 'ligne') ? 'Une question attend une réponse.' : '',
     faire:() => { const m = tvaDeclarer('2026-10'); if (m) return m; const T = TVA_DECL['2026-10'].l; SIM.res.tva = `${eur(T.due)} à payer : la déclaration est prête à déposer.`; decision('tva', `TVA d’octobre arrêtée · ${eur(T.due)}`, 'Tout le mois est lu et aucune question n’attend : le calcul est complet.', [TVA_DECL['2026-10'].liq]); return ''; }, tags:['tva'] },
   { k:'cloture', h:'18:00', src:'Clôture', ic:'clotures', fam:'ardoise', pilote:true, vers:'clotures', ou:'pilote automatique', t:'Octobre se ferme et part au cabinet', d:'Banque à jour, documents lus, paie validée, rien d’inexpliqué, écritures toutes validées, TVA arrêtée.',
-    ok:() => PER['2026-10'] === 'cloturee', peut:() => aFaire().every(x => x.ok) ? '' : 'Il reste : ' + aFaire().filter(x => !x.ok).map(x => x.manque).filter((m, i, a) => a.indexOf(m) === i).join(', ') + '.',
+    ok:() => PER['2026-10'] === 'cloturee', peut:() => aFaire().every(x => x.ok) ? '' : 'Il reste : ' + aFaire().filter(x => !x.ok).map(x => x.k === 'paie' && !opcPaieOuverte() ? 'une étape réservée au patron' : x.manque).filter((m, i, a) => a.indexOf(m) === i).join(', ') + '.',
     faire:() => { const m = cloturerEnvoyer(); if (m) return m; SIM.res.cloture = `Octobre est clôturé ; ${DOSSIER.cab} a reçu le dossier complet.`; decision('cloture', 'Octobre clôturé et envoyé au cabinet', 'Les six étapes du mois étaient vertes.', []); return ''; }, tags:['cloture'] }
 ];
+/* liaison : l'intervention de Mme Girard, les paiements de M. Perrin et de la Boulangerie Moreau, la relance des Durand étaient des factures
+   d'EXEMPLE ; avec les vraies factures d'OP GESTION ils n'existent plus (et en inventer une prendrait le numéro de la suivante). On les retire. */
+if (LIA) ['inter', 'carte', 'enligne', 'cheque', 'relance'].forEach(k => { const i = JOUR.findIndex(e => e.k === k); if (i >= 0) JOUR.splice(i, 1); });
 const jourDe = k => JOUR.find(e => e.k === k);
 const terrainReste = () => JOUR.filter(e => e.terrain && !e.ok());   // les moments d'OP GESTION pas encore passés : arrêter la TVA ou fermer le mois les rend impossibles
 const jourEtat = e => e.ok() ? 'fait' : (e.peut && e.peut()) ? 'bloque' : e.pilote && !UI.pilote ? 'attente' : 'avenir';
@@ -2223,6 +2282,16 @@ const MENU_EXPERT = [['Pilotage', [['accueil', 'Tableau de bord'], ['averifier',
 ['averifier', 'fil', 'terrain', 'ventes', 'achats', 'tests', 'aide', 'pilotage', 'previsions', 'demo', 'film'].forEach(k => { if (!ROUTES.includes(k)) ROUTES.push(k); });
 const nomRoute = r => ([...MENU_SIMPLE, ...MENU_EXPERT].flatMap(([, L]) => L).find(([k]) => k === r) || [r, r])[1];
 const plur = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
+/* La paie est au patron seul (Justin, 13 novembre 2026) : dans l'application, seul le rôle « patron » ouvre la rubrique Paie, ses cartes et ses chiffres ;
+   ouvert seul (hors du cadre) il n'y a pas de rôle et tout reste visible. CMPT est déclarée plus bas : avant elle, le cadre est fermé par défaut. */
+function opcPaieOuverte(){ try { return window.parent === window || CMPT.role === 'patron' || CMPT.paie === true; } catch (e) { return window.parent === window; } }
+function opcModeApp(){ return /[?&]app=1\b/.test(location.search); }
+/* une rubrique fermée à ce visiteur : la paie hors patron, et dans l'application la démo, ses tests guidés et le film (leurs boutons y sont cachés : la page n'aurait aucune issue, et le test de la paie mènerait à une rubrique fermée) */
+function opcRouteFermee(r){ return (r === 'paie' && !opcPaieOuverte()) || (opcModeApp() && (r === 'demo' || r === 'tests' || r === 'film')); }
+function opcRouteRefusee(){ const r = UI.route; UI.route = 'accueil'; try { if (location.hash.slice(1) === r) history.replaceState(null, '', '#accueil'); } catch (e) {}
+  if (r === 'paie') { try { toast('La paie est réservée au patron.'); } catch (e) {} } }
+/* les étapes de la fin de mois, telles que ce visiteur les voit : l'étape de la paie est celle du patron (la clôture, elle, les compte toutes) */
+function aFaireVu(){ return aFaire().filter(x => x.k !== 'paie' || opcPaieOuverte()); }
 const sansTete = h => { const i = h.indexOf('</div></div>'); return h.startsWith('<div class="tete">') && i > 0 ? h.slice(i + 12) : h; };
 const apresTete = (h, ajout) => { const i = h.indexOf('</div></div>'); return h.startsWith('<div class="tete">') && i > 0 ? h.slice(0, i + 12) + ajout + h.slice(i + 12) : ajout + h; };
 const replie = (cle, titre, html) => `<details class="carte replie" data-garde="${cle}" ${UI.ouvert[cle] ? 'open' : ''}><summary><b>${titre}</b><span class="mute petit">le détail du comptable</span></summary><div class="replie-c">${html}</div></details>`;
@@ -2245,7 +2314,7 @@ const reglagesHtml = () => `<div class="carte" id="reglages"><h3>Réglages</h3><
 
 /* ─── la charpente : le menu suit la vue, la barre dit où en est la journée, le téléphone a sa barre du bas ─── */
 rendreMenu = () => {
-  const M = UI.expert ? MENU_EXPERT : MENU_SIMPLE, av = nbAVerifier();
+  const M = (UI.expert ? MENU_EXPERT : MENU_SIMPLE).map(([g, L]) => [g, L.filter(([k]) => !opcRouteFermee(k))]).filter(([, L]) => L.length), av = nbAVerifier();
   const nb = { averifier:av, brouillard:brouillardOct().length, pieces:piecesATraiter().length, banque:releveAPasser().length + (UI.mode === 'choix' ? 0 : nouvellesLignes().length) };
   $('#menu').innerHTML = `<div class="logo"><i>OP</i><span><b>OP GESTION</b><small>Comptabilité · ${esc(DOSSIER.nom)}</small></span></div><div class="menu-liste">` +
     M.map(([g, L]) => `<div class="grp">${g}</div>` + L.map(([k, l]) => `<a href="#${k}" ${UI.route === k ? 'aria-current="page"' : ''}>${tuile(k)}<span>${l}</span>${k === 'tests' ? `<span class="nb ok">${UI.testsOk.size}/${TESTS.length}</span>` : nb[k] ? `<span class="nb">${nb[k]}</span>` : ''}</a>`).join('')).join('') +
@@ -2265,7 +2334,7 @@ rendreBarre = () => {
 const ouvrirBase = ouvrir, fermerBase = fermer, rendreBase = rendre;
 ouvrir = (h, l) => { ouvrirBase(h, l); guideMaj(); };
 fermer = () => { fermerBase(); guideMaj(); };
-rendre = () => { if (UI.mode === 'choix' && !['accueil', 'demo', 'tests', 'aide', 'film'].includes(UI.route)) entrerLibre(); rendreBase();  fenetreHabiller(); nuitNoteHabiller(); };
+rendre = () => { if (opcRouteFermee(UI.route)) opcRouteRefusee(); if (UI.mode === 'choix' && !['accueil', 'demo', 'tests', 'aide', 'film'].includes(UI.route)) entrerLibre(); rendreBase();  fenetreHabiller(); nuitNoteHabiller(); };
 /* [n°1] la nuit se lit et se range quand on quitte l'ouverture : au retour sur le tableau de bord, une ligne dit que les chiffres ont changé pour cette raison ; elle s'en va quand on l'a vue (on repart ailleurs) ou qu'on la ferme */
 function nuitNoteHabiller(){ const N = UI.nuitNote; if (!N) return; if (UI.route !== 'accueil') { if (N.montre) UI.nuitNote = null; return; }
   const c = $('#contenu'); if (!c || c.querySelector('.nuit-note')) return; N.montre = true;
@@ -2340,17 +2409,18 @@ const avatar = k => `<span class="av2" style="--tc:${QUI[k][2]}" aria-hidden="tr
 const kpi = (r, t, v, s, ic, fam) => `<button type="button" class="kpi" data-a="aller" data-r="${r}"><span class="k-t">${tuile(ic || r, fam, 'p')}<span>${t}</span></span><b>${v}</b><small>${s}</small></button>`;
 function avCompact(x){ return `<div class="av-mini">${tuile(x.ic, x.fam)}<span class="av-t"><b>${esc(x.t)}</b></span><a class="btn gris petit" href="#averifier">Répondre</a></div>`; }
 function filHtml(f){
+  if ((f.src === 'Paie' || f.tag === 'vir-salaires') && !opcPaieOuverte()) return '';   /* le virement des salaires est rangé sous « Banque » : il dit le total des nets, donc il suit la paie · 13 novembre 2026 */
   const quand = f.h.includes(':') ? 'Aujourd’hui · ' + f.h : 'Le ' + f.h, [ic, fam] = SRC_IC[f.src] || ['fil', 'gris'];
   return `<div class="fil-l" data-fil="${f.tag}">${tuile(ic, fam)}<div class="fil-c"><div class="fil-t"><b>${esc(f.t)}</b><span class="mute petit">${f.src} · ${quand}</span></div><p class="petit">${esc(f.p)}</p>${f.ecr.map(id => { const e = E.find(x => x.id === id); return e ? `<button type="button" class="lien" data-a="expliquer" data-id="${id}" data-tag="${f.tag}">Voir en clair · ${e.num || 'écriture'}</button>` : ''; }).join('')}</div></div>`;
 }
-const decisionHtml = d => { const e = jourDe(d.k) || {}; return `<div class="fil-l" data-decision="${d.k}">${tuile(e.ic || 'pilote', e.fam || 'sapin')}<div class="fil-c"><div class="fil-t"><b>${esc(d.t)}</b><span class="mute petit">Pilote · ${d.h}</span></div><p class="petit">${esc(d.p)}</p>${d.ecr.map(id => { const x = E.find(y => y.id === id); return x ? `<button type="button" class="lien" data-a="expliquer" data-id="${id}" data-tag="decision-${d.k}">Voir en clair · ${x.num || 'écriture'}</button>` : ''; }).join('')}</div></div>`; };
+const decisionHtml = d => { if (d.k === 'paie' && !opcPaieOuverte()) return ''; const e = jourDe(d.k) || {}; return `<div class="fil-l" data-decision="${d.k}">${tuile(e.ic || 'pilote', e.fam || 'sapin')}<div class="fil-c"><div class="fil-t"><b>${esc(d.t)}</b><span class="mute petit">Pilote · ${d.h}</span></div><p class="petit">${esc(d.p)}</p>${d.ecr.map(id => { const x = E.find(y => y.id === id); return x ? `<button type="button" class="lien" data-a="expliquer" data-id="${id}" data-tag="decision-${d.k}">Voir en clair · ${x.num || 'écriture'}</button>` : ''; }).join('')}</div></div>`; };
 VUES.accueil = () => {
   const lu = toutLu(), nouv = nouvellesLignes(), pa = PIECES.filter(p => p.statut === 'a_traiter');
-  const treso = solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }), clients = solde('411000', { au:AUJ });
-  const retard = lignesDe(l => l.c === '411000' && !l.let && l.d > 0).filter(x => x.e.ech && x.e.ech < AUJ).reduce((s, x) => s + x.l.d, 0);
+  const treso = solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }), clients = oplDus();
+  const retard = lignesDe(l => l.c === '411000' && !l.let && l.d > 0).filter(x => x.e.ech && x.e.ech < AUJ).reduce((s, x) => s + x.l.d - oplDejaRegle(x), 0);   /* acompte reçu sur une facture échue : « dont X en retard » ne dépasse plus ce qui est dû · 13 novembre 2026 */
   const fourn = -solde('401000', { au:AUJ }) - solde('404000', { au:AUJ }), D = TVA_DECL['2026-10'] || {}, tva = D.decl ? D.l.due : tvaMois('2026-10').due;
   const res = -(solde('6', { au:AUJ }) + solde('7', { au:AUJ })), P = partAuto('2026-10'), pct = P.n ? Math.round(P.auto / P.n * 100) : 0;
-  const AV = questions(), PV = prevus(), F = aFaire(), oct = PER['2026-10'] === 'cloturee', faits = F.filter(x => x.ok).length, reste = JOUR.filter(e => !e.ok()).length, fait = FIL.filter(f => f.h.includes(':')).length;
+  const AV = questions(), PV = prevus(), F = aFaireVu(), oct = PER['2026-10'] === 'cloturee', faits = F.filter(x => x.ok).length, reste = JOUR.filter(e => !e.ok()).length, fait = FIL.filter(f => f.h.includes(':') && !((f.src === 'Paie' || f.tag === 'vir-salaires') && !opcPaieOuverte())).length;
   const haut0 = UI.mode === 'choix' ? `<div class="carte hero" id="hero"><div class="h-t"><span class="surtitre">Démonstration · données fictives</span><h2>La comptabilité qui se tient toute seule</h2>
         <p>${esc(DOSSIER.nom)} est une entreprise de climatisation de six salariés, inventée pour la démonstration. Ce qu’elle fait dans OP GESTION (interventions, factures, paiements, heures) et ce qui passe sur son compte en banque devient de la comptabilité, sans saisie.</p>
         <p class="mute petit">Nous sommes le samedi 31 octobre 2026, au petit matin.</p></div>
@@ -2368,7 +2438,7 @@ VUES.accueil = () => {
       ${kpi('ventes', 'Les clients te doivent', eur(clients), retard ? `dont ${eur(retard)} en retard` : 'rien en retard')}
       ${kpi('achats', 'Tu dois aux fournisseurs', eur(fourn), 'factures reçues, pas encore payées')}
       ${kpi('tva', 'TVA d’octobre', eur(tva), D.decl ? (D.pret ? 'arrêtée · à déposer d’ici le 23/11' : 'déposée · prélevée le 23/11') : 'à déposer au plus tard le 23/11')}
-      ${kpi('resultat', 'Bénéfice de l’année', eur(res), PAIE.valide ? 'janvier à octobre, avant impôt' : 'avant impôt · octobre n’a pas encore sa paie')}
+      ${kpi('resultat', 'Bénéfice de l’année', eur(res), (PAIE.valide ? 'janvier à octobre, avant impôt' : 'avant impôt · octobre n’a pas encore sa paie') + (LIA ? ' · paie et achats d’exemple' : ''))}
       ${kpi('fil', 'Fait tout seul en octobre', pct + ' %', P.auto === P.n ? `${P.n} écritures, toutes seules` : `${P.auto} écritures sur ${P.n}`)}
     </div>
     <div class="carte" id="mois-etapes"><h2>Ton mois d’octobre · ${oct ? 'clôturé' : faits + '/' + F.length + ' avant la clôture'}</h2>
@@ -2416,8 +2486,8 @@ VUES.fil = () => {
 
 /* ─── la journée en direct : à gauche ce qui se passe, à droite ce que la comptabilité en fait ─── */
 function jourHtml(e){
-  const et = jourEtat(e), f = (e.tags || []).map(filTag).filter(Boolean), ids = [...new Set(f.flatMap(x => x.ecr))].slice(0, 2);
-  const droite = et === 'fait' ? `${tuile('coche', 'vert', 'p')}<div><span class="qui">En comptabilité</span><b>${esc(SIM.res[e.k] || (f[0] ? f[0].t + '.' : 'Fait.'))}</b>${ids.map(id => { const x = E.find(y => y.id === id); return x ? `<button type="button" class="lien" data-a="expliquer" data-id="${id}" data-tag="${e.k}">Voir en clair · ${x.num || 'écriture'}</button>` : ''; }).join('')}</div>`
+  const et = jourEtat(e), f = (e.tags || []).map(filTag).filter(Boolean), ids = e.src === 'Paie' && !opcPaieOuverte() ? [] : [...new Set(f.flatMap(x => x.ecr))].slice(0, 2);
+  const droite = et === 'fait' ? `${tuile('coche', 'vert', 'p')}<div><span class="qui">En comptabilité</span><b>${esc(SIM.res[e.k] || (f[0] && !(e.src === 'Paie' && !opcPaieOuverte()) ? f[0].t + '.' : 'Fait.'))}</b>${ids.map(id => { const x = E.find(y => y.id === id); return x ? `<button type="button" class="lien" data-a="expliquer" data-id="${id}" data-tag="${e.k}">Voir en clair · ${x.num || 'écriture'}</button>` : ''; }).join('')}</div>`
     : et === 'attente' ? `<div><span class="qui">En attente de toi</span><span>Le pilote est coupé : à toi de trancher.</span></div><button type="button" class="btn petit" data-a="aller" data-r="${e.vers}">Répondre</button>`
     : et === 'bloque' ? `<div><span class="qui">Pas encore</span><span class="mute petit">${esc(e.peut())}</span></div>`
     : `<div><span class="qui">En comptabilité</span><span class="mute">À venir.</span></div><button type="button" class="btn gris petit" data-a="terrain" data-k="${e.k}">Jouer maintenant</button>`;
@@ -2438,7 +2508,7 @@ VUES.terrain = () => {
 /* ─── ventes et encaissements ─── */
 function paiementDe(f){
   const l = f.e.lignes.find(x => x.c === '411000'); if (!l || !l.let) return null;
-  const p = lignesDe(x => x.aux === l.aux && x.let === l.let && x.cr > 0)[0]; if (!p) return null; const c = p.e.lignes.map(x => x.c);
+  const P = lignesDe(x => x.aux === l.aux && x.let === l.let && x.cr > 0), p = LIA ? P[P.length - 1] : P[0];   /* payée en deux fois (acompte en espèces, solde par carte) : la liste dit le DERNIER moyen, comme l'application · 13 novembre 2026 */ if (!p) return null; const c = p.e.lignes.map(x => x.c);
   return { date:p.e.date, mode:c.includes('467100') ? 'carte' : c.includes('511200') ? 'chèque' : c.includes('530000') ? 'espèces' : 'virement' };
 }
 VUES.ventes = () => {
@@ -2502,8 +2572,8 @@ VUES.paie = () => {
 /* ─── la banque, la TVA et la fin de mois : la carte automatique devant le détail du comptable ─── */
 const banqueDetail = VUES.banque, tvaDetail = VUES.tva, cloturesDetail = VUES.clotures;
 VUES.banque = () => {
-  const n = UI.mode === 'choix' ? 0 : nouvellesLignes().length, att = RELEVE.filter(r => !r.pointe && !r.nouveau && r.attente).length;
-  const carte = `<div class="carte synchro ${n ? '' : 'fait'}">${tuile(n ? 'synchro' : 'coche', n ? 'bleu' : 'vert', 'g')}<div class="s-c"><h2>${n ? plur(n, 'nouvelle ligne', 'nouvelles lignes') + ' cette nuit' : 'Banque à jour'}</h2>
+  const n = UI.mode === 'choix' ? 0 : nouvellesLignes().length, att = RELEVE.filter(r => !r.pointe && !r.nouveau && r.attente).length, aR = releveAPasser().length;   // aR : les lignes du relevé qui attendent encore leur écriture (13 novembre 2026)
+  const carte = `<div class="carte synchro ${n || aR ? '' : 'fait'}">${tuile(n ? 'synchro' : aR ? 'banque' : 'coche', n ? 'bleu' : aR ? 'ambre' : 'vert', 'g')}<div class="s-c"><h2>${n ? plur(n, 'nouvelle ligne', 'nouvelles lignes') + ' cette nuit' : aR ? plur(aR, 'ligne à rapprocher', 'lignes à rapprocher') : 'Banque à jour'}</h2>
       <span class="mute petit">La banque envoie ses mouvements chaque nuit, par une connexion en lecture seule (ici simulée ; en vrai, un service agréé, avec ton accord à confirmer tous les 180 jours). Chaque ligne cherche son écriture.${att ? ` ${plur(att, 'ligne attend', 'lignes attendent')} leur pièce.` : ''}</span></div>${n ? '<button type="button" class="btn" data-a="synchro">Synchroniser maintenant</button>' : ''}</div>
     <div class="carte"><h2>Comment une ligne trouve son écriture</h2><div class="defile"><table class="t pile-tel"><tbody>
       <tr><td>Le libellé cite un numéro de facture (FAC-…)</td><td>encaissement du client : la facture est notée payée, sa TVA devient due ce mois-ci</td></tr>
@@ -2526,16 +2596,16 @@ VUES.tva = () => {
   return tete('Fiscal', 'TVA', 'La déclaration se prépare toute seule à partir des paiements reçus et des factures d’achat. Le pilote l’arrête quand le mois est complet ; sans lui, tu l’arrêtes d’un geste.') + carte + replie('tva', 'La déclaration ligne par ligne (CA3)', sansTete(tvaDetail()));
 };
 VUES.clotures = () => {
-  const F = aFaire(), pret = F.every(x => x.ok), oct = PER['2026-10'] === 'cloturee', env = AUTO.envoye;
+  const F = aFaireVu(), pret = aFaire().every(x => x.ok), oct = PER['2026-10'] === 'cloturee', env = AUTO.envoye;
   const carte = `<div class="carte" id="fin-mois"><h2>Fermer octobre</h2><p class="mute petit" style="max-width:80ch">Fermer un mois, c’est dire « tout est là » : plus rien n’y entre ensuite, et le cabinet reçoit le dossier complet. Une opération oubliée se passe alors en novembre, avec une note qui rappelle sa vraie date : le mois fermé ne bouge plus.</p>
       <div class="etapes">${F.map((x, i) => `<div class="etape ${x.ok ? 'ok' : ''}"><span class="rond">${x.ok ? '✓' : i + 1}</span><span class="txt"><b>${x.t}</b><span class="mute petit">${x.d}</span></span>${x.ok || oct ? '' : `<button type="button" class="btn gris petit" data-a="aller" data-r="${x.k}" ${x.gl ? `data-gl="${x.gl}"` : ''}>Y aller</button>`}</div>`).join('')}</div>
       ${oct ? `<div class="bon"><b>Octobre est clôturé${env ? ' et envoyé' : ''}.</b> ${env ? `${esc(DOSSIER.cab)} (${esc(DOSSIER.cabQui)}) a reçu à ${env.le} : le fichier des écritures (FEC), la balance, le grand livre, l’état de rapprochement de la banque, les fiches de paie et ${plur(env.pj, 'justificatif')}.${env.manq ? ` Il en manque ${env.manq}, pour ${env.manq > 1 ? 'des prélèvements rangés' : 'un prélèvement rangé'} sans pièce : le cabinet ${env.manq > 1 ? 'les' : 'le'} demandera.` : ''}` : ''}</div>`
-        : `<div class="outils"><button type="button" class="btn" data-a="cloturer-envoyer" ${pret ? '' : 'aria-disabled="true"'}>Clôturer octobre et l’envoyer au cabinet</button>${pret ? '' : `<span class="mute petit">Encore ${plur(F.filter(x => !x.ok).length, 'étape')}.</span>`}</div>`}</div>`;
+        : `<div class="outils"><button type="button" class="btn" data-a="cloturer-envoyer" ${pret ? '' : 'aria-disabled="true"'}>Clôturer octobre et l’envoyer au cabinet</button>${pret ? '' : `<span class="mute petit">${F.every(x => x.ok) ? 'Une étape réservée au patron reste à faire.' : 'Encore ' + plur(F.filter(x => !x.ok).length, 'étape') + '.'}</span>`}</div>`}</div>`;
   if (UI.expert) return apresTete(cloturesDetail(), carte);
   return tete('Pilotage', 'Fin de mois', 'Chaque mois se ferme quand tout est vert : le pilote le fait seul, ou tu le fais d’un geste. Le 31 décembre, le cabinet fait la clôture de l’année : tu peux la répéter ici pour voir ce qu’elle change.') + carte + replie('clo', 'La clôture de l’exercice, en répétition', sansTete(cloturesDetail()));
 };
 function cloturerEnvoyer(){
-  const F = aFaire(); if (!F.every(x => x.ok)) return 'Pas encore. Il reste : ' + F.filter(x => !x.ok).map(x => x.manque).filter((m, i, a) => a.indexOf(m) === i).join(', ') + '.';
+  const F = aFaire(); if (!F.every(x => x.ok)) return 'Pas encore. Il reste : ' + F.filter(x => !x.ok).map(x => x.k === 'paie' && !opcPaieOuverte() ? 'une étape réservée au patron' : x.manque).filter((m, i, a) => a.indexOf(m) === i).join(', ') + '.';
   if (PER['2026-10'] === 'cloturee') return 'Octobre est déjà clôturé.';
   PER['2026-10'] = 'cloturee'; trace('Octobre 2026 clôturé');
   const pj = E.filter(e => e.etat === 'valide' && !e.essai && e.date >= '2026-10-01' && e.pj).length;
@@ -2590,7 +2660,7 @@ function legendeMois(mois){
     (chBas.m === '2026-08' ? ' En août, les charges baissent : les congés payés du bâtiment sont versés par la caisse de congés, pas par l’entreprise.' : '') + (PAIE.valide ? '' : ' Octobre n’a pas encore sa paie.');
 }
 VUES.pilotage = () => {
-  const ca = -solde('70', { au:AUJ }), charges = solde('6', { au:AUJ }), res = -(solde('6', { au:AUJ }) + solde('7', { au:AUJ })), treso = solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }), F = aFaire();
+  const ca = -solde('70', { au:AUJ }), charges = solde('6', { au:AUJ }), res = -(solde('6', { au:AUJ }) + solde('7', { au:AUJ })), treso = solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }), F = aFaireVu();
   const mois = MOIS_LISTE.map(m => ({ m, ca:-solde('7', { du:m + '-01', au:finMois(m) }), ch:solde('6', { du:m + '-01', au:finMois(m) }) }));
   const lc = document.documentElement.clientWidth, tel = lc <= 760, W = tel ? Math.max(250, lc - 66) : 760, H = tel ? 220 : 250, g = tel ? 44 : 52, d = tel ? 6 : 10, h = 14, b = 30, mx = Math.max(...mois.map(x => Math.max(x.ca, x.ch))), pas = pasJoli(mx / 4), y1 = Math.ceil(mx / pas) * pas, bande = (W - g - d) / mois.length, bw = Math.max(4, Math.min(22, (bande - (tel ? 6 : 14)) / 2)), Y = v => h + (y1 - v) * (H - h - b) / y1;
   const barre = (x, v, c) => { const y = Y(v), hh = H - b - y, r = Math.min(4, bw / 2, hh); return hh < 1 ? '' : `<path d="M${x} ${H - b} V${y + r} a${r} ${r} 0 0 1 ${r} -${r} H${x + bw - r} a${r} ${r} 0 0 1 ${r} ${r} V${H - b} Z" fill="var(--${c})"/>`; };
@@ -2750,6 +2820,9 @@ const TESTS = [
       { r:'demo', sel:'#demo-lancer', txt:'Tout ce que tu as fait à la main dans ces tests, le pilote automatique le fait seul, et note chaque décision. La démo le montre en moins de quatre minutes.', lire:1 }],
     fin:() => '<p>Tu connais maintenant chaque geste que le pilote fait pour toi. « Tout recommencer », puis ouvre « La démo » et touche « Lancer la démo », pour le voir se dérouler.</p>' }
 ];
+/* UNE SEULE COMPTABILITÉ · six tests jouaient des factures et un virement d'EXEMPLE (Girard, Perrin, Moreau, l'Hôtel de la Plage, les Durand) : avec les vraies factures d'OP GESTION leur bulle
+   attendait un bouton qui n'existe plus, sans rien pour avancer. Ils sont retirés ; les quinze autres se font comme avant · 13 novembre 2026 */
+if (LIA) ['virement', 'inter', 'carte', 'enligne', 'cheque', 'relance'].forEach(k => { const i = TESTS.findIndex(T => T.k === k); if (i >= 0) TESTS.splice(i, 1); });
 TESTS.forEach(T => T.etapes = T.etapes.map((s, i) => Object.defineProperties({}, { ...Object.getOwnPropertyDescriptors(s), id:{ value:T.k + '-' + i, enumerable:true } })));   /* les descripteurs, pas une copie des valeurs : une étape (n°9) peut avoir une route qui change avec l'état du dossier */
 const etapeOk = s => s.lire ? UI.lus.has(s.id) : !!s.ok();
 const testDe = k => TESTS.find(x => x.k === k);
@@ -2980,6 +3053,14 @@ const FILM = [
   { ch:'Le comptable', vue:'bilan', sel:'.bilan', t:'Le bilan, à tout moment', d:'Ce que l’entreprise possède, ce qu’elle doit : le bilan et le compte de résultat se lisent quand tu veux, sans attendre la fin de l’année.' },
   { ch:'Le comptable', vue:'controles', expert:true, sel:'#contenu .etapes, #contenu .t', apres:() => { UI.expert = false; }, t:'Le cabinet a sa vue', d:'Journaux, grand livre, balance, fichier des écritures pour l’administration, contrôles : rien n’est caché au comptable. Il relit au lieu de ressaisir.' }
 ];
+/* UNE SEULE COMPTABILITÉ · la démo ne rejoue plus des factures d'EXEMPLE : sans cela elle jetait « Cannot read properties of undefined (reading 'qui') » aux plans de 9 h 40 à 11 h 35, et
+   disait « l'Hôtel de la Plage a payé deux factures d'un seul virement » devant un écran où ce virement n'existe pas. Les plans qui jouaient ces moments sont retirés, la nuit et la
+   fin de mois se jouent comme avant · 13 novembre 2026 */
+if (LIA) { const OUT = ['inter', 'carte', 'enligne', 'cheque', 'relance'];
+  for (let i = FILM.length - 1; i >= 0; i--) { const s = FILM[i]; if ([].concat(s.ev || []).some(k => OUT.includes(k)) || OUT.includes(s.lien) || s.t === 'Chaque écriture se lit en clair') FILM.splice(i, 1); }
+  const sb = FILM.find(s => s.ev === 'banque'), sv = FILM.find(s => s.vue === 'ventes');
+  if (sb) sb.d = 'Cette nuit, la banque a envoyé ' + RELEVE.filter(r => r.nouveau).length + ' nouvelles lignes : ses derniers mouvements de vendredi. Deux trouvent leur écriture tout de suite : le versement des paiements par carte et une commission. Deux attendent leur facture, une est inconnue.';
+  if (sv) sv.d = 'Côté ventes, ce sont les factures d’OP GESTION, les mêmes que dans l’application : qui a payé, par quel moyen, et les factures en retard avec leurs relances.'; }
 const filmDuree = s => Math.round(Math.max(4600, Math.min(12500, 1900 + s.d.length * 46)) / CINE.vitesse);
 /* la durée annoncée se calcule sur les plans, à vitesse normale, à la demi-minute près : un chiffre écrit à la main vieillit au premier plan ajouté */
 const filmDureeTexte = () => { const sec = FILM.reduce((t, s) => t + Math.max(4600, Math.min(12500, 1900 + s.d.length * 46)) + (s.ev ? 700 : 280), 0) / 1000, demi = Math.round(sec / 30), m = Math.floor(demi / 2); return `${m} minute${m > 1 ? 's' : ''}${demi % 2 ? ' et demie' : ''}`; };
@@ -3170,7 +3251,7 @@ document.addEventListener('input', ev => { const t = ev.target, k = t.dataset.aI
 document.body.insertAdjacentHTML('beforeend', comptesOptions());
 UI.route = ROUTES.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'accueil';
 rendre();
-if (UI.route === 'film') filmLancer();   /* un lien qui finit par « #film » lance la démo à l'ouverture */
+if (UI.route === 'film' && !opcModeApp()) filmLancer();   /* un lien qui finit par « #film » lance la démo à l'ouverture */
 /* ══ LA VOIX DU GUIDE (Justin, 10 novembre 2026 : « un guide avec une voix qui me parle, qui m'explique tout, à quoi ça consiste,
       quoi faire »). C'est la voix de l'appareil (synthèse vocale du navigateur, en français) : rien n'est envoyé nulle part, aucun
       fichier son. Elle lit chaque bulle au moment où elle paraît ; un bouton sur la bulle la coupe et la remet. Sans synthèse
@@ -3220,9 +3301,10 @@ const cmptPluriel = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
 /* un message d'OP GESTION : qui regarde (le titre et « Ce qui t'attend »), ou « ouvre-moi cette rubrique avec ce filtre » */
 addEventListener('message', ev => {
   const d = ev.data; if (!d || typeof d !== 'object') return;
-  if (d.opc_role) { CMPT.role = d.opc_role.role === 'patron' ? 'patron' : 'gestion'; if (d.opc_role.prenom) CMPT.prenom = String(d.opc_role.prenom).slice(0, 30); if (UI.route === 'accueil') rendre(); }
+  if (d.opc_role) { const roleAvant = CMPT.role; const paieAvant = CMPT.paie; CMPT.role = d.opc_role.role === 'patron' ? 'patron' : 'gestion'; CMPT.paie = d.opc_role.paie === true;   /* le comptable du cabinet reste « gestion » pour tout le reste, mais garde la Paie : la règle « patron seul » la lui avait retirée, alors que le défaut était la gestion des factures (secrétariat) · 13 novembre 2026 */ if (d.opc_role.prenom) CMPT.prenom = String(d.opc_role.prenom).slice(0, 30); if (UI.route === 'accueil' || CMPT.role !== roleAvant || CMPT.paie !== paieAvant) rendre(); }
   if (d.opc_aller) cmptAller(d.opc_aller);
   if (d.opc_liens) cmptLiensRecus(d.opc_liens);
+  if (d.opc_ventes) oplSync(d.opc_ventes);
 });
 function cmptAller(o){
   const r = o && o.r; if (!r || !ROUTES.includes(r)) return;
@@ -3253,7 +3335,7 @@ const cmptEtatFacture = num => {
 };
 function cmptFactureBloc(num){
   const S = cmptEtatFacture(num); if (!S) return '';
-  const { f, F, p, late, jr } = S, rel = f.relances || 0, due = r2(F.ttc);
+  const { f, F, p, late, jr } = S, rel = f.relances || 0, due = r2(F.ttc - oplRecu(num));
   const li = (cl, ic, t) => `<li class="${cl}"><i aria-hidden="true">${ic}</i><span>${t}</span></li>`;
   return `<div class="carte cmpt-fac" data-fac-etat="${esc(num)}"><h3>Où en est cette facture</h3><ul class="cmpt-etat">
       ${li('ok', '✓', `Envoyée par OP GESTION le ${dCourt(F.e.date)} · ${eur(due)} TTC`)}
@@ -3335,8 +3417,8 @@ VUES.accueil = () => {
   if (pat && j > 0) h = h.replace('<div class="kpis six"', cmptAttendHtml() + '<div class="kpis six"');
   else { const cr = cmptCreux(); if (cr) h = h.replace('<div class="kpis six"', `<div class="alerte cmpt-ecart" role="status"><b>Trésorerie :</b> ${cr.deja ? `le compte est déjà sous ton seuil : ${eur(cr.s)} aujourd’hui, pour un seuil de ${eur(CMPT.seuil)}.` : `le ${dCourt(cr.d)}, le compte descendrait à ${eur(cr.s)}, sous ton seuil de ${eur(CMPT.seuil)}.`} <button type="button" class="lien" data-cmpt="attend|previsions">Voir la courbe</button></div><div class="kpis six"`); }
   h = h.replace('à déposer au plus tard le 23/11', 'calculée sur les paiements reçus au 31/10 · à déposer d’ici le 23/11');
-  if (!PAIE.valide) { const F = paieFichesDe('2026-10'), cout = r2(paieTotal(F, 'brut') + paieTotal(F, 'paniers') + paieTotal(F, 'totP')), res = -(solde('6', { au:AUJ }) + solde('7', { au:AUJ }));
-    h = h.replace(/<button type="button" class="kpi" data-a="aller" data-r="resultat">[\s\S]*?<\/button>/, kpi('resultat', 'Bénéfice de l’année estimé', eur(r2(res - cout)), `avec la paie d’octobre prévue (− ${eur(cout)}) · ${eur(res)} avant la paie`)); }
+  if (!PAIE.valide && opcPaieOuverte()) { const F = paieFichesDe('2026-10'), cout = r2(paieTotal(F, 'brut') + paieTotal(F, 'paniers') + paieTotal(F, 'totP')), res = -(solde('6', { au:AUJ }) + solde('7', { au:AUJ }));
+    h = h.replace(/<button type="button" class="kpi" data-a="aller" data-r="resultat">[\s\S]*?<\/button>/, kpi('resultat', 'Bénéfice de l’année estimé', eur(r2(res - cout)), `avec la paie d’octobre prévue (− ${eur(cout)}) · ${eur(res)} avant la paie` + (LIA ? ' · paie et achats d’exemple' : ''))); }   /* relié à OP GESTION, les ventes sont celles de l'application (petites dans ce prototype) et la paie et les achats restent des exemples : le bénéfice en sort négatif, on dit d'où viennent les charges (ici et sur la tuile du tableau de bord) · 13 novembre 2026 */
   return h;
 };
 /* la nuit lue : une ligne fixe qui dit ce qui a changé, au lieu d'un message qui passe et couvre l'écran */
@@ -3350,21 +3432,22 @@ nuitNoteHabiller = function(){
 
 /* ─── Ventes et encaissements : filtrer, chercher, savoir lesquelles sont en retard ─── */
 VUES.ventes = () => {
-  const L0 = E.filter(e => e.j === 'VE' && e.etat !== 'supprimee' && !e.essai).map(e => factureDe(e.piece)).filter(f => f && (f.e.date >= '2026-10-01' || !f.lettree)).sort((a, b) => b.e.date.localeCompare(a.e.date) || b.e.piece.localeCompare(a.e.piece));
-  const o = { du:'2026-10-01', au:AUJ }, facture = -solde('70', o), encaisse = lignesDe(l => l.c === '411000' && l.cr > 0, o).reduce((s, x) => s + cts(x.l.cr), 0) / 100;
+  const L0 = E.filter(e => e.j === 'VE' && e.etat !== 'supprimee' && !e.essai).map(e => factureDe(e.piece)).filter(f => f && (f.e.date >= '2026-10-01' || !f.lettree || (LIA && OPL_NUMS.has(f.e.piece)) ) && !(LIA && /^AV-/.test(f.e.piece))).sort((a, b) => b.e.date.localeCompare(a.e.date) || b.e.piece.localeCompare(a.e.piece));
+  /* un avoir est du crédit sur le compte du client, pas de l'argent encaissé : « Encaissé en octobre » le comptait (+95 € après un avoir de 95 €, alors que l'application dit 3 045 €) · 13 novembre 2026 */
+  const o = { du:'2026-10-01', au:AUJ }, facture = -solde('70', o), encaisse = lignesDe(l => l.c === '411000' && l.cr > 0, o).filter(x => !(LIA && /^AV-/.test(x.e.piece))).reduce((s, x) => s + cts(x.l.cr), 0) / 100;
   const late = f => !f.lettree && f.e.ech && f.e.ech < AUJ, retard = L0.filter(late), dues = L0.filter(f => !f.lettree), payees = L0.filter(f => f.lettree);
   const cliDe = f => f.e.lignes.find(l => l.aux).aux, q = cmptNorm(UI.vq).trim();
   const base = UI.vf === 'retard' ? retard : UI.vf === 'encaisser' ? dues : UI.vf === 'payees' ? payees : L0;
   const L = q ? base.filter(f => cmptNorm([f.e.piece, nomTiers(cliDe(f)), f.e.lib].join(' ')).includes(q)) : base;
   const pil = [['toutes', 'Toutes', L0.length], ['encaisser', 'À encaisser', dues.length], ['retard', 'En retard', retard.length], ['payees', 'Payées', payees.length]];
   return tete('Ventes', 'Ventes et encaissements', 'Chaque facture envoyée par OP GESTION s’écrit toute seule ; chaque paiement (carte, lien, virement, chèque) la solde tout seul. Ici, tu vois qui a payé et qui doit encore.') +
-    `<div class="kpis"><div class="kpi"><span>Facturé en octobre</span><b>${eur(facture)}</b><small>hors taxes</small></div><div class="kpi"><span>Encaissé en octobre</span><b>${eur(encaisse)}</b><small>TVA comprise</small></div><div class="kpi"><span>Reste à encaisser</span><b>${eur(solde('411000', { au:AUJ }))}</b><small>toutes factures</small></div><button type="button" class="kpi" data-cmpt="vf|retard" aria-label="${retard.length ? cmptPluriel(retard.length, 'facture') + ' en retard : les afficher' : 'Aucune facture en retard'}"><span>En retard</span><b>${retard.length}</b><small>${retard.length ? 'touche pour les voir' : 'aucune'}</small></button></div>
+    `<div class="kpis"><div class="kpi"><span>Facturé en octobre</span><b>${eur(facture)}</b><small>hors taxes</small></div><div class="kpi"><span>Encaissé en octobre</span><b>${eur(encaisse)}</b><small>TVA comprise</small></div><div class="kpi"><span>Reste à encaisser</span><b>${eur(oplDus())}</b><small>toutes factures</small></div><button type="button" class="kpi" data-cmpt="vf|retard" aria-label="${retard.length ? cmptPluriel(retard.length, 'facture') + ' en retard : les afficher' : 'Aucune facture en retard'}"><span>En retard</span><b>${retard.length}</b><small>${retard.length ? 'touche pour les voir' : 'aucune'}</small></button></div>
     <div class="cmpt-filtres"><div class="seg" role="group" aria-label="Filtrer les factures">${pil.map(([k, l, n]) => `<button type="button" aria-pressed="${UI.vf === k}" data-cmpt="vf|${k}">${l} (${n})</button>`).join('')}</div>
       <input type="search" class="cmpt-rech" data-a-input="vq" value="${esc(UI.vq)}" placeholder="Chercher un client ou un numéro" aria-label="Chercher un client ou un numéro" autocomplete="off"></div>
     <div class="defile"><table class="t liste-tel" role="table"><thead role="rowgroup"><tr role="row"><th class="masque-tel" role="columnheader">Facture</th><th role="columnheader">Client</th><th class="masque-tel" role="columnheader">Date</th><th class="n" role="columnheader">TTC</th><th role="columnheader">État</th></tr></thead><tbody role="rowgroup">
-      ${L.map(f => { const p = paiementDe(f), F = FACTURES.find(x => x.num === f.e.piece) || {}, cli = cliDe(f), en = late(f);
+      ${L.map(f => { const p = paiementDe(f), F = FACTURES.find(x => x.num === f.e.piece) || {}, cli = cliDe(f), pp = LIA ? oplRecu(f.e.piece) : 0, en = late(f) && !pp;
         return `<tr class="clic" role="row" data-fac="${esc(f.e.piece)}" data-a="expliquer" data-id="${f.e.id}" data-tag="fac"><td class="mono masque-tel" role="cell">${esc(f.e.piece)}</td><td class="lt-t" role="cell">${esc(nomTiers(cli))}<span class="sec">${esc(f.e.lib.split(' · ')[0])}</span><span class="sec seul-tel mono">${esc(f.e.piece)}</span></td><td class="c masque-tel" role="cell">${dCourt(f.e.date)}</td><td class="n lt-m" role="cell">${nb(f.ttc)}</td>
-          <td class="lt-e" role="cell">${p ? `<span class="st ok">Payée · ${p.mode}</span><span class="sec">le ${dCourt(p.date)}</span>` : en ? `<span class="st bad">En retard</span><span class="sec">due le ${dCourt(f.e.ech)}${F.relances ? ' · ' + plur(F.relances, 'relance') : ''}</span>` : `<span class="st warn">À encaisser</span><span class="sec">${f.e.ech ? 'due le ' + dCourt(f.e.ech) : ''}</span>`}</td></tr>`; }).join('') || `<tr role="row"><td role="cell" colspan="5" class="vide">${q ? 'Aucune facture ne correspond à « ' + esc(UI.vq.trim()) + ' ».' : 'Aucune facture dans ce filtre.'}</td></tr>`}</tbody></table></div>
+          <td class="lt-e" role="cell">${p ? `<span class="st ok">Payée · ${p.mode}</span><span class="sec">le ${dCourt(p.date)}</span>` : en ? `<span class="st bad">En retard</span><span class="sec">due le ${dCourt(f.e.ech)}${F.relances ? ' · ' + plur(F.relances, 'relance') : ''}</span>` : pp > 0 ? `<span class="st warn">Payée en partie</span><span class="sec">reste ${eur(r2(f.ttc - pp))}${late(f) ? ' · en retard' : ''}</span>` : `<span class="st warn">À encaisser</span><span class="sec">${f.e.ech ? 'due le ' + dCourt(f.e.ech) : ''}</span>`}</td></tr>`; }).join('') || `<tr role="row"><td role="cell" colspan="5" class="vide">${q ? 'Aucune facture ne correspond à « ' + esc(UI.vq.trim()) + ' ».' : 'Aucune facture dans ce filtre.'}</td></tr>`}</tbody></table></div>
     <p class="mute petit">${L.length === L0.length ? '' : cmptPluriel(L.length, 'facture affichée', 'factures affichées') + ' sur ' + L0.length + '. '}Touche une facture pour voir où elle en est : relancer, voir le PDF, l’ouvrir dans OP GESTION. ${UI.expert ? 'Le compte de chaque client est dans « Clients et fournisseurs ».' : ''}</p>`;
 };
 
@@ -3484,7 +3567,7 @@ function cmptSimOk(){
   const t = (document.getElementById('cmpt-sim-t') || {}).value;
   if (t === 'retard') { const sel = document.getElementById('cmpt-sim-f'), cle = sel && sel.value; if (!cle) return toast('Aucune facture en attente à tester.'); CMPT.sim = { type:'retard', cle, desc:`${sel.options[sel.selectedIndex].text.split(' · ').slice(0, 2).join(' · ')} paie 15 jours plus tard` }; }
   else { const m = Math.max(0, +(document.getElementById('cmpt-sim-m') || {}).value || 0), d = (document.getElementById('cmpt-sim-d') || {}).value;
-    if (!m) return toast('Indique le montant de la dépense.'); if (!d || d <= AUJ || d > ajoute(AUJ, 56)) return toast('Choisis une date dans les huit prochaines semaines.'); CMPT.sim = { type:'depense', m, d, desc:`une dépense de ${eur(m)} le ${dCourt(d)}` }; }
+    if (!(m >= .01)) return toast('Indique le montant de la dépense.');   /* le plus petit montant est un centime : « une dépense de 0,00 € » · 13 novembre 2026 */ if (!d || d <= AUJ || d > ajoute(AUJ, 56)) return toast('Choisis une date dans les huit prochaines semaines.'); CMPT.sim = { type:'depense', m, d, desc:`une dépense de ${eur(m)} le ${dCourt(d)}` }; }
   fermer(); rendre();
 }
 
@@ -3512,7 +3595,8 @@ document.addEventListener('click', ev => {
   if (a === 'tiers') return ouvrirTiers(x);
   if (a === 'lecture') return cmptLecture();
   if (a === 'relire') return cmptRelire();
-  if (a === 'copier') { try { navigator.clipboard.writeText(b.dataset.txt || ''); } catch (e) {} return toast('Adresse copiée : donne-la à tes fournisseurs.'); }
+  if (a === 'copier') { const dit = () => toast('Adresse copiée : donne-la à tes fournisseurs.'), main = () => { const z = b.previousElementSibling; try { if (z) { const sel = getSelection(), rg = document.createRange(); rg.selectNodeContents(z); sel.removeAllRanges(); sel.addRange(rg); } } catch (e) {} toast('Copie impossible ici : l’adresse est sélectionnée, copie-la à la main (appui long, ou Ctrl + C).', 7000); };
+    try { navigator.clipboard.writeText(b.dataset.txt || '').then(dit, main); } catch (e) { main(); } return; }
   if (a === 'depot') return film ? toast('La démo joue déjà la journée.') : cmptDepot(x);
   if (a === 'hero') { CMPT.heroReplie = x === '1'; try { localStorage.setItem('cmpt_hero_replie', x); } catch (e) {} return rendre(); }
   if (a === 'attend') { if (y) UI.vf = y; return aller(x); }
@@ -3526,7 +3610,80 @@ document.addEventListener('click', ev => {
   if (a === 'defiler') { const l = document.querySelector('#menu .menu-liste'); if (l) l.scrollBy({ top:Math.max(120, l.clientHeight * .7), behavior:'smooth' }); return; }
 });
 /* OP GESTION est prévenu que la fenêtre est prête : il répond avec qui regarde, et ce qui était demandé */
+/* ── UNE SEULE COMPTABILITÉ · la suite : ce que l'application dit APRÈS l'ouverture ──
+   Rien n'est refait : on compare, facture par facture, ce que dit l'application et ce que les écritures savent, et on écrit la différence
+   (une facture neuve, un paiement, une relance). Rejouer le même message ne change donc rien : pas de doublon, pas de boucle. */
+function oplRecu(num){ return lignesDe(l => l.c === '411000' && l.cr > 0 && l.aux && !l.let).filter(x => x.e.piece === num).reduce((s, x) => s + cts(x.l.cr), 0) / 100; }   // ce qui est déjà payé d'une facture pas encore soldée
+function oplVal(ht, taux){ const ttc = r2(ht * (1 + taux / 100)); return { ht:r2(ht), tva:r2(ttc - ht), ttc }; }
+function oplCreer(s){
+  const v = oplVal(s.ht, s.taux), date = s.date > AUJ ? AUJ : s.date, tx = String(s.taux).replace('.', ','), cl = nomTiers(s.cli);
+  let tvaL = ['445740', null, 0, v.tva, 'TVA ' + tx + ' % à encaisser'];
+  if (s.avoir) { const o = factureDe((s.lib.match(/FAC-\d{4}-\d{4}/) || [])[0] || ''), payee = o && o.lettree;   // l'avoir d'une facture déjà payée défait la TVA déjà due, celui d'une facture pas payée celle qui attend
+    tvaL = payee ? ['445710', null, v.tva, 0, 'TVA ' + tx + ' % reprise (avoir)', { taux:s.taux, base:-v.ht }] : ['445740', null, v.tva, 0, 'TVA ' + tx + ' % annulée (avoir)']; }
+  const e = ecr({ j:'VE', date, piece:s.num, lib:s.lib + ' · ' + cl, orig:'opgestion', etat:'brouillard', ech:s.avoir ? null : s.ech, creeLe:date, par:'OP GESTION (facturation)',
+    l:s.avoir ? [['411000', s.cli, 0, v.ttc, s.num + ' · ' + cl], ['706000', null, v.ht, 0, s.lib], tvaL] : [['411000', s.cli, v.ttc, 0, s.num + ' · ' + cl], ['706000', null, 0, v.ht, s.lib], tvaL] });
+  valider(e);   // un mois déjà fermé la laisse au brouillard, pour le mois suivant
+  if (!s.avoir) FACTURES.push({ num:s.num, cli:s.cli, type:'entretien', ...v, taux:s.taux, date, ech:s.ech, lib:s.lib, ouverte:true, relances:s.relances });
+  fil('OP GESTION', (s.avoir ? 'Avoir ' : 'Facture ') + s.num + ' · ' + cl + ' · ' + eur(v.ttc), s.avoir ? 'Un avoir est parti depuis OP GESTION : il s’écrit en comptabilité, sur le compte du client, et reprend la TVA correspondante.' : 'La facture est partie depuis OP GESTION et s’est écrite toute seule. Le client doit ' + eur(v.ttc) + ' ; la TVA ne sera due qu’à son paiement.', [e.id], 'inter');
+  return e;
+}
+function oplEncaisser(num, m, mode, date){
+  const f = factureDe(num); if (!f || f.lettree) return null; const cli = f.e.lignes.find(l => l.aux).aux, reste = r2(f.ttc - oplRecu(num)); m = Math.min(r2(m), reste); if (!(m > .004)) return null;
+  const tres = { carte:'467100', chq:'511200', esp:'530000', vir:'512000' }[mode] || '512000', j = { carte:'PS', chq:'BQ', esp:'CA', vir:'BQ' }[mode] || 'BQ';
+  const d = date > AUJ ? AUJ : date < f.e.date ? f.e.date : date, part = cts(m) === cts(f.ttc) ? f.tva : r2(f.tva * m / f.ttc), base = r2(m - part);
+  const e = ecr({ j, date:d, piece:num, lib:({ carte:'Paiement par carte · ', chq:'Chèque reçu · ', esp:'Règlement en espèces · ', vir:'Virement ' }[mode] || 'Virement ') + nomTiers(cli), orig:mode === 'carte' ? 'carte' : mode === 'esp' ? 'caisse' : 'banque', etat:'brouillard', pj:null, par:'OP GESTION (encaissement)',
+    l:[[tres, null, m, 0], ['411000', cli, 0, m, num + ' · ' + nomTiers(cli)], ['445740', null, part, 0, 'TVA à encaisser · ' + num], ['445710', null, 0, part, 'TVA collectée · ' + num, { taux:f.taux, base }]] });
+  valider(e); e.opl = true;   // marqué : ce que la liaison a écrit est la seule chose qu'elle défait quand l'application annule
+  if (mode === 'vir') RELEVE.push({ id:'R' + (RELEVE.length + 1), date:d, lib:'VIR SEPA ' + nomTiers(cli).toUpperCase() + ' ' + num, m, pointe:ref(e, 0) });
+  if (cts(m) === cts(reste)) { const R = lignesDe(l => l.c === '411000' && l.aux === cli && !l.let && l.cr > 0).filter(x => x.e.piece === num).map(x => x.r); lettrer([f.ref, ...R], d); }
+  fil('OP GESTION', (cts(m) === cts(reste) ? 'Paiement reçu · ' : 'Paiement partiel · ') + num + ' · ' + nomTiers(cli) + ' · ' + eur(m), 'OP GESTION a noté ce paiement : ' + (cts(m) === cts(reste) ? 'la facture est soldée' : 'il reste ' + eur(r2(reste - m)) + ' à payer') + '. La TVA de cette part devient due ce mois-ci.', [e.id], 'encaissement');
+  return e;
+}
+/* ── l'application ANNULE un paiement (« Annuler » juste après un encaissement) : la comptabilité le défait aussi ──
+   Avant : la facture redevenait « à encaisser » dans l'application et restait « Payée » ici — deux comptabilités, encore. Une écriture validée ne se
+   modifie pas : on la contrepasse (écriture inverse), les deux lignes du client se rapprochent entre elles, et la facture redevient ouverte ·
+   13 novembre 2026. Seuls les paiements que la liaison a écrits se défont (marque opl) ; le virement du relevé qu'elle avait posé s'en va avec. */
+function oplPayes(num){ return E.filter(e => e.opl && e.piece === num && !e.contrePar && e.etat !== 'supprimee'); }
+function oplMontant(e){ return r2(e.lignes.filter(l => l.c === '411000' && l.aux).reduce((s, l) => s + l.cr, 0)); }
+function oplTotalPaye(num){ return r2(oplPayes(num).reduce((s, e) => s + oplMontant(e), 0)); }
+function oplContre(e, num){
+  const i = e.lignes.findIndex(l => l.c === '411000' && l.aux), aux = e.lignes[i].aux, code = e.lignes[i].let;
+  if (code) delettrer(aux, code);
+  const c = contrepasser(e, AUJ); valider(c);
+  lettrer([ref(e, i), ref(c, c.lignes.findIndex(l => l.c === '411000' && l.aux))], AUJ);
+  const k = RELEVE.findIndex(r => r.pointe === ref(e, 0)); if (k >= 0) { RELEVE.splice(k, 1); RELEVE.forEach((r, n) => { r.id = 'R' + (n + 1); }); }
+  fil('OP GESTION', 'Paiement annulé · ' + num + ' · ' + nomTiers(aux) + ' · ' + eur(oplMontant(e)), 'OP GESTION a annulé ce paiement : la facture redevient à encaisser. L’écriture d’origine reste, avec son écriture inverse ; la TVA de ce paiement n’est plus due.', [c.id], 'encaissement');
+}
+function oplDefaire(num, cible){
+  const L = oplPayes(num); let tot = oplTotalPaye(num), fait = false;
+  while (L.length && tot > cible + .004) { const e = L.pop(); tot = r2(tot - oplMontant(e)); oplContre(e, num); fait = true; }
+  return fait;
+}
+/* ce qui est déjà réglé d'une ligne de facture : « dont X en retard » ne compte pas ce qu'un acompte a déjà payé (jamais plus que le total, sinon « dont 1 240 € » sur 875 € dus) */
+/* « Les clients te doivent » et « Reste à encaisser » : la somme de ce qui reste dû sur les factures, comme l'application (« à recevoir »). Le compte 411 est un solde NET : après un avoir sur une facture
+   payée il montrait 1 380 € quand l'application disait 1 475 € — l'avoir est un crédit du client (sa fiche et la balance le montrent), pas un paiement qui ferait baisser ce qu'il doit encore · 13 novembre 2026 */
+function oplDus(){ return LIA ? r2(lignesDe(l => l.c === '411000' && !l.let && l.d > 0).reduce((s, x) => s + x.l.d - oplDejaRegle(x), 0)) : solde('411000', { au:AUJ }); }
+function oplDejaRegle(x){ return LIA && x.l.c === '411000' && x.l.d > 0 ? Math.min(x.l.d, oplRecu(x.e.piece)) : 0; }
+function oplSync(P, init){
+  if (!LIA || !P || !Array.isArray(P.factures)) return;
+  if (P.prochain) LIA.prochain = P.prochain;
+  const S = oplSpecs(P); OPL_NUMS = new Set(S.F.map(x => x.num)); let n = 0; OPL_EN_COURS = true;
+  try { S.F.forEach(s => {
+    let F = factureDe(s.num), rec = FACTURES.find(x => x.num === s.num);
+    if (!F) { oplCreer(s); n++; F = factureDe(s.num); rec = FACTURES.find(x => x.num === s.num); }
+    if (s.avoir || !F) return;
+    if (rec && s.relances > (rec.relances || 0)) { rec.relances = s.relances; rec.relanceLe = dCourt(AUJ).slice(0, 5); n++; }
+    { const cible = s.paye ? F.ttc : s.recu; if (oplTotalPaye(s.num) > cible + .004 && oplDefaire(s.num, cible)) { n++; F = factureDe(s.num); } }   // l'application a annulé un paiement : on le défait avant de comparer
+    if (!F.lettree && s.pay) { const vise = s.paye ? F.ttc : s.recu, deja = oplRecu(s.num); if (vise > deja + .004 && oplEncaisser(s.num, vise - deja, s.pay.mode, s.pay.d)) n++; }
+  }); } finally { OPL_EN_COURS = false; }
+  if (n && !init) { try { rendre(); } catch (e) {} }
+}
+/* sens cadre → application : un paiement que la banque de la comptabilité range sur une facture est dit à l'application (sans boucle : ce que l'application dit ne se redit pas) */
+function oplDireHote(num, mode, date){ const F = factureDe(num); if (F) cmptParent({ opc_paiement:{ num, mode, date, montant:F.ttc } }); }
+{ const eb = encaisserBanque; encaisserBanque = function(r, cli, nums){ const e = eb.apply(this, arguments); if (LIA && !OPL_EN_COURS && e && typeof e !== 'string') (nums || []).forEach(num => oplDireHote(num, 'virement', r.date)); return e; };
+  const et = encaisserTerrain; encaisserTerrain = function(num, mode, date){ const e = et.apply(this, arguments); if (LIA && !OPL_EN_COURS && e) oplDireHote(num, mode === 'carte' ? 'carte' : mode === 'cheque' ? 'chèque' : 'espèces', date); return e; }; }
 cmptParent({ opc_pret:1 });
+if (LIA) oplSync(LIA, true);
 try { cmptMenuMaj(); } catch (e) {}
 
 

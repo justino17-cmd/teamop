@@ -13,6 +13,27 @@ de ligne du tout.
 
 ---
 
+# 14 NOVEMBRE 2026 — PROTOTYPE OP GESTION : VERSION RASSEMBLÉE, RETESTÉE, EN ATTENTE DES DÉCISIONS DE JUSTIN
+
+Le prototype de la future OP GESTION vit dans `apercu/prototype-op-gestion.html` (+ `prototype-comptabilite.html`, la fenêtre
+Comptabilité ouverte en plein écran, et `prototype-paiement.html`) ; la coque mobile `mobile/` le reprend par `node mobile/fabriquer.js`
+(mode application : `?app=1`). ⛔ Données FICTIVES (Clim Services 17) : rien n'est branché sur le serveur, rien n'est publié aux clients.
+- **Ce qui est fait** : les 85 défauts confirmés de la campagne de tests sont corrigés (deux lots), le guide des nouveautés s'ouvre à la
+  première connexion de chaque rôle, et **les deux comptabilités n'en font plus qu'une** (la fenêtre lit les factures de l'application).
+- **Ce qui a été mesuré sur la version finale** : 284 écrans × 9 profils d'appareil × jour et nuit, 0 constat, 0 erreur JavaScript ;
+  tous les boutons joués avec quatre comptes (patron, gestion, deux techniciens) sur Mac et iPhone, 0 mauvaise destination, 0 erreur.
+- ⚠️ **Conséquence de l'unification, à trancher** : l'entreprise d'exemple n'a que 8 factures en octobre face à une paie complète —
+  la Comptabilité affiche un bénéfice de l'année négatif et une trésorerie sous zéro en décembre (libellé « paie et achats d'exemple »).
+- **Attend Justin** : une page de décisions lui a été remise (comptabilité, équipe et droits — seule la case « Voir » agit —, règles de
+  saisie, et 19 fonctions de l'application publique absentes du prototype : réglages de l'entreprise, recherche globale, cloche,
+  secteurs, exports, scanner, feuilles de temps…). Rien de tout cela n'est décidé tant qu'il n'a pas répondu.
+- **Avant toute sortie publique** : porter le prototype sur les vraies données ; les fenêtres multiples de l'application Mac et le
+  pincement au trackpad ne se vérifient que dans Xcode, sur son Mac.
+- **Boîte mail de la version publique** : vérifiée et corrigée sur une branche LOCALE (`claude/boite-mail-verif`, 8 commits, non
+  poussée) — attend son accord pour être envoyée.
+
+---
+
 # 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
 
 Justin : « il faut publier ça » (la vitesse de la bêta 804, OP MESSAGES, D1 et D2).
