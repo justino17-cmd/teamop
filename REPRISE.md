@@ -13,32 +13,49 @@ de ligne du tout.
 
 ---
 
-# 14 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : PUBLIÉ, EN ATTENTE DU REGARD DE JUSTIN
+# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 5 PUBLIÉE
 
-Demande de Justin (6 novembre 2026) : un devis sur mesure composé « comme dans Pages », dans une grande fenêtre confortable,
-« super pro et personnalisable », et des contrats personnalisables ou créés avec l'IA — en prototype À PART de celui d'OP GESTION.
+Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
+puis « un vrai système de personnalisation et aussi de création professionnelle pour les devis, comme si je le faisais avec Pages »
+(14 novembre) — en prototype À PART de celui d'OP GESTION.
 
-- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin). Sa source n'est PAS
-  dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de 300 Ko,
-  sans dépendance, données fictives (Clim Services 17, 6 clients, 12 articles), tout dans le navigateur.
-- **Ce qu'il fait** : éditeur en pleine fenêtre (barre sobre, feuille A4 qui se pagine seule, panneau Format, aperçu, « Ce que
-  voit le client » avec signature au doigt) ; devis (sections, options, remise, plusieurs taux de TVA, acompte, franchise, mode
-  TTC, quatre modèles de page) ; contrat à articles numérotés seuls, informations remplies une fois, clauses à cocher, liste
-  « Il manque » qui bloque l'envoi à signer ; contrat créé avec l'IA (capacité `sample` de la page publiée, sur un clic).
-- **Ce qui a été mesuré** : totaux justes au centime sur cinq devis recalculés à part ; pagination sur neuf devis de 8 à 63 lignes
-  (aucune ligne coupée) ; Mac 1440 px et iPhone 390 px, jour et nuit, plus quatre largeurs intermédiaires ; 0 erreur JavaScript.
-  Après les sept finitions du 14 novembre (recherche « main d'oeuvre », Retour du téléphone qui ferme la feuille du dessus,
-  accords, bordure de signature, « Objet : » vide non imprimé, nom du document plus large) : 54 contrôles neufs verts, et les
-  sondes du vérificateur rendent le même résultat avant et après (376 ✓, 6 ✗ qui sont des attentes de sonde, pas des défauts).
-- **Ce qui est simulé ou manque, à dire à Justin tel quel** : rien n'est envoyé ni transformé en PDF (« Envoyer » est un exemple et
-  la page le dit) ; l'IA n'a été jouée qu'avec une fausse capacité conforme à la documentation — le premier vrai essai se fait sur
-  la page publiée, avec son compte ; les trois modèles de contrat sont des textes d'exemple, AUCUN relu par un juriste (bandeau
-  « à faire relire par un professionnel du droit ») ; le catalogue est une liste fixe ; pas de téléversement de logo ; les polices
-  Google et un vrai iPhone (Safari) n'ont pas pu être regardés d'ici.
-- **Reste connu, cosmétique** : sur iPhone, la feuille d'une ligne de prix monte d'une quarantaine de pixels quand une phrase
-  d'erreur paraît ; le nom du document reste coupé sous 1 280 px de large.
-- **Ce qui attend Justin** : son avis sur la page ; comment ces documents rejoignent le Devis IA et l'envoi réels d'OP GESTION
-  (le prototype ne touche à rien d'existant) ; qui fait relire les contrats avant qu'ils entrent dans l'application.
+- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 5. Sa source
+  n'est PAS dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de
+  550 Ko, données fictives (Clim Services 17), tout dans le navigateur. Une seule bibliothèque, chargée à la demande pour le PDF
+  (html2canvas 1.4.1, cdnjs).
+- **Ce qu'il fait, par étape** :
+  · socle (Versions 1-2) : éditeur en pleine fenêtre, feuille A4 qui se pagine seule, panneau Format, huit mises en page, couleurs,
+    polices, styles de texte, marges, logo, filigrane, « Mes modèles » ; devis (sections, options, remise, TVA multiples, acompte) ;
+    contrat à articles, clauses à cocher, « Il manque » qui bloque l'envoi ; contrat créé avec l'IA (capacité `sample`) ;
+  · Version 3 : mise en forme par sélection (gras, couleur, taille… sur un mot), objets libres (texte, image, forme) posés et
+    redimensionnés à la souris ou au doigt ;
+  · Version 4 : blocs en 2 ou 3 colonnes (séparateur qu'on tire), page de garde (quatre dessins), onze sections toutes prêtes,
+    « Mes sections » ;
+  · Version 5 : **PDF réel** (bouton « Télécharger le PDF » dans l'aperçu, la vue client et la fenêtre d'envoi ; une image par page
+    plus une couche de texte qui se sélectionne et se cherche) ; **identité figée à l'envoi** (un devis envoyé ou signé garde le
+    nom, le logo, les couleurs et le SIRET du jour de l'envoi ; le modifier le remet en brouillon) ; groupes du panneau repliables,
+    suppression d'un modèle à soi, graisse « Moyen », bascules de 44 px au doigt.
+- **Ce qui a été mesuré sur la Version 5** (Mac 1440 px et iPhone 390 px émulés, jour et nuit, tout rejoué sur le fichier publié) :
+  773 contrôles neufs de l'étape 4 verts (PDF : nombre de pages, A4, pixels comparés à la feuille, texte et position des mots ;
+  identité ; finitions) ; les 509 de l'étape 3 verts ; non-régression 1 256 verts et 6 rouges connus (cinq attentes de sonde
+  anciennes, plus la page 1 d'un devis de la Version 1 dont le sous-total sortait du tableau et y rentre désormais) ; les devis
+  faits avec les versions d'avant s'ouvrent identiques au pixel, cette page exceptée. L'agent constructeur annonce 48 mutations
+  sur 48 qui mordent (non rejouées par la session principale).
+- **Défauts trouvés à la relecture et corrigés avant publication** : une section posée après une autre se glissait sous le titre
+  de la première ; sur téléphone la barre de mise en forme tombait 110 px trop bas après une insertion ; le menu Insérer du bureau
+  cachait « Objets libres » ; le « € » d'un sous-total passait seul à la ligne (la cellule du sous-total couvre maintenant trois
+  colonnes : 24 cas sur 24 sur une ligne, jusqu'à « 1 234 567,89 € »).
+- **Ce qui n'a PAS pu être vérifié d'ici, à dire à Justin tel quel** : le téléchargement du PDF dans la vraie page (capacité
+  `downloads` jouée avec une imitation conforme à sa documentation ; le chargement de html2canvas sous la politique de la page
+  publiée n'est pas éprouvé) ; Safari, un vrai iPhone, Android, Windows ; le PDF ouvert dans Aperçu ou Acrobat (lu par `pdfinfo`,
+  `pdftoppm`, `pdftotext`, `pypdf`) ; les polices Google au rendu. Rien n'est envoyé pour de vrai : « Envoyer » reste un exemple.
+- **Limites connues** : dans le PDF les chiffres sont à largeur proportionnelle (environ 1 px d'écart par nombre avec l'écran) et
+  les gros titres bougent de 1 à 2 px ; la couche de texte est en Helvetica (sélection juste à la ligne, à quelques points près
+  dans la ligne) ; un bloc de colonnes ne se coupe pas entre deux pages ; l'échéancier d'une section fige ses montants à la pose ;
+  pas de recadrage des photos en colonnes ; pas d'habillage du texte autour d'un objet libre ni de sélection multiple ; les modèles
+  de contrat sont des exemples, AUCUN relu par un juriste.
+- **Ce qui attend Justin** : son essai du PDF sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
+  rejoignent le Devis IA et l'envoi réels d'OP GESTION (le prototype ne touche à rien d'existant) ; qui fait relire les contrats.
 
 # 14 NOVEMBRE 2026 — PROTOTYPE OP GESTION : VERSION RASSEMBLÉE, RETESTÉE, EN ATTENTE DES DÉCISIONS DE JUSTIN
 
