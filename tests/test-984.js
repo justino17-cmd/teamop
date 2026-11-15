@@ -639,15 +639,25 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     {
       const R1 = monter(svc, 'ana', { delais: { renouv: 0.01, renouvMin: 200 } }), R2 = monter(svc, 'ben', { delais: { renouv: 0.01, renouvMin: 200 } });
       await R1.entrer(); await R2.entrer();
+      const lusIce = (D) => D.ordre.filter(x => x === 'rep GET /api/ice').length, iceAvant = lusIce(R1);
       const s = await R1.src.demarrerAppel({ membres: [ben.id], video: false });
+      /* ⛔ L'HORLOGE N'AVANCE QU'APRÈS LA PREMIÈRE LECTURE DES IDENTIFIANTS DE L'APPELANT — AU GESTE (12 novembre 2026 : ce contrôle tombait par intermittence sur GitHub, 147 ✓ 1 ✗, jamais ici). L'appelant
+         demande ses premiers identifiants AU LANCEMENT (`lancer` : `c.promesseIce = lireIce()`), sans que `demarrerAppel` attende la réponse : elle est encore en route quand la sonnerie arrive chez l'appelé.
+         Si l'horloge du service avançait AVANT que le service ait servi cette lecture (mesuré ici, au repos : la réponse n'était pas revenue à 1 passage sur 3), les PREMIERS identifiants portaient déjà
+         l'heure avancée ; le renouvellement, 200 ms après le début de la liaison, tombait alors souvent dans la MÊME seconde — même échéance, même utilisateur, et le contrôle accusait le moteur d'un défaut
+         qu'il n'a pas (rejoué : la lecture retenue jusqu'après l'avance, 1 passage sur 4 tombe, sur ce contrôle seul). Le minuteur du renouvellement, lui, ne peut pas devancer l'avance : il n'est armé
+         qu'au début de la liaison (`demarrerLiaison`), donc après la réponse de l'appelé — attendre 1,5 s ici ne fait rien tomber. */
+      vrai('population : la PREMIÈRE lecture des identifiants de l\'appelant est revenue du service AVANT que son horloge avance (une seule lecture, celle du lancement ; l\'appelé n\'en a fait aucune)',
+        !!(await att(() => lusIce(R1) === iceAvant + 1)) && lusIce(R2) === 0);
       await R2.attendreEv(e => e.type === 'appel-entrant' && e.id === s.id);
-      svc.avancer(8000);                                        // l'horloge du service avance : les identifiants renouvelés auront une AUTRE échéance — ⛔ de MOINS que `perduMs` (20 s) : à 30 s, le balayeur (100 ms) passait avant le prochain pouls de l'appelant et jugeait l'appel perdu AVANT que l'appelé n'ait répondu (pris sous charge, par le témoin des mutations)
+      svc.avancer(8000);                                       // l'horloge du service avance : les identifiants renouvelés auront une AUTRE échéance — ⛔ de MOINS que `perduMs` (20 s) : à 30 s, le balayeur (100 ms) passait avant le prochain pouls de l'appelant et jugeait l'appel perdu AVANT que l'appelé n'ait répondu (pris sous charge, par le témoin des mutations)
       await R2.src.repondreAppel(s.id, true);
       await att(() => R1.monde.dernier() && R2.monde.dernier());
       const pa = R1.monde.dernier(), pb = R2.monde.dernier();
       vrai('la liaison s\'établit, puis le renouvellement a lieu — CHACUN renouvelle les siens (une seconde configuration chez l\'appelant ET chez l\'appelé : l\'appelé n\'attend pas qu\'on le lui dise)', !!(await att(() => pa && pb && pa.confs.length === 2 && pb.confs.length === 2 && pa.iceConnectionState === 'connected' && pb.iceConnectionState === 'connected', 10000)));
       const u0 = pa.confs[0].iceServers.find(x => x.username), u1 = pa.confs[1].iceServers.find(x => x.username), w1 = pb.confs[1].iceServers.find(x => x.username);
-      v('⛔ les NOUVEAUX identifiants ont une autre échéance, la bonne signature, et l\'appelé a les siens (son identifiant)', [u1.username !== u0.username, u1.credential === hmac(u1.username), w1.username.endsWith(':' + ben.id), w1.credential === hmac(w1.username), Number(u1.username.split(':')[0]) > Number(u0.username.split(':')[0])], [true, true, true, true, true]);
+      /* l'écart d'échéance est celui de l'AVANCE (8 s au moins) : les premiers identifiants datent d'avant elle, les nouveaux d'après — une première lecture servie après l'avance ne passerait plus « quand les secondes diffèrent », elle tombe à coup sûr */
+      v('⛔ les NOUVEAUX identifiants ont une autre échéance (plus tardive d\'au moins les 8 s dont l\'horloge du service a avancé), la bonne signature, et l\'appelé a les siens (son identifiant)', [u1.username !== u0.username, u1.credential === hmac(u1.username), w1.username.endsWith(':' + ben.id), w1.credential === hmac(w1.username), Number(u1.username.split(':')[0]) - Number(u0.username.split(':')[0]) >= 8], [true, true, true, true, true]);
       v('⛔ le renouvellement NE RELANCE PAS la liaison (mesuré en vrai navigateur : chaque relance laissait deux allocations de plus chez le relais, jusqu\'au quota de la personne, et coupait un instant la voix) : l\'appelant n\'a fait QU\'UNE offre — la première —, jamais de `restartIce` ; l\'appelé n\'a répondu qu\'à celle-là',
         [pa.journal.filter(x => /^createOffer/.test(x)), pa.journal.filter(x => /restartIce/.test(x)).length, pb.journal.filter(x => /restartIce/.test(x)).length, pb.journal.filter(x => /^setRemoteDescription:offer/.test(x)).length, pb.journal.filter(x => /^createAnswer/.test(x)).length],
         [['createOffer'], 0, 0, 1, 1]);
