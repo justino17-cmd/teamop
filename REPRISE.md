@@ -13,13 +13,16 @@ de ligne du tout.
 
 ---
 
-# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 5 PUBLIÉE
+# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 6 PUBLIÉE (DEVIS VIERGE, MES EN-TÊTES)
 
 Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
 puis « un vrai système de personnalisation et aussi de création professionnelle pour les devis, comme si je le faisais avec Pages »
 (14 novembre) — en prototype À PART de celui d'OP GESTION.
+Puis, le 15 novembre : « je voudrais pouvoir faire des devis vierges, choisir mes en-têtes, mes clients, mon logo et tout », et dans
+la foulée « un bouton Optimiser avec l'IA, une fois que le devis est fini : il regarde ce qu'on a fait, il modifie, il refait un
+exemple » — le premier est publié (Version 6), le second est EN CONSTRUCTION (voir la fin de cette section).
 
-- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 5. Sa source
+- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 6. Sa source
   n'est PAS dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de
   550 Ko, données fictives (Clim Services 17), tout dans le navigateur. Une seule bibliothèque, chargée à la demande pour le PDF
   (html2canvas 1.4.1, cdnjs).
@@ -35,13 +38,29 @@ puis « un vrai système de personnalisation et aussi de création professionnel
     plus une couche de texte qui se sélectionne et se cherche) ; **identité figée à l'envoi** (un devis envoyé ou signé garde le
     nom, le logo, les couleurs et le SIRET du jour de l'envoi ; le modifier le remet en brouillon) ; groupes du panneau repliables,
     suppression d'un modèle à soi, graisse « Moyen », bascules de 44 px au doigt.
+  · Version 6 : **devis vierge** — une fenêtre de départ (accueil et galerie) où l'on choisit l'en-tête, le logo (affiché ou
+    non, position, taille, changement), ce qui paraît dans l'en-tête (téléphone, e-mail, site, SIRET, TVA), le client (recherche,
+    nouveau, ou « sans client pour l'instant »), la mise en page (huit vignettes), l'objet et la validité, avec l'aperçu de la
+    première page ; l'appareil retient ces choix (pas le client ni l'objet). **Mes en-têtes** : plusieurs identités enregistrées
+    (ajouter, dupliquer, modifier, définir par défaut, supprimer avec le nombre de brouillons concernés) ; chaque document porte
+    le sien (`d.identId`, absent = défaut), se change dans Format › Document, et se fige à l'envoi. Un SIRET décoché de l'en-tête
+    reste en pied de page (voulu : mention obligatoire).
 - **Ce qui a été mesuré sur la Version 5** (Mac 1440 px et iPhone 390 px émulés, jour et nuit, tout rejoué sur le fichier publié) :
   773 contrôles neufs de l'étape 4 verts (PDF : nombre de pages, A4, pixels comparés à la feuille, texte et position des mots ;
   identité ; finitions) ; les 509 de l'étape 3 verts ; non-régression 1 256 verts et 6 rouges connus (cinq attentes de sonde
   anciennes, plus la page 1 d'un devis de la Version 1 dont le sous-total sortait du tableau et y rentre désormais) ; les devis
   faits avec les versions d'avant s'ouvrent identiques au pixel, cette page exceptée. L'agent constructeur annonce 48 mutations
   sur 48 qui mordent (non rejouées par la session principale).
-- **Défauts trouvés à la relecture et corrigés avant publication** : une section posée après une autre se glissait sous le titre
+- **Ce qui a été mesuré sur la Version 6** (mêmes appareils émulés, rejoué par la session principale) : 470 contrôles neufs verts
+  (parité avec l'ancienne « Page blanche », gestes des deux fenêtres, envoi figé, formats abîmés et stockage plein, PDF au second
+  en-tête, débordement et cibles au doigt) ; toute la chaîne d'avant rejouée, 2 496 verts et les six rouges connus ; un parcours de
+  bout en bout écrit à part (devis vierge au second en-tête, logo à droite, sans client) vert. L'agent constructeur annonce 28
+  mutations sur 28 qui mordent (non rejouées). ⚠️ Le contrôle « pages identiques au pixel » des documents d'avant est INSTABLE
+  d'origine : une ouverture sur dix environ rend un lissage de police différent sur les cinq pages — mesuré aussi sur la
+  Version 5 (2 sur 19), donc pas une régression ; cause non établie (chargement des polices ?).
+  Retouches de la session principale avant publication (`etape5/patch-moi5.py`) : sur téléphone le contenu passait dans une fente
+  de 6 px au-dessus de l'aperçu collant ; un texte d'exemple coupé à 390 px ; un guillemet fermant seul à la ligne.
+- **Défauts trouvés à la relecture et corrigés avant publication** (Version 5) : une section posée après une autre se glissait sous le titre
   de la première ; sur téléphone la barre de mise en forme tombait 110 px trop bas après une insertion ; le menu Insérer du bureau
   cachait « Objets libres » ; le « € » d'un sous-total passait seul à la ligne (la cellule du sous-total couvre maintenant trois
   colonnes : 24 cas sur 24 sur une ligne, jusqu'à « 1 234 567,89 € »).
@@ -54,6 +73,15 @@ puis « un vrai système de personnalisation et aussi de création professionnel
   dans la ligne) ; un bloc de colonnes ne se coupe pas entre deux pages ; l'échéancier d'une section fige ses montants à la pose ;
   pas de recadrage des photos en colonnes ; pas d'habillage du texte autour d'un objet libre ni de sélection multiple ; les modèles
   de contrat sont des exemples, AUCUN relu par un juriste.
+- **Limites de la Version 6** : pas de réglage de l'ordre des en-têtes ; les logos sont rangés dans le stockage du navigateur
+  (plein, la page le dit) ; « définir par défaut » fait suivre le nouveau défaut aux documents qui n'avaient rien choisi ; sur
+  téléphone le bandeau d'aperçu ne montre que le haut de la page et un clavier ouvert peut le recouvrir ; le panneau reste périmé
+  après une signature par le client ; pas d'essai clavier de bout en bout sur les deux fenêtres neuves.
+- **EN COURS (15 novembre, après-midi)** : le bouton **« Optimiser avec l'IA »** sur un devis en brouillon — l'IA relit, propose
+  un avant/après changement par changement (objet, désignations, rangement en sections, conditions, remarques), on applique tout,
+  une partie ou rien, un seul pas d'annulation. Règles posées à Justin : jamais un prix, une quantité, une TVA ni un client
+  modifiés (le code n'applique que des champs de texte et revérifie les totaux au centime), rien n'est écrit sans « Appliquer »,
+  les coordonnées du client ne partent pas au modèle. Tant que ce n'est pas publié (Version 7), la page en ligne ne l'a pas.
 - **Ce qui attend Justin** : son essai du PDF sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
   rejoignent le Devis IA et l'envoi réels d'OP GESTION (le prototype ne touche à rien d'existant) ; qui fait relire les contrats.
 
