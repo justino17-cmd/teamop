@@ -13,16 +13,16 @@ de ligne du tout.
 
 ---
 
-# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 6 PUBLIÉE (DEVIS VIERGE, MES EN-TÊTES)
+# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 7 PUBLIÉE (DEVIS VIERGE, MES EN-TÊTES, « OPTIMISER AVEC L'IA »)
 
 Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
 puis « un vrai système de personnalisation et aussi de création professionnelle pour les devis, comme si je le faisais avec Pages »
 (14 novembre) — en prototype À PART de celui d'OP GESTION.
 Puis, le 15 novembre : « je voudrais pouvoir faire des devis vierges, choisir mes en-têtes, mes clients, mon logo et tout », et dans
 la foulée « un bouton Optimiser avec l'IA, une fois que le devis est fini : il regarde ce qu'on a fait, il modifie, il refait un
-exemple » — le premier est publié (Version 6), le second est EN CONSTRUCTION (voir la fin de cette section).
+exemple » — les deux sont publiés (Versions 6 et 7).
 
-- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 6. Sa source
+- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 7. Sa source
   n'est PAS dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de
   550 Ko, données fictives (Clim Services 17), tout dans le navigateur. Une seule bibliothèque, chargée à la demande pour le PDF
   (html2canvas 1.4.1, cdnjs).
@@ -77,12 +77,28 @@ exemple » — le premier est publié (Version 6), le second est EN CONSTRUCTION
   (plein, la page le dit) ; « définir par défaut » fait suivre le nouveau défaut aux documents qui n'avaient rien choisi ; sur
   téléphone le bandeau d'aperçu ne montre que le haut de la page et un clavier ouvert peut le recouvrir ; le panneau reste périmé
   après une signature par le client ; pas d'essai clavier de bout en bout sur les deux fenêtres neuves.
-- **EN COURS (15 novembre, après-midi)** : le bouton **« Optimiser avec l'IA »** sur un devis en brouillon — l'IA relit, propose
-  un avant/après changement par changement (objet, désignations, rangement en sections, conditions, remarques), on applique tout,
-  une partie ou rien, un seul pas d'annulation. Règles posées à Justin : jamais un prix, une quantité, une TVA ni un client
-  modifiés (le code n'applique que des champs de texte et revérifie les totaux au centime), rien n'est écrit sans « Appliquer »,
-  les coordonnées du client ne partent pas au modèle. Tant que ce n'est pas publié (Version 7), la page en ligne ne l'a pas.
-- **Ce qui attend Justin** : son essai du PDF sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
+- **Version 7 — « Optimiser avec l'IA »** (15 novembre) : bouton sur tout devis en BROUILLON (barre du haut au bureau, barre du
+  bas et menu ⋮ au téléphone ; grisé avec sa raison sur un devis envoyé ou signé, absent d'un contrat). Fenêtre en quatre temps :
+  cinq cases (désignations, objet, rangement en sections, délai et paiement, ce qui manque) et une consigne libre ; le travail,
+  avec « Arrêter » ; l'avant/après changement par changement, chacun avec sa case, plus les « Remarques de l'IA » (des conseils,
+  jamais appliqués) et ce que le code a écarté ; « Appliquer la sélection », puis « Annuler » en UN pas.
+  ⛔ Les règles sont dans le CODE, pas dans la consigne donnée au modèle : de la réponse on ne lit que des TEXTES (objet,
+  désignation d'une ligne par son identifiant, titres et rangement des sections, délai, paiement) ; `optVerrou` rejoue le calcul
+  sur une copie et refuse tout si un total, une ligne chiffrée ou un chiffre d'une ligne a bougé ; un rangement doit être une
+  permutation exacte des lignes ; un montant ou un pourcentage neuf dans les conditions est écarté ; l'acompte est un chiffre,
+  jamais touché ; ce qui part au modèle ne porte ni e-mail, ni téléphone, ni adresse du client (nom et ville seulement).
+  Mesuré (Mac et iPhone émulés, jour et nuit, rejoué par la session principale sur le fichier publié) : parcours complet 122
+  verts, réponses piégées (prix, quantité, ligne en trop, HTML) 116 verts, erreurs / arrêt / devis figé / contrat / IA absente
+  284 verts sur le fichier de l'agent et 73 rejoués sur le fichier final, un parcours écrit à part (devis vierge puis
+  optimisation, une case décochée, annulation) 19 sur 19 dans deux modes ; l'agent annonce 18 mutations sur 20 qui mordent, les
+  deux autres étant des gardes redondantes (non rejouées). Retouches de relecture (`etape6/patch-moi6.py`) : une balise ouverte
+  et jamais fermée est retirée du texte au lieu d'y rester en toutes lettres ; le ton demandé au modèle (sobre, vouvoiement).
+  ⚠️ **La VRAIE IA n'a pas été jouée** : tout est mesuré avec une imitation de la capacité `sample`. La qualité réelle des
+  propositions, et le premier clic sur la page publiée (demande d'autorisation), restent à voir par Justin.
+  Limites : pas de description de ligne dans le modèle (seule la désignation se corrige) ; rangement en sections seulement sur
+  un devis à un seul tableau et sans section ; les contrats n'ont pas ce bouton ; dans l'aperçu du rangement, les désignations
+  sont celles d'avant correction.
+- **Ce qui attend Justin** : son essai du PDF et de « Optimiser avec l'IA » sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
   rejoignent le Devis IA et l'envoi réels d'OP GESTION (le prototype ne touche à rien d'existant) ; qui fait relire les contrats.
 
 # 14 NOVEMBRE 2026 — PROTOTYPE OP GESTION : VERSION RASSEMBLÉE, RETESTÉE, EN ATTENTE DES DÉCISIONS DE JUSTIN
