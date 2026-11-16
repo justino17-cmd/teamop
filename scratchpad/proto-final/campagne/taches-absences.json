@@ -1,0 +1,332 @@
+{
+ "partie": "taches-absences",
+ "date": "2026-11-16",
+ "ecrans": [
+  {
+   "nom": "Tâches — Aujourd'hui / À venir / Faites",
+   "fonction": "vueTaches (onglets data-tonglet)",
+   "acces": "menu Travail › Tâches ; technicienne : « Mes tâches »"
+  },
+  {
+   "nom": "Tâches — barre « N choisies » (reporter, confier, ouvrir dans Devis, Fait)",
+   "fonction": "tChoisies, data-tsel / data-tsfait",
+   "acces": "case ronde d'une tâche"
+  },
+  {
+   "nom": "Tâches — fiche d'une tâche",
+   "fonction": "tDetail(id)",
+   "acces": "toucher une tâche"
+  },
+  {
+   "nom": "Tâches — Nouvelle tâche / Modifier",
+   "fonction": "panneau data-tnouv / data-tmodif",
+   "acces": "« Détails » ou « ＋ Nouvelle tâche »"
+  },
+  {
+   "nom": "Tâches — OP GESTION te propose",
+   "fonction": "data-tsuggs / data-tsugg",
+   "acces": "bandeau jaune"
+  },
+  {
+   "nom": "Tâches — « Qu'as-tu fait ? »",
+   "fonction": "data-tkxlot",
+   "acces": "« Fait » en lot, tâches qui se terminent seules"
+  },
+  {
+   "nom": "Tâches — Exporter en PDF",
+   "fonction": "data-texport",
+   "acces": "bouton du haut"
+  },
+  {
+   "nom": "Absences et congés — À valider",
+   "fonction": "vueAbsences (data-aonglet=valider)",
+   "acces": "menu Travail › Absences et congés"
+  },
+  {
+   "nom": "Absences et congés — Calendrier",
+   "fonction": "aCalendrier, aPerJours",
+   "acces": "onglet Calendrier"
+  },
+  {
+   "nom": "Absences et congés — Soldes",
+   "fonction": "onglet soldes (.as-t)",
+   "acces": "onglet Soldes"
+  },
+  {
+   "nom": "Fenêtres : Refuser, Proposer d'autres dates, Nouvelle absence, Modifier, Exporter",
+   "fonction": "data-anon, data-aprepond, data-anouv, data-amodif, data-aexport",
+   "acces": "boutons des cartes et du haut"
+  },
+  {
+   "nom": "Mes congés (technicienne, chef d'équipe)",
+   "fonction": "vueAbsencesTech",
+   "acces": "menu « Mes congés » ; « Demande de congé »"
+  }
+ ],
+ "couverture": {
+  "ecrans": 12,
+  "gestesRecenses": 308,
+  "gestesTouches": 306,
+  "parcours": 9,
+  "profils": [
+   "mac",
+   "windows",
+   "ipad",
+   "iphone",
+   "android",
+   "petit"
+  ],
+  "detail": "Balayage (un geste par page neuve, depuis le DOM) : gérant sur mac (Tâches 3 onglets + 4 fiches, Absences 3 onglets) 157 recensés / 157 touchés ; gérant sur iphone 115 / 115 ; technicienne sur iphone 36 / 34 (deux champs date non touchables). Parcours A à I : 126 contrôles (A19 B26 C25 D12 E6 F3 G18 H6 I11). Mise en page : 17 écrans × 6 profils × jour/nuit (mac 124 ✓ 0 ✗, windows 124 ✓ 0 ✗ ; ipad, iphone, android, petit : les ✗ sont les défauts 03 à 10 et 13)."
+ },
+ "nonCouvert": [
+  "Le rôle client et le rôle secrétariat devant Tâches (Julie arrive sur son propre accueil quand elle ouvre #absences : constaté, pas de page vide).",
+  "Karim (chef d'équipe) sur Tâches : seulement ses Mes congés (E1), pas de parcours Tâches complet.",
+  "Les gestes DANS les fenêtres d'absence au doigt (balayage mac et iphone seulement ; ipad et android jouent la mise en page et les parcours de l'ordinateur).",
+  "Les sondes n'ont pas été éprouvées par mutation (le temps).",
+  "Le sens des mots pour un artisan de 55 ans a été relu sur capture (jour et nuit) ; aucun reste d'échafaudage (« prototype », « démonstration ») n'a été trouvé dans les trois blocs de code de la partie.",
+  "Doute pour Justin : la pastille du menu « Tâches » affiche 1 (les retards de Marc seul) quand l'écran annonce « Aujourd'hui 7 · En retard 2 » ; le chiffre est juste mais jamais expliqué."
+ ],
+ "indices_menu_final": {
+  "confirme": [
+   "Un contrat créé puis signé n'a pas de date de fin : Statistiques et Tâches plantent → défaut 01 (bloquant)."
+  ],
+  "refute": [
+   "« Le technicien et le bureau ne peuvent pas demander un congé » : la technicienne (Sophie) et le chef d'équipe (Karim) ont « Mes congés » et « Demande de congé » (parcours D, E, C1 → Sophie) ; le secrétariat (Julie) n'a pas de congés à elle, non joué."
+  ]
+ },
+ "defauts": [
+  {
+   "n": "taches-absences-01",
+   "gravite": "bloquant",
+   "ecran": "Tâches, Statistiques (et la fiche du contrat)",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Contrats › Nouveau contrat › « Envoyer à signer » (par le vrai bouton), ouvrir le lien de signature, cocher « J’ai lu », signer, puis aller dans Tâches ou Statistiques.",
+   "attendu": "Le contrat signé garde une date de fin ; Tâches propose son renouvellement 90 jours avant, Statistiques le compte dans « À renouveler ».",
+   "constate": "Le contrat créé n'a aucun champ `fin` : Tâches (propositions) et Statistiques plantent avec « Cannot read properties of undefined (reading 'split') » ; l'écran Tâches s'affiche vide de lignes, la page de Statistiques ne s'ouvre pas. Rejoué deux fois (parcours F3, H3 à H5). Seule la visite guidée de l'atelier rattrape la date (`immDccFinContrat`), pas le vrai chemin.",
+   "preuve": "taches-absences-parcours-h.js H3-H5 et parcours-f.js F3 : 3 ✗ ; erreurs de page aux lignes 5954 et 5476 de apercu/prototype-op-gestion.html",
+   "ou": "apercu/prototype-op-gestion.html:7954 (creerContrat : l'objet `k` n'a pas `fin`) ; lecteurs : 5954, 5476, 5675, 5638",
+   "correction": "À la création, poser `fin` = début + 1 an − 1 jour (la fonction `immDccFinContrat`, ligne 21223, fait déjà ce calcul : la déplacer dans creerContrat et l'appeler partout) ; par prudence, les quatre lecteurs ignorent un contrat sans `fin` au lieu de planter.",
+   "decision": "corriger",
+   "zone": "contrats (atelier) — le correctif est dans creerContrat, le plantage dans Tâches et Statistiques"
+  },
+  {
+   "n": "taches-absences-02",
+   "gravite": "gênant",
+   "ecran": "Absences et congés › Calendrier",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Calendrier (« 2 semaines », la période par défaut) › « ＋ Nouvelle absence » › Tom, Congé payé, du 23 au 27 novembre › « Enregistrer l'absence ».",
+   "attendu": "Après l'enregistrement, on voit l'absence qu'on vient de poser (le calendrier se cale sur elle).",
+   "constate": "Le toast dit « Absence enregistrée » mais le calendrier reste sur « Du 26 oct. au 8 nov. » : l'absence n'y est pas ; le gérant ne voit rien et peut croire qu'elle n'a pas été prise (il la poserait deux fois, le chevauchement l'arrêterait). Le même geste fonctionne depuis les autres périodes (parcours C5).",
+   "preuve": "taches-absences-parcours-e.js E2 : ✗ deux fois ; fenêtre affichée 2026-10-26 → 2026-11-08, absence 2026-11-23 → 2026-11-27",
+   "ou": "apercu/prototype-op-gestion.html:6850-6856 (data-anouvok pose `aCalDeb` seulement) et 6505-6508 (`aPerJours` : en « 2 semaines » il lit `aCalSem` et ignore `aCalDeb`)",
+   "correction": "Dans `data-anouvok`, quand `aCalPer === 0.5`, poser aussi `aCalSem = aLundi(a.du)`.",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-03",
+   "gravite": "gênant",
+   "ecran": "Absences et congés › Exporter en PDF (aperçu du document)",
+   "role": "gérant",
+   "profils": [
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Absences et congés › « Exporter en PDF » sur un téléphone.",
+   "attendu": "Le relevé se lit en entier sur l'écran (les dates tiennent sur une ou deux lignes, la colonne « Motif » est visible).",
+   "constate": "Le tableau du document est plus large que la fenêtre (353 et 393 px dans 256) : la colonne « Motif » est coupée (« Format… sécurit… ») et chaque période s'écrit en 9 lignes, un mot par ligne (« du / vendredi / 30 / octobre / 2026 / au / mardi / 3 novembre 2026 »). Un gérant sur son téléphone ne peut pas lire le relevé qu'il va envoyer.",
+   "preuve": "taches-absences-mise-en-page.js : « aucun texte écrasé » et « aucun tableau coupé » ✗ sur iphone, android, petit, jour et nuit ; capture iphone-jour-marc-absence-export.png",
+   "ou": "apercu/prototype-op-gestion.html:6755-6790 (document `.bil` de l'export des absences)",
+   "correction": "Dans le tableau, écrire la période en court (« 30 oct. → 3 nov. »), mettre le motif sous le nom sur téléphone (une cellule à deux lignes) et laisser le tableau glisser dans sa boîte plutôt que d'être coupé ; le PDF réel, lui, garde le tableau large.",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-04",
+   "gravite": "gênant",
+   "ecran": "Tâches › barre « N choisies »",
+   "role": "gérant",
+   "profils": [
+    "petit",
+    "iphone",
+    "android"
+   ],
+   "etapes": "Tâches › cocher deux tâches (la case ronde de gauche) sur un téléphone de 320 px.",
+   "attendu": "La barre d'actions reste basse et laisse voir la liste.",
+   "constate": "À 320 px la barre flottante prend trois lignes (« Aujourd'hui · Demain · Une date · Confier · Ouvrir dans Devis · Fait ») et recouvre environ 37 % de l'écran ; les tâches cochées disparaissent derrière. Et ses boutons font 42 px de haut sur tous les téléphones et la tablette (2 px sous le plancher).",
+   "preuve": "capture petit-jour-marc-taches-choix.png ; sonde « cibles au doigt » : Aujourd'hui, Demain, Une date, Ouvrir dans Devis 81×42, Fait 72×42",
+   "ou": "apercu/prototype-op-gestion.html:2413-2418 (.t-selbarre, .ts-g) et la classe .puce-c qui y est utilisée",
+   "correction": "Sur téléphone, mettre les gestes sur UNE ligne qui défile (« Aujourd'hui · Demain · Une date · Confier · Fait ») ou garder Fait + « Plus ▾ » ; `.ts-g .puce-c{min-height:44px}`.",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-05",
+   "gravite": "gênant",
+   "ecran": "Tâches › fiche d'une tâche et « Nouvelle tâche » (raccourcis de date)",
+   "role": "gérant, technicienne",
+   "profils": [
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Ouvrir une tâche › ligne « Reporter : Demain · Lundi · +1 semaine » ; ou ＋ Nouvelle tâche › « Vite : Demain · Lundi · Dans une semaine · Sans date ».",
+   "attendu": "Chaque bouton fait au moins 44 px de haut.",
+   "constate": "Ces pastilles font 42 px de haut (zone qui répond mesurée au point). Elles servent à tous les gestes les plus fréquents d'une tâche.",
+   "preuve": "taches-absences-mise-en-page.js : « cibles au doigt » ✗ (Demain 81×42, Lundi 70×42, +1 semaine 81×42)",
+   "ou": "apercu/prototype-op-gestion.html:6063, 6203, 6318 (`.puce-c` dans `.t-racc`, `.t-rep-l`) ; la règle min-height:44px n'existe que pour .pdx-etats, .sx-chips, .puces, .mat-quand",
+   "correction": "`.t-racc .puce-c, .t-rep-l .puce-c, .ts-g .puce-c{min-height:44px}`.",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-06",
+   "gravite": "gênant",
+   "ecran": "Tâches › fiche d'une tâche liée à un client (derniers passages, factures à payer)",
+   "role": "gérant",
+   "profils": [
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Ouvrir « Vérifier l'attestation TVA 10 % des Durand » (t3).",
+   "attendu": "Chaque ligne cliquable (un passage, une facture) se touche du doigt sans viser.",
+   "constate": "Les lignes « sam. 31/10 · Mise en service… », « FAC-2026-0144 », « FAC-2026-0128 » ne répondent que sur 36 à 38 px de haut.",
+   "preuve": "taches-absences-mise-en-page.js : ✗ sur tache-fiche (iphone, android, ipad, petit)",
+   "ou": "apercu/prototype-op-gestion.html:6184-6200 (blocs « Derniers passages » et « À payer » de la fiche client dans tDetail)",
+   "correction": "padding vertical 12 px sur ces lignes (hauteur ≥ 44).",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-07",
+   "gravite": "gênant",
+   "ecran": "Absences et congés › Calendrier (flèches de période et pastilles de personnes)",
+   "role": "gérant, technicienne",
+   "profils": [
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Absences et congés › Calendrier sur téléphone ou tablette.",
+   "attendu": "« ‹ » « › », « Toute l'équipe », « Sophie »… font 44 px.",
+   "constate": "Les deux flèches de période font 40×40 (39 à 320 px) et les pastilles des personnes 40 px de haut. La technicienne a les flèches seules (40×40).",
+   "preuve": "taches-absences-mise-en-page.js : ✗ sur absences-calendrier, absences-calendrier-sophie, mes-conges",
+   "ou": "apercu/prototype-op-gestion.html:6524-6526 (.ac-nav, .ac-qui)",
+   "correction": "`min-width:44px;min-height:44px` sous (pointer:coarse).",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-08",
+   "gravite": "gênant",
+   "ecran": "Tâches › « Nouvelle tâche » (partie « Commande de pièces »)",
+   "role": "gérant",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "ipad"
+   ],
+   "etapes": "＋ Nouvelle tâche › faire défiler jusqu'à « ▸ Commande de pièces » › l'ouvrir.",
+   "attendu": "Un bouton qui s'ouvre se touche sur toute sa largeur ; les champs sont à 16 px minimum (sinon l'iPhone zoome la page).",
+   "constate": "« Commande de pièces » ne répond que sur 24 px de haut (le bandeau autour fait 48 mais ne s'ouvre pas) ; le champ « Pièce » est à 13,5 px et fait zoomer Safari à chaque ouverture (champs « Réf. » et « Qté » à vérifier de même).",
+   "preuve": "taches-absences-mise-en-page.js : « champs ≥ 16 px » ✗ (Pièce 13.5px) et summary 81×24 ; capture X1-nouvelle-bas.png",
+   "ou": "apercu/prototype-op-gestion.html:6066-6070 (details.t-cmd-ed, input.tp-nom)",
+   "correction": "`.t-cmd-ed summary{min-height:44px;display:flex;align-items:center}` et `font-size:16px` sur `.t-piece input` ; ou garder un titre plus simple (« Pièces à commander »).",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-09",
+   "gravite": "détail",
+   "ecran": "Absences et congés › Soldes",
+   "role": "gérant",
+   "profils": [
+    "petit"
+   ],
+   "etapes": "Soldes sur un téléphone de 320 px (iPhone SE, petits Android).",
+   "attendu": "Le tableau « L'équipe en un coup d'œil » se lit en entier.",
+   "constate": "La dernière colonne « À surveiller » est coupée (tableau 337 px dans 286) et aucun signe n'indique qu'il y a une suite ; la pastille « presque plus de congés » est tronquée. À 360 px et plus, tout tient.",
+   "preuve": "taches-absences-mise-en-page.js : « aucun tableau coupé » ✗ (as-t 337 > 286) ; capture petit-jour-marc-absences-soldes.png",
+   "ou": "apercu/prototype-op-gestion.html:6647 (.as-t)",
+   "correction": "Passer « À surveiller » sous le nom (une seconde ligne) sous 340 px, ou resserrer les colonnes.",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-10",
+   "gravite": "gênant",
+   "ecran": "Bandeau « OP GESTION » du haut (toutes les rubriques, dont Tâches et Absences)",
+   "role": "gérant, technicienne",
+   "profils": [
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "N'importe quelle rubrique sur téléphone, le bouton « OP GESTION : revenir à l'écran d'ouverture ».",
+   "attendu": "44 px de haut.",
+   "constate": "Il fait 38 px de haut sur toutes les rubriques de ma partie.",
+   "preuve": "taches-absences-mise-en-page.js : présent dans 14 contrôles ✗ des trois téléphones",
+   "ou": "apercu/prototype-op-gestion.html:11379 (lien `.logo` du bandeau mobile, data-logo)",
+   "correction": "min-height:44px.",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "taches-absences-11",
+   "gravite": "détail",
+   "ecran": "Tâches › « Nouvelle tâche » (champ « Liée à »)",
+   "role": "gérant",
+   "profils": [
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "＋ Nouvelle tâche, regarder le champ « Liée à (facultatif) ».",
+   "attendu": "Le texte d'aide se lit en entier.",
+   "constate": "« Un client, un devis, une facture, une inter » : coupé au bord, la fin du mot (« intervention ») manque.",
+   "preuve": "capture iphone-jour-marc-tache-nouvelle.png",
+   "ou": "apercu/prototype-op-gestion.html:13664 (placeholder de .tkx-liee)",
+   "correction": "Raccourcir : « Client, devis, facture… ».",
+   "decision": "corriger"
+  },
+  {
+   "n": "taches-absences-12",
+   "gravite": "détail",
+   "ecran": "Retour du navigateur (toute fenêtre ouverte)",
+   "role": "gérant, technicienne",
+   "profils": [
+    "iphone",
+    "mac"
+   ],
+   "etapes": "Tâches › ouvrir une tâche (ou « Nouvelle tâche ») › bouton « Retour » du téléphone ou du navigateur.",
+   "attendu": "On revient à Tâches, la fenêtre se ferme.",
+   "constate": "La fenêtre se ferme, mais on quitte aussi Tâches pour la page d'avant (Accueil). Même comportement pour toutes les fenêtres du prototype : c'est une décision de produit, pas propre à ma partie.",
+   "preuve": "taches-absences-parcours-i.js I6 ✗ ; essai iphone : fiche → retour → #accueil",
+   "ou": "ouvrirPanneau / gestion de l'historique de la coque",
+   "correction": "Pousser une entrée d'historique à l'ouverture d'une fenêtre pour que « retour » la ferme d'abord.",
+   "decision": "soumettre",
+   "zone": "coque"
+  },
+  {
+   "n": "taches-absences-13",
+   "gravite": "détail",
+   "ecran": "Absences et congés › Soldes, barres « mois par mois » ; Calendrier, cases d'une journée",
+   "role": "gérant",
+   "profils": [
+    "ipad",
+    "petit"
+   ],
+   "etapes": "Soldes › « Par personne, mois par mois » : chaque barre de mois est un bouton.",
+   "attendu": "Au moins 44 px de large.",
+   "constate": "Les barres font 38 à 40 px de large (douze par rangée) ; les cases d'une journée du calendrier font 34 à 38 px. Douze mois × 44 px ne tiennent pas en 320 px : c'est la densité voulue, comme pour les cases du planning (écartées par décision).",
+   "preuve": "taches-absences-mise-en-page.js : « cibles au doigt » ✗ sur absences-soldes (ipad, petit)",
+   "ou": "apercu/prototype-op-gestion.html:6647-6660",
+   "correction": "Rien, ou une barre plus haute (les 12 mois sont déjà touchables). À trancher avec la règle des grilles de planning.",
+   "decision": "soumettre"
+  }
+ ]
+}
