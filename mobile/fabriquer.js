@@ -54,10 +54,15 @@ const documents = lire('apercu/prototype-documents.html');
 if (!/<html/i.test(documents)) { console.error('✗ prototype-documents.html n’a pas de squelette : relancer scratchpad/proto-final/atelier/fabriquer.sh'); process.exit(1); }
 fs.writeFileSync(path.join(WWW, 'prototype-documents.html'), documents);
 
+/* la Boîte mail est le module OP Courrier (copie de travail du prototype, défauts corrigés) : le prototype le charge par son adresse relative, à la première ouverture de la rubrique ;
+   s'il manquait dans la coque, la rubrique le DIT (« n'a pas pu s'ouvrir ») au lieu de montrer un écran vide */
+const courrier = lire('apercu/prototype-courrier.js');
+fs.writeFileSync(path.join(WWW, 'prototype-courrier.js'), courrier);
+
 /* garde-fous : rien de distant, rien de payant vers l'extérieur */
 /* ⚠ le contrôle porte sur les QUATRE pages (le prototype, le paiement, la Comptabilité, l'atelier) : l'atelier charge des polices chez Google et son export PDF charge html2canvas chez cdnjs —
    hors ligne dans la coque, l'atelier retombe sur la police du système et le téléchargement du PDF ne marche pas. On le DIT, sans refuser (un avertissement, pas une erreur). */
-const toutes = [page, paiement, lire('apercu/prototype-comptabilite.html'), documents];
+const toutes = [page, paiement, lire('apercu/prototype-comptabilite.html'), documents, courrier];
 const distants = toutes.flatMap(t => [...t.matchAll(/(?:src|href)=["'](https?:\/\/[^"']+)["']/g)].map(m => m[1]).concat([...t.matchAll(/https:\/\/cdnjs\.cloudflare\.com\/[^"'\s)]+/g)].map(m => m[0]))).filter(u => !/^https?:\/\/(www\.)?(teamop\.fr|w3\.org)/.test(u));
 const octets = fs.readdirSync(WWW).reduce((s, f) => s + fs.statSync(path.join(WWW, f)).size, 0);
 console.log('✓ contenu « prototype » (' + (process.argv[3] === 'essai' ? 'avec les outils d’essai' : 'mode application') + ') fabriqué dans mobile/www : ' + fs.readdirSync(WWW).join(', ') + ' · ' + Math.round(octets / 1024) + ' Ko');

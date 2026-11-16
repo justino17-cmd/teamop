@@ -1459,7 +1459,7 @@ var CSS = `
   .opc .hband.urgent{background:var(--warn-soft);border-color:rgba(255,59,48,.35)}
   .opc .hband .hk{font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--label-2)}
   .opc .hband .ht{font-size:16px;line-height:1.3;color:var(--label)}
-  .opc .hband .hd{font-size:14px;line-height:1.4;color:var(--label-2)}
+  .opc .hband .hd{font-size:14px;line-height:1.4;color:var(--label-2);white-space:pre-line}
   .opc .hband .hliens{display:flex;flex-wrap:wrap;gap:4px 14px}
   .opc .hband .hliens .lnk{color:var(--tint);font-size:14px;font-weight:600;min-height:32px;display:inline-flex;align-items:center}
   .opc .hband .hliens .chv{display:inline-flex;width:12px;height:12px;margin-left:2px}
@@ -1481,6 +1481,19 @@ var CSS = `
   .opc:where([data-fmt="mac"]) .cat{font-size:13px}
   .opc:where([data-fmt="mac"]) .rsuivi .rs-b{font-size:13px}
   .opc:where([data-fmt="mac"]) .rquick button{font-size:14px}
+  /* D03 : les catégories portent leur MOT sur une seule rangée qui défile (le symbole seul ne disait rien à un artisan) */
+  .opc:where([data-fmt="mac"]) .catbar{flex-wrap:nowrap}
+  .opc:where([data-fmt="mac"]) .cat{flex:none;height:30px;min-width:0;padding:0 11px;gap:6px;font-size:13px}
+  .opc:where([data-fmt="mac"]) .cat[aria-pressed="true"] .cl{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:nowrap}
+  .opc .loaderr{flex-wrap:wrap;justify-content:flex-start}
+  .opc .loaderr > span{flex:1 1 100%}
+  .opc:where([data-fmt="phone"]) .hband{order:2;margin:12px 0 0;padding:10px 12px;gap:4px}
+  .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+  .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn{width:100%;height:auto;min-height:44px;padding:8px 12px;white-space:normal;text-align:center;justify-content:center;line-height:1.25}
+  .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn.primary{grid-column:1/-1;background:var(--tint);color:var(--on-tint);box-shadow:none;font-weight:600}
+  .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn:not(.primary){background:var(--btn);color:var(--label);box-shadow:0 0 0 1px var(--btn-edge);font-weight:500}
+  .opc .hpast{margin-right:6px}
+  .opc .msg.sel .hpast{background:rgba(255,255,255,.24);color:#fff}
 `;
 var FEUILLE = null;
 function feuilleDans(sr) {
@@ -1568,6 +1581,8 @@ var MARKUP = `
   var LS = String(opt.cleStockage || "opcourrier");
   var TITRE = String(opt.titre || "OP Courrier");
   var HOTE = (opt.hote && typeof opt.hote === "object") ? opt.hote : null;   // points d'extension facultatifs de l'hôte (H1-H8) : sans lui, le module est celui de la production
+  // L'horloge de l'hôte (H8) : le prototype vit un 31 octobre fictif ; sans elle « Hier », « Ce soir » et les envois programmés seraient décalés de deux semaines. Un hôte sans horloge : l'heure de l'appareil.
+  function maintenant(){ try{ if(opt.horloge){ var t=+opt.horloge(); if(isFinite(t)) return t; } }catch(e){} return Date.now(); }
   var SIGNER = opt.signer !== false;   // D08 : un hôte qui n'a pas la signature ne montre ni « Faire signer » ni le dossier Signatures
   var TITRE_ORIG = document.title;   // le titre de l'hôte : « (n) » s'écrit devant (options.titreDocument), et lui est rendu au démontage
   var finis = [];   // tout ce que le module accroche HORS de son arbre (window, document, minuteries, observateurs) se décroche ici
@@ -1844,7 +1859,8 @@ var MARKUP = `
     var de=r.de||null, m={id:"s:"+acct+":"+r.id,sid:String(r.id),src:true,acct:acct,folder:folderOfStrict(r.dossier)?r.dossier:(dossier||"inbox"),
       from:de?{name:String(de.nom||de.email||""),email:String(de.email||"")}:null,to:String(r.a||""),subject:String(r.objet||""),
       read:!!r.lu,flagged:!!r.drapeau,vip:!!r.vip,unsub:!!r.desinscription,autoSrc:typeof r.automatique==="boolean"?r.automatique:null,ancien:!!r.ancien,at:+r.date||0,rcpt:Array.isArray(r.destinataires)?r.destinataires.map(String):undefined,
-      att:(r.pj||[]).map(attDe),suivi:suiviDe(r.suivi)};
+      att:(r.pj||[]).map(attDe),suivi:suiviDe(r.suivi),
+      catSrc:isCat(r.categorie)?r.categorie:null,catRaison:r.categorieRaison?String(r.categorieRaison):""};   // la source peut ranger elle-même (un fournisseur connu écrit du courrier de travail, pas une notification) : D03
     if(r.corps!=null){ m.body=paragraphes(r.corps); m.preview=firstLine(r.apercu||texteDe(m.body)); }
     else { m.body=null; m.preview=firstLine(r.apercu||""); }   // corps pas encore lu : SRC.lire(id) à l'ouverture
     m._srv={lu:m.read,dr:m.flagged,dos:m.folder};
@@ -1918,7 +1934,7 @@ var MARKUP = `
   // Lire la source : capacités, boîtes, puis les messages de chaque boîte. Un échec se DIT (LOAD) ; il n'efface jamais ce qu'on avait déjà lu.
   function charger(silencieux){
     if(chargement) return chargement;
-    LOAD.essai=Date.now();   // le relevé automatique se règle sur la dernière TENTATIVE : un serveur en panne n'est pas martelé toutes les 5 s
+    LOAD.essai=maintenant();   // le relevé automatique se règle sur la dernière TENTATIVE : un serveur en panne n'est pas martelé toutes les 5 s
     var avant=empreinte();
     chargement=Promise.resolve().then(function(){ return typeof SRC.capacites==="function"?SRC.capacites():null; })
       .then(function(c){ appliquerCapacites(c); },function(){ appliquerCapacites(null); })
@@ -1929,7 +1945,7 @@ var MARKUP = `
         return Promise.all(ACCOUNTS.map(chargerBoite)); },
         function(e){ LOAD.boites=e&&e.calme===true?"calme":"ko"; LOAD.err=msgErr(e,"Impossible de lire vos boîtes mail."); return null; })
       .then(chargerJournal)
-      .then(function(){ chargement=null; LOAD.t=Date.now(); finCharge(avant,silencieux); },
+      .then(function(){ chargement=null; LOAD.t=maintenant(); finCharge(avant,silencieux); },
             function(){ chargement=null; finCharge(avant,silencieux); });
     return chargement; }
   function finCharge(avant,silencieux){
@@ -2018,9 +2034,10 @@ var MARKUP = `
     return moved; }
   function engineCat(m){ var c=CLS[m.id]; return c&&isCat(c.cat)?c.cat:"principal"; }
   // Catégorie affichée : déplacement ponctuel de l'utilisateur (co), sinon le moteur (règles comprises).
-  function effCat(m){ return m.co&&isCat(m.co)?m.co:engineCat(m); }
+  function effCat(m){ return m.co&&isCat(m.co)?m.co:m.catSrc?m.catSrc:engineCat(m); }
   function whyOf(m){
     if(m.co&&isCat(m.co)) return ["vous avez déplacé ce message ici (le tri automatique l’avait mis dans "+catName(engineCat(m))+")"];
+    if(m.catSrc) return [m.catRaison||"rangé ici par la boîte mail"];
     var c=CLS[m.id]; if(!c) return ["message reçu"];
     if(c.junk) return ["vous l’avez sorti des indésirables : il reste dans la boîte de réception"];
     return c.reasons.length?c.reasons.map(function(x){ return prettyReason(m,x); }):["tri automatique"]; }
@@ -2078,7 +2095,7 @@ var MARKUP = `
       u.att=u.att||[]; MESSAGES.push(u);
       var n=parseInt(String(u.id).slice(1),10); if(n>=uid) uid=n+1;
       // Encore dans la boîte d'envoi : la page a été quittée pendant l'envoi — on ne SAIT pas s'il est parti. Il revient dans les brouillons, pas dans « Envoyés ».
-      if(u.folder==="outbox"){ u.folder="drafts"; u.at=u.at||Date.now(); restoredLost++; }
+      if(u.folder==="outbox"){ u.folder="drafts"; u.at=u.at||maintenant(); restoredLost++; }
       delete u.notice; });
     if(Array.isArray(snap.contacts)) snap.contacts.forEach(function(e){ if(typeof e==="string"&&e.indexOf("@")>0) CONTACTS[e.toLowerCase()]=true; });
     if(typeof snap.scope==="string"&&snap.scope) state.scope=snap.scope;
@@ -2093,7 +2110,7 @@ var MARKUP = `
   function tsOf(m){ return m.at!=null ? m.at : 0; }
   function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
   function hhmm(d){ return d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }
-  function dayDiff(d){ var t0=new Date(); t0.setHours(0,0,0,0); var d0=new Date(d); d0.setHours(0,0,0,0); return Math.round((d0-t0)/DAY); }
+  function dayDiff(d){ var t0=new Date(maintenant()); t0.setHours(0,0,0,0); var d0=new Date(d); d0.setHours(0,0,0,0); return Math.round((d0-t0)/DAY); }
   function fmtSched(t){ var d=new Date(t), n=dayDiff(d), day;
     if(n===0) day="aujourd'hui"; else if(n===1) day="demain"; else if(n>1&&n<7) day=d.toLocaleDateString("fr-FR",{weekday:"long"});
     else day="le "+d.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"}).replace(/\./g,"");
@@ -2103,7 +2120,7 @@ var MARKUP = `
     else day=d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});
     return day+" "+hhmm(d); }
   function fmtDate(ts){
-    var d=new Date(ts),now=new Date(),diff=now-d;
+    var d=new Date(ts),now=new Date(maintenant()),diff=now-d;
     var same=d.toDateString()===now.toDateString();
     var y=new Date(now-DAY).toDateString()===d.toDateString();
     var hm=d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
@@ -2211,7 +2228,7 @@ var MARKUP = `
     if(cote==="perso"&&state.folder==="sign") state.folder="inbox";   // la signature de contrats est réservée au côté Pro
     var mine=cote==="pro"?pro:perso, K=cote==="pro"?"pro":"perso";
     var h=group("hAcc",UN_COTE?"Boîtes mail":cote==="pro"?"Comptes pro":"Comptes perso",
-      (mine.length>1?[{id:K,name:cote==="pro"?"Toutes les boîtes pro":"Toutes les boîtes perso",sub:plural(mine.length,"compte","comptes"),title:emails(mine),
+      (mine.length>1?[{id:K,name:UN_COTE?"Toutes les boîtes":cote==="pro"?"Toutes les boîtes pro":"Toutes les boîtes perso",sub:plural(mine.length,"compte","comptes"),title:emails(mine),
         tile:'<span class="ptile k-'+K+'" aria-hidden="true">'+(cote==="pro"?I.briefcase:I.house)+'</span>'}]:[]).concat(mine.map(acctRow)));
     if(CAP.gererBoites&&mine.length) h=h.replace(/<\/div><\/section>$/,'<button type="button" class="srow add" data-gererboites="1"><span class="sic" aria-hidden="true">'+I.gear+'</span><span class="sl"><span class="sn">Gérer les boîtes</span></span></button></div></section>');
     if(!mine.length){ var vide=UN_COTE?"Boîtes mail":cote==="pro"?"Comptes pro":"Comptes perso";
@@ -2324,8 +2341,9 @@ var MARKUP = `
     var unread=all.filter(function(m){return !m.read;}).length, ko0=f.journal?[]:boitesEnEchec();
     $("#lbTitle").textContent=f.name; $("#ltTitle").textContent=f.name;
     // Sous-titre : la vue et la catégorie se tronquent d'abord ; le nombre de messages / non lus reste lisible.
-    var ctxLbl=f.journal?"Journal du serveur":scopeLabel();   // le journal des envois n'est celui d'aucune boîte : pas « Boîtes mail »
-    $("#lbSub").innerHTML='<span class="ls-ctx">'+(!f.journal&&acctExists(state.scope)?acctTile(acctOf(state.scope)).replace('class="ptile','class="ptile mini')+' ':'')+H(ctxLbl+(cl?" · "+cl:""))+'</span><span class="ls-n">&nbsp;· '+H(sousTitreListe(f,msgs,ko0))+'</span>';
+    var ctxLbl=f.journal?"Journal du serveur":(UN_COTE&&state.scope===COTES[0]?"":scopeLabel());   // le journal des envois n'est celui d'aucune boîte ; avec un seul côté, « Boîtes mail » ne dit rien de plus que le titre de la page (D16 : il tronquait « Boîte de réception »)
+    var ctxTxt=ctxLbl+(cl?(ctxLbl?" · ":"")+cl:"");
+    $("#lbSub").innerHTML='<span class="ls-ctx">'+(!f.journal&&acctExists(state.scope)?acctTile(acctOf(state.scope)).replace('class="ptile','class="ptile mini')+' ':'')+H(ctxTxt)+'</span><span class="ls-n">'+(ctxTxt?'&nbsp;· ':'')+H(sousTitreListe(f,msgs,ko0))+'</span>';
     $("#ltSub").textContent=ctxLbl;
     $("#backLbl").textContent=f.name;
     $$("#filters [data-filter]").forEach(function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-filter")===state.filter)); });
@@ -2333,7 +2351,7 @@ var MARKUP = `
     fb.setAttribute("aria-label",state.filter==="all"?"Filtrer les messages":"Filtrer les messages (actif : "+FILTER_NAMES[state.filter]+")");
     renderCats();
     paintStatus();
-    var ko=f.journal?[]:boitesEnEchec(), banniere=ko.length&&msgs.length?'<div class="loaderr" role="alert"><span>Réception indisponible pour '+H(ko.map(function(a){ return a.email; }).join(", "))+'.</span><button type="button" class="lnk" data-retry="1">Réessayer</button></div>':'';
+    var ko=f.journal?[]:boitesEnEchec(), banniere=ko.length&&msgs.length?'<div class="loaderr" role="alert"><span>'+H(ko.map(function(a){ return a.email+" ne répond plus"+(LOAD.msgErr[a.id]?" : "+LOAD.msgErr[a.id].replace(/^[^:]*: /,""):""); }).join(" · "))+'</span>'+(CAP.gererBoites?'<button type="button" class="lnk" data-gererboites="1">Reconnecter</button>':'')+'<button type="button" class="lnk" data-retry="1">Réessayer</button></div>':'';
     // D03 : ce qui est rangé dans une autre catégorie ne disparaît pas sans le dire (une facture de fournisseur n'était vue nulle part)
     var ail=(catActive()&&state.cat!=="tout")?folderMessages("inbox").filter(function(m){ return !m.read&&effCat(m)!==state.cat; }):[];
     if(ail.length&&msgs.length) banniere+='<div class="rangeail" role="note"><span>'+H(plural(ail.length,"message non lu rangé","messages non lus rangés")+" dans d’autres catégories")+'</span><button type="button" class="lnk" data-cat-tout="1">Voir tout</button></div>';
@@ -2366,8 +2384,8 @@ var MARKUP = `
           (m.folder==="scheduled"?'<span class="clk" title="Envoi programmé">'+I.clock+'</span>':'')+(m.sign?'<span class="clk" title="Signature électronique">'+I.sign+'</span>':'')+
           (all&&multi?'<span class="dotc" style="background:'+acctHue(a)+'" title="'+H(a.email)+' ('+KINDS[kindOf(a)]+')" aria-hidden="true"></span>':'')+
           '<span>'+H(date)+'</span><span class="m-chev" aria-hidden="true">'+I.chevR+'</span></span></span>'+
-        '<span class="m-sub">'+hotePastille(m)+suiviChip(m)+(m.sign?signChip(m):'')+(function(){ var k=inThreadFolder(m)&&threadKey(m), n=k?TC[k]||0:0; return n>1?'<span class="tcount" title="'+n+' messages dans la conversation">'+n+'</span><span class="sr">Conversation de '+n+' messages : </span>':''; })()+H(m.subject||"(Sans objet)")+'</span>'+
-        '<span class="m-prev">'+H(m.preview)+'</span>'+
+        '<span class="m-sub">'+suiviChip(m)+(m.sign?signChip(m):'')+(function(){ var k=inThreadFolder(m)&&threadKey(m), n=k?TC[k]||0:0; return n>1?'<span class="tcount" title="'+n+' messages dans la conversation">'+n+'</span><span class="sr">Conversation de '+n+' messages : </span>':''; })()+H(m.subject||"(Sans objet)")+'</span>'+
+        '<span class="m-prev">'+hotePastille(m)+H(m.preview)+'</span>'+
         (all?'<span class="sr">, compte '+H(a.email)+'</span>':'')+
         // Raccourcis de survol (souris) : hors de l'arbre d'accessibilité et du Tab — au clavier, f / e / Suppr et la barre d'outils font la même chose.
         (m.jr?'':'<span class="quick" aria-hidden="true">'+
@@ -2649,7 +2667,7 @@ var MARKUP = `
     var tx=db.transaction("f",mode), rq=fn(tx.objectStore("f"));
     tx.oncomplete=function(){ ok(rq&&rq.result); }; tx.onerror=tx.onabort=function(){ ko(tx.error||new Error("rangement refusé")); }; }); }); }
   finis.push(function(){ if(idbP) idbP.then(function(db){ db.close(); },function(){}); });
-  function fidNeuf(){ return "f"+Date.now().toString(36)+Math.random().toString(36).slice(2,9); }
+  function fidNeuf(){ return "f"+maintenant().toString(36)+Math.random().toString(36).slice(2,9); }
   function fichierPoser(fid,fic){ return idbFaire("readwrite",function(st){ return st.put(new Blob([fic],{type:"application/pdf"}),fid); }); }
   function fichierLire(fid){ return idbFaire("readonly",function(st){ return st.get(fid); }); }
   // ce que la demande (ou le message) désigne ; `sauf` : les pièces qu'une autre demande reprend (une demande préparée qu'on rouvre)
@@ -2840,7 +2858,7 @@ var MARKUP = `
     else if(act==="forward") openCompose(forwardModel(m));
     else if(act==="editDraft") openCompose({to:m.to,subject:m.subject,body:bodyText(m),acct:m.acct,att:(m.att||[]).slice(),draftId:m.id,scheduled:m.folder==="scheduled",noTrust:m.noTrust||null,enReponseA:m.repA||null});
     else if(act==="sendNow"){ m.folder="outbox"; state.selected=null; backToListMobile(); renderAll(); commitOutbox(m,false); }
-    else if(act==="unschedule"){ m.folder="drafts"; delete m.sendAt; m.at=Date.now(); m.user=true; state.selected=null; backToListMobile(); renderAll(); persist(); toast("Envoi annulé — le message est dans les brouillons"); }
+    else if(act==="unschedule"){ m.folder="drafts"; delete m.sendAt; m.at=maintenant(); m.user=true; state.selected=null; backToListMobile(); renderAll(); persist(); toast("Envoi annulé — le message est dans les brouillons"); }
     else if(act==="reschedule") openReschedule(m);
     else if(act.indexOf("sign")===0) signAct(act,m);
   }
@@ -3086,7 +3104,7 @@ var MARKUP = `
   // ---------- Signature électronique des documents (côté Pro) ----------
   // Le suivi (état, relances, contre-signature) est tenu ici ; la source doit annoncer capacites().signature pour l'allumer. Bientôt : prestataire certifié eIDAS, dossier de preuve, horodatage, code SMS.
   var SIGN_ST={ready:"Prête — en attente de Yousign",pending:"En attente",viewed:"Ouvert",counter:"À contresigner",signed:"Signé",declined:"Refusé",cancelled:"Annulé",expired:"Expiré"};
-  function signState(m){ var g=m.sign; if((g.st==="pending"||g.st==="viewed")&&Date.now()>g.expires) return "expired"; return g.st; }
+  function signState(m){ var g=m.sign; if((g.st==="pending"||g.st==="viewed")&&maintenant()>g.expires) return "expired"; return g.st; }
   /* (20 octobre 2026, Justin : « que moi quand je passe, je vois que c'est encore à traiter, que ça n'a pas été fait ») : le suivi d'une demande se voit DANS la liste —
      « À traiter » (orange), « En cours » (bleu), « Résolu » (vert), et à qui c'est assigné — sans ouvrir le message */
   function suiviChip(m){ if(!CAP.suivi||!m.suivi||!m.suivi.statut) return ''; var st=m.suivi.statut, l=(SUIVI_ETATS.filter(function(x){ return x[0]===st; })[0]||[])[1]; if(!l) return '';
@@ -3094,7 +3112,7 @@ var MARKUP = `
     return '<span class="sgchip sv-'+st+'" title="Suivi : '+H(l)+(qui?' · assigné à '+H(qui):'')+'">'+H(l)+(qui?' · '+H(qui):'')+'</span><span class="sr">Suivi : '+H(l)+(qui?', assigné à '+H(qui):'')+'. </span>'; }
   function signChip(m){ var st=signState(m); return '<span class="sgchip st-'+st+'">'+H(SIGN_ST[st])+'</span>'; }
   function fmtDay(t){ return new Date(t).toLocaleDateString("fr-FR",{day:"numeric",month:"long"}); }
-  function signLog(m,x){ m.sign.events.push({t:Date.now(),x:x}); m.at=Date.now(); }
+  function signLog(m,x){ m.sign.events.push({t:maintenant(),x:x}); m.at=maintenant(); }
   function signPreview(m){ var g=m.sign, st=signState(m), done=g.signers.filter(function(x){return x.st==="signed";}).length;
     m.preview=done+"/"+g.signers.length+" signature"+(g.signers.length>1?"s":"")+(g.counter?" + vous":""); }
   sur(sr,"click",function(e){ if(e.target.closest&&e.target.closest("#rows [data-signnew]")){ openSignRequest(); } });
@@ -3130,7 +3148,7 @@ var MARKUP = `
   // Range la VUE que rend la source dans la demande. Rend vrai si quelque chose a changé (état, signataire, historique).
   function signAppliquer(m,vue){
     if(!m||!m.sign||!vue||typeof vue!=="object"||!SIGN_DEPUIS_SRV[vue.etat]||typeof vue.id!=="string") throw new Error("Réponse du service de signature illisible.");
-    var g=m.sign, avant=JSON.stringify(g), now=Date.now();
+    var g=m.sign, avant=JSON.stringify(g), now=maintenant();
     g.srv=vue.id; g.st=SIGN_DEPUIS_SRV[vue.etat];
     if(vue.echeance>0) g.expires=vue.echeance;
     var liste=Array.isArray(vue.signataires)?vue.signataires:[], clients=liste.filter(function(x){ return !x.contre; }), contre=liste.filter(function(x){ return x.contre; })[0];
@@ -3151,7 +3169,7 @@ var MARKUP = `
     if(!CAP.signatureReelle||SIGN_RAF.enCours) return Promise.resolve();
     var cibles=MESSAGES.filter(function(m){ return signSrv(m)&&!!SIGN_EN_COURS[m.sign.st]; });
     if(!cibles.length) return Promise.resolve();
-    SIGN_RAF.enCours=true; SIGN_RAF.t=Date.now();
+    SIGN_RAF.enCours=true; SIGN_RAF.t=maintenant();
     var echecs=[], changes=[];
     return cibles.reduce(function(p,m){ return p.then(function(){
       return Promise.resolve().then(function(){ return SRC.signature.etat(m.sign.srv); }).then(function(vue){
@@ -3202,7 +3220,7 @@ var MARKUP = `
     if(g.srv&&/^sign(Remind|Cancel|Dl|Proof)(:|$)/.test(act)){ signActSrv(act,m); return; }
     if(act==="signSim"){ if(!CAP.simulation) return; var x=g.signers.filter(function(s){return s.st!=="signed";})[0]; if(!x) return;
       if(x.st!=="viewed") signLog(m,"Document ouvert par "+(x.name||x.email));
-      x.st="signed"; x.at=Date.now(); signLog(m,"Signé par "+(x.name||x.email)+(g.level==="adv"?" (code SMS vérifié)":" (code e-mail vérifié)"));
+      x.st="signed"; x.at=maintenant(); signLog(m,"Signé par "+(x.name||x.email)+(g.level==="adv"?" (code SMS vérifié)":" (code e-mail vérifié)"));
       if(g.signers.every(function(s){return s.st==="signed";})){ if(g.counter){ g.st="counter"; signLog(m,"En attente de votre contre-signature"); } else signDone(m); }
       else g.st="pending";
       signPreview(m); renderAll(); persist(); toast(g.st==="signed"?"Document signé par tous":g.st==="counter"?"Le client a signé — à vous de contresigner":"Signature reçue de "+(x.name||x.email)); }
@@ -3227,7 +3245,7 @@ var MARKUP = `
     var n=mk({acct:m.acct,folder:"inbox",from:{name:"Signature électronique",email:"no-reply@signature.invalid"},to:acctOf(m.acct).name,subject:"Document signé : "+m.subject,read:false,
       body:["Bonne nouvelle : « "+m.subject+" » est signé par toutes les parties.","Signataires : "+g.signers.map(function(s){return s.name||s.email;}).join(", ")+(g.counter?" et vous":"")+".","Le PDF signé et le dossier de preuve sont joints, et rangés dans le dossier Signatures."],
       att:[m.att[m.att.length-2],m.att[m.att.length-1]]});
-    n.preview=firstLine(n.body.join(" ")); n.user=true; n.at=Date.now(); MESSAGES.push(n);
+    n.preview=firstLine(n.body.join(" ")); n.user=true; n.at=maintenant(); MESSAGES.push(n);
   }
   function openSignPad(m){
     if(CAP.signatureMaintenance){ signMaint(); return; }
@@ -3253,7 +3271,7 @@ var MARKUP = `
     $("#spGo").onclick=function(){
       if(drawn<3){ toast("Dessinez votre signature"); return; }
       if(!/^\d{6}$/.test($("#spCode").value.trim())){ toast("Entrez le code à 6 chiffres"); $("#spCode").focus(); return; }
-      var g=m.sign; g.me=Date.now(); signLog(m,"Contresigné par vous (code SMS vérifié)"); signDone(m); signPreview(m);
+      var g=m.sign; g.me=maintenant(); signLog(m,"Contresigné par vous (code SMS vérifié)"); signDone(m); signPreview(m);
       closeOverlay(); renderAll(); persist(); toast("Document signé par tous");
     };
   }
@@ -3332,7 +3350,7 @@ var MARKUP = `
       signers.forEach(function(x,i){ if(bad) return; if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.email)) bad=["#sgE"+i,"Adresse e-mail du signataire "+(i+1)+" invalide"];
         else if(level==="adv"&&!/^\+?[\d\s.-]{9,}$/.test(x.phone)) bad=["#sgP"+i,"Mobile du signataire "+(i+1)+" nécessaire pour le code SMS"]; });
       if(bad){ toast(bad[1]); $(bad[0]).focus(); return; }
-      var a=$("#sgFrom").value, now=Date.now(), body=$("#sgMsg").value;
+      var a=$("#sgFrom").value, now=maintenant(), body=$("#sgMsg").value;
       if(CAP.signatureReelle){ envoyerReel(a,title,level,body); return; }
       if(!CAP.signature){
         // Pas de prestataire branché (Yousign) : la demande est RANGÉE dans Signatures, état « Prête », avec tout ce qui a été saisi — aucune fausse signature, aucun faux « Envoyé ».
@@ -3371,7 +3389,7 @@ var MARKUP = `
         .then(function(vue){
           if(!vivant) return;
           var m=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docsGardes()});
-          m.user=true; m.at=Date.now();
+          m.user=true; m.at=maintenant();
           m.sign={level:level,counter:contre,remind:$("#sgRemind").checked,expires:0,st:"pending",
             signers:signers.map(function(x){ return {name:x.name,email:x.email,phone:x.phone,st:"pending"}; }),events:[]};
           // Le service a répondu mais sa réponse ne se lit pas : la demande est PEUT-ÊTRE partie — on le dit, on ne la range pas et on ne laisse pas croire qu'elle n'est pas partie.
@@ -3537,7 +3555,7 @@ var MARKUP = `
       var ex=liveDraft(c.draftId); if(ex&&ex.folder!=="drafts") return;
       if(!ex){ ex=mk({acct:d.acct,folder:"drafts",from:null}); MESSAGES.push(ex); c.draftId=ex.id; c.autoNew=true; }
       fillMsg(ex,d); renderAll(); persist();
-      var s=$("#cSaved"); if(s) s.textContent="· Brouillon enregistré à "+hhmm(new Date());
+      var s=$("#cSaved"); if(s) s.textContent="· Brouillon enregistré à "+hhmm(new Date(maintenant()));
     }
     sheet.addEventListener("input",function(e){ if(e.target.id==="cTo"||e.target.id==="cSub"||e.target.id==="cBody") queueSave(); });
     function dropAuto(ex){ removeMsg(ex.id); if(state.selected===ex.id) state.selected=null; renderAll(); persist(); toast("Brouillon supprimé"); }
@@ -3642,7 +3660,7 @@ var MARKUP = `
   function toLocalInput(d){ var p=function(n){return (n<10?"0":"")+n;};
     return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes()); }
   function presets(){
-    var now=new Date(), out=[];
+    var now=new Date(maintenant()), out=[];
     out.push({label:"Dans 1 heure",t:now.getTime()+HR});
     var ev=new Date(now); ev.setHours(18,0,0,0); if(ev-now>30*MIN) out.push({label:"Ce soir",t:ev.getTime()});
     var tm=new Date(now); tm.setDate(tm.getDate()+1); tm.setHours(8,0,0,0); out.push({label:"Demain matin",t:tm.getTime()});
@@ -3653,8 +3671,8 @@ var MARKUP = `
   }
   function schedPanel(id){
     var tz=""; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(e){}
-    var def=new Date(); def.setDate(def.getDate()+1); def.setHours(9,0,0,0);
-    var dv=toLocalInput(def).split("T"), today=toLocalInput(new Date()).split("T")[0];
+    var def=new Date(maintenant()); def.setDate(def.getDate()+1); def.setHours(9,0,0,0);
+    var dv=toLocalInput(def).split("T"), today=toLocalInput(new Date(maintenant())).split("T")[0];
     return '<div class="sched" id="'+id+'">'+
       '<div class="sched-head"><b>Programmer l’envoi</b>'+(tz?'<span>Fuseau : '+H(tz)+'</span>':'')+'</div>'+
       // D13 : l'avertissement est EN TÊTE et en mots simples (il était une ligne grise de 12 px sous le bouton : on programmait « demain 8 h », on fermait le téléphone, rien ne partait)
@@ -3673,18 +3691,18 @@ var MARKUP = `
   }).join(""); }
   // Les préréglages sont relatifs à « maintenant » : on les recalcule à chaque ouverture du panneau.
   function refreshSched(panel){ var l=panel&&panel.querySelector(".sched-list"); if(!l) return;
-    l.innerHTML=presetsHtml(); var d=panel.querySelector('input[type="date"]'); if(d) d.min=toLocalInput(new Date()).split("T")[0]; }
+    l.innerHTML=presetsHtml(); var d=panel.querySelector('input[type="date"]'); if(d) d.min=toLocalInput(new Date(maintenant())).split("T")[0]; }
   function bindSched(panel,onPick){
     panel.addEventListener("click",function(e){
       var b=e.target.closest("[data-t]");
       if(b){ var t=+b.getAttribute("data-t");
         // Panneau resté ouvert trop longtemps : l'heure affichée est passée → on ne l'envoie pas tout de suite, on met la liste à jour.
-        if(!(t>Date.now()+30000)){ refreshSched(panel); var f=panel.querySelector(".sp"); if(f) f.focus({preventScroll:true}); toast("Cette heure est passée — choix mis à jour"); return; }
+        if(!(t>maintenant()+30000)){ refreshSched(panel); var f=panel.querySelector(".sp"); if(f) f.focus({preventScroll:true}); toast("Cette heure est passée — choix mis à jour"); return; }
         onPick(t); return; }
       if(e.target.closest("[data-custom]")){
         var dv=panel.querySelector('input[type="date"]').value, tv=panel.querySelector('input[type="time"]').value||"09:00";
         var t=dv?new Date(dv+"T"+tv).getTime():NaN;
-        if(!(t>Date.now()+30000)){ toast("Choisissez une date et une heure à venir"); return; }
+        if(!(t>maintenant()+30000)){ toast("Choisissez une date et une heure à venir"); return; }
         onPick(t);
       }
     });
@@ -3715,9 +3733,9 @@ var MARKUP = `
   // Sans service d'envoi côté source, l'envoi à l'heure dite ne tient que page ouverte : un message dont l'heure est passée DEPUIS LONGTEMPS (page fermée entre-temps)
   // ne part PAS tout seul — un courrier envoyé avec des heures de retard est pire qu'un courrier qui attend un geste (« Envoyer maintenant » / « Changer l'heure »).
   var RETARD_MAX=2*MIN;
-  function enRetard(m){ return !CAP.programmeServeur&&m.folder==="scheduled"&&Date.now()-m.sendAt>RETARD_MAX; }
+  function enRetard(m){ return !CAP.programmeServeur&&m.folder==="scheduled"&&maintenant()-m.sendAt>RETARD_MAX; }
   function flushScheduled(){
-    var now=Date.now();
+    var now=maintenant();
     MESSAGES.forEach(function(m){ if(m.folder==="scheduled"&&m.sendAt<=now&&!enRetard(m)&&!held(m.id)&&!m.sending){
       var wasSel=state.selected===m.id;
       expedier(m,false,function(ok){ if(!ok) return; if(wasSel&&state.folder==="scheduled"){ state.selected=null; backToListMobile(); renderAll(); } notify("Message programmé envoyé"); }); } });
@@ -3730,7 +3748,7 @@ var MARKUP = `
   // Envoi avec fenêtre « Annuler » de 5 s.
   // Le message est écrit tout de suite dans une boîte d'envoi persistée (dossier interne « outbox », jamais affiché) :
   // ni un autre toast, ni un second envoi, ni un rechargement ou un onglet fermé pendant les 5 s ne peuvent le perdre.
-  function fillMsg(m,d){ if(d.att) m.att=d.att.map(function(a){ return {name:a.name,size:a.size,kind:a.kind,bytes:a.bytes}; }); m.acct=d.acct; m.to=d.to; m.subject=d.subject; m.body=splitBody(d.body); m.preview=firstLine(d.body); m.read=true; m.user=true; m.at=Date.now();
+  function fillMsg(m,d){ if(d.att) m.att=d.att.map(function(a){ return {name:a.name,size:a.size,kind:a.kind,bytes:a.bytes}; }); m.acct=d.acct; m.to=d.to; m.subject=d.subject; m.body=splitBody(d.body); m.preview=firstLine(d.body); m.read=true; m.user=true; m.at=maintenant();
     if(d.noTrust&&d.noTrust.length) m.noTrust=d.noTrust.slice(); else delete m.noTrust;
     if(d.enReponseA) m.repA=String(d.enReponseA); else delete m.repA; }
   function sendWithUndo(d){
@@ -3742,8 +3760,8 @@ var MARKUP = `
     toast("Envoi en cours…",{undo:true,ms:5000,
       onCancel:function(){ if(m.folder!=="outbox") return;
         // Un message programmé que l'on venait de modifier garde son heure ; sinon il revient dans les brouillons.
-        var keep=!!prev&&prev.folder==="scheduled"&&prev.sendAt>Date.now()+30000;
-        m.folder=keep?"scheduled":"drafts"; if(keep) m.sendAt=prev.sendAt; m.at=Date.now();
+        var keep=!!prev&&prev.folder==="scheduled"&&prev.sendAt>maintenant()+30000;
+        m.folder=keep?"scheduled":"drafts"; if(keep) m.sendAt=prev.sendAt; m.at=maintenant();
         renderAll(); persist(); notify(keep?"Envoi annulé — toujours programmé "+fmtSched(prev.sendAt):"Envoi annulé — brouillon conservé"); },
       onDone:function(quiet){ commitOutbox(m,quiet); }});
   }
@@ -3757,12 +3775,12 @@ var MARKUP = `
     if(m.sending) return; m.sending=true;
     Promise.resolve().then(function(){ return SRC.envoyer(courrierDe(m)); }).then(function(){
       var repA0=m.repA, enfil=!!m.repA; delete m.repA;
-      m.sending=false; m.folder="sent"; m.at=Date.now(); delete m.sendAt; m.user=true; delete m._files; learnContacts(m);
+      m.sending=false; m.folder="sent"; m.at=maintenant(); delete m.sendAt; m.user=true; delete m._files; learnContacts(m);
       if(HOTE&&typeof HOTE.apresEnvoi==="function"){ try{ HOTE.apresEnvoi({a:m.to,objet:m.subject,texte:bodyText(m),enReponseA:repA0||null,boite:acctOf(m.acct).sid}); }catch(x){} }
       if(!quiet) renderAll(); persist(); if(fin) fin(true);
       if(enfil&&!quiet&&vivant) charger(true);   // répondre peut changer le suivi de la demande (la source le dit) : on relit sans bruit
     },function(e){
-      m.sending=false; m.folder="drafts"; delete m.sendAt; m.at=Date.now(); m.user=true;
+      m.sending=false; m.folder="drafts"; delete m.sendAt; m.at=maintenant(); m.user=true;
       if(vivant){ renderAll(); persist(); toast("Envoi impossible : "+msgErr(e,"échec")+" — le message est dans Brouillons"); } if(fin) fin(false); }); }
 
   // ---------- Déplacer vers… (catégorie) ----------
@@ -4346,10 +4364,10 @@ var MARKUP = `
   // Le format suit le conteneur (la fenêtre change, le menu de l'hôte s'ouvre…) ; le module s'éteint si l'hôte a retiré son conteneur
   try{ var obsTaille=new ResizeObserver(function(){ if(!hote.isConnected){ demonter(); return; } if(appliquerFormat()) placeChrome(); catFade(); });
     obsTaille.observe(hote); finis.push(function(){ obsTaille.disconnect(); }); }catch(e){}
-  var iv=setInterval(function(){ if(!hote.isConnected){ demonter(); return; } flushScheduled(); if(!document.hidden&&opt.intervalle!==0&&Date.now()-LOAD.essai>=(opt.intervalle||60000)-100) charger(true);
-    if(!document.hidden&&Date.now()-SIGN_RAF.t>=60000-100&&signEnCours()) signRafraichir(false); },Math.max(250,Math.min(5000,opt.intervalle||60000)));
+  var iv=setInterval(function(){ if(!hote.isConnected){ demonter(); return; } flushScheduled(); if(!document.hidden&&opt.intervalle!==0&&maintenant()-LOAD.essai>=(opt.intervalle||60000)-100) charger(true);
+    if(!document.hidden&&maintenant()-SIGN_RAF.t>=60000-100&&signEnCours()) signRafraichir(false); },Math.max(250,Math.min(5000,opt.intervalle||60000)));
   finis.push(function(){ clearInterval(iv); retraits.forEach(function(r){ clearTimeout(r.tm); }); });
-  sur(document,"visibilitychange",function(){ if(!document.hidden){ flushScheduled(); if(Date.now()-LOAD.essai>20000) charger(true); } });
+  sur(document,"visibilitychange",function(){ if(!document.hidden){ flushScheduled(); if(maintenant()-LOAD.essai>20000) charger(true); } });
 
   function demonter(){
     if(!vivant) return; vivant=false;
@@ -4374,6 +4392,8 @@ var MARKUP = `
     ouvrir:function(id){ apresChargement(function(){ if(vivant) ouvrirMessage(id); }); return true; },
     repondre:function(id,intro){ apresChargement(function(){ if(vivant) repondreA(id,intro); }); return true; },
     rechercher:function(t){ apresChargement(function(){ if(vivant) rechercher(t); }); return true; },
+    // ferme la fenêtre ouverte (composeur, menu) sans rien enregistrer d'inventé : sert la visite guidée de l'hôte
+    fermer:function(){ try{ if(state.compose&&state.compose.dismiss) state.compose.dismiss(); }catch(e){} closeOverlay(); return true; },
     etat:function(){ var m=msgById(state.selected); return {selection:m?(m.src&&m.sid!=null?m.sid:m.id):null,dossier:state.folder,recherche:state.query,nbNonLus:folderMessages("inbox").filter(function(x){return !x.read;}).length,format:curFmt}; }
   };
   }
