@@ -13,7 +13,30 @@ de ligne du tout.
 
 ---
 
-# 13 NOVEMBRE 2026 — PROTOTYPE D'OP MESSAGES (aperçu, données fictives) ET BOÎTE MAIL VÉRIFIÉE — ATTEND LE CHOIX DE JUSTIN, IDÉE PAR IDÉE
+# 16 NOVEMBRE 2026 — PROTOTYPE D'OP MESSAGES REFAIT DE A À Z, CÔTÉ PRO — ATTEND L'AVIS DE JUSTIN
+
+Justin, 16 novembre : « j'aime pas ce que tu as fait sur OP MESSAGES, refais-moi un OP MESSAGES de A à Z en prototype ; regarde ce qui a été fait
+de base, inspire-toi de tout » ; « une application pour tout le monde, mais surtout pour les professionnels : concentre-toi sur le côté pro, on
+verra le public après ». Interrogé sur ce qui déplaisait : **tout** — l'apparence, l'organisation, trop chargé — et « refais tout style Apple ».
+- **Ce qui remplace l'ancien prototype** (celui du 13 novembre, décrit plus bas, n'existe plus) : `apercu/prototype-op-messages.html`, FABRIQUÉ par
+  `bash design/opmessages/prototype/assembler.sh` depuis ses parties (`10-style.css` … `60-corps.html`, dans le dépôt cette fois). On modifie les
+  parties, jamais la page ; puis `node apple/OPMessages/synchroniser.js` (page du projet Xcode). `tests/test-3299.js` garde les deux.
+- **L'organisation est celle de la VRAIE application côté Pro** (regardée en la lançant en local, `tests/outils-msg.js`) : Tableau de bord, Messages,
+  Contacts, Appels, Réunions, Agenda, Courrier, et le Profil en bas (par soi). Au téléphone : la capsule à sept icônes, le nom sur l'onglet actif.
+  Plus de côté Perso ni d'invité, plus de page « Idées », plus d'étiquettes, plus de bandeau de prototype, plus d'IA, plus rien d'OP GESTION.
+- **Le dessin** suit `design/opmessages/THEME-OPMESSAGES.md` (couleurs, verre, nuit bleue) et les tailles d'Apple : 13 px au bureau, 17 au téléphone,
+  police du système (SF sur Apple). Tout répond : écrire (quelqu'un répond), répondre, réagir, transférer, supprimer, photo, document, position,
+  sondage, vocal, groupes ; appel audio/vidéo (sonne, en cours, clavier, réduit, entrant) ; réunion (préparation, salle, salle d'attente, discussion,
+  enregistrement, sous-titres, partage d'écran avec le dessin demandé le 14) ; agenda semaine/mois, programmer, modifier, supprimer ; rappels ;
+  contacts ; profil, statut, réglages. L'heure du prototype est 9 h 42 à l'ouverture (les données racontent une matinée).
+- **Le Courrier reste la vraie boîte mail** (`opcourrier.js`, source de démonstration) — décision du 13 novembre, inchangée.
+- **Mesuré** : `scratchpad/sonde-proto-messages.js` 330 écrans (11 profils, jour et nuit) 0 faute ; `-gestes.js` 440 ✓ sur Mac, Windows, iPad, iPhone,
+  Android ; `-dessin.js` 294 ✓ ; `-clics.js` (tout ce qui se clique, zone qui répond au doigt) : voir le dernier passage. ⚠️ Toujours pas essayé :
+  Safari, Firefox, la compilation Xcode, un vrai clavier de téléphone (seul Chromium existe dans une session du cloud).
+- **Attend Justin** : son avis sur ce prototype ; puis le côté public ; puis Windows et Android en application.
+
+
+# (REMPLACÉ LE 16 NOVEMBRE) 13 NOVEMBRE 2026 — PREMIER PROTOTYPE D'OP MESSAGES (aperçu, données fictives) ET BOÎTE MAIL VÉRIFIÉE — ATTEND LE CHOIX DE JUSTIN, IDÉE PAR IDÉE
 
 Justin, 12 novembre au soir : « je veux que tu revois tout en prototype, que tu apportes des idées pour avoir la meilleure application de
 message, appel, appel vidéo, système de réunion, mail ». Puis, le 13 : **« la boîte mail, je veux celle qui était, juste la vérifier et

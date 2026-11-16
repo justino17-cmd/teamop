@@ -15,7 +15,7 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     const cdp = await ctx.newCDPSession(page);
     const vrai = (nom, c, detail) => { if (c) ok++; else { ko++; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + JSON.stringify(detail) : '')); } };
     await page.goto(FICHIER); await page.waitForTimeout(300);
-    await page.evaluate(() => { ouvrirSalle('e1'); entrerSalle(); S.salle.partage = true; peindreSalle(); }); await page.waitForTimeout(200);
+    await page.evaluate(() => { ouvrirSalle(evt('e1')); entrerSalle(); S.salle.partage = true; peindreSalle(); }); await page.waitForTimeout(200);
     const etat = () => page.evaluate(() => { const a = S.salle.an; return { n: a.items.length, t: a.items.map((i) => i.t + ':' + i.par), z: a.z, x: a.x, y: a.y, grp: a.grp, outil: a.outil, hist: a.hist.length, ref: a.refaire.length, svg: document.querySelectorAll('#an-g > g').length, eph: a.ephem.length }; });
     /* la zone où l'on dessine : la partie du DOCUMENT visible dans la vue (une vue plus haute ou plus large que lui a des bandes vides, où un point se ramène au bord) */
     const vue = async () => page.evaluate(() => { const r = document.querySelector('#an-vue').getBoundingClientRect(), m = document.querySelector('#an-svg').getScreenCTM(), a = new DOMPoint(0, 0).matrixTransform(m), b = new DOMPoint(1000, 562).matrixTransform(m);

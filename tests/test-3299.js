@@ -30,6 +30,14 @@ const icones = JSON.parse(fs.readFileSync(path.join(A, 'OPMessages', 'Assets.xca
 vrai('chaque image d\'icône déclarée existe (iPhone : 1024 px ; Mac : dix tailles)', icones.length === 11 && icones.every(i => fs.existsSync(path.join(A, 'OPMessages', 'Assets.xcassets', 'AppIcon.appiconset', i.filename))),
   icones.filter(i => !fs.existsSync(path.join(A, 'OPMessages', 'Assets.xcassets', 'AppIcon.appiconset', i.filename))).map(i => i.filename).join(' '));
 
+/* ⛔ 16 novembre 2026 — le prototype lui-même est FABRIQUÉ (design/opmessages/prototype/assembler.sh) : ses parties sont la source. Une page retouchée à la
+   main, ou une partie modifiée sans réassembler, et le prochain assemblage efface le travail (ou l'aperçu montre l'ancien). Chaque partie doit s'y lire telle quelle. */
+const PARTIES = path.join(R, 'design', 'opmessages', 'prototype'), proto = fs.readFileSync(path.join(R, 'apercu', 'prototype-op-messages.html'), 'utf8');
+const parties = fs.readdirSync(PARTIES).filter(f => /^\d\d-.*\.(css|js|html)$/.test(f)).sort();
+vrai('(population) le prototype a ses parties (feuilles de style, cœur, écrans, direct, gestes, corps)', parties.length >= 8, parties.join(' '));
+const absentes = parties.filter(f => !proto.includes(fs.readFileSync(path.join(PARTIES, f), 'utf8').trim()));
+vrai('⛔ apercu/prototype-op-messages.html porte CHAQUE partie telle qu\'elle est écrite (sinon : bash design/opmessages/prototype/assembler.sh)', absentes.length === 0, absentes.join(' '));
+
 const py = spawnSync('python3', [path.join(A, 'fabriquer-projet.py'), '--verifier'], { encoding: 'utf8' });
 if (py.error) console.log('  (python3 absent : le fichier de projet n\'est pas recontrôlé ici)');
 else vrai('⛔ le fichier de projet est celui que fabrique fabriquer-projet.py, et passe ses contrôles (accolades, références)', py.status === 0, (py.stdout + py.stderr).trim());

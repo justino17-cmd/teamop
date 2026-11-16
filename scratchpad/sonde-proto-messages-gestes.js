@@ -1,147 +1,125 @@
-/* Sonde du PROTOTYPE d'OP MESSAGES (apercu/prototype-op-messages.html, 13 novembre 2026) — page autonome, données fictives.
-   Lancer depuis la racine du dépôt : node scratchpad/sonde-proto-messages-gestes.js   (captures dans le dossier donné par CAPS, sinon aucune capture n'est gardée ailleurs que dans cap/)
-   Les GESTES, touchés pour de vrai sur Mac et iPhone, et l'état relu après chacun (accord, résumé, fil, appel, réunion, compte rendu, le vrai module de courrier monté, recherche, rôles, visite guidée, jour et nuit). */
-// Sonde des GESTES du prototype : on touche pour de vrai et on relit l'état. Ordinateur et iPhone. Captures des états plein écran.
+/* Sonde des GESTES du prototype d'OP MESSAGES, côté Pro (apercu/prototype-op-messages.html, refait le 16 novembre 2026).
+   Lancer depuis la racine : node scratchpad/sonde-proto-messages-gestes.js   (PROFILS=mac,iphone pour restreindre)
+   Elle joue ce qu'une personne fait — écrire, répondre, réagir, voter, appeler, programmer, entrer en réunion — par de vrais clics (souris ou doigt),
+   et relit ce que la page a retenu ET ce qu'elle montre. Sort en 1 au moindre ✗. */
 const { chromium } = require('playwright');
-const path = require('path'), fs = require('fs');
-const FICHIER = 'file://' + (process.env.PAGE || path.join(__dirname, '..', 'apercu', 'prototype-op-messages.html'));
-const CAPS = process.env.CAPS || path.join(require('os').tmpdir(), 'proto-opmsg-cap'); fs.mkdirSync(CAPS, { recursive: true });
-let ok = 0, ko = 0; const v = (nom, cond, detail) => { if (cond) ok++; else { ko++; console.log('  ✗', nom, detail === undefined ? '' : JSON.stringify(detail)); } };
+const path = require('path');
+const FICHIER = 'file://' + path.join(__dirname, '..', 'apercu', 'prototype-op-messages.html');
+const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 }, { n: 'ipad', w: 820, h: 1180, tactile: true }, { n: 'iphone', w: 393, h: 852, tactile: true, mobile: true }, { n: 'android', w: 360, h: 780, tactile: true, mobile: true }];
 (async () => {
-  const b = await chromium.launch();
-  const UAS = { mac: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15', iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', android: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36', windows: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' };
-  for (const p of [{ n: 'mac', w: 1440, h: 900 }, { n: 'iphone', w: 393, h: 852, tactile: true }, { n: 'android', w: 360, h: 780, tactile: true }, { n: 'windows', w: 1280, h: 720 }, { n: 'ipad', w: 820, h: 1180, tactile: true, large: true, ua: 'mac' }]) {
-    if (process.env.PROFILS && !process.env.PROFILS.split(',').includes(p.n)) continue;
-    const ctx = await b.newContext({ viewport: { width: p.w, height: p.h }, hasTouch: !!p.tactile, isMobile: !!p.tactile && !p.large, deviceScaleFactor: 2, colorScheme: p.n === 'mac' || p.n === 'windows' ? 'light' : 'dark', userAgent: UAS[p.ua || p.n] });
-    const page = await ctx.newPage(); const errs = [];
-    page.on('pageerror', (e) => errs.push(e.message)); page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
-    await page.goto(FICHIER); await page.waitForTimeout(250);
-    const E = (f, a) => page.evaluate(f, a), go = async (h) => { await E((x) => { location.hash = x; }, h); await page.waitForTimeout(180); };
-    const clic = async (sel, i) => { const l = page.locator(sel); const n = await l.count(); if (!n) { v('cible trouvée : ' + sel, false); return false; } const e = i == null ? l.first() : l.nth(i); await e.scrollIntoViewIfNeeded(); await e.click(); await page.waitForTimeout(120); return true; };
-    const cap = async (nom) => { await page.waitForTimeout(420); return page.screenshot({ path: path.join(CAPS, `g-${p.n}-${nom}.png`) }); };
-    console.log('—', p.n);
+  const seuls = process.env.PROFILS ? process.env.PROFILS.split(',') : null; const b = await chromium.launch(); let ok = 0, ko = 0;
+  for (const p of PROFILS) { if (seuls && !seuls.includes(p.n)) continue; console.log('— ' + p.n);
+    const ctx = await b.newContext({ viewport: { width: p.w, height: p.h }, hasTouch: !!p.tactile, isMobile: !!p.mobile, reducedMotion: 'reduce' });
+    const page = await ctx.newPage(); const errs = []; page.on('pageerror', (e) => errs.push(e.message));
+    const vrai = (nom, c, detail) => { if (c) ok++; else { ko++; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + JSON.stringify(detail) : '')); } };
+    const tel = p.w <= 760;
+    /* un vrai clic (ou un vrai toucher) sur le premier élément VISIBLE qui répond au sélecteur ; il dit s'il a porté */
+    /* une bannière de notification (en haut, 4 s) couvre ce qu'elle surplombe, comme sur un vrai appareil : la sonde l'écarte avant de frapper, et le DIT ici */
+    const clic = async (sel, n) => { const pt = await page.evaluate(([s, k]) => { document.querySelectorAll('.banniere').forEach((x) => { if (!s.includes('banniere')) x.remove(); }); const l = [...document.querySelectorAll(s)].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; }); const e = l[k || 0]; if (!e) return null; e.scrollIntoView({ block: 'center', inline: 'center' }); const r = e.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, t = document.elementFromPoint(x, y); return { x, y, bon: !!t && (t === e || e.contains(t) || t.contains(e)) }; }, [sel, n]);
+      if (!pt || !pt.bon) { vrai('la frappe porte sur ' + sel, false, pt); return false; } if (p.tactile) await page.touchscreen.tap(pt.x, pt.y); else await page.mouse.click(pt.x, pt.y); await page.waitForTimeout(90); return true; };
+    const ev = (f, a) => page.evaluate(f, a);
+    const va = async (h) => { await ev((x) => { location.hash = x; }, h); await page.waitForTimeout(120); };
+    await page.goto(FICHIER); await page.waitForTimeout(300);
 
-    /* 0. le compteur du courrier est juste DÈS L'OUVERTURE, sans avoir ouvert la boîte mail (elle se monte au départ, masquée, à sa taille) — et masquée, elle ne prend aucun clic */
-    await page.waitForFunction(() => COUR.nl.pro > 0, null, { timeout: 8000 }).catch(() => {});
-    v('Aujourd’hui : le nombre de courriels non lus vient du module, sans ouvrir le Courrier', await E(() => COUR.nl.pro > 0 && new RegExp('(^|\\D)' + COUR.nl.pro + '\\s*courriels? non lus?').test(document.querySelector('.kpis').textContent.replace(/\s+/g, ' '))), await E(() => document.querySelector('.kpis').textContent.replace(/\s+/g, ' ').slice(0, 120)));
-    v('⛔ la boîte mail masquée est HORS de l’écran (elle transparaissait derrière l’accueil), et la scène a un fond opaque', await E(() => { const h = document.querySelector('#zone-courrier-pro [data-opcourrier]'), r = h.getBoundingClientRect(), f = getComputedStyle(document.querySelector('#scene')).backgroundColor; return r.width > 100 && r.right <= 0 && /^rgb\(/.test(f); }), await E(() => JSON.stringify(document.querySelector('#zone-courrier-pro [data-opcourrier]').getBoundingClientRect())));
-    v('la zone du courrier, masquée, ne couvre pas l’écran (le point au centre est à la scène)', await E(() => { const e = document.elementFromPoint(innerWidth / 2, innerHeight / 2); return !!e && !e.closest('#courrier-fixe'); }));
-    /* 0 bis. CE QUE CHAQUE APPAREIL ATTEND */
-    v('appareil reconnu, et le raccourci porte son nom (⌘K sur Apple, Ctrl K ailleurs)', await E(() => [document.documentElement.getAttribute('data-os'), RACCOURCI].join(' ')) === ({ mac: 'mac ⌘K', iphone: 'ios ⌘K', android: 'android Ctrl K', windows: 'windows Ctrl K', ipad: 'mac ⌘K' })[p.n], await E(() => [document.documentElement.getAttribute('data-os'), RACCOURCI].join(' ')));
-    await go('messages'); await E(() => ouvrirRecherche()); await page.waitForTimeout(150);
-    await page.goBack(); await page.waitForTimeout(350);
-    v('⛔ la touche RETOUR ferme la feuille ouverte (elle ne reste pas posée sur l’écran d’avant)', await E(() => !document.querySelector('#calque').innerHTML));
-    if (!p.tactile) { await go('messages-x-karim'); await page.locator('.bulle[data-menu-msg]').first().click({ button: 'right' }); await page.waitForTimeout(200);
-      v('clic droit sur un message : son menu s’ouvre (ordinateur)', await E(() => /Répondre dans un fil/.test(document.querySelector('#calque').textContent))); await E(() => fermer()); }
-    if (p.tactile && !p.large) { await E(() => ouvrirRecherche()); await page.waitForTimeout(450);
-      await E(async () => { const x = document.querySelector('#calque .panneau'), r = x.getBoundingClientRect(), cx = r.left + r.width / 2; const t = (y) => new Touch({ identifier: 1, target: x, clientX: cx, clientY: y });
-        x.dispatchEvent(new TouchEvent('touchstart', { touches: [t(r.top + 12)], bubbles: true })); for (let k = 1; k <= 6; k++) { x.dispatchEvent(new TouchEvent('touchmove', { touches: [t(r.top + 12 + k * 30)], bubbles: true })); await new Promise((ok) => setTimeout(ok, 16)); }
-        x.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t(r.top + 192)], bubbles: true })); });
-      await page.waitForTimeout(200); v('une feuille se ferme en la TIRANT vers le bas (téléphone)', await E(() => !document.querySelector('#calque').innerHTML)); }
-    if (p.large || p.n === 'android') v('au doigt sur grand écran : tailles de tablette ; sur Android : libellés d’onglets à 12 px', await E((large) => large ? parseFloat(getComputedStyle(document.body).fontSize) >= 15 : getComputedStyle(document.querySelector('.capsule a')).fontSize === '12px', !!p.large));
-    await go('aujourdhui');
-    /* 1. Aujourd'hui → donner l'accord */
-    await clic('[data-action="accord"]');
-    v('accord : on arrive dans le groupe, le message est parti', await E(() => location.hash === '#messages-x-equipe' && /Accord pour le compresseur/.test(conv('equipe').msgs.slice(-1)[0].t)));
-    /* 2. Résumé, menu d'un message, tâche */
-    await page.reload(); await page.waitForTimeout(200); await go('messages-x-equipe');
-    v('population : le groupe a 12 non lus et le bloc « Résumer »', await E(() => conv('equipe').nonlu === 12 && !!document.querySelector('[data-action="resumer"]')));
-    await clic('[data-action="resumer"]');
-    v('résumé affiché', await E(() => /Ce que tu as manqué/.test(document.querySelector('#resume-zone').textContent)));
-    await cap('resume');
-    const t0 = await E(() => S.taches.length);
-    await clic('.bulle[data-menu-msg]', 1); await cap('menu-message');
-    v('la feuille du message est ouverte', await E(() => !!document.querySelector('#calque [data-msg-act="tache"]')));
-    await clic('[data-msg-act="tache"]');
-    v('une tâche de plus', await E((n) => S.taches.length === n + 1, t0));
-    /* fil de réponses */
-    await clic('.bulle[data-menu-msg]', 4); await clic('[data-msg-act="fil"]');
-    await page.fill('#saisie-fil', 'Je valide.'); await page.keyboard.press('Enter'); await page.waitForTimeout(150);
-    v('le fil a reçu la réponse et la bulle le dit', await E(() => /1 réponse dans le fil/.test(document.querySelector('#fil').textContent)));
-    await E(() => fermer());
-    /* 3. écrire à un client : envoi, réponse simulée */
-    await go('messages-x-marc'); const n0 = await E(() => conv('marc').msgs.length);
-    await page.fill('#saisie', 'Le devis part dans l’heure.'); await page.keyboard.press('Enter'); await page.waitForTimeout(2700);
-    v('message envoyé, puis réponse du client', await E((n) => conv('marc').msgs.length === n + 2, n0), await E(() => conv('marc').msgs.length));
-    await clic('[data-action="prendre"]'); v('boîte partagée : je m’en occupe', await E(() => conv('marc').partage.a === 'moi'));
-    /* 4. une date dans un message devient un rendez-vous */
-    await go('messages-x-equipe'); const e0 = await E(() => EVTS.length);
-    await clic('.date-d'); v('la feuille Programmer est préremplie (14:00, 3 invités)', await E(() => document.querySelector('#pe-heure').value === '14:00' && document.querySelectorAll('#pe-invites [aria-pressed="true"]').length === 3));
-    await cap('programmer'); await clic('[data-action="creer-evt"]');
-    v('un événement de plus, la fiche est ouverte, la bannière est descendue', await E((n) => EVTS.length === n + 1 && /^#agenda-x-/.test(location.hash) && !!document.querySelector('.banniere'), e0));
-    /* 5. appel sortant, notes, raccrocher */
-    await go('messages-x-karim'); const a0 = await E(() => APPELS.length);
-    await clic('[data-appeler="karim"]:not([data-video])'); v('écran d’appel ouvert, ça sonne', await E(() => S.appel && S.appel.etat === 'sonne' && !!document.querySelector('#plein .appel')));
-    await page.waitForTimeout(2100); v('l’appel court', await E(() => S.appel.etat === 'cours'));
-    await clic('[data-appel="notes"]'); await page.fill('#appel-notes', 'Commander avant midi.'); await clic('[data-appel="reseau"]'); await cap('appel');
-    v('les notes survivent à un autre geste', await E(() => document.querySelector('#appel-notes').value === 'Commander avant midi.'));
-    await clic('[data-appel="reduire"]'); v('appel réduit : pastille « Revenir »', await E(() => !!document.querySelector('#mini-appel') && !document.querySelector('#plein .appel')));
-    await clic('#mini-appel'); await clic('[data-appel="raccrocher"]');
-    v('appel terminé : une ligne de plus dans l’historique, avec les notes, et la feuille de fin', await E((n) => APPELS.length === n + 1 && APPELS[0].notes === 'Commander avant midi.' && /Appel terminé/.test(document.querySelector('#calque').textContent), a0));
-    await E(() => fermer());
-    /* 6. appel entrant → répondre → ajouter : devient une réunion */
-    await go('appels'); await clic('[data-action="appel-entrant"]'); await cap('appel-entrant');
-    v('appel entrant : Répondre et Refuser', await E(() => !!document.querySelector('[data-appel="repondre"]') && !!document.querySelector('[data-appel="refuser"]')));
-    await clic('[data-appel="repondre"]'); await clic('[data-appel="ajouter"]');
-    v('« Ajouter » transforme l’appel en réunion', await E(() => !S.appel && S.salle && S.salle.etape === 'salle' && !!document.querySelector('#plein .salle')));
-    await clic('[data-salle="quitter"]'); await E(() => fermer());
-    /* 7. réunion : préparation, salle d'attente, sous-titres, notes, compte rendu */
-    await go('aujourdhui'); await clic('[data-rejoindre="e0"]'); await cap('preparation');
-    v('écran de préparation', await E(() => S.salle.etape === 'prepa' && !!document.querySelector('.prepa')));
-    await clic('[data-salle="entrer"]'); v('dans la salle, James attend', await E(() => S.salle.etape === 'salle' && S.salle.attente[0] === 'james'));
-    await clic('[data-salle="admettre"]'); v('James admis', await E(() => S.salle.presents.includes('james') && !S.salle.attente.length));
-    await clic('[data-salle="st"]'); await clic('[data-salle="st"]'); v('sous-titres traduits', await E(() => S.salle.st && S.salle.trad && /Traduction|English/.test(document.querySelector('#soustitres').textContent)));
-    await clic('[data-salle="volet-notes"]'); await page.fill('#salle-notes', 'On commence par le 2e étage.'); await page.fill('#salle-action', 'Prévenir la réception'); await clic('[data-salle="action"]');
-    v('une action notée, les notes gardées', await E(() => S.salle.actions.length === 1 && S.salle.notes === 'On commence par le 2e étage.'));
-    await cap('salle'); await page.waitForTimeout(3200);
-    v('la parole tourne sans erreur (tuiles repeintes)', await E(() => document.querySelectorAll('#tuiles .tuile').length === 3 + 0 || document.querySelectorAll('#tuiles .tuile').length >= 3));
-    await clic('[data-salle="volet-participants"]'); await cap('salle-participants');
-    await clic('[data-salle="quitter"]');
-    v('compte rendu ouvert à la sortie, avec l’action', await E(() => !S.salle && /Compte rendu/.test(document.querySelector('#calque h2').textContent) && /Prévenir la réception/.test(document.querySelector('#calque').textContent)));
-    await cap('compte-rendu'); const m0 = await E(() => conv('equipe').msgs.length);
-    await clic('[data-action="cr-envoyer"]'); v('compte rendu envoyé dans le groupe', await E((n) => conv('equipe').msgs.length === n + 1, m0));
-    /* 8. le Courrier est le VRAI module opcourrier.js, monté tel quel (rien n'est redessiné) : il s'ouvre, il compte, il lit, il survit à un changement de rubrique */
-    const OMB = (c) => `document.querySelector('#zone-courrier-${c} [data-opcourrier]')`;
-    await go('courrier'); await page.waitForFunction((h) => { const e = eval(h); return e && e.shadowRoot && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('pro'), { timeout: 8000 }).catch(() => {});
-    const lignes0 = await E((h) => { const e = eval(h); return e && e.shadowRoot ? e.shadowRoot.querySelectorAll('#rows .msg').length : 0; }, OMB('pro'));
-    v('courrier : le vrai module est monté (arbre d’ombre) et montre des courriels d’exemple', lignes0 > 0, lignes0);
-    v('courrier : la pastille de l’onglet reprend le nombre annoncé par le module', await E(() => COUR.nl.pro > 0 && compte('courrier') === COUR.nl.pro && new RegExp('Courrier\\s*' + COUR.nl.pro).test(document.querySelector(innerWidth <= 760 ? '#barre-bas' : '#menu').textContent)), await E(() => COUR.nl.pro));
-    v('courrier : côté Pro seul, sans sélecteur Pro / Perso', await E((h) => Array.from(eval(h).shadowRoot.querySelectorAll('.sptab')).every((x) => x.offsetWidth === 0), OMB('pro')));
-    v('⛔ courrier : côté Pro, AUCUN courriel de la boîte personnelle (les deux côtés ne se mélangent pas)', await E((h) => { const x = eval(h).shadowRoot.textContent; return /Nouvelle intervention assignée/.test(x) && !/Match de dimanche|Déjeuner vendredi/.test(x); }, OMB('pro')));
-    await cap('courrier');
-    await page.locator('#zone-courrier-pro #rows .msg').first().click(); await page.waitForTimeout(350);
-    v('courrier : toucher un courriel l’ouvre en lecture', await E((h) => { const r = eval(h).shadowRoot.querySelector('.reading'); return !!r && r.textContent.trim().length > 80; }, OMB('pro')));
-    await cap('courrier-lecture');
-    await go('messages'); await page.waitForTimeout(1200); await go('courrier'); await page.waitForTimeout(300);
-    v('courrier : après un détour par une autre rubrique, le module vit toujours (il ne s’est pas démonté)', await E((h) => { const e = eval(h); return !document.querySelector('#courrier-fixe').classList.contains('masquee') && e.isConnected && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('pro')));
-    await go('messages'); v('courrier : hors de sa rubrique, la zone est masquée et ne couvre rien', await E(() => document.querySelector('#courrier-fixe').classList.contains('masquee') && !!document.querySelector('#scene .liste')));
-    /* 9. recherche partout */
-    await E(() => ouvrirRecherche()); await page.fill('#rech-tout', 'dubois'); await page.waitForTimeout(100); await cap('recherche');
-    v('la recherche trouve dans plusieurs rubriques', await E(() => document.querySelectorAll('#rech-res h3').length >= 3), await E(() => document.querySelectorAll('#rech-res h3').length));
-    await E(() => fermer());
-    /* 10. rôles */
-    await clic('[data-role="perso"]'); await go('messages');
-    v('côté Perso : Maman est là, aucun client', await E(() => /Maman/.test(document.querySelector('#scene').textContent) && !/Marc Dubois/.test(document.querySelector('#scene').textContent)));
-    await go('courrier'); await page.waitForFunction((h) => { const e = eval(h); return e && e.shadowRoot && e.shadowRoot.querySelectorAll('#rows .msg').length > 0; }, OMB('perso'), { timeout: 8000 }).catch(() => {});
-    v('côté Perso : SA boîte mail, un second montage, la zone Pro masquée', await E((h) => { const e = eval(h); return !!e && e.shadowRoot.querySelectorAll('#rows .msg').length > 0 && document.querySelector('#zone-courrier-pro').hidden && !document.querySelector('#zone-courrier-perso').hidden && !/Nouvelle intervention assignée/.test(e.shadowRoot.textContent) && /Match de dimanche|Déjeuner vendredi/.test(e.shadowRoot.textContent); }, OMB('perso')));
-    await clic('[data-role="invite"]'); v('invité : la page d’invitation', await E(() => location.hash === '#invite' && /t’invite à une réunion/.test(document.querySelector('#scene').textContent)));
-    await cap('invite'); await clic('[data-rejoindre="e0"]'); await clic('[data-salle="entrer"]'); v('invité : il attend qu’on le laisse entrer', await E(() => S.salle.etape === 'attente'));
-    await page.waitForTimeout(2500); v('invité : il est entré, sans le volet « Plus »', await E(() => S.salle.etape === 'salle' && !document.querySelector('[data-salle="volet-plus"]')));
-    await clic('[data-salle="quitter"]'); await E(() => fermer()); await clic('[data-role="pro"]');
-    /* 11. visite guidée, toutes les étapes */
-    await E(() => gdAller(0)); let spots = 0, etapes = await E(() => ETAPES.length);
-    for (let i = 0; i < etapes; i++) { await page.waitForFunction((n) => GD.pose === n, i, { timeout: 8000 }); await page.waitForTimeout(320); const s = await E(() => { const e = document.querySelector('#gd-spot'), b = document.querySelector('#gd-bulle'); const r = b.getBoundingClientRect(); return { w: e.offsetWidth, i: GD.i, vis: r.top >= 0 && r.bottom <= innerHeight + 1 && r.left >= 0 && r.right <= innerWidth + 1 }; });
-      if (s.w > 0) spots++; else if (i < etapes - 1) console.log('    étape sans cible', i + 1, await E(() => ETAPES[GD.i][1])); v('visite ' + (i + 1) + ' : la bulle est entière à l’écran', s.vis, s); if (i === 3 || i === 8) await cap('visite-' + (i + 1));
-      await clic('[data-gd-act="suiv"]'); }
-    v('visite : chaque étape qui vise un élément l’a trouvé', spots === etapes - 1, spots); v('visite terminée', await E(() => GD.i === -1 && !document.querySelector('#gd-bulle')));
-    /* 12. jour / nuit */
-    await E(() => { S.mode = 'dark'; appliquerMode(); }); v('Nuit : bleu nuit, jamais noir', await E(() => getComputedStyle(document.body).backgroundColor) === 'rgb(11, 22, 51)');
-    await go('courrier'); await page.waitForTimeout(300);
-    v('Nuit : la boîte mail suit le réglage du prototype (thème « nuit » posé sur le module)', await E((h) => eval(h).shadowRoot.querySelector('.opc').getAttribute('data-theme'), OMB('pro')) === 'nuit');
-    await E(() => { S.mode = 'light'; appliquerMode(); }); v('Jour : la boîte mail repasse en « jour »', await E((h) => eval(h).shadowRoot.querySelector('.opc').getAttribute('data-theme'), OMB('pro')) === 'jour');
-    await E(() => { S.mode = 'light'; appliquerMode(); }); v('Jour : fond clair', await E(() => getComputedStyle(document.body).backgroundColor) === 'rgb(242, 242, 247)');
-    v('aucune erreur JavaScript', errs.length === 0, errs.slice(0, 4));
-    await ctx.close();
-  }
+    /* ── navigation : les sept rubriques et le Profil ── */
+    for (const r of ['messages', 'contacts', 'appels', 'reunions', 'agenda', 'courrier', 'accueil']) { await clic((tel ? '#onglets' : '#cote') + ` a[href="#${r}"]`); vrai('la rubrique ' + r + ' s’ouvre', await ev(() => S.vue) === r && await ev((x) => !!document.querySelector((innerWidth <= 760 ? '#onglets' : '#cote') + ` a[href="#${x}"][aria-current]`), r)); }
+    await clic(tel ? '.grand a[href="#profil"]' : '#cote a.moi'); vrai('le Profil s’ouvre par soi', await ev(() => S.vue) === 'profil');
+    vrai('le Courrier est monté et compte ses non lus', await ev(() => COUR.nl > 0 && !!COUR.inst), await ev(() => COUR.nl));
+
+    /* ── tableau de bord ── */
+    await va('accueil');
+    vrai('le tableau de bord annonce la prochaine réunion du jour', await ev(() => /Visio client/.test(document.querySelector('.prochaine').textContent) && /Dans \d+ min/.test(document.querySelector('.prochaine').textContent)), await ev(() => document.querySelector('.prochaine').textContent));
+    await clic('[data-rappel="r1"]'); vrai('cocher un rappel le barre', await ev(() => RAPPELS[0].fait && !!document.querySelector('.rang.fait')));
+    await clic('[data-action="rappel-ajouter"]'); await page.fill('#rap-t', 'Commander des filtres'); await clic('[data-action="rappel-ok"]'); vrai('ajouter un rappel', await ev(() => RAPPELS.length === 4 && /Commander des filtres/.test(document.querySelector('#scene').textContent) && !document.querySelector('#calque').innerHTML));
+    await clic('.tuile-b a[href="#messages/marc"]'); vrai('un message non lu mène à sa conversation', await ev(() => S.vue === 'messages' && S.id === 'marc'));
+
+    /* ── messages ── */
+    vrai('ouvrir une conversation la marque lue', await ev(() => conv('marc').nl === 0));
+    vrai('au téléphone la barre d’onglets se retire dans une conversation', !tel || await ev(() => getComputedStyle(document.querySelector('#onglets')).display === 'none'));
+    await page.fill('#saisie', 'Le prix arrive dans l’heure.'); vrai('écrire transforme le micro en bouton d’envoi', await ev(() => document.querySelector('#btn-envoi').dataset.action === 'envoyer'));
+    await clic('#btn-envoi'); vrai('le message part et s’affiche', await ev(() => { const m = dernier(conv('marc')); return m.de === 'moi' && m.t === 'Le prix arrive dans l’heure.' && /Le prix arrive/.test(document.querySelector('#fil').textContent) && document.querySelector('#saisie').value === ''; }));
+    await page.waitForFunction(() => conv('marc').ecrit, null, { timeout: 3000 }).catch(() => {}); vrai('le correspondant écrit (trois points)', await ev(() => !!document.querySelector('.ecrit')));
+    await page.waitForFunction(() => dernier(conv('marc')).de === 'marc' && !conv('marc').ecrit, null, { timeout: 6000 }).catch(() => {}); vrai('puis il répond, et mon message passe à « Lu »', await ev(() => dernier(conv('marc')).de === 'marc' && conv('marc').msgs.slice(-2)[0].lu && !document.querySelector('.ecrit')));
+    /* le menu d'un message : clic droit, ou appui long */
+    const menu = async (k) => { const r = await ev((i) => { const e = [...document.querySelectorAll('#fil [data-msg]')].slice(i)[0]; e.scrollIntoView({ block: 'center' }); const q = e.getBoundingClientRect(); return { x: q.left + 20, y: q.top + q.height / 2 }; }, k);
+      if (p.tactile) { const c = await ctx.newCDPSession(page); await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: r.x, y: r.y, id: 1 }] }); await page.waitForTimeout(620); await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await c.detach(); } else await page.mouse.click(r.x, r.y, { button: 'right' }); await page.waitForTimeout(150); };
+    await menu(0); vrai(p.tactile ? 'l’appui long ouvre le menu du message' : 'le clic droit ouvre le menu du message', await ev(() => { const m = document.querySelector('.menu-ctx'); if (!m) return false; const r = m.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }));
+    await clic('.menu-ctx [data-reac="👍"]'); vrai('réagir pose la réaction sous la bulle', await ev(() => conv('marc').msgs[0].reac.includes('👍') && !!document.querySelector('.reacs') && !document.querySelector('.menu-ctx')));
+    await menu(0); await clic('.menu-ctx [data-ctx="repondre"]'); vrai('Répondre cite le message au-dessus de la saisie', await ev(() => !!S.rep && !!document.querySelector('.compo .rep')));
+    await page.fill('#saisie', 'Oui, c’est possible.'); await clic('#btn-envoi'); vrai('la réponse porte sa citation', await ev(() => { const m = conv('marc').msgs.filter((x) => x.de === 'moi').pop(); return !!m.rep && !S.rep && !!document.querySelector('.msg .cite'); }));
+    await menu(-1); vrai('mon message propose « Supprimer »', await ev(() => !!document.querySelector('.menu-ctx [data-ctx="supprimer"]')));
+    { const n = await ev(() => conv('marc').msgs.length); await clic('.menu-ctx [data-ctx="supprimer"]'); vrai('supprimer retire le message', await ev((x) => conv('marc').msgs.length === x - 1, n)); }
+    await page.keyboard.press('Escape');
+    await clic('[data-action="joindre"]'); await clic('#calque [data-joint="photo"]'); vrai('joindre une photo l’envoie', await ev(() => dernier(conv('marc')).type === 'photo' && !document.querySelector('#calque').innerHTML));
+    await clic('[data-action="joindre"]'); await clic('#calque [data-joint="sondage"]'); await page.fill('#sd-q', 'Quel jour ?'); await page.fill('#sd-1', 'Lundi'); await page.fill('#sd-2', 'Mardi'); await clic('[data-action="sondage-ok"]'); vrai('créer un sondage l’envoie', await ev(() => dernier(conv('marc')).type === 'sondage' || conv('marc').msgs.slice(-2).some((m) => m.type === 'sondage')));
+    await va('messages/equipe'); await clic('[data-vote]', 1); vrai('voter dans un sondage compte la voix', await ev(() => { const m = conv('equipe').msgs.find((x) => x.type === 'sondage'); return m.v === 1 && m.opts[1][1] === 2 && /tu as voté/.test(document.querySelector('.sondage').textContent); }));
+    await clic('[data-jouer]'); vrai('écouter un message vocal anime la forme d’onde', await ev(() => !!document.querySelector('.vocal.joue')));
+    await clic('[data-action="infos-conv"]'); vrai('les infos du canal listent ses membres', await ev(() => document.querySelectorAll('#calque .rang.av-g').length === 5));
+    await clic('[data-conv-regl="sourdine"]'); vrai('la sourdine se règle', await ev(() => conv('equipe').sourdine === 1 && document.querySelector('[data-conv-regl="sourdine"]').getAttribute('aria-checked') === 'true')); await clic('#calque [data-ferme]');
+    await va('messages'); await page.fill('#rech', 'compresseur'); await page.waitForTimeout(100); vrai('la recherche filtre les conversations', await ev(() => { const l = document.querySelectorAll('#liste-conv .ligne'); return l.length >= 2 && l.length < C.length && !document.querySelector('.epingles'); })); await page.fill('#rech', ''); 
+    await clic('[data-action="nouveau-message"]'); await clic('[data-action="nouveau-groupe"]'); await page.fill('#g-nom', 'Chantier Minimes'); await clic('[data-pe-inv="karim"]'); await clic('[data-pe-inv="leo"]'); await clic('[data-action="groupe-creer"]');
+    vrai('créer un groupe l’ouvre', await ev(() => { const c = conv(S.id); return S.vue === 'messages' && c && c.n === 'Chantier Minimes' && c.membres.length === 2; }));
+
+    /* ── contacts ── */
+    await va('contacts'); await clic('a[href="#contacts/thomas"]'); vrai('la fiche d’un contact s’ouvre', await ev(() => S.id === 'thomas' && /Froid Atlantique/.test(document.querySelector('.fiche').textContent)));
+    await clic('.fiche [data-ecrire="thomas"]'); vrai('« Message » ouvre la conversation', await ev(() => S.vue === 'messages' && S.id === 'thomas'));
+    await va('contacts'); await clic('[data-action="contact-ajouter"]'); await page.fill('#ct-nom', 'Paul Lefèvre'); await page.fill('#ct-soc', 'Garage Lefèvre'); await clic('[data-action="contact-ok"]'); vrai('ajouter un contact ouvre sa fiche', await ev(() => S.vue === 'contacts' && P[S.id] && P[S.id].n === 'Paul Lefèvre'));
+
+    /* ── appels ── */
+    await va('appels'); await clic('[data-filtre-appels="manques"]'); vrai('« Manqués » ne garde que les manqués', await ev(() => document.querySelectorAll('.ligne').length === 2 && document.querySelectorAll('.ligne.manque').length === 2)); await clic('[data-filtre-appels="tous"]');
+    await clic('a[href="#appels/a4"]'); vrai('la fiche d’un appel montre l’historique', await ev(() => S.id === 'a4' && /24 min/.test(document.querySelector('.fiche').textContent)));
+    await clic('.fiche [data-appeler="james"]'); vrai('l’appel sonne', await ev(() => S.appel && S.appel.etat === 'sonne' && !!document.querySelector('.appel.sonne')));
+    await page.waitForFunction(() => S.appel && S.appel.etat === 'cours', null, { timeout: 5000 }).catch(() => {}); vrai('puis il est en cours, avec sa durée', await ev(() => S.appel.etat === 'cours' && !!document.querySelector('[data-duree]')));
+    await clic('[data-appel="muet"]'); vrai('Silence coupe le micro', await ev(() => S.appel.muet && document.querySelector('[data-appel="muet"]').getAttribute('aria-pressed') === 'true'));
+    await clic('[data-appel="camera"]'); vrai('Caméra passe en vidéo', await ev(() => S.appel.video && !!document.querySelector('.appel.video .vous')));
+    await clic('[data-appel="clavier"]'); vrai('Clavier montre les touches', await ev(() => document.querySelectorAll('.clavier button').length === 12)); await clic('[data-appel="clavier"]');
+    await clic('[data-appel="reduire"]'); vrai('réduire l’appel laisse une pastille', await ev(() => !!document.querySelector('#mini') && !document.querySelector('#plein').innerHTML));
+    await clic('#mini'); vrai('la pastille ramène à l’appel', await ev(() => !!document.querySelector('.appel') && !document.querySelector('#mini')));
+    { const n = await ev(() => APPELS.length); await clic('[data-appel="raccrocher"]'); vrai('raccrocher range l’appel dans l’historique', await ev((x) => !S.appel && APPELS.length === x + 1 && APPELS[0].qui === 'james' && !document.querySelector('#plein').innerHTML, n)); }
+    await va('appels'); await clic('[data-action="appel-entrant"]'); vrai('un appel entrant propose Refuser et Répondre', await ev(() => S.appel.etat === 'entrant' && !!document.querySelector('[data-appel="repondre"]')));
+    await clic('[data-appel="repondre"]'); vrai('répondre met l’appel en cours', await ev(() => S.appel.etat === 'cours')); await clic('[data-appel="raccrocher"]');
+    await clic('[data-action="nouvel-appel"]'); vrai('« Nouvel appel » liste les contacts, audio et vidéo', await ev(() => document.querySelectorAll('#calque [data-appeler]').length >= 16)); await clic('#calque [data-ferme]');
+
+    /* ── agenda ── */
+    await va('agenda'); vrai('la semaine montre sept jours, aujourd’hui choisi', await ev(() => document.querySelectorAll('.jour-c').length === 7 && document.querySelector('.jour-c.auj').getAttribute('aria-pressed') === 'true'));
+    await clic('[data-ag-vue="mois"]'); vrai('le mois montre six semaines', await ev(() => document.querySelectorAll('.mois button').length === 42)); await clic('[data-ag-vue="semaine"]');
+    await clic('[data-ag-sem="1"]'); vrai('la semaine suivante s’affiche', await ev(() => S.agSem === 1)); await clic('[data-ag-auj]'); vrai('« Revenir à aujourd’hui »', await ev(() => S.agSem === 0 && S.agJour === 0));
+    await clic('[data-action="programmer"]'); await page.fill('#pe-titre', 'Visite de chantier'); await clic('[data-pe-type="rdv"]'); vrai('un rendez-vous demande un lieu, pas des invités', await ev(() => !document.querySelector('#pe-lieu-z').hidden && document.querySelector('#pe-inv-z').hidden));
+    await page.selectOption('#pe-jour', '1'); await page.fill('#pe-lieu', 'Résidence Les Minimes'); await clic('[data-action="evt-enregistrer"]');
+    vrai('une bannière annonce l’ajout', await ev(() => /Ajouté à ton agenda/.test((document.querySelector('.banniere') || {}).textContent || '')));
+    vrai('le rendez-vous se place au bon jour de l’agenda', await ev(() => { const e = EVTS[EVTS.length - 1]; return e.titre === 'Visite de chantier' && e.j === 1 && e.type === 'rdv' && S.agJour === 1 && /Visite de chantier/.test(document.querySelector('#scene').textContent) ; }));
+    await clic('.evt[data-evt]'); vrai('toucher un événement ouvre sa fiche', await ev(() => !!document.querySelector('#calque .feuille h2')));
+    { const n = await ev(() => EVTS.length); await clic('#calque [data-action="evt-supprimer"]'); vrai('supprimer un événement', await ev((x) => EVTS.length === x - 1 && !document.querySelector('#calque').innerHTML, n)); }
+
+    /* ── réunions ── */
+    await va('reunions'); await clic('a[href="#reunions/e6"]'); await clic('[data-action="compte-rendu"]'); vrai('une réunion passée a son compte rendu', await ev(() => /Décisions/i.test(document.querySelector('#calque').textContent))); await clic('#calque [data-ferme]');
+    await va('reunions'); await clic('a[href="#reunions/e1"]'); await clic('.fiche [data-rejoindre="e1"]'); vrai('« Rejoindre » passe par la préparation', await ev(() => S.salle && S.salle.etape === 'prepa' && !!document.querySelector('.prepa')));
+    await clic('[data-salle="cam"]'); vrai('couper la caméra avant d’entrer', await ev(() => !S.salle.cam && !!document.querySelector('.apercu.sans'))); await clic('[data-salle="cam"]');
+    await clic('[data-salle="entrer"]'); vrai('entrer ouvre la salle', await ev(() => S.salle.etape === 'salle' && document.querySelectorAll('#tuiles .tuile').length === S.salle.presents.length + 1));
+    await clic('[data-salle="admettre"]'); vrai('admettre quelqu’un de la salle d’attente', await ev(() => S.salle.attente.length === 0 && S.salle.presents.includes('ines') && !document.querySelector('.attente')));
+    await clic('[data-salle="micro"]'); vrai('couper son micro', await ev(() => !S.salle.micro && !!document.querySelector('.ctl.off')));
+    await clic('[data-salle="main"]'); vrai('lever la main', await ev(() => S.salle.main && !!document.querySelector('.tuile .main')));
+    await clic('[data-salle="volet"][data-v="discussion"]'); await page.fill('#salle-msg', 'Je partage le planning.'); await clic('[data-salle="chat-envoyer"]'); vrai('écrire dans la discussion', await ev(() => S.salle.chat.slice(-1)[0].t === 'Je partage le planning.' && /Je partage le planning/.test(document.querySelector('#salle-chat').textContent)));
+    await clic('[data-salle="volet"][data-v="options"]'); await clic('.volet [data-salle="rec"]'); vrai('enregistrer affiche REC', await ev(() => S.salle.rec && !!document.querySelector('.rec')));
+    await clic('.volet [data-salle="st"]'); vrai('les sous-titres s’affichent', await ev(() => !!document.querySelector('#soustitres'))); await clic('.volet [data-salle="volet"]');
+    await clic('.bas [data-salle="partage"]'); vrai('partager l’écran ouvre le partage avec ses outils de dessin', await ev(() => S.salle.partage && !!document.querySelector('#an-tuile #an-barre') && document.querySelector('#an-vue').getBoundingClientRect().height >= 100), await ev(() => document.querySelector('#an-vue') && document.querySelector('#an-vue').getBoundingClientRect().height));
+    await clic('.bas [data-salle="partage"]'); vrai('arrêter le partage', await ev(() => !S.salle.partage && !document.querySelector('#an-tuile')));
+    await clic('[data-salle="quitter"]'); vrai('quitter propose d’envoyer un compte rendu', await ev(() => !S.salle && !document.querySelector('#plein').innerHTML && !!document.querySelector('#calque [data-action="cr-envoyer"]')));
+    await clic('#calque [data-action="cr-envoyer"]'); vrai('le compte rendu part dans le canal de l’équipe', await ev(() => /Compte rendu/.test(dernier(conv('equipe')).t)));
+    await va('reunions'); await clic('[data-action="rejoindre-code"]'); await page.fill('#code', '123456789'); await clic('[data-action="code-ok"]'); vrai('rejoindre avec un code', await ev(() => S.salle && /123 456/.test(S.salle.e.titre))); await clic('[data-salle="annuler"]');
+    await va('messages/equipe'); await clic('.conv [data-appeler="equipe"]'); vrai('appeler un canal ouvre une réunion', await ev(() => S.salle && S.salle.etape === 'salle')); await clic('[data-salle="quitter"]'); await clic('#calque [data-ferme]');
+
+    /* ── profil ── */
+    await va('profil'); await clic('[data-action="statut"]'); await clic('[data-statut="npd"]'); vrai('changer de statut se voit', await ev(() => S.statut === 'npd' && /Ne pas déranger/.test(document.querySelector('#scene').textContent)));
+    await clic('[data-regl="heuresPro"]'); vrai('un réglage bascule', await ev(() => S.regl.heuresPro === false && document.querySelector('[data-regl="heuresPro"]').getAttribute('aria-checked') === 'false'));
+    await clic('[data-theme-choix="dark"]'); vrai('le thème Nuit s’applique', await ev(() => document.documentElement.dataset.theme === 'dark' && getComputedStyle(document.body).backgroundColor === 'rgb(11, 22, 51)'));
+    await clic('[data-theme-choix="light"]'); vrai('le thème Jour s’applique', await ev(() => getComputedStyle(document.body).backgroundColor === 'rgb(242, 242, 247)'));
+    await clic('[data-action="profil-modifier"]'); await page.fill('#pf-role', 'Dirigeante'); await clic('[data-action="profil-ok"]'); vrai('modifier son profil', await ev(() => P.moi.r === 'Dirigeante' && /Dirigeante/.test(document.querySelector('#scene').textContent)));
+    for (const a of ['espace', 'abonnement', 'a-propos']) { await clic(`[data-action="${a}"]`); vrai('la feuille « ' + a + ' » s’ouvre et se ferme', await ev(() => !!document.querySelector('#calque .feuille'))); await page.keyboard.press('Escape'); vrai('Échap ferme la feuille « ' + a + ' »', await ev(() => !document.querySelector('#calque').innerHTML)); }
+    /* la touche Retour ferme la feuille ouverte */
+    await va('agenda'); await clic('[data-action="programmer"]'); await page.goBack(); await page.waitForTimeout(150); vrai('la touche Retour ferme la feuille', await ev(() => !document.querySelector('#calque').innerHTML));
+    vrai('la page ne déborde pas de côté', await ev((w) => document.documentElement.scrollWidth <= w + 1, p.w));
+    vrai('aucune erreur JavaScript', errs.length === 0, errs.slice(0, 3));
+    await ctx.close(); }
   console.log(`${ok} ✓  ${ko} ✗`); await b.close(); process.exit(ko ? 1 : 0);
 })();
