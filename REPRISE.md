@@ -57,6 +57,26 @@ des choses comme d'habitude » — ne rien lui annoncer « fait » qui ne soit p
 documents arrivent dans `scratchpad/proto-final/refonte/`. Version d'étape publiée : Version 62 de l'artefact du prototype
 (atelier + menu final, AVANT relecture adverse).
 
+**Mandat de Justin (16 novembre, 22 h 10), mot pour mot :** « Fais tout ce qu'il y a à faire. Il faut que tout fonctionne pour
+quand t'as tout fini. Donc tu testes tout. Je veux que l'application soit parfaite, réussie, compréhensive pour tout le monde, même
+pour les débutants, simple à comprendre. Que tu ranges tout bien comme il faut, que tu gères toute l'application, que tu testes
+tous les boutons, que tout fonctionne bien, que tout soit bien gardé. Il faut que l'application soit prête à 100 %. Et quand elle
+sera publique, je veux pas un mauvais retour des clients comme quoi il y a des bugs. […] À toi de jouer. »
+→ Plus de question à lui poser sur le rangement : on décide, on montre. Les trois questions restées sans réponse sont donc
+TRANCHÉES ainsi : (1) pas de ligne « Factures » au menu (il a redit « Comptabilité, ça c'est bon » ; le petit gris « Factures,
+paiements, paie » reste sous Comptabilité) ; (2) un écran « Mon entreprise » EST à faire (SIRET, logo, horaires, rendez-vous en
+ligne, boîtes mail : aujourd'hui éparpillés, et une facture est bloquée sans SIRET) ; (3) le menu de chaque personne SUIT ses
+cases « Voir » d'Équipe, et les cases Créer / Modifier / Supprimer qui n'agissent pas sont branchées ou retirées (un droit qui
+ne fait rien est un bug qu'un client signalerait).
+⚠️ À lui redire sans détour à la fin : ce qui devient « prêt à 100 % » est le PROTOTYPE (le modèle, entreprise fictive, aucun
+serveur). Le rendre public pour des clients, c'est construire la vraie application à partir de lui — un chantier à part, à lui
+présenter avec son plan et sa durée quand le prototype est validé.
+⚠️ Les workflows à plusieurs agents ne se lancent plus sans qu'il le demande (réglage de la session revenu à la normale à 21 h 55) :
+ceux qui tournent finissent ; la suite se fait par des agents lancés un par un (quatre à la fois au plus, la machine a 4 cœurs).
+File d'attente des lots, dans l'ordre : boîte mail (en construction) ; compositeur en grand (après les corrections du lot atelier,
+même fichier `page.source`) ; Matériel, Véhicules, Temps de travail (après leurs spécifications `refonte/*.md`) ; « Mon entreprise » ;
+droits d'Équipe ; puis la campagne (`CAMPAGNE.md`), les corrections, le guide des nouveautés, le dernier passage.
+
 **État au 16 novembre, 20 h 45 :**
 - Lot « atelier » et lot « menu » : RELANCÉS (workflow « prototype-final-deux-lots » : appliquer → relire en adverse → corriger →
   recontrôler, chaque étape poussée). Rien n'est encore sur la branche tant qu'un commit de lot n'y paraît pas (`git log`).
