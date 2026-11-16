@@ -47,7 +47,7 @@ qui ne touchait ni `server-msg/` ni le banc (même mort le 5 novembre) ; en loca
   « les NOUVEAUX identifiants ont une autre échéance », obtenu `[false, true, true, true, false]`. Mécanisme lu : `demarrerAppel` lance la lecture des identifiants de l'appelant SANS
   l'attendre (`c.promesseIce = lireIce()`, `source-serveur.js`), et le banc avance l'horloge de 8 s dès que l'appelé a vu la sonnerie (`test-984.js`, ligne 644). Si la lecture arrive au
   service APRÈS l'avance, les premiers identifiants et les renouvelés (600 ms plus tard) tombent dans la même seconde : même échéance. La parade est d'attendre, au geste, que la première
-  lecture de l'appelant ait été servie avant d'avancer. Pas corrigé : hors du périmètre demandé, tâche proposée à Justin.
+  lecture de l'appelant ait été servie avant d'avancer. Pas corrigé : hors du périmètre demandé, signalé à Justin dans le compte rendu du chantier.
 - Trois fenêtres du service courent encore sur l'heure réelle (l'horloge du service = l'heure réelle + le décalage) : la sonnerie de l'appel principal, la minute du débit, la
   rétention de 30 s. Pire relevé sous charge, 300 passages : 0,68 s pour 39 s, 0,45 s pour 60 s, 0,07 s pour 30 s. Le banc les chronomètre et dit « machine trop lente » si l'une est dépassée.
 - **`test-907` porte la même famille de pari** : `T.dort(700)` et `T.dort(900)` autour d'une grâce de présence de 500 ms (lignes 266 à 271), et des `fermer(); attendreFerme();`
