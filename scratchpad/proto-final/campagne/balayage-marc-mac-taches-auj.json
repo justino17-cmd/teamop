@@ -1,0 +1,597 @@
+{
+ "profil": "mac",
+ "qui": "marc",
+ "route": "taches",
+ "etiq": "auj",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Exporter en PDF",
+   "data": "data-texport=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Exporter les tâches",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 164,
+   "h": 46
+  },
+  {
+   "i": 1,
+   "lib": "Marc 1",
+   "data": "data-tkxqui=marc",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 76,
+   "h": 44
+  },
+  {
+   "i": 2,
+   "lib": "Julie 1",
+   "data": "data-tkxqui=julie",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 74,
+   "h": 44
+  },
+  {
+   "i": 3,
+   "lib": "Aujourd’hui 7",
+   "data": "data-tonglet=auj",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 141,
+   "h": 40
+  },
+  {
+   "i": 4,
+   "lib": "À venir 5",
+   "data": "data-tonglet=avenir",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 106,
+   "h": 40
+  },
+  {
+   "i": 5,
+   "lib": "Faites",
+   "data": "data-tonglet=faites",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 75,
+   "h": 40
+  },
+  {
+   "i": 6,
+   "lib": "Les tâches de qui",
+   "data": "data-tqui=1",
+   "touche": true,
+   "change": [],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 220,
+   "h": 46
+  },
+  {
+   "i": 7,
+   "lib": "Chercher une tâche, un client, un numéro",
+   "data": "data-tkxcherche=1",
+   "touche": true,
+   "change": [],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 532,
+   "h": 45
+  },
+  {
+   "i": 8,
+   "lib": "Ranger par",
+   "data": "data-tkxrang=1",
+   "touche": true,
+   "change": [],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 118,
+   "h": 44
+  },
+  {
+   "i": 9,
+   "lib": "En retard 2",
+   "data": "data-tkxfiltre=retard",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 119,
+   "h": 44
+  },
+  {
+   "i": 10,
+   "lib": "Urgentes 2",
+   "data": "data-tkxfiltre=urgent",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 120,
+   "h": 44
+  },
+  {
+   "i": 11,
+   "lib": "Sans date 1",
+   "data": "data-tkxfiltre=sansdate",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 125,
+   "h": 44
+  },
+  {
+   "i": 12,
+   "lib": "Ajouter une tâche",
+   "data": "data-tajout=1",
+   "touche": true,
+   "change": [],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1001,
+   "h": 44
+  },
+  {
+   "i": 13,
+   "lib": "Détails",
+   "data": "data-tnouv=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Nouvelle tâche",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 53,
+   "h": 44
+  },
+  {
+   "i": 14,
+   "lib": "💡OP GESTION te propose 26 tâches · 8 urgentesRelancer Frigo",
+   "data": "data-tsuggs=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "OP GESTION te propose",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1128,
+   "h": 69
+  },
+  {
+   "i": 15,
+   "lib": "Tout choisir",
+   "data": "data-tkxtout=devis",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 74,
+   "h": 44
+  },
+  {
+   "i": 16,
+   "lib": "Choisir : Rappeler Mme Bernard pour le devis des cassettes",
+   "data": "data-tsel=t1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 17,
+   "lib": "!Rappeler Mme Bernard pour le devis des cassettes Devis D-20",
+   "data": "data-tmodif=t1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "!Rappeler Mme Bernard pour le devis des cassettes",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1022,
+   "h": 70
+  },
+  {
+   "i": 18,
+   "lib": "Choisir : Relancer M. Durand pour le devis de la pompe de re",
+   "data": "data-tsel=t12",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 19,
+   "lib": "Relancer M. Durand pour le devis de la pompe de relevage Dev",
+   "data": "data-tmodif=t12",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Relancer M. Durand pour le devis de la pompe de relevage",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1022,
+   "h": 70
+  },
+  {
+   "i": 20,
+   "lib": "Choisir : Commander 2 condensateurs 5 µF",
+   "data": "data-tsel=t2",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 21,
+   "lib": "Commander 2 condensateurs 5 µF Commande pour l’intervention ",
+   "data": "data-tmodif=t2",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Commander 2 condensateurs 5 µF",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1022,
+   "h": 70
+  },
+  {
+   "i": 22,
+   "lib": "Tout choisir",
+   "data": "data-tkxtout=facture",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 74,
+   "h": 44
+  },
+  {
+   "i": 23,
+   "lib": "Choisir : Vérifier l’attestation TVA 10 % des Durand",
+   "data": "data-tsel=t3",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 24,
+   "lib": "Vérifier l’attestation TVA 10 % des Durand Facture FAC-2026-",
+   "data": "data-tmodif=t3",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Vérifier l’attestation TVA 10 % des Durand",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1022,
+   "h": 92
+  },
+  {
+   "i": 25,
+   "lib": "Choisir : Relancer le paiement de la facture FAC-2026-0128",
+   "data": "data-tsel=t13",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 26,
+   "lib": "!Relancer le paiement de la facture FAC-2026-0128 Facture FA",
+   "data": "data-tmodif=t13",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "!Relancer le paiement de la facture FAC-2026-0128",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1022,
+   "h": 70
+  },
+  {
+   "i": 27,
+   "lib": "Tout choisir",
+   "data": "data-tkxtout=inter",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 74,
+   "h": 44
+  },
+  {
+   "i": 28,
+   "lib": "Choisir : Prévenir M. Durand 30 min avant la mise en service",
+   "data": "data-tsel=t11",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 29,
+   "lib": "Prévenir M. Durand 30 min avant la mise en service de sa PAC",
+   "data": "data-tmodif=t11",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Prévenir M. Durand 30 min avant la mise en service de sa PAC",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1022,
+   "h": 70
+  },
+  {
+   "i": 30,
+   "lib": "Choisir : Planifier le dépannage climatisation de Mme Roux",
+   "data": "data-tsel=t14",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 31,
+   "lib": "Planifier le dépannage climatisation de Mme Roux Interventio",
+   "data": "data-tmodif=t14",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Planifier le dépannage climatisation de Mme Roux",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 1022,
+   "h": 70
+  }
+ ],
+ "err": []
+}

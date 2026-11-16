@@ -1481,6 +1481,10 @@ var CSS = `
   .opc:where([data-fmt="mac"]) .cat{font-size:13px}
   .opc:where([data-fmt="mac"]) .rsuivi .rs-b{font-size:13px}
   .opc:where([data-fmt="mac"]) .rquick button{font-size:14px}
+  .opc:where([data-fmt="mac"]) .m-from{font-size:15px}
+  .opc:where([data-fmt="mac"][data-etroit]) .list .lb-title{font-size:15px}   /* D16 : « Boîte de réception » ne se tronque plus entre « Sélectionner » et le bouton d'écriture */
+  /* D16 : le pied de la colonne (Ajouter une boîte mail, Réglages) restait sous le pli à 1280×720, sans que rien ne dise qu'on pouvait défiler : il reste collé en bas */
+  .opc .side-foot{position:sticky;bottom:0;z-index:2;background:var(--side-pad);border-top:var(--hair) solid var(--sep-mac)}
   /* D03 : les catégories portent leur MOT sur une seule rangée qui défile (le symbole seul ne disait rien à un artisan) */
   .opc:where([data-fmt="mac"]) .catbar{flex-wrap:nowrap}
   .opc:where([data-fmt="mac"]) .cat{flex:none;height:30px;min-width:0;padding:0 11px;gap:6px;font-size:13px}
@@ -1492,6 +1496,9 @@ var CSS = `
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn{width:100%;height:auto;min-height:44px;padding:8px 12px;white-space:normal;text-align:center;justify-content:center;line-height:1.25}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn.primary{grid-column:1/-1;background:var(--tint);color:var(--on-tint);box-shadow:none;font-weight:600}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn:not(.primary){background:var(--btn);color:var(--label);box-shadow:0 0 0 1px var(--btn-edge);font-weight:500}
+  /* D16 : « Boîte de réception » se tronquait en « Boîte de récept… » sur un téléphone de 360 px (34 px de gras) */
+  .opc:where([data-fmt="phone"]) .list .large-title{font-size:clamp(21px,7.2vw,31px);line-height:1.2;letter-spacing:-.015em}
+  .opc:where([data-fmt="phone"],[data-fmt="pad"]) .rquick button{min-height:44px}   /* cible au doigt */
   .opc .hpast{margin-right:6px}
   .opc .msg.sel .hpast{background:rgba(255,255,255,.24);color:#fff}
 `;
@@ -2333,7 +2340,7 @@ var MARKUP = `
     if(state.folder==="scheduled") return msgs.length?plural(msgs.length,"envoi programmé","envois programmés"):"aucun envoi programmé";
     if(state.folder==="drafts") return msgs.length?plural(msgs.length,"brouillon","brouillons"):"aucun brouillon";
     return msgs.length?plural(msgs.length,"message","messages"):"aucun message"; }
-  function renderList(){
+  function renderList(soft){
     syncCat();
     $("#list").classList.toggle("multi",!!state.multi); app.classList.toggle("multi-on",!!state.multi); $("#rows").setAttribute("aria-multiselectable",String(!!state.multi));
     var stg=$("#btnSelect"); stg.textContent=state.multi?"OK":"Sélectionner"; stg.setAttribute("aria-pressed",String(!!state.multi));
@@ -2351,6 +2358,11 @@ var MARKUP = `
     fb.setAttribute("aria-label",state.filter==="all"?"Filtrer les messages":"Filtrer les messages (actif : "+FILTER_NAMES[state.filter]+")");
     renderCats();
     paintStatus();
+    if(soft===true&&!state.multi&&$('#rows .msg[data-id="'+state.selected+'"]')){   // D14 : choisir une ligne ne redessine pas les centaines d'autres — on déplace la marque de sélection
+      var rowsEl=$("#rows"); $$('.msg.sel,.msg[tabindex="0"]',rowsEl).forEach(function(e){ e.classList.remove("sel"); e.setAttribute("aria-selected","false"); e.tabIndex=-1; });
+      var nr=$('.msg[data-id="'+state.selected+'"]',rowsEl), sm=msgById(state.selected); nr.classList.add("sel"); nr.setAttribute("aria-selected","true"); nr.tabIndex=0;
+      if(sm&&sm.read){ nr.classList.remove("unread"); var srx=nr.querySelector(".sr"); if(srx) srx.textContent=srx.textContent.replace("Non lu. ",""); }
+      renderSelBar(); return; }
     var ko=f.journal?[]:boitesEnEchec(), banniere=ko.length&&msgs.length?'<div class="loaderr" role="alert"><span>'+H(ko.map(function(a){ return a.email+" ne répond plus"+(LOAD.msgErr[a.id]?" : "+LOAD.msgErr[a.id].replace(/^[^:]*: /,""):""); }).join(" · "))+'</span>'+(CAP.gererBoites?'<button type="button" class="lnk" data-gererboites="1">Reconnecter</button>':'')+'<button type="button" class="lnk" data-retry="1">Réessayer</button></div>':'';
     // D03 : ce qui est rangé dans une autre catégorie ne disparaît pas sans le dire (une facture de fournisseur n'était vue nulle part)
     var ail=(catActive()&&state.cat!=="tout")?folderMessages("inbox").filter(function(m){ return !m.read&&effCat(m)!==state.cat; }):[];
@@ -2770,7 +2782,7 @@ var MARKUP = `
     var hadFocus=viaKb||$("#rows").contains(actif());
     state.selected=id; if(!m.read) m.read=true;
     var rang=listMessages().indexOf(m); if(rang>=(state.lim||LIGNES)) state.lim=rang+60;   // D14 : la ligne choisie est toujours dans la page
-    renderSidebar(); renderList(); renderReading(); persist();
+    renderSidebar(); renderList(true); renderReading(); persist();
     var el=$('.msg[data-id="'+id+'"]');
     if(isPhone()) go("reading");
     else if(el){ var ls=$("#listScroll"), y0=ls.scrollTop; el.scrollIntoView({block:"nearest"}); snapTitle(y0); if(hadFocus) el.focus({preventScroll:true}); }
@@ -2992,14 +3004,14 @@ var MARKUP = `
   function openMsgMenu(id,anchor){
     var m=msgById(id); if(!m) return;
     var own=m.folder==="sent"||m.folder==="drafts"||m.folder==="scheduled", items=[];
-    if(!own||m.folder==="sent") items.push({id:"reply",label:"Répondre",icon:I.reply},{id:"replyAll",label:"Répondre à tous",icon:I.replyAll},{id:"forward",label:"Transférer",icon:I.forward});
+    // D09/D11 : SIX gestes au plus (il y en avait dix, le menu sortait de l'écran) ; « Répondre à tous », « Transférer », « Ranger ailleurs », « Indésirable » restent dans la barre de lecture
+    if((!own||m.folder==="sent")&&m.folder!=="junk") items.push({id:"reply",label:"Répondre",icon:I.reply});
     if(m.folder==="drafts"||m.folder==="scheduled") items.push({id:"editDraft",label:"Modifier",icon:I.compose||I.forward});
     items.push({id:m.read?"unread":"markRead",label:m.read?"Marquer comme non lu":"Marquer comme lu",icon:m.read?I.unread:I.mail},
       {id:"flag",label:m.flagged?"Retirer le drapeau":"Marquer d’un drapeau",icon:I.flag});
-    if(m.folder==="inbox") items.push({id:"moveCat",label:"Ranger ailleurs…",icon:I.moveTo});
-    if(peutRemettre(m)&&m.folder!=="junk") items.push({id:"toInbox",label:REMETTRE,icon:I.inbox});
+    if(m.folder==="junk") items.push({id:"notJunk",label:"Ce n’est pas un indésirable",icon:I.inbox});
+    else if(peutRemettre(m)) items.push({id:"toInbox",label:REMETTRE,icon:I.inbox});
     else if(m.folder!=="archive"&&m.folder!=="trash") items.push({id:"archive",label:"Archiver",icon:I.archive});
-    if(m.folder==="junk") items.push({id:"notJunk",label:"Ce n’est pas un indésirable",icon:I.inbox}); else if(m.from&&!own) items.push({id:"junk",label:"Indésirable",icon:I.junk});
     items.push({id:"trash",label:m.folder==="trash"?"Supprimer définitivement":"Supprimer",icon:I.trash,danger:true},{id:"pick",label:"Sélectionner plusieurs…",icon:I.check});
     openMenu(anchor,{label:"Actions sur le message",sheet:true,title:m.subject||"(Sans objet)",items:items,onPick:function(a){
       if(a==="pick"){ setMulti(true,id); return; }
