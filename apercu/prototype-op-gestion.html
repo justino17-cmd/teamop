@@ -5060,7 +5060,7 @@ function docBarres(){
 new MutationObserver(() => docBarres()).observe(document.documentElement, { childList:true, subtree:true });
 /* « À faire » : ce qu'on ajoute d'un geste (une facture à récupérer, un devis à relancer) s'affiche sur le tableau de bord */
 let AFAIRE_AJOUTS = [];
-function afaireAjouter(t, s){ if (AFAIRE_AJOUTS.some(x => x.t === t)) { toast('Déjà dans « À faire »'); return; } AFAIRE_AJOUTS.push({ t, s, c:'var(--orange)' }); toast('Ajouté à « À faire » sur le tableau de bord'); }
+function afaireAjouter(t, s){ if (AFAIRE_AJOUTS.some(x => x.t === t)) { toast('Déjà dans « À faire »'); return; } AFAIRE_AJOUTS.push({ t, s, c:'var(--orange)' }); toast('Ajouté à « À faire » sur l’accueil'); }
 
 /* ══ « EN GRAND » : un document s'ouvre à sa taille réelle, une feuille A4 sur tout l'écran (Justin, 1er novembre 2026 :
    « il faut un PDF en grand, une vraie facture »). On y montre le MÊME document que celui qui part — une copie, réduite
@@ -11284,9 +11284,11 @@ function rlPied(feuille){
   const echafaudage = enApp() || feuille ? '' : '<div class="bandeau-proto mini" style="padding:8px 10px">Prototype : rien n’est enregistré. Recharge pour repartir de zéro.</div>';
   return `<div class="pied${feuille ? ' fm-pied' : ''}">${feuille ? '<span class="surtitre">Apparence</span>' : ''}${segMode()}${nv}${barre}${sortir}${echafaudage}</div>`;
 }
+/* la ligne sous le nom : la fonction que la personne a dans l'entreprise (Gérant, Secrétariat, Technicienne), pas le nom du rôle de revue */
+const sousMoi = R => { const p = typeof SESSION !== 'undefined' && SESSION ? eqDe(SESSION) : null; return p && p.role ? p.role : (ROLE === 'tech' ? (H_GENS[R.qui] || {}).role || R.l : R.l); };
 function rlMenu(base, sansMoi){
   const R = ROLES[ROLE], moiOk = RL_ACTIF && !sansMoi;
-  const moi = moiOk ? `<div class="rl-moi"><span class="rl-av" style="--c:${(H_GENS[R.qui] || {}).c || 'var(--fill)'}">${R.ic}</span><span><b>${esc(ROLE === 'client' ? CLIENTS[RL_CLI.cli].nom : H_NOM(R.qui))}</b><small>${esc(ROLE === 'tech' ? (H_GENS[R.qui] || {}).role || R.l : R.l)}</small></span></div>` : '';
+  const moi = moiOk ? `<div class="rl-moi"><span class="rl-av" style="--c:${(H_GENS[R.qui] || {}).c || 'var(--fill)'}">${R.ic}</span><span><b>${esc(ROLE === 'client' ? CLIENTS[RL_CLI.cli].nom : H_NOM(R.qui))}</b><small>${esc(sousMoi(R))}</small></span></div>` : '';
   let g = null;
   const L = rlLignes().map(c => { const t = c.g !== g && c.g ? `<div class="grp">${esc(c.g)}</div>` : ''; g = c.g; return t + rlLien(c, base); }).join('');
   return `${rlLogo(false)}${moi}<div class="m-liste">${L}</div>${rlPied(false)}`;
@@ -12099,7 +12101,7 @@ function paieBulletinDoc(k, ym){
 /* ─── l'espace « Paie » de la Comptabilité ─── */
 CX_NAV.splice(3, 0, ['paie', 'Paie', '💶', [['paiemois', 'Le mois'], ['fiches', 'Fiches de paie'], ['salaries', 'Salariés'], ['charges', 'Charges et déclarations']]]);
 const paieOk = (o, m) => `<div class="ok-bloc petit">✓ ${m}</div>`;
-const paieAller = o => { cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'le Tableau de bord' })[route]; if (route === 'comptabilite') rendre(); else if (dou) allerAvecRetour('comptabilite', dou, () => {}); else aller('comptabilite'); };
+const paieAller = o => { cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) allerAvecRetour('comptabilite', dou, () => {}); else aller('comptabilite'); };
 function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
@@ -12321,13 +12323,13 @@ const gdAExpl = () => cpRapprocher().aExpliquer;
 const gdOnglet = (o, l, p) => ({ c:`.cx-sous [data-cx="sec|${o}"]`, t:`Touche l’onglet « ${l} »`, p, ok:() => gdIci(o) });
 const gdFermer = { c:'#calque .panneau .x', t:'Ferme ce panneau', p:'La croix en haut, ou à côté du panneau. Rien n’est perdu : tout est déjà enregistré.', ok:() => !gdPanneau(), si:() => gdPanneau() };
 const TOUR_COMPTA = [
-  { r:'gestion', cat:'Pilotage', t:'Le tableau de bord : ce qui t’attend', d:'Tu es Julie, à la gestion. Tout ce qui touche à l’argent est ici, rangé en six espaces. Cette première partie t’apprend à lire la page d’accueil de la Comptabilité et à te déplacer.', go:gdCompta('ensemble'), gestes:[
+  { r:'gestion', cat:'Pilotage', t:'La vue d’ensemble : ce qui t’attend', d:'Tu es Julie, à la gestion. Tout ce qui touche à l’argent est ici, rangé en six espaces. Cette première partie t’apprend à lire la page d’accueil de la Comptabilité et à te déplacer.', go:gdCompta('ensemble'), gestes:[
     { c:'.cx-nav1', t:'Les six espaces de ta comptabilité', p:'Pilotage : où tu en es. Ventes : ce que tes clients te doivent. Achats : ce que tu dois. Trésorerie : l’argent qui bouge vraiment. Fiscal : la TVA et les comptes, pour ton expert-comptable. Conformité : être en règle. Un petit nombre sur un espace = des choses à traiter dedans.', suivant:1 },
-    { c:'.cx-sous', t:'Chaque espace a ses onglets', p:'Ici, Pilotage a deux onglets : le tableau de bord et la clôture du mois. Les onglets changent selon l’espace choisi au-dessus.', suivant:1 },
+    { c:'.cx-sous', t:'Chaque espace a ses onglets', p:'Ici, Pilotage a deux onglets : la vue d’ensemble et la clôture du mois. Les onglets changent selon l’espace choisi au-dessus.', suivant:1 },
     { c:'.cx-kpis', t:'Tes chiffres du mois, calculés tout seuls', p:'Ce que tu as facturé, encaissé, dépensé, ton résultat provisoire, l’argent disponible et tes points de conformité. Tu ne tapes rien ici : tout vient de tes factures, de tes paiements, de tes achats et de ta banque.', suivant:1 },
     { c:'.cx-afaire', t:'« À faire » : la seule liste à regarder chaque matin', p:'Le plus urgent en haut. Chaque ligne dit ce qui attend et mène directement là où ça se règle. Quand c’est réglé, la ligne disparaît toute seule.', suivant:1 },
     { c:'.cx-afaire [data-cx]', t:'Touche « Relancer » sur la facture en retard', p:'C’est la facture de M. et Mme Durand : on va la suivre jusqu’au bout. Le bouton t’emmène directement au bon endroit, avec le bon filtre déjà posé.', ok:() => route === 'comptabilite' && CP.onglet !== 'ensemble' },
-    { c:'.cx-nav1 [data-cx="grp|pilotage"]', t:'Reviens au tableau de bord : touche « Pilotage »', p:'Tu viens de passer dans Ventes › Factures, filtré sur « En retard ». Pour revenir, on touche l’espace voulu en haut : chaque espace rouvre le dernier onglet où tu étais.', ok:() => gdIci('ensemble') } ] },
+    { c:'.cx-nav1 [data-cx="grp|pilotage"]', t:'Reviens à la vue d’ensemble : touche « Pilotage »', p:'Tu viens de passer dans Ventes › Factures, filtré sur « En retard ». Pour revenir, on touche l’espace voulu en haut : chaque espace rouvre le dernier onglet où tu étais.', ok:() => gdIci('ensemble') } ] },
   { r:'gestion', cat:'Ventes', t:'Par intervention : le chemin de chaque chantier', d:'Une vente commence toujours par une intervention. Cet onglet suit chaque intervention de bout en bout : faite, facturée, payée, arrivée à la banque.', go:gdCompta('dossiers'), gestes:[
     { c:'.cx-kpis4', t:'Les quatre questions de la gestion', p:'Qu’est-ce qui est fini et pas encore facturé ? Qu’est-ce qu’on attend des clients ? Qu’est-ce qui est en retard ? Combien ont rapporté les interventions du mois, une fois les pièces déduites ? Touche une case : la liste se filtre.', suivant:1 },
     { c:() => gdQ('#cx-dliste [data-cx="dossier|f:f128"]') || gdQ('#cx-dliste [data-cx^="dossier|"]'), t:'Ouvre l’installation des Durand (12 octobre)', p:'Chaque ligne = une intervention, sa facture et son paiement. La barre montre combien est déjà payé. On suit les Durand : leur facture n’est pas payée.', ok:() => gdPanneau() },
@@ -12825,7 +12827,7 @@ const voixBoutonHtml = cls => `<button type="button" class="${cls}" data-voix="1
 const tourAller = h => () => { cpSysteme = false; fermerPanneau(); rlChanger('patron', { h, muet:true }); };
 const tourPartie = (h, cat, t, d, G) => ({ r:'patron', cat, t, d, go:tourAller(h), gestes:G.map(([c, gt, gp]) => ({ c:() => gdQ(c) || gdQ('#contenu h1'), t:gt, p:gp, suivant:1 })) });
 const TOUR_APP = [
-  tourPartie('accueil', 'Tableau de bord', 'Le tableau de bord : ta journée en un regard', 'C’est l’écran d’ouverture. Il dit ce qui se passe aujourd’hui, ce qui attend de l’argent, et ce qu’il faut faire maintenant, sans rien chercher.', [
+  tourPartie('accueil', 'Accueil', 'L’accueil : ta journée en un regard', 'C’est l’écran d’ouverture. Il dit ce qui se passe aujourd’hui, ce qui attend de l’argent, et ce qu’il faut faire maintenant, sans rien chercher.', [
     ['#contenu .kpis', 'Les quatre chiffres du jour', 'Les interventions d’aujourd’hui, l’argent à recevoir, ce qui est encaissé ce mois-ci et le montant de tes contrats. Touche un chiffre : il ouvre le détail.'],
     ['#contenu .grille2', 'À gauche l’équipe, à droite ce qui t’attend', 'À gauche, chaque intervention du jour avec son heure, son technicien et son état. À droite, les tâches à faire maintenant, la plus urgente en haut. Une ligne touchée ouvre la bonne fiche.']]),
   tourPartie('statistiques', 'Statistiques', 'Les statistiques : comment va l’entreprise', 'Ici tu vois si l’entreprise avance : le facturé, l’encaissé, les devis, le travail de chacun. Tu choisis la période, tout se recalcule.', [
@@ -12878,7 +12880,7 @@ const TOUR_APP = [
     ['#contenu .xy-g', 'Mesure, puis devis', 'Choisis l’insecte ou le champignon, curatif ou préventif, puis les surfaces. Le total se met à jour à chaque saisie.']])
 ];
 /* la première partie s'ouvre sans bulle d'introduction (on entre directement) : son premier geste dit où l'on est */
-TOUR_APP[0].gestes.unshift({ c:'#contenu h1', t:'Tu es sur le tableau de bord', p:TOUR_APP[0].d, suivant:1 });
+TOUR_APP[0].gestes.unshift({ c:'#contenu h1', t:'Tu es sur l’accueil', p:TOUR_APP[0].d, suivant:1 });
 GD_TOURS.app = { nom:'Le tour de l’application', ic:'🧭', chap:() => metiersTourApp(), fin:'Tu as fait le tour de toutes les catégories d’OP GESTION. Pour aller plus loin, suis « La comptabilité de A à Z », « La paie », ou « Le test de A à Z » : la même histoire vécue par le technicien, le client, la gestion et le patron.' };
 (() => { const b0 = gdBulle; gdBulle = function(){ const b = b0.apply(this, arguments);
     if (VOIX.ok && !b.querySelector('[data-voix]')) { const x = b.querySelector('.gd-x'); if (x) x.insertAdjacentHTML('beforebegin', voixBoutonHtml('gd-x gd-voix')); }
@@ -14297,7 +14299,7 @@ function sxDepose(m){
 }
 
 /* ── le technicien : « Mon camion » ── */
-CAT_LIGNES.push({ g:'Stock', k:'moncamion', ic:'🚐', l:'Mon camion', fait:true, tard:false });   // pour que la route soit connue ; le menu, lui, vient de CATS
+CAT_LIGNES.push({ g:'Matériel', k:'moncamion', ic:'🚐', l:'Mon camion', fait:true, tard:false });   // pour que la route soit connue ; le menu, lui, vient de CATS
 if (typeof ROLES !== 'undefined' && ROLES.tech && !ROLES.tech.routes.includes('moncamion')) ROLES.tech.routes.push('moncamion');
 IC.moncamion = '<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/>';
 const sxMoi = () => sxEstTech() ? rlQui() : 'sm';
@@ -19940,7 +19942,7 @@ let metiersEtat = null;
 function metiersSync(){
   if (METIERS_3D.includes(route) && !metiersA3d()) {   // une adresse tapée à la main : retour à l'accueil, avec un mot
     route = 'accueil'; param = null; history.replaceState(null, '', '#accueil');
-    toast('Cet écran est celui du métier 3D (hygiène anti-nuisibles) : il n’existe pas dans ton entreprise. Retour au tableau de bord.'); }
+    toast('Cet écran est celui du métier 3D (hygiène anti-nuisibles) : il n’existe pas dans ton entreprise. Retour à l’accueil.'); }
   const cle = PACKS_ENT.join('|'); if (cle === metiersEtat) return; metiersEtat = cle;
   metiersGroupe3d(); prCatalogueMaj();
   if (prPack !== 'tous' && !metiersPacksVus().includes(prPack)) { prPack = 'tous'; prCat = null; }
@@ -20281,8 +20283,8 @@ setInterval(() => {
 }, 300);
 
 /* ── chapitre 1 : le tableau de bord (les autres chapitres sont ajoutés plus bas, un bloc par catégorie) ── */
-immChap('accueil', 'accueil', 'Tableau de bord', 'Le tableau de bord : ta journée en un regard',
-  'Bienvenue dans OP GESTION. Je vais te montrer toute l’application, catégorie par catégorie. Tu n’as rien à faire : regarde, les gestes se jouent tout seuls. On commence par l’écran d’ouverture, le tableau de bord.', [
+immChap('accueil', 'accueil', 'Accueil', 'L’accueil : ta journée en un regard',
+  'Bienvenue dans OP GESTION. Je vais te montrer toute l’application, catégorie par catégorie. Tu n’as rien à faire : regarde, les gestes se jouent tout seuls. On commence par l’écran d’ouverture, l’accueil.', [
   { c:'#contenu .kpis', t:'Les chiffres du jour', p:'En haut, quatre chiffres : les interventions d’aujourd’hui, l’argent à recevoir, ce qui est encaissé ce mois-ci, et tes contrats. Chaque chiffre se touche et ouvre son détail.' },
   { c:'#contenu .grille2', t:'L’équipe à gauche, ce qui t’attend à droite', p:'À gauche, chaque intervention du jour avec son heure, son technicien et son état. À droite, ce qu’il faut faire maintenant, le plus urgent en haut. Rien à chercher : une ligne touchée ouvre la bonne fiche.' },
   { c:'[data-kdash="jour"]', t:'Un chiffre ouvre son détail', p:'Par exemple, je touche le nombre d’interventions du jour : le planning s’ouvre sur la journée.', jouer:() => immClic('[data-kdash="jour"]') },
@@ -20615,7 +20617,7 @@ immChap('comptabilite', 'comptabilite', 'Comptabilité', 'La comptabilité : ell
   { c:'#contenu .grille2 > .col:last-child > .carte:first-child', t:'La banque, expliquée', p:'Voici la banque. Le solde de la banque et celui de ta comptabilité sont côte à côte, et l’écart est dit en une phrase : ici, trois lignes du relevé restent à expliquer. Pour chacune, le logiciel propose la bonne réponse.', jouer:() => immClic('[data-cx="grp|fiscal"]') },
   { c:'#contenu .grille2 > .col:first-child > .carte:first-child', t:'La TVA se calcule seule', p:'La TVA du mois est calculée toute seule, sur ce que les clients ont payé : la TVA collectée, moins la TVA récupérée sur tes achats, donne ce que tu dois verser le mois suivant. Tu la vérifies avec ton expert-comptable avant de la déclarer.', jouer:() => { immClic('[data-cx="grp|pilotage"]'); immClic('[data-cx="sec|cloture"]'); } },
   { c:'#contenu .grille2 > .col:first-child > .carte:first-child', t:'La clôture du mois', p:'Pour clôturer octobre : cinq vérifications, puis l’envoi à ton expert-comptable. Les factures sont émises, la banque est expliquée, l’argent est déposé, chaque achat a sa facture, la TVA est calculée. J’ouvre la comptabilité complète.', jouer:() => immClic('[data-cmptv^="rubrique"]') },
-  { c:'#cpsys', t:'La comptabilité complète', p:'Voici la comptabilité complète : le tableau de bord, ce qu’il faut vérifier, ce qui s’est fait tout seul, la journée en direct, la fin de mois, les ventes, les achats, la paie, la banque, la trésorerie, la TVA, le bilan, le compte de résultat.' },
+  { c:'#cpsys', t:'La comptabilité complète', p:'Voici la comptabilité complète : la vue d’ensemble, ce qu’il faut vérifier, ce qui s’est fait tout seul, la journée en direct, la fin de mois, les ventes, les achats, la paie, la banque, la trésorerie, la TVA, le bilan, le compte de résultat.' },
   { c:'#cpsys .cpsys-barre', t:'Sa démonstration, et le retour', p:'C’est comme un second logiciel, avec son menu et sa propre démonstration parlée, « La démo », à lancer quand tu veux. En haut, « OP GESTION » te ramène ici. Elle est reliée aux factures, aux interventions, aux achats et à la paie. Je la referme.', jouer:immDccFin('comptabilite') }
 ], {});
 immDccDebut('comptabilite', () => { CP.onglet = 'ensemble'; });
@@ -21117,7 +21119,7 @@ immChap('client', 'espaceclient', 'Le client', 'Le client : son espace en ligne'
 /* ── 3. la gestion ── */
 immChap('gestion', 'comptabilite', 'La gestion', 'La gestion : les factures, sans le planning',
   'Troisième personne : Julie, à la gestion des factures. Elle s’occupe de l’argent et des clients, pas du terrain. Elle voit les interventions, les devis, les factures et la comptabilité, mais ni le planning ni l’équipe.', [
-  { c:'#menu, .opg-barre', t:'Un menu plus court', p:'Son menu est court, centré sur l’argent et les clients : la comptabilité, les devis, les clients, les interventions, ses tâches. J’essaie d’ouvrir le planning : le logiciel répond que cette page n’est pas dans son espace.', jouer:() => immRolesVa('planning') },
+  { c:'#menu, .opg-barre', t:'Un menu plus court', p:'Son menu est court, centré sur l’argent et les clients : ses tâches, les interventions, les clients, les devis, les contrats, la comptabilité et les achats et frais. J’essaie d’ouvrir le planning : le logiciel répond que cette page n’est pas dans son espace.', jouer:() => immRolesVa('planning') },
   { c:'#contenu .cx-afaire', t:'Ce qu’il y a à faire', p:'Elle reste sur la comptabilité. La liste « À faire » met le plus urgent en haut : une facture en retard, deux interventions terminées sans facture, des notes de frais à valider. Je touche « Facturer ».', jouer:() => cmptAFaire('facturer') },
   { c:'#calque .panneau', t:'Deux interventions à facturer', p:'Le logiciel a repéré deux interventions terminées sans facture : l’Hôtel de la Plage et madame Roux. La facture se prépare avec les lignes de l’intervention. Je touche « Préparer la facture » pour l’hôtel.', jouer:() => immClic('#calque .panneau [data-cx^="dosfac|"]') },
   { c:'.carte:has([data-prix])', t:'La facture est déjà préparée', p:'Les lignes viennent toutes seules de l’intervention : la main-d’œuvre, le déplacement, le nettoyant utilisé par Karim. Julie relit, corrige un prix si besoin, puis touche « Aperçu et envoi ».', jouer:() => immClic('[data-action="apercuEnvoi"]') },

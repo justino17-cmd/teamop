@@ -3,7 +3,7 @@
 const { L, ATTENDU, ROUTES, G3D, lireMenu, aplatir, aplatirAttendu } = require('./menu-commun.js'), v = L.v;
 (async () => {
   let lignesVues = 0, ecransVus = 0;
-  for (const profil of ['mac', 'windows']) for (const qui of ['marc', 'julie', 'sm']) {
+  for (const profil of process.env.RAPIDE ? ['mac'] : ['mac', 'windows']) for (const qui of ['marc', 'julie', 'sm']) {
     const c = await L.ouvrir({ profil, qui }), tag = `${profil}/${qui}`;
     const m = await lireMenu(c.p);
     v(`${tag} : le menu existe`, !!m);
@@ -41,6 +41,6 @@ const { L, ATTENDU, ROUTES, G3D, lireMenu, aplatir, aplatirAttendu } = require('
     v(`${tag} : toucher le logo ramène à l'ouverture`, h === '#' + ({ marc:'accueil', julie:'comptabilite', sm:'majournee' })[qui], h);
     await L.fin(c);
   }
-  v('population : des lignes ont été touchées', lignesVues >= 60, lignesVues); v('population : des écrans ont été lus', ecransVus >= 60, ecransVus);
+  const mini = process.env.RAPIDE ? 30 : 60; v('population : des lignes ont été touchées', lignesVues >= mini, lignesVues); v('population : des écrans ont été lus', ecransVus >= mini, ecransVus);
   await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);
 })();

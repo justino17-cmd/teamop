@@ -28,6 +28,10 @@ const { L, lireMenu } = require('./menu-commun.js'), v = L.v;
     const c = await L.ouvrir({ profil:'mac', qui, hash:adresse }); await L.calme(c.p, 600);
     const e = await c.p.evaluate(() => ({ h1:(document.querySelector('#contenu h1') || {}).textContent, on:(document.querySelector('#menu a.on .m-n') || {}).textContent, hash:location.hash, toast:((document.getElementById('toast') || {}).textContent || '').trim() }));
     v(`${qui} : l'adresse d'avant #${adresse} marche encore${h1 ? ' (« ' + h1 + ' »)' : ''}, ligne « ${on} » surlignée`, (!h1 || e.h1 === h1) && e.on === on, e); await L.fin(c); }
+  // 3 bis. le prototype nu n'a pas la porte « rl » qui recalcule la ligne : l'ancienne adresse #factures doit y allumer Comptabilité par BASE
+  { const c = await L.ouvrir({ profil:'mac', app:false, qui:null, hash:'factures' }); await L.calme(c.p, 600);
+    const e = await c.p.evaluate(() => ({ on:(document.querySelector('#menu a.on .m-n') || {}).textContent, h1:(document.querySelector('#contenu h1') || {}).textContent }));
+    v('prototype nu : #factures (ancienne adresse) allume « Comptabilité »', e.on === 'Comptabilité', e); await L.fin(c); }
   // 4. une adresse qui n'existe pas : l'écran d'ouverture du rôle, avec « Cette page n'existe pas. »
   for (const [qui, ouverture] of [['marc', '#accueil'], ['julie', '#comptabilite'], ['sm', '#majournee']]) {
     const c = await L.ouvrir({ profil:'mac', qui, hash:'rien-du-tout' }); await L.calme(c.p, 700);

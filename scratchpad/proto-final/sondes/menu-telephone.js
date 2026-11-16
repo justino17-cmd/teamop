@@ -15,7 +15,7 @@ async function bilanBarre(c, tag, attendu) {
   if (!v(`${tag} : la barre existe`, !!b)) return;
   v(`${tag} : cinq onglets, pas de « Plus »`, b.tabs.length === 5 && !b.plus, b.tabs.map(t => t.mot));
   v(`${tag} : les mots, dans l'ordre, ENTIERS`, b.tabs.map(t => t.mot).join('|') === attendu.map(a => a[0]).join('|'), b.tabs.map(t => t.mot));
-  v(`${tag} : les noms entiers sont lus par aria-label`, attendu.every(([, n], i) => (b.tabs[i].aria || '').startsWith(n)), b.tabs.map(t => t.aria));
+  v(`${tag} : les noms entiers sont lus par aria-label`, attendu.every(([, n], i) => ((b.tabs[i] || {}).aria || '').startsWith(n)), b.tabs.map(t => t.aria));
   v(`${tag} : aucun libellé coupé (ni débordé de son onglet)`, b.tabs.every(t => !t.coupe && !t.dehors), b.tabs.filter(t => t.coupe || t.dehors));
   v(`${tag} : un mot ne passe pas à la ligne (une ligne)`, b.tabs.every(t => t.lignes <= 1), b.tabs.map(t => t.mot + ':' + t.lignes));
   v(`${tag} : police ≥ 10 px`, b.tabs.every(t => t.taille >= 10), b.tabs.map(t => t.taille));
@@ -49,7 +49,7 @@ async function bilanFeuille(c, tag, qui, groupes) {
   return f;
 }
 (async () => {
-  for (const profil of ['iphone', 'android', 'petit']) for (const nuit of [false, true]) for (const qui of ['marc', 'julie', 'sm']) {
+  for (const profil of process.env.RAPIDE ? ['iphone', 'petit'] : ['iphone', 'android', 'petit']) for (const nuit of process.env.RAPIDE ? [false] : [false, true]) for (const qui of ['marc', 'julie', 'sm']) {
     const T = BARRE[qui], tag = `${profil}${nuit ? '/nuit' : ''}/${qui}`;
     const c = await L.ouvrir({ profil, qui, nuit, hash:T.route });
     await bilanBarre(c, tag, T.onglets); await bilanMenu(c, tag, qui);
@@ -61,11 +61,14 @@ async function bilanFeuille(c, tag, qui, groupes) {
       const e = await c.p.evaluate(() => ({ hash:location.hash, feuille:!!document.querySelector('#calque .panneau') }));
       v(`${tag} : toucher « Véhicules » y mène et referme la feuille`, e.hash === '#vehicules' && !e.feuille, e);
     }
+    // le logo du haut ramène à l'écran d'ouverture du rôle (depuis un écran profond)
+    if (qui !== 'julie') { await L.aller(c.p, qui === 'sm' ? 'techfrais' : 'statistiques'); await L.toucher(c, '#contenu .tete-tel a.logo'); const h = await c.p.evaluate(() => location.hash);
+      v(`${tag} : toucher le logo ramène à l'ouverture`, h === (qui === 'sm' ? '#majournee' : '#accueil'), h); }
     v(`${tag} : aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 2));
     await L.fin(c);
   }
   // le client (espace client) : ouvert comme dans « Tester en tant que » ; barre Accueil · Factures · Devis · Interventions · Contrat
-  for (const profil of ['iphone', 'petit']) {
+  for (const profil of process.env.RAPIDE ? ['petit'] : ['iphone', 'petit']) {
     const c = await L.ouvrir({ profil, app:false, qui:null }), tag = `${profil}/client`;
     await c.p.evaluate(() => rlChanger('client', { muet:true })); await L.calme(c.p, 600);
     await bilanBarre(c, tag, [['Accueil', 'Accueil'], ['Factures', 'Mes factures'], ['Devis', 'Mes devis'], ['Interventions', 'Mes interventions'], ['Contrat', 'Mon contrat']]);
