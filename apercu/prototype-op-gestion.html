@@ -414,7 +414,7 @@ html .pr-vues button[data-ac] .pr-nb{display:inline-grid}
 }
 /* ══ Matériel (16 novembre 2026) : Mon camion et les feuilles « J'ai utilisé / J'ai pris / Il me manque une pièce » ══
    Le rythme est celui des écrans que Justin a validés (Devis, Clients) : cartes en verre, lignes de 64 px au filet léger, UN bouton noir, le reste en gris. */
-html .mc-tete{align-items:flex-end}
+html .mc-page{display:flex;flex-direction:column;gap:16px;max-width:720px}html .mc-page:empty{display:none}html .mc-tete{align-items:flex-end}
 html .mc-msg{min-height:44px;padding:0 16px;font-size:14.5px;border:0;cursor:pointer;color:color-mix(in srgb,var(--c) 80%,var(--encre))}
 @media (hover:hover){html .mc-msg:hover{background:color-mix(in srgb,var(--c) 24%,transparent)}}
 @media (max-width:760px){html #contenu .tete.mc-tete{flex-wrap:wrap}html .mc-tete .actions{width:auto}}
@@ -14468,10 +14468,12 @@ function vueMonCamion(){
   const prenables = M.filter(o => stkAt(o.x, 'atelier') > 0 && !att(o.x.id));
   const aBord = `<div class="carte mc-liste">${A.map(x => { const a = stkAt(x, L.id), c = D[x.id], ko = c && a < c;
     return `<div class="mc-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${c ? (ko ? `il en manque ${prNum(stkR(c - a))} sur ${prNum(c)}` : `${prNum(c)} prévus : le compte y est`) : 'en plus de la liste'}</span></span><b class="${ko ? 'mc-o' : ''}">${sxQte(a, x)}</b></div>`; }).join('') || '<div class="gris" style="padding:12px 4px">Rien à bord.</div>'}</div>`;
-  return `<div class="tete mc-tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1><span class="gris">${V ? esc(V.plaque) + ' · ' : ''}${sxPl(A.length, 'article')} à bord</span></div>
+  /* EMPLACEMENT RÉSERVÉ : la partie VÉHICULE de « Mon camion » (échéances, plein, contrôle) s'y branche — chantier Véhicules et Temps de travail
+     (refonte/VEHICULES-TEMPS.md). Un conteneur vide à l'identifiant stable : l'autre chantier le remplit, il ne touche à aucune autre ligne de cet écran. */
+  return `<div class="mc-page"><div class="tete mc-tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1><span class="gris">${V ? esc(V.plaque) + ' · ' : ''}${sxPl(A.length, 'article')} à bord</span></div>
       ${N.length ? `<div class="actions"><button type="button" class="st st-b mc-msg" data-mat="messages">${N.length} message${N.length > 1 ? 's' : ''} du bureau ›</button></div>` : ''}</div>
     ${sxEstTech() ? '' : `<div class="info petit">Tu vois l’écran de ${esc(prenomDe(moi))}. Passe en « Technicien » pour l’essayer comme elle.</div>`}
-    ${g ? '<div class="info petit mc-garage"><b>Ton camion est au garage.</b> Le bureau le remplira à ton retour.</div>' : ''}
+    ${g ? '<div class="info petit mc-garage">Ton camion est au garage.</div>' : ''}
     <div class="mc-cherche"${matVis('camion-cherche')}><input class="saisie" id="mc-q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Chercher une pièce" aria-label="Chercher une pièce : où elle est, combien"><div id="mc-res" aria-live="polite"></div></div>
     <div class="mc-gros"><button type="button" class="btn large"${matVis('camion-utilise')} data-mat="usage">J’ai utilisé chez un client</button>
       <div class="mc-duo"><button type="button" class="btn gris" data-mat="prise">J’ai pris à l’atelier</button><button type="button" class="btn gris" data-mat="manque">Il me manque une pièce</button></div></div>
@@ -14482,7 +14484,8 @@ function vueMonCamion(){
           : `<div class="mc-l"><span class="fo-n"><b>${esc(o.x.nom)}</b><span class="gris petit">${sous}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${o.x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(o.x.nom)}">Je l’ai pris</button>` : `<button type="button" class="btn gris petit" data-mat="manque|${o.x.id}">Il me manque</button>`}</div>`; }).join('')}</div>`
       : `<div class="carte mc-ok"${matVis('camion-manque')}>${liste ? `<span class="mc-coche">${svg('coche')}</span><span><b>Ton camion est complet</b><span class="gris petit">Tout ce qu’il doit y avoir à bord y est.</span></span>` : '<span><b>Ton camion n’a pas encore de liste.</b><span class="gris petit">Demande au bureau ce qu’il doit y avoir à bord.</span></span>'}</div>`}
     <button type="button" class="ligne-clic mc-bord" data-mat="bord" aria-expanded="${MAT.bord}"><span><b>À bord · ${sxPl(A.length, 'article')}</b></span><span aria-hidden="true">${MAT.bord ? '⌄' : '›'}</span></button>${MAT.bord ? aBord : ''}
-    ${E.length ? `<div class="carte mc-liste"><h3>Mes envois · ${E.length}</h3>${E.map(sxLigneEnvoi).join('')}</div>` : ''}`;
+    ${E.length ? `<div class="carte mc-liste"><h3>Mes envois · ${E.length}</h3>${E.map(sxLigneEnvoi).join('')}</div>` : ''}
+    <div id="mc-vehicule" data-vis="camion-vehicule"></div></div>`;
 }
 /* la route « moncamion » passe par l'écran des catégories à refaire (la table des vues, dans rendre(), reste intacte) */
 const sxVueARefaire0 = vueARefaire;
@@ -14530,7 +14533,7 @@ function matLigneHtml(F, l, j){
   return `<div class="mat-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${fl ? 'kilos chargés · ' : ''}${sous}</span></span>
     <span class="mat-pas"><button type="button" data-mat="moins|${j}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-matq="${j}" value="${prNum(l.q)}" aria-label="Quantité de ${esc(x.nom)}"><button type="button" data-mat="plus|${j}" aria-label="Plus de ${esc(x.nom)}">＋</button></span>
     <button type="button" class="lien mat-ret" data-mat="ret|${j}" aria-label="Retirer ${esc(x.nom)}">Retirer</button>
-    ${fl ? `<label class="mat-fl">Kilos récupérés, si tu en as repris<input inputmode="decimal" data-matr="${j}" value="${l.rec ? prNum(l.rec) : ''}" placeholder="ex. 1,8"></label>` : ''}</div>`;
+    ${fl ? `<label class="mat-fl">Kilos récupérés, si tu en as repris<input class="saisie" inputmode="decimal" data-matr="${j}" value="${l.rec ? prNum(l.rec) : ''}" placeholder="ex. 1,8" aria-label="Kilos récupérés"></label>` : ''}</div>`;
 }
 function matFeuilleVue(){
   const F = MAT.F; if (!F) return; const usage = F.mode === 'usage', i = INTS.find(o => o.id === F.inter), pb = matPourquoi(F), n = F.lignes.length;
