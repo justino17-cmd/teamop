@@ -1,5 +1,36 @@
 [
  {
+  "slug": "logiciel-entreprise-de-nettoyage",
+  "titre": "Logiciel entreprise de nettoyage : planning, contrôle qualité, sites",
+  "description": "Logiciel entreprise de nettoyage : passages récurrents, fiche site et grille de contrôle qualité à recopier, reprise du personnel et budget pour six.",
+  "date": "2026-11-16",
+  "image": "logiciel-entreprise-de-nettoyage-couverture.webp",
+  "imageAlt": "Couverture bleu nuit du blog TEAM OP portant le titre de l’article sur le logiciel pour entreprise de nettoyage",
+  "photo": "A cleaning agent in a navy blue uniform mopping the floor of a bright empty open-plan office early in the morning, a phone showing a checklist clipped to the cleaning trolley.",
+  "faq": [
+   {
+    "q": "Quel logiciel choisir pour une entreprise de nettoyage ?",
+    "r": "Celui qui génère les passages récurrents, montre la journée de chaque agent, garde sur chaque passage les prestations cochées, les photos, le temps sur site et la signature, et fait la facture sans ressaisie. Essayez-le sur un vrai mois avec un client régulier avant de vous engager."
+   },
+   {
+    "q": "Comment prouver à un client que le ménage a été fait ?",
+    "r": "Avec une fiche par passage qui porte les prestations cochées zone par zone, des photos avant et après, l’heure et le temps passé sur site, et la signature du contact ou un rapport envoyé par e-mail le jour même."
+   },
+   {
+    "q": "Comment faire un contrôle qualité en nettoyage ?",
+    "r": "Avec une grille identique à chaque visite, une note par zone de 0 à 3, un total converti en pourcentage et un seuil sous lequel vous retournez sur le site. Chaque note insuffisante appelle une action écrite, avec un responsable et une date."
+   },
+   {
+    "q": "Les agents sont-ils repris quand on perd un marché ?",
+    "r": "Une partie, oui. L’article 7 de la convention collective de la propreté prévoit le transfert vers l’entreprise entrante des agents qui remplissent des conditions, dont 30 % de leur temps de travail sur le marché et au moins 6 mois d’affectation. Relisez le texte complet avant chaque changement."
+   },
+   {
+    "q": "Combien coûte un logiciel pour entreprise de nettoyage ?",
+    "r": "Avec OP GESTION, de 15 € à 50 € par mois et par utilisateur selon la formule, TVA non applicable. Pour six utilisateurs, comptez 90 € par mois en Pro et 150 € par mois en Business, la formule qui ajoute le stock de consommables et les bons de commande."
+   }
+  ]
+ },
+ {
   "slug": "mise-en-conformite-electrique-logement",
   "titre": "Mise en conformité électrique d’un logement : guide de l’électricien",
   "description": "Mise en conformité électrique d’un logement : les six points du diagnostic, les travaux qui y répondent, un devis à TVA 10 % calculé et ce que vous remettez.",
