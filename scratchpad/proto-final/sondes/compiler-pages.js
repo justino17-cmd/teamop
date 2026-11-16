@@ -1,12 +1,10 @@
-// Compile le <script> de chaque page d'apercu/ donnée (scripts SANS src) : scripts/verifier-syntaxe.js ne lit pas apercu/, et deux lots fusionnés sans conflit
-// peuvent déclarer deux fois le même nom (la page meurt à l'ouverture, aucun banc ne le voit). Usage : node compiler-pages.js [page.html …] — sans argument : les pages de l'atelier.
+// Compile le JavaScript de chaque page d'apercu/ passée en argument (par défaut : le prototype). verifier-syntaxe.js ne lit pas apercu/ :
+// une page qui ne compile pas est une page BLANCHE, et deux lots fusionnés sans conflit peuvent déclarer deux fois le même nom.
 const fs = require('fs'), path = require('path');
-const RACINE = process.env.RACINE || path.join(__dirname, '..', '..', '..');
-const pages = process.argv.slice(2).length ? process.argv.slice(2) : ['apercu/prototype-op-gestion.html', 'apercu/prototype-documents.html'];
+const dossier = path.join(__dirname, '..', '..', '..', 'apercu');
+const pages = process.argv.slice(2).length ? process.argv.slice(2) : ['prototype-op-gestion.html'];
 let ko = 0;
-for (const p of pages) {
-  const s = fs.readFileSync(path.join(RACINE, p), 'utf8'), blocs = [...s.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-  if (!blocs.length) { console.log('  ✗', p, ': aucun script (population vide)'); ko++; continue; }
-  blocs.forEach((b, i) => { try { new Function(b); console.log('  ✓', p, 'script', i + 1, '(' + b.length + ' car.)'); } catch (e) { console.log('  ✗', p, 'script', i + 1, ':', e.message); ko++; } });
-}
-console.log(`\n== ${ko ? 0 : pages.length} ✓ · ${ko} ✗`); process.exit(ko ? 1 : 0);
+for (const p of pages) { const s = fs.readFileSync(path.join(dossier, p), 'utf8'); let n = 0;
+  for (const m of s.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) { n++; try { new Function(m[1]); } catch (e) { ko++; console.log('✗', p, 'script', n, ':', e.message); } }
+  console.log(n ? '✓' : '✗', p, ':', n, 'script(s) compilé(s)'); if (!n) ko++; }
+process.exit(ko ? 1 : 0);
