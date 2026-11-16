@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 9 PUBLIÉE (COMPOSITEUR DE DEVIS ; CELUI DES CONTRATS EN COURS)
+# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 10 PUBLIÉE (COMPOSITEURS DE DEVIS ET DE CONTRAT)
 
 Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
 puis « un vrai système de personnalisation et aussi de création professionnelle pour les devis, comme si je le faisais avec Pages »
@@ -23,7 +23,7 @@ la foulée « un bouton Optimiser avec l'IA, une fois que le devis est fini : il
 exemple » — les deux sont publiés (Versions 6 et 7). Puis : « ce que tu as fait pour les devis, je veux la même chose pour les
 contrats » — publié en Version 8.
 
-- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 9. Sa source
+- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 10. Sa source
   n'est PAS dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de
   550 Ko, données fictives (Clim Services 17), tout dans le navigateur. Une seule bibliothèque, chargée à la demande pour le PDF
   (html2canvas 1.4.1, cdnjs).
@@ -141,12 +141,27 @@ contrats » — publié en Version 8.
   `calculer()` sur le même document. Un devis de cinq lignes : 8 gestes. Rien n'est créé avant « Créer le devis ».
   Mesuré par la session principale sur le fichier publié (`etape8a/page.html`) : parité, composition complète, mémoire, stockage,
   fermeture 82 verts dans trois modes ; mise en page du devis sans rouge (Mac et iPhone) ; un parcours écrit à part 14 sur 14
-  dans deux modes ; optimisation des devis 30 verts. Le CONTRAT garde à ce stade l'ancienne fenêtre de la Version 8.
+  dans deux modes ; optimisation des devis 30 verts.
   Limites : le catalogue du prototype n'a que 12 articles d'exemple (climatisation) — dans la vraie application il se branchera
   sur « Matériel & produits » par métier ; quand le devis passe sur deux pages, les totaux quittent l'aperçu de la page 1 (le
   total reste rappelé en bas de la fenêtre) ; les vignettes de mise en page gardent un contenu d'exemple.
-  **EN COURS** : le compositeur de CONTRAT (titre et informations, clauses à toucher, articles à écrire), puis la non-régression
-  complète ; à publier en Version 10.
+- **Version 10 — le compositeur de CONTRAT** (16 novembre) : même fenêtre (`VV.type`), étapes Client ; Titre et informations
+  (les `VARS` : prestation, fréquence, durée, prix, paiement, date de début, avec valeurs toutes prêtes) ; **Articles** (partir
+  d'un des trois modèles ou de rien, toucher une clause de la bibliothèque pour l'ajouter ou la retirer — 27 clauses de `LIB`,
+  `AMOD`, `COMMUN` —, monter, descendre, « Modifier le texte », « Écrire mon article » qu'on peut garder sur l'appareil) ;
+  Présentation repliée ; aperçu du vrai contrat, vide au départ. Un contrat créé sans rien = l'ancien contrat vierge. Aucun
+  texte juridique nouveau : seules les clauses déjà écrites dans la page servent.
+  Mesuré par la session principale sur le fichier publié (`etape8b/page.html`) : contrat 56 verts (Mac, iPhone de nuit), devis
+  82, mise en page 95 (iPhone) et 73 (Mac), un parcours écrit à part 12 sur 12 dans deux modes (modèle « pro », un article
+  retiré, un article écrit, puis un contrat sans rien) ; en non-régression l'optimisation IA des contrats (30 et 90 verts), celle
+  des devis (31), les en-têtes et l'envoi figé (29). L'agent constructeur annonce 24 mutations sur 25 qui font tomber une sonde
+  et toute la chaîne d'avant verte (non rejouées en entier par la session principale).
+  ⚠️ Sondes remplacées par la nouvelle fenêtre : `v9/r1.js` (ancienne fenêtre de contrat) n'a plus d'objet ; `v7/p2.js` garde
+  4 rouges attendus au téléphone (elle mesure le logo dans un aperçu que le téléphone ne montre plus) ; copies adaptées sous
+  `v10/anc/`. Les retouches de relecture sont dans `etape8a/patch-moi8.py`.
+  Limites : au téléphone il faut faire défiler l'étape Client pour atteindre le Matériel (pas de repli automatique) ; les
+  pastilles de catégories prennent trois rangées à 390 px ; un contrat parti d'un modèle prend aussi ses informations par défaut
+  (fréquence, durée) ; la version courte d'un article modifié n'est pas recalculée.
 - **Ce qui attend Justin** : son essai du PDF et de « Optimiser avec l'IA » sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
   rejoignent le Devis IA et l'envoi réels d'OP GESTION (le prototype ne touche à rien d'existant) ; qui fait relire les contrats.
 
