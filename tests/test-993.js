@@ -11,8 +11,9 @@
         sur place le garde — sans dépendre de la fonction d'écriture employée.
      3. UN PORT TIRÉ EST RÉSERVÉ. Deux bancs en parallèle recevaient parfois le même port « libre » (le système le redonne aussitôt libéré : 246 ports tirés à deux sur 2 000, mesuré). La
         réservation est un fichier créé d'un seul geste, qui part avec le processus ; une réservation orpheline et ancienne s'efface.
-     4. LE SERVICE QUI RÉPOND EST LE NÔTRE. Avec un autre processus sur son port, `lancerService` rendait un service « sain » qui n'était pas le sien (sa base n'existait pas). Il refuse désormais,
-        et nomme le port.
+     4. LE SERVICE QUI RÉPOND EST LE NÔTRE. Avec un autre processus sur son port, `lancerService` rendait un service « sain » qui n'était pas le sien (sa base n'existait pas). Il regarde désormais
+        AVANT de lancer : un port où quelqu'un répond n'est pas pris. ⚠️ La première garde écrite (attendre que notre processus dise « demarre », puis le vouloir vivant) tenait à vide et tombait
+        53 fois sur 60 avec vingt exécutions en parallèle : notre processus mourant répondait encore « vivant ». D'où le contrôle du MESSAGE ci-dessous — c'est le regard d'avant qui doit refuser.
 
    Contre-épreuve : remettre chaque défaut fait tomber sa section (jouée le 16 novembre 2026 sur une copie de l'arbre ; voir REPRISE.md). */
 'use strict';
@@ -82,11 +83,12 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
         const port = await T.portLibre();
         const leurre = http.createServer((q, r) => { r.writeHead(200, { 'Content-Type': 'application/json' }); r.end('{"ok":true}'); });
         await new Promise(r => leurre.listen(port, '127.0.0.1', r));
+        vrai('population : quelqu\'un écoute sur ce port (le leurre), et personne sur un port tout juste tiré', (await T.portTenu(port)) === true && (await T.portTenu(await T.portLibre())) === false);
         let rendu = null, erreur = null;
         try { rendu = await T.lancerService({ port }); } catch (e) { erreur = String(e && e.message); }
         if (rendu) await rendu.arreter();
         await new Promise(r => { leurre.closeAllConnections(); leurre.close(r); });
-        v('⛔ `lancerService` ne rend PAS le service d\'un autre (population : le leurre répondait 200 à /health sur ce port) — il lève, et dit que le port était pris', [rendu === null, /sorti avant \/health/.test(erreur || ''), new RegExp('le port ' + port + ' était pris').test(erreur || '')], [true, true, true]);
+        v('⛔ `lancerService` ne rend PAS le service d\'un autre (population : le leurre répondait 200 à /health sur ce port) — il le voit AVANT de lancer quoi que ce soit, et nomme le port', [rendu === null, erreur], [true, 'le port ' + port + ' répond déjà : un autre processus le tient — le service n\'a pas été lancé']);
         v('   et le service légitime, lui, répond toujours (le sien : son journal dit « demarre »)', [(await fetch(svc.base + '/health')).status, /"evt":"demarre"/.test(svc.sortie.texte())], [200, true]);
       } finally { await svc.arreter(); }
     }

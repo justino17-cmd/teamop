@@ -54,6 +54,10 @@ function portDuSysteme() {
     s.on('error', rej);
   });
 }
+/* Quelqu'un ÉCOUTE-t-il déjà sur ce port ? Une connexion acceptée le dit à l'instant ; refusée (personne), elle le dit aussi vite. */
+function portTenu(port) {
+  return new Promise((res) => { const s = net.connect({ host: '127.0.0.1', port }); s.once('connect', () => { s.destroy(); res(true); }); s.once('error', () => res(false)); });
+}
 async function portLibre() {
   for (let essai = 0; ; essai++) {
     const p = await portDuSysteme();
@@ -81,7 +85,14 @@ async function lancerService(opts = {}) {
   const data = path.join(racine, 'data'), cred = path.join(racine, 'cred'), cfgPath = path.join(racine, 'config.json');
   fs.mkdirSync(cred, { recursive: true });
   if (o.cle) fs.writeFileSync(path.join(cred, 'kek'), o.cle, { mode: 0o600 });
-  const port = o.port || await portLibre();
+  /* ⛔ LE SERVICE QUI RÉPONDRA SUR CE PORT DOIT ÊTRE LE NÔTRE (16 novembre 2026). Le contrôle de santé interroge « le port » : si un AUTRE processus y écoute déjà, c'est lui qui répond « ok », notre
+     service meurt (`EADDRINUSE`) et le banc continue sur un service qui n'est pas le sien. On regarde donc AVANT de lancer : un port où quelqu'un répond n'est pas pris (tiré par nous : on en tire un
+     autre ; imposé par le banc : on le dit et on ne lance rien). Au geste — une connexion acceptée ou refusée —, pas en comptant sur la mort assez rapide de notre processus. */
+  let port = o.port || await portLibre();
+  for (let i = 0; await portTenu(port); i++) {
+    if (o.port || i >= 5) throw new Error('le port ' + port + ' répond déjà : un autre processus le tient — le service n\'a pas été lancé');
+    port = await portLibre();
+  }
   const base = 'http://127.0.0.1:' + port;
   const defauts = {
     origines: [base], cookie: { nom: 'opm', secure: false },
@@ -130,8 +141,9 @@ async function lancerService(opts = {}) {
     },
   };
   if (o.attendreSante) {
-    /* ⛔ « /health répond » ne prouve pas que c'est NOTRE service qui répond : un autre processus peut tenir ce port (voir `portLibre`). On n'écoute donc la santé qu'une fois que NOTRE processus a dit
-       « demarre » dans son journal (sa base est ouverte, il a demandé le port), et il doit être encore en vie APRÈS la réponse — un service dont le port était pris meurt (`EADDRINUSE`). */
+    /* ⚠️ Seconde ligne, qui RÉDUIT sans fermer : un processus étranger (pas un banc : `portLibre` réserve entre bancs) qui prendrait le port APRÈS le regard ci-dessus et AVANT que notre service
+       l'ait pris. On n'écoute la santé qu'une fois que NOTRE processus a dit « demarre » (sa base est ouverte, il a demandé le port), et il doit être encore en vie après la réponse — un service dont
+       le port est pris meurt (`EADDRINUSE`), mais pas forcément avant la réponse de l'autre sur une machine chargée (mesuré : c'est pourquoi le regard d'AVANT est la garde, et ceci un filet). */
     const aDemarre = () => /"evt":"demarre"/.test(sortie.texte());
     const vivant = await attendre(async () => { if (sorti !== null) return 'mort'; if (!aDemarre()) return false; try { return (await FETCH(base + '/health')).ok && (sorti === null ? true : 'mort'); } catch (e) { return false; } }, 10000, 50);
     if (vivant !== true) { const s = sortie.texte(); await svc.arreter(); throw new Error('le service n\'a pas démarré : ' + (vivant === 'mort' ? 'sorti avant /health' + (/EADDRINUSE/.test(s) ? ' — le port ' + port + ' était pris par un autre processus' : '') : aDemarre() ? 'délai' : 'délai — /health ' + (await FETCH(base + '/health').then(r => 'répond ' + r.status + ' sur le port ' + port + ', mais ce n\'est pas ce service : il n\'a jamais dit « demarre »', () => 'ne répond pas'))) + '\n' + s.slice(0, 800)); }
@@ -397,4 +409,4 @@ function navigateur(base, opts = {}) {
   return { fetch: f, EventSource: fabriqueEventSource(c), client: c };
 }
 
-module.exports = { navigateur, RACINE, SERVICE, dort, portLibre, reserverPort, DOSSIER_PORTS, attendre, lancerService, fauxOpGestion, client, connecter, flux, fabriqueEventSource, analyserTrames, lireBase, sansCommentaires, compteur, sauterSiSansDependances, Sortie };
+module.exports = { navigateur, RACINE, SERVICE, dort, portLibre, reserverPort, portTenu, DOSSIER_PORTS, attendre, lancerService, fauxOpGestion, client, connecter, flux, fabriqueEventSource, analyserTrames, lireBase, sansCommentaires, compteur, sauterSiSansDependances, Sortie };

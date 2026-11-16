@@ -40,7 +40,8 @@ const MUTATIONS = [
   ['O04', 'une réservation ne voit plus celle d\'un autre processus (le fichier est écrasé)', [['tests/outils-msg.js', "fs.writeFileSync(f, String(process.pid), { flag: 'wx' });", 'fs.writeFileSync(f, String(process.pid));']], '993', 'un AUTRE processus ne peut pas réserver'],
   ['O05', 'une réservation orpheline s\'efface sans attendre dix minutes', [['tests/outils-msg.js', 'if (!vivant && Date.now() - fs.statSync(f).mtimeMs > 600000) fs.unlinkSync(f);', 'if (!vivant) fs.unlinkSync(f);']], '993', 'orpheline RÉCENTE'],
   ['O06', 'une réservation ancienne s\'efface même si son processus vit', [['tests/outils-msg.js', 'if (!vivant && Date.now() - fs.statSync(f).mtimeMs > 600000) fs.unlinkSync(f);', 'if (Date.now() - fs.statSync(f).mtimeMs > 600000) fs.unlinkSync(f);']], '993', 'dont le processus VIT'],
-  ['O07', '`lancerService` écoute /health sans attendre que SON processus ait démarré', [['tests/outils-msg.js', "if (!aDemarre()) return false; try { return (await FETCH(base + '/health')).ok && (sorti === null ? true : 'mort'); }", "try { return (await FETCH(base + '/health')).ok; }"]], '993', 'ne rend PAS le service d\'un autre'],
+  ['O07', '`lancerService` ne regarde plus si quelqu\'un écoute déjà sur le port avant de lancer', [['tests/outils-msg.js', '  for (let i = 0; await portTenu(port); i++) {', '  for (let i = 0; false && await portTenu(port); i++) {']], '993', 'ne rend PAS le service d\'un autre'],
+  ['O08', '`portTenu` répond toujours « personne »', [['tests/outils-msg.js', "s.once('connect', () => { s.destroy(); res(true); });", "s.once('connect', () => { s.destroy(); res(false); });"]], '993', 'quelqu\'un écoute sur ce port'],
 ];
 /* la contre-épreuve de la course de fermeture : le service apprend la fermeture d'un flux 400 ms plus tard */
 const LENT = [['server-msg/flux.js', "    res.on('close', () => fermer(f, null));", "    res.on('close', () => setTimeout(() => fermer(f, null), 400));"]];
