@@ -291,6 +291,14 @@ de combien il passe) ; et une route qui appelle Google (la suppression d'une ent
 Firestore) y part VRAIMENT, depuis la CI comme d'ici — un banc qui la joue dépend du réseau tant qu'il ne remplace pas
 ce `fetch`.
 
+⛔ **UN FICHIER QU'UN AUTRE PROCESSUS RELIT SE POSE PAR RENOMMAGE — ET UNE GARDE CONTRE UNE COURSE NE PARIE PAS SUR UNE COURSE.** Pris le 16 novembre 2026 : `test-981` (les appels
+d'OP MESSAGES) tombait 8 fois sur 80 sous charge et la CI en est morte deux fois (« undefined.lie »). `avancer()` écrivait le décalage d'horloge par `writeFileSync` (troncature PUIS
+écriture) ; le service, qui relit ce fichier à chaque `Date.now()`, le lisait vide et sautait à l'heure réelle le temps d'un tour de balayeur. Trois règles en restent, gardées par
+`tests/test-993.js` : un fichier lu ailleurs s'écrit par temporaire + renommage, et sa lecture illisible garde la dernière valeur ; « mon flux est fermé » se demande au SERVICE
+(`/health`), pas au client ; un port « libre » ne l'est que pour qui l'a réservé (deux bancs en parallèle en tirent 246 à deux sur 2 000). Et la leçon de méthode : la première garde
+écrite contre le port volé (« notre processus vit encore après la réponse ») tombait 53 fois sur 60 en parallèle — **une garde se joue sous charge avant d'être crue**
+(`scratchpad/charge-banc.sh <banc>`), comme un banc se mute.
+
 ⛔ **UNE APOSTROPHE DANS LE MOT DE `${var:?mot}` CASSE LE PARSE DU SCRIPT ENTIER.** Bash
 re-interprète les quotes à l'intérieur du mot, **même entre guillemets doubles** :
 `"${1:?le SHA n'a pas été transmis}"` ouvre une simple quote qui ne se referme jamais, et le

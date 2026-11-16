@@ -13,6 +13,50 @@ de ligne du tout.
 
 ---
 
+# 16 NOVEMBRE 2026 — `test-981` (LES APPELS À DEUX D'OP MESSAGES) STABLE SOUS CHARGE : TROIS COURSES DANS LES OUTILS, AUCUNE DANS LE SERVICE
+
+Constat de départ : sur la demande de fusion 327, le job « suites 6/6 » est mort sur « Cannot read properties of undefined (reading 'lie') », 39 ✓ 1 ✗, sur un commit
+qui ne touchait ni `server-msg/` ni le banc (même mort le 5 novembre) ; en local, 12 sur 12 à vide, 29 sur 30 à six en parallèle.
+- **Reproduit** : `scratchpad/charge-banc.sh` (vingt passages en parallèle, douze processus qui occupent les quatre cœurs) — **8 rouges sur 80**, avec TOUTES les signatures
+  du constat (« une minute plus tard, le plafond est levé », « appareil_non_lie », « signaux retenus », « Ana raccroche », « la fin arrive à toutes les sessions ») et la mort
+  de la CI à l'identique (39 ✓, ligne « Ben répond »).
+- **Cause 1, l'horloge (la principale)** : `avancer()` (`tests/outils-msg.js`) écrivait le décalage par `writeFileSync` — troncature PUIS écriture. Le service relit ce fichier à
+  chaque `Date.now()` (`tests/lib-horloge-msg.js`) : lu vide, « pas de décalage », l'horloge sautait à l'heure RÉELLE (28 jours après celle du banc) le temps d'une lecture. Le
+  balayeur des appels (toutes les secondes) passait dedans : sonneries « échues », appels « perdus ». Établi par une horloge espionne (`scratchpad/horloge-espion-msg.js`) :
+  **30 lectures vides sur 80 passages, presque toutes depuis `balayer`** ; zéro depuis. Corrigé : fichier temporaire puis renommage ; une lecture illisible garde le dernier décalage.
+- **Cause 2, la fermeture d'un flux** : le banc savait son flux fermé avant que le service l'ait vu ; « retenu-1 », envoyé dans l'intervalle, partait sur une connexion morte.
+  `fermerFlux` attend que `/health` compte un flux de moins. Contre-épreuve AU GESTE (un service qui apprend la fermeture 400 ms plus tard) : l'ancien banc tombe, le nouveau non.
+- **Cause 3, le port** (vue seulement une fois les deux autres fermées : « unable to open database file ») : deux bancs lancés ensemble tirent parfois le même port « libre »
+  (**246 ports tirés à deux sur 2 000**, `scratchpad/ports-collision.js`), et l'un parle au service de l'autre. `portLibre` réserve le port entre processus (un fichier créé d'un
+  seul geste, qui part avec le processus) ; `lancerService` regarde que personne n'écoute sur le port AVANT de lancer.
+  ⚠️ Ma première garde (« notre processus a dit demarre et vit encore ») était elle-même une course : `test-993` tombait 53 fois sur 60 en parallèle. Elle reste comme filet, son
+  commentaire dit qu'elle réduit sans fermer.
+- **Le banc** : plus de tolérance en secondes réelles (l'échéance du relais par ENCADREMENT — une erreur de deux secondes dans le service passait sous l'ancien « ± 3 s », rejoué) ;
+  les marqueurs sont EXIGÉS ; une moitié de contrôle qui valait toujours vrai (`attendre` ne rejette jamais) est corrigée ; chaque lecture dit ce que le service a rendu
+  (`vueDe`, `relaisDe`, `evenement`, `TRACE`) ; le service démarre à l'heure du banc (`decalageInitial`). 87 → **89 vérifications**. `tests/test-993.js` (20) garde les outils.
+- **Prouvé** : `test-981` **60 sur 60** sous la charge lourde et **30 sur 30** à six en parallèle sur le code final (300 passages verts en tout depuis le correctif) ;
+  `scratchpad/mutations-981-charge.js` : onze défauts remis dans le service font chacun tomber LE contrôle qui tombait sous charge, huit dans les outils font tomber `test-993` ;
+  les 219 suites qui utilisent ces outils (la liste d'OP MESSAGES et neuf autres, conditions de la CI) : 13 368 vérifications, toutes vertes au premier passage ; au second (après
+  la garde du port), 218 vertes et `test-984` tombé sur UN contrôle — course à lui, antérieure à ce chantier (ci-dessous) ; rejoué seul sur le code final : 12 sur 12.
+- ⛔ **`scripts/bancs-messages.liste` N'EST PAS TOUCHÉE** : la modifier déclenche, une fois sur `main`, le déploiement de la bêta d'OP MESSAGES. `test-993` tourne donc dans la
+  suite complète, pas dans la porte de déploiement — l'y ajouter (et relever le plancher) à la prochaine poussée de `server-msg/`.
+- **Rien n'a changé dans `server-msg/`.** Aucune course n'a été trouvée dans `routes-appels.js`.
+
+**Ce qui reste, mesuré ou nommé :**
+- ⛔ **`test-984` § 10 (le renouvellement des identifiants du relais) TOMBE 2 FOIS SUR 40 SUR `a415080`, AVANT TOUT CHANGEMENT D'ICI** (quatre passages à la fois, sans charge) :
+  « les NOUVEAUX identifiants ont une autre échéance », obtenu `[false, true, true, true, false]`. Mécanisme lu : `demarrerAppel` lance la lecture des identifiants de l'appelant SANS
+  l'attendre (`c.promesseIce = lireIce()`, `source-serveur.js`), et le banc avance l'horloge de 8 s dès que l'appelé a vu la sonnerie (`test-984.js`, ligne 644). Si la lecture arrive au
+  service APRÈS l'avance, les premiers identifiants et les renouvelés (600 ms plus tard) tombent dans la même seconde : même échéance. La parade est d'attendre, au geste, que la première
+  lecture de l'appelant ait été servie avant d'avancer. Pas corrigé : hors du périmètre demandé, tâche proposée à Justin.
+- Trois fenêtres du service courent encore sur l'heure réelle (l'horloge du service = l'heure réelle + le décalage) : la sonnerie de l'appel principal, la minute du débit, la
+  rétention de 30 s. Pire relevé sous charge, 300 passages : 0,68 s pour 39 s, 0,45 s pour 60 s, 0,07 s pour 30 s. Le banc les chronomètre et dit « machine trop lente » si l'une est dépassée.
+- **`test-907` porte la même famille de pari** : `T.dort(700)` et `T.dort(900)` autour d'une grâce de présence de 500 ms (lignes 266 à 271), et des `fermer(); attendreFerme();`
+  suivis d'un geste qui suppose que le service a vu la fermeture (138, 298, 340). Pas tombé ici, pas corrigé : hors du périmètre demandé.
+- Les autres bancs d'OP MESSAGES lancent encore leur service à l'heure réelle puis le reculent (`svc.avancer(decal)` après le démarrage) : le premier tour d'un balayeur peut passer
+  avant le recul sur une machine chargée. `decalageInitial` existe ; seul `test-981` l'emploie.
+- Non vérifié : ce que fait la PAGE d'un signal perdu entre la coupure réelle d'un flux et le moment où le service la voit (la rétention de 30 s ne couvre que l'après). C'est le
+  fonctionnement d'un flux sans accusé, pas un défaut établi.
+
 # 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
 
 Justin : « il faut publier ça » (la vitesse de la bêta 804, OP MESSAGES, D1 et D2).

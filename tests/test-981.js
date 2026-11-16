@@ -22,16 +22,18 @@
        fichier temporaire puis renommage ; `lib-horloge-msg.js` : une lecture illisible garde le dernier décalage), et chaque service démarre DÉJÀ à l'heure du banc (`decalageInitial`) ;
      · la FERMETURE D'UN FLUX : le banc sait son flux fermé avant que le service l'ait vu — un signal envoyé dans l'intervalle part sur une connexion morte au lieu d'être retenu (« retenu-1 » perdu,
        2 passages sur 60). `fermerFlux` attend que /health compte un flux de moins : c'est le service qui dit « fermé », pas le client ;
-     · le PORT : deux bancs lancés ensemble tiraient parfois le même port « libre », et l'un parlait au service de l'autre (`outils-msg.js` : `portLibre` réserve, `lancerService` exige le sien).
+     · le PORT : deux bancs lancés ensemble tiraient parfois le même port « libre », et l'un parlait au service de l'autre — « unable to open database file » (`outils-msg.js` : `portLibre`
+       réserve le port entre processus, `lancerService` regarde que personne n'y écoute avant de lancer).
    Et plus aucune tolérance en secondes réelles : l'échéance des identifiants du relais se juge par ENCADREMENT (l'heure du banc avant et après la requête), sans « ± 3 s » ni « 600 à 603 ».
    ⚠️ CE QUI RESTE LIÉ À L'HEURE RÉELLE, ET SA MARGE — MESURÉE AVANT DE PARIER DESSUS : l'horloge du service est l'heure réelle PLUS le décalage du banc ; entre deux gestes elle avance d'elle-même.
    Trois fenêtres du service en dépendent donc encore (`fenetreReelle` les chronomètre, les imprime dès qu'un contrôle tombe ou avec `BANC_TEMPS=1`, et DIT « machine trop lente » si l'une est
-   dépassée). Sous la charge ci-dessus, 80 passages, le pire relevé : de « lancer » à « Ben répond » 0,68 s pour 39 s de marge ; les douze signaux du débit 0,45 s pour 60 s ; de l'envoi des signaux
-   retenus à la réouverture du flux 0,05 s pour 30 s. Les plafonds d'attente (8 s pour un événement, 10 s pour le démarrage d'un service) ne disent, eux, que « ce n'est jamais arrivé ».
+   dépassée). Sous la charge ci-dessus, 300 passages, le pire relevé : de « lancer » à « Ben répond » 0,68 s pour 39 s de marge ; les douze signaux du débit 0,45 s pour 60 s ; de l'envoi des signaux
+   retenus à la réouverture du flux 0,07 s pour 30 s. Les plafonds d'attente (8 s pour un événement, 10 s pour le démarrage d'un service) ne disent, eux, que « ce n'est jamais arrivé ».
 
    ⛔ UNE MESURE QUI ÉCHOUE DIT POURQUOI : aucune lecture d'une réponse ou d'un événement ne tue plus le banc en silence. `vueDe`, `relaisDe` et `evenement` rendent ce qui est attendu ou, à défaut,
    DISENT ce que le service a rendu (code et corps) et laissent tomber le contrôle qui suit ; et si le banc meurt quand même, il imprime ses derniers échanges avec le service (`TRACE`).
-   Les outils sont gardés par `test-993` (l'horloge, le renommage, le port, le service légitime). Mesures : `scratchpad/charge-banc.sh` (N passages en parallèle sous charge),
+   Les outils sont gardés par `test-993` (l'horloge, le renommage, le port, le service légitime) ; `scratchpad/mutations-981-charge.js` remet onze défauts dans le service (chacun fait tomber LE
+   contrôle qui tombait sous charge), huit dans les outils, et joue la course de fermeture au geste (l'ancien banc tombe, celui-ci non). Mesures : `scratchpad/charge-banc.sh` (N passages en parallèle sous charge),
    `scratchpad/horloge-espion-msg.js` (les lectures vides du décalage), `scratchpad/ports-collision.js` (les ports tirés à deux). */
 'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
