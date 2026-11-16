@@ -17,7 +17,7 @@ async function tagger(p) { return p.evaluate(() => { const R = document.querySel
     e.setAttribute('data-zz', String(n)); vus.push({ i: n++, balise: e.tagName, lib, data: d, sansNom: !lib, l: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.top) }); }
   return vus; }); }
 async function etatPlus(p) { const e = await L.etat(p); e.fenetre = await p.evaluate(() => { const f = document.getElementById('fenetre'); return f ? f.innerHTML.length : 0; }); e.fenTitre = await p.evaluate(() => { const f = document.querySelector('#fenetre .fen h2, #fenetre h2, #fenetre .fen-titre'); return f ? f.textContent.replace(/\s+/g,' ').trim().slice(0,60) : ''; }); e.volets = await p.evaluate(() => [...document.querySelectorAll('#contenu details')].map(d => d.open ? 1 : 0).join('')); return e; }
-async function pret(c, vue) { await L.ranger(c.p); await c.p.evaluate(v => { if (location.hash !== '#planning') aller('planning'); plVue = v; plRef = AUJ; plMasques = new Set(); plJours = 6; rendre(); window.scrollTo(0, 0); }, vue); await L.calme(c.p, 450); }
+async function pret(c, vue) { await L.ranger(c.p); await c.p.evaluate(v => { if (location.hash !== '#planning') aller('planning'); plVue = v; plRef = AUJ; plMasques = new Set(); plJours = 6; multiJours = [AUJ, ajoute(AUJ, 2)]; multiGrp = 'personne'; multiN = 4; multiPop = null; multiExclu = new Set(); crSel = null; crFocus = null; crPlein = false; crV = null; rendre(); window.scrollTo(0, 0); }, vue); await L.calme(c.p, 450); }
 (async () => {
   const c = await L.ouvrir({ profil, nuit, qui: 'marc' }); console.log('== profil', profil, nuit ? 'nuit' : 'jour', 'erreurs au départ', c.err.length);
   for (const vue of VUES) {
@@ -29,7 +29,7 @@ async function pret(c, vue) { await L.ranger(c.p); await c.p.evaluate(v => { if 
       const av = await etatPlus(c.p); const ok = await L.toucher(c, '[data-zz="' + cible.i + '"]', { delai: 5000 }); await L.calme(c.p, 350); const ap = await etatPlus(c.p);
       const ch = L.change(av, ap).filter(x => x !== 'focus'); touches += ok ? 1 : 0;
       const sortie = { vue, lib: cible.lib, data: cible.data, l: cible.l, h: cible.h, touche: ok, change: ch, hash: ap.hash, h1: ap.h1, panneau: ap.panneau, fenTitre: ap.fenTitre, toast: ap.toast };
-      RES.push(sortie); const faitRien = ok && !ch.length; if (faitRien) rien++;
+      RES.push(sortie); if (/data-int=/.test(cible.data) && ap.hash.startsWith('#inter-x-')) L.v('destination : la carte « ' + cible.lib.slice(0, 40) + ' » ouvre la fiche qui porte son titre (' + vue + ')', cible.lib.includes(ap.h1) && ap.h1.length > 3, { h1: ap.h1 }); const faitRien = ok && !ch.length; if (faitRien) rien++;
       console.log('  ' + (ok ? (faitRien ? '·' : '→') : '✗'), (cible.balise + ' ' + cible.lib + ' ' + cible.data).slice(0, 90), '=>', ch.join(',') || 'RIEN', ap.panneau ? '| panneau: ' + ap.panneau.slice(0, 50) : '', ap.fenTitre ? '| fenêtre: ' + ap.fenTitre : '', ap.toast ? '| toast: ' + ap.toast.slice(0, 70) : '', ap.hash !== av.hash ? '| ' + ap.hash : '');
       const mut = ap.toast || ap.hash !== '#planning' || ap.fenetre > 0; if (mut) { await c.p.reload({ waitUntil: 'load' }); await c.p.waitForTimeout(900); await c.p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }); }
       await pret(c, vue);
