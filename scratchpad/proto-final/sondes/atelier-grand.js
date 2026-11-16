@@ -12,7 +12,7 @@ const DEUX_COLONNES = 1032;      // la même valeur que la règle CSS (min-width
 const geo = f => f.evaluate(() => {
   const r = e => { if (!e) return null; const b = e.getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) }; };
   const q = s => document.querySelector(s), vis = e => e && e.offsetParent !== null && e.getBoundingClientRect().width > 0;
-  const fen = q('.fenetre.vv-pl'), voile = q('.voile.plein'), feuille = q('.vv-ap-sc .feuille') || q('.vv-grand-plein .feuille');
+  const fen = q('.fenetre.vv-pl'), voile = q('.voile.plein'), feuille = [...document.querySelectorAll('.vv-grand-plein .feuille, .vv-ap-sc .feuille')].find(e => e.getBoundingClientRect().width > 0) || null;      // la colonne de droite existe aussi, masquée, quand l'écran n'a qu'une colonne : on mesure la page VISIBLE
   const cs = e => e ? getComputedStyle(e) : null, cf = cs(fen), cv = cs(voile);
   // la taille rendue du texte d'un document : la MÉDIANE de la police pondérée par le nombre de signes (le texte où l'œil passe le plus de temps), en px d'écran = police × échelle
   let fsRendu = null, fsDoc = null, ech = null;
