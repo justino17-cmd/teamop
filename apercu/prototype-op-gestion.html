@@ -3182,6 +3182,92 @@ table.l th.n{text-align:right}
    passent l'un sous l'autre (« Pas d’acompte » se lisait « Pas d’acco ») */
 @media (max-width:371px){.cx-kpis{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:340px){.deux-champs:not(.deux-btn){grid-template-columns:minmax(0,1fr)}}
+
+/* ══ TEMPS DE TRAVAIL — refonte du 16 novembre 2026 : seulement ce que les écrans validés n'ont pas (rien d'autre : pas de teinte, de rayon ni d'ombre neufs) ══ */
+.tt-k .kpi{cursor:pointer;font:inherit}.tt-k .kpi[aria-pressed="true"]{border-color:var(--lien)}
+.tt-k div.kpi{cursor:default}
+.tt-moi{max-width:640px}.tt-moi .ptx-carte{margin-bottom:0}
+.tt-areg,.tt-qui,.tt-paie{display:flex;flex-direction:column;gap:6px}
+.tt-areg>h3,.tt-qui>h3,.tt-paie>h3{margin:0 0 2px}
+.tt-ligs{display:flex;flex-direction:column;container:ttl/inline-size}
+/* une rangée de « À régler » : pastille · phrase · gestes ; sous 560 px de conteneur (menu latéral d'iPad compris) : trois niveaux */
+.tt-lig{display:grid;grid-template-columns:112px minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 2px;border-top:1px solid var(--trait);min-height:58px}
+.tt-ligs>.tt-lig:first-child,.tt-ligs>.tt-l:first-child,.tt-ligs>.tt-p:first-child{border-top:0}
+.tt-lig>.st{justify-self:start}
+.tt-txt{gap:4px;font-size:15.5px;line-height:1.4}.tt-txt b{font-weight:700}
+.tt-ges{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;justify-content:flex-start}
+.tt-ges .btn{min-height:44px}.tt-ges .lien{min-height:44px}.tt-liens{display:flex;flex-wrap:wrap;gap:0 16px}.tt-liens .lien{font-size:14.5px}
+@container ttl (max-width:560px){
+  .tt-lig{grid-template-columns:minmax(0,1fr);gap:6px}
+  .tt-ges{gap:12px 18px;margin-top:4px}
+  .tt-l{flex-wrap:wrap;gap:6px 12px;padding:8px 2px}.tt-l .fo-n{flex:1 1 170px}
+  .tt-lig{padding:10px 2px;gap:4px}.tt-txt{font-size:15px}
+}
+.tt-l{display:flex;align-items:center;gap:12px;padding:10px 2px;min-height:58px;border-top:1px solid var(--trait);width:100%}
+.tt-l .st{flex:none}.tt-l .btn{min-height:44px;flex:none}
+button.tt-clic{background:none;border-width:1px 0 0;border-style:solid;border-color:var(--trait);color:inherit;font:inherit;text-align:left;cursor:pointer}
+button.tt-clic:hover{background:var(--survol)}
+.tt-filtre{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--doux)}
+.tt-aide{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px;margin-top:4px}.tt-lien-court{min-height:44px;font-size:13px}
+.tt-vide{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:14px 4px 8px}
+.tt-vide b{font-size:17px;font-weight:700}
+.tt-coche{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--vert) 15%,transparent);color:var(--vert)}
+.tt-phrase{margin:0;font-size:16px;line-height:1.45}
+.tt-paie .tt-ges{margin-top:6px}
+.tt-barre{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;justify-content:space-between}
+.tt-barre .btn{min-height:46px;margin-left:auto}
+.tt-dit{display:block;max-width:880px;line-height:1.45}
+.tt-conteneur{container:ttsem/inline-size}
+.tt-sem{padding:8px 14px}
+.tt-grille{display:none}.tt-liste{display:flex;flex-direction:column}
+/* la grille de sept jours ne tient qu’au-dessus de 1000 px de CONTENEUR : en dessous (iPad portrait, menu latéral de 272 px), une liste par personne */
+@container ttsem (min-width:1000px){
+  .tt-grille{display:block}.tt-liste{display:none}
+}
+.tt-gl{display:grid;grid-template-columns:148px repeat(7,minmax(72px,1fr)) 138px 146px;gap:6px;align-items:stretch;padding:8px 0;border-top:1px solid var(--trait)}
+.tt-gh{border-top:0;font-size:12.5px;font-weight:650;color:var(--doux);padding:6px 0}.tt-gh .auj{color:var(--lien)}
+.tt-gl>button.tt-nom{display:flex;flex-direction:column;justify-content:center;text-align:left;background:none;border:0;color:var(--encre);font:inherit;cursor:pointer;padding:4px;border-radius:10px;min-height:52px}
+.tt-j{display:flex;flex-direction:column;gap:1px;align-items:flex-start;justify-content:center;text-align:left;border:1px solid var(--trait);background:var(--surf2);border-radius:10px;padding:6px 7px;min-height:56px;color:var(--encre);font:inherit;cursor:pointer;position:relative;min-width:0}
+.tt-j b{font-size:15px;font-variant-numeric:tabular-nums;font-weight:700;overflow-wrap:anywhere}.tt-j span{font-size:11.5px;color:var(--doux);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tt-j.abs{background:color-mix(in srgb,var(--violet) 12%,transparent)}.tt-j.abs b{font-size:13px;color:var(--violet)}
+.tt-j.ouv{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 10%,transparent)}.tt-j.ouv b{font-size:13px;color:var(--orange)}
+.tt-j.manque{border-style:dashed}.tt-j.rg{border-color:var(--rouge)}.tt-j.auj{background:var(--cel-auj)}
+.tt-j.sig::after{content:"";position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:var(--orange)}
+@media (hover:hover){.tt-j:hover,.tt-gl>button.tt-nom:hover{background:var(--survol)}}
+.tt-tot{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;text-align:right;font-variant-numeric:tabular-nums;min-width:0}.tt-tot b{font-size:15px}
+.tt-pc{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px}
+button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:650;min-height:36px;padding:0 12px;white-space:normal;text-align:left;line-height:1.2}
+.tt-pc .btn{min-height:40px}
+.tt-p{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:2px 12px;align-items:center;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--trait);padding:12px 2px;min-height:64px;color:var(--encre);font:inherit;cursor:pointer}
+.tt-liste>.tt-p:first-child,.tt-mois>.tt-p:first-child{border-top:0}
+.tt-p>.eq-av{grid-row:1/3;grid-column:1;align-self:start}.tt-p>.fo-n{grid-column:2;min-width:0}.tt-p>.tt-tot{grid-column:3;grid-row:1}
+.tt-pp{grid-column:2/4;grid-row:2;padding:0}
+.tt-pp-d{grid-column:3;grid-row:1/3;align-self:center}
+@container ttl (max-width:420px){.tt-pp-d{grid-column:2/4;grid-row:2;align-self:start}}
+@media (hover:hover){.tt-p:hover{background:var(--survol)}}
+.tt-sept{margin:6px 0}
+.tt-jr{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);color:var(--encre);font:inherit;cursor:pointer;min-height:56px;padding:9px 4px;display:flex;align-items:center;gap:12px}
+.tt-jr b{font-variant-numeric:tabular-nums;white-space:nowrap}.tt-jr.ouv b{color:var(--orange)}.tt-jr.manque .fo-n{color:var(--doux)}
+.tt-jd{flex:none;min-width:54px;font-weight:650;font-variant-numeric:tabular-nums}
+.tt-h3{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--doux)}
+.tt-det{border-bottom:1px solid var(--trait);padding:2px 0}
+.tt-det summary{cursor:pointer;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600;list-style:none}.tt-det summary::-webkit-details-marker{display:none}
+.tt-det>span.gris{display:block;padding:0 0 12px}
+.tt-q{width:28px;height:28px;border-radius:50%;border:1px solid var(--trait2);display:inline-flex;align-items:center;justify-content:center;color:var(--doux);font-size:14px;flex:none}
+.tt-sw{cursor:pointer;min-height:56px}.tt-sw input{width:22px;height:22px;flex:none;accent-color:var(--lien)}
+/* le gérant qui pointe : sur ordinateur, la même carte que celle du salarié, couchée (état à gauche, geste à droite) pour ne pas manger 235 px de haut */
+@media (min-width:761px){
+  .tt-moi{max-width:none}.tt-moi .ptx-carte{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 22px;padding:14px 20px}
+  .tt-moi .ptx-carte>h3{flex:1 1 100%;margin:0}.tt-moi .ptx-etat{flex:1 1 280px}.tt-moi .ptx-carte>.btn.large{flex:0 0 auto;width:auto;min-width:280px}.tt-moi .ptx-carte>.actions,.tt-moi .ptx-carte>.lien{flex:0 0 auto}
+}
+@media (max-width:560px){.tt-rap-carte{display:none}}   /* chaque rangée a déjà son « Lui rappeler » : un second bouton plus bas ne ferait que doubler le geste sur un petit écran */
+@media (max-width:760px){
+  #contenu .tete.tt-tete{flex-wrap:wrap}.tt-tete>div:first-child{flex:1 1 100%}.tt-tete .actions{width:100%}.tt-tete .actions .btn{width:100%}
+  .tt-k{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tt-k .kpi{min-height:64px;padding:10px 14px}
+  .tt-areg,.tt-qui,.tt-paie{padding:14px 16px}
+  .tt-barre .btn{width:100%;margin-left:0}
+  .tt-moi{max-width:none}
+}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
@@ -9397,7 +9483,7 @@ let POINTAGES = (() => { const P = [], h = (k, j) => [...(k + j)].reduce((a, c) 
   set('tl', jour(-1), { debut:'07:55', fin:null, pause:0 });   // vendredi : resté ouvert
   P.push({ id:'pkbauj', qui:'kb', date:AUJ, debut:'08:05', fin:null, pause:0, note:'Astreinte du samedi' });
   return P; })();
-let ptOnglet = 'semaine', ptSem = 0, PT_VALIDE = {};
+let ptOnglet = 'auj', ptSem = 0, PT_VALIDE = {};   // 'auj' | 'semaine' | 'mois'
 const ptDevalide = (k, d) => { delete PT_VALIDE[k + lundi(d)]; };   // des heures modifiées ne sont plus celles qui ont été validées
 const ptDuree = p => { if (!p.fin) return null; let f = ptMin(p.fin); const d = ptMin(p.debut); if (f < d) f += 1440; return f - d - (p.pause || 0); };
 const ptOuvert = p => !p.fin && p.date < AUJ;
@@ -9417,27 +9503,7 @@ function ptAlertes(k, jours){
   const man = (PAIE_SAL[k] || {}).mandataire;   // un mandataire social n'a pas d'heures supplémentaires
   return { A, tot, sup25:man ? 0 : Math.max(0, Math.min(tot, 2580) - 2100), sup50:man ? 0 : Math.max(0, tot - 2580) };
 }
-function vuePointage(){
-  const L0 = ajoute(lundi(AUJ), ptSem * 7), J = Array.from({ length:7 }, (_, i) => ajoute(L0, i)), S = ajoute(L0, 5), moi = POINTAGES.find(p => p.qui === 'marc' && p.date === AUJ && !p.fin);
-  const enCours = POINTAGES.filter(p => p.date === AUJ && !p.fin), ouverts = POINTAGES.filter(ptOuvert);
-  const onglets = `<div class="seg pr-vues" role="tablist" aria-label="Temps de travail">${[['semaine', 'La semaine de l’équipe', 'Semaine'], ['paie', 'Paie du mois', 'Paie']].map(([k, l, c]) => `<button type="button" role="tab" data-pt="onglet|${k}" aria-pressed="${ptOnglet === k}" aria-selected="${ptOnglet === k}"><span class="l-long">${l}</span><span class="l-court" aria-hidden="true">${c}</span></button>`).join('')}</div>`;
-  const tete = `<div class="tete tete-p"><div><span class="surtitre">Personnel</span><h1>Temps de travail</h1><span class="gris">Les heures de chacun, à côté de ce que le planning prévoyait. Les repères du Code du travail sont vérifiés tout seuls.</span></div>
-      <div class="actions"><button type="button" class="btn${moi ? ' gris' : ''}" data-pt="${moi ? 'fin' : 'debut'}">${moi ? 'Fin de ma journée · depuis ' + moi.debut : 'Début de ma journée'}</button></div></div>
-    ${enCours.length ? `<div class="info petit">En ce moment : ${enCours.map(p => `<b>${esc(H_NOM(p.qui))}</b> depuis ${p.debut}${p.note ? ' (' + esc(p.note) + ')' : ''}`).join(', ')}.</div>` : ''}
-    ${ouverts.length ? `<div class="info petit fo-alerte">${ouverts.map(p => `<b>${esc(H_NOM(p.qui))}</b> n’a pas fermé sa journée du ${jlong(p.date)} (début ${p.debut}). <button type="button" class="lien" data-pt="clore|${p.id}">Clôturer à l’heure dite</button>`).join('<br>')}</div>` : ''}${onglets}`;
-  if (ptOnglet === 'paie') return tete + ptVuePaie();
-  const rows = PT_GENS.map(k => { const al = ptAlertes(k, J), v = PT_VALIDE[k + L0];
-    return `<div class="pt-r"><button type="button" class="pt-qui" data-pt="pers|${k}"><b>${esc(H_NOM(k))}</b><span class="gris petit">${esc((H_GENS[k] || {}).role || '')}</span></button>
-      ${J.map(d => { const a = absDe(k, d), m = ptJourMin(k, d), pr = prevuMin(k, d), P = ptJour(k, d)[0], ouv = P && ptOuvert(P);
-        return `<button type="button" class="pt-j${a ? ' pt-abs' : ''}${ouv ? ' pt-ouv' : ''}${!P && pr && !a && d < AUJ ? ' pt-manque' : ''}" data-pt="jour|${k}|${d}" aria-label="${esc(H_NOM(k))}, ${ptJ(d)}"><b>${a ? esc(a.type) : P ? (ouv ? 'ouvert' : ptH(m)) : '—'}</b><span>${P && !a ? P.debut + '–' + (P.fin || '…') : pr ? 'prévu ' + ptH(pr) : ''}</span></button>`; }).join('')}
-      <span class="pt-tot"><b>${ptH(al.tot)}</b><span class="${al.sup25 + al.sup50 ? 'fo-up' : 'gris'} petit">${al.sup25 + al.sup50 ? '+' + ptH(al.sup25 + al.sup50) + ' sup.' : 'pas d’heure sup.'}</span></span>
-      <span class="pt-val">${v ? '<span class="st st-v">Validée</span>' : `<button type="button" class="btn gris petit" data-pt="valider|${k}|${L0}">Valider</button>`}</span></div>`; }).join('');
-  const AL = PT_GENS.flatMap(k => ptAlertes(k, J).A.map(o => ({ ...o, k })));
-  return tete + `<div class="pt-nav"><button type="button" class="btn gris petit" data-pt="sem|-1" aria-label="Semaine précédente">‹</button><b>Semaine du ${jCourt(L0)} au ${jCourt(ajoute(L0, 6))}</b><button type="button" class="btn gris petit" data-pt="sem|1" aria-label="Semaine suivante" ${ptSem >= 0 ? 'disabled' : ''}>›</button>${ptSem ? '<button type="button" class="lien" data-pt="sem|0">Cette semaine</button>' : ''}</div>
-    ${AL.length ? `<div class="carte pt-alertes"><h2 class="cmd-titre" style="margin:0 0 4px">À regarder cette semaine · ${AL.length}</h2>${AL.map(o => `<button type="button" class="ve-u" data-pt="${o.ouvert ? 'clore|' + o.ouvert : o.d ? 'jour|' + o.k + '|' + o.d : o.sem ? 'ptsem|' + o.k + '|' + L0 : 'pers|' + o.k}"><span class="ve-pt ve-${o.g === 'r' ? 'r' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(H_NOM(o.k))}</b><span class="gris petit">${esc(o.t)}${ptxRef(o)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}
-    <div class="carte pt-grille"><div class="pt-r pt-entete" aria-hidden="true"><span></span>${J.map(d => `<span>${ptJ(d)}</span>`).join('')}<span>Semaine</span><span></span></div>${rows}</div>
-    <span class="gris petit">Touche une case pour voir la journée, la comparer au planning ou la corriger. « Valider » fige la semaine pour la paie ; corriger une journée la remet à valider.</span>`;
-}
+function vuePointage(){ return ttVue(); }   /* refonte du 16 novembre 2026 : tout vit dans le module « temps-de-travail » (plus de chaîne d'enveloppes) */
 function ptVuePaie(){
   const m = AUJ.slice(0, 7), lundis = [...new Set(POINTAGES.filter(p => p.date.slice(0, 7) === m).map(p => lundi(p.date)))].sort();
   const R = PT_GENS.map(k => { let tot = 0, s25 = 0, s50 = 0; lundis.forEach(L => { const a = ptAlertes(k, Array.from({ length:5 }, (_, i) => ajoute(L, i)).filter(d => d.slice(0, 7) === m)); tot += a.tot; s25 += a.sup25; s50 += a.sup50; });
@@ -9590,7 +9656,7 @@ document.addEventListener('click', ev => {
   if (a === 'fiche') return eqFiche(x);
   if (a === 'inviter') return eqInviter();
   if (a === 'planning') { fermerPanneau(); if (x && TECHS.some(t => t.id === x)) { plMasques = new Set(TECHS.map(t => t.id).filter(id => id !== x && id !== '')); plRef = AUJ; aller('planning'); return toast(`Planning de ${esc(prenomDe(x))} seulement : touche un autre prénom pour le revoir.`); } return aller('planning'); }
-     if (a === 'heures') { fermerPanneau(); ptOnglet = 'semaine'; ptSem = 0; aller('pointage'); if (x && PT_GENS.includes(x)) setTimeout(() => ptFicheJour(x, ptJour(x, AUJ).length ? AUJ : jour(-1)), 80); return; }   // [13]
+     if (a === 'heures') { fermerPanneau(); ptOnglet = 'semaine'; ptSem = 0; TT.garder = true; aller('pointage'); if (x && PT_GENS.includes(x)) setTimeout(() => ptFicheJour(x, ptJour(x, AUJ).length ? AUJ : jour(-1)), 80); return; }   // [13]
   if (a === 'conges') { fermerPanneau(); if (typeof aOnglet !== 'undefined') aOnglet = 'soldes'; return aller('absences'); }
   if (a === 'inviterok') { const pr = document.getElementById('eq-p').value.trim(), no = document.getElementById('eq-n').value.trim(), m = document.getElementById('eq-m').value.trim();
     if (!pr || !no) return toast('Prénom ET nom : les noms servent à savoir qui a reçu quoi.');
@@ -11645,7 +11711,7 @@ const PT_TRACE = [];
   // Tom signale une heure de fin oubliée sur un jour qu'il a vraiment pointé
   const t = POINTAGES.filter(o => o.qui === 'tl' && o.fin && o.date.slice(0, 7) === PAIE_MOIS && o.date < jour(-2) && dObj(o.date).getDay() % 6).sort((a, b) => b.date.localeCompare(a.date))[0];
   if (t) { const f = Math.round((ptMin(t.fin) + 60) / 5) * 5, j = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][dObj(t.date).getDay()];
-    PAIE.signales.tl = { msg:`Le ${j} ${+t.date.slice(8)}, j’ai fini à ${Math.floor(f / 60)} h ${String(f % 60).padStart(2, '0')} et pas à ${t.fin.replace(':', ' h ')} : j’ai oublié de pointer en partant de chez le client.`, le:'30/10 · 19:05', apres:hm(f) }; }
+    PAIE.signales.tl = { msg:`Le ${j} ${+t.date.slice(8)}, j’ai fini à ${Math.floor(f / 60)} h ${String(f % 60).padStart(2, '0')} et pas à ${t.fin.replace(':', ' h ')} : j’ai oublié de pointer en partant de chez le client.`, txt:'J’ai oublié de pointer en partant chez le client.', le:'30/10 · 19:05', apres:hm(f) }; }
 })();
 const paieNomPers = k => H_NOM(k);
 const paieVerrouille = () => !!PAIE.verrou;
@@ -11687,7 +11753,7 @@ const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${t.toLowerCas
 function paieEtapes(V){
   const ouverts = V.reduce((s, v) => s + v.ouverts.length, 0), nonVal = V.reduce((s, v) => s + v.nonValidees, 0), sig = V.filter(v => v.signale), conf = V.filter(v => v.confirme).length;
   return [
-    { k:'heures', ok:!ouverts && !nonVal && !sig.length, t:'Les heures sont justes', d:ouverts || nonVal || sig.length ? [ouverts && `${ouverts} journée${ouverts > 1 ? 's' : ''} restée${ouverts > 1 ? 's' : ''} ouverte${ouverts > 1 ? 's' : ''}`, nonVal && `${nonVal} semaine${nonVal > 1 ? 's' : ''} pas encore validée${nonVal > 1 ? 's' : ''} (${V.filter(v => v.nonValidees).map(v => paieNomPers(v.k).split(' ')[0]).join(', ')})`, sig.length && `${sig.length} erreur${sig.length > 1 ? 's' : ''} signalée${sig.length > 1 ? 's' : ''} par ${sig.map(v => paieNomPers(v.k)).join(', ')}`].filter(Boolean).join(' · ') : 'Toutes les journées sont fermées, les semaines validées, aucune erreur signalée.' },
+    { k:'heures', ok:!ouverts && !nonVal && !sig.length, t:'Les heures sont justes', d:ouverts || nonVal || sig.length ? [ouverts && `${ouverts} journée${ouverts > 1 ? 's' : ''} restée${ouverts > 1 ? 's' : ''} ouverte${ouverts > 1 ? 's' : ''}`, nonVal && `${V.filter(v => v.nonValidees).length} personne${V.filter(v => v.nonValidees).length > 1 ? 's ont' : ' a'} encore des heures à valider`, sig.length && `${sig.length} erreur${sig.length > 1 ? 's' : ''} signalée${sig.length > 1 ? 's' : ''} par ${sig.map(v => paieNomPers(v.k)).join(', ')}`].filter(Boolean).join(' · ') : 'Toutes les journées sont fermées, les semaines validées, aucune erreur signalée.' },
     { k:'conf', ok:conf === V.length || paieVerrouille(), t:'Chacun a confirmé son relevé', d:conf === V.length ? 'Tous les salariés ont confirmé leurs heures.' : paieVerrouille() ? `${conf} sur ${V.length} au verrouillage : les autres relevés partent avec la mention « non confirmé ».` : `${conf} sur ${V.length} · on peut verrouiller sans toutes les confirmations, mais c’est noté sur le relevé.` },
     { k:'verrou', ok:paieVerrouille(), t:'Le mois est verrouillé', d:paieVerrouille() ? `Verrouillé le ${PAIE.verrou.le} par ${paieNomPers(PAIE.verrou.par)} (empreinte ${PAIE.verrou.emp}). Une erreur trouvée après coup se régularise sur le mois suivant.` : 'Plus aucune heure du mois ne peut changer : les fiches de paie se font sur des heures figées.' },
     ...(PAIE.mode === 'cabinet' ? [
@@ -11705,7 +11771,7 @@ ptVuePaie = function(){
   const V = PT_GENS.map(paieVariables), E = paieEtapes(V), k0 = E.findIndex(e => !e.ok), verr = paieVerrouille();
   const fichesOk = PAIE.mode === 'cabinet' ? PAIE.distribue : PAIE.valide;
   const action = i => { const k = E[i].k, b = (a, l, g) => `<button type="button" class="btn ${g ? 'gris ' : ''}mini-btn" data-paie="${a}">${l}</button>`;
-    if (k === 'heures') return b('validertout', 'Valider les semaines sans alerte', 1);
+    if (k === 'heures') return b('validertout', 'Valider ce qui est en règle', 1);
     if (k === 'conf') return b('relancer', 'Demander aux salariés de confirmer', 1);
     if (k === 'verrou') return verr ? '' : b('verrouiller', 'Verrouiller ' + esc(PAIE_NOM_MOIS.split(' ')[0]));
     if (k === 'envoi') return verr && !PAIE.envoi ? b('envoyer', 'Envoyer au cabinet') : '';
@@ -11938,10 +12004,6 @@ document.addEventListener('click', ev => {
     if (p) setTimeout(() => { if (p.fin) PT_TRACE.push({ pid:p.id, qui:p.qui, date:p.date, champ:'fin', avant:'journée restée ouverte', apres:p.fin, par:paieQui(), le:'31/10 · ' + hNow(), motif:ptxMotifCloture(p) }); }, 0); }
   if (a === 'valider' && paieMoisVerrou(y)) { ev.stopImmediatePropagation(); return toast(`${PAIE_MOIS_MAJ} est verrouillé.`); }
 }, true);
-/* la semaine de l'équipe dit quand le mois est verrouillé */
-(() => { const v0 = vuePointage; vuePointage = function(){ const h = v0.apply(this, arguments); if (ptOnglet !== 'semaine' || !paieVerrouille()) return h;
-  return h.replace('<div class="pt-nav">', `<div class="info petit">🔒 ${esc(PAIE_MOIS_MAJ)} est verrouillé pour la paie : ses journées ne se modifient plus.</div><div class="pt-nav">`); }; })();
-
 /* ══ le salarié a sa rubrique « Mes heures » (menu, barre du bas), avec une pastille quand il a quelque chose à faire ou à lire ══ */
 if (typeof IC !== 'undefined') IC.mesheures = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
 if (typeof ROLES !== 'undefined' && ROLES.tech && !ROLES.tech.routes.includes('mesheures')) ROLES.tech.routes.push('mesheures');
@@ -12100,10 +12162,6 @@ function paieVueCharges(){
       ${PAIE.compta ? paieOk('', `Passée le ${esc(PAIE.compta.le)} : elle est dans le journal, la balance et le résultat d’octobre.`) + `<button type="button" class="lien" data-cx="sec|ecritures">Voir le journal</button>` : `<div class="actions"><button type="button" class="btn" data-paie="comptabiliser" ${PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue) ? '' : 'aria-disabled="true"'}>Passer l’écriture de paie</button></div>${PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue) ? '' : '<span class="gris petit">Une fois les fiches validées.</span>'}`}</div>
     <span class="gris petit">Les salaires nets se virent en fin de mois ; URSSAF, retraite et impôt prélevé partent avec la DSN. Montants calculés avec des taux d’exemple.</span>`;
 }
-
-/* le Temps de travail garde les heures ; la paie est partie dans la Comptabilité (Justin, 9 novembre 2026) */
-(() => { const v0 = vuePointage; vuePointage = function(){ if (ptOnglet === 'paie') ptOnglet = 'semaine'; const h = v0.apply(this, arguments);
-  return h.replace(/<div class="seg pr-vues"[\s\S]*?<\/div>/, `<div class="info petit paie-lien">💶 La paie du mois (relevés, fiches de paie, charges, déclaration) est dans <button type="button" class="lien" data-paie="aller|paiemois">Comptabilité › Paie</button>.</div>`); }; })();
 
 /* ⟦module guide⟧ */
 /* ══ LE TEST GUIDÉ — 8 novembre 2026 ══
@@ -15327,7 +15385,7 @@ function ptxSemainesOk(L0){ const J = ptxJours(L0), ok = [], reste = [];
     const rouges = al.A.filter(o => o.g === 'r').length, ouv = al.A.some(o => o.ouvert), sig = !!PAIE.signales[k] && J.includes(paieJourSignale(k));
     if (rouges || ouv || sig) reste.push({ k, rouges, ouv, sig }); else ok.push(k); });
   return { ok, reste }; }
-function ptxRestaurerValid(av){ Object.keys(PT_VALIDE).forEach(x => delete PT_VALIDE[x]); Object.assign(PT_VALIDE, av); }
+function ptxRestaurerValid(av){ Object.keys(PT_VALIDE).forEach(x => delete PT_VALIDE[x]); Object.assign(PT_VALIDE, av); if (typeof TT !== 'undefined') TT.vus = { ...av }; }   /* « à revalider » ne se dit que d'une validation que des heures ont défaite, pas d'une validation annulée */
 function ptxValiderLot(L0, ks){ const av = { ...PT_VALIDE }; ks.forEach(k => { PT_VALIDE[k + L0] = true; });
   journalAjout('marc', 'equipe', 'a validé ' + ptxPl(ks.length, 'semaine') + ' de temps de travail', { lib:'Temps de travail' }, { det:'semaine du ' + jCourt(L0) + ' · ' + ks.map(prenomDe).join(', ') }); return av; }
 const ptxAnnulerValid = (av, n) => ({ lib:'Annuler', fn:() => { ptxRestaurerValid(av); journalAjout('marc', 'equipe', 'a annulé la validation de ' + ptxPl(n, 'semaine'), { lib:'Temps de travail' }); rendre(); toast('Validation annulée : ' + ptxPl(n, 'semaine') + ' à valider de nouveau.'); } });
@@ -15335,30 +15393,6 @@ const ptxAnnulerValid = (av, n) => ({ lib:'Annuler', fn:() => { ptxRestaurerVali
 function ptxFinValidation(av, n){ const ks = Object.keys(PT_VALIDE).filter(x => PT_VALIDE[x] && !av[x]).length;
   if (ks) journalAjout('marc', 'equipe', 'a validé ' + ptxPl(ks, 'semaine') + ' de temps de travail', { lib:'Comptabilité › Paie' });
   return ptxAnnulerValid(av, ks || n); }
-function ptxValiderPanneau(L0){ const J = ptxJours(L0), { ok, reste } = ptxSemainesOk(L0);
-  if (J.some(paieMoisVerrou)) return toast(`${PAIE_MOIS_MAJ} est verrouillé : ses semaines ne se valident plus.`);
-  if (!ok.length) return toast('Rien à valider d’un coup : tout est déjà validé, ou à regarder d’abord.');
-  ouvrirPanneau(`<span class="surtitre">Semaine du ${jCourt(L0)} au ${jCourt(ajoute(L0, 6))}</span><h2>Valider ${ptxPl(ok.length, 'semaine')} ?</h2>
-    <span class="gris"><b>${ok.map(k => esc(prenomDe(k))).join(', ')}</b> : aucune alerte du Code du travail, aucune journée ouverte. Ces heures partiront telles quelles sur la fiche de paie.</span>
-    ${reste.length ? `<div class="info petit fo-alerte">À regarder d’abord : ${reste.map(o => `<b>${esc(prenomDe(o.k))}</b> (${o.rouges ? ptxPl(o.rouges, 'alerte') : o.ouv ? 'journée ouverte' : 'erreur signalée'})`).join(', ')}.</div>` : ''}
-    <div class="actions"><button type="button" class="btn" data-ptx="validerok|${L0}">Valider</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
-
-/* ── aujourd'hui : qui travaille, qui est en congé, qui est attendu ── */
-function ptxAuj(){
-  const trav = POINTAGES.filter(p => p.date === AUJ && !p.fin), enPause = trav.filter(p => PTX.pause[p.id]), enTrav = trav.filter(p => !PTX.pause[p.id]), fini = POINTAGES.filter(p => p.date === AUJ && p.fin);
-  const conge = PT_GENS.filter(k => absDe(k, AUJ)), att = PT_GENS.filter(k => !ptJour(k, AUJ).length && !absDe(k, AUJ) && prevuMin(k, AUJ)), ouverts = POINTAGES.filter(ptOuvert);
-  const premier = k => INTS.filter(i => i.tech === k && i.d === AUJ && i.st !== 'annulee').map(i => i.h).sort()[0];
-  const nom = k => esc(prenomDe(k)), l = (cl, lib, txt, act) => `<div class="ptx-l"><span class="st ${cl}">${lib}</span><span class="ptx-t">${txt}</span>${act || ''}</div>`;
-  const rap = att.filter(k => PTX.rappele[k]);
-  return `<div class="carte ptx-auj"><h2 class="cmd-titre" style="margin:0 0 4px">Aujourd’hui · ${esc(jlong(AUJ))}</h2>
-    ${enTrav.length ? l('st-v', 'Au travail · ' + enTrav.length, enTrav.map(p => `<b>${nom(p.qui)}</b> depuis ${p.debut}`).join(', ')) : ''}
-    ${enPause.length ? l('st-b', 'En pause · ' + enPause.length, enPause.map(p => `<b>${nom(p.qui)}</b> depuis ${PTX.pause[p.id].h}`).join(', ')) : ''}
-    ${fini.length ? l('st-g', 'Journée finie · ' + fini.length, fini.map(p => `<b>${nom(p.qui)}</b> ${p.debut}–${p.fin}`).join(', ')) : ''}
-    ${conge.length ? l('st-p', 'Absent · ' + conge.length, conge.map(k => `<b>${nom(k)}</b> (${esc(absDe(k, AUJ).type.toLowerCase())})`).join(', ')) : ''}
-    ${att.length ? l('st-o', 'Attendus, pas pointés · ' + att.length, att.map(k => `<b>${nom(k)}</b> (à ${premier(k)})`).join(', ') + (rap.length ? `<br><span class="gris petit">Rappel envoyé : ${rap.map(k => nom(k) + ' à ' + PTX.rappele[k]).join(', ')}.</span>` : ''), `<button type="button" class="btn gris petit" data-ptx="rappeler">${rap.length ? 'Rappeler encore' : 'Rappeler'}</button>`) : ''}
-    ${ouverts.length ? l('st-r', 'À fermer · ' + ouverts.length, ouverts.map(p => `<b>${nom(p.qui)}</b> (${esc(ptJ(p.date))})`).join(', ') + (ouverts.some(p => (PTX.demande || {})[p.id]) ? `<br><span class="gris petit">Demande envoyée : ${ouverts.filter(p => (PTX.demande || {})[p.id]).map(p => nom(p.qui) + ' à ' + PTX.demande[p.id]).join(', ')}.</span>` : ''), `<button type="button" class="btn gris petit" data-ptx="demander">${ouverts.some(p => (PTX.demande || {})[p.id]) ? 'Redemander' : 'Lui demander son heure'}</button>`) : ''}
-    ${!trav.length && !fini.length && !att.length && !conge.length && !ouverts.length ? '<span class="gris petit">Personne n’est attendu aujourd’hui.</span>' : ''}</div>`;
-}
 function ptxRappeler(){ const att = PT_GENS.filter(k => !ptJour(k, AUJ).length && !absDe(k, AUJ) && prevuMin(k, AUJ)); if (!att.length) return toast('Tout le monde a pointé.');
   att.forEach(k => { notifier(k, 'Tu n’as pas encore commencé ta journée. Touche « Je commence ma journée ».'); PTX.rappele[k] = hNow(); });
   journalAjout('marc', 'equipe', 'a rappelé de pointer à ' + ptxPl(att.length, 'personne'), { lib:att.map(prenomDe).join(', ') }); rendre(); toast('Rappel envoyé à ' + att.map(k => esc(prenomDe(k))).join(', ') + '.'); }
@@ -15369,10 +15403,6 @@ function ptxDemander(){ const o = POINTAGES.filter(ptOuvert); if (!o.length) ret
 /* ── les erreurs signalées par un salarié, côté bureau ── */
 const ptxReq = k => { const s = PAIE.signales[k]; return s ? (s.req || (s.apres ? { fin:s.apres } : null)) : null; };
 const ptxReqLib = r => { const T = [r.debut && 'début à ' + r.debut, r.fin && 'fin à ' + r.fin, r.pause != null && 'pause de ' + r.pause + ' min'].filter(Boolean); return T.length > 2 ? 'Appliquer la demande' : 'Corriger : ' + T.join(', '); };
-function ptxSignales(){ const L = PT_GENS.filter(k => PAIE.signales[k]); if (!L.length) return '';
-  return `<div class="carte ptx-sig"><h2 class="cmd-titre" style="margin:0 0 4px">Demandes des salariés · ${L.length}</h2>${L.map(k => { const s = PAIE.signales[k], d = paieJourSignale(k), r = ptxReq(k), p = ptJour(k, d)[0], peut = p && r && Object.keys(r).length;
-    return `<div class="ptx-sig-l"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit">a signalé le ${esc(s.le.split(' ')[0])} (${esc(ptJ(d))}) : « ${esc(s.msg)} »</span></span>
-      <span class="ptx-sig-a">${peut ? `<button type="button" class="btn petit" data-ptx="corrige|${k}">${esc(ptxReqLib(r))}</button>` : ''}<button type="button" class="btn gris petit" data-ptx="via|jour|${k}|${d}">Voir la journée</button></span></div>`; }).join('')}</div>`; }
 function ptxCorriger(k){
   const s = PAIE.signales[k], d = paieJourSignale(k), r = ptxReq(k), p = ptJour(k, d)[0]; if (!s || !r || !p) return toast('Ouvre la journée pour la corriger à la main.');
   if (paieMoisVerrou(d)) return toast(`${PAIE_MOIS_MAJ} est verrouillé : ${esc(prenomDe(k))} sera régularisé le mois suivant.`);
@@ -15393,18 +15423,7 @@ function ptxCorriger(k){
 }
 
 /* ── la semaine d'une personne : jour par jour, et les semaines du mois ── */
-function ptxSemaine(k, L){
-  L = lundi(L || AUJ); const J = ptxJours(L), al = ptAlertes(k, J), sup = al.sup25 + al.sup50, val = PT_VALIDE[k + L], mois = paieVariables(k).semaines;
-  const ligne = d => { const a = absDe(k, d), m = ptJourMin(k, d), pr = prevuMin(k, d), P = ptJour(k, d)[0];
-    return `<button type="button" class="fo-l" data-ptx="via|jour|${k}|${d}"><span class="fo-n"><b>${esc(jlong(d))}</b><span class="gris petit">${a ? esc(a.type) : P ? P.debut + '–' + (P.fin || '…') + ' · pause ' + (P.pause || 0) + ' min' : pr ? 'pas de pointage · prévu ' + ptH(pr) : 'rien'}</span></span><b>${P && !a ? (ptOuvert(P) ? 'ouvert' : ptH(m)) : '—'}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; };
-  foOuvrir(`<span class="surtitre">${esc(H_NOM(k))}</span><h2>Semaine du ${jCourt(L)} au ${jCourt(ajoute(L, 6))}</h2>
-    <div class="kpis ptx-k3"><div class="kpi"><b>${ptH(al.tot)}</b><span>pointées</span></div><div class="kpi${sup ? ' kpi-up' : ''}"><b>${sup ? '+' + ptH(sup) : '—'}</b><span>heures sup.</span></div><div class="kpi"><b>${al.A.length}</b><span>${al.A.length > 1 ? 'alertes' : 'alerte'}</span></div></div>
-    ${al.A.length ? `<div class="groupe">À regarder</div><div class="fo-bloc">${al.A.map(o => `<${o.d || o.ouvert ? `button type="button" class="fo-l" data-ptx="via|${o.ouvert ? 'clore|' + o.ouvert : 'jour|' + k + '|' + o.d}"` : 'div class="fo-l"'}><span class="ve-pt ve-${o.g === 'r' ? 'r' : 'o'}" aria-hidden="true"></span><span class="fo-n"><span class="petit">${esc(o.t)}${ptxRef(o)}</span></span></${o.d || o.ouvert ? 'button' : 'div'}>`).join('')}</div>` : ''}
-    <div class="groupe">Jour par jour</div><div class="fo-bloc">${J.map(ligne).join('')}</div>
-    <div class="actions">${val ? '<span class="st st-v">Validée pour la paie</span>' : `<button type="button" class="btn" data-ptx="validersem|${k}|${L}">Valider cette semaine</button>`}</div>
-    <div class="groupe">Les semaines de ${esc(PAIE_NOM_MOIS.split(' ')[0])}</div><div class="fo-bloc">${mois.map(w => `<button type="button" class="fo-l" data-ptx="sem|${k}|${w.L}"><span class="fo-n"><b>Semaine du ${jCourt(w.L)}</b><span class="gris petit">${w.valide ? 'validée' : 'à valider'}${w.s25 + w.s50 ? ' · +' + ptH(w.s25 + w.s50) + ' sup.' : ''}</span></span><b>${ptH(w.tot)}</b><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>
-    <div class="cmd-liens"><button type="button" class="lien" data-ptx="releve|${k}">Son relevé de paie ${esc(paieDe(PAIE_NOM_MOIS.split(' ')[0]))} ›</button></div>
-    <span class="gris petit">Repères du Code du travail : généraux, sauf accord d’entreprise ou de branche. À vérifier avec ton expert-comptable.</span>`, true); }
+function ptxSemaine(k, L){ ttSemainePers(k, L); }   /* la feuille de semaine est celle du module temps-de-travail */
 
 /* ── la fiche d'un jour : semaine validée, temps non planifié, corrections du mois, liens ── */
 (() => { const f0 = ptFicheJour; ptFicheJour = function(k, d){
@@ -15489,7 +15508,7 @@ function ptxSigEnvoyer(k){
   if (!Object.keys(r).length && !txt) return toast('Change une heure ou écris ce qui ne va pas.');
   const dit = [r.debut && 'début à ' + ptxHeure(r.debut) + (p && p.debut ? ' (au lieu de ' + ptxHeure(p.debut) + ')' : ''), r.fin && 'fin à ' + ptxHeure(r.fin) + (p && p.fin ? ' (au lieu de ' + ptxHeure(p.fin) + ')' : ''), r.pause != null && 'pause de ' + r.pause + ' min'].filter(Boolean).join(', ');
   const msg = jlong(d).replace(/^./, c => c.toUpperCase()) + (dit ? ' : ' + dit + '.' : '.') + (txt ? ' ' + txt : '');
-  PAIE.signales[k] = { msg, le:'31/10 · ' + hNow(), jour:d, req:r, apres:r.fin }; delete PAIE.confirmes[k];
+  PAIE.signales[k] = { msg, txt, le:'31/10 · ' + hNow(), jour:d, req:r, apres:r.fin }; delete PAIE.confirmes[k];
   journalAjout(k, 'equipe', 'a signalé une erreur dans ses heures', { lib:H_NOM(k) }, { det:msg });
   fermerPanneau(); rendre(); toast('Parti au bureau : on te préviendra quand c’est corrigé.'); }
 /* « Signaler une erreur » (le bouton d'origine) ouvre le formulaire par jour ; l'ancien champ libre n'existe plus */
@@ -15497,24 +15516,6 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-pa
 document.addEventListener('change', ev => { const s = ev.target; if (!s.matches || !s.matches('[data-ptx-sj]')) return; const p = ptJour(s.dataset.ptxSj, s.value)[0] || {};
   [['ptx-sd', p.debut || ''], ['ptx-sf', p.fin || ''], ['ptx-sp', p.debut ? String(p.pause || 0) : '']].forEach(([i, v]) => { const e = document.getElementById(i); if (e) { e.value = v; if (typeof dtPeindre === 'function') dtPeindre(e); } }); });
 
-/* ── Temps de travail du bureau : tout ce qui s'ajoute à la page d'origine ── */
-function ptxCartes(L0, J){
-  return `<div class="ptx-cartes">${PT_GENS.map(k => { const al = ptAlertes(k, J), v = PT_VALIDE[k + L0], rouges = al.A.filter(o => o.g === 'r').length, ouv = al.A.some(o => o.ouvert), sup = al.sup25 + al.sup50;
-    return `<div class="carte ptx-pers"><div class="ptx-pers-t"><button type="button" class="pt-qui" data-ptx="via|pers|${k}"><b>${esc(H_NOM(k))}</b><span class="gris petit">${esc((H_GENS[k] || {}).role || '')}</span></button><span class="pt-tot"><b>${ptH(al.tot)}</b><span class="${sup ? 'fo-up' : 'gris'} petit">${sup ? '+' + ptH(sup) + ' sup.' : 'pas d’heure sup.'}</span></span></div>
-      <div class="ptx-jours">${J.map(d => { const a = absDe(k, d), m = ptJourMin(k, d), pr = prevuMin(k, d), P = ptJour(k, d)[0], o = P && ptOuvert(P), rg = al.A.some(x => x.d === d && x.g === 'r');
-        return `<button type="button" class="ptx-jr2${a ? ' pt-abs' : ''}${o ? ' pt-ouv' : ''}${!P && pr && !a && d < AUJ ? ' pt-manque' : ''}${rg ? ' ptx-rg' : ''}${PAIE.signales[k] && paieJourSignale(k) === d ? ' pt-sig' : ''}" data-ptx="via|jour|${k}|${d}" aria-label="${esc(H_NOM(k))}, ${esc(ptJ(d))}"><small>${ptJ(d).split(' ')[0].charAt(0)}</small><b>${a ? '·' : P ? (o ? '…' : ptH(m)) : '—'}</b></button>`; }).join('')}</div>
-      <div class="ptx-pers-b">${rouges ? `<span class="st st-r">${ptxPl(rouges, 'alerte')}</span>` : ouv ? '<span class="st st-o">Journée ouverte</span>' : '<span class="st st-v">Rien à signaler</span>'}${v ? '<span class="st st-v">Validée</span>' : `<button type="button" class="btn gris" data-ptx="via|valider|${k}|${L0}">Valider la semaine</button>`}</div></div>`; }).join('')}</div>`;
-}
-(() => { const v0 = vuePointage; vuePointage = function(){
-  let h = v0.apply(this, arguments); if (ptOnglet !== 'semaine') return h;
-  const L0 = ajoute(lundi(AUJ), ptSem * 7), J = ptxJours(L0), i = h.indexOf('<div class="pt-nav">'); if (i < 0) return h;
-  h = h.replace(/<div class="info petit">En ce moment :[\s\S]*?<\/div>/, '');   // « Aujourd'hui » dit la même chose, en mieux
-  const nav = h.indexOf('<div class="pt-nav">'), fin = h.indexOf('</div>', nav), { ok, reste } = ptxSemainesOk(L0);
-  const bouton = ok.length ? `<button type="button" class="btn ptx-tout" data-ptx="validertous">Valider ${ptxPl(ok.length, 'semaine')} en règle</button>` : (reste.length ? '' : '<span class="st st-v ptx-tout">Tout est validé</span>');
-  h = h.slice(0, nav) + ptxAuj() + ptxSignales() + h.slice(nav, fin) + bouton + h.slice(fin);
-  PT_GENS.forEach(k => { const d = PAIE.signales[k] && paieJourSignale(k); if (d) h = h.replace(new RegExp('(class="pt-j)([^"]*)("\\s+data-pt="jour\\|' + k + '\\|' + d + '")'), '$1$2 pt-sig$3'); });
-  const bas = h.indexOf('<span class="gris petit">Touche une case'), cartes = ptxCartes(L0, J), rap = `<div class="carte ptx-rap"><label class="ptx-sw"><input type="checkbox" data-ptx="rappels" ${PTX.rappels ? 'checked' : ''}><span class="fo-n"><b>Rappeler les salariés qui n’ont pas pointé</b><span class="gris petit">À 09:30, quand une intervention est prévue et que rien n’est pointé. À 19:00, quand une journée est encore ouverte : le salarié donne son heure de fin, tu la vois ici. Repères du Code du travail : généraux, à vérifier avec ton expert-comptable.</span></span></label></div>`;
-  return bas < 0 ? h + cartes + rap : h.slice(0, bas) + cartes + h.slice(bas) + rap; }; })();
 (() => { const v0 = vueMaJournee; vueMaJournee = function(){ const h = v0.apply(this, arguments); return h.replace('</span></div></div>', '</span></div></div>' + ptxCarteSalarie(rlQui())); }; })();
 (() => { const v0 = vueMesHeures; vueMesHeures = function(){ const h = v0.apply(this, arguments), k = ptxQuiHeures(), a = h.indexOf('<div class="carte"><h3>Heures corrigées par le bureau</h3>');
   const carte = ptxCarteSalarie(k), liste = ptxJoursListe(k), t = h.replace('</span></div></div>', '</span></div></div>' + carte);
@@ -15551,25 +15552,388 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-pt
   if (a === 'finhierautre') return ouvrirPanneau(`<span class="surtitre">Ma journée de travail</span><h2>À quelle heure as-tu fini ?</h2><label class="champ">Fin<input type="time" id="ptx-hf" value="${ptxFinPropose(POINTAGES.find(o => o.id === x)).h}"></label>
     <div class="actions"><button type="button" class="btn" data-ptx="finhierok|${x}">Envoyer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   if (a === 'finhierok') return ptxFinHier(x, (document.getElementById('ptx-hf') || {}).value);
-  if (a === 'rappeler') return ptxRappeler();
-  if (a === 'demander') return ptxDemander();
-  if (a === 'corrige') return ptxCorriger(x);
-  if (a === 'validertous') return ptxValiderPanneau(ajoute(lundi(AUJ), ptSem * 7));
-  if (a === 'validerok') { const { ok } = ptxSemainesOk(x); if (!ok.length) { fermerPanneau(); return toast('Rien à valider : c’est déjà fait.'); } const av = ptxValiderLot(x, ok); fermerPanneau(); rendre();
-    return toast(`${ptxPl(ok.length, 'semaine')} validée${ok.length > 1 ? 's' : ''} : ${ok.map(k => esc(prenomDe(k))).join(', ')}.`, ptxAnnulerValid(av, ok.length)); }
-  if (a === 'validersem') { ptxVia('valider|' + x + '|' + y); return setTimeout(() => { if (document.querySelector('#calque .panneau')) foGarder(() => ptxSemaine(x, y)); }, 0); }
   if (a === 'sem') return ptxSemaine(x, y);
   if (a === 'releve') { const k = x; paieAller('paiemois'); return setTimeout(() => paieReleve(k), 150); }
   if (a === 'sig') return ptxSigPanneau(x, y);
   if (a === 'sigok') return ptxSigEnvoyer(x);
   if (a === 'tout') { PTX.tout = !PTX.tout; return rendre(); }
 });
-document.addEventListener('change', ev => { const t = ev.target; if (!t.matches || !t.matches('[data-ptx="rappels"]')) return; PTX.rappels = t.checked; rendre();
-  toast(PTX.rappels ? 'Rappels automatiques allumés : 09:30 et 19:00.' : 'Rappels automatiques éteints. Tu peux toujours rappeler à la main.'); });
 /* ce que le prototype a déjà fait ce matin : le rappel de 09:30 est parti à ceux qui avaient une intervention avant 09:30 et rien de pointé */
 (() => { if (!PTX.rappels || MAINT_MIN < 570) return;
   PT_GENS.forEach(k => { const pr = INTS.filter(i => i.tech === k && i.d === AUJ && i.st !== 'annulee').map(i => i.h).sort()[0];
     if (pr && pr <= '09:30' && !ptJour(k, AUJ).length && !absDe(k, AUJ)) { NOTIFS.push({ k, txt:'Rappel automatique : tu n’as pas encore commencé ta journée. Touche « Je commence ma journée ».', d:AUJ, h:'09:30' }); PTX.rappele[k] = '09:30'; } }); })();
+/* ⟦module temps-de-travail⟧ */
+/* ══ TEMPS DE TRAVAIL — la refonte du 16 novembre 2026 (étape 1 : le cadre et les trois onglets du gérant) ══
+   Justin : « Temps de travail, c'est pas mal. Mais mieux amélioré, plus simple, ce serait cool. »
+   UNE fonction par écran (plus de chaîne d'enveloppes qui retouchent le HTML des couches d'avant : c'est ce qui faisait revenir les
+   anciens blocs) ; les écritures restent celles du module d'origine (trace, reconfirmation, mois fermé), on ne change que ce qu'on VOIT.
+   Trois onglets, comme « À valider · Calendrier · Soldes » d'Absences : Aujourd'hui (la file « À régler » et « Qui est où »),
+   Semaine (la grille sur ordinateur, une liste au téléphone), Mois (les chiffres et le chemin vers la paie). Chaque fait n'est écrit
+   qu'UNE fois ; chaque rangée a UN geste. Les écrans de ce module n'écrivent jamais « on calcule la paie » : « Passer à la paie » seulement. */
+const TT = { filtre:null, vus:{}, avant:null, garder:false, confirmeDemande:null };
+const ttFem = k => ['sm', 'lr', 'julie'].includes(k);
+const ttPl = (n, un, plur) => n + ' ' + (n > 1 ? (plur || un + 's') : un);
+const ttMaj = s => s.charAt(0).toUpperCase() + s.slice(1);
+const ttMois = () => PAIE_NOM_MOIS.split(' ')[0];
+const ttJourNom = d => jlong(d).split(' ')[0];
+const ttHL = m => { const [h, mm] = ptH(m).split('h'); return h.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + 'h' + mm; };   // « 1 018h40 » : un grand total reste lisible
+const ttNoms = L => L.length < 2 ? (L[0] || '') : L.slice(0, -1).join(', ') + ' et ' + L[L.length - 1];
+const ttAv = k => { const g = H_GENS[k] || {}; return `<span class="eq-av" style="--c:${g.c || '#5b6676'}" aria-hidden="true">${esc(g.ini || (g.nom || k).split(' ').map(x => x[0]).join('').slice(0, 2))}</span>`; };
+const ttFerme = () => `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer.`;
+/* un geste de la Comptabilité › Paie rejoué tel quel (même fonction, même libellé, même « Annuler ») */
+function ttViaPaie(spec){ const b = document.createElement('button'); b.type = 'button'; b.dataset.paie = spec; b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); }
+
+/* ── qui est où, aujourd'hui ── */
+function ttEtats(){
+  return PT_GENS.map(k => {
+    const a = absDe(k, AUJ), P = ptJour(k, AUJ), ouv = P.find(p => !p.fin), fini = P.find(p => p.fin), prevu = prevuMin(k, AUJ);
+    const etat = ouv ? (PTX.pause[ouv.id] ? 'pause' : 'travail') : fini ? 'fini' : a ? 'absent' : prevu ? 'attendu' : 'pasattendu';
+    return { k, etat, a, ouv, fini, premier:INTS.filter(i => i.tech === k && i.d === AUJ && i.st !== 'annulee').map(i => i.h).sort()[0] };
+  });
+}
+function ttPhrase(E){
+  const n = E.filter(e => e.etat === 'travail' || e.etat === 'pause').length, ab = E.filter(e => e.etat === 'absent'), att = E.filter(e => e.etat === 'attendu').length, P = [];
+  if (n) P.push(ttPl(n, 'personne') + ' au travail');
+  if (ab.length) P.push(ab.length + ' ' + (ab.length > 1 ? (ab.every(e => ttFem(e.k)) ? 'absentes' : 'absents') : ttFem(ab[0].k) ? 'absente' : 'absent'));
+  return `Aujourd’hui, ${jlong(AUJ)} : ${P.length ? P.join(', ') : att ? 'personne n’a encore commencé' : 'personne n’est attendu'}.`;
+}
+
+/* ── la file « À régler » : UNE rangée par SUJET (pas par fait), du plus pressant au moins pressant ── */
+function ttAReglerLignes(){
+  const R = [], sem = [...new Set([...paieLundis(), lundi(AUJ)])].filter(L => L <= AUJ).sort();
+  /* 1. une journée restée ouverte : UN geste, à la fin habituelle de la personne (jamais l'heure qu'il est) ; celle du gérant se règle sur sa carte */
+  POINTAGES.filter(p => ptOuvert(p) && p.qui !== 'marc' && !paieMoisVerrou(p.date)).sort((a, b) => a.date.localeCompare(b.date)).forEach(p => {
+    const f = ptxFinPropose(p), dem = (PTX.demande || {})[p.id], il = ttFem(p.qui) ? 'Elle' : 'Il';
+    R.push({ rang:0, g:'r', lib:'À terminer', k:p.qui, texte:`<b>${esc(prenomDe(p.qui))}</b> n’a pas terminé sa journée du ${esc(jlong(p.date))}. ${il} a commencé à ${p.debut}.`, sous:dem ? `Demande envoyée à ${dem}.` : '',
+      bouton:f.src ? { lib:'Terminer à ' + f.h, act:'terminer|' + p.id + '|' + f.h } : { lib:'Choisir l’heure de fin', act:'fin|' + p.id },
+      liens:[{ lib:dem ? 'Redemander son heure' : 'Lui demander son heure', act:'demander|' + p.id }].concat(f.src ? [{ lib:'Choisir une autre heure', act:'fin|' + p.id }] : []) });
+  });
+  /* 2. une demande de correction du salarié : UN geste « Accepter » (la trace est écrite, le salarié reconfirme) */
+  PT_GENS.filter(k => PAIE.signales[k]).forEach(k => {
+    const s = PAIE.signales[k], d = paieJourSignale(k), r = ptxReq(k), p = ptJour(k, d)[0], il = ttFem(k) ? 'elle' : 'il', C = [];
+    if (r && r.debut) C.push(`${il} a commencé à ${r.debut}` + (p && p.debut ? ` et non à ${p.debut}` : ''));
+    if (r && r.fin) C.push(`${il} a fini à ${r.fin}` + (p && p.fin ? ` et non à ${p.fin}` : ''));
+    if (r && r.pause != null) C.push(`sa pause était de ${r.pause} min`);
+    const peut = p && r && Object.keys(r).length, un = r && ['debut', 'fin'].filter(c => r[c]), seul = un && un.length === 1 && r.pause == null ? r[un[0]] : null;
+    R.push({ rang:1, g:'b', lib:'Demande', k, texte:`<b>${esc(prenomDe(k))}</b> demande une correction : ${esc(jlong(d))}${C.length ? ', ' + esc(C.join(', ')) : ''}.`, cite:s.txt ? s.txt : (C.length ? '' : s.msg),
+      bouton:peut ? { lib:seul ? 'Accepter ' + seul : 'Accepter la correction', act:'accepter|' + k } : { lib:'Voir la journée', act:'jour|' + k + '|' + d },
+      liens:peut ? [{ lib:'Voir la journée', act:'jour|' + k + '|' + d }] : [] });
+  });
+  /* 3. les repères légaux : UNE rangée par personne et par semaine (avant, quatre lignes pour la même semaine de Karim) */
+  PT_GENS.forEach(k => sem.forEach(L => {
+    if (PT_VALIDE[k + L]) return; const J = ptxJours(L); if (J.every(d => paieMoisVerrou(d))) return;
+    const T = ptAlertes(k, J), al = T.A.filter(o => !o.ouvert), pas = al.filter(o => o.g === 'o' && /pas de pointage/.test(o.t)), leg = al.filter(o => !pas.includes(o)), quand = L === lundi(AUJ) ? 'cette semaine' : 'la semaine du ' + jCourt(L);
+    if (leg.length) { const nom = d => ttJourNom(d) + (L === lundi(AUJ) ? '' : ' ' + +d.slice(8)), long = leg.filter(o => /10 h au plus/.test(o.t)).map(o => nom(o.d) + (L === lundi(AUJ) ? ' ' + ptH(ptJourMin(k, o.d)) : ' (' + ptH(ptJourMin(k, o.d)) + ')')), repos = leg.filter(o => /11 h au moins/.test(o.t)).map(o => nom(o.d)),
+        h48 = leg.some(o => /48 h au plus/.test(o.t)), sanspause = leg.filter(o => /sans pause/.test(o.t)).map(o => nom(o.d)), r35 = leg.some(o => /repos de 35 h/.test(o.t));
+      const seulLong = long.length && !repos.length && !sanspause.length && !r35;
+      const dit = seulLong ? `a des journées trop longues ${quand} : ${long.join(', ')}${h48 ? ' · ' + ptH(T.tot) + ' en tout' : ''}.`
+        : `a des heures à regarder ${quand} : ` + [long.length && 'journées de plus de 10 h (' + long.join(', ') + ')', repos.length && 'moins de 11 h de repos (' + repos.join(', ') + ')', sanspause.length && 'pas de pause de 20 minutes (' + sanspause.join(', ') + ')', h48 && ptH(T.tot) + ' sur la semaine', r35 && 'pas de repos de 35 h d’affilée'].filter(Boolean).join(' · ') + '.';
+      R.push({ rang:2, g:'o', lib:'À regarder', k, texte:`<b>${esc(prenomDe(k))}</b> ${esc(dit)}`, bouton:{ lib:'Voir la semaine', act:'sem|' + k + '|' + L, gris:true }, liens:[{ lib:'La règle', act:'regle' }] }); }
+    if (pas.length) { const jrs = pas.map(o => o.d), n = jrs.reduce((s, d) => s + INTS.filter(i => i.tech === k && i.d === d && i.st !== 'annulee').length, 0);
+      R.push({ rang:3, g:'o', lib:'À regarder', k, texte:`<b>${esc(prenomDe(k))}</b> avait ${n === 1 ? 'une intervention' : 'des interventions'} ${ttNoms(jrs.map(ttJourNom))} et n’a pas pointé.`, bouton:{ lib:'Ajouter sa journée', act:'ajout|' + k + '|' + jrs[0] }, liens:[] }); }
+  }));
+  return R.sort((a, b) => a.rang - b.rang);
+}
+function ttLigneAReg(o){
+  return `<div class="tt-lig"><span class="st st-${o.g}">${o.lib}</span><span class="fo-n tt-txt"><span>${o.texte}</span>${o.cite ? `<span class="gris petit">“${esc(o.cite)}”</span>` : ''}${o.sous ? `<span class="gris petit">${esc(o.sous)}</span>` : ''}</span>
+    <span class="tt-ges"><button type="button" class="btn petit${o.bouton.gris ? ' gris' : ''}" data-tt="${esc(o.bouton.act)}">${esc(o.bouton.lib)}</button>${o.liens.length ? `<span class="tt-liens">${o.liens.map(l => `<button type="button" class="lien" data-tt="${esc(l.act)}">${esc(l.lib)}</button>`).join('')}</span>` : ''}</span></div>`;
+}
+function ttCarteAReg(R){
+  return `<div class="carte tt-areg" id="tt-areg"><h3>À régler${R.length ? ' · ' + R.length : ''}</h3>${R.length ? `<div class="tt-ligs">${R.map(ttLigneAReg).join('')}</div>`
+    : `<div class="tt-vide"><span class="tt-coche" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><b>Tout est réglé</b><span class="gris">Aucune journée à terminer, aucune demande en attente.</span></div>`}</div>`;
+}
+/* ── « Qui est où » : une rangée par personne ── */
+function ttCarteQuiEstOu(E){
+  const att = E.filter(e => e.etat === 'attendu'), RANG = { attendu:0, travail:1, pause:2, fini:3, absent:4 }, carte = PT_GENS.includes('marc') ? 'marc' : null;
+  const visibles = E.filter(e => e.etat !== 'pasattendu' && e.k !== carte && (!TT.filtre || (TT.filtre === 'travail' ? e.etat === 'travail' || e.etat === 'pause' : e.etat === TT.filtre))).sort((a, b) => RANG[a.etat] - RANG[b.etat]);
+  const pas = E.filter(e => e.etat === 'pasattendu' && e.k !== carte).map(e => prenomDe(e.k));
+  const ligne = e => { const k = e.k, nom = esc(H_NOM(k)); let st, sous, ges = '', clic = false;
+    if (e.etat === 'travail') { st = ['st-v', 'Au travail']; sous = 'au travail depuis ' + e.ouv.debut + (e.ouv.note ? ' · ' + e.ouv.note : ''); }
+    else if (e.etat === 'pause') { st = ['st-b', 'En pause']; sous = 'en pause depuis ' + PTX.pause[e.ouv.id].h; }
+    else if (e.etat === 'fini') { st = ['st-g', 'Journée finie']; sous = e.fini.debut + '–' + e.fini.fin + ' · ' + ptH(ptJourMin(k, AUJ)); }
+    else if (e.etat === 'absent') { st = ['st-p', 'Absent' + (ttFem(k) ? 'e' : '')]; sous = e.a.type.toLowerCase() + ' jusqu’au ' + jlong(e.a.au); clic = true; }
+    else { st = ['st-o', 'Pas encore commencé']; sous = 'devait commencer à ' + e.premier + (PTX.rappele[k] ? ' · rappel envoyé à ' + PTX.rappele[k] : ''); ges = `<button type="button" class="btn gris petit" data-tt="rappeler1|${k}">Lui rappeler</button>`; }
+    const dedans = `${ttAv(k)}<span class="fo-n"><b>${nom}</b><span class="gris petit">${esc(sous)}</span></span><span class="st ${st[0]}">${st[1]}</span>${ges}`;
+    return clic ? `<button type="button" class="tt-l tt-clic" data-tt="abs|${k}" aria-label="${nom}, ${esc(sous)} : ouvrir Absences et congés">${dedans}</button>` : `<div class="tt-l">${dedans}</div>`; };
+  const filtre = { travail:'au travail', attendu:'pas encore commencé', absent:'absent' }[TT.filtre];
+  return `<div class="carte tt-qui"><h3>Qui est où · ${esc(jlong(AUJ))}</h3>
+    ${TT.filtre ? `<div class="tt-filtre"><span>On ne montre que : <b>${filtre}</b></span><button type="button" class="lien" data-tt="filtre|">Tout voir</button></div>` : ''}
+    ${visibles.length ? `<div class="tt-ligs">${visibles.map(ligne).join('')}</div>` : (TT.filtre ? '<span class="gris">Personne dans cette case pour le moment.</span>' : `<span class="gris">Personne n’est attendu aujourd’hui. Rien n’est prévu au planning ce ${esc(ttJourNom(AUJ))}.</span>`)}
+    ${!TT.filtre && att.length > 1 ? `<div class="actions tt-rap-carte"><button type="button" class="btn gris petit" data-tt="rappeler">Envoyer un rappel à ${esc(ttNoms(att.map(e => prenomDe(e.k))))}</button></div>` : ''}
+    ${!TT.filtre && pas.length ? `<span class="gris petit">${esc(ttNoms(pas))} ${pas.length > 1 ? 'ne sont pas attendus' : (ttFem(E.find(e => e.etat === 'pasattendu' && e.k !== carte && prenomDe(e.k) === pas[0]).k) ? 'n’est pas attendue' : 'n’est pas attendu')} aujourd’hui.</span>` : ''}
+    <span class="gris petit tt-aide">${PTX.rappels ? 'Les rappels partent tout seuls à 09:30 (rien de commencé) et à 19:00 (journée restée ouverte).' : 'Les rappels automatiques sont éteints.'} <button type="button" class="lien tt-lien-court" data-tt="rappels">Modifier</button></span></div>`;
+}
+
+/* ── la semaine ── */
+function ttSemEtat(L0){
+  const J = ptxJours(L0), ok = [], reste = [], vus = [];
+  PT_GENS.forEach(k => { const has = POINTAGES.some(p => p.qui === k && J.includes(p.date)); if (!has) return; vus.push(k); if (PT_VALIDE[k + L0]) return;
+    const T = ptAlertes(k, J), sig = !!PAIE.signales[k] && J.includes(paieJourSignale(k)); if (T.A.length || sig) reste.push(k); else ok.push(k); });
+  return { J, ok, reste, vus, valides:vus.filter(k => PT_VALIDE[k + L0]) };
+}
+/* la pastille d'une ligne : la plus pressante, et jamais deux */
+function ttPastille(k, L0, S){
+  const T = ptAlertes(k, S.J), ouv = T.A.some(o => o.ouvert), pts = T.A.filter(o => !o.ouvert).length + (PAIE.signales[k] && S.J.includes(paieJourSignale(k)) ? 1 : 0), a = S.vus.includes(k);
+  if (ouv) return { cl:'st-r', lib:'À terminer', pts };
+  if (pts) return { cl:'st-o', lib:pts === 1 ? '1 point à regarder' : pts + ' points à regarder', pts };
+  if (PT_VALIDE[k + L0]) return { cl:'st-v', lib:'Validée', pts };
+  if (a && TT.vus[k + L0]) return { cl:'st-o', lib:'À revalider', pts, valider:true };
+  if (a) return { cl:'st-b', lib:'À valider', pts, valider:true };
+  return null;
+}
+function ttCase(k, d, al){
+  const a = absDe(k, d), m = ptJourMin(k, d), pr = prevuMin(k, d), P = ptJour(k, d)[0], ouv = P && ptOuvert(P), rg = al.A.some(x => x.d === d && x.g === 'r'), sig = PAIE.signales[k] && paieJourSignale(k) === d;
+  let b, s = '', lib;
+  if (P && ouv) { b = 'n’a pas terminé'; s = 'depuis ' + P.debut; lib = 'journée pas terminée'; }
+  else if (P) { b = ptH(m); s = P.debut + '–' + (P.fin || '…'); lib = b; }
+  else if (a) { b = esc(a.type); lib = a.type; }
+  else { b = '—'; s = pr ? 'prévu ' + ptH(pr) : ''; lib = pr ? 'pas de journée, prévu ' + ptH(pr) : 'pas de journée'; }
+  return `<button type="button" class="tt-j${a && !P ? ' abs' : ''}${ouv ? ' ouv' : ''}${!P && pr && !a && d < AUJ ? ' manque' : ''}${rg ? ' rg' : ''}${d === AUJ ? ' auj' : ''}${sig ? ' sig' : ''}" data-tt="jour|${k}|${d}" aria-label="${esc(H_NOM(k))}, ${esc(ptJ(d))} : ${esc(lib)}${rg ? ', à regarder' : ''}"><b>${b}</b>${s ? `<span>${esc(s)}</span>` : ''}</button>`;
+}
+function ttCarteSemaine(L0, S){
+  const J = S.J, lignes = PT_GENS.map(k => ({ k, T:ptAlertes(k, J) })).map(o => Object.assign(o, { pa:ttPastille(o.k, L0, S) }));
+  const tot = o => `<b>${ptH(o.T.tot)}</b><span class="${o.T.sup25 + o.T.sup50 ? (o.T.tot > 2880 ? 'fo-up' : 'gris') : 'gris'} petit">${o.T.sup25 + o.T.sup50 ? 'dont ' + ptH(o.T.sup25 + o.T.sup50) + ' en plus' : 'pas d’heures en plus'}</span>`;
+  const grille = `<div class="tt-grille"><div class="tt-gl tt-gh" aria-hidden="true"><span></span>${J.map(d => `<span class="${d === AUJ ? 'auj' : ''}">${esc(ptJ(d))}</span>`).join('')}<span>Total</span><span></span></div>
+    ${lignes.map(o => `<div class="tt-gl"><button type="button" class="tt-nom" data-tt="sem|${o.k}|${L0}"><b>${esc(H_NOM(o.k))}</b><span class="gris petit">${esc((H_GENS[o.k] || {}).role || '')}</span></button>${J.map(d => ttCase(o.k, d, o.T)).join('')}<span class="tt-tot">${tot(o)}</span>
+      <span class="tt-pc">${o.pa ? (o.pa.pts || o.pa.cl === 'st-r' ? `<button type="button" class="st ${o.pa.cl} tt-stb" data-tt="sem|${o.k}|${L0}">${o.pa.lib}</button>` : `<span class="st ${o.pa.cl}">${o.pa.lib}</span>`) : '<span class="gris">—</span>'}${o.pa && o.pa.valider && S.ok.includes(o.k) ? `<button type="button" class="btn gris petit" data-tt="validerun|${o.k}|${L0}">Valider</button>` : ''}</span></div>`).join('')}</div>`;
+  const liste = `<div class="tt-liste">${lignes.map(o => `<button type="button" class="tt-p" data-tt="sem|${o.k}|${L0}">${ttAv(o.k)}<span class="fo-n"><b>${esc(H_NOM(o.k))}</b><span class="gris petit">${esc((H_GENS[o.k] || {}).role || '')}</span></span><span class="tt-tot">${tot(o)}</span>${o.pa ? `<span class="tt-pp"><span class="st ${o.pa.cl}">${o.pa.lib}</span></span>` : ''}</button>`).join('')}</div>`;
+  return `<div class="carte tt-sem">${grille}${liste}</div>`;
+}
+/* les sept jours d'une personne : LA liste de la feuille de semaine du gérant (et, plus tard, de « Mes heures » du salarié) */
+function ttJoursListe(k, L0, ouvre){
+  return ptxJours(L0).map(d => { const a = absDe(k, d), P = ptJour(k, d)[0], pr = prevuMin(k, d), ouv = P && ptOuvert(P), cor = PT_TRACE.some(t => t.qui === k && t.date === d), futur = d > AUJ;
+    const dit = P ? P.debut + '–' + (P.fin || '…') : a ? a.type : futur ? 'pas encore' : pr ? 'pas de journée · prévu ' + ptH(pr) : 'pas de journée', fin = P ? (ouv ? 'pas terminée' : ptH(ptJourMin(k, d))) : '';
+    return `<button type="button" class="fo-r tt-jr${ouv ? ' ouv' : ''}${!P && pr && !a && d < AUJ ? ' manque' : ''}" data-tt="${ouvre || 'jour'}|${k}|${d}"><span class="tt-jd">${esc(ptJ(d))}</span><span class="fo-n"><span>${esc(dit)}</span>${cor ? '<span class="gris petit">corrigée par le bureau</span>' : ''}</span><b>${fin}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('');
+}
+function ttOngletSem(){
+  const L0 = ajoute(lundi(AUJ), ptSem * 7), S = ttSemEtat(L0), verr = S.J.some(paieMoisVerrou), nomsReste = S.reste.map(prenomDe), n = S.vus.length, enRegle = S.ok.length + S.valides.length;
+  const dit = !n ? 'Personne n’a pointé cette semaine.' : S.reste.length ? `${enRegle} personne${enRegle > 1 ? 's' : ''} sur ${n} ${enRegle > 1 ? 'sont' : 'est'} en règle. ${ttNoms(nomsReste)} ${S.reste.length > 1 ? 'ont' : 'a'} des points à régler.` : (S.ok.length ? 'Tout le monde est en règle.' : 'Tout est validé : les heures de la semaine sont parties à la paie.');
+  const bouton = verr ? '' : S.ok.length ? `<button type="button" class="btn gris" data-tt="valider|${L0}">${S.ok.length > 1 ? 'Valider les ' + S.ok.length + ' personnes en règle' : 'Valider la personne en règle'}</button>` : '';
+  return `<div class="st-barre-per tt-barre"><div class="st-nav"><button type="button" data-tt="nav|-1" aria-label="Semaine précédente">‹</button><b>Semaine du ${jCourt(L0)} au ${jCourt(ajoute(L0, 6))}</b><button type="button" data-tt="nav|1" aria-label="Semaine suivante" ${ptSem >= 0 ? 'disabled' : ''}>›</button></div>${ptSem ? '<button type="button" class="lien" data-tt="nav|0">Cette semaine</button>' : ''}${bouton}</div>
+    ${verr ? `<div class="info petit">${esc(ttFerme())}</div>` : `<span class="gris tt-dit">${esc(dit)}${S.ok.length ? ' Valider envoie leurs heures à la paie ; si tu changes une heure ensuite, il faudra valider de nouveau.' : ''}</span>`}
+    <div class="tt-conteneur">${ttCarteSemaine(L0, S)}</div>
+    <span class="gris petit">Touche une journée pour la voir, la comparer au planning ou la corriger. Corriger une journée la remet à valider.</span>`;
+}
+/* la feuille de la semaine d'une personne */
+function ttSemainePers(k, L){
+  L = lundi(L || AUJ); const J = ptxJours(L), T = ptAlertes(k, J), S = ttSemEtat(L), plus = T.sup25 + T.sup50, val = !!PT_VALIDE[k + L], verr = J.some(paieMoisVerrou), pts = T.A.filter(o => !o.ouvert), ouv = T.A.some(o => o.ouvert), enRegle = S.ok.includes(k);
+  const rouges = pts.some(o => o.g === 'r');
+  ouvrirPanneau(`<span class="surtitre">Semaine du ${jCourt(L)} au ${jCourt(ajoute(L, 6))}</span><h2>${esc(H_NOM(k))}</h2>
+    <div class="fo-stats"><span><b>${ptH(T.tot)}</b>travaillées</span><span><b>${plus ? ptH(plus) : '—'}</b>en plus</span></div>
+    ${pts.length ? `<div class="info fo-alerte petit">${pts.map(o => esc(o.t)).join('<br>')}<br><button type="button" class="lien" data-tt="regle">La règle ›</button></div>` : ''}
+    <div class="fo-bloc tt-sept">${ttJoursListe(k, L)}</div>
+    ${verr ? `<div class="info petit">${esc(ttFerme())}</div>` : val ? '<div class="ok-bloc petit">✓ Cette semaine est validée pour la paie.</div>' : `<div class="actions">${enRegle ? `<button type="button" class="btn large" data-tt="validerun|${k}|${L}">Valider la semaine de ${esc(prenomDe(k))}</button>` : `<button type="button" class="btn large" data-tt="areg">Voir les points à régler</button>`}</div>${!enRegle && !ouv && !rouges ? `<button type="button" class="lien" data-tt="validerun|${k}|${L}|1">Valider quand même</button>` : ''}`}`);
+}
+/* valider : une personne, ou toutes celles qui sont en règle — toujours avec « Annuler » */
+function ttAnnuler(av, texte){ return { lib:'Annuler', fn:() => { ptxRestaurerValid(av); journalAjout('marc', 'equipe', 'a annulé une validation de temps de travail', { lib:'Temps de travail' }); rendre(); toast(texte); } }; }
+function ttValiderUn(k, L0, quandMeme){
+  if (ptxJours(L0).some(paieMoisVerrou)) return toast(ttFerme());
+  const T = ptAlertes(k, ptxJours(L0)), ouv = T.A.some(o => o.ouvert), rouges = T.A.filter(o => o.g === 'r' && !o.ouvert).length;
+  if (ouv) return toast('Une journée est restée ouverte : termine-la avant de valider la semaine.');
+  if (rouges && !quandMeme) return toast('Il y a des points à régler pour ' + esc(prenomDe(k)) + ' : regarde-les d’abord.');
+  const av = { ...PT_VALIDE }; PT_VALIDE[k + L0] = true;
+  journalAjout('marc', 'equipe', 'a validé la semaine de ' + H_NOM(k) + (quandMeme && T.A.length ? ' (' + T.A.length + ' point' + (T.A.length > 1 ? 's' : '') + ' à regarder ignoré' + (T.A.length > 1 ? 's' : '') + ')' : ''), { lib:'Temps de travail' });
+  fermerPanneau(); rendre(); toast(`Semaine de ${esc(prenomDe(k))} validée pour la paie.`, ttAnnuler(av, 'Validation annulée : la semaine de ' + esc(prenomDe(k)) + ' est à valider de nouveau.'));
+}
+function ttValiderPanneau(L0){
+  const S = ttSemEtat(L0); if (S.J.some(paieMoisVerrou)) return toast(ttFerme()); if (!S.ok.length) return toast('Rien à valider d’un coup : tout est déjà validé, ou à régler d’abord.');
+  ouvrirPanneau(`<span class="surtitre">Semaine du ${jCourt(L0)} au ${jCourt(ajoute(L0, 6))}</span><h2>Valider ${ttPl(S.ok.length, 'personne')} ?</h2>
+    <div class="fo-bloc">${S.ok.map(k => `<div class="fo-r">${ttAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b></span><b>${ptH(ptAlertes(k, S.J).tot)}</b></div>`).join('')}</div>
+    <span class="gris">Leurs heures partent à la paie. Si tu changes une heure ensuite, il faudra valider de nouveau.</span>
+    ${S.reste.length ? `<div class="info petit fo-alerte">À régler d’abord, pas validé${S.reste.length > 1 ? 's' : ''} : ${esc(ttNoms(S.reste.map(prenomDe)))}.</div>` : ''}
+    <div class="actions"><button type="button" class="btn large" data-tt="validerok|${L0}">Valider</button></div>`);
+}
+function ttValiderLot(L0){
+  const S = ttSemEtat(L0); if (S.J.some(paieMoisVerrou)) { fermerPanneau(); return toast(ttFerme()); } if (!S.ok.length) { fermerPanneau(); return toast('Rien à valider : c’est déjà fait.'); }
+  const av = ptxValiderLot(L0, S.ok); fermerPanneau(); rendre();
+  toast(`${ttPl(S.ok.length, 'personne')} validée${S.ok.length > 1 ? 's' : ''} (${S.ok.map(k => esc(prenomDe(k))).join(', ')}).`, ttAnnuler(av, 'Validation annulée : ' + ttPl(S.ok.length, 'personne') + ' à valider de nouveau.'));
+}
+
+/* ── le mois ── */
+function ttMoisBilan(V){
+  const R = ttAReglerLignes(), ouverts = V.reduce((s, v) => s + v.ouverts.length, 0), sig = V.filter(v => v.signale).length, nonVal = V.filter(v => v.nonValidees).length, nonConf = V.filter(v => !v.confirme).length;
+  const bloque = (v, w) => w.alertes.some(o => o.g === 'r' || o.ouvert), aValider = V.reduce((s, v) => s + v.semaines.filter(w => !w.valide && !bloque(v, w)).length, 0);
+  return { R, ouverts, sig, nonVal, nonConf, aValider, bloques:ouverts + sig };
+}
+function ttOngletMois(){
+  const V = PT_GENS.map(paieVariables), B = ttMoisBilan(V), verr = paieVerrouille(), plus = V.reduce((s, v) => s + v.s25 + v.s50, 0), conf = V.filter(v => v.confirme).length;
+  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'demande') + ' de correction à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`].filter(Boolean);
+  const phrase = verr ? `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer. Fermé le ${PAIE.verrou.le.split(' ')[0]}.` : P.length ? 'Il reste ' + (P.length > 1 ? P.slice(0, -1).join(', ') + ' et ' + P[P.length - 1] : P[0]) + '.' : `${ttMaj(ttMois())} est prêt : les heures sont validées et confirmées.`;
+  let bouton, lien = '';
+  if (verr) bouton = `<button type="button" class="btn" data-tt="paie">Voir la paie</button>`;
+  else if (B.aValider) { bouton = `<button type="button" class="btn" data-tt="validertout">Valider ce qui est en règle</button>`; if (B.R.length) lien = `<button type="button" class="lien" data-tt="areg">Voir À régler ›</button>`; }
+  else if (B.nonVal || B.bloques) bouton = `<button type="button" class="btn" data-tt="areg">Voir ce qu’il reste à régler</button>`;
+  else if (B.nonConf) { bouton = `<button type="button" class="btn gris" data-tt="confirmer">Demander de confirmer</button>`; lien = `<button type="button" class="lien" data-tt="paie">Passer à la paie quand même</button>`; }
+  else bouton = `<button type="button" class="btn" data-tt="paie">Passer à la paie</button>`;
+  const etat = v => v.signale ? ['st-o', 'Erreur signalée'] : v.confirme ? ['st-v', 'Confirmé le ' + v.confirme.le.split(' ')[0]] : ['st-g', 'N’a pas encore confirmé'];
+  return `<div class="st-barre-per"><div class="st-nav"><button type="button" disabled aria-label="Mois précédent">‹</button><b>${esc(ttMaj(ttMois()))} ${PAIE_MOIS.slice(0, 4)}</b><button type="button" disabled aria-label="Mois suivant">›</button></div></div>
+    <div class="kpis tt-k"><div class="kpi"><b>${ttHL(V.reduce((s, v) => s + v.tot, 0))}</b><span>travaillées</span></div><div class="kpi"><b>${plus ? ttHL(plus) : '—'}</b><span>en plus</span></div>
+      <button type="button" class="kpi${B.R.length ? ' kpi-up' : ''}" data-tt="areg"><b${B.R.length ? '' : ' style="color:var(--vert)"'}>${B.R.length}</b><span>à régler</span></button><div class="kpi"><b>${conf} sur ${V.length}</b><span>ont confirmé leurs heures</span></div></div>
+    <div class="carte tt-paie"><h3>La paie ${paieDe(ttMois())}</h3><p class="tt-phrase">${esc(phrase)}</p>${TT.confirmeDemande && !verr && B.nonConf ? `<span class="gris petit">Demande envoyée à ${TT.confirmeDemande}.</span>` : ''}<div class="tt-ges">${bouton}${lien}</div></div>
+    <div class="carte tt-qui"><h3>Les heures de chacun</h3><div class="tt-ligs tt-mois">${V.map(v => { const e = etat(v), pl = v.s25 + v.s50;
+      return `<button type="button" class="tt-p" data-tt="mois|${v.k}">${ttAv(v.k)}<span class="fo-n"><b>${esc(H_NOM(v.k))}</b><span class="gris petit">${ttHL(v.tot)}${pl ? ' dont ' + ptH(pl) + ' en plus' : ''}</span></span><span class="tt-pp tt-pp-d"><span class="st ${e[0]}">${e[1]}</span></span></button>`; }).join('')}</div></div>`;
+}
+function ttMoisPers(k){
+  const v = paieVariables(k), pl = v.s25 + v.s50, mois = ttMois(), jrs = paieJoursMois().filter(d => d <= AUJ && ptJour(k, d).length).reverse();
+  const etat = v.signale ? '<span class="st st-o">Erreur signalée</span>' : v.confirme ? `<span class="st st-v">Confirmé le ${esc(v.confirme.le.split(' ')[0])}</span>` : '<span class="st st-g">N’a pas encore confirmé</span>';
+  ouvrirPanneau(`<span class="surtitre">${esc(ttMaj(mois))} ${PAIE_MOIS.slice(0, 4)}</span><h2>${esc(H_NOM(k))}</h2><div>${etat}</div>
+    <div class="fo-stats"><span><b>${ttHL(v.tot)}</b>travaillées</span><span><b>${pl ? ptH(pl) : '—'}</b>en plus</span></div>
+    ${v.nuit ? `<span class="gris petit">${ptH(v.nuit)} de nuit (entre 21 h et 6 h).</span>` : ''}${v.nAbs ? `<span class="gris petit">${esc(paieAbsTxt(v.abs))} d’absence.</span>` : ''}
+    <h3 class="tt-h3">Ses semaines</h3><div class="fo-bloc">${v.semaines.map(w => { const sup = w.s25 + w.s50;
+      return `<button type="button" class="fo-r tt-jr" data-tt="sem|${k}|${w.L}"><span class="fo-n"><b>Semaine du ${jCourt(w.L)}</b><span class="gris petit">${w.report ? 'payée avec ' + paieMoisVoisin(1) : w.avant ? 'commencée en ' + paieMoisVoisin(-1) : w.valide ? 'validée' : 'à valider'}${sup && w.ici ? ' · dont ' + ptH(sup) + ' en plus' : ''}</span></span><b>${ptH(w.tot)}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>
+    <details class="tt-det"><summary>Ses journées · ${jrs.length}</summary><div class="fo-bloc">${jrs.map(d => { const P = ptJour(k, d)[0];
+      return `<button type="button" class="fo-r tt-jr" data-tt="jour|${k}|${d}"><span class="tt-jd">${esc(ptJ(d))}</span><span class="fo-n"><span>${P.debut}–${P.fin || '…'}</span></span><b>${P.fin ? ptH(ptJourMin(k, d)) : 'pas terminée'}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div></details>
+    <h3 class="tt-h3">Ses corrections du mois</h3>${v.trace.map(paieTraceLigne).join('') || '<span class="gris petit">Aucune heure de ce mois n’a été modifiée.</span>'}
+    <div class="cmd-liens"><button type="button" class="lien" data-tt="releve|${k}">Son relevé ${paieDe(mois)} ›</button></div>`);
+}
+
+/* ── le cadre ── */
+function ttVue(){
+  if (TT.avant !== 'pointage' && !TT.garder) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }
+  TT.garder = false; if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
+  Object.keys(PT_VALIDE).forEach(x => { if (PT_VALIDE[x]) TT.vus[x] = true; });   // de quoi dire « à revalider » quand une heure bouge après la validation
+  const E = ttEtats(), R = ttAReglerLignes(), n = e => E.filter(e).length, travail = n(e => e.etat === 'travail' || e.etat === 'pause'), attendus = n(e => e.etat === 'attendu'), abs = E.filter(e => e.etat === 'absent');
+  const kpi = (cle, nb, lib) => `<button type="button" class="kpi" data-tt="filtre|${cle}" aria-pressed="${TT.filtre === cle && ptOnglet === 'auj'}"><b>${nb}</b><span>${lib}</span></button>`;
+  const corps = ptOnglet === 'semaine' ? ttOngletSem() : ptOnglet === 'mois' ? ttOngletMois()
+    : `${PT_GENS.includes('marc') ? `<div class="tt-moi">${ptxCarteSalarie('marc')}</div>` : ''}${ttCarteAReg(R)}${ttCarteQuiEstOu(E)}`;
+  return `<div class="tete tt-tete"><div><span class="surtitre">Personnel</span><h1>Temps de travail</h1><span class="gris">${esc(ttPhrase(E))}</span></div><div class="actions"><button type="button" class="btn" data-tt="ajout">＋ Ajouter une journée</button></div></div>
+    <div class="kpis tt-k">${kpi('travail', travail, 'au travail')}${kpi('attendu', attendus, 'pas encore commencé')}${kpi('absent', abs.length, 'absent' + (abs.length > 1 ? 's' : abs.length === 1 && ttFem(abs[0].k) ? 'e' : ''))}
+      <button type="button" class="kpi${R.length ? ' kpi-up' : ''}" data-tt="areg"><b${R.length ? '' : ' style="color:var(--vert)"'}>${R.length}</b><span>à régler</span></button></div>
+    <div class="seg" role="tablist" aria-label="Temps de travail">${[['auj', 'Aujourd’hui'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, l]) => `<button type="button" role="tab" data-tt="onglet|${k}" aria-pressed="${ptOnglet === k}" aria-selected="${ptOnglet === k}">${l}${k === 'auj' && R.length ? ` <span class="t-nb rouge">${R.length}</span>` : ''}</button>`).join('')}</div>
+    ${corps}`;
+}
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; return v; }; })();
+
+/* ── les feuilles ── */
+function ttTerminer(id, h, pause, motif){
+  const p = POINTAGES.find(o => o.id === id); if (!p || p.fin) return;
+  if (paieMoisVerrou(p.date)) return toast(ttFerme());
+  if (!h) return toast('Donne l’heure de fin.');
+  const deb = ptMin(p.debut), fin = ptMin(h);
+  if (fin <= deb) return toast('La fin ne peut pas être avant le début.');
+  if (p.date === AUJ && fin > MAINT_MIN) return toast('Une heure dans le futur ne se pointe pas.');
+  if (pause < 0 || pause > fin - deb) return toast('La pause est plus longue que la journée.');
+  const k = p.qui, av = { ...p }, avTr = PT_TRACE.length, avVal = { ...PT_VALIDE }, avConf = PAIE.confirmes[k], dem = PTX.demande && PTX.demande[id];
+  p.fin = h; p.pause = pause; p.corrige = H_NOM(paieQui()).split(' ')[0] + ' · ' + hNow(); p.note = (p.note ? p.note + ' · ' : '') + 'terminée par le bureau';
+  PT_TRACE.push({ pid:p.id, qui:k, date:p.date, champ:'fin', avant:'journée pas terminée', apres:h, par:paieQui(), le:'31/10 · ' + hNow(), motif });
+  ptDevalide(k, p.date); delete PAIE.confirmes[k]; if (dem) delete PTX.demande[id];
+  notifier(k, `Ta journée du ${jlong(p.date)} a été terminée à ${h} par le bureau. Tu la retrouves dans « Mes heures ».`); const nt = NOTIFS[NOTIFS.length - 1];
+  journalAjout('marc', 'equipe', 'a terminé la journée de ' + prenomDe(k), { lib:H_NOM(k) }, { det:jlong(p.date) + ' · ' + p.debut + '–' + h + ' · pause ' + pause + ' min' });
+  fermerPanneau(); rendre();
+  toast(`Journée de ${esc(prenomDe(k))} terminée à ${h} (${ptH(ptDuree(p))}). ${ttFem(k) ? 'Elle' : 'Il'} la verra dans ses heures.`, { lib:'Annuler', fn:() => {
+    Object.keys(p).forEach(x => delete p[x]); Object.assign(p, av); PT_TRACE.length = avTr; ptxRestaurerValid(avVal); if (avConf) PAIE.confirmes[k] = avConf; if (dem) PTX.demande[id] = dem; const i = NOTIFS.indexOf(nt); if (i >= 0) NOTIFS.splice(i, 1);
+    journalAjout('marc', 'equipe', 'a annulé la fin de journée de ' + prenomDe(k), { lib:H_NOM(k) }); rendre(); toast('Annulé : la journée de ' + esc(prenomDe(k)) + ' est de nouveau à terminer.'); } });
+}
+function ttTerminerPanneau(id){
+  const p = POINTAGES.find(o => o.id === id); if (!p || p.fin) return; const f = ptxFinPropose(p), il = ttFem(p.qui) ? 'Elle' : 'Il', pause = p.pause || ptxHabPause(p.qui);
+  PTX.src[p.id] = f;
+  ouvrirPanneau(`<span class="surtitre">${esc(H_NOM(p.qui))} · ${esc(jlong(p.date))}</span><h2>Terminer la journée</h2>
+    <span class="gris">${il} a commencé à ${p.debut}. À quelle heure ${ttFem(p.qui) ? 'a-t-elle' : 'a-t-il'} fini ?</span>
+    <div class="deux-champs"><label class="champ">Fin<input type="time" id="tt-f" value="${f.h}"></label><label class="champ">Pause (minutes)<input inputmode="numeric" id="tt-p" value="${pause}"></label></div>
+    <span class="gris petit">${f.src ? 'Proposé : ' + esc(f.src) + '. ' : ''}La pause est celle qu’${ttFem(p.qui) ? 'elle' : 'il'} prend d’habitude. Jamais l’heure qu’il est : on inscrit celle que tu choisis.</span>
+    <div class="actions"><button type="button" class="btn large" data-tt="termineok|${p.id}">Terminer la journée</button></div>`);
+}
+function ttTerminerOk(id){
+  const p = POINTAGES.find(o => o.id === id); if (!p) return; const f = (document.getElementById('tt-f') || {}).value, pr = ((document.getElementById('tt-p') || {}).value || '').trim(), s = PTX.src[id];
+  if (pr && !/^\d+$/.test(pr)) return toast(/^-\d/.test(pr) ? 'La pause ne peut pas être négative : mets 0 s’il n’y en a pas eu.' : 'Donne la pause en minutes, avec des chiffres (par exemple 45).');
+  ttTerminer(id, f, parseInt(pr, 10) || 0, 'journée terminée par le bureau à ' + f + (s && s.src && s.h === f ? ', d’après ' + s.src : ', heure donnée par le bureau'));
+}
+function ttTerminerRapide(id, h){
+  const p = POINTAGES.find(o => o.id === id); if (!p || p.fin) return; const f = ptxFinPropose(p); if (!f.src || f.h !== h) return toast('L’heure proposée a changé : ouvre « Choisir une autre heure ».');   // le bouton ne dit pas une heure que la fonction ne tiendrait plus
+  ttTerminer(id, h, Math.min(p.pause || ptxHabPause(p.qui), Math.max(0, ptMin(h) - ptMin(p.debut))), 'journée terminée par le bureau à ' + h + ', d’après ' + f.src);
+}
+function ttDemander1(id){
+  const p = POINTAGES.find(o => o.id === id); if (!p || p.fin) return; PTX.demande = PTX.demande || {};
+  notifier(p.qui, `Ta journée du ${jlong(p.date)} est restée ouverte. À quelle heure as-tu fini ? Réponds dans « Ma journée ».`); PTX.demande[id] = hNow();
+  journalAjout('marc', 'equipe', 'a demandé l’heure de fin à ' + prenomDe(p.qui), { lib:'Temps de travail' }); rendre(); toast('Demande envoyée à ' + esc(prenomDe(p.qui)) + '.');
+}
+function ttRappeler1(k){
+  if (ptJour(k, AUJ).length || absDe(k, AUJ)) return toast(esc(prenomDe(k)) + ' a pointé.');
+  notifier(k, 'Tu n’as pas encore commencé ta journée. Touche « Je commence ma journée ».'); PTX.rappele[k] = hNow();
+  journalAjout('marc', 'equipe', 'a rappelé de pointer à ' + prenomDe(k), { lib:H_NOM(k) }); rendre(); toast('Rappel envoyé à ' + esc(prenomDe(k)) + '.');
+}
+function ttDemanderConfirmer(){
+  const V = PT_GENS.map(paieVariables).filter(v => !v.confirme); if (!V.length) return toast('Tout le monde a confirmé ses heures.');
+  V.forEach(v => notifier(v.k, `Ton relevé d’heures ${paieDe(PAIE_NOM_MOIS)} est prêt, confirme-le dans Mes heures.`)); TT.confirmeDemande = hNow();
+  journalAjout('marc', 'equipe', 'a demandé de confirmer les heures du mois à ' + ptxPl(V.length, 'personne'), { lib:V.map(v => prenomDe(v.k)).join(', ') }); rendre();
+  toast('Demande envoyée à ' + ttNoms(V.map(v => esc(prenomDe(v.k)))) + '.');
+}
+function ttAjouterPanneau(k, d){
+  const kk = k && PT_GENS.includes(k) ? k : PT_GENS[0], dd = d && d <= AUJ ? d : jour(-1);
+  ouvrirPanneau(`<span class="surtitre">Temps de travail</span><h2>Ajouter une journée</h2><span class="gris">Pour une journée oubliée : tu dis qui, quel jour, et pourquoi. Le salarié le verra sur ses heures.</span>
+    <div class="deux-champs"><label class="champ">Qui ?<select id="tt-aq">${PT_GENS.map(g => `<option value="${g}" ${g === kk ? 'selected' : ''}>${esc(H_NOM(g))}</option>`).join('')}</select></label><label class="champ">Quel jour ?<input type="date" id="tt-aj" value="${dd}" max="${AUJ}"></label></div>
+    <div class="deux-champs"><label class="champ">Début<input type="time" id="tt-ad" value="08:00"></label><label class="champ">Fin<input type="time" id="tt-af" value="17:00"></label></div>
+    <label class="champ">Pause (minutes)<input inputmode="numeric" id="tt-ap" value="60"></label>
+    <label class="champ">Pourquoi ? <span class="gris petit">(obligatoire)</span><input id="tt-am" placeholder="Ex. : oubli de pointer, confirmé avec lui"></label>
+    <div class="actions"><button type="button" class="btn large" data-tt="ajoutok">Ajouter la journée</button></div>`);
+}
+function ttAjouterOk(){
+  const g = i => ((document.getElementById(i) || {}).value || '').trim(), k = g('tt-aq'), d = g('tt-aj'), deb = g('tt-ad'), fin = g('tt-af'), pr = g('tt-ap'), motif = g('tt-am');
+  if (!k || !d) return toast('Choisis la personne et le jour.');
+  if (d > AUJ) return toast('Cette journée n’est pas encore arrivée : on ne pointe pas à l’avance.');
+  if (paieMoisVerrou(d)) return toast(ttFerme());
+  if (!deb || !fin) return toast('Donne l’heure de début et l’heure de fin.');
+  if (ptMin(fin) <= ptMin(deb)) return toast('La fin ne peut pas être avant le début.');
+  if (d === AUJ && ptMin(fin) > MAINT_MIN) return toast('Une heure dans le futur ne se pointe pas.');
+  if (pr && !/^\d+$/.test(pr)) return toast('Donne la pause en minutes, avec des chiffres (par exemple 45).');
+  if ((parseInt(pr, 10) || 0) > ptMin(fin) - ptMin(deb)) return toast('La pause est plus longue que la journée.');
+  if (!motif) return toast('Écris d’abord pourquoi : le salarié le verra sur ses heures.');
+  if (ptJour(k, d).length) return toast(esc(prenomDe(k)) + ' a déjà une journée ce jour-là : ouvre-la depuis la semaine pour la corriger.');
+  const id = 'p' + k + d + 'm', avVal = { ...PT_VALIDE }, avConf = PAIE.confirmes[k], avTr = PT_TRACE.length;
+  POINTAGES.push({ id, qui:k, date:d, debut:deb, fin, pause:parseInt(pr, 10) || 0, note:'ajoutée par le bureau' });
+  PT_TRACE.push({ pid:id, qui:k, date:d, champ:'journee', avant:'pas de pointage', apres:deb + '–' + fin, par:paieQui(), le:'31/10 · ' + hNow(), motif });
+  ptDevalide(k, d); delete PAIE.confirmes[k]; notifier(k, `Le bureau a ajouté ta journée du ${jlong(d)} (${deb}–${fin}). Tu la retrouves dans « Mes heures ».`); const nt = NOTIFS[NOTIFS.length - 1];
+  journalAjout('marc', 'equipe', 'a ajouté une journée de ' + prenomDe(k), { lib:H_NOM(k) }, { det:jlong(d) + ' · ' + deb + '–' + fin });
+  fermerPanneau(); rendre();
+  toast(`Journée ajoutée pour ${esc(prenomDe(k))} : ${esc(jlong(d))}, ${deb}–${fin}.`, { lib:'Annuler', fn:() => { const i = POINTAGES.findIndex(o => o.id === id); if (i >= 0) POINTAGES.splice(i, 1); PT_TRACE.length = avTr; ptxRestaurerValid(avVal); if (avConf) PAIE.confirmes[k] = avConf; const j = NOTIFS.indexOf(nt); if (j >= 0) NOTIFS.splice(j, 1); rendre(); toast('Journée retirée.'); } });
+}
+/* « La règle » : la référence du Code du travail est écrite ICI et nulle part ailleurs. Texte à relire par l'agent `juriste` avant publication
+   (un salarié peut le lire) : la forme change, le sens ne doit pas. */
+function ttRegle(){
+  const R = [['10 heures par jour au plus', 'Code du travail, article L3121-18.'], ['11 heures de repos entre deux journées', 'Code du travail, article L3131-1.'], ['48 heures par semaine au plus', 'Code du travail, article L3121-20.'],
+    ['Une pause de 20 minutes dès 6 heures de travail', 'Code du travail, article L3121-16.'], ['35 heures de repos d’affilée par semaine', 'Code du travail, article L3132-2.']];
+  ouvrirPanneau(`<span class="surtitre">Temps de travail</span><h2>La règle</h2><span class="gris">OP GESTION te prévient quand une semaine sort de ces repères.</span>
+    <div class="fo-bloc tt-regle">${R.map(([t, ref]) => `<details class="tt-det"><summary><span>${t}</span><span class="tt-q" aria-label="Voir la référence">?</span></summary><span class="gris petit">${ref}</span></details>`).join('')}</div>
+    <span class="gris petit">Ces repères sont généraux, sauf accord d’entreprise ou de branche : à vérifier avec ton expert-comptable.</span>`);
+}
+function ttRappelsPanneau(){
+  ouvrirPanneau(`<span class="surtitre">Temps de travail</span><h2>Rappels automatiques</h2>
+    <label class="fo-r tt-sw"><input type="checkbox" id="tt-rap" ${PTX.rappels ? 'checked' : ''}><span class="fo-n"><b>Prévenir ceux qui n’ont pas commencé à 09:30, et ceux qui n’ont pas terminé à 19:00</b><span class="gris petit">Le salarié donne son heure de fin, tu la vois ici.</span></span></label>
+    <div class="actions"><button type="button" class="btn" data-tt="rappelsok">Enregistrer</button></div>`);
+}
+
+/* ── les gestes : UN écouteur pour l'écran ── */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-tt]'); if (!b) return; const P = b.dataset.tt.split('|'), a = P[0], x = P[1], y = P[2];
+  if (a === 'onglet') { ptOnglet = x; if (x !== 'auj') TT.filtre = null; return rendre(); }
+  if (a === 'filtre') { ptOnglet = 'auj'; TT.filtre = !x || TT.filtre === x ? null : x; return rendre(); }
+  if (a === 'areg') { fermerPanneau(); ptOnglet = 'auj'; TT.filtre = null; rendre(); return setTimeout(() => { const e = document.getElementById('tt-areg'); if (e) e.scrollIntoView({ behavior:'smooth', block:'start' }); }, 30); }
+  if (a === 'nav') { ptSem = x === '0' ? 0 : Math.min(0, ptSem + +x); return rendre(); }
+  if (a === 'jour') return ptFicheJour(x, y);
+  if (a === 'sem') return ttSemainePers(x, y);
+  if (a === 'mois') return ttMoisPers(x);
+  if (a === 'terminer') return ttTerminerRapide(x, y);
+  if (a === 'fin') return ttTerminerPanneau(x);
+  if (a === 'termineok') return ttTerminerOk(x);
+  if (a === 'demander') return ttDemander1(x);
+  if (a === 'accepter') return ptxCorriger(x);
+  if (a === 'rappeler') return ptxRappeler();
+  if (a === 'rappeler1') return ttRappeler1(x);
+  if (a === 'regle') return ttRegle();
+  if (a === 'rappels') return ttRappelsPanneau();
+  if (a === 'rappelsok') { const c = document.getElementById('tt-rap'); PTX.rappels = !!(c && c.checked); fermerPanneau(); rendre(); return toast(PTX.rappels ? 'Rappels automatiques allumés : 09:30 et 19:00.' : 'Rappels automatiques éteints. Tu peux toujours rappeler à la main.'); }
+  if (a === 'ajout') return ttAjouterPanneau(x, y);
+  if (a === 'ajoutok') return ttAjouterOk();
+  if (a === 'valider') return ttValiderPanneau(x);
+  if (a === 'validerok') return ttValiderLot(x);
+  if (a === 'validerun') return ttValiderUn(x, y, P[3] === '1');
+  if (a === 'validertout') return ttViaPaie('validertout');
+  if (a === 'confirmer') return ttDemanderConfirmer();
+  if (a === 'paie') return paieAller('paiemois');
+  if (a === 'releve') { paieAller('paiemois'); return setTimeout(() => paieReleve(x), 150); }
+  if (a === 'abs') { fermerPanneau(); if (typeof aOnglet !== 'undefined') aOnglet = 'calendrier'; return aller('absences'); }
+});
+
 /* ── vehicules ── */
 /* ══ VÉHICULES — le lot du 10 novembre 2026 ══
    Avant : un écran qu'on LIT. Maintenant : un carnet qu'on TIENT. Chaque échéance se ferme (« Contrôle fait » : la prochaine est proposée,
@@ -17395,7 +17759,7 @@ document.addEventListener('click', ev => {
   if (a === 'kmtarif') return ouvrirPanneau(`<span class="surtitre">Notes de frais · kilomètres</span><h2>Tarif au kilomètre</h2><span class="gris">Ce que tu rembourses par kilomètre parcouru avec un véhicule personnel. Le chiffre affiché est un exemple de démonstration : à vérifier avec ton expert-comptable.</span>
     <label class="champ">Tarif, en € le kilomètre<input class="saisie" id="ax-km" inputmode="decimal" value="${String(AX.kmTarif).replace('.', ',')}"></label><div class="actions"><button type="button" class="btn" data-axa="kmok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   if (a === 'kmok') { const v = axNum((g('ax-km') || {}).value); if (!(v > 0)) return toast('Indique un tarif, par exemple 0,60.'); AX.kmTarif = v; fermerPanneau(); rendre(); return toast(`Tarif au kilomètre : ${eur(v)}.`); }
-  if (a === 'paie') { if (typeof ptOnglet !== 'undefined') ptOnglet = 'paie'; return aller('pointage'); }
+  if (a === 'paie') { if (typeof ptOnglet !== 'undefined') { ptOnglet = 'mois'; TT.garder = true; } return aller('pointage'); }
   if (a === 'renvoyer') { if (!n || n.etat !== 'refusee') return; const av = { motif:n.motif, par:n.par, le:n.le }; axRenvoiNettoye(n); n.etat = 'attente'; n.renvoye = true; n.motif = null; axNotif('marc', `${prenomDe(n.qui)} renvoie sa note « ${n.objet} » après correction.`); axJ(n.qui, 'a renvoyé la note de frais', n.objet); rendre();
     return toast('Note renvoyée au bureau.', { lib:'Annuler', fn:() => { n.etat = 'refusee'; n.renvoye = false; Object.assign(n, av); rendre(); } }); }
   if (a === 'grosnon') { const z = document.getElementById('rn-dbl'); if (z) { z.hidden = true; z.innerHTML = ''; } return; }
