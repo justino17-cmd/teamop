@@ -33,6 +33,8 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   v('le TTC de l\'atelier = le TTC recalculé par la sonde (' + attendu + ' centimes)', dd.d[0] && dd.d[0].ttc === attendu, [dd.d[0] && dd.d[0].ttc, attendu]);
   v('le numéro suit la série du prototype (D-2026-…, jamais DEV-2026-…)', /^D-2026-\d{3}$/.test(dd.d[0].num), dd.d[0].num);
   v('le client choisi est celui du prototype (Hôtel de la Plage)', dd.d[0].cl && dd.d[0].cl.id === 'hp');
+  v('dans OP GESTION : pas d\'accueil dans l\'atelier (le prototype est l\'accueil), pas de sélecteur Auto/Jour/Nuit visible, retour libellé « OP GESTION »', await f.evaluate(() => getComputedStyle(document.getElementById('vue-accueil')).display === 'none' && !document.querySelector('.mode-seg:not([hidden])') || getComputedStyle(document.getElementById('vue-accueil')).display === 'none') && /OP GESTION/.test(await f.locator('[data-act="retour"]').first().getAttribute('aria-label')), await f.locator('[data-act="retour"]').first().getAttribute('aria-label'));
+  v('le thème vient du prototype (data-theme posé par lui), jamais rangé dans le cadre', await f.evaluate(() => document.documentElement.getAttribute('data-theme') === 'light' && !localStorage.getItem('documents-sur-mesure-opg-theme') && !localStorage.getItem('documents-sur-mesure-theme')));
   await L.capture(c, A.CAP + 'devis-editeur-' + c.profil + '.png');
   // ── retour au prototype : la liste, les onglets, les chiffres ──
   await f.locator('[data-act="retour"]:visible').first().click(); await p.waitForTimeout(900);
