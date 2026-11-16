@@ -51,7 +51,8 @@ qui ne touchait ni `server-msg/` ni le banc (même mort le 5 novembre) ; en loca
 - Trois fenêtres du service courent encore sur l'heure réelle (l'horloge du service = l'heure réelle + le décalage) : la sonnerie de l'appel principal, la minute du débit, la
   rétention de 30 s. Pire relevé sous charge, 300 passages : 0,68 s pour 39 s, 0,45 s pour 60 s, 0,07 s pour 30 s. Le banc les chronomètre et dit « machine trop lente » si l'une est dépassée.
 - **`test-907` porte la même famille de pari** : `T.dort(700)` et `T.dort(900)` autour d'une grâce de présence de 500 ms (lignes 266 à 271), et des `fermer(); attendreFerme();`
-  suivis d'un geste qui suppose que le service a vu la fermeture (138, 298, 340). Pas tombé ici, pas corrigé : hors du périmètre demandé.
+  suivis d'un geste qui suppose que le service a vu la fermeture (138, 298, 340). MESURÉ sous la même charge : **40 passages sur 40 verts** — le pari est dans le texte, il n'est pas
+  tombé. Rien à corriger sur la foi de cette mesure ; à reprendre s'il tombe un jour (`fermerFlux` de `test-981` est le modèle).
 - Les autres bancs d'OP MESSAGES lancent encore leur service à l'heure réelle puis le reculent (`svc.avancer(decal)` après le démarrage) : le premier tour d'un balayeur peut passer
   avant le recul sur une machine chargée. `decalageInitial` existe ; seul `test-981` l'emploie.
 - Non vérifié : ce que fait la PAGE d'un signal perdu entre la coupure réelle d'un flux et le moment où le service la voit (la rétention de 30 s ne couvre que l'après). C'est le
