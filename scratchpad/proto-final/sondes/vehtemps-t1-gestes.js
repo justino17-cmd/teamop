@@ -147,7 +147,7 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
     await L.fin(c); }
 
   /* ── J. « La règle », « Rappels » ── */
-  { const c = await frais(); await clic(c, '[data-tt="regle"]'); const r = await ev(c, () => ({ h2:document.querySelector('#calque .panneau h2').textContent, det:document.querySelectorAll('#calque .tt-det').length, refs:[...document.querySelectorAll('#calque .tt-det')].map(e => e.innerText).join('|'), pied:document.querySelector('#calque .panneau').innerText }));
+  { const c = await frais(); await clic(c, '[data-tt="regle"]'); const r = await ev(c, () => ({ h2:document.querySelector('#calque .panneau h2').textContent, det:document.querySelectorAll('#calque .tt-det').length, refs:[...document.querySelectorAll('#calque .tt-det')].map(e => e.textContent).join('|'), pied:document.querySelector('#calque .panneau').textContent }));
     v('J : « La règle » — cinq repères, la référence du Code du travail DANS le « ? »', r.h2 === 'La règle' && r.det === 5 && /L3121-18/.test(r.refs) && /expert-comptable/.test(r.pied), r);
     v('J : la référence n\'est écrite que là (plus nulle part ailleurs dans l\'écran)', !/L3121|L3131|L3132/.test(await txt(c, '#contenu')));
     await L.ranger(c.p); await clic(c, '[data-tt="rappels"]'); await ev(c, () => { document.getElementById('tt-rap').checked = false; }); await clic(c, '[data-tt="rappelsok"]');
