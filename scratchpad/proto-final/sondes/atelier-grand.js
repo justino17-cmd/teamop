@@ -139,6 +139,11 @@ const attendCadre = async (f, fn, arg, ms) => { const t0 = Date.now(); while (Da
       const ed = await f.evaluate(() => { const q = s => document.querySelector(s), r = e => { if (!e) return null; const b = e.getBoundingClientRect(); return { w: Math.round(b.width), h: Math.round(b.height) }; }; return { vue: S.vue, zoom: S.ui.zoom, feuille: r(q('#vue-editeur .feuille')), panneau: r(q('#panneau')), menu: [...document.querySelectorAll('[data-act="menu-zoom"]')].length }; });
       v(`${tag} · l'éditeur qui suit s'ouvre, page « Ajuster à la largeur » (${ed.zoom}) : ${ed.feuille && ed.feuille.w} px de large`, ed.vue === 'editeur' && ed.zoom === 'ajuster' && ed.feuille && ed.feuille.w >= (W >= 1400 ? 620 : Math.min(W - 40, 560)), ed);
       await L.capture(c, CAP + 'grand-editeur-' + tag + '.png');
+      // le menu de taille de l'éditeur dit « Ajuster à la largeur » (et non « à la fenêtre ») : c'est ce que la page fait vraiment dans OP GESTION
+      const zb = f.locator('[data-act="menu-zoom"]:visible').first();
+      if (await zb.count()) { if (c.doigt) await zb.tap({ timeout: 5000 }); else await zb.click({ timeout: 5000 }); await p.waitForTimeout(300);
+        const mt = await f.evaluate(() => document.body.innerText); v(`${tag} · le menu de taille de l'éditeur dit « Ajuster à la largeur »`, /Ajuster à la largeur/.test(mt) && !/Ajuster à la fenêtre/.test(mt)); await p.keyboard.press('Escape'); }
+      else v(`${tag} · le bouton de taille de l'éditeur est là (absent du téléphone : la page y est toujours ajustée)`, W < 761);
     }
     v(`${tag} · aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);
