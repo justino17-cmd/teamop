@@ -37,13 +37,14 @@ const ECRANS = {
       if (nuit !== undefined) await p.evaluate(n => { try { mode = n ? 'nuit' : 'jour'; appliquerMode(); } catch (e) {} }, nuit);
       await prep(p); await L.calme(p, 500);
       const panneau = await p.evaluate(() => !!document.querySelector('#calque .panneau'));
-      const dep = await L.deborde(c); const zone = panneau ? '#calque .panneau' : '#contenu'; const d = c.doigt ? await L.doigts(p, zone) : { petits: [], champs: [], ecrases: await L.doigts(p, zone).then(x => x.ecrases) };
+      // la capture AVANT les mesures qui font défiler (doigtsReel amène chaque cible au milieu)
+      if (capt) await L.capture(c, `${O.CAP}mep/${profil}-${nuit ? 'nuit' : 'jour'}-${qui}-${nom}.png`);
+      const dep = await L.deborde(c); const zone = panneau ? '#calque .panneau' : '#contenu'; const d = c.doigt ? await L.doigts(p, zone) : { petits: [], champs: [], ecrases: await L.doigts(p, zone).then(x => x.ecrases) }; if (c.doigt) { d.petitsRect = d.petits; d.petits = await O.doigtsReel(p, zone); }   // la zone qui répond, pas le rectangle
       const pop = await p.evaluate(zone => document.querySelectorAll(zone + ' *').length, zone);
-      v(`${tag} · ${nom} : population non vide (${pop} éléments)`, pop > 20);
+      v(`${tag} · ${nom} : population non vide (${pop} éléments)`, pop > 8)   // la fenêtre « Refuser » est petite exprès : 10 éléments;
       v(`${tag} · ${nom} : aucun glissement latéral (${dep.largeur} px)`, dep.bouge === 0, dep);
       if (c.doigt) { v(`${tag} · ${nom} : cibles au doigt ≥ 44 px`, d.petits.length === 0, d.petits.slice(0, 8)); v(`${tag} · ${nom} : champs ≥ 16 px`, d.champs.length === 0, d.champs.slice(0, 5)); }
       v(`${tag} · ${nom} : aucun texte écrasé`, d.ecrases.length === 0, d.ecrases.slice(0, 3));
-      if (capt) await L.capture(c, `${O.CAP}mep/${profil}-${nuit ? 'nuit' : 'jour'}-${qui}-${nom}.png`);
     }
     v(`${tag} : aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);
