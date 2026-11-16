@@ -13,6 +13,68 @@ de ligne du tout.
 
 ---
 
+# 16 NOVEMBRE 2026 — PROTOTYPE OP GESTION : VERSION FINALE EN COURS (ATELIER DE DEVIS ET CONTRATS DEDANS, MENU FINAL, GRANDE REVUE)
+
+⛔ **À LIRE EN PREMIER SI LA SESSION A REDÉMARRÉ.** Le 16 novembre vers 20 h 20, la machine de la session a redémarré : le
+dossier temporaire (scratchpad de la session, arbres de travail, commits locaux, transcriptions des agents) a été EFFACÉ, et
+trois heures de travail non poussé avec lui. **Depuis, tout ce qui doit survivre vit dans `scratchpad/proto-final/` et se pousse
+à chaque étape** sur `claude/op-gestion-interface-yb6p32`. Ne rien garder d'important hors du dépôt.
+
+**Ce que Justin a demandé le 16 novembre, dans l'ordre :**
+1. « Je veux que après tu le mettes dans OP GESTION avec le système de devis » — réponse à la question « où ? » : le PROTOTYPE
+   OP GESTION (pas la vraie application).
+2. « Une fois tout ça fait, je veux que tu revoies tout le prototype OP GESTION, qu'il soit testé par plusieurs personnes comme
+   s'il était fonctionnel pour les entreprises, sur tout type de plateforme (PC, téléphone) ; que tu corriges s'il y a des bugs ;
+   que tous les boutons fonctionnent, que chaque bouton emmène au bon endroit, que tout soit compréhensible. Revois toutes les
+   catégories, qu'elles soient logiques, simples, rapides, efficaces à comprendre pour tout le monde, même pour les gens qui ne
+   sont pas doués avec la technologie. Une fois tout ça fait, la version sera prête et finale ; on publiera pour les plateformes :
+   Apple Store, Play Store, plus Windows. »
+3. « Il faut que tout soit parfait. Je veux une réponse comme quoi tout fonctionne et que tu as tout bien testé. Et, vu que c'est
+   une grosse refonte, un petit guide pour expliquer les nouvelles fonctionnalités aux personnes qui arrivent. »
+4. « Tu me dis quand t'as fini ? » — oui : un message à chaque étape finie, et la réponse finale chiffrée à la fin.
+
+**Où sont les pièces (tout est dans le dépôt) :**
+- `scratchpad/proto-final/INTEGRATION.md` — l'atelier dans le prototype : dessin, contrat des messages, et les 35 corrections
+  confirmées par la relecture adverse de la première version (perdue).
+- `scratchpad/proto-final/MENU-FINAL.md` — le menu final DÉCIDÉ (6 groupes au lieu de 10, bouton « Menu » pour tous les rôles au
+  téléphone, barre du bas du client, « Mes congés » du technicien, plus d'échafaudage en mode application), ce qui est soumis à
+  Justin, et les constats « bloquants » de la lecture du code à vérifier pendant la campagne.
+- `scratchpad/proto-final/atelier/page.source` + `fabriquer.sh` — la source unique de l'atelier « Documents sur mesure »
+  (Version 11) ; `apercu/prototype-documents.html` en est FABRIQUÉE.
+- `scratchpad/proto-final/lib.js` — l'outil des sondes (profils mac, mac720, windows, ipad, iphone, android, petit ; mode
+  application `?app=1&auto=marc|julie|sm` ; encoches de l'iPhone simulées). Sondes durables : `scratchpad/proto-final/sondes/`.
+- `scratchpad/proto-final/workflows/deux-lots.js` — le script du workflow en cours (à relancer tel quel après un redémarrage :
+  recréer les deux arbres `git worktree add --detach /home/user/wt-atelier HEAD` et `/home/user/wt-menu HEAD`).
+
+**État au 16 novembre, 20 h 45 :**
+- Lot « atelier » et lot « menu » : RELANCÉS (workflow « prototype-final-deux-lots » : appliquer → relire en adverse → corriger →
+  recontrôler, chaque étape poussée). Rien n'est encore sur la branche tant qu'un commit de lot n'y paraît pas (`git log`).
+- La machine n'a que 4 cœurs : 2 agents à la fois par workflow. Compter plusieurs heures pour l'ensemble.
+- **Ensuite, dans l'ordre :** (a) publier le prototype (artefact https://claude.ai/artifact/8K6fXjo4jRwTs4pFRUUhux : `index.html`
+  = `apercu/prototype-op-gestion.html` sans son squelette, plus `prototype-comptabilite.html`, `prototype-paiement.html` et le NEUF
+  `prototype-documents.html` par `files`) ; (b) la grande campagne de tests : un testeur par partie (coque, accueil, planning,
+  tâches et absences, interventions, clients, devis, factures et paiements, contrats, comptabilité, stock, temps et véhicules,
+  boîte mail et achats, équipe, métier 3D, technicien, client), en mode application, sur ordinateur ET téléphone, jour et nuit,
+  chaque bouton touché et sa destination vérifiée, puis contre-vérification de chaque défaut, corrections, nouveau passage jusqu'à
+  zéro ; (c) le guide des nouveautés refait (court, par rôle, rouvrable depuis l'aide ; `nvOuvrir`, `NV_NEUF`, `NV_PLACE`) ;
+  (d) dernier passage complet, publication, et la réponse finale chiffrée à Justin ; (e) les stores, sur sa phrase.
+- **Trois questions posées à Justin, sans réponse à ce jour** (ne pas appliquer sans lui) : une ligne « Factures » au menu ; un
+  écran « Mon entreprise » ; le menu de chaque personne déduit de ses cases « Voir ».
+- **À lui redire à la fin** : ce qu'on teste est le prototype (entreprise fictive, rien ne s'enregistre, aucun serveur). Apple et
+  Google refusent une application de démonstration ; la version « store » de la VRAIE application reste à construire
+  (`mobile/LISEZMOI.md`, `mobile/fabriquer.js application`). Vrai iPhone, vrai Android, vrai Windows : non vérifiables d'ici.
+
+**Ce que la première version (perdue) avait appris, à ne pas réapprendre :**
+- un cadre masqué par `display:none` mesure 0 px : la page dedans se croit « téléphone », puis se referme à l'affichage ;
+- le focus dans un cadre rend Échap morte pour le parent ; un cadre qui ne répond pas doit avoir un délai et un « Réessayer » ;
+- le bouton Retour doit FERMER une fenêtre plein écran, pas faire reculer l'écran derrière elle ;
+- deux séries de numéros (`DEV-…` et `D-…`) pour un même devis : une seule série, celle d'OP GESTION ;
+- un nom, un téléphone ou un e-mail venu d'ailleurs s'échappe AUSSI dans les `href` ;
+- la carte du prototype (18 lecteurs) : 417 écrans et fenêtres, 204 parcours, 302 points à vérifier dont 17 annoncés bloquants ;
+  elle est perdue, ses constats majeurs sont au bas de `MENU-FINAL.md` — les testeurs de la campagne refont la carte de leur partie.
+
+---
+
 # 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 11 PUBLIÉE (COMPOSITEURS, TEST COMPLET ET DIX CORRECTIFS) — PUIS INTÉGRATION AU PROTOTYPE OP GESTION
 
 Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
