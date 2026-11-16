@@ -17390,7 +17390,7 @@ document.addEventListener('click', ev => {
   if (a === 'relancer') return mlRepondre(m, 'relance');
   if (a === 'prevenir') return mlRepondre(m, 'confirm');
   if (a === 'ranger') { const cli = R.cli || mbxCliDe(m), pj = m.pj[+y]; (CLIENTS[cli].docsMail = CLIENTS[cli].docsMail || []).push({ nom:pj[0], taille:pj[1], d:m.d, mail:m.id }); fermerPanneau(); rafraichir();
-    return toast(esc(pj[0]) + ' rangé dans le dossier de ' + esc(CLIENTS[cli].nom) + '.', { lib:'Annuler', fn:() => { CLIENTS[cli].docsMail = CLIENTS[cli].docsMail.filter(d => !(d.mail === m.id && d.nom === pj[0])); rendre(); } }); }
+    return toast(esc(pj[0]) + ' rangé dans la fiche « ' + esc(CLIENTS[cli].nom) + ' ».', { lib:'Annuler', fn:() => { CLIENTS[cli].docsMail = CLIENTS[cli].docsMail.filter(d => !(d.mail === m.id && d.nom === pj[0])); rendre(); } }); }
   if (a === 'photoint') { const I = mbxInt(m), pj = m.pj.filter(p => /\.(jpe?g|png|heic)$/i.test(p[0])); let F; try { F = fiche(I.id); } catch (e) { F = null; } if (!F || !F.photos) return toast('Cette intervention n’a pas encore de fiche à compléter.');
     pj.forEach(p => { if (!F.photos.some(o => o.nom === p[0])) F.photos.push({ nom:p[0], src:'' }); }); fermerPanneau(); rafraichir(); return toast(mbxNb(pj.length, 'photo') + ' ajoutée' + (pj.length > 1 ? 's' : '') + ' à l’intervention « ' + esc(I.titre) + ' ».'); }
   if (a === 'devis') { MBX.dev = { id:x, k:mbxDevisChoix(m) }; return mbxPanDevis(m); }

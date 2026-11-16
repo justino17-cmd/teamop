@@ -1015,7 +1015,7 @@ var CSS = `
   @keyframes opc-sheetDown {from{opacity:0;transform:translateY(-24px)}}
 
   @media all {
-    .opc:where([data-fmt="mac"][data-etroit]){--side-w:220px;--list-w:clamp(280px,27cqw,392px)}
+    .opc:where([data-fmt="mac"][data-etroit]){--side-w:220px;--list-w:clamp(304px,27cqw,392px)}
     .opc:where([data-fmt="mac"][data-etroit]) .tb{width:30px}
     .opc:where([data-fmt="mac"][data-etroit]) .tsep{width:6px}
   }
@@ -1467,6 +1467,11 @@ var CSS = `
   .opc .hband .hacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
   .opc .hband .hacts .btn{height:38px;padding:0 14px;font-size:14px;font-weight:600}
   .opc .hband .hacts .btn:not(.primary){background:var(--btn);color:var(--label);box-shadow:0 0 0 1px var(--btn-edge)}
+  .opc .hband .hplus summary{display:flex;align-items:center;min-height:44px;color:var(--tint);font-size:15px;font-weight:600;cursor:pointer;list-style:none}
+  .opc .hband .hplus summary::-webkit-details-marker{display:none}
+  .opc .hband .hplus summary::after{content:"";width:8px;height:8px;margin-left:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+  .opc .hband .hplus[open] summary::after{transform:rotate(-135deg) translateY(-2px)}
+  .opc .hband .hplus > .hacts{margin-top:4px}
   .opc .hband .hfait{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--pro)}
   .opc .hband .hfi{display:inline-flex;width:18px;height:18px;flex:none}
   .opc .hband .hfi svg{width:18px;height:18px}
@@ -2598,11 +2603,13 @@ var MARKUP = `
     if(!HOTE||typeof HOTE.lecture!=="function"||m.folder==="sent"||m.folder==="drafts"||m.folder==="scheduled") return "";
     var b; try{ b=HOTE.lecture(horsModule(m)); }catch(e){ return ""; } if(!b) return "";
     var liens=(b.liens||[]).map(function(l){ return '<button type="button" class="lnk" data-hote="'+H(l.id)+'">'+H(l.lib)+'<span class="chv" aria-hidden="true">'+I.chevR+'</span></button>'; }).join("");
-    var acts=(b.actions||[]).map(function(a){ return '<button type="button" class="btn'+(a.primaire?' primary':'')+'" data-hote="'+H(a.id)+'"'+(a.inactif?' disabled aria-disabled="true" title="'+H(a.aide||"")+'"':'')+'>'+H(a.lib)+'</button>'; }).join("");
+    var bts=(b.actions||[]).map(function(a){ return '<button type="button" class="btn'+(a.primaire?' primary':'')+'" data-hote="'+H(a.id)+'"'+(a.inactif?' disabled aria-disabled="true" title="'+H(a.aide||"")+'"':'')+'>'+H(a.lib)+'</button>'; });
+    /* sur un téléphone, cinq gros boutons repoussaient le TEXTE du courriel sous le pli : on garde les deux premiers gestes (le principal d'abord) et on range les autres sous « Autres gestes » */
+    var plus=isPhone()&&bts.length>3, acts=bts.length?'<div class="hacts">'+(plus?bts.slice(0,2):bts).join("")+'</div>'+(plus?'<details class="hplus"><summary>Autres gestes ('+(bts.length-2)+')</summary><div class="hacts">'+bts.slice(2).join("")+'</div></details>':""):"";
     return '<section class="hband'+(b.urgent?' urgent':'')+'" aria-label="'+H(b.kicker||"Ce que l’application a compris")+'">'+
       (b.kicker?'<span class="hk">'+H(b.kicker)+'</span>':'')+(b.titre?'<b class="ht">'+H(b.titre)+'</b>':'')+(b.detail?'<span class="hd">'+H(b.detail)+'</span>':'')+
       (b.fait?'<div class="hfait"><span class="hfi" aria-hidden="true">'+I.check+'</span><span>'+H(b.fait)+'</span>'+(b.faitLien?'<button type="button" class="lnk" data-hote="'+H(b.faitLien.id)+'">'+H(b.faitLien.lib)+'</button>':'')+'</div>':'')+
-      (liens?'<div class="hliens">'+liens+'</div>':'')+(acts?'<div class="hacts">'+acts+'</div>':'')+'</section>'; }
+      (liens?'<div class="hliens">'+liens+'</div>':'')+acts+'</section>'; }
   function hotePastille(m){
     if(!HOTE||typeof HOTE.pastille!=="function") return "";
     try{ var p=HOTE.pastille(horsModule(m)); return p&&p.texte?'<span class="hpast ton-'+H(p.ton||"n")+'">'+H(p.texte)+'</span><span class="sr"> · </span>':""; }catch(e){ return ""; } }
