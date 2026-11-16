@@ -23,12 +23,43 @@ const FETCH = globalThis.fetch;
 
 const dort = (ms) => new Promise(r => setTimeout(r, ms));
 
-function portLibre() {
+/* ⛔ UN PORT « LIBRE » NE L'EST QUE POUR CELUI QUI L'A RÉSERVÉ (16 novembre 2026). Le système rend un port libre à l'instant où on le lui demande — et le redonne aussitôt à un AUTRE processus qui pose la
+   même question : mesuré, vingt processus qui tirent cent ports chacun en tirent 260 À DEUX (`scratchpad/ports-collision.js`). Deux bancs lancés en parallèle recevaient donc parfois le même port ; le
+   service du premier s'y installait, celui du second mourait (`EADDRINUSE`)… et le second banc, dont le contrôle de santé interrogeait « le port », entendait le service DE L'AUTRE répondre « ok » : il
+   continuait sur un service qui n'était pas le sien, et tombait plus loin sur « unable to open database file » (sa base n'avait jamais été créée) — 1 passage sur 80 de `test-981` sous charge.
+   La réservation est un FICHIER créé d'un seul geste (`wx` : il existe déjà → un autre processus tient ce port, on en tire un autre), dans un dossier commun à tous les bancs de la machine ; il porte le
+   numéro du processus qui réserve et part avec lui (`exit`). Une réservation dont le processus est mort (banc tué) est ignorée — le port reste simplement de côté — et effacée au bout de dix minutes. */
+const DOSSIER_PORTS = path.join(os.tmpdir(), 'banc-msg-ports');
+const portsReserves = new Set();
+function reserverPort(p) {
+  const f = path.join(DOSSIER_PORTS, String(p));
+  try { fs.mkdirSync(DOSSIER_PORTS, { recursive: true }); fs.writeFileSync(f, String(process.pid), { flag: 'wx' }); }
+  catch (e) {
+    if (!e || e.code !== 'EEXIST') return true;                 // un dossier temporaire où l'on ne peut pas écrire ne doit empêcher aucun banc de tourner : on rend le port, sans réservation (comme avant)
+    try {                                                        // une réservation orpheline (son processus est mort) et vieille de dix minutes : on l'efface, pour un tirage FUTUR — jamais pour celui-ci
+      const pid = parseInt(fs.readFileSync(f, 'utf8'), 10); let vivant = true;
+      try { process.kill(pid, 0); } catch (x) { vivant = !!x && x.code === 'EPERM'; }
+      if (!vivant && Date.now() - fs.statSync(f).mtimeMs > 600000) fs.unlinkSync(f);
+    } catch (x) { /* partie entre-temps */ }
+    return false;
+  }
+  if (!portsReserves.size) process.on('exit', () => { for (const q of portsReserves) { try { fs.unlinkSync(path.join(DOSSIER_PORTS, String(q))); } catch (e) { /* déjà partie */ } } });
+  portsReserves.add(p);
+  return true;
+}
+function portDuSysteme() {
   return new Promise((res, rej) => {
     const s = net.createServer();
     s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); });
     s.on('error', rej);
   });
+}
+async function portLibre() {
+  for (let essai = 0; ; essai++) {
+    const p = await portDuSysteme();
+    if (reserverPort(p)) return p;
+    if (essai >= 200) throw new Error('aucun port libre que ce banc puisse réserver (200 tirages, tous tenus par un autre banc : voir ' + DOSSIER_PORTS + ')');
+  }
 }
 
 /* Attend qu'une condition devienne vraie : on SONDE la condition (rapidement), on ne dort pas un
@@ -74,8 +105,14 @@ async function lancerService(opts = {}) {
   }, o.instance === 'beta' ? { OPMSG_TEST_TRAJET: '127.0.0.1:10' } : {}, o.env);
   /* Une horloge décalable (voir `lib-horloge-msg.js`) : le banc avance les DATES du processus. */
   let decalage = o.decalageInitial || 0; const fichierDecalage = path.join(racine, 'decalage-horloge');   // `decalageInitial` : un REDÉMARRAGE reprend l'horloge là où le processus d'avant l'avait laissée
+  /* ⛔ LE DÉCALAGE SE POSE PAR FICHIER TEMPORAIRE PUIS RENOMMAGE, JAMAIS PAR `writeFileSync` SUR LE FICHIER LU (16 novembre 2026). `writeFileSync` TRONQUE puis écrit : entre les deux, le fichier est
+     VIDE, et le service — qui le relit à CHAQUE `Date.now()` — lisait alors « pas de décalage » : son horloge sautait d'un coup à l'heure RÉELLE (des semaines après l'heure du banc). À vide, la fenêtre
+     dure quelques microsecondes ; sur une machine chargée, le banc perd la main entre la troncature et l'écriture, et le balayeur des appels (toutes les secondes) passait dedans : toutes les sonneries
+     « échues », tous les appels « perdus ». Mesuré par une horloge espionne, 80 passages de `test-981` sous charge : 30 lectures vides, 8 passages tombés — dont la mort de la CI (« undefined.lie »,
+     39 ✓ : Ben répondait à un appel que le balayeur venait de dire manqué). Un renommage remplace le fichier d'un seul geste : qui le lit voit l'ancien décalage ou le nouveau, jamais rien. */
+  const poserDecalage = () => { const tmp = fichierDecalage + '.tmp'; fs.writeFileSync(tmp, String(decalage)); fs.renameSync(tmp, fichierDecalage); };
   if (o.horloge) {
-    fs.writeFileSync(fichierDecalage, String(decalage));
+    poserDecalage();
     env.OPMSG_HORLOGE_DECALAGE = fichierDecalage;
     env.NODE_OPTIONS = ((env.NODE_OPTIONS || '') + ' --require=' + path.join(__dirname, 'lib-horloge-msg.js')).trim();
   }
@@ -86,15 +123,18 @@ async function lancerService(opts = {}) {
   const svc = {
     base, port, racine, data, cred, cfgPath, cle: o.cle, config: cfg, sortie, enfant,
     sorti: () => sorti,
-    avancer(ms) { decalage += ms; fs.writeFileSync(fichierDecalage, String(decalage)); },
+    avancer(ms) { decalage += ms; poserDecalage(); },
     async arreter(nettoyer = true) {
       try { if (sorti === null) { enfant.kill('SIGTERM'); await attendre(() => sorti !== null, 4000); if (sorti === null) enfant.kill('SIGKILL'); } } catch (e) {}
       if (nettoyer && !o.dossier) { try { fs.rmSync(racine, { recursive: true, force: true }); } catch (e) {} }
     },
   };
   if (o.attendreSante) {
-    const vivant = await attendre(async () => { if (sorti !== null) return 'mort'; try { return (await FETCH(base + '/health')).ok; } catch (e) { return false; } }, 10000, 50);
-    if (vivant !== true) { const s = sortie.texte(); await svc.arreter(); throw new Error('le service n\'a pas démarré : ' + (vivant === 'mort' ? 'sorti avant /health' : 'délai') + '\n' + s.slice(0, 800)); }
+    /* ⛔ « /health répond » ne prouve pas que c'est NOTRE service qui répond : un autre processus peut tenir ce port (voir `portLibre`). On n'écoute donc la santé qu'une fois que NOTRE processus a dit
+       « demarre » dans son journal (sa base est ouverte, il a demandé le port), et il doit être encore en vie APRÈS la réponse — un service dont le port était pris meurt (`EADDRINUSE`). */
+    const aDemarre = () => /"evt":"demarre"/.test(sortie.texte());
+    const vivant = await attendre(async () => { if (sorti !== null) return 'mort'; if (!aDemarre()) return false; try { return (await FETCH(base + '/health')).ok && (sorti === null ? true : 'mort'); } catch (e) { return false; } }, 10000, 50);
+    if (vivant !== true) { const s = sortie.texte(); await svc.arreter(); throw new Error('le service n\'a pas démarré : ' + (vivant === 'mort' ? 'sorti avant /health' + (/EADDRINUSE/.test(s) ? ' — le port ' + port + ' était pris par un autre processus' : '') : aDemarre() ? 'délai' : 'délai — /health ' + (await FETCH(base + '/health').then(r => 'répond ' + r.status + ' sur le port ' + port + ', mais ce n\'est pas ce service : il n\'a jamais dit « demarre »', () => 'ne répond pas'))) + '\n' + s.slice(0, 800)); }
   }
   return svc;
 }
@@ -357,4 +397,4 @@ function navigateur(base, opts = {}) {
   return { fetch: f, EventSource: fabriqueEventSource(c), client: c };
 }
 
-module.exports = { navigateur, RACINE, SERVICE, dort, portLibre, attendre, lancerService, fauxOpGestion, client, connecter, flux, fabriqueEventSource, analyserTrames, lireBase, sansCommentaires, compteur, sauterSiSansDependances, Sortie };
+module.exports = { navigateur, RACINE, SERVICE, dort, portLibre, reserverPort, DOSSIER_PORTS, attendre, lancerService, fauxOpGestion, client, connecter, flux, fabriqueEventSource, analyserTrames, lireBase, sansCommentaires, compteur, sauterSiSansDependances, Sortie };

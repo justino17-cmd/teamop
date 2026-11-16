@@ -13,5 +13,12 @@ const fs = require('fs');
 const f = process.env.OPMSG_HORLOGE_DECALAGE;
 if (f) {
   const vrai = Date.now.bind(Date);
-  Date.now = () => { let d = 0; try { d = parseInt(fs.readFileSync(f, 'utf8'), 10) || 0; } catch (e) {} return vrai() + d; };
+  /* ⛔ UNE LECTURE QUI NE REND PAS UN NOMBRE GARDE LE DERNIER DÉCALAGE LU, JAMAIS ZÉRO (16 novembre 2026). « Illisible → 0 » faisait sauter l'horloge du service à l'heure réelle le temps d'une lecture :
+     un fichier vide (lu entre la troncature et l'écriture d'un `writeFileSync` — `outils-msg.js` le pose désormais par renommage), ou absent (le dossier du banc qu'on efface pendant que le service
+     s'arrête). Une horloge de banc n'avance que par un geste du banc : ce qu'on ne sait pas lire ne la déplace pas. */
+  let dernier = 0;
+  Date.now = () => {
+    try { const n = parseInt(fs.readFileSync(f, 'utf8'), 10); if (Number.isFinite(n)) dernier = n; } catch (e) { /* illisible : le dernier décalage connu reste */ }
+    return vrai() + dernier;
+  };
 }
