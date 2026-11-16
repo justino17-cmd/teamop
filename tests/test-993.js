@@ -117,7 +117,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
       const vivante = path.join(T.DOSSIER_PORTS, 'vivante-' + process.pid);
       fs.writeFileSync(vivante, String(process.pid)); const vieux = new Date(Date.now() - 3600000); fs.utimesSync(vivante, vieux, vieux);
       v('⛔ une réservation ANCIENNE dont le processus VIT (un banc long) n\'est jamais effacée', [T.reserverPort(path.basename(vivante)), fs.existsSync(vivante)], [false, true]);
-      fs.unlinkSync(vivante);
+      for (const f of [vivante, orphelin]) { try { fs.unlinkSync(f); } catch (e) { /* déjà partie : le contrôle au-dessus l'a dit */ } }
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));
