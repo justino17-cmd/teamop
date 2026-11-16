@@ -12440,7 +12440,7 @@ const TOUR_PAIE = [
     { c:'#calque [data-pt^="closok|"]', t:'Touche « Clôturer »', p:'La clôture est tracée elle aussi.', ok:() => !POINTAGES.some(p => p.qui === 'tl' && ptOuvert(p)), si:() => POINTAGES.some(p => p.qui === 'tl' && ptOuvert(p)) },
     gdFermer ] },
   { r:'patron', cat:'Valider', t:'Valider les semaines', d:'Une semaine validée part telle quelle sur la fiche de paie. Celles qui portent une alerte du Code du travail se regardent d’abord.', go:gdPaie('paiemois'), gestes:[
-    { c:'#contenu [data-paie="validertout"]', t:'Touche « Valider les semaines sans alerte »', p:'Toutes les semaines sans alerte se valident d’un coup. Les autres sont nommées : on va les regarder.', ok:() => PT_GENS.every(k => paieVariables(k).semaines.every(w => w.valide || w.alertes.some(o => o.g === 'r' || o.ouvert))) },
+    { c:'#contenu [data-paie="validertout"]', t:'Touche « Valider ce qui est en règle »', p:'Toutes les semaines sans alerte se valident d’un coup. Les autres sont nommées : on va les regarder.', ok:() => PT_GENS.every(k => paieVariables(k).semaines.every(w => w.valide || w.alertes.some(o => o.g === 'r' || o.ouvert))) },
     { c:() => gdPaieAttente() && gdQ(`#contenu [data-paie="releve|${gdPaieAttente()}"]`), t:'Ouvre le relevé de Karim', p:'Ses deux dernières semaines ont une alerte : plus de 10 h un jour, un repos trop court, plus de 48 h dans la semaine.', ok:() => gdPanneau() || !gdPaieAttente(), si:() => !!gdPaieAttente() },
     { c:'#calque .paie-al', t:'L’alerte, sous la semaine', p:'C’est à toi de juger : une astreinte, un dépannage du soir… Si c’est justifié, tu valides quand même. La loi fixe des maximums : à regarder avec le salarié pour la suite.', suivant:1, si:() => !!document.querySelector('#calque .paie-al') },
     { c:'#calque [data-paie^="valsem|"]', t:'Touche « Valider quand même » sur chaque semaine', p:'Une fois validée, la semaine part sur la fiche de paie telle quelle.', ok:() => !gdPaieAttente(), si:() => !!gdPaieAttente() },
@@ -12870,7 +12870,7 @@ const TOUR_APP = [
   tourPartie('boxes', 'Dépôts et camions', 'Dépôts et camions : chaque lieu de stockage', 'Un dépôt ou un camion, c’est un endroit où l’entreprise garde du stock : l’atelier, un camion, une réserve laissée chez un client. Ouvre un lieu pour voir ce qu’il contient, le compter ou le réapprovisionner.', [
     ['#contenu .bx-grille', 'Ouvre un lieu', 'Chaque carte dit ce que le lieu contient et ce qui y manque. Un toucher ouvre le détail, article par article.']]),
   tourPartie('pointage', 'Temps de travail', 'Le temps de travail et la paie', 'Les heures de chacun, à côté de ce que le planning prévoyait. Les repères du Code du travail sont vérifiés tout seuls, et en fin de mois les heures validées deviennent les fiches de paie.', [
-    ['#contenu .pt-nav', 'Semaine par semaine', 'Tu vois les heures pointées de chaque salarié, tu corriges une erreur avec sa trace, puis tu valides la semaine. Les alertes au-dessus signalent un dépassement ou un oubli.']]),
+    ['#contenu .tt-k', 'Ce qui attend', 'Aujourd’hui, la semaine, le mois : trois onglets. Les chiffres du haut sont des portes, et la liste « À régler » réunit tout ce qui attend un geste : une journée oubliée, une demande de correction, un repère du Code du travail.']]),
   tourPartie('vehicules', 'Véhicules', 'Les véhicules de l’entreprise', 'La flotte : le contrôle technique, l’assurance et l’entretien avant qu’ils tombent, ce qu’il y a à bord, qui conduit, et ce que chaque véhicule coûte.', [
     ['#contenu .ve-grille', 'Une carte par véhicule', 'Touche un véhicule pour son carnet : échéances, pleins, entretiens, stock à bord. « Saisir un plein » ajoute une dépense de carburant.']]),
   tourPartie('boiteMail', 'Boîte mail', 'La boîte mail : chaque courriel reconnu', 'Tes courriels arrivent ici. L’application reconnaît s’il vient d’un client ou d’un fournisseur, et te propose le geste qui suit, déjà rempli : créer l’intervention, ranger la facture, répondre.', [
@@ -20813,22 +20813,20 @@ immChap('absences', 'absences', 'Absences et congés', 'Les absences et les cong
     jouer:() => immTatRendre() }]);
 
 immChap('pointage', 'pointage', 'Temps de travail', 'Le temps de travail',
-  'Chaque salarié pointe lui-même. Ici, tu vérifies les heures, tu corriges avec un motif, et tu valides pour la paie.', [
-  { c:'.ptx-auj', t:'Qui travaille aujourd’hui', p:'Ce bloc dit qui est au travail, qui est absent, et qui est attendu sans avoir pointé. Le rappel est déjà parti à 9 heures 30. Et Tom a oublié de fermer sa journée de vendredi.' },
-  { c:'.ptx-sig', t:'Les demandes des salariés', p:'Quand un salarié se trompe, il te le signale. Tom dit avoir fini à 17 heures 40 mercredi, pas à 16 heures 42. Un clic sur Corriger applique l’heure, écrit la trace et le prévient. Je clique.',
-    jouer:() => immClic('[data-ptx="corrige|tl"]') },
-  { c:'.pt-grille, .ptx-cartes', t:'La semaine sur 7 jours', p:'Du lundi au dimanche, comme la paie : les heures de chacun, le total de la semaine et les heures en plus. La journée de Tom est corrigée.' },
-  { c:'.pt-alertes', t:'Les alertes du Code du travail', p:'Voilà ce qu’il faut regarder : Karim a dépassé 10 heures dans une journée. Chaque alerte donne sa référence du Code du travail. Je touche la première.',
-    jouer:() => immClic('.pt-alertes [data-pt="jour|kb|2026-10-28"]') },
-  { c:'#pt-motif', t:'Corriger avec un motif', p:'Voici la journée de Karim, heure par heure. Le motif de la correction est obligatoire : le salarié le verra. Je corrige la fin à 21 heures.',
-    jouer:() => { immEcrire('#pt-motif', 'Fin confirmée à 21 h avec Karim'); immEcrire('[data-ptc="pkb2026-10-28|fin"]', '21:00'); } },
-  { c:'#calque .panneau .groupe + .paie-trs', t:'Chaque correction laisse une trace', p:'La correction est tracée : qui l’a faite, quand, et pourquoi. Karim est prévenu et doit reconfirmer son relevé. Rien ne se corrige en cachette. Je ferme, et je valide les semaines en règle.',
+  'Chaque salarié pointe lui-même. Ici, tu règles ce qui attend, tu valides la semaine, et tu envoies le mois à la paie.', [
+  { c:'.tt-areg', t:'Ce qu’il y a à régler', p:'Une seule liste, du plus pressant au moins pressant : la journée que Tom a oubliée de fermer, sa demande de correction, les repères du Code du travail de Karim. Chaque ligne a son geste. J’accepte la demande de Tom : l’heure est corrigée, la trace est écrite, il reconfirmera.',
+    jouer:() => immClic('[data-tt="accepter|tl"]') },
+  { c:'.tt-qui', t:'Qui est où', p:'Une rangée par personne : qui travaille, qui est en pause, qui est absent, qui n’a pas encore commencé. Le rappel est déjà parti à 9 heures 30. Je passe à la semaine.',
+    jouer:() => immClic('[data-tt="onglet|semaine"]') },
+  { c:'.tt-sem', t:'La semaine sur 7 jours', p:'Du lundi au dimanche, comme la paie : les heures de chacun, le total, les heures en plus et UNE pastille par personne. Karim a des points à regarder : j’ouvre sa semaine.',
+    jouer:() => immClic('[data-tt^="sem|kb|"]') },
+  { c:'#calque .panneau .tt-sept', t:'Sa semaine, jour par jour', p:'Les sept jours de Karim, chacun touchable pour voir la journée, la comparer au planning ou la corriger avec un motif. Je ferme et je valide les personnes en règle.',
     jouer:() => fermerPanneau() },
-  { c:'.ptx-tout', t:'Valider en un seul geste', p:'Quand une semaine est en règle, tu la valides pour la paie. Un seul bouton valide d’un coup toutes les semaines sans alerte. Je le touche.',
-    jouer:() => immClic('[data-ptx="validertous"]') },
-  { c:'#calque .panneau h2', t:'Qui est concerné', p:'Le logiciel dit qui est concerné : quatre personnes sans alerte, et Karim et Tom à regarder d’abord. Ces heures partiront sur la fiche de paie. Je valide.',
-    jouer:() => immClic('#calque .panneau .btn:not(.gris)') },
-  { c:'.paie-lien', t:'Le lien vers la paie', p:'Les semaines sont validées. La paie du mois, avec les relevés d’heures, les fiches de paie et la déclaration, se prépare dans Comptabilité, puis Paie : un lien t’y mène directement.',
+  { c:'.tt-barre .btn', t:'Valider en un seul geste', p:'Quand une personne est en règle, sa semaine peut partir à la paie. Un seul bouton les valide toutes. Je le touche.',
+    jouer:() => immClic('[data-tt^="valider|"]') },
+  { c:'#calque .panneau h2', t:'Qui est concerné', p:'Le logiciel dit qui est concerné : les personnes sans aucun point à régler. Leurs heures partiront à la paie. Je valide, puis je regarde le mois.',
+    jouer:() => { immClic('[data-tt^="validerok|"]'); immClic('[data-tt="onglet|mois"]'); } },
+  { c:'.tt-paie', t:'Le mois et le chemin vers la paie', p:'Une phrase dit ce qu’il reste à faire pour envoyer les heures à la paie, et UN seul bouton change avec la situation : valider, demander de confirmer, passer à la paie.',
     jouer:() => immTatRendre() }]);
 
 ['taches', 'absences', 'pointage'].forEach(k => { const c = IMM_CHAPS[k], g0 = c.go; c.go = function(){ immTatRendre(); immTatPrendre(); return g0.apply(this, arguments); }; });
