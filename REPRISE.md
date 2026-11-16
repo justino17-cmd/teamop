@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 8 PUBLIÉE (DEVIS ET CONTRATS VIERGES, MES EN-TÊTES, « OPTIMISER AVEC L'IA »)
+# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 9 PUBLIÉE (COMPOSITEUR DE DEVIS ; CELUI DES CONTRATS EN COURS)
 
 Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
 puis « un vrai système de personnalisation et aussi de création professionnelle pour les devis, comme si je le faisais avec Pages »
@@ -23,7 +23,7 @@ la foulée « un bouton Optimiser avec l'IA, une fois que le devis est fini : il
 exemple » — les deux sont publiés (Versions 6 et 7). Puis : « ce que tu as fait pour les devis, je veux la même chose pour les
 contrats » — publié en Version 8.
 
-- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 8. Sa source
+- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 9. Sa source
   n'est PAS dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de
   550 Ko, données fictives (Clim Services 17), tout dans le navigateur. Une seule bibliothèque, chargée à la demande pour le PDF
   (html2canvas 1.4.1, cdnjs).
@@ -130,6 +130,23 @@ contrats » — publié en Version 8.
     texte d'un article partent au modèle (seules les variables et les coordonnées du client sont exclues) ; « cent » ou « mille »
     seuls ne sont pas vus comme des nombres ; pas de surlignage des mots changés dans un long article ; l'envoi et le PDF d'un
     contrat au second en-tête n'ont pas été rejoués sur cette passe.
+- **Version 9 — le COMPOSITEUR de devis** (16 novembre). ⚠️ Leçon : la « fenêtre vierge » des Versions 6 et 8 était une erreur
+  de lecture. Justin demandait dès le 15 « un devis de A à Z » ; il a reçu une fenêtre de RÉGLAGES (en-tête, logo, mise en page)
+  dont l'aperçu était rempli d'exemples, et l'a dit le 16, capture à l'appui : « il y a déjà plein de trucs décrits ; je voudrais
+  une interface où on écrit les textes, où on retrouve le matériel qu'on veut utiliser, ils ont juste à sélectionner — pour les
+  devis et les contrats, hyper rapide, simple ». La fenêtre « Nouveau devis » est donc refaite : cinq étapes sur une page
+  (Client ; Objet ; **Matériel et prestations** : recherche dans le catalogue, toucher pour ajouter, compteur − / +, ligne libre
+  qu'on peut garder dans « Mon matériel », options, rangement par catégorie ; Conditions et textes avec phrases toutes prêtes et
+  « mes conditions habituelles » ; Présentation, REPLIÉE), aperçu du VRAI devis, vide au départ, total vivant calculé par
+  `calculer()` sur le même document. Un devis de cinq lignes : 8 gestes. Rien n'est créé avant « Créer le devis ».
+  Mesuré par la session principale sur le fichier publié (`etape8a/page.html`) : parité, composition complète, mémoire, stockage,
+  fermeture 82 verts dans trois modes ; mise en page du devis sans rouge (Mac et iPhone) ; un parcours écrit à part 14 sur 14
+  dans deux modes ; optimisation des devis 30 verts. Le CONTRAT garde à ce stade l'ancienne fenêtre de la Version 8.
+  Limites : le catalogue du prototype n'a que 12 articles d'exemple (climatisation) — dans la vraie application il se branchera
+  sur « Matériel & produits » par métier ; quand le devis passe sur deux pages, les totaux quittent l'aperçu de la page 1 (le
+  total reste rappelé en bas de la fenêtre) ; les vignettes de mise en page gardent un contenu d'exemple.
+  **EN COURS** : le compositeur de CONTRAT (titre et informations, clauses à toucher, articles à écrire), puis la non-régression
+  complète ; à publier en Version 10.
 - **Ce qui attend Justin** : son essai du PDF et de « Optimiser avec l'IA » sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
   rejoignent le Devis IA et l'envoi réels d'OP GESTION (le prototype ne touche à rien d'existant) ; qui fait relire les contrats.
 
