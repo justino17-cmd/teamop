@@ -23,6 +23,22 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   v('aucune valeur d\'exemple d\'atelier : forme, capital, RCS, assureur, BIC vides', /^Clim Services 17\|123 456 789 00012\|FR76 3000 6000 0112 3456 7890 189\|\|\|\|\|$/.test(D.ent), D.ent);
   v('l\'IBAN du prototype a une clé de contrôle valide (l\'atelier le vérifierait)', await f.evaluate(() => ibanOk(ENTREPRISE.iban)));
   v('contact sans fonction : « Mme Bernard » (jamais « Mme Bernard, directrice »), société = pas de contact', await f.evaluate(() => { const g = id => S.clients.find(x => x.id === id); return g('hp').contact === 'Mme Bernard' && g('vp').contact === 'Marc Durand' && g('mi').contact === undefined; }));
+  v('dans OP GESTION : pas d\'accueil derrière la fenêtre de composition (il n\'est pas « hidden » à ce moment : seule la règle d\'OP GESTION le cache), retour libellé « OP GESTION »', await f.evaluate(() => getComputedStyle(document.getElementById('vue-accueil')).display === 'none' && !document.getElementById('vue-accueil').hidden) && /OP GESTION/.test(await f.locator('[data-act="retour"]').first().getAttribute('aria-label')), await f.locator('[data-act="retour"]').first().getAttribute('aria-label'));
+  // ── l'entreprise appartient à OP GESTION ──
+  const z = await p.evaluate(() => [+getComputedStyle(document.getElementById('opdz')).zIndex, +getComputedStyle(document.getElementById('cpsys') || document.body).zIndex || 0]);
+  v('l\'atelier est au-dessus de la Comptabilité (9000) et sous le guide (9500) : z-index 9100', z[0] === 9100 && z[0] > 9000 && z[0] < 9500, z);
+  await f.locator('[data-vv="etape"][data-e="pres"]').first().click(); await p.waitForTimeout(250); await f.locator('[data-vv="ent-modifier"]').first().click(); await p.waitForTimeout(400);
+  const ent = await f.evaluate(() => ({ txt: (document.querySelector('.fenetre') || {}).textContent || '', champs: document.querySelectorAll('.fenetre [data-id="nom"], .fenetre [data-id="iban"], .fenetre [data-id="siret"]').length }));
+  v('« Modifier cet en-tête » (celui de l\'entreprise) : « Ton entreprise se règle dans OP GESTION. », AUCUN champ à régler', /Ton entreprise se règle dans OP GESTION\./.test(ent.txt) && ent.champs === 0, ent);
+  await f.locator('[data-fen-x]').first().click(); await p.waitForTimeout(500);
+  await f.locator('[data-vv="ent-nouveau"]').first().click(); await p.waitForTimeout(400);
+  const nouv = await f.evaluate(() => ({ champs: document.querySelectorAll('.fenetre [data-id="nom"], .fenetre [data-id="iban"]').length, nom: (document.querySelector('.fenetre [data-id="nom"]') || {}).value, iban: (document.querySelector('.fenetre [data-id="iban"]') || {}).value }));
+  v('« Nouvel en-tête » : modifiable (une autre société), et vierge — aucune valeur d\'exemple (ni IBAN, ni nom)', nouv.champs === 2 && nouv.iban === '' && nouv.nom === '', nouv);
+  await f.locator('[data-fen-x]').first().click(); await p.waitForTimeout(500);
+  // ── jour / nuit en direct : le prototype change de mode, l'atelier ouvert suit ──
+  await p.evaluate(() => { mode = 'nuit'; appliquerMode(); }); await p.waitForTimeout(400);
+  const th1 = await f.evaluate(() => document.documentElement.getAttribute('data-theme')); await p.evaluate(() => { mode = 'jour'; appliquerMode(); }); await p.waitForTimeout(400);
+  v('mode jour/nuit en direct : le prototype passe en nuit, l\'atelier ouvert passe en « dark » ; puis revient « light »', th1 === 'dark' && (await f.evaluate(() => document.documentElement.getAttribute('data-theme'))) === 'light', th1);
   // ── on compose ──
   const lignes = [{ ref: 'GS-20', qte: 2 }, { ref: 'EL-ALL', qte: 3 }];
   await A.composerDevis(c, f, { client: 'hp', objet: 'Remplacement de deux anodes', articles: lignes });
@@ -33,7 +49,6 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   v('le TTC de l\'atelier = le TTC recalculé par la sonde (' + attendu + ' centimes)', dd.d[0] && dd.d[0].ttc === attendu, [dd.d[0] && dd.d[0].ttc, attendu]);
   v('le numéro suit la série du prototype (D-2026-…, jamais DEV-2026-…)', /^D-2026-\d{3}$/.test(dd.d[0].num), dd.d[0].num);
   v('le client choisi est celui du prototype (Hôtel de la Plage)', dd.d[0].cl && dd.d[0].cl.id === 'hp');
-  v('dans OP GESTION : pas d\'accueil dans l\'atelier (le prototype est l\'accueil), pas de sélecteur Auto/Jour/Nuit visible, retour libellé « OP GESTION »', await f.evaluate(() => getComputedStyle(document.getElementById('vue-accueil')).display === 'none' && !document.querySelector('.mode-seg:not([hidden])') || getComputedStyle(document.getElementById('vue-accueil')).display === 'none') && /OP GESTION/.test(await f.locator('[data-act="retour"]').first().getAttribute('aria-label')), await f.locator('[data-act="retour"]').first().getAttribute('aria-label'));
   v('le thème vient du prototype (data-theme posé par lui), jamais rangé dans le cadre', await f.evaluate(() => document.documentElement.getAttribute('data-theme') === 'light' && !localStorage.getItem('documents-sur-mesure-opg-theme') && !localStorage.getItem('documents-sur-mesure-theme')));
   await L.capture(c, A.CAP + 'devis-editeur-' + c.profil + '.png');
   // ── retour au prototype : la liste, les onglets, les chiffres ──
@@ -57,6 +72,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   const f2 = await A.attendreAtelier(c);
   v('… éditeur ouvert sur D-2026-042', !!f2 && await f2.evaluate(() => S.vue === 'editeur' && D().meta.numero === 'D-2026-042'));
   await f2.locator('[data-act="envoyer"]:visible').first().click(); await p.waitForTimeout(500);
+  v('le message d\'envoi salue la personne, sans sa fonction : « Bonjour Mme Bernard, »', /^Bonjour Mme Bernard,/.test(await f2.locator('#env-msg').inputValue()), await f2.locator('#env-msg').inputValue().then(t => t.slice(0, 40)));
   await f2.locator('[data-act="env-go"]:visible').first().click(); await p.waitForTimeout(1400);
   v('l\'envoi (simulé) passe le devis à « Envoyé »', await f2.evaluate(() => D().etat === 'envoye'), await f2.evaluate(() => D().etat));
   await f2.locator('[data-act="retour"]:visible').first().click(); await p.waitForTimeout(900);
