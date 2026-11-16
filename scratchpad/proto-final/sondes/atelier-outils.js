@@ -35,3 +35,14 @@ exports.contrastes = (f, zone, seuil, exclure) => f.evaluate(({ z, s, x }) => {
     const fg0 = parse(cs.color); if (!fg0) continue; const bg = fond(e), fg = over(fg0, bg), L1 = lum(fg), L2 = lum(bg), ratio = (Math.max(L1, L2) + .05) / (Math.min(L1, L2) + .05), gros = parseFloat(cs.fontSize) >= 24 || (parseFloat(cs.fontSize) >= 18.66 && +cs.fontWeight >= 700);
     n++; if (ratio < (gros ? 3 : (s || 4.5))) bas.push(Math.round(ratio * 100) / 100 + ' « ' + t.slice(0, 40) + ' » ' + e.tagName + '.' + String(e.className).slice(0, 30)); }
   return { n, bas: [...new Set(bas)].slice(0, 25) }; }, { z: zone, s: seuil, x: exclure || '' });
+// un contrat complet par les gestes de la personne : client, titre, toutes les variables, modèle d'articles, « Créer le contrat »
+exports.composerContrat = async (c, f, o) => {
+  o = o || {}; const clic = async s => { const l = f.locator(s).first(); if (c.doigt) await l.tap({ timeout: 5000 }); else await l.click({ timeout: 5000 }); await c.p.waitForTimeout(200); };
+  if (o.client) await clic(`[data-vv="client"][data-id="${o.client}"]`);
+  await f.locator('#vv-titre').fill(o.titre || 'Entretien annuel'); await f.locator('#vv-v-prix').fill(String(o.prix || '280')); await f.locator('#vv-v-adresse').fill('21 bd Joffre, 17000 La Rochelle');
+  await f.locator('#vv-v-prestation').fill('l’entretien de 12 climatiseurs'); await f.locator('#vv-v-frequence').fill('4 visites par an'); await f.locator('#vv-v-duree').fill('1 an'); await f.locator('#vv-v-debut').fill('2026-11-02'); await f.locator('#vv-v-paiement').fill('par prélèvement'); await c.p.waitForTimeout(300);
+  await clic('[data-vv="tpl"][data-v="part"]'); await c.p.waitForTimeout(400); await clic('[data-act="vierge-creer"]'); await c.p.waitForTimeout(900);
+};
+// envoi RAPIDE du brouillon BR1 du prototype (Cabinet dentaire Martin) par les gestes de la fiche : prix du ballon, « Aperçu et envoi », « Envoyer » ; rend son numéro
+exports.envoyerRapide = async c => { const p = c.p; await L.aller(p, 'devis-x-BR1'); await p.locator('[data-dvl="BR1|0|2"]').fill('1500'); await p.locator('[data-dvl="BR1|0|2"]').press('Tab'); await L.calme(p, 400);
+  await L.toucher(c, '[data-dv="envoyer|BR1"]'); await L.toucher(c, '[data-mailenvoi]'); await L.calme(p, 600); return p.evaluate(() => (DV.find(x => x.cli === 'cm' && x.num) || {}).num || null); };
