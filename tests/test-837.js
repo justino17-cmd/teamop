@@ -357,7 +357,10 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      = 1 290,00 € HT », puis la TVA à 10 % et le total TTC, est le DEVIS d'un électricien, déroulé pour montrer ce que change le taux réduit —
      le hors taxe y est le sujet. Ni l'un ni l'autre n'est un prix de TEAM OP. Ces deux articles sont arrivés sur `main` sans leur ligne ici :
      la « Vérification des pages » y est restée rouge, et avec elle toutes les demandes de fusion (834 suites vertes sur 835). */
-  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html', 'blog/mise-en-conformite-electrique-logement.html'];
+  /* `blog/logiciel-entreprise-de-nettoyage.html` (16 novembre 2026) : « un passage de bureaux facturé 90 € hors taxes à votre client » est le
+     tarif D'UNE ENTREPRISE DE NETTOYAGE, posé « à titre d'exemple » ; ce n'est pas un prix de TEAM OP. Arrivé sur `main` sans sa ligne ici, comme
+     les deux précédents : le rouge de `main` se retrouvait sur chaque demande de fusion. */
+  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html', 'blog/mise-en-conformite-electrique-logement.html', 'blog/logiciel-entreprise-de-nettoyage.html'];
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f) && ARTICLES_FACTURE.indexOf(f) < 0);
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
   const ht = [];
