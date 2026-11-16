@@ -1,0 +1,255 @@
+{
+ "profil": "iphone",
+ "qui": "sm",
+ "route": "absences",
+ "etiq": "",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Menu",
+   "data": "data-menu=ouvrir",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes congés",
+   "panneau": "Menu",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "OP GESTION : revenir à l’écran d’ouverture",
+   "data": "data-logo=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Sophie",
+   "panneau": "",
+   "hash": "#majournee",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 249,
+   "h": 38
+  },
+  {
+   "i": 2,
+   "lib": "＋ Demande de congé",
+   "data": "data-atdem=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes congés",
+   "panneau": "Demande de congé",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 206,
+   "h": 46
+  },
+  {
+   "i": 3,
+   "lib": "Retirer ma demande",
+   "data": "data-atretire=d3",
+   "touche": true,
+   "change": [
+    "toast",
+    "long"
+   ],
+   "h1": "Mes congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "Demande retiréeAnnuler",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 44
+  },
+  {
+   "i": 4,
+   "lib": "2 semaines",
+   "data": "data-aper=0.5",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 94,
+   "h": 44
+  },
+  {
+   "i": 5,
+   "lib": "1 mois",
+   "data": "data-aper=1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 60,
+   "h": 44
+  },
+  {
+   "i": 6,
+   "lib": "2 mois",
+   "data": "data-aper=2",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 62,
+   "h": 44
+  },
+  {
+   "i": 7,
+   "lib": "3 mois",
+   "data": "data-aper=3",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 62,
+   "h": 44
+  },
+  {
+   "i": 8,
+   "lib": "6 mois",
+   "data": "data-aper=6",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 63,
+   "h": 44
+  },
+  {
+   "i": 9,
+   "lib": "Période précédente",
+   "data": "data-amois=-1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 40,
+   "h": 40
+  },
+  {
+   "i": 10,
+   "lib": "Période suivante",
+   "data": "data-amois=1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 40,
+   "h": 40
+  },
+  {
+   "i": 11,
+   "lib": "Sophie Martin · RTT · le vendredi 16 octobre 2026 · validée",
+   "data": "data-atvoir=a|a4 data-abs=a|a4 data-abulle=Sophie Martin\nRTT\nLe vendredi 16 octobre",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes congés",
+   "panneau": "Le vendredi 16 octobre 2026",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 48,
+   "h": 66
+  },
+  {
+   "i": 12,
+   "lib": "🕐 RTT Le vendredi 16 octobre 20261 jour ouvréValidée",
+   "data": "data-atvoir=a|a4",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes congés",
+   "panneau": "Le vendredi 16 octobre 2026",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 336,
+   "h": 75
+  }
+ ],
+ "err": []
+}
