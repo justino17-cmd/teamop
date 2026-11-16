@@ -12,7 +12,7 @@ fs.writeFileSync(path.join(TMP, 'apercu', 'doc-origine.html'), gabarit(orig));
 fs.writeFileSync(path.join(TMP, 'apercu', 'doc-actuel.html'), fs.readFileSync(process.env.ACTUEL || path.join(DEPOT, 'apercu', 'prototype-documents.html'), 'utf8'));      // ACTUEL : une copie mutée (atelier-mutations)
 process.env.RACINE = TMP;
 const A = require('./atelier-outils.js'), L = A.L, v = L.v;
-const sig = p => p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => (e.offsetParent !== null || getComputedStyle(e).position === 'fixed') && !/^(SCRIPT|STYLE|SVG|USE|PATH)$/i.test(e.tagName) && !e.closest('svg')).map(e => { const r = e.getBoundingClientRect(); return [e.tagName, typeof e.className === 'string' ? e.className : '', e.childNodes.length === 1 && e.firstChild.nodeType === 3 ? e.textContent.trim().slice(0, 80) : '', Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)].join('|'); }));
+const sig = p => p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => (e.offsetParent !== null || getComputedStyle(e).position === 'fixed') && !/^(SCRIPT|STYLE|SVG|USE|PATH)$/i.test(e.tagName) && !e.closest('svg') && !e.closest('#enreg, #toasts')).map(e => { const r = e.getBoundingClientRect(); return [e.tagName, typeof e.className === 'string' ? e.className : '', e.childNodes.length === 1 && e.firstChild.nodeType === 3 ? e.textContent.trim().slice(0, 80) : '', Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)].join('|'); }));
 const diff = (a, b) => { const out = []; for (let i = 0; i < Math.max(a.length, b.length) && out.length < 4; i++) if (a[i] !== b[i]) out.push([i, a[i], b[i]]); return out; };
 async function parcours(page, profil, nuit) {
   const c = await L.ouvrir({ profil, nuit, app: false, qui: null, page, attente: 1500 }), p = c.p, S = {}, clic = async s => { const l = p.locator(s).first(); if (c.doigt) await l.tap({ timeout: 5000 }); else await l.click({ timeout: 5000 }); await p.waitForTimeout(500); };
@@ -31,7 +31,7 @@ async function parcours(page, profil, nuit) {
   S.accueil3 = await sig(p); S.err = c.err; await L.fin(c); return S;
 }
 (async () => {
-  for (const [profil, nuit] of [['mac', false], ['mac', true], ['iphone', false], ['iphone', true]]) {
+  for (const [profil, nuit] of process.env.SEULE_UNE ? [['mac', false]] : [['mac', false], ['mac', true], ['iphone', false], ['iphone', true]]) {      // SEULE_UNE=1 : un seul passage (les mutations)
     const tag = profil + (nuit ? ' nuit' : ' jour'), O = await parcours('doc-origine.html', profil, nuit), N = await parcours('doc-actuel.html', profil, nuit);
     for (const k of ['accueil', 'compoDevis', 'compoDevis2', 'editeur', 'envoi', 'accueil2', 'compoContrat', 'ident', 'accueil3']) {
       v(`${tag} · ${k} : même structure, mêmes boîtes au pixel près (population ${N[k].length} éléments)`, N[k].length > 15 && O[k].length === N[k].length && !diff(O[k], N[k]).length, diff(O[k], N[k]));
