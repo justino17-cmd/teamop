@@ -13,8 +13,13 @@ Le plan complet, les règles des stores et le calendrier sont dans le document �
 - **Nom** : OP GESTION · langue : français · icône : le carré OP GESTION (agrandi depuis `icons/opgestion-512.png` ;
   un original en 1024 × 1024 serait plus net).
 - **Contenu embarqué** : le **prototype** OP GESTION (entreprise et chiffres fictifs, aucun serveur, rien ne s'enregistre),
-  avec la Comptabilité complète et le module de paiement. C'est fait pour **voir et toucher l'application sur un vrai
+  avec la Comptabilité complète, le module de paiement et **l'atelier de devis et de contrats** (« Composer un devis », « Composer un contrat » :
+  `prototype-documents.html`, ouvert dans un cadre plein écran). C'est fait pour **voir et toucher l'application sur un vrai
   iPhone**, pas pour être soumis aux stores : une application de démonstration à données fictives serait refusée.
+  ⚠ **L'atelier range ses documents sur l'appareil seulement** (stockage du navigateur de la coque : rien n'est envoyé, rien ne
+  rejoint le prototype, qui n'enregistre rien). Hors ligne, il garde ses polices de repli (les polices viennent de Google) et le
+  téléchargement du PDF ne marche pas (la bibliothèque d'export vient de cdnjs) ; « Optimiser avec l'IA » ne marche que dans
+  l'artefact publié sur claude.ai. `node fabriquer.js` le dit à la fabrication (un avertissement, pas un refus).
 
 ## Tester sur ton Mac avec Xcode (10 minutes)
 

@@ -24,6 +24,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   v('le numéro suit la série du prototype : CTR-2026-' + String(av.max + 1).padStart(3, '0'), d.num === 'CTR-2026-' + String(av.max + 1).padStart(3, '0'), d.num);
   v('le client choisi est celui du prototype (Copropriété Les Mimosas)', d.cl && d.cl.id === 'mi');
   await L.capture(c, A.CAP + 'contrat-editeur-' + c.profil + '.png');
+  v('un contrat pour une copropriété dont le contact est une société (« Syndic Foncia ») : le message salue « Bonjour, » (jamais le nom de la société)', await (async () => { await f.locator('[data-act="envoyer"]:visible').first().click(); await p.waitForTimeout(500); const m = await f.locator('#env-msg').inputValue(); await f.locator('[data-fen-x]').first().click(); await p.waitForTimeout(400); return /^Bonjour,\n/.test(m); })());
   await f.locator('[data-act="retour"]:visible').first().click(); await p.waitForTimeout(900);
   const R = () => p.evaluate(() => [...document.querySelectorAll('#contenu .opd-l')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
   let rows = await R(); const k1 = await kp();
