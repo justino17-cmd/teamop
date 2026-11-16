@@ -90,6 +90,16 @@ bout : tester → contre-vérifier → corriger → recontrôler ; rapports, ver
 et frais, stock, fournisseurs, dépôts et camions, mon camion, véhicules, temps de travail et mes heures, équipe et droits, mon
 entreprise, guide des nouveautés. Puis : rejouer TOUTES les sondes (`sondes/` et `campagne/sondes/`) sur la version réunie.
 
+**Sécurité (Justin, 16 novembre, 23 h) : « j'aimerais aussi que tu testes la sécurité de l'application, que ça soit bien
+sécurisé, tout, très bien sécurisé ».** Audit lancé (`workflows/audit-securite.js`, arbre `/home/user/wt-securite`) : cinq angles
+(injection dans l'écran ; qui voit et fait quoi ; ponts entre pages et rangement de l'appareil ; boîte mail et fichiers ; ce qui
+vient d'ailleurs et réglages par défaut), un sceptique par angle, puis `scratchpad/proto-final/securite/RAPPORT.md` et
+`failles.json`. Les failles réelles du prototype se corrigent ensuite (lot « sécurité »), puis se recontrôlent.
+⚠️ Déjà connu, à traiter : `?auto=<personne>` ouvre une session sans mot de passe en mode application (porte de test des sondes) ;
+le mot de passe provisoire commun « Bienvenue17 » et les mots de passe rangés en clair dans le navigateur (connexion de
+démonstration). ⚠️ À dire à Justin : la vraie sécurité (identité, droits, cloisonnement entre entreprises) ne peut se garantir que
+par le serveur de la vraie application ; le rapport en donne les règles.
+
 **État au 16 novembre, 22 h 45 :** spécifications des refontes écrites et poussées (`scratchpad/proto-final/refonte/` :
 `BOITE-MAIL.md`, `MATERIEL.md` 662 lignes, `VEHICULES-TEMPS.md` 484 lignes, et leurs études). EN COURS, chacun dans son arbre et
 poussé étape par étape : boîte mail (agent, `/home/user/wt-c-mail` — la rubrique monte déjà le module, copie de travail
