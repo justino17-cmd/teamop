@@ -16515,6 +16515,22 @@ function courrierMsg(m){
     categorie:!m.info && (R.qui === 'client' || R.qui === 'four') ? 'principal' : undefined, categorieRaison:R.qui === 'client' ? 'l’expéditeur est un de vos clients' : R.qui === 'four' ? 'l’expéditeur est un de vos fournisseurs' : undefined,
     suivi:courrierSuivi(m) };
 }
+/* une boîte qui ressemble à celle d'une entreprise : des notifications, des promotions, un billet de train, un fil de trois messages, une arnaque, une photo de chantier.
+   Tous sont des INFORMATIONS ou déjà traités : le nombre de courriels « à traiter » (7) ne bouge pas, mais le tri de la Boîte mail a de quoi trier. Aucune donnée réelle. */
+MAILS.push(
+  mlM('n1', jour(-1), '08:02', { nom:'Qonto', mail:'notifications@qonto.com' }, 'Virement de 1 240,00 € reçu', 'Un virement de 1 240,00 € vient d’arriver sur le compte Clim Services 17.\n\nVous pouvez le consulter dans votre application Qonto.', { info:true, lu:true }),
+  mlM('n2', jour(-2), '14:20', { nom:'La Poste', mail:'ne-pas-repondre@laposte.fr' }, 'Votre colis est livré', 'Votre colis 6A12 0457 3391 a été remis en main propre à l’adresse indiquée.\n\nMerci d’avoir choisi La Poste.', { info:true }),
+  mlM('n3', jour(-3), '07:45', { nom:'URSSAF', mail:'ne-pas-repondre@urssaf.fr' }, 'Votre échéance de novembre est disponible', 'Votre échéance de cotisations de novembre est disponible dans votre espace en ligne.\n\nCe message est envoyé automatiquement.', { info:true, lu:true }),
+  mlM('n4', jour(-6), '18:10', { nom:'SNCF Connect', mail:'noreply@sncf-connect.com' }, 'Votre billet Paris – Nantes du 18 novembre', 'Voici votre billet de train pour le salon de Nantes : départ à 7 h 02, voiture 12, place 41.\n\nBon voyage !', { info:true, lu:true, pj:[['billet-paris-nantes.pdf', '212 Ko']] }),
+  mlM('n5', jour(-4), '10:30', { nom:'Clim Pièces Atlantique', mail:'promo@climpieces-atlantique.fr' }, 'Promotion de novembre : −20 % sur les filtres', 'Profitez de −20 % sur toute la gamme de filtres jusqu’au 30 novembre.\n\nSe désinscrire : répondre STOP.', { info:true }),
+  mlM('n6', jour(-5), '09:00', { nom:'Outillage Pro', mail:'offres@outillage-pro.fr' }, 'Offre réservée aux professionnels : outillage −15 %', 'Cette semaine, −15 % sur l’outillage électroportatif pour les professionnels.', { info:true, lu:true }),
+  mlM('n7', jour(-7), '06:50', { nom:'EDF Entreprises', mail:'service@edf-entreprises.fr' }, 'Votre facture d’électricité d’octobre', 'Votre facture d’électricité du local de Lagord est disponible : 182,40 € à régler avant le 20 novembre.', { info:true, lu:true, pj:[['facture-edf-octobre.pdf', '96 Ko']] }),
+  mlM('n8', jour(-2), '03:12', { nom:'Gagnant Chance', mail:'gagnant@promo-chance.biz' }, 'FÉLICITATIONS ! Vous avez gagné un chèque cadeau de 500 € !!!', 'Cliquez vite ici pour réclamer votre cadeau exceptionnel avant expiration. Action requise sous 24h : vérifiez votre compte.', { info:true }),
+  mlM('n9', jour(-9), '09:15', { nom:'M. Garnier', mail:'j.garnier@exemple.fr' }, 'Rendez-vous du 12 novembre', 'Bonjour,\n\nSerait-il possible de décaler le rendez-vous du 12 novembre à l’après-midi ?\n\nCordialement,\nJ. Garnier', { lu:true, fait:'Répondu : rendez-vous décalé' }),
+  mlM('n10', jour(-9), '10:05', { nom:'Toi', mail:'contact@climservices17.fr' }, 'Re: Rendez-vous du 12 novembre', 'Bonjour M. Garnier,\n\nPas de problème : nous passerons à 14 h.\n\nBien cordialement,\nMarc Leblanc — Clim Services 17', { dossier:'envoye', lu:true, a:'j.garnier@exemple.fr' }),
+  mlM('n11', jour(-8), '17:40', { nom:'M. Garnier', mail:'j.garnier@exemple.fr' }, 'Re: Re: Re: Rendez-vous du 12 novembre', 'Parfait, merci. À jeudi 14 h.\n\nJ. Garnier', { lu:true, fait:'Rendez-vous pris' }),
+  mlM('n12', jour(-3), '16:25', { nom:'Sophie Marchand', mail:'sophie@climservices17.fr' }, 'Photo du groupe extérieur — Hôtel de la Plage', 'Voici la photo du groupe extérieur avant intervention. Je passe demain pour le nettoyage des filtres.', { info:true, lu:true, pj:[['groupe-exterieur.jpg', '1,4 Mo']] })
+);
 /* la source : fictive, branchée sur les données VIVANTES du prototype (MAILS, CLIENTS, planning…). Aucun réseau. */
 function courrierSource(){
   const boite = id => ML_BOITES.find(o => o.id === id);
@@ -16571,7 +16587,7 @@ function courrierBandeau(m){
   else if (R.sujet === 'trier') det = `inconnu dans tes clients et tes fournisseurs${R.tel ? ', tél. ' + R.tel : ''}${R.ville ? ', ' + R.ville : ''}. Dis-lui qui c’est : ça range tout seul la suite.`;
   else if (R.qui === 'nouveau') det = `inconnu dans tes clients${R.tel ? ', tél. ' + R.tel : ''}${R.ville ? ', ' + R.ville : ''}`;
   else if (R.sujet === 'msgcli' || R.sujet === 'msgfour') det = 'pas de demande reconnue dans le texte : lis-le et réponds, ou garde-le en tâche.';
-  if (det) L.push(det);
+  if (det && !m.fait) L.push(det);   // un courriel déjà traité ne redemande pas « dis-lui qui c'est »
   const detail = [L.join(' · '), note, mbxStatutTextes(m).join(' · ')].filter(Boolean).join('\n');
   let fait = '', faitLien = null;
   if (m.fait) { fait = m.fait; const x = /data-(\w+)="([^"]+)"/.exec(m.faitLien || ''); if (x) faitLien = { id:x[1] + ':' + x[2], lib:'Ouvrir' }; }
@@ -16594,7 +16610,7 @@ function courrierBandeau(m){
   const cli = R.cli || mbxCliDe(m), inte = mbxInt(m);
   if (m.dossier === 'recu' && cli) (m.pj || []).forEach(([n], k) => { if (!(CLIENTS[cli].docsMail || []).some(d => d.mail === m.id && d.nom === n)) act(`mbx:ranger|${id}|${k}`, `Ranger ${m.pj.length > 1 ? '« ' + n + ' »' : 'la pièce jointe'} dans la fiche « ${CLIENTS[cli].nom} »`); });
   if (m.dossier === 'recu' && cli && inte && (m.pj || []).some(([n]) => courrierImg(n))) act('mbx:photoint|' + id, 'Ajouter aux photos de l’intervention');
-  return { kicker:'OP GESTION a reconnu', titre:(ML_SUJET[R.sujet] || 'Un message') + (urg ? ' · urgent' : ''), detail, urgent:!!urg, fait, faitLien, liens, actions:acts };
+  return { kicker:'OP GESTION a reconnu', titre:(m.fait && R.sujet === 'trier' ? 'Message traité' : ML_SUJET[R.sujet] || 'Un message') + (urg ? ' · urgent' : ''), detail, urgent:!!urg, fait, faitLien, liens, actions:acts };
 }
 const courrierSansFin = t => String(t).split('\n\nBien cordialement')[0];
 /* « Répondre », « Proposer un créneau », « Relancer », « Prévenir le client » : le message s'ouvre dans le composeur du module, déjà écrit (le modèle du sujet) */
@@ -16619,7 +16635,7 @@ function courrierAgir(id, x){
 const courrierHoteApi = {
   lecture:x => { const m = mlDe(x.id); return m ? courrierBandeau(m) : null; },
   agir:(id, x) => courrierAgir(id, x),
-  pastille:x => { const m = mlDe(x.id); if (!m || m.dossier !== 'recu') return null; const R = mlLire(m);
+  pastille:x => { const m = mlDe(x.id); if (!m || m.dossier !== 'recu' || m.info) return null; const R = mlLire(m);   // une notification ou une promotion n'est pas un « nouveau contact »
     return R.qui === 'client' ? { texte:'Client', ton:'b' } : R.qui === 'four' ? { texte:'Fournisseur', ton:'v' } : R.qui === 'nouveau' ? { texte:'Nouveau contact', ton:'o' } : null; },
   reponses:x => { const m = mlDe(x.id); if (!m || m.dossier !== 'recu') return null; const M = mbxMod(m);
     return mbxModeles(m).slice(0, 4).map(([k, l]) => ({ lib:l, texte:courrierSansFin(M[k]) + '\n\nBien cordialement', cle:k })); },
@@ -16650,8 +16666,8 @@ function courrierCharger(){
 /* l'hôte se cale sur la place réservée par la vue ; masqué (jamais retiré) dès qu'on est ailleurs */
 function courrierCaler(){
   const h = document.getElementById('courrier-hote'), place = document.getElementById('courrier-place');
+  if (COURRIER.inst && COURRIER.role !== ROLE) courrierDemonter();   // un autre rôle : ses brouillons et sa lecture ne passent pas à celui qui arrive, même s'il n'a pas la rubrique
   if (route !== 'boiteMail' || !place || (typeof rlPermis === 'function' && !rlPermis('boiteMail'))) { if (h) h.hidden = true; return; }
-  if (COURRIER.inst && COURRIER.role !== ROLE) courrierDemonter();
   if (!COURRIER.inst) { if (COURRIER.etat === 'rien') courrierCharger(); if (h) h.hidden = true; return; }
   const hote = courrierHoteEl(), barre = document.getElementById('barre-bas'), cs = barre ? getComputedStyle(barre) : null;
   const r0 = place.getBoundingClientRect(), bas = barre && cs.display !== 'none' && cs.position === 'fixed' ? barre.getBoundingClientRect().top : innerHeight;
