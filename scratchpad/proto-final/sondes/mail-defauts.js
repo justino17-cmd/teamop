@@ -27,6 +27,10 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   const cur = await S(c, () => R().querySelector('#cBody').selectionStart);
   v('D02 le curseur est à la fin de la phrase, pas tout en haut', cur > 5, cur);
   await S(c, () => R().querySelector('#cCancel').click()); await p.waitForTimeout(300);
+  await p.locator('#courrier-hote .msg.sel').first().click(); await S(c, () => R().querySelector('#readActs .acts-mac [data-act=forward]').click()); await p.waitForTimeout(500);
+  const tr = await S(c, () => ({ titre:R().querySelector('#cTitle').innerText, corps:R().querySelector('#cBody').value }));
+  v('D16 un transfert s\'ouvre en « Transférer » avec un en-tête « Message transféré » (pas « a écrit : > »)', tr.titre === 'Transférer' && /---------- Message transféré ----------\nDe : /.test(tr.corps) && !/a écrit :/.test(tr.corps), tr);
+  await S(c, () => R().querySelector('#cCancel').click()); await p.waitForTimeout(300);
   // D07 : un refus n'a pas la coche de la réussite, et le champ fautif est marqué
   await S(c, () => R().querySelector('[aria-label*="Nouveau message"]').click()); await p.waitForTimeout(400);
   await S(c, () => { R().querySelector('#cTo').value = 'pas-une-adresse'; R().querySelector('#cSend').click(); }); await p.waitForTimeout(400);

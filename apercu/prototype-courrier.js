@@ -1496,6 +1496,8 @@ var CSS = `
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn{width:100%;height:auto;min-height:44px;padding:8px 12px;white-space:normal;text-align:center;justify-content:center;line-height:1.25}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn.primary{grid-column:1/-1;background:var(--tint);color:var(--on-tint);box-shadow:none;font-weight:600}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn:not(.primary){background:var(--btn);color:var(--label);box-shadow:0 0 0 1px var(--btn-edge);font-weight:500}
+  /* D16 : « Boîte de réception » se tronquait en « Boîte de récept… » sur un téléphone de 360 px (34 px de gras) */
+  .opc:where([data-fmt="phone"]) .list .large-title{font-size:clamp(21px,7.2vw,31px);line-height:1.2;letter-spacing:-.015em}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .rquick button{min-height:44px}   /* cible au doigt */
   .opc .hpast{margin-right:6px}
   .opc .msg.sel .hpast{background:rgba(255,255,255,.24);color:#fff}

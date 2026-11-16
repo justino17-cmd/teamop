@@ -16678,6 +16678,8 @@ function courrierCaler(){
   if (COURRIER.suite.length) COURRIER.suite.splice(0).forEach(f => { try { f(COURRIER.inst); } catch (e) {} });
 }
 addEventListener('resize', () => courrierCaler());
+/* la place bouge sans que la fenêtre change (une police qui arrive, un bandeau qui s'ajoute au-dessus, le clavier d'un téléphone) : l'hôte la suit */
+try { const ro = new ResizeObserver(() => { if (route === 'boiteMail') courrierCaler(); }); const c = document.getElementById('contenu'); if (c) ro.observe(c); if (window.visualViewport) visualViewport.addEventListener('resize', () => courrierCaler()); } catch (e) { /* un navigateur sans ResizeObserver garde le recalage à chaque rendu */ }
 function courrierRafraichir(){ if (!COURRIER.inst) return; clearTimeout(COURRIER.raf); COURRIER.raf = setTimeout(() => { if (COURRIER.inst) COURRIER.inst.rafraichir(); }, 120); }
 (() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); courrierCaler(); courrierRafraichir(); return v; }; })();
 /* faire quelque chose DANS le module : on y va d'abord (l'hôte est masqué ailleurs, et un calque masqué n'est pas un calque ouvert), puis on agit */

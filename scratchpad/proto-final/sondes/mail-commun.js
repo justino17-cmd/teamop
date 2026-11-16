@@ -5,7 +5,7 @@ const CAP = process.env.CAP || '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a
 fs.mkdirSync(CAP, { recursive: true });
 // R() : la racine d'ombre du module (le module vit dans un arbre d'ombre : ses éléments ne sont pas dans le document)
 const INIT = 'window.R=()=>{const e=document.querySelector("#courrier-hote [data-opcourrier]");return e?e.shadowRoot:null};';
-exports.lib = lib; exports.v = lib.v; exports.CAP = CAP;
+exports.lib = lib; exports.v = lib.v; exports.CAP = CAP; exports.INIT = INIT;
 // entrer : ouvre le prototype dans la rubrique Boîte mail et attend que le module soit monté ET qu'il ait rendu ses messages
 exports.entrer = async (o) => {
   o = o || {}; const c = await lib.ouvrir(Object.assign({ qui:'marc', attente:1400, init:INIT }, o));
