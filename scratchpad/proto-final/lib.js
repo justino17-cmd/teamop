@@ -9,6 +9,28 @@ const { chromium } = require('/opt/node-tools/node_modules/playwright');
 const RACINE = process.env.RACINE || path.join(__dirname, '..', '..');
 const TYPES = { '.html':'text/html;charset=utf-8', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.png':'image/png', '.svg':'image/svg+xml', '.webmanifest':'application/manifest+json' };
 let SRV = null, PORT = 0, NAV = null;
+/* ⛔ UN PLAFOND DE NAVIGATEURS POUR TOUTE LA MACHINE (16 novembre 2026, après le second redémarrage de la soirée : 13 agents,
+   46 processus de navigateur, charge 7 sur 4 cœurs, puis la session est tombée). Chaque sonde prend une PLACE avant de lancer
+   son navigateur (un dossier créé de façon atomique dans VERROUS) et la rend en fermant. Une place dont le processus est mort
+   se reprend. Après ATTENTE_MAX sans place, la sonde part quand même et le DIT : mieux vaut une machine lente qu'une sonde
+   qui ne rend jamais. Réglages : OPG_NAVIGATEURS (4 par défaut), OPG_ATTENTE_S (150). */
+const VERROUS = '/tmp/opg-navigateurs', PLACES = parseInt(process.env.OPG_NAVIGATEURS || '4', 10), ATTENTE_MAX = parseInt(process.env.OPG_ATTENTE_S || '150', 10) * 1000;
+let MA_PLACE = null;
+const vivant = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
+const rendrePlace = () => { if (MA_PLACE) { try { fs.rmSync(MA_PLACE, { recursive: true, force: true }); } catch (e) {} MA_PLACE = null; } };
+async function prendrePlace() { if (MA_PLACE) return; try { fs.mkdirSync(VERROUS, { recursive: true }); } catch (e) {}
+  const t0 = Date.now(); let dit = false;
+  for (;;) {
+    for (let i = 0; i < PLACES; i++) { const d = path.join(VERROUS, 'place-' + i);
+      try { fs.mkdirSync(d); fs.writeFileSync(path.join(d, 'pid'), String(process.pid)); MA_PLACE = d; return; }
+      catch (e) { let pid = 0; try { pid = parseInt(fs.readFileSync(path.join(d, 'pid'), 'utf8'), 10); } catch (x) {}
+        let age = 0; try { age = Date.now() - fs.statSync(d).mtimeMs; } catch (x) {}
+        if ((pid && !vivant(pid)) || (!pid && age > 15000) || age > 15 * 60 * 1000) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (x) {} } } }
+    if (Date.now() - t0 > ATTENTE_MAX) { console.log('  · aucune place de navigateur après ' + Math.round(ATTENTE_MAX / 1000) + ' s : la sonde part quand même (machine chargée)'); return; }
+    if (!dit) { console.log('  · attente d’une place de navigateur (' + PLACES + ' au plus sur la machine)…'); dit = true; }
+    await new Promise(r => setTimeout(r, 1500 + Math.floor(Math.random() * 1500)));
+  } }
+process.on('exit', rendrePlace); for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { rendrePlace(); process.exit(143); });
 exports.RACINE = RACINE;
 // absents : chemins (relatifs à RACINE) que le serveur rend en 404, pour jouer « la page manque »
 exports.absents = new Set();
@@ -37,7 +59,7 @@ exports.PROFILS = {
 //   qui:null avec app:true = on arrive sur l'écran de connexion (pour le tester lui-même)
 //   page : une autre page d'apercu/ (ex. 'prototype-documents.html') ; requete : chaîne de requête à la place de celle du mode application
 exports.ouvrir = async function (o) {
-  o = o || {}; const port = await exports.serveur(); if (!NAV) NAV = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  o = o || {}; const port = await exports.serveur(); if (!NAV) { await prendrePlace(); NAV = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--js-flags=--max-old-space-size=768'] }); }
   const nom = o.profil || 'mac', pr = exports.PROFILS[nom]; if (!pr) throw new Error('profil inconnu : ' + nom);
   const ctx = await NAV.newContext({ viewport: { width: pr.w, height: pr.h }, deviceScaleFactor: 1, isMobile: !!pr.mobile, hasTouch: !!pr.doigt, userAgent: pr.ua, colorScheme: o.nuit ? 'dark' : 'light', locale: 'fr-FR', timezoneId: 'Europe/Paris', reducedMotion: o.calme ? 'reduce' : 'no-preference' });
   const p = await ctx.newPage(), err = [];
@@ -57,7 +79,7 @@ exports.ouvrir = async function (o) {
   return { p, ctx, err, profil: nom, doigt: !!pr.doigt, largeur: pr.w, hauteur: pr.h, port, encoches: encochesPosees ? pr.encoches : null };
 };
 exports.fin = async c => { try { await c.ctx.close(); } catch (e) {} };
-exports.fermer = async () => { if (NAV) { await NAV.close(); NAV = null; } if (SRV) { SRV.close(); SRV = null; } };
+exports.fermer = async () => { if (NAV) { try { await NAV.close(); } catch (e) {} NAV = null; } rendrePlace(); if (SRV) { SRV.close(); SRV = null; } };
 exports.cadre = (p, motif) => p.frames().find(f => (motif || /prototype-(documents|comptabilite|paiement)\.html/).test(f.url()) && f !== p.mainFrame());
 
 // ── gestes ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -97,7 +119,11 @@ exports.doigts = (f, zone) => f.evaluate(z => { const R = document.querySelector
   for (const e of R.querySelectorAll('h1,h2,h3,p,span,b,strong,div,td,label')) { if (!e.offsetParent || e.children.length) continue; const t = (e.textContent || '').trim(); if (t.length < 24) continue; const r = e.getBoundingClientRect(), lh = parseFloat(getComputedStyle(e).lineHeight) || 20, lignes = Math.round(r.height / lh); if (lignes >= 4 && t.length / lignes < 12) ecrases.push('« ' + t.slice(0, 40) + ' » ' + Math.round(r.width) + 'px sur ' + lignes + ' lignes'); }
   return { petits: [...new Set(petits)].slice(0, 30), champs: [...new Set(champs)].slice(0, 30), ecrases: ecrases.slice(0, 20) }; }, zone);
 // capture à REGARDER (outil Read) ; pleine:true pour la page entière. Les captures vont dans un dossier temporaire, jamais dans le dépôt.
-exports.capture = async (c, fichier, pleine) => { fs.mkdirSync(path.dirname(fichier), { recursive: true }); await c.p.screenshot({ path: fichier, fullPage: !!pleine }); return fichier; };
+// ⛔ une capture « page entière » d'un écran de 30 000 px coûte des centaines de Mo de mémoire : au-delà de 6 000 px on coupe, et on le dit.
+exports.capture = async (c, fichier, pleine) => { fs.mkdirSync(path.dirname(fichier), { recursive: true });
+  if (pleine) { const h = await c.p.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0));
+    if (h > 6000) { console.log('  · capture coupée à 6 000 px (la page en fait ' + h + ') : fais défiler pour voir la suite'); await c.p.screenshot({ path: fichier, clip: { x: 0, y: 0, width: c.largeur, height: 6000 }, fullPage: true }); return fichier; } }
+  await c.p.screenshot({ path: fichier, fullPage: !!pleine }); return fichier; };
 
 // ── comptes ───────────────────────────────────────────────────────────────────────────────────────────────
 let ok = 0, ko = 0; const echecs = [];
