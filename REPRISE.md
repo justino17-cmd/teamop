@@ -13,16 +13,17 @@ de ligne du tout.
 
 ---
 
-# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 7 PUBLIÉE (DEVIS VIERGE, MES EN-TÊTES, « OPTIMISER AVEC L'IA »)
+# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 8 PUBLIÉE (DEVIS ET CONTRATS VIERGES, MES EN-TÊTES, « OPTIMISER AVEC L'IA »)
 
 Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
 puis « un vrai système de personnalisation et aussi de création professionnelle pour les devis, comme si je le faisais avec Pages »
 (14 novembre) — en prototype À PART de celui d'OP GESTION.
 Puis, le 15 novembre : « je voudrais pouvoir faire des devis vierges, choisir mes en-têtes, mes clients, mon logo et tout », et dans
 la foulée « un bouton Optimiser avec l'IA, une fois que le devis est fini : il regarde ce qu'on a fait, il modifie, il refait un
-exemple » — les deux sont publiés (Versions 6 et 7).
+exemple » — les deux sont publiés (Versions 6 et 7). Puis : « ce que tu as fait pour les devis, je veux la même chose pour les
+contrats » — publié en Version 8.
 
-- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 7. Sa source
+- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 8. Sa source
   n'est PAS dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de
   550 Ko, données fictives (Clim Services 17), tout dans le navigateur. Une seule bibliothèque, chargée à la demande pour le PDF
   (html2canvas 1.4.1, cdnjs).
@@ -98,6 +99,37 @@ exemple » — les deux sont publiés (Versions 6 et 7).
   Limites : pas de description de ligne dans le modèle (seule la désignation se corrige) ; rangement en sections seulement sur
   un devis à un seul tableau et sans section ; les contrats n'ont pas ce bouton ; dans l'aperçu du rangement, les désignations
   sont celles d'avant correction.
+- **Version 8 — les contrats, comme les devis** (16 novembre) :
+  · **Contrat vierge** : la MÊME fenêtre que le devis vierge, réglée par le type (`viergeNeuf(type)`, `ouvrirVierge(retour,type)`),
+    ouverte depuis l'accueil (`contrat-vierge`) et depuis « Nouveau contrat » (l'ancienne ligne « Document vierge ») : en-tête,
+    logo, cases de l'en-tête, client, mise en page, « Titre du contrat », aperçu ; le contrat démarre vide (un article « Objet du
+    contrat » à écrire), porte `identId`, et son signataire est le NOM de l'en-tête choisi ; mémoire d'appareil à part de celle du
+    devis. Aux choix par défaut il est identique à l'ancien « Document vierge » (modèle, HTML, pixels).
+  · **« Optimiser avec l'IA » sur un contrat en brouillon** : cinq cases (texte des articles, titres, ordre logique, clauses qui
+    manquent, incohérences) ; avant/après article par article, l'ordre en un seul changement, les CLAUSES PROPOSÉES à part et
+    DÉCOCHÉES par défaut (texte juridique que la personne n'a pas écrit), remarques, « Écarté par sécurité », et la ligne « ce ne
+    sont pas des conseils juridiques ».
+    ⛔ Tenu par le CODE : les `{{variables}}` d'un article proposé doivent être exactement celles de l'ancien (ni retirée, ni
+    inventée) ; aucun nombre neuf (montant, pourcentage, durée, nombre de visites, en chiffres ou en lettres devant une unité) ;
+    aucun article de loi ni code cité (`RE_LOI`) ; l'ordre est une permutation exacte des seuls articles ; une clause : variables
+    connues seulement, pas de doublon, 6 au plus, posée avant les signatures avec la marque « Écrit par l'IA — à relire » ;
+    `optVerrouCtr` revérifie tout sur une copie (`d.vars` et les blocs non-articles identiques en JSON) et refuse tout au moindre
+    écart. Ce qui part au modèle : le nom des variables, jamais leurs valeurs ; du client, le nom et la ville seulement.
+  · Mesuré (rejoué par la session principale sur le fichier publié, quatre modes) : 818 contrôles neufs verts (contrat vierge 160,
+    parcours 122, réponses piégées 360, erreurs et verrou 176) ; un parcours écrit à part (contrat vierge au second en-tête, puis
+    optimisation avec un prix inventé, une durée inventée et un article de loi cité, tous écartés) 25 sur 25 dans deux modes ;
+    l'optimisation des devis rejouée (238 verts) ; l'agent annonce 34 mutations sur 34 qui mordent (non rejouées).
+    Retouches de relecture (`etape7/patch-moi7.py`) : dans l'avant/après, une information à remplir montrait `{{client}}` en
+    toutes lettres — elle montre sa valeur, soulignée en pointillé ; le modèle ne vouvoie plus « le client » (un contrat parle
+    des parties à la troisième personne) ; guillemet seul à la ligne dans le message de création.
+    ⚠️ La sonde `v8/q3.js` (devis) exige encore « aucun bouton Optimiser sur un contrat » : 1 à 2 rouges ATTENDUS depuis la
+    Version 8 ; sa copie adaptée est `v9/anc/q3.js`.
+    ⚠️ **La VRAIE IA n'a toujours pas été jouée** (imitation de `sample`) ; **aucun de ces textes n'est un conseil juridique** et
+    aucun modèle de contrat n'a été relu par un juriste.
+    Limites : la version courte d'un article réécrit n'est pas recalculée ; une adresse ou un téléphone tapés À LA MAIN dans le
+    texte d'un article partent au modèle (seules les variables et les coordonnées du client sont exclues) ; « cent » ou « mille »
+    seuls ne sont pas vus comme des nombres ; pas de surlignage des mots changés dans un long article ; l'envoi et le PDF d'un
+    contrat au second en-tête n'ont pas été rejoués sur cette passe.
 - **Ce qui attend Justin** : son essai du PDF et de « Optimiser avec l'IA » sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
   rejoignent le Devis IA et l'envoi réels d'OP GESTION (le prototype ne touche à rien d'existant) ; qui fait relire les contrats.
 
