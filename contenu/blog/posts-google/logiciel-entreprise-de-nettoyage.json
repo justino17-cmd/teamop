@@ -1,0 +1,21 @@
+{
+  "slug": "logiciel-entreprise-de-nettoyage",
+  "prepare": "2026-11-16",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Logiciel entreprise de nettoyage : planning, contrôle qualité, sites\n\nLogiciel entreprise de nettoyage : passages récurrents, fiche site et grille de contrôle qualité à recopier, reprise du personnel et budget pour six.\n\nÀ retenir : Le passage récurrent est le cœur du métier : le logiciel doit proposer le passage suivant tout seul, en évitant les absences et les jours où le client ne veut pas de visite.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/logiciel-entreprise-de-nettoyage.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/logiciel-entreprise-de-nettoyage-couverture-google.jpg"
+      }
+    ]
+  }
+}

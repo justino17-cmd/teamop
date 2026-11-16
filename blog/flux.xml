@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Fri, 13 Nov 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Mon, 16 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Logiciel entreprise de nettoyage : planning, contrôle qualité, sites</title>
+<link>https://teamop.fr/blog/logiciel-entreprise-de-nettoyage.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/logiciel-entreprise-de-nettoyage.html</guid>
+<pubDate>Mon, 16 Nov 2026 06:00:00 GMT</pubDate>
+<description>Logiciel entreprise de nettoyage : passages récurrents, fiche site et grille de contrôle qualité à recopier, reprise du personnel et budget pour six.</description>
+<enclosure url="https://teamop.fr/blog/img/logiciel-entreprise-de-nettoyage-couverture.webp" type="image/webp" length="19400"/>
+</item>
 <item>
 <title>Mise en conformité électrique d’un logement : guide de l’électricien</title>
 <link>https://teamop.fr/blog/mise-en-conformite-electrique-logement.html</link>
