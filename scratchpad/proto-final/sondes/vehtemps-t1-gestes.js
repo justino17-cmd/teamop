@@ -114,7 +114,7 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
     v('G : état 3 — tout est réglé : « Passer à la paie » (noir)', (await txt(c, '.tt-paie .btn')).trim() === 'Passer à la paie' && !/gris/.test(await ev(c, () => document.querySelector('.tt-paie .btn').className)));
     await clic(c, '.tt-paie .btn'); await c.p.waitForTimeout(600); v('G : « Passer à la paie » ouvre Comptabilité › Paie', (await ev(c, () => route)) === 'comptabilite' && (await ev(c, () => CP.onglet)) === 'paiemois', await ev(c, () => route + '/' + CP.onglet));
     await L.aller(c.p, 'pointage'); await ev(c, () => { PAIE.verrou = { le:'31/10 · 10:40', par:'marc', emp:'ABCD1234' }; ptOnglet = 'mois'; rendre(); });
-    v('G : état 4 — mois fermé : la phrase le dit, « Voir la paie »', /est fermé : plus aucune heure ne peut changer/.test(await txt(c, '.tt-phrase')) && (await txt(c, '.tt-paie .btn')).trim() === 'Voir la paie', await txt(c, '.tt-paie'));
+    { const ph = await txt(c, '.tt-paie .tt-phrase'), bt = (await txt(c, '.tt-paie .btn')).trim(); v('G : état 4 — mois fermé : la phrase le dit, « Voir la paie »', /est fermé\s:\splus aucune heure ne peut changer/.test(ph) && bt === 'Voir la paie', { ph, bt }); }
     await L.fin(c); }
 
   /* ── H. le mois FERMÉ : aucune écriture, nulle part ── */
@@ -147,7 +147,7 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
     await L.fin(c); }
 
   /* ── J. « La règle », « Rappels » ── */
-  { const c = await frais(); await clic(c, '[data-tt="regle"]'); const r = await ev(c, () => ({ h2:document.querySelector('#calque .panneau h2').textContent, det:document.querySelectorAll('#calque .tt-det').length, refs:[...document.querySelectorAll('#calque .tt-det')].map(e => e.innerText).join('|'), pied:document.querySelector('#calque .panneau').innerText }));
+  { const c = await frais(); await clic(c, '[data-tt="regle"]'); const r = await ev(c, () => ({ h2:document.querySelector('#calque .panneau h2').textContent, det:document.querySelectorAll('#calque .tt-det').length, refs:[...document.querySelectorAll('#calque .tt-det')].map(e => e.textContent).join('|'), pied:document.querySelector('#calque .panneau').textContent }));
     v('J : « La règle » — cinq repères, la référence du Code du travail DANS le « ? »', r.h2 === 'La règle' && r.det === 5 && /L3121-18/.test(r.refs) && /expert-comptable/.test(r.pied), r);
     v('J : la référence n\'est écrite que là (plus nulle part ailleurs dans l\'écran)', !/L3121|L3131|L3132/.test(await txt(c, '#contenu')));
     await L.ranger(c.p); await clic(c, '[data-tt="rappels"]'); await ev(c, () => { document.getElementById('tt-rap').checked = false; }); await clic(c, '[data-tt="rappelsok"]');

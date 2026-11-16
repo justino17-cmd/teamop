@@ -3261,8 +3261,15 @@ table.l th.n{text-align:right}
 @container ttl (max-width:560px){
   .tt-lig{grid-template-columns:minmax(0,1fr);gap:6px}
   .tt-ges{gap:12px 18px;margin-top:4px}
-  .tt-l{flex-wrap:wrap;gap:6px 12px;padding:8px 2px}.tt-l .fo-n{flex:1 1 170px}
-  .tt-lig{padding:10px 2px;gap:4px}.tt-txt{font-size:15px}
+  .tt-l{flex-wrap:wrap;gap:6px 12px;padding:6px 2px}.tt-l .fo-n{flex:1 1 170px}
+  .tt-lig{padding:8px 2px;gap:4px;display:block}.tt-txt{font-size:15px;display:block}.tt-txt>.gris{display:block}
+  .tt-lig>.st{float:left;margin:1px 8px 2px 0}   /* l'étiquette ouvre la phrase au lieu d'avoir sa propre ligne : 34 px de moins par rangée */
+  .tt-ges{clear:both;padding-top:2px;margin-top:0}.tt-ges .lien{padding-left:0;padding-right:0}
+  /* une rangée de « Qui est où » qui porte un geste : le geste à droite du nom, l'état dessous — plus une rangée à part pour le bouton */
+  .tt-ligs .tt-l-b{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:2px 12px}
+  .tt-ligs .tt-l-b .fo-n{display:contents}.tt-ligs .tt-l-b .eq-av{grid-row:1/4;align-self:start;margin-top:2px}
+  .tt-ligs .tt-l-b .fo-n>b{grid-column:2;grid-row:1}.tt-ligs .tt-l-b .btn{grid-column:3;grid-row:1}
+  .tt-ligs .tt-l-b .st{grid-column:2/4;grid-row:2;justify-self:start}.tt-ligs .tt-l-b .fo-n>.gris{grid-column:2/4;grid-row:3}
 }
 .tt-l{display:flex;align-items:center;gap:12px;padding:10px 2px;min-height:58px;border-top:1px solid var(--trait);width:100%}
 .tt-l .st{flex:none}.tt-l .btn{min-height:44px;flex:none}
@@ -3325,10 +3332,17 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (max-width:760px){
   #contenu .tete.tt-tete{flex-wrap:wrap}.tt-tete>div:first-child{flex:1 1 100%}.tt-tete .actions{width:100%}.tt-tete .actions .btn{width:100%}
   .tt-k{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tt-k .kpi{min-height:64px;padding:10px 14px}
-  .tt-areg,.tt-qui,.tt-paie{padding:14px 16px}
+  .tt-areg,.tt-qui,.tt-paie{padding:14px 14px}
   .tt-barre .btn{width:100%;margin-left:0}
-  .tt-moi{max-width:none}
+  .tt-moi{max-width:none}.tt-moi .ptx-carte{flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px 14px;gap:2px 12px}.tt-moi .ptx-carte>h3{flex:1 1 100%;margin:0}.tt-moi .ptx-etat{flex:1 1 130px;min-width:0}.tt-moi .ptx-carte>.btn.large{flex:0 0 auto;width:auto;min-height:48px;padding-left:16px;padding-right:16px;font-size:15px}.tt-moi .ptx-carte>.actions{flex:0 0 auto}.tt-moi .ptx-carte>.lien{flex:1 1 100%;justify-content:flex-start}   /* la carte du gérant, plus serrée : elle ouvre la page, elle ne doit pas la remplir */
+  .tt-k1 .kpi{flex-direction:row;align-items:center;gap:12px;min-height:50px;padding:6px 14px}.tt-k1 .kpi>b{flex:none}.tt-k1 .kpi>span{flex:1;min-width:0}   /* le chiffre et son mot sur UNE ligne : deux rangées de chiffres tenaient 165 px, elles en tiennent 120 */
+  .tt-aide{display:block}.tt-lien-court{display:inline;min-height:0;padding:15px 6px;margin:-15px 0}   /* « Modifier » dans la phrase : la zone qui répond reste de 44 px, sans une ligne de plus */
+  .tt-liens{display:contents}.tt-liens .lien{font-size:14px}.tt-ges{gap:0 12px}   /* « Lui demander son heure » et « Choisir une autre heure » tiennent côte à côte : une ligne de moins par journée à terminer */
 }
+/* au doigt, les flèches de la semaine répondent sur 44 px (40 à la souris) ; et une liste de personnes très étroite (320 px, nom long) range le total sous le nom plutôt qu'à côté, où il écrasait le nom */
+@media (pointer:coarse){.tt-barre .st-nav button{width:44px;height:44px;flex:none}}   /* flex:none : sur 320 px le nom de la semaine pousse, et sans lui la flèche rétrécissait à 38 px */
+@container ttl (max-width:300px){.tt-ligs .tt-l-b .btn{grid-column:2/4;grid-row:4;justify-self:start}.tt-ligs .tt-l-b .eq-av{grid-row:1/5}}   /* 320 px : un nom long a toute la largeur, le geste passe dessous */
+@container ttsem (max-width:380px){.tt-p>.tt-tot{grid-column:2;grid-row:2;align-items:flex-start;text-align:left}.tt-p>.tt-pp{grid-row:3}}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
@@ -15891,7 +15905,7 @@ function ttAReglerLignes(){
         h48 = leg.some(o => /48 h au plus/.test(o.t)), sanspause = leg.filter(o => /sans pause/.test(o.t)).map(o => nom(o.d)), r35 = leg.some(o => /repos de 35 h/.test(o.t));
       const seulLong = long.length && !repos.length && !sanspause.length && !r35;
       const dit = seulLong ? `a des journées trop longues ${quand} : ${long.join(', ')}${h48 ? ' · ' + ptH(T.tot) + ' en tout' : ''}.`
-        : `a des heures à regarder ${quand} : ` + [long.length && 'journées de plus de 10 h (' + long.join(', ') + ')', repos.length && 'moins de 11 h de repos (' + repos.join(', ') + ')', sanspause.length && 'pas de pause de 20 minutes (' + sanspause.join(', ') + ')', h48 && ptH(T.tot) + ' sur la semaine', r35 && 'pas de repos de 35 h d’affilée'].filter(Boolean).join(' · ') + '.';
+        : `a des heures à regarder ${quand} : ` + [long.length && 'plus de 10 h (' + long.join(', ') + ')', repos.length && 'moins de 11 h de repos (' + repos.join(', ') + ')', sanspause.length && 'pas de pause de 20 minutes (' + sanspause.join(', ') + ')', h48 && ptH(T.tot) + ' en tout', r35 && 'pas de repos de 35 h d’affilée'].filter(Boolean).join(' · ') + '.';
       R.push({ rang:2, g:'o', lib:'À regarder', k, texte:`<b>${esc(prenomDe(k))}</b> ${esc(dit)}`, bouton:{ lib:'Voir la semaine', act:'sem|' + k + '|' + L, gris:true }, liens:[{ lib:'La règle', act:'regle' }] }); }
     if (pas.length) { const jrs = pas.map(o => o.d), n = jrs.reduce((s, d) => s + INTS.filter(i => i.tech === k && i.d === d && i.st !== 'annulee').length, 0);
       R.push({ rang:3, g:'o', lib:'À regarder', k, texte:`<b>${esc(prenomDe(k))}</b> avait ${n === 1 ? 'une intervention' : 'des interventions'} ${ttNoms(jrs.map(ttJourNom))} et n’a pas pointé.`, bouton:{ lib:'Ajouter sa journée', act:'ajout|' + k + '|' + jrs[0] }, liens:[] }); }
@@ -15918,7 +15932,7 @@ function ttCarteQuiEstOu(E){
     else if (e.etat === 'absent') { st = ['st-p', 'Absent' + (ttFem(k) ? 'e' : '')]; sous = e.a.type.toLowerCase() + ' jusqu’au ' + jlong(e.a.au); clic = true; }
     else { st = ['st-o', 'Pas encore commencé']; sous = 'devait commencer à ' + e.premier + (PTX.rappele[k] ? ' · rappel envoyé à ' + PTX.rappele[k] : ''); ges = `<button type="button" class="btn gris petit" data-tt="rappeler1|${k}">Lui rappeler</button>`; }
     const dedans = `${ttAv(k)}<span class="fo-n"><b>${nom}</b><span class="gris petit">${esc(sous)}</span></span><span class="st ${st[0]}">${st[1]}</span>${ges}`;
-    return clic ? `<button type="button" class="tt-l tt-clic" data-tt="abs|${k}" aria-label="${nom}, ${esc(sous)} : ouvrir Absences et congés">${dedans}</button>` : `<div class="tt-l">${dedans}</div>`; };
+    return clic ? `<button type="button" class="tt-l tt-clic" data-tt="abs|${k}" aria-label="${nom}, ${esc(sous)} : ouvrir Absences et congés">${dedans}</button>` : `<div class="tt-l${ges ? ' tt-l-b' : ''}">${dedans}</div>`; };
   const filtre = { travail:'au travail', attendu:'pas encore commencé', absent:'absent' }[TT.filtre];
   return `<div class="carte tt-qui"><h3>Qui est où · ${esc(jlong(AUJ))}</h3>
     ${TT.filtre ? `<div class="tt-filtre"><span>On ne montre que : <b>${filtre}</b></span><button type="button" class="lien" data-tt="filtre|">Tout voir</button></div>` : ''}
@@ -16061,7 +16075,7 @@ function ttVue(){
   const corps = ptOnglet === 'semaine' ? ttOngletSem() : ptOnglet === 'mois' ? ttOngletMois()
     : `${PT_GENS.includes('marc') ? `<div class="tt-moi">${ptxCarteSalarie('marc')}</div>` : ''}${ttCarteAReg(R)}${ttCarteQuiEstOu(E)}`;
   return `<div class="tete tt-tete"><div><span class="surtitre">Personnel</span><h1>Temps de travail</h1><span class="gris">${esc(ttPhrase(E))}</span></div><div class="actions"><button type="button" class="btn" data-tt="ajout">＋ Ajouter une journée</button></div></div>
-    <div class="kpis tt-k">${kpi('travail', travail, 'au travail')}${kpi('attendu', attendus, 'pas encore commencé')}${kpi('absent', abs.length, 'absent' + (abs.length > 1 ? 's' : abs.length === 1 && ttFem(abs[0].k) ? 'e' : ''))}
+    <div class="kpis tt-k tt-k1">${kpi('travail', travail, 'au travail')}${kpi('attendu', attendus, 'pas encore commencé')}${kpi('absent', abs.length, 'absent' + (abs.length > 1 ? 's' : abs.length === 1 && ttFem(abs[0].k) ? 'e' : ''))}
       <button type="button" class="kpi${R.length ? ' kpi-up' : ''}" data-tt="areg"><b${R.length ? '' : ' style="color:var(--vert)"'}>${R.length}</b><span>à régler</span></button></div>
     <div class="seg" role="tablist" aria-label="Temps de travail">${[['auj', 'Aujourd’hui'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, l]) => `<button type="button" role="tab" data-tt="onglet|${k}" aria-pressed="${ptOnglet === k}" aria-selected="${ptOnglet === k}">${l}${k === 'auj' && R.length ? ` <span class="t-nb rouge">${R.length}</span>` : ''}</button>`).join('')}</div>
     ${corps}`;
