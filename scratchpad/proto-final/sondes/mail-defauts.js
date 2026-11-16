@@ -72,6 +72,8 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   const pt = await p.evaluate(() => window.__pt); await p.mouse.click(pt.x, pt.y, { button:'right' }); await p.waitForTimeout(500);
   const d11 = await S(c, () => { const bs = [...R().querySelectorAll('#overlays button')], l = bs[bs.length - 1]; return l ? { n:bs.length, dernier:l.innerText.trim(), bas:Math.round(l.getBoundingClientRect().bottom), fenetre:innerHeight } : null; });
   v('D11 le menu du clic droit reste dans l\'écran (windows 1366×768) et ne compte que six gestes', !!d11 && d11.bas <= d11.fenetre && d11.n <= 7, d11);
+  const tw = await S(c, () => { const t = R().querySelector('.list .lb-title'); return t ? { sw:t.scrollWidth, cw:t.clientWidth, texte:t.textContent } : null; });
+  v('D16 le titre « Boîte de réception » n\'est pas tronqué non plus à 1366 px (Windows : colonne de liste assez large)', !!tw && tw.sw <= tw.cw, tw);
   await p.keyboard.press('Escape'); await p.waitForTimeout(300);
   await ouvrirMsg(c, 'm1'); await S(c, () => R().querySelector('#readActs .acts-mac [data-act=junk]').click()); await p.waitForTimeout(600);
   await S(c, () => R().querySelector('[data-folder=junk]').click()); await p.waitForTimeout(500);

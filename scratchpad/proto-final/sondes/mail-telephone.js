@@ -22,6 +22,14 @@ const cibles = c => S(c, () => { const R = window.R(), pet = [], vus = [];
     const dep = await lib.deborde(c); v(profil + ' : la lecture ne fait pas glisser la page de côté', dep.bouge === 0, dep);
     const hb = await S(c, () => { const e = window.R().querySelector('.hband'); const r = e.getBoundingClientRect(), h = document.getElementById('courrier-hote').getBoundingClientRect(); return { gauche:Math.round(r.left - h.left), droite:Math.round(h.right - r.right), larg:Math.round(r.width) }; });
     v(profil + ' : le bandeau tient dans la largeur (marges ≥ 0)', hb.gauche >= 0 && hb.droite >= 0, hb);
+    // le TEXTE du courriel ne doit pas être repoussé sous le pli par cinq gros boutons : deux gestes visibles, les autres sous « Autres gestes »
+    const pl = await S(c, () => { const R = window.R(), b = R.querySelector('.hband'), plus = b.querySelector('.hplus'), tous = b.querySelectorAll('.btn'), vis = [...b.querySelectorAll(':scope > .hacts .btn')].length; return { total:tous.length, visibles:vis, plus:!!plus, ferme:plus ? !plus.open : null, resume:plus ? plus.querySelector('summary').getBoundingClientRect().height : 0, texteHaut:Math.round(R.querySelector('.rbody').getBoundingClientRect().top), ih:innerHeight }; });
+    v(profil + ' : population — le bandeau de ce courriel porte au moins quatre gestes', pl.total >= 4, pl);
+    v(profil + ' : deux gestes visibles, les autres rangés sous « Autres gestes » (fermé, cible ≥ 44 px)', pl.visibles === 2 && pl.plus && pl.ferme && pl.resume >= 43.5, pl);
+    v(profil + ' : le début du texte du courriel se voit sans défiler plus d\'un écran (haut du texte < 1,6 hauteur d\'écran)', pl.texteHaut < pl.ih * 1.6, pl);
+    await p.locator('#courrier-hote .hplus summary').first().click(); await p.waitForTimeout(300);
+    const ouv = await S(c, () => { const d = window.R().querySelector('.hband .hplus'); return { ouvert:d.open, boutons:[...d.querySelectorAll('.btn')].filter(b => b.getBoundingClientRect().height >= 43.5).length, tous:d.querySelectorAll('.btn').length }; });
+    v(profil + ' : « Autres gestes » s\'ouvre et montre ses boutons, tous ≥ 44 px', ouv.ouvert && ouv.tous >= 2 && ouv.boutons === ouv.tous, ouv);
     await cap(c, 'telephone-lecture-' + profil);
     // composeur, clavier simulé : on rogne 300 px de fenêtre
     await p.keyboard.press('Escape');
