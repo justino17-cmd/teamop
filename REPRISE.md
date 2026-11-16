@@ -46,6 +46,17 @@ trois heures de travail non poussé avec lui. **Depuis, tout ce qui doit survivr
 - `scratchpad/proto-final/workflows/deux-lots.js` — le script du workflow en cours (à relancer tel quel après un redémarrage :
   recréer les deux arbres `git worktree add --detach /home/user/wt-atelier HEAD` et `/home/user/wt-menu HEAD`).
 
+**Retours de Justin sur la version d'étape (16 novembre, 21 h 30) — `scratchpad/proto-final/RETOURS-JUSTIN.md` (mot pour mot) :**
+« Composer un devis, c'est trop petit » ; la Boîte mail doit être CELLE QUI EXISTE (le module OP Courrier, `opcourrier.js`),
+« juste améliorer et corriger les bugs » ; Comptabilité « c'est bon » ; Équipe « c'est bien » ; Stock, « Fournisseurs, matériel &
+produits », « Dépôts et camions » et Véhicules À REFAIRE (« moche », « mal fait », « plus compréhensif, plus simple ») ; Temps de
+travail « pas mal, mais plus simple » ; « je veux que tu testes toute cette application ». Il a dit aussi : « tu fais la moitié
+des choses comme d'habitude » — ne rien lui annoncer « fait » qui ne soit pas joué de bout en bout et regardé.
+Études et dessins en cours : workflow `scratchpad/proto-final/workflows/refonte-conception.js` (arbres `/home/user/wt-c-materiel`,
+`/home/user/wt-c-vehicules-temps`, `/home/user/wt-c-mail` ; l'étude de la boîte mail se lance avec `args: {seul:'mail'}`) ; les
+documents arrivent dans `scratchpad/proto-final/refonte/`. Version d'étape publiée : Version 62 de l'artefact du prototype
+(atelier + menu final, AVANT relecture adverse).
+
 **État au 16 novembre, 20 h 45 :**
 - Lot « atelier » et lot « menu » : RELANCÉS (workflow « prototype-final-deux-lots » : appliquer → relire en adverse → corriger →
   recontrôler, chaque étape poussée). Rien n'est encore sur la branche tant qu'un commit de lot n'y paraît pas (`git log`).
