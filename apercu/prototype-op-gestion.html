@@ -215,16 +215,16 @@ body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sino
 @media (max-width:520px){.cpsys-barre b{display:none}.cpsys-barre{justify-content:space-between}}
 @media (pointer:coarse){.cpsys-barre button{min-height:44px}}
 /* L'atelier de devis et de contrats (prototype-documents.html), plein écran. « hidden » garde la LARGEUR (visibility, pas display:none) : un cadre à 0 px
-   se croit un téléphone et l'atelier se refermait à la première ouverture. L'encoche est réservée ICI : l'atelier ne dessine rien sous elle. */
-#opdz{position:fixed;inset:0;z-index:9100;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc);padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+   se croit un téléphone et l'atelier se refermait à la première ouverture. L'encoche du HAUT est réservée ICI (la barre de l'atelier ne la lit pas) ; le bas et les côtés, l'atelier les lit lui-même (env() y est la valeur de l'appareil dans le cadre : les réserver aussi ici les compterait deux fois). */
+#opdz{position:fixed;inset:0;z-index:9100;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc);padding-top:env(safe-area-inset-top,0px)}
 #opdz[hidden]{display:flex;visibility:hidden;pointer-events:none}
 #opdz iframe{flex:1;min-height:0;width:100%;border:0;background:var(--feuille,#f8f9fc)}
 .opdz-att{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--feuille,#f8f9fc)}
 .opdz-att[hidden]{display:none}
 .opdz-att-c{display:flex;flex-direction:column;gap:12px;align-items:flex-start;max-width:420px}
 .opdz-att-c b{font-size:18px}
-.at-t{margin:6px 12px 4px}.at-nr{color:var(--orange)}
-.at-cl{text-align:left}
+.opd-t{margin:6px 12px 4px}.opd-nr{color:var(--orange)}
+.opd-cl{text-align:left}
 
 .gd-voix{font-size:16px}.gd-bulle.mini .gd-voix{margin-left:auto}
 
@@ -19419,20 +19419,20 @@ const opdMontant = x => x.type === 'devis' ? (x.ttc > 0 ? eur(x.ttc / 100) : 'à
 const opdLib = x => (x.type === 'devis' ? 'Devis ' : 'Contrat ') + (x.numero || 'brouillon') + (x.client ? ', ' + x.client : '');
 function opdLigne(x){
   const e = OPD_ET[x.etat];
-  return `<button type="button" class="dv-l at-l" data-opd="doc" data-id="${esc(x.id)}" aria-label="Rouvrir : ${esc(opdLib(x))}">
+  return `<button type="button" class="dv-l opd-l" data-opd="doc" data-id="${esc(x.id)}" aria-label="Rouvrir : ${esc(opdLib(x))}">
     <span class="dv-n">${x.numero ? `<span class="mono">${esc(x.numero)}</span>` : '<span class="dv-br">Brouillon</span>'}</span>
     <span class="dv-c"><b>${esc(x.client || 'Sans client')}</b><span class="gris petit">${esc(opdNom(x) || (x.type === 'devis' ? 'Devis' : 'Contrat'))}</span></span>
-    <span class="dv-q petit gris">${opdDate(x.maj)}${x.nr ? ' · <b class="at-nr">Non enregistré</b>' : ''}</span>
+    <span class="dv-q petit gris">${opdDate(x.maj)}${x.nr ? ' · <b class="opd-nr">Non enregistré</b>' : ''}</span>
     <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'par an'}</small></span>
     <span class="dv-e"><span class="st ${e[1]}">${e[0]}</span></span></button>`;
 }
 function opdCarte(type, etats){
   const L = opdDocsDe(type, etats); if (!L.length || !rlPermis(type === 'devis' ? 'devis' : 'contrats')) return '';
-  return `<div class="carte dv-liste at-liste" data-atl="${type}"><h3 class="at-t">Composés dans l’atelier · ${L.length}</h3>${L.map(opdLigne).join('')}</div>`;
+  return `<div class="carte dv-liste opd-liste" data-atl="${type}"><h3 class="opd-t">Composés dans l’atelier · ${L.length}</h3>${L.map(opdLigne).join('')}</div>`;
 }
 function opdClientLignes(k, type){   // la fiche d'un client : ses documents composés, dans la carte Devis ou la carte Contrat
   if (!rlPermis(type === 'devis' ? 'devis' : 'contrats')) return '';
-  return opdDocsDe(type).filter(x => x.clientId === k).map(x => `<div class="ligne lg-pli"><button type="button" class="lien at-cl" data-opd="doc" data-id="${esc(x.id)}">${esc((x.numero ? x.numero + ' · ' : '') + (opdNom(x) || (type === 'devis' ? 'Devis' : 'Contrat')))}</button><span class="st ${OPD_ET[x.etat][1]}">${OPD_ET[x.etat][0]}</span></div>`).join('');
+  return opdDocsDe(type).filter(x => x.clientId === k).map(x => `<div class="ligne lg-pli"><button type="button" class="lien opd-cl" data-opd="doc" data-id="${esc(x.id)}">${esc((x.numero ? x.numero + ' · ' : '') + (opdNom(x) || (type === 'devis' ? 'Devis' : 'Contrat')))}</button><span class="st ${OPD_ET[x.etat][1]}">${OPD_ET[x.etat][0]}</span></div>`).join('');
 }
 /* les numéros : l'atelier suit la série d'OP GESTION, et OP GESTION compte ce que l'atelier a composé — dans les deux sens, jamais deux fois le même */
 const opdNums = (type, pre) => ATD.docs.filter(x => x.type === type && x.numero.startsWith(pre)).map(x => +x.numero.slice(pre.length)).filter(n => Number.isInteger(n));

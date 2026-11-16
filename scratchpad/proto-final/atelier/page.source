@@ -1396,6 +1396,20 @@ button.vv-art-b:hover{background:var(--survol)}
 }
 /* ── 13. DANS OP GESTION : pas d'accueil (le prototype est l'accueil), pas de marque, pas de sélecteur de thème ── */
 html[data-app] #vue-accueil{display:none!important}
+/* Mesuré dans le cadre (mêmes profils que le prototype) : sur iPad la barre de l'éditeur a des boutons de 40 px de large et le nom du document est en 15 px (iOS zoome sous 16) ;
+   à 320 px le bouton « Optimiser » de la barre du bas était écrasé à 22 px (son libellé débordait sur ses voisins) ; les poignées de ligne et la date du document, posées SUR la feuille,
+   n'ont que 21–26 px : on étend leur zone de toucher sans changer la feuille (un pseudo-élément transparent), jamais leur taille. Seulement dans OP GESTION : la page seule ne bouge pas. */
+@media (pointer:coarse){
+  html[data-app] .barre .bt{min-width:44px}
+  html[data-app] .nom-doc{font-size:16px}
+  html[data-app] .rt::after{content:'';position:absolute;inset:-9px -11px}
+  html[data-app] button.ct-date{position:relative}
+  html[data-app] button.ct-date::after{content:'';position:absolute;inset:-13px -8px}
+}
+@media (max-width:380px){
+  html[data-app] .barre-bas{gap:2px;padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
+  html[data-app] .barre-bas .bt{min-width:0;padding:0 1px;font-size:10.5px}
+}
 </style>
 
 <!-- Icônes : traits fins, même épaisseur partout (stroke 1.6), dessinées ici — aucune image externe -->
