@@ -7438,6 +7438,7 @@ ACTIONS['pdf-annuler']=()=>{ if(!PDF.enCours) return; PDF.annule=true; pdfBandea
    Atelier → prototype : opd_pret · opd_docs [{id,type,nom,numero,etat,client,clientId,ttc,prix,maj,nr}] (ttc et prix en CENTIMES) · opd_client · opd_fermer {motif}
    Un message de la liste qui n'a pas la bonne forme est ignoré en entier ; une valeur hors bornes est écartée seule. */
 const RE_ID=/^[A-Za-z0-9_-]{1,40}$/;
+const RE_PROTO=/^(__proto__|constructor|prototype)$/;      // noms qui existent déjà sur tout objet : jamais un identifiant de client ni d'article (le forme [A-Za-z0-9_-] les laisserait passer)
 const own=(o,k)=>o&&typeof o==='object'&&Object.prototype.hasOwnProperty.call(o,k)?o[k]:undefined;      // jamais o[k] sur un message : « __proto__ » ou « constructor » n'y sont pas des clés
 const opdTxt=(v,n)=>typeof v==='string'?v.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,n):'';
 const opdPoster=m=>{ if(HOTE){ try{ HOTE.postMessage(m,'*') }catch(e){} } };
@@ -7451,7 +7452,7 @@ function opdClients(L){
   if(!Array.isArray(L)) return; const out=[], vus=new Set();
   for(const c of L.slice(0,500)){
     if(!c||typeof c!=='object'||Array.isArray(c)) continue; const id=own(c,'id'), nom=opdTxt(own(c,'nom'),120);
-    if(typeof id!=='string'||!RE_ID.test(id)||vus.has(id)||!nom) continue; vus.add(id);
+    if(typeof id!=='string'||!RE_ID.test(id)||RE_PROTO.test(id)||vus.has(id)||!nom) continue; vus.add(id);
     const r={id,nom,pro:own(c,'pro')===true,adresse:opdTxt(own(c,'adresse'),120),cp:opdTxt(own(c,'cp'),10),ville:opdTxt(own(c,'ville'),80),email:opdTxt(own(c,'email'),120),tel:opdTxt(own(c,'tel'),30)};
     const ct=opdTxt(own(c,'contact'),80); if(ct) r.contact=ct; out.push(r);
   }
@@ -7461,7 +7462,7 @@ function opdCatalogue(L){
   if(!Array.isArray(L)) return; const out=[], refs=new Set();
   for(const a of L.slice(0,400)){
     if(!a||typeof a!=='object'||Array.isArray(a)) continue; const ref=opdTxt(own(a,'ref'),24), des=opdTxt(own(a,'des'),200), puC=own(a,'puC'), tva=own(a,'tvaBp');
-    if(!ref||!des||refs.has(ref)||!Number.isInteger(puC)||puC<0||puC>1e9||!Number.isInteger(tva)||tva<0||tva>10000) continue; refs.add(ref);
+    if(!ref||!des||RE_PROTO.test(ref)||refs.has(ref)||!Number.isInteger(puC)||puC<0||puC>1e9||!Number.isInteger(tva)||tva<0||tva>10000) continue; refs.add(ref);
     const cat=opdTxt(own(a,'cat'),40); out.push({ref,des,unite:opdTxt(own(a,'unite'),12)||'u',puC,tvaBp:tva,cat:VV_CATS.includes(cat)&&cat!=='Mon matériel'?cat:'Matériel'});
   }
   CATALOGUE.splice(0,CATALOGUE.length,...out);      // le même tableau, lu par référence partout

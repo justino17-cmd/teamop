@@ -48,8 +48,18 @@ fs.writeFileSync(path.join(WWW, 'prototype-paiement.html'), /<html/i.test(paieme
 /* la Comptabilité complète s'ouvre aussi dans un cadre, depuis « Comptabilité » */
 fs.writeFileSync(path.join(WWW, 'prototype-comptabilite.html'), lire('apercu/prototype-comptabilite.html'));
 
+/* l'atelier de devis et de contrats (« Documents sur mesure ») s'ouvre dans un cadre, depuis Devis, Contrats et la fiche d'un client : même dossier, même nom
+   (le prototype le charge par son adresse relative, avec ?app=1) */
+const documents = lire('apercu/prototype-documents.html');
+if (!/<html/i.test(documents)) { console.error('✗ prototype-documents.html n’a pas de squelette : relancer scratchpad/proto-final/atelier/fabriquer.sh'); process.exit(1); }
+fs.writeFileSync(path.join(WWW, 'prototype-documents.html'), documents);
+
 /* garde-fous : rien de distant, rien de payant vers l'extérieur */
-const distants = [...page.matchAll(/(?:src|href)=["'](https?:\/\/[^"']+)["']/g)].map(m => m[1]).filter(u => !/^https?:\/\/(www\.)?(teamop\.fr|w3\.org)/.test(u));
+/* ⚠ le contrôle porte sur les QUATRE pages (le prototype, le paiement, la Comptabilité, l'atelier) : l'atelier charge des polices chez Google et son export PDF charge html2canvas chez cdnjs —
+   hors ligne dans la coque, l'atelier retombe sur la police du système et le téléchargement du PDF ne marche pas. On le DIT, sans refuser (un avertissement, pas une erreur). */
+const toutes = [page, paiement, lire('apercu/prototype-comptabilite.html'), documents];
+const distants = toutes.flatMap(t => [...t.matchAll(/(?:src|href)=["'](https?:\/\/[^"']+)["']/g)].map(m => m[1]).concat([...t.matchAll(/https:\/\/cdnjs\.cloudflare\.com\/[^"'\s)]+/g)].map(m => m[0]))).filter(u => !/^https?:\/\/(www\.)?(teamop\.fr|w3\.org)/.test(u));
 const octets = fs.readdirSync(WWW).reduce((s, f) => s + fs.statSync(path.join(WWW, f)).size, 0);
 console.log('✓ contenu « prototype » (' + (process.argv[3] === 'essai' ? 'avec les outils d’essai' : 'mode application') + ') fabriqué dans mobile/www : ' + fs.readdirSync(WWW).join(', ') + ' · ' + Math.round(octets / 1024) + ' Ko');
-if (distants.length) console.log('⚠ ' + distants.length + ' adresse(s) distante(s) chargée(s) par la page : ' + [...new Set(distants)].slice(0, 5).join(' , '));
+if (distants.length) console.log('⚠ ' + distants.length + ' adresse(s) distante(s) chargée(s) par les pages : ' + [...new Set(distants)].slice(0, 5).join(' , '));
+if (/fonts\.googleapis\.com/.test(documents)) console.log('⚠ l’atelier de documents charge ses polices chez Google et son export PDF html2canvas chez cdnjs : hors ligne dans la coque, il utilise la police du système et ne télécharge pas le PDF (ses documents restent rangés sur l’appareil).');
