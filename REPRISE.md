@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 10 PUBLIÉE (COMPOSITEURS DE DEVIS ET DE CONTRAT)
+# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 11 PUBLIÉE (COMPOSITEURS, TEST COMPLET ET DIX CORRECTIFS) — PUIS INTÉGRATION AU PROTOTYPE OP GESTION
 
 Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
 puis « un vrai système de personnalisation et aussi de création professionnelle pour les devis, comme si je le faisais avec Pages »
@@ -23,7 +23,7 @@ la foulée « un bouton Optimiser avec l'IA, une fois que le devis est fini : il
 exemple » — les deux sont publiés (Versions 6 et 7). Puis : « ce que tu as fait pour les devis, je veux la même chose pour les
 contrats » — publié en Version 8.
 
-- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 10. Sa source
+- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 11. Sa source
   n'est PAS dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de
   550 Ko, données fictives (Clim Services 17), tout dans le navigateur. Une seule bibliothèque, chargée à la demande pour le PDF
   (html2canvas 1.4.1, cdnjs).
@@ -162,6 +162,32 @@ contrats » — publié en Version 8.
   Limites : au téléphone il faut faire défiler l'étape Client pour atteindre le Matériel (pas de repli automatique) ; les
   pastilles de catégories prennent trois rangées à 390 px ; un contrat parti d'un modèle prend aussi ses informations par défaut
   (fréquence, durée) ; la version courte d'un article modifié n'est pas recalculée.
+- **Version 11 — « teste tout le système »** (Justin, 16 novembre). Deux passes sur la Version 10 :
+  · une EXPLORATION au geste réel (≈ 650 gestes, Mac 1440 et 1280, iPhone 390, téléphone 360, jour et nuit) : aucun bloquant, tous
+    les totaux recalculés à la main justes au centime, PDF juste ; neuf défauts confirmés, tous corrigés (`etape9/patch-moi9.py`) :
+    un DEVIS envoyé restait modifiable en restant « Envoyé » (il repasse en brouillon, la page le dit, « Annuler » le rend) ; le
+    focus sortait des fenêtres du compositeur au clavier (liste des éléments que Tab atteint vraiment + garde `focusin`) ; message
+    d'erreur périmé sous des champs redevenus justes ; devis créé nommé « Devis sans titre » (il prend l'objet et le client) ;
+    aperçu « 1 / 1 » pour un devis de deux pages (`pied(d,p,N)`) ; composition perdue au rechargement (gardée sur l'appareil sous
+    `documents-sur-mesure-composition-<type>`, reprise à la réouverture, oubliée à la création ou à l'abandon) ; « Écrire mon
+    article » acceptait un article sans texte ou une `{{information}}` inconnue ; une phrase toute prête disait « 30 % » quel que
+    soit l'acompte et une autre TUTOYAIT le client du devis ; focus de départ hors de l'écran.
+  · le REJEU de toutes les sondes depuis la Version 1, sur la version corrigée : 5 183 verts. Les 23 rouges : 8 de `v10/s2.js`
+    (elle ajoutait un article sans texte — adaptée, 224 verts ensuite) ; 8 attendus de `p2` au téléphone ; 6 anciens connus
+    (m3, m4, s13 ×2, s17b, a6) ; et **1 vrai défaut que personne n'avait vu depuis la Version 7** : à 1 280 px le libellé
+    « Optimiser avec l'IA » écrasait le nom du document à 32 px (`nr-verif/s7`) — la chaîne ancienne n'avait plus été rejouée en
+    entier depuis la Version 6. Corrigé (icône seule sous 1 360 px), 49 verts.
+    ⚠️ Leçons : la chaîne ENTIÈRE se rejoue à chaque version, pas seulement les sondes de la nouveauté ; `v9/r2.js` cherchait
+    « 280 » dans un texte plein d'identifiants en base 36 (faux positif deux fois sur quatre : on retire les identifiants avant) ;
+    `anc4/c2.js` au téléphone est instable d'origine (un toucher juste après un glissement : 1 échec sur 5 avant comme après).
+  · Non joué par l'exploration, couvert seulement par les sondes : sélecteur de fichier, poignées des objets libres, « Créer avec
+    l'IA » d'un contrat, PDF d'un contrat signé. Jamais joué : la vraie IA, le vrai téléchargement, un vrai iPhone, Safari,
+    Windows, Android, le clavier virtuel.
+- **SUITE DEMANDÉE (16 novembre)** : « après, tu le mets dans OP GESTION avec le système de devis » — réponse de Justin à la
+  question « lequel ? » : le **PROTOTYPE OP GESTION** (`apercu/prototype-op-gestion.html`), pas la vraie application. Piste
+  retenue : la catégorie Devis du prototype ouvre le compositeur en plein écran (comme la Comptabilité ouvre
+  `prototype-comptabilite.html`), il lit les clients et le « Matériel & produits » par métier du prototype, et le document créé
+  revient dans sa liste avec son état.
 - **Ce qui attend Justin** : son essai du PDF et de « Optimiser avec l'IA » sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
   rejoignent le Devis IA et l'envoi réels d'OP GESTION (le prototype ne touche à rien d'existant) ; qui fait relire les contrats.
 
