@@ -75,7 +75,8 @@ const conv = (id) => C.find((c) => c.id === id);
 const convNom = (c) => (c.avec ? P[c.avec].n : c.n);
 const convAv = (c, cls) => (c.avec ? av(c.avec, cls, true) : `<span class="av ${cls || ''}" style="--a1:${c.a[0]};--a2:${c.a[1]}" aria-hidden="true">#</span>`);
 const apercu = (m) => (m.type === 'vocal' ? 'Message vocal · ' + m.d : m.type === 'photo' ? 'Photo' + (m.leg ? ' · ' + m.leg : '') : m.type === 'sondage' ? 'Sondage · ' + m.q : m.type === 'fichier' ? m.nom : m.type === 'position' ? 'Position partagée' : m.type === 'sys' ? m.t : m.t);
-const dernier = (c) => c.msgs[c.msgs.length - 1];
+/* une conversation qu'on vient d'ouvrir n'a encore aucun message : elle se range en tête et le dit */
+const dernier = (c) => c.msgs[c.msgs.length - 1] || { j: 0, h: '99:99', vide: true, t: 'Nouvelle conversation' };
 
 /* ── les appels ── */
 const APPELS = [

@@ -146,7 +146,7 @@ document.addEventListener('click', (e) => {
     else if (k === 'admettre') { s.attente = s.attente.filter((p) => p !== b.dataset.p); s.presents.push(b.dataset.p); toast(prenom(b.dataset.p) + ' a rejoint la réunion'); }
     else if (k === 'refuser') { s.attente = s.attente.filter((p) => p !== b.dataset.p); toast('Demande refusée'); }
     else if (k === 'inviter') { toast('Lien de la réunion copié'); return; } else if (k === 'tout-couper') { toast('Tous les micros sont coupés'); return; }
-    else if (k === 'chat-envoyer') { const i = $('#salle-msg'), t = i.value.trim(); if (!t) { i.focus(); return; } s.chat.push({ de: 'moi', t }); }
+    else if (k === 'chat-envoyer') { const i = $('#salle-msg'), t = i.value.trim(); if (!t) { i.focus(); toast('Écris ton message'); return; } s.chat.push({ de: 'moi', t }); }
     peindreSalle(); const ch = $('#salle-chat'); if (ch) ch.scrollTop = ch.scrollHeight; return; }
 });
 /* — clavier, saisie, recherche — */

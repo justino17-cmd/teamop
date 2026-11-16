@@ -30,8 +30,8 @@ verra le public après ». Interrogé sur ce qui déplaisait : **tout** — l'ap
   enregistrement, sous-titres, partage d'écran avec le dessin demandé le 14) ; agenda semaine/mois, programmer, modifier, supprimer ; rappels ;
   contacts ; profil, statut, réglages. L'heure du prototype est 9 h 42 à l'ouverture (les données racontent une matinée).
 - **Le Courrier reste la vraie boîte mail** (`opcourrier.js`, source de démonstration) — décision du 13 novembre, inchangée.
-- **Mesuré** : `scratchpad/sonde-proto-messages.js` 330 écrans (11 profils, jour et nuit) 0 faute ; `-gestes.js` 440 ✓ sur Mac, Windows, iPad, iPhone,
-  Android ; `-dessin.js` 294 ✓ ; `-clics.js` (tout ce qui se clique, zone qui répond au doigt) : voir le dernier passage. ⚠️ Toujours pas essayé :
+- **Mesuré** : `scratchpad/sonde-proto-messages.js` 330 écrans (11 profils, jour et nuit) 0 faute ; `-gestes.js` 450 ✓ sur Mac, Windows, iPad, iPhone,
+  Android ; `-dessin.js` 294 ✓ ; `-clics.js` (tout ce qui se clique sur cinq appareils, 578 à 666 cibles, zone qui répond au doigt) : quatre défauts trouvés et corrigés (écrire à un contact sans conversation, liens du tableau de bord et commandes iPad sous 40 px, jours du mois recouverts au téléphone), scènes rejouées sans défaut. ⚠️ Toujours pas essayé :
   Safari, Firefox, la compilation Xcode, un vrai clavier de téléphone (seul Chromium existe dans une session du cloud).
 - **Attend Justin** : son avis sur ce prototype ; puis le côté public ; puis Windows et Android en application.
 

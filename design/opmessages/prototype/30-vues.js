@@ -25,8 +25,8 @@ VUES.accueil = () => {
 };
 
 /* ═══ MESSAGES ═══ */
-const ligneConv = (c) => { const d = dernier(c); return `<a class="ligne" href="#messages/${c.id}" ${S.id === c.id ? 'aria-current="true"' : ''}>${c.nl ? '<i class="pt"></i>' : ''}${convAv(c)}<span class="t"><span class="l1"><b class="coupe">${esc(convNom(c))}</b><time>${quand(d)}</time></span>
-  <span class="ap">${d.de === 'moi' ? 'Toi : ' : c.canal ? esc(prenom(d.de)) + ' : ' : ''}${esc(apercu(d))}</span></span>${c.sourdine ? svg('sourdine').replace('<svg', '<svg style="width:14px;height:14px;color:var(--faible)"') : ''}</a>`; };
+const ligneConv = (c) => { const d = dernier(c); return `<a class="ligne" href="#messages/${c.id}" ${S.id === c.id ? 'aria-current="true"' : ''}>${c.nl ? '<i class="pt"></i>' : ''}${convAv(c)}<span class="t"><span class="l1"><b class="coupe">${esc(convNom(c))}</b><time>${d.vide ? '' : quand(d)}</time></span>
+  <span class="ap">${d.vide ? '' : d.de === 'moi' ? 'Toi : ' : c.canal ? esc(prenom(d.de)) + ' : ' : ''}${esc(apercu(d))}</span></span>${c.sourdine ? svg('sourdine').replace('<svg', '<svg style="width:14px;height:14px;color:var(--faible)"') : ''}</a>`; };
 const ordreConv = (a, b) => { const x = dernier(a), y = dernier(b); return y.j - x.j || y.h.localeCompare(x.h); };
 function listeConvHtml() {
   const q = S.rech.trim().toLowerCase(), tri = C.slice().sort(ordreConv);
@@ -136,7 +136,7 @@ VUES.agenda = () => {
       ${ev.map((e) => `<span class="bloc" style="--c:${TYPES_E[e.type][1]}"><b>${esc(e.titre)}</b><span>${e.deb}</span></span>`).join('')}<i class="pt-j ${ev.length ? '' : 'sans'}"></i></button>`; }).join('')}</div>`;
   else { const ref = jourDe(l0 + 3), a = ref.getFullYear(), m = ref.getMonth(), premier = new Date(a, m, 1), dec = (premier.getDay() + 6) % 7, base = Math.round((premier - auj()) / 864e5) - dec;
     corps = `<div class="mois">${['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'].map((x) => `<span class="e">${x}</span>`).join('')}${Array.from({ length: 42 }, (_, k) => { const j = base + k, d = jourDe(j), ev = du(j);
-      return `<button class="${d.getMonth() !== m ? 'hors' : ''} ${j === 0 ? 'auj' : ''}" aria-pressed="${S.agJour === j}" data-ag-jour="${j}" aria-label="${jourLong(j)}"><b>${d.getDate()}</b><span class="blocs" style="display:flex;flex-direction:column;gap:2px">${ev.slice(0, 2).map((e) => `<span class="bloc" style="--c:${TYPES_E[e.type][1]}"><b>${esc(e.titre)}</b></span>`).join('')}</span><span class="pts">${ev.slice(0, 3).map((e) => `<i style="--c:${TYPES_E[e.type][1]}"></i>`).join('')}</span></button>`; }).join('')}</div>`; }
+      return `<button class="${d.getMonth() !== m ? 'hors' : ''} ${j === 0 ? 'auj' : ''}" aria-pressed="${S.agJour === j}" data-ag-jour="${j}" aria-label="${jourLong(j)}"><b>${d.getDate()}</b><span class="blocs">${ev.slice(0, 2).map((e) => `<span class="bloc" style="--c:${TYPES_E[e.type][1]}"><b>${esc(e.titre)}</b></span>`).join('')}</span><span class="pts">${ev.slice(0, 3).map((e) => `<i style="--c:${TYPES_E[e.type][1]}"></i>`).join('')}</span></button>`; }).join('')}</div>`; }
   const sel = du(S.agJour);
   return { html: `<div class="col seule">${tete('Agenda', `<button class="rond" data-action="programmer" aria-label="Ajouter à l’agenda" title="Ajouter à l’agenda">${svg('plus')}</button>`)}<div class="defile"><div class="page" style="max-width:980px">
     <div style="display:flex;justify-content:center"><div class="seg" role="group" aria-label="Affichage" style="min-width:220px">${[['semaine', 'Semaine'], ['mois', 'Mois']].map((v) => `<button aria-pressed="${S.agVue === v[0]}" data-ag-vue="${v[0]}">${v[1]}</button>`).join('')}</div></div>

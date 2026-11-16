@@ -60,6 +60,9 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     await clic('[data-action="nouveau-message"]'); await clic('[data-action="nouveau-groupe"]'); await page.fill('#g-nom', 'Chantier Minimes'); await clic('[data-pe-inv="karim"]'); await clic('[data-pe-inv="leo"]'); await clic('[data-action="groupe-creer"]');
     vrai('créer un groupe l’ouvre', await ev(() => { const c = conv(S.id); return S.vue === 'messages' && c && c.n === 'Chantier Minimes' && c.membres.length === 2; }));
 
+    /* écrire à quelqu'un avec qui on n'a encore rien échangé (trouvé par la sonde des clics : la liste lisait le dernier message d'une conversation vide) */
+    await va('messages'); await clic('[data-action="nouveau-message"]'); await clic('#calque [data-ecrire="leo"]'); vrai('écrire à un contact sans conversation en ouvre une, vide', await ev(() => S.vue === 'messages' && S.id === 'leo' && conv('leo').msgs.length === 0 && !!document.querySelector('#saisie') && /Nouvelle conversation/.test(document.querySelector('#liste-conv').textContent)));
+    await page.fill('#saisie', 'Tu peux passer au dépôt ?'); await clic('#btn-envoi'); vrai('et le premier message part', await ev(() => conv('leo').msgs.length >= 1 && conv('leo').msgs[0].t === 'Tu peux passer au dépôt ?'));
     /* ── contacts ── */
     await va('contacts'); await clic('a[href="#contacts/thomas"]'); vrai('la fiche d’un contact s’ouvre', await ev(() => S.id === 'thomas' && /Froid Atlantique/.test(document.querySelector('.fiche').textContent)));
     await clic('.fiche [data-ecrire="thomas"]'); vrai('« Message » ouvre la conversation', await ev(() => S.vue === 'messages' && S.id === 'thomas'));
