@@ -77,6 +77,17 @@ File d'attente des lots, dans l'ordre : boîte mail (en construction) ; composit
 même fichier `page.source`) ; Matériel, Véhicules, Temps de travail (après leurs spécifications `refonte/*.md`) ; « Mon entreprise » ;
 droits d'Équipe ; puis la campagne (`CAMPAGNE.md`), les corrections, le guide des nouveautés, le dernier passage.
 
+**État au 16 novembre, 22 h 45 :** spécifications des refontes écrites et poussées (`scratchpad/proto-final/refonte/` :
+`BOITE-MAIL.md`, `MATERIEL.md` 662 lignes, `VEHICULES-TEMPS.md` 484 lignes, et leurs études). EN COURS, chacun dans son arbre et
+poussé étape par étape : boîte mail (agent, `/home/user/wt-c-mail` — la rubrique monte déjà le module, copie de travail
+`apercu/prototype-courrier.js`) ; Matériel et Véhicules + Temps de travail (deux lancements de `workflows/refonte-lot.js`, voir
+`workflows/LISEZMOI.md`) ; relecture et corrections des lots atelier et menu (`workflows/deux-lots.js`) ; conception de « Mon
+entreprise » et des droits (`workflows/mon-entreprise-droits-conception.js`). PAS ENCORE LANCÉ : le compositeur en grand (attend la
+fin des corrections du lot atelier, même fichier `page.source`), « Mon entreprise » et les droits (attendent leur spécification),
+la campagne, le guide. Version publiée : toujours la Version 62 (d'étape).
+Deux bancs d'OP MESSAGES sensibles à la charge (`test-981`, `test-989`) sont tombés une fois chacun dans la CI de la demande de
+fusion 327, sans rapport avec ce chantier (commentés sur la demande ; tâche à part proposée à Justin pour les stabiliser).
+
 **État au 16 novembre, 20 h 45 :**
 - Lot « atelier » et lot « menu » : RELANCÉS (workflow « prototype-final-deux-lots » : appliquer → relire en adverse → corriger →
   recontrôler, chaque étape poussée). Rien n'est encore sur la branche tant qu'un commit de lot n'y paraît pas (`git log`).
