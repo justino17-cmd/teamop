@@ -77,6 +77,25 @@ File d'attente des lots, dans l'ordre : boîte mail (en construction) ; composit
 même fichier `page.source`) ; Matériel, Véhicules, Temps de travail (après leurs spécifications `refonte/*.md`) ; « Mon entreprise » ;
 droits d'Équipe ; puis la campagne (`CAMPAGNE.md`), les corrections, le guide des nouveautés, le dernier passage.
 
+**SECOND REDÉMARRAGE (16 novembre, 22 h 56) — COMMENT REPRENDRE.** La session est retombée avec 13 agents et 46 processus de
+navigateur (charge 7 sur 4 cœurs). Cette fois le DISQUE a survécu : les arbres `/home/user/wt-*` gardent le travail non commité des
+agents interrompus (`git -C <arbre> status --short`), et `/tmp/…/scratchpad/cap/` leurs notes et captures. Depuis :
+- `scratchpad/proto-final/lib.js` pose un PLAFOND de quatre navigateurs pour toute la machine (dossier `/tmp/opg-navigateurs`) et
+  coupe les captures « page entière » à 6 000 px ; aucun agent n'écrit son propre lanceur de navigateur ;
+- tout le chantier se lance par UN script, `scratchpad/proto-final/workflows/voies.js` : une « voie » est une suite d'étapes jouées
+  une à une, chaque agent lit l'état dans le dépôt ET dans son arbre (travail non commité compris), fait son étape, pousse toutes
+  les 20 minutes avec « [skip ci] » (la vérification en ligne ne tourne qu'aux jalons poussés par le chef de chantier).
+  Relancer : outil Workflow, `scriptPath` = ce fichier, `args` = `{voie, depuis}` (numéro de l'étape, à partir de 0) :
+  `materiel` (9 étapes, `/home/user/wt-c-materiel`) · `vehtemps` (9, `wt-c-vehicules-temps`) · `mail` (5, `wt-c-mail`) ·
+  `compositeur` (4, `wt-atelier`) · `menu` (2, `wt-menu`) · `securite` (8, `wt-securite`) · `entreprise` (8, `wt-entreprise`) ·
+  `campagne` avec `{cles:[…], arbre}` (3 étapes par partie : tester, corriger, recontrôler ; parties : coque, accueil, planning,
+  taches-absences, interventions, clients, contrats, compta-ventes, compta-reste, technicien, client, metier-3d, puis, après les
+  refontes : devis-atelier, mail, achats, materiel, vehicules-temps, equipe). Les arbres se recréent par
+  `git worktree add --detach <chemin> HEAD` s'ils ont disparu.
+- Les livrables durables de chaque étape : `scratchpad/proto-final/refonte/<lot>-relecture-*.json`, `-corrections.json`,
+  `-recontrole.json` ; `scratchpad/proto-final/campagne/<partie>.json`, `-corrections.json`, `-recontrole.json` et `campagne/sondes/` ;
+  `scratchpad/proto-final/securite/`. Pour savoir où en est une voie : regarder ces fichiers et `git log`.
+
 **Échéance fixée par Justin (16 novembre, 22 h 50) : « je veux que ça soit tout OK demain. Et s'il y a des petites erreurs ou
 encore des trucs où il y a des doutes, tu me dis. Et on verra ça. »** Il a redit : les erreurs se corrigent « automatiquement,
 revérifié, retesté » ; l'atelier de devis va dans Devis d'OP GESTION (le prototype : fait, en relecture) ; la Boîte mail est celle
