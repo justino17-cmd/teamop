@@ -1,0 +1,14 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Essai OP Courrier</title>
+<style>:root{color-scheme:light dark}html,body{margin:0;height:100%}body{font-family:-apple-system,system-ui,sans-serif;background:#f2f2f7;color:#111}
+html[data-theme=dark] body{background:#0b0b0e;color:#eee}
+#haut{height:48px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #8883;font-weight:700}
+#zone{height:calc(100% - 48px);margin-left:var(--marge,0px)}
+#cote{position:fixed;left:0;top:48px;bottom:0;width:var(--marge,0px);background:#dfe;font-size:11px;overflow:hidden}</style></head><body>
+<div id="haut">Page d’hôte (essai) — Boîte mail</div><div id="cote">Menu de l’hôte (essai)</div><div id="zone"></div>
+<script src="source.js"></script><script src="opcourrier.js"></script>
+<script>
+var q=new URLSearchParams(location.search), th=q.get('theme'); if(q.get('marge')) document.documentElement.style.setProperty('--marge',q.get('marge')+'px');
+if(th) document.documentElement.setAttribute('data-theme',th==='nuit'?'dark':'light');
+var opts={}; try{ opts=JSON.parse(q.get('src')||'{}'); }catch(e){}
+window.inst=OPCourrier.monter(document.getElementById('zone'),{source:SOURCE_ESSAI(opts),cotes:q.get('cotes')?q.get('cotes').split(','):['pro'],cleStockage:'essai_courrier',theme:function(){var t=document.documentElement.getAttribute('data-theme');return t==='dark'?'nuit':t==='light'?'jour':null;},titreDocument:true,intervalle:q.get('iv')?+q.get('iv'):60000,onCompter:function(n){window._nonLus=n;}});
+</script></body></html>
