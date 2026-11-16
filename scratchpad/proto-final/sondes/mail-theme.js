@@ -21,7 +21,7 @@ const contraste = async (c, sel) => {
   const mesures = {};
   for (const mode of ['jour', 'nuit', 'jour', 'auto']) {
     await S(c, m => { document.querySelector('[data-modetheme="' + m + '"]').click(); }, mode); await lib.calme(p, 700);
-    const e = await S(c, () => ({ mode:document.documentElement.dataset.mode, scheme:getComputedStyle(window.R().host).colorScheme, memeNoeud:document.querySelector('[data-opcourrier]') === window.__n, sujet:!!window.R().querySelector('.rsubj'), fond:getComputedStyle(window.R().querySelector('.opc')).getPropertyValue('--label').trim() }));
+    const e = await S(c, () => ({ mode:document.documentElement.dataset.mode, scheme:getComputedStyle(window.R().querySelector('.opc')).colorScheme, memeNoeud:document.querySelector('[data-opcourrier]') === window.__n, sujet:!!window.R().querySelector('.rsubj'), fond:getComputedStyle(window.R().querySelector('.opc')).getPropertyValue('--label').trim() }));
     const attendu = mode === 'jour' ? 'light' : mode === 'nuit' ? 'dark' : (e.mode === 'nuit' ? 'dark' : 'light');
     v('bascule « ' + mode + ' » en direct : le module change de thème sans être remonté, la lecture reste ouverte', e.scheme === attendu && e.memeNoeud && e.sujet, e);
     if (mode !== 'auto') { mesures[mode] = { corps:await contraste(c, '.rbody p'), titre:await contraste(c, '.rsubj'), ligne:await contraste(c, '.msg:not(.sel) .m-from'), apercu:await contraste(c, '.msg:not(.sel) .m-prev'), bouton:await contraste(c, '.hband .btn:not(.primary)'), lien:await contraste(c, '.hband .hliens .lnk') };
