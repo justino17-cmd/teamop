@@ -14,8 +14,9 @@ const att = p => p.evaluate(() => { const z = document.getElementById('opdz'); i
   let c = await L.ouvrir({ profil: 'mac', qui: 'marc' }), p = c.p; L.absents.add(PAGE);
   await L.aller(p, 'devis'); await L.toucher(c, '[data-opd="devis"]'); await p.waitForTimeout(600);
   let a = await att(p); v('absent : « Ouverture de l\'atelier… » avec « Fermer » ; le focus est sur « Fermer »', a && a.ouvert && a.att && /Ouverture/.test(a.titre) && a.focus === 'fermer', a);
-  await p.keyboard.press('d'); await p.keyboard.press('n'); await p.keyboard.press('/'); await p.waitForTimeout(200);
+  await p.evaluate(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }); await p.keyboard.press('d'); await p.keyboard.press('n'); await p.keyboard.press('/'); await p.waitForTimeout(200);      // focus sur la page (hors de la fenêtre) : c'est là que les raccourcis partiraient
   v('absent : les raccourcis du prototype (D, N, /) sont coupés tant que la fenêtre est ouverte (aucun panneau, aucune palette)', await p.evaluate(() => !document.querySelector('#calque .panneau, #calque .voile, #pal')) , await p.evaluate(() => document.getElementById('calque').innerHTML.length));
+  await p.evaluate(() => { const b = document.querySelector('#opdz [data-opdz="fermer"]'); if (b) b.focus(); });
   await p.waitForTimeout(8300); a = await att(p);
   v('absent : au bout de 8 s, « L\'atelier ne s\'ouvre pas. » et « Réessayer »', a && /ne s’ouvre pas/.test(a.titre) && a.re, a);
   v('absent : le focus reste sur « Fermer »', a && a.focus === 'fermer', a);
