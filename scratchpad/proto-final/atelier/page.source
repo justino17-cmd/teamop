@@ -1394,6 +1394,22 @@ button.vv-art-b:hover{background:var(--survol)}
   .vv-art-p{max-width:40%}
   .vv-mini input{width:104px}
 }
+/* ── 13. DANS OP GESTION : pas d'accueil (le prototype est l'accueil), pas de marque, pas de sélecteur de thème ── */
+html[data-app] #vue-accueil{display:none!important}
+/* Mesuré dans le cadre (mêmes profils que le prototype) : sur iPad la barre de l'éditeur a des boutons de 40 px de large et le nom du document est en 15 px (iOS zoome sous 16) ;
+   à 320 px le bouton « Optimiser » de la barre du bas était écrasé à 22 px (son libellé débordait sur ses voisins) ; les poignées de ligne et la date du document, posées SUR la feuille,
+   n'ont que 21–26 px : on étend leur zone de toucher sans changer la feuille (un pseudo-élément transparent), jamais leur taille. Seulement dans OP GESTION : la page seule ne bouge pas. */
+@media (pointer:coarse){
+  html[data-app] .barre .bt{min-width:44px}
+  html[data-app] .nom-doc{font-size:16px}
+  html[data-app] .rt::after{content:'';position:absolute;inset:-9px -11px}
+  html[data-app] button.ct-date{position:relative}
+  html[data-app] button.ct-date::after{content:'';position:absolute;inset:-13px -8px}
+}
+@media (max-width:380px){
+  html[data-app] .barre-bas{gap:2px;padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
+  html[data-app] .barre-bas .bt{min-width:0;padding:0 1px;font-size:10.5px}
+}
 </style>
 
 <!-- Icônes : traits fins, même épaisseur partout (stroke 1.6), dessinées ici — aucune image externe -->
@@ -1618,6 +1634,14 @@ const NB=' ', FIN=' ', MOINS='−';
 const DEC=Date.parse('2026-10-31T10:30:00')-Date.now();
 const maintenant=()=>Date.now()+DEC;          // « aujourd'hui » du prototype : samedi 31 octobre 2026
 const AUJOURDHUI='2026-10-31';
+/* ═══ MODE « DANS OP GESTION » — actif SEULEMENT avec ?app=1 dans l'adresse de CETTE page (le prototype OP GESTION la sert dans un cadre) ═══
+   Sans ?app=1 rien de ce mode n'existe : la page reste l'atelier « Documents sur mesure » d'avant, mêmes clés de rangement, même rendu.
+   APP : clés de rangement à part (PFX) — l'atelier d'OP GESTION ne lit ni n'écrit jamais ce que l'artefact seul a rangé, et inversement.
+   HOTE : la fenêtre qui nous contient ; on ne parle qu'à elle et on n'écoute qu'elle (event.source). */
+const APP=/[?&]app=1\b/.test(location.search);
+const PFX='documents-sur-mesure-'+(APP?'opg-':'');
+const HOTE=APP&&window.parent&&window.parent!==window?window.parent:null;
+if(APP) document.documentElement.setAttribute('data-app','1');
 
 /* ── 1. DONNÉES D'EXEMPLE (toutes fictives) ── */
 /* L'identité de l'entreprise (« Mon entreprise ») : UN objet que tous les documents lisent. Les valeurs de départ sont fictives ;
@@ -1626,7 +1650,7 @@ const ENTREPRISE={nom:'Clim Services 17',adresse:'12 rue des Voiliers',cp:'17000
   forme:'SARL',capital:'10 000 €',rcs:'RCS La Rochelle 812 345 678',assureur:'Assurances Océan (exemple)',assurNum:'RC-2026-0417',assurZone:'France métropolitaine',
   iban:'FR76 3000 6000 0112 3456 7890 189',bic:'EXMPFRPP',logo:'',logoRatio:null,couleur:'#1b3a6b',couleur2:'#8a4b08',policeTitres:'',policeTexte:'systeme'};
 const ENT_DEFAUT=JSON.parse(JSON.stringify(ENTREPRISE));
-const CLE_ENT='documents-sur-mesure-entreprise';
+const CLE_ENT=PFX+'entreprise';
 let IDV=0;      // version de l'identité : les miniatures gardées en mémoire s'invalident quand elle change
 const sigleDe=n=>{ const m=String(n||'').match(/[A-Za-zÀ-ÿ]+|\d+/g)||[]; let s=''; m.forEach(w=>{ s+=/^\d+$/.test(w)?w:w[0] }); s=s.toUpperCase().slice(0,4); return s||'OP' };
 function appliquerIdentite(o,T){
@@ -1645,6 +1669,12 @@ function appliquerIdentite(o,T){
    Plusieurs identités rangées côte à côte. ENTREPRISE reste l'objet de l'en-tête PAR DÉFAUT (id DEFAUT_ID) : tout ce qui lisait « l'atelier » le lit encore.
    Les autres vivent dans ENTETES ({id, court, ident}). UNE seule décision dit quel en-tête un document lit : enteteObj(d.identId) (identDe, plus bas).
    Un document sans identId suit l'en-tête par défaut ; « Définir par défaut » échange les contenus (l'ancien défaut garde son identifiant dans ENTETES). */
+/* Dans OP GESTION l'entreprise est CELLE d'OP GESTION (message opd_donnees) : aucune valeur d'exemple ne reste à la place d'un champ que le
+   parent n'a pas. Les couleurs et les polices, elles, restent à l'atelier. */
+function identVideApp(){
+  [ENTREPRISE,ENT_DEFAUT].forEach(o=>{ Object.keys(o).forEach(k=>{ if(typeof o[k]==='string'&&k!=='couleur'&&k!=='couleur2'&&k!=='policeTexte'&&k!=='policeTitres') o[k]='' }); o.logo=''; o.logoRatio=null; o.nom='Mon entreprise'; o.sigle=sigleDe(o.nom) });
+}
+if(APP) identVideApp();
 const ID_PRINCIPAL='principal';
 let DEFAUT_ID=ID_PRINCIPAL, DEFAUT_COURT='', ENTETES=[];
 function enteteVierge(){ const x=JSON.parse(JSON.stringify(ENT_DEFAUT)); Object.keys(x).forEach(k=>{ if(typeof x[k]==='string'&&k!=='couleur'&&k!=='couleur2'&&k!=='policeTexte') x[k]='' }); x.logo=''; x.logoRatio=null; x.sigle=sigleDe(''); return x }
@@ -1656,9 +1686,9 @@ function enteteListe(){ return [{id:DEFAUT_ID,court:DEFAUT_COURT,ident:ENTREPRIS
 const enteteNom=r=>String(r.court||r.ident.nom||'').trim()||'En-tête';
 function copierIdentite(vers,de){ Object.keys(ENT_DEFAUT).forEach(k=>{ vers[k]=k==='logoRatio'?(de.logoRatio?de.logoRatio.slice():null):de[k] }); vers.sigle=sigleDe(vers.nom); IDV++ }
 function chargerIdentite(){
-  try{ const t=localStorage.getItem(CLE_ENT); if(!t) return; const o=JSON.parse(t); if(!o||typeof o!=='object') return; appliquerIdentite(o.ident);
+  try{ const t=localStorage.getItem(CLE_ENT); if(!t) return; const o=JSON.parse(t); if(!o||typeof o!=='object') return; if(!APP) appliquerIdentite(o.ident);
     if(o.v>=2){
-      if(typeof o.defautId==='string'&&/^[A-Za-z0-9_-]{1,40}$/.test(o.defautId)) DEFAUT_ID=o.defautId; DEFAUT_COURT=typeof o.court==='string'?o.court.slice(0,60):'';
+      if(!APP){ if(typeof o.defautId==='string'&&/^[A-Za-z0-9_-]{1,40}$/.test(o.defautId)) DEFAUT_ID=o.defautId; DEFAUT_COURT=typeof o.court==='string'?o.court.slice(0,60):'' }
       const vus={}; vus[DEFAUT_ID]=1; ENTETES=[];
       (Array.isArray(o.entetes)?o.entetes:[]).forEach(r=>{ if(r&&typeof r.id==='string'&&/^[A-Za-z0-9_-]{1,40}$/.test(r.id)&&!vus[r.id]&&r.ident&&typeof r.ident==='object'){ vus[r.id]=1; ENTETES.push({id:r.id,court:typeof r.court==='string'?r.court.slice(0,60):'',ident:identNeuve(r.ident)}) } });
     }
@@ -1718,6 +1748,8 @@ const CLIENTS=[
   {id:'c5',nom:'Cabinet dentaire Vauban',pro:true,adresse:'15 quai Vauban',cp:'17000',ville:'La Rochelle',email:'secretariat@cabinet-vauban.example',tel:'05 46 44 55 66',contact:'Dr Anne Lemaire'},
   {id:'c6',nom:'Hôtel Les Mouettes',pro:true,adresse:'2 boulevard de la Plage',cp:'17690',ville:'Angoulins',email:'direction@hotel-mouettes.example',tel:'05 46 77 88 99',contact:'Mme Julie Roux'}
 ];
+if(APP) CATALOGUE.splice(0,CATALOGUE.length);      // le catalogue est celui d'OP GESTION (opd_donnees) : aucun article d'exemple n'est proposé
+const clientExemple=()=>APP?(S.clients[0]||null):CLIENTS[0];      // les miniatures de mises en page montrent un client ; dans OP GESTION, un des siens
 const MARGES={etroites:{mx:40,mt:40,mb:64},normales:{mx:60,mt:56,mb:80},larges:{mx:84,mt:76,mb:96}};
 const TAILLES={petite:'12px',normale:'13px',grande:'14.5px'};
 const COULEURS=['#1b3a6b','#0f5c4d','#7a1f3d','#8a4b08','#3d3d8f','#2b2f36','#0b6e8a','#5b4a2e'];
@@ -1795,7 +1827,14 @@ function nouveauContrat(o){
   if(pin) nd.identId=pin;      // absent = l'en-tête par défaut : un contrat fait sans choisir est identique à celui d'avant
   return nd;
 }
+const OPG={donnees:false,role:{devis:false,contrats:false},numeros:{devis:{prefixe:'D-',dernier:0},contrat:{prefixe:'CTR-',dernier:0}},ouvert:false,sauves:{},connus:new Set(),sigDocs:'',tFin:0,mode:''};
 function prochainNumero(type){
+  if(APP){      // la série d'OP GESTION : son préfixe, son dernier numéro, et tout ce que cet appareil a déjà composé (y compris dans un autre onglet)
+    const N=OPG.numeros[type], re=new RegExp('^'+N.prefixe.replace(/[.*+?^${}()|[\]\\\-]/g,'\\$&')+'(\\d+)$'); let max=N.dernier;
+    const lire=l=>{ (Array.isArray(l)?l:[]).forEach(d=>{ if(d&&d.type===type){ const m=re.exec(d.meta&&d.meta.numero||''); if(m) max=Math.max(max,+m[1]) } }) };
+    lire(S.docs); try{ const o=JSON.parse(localStorage.getItem(CLE_STOCK)||'null'); if(o) lire(o.docs) }catch(e){}
+    return N.prefixe+String(max+1).padStart(3,'0');
+  }
   const pre=type==='devis'?'DEV-2026-':'CTR-2026-'; let max=type==='devis'?31:13;
   (S.docs||[]).forEach(d=>{ if(d.type===type){const m=/-(\d+)$/.exec(d.meta&&d.meta.numero||''); if(m) max=Math.max(max,+m[1])} });
   return pre+String(max+1).padStart(3,'0');
@@ -2357,8 +2396,8 @@ document.addEventListener('load',e=>{
 },true);
 
 /* ── 6. ÉTAT, HISTORIQUE (instantanés), ENREGISTREMENT AUTOMATIQUE ── */
-const CLE_STOCK='documents-sur-mesure-v1', CLE_THEME='documents-sur-mesure-theme';
-const S={docs:[],abimes:[],logos:{},alerteStock:'',clients:clone(CLIENTS),modeles:[],vue:'accueil',docId:null,sel:null,glisse:null,
+const CLE_STOCK=PFX+'v1', CLE_THEME=PFX+'theme';
+const S={docs:[],abimes:[],logos:{},alerteStock:'',clients:APP?[]:clone(CLIENTS),modeles:[],vue:'accueil',docId:null,sel:null,glisse:null,
   ui:{zoom:'ajuster',panneau:true,onglet:'document'},hist:{undo:[],redo:[],clef:'',t:0},calc:null,layout:null,stockage:true,tactile:false};
 const D=()=>S.docs.find(d=>d.id===S.docId)||null;
 const blocDe=id=>{const d=D();return d?d.blocs.find(b=>b.id===id)||(d.garde&&d.garde.id===id?d.garde:null):null};   /* la page de garde se lit comme un bloc par ses champs (titre, sous) : même chemin de saisie et de mise en forme */
@@ -2373,13 +2412,27 @@ function chargerStock(){
     const bons=o.docs.filter(docValide), abimes=o.docs.filter(d=>!docValide(d)); bons.forEach(d=>normaliserDoc(d));
     if(!bons.length&&abimes.length){ mettreDeCote(t); S.alerteStock='illisible'; return false }       // rien de lisible : copie de côté, exemples chargés
     if(abimes.length){ mettreDeCote(t); S.alerteStock='abime:'+abimes.length }                      // quelques-uns : les lisibles restent, les autres sont gardés de côté
-    S.docs=bons; S.abimes=(Array.isArray(o.abimes)?o.abimes:[]).concat(abimes); if(Array.isArray(o.clients)&&o.clients.length) S.clients=o.clients; S.logos=logosLire(o.logos); S.modeles=Array.isArray(o.modeles)?o.modeles.filter(m=>m&&m.reglages&&Array.isArray(m.blocs)):[]; S.modeles.forEach(m=>normaliserReglages(m.reglages));
-    Object.assign(S.ui,o.ui||{}); if(o.docId&&S.docs.some(d=>d.id===o.docId)){S.docId=o.docId;S.vue='editeur'}
+    S.docs=bons; bons.forEach(d=>{ OPG.connus.add(d.id); OPG.sauves[d.id]=d.maj }); S.abimes=(Array.isArray(o.abimes)?o.abimes:[]).concat(abimes);
+    if(Array.isArray(o.clients)&&o.clients.length) S.clients=APP?o.clients.filter(c=>c&&c.local===true&&typeof c.id==='string'&&RE_ID.test(c.id)&&typeof c.nom==='string'&&c.nom.trim()).slice(0,200):o.clients;      // dans OP GESTION les clients viennent du parent : on ne garde que ceux qu'on a créés ici S.logos=logosLire(o.logos); S.modeles=Array.isArray(o.modeles)?o.modeles.filter(m=>m&&m.reglages&&Array.isArray(m.blocs)):[]; S.modeles.forEach(m=>normaliserReglages(m.reglages));
+    Object.assign(S.ui,o.ui||{}); if(!APP&&o.docId&&S.docs.some(d=>d.id===o.docId)){S.docId=o.docId;S.vue='editeur'}      // dans OP GESTION on ne rouvre jamais l'éditeur tout seul : on s'ouvre sur demande
     return true;
   }catch(e){return false}
 }
+/* Deux onglets de la même application : le rangement est UN objet, et celui qui écrit en dernier gagnerait. Avant d'écrire, on adopte ce que l'autre
+   onglet a rangé et que celui-ci ne connaît pas (jamais un document que CET onglet connaît et a retiré : un retrait n'est pas ressuscité ici). */
+function adopterAutres(o,remplacer){
+  if(!o||!Array.isArray(o.docs)) return false; let change=false; const lg=logosLire(o.logos); Object.keys(lg).forEach(k=>{ if(!S.logos[k]) S.logos[k]=lg[k] });
+  o.docs.filter(docValide).forEach(d=>{ normaliserDoc(d); const i=S.docs.findIndex(x=>x.id===d.id);
+    if(i<0){ if(!OPG.connus.has(d.id)){ S.docs.push(d); OPG.connus.add(d.id); OPG.sauves[d.id]=d.maj; change=true } }
+    else if(remplacer&&d.maj>S.docs[i].maj&&!(S.vue==='editeur'&&S.docId===d.id)){ S.docs[i]=d; OPG.sauves[d.id]=d.maj; change=true } });
+  return change;
+}
 function sauverStock(){
-  try{ localStorage.setItem(CLE_STOCK,JSON.stringify({v:1,docs:S.docs,abimes:S.abimes,logos:logosUtiles(),clients:S.clients,modeles:S.modeles,ui:S.ui,docId:S.vue==='editeur'?S.docId:null})); S.stockage=true }
+  try{
+    if(APP){ try{ adopterAutres(JSON.parse(localStorage.getItem(CLE_STOCK)||'null'),false) }catch(e){} }
+    localStorage.setItem(CLE_STOCK,JSON.stringify({v:1,docs:S.docs,abimes:S.abimes,logos:logosUtiles(),clients:APP?S.clients.filter(c=>c.local):S.clients,modeles:S.modeles,ui:S.ui,docId:S.vue==='editeur'?S.docId:null})); S.stockage=true;
+    if(APP) S.docs.forEach(d=>{ OPG.sauves[d.id]=d.maj });
+  }
   catch(e){ S.stockage=false }
 }
 let _tSauve=0;
@@ -2441,6 +2494,7 @@ function navPousser(){ try{ history.pushState({dsm:NAV.n+1},''); NAV.n++ }catch(
 function navRetirer(){ if(NAV.n<=0) return; NAV.n--; NAV.ignore++; try{ history.back() }catch(e){ NAV.ignore-- } }
 window.addEventListener('popstate',()=>{
   if(NAV.ignore>0){ NAV.ignore--; return }
+  if(APP&&NAV.n<=0) return;      // l'entrée qui vient de partir est celle d'OP GESTION (il ferme l'atelier lui-même) : la remettre ici empilerait une entrée de trop
   NAV.n=Math.max(0,NAV.n-1);
   /* une fenêtre, une feuille du bas ou un menu ouvert : « Retour » ferme CELA, et l'entrée d'historique est remise pour que l'écran dessous reste */
   const dessus=document.querySelector('.voile:not(.fen-v)');
@@ -2982,7 +3036,7 @@ function nouveauClient(poser,revenir){
     if(v('cp')&&!/^\d{5}$/.test(v('cp'))){ champErr(form.cp,'Un code postal a 5 chiffres.'); ok=false }
     if(!ok){ const m=$('[aria-invalid="true"]',form); if(m) m.focus(); return }
     const c={id:uid('c'),nom:v('nom'),pro:form.pro.checked,adresse:v('adresse'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')};
-    S.clients.push(c); sauverStock(); poser(c,true);
+    S.clients.push(APP?Object.assign({local:true},c):c); sauverStock(); if(APP) opdClientCree(c); poser(c,true);
   };
   f.pied.querySelector('[data-ok]').onclick=soumettre;
   f.corps.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.tagName==='INPUT'&&e.target.type!=='checkbox'){ e.preventDefault(); soumettre() } });
@@ -4632,6 +4686,11 @@ function idApercu(){
 function ouvrirIdentite(id,o){
   o=o||{}; const nouveau=!!o.nouveau;
   if(!nouveau){ if(!id){ const dd=S.vue==='editeur'?D():null; id=dd?enteteIdDe(dd):DEFAUT_ID } if(!enteteExiste(id)) id=DEFAUT_ID }
+  if(APP&&!nouveau&&id===DEFAUT_ID){      // l'entreprise appartient à OP GESTION : on le dit, on ne propose aucun champ
+    const f=ouvrirFenetre({titre:'Mon entreprise',classe:'ident',corps:`<p class="fen-note">Ton entreprise se règle dans OP GESTION.</p><p class="fen-note">Son nom, son adresse, son SIRET, sa TVA et son IBAN viennent de là : tes devis et tes contrats les reprennent tout seuls. Tu peux créer d’autres en-têtes ici, pour une autre société ou une agence.</p>`,
+      pied:`<button type="button" class="bt primaire" data-fen-x>Compris</button>`,onFerme:()=>{ const a=o.apres; if(a) setTimeout(()=>a(null),0) }});
+    return f;
+  }
   const defaut=!nouveau&&id===DEFAUT_ID, rec=!nouveau&&!defaut?ENTETES.find(x=>x.id===id):null;
   const dr=JSON.parse(JSON.stringify(nouveau?(o.depuis?enteteObj(o.depuis):enteteVierge()):enteteObj(id)));
   dr.court=nouveau?(o.depuis?nomCourtLibre(enteteNom(enteteListe().find(r=>r.id===o.depuis)||{ident:dr})+' (copie)'):''):(defaut?DEFAUT_COURT:rec.court);
@@ -4744,7 +4803,7 @@ function choisirEnteteDoc(id){
 }
 ACTIONS['doc-entete']=t=>choisirEnteteDoc(t.dataset.v);
 function definirDefaut(id){
-  if(id===DEFAUT_ID) return false; const i=ENTETES.findIndex(x=>x.id===id); if(i<0) return false;
+  if(APP||id===DEFAUT_ID) return false;      // dans OP GESTION l'en-tête par défaut EST l'entreprise : on ne l'échange pas contre un autre const i=ENTETES.findIndex(x=>x.id===id); if(i<0) return false;
   const rec=ENTETES[i], vieux={id:DEFAUT_ID,court:DEFAUT_COURT,ident:JSON.parse(JSON.stringify(ENTREPRISE))};
   copierIdentite(ENTREPRISE,rec.ident); DEFAUT_ID=rec.id; DEFAUT_COURT=rec.court; ENTETES[i]=vieux;      // l'ancien défaut garde son identifiant : les documents qui l'ont choisi le gardent
   if(VV&&!ENTETES.some(x=>x.id===VV.identId)&&VV.identId!==DEFAUT_ID) VV.identId=DEFAUT_ID;
@@ -4752,7 +4811,7 @@ function definirDefaut(id){
 }
 /* supprimer : jamais le dernier ; les brouillons qui l'utilisaient repassent sur le défaut ; un document envoyé a sa copie figée (on n'y touche pas) */
 function supprimerEntete(id){
-  if(!enteteExiste(id)||ENTETES.length<1) return null;
+  if(!enteteExiste(id)||ENTETES.length<1||(APP&&id===DEFAUT_ID)) return null;
   const n=usageEntete(id);
   if(id===DEFAUT_ID) definirDefaut(ENTETES[0].id);       // le suivant devient le défaut ; l'ancien défaut (id) est alors dans ENTETES
   ENTETES=ENTETES.filter(x=>x.id!==id);
@@ -4765,7 +4824,7 @@ function htEntetes(){
   return enteteListe().map(r=>{ const e=r.ident, n=usageEntete(r.id), sous=[r.court&&e.nom!==r.court?e.nom:'',e.ville].filter(Boolean).join(' · ');
     return `<div class="ent-l${r.defaut?' defaut':''}" data-id="${esc(r.id)}"><span class="ent-lg" style="--lg-fond:${esc(e.couleur)};--lg-texte:#fff" aria-hidden="true">${logoHtml(e)}</span>
       <div class="ent-tx"><b>${esc(enteteNom(r))}${r.defaut?'<em class="ent-def">Par défaut</em>':''}</b><span>${esc(sous||'Sans ville')}</span><span>${n?n+' brouillon'+(n>1?'s':'')+' l’utilise'+(n>1?'nt':''):'Aucun brouillon ne l’utilise'}</span></div><i class="ent-pas" style="--pc:${esc(e.couleur)}" title="Couleur principale" aria-hidden="true"></i>
-      <div class="ent-ac"><button type="button" class="bt contour" data-ent="modifier" data-id="${esc(r.id)}" aria-label="Modifier l’en-tête ${esc(enteteNom(r))}">${ic('pen')}Modifier</button><button type="button" class="bt contour" data-ent="dupliquer" data-id="${esc(r.id)}" aria-label="Dupliquer l’en-tête ${esc(enteteNom(r))}">${ic('copy')}Dupliquer</button>${r.defaut?'':`<button type="button" class="bt contour" data-ent="defaut" data-id="${esc(r.id)}" aria-label="Définir ${esc(enteteNom(r))} comme en-tête par défaut">${ic('check')}Définir par défaut</button>`}<button type="button" class="bt contour danger" data-ent="supprimer" data-id="${esc(r.id)}"${enteteListe().length<2?' disabled title="Il faut garder au moins un en-tête"':''} aria-label="Supprimer l’en-tête ${esc(enteteNom(r))}">${ic('trash')}Supprimer</button></div></div>` }).join('');
+      <div class="ent-ac"><button type="button" class="bt contour" data-ent="modifier" data-id="${esc(r.id)}" aria-label="Modifier l’en-tête ${esc(enteteNom(r))}">${ic('pen')}Modifier</button><button type="button" class="bt contour" data-ent="dupliquer" data-id="${esc(r.id)}" aria-label="Dupliquer l’en-tête ${esc(enteteNom(r))}">${ic('copy')}Dupliquer</button>${r.defaut||APP?'':`<button type="button" class="bt contour" data-ent="defaut" data-id="${esc(r.id)}" aria-label="Définir ${esc(enteteNom(r))} comme en-tête par défaut">${ic('check')}Définir par défaut</button>`}${APP&&r.defaut?'':`<button type="button" class="bt contour danger" data-ent="supprimer" data-id="${esc(r.id)}"${enteteListe().length<2?' disabled title="Il faut garder au moins un en-tête"':''} aria-label="Supprimer l’en-tête ${esc(enteteNom(r))}">${ic('trash')}Supprimer</button>`}</div></div>` }).join('');
 }
 function ouvrirEntetes(){
   const f=ouvrirFenetre({titre:'Mes en-têtes',large:true,classe:'entetes',sansFocus:true,corps:`<p class="fen-note">Chaque devis ou contrat porte l’en-tête que tu choisis : nom, coordonnées, logo, mentions, couleurs. L’en-tête <b>par défaut</b> est celui des documents où tu n’as rien choisi.</p><div class="ent-liste" id="ent-liste">${htEntetes()}</div>`,
@@ -4791,8 +4850,8 @@ ACTIONS['entetes-ouvrir']=()=>ouvrirEntetes();
    UNE fenêtre, réglée par le type (V.type). L'aperçu est la page 1 du VRAI document, fabriqué par le MÊME fabricant (viergeDoc) que le document créé :
    ce qu'on voit est ce qu'on obtient, et le total affiché est calculer() sur ce même document, jamais un second calcul.
    La mise en page (en-tête, logo, cases, modèle) reste, repliée en dernier. Rien n'est créé tant qu'on ne touche pas « Créer ». */
-const CLE_VIERGE='documents-sur-mesure-vierge', CLE_VIERGE_CTR='documents-sur-mesure-vierge-contrat';      // la mise en page d'un contrat n'est pas celle d'un devis : deux mémoires
-const CLE_MATOS='documents-sur-mesure-catalogue', CLE_CLAUSES='documents-sur-mesure-clauses', CLE_COND='documents-sur-mesure-conditions';
+const CLE_VIERGE=PFX+'vierge', CLE_VIERGE_CTR=PFX+'vierge-contrat';      // la mise en page d'un contrat n'est pas celle d'un devis : deux mémoires
+const CLE_MATOS=PFX+'catalogue', CLE_CLAUSES=PFX+'clauses', CLE_COND=PFX+'conditions';
 const cleVierge=t=>t==='contrat'?CLE_VIERGE_CTR:CLE_VIERGE;
 let VV=null;
 const ALIGNES=['gauche','centre','droite'], TAILLES_LOGO=['s','m','l'], CASES_ENT=[['tel','Téléphone'],['mail','E-mail'],['site','Site web'],['siret','SIRET'],['tva','N° de TVA']];
@@ -4844,7 +4903,7 @@ const vvClausesEcrire=()=>vvMemEcrire(CLE_CLAUSES,{v:1,items:VV_CLAUSES.items});
 const vvCatDe=a=>{ const r=String(a.ref||''); return /^MO/i.test(r)?'Main-d’œuvre':/^ENT/i.test(r)?'Entretien':/^DEP/i.test(r)?'Déplacement':'Matériel' };
 function vvCatalogue(){ return CATALOGUE.map(a=>({id:a.ref,des:a.des,ref:a.ref,unite:a.unite,puC:a.puC,tvaBp:a.tvaBp,cat:a.cat||vvCatDe(a),perso:false})).concat(VV_MATOS.items) }
 
-function viergeNeuf(type){
+function viergeNeuf(type,clientId){
   type=type==='contrat'?'contrat':'devis';
   const ct=type==='contrat';
   const V={type,identId:DEFAUT_ID,touche:false,logo:{show:true,align:null,taille:'m'},cases:{tel:true,mail:true,site:true,siret:true,tva:true},modele:'classique',clientId:'',objet:'',titre:'',validite:'30',q:'',scroll:0,
@@ -4868,6 +4927,7 @@ function viergeNeuf(type){
       if(typeof c.validite==='string'&&validerJours(c.validite).ok) V.validite=c.validite;
     }
   }
+  if(typeof clientId==='string'&&S.clients.some(c=>c.id===clientId)) V.clientId=clientId;      // choisi d'avance (fiche client d'OP GESTION) : compris dans l'état de départ, donc fermer ne demande rien
   V.sig0=vvSig(V);
   return V;
 }
@@ -5176,7 +5236,7 @@ function vvAp(f){
   if(V.type==='contrat'){ const b=f.fen.querySelector('#vv-ap-ttc'); if(b) b.textContent=V.articles.length?vvPl(V.articles.length,'article'):'vide' }
 }
 /* l'aperçu se redessine après un léger délai (la frappe ne le recalcule pas à chaque lettre) ; totaux et résumés, eux, sont immédiats */
-const CLE_COMPO=t=>'documents-sur-mesure-composition-'+t, COMPO_CHAMPS=['clientId','objet','titre','lignes','rangee','acK','acV','delai','paiement','validite','mot','vars','varsBrut','articles'];
+const CLE_COMPO=t=>PFX+'composition-'+t, COMPO_CHAMPS=['clientId','objet','titre','lignes','rangee','acK','acV','delai','paiement','validite','mot','vars','varsBrut','articles'];
 function vvBrouillonOublier(type){ try{ localStorage.removeItem(CLE_COMPO(type)) }catch(e){} }
 function vvBrouillonEcrire(V){
   try{ if(vvSig(V)===V.sig0){ localStorage.removeItem(CLE_COMPO(V.type)); return } const o={v:1,t:Date.now()}; COMPO_CHAMPS.forEach(k=>{ o[k]=V[k] }); localStorage.setItem(CLE_COMPO(V.type),JSON.stringify(o)) }catch(e){}
@@ -5222,8 +5282,11 @@ function vvGrand(f,ouvrir){
 }
 
 /* — la fenêtre — */
-function ouvrirVierge(retour,type){
-  if(retour!==true||!VV){ VV=viergeNeuf(type); VV.repris=vvBrouillonLire(VV) }
+function ouvrirVierge(retour,type,opt){
+  if(retour!==true||!VV){
+    const pre=opt&&opt.client; VV=viergeNeuf(type,pre); VV.repris=vvBrouillonLire(VV);
+    if(pre&&VV.clientId!==pre&&S.clients.some(c=>c.id===pre)){ VV=viergeNeuf(type,pre); VV.repris=false }      // une composition en cours pour un AUTRE client n'est pas reprise sur celui-ci
+  }
   const V=VV, ct=V.type==='contrat';
   const f=ouvrirFenetre({titre:ct?'Nouveau contrat':'Nouveau devis',large:true,classe:'vierge',sansFocus:true,corps:viergeCorps(V),pied:vvPiedHtml(V)});
   if(ct){ vvMajBib(f); vvMajArts(f) } else { vvMajCat(f); vvMajLig(f) }
@@ -5494,7 +5557,7 @@ const _MINI={};
 /* un document d'exemple dans la mise en page k. exact:true = on ne pose PAS les réglages propres au modèle (le panneau Format montre ce que donnerait le changement de mise en page sur CE document) */
 function docEchantillon(k,o){
   o=o||{};
-  const d=nouveauDevis({nom:'Exemple',numero:'DEV-2026-032',client:o.client!==undefined?o.client:CLIENTS[0],objet:o.objet!==undefined?o.objet:'Installation d’une climatisation réversible',identId:o.identId,
+  const d=nouveauDevis({nom:'Exemple',numero:APP?prochainNumero('devis'):'DEV-2026-032',client:o.client!==undefined?o.client:clientExemple(),objet:o.objet!==undefined?o.objet:'Installation d’une climatisation réversible',identId:o.identId,
     lignes:[SEC('Fourniture'),L('Climatiseur mural réversible 2,5 kW',1,'u',790,20,{ref:'CL-M25'}),L('Support mural pour unité extérieure',1,'u',45,20,{ref:'SUP-E'}),SEC('Pose et mise en service'),L('Main-d’œuvre technicien (pose, raccordement)',7,'h',58,10,{ref:'MO-T'}),L('Liaison frigorifique cuivre isolée',8,'ml',28,10,{ref:'LF-CU'}),L('Mise en service et réglages',1,'forfait',120,10,{ref:'MO-MS'})]});
   d.meta.date=AUJOURDHUI;
   return echantillonFinir(d,k,o);
@@ -5509,9 +5572,9 @@ function echantillonFinir(d,k,o){
 /* l'exemplaire d'un CONTRAT (aperçu et vignettes du contrat vierge) : quatre articles du modèle « particulier », variables remplies */
 function docEchantillonContrat(k,o){
   o=o||{};
-  const d=nouveauContrat({nom:'Exemple',client:o.client!==undefined?o.client:CLIENTS[0],identId:o.identId,articles:['objet','visites','duree','prix'].map(c=>articleDe('part',c)),
+  const d=nouveauContrat({nom:'Exemple',client:o.client!==undefined?o.client:clientExemple(),identId:o.identId,articles:['objet','visites','duree','prix'].map(c=>articleDe('part',c)),
     vars:{adresse:'8 rue du Port, 17000 La Rochelle',prestation:'l’entretien de 3 climatiseurs',frequence:'2 visites par an',duree:'1 an',debut:'2026-11-01',prix:28000,paiement:'par prélèvement'}});
-  d.meta.numero='CTR-2026-013'; d.meta.date=AUJOURDHUI;
+  d.meta.numero=APP?prochainNumero('contrat'):'CTR-2026-013'; d.meta.date=AUJOURDHUI;
   return echantillonFinir(d,k,o);
 }
 function appliquerModeleNeuf(d,k){
@@ -5577,7 +5640,7 @@ function htEditeurStyle(d,k){
 }
 /* ── l'onglet Document est long : chaque groupe se replie (bouton aria-expanded, clavier : Entrée / Espace). L'état — seulement les groupes REPLIÉS — se range sur l'appareil,
    dans une clé à part (la page marche sans : mémoire de séance si le navigateur refuse). Tout est déplié par défaut : rien n'est caché à qui n'y touche pas. ── */
-const CLE_GRP='documents-sur-mesure-groupes'; const GRP={ferme:null};
+const CLE_GRP=PFX+'groupes'; const GRP={ferme:null};
 function grpLire(){
   if(GRP.ferme) return GRP.ferme; const o={};
   try{ const t=localStorage.getItem(CLE_GRP); if(t){ const j=JSON.parse(t); if(j&&typeof j==='object'&&!Array.isArray(j)) Object.keys(j).forEach(k=>{ if(j[k]===1&&/^[a-z0-9-]{1,40}$/.test(k)) o[k]=1 }) } }catch(e){}
@@ -7028,7 +7091,7 @@ function ouvrirGardeModifier(){
 }
 
 /* ═══ C. LES SECTIONS TOUTES PRÊTES ═══ */
-const SEC_CLE='documents-sur-mesure-sections-v1'; let SEC_MEM=null;
+const SEC_CLE=PFX+'sections-v1'; let SEC_MEM=null;
 function sectionsLire(){
   if(SEC_MEM) return SEC_MEM;
   try{ const t=localStorage.getItem(SEC_CLE); if(!t) return []; const o=JSON.parse(t); return o&&Array.isArray(o.items)?o.items.filter(i=>i&&typeof i.id==='string'&&Array.isArray(i.blocs)):[] }catch(e){ return [] }
@@ -7365,10 +7428,127 @@ async function pdfTelecharger(){
 ACTIONS['pdf-telecharger']=()=>{ pdfTelecharger() };
 ACTIONS['pdf-annuler']=()=>{ if(!PDF.enCours) return; PDF.annule=true; pdfBandeau('Annulation…','',0,false) };
 
+/* ═══ 12. DANS OP GESTION (?app=1) — le pont avec le prototype ═══
+   Rien de ce qui suit ne s'exécute sans ?app=1. Le prototype OP GESTION sert cette page dans un cadre plein écran et lui parle par postMessage ;
+   réception filtrée sur event.source (HOTE) — jamais sur l'origine, qui peut valoir « null » — et TOUT ce qui arrive est revalidé, borné,
+   puis écrit en texte (l'échappement se fait à l'affichage, par esc() comme partout ici).
+   Prototype → atelier : opd_donnees {entreprise, clients, catalogue, numeros} · opd_role {devis, contrats} · opd_mode 'jour'|'nuit' · opd_ouvrir {faire, client?, id?}
+   Atelier → prototype : opd_pret · opd_docs [{id,type,nom,numero,etat,client,clientId,ttc,prix,maj,nr}] (ttc et prix en CENTIMES) · opd_client · opd_fermer {motif}
+   Un message de la liste qui n'a pas la bonne forme est ignoré en entier ; une valeur hors bornes est écartée seule. */
+const RE_ID=/^[A-Za-z0-9_-]{1,40}$/;
+const own=(o,k)=>o&&typeof o==='object'&&Object.prototype.hasOwnProperty.call(o,k)?o[k]:undefined;      // jamais o[k] sur un message : « __proto__ » ou « constructor » n'y sont pas des clés
+const opdTxt=(v,n)=>typeof v==='string'?v.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,n):'';
+const opdPoster=m=>{ if(HOTE){ try{ HOTE.postMessage(m,'*') }catch(e){} } };
+function appliquerModeApp(m){ const r=document.documentElement; if(m==='nuit') r.setAttribute('data-theme','dark'); else if(m==='jour') r.setAttribute('data-theme','light'); else return; OPG.mode=m; }
+function opdEntreprise(e){
+  if(!e||typeof e!=='object'||Array.isArray(e)) return;
+  const o={}; ['nom','adresse','ville','tel','mail','site','siret','tva','iban','bic','rcs','forme','capital','assureur','assurNum','assurZone'].forEach(k=>{ o[k]=opdTxt(own(e,k),120) });
+  o.cp=opdTxt(own(e,'cp'),5); appliquerIdentite(o,ENTREPRISE); _MI=null;
+}
+function opdClients(L){
+  if(!Array.isArray(L)) return; const out=[], vus=new Set();
+  for(const c of L.slice(0,500)){
+    if(!c||typeof c!=='object'||Array.isArray(c)) continue; const id=own(c,'id'), nom=opdTxt(own(c,'nom'),120);
+    if(typeof id!=='string'||!RE_ID.test(id)||vus.has(id)||!nom) continue; vus.add(id);
+    const r={id,nom,pro:own(c,'pro')===true,adresse:opdTxt(own(c,'adresse'),120),cp:opdTxt(own(c,'cp'),10),ville:opdTxt(own(c,'ville'),80),email:opdTxt(own(c,'email'),120),tel:opdTxt(own(c,'tel'),30)};
+    const ct=opdTxt(own(c,'contact'),80); if(ct) r.contact=ct; out.push(r);
+  }
+  S.clients=out.concat(S.clients.filter(c=>c.local&&!vus.has(c.id)));      // un client créé ici et pas encore connu d'OP GESTION reste proposé
+}
+function opdCatalogue(L){
+  if(!Array.isArray(L)) return; const out=[], refs=new Set();
+  for(const a of L.slice(0,400)){
+    if(!a||typeof a!=='object'||Array.isArray(a)) continue; const ref=opdTxt(own(a,'ref'),24), des=opdTxt(own(a,'des'),200), puC=own(a,'puC'), tva=own(a,'tvaBp');
+    if(!ref||!des||refs.has(ref)||!Number.isInteger(puC)||puC<0||puC>1e9||!Number.isInteger(tva)||tva<0||tva>10000) continue; refs.add(ref);
+    const cat=opdTxt(own(a,'cat'),40); out.push({ref,des,unite:opdTxt(own(a,'unite'),12)||'u',puC,tvaBp:tva,cat:VV_CATS.includes(cat)&&cat!=='Mon matériel'?cat:'Matériel'});
+  }
+  CATALOGUE.splice(0,CATALOGUE.length,...out);      // le même tableau, lu par référence partout
+}
+function opdNumeros(n){
+  if(!n||typeof n!=='object') return;
+  ['devis','contrat'].forEach(t=>{ const x=own(n,t); if(!x||typeof x!=='object') return; const p=own(x,'prefixe'), d=own(x,'dernier');
+    if(typeof p==='string'&&/^[A-Za-z0-9-]{1,12}$/.test(p)&&Number.isInteger(d)&&d>=0&&d<=999999) OPG.numeros[t]={prefixe:p,dernier:d} });
+}
+function opdDonnees(d){
+  if(!d||typeof d!=='object'||Array.isArray(d)) return;
+  opdEntreprise(own(d,'entreprise')); opdClients(own(d,'clients')); opdCatalogue(own(d,'catalogue')); opdNumeros(own(d,'numeros'));
+  OPG.donnees=true; if(S.vue==='editeur'&&D()){ planifier(); majPanneau() }
+}
+function opdFermerTout(){
+  document.querySelectorAll('.voile:not(.fen-v)').forEach(v=>v.remove());
+  if($('#cl-signer')) fermerSigner();
+  if(apercuOuvert()) fermerApercu(false);
+  fermerPop(false); fermerFenetre(false);
+  if(S.vue==='editeur') fermerDoc(false);
+  VV=null;
+}
+function opdRole(r){
+  if(!r||typeof r!=='object'||Array.isArray(r)) return;
+  OPG.role={devis:own(r,'devis')===true,contrats:own(r,'contrats')===true};
+  const d=S.vue==='editeur'?D():null, vv=FEN&&VV?VV.type:null, type=d?d.type:vv;
+  if((!OPG.role.devis&&!OPG.role.contrats)||(type==='devis'&&!OPG.role.devis)||(type==='contrat'&&!OPG.role.contrats)){ const etait=OPG.ouvert; opdFermerTout(); OPG.ouvert=false; if(etait) opdPoster({opd_fermer:{motif:'role'}}) }
+}
+function opdOuvrir(o){
+  if(!o||typeof o!=='object'||Array.isArray(o)) return; const faire=own(o,'faire');
+  const refuser=m=>{ OPG.ouvert=false; opdPoster({opd_fermer:{motif:m}}) };
+  if(!OPG.donnees) return refuser('absent');
+  if(faire==='devis'||faire==='contrat'){
+    if(!(faire==='devis'?OPG.role.devis:OPG.role.contrats)) return refuser('role');
+    const c=own(o,'client'); opdFermerTout(); OPG.ouvert=true;
+    ouvrirVierge(false,faire,{client:typeof c==='string'&&RE_ID.test(c)?c:''});
+  } else if(faire==='doc'){
+    const id=own(o,'id'), d=typeof id==='string'?S.docs.find(x=>x.id===id):null;
+    if(!d) return refuser('fin'); if(!(d.type==='devis'?OPG.role.devis:OPG.role.contrats)) return refuser('role');
+    opdFermerTout(); OPG.ouvert=true; ouvrirDoc(d.id);
+  } else refuser('fin');
+}
+function opdRecevoir(e){
+  if(!HOTE||e.source!==HOTE) return; const d=e.data; if(!d||typeof d!=='object'||Array.isArray(d)) return;
+  try{
+    if(own(d,'opd_donnees')!==undefined) opdDonnees(own(d,'opd_donnees'));
+    if(own(d,'opd_role')!==undefined) opdRole(own(d,'opd_role'));
+    const m=own(d,'opd_mode'); if(m!==undefined) appliquerModeApp(m);
+    if(own(d,'opd_ouvrir')!==undefined) opdOuvrir(own(d,'opd_ouvrir'));
+  }catch(x){ console.error('atelier/opd_recevoir',x) }
+}
+/* ce que l'atelier dit de ses documents : une liste courte, jamais un document (ni blocs, ni photos, ni signatures) */
+function opdDocs(){
+  return S.docs.filter(d=>d&&(d.type==='devis'||d.type==='contrat')).slice(0,500).map(d=>{
+    const c=clientDe(d), r={id:d.id,type:d.type,nom:String(d.nom||'').slice(0,120),numero:String(d.meta&&d.meta.numero||'').slice(0,30),
+      etat:Object.prototype.hasOwnProperty.call(ETATS,d.etat)?d.etat:'brouillon',client:c&&c.nom?String(c.nom).slice(0,120):'',clientId:c&&typeof c.id==='string'&&RE_ID.test(c.id)?c.id:'',
+      maj:Number.isFinite(d.maj)?d.maj:0,ttc:0,prix:0,nr:0};
+    if(d.type==='devis'){ try{ const t=calculer(d).ttc; if(Number.isFinite(t)) r.ttc=Math.round(t) }catch(e){} }
+    else if(d.vars&&Number.isFinite(d.vars.prix)&&d.vars.prix>0) r.prix=Math.round(d.vars.prix);
+    if(S.stockage===false&&OPG.sauves[d.id]!==d.maj) r.nr=1;      // cet appareil n'a PAS pu ranger ce document : la liste du prototype le dit
+    return r;
+  });
+}
+function opdDocsEnvoyer(force){ const l=opdDocs(), sig=JSON.stringify(l); if(!force&&sig===OPG.sigDocs) return; OPG.sigDocs=sig; opdPoster({opd_docs:l}); }
+function opdClientCree(c){ opdPoster({opd_client:{id:c.id,nom:c.nom,pro:!!c.pro,adresse:c.adresse||'',cp:c.cp||'',ville:c.ville||'',email:c.email||'',tel:c.tel||''}}); }
+function opdRienAMontrer(){ return !FEN&&!POP&&S.vue!=='editeur'&&!apercuOuvert()&&!document.querySelector('.voile,#cl-signer'); }
+/* quand il n'y a plus rien à montrer, l'atelier demande sa fermeture — après un court délai, pour laisser passer une réouverture (un sous-écran qui revient) */
+function opdPlanifierFin(){ if(!OPG.ouvert) return; clearTimeout(OPG.tFin); OPG.tFin=setTimeout(()=>{ if(OPG.ouvert&&opdRienAMontrer()){ OPG.ouvert=false; opdPoster({opd_fermer:{motif:'fin'}}) } },140); }
+function opdStockage(ev){
+  if(ev.storageArea!==localStorage||ev.key!==CLE_STOCK||!ev.newValue) return; let o=null; try{ o=JSON.parse(ev.newValue) }catch(e){ return }
+  if(adopterAutres(o,true)){ rendreAccueil(); opdDocsEnvoyer() }      // l'onglet qui n'édite pas reprend la liste de l'autre
+}
+function opdDemarrer(){
+  const b=$('[data-act="retour"]'); if(b){ b.setAttribute('aria-label','Retour à OP GESTION'); const l=b.querySelector('.lib'); if(l) l.textContent='OP GESTION' }
+  { const f0=fermerFenetre; fermerFenetre=function(){ const v=f0.apply(this,arguments); opdPlanifierFin(); return v } }
+  { const f0=fermerDoc; fermerDoc=function(){ const v=f0.apply(this,arguments); opdPlanifierFin(); return v } }
+  { const f0=fermerApercu; fermerApercu=function(){ const v=f0.apply(this,arguments); opdPlanifierFin(); return v } }
+  { const f0=fermerSigner; fermerSigner=function(){ const v=f0.apply(this,arguments); opdPlanifierFin(); return v } }
+  { const f0=sauverStock; sauverStock=function(){ const v=f0.apply(this,arguments); opdDocsEnvoyer(); return v } }
+  new MutationObserver(opdPlanifierFin).observe(document.body,{childList:true});      // une confirmation qui se ferme
+  addEventListener('message',opdRecevoir); addEventListener('storage',opdStockage);
+  opdPoster({opd_pret:true}); opdDocsEnvoyer(true);
+}
+
 /* ── DÉMARRAGE ── */
 function boot(){
-  let th='auto'; try{ th=localStorage.getItem(CLE_THEME)||'auto' }catch(e){} appliquerTheme(th);
-  chargerIdentite(); if(!chargerStock()){ S.docs=graines(); sauverStock() }
+  if(APP){ const m=new URLSearchParams(location.search).get('mode'); appliquerModeApp(m); }      // le thème vient d'OP GESTION (adresse du cadre, puis opd_mode) : jamais rangé ici
+  else { let th='auto'; try{ th=localStorage.getItem(CLE_THEME)||'auto' }catch(e){} appliquerTheme(th); }
+  chargerIdentite(); if(!chargerStock()){ if(APP) S.docs=[]; else { S.docs=graines(); sauverStock() } }
   const mq=matchMedia('(max-width:760px)'); S.tactile=mq.matches;
   mq.addEventListener('change',()=>{ S.tactile=mq.matches; fermerPop(false); fermerFenetre(false); if(S.vue==='editeur'){ majOverlays(); planifier(); appliquerZoom() } });
   matchMedia('(max-width:900px)').addEventListener('change',()=>{ if(FEN&&FEN.format&&!etroit()) fermerFenetre(false); if(S.vue==='editeur'){ majBarre(); appliquerZoom(); majPanneau() } });
@@ -7380,6 +7560,7 @@ function boot(){
   let st=null; try{ st=history.state }catch(e){}
   if(S.vue==='editeur'&&S.docId){ if(st&&st.dsm>=1){ NAV.n=1; try{ history.replaceState({dsm:1},'') }catch(e){} } else navPousser(); ouvrirDoc(S.docId) }
   else if(st&&st.dsm){ try{ history.replaceState({dsm:0},'') }catch(e){} }
+  if(APP) opdDemarrer();
 }
 if(location.protocol==='file:') window.DSM={optPropositions,optVerrou,optEcrire,optPrompt,optContexte,optRaison,OPTI,htmlPages,appliquerReglages,identDe,identFigee,figerIdentite,identNet,refLogo,logosUtiles,IDENT_CHAMPS,sauverStock,chargerStock,appliquerIdentite,enregistrerIdentite,miniature,PDF,pdfFabriquer,pdfTelecharger,pdfLignes,pdfAssembler,pdfWinAnsi,pdfCouleurs,couleurRgb,pdfHote,pdfNomFichier,S,calculer,miseEnPage,paginer,htDeLigne,lireDecimal,validerChamp,fmtMontant,nouveauDevis,ligne,L,SEC,OPT,ouvrirDoc,fermerDoc,dessinerMaintenant,creerDocument,graines,capDe,D,AP,annuler,retablir,modelesIntegres,problemesEnvoi,lum,contrasteBlanc,ENTREPRISE,MODELES_PAGE,POLICES,normaliserReglages,reglagesDefaut,ibanOk,validerIdentite,docEchantillon,appliquerModeleNeuf,colsDe,STYLES_CLES,CLE_STOCK,CLE_ENT,_MINI,chargerPolice,ouvrirGalerie,ouvrirIdentite,blocDe,enteteObj,enteteListe,enteteIdDe,enteteNom,definirDefaut,supprimerEntete,ouvrirEntetes,ouvrirVierge,viergeDoc,viergeCreer,CATALOGUE,LIB,AMOD,COMMUN,CONTRATS,ORDRE_ART,contratDepuis,articleDe,vvBib,vvCalc,get VV_CLAUSES(){return VV_CLAUSES},get VV_MATOS(){return VV_MATOS},choisirEnteteDoc,usageEntete,prendreStyleEntete,CLE_VIERGE,get ENTETES(){return ENTETES},get DEFAUT_ID(){return DEFAUT_ID},get VV(){return VV},nouveauContrat,docEchantillonContrat,viergeNeuf,viergeCorps,VARS,LIB,optPropositionsCtr,optVerrouCtr,optNombres,optLois,optVarCle,optGardeTexte,optTexteLong,
   IA,ACTIONS,contratDepuis,numArticle,varInfo,manquantsContrat,varSet,articlesComplets,composerContrat,planComposition,extraireDemande,deplacerBlocVers,clausePresente,selectionner,muter,lireMulti,ttcDe,htDeTtc,NAV,lireRiche,fmtCommande,fmtListe,etatFormat,objDe,selectionnerObjet,insererObjet,htLignesEd,SECTIONS,ouvrirSections,poserSection,sectionsLire,sectionsEcrire,gardeAjouter,gardeRetirer,colGeo,bColonnes,colonnesNet,ouvrirGardeFenetre,ouvrirEnregSection,colRetirer,colAjouter,GARDES,SEC_CLE,paquetNeuf,propsNet,runsNormer,normaliserDoc,objSet,dupliquerObjet,supprimerObjet,pageVisible,entrerEditionObjet,geoPage,cibleFmt};   // outils des sondes : seulement en local (file:), jamais sur une page publiée
