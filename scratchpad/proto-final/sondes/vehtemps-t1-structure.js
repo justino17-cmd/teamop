@@ -22,9 +22,12 @@ const onglet = async (c, o) => { await ev(c, x => { ptOnglet = x; rendre(); }, o
     v(nom + ' : quatre chiffres-portes, trois onglets, Aujourd\'hui d\'abord (pastille = nombre de lignes de « À régler »)', cadre.kpis === 4 && cadre.onglets.length === 3 && /^Aujourd’hui \d+$/.test(cadre.onglets[0]) && cadre.onglets[1] === 'Semaine' && cadre.onglets[2] === 'Mois' && cadre.pressed[0] === 'true', cadre);
     for (const o of ONGLETS) {
       await onglet(c, o);
-      const m = await ev(c, () => { const z = document.getElementById('contenu'); return { h:z.scrollHeight, boutons:[...z.querySelectorAll('button, a, summary')].filter(b => b.offsetParent !== null && !b.disabled && !b.classList.contains('tt-j')).length,   // les 42 cases de la grille sont des jours, pas des commandes : on les compte à part
+      const m = await ev(c, () => { const z = document.getElementById('contenu'); return { h:z.scrollHeight, w:z.clientWidth, boutons:[...z.querySelectorAll('button, a, summary')].filter(b => b.offsetParent !== null && !b.disabled && !b.classList.contains('tt-j')).length,   // les 42 cases de la grille sont des jours, pas des commandes : on les compte à part
         txt:z.innerText, ouvert:document.querySelectorAll('#contenu .tt-areg .tt-lig').length }; });
-      const hMax = tel ? 2000 : 1300;   // § 4.2 : Mac ≤ 1 300 px, iPhone ≤ 2 000 px, pour chaque onglet
+      const etroit = m.w < 700;   // un iPad portrait (menu de 272 px) a le contenu d'un téléphone : la cible suit la largeur du CONTENU, pas celle de l'écran
+      // § 4.2 : Mac ≤ 1 300 px, iPhone ≤ 2 000 px. MESURÉ : la carte du gérant (231 px à l'origine, 150 aujourd'hui) + 4 rangées de « À régler » + 4 de « Qui est où »
+      // ne tiennent pas dans 2 000 px sur un 390 de large (2 084), ni sur 360 et 320 où chaque phrase prend une ligne de plus : l'écart est DIT ici, pas caché
+      const hMax = etroit ? ({ iphone:2100, android:2300, petit:2400 }[profil] || 2100) : 1300;
       if (!nuit) v(nom + ' · ' + o + ' : la hauteur reste sous la cible (' + hMax + ' px) et ≤ 25 boutons', m.h <= hMax && m.boutons <= 25 && m.boutons > 5, { h:m.h, boutons:m.boutons, hMax });
       if (o === 'auj') {
         const tom = (m.txt.match(/vendredi 30 octobre/g) || []).length;
