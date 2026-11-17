@@ -43,7 +43,14 @@ const rap = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .
     const B = await p.evaluate(() => ['.nv-x', '.nv-voir', '.nv-tard', '.nv-suiv'].map(s => { const e = document.querySelector('#nv ' + s), r = e.getBoundingClientRect(); return [s, Math.round(r.width), Math.round(r.height)]; }));
     if (TEL) v(`${tag} : ✕, Voir, Plus tard et Suivant font 44 px au moins (${B.map(b => b.join(' ')).join(' · ')})`, B.every(b => b[1] >= 44 && b[2] >= 44), B);
     // le balayage du doigt change de carte (téléphone et tablette) ; un vrai geste tactile envoyé au navigateur
-    if (TEL) {
+    if (PROFIL === 'ipad') {   // l'émulation d'iPad de ce navigateur n'est pas un appareil mobile : le toucher envoyé ne fait pas défiler (même sur une page sans guide) — on joue ici la molette horizontale (pavé tactile) et les touches fléchées
+      await p.evaluate(() => { const d = document.querySelector('#nv .nv-defile'); d.scrollTo({ left:0, behavior:'instant' }); }); await L.calme(p, 300);
+      const r0 = await p.evaluate(() => { const r = document.querySelector('#nv .nv-defile').getBoundingClientRect(); return { x:Math.round(r.left + r.width / 2), y:Math.round(r.top + r.height / 2) }; });
+      await p.mouse.move(r0.x, r0.y); await p.mouse.wheel(Math.round(c.largeur * 0.7), 0); await p.waitForTimeout(900);
+      const a = await G.index(p); v(`${tag} : un défilement horizontal (pavé tactile) montre la carte suivante (carte ${a + 1})`, a === 1, a);
+      await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(900); const b = await G.index(p); v(`${tag} : la flèche ← revient à la première carte`, b === 0, b);
+      await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900); const d = await G.index(p); v(`${tag} : la flèche → montre la suivante`, d === 1, d);
+    } else if (TEL) {
       await p.evaluate(() => { const d = document.querySelector('#nv .nv-defile'); d.scrollTo({ left:0, behavior:'instant' }); }); await L.calme(p, 300);
       const cdp = await c.ctx.newCDPSession(p); const r0 = await p.evaluate(() => { const r = document.querySelector('#nv .nv-defile').getBoundingClientRect(); return { x:Math.round(r.left + r.width / 2), y:Math.round(r.top + r.height / 2) }; });
       // un doigt qui se pose, glisse par pas de 24 px (ce Chromium ne transmet aucun mouvement de moins de ~15 px) et se lève : touchStart, touchMove…, touchEnd
@@ -56,6 +63,15 @@ const rap = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .
       v(`${tag} : …et le point de progression suit (${pts.map(x => x ? '●' : '○').join('')})`, pts.length === n && pts[1] === true && pts.filter(Boolean).length === 1, pts);
       const compte = await p.evaluate(() => document.querySelector('#nv [data-nv-i]').textContent); v(`${tag} : …et le compte dit « ${compte} sur ${n} »`, compte === '2');
       const b = await balayer(Math.round(c.largeur * 0.7)); v(`${tag} : un balayage vers la droite revient à la première carte`, b === 0, b);
+      // l'accroche : un geste court et lent (40 % d'une carte) ne change pas de carte — le navigateur ramène la carte devant, au pixel
+      const sn = await p.evaluate(() => { const d = document.querySelector('#nv .nv-defile'), z = document.querySelector('#nv .nv-carte'); return { type:getComputedStyle(d).scrollSnapType, align:getComputedStyle(z).scrollSnapAlign }; });
+      v(`${tag} : le défilement est accroché carte par carte (scroll-snap : ${sn.type} / ${sn.align})`, /x\s+mandatory/.test(sn.type) && /center/.test(sn.align), sn);
+      { const pas = 16, n2 = Math.round(c.largeur * 0.4 / pas), y = r0.y, x0 = r0.x + Math.round(c.largeur * 0.2);
+        await cdp.send('Input.dispatchTouchEvent', { type:'touchStart', touchPoints:[{ x:x0, y }] });
+        for (let k = 1; k <= n2; k++) { await cdp.send('Input.dispatchTouchEvent', { type:'touchMove', touchPoints:[{ x:x0 - k * pas, y }] }); await p.waitForTimeout(120); }
+        await cdp.send('Input.dispatchTouchEvent', { type:'touchEnd', touchPoints:[] }); await p.waitForTimeout(1100);
+        const k0 = await G.index(p), reste = await p.evaluate(() => { const d = document.querySelector('#nv .nv-defile'); return Math.round(d.scrollLeft); });
+        v(`${tag} : un geste lent de 40 % ne change pas de carte et la carte revient à sa place (carte ${k0 + 1}, décalage ${reste} px)`, k0 === 0 && reste === 0, { k0, reste }); }
       const calage = await p.evaluate(() => { const d = document.querySelector('#nv .nv-defile'); return d.scrollLeft % d.clientWidth; }); v(`${tag} : le défilement s'accroche sur une carte entière (reste ${calage})`, calage === 0, calage);
       const bas = await p.evaluate(() => scrollY); v(`${tag} : la page derrière n'a pas bougé pendant le geste`, bas === 0, bas);
     }
