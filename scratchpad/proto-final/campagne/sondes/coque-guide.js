@@ -12,7 +12,7 @@ const h1 = p => p.evaluate(() => ((document.querySelector('#contenu h1') || {}).
 // ce qu'une ligne « A › B › C » du guide promet : chaque mot entre « » ou chaque segment doit se lire quelque part sur la rubrique ou dans ses onglets
 const PROMESSES = [
   ['statistiques', ['Bilan du mois']], ['planning', ['Vue d’ensemble', 'Mois', 'Carte']], ['devis', ['Dicter']],
-  ['stock', ['Mouvements', 'À valider', 'Sortie']], ['achats', ['Demande']], ['equipe', ['Qui peut quoi']], ['boiteMail', ['Boîtes connectées']],
+  ['stock', ['Mouvements', 'À valider', 'Sortie']], ['produits', ['Bons de commande', 'Commandes en cours']], ['achats', ['Demande']], ['equipe', ['Qui peut quoi']],   // « Boîte mail › Boîtes connectées » n'est pas vérifié ici : le module de courrier est dans un hôte dont le texte ne se lit pas depuis la page (la fenêtre « Boîtes connectées » s'ouvre aussi par Mon entreprise)
 ];
 (async () => {
   for (const QUI of QUIS) {
@@ -31,7 +31,8 @@ const PROMESSES = [
     v(QUI + ' : « Précédent » revient à la page d’avant', (await titre(p)) === vus[vus.length - 1] || (await titre(p)) !== '', await titre(p));
     // ---- chaque carte « aller » mène à la rubrique qu'elle nomme
     const cartes = await p.evaluate(() => { const o = []; NV.pages.forEach((pg, i) => { const d = document.createElement('div'); d.innerHTML = pg.c; d.querySelectorAll('[data-nv^="aller|"]').forEach(b => o.push({ page:i, k:b.dataset.nv.split('|')[1], texte:(b.querySelector('b') || b).textContent.replace(/\s+/g, ' ').trim() })); }); return o; });
-    v(QUI + ' : population : cartes et lignes qui mènent quelque part (' + cartes.length + ')', cartes.length > 0);
+    const MIN = { marc: 20, sm: 6, julie: 4 }[QUI] || 1;   // une carte qui DISPARAÎT du guide (rubrique renommée, droit retiré) ne se verrait pas autrement : le contrôle de population la compte
+    v(QUI + ' : population : cartes et lignes qui mènent quelque part (' + cartes.length + ' sur au moins ' + MIN + ')', cartes.length >= MIN);
     let bons = 0;
     for (const k of cartes) {
       await p.evaluate(() => { document.getElementById('nv')?.remove(); nvOuvrir(); }); await L.calme(p, 250);
@@ -51,7 +52,7 @@ const PROMESSES = [
       if (!vois) continue;
       await L.aller(p, k); await L.calme(p, 600);
       const txt = await p.evaluate(() => (document.getElementById('contenu').innerText + ' ' + [...document.querySelectorAll('#contenu [aria-label],#contenu [title]')].map(e => (e.getAttribute('aria-label') || '') + ' ' + (e.getAttribute('title') || '')).join(' ')).replace(/\s+/g, ' '));
-      for (const m of mots) v(QUI + ' : le guide promet « ' + m + ' » dans ' + k + ' : on le lit à l’écran', txt.toLowerCase().includes(m.toLowerCase()), txt.slice(0, 160));
+      for (const m of mots) v((k === 'stock' || k === 'produits' ? '[coque-07] ' : '') + QUI + ' : le guide promet « ' + m + ' » dans ' + k + ' : on le lit à l’écran', txt.toLowerCase().includes(m.toLowerCase()), txt.slice(0, 160));
     }
     // ---- se ferme : ✕, Passer (ou C'est parti), Échap ; reste fermé ; se rouvre par le menu
     for (const [nom, geste] of [['✕', async () => L.toucher(c, '#nv .nv-x')], ['Échap', async () => p.keyboard.press('Escape')], ['« Passer » de la première page', async () => L.toucher(c, '#nv [data-nv="fermer"]')]]) {

@@ -94,7 +94,8 @@ const pause = (p, ms) => p.waitForTimeout(ms);
       (b ? avec : sans).push(i.id + ':' + i.st); }
     console.log('  · avec « Voir le lien client » :', avec.join(' '), '| sans :', sans.join(' '));
     v('au moins une intervention porte « Voir le lien client » (le texte du réglage dit vrai pour elle)', avec.length > 0, { avec, sans });
-    v('toutes les interventions ouvertes portent le bouton (« ouvre une intervention » sans condition)', sans.length === 0, { sans });
+    // le texte du réglage dit désormais « ouvre une intervention TERMINÉE » (décision f du chef de chantier) : le bouton est sur les terminées, et elles seules
+    v('le bouton « Voir le lien client » est sur les interventions terminées, et elles seules (le réglage dit « TERMINÉE »)', avec.every(x => /:fait$/.test(x)) && sans.every(x => !/:fait$/.test(x)), { avec, sans });
     // le bouton mène-t-il bien à l'onglet « Le lien sur téléphone » ?
     if (avec.length) { await L.aller(c.p, 'inter-x-' + avec[0].split(':')[0]); await L.toucher(c, 'button[data-voirclient$="|ordi"]'); await L.calme(c.p, 600);
       const s = await c.p.evaluate(() => ({ route, h1:(document.querySelector('#contenu h1') || {}).textContent, onglets:[...document.querySelectorAll('#contenu .seg button')].map(b => b.textContent.trim()) }));

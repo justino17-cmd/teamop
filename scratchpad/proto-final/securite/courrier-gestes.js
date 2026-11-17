@@ -73,11 +73,10 @@ const COMP = id => `¤${id}¤"'><img/src=x/onerror=__xss('${id}')>`;            
   L.v('population : « Créer l\'intervention » a prérempli titre et motif avec le texte du courriel piégé', !!prerempli && /¤n\d+¤/.test(prerempli.titre + prerempli.motif), prerempli);
   const Pn = await p.evaluate(O.LIRE); L.v('le formulaire de création, prérempli depuis le courriel, ne laisse sortir aucune charge', Pn.sorti.length === 0, Pn.sorti.slice(0, 4));
   await p.evaluate(() => { const b = document.querySelector('[data-action="cPlusTard"]'); if (b) b.click(); }); await p.waitForTimeout(500);
-  const nInt0 = await p.evaluate(() => INTS.length);
   await p.evaluate(() => { const b = document.querySelector('[data-action="cCreer"]'); if (b) b.click(); }); await p.waitForTimeout(900);
-  const nInt1 = await p.evaluate(() => INTS.length), intP = await p.evaluate(() => INTS.filter(i => /¤n\d+¤/.test(JSON.stringify(i))).length);
-  console.log('  · interventions :', nInt0, '→', nInt1, '· portant une charge :', intP);
-  L.v('population : l\'intervention née du courriel piégé a été créée (' + (nInt1 - nInt0) + ') et porte la charge', nInt1 > nInt0 && intP >= 1, { nInt0, nInt1, intP });
+  const toastCrea = await p.evaluate(() => ((document.querySelector('#toast, .toast') || {}).textContent || '').slice(0, 120)), intP = await p.evaluate(() => INTS.filter(i => /¤n102¤/.test(String(i.titre))).length);
+  console.log('  · après « Créer » :', JSON.stringify(toastCrea), '· interventions dont le titre porte la charge :', intP);
+  L.v('population : l\'intervention née du courriel piégé a été créée (message : « ' + toastCrea.slice(0, 50) + ' ») et son titre porte la charge (' + intP + ')', /Intervention créée/.test(toastCrea) && intP >= 1, { toastCrea, intP });
   await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} });
   console.log('  · gestes touchés :', clics.filter(x => x.r).length, '/', clics.length);
   L.v('population : au moins 12 gestes du bandeau ont été touchés pour de bon', clics.filter(x => x.r).length >= 12, clics.length);
@@ -85,6 +84,11 @@ const COMP = id => `¤${id}¤"'><img/src=x/onerror=__xss('${id}')>`;            
   const cree = await p.evaluate(() => { const poids = s => /¤n\d+¤/.test(JSON.stringify(s)); return { clients: Object.keys(CLIENTS).filter(k => /¤n\d+¤/.test(CLIENTS[k].nom || '')).length, taches: TACHES.filter(poids).length, devis: DV.filter(poids).length, ints: INTS.filter(poids).length, mails: MAILS.filter(m => /¤n\d+¤/.test(m.objet + m.txt + m.de.nom)).length }; });
   console.log('  · objets portant une charge :', JSON.stringify(cree));
   L.v('population : au moins une tâche ou un client ou un devis ou une intervention créé porte une charge (sinon le balayage ne dit rien)', cree.clients + cree.taches + cree.devis + cree.ints >= 2, cree);
+  // « C'est un client » / « Créer le client et son devis » a fait du NOM D'EXPÉDITEUR (gB) le nom d'un client. Ce que ferait la personne ensuite — lui facturer, lui faire signer un contrat — est simulé en
+  // rattachant une facture en retard et un contrat signé existants à ce client, puis on regarde les écrans qui recopient le nom d'un client (Accueil, Statistiques, Contrats, Factures)
+  const rat = await p.evaluate(() => { const k = Object.keys(CLIENTS).find(x => /¤n\d+¤/.test(CLIENTS[x].nom || '')); if (!k) return null; const fs = FACTURES.filter(o => o.st === 'retard'), cs = CONTRATS.filter(o => o.st === 'envoye'), c0 = CONTRATS.find(o => o.st === 'signe'); fs.forEach(f => { f.cli = k; }); cs.forEach(c => { c.cli = k; }); if (c0) c0.cli = k; return { k, facture: fs.length > 0, contrat: cs.length > 0 || !!c0, factures: fs.length, contratsEnvoyes: cs.length, nom: CLIENTS[k].nom.slice(0, 20) }; });
+  console.log('  · client piégé :', JSON.stringify(rat));
+  L.v('population : un client porte le nom piégé d\'un expéditeur, et une facture en retard et un contrat lui sont rattachés', !!rat && rat.facture && rat.contrat, rat);
   // ── 3. contre-épreuve : la lecture voit-elle une charge brute ? ──
   await p.evaluate(() => { const d = document.createElement('div'); d.id = 'zz-controle'; d.innerHTML = '<i data-xss="n999"></i><img src=x onerror="__xss(\'n999\')">'; document.body.appendChild(d); });
   await p.waitForTimeout(500);
@@ -119,7 +123,7 @@ const COMP = id => `¤${id}¤"'><img/src=x/onerror=__xss('${id}')>`;            
     for (const id of ['gA', 'gB', 'gC', 'gD', 'gE']) { COURRIER.inst.ouvrir(id); await new Promise(r => setTimeout(r, 500));
       sr.querySelectorAll('*').forEach(e => { if (e.hasAttribute('data-xss')) out.push(id + ' balise data-xss'); for (const a of e.attributes) if (/^on/i.test(a.name)) out.push(id + ' ' + a.name); if (/^(IMG|IFRAME|SCRIPT|FORM|OBJECT)$/.test(e.tagName) && e.closest('.rbody,.rhead,#rows,.hband,.attbar')) out.push(id + ' ' + e.tagName); }); }
     return out; }, SR);
-  const H = await p.evaluate(() => (window.top.__hits || []).slice());
+  const H = (await p.evaluate(() => (window.top.__hits || []).slice())).filter(h => h !== 'n999');   // n999 : la charge posée EXPRÈS pour la contre-épreuve de la lecture
   console.log('  · écrans visités :', nEcrans, '· charges vues (échappées ou non) à l\'écran :', vusT.size);
   L.v('population : ≥ 40 écrans et fiches visités', nEcrans >= 40, nEcrans);
   L.v('population : au moins 4 charges retrouvées à l\'écran, échappées (sinon rien n\'est arrivé jusqu\'aux écrans)', vusT.size >= 4, [...vusT]);
