@@ -108,7 +108,7 @@ echo "── [3/6] Les comptes…"
 creer() { # nom, admin(0/1)
   if F admin user list 2>/dev/null | awk '{print $2}' | grep -qx "$1"; then echo "   $1 : déjà là"; return; fi
   local extra=""; [ "$2" = 1 ] && extra="--admin"
-  F admin user create --username "$1" --email "$1@$DOMAINE" --random-password --must-change-password=$([ "$1" = justin ] && echo true || echo false) $extra > "$D/secrets/$1.creation" 2>&1 && chmod 600 "$D/secrets/$1.creation" && echo "   $1 : créé (mot de passe dans ~/forge/secrets/$1.creation)" || { echo "   ✗ $1 : création refusée"; tail -2 "$D/secrets/$1.creation" | sed 's/assword.*/assword …/'; exit 1; }
+  F admin user create --username "$1" --email "$1@$DOMAINE" --random-password --must-change-password=false $extra > "$D/secrets/$1.creation" 2>&1 && chmod 600 "$D/secrets/$1.creation" && echo "   $1 : créé (mot de passe dans ~/forge/secrets/$1.creation)" || { echo "   ✗ $1 : création refusée"; tail -2 "$D/secrets/$1.creation" | sed 's/assword.*/assword …/'; exit 1; }
 }
 creer justin 1; creer claude 0
 jeton() { # nom, étiquette, portées, fichier
@@ -124,9 +124,12 @@ if ! curl -s -o /dev/null --max-time 3 http://127.0.0.1:3000/api/healthz; then
   for i in $(seq 1 40); do curl -s -o /dev/null --max-time 2 http://127.0.0.1:3000/api/healthz && break; sleep 0.5; done
 fi
 curl -s --max-time 3 http://127.0.0.1:3000/api/healthz | grep -q '"status": *"pass"' && echo "   ✓ la forge répond sur 127.0.0.1:3000" || { echo "   ✗ la forge ne répond pas"; tail -5 "$D/log/sortie.log"; exit 1; }
-( crontab -l 2>/dev/null | grep -v 'forge/bin/forgejo' ; echo "@reboot $BIN --config $CONF --work-path $D/data web >> $D/log/sortie.log 2>&1" ) | crontab - && echo "   ✓ elle redémarre avec le serveur (en attendant une vraie unité systemd)"
+echo "   ⚠ elle ne redémarre PAS seule avec le serveur tant que l'unité systemd n'est pas posée (geste en root : installer-forge-racine.sh)"
 
 echo "── [5/6] L'organisation et le dépôt…"
+# Le jeton d'installation ne sert pas tant que le compte doit changer son mot de passe : on lève l'obligation le temps du montage,
+# on la remet à la fin (Justin choisit le sien à sa première connexion).
+F admin user must-change-password --unset justin >/dev/null 2>&1 || true
 api() { curl -s -o "$D/log/api.derniere" -w '%{http_code}' -H "Authorization: token $(cat "$D/secrets/justin.jeton-installation")" -H 'Content-Type: application/json' "$@"; }
 c=$(api http://127.0.0.1:3000/api/v1/orgs/teamop); [ "$c" = 200 ] || { c=$(api -X POST http://127.0.0.1:3000/api/v1/orgs -d '{"username":"teamop","visibility":"private"}'); [ "$c" = 201 ] && echo "   organisation teamop : créée" || { echo "   ✗ organisation : $c"; head -c 200 "$D/log/api.derniere"; exit 1; }; }
 c=$(api http://127.0.0.1:3000/api/v1/repos/teamop/teamop); [ "$c" = 200 ] || { c=$(api -X POST http://127.0.0.1:3000/api/v1/orgs/teamop/repos -d '{"name":"teamop","private":true,"default_branch":"main","description":"TeamOP : OP GESTION, OP MESSAGES, site"}'); [ "$c" = 201 ] && echo "   dépôt teamop/teamop : créé (privé)" || { echo "   ✗ dépôt : $c"; head -c 200 "$D/log/api.derniere"; exit 1; }; }
@@ -139,4 +142,5 @@ if [ -d "$M" ] && git -C "$M" rev-parse --verify -q refs/heads/main >/dev/null; 
   echo "   branches dans la forge : $(git -c http.extraHeader="Authorization: token $(cat "$D/secrets/claude.jeton")" ls-remote --heads http://127.0.0.1:3000/teamop/teamop.git 2>/dev/null | wc -l) · dans la copie : $(git -C "$M" for-each-ref refs/heads | wc -l)"
   echo "   main : forge $(git -c http.extraHeader="Authorization: token $(cat "$D/secrets/claude.jeton")" ls-remote http://127.0.0.1:3000/teamop/teamop.git refs/heads/main 2>/dev/null | cut -c1-12) · copie $(git -C "$M" rev-parse refs/heads/main | cut -c1-12)"
 else echo "   ⚠ la copie complète (~/miroir/teamop.git) n'est pas encore finie : relancer ce script ensuite"; fi
+F admin user must-change-password justin >/dev/null 2>&1 && echo "   justin devra choisir son mot de passe à la première connexion" || echo "   ⚠ l'obligation de changer le mot de passe de justin n'a pas pu être remise"
 echo "── fini. Reste, en root : mettre la forge derrière Caddy (installer-forge-racine.sh) et le nom $DOMAINE."
