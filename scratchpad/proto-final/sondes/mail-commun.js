@@ -16,3 +16,6 @@ exports.cap = async (c, nom) => lib.capture(c, path.join(CAP, nom + '.png'));
 exports.fin = async (c) => { await lib.fin(c); };
 exports.sortie = async () => { await lib.fermer(); const ko = lib.bilan(); process.exit(ko ? 1 : 0); };
 exports.ouvrirMsg = async (c, id) => { await c.p.evaluate(i => courrierOuvrir(i), id); await lib.attendre(c.p, () => !!window.R().querySelector('.rsubj'), 5000); await c.p.waitForTimeout(500); };
+// casserBoite : pose l'état « la seconde boîte demande son mot de passe » (celui qu'une vraie boîte prend un jour) et relit le courrier — l'état par défaut de la démonstration a ses deux boîtes connectées
+exports.casserBoite = async (c) => { await c.p.evaluate(() => { const b = ML_BOITES.find(o => o.id === 'b2'); b.etat = 'reco'; b.vu = 'le 28 oct.'; return COURRIER.inst.rafraichir(); });
+  await lib.attendre(c.p, () => !!window.R().querySelector('.loaderr, .empty[role=alert]'), 6000); await c.p.waitForTimeout(300); };

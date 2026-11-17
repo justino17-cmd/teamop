@@ -15,8 +15,9 @@ async function etat(c, id) { return c.p.evaluate(i => { const f = FACTURES.find(
     // ── 4. terminer : refus silencieux, la facture attend « à valider »
     await c.p.evaluate(() => { ENTREPRISE.siret = ''; reglages.auto = true; });
     const m1 = await c.p.evaluate(PREP('t-ent-1', cli)); v(`${nom} : population : l’intervention d’essai est terminable (rien ne manque)`, m1 === 0, m1);
-    await c.p.evaluate(() => { ACTIONS.terminer({ dataset:{ id:'t-ent-1' } }); }); await L.calme(c.p, 300);
-    const f1 = await etat(c, 't-ent-1'), t4 = await toast(c.p);
+    await c.p.evaluate(() => { window.__toasts = []; const t0 = toast; toast = function (m, a) { window.__toasts.push(String(m)); return t0.apply(this, arguments); }; ACTIONS.terminer({ dataset:{ id:'t-ent-1' } }); toast = t0; }); await L.calme(c.p, 300);
+    const f1 = await etat(c, 't-ent-1'), t4 = await toast(c.p), dits = await c.p.evaluate(() => window.__toasts);
+    v(`${nom} : terminer : AUCUN toast sur le manque n’est passé, même brièvement (la porte ne parle pas au technicien : toasts vus ${dits.length})`, dits.length >= 1 && dits.every(m => !/Il manque|SIRET/.test(m)), dits);
     v(`${nom} : terminer sans SIRET : la facture est préparée mais RESTE « à valider »`, f1 && f1.st === 'avalider' && f1.num === '—', f1);
     v(`${nom} : terminer : refus SILENCIEUX (le toast habituel, aucune phrase sur le SIRET : le technicien n’y peut rien)`, /Terminée/.test(t4) && !/SIRET|Il manque/.test(t4), t4);
     // ── 1. SIRET vidé : l'aperçu dit le manque avant le bouton

@@ -1,7 +1,7 @@
 {
  "lot": "compositeur",
  "angle": "tout : profils mac, mac720, windows, ipad, iphone, android (et petit), jour et nuit, mode application, gérant puis bureau ; devis et contrat complets de bout en bout, sorties, numéros, fiche client, listes",
- "etat": "en cours : devis 7 profils jour, contrat mac, mise en page 7 profils jour et nuit, sorties mac et iphone, valeurs difficiles mac et iphone, numéros, rotation ; il reste nuit, contrat sur téléphones, rôles, atelier absent",
+ "etat": "terminé pour ce passage (voir « couvert » et « non_verifie »)",
  "couvert": [
   "devis complet (client par recherche, 2 articles du catalogue dont prix « 199,90 » et quantité « 1,75 » à virgule, ligne libre 1,5 h à 10 %, acompte 25 % qui tombe sur un demi-centime, mot, aperçu, créer, remise de 10 % dans l'éditeur, envoyer, retour, liste En attente, rouvrir) : mac, mac720, windows, ipad, iphone, android, petit en jour — 18 contrôles chacun à zéro échec, totaux recalculés au centime (HT 777,05 ; TVA 6,89 + 141,64 ; TTC 925,58 ; acompte 231,40 ; reste 694,18 ; avec remise : 717,08 / 853,62 / 213,41 / 640,21)",
   "contrat complet (client, titre à signes HTML, prix « 280,50 », modèle, article de la bibliothèque, « Écrire mon article » avec {{variables}}, créer, numéro CTR-2026-012, envoyer, retour, liste, rouvrir) : mac jour",
@@ -14,7 +14,11 @@
   "débordement dans la colonne des étapes avec des textes longs : petit (320), android, iphone, ipad",
   "double clic sur « Créer » : mac, windows, ipad ; menu de l'éditeur (supprimer, dupliquer) : iphone, mac ; devis sans client ; mode Auto qui passe au sombre pendant l'ouverture (iphone : blanc → bleu nuit) ; atelier absent (404 puis Réessayer) ; rôles : gérant, secrétariat (devis et contrat complets, 18 ✓ chacun), techniciens (aucun bouton, forcer par le code refusé avec un mot)",
   "gestes du devis (iphone et mac) : recherche de client (accents, majuscules, ville, sans résultat, « + 4 autres clients » = 8 − 4), catalogue (recherche, filtres, « Mon matériel »), quantités +/−, option (non comptée), monter, descendre, retirer, « Ranger par catégorie », « Garder dans mon matériel » (gardé après fermeture) : 26 contrôles justes sur 27",
-  "clavier seul (windows, mac nuit) : ouverture par Entrée, focus à l'ouverture sur la recherche, ordre de Tab (14 étapes), indicateur de focus visible sur chaque élément, Entrée sur un client, Espace sur un article, 90 Tab sans sortir du compositeur, Échap : 8 contrôles justes, 2 défauts (une cause : la confirmation)"
+  "clavier seul (windows, mac nuit) : ouverture par Entrée, focus à l'ouverture sur la recherche, ordre de Tab (14 étapes), indicateur de focus visible sur chaque élément, Entrée sur un client, Espace sur un article, 90 Tab sans sortir du compositeur, Échap : 8 contrôles justes, 2 défauts (une cause : la confirmation)",
+  "Devis rapide et Contrat rapide : boutons secondaires à côté des principaux, panneau (champs 46 px / 16 px, boutons 44 px), « Préparer le devis » mène à la fiche, captures regardées : mac jour, iphone jour et nuit",
+  "Retour du navigateur PENDANT l'éditeur (retouche gardée, 144,00 €), devant la confirmation, deux fois de suite : mac, iphone, android nuit, 7 contrôles justes chacun",
+  "deux onglets du même navigateur (la liste suit sans recharger, les numéros ne se doublent pas) : mac, iphone ; valeurs longues dans la carte des documents composés (objet de 200 signes, mot de 60 lettres, 10 678 932,00 €) : petit, iphone nuit, mac ; frappe vraie touche par touche (délai 70 ms) : mac ; messages à action « Annuler » et « Recommencer » : iphone, mac, petit (vrai toucher, 44 px) ; nouveau client (refus dits, client créé qui paraît dans Clients et sa fiche, HTML en texte) : mac, iphone",
+  "contrats (modèles, bibliothèque, écrire mon article, monter / descendre / retirer, suggestions, date, prix invalide) : mac, iphone ; contrat complet : mac, iphone, android, windows, ipad, mac nuit, secrétariat"
  ],
  "defauts": [
   {
@@ -26,7 +30,8 @@
     "iphone jour",
     "iphone nuit",
     "android jour",
-    "android nuit"
+    "android nuit",
+    "petit jour (320 px : 4,4 px)"
    ],
    "etapes": [
     "Ouvrir le prototype en mode application, aller sur Devis (ou Contrats)",
@@ -273,6 +278,39 @@
    "preuve": "capture contrat-ct-mac-jour-marc-1-composition.png (article 5), contrat-ct-mac-jour-marc-3-liste.png, rapide-mac-jour-contrat-rapide.png (« 180,00 € HT par an ») ; texte source : page.source:1980",
    "ou": "scratchpad/proto-final/atelier/page.source:1980 (article « prix ») et :1939 (VARS prix « Prix annuel (€) »)",
    "correction": "Écrire « Prix annuel (€ HT) » et « … est de {{prix}} HT par an » (à faire relire par `juriste` : un contrat avec une copropriété doit dire HT ou TTC)"
+  },
+  {
+   "n": "tout-14",
+   "gravite": "détail",
+   "ecran": "Composer un contrat > étape 3 > « Modifier le texte » d'un article",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un contrat avec un modèle",
+    "Toucher « Modifier le texte » sur l'article 2, changer le texte dans la zone",
+    "Regarder le titre de l'article, sans fermer la zone"
+   ],
+   "attendu": "La pastille « Modifié » paraît dès la première lettre (la page à droite montre déjà le nouveau texte)",
+   "constate": "La page se met à jour mais la pastille « Modifié » ne paraît pas tant que la liste n'est pas redessinée (elle apparaît à la fermeture de la zone) : la liste dit « non modifié » pendant que la page dit le contraire",
+   "preuve": "contrat-gestes.js : « l'article porte la pastille « Modifié » → [] » sur mac et iphone (le texte, lui, est bien sur la page : ✓)",
+   "ou": "scratchpad/proto-final/atelier/page.source:5596 (x.edite=true puis viergeMaj sans vvMajArts) et :5642 (la pastille n'est écrite que par vvMajArts)",
+   "correction": "Poser la pastille à la main sur la ligne au premier changement (ou appeler vvMajArts en gardant le focus, comme le fait « a-edit »)"
   }
+ ],
+ "non_verifie": [
+  "vrai iPhone, vrai Android, vrai Windows (barre de défilement classique, polices Segoe), vrai iPad : les profils sont des émulations de Chromium ; les encoches sont simulées (setSafeAreaInsetsOverride), l'iPhone réel peut les rendre autrement",
+  "l'artefact publié sur claude.ai (téléchargement du PDF, « Optimiser avec l'IA ») : ne se joue pas depuis une session",
+  "la signature au doigt d'un devis (le passage à « Signé » est forcé par le code dans les sondes de numéros) et l'état « Non enregistré » (rangement refusé par l'appareil)",
+  "le comportement du clavier virtuel de l'iPhone sur les champs en bas d'écran",
+  "le contrat de bout en bout sur petit (320) et sur ipad en nuit (le jour est joué, la mise en page de nuit l'est aussi) ; une troisième entreprise ou un autre jeu de données que « Clim Services 17 »"
+ ],
+ "doutes_pour_justin": [
+  "Aperçu au téléphone : « Ajuster » montre la page entière à 45 % (texte 5 px, illisible sans pincer) ; « 100 % » est lisible (12 px) mais la page défile de côté. Lequel doit être le choix d'ouverture ?",
+  "Les documents composés sont dans une carte à part sous la liste : le garder, ou les mêler aux autres lignes ?",
+  "« atelier » est un mot du métier de l'équipe de développement : à remplacer par « Documents composés » dans les cartes et les aides ?",
+  "Contrat : HT ou TTC ? Le texte de l'article « Prix et paiement » ne le dit pas (à faire relire par `juriste`)"
  ]
 }

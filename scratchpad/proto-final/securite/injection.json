@@ -1,0 +1,49 @@
+{
+  "angle": "injection (injection de code dans l'écran : XSS stocké, réfléchi, par l'adresse, par message entre fenêtres)",
+  "date": "17 novembre 2026",
+  "etat": "EN COURS : première sauvegarde, le fichier se complète au fil des preuves",
+  "couvert": {
+    "methode": "Lecture du code (recensement par analyseur acorn de 14 082 interpolations ${…} dans du balisage, dont 7 256 non reconnues « sûres » ; 175 appels de toast(), message écrit en innerHTML) puis PREUVE au navigateur : (1) sonde par les données — 13 538 champs de texte du prototype remplacés chacun par une charge numérotée, 97 écrans et fiches visités, 288 clics, 1 100 champs retrouvés à l'écran ; la copie instrumentée des pages dit pour chaque charge sortie la ligne du gabarit fautif ; (2) sonde par les gestes — la charge est TAPÉE dans les champs des formulaires que l'application ouvre (invitation d'une personne, nouvelle absence, ajout d'un article, demande d'achat, nouveau client avec intervention…), puis 89 à 91 écrans et fiches sont revisités par passage ; (3) sonde par l'adresse (fragment et requête).",
+    "sondes": ["scratchpad/proto-final/securite/injection-statique.js", "injection-instr.js", "injection-outils.js", "injection-donnees.js", "injection-gestes.js (+ injection-scenarios.js)", "injection-url.js", "injection-message.js"]
+  },
+  "failles": [
+    {
+      "n": "injection-01",
+      "titre": "Le prénom et le nom d'une personne de l'équipe s'écrivent TELS QUELS dans le planning, les absences, les statistiques, les documents : du code tapé dans « Inviter une personne » s'exécute chez tous ceux qui ouvrent ces écrans",
+      "gravite": "haute",
+      "qui": "toute personne qui peut créer ou renommer un compte dans Équipe (le droit « Créer des comptes » : un bureau, une secrétaire, un chef d'équipe), puis, pour la victime, n'importe quel utilisateur qui ouvre le planning, les absences ou une liste — le patron compris. Dans la vraie application : aussi la personne invitée si elle peut modifier son propre nom.",
+      "obtient": "l'exécution de son JavaScript dans la session de la victime : lire et modifier tout ce que la victime voit (clients, factures, IBAN), agir à sa place (valider, supprimer), voler le jeton de session de la vraie application. Pour un droit de création de comptes (déléguable) c'est une montée de privilèges vers le patron.",
+      "etapes": "Équipe › « ＋ Inviter une personne » › Prénom = ¤n1¤\"'><img src=x onerror=…>, Nom = ¤n2¤…, e-mail valide, « Travaille sur le terrain » coché (par défaut) › « Envoyer l'invitation ». Le nom entre dans TECHS puis H_GENS par eqxSynchro(). Ouvrir ensuite le planning de l'équipe, les absences, le panneau « Nouvelle absence », l'export des absences, la liste des tâches : la balise <img> existe dans la page et son onerror s'exécute.",
+      "preuve": "REJOUÉE au navigateur (injection-gestes.js --routes=equipe,… ) : 40 à 60 exécutions de la charge par passage, balise créée et gestionnaire onerror en ligne relevés sur : vueJour (planning, colonne « t.nom »), aGrille (absences : le nom entre aussi dans un attribut title=\"Voir ${t.nom} seul\", donc sortie d'attribut possible), aPanneauNouveau (<option>${t.nom}</option>), aExport, tkxCorpsPersonne. Recensement statique : 75 interpolations de noms de personnes non échappées, sur 71 lignes et 58 fonctions (panneauCreer, aLe, crAlertes, vueCarte, stBilan, aMontrerPlanning, aParMois, aAppliquer, compteRenduPdf, pdfFacture, bilanPdf, texteSms, tMailClient, paiementPastille…). Les documents envoyés au client (compte rendu, facture, SMS) reprennent le nom brut : la charge sort aussi vers l'espace client et les PDF.",
+      "ou": "eqNom(p) (apercu/prototype-op-gestion.html, = p.prenom + ' ' + p.nom) alimente TECHS[].nom et H_GENS[].nom dans eqxSynchro() ; les 75 points de sortie écrivent ${t.nom}, ${tech(i.tech).nom}, ${x.t.nom}… sans esc().",
+      "correction": "Deux gestes, l'un ne remplace pas l'autre : (1) À LA SORTIE : écrire esc(...) autour de chacune des 75 interpolations (ou, plus petit, faire rendre à tech(id) un objet dont .nom est déjà échappé et utiliser .brut pour les rares emplois en texte) ; (2) À L'ENTRÉE : dans l'invitation (inviterok), la modification de la fiche (modifok) et tout renommage, refuser les caractères < > \" ' & ` et les noms de plus de 60 caractères, et le DIRE (« Le nom ne peut contenir que des lettres, des chiffres, espaces, tirets et apostrophes »). Ajouter un banc : une charge dans chaque champ de nom, tous les écrans revisités, zéro exécution.",
+      "portee": "les deux (prototype : à corriger maintenant ; vraie application : le serveur doit AUSSI refuser ces caractères dans les noms, et le gabarit doit échapper par défaut)"
+    },
+    {
+      "n": "injection-02",
+      "titre": "L'unité d'un article (champ « Unité » de « ＋ Ajouter » dans Produits) s'écrit brute dans le Stock : du code tapé dans ce champ s'exécute à l'ouverture du Stock",
+      "gravite": "moyenne",
+      "qui": "toute personne qui peut ajouter un article au catalogue (droit Produits / Stock) ; victime : toute personne qui ouvre le Stock, les lignes « À valider », les bons de remise, les alertes de réassort.",
+      "obtient": "l'exécution de son JavaScript chez les collègues qui regardent le Stock (même conséquences que injection-01).",
+      "etapes": "Produits › « ＋ Ajouter » › Unité = ¤n11¤\"'><img src=x onerror=…>, les autres champs ordinaires › Enregistrer. Ouvrir « Stock » : la charge s'exécute.",
+      "preuve": "REJOUÉE (injection-gestes.js --routes=…produits… ; champ pr-u|Unité, 1 exécution, balise et onerror relevés sur l'écran « stock », gabarit matLigneArticle). La même valeur sort aussi dans la liste « À valider » (ligne de mouvement, étape 'PRODUITS[].u' de la sonde par les données).",
+      "ou": "sxQte(q, x) = prNum(q) + ' ' + prU(q, x.u || 'u') rend l'unité sans échappement, et ses 16 appelants l'écrivent dans des gabarits ; matLigneArticle, la ligne de mouvement et les alertes la reprennent.",
+      "correction": "Le plus petit : esc() dans sxQte (une ligne, couvre les 16 appelants) et à l'entrée, n'accepter pour l'unité qu'une liste (AX_UNITES existe déjà : u, kg, lot, L, m, boîte, paire, rouleau, aérosol, flacon) ou un motif court ^[\\p{L}\\p{N}²³.%/ -]{1,12}$.",
+      "portee": "les deux (prototype : maintenant ; vraie application : le serveur borne l'unité par la même liste)"
+    }
+  ],
+  "verifiesSansFaille": [
+    "Nouveau client avec une première intervention (nom, contact, e-mail, adresse, titre, ce que le client a dit) : 6 champs tapés, 6 retrouvés à l'écran, 91 écrans/fiches revisités, 0 sortie, 0 exécution — ces écrans passent par esc().",
+    "Adresse de la page : 33 essais (fragment #client-x-…, #inter-x-…, #facture-x-… et 12 autres familles, avec guillemets doubles et apostrophes ; requête ?lien= ?auto= ?app=) : 0 sortie, 0 exécution. Le fragment sert à choisir l'écran et n'est écrit que s'il désigne une fiche qui existe.",
+    "Le module de courrier (prototype-courrier.js) échappe tout par H() : objet, expéditeur, corps (corpsLu : texte échappé, liens limités à http(s) APRÈS échappement, rel=noopener nofollow), pas de HTML de courrier. Relu, non rejoué.",
+    "Les liens tel: et mailto: construits par lienTel()/lienMail() portent un schéma fixe devant la valeur échappée : pas de javascript:."
+  ],
+  "reglesPourLaVraieApplication": [
+    "Le gabarit échappe PAR DÉFAUT : une fonction html`…` dont chaque ${valeur} est échappée sauf si elle est marquée sûre (htmlSur(x)). Aujourd'hui l'inverse : 14 082 interpolations, 7 256 à relire à la main, échappement volontaire.",
+    "toast() écrit son message en innerHTML (175 appels) : toast(texte) échappe, toastHtml(html) est un second nom réservé aux messages écrits par l'application, jamais composés avec une saisie.",
+    "Une politique de sécurité de contenu (Content-Security-Policy) sur la vraie application : script-src sans 'unsafe-inline' (les pages n'ont presque aucun gestionnaire en ligne : un seul « on…= » dans OP GESTION), pas d'eval, frame-ancestors, base-uri 'self'. Elle transforme un oubli d'échappement en une ligne dans la console au lieu d'un vol de session. Les pages du prototype n'en ont pas.",
+    "Le serveur refuse, dans tout nom (personne, client, société, article, unité, lieu, véhicule), les caractères < > \" ' ` et borne la longueur : la liste des caractères permis, pas des interdits. Le client échappe quand même (deux barrières).",
+    "Tout lien venu d'une donnée (site, fichier, adresse) passe par une liste de schémas permis (https, http, mailto, tel) AVANT d'être écrit dans un href.",
+    "Les frames et pop-ups qui reçoivent des messages vérifient ev.source ET ev.origin ; les messages sortants nomment l'origine cible, jamais '*'."
+  ]
+}

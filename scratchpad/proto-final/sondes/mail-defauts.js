@@ -1,6 +1,6 @@
 // Sonde « défauts » : D01-D16 de scratchpad/proto-final/refonte/BOITE-MAIL.md REJOUÉS sur le module monté dans le prototype (pas sur le kit). ✓ = corrigé.
 // Chaque contrôle dit ce qu'il a mesuré. Une population vide ne passe pas : on compte les lignes / boutons avant de croire un « zéro ».
-const { lib, v, entrer, cap, fin, sortie, ouvrirMsg } = require('./mail-commun.js');
+const { lib, v, entrer, cap, fin, sortie, ouvrirMsg, casserBoite } = require('./mail-commun.js');
 const S = (c, f, a) => c.p.evaluate(f, a);
 (async () => {
   let c = await entrer({ profil:'mac' }), p = c.p;
@@ -61,6 +61,7 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   v('D16 « Re: Re: Re: » est nettoyé en tête de lecture', sj === 'Re: Rendez-vous du 12', sj);
   await S(c, () => R().querySelector('#readActs .acts-mac [data-act=unread]').click()); await p.waitForTimeout(400);
   v('D16 « Marquer comme non lu » ne ferme pas le message ouvert (grand écran)', await S(c, () => !!R().querySelector('.rsubj') && /Rendez-vous/.test(R().querySelector('.rsubj').textContent)));
+  await casserBoite(c);   // l'état par défaut a ses deux boîtes connectées (chef-01) : celui-ci est posé ici
   v('D16 la boîte illisible se DIT avec sa raison et un bouton « Reconnecter »', await S(c, () => /ne répond plus : le mot de passe/.test(R().querySelector('.loaderr').textContent) && /Reconnecter/.test(R().querySelector('.loaderr').textContent)));
   const sub = await S(c, () => R().querySelector('#lbSub').textContent.trim());
   v('D16 le sous-titre ne dit plus « Boîtes mail · Pr… » (tronqué) mais la catégorie et le nombre', !/Boîtes mail/.test(sub), sub);
@@ -88,6 +89,8 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   v('D16 le pied de la colonne (« Ajouter une boîte mail », « Réglages ») est dans l\'écran à 1440×900', pied.bas <= pied.h, pied);
   await fin(c);
   c = await entrer({ profil:'mac720' }); p = c.p;
+  // à 1280 px le module prend la mise en page « tablette » : la colonne des boîtes est un tiroir, qu'on ouvre ; son pied (« Ajouter une boîte mail ») est au bout du défilement, il ne recouvre plus les dossiers (telephone-06)
+  await S(c, () => R().querySelector('#btnNav').click()); await p.waitForTimeout(700); await S(c, () => { const s = R().querySelector('#sideScroll'); s.scrollTop = s.scrollHeight; }); await p.waitForTimeout(300);
   const pied2 = await S(c, () => { const f = R().querySelector('.side-foot').getBoundingClientRect(), s = R().querySelector('#sideScroll'); return { bas:Math.round(f.bottom), h:innerHeight, defile:s.scrollHeight > s.clientHeight }; });
   v('D16 à 1280×720, le pied de colonne est dans l\'écran (ou la colonne défile et le dit)', pied2.bas <= pied2.h, pied2);
   const titre = await S(c, () => { const t = R().querySelector('#ltTitle'); return t ? { tronque:t.scrollWidth > t.clientWidth + 1, txt:t.textContent } : null; });

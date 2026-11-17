@@ -487,7 +487,7 @@ var CSS = `
   .opc .list.multi .msg.picked{background:var(--tint-soft)}
   .opc .selbar{flex:none;display:flex;align-items:center;gap:4px;padding:8px 10px;border-top:var(--hair) solid var(--sep-mac);border-right:var(--hair) solid var(--sep-mac);background:var(--win)}
   .opc .selbar[hidden]{display:none}
-  .opc .selbar .sc{flex:1 1 auto;min-width:0;font-size:12.5px;font-weight:600;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+  .opc .selbar .sc{flex:1 0 auto;min-width:max-content;font-size:12.5px;font-weight:600;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
   .opc .selbar .sa{flex:none;font-size:12.5px;font-weight:600;color:var(--tint);padding:0 6px;height:30px;border-radius:7px}
   .opc .selbar .sb{flex:none;width:34px;height:30px;border-radius:7px;display:grid;place-items:center;color:var(--tint)}
   .opc .selbar .sb svg{width:18px;height:18px}
@@ -568,8 +568,14 @@ var CSS = `
   .opc .search-row{display:contents}
   .opc .search-cancel{display:none}
 
-  .opc .rpad{width:100%;max-width:860px;padding:28px 40px 72px}
-  .opc .rsubj{font:700 24px/1.25 var(--font-d);letter-spacing:-.012em;text-wrap:balance;overflow-wrap:anywhere;margin:0 0 18px}
+  /* Le MESSAGE d'abord, les gestes ensuite (relecture du 17 novembre 2026 : l'en-tête, le rangement, le suivi et le bandeau « reconnu » passaient AVANT le texte — à 1366×768 le « Bonjour » était sous le pli).
+     Un ordre d'AFFICHAGE (flex + order), valable pour les trois formats : objet, expéditeur, texte, ce que l'application a compris, suivi, réponses rapides, rangement, conversation. */
+  .opc .rpad{width:100%;max-width:860px;padding:28px 40px 72px;display:flex;flex-direction:column}
+  .opc .rsubj{order:1;font:700 24px/1.25 var(--font-d);letter-spacing:-.012em;text-wrap:balance;overflow-wrap:anywhere;margin:0 0 18px}
+  .opc .sched-banner,.opc .sign-card{order:2}
+  .opc .rhead{order:3}
+  .opc .rbody{order:5}
+  .opc .thread{order:10}
   .opc .rhead{display:flex;align-items:flex-start;gap:12px}
   .opc .ravatar{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:600;font-size:15px;letter-spacing:.02em;background:var(--avatar)}
   .opc .rident{flex:1 1 auto;min-width:0}
@@ -580,7 +586,7 @@ var CSS = `
   .opc .rdate{margin-left:auto;flex:none;font-size:12px;color:var(--label-2);white-space:nowrap;font-variant-numeric:tabular-nums}
   .opc .rdate .d-short{display:none}
   .opc .rmeta{font-size:12px;line-height:1.5;color:var(--label-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .opc .rsep{height:var(--hair);background:var(--sep-mac);margin:16px 0 20px}
+  .opc .rsep{order:4;height:var(--hair);background:var(--sep-mac);margin:16px 0 20px}
   .opc .rbody{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
   .opc .rbody p{margin:0 0 14px}
   .opc .rbody p:last-child{margin-bottom:0}
@@ -601,7 +607,7 @@ var CSS = `
   .opc .att .att-dl:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
   .opc .att .att-dl[aria-busy="true"]{opacity:.45;pointer-events:none}
   @media (pointer:coarse){ .opc .att .att-dl{width:44px;height:44px;margin:-9px -11px -9px 0} }
-  .opc .rquick{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:30px}
+  .opc .rquick{order:8;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:26px}
   .opc .rq-lbl{display:none}
   .opc .rquick button{font-size:13px;font-weight:500;color:var(--tint);background:var(--tint-soft);padding:6px 13px;border-radius:999px;transition:background-color .12s}
   .opc .rquick button:hover{background:var(--tint-soft-2)}
@@ -688,6 +694,7 @@ var CSS = `
   .opc .catt-row .att{padding-right:6px}
   .opc .att-x{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:none;color:var(--label-2);font-size:18px;line-height:1;cursor:pointer}
   .opc .att-x:hover{background:var(--fill)}
+  @media (pointer:coarse){ .opc .att-x{width:44px;height:44px;margin:-9px -6px -9px 0;font-size:22px} }   /* 44 pt au doigt, sans élargir la pastille (marges négatives, comme le bouton de téléchargement) */
   .opc .att-x:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
   .opc .att .att-pv{flex:none;border:0;background:none;color:var(--tint);font:inherit;font-size:13px;font-weight:600;padding:5px 8px;margin:-4px 0;border-radius:8px;cursor:pointer}
   .opc .att .att-pv:hover{background:var(--fill)}
@@ -841,7 +848,7 @@ var CSS = `
   .opc .toast{position:fixed;left:calc(var(--opc-x,0px) + 16px);right:calc(var(--opc-r,0px) + 16px);margin:0 auto;width:fit-content;bottom:calc(22px + var(--opc-bas,0px) + var(--sa-bottom));z-index:200;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:14px;background:var(--toast);color:#fff;font-size:13px;font-weight:500;-webkit-backdrop-filter:saturate(1.6) blur(20px);backdrop-filter:saturate(1.6) blur(20px);box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transform:translateY(14px);transition:opacity .22s,transform .3s var(--ease)}
   .opc .toast.show{opacity:1;transform:none}
   .opc .toast.show.act .undo{pointer-events:auto} /* le HUD ne capte jamais les touchers ; seuls « Annuler l'envoi » / « Annuler » sont cliquables */
-  .opc .toast > span{min-width:0;overflow-wrap:anywhere}
+  .opc .toast > span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}   /* un objet de 200 signes couvrait 73 % de l'écran à 320 px */
   .opc .toast.two{flex-wrap:wrap;row-gap:8px}   /* « Annuler » + « Annuler l'envoi » : le texte sur sa ligne, les deux boutons dessous, à droite */
   .opc .toast.two > span:not(.ok){flex:1 1 calc(100% - 40px)}
   .opc .toast.two #tAct{margin-left:auto}   /* une longue adresse passe à la ligne au lieu de sortir du HUD */
@@ -901,11 +908,11 @@ var CSS = `
   }
 
   /* Lecture : catégorie, « Pourquoi ici ? », « Déplacer vers… » */
-  .opc .rcat{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:14px 0 0 52px}
+  .opc .rcat{order:9;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:18px 0 0}
   .opc .cat-chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px 0 6px;border-radius:6px;background:var(--fill-2);font-size:12px;font-weight:600;color:var(--label);white-space:nowrap}
   .opc .cat-chip svg{width:14px;height:14px;color:var(--cat-c)}
   /* Le suivi d'une demande : un groupe de trois états et le nom de qui s'en charge — sur la même rangée que la catégorie (mêmes réglages de mise en page) */
-  .opc .rsuivi{align-items:center}
+  .opc .rcat.rsuivi{order:7;align-items:center}
   .opc .rs-l{font-size:12px;font-weight:600;color:var(--label-2)}
   .opc .rs-seg{display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:var(--fill-2)}
   .opc .rs-b{min-height:26px;padding:0 10px;border:0;border-radius:7px;background:none;color:var(--label);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
@@ -921,7 +928,7 @@ var CSS = `
   .opc .lnk svg{width:12px;height:12px}
   .opc .lnk .chv svg{width:10px;height:10px;transition:transform .2s var(--ease)}
   .opc .lnk[aria-expanded="true"] .chv svg{transform:rotate(90deg)}
-  .opc .why{margin:10px 0 0 52px;padding:10px 12px 10px 14px;border-radius:10px;background:var(--fill-2);font-size:12.5px;line-height:1.45;color:var(--label)}
+  .opc .why{order:9;margin:10px 0 0;padding:10px 12px 10px 14px;border-radius:10px;background:var(--fill-2);font-size:12.5px;line-height:1.45;color:var(--label)}
   .opc .why-t{font-weight:600;margin-bottom:2px}
   .opc .why ul{margin:0;padding:0 0 0 16px}
   .opc .why li{margin:2px 0;overflow-wrap:anywhere}
@@ -1165,9 +1172,11 @@ var CSS = `
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .btn:active{opacity:.55}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .btn.primary{background:none;color:var(--tint);font-weight:600;box-shadow:none}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .btn.primary:hover{background:none}
-    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn,.opc:where([data-fmt="phone"],[data-fmt="pad"]) .sched-btn{width:44px;padding:0}
-    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn .lbl,.opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn .ic-plane,.opc:where([data-fmt="phone"],[data-fmt="pad"]) .sched-btn .lbl{display:none}
-    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn .ic-up{display:block;width:32px;height:32px}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .sched-btn{width:44px;padding:0}
+    /* l'action principale porte son MOT (D05 n'était réglé que pour l'ordinateur : au téléphone et sur tablette seule une flèche ↑ dans un rond tenait lieu d'envoi) */
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn{width:auto;min-width:44px;padding:0 10px}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn .lbl{display:inline;font-weight:600}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn .ic-plane,.opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn .ic-up,.opc:where([data-fmt="phone"],[data-fmt="pad"]) .sched-btn .lbl{display:none}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .sched-btn svg{width:25px;height:25px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .back-btn{gap:0;padding-left:0}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .back-btn svg{width:24px;height:24px;margin-right:-2px}
@@ -1226,8 +1235,7 @@ var CSS = `
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .cat .cc{font-size:14px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .cat:hover{background:var(--fill);box-shadow:none}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .cat[aria-pressed="true"]:hover{background:var(--cat-c)}
-    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .rcat{gap:0 18px;margin-left:0}
-    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .why{margin-left:0}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .rcat{gap:0 18px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .lnk{min-height:44px;font-size:15px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .lnk svg{width:14px;height:14px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .lnk .chv svg{width:11px;height:11px}
@@ -1363,15 +1371,15 @@ var CSS = `
     .opc:where([data-fmt="phone"]) .rhead{order:1}
     .opc:where([data-fmt="phone"]) .rsubj{order:2;margin:14px 0 0;font:600 20px/25px var(--font-d);letter-spacing:-.01em;text-wrap:wrap}
     .opc:where([data-fmt="phone"]) .sched-banner{order:3;margin:14px 0 0}
-    .opc:where([data-fmt="phone"]) .rcat{order:3;margin:10px 0 0;gap:0 16px}
-    .opc:where([data-fmt="phone"]) .why{order:3;margin:2px 0 0}
+    .opc:where([data-fmt="phone"]) .rcat{order:9;margin:18px 0 0;gap:0 16px}
+    .opc:where([data-fmt="phone"]) .why{order:9;margin:2px 0 0}
     .opc:where([data-fmt="phone"]) .cat-chip{height:26px;font-size:13px;padding:0 8px 0 6px}
     .opc:where([data-fmt="phone"]) .cat-chip svg{width:15px;height:15px}
     .opc:where([data-fmt="phone"]) .mv-long{display:none}
     .opc:where([data-fmt="phone"]) .mv-short{display:inline}
     .opc:where([data-fmt="phone"]) .rsep{order:4}
     .opc:where([data-fmt="phone"]) .rbody{order:5}
-    .opc:where([data-fmt="phone"]) .rquick{order:6}
+    .opc:where([data-fmt="phone"]) .rquick{order:8}
     .opc:where([data-fmt="phone"]) .rname{font-size:17px;font-weight:600}
     .opc:where([data-fmt="phone"]) .rmeta{font-size:15px;line-height:20px}
     .opc:where([data-fmt="phone"]) .rdate{font-size:15px}
@@ -1390,9 +1398,10 @@ var CSS = `
     .opc:where([data-fmt="phone"]) .sched-banner .tx span{font-size:13px}
 
     /* Feuilles iOS (glissent du bas, poignée, zones sûres) */
-    .opc.has-sheet:where([data-fmt="phone"]) .opc-root{background:#000}
-    .opc.sheet-under:where([data-fmt="phone"]) .app{transform-origin:50% 0;transform:translateY(max(var(--sa-top),20px)) scale(.92);border-radius:12px;overflow:hidden;filter:brightness(.85)}
-    .opc:where([data-fmt="phone"]) .overlay{display:flex;align-items:flex-end;padding:calc(max(var(--sa-top),20px) + 10px) 0 0}
+    /* l'effet « feuille iOS » (la page recule sur fond noir) n'a de sens que si le module occupe TOUT l'écran : dans une carte de 508 px sur un iPad de 820, il dessinait un cadre noir autour d'elle */
+    .opc.has-sheet.sheet-plein:where([data-fmt="phone"]) .opc-root{background:#000}
+    .opc.sheet-under.sheet-plein:where([data-fmt="phone"]) .app{transform-origin:50% 0;transform:translateY(max(var(--sa-top),20px)) scale(.92);border-radius:12px;overflow:hidden;filter:brightness(.85)}
+    .opc:where([data-fmt="phone"]) .overlay{display:flex;align-items:flex-end;justify-content:center;padding:calc(max(var(--sa-top),20px) + 10px) 0 0}   /* centrée : la feuille d'écriture (700 px) restait collée au bord gauche d'un iPad */
     .opc:where([data-fmt="phone"]) .sheet{width:100%;max-height:100%;border-radius:12px 12px 0 0;padding-bottom:var(--sa-bottom);animation:opc-sheetUp .42s var(--ease)}
     .opc:where([data-fmt="phone"]) .sheet::before{content:"";position:absolute;z-index:9;top:5px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--label-3)}
     .opc:where([data-fmt="phone"]) .sheet.compose,.opc:where([data-fmt="phone"]) .sheet.acct{height:100%}
@@ -1454,8 +1463,9 @@ var CSS = `
   .opc .hpast{display:inline-block;margin-right:6px;padding:0 7px;border-radius:999px;font-size:11.5px;font-weight:600;line-height:18px;background:var(--fill);color:var(--label-2);vertical-align:1px}
   .opc .hpast.ton-b{background:var(--tint-soft);color:var(--tint)}
   .opc .hpast.ton-v{background:var(--pro-soft);color:var(--pro)}
-  .opc .hpast.ton-o{background:rgba(255,149,0,.16);color:var(--flag-edge)}
-  .opc .hband{display:flex;flex-direction:column;gap:6px;margin:0 0 16px;padding:12px 14px;border-radius:12px;background:var(--tint-soft);border:1px solid var(--tint-soft-2)}
+  .opc .hpast.ton-o{background:#fde7c4;color:#6b3a00}
+  .opc:where([data-theme="nuit"]) .hpast.ton-o{background:rgba(255,149,0,.16);color:var(--flag-edge)}
+  .opc .hband{order:6;display:flex;flex-direction:column;gap:6px;margin:22px 0 0;padding:12px 14px;border-radius:12px;background:var(--tint-soft);border:1px solid var(--tint-soft-2)}
   .opc .hband.urgent{background:var(--warn-soft);border-color:rgba(255,59,48,.35)}
   .opc .hband .hk{font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--label-2)}
   .opc .hband .ht{font-size:16px;line-height:1.3;color:var(--label)}
@@ -1485,26 +1495,70 @@ var CSS = `
   .opc:where([data-fmt="mac"]) .seg button{font-size:13px}
   .opc:where([data-fmt="mac"]) .cat{font-size:13px}
   .opc:where([data-fmt="mac"]) .rsuivi .rs-b{font-size:13px}
+  @media (pointer:fine){ .opc:where([data-fmt="mac"]) .selbar{gap:2px;padding:8px} .opc:where([data-fmt="mac"]) .selbar .sb{width:30px} }
   .opc:where([data-fmt="mac"]) .rquick button{font-size:14px}
   .opc:where([data-fmt="mac"]) .m-from{font-size:15px}
   .opc:where([data-fmt="mac"][data-etroit]) .list .lb-title{font-size:15px}   /* D16 : « Boîte de réception » ne se tronque plus entre « Sélectionner » et le bouton d'écriture */
   /* D16 : le pied de la colonne (Ajouter une boîte mail, Réglages) restait sous le pli à 1280×720, sans que rien ne dise qu'on pouvait défiler : il reste collé en bas */
-  .opc .side-foot{position:sticky;bottom:0;z-index:2;background:var(--side-pad);border-top:var(--hair) solid var(--sep-mac)}
+  .opc:where([data-fmt="mac"]) .side-foot{position:sticky;bottom:0;z-index:2;background:var(--side-pad);border-top:var(--hair) solid var(--sep-mac)}
+  /* un fondu au-dessus du pied : un dossier coupé net derrière lui se lisait comme une erreur ; coupé en douceur, il dit « ça défile » */
+  .opc:where([data-fmt="mac"]) .side-foot::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:22px;background:linear-gradient(to bottom,transparent,var(--side-pad));pointer-events:none}
   /* D03 : les catégories portent leur MOT sur une seule rangée qui défile (le symbole seul ne disait rien à un artisan) */
-  .opc:where([data-fmt="mac"]) .catbar{flex-wrap:nowrap}
-  .opc:where([data-fmt="mac"]) .cat{flex:none;height:30px;min-width:0;padding:0 11px;gap:6px;font-size:13px}
+  /* ordinateur-20 : six catégories dans une colonne de 304 px — quatre sortaient de l'écran derrière un fondu, sans flèche : un geste que l'ordinateur à souris ne connaît pas.
+     Elles passent à la ligne, avec leur mot seul (le symbole ne disait rien de plus) : toutes se voient, sans défiler. */
+  .opc:where([data-fmt="mac"],[data-fmt="pad"]) .catbar{flex-wrap:wrap;gap:5px}   /* rien ne déborde : catFade() ne pose donc aucun fondu */
+  .opc:where([data-fmt="mac"],[data-fmt="pad"]) .cat{flex:0 0 auto;height:30px;min-width:0;padding:0 10px;font-size:14px}
+  .opc:where([data-fmt="mac"],[data-fmt="pad"]) .cat svg{display:none}
+  @media (pointer:coarse){ .opc:where([data-fmt="mac"],[data-fmt="pad"]) .cat{height:40px;padding:0 13px;font-size:15px} }
+  /* un iPad en portrait : le module est une carte de 500 px au format « téléphone », et six catégories n'y tiennent pas sur une rangée — elles passent à la ligne, comme sur ordinateur. Sur un vrai téléphone (≤ 430 px) la rangée défile, comme Mail d'iOS. */
+  @container (min-width:440px){
+    .opc:where([data-fmt="phone"]) .catbar{flex-wrap:wrap;gap:6px 8px}
+    .opc:where([data-fmt="phone"]) .cat{height:40px;padding:0 14px;font-size:15px}
+    .opc:where([data-fmt="phone"]) .cat svg{display:none}
+  }
   .opc:where([data-fmt="mac"]) .cat[aria-pressed="true"] .cl{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:nowrap}
+  /* ordinateur-13 : l'écran était écrit en 11–13 px, alors que Clients et Devis sont à 16 px : on monte les libellés de dossiers, de filtres, de catégories, les pastilles,
+     les sous-titres et le bandeau d'erreur à 14 px au moins, et les champs et segments à 34 px de haut (souris : sous le doigt, les règles tactiles plus grandes gardent la main) */
+  @media (pointer:fine){
+    .opc:where([data-fmt="mac"]) .srow{height:32px;font-size:14px}
+    .opc:where([data-fmt="mac"]) .shead{font-size:12px}
+    .opc:where([data-fmt="mac"]) .cnt{font-size:13px}
+    .opc:where([data-fmt="mac"]) .search{height:34px}
+    .opc:where([data-fmt="mac"]) .search input{font-size:14px}
+    .opc:where([data-fmt="mac"]) .seg button{height:30px;font-size:14px}
+    .opc:where([data-fmt="mac"]) .lb-sub{font-size:12.5px;line-height:15px}
+    .opc:where([data-fmt="mac"]) .loaderr{font-size:14px}
+    .opc:where([data-fmt="mac"]) .loaderr .lnk{font-size:14px}
+    .opc:where([data-fmt="mac"]) .hpast,.opc:where([data-fmt="mac"]) .sgchip,.opc:where([data-fmt="mac"]) .m-sub .sgchip{font-size:12.5px;line-height:18px}
+    .opc:where([data-fmt="mac"]) .cat-chip{height:26px;font-size:13.5px}
+    .opc:where([data-fmt="mac"]) .rsuivi .rs-b{min-height:30px;font-size:14px}
+    .opc:where([data-fmt="mac"]) .rs-a input{min-height:30px;font-size:14px}
+    .opc:where([data-fmt="mac"]) .rs-l{font-size:13px}
+    .opc:where([data-fmt="mac"]) .rmeta{font-size:13px}
+    .opc:where([data-fmt="mac"]) .lnk{font-size:14px}
+  }
   .opc .loaderr{flex-wrap:wrap;justify-content:flex-start}
+  /* ordinateur-03 : sur un portable de 1280 px le module prend la mise en page « tablette », où le petit titre centré (absolu) tombait sur « Sélectionner » —
+     « SélBoîte de réception » : il devient la case qui reste entre « Boîtes » et « Sélectionner », il ne peut plus chevaucher personne */
+  .opc:where([data-fmt="pad"]) .lb-titles{position:static;transform:none;flex:1 1 0;min-width:0;max-width:none}
   .opc .loaderr > span{flex:1 1 100%}
-  .opc:where([data-fmt="phone"]) .hband{order:2;margin:12px 0 0;padding:10px 12px;gap:4px}
+  .opc:where([data-fmt="phone"]) .hband{order:6;margin:20px 0 0;padding:10px 12px;gap:4px}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn{width:100%;height:auto;min-height:44px;padding:8px 12px;white-space:normal;text-align:center;justify-content:center;line-height:1.25}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn.primary{grid-column:1/-1;background:var(--tint);color:var(--on-tint);box-shadow:none;font-weight:600}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn:not(.primary){background:var(--btn);color:var(--label);box-shadow:0 0 0 1px var(--btn-edge);font-weight:500}
   /* D16 : « Boîte de réception » se tronquait en « Boîte de récept… » sur un téléphone de 360 px (34 px de gras) */
-  .opc:where([data-fmt="phone"]) .list .large-title{font-size:clamp(21px,7.2vw,31px);line-height:1.2;letter-spacing:-.015em}
+  .opc:where([data-fmt="phone"]) .list .large-title,.opc:where([data-fmt="phone"]) .sidebar .large-title{font-size:clamp(21px,7.2vw,31px);line-height:1.2;letter-spacing:-.015em}   /* « Mes boîtes … » : la règle ne visait que le titre de la liste */
+  .opc:where([data-fmt="phone"]) #btnBack{max-width:66cqw}   /* « ‹ Boîte de réc… » : à 320 px la place existe (les deux flèches ne prennent que 88 px) */
+  .opc:where([data-fmt="phone"]) .sheet.compose .sheet-title{font-size:16px}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .rquick button{min-height:44px}   /* cible au doigt */
   .opc .hpast{margin-right:6px}
+  .opc .tl{display:none}
+  /* téléphone : un mot sous chaque icône de la barre du bas (comme la barre d'onglets de l'application) */
+  .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:56px;padding:0 4px;height:46px}
+  .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb) svg{width:22px;height:22px}
+  .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb) .tl{display:block;font-size:10.5px;line-height:12px;font-weight:500;color:var(--label-2);white-space:nowrap}
+  .opc:where([data-fmt="phone"]) .selbar .sb.dng .tl{color:var(--red-text)}
   .opc .msg.sel .hpast{background:rgba(255,255,255,.24);color:#fff}
 `;
 var FEUILLE = null;
@@ -1782,6 +1836,8 @@ var MARKUP = `
     {id:"archive",name:"Archive",            icon:"archive"},
     {id:"junk",   name:"Courrier indésirable", icon:"junk"},
     {id:"trash",  name:"Corbeille",          icon:"trash"},
+    // Dossier VIRTUEL d'une recherche « partout » (la fiche d'un client : « Voir tous ses courriels ») : reçus, envoyés et archivés ensemble. Jamais dans la colonne, jamais rangé : il s'éteint avec la recherche.
+    {id:"tout",   name:"Tous les courriels", icon:"inbox",   cache:true},
     // Le SUIVI d'une demande (seulement si la source le déclare) : des dossiers intelligents, lus sur l'état de suivi du message — jamais des dossiers de la boîte
     {id:"s_atraiter",name:"À traiter",        icon:"clock",   suivi:true, smart:true},
     {id:"s_encours", name:"En cours",         icon:"tray2",   suivi:true, smart:true},
@@ -1816,6 +1872,7 @@ var MARKUP = `
     CAP.journalEnvois=c.journalEnvois===true&&typeof SRC.envois==="function";
     CAP.telechargerPiece=c.telechargerPiece===true&&typeof SRC.piece==="function";
     CAP.suivi=c.suivi===true&&typeof SRC.suivi==="function";
+    CAP.equipe=Array.isArray(c.equipe)?c.equipe.map(String).filter(Boolean):null;   // (facultatif) les prénoms que « Assigné à » propose : sans liste, un débutant doit deviner qu'il faut écrire un prénom
     CAP.traduire=c.traduire===true&&typeof SRC.traduire==="function";   // « Traduire en français » (20 octobre 2026) : la source traduit, le module ne devine rien
     // La VRAIE signature exige la déclaration ET les six méthodes de l'objet `signature` : sans elles, le module ne promet rien de plus qu'avant.
     var sg=SRC.signature;
@@ -1960,6 +2017,16 @@ var MARKUP = `
       .then(function(){ chargement=null; LOAD.t=maintenant(); finCharge(avant,silencieux); },
             function(){ chargement=null; finCharge(avant,silencieux); });
     return chargement; }
+  // « Réessayer » dit ce qu'il a trouvé : un bouton qui relance sans un mot ne se distingue pas d'un bouton mort.
+  function reessayer(){
+    charger(false).then(function(){
+      if(!vivant) return;
+      var ko=boitesEnEchec();
+      if(LOAD.boites==="ko"||LOAD.boites==="calme") toast("Toujours impossible de lire vos boîtes mail.");
+      else if(ko.length) toast(ko.length>1?"Ces boîtes ne répondent toujours pas.":ko[0].email+" ne répond toujours pas.");
+      else toast("Votre courrier est à jour.");
+    }); }
+  function gererBoites(){ if(CAP.gererBoites) Promise.resolve().then(function(){ return SRC.gererBoites(); }).catch(function(x){ toast("Gestion des boîtes indisponible : "+msgErr(x,"échec")); }); }
   function finCharge(avant,silencieux){
     if(!vivant) return;
     if(LOAD.boites==="ok"){
@@ -2087,7 +2154,7 @@ var MARKUP = `
   function persist(){ try{
     majOver();
     ACCOUNTS.forEach(function(a){ SAVED.kinds[a.id]=kindOf(a); SAVED.names[a.id]=a.name; SAVED.sigs[a.id]=a.signature||""; });
-    var snap={v:4,scope:state.scope,folder:state.folder,cat:state.cat,rules:RULES,contacts:Object.keys(CONTACTS),settings:SETTINGS,
+    var snap={v:4,scope:state.scope,folder:state.folder==="tout"?"inbox":state.folder,cat:state.cat,rules:RULES,contacts:Object.keys(CONTACTS),settings:SETTINGS,
       kinds:SAVED.kinds,names:SAVED.names,sigs:SAVED.sigs,logos:SAVED.logos,msgs:OVER,gone:GONE.slice(-2000),user:[]};
     MESSAGES.forEach(function(m){ if(m.user) snap.user.push(nettoye(m)); });
     localStorage.setItem(LS,JSON.stringify(snap));
@@ -2124,9 +2191,9 @@ var MARKUP = `
   function hhmm(d){ return d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }
   function dayDiff(d){ var t0=new Date(maintenant()); t0.setHours(0,0,0,0); var d0=new Date(d); d0.setHours(0,0,0,0); return Math.round((d0-t0)/DAY); }
   function fmtSched(t){ var d=new Date(t), n=dayDiff(d), day;
-    if(n===0) day="aujourd'hui"; else if(n===1) day="demain"; else if(n>1&&n<7) day=d.toLocaleDateString("fr-FR",{weekday:"long"});
+    if(n===0) day="aujourd’hui"; else if(n===1) day="demain"; else if(n>1&&n<7) day=d.toLocaleDateString("fr-FR",{weekday:"long"});
     else day="le "+d.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"}).replace(/\./g,"");
-    return day+" à "+hhmm(d); }
+    return day+" à "+d.getHours()+" h"+(d.getMinutes()?" "+(d.getMinutes()<10?"0":"")+d.getMinutes():""); }   // « 8 h », « 18 h 30 » : l'heure comme le reste de l'écran la dit (jamais « 08:00 »)
   function fmtSchedShort(t){ var d=new Date(t), n=dayDiff(d), day;
     if(n===0) day="Auj."; else if(n===1) day="Demain"; else if(n>1&&n<7) day=cap(d.toLocaleDateString("fr-FR",{weekday:"short"}).replace(".",""));
     else day=d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});
@@ -2154,7 +2221,7 @@ var MARKUP = `
     if(fid==="s_atraiter") return s.statut==="aTraiter"; if(fid==="s_encours") return s.statut==="enCours";
     return !!CAP.moi&&s.statut!=="resolu"&&nomSuivi(s.assigne)===nomSuivi(CAP.moi); }
   function suiviDossiers(){ return CAP.suivi?FOLDERS.filter(function(f){ return f.suivi&&(f.id!=="s_moi"||!!CAP.moi); }):[]; }
-  function inFolder(m,fid){ if(/^s_/.test(fid)) return CAP.suivi&&suiviDossier(m,fid); if(fid==="flagged") return m.flagged&&m.folder!=="trash"&&m.folder!=="outbox"; return m.folder===fid; }
+  function inFolder(m,fid){ if(fid==="tout") return m.folder==="inbox"||m.folder==="sent"||m.folder==="archive"; if(/^s_/.test(fid)) return CAP.suivi&&suiviDossier(m,fid); if(fid==="flagged") return m.flagged&&m.folder!=="trash"&&m.folder!=="outbox"; return m.folder===fid; }
   // Brouillon ou message programmé encore modifiable (pas déjà parti entre-temps)
   function liveDraft(id){ var x=msgById(id); return x&&(x.folder==="drafts"||x.folder==="scheduled")?x:null; }
   function folderMessages(fid){ var arr=MESSAGES.filter(function(m){return inScope(m)&&inFolder(m,fid);});
@@ -2174,6 +2241,11 @@ var MARKUP = `
   // Même nom que la ligne de la barre latérale (« Pro », « Perso »)
   function scopeLabel(){ var s=state.scope; return s==="all"?"Toutes les boîtes":s==="pro"?(UN_COTE?"Boîtes mail":"Pro"):s==="perso"?"Perso":acctOf(s).email; }
   function coteCourant(){ var c=state.scope==="perso"||(acctExists(state.scope)&&kindOf(acctOf(state.scope))==="perso")?"perso":"pro"; return COTES.indexOf(c)>=0?c:COTES[0]; }
+  // Un dossier LOCAL (brouillons, envois programmés, signatures, journal du serveur) ne dépend d'aucune boîte : une boîte qui ne répond pas ne le concerne jamais.
+  function dossierLocal(f){ return !!f&&(f.id==="drafts"||f.id==="scheduled"||f.id==="sign"||!!f.journal); }
+  // Le message d'une boîte en échec commence déjà par son adresse (« marc@… : le mot de passe… ») : on ne l'écrit pas deux fois.
+  function sansAdresse(a,msg){ msg=String(msg||""); var ad=a.email+" :"; return msg.toLowerCase().indexOf(ad.toLowerCase())===0?msg.slice(ad.length).replace(/^\s+/,""):msg; }
+  function nbBoitesPortee(){ return ACCOUNTS.filter(function(a){ return state.scope==="all"||inScopeOf({acct:a.id},state.scope); }).length; }
   function boitesEnEchec(){ return ACCOUNTS.filter(function(a){ return LOAD.msgs[a.id]==="ko"&&(state.scope==="all"||inScopeOf({acct:a.id},state.scope)); }); }
   function catLabel(){ return catActive()&&state.cat!=="tout"?catName(state.cat):""; }
   // Le message affiché fait toujours partie de la liste : s'il n'est plus dans la catégorie choisie
@@ -2210,10 +2282,25 @@ var MARKUP = `
     placeSheetChrome(); paintStatus(); catReveal(); catFade();
   }
   // Pile de navigation iPhone : mailboxes → list → reading
+  /* LE RETOUR DU TÉLÉPHONE (relecture du 17 novembre 2026) : le bouton retour d'Android, le glissement depuis le bord de l'iPhone quittaient la Boîte mail pour l'Accueil —
+     depuis la lecture d'un message comme depuis un message en cours d'écriture, qui disparaissait sans un mot. Chaque niveau (lecture, colonne des boîtes, feuille ouverte) pose UNE entrée
+     d'historique à la même adresse ; le retour du navigateur recule d'un niveau, et ce n'est qu'au niveau de la liste qu'il laisse l'hôte quitter la rubrique.
+     La profondeur voulue se déduit de l'écran (histCible) et l'historique la rejoint (histSync) : un geste de l'application qui recule retire son entrée, il n'en laisse pas d'orpheline.
+     Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
+  var HIST={niv:0,ignorer:0,off:false,t:null,ti:null};
+  function overlayDePage(){ var o=$("#overlay"); return !!o&&!o.classList.contains("ov-menu"); }
+  function histCible(){ return isPhone()?((app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0)):0; }
+  function histSync(){
+    if(HIST.off||!vivant) return; clearTimeout(HIST.t);
+    HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return; var c=histCible();
+      try{
+        while(HIST.niv<c){ history.pushState({opcourrier:HIST.niv+1},"",location.href); HIST.niv++; }
+        if(HIST.niv>c){ var n=HIST.niv-c; HIST.niv=c; HIST.ignorer++; clearTimeout(HIST.ti); HIST.ti=setTimeout(function(){ HIST.ignorer=0; },900); history.go(-n); }
+      }catch(e){ HIST.off=true; } },0); }
   function go(view){
     if(!isPhone()) return;
     var prev=app.getAttribute("data-view"); if(prev===view) return;
-    app.setAttribute("data-view",view);
+    app.setAttribute("data-view",view); histSync();
     if(pendingUndo&&$("#tUndo")){ if(toastKind==="undo") $("#toast").classList.toggle("quiet",view!=="reading"); else { $("#tUndo").hidden=view!=="reading"; $("#toast").classList.toggle("two",view==="reading"&&!!$("#tAct")); } }
     var target=view==="mailboxes"?$("#sidebar"):view==="list"?$("#list"):$("#reading");
     try{ target.focus({preventScroll:true}); }catch(e){}
@@ -2261,7 +2348,7 @@ var MARKUP = `
       }); return s+'</div></section>'; }
     h+=sect("hFav","Favoris",FOLDERS.filter(function(f){return f.fav&&(!f.pro||cote==="pro")&&(!f.journal||CAP.journalEnvois)&&(f.id!=="sign"||SIGNER);}));
     if(suiviDossiers().length) h+=sect("hSuivi","Suivi",suiviDossiers());
-    h+=sect("hOther","Autres dossiers",FOLDERS.filter(function(f){return !f.fav&&!f.suivi;}));
+    h+=sect("hOther","Autres dossiers",FOLDERS.filter(function(f){return !f.fav&&!f.suivi&&!f.cache;}));
     h+='<div class="side-foot"><div class="glist">'+(LOAD.boites==="calme"&&!ACCOUNTS.length?'':'<button type="button" class="srow add" data-addaccount="1"><span class="sic" aria-hidden="true">'+I.plusCircle+'</span><span class="sl"><span class="sn">Ajouter une boîte mail</span></span></button>')+
       '<button type="button" class="srow add" data-settings="1"><span class="sic" aria-hidden="true">'+I.gear+'</span><span class="sl"><span class="sn">Réglages</span></span></button></div></div>';
     $("#sideBody").innerHTML=h;
@@ -2291,7 +2378,8 @@ var MARKUP = `
       if(LOAD.boites==="calme") return '<div class="empty" role="status">'+I.mail+'<b>Espace de test</b><span>'+H(LOAD.err)+'</span></div>';
       if(LOAD.boites==="ko") return '<div class="empty" role="alert">'+I.warn+'<b>Boîtes mail illisibles</b><span>'+H(LOAD.err||"On n’a pas pu savoir si une boîte est connectée.")+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
       return '<div class="empty">'+I.mail+'<b>Aucune boîte mail connectée</b><span>Connectez votre messagerie pour lire et envoyer vos mails ici.</span>'+pied([" primary"," data-addaccount=\"1\"","Ajouter une boîte mail"])+'</div>'; }
-    if(ko&&ko.length&&!state.query) return '<div class="empty" role="alert">'+I.warn+'<b>Réception indisponible</b><span>'+H(ko.map(function(a){ return a.email+" : "+(LOAD.msgErr[a.id]||"échec"); }).join(" · "))+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
+    // Toutes les boîtes de la vue sont en panne : c'est la seule vérité à dire. Si une seule l'est, le bandeau au-dessus de la liste le dit, et la liste dit « Aucun message ».
+    if(ko&&ko.length&&!state.query&&ko.length>=nbBoitesPortee()) return '<div class="empty" role="alert">'+I.warn+'<b>Réception indisponible</b><span>'+H(ko.map(function(a){ return a.email+" : "+(sansAdresse(a,LOAD.msgErr[a.id])||"échec"); }).join(" · "))+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
     var txt=state.query?'Aucun message':(state.filter!=="all"?"Aucun message dans ce filtre":cl?"Aucun message dans "+cl:"Aucun message");
     // Une catégorie vide n'est pas une boîte vide : si les autres catégories portent des messages (une boîte qui ne reçoit que des notifications n'a rien dans « Principal »), on le DIT et on offre « Tout ».
     var ailleurs=(!state.query&&catActive()&&state.cat!=="tout")?folderMessages(state.folder).filter(matchesFilter).length:0;
@@ -2303,7 +2391,7 @@ var MARKUP = `
     var all=catScoped(), u=all.filter(function(m){return !m.read;}).length, l1;
     if(state.folder==="scheduled") l1=all.length?plural(all.length,"envoi programmé","envois programmés"):"Aucun envoi programmé";
     else if(state.folder==="drafts") l1=all.length?plural(all.length,"brouillon","brouillons"):"Aucun brouillon";
-    else if(state.folder==="inbox"&&!state.query){ var uf=folderMessages("inbox").filter(function(m){return !m.read;}).length; l1=uf?plural(uf,"non lu","non lus"):all.length?"Tout est lu":"Aucun message"; }
+    else if(state.folder==="inbox"&&!state.query){ var uf=folderMessages("inbox").filter(function(m){return !m.read;}).length; l1=uf?plural(uf,"non lu","non lus")+(cl?" en tout":""):all.length?"Tout est lu":"Aucun message"; }   // le nombre est celui de TOUTE la boîte : collé au nom d'une catégorie il se lisait comme le sien
     else if(u) l1=plural(u,"non lu","non lus");
     else l1=all.length?plural(all.length,"message","messages"):"Aucun message";
     return '<span class="st1">'+H(l1)+'</span><span class="st2">'+st2+'</span>';
@@ -2339,9 +2427,9 @@ var MARKUP = `
   // D04 : UN seul nombre, et il dit ce qu'il compte. Boîte de réception : les non lus de la BOÎTE (le même que la pastille du dossier), quelle que soit la catégorie ouverte.
   // D16 : une boîte qu'on n'a pas pu lire ne se dit pas « aucun message ».
   function sousTitreListe(f,msgs,ko){
-    if(ko&&ko.length&&!msgs.length&&!state.query) return "réception indisponible";
+    if(ko&&ko.length&&!msgs.length&&!state.query&&ko.length>=nbBoitesPortee()) return "réception indisponible";
     if(state.query) return msgs.length?plural(msgs.length,"résultat","résultats"):"aucun résultat";
-    if(state.folder==="inbox"){ var u=folderMessages("inbox").filter(function(m){return !m.read;}).length; return u?plural(u,"non lu","non lus"):"tout est lu"; }
+    if(state.folder==="inbox"){ var u=folderMessages("inbox").filter(function(m){return !m.read;}).length; return u?plural(u,"non lu","non lus")+(catActive()&&state.cat!=="tout"?" en tout":""):"tout est lu"; }
     if(state.folder==="scheduled") return msgs.length?plural(msgs.length,"envoi programmé","envois programmés"):"aucun envoi programmé";
     if(state.folder==="drafts") return msgs.length?plural(msgs.length,"brouillon","brouillons"):"aucun brouillon";
     return msgs.length?plural(msgs.length,"message","messages"):"aucun message"; }
@@ -2350,11 +2438,13 @@ var MARKUP = `
     $("#list").classList.toggle("multi",!!state.multi); app.classList.toggle("multi-on",!!state.multi); $("#rows").setAttribute("aria-multiselectable",String(!!state.multi));
     var stg=$("#btnSelect"); stg.textContent=state.multi?"OK":"Sélectionner"; stg.setAttribute("aria-pressed",String(!!state.multi));
     var f=folderOf(state.folder), msgs=listMessages(), all=catScoped(), cl=catLabel();
-    var unread=all.filter(function(m){return !m.read;}).length, ko0=f.journal?[]:boitesEnEchec();
+    var unread=all.filter(function(m){return !m.read;}).length, ko0=dossierLocal(f)?[]:boitesEnEchec();
     $("#lbTitle").textContent=f.name; $("#ltTitle").textContent=f.name;
     // Sous-titre : la vue et la catégorie se tronquent d'abord ; le nombre de messages / non lus reste lisible.
     var ctxLbl=f.journal?"Journal du serveur":(UN_COTE&&state.scope===COTES[0]?"":scopeLabel());   // le journal des envois n'est celui d'aucune boîte ; avec un seul côté, « Boîtes mail » ne dit rien de plus que le titre de la page (D16 : il tronquait « Boîte de réception »)
-    var ctxTxt=ctxLbl+(cl?(ctxLbl?" · ":"")+cl:"");
+    // Le nom de la catégorie ne s'écrit PAS ici : le nombre du sous-titre est celui de toute la boîte (celui de la pastille du dossier), et collé au nom d'une catégorie il se lisait comme le sien
+    // (« Principal · 7 non lus » pour 5 lignes en gras) ; la catégorie choisie est déjà dite par la barre des catégories, juste dessous.
+    var ctxTxt=ctxLbl;
     $("#lbSub").innerHTML='<span class="ls-ctx">'+(!f.journal&&acctExists(state.scope)?acctTile(acctOf(state.scope)).replace('class="ptile','class="ptile mini')+' ':'')+H(ctxTxt)+'</span><span class="ls-n">'+(ctxTxt?'&nbsp;· ':'')+H(sousTitreListe(f,msgs,ko0))+'</span>';
     $("#ltSub").textContent=ctxLbl;
     $("#backLbl").textContent=f.name;
@@ -2368,12 +2458,12 @@ var MARKUP = `
       var nr=$('.msg[data-id="'+state.selected+'"]',rowsEl), sm=msgById(state.selected); nr.classList.add("sel"); nr.setAttribute("aria-selected","true"); nr.tabIndex=0;
       if(sm&&sm.read){ nr.classList.remove("unread"); var srx=nr.querySelector(".sr"); if(srx) srx.textContent=srx.textContent.replace("Non lu. ",""); }
       renderSelBar(); return; }
-    var ko=f.journal?[]:boitesEnEchec(), banniere=ko.length&&msgs.length?'<div class="loaderr" role="alert"><span>'+H(ko.map(function(a){ return a.email+" ne répond plus"+(LOAD.msgErr[a.id]?" : "+LOAD.msgErr[a.id].replace(/^[^:]*: /,""):""); }).join(" · "))+'</span>'+(CAP.gererBoites?'<button type="button" class="lnk" data-gererboites="1">Reconnecter</button>':'')+'<button type="button" class="lnk" data-retry="1">Réessayer</button></div>':'';
+    var ko=dossierLocal(f)?[]:boitesEnEchec(), toutKo=ko.length>0&&ko.length>=nbBoitesPortee()&&!state.query, banniere=ko.length&&(msgs.length||!toutKo)?'<div class="loaderr" role="alert"><span>'+H(ko.map(function(a){ return a.email+" ne répond plus"+(LOAD.msgErr[a.id]?" : "+sansAdresse(a,LOAD.msgErr[a.id]):""); }).join(" · "))+'</span>'+(CAP.gererBoites?'<button type="button" class="lnk" data-gererboites="1">Reconnecter</button>':'')+'<button type="button" class="lnk" data-retry="1">Réessayer</button></div>':'';
     // D03 : ce qui est rangé dans une autre catégorie ne disparaît pas sans le dire (une facture de fournisseur n'était vue nulle part)
     var ail=(catActive()&&state.cat!=="tout")?folderMessages("inbox").filter(function(m){ return !m.read&&effCat(m)!==state.cat; }):[];
     if(ail.length&&msgs.length) banniere+='<div class="rangeail" role="note"><span>'+H(plural(ail.length,"message non lu rangé","messages non lus rangés")+" dans d’autres catégories")+'</span><button type="button" class="lnk" data-cat-tout="1">Voir tout</button></div>';
     if(!msgs.length){
-      $("#rows").innerHTML=etatVide(f,cl,ko);
+      $("#rows").innerHTML=(toutKo?"":banniere)+etatVide(f,cl,ko);
       if(state.multi) state.multi=[]; renderSelBar();
       return;
     }
@@ -2418,14 +2508,14 @@ var MARKUP = `
   function renderSelBar(){
     var bar=$("#selBar"); if(!state.multi){ bar.hidden=true; bar.innerHTML=""; return; }
     var n=state.multi.length, tot=listMessages().length, sel=pickedMsgs(), anyUnread=sel.some(function(m){return !m.read;}), inTrash=state.folder==="trash";
-    var b=function(act,icon,label,cls){ return '<button type="button" class="sb'+(cls?" "+cls:"")+'" data-multi="'+act+'" aria-label="'+H(label)+'" title="'+H(label)+'"'+(n?'':' disabled')+'>'+icon+'</button>'; };
+    var b=function(act,icon,label,cls,court){ return '<button type="button" class="sb'+(cls?" "+cls:"")+'" data-multi="'+act+'" aria-label="'+H(label)+'" title="'+H(label)+'"'+(n?'':' disabled')+'>'+icon+(court?'<span class="tl" aria-hidden="true">'+H(court)+'</span>':'')+'</button>'; };
     bar.hidden=false;
     bar.innerHTML='<button type="button" class="sa" data-multi="all">'+(n&&n===tot?"Aucun":"Tout")+'</button>'+
       '<span class="sc" aria-live="polite">'+(n?plural(n,"sélectionné","sélectionnés"):"Touchez des messages")+'</span>'+
-      b("read",anyUnread?I.mail:I.unread,anyUnread?"Marquer comme lu":"Marquer comme non lu")+
-      (state.folder==="archive"||state.folder==="junk"||inTrash?b("toInbox",I.inbox,REMETTRE):b("archive",I.archive,"Archiver"))+
-      b("forward",I.forward,n>1?"Transférer les "+n+" messages":"Transférer")+
-      b("trash",I.trash,inTrash?"Supprimer définitivement":"Supprimer","dng");
+      b("read",anyUnread?I.mail:I.unread,anyUnread?"Marquer comme lu":"Marquer comme non lu","",anyUnread?"Lu":"Non lu")+
+      (state.folder==="archive"||state.folder==="junk"||inTrash?b("toInbox",I.inbox,REMETTRE,"","Remettre"):b("archive",I.archive,"Archiver","","Archiver"))+
+      b("forward",I.forward,n>1?"Transférer les "+n+" messages":"Transférer","","Transférer")+
+      b("trash",I.trash,inTrash?"Supprimer définitivement":"Supprimer","dng",inTrash?"Effacer":"Supprimer");
   }
   function pickedMsgs(){ return (state.multi||[]).map(msgById).filter(Boolean); }
   function setMulti(on,firstId){ if(on&&folderOf(state.folder).journal){ toast("Le journal des envois est en lecture seule"); return; }
@@ -2462,7 +2552,8 @@ var MARKUP = `
 
   // ---------- Rendu : lecture ----------
   function tb(act,icon,label,cls){ return '<button type="button" class="tb'+(cls?" "+cls:"")+'" data-act="'+act+'" aria-label="'+H(label)+'" title="'+H(label)+'">'+icon+'</button>'; }
-  function tbtn(act,icon,label,cls){ return '<button type="button" class="tbtn'+(cls?" "+cls:"")+'" data-act="'+act+'" aria-label="'+H(label)+'">'+icon+'</button>'; }
+  // `court` : le mot écrit sous l'icône au téléphone (« Archiver », « Supprimer ») — dix icônes sans un mot ne disaient pas ce qu'elles font à qui n'a pas l'habitude (relecture du 17 novembre 2026)
+  function tbtn(act,icon,label,cls,court){ return '<button type="button" class="tbtn'+(cls?" "+cls:"")+'" data-act="'+act+'" aria-label="'+H(label)+'">'+icon+(court?'<span class="tl" aria-hidden="true">'+H(court)+'</span>':'')+'</button>'; }
   function readActsHtml(m){
     var msgs=listMessages(), idx=-1; if(m) for(var i=0;i<msgs.length;i++) if(msgs[i].id===m.id){idx=i;break;}
     var nav='<div class="acts-nav"><button type="button" class="tb" data-nav="-1" aria-label="Message précédent" title="Message précédent"'+(idx>0?'':' disabled')+'>'+I.chevU+'</button>'+
@@ -2493,9 +2584,9 @@ var MARKUP = `
   function readToolsHtml(m){
     if(!m||m.jr) return '';
     var isDraft=m.folder==="drafts"||m.folder==="scheduled";
-    return '<button type="button" class="tbtn'+(m.flagged?" on-flag":"")+'" data-act="flag" aria-pressed="'+m.flagged+'" aria-label="Drapeau">'+(m.flagged?I.flagFill:I.flag)+'</button>'+
-      (peutRemettre(m)?tbtn("toInbox",I.inbox,REMETTRE):tbtn("archive",I.archive,"Archiver"))+tbtn("trash",I.trash,"Supprimer")+
-      (isDraft?'<button type="button" class="tbtn txt" data-act="editDraft">Modifier</button>':tbtn("replyMenu",I.reply,"Répondre, transférer…"))+
+    return '<button type="button" class="tbtn'+(m.flagged?" on-flag":"")+'" data-act="flag" aria-pressed="'+m.flagged+'" aria-label="Drapeau">'+(m.flagged?I.flagFill:I.flag)+'<span class="tl" aria-hidden="true">Drapeau</span></button>'+
+      (peutRemettre(m)?tbtn("toInbox",I.inbox,REMETTRE,"","Remettre"):tbtn("archive",I.archive,"Archiver","","Archiver"))+tbtn("trash",I.trash,"Supprimer","","Supprimer")+
+      (isDraft?'<button type="button" class="tbtn txt" data-act="editDraft">Modifier</button>':tbtn("replyMenu",I.reply,"Répondre, transférer…","","Répondre"))+
       '<span class="tool-gap"></span>';
   }
   // Corps d'un message que la source n'a pas rendu avec sa liste : lu à l'ouverture.
@@ -2577,7 +2668,7 @@ var MARKUP = `
         '<button type="button" class="lnk" id="whyBtn" aria-expanded="'+open+'" aria-controls="whyPanel">Pourquoi ce rangement&nbsp;?<span class="chv" aria-hidden="true">'+I.chevR+'</span></button>'+
         '<button type="button" class="lnk" data-act="moveCat" aria-haspopup="dialog" aria-label="Ranger ailleurs…">'+I.moveTo+'<span class="mv-long">Ranger ailleurs…</span><span class="mv-short">Ranger…</span></button></div>'+
         '<div class="why" id="whyPanel"'+(open?'':' hidden')+'><p class="why-t">Rangé dans '+H(catName(cid))+' :</p><ul>'+whyOf(m).map(function(x){ return '<li>'+H(cap(x))+'</li>'; }).join("")+'</ul>'+
-        '<p class="why-note">'+I.info+'<span>Tri fait sur cet appareil, d’après l’expéditeur et le contenu. Le tri est fait sur cet appareil ; l’expéditeur n’est pas encore vérifié.</span></p></div>'; }
+        '<p class="why-note">'+I.info+'<span>Le tri se fait d’après l’expéditeur et le contenu du message. Si ce n’est pas la bonne catégorie, touchez « Ranger ailleurs… ».</span></p></div>'; }
     catLine+=suiviHtml(m)+hoteHtml(m);
     var k=kindOf(acc);
     // « via » seulement si le destinataire affiché n'est pas déjà l'adresse de la boîte (le badge Pro / Perso nomme la boîte)
@@ -2626,8 +2717,8 @@ var MARKUP = `
     return true; }
   // Suivi d'une demande ('À traiter' / …) : la LISTE vit dans l'hôte (c'est lui qui sait ce qui reste à faire)
   function repondreA(id,intro){ var m=trouver(id); if(!m) return false; selectMessage(m.id); var rm=replyModel(m,false); rm.intro=intro?String(intro):""; openCompose(rm); return true; }
-  function rechercher(texte){
-    closeOverlay(); state.folder="inbox"; state.filter="all"; state.cat="tout"; state.scope=COTES.indexOf("pro")>=0?"pro":COTES[0]; state.selected=null;
+  function rechercher(texte,o){
+    closeOverlay(); state.folder=o&&o.partout?"tout":"inbox"; state.filter="all"; state.cat="tout"; state.scope=COTES.indexOf("pro")>=0?"pro":COTES[0]; state.selected=null;
     state.query=String(texte||""); var c=$("#search"); c.value=state.query; $("#searchRow").classList.toggle("has-q",!!state.query);
     renderAll(); if(isPhone()) go("list"); return true; }
   // Le suivi d'une demande (À traiter / En cours / Résolu, et qui s'en charge) : seulement sur un message reçu dont la source dit le suivi, et si elle sait l'enregistrer.
@@ -2636,7 +2727,8 @@ var MARKUP = `
     var s=m.suivi;
     return '<div class="rcat rsuivi" role="group" aria-label="Suivi de la demande"><span class="rs-l">Suivi</span>'+
       '<span class="rs-seg">'+SUIVI_ETATS.map(function(e){ return '<button type="button" class="rs-b" data-suivi="'+e[0]+'" aria-pressed="'+(s.statut===e[0])+'">'+e[1]+'</button>'; }).join("")+'</span>'+
-      '<label class="rs-a"><span class="rs-l">Assigné à</span><input type="text" id="suiviAssigne" maxlength="60" autocomplete="off" placeholder="Personne" value="'+H(s.assigne)+'"></label>'+
+      '<label class="rs-a"><span class="rs-l">Assigné à</span><input type="text" id="suiviAssigne" maxlength="60" autocomplete="off" placeholder="'+(CAP.equipe&&CAP.equipe.length?"Choisir quelqu’un":"Personne")+'" value="'+H(s.assigne)+'"'+(CAP.equipe&&CAP.equipe.length?' list="suiviEquipe"':'')+'>'+
+        (CAP.equipe&&CAP.equipe.length?'<datalist id="suiviEquipe">'+CAP.equipe.map(function(n){ return '<option value="'+H(n)+'"></option>'; }).join("")+'</datalist>':'')+'</label>'+
       (s.par?'<span class="rs-par">Dernier geste : '+H(s.par)+'</span>':'')+'</div>'; }
   // Se met à jour SUR PLACE (jamais en remplaçant la ligne) : la réponse du serveur arrive pendant que la personne tape un nom ou enchaîne un second geste, et ne doit pas lui voler le focus.
   function repeindreSuivi(m,focus){
@@ -2889,7 +2981,8 @@ var MARKUP = `
     try{ var l=HOTE.reponses(horsModule(m)); if(Array.isArray(l)&&l.length) return l.filter(function(x){ return x&&x.lib&&x.texte; }).slice(0,6); }catch(e){}
     return d; }
   // Ce que le module donne à l'hôte d'un message : des copies simples, jamais l'objet interne
-  function horsModule(m){ var o={id:m.src&&m.sid!=null?m.sid:m.id,dossier:m.folder,de:m.from?{nom:senderName(m),email:emailOf(m)}:null,a:m.to||"",objet:m.subject||"",date:tsOf(m),lu:!!m.read,pj:(m.att||[]).map(function(a,i){ return {nom:a.name,taille:a.size,type:a.kind,i:i}; }),boite:m.acct};
+  function horsModule(m){ var o={id:m.src&&m.sid!=null?m.sid:m.id,dossier:m.folder,de:m.from?{nom:senderName(m),email:emailOf(m)}:null,a:m.to||"",objet:m.subject||"",date:tsOf(m),lu:!!m.read,pj:(m.att||[]).map(function(a,i){ return {nom:a.name,taille:a.size,type:a.kind,i:i}; }),boite:m.acct,
+      local:!m.src};   /* écrit ICI (brouillon, envoi programmé) : son identifiant est celui du module, il ne désigne aucun message de la source — l'hôte ne le cherche pas dans ses propres courriels (une pastille « Client » sur un brouillon pour une adresse inconnue) */
     Object.defineProperty(o,"corps",{enumerable:true,get:function(){ return bodyText(m); }}); return o; }
   // « Re: Re: Re: Rendez-vous » s'écrit « Re: Rendez-vous » en tête de lecture (la ligne d'objet réelle n'est pas modifiée)
   function objetPropre(s){ s=String(s||""); var p=/^\s*((?:re|tr|fwd?|fw)\s*(?:\[\d+\])?\s*:\s*)+/i.exec(s); return p?(/^\s*(tr|fwd?|fw)/i.test(p[0])?"Tr: ":"Re: ")+s.slice(p[0].length):s; }
@@ -2917,7 +3010,8 @@ var MARKUP = `
     returnFocus=actif();
     $("#overlays").appendChild(ov);
     cadre.classList.add("has-sheet"); if(kind!=="menu") cadre.classList.add("sheet-under");
-    app.inert=true;
+    try{ if(hote.getBoundingClientRect().width>=window.innerWidth-2) cadre.classList.add("sheet-plein"); }catch(e){}
+    app.inert=true; histSync();
     // Fond voilé : ne ferme que si l'appui ET le relâchement y ont lieu (une sélection de texte glissée hors de la feuille ne ferme rien).
     var downOnOv=false;
     ov.addEventListener("pointerdown",function(e){ downOnOv=e.target===ov; });
@@ -2935,9 +3029,9 @@ var MARKUP = `
   function closeOverlay(){
     fermerApercu();
     var had=false, o; while((o=$("#overlay"))){ o.remove(); had=true; }
-    cadre.classList.remove("has-sheet","sheet-under"); app.inert=false; state.compose=null; rsOpenId=null;
+    cadre.classList.remove("has-sheet","sheet-under","sheet-plein"); app.inert=false; state.compose=null; rsOpenId=null;
     if(had&&returnFocus&&sr.contains(returnFocus)&&returnFocus!==document.body){ try{ returnFocus.focus({preventScroll:true}); }catch(e){} }
-    returnFocus=null;
+    returnFocus=null; histSync();
     if(had) setTimeout(flushScheduled,0);   // un envoi retenu pendant que sa feuille était ouverte part maintenant
   }
   function closeCompose(){ closeOverlay(); }
@@ -3472,7 +3566,8 @@ var MARKUP = `
   function notifierArrivee(neufs){
     var m=neufs[0];
     var open=function(){ if(!msgById(m.id)) return; closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer(); if(!inScope(m)) state.scope=m.acct; state.folder="inbox"; renderAll(); selectMessage(m.id); };
-    toast(neufs.length>1?neufs.length+" nouveaux messages — dont celui de "+senderName(m):"Nouveau message de "+senderName(m)+" — "+m.subject,{label:"Ouvrir",onAct:open});
+    var coupe=function(t,n){ t=String(t||"").replace(/\s+/g," ").trim(); return t.length>n?t.slice(0,n-1).trim()+"…":t; };
+    toast(neufs.length>1?neufs.length+" nouveaux messages — dont celui de "+coupe(senderName(m),40):"Nouveau message de "+coupe(senderName(m),40)+" — "+coupe(m.subject,60),{label:"Ouvrir",onAct:open,info:true});
     // la sonnerie de la notification est celle du système (une page ne la choisit pas) ; « Son des nouveaux mails » éteint, elle se tait
     if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){
       try{ var n=new Notification(senderName(m),{body:m.subject+"\n"+m.preview,tag:m.id,silent:!SETTINGS.son}); n.onclick=function(){ try{ window.focus(); }catch(e){} open(); n.close(); }; return true; }catch(e){} }
@@ -3689,15 +3784,13 @@ var MARKUP = `
     return out;
   }
   function schedPanel(id){
-    var tz=""; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(e){}
     var def=new Date(maintenant()); def.setDate(def.getDate()+1); def.setHours(9,0,0,0);
     var dv=toLocalInput(def).split("T"), today=toLocalInput(new Date(maintenant())).split("T")[0];
     return '<div class="sched" id="'+id+'">'+
-      '<div class="sched-head"><b>Programmer l’envoi</b>'+(tz?'<span>Fuseau : '+H(tz)+'</span>':'')+'</div>'+
+      '<div class="sched-head"><b>Programmer l’envoi</b></div>'+
       // D13 : l'avertissement est EN TÊTE et en mots simples (il était une ligne grise de 12 px sous le bouton : on programmait « demain 8 h », on fermait le téléphone, rien ne partait)
       (CAP.programmeServeur?'':'<div class="sched-warn" role="note">'+I.warn+'<span><b>Le message ne part que si cette page reste ouverte à l’heure choisie.</b> Si vous fermez l’application avant, il attendra votre retour dans « Programmés ».</span></div>')+
       '<div class="gcard sched-list">'+presetsHtml()+'</div>'+
-      (tz?'<p class="sched-tz">Fuseau horaire : '+H(tz)+'</p>':'')+
       '<div class="ghead" aria-hidden="true">Autre date</div>'+
       '<div class="gcard"><div class="fld sched-custom"><label for="'+id+'Date">Date</label>'+
         '<input type="date" id="'+id+'Date" lang="fr" value="'+dv[0]+'" min="'+today+'">'+
@@ -3817,7 +3910,7 @@ var MARKUP = `
         '<div class="ghead" id="mvLbl">Catégorie</div>'+
         '<div class="gcard" id="mvList" role="radiogroup" aria-labelledby="mvLbl">'+OPClassify.CATS.map(function(c){ var on=c.id===cur;
           return '<button type="button" class="sp mvopt" role="radio" aria-checked="'+on+'" tabindex="'+(on?0:-1)+'" data-cat="'+c.id+'">'+
-            '<span class="mvic" aria-hidden="true">'+I[CAT_ICON[c.id]]+'</span><span class="sp-l"><b>'+H(c.name)+'</b>'+(on?' <i>actuelle</i>':'')+'</span><span class="mck" aria-hidden="true">'+I.check+'</span></button>'; }).join("")+'</div>'+
+            '<span class="mvic" aria-hidden="true">'+I[CAT_ICON[c.id]]+'</span><span class="sp-l"><b>'+H(catName(c.id))+'</b>'+(on?' <i>actuelle</i>':'')+'</span><span class="mck" aria-hidden="true">'+I.check+'</span></button>'; }).join("")+'</div>'+
         '<div class="gcard mv-card"><label class="swrow" for="mvAlways"><span class="swl">Toujours ranger les mails de <b>'+H(email)+'</b> ici</span>'+
           '<input type="checkbox" class="switch" id="mvAlways" role="switch"></label></div>'+
         '<p class="gfoot-s">'+I.info+'<span>'+(sameSender>1?'Avec cette option, les '+sameSender+' messages reçus de cette adresse sont rangés aussi, ':'Avec cette option, ')+'la boîte mail s’en souvient pour les prochains mails.</span></p>'+
@@ -4201,7 +4294,7 @@ var MARKUP = `
       var btn=!!(action&&action.label);
       toastKind=btn?"act":"info";
       var refus=!!(action&&action.refus)||REFUS_RE.test(String(msg));   // D07 : un refus ne porte pas la coche verte d'une réussite
-      t.innerHTML='<span class="ok'+(refus?' bad':'')+'" aria-hidden="true">'+(refus?I.warn:I.check)+'</span><span>'+H(msg)+'</span>'+(btn?'<button class="undo" id="tAct" type="button">'+H(action.label)+'</button>':'')+
+      t.innerHTML='<span class="ok'+(refus?' bad':'')+'" aria-hidden="true">'+(refus?I.warn:action&&action.info?I.mail:I.check)+'</span><span>'+H(msg)+'</span>'+(btn?'<button class="undo" id="tAct" type="button">'+H(action.label)+'</button>':'')+
         (pendingUndo?'<button class="undo" id="tUndo" type="button"'+(undoHidden()?' hidden':'')+'>Annuler l’envoi</button>':'');
       t.classList.add("show"); t.classList.toggle("act",btn||!!pendingUndo); t.classList.toggle("two",btn&&!!pendingUndo&&!undoHidden());
       if(pendingUndo) $("#tUndo").onclick=pendingUndo.cancel;
@@ -4214,6 +4307,15 @@ var MARKUP = `
   }
   sur(sr,"click",function(e){ if(e.target.closest("[data-undo]")&&pendingUndo) pendingUndo.cancel(); });
   // Page quittée ou rechargée pendant les 5 s : l'envoi part (il est de toute façon déjà dans la boîte d'envoi persistée) ; un retrait de boîte en attente aussi.
+  // le retour du navigateur : on recule d'UN niveau (feuille fermée, ou lecture → liste) ; sans niveau poussé, l'hôte garde la main
+  sur(window,"popstate",function(){
+    if(!vivant||HIST.off) return;
+    if(HIST.ignorer>0){ HIST.ignorer=0; return; }
+    if(HIST.niv<=0||!isPhone()) return;
+    HIST.niv--;
+    if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
+    else if(app.getAttribute("data-view")!=="list") go("list");
+    histSync(); });
   sur(window,"pagehide",function(){ if(pendingUndo) pendingUndo.finish(true,true); retraits.forEach(function(r){ if(!r.annule) retirerCoteSource(r); }); });
 
   // ---------- Colonne Boîtes (iPad) ----------
@@ -4247,9 +4349,9 @@ var MARKUP = `
     renderAll(); persist(); $("#listScroll").scrollTop=0; $("#list").classList.remove("scrolled");
   });
   $("#sidebar").addEventListener("click",function(e){
-    if(e.target.closest("[data-retry]")){ charger(false); return; }
+    if(e.target.closest("[data-retry]")){ reessayer(); return; }
     var add=e.target.closest("[data-addaccount]"); if(add){ openAddAccount(); return; }
-    if(e.target.closest("[data-gererboites]")){ if(CAP.gererBoites) Promise.resolve().then(function(){ return SRC.gererBoites(); }).catch(function(x){ toast("Gestion des boîtes indisponible : "+msgErr(x,"échec")); }); return; }
+    if(e.target.closest("[data-gererboites]")){ gererBoites(); return; }
     if(e.target.closest("[data-settings]")){ openSettings(); return; }
     var sc=e.target.closest(".scope-row[data-scope]");
     if(sc){ state.scope=sc.getAttribute("data-scope"); app.setAttribute("data-scope",state.scope);
@@ -4280,7 +4382,8 @@ var MARKUP = `
     var bs=$$("#catBar .cat"), i=bs.indexOf(actif()); if(i<0) return; e.preventDefault();
     var n=bs[(i+(e.key==="ArrowRight"?1:-1)+bs.length)%bs.length]; n.focus(); try{ n.scrollIntoView({block:"nearest",inline:"nearest"}); }catch(x){} });
   $("#list").addEventListener("click",function(e){
-    if(e.target.closest("[data-retry]")){ charger(false); return; }
+    if(e.target.closest("[data-retry]")){ reessayer(); return; }
+    if(e.target.closest("[data-gererboites]")){ gererBoites(); return; }
     if(e.target.closest("[data-addaccount]")){ openAddAccount(); return; }
     var q=e.target.closest("[data-q]"); if(q){ e.stopPropagation(); doAct(q.getAttribute("data-q"),q.getAttribute("data-id")); return; }
     var c=e.target.closest("#catBar [data-cat]"); if(c){ setCat(c.getAttribute("data-cat"),true); return; }
@@ -4334,8 +4437,8 @@ var MARKUP = `
   /* ⛔ La valeur se lit PENDANT l'événement (4 novembre 2026, « la barre de recherche ne marche pas ») : l'arbre est un arbre d'ombre, et à la
      fin de la diffusion le navigateur VIDE `e.target` d'un événement né dans une ombre (spécification DOM, « clear targets »). Lu 120 ms plus
      tard, `e.target.value` valait `undefined` : `state.query` restait vide, la liste ne filtrait jamais, sans une seule erreur à l'écran. */
-  var sT; $("#search").addEventListener("input",function(e){ var champ=e.currentTarget||e.target, v=String(champ.value||""); $("#searchRow").classList.toggle("has-q",!!v); clearTimeout(sT); sT=setTimeout(function(){ state.query=v; renderList(); renderReading(); },120); });
-  function clearSearch(){ clearTimeout(sT); state.query=""; $("#search").value=""; $("#searchRow").classList.remove("has-q"); }
+  var sT; $("#search").addEventListener("input",function(e){ var champ=e.currentTarget||e.target, v=String(champ.value||""); $("#searchRow").classList.toggle("has-q",!!v); clearTimeout(sT); sT=setTimeout(function(){ if(!v&&state.folder==="tout") state.folder="inbox"; state.query=v; renderList(); renderReading(); },120); });
+  function clearSearch(){ clearTimeout(sT); if(state.folder==="tout") state.folder="inbox"; state.query=""; $("#search").value=""; $("#searchRow").classList.remove("has-q"); }
   // iPad/iPhone : bouton « Annuler » à côté du champ actif, comme une barre de recherche iOS
   $("#searchCancel").onclick=function(){ clearSearch(); var a=actif(); if(a&&a.blur) a.blur(); renderList(); renderReading(); };
   // Anneaux de focus au clavier seulement sur iPhone (le toucher n'affiche que le curseur)
@@ -4410,7 +4513,8 @@ var MARKUP = `
     // H7 — liens d'une tâche, de l'Accueil, d'une fiche client : le module peut ne pas être encore chargé (la demande attend son premier relevé)
     ouvrir:function(id){ apresChargement(function(){ if(vivant) ouvrirMessage(id); }); return true; },
     repondre:function(id,intro){ apresChargement(function(){ if(vivant) repondreA(id,intro); }); return true; },
-    rechercher:function(t){ apresChargement(function(){ if(vivant) rechercher(t); }); return true; },
+    ecrire:function(m){ apresChargement(function(){ if(vivant) openCompose(m||null); }); return true; },   // un nouveau message, depuis un bouton de l'hôte (« ＋ Écrire » de l'en-tête de la rubrique)
+    rechercher:function(t,o){ apresChargement(function(){ if(vivant) rechercher(t,o); }); return true; },
     // ferme la fenêtre ouverte (composeur, menu) sans rien enregistrer d'inventé : sert la visite guidée de l'hôte
     fermer:function(){ try{ if(state.compose&&state.compose.dismiss) state.compose.dismiss(); }catch(e){} closeOverlay(); return true; },
     etat:function(){ var m=msgById(state.selected); return {selection:m?(m.src&&m.sid!=null?m.sid:m.id):null,dossier:state.folder,recherche:state.query,nbNonLus:folderMessages("inbox").filter(function(x){return !x.read;}).length,format:curFmt}; }
