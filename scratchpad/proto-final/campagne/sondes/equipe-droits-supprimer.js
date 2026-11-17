@@ -14,7 +14,7 @@ const PROFIL = process.argv[2] || 'mac';
   for (const [nom, off] of [['avec la case', false], ['SANS la case', true]]) {
     await regler(off); await comme();
     await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="fiche|tl"]'); await L.calme(p, 400);
-    const actif = await vis('#calque [data-eq="actif|tl"]'); await L.toucher(c, '#calque [data-eq="actif|tl"]'); await L.calme(p, 500);
+    const actif = await vis('#calque [data-eq="desact|tl"]'); await L.toucher(c, '#calque [data-eq="desact|tl"]'); await L.calme(p, 500);
     const pan = (await E.obs(p)).pan; const final = await vis('#calque [data-eqx^="desactok"]');
     if (off) v('equipe-19 admin.s décochée : si « Désactiver le compte » est proposé, la fenêtre qui suit a son bouton final (pas d’impasse) ; sinon le bouton n’est pas dessiné', !actif || (final && pan !== '') || (!actif), { actif, pan, boutonFinalVisible:final });
     else v('avec la case : « Désactiver le compte » → « Avant de désactiver » → bouton « Désactiver et reporter » visible', actif && /Avant de désactiver/.test(pan) && final, { actif, pan, final });

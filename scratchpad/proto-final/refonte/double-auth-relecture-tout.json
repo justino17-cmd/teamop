@@ -1,0 +1,144 @@
+{
+  "lot": "double-auth",
+  "etape": "4 sur 6 (relire-tout)",
+  "angle": "profils mac, windows, ipad, iphone, android, jour et nuit, mode application, SANS ?auto= (qui:null) : chaque rôle active son téléphone et se connecte au nombre, mauvais nombre, expiration, connexion inhabituelle, pirate, « Ce n'est pas moi », déverrouillage, Nouveau téléphone, Mon compte, gestes sensibles, secrets, ?auto=",
+  "couvert": [
+    "première connexion complète au vrai clic (écran A, PIN simple/différent, code d'activation, écran B code faux/juste, écran C : 5 refus de mot de passe puis accepté) : gérant (mac jour), secrétariat (iphone jour)",
+    "connexion de tous les jours (Karim) : champ vide, identifiant inconnu = mot de passe faux (même phrase), 5 faux → verrou, +14 min encore verrouillé, +16 min libre, mauvais nombre, expiration à 2 min + Recommencer, Annuler, 6 demandes puis refus, code à 6 chiffres accepté",
+    "connexion inhabituelle (autre ordinateur) : boîte rouge, carte rouge du téléphone, nombre, approbation + toast, ordinateur reconnu",
+    "Léa verrouillée au départ : bon mot de passe refusé (même phrase), déverrouillage par Marc (Sécurité → Déverrouiller, case, re-confirmation, panneau du provisoire, Terminé), ancien mot de passe mort, nouvelle connexion rouge",
+    "Équipe : bandeau rouge, fiche de Karim (aucun mot de passe lisible, texte à copier sans mot de passe), Nouveau téléphone (révocation lue par le téléphone, ancien mot de passe mort, ré-activation)",
+    "gestes sensibles : IBAN masqué, ouverture de la banque sans confirmation (rien ne s'ouvre), phrase de la fenêtre, focus piégé, Échap, mauvais nombre, bon nombre qui reprend le geste, fenêtre de 5 minutes sans prolongation",
+    "Mon compte (Karim) : historique, appareils, changer le mot de passe (4 refus + succès), aucun secret dans les champs ni le rangement, ancien mot de passe refusé après",
+    "mesures d'appareil sur l'écran de confirmation : nombre et pastille sur 6 profils (normal et rouge) ; débordement, cibles, champs ; téléphone en vue plein écran (iphone, android, petit)",
+    "rangement du navigateur après activation/connexion : seulement opg_proto_atelier, opg_proto_espace, opg_proto_nv_vu_* (aucun secret)"
+  ],
+  "non_couvert": [
+    "le prototype de référence /home/user/kit-2fa/prototype-reference/index.html est ABSENT de cette machine (le dossier /home/user/kit-2fa n'existe pas : machine redémarrée) : la comparaison écran par écran n'a pas pu être faite ; seule la spécification DOUBLE-AUTHENTIFICATION.md (qui la décrit) sert de référence",
+    "?auto= sur un hôte non local : testé seulement dans le code (secuAutoPermis, ligne 25174) ; le serveur de la machine n'écoute que 127.0.0.1"
+  ],
+  "defauts": [
+    {
+      "n": "tout-01",
+      "gravite": "gênant (CORRIGÉ depuis)",
+      "ecran": "Équipe › fiche d'une personne › bloc « Connexion » (secuFicheConnexion)",
+      "role": "gérant (administrateur)",
+      "profils": "iphone (390), android (360), petit (320), jour ET nuit ; ipad, mac, windows : rien",
+      "etapes": "Se connecter en gérant (téléphone activé) → Équipe → ouvrir la fiche de Léa (compte verrouillé), de Karim, de Sophie ou de Tom → regarder le bloc « Connexion ».",
+      "attendu": "Chaque ligne (libellé à gauche, valeur à droite) tient dans la feuille, à la ligne si besoin, comme les autres fiches validées.",
+      "constate": "Les lignes .ligne du bloc sont en flex sans retour à la ligne : le libellé est écrasé à 0 px de large et la valeur déborde à droite, coupée par le panneau. Sur iPhone, la ligne « Téléphone » de Léa (« Verrouillé depuis hier à 18:02 (bloquée depuis son téléphone) ») déborde de 162 px (192 sur Android, 232 à 320) : on lit « Téléphone » superposé à « Verrouillé depuis hier… (bloquée depuis » coupé ; « Mot de passe » (« Provisoire : à lui remettre en main propre. ») déborde de 4 px (iPhone), 34 (Android), 74 (petit) ; « Téléphone » de Karim de 21 (Android) et 61 (petit) ; « Dernière connexion » de 33 à 320 ; « Lien de l'entreprise » de 2 px à 320. Aucun audit de débordement ne le voit (le panneau coupe).",
+      "preuve": "Reproduit deux fois par profil (t16-ligne.js : 3 profils × 3 personnes, mesure des rectangles libellé/valeur) ; capture fcn-lr-iphone-nuit.png (« Téléphone » imprimé sur « Verrouillé ») ; code : secuFicheConnexion, apercu/prototype-op-gestion.html ligne 25726, les <div class=\"ligne\"> du bloc .cn-acces ; la mesure donne display:flex, flex-wrap:nowrap et le libellé à 0 px.",
+      "ou": "apercu/prototype-op-gestion.html, secuFicheConnexion + la feuille de .cn-acces .ligne",
+      "correction": "Sous 480 px, .cn-acces .ligne{flex-wrap:wrap;gap:2px 12px} et .cn-acces .ligne > b{min-width:0;overflow-wrap:anywhere;text-align:right} (ou la valeur passe sous le libellé) ; relancer la mesure sur iphone, android, petit avec Léa verrouillée.",
+      "etat": "Corrigé par la campagne équipe (commit 578847ec, « mise en page fiche/téléphone ») : re-mesuré sur l'arbre fusionné du 17/11 à 13 h 20, 0 px de débordement pour Léa et Karim sur iphone et petit (t16b.js). À ne pas rouvrir ; une sonde qui mesure ces lignes (libellé/valeur, 3 profils tactiles) reste utile en garde."
+    },
+    {
+      "n": "tout-02",
+      "gravite": "gênant",
+      "ecran": "Historique (journal) contre Sécurité, Mon compte, Équipe, panneau du mot de passe provisoire",
+      "role": "gérant, chef d'équipe",
+      "profils": "tous",
+      "etapes": "1. Se connecter en gérant. 2. Sécurité : la ligne de Karim est « Aujourd'hui à 09:4x » (heure réelle de la machine moins 3 h). 3. Historique, filtre « Sécurité » : la MÊME connexion de Karim est « Samedi 31 octobre 2026 · 07:40 ». 4. Mon compte (Karim) : « Aujourd'hui à 12:50 » et « activée depuis le 05/11/2026 », alors que Ma journée dit « Samedi 31 octobre ».",
+      "attendu": "Une seule date et une seule heure pour le même événement, celles de l'entreprise fictive (samedi 31 octobre 2026, 10:40 : AUJ et MAINT_MIN).",
+      "constate": "Deux horloges : l'application vit le samedi 31 octobre 2026 à 10:40 (AUJ, MAINT_MIN, ligne 3805), mais la couche sécurité utilise Date.now() (secuMaint, ligne 25124) : la machine de Justin, le 17 novembre à 12:50. Conséquences visibles : la même approbation de Karim s'écrit 07:40 dans l'Historique et 09:46 dans la Sécurité ; « Mon compte » affiche un téléphone activé le 05/11/2026 (futur du point de vue de l'application) ; le provisoire est « valable jusqu'au 20/11 » ; une connexion d'aujourd'hui est « Aujourd'hui à 12:50 » pendant que l'écran d'accueil dit 10:40. L'écran change avec l'heure de la machine de qui regarde.",
+      "preuve": "Reproduit deux fois (t13-journal.js et t8-admin.js, mac jour) ; code : const AUJ = '2026-10-31', MAINT_MIN = 10*60+40 (ligne 3831) contre const secuMaint = () => Date.now() + SECU.decalage (ligne 25203) ; secuQuand/secuHHMM lisent secuMaint, eqxJ (journal) lit MAINT_MIN.",
+      "ou": "apercu/prototype-op-gestion.html lignes 3831 et 25203 (secuMaint, secuQuand, secuJJMM, SECU_DEPART)",
+      "correction": "Faire partir secuMaint de la date de l'application (AUJ à MAINT_MIN) et y ajouter seulement le temps écoulé depuis le chargement + SECU.decalage ; les lignes d'avant (« il y a 12 jours », « il y a 3 heures », « hier à 18:02 ») se calculent depuis cette base. Garder l'horloge réelle n'a aucun avantage : rien d'autre ne la lit."
+    },
+    {
+      "n": "tout-03",
+      "gravite": "gênant",
+      "ecran": "Confirme sur ton téléphone, connexion inhabituelle (boîte rouge)",
+      "role": "tous (ici Karim)",
+      "profils": "android (360 × 740) jour et nuit, petit (320 × 568) ; mac720, windows : le bouton Annuler sort de l'écran",
+      "etapes": "Cocher « Je me connecte depuis un autre ordinateur », se connecter en Karim, regarder l'écran sans défiler.",
+      "attendu": "Spécification § 9 : « le nombre entièrement lisible… la carte, le nombre et la pastille tiennent sans défilement caché ; au pire la carte défile, le nombre reste en vue ». À l'instant le plus important (connexion inhabituelle), la personne voit le nombre à taper.",
+      "constate": "Avec la boîte rouge, le nombre commence à y = 687 sur Android (écran de 740, il finit à 783 : coupé) et à y = 671 sur petit (écran de 568 : hors de l'écran). Sans la boîte rouge il est à 492 et 456 (visible). On voit l'alerte, les deux étapes, puis un nombre coupé en bas : il faut deviner qu'il faut défiler. iPhone 390 × 844 et iPad : le nombre tient (654–750 ; 627–723). La pastille « Ouvrir OP Security » est à 1083 (Android) et 1086 (petit) : hors de l'écran aussi.",
+      "preuve": "Reproduit sur 6 profils (t11-nombre.js, mesure du rectangle du nombre et de la hauteur de fenêtre) ; captures app-android-nuit-1rouge.png et app-petit-jour-1rouge.png (le nombre est coupé / absent).",
+      "ou": "apercu/prototype-op-gestion.html, écran cnxConfirmer (carte .cn-carte) et son en-tête (logo + nom + pastille d'entreprise ≈ 250 px)",
+      "correction": "À l'apparition de l'écran rouge, faire défiler jusqu'au nombre (scrollIntoView({block:'center'}), sans mouvement si prefers-reduced-motion), ou réduire le logo et l'en-tête sous 760 px de haut."
+    },
+    {
+      "n": "tout-04",
+      "gravite": "détail",
+      "ecran": "Mon compte › Changer mon mot de passe",
+      "role": "tous (ici Karim)",
+      "profils": "tous",
+      "etapes": "Mon compte → Changer mon mot de passe → taper 8 fois de suite un « Mot de passe actuel » faux.",
+      "attendu": "Le compteur d'échecs commun (§ 3.6 : « mot de passe faux, mauvais nombre, mauvais code ») compte aussi ces essais ; au 5e, le compte se verrouille.",
+      "constate": "Huit essais faux de suite : « Mot de passe actuel incorrect. » à chaque fois, echecs reste à 0, aucun verrou, aucune ligne dans l'historique. Quelqu'un devant un ordinateur resté ouvert peut deviner le mot de passe sans limite.",
+      "preuve": "Reproduit deux fois (t12-compte.js, compte de Karim : echecs 0 avant et après 8 essais) ; code : secuMdpChanger, ligne 25808 : if (!secuMdpJuste(c, a0)) return 'Mot de passe actuel incorrect.' sans appel à secuEchec.",
+      "ou": "apercu/prototype-op-gestion.html, secuMdpChanger",
+      "correction": "Appeler secuEchec(k, 'mdp') avant de rendre le refus (et traiter le verrou comme à la connexion : fermeture de la session au 5e)."
+    },
+    {
+      "n": "tout-05",
+      "gravite": "gênant",
+      "ecran": "Téléphone OP Security après « Ce n'est pas moi » (connexion ouverte sur l'ordinateur)",
+      "role": "chef d'équipe (Karim) ; vaut pour tout compte connecté",
+      "profils": "mac jour, mac nuit, windows jour",
+      "etapes": "Karim se connecte (nombre) → téléphone de Karim, « Simuler une connexion pirate » → déverrouiller par le PIN → la carte rouge → « Ce n'est pas moi » → « Bloquer ».",
+      "attendu": "§ 4.2.6 : le téléphone dit « Connexion bloquée. Ton compte est verrouillé et toutes tes connexions sont fermées. Un administrateur doit changer ton mot de passe. » (rouge) et le garde jusqu'au verrouillage du téléphone.",
+      "constate": "Le téléphone retombe sur l'écran « Saisis ton code PIN » : le message n'est affiché nulle part sur le téléphone. La personne qui vient de se défendre ne reçoit aucune confirmation de ce qu'elle a déclenché (seul l'ordinateur, derrière, le dit). Si Karim n'est PAS connecté au moment du blocage (le pirate seul), le message est bien affiché : le défaut n'existe que quand une session est ouverte.",
+      "preuve": "Reproduit 3 fois (t18-bloc.js : mac nuit, windows jour ; t17-pirate.js : mac jour) avec et sans session : connecté → écran PIN, non connecté → message présent ; code : opsBloquer, ligne 25457, appelle secuBloquer (qui ferme la session : secuFermerSessions → sessionFermer, ligne 26079, remet tout téléphone ouvert en 'verrouille') PUIS opsRetour : le message est posé sur un téléphone déjà reverrouillé.",
+      "ou": "apercu/prototype-op-gestion.html, opsBloquer (ordre secuBloquer / opsRetour) et sessionFermer (verrouillage des téléphones)",
+      "correction": "Dans opsBloquer, poser le message APRÈS la fermeture de session et exempter ce téléphone du reverrouillage (ou afficher le message sur l'écran de PIN : « Connexion bloquée… » au-dessus du pavé) jusqu'à ce que la personne le ferme."
+    },
+    {
+      "n": "tout-06",
+      "gravite": "gênant",
+      "ecran": "Équipe › « Ouvrir l'application comme Sophie » (bande « Tu vois l'application comme … »)",
+      "role": "gérant",
+      "profils": "mac jour, iphone nuit",
+      "etapes": "Gérant (téléphone activé) → Équipe → fiche de Sophie → « Ouvrir l'application comme Sophie » → confirmer sur le téléphone → attendre 2 s.",
+      "attendu": "Regarder l'application comme Sophie ne touche à rien chez Sophie : l'écran de Sophie, sous la bande. Le guide des nouveautés de Sophie n'a pas à s'ouvrir devant le gérant ni à se marquer « vu » pour elle.",
+      "constate": "Le guide « Nouveautés 1 sur 6 : Où sont passées mes rubriques ? » de Sophie s'ouvre par-dessus (sur iPhone il cache l'écran sous la bande rouge) et la marque opg_proto_nv_vu_sm passe de null à « 2026-11-b » : quand Sophie se connecte pour de vrai, son guide ne s'ouvre plus. La bande dit « Rien ne lui est signalé », et pourtant on lui a pris son guide.",
+      "preuve": "Reproduit 2 fois (t20-comme-guide.js : mac jour, iphone nuit : localStorage avant null, après « 2026-11-b », #nv ouvert) ; capture comme-guide.png ; code : secuVoirComme → sessionOuvrir(k) → nvProposer (900 ms après sessionOuvrir, § 3.8 de la spécification) et nvMarquer(), ligne 26259.",
+      "ou": "apercu/prototype-op-gestion.html, secuVoirComme / sessionOuvrir (appel de nvProposer) et nvMarquer",
+      "correction": "Ne pas proposer le guide (ni le marquer) quand SECU.vraie est posé : sessionOuvrir.muet existe déjà pour la fenêtre secondaire, le réutiliser pour « voir comme »."
+    },
+    {
+      "n": "tout-07",
+      "gravite": "gênant",
+      "ecran": "Connexion (Confirme sur ton téléphone) après 5 codes PIN faux ou « Supprimer de ce téléphone »",
+      "role": "chef d'équipe (Karim) ; vaut pour toute personne",
+      "profils": "mac jour, iphone nuit",
+      "etapes": "Karim saisit son mot de passe → sur son téléphone, 5 PIN faux (le téléphone dit « Trop de codes PIN erronés : le compte a été effacé de ce téléphone. Demande à un administrateur… ») → sur l'ordinateur, Annuler puis se reconnecter avec le bon mot de passe.",
+      "attendu": "Spécification § 5.2 / § 2.4 (état « neuf ») : une personne dont le téléphone est effacé n'a qu'une issue, « Nouveau téléphone » par un administrateur. L'écran de connexion le lui dit.",
+      "constate": "L'ordinateur affiche de nouveau « Confirme sur ton téléphone » avec un nombre et un compte à rebours de 2 minutes, comme si tout allait bien. Le téléphone n'a aucun bouton (même pas « Commencer »), aucune carte de demande, et la demande reste « en attente » côté page (1 demande vivante, comptée dans les 6 par quart d'heure). La personne ne peut pas valider et rien ne lui dit pourquoi ; au bout de 2 minutes, « La demande a expiré. », puis la même boucle.",
+      "preuve": "Reproduit 2 fois (t25-efface.js : mac jour et iphone nuit : demandes en attente pour Karim = 1, carte sur le téléphone = false, boutons du téléphone = []) ; code : le compte garde c.tel avec efface = true (opsBloquer / PIN faux, lignes ~430 et ~504) alors que cnxValider (ligne 26070) ne regarde que !c.tel avant de créer la demande.",
+      "ou": "apercu/prototype-op-gestion.html, cnxValider (test !c.tel) et secuDemander",
+      "correction": "Dans cnxValider, traiter c.tel.efface comme « pas de téléphone utilisable » : ne pas créer de demande, dire « Ton téléphone a été effacé. Demande un nouveau téléphone à ton administrateur. » sur l'écran de connexion (même phrase que le téléphone), journal inchangé."
+    },
+    {
+      "n": "tout-08",
+      "gravite": "gênant",
+      "ecran": "Mon compte (téléphone, iPhone, Android, petit) : feuille plein écran",
+      "role": "tous (ici Sophie sur Android, Karim sur iPhone et petit)",
+      "profils": "iphone, android, petit, jour et nuit ; ipad, mac : un seul bouton, caché",
+      "etapes": "Se connecter → Menu → faire défiler jusqu'à « Mon compte » → l'ouvrir.",
+      "attendu": "§ 7.4 : un bouton « ‹ Retour » de 48 px, un seul.",
+      "constate": "Deux boutons « ‹ Retour » l'un sous l'autre (y = 125 puis y = 183 sur iPhone, 44 px et 48 px de haut), plus la croix ✕ : trois façons de fermer et un trou vide entre les deux. Un doigt hésite sur lequel prendre.",
+      "preuve": "Reproduit 3 fois (t30-retour.js : iphone jour, petit nuit, android nuit ; capture cpt-sm-android-nuit-compte.png) ; code : foOuvrir(…, true) pose son propre « ‹ Retour » (classe p-retour) et secuMonCompte (ligne ~25790) écrit en plus <button class=\"sec-retour\" data-ferme=\"1\">‹ Retour</button>.",
+      "ou": "apercu/prototype-op-gestion.html, secuMonCompte (bouton .sec-retour) et foOuvrir",
+      "correction": "Retirer le bouton .sec-retour de secuMonCompte (foOuvrir en met déjà un, à 44 px : le passer à 48 px sur téléphone si besoin) ; garder un seul « ‹ Retour »."
+    },
+    {
+      "n": "tout-09",
+      "gravite": "détail",
+      "ecran": "Mon compte › Historique de mes connexions (et page Sécurité si inhabituelle)",
+      "role": "toute personne qui a un mot de passe provisoire ET un téléphone déjà actif (après « Reposer un mot de passe provisoire »)",
+      "profils": "mac jour (rien de visuel : une ligne en double)",
+      "etapes": "Gérant : fiche de Karim → « Reposer un mot de passe provisoire » (le téléphone ne change pas). Karim se connecte avec le provisoire, tape le nombre, choisit son mot de passe (écran C), entre. Mon compte → Historique.",
+      "attendu": "Une connexion = une ligne.",
+      "constate": "Deux lignes identiques « Aujourd'hui à 13:18 · Connexion approuvée · Chrome · Linux · 203.0.113.42 » : la première écrite à l'approbation du nombre, la seconde à la fin de l'écran C. Même chose pour le gérant dont les téléphones ont été activés d'un coup. Le journal d'audit gonfle d'une connexion qui n'a pas eu lieu deux fois.",
+      "preuve": "Reproduit 2 fois (t28-histo.js : Marc ; t29-histo2.js : Karim : 3 lignes après C contre 2 avant) ; code : secuTraiter (ligne 25567) écrit secuHisto(..., 'approuvee') à l'approbation, et cnxPremierValider (ligne 26045) en écrit une autre. Pour l'activation du premier téléphone, une seule ligne : le défaut n'existe qu'avec un téléphone déjà actif.",
+      "ou": "apercu/prototype-op-gestion.html lignes 25567 et 26045",
+      "correction": "Dans cnxPremierValider, n'écrire la ligne que si aucune ligne « approuvee » n'a été écrite dans la même connexion (marque posée par secuTraiter), ou retirer l'écriture quand la personne vient d'être approuvée par le nombre."
+    }
+  ],
+  "arbre": "relu sur l'arbre fusionné au 17/11/2026 vers 13 h 20 (après 578847ec) ; les numéros de ligne sont ceux de ce moment",
+  "revu_apres_fusion": [
+    "tout-01 corrigé par un autre agent ; tout-02 à tout-09 revérifiés présents (mêmes chiffres) après la fusion"
+  ]
+}

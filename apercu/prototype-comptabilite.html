@@ -49,7 +49,7 @@
   --surf:#1e2a42; --surf2:#25334f; --surf-in:rgba(255,255,255,.05); --survol:rgba(255,255,255,.07);
   --trait:rgba(255,255,255,.10); --trait2:rgba(255,255,255,.16);
   --ombre:0 1px 2px rgba(0,0,0,.25),0 12px 32px rgba(0,0,0,.28); --ombre-haute:0 24px 60px rgba(0,0,0,.55);
-  --lien:#8fb4ff; --fill:#2c3d63; --on-fill:#f0f3f8; --seg-cur:rgba(255,255,255,.22); --seg-ink:#f0f3f8;
+  --lien:#8fb4ff; --fill:#e9eef8; --on-fill:#0b1426; --seg-cur:rgba(255,255,255,.22); --seg-ink:#f0f3f8;
   --vert:#30d158; --orange:#ff9f0a; --rouge:#ff7d8e; --bleu:#6aabff; --violet:#cb90f5; --ambre:#ffd60a;
   --menu-fond:#15213a; --feuille:#15213a; --voile:rgba(2,5,12,.6); --carte-fond:#1e2a42; --bande:#0f1a30;
   --page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),radial-gradient(120% 90% at 0% 0%,#1a2a4d 0%,rgba(26,42,77,0) 55%),radial-gradient(110% 80% at 100% 100%,#12234a 0%,rgba(18,35,74,0) 60%),linear-gradient(160deg,#0f1a30 0%,#070b16 100%);
@@ -157,7 +157,6 @@ button.kpi{transition:transform .2s var(--ressort),border-color .2s}
 button.kpi:hover{border-color:var(--trait2)}button.kpi:active{transform:scale(.98)}
 .btn{min-height:46px;padding:0 18px;border:0;border-radius:999px;background:var(--fill);color:var(--on-fill);font-weight:650;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;white-space:nowrap;transition:transform .2s var(--ressort),opacity .2s}
 .btn:active{transform:scale(.97);opacity:.9}
-:root[data-mode="nuit"] .btn:not(.gris):not(.danger){border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
 .btn.gris{background:var(--surf2);color:var(--encre);border:1px solid var(--trait)}
 .btn.gris:hover{border-color:var(--trait2)}
 .btn.danger{background:none;color:var(--rouge);border:1px solid color-mix(in srgb,var(--rouge) 40%,transparent)}
@@ -316,7 +315,7 @@ body.guide-on .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 .choix.premier{background:var(--fill);color:var(--on-fill);border-color:transparent}
 .choix.premier small{color:inherit;opacity:.78}
 .choix.premier .ic{background:rgba(255,255,255,.16);color:inherit}
-:root[data-mode="nuit"] .choix.premier{border:1px solid rgba(255,255,255,.16)}
+:root[data-mode="nuit"] .choix.premier .ic{background:rgba(11,20,38,.12)}   /* le bouton principal de nuit est clair : le voile de l'icône se pose en sombre, sinon il ne se voit plus */
 .reglages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px}
 .reglages .regl>span{font-size:13px}
 
@@ -544,8 +543,8 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 .cmpt-bascule{display:inline-flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
 .cmpt-bascule input{width:22px;height:22px}
 .cmpt-seuil{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 12px}
-.cmpt-seuil input[type=number],.cmpt-sim input,.cmpt-sim select{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:16px;max-width:100%}
-.cmpt-seuil input[type=number]{width:9em}
+.cmpt-seuil input[type=number],.cmpt-seuil input.cmpt-nb,.cmpt-sim input,.cmpt-sim select{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:16px;max-width:100%}
+.cmpt-seuil input[type=number],.cmpt-seuil input.cmpt-nb{width:9em}
 .cmpt-sim{display:flex;flex-direction:column;gap:12px}
 .cmpt-sim label{display:flex;flex-direction:column;gap:6px;font-weight:600}
 .cmpt-sim .cmpt-champs{display:flex;flex-wrap:wrap;gap:10px}
@@ -2454,7 +2453,7 @@ VUES.accueil = () => {
         <button type="button" class="choix" data-a="explorer">${tuile('fil', 'sapin', 'g')}<span><b>Explorer librement</b><small>La nuit est déjà traitée : regarde où en est le mois</small></span></button></div></div>`
     : !lu ? `<div class="carte synchro" id="synchro">${tuile('synchro', 'bleu', 'g')}<div class="s-c"><h2>Arrivé cette nuit</h2>
         <span>${plur(nouv.length, 'ligne')} sur le compte en banque · ${plur(pa.length, 'document')} (${pa.filter(p => p.via === 'mail').length} reçu${pa.filter(p => p.via === 'mail').length > 1 ? 's' : ''} par mail, ${plur(pa.filter(p => p.via === 'photo').length, 'ticket photographié', 'tickets photographiés')} sur le terrain)</span>
-        <span class="mute petit">${UI.mode === 'film' ? 'Il est un peu avant 6 h : le pilote va tout traiter, sans personne.' : 'Avec le pilote, tout cela se traite sans toi. Ici, tu le déclenches à la main pour voir chaque étape.'}</span></div>${UI.mode === 'film' ? '' : '<button type="button" class="btn" data-a="tout-traiter">Tout traiter</button>'}</div>`
+        <span class="mute petit">${UI.mode === 'film' ? 'Il est un peu avant 6 h : le pilote va tout traiter, sans personne.' : 'Avec le pilote, tout cela se traite sans toi. Sinon, tu le lances toi-même, étape par étape.'}</span></div>${UI.mode === 'film' ? '' : '<button type="button" class="btn" data-a="tout-traiter">Tout traiter</button>'}</div>`
     : `<div class="carte synchro fait" id="synchro">${tuile('coche', 'vert', 'g')}<div class="s-c"><h2>${oct ? 'Octobre est fermé et envoyé au cabinet' : 'Tout est lu et rangé'}</h2><span>${plur(fait, 'action faite', 'actions faites')} sans personne aujourd’hui. ${AV.length ? plur(AV.length, 'question t’attend', 'questions t’attendent') + '.' : 'Aucune question ne t’attend.'}${!AV.length && PV.length ? ' Le pilote s’occupe de ' + prevuPhrase(PV) + '.' : ''}</span></div>
         <div class="actions">${AV.length ? `<a class="btn" href="#averifier">Répondre (${AV.length})</a>` : ''}${reste && !SIM.marche ? `<button type="button" class="btn" data-a="journee">${svgI('lecture')}Laisser la journée se dérouler</button>` : ''}<a class="btn gris" href="#fil">Ce qui s’est fait</a></div></div>`;
   return tete('Pilotage', 'Bonjour ' + esc(DOSSIER.moi.split(' ')[0]), `Samedi 31 octobre 2026 · ${esc(DOSSIER.nom)}. La comptabilité se remplit toute seule avec OP GESTION et la banque.`, UI.mode === 'choix' ? '' : `<button type="button" class="btn gris" data-a="film">${svgI('lecture')}La démo</button><a class="btn gris" href="#tests">Tests guidés</a>`) + haut0 +
@@ -3584,7 +3583,7 @@ const cmptPrevVue0 = VUES.previsions;
 VUES.previsions = () => {
   CMPT.dansPrev = true; let h; try { h = cmptPrevVue0(); } finally { CMPT.dansPrev = false; }
   const P = UI._prev, cr = CMPT.seuilOn && P ? P.J.find(j => j.s < CMPT.seuil) : null, S = CMPT.sim;
-  const ligneSeuil = `<div class="cmpt-seuil"><label class="cmpt-bascule"><input type="checkbox" data-cmpt="seuil" ${CMPT.seuilOn ? 'checked' : ''}> <span>Me prévenir si le compte passe sous</span></label><label class="cmpt-bascule"><input type="number" id="cmpt-seuil-val" value="${CMPT.seuil}" min="0" step="1000" inputmode="numeric" aria-label="Seuil en euros"> €</label><button type="button" class="btn gris" data-cmpt="sim">Et si…</button></div>`;
+  const ligneSeuil = `<div class="cmpt-seuil"><label class="cmpt-bascule"><input type="checkbox" data-cmpt="seuil" ${CMPT.seuilOn ? 'checked' : ''}> <span>Me prévenir si le compte passe sous</span></label><label class="cmpt-bascule"><input class="cmpt-nb" id="cmpt-seuil-val" value="${cmptFr(CMPT.seuil)}" inputmode="decimal" autocomplete="off" aria-label="Seuil en euros"> €</label><button type="button" class="btn gris" data-cmpt="sim">Et si…</button></div>`;
   const alerte = cr ? `<div class="alerte cmpt-ecart" role="status">${cr.d === AUJ ? `<b>Le compte est déjà sous ton seuil : ${eur(cr.s)} aujourd’hui</b>, pour un seuil de ${eur(CMPT.seuil)}.` : `<b>Le ${dCourt(cr.d)}, le compte descendrait à ${eur(cr.s)}</b>, sous ton seuil de ${eur(CMPT.seuil)}.`} Relancer les factures en retard ou décaler une dépense suffit souvent.</div>` : '';
   const sim = S ? `<div class="info cmpt-simbande" role="status"><span><b>Simulation :</b> ${esc(S.desc)}. Rien n’est écrit dans la comptabilité ; le trait pointillé est la courbe sans cette simulation.</span><button type="button" class="btn gris petit" data-cmpt="sim-fin">Annuler la simulation</button></div>` : '';
   h = apresTete(h, ligneSeuil + alerte + sim);
@@ -3595,20 +3594,39 @@ function cmptSimFenetre(){
   const P = cmptPrev0(UI.prevHab), cl = P.F.filter(f => f.cat === 'client' && /^FAC-/.test(f.lib));
   ouvrir(haut('Et si…', 'Un essai : rien n’est écrit dans la comptabilité', 'Trésorerie') + `<div class="cmpt-sim"><label>Que veux-tu tester ?<select id="cmpt-sim-t"><option value="retard">Un client paie 15 jours plus tard</option><option value="depense">J’ajoute une dépense</option></select></label>
     <label id="cmpt-sim-a">Quelle facture ?<select id="cmpt-sim-f">${cl.map(f => `<option value="${esc(f.lib.split(' · ')[0])}">${esc(f.lib)} · ${nb(f.m)} €</option>`).join('') || '<option value="">Aucune facture en attente</option>'}</select></label>
-    <div id="cmpt-sim-b" class="cmpt-champs" hidden><label>Montant (€)<input type="number" id="cmpt-sim-m" value="25000" min="0" step="100" inputmode="decimal"></label><label>Le<input type="date" id="cmpt-sim-d" value="2026-11-12" min="${ajoute(AUJ, 1)}" max="${ajoute(AUJ, 56)}"></label></div>
+    <div id="cmpt-sim-b" class="cmpt-champs" hidden><label>Montant (€)<input class="cmpt-nb" id="cmpt-sim-m" value="25 000" inputmode="decimal" autocomplete="off"></label><label>Le<input type="date" id="cmpt-sim-d" value="2026-11-12" min="${ajoute(AUJ, 1)}" max="${ajoute(AUJ, 56)}"></label></div>
     <div class="outils"><button type="button" class="btn" data-cmpt="sim-ok">Voir la courbe</button><button type="button" class="btn gris" data-a="fermer">Annuler</button></div></div>`);
 }
 document.addEventListener('change', ev => { const t = ev.target; if (!t) return;
   if (t.id === 'cmpt-sim-t') { const a = document.getElementById('cmpt-sim-a'), b = document.getElementById('cmpt-sim-b'); if (a) a.hidden = t.value !== 'retard'; if (b) b.hidden = t.value !== 'depense'; }
-  if (t.id === 'cmpt-seuil-val') { if (+t.value < 0) toast('Un seuil ne peut pas être négatif : je l’ai remis à 0 €.'); CMPT.seuil = Math.max(0, +t.value || 0); if (!CMPT.seuilOn && +t.value >= 0 && t.value !== '') { CMPT.seuilOn = true; toast('C’est noté : je te préviens si le compte passe sous ' + eur(CMPT.seuil) + '.'); } rendre(); } });
+  if (t.id === 'cmpt-seuil-val') { const v = cmptNum(t.value);
+    /* un champ « number » avalait la virgule (« 2 500,50 » devenait 250050) : le champ est du texte, et ce qu'on ne sait pas lire est refusé avec une phrase, jamais deviné */
+    if (t.value.trim() && !isFinite(v)) { t.value = cmptFr(CMPT.seuil); return toast('Écris le seuil en chiffres, par exemple 5 000.'); }
+    if (v < 0) toast('Un seuil ne peut pas être négatif : je l’ai remis à 0 €.'); CMPT.seuil = Math.max(0, v || 0); if (!CMPT.seuilOn && v >= 0 && t.value !== '') { CMPT.seuilOn = true; toast('C’est noté : je te préviens si le compte passe sous ' + eur(CMPT.seuil) + '.'); } rendre(); } });
 function cmptSimOk(){
   const t = (document.getElementById('cmpt-sim-t') || {}).value;
   if (t === 'retard') { const sel = document.getElementById('cmpt-sim-f'), cle = sel && sel.value; if (!cle) return toast('Aucune facture en attente à tester.'); CMPT.sim = { type:'retard', cle, desc:`${sel.options[sel.selectedIndex].text.split(' · ').slice(0, 2).join(' · ')} paie 15 jours plus tard` }; }
-  else { const m = Math.max(0, +(document.getElementById('cmpt-sim-m') || {}).value || 0), d = (document.getElementById('cmpt-sim-d') || {}).value;
+  else { const mt = (document.getElementById('cmpt-sim-m') || {}).value || '', m = Math.max(0, cmptNum(mt) || 0), d = (document.getElementById('cmpt-sim-d') || {}).value;
+    if (mt.trim() && !isFinite(cmptNum(mt))) return toast('Écris le montant en chiffres, par exemple 2 500,50.');
     if (!(m >= .01)) return toast('Indique le montant de la dépense.');   /* le plus petit montant est un centime : « une dépense de 0,00 € » · 13 novembre 2026 */ if (!d || d <= AUJ || d > ajoute(AUJ, 56)) return toast('Choisis une date dans les huit prochaines semaines.'); CMPT.sim = { type:'depense', m, d, desc:`une dépense de ${eur(m)} le ${dCourt(d)}` }; }
   fermer(); rendre();
 }
 
+/* un montant saisi se lit comme un Français l'écrit : « 2 500,50 », « 2500.5 », « 1.234,56 » ; ce qu'on ne sait pas lire rend NaN (même règle que cxNum de l'application) */
+function cmptNum(v){
+  let s = String(v == null ? '' : v).replace(/[\s\u00a0\u202f']/g, '').replace(/(€|euros?)$/i, '');
+  if (!s) return NaN;
+  const seps = s.match(/[.,]/g) || [];
+  if (seps.length === 1) s = s.replace(',', '.');
+  else if (seps.length > 1) {
+    const dec = Math.max(s.lastIndexOf(','), s.lastIndexOf('.')), ent = s.slice(0, dec), fr = s.slice(dec + 1);
+    if (/^\d{1,3}([.,]\d{3}){2,}$/.test(s) && new Set(seps).size === 1) s = s.replace(/[.,]/g, '');
+    else if (/^\d{1,3}([.,]\d{3})+$/.test(ent) && new Set(ent.match(/[.,]/g)).size === 1 && ent.indexOf(s[dec]) < 0) s = ent.replace(/[.,]/g, '') + '.' + fr;
+    else return NaN;
+  }
+  return /^\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN;
+}
+function cmptFr(n){ return Number(n).toLocaleString('fr-FR', { maximumFractionDigits:2 }).replace(/\u202f/g, '\u00a0'); }
 /* ─── le menu : une ombre en bas et une flèche tant qu'il reste des rubriques cachées ─── */
 function cmptMenuMaj(){
   const m = document.getElementById('menu'), l = m && m.querySelector('.menu-liste'); if (!l) return;
