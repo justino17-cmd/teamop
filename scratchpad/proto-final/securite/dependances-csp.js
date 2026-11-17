@@ -10,6 +10,7 @@
 const L = require('../lib.js'), A = require('../sondes/atelier-outils.js'), fs = require('fs'), http = require('http');
 const DEP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/dep/';
 const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/dependances/';
+const INIT_VIOL = "(() => { try { const t = window.top; t.__viol = t.__viol || []; document.addEventListener('securitypolicyviolation', e => { try { t.__viol.push(e.violatedDirective + ' ' + String(e.blockedURI).slice(0, 80)); } catch (x) {} }); } catch (x) {} })()";
 const MARQUE = 'ZXQ-DEP-5530';
 const ATTENDU = process.env.OPG_ATTENDU || 'hash';   // 'hash' : ni exécution ni envoi · 'inline' : exécution possible, aucun envoi
 const AVEC_POLITIQUE = !!process.env.RACINE;          // sans RACINE : les pages d'origine
@@ -38,7 +39,7 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
   const CHARGE = '<img src=x onerror="' + code + '">';
   const CANAUX = { '/f': 'fetch (POST du rangement)', '/i': 'image', '/b': 'sendBeacon', '/w': 'WebSocket', '/s.js': 'script de l\'attaquant', '/p': 'préchargement de lien' };
 
-  const c = await L.ouvrir({ profil: 'mac', qui: 'marc', attente: 900 });
+  const c = await L.ouvrir({ profil: 'mac', qui: 'marc', attente: 900, init: INIT_VIOL });
   // toute requête vers un autre hôte que 127.0.0.1 : copie locale ou refus (jamais le réseau)
   await c.ctx.route(u => { const s = u.toString(); return /^https?:/.test(s) && !/^https?:\/\/127\.0\.0\.1[:/]/.test(s); }, async r => {
     const nom = r.request().url().split('/').pop().split('?')[0];
@@ -54,7 +55,7 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
 
   // ══ A. l'injection ══
   const equipe = await c.p.evaluate(() => EQUIPE.length);
-  L.v('population : l\'équipe compte plusieurs personnes (la charge se pose chez la 2e)', equipe >= 3, equipe);
+  L.v('population : l\'équipe compte plusieurs personnes (la charge se pose chez celles et ceux qui travaillent sur le terrain)', equipe >= 3, equipe);
   // le gérant compose un devis (ce que l'appareil range : nom d'un client, prix) — c'est ce que l'attaquant veut lire
   const f0 = await A.ouvrirAtelier(c, 'devis', 'devis');
   L.v('population : l\'atelier s\'ouvre (le devis qu\'on compose est ce qu\'il y a à voler)', !!f0);
@@ -62,15 +63,19 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
   await f0.locator('[data-act="retour"]:visible').first().click().catch(() => {}); await c.p.waitForTimeout(900);
   const stock = await c.p.evaluate(m => ({ cles: Object.keys(localStorage).length, marque: Object.keys(localStorage).some(k => localStorage.getItem(k).includes(m)) }), MARQUE);
   L.v('population : le rangement de l\'appareil contient le devis composé (marque trouvée) — sinon rien à voler', stock.marque, stock);
-  await c.p.evaluate(ch => { const p = EQUIPE[1]; p.prenom = ch; p.nom = ch; eqxSynchro(); location.hash = '#planning'; }, CHARGE);
+  await c.p.evaluate(ch => { EQUIPE.filter(p => p.terrain).forEach(p => { p.prenom = ch; p.nom = ch; }); eqxSynchro(); location.hash = '#planning'; }, CHARGE);
   await c.p.evaluate(() => { try { rendre(); } catch (e) {} }); await c.p.waitForTimeout(2500);
   const pwn = await c.p.evaluate(() => window.__pwn || 0);
   console.log('code injecté exécuté :', pwn, 'fois · requêtes reçues par l\'attaquant :', recu.length);
   recu.forEach(x => console.log('   reçu', x.methode, x.canal, x.taille + ' o', x.debut ? '« ' + x.debut.replace(/\n/g, ' ') + ' »' : '', x.referer ? '| ' + x.referer : ''));
-  if (ATTENDU === 'hash') L.v('1. le gestionnaire injecté ne s\'exécute pas (un script en ligne sans empreinte n\'est pas exécuté) — exécutions : ' + pwn, pwn === 0, pwn);
+  if (!AVEC_POLITIQUE) L.v('population : (témoin sans politique) le code injecté S\'EXÉCUTE — sinon rien ne se prouve — exécutions : ' + pwn, pwn >= 1, pwn);
+  else if (ATTENDU === 'hash') L.v('1. le gestionnaire injecté ne s\'exécute pas (un script en ligne sans empreinte n\'est pas exécuté) — exécutions : ' + pwn, pwn === 0, pwn);
   else L.v('population : (niveau « inline ») le gestionnaire injecté S\'EXÉCUTE — c\'est la condition de la mesure suivante', pwn >= 1, pwn);
   for (const [k, nom] of Object.entries(CANAUX)) { const n = recu.filter(x => x.canal === k).length;
     L.v('2. canal « ' + nom + ' » : rien n\'atteint l\'attaquant — reçus : ' + n, n === 0, n); }
+  const refus = (await c.p.evaluate(() => window.__viol || []));
+  if (AVEC_POLITIQUE) { console.log('refus relevés par le navigateur pendant l\'injection : ' + refus.length + (refus[0] ? ' · ex. « ' + String(refus[0]).slice(0, 170) + ' »' : ''));
+    L.v('population : le navigateur a REFUSÉ quelque chose pendant l\'injection (le détecteur de violations voit bien) — refus : ' + refus.length, refus.length >= 1, refus.length); }
   const vole = recu.find(x => x.canal === '/f');
   if (!AVEC_POLITIQUE) L.v('population : (témoin sans politique) le POST reçu par l\'attaquant contient le devis composé — ' + (vole ? vole.taille : 0) + ' octets, marque ' + (vole && vole.marque), !!vole && vole.marque, vole);
   await c.p.screenshot({ path: SORTIE + 'injection-' + (AVEC_POLITIQUE ? ATTENDU : 'origine') + '.png' });
@@ -83,7 +88,7 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
   await L.fin(c);
 
   // ══ B. usage normal sous la politique ══
-  const d = await L.ouvrir({ profil: 'mac', qui: 'marc', attente: 900 });
+  const d = await L.ouvrir({ profil: 'mac', qui: 'marc', attente: 900, init: INIT_VIOL });
   await d.ctx.route(u => { const s = u.toString(); return /^https?:/.test(s) && !/^https?:\/\/127\.0\.0\.1[:/]/.test(s); }, async r => {
     const nom = r.request().url().split('/').pop().split('?')[0];
     if (LOCALES[nom] && fs.existsSync(DEP + nom)) return r.fulfill({ status: 200, contentType: LOCALES[nom], headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(DEP + nom) });
@@ -110,7 +115,7 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
   const pai = L.cadre(d.p, /prototype-paiement/);
   L.v('population : le module de paiement s\'ouvre dans son cadre', !!pai);
   if (pai) { const t = await pai.evaluate(() => document.body.innerText.length); L.v('population : le module de paiement affiche du texte (il a démarré malgré la politique)', t > 200, t); }
-  const violations = d.err.filter(e => /Content Security Policy|Refused to/i.test(e));
+  const violations = (await d.p.evaluate(() => window.__viol || [])).concat(d.err.filter(e => /Content Security Policy|Refused to/i.test(e)));
   console.log('erreurs de la page :', d.err.length, '· violations de politique :', violations.length); violations.slice(0, 6).forEach(v => console.log('   ', v.slice(0, 260)));
   L.v('3. usage normal : zéro violation de la politique sur ' + routes.length + ' écrans + carte + atelier + PDF + Comptabilité + courrier + paiement', violations.length === 0, violations.slice(0, 3));
   await d.p.screenshot({ path: SORTIE + 'usage-' + (AVEC_POLITIQUE ? ATTENDU : 'origine') + '.png' });

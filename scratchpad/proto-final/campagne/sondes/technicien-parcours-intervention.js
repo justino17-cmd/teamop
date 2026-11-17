@@ -18,7 +18,9 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   const d = await L.deborde(c); v('I4 fiche : pas de glissement latéral', d.bouge === 0, d);
   const g = await L.gestes(p, '#contenu'); console.log('   gestes de la fiche :', g.length, JSON.stringify(g.slice(0, 30).map(x => x.lib.slice(0, 28))));
   v('I5 la fiche propose des gestes (population non vide)', g.length >= 5, g.length);
-  const nom = g.filter(x => x.sansNom); v('I6 aucun bouton sans nom', nom.length === 0, nom);
+  // un champ ou une case sans texte propre se nomme par son <label> ou son aria-label : on regarde le nom accessible, pas le textContent
+  const nom = await p.evaluate(() => [...document.querySelectorAll('#contenu button, #contenu a, #contenu input, #contenu select, #contenu textarea')].filter(e => e.offsetParent && e.type !== 'hidden' && !(e.getAttribute('aria-label') || (e.labels && e.labels.length) || e.textContent.trim() || e.title || e.placeholder || e.getAttribute('aria-labelledby') || e.value && e.tagName === 'BUTTON')).map(e => e.tagName + ' ' + [...e.attributes].filter(a => a.name.startsWith('data-')).map(a => a.name + '=' + a.value.slice(0, 24)).join(' ')));
+  v('I6 aucun bouton, case ni champ sans nom accessible', nom.length === 0, nom.slice(0, 6));
   if (retour) { await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu button, #contenu a')].find(x => /Retour/.test(x.textContent)); b && b.click(); }); await L.calme(p, 500);
     v('I7 « Retour » ramène à Ma journée', /Bonjour/.test(await txt(p, '#contenu h1')), await txt(p, '#contenu h1')); }
   // retour du navigateur
@@ -28,7 +30,7 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   // le geste du rappel : « Commencer à 10:40 » dans le message
   await L.toucher(c, '[data-rl="go|inter-x-i2"]'); await L.calme(p, 400);
   const bt = await p.$('#toast button'); v('I9 le message du rappel porte un bouton', !!bt);
-  if (bt) { await bt.click(); await L.calme(p, 500); console.log('   après le bouton du rappel : toast =', await toast());
+  if (bt) { await p.evaluate(() => document.querySelector('#toast button').click()); await L.calme(p, 500);   // le message s'efface seul au bout de 6 s : on répond tout de suite console.log('   après le bouton du rappel : toast =', await toast());
     v('I10 le bouton du rappel commence la journée', await p.evaluate(() => !!(PTX && Object.keys(PTX.debut || PTX.jours || {}).length) ) || /Commencée|commenc/.test(await toast()), await toast()); }
   v('Z aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   // lien direct vers une intervention (notification, favori, adresse envoyée par le bureau) : « Retour » ramène-t-il sans message d'erreur ?

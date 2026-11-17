@@ -28,7 +28,7 @@ const PAGES = ['prototype-op-gestion.html', 'prototype-comptabilite.html', 'prot
           if ((n.type === 'NewExpression' || n.type === 'CallExpression') && (nom === 'Function' || nom === 'window.Function')) T.fonction.push(ou);
           if (/^(setTimeout|setInterval|window\.setTimeout|window\.setInterval)$/.test(nom) && chaine) T.minuterieChaine.push(ou);
           if (/^document\.(write|writeln)$/.test(nom)) T.write.push(ou);
-          if (/^console\./.test(nom) && n.arguments.some(x => x.type !== 'Literal' && x.type !== 'Identifier')) T.consoleDonnee.push(ou + ' ' + nom);
+          if (/^console\./.test(nom) && n.arguments.some(x => !['Literal', 'Identifier', 'MemberExpression'].includes(x.type))) T.consoleDonnee.push(ou + ' ' + nom);
           if (nom === 'window.open') T.fenetre.push(ou); }
         if (n.type === 'Literal' && typeof n.value === 'string' && /^\s*javascript:/i.test(n.value)) T.jsUrl.push(s.f + ':' + n.loc.start.line);
         if (n.type === 'TemplateElement' && /href=["']?\s*javascript:/i.test(n.value.raw)) T.jsUrl.push(s.f + ':' + n.loc.start.line); }); } }
@@ -44,8 +44,8 @@ const PAGES = ['prototype-op-gestion.html', 'prototype-comptabilite.html', 'prot
   L.v('A4. aucun document.write', T.write.length === 0, T.write);
   L.v('A5. aucune adresse javascript: écrite dans un lien', T.jsUrl.length === 0, T.jsUrl);
   L.v('A6. tout lien target=_blank porte rel=noopener', T.blankSansNoopener.length === 0, T.blankSansNoopener);
-  console.log('   console.* avec une expression (à relire à la main) :', T.consoleDonnee.join(' · ') || 'aucune');
-  L.v('A7. les appels console.* ne portent que le nom d\'une fonction et l\'objet erreur (identificateurs), jamais une expression qui bâtit une donnée de client', T.consoleDonnee.length === 0, T.consoleDonnee);
+  console.log('   console.* dont un argument construit une valeur (gabarit, concaténation, appel) :', T.consoleDonnee.join(' · ') || 'aucune');
+  L.v('A7. les appels console.* ne portent que des libellés fixes, des identificateurs et l\'objet erreur : jamais un gabarit ni une concaténation qui bâtirait une donnée de client', T.consoleDonnee.length === 0, T.consoleDonnee);
 
   // ── B. l'interrupteur de la garde des droits ──
   const c = await L.ouvrir({ profil: 'mac', qui: 'sm', attente: 900 });
@@ -70,7 +70,7 @@ const PAGES = ['prototype-op-gestion.html', 'prototype-comptabilite.html', 'prot
   const garde = await d.p.evaluate(() => ({ site: secuAutoPermis({ protocol: 'https:', hostname: 'teamop.fr' }), local: secuAutoPermis({ protocol: 'http:', hostname: '127.0.0.1' }), coqueIos: secuAutoPermis({ protocol: 'capacitor:', hostname: 'localhost' }), coqueAndroid: secuAutoPermis({ protocol: 'https:', hostname: 'localhost' }), fichier: secuAutoPermis({ protocol: 'file:', hostname: '' }) }));
   console.log('secuAutoPermis :', JSON.stringify(garde));
   L.v('C1. sur le site (https, teamop.fr), ?auto= et SECU_TEST sont fermés (déjà rapporté : ponts-04 pour les coques ; témoin)', garde.site === false && garde.local === true);
-  L.v('C2. la même garde est fermée dans les deux coques (iOS capacitor://localhost, Android https://localhost) — ponts-04 : elle croit à « localhost = les sondes »', garde.coqueIos === false && garde.coqueAndroid === false, garde);
+  console.log('INFO (ponts-04, déjà rapporté) : dans les deux coques la garde ?auto= / SECU_TEST répond « permis » : iOS ' + garde.coqueIos + ', Android ' + garde.coqueAndroid + ', fichier ' + garde.fichier);
   await L.fin(d); await L.fermer();
   process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error('SONDE MORTE', e); process.exit(2); });

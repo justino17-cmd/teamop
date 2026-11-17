@@ -1,0 +1,247 @@
+{
+ "partie": "technicien",
+ "date": "2026-11-17",
+ "ecrans": [
+  {
+   "nom": "Ma journée (carte « Ma journée de travail », messages du bureau, habilitations, interventions du jour, Mon véhicule, argent sur soi, dépenses, matériel, prochains jours)",
+   "fonction": "vueMaJournee (et ses surcouches eqx, ptx, vx, axa, mat)",
+   "acces": "menu › Ma journée · onglet « Journée » · logo OP GESTION"
+  },
+  {
+   "nom": "Mes tâches (Aujourd'hui / À venir / Faites, filtres, ligne d'ajout, « Détails », fiche d'une tâche, barre « N choisies »)",
+   "fonction": "vueTaches (forme personnelle tkxPerso)",
+   "acces": "menu › Mes tâches · onglet « Tâches » · « Toutes mes tâches » de Ma journée"
+  },
+  {
+   "nom": "Mes frais (Mes demandes de matériel, Mes dépenses, Nouvelle note de frais, Demande d'achat, ticket en grand)",
+   "fonction": "vueTechFrais, axNdfForm, rlNdfModifier, axTechDemLigne",
+   "acces": "menu › Mes frais · onglet « Frais » · « Voir mes notes » et « Mes demandes » de Ma journée"
+  },
+  {
+   "nom": "Mes heures (Ce mois-ci / Mes fiches de paie, confirmer, « Il y a une erreur », journées)",
+   "fonction": "vueMesHeures → ttMesHeuresVue (EN REFONTE)",
+   "acces": "menu › Mes heures · onglet « Heures »"
+  },
+  {
+   "nom": "Mon camion (rien ne manque / manque à bord, J'ai utilisé, J'ai pris, Il me manque une pièce, messages du bureau, À bord, Mes envois)",
+   "fonction": "vueMonCamion (EN REFONTE)",
+   "acces": "menu › Mon camion · onglet « Camion » · carte « Mon camion » de Ma journée"
+  },
+  {
+   "nom": "Mes congés (soldes, demande de congé, Mes demandes, Décisions de Marc, calendrier)",
+   "fonction": "vueAbsencesTech",
+   "acces": "menu › Mes congés"
+  },
+  {
+   "nom": "Fiche d'une intervention du technicien (À savoir avant d'entrer, appareils, compte rendu)",
+   "fonction": "vueFiche / rlFicheVisite",
+   "acces": "« Commencer », « Continuer », « Revoir » de Ma journée"
+  },
+  {
+   "nom": "Menu (feuille « Menu » au téléphone, colonne de gauche à l'ordinateur) et barre du bas à 5 onglets",
+   "fonction": "CATS / LIGNES_TERRAIN / BARRE_ROLE.terrain",
+   "acces": "bouton « Menu » en haut à gauche"
+  },
+  {
+   "nom": "Fenêtres : Mes habilitations, Prévenir le bureau, Un souci avec le camion, Noter un plein, Relever le compteur, J'ai commencé plus tôt, Nouvelle tâche, Demande de congé, Note de frais, Demande d'achat, Il me manque une pièce, Il y a une erreur",
+   "fonction": "eqxMesHabil, vxSouci…, ptxSigPanneau, aPanneauDemande, matManqueVue…",
+   "acces": "depuis les écrans ci-dessus"
+  }
+ ],
+ "couverture": {
+  "ecrans": 9,
+  "gestesRecenses": 311,
+  "gestesTouches": 309,
+  "parcours": 12,
+  "profils": [
+   "iphone",
+   "android",
+   "petit",
+   "mac",
+   "windows"
+  ],
+  "detail": "Balayage (recensement DOM, page neuve, un geste, ce qu'il a fait ; zone = toute la page : menu, barre du bas, contenu) : iPhone 165 recensés / 156 touchés au 1er passage (Ma journée 27/27, Mes tâches 19/19, Mes frais 12/7, Mes heures 23/23, Mon camion 17/15, Mes congés 18/18, fiche d'une intervention 49/47) ; Mac 146 / 146 (32+24+17+28+22+23). Les 9 non touchés du 1er passage : 7 onglets de la barre du bas (délai de machine chargée ; rejoués par technicien-barre.js : 30 trajets, 32 ✓ 0 ✗) et 2 champs d'heure de la fiche recouverts par leur sélecteur (le bouton « Arrivée / Départ » qui les ouvre est touché). Aucun geste sans nom accessible ; aucun geste « qui ne fait rien » hors champs de saisie et liens externes (Y aller, Appeler). Parcours (12) : P1 note de frais (sans ticket, avec ticket, montants absurdes, 12 345,67 €, double toucher, retrouver, voir le ticket, modifier, le gérant la voit dans Achats et frais › Frais) ; P2 tâches (ajouter vide / à la phrase / 135 signes, terminer par le rond puis « Fait », Annuler, Faites, cohérence avec Ma journée, aucune tâche de facture ou de devis) ; P3 demande de congé jusqu'au gérant puis « Retirer » ; P4 pièce qui manque jusqu'au gérant (doublon refusé) ; P5 habilitation qui expire → « Prévenir le bureau » → le gérant est averti ; P6 souci camion ; P7 Mes heures (confirmer ✗ technicien-03, signaler une erreur, le gérant la voit) ; P8 commencer sa journée et le rappel du bureau ; P9 menu (6 lignes, chaque ligne mène au bon écran, Jour/Nuit/Auto, Nouveautés) et barre du bas ; P10 ce que le technicien ne voit pas (22 adresses interdites, intervention d'un collègue, 3 fiches sans prix ni numéro de devis/facture) ; P11 intervention → Retour, retour du navigateur, lien direct ; P12 tâche confiée au gérant. Mise en page : 6 écrans × (iphone, petit, android) × jour et nuit, plus mac et windows (jour) ; valeurs longues (nom de client de 78 signes, adresse, titre, motif, note de 12 345,67 €, tâche de 135 signes) sur iphone jour et petit nuit : 23 ✓ 0 ✗ chacun. Chiffres des dernières exécutions : 679 ✓ ; 43 ✗, tous rattachés à technicien-01, 02, 03, 06, 07 (et un renvoi à taches-absences-13). Contre-épreuve : mutations-technicien.py, 4 défauts remis dans une copie de la page (note de frais non écrite, demande de congé non enregistrée, « Y aller » sans destination, barre du bas changée) : les 4 tombent."
+ },
+ "nonCouvert": [
+  "Le parcours complet d'une intervention (compte rendu, contrôles, signature, encaissement, « Terminer ») : la fiche n'est balayée que pour ses gestes (47/49) ; le déroulé de bout en bout et les documents produits appartiennent à la partie Interventions.",
+  "Karim (chef d'équipe) : menu (80 ✓), mise en page de ses six écrans (mep kb) et la carte d'habilitation y sont joués ; ses parcours frais, tâches et congés ne le sont pas (ce sont les mêmes fonctions que celles de Sophie, rejouées par elle).",
+  "iPad et Windows au doigt : non joués (Windows en mise en page, jour seulement). Le mode nuit n'est joué que sur les téléphones (mise en page, valeurs longues) ; les parcours sont en jour.",
+  "Mon camion, Mes heures et la carte « Ma journée de travail » sont en refonte : balayés, mesurés et passés en parcours courts, mais les défauts qui les touchent portent zone:\"refonte\" (technicien-01, 03, 06).",
+  "Clavier seul et lecteur d'écran (VoiceOver, TalkBack) : non joués ; seuls les noms accessibles ont été relevés (I6).",
+  "Les formulaires « Noter un plein » et « Relever le compteur » s'ouvrent (balayage) mais leur envoi n'est pas joué : ils appartiennent au chantier Véhicules.",
+  "Le doublon « Mes demandes de matériel » côté bureau (Achats et frais › Matériel) n'a été regardé que pour retrouver la demande de la technicienne."
+ ],
+ "indices_menu_final": [
+  {
+   "indice": "« Le technicien et le bureau ne peuvent pas demander un congé (route absente) »",
+   "verdict": "RÉFUTÉ pour le technicien : Sophie ouvre « ＋ Demande de congé », la demande part (+1), apparaît « En attente de la décision de Marc » et Marc la voit à valider ; chevauchement, week-end et fin avant début sont dits (sonde technicien-parcours-taches-conges, C0 à C5)."
+  },
+  {
+   "indice": "« Registre sanitaire montré au technicien d'une entreprise sans pack 3D »",
+   "verdict": "RÉFUTÉ pour Clim Services 17 : le menu de Sophie et de Karim ne porte que six lignes (Ma journée, Mes tâches, Mes frais, Mes heures, Mon camion, Mes congés), pas de Registre sanitaire (technicien-parcours-menu-droits, M1 à M3)."
+  },
+  {
+   "indice": "« Un client créé à la main n'a pas de position : la carte des tournées le place au dépôt et Waze/Plans y envoient le technicien »",
+   "verdict": "NON CONCERNÉ côté technicien : « Y aller » envoie l'adresse écrite (destination=adresse encodée), jamais une position ; les 3 interventions du jour ont une adresse (J4). La carte des tournées est au bureau (partie Planning)."
+  }
+ ],
+ "defauts": [
+  {
+   "n": "technicien-01",
+   "gravite": "gênant",
+   "zone": "refonte",
+   "ecran": "Ma journée, Mes heures, Mon camion, Mes congés (pied de page)",
+   "role": "technicien (Sophie), chef d'équipe (Karim)",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "mac",
+    "windows"
+   ],
+   "etapes": "Ouvrir en technicienne : menu › Ma journée, Mes heures, Mon camion ou Mes congés ; aller tout en bas de l'écran. Jour et nuit.",
+   "attendu": "Une phrase qui dit au technicien quelque chose d'utile sur SON écran, ou rien.",
+   "constate": "Sur 4 écrans sur 6 la dernière ligne dit « Dans cette rubrique, ton compte ne peut pas créer. Pour changer ça, demande à Marc. » (Ma journée), « …supprimer » (Mes heures), « …créer ou supprimer » (Mon camion), « …modifier » (Mes congés) — alors que ces mêmes écrans sont faits pour créer (note de frais, tâche, demande de congé, pièce qui manque) et modifier. Créer QUOI ? Supprimer QUOI ? Le technicien lit qu'on lui refuse son propre travail. Mes frais et Mes tâches n'en portent pas.",
+   "preuve": "technicien-mise-en-page.js : 24 contrôles ✗ sur iphone, android, petit (jour et nuit) et 4 sur mac et windows (jour) (technicien-01) ; capture mep-sm-petit-nuit-moncamion_1.png. Code : droitsNote(), tout le bloc « sinon c'est la note du pied » (ligne ~11640) ne sort pas la forme `terrain` : `ROUTE_DROIT.majournee/moncamion/absences` ont une entrée `terrain`, donc la note s'écrit pour la forme personnelle.",
+   "ou": "apercu/prototype-op-gestion.html : droitsNote (≈ ligne 11628-11641), ROUTE_DROIT (≈ 11362)",
+   "correction": "Dans droitsNote, ne rien écrire quand droitForme(p) === 'terrain' (les cinq écrans personnels du technicien sont à lui : il n'a rien à demander à Marc pour s'en servir) ; sinon nommer ce qu'on ne peut pas faire (« tu ne peux pas créer d'intervention »).",
+   "decision": "corriger"
+  },
+  {
+   "n": "technicien-02",
+   "gravite": "gênant",
+   "zone": "",
+   "ecran": "Ma journée",
+   "role": "technicien, chef d'équipe",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "windows"
+   ],
+   "etapes": "Ouvrir Ma journée au téléphone (iPhone 390×844, Android 360×740, 320×568), de jour comme de nuit.",
+   "attendu": "Les interventions du jour — la raison d'être de l'écran — se voient dès l'ouverture, sans défiler.",
+   "constate": "La première intervention (« 08:30 En cours · Restaurant Le Vieux Port ») commence à y = 832 px sur un écran de 844 (iPhone), 837 sur 740 (Android), 863 sur 568 (320 px), 702 sur 768 (Windows 1366×768) ; pour Karim (carte « habilitation » en plus) à y = 940. Au-dessus : « Ma journée de travail » (carte haute avec un gros bouton), « Messages du bureau », la carte « Mon camion », la ligne « Mes habilitations ». À l'ouverture, aucune intervention n'est visible : le technicien défile avant de voir où il va.",
+   "preuve": "technicien-mise-en-page.js : 2 contrôles ✗ × 5 profils/modes + kb ; mesure y = rect.top + scrollY du premier .rl-int. Captures mep-sm-iphone-jour-majournee_0.png, mep-sm-petit-nuit-majournee_0.png.",
+   "ou": "apercu/prototype-op-gestion.html : vueMaJournee (≈ 11910) et ses surcouches eqxCarteMoi (≈ 20431), ptx (carte Ma journée de travail), sx (raccourci Mon camion, ≈ 14853), rlNotifsCarte (≈ 13482)",
+   "correction": "Passer « Messages du bureau » en une ligne repliable, et mettre la carte « Mon camion » et « Mes habilitations : à jour » SOUS les interventions du jour (elles ne demandent un geste que quand quelque chose manque) ; garder en haut la carte « Ma journée de travail » seulement tant que la journée n'est pas commencée. À défaut : au moins la première intervention sous 600 px.",
+   "decision": "soumettre"
+  },
+  {
+   "n": "technicien-03",
+   "gravite": "bloquant",
+   "zone": "refonte",
+   "ecran": "Mes heures › « Je confirme mes heures »",
+   "role": "technicien (Sophie), chef d'équipe (Karim)",
+   "profils": [
+    "iphone",
+    "mac"
+   ],
+   "etapes": "En technicienne : menu › Mes heures ; toucher « Je confirme mes heures » (la grosse carte bleue « Tes heures d'octobre sont prêtes »).",
+   "attendu": "Le relevé du mois est confirmé par la salariée (c'est la condition pour que le gérant verrouille le mois et envoie au cabinet de paie).",
+   "constate": "Rien ne se confirme. Un message apparaît : « Ce geste n'est pas ouvert à ton compte : payer, valider, relancer, régler la fiche légale. Demande à Marc. » — des mots de comptable adressés à une technicienne, pour son propre relevé. PAIE.confirmes.sm reste null. « Il y a une erreur » → « Envoyer au bureau » fonctionne (signalement parti au bureau, Marc le voit), donc seule la confirmation est refusée.",
+   "preuve": "technicien-parcours-heures.js H1a/H1b ✗ (iphone et mac, rejoué 3 fois) ; balayage mac, geste 14 « Je confirme mes heures » → même message. Code : le bouton appelle ttMhConfirmer → ttViaPaie('confirme|sm') qui clique un bouton caché data-paie ; la famille `paie` est rangée dans la catégorie `compta`, case Modifier, avec 'confirme' (ligne ≈ 11449), et droitsGeste (marque('compta','m'), ≈ 11556) refuse à qui n'a pas la case Comptabilité. Défaut des droits qui agissent (étape 5, 17 novembre) arrivé sur l'écran « Mes heures » refait.",
+   "ou": "apercu/prototype-op-gestion.html : GESTES.paie (≈ 11449), ttViaPaie (≈ 16840), ttMhConfirmer (≈ 17296), droitsGeste/droitsRefus (≈ 11555-11575)",
+   "correction": "Un salarié confirme TOUJOURS son propre relevé : sortir 'confirme' (et 'signalok') de la case compta/m pour la personne dont c'est le relevé (la garde compare l'identifiant de la personne connectée à celui du relevé), ou router le geste par la famille `ptx` (« les déclarations du salarié sur sa propre journée restent les siennes »).",
+   "decision": "corriger"
+  },
+  {
+   "n": "technicien-04",
+   "gravite": "détail",
+   "zone": "",
+   "ecran": "Ma journée › « Mes dépenses » et « Il me faut du matériel »",
+   "role": "technicien",
+   "profils": [
+    "iphone",
+    "mac"
+   ],
+   "etapes": "Ma journée, descendre aux cartes « Mes dépenses » et « Il me faut du matériel ».",
+   "attendu": "Une chose a un seul nom et un seul bouton qui y mène.",
+   "constate": "Deux cartes, deux boutons « Voir mes notes » et « Mes demandes », qui ouvrent le MÊME écran (« Mes frais »). « Voir mes notes » est ambigu pour un artisan (des notes de quoi ? des notes écrites ?) ; la carte s'appelle « Mes dépenses », le bouton « note de frais », l'écran « Mes frais ».",
+   "preuve": "technicien-balayage iphone/majournee, gestes 19 et 21 : data-go=techfrais tous les deux → H1 « Mes frais ».",
+   "ou": "vueMaJournee ≈ 11921 (« Voir mes notes ») et la carte du matériel ≈ 19369-19370",
+   "correction": "Renommer « Voir mes notes » en « Voir mes frais » ; garder « Mes demandes » ou le fondre en un seul bouton « Tout voir ».",
+   "decision": "corriger"
+  },
+  {
+   "n": "technicien-05",
+   "gravite": "détail",
+   "zone": "",
+   "ecran": "Ma journée, Mes frais, Mon camion (messages du bureau)",
+   "role": "technicien",
+   "profils": [
+    "iphone",
+    "petit"
+   ],
+   "etapes": "Sophie, avant d'avoir commencé sa journée : Ma journée, puis Mes frais.",
+   "attendu": "Un rappel s'affiche là où il sert, une fois.",
+   "constate": "La carte « Messages du bureau · 1 — Rappel automatique : tu n'as pas encore commencé ta journée. Touche « Je commence ma journée » » s'affiche sur Ma journée ET sur Mes frais (et un bouton « 1 message du bureau › » sur Mon camion) ; sur Mes frais elle ne concerne pas l'écran. Elle n'a ni « Lu » ni croix. Elle disparaît d'elle-même quand on commence la journée (vérifié, J3 ✓).",
+   "preuve": "captures explore-sm-iphone-jour-techfrais.png et -majournee.png ; code rlNotifsCarte(moi) appelé par vueMaJournee ET vueTechFrais.",
+   "ou": "rlNotifsCarte (≈ 13482), vueTechFrais (≈ 11925)",
+   "correction": "N'afficher sur Mes frais que les messages qui parlent de frais ; ou un seul endroit (Ma journée) et un point rouge ailleurs.",
+   "decision": "soumettre"
+  },
+  {
+   "n": "technicien-06",
+   "gravite": "détail",
+   "zone": "refonte",
+   "ecran": "Mon camion › Il me manque une pièce",
+   "role": "technicien",
+   "profils": [
+    "iphone",
+    "mac"
+   ],
+   "etapes": "Mon camion › « Il me manque une pièce » › écrire une pièce › taper 0 dans « Combien ? » (sans quitter le champ).",
+   "attendu": "Le bouton « Prévenir le bureau » grisé s'accompagne de sa raison (« Mets une quantité. »), comme quand aucune pièce n'est choisie.",
+   "constate": "Le bouton se grise mais aucune phrase ne dit pourquoi tant qu'on ne quitte pas le champ (au retrait du doigt, 0 devient 1 et tout revient).",
+   "preuve": "technicien-parcours-prevenir-bureau.js K1c ✗ (technicien-06), rejoué 2 fois ; code : le gestionnaire `input` (≈ 15045) met MAT.M.q à jour mais ne réécrit pas .mat-pourquoi ; seul `change` (≈ 15053) relance matManqueVue.",
+   "ou": "apercu/prototype-op-gestion.html ≈ 15045-15053 (matManqueVue / pb)",
+   "correction": "Sur `input` du champ « Combien ? », mettre à jour la phrase .mat-pourquoi et l'attribut disabled ensemble (une fonction).",
+   "decision": "corriger"
+  },
+  {
+   "n": "technicien-07",
+   "gravite": "gênant",
+   "zone": "",
+   "ecran": "Fiche d'une intervention › « ‹ Retour » après un rechargement ou un lien direct",
+   "role": "technicien (Sophie)",
+   "profils": [
+    "iphone"
+   ],
+   "etapes": "En technicienne, ouvrir l'adresse d'une de ses interventions sans passer par Ma journée (lien envoyé, favori, notification, ou recharger la page sur la fiche), puis toucher « ‹ Retour ».",
+   "attendu": "Retour ramène à Ma journée.",
+   "constate": "On arrive bien sur Ma journée, mais avec le message d'erreur « Cette page n'est pas dans ton espace. » : le bouton a essayé d'aller à la LISTE des interventions du bureau, que la technicienne n'a pas. Un rechargement sur le téléphone suffit à le provoquer.",
+   "preuve": "technicien-parcours-intervention.js I11c ✗ (rejoué 2 fois) et balayage iphone inter-x-i2, geste 2. Code : le bouton data-retour sans historique va à BASE[route] (≈ 8700) ; BASE.inter = 'interventions' (≈ 8339), écran fermé au technicien (ROUTE_DROIT.interventions n'a que `equipe`), donc le refus de go() écrit le toast (≈ 13629).",
+   "ou": "apercu/prototype-op-gestion.html : BASE (≈ 8339) et le gestionnaire de [data-retour] (≈ 8700)",
+   "correction": "Pour un technicien, BASE.inter (et clientvoit) = 'majournee' ; plus généralement ne retourner qu'à un écran que la personne a le droit d'ouvrir.",
+   "decision": "corriger"
+  },
+  {
+   "n": "technicien-08",
+   "gravite": "détail",
+   "zone": "",
+   "ecran": "Fiche d'une intervention › « Ce que j'ai trouvé » et compte rendu",
+   "role": "technicien",
+   "profils": [
+    "iphone",
+    "mac"
+   ],
+   "etapes": "Fiche d'une intervention en cours ; lire le nom des deux grands champs de texte avec un lecteur d'écran, ou regarder leur <label>.",
+   "attendu": "Chaque champ porte son nom (« Ce que j'ai trouvé », « Compte rendu »).",
+   "constate": "Le <label> du champ ne contient que l'aide (« Écris, ou dicte avec le micro du clavier », « Ce que le client lira, en quelques phrases simples ») ; le titre de la carte, qui nomme le champ, est un <h3> hors du label. Le nom accessible est donc l'aide, pas le champ.",
+   "preuve": "code : 5027 (data-champ=\"trouve\") et 5036 (data-champ=\"compte\") ; balayage iphone inter-x-i2, gestes 6 et 29 recensés « sans nom » par le recensement du DOM.",
+   "ou": "apercu/prototype-op-gestion.html : vueFiche ≈ 5027 et ≈ 5036",
+   "correction": "Ajouter aria-label=\"Ce que j'ai trouvé\" / \"Compte rendu\" sur les deux textarea (ou mettre le titre dans le label).",
+   "decision": "corriger"
+  }
+ ],
+ "doutes_pour_justin": [
+  "Mes tâches : le rond à gauche d'une tâche ne la termine pas d'un geste — il la CHOISIT, et « ✓ Fait » apparaît dans une barre flottante en bas (« 1 choisie · Annuler · ✓ Fait · Aujourd'hui · Demain · Une date »). Pour un débutant, un rond devant une ligne veut dire « fait ». La barre est aussi coupée à droite à 390 px (« 📅 Un… »). Je ne l'ai pas rapporté comme défaut : c'est le dessin validé des tâches ; à toi de dire si un tap sur le rond doit terminer.",
+  "Karim (chef d'équipe) a exactement le menu et les cinq écrans de Sophie : pas de Planning de l'équipe ni de validation des heures de ses équipiers. Conforme à MENU-FINAL.md, mais on peut s'attendre à autre chose d'un « chef ».",
+  "Le message « Tu n'as pas commencé ta journée. Commencer à 10:40 ? » (en touchant « Commencer » sur une intervention) s'efface seul au bout de 6 s : la fiche s'ouvre quand même, donc rien n'est perdu ; seulement 6 s pour répondre."
+ ],
+ "sondes": [
+  "technicien-explore.js (exploration), technicien-balayage.js (chaque geste), technicien-barre.js (30 trajets), technicien-mise-en-page.js (appareils, jour/nuit, zone qui répond, noms des défauts 01 et 02), technicien-valeurs-longues.js,",
+  "technicien-parcours-frais.js, -taches-conges.js, -menu-droits.js, -prevenir-bureau.js, -heures.js, -intervention.js, -tache-pour-marc.js ; ../mutations-technicien.py (M1 à M4). Chaque sonde rend « N ✓ · M ✗ » et sort en 1 si un contrôle tombe ; les contrôles qui tombent sur un défaut portent son numéro."
+ ]
+}
