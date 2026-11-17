@@ -25355,7 +25355,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .ops-code6{border:0;background:none;color:#eef3fb;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-size:34px;font-weight:700;letter-spacing:.12em;text-align:center;min-height:52px;cursor:pointer}
 .ops-anneau{height:5px;border-radius:3px;background:#24365a;overflow:hidden}.ops-anneau i{display:block;height:100%;background:#7aa2ff;transition:width 1s linear}
 .ops-act ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}.ops-act li{display:flex;flex-direction:column;font-size:13.5px}.ops-act li small{color:#9cadc8;font-size:12.5px;overflow-wrap:anywhere}
-.ops-retour{margin:0;padding:10px 12px;border-radius:12px;font-size:14px}.ops-retour.ok{background:#12301f;color:#8fe0ad}.ops-retour.danger{background:#3a1720;color:#ff8f95}
+.ops-retour{margin:0;padding:10px 12px;border-radius:12px;font-size:14px}.ops-centre .ops-retour{margin:0 0 12px;text-align:left}.ops-retour.ok{background:#12301f;color:#8fe0ad}.ops-retour.danger{background:#3a1720;color:#ff8f95}
 /* le grand écran : la fenêtre se pose à droite ; en dessous de 1100 px, c'est une vue plein écran (le vrai comportement : on quitte l'application pour ouvrir l'autre) */
 .ops-pastille{display:none}
 @media (max-width:1099px){
@@ -25433,7 +25433,10 @@ const SECU_MDP_COURANTS = ['azerty123456', 'motdepasse123', 'password1234', '123
 const SECU_ADRESSE_ICI = '203.0.113.42', SECU_ADRESSE_AUTRE = '198.51.100.7', SECU_ADRESSE_PIRATE = '192.0.2.99';   /* les adresses de documentation, jamais celles d'un vrai réseau */
 const SECU = { comptes:{}, demandes:[], sessions:{}, confirmeA:{}, decalage:0, telCourant:'marc', vraie:null, secondaire:false, parcours:new Set(),
   cases:{ autre:false, nuit:false }, horsLigne:false, ui:{}, pc:{ ecran:null, k:null, demandeId:null }, journal:[], auto:false, ouvert:false, demoOuvert:true, message:null };
-const secuMaint = () => Date.now() + SECU.decalage;   /* l'horloge de démonstration : « Faire avancer l'horloge » s'y ajoute */
+/* l'horloge de démonstration : elle PART de l'heure de l'entreprise fictive (AUJ à MAINT_MIN, comme Ma journée et l'Historique), et n'ajoute que le temps écoulé depuis le chargement
+   + « Faire avancer l'horloge ». Lire Date.now() donnait l'heure de la machine de qui regarde : la même connexion s'écrivait deux heures différentes selon l'écran. */
+const SECU_T0 = new Date(AUJ + 'T00:00:00').getTime() + MAINT_MIN * 60000, SECU_P0 = Date.now();
+const secuMaint = () => SECU_T0 + (Date.now() - SECU_P0) + SECU.decalage;
 /* ── le hasard : TOUJOURS crypto.getRandomValues, jamais Math.random (un nombre prévisible n'approuve rien) ── */
 const secuAleaInt = n => { const m = Math.floor(4294967296 / n) * n, a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= m); return a[0] % n; };
 const secuAleaTexte = (jeu, n) => Array.from({ length:n }, () => jeu[secuAleaInt(jeu.length)]).join('');
@@ -25609,7 +25612,7 @@ function opsCarte(d, u){ const rouge = d.raisons.length > 0, titre = d.motif !==
 function opsEcran(k){ const c = secuCompte(k), u = opsSynchro(k), p = eqDe(k), now = secuMaint(), tete = `<div class="ops-etat"><span>OP Security</span><b data-ops="heure">${secuHHMM(now)}</b></div>`;
   const retour = u.retour && (!u.retour.jusqua || now < u.retour.jusqua) ? `<p class="ops-retour ${u.retour.ton || ''}" role="status">${esc(u.retour.txt)}</p>` : '';
   if (c.tel && !c.tel.efface && u.ecran === 'verrouille') { const att = SECU.demandes.some(d => d.k === k && secuDemandeVivante(d));
-    return tete + `<div class="ops-centre">${opsCadenas()}<h1>OP Security</h1><p>${att ? 'Une demande t’attend : saisis ton code PIN' : 'Saisis ton code PIN'}</p>${opsPoints(u.pin.length)}${opsErr(u.err)}</div>${opsPave()}`; }
+    return tete + `<div class="ops-centre">${retour}${opsCadenas()}<h1>OP Security</h1><p>${att ? 'Une demande t’attend : saisis ton code PIN' : 'Saisis ton code PIN'}</p>${opsPoints(u.pin.length)}${opsErr(u.err)}</div>${opsPave()}`; }
   if (c.tel && !c.tel.efface && u.ecran === 'ouvert') {
     const vivantes = SECU.horsLigne ? [] : SECU.demandes.filter(d => d.k === k && secuDemandeVivante(d)), code = secuTotp(c.tel.cle, now), reste = SECU_REGLES.pasMs - (now % SECU_REGLES.pasMs);
     const act = c.histo.slice(0, 5).map(h => `<li><span>${secuHHMM(h.ts)} · ${esc(h.appareil)}</span><small>${esc(h.adresse)} — ${esc(opsRaisonResultat[h.resultat] || h.resultat)}</small></li>`).join('');
@@ -25797,12 +25800,14 @@ function secuTraiter(d, res){ const k = d.k, c = secuCompte(k), now = secuMaint(
   if (d.motif !== 'connexion') { if (res === 'mauvais') { secuEchec(k, 'nombre'); secuJ('login.number_mismatch', k, 'action sensible'); } return secuConfSuite(d, res); }   /* une confirmation d'action sensible n'est pas une connexion : ni historique ni appareil reconnu */
   if (SECU.pirate && SECU.pirate.id === d.id) { SECU.pirate.issue = res === 'ok' ? 'entre' : 'mauvais'; opsDemo(); }
   if (res === 'ok' && d.motif === 'connexion') { secuReconnaitre(k, { id:d.appareilId, nom:d.appareil, adresse:d.adresse }); c.echecs = 0; c.nVerrous = 0; SECU.confirmeA[k] = now;
-    secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'approuvee' }); secuJ('mfa.approved_on_phone', k, d.raisons.length ? 'connexion inhabituelle' : '');
+    secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'approuvee' }); c.histoConnexion = true;   /* une connexion = une ligne : l'écran « Choisis ton mot de passe » qui suit ne réécrit pas la sienne */
+    secuJ('mfa.approved_on_phone', k, d.raisons.length ? 'connexion inhabituelle' : '');
     SECU.parcours.add('nombre'); if (d.raisons.length && d.source === 'ici') SECU.parcours.add('autre'); if (eqDe(k) && sessionRole(eqDe(k)) !== 'patron') SECU.parcours.add('technicienne'); }
   else if (res === 'mauvais') { secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'nombre' }); secuEchec(k, 'nombre'); secuJ('login.number_mismatch', k, d.appareil); }
   secuPcSuite(d); }
 const SECU_MSG = { deconnexion:['Tu es déconnecté.', true], reinit:['La démonstration repart de zéro.', true], inactif:['Tu as été déconnecté : 15 minutes sans rien toucher. Reconnecte-toi.', false],
   bloquee:['Tes connexions ont été fermées : une connexion a été bloquée depuis ton téléphone. Ton compte est verrouillé jusqu’à ce qu’un administrateur change ton mot de passe.', false],
+  verrou:['Trop d’erreurs de mot de passe : ton compte est verrouillé 15 minutes et tes connexions ont été fermées. Un administrateur peut le déverrouiller tout de suite.', false],
   vol:['Par sécurité, ta connexion a été fermée : elle a été utilisée depuis un autre navigateur. Reconnecte-toi.', false], admin:['Un administrateur a fermé tes connexions. Reconnecte-toi.', false] };
 function secuPcSuite(d){ if (SECU.pc.demandeId !== d.id || !document.getElementById('cnx')) return; const p = eqDe(d.k);
   if (d.etat === 'approuvee') { SECU.pc.demandeId = null; return secuApprouveePC(d); }
@@ -26021,7 +26026,7 @@ function secuMonCompte(){ const k = SESSION; if (!k) return; if (SECU.vraie && S
   const histo = c.histo.slice(0, 20).map(h => `<li class="sec-h${h.raisons.length || h.resultat !== 'approuvee' ? ' sec-rouge' : ''}"><div class="sec-h1"><b>${esc(secuMaj(secuQuand(h.ts)))}</b>${h.raisons.length || h.resultat !== 'approuvee' ? `<span class="st st-r">${h.resultat === 'approuvee' ? 'Inhabituelle' : 'Refusée'}</span>` : ''}<span>${esc(SECU_RES_CPT[h.resultat] || h.resultat)}</span></div>
     <div class="gris petit sec-adr">${esc(h.appareil)} · ${esc(h.adresse)}</div>${h.raisons.length ? `<ul class="sec-rs">${h.raisons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}</li>`).join('');
   const apps = c.appareils.map(a => `<li class="sec-ap"><div class="fo-n"><b>${esc(a.nom)}${a.id === ici ? ' <span class="st st-v">Cet appareil</span>' : ''}</b><span class="gris petit">Première connexion ${esc(secuQuand(a.premiere))} · dernière ${esc(secuQuand(a.derniere))}</span><span class="gris petit sec-adr">${esc(a.adresse)}</span></div>${a.id === ici ? '' : `<button type="button" class="btn gris sec-oubli" data-sec2="oublier|${esc(a.id)}">Oublier</button>`}</li>`).join('');
-  foOuvrir(`<button type="button" class="sec-retour" data-ferme="1">‹ Retour</button><span class="surtitre">${esc(p.role)}</span><div class="eq-tete">${secuAv(p)}<h2>Mon compte</h2></div>
+  foOuvrir(`<span class="surtitre">${esc(p.role)}</span><div class="eq-tete">${secuAv(p)}<h2>Mon compte</h2></div>
     <div class="gris petit sec-ident">${esc(eqNom(p))} · ${esc(p.mail)} · identifiant <b>${esc(cnxLogin(p))}</b></div>
     <div class="carte sec-bloc"><h3>Mon téléphone</h3><p>${c.tel ? 'OP Security est activée sur <b>' + esc(c.tel.nom) + '</b> (depuis le ' + secuJJMM(c.tel.activeLe) + '). Chaque connexion se confirme sur ce téléphone.' : 'OP Security n’est pas encore activée sur un téléphone.'}</p>
       <p class="gris petit">Tu as perdu ton téléphone ? Va voir ton administrateur avec une pièce d’identité : il vérifie que c’est bien toi, puis il active ton nouveau téléphone. Il n’existe pas de code de secours : c’est voulu, personne ne peut s’en servir à ta place.</p></div>
@@ -26039,7 +26044,9 @@ function secuPanMdp(){ const k = SESSION; if (!k) return;
     <div class="actions"><button type="button" class="btn" data-sec2="mdp-ok">Changer mon mot de passe</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
 /* mêmes règles et mêmes messages qu'au choix du premier mot de passe (§ 3.3) ; l'empreinte et le sel sont renouvelés, les autres connexions se ferment */
 function secuMdpChanger(a0, a, b){ const k = SESSION, c = k && SECU.comptes[k]; if (!c) return 'Reconnecte-toi.';
-  if (!secuMdpJuste(c, a0)) return 'Mot de passe actuel incorrect.';
+  if (!secuMdpJuste(c, a0)) { secuEchec(k, 'mdp');   /* le même compteur que la connexion : quelqu'un devant un ordinateur resté ouvert ne devine pas le mot de passe sans limite */
+    if (secuVerrouMaj(c)) { secuFermerSessions(k, 'verrou'); return SECU_MSG.verrou[0]; }
+    return 'Mot de passe actuel incorrect.'; }
   const sans = a.replace(/\s/g, '');
   if (sans.length < SECU_REGLES.mdpMin) return 'Trop court : ' + SECU_REGLES.mdpMin + ' caractères au minimum, sans compter les espaces.';
   if (SECU_MDP_COURANTS.includes(sans.toLowerCase())) return 'Ce mot de passe est trop courant. Choisis-en un autre.';
@@ -26063,7 +26070,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest && ev.tar
   if (a === 'revenir') return secuRevenir();
   if (a === 'mdp') return secuPanMdp();
   if (a === 'mdp-ok') { const m = secuMdpChanger(document.getElementById('sec-m0').value, document.getElementById('sec-m1').value, document.getElementById('sec-m2').value), e = document.getElementById('sec-merr');
-    if (m) { e.textContent = m; const h = document.getElementById('sec-maide'); if (h && /Trop court/.test(m)) h.style.display = 'none'; return; }
+    if (m) { if (!e) return; e.textContent = m; const h = document.getElementById('sec-maide'); if (h && /Trop court/.test(m)) h.style.display = 'none'; return; }
     fermerPanneau(); secuMonCompte(); return toast('Mot de passe changé. Tes autres connexions ont été fermées.'); }
   if (a === 'oublier') { const c = SECU.comptes[SESSION], ap = c && c.appareils.find(o => o.id === x); if (!ap) return;
     return eqxPan(`<span class="surtitre">Mon compte</span><h2>Oublier cet appareil ?</h2><p>Oublier ${esc(ap.nom)} ? La prochaine connexion depuis cet appareil sera signalée comme inhabituelle.</p>
@@ -26200,8 +26207,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec3-css">
 .sec-verif{min-height:48px;align-items:center}.sec-verif input{width:24px;height:24px;flex:none}
 .sec-conseq{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .sec-expire-pan{margin-bottom:8px}
-.sec-retour{display:none;min-height:48px;margin:0 0 6px;padding:0 6px;background:none;border:0;color:var(--lien);font:inherit;font-size:16px;font-weight:600;cursor:pointer;text-align:left}
-@media (max-width:760px){.sec-retour{display:inline-flex;align-items:center}}
+/* « ‹ Retour » de Mon compte : celui que le panneau pose lui-même (ouvrirPanneau, quand on vient du menu), un seul, à 48 px sur téléphone */
+@media (max-width:760px){.panneau:has(.sec-ident) .p-retour{min-height:48px;margin-top:-10px}}
 .sec-bloc{margin:12px 0}.sec-bloc h3{margin:0 0 8px}.sec-ident{overflow-wrap:anywhere}
 .sec-histo,.sec-apps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
 .sec-h{border-left:3px solid transparent;padding-left:10px}.sec-h.sec-rouge{border-left-color:var(--rouge)}.sec-h1{display:flex;gap:4px 8px;flex-wrap:wrap;align-items:center}
@@ -26275,7 +26282,8 @@ function cnxPremierValider(f){ const p = eqDe(f.dataset.k), c = secuCompte(p.k),
   if (new Set(sans).size < 6) return cnxDire('Ce mot de passe est trop répétitif.');
   if (a !== b) return cnxDire('Les deux mots de passe ne sont pas les mêmes.');
   if (secuMdpJuste(c, a)) return cnxDire('Choisis un mot de passe différent du mot de passe provisoire.');
-  secuMdpDefinir(p.k, a); c.echecs = 0; c.nVerrous = 0; secuReconnaitre(p.k, secuAppareilCourant()); SECU.confirmeA[p.k] = secuMaint(); secuHisto(p.k, { appareil:secuAppareilCourant().nom, adresse:secuAppareilCourant().adresse, resultat:'approuvee' });
+  secuMdpDefinir(p.k, a); c.echecs = 0; c.nVerrous = 0; secuReconnaitre(p.k, secuAppareilCourant()); SECU.confirmeA[p.k] = secuMaint();
+  if (!c.histoConnexion) secuHisto(p.k, { appareil:secuAppareilCourant().nom, adresse:secuAppareilCourant().adresse, resultat:'approuvee' }); c.histoConnexion = false;
   opsRetour(p.k, 'Approuvé. La suite se passe sur l’ordinateur.', 'ok', 5000); opsDemo(); opsDessiner(true); cnxEntrer(p); }
 /* Écran « Confirme sur ton téléphone » (tous les jours) : le NOMBRE en grand, le téléphone montre l'appareil et l'adresse, la personne tape le nombre */
 function cnxConfirmerCorps(d){ const rouge = d.raisons.length > 0;
@@ -26288,7 +26296,12 @@ function cnxConfirmerCorps(d){ const rouge = d.raisons.length > 0;
       : `<details class="sec-codes"><summary>Le téléphone n’a pas de réseau ?</summary><label>Code à 6 chiffres affiché dans OP Security<input id="cn-code6" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000 000"></label><button type="button" class="btn" data-cnx="code6">Valider le code</button></details>`}
     <p class="cn-err" id="cn-err" role="alert"></p><button type="button" class="cn-lien" data-cnx="annuler-demande">Annuler</button>`; }
 function cnxConfirmer(p, d){ SECU.pc = { ecran:'confirme', k:p.k, demandeId:d.id, codesFaux:0 }; SECU.telCourant = p.k; if (opsLarge()) SECU.ouvert = true;
-  cnxPoser('Confirme sur ton téléphone', `<form class="cn-carte" id="cn-form-confirme" data-d="${d.id}" novalidate>${cnxConfirmerCorps(d)}</form>${cnxPastilleTel()}`); }
+  cnxPoser('Confirme sur ton téléphone', `<form class="cn-carte" id="cn-form-confirme" data-d="${d.id}" novalidate>${cnxConfirmerCorps(d)}</form>${cnxPastilleTel()}`); if (d.raisons.length) setTimeout(cnxNombreEnVue, 520); }
+/* l'alerte rouge ajoute trois ou quatre lignes AU-DESSUS du nombre : sur un écran court (Android, 320 × 568) il tombait sous le bord, et la personne devait deviner qu'il fallait défiler.
+   On fait donc défiler jusqu'à lui (la carte garde l'alerte juste au-dessus), sans mouvement si la personne a demandé moins d'animations — et seulement si ça ne tient pas déjà. */
+function cnxNombreEnVue(){ const f = document.getElementById('cn-form-confirme'), z = f && f.querySelector('.sec-expire'); if (!z || f.dataset.mort) return;
+  if (z.getBoundingClientRect().bottom <= innerHeight - 8) return;
+  z.scrollIntoView({ block:'end', behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
 function cnxConfirmerExpire(){ const f = document.getElementById('cn-form-confirme'); if (!f || f.dataset.mort) return; f.dataset.mort = '1';
   f.innerHTML = `<h1>Confirme sur ton téléphone</h1><p class="cn-expl" role="alert">La demande a expiré.</p><button type="button" class="btn plein" data-cnx="recommencer">Recommencer</button>`; }
 function cnxCode6(texte){ const d = SECU.demandes.find(x => x.id === SECU.pc.demandeId); if (!d || !secuDemandeVivante(d)) return; const c = secuCompte(d.k), p = eqDe(d.k), t = texte != null ? texte : ((document.getElementById('cn-code6') || {}).value || '');
@@ -26303,8 +26316,9 @@ function cnxAnnulerDemande(){ const d = SECU.demandes.find(x => x.id === SECU.pc
 function cnxValider(){ const id = cnxIdNorm(document.getElementById('cn-id').value), mdp = document.getElementById('cn-mdp').value;
   if (!id || !mdp) return cnxDire('Écris ton identifiant et ton mot de passe.');
   const r = secuConnexion(id, mdp); cnxFauxMaj(); if (r.refus) return cnxDire(r.refus);
-  const p = r.p, c = r.c; SECU.telCourant = p.k;
+  const p = r.p, c = r.c; SECU.telCourant = p.k; c.histoConnexion = false;   /* chaque connexion repart sans ligne d'historique écrite */
   if (!c.tel) return cnxGlisser(() => cnxActiver(p));
+  if (c.tel.efface) return cnxDire('Ton téléphone a été effacé. Demande un nouveau téléphone à ton administrateur.');   /* aucune demande ne naît : il n'y a plus de téléphone pour la valider */
   const d = secuDemander(p.k, 'connexion'); if (!d) return cnxDire('Trop de demandes de connexion. Attends quelques minutes avant de réessayer.');
   secuJ(d.raisons.length ? 'login.unusual' : 'login.requested', p.k, d.appareil + ' · ' + d.adresse);
   cnxGlisser(() => cnxConfirmer(p, d)); }
@@ -26506,6 +26520,7 @@ function nvVoir(k){ const p = (NV ? NV.pages : []).find(x => x.k === k); if (!p)
 function nvOccupe(){ try { return calOuverts().some(k => k !== 'nouveautes') || !!document.getElementById('cnx') || !!document.getElementById('gd-bulle') || (typeof GD !== 'undefined' && GD.actif); } catch (e) { return false; } }
 /* à la première connexion : une fois l'écran de l'application posé ; si une fenêtre s'est ouverte entre-temps, on retente un peu plus tard (six fois), puis on laisse — il reste dans « Nouveautés » */
 function nvProposer(essai){ essai = essai || 0; if (!MODE_APP || !SESSION || !nvRole() || nvVu() || document.getElementById('nv')) return;
+  if (typeof SECU !== 'undefined' && SECU.vraie && SECU.vraie !== SESSION) return;   /* « Ouvrir l'application comme … » : regarder chez quelqu'un ne lui prend pas son guide (il ne s'ouvrirait plus quand il se connecte pour de vrai) */
   if (nvOccupe()) { if (essai < 6) setTimeout(() => nvProposer(essai + 1), 1500); return; }
   nvOuvrir(); }
 document.addEventListener('click', ev => { const t = ev.target; if (t && t.id === 'nv') { nvFermer(); return; }   /* le toucher en dehors de la feuille */
