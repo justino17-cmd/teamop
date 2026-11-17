@@ -132,6 +132,9 @@ button.chip:hover{border-color:var(--trait2)}
 @keyframes pouls{70%{box-shadow:0 0 0 7px color-mix(in srgb,var(--vert) 0%,transparent)}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--vert) 0%,transparent)}}
 .contenu{padding-block:22px 56px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px;width:100%}
 .barre-bas{display:none}
+.lg-court{display:none}
+/* DANS la fenêtre d'OP GESTION, au téléphone : un seul bouton de menu par barre visible (17/11, compta-ventes-22). Ici, c'est la barre du bas, « Plus », qui porte déjà les rubriques ; le « Menu » d'OP GESTION, lui, reste */
+@media (max-width:760px){html.cadre .barre .ouvrir-menu{display:none}}
 .tete{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap}
 .tete>div:first-child{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:4px}
 .tete p{max-width:78ch}
@@ -434,7 +437,7 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
   .contenu{padding-top:14px;padding-bottom:128px;gap:16px}
   .barre{min-height:58px;flex-wrap:nowrap;gap:10px}
   .barre .logo{flex:1;min-width:0}.barre .logo b{overflow:hidden;text-overflow:ellipsis}.barre .chip{flex:none}
-  .barre .chip .lg{display:none}
+  .barre .chip .lg{display:none}.barre .chip .lg-court{display:inline;margin-right:4px}
   .barre-bas{display:block;position:fixed;left:0;right:0;bottom:0;padding:8px max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));z-index:30}
   body.guide-on .barre-bas{display:none}
   .carte{padding:16px;border-radius:20px}
@@ -557,6 +560,8 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 .menu.cmpt-coupe .cmpt-plus{display:flex}
 .menu.cmpt-coupe .menu-liste{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 44px),transparent)}
 @media (min-width:761px){.menu a{min-height:40px}}
+/* au doigt (téléphone ET tablette), « Plus bas » et chaque entrée du menu répondent sur 44 px : ces deux règles, écrites APRÈS les 36 et 40 px de la souris, les battent (la règle à 44 px posée plus haut perdait à égalité de poids) */
+@media (pointer:coarse){.cmpt-plus{min-height:44px}.menu a{min-height:44px}}
 .cmpt-hero-mini{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:12px}
 .cmpt-hero-mini .cmpt-l{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .cmpt-hero-mini .btn{min-height:44px}
@@ -652,7 +657,8 @@ const nomTiers = k => (tiers(k) || {}).nom || k;
    vente : celles de l'application, leurs paiements et leurs relances SONT les siens. L'application les donne à l'ouverture (paramètre
    « liaison » de l'adresse du cadre) puis à chaque changement (message opc_ventes). Ouverte seule, sans ce paramètre : le jeu
    d'exemple d'avant, rien ne change. */
-let LIA = null, OPL_NUMS = new Set(), OPL_ANNULEES = new Set(), OPL_EN_COURS = false;   /* OPL_ANNULEES : les factures que l'application a annulées par un avoir (jamais « payées », jamais « à encaisser ») */
+let LIA = null, OPL_NUMS = new Set(), OPL_ANNULEES = new Set(), OPL_EN_COURS = false, OPL_AVOIRS = {}, OPL_RECUS = {};   /* OPL_AVOIRS : pour chaque facture, l'avoir qui l'annule ou la rembourse ; OPL_RECUS : ce que l'application a déjà reçu d'une facture annulée (à rendre au client) */
+   /* OPL_ANNULEES : les factures que l'application a annulées par un avoir (jamais « payées », jamais « à encaisser ») */
 try { const m = /[?&]liaison=([^&#]+)/.exec(location.search); if (m && window.parent !== window && /[?&]app=1\b/.test(location.search)) LIA = JSON.parse(decodeURIComponent(m[1])); } catch (e) { LIA = null; }
 if (LIA && !Array.isArray(LIA.factures)) LIA = null;
 const oplNorm = x => String(x == null ? '' : x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -2346,7 +2352,7 @@ rendreBarre = () => {
   const oct = PER['2026-10'] === 'cloturee';
   $('#barre').innerHTML = `<button type="button" class="ouvrir-menu" data-a="menu" aria-label="Ouvrir les rubriques" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONES.menu}</svg></button>
     <span class="logo"><i>OP</i><span><b>OP GESTION</b><small>Comptabilité</small></span></span>
-    <button type="button" class="chip ${SIM.marche ? 'vivant' : ''}" data-cmpt="lecture" aria-haspopup="dialog" aria-label="Relié à OP GESTION, dernière lecture à ${SIM.h} : voir le détail"><span class="pt"></span><span class="lg">Relié à OP GESTION ·</span><span class="h"><span class="chip-date">31/10 · </span>${SIM.h}</span></button>
+    <button type="button" class="chip ${SIM.marche ? 'vivant' : ''}" data-cmpt="lecture" aria-haspopup="dialog" aria-label="Relié à OP GESTION, dernière lecture à ${SIM.h} : voir le détail"><span class="pt"></span><span class="lg">Relié à OP GESTION ·</span><span class="lg-court">Relevé à</span><span class="h"><span class="chip-date">31/10 · </span>${SIM.h}</span></button>
     <span class="chip mois ${oct ? '' : 'attente'}"><span class="pt"></span>${oct ? 'Octobre clôturé' : 'Octobre ouvert'}</span>
     <div class="droite">${segPilote('seg')}</div>`;
 };
@@ -3364,11 +3370,11 @@ function cmptFactureBloc(num){
   const { f, F, p, late, jr } = S, rel = f.relances || 0, due = r2(F.ttc - oplRecu(num));
   const li = (cl, ic, t) => `<li class="${cl}"><i aria-hidden="true">${ic}</i><span>${t}</span></li>`;
   if (OPL_ANNULEES.has(num)) return `<div class="carte cmpt-fac" data-fac-etat="${esc(num)}"><h3>Où en est cette facture</h3><ul class="cmpt-etat">
-      ${li('ok', '✓', `Envoyée par OP GESTION le ${dCourt(F.e.date)} · ${eur(F.ttc)} TTC`)}${li('ok', '✓', 'Annulée par un avoir : plus rien à payer, aucune relance ne part')}</ul>
+      ${li('ok', '✓', `Envoyée par OP GESTION le ${dCourt(F.e.date)} · ${eur(F.ttc)} TTC`)}${li('ok', '✓', 'Annulée par un avoir : plus rien à payer, aucune relance ne part')}${OPL_RECUS[num] ? li('mal', '!', eur(OPL_RECUS[num]) + ' déjà reçus : à rembourser au client') : ''}</ul>
     <div class="cmpt-outils"><button type="button" class="btn gris petit" data-cmpt="pdf" data-cle="${esc(num)}">Voir le PDF</button></div></div>`;
   return `<div class="carte cmpt-fac" data-fac-etat="${esc(num)}"><h3>Où en est cette facture</h3><ul class="cmpt-etat">
       ${li('ok', '✓', `Envoyée par OP GESTION le ${dCourt(F.e.date)} · ${eur(due)} TTC`)}
-      ${p ? li('ok', '✓', `Payée le ${dCourt(p.date)} (${p.mode})`) : late ? li('mal', '!', `En retard : échue le ${dCourt(F.e.ech)}, il y a ${cmptPluriel(jr, 'jour')}`) : li('att', '…', `À encaisser${F.e.ech ? ' avant le ' + dCourt(F.e.ech) : ''}`)}
+      ${p ? li('ok', '✓', `Payée le ${dCourt(p.date)} (${p.mode})${OPL_AVOIRS[num] ? ' · avoir ' + esc(OPL_AVOIRS[num]) + ' : le remboursement se note à part' : ''}`) : late ? li('mal', '!', `En retard : échue le ${dCourt(F.e.ech)}, il y a ${cmptPluriel(jr, 'jour')}`) : li('att', '…', `À encaisser${F.e.ech ? ' avant le ' + dCourt(F.e.ech) : ''}`)}
       ${!p ? li(rel ? 'ok' : 'att', rel ? '✓' : '…', rel ? `Relancée ${cmptPluriel(rel, 'fois', 'fois')} par OP GESTION${num === 'FAC-2026-0128' || f.relanceLe ? ' (dernière relance le ' + (f.relanceLe || (AUTO.terrain.relance ? '31/10' : '28/10')) + ')' : ''}` : 'Pas encore relancée') : ''}
       ${!p ? li(late ? 'mal' : 'att', '€', `Reste dû : <b>${eur(due)}</b>`) : ''}</ul>
     <div class="cmpt-outils">${p ? '' : `<button type="button" class="btn petit" data-cmpt="relancer" data-cle="${esc(num)}">Relancer maintenant</button>`}<button type="button" class="btn gris petit" data-cmpt="pdf" data-cle="${esc(num)}">Voir le PDF</button></div></div>`;
@@ -3479,7 +3485,7 @@ VUES.ventes = () => {
     <div class="defile"><table class="t liste-tel" role="table"><thead role="rowgroup"><tr role="row"><th class="masque-tel" role="columnheader">Facture</th><th role="columnheader">Client</th><th class="masque-tel" role="columnheader">Date</th><th class="n" role="columnheader">TTC</th><th role="columnheader">État</th></tr></thead><tbody role="rowgroup">
       ${L.map(f => { const p = paiementDe(f), F = FACTURES.find(x => x.num === f.e.piece) || {}, cli = cliDe(f), pp = LIA ? oplRecu(f.e.piece) : 0, en = late(f) && !pp;
         return `<tr class="clic" role="row" data-fac="${esc(f.e.piece)}" data-a="expliquer" data-id="${f.e.id}" data-tag="fac"><td class="mono masque-tel" role="cell">${esc(f.e.piece)}</td><td class="lt-t" role="cell">${esc(nomTiers(cli))}<span class="sec">${esc(f.e.lib.split(' · ')[0])}</span><span class="sec seul-tel mono">${esc(f.e.piece)}</span></td><td class="c masque-tel" role="cell">${dCourt(f.e.date)}</td><td class="n lt-m" role="cell">${nb(f.ttc)}</td>
-          <td class="lt-e" role="cell">${OPL_ANNULEES.has(f.e.piece) ? `<span class="st">Annulée par un avoir</span><span class="sec">plus rien à encaisser</span>` : p ? `<span class="st ok">Payée · ${p.mode}</span><span class="sec">le ${dCourt(p.date)}</span>` : en ? `<span class="st bad">En retard</span><span class="sec">due le ${dCourt(f.e.ech)}${F.relances ? ' · ' + plur(F.relances, 'relance') : ''}</span>` : pp > 0 ? `<span class="st warn">Payée en partie</span><span class="sec">reste ${eur(r2(f.ttc - pp))}${late(f) ? ' · en retard' : ''}</span>` : `<span class="st warn">À encaisser</span><span class="sec">${f.e.ech ? 'due le ' + dCourt(f.e.ech) : ''}</span>`}</td></tr>`; }).join('') || `<tr role="row"><td role="cell" colspan="5" class="vide">${q ? 'Aucune facture ne correspond à « ' + esc(UI.vq.trim()) + ' ».' : 'Aucune facture dans ce filtre.'}</td></tr>`}</tbody></table></div>
+          <td class="lt-e" role="cell">${OPL_ANNULEES.has(f.e.piece) ? `<span class="st">Annulée par un avoir</span><span class="sec">plus rien à encaisser${OPL_RECUS[f.e.piece] ? ' · ' + eur(OPL_RECUS[f.e.piece]) + ' à rembourser' : ''}</span>` : p ? `<span class="st ok">Payée · ${p.mode}${OPL_AVOIRS[f.e.piece] ? ' · avoir ' + esc(OPL_AVOIRS[f.e.piece]) : ''}</span><span class="sec">le ${dCourt(p.date)}</span>` : en ? `<span class="st bad">En retard</span><span class="sec">due le ${dCourt(f.e.ech)}${F.relances ? ' · ' + plur(F.relances, 'relance') : ''}</span>` : pp > 0 ? `<span class="st warn">Payée en partie</span><span class="sec">reste ${eur(r2(f.ttc - pp))}${late(f) ? ' · en retard' : ''}</span>` : `<span class="st warn">À encaisser</span><span class="sec">${f.e.ech ? 'due le ' + dCourt(f.e.ech) : ''}</span>`}</td></tr>`; }).join('') || `<tr role="row"><td role="cell" colspan="5" class="vide">${q ? 'Aucune facture ne correspond à « ' + esc(UI.vq.trim()) + ' ».' : 'Aucune facture dans ce filtre.'}</td></tr>`}</tbody></table></div>
     <p class="mute petit">${L.length === L0.length ? '' : cmptPluriel(L.length, 'facture affichée', 'factures affichées') + ' sur ' + L0.length + '. '}Touche une facture pour voir où elle en est : relancer, voir le PDF, l’ouvrir dans OP GESTION. ${UI.expert ? 'Le compte de chaque client est dans « Clients et fournisseurs ».' : ''}</p>`;
 };
 
@@ -3699,7 +3705,7 @@ function oplDejaRegle(x){ return LIA && x.l.c === '411000' && x.l.d > 0 ? Math.m
 function oplSync(P, init){
   if (!LIA || !P || !Array.isArray(P.factures)) return;
   if (P.prochain) LIA.prochain = P.prochain;
-  const S = oplSpecs(P); OPL_NUMS = new Set(S.F.map(x => x.num)); OPL_ANNULEES = new Set(S.F.filter(x => x.annulee).map(x => x.num)); let n = 0; OPL_EN_COURS = true;
+  const S = oplSpecs(P); OPL_AVOIRS = {}; OPL_RECUS = {}; (P.factures || []).forEach(f => { if (f && f.num && typeof f.avoir === 'string' && f.avoir) OPL_AVOIRS[f.num] = f.avoir; if (f && f.num && f.st === 'annulee' && +f.recu > 0) OPL_RECUS[f.num] = +f.recu; }); OPL_NUMS = new Set(S.F.map(x => x.num)); OPL_ANNULEES = new Set(S.F.filter(x => x.annulee).map(x => x.num)); let n = 0; OPL_EN_COURS = true;
   try { S.F.forEach(s => {
     let F = factureDe(s.num), rec = FACTURES.find(x => x.num === s.num);
     if (!F) { oplCreer(s); n++; F = factureDe(s.num); rec = FACTURES.find(x => x.num === s.num); }
