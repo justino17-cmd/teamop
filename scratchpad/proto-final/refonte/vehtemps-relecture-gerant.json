@@ -10,6 +10,7 @@
  "doutes": [
   "La validation de la semaine EN COURS (26 octobre au 1er novembre, un samedi à 10 h 40 : Sophie a encore 3h30 de prévues) est proposée et passe : « Valider les 4 personnes en règle » et « Valider ce qui est en règle » (27 semaines) comprennent la semaine qui n’est pas finie. Rien n’est perdu (une heure qui bouge la remet « À revalider »), mais Justin voudra peut-être qu’on attende dimanche soir.",
   "« Mois » : les lignes de la feuille d’une personne ne font pas la somme du chiffre du haut (Sophie : 41h00 + 40h50 + 32h05 + 40h41 + 40h50 = 195h26 ; « 170h46 travaillées » ne compte que octobre). « commencée en septembre » l’explique à demi ; une ligne « dont X en octobre » le dirait.",
+  "Après un renouvellement groupé de l’assurance (prime annuelle de 4 200 €), « dépensés en octobre (hors taxes) » passe de 1 566 € à 5 766 € : la prime entière est comptée le mois du paiement alors que le coût au kilomètre la lisse sur 12 mois. Exact en trésorerie, trompeur pour « ce que coûtent les véhicules ce mois-ci » : à demander à Justin.",
   "La semaine « payée avec novembre » (Temps de travail) et « se termine en novembre · sur novembre » (relevé de Comptabilité › Paie ouvert depuis le même panneau) disent le même fait avec deux phrases, et le relevé écrit encore « sup. » là où Temps de travail dit « en plus » : la Paie est un écran validé hors du lot, à soumettre."
  ],
  "defauts": [
@@ -106,6 +107,97 @@
   },
   {
    "n": "gerant-08",
+   "gravite": "gênant",
+   "ecran": "Véhicules › fiche › onglet Dépenses",
+   "role": "marc",
+   "profils": "mac jour (g1 et g9 : deux passages)",
+   "etapes": "Véhicules › Renault Trafic › Dépenses (12 mois).",
+   "attendu": "Le total de la phrase est la somme de ce que la liste montre, ou l’écart est dit.",
+   "constate": "« 2 360 € dépensés depuis le 23 juin » ; les six lignes « Les dépenses » font 376 + 168,50 + 431 + 214 + 418 + 392 = 1 999,50 €. Les 360,50 € qui manquent sont l’assurance lissée (1 080 € ÷ 12 × 4 mois), qui n’est dans aucune ligne.",
+   "preuve": "vxCalcCout (l. 18008) ajoute `v.assur.prime / 12 * nbMois` au total ; vhDepenses (l. 18830) ne liste que vehFrais(v) (frais propres, achats, notes de frais).",
+   "ou": "vhDepenses / vxCalcCout",
+   "correction": "Ajouter en bas de liste une ligne « Assurance (11 déc. → lissée sur 4 mois) · 360 € » ou écrire « dont 360 € d’assurance » sous la phrase."
+  },
+  {
+   "n": "gerant-09",
+   "gravite": "gênant",
+   "ecran": "Véhicules › Noter un plein puis fiche › Dépenses",
+   "role": "marc",
+   "profils": "mac jour",
+   "etapes": "Noter un plein : montant 120 (toutes taxes comprises), 60 L, enregistrer ; ouvrir la fiche du Trafic › Dépenses.",
+   "attendu": "La dépense dit « 100,00 € hors taxes » ou garde 120 € avec son prix toutes taxes comprises ; la phrase du haut dit « hors taxes ».",
+   "constate": "La ligne « Carburant · 31 octobre » affiche 100,00 € (120 € saisis) et la phrase « 2 460 € dépensés » ne dit pas « hors taxes » (la liste des véhicules, elle, l’écrit). Celui qui vient de payer 120 € ne retrouve pas son chiffre.",
+   "preuve": "vxPleinOk (l. 18224) : `ht = ttc / 1.2` ; vhDepenses n’écrit « hors taxes » nulle part (seule la feuille « Cette dépense » le dit, en ouvrant la ligne).",
+   "ou": "vhDepenses",
+   "correction": "« Montants hors taxes » en légende grise sous la phrase, ou afficher « 100,00 € HT (120,00 € TTC) » pour une ligne née d’un plein."
+  },
+  {
+   "n": "gerant-10",
+   "gravite": "détail",
+   "ecran": "Véhicules › fiche › Dépenses › « … par mois »",
+   "role": "marc",
+   "profils": "mac jour",
+   "etapes": "Véhicules › Trafic › Dépenses › 12 mois.",
+   "attendu": "2 360 € sur 4,3 mois (du 23 juin au 31 octobre = 130 jours) font environ 551 € par mois.",
+   "constate": "« … et 590 € par mois » (2 360 ÷ 4).",
+   "preuve": "vxCalcCout l. 18022 : `nbMois = Math.max(1, Math.round(jours / 30.4))` : 4,28 est arrondi à 4 (7 % trop). Pire sur 45 jours : round(1,48) = 1 → le double.",
+   "ou": "vxCalcCout",
+   "correction": "Diviser par jours / 30,4 sans arrondir (ou écrire « environ »), l’arrondi ne servant qu’à l’assurance lissée."
+  },
+  {
+   "n": "gerant-11",
+   "gravite": "détail",
+   "ecran": "Temps de travail › Semaine (grille), Windows 1366 × 768",
+   "role": "marc",
+   "profils": "windows jour et nuit (42 cases sur 42), non reproduit sur mac 1440",
+   "etapes": "Temps de travail › Semaine sur un portable 1366 px.",
+   "attendu": "« 07:37–16:42 » tient dans la case avec une marge.",
+   "constate": "Les 42 cases ont 77 px de large et le texte horaire (72 px) dépasse de 3 px le bord droit : il touche la bordure (captures h-tt-sem-windows-nuit.png et -jour).",
+   "preuve": ".tt-gl (l. 3631) : colonnes minmax(72px,1fr) ; .tt-j a 7 px de rembourrage de chaque côté et .tt-j span est en nowrap à 11,5 px : il faut 88 px, la grille n’en donne que 72 à 77 entre 1000 et 1100 px de conteneur.",
+   "ou": ".tt-gl / .tt-j",
+   "correction": "minmax(88px,1fr) et laisser la liste jusqu’à 1120 px de conteneur, ou 11 px et rembourrage 5 px."
+  },
+  {
+   "n": "gerant-12",
+   "gravite": "détail",
+   "ecran": "Temps de travail › Semaine à 1280 px",
+   "role": "marc",
+   "profils": "mac720 (1280 × 720), ipad paysage",
+   "etapes": "Fenêtre de 1280 px (MacBook 13″) › Temps de travail › Semaine.",
+   "attendu": "La grille de sept jours (« pas mal », dit Justin) sur ordinateur ; la spécification donne la liste sous 640 px de conteneur.",
+   "constate": "À 1280 px le conteneur fait 968 px : c’est la liste du téléphone (nom, total, pastille) qui s’affiche, pas la grille ; elle n’apparaît qu’à partir de 1000 px de conteneur (soit 1290 px d’écran).",
+   "preuve": "@container ttsem (min-width:1000px) (l. 3629), commentaire « ne tient qu’au-dessus de 1000 px » : écart à la spécification, fait pour que la grille tienne (cf. gerant-14).",
+   "ou": "CSS .tt-grille",
+   "correction": "Rendre la grille compacte (cases de 64 px, heures sur deux lignes) pour qu’elle tienne dès 880 px de conteneur ; sinon le dire à Justin : sur un portable de 13″ il verra la liste."
+  },
+  {
+   "n": "gerant-13",
+   "gravite": "détail",
+   "ecran": "Véhicules › fiche › Dépenses › supprimer / modifier une dépense",
+   "role": "marc",
+   "profils": "mac jour (g9 et g12 : deux passages)",
+   "etapes": "Fiche › Dépenses › une ligne › « Supprimer cette dépense » puis « Annuler » dans le toast.",
+   "attendu": "« Dépense supprimée » (mot de l’écran) et, après Annuler, une phrase « Annulé : la dépense est revenue ».",
+   "constate": "Les toasts disent « Frais supprimé. » / « Frais modifié. » (le mot « Frais » est retiré de l’écran par la spécification) ; après Annuler la ligne revient (6 lignes avant, 5, puis 6) mais rien ne le dit et le toast « Frais supprimé » reste affiché.",
+   "preuve": "vxFraisSuppr / vxFraisOk (l. 18478-18486) : toasts « Frais … », l’action Annuler ne rend aucun toast, alors que ttTerminer, vxPleinOk, etc. en rendent un.",
+   "ou": "vxFraisOk / vxFraisSuppr",
+   "correction": "« Dépense supprimée. » et, dans Annuler, `toast('Annulé : la dépense est revenue.')`."
+  },
+  {
+   "n": "gerant-14",
+   "gravite": "détail",
+   "ecran": "Véhicules › fiche d’un véhicule au garage",
+   "role": "marc",
+   "profils": "ipad nuit, mac jour (g9b)",
+   "etapes": "Mettre le Trafic au garage › la fiche s’ouvre.",
+   "attendu": "Un seul « Le remettre en service » (principe 3 : un geste dit une fois).",
+   "constate": "Le bouton « Le remettre en service » est écrit deux fois à 150 px d’écart : dans l’encadré orange du haut, puis dans la rangée « Noter un plein · Relever le compteur · Le remettre en service ».",
+   "preuve": "vehFiche (l. 18764) : l’alerte porte `vhGeste(E.bouton)` ET la rangée de gestes remplace « Mettre au garage » par « Le remettre en service » (conforme à la spécification § 3.3, qui écrit les deux).",
+   "ou": "vehFiche",
+   "correction": "Quand le véhicule est au garage, la rangée de gestes n’a plus que « Noter un plein » et « Relever le compteur » ; le seul « Le remettre en service » est dans l’encadré."
+  },
+  {
+   "n": "gerant-15",
    "gravite": "détail",
    "ecran": "Véhicules › liste, rangées « En règle »",
    "role": "marc",
@@ -118,7 +210,7 @@
    "correction": "Pour une rangée dont l’assurance est dans un groupe, dire « La prochaine échéance est la révision, dans 62 jours » (première échéance hors groupe)."
   },
   {
-   "n": "gerant-09",
+   "n": "gerant-16",
    "gravite": "détail",
    "ecran": "Véhicules › feuille « Matériel de sécurité »",
    "role": "marc",
@@ -131,7 +223,7 @@
    "correction": "Mettre le lien sous la phrase (colonne, gap 8 px) comme le bloc .vh-alerte du garage."
   },
   {
-   "n": "gerant-10",
+   "n": "gerant-17",
    "gravite": "détail",
    "ecran": "Temps de travail › Semaine (grille)",
    "role": "marc",
@@ -144,7 +236,7 @@
    "correction": "Pour sam. et dim., afficher « — » même en congé."
   },
   {
-   "n": "gerant-11",
+   "n": "gerant-18",
    "gravite": "détail",
    "ecran": "Temps de travail › Aujourd’hui › Qui est où",
    "role": "marc",
