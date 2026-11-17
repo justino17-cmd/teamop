@@ -80,8 +80,11 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   v('P6 : l’intervention planifiée quitte « à planifier » de l’Accueil (le nombre baisse)', /1 autre intervention à planifier|1 intervention à planifier/.test(a6) || !/2 autres interventions à planifier/.test(a6), a6.match(/\d+ (autres? )?interventions? à planifier/g));
 
   // P7 — Historique, ouvrir une ligne puis « Ouvrir » : la fiche annoncée ; Retour revient à l'Historique
-  await L.aller(p, 'historique'); await p.evaluate("hOuverts=new Set([AUJ]);hMax=60"); await L.aller(p, 'historique');
-  await L.toucher(c, '[data-hj="j45"]'); await p.waitForTimeout(500); const pj = await panneau(); console.log('  P7 volet :', pj);
+  // la ligne se cherche par son CONTENU (une intervention « Dépannage climatisation »), jamais par un numéro : d'autres lots ajoutent des lignes au journal et décalent les identifiants (j45 est devenue une absence, recontrôle des restes de l'Accueil, tour 2)
+  const l7 = await p.evaluate(() => { const j = JOURNAL.find(x => x.el && x.el.lib === 'Dépannage climatisation' && INTS.some(i => i.id === x.el.id)); return j && { id: j.id, d: j.d }; });
+  v('P7 · population : une ligne du journal porte « Dépannage climatisation »', !!l7, l7);
+  await L.aller(p, 'historique'); await p.evaluate(d => { hOuverts = new Set([AUJ, d]); hMax = 80; }, (l7 && l7.d) || ''); await L.aller(p, 'historique');
+  await L.toucher(c, `[data-hj="${l7 && l7.id}"]`); await p.waitForTimeout(500); const pj = await panneau(); console.log('  P7 volet :', pj);
   const ouvrir = p.locator('#calque .panneau button').filter({ hasText: /^Ouvrir/ }).first(); const okO = await L.toucher(c, ouvrir); await p.waitForTimeout(500);
   const hp = await panneau(); console.log('  P7 après « Ouvrir » :', hp);
   const pl = p.locator('#calque [data-plein]').first(); if (await pl.count()) { await L.toucher(c, pl); await p.waitForTimeout(600); }
