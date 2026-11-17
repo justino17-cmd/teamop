@@ -191,6 +191,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .champ input,.champ select,.champ textarea,.saisie{min-height:46px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);padding:10px 12px;font-size:16px;font-weight:400;width:100%}
 .champ textarea{min-height:104px;resize:vertical;line-height:1.45}
 .deux-champs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.deux-champs.vx-ali{grid-template-rows:auto auto auto;row-gap:0}.deux-champs.vx-ali>.champ{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:6px;align-content:start}   /* regard technicien b : à 360 px « Kilomètres au compteur » passe sur deux lignes et son champ descendait de 18 px sous « Montant payé » — chaque champ prend les trois rangées de la grille (libellé, champ, aide) */
 @media (max-width:760px){ html #contenu .tete.cl-tete{flex-wrap:wrap;align-items:flex-start;gap:8px}html .cl-tete>div:first-child{flex:1 1 100%}   /* la feuille de #contenu impose « nowrap » aux en-têtes : la phrase d'aide se coinçait à 170 px à côté du bouton (clients-03) */
   .deux-champs.ci-champs{grid-template-columns:minmax(0,1fr)} }   /* contact et e-mail se lisent en entier (clients-13) */
 .trois-champs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
@@ -526,7 +527,8 @@ html .mat-pied .btn{flex:1 1 auto}
 .pu-ajout{display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px}
 @media (max-width:480px){.pu-ajout{grid-template-columns:minmax(0,1fr) auto}.pu-ajout #p-nom{grid-column:1/-1}}   /* au téléphone le champ de recherche prend sa ligne entière (l’invite se lit : elle était coupée à « Chercher c »), la quantité et « Ajouter » dessous */
 html .fo-pied .mat-phrase{flex:1 1 100%;margin:0}html .fo-pied .mat-phrase:empty{display:none}   /* la phrase de contrôle (« Tu notes : 1 Filtre à charbon… ») se lit JUSTE AU-DESSUS du bouton, dans le pied qui reste en bas, pas tout en bas du défilement */
-@media (max-width:760px){html .mat-pied .btn{flex:1 1 40%}html .mat-pied .btn:not(.gris){flex:1.6 1 52%}html .mat-pied .btn.gris{flex:1 1 30%}}   /* le primaire se lit sur UNE ligne (« Envoyer : 3 articles » en demandait deux dans 144 px) ; « Annuler » s'y tient à 124 px */
+@media (max-width:760px){html .mat-pied .btn{flex:1 1 40%}html .mat-pied .btn:not(.gris){flex:1.6 1 52%}html .mat-pied .btn.gris{flex:1 1 30%}}
+@media (max-width:340px){html .mat-pied .btn,html .mat-pied .btn:not(.gris),html .mat-pied .btn.gris{flex:1 1 100%}}   /* 320 px : « Envoyer : 3 articles » demande 196 px, la rangée en offre 175 — les deux boutons s'empilent, chacun sur sa ligne */   /* le primaire se lit sur UNE ligne (« Envoyer : 3 articles » en demandait deux dans 144 px) ; « Annuler » s'y tient à 124 px */
 /* ══ MATÉRIEL — lot 2 : Stock (spec § 5) — la grammaire de Devis et de Clients, rien d'inventé ══ */
 html .ms-tete .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 html .ms-bandeau{padding:12px 16px}html .ms-bandeau .dv-tache{border-bottom:0;padding:2px 0;flex-wrap:wrap}html .ms-bandeau .dv-c b{font-size:16px}
@@ -3810,7 +3812,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (min-width:900px){.vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr))}.vh-cam-l{grid-column:auto}}
 /* Mon camion sur téléphone : la carte du véhicule tient sur UNE rangée de trois boutons, pour que « Il manque à bord » reste sur le premier écran AU-DESSUS de la barre d'onglets (spec Matériel § 8.1 : voir ce qui manque, c'est UN toucher et aucun défilement ; un plein se note toujours sans défiler). Le titre reste lu par les lecteurs d'écran. */
 @media (max-width:520px){html .mc-page .vh-cam{padding:10px 12px;gap:6px}html .mc-page .vh-cam h3{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}html .mc-page .vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}html .mc-page .vh-cam-g .btn{min-height:44px;font-size:13px;padding:6px 4px}html .mc-page .vh-cam-l{grid-column:auto}}
-@media (max-width:359px){html .mc-page .vh-cam-g{grid-template-columns:repeat(2,minmax(0,1fr))}html .mc-page .vh-cam-g .btn{font-size:14px}html .mc-page .vh-cam-l{grid-column:1/-1}}   /* regard technicien b : à 320 px trois colonnes de 83 px coupaient les libellés en trois lignes de 13 px */
+@media (max-width:379px){html .mc-page .vh-cam-g{grid-template-columns:repeat(2,minmax(0,1fr))}html .mc-page .vh-cam-g .btn{font-size:14px}html .mc-page .vh-cam-l{grid-column:1/-1}}   /* regard technicien b : à 320 px (trois colonnes de 83 px) comme à 360 (100 px), « Un souci avec le camion » faisait trois lignes de 13 px */
+@media (max-width:379px){html .mc-tete-c{gap:6px 8px}html .mc-tete-c h3{font-size:16px}html .mc-tete-c .btn{padding-inline:10px}}   /* « Il manque à bord · 3 » et « J'ai tout pris · 3 » restent sur UNE rangée à 360 px (il manquait 12 px : le bouton tombait seul sous le titre) */
 /* téléphone COURT (Android 360 × 740) : rangées resserrées pour que la première ligne de « Il manque à bord » reste au-dessus de la barre d'onglets */
 @media (max-width:520px) and (max-height:780px){html .mc-page{gap:10px}html .mc-duo .btn{min-height:48px}html .mc-page .vh-cam>.gris{display:none}html .mc-page .vh-cam{padding:8px 10px}}
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
@@ -15573,13 +15576,13 @@ function sxLigneEnvoi(o){
   const lib = m.type === 'transfert' ? 'Pris à l’atelier' : cli ? 'Utilisé chez ' + cli : 'Sorti du camion';
   const etat = o.e === 'att' ? '<span class="st st-b">En attente du bureau</span>' : o.e === 'ref' ? `<span class="st st-r">Refusé${o.motif ? ' : ' + esc(o.motif) : ''}</span>` : o.e === 'hors' ? '<span class="st st-g">Part dès que le réseau revient</span>' : '<span class="st st-v">Accepté</span>';
   const geste = o.e === 'att' ? `<button type="button" class="lien" data-mat="retire|${m.id}" aria-label="Retirer l’envoi de ${esc(x.nom)}">Retirer</button>` : o.e === 'ref' ? `<button type="button" class="lien" data-mat="oublie|${o.id}" aria-label="Retirer ce refus de ${esc(x.nom)}">Retirer</button>` : '';
-  return `<div class="mc-l"><span class="fo-n"><b>${esc(matQte(m.q, x))}</b><span class="gris petit">${esc(lib)} · ${jCourt(m.d)} ${m.h}</span></span><span class="mc-dr">${etat}${geste}</span></div>`;
+  return `<div class="mc-l"><span class="fo-n"><b>${esc(matQte(m.q, x))}</b><span class="gris petit">${esc(lib)} · ${jCourt(m.d)}\u00a0${m.h}</span></span><span class="mc-dr">${etat}${geste}</span></div>`;
 }
 function matMessages(moi){
   const L = rlNotifsListe(moi, true);
   ouvrirPanneau(`<span class="surtitre">Mon camion</span><h2>${L.length > 1 ? 'Messages du bureau' : 'Message du bureau'}</h2>
     <div class="fo-bloc">${L.map(o => `<div class="fo-r"><span class="fo-n"><b>${esc(o.txt)}</b><span class="gris petit">${jCourt(o.d)} · ${esc(o.h)}</span></span></div>`).join('') || '<div class="gris" style="padding:8px 2px">Rien de nouveau.</div>'}</div>
-    <div class="fo-pied"><button type="button" class="btn" data-ferme="1">Fermer</button></div>`);
+    <div class="fo-pied mat-pied"><button type="button" class="btn" data-ferme="1">Fermer</button></div>`);
 }
 /* la recherche de pièce : où est-elle, combien — en quantités, JAMAIS un prix (le technicien n’en voit pas) */
 function matResultats(q, L){
@@ -15600,7 +15603,7 @@ function vueMonCamion(){
   const att = pid => MVTS_ATT.find(m => m.qui === moi && m.type === 'transfert' && m.vers === L.id && m.pid === pid);
   const prenables = M.filter(o => stkAt(o.x, 'atelier') > 0 && !att(o.x.id));
   const aBord = `<div class="carte mc-liste">${A.map(x => { const a = stkAt(x, L.id), c = D[x.id], ko = c && a < c;
-    return `<div class="mc-l"><span class="fo-n"><b>${mcNom(x.nom)}</b><span class="gris petit">${c ? (ko ? `il en manque ${prNum(stkR(c - a))} sur ${prNum(c)}` : `${prNum(c)} prévu${c > 1 ? 's' : ''} : le compte y est`) : 'en plus de la liste'}</span></span><b class="${ko ? 'mc-o' : ''}">${sxQte(a, x)}</b></div>`; }).join('') || '<div class="gris" style="padding:12px 4px">Rien à bord.</div>'}</div>`;
+    return `<div class="mc-l"><span class="fo-n"><b>${mcNom(x.nom)}</b><span class="gris petit">${c ? (ko ? `il en manque ${prNum(stkR(c - a))}\u00a0sur\u00a0${prNum(c)}` : `${prNum(c)} prévu${c > 1 ? 's' : ''} : le compte y est`) : 'en plus de la liste'}</span></span><b class="${ko ? 'mc-o' : ''}">${sxQte(a, x)}</b></div>`; }).join('') || '<div class="gris" style="padding:12px 4px">Rien à bord.</div>'}</div>`;
   /* La partie VÉHICULE (la phrase d'état de l'en-tête et la carte « Le camion ») vient de vhPhraseCamion et vhCamionBloc ; la carte se pose AVANT la liste de ce qui
      manque : un plein se note sans défiler, et « Il manque à bord » reste visible sur le premier écran (VEHICULES-TEMPS § 3.4, MATERIEL § Mon camion). */
   return `<div class="mc-page"><div class="tete mc-tete"><div><span class="surtitre">${esc(V ? vhNom(V) + ' · ' + V.plaque : H_NOM(moi))}</span><h1>Mon camion</h1>${V ? (e => `<span class="gris mc-etat ${e.c}">${esc(e.t)}</span>`)(vhPhraseCamion(V)) : `<span class="gris">${sxPl(A.length, 'article')} à bord</span>`}</div>
@@ -15612,10 +15615,10 @@ function vueMonCamion(){
     ${bas.length ? `<div class="mc-alerte"><span class="st st-o">Bouteille presque vide</span><span class="petit">${bas.map(b => esc(b.id) + ' (' + prNum(b.reste) + ' kg)').join(', ')} · <button type="button" class="lien" data-mat="manque|${bas[0].pid}">Il me manque du fluide</button></span></div>` : ''}
     <div id="mc-vehicule" data-vis="camion-vehicule">${V ? vhCamionBloc(V) : ''}</div>
     ${g ? '' : M.length ? `<div class="carte mc-liste"${matVis('camion-manque')}><div class="mc-tete-c"><h3>Il manque à bord · ${M.length}</h3>${prenables.length ? `<button type="button" class="btn gris petit" data-mat="toutpris" aria-label="J’ai tout pris : ${prenables.length} articles">J’ai tout pris · ${prenables.length}</button>` : ''}</div>
-      ${M.map(o => { const at = stkAt(o.x, 'atelier'), e = att(o.x.id), sous = `à bord ${prNum(o.a)} sur ${prNum(o.cible)} · ${at > 0 ? 'à l’atelier ' + prNum(at) : 'plus à l’atelier'}`;
+      ${M.map(o => { const at = stkAt(o.x, 'atelier'), e = att(o.x.id), sous = `à bord ${prNum(o.a)}\u00a0sur\u00a0${prNum(o.cible)} · ${at > 0 ? 'à l’atelier\u00a0' + prNum(at) : 'plus à l’atelier'}`;
         return e ? `<div class="mc-l envoye"><span class="fo-n"><b>${mcNom(o.x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mc-dr"><span class="st st-b">Envoyé au bureau · en attente</span><button type="button" class="lien" data-mat="retire|${e.id}" aria-label="Annuler l’envoi de ${esc(o.x.nom)}">Annuler</button></span></div>`
           : `<div class="mc-l"><span class="fo-n"><b>${mcNom(o.x.nom)}</b><span class="gris petit">${sous}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${o.x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(o.x.nom)}">Je l’ai pris</button>` : `<button type="button" class="btn gris petit" data-mat="manque|${o.x.id}">Il me manque</button>`}</div>`; }).join('')}</div>`
-      : `<div class="carte mc-ok"${matVis('camion-manque')}>${liste ? `<span class="mc-coche">${svg('coche')}</span><span><b>Ton camion est complet</b><span class="gris petit">Tout ce qu’il doit y avoir à bord y est.</span></span>` : '<span><b>Ton camion n’a pas encore de liste.</b><span class="gris petit">Demande au bureau ce qu’il doit y avoir à bord.</span></span>'}</div>`}
+      : `<div class="carte mc-ok"${matVis('camion-manque')}>${liste ? `<span class="mc-coche">${svg('coche')}</span><span><b>Ton camion est complet</b><span class="gris petit">Tout ce qu’il doit y avoir à bord y\u00a0est.</span></span>` : '<span><b>Ton camion n’a pas encore de liste.</b><span class="gris petit">Demande au bureau ce qu’il doit y avoir à bord.</span></span>'}</div>`}
     <button type="button" class="ligne-clic mc-bord" data-mat="bord" aria-expanded="${MAT.bord}"><span><b>À bord · ${sxPl(A.length, 'article')}</b></span><span aria-hidden="true">${MAT.bord ? '⌄' : '›'}</span></button>${MAT.bord ? aBord : ''}
     ${E.length ? `<div class="carte mc-liste"><h3>Mes envois · ${E.length}</h3>${E.map(sxLigneEnvoi).join('')}</div>` : ''}
     </div>`;
@@ -18379,7 +18382,7 @@ function vxPleinPanel(vid){
   ouvrirPanneau(`<span class="surtitre">${un ? esc(vhNom(v)) + ' · ' + esc(v.plaque) : 'Véhicules'}</span><h2>Noter un plein</h2>
     ${un ? `<input type="hidden" id="vx-v" value="${v.id}">` : `<label class="champ">Quel véhicule ?<select id="vx-v">${v ? '' : '<option value="">Choisis le véhicule…</option>'}${liste.map(o => `<option value="${o.id}" ${v === o ? 'selected' : ''}>${esc(o.marque + ' ' + o.modele)} · ${esc(o.plaque)}</option>`).join('')}</select></label>`}
     <div class="vh-q"><b>Qu’est-ce que c’est ?</b>${vhChoix('vx-t', [['Carburant', 'Carburant'], ['Recharge électrique', 'Recharge'], ['Garage, entretien', 'Garage ou entretien'], ['Péage, parking', 'Péage ou parking']], elec ? 'Recharge électrique' : 'Carburant', 'Ce que c’est', true)}</div>
-    <div class="deux-champs"><label class="champ">Montant payé<input id="vx-m" inputmode="decimal" placeholder="ex. 84,60" autocomplete="off"><small class="faible">toutes taxes comprises</small></label><label class="champ">Kilomètres au compteur<input id="vx-km" inputmode="numeric" value="${v ? v.km : ''}" autocomplete="off"></label></div>
+    <div class="deux-champs vx-ali"><label class="champ">Montant payé<input id="vx-m" inputmode="decimal" placeholder="ex. 84,60" autocomplete="off"><small class="faible">toutes taxes comprises</small></label><label class="champ">Kilomètres au compteur<input id="vx-km" inputmode="numeric" value="${v ? v.km : ''}" autocomplete="off"></label></div>
     <div class="deux-champs" id="vx-lit-b"><label class="champ"><span><span id="vx-lit-l">${elec ? 'kWh' : 'Litres'}</span> <span class="faible">(facultatif)</span></span><input id="vx-l" inputmode="decimal" placeholder="ex. 49" autocomplete="off"></label><div class="vx-pl"><small>Prix au <span id="vx-pl-l">${elec ? 'kWh' : 'litre'}</span></small><b id="vx-pl">—</b></div></div>
     <div class="vh-q"><b>Payé avec</b>${vhChoix('vx-pay', [['Carte', 'La carte de l’entreprise'], ['Poche', 'Mon argent']], 'Carte', 'Payé avec', true)}<span class="gris petit" id="vx-pay-n" hidden>Une note de frais « à valider » est créée : elle sera remboursée avec la paie.</span></div>
     <label class="btn gris vh-photo">Photo du ticket<input type="file" accept="image/*" capture="environment" id="vx-p" hidden></label><span class="gris petit" id="vx-pn">Sans photo, la tâche « Retrouver le ticket » te le rappellera.</span>
