@@ -1,0 +1,58 @@
+[
+ {
+  "nom": "planning",
+  "defaut": "décision du chef du 17/11, 8 h 55 (k) / pasRegles 4 « Chiffres du bandeau selon les personnes affichées » : « 9 interventions · 11 h » pour 6 cartes quand Sophie est masquée",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : une seule définition (kpiDe, kpiFiltre, kpiPopulation) lue par la tuile (chiffresPlanning) ET par le panneau qu'elle ouvre (detailKpi). « Interventions », « travail prévu » et « absent » suivent les personnes AFFICHÉES (rangée de prénoms ; en Sur mesure, une personne masquée un jour seulement ne compte pas ce jour-là ; la Carte a sa propre rangée et ne passe pas par ces masques). « À planifier » et « en retard » restent ceux de toute l'équipe (alertes sans colonne ; la sonde P10 du tour 1 les gardait ainsi). Quand un filtre est posé : une note sous les tuiles (« … seulement les personnes affichées (4 sur 5). « À planifier » et « en retard » comptent toute l'équipe. » + bouton « Tout afficher »), les panneaux le redisent (« Seulement les personnes affichées »), le panneau « travail prévu » ne liste plus les personnes masquées et ne dit plus « toutes personnes confondues ». Personne affiché : le message dit que les chiffres sont à zéro (il disait « les chiffres comptent toute l'équipe »).",
+  "preuve": "campagne/sondes/restes-planning-2.js S2 : mac, mac720, windows, ipad, ipad nuit, iphone nuit, android, petit = 52 ✓ · 0 ✗ chacun ; version finale de la page et de la sonde (avec le contrôle du titre de la période) : ipad et iphone 53 ✓ · 0 ✗, petit S2 27 ✓ · 0 ✗ ; régressions rejouées : planning-parcours2 mac P9 P10 29 ✓ · 0 ✗, planning-recontrole ipad R1 R7 R12 47 ✓ · 0 ✗, planning-mise-en-page iphone 31 ✓ · 0 ✗, planning-marqueurs ipad 9/9 ; population comptée (6 cartes, 9 avant masque, 1 absence, 5 personnes) ; mutations M2 (kpiDe ignore les masques : 6 ✗), M3 (note supprimée : 5 ✗), M4 (panneau toute l'équipe : 4 ✗) tombent ; captures relues : S2-jour-sophie-masquee-ipad.png, S2-note-mac720.png, S2-note-petit.png, S2-note-iphone-nuit.png (cap/restes-planning-2/). Ligne de vus-par-le-chef.md cochée."
+ },
+ {
+  "nom": "planning",
+  "defaut": "casse du recontrôle « Carte des tournées, TOUTE PREMIÈRE ouverture d'une session sur iPad portrait : le repère d'une étape reste CACHÉ sous les boutons « Plan · Satellite / Auto · Jour · Nuit » et le toucher y change le jour/nuit de la carte »",
+  "etat": "corrigé",
+  "changement": "crReel › recue() : après avoir posé data-fond=reel (c'est alors seulement que le groupe de boutons cesse d'être display:none), on retrace les repères (crTracerReel), pour que l'écartement voie les boutons. Avant, personne ne retraçait avant le prochain moveend, et les sondes de la première correction recadraient la carte après coup, ce qu'un utilisateur ne fait pas.",
+  "preuve": "REPRODUIT d'abord par la mutation M5 (appel retiré) : ipad S3, repère i20 « sous cr-fonds » le 26/10 et i16 le 31/10, centre du repère couvert, 6 ✓ · 4 ✗ ; corrigé : S3 52 ✓ · 0 ✗ sur ipad, ipad nuit, mac, mac720, windows, iphone nuit, android, petit — la sonde ouvre la carte après un rechargement, SANS recadrage, amène chaque repère au milieu de l'écran puis demande à la page qui reçoit le toucher (corrigée en cours de route : sa première version mesurait la barre du bas) ; captures relues S3-premiere-ouverture-2026-10-26-ipad.png (repère « 1 » entier, bulles « 15 min · 5,2 km » et « 27 min · 14 km » à l'écart des repères)"
+ },
+ {
+  "nom": "planning",
+  "defaut": "pasRegles 1 « adresse dont le code postal désigne une commune hors de la liste du prototype » : « 12 Rue de La Rochelle, 17100 Saintes » placée à La Rochelle, 0 km",
+  "etat": "corrigé",
+  "changement": "communeDe : un code postal suivi d'un nom de commune qui n'est PAS dans la liste rend null (« Adresse pas encore reconnue : choisis-la dans la liste, ou vérifie la commune », texte déjà prévu) au lieu de chercher dans la rue ; le repli « dernière commune nommée » ne sert plus que sans code postal ni virgule, comme le recontrôleur le proposait. Aucun point, aucune zone, aucun secteur inventés.",
+  "preuve": "restes-planning-2.js S1 mac, ipad (et les sept autres profils) : cinq adresses hors liste (Saintes, Saint-Jean-d'Angély, Royan, Pont-l'Abbé, Bordeaux) rendent null partout ; neuf adresses de la liste inchangées (rue qui porte le nom d'une autre commune, cedex, « , France », sans accent, sans code postal) ; le formulaire d'un client créé à la main dit « Adresse pas encore reconnue » et plus « Repérée » ; mutation M1 (ligne retirée) : 12 ✓ · 6 ✗ ; R1 du tour 1 rejoué sur ipad. Reste : la liste n'a que 11 communes (voir « à soumettre »)."
+ },
+ {
+  "nom": "planning",
+  "defaut": "NOUVEAU, vu sur capture petit (320 px) : le titre de la période « Aujourd'hui · samedi 31 octobre » passe SOUS la flèche de droite du sélecteur de date",
+  "etat": "corrigé",
+  "changement": ".pl-nav b : à 380 px et moins, le titre passe à la ligne (white-space:normal, min-width:0, 14 px, interligne 1,2) ; il mesurait 205 px pour 170 px disponibles entre les deux flèches. Au-dessus de 380 px rien ne change.",
+  "preuve": "restes-planning-2.js S2 (contrôle ajouté : le texte tient entre les deux flèches, mesuré sur un Range) : petit 27 ✓ · 0 ✗ (texte 80→240 entre les flèches 64/256 ; avant 76→307) ; mutation M6 (règle neutralisée) tombe ; capture relue S2-note-petit.png : le titre sur deux lignes, flèches dégagées"
+ },
+ {
+  "nom": "planning",
+  "defaut": "pasRegles 9 (planning-09) « au téléphone, la première page n'est pas l'emploi du temps (carte « tâches pour toi », deux rangées d'onglets, la date, les puces, les chiffres et le paragraphe d'aide avant la grille) »",
+  "etat": "à soumettre à Justin",
+  "changement": "rien : dessin validé par Justin, aucune décision du chef ne le touche. Le tour 2 n'ajoute qu'une ligne de note quand un filtre est posé (rien par défaut). Recommandation inchangée : replier la carte « tâches pour toi » et le paragraphe d'aide au téléphone.",
+  "preuve": "relu sur les captures S2-note-petit.png et S2-note-iphone-nuit.png : le constat tient toujours, la grille n'est pas au premier regard"
+ },
+ {
+  "nom": "planning",
+  "defaut": "doutes du tour 1 : « Ordre proposé » absent du prototype ; vue Mois « 216 interventions · 334 h 15 » qui mélange passé réel et prévu ; Vue d'ensemble à 320 px, une carte de jour jamais entière à côté de la colonne ; communes du prototype limitées à 11",
+  "etat": "à soumettre à Justin",
+  "changement": "rien. « Ordre proposé » est une fonctionnalité à ajouter s'il l'attend (la tournée est déjà ordonnée par heure, avec « Confier à … ») ; le total du mois ajoute à INTS les passages de l'historique généré (cohérent avec la grille) mais le mot « interventions » mélange passé et prévu ; la densité de la Vue d'ensemble à 320 px est celle décidée au tour 1 ; étendre la liste des communes (Saintes, Royan…) est un choix de contenu, la réponse « adresse pas encore reconnue » est maintenant honnête.",
+  "preuve": "rien de neuf de mon côté, aucune modification"
+ },
+ {
+  "nom": "planning",
+  "defaut": "NON REJOUÉ : bulles de trajet sur téléphone de 320 à 360 px (elles s'effacent faute de place, le temps de route est dit dans la liste)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien. Confirmé sur la capture de la carte (tour 1) ; à confirmer par Justin que c'est acceptable.",
+  "preuve": "doute du recontrôle du tour 1, repris tel quel"
+ },
+ {
+  "nom": "planning",
+  "defaut": "décisions (a) à (f) du chef de chantier ; lignes non cochées de vus-par-le-chef.md qui touchent le planning",
+  "etat": "déjà décidé",
+  "changement": "(a) Retour qui ferme la fenêtre ET quitte l'écran : voie « retour », non touché ; (b) cases d'absences et barres de soldes sous 44 px : pas du planning ; (c) Boîte mail à deux boîtes, (d) menu du bureau avec le groupe Matériel, (e) bouton Menu de Comptabilité en plein écran, (f) texte « Rendez-vous en ligne » : aucune ne touche le planning (le bouton « Rendez-vous en ligne » du planning n'a pas été touché). vus-par-le-chef.md : la seule ligne non cochée du planning était la décision (k), cochée avec ce tour ; les autres lignes ouvertes ne visent pas le planning (Stock, format des heures « 8 h 05 » de la voie « mots », Boîte mail).",
+  "preuve": "relu : REPRISE.md (décisions du chef de chantier), vus-par-le-chef.md, MENU-FINAL.md"
+ }
+]

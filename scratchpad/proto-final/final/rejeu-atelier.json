@@ -1,0 +1,43 @@
+{
+ "etape": "final-rejeu 1/2 (scripts-de-rejeu)",
+ "date": "2026-11-17",
+ "familles": {
+  "atelier": {
+   "script": "scratchpad/proto-final/sondes/atelier-tout.sh",
+   "etat": "existait déjà (non rejoué dans cette étape)"
+  },
+  "mail": {
+   "script": "scratchpad/proto-final/sondes/mail-tout.sh",
+   "etat": "existait déjà (non rejoué dans cette étape) ; les cinq sondes mail-recontrole-*.js n'y figurent pas (relectures ponctuelles)"
+  },
+  "compositeur": {
+   "script": "scratchpad/proto-final/sondes/compositeur-tout.sh",
+   "etat": "écrit et joué : 16 exécutions, 0 rouge, 13 min, 483 ✓ · 0 ✗ ; TOUS=1 ajoute windows, android, mac nuit, iphone jour (non joué)"
+  },
+  "menu": {
+   "script": "scratchpad/proto-final/sondes/menu-tout.sh",
+   "etat": "écrit et joué : 19 exécutions, 2 rouges (menu-defilement, menu-renommages), 16 min"
+  },
+  "taches": {
+   "script": "scratchpad/proto-final/campagne/sondes/taches-tout.sh",
+   "etat": "écrit et joué : 26 exécutions, 3 rouges (mise en page iphone, petit, android), 17 min ; ÉCARTÉS : outils, balayage, explore, niveau2.sh (écrivent des rapports dans campagne/)"
+  }
+ },
+ "aNoter": [
+  {
+   "sonde": "scratchpad/proto-final/sondes/menu-defilement.js",
+   "arguments": "(aucun ; boucle sur mac720, windows, mac, ipad, jour et nuit)",
+   "constat": "6 ✗ : « population (19 lignes de menu) » : la colonne du gérant porte maintenant 21 lignes (mesuré mac720, windows jour et nuit) ; la sonde code en dur === 19, MENU-FINAL.md dit « vingt lignes ». Soit la sonde est périmée (Sécurité, Mon compte ajoutés par la double-authentification), soit le menu a deux lignes de trop : à trancher avec MENU-FINAL.md avant de changer le compte."
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/menu-renommages.js",
+   "arguments": "(aucun ; mac × marc, julie, sm)",
+   "constat": "9 ✗ : « aucun ancien nom dans le texte affiché » : le nom « Mon compte » (retiré du menu par MENU-FINAL.md ligne 18 et 91, motif /Mon compte/ de la sonde) est de retour dans le texte de 27, 9 et 8 écrans de marc, julie, sm : la double-authentification étape 3 (f6612dcf) a ajouté une page « Mon compte ». Décider : renommer la page, ou retirer le motif de la sonde avec une note dans MENU-FINAL.md."
+  },
+  {
+   "sonde": "scratchpad/proto-final/campagne/sondes/taches-absences-mise-en-page.js",
+   "arguments": "iphone non ; android non ; petit non (mac non est vert)",
+   "constat": "4 ✗ iphone, 4 ✗ android, 8 ✗ petit : « cibles au doigt ≥ 44 px » dans Absences et congés, jour et nuit : les barres d'absence du calendrier du gérant (« Sophie Martin · Autre · le vendredi 6 novembre » 40×40 à 390 px, 35×40 à 320 ; « Tom Leroy · RTT · le mardi 3 novembre » 35×80 à 320), les huit barres de mois du tableau des soldes à 320 px (40×75 à 81) et « Sophie Martin · RTT · le vendredi 16 octobre » de Mes congés à 320 px (38×66). Les corrections taches-absences-04 à 10 passaient en début de campagne : à vérifier si ces éléments sont nouveaux (autre voie) ou si la règle de 44 px ne les couvre plus."
+  }
+ ]
+}

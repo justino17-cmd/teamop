@@ -37,7 +37,7 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
     const fac = await p.evaluate(() => { const f = FACTURES.find(x => x.int === 't-ent-r01'); return f && f.st === 'avalider' ? f.id : null; });
     v(`r01 ${pr} : population : une facture « à valider » est prête`, !!fac, fac);
     if (fac) { await L.aller(p, 'facture-x-' + fac); await L.calme(p, 600);
-      const g = await p.evaluate(() => ({ bloquee:!!document.querySelector('.ent-ban .btn[data-ent="completer"]'), texte:norm(document.querySelector('#contenu').textContent).slice(0, 300), M:entrepriseManque().length })); function norm(x) { return x.replace(/\s+/g, ' ').trim(); }
+      const g = await p.evaluate(() => ({ bloquee:!!document.querySelector('.ent-ban .btn[data-ent="completer"]'), texte:document.querySelector('#contenu').textContent.replace(/\s+/g, ' ').trim().slice(0, 300), M:entrepriseManque().length }));
       v(`r01 ${pr} : la fiche de la facture ne demande plus de compléter pour partir`, g.M === 0 && !g.bloquee, g); }
     await L.capture(c, CAP + `r01-${pr}.png`, false); await L.fin(c);
   }
@@ -157,8 +157,8 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
     const r = await c.p.evaluate(() => { const n = document.querySelector('.droits-note'); const racine = [...document.querySelectorAll('*')].find(e => e.shadowRoot); const ombre = racine && racine.shadowRoot; const btns = ombre ? [...ombre.querySelectorAll('button')].filter(b => b.offsetParent !== null || b.getClientRects().length).map(b => (b.getAttribute('aria-label') || b.title || b.textContent || '').trim().slice(0, 30)).filter(Boolean) : [];
       return { note:!!n, ombre:!!ombre, boutons:btns.slice(0, 30), phrases:DROIT_PHRASES.com }; });
     console.log('  · boîte mail, Voir seul : boutons du module = ' + JSON.stringify(r.boutons));
-    v('r08 : la note « tu peux regarder, pas le modifier » n’est pas posée (elle mentirait)', !r.note, r);
-    v('r08 (reste connu) : un « Voir » seul peut encore écrire / répondre / supprimer dans la boîte — à dire à Justin', r.boutons.some(b => /nouveau|écrire|répondre|supprimer|archiv|corbeille/i.test(b)) || !r.ombre, r.boutons);
+    v('r08 : la note « tu peux regarder, pas le modifier » est posée (le module lit désormais les droits : elle dit vrai)', r.note, r);
+    v('r08 (réglé aux restes, tour 1) : un « Voir » seul ne peut ni écrire, ni répondre, ni archiver, ni supprimer dans la boîte (la note du pied est posée, elle dit vrai)', r.ombre && !r.boutons.some(b => /^(nouveau message|répondre|archiver|supprimer|transférer|drapeau)/i.test(b)), r.boutons);
     await L.capture(c, CAP + 'r08-mail-voir-seul.png', false); await L.fin(c); }
 
   // ───── R09 : « Composer » demande Créer ; rouvrir demande Modifier — par TOUS les chemins visibles (devis, contrats, fiche client)
@@ -407,12 +407,12 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
   if (veut('casse5')) for (const [pr, nuit] of [['android', false], ['petit', true]]) {
     const c = await C.ouvrirEnt({ profil:pr, nuit }); const p = c.p; await L.aller(p, 'equipe'); await p.evaluate(() => { eqFiche('julie'); const dt = document.querySelector('details.eqx-det'); if (dt) dt.open = true; }); await L.calme(p, 700);
     const r = await p.evaluate(() => { const z = document.querySelector('#calque .panneau'), W = z.clientWidth, rz = z.getBoundingClientRect(), L = [];
-      z.querySelectorAll('*').forEach(e => { const r = e.getBoundingClientRect(); if (r.width > 0 && r.right > rz.right + 1) { let a = e.parentElement, scr = false; while (a && a !== z) { const o = getComputedStyle(a).overflowX; if (o === 'auto' || o === 'scroll') { scr = true; break; } a = a.parentElement; } L.push({ el:e.tagName + '.' + String(e.className).slice(0, 30), droite:Math.round(r.right - rz.right), dansRouleau:scr }); } });
+      z.querySelectorAll('*').forEach(e => { const r = e.getBoundingClientRect(); if (r.width > 0 && r.right > rz.right + 1) { let a = e.parentElement, scr = false; while (a && a !== z) { const o = getComputedStyle(a).overflowX; if (o === 'auto' || o === 'scroll') { scr = true; break; } a = a.parentElement; } L.push({ el:e.tagName + '.' + String(e.className).slice(0, 30), texte:(e.textContent || '').trim().slice(0, 50), parent:e.parentElement.tagName + '.' + String(e.parentElement.className).slice(0, 30), droite:Math.round(r.right - rz.right), dansRouleau:scr }); } });
       const avant = z.scrollLeft; z.scrollLeft = 999; const glisse = z.scrollLeft; z.scrollLeft = 0;
       return { W, scrollW:z.scrollWidth, depassent:L.length, horsRouleau:L.filter(x => !x.dansRouleau).slice(0, 6), glisse:glisse - avant, echantillon:L.slice(0, 3) }; });
     v(`casse5 ${pr}${nuit ? ' nuit' : ''} : population : le bloc Droits est ouvert (${r.W} px)`, r.W > 0, r);
     v(`casse5 ${pr}${nuit ? ' nuit' : ''} : rien ne dépasse de la feuille hors d'un rouleau voulu ; la feuille ne glisse pas de côté`, r.horsRouleau.length === 0 && r.glisse <= 1, r);
-    await p.evaluate(() => { const z = document.querySelector('#calque .panneau'), t = z.querySelector('.fo-terrain'); if (z && t) z.scrollTop = t.offsetTop - 140; }); await L.calme(p, 300);
+    await p.evaluate(() => { const z = document.querySelector('#calque .panneau'); let cible = null; z.querySelectorAll('*').forEach(e => { if (!cible && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().right > z.getBoundingClientRect().right + 1) cible = e; }); if (cible) cible.scrollIntoView({ block:'center' }); }); await L.calme(p, 400);
     await L.capture(c, CAP + `casse5-${pr}-${nuit ? 'nuit' : 'jour'}.png`, false); await L.fin(c);
   }
 

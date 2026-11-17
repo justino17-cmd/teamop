@@ -1,0 +1,70 @@
+{
+ "voie": "restes",
+ "etape": "recontroler-restes-1",
+ "noms": [
+  "coque"
+ ],
+ "date": "2026-11-17",
+ "lu": "final/restes-coque-tour1.json (7 entrées, corrigées aux commits 3477841, 450edb7, 64dbc2c, f7dc7f6) ; page : apercu/prototype-op-gestion.html. Aucune page modifiée par ce recontrôle (une mutation d'épreuve posée puis restaurée : git status vide).",
+ "regles": [
+  "coque-casse-1 : un guide ouvert, le document en grand et la pièce jointe du client (rcDevant) ne laissent plus N, C, D, A, ?, Ctrl+K ouvrir une fenêtre derrière eux ; Échap rend les raccourcis. coque-recontrole SECTION=c : 15 ✓ · 0 ✗. Mutation rcDevant = () => false : 9 ✓ · 6 ✗ (les six contrôles du guide, du document en grand et de la pièce jointe tombent), page restaurée (git status vide)",
+  "Le guide ouvert ferme la recherche restée ouverte (nvOuvrir) : contrôle « Échap : la recherche ne reste pas ouverte » vert",
+  "L'écran de connexion, la Comptabilité plein écran, la feuille Menu du téléphone, la déconnexion puis reconnexion d'un autre rôle, l'iPad (une seule navigation), la recherche et ses raccourcis : sections A, B, D, E, G1, G2, G3 de coque-recontrole rejouées, 7 + 18 + 9 + 9 + 11 + 10 + 4 contrôles, 0 ✗",
+  "coque-casse-2 / coque-03 : 54 mots du débutant essayés pour le gérant, 0 sans réponse (voiture, essence, carburant, calendrier, rapport, photo, imprimer, export, relance, impayé, téléphone, coordonnées, agenda, rdv, entretien, chantier : chacun mène à UNE rubrique juste, lu un par un). Les nouveaux mots cachés ne volent la place de personne : « facture » reste Factures, « tva » Comptabilité puis Mon entreprise, « adresse » Clients puis Mon entreprise, « téléphone » Clients, Sécurité, Mon compte (lus sur la liste)",
+  "coque-07 : guide des nouveautés. coque-guide.js mac et iPhone : 70 ✓ · 0 ✗ chacun, la garde dérivée (chaque mot entre « » de NV_PLACE se lit sur sa rubrique) est bien là",
+  "vu par le chef : l'entrée « Fournisseurs, matériel & produits » est ENTIÈRE dans sa ligne (65 px, deux lignes de texte, pastille 6 à droite sans chevaucher) et dans la liste, choisie ou non. coque-menu-choisie : mac marc, julie, sm, kb 49 ✓ · 0 ✗ ; mac720 marc 22 ✓ · 0 ✗. Ma propre sonde (texte hors de sa boîte, largeur, pastille, chevauchement, défilement latéral du menu) sur 21 lignes : mac, mac720, windows, iPad, jour ET nuit : 32 ✓ · 0 ✗ ; menu de l'espace client (5 lignes, boutons rl-mlien) mac jour et nuit : 8 ✓ · 0 ✗. Captures relues (mac nuit, mac720 jour, iPad nuit, menu défilé en bas) : la ligne longue se lit sur deux lignes, la pastille est alignée, le fondu du haut est net",
+  "Rien cassé à côté dans les autres sondes de la coque : clavier 128 ✓, mode-adresse 37 ✓, menu 76 ✓, connexion 40 ✓, mise-en-page 22 ✓, création 15 ✓, client 11 ✓, parcours 34 ✓, regard iPhone 5 ✓, guide iPhone 70 ✓ ; 0 ✗"
+ ],
+ "pasRegles": [
+  {
+   "nom": "coque-03 (suite) : la recherche du TECHNICIEN ne connaît pas les mots de SES rubriques — le correcteur les a rangés parmi « fermées à son rôle »",
+   "defaut": "PAL_MOTS est indexé par la clé de la rubrique du gérant (pointage, vehicules, interventions, planning) ; la technicienne a d'autres clés (mesheures, moncamion, techfrais, majournee) qui n'y figurent pas",
+   "constat": "mots.js avec la session sm (technicienne), Ctrl+K puis frappe : « Rien ne correspond » pour pointage, pointer, véhicule, voiture, carburant, essence, planning, calendrier, rdv, agenda, intervention, rapport, photo, chantier, passage, note de frais, remboursement (17 mots sur 25 essayés) alors que Mes heures, Mon camion, Mes frais et Ma journée existent à son menu ; seuls heures, camion, frais, congé, tâche, journée répondent (par le titre ou une clé commune). Ce ne sont PAS des rubriques fermées : coque-recontrole SECTION=f rend « sm : 40/54 sans réponse » (✗ du seuil de 12), dont une bonne part de ces mots. La ligne « mesheures:'pointage pointer heures travaillées', moncamion:'véhicule voiture essence carburant plein', techfrais:'carburant essence note de frais remboursement', majournee:'planning calendrier rdv agenda intervention rapport photo chantier passage' » règle tout ; la recherche est un raccourci d'ordinateur, la gravité est faible. julie (secrétariat) : 16/54, tous des rubriques réellement fermées à son compte (heures, pointage, congé, planning, calendrier, rdv, équipe, technicien, logo, siret, courrier, message, dépôt, absence) : décision de rôle, non touchée."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "La visite parlée (« Découvrir l'application ») laisse Ctrl+K et ? ouvrir la recherche et le panneau des raccourcis par-dessus son spot, la bulle restant au-dessus",
+   "gravite": "détail",
+   "etapes": "Mac, gérant. Ctrl+K puis « Découvrir l'application (visite parlée) » (ou immLancer(0)), sans toucher de champ : taper Ctrl+K, puis ?",
+   "constat": "Mesuré (couches.js, visite.js) : la visite est lancée (#gd-bulle, #gd-spot) ; N, D, C, A ne font rien (la garde `ouvert` du gestionnaire de clavier connaît #gd-bulle), mais Ctrl+K et ? passent AVANT cette garde : la recherche s'ouvre (focus dans son champ), la bulle de la visite passe par-dessus (z-index 100002) et le cadre lumineux du chapitre se peint sur la recherche. Capture visite-k.png : on lit un cadre « Bonjour » à moitié sur la liste de la recherche, la bulle masque ses lignes, et la lecture automatique continue de changer de chapitre derrière. Même famille que coque-casse-1, mais la bulle ne couvre pas l'écran : c'est la différence entre « inutilisable » et « laid ». Correction proposée : #gd-bulle dans rcDevant pour Ctrl+K et ? seulement, ou fermer la recherche quand la visite démarre. Pas touché (recontrôle). Atelier de devis (#opdz) : N D C A ? Ctrl+K ne passent PAS (focus dans le cadre, 0 fenêtre derrière) : couche saine."
+  }
+ ],
+ "nouveaux": [
+  "La visite parlée laisse Ctrl+K et ? agir (voir casses[0]), gravité détail.",
+  "La recherche du technicien ignore 17 mots courants qui devraient mener à Ma journée, Mon camion, Mes frais, Mes heures (voir pasRegles[0]) ; le seuil de la sonde SECTION=f sort en ✗ pour julie et sm tant que ces mots ne sont pas posés et que la sonde ne distingue pas « fermé au rôle » de « sans mot ». À régler dans PAL_MOTS (une ligne), ou à déclarer dans la sonde (liste des rubriques fermées par rôle)."
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/coque-recontrole.js",
+   "resultat": "mac : A 7 ✓ · B 18 ✓ · C 15 ✓ · D 9 ✓ · E 9 ✓ · G2 10 ✓ : 0 ✗ ; iPhone G1 11 ✓ ; iPad G3 4 ✓ ; F : marc 0/54 sans réponse ✓, julie ✗ et sm ✗ (seuil de 12 dépassé : 16 et 40 — rôles fermés et mots de technicien, voir pasRegles[0]) ; mutation rcDevant : 9 ✓ · 6 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/coque-menu-choisie.js",
+   "resultat": "mac marc,julie,sm,kb : 49 ✓ · 0 ✗ ; mac720 marc nuit : 22 ✓ · 0 ✗ (windows marc,julie nuit : non terminée, la machine chargée l'a coupée à 250 s ; couverte par ma sonde menu-lignes sur windows)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/coque-guide.js",
+   "resultat": "mac 70 ✓ · 0 ✗ ; iPhone 70 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/coque-clavier.js, coque-mode-adresse.js, coque-menu.js, coque-connexion.js, coque-mise-en-page.js, coque-creation.js, coque-client.js, coque-parcours.js, coque-regard.js",
+   "resultat": "clavier 128 ✓ ; mode-adresse 37 ✓ ; menu 76 ✓ ; connexion 40 ✓ ; mise-en-page 22 ✓ ; création 15 ✓ ; client 11 ✓ ; parcours 34 ✓ ; regard (iPhone) 5 ✓ ; tous 0 ✗ (regard sur mac donne ✗ « la feuille Menu est ouverte » : la sonde est faite pour un téléphone, son en-tête le dit)"
+  },
+  {
+   "fichier": "(sondes de ce recontrôle, hors dépôt, scratchpad de session : rc/couches.js, rc/visite.js, rc/menu-lignes.js, rc/mots.js)",
+   "resultat": "couches : atelier 3 ✓ ; carte plein écran non jouée (pas de bouton [data-crplein] sur le Planning du gérant à cette taille) ; visite parlée ✗ (casses[0]). menu-lignes : 32 ✓ · 0 ✗ (mac, mac720, windows, iPad × jour/nuit) + client 8 ✓. mots : gérant 34 mots lus, technicienne 25 mots lus"
+  },
+  {
+   "fichier": "contrôles du dépôt",
+   "resultat": "compiler-pages, verifier-syntaxe, test-835 (844 ✓), test-836 (307 ✓), test-837 (122 ✓), test-1008 (54 ✓), test-2994 (15 ✓), verif-secrets : 0 ✗, code de sortie 0"
+  }
+ ],
+ "doutes": [
+  "coque-casse-3 (« auto » ouvre le client Garage Rochefort Auto avant « Mode automatique ») reste à décider par Justin : rien n'a changé, l'ordre est toujours client puis réglage d'affichage (lu sur la liste).",
+  "« Rien ne correspond à … » ne dit toujours pas qu'une rubrique est fermée au compte de la secrétaire (« planning », « heures ») : à soumettre, une phrase suffit.",
+  "Le champ Identifiant « Ton prénom » pour un homonyme, l'absence de « Rester connecté » (voulue par OP Security) et la pastille 📱 de la démonstration : inchangés, à soumettre à Justin.",
+  "Non vérifié : la carte du Planning en plein écran (couche non ouverte, pas de bouton à cette taille) ; le trackpad Mac réel et le clavier logiciel d'un vrai téléphone ; coque-menu-choisie sur Windows (coupée par la charge de la machine).",
+  "Le correcteur a noté « sans réponse » dans la sonde F comme une décision de rôle pour julie ET sm ; vrai pour julie, faux en partie pour sm (pasRegles[0]) : la sonde F devrait comparer à la liste des rubriques du rôle, sinon elle reste rouge pour une bonne raison et un mauvais motif."
+ ]
+}

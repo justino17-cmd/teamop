@@ -24,6 +24,7 @@ const A = require('../../sondes/atelier-outils.js'), L = A.L, v = L.v;
     const fer = await p.evaluate(() => { const z = document.getElementById('opdz'); return z && !z.hidden; });
     if (fer) { await p.evaluate(() => opdFermer('fin')); await L.calme(p, 300); }
   }
+  await p.evaluate(() => { const e = document.querySelector('.opd-liste'); if (e) e.scrollIntoView({ block: 'center' }); }); await L.calme(p, 300);
   await L.capture(c, (A.CAP.replace('/atelier/', '/restes-contrats/')) + `liste-composes-${tag}.png`);
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.log('ÉCHEC', e.stack); await L.fermer(); process.exit(2); });
