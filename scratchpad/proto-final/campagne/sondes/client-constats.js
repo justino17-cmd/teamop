@@ -40,12 +40,14 @@ const profil = process.argv[2] || 'iphone', app = process.argv.includes('app');
   v('client-15 · le nom de l’entreprise est écrit une seule fois dans l’entête', ent.noms <= 1, JSON.stringify(ent));
   // client-20 : cibles tactiles du pied de la barre latérale (iPad)
   if (c.doigt && c.largeur >= 700) { const pied = await p.evaluate(() => [...document.querySelectorAll('[data-modetheme]')].filter(b => b.offsetParent !== null).map(b => b.textContent.trim() + ' ' + Math.round(b.getBoundingClientRect().height))); v('client-20 · Jour / Nuit / Auto font au moins 44 px de haut au doigt', pied.length >= 3 && pied.every(x => +x.split(' ').pop() >= 44), JSON.stringify(pied)); }
-  // le menu du téléphone : chaque ligne mène à son onglet et referme la feuille
+  // téléphone (client-14, décision du chef du 17/11) : UNE navigation, la barre du bas ; la feuille « Menu » ne répète plus les cinq entrées, et chaque entrée de la barre mène à son onglet
   if (tel) { const cles = ['accueil', 'factures', 'interventions', 'devis', 'contrats']; let n = 0;
+    await L.toucher(c, '[data-menu="ouvrir"]'); const f = await O.dessus(p); v('menu · la feuille s’ouvre', /Menu/.test(f.panneauTitre), f.panneauTitre);
+    v('menu · la feuille du client ne répète pas les cinq destinations (barre du bas = la seule navigation)', !/Factures|Interventions|Devis|Contrat/.test(f.panneau) && /Apparence/i.test(f.panneau), f.panneau.slice(0, 120)); await O.nettoyer(p);
     for (const k of cles) { await p.evaluate(() => { RL_CLI.cli = 'md'; EC.tab = 'accueil'; rendre(); }); await L.calme(p, 250);
-      await L.toucher(c, '[data-menu="ouvrir"]'); const ok = await L.toucher(c, `#calque [data-ec="tab|${k}"]`); await L.calme(p, 300); const d = await O.dessus(p); if (ok) n++;
-      v(`menu · la ligne « ${k} » mène à son onglet et referme la feuille`, ok && d.tab === k && !d.panneau, JSON.stringify(d).slice(0, 200)); }
-    v('menu · population : cinq lignes touchées', n === 5, n); }
+      const ok = await L.toucher(c, `.opg-barre [data-ec="tab|${k}"]`); await L.calme(p, 300); const d = await O.dessus(p); if (ok) n++;
+      v(`barre · l’entrée « ${k} » mène à son onglet`, ok && d.tab === k, JSON.stringify(d).slice(0, 200)); }
+    v('barre · population : cinq entrées touchées', n === 5, n); }
   v('aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c);
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

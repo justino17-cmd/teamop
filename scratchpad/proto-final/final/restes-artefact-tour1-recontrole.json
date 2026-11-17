@@ -1,0 +1,97 @@
+{
+ "voie": "restes",
+ "etape": "recontroler-restes-1",
+ "noms": [
+  "artefact"
+ ],
+ "date": "2026-11-17",
+ "lu": "final/restes-artefact-tour1.json (9 entrées : 5 corrigées, 1 « ne se reproduit pas », 2 « à soumettre à Justin », 1 de mutations). Page : apercu/prototype-op-gestion.html (bouton « Voir comme l'application », APP_PAR_BOUTON, histRemplacer, lien #cnx-test), apercu/prototype-comptabilite.html et atelier/page.source (dansArtefact). Aucune page modifiée par ce recontrôle (trois mutations d'épreuve posées puis restaurées par le script : git status apercu propre).",
+ "regles": [
+  "Bouton « Voir comme l'application » (entrée 1) : sur six profils (mac, windows, iPad, iPhone, Android, 320 px), jour ET nuit, la bande le porte (une cible de 44 px au doigt, dans l'écran et dans sa bande, aucune commande ne le chevauche, rien ne le recouvre, la page ne déborde pas de côté), un toucher mène à l'écran de connexion, « Revenir au mode test » ramène la bande ; depuis un autre rôle de la revue (technicienne) le bouton est encore là et mène à la connexion. restes-artefact-tour1-recontrole.js : 150 ✓ pour 2 ✗ (les deux ✗ sont la casse 1, le clavier). Captures relues (iPhone, 320 px, iPad, Mac en jour et en nuit) : bouton pleine largeur sur téléphone, bande sur deux rangées à l'iPad, lien de retour en haut à gauche, lisible (contraste 6,99 à 10,14:1), sans toucher le logo.",
+  "Même chemin plus loin (partie C, tout OP Security) : le lien de retour se pose, visible et sans chevauchement, sur l'activation, la vérification, le choix du mot de passe, ET sur l'écran de chargement (il suit #cnx) ; lisible de jour comme de nuit sur le fond sombre (captures relues). Pas un défaut. restes-artefact-tour1-recontrole-c.js : 18 ✓ · 0 ✗ (iPhone jour+nuit).",
+  "Entrée 1, sonde du correcteur rejouée : artefact-voir-app.js 132 ✓ · 0 ✗ (la fiche disait 125 : la sonde a gagné des contrôles depuis). Gardes d'ensemble artefact-tout.sh sans recensement : 63, 26, 14, 144, 10, 16, 24, 5 ✓ · 0 ✗, comme annoncé.",
+  "Entrée 2 (FEC et PDF hors artefact) : recontrole-artefact-hors.js 16 ✓ · 0 ✗ ; voisins 10 ✓ ; courrier 14 ✓ ; hôte 36 ✓. Mutation 15 (dansArtefact toujours faux) : 14 ✓ · 2 ✗, elle mord. Atelier refabriqué par fabriquer.sh : aucune différence avec apercu/prototype-documents.html.",
+  "Entrée 4 (histRemplacer) : recontrole-artefact-historique.js 18 ✓ · 0 ✗ ; il ne reste dans prototype-op-gestion.html aucun history.replaceState nu hors d'un try (relu ligne à ligne : 8635, 24618, 24621, 26079 sont gardés). coque-mode-adresse 37 ✓ et coque-clavier 128 ✓ (rien cassé à côté des raccourcis ni de l'adresse).",
+  "Entrée 6 (« 8 sur 25 boutons Commencer au chapitre ») : artefact-chapitres.js 16 ✓ · 0 ✗, mac et iPhone, sans pose et avec la pose adverse : « ne se reproduit pas » est exact.",
+  "Mutations rejouées (preuve que les sondes mordent) : n° 5 (rechargement refusé sans message) 11 ✓ · 4 ✗, n° 9 (le drapeau ne suffit plus) 1 ✓ · 1 ✗, n° 15 (comptabilité, dansArtefact) 14 ✓ · 2 ✗ : 3 sur 3 tombent ; git status apercu propre après."
+ ],
+ "pasRegles": [
+  {
+   "nom": "artefact",
+   "defaut": "(entrées 1 et 3) « Revenir au mode test » proposé sur l'écran de connexion à qui est entré par le bouton.",
+   "constat": "Réglé à la souris et au doigt, PAS au clavier : le lien est un enfant de <body> posé hors de #cnx, or #cnx est une fenêtre modale (aria-modal) dont le piège de focus (page, ligne ~8695, « le focus reste dans la fenêtre ») boucle sur SES éléments. Mesuré au Mac et à Windows : 40 pressions de Tab ne sortent jamais de #cnx (cn-id › cn-mdp › œil › Se connecter › Ouvrir OP Security › …). Voir casse 1."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "« Revenir au mode test » est inatteignable au clavier (et pour un lecteur d'écran)",
+   "gravite": "moyenne",
+   "etapes": "Mac ou Windows, artefact en mode revue → touche (ou Entrée sur) « Voir comme l'application » → écran de connexion → Tab, Tab, Tab… jusqu'à 40 fois : le focus tourne dans la carte et ne va jamais sur « ‹ Revenir au mode test ». Même chose avec Maj+Tab. Contre-épreuve : le même lien rangé DANS #cnx (appendChild) est atteint au clavier. Le lien n'est qu'un enfant de <body> (cnxTestPoser, ligne ~24911) et la fenêtre modale marque le reste de la page comme hors d'elle.",
+   "constat": "Celui ou celle qui ne se sert que du clavier (ou d'un lecteur d'écran, qui ignore ce qui est hors d'une fenêtre aria-modal) entre dans l'application par le bouton et ne peut plus revenir à la revue sans recharger la page avec une autre adresse : la sortie annoncée par la fiche n'existe pas pour elle. Piste de correction (à faire par le correcteur, pas ici) : poser le lien DANS #cnx (cnxMontrer l'ajoute après avoir créé #cnx ; cnxPoser et cnxCharger recréent #cnx : il faut le reposer dedans à chaque fois), ou l'ajouter à la liste des éléments du piège de focus. Sonde : restes-artefact-tour1-recontrole.js section 3 (mac et windows, jour) ; elle tombe aujourd'hui et passera une fois corrigé."
+  },
+  {
+   "titre": "Pendant la visite parlée le bouton « Voir comme l'application » reste atteignable : un toucher recharge la page et perd la visite sans un mot",
+   "gravite": "faible",
+   "etapes": "Revue (Mac ou iPhone) → « Apprendre » → « Commencer au chapitre » : l'immersion démarre (bulle) ; la bande reste affichée pendant la visite et le bouton est visible, non recouvert, non inerte. Un toucher dessus pose #lien-… et recharge : la visite parlée s'arrête, l'écran de connexion s'ouvre.",
+   "constat": "La fiche de l'entrée 1 écrit « jamais en mode application ni pendant la visite parlée » : c'est faux pour la visite (il n'y a que l'application qui l'exclut). Au pire un visiteur perd sa place dans la visite en effleurant la bande ; il n'y a pas de perte de données. À trancher : cacher le bouton quand GD.actif (comme la fiche le dit), ou corriger la phrase. Sonde : restes-artefact-tour1-recontrole-b.js, 4 ✓ · 2 ✗ (mac, iPhone)."
+  }
+ ],
+ "nouveaux": [
+  "recontrole-artefact-origine.js (le cadre rechargé sous « localhost », donc d'une autre origine) tombe : 0 ✓ · 4 ✗. Cause relevée : la page porte désormais une politique de contenu `frame-src 'self' blob: data:` (étape sécurité 7, commit fe94b4cd) et bloque elle-même le cadre d'une autre origine (« Framing 'http://localhost:…' violates … frame-src »). Ce n'est PAS une régression des corrections de l'artefact : le cas « cadre d'une autre origine » ne peut plus se produire, la sonde est périmée (à retirer ou à adapter : elle dit aujourd'hui rouge sur un cas devenu impossible). Les 6 ✓ d'avant sont dans recontrole.json de l'étape 1.",
+  "coque-connexion.js : 39 ✓ · 1 ✗ (« le guide a un titre et un bouton pour le fermer ('Passer') → Où sont passées mes rubriques ? »). Sans rapport avec l'artefact : le guide des nouveautés a été refait par une autre voie (commits « Guide des nouveautés refait ») et la sonde de la coque attend l'ancien titre. À signaler à la voie coque.",
+  "equipe-droits-supprimer.js : 6 ✓ · 2 ✗ (equipe-19 : « Avant de désactiver Tom Leroy » sans bouton final). C'est le défaut 19 de la campagne équipe, déjà inscrit dans equipe.json, pas un effet des corrections de l'artefact (le correcteur n'a pas touché ces fonctions : histRemplacer ne s'y trouve pas)."
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/sondes/restes-artefact-tour1-recontrole.js (neuve : bande, bouton et lien de retour sur six profils, jour/nuit, contraste, clavier, autre rôle)",
+   "resultat": "150 ✓ · 2 ✗ (casse 1, clavier, mac et windows)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/restes-artefact-tour1-recontrole-b.js (neuve : le bouton pendant la visite parlée)",
+   "resultat": "4 ✓ · 2 ✗ (casse 2, mac et iPhone)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/restes-artefact-tour1-recontrole-c.js (neuve : le lien sur le chargement et les trois écrans d'OP Security)",
+   "resultat": "18 ✓ · 0 ✗ (iPhone jour et nuit ; Mac jour 8 ✓ avec une version précédente dont une attente trop sévère a été retirée)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/artefact-voir-app.js",
+   "resultat": "132 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/artefact-tout.sh (RECENSEMENT=0)",
+   "resultat": "63 + 26 + 14 + 144 + 10 + 16 + 24 + 5 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/artefact-chapitres.js",
+   "resultat": "16 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/artefact-voir-app-mutations.py 5 9 15",
+   "resultat": "3 mutations sur 3 attrapées ; git status apercu propre"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-historique.js / -hors.js / -voisins.js / -hote.js",
+   "resultat": "18 ✓ / 16 ✓ / 10 ✓ / 36 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-origine.js",
+   "resultat": "0 ✓ · 4 ✗ (sonde périmée : la page interdit désormais le cadre d'une autre origine)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/coque-mode-adresse.js / coque-clavier.js / coque-connexion.js",
+   "resultat": "37 ✓ · 0 ✗ / 128 ✓ · 0 ✗ / 39 ✓ · 1 ✗ (titre du guide, autre voie)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/equipe-droits-supprimer.js",
+   "resultat": "6 ✓ · 2 ✗ (défaut equipe-19 connu)"
+  }
+ ],
+ "doutes": [
+  "Entrées 7 et 8 (« à soumettre à Justin ») : toujours vraies, non vérifiables d'ici — le contrat réel du pont downloads.save (un Blob fabriqué dans un cadre n'est pas un instanceof Blob de la page du haut), la requête des pages voisines, le visionneur PDF `blob:` et l'aperçu du courrier sous la vraie politique de claude.ai. À regarder une fois sur l'artefact publié, avec le bouton lui-même (il doit rendre « Impossible ici » avec l'adresse à utiliser si l'hébergeur refuse le rechargement).",
+  "Le bouton recharge la page : sur un artefact servi depuis srcdoc ou une adresse que l'hébergeur ne conserve pas, le rechargement peut revenir à l'adresse d'origine ; le drapeau de session ne passe que si l'hébergeur laisse sessionStorage au cadre. Les deux sont gérés par la page (un des deux suffit) et joués dans un cadre simulé, jamais chez l'hébergeur réel.",
+  "Une fois entré par le bouton et connecté, on ne revient à la revue qu'en se déconnectant puis par « Revenir au mode test » : un visiteur qui cherche « Tester en tant que » après sa connexion ne voit pas où. À juger avec Justin (je n'ai pas ajouté de sortie dans l'application : ce serait un second échafaudage).",
+  "Le lien de retour reste posé pendant l'écran de chargement (il suit #cnx) : lisible, sans toucher le logo, mais c'est une porte de sortie sur un écran de 4 secondes ; observation, pas défaut.",
+  "Les captures n'ont pas été prises sur un vrai iPhone ni un vrai cadre claude.ai : Chromium émulé, encoches posées sur iPhone/iPad, cadre simulé par hote-artefact.html."
+ ]
+}

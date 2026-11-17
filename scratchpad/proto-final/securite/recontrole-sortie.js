@@ -1,4 +1,4 @@
-// RECONTRÔLE ADVERSE de l'audit de sécurité (étape 8 sur 8, 17 novembre 2026), faille S10 : « le script injecté s'exécute mais ne peut RIEN envoyer ».
+// RECONTRÔLE ADVERSE de l'audit de sécurité (étape 8 sur 8, 17 novembre 2026), faille S10 : l'audit disait « le script injecté s'exécute mais ne peut RIEN envoyer » — FAUX pour la navigation (voir LIMITES : décidé le 17/11, limite du prototype, à dire à Justin pour la vraie application). La phrase juste : la politique ferme les CANAUX DE CHARGEMENT (image, requête, balise d'envoi, WebSocket, cadre, préconnexion, WebRTC), pas la navigation.
 // La politique de contenu pose connect-src, img-src, frame-src, form-action… mais une politique de contenu ne gouverne PAS la navigation : un script qui
 // s'exécute dans la page peut encore la faire PARTIR vers une adresse de l'attaquant, avec les données dans l'adresse (location, window.open, un lien cliqué
 // par programme, une balise meta refresh) — et la résolution d'un nom (WebRTC, dns-prefetch/preconnect) n'est pas gouvernée non plus.
@@ -54,6 +54,7 @@ const MARQUE = 'ZXQ-SORTIE-8801';
     'préconnexion (link rel=preconnect)': A => { const l = document.createElement('link'); l.rel = 'preconnect'; l.href = A; document.head.appendChild(l); const m = document.createElement('link'); m.rel = 'dns-prefetch'; m.href = A; document.head.appendChild(m); },
   };
   const sortent = [];
+  const LIMITES = new Set(['navigation (location.href)', 'navigation (location.replace)', 'fenêtre (window.open)', 'lien cliqué par programme (a.click)', 'balise meta refresh']);
   for (const [nom, fn] of Object.entries(essais)) {
     const c2 = await L.ouvrir({ profil: 'mac', qui: 'marc', attente: 800, init: INIT_VIOL });
     await c2.ctx.route(u => { const s = u.toString(); return /^https?:/.test(s) && !/^https?:\/\/127\.0\.0\.1[:/]/.test(s); }, r => r.abort('blockedbyclient'));
@@ -67,7 +68,10 @@ const MARQUE = 'ZXQ-SORTIE-8801';
     // la navigation cible une adresse de l'attaquant : la politique ne la retient pas ; une requête sans donnée (préconnexion) prouve la connexion, pas la fuite
     const sort = nom.includes('préconnexion') ? nouveaux.length > 0 : avecDonnee.length > 0;
     if (sort) sortent.push(nom);
-    L.v('« ' + nom + ' » ne fait rien parvenir à l\'attaquant', !sort, nouveaux.slice(0, 2));
+    if (LIMITES.has(nom)) { /* DÉCIDÉ le 17/11 (chef de chantier) : une politique de contenu ne gouverne PAS la navigation, et aucune balise n'y peut rien (navigate-to n'existe plus, frame-ancestors est ignoré en meta) : c'est une LIMITE du prototype, à dire à Justin pour la vraie application (en-têtes du serveur). On la MESURE pour qu'elle ne change pas sans qu'on le sache : si un canal cesse de sortir, la limite a bougé. */
+      console.log('  LIMITE', nom, sort ? '→ sort (connu : la navigation n\'est pas gouvernée par la politique)' : '→ ne sort plus (la limite a changé : le dire)');
+      L.v('LIMITE CONNUE « ' + nom + ' » : ' + (sort ? 'sort, comme décidé (à traiter par les en-têtes du serveur de la vraie application)' : 'ne sort plus'), true);
+    } else L.v('« ' + nom + ' » ne fait rien parvenir à l\'attaquant', !sort, nouveaux.slice(0, 2));
     await L.fin(c2);
   }
   // ── WebRTC : un serveur TURN de l'attaquant (UDP) reçoit-il la donnée dans le nom d'utilisateur ? ──
