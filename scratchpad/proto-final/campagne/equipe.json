@@ -80,16 +80,25 @@
  ],
  "couverture": {
   "ecrans": 15,
-  "gestesRecenses": "mac 97 + iPhone 99 (liste 22/24, six fiches 75) ; Mon entreprise 12 ; droits : 45 cases + 6 droits à part",
-  "gestesTouches": "mac 97/97, iPhone 98/99 (le logo OP GESTION de l’en-tête, non atteint par la sonde) ; Mon entreprise 12/12",
-  "parcours": "P1 à P15 (inviter, erreurs, places pleines, modifier, habilitations, désactiver, profils, terrain, comme, règles, Qui peut quoi, rechargement) + E0 à E8 (Mon entreprise) + rôles",
+  "gestesRecenses": "liste Équipe 22 (mac) / 24 (iPhone) + six fiches 75 = 97 (mac) et 99 (iPhone) ; Mon entreprise 12 (5 cartes + 6 liens + Compléter) ; droits : 45 cases de catégories + 6 droits à part",
+  "gestesTouches": "mac 97/97 et iPhone 99/99 : tous touchés, tous répondent, aucun muet (au premier passage de l’iPhone, 98/99 : la sonde visait le lien « logo » caché du menu, corrigé par :visible puis rejoué) ; Mon entreprise 12/12 aux deux profils ; cases de droits : 45 jouées à la souris dans la fiche puis vérifiées dans l’application ouverte comme la personne (855 comparaisons de routes)",
+  "parcours": "P1 inviter · P2 erreurs de saisie (vide, e-mail faux, homonyme, balise) · P3 places pleines · P5 modifier la fiche (nom suivi partout ?) · P6 habilitations (ajout, renouvellement, saisies absurdes) · P7 désactiver / réactiver / dernier administrateur · P8 règle d’habilitation à l’affectation · P9 profil (confirmation) · P9b case terrain · P10 « comme … » et retour · P11 règles · P12 rechargement · P15 Qui peut quoi ; Mon entreprise E0 à E8 (écran, ident, légal, logo, banque, horaires, six liens, facture débloquée de bout en bout, lecture seule) ; rôles (Julie, Sophie, Karim, Responsable) ; droits à part ; case Supprimer = 21 parcours",
   "profils": [
    "mac",
-   "iphone"
+   "windows",
+   "ipad",
+   "iphone",
+   "android",
+   "petit (mise en page, jour ; mac et iphone aussi de nuit)"
   ]
  },
  "nonCouvert": [
-  "en cours de campagne : voir la fin du rapport"
+  "Boîte mail › cases Créer / Modifier / Supprimer : le module du courrier est un DOM fantôme que mes relevés ne lisent pas ; seule la fenêtre « Boîtes connectées » est jouée (Créer retire Google / Microsoft / Autre messagerie ; Supprimer retire les deux « Déconnecter » ; Modifier n’a rien à montrer : aucune boîte « à reconnecter » dans la démonstration). Le code le dit lui-même : écrire, répondre, classer et supprimer un courriel ne sont pas gardés (DROIT_PHRASES, « tout-08 »).",
+  "Cases dont la garde est dans la FONCTION et non dans le bouton (planning › Supprimer, client › Modifier, achats › Supprimer) : aucun bouton ne disparaît, le refus se joue au geste. Jouées par les sondes des auteurs (droits-gestes-reels.js : déplacer au planning) mais pas par les miennes : je n’ai pas rejoué « retirer du planning », « changer un client » ni « annuler une demande » avec la case décochée.",
+  "Nouveau téléphone, Déconnecter partout, Reposer un mot de passe : jouées jusqu’à la fenêtre de confirmation et son texte, pas jusqu’à la confirmation par le téléphone simulé OP Security (voie « double authentification »).",
+  "« Appeler › » (lien tel:), « Copier le lien et l’identifiant » (presse-papiers) : le toast « Copié. » est vu, le contenu copié n’est pas relu.",
+  "Windows, iPad, Android, 320 px : mise en page seule (jour). Les gestes et parcours sont joués sur mac et iPhone ; l’iPad, l’Android et le 320 px n’ont pas rejoué les 97 gestes.",
+  "Zone « refonte » : Stock, Dépôts et camions, Mon camion, Véhicules, Temps de travail, Boîte mail, atelier de devis : touchés seulement par leurs bords (liens de Mon entreprise, « Ses heures », cases de droits)."
  ],
  "defauts": [
   {
@@ -339,9 +348,120 @@
    "ou": "apercu/prototype-op-gestion.html : EQX_CATS (≈ l. 20494) et DR_CATS (≈ l. 9957)",
    "correction": "Une seule liste de noms (DR_CATS) lue par le tableau, la fiche et les aria-label ; le tableau a la place de les écrire en entier si on retourne l’en-tête en deux lignes.",
    "decision": "corriger"
+  },
+  {
+   "n": "equipe-16",
+   "gravite": "gênant",
+   "ecran": "Équipe › Qui peut quoi (iPad en portrait, 820 px)",
+   "role": "gérant",
+   "profils": [
+    "ipad"
+   ],
+   "etapes": "iPad portrait : Équipe › Qui peut quoi.",
+   "attendu": "Le tableau tient dans la largeur, ou la forme en listes (celle du téléphone) prend le relais, ou un indice montre qu’il y a des colonnes à droite.",
+   "constate": "Avec le menu latéral (272 px), il reste 520 px : le tableau a 17 colonnes de 48 px, on n’en voit que 2 (« Planning », « Interventions ») ; les 15 autres sont cachées derrière un défilement latéral sans barre ni dégradé. Le gérant croit que le tableau n’a que deux colonnes. La forme en listes n’est utilisée qu’au téléphone.",
+   "preuve": "sondes/equipe-mise-en-page.js (ipad-jour) ; capture mep-equipe-qui-peut-quoi-ipad-jour.png",
+   "ou": "apercu/prototype-op-gestion.html : eqxDroitsVue (≈ l. 20353) et la règle de bascule table / listes (feuille de style .eqx-dr-tab, .eqx-dr-liste)",
+   "correction": "Basculer en listes dès que la zone de contenu fait moins de 1 000 px (requête de conteneur sur .eqx-dr-tab, pas de largeur d’écran) ; sinon ajouter un dégradé et une flèche « → » à droite du tableau.",
+   "decision": "corriger"
+  },
+  {
+   "n": "equipe-17",
+   "gravite": "gênant",
+   "ecran": "Équipe › fiche d’une personne › bloc Connexion (Android 360 px, petit 320 px)",
+   "role": "gérant",
+   "profils": [
+    "android",
+    "petit"
+   ],
+   "etapes": "Android (360 px) : Équipe › n’importe quelle personne (même « Julie Petit ») › descendre au bloc « Connexion ».",
+   "attendu": "La fiche ne défile pas de côté.",
+   "constate": "La ligne « Mot de passe : Provisoire : à lui remettre en main propre. » est écrite en une seule ligne : elle dépasse de 3 px, tout le panneau devient défilable de côté (scrollWidth 363 pour 360). À 320 px, c’est pire : 43 px de défilement latéral dès la fiche de Julie (le bouton « Reposer un mot de passe provisoire » ne passe pas non plus à la ligne). Même cause que le défaut 08 (valeur longue dans une ligne « libellé + valeur », bouton sans retour à la ligne).",
+   "preuve": "sondes/equipe-mise-en-page.js : « fiche-julie : rien ne dépasse du panneau (android-jour) » → {\"sw\":363,\"cw\":360 ; petit-jour : sw 363 pour cw 320,\"enfants\":[\"B.:Provisoire : à lui remettre en…\"]}",
+   "ou": "apercu/prototype-op-gestion.html : secuFicheConnexion (.cn-acces .ligne b)",
+   "correction": "Même correction que le défaut 08 : .ligne > b {min-width:0; overflow-wrap:anywhere}.",
+   "decision": "corriger"
+  },
+  {
+   "n": "equipe-18",
+   "gravite": "détail",
+   "ecran": "Équipe › fiche d’une personne vue par un Responsable (lecture seule)",
+   "role": "Responsable (case « L’entreprise et l’équipe » › Voir seulement)",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Marc donne le profil Responsable à Julie ; Julie (ouverte comme elle) › Équipe › fiche de Sophie › Voir et régler les droits détaillés › toucher une case.",
+   "attendu": "Comme dans Mon entreprise (champs inactifs et une phrase « Tu peux regarder cette fiche ; c’est Marc qui la modifie. ») : les cases sont inactives et une phrase dit qui règle les droits.",
+   "constate": "Les 49 cases (45 de catégories, 4 de forme et droits à part) sont dessinées ACTIVES ; en toucher une est refusée après coup (la case revient comme avant, message « … Demande à Marc ») : correct, mais le Responsable croit pouvoir régler, et les deux écrans de lecture seule (Équipe, Mon entreprise) n’ont pas la même forme.",
+   "preuve": "sondes/equipe-roles.js : Responsable-02 (casesActives 49) et Responsable-03 (refus + retour de la case : ✓)",
+   "ou": "apercu/prototype-op-gestion.html : droitsBlocFiche (att = fige ? 'disabled' : '', ≈ l. 11990)",
+   "correction": "Dans droitsBlocFiche : `fige` vrai aussi quand !peut('admin','m') ; une phrase grise « Tu peux regarder ces droits ; c’est Marc qui les règle. » comme dans entPanneau.",
+   "decision": "corriger"
+  },
+  {
+   "n": "equipe-19",
+   "gravite": "gênant",
+   "ecran": "Équipe › fiche › Désactiver le compte, avec la case « L’entreprise et l’équipe › Supprimer » décochée",
+   "role": "personne avec « Modifier » mais sans « Supprimer » sur « L’entreprise et l’équipe »",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Marc retire seulement « Supprimer » de « L’entreprise et l’équipe » à une personne (Rémi) ; ouvrir l’application comme Rémi › Équipe › fiche de Tom › « Désactiver le compte ».",
+   "attendu": "Soit le bouton n’est pas dessiné (comme « Annuler l’invitation » et « Retirer », qui disparaissent bien), soit la fenêtre qui suit se termine.",
+   "constate": "« Désactiver le compte » est dessiné (classé « modifier ») et ouvre « Avant de désactiver Tom Leroy » avec ses choix de reprise (interventions, véhicule, tâches), mais le bouton final « Désactiver et reporter » (classé « supprimer ») n’est pas dessiné : impasse, on remplit des choix pour rien.",
+   "preuve": "sondes/equipe-droits-supprimer.js : equipe-19 (boutonFinalVisible:false) ; contrôle témoin : avec la case, le bouton final est visible",
+   "ou": "apercu/prototype-op-gestion.html : GESTES.eq (m:'relancer mdp actif') et GESTES.eqx (s:'annulinv desact desactok regsuppr') ≈ l. 11720",
+   "correction": "Classer data-eq=\"actif\" avec « supprimer » quand il désactive (garder « modifier » pour Réactiver), ou donner à « Désactiver et reporter » la même classe que le bouton qui ouvre la fenêtre.",
+   "decision": "corriger"
+  },
+  {
+   "n": "equipe-20",
+   "gravite": "gênant",
+   "ecran": "Mon entreprise › Rendez-vous en ligne (fenêtre des réglages, ouverte aussi depuis Planning)",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Mon entreprise › « Rendez-vous en ligne » › descendre sous « Limites ».",
+   "attendu": "Une phrase qui parle au gérant de ses clients.",
+   "constate": "« Enregistré tout de suite. Pour les voir : ouvre une intervention TERMINÉE (le bouton n’existe que sur celles-là), puis touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. » : une consigne de TESTEUR (comment vérifier le réglage dans le prototype), 42 mots, avec un mot en capitales, affichée telle quelle dans l’application ouverte comme un vrai utilisateur. Un gérant ne cherche pas à « voir » le réglage par un chemin de quatre touchers.",
+   "preuve": "sondes/equipe-mots.js : « aucune phrase de plus de 35 mots » → entreprise-lien-rdv (42 mots) ; texte lu dans le DOM (/tmp/equipe-mots-mac.json)",
+   "ou": "apercu/prototype-op-gestion.html : ligne 5414 (panneauReglagesRdv)",
+   "correction": "Retirer la phrase, ou la remplacer par « Enregistré. Tes clients verront ces créneaux dans le lien qu’ils reçoivent après un devis accepté. » ; si elle sert à la revue, la conditionner à !enApp().",
+   "decision": "corriger",
+   "zone": "planning"
   }
  ],
- "doutes": [],
- "indices": [],
- "sondes": []
+ "doutes": [
+  "Un Responsable (Équipe en lecture) voit « Planifier la formation » : il ouvre une absence, ce qui relève de la case Planning (qu’il a). Voulu ?",
+  "Mot de passe provisoire : « Valable 72 heures (jusqu’au 20/11 à 12:30) » est calculé sur l’horloge réelle alors que le prototype vit le 31 octobre 2026 (« formation prévue le 12 nov. », « Congé payé jusqu’au 3 nov. »). Une démonstration verra deux dates différentes.",
+  "Le bandeau « 1 compte verrouillé : Léa Roux. [Voir] » : « Voir » seul ne dit pas qu’on va dans la page Sécurité pour le déverrouiller (« Déverrouiller » ou « Voir la Sécurité » serait plus clair).",
+  "Filtre « Invités » (et le chiffre « 0 invitation en attente » qui y mène) : « Personne ici pour le moment. » sans dire quoi faire ; une phrase « Personne n’est invité. Touche « Inviter une personne » pour en ajouter une. » aiderait.",
+  "« Rôle (un simple nom) » dans Inviter et Modifier : un débutant peut ne pas comprendre la différence avec les « droits de départ » juste en dessous.",
+  "Carte « Ton logo » : seule des cinq cartes sans état (« Complète » / « À compléter ») : voulu (le logo n’est pas obligatoire), mais la carte paraît moins finie que ses voisines.",
+  "La phrase de la fiche « Mot de passe : Provisoire : à lui remettre en main propre. » s’affiche aussi sur la fiche de Marc lui-même.",
+  "La case « Voir les prix d’achat et les marges » n’est pas dessinée (non branchée, repli décidé : spec § 2.7) : confirmé par la fiche, qui n’en montre pas."
+ ],
+ "indices": [
+  {
+   "indice": "Le rôle bureau n’a pas Stock / Produits alors que sa fiche le promet ; les cases Créer / Modifier / Supprimer d’Équipe n’agissent pas.",
+   "verdict": "RÉFUTÉ (corrigé à l’étape 5) : Julie (Secrétariat) voit « Mes tâches, Interventions, Clients, Devis, Contrats, Comptabilité, Achats et frais, Stock, Fournisseurs, matériel & produits, Véhicules » ; les cases agissent : « Voir » ferme les routes de sa catégorie (10 catégories sur 10, 19 routes fermées en tout, dont Équipe, Mon entreprise, Accueil, Statistiques et Historique pour « L’entreprise et l’équipe »), « Créer / Modifier » retirent des boutons (planif.c 1, inter.c 3, crm.c 1, ventes.c 3, compta.m 4, stock.m 9, temps.m 10, achats.m 16…), « Supprimer » retire photoSuppr, pieceSuppr, sigEfface, « Déconnecter » des boîtes. Restent trois cases gardées à la fonction (voir nonCouvert) et le défaut 11."
+  },
+  {
+   "indice": "Accès : mot de passe provisoire unique affiché, « Envoyer un lien » qui n’envoie rien (prototype sans serveur).",
+   "verdict": "CONFIRMÉ comme attendu pour le prototype (le toast « Lien envoyé à … » ne part nulle part ; le mot de passe provisoire n’est affiché qu’une fois dans une fenêtre) ; DEUX défauts réels dans ce parcours : 01 (le gérant se ferme la porte en reposant son propre mot de passe) et 03 (deux consignes contraires à l’invitation)."
+  }
+ ],
+ "sondes": [
+  "sondes/equipe-outils.js (outils communs)",
+  "sondes/equipe-gestes.js mac : 116 ✓ · 1 ✗ (equipe-01) ; iPhone : 120 ✓ · 1 ✗ (equipe-01)",
+  "sondes/equipe-parcours.js mac : 60 ✓ · 6 ✗ (equipe-02 à 07) ; iPhone : 59 ✓ · 7 ✗ (les six + « Qui peut quoi » au téléphone, sonde corrigée)",
+  "sondes/equipe-entreprise.js mac : 59 ✓ · 0 ✗ ; iPhone : 59 ✓ · 1 ✗ (E5 : contrôle remplacé par les créneaux libres)",
+  "sondes/equipe-roles.js mac : 34 ✓ · 1 ✗ (equipe-18)",
+  "sondes/equipe-droits-effets.js mac : 129 ✓ · 6 ✗ (45 cases + 6 droits à part ; les 6 ✗ : 2 par conception → défaut 11, 3 contrôles de la sonde corrigés, 1 réglage de la sonde)",
+  "sondes/equipe-droits-profonds.js mac : 9 ✓ · 7 ✗ (les cases sans bouton visible à l’ouverture : 4 gardées à la fonction, 3 du module courrier ; admin.s → défaut 19)",
+  "sondes/equipe-droits-supprimer.js mac : 6 ✓ · 2 ✗ (equipe-19)",
+  "sondes/equipe-mise-en-page.js : mac 31/2, windows 31/0, ipad 76/3, iphone 79/5, android 74/5, petit 74/5 (jour) ; mac nuit 30/1, iphone nuit 76/3 (✓/✗ ; les ✗ = défauts 08, 16, 17 et deux seuils de population de la sonde)",
+  "sondes/equipe-mots.js mac : 33 écrans et fenêtres lus, 62 ✓ · 3 ✗ (la phrase de 42 mots du panneau Rendez-vous en ligne = défaut 20 ; deux faux positifs sur « e-mail », motif corrigé) ; aucun « Prototype », « pour l’essai », « undefined », « NaN » dans les 33 textes"
+ ]
 }
