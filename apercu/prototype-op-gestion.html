@@ -62,6 +62,8 @@ button{cursor:pointer}
 .logo{display:flex;align-items:center;gap:10px;padding:2px 8px 16px}
 .logo i{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#12306b);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:13px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
 .logo b{display:block;font-size:16px;letter-spacing:.01em}.logo small{display:block;color:var(--doux);font-size:12px}
+/* un nom d'entreprise de 60 signes (le maximum de la fiche) prenait trois lignes et ÉCRASAIT la tuile « OP » en bande de 22 px : la tuile garde son carré, le texte cède (deux lignes, le nom entier dans l'infobulle) — relecture « tout-10 » */
+.logo i{flex:none}.menu a.logo > span{min-width:0;flex:1 1 auto}.menu a.logo small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
 .menu .grp{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faible);padding:12px 12px 4px}
 .menu a{display:flex;align-items:center;gap:11px;min-height:44px;padding:0 12px;border-radius:12px;color:var(--encre);text-decoration:none;font-weight:500;font-size:15px}
 .menu a:hover{background:var(--survol)}
@@ -259,6 +261,7 @@ body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouv
 .opdz-att[hidden]{display:none}
 .opdz-att-c{display:flex;flex-direction:column;gap:12px;align-items:flex-start;max-width:420px}
 .opdz-att-c b{font-size:18px}
+.opd-lect{cursor:default}.opd-lect:hover{background:none}   /* une ligne qu'on lit sans pouvoir l'ouvrir ne ressemble pas à un bouton */
 .opd-liste .opd-t{margin:6px 0 4px;padding:0 12px}@media (max-width:1250px){.opd-liste .opd-t{padding:0 8px}}      /* le titre s'aligne sur le numéro des lignes (12 px de rembourrage, 8 px quand la ligne se resserre : le palier de .dv-l), pas sur le bord de la carte */.opd-nr{color:var(--orange)}
 .opd-cl{text-align:left}
 
@@ -360,6 +363,10 @@ body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouv
 .pdx-al{margin-bottom:8px;justify-content:flex-start}
 .pdx-al .pdx-at{flex:1;min-width:0;text-align:left;font-weight:600;overflow-wrap:anywhere}
 .pdx-pt{width:10px;height:10px;border-radius:50%;flex:none}
+.pdx-pil svg{width:14px;height:14px;vertical-align:-2px;margin-right:2px;flex:none}
+.pp-l{border-top:1px solid var(--trait)}.pp-l:first-of-type{border-top:0}.pp-l>.case{border:0;margin:0}.pp-e{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:0 0 10px 38px}.pp-e .btn{margin-left:auto}
+.pdx-rub{flex:none;white-space:nowrap}
+@media (max-width:520px){html .pdx-rub{display:none}}   /* la ligne dit déjà ce qu'elle compte ; sur un téléphone le nom de la rubrique prendrait la place du texte */
 .pdx-filtres{display:flex;gap:10px 14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .pdx-etats{flex:1 1 auto;min-width:0}
 .pdx-etats .puce-c{min-height:44px}
@@ -1450,6 +1457,10 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .fo-mapg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:6px 0 8px}
 .panneau .champ{min-width:0}.panneau .champ select{min-width:0;max-width:100%}
 .fo-garder{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;cursor:pointer}
+/* une case qui porte une phrase de quatre lignes (téléphone) s'aligne sur son TITRE, pas sur le milieu du paragraphe ; sous le sélecteur « Appliquer un profil », elle respire (relecture « tout-13 ») */
+.fo-garder.fo-terrain,.fo-garder.eq-sp{align-items:flex-start;padding-block:6px}.fo-garder.fo-terrain>input,.fo-garder.eq-sp>input{margin-top:1px}
+.champ + .fo-garder.fo-terrain{margin-top:14px}
+.eq-dr-non{color:var(--faible);cursor:default;user-select:none}   /* une case sans geste derrière elle : un tiret, pas un vide qu'on prendrait pour une case oubliée */
 .fo-r{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--trait);min-height:52px}label.fo-r{cursor:pointer}
 .fo-up{color:var(--orange);font-weight:650}.fo-down{color:var(--vert);font-weight:650}
 .fo-alerte{background:color-mix(in srgb,var(--orange) 10%,transparent);border-color:color-mix(in srgb,var(--orange) 32%,transparent)}
@@ -1502,9 +1513,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
   .cmd-outils .seg{width:100%}.cmd-outils .seg button{flex:1 1 auto;padding:0 6px;min-width:0;font-size:14.5px}.cmd-outils .seg .pr-nb:not(.chaud){display:none}
   .ced-entete{display:none}.ced-l{grid-template-columns:1fr 1fr 40px;grid-template-areas:"n n x" "q p p" "t t t"}.ced-l>.fo-n{grid-area:n}.ced-l>.cmd-x{grid-area:x}.ced-l>.ced-c:nth-of-type(1){grid-area:q}.ced-l>.ced-c:nth-of-type(2){grid-area:p}.ced-t{grid-area:t}.ced-c span{display:inline;font-size:12.5px;color:var(--doux)}
   .bc-doc{padding:14px;font-size:12.5px}.bc-blocs{grid-template-columns:1fr}.bc-titre{text-align:left}.bc-pl{grid-template-columns:1fr 1fr}.bc-pl>.fo-n{grid-column:1/-1}}
-.sk-lieux{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-.sk-lieu{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--surf);border:1px solid var(--trait);border-radius:var(--r2);padding:12px;color:var(--encre);font:inherit;cursor:pointer;box-shadow:var(--ombre);min-width:0}
-@media (hover:hover){.sk-lieu:hover,.sk-l:hover,.bx-c:hover{background:var(--survol)}}
+@media (hover:hover){.sk-l:hover,.bx-c:hover{background:var(--survol)}}
 .sk-li{font-size:20px;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--surf2);border:1px solid var(--trait);flex:none}
 .sk-m{font-size:12.5px;font-weight:650;color:var(--orange)}.sk-ok{font-size:12.5px;font-weight:600;color:var(--vert)}
 .sk-liste{padding:6px 14px}.sk-liste .groupe{display:flex;align-items:center;gap:6px}
@@ -1516,7 +1525,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .mv-gestes{display:flex;gap:8px;margin-left:auto}
 .sk-sel{flex:0 1 280px;min-width:0}.sk-e{width:56px;text-align:right;font-weight:700;flex:none}.sk-pied{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px}
 .bx-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.bx-c{display:flex;flex-direction:column;gap:10px;text-align:left;color:var(--encre);font:inherit;cursor:pointer}.bx-t{display:flex;gap:10px;align-items:flex-start}
-@media (max-width:760px){.sk-lieux{grid-template-columns:1fr 1fr}.sk-lieu{padding:10px}.sk-li{width:32px;height:32px;font-size:17px}.mv-gestes{width:100%}.mv-gestes .btn{flex:1}.bx-grille{grid-template-columns:1fr}.sk-liste{padding:4px 10px}}
+@media (max-width:760px){.sk-li{width:32px;height:32px;font-size:17px}.mv-gestes{width:100%}.mv-gestes .btn{flex:1}.bx-grille{grid-template-columns:1fr}.sk-liste{padding:4px 10px}}
 .ve-urg{display:flex;flex-direction:column;padding:14px 16px}.ve-u{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--trait);padding:10px 2px;color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
 @media (hover:hover){.ve-u:hover{background:var(--survol)}}
 .ve-l2{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ve-plaque{display:inline-block;white-space:nowrap;align-self:flex-start;font:600 12.5px/1 var(--mono);letter-spacing:.04em;padding:3px 7px;border-radius:6px;border:1px solid var(--trait2);background:var(--surf2)}
@@ -3328,8 +3337,6 @@ body.ac-glisse .ac-x{pointer-events:none}
   .kpi{padding:12px}.kpi b{font-size:19px;white-space:nowrap}.kpi span{font-size:13px}
   /* « à faire » de la Comptabilité : le montant passe sous le texte */
   .cx-af{grid-template-columns:40px minmax(0,1fr);grid-template-areas:"ic t" "ic m" "ic b"}.cx-af>b,.cx-af>span:nth-child(3){justify-self:start}
-  /* les lieux de stock : un par ligne */
-  .sk-lieux{grid-template-columns:minmax(0,1fr)}
   /* « À faire maintenant » : l'étiquette au-dessus du texte */
   .af-l{flex-wrap:wrap;gap:6px 10px!important}.af-l>span:last-child{flex:1 1 100%;min-width:0}
   /* un article : le prix et le stock passent sous le nom */
@@ -3701,6 +3708,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .vh-pied{margin-top:2px}.vh-pied .btn.large{flex:1 1 100%}
 #calque .panneau>.vh-pied{position:sticky;bottom:-1px;z-index:2;background:var(--feuille);padding:10px 0 4px;margin-bottom:-4px;box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
 .vh-ret{align-self:flex-start;min-height:44px}
+.deux-champs[hidden]{display:none}   /* « hidden » perdait contre display:grid : la paire de champs d'un détail replié restait ouverte */
+@media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}   /* la feuille qui monte ne dépasse pas 90 % de l'écran (le reste du voile reste visible : on sait où l'on est) */
 .vh-prochain{margin:0;font-size:14.5px;line-height:1.45;overflow-wrap:anywhere}
 .vh-plus{border:1px solid var(--trait);border-radius:14px;padding:0 14px;background:var(--surf2)}.vh-plus>summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600;color:var(--lien)}.vh-plus[open]{padding-bottom:14px}.vh-plus-c{display:flex;flex-direction:column;gap:12px}
 .vh-fin{display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--trait);padding-top:12px}
@@ -5017,7 +5026,7 @@ function vueFiche(id){
       <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="photos">${F.photos.map((p,k)=>`<div class="ph" style="${p.src?`background-image:url(${p.src})`:''}"><span>${esc(p.nom)}</span><button type="button" aria-label="Retirer la photo ${esc(p.nom)}" data-action="photoSuppr" data-k="${k}">✕</button></div>`).join('')}<label class="ph ajout">＋ Photo<input type="file" accept="image/*" capture="environment" data-photo="${id}" hidden></label></div></div>
       <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
       <div class="carte"><h3>Relevés</h3><div class="trois-champs">${RELEVES[F.metier].map(([l,v,u])=>`<label class="champ">${l}${u?' ('+u+')':''}<input inputmode="decimal" data-releve="${esc(l)}" data-id="${id}" value="${esc(cfReleve(F, i, l, v))}" placeholder="ex. ${esc(v)}"></label>`).join('')}</div></div>
-      ${i.prevues && i.prevues.length ? `<div class="carte"><h3>Pièces prévues par le bureau</h3>${i.prevues.map(p => `<label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : ça part sur la facture au prix du catalogue. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
+      ${i.prevues && i.prevues.length ? `<div class="carte"><h3 data-vis="inter-pieces">Pièces prévues par le bureau</h3>${i.prevues.map(p => `<div class="pp-l"><label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>${matPieceLigne(i, p)}</div>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : ça part sur la facture au prix du catalogue. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
       <div class="carte"><h3>Pièces et produits utilisés</h3>${F.pieces.map((p,k)=>`<div class="ligne"><span>${esc(p.nom)}</span><span style="display:flex;gap:10px;align-items:center"><b>${esc(p.q)}</b><button type="button" class="lien" data-action="pieceSuppr" data-k="${k}" data-id="${id}" aria-label="Retirer ${esc(p.nom)}">Retirer</button></span></div>`).join('')}
         <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px"><input class="saisie" id="p-nom" list="catalogue" placeholder="Chercher dans le stock…"><datalist id="catalogue">${CATALOGUE.map(([n]) => `<option>${esc(n)}</option>`).join('')}</datalist><input class="saisie" id="p-q" placeholder="Qté"><button type="button" class="btn gris" data-action="pieceAjout" data-id="${id}">Ajouter</button></div>
         <div class="faible mini" style="margin-top:8px">Aucun prix ici : le bureau chiffre au moment de la facture.</div></div>
@@ -5409,6 +5418,8 @@ function vueClient(k){
   if (ongletClient === 'contrats') corps = ctrs.map(x=>`<button type="button" class="ligne-clic" data-go="contrat-x-${x.id}"><span><b>${x.num} · ${esc(x.titre)}</b><br><span class="gris petit">${x.freq} visite${x.freq>1?'s':''} par an · ${eur(x.prix)} HT / an</span></span><span class="st ${x.st==='signe'?'st-v':'st-b'}">${x.st==='signe'?'signé':'en attente'}</span></button>`).join('') + `<button type="button" class="btn gris" data-action="contratPour" data-cli="${k}" style="margin-top:10px">Proposer un contrat d’entretien</button>` + (rlPermis('contrats') ? `<button type="button" class="btn" data-opd="contrat" data-cli="${k}" style="margin-top:10px">Composer un contrat</button>` : '');
   if (ongletClient === 'docs') corps = [...INTS.filter(i=>i.cli===k&&(i.st==='fait'||fiche(i.id).etat==='bureau')).map(i=>`<div class="ligne"><span>📄 Compte rendu du ${jcourt(i.d)} · ${esc(i.titre)}</span><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir</button></div>`), ...F.filter(f=>f.st!=='avalider').map(f=>`<div class="ligne"><span>🧾 Facture ${f.num}</span><button type="button" class="lien" data-go="facture-x-${f.id}">Voir</button></div>`), ...ctrs.filter(x=>x.st==='signe').map(x=>`<div class="ligne"><span>✍️ Contrat ${x.num} signé le ${x.signe}</span><button type="button" class="lien" data-go="contrat-x-${x.id}">Voir</button></div>`)].join('') || '<span class="gris">Aucun document.</span>';
   if (ongletClient === 'infos') corps = `<div class="deux-champs"><label class="champ">Contact<input data-ci="contact" value="${esc(c.contact)}"></label><label class="champ">Téléphone<input data-ci="tel" inputmode="tel" value="${esc(c.tel)}"></label><label class="champ">E-mail<input data-ci="mail" inputmode="email" value="${esc(c.mail)}"></label><label class="champ">Type<select data-ci="type"><option value="pro" ${c.type==='pro'?'selected':''}>Professionnel</option><option value="part" ${c.type==='part'?'selected':''}>Particulier</option></select></label></div><label class="champ" style="margin-top:10px">Adresse<input data-ci="adr" value="${esc(c.adr)}"></label><label class="champ" style="margin-top:10px">Accès et consignes (le technicien les lit avant d’entrer)<textarea data-ci="acces">${esc(c.acces)}</textarea></label><div class="actions" style="margin-top:12px;align-items:center"><button type="button" class="btn" data-action="clientEnreg" data-cli="${k}">Enregistrer</button><span class="gris petit">Rien n’est gardé tant que tu n’as pas touché « Enregistrer ».</span></div>`;
+  /* « Enregistrer » de cette fiche CHANGE un client déjà là : c'est la case « Modifier » qui l'ouvre (la case « Créer » n'ouvre que « Nouveau client »). Sans elle, les champs se figent et la phrase le dit (relecture « tout-05 ») */
+  if (ongletClient === 'infos' && !peut('crm', 'm')) corps = corps.replace(/<(input|select|textarea) data-ci=/g, '<$1 disabled data-ci=').replace(/<span class="gris petit">Rien n’est gardé[^<]*<\/span>/, `<span class="gris petit">Tu peux regarder cette fiche ; pour la changer, demande à ${esc(droitPremierAdmin())}.</span>`);
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
   <div class="tete tete-client"><div><span class="surtitre">${c.type==='pro'?'Client professionnel':'Particulier'} · depuis ${c.depuis}</span><h1>${esc(c.nom)}</h1><span class="gris">${[c.contact && c.contact !== c.nom ? esc(c.contact) : '', esc(c.tel || ''), esc(c.adr || '')].filter(Boolean).join(' · ')}</span></div>
     <div class="actions">${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler</a>` : ''}${c.mail ? `<a class="btn gris" href="${lienMail(c.mail)}">E-mail</a>` : ''}<button type="button" class="btn gris" data-action="clientDevis" data-cli="${k}">${rlPermis('devis') ? 'Devis rapide' : '＋ Devis'}</button>${rlPermis('devis') ? `<button type="button" class="btn" data-opd="devis" data-cli="${k}">Composer un devis</button>` : ''}<button type="button" class="btn" data-creer="1">＋ Nouvelle intervention</button></div></div>
@@ -6647,13 +6658,13 @@ function tDetail(id){
   let ctx = '', gestes = [];
   if (x.type === 'commande') {
     const f = FOURNISSEURS_T[x.four], i = INTS.find(o => o.id === x.inter), ci = i && CLIENTS[i.cli];
-    const pas = [['acommander', 'À commander'], ['commandee', 'Commandée'], ['recue', 'Pièces reçues']], k = pas.findIndex(p => p[0] === (x.etat || 'acommander'));
+    const pas = [['acommander', 'À commander'], ['commandee', 'Commandée'], ['recue', 'Livraison reçue']], k = pas.findIndex(p => p[0] === (x.etat || 'acommander'));
     ctx = `<div class="carte"><h3>Pièces à commander</h3><table class="l"><thead><tr><th>Pièce</th><th>Réf.</th><th style="text-align:right">Qté</th></tr></thead><tbody>${x.pieces.map(p => `<tr><td>${esc(p.nom)}</td><td class="gris">${esc(p.ref || '—')}</td><td style="text-align:right"><b>${p.q}</b></td></tr>`).join('')}</tbody></table>
         <div class="t-pas">${pas.map((p, j) => `<span class="${j <= k ? 'ok' : ''}"><i></i>${p[1]}${p[0] === 'commandee' && x.commandeLe ? ' le ' + x.commandeLe : ''}${p[0] === 'recue' && x.recueLe ? ' le ' + x.recueLe : ''}</span>`).join('')}</div></div>
       <div class="carte t-ctx"><div><small>Fournisseur</small><b>${esc(f.nom)}</b><span class="gris petit">${esc(f.contact)} · ${f.tel} · ${f.delai}</span></div>
         ${i ? `<div><small>Pour l’intervention</small>${ROLE !== 'tech' || i.tech === rlQui() ? `<button type="button" class="lien" data-tvoir="inter|${i.id}">${esc(i.titre)} · ${esc(ci.nom)} ›</button>` : `<b>${esc(i.titre)} · ${esc(ci.nom)}</b>`}<span class="t-ietat">${iEtat(i)}</span></div>` : ''}</div>`;
     if (!x.fait && (x.etat || 'acommander') === 'acommander') gestes.push(`<button type="button" class="btn" data-tcmd="${x.id}">✉ Commander au fournisseur</button>`);
-    if (!x.fait && x.etat === 'commandee') gestes.push(`<button type="button" class="btn" data-trecu="${x.id}">✓ Pièces reçues</button>`);
+    if (!x.fait && x.etat === 'commandee') gestes.push(`<button type="button" class="btn" data-trecu="${x.id}">J’ai reçu la livraison</button>`);
   } else if (x.lien) {
     const L = x.lien;
     if (L.t === 'facture' && rlPermis('facture')) { const f = FACTURES.find(o => o.id === L.id); ctx = `<div class="carte t-ctx"><div><small>Facture</small><button type="button" class="lien" data-tvoir="facture|${f.id}">${f.num} ›</button><span class="gris petit">${esc(f.objet)} · ${eur(f.ht * (1 + f.tva / 100))} TTC · ${STF[f.st][0].toLowerCase()}</span></div></div>`;
@@ -8423,6 +8434,8 @@ function fermerPanneau(){ const c = document.getElementById('calque'), avait = !
    · Avancer après un Retour ne rouvre pas une fenêtre vide : l'entrée atteinte est repoussée aussitôt ;
    · un rechargement fenêtre ouverte : la page ne rouvre rien, et l'entrée orpheline est reculée au chargement ;
    · l'atelier de devis (#opdz) et le module de courrier (prototype-courrier.js, entrées {opcourrier}) ont leurs propres entrées dans le même historique : on ne lit que `state.cal`.
+   · la Comptabilité plein cadre (#cpsys) n'est PAS un calque : c'est une route (#comptabilite), l'entrée d'historique est celle de l'adresse — Retour la quitte comme n'importe quel écran, sans sortir de l'application ;
+     son bouton « ‹ OP GESTION » recule d'une entrée au lieu d'en ajouter une (calRevenirA).
    Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre, artefact), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
 const CAL_GENRES = [
   { k:'panneau',     ouvert:() => !!document.querySelector('#calque .voile'),            ferme:() => fermerPanneau() },   // fiches, formulaires, la feuille « Menu »
@@ -8872,7 +8885,6 @@ function prCatalogue(){ return PRODUITS.filter(x => prVend(x) && !x.retire && PA
 const CATALOGUE = prCatalogue();
 const prCatalogueMaj = () => CATALOGUE.splice(0, CATALOGUE.length, ...prCatalogue());   // le même tableau, partout (les écrans le lisent par référence)
 let prPack = 'tous', prCat = null, prQ = '', prAlerte = false, prAC = false, prVue = 'commandes';   // Justin : « une catégorie qui réunit les fournisseurs, les commandes, les produits et le matériel »
-const prEtat = x => enCommande(x) ? ['Commandé · ' + prNum(enCommande(x)) + ' ' + prU(enCommande(x), x.u), 'st-b'] : x.q <= 0 ? (x.seuil > 0 ? ['Épuisé', 'st-r'] : ['Sur commande', 'st-g']) : x.q <= x.seuil ? ['À commander', 'st-o'] : ['En stock', 'st-v'];
 const prNum = n => String(n).replace('.', ',');
 const prU = (q, u) => metiersU(q, u);   // « 9 lots », « 7 flacons » ; « 4 kg », « 35 m » ne bougent pas
 const prMarge = x => prVend(x) && x.pa ? Math.round((x.pv - x.pa) / x.pv * 100) : null;
@@ -8926,7 +8938,6 @@ document.addEventListener('click', ev => {
   if (a === 'fiche') return prFiche(x);
   if (a === 'nouveau') return prFormulaire(null, x || PACKS_ENT[0], y || '');
   if (a === 'modif') return prFormulaire(PRODUITS.find(o => o.id === x));
-  if (a === 'cmd') { const o = PRODUITS.find(z => z.id === x); fermerPanneau(); return toast(`${esc(o.nom)} ajouté à la prochaine commande chez ${esc(o.four)} (la catégorie Achats la préparera).`); }
   if (a === 'retirer' || a === 'retirerok') { const o = PRODUITS.find(z => z.id === x); if (a === 'retirer' && (o.q > 0 || enCommande(o) > 0)) return prRetirerAvertir(o); o.retire = true; prCatalogueMaj(); fermerPanneau(); rendre();
     return toast(`${esc(o.nom)} retiré : il ne sera plus proposé dans les devis.`, { lib:'Annuler', fn:() => { o.retire = false; prCatalogueMaj(); rendre(); } }); }
   if (a === 'garder') { const nom = document.getElementById('pr-nom').value.trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
@@ -11552,8 +11563,8 @@ function rlLignesDe(p, coque){
    Une famille absente de la table prend la catégorie de l'écran ouvert et n'est refusée que si son verbe a la forme d'une écriture (GESTE_ECRITURE). */
 const GESTES = {
   ac:{ k:'achats', m:'transfert commande magasin refuser payer virement ndfok refok virok ndfoksans ndfsans ndfnon', l:'allernotes ndfticket piece onglet' },
-  action:{ m:'modifierOk@inter envoyer@ventes toutValider@ventes signerContrat@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes partielOk@ventes terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
-    c:'creerOk@inter cCreer@inter cAjoutType@inter cAjoutTypeOk@inter clientNvInt@inter nouvelleFacture@ventes prepFacture@ventes ligneAjout@ventes avoir@ventes avoirOk@ventes ajoutEnc@ventes ajoutEncOk@ventes creerContrat@ventes contratPour@ventes clientDevis@ventes clientNvDevis@ventes partiel@ventes clientNouveau@crm clientEnreg@crm',
+  action:{ m:'modifierOk@inter envoyer@ventes toutValider@ventes signerContrat@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes partielOk@ventes clientEnreg@crm terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
+    c:'creerOk@inter cCreer@inter cAjoutType@inter cAjoutTypeOk@inter clientNvInt@inter nouvelleFacture@ventes prepFacture@ventes ligneAjout@ventes avoir@ventes avoirOk@ventes ajoutEnc@ventes ajoutEncOk@ventes creerContrat@ventes contratPour@ventes clientDevis@ventes clientNvDevis@ventes partiel@ventes clientNouveau@crm',
     s:'noteSuppr@inter photoSuppr@inter pieceSuppr@inter sigEfface@inter sigCtrEfface@ventes',
     l:'vueEnregistrer vueEnregistrerOk info copierSms apercuEnvoi pdfFacture commentAuto lireContrat bilanPdf cPlusTot cPlusTard cFermer achatsAide' },
   axa:{ k:'achats', c:'dem demok tick tickok dblautre', m:'demmod budget budgetok precok precrepok kmok toutval nonok toutok relach relancer renvoyer', s:'demannul', l:'quand budgetsans chip inter prec fiche regle kmtarif paie precrep ndate grosnon dblnon goach fd' },
@@ -11565,6 +11576,8 @@ const GESTES = {
   eqx:{ k:'admin', c:'renouvok regajout', m:'modifok modifx modifier placeok garder fgarder profok cgarder placeplus', s:'annulinv desact desactok regsuppr', l:'kpi formation regles histo revenir choisir fchoisir mesbureau mesfiche cchoisir' },
   eqd:{ k:'admin', d:'m' }, eqs:{ k:'admin', d:'m' }, eqt:{ k:'admin', d:'m' },
   ent:{ k:'admin', m:'identok logook banqueok horairesok logoretirer', l:'completer carte lien' },
+  /* l'atelier de devis et de contrats : composer un document NEUF est une création, en rouvrir un est une modification (l'atelier n'a pas de mode lecture) — « tout-09 » */
+  opd:{ k:'ventes', c:'devis contrat', m:'doc' },
   mabarre:{ d:'l' }, metf:{ d:'l' }, htype:{ d:'l' }, creer:{ k:'inter', d:'c' }, rdv:{ k:'planif', d:'m' }, fogarder:{ k:'stock', d:'m' },
   /* boîte mail */
   mbx:{ k:'com', c:'add addstop addpas addfin', m:'confok reco', s:'decook rmregle deco', l:'prevenir lire devchoix devfait reglages dl ouvrir cli virrecu' },
@@ -11598,7 +11611,7 @@ const GESTES = {
   ce:{ k:'stock', c:'nouvelle add', m:'envoi envoyer modif cpok recommander retour', s:'suppr jeter', l:'brouillon bon go voirbon portail' },
   cm:{ k:'stock', m:'conf confok relok recok accepte conteste relance preparer', s:'annuler', c:'plus', l:'depl hors ancre filtre voir recep rappro' },
   fo:{ k:'stock', c:'ajouter creer', m:'localok appliquer facok commandes', s:'retirer', l:'liste plustard tarifs facture fiche local preparer tout exemple facex' },
-  mat:{ k:'stock', m:'ajoute ajouter plus oublie manque pris prise toutpris envoyer modifier mchange menvoyer mplus mmoins moins chginter mchginter', s:'retire', l:'messages usage bord ret mliste mpiece mlibre mquand minter inter' },
+  mat:{ k:'stock', m:'ajoute ajouter plus oublie manque pris prise toutpris envoyer modifier mchange menvoyer mplus mmoins moins chginter mchginter', l:'retire messages usage bord ret mliste mpiece mlibre mquand minter inter' },   /* « Annuler » sur SON envoi : un geste libre de la technicienne, jamais une suppression de Stock (la règle des cases le lui cachait : l'envoi ne se retirait plus) */
   md:{ k:'stock', c:'nou aj dadd cmdadd', m:'deplacer dok rok dcop mettre avanttout remplir fplus dm dp dx dnon', l:'fiche avant stock plus rouvrir sortir compter tout' },
   /* la liste des fournisseurs et des articles (fx) : des menus, des pas de quantité sur un panier, des filtres = lecture ; « Ajouter » ouvre la fiche d'un article et « Passer en comptoir » règle un fournisseur = modifier */
   fx:{ k:'stock', m:'ajouteq comptoir', d:'l' },
@@ -11640,7 +11653,8 @@ const DROIT_PHRASES = {
   compta:{ v:'voir la comptabilité', c:'noter une dépense, une écriture', m:'payer, valider, relancer, régler la fiche légale', s:'supprimer une écriture' },
   stock:{ v:'voir le stock et les fournisseurs', c:'créer un produit, un fournisseur, un dépôt, une commande', m:'modifier, inventorier, transférer, réceptionner, ajouter à son camion', s:'retirer, jeter, supprimer ; régler le stock et changer un prix de vente' },
   temps:{ v:'voir les véhicules', c:'ajouter un pointage, un véhicule, un plein', m:'modifier un véhicule, valider des heures, terminer une journée', s:'clore un pointage, supprimer un frais ou un document de véhicule ; ouvrir les heures de toute l’équipe' },
-  com:{ v:'voir la boîte mail', c:'écrire, connecter une boîte, ajouter une règle', m:'répondre, classer, confier un courriel', s:'supprimer, déconnecter, retirer une règle' },
+  /* ⛔ « tout-08 » : le module de courrier (shadow DOM, écrit par la voie mail) ne lit pas encore capacites().droits : écrire, répondre, classer et supprimer un courriel ne sont PAS gardés. Les phrases ne promettent donc que ce que la page garde vraiment : la gestion des BOÎTES (connecter, reconnecter, déconnecter, règles) */
+  com:{ v:'voir la boîte mail', c:'connecter une boîte, ajouter une règle', m:'reconnecter une boîte, changer son mot de passe', s:'déconnecter une boîte, retirer une règle' },
   achats:{ v:'voir les demandes et les notes de frais', c:'faire une demande ou une note de frais', m:'décider d’une demande, valider une note, fixer un budget', s:'annuler une demande, supprimer une note' },
   admin:{ v:'voir l’accueil, les statistiques, l’historique, l’équipe et l’entreprise', c:'inviter une personne, ajouter une habilitation', m:'régler l’entreprise, les comptes et les droits, et la paie', s:'désactiver un compte, annuler une invitation' }
 };
@@ -11759,14 +11773,14 @@ function droitsMotsVerbes(L){ return L.length === 1 ? L[0] : L.slice(0, -1).join
 function droitsNote(){
   const c = document.getElementById('contenu'); if (!c || ROLE === 'client' || ROLE === 'compta') return;
   c.querySelectorAll('.droits-note').forEach(e => e.remove());
-  if (['entreprise', 'accueil'].includes(route) || !ROUTE_DROIT[route] || route === 'taches') return;
+  if (['entreprise', 'accueil', 'boiteMail'].includes(route) || !ROUTE_DROIT[route] || route === 'taches') return;   /* boiteMail : la note « tu peux regarder, pas le modifier » mentirait, le module de courrier ne lit pas les droits (« tout-08 ») */
   const p = eqDe(acteur()); if (!p || droitAdmin(p)) return;
   const T = ROUTE_DROIT[route][droitForme(p)] || []; const cat = T[0] && T[0].split('.')[0]; if (!cat || !droitCase(p, cat)) return;
   const actifs = ['c', 'm', 's'].filter(x => droitCaseActive(cat, x)); if (!actifs.length) return;
   const manque = actifs.filter(x => !peut(cat, x, p)); if (!manque.length) return;
   const qui = esc(droitPremierAdmin());
   if (manque.length === actifs.length) {
-    const h = c.querySelector('.tete, .tete-tel'); const html = `<div class="info petit droits-note" role="status">Tu peux regarder cet écran, pas le modifier. Pour changer quelque chose, demande à ${qui}.</div>`;
+    const h = c.querySelector('.tete') || c.querySelector('.tete-tel'); const html = `<div class="info petit droits-note" role="status">Tu peux regarder cet écran, pas le modifier. Pour changer quelque chose, demande à ${qui}.</div>`;
     if (h) h.insertAdjacentHTML('afterend', html); else c.insertAdjacentHTML('afterbegin', html);
   } else c.insertAdjacentHTML('beforeend', `<div class="gris petit droits-note" role="note" style="margin-top:14px">Dans cette rubrique, ton compte ne peut pas ${droitsMotsVerbes(manque.map(x => DROIT_X[x]))}. Pour changer ça, demande à ${qui}.</div>`);
 }
@@ -11775,7 +11789,7 @@ function droitsVide(){
   const c = document.getElementById('contenu'); if (!c || route !== 'taches' || ROLE === 'client' || ROLE === 'compta') return;
   c.querySelectorAll('.droits-vide').forEach(e => e.remove());
   if (rlLignes().length > 1) return;
-  const h = c.querySelector('.tete, .tete-tel'); const html = `<div class="info droits-vide" role="status">Ton gérant n’a encore ouvert aucune rubrique à ton compte. Demande-lui de régler tes droits dans Équipe.${enApp() ? ' <button type="button" class="lien" data-cnx="sortir">Se déconnecter</button>' : ''}</div>`;
+  const h = c.querySelector('.tete') || c.querySelector('.tete-tel'); const html = `<div class="info droits-vide" role="status">Ton gérant n’a encore ouvert aucune rubrique à ton compte. Demande-lui de régler tes droits dans Équipe.${enApp() ? ' <button type="button" class="lien" data-cnx="sortir">Se déconnecter</button>' : ''}</div>`;
   if (h) h.insertAdjacentHTML('afterend', html); else c.insertAdjacentHTML('afterbegin', html);
 }
 { const r0 = rendre; rendre = function(){ droitsMaj(); const v = r0.apply(this, arguments); try { droitsNote(); droitsVide(); } catch (e) { console.error('droits', e); } return v; }; }
@@ -11799,13 +11813,13 @@ function droitsBlocFiche(p, k, admin, ajuste, pk){
   return `<div class="groupe">Droits · ${esc(eqxProfilTitre(p))}</div>
     ${ajuste ? `<div class="gris petit">${(() => { const d = eqxDiff(PROFILS[pk], p.droits); return (d.plus.length ? '<b>En plus :</b> ' + esc(d.plus.join(' ; ')) + '. ' : '') + (d.moins.length ? '<b>En moins :</b> ' + esc(d.moins.join(' ; ')) + '.' : ''); })()}</div>${fige ? '' : `<button type="button" class="lien" data-eqx="revenir|${k}">Revenir au profil ${esc(PROFILS[pk].nom)}</button>`}` : ''}
     ${fige ? '' : `<label class="champ">Appliquer un profil<select data-eqprof="${k}"><option value="">Choisir…</option>${Object.entries(PROFILS).filter(([q]) => q !== 'admin').map(([q, o]) => `<option value="${q}">${esc(o.nom)}</option>`).join('')}</select></label>`}
-    <label class="fo-garder"><input type="checkbox" data-eqt="${k}" ${eqxTerrain(p) ? 'checked' : ''} ${att}><span><b>Travaille sur le terrain</b><span class="gris petit"> · coché : l’application s’ouvre sur sa journée, ses frais, ses heures, son camion et ses congés. Décoché : elle s’ouvre sur les écrans du bureau.</span></span></label>
+    <label class="fo-garder fo-terrain"><input type="checkbox" data-eqt="${k}" ${eqxTerrain(p) ? 'checked' : ''} ${att}><span><b>Travaille sur le terrain</b><span class="gris petit"> · coché : l’application s’ouvre sur sa journée, ses frais, ses heures, son camion et ses congés. Décoché : elle s’ouvre sur les écrans du bureau.</span></span></label>
     ${droitsVoitDit(p)}
     ${sp.length ? `<div class="fo-bloc">${sp.map(([s, lib, aide]) => `<label class="fo-garder eq-sp"><input type="checkbox" data-eqs="${k}|${s}" ${p.droits.sp[s] ? 'checked' : ''} ${att}><span><b>${esc(lib)}</b>${aide ? `<span class="gris petit"> · ${esc(aide)}</span>` : ''}</span></label>`).join('')}</div>` : ''}
     <details class="eqx-det" ${eqxDetOuvert ? 'open' : ''}><summary>Voir et régler les droits détaillés par catégorie</summary>
       <div class="gris petit">Décocher « Voir » cache la rubrique et ferme son adresse. Décocher « Créer », « Modifier » ou « Supprimer » retire le bouton correspondant : la personne regarde, elle ne change rien.</div>
       <div class="eq-droits"><div class="eq-dr eq-dr-t" aria-hidden="true"><span></span><span>Voir</span><span>Créer</span><span>Modif.</span><span>Suppr.</span></div>
-      ${droitsCatsPour(p).map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${droitCaseActive(cat, x) ? cas(cat, x) : '<span aria-hidden="true"></span>'}</label>`).join('')}</div>`).join('')}</div>
+      ${droitsCatsPour(p).map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${droitCaseActive(cat, x) ? cas(cat, x) : '<span class="eq-dr-non" aria-hidden="true">–</span>'}</label>`).join('')}</div>`).join('')}</div>
       <div class="eq-dr-tel">${droitsCatsPour(p).map(([cat, lib]) => { const ok = ['v', 'c', 'm', 's'].filter(x => droitCaseActive(cat, x) && p.droits.cats[cat][x]).map(x => DROIT_X[x]);
         return `<details class="eq-dr-m"${window.eqxCatOuv === cat ? ' open' : ''}><summary><b>${esc(lib)}</b><small>${ok.length ? esc(ok.join(', ')) : 'rien'}</small></summary>${['v', 'c', 'm', 's'].filter(x => droitCaseActive(cat, x)).map(x => `<label class="eq-dr-l"><input type="checkbox" data-eqd="${k}|${cat}|${x}" ${p.droits.cats[cat][x] ? 'checked' : ''} ${att} aria-label="${esc(EQX_CATS[cat])} : ${DROIT_X[x]} — ${esc(DROIT_PHRASES[cat][x])}"><span><b>${DROIT_X[x].replace(/^./, c => c.toUpperCase())}</b><small>${esc(DROIT_PHRASES[cat][x])}</small></span></label>`).join('')}</details>`; }).join('')}</div>
       <div class="gris petit" id="eqx-phrase" role="status" aria-live="polite">Touche une case pour lire ce qu’elle change.</div>
@@ -11896,7 +11910,7 @@ function rlLogo(tel){
   const h = '#' + rlOuverture(), ent = ROLE === 'client' ? 'Espace client' : ENTREPRISE.nom;
   const marque = ROLE === 'client' ? `<i class="rl-ent">CS</i><span><b>${esc(ENTREPRISE.nom)}</b><small>Espace client</small></span>` : `<i>OP</i><span><b>OP GESTION</b><small>${esc(ENTREPRISE.nom)}</small></span>`;
   if (tel) return `<a class="logo" href="${h}" data-logo="1" aria-label="${ROLE === 'client' ? esc(ENTREPRISE.nom) : 'OP GESTION'} : revenir à l’écran d’ouverture"><i>OP</i><b>${ROLE === 'client' ? esc(ENTREPRISE.nom) : 'OP GESTION'}</b></a>`;
-  return `<a class="logo" href="${h}" data-logo="1" aria-label="OP GESTION, ${esc(ent)} : revenir à l’écran d’ouverture">${marque}</a>`;
+  return `<a class="logo" href="${h}" data-logo="1" title="OP GESTION, ${esc(ent)}" aria-label="OP GESTION, ${esc(ent)} : revenir à l’écran d’ouverture">${marque}</a>`;
 }
 /* le pied : l'apparence, puis ce qui n'existe que dans l'application (Nouveautés, la barre, la déconnexion). L'échafaudage de revue
    (« Prototype : rien n'est enregistré ») n'existe qu'hors du mode application. */
@@ -13165,6 +13179,17 @@ function infoMode(m){
   if (m === 'contrat') return c ? `<b>Contrat ${c.num}</b> · ${esc(c.titre)}<br>${c.freq} visite${c.freq>1?'s':''} par an · ${eur(c.prix / c.freq)} HT la visite · visite ${c.faites + 1} sur ${c.freq}<br>Facturé ${FACT_LIB[c.fact]}.` : 'Ce client n’a pas de contrat signé.';
   return 'Aucune facture : le client reçoit seulement le compte rendu (garantie du fabricant, reprise d’un travail, geste commercial).';
 }
+/* les pièces à prévoir d'une nouvelle intervention : ce qui est déjà choisi (avec « − » et « ＋ »), puis quelques articles courants, puis la recherche dans tout le catalogue */
+function crPiecesPuces(){
+  const choisis = Object.keys(CREA.prevues).filter(n => CREA.prevues[n] > 0), proposes = CATALOGUE.map(c => c[0]).filter(n => !choisis.includes(n)).slice(0, Math.max(0, 6 - choisis.length));
+  return [...choisis.map(n => `<span class="puce-c" aria-pressed="true" style="padding-right:4px">${esc(n)} × ${CREA.prevues[n]}<button type="button" class="pq" data-cpq="${esc(n)}|-1" aria-label="Retirer un ${esc(n)}">−</button><button type="button" class="pq" data-cpq="${esc(n)}|1" aria-label="Ajouter un ${esc(n)}">＋</button></span>`),
+    ...proposes.map(n => `<button type="button" class="puce-c" data-cpq="${esc(n)}|1">＋ ${esc(n)}</button>`)].join('');
+}
+function crPiecesRes(){
+  const q = String(CREA.cpq || '').trim(); if (!q) return '';
+  const L = CATALOGUE.map(c => c[0]).filter(n => !CREA.prevues[n] && pdxChercheOk(PRODUITS.find(x => x.nom === n) || { nom:n, ref:'', four:'' }, q)).slice(0, 6);
+  return L.length ? L.map(n => `<button type="button" class="puce-c" data-cpq="${esc(n)}|1">＋ ${esc(n)}</button>`).join('') : `<span class="gris petit">Aucun article ne s’appelle « ${esc(q)} » : vérifie l’orthographe, ou ajoute-le dans Stock.</span>`;
+}
 function rendreCreation(){
   if (!CREA || rendreCreation.encours) return;
   rendreCreation.encours = true; try { rendreCreation_(); } finally { rendreCreation.encours = false; }
@@ -13189,7 +13214,9 @@ function rendreCreation_(){
     <label class="champ" style="margin-top:10px">Ce que le client a dit<textarea data-cchamp="motif" placeholder="${esc(MOTIFS[CREA.type] || 'Ce que le client a demandé')}">${esc(CREA.motif)}</textarea></label>
     <div class="groupe">Durée prévue</div><div class="puces">${[30,60,90,120,180,240].map(m => `<button type="button" class="puce-c" data-cdur="${m}" aria-pressed="${CREA.dur===m}">${duree(m)}</button>`).join('')}</div>
     <div class="groupe">Pièces à prévoir <span class="faible mini" style="font-weight:500">— le technicien les voit sans prix, et coche celles qu’il pose</span></div>
-    <div class="puces">${CATALOGUE.slice(0,6).map(([n]) => { const q = CREA.prevues[n] || 0; return q ? `<span class="puce-c" aria-pressed="true" style="padding-right:4px">${esc(n)} × ${q}<button type="button" class="pq" data-cpq="${esc(n)}|-1" aria-label="Retirer un ${esc(n)}">−</button><button type="button" class="pq" data-cpq="${esc(n)}|1" aria-label="Ajouter un ${esc(n)}">＋</button></span>` : `<button type="button" class="puce-c" data-cpq="${esc(n)}|1">＋ ${esc(n)}</button>`; }).join('')}</div></section>`;
+    <div class="puces" data-vis="crea-pieces">${crPiecesPuces()}</div>
+    <label class="champ" style="margin-top:8px">Chercher un autre article<input type="search" data-cchamp="cpq" value="${esc(CREA.cpq || '')}" placeholder="Ex. condensateur, siphon, fluide…" autocomplete="off"></label>
+    <div class="puces" id="cp-res">${crPiecesRes()}</div></section>`;
   const jours = ouvres(6);
   const etape3 = `<section class="carte"><div class="ni-etape"><b>3</b><h2>Ajouter au planning</h2>${b ? `<span class="st ${b.tech ? 'st-v' : 'st-o'} ok">${b.tech ? tech(b.tech).nom.split(' ')[0] + ' · ' + jlib(b.d) + ' · ' + b.h + ' – ' + fin(b.h, b.dur) : 'à planifier · ligne « Non assigné »'}</span>` : ''}</div>
     <div class="crea-outils"><div class="seg" role="group" aria-label="Afficher" style="width:auto">${[['jour','Un jour · toute l’équipe'],['semaine','Une personne · sa semaine']].map(([v,l]) => `<button type="button" data-cvue="${v}" aria-pressed="${CREA.vue===v}">${l}</button>`).join('')}</div>
@@ -13266,7 +13293,7 @@ document.addEventListener('pointerdown', () => { clearTimeout(window._dgT); doig
 document.addEventListener('pointerup', () => { clearTimeout(window._dgT); window._dgT = setTimeout(() => { doigtPose = false; }, 400); }, true);
 document.addEventListener('input', ev => { if (!CREA || !ev.target.closest('.fen')) return; const t = ev.target;
   if (t.dataset.cnv && t.dataset.cnv !== 'adr') { CREA.nv[t.dataset.cnv] = t.value; return; }
-  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = t.value; if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; syncBrouillon(); return; }
+  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = t.value; if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; if (t.dataset.cchamp === 'cpq') { const r = document.getElementById('cp-res'); if (r) r.innerHTML = crPiecesRes(); } syncBrouillon(); return; }
   if (t.dataset.cnv === 'adr') { CREA.nv.adr = t.value; CREA.sug = true; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cnv="adr"]'); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.dataset.cherchecli) { CREA.cherche = t.value; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cherchecli]'); n.focus(); n.setSelectionRange(pos, pos); }
 }, true);
@@ -13282,7 +13309,7 @@ const ACTIONS_CREA = {
     if (CREA.nouveau && !CREA.doublonOk) { const dj = cfDoublonDe({ ...CREA.nv, nom:cfNomClient(CREA.nv) }); if (dj) { CREA.doublonOk = true; toast('Ce client existe peut-être déjà : « ' + esc(CLIENTS[dj].nom) + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer l’intervention » pour le créer quand même, ou choisis-le dans la liste.'); return; } }
     if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = { ...cliCrea() }; SECT_CLI[k] = secteurCrea(); const g = geoDeAdresse(CLIENTS[k].adr); if (g) CR_GEO[k] = g; }
     const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
-    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', motif: CREA.motif.trim() || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => ({ nom, q })),
+    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', motif: CREA.motif.trim() || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis ce courriel', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
@@ -13453,8 +13480,11 @@ const TOUR_APP = [
     ['[data-vis="four-onglets"]', 'Trois onglets', 'Commandes pour acheter et suivre, Articles pour les prix, Fournisseurs pour leurs conditions. Le gros bouton noir change avec l’onglet.'],
     ['[data-vis="four-commander"]', 'Ce qu’il faut commander', 'Chaque fournisseur a son bloc : tu règles la quantité d’un toucher, puis « Préparer la commande » ouvre le bon, et un seul bouton l’envoie.'],
     ['[data-vis="four-photo"]', 'Photographier une facture', 'Le stock et les prix d’achat se mettent à jour d’après la facture. Une hausse se voit tout de suite.']]),
-  tourPartie('stock', 'Stock', 'Le stock : où est chaque article', 'Tu sais ce qu’il y a à l’atelier, dans chaque camion et dans les réserves chez les clients, qui a pris quoi, et ce qui manque.', [
-    ['#contenu .kpis', 'Ce qui demande ton attention', 'Les articles à commander et les mouvements à valider. Les boutons du haut enregistrent une sortie, un transfert entre deux lieux, ou le réassort des camions.']]),
+  tourPartie('stock', 'Stock', 'Le stock : où est chaque article', 'Tape un nom : tu vois où est l’article et combien il en reste. Tout ce qui se passe, sortir, ranger, déplacer ou compter, se note par un seul bouton.', [
+    ['[data-vis="stock-bandeau"]', 'Ce qui attend ton accord', 'Quand un technicien note qu’il a pris ou utilisé du matériel, une ligne te le dit. Rien ne sort du stock tant que tu n’as pas accepté.'],
+    ['[data-vis="stock-tuiles"]', 'Trois chiffres qui mènent quelque part', 'Ce qu’il faut commander, les livraisons attendues, et ce qui manque dans les camions. Chaque tuile se touche et t’emmène là où tu agis.'],
+    ['[data-vis="stock-lieu"]', 'Où est l’article ?', 'Tape un nom dans la recherche, puis choisis « Partout », l’atelier ou un camion : chaque ligne dit combien il y en a à chaque endroit.'],
+    ['[data-vis="stock-maj"]', 'Un seul bouton pour dire ce qui s’est passé', '« Mettre à jour le stock » : sortir, ranger, déplacer, compter. « Annuler » reste proposé huit secondes si tu t’es trompé.']]),
   tourPartie('boxes', 'Dépôts et camions', 'Dépôts et camions : mes camions sont-ils prêts ?', 'Chaque camion, l’atelier et chaque réserve laissée chez un client a sa carte : ce qu’il contient, et s’il est prêt. Pour chercher un article, va dans Stock.', [
     ['[data-vis="depots-cartes"]', 'Ouvre un camion', 'Chaque carte dit si le camion est prêt ou ce qui y manque. Un toucher ouvre le détail, article par article.'],
     ['[data-vis="depots-remplir"]', 'Remplir les camions', 'Le bouton noir met d’un coup, dans chaque camion, ce que l’atelier a de ce qui manque.']]),
@@ -14072,7 +14102,7 @@ function tkxAction(x){
   if (!x.fait && x.d) { const b = P.querySelector('.t-gestes-b'); if (b) b.insertAdjacentHTML('beforebegin', `<label class="champ tkx-rappel"><span>Me rappeler</span><select class="saisie" data-tkxrappel="${x.id}" aria-label="Me rappeler"><option value="">Pas de rappel</option>${x.h ? `<option value="moment" ${x.rappel === 'moment' ? 'selected' : ''}>Au moment prévu</option><option value="15" ${x.rappel === '15' ? 'selected' : ''}>15 minutes avant</option>` : ''}<option value="veille" ${x.rappel === 'veille' ? 'selected' : ''}>La veille à 17 h</option></select></label>`); }
   /* une commande : le bon de commande réel, et où il en est */
   if (x.type === 'commande') { const c = tkxBon(x), ctx = P.querySelector('.t-ctx');
-    if (c && ctx) ctx.insertAdjacentHTML('beforeend', `<div><small>Bon de commande</small><button type="button" class="lien" data-tkxbon="${c.id}">${esc(c.num)} ›</button><span class="gris petit">${({ brouillon:'brouillon', envoyee:'envoyée', confirmee:'confirmée', partielle:'reçue en partie', recue:'reçue' })[c.st] || c.st}${c.prevue ? ' · livraison prévue le ' + jCourt(c.prevue) : ''}</span></div>`); }
+    if (c && ctx) ctx.insertAdjacentHTML('beforeend', `<div><small>Bon de commande</small><button type="button" class="lien" data-tkxbon="${c.id}">${esc(matNumAff(c.num))} ›</button><span class="gris petit">${({ brouillon:'brouillon', envoyee:'envoyée', confirmee:'confirmée', partielle:'reçue en partie', recue:'reçue' })[c.st] || c.st}${c.prevue ? ' · livraison prévue le ' + jCourt(c.prevue) : ''}</span></div>`); }
   return v; }; })();
 document.addEventListener('change', ev => { const t = ev.target; if (!t.dataset || !t.dataset.tkxrappel) return; const x = TACHES.find(o => o.id === t.dataset.tkxrappel); if (!x) return; x.rappel = t.value || null; tkxRappelsVus.delete(x.id);
   toast(!x.rappel ? 'Rappel retiré' : 'Rappel noté : ' + ({ moment:'à ' + (x.h || ''), 15:'15 minutes avant ' + (x.h || ''), veille:'la veille à 17 h' })[x.rappel]); });
@@ -14226,18 +14256,6 @@ function pdxMemeArticle(s, x){
   return c[0].length >= 2 && c[0].every(t => c[1].includes(t));
 }
 
-/* les états de la liste des articles */
-const PDX_ETATS = [['tous', 'Tous'], ['stock', 'En stock'], ['acommander', 'À commander'], ['commande', 'Commandé'], ['epuise', 'Épuisé'], ['surcmd', 'Sur commande'], ['sansprix', 'Sans prix']];
-function pdxEtatTest(k, x){
-  if (k === 'stock') return x.q > 0 && !(x.seuil > 0 && x.q <= x.seuil) && !enCommande(x);
-  if (k === 'acommander') return x.q > 0 && x.seuil > 0 && x.q + enCommande(x) - pdxResa(x) <= x.seuil;
-  if (k === 'commande') return enCommande(x) > 0;
-  if (k === 'epuise') return x.q <= 0 && x.seuil > 0;
-  if (k === 'surcmd') return x.q <= 0 && !(x.seuil > 0) && !enCommande(x);
-  if (k === 'sansprix') return !!x.ac;
-  return true;
-}
-const pdxEtatOk = x => (!prAlerte || (x.seuil > 0 && x.q <= x.seuil)) && pdxEtatTest(PDX.etat, x);   // l'ancien bouton « À commander » (prAlerte) se lit toujours
 function pdxTrier(L){
   if (PDX.tri === 'nom') return L.slice().sort((a, b) => prNorm(a.nom).localeCompare(prNorm(b.nom), 'fr'));
   if (PDX.tri === 'marge') return L.slice().sort((a, b) => (prMarge(b) == null ? -1e9 : prMarge(b)) - (prMarge(a) == null ? -1e9 : prMarge(a)));
@@ -14257,17 +14275,17 @@ function pdxPieces(id){
   if (ouv.length) {
     const ds = ouv.map(c => (c.st === 'partielle' ? c.reliquat : c.prevue) || c.souh).filter(Boolean).sort(), arr = ds.length ? ds[ds.length - 1] : null;
     const ret = ouv.some(c => { const a = cmdAlerte(c); return a && a.t === 'retard'; }) || (arr && tJours(arr) < 0);
-    r = ret ? { k:'retard', cls:'st-o', txt:'Pièces en retard', court:'en retard', arr } : { k:'commandees', cls:'st-b', txt:'Pièces commandées' + (arr ? ' · arrivée prévue ' + pdxJC(arr) : ''), court:'commandées', arr };
+    r = ret ? { k:'retard', cls:'st-o', txt:'Pièces en route · en retard', court:'en route, en retard', arr } : { k:'commandees', cls:'st-b', txt:'Pièces en route' + (arr ? ' · arrivent ' + matJourCourt(arr) : ''), court:'en route', arr };
     r.cmd = ouv[0];
   } else if (cs.some(c => c.st === 'recue' || c.st === 'facturee')) {
     const c = cs.filter(o => o.st === 'recue' || o.st === 'facturee').pop();
-    r = { k:'recues', cls:'st-v', txt:'Pièces reçues · ' + (c.rangeDans ? 'dans le ' + pdxMin(c.rangeDans) : c.liv === 'comptoir' ? 'retirées au comptoir' : 'à prendre à l’atelier'), court:'reçues', cmd:c };
-  } else if (cs.some(c => c.st === 'brouillon')) r = { k:'brouillon', cls:'st-g', txt:'Pièces : commande en brouillon', court:'brouillon', cmd:cs.find(c => c.st === 'brouillon') };
+    r = { k:'recues', cls:'st-v', txt:'Pièces prêtes · ' + (c.rangeDans ? 'dans le ' + pdxMin(c.rangeDans) : c.liv === 'comptoir' ? 'retirées au comptoir' : 'à prendre à l’atelier'), court:'prêtes', cmd:c };
+  } else if (cs.some(c => c.st === 'brouillon')) r = { k:'brouillon', cls:'st-g', txt:'Pièces à commander · la commande attend d’être envoyée', court:'à commander', cmd:cs.find(c => c.st === 'brouillon') };
   else if (tk.some(t => !t.fait && (t.etat || 'acommander') === 'acommander')) { const L = tk.filter(t => !t.fait && (t.etat || 'acommander') === 'acommander').flatMap(t => t.pieces || []).map(q => q.q + ' × ' + q.nom); r = { k:'acommander', cls:'st-g', txt:'Pièces à commander' + (L.length ? ' : ' + L.slice(0, 3).join(', ') + (L.length > 3 ? ' et ' + (L.length - 3) + ' autre' + (L.length > 4 ? 's' : '') : '') : ''), court:'à commander' }; }
   if (!r) return null;
   r.i = i; r.apres = !!(r.arr && r.arr > i.d && r.k === 'commandees'); return r;
 }
-const pdxPil = (p, court) => `<span class="st ${p.cls} pdx-pil" title="${esc(p.txt)}"><span aria-hidden="true">📦</span> ${esc(court ? 'Pièces ' + p.court : p.txt)}</span>`;
+const pdxPil = (p, court) => `<span class="st ${p.cls} pdx-pil" title="${esc(p.txt)}">${svg('livraison')} ${esc(court ? 'Pièces ' + p.court : p.txt)}</span>`;
 
 /* en haut de la fiche d'intervention : la pastille, et le bandeau quand les pièces arrivent après le rendez-vous */
 function pdxFicheInter(h, id){
@@ -14275,7 +14293,7 @@ function pdxFicheInter(h, id){
   const patron = typeof ROLE === 'undefined' || ROLE === 'patron';
   if (p) {
     const bandeau = p.apres && !PDX.garde.has(id) ? `<div class="pdx-apres" role="status"><b>Les pièces arrivent après le rendez-vous.</b> <span class="gris petit">Arrivée prévue ${pdxJC(p.arr)}, rendez-vous ${pdxJC(p.i.d)} à ${esc(p.i.h)}.</span>${patron ? `<span class="pdx-bt"><button type="button" class="btn petit" data-pdx="decaler|${id}">Décaler l’intervention</button><button type="button" class="btn gris petit" data-pdx="garder|${id}">Garder</button></span>` : '<span class="gris petit">Le bureau est prévenu : il décide de décaler ou non.</span>'}</div>` : '';
-    const bloc = `<div class="carte pdx-pieces" data-pdxpieces="${id}"><div class="pdx-pl">${pdxPil(p)}${patron && p.cmd ? `<button type="button" class="lien" data-cm="voir|${p.cmd.id}">${esc(p.cmd.num)} · ${esc(p.cmd.four)} ›</button>` : ''}${p.k === 'acommander' && patron ? '<button type="button" class="lien" data-pdx="achat|pans|">La commander ›</button>' : ''}</div>${bandeau}</div>`;
+    const bloc = `<div class="carte pdx-pieces" data-pdxpieces="${id}"><div class="pdx-pl">${pdxPil(p)}${patron && p.cmd ? `<button type="button" class="lien" data-cm="voir|${p.cmd.id}">Commande ${esc(matNumAff(p.cmd.num))} · ${esc(p.cmd.four)} ›</button>` : ''}${p.k === 'acommander' && patron ? '<button type="button" class="lien" data-pdx="achat|pans|">La commander ›</button>' : ''}</div>${bandeau}</div>`;
     let k = out.indexOf('<div class="grille2">'); if (k < 0) k = out.indexOf('<div class="carte');
     if (k >= 0) out = out.slice(0, k) + bloc + out.slice(k);
   }
@@ -14292,23 +14310,35 @@ function pdxAchatsLignes(){
   const L = [], pans = cmdPaniers(), n = pans.reduce((s, p) => s + p.lignes.length, 0);
   if (n) L.push({ k:'a', t:`${pdxPl(n, 'article')} à commander chez ${pdxPl(pans.length, 'fournisseur')}`, go:'pans|' });
   COMMANDES.forEach(c => { const a = cmdAlerte(c); if (!a) return;
-    if (a.t === 'retard') L.push({ k:'r', t:`${esc(c.num)} ${esc(c.four)} : ${esc(pdxMin(a.txt.replace(/ \(.*\)$/, '')))}`, go:'voir|' + c.id });
-    else if (a.t === 'silence') L.push({ k:'s', t:`${esc(c.num)} ${esc(c.four)} : pas de confirmation`, go:'voir|' + c.id });
+    if (a.t === 'retard') L.push({ k:'r', t:`${esc(matNumAff(c.num))} ${esc(c.four)} : ${esc(pdxMin(a.txt.replace(/ \(.*\)$/, '')))}`, go:'voir|' + c.id });
+    else if (a.t === 'silence') L.push({ k:'s', t:`${esc(matNumAff(c.num))} ${esc(c.four)} : pas de confirmation`, go:'voir|' + c.id });
     else if (a.t === 'facture') L.push({ k:'f', t:`Facture fournisseur à comparer : commande ${esc(matNumAff(c.num))}, ${esc(c.four)}`, go:'rappro|' + c.id }); });
   const br = COMMANDES.filter(c => c.st === 'brouillon'); if (br.length) L.push({ k:'b', t:`${pdxPl(br.length, 'commande')} en brouillon à envoyer`, go:'voir|' + br[0].id });
   const ordre = 'arsfb'; return L.sort((a, b) => ordre.indexOf(a.k) - ordre.indexOf(b.k));
 }
-function pdxAchatsCarte(){
-  const L = pdxAchatsLignes(); if (!L.length) return '';
-  const coul = { a:'var(--orange)', r:'var(--rouge)', s:'var(--orange)', f:'var(--bleu)', b:'var(--doux)' };
-  return `<div class="carte pdx-achats" data-pdxachats="1"><h3>Achats à traiter · ${L.length}</h3>${L.slice(0, 6).map(o => `<button type="button" class="ligne-clic pdx-al" data-pdx="achat|${esc(o.go)}"><span class="pdx-pt" style="background:${coul[o.k]}" aria-hidden="true"></span><span class="pdx-at">${o.t}</span><span aria-hidden="true">›</span></button>`).join('')}${L.length > 6 ? `<span class="gris petit">et ${L.length - 6} autre${L.length - 6 > 1 ? 's' : ''}, dans Commandes</span>` : ''}</div>`;
+/* la carte « Matériel » de l'Accueil : UNE ligne par chose, chacune menant à SA rubrique, et chaque nombre vient de la fonction qui nourrit le bandeau de cette rubrique
+   (cmdNbACommander, les livraisons ouvertes, matEnvoisAAccepter, camionsARemplir) : le même chiffre ici et là-bas. Quatre lignes au plus ; une ligne qu'on n'a pas le droit d'ouvrir n'est pas écrite. */
+function matAFaire(){
+  const L = [], voit = r => typeof rlPermis !== 'function' || rlPermis(r);
+  const nc = cmdNbACommander(), att = COMMANDES.filter(cmdOuverte), retard = att.filter(c => (c.st === 'partielle' ? c.reliquat : c.prevue) < AUJ).length, fac = COMMANDES.filter(c => { const a = cmdAlerte(c); return a && a.t === 'facture'; }).length;
+  if (voit('produits')) {
+    if (nc) L.push({ k:'a', t:`${sxPl(nc, 'article')} à commander`, rub:'Fournisseurs', go:'data-pdx="achat|pans|"' });
+    if (att.length || fac) L.push({ k:retard ? 'r' : 'f', t:[att.length ? `${sxPl(att.length, 'livraison')} attendue${att.length > 1 ? 's' : ''}${retard ? `, dont ${retard} en retard` : ''}` : '', fac ? `${sxPl(fac, 'facture')} à comparer` : ''].filter(Boolean).join(' · '), rub:'Commandes', go:'data-ms="t|liv"' }); }
+  if (voit('stock') && typeof msAccepte === 'function' && msAccepte() && STK_VALID) { const e = matEnvoisAAccepter(); if (e.n) L.push({ k:'b', t:`${sxPl(e.n, 'envoi')} à accepter`, rub:'Stock', go:'data-go="stock"' }); }
+  if (voit('boxes')) { const c = camionsARemplir(); if (c.n) L.push({ k:'a', t:`${sxPl(c.n, 'article')} ${c.n > 1 ? 'manquent' : 'manque'} dans ${sxPl(c.camions.length, 'camion')}`, rub:'Dépôts et camions', go:'data-ms="t|cam"' }); }
+  return L.slice(0, 4);
+}
+function matCarteAccueil(){
+  const L = matAFaire(); if (!L.length) return '';
+  const coul = { a:'var(--orange)', r:'var(--rouge)', f:'var(--bleu)', b:'var(--orange)' };
+  return `<div class="carte pdx-achats" data-vis="accueil-materiel"><h3>Matériel</h3>${L.map(o => `<button type="button" class="ligne-clic pdx-al" ${o.go}><span class="pdx-pt" style="background:${coul[o.k]}" aria-hidden="true"></span><span class="pdx-at">${o.t}</span><span class="gris petit pdx-rub">${esc(o.rub)}</span><span aria-hidden="true">›</span></button>`).join('')}</div>`;
 }
 /* une seule notification par jour, le matin, qui reprend ces lignes (l'envoi réel est celui de l'application : ici on en garde la trace) */
 function pdxMatin(){
   if (PDX.matin === AUJ || MAINT_MIN < 7 * 60) return; const L = pdxAchatsLignes(); if (!L.length) return; PDX.matin = AUJ;
-  notifier('marc', 'Achats à traiter ce matin : ' + L.slice(0, 4).map(o => o.t.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&')).join(' · ') + '.');
+  notifier('marc', 'Matériel à traiter ce matin : ' + L.slice(0, 4).map(o => o.t.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&')).join(' · ') + '.');
 }
-(() => { const o = vueAccueil; vueAccueil = function(){ const h = o.apply(this, arguments); if (typeof ROLE !== 'undefined' && ROLE !== 'patron') return h; pdxMatin(); const c = pdxAchatsCarte(), k = h.indexOf('<div class="grille2">'); return c && k >= 0 ? h.slice(0, k) + c + h.slice(k) : h; }; })();
+(() => { const o = vueAccueil; vueAccueil = function(){ const h = o.apply(this, arguments); if (typeof ROLE === 'undefined' || ROLE === 'patron') pdxMatin(); const c = matCarteAccueil(), k = h.indexOf('<div class="grille2">'); return c && k >= 0 ? h.slice(0, k) + c + h.slice(k) : h; }; })();
 
 /* les propositions de la catégorie Tâches : une pour chaque commande qui demande un geste (silence, retard, facture arrivée) */
 function pdxSuggTaches(S, deja){
@@ -14353,8 +14383,8 @@ function pdxDecaler(id){
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-pdx]'); if (!b) return;
   const [a, x, y] = b.dataset.pdx.split('|');
-  if (a === 'etat') { PDX.etat = x; return rendre(); }
   if (a === 'achat') return pdxAller(x, y);
+  if (a === 'piece') { const i = INTS.find(o => o.id === x), pr = i && (i.prevues || []).find(o => { const px = matPieceX(o); return px && px.id === y; }); if (!pr) return; const e = matPieceEtat(i, pr); return e && e.k === 'commander' ? mdCmdAdd(y, e.manque, i.id) : undefined; }
   if (a === 'decaler') return pdxDecaler(x);
   if (a === 'garder') { PDX.garde.add(x); rendre(); return toast('Gardé tel quel : la pastille « Pièces » reste sur l’intervention.'); }
   if (a === 'pm') return pdxPmOuvrir(x);
@@ -14388,7 +14418,7 @@ function pdxUsageListes(x){
   /* posé (fiche), prévu par le bureau, ou demandé : une tâche de commande de pièces, ou une commande faite pour l'intervention, compte aussi */
   const tk = TACHES.filter(t => t.type === 'commande' && (t.pieces || []).some(p => pdxMemeArticle(p.nom, x))), ids = new Set(tk.map(t => t.id));
   const cmdI = new Set(); COMMANDES.forEach(c => c.lignes.forEach(l => { if (l.pid === x.id) { if (c.pour) cmdI.add(c.pour); if (l.pourInter) cmdI.add(l.pourInter); const t = l.inter && TACHES.find(k => k.id === l.inter); if (t && t.inter) cmdI.add(t.inter); } }));
-  const inters = INTS.filter(i => (typeof FICHES === 'object' && FICHES[i.id] && (FICHES[i.id].pieces || []).some(p => pdxMemeArticle(p.nom, x))) || (i.prevues || []).some(p => pdxMemeArticle(p.nom, x)) || tk.some(t => t.inter === i.id) || cmdI.has(i.id));
+  const inters = INTS.filter(i => (typeof FICHES === 'object' && FICHES[i.id] && (FICHES[i.id].pieces || []).some(p => pdxMemeArticle(p.nom, x))) || (i.prevues || []).some(p => matPieceDe(p, x)) || tk.some(t => t.inter === i.id) || cmdI.has(i.id));
   if (DV == null && typeof dvSync === 'function') dvSync();
   const devis = Array.isArray(DV) ? DV.filter(d => (d.lignes || []).some(l => pdxMemeArticle(l[0], x))) : [];
   return { inters, devis };
@@ -14672,7 +14702,7 @@ function pdxApresReception(c){
 function pdxContesteApercu(c){
   const F = c.facLue, E = cmdEcarts(c), f = foDe(c.four) || {};
   const txt = `Objet : Facture ${F.num} : écart sur la commande ${c.num}\n\nBonjour,\n\nEn comparant votre facture ${F.num} de notre commande ${c.num}, nous relevons ${E.length > 1 ? 'des écarts' : 'un écart'} :\n${E.map(e => `- ${cmdNom(e.l)} : ${e.dpu ? 'facturé ' + eur(F.pu[e.l.pid]) + ' l’unité au lieu de ' + eur(e.l.pu) : ''}${e.dq ? (e.dpu ? ' ; ' : '') + 'quantité facturée ' + pdxQ(F.q[e.l.pid]) + ' au lieu de ' + pdxQ(e.l.recu) + ' reçue' : ''}`).join('\n')}\n\nPouvez-vous nous renvoyer une facture rectifiée ou un avoir ?\n\nMerci,\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`;
-  foOuvrir(`<span class="surtitre">${esc(c.num)} · facture ${esc(F.num)}</span><h2>Contester la facture</h2>
+  foOuvrir(`<span class="surtitre">Commande ${esc(matNumAff(c.num))} · facture ${esc(F.num)}</span><h2>Contester la facture</h2>
     <div class="gris">${f.mail ? `Part à <b>${esc(f.mail)}</b> depuis ta boîte. Relis-la : rien ne part avant ton accord.` : `${esc(c.four)} n’a pas d’e-mail : la contestation sera notée, appelle le ${esc(f.tel || 'fournisseur')}.`}</div>
     <pre class="cmd-pre">${esc(txt)}</pre>
     <span class="gris petit">Un rappel s’ajoute à tes tâches dans 5 jours ouvrés, pour relancer cette contestation si le fournisseur ne répond pas.</span>
@@ -14876,6 +14906,30 @@ function matEnvoisAAccepter(){
     const apres = dispo <= 0 ? `Il n’y en a plus ${ou}.` : m.q > dispo ? `Il n’y en a que ${sxQte(dispo, x)} ${ou} : on en note ${prNum(dispo)}.` : `Il y en a ${sxQte(dispo, x)} ${ou} : après acceptation, il en restera ${prNum(reste)}.`;
     return { m, x, qui:m.qui, dispo, reste, vide:reste <= 0, phrase:matPhrase(m), apres }; });
   return { n:lignes.length, qui:[...new Set(lignes.map(o => prenomDe(o.qui)))], lignes };
+}
+/* une pièce prévue par le bureau est reconnue PAR SON ARTICLE (`pid`, posé quand on la choisit dans la recherche), puis, pour les lignes d'avant, par le rapprochement de texte :
+   « Condensateur 5 µF » et « Condensateur permanent 5 µF 450 V » ne se prennent plus l'un pour l'autre à la chance */
+const matPieceDe = (p, x) => p.pid ? p.pid === x.id : pdxMemeArticle(p.nom, x);
+const matPieceX = p => (p.pid && PRODUITS.find(x => x.id === p.pid && !x.retire)) || PRODUITS.find(x => !x.retire && pdxMemeArticle(p.nom, x)) || null;
+const matJourCourt = d => { const o = dObj(d); return ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][o.getDay()] + ' ' + o.getDate(); };
+/* UN mot par pièce prévue (spec § 9.1) : Prête (dans le camion du technicien ou à l'atelier) · En route (arrive mardi 3) · À commander ; rien pour une ligne qui n'est pas un article du stock */
+function matPieceEtat(i, p){
+  const x = matPieceX(p); if (!x) return null;
+  const C = LIEUX.find(l => l.type === 'vehicule' && l.tech === i.tech && !l.ferme), q = Math.max(Number(p.q) || 1, 0), bord = C ? stkAt(x, C.id) : 0, at = stkAt(x, 'atelier');
+  if (bord >= q) return { k:'prete', x, mot:'Prête', cls:'st-v', sous:'dans le camion de ' + prenomDe(i.tech) };
+  if (at + bord >= q) return { k:'prete', x, mot:'Prête', cls:'st-v', sous:bord ? 'dans le camion et à l’atelier' : 'à l’atelier' };
+  const k = COMMANDES.filter(cmdOuverte).filter(o => o.lignes.some(l => l.pid === x.id && l.recu < l.q)).sort((a, b) => ((a.st === 'partielle' ? a.reliquat : a.prevue) || '9').localeCompare((b.st === 'partielle' ? b.reliquat : b.prevue) || '9'))[0], d = k && (k.st === 'partielle' ? k.reliquat : k.prevue);
+  if (k) return { k:'route', x, mot:'En route' + (d ? ' · arrive ' + matJourCourt(d) : ''), cls:'st-b', sous:'commande ' + matNumAff(k.num), cmd:k };
+  const manque = Math.max(1, stkR(q - bord - at));
+  if (DEM_ACHAT.some(d => d.etat === 'attente' && d.pid === x.id)) return { k:'demande', x, mot:'À commander', cls:'st-o', sous:'déjà dans les commandes', manque };
+  return { k:'commander', x, mot:'À commander', cls:'st-o', manque };
+}
+/* sous la ligne d'une pièce prévue : la pastille, d'où elle vient, et « Commander » pour qui commande (jamais pour le technicien, qui n'a ni prix ni commande) */
+function matPieceLigne(i, p){
+  const e = matPieceEtat(i, p); if (!e) return '';
+  const peut = ROLE !== 'tech' && ROLE !== 'client' && rlPermis('produits');
+  const bouton = e.k === 'commander' && peut ? `<button type="button" class="btn gris petit" data-pdx="piece|${esc(i.id)}|${esc(e.x.id)}">Commander</button>` : e.k === 'demande' && peut ? `<button type="button" class="lien" data-pdx="achat|pans|">Voir</button>` : '';
+  return `<div class="pp-e"><span class="st ${e.cls}">${esc(e.mot)}</span>${e.sous ? `<span class="gris petit">${esc(e.sous)}</span>` : ''}${bouton}</div>`;
 }
 /* la carte « Le plus simple possible » : la même que celle de Devis, en pied de page (l’aide est rangée en bas, elle ne précède pas le travail) */
 const carteAide = L => `<div class="carte"><h3>Le plus simple possible</h3>
@@ -15188,24 +15242,7 @@ function sxDernierInv(id){
   const L = [SX.invs[id], ...MVTS.filter(m => m.type === 'correction' && m.de === id && /^Inventaire/.test(m.motif)).map(m => m.d)].filter(Boolean).sort();
   return L.length ? L[L.length - 1] : null;
 }
-function sxAFaire(){
-  const A = [], att = MVTS_ATT.length;
-  if (att) A.push({ c:'st-r', e:'À valider', t:`${sxPl(att, 'geste')} de technicien ${att > 1 ? 'attendent' : 'attend'} ta validation`, s:[...new Set(MVTS_ATT.map(m => prenomDe(m.qui)))].join(', '), b:'Valider', d:'onglet|valider' });
-  INTS.filter(i => i.d >= AUJ && !['fait', 'annulee'].includes(i.st) && i.prevues && i.prevues.length).sort((a, b) => (a.d + a.h).localeCompare(b.d + b.h)).forEach(i => i.prevues.forEach(p => {
-    const x = PRODUITS.find(o => !o.retire && prNorm(o.nom) === prNorm(p.nom)); if (!x || x.q >= p.q || A.some(a => a.k === x.id)) return;
-    A.push({ k:x.id, c:'st-r', e:x.q <= 0 ? 'Épuisé' : 'Trop juste', t:`${x.nom} ${x.q <= 0 ? 'est épuisé' : 'n’est pas assez en stock'} et prévu à l’intervention du ${jCourt(i.d)}`, s:(CLIENTS[i.cli] || {}).nom + (x.q > 0 ? ` · ${sxQte(x.q, x)} pour ${prNum(p.q)} prévus` : ''), b:'Commander', d:'vers-cmd' }); }));
-  LIEUX.filter(l => l.type === 'vehicule').forEach(l => { const m = lieuManques(l.id); if (m.length) A.push({ c:'st-o', e:'À remettre', t:`${l.nom.replace('Camion de', 'Le camion de')} a ${sxPl(m.length, 'article')} sous sa dotation`, s:m.slice(0, 3).map(o => o.x.nom).join(', ') + (m.length > 3 ? '…' : ''), b:'Réassort', d:'reassort|' + l.id }); });
-  const vide = PRODUITS.filter(x => !x.retire && Object.values(DOTATION).length && LIEUX.some(l => l.type === 'vehicule' && l.dot && DOTATION[l.dot] && DOTATION[l.dot][x.id] && lieuManques(l.id).some(o => o.x.id === x.id)) && stkAt(x, 'atelier') <= 0);
-  if (vide.length) A.push({ c:'st-o', e:'Atelier', t:`L’atelier n’a plus de quoi remplir les camions : ${vide.slice(0, 3).map(x => x.nom).join(', ')}${vide.length > 3 ? '…' : ''}`, s:'À commander pour que les dotations tiennent', b:'Commander', d:'vers-cmd' });
-  SX.bout.filter(b => !b.rec && lieu(b.lieu).type === 'vehicule' && b.reste <= 1).forEach(b => A.push({ c:'st-o', e:'Fluide', t:`La bouteille ${sxNom(b.pid).replace(/ \(.*\)/, '').replace('Fluide ', '')} du ${lieuNom(b.lieu).toLowerCase()} est presque vide (${prNum(b.reste)} kg)`, s:'Bouteille ' + b.id, b:'Réassort', d:'reassort|' + b.lieu }));
-  LIEUX.forEach(l => { const j = sxJoursInv(l.id); if (j == null) A.push({ c:'st-b', e:'À compter', t:`${l.nom} n’a jamais été compté`, s:'Un comptage fixe la date et les écarts', b:'Compter', d:'invlieu|' + l.id });
-    else if (j > sxFreq(l.id)) A.push({ c:'st-b', e:'À compter', t:`${l.nom} : compté il y a ${j} jours`, s:`Tu comptes tous les ${Math.round(sxFreq(l.id) / 30)} mois`, b:'Compter', d:'invlieu|' + l.id }); });
-  return A;
-}
-/* la carte « Stock » du Tableau de bord : une ligne dans « À faire maintenant », seulement quand il y a quelque chose */
-if (typeof vueAccueil === 'function') (() => { const v0 = vueAccueil; vueAccueil = function(){ const h = v0.apply(this, arguments); const A = sxAFaire().filter(a => ['À valider', 'Épuisé', 'Trop juste'].includes(a.e)); if (!A.length) return h;
-  const a = A[0], r = A.length > 1 ? ` · et ${sxPl(A.length - 1, 'autre')}` : '';
-  return h.replace('<h3>À faire maintenant</h3>', `<h3>À faire maintenant</h3><button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="stock"><span class="af-l" style="display:flex;gap:12px;align-items:center"><span class="st ${a.c} etiq-af">Stock</span><span><b>${esc(a.t)}</b><br><span class="gris petit">${esc(a.s || '')}${r}</span></span></span><span>›</span></button>`); }; })();
+/* « À faire maintenant » de Stock n’existe plus (spec § 0 D10) : une ligne de bandeau par rubrique, et la carte « Matériel » de l’Accueil (matAFaire) */
 
 /* ── les formulaires de sortie et de transfert : bons réglages d'office, aucun double geste ── */
 const sxStkFormVue0 = stkFormVue;
@@ -15283,7 +15320,7 @@ function sxDotOk(){
   Dd.lignes.filter(o => o.q > 0).forEach(o => { nv[o.pid] = o.q; }); DOTATION[k] = nv; l.dot = k; SX.D = null; fermerPanneau();
   sxJournal('a modifié la dotation', l.nom, sxPl(Object.keys(nv).length, 'article') + ' à bord en permanence');
   const m = lieuManques(l.id); rendre();
-  sxToast(`Dotation de ${esc(l.nom)} enregistrée${m.length ? ' : ' + sxPl(m.length, 'article') + ' à remettre à bord' : ''}.`, m.length ? { lib:'Remplir', fn:() => bxReassort(l.id) } : null, snap, 'la dotation de ' + l.nom);
+  sxToast(`Ce qu’il doit y avoir à bord de ${esc(l.nom)} est enregistré${m.length ? ' : il manque ' + sxPl(m.length, 'article') : ''}.`, m.length ? { lib:'Remplir', fn:() => bxReassort(l.id) } : null, snap, 'ce qu’il doit y avoir à bord de ' + l.nom);
 }
 
 /* « Utilisé 0 intervention » ignorait les sorties « chez le client » : on les compte aussi, sans doubler une intervention déjà comptée par ses pièces */
@@ -15378,7 +15415,7 @@ const msQuand = j => j == null ? 'pas encore compté' : j < 1 ? 'compté aujourd
 function msBandeau(){
   if (!STK_VALID || !MVTS_ATT.length || !msAccepte()) return '';
   const A = matEnvoisAAccepter(), n = A.n;
-  return `<div class="carte dv-focus ms-bandeau"${matVis('stock-envois')}><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><span class="dv-c"><b>${n} envoi${n > 1 ? 's' : ''} à accepter</b><span class="gris petit">${esc(A.qui.length > 1 ? A.qui.slice(0, -1).join(', ') + ' et ' + A.qui[A.qui.length - 1] : A.qui[0] || '')}</span></span>
+  return `<div class="carte dv-focus ms-bandeau"${matVis('stock-bandeau')}><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><span class="dv-c"><b>${n} envoi${n > 1 ? 's' : ''} à accepter</b><span class="gris petit">${esc(A.qui.length > 1 ? A.qui.slice(0, -1).join(', ') + ' et ' + A.qui[A.qui.length - 1] : A.qui[0] || '')}</span></span>
     <span class="ms-bd"><button type="button" class="btn gris petit" data-ms="envois">Voir</button><button type="button" class="btn petit" data-ms="toutacc">Tout accepter</button></span></div></div>`;
 }
 function msTuiles(){
@@ -15406,7 +15443,7 @@ function msArticles(){
     ${q && msGerant() ? `<span class="ms-vb"><button type="button" class="btn gris" data-ms="ajouteq">＋ Ajouter « ${esc(q)} »</button></span>` : ''}</div>` : '';
   const grp = (t, A) => A.length ? `<div class="groupe">${t}</div>${A.map(x => matLigneArticle(x, lf)).join('')}` : '';
   const parCat = reste.length > 40 ? [...new Set(reste.map(x => x.cat))].map(c => `<details class="ms-cat" ${q ? 'open' : ''}><summary class="groupe">${esc(c)}</summary>${reste.filter(x => x.cat === c).map(x => matLigneArticle(x, lf)).join('')}</details>`).join('') : null;
-  return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? 'Chercher un article…' : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou" aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
+  return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? 'Chercher un article…' : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou"${matVis('stock-lieu')} aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
     ${vide || rien || `<div class="carte dv-liste ms-liste"${matVis('stock-liste')}>${grp('À surveiller', surv)}${parCat ? `<div class="groupe">Tout le reste</div>${parCat}` : grp(surv.length ? 'Tout le reste' : 'Tous les articles', reste)}</div>`}
     ${tous.length && !rien ? `<div class="gris petit ms-pied">${L.length} article${L.length > 1 ? 's' : ''}${l ? ' ici' : ''}${!l ? ` · ${eur(val)} de matériel (prix d’achat HT)` : ''}</div>` : ''}`;
 }
@@ -15914,7 +15951,7 @@ function bxBesoins(){
   const fin = jour(3), res = {};
   INTS.filter(i => i.tech && i.d >= AUJ && i.d <= fin && ['planifiee', 'encours', 'retard'].includes(i.st) && (i.prevues || []).length).forEach(i => {
     const L = bxActifs().find(l => l.type === 'vehicule' && l.tech === i.tech); if (!L) return;
-    i.prevues.forEach(p => { const x = PRODUITS.find(o => !o.retire && o.nom === p.nom); if (!x) return;
+    i.prevues.forEach(p => { const x = matPieceX(p); if (!x) return;
       const r = res[L.id] = res[L.id] || {}, e = r[x.id] = r[x.id] || { x, besoin:0, ints:[] }; e.besoin = stkR(e.besoin + p.q); e.ints.push(i); }); });
   const reste = {}; PRODUITS.forEach(x => { reste[x.id] = stkAt(x, 'atelier'); });
   return Object.entries(res).map(([id, E]) => ({ l:lieu(id), vers:id, garage:bxGarage(id),
@@ -18116,7 +18153,7 @@ function vxNouveauPanel(){
       <label class="champ">Prochain contrôle technique<input id="vn-ct" type="date"></label>
       <div class="deux-champs"><label class="champ">Dernière révision, le<input id="vn-rd" type="date" max="${AUJ}"></label><label class="champ">à (km)<input id="vn-rk" inputmode="numeric" autocomplete="off"></label></div>
       <label class="champ">Énergie exacte<select id="vn-en2"><option value="">Comme choisi plus haut</option>${VX_ENERGIES.map(o => `<option>${o}</option>`).join('')}</select></label>
-      <span class="gris petit">Révision proposée tous les 15 000 km ou 12 mois · <button type="button" class="lien" data-vh="montrer|vn-iv">Changer</button></span>
+      <span class="gris petit">Révision proposée tous les 15 000 km ou 12 mois.</span><button type="button" class="lien vh-ret" data-vh="montrer|vn-iv">Changer</button>
       <div class="deux-champs" id="vn-iv" hidden><label class="champ">Tous les (km)<input id="vn-ik" inputmode="numeric" value="15000" autocomplete="off"></label><label class="champ">ou tous les (mois)<input id="vn-im" inputmode="numeric" value="12" autocomplete="off"></label></div>
     </div></details>
     <div id="vx-al"></div>
@@ -18434,7 +18471,7 @@ function vxRdv(vid, k, from){
     <span class="gris">${esc(vhSujet(e))} est ${esc(vhQuand(e))}. Le rendez-vous devient une tâche, au jour que tu écris.</span>
     <label class="champ">Quel jour ?<input type="date" id="vh-rd" value="${prop}" min="${AUJ}"></label>
     <label class="champ"><span>Quel garage ? <span class="faible">(facultatif)</span></span><input id="vh-rg" list="vh-gl" placeholder="ex. ${esc(garages[0] || 'Renault Pro')}" value="${esc(garages[0] || '')}" autocomplete="off"><datalist id="vh-gl">${garages.map(g => `<option value="${esc(g)}">`).join('')}</datalist></label>
-    <div class="actions"><button type="button" class="btn large" data-vh="rdvok|${v.id}|${e.k}|${from || 'liste'}">Noter le rendez-vous</button></div>
+    <div class="actions vh-pied"><button type="button" class="btn large" data-vh="rdvok|${v.id}|${e.k}|${from || 'liste'}">Noter le rendez-vous</button></div>
     <button type="button" class="lien" data-vh="fait|${v.id}|${e.k}|${from || 'liste'}">C’est déjà fait ? ${esc(VH_FAIT[e.k])}</button>`);
 }
 function vxRdvOk(vid, k, from){
@@ -18451,7 +18488,7 @@ function vhDocPanel(vid){
   ouvrirPanneau(`<span class="surtitre">${esc(vhNom(v))} · ${esc(v.plaque)}</span><h2>Ajouter un document</h2>
     <label class="champ">Lequel ?<select id="vh-dk">${[['carte', 'Carte grise'], ['assur', 'Attestation d’assurance'], ['ct', 'Rapport du contrôle technique']].map(([k, l]) => `<option value="${k}" ${v.docs[k] ? '' : 'selected'}>${l}${v.docs[k] ? ' (à remplacer)' : ''}</option>`).join('')}</select></label>
     <label class="btn gris vx-ajout vh-fichier">Photo ou fichier <span class="faible" id="vh-dn">(aucun pour l’instant)</span><input type="file" id="vh-df" accept="image/*,application/pdf" capture="environment" hidden></label>
-    <div class="actions"><button type="button" class="btn large" data-vh="docok|${v.id}">Ajouter le document</button></div>
+    <div class="actions vh-pied"><button type="button" class="btn large" data-vh="docok|${v.id}">Ajouter le document</button></div>
     <button type="button" class="lien" data-vh="fiche|${v.id}|papiers">‹ Retour à la fiche</button>`);
 }
 const VH_MAT_PAN = { id:null, from:'liste' };
@@ -19082,7 +19119,7 @@ function mbxApercu(m, k){
   const [nom, taille] = m.pj[k], R = mlLire(m), img = /\.(jpe?g|png|heic)$/i.test(nom); let page;
   if (img) page = `<div class="mbx-photo" role="img" aria-label="Aperçu de la photo ${esc(nom)}"><svg viewBox="0 0 320 200" aria-hidden="true"><rect width="320" height="200" fill="color-mix(in srgb,var(--bleu) 12%,var(--surf2))"/><rect x="40" y="46" width="240" height="64" rx="10" fill="color-mix(in srgb,var(--encre) 16%,var(--surf2))"/><rect x="58" y="62" width="204" height="10" rx="5" fill="color-mix(in srgb,var(--bleu) 40%,var(--surf2))"/><circle cx="160" cy="150" r="26" fill="color-mix(in srgb,var(--orange) 35%,var(--surf2))"/></svg><span class="gris petit">Photo envoyée par ${esc(m.de.nom)} (aperçu simulé)</span></div>`;
   else if (R.sujet === 'facfour' && R.cmd && R.cmd.facLue) { const c = R.cmd, F = c.facLue, T = mbxFacLue(c);
-    page = `<div class="mbx-page"><b>Facture ${esc(F.num)}</b><span class="gris petit">${esc(c.four)} · pour la commande ${esc(c.num)}</span>${c.lignes.map(l => `<div class="mbx-pl"><span>${esc(cmdNom(l))}</span><span>${prNum(F.q[l.pid] != null ? F.q[l.pid] : l.recu)} × ${eur(F.pu[l.pid] != null ? F.pu[l.pid] : l.pu)}</span></div>`).join('')}<div class="mbx-pl tot"><span>Total HT</span><span>${eur(T.ht)}</span></div><span class="mbx-note ${Math.abs(T.ht - T.att) < .01 ? 'vert' : 'orange'}">Commande : ${eur(T.att)} HT${Math.abs(T.ht - T.att) < .01 ? ', conforme.' : ', écart de ' + (T.ht > T.att ? '+' : '−') + eur(Math.abs(T.ht - T.att)) + '.'}</span></div>`; }
+    page = `<div class="mbx-page"><b>Facture ${esc(F.num)}</b><span class="gris petit">${esc(c.four)} · pour la commande ${esc(matNumAff(c.num))}</span>${c.lignes.map(l => `<div class="mbx-pl"><span>${esc(cmdNom(l))}</span><span>${prNum(F.q[l.pid] != null ? F.q[l.pid] : l.recu)} × ${eur(F.pu[l.pid] != null ? F.pu[l.pid] : l.pu)}</span></div>`).join('')}<div class="mbx-pl tot"><span>Total HT</span><span>${eur(T.ht)}</span></div><span class="mbx-note ${Math.abs(T.ht - T.att) < .01 ? 'vert' : 'orange'}">Commande : ${eur(T.att)} HT${Math.abs(T.ht - T.att) < .01 ? ', conforme.' : ', écart de ' + (T.ht > T.att ? '+' : '−') + eur(Math.abs(T.ht - T.att)) + '.'}</span></div>`; }
   else page = `<div class="mbx-page"><b>${esc(nom)}</b><span class="gris petit">Aperçu simulé : dans l’application, le fichier s’ouvre ici, sans quitter la Boîte mail.</span></div>`;
   ouvrirPanneau(`<span class="surtitre">Pièce jointe · ${esc(m.de.nom)}</span><h2>${esc(nom)}</h2><div class="mail-pj"><span class="mail-pj-i">${img ? 'IMG' : 'PDF'}</span><span><b>${esc(nom)}</b><small>${taille}</small></span></div>${page}
     <div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button><button type="button" class="btn" data-mbx="dl|${m.id}">Télécharger</button></div>`);
@@ -19343,7 +19380,7 @@ function axDemDecidee(d) {
 acDemandes = function () {
   const all = DEM_ACHAT, att = all.filter(d => d.etat === 'attente'), ach = all.filter(d => d.etat === 'aacheter'), fini = all.filter(d => !['attente', 'aacheter'].includes(d.etat));
   const F = axFiltreQui('fd', att), L = att.filter(d => AX.fd === 'tous' || d.qui === AX.fd).sort((a, b) => (a.quand || '9999').localeCompare(b.quand || '9999') || a.d.localeCompare(b.d));
-  return `${axLect() ? '<div class="info petit ax-lect">Tu vois les demandes pour préparer les commandes. C’est le patron qui les décide.</div>' : ''}${F}
+  return `${F}
     ${L.length ? L.map(axDemCarte).join('') : `<div class="carte gris">${att.length ? 'Rien pour cette personne.' : 'Aucune demande de matériel en attente. Quand un technicien écrit « Il me faut… » depuis son téléphone, elle arrive ici.'}</div>`}
     ${ach.length ? `<div class="carte ax-acheter"><h2 class="cmd-titre" style="margin:0 0 4px">À acheter · ${ach.length}</h2><span class="gris petit">Acceptées en magasin : le technicien achète, puis ajoute lui-même le ticket et le montant payé.</span>${ach.map(axAcheterLigne).join('')}</div>` : ''}
     ${fini.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Déjà décidées</h2>${fini.map(axDemDecidee).join('')}</div>` : ''}`;
@@ -19432,7 +19469,7 @@ vueAchats = function () {
   const O = [['demandes', 'Demandes de matériel', 'Matériel', nd], ['notes', 'Notes de frais', 'Frais', nn]], lect = axLect();
   if (!O.some(o => o[0] === acOnglet)) acOnglet = 'demandes';
   const compta = rlPermis('comptabilite'), apTot = ap.reduce((t, a) => t + acTTC(a), 0);
-  return `<div class="tete ach-tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
+  return `<div class="tete ach-tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
       ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Nouvelle demande d’achat</button></div>'}</div>
     <div class="kpis ach-k2"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} de matériel ${lect ? 'en attente' : 'à décider'}${na ? ' · ' + na + ' à acheter' : ''}</span></button>
       <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
@@ -19554,7 +19591,7 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest && ev.target.closest('[data-ac]'); if (!b) return;
   const [a, x] = b.dataset.ac.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x);
   const prendre = () => { ev.stopImmediatePropagation(); ev.preventDefault(); };
-  const refuse = () => { prendre(); toast('Tu vois les demandes pour préparer les commandes : c’est le patron qui les décide.'); };
+  const refuse = () => { prendre(); toast('Tu vois les demandes pour préparer les commandes : c’est le gérant qui les décide.'); };
   if (['transfert', 'commande', 'magasin', 'refuser', 'refok'].includes(a) && d) { if (axLect()) return refuse(); if (d.etat !== 'attente') { prendre(); fermerPanneau(); rendre(); return toast('Cette demande est déjà décidée.'); } }
   if (a === 'magasin' && d) { prendre(); return axMagasin(d); }
   if (a === 'refuser' && d) { prendre(); return axRefusDem(d); }
@@ -19753,7 +19790,9 @@ function entLiensLignes(){
 function vueEntreprise(){
   const ro = !entModifiable(), M = entrepriseManque(), C = entEtatCartes(), liens = entLiensLignes(), L = cxMentionsManquantes();
   const bandeau = M.length ? `<div class="ent-ban attention" role="status"><span>${ro ? 'Il manque ' + esc(entListe(M.map(m => m.le))) + ' sur la fiche de l’entreprise : une facture ne peut pas partir sans.' : 'Il manque ' + esc(entListe(M.map(m => m.toi))) + ' : une facture ne peut pas partir sans.'}</span>${ro ? '' : '<button type="button" class="btn" data-ent="completer">Compléter</button>'}</div>`
-    : `<div class="ok-bloc ent-ban" role="status"><span>${L.length ? 'Ta fiche est complète : tes factures peuvent partir. Il reste à compléter, dans tes mentions légales : ' + esc(entListe(L.map(x => x.replace(/ \(.*\)$/, '')))) + '.' : 'Ta fiche est complète : tes factures peuvent partir, et tes mentions légales sont en règle.'}</span></div>`;
+    /* un seul verdict, le même que celui de la fiche d'une facture : « complète » ne se dit que quand RIEN ne manque (relecture « tout-12 » : le bandeau vert disait « complète » et listait ce qui reste, la facture disait « il manque ») */
+    : L.length ? `<div class="ent-ban attention" role="status"><span>Tes factures peuvent partir. Il reste à compléter, dans tes mentions légales : ${esc(entListe(L.map(x => x.replace(/ \(.*\)$/, ''))))}.</span>${ro ? '' : '<button type="button" class="btn" data-ent="completer|legal">Compléter</button>'}</div>`
+    : `<div class="ok-bloc ent-ban" role="status"><span>Ta fiche est complète : tes factures peuvent partir, et tes mentions légales sont en règle.</span></div>`;
   return `<div class="tete"><div><span class="surtitre">Personnel</span><h1>Mon entreprise</h1><span class="gris">Ce qui s’écrit sur tes factures, tes devis et tes courriels, et la façon dont tu travailles. Tu le règles une seule fois, ici.</span></div></div>
     ${bandeau}
     <div class="bx-grille eq-grille ent-grille">${C.map(c => `<button type="button" class="carte bx-c eq-c ent-c" data-ent="carte|${c.k}"><span class="bx-t"><span class="eq-av ent-av${c.logo ? ' ent-av-logo' : ''}" style="--c:var(--lien)">${c.logo ? logoEnt('span') : c.av ? esc(c.av) : svg(c.ic)}</span><span class="fo-n"><b>${c.t}</b></span>${c.etat ? '' : `<span class="st ${c.ok ? 'st-v' : 'st-o'}">${c.ok ? 'Complète' : 'À compléter'}</span>`}</span>
@@ -19770,8 +19809,9 @@ function entChamp(id, lib, val, o){ o = o || {};
 /* un panneau de la fiche : pour qui ne peut que la regarder, il s'ouvre en lecture (champs désactivés, pas d'« Enregistrer ») et le dit en première ligne */
 function entPanneau(html){
   ouvrirPanneau(html);
+  const P = document.querySelector('#calque .panneau'); if (P) P.classList.add('ent-pan');   // pour que « Enregistrer » reste sous le pouce sur téléphone (voir la feuille de style)
   if (entModifiable()) return;
-  const P = document.querySelector('#calque .panneau'); if (!P) return;
+  if (!P) return;
   P.querySelectorAll('input, select, textarea').forEach(e => { e.disabled = true; });
   P.querySelectorAll('.actions .btn:not(.gris)').forEach(b => b.remove());
   P.querySelectorAll('.actions .btn.gris').forEach(b => { b.textContent = 'Fermer'; });
@@ -19815,7 +19855,8 @@ function entEnregistrerIdent(){
     ['en-rue', v => !v ? msgAdr : ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : v.length > 80 ? 'La rue ne peut pas dépasser 80 signes.' : ''],
     ['en-cp', v => /^\d{5}$/.test(v) ? '' : 'Le code postal a cinq chiffres.'],
     ['en-ville', v => !v ? msgAdr : ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : v.length > 50 ? 'La ville ne peut pas dépasser 50 signes.' : ''],
-    ['en-tel', v => !v ? '' : !/^[0-9 +.\-]{6,20}$/.test(v) ? 'Ce numéro de téléphone ne semble pas juste.' : ''],
+    /* au moins six CHIFFRES : « ...... » ou « ++++++ » passaient et s'écrivaient ensuite sur les documents (relecture « tout-02 ») */
+    ['en-tel', v => !v ? '' : !/^[0-9 +.\-]{6,20}$/.test(v) || (v.match(/\d/g) || []).length < 6 ? 'Ce numéro de téléphone ne semble pas juste.' : ''],
     ['en-mail', v => entMailOk(v) ? '' : 'Cette adresse e-mail ne semble pas juste.'],
     ['en-site', v => !v ? '' : ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : /\s/.test(v) ? 'Cette adresse de site ne semble pas juste.' : v.length > 80 ? 'Ce champ ne peut pas dépasser 80 signes.' : '']
   ]);
@@ -19832,9 +19873,12 @@ function entEnregistrerLegal(){
   const V = entVerifier([
     ['fl-siret', v => /^\d{14}$/.test(v.replace(/\s/g, '')) ? '' : 'Le SIRET a quatorze chiffres. Tu le trouves sur ton avis de situation de l’Insee ou sur l’Annuaire des entreprises (annuaire-entreprises.data.gouv.fr).'],
     ['fl-tva', v => !v || /^FR\d{11}$/i.test(v.replace(/\s/g, '')) ? '' : 'Un numéro de TVA français commence par FR, puis deux chiffres et les neuf chiffres de ton SIREN.'],
-    ['fl-forme', v => v ? '' : 'Choisis la forme juridique.'],
-    ['fl-cap', (v, T) => /^Entreprise individuelle/.test(T['fl-forme'] || '') ? '' : (ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : cxNum(v) > 0 ? '' : 'Une société écrit son capital sur ses factures : indique-le.')],
-    ['fl-rcs', v => !v ? 'Indique ton immatriculation (RCS et ville du greffe, ou répertoire des métiers).' : entTexte(80)(v)],
+    /* ⛔ on ne refuse que ce qui est FAUX, jamais ce qui est VIDE : seul le SIRET bloque une facture (spécification § 1.4), la forme, le capital,
+       l'immatriculation et l'assurance restent « à compléter » (le bandeau et la carte les listent déjà). Les exiger ici obligeait un gérant
+       qui voulait juste débloquer sa première facture à connaître trois mentions de plus (relecture « tout-01 »). */
+    ['fl-forme', () => ''],
+    ['fl-cap', (v, T) => !v || /^Entreprise individuelle/.test(T['fl-forme'] || '') ? '' : (ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : cxNum(v) > 0 ? '' : 'Le capital est un montant en euros, par exemple 5 000.')],
+    ['fl-rcs', entTexte(80)],
     ['fl-ass', entTexte(80)], ['fl-num', entTexte(40)], ['fl-asc', entTexte(120)], ['fl-zone', entTexte(80)], ['fl-med', entTexte(120)]
   ]);
   if (!V) return;
@@ -19843,8 +19887,8 @@ function entEnregistrerLegal(){
   Object.assign(ENTREPRISE, { siret:entSiretForme(siret), tva:tva ? tva.slice(0, 4) + ' ' + tva.slice(4) : '', forme:V['fl-forme'], capital:/^Entreprise individuelle/.test(V['fl-forme']) ? '' : V['fl-cap'], rcs:V['fl-rcs'],
     assureur:V['fl-ass'], assurNum:V['fl-num'], assurc:V['fl-asc'], assurZone:V['fl-zone'], mediateur:V['fl-med'] });
   fermerPanneau(); rendre();
-  const ok = E.assureur && E.assurc && E.assurZone;
-  toast(entDit((cle ? '' : 'Ce SIRET ne semble pas juste : le numéro de contrôle ne correspond pas. Vérifie-le. ') + (ok ? 'Tes mentions légales sont enregistrées : elles s’écrivent toutes seules en bas de chaque devis et de chaque facture.' : 'Tes mentions légales sont enregistrées. Il reste l’assurance à compléter (assureur, coordonnées, zone).')));
+  const reste = cxMentionsManquantes();
+  toast(entDit((cle ? '' : 'Ce SIRET ne semble pas juste : le numéro de contrôle ne correspond pas. Vérifie-le. ') + (!reste.length ? 'Tes mentions légales sont enregistrées : elles s’écrivent toutes seules en bas de chaque devis et de chaque facture.' : 'Tes mentions légales sont enregistrées. Il reste à compléter : ' + entListe(reste.map(x => x.replace(/ \(.*\)$/, ''))) + '.')));
 }
 
 /* carte 3 : ton logo (jamais envoyé nulle part : lu dans le navigateur, gardé tel quel) */
@@ -19926,8 +19970,10 @@ function entEnregistrerHoraires(){
   ]);
   if (!V) return;
   PARAMS.debut = entMin(V['en-debut']); PARAMS.fin = entMin(V['en-fin']);
-  TARIFS.horaire = entNb(V['en-horaire']); TARIFS.minimum = Math.round(entNb(V['en-minimum']) * 60);
-  [1, 2, 3].forEach(z => { TARIFS.zone[z] = entNb(V['en-z' + z]); });
+  /* au centime : « 65,555 » ne doit pas faire calculer des fractions de centime sur les factures au temps (relecture « tout-04 ») */
+  const cent = x => Math.round(x * 100) / 100;
+  TARIFS.horaire = cent(entNb(V['en-horaire'])); TARIFS.minimum = Math.round(entNb(V['en-minimum']) * 60);
+  [1, 2, 3].forEach(z => { TARIFS.zone[z] = cent(entNb(V['en-z' + z])); });
   entApresEnregistrement('Tes horaires et tes tarifs sont enregistrés.');
 }
 
@@ -19943,19 +19989,21 @@ function entPanMetiers(){
   ouvrirPanneau(`<span class="surtitre">Mon entreprise</span><h2>Tes métiers</h2><div class="fo-bloc">${PACKS_ENT.map(k => `<div class="fo-r"><span class="fo-n"><b>${esc(PACKS[k].nom)}</b></span></div>`).join('') || '<div class="gris petit">Aucun.</div>'}</div>
     <span class="gris petit">Réglé par TEAM OP à l’ouverture de ton compte.</span><div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
 }
+/* les cinq liens quittent Mon entreprise : on pose le chemin du retour (le même que celui d'une facture, « ‹ Retour · Mon entreprise ») AVANT d'aller ailleurs — sans lui, une fois le panneau fermé, la personne se retrouvait dans Planning sans autre chemin que le menu (relecture « tout-11 ») */
+const entRetour = () => { RETOUR = { lib:'Mon entreprise', route:'entreprise', h:'entreprise', fn:null }; };
 function entAllerLien(k){
-  if (k === 'rdv') { aller('planning'); return entApres(panneauReglagesRdv); }
-  if (k === 'auto') { cxAller('factures'); return entApres(() => entDefiler('[data-reglage="auto"]')); }
-  if (k === 'ndf') { acOnglet = 'notes'; aller('achats'); return entApres(() => entDefiler('.ax-regle')); }
-  if (k === 'stock') { aller('stock'); return entApres(() => { if (typeof msReglagesVue === 'function') msReglagesVue(); }); }
-  if (k === 'boites') { aller('boiteMail'); return entApres(() => { if (typeof mbxPanBoites === 'function') mbxPanBoites(); else { const b = document.querySelector('[data-ml="boites"]'); if (b) b.click(); } }); }
+  if (k === 'rdv') { entRetour(); aller('planning'); return entApres(panneauReglagesRdv); }
+  if (k === 'auto') { entRetour(); cxAller('factures'); return entApres(() => entDefiler('[data-reglage="auto"]')); }
+  if (k === 'ndf') { acOnglet = 'notes'; entRetour(); aller('achats'); return entApres(() => entDefiler('.ax-regle')); }
+  if (k === 'stock') { entRetour(); aller('stock'); return entApres(() => { if (typeof msReglagesVue === 'function') msReglagesVue(); }); }
+  if (k === 'boites') { entRetour(); aller('boiteMail'); return entApres(() => { if (typeof mbxPanBoites === 'function') mbxPanBoites(); else { const b = document.querySelector('[data-ml="boites"]'); if (b) b.click(); } }); }
   if (k === 'metiers') return entPanMetiers();
 }
 document.addEventListener('click', ev => {
   const b = ev.target.closest && ev.target.closest('[data-ent]'); if (!b) return;
   const [a, x] = b.dataset.ent.split('|');
   if (a === 'carte') return entOuvrirCarte(x);
-  if (a === 'completer') return entCompleter();
+  if (a === 'completer') return entCompleter(x === 'legal' ? [{ k:'siret' }] : undefined);
   if (a === 'lien') return entAllerLien(x);
   if (!entModifiable()) return toast('Ce geste n’est pas ouvert à ton compte : changer la fiche de l’entreprise. Demande à ' + esc(entPremierAdmin()) + '.');
   if (a === 'identok') return entEnregistrerIdent();
@@ -19993,6 +20041,9 @@ document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
 .ent-ban{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .ent-ban > span{flex:1 1 240px;min-width:0;line-height:1.4;overflow-wrap:anywhere}
 .ent-ban .btn{flex:none}
+/* sur téléphone, les huit champs de « Ton entreprise » repoussent « Enregistrer » à 989 px sur un écran de 844 : la rangée de boutons reste collée en bas de la feuille,
+   avec son propre fond (relecture « tout-03 » ; la spécification § 1.2 le demandait). Elle couvre le rembourrage du bas de la feuille et l'encoche. */
+@media (max-width:760px){#calque .panneau.ent-pan > .actions:last-child{position:sticky;bottom:0;z-index:2;background:var(--feuille);margin:0 -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(22px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 12px -8px var(--feuille)}}
 .ent-ban.attention{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
 .bx-grille.ent-grille{grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))}
 .ent-c{min-width:0}
@@ -22028,13 +22079,13 @@ function opdQuand(x){
   const n = opdJours(x); return 'envoyé ' + (n === 0 ? 'aujourd’hui' : n === 1 ? 'hier' : 'il y a ' + n + ' jours');
 }
 function opdLigne(x){
-  const e = opdEt(x);
-  return `<button type="button" class="dv-l opd-l" data-opd="doc" data-id="${esc(x.id)}" aria-label="Rouvrir : ${esc(opdLib(x))}">
+  const e = opdEt(x), ouvre = peut('ventes', 'm');   // sans la case « Modifier », la ligne se LIT et ne s'ouvre pas : l'atelier n'a pas de mode lecture, un clic l'ouvrirait en édition
+  return `<${ouvre ? 'button type="button"' : 'div'} class="dv-l opd-l${ouvre ? '' : ' opd-lect'}" ${ouvre ? `data-opd="doc" data-id="${esc(x.id)}" aria-label="Rouvrir : ${esc(opdLib(x))}"` : `role="group" aria-label="${esc(opdLib(x))}"`}>
     <span class="dv-n">${x.numero ? `<span class="mono">${esc(x.numero)}</span>` : '<span class="dv-br">Brouillon</span>'}</span>
     <span class="dv-c"><b>${esc(x.client || 'Sans client')}</b><span class="gris petit">${esc(opdNom(x) || (x.type === 'devis' ? 'Devis' : 'Contrat'))}</span></span>
     <span class="dv-q petit ${opdVieux(x) ? 'dv-vieux' : 'gris'}">${opdQuand(x)}${x.nr ? ' · <b class="opd-nr">Non enregistré</b>' : ''}</span>
     <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'HT par an'}</small></span>
-    <span class="dv-e"><span class="st ${e[1]}">${e[0]}</span></span></button>`;
+    <span class="dv-e"><span class="st ${e[1]}">${e[0]}</span></span></${ouvre ? 'button' : 'div'}>`;
 }
 function opdCarte(type, etats){
   const L = opdDocsDe(type, etats); if (!L.length || !rlPermis(type === 'devis' ? 'devis' : 'contrats')) return '';
@@ -22042,7 +22093,7 @@ function opdCarte(type, etats){
 }
 function opdClientLignes(k, type){   // la fiche d'un client : ses documents composés, dans la carte Devis ou la carte Contrat
   if (!rlPermis(type === 'devis' ? 'devis' : 'contrats')) return '';
-  return opdDocsDe(type).filter(x => x.clientId === k).map(x => `<div class="ligne lg-pli"><button type="button" class="lien opd-cl" data-opd="doc" data-id="${esc(x.id)}">${esc((x.numero ? x.numero + ' · ' : '') + (opdNom(x) || (type === 'devis' ? 'Devis' : 'Contrat')))}</button><span class="st ${opdEt(x)[1]}">${opdEt(x)[0]}</span></div>`).join('');
+  return opdDocsDe(type).filter(x => x.clientId === k).map(x => `<div class="ligne lg-pli">${peut('ventes', 'm') ? `<button type="button" class="lien opd-cl" data-opd="doc" data-id="${esc(x.id)}">` : '<span class="opd-cl">'}${esc((x.numero ? x.numero + ' · ' : '') + (opdNom(x) || (type === 'devis' ? 'Devis' : 'Contrat')))}${peut('ventes', 'm') ? '</button>' : '</span>'}<span class="st ${opdEt(x)[1]}">${opdEt(x)[0]}</span></div>`).join('');
 }
 /* les numéros : l'atelier suit la série d'OP GESTION, et OP GESTION compte ce que l'atelier a composé — dans les deux sens, jamais deux fois le même */
 const opdNums = (type, pre) => ATD.docs.filter(x => x.type === type && x.numero.startsWith(pre)).map(x => +x.numero.slice(pre.length)).filter(n => Number.isInteger(n));
@@ -22076,7 +22127,7 @@ function opdEnvoyer(m){ const f = opdCadre(); if (f && OPDZ.pret) { try { f.cont
 function opdSync(force){
   if (!OPDZ.pret) return; let P; try { P = opdDonnees(); } catch (e) { return; } const sig = JSON.stringify(P); if (!force && sig === OPDZ.sigDon) return; OPDZ.sigDon = sig; opdEnvoyer({ opd_donnees:P });
 }
-const opdRoleMsg = () => ({ opd_role:{ role:ROLE, devis:!!rlPermis('devis'), contrats:!!rlPermis('contrats'), droits:droitsDe('ventes'), client:{ c:!!peut('crm', 'c') } } });
+const opdRoleMsg = () => ({ opd_role:{ role:ROLE, devis:!!rlPermis('devis'), contrats:!!rlPermis('contrats'), entreprise:!!droitVoit('entreprise'), droits:droitsDe('ventes'), client:{ c:!!peut('crm', 'c') } } });
 const opdModeMsg = () => ({ opd_mode:document.documentElement.dataset.mode === 'nuit' ? 'nuit' : 'jour' });
 function opdSrc(){ return 'prototype-documents.html?app=1&mode=' + (document.documentElement.dataset.mode === 'nuit' ? 'nuit' : 'jour'); }
 function opdAttente(echec){
@@ -22135,7 +22186,7 @@ addEventListener('message', ev => {
     }
     if (opdA(d, 'opd_docs') !== undefined) opdDocsRecus(opdA(d, 'opd_docs'));
     if (opdA(d, 'opd_client') !== undefined) opdClientRecu(opdA(d, 'opd_client'));
-    const q = opdA(d, 'opd_fermer'); if (q !== undefined) { const m = opdA(q, 'motif'); opdFermer(m === 'role' || m === 'absent' ? m : 'fin'); }
+    const q = opdA(d, 'opd_fermer'); if (q !== undefined) { const m = opdA(q, 'motif'); opdFermer(m === 'role' || m === 'absent' ? m : 'fin'); if (m === 'entreprise' && droitVoit('entreprise')) aller('entreprise'); }
   } catch (e) { console.error('opd', e); }
 });
 /* le bouton Retour de l'atelier : le mécanisme COMMUN des calques (CAL_GENRES, « atelier ») pose et consomme son entrée d'historique ; un Retour traité DANS l'atelier (cadre) ne touche pas à la nôtre */
@@ -23302,7 +23353,7 @@ immChap('produits', 'produits', 'Fournisseurs, matériel & produits', 'Les produ
 
 immChap('stock', 'stock', 'Stock', 'Le stock : ce que tu as, et où',
   'Le stock, c’est ce que tu as, et où il se trouve : à l’atelier, dans chaque camion, dans les réserves chez les clients. Il te dit aussi ce qui manque, et c’est toi qui valides ce que les techniciens déclarent.', [
-  { c:'[data-vis="stock-envois"]', t:'D’abord, ce qui t’attend', p:'En ouvrant le Stock, une seule ligne te dit ce qui attend ton accord : ici, deux envois de techniciens. Rien ne sort du stock tant que tu n’as pas accepté.' },
+  { c:'[data-vis="stock-bandeau"]', t:'D’abord, ce qui t’attend', p:'En ouvrant le Stock, une seule ligne te dit ce qui attend ton accord : ici, deux envois de techniciens. Rien ne sort du stock tant que tu n’as pas accepté.' },
   { c:'[data-vis="stock-tuiles"]', t:'Trois chiffres qui mènent quelque part', p:'Ce qu’il y a à commander, les livraisons attendues, et ce qui manque dans les camions. Chaque tuile se touche et t’emmène là où tu agis. Quand tout est en règle, le chiffre passe au vert.' },
   { c:'[data-vis="stock-liste"]', t:'Ce qu’il faut surveiller', p:'La liste commence par ce qui demande ton attention : ce qui est déjà commandé, ce qui n’est plus en stock, ce qui est bientôt fini. Chaque ligne dit où est l’article et combien il y en a. Tape un nom dans la recherche pour le retrouver.' },
   { c:'[data-vis="stock-maj"]', t:'Un seul bouton pour dire ce qui s’est passé', p:'Sortir, ranger, déplacer, compter : tout passe par « Mettre à jour le stock ». Je le touche.',
@@ -23313,7 +23364,7 @@ immChap('stock', 'stock', 'Stock', 'Le stock : ce que tu as, et où',
     jouer:() => { immClic('[data-ms="gpour|collegue"]'); immStockPlus(() => { immEcrire('#calque [data-msg="collegue"]', 'kb'); immStockPlus(() => { const e = gdQ('#msg-q'); if (e) { e.value = 'filtre à charbon'; e.dispatchEvent(new Event('input', { bubbles:true })); } immStockPlus(() => immClic('#calque [data-ms^="gajoute|"]'), 250); }, 250); }, 250); } },
   { c:'[data-ms="genvoyer"]', t:'Je note la sortie', p:'Je touche « Noter ». Le stock baisse tout de suite, un bon de remise est fait pour Karim, et « Annuler » reste proposé huit secondes si je me suis trompé.',
     jouer:() => { immClic('[data-ms="genvoyer"]'); immStockToast(); } },
-  { c:'[data-vis="stock-envois"]', t:'Les envois des techniciens', p:'Voilà ce que Tom et Sophie ont noté depuis leur écran Mon camion. Je touche « Voir » pour lire chaque envoi en une phrase, avec ce qu’il restera en stock.',
+  { c:'[data-vis="stock-bandeau"]', t:'Les envois des techniciens', p:'Voilà ce que Tom et Sophie ont noté depuis leur écran Mon camion. Je touche « Voir » pour lire chaque envoi en une phrase, avec ce qu’il restera en stock.',
     jouer:() => immClic('[data-ms="envois"]') },
   { c:'[data-vis="stock-envois-liste"]', t:'Accepter, ou refuser en disant pourquoi', p:'Chaque envoi se lit en une phrase. Tu acceptes, ou tu refuses avec une raison que le technicien lira. Je touche « Tout accepter ».',
     jouer:() => { immClic('#calque [data-ms="toutacc"]'); immStockToast(); } },
@@ -24824,8 +24875,8 @@ const OPS_RONDS = [[16, 16], [16, 76], [16, 136], [16, 196], [76, 16], [76, 76],
 function opsRondPlacer(){ const r = document.querySelector('#opsec .ops-rond'); if (!r || !opsLarge() || !SESSION || SECU.ouvert) return;
   const cibles = []; document.querySelectorAll('#contenu button, #contenu a, #contenu [data-go], #contenu input, #contenu select, #contenu summary, #contenu [role=button], #contenu [data-eq], #contenu [data-ac]').forEach(e => { const b = e.getBoundingClientRect(); if (b.width >= 44 && b.height >= 20 && b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth && getComputedStyle(e).visibility !== 'hidden') cibles.push(b); });
   const libre = ([d, h]) => { const L = innerWidth - d - 52, T = innerHeight - h - 52, R = L + 52, B = T + 52; return !cibles.some(b => b.left < R - 0.5 && L < b.right - 0.5 && b.top < B - 0.5 && T < b.bottom - 0.5); };
-  const cur = [parseInt(r.dataset.d || 16, 10), parseInt(r.dataset.h || 16, 10)]; if (libre(cur)) return;
-  const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.dataset.d = nv[0]; r.dataset.h = nv[1]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
+  const cur = [parseInt(r.style.right || '16', 10), parseInt(r.style.bottom || '16', 10)]; if (libre(cur)) return;   /* la place se lit dans le style : une donnée data-* qui vaudrait « 16 » ressemblerait à un nombre rangé */
+  const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
 function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante); opsRondPlacer();
   for (const k in SECU.sessions) { const s = SECU.sessions[k]; if (!s.auto && SESSION === k && now - s.derniereActivite >= SECU_REGLES.inactiviteMs) { secuFermerSessions(k, 'inactif'); break; } }
   for (const k in SECU.ui) { const u = SECU.ui[k]; if (u.ecran === 'ouvert' && u.derniere && now - u.derniere >= SECU_REGLES.telVerrouMs) { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } }
@@ -25054,7 +25105,7 @@ const NV_NEUF = [
   ['planning', '🗓️', 'Le planning et sa carte', 'La journée de chaque technicien, la tournée sur la carte, les kilomètres et les retards prévus. Glisse une intervention pour la déplacer.'],
   ['comptabilite', '📊', 'La comptabilité au même endroit', 'Factures, paiements, achats, paie et contrôle « aux normes » : tout l’argent de l’entreprise se suit dans Comptabilité.'],
   ['taches', '✅', 'Les tâches se proposent toutes seules', 'Un devis à relancer, une facture en retard, une pièce à commander : OP GESTION te le propose, et la tâche se termine quand le travail est fait.'],
-  ['produits', '📦', 'Fournisseurs, matériel et produits', 'Tes fournisseurs, tes articles rangés par métier et tes commandes suivies jusqu’à la facture.'],
+  ['*materiel'],   /* la carte « Le matériel, refait » : quatre lignes, chacune ouvre SON écran (NV_MAT) */
   ['pointage', '⏱️', 'Le temps de travail jusqu’à la paie', 'Les heures de chacun, les corrections tracées, le mois confirmé puis envoyé au cabinet de paie.'],
   ['absences', '🏖️', 'Absences et congés', 'Demander, valider, voir le calendrier de l’équipe et les soldes de chacun.', 'patron'],
   ['absences', '🏖️', 'Tes congés', 'Tes soldes, ta demande de congé, et la réponse du bureau, sur ton téléphone.', 'tech'],
@@ -25062,6 +25113,13 @@ const NV_NEUF = [
   ['techfrais', '🧾', 'Tes frais', 'Un ticket en photo, une demande d’achat : tu suis la réponse du bureau.', 'tech'],
   ['moncamion', '🚐', 'Ton camion', 'Ce que tu as à bord, ce qui manque, et « Il me manque une pièce » pour le dire au bureau.', 'tech'],
   ['mesheures', '⏱️', 'Tes heures', 'Tes journées pointées, à relire et à confirmer en fin de mois.', 'tech']
+];
+/* « Le matériel, refait » (spec Matériel § 9.10) : chaque ligne ouvre l'écran qu'elle décrit, et n'est écrite que pour qui a le droit de l'ouvrir */
+const NV_MAT = [
+  ['stock', 'Stock : tape un article, tu vois où il est'],
+  ['boxes', 'Remplir les camions en un toucher'],
+  ['produits', 'Photographie une facture : le stock et les prix se mettent à jour'],
+  ['moncamion', 'Les techniciens ont enfin une recherche, dans Ton camion']
 ];
 const NV_PLACE = [
   ['Archives mensuelles', 'Statistiques › « Bilan du mois en PDF »', 'statistiques'],
@@ -25081,14 +25139,18 @@ const NV_PLACE = [
   ['Messagerie', 'Retirée d’OP GESTION : les discussions de l’équipe se font dans OP MESSAGES', null],
   ['Apparence (jour, nuit)', 'Au pied du menu : Jour · Nuit · Auto', null]
 ];
-const nvVoit = k => !k || rlPermis(k);   /* le guide ne parle que de ce que la personne a le droit d'ouvrir */
+const nvVoit = k => !k || rlPermis(k);
+function nvCarteMat(){
+  const L = NV_MAT.filter(l => l[0] !== 'moncamion' ? ROLE !== 'tech' && nvVoit(l[0]) : ROLE === 'tech' && nvVoit(l[0]));
+  return `<div class="nv-carte nv-mat fixe" role="group" aria-label="Le matériel, refait"${matVis('guide-materiel')}><span class="nv-ic" aria-hidden="true">${svg('article')}</span><span class="nv-tx"><b>Le matériel, refait</b>${L.map(([k, t]) => `<button type="button" class="nv-mlig" data-nv="aller|${k}"><span>${esc(t)}</span><span class="nv-chev" aria-hidden="true">›</span></button>`).join('')}</span></div>`;
+}   /* le guide ne parle que de ce que la personne a le droit d'ouvrir */
 let NV = null;
-function nvPages(){ const neuf = NV_NEUF.filter(x => x[4] ? ROLE === x[4] : nvVoit(x[0])), place = NV_PLACE.filter(x => !x[2] || nvVoit(x[2]));
+function nvPages(){ const neuf = NV_NEUF.filter(x => x[0] === '*materiel' ? NV_MAT.some(l => l[0] !== 'moncamion' ? ROLE !== 'tech' && nvVoit(l[0]) : ROLE === 'tech' && nvVoit(l[0])) : x[4] ? ROLE === x[4] : nvVoit(x[0])), place = NV_PLACE.filter(x => !x[2] || nvVoit(x[2]));
   const p = eqDe(SESSION) || {}, P = [];
   P.push({ k:'donnees', t:`Bienvenue dans la nouvelle version${p.prenom ? ', ' + esc(p.prenom) : ''}`, c:`<p class="nv-chapo">OP GESTION a été refait pour être plus simple et plus rapide, sur téléphone comme sur ordinateur.</p>
     <div class="nv-sur"><span class="nv-coche" aria-hidden="true">✓</span><div><b>Tout ce que tu as saisi est là.</b><span>Clients, interventions, devis, factures, stock, équipe : rien n’a été effacé, tu n’as rien à ressaisir.</span></div></div>
     <ul class="nv-points"><li>Tes identifiants ne changent pas.</li><li>Certaines catégories ont changé de place : ce guide te dit où.</li><li>Deux minutes suffisent, et tu peux le rouvrir quand tu veux.</li></ul>` });
-  if (neuf.length) P.push({ k:'neuf', t:'Ce qui est nouveau', c:`<div class="nv-liste">${neuf.map(([k, ic, t, d]) => `<button type="button" class="nv-carte" data-nv="aller|${k}"><span class="nv-ic" aria-hidden="true">${ic}</span><span class="nv-tx"><b>${esc(t)}</b><span>${esc(d)}</span></span><span class="nv-chev" aria-hidden="true">›</span></button>`).join('')}</div>
+  if (neuf.length) P.push({ k:'neuf', t:'Ce qui est nouveau', c:`<div class="nv-liste">${neuf.map(([k, ic, t, d]) => k === '*materiel' ? nvCarteMat() : `<button type="button" class="nv-carte" data-nv="aller|${k}"><span class="nv-ic" aria-hidden="true">${ic}</span><span class="nv-tx"><b>${esc(t)}</b><span>${esc(d)}</span></span><span class="nv-chev" aria-hidden="true">›</span></button>`).join('')}</div>
     <p class="gris petit nv-note">Touche une carte pour ouvrir l’écran ; le guide reste à portée, dans le menu › Nouveautés.</p>` });
   if (place.length) P.push({ k:'place', t:'Ce qui a changé de place', c:`<p class="nv-chapo">Rien n’a disparu sans raison : ces catégories ont été regroupées. À gauche, le nom d’avant ; à droite, où la retrouver.</p>
     <div class="nv-table" role="list">${place.map(([a, n, k]) => `<${k ? 'button type="button" data-nv="aller|' + k + '"' : 'div'} class="nv-ligne" role="listitem"><span class="nv-avant">${esc(a)}</span><span class="nv-fl" aria-hidden="true">→</span><span class="nv-apres">${esc(n)}</span>${k ? '<span class="nv-chev" aria-hidden="true">›</span>' : ''}</${k ? 'button' : 'div'}>`).join('')}</div>` });
@@ -25148,6 +25210,7 @@ button.nv-carte:hover,button.nv-ligne:hover{background:color-mix(in srgb,var(--l
 .nv-tx b{font-size:15px}
 .nv-tx > span{color:var(--encre2,var(--encre));opacity:.86}
 .nv-chev{flex:none;font-size:20px;opacity:.5}
+.nv-mat{align-items:flex-start}.nv-mat .nv-ic svg{width:20px;height:20px}.nv-mat .nv-tx{gap:0}.nv-mat .nv-tx b{margin-bottom:2px}.nv-mlig{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:6px 0;border:0;border-top:1px solid var(--trait);background:none;color:var(--lien);font:inherit;font-size:14px;line-height:1.35;text-align:left;cursor:pointer;opacity:1}.nv-mlig>span:first-child{flex:1 1 0;min-width:0}
 .nv-note{margin:0}
 .nv-table{display:flex;flex-direction:column;border:1px solid var(--trait);border-radius:16px;overflow:hidden}
 .nv-ligne{display:grid;grid-template-columns:minmax(0,5fr) auto minmax(0,7fr) 14px;align-items:center;gap:10px;width:100%;min-height:48px;padding:10px 12px;border:0;border-top:1px solid var(--trait);background:none;color:inherit;font:inherit;font-size:14px;line-height:1.35;text-align:left}

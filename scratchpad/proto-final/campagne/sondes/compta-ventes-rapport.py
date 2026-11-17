@@ -20,6 +20,21 @@ ecrans = [
  {"nom": "Fiche d'une facture", "fonction": "vueFacture (ligne 5302, enveloppée ligne 10722)", "acces": "une ligne de la liste, #facture-x-<id>, « Ouvrir la facture » du cadre"},
  {"nom": "Fenêtres : Ajouter, Nouvelle facture, Aperçu et envoi, Relancer, Paiement en partie, Paiement reçu, Faire un avoir", "fonction": "cxNouveau, cxNouvelleFacture, ACTIONS.apercuEnvoi / relance / partiel / ajoutEnc / avoir", "acces": "boutons de la fiche et de l'en-tête de la Comptabilité"},
 ]
+SONDES = {
+ "compta-ventes-balayage-rapide.js": "balayage de chaque geste (recensement depuis le DOM) : voir couverture ; écrans : Par intervention, Factures & avoirs, Avoirs, Comptes clients, Contrats, Paiements, Caisse & chèques (ordinateur et iPhone) ; barre d'espaces et Pilotage : balayés une fois",
+ "compta-ventes-parcours-a.js": "19 ✓ · 4 ✗ — facture à la main (défauts 01, 02, 02b, 07)",
+ "compta-ventes-parcours-b.js": "mac 25 ✓ · 3 ✗, iphone 23 ✓ · 5 ✗ (défauts 08, 08b, et leurs suites) — encaisser (entier, partiel, annuler, paiement reçu)",
+ "compta-ventes-parcours-c.js": "16 ✓ · 2 ✗ — relancer et avoirs (défauts 05, 06)",
+ "compta-ventes-parcours-d.js": "25 ✓ · 1 ✗ — liaison OP GESTION ↔ cadre (défaut 13)",
+ "compta-ventes-parcours-e.js": "mac 13 ✓ · 0 ✗, iphone 13 ✓ · 0 ✗ — droits : Julie, Sophie, Karim",
+ "compta-ventes-parcours-f.js": "26 ✓ · 0 ✗ — facture d'une intervention (2 interventions, au centime), numéros uniques",
+ "compta-ventes-parcours-g.js": "voir défauts 12 et 12b — visite d'un contrat créé puis signé",
+ "compta-ventes-parcours-h.js": "11 ✓ · 0 ✗ — un encaissement de 121,00 € vu à l'Accueil, au Pilotage, aux Paiements, aux Comptes clients, sur la fiche client",
+ "compta-ventes-parcours-i.js": "5 ✓ · 1 ✗ — 600 devis à acompte rejoués (défaut 18)",
+ "compta-ventes-parcours-j.js": "23 ✓ · 0 ✗ — gestes maladroits : double toucher, retour du navigateur, Échap et croix sur 5 fenêtres",
+ "compta-ventes-mise-en-page.js": "mac 40 ✓ · 0 ✗, windows 40 ✓ · 0 ✗, iphone 94 ✓ · 6 ✗, android 94 ✓ · 6 ✗, petit 94 ✓ · 6 ✗, ipad 94 ✓ · 6 ✗, julie iphone 47 ✓ · 3 ✗ (les ✗ sont le défaut 14)",
+ "compta-ventes-enligne.js": "3 ✓ · 1 ✗ — Paiement en ligne (défaut 20)",
+}
 defauts = [
  {"n": "compta-ventes-01", "gravite": "gênant", "ecran": "Nouvelle facture (formulaire)", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Comptabilité › Ventes › Factures & avoirs › ＋ Ajouter › Facture client ; désignation « Mise en service », quantité « -3 », prix « 100 » ; Créer la facture.",
@@ -57,7 +72,7 @@ defauts = [
   "etapes": "Fiche de FAC-2026-0128 (reste 1 240,00 €) › Paiement en partie ; effacer le montant et taper « 1 240,01 » (l'écriture que l'application affiche partout) ; Enregistrer. Même chose avec « 500 ,5 ».",
   "attendu": "Le montant est lu 1 240,01 € et refusé (« dépasse ce qu'il reste à payer »), ou lu correctement.",
   "constate": "« 1,00 € encaissés, rangés dans les paiements d'octobre » : l'espace des milliers coupe la lecture (parseFloat('1 240.01') = 1). « 500 ,5 » devient 500 €. Un paiement faux est enregistré sans un mot (le toast « Annuler » est la seule issue). Même défaut dans « ＋ Paiement reçu » (ajoutEncOk).",
-  "preuve": "sonde compta-ventes-parcours-b.js (✗ compta-ventes-08 : recu=1 ; ✗ « 500 ,5 » : recu=500)", "ou": P + ":8440 (partielOk) et 8505 (ajoutEncOk) : parseFloat(x.replace(',','.')) ; la nouvelle facture, elle, utilise cxNum (ligne 10645) qui retire les espaces",
+  "preuve": "sonde compta-ventes-parcours-b.js, ordinateur ET iPhone (✗ compta-ventes-08 : recu=1 ; ✗ « 500 ,5 » : recu=500 ; ✗ compta-ventes-08b « Paiement reçu » : « 1 114,00 » → « 1,00 € encaissés par carte »)", "ou": P + ":8440 (partielOk) et 8505 (ajoutEncOk) : parseFloat(x.replace(',','.')) ; la nouvelle facture, elle, utilise cxNum (ligne 10645) qui retire les espaces",
   "correction": "Lire les montants par cxNum (retire espaces et espaces insécables avant de remplacer la virgule) dans partielOk et ajoutEncOk ; refuser le texte qui contient autre chose que des chiffres, un espace, une virgule ou un point."},
  {"n": "compta-ventes-09", "gravite": "détail", "ecran": "Fenêtre « Nouvelle facture »", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Comptabilité › Ventes › Factures & avoirs › ＋ Ajouter › Facture client.",
@@ -84,10 +99,10 @@ defauts = [
   "preuve": "sonde compta-ventes-parcours-g.js (✗ compta-ventes-12) : lignes [\"Main-d'œuvre contrat → 54.17\",\"Déplacement La Rochelle → 29.17\"], ht 83,34 ; code : signerContrat pose les visites SANS `fact` (INTS.push({…type:'Contrat', st:'aplanifier'})), et factureDepuis ne connaît le prix du contrat que par `i.fact.mode === 'contrat'`",
   "ou": P + ":8485 (ACTIONS.signerContrat, push des visites) et factureDepuis (5264-5300, branche par défaut)",
   "correction": "À la pose des visites, ajouter `fact:{ mode:'contrat', tva:CLIENTS[k.cli].type === 'part' ? 10 : 20 }` ; dans factureDepuis, ne pas créer de facture de visite pour un contrat facturé « à l'an » (voir compta-ventes-12b si la sonde le confirme)."},
- {"n": "compta-ventes-14", "gravite": "gênant", "ecran": "Ventes › Factures & avoirs ; Trésorerie › Paiements (téléphone)", "role": "marc", "profils": ["iphone", "android"], "decision": "corriger",
+ {"n": "compta-ventes-14", "gravite": "gênant", "ecran": "Ventes › Factures & avoirs ; Trésorerie › Paiements (téléphone)", "role": "marc", "profils": ["iphone", "android", "petit", "ipad"], "decision": "corriger",
   "etapes": "Au doigt, Comptabilité › Ventes › Factures & avoirs : les pastilles « Factures et avoirs » / « Factures clients » ; Trésorerie › Paiements : « Tous les moyens », Carte, Virement, Chèque, Espèces, Prélèvement.",
   "attendu": "Chaque cible au doigt fait au moins 44 px de haut.",
-  "constate": "Toutes ces pastilles répondent sur 40 px de haut (166×40, 177×40, 67×40…) : sous le plancher tactile de 44 px. Mesuré sur iPhone et Android, jour et nuit.",
+  "constate": "Toutes ces pastilles répondent sur 40 px de haut (166×40, 177×40, 67×40…) : sous le plancher tactile de 44 px. Mesuré sur iPhone, Android, 320 px et iPad, jour et nuit (Julie, au téléphone, de même).",
   "preuve": "sonde compta-ventes-mise-en-page.js (✗ « cibles au doigt ≥ 44 px »), iphone et android", "ou": P + ":1660 (.cx-chip{min-height:40px})",
   "correction": "`.cx-chip{min-height:44px}` sous `(pointer:coarse)` (le plancher tactile se pose au doigt, pas à la largeur)."},
  {"n": "compta-ventes-15", "gravite": "gênant", "ecran": "Comptabilité du quotidien : onglets d'un espace (téléphone)", "role": "marc", "profils": ["iphone", "android"], "decision": "soumettre",
@@ -111,38 +126,53 @@ defauts = [
  {"n": "compta-ventes-12b", "gravite": "bloquant", "ecran": "Facture de la visite d'un contrat « à l'an »", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Créer un contrat facturé « une fois par an, à la signature » (600 €), le signer (la facture de l'année est préparée) ; terminer la première visite.",
   "attendu": "Le dossier de la visite dit « Couverte par le contrat » : aucune seconde facture.",
-  "constate": "Une seconde facture « Main-d'œuvre contrat 54,17 + Déplacement 29,17 » (83,34 € HT) est préparée pour la visite, en plus de la facture annuelle : le client est facturé deux fois (les contrats d'avant, eux, sont bien « couverts »).",
-  "preuve": "sonde compta-ventes-parcours-g.js (✗ compta-ventes-12b)", "ou": P + ":factureDepuis (5264) : aucun garde `contrat.fact === 'an'` avant la branche par défaut ; cxDossier ligne 10771 sait déjà dire « contrat »",
+  "constate": "Une seconde facture « Main-d'œuvre contrat 54,17 + Déplacement 29,17 + nettoyant 10,33 » (93,67 € HT) est préparée pour la visite, en plus de la facture annuelle : le client est facturé deux fois (les contrats d'avant, eux, sont bien « couverts »).",
+  "preuve": "sonde compta-ventes-parcours-g.js (✗ compta-ventes-12b : facture de visite de 93,67 € HT sur un contrat « à l'an » déjà facturé à la signature ; même constat pour un contrat « mensuel », sans verdict faute de règle écrite)", "ou": P + ":factureDepuis (5264) : aucun garde `contrat.fact === 'an'` avant la branche par défaut ; cxDossier ligne 10771 sait déjà dire « contrat »",
   "correction": "Dans factureDepuis : `const ctr = i.type === 'Contrat' && CONTRATS.find(k => k.cli === i.cli && k.st === 'signe'); if (ctr && ctr.fact === 'an') return;`."},
  {"n": "compta-ventes-13", "gravite": "gênant", "ecran": "Cadre « OP COMPTABLE » — Voir le PDF d'une facture", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Menu Comptabilité › cadre › Ventes et encaissements › FAC-2026-0128 › Voir le PDF.",
   "attendu": "Le même document que la facture d'OP GESTION (désignation complète, mentions, coordonnées de paiement), sans phrase de démonstration.",
-  "constate": "Un document simplifié d'une ligne (« Installation pompe à chaleur », sans « — main-d'œuvre et déplacement », sans IBAN, sans mentions légales) et la phrase « Aperçu de démonstration : le vrai PDF part avec la facture, depuis OP GESTION. » : deux documents différents pour une même facture, et un reste d'échafaudage. « Total à payer : 1240,00 € » perd aussi l'espace des milliers.",
+  "constate": "Un document simplifié d'une ligne (« Installation pompe à chaleur », sans « — main-d'œuvre et déplacement », sans IBAN, sans mentions légales) et la phrase « Aperçu de démonstration : le vrai PDF part avec la facture, depuis OP GESTION. » : deux documents différents pour une même facture, et un reste d'échafaudage.",
   "preuve": "sonde compta-ventes-parcours-d.js (✗ compta-ventes-13) ; capture d-mac-marc-cadre-pdf.png", "ou": "apercu/prototype-comptabilite.html:cmptPdf (vers la ligne 3380)",
-  "correction": "Faire demander le PDF à OP GESTION (message `opc_pdf`, réponse `pdfFacture(f)` rendu dans la fenêtre) ou, à défaut, ouvrir la fiche d'OP GESTION (« Voir la facture ») ; retirer la phrase « Aperçu de démonstration » ; `eur()` partout pour « Total à payer »."},
+  "correction": "Faire demander le PDF à OP GESTION (message `opc_pdf`, réponse `pdfFacture(f)` rendu dans la fenêtre) ou, à défaut, ouvrir la fiche d'OP GESTION (« Voir la facture ») ; retirer la phrase « Aperçu de démonstration »."},
  {"n": "compta-ventes-18", "gravite": "détail", "ecran": "Facture d'acompte et facture du solde d'un devis", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Devis accepté avec acompte de 50 % (exemple : TTC 2 633,94 €) ; préparer la facture d'acompte, puis celle du solde.",
   "attendu": "Acompte TTC + solde TTC = TTC du devis, au centime (1 316,98 + 1 316,96 = 2 633,94).",
   "constate": "Les deux factures sont arrondies chacune de leur côté : 1 316,98 + 1 316,98 = 2 633,96 € facturés pour un devis de 2 633,94 € (+0,01 ou −0,01 € sur 3 devis sur 600 rejoués, tous à 50 %).",
   "preuve": "sonde compta-ventes-parcours-i.js : 600 devis fabriqués, vraies fonctions dvAcompte et factureDepuis ; 3 écarts d'un centime, D-2026-9226, 9401 et 9539", "ou": P + ":dvAcompte (7834) et factureDepuis (5280-5282, ligne « Acompte … déjà facturé »)",
   "correction": "Calculer l'acompte HT d'une seule façon (arrondi du HT × acompte %), l'écrire sur le devis (`x.acompteHT`), et déduire EXACTEMENT ce montant sur la facture du solde au lieu de le recalculer."},
+ {"n": "compta-ventes-19", "gravite": "gênant", "ecran": "Porte « Comptabilité » du menu → cadre « OP COMPTABLE »", "role": "marc", "profils": ["mac"], "decision": "soumettre",
+  "etapes": "Menu › Comptabilité (sous-titre « Factures, paiements, paie »).",
+  "attendu": "On arrive sur ce que le sous-titre promet : les factures et les paiements.",
+  "constate": "On arrive dans une fenêtre plein écran « OP COMPTABLE » (« Bienvenue dans OP COMPTABLE… Pilote automatique / Je valide moi-même », menu de comptable : À vérifier, Ce qui s'est fait tout seul, Fin de mois…). La liste des factures n'est qu'au second geste, par le petit bouton « Factures et paiements » en haut à droite de la fenêtre, ou par « Ventes et encaissements » dans son menu. Un artisan qui cherche sa facture ne sait pas que « Factures et paiements » est la bonne porte ; deux noms (« Comptabilité » au menu, « OP COMPTABLE » dans la fenêtre) pour une même chose.",
+  "preuve": "capture explore-mac-cadre.png ; sonde compta-ventes-parcours-d.js (barre du cadre : « Retourner à OP GESTION · Menu · OP COMPTABLE · Factures et paiements »)", "ou": P + ":13360 (clic sur #menu a[href=\"#comptabilite\"] → cpSysteme = true, cpSysMaj) et cpSysMaj (barre du cadre, vers 13350)",
+  "correction": "À soumettre à Justin (il a dit « Comptabilité, ça c'est bon ») : ouvrir d'abord « Factures et paiements » pour le gérant et le bureau, et mettre « Ouvrir la comptabilité complète » dans cet écran (ce que fait déjà la carte « Ouvrir dans la Comptabilité » du Pilotage) ; sinon, au minimum, donner à la fenêtre le même nom que le menu et mettre « Factures et paiements » en bouton principal."},
+ {"n": "compta-ventes-20", "gravite": "bloquant", "ecran": "Trésorerie › Paiement en ligne", "role": "marc", "profils": ["mac"], "decision": "soumettre",
+  "etapes": "Comptabilité › Trésorerie › « Paiement en ligne » (ou Menu › Comptabilité › Trésorerie).",
+  "attendu": "Un écran du logiciel qui fait payer SES factures : celles d'OP GESTION, avec les mêmes numéros, clients et montants.",
+  "constate": "Un module de test intégré tel quel : bandeau « PROTOTYPE · OP GESTION », « Tests 0 / 25 », « + 1 jour · + 1 semaine · Jusqu'au prochain événement », « Recommencer », « ＋ Nouvelle facture de test », et la phrase « Pour l'instant, il a ses propres factures d'exemple ; dans la vraie version, ce sont celles de ta Comptabilité. ». Ses factures (FAC-2026-0147 « Restaurant Le Vieux Port, Remplacement du ventilateur extérieur 1 284,00 € Brouillon », 0145, 0144, 0143) ne sont pas celles d'OP GESTION (qui s'arrête à FAC-2026-0145 : la 0147 y n'existe pas encore) : deux jeux de factures, sous des numéros qui se recoupent. Le module n'est pas relié (confirme l'indice de MENU-FINAL) ; le renvoi d'un paiement vers OP GESTION n'a pas été joué.",
+  "preuve": "sonde compta-ventes-enligne.js (✗ compta-ventes-20 : numéros du cadre [0147, 0145, 0144, 0143] contre [0145 … 0121] côté OP GESTION) ; capture enligne-mac-1.png", "ou": P + ":cxVueEnLigne (vers 11380, iframe prototype-paiement.html sans liaison, alors que la Comptabilité reçoit ses factures par opLiaDonnees)",
+  "correction": "À soumettre (travail de fond) : donner à prototype-paiement.html, en mode application, les factures d'OP GESTION par le même message que la Comptabilité (`opc_ventes`), renvoyer les paiements par `opc_paiement` (déjà géré côté OP GESTION), cacher le harnais de test (« PROTOTYPE », « Tests », « + 1 jour », « Recommencer », « Nouvelle facture de test ») sous `html[data-app]`, et retirer la phrase « dans la vraie version »."},
 ]
 J = {
  "partie": "compta-ventes", "date": "2026-11-17",
+ "numerotation": "Les numéros 03 et 04 ont été écartés : c'étaient des erreurs de la sonde (un reste dû non arrondi ; un contrôle sans objet), pas des défauts. Les numéros sont gardés tels quels car les noms des contrôles des sondes les portent.",
  "ecrans": ecrans,
  "couverture": {"ecrans": len(ecrans), "gestesRecenses": 0, "gestesTouches": 0, "parcours": 6, "profils": []},
  "nonCouvert": [],
  "defauts": defauts,
 }
 # couverture lue depuis les balayages déjà écrits
-tot, tou, profs = 0, 0, set()
-for f in os.listdir(D):
+tot, tou, profs, vus = 0, 0, set(), {}
+for f in sorted(os.listdir(D), key=lambda n: (n.count('-'), n)):   # ordre alphabétique : un fichier de reprise (suffixe) passe APRÈS le fichier complet et remplace son écran
     if f.startswith('balayage-compta-ventes-') and f.endswith('.json'):
         d = json.load(open(os.path.join(D, f)))
         if 'profil' not in d: continue
         profs.add(d['profil'])
-        for k, v in d['sorties'].items(): tot += v['recenses']; tou += v['touches']
-J['couverture'].update({"gestesRecenses": tot, "gestesTouches": tou, "profils": sorted(profs)})
+        for k, v in d['sorties'].items(): vus[k] = v
+for k, v in vus.items(): tot += v['recenses']; tou += v['touches']
+J['couverture'].update({"gestesRecenses": tot, "gestesTouches": tou, "profils": ["mac", "windows", "ipad", "iphone", "android", "petit"], "profilsDuBalayage": sorted(profs), "parcours": 10})
+J['sondes'] = SONDES
 extra = os.path.join(D, 'compta-ventes-extra.json')   # constats ajoutés par les lots suivants (même forme), pour ne pas retoucher ce fichier
 if os.path.exists(extra):
     e = json.load(open(extra)); J['defauts'] += e.get('defauts', []); J['nonCouvert'] += e.get('nonCouvert', []); J['couverture'].update(e.get('couverture', {}))
