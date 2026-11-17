@@ -17,6 +17,9 @@ const I = require('./interventions-outils.js'), L = I.L;
   v('R1 le secrétariat voit tout et peut créer', lignes.julie.n >= 24 && lignes.julie.creer, lignes.julie);
   v('R1 une technicienne n’a pas de bouton « Nouvelle intervention »', !lignes.sm.creer, lignes.sm);
   v('R1 une technicienne ne voit que SES interventions (ou est renvoyée vers sa journée)', lignes.sm.n === null || lignes.sm.n < lignes.marc.n, lignes.sm);
+  // la note « ton compte ne peut pas créer » (droits d'Équipe) ne doit pas se poser sur le terrain d'une technicienne qui n'a rien à créer
+  for (const q of ['sm', 'tl']) { await qui(q, 'majournee'); await L.calme(p, 500); const n1 = await ev(() => { const e = document.querySelector('#contenu .droits-note'); return e ? e.textContent.trim().slice(0, 90) : null; }); await L.aller(p, 'inter-x-' + (q === 'sm' ? 'i2' : 'i7')); const n2 = await ev(() => { const e = document.querySelector('#contenu .droits-note'); return e ? e.textContent.trim().slice(0, 90) : null; });
+    v(`interventions-05 : ${q} (technicien) ne lit pas « ton compte ne peut pas créer » sur Ma journée ni sur sa fiche`, !n1 && !n2, { journee: n1, fiche: n2 }); }
   // ── R2 ouvrir la fiche d'un collègue
   for (const [q, id, de] of [['sm', 'i7', 'Tom'], ['tl', 'i1', 'Sophie']]) {
     await qui(q, 'majournee'); await L.aller(p, 'inter-x-' + id); const e = await L.etat(p), t = await ev(() => (document.getElementById('toast') || {}).textContent || '');
@@ -37,6 +40,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await L.aller(p, 'inter-x-i9'); await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(1200); await p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }); await L.calme(p, 500);
   const e5 = await L.etat(p); console.log('  · après rechargement :', JSON.stringify({ hash: e5.hash, h1: e5.h1, cnx: e5.cnx }));
   v('R5 recharger la page sur une fiche rouvre cette fiche (ou l’écran de connexion, jamais un écran cassé)', (/inter-x-i9/.test(e5.hash) && /Dépannage/.test(e5.h1)) || e5.cnx, e5);
+  // (le retour du navigateur et « ‹ Retour » se jouent dans interventions-retour.js : une session neuve, sans changement de personne qui brouille l'historique)
   console.log('  · erreurs de page :', c.err.length, c.err.slice(0, 3)); v('aucune erreur JavaScript pendant tout le parcours', c.err.length === 0, c.err.slice(0, 3));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.log('PLANTÉ', e.message); try { await L.fermer(); } catch (x) {} process.exit(2); });
