@@ -25,7 +25,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await L.toucher(c, '[data-dvn="creer|1"]'); await L.calme(p, 700);
   let ap = await cles(); const k1 = ap.find(k => !base.includes(k)); v('P1 : le devis rapide crée le client (' + k1 + ')', !!k1, ap);
   const info1 = await p.evaluate(k => ({ c: CLIENTS[k], g: CR_GEO[k] || null, s: SECT_CLI[k] || null, dv: DV.filter(d => d.cli === k).map(d => d.objet) }), k1);
-  v('P1 : fiche créée = Sophie Lemoine, particulier, téléphone gardé tel qu’on l’a tapé (' + info1.c.tel + ')', info1.c.nom === 'Sophie Lemoine' && info1.c.type === 'part' && /^\+33 6 12 98 76 54$/.test(info1.c.tel), info1.c);
+  v('P1 : fiche créée = Sophie Lemoine, particulier, téléphone écrit à la française (« +33 » devient « 0 », décision du 17 novembre) (' + info1.c.tel + ')', info1.c.nom === 'Sophie Lemoine' && info1.c.type === 'part' && /^06 12 98 76 54$/.test(info1.c.tel), info1.c);
   v('P1 : point sur la carte et secteur (' + JSON.stringify(info1.g) + ', ' + info1.s + ')', !!info1.g && !!info1.s, info1);
   v('P1 : le devis est à son nom (' + info1.dv.join(' | ') + ')', info1.dv.length === 1, info1);
   console.log('  · après la création : ' + (await hash()) + ' · « ' + (await h1()) + ' »');
@@ -37,7 +37,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await p.fill('[data-cherche]', ''); await L.aller(p, 'client-x-' + k1); await L.capture(c, CAP + 'p1-fiche-' + ETQ + '.png');
   const fiche1 = await p.evaluate(() => ({ h1: document.querySelector('#contenu h1').textContent, kpi: [...document.querySelectorAll('#contenu .kpis .kpi')].map(e => e.textContent.replace(/\s+/g, ' ').trim()), appeler: (document.querySelector('.tete-client a[href^="tel"]') || {}).href || null, mail: (document.querySelector('.tete-client a[href^="mailto"]') || {}).href || null, devis: [...document.querySelectorAll('#contenu .col .carte')].map(e => e.innerText.replace(/\s+/g, ' ').slice(0, 90)) }));
   v('P1 : fiche : « Appeler » compose le numéro, sans espace (' + fiche1.appeler + ')', /^tel:\+?\d{9,}$/.test(fiche1.appeler || ''), fiche1);
-  v('P1 : fiche : « E-mail » ouvre le courriel (' + fiche1.mail + ')', /^mailto:sophie\.lemoine@mail\.fr/.test(fiche1.mail || ''), fiche1);
+  v('P1 : fiche : « E-mail » ouvre l’e-mail (' + fiche1.mail + ')', /^mailto:sophie\.lemoine@mail\.fr/.test(fiche1.mail || ''), fiche1);
   v('P1 : le devis paraît sur la fiche (colonne Devis)', fiche1.devis.some(t => /Remplacement de la climatisation/.test(t)), fiche1.devis);
   await garde('P1 fiche');
   // intervention depuis la fiche : le client est déjà choisi
@@ -60,7 +60,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await L.toucher(c, '#contenu [role=tab][data-oc="contrats"]'); await L.toucher(c, '[data-action="contratPour"]'); await L.calme(p, 500);
   v('P1 : « Proposer un contrat » ouvre le contrat pour CE client (' + (await hash()) + ')', /contrat-nouveau/.test(await hash()) && (await p.evaluate(() => BROUILLON.cli)) === k1, await hash());
   await L.capture(c, CAP + 'p1-contrat-' + ETQ + '.png'); await garde('P1 contrat');
-  await L.toucher(c, '#contenu .retour'); await L.calme(p, 400);
+  await L.toucher(c, '#contenu [data-rl="retour"], #contenu .retour'); await L.calme(p, 400);   /* en mode application, rlRetourBouton remplace « .retour » par « .rl-retour » */
   v('P1 : « ‹ Retour » ramène à la fiche de Sophie Lemoine (' + (await hash()) + ' · « ' + (await h1()) + ' »)', (await h1()) === 'Sophie Lemoine', await hash());
 
   // ───────── P2 ─────────

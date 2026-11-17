@@ -193,7 +193,7 @@ J['nonCouvert'] += [
  "Le balayage geste par geste n'a été joué qu'à l'ordinateur (Mac) et à l'iPhone ; Windows, iPad, Android et 320 px ont la mise en page (jour et nuit, captures regardées) et les parcours E/B sur iPhone, pas le balayage de chaque geste.",
  "Un paiement fait DANS le module « Paiement en ligne » et son renvoi vers OP GESTION : le module n'est pas relié (défaut 20), le renvoi n'a donc pas été joué.",
  "Le cadre « OP COMPTABLE » au téléphone : l'ouverture par l'onglet « Comptabilité » de la barre du bas a été essayée à l'iPhone (voir cadre-iphone dans les captures) ; ses écrans de comptable (écritures, TVA, banque) ne sont pas de cette partie.",
- "La vraie réception d'un courriel de relance et le vrai PDF téléchargé : le prototype n'envoie rien (non défauts).",
+ "La vraie réception d'un e-mail de relance et le vrai PDF téléchargé : le prototype n'envoie rien (non défauts).",
 ]
 extra = os.path.join(D, 'compta-ventes-extra.json')   # constats ajoutés par les lots suivants (même forme), pour ne pas retoucher ce fichier
 if os.path.exists(extra):

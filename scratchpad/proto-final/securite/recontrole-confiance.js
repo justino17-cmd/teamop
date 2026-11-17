@@ -58,7 +58,7 @@ const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db1
     L.v('4. un fournisseur ne se voit pas rattacher la commande d\'un AUTRE fournisseur (« Mettre à jour la livraison »)', !r4.cmd, r4);
   } else console.log('  · 4. non jouable : pas de commande d\'un autre fournisseur dans la démonstration', JSON.stringify({ four: D.four, cmdAutre: D.cmdAutre }));
   // ═══ 5. un courriel SANS champ « mail » : l'application plante-t-elle ? ═══
-  const r5 = await p.evaluate(async () => { const err = []; const h = e => err.push(e.message); window.addEventListener('error', h);
+  const r5 = await p.evaluate(async () => { const err = []; const h = e => { if (!/ResizeObserver/.test(e.message)) err.push(e.message); };   /* le bruit connu du navigateur ne compte pas (les autres sondes le filtrent aussi) */ window.addEventListener('error', h);
     let lu = 'ok'; try { const m = mlM('rcn', AUJ, '12:40', { nom: 'Sans adresse' }, 'Bonjour', 'Un message sans en-tête d\'adresse.', {}); MAILS.push(m); mlLire(m); } catch (e) { lu = 'exception : ' + e.message.slice(0, 80); }
     let rendu = 'ok'; try { aller('accueil'); await new Promise(r => setTimeout(r, 500)); aller('boiteMail'); await new Promise(r => setTimeout(r, 900)); COURRIER.inst.rafraichir(); await new Promise(r => setTimeout(r, 600)); } catch (e) { rendu = 'exception : ' + e.message.slice(0, 80); }
     window.removeEventListener('error', h); return { lu, rendu, err: err.slice(0, 3), nContenu: (document.getElementById('contenu') || {}).innerText ? document.getElementById('contenu').innerText.length : 0 }; });

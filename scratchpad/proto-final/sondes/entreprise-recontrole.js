@@ -157,8 +157,8 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
     const r = await c.p.evaluate(() => { const n = document.querySelector('.droits-note'); const racine = [...document.querySelectorAll('*')].find(e => e.shadowRoot); const ombre = racine && racine.shadowRoot; const btns = ombre ? [...ombre.querySelectorAll('button')].filter(b => b.offsetParent !== null || b.getClientRects().length).map(b => (b.getAttribute('aria-label') || b.title || b.textContent || '').trim().slice(0, 30)).filter(Boolean) : [];
       return { note:!!n, ombre:!!ombre, boutons:btns.slice(0, 30), phrases:DROIT_PHRASES.com }; });
     console.log('  · boîte mail, Voir seul : boutons du module = ' + JSON.stringify(r.boutons));
-    v('r08 : la note « tu peux regarder, pas le modifier » n’est pas posée (elle mentirait)', !r.note, r);
-    v('r08 (reste connu) : un « Voir » seul peut encore écrire / répondre / supprimer dans la boîte — à dire à Justin', r.boutons.some(b => /nouveau|écrire|répondre|supprimer|archiv|corbeille/i.test(b)) || !r.ombre, r.boutons);
+    v('r08 : la note « tu peux regarder, pas le modifier » est posée (le module lit désormais les droits : elle dit vrai)', r.note, r);
+    v('r08 (réglé aux restes, tour 1) : un « Voir » seul ne peut ni écrire, ni répondre, ni archiver, ni supprimer dans la boîte (la note du pied est posée, elle dit vrai)', r.ombre && !r.boutons.some(b => /^(nouveau message|répondre|archiver|supprimer|transférer|drapeau)/i.test(b)), r.boutons);
     await L.capture(c, CAP + 'r08-mail-voir-seul.png', false); await L.fin(c); }
 
   // ───── R09 : « Composer » demande Créer ; rouvrir demande Modifier — par TOUS les chemins visibles (devis, contrats, fiche client)

@@ -41,5 +41,7 @@ const etat = p => p.evaluate(() => ({ visite: !!document.getElementById('gd-bull
   await p.keyboard.press('Escape'); await p.waitForTimeout(250);
   v('aucune erreur de console', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
-  L.bilan();
-})();
+  // la sonde rend sa place de navigateur et SORT : sans cela le processus reste vivant jusqu'au délai et garde une des quatre places de la machine (vu le 17 novembre, restes coque tour 2)
+  await L.fermer();
+  process.exit(L.bilan() ? 1 : 0);
+})().catch(e => { console.error('SONDE MORTE', e); process.exit(2); });
