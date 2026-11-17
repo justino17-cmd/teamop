@@ -186,7 +186,7 @@ Trois défauts de MES consignes trouvés et corrigés ce matin, qui ralentissaie
 rejouait les sondes de TOUS les lots (des heures de navigateur : une voie a tourné en rond 3 h 30) ; un agent attendait par une
 boucle sans pause (un cœur entier) ; un autre tuait les sondes des autres par motif (`pkill -f`). Les trois sont dans `REGLES`.
 
-⛔⛔⛔ **DERNIER ORDRE DE JUSTIN, 17 NOVEMBRE, 18 H (heure française) — ON QUITTE GITHUB TOTALEMENT, EN UN SEUL DÉMÉNAGEMENT. LIRE
+⛔⛔⛔ **DERNIER ORDRE DE JUSTIN, 17 NOVEMBRE, 17 H 10 (heure française) — ON QUITTE GITHUB TOTALEMENT, EN UN SEUL DÉMÉNAGEMENT. LIRE
 CECI AVANT TOUT LE RESTE : il REMPLACE « l'ordre recommandé » écrit plus bas (site d'abord, GitHub gardé comme atelier).**
 Mot pour mot : « Et pourquoi on ne fait pas un système de GitHub sur notre serveur ? Comme ça, on peut tout transférer avant,
 demain, pour éviter de devoir tout faire demain et après quitter GitHub, tu vois. Je préfère quitter GitHub, faire toutes les
@@ -213,7 +213,7 @@ l'application ») et chantier B (sécurité, OP Security, clés d'accès), joué
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
-⛔⛔ **FIN DE JOURNÉE DU 17 NOVEMBRE, 17 H 15 (heure française) — VERSION 66 PUBLIÉE, PLUS RIEN NE TOURNE. LIRE CECI EN PREMIER.**
+⛔⛔ **FIN DE JOURNÉE DU 17 NOVEMBRE, 17 H (heure française) — VERSION 66 PUBLIÉE, PLUS RIEN NE TOURNE. LIRE CECI EN PREMIER.**
 Reprise programmée le 18 à 22 h 10 (`trig_01ARF4xswzMN4Z5rmX7c9NfF`) : CHANTIER 0 SEULEMENT (« tout servir depuis notre serveur »,
 bloc « NOUVEL ORDRE DE PRIORITÉ » plus bas) ; le prototype (chantier A) et OP Security ↔ OP GESTION (chantier B) restent en pause
 jusqu'à sa fin. Aucune session sœur, aucun workflow, aucune tâche de fond ne tourne.
@@ -251,14 +251,14 @@ paquet (vers `/home/user/op-security`). Le kit de Justin se relit par son artefa
 **Ce qu'on sait de l'hébergement (relu dans ce fichier le 17)** : le serveur (`api.teamop.fr`) est un serveur privé virtuel chez
 IONOS, environ 2 cœurs d'après la mesure de la transcription du 11 octobre (mémoire et disque non notés) ; les DNS et la messagerie
 de teamop.fr étaient chez OVH le 9 octobre (`dns200.anycast.me`), avec un passage à Cloudflare proposé et jamais confirmé — À LUI
-FAIRE CONFIRMER avant de préparer la bascule. Justin, 17 h : « ce qu'il faudrait faire, c'est sur IONOS trouver un plus gros
+FAIRE CONFIRMER avant de préparer la bascule. Justin, 16 h 55 : « ce qu'il faudrait faire, c'est sur IONOS trouver un plus gros
 serveur pour faire tout ce qu'on fait, non ? Ou le serveur que j'ai suffit. » Répondu : le serveur actuel suffit très probablement
 pour servir le site (des pages, c'est peu à côté de l'API, d'OP MESSAGES et de la transcription) ; on le MESURE avant de décider —
 commande à lui faire lancer sur le serveur, sans secret : `nproc && free -h && df -h / && uptime` ; l'offre IONOS « Hébergement Web
 Premium » (0 € trois mois puis 16 € HT par mois, douze mois) n'est PAS la bonne (hébergement mutualisé : ne fait pas tourner notre
 serveur) — s'il veut profiter des promotions, c'est un serveur privé virtuel, utile seulement comme serveur d'ESSAI à part ; GitHub
 Pro n'est plus nécessaire.
-**Sa crainte, à traiter DANS le plan du chantier 0** — Justin, 17 h 30 : « si on transfère tout le projet GitHub au serveur, il
+**Sa crainte, à traiter DANS le plan du chantier 0** — Justin, 17 h : « si on transfère tout le projet GitHub au serveur, il
 risque pas d'avoir des latences ou autre ». Répondu : on ne déménage pas le projet (le code reste sur GitHub, en privé), seulement
 les pages publiées ; pour des clients en France l'écart est de quelques millisecondes, et l'application reste rangée sur l'appareil
 après la première ouverture. Le plan doit donc PORTER, chiffres à l'appui : (1) une mesure avant / après (accueil, application,
@@ -267,7 +267,7 @@ compression et le cache réglés par nous (poids mesuré le 17 : `app.html` 4,96
 0,38 Mo) ; (3) les deux vrais risques, dits tels quels : une panne du serveur arrête le site ET l'API ensemble, et un pic ou une
 attaque arrive droit sur lui, là où GitHub l'absorbait — avec l'option d'un réseau de protection et d'accélération devant
 (Cloudflare, déjà proposé le 9 octobre), à lui faire trancher.
-**Idée de Justin pour le chantier B (17 novembre, 17 h 45) — LES CLÉS D'ACCÈS, « comme Apple ».** Mot pour mot : « on peut proposer
+**Idée de Justin pour le chantier B (17 novembre, 17 h) — LES CLÉS D'ACCÈS, « comme Apple ».** Mot pour mot : « on peut proposer
 aux utilisateurs d'enregistrer une clé d'accès. Que quand ils se reconnectent avec leur téléphone, ils ont une clé d'accès qui est
 valable un certain temps. Une fois qu'ils l'ont perdue, il faut qu'ils refassent les démarches. Je sais pas comment ça fonctionne
 exactement, mais je sais que Apple le fait ». Répondu : oui, c'est la norme des clés d'accès (WebAuthn) — le téléphone fabrique une
@@ -285,7 +285,7 @@ un chemin de secours pour un téléphone trop ancien (mot de passe + confirmatio
 le point faible (c'est lui qu'un pirate vise) : mot de passe du compte ET code d'un administrateur, comme déjà décidé. Côté code :
 la vérification au serveur se fait à la main avec `node:crypto` ou par une bibliothèque relue — à trancher dans le plan (règle du
 dépôt : pas de dépendance de plus sans raison, mais c'est une pièce de sécurité).
-**Sa question suivante, à traiter AUSSI dans le plan du chantier 0** — Justin, 17 h 50 : « pourquoi on quitte pas totalement GitHub
+**Sa question suivante, à traiter AUSSI dans le plan du chantier 0** — Justin, 17 h 05 : « pourquoi on quitte pas totalement GitHub
 pour tout faire, nous, sur nos propres serveurs avec tous nos hébergements ? Ça me paraît beaucoup plus logique, non ? ». Répondu,
 faits relus le 17 : après le chantier 0, plus rien de ce qu'un CLIENT touche ne passe par GitHub ; il n'y reste que l'ATELIER — le
 code et son historique, les vérifications avant chaque mise en ligne (`ci.yml`, `verification.yml`, les bancs de `deploiement*.yml`),
@@ -350,7 +350,7 @@ posée le 17 à 14 h 40 : dépôt `teamop`, public comme tout le reste, ou dép�
 (jusqu'ici tout n'avait été que lu) par un workflow de quatre agents sur la machine du chef — lancer OP Security et jouer ses
 parcours (ordinateur et téléphone simulé), jouer quinze attaques contre elle, jouer la sécurité d'OP GESTION (copie de la branche
 de production) sur un jumeau local, puis vérifier et résumer. Tout est dans `/home/user/op-security/essais-17nov/` (hors dépôt ;
-depuis 17 h les rapports et le paquet des scripts sont dans le document privé — bloc « FIN DE JOURNÉE » en tête ; le kit se relit par l'artefact noté dans
+depuis 16 h 45 les rapports et le paquet des scripts sont dans le document privé — bloc « FIN DE JOURNÉE » en tête ; le kit se relit par l'artefact noté dans
 `/home/user/op-security/LISEZMOI.md`, le plan par https://claude.ai/artifact/7Bnkm4hvvHPBdac4EJuDTt). À LA REPRISE du 18 :
 le chantier « relier OP Security à OP GESTION » démarre sur une COPIE D'ESSAI (jumeau local : vrai serveur isolé, page bêta,
 application de téléphone du kit), marche par marche selon le plan, chaque marche testée et attaquée ; aucune mise en ligne.
