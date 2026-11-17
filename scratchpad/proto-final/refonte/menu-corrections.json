@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-17",
+  "lot": "menu final, étape 1 sur 2 (finir-corrections)",
+  "liste_des_defauts": "scratchpad/proto-final/refonte/menu-relecture-reconstituee.json (reconstituée : l'originale est perdue)",
+  "corrections": [
+    { "defaut": 1, "commit": "e4bd24d", "sonde": "menu-defilement.js", "bilan": "60 ✓ · 0 ✗" },
+    { "defaut": 2, "commit": "e4bd24d", "sonde": "menu-conges-bureau.js", "bilan": "30 ✓ · 0 ✗" },
+    { "defaut": 3, "commit": "e4bd24d", "sonde": "menu-conges.js", "bilan": "22 ✓ · 0 ✗" },
+    { "defaut": 4, "commit": "e4bd24d", "sonde": "menu-routes.js", "bilan": "100 ✓ · 0 ✗" },
+    { "defaut": 5, "commit": "e4bd24d", "sonde": "relire-menu-telephone-2.js", "bilan": "56 ✓ · 1 ✗ (écart de mesure nommé, défaut 7)" },
+    { "defaut": 6, "commit": "17d771e", "sonde": "menu-poste.js", "bilan": "25 ✓ · 0 ✗", "mutation": "23 tombe (5 ✓ · 20 ✗)" },
+    { "defaut": 8, "commit": "(cette poussée)", "sonde": "menu-renommages.js", "bilan": "18 ✓ · 0 ✗", "mutation": "24 tombe (17 ✓ · 1 ✗)" }
+  ],
+  "sondes_rejouees": {
+    "menu-ordinateur": "300 ✓ · 0 ✗", "menu-telephone": "445 ✓ · 0 ✗", "menu-nu": "12 ✓ · 0 ✗", "menu-echafaudage": "9 ✓ · 0 ✗", "menu-memoire": "25 ✓ · 0 ✗",
+    "menu-pack3d": "17 ✓ · 0 ✗", "menu-visites": "8 ✓ · 0 ✗", "relire-menu-telephone (iphone, android, petit, jour/nuit, gérant/bureau/technicienne, jusqu'à petit/jour/marc avant le délai)": "1455 ✓ · 0 ✗",
+    "relire-menu-telephone-3": "140 ✓ · 0 ✗", "relire-menu-telephone-4": "61 ✓ · 0 ✗"
+  },
+  "mutations": "24 jouées, 24 tombent, 0 vivante (22 d'avant + 23 et 24 ajoutées)"
+}
