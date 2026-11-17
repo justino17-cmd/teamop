@@ -1673,7 +1673,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .xy-r{display:flex;flex-direction:column;gap:2px;position:sticky;top:14px}.xy-r .ligne span{font-size:14px}.xy-t b,.xy-t span{font-weight:750}.xy-r .btn{margin-top:12px}
 @media (max-width:1080px){.d3-carte-g,.xy-g{grid-template-columns:minmax(0,1fr)}.xy-r{position:static}}   /* « 1fr » = minmax(auto,1fr) : le relevé en cours, dont un bouton ne se coupait pas, poussait toute la carte 13 px hors d'un écran de 360 (regard gérant F) */
 @media (max-width:760px){.d3-tr{grid-template-columns:62px minmax(0,1fr) auto;gap:2px 10px}.d3-tr>span:nth-child(3),.d3-tr>span:nth-child(4),.d3-tr>span:nth-child(5){grid-column:2;font-size:12.5px;color:var(--doux)}.d3-tr>span:nth-child(3)::before{content:'Type : '}.d3-tr>span:nth-child(4)::before{content:'N° d’AMM : '}.d3-tr>span:nth-child(5)::before{content:'Lot '}.d3-tr>span:nth-child(6){grid-column:3;grid-row:1}
-  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
+  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-lien>.actions{flex:1 1 100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
 .t-ctx [data-taller]{font-weight:650}
 /* ══ Comptabilité (7 novembre 2026) : une catégorie, six rubriques ══ */
 .cx-nav{display:flex;gap:4px;padding:4px;border-radius:15px;background:var(--surf-in);border:1px solid var(--trait);overflow-x:auto;scrollbar-width:none}
@@ -5567,7 +5567,9 @@ const ligneOk = l => l.pu != null && String(l.d || '').trim() !== '';
 const lignesDe = f => f.lignes || [{ d:f.objet.replace(/ · .*/,'') + ' — main-d’œuvre et déplacement', q:'1', pu:f.ht }];
 /* UNE seule fonction pour le total d'une ligne : celle du total de la facture (17/11, compta-ventes-11 : « Prix HT » voulait dire tantôt l'unité,
    tantôt la ligne ; la fiche, le PDF et le total de la facture lisent maintenant la même multiplication) */
-const qteDe = l => parseFloat(String(l.q).replace(',','.')) > 0 && !/[a-z]/i.test(l.q) ? parseFloat(String(l.q).replace(',','.')) : 1;
+/* Une quantité TAPÉE (« 2 h », « 250 mL », « 1 000 ») multiplie par son nombre (l.qn, posé à la saisie) : avant, tout ce qui portait une lettre comptait pour 1 — « 2 h × 100 € » faisait 100 €, sans un mot.
+   Les lignes préparées par OP GESTION (« 1h30 » avec le prix de la durée entière) n'ont pas de qn et gardent leur règle : la durée est déjà dans le prix. */
+const qteDe = l => typeof l.qn === 'number' && l.qn > 0 ? l.qn : parseFloat(String(l.q).replace(',','.')) > 0 && !/[a-z]/i.test(l.q) ? parseFloat(String(l.q).replace(',','.')) : 1;
 const totLigne = l => (l.pu || 0) * qteDe(l);
 const htDe = f => lignesDe(f).reduce((s,l) => s + totLigne(l), 0);
 /* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
@@ -8197,7 +8199,7 @@ function vueDevis(){
     <div class="gris petit" style="display:flex;flex-direction:column;gap:6px"><span>• À la fin d’une intervention, si le technicien coche « Un autre passage est nécessaire », le devis se prépare tout seul avec les pièces notées.</span>
     <span>• Un devis sans réponse depuis 7 jours se propose à la relance, ici et dans Tâches.</span>
     <span>• Accepté et signé en ligne : l’intervention passe « à planifier » et la facture d’acompte, s’il y en a une, se prépare.</span>
-    <span>• « Composer un devis » ouvre ton devis en grand : tu choisis le client et le matériel du catalogue, tu écris le texte, tu vois la page se faire. « Devis rapide » reste le chemin le plus court pour un devis simple.</span></div></div>`;
+    <span>• « Composer un devis » ouvre ton devis en grand. Tu choisis le client et le matériel du catalogue, tu écris le texte, tu vois la page se faire. « Devis rapide » reste le chemin le plus court pour un devis simple.</span></div></div>`;
 }
 function dvEtapes(x){
   const e = dvEtat(x), fini = ['accepte','refuse'].includes(e);
@@ -8226,7 +8228,7 @@ function vueDevisFiche(k){
   ${e === 'refuse' ? `<div class="info petit"><b>Refusé le ${x.rep}</b>${x.motif ? ' · ' + esc(x.motif) : ''}</div>` : ''}
   <div class="grille2">
     <div class="col">
-      <div class="carte"><h3>Les lignes</h3><div class="dv-lgs">${ed ? '<div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix HT</span><span>Total</span><span></span></div>' : ''}${lignes}</div>
+      <div class="carte"><h3>Les lignes</h3><div class="dv-lgs">${ed ? '<div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix unitaire HT</span><span>Total HT</span><span></span></div>' : ''}${lignes}</div>
         ${ed ? `<div class="dv-ajouts"><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|libre">＋ Ligne</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|mo">＋ 1 h de main-d’œuvre</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|dep">＋ Déplacement</button>
           <label class="puce-c">📦 Du catalogue<select data-dvcat="${dvCle(x)}" aria-label="Ajouter une pièce du catalogue"><option value="">…</option>${CATALOGUE.map(p => `<option value="${esc(p[0])}">${esc(p[0])} · ${eur(p[1])}</option>`).join('')}</select></label></div>` : ''}
         <div class="dv-totaux"><div class="ligne"><span>Total HT${complet ? '' : ' (partiel)'}</span><b>${eur(ht)}</b></div>
@@ -9332,8 +9334,9 @@ document.addEventListener('change', ev => {
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
-    if (!/^\d+([.,]\d+)?(\s?\S.{0,9})?$/.test(v) || !(parseFloat(v.replace(',', '.')) > 0)) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, ou 0,5 L.'); return; }
-    l.q = v; rendreApresClic(); }
+    const mq = v.match(/^(\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\s?(\S.{0,9}))?$/), nq = mq ? parseFloat(mq[1].replace(/[\s\u00a0\u202f]/g, '').replace(',', '.')) : NaN;
+    if (!(nq > 0) || nq >= 1e6) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, ou 0,5 L.'); return; }
+    l.q = v; l.qn = nq; rendreApresClic(); }
   else if (t.dataset.tva) { FACTURES.find(x => x.id === t.dataset.tva).tva = +t.value; rendre(); }
   else if (t.dataset.voirint) { voirInt = t.value; rendre(); }
   else if (t.dataset.mqt !== undefined) { const id = t.dataset.mqt; t.checked ? plMasques.delete(id) : plMasques.add(id); rendre(); }
@@ -10944,7 +10947,7 @@ function vueCarteBoxAvant(){
         ${P.map(p => { const e = d3Etat(d3Cli, p.id); return `<button type="button" class="d3-box d3-${d3Classe(e)}${d3Sel === p.id ? ' on' : ''}" style="left:${p.x}%;top:${p.y}%" data-d3="box|${p.id}" aria-label="${p.id}, ${esc(D3_TYPES[p.t][0])}, ${d3Lib(e)}"><span aria-hidden="true">${p.id.slice(1)}</span></button>`; }).join('')}</div>
         <div class="d3-leg"><span><i class="d3-v"></i>intacte</span><span><i class="d3-o"></i>consommée</span><span><i class="d3-r"></i>forte ou capture</span><span><i class="d3-g"></i>absente ou dégradée</span><span class="gris">relevé du ${jCourt(der.d)} · ${esc(der.tech)}</span></div></div>
       <div class="d3-cote">${sel ? d3FicheBox(sel) : `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">À regarder · ${att.length}</h2>${att.map(p => { const e = d3Etat(d3Cli, p.id); return `<button type="button" class="ve-u" data-d3="box|${p.id}"><span class="ve-pt ve-${d3Classe(e) === 'g' ? 'o' : d3Classe(e)}" aria-hidden="true"></span><span class="fo-n"><b>${p.id} · ${esc(D3_TYPES[p.t][0])}</b><span class="gris petit">${esc(p.zone)} · ${d3Lib(e)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('') || '<span class="gris">Toutes les box sont intactes.</span>'}
-        <div class="cmd-liens"><button type="button" class="lien" data-d3="registre">Registre sanitaire ›</button></div></div>
+        <div class="cmd-liens"><button type="button" class="lien" data-d3="registre">Registre sanitaire&nbsp;›</button></div></div>
         <div class="carte gris petit">${P.length} box actives : ${Object.keys(D3_TYPES).map(t => (n => n + ' ' + ({ r:['box rongeurs sécurisée', 'box rongeurs sécurisées'], i:['piège à insectes rampants', 'pièges à insectes rampants'], v:['désinsectiseur UV', 'désinsectiseurs UV'] })[t][n > 1 ? 1 : 0])(P.filter(p => p.t === t).length)).filter(s => !s.startsWith('0')).join(', ')}.</div>`}</div></div>`;
 }
 function d3FicheBoxAvant(p){
@@ -21993,6 +21996,8 @@ function cbPropositions(c, P, der){
 function cbListeRegarder(c, P){
   const tousAtt = P.filter(p => ['r', 'o', 'g'].includes(cbCl(cbAff(c, p)))).length, att = P.filter(p => ['r', 'o', 'g'].includes(cbCl(cbAff(c, p))) && cbVisible(c, p)).sort((a, b) => cbRang(cbAff(c, a)) - cbRang(cbAff(c, b)) || +a.id.slice(1) - +b.id.slice(1));
   const neuves = P.filter(p => cbEtat(c, p.id) == null && cbVisible(c, p));
+  /* un site sans aucune box : « Toutes les box relevées sont intactes » disait faux (regard gérant F) */
+  if (!P.length) return `<h2 class="cmd-titre" style="margin:0 0 4px">Box du site</h2><span class="gris">Aucune box posée sur ce plan. Touche « ＋ Ajouter une box » pour poser la première.</span>`;
   const ligne = p => { const e = cbAff(c, p), cl = cbCl(e), tdc = cbTendance(c, p.id);
     return `<button type="button" class="ve-u" data-d3="box|${p.id}"><span class="ve-pt cb-pt-${cl}" aria-hidden="true"></span><span class="fo-n"><b>${p.id} · ${esc(D3_TYPES[p.t][0])}</b><span class="gris petit">${esc(p.zone)}${p.repere ? ' · ' + esc(p.repere) : ''} · ${cbLib(e)}${cbNonRel(c, p) ? ' · non relevée au dernier passage' : ''}${tdc && tdc[2] === 'r' ? ' · en hausse' : ''}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; };
   return `<h2 class="cmd-titre" style="margin:0 0 4px">À regarder · ${att.length}${att.length < tousAtt ? ' sur ' + tousAtt : ''}</h2>${att.map(ligne).join('') || (tousAtt ? '<span class="gris">Aucune box à regarder avec ce filtre.</span>' : '<span class="gris">Toutes les box relevées sont intactes.</span>')}
@@ -22002,8 +22007,8 @@ function cbCoteListe(c, P, der){
   const D = D3_CLI[c], pr = rgProchain(c), pro = pr.d, tard = !pr.plan && tJours(pro) < 0, prevu = cbPlanifies['pro|' + c];
   return `${cbPropositions(c, P, der)}<div class="carte">${cbListeRegarder(c, P)}
       <div class="cb-pro"><span class="gris petit">Prochain passage : <b style="color:${tard ? 'var(--rouge)' : 'inherit'}">${jCourt(pro)}</b> (${esc(D.contrat)})${pr.plan ? ' · déjà planifié' : prevu ? ' · dans les tâches' : ''}</span>${cbRO() || prevu || pr.plan ? '' : `<button type="button" class="lien" data-cbx="planifier|${c}">Planifier ›</button>`}</div>
-      <div class="cmd-liens"><button type="button" class="lien" data-d3="registre">Registre sanitaire ›</button></div></div>
-    <div class="carte gris petit">${P.length} box actives : ${Object.keys(D3_TYPES).map(t => (n => n + ' ' + ({ r:['box rongeurs sécurisée', 'box rongeurs sécurisées'], i:['piège à insectes rampants', 'pièges à insectes rampants'], v:['désinsectiseur UV', 'désinsectiseurs UV'] })[t][n > 1 ? 1 : 0])(P.filter(p => p.t === t).length)).filter(s => !s.startsWith('0')).join(', ')}.</div>`;
+      <div class="cmd-liens"><button type="button" class="lien" data-d3="registre">Registre sanitaire&nbsp;›</button></div></div>
+    ${P.length ? `<div class="carte gris petit">${P.length} box actives : ${Object.keys(D3_TYPES).map(t => (n => n + ' ' + ({ r:['box rongeurs sécurisée', 'box rongeurs sécurisées'], i:['piège à insectes rampants', 'pièges à insectes rampants'], v:['désinsectiseur UV', 'désinsectiseurs UV'] })[t][n > 1 ? 1 : 0])(P.filter(p => p.t === t).length)).filter(s => !s.startsWith('0')).join(', ')}.</div>` : ''}`;
 }
 
 /* ─ le relevé sur le plan : la barre qui avance, et la bulle de la box en cours ─ */

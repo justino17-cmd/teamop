@@ -1,4 +1,4 @@
-// Campagne « clients » (17 novembre 2026) — LA COHÉRENCE D'UN ÉCRAN À L'AUTRE : les chiffres de la liste contre la Comptabilité, les courriels de la fiche contre la Boîte mail,
+// Campagne « clients » (17 novembre 2026) — LA COHÉRENCE D'UN ÉCRAN À L'AUTRE : les chiffres de la liste contre la Comptabilité, les e-mails de la fiche contre la Boîte mail,
 // les devis de la fiche contre la liste des Devis, le prochain passage contre le Planning, une intervention créée contre les Interventions. Usage : PROFIL=… NUIT=1
 const L = require('../../lib.js'), v = L.v;
 const PROFIL = process.env.PROFIL || 'mac', NUIT = !!process.env.NUIT;
@@ -14,10 +14,10 @@ const PROFIL = process.env.PROFIL || 'mac', NUIT = !!process.env.NUIT;
   console.log('  · Comptabilité : ' + reste + ' · somme des « à recevoir » de la liste : ' + somme);
   v('la somme des « à recevoir » des clients (' + somme + ' €) égale « Reste à encaisser » de la Comptabilité (' + reste + ')', !!reste && L.cents(reste) === Math.round(somme * 100), { somme, reste });
   await L.ranger(p); await p.evaluate(() => { try { aller('accueil'); } catch (e) {} });
-  // courriels de la fiche contre la Boîte mail
+  // e-mails de la fiche contre la Boîte mail
   const mails = await p.evaluate(() => Object.keys(CLIENTS).filter(k => k !== '__nv').map(k => { const m = (CLIENTS[k].mail || '').toLowerCase(); const brut = MAILS.filter(x => ((x.de && x.de.mail) || '').toLowerCase() === m || (x.a || '').toLowerCase() === m).length; return { k, nom: CLIENTS[k].nom, brut, fiche: MAILS.filter(x => mbxCliDe(x) === k).length }; }));
-  console.log('  · courriels par client (adresse du client en expéditeur ou destinataire / compté par la fiche) : ' + JSON.stringify(mails.map(m => [m.k, m.brut, m.fiche])));
-  const ecartM = mails.filter(m => m.brut !== m.fiche); v('« Courriels · N » de chaque fiche compte les courriels échangés avec l’adresse du client (boîte mail) — écarts : ' + JSON.stringify(ecartM.map(m => [m.k, m.brut, m.fiche])), ecartM.length === 0, ecartM);
+  console.log('  · e-mails par client (adresse du client en expéditeur ou destinataire / compté par la fiche) : ' + JSON.stringify(mails.map(m => [m.k, m.brut, m.fiche])));
+  const ecartM = mails.filter(m => m.brut !== m.fiche); v('« E-mails · N » de chaque fiche compte les e-mails échangés avec l’adresse du client (boîte mail) — écarts : ' + JSON.stringify(ecartM.map(m => [m.k, m.brut, m.fiche])), ecartM.length === 0, ecartM);
   // devis de la fiche contre la liste Devis
   const dv = await p.evaluate(() => Object.keys(CLIENTS).filter(k => k !== '__nv').map(k => ({ k, n: (dvSync(), DV).filter(d => d.cli === k).length })));
   let ecartD = []; for (const x of dv) { await L.aller(p, 'client-x-' + x.k); const n = await p.evaluate(() => { const h = [...document.querySelectorAll('#contenu .carte')].find(e => /^Devis/.test((e.querySelector('h3') || {}).textContent || '')); return h ? h.querySelectorAll('.lg-pli').length : -1; }); if (n < x.n) ecartD.push({ x, n }); }

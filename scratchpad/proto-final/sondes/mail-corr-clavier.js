@@ -47,13 +47,13 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   await S(c, () => R().querySelector('[data-folder=inbox]').click()); await p.waitForTimeout(400);
   v('ordinateur-08 contre-épreuve : dans la boîte de réception les pastilles « Client » / « Fournisseur » existent toujours', await S(c, () => [...R().querySelectorAll('#rows .hpast')].length >= 3));
 
-  // ── ordinateur-09 : « Voir tous » d'une fiche client montre TOUS ses courriels (reçus et envoyés) ──
+  // ── ordinateur-09 : « Voir tous » d'une fiche client montre TOUS ses e-mails (reçus et envoyés) ──
   const mailD = 'durand@mail.fr', cl = await S(c, m => Object.keys(CLIENTS).find(k => CLIENTS[k].mail === m), mailD);
   const attendus = await S(c, m => MAILS.filter(x => (x.de && x.de.mail === m) || x.a === m).length, mailD);
   await S(c, m => courrierRechercher(m), mailD); await p.waitForTimeout(1200);
   const tous = await S(c, () => ({ titre:R().querySelector('#lbTitle').textContent, lignes:[...R().querySelectorAll('#rows .msg')].map(r => r.textContent.replace(/\s+/g, ' ').slice(0, 70)) }));
-  v('ordinateur-09 population : la fiche de ce client compte au moins 2 courriels (un reçu, un envoyé)', !!cl && attendus >= 2, { cl, attendus });
-  v('ordinateur-09 « Voir tous » : ' + attendus + ' lignes (reçu ET envoyé), la liste s\'appelle « Tous les courriels »', tous.lignes.length === attendus && tous.titre === 'Tous les courriels' && tous.lignes.some(t => /FAC-2026-0144/.test(t)), tous);
+  v('ordinateur-09 population : la fiche de ce client compte au moins 2 e-mails (un reçu, un envoyé)', !!cl && attendus >= 2, { cl, attendus });
+  v('ordinateur-09 « Voir tous » : ' + attendus + ' lignes (reçu ET envoyé), la liste s\'appelle « Tous les e-mails »', tous.lignes.length === attendus && tous.titre === 'Tous les e-mails' && tous.lignes.some(t => /FAC-2026-0144/.test(t)), tous);
   await S(c, () => { const s = R().querySelector('#search'); s.value = ''; s.dispatchEvent(new Event('input', { bubbles:true })); }); await p.waitForTimeout(500);
   v('ordinateur-09 la recherche effacée, on revient à la Boîte de réception (le dossier « Tous » s\'éteint avec elle)', await S(c, () => R().querySelector('#lbTitle').textContent === 'Boîte de réception' && R().querySelectorAll('#rows .msg').length > 3));
 

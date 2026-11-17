@@ -7,7 +7,7 @@ const S = (c, f, a) => c.p.evaluate(f, a);
     ancien = [...mlActions(m, R).matchAll(/data-(ml|mbx)="([a-z]+)\|/g)].map(x => x[1] + ':' + x[2]), neuf = b.actions.map(a => a.id.split('|')[0]);
     return { id:m.id, sujet:R.sujet, qui:R.qui, titre:b.titre, attendu:(ML_SUJET[R.sujet] || 'Un message') + (R.urgent && !m.fait ? ' · urgent' : ''), pastille:pa && pa.texte, tag:ML_TAG[R.qui][0], info:!!m.info, ancien, neuf, extras:neuf.filter(x => !ancien.includes(x)) }; }));
   const sujets = new Set(tout.map(x => x.sujet));
-  v('population : au moins 8 sujets distincts reconnus parmi les courriels (panne, devis, accord, expédition, facture, paiement, info, nouveau…)', sujets.size >= 7 && tout.length >= 8, { sujets:[...sujets], n:tout.length });
+  v('population : au moins 8 sujets distincts reconnus parmi les e-mails (panne, devis, accord, expédition, facture, paiement, info, nouveau…)', sujets.size >= 7 && tout.length >= 8, { sujets:[...sujets], n:tout.length });
   for (const x of tout) {
     v(x.id + ' (' + x.sujet + ') : le titre du bandeau est celui de l\'ancien écran', x.titre === x.attendu || (x.sujet === 'trier' && x.titre === 'Message traité'), x);
     v(x.id + ' : la pastille de la liste dit ' + (x.info ? '(rien : une information n\'est pas un contact)' : x.tag), x.pastille === (x.info ? null : x.tag) || x.qui === 'moi', x);
@@ -18,14 +18,14 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   for (const id of ['m1', 'm3', 'm5', 'm9', 'm4']) { await ouvrirMsg(c, id);
     const b = await S(c, () => { const e = window.R().querySelector('.hband'); return e ? { titre:(e.querySelector('.ht') || {}).textContent, boutons:e.querySelectorAll('button').length, liens:e.querySelectorAll('.lnk').length } : null; });
     v(id + ' : le bandeau « OP GESTION a reconnu » est affiché dans la lecture, avec ses boutons', !!b && b.boutons >= 2 && /\S/.test(b.titre || ''), b); }
-  // compteur : le chiffre « à traiter » de l'en-tête de la page = les courriels à traiter de la logique conservée
+  // compteur : le chiffre « à traiter » de l'en-tête de la page = les e-mails à traiter de la logique conservée
   const cpt = await S(c, () => ({ page:(document.querySelector('.mbx-tete .gris') || {}).textContent, calcule:MAILS.filter(m => mbxATraiter(m) && !m.suiviEnCours).length, dossier:window.R().querySelectorAll('.msg .sgchip').length }));
   v('le compteur « à traiter » de la page égale mbxATraiter', new RegExp('^' + cpt.calcule + ' message').test(cpt.page || ''), cpt);
   // les gestes, jouables dans le module (vrais clics)
   await ouvrirMsg(c, 'm1');
   await p.locator('#courrier-hote .hband button', { hasText:'Créer l’intervention' }).first().click(); await p.waitForTimeout(900);
   const creation = await S(c, () => ({ cli:typeof CREA !== 'undefined' && CREA ? CREA.cli : null, titre:CREA && CREA.titre, motif:CREA && CREA.motif, mail:CREA && CREA.mail, hp:Object.keys(CLIENTS).find(k => CLIENTS[k].mail === mlDe('m1').de.mail), modules:!!document.getElementById('fenetre') && document.getElementById('fenetre').innerText.length }));
-  v('« Créer l\'intervention » : le client, le titre et le motif viennent du courriel (comme avant)', creation.cli === creation.hp && creation.titre === 'Climatisation chambre 214 en panne' && /climatisation/i.test(creation.motif || '') && creation.mail === 'm1', creation);
+  v('« Créer l\'intervention » : le client, le titre et le motif viennent de l’e-mail (comme avant)', creation.cli === creation.hp && creation.titre === 'Climatisation chambre 214 en panne' && /climatisation/i.test(creation.motif || '') && creation.mail === 'm1', creation);
   await cap(c, 'reconnaissance-intervention');
   await S(c, () => { if (typeof fermerCreation === 'function') fermerCreation(); }); await p.waitForTimeout(400);
   await ouvrirMsg(c, 'm1');
@@ -46,7 +46,7 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   await ouvrirMsg(c, 'm4');
   await p.locator('#courrier-hote .hband button', { hasText:'Noter le paiement annoncé' }).first().click(); await p.waitForTimeout(900);
   const pai = await S(c, () => { const f = mlLire(mlDe('m4')).facture; return { annonce:!!(f && f.annonce), fait:mlDe('m4').fait }; });
-  v('« Noter le paiement annoncé » : la facture porte l\'annonce, le courriel est rangé en « fait »', pai.annonce && /Paiement annoncé/.test(pai.fait || ''), pai);
+  v('« Noter le paiement annoncé » : la facture porte l\'annonce, l’e-mail est rangé en « fait »', pai.annonce && /Paiement annoncé/.test(pai.fait || ''), pai);
   v('aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3));
   await fin(c);
   await sortie();

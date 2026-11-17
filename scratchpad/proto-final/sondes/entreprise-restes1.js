@@ -25,7 +25,7 @@ const A_ECRIRE = ["Nouveau message", "Transférer", "＋ Écrire"], A_RANGER = [
   // ───── M : la Boîte mail lit les droits
   if (veut('m')) for (const [com, nom, att] of MAC) {
     const c = await personne('mac', { cases:cases({ com }) }); const p = c.p; await L.aller(p, 'boiteMail'); await L.calme(p, 3000);
-    const a0 = await p.evaluate(BOUTONS); v(`m « ${nom} » : le module est monté (population : ${a0.lignes} courriels dans la liste)`, a0.ok && a0.lignes >= 5, a0.lignes);
+    const a0 = await p.evaluate(BOUTONS); v(`m « ${nom} » : le module est monté (population : ${a0.lignes} e-mails dans la liste)`, a0.ok && a0.lignes >= 5, a0.lignes);
     await p.evaluate(OUVRIR_UN); await L.calme(p, 700); const a = await p.evaluate(BOUTONS); const B = a.boutons.join('|');
     const a1 = (liste) => liste.filter(x => a.boutons.includes(x));
     v(`m « ${nom} » : « Nouveau message » et « Transférer » ${att.ecrire ? 'sont proposés' : 'ne sont PAS proposés'}`, att.ecrire ? a1(A_ECRIRE).length >= 1 : a1(A_ECRIRE).length === 0, a1(A_ECRIRE));
@@ -59,12 +59,12 @@ const A_ECRIRE = ["Nouveau message", "Transférer", "＋ Écrire"], A_RANGER = [
   if (veut('mt')) for (const [pr, nuit, com, nom] of [['iphone', true, '1000', 'Voir seul'], ['iphone', false, '1010', 'Voir + Modifier'], ['android', false, '1000', 'Voir seul'], ['iphone', false, '1111', 'toutes les cases']]) {
     const c = await personne(pr, { cases:cases({ com }) }, nuit); const p = c.p; await L.aller(p, 'boiteMail'); await L.calme(p, 3000);
     const a = await p.evaluate(BOUTONS); const seul = com === '1000';
-    v(`mt ${pr}${nuit ? ' nuit' : ''} « ${nom} » : le module est monté (population : ${a.boutons.length} boutons, ${a.lignes} courriels)`, a.ok && a.boutons.length > 3, a.boutons.length);
+    v(`mt ${pr}${nuit ? ' nuit' : ''} « ${nom} » : le module est monté (population : ${a.boutons.length} boutons, ${a.lignes} e-mails)`, a.ok && a.boutons.length > 3, a.boutons.length);
     v(`mt ${pr}${nuit ? ' nuit' : ''} « ${nom} » : « Nouveau message » ${com === '1111' ? 'est proposé' : 'n’est pas proposé'}`, com === '1111' ? a.boutons.includes('Nouveau message') : !a.boutons.includes('Nouveau message'), a.boutons.filter(x => /Nouveau/.test(x)));
     const he = await p.evaluate(() => !!document.querySelector('.mbx-ecrire')); v(`mt ${pr}${nuit ? ' nuit' : ''} « ${nom} » : « ＋ Écrire » de l'en-tête ${com === '1111' ? 'est proposé' : 'n’est pas proposé'}`, he === (com === '1111'), he);
     v(`mt ${pr}${nuit ? ' nuit' : ''} « ${nom} » : « Sélectionner » ${seul ? 'n’est pas proposé (rien à faire en sélection)' : 'est proposé'}`, seul ? !a.boutons.includes('Sélectionner') : a.boutons.includes('Sélectionner'), a.boutons.filter(x => /Sélection/.test(x)));
     await p.evaluate(OUVRIR_UN); await L.calme(p, 900); const b = await p.evaluate(BOUTONS);
-    v(`mt ${pr}${nuit ? ' nuit' : ''} « ${nom} » : un courriel ouvert ${seul ? 'ne propose ni Répondre ni Archiver ni Supprimer' : com === '1010' ? 'propose Répondre et Archiver, pas Supprimer' : 'propose tout'}`,
+    v(`mt ${pr}${nuit ? ' nuit' : ''} « ${nom} » : un e-mail ouvert ${seul ? 'ne propose ni Répondre ni Archiver ni Supprimer' : com === '1010' ? 'propose Répondre et Archiver, pas Supprimer' : 'propose tout'}`,
       seul ? !b.boutons.some(x => /^(Répondre|Archiver|Supprimer|Drapeau|Transférer)/.test(x)) : com === '1010' ? b.boutons.some(x => /^Répondre/.test(x)) && !b.boutons.includes('Supprimer') : b.boutons.includes('Supprimer'), b.boutons);
     const lat = await p.evaluate(() => { const W = innerWidth; return { deborde:document.documentElement.scrollWidth > W + 1, sw:document.documentElement.scrollWidth, W }; });
     v(`mt ${pr}${nuit ? ' nuit' : ''} « ${nom} » : rien ne dépasse de côté`, !lat.deborde, lat);

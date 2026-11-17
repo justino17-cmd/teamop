@@ -35,7 +35,7 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('SECTION ' + no
       const vues = [...R().querySelectorAll('#rows .msg')].filter(m => { const r = m.getBoundingClientRect(); return r.top >= ls.top - 1 && r.bottom <= ls.bottom + 1 && r.height > 20; }).length;
       return { n:l.length, l:l.filter(x => !x.dedans || x.coupe), hb:Math.round(br.height), vues, hl:Math.round(ls.height) }; });
     v('ordinateur-20 ' + etiq + ' : six catégories toutes entières (' + k.n + '), barre de ' + k.hb + ' px', k.n === 6 && k.l.length === 0 && k.hb < 150, k);
-    v('ordinateur-20 / mise en page ' + etiq + ' : au moins 2 courriels se voient en entier dans la liste sous la barre des catégories (' + k.vues + ' ; à 1280×720 la tête de liste en prend ' + (k.hl - 0) + ' px)', k.vues >= 2, k);
+    v('ordinateur-20 / mise en page ' + etiq + ' : au moins 2 e-mails se voient en entier dans la liste sous la barre des catégories (' + k.vues + ' ; à 1280×720 la tête de liste en prend ' + (k.hl - 0) + ' px)', k.vues >= 2, k);
     // ordinateur-13 : tailles de la souris
     const t = await S(c, () => { const f = s => { const e = R().querySelector(s); return e ? { fs:parseFloat(getComputedStyle(e).fontSize), h:Math.round(e.getBoundingClientRect().height) } : null; };
       return { rech:f('#search'), dos:f('[data-folder=inbox]'), cat:f('#catBar .cat'), cnt:f('[data-folder=inbox] .cnt'), fil:(() => { const e = [...R().querySelectorAll('#filters button')].find(b => b.getBoundingClientRect().height > 10); return e ? { fs:parseFloat(getComputedStyle(e).fontSize), h:Math.round(e.getBoundingClientRect().height) } : null; })(), obj:f('#rows .msg .subj') || f('#rows .msg') }; });
@@ -49,7 +49,7 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('SECTION ' + no
       return { pos, recouverts:tous.filter(b => b.height > 4 && b.bottom > f.top + 1 && b.top < f.bottom - 1).length, tous:tous.length, defile:s.scrollHeight > s.clientHeight + 2, fb:Math.round(f.bottom), ih:innerHeight }; });
     v('ordinateur-05 ' + etiq + ' : au bout du défilement aucun des ' + pied.tous + ' dossiers n\'est sous le pied (' + pied.pos + '), le pied tient dans la fenêtre', pied.tous >= 9 && pied.recouverts === 0 && pied.fb <= pied.ih + 1, pied);
     await S(c, () => { R().querySelector('#sideScroll').scrollTop = 0; });
-    // ordinateur-04 : lecture de TOUS les courriels, le premier mot du texte au-dessus du pli, le bandeau « reconnu » après lui
+    // ordinateur-04 : lecture de TOUS les e-mails, le premier mot du texte au-dessus du pli, le bandeau « reconnu » après lui
     if (['windows', 'mac720', 'ipad'].includes(pr)) {
       await S(c, () => R().querySelector('[data-folder=inbox]').click()); await S(c, () => R().querySelector('#catBar [data-cat="tout"]').click()); await p.waitForTimeout(300);
       const n = await S(c, () => R().querySelectorAll('#rows .msg').length), mal = []; let lus = 0, bandeaux = 0;
@@ -108,7 +108,7 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('SECTION ' + no
     await fin(c);
   });
 
-  // ═══ 3. Gestes : brouillon local, « Tous les courriels », boîtes connectées, relances, rôles ═══
+  // ═══ 3. Gestes : brouillon local, « Tous les e-mails », boîtes connectées, relances, rôles ═══
   if (veut(3)) await sec('gestes', async () => {
     let c = await entrer({ profil:'mac' }), p = c.p;
     // ordinateur-08 : un brouillon écrit à l'adresse d'un VRAI client ne porte pas non plus la pastille de ce client
@@ -118,8 +118,8 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('SECTION ' + no
     await S(c, () => R().querySelector('[data-folder=drafts]').click()); await p.waitForTimeout(400);
     const br = await S(c, () => [...R().querySelectorAll('#rows .msg')].map(r => ({ t:r.textContent.replace(/\s+/g, ' ').slice(0, 80), p:!!r.querySelector('.hpast') })));
     v('ordinateur-08 population : le brouillon à Durand est dans Brouillons', br.some(r => /Brouillon pour Durand/.test(r.t)), br);
-    v('ordinateur-08 le brouillon écrit pour un client connu ne porte pas de pastille « Client » ni de bandeau (c\'est un brouillon, pas un courriel reçu)', br.filter(r => /Brouillon pour Durand/.test(r.t)).every(r => !r.p), br);
-    // on l'ouvre : aucun bandeau « reconnu » ni réponses rapides d'un autre courriel
+    v('ordinateur-08 le brouillon écrit pour un client connu ne porte pas de pastille « Client » ni de bandeau (c\'est un brouillon, pas un e-mail reçu)', br.filter(r => /Brouillon pour Durand/.test(r.t)).every(r => !r.p), br);
+    // on l'ouvre : aucun bandeau « reconnu » ni réponses rapides d'un autre e-mail
     await S(c, () => [...R().querySelectorAll('#rows .msg')].find(r => /Brouillon pour Durand/.test(r.textContent)).click()); await p.waitForTimeout(600);
     const ouv = await S(c, () => ({ band:!!R().querySelector('.hband'), modifier:[...R().querySelectorAll('#readTools button')].some(b => /Modifier/.test(b.textContent)), corps:/Bonjour\./.test(R().querySelector('#readScroll').innerText) }));
     v('ordinateur-08 ouvrir le brouillon le montre en lecture (« Modifier » proposé, texte écrit) sans bandeau « reconnu »', ouv.modifier && ouv.corps && !ouv.band, ouv);
@@ -131,16 +131,16 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('SECTION ' + no
     // ordinateur-09 : « Voir tous » depuis TOUTES les fiches client
     const clients = await S(c, () => Object.keys(CLIENTS).filter(k => CLIENTS[k].mail).map(k => ({ k, mail:CLIENTS[k].mail, nom:CLIENTS[k].nom, att:MAILS.filter(x => (x.de && x.de.mail === CLIENTS[k].mail) || x.a === CLIENTS[k].mail).length })));
     const avec = clients.filter(x => x.att >= 1);
-    v('ordinateur-09 population : ' + clients.length + ' clients avec adresse, ' + avec.length + ' avec au moins un courriel (au moins 3)', avec.length >= 3, avec.map(x => x.nom + ':' + x.att));
+    v('ordinateur-09 population : ' + clients.length + ' clients avec adresse, ' + avec.length + ' avec au moins un e-mail (au moins 3)', avec.length >= 3, avec.map(x => x.nom + ':' + x.att));
     for (const cl of avec.slice(0, 5)) { await S(c, m => courrierRechercher(m), cl.mail); await p.waitForTimeout(900);
       const t = await S(c, () => ({ n:R().querySelectorAll('#rows .msg').length, titre:R().querySelector('#lbTitle').textContent.trim() }));
-      v('ordinateur-09 « Voir tous » de ' + cl.nom + ' : ' + cl.att + ' courriel(s) attendus, ' + t.n + ' en liste (« ' + t.titre + ' »)', t.n === cl.att, t); }
-    // sortir de « Tous les courriels » en changeant de dossier : la recherche ne reste pas collée
+      v('ordinateur-09 « Voir tous » de ' + cl.nom + ' : ' + cl.att + ' e-mail(s) attendus, ' + t.n + ' en liste (« ' + t.titre + ' »)', t.n === cl.att, t); }
+    // sortir de « Tous les e-mails » en changeant de dossier : la recherche ne reste pas collée
     await S(c, () => R().querySelector('[data-folder=sent]').click()); await p.waitForTimeout(400);
     const apres = await S(c, () => ({ titre:R().querySelector('#lbTitle').textContent.trim(), rech:R().querySelector('#search').value, n:R().querySelectorAll('#rows .msg').length }));
-    v('ordinateur-09 passer à « Envoyés » depuis « Tous les courriels » : le titre est « Envoyés » et la recherche n\'est pas restée', /Envoy/.test(apres.titre) && apres.rech === '', apres);
+    v('ordinateur-09 passer à « Envoyés » depuis « Tous les e-mails » : le titre est « Envoyés » et la recherche n\'est pas restée', /Envoy/.test(apres.titre) && apres.rech === '', apres);
     await S(c, () => R().querySelector('[data-folder=inbox]').click()); await p.waitForTimeout(300);
-    v('ordinateur-09 « Tous les courriels » n\'est PAS un dossier de la colonne', await S(c, () => ![...R().querySelectorAll('#sideScroll [data-folder]')].some(e => /Tous les courriels/.test(e.textContent))));
+    v('ordinateur-09 « Tous les e-mails » n\'est PAS un dossier de la colonne', await S(c, () => ![...R().querySelectorAll('#sideScroll [data-folder]')].some(e => /Tous les e-mails/.test(e.textContent))));
 
     // ordinateur-10 : Boîtes connectées, sur trois profils, adresse LONGUE
     await S(c, () => { ML_BOITES[1].adr = 'prenom.nom.tres.long.pour.essai@un-domaine-vraiment-long-climservices17.fr'; ML_BOITES[1].etat = 'reco'; ML_BOITES[1].vu = 'le 28 oct.'; mbxPanBoites(); }); await p.waitForTimeout(500);
