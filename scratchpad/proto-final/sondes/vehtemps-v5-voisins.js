@@ -56,13 +56,15 @@ const lignesAcc = c => ev(c, () => [...document.querySelectorAll('#contenu .lign
         const r = await ev(c, () => ({ vh:droitVoit('vehicules'), pt:droitVoit('pointage'), acc:droitVoit('accueil'), lignes:vhAccueil().map(a => a.t.split(' ·')[0]) }));
         if (r.acc) { await L.aller(c.p, 'accueil'); const A = await lignesAcc(c);
           v(nom + ' · ' + qui + ' : les lignes de l\'Accueil suivent ses droits (Véhicules ' + (r.vh ? 'oui' : 'non') + ', Temps de travail ' + (r.pt ? 'oui' : 'non') + ')', A.some(x => /^Véhicules/.test(x.t)) === (r.vh && r.lignes.includes('Véhicules')) && A.some(x => /^Temps de travail/.test(x.t)) === (r.pt && r.lignes.includes('Temps de travail')), { r, A }); }
-        else v(nom + ' · ' + qui + ' : n\'a pas d\'Accueil, aucune ligne à montrer', !r.acc && (r.lignes.length === 0 || !r.vh || true), r);
+        else v(nom + ' · ' + qui + ' : n\'a pas d\'Accueil (donc aucune ligne à montrer)', !r.acc, r);
         v(nom + ' · ' + qui + ' : vhAccueil() ne rend jamais une rubrique qu\'il n\'a pas le droit d\'ouvrir', (!r.vh ? !r.lignes.includes('Véhicules') : true) && (!r.pt ? !r.lignes.includes('Temps de travail') : true), r);
         if (c.err.length) console.log(c.err.slice(0, 3)); v(nom + ' · ' + qui + ' : zéro erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c); }
     }
 
     if (on('B')) {
       const c = await L.ouvrir({ profil, qui:'marc', calme:true, nuit }); await L.aller(c.p, 'equipe'); await ev(c, () => eqFiche('sm')); await L.calme(c.p, 450);
+      const cartes = await ev(c, () => [...document.querySelectorAll('#contenu .eq-puces')].map(e => e.textContent.replace(/\s+/g, ' ').trim()));
+      v(nom + ' · Équipe : les cartes de la liste disent « travaillées » aussi (un mot, un endroit) — population ' + cartes.length, cartes.length >= 5 && cartes.every(t => !/pointées/.test(t)) && cartes.some(t => /travaillées/.test(t)), cartes.slice(0, 4));
       const f = await ev(c, () => { const p = document.querySelector('#calque .panneau'); const st = p ? [...p.querySelectorAll('.fo-stats span')].map(s => s.textContent.replace(/\s+/g, ' ').trim()) : []; return { st, liens:p ? [...p.querySelectorAll('.cmd-liens .lien')].map(b => b.textContent.replace(/\s+/g, ' ').trim()) : [], pointees:p ? /pointées/.test(p.textContent) : null }; });
       v(nom + ' · Équipe : la fiche de Sophie dit « travaillées » (plus « pointées »)', f.st.some(s => /travaillées/.test(s)) && f.pointees === false, f);
       v(nom + ' · …ses liens : « Ses heures › », son véhicule (nom · plaque), « Stock du camion › »', f.liens.includes('Ses heures ›') && f.liens.some(l => /^Renault Trafic L2H1 · GH-482-KL ›$/.test(l)) && f.liens.includes('Stock du camion ›'), f.liens);
@@ -86,8 +88,10 @@ const lignesAcc = c => ev(c, () => [...document.querySelectorAll('#contenu .lign
       const p = await ev(c, () => { const V = PT_GENS.map(paieVariables), E = paieEtapes(V), e = E[0]; return { t:e.t, d:e.d, ok:e.ok, nonVal:V.filter(x => x.nonValidees).length, lib:null }; });
       v(nom + ' · Paie, étape 1 : mêmes mots que Temps de travail (« …personnes ont encore des heures à valider », plus de « semaines pas encore validées »)', /personnes? (ont|a) encore des heures à valider/.test(Array.isArray(p.d) ? p.d.join(' ') : String(p.d)) && !/semaines pas encore validées/.test(String(p.d)) && p.t === 'Les heures sont justes', p);
       const tt = await ev(c, () => { const t = typeof ttOngletMois === 'function' ? ttOngletMois() : ''; const m = /data-tt="validertout"[^>]*>([^<]*)</.exec(t); return { lib:m && m[1] }; });
-      const pa = await ev(c, () => { const m = /\['validertout'|'validertout', '([^']+)'/.exec(String(paieAction || '')); return { src:String(window.paieBoutonEtape || '').slice(0, 10) }; }).catch(() => ({}));
-      v(nom + ' · le bouton est le même dans Temps de travail et dans la Paie : « Valider ce qui est en règle »', tt.lib === 'Valider ce qui est en règle' && await ev(c, () => /b\('validertout', 'Valider ce qui est en règle'/.test(String(paieEtapeBouton || '') || '') || true), { tt, pa });
+      await ev(c, () => paieAller('paiemois')); await L.calme(c.p, 700);
+      const pa = await ev(c, () => { const b = document.querySelector('[data-paie="validertout"]'); const e1 = document.querySelector('#contenu .paie-etape, #contenu [class*="etape"]'); return { lib:b ? b.textContent.replace(/\s+/g, ' ').trim() : null, txt:(document.getElementById('contenu').innerText || '').replace(/\s+/g, ' ').slice(0, 400) }; });
+      v(nom + ' · le bouton est le même dans Temps de travail (« ' + tt.lib + ' ») et dans la Paie (« ' + pa.lib + ' ») : « Valider ce qui est en règle »', tt.lib === 'Valider ce qui est en règle' && pa.lib === 'Valider ce qui est en règle', { tt, pa });
+      v(nom + ' · …et la Paie ne parle plus de « 30 semaines pas encore validées »', !/semaines pas encore validées/.test(pa.txt), pa.txt);
       if (c.err.length) console.log(c.err.slice(0, 3)); v(nom + ' · zéro erreur JavaScript (Paie)', c.err.length === 0, c.err.slice(0, 3));
       await L.fin(c);
     }
@@ -98,9 +102,10 @@ const lignesAcc = c => ev(c, () => [...document.querySelectorAll('#contenu .lign
       const g = await ev(c, () => { const i = INTS.find(o => o.tech === 'tl' && vxGarageDe(o)); return { id:i && i.id, g:!!(i && vxGarageDe(i)), veh:vehDe('veh4').statut }; });
       await L.aller(c.p, 'planning'); const pl = await ev(c, () => ({ n:document.querySelectorAll('#contenu .vx-gar').length, txt:[...document.querySelectorAll('#contenu .vx-gar')].map(e => e.textContent.trim()).slice(0, 3) }));
       v(nom + ' · Planning : la pastille « camion » marque les interventions touchées par un camion au garage (population ' + pl.n + ')', g.veh === 'atelier' && g.g && pl.n >= 1 && pl.txt.every(t => /camion/.test(t)), { g, pl });
-      await ev(c, () => { rendre(); vhAgir('plan', 'veh4'); }); await L.calme(c.p, 600);
-      const vp = await ev(c, () => ({ h1:(document.querySelector('#contenu h1') || {}).textContent, ref:typeof plRef !== 'undefined' ? plRef : null }));
-      v(nom + ' · « Voir au planning › » d\'un véhicule au garage ouvre le Planning', /Planning/i.test(vp.h1 || '') || vp.ref !== null, vp);
+      const i0 = await ev(c, () => { const x = vxIntsConcernees(vehDe('veh4'), vehDe('veh4').immo && vehDe('veh4').immo.retour)[0]; return x ? { id:x.id, d:x.d } : null; });
+      await ev(c, () => { rendre(); vhAgir('plan', 'veh4'); }); await L.calme(c.p, 700);
+      const vp = await ev(c, () => ({ h1:(document.querySelector('#contenu h1') || {}).textContent, ref:typeof plRef !== 'undefined' ? plRef : null, route, flash:typeof plFlash !== 'undefined' && plFlash ? plFlash.ids : null }));
+      v(nom + ' · « Voir au planning › » d\'un véhicule au garage ouvre le Planning sur le JOUR de la première intervention touchée (' + (i0 && i0.d) + ')', !!i0 && vp.route === 'planning' && vp.ref === i0.d && Array.isArray(vp.flash) && vp.flash.includes(i0.id), { i0, vp });
       // Tâches : le lien d'un souci ouvre la fiche du véhicule
       await L.aller(c.p, 'accueil'); await ev(c, () => { TACHES.push({ id:'tvx2', t:'Camion GH-482-KL : pneu · signalé par Sophie', d:AUJ, qui:'marc', urgent:true, creePar:'sm', creeLe:'31/10', cle:'vsouci-veh1-zz', lien:{ t:'aller', id:'vehicules|veh1', lib:'Véhicules', cat:'Véhicules' } }); rendre(); }); await L.calme(c.p, 300);
       await ev(c, () => tDetail('tvx2')); await L.calme(c.p, 500);
