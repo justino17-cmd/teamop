@@ -87,7 +87,7 @@
    "etapes": "Mode application, métier 3D pris : ouvrir Registre sanitaire (ou Devis xylophage, ou Carte des box › « À propos de cet exemple »).",
    "attendu": "Aucune phrase de revue : la personne est dans son application, avec ses clients.",
    "constate": "Un encadré bleu dit « Exemple pour une entreprise du métier 3D (hygiène, anti-nuisibles), avec ses propres clients fictifs. Les numéros d'AMM sont fictifs. » (Registre), « Exemple pour une entreprise du métier 3D. » (Devis xylophage) et le même texte sous « À propos de cet exemple » (Carte).",
-   "preuve": "mots-3d-mac.json (21 relevés « échafaudage ») ; captures mep-iphone-jour-marc-registre.png et mep-iphone-jour-marc-devisXylo.png",
+   "preuve": "mep « [metier-3d-01] » : 30 ✗ (registre et devis xylophage, 5 profils, jour/nuit, gérant et technicienne) ; mots-3d-mac.json ; captures mep-iphone-jour-marc-registre.png et mep-iphone-jour-marc-devisXylo.png",
    "ou": "apercu/prototype-op-gestion.html:10425 D3_BANDEAU · :20835 RG_BANDEAU · :21407 (Carte) · :21819 dxBandeau",
    "correction": "Ne rien écrire quand enApp() (le menu fait déjà `c.fait && !enApp()`)."
   },
@@ -105,8 +105,8 @@
    "decision": "corriger",
    "etapes": "Téléphone, métier 3D : ouvrir Registre sanitaire.",
    "attendu": "Le titre et sa phrase occupent la largeur ; le bouton « ＋ Saisir un passage » passe dessous.",
-   "constate": "Le bouton prend la droite et la colonne du titre tombe à environ 140 px (390), 135 px (360) et 90 px (320) sur 320 à 390 px d'écran : la phrase d'aide fait 8 à 12 lignes et, à 320 px, « Registre sanitaire » se coupe en « Regis / tre / sanit / aire ». Un grand vide reste sous le bouton. Les en-têtes de la Carte et du Devis (actions sous le titre) n'ont pas ce défaut.",
-   "preuve": "captures mep-iphone-jour-marc-registre.png, mep-android-jour-marc-registre.png, mep-petit-jour-sm-registre.png (technicienne)",
+   "constate": "Le bouton prend la droite et la colonne du titre mesure 150 px sur 390, 120 px sur 360 et 80 px sur 320 (mesuré, jour et nuit, gérant et technicienne) : la phrase d'aide fait 8 à 12 lignes et, à 320 px, « Registre sanitaire » se coupe en « Regis / tre / sanit / aire ». Un grand vide reste sous le bouton. Les en-têtes de la Carte et du Devis (actions sous le titre) n'ont pas ce défaut.",
+   "preuve": "sonde metier-3d-mise-en-page.js, contrôle « [metier-3d-02] » : 12 ✗ (iphone, android, petit × jour/nuit × gérant/technicienne) ; captures mep-iphone-jour-marc-registre.png, mep-android-jour-marc-registre.png, mep-petit-jour-sm-registre.png",
    "ou": "apercu/prototype-op-gestion.html:10434 vueRegistre (.tete avec .actions) et sa version rg* ; règle « une colonne qui cède tout » du CLAUDE.md",
    "correction": "Sur téléphone, `.tete` du registre en colonne (actions sous le titre) ou flex-wrap avec une base de 100 % pour le bloc titre, comme la Carte."
   },
@@ -237,6 +237,40 @@
    "preuve": "parcours B (texte de la fenêtre de saisie) ; vueRegistre (en-têtes .d3-th)",
    "ou": "apercu/prototype-op-gestion.html:20996 rgBoxHtml ([0, 'RAS', 'v']) · :10445 en-tête « N° d'AMM »",
    "correction": "« Rien à signaler » en toutes lettres (ou infobulle), « N° d'AMM (autorisation du produit) »."
+  },
+  {
+   "n": "metier-3d-10",
+   "gravite": "détail",
+   "ecran": "Nouvelle intervention (types proposés)",
+   "role": "gérant, bureau",
+   "profils": [
+    "mac"
+   ],
+   "zone": "metier-3d",
+   "decision": "soumettre",
+   "etapes": "Entreprise de nettoyage (ou de 3D) : Interventions › ＋ Nouvelle intervention › « Type ».",
+   "attendu": "Des types à son métier (un nettoyeur ne « fait » pas d'« Installation », un dératiseur de « Mise en service »).",
+   "constate": "Les types gardent les noms génériques de la climatisation pour tous les métiers : nettoyage = Dépannage / Entretien / Installation / Visite de contrôle / 2ᵉ passage ; 3D = les mêmes plus « Mise en service » et « Traitement du bois ». Seul le titre proposé change (« Installation » devient « Remise en état », « Pose de postes d'appâtage »), après le choix.",
+   "preuve": "metier-3d-creation.js (types lus dans la fenêtre pour 7 jeux de métiers) ; MET_JEUX.nett.types / .nuis.types ne renomment que les titres",
+   "ou": "apercu/prototype-op-gestion.html:22759 MET_JEUX (types:TYPES.filter…) et :13577 (puces .data-ctype)",
+   "correction": "RECOMMANDATION : afficher le libellé du métier sur la puce (TITRES[type]) tout en gardant la valeur ; À SOUMETTRE : la valeur « Installation » sert aux statistiques et à la facturation, donc c'est une décision de produit."
+  },
+  {
+   "n": "metier-3d-11",
+   "gravite": "bloquant",
+   "ecran": "Devis xylophage › Relever les mesures (technicien) › Envoyer au bureau",
+   "role": "technicienne (Sophie), tout technicien sans droit « Devis »",
+   "profils": [
+    "mac"
+   ],
+   "zone": "metier-3d",
+   "decision": "corriger",
+   "etapes": "Connectée en Sophie (technicienne), métier 3D : Ma journée › carte « Traitement du bois » › « Relever les mesures » ; choisir le client, ajouter une zone, saisir 18,5 m² ; toucher « Envoyer au bureau » (la carte ou la barre du bas).",
+   "attendu": "Le relevé part au bureau : « Relevé envoyé », une tâche « Chiffrer le relevé » pour le gérant (c'est ce que promet la carte : « Relève les mesures sur place : pas de prix, le bureau chiffre le devis »).",
+   "constate": "Rien ne part, l'écran reste sur le formulaire, et un message dit « Ce geste n'est pas ouvert à ton compte : modifier, envoyer, relancer, faire signer. Demande à Marc. » (DROITS_REFUS enregistre le refus). Aucun relevé n'est créé (DX_REL 0 avant et après), aucune tâche pour le gérant : toute la fonction du relevé par le technicien est inutilisable, et le message (quatre verbes de devis) ne lui dit pas quoi faire. D'après la même table, la remarque, la photo et « Faire un autre relevé » (famille dxr / dxrb) sont refusés de la même façon (non rejoués un à un).",
+   "preuve": "parcours F (deux passes, 17/11 à 10 h 50 et 11 h 20) : toasts [« Ce geste n'est pas ouvert à ton compte : modifier, envoyer, relancer, faire signer. Demande à Marc. »], relevesAvant 0 / relevesApres 0, envoye false, cli « vp », zones [18.5], erreurs [] ; prouvé dans le code : la table GESTES classe les gestes du relevé du technicien sous la catégorie des DEVIS du gérant",
+   "ou": "apercu/prototype-op-gestion.html:11966-11967 GESTES : `dxr:{ k:'ventes', m:'photo note', l:'cli zm' }, dxrb:{ k:'ventes', c:'nouveau', m:'envoyer', l:'insecte mode' }` (le registre, la carte et le passage voisins sont `k:'inter'`)",
+   "correction": "Classer les familles dxr et dxrb sous k:'inter' (c'est un travail d'intervention, comme rg, cbx et d3) ; garder dx et dxb sous 'ventes' (le devis du gérant). Rejouer metier-3d-parcours.js F : la suite (le gérant voit « 1 relevé à chiffrer », la tâche, le devis créé depuis le relevé) est écrite et attend ce correctif."
   }
  ]
 }

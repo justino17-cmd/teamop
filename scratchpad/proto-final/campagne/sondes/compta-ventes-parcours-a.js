@@ -25,7 +25,7 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p); L.v('désignation vide : un message dit quoi faire', /désignation|factures/i.test(t), t);
   await X.saisir(c, '#nf-d', 'Mise en service'); await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p); L.v('prix vide : un message dit quoi faire', /prix/i.test(t), t);
   // valeurs absurdes
-  await X.saisir(c, '#nf-p', '-50'); await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p); L.v('prix négatif refusé', /prix/i.test(t) && !(await p.evaluate(() => FACTURES.some(f => f.id.startsWith('fm')))), t);
+  await X.saisir(c, '#nf-p', '-50'); await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p); L.v('prix négatif refusé', /prix|montant/i.test(t) && !(await p.evaluate(() => FACTURES.some(f => f.id.startsWith('fm')))), t);
   await X.saisir(c, '#nf-p', '100'); await X.saisir(c, '#nf-q', '-3');
   const avantNeg = await p.evaluate(() => FACTURES.length); await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p);
   L.v('compta-ventes-01 · le refus dit pourquoi (quantité supérieure à zéro)', /quantité/i.test(t), t);
