@@ -23,7 +23,7 @@ let n2 = 0; for (const nom of UNE2) { n2++; if (nom === 'msFormApres' || nom ===
 v('population Stock : ' + UNE2.length + ' fonctions contrôlées', n2 === UNE2.length && UNE2.length >= 25);
 // prFormulaire : la déclaration d'origine + les enveloppes qui l'habillent (chaînes voulues : doublon, rangement, quatre champs) — au plus quatre formes
 v('prFormulaire : la déclaration puis ses enveloppes (au plus 4 formes)', defs('prFormulaire') >= 1 && defs('prFormulaire') <= 4, defs('prFormulaire'));
-const MORT2 = ['sxBandeau', 'sxChips', 'sxListeStock', 'sxNbPourInter', 'sxEntree', 'sxEntreeVue', 'sxEntreeOk', 'sxToutValider', 'sxRefus', 'sxRefusOk', 'sxLigneAtt', 'stkVueValider', 'stkVueMouvements', 'pdxFicheApres', 'sxPrFiche0', 'sxVueStock0', 'sxLieuFiche0'];
+const MORT2 = ['sxBandeau', 'sxChips', 'sxListeStock', 'sxNbPourInter', 'sxEntree', 'sxEntreeVue', 'sxEntreeOk', 'sxToutValider', 'sxRefus', 'sxRefusOk', 'sxLigneAtt', 'stkVueValider', 'stkVueMouvements', 'pdxFicheApres', 'sxPrFiche0', 'sxVueStock0', 'sxLieuFiche0', 'sxAFaire', 'bxAFaire', 'pdxAchatsCarte', 'LIEU_IC', 'foBandeau'];
 for (const nom of MORT2) { const d = (code.match(new RegExp('\\b' + nom + '\\b', 'g')) || []).length; v(nom + ' : supprimée du Stock (aucune occurrence dans le code)', d === 0, d + ' occurrences'); }
 // le code mort et les anciennes portes ont disparu (ni déclaration, ni appel)
 const MORT = ['bxMonCamion', 'bxManquePanel', 'bxDemOk', 'sxTForm', 'sxTFormVue', 'sxEnvoi', 'sxManqueVue', 'sxManqueEnvoi', 'pdxPmEnvoyer', 'sxIntVue', 'sxIntOk'];
@@ -32,5 +32,5 @@ for (const a of ['data-sx="prise"', 'data-sx="usage"', 'data-sx="priseun', 'data
 v('plus de style des trois gros boutons (.sx-gb)', !/\.sx-gb\b|\.sx-gros\b/.test(code));
 // les routes restent (favoris, droits d'Équipe, barre du bas) : chaque vue de rubrique existe toujours, et la route moncamion est connue
 for (const k of ['vueStock', 'vueProduits', 'vueBoxes', 'vueMonCamion']) v('vue « ' + k + ' » toujours déclarée', defs(k) >= 1, defs(k));
-v('route « moncamion » connue du menu et du rôle technicien', /k:'moncamion'/.test(code) && /ROLES\.tech\.routes\.push\('moncamion'\)/.test(code));
+v('route « moncamion » connue du menu et de la forme « terrain » (le technicien)', /k:'moncamion'/.test(code) && /LIGNES_TERRAIN = \[\[''[^\n]*'moncamion'/.test(code));
 console.log(`\n== ${ok} ✓ · ${ko} ✗`); process.exit(ko ? 1 : 0);
