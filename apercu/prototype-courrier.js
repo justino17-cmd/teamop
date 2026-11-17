@@ -1578,7 +1578,15 @@ var CSS = `
   .opc:where([data-fmt="phone"]) #btnCompose{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:56px;height:46px;padding:0 4px}
   .opc:where([data-fmt="phone"]) #btnCompose svg{width:22px;height:22px}
   .opc:where([data-fmt="phone"]) #btnCompose .tl{display:block;font-size:10.5px;line-height:12px;font-weight:500;color:var(--label-2);white-space:nowrap}
-  .opc .msg.sel .hpast{background:rgba(255,255,255,.24);color:#fff}
+  /* sur une ligne choisie (bleu plein), la pastille s'ASSOMBRIT au lieu de s'éclaircir : un voile blanc sous du texte blanc tombait à 3,4:1 de nuit (bleu éclairci, 11,5 px) */
+  .opc .msg.sel .hpast{background:rgba(0,0,0,.3);color:#fff}
+  /* un téléphone tenu EN PAYSAGE (390 px de haut) : grand titre, recherche, six catégories et l'encart « rangés ailleurs » prenaient tout, il ne restait aucune ligne de message entière.
+     Le grand titre rétrécit, sa phrase du dessous part (le pied de la liste dit déjà « N non lus »), les marges se serrent. Ne touche NI un ordinateur (plus de 520 px de haut) NI un téléphone debout. */
+  @media (orientation:landscape) and (max-height:520px) {
+    .opc:where([data-fmt="phone"]) .list .large-title{font-size:20px;line-height:24px}
+    .opc:where([data-fmt="phone"]) .list .lt-sub{display:none}
+    .opc:where([data-fmt="phone"]) .list .lt{padding-bottom:0}
+  }
 `;
 var FEUILLE = null;
 function feuilleDans(sr) {
@@ -3066,6 +3074,15 @@ var MARKUP = `
   var SHEET_FOOT='<div class="sheet-foot" data-slot="foot"></div>';
   // Boutons des feuilles : barre de navigation sur iPad/iPhone (Annuler à gauche, action à droite),
   // pied de feuille sur Mac (Annuler puis bouton par défaut, en bas à droite). data-home = place tactile, data-mac = place Mac.
+  // Le titre de la feuille d'écriture tient entre « Annuler » et « Envoyer » (écrit en toutes lettres) : sur un petit téléphone il ne reste que 71 à 141 px, « Nouveau message » en demande 144 et sortait en « Nouveau messa… ». On le MESURE : s'il ne tient pas, la version courte le remplace ; il redevient entier dès qu'il y a la place (rotation, tablette).
+  var TITRE_COURT={"Nouveau message":"Message","Message programmé":"Programmé"};
+  function fitSheetTitles(){
+    $$("#overlays .sheet-title .t-main[data-court]").forEach(function(t){
+      var long=t.getAttribute("data-long"), court=t.getAttribute("data-court");
+      if(t.textContent!==long) t.textContent=long;
+      if(court!==long&&t.clientWidth&&t.scrollWidth>t.clientWidth+1) t.textContent=court;
+    });
+  }
   function placeSheetChrome(){
     var mac=layout()==="mac", a=actif();
     $$("#overlays .sheet").forEach(function(sh){
@@ -3075,6 +3092,7 @@ var MARKUP = `
         var slot=sh.querySelector('[data-slot="'+where+'"]'); if(slot) slot.appendChild(el);
       });
     });
+    fitSheetTitles();
     if(a&&a!==document.body&&sr.contains(a)&&actif()!==a){ try{ a.focus({preventScroll:true}); }catch(e){} }
   }
 
@@ -3625,7 +3643,7 @@ var MARKUP = `
     ov.innerHTML='<div class="sheet compose" id="cSheet" role="dialog" aria-modal="true" aria-labelledby="cTitle">'+
       sheetBar('<button class="btn back-btn" id="cSchedBack" type="button" data-home="l" data-ord="0" aria-label="Retour au message"><span class="ic" aria-hidden="true">'+I.chevL+'</span><span class="lbl" aria-hidden="true">Message</span></button>'+
           '<button class="btn" id="cCancel" type="button" data-home="l" data-mac="cf" data-ord="1">Annuler</button>',
-        '<span class="t t-main">'+title+'</span><span class="t t-sched">Programmer l’envoi</span>',
+        '<span class="t t-main" data-long="'+H(title)+'" data-court="'+H(TITRE_COURT[title]||title)+'">'+title+'</span><span class="t t-sched">Programmer l’envoi</span>',
         '<button class="btn sched-btn" id="cSched" type="button" data-home="r" data-mac="l" data-ord="3" data-ordm="4" aria-expanded="false" aria-controls="cSchedWrap" aria-label="Programmer l’envoi" title="Programmer l’envoi">'+I.clock+'<span class="lbl">Programmer</span></button>'+
         '<button class="btn primary send-btn" id="cSend" type="button" data-home="r" data-mac="l" data-ord="4" data-ordm="3" aria-label="Envoyer" title="Envoyer"><span class="ic-plane">'+I.sent+'</span><span class="lbl">Envoyer</span>'+I.sendUp+'</button>',"cTitle")+
       '<div class="sheet-body compose-body">'+

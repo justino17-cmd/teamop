@@ -4518,6 +4518,9 @@ function annuler(){ if (!pile.length) return; const s = JSON.parse(pile.pop()); 
 function toast(msg, action){ // action : { lib, fn }
   let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
   t.innerHTML = `<span>${msg}</span>`; [].concat(action || []).forEach(ac => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ac.lib; b.onclick = () => { t.classList.remove('on'); ac.fn(); }; t.appendChild(b); });
+  // une seule bulle à la fois : la Boîte mail a la sienne (dans son module) ; une bulle simple du module (« Pièce téléchargée… ») laisse la place à celle-ci
+  // au lieu de se faire recouvrir à moitié — celle d'« Annuler l'envoi » (classe act) reste, elle porte un geste en cours
+  try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
