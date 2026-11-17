@@ -42,14 +42,14 @@ const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').
     // 01 : une valeur FAUSSE reste refusée (SIRET, TVA), et un capital qui n'est pas un montant
     await L.aller(p, 'entreprise'); await L.toucher(c, '[data-ent="carte|legal"]');
     await p.locator('#fl-siret').fill('123'); await L.toucher(c, '[data-cx="ficheok"]');
-    v(`01 ${pr} : un SIRET faux est toujours refusé`, /quatorze chiffres/.test((await C.champ(p, 'fl-siret')).err), await C.champ(p, 'fl-siret'));
+    const rs = await C.champ(p, 'fl-siret'); v(`01 ${pr} : un SIRET faux est toujours refusé`, !!rs && /quatorze chiffres/.test(rs.err), rs);
     await L.fin(c);
   }
 
   // ───── 02 : un téléphone sans six chiffres est refusé
   if (veut('02')) for (const pr of ['mac', 'iphone']) {
     const c = await C.ouvrirEnt({ profil:pr }); await L.toucher(c, '[data-ent="carte|ident"]'); const BTN = '[data-ent="identok"]'; let n = 0;
-    for (const x of ['......', '++++++', '------', '+ + + +', '12345', '+..--..']) { await C.remplir(c.p, 'en-tel', x); await L.toucher(c, BTN); n++; const r = await C.champ(c.p, 'en-tel'); v(`02 ${pr} : « ${x} » refusé`, r.err === 'Ce numéro de téléphone ne semble pas juste.' && r.invalide, r); }
+    for (const x of ['......', '++++++', '------', '+ + + +', '12345', '+..--..']) { await C.remplir(c.p, 'en-tel', x); await L.toucher(c, BTN); n++; const r = await C.champ(c.p, 'en-tel'); v(`02 ${pr} : « ${x} » refusé`, !!r && r.err === 'Ce numéro de téléphone ne semble pas juste.' && r.invalide, r); if (!r) await L.toucher(c, '[data-ent="carte|ident"]'); }
     for (const x of ['+33 5 46 11 22 33', '05.46.11.22.33', '0546112233', '(+33) 546 112']) { await C.remplir(c.p, 'en-tel', x.replace(/[()]/g, '')); await L.toucher(c, BTN); n++; const ouv = await C.panneauOuvert(c.p); v(`02 ${pr} : « ${x.replace(/[()]/g, '')} » accepté`, ouv === '', ouv); if (ouv !== '') {} else await L.toucher(c, '[data-ent="carte|ident"]'); }
     v(`02 ${pr} : population : ${n} cas joués`, n === 10, n); await L.fin(c);
   }
