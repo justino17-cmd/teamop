@@ -3559,6 +3559,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
+droitsInstaller();   /* la garde des droits se pose AVANT tout autre écouteur (étape 5) : function déclarée plus bas, remontée */
 /* ══ DONNÉES FICTIVES — Clim Services 17, samedi 31 octobre 2026, 10 h 40 ══ */
 const AUJ = '2026-10-31', MAINT_MIN = 10*60 + 40;
 /* ⛔ Une date se lit et s'écrit en heure LOCALE — jamais `toISOString()`, qui la convertit en UTC : à partir de 12 h d'avance sur UTC
@@ -4377,6 +4378,8 @@ const ANNULER = { lib:'Annuler', fn: () => annuler() };
 const trouve = id => INTS.find(o => o.id === id) || BUREAU.find(o => o.id === id);
 const estBloc = i => BUREAU.includes(i);
 function poser(i, tid, d, h, dur){
+  /* PREMIÈRE instruction : déplacer, changer de technicien ou de durée est la case « Planning › Modifier » (un enregistrement qui ne change rien de cela passe) */
+  if ((tid !== i.tech || d !== i.d || (h && h !== i.h) || (dur && dur !== i.dur)) && !peut('planif', 'm')) { droitsRefus('planif', 'm', 'poser'); rendre(); return false; }
   // une intervention qui RESTE où elle est (on change seulement sa durée) n'est pas « posée » : seuls un autre jour, une autre heure ou une autre personne passent la garde
   const bouge = tid !== i.tech || d !== i.d || (h && h !== i.h);
   if (bouge && !estBloc(i) && refusAbsent(tid, d, h || i.h)) { rendre(); return false; }
@@ -4760,7 +4763,7 @@ function vueFiche(id){
   if (F.etat === 'bureau') return tete + finiEcran(i, F);
   if (F.etat === 'reprendre') return tete + `<div class="carte" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start"><span class="st st-o">À reprendre · ${esc(F.motif)}</span><h2>Le bureau est prévenu</h2>${F.mot ? '<p style="margin:0">« ' + esc(F.mot) + ' »</p>' : ''}
     <p class="gris" style="margin:0">Une intervention de retour est créée « à planifier ». Le compte rendu dira « intervention à reprendre », jamais « réparé ». Aucune facture n’est préparée.</p>
-    <div class="actions">${ROLE !== 'gestion' ? `<button type="button" class="btn" data-fichepl="${id}">Voir au planning</button>` : ''}<button type="button" class="btn gris" data-action="reprise" data-id="${id}">Reprendre la fiche</button></div></div>`;
+    <div class="actions">${rlPermis('planning') ? `<button type="button" class="btn" data-fichepl="${id}">Voir au planning</button>` : ''}<button type="button" class="btn gris" data-action="reprise" data-id="${id}">Reprendre la fiche</button></div></div>`;
   const man = manque(F), n = tousControles(F).filter(k => F.coches[k]).length, tot = tousControles(F).length;
   return tete + `
   ${enApp() ? '' : `<div class="actions" style="align-items:center"><span class="gris petit">Métier (pour l’essai) :</span><div class="seg" role="group" aria-label="Métier">${metiersChoix(F).map(([k,l])=>`<button type="button" data-metier="${k}" aria-pressed="${F.metier===k}">${l}</button>`).join('')}</div></div>`}
@@ -4937,7 +4940,7 @@ function blocRdv(i, F){
   const c = CLIENTS[i.cli], dur = 120;
   if (RDV.envoye) return `<div class="rdv-ok"><b>✓ ${RDV.rappel ? 'Demande envoyée' : 'Rendez-vous confirmé'}</b><span>Remplacer le ventilateur · ${rdvTexte(RDV)}</span><span class="gris petit">${RDV.rappel ? esc(ENTREPRISE.nom) + ' vous appelle au ' + esc(c.tel) + ' pour convenir d’une date.' : 'C’est noté au planning de ' + esc(ENTREPRISE.nom) + '. Vous recevez un SMS de rappel la veille. La pièce est commandée.'}</span></div>
     <div class="rdv-proto"><b>Dans le prototype, côté bureau :</b> ${RDV.rappel ? 'la demande est dans « À faire maintenant », à rappeler.' : `le rendez-vous est déjà <b>posé au planning</b> le ${jlong(RDV.d)} à ${hm(RDV.h)}, chez ${esc(tech(RDV.tid).nom)}, marqué « accepté par le client ». Le bureau peut le déplacer sur quelqu’un d’autre.`}
-      <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${ROLE !== 'gestion' ? '<button type="button" class="btn" data-rdvvoir="1">Voir au planning</button>' : ''}<button type="button" class="btn gris" data-rdvraz="1">Recommencer</button></span></div>`;
+      <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${rlPermis('planning') ? '<button type="button" class="btn" data-rdvvoir="1">Voir au planning</button>' : ''}<button type="button" class="btn gris" data-rdvraz="1">Recommencer</button></span></div>`;
   const pas = `<div class="rdv-pas">${['Quand','Confirmer'].map((t,k)=>`<span class="${RDV.etape > k+2 ? 'fait' : ''} ${RDV.etape === k+2 ? 'ici' : ''}">${k+1}. ${t}</span>`).join('')}</div>`;
   if (RDV.etape === 2) { const L = rdvCreneaux(i.cli, dur, 'reparation');
     return pas + `<div class="gris petit">Merci, le devis est accepté et la pièce commandée. Choisissez l’heure qui vous arrange : ce sont les vrais moments libres de nos techniciens près de chez vous, pour une intervention d’environ ${duree(dur)}.</div>
@@ -7503,7 +7506,7 @@ function vueDevisFiche(k){
   const taches = TACHES.filter(t => t.lien && t.lien.t === 'devis' && t.lien.id === x.num);
   const gestes = ed ? `<button type="button" class="btn" data-dv="envoyer|${dvCle(x)}" ${complet ? '' : 'disabled'}>Aperçu et envoi</button>`
     : e === 'attente' ? `<button type="button" class="btn" data-dv="relancer|${dvCle(x)}">Relancer</button><button type="button" class="btn gris" data-dv="reponse|${dvCle(x)}">Le client a répondu</button>`
-    : e === 'accepte' ? (iv && iv.st === 'aplanifier' && ROLE !== 'gestion' ? `<button type="button" class="btn" data-dv="planifier|${dvCle(x)}">Planifier l’intervention</button>` : iv ? `<button type="button" class="btn gris" data-go="inter-x-${iv.id}">Voir l’intervention</button>` : `<button type="button" class="btn" data-dv="creerInt|${dvCle(x)}">Créer l’intervention à planifier</button>`)
+    : e === 'accepte' ? (iv && iv.st === 'aplanifier' && peut('planif', 'm') ? `<button type="button" class="btn" data-dv="planifier|${dvCle(x)}">Planifier l’intervention</button>` : iv ? `<button type="button" class="btn gris" data-go="inter-x-${iv.id}">Voir l’intervention</button>` : `<button type="button" class="btn" data-dv="creerInt|${dvCle(x)}">Créer l’intervention à planifier</button>`)
     : `<button type="button" class="btn gris" data-dv="version|${dvCle(x)}">Refaire ce devis</button>`;
   const lignes = x.lignes.map((l, n) => ed
     ? `<div class="dv-lg"><input class="saisie" data-dvl="${dvCle(x)}|${n}|0" value="${esc(l[0])}" aria-label="Désignation"><input class="saisie dv-q2" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|1" value="${String(l[1]).replace('.', ',')}" aria-label="Quantité"><input class="saisie dv-pu ${l[2] == null ? 'manque' : ''}" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|2" value="${l[2] == null ? '' : String(l[2]).replace('.', ',')}" placeholder="prix HT" aria-label="Prix unitaire HT"><span class="dv-tot">${l[2] == null ? '—' : eur(l[1] * l[2])}</span><button type="button" class="dv-x" data-dv="ligneSup|${dvCle(x)}|${n}" aria-label="Retirer la ligne ${esc(l[0])}">✕</button></div>`
@@ -8153,7 +8156,7 @@ const ACTIONS = {
     if (F.suite.entretien) INTS.push({ id:'n-ent-' + id, d:ouvres(1, ajoute(i.d, 364))[0], h:'09:00', dur:60, tech:'', cli:i.cli, titre:'Entretien annuel', type:'Entretien', st:'aplanifier' });
     if (F.suite.ventilo) INTS.push({ id:'n-ven-' + id, d:ajoute(i.d, 4), h:'13:30', dur:120, tech:'', cli:i.cli, titre:'Remplacer le ventilateur (devis à faire)', type:'2ᵉ passage', st:'aplanifier' });
     const fa = FACTURES.find(x => x.int === id);   // absente : intervention en garantie, sans facture
-    if (reglages.auto && fa && lignesDe(fa).every(l => l.pu != null) && entClientJoignable(fa.cli)) envoyerFacture(fa, true);   /* elle attend « à valider » si un prix manque, si le client n'a pas d'e-mail, ou si la fiche de l'entreprise est incomplète (refus silencieux : le technicien n'y peut rien) */
+    if (reglages.auto && fa && lignesDe(fa).every(l => l.pu != null) && entClientJoignable(fa.cli)) envoyerFacture(fa, true, true);   /* elle attend « à valider » si un prix manque, si le client n'a pas d'e-mail, ou si la fiche de l'entreprise est incomplète (refus silencieux : le technicien n'y peut rien) */
     journalAjout(rlQui(), 'inter', 'a terminé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'compte rendu envoyé au client' });
     rendre(); scrollTo({ top:0 }); toast(fa ? 'Terminée : le compte rendu part au client, la facture est préparée.' : 'Terminée : le compte rendu part au client. Intervention en garantie : pas de facture.'); },
   pasFini(b){ feuillePasFini(b.dataset.id); },
@@ -8287,7 +8290,8 @@ const ACTIONS = {
 let numSuiv = 146;
 /* ⛔ UNE porte d'envoi des factures (17 novembre 2026) : elle lit l'identité EN PREMIÈRE instruction et rend un booléen (false : rien n'est parti). Quatre appelants la lisent :
    envoyer, toutValider, terminer (refus silencieux : c'est le geste du technicien) et l'aperçu (qui dit le manque avant le bouton). `muet` : l'appelant dit lui-même le manque, une seule fois. */
-function envoyerFacture(f, muet){ const M = entrepriseManque(); if (M.length) { if (!muet) entRefusFacture(M); return false; } envoyerFactureParti(f); return true; }
+function envoyerFacture(f, muet, auto){ if (!auto && !peut('ventes', 'm')) { if (!muet) droitsRefus('ventes', 'm', 'envoyer'); return false; }   /* la case d'abord ; l'envoi automatique de la fin d'une intervention est celui du système, pas du technicien */
+  const M = entrepriseManque(); if (M.length) { if (!muet) entRefusFacture(M); return false; } envoyerFactureParti(f); return true; }
 function envoyerFactureParti(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (numSuiv++); f.st = 'envoyee'; f.emise = '31/10'; f.ech = '30/11'; f.ht = htDe(f); f.vue = false;
   const P = f.paieTech; if (!P || P.etat === 'rien') return;
   const ttc = ttcDe(f), v = P.etat === 'total' ? ttc : Math.min(ttc, parseFloat(String(P.montant).replace(',','.')) || 0); if (!v) return;
@@ -9704,14 +9708,17 @@ document.addEventListener('click', ev => {
    pointées, son véhicule et le stock de son camion, ses congés, ses habilitations avec leur date de fin. Données fictives. */
 const DR_CATS = [['planif', 'Planning et absences'], ['inter', 'Interventions'], ['crm', 'Clients'], ['ventes', 'Devis, factures, contrats, paiements'], ['compta', 'Comptabilité'],
   ['stock', 'Fournisseurs, matériel, stock et dépôts'], ['temps', 'Temps de travail et véhicules'], ['com', 'Boîte mail'], ['achats', 'Achats et frais'], ['admin', 'L’entreprise et l’équipe']];
-const DR_SP = [['tout', 'Voir les interventions de toute l’équipe', 'sinon, seulement les siennes'], ['prix', 'Voir les prix d’achat et les marges', ''], ['atelier', 'Se servir à l’atelier sans validation', 'sinon, ses sorties attendent le responsable'],
+/* les sept droits à part : leurs valeurs restent TOUTES dans les données de la personne ; seuls ceux qui AGISSENT s'affichent (règle 5 : « ce qu'on ne peut pas prouver ne s'affiche pas ») — DR_SP_BRANCHES grandit au fil des gestes branchés */
+const DR_SP_TOUS = [['tout', 'Voir les interventions de toute l’équipe', 'sinon, seulement les siennes'], ['prix', 'Voir les prix d’achat et les marges', ''], ['atelier', 'Se servir à l’atelier sans validation', 'sinon, ses sorties attendent le responsable'],
   ['valstock', 'Valider les gestes de stock des autres', ''], ['commander', 'Envoyer des commandes aux fournisseurs', ''], ['corrpt', 'Corriger les pointages', 'les siens comme ceux des autres'], ['comptes', 'Créer des comptes', 'dans la limite des places']];
+const DR_SP_BRANCHES = ['comptes'];   /* + corrpt, atelier, valstock, commander, prix quand leurs gestes sont branchés (lot D6) */
+const DR_SP = DR_SP_TOUS.filter(([k]) => DR_SP_BRANCHES.includes(k));
 const tousOui = () => Object.fromEntries(DR_CATS.map(([k]) => [k, { v:1, c:1, m:1, s:1 }]));
 /* v c m s : voir, créer, modifier, supprimer. Les valeurs de départ donnent les menus que Justin a validés (étape 5, spec § 2.12) : le Responsable voit tout et ne règle pas l'entreprise ;
    le Secrétariat a le bureau (sans Planning, Boîte mail, Temps de travail) ; le Technicien a ses cinq écrans personnels. Une case qui n'ouvre aucun geste n'est pas affichée dans la fiche. */
 const caseV = (...L) => Object.fromEntries(DR_CATS.map(([c], i) => { const [v, a, m, x] = String(L[i]).padStart(4, '0').split('').map(Number); return [c, { v, c:a, m, s:x }]; }));
 const PROFILS = {
-  admin:{ nom:'Administrateur', cats:tousOui(), sp:Object.fromEntries(DR_SP.map(([k]) => [k, 1])) },
+  admin:{ nom:'Administrateur', cats:tousOui(), sp:Object.fromEntries(DR_SP_TOUS.map(([k]) => [k, 1])) },
   resp:{ nom:'Responsable', cats:caseV(1111, 1111, 1111, 1111, 1000, 1111, 1111, 1111, 1111, 1000), sp:{ tout:1, prix:1, atelier:1, valstock:1, commander:1, corrpt:1, comptes:0 } },
   secr:{ nom:'Secrétariat', cats:caseV(0, 1110, 1110, 1110, 1110, 1110, 1110, 0, 1000, 0), sp:{ tout:1, prix:1, atelier:1, valstock:0, commander:1, corrpt:0, comptes:0 } },
   tech:{ nom:'Technicien', cats:caseV(1101, 1011, 1000, 0, 0, 1010, 1110, 0, 1111, 0), sp:{ tout:0, prix:0, atelier:0, valstock:0, commander:0, corrpt:0, comptes:0 } }
@@ -11064,7 +11071,7 @@ function cxVueNdf(D){
     ${cmptNdfValidees()}${NDF.some(n => n.etat === 'refusee') ? `<div class="carte"><h3>Refusées · ${NDF.filter(n => n.etat === 'refusee').length}</h3>${NDF.filter(n => n.etat === 'refusee').map(n => `<div class="ligne"><span>${esc(n.objet)}<br><span class="gris petit">${esc(H_NOM(n.qui))} · Note ${ndfNumero(n)} · ${eur(n.ttc)}</span></span><span class="st st-r">Refusée</span></div>`).join('')}</div>` : ''}<div class="carte"><h3>Les notes sans ticket</h3><label class="case"><input type="checkbox" data-ndfregle="1" ${NDF_REGLE.sansTicket ? 'checked' : ''} ${cxEstPatron() ? '' : 'disabled'}><span><b>Permettre de valider une note de frais sans ticket</b><br><span class="faible mini">À chaque fois, la question « Valider sans justificatif ? » est posée à celui qui valide, et la note garde la trace de qui l’a validée et quand. Sa TVA ne se récupère pas.${cxEstPatron() ? '' : ' C’est le patron qui décide de ce réglage.'}</span></span></label>
       ${NDF.some(n => n.sansJustif) ? `<div class="groupe">Validées sans justificatif · ${NDF.filter(n => n.sansJustif).length}</div>${NDF.filter(n => n.sansJustif).map(n => `<div class="ligne"><span>${esc(n.objet)}<br><span class="gris petit">${esc(H_NOM(n.qui))} · validée par ${esc(H_NOM(n.sansJustif.par))} le ${esc(n.sansJustif.le)}</span></span><b>${eur(n.ttc)}</b></div>`).join('')}` : ''}</div>`;
 }
-const cxEstPatron = () => typeof ROLE === 'undefined' || typeof RL_ACTIF === 'undefined' || !RL_ACTIF || ROLE === 'patron';
+const cxEstPatron = () => typeof ROLE === 'undefined' || typeof RL_ACTIF === 'undefined' || !RL_ACTIF || peut('admin', 'm');   /* la paie et les règles de notes de frais suivent la même case que « régler l'entreprise » */
 function cxNdfSansTicket(n){
   return `<div class="ligne"><span class="cx-rt">Pas de ticket</span></div><span class="gris petit">${NDF_REGLE.sansTicket ? `Demande-le à ${esc(prenomDe(n.qui))}, ajoute-le si tu l’as reçu autrement, ou valide sans justificatif : la question te sera posée, et la trace gardée.` : 'Sans ticket, la note ne se rembourse pas : demande-le, ou ajoute-le si tu l’as reçu autrement.'}</span>
     <label class="btn gris" style="cursor:pointer;margin-top:8px;align-self:flex-start">📷 Ajouter le ticket<input type="file" accept="image/*,application/pdf" data-ndfticket="${n.id}" hidden></label>`;
@@ -11407,6 +11414,258 @@ function rlLignesDe(p, coque){
   return groupes.flatMap(([g, ks]) => ks.filter(k => LIG[k] && droitVoit(k, p)).map(k => ({ g, k, ic:LIG[k].ic, l:lib[k] || LIG[k].l, sous:LIG[k].sous, fait:LIG[k].fait, ec:false })));
 }
 
+/* LA TABLE DES GESTES · une entrée par FAMILLE d'attribut (data-<famille>="verbe|…") ; scratchpad/proto-final/sondes/droits-table.js la recense contre la page.
+   k = catégorie de la case ; c / m / s = verbes qui CRÉENT, MODIFIENT, SUPPRIMENT (un verbe peut porter sa propre catégorie : « verbe@catégorie ») ;
+   l = verbes qui ne font que regarder ; d = classe de tout le reste de la famille (sans d : les motifs de lecture GESTE_LECTURE, puis la forme d'une écriture, puis « modifier » — fermé par défaut).
+   Une famille absente de la table prend la catégorie de l'écran ouvert et n'est refusée que si son verbe a la forme d'une écriture (GESTE_ECRITURE). */
+const GESTES = {
+  ac:{ k:'achats', m:'transfert commande magasin refuser payer virement ndfok refok virok ndfoksans ndfsans ndfnon', l:'allernotes ndfticket piece onglet' },
+  action:{ m:'envoyer@ventes toutValider@ventes signerContrat@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes partielOk@ventes terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
+    c:'creerOk@inter cCreer@inter cAjoutType@inter cAjoutTypeOk@inter clientNvInt@inter nouvelleFacture@ventes prepFacture@ventes ligneAjout@ventes avoir@ventes avoirOk@ventes ajoutEnc@ventes ajoutEncOk@ventes creerContrat@ventes contratPour@ventes clientDevis@ventes clientNvDevis@ventes partiel@ventes clientNouveau@crm clientEnreg@crm',
+    s:'noteSuppr@inter photoSuppr@inter pieceSuppr@inter sigEfface@inter sigCtrEfface@ventes',
+    l:'vueEnregistrer vueEnregistrerOk info copierSms apercuEnvoi pdfFacture commentAuto lireContrat bilanPdf cPlusTot cPlusTard cFermer achatsAide' },
+  axa:{ k:'achats', c:'dem demok tick tickok dblautre', m:'demmod budget budgetok precok precrepok kmok toutval nonok toutok relach relancer renvoyer', s:'demannul', l:'quand budgetsans chip inter prec fiche regle kmtarif paie precrep ndate grosnon dblnon goach' },
+  axid:{ k:'achats', d:'l' }, ndfregle:{ k:'achats', d:'m' },
+  rl:{ k:'achats', m:'ndfmodok ndfok', s:'ndfsuppr', l:'retour ndf role parcours go remis ndfmod etape placer auplanning visitefin' },
+  /* administration : l'entreprise et l'équipe */
+  cnx:{ d:'l' }, eqprof:{ k:'admin', d:'m' },
+  eq:{ k:'admin', c:'inviter inviterok renouv habajout habok', m:'relancer mdp actif', l:'fiche filtre planning heures conges' },
+  eqx:{ k:'admin', c:'renouvok regajout', m:'modifok modifx modifier placeok garder fgarder profok cgarder placeplus', s:'annulinv desact desactok regsuppr', l:'kpi formation regles histo revenir choisir fchoisir mesbureau mesfiche cchoisir' },
+  eqd:{ k:'admin', d:'m' }, eqs:{ k:'admin', d:'m' }, eqt:{ k:'admin', d:'m' },
+  ent:{ k:'admin', m:'identok logook banqueok horairesok logoretirer', l:'completer carte lien' },
+  mabarre:{ d:'l' },
+  /* boîte mail */
+  mbx:{ k:'com', c:'add addstop addpas addfin', m:'confok reco', s:'decook rmregle deco', l:'prevenir lire devchoix devfait reglages dl ouvrir cli virrecu' },
+  mbxf:{ k:'com', m:'mdp accord', l:'serveur adr' }, ml:{ k:'com', c:'ajout', m:'reco confok', l:'cmd annonce boites' },
+  mm:{ k:'com', d:'l' }, courrier:{ k:'com', d:'l' }, mailenvoi:{ k:'com', d:'l' },
+  /* comptabilité */
+  cp:{ k:'compta', m:'payer envoi', l:'fac rouvrir aide onglet go jf frais paiement remis depot chq regimes fec fecdl' },
+  cx:{ k:'compta', c:'nouveau', m:'payer payerliste factureok depenseok ficheok sirenok plateformeok', l:'sec grp cat st doc psens pmode gl facture depense dossier fiche dosf dosfac releve ctr plateforme siren relevef justif enlignePlein' },
+  cxaf:{ k:'compta', m:'relancer facturer payer valider', l:'expliquer cloturer' },
+  paie:{ k:'compta', m:'corriger relancer import envoiok distribuer verrouok signalok salok comptabiliser validertout confirme verrouiller validerfiches recalculer calculer', s:'primesuppr', c:'primeajout', l:'mode releve regle valsem pdf simuler fiche sal dsn voirfiches bulletin' },
+  payer:{ k:'compta', d:'m' }, ff:{ d:'l' },
+  stnav:{ d:'l' }, stdet:{ d:'l' }, stou:{ d:'l' }, stper:{ d:'l' }, stbilan:{ d:'l' },
+  /* clients */
+  ccli:{ k:'crm', d:'l' }, cchamp:{ k:'crm', d:'l' }, ci:{ k:'crm', d:'l' }, cnv:{ k:'crm', d:'l' }, cnvtype:{ k:'crm', d:'l' },
+  /* interventions, carte des box, registre */
+  cbx:{ k:'inter', m:'ignorer reco rempl envoi edit vers import conf comb scan photo photof zone-ok pdf-ok envoi-ok etiq-ok planifier rel-go rel-fin rel-stop ajout-fin', s:'zone-sup', l:'filtre forte tout-intact etat prec suiv rel1 pdf etiq zone-non mj rel quoi' },
+  rg:{ k:'inter', c:'plus', m:'reco toutok zoneok signer ok pdfenvok fok prevok planifier prevenir qte moins sitesaisie signeff fq fp fphoto', l:'tous cli passage lien pdf int per etat autre stock pdfper pdftel pdfenv releve voir' },
+  rgf:{ k:'inter', d:'m' }, rlv:{ k:'inter', d:'m' }, suite:{ k:'inter', d:'m' },
+  d3:{ k:'inter', c:'ajout', m:'deplacer passageok', s:'retirer', l:'cli passage pdf voir carte lien box registre fermer' },
+  /* planning, absences, tâches */
+  aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, atdem:{ k:'planif', d:'c' }, atenvoi:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
+  kabsnouv:{ k:'planif', d:'c' }, kplacer:{ k:'planif', d:'m' }, rdvok:{ k:'planif', d:'m' }, rdvraz:{ k:'planif', d:'m' }, rdvnote:{ k:'planif', d:'m' }, planconf:{ k:'planif', s:'annuler supprimer' }, rr:{ k:'planif', s:'delai', l:'apresDevis horizon' },
+  tkxs:{ k:'planif', c:'add', m:'selok', l:'sel tard ign urg tout' }, tajout:{ k:'planif', d:'c' }, tkxajout:{ k:'planif', d:'c' }, tnouv:{ k:'planif', d:'c' }, tfait:{ k:'planif', d:'m' }, tmodif:{ k:'planif', d:'m' }, tpiece:{ k:'planif', d:'m' }, tqui:{ k:'planif', d:'m' },
+  tsdok:{ k:'planif', d:'m' }, tsfait:{ k:'planif', d:'m' }, tsqui:{ k:'planif', d:'m' }, tsdatep:{ k:'planif', d:'m' }, tsdevis:{ k:'planif', d:'m' },
+  /* stock, fournisseurs, dépôts */
+  bc:{ k:'stock', s:'delai', l:'revision pieces' },
+  bxl:{ k:'stock', c:'nou', m:'modok nouok prendre', s:'fermerok', l:'fiche kit' },
+  ce:{ k:'stock', c:'nouvelle add', m:'envoi modif cpok recommander retour', s:'suppr jeter', l:'brouillon bon go voirbon portail' },
+  cm:{ k:'stock', m:'conf confok relok recok accepte conteste relance preparer', s:'annuler', c:'plus', l:'depl hors ancre filtre voir recep rappro' },
+  fo:{ k:'stock', c:'ajouter creer', m:'localok appliquer facok commandes', s:'retirer', l:'liste plustard tarifs facture fiche local preparer tout exemple facex' },
+  mat:{ k:'stock', m:'ajoute ajouter plus oublie manque pris prise toutpris envoyer modifier mchange menvoyer mplus mmoins moins chginter mchginter', s:'retire', l:'messages usage bord ret mliste mpiece mlibre mquand minter inter' },
+  md:{ k:'stock', c:'nou aj dadd cmdadd', m:'deplacer dok rok dcop mettre avanttout remplir fplus dm dp dx dnon', l:'fiche avant stock plus rouvrir sortir compter tout' },
+  ms:{ k:'stock', m:'rok cok toutacc acc ref rmot ajouteq gajoute gmoins gplus gret grecevoir gchinter gfacture gechange genvoyer gpour cmoins cplus ctout fcmd fseuil fseuilx fseuilo fprix fprixx fprixo fchez fchange fmanque', l:'envois t habituels ou maj plus onglet filtrer pk fraz q gorig ginter cpt cgrp fusage fq fhisto' },
+  msf:{ k:'stock', d:'m' }, msg:{ k:'stock', m:'ticket vers', l:'de qi collegue br texte lieu montant' }, msr:{ k:'stock', d:'m' },
+  pdx:{ k:'stock', m:'decaler garder contok fournenreg facchoix achat perte dupfiche prop nat tpbon toutgo relgo toutprep relgroup', l:'pm etat cmdchez' },
+  plein:{ d:'l' }, pr:{ k:'stock', c:'nouveau', m:'modif garder', s:'retirer retirerok', l:'vue fiche rangement pack cat ac alerte sugg raz' },
+  sk:{ k:'stock', m:'transfert inv invok fok reassok val ref br', l:'onglet lx lieu' }, skadd:{ k:'stock', d:'m' }, skf:{ k:'stock', m:'vers pourQui motif', l:'de inter' }, skmvq:{ k:'stock', d:'l' }, skq:{ k:'stock', d:'l' },
+  sx:{ k:'stock', m:'toutval refok expok eok dotok', s:'annuler', l:'stkintertout dx fprel frec fluides rouvrir' }, sxauto:{ k:'stock', d:'m' }, sxdadd:{ k:'stock', d:'m' }, sxdcop:{ k:'stock', d:'m' },
+  /* temps de travail et véhicules */
+  champ:{ k:'temps', m:'debut fin', l:'trouve compte signeNom' },
+  pt:{ k:'temps', c:'ajout', m:'closok', s:'clore', l:'export pers' },
+  ptx:{ k:'temps', m:'debut reprendre termineok sigok plustotok finhierok corrige validertous termine termineprop finhier finhierautre plustot plustard', l:'pause' },
+  tt:{ k:'temps', c:'ajout ajoutok', m:'valider validerok validertout validerun confirmer termineok rappelsok terminer fin jourok mhconfok accepter erreur areg mhconf mhtout rappeler rappeler1', l:'abs filtre rappels jour sem nav regle paie mois releve onglet demander mhonglet mhfin' },
+  ve:{ k:'temps', c:'nouveau creer', m:'pleinok kmok', l:'fiche' },
+  vh:{ k:'temps', c:'nouveau plein rdvok', m:'plan cond modif km incclos docadd docok amende sinistre fait matfait mattout', s:'docdel', l:'fiche onglet statut fonglet frais per csv csvflotte rdv' },
+  vx:{ k:'temps', c:'creerok plein', m:'faitok groupeok pleinok kmok garageok retourok condok modifok frmodok soucisok amendeok sinistreok commander km', s:'frdel docdel', l:'kmnon souci ouvrir' },
+  /* devis, contrats, relevés */
+  dv:{ k:'ventes', c:'nouveau creerInt ligneAj', m:'envoyer relancer signer clientRefus reponse planifier version repOui repNon acompte client', s:'supprimer ligneSup', l:'dicter focusFin pdf' },
+  dvn:{ k:'ventes', c:'nv creer', l:'type modele' }, dvd:{ k:'ventes', d:'l' }, dvf:{ k:'ventes', d:'l' },
+  dx:{ k:'ventes', d:'m' }, dxb:{ k:'ventes', c:'creer nvtype zadd', m:'garder attok reprendre att', s:'annulerMaj', l:'detail rel insecte mode techs tva revenir attpdf suivi puce mesures version relever client' },
+  dxr:{ k:'ventes', m:'photo note', l:'cli zm' }, dxrb:{ k:'ventes', c:'nouveau', m:'envoyer', l:'insecte mode' },
+  b:{ k:'ventes', m:'debut modele cli lieu freq prix fact' }, opd:{ k:'ventes', d:'l' }, opdz:{ k:'ventes', d:'l' }, reglage:{ k:'ventes', d:'m' }, tvoir:{ d:'l' },
+  xy:{ k:'ventes', c:'nouveau', l:'cli tva' }, xyb:{ k:'ventes', c:'creer', l:'insecte mode' }, brouillon:{ k:'ventes', d:'l' }, ecctr:{ k:'ventes', d:'l' }, cforfait:{ k:'ventes', d:'m' }, ctype:{ k:'ventes', d:'l' },
+  /* l'espace du client : ses gestes sont les siens, pas ceux d'une personne de l'entreprise */
+  ec:{ d:'l' },
+  /* gestes de soi et de l'écran : aucune case */
+  gd:{ d:'l' }, imm:{ d:'l' }, nv:{ d:'l' }, mch:{ d:'l' }, menu:{ d:'l' }, mode:{ d:'l' }, tab:{ d:'l' }, go:{ d:'l' }, kpi:{ d:'l' }, kdash:{ d:'l' }, l:{ d:'l' }, vc:{ d:'l' }, vis:{ d:'l' }, oc:{ d:'l' }, tour:{ d:'l' }, taller:{ d:'l' }, voix:{ d:'l' },
+  cmpt:{ d:'l' }, cpsys:{ d:'l' }, retour:{ d:'l' }, retourva:{ d:'l' }, retourx:{ d:'l' }, pretour:{ d:'l' }, rlcli:{ d:'l' }
+};
+/* ── la phrase de chaque case : ce qu'elle change, en mots de tous les jours. Elle sert à la fiche (sous chaque case), au refus (« Ce geste n'est pas ouvert à ton compte : … ») et à l'infobulle. ── */
+const DROIT_PHRASES = {
+  planif:{ v:'voir le planning et les absences', c:'poser quelque chose sur le planning, créer une absence', m:'déplacer, changer de technicien, décider d’une absence', s:'retirer du planning, annuler une absence' },
+  inter:{ v:'voir les interventions', c:'créer une intervention', m:'modifier une fiche d’intervention, la terminer, noter, photographier, faire signer', s:'retirer une note, une photo ou une pièce de la fiche, effacer une signature' },
+  crm:{ v:'voir les clients', c:'créer un client', m:'changer un client, ses coordonnées, ses notes', s:'supprimer un client' },
+  ventes:{ v:'voir les devis, factures et contrats', c:'créer un devis, un contrat, une facture, un avoir, noter un encaissement', m:'modifier, envoyer, relancer, faire signer', s:'supprimer un devis, effacer la signature d’un contrat' },
+  compta:{ v:'voir la comptabilité', c:'noter une dépense, une écriture', m:'payer, valider, relancer, régler la fiche légale', s:'supprimer une écriture' },
+  stock:{ v:'voir le stock et les fournisseurs', c:'créer un produit, un fournisseur, un dépôt, une commande', m:'modifier, inventorier, transférer, réceptionner, ajouter à son camion', s:'retirer, jeter, supprimer ; régler le stock et changer un prix de vente' },
+  temps:{ v:'voir les véhicules', c:'ajouter un pointage, un véhicule, un plein', m:'modifier un véhicule, valider des heures, terminer une journée', s:'clore un pointage, supprimer un frais ou un document de véhicule ; ouvrir les heures de toute l’équipe' },
+  com:{ v:'voir la boîte mail', c:'écrire, connecter une boîte, ajouter une règle', m:'répondre, classer, confier un courriel', s:'supprimer, déconnecter, retirer une règle' },
+  achats:{ v:'voir les demandes et les notes de frais', c:'faire une demande ou une note de frais', m:'décider d’une demande, valider une note, fixer un budget', s:'annuler une demande, supprimer une note' },
+  admin:{ v:'voir l’accueil, les statistiques, l’historique, l’équipe et l’entreprise', c:'inviter une personne, ajouter une habilitation', m:'régler l’entreprise, les comptes et les droits, et la paie', s:'désactiver un compte, annuler une invitation' }
+};
+const DROIT_X = { v:'voir', c:'créer', m:'modifier', s:'supprimer' };
+/* ── le classement d'un geste : famille de l'attribut data-<famille>="verbe|…" → { catégorie, x } (x = c, m, s) ou null (un geste qui ne fait que regarder, ou qui est « de soi ») ── */
+const GESTE_LECTURE = /^(fiche|ouvrir|voir|filtre|filtrer|onglet|nav|sel|pdf\w*|tout|plus|moins|aide|retour\w*|go|cherche|recherche|detail|liste|apercu|export|dl|copier|zoom|tri|mois|semaine|jour|prec|suiv|menu|info|histo|chip|puce|mode|vue|aller|lire|fermer|ferme|quitter|rouvrir|reessayer|choisir|regles|formation|revenir|etat|quoi|rel|stock|carte|lien|per|pers|bord|usage|q|t|ou|qui|du|au|texte|why|rech|-?\d+|[a-z]{1,3}-?\d+|~ouvrir|~defaut)$/i;
+/* LA définition d'une écriture (la sonde droits-table.js la lit aussi) : un verbe qui change quelque chose */
+const GESTE_ECRITURE = /(ok|oks)$|^(nouv|nou$|nv$|creer|cree|ajout|ajoute|add|suppr|retir|del$|rm|modif|enreg|valid|refus|annul|envoy|envoi|pay|poser|terminer|fusion|command|recev|archiv|dupliq|decal|deplac|affect|invit|actif|renouv|relanc|sign|corrig|clor|clos|accept|transfert|import|reco$|conf|garder|desact|reprendre|plein|jeter|factur|distribu|verrouill|comptabilis|prendre|prise|oublie|manque|efface|toutval|virement)/i;
+const GESTES_TJ = {};   /* les listes de chaque famille, lues une fois : verbe → catégorie (ou '') */
+const gesteListe = (E, x) => { const o = {}; String(E[x] || '').split(/\s+/).filter(Boolean).forEach(t => { const [v, c] = t.split('@'); o[v] = c || ''; }); return o; };
+Object.entries(GESTES).forEach(([f, E]) => { GESTES_TJ[f] = { c:gesteListe(E, 'c'), m:gesteListe(E, 'm'), s:gesteListe(E, 's'), l:gesteListe(E, 'l') }; });
+/* la catégorie de l'écran ouvert (une famille inconnue la prend) */
+const gesteCatEcran = () => { const T = ROUTE_DROIT[route]; const f = T && (T[droitForme(eqDe(acteur()))] || T.equipe || T.terrain); return f && f[0] ? f[0].split('.')[0] : null; };
+function geste(fam, verbe){
+  const E = GESTES[fam], T = GESTES_TJ[fam];
+  if (E) {
+    for (const x of ['s', 'c', 'm', 'l']) if (Object.hasOwn(T[x], verbe)) return x === 'l' ? null : { cat:T[x][verbe] || E.k || gesteCatEcran(), x };
+    if (E.d) return E.d === 'l' ? null : { cat:E.k || gesteCatEcran(), x:E.d };
+    if (GESTE_LECTURE.test(verbe)) return null;
+    return { cat:E.k || gesteCatEcran(), x:'m', classe:false };   /* règle 4 : un verbe qui n'est pas dans la table est refusé comme une modification */
+  }
+  if (!GESTE_ECRITURE.test(verbe)) return null;
+  return { cat:gesteCatEcran(), x:/^(nouv|nou$|nv$|creer|cree|ajout|ajoute|add)/i.test(verbe) ? 'c' : /^(suppr|retir|del$|rm)/i.test(verbe) ? 's' : 'm', classe:false, inconnu:true };
+}
+/* les cases qui ont un geste derrière elles (une case sans geste n'est pas dessinée dans la fiche) */
+const DROIT_CASES = (() => { const o = {}; const marque = (cat, x) => { if (cat) (o[cat] = o[cat] || new Set()).add(x); };
+  Object.values(GESTES).forEach(E => { ['c', 'm', 's'].forEach(x => { String(E[x] || '').split(/\s+/).filter(Boolean).forEach(t => marque(t.split('@')[1] || E.k, x)); }); if (E.d && E.d !== 'l') marque(E.k, E.d); });
+  /* les gestes gardés à la FONCTION, sans attribut : le planning (poser, déplacer, retirer), la suppression d'un client, la paie */
+  ['planif'].forEach(c => ['c', 'm', 's'].forEach(x => marque(c, x))); marque('crm', 'm'); marque('compta', 'm'); marque('admin', 'm');
+  return o; })();
+const droitCaseActive = (cat, x) => x === 'v' || !!(DROIT_CASES[cat] && DROIT_CASES[cat].has(x));
+/* les gestes qui demandent en plus un droit à part (« Créer des comptes », « Envoyer des commandes »…) : famille → verbe → droit */
+const GESTES_SP = { eq:{ inviter:'comptes', inviterok:'comptes', relancer:'comptes' }, eqx:{ placeok:'comptes' } };
+const DROIT_SP_PHRASE = { comptes:'créer des comptes, dans la limite des places', corrpt:'corriger un pointage', atelier:'se servir à l’atelier sans validation', valstock:'valider les gestes de stock des autres', commander:'envoyer une commande à un fournisseur', prix:'voir les prix d’achat et les marges' };
+const DROITS_REFUS = [];
+let droitsRefusVu = 0;
+/* un geste refusé : le toast dit QUOI et à QUI demander, un compteur le garde pour les sondes ; aucune ligne de journal (ce serait du bruit) */
+function droitsRefus(cat, x, fam, verbe){
+  DROITS_REFUS.push({ cat, x, fam, verbe });
+  const t = Date.now(); if (t - droitsRefusVu < 900) return; droitsRefusVu = t;
+  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
+  toast('Ce geste n’est pas ouvert à ton compte : ' + ph + '. Demande à ' + esc(droitPremierAdmin()) + '.');
+  return false;
+}
+/* ce que la garde laisse toujours passer : naviguer, fermer, changer d'apparence, la palette, l'écran de connexion */
+const DROIT_LIBRES = '#pal,#hl-ecran,.rl-bande,#cnx,[data-ferme],[data-retour],[data-retourva],[data-pretour],[data-go],[data-modetheme],[data-nv],[data-menu],[data-tab],[data-logo]';
+const DROIT_BALISES = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|LABEL|SUMMARY)$/;
+/* UNE garde, en capture, avant tout autre écouteur : elle remonte de la cible jusqu'au premier élément qui porte un geste connu, demande à la table, et avale ce que la personne n'a pas le droit de faire */
+function droitsGeste(ev){
+  try {
+    if (!ev.target || !ev.target.closest || window.DROITS_GARDE === false) return;
+    if (typeof ROLE === 'undefined' || ROLE === 'client') return;
+    const p = eqDe(acteur()); if (!p || droitAdmin(p)) return;
+    for (let el = ev.target; el && el.nodeType === 1; el = el.parentElement) {
+      if (el.matches && el.matches(DROIT_LIBRES) && !Object.keys(el.dataset).some(f => (GESTES[f] || f === 'action') && f !== 'go')) return;
+      let decide = false, refus = null;
+      for (const a of el.attributes) { if (a.name.slice(0, 5) !== 'data-') continue; const fam = a.name.slice(5); const connue = Object.hasOwn(GESTES, fam) || fam === 'action';
+        if (!connue && !(DROIT_BALISES.test(el.tagName) || el.getAttribute('role') === 'button')) continue;
+        const g = geste(fam === 'action' ? 'action' : fam, String(a.value).split('|')[0]); if (connue) decide = true;
+        if (g && g.cat && !peut(g.cat, g.x, p)) { refus = [g, fam, String(a.value).split('|')[0]]; break; }
+        const sp = GESTES_SP[fam] && GESTES_SP[fam][String(a.value).split('|')[0]]; if (sp && !droitSp(p, sp)) { refus = [{ cat:sp, x:'sp' }, fam, String(a.value).split('|')[0]]; break; } }
+      if (refus) { ev.stopImmediatePropagation(); ev.preventDefault();
+        if (ev.type === 'change' || ev.type === 'input') droitsRestaurer(ev.target);
+        droitsRefus(refus[0].cat, refus[0].x, refus[1], refus[2]); return; }
+      if (decide) return;
+    }
+  } catch (e) { console.error('droitsGeste', e); }
+}
+/* un refus d'un « change » ou d'un « input » laisse l'écran mentir (la case est déjà cochée, la valeur déjà tapée) : on lui rend l'état d'avant */
+function droitsRestaurer(el){
+  if (!el) return;
+  if (el.type === 'checkbox' || el.type === 'radio') el.checked = el.defaultChecked;
+  else if (el.tagName === 'SELECT') { const o = [...el.options].find(x => x.defaultSelected); if (o) el.value = o.value; }
+  else if ('value' in el) el.value = el.defaultValue;
+}
+function droitsInstaller(){
+  if (droitsInstaller.fait) return; droitsInstaller.fait = true;
+  ['click', 'change', 'input'].forEach(t => window.addEventListener(t, droitsGeste, true));
+  window.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target && /^(INPUT|SELECT)$/.test(ev.target.tagName)) droitsGeste(ev); }, true);   /* un bouton qui reçoit Entrée ou Espace fait un « click » : la garde le voit déjà */
+  ['contextmenu', 'dragstart', 'drop'].forEach(t => window.addEventListener(t, droitsGeste, true));
+}
+/* ── l'écran se nettoie par une FEUILLE DE STYLE fabriquée de la même table : aucun parcours du DOM, aucun MutationObserver. Un écran ou un panneau neuf est nettoyé à sa naissance par le navigateur ── */
+let droitsCssTexte = null;
+function droitsCss(p){
+  p = p || eqDe(acteur()); if (!p || droitAdmin(p) || (typeof ROLE !== 'undefined' && ROLE === 'client')) return '';
+  const R = [];
+  Object.entries(GESTES).forEach(([fam, E]) => { const T = GESTES_TJ[fam];
+    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const cat = c || E.k; if (cat && !peut(cat, x, p)) R.push(`[data-${fam}="${v}"],[data-${fam}^="${v}|"]`); }));
+    if (E.d && E.d !== 'l' && E.k && !peut(E.k, E.d, p)) R.push(`[data-${fam}]`); });
+  Object.entries(GESTES_SP).forEach(([fam, V]) => Object.entries(V).forEach(([v, sp]) => { if (!droitSp(p, sp)) R.push(`[data-${fam}="${v}"],[data-${fam}^="${v}|"]`); }));
+  return R.length ? R.join(',') + '{display:none!important}' : '';
+}
+function droitsMaj(){
+  const t = droitsCss(); if (t === droitsCssTexte) return; droitsCssTexte = t;
+  let st = document.getElementById('droits-css'); if (!st) { st = document.createElement('style'); st.id = 'droits-css'; document.head.appendChild(st); }
+  st.textContent = t;
+}
+/* ── l'écran en lecture seule le dit UNE fois ; une catégorie à moitié ouverte écrit en pied ce qu'elle ne permet pas ── */
+function droitsMotsVerbes(L){ return L.length === 1 ? L[0] : L.slice(0, -1).join(', ') + ' ou ' + L[L.length - 1]; }
+function droitsNote(){
+  const c = document.getElementById('contenu'); if (!c || ROLE === 'client' || ROLE === 'compta') return;
+  c.querySelectorAll('.droits-note').forEach(e => e.remove());
+  if (['entreprise', 'accueil'].includes(route) || !ROUTE_DROIT[route] || route === 'taches') return;
+  const p = eqDe(acteur()); if (!p || droitAdmin(p)) return;
+  const T = ROUTE_DROIT[route][droitForme(p)] || []; const cat = T[0] && T[0].split('.')[0]; if (!cat || !droitCase(p, cat)) return;
+  const actifs = ['c', 'm', 's'].filter(x => droitCaseActive(cat, x)); if (!actifs.length) return;
+  const manque = actifs.filter(x => !peut(cat, x, p)); if (!manque.length) return;
+  const qui = esc(droitPremierAdmin());
+  if (manque.length === actifs.length) {
+    const h = c.querySelector('.tete, .tete-tel'); const html = `<div class="info petit droits-note" role="status">Tu peux regarder cet écran, pas le modifier. Pour changer quelque chose, demande à ${qui}.</div>`;
+    if (h) h.insertAdjacentHTML('afterend', html); else c.insertAdjacentHTML('afterbegin', html);
+  } else c.insertAdjacentHTML('beforeend', `<div class="gris petit droits-note" role="note" style="margin-top:14px">Dans cette rubrique, ton compte ne peut pas ${droitsMotsVerbes(manque.map(x => DROIT_X[x]))}. Pour changer ça, demande à ${qui}.</div>`);
+}
+/* « Mes tâches » est un outil personnel, toujours ouvert : une personne à qui rien d'autre n'est ouvert le sait */
+function droitsVide(){
+  const c = document.getElementById('contenu'); if (!c || route !== 'taches' || ROLE === 'client' || ROLE === 'compta') return;
+  c.querySelectorAll('.droits-vide').forEach(e => e.remove());
+  if (rlLignes().length > 1) return;
+  const h = c.querySelector('.tete, .tete-tel'); const html = `<div class="info droits-vide" role="status">Ton gérant n’a encore ouvert aucune rubrique à ton compte. Demande-lui de régler tes droits dans Équipe.${enApp() ? ' <button type="button" class="lien" data-cnx="sortir">Se déconnecter</button>' : ''}</div>`;
+  if (h) h.insertAdjacentHTML('afterend', html); else c.insertAdjacentHTML('afterbegin', html);
+}
+{ const r0 = rendre; rendre = function(){ droitsMaj(); const v = r0.apply(this, arguments); try { droitsNote(); droitsVide(); } catch (e) { console.error('droits', e); } return v; }; }
+/* ── la fiche d'une personne, bloc « Droits » (étape 5) : sa forme d'écran, ce qu'elle voit et ne voit pas — la MÊME fonction que son menu —, les droits à part qui agissent, la grille repliée ── */
+const DR_CATS_TERRAIN = ['planif', 'inter', 'crm', 'stock', 'temps', 'achats'];   /* les six catégories qui ont un écran personnel pour un terrain */
+const droitsCatsPour = p => DR_CATS.filter(([k]) => droitForme(p) === 'equipe' || DR_CATS_TERRAIN.includes(k));
+const droitsSpPour = p => DR_SP.filter(([k]) => droitForme(p) === 'equipe' || ['atelier', 'prix', 'corrpt'].includes(k));
+function droitsLignesCandidates(coque){ const pack3d = typeof PACKS_ENT !== 'undefined' && PACKS_ENT.includes('3d');
+  const G = coque === 'tech' ? LIGNES_TERRAIN : CATS.map(([g, L]) => [g, L.map(r => r[0])]);
+  return G.filter(([g]) => g !== GROUPE_3D || pack3d).flatMap(([, ks]) => ks).filter(k => LIG[k] && k !== 'taches'); }
+function droitsVoitDit(p){
+  const coque = sessionRole(p); if (coque === 'compta' || droitAdmin(p)) return '';
+  const lib = LIB_ROLE[coque] || {}, nom = k => lib[k] || LIG[k].l;
+  const voit = rlLignesDe(p, coque).map(l => l.l), non = droitsLignesCandidates(coque).filter(k => !droitVoit(k, p)).map(nom);
+  return `<div class="droits-voit" id="eqx-voit"><div><b>Ce que ${esc(p.prenom)} voit :</b> ${esc(voit.join(', ') || 'rien')}.</div>${non.length ? `<div class="gris">Ce que ${esc(p.prenom)} ne voit pas : ${esc(non.join(', '))}.</div>` : ''}</div>`;
+}
+function droitsBlocFiche(p, k, admin, ajuste, pk){
+  const soi = p.k === acteur(), fige = admin || soi, att = fige ? 'disabled' : '';
+  const cas = (cat, x) => `<input type="checkbox" data-eqd="${k}|${cat}|${x}" ${p.droits.cats[cat][x] ? 'checked' : ''} ${att} aria-label="${esc(EQX_CATS[cat])} : ${DROIT_X[x]} — ${esc(DROIT_PHRASES[cat][x])}" title="${esc(DROIT_PHRASES[cat][x])}">`;
+  const sp = droitsSpPour(p);
+  return `<div class="groupe">Droits · ${esc(eqxProfilTitre(p))}</div>
+    ${ajuste ? `<div class="gris petit">${(() => { const d = eqxDiff(PROFILS[pk], p.droits); return (d.plus.length ? '<b>En plus :</b> ' + esc(d.plus.join(' ; ')) + '. ' : '') + (d.moins.length ? '<b>En moins :</b> ' + esc(d.moins.join(' ; ')) + '.' : ''); })()}</div>${fige ? '' : `<button type="button" class="lien" data-eqx="revenir|${k}">Revenir au profil ${esc(PROFILS[pk].nom)}</button>`}` : ''}
+    ${fige ? '' : `<label class="champ">Appliquer un profil<select data-eqprof="${k}"><option value="">Choisir…</option>${Object.entries(PROFILS).filter(([q]) => q !== 'admin').map(([q, o]) => `<option value="${q}">${esc(o.nom)}</option>`).join('')}</select></label>`}
+    <label class="fo-garder"><input type="checkbox" data-eqt="${k}" ${eqxTerrain(p) ? 'checked' : ''} ${att}><span><b>Travaille sur le terrain</b><span class="gris petit"> · coché : l’application s’ouvre sur sa journée, ses frais, ses heures, son camion et ses congés. Décoché : elle s’ouvre sur les écrans du bureau.</span></span></label>
+    ${droitsVoitDit(p)}
+    ${sp.length ? `<div class="fo-bloc">${sp.map(([s, lib, aide]) => `<label class="fo-garder eq-sp"><input type="checkbox" data-eqs="${k}|${s}" ${p.droits.sp[s] ? 'checked' : ''} ${att}><span><b>${esc(lib)}</b>${aide ? `<span class="gris petit"> · ${esc(aide)}</span>` : ''}</span></label>`).join('')}</div>` : ''}
+    <details class="eqx-det" ${eqxDetOuvert ? 'open' : ''}><summary>Voir et régler les droits détaillés par catégorie</summary>
+      <div class="gris petit">Décocher « Voir » cache la rubrique et ferme son adresse. Décocher « Créer », « Modifier » ou « Supprimer » retire le bouton correspondant : la personne regarde, elle ne change rien.</div>
+      <div class="eq-droits"><div class="eq-dr eq-dr-t" aria-hidden="true"><span></span><span>Voir</span><span>Créer</span><span>Modif.</span><span>Suppr.</span></div>
+      ${droitsCatsPour(p).map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${droitCaseActive(cat, x) ? cas(cat, x) : '<span aria-hidden="true"></span>'}</label>`).join('')}</div>`).join('')}</div>
+      <div class="gris petit" id="eqx-phrase" role="status" aria-live="polite">Touche une case pour lire ce qu’elle change.</div>
+      ${admin ? '<div class="gris petit">Les droits d’un administrateur ne se retirent pas.</div>' : soi ? '<div class="gris petit">Tu ne peux pas régler tes propres droits : c’est une autre personne qui le fait.</div>' : ''}</details>`;
+}
+/* la phrase de la case qu'on touche ou qu'on survole */
+document.addEventListener('focusin', ev => { const t = ev.target, z = document.getElementById('eqx-phrase'); if (!z || !t.matches || !t.matches('[data-eqd]')) return; const [, cat, x] = t.dataset.eqd.split('|'); z.textContent = `${EQX_CATS[cat]} · ${DROIT_X[x]} : ${DROIT_PHRASES[cat][x]}.`; });
+document.addEventListener('mouseover', ev => { const t = ev.target, z = document.getElementById('eqx-phrase'); if (!z || !t.matches || !t.matches('[data-eqd]')) return; const [, cat, x] = t.dataset.eqd.split('|'); z.textContent = `${EQX_CATS[cat]} · ${DROIT_X[x]} : ${DROIT_PHRASES[cat][x]}.`; });
+/* qui règle les droits : jamais les siens, jamais ceux d'un administrateur, jamais un droit qu'on n'a pas soi-même (étape 5, spec § 2.11) */
+function droitsReglable(k, cat, x){
+  const p = eqDe(k), moi = eqDe(acteur());
+  if (!p) return 'Cette personne n’existe pas.';
+  if (p.k === acteur()) return 'Tu ne peux pas régler tes propres droits : c’est une autre personne qui le fait.';
+  if (droitAdmin(p)) return 'Les droits d’un administrateur ne se retirent pas.';
+  if (moi && !droitAdmin(moi) && cat && x && x !== 'v' && !peut(cat, x, moi)) return 'Tu ne peux pas donner un droit que tu n’as pas toi-même.';
+  return null;
+}
 Object.assign(IC, {
   majournee:'<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16M9 14.5l2 2 4-4"/>',
   techfrais:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
@@ -12870,7 +13129,7 @@ const ACTIONS_CREA = {
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis ce courriel', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
-    toast(`Intervention créée : <b>${esc(b.titre)}</b> · ${t ? tech(t).nom + ' · ' + jlib(d) + ' ' + b.h : 'à planifier'}`, ROLE === 'gestion' ? null : { lib:'Voir au planning', fn:() => { plVue = 'jour'; plRef = d; aller('planning'); } }); },
+    toast(`Intervention créée : <b>${esc(b.titre)}</b> · ${t ? tech(t).nom + ' · ' + jlib(d) + ' ' + b.h : 'à planifier'}`, !rlPermis('planning') ? null : { lib:'Voir au planning', fn:() => { plVue = 'jour'; plRef = d; aller('planning'); } }); },
   cAjoutTypeOk(){ const v = document.getElementById('t-nom').value.trim(); if (v && !TYPES.includes(v)) TYPES.push(v); if (v && CREA) { CREA.type = v; if (!CREA.titreTouche) CREA.titre = v; } fermerPanneau(); rendreCreation(); }
 };
 
@@ -17375,7 +17634,7 @@ vxInit(); vxNotifs();
    contrôle et met au garage (VEHTEMPS § 11, recommandation) — une CASE de l'Équipe (« Temps de travail et véhicules ») le lui ouvre ou le lui ferme.
    Un seul écouteur par écran : data-vh. Les anciens data-ve (Équipe, tâches, visites) renvoient ici. */
 const VH = { onglet:'tous', fOnglet:'afaire', q:'' };
-const vhBureau = () => typeof ROLE !== 'undefined' && ROLE === 'gestion';
+const vhBureau = () => typeof ROLE !== 'undefined' && ROLE === 'gestion' && !peut('temps', 's');   /* le bureau lit, note un plein, un rendez-vous, un contrôle ; qui peut AUSSI supprimer (Responsable, gérant) gère les véhicules en entier */
 /* ce que le bureau ne fait PAS (il lit, note un plein, un rendez-vous, un contrôle, met au garage) : garde au début de chaque geste, jamais seulement un bouton caché */
 const VH_BUREAU_NON = ['nouveau', 'creerok', 'modif', 'modifok', 'cond', 'condok', 'amende', 'amendeok', 'sinistre', 'sinistreok', 'incclos', 'docadd', 'docok', 'docdel', 'soucireg', 'km', 'kmok', 'plan', 'csvflotte'];
 const vhPeut = a => !(vhBureau() && VH_BUREAU_NON.includes(a));
@@ -18303,7 +18562,7 @@ const axPl = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 const axU = (q, u) => q > 1 && u && /^[a-zéèêîôû]{3,}$/i.test(u) && !/[sxz]$/i.test(u) ? (/e?au$/i.test(u) ? u + 'x' : u + 's') : u;
 const axQte = (q, u) => prNum(q) + ' ' + axU(q, u);
 const axEstTech = () => typeof ROLE !== 'undefined' && ROLE === 'tech';
-const axLect = () => typeof ROLE !== 'undefined' && ROLE === 'gestion';
+const axLect = () => typeof ROLE !== 'undefined' && ROLE !== 'tech' && ROLE !== 'client' && !peut('achats', 'm');   /* qui ne peut pas décider lit seulement : la case « Achats et frais › Modifier », plus le nom du rôle */
 const axNotif = (k, txt) => { notifier(k, txt); return NOTIFS[NOTIFS.length - 1]; };
 const axRetirer = (L, x) => { const i = L.indexOf(x); if (i >= 0) L.splice(i, 1); };
 const axAge = d => d ? Math.max(0, -tJours(d)) : 0;
@@ -18838,7 +19097,7 @@ document.addEventListener('click', ev => {   // APRÈS l'écouteur d'origine (en
    ⛔ L'identité saisie est du TEXTE injecté dans les gabarits (63 lectures de ENTREPRISE.nom sur 102 ne l'échappent pas) : les champs refusent donc < > " .
    ⛔ Une facture ne PART pas tant que le nom, l'adresse et le SIRET manquent : UNE porte, envoyerFacture, qui rend un booléen (voir plus haut). */
 /* qui peut régler la fiche : le gérant. À brancher sur la case « L'entreprise et l'équipe › Modifier » à l'étape des droits (une seule fonction à changer). */
-function entModifiable(){ return typeof ROLE === 'undefined' || ROLE === 'patron'; }
+function entModifiable(){ return typeof ROLE === 'undefined' || peut('admin', 'm'); }   /* la case « L'entreprise et l'équipe › Modifier » : le gérant, jamais le Responsable */
 const ENT_INTERDIT = /[<>"]/, ENT_MSG_INTERDIT = 'Ce champ ne peut pas contenir de signes < > ni de guillemets droits.';
 const ENT_ADR_RE = /^(.*?),\s*(\d{5})\s+(.+)$/;   // la même expression que opdDonnees() : l'adresse reste UNE chaîne « rue, 17000 Ville »
 function entAdr(){ const a = String(ENTREPRISE.adr || ''), m = ENT_ADR_RE.exec(a); return m ? { rue:m[1], cp:m[2], ville:m[3] } : { rue:a, cp:'', ville:'' }; }
@@ -19352,13 +19611,7 @@ eqFiche = function (k) {
     <div class="fo-bloc">${p.habil.map(([n, d, m], j) => { const anc = (m && m.anciennes) || [];
       return `<div class="fo-r eqx-hr"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${eqxHabTexte(p, j)}</span>${anc.length ? `<details class="eqx-anc"><summary>Voir les anciennes (${anc.length})</summary>${anc.map(a => `<span class="gris petit">${a.fin ? 'jusqu’au ' + dFr(a.fin) : 'sans date de fin'}${a.passee ? ' · passée le ' + dFr(a.passee) : ''}${a.orga ? ' · ' + esc(a.orga) : ''}${a.piece ? ' · 📎 ' + esc(a.piece) : ''}</span>`).join('')}</details>` : ''}</span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouveler…</button>` : ''}</div>`; }).join('') || '<div class="gris petit">Aucune.</div>'}</div>
     <button type="button" class="lien" data-eq="habajout|${k}">＋ Ajouter une habilitation</button>
-    <div class="groupe">Droits · ${esc(eqxProfilTitre(p))}</div>
-    ${ajuste ? `<div class="gris petit">${(() => { const d = eqxDiff(PROFILS[pk], p.droits); return (d.plus.length ? '<b>En plus :</b> ' + esc(d.plus.join(' ; ')) + '. ' : '') + (d.moins.length ? '<b>En moins :</b> ' + esc(d.moins.join(' ; ')) + '.' : ''); })()}</div><button type="button" class="lien" data-eqx="revenir|${k}">Revenir au profil ${esc(PROFILS[pk].nom)}</button>` : ''}
-    ${admin ? '' : `<label class="champ">Appliquer un profil<select data-eqprof="${k}"><option value="">Choisir…</option>${Object.entries(PROFILS).filter(([q]) => q !== 'admin').map(([q, o]) => `<option value="${q}">${esc(o.nom)}</option>`).join('')}</select></label>`}
-    <div class="gris petit">Décocher « Voir » retire la rubrique du menu de la personne et ferme son adresse : Comptabilité, Devis · factures · contrats, Clients, Interventions, Achats et frais ; pour un technicien, Dépôts et camions, son camion, ses heures et l’aperçu client. Créer, Modifier, Supprimer et les droits à part ne sont pas encore appliqués.</div>
-    <div class="fo-bloc">${DR_SP.map(([sp, lib, aide]) => `<label class="fo-garder eq-sp"><input type="checkbox" data-eqs="${k}|${sp}" ${p.droits.sp[sp] ? 'checked' : ''} ${admin ? 'disabled' : ''}><span><b>${esc(lib)}</b>${aide ? `<span class="gris petit"> · ${esc(aide)}</span>` : ''}</span></label>`).join('')}</div>
-    <details class="eqx-det" ${eqxDetOuvert ? 'open' : ''}><summary>Voir et régler les droits détaillés par catégorie</summary><div class="eq-droits"><div class="eq-dr eq-dr-t" aria-hidden="true"><span></span><span>Voir</span><span>Créer</span><span>Modif.</span><span>Suppr.</span></div>
-      ${DR_CATS.map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${cas(cat, x)}</label>`).join('')}</div>`).join('')}</div></details>
+    ${droitsBlocFiche(p, k, admin, ajuste, pk)}
     <div class="actions">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button><button type="button" class="btn gris" data-eqx="annulinv|${k}">Annuler l’invitation</button>` : `<button type="button" class="btn gris" data-eq="mdp|${k}">Envoyer un lien de mot de passe</button>`}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
     ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
 };
@@ -19534,6 +19787,7 @@ document.addEventListener('click', ev => {
     return toast(a === 'mdp' ? `Lien envoyé à ${esc(p.mail)} : la personne choisit elle-même son nouveau mot de passe.` : `Invitation renvoyée à ${esc(p.mail)}.`); }
   if (a === 'actif') { const p = eqDe(x);
     if (p.actif) return eqxDepart(x);
+    if (!droitSp(eqDe(acteur()), 'comptes')) return droitsRefus('comptes', 'sp', 'eq', 'actif');
     if (eqxPlein()) return eqxPleinPanneau('reactiver');
     const avant = eqxPrise(); p.actif = true; eqxSynchro();
     eqxFait(avant, `Le compte de ${esc(eqNom(p))} est réactivé.`, 'a réactivé le compte de', p); foGarder(() => eqFiche(x)); return; }
@@ -19626,7 +19880,12 @@ document.addEventListener('toggle', ev => { if (ev.target.classList && ev.target
 /* ═ 11. Les changements de droits : confirmer ce qui s'ouvre, écrire ce qui change ═ */
 document.addEventListener('change', ev => {
   const t = ev.target;
+  if (t.matches('[data-eqt]')) { ev.stopImmediatePropagation(); const k = t.dataset.eqt, p = eqDe(k), m0 = droitsReglable(k); if (m0) { droitsRestaurer(t); return toast(m0); }
+    const avant = eqxPrise(); p.terrain = t.checked; eqxSynchro();
+    eqxFait(avant, `${esc(p.prenom)} ${t.checked ? 'travaille maintenant sur le terrain : son application s’ouvre sur sa journée.' : 'ne travaille plus sur le terrain : son application s’ouvre sur les écrans du bureau.'}`, 'a changé « Travaille sur le terrain » pour', p, { avant:'sur le terrain : ' + (t.checked ? 'non' : 'oui'), apres:'sur le terrain : ' + (t.checked ? 'oui' : 'non') });
+    return foRefocus(() => foGarder(() => eqFiche(k))); }
   if (t.matches('[data-eqd]')) { ev.stopImmediatePropagation(); const [k, cat, x] = t.dataset.eqd.split('|'), p = eqDe(k), avant = eqxPrise(), e0 = eqxCatEtat(p.droits.cats[cat]);
+    { const m0 = droitsReglable(k, cat, t.checked ? x : 'v'); if (m0) { droitsRestaurer(t); return toast(m0); } }
     p.droits.cats[cat][x] = t.checked ? 1 : 0;
     if (x === 'v' && !t.checked) Object.assign(p.droits.cats[cat], { c:0, m:0, s:0 });   // ne pas voir une catégorie, c'est ne rien y faire
     if (x !== 'v' && t.checked) p.droits.cats[cat].v = 1;
@@ -19634,11 +19893,14 @@ document.addEventListener('change', ev => {
     const e1 = eqxCatEtat(p.droits.cats[cat]);
     eqxFait(avant, `${esc(EQX_CATS[cat])} pour ${esc(p.prenom)} : ${e1}.`, 'a donné un droit', p, { avant:EQX_CATS[cat] + ' : ' + e0, apres:EQX_CATS[cat] + ' : ' + e1 });
     return foRefocus(() => foGarder(() => eqFiche(k))); }
-  if (t.matches('[data-eqs]')) { ev.stopImmediatePropagation(); const [k, sp] = t.dataset.eqs.split('|'), p = eqDe(k), avant = eqxPrise(), lib = DR_SP.find(o => o[0] === sp)[1];
+  if (t.matches('[data-eqs]')) { ev.stopImmediatePropagation(); const [k, sp] = t.dataset.eqs.split('|'), p = eqDe(k), avant = eqxPrise(), lib = DR_SP_TOUS.find(o => o[0] === sp)[1];
+    { const m0 = droitsReglable(k); if (m0) { droitsRestaurer(t); return toast(m0); } if (t.checked && !droitSp(eqDe(acteur()), sp)) { droitsRestaurer(t); return toast('Tu ne peux pas donner un droit que tu n’as pas toi-même.'); } }
     p.droits.sp[sp] = t.checked ? 1 : 0; if (!p.droits.profil.endsWith('*')) p.droits.profil += '*';
     eqxFait(avant, `${t.checked ? 'Droit donné' : 'Droit retiré'} à ${esc(p.prenom)} : ${esc(lib.charAt(0).toLowerCase() + lib.slice(1))}.`, t.checked ? 'a donné un droit' : 'a retiré un droit', p, { avant:lib + ' : ' + (t.checked ? 'non' : 'oui'), apres:lib + ' : ' + (t.checked ? 'oui' : 'non') });
     return foRefocus(() => foGarder(() => eqFiche(k))); }
   if (t.matches('[data-eqprof]') && t.value) { ev.stopImmediatePropagation(); const p = eqDe(t.dataset.eqprof), pk = t.value, d = eqxDiff(p.droits, copieProfil(pk));
+    { const m0 = droitsReglable(p.k), moi = eqDe(acteur()); if (m0) { t.value = ''; return toast(m0); }
+      if (moi && !droitAdmin(moi) && DR_CATS.some(([c]) => ['c', 'm', 's'].some(x => PROFILS[pk].cats[c][x] && !peut(c, x, moi)))) { t.value = ''; return toast('Tu ne peux pas donner un droit que tu n’as pas toi-même.'); } }
     if (d.plus.length) { t.value = ''; return eqxPan(`<span class="surtitre">${esc(eqNom(p))}</span><h2>Appliquer le profil ${esc(PROFILS[pk].nom)} ?</h2>
       <div class="a-alerte"><b>${esc(p.prenom)} pourra en plus :</b><span>${d.plus.map(esc).join('<br>')}</span></div>${d.moins.length ? `<div class="carte"><b>${esc(p.prenom)} ne pourra plus :</b><div class="gris">${d.moins.map(esc).join('<br>')}</div></div>` : ''}
       <div class="actions"><button type="button" class="btn" data-eqx="profok|${p.k}|${pk}">Appliquer le profil ${esc(PROFILS[pk].nom)}</button><button type="button" class="btn gris" data-pretour="1">Annuler</button></div>`); }
@@ -20146,8 +20408,8 @@ const CB_STOCK = { b1:[['L-2611', 820], ['L-2604', 140]], g1:[['G-1107', 95]], p
 const CB_MATOS = { r:6, i:10, v:3 };
 const CB_DOSE = { r:['b1', 40], i:['g1', 10], v:['p1', 1] };      // ce qu'une box rechargée consomme : 40 g d'appât, 10 g de gel, 1 plaque
 const CB_MAIL = { t1:'contact@lamaree-exemple.fr', t2:'contact@lemoine-exemple.fr', t3:'site@atlantique-logistique-exemple.fr' };
-const cbRO = () => typeof ROLE !== 'undefined' && ROLE === 'gestion';          // la gestion regarde, elle ne relève pas
-const cbPatron = () => typeof ROLE === 'undefined' || ROLE === 'patron';       // déplacer, retirer, dessiner le plan : le patron
+const cbRO = () => typeof ROLE !== 'undefined' && droitForme(eqDe(acteur())) === 'equipe' && !peut('stock', 's');          // qui n'a pas la gestion complète du stock regarde, il ne relève pas
+const cbPatron = () => typeof ROLE === 'undefined' || (droitForme(eqDe(acteur())) === 'equipe' && peut('stock', 's'));       // déplacer, retirer, dessiner le plan : qui peut supprimer dans le stock
 const cbPlur = (n, un, plus) => n + ' ' + (n > 1 ? plus : un);
 const cbListe = L => L.length > 1 ? L.slice(0, -1).join(', ') + ' et ' + L[L.length - 1] : L.join('');
 /* l'état d'une box : null = jamais relevée (une box neuve n'est pas « intacte ») */
@@ -23192,7 +23454,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opc-session">
 .cn-out b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.cn-out span{color:var(--doux);flex:none}
 </style>`);
 /* le profil de droits : la comptabilité, et rien d'autre */
-PROFILS.compta = { nom:'Comptable (comptabilité seule)', cats:Object.fromEntries(DR_CATS.map(([c]) => [c, c === 'compta' ? { v:1, c:1, m:1, s:1 } : { v:0, c:0, m:0, s:0 }])), sp:Object.fromEntries(DR_SP.map(([k]) => [k, 0])) };
+PROFILS.compta = { nom:'Comptable (comptabilité seule)', cats:Object.fromEntries(DR_CATS.map(([c]) => [c, c === 'compta' ? { v:1, c:1, m:1, s:1 } : { v:0, c:0, m:0, s:0 }])), sp:Object.fromEntries(DR_SP_TOUS.map(([k]) => [k, 0])) };
 ROLES.compta = { ic:'📒', l:'Comptable', court:'Comptable', qui:null, accueil:'comptabilite', d:'La comptabilité, et rien d’autre : son compte ouvre l’application directement dans OP COMPTABLE.', routes:['comptabilite'] };
 /* la bande d'essai du prototype garde ses quatre rôles : le comptable s'ouvre depuis sa fiche de l'Équipe (ou en se connectant) */
 { const b0 = rlBande; rlBande = function(){ return b0.apply(this, arguments).replace(/<button type="button" data-rl="role\|compta"[\s\S]*?<\/button>/, ''); }; }
