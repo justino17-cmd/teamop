@@ -17,7 +17,7 @@ const euros = s => { const n = L.cents(String(s).replace(/[^\d,\-−\s  ]/g, '')
     await X.compta(c, 'ensemble'); r.pilotage = await montants(p, '#contenu');
     await X.compta(c, 'clients'); r.clients = await p.evaluate(() => { const b = document.querySelector('[data-cx="releve|md"]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : ''; });
     await X.compta(c, 'paiements'); r.paiements = await montants(p, '#contenu');
-    await p.evaluate(() => aller('client-x-md')); await L.calme(p, 500); r.ficheClient = await X.texte(p, '#contenu');
+    await p.evaluate(() => aller('client-x-md')); await L.calme(p, 500); await p.evaluate(() => { const b = document.querySelector('[data-oc="factures"]'); if (b) b.click(); }); await L.calme(p, 400); r.ficheClient = await X.texte(p, '#contenu');
     return r;
   };
   const du0 = await X.du(p), avant = await lire();
@@ -44,8 +44,8 @@ const euros = s => { const n = L.cents(String(s).replace(/[^\d,\-−\s  ]/g, '')
   const lf = t => (t.match(/FAC-2026-0144[^]{0,200}/) || [''])[0].replace(/\s+/g, ' ');
   L.v('Fiche du client Durand : la facture FAC-2026-0144 est dite payée', /payée/i.test(lf(apres.ficheClient)) || !/FAC-2026-0144/.test(apres.ficheClient), lf(apres.ficheClient).slice(0, 160));
   // une tâche liée se ferme
-  const taches = await p.evaluate(() => { try { return TACHES.filter(t => t.lien && t.lien.t === 'facture' && /f144|0144/.test(String(t.lien.id)) && !t.fait).length; } catch (e) { return -1; } });
-  L.v('aucune tâche « relancer le paiement » ne reste ouverte sur une facture payée', taches <= 0, taches);
+  const taches = await p.evaluate(() => { try { return TACHES.filter(t => t.lien && t.lien.t === 'facture' && /f144|0144/.test(String(t.lien.id)) && !t.fait && /paiement|relanc|payer|encaiss/i.test(t.t || '')).map(t => (t.t || t.titre || '') + ' | ' + JSON.stringify(t.lien)); } catch (e) { return ['erreur ' + e.message]; } });
+  L.v('aucune tâche de paiement ou de relance ne reste ouverte sur une facture payée (la tâche « attestation TVA » des Durand, elle, reste : ce n’est pas un paiement)', taches.length === 0, taches);
   // après rechargement de la page : les données du prototype reviennent à zéro (voulu), jamais un état à moitié
   await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(1000);
   const du2 = await X.du(p); L.v('après rechargement le prototype repart de ses données de départ (1 475,00 € à recevoir)', du2 === du0, du2);

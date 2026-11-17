@@ -15,6 +15,8 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   console.log('lignes :'); lignes.forEach(l => console.log('  ', l));
   const kp = await f.evaluate(() => [...document.querySelectorAll('#contenu .kpi')].map(k => k.innerText.replace(/\s+/g, ' ').trim()));
   console.log('KPI :', kp);
+  const codes = await f.evaluate(() => { const b = [...document.querySelectorAll('#contenu .kpi b')].map(e => e.textContent); return { kpi: b.map(t => [...t].map(ch => ch.charCodeAt(0) > 127 || ch === ' ' ? 'U+' + ch.charCodeAt(0).toString(16) : ch).join('')), eur1475: [...eur(1475)].map(ch => ch.charCodeAt(0).toString(16)).join(' '), eur3045: [...eur(3045)].map(ch => ch.charCodeAt(0).toString(16)).join(' ') }; });
+  console.log('CODES :', JSON.stringify(codes));
   const hote = await p.evaluate(() => ({ du: FACTURES.filter(x => ['envoyee', 'retard', 'partielle'].includes(x.st)).reduce((s, x) => s + restant(x), 0), nb: FACTURES.length }));
   console.log('OP GESTION : à recevoir', hote.du, 'factures', hote.nb);
   // ouvre la première ligne

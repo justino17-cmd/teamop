@@ -15,7 +15,7 @@ const toast = c => ev(c, () => (document.getElementById('toast') || {}).textCont
 const panneau = c => ev(c, () => { const p = document.querySelector('#calque .panneau'); return p ? { h2:((p.querySelector('h2') || {}).textContent || '').trim(), txt:(p.innerText || '').replace(/\s+/g, ' ') } : null; });
 const saisir = (c, id, val) => ev(c, a => { const i = document.getElementById(a[0]); i.value = a[1]; i.dispatchEvent(new Event('input', { bubbles:true })); i.dispatchEvent(new Event('change', { bubbles:true })); }, [id, val]);
 const ligne = (c, id) => ev(c, i => { const l = [...document.querySelectorAll('.vh-liste .vh-l')].find(x => x.querySelector(`[data-vh="fiche|${i}"]`)); return l ? { pastille:(l.querySelector('.vh-et .st') || {}).textContent, prec:(l.querySelector('.vh-prec') || {}).textContent, geste:(l.querySelector('.btn') || {}).textContent || '' } : null; }, id);
-const annuler = async c => { await ev(c, () => { [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click(); }); await L.calme(c.p, 400); };
+const annuler = async c => { const ok = await ev(c, () => { const b = [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)); if (b) b.click(); return !!b; }); v('le toast porte « Annuler »', ok, null); await L.calme(c.p, 400); };
 
 (async () => {
   for (const profil of PROFILS) {
@@ -27,6 +27,9 @@ const annuler = async c => { await ev(c, () => { [...document.querySelectorAll('
       v(nom + ' · nouveau : la feuille « Nouveau véhicule » s\'ouvre (1 toucher)', !!p && p.h2 === 'Nouveau véhicule' && touches === 1, p && p.h2);
       const opts = await ev(c, () => [...document.querySelectorAll('#vn-c option')].map(o => o.textContent));
       v(nom + ' · nouveau : « Qui le conduit ? » vient de l\'ÉQUIPE réelle (Julie Petit y est, plus le tableau figé) et propose « Personne pour l\'instant »', opts.length === 7 && opts.includes('Julie Petit') && opts[0] === 'Personne pour l’instant', opts);
+      await ev(c, () => { document.querySelector('#calque details summary').click(); });
+      v(nom + ' · nouveau : « Ajouter plus tard » ouvert, l\'intervalle de révision reste REPLIÉ (hidden ne perd pas contre display:grid) jusqu\'à « Changer »', await ev(c, () => getComputedStyle(document.getElementById('vn-iv')).display === 'none' && document.getElementById('vn-ik').value === '15000'), null);
+      await toucher(c, '[data-vh="montrer|vn-iv"]'); v(nom + ' · nouveau : « Changer » montre l\'intervalle (km, mois)', await ev(c, () => getComputedStyle(document.getElementById('vn-iv')).display !== 'none'), null); touches--;
       await ev(c, () => { document.getElementById('vn-p').value = 'GH-482-KL'; document.getElementById('vn-mq').value = 'Renault'; });
       await toucher(c, '#calque [data-vx="creerok"]'); await L.calme(c.p, 300); const dbl = await toast(c);
       v(nom + ' · nouveau : une plaque déjà dans la liste est refusée (rien n\'est ajouté)', /déjà dans la liste/.test(dbl) && await ev(c, n => VEHICULES.length === n, n0.v), dbl);

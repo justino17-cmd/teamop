@@ -22,7 +22,9 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   const LONG = 'Condensateur permanent 5 µF 450 V avec cosses fast-on 6,3 mm pour moteur ventilateur unité extérieure';
   await p.fill('#mm-texte', LONG); await L.calme(p, 200);
   await p.fill('[data-mm="q"]', '0'); await L.calme(p, 200);
-  v('K1c quantité 0 : « Mets une quantité » et envoi grisé', /Mets une quantité/.test(await panneau()) && await p.evaluate(() => document.querySelector('[data-mat="menvoyer"]').disabled), (await panneau()).slice(-160));
+  const dq = await p.evaluate(() => document.querySelector('[data-mat="menvoyer"]').disabled);
+  if (!dq) { await L.toucher(c, '[data-mat="menvoyer"]'); }
+  v('K1c quantité 0 : l’envoi est grisé avec la raison écrite, ou le clic dit « Mets une quantité » (technicien-06)', (dq && /Mets une quantité/.test(await panneau())) || /Mets une quantité/.test(await toast()), { dq, toast: await toast(), pied: (await panneau()).slice(-140) });
   await p.fill('[data-mm="q"]', '2'); await L.toucher(c, '[data-mat="mquand|auj"]'); await L.calme(p, 200);
   const dp = await L.deborde(c); v('K1d nom de pièce de 100 signes : pas de glissement latéral', dp.bouge === 0, dp);
   await L.capture(c, CAP + `camion-manque-rempli-${profil}-${J}.png`);
@@ -47,22 +49,28 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   if (await p.$('[data-mat="messages"]')) { await L.toucher(c, '[data-mat="messages"]'); await L.calme(p, 300); v('K5 « 1 message du bureau » ouvre les messages', (await panneau()).length > 20, (await panneau()).slice(0, 200)); await L.capture(c, CAP + `camion-messages-${profil}-${J}.png`); await L.ranger(p); }
   // J'ai utilisé / J'ai pris : ouvrent et se ferment (écrans en refonte)
   for (const k of ['usage', 'prise']) { await L.toucher(c, `[data-mat="${k}"]`); await L.calme(p, 300); v(`K6 « ${k} » ouvre une fenêtre`, (await panneau()).length > 20, (await panneau()).slice(0, 80)); await L.ranger(p); v(`K6b Échap ferme « ${k} »`, !(await p.evaluate(() => !!document.querySelector('#calque .panneau')))); }
+  // ── H : habilitations, côté un technicien dont une habilitation expire SANS formation prévue (Karim a déjà la sienne : pas de bouton, voulu), puis Sophie ──
+  const cand = await p.evaluate(() => ['sm', 'kb', 'lr', 'tl'].map(k => { const q = eqDe(k); if (!q) return null; const hs = q.habil.filter(h => h[1] && habEtat(h[1]) !== 'v'); return { k, n: hs.length, sansFormation: hs.some(h => !eqxFormation(k, h[1])) }; }).filter(Boolean));
+  console.log('   habilitations qui expirent :', JSON.stringify(cand));
+  const choisi = cand.find(o => o.n && o.sansFormation) || cand.find(o => o.n);
   await L.fin(c);
-  // ── H : habilitations, côté Karim (chef d'équipe) puis Sophie ──
-  c = await L.ouvrir({ profil, qui: 'kb', nuit, hash: 'majournee' }); p = c.p; await L.calme(p, 500);
+  if (!choisi) v('H0 un technicien a une habilitation qui expire', false, cand);
+  else {
+  c = await L.ouvrir({ profil, qui: choisi.k, nuit, hash: 'majournee' }); p = c.p; await L.calme(p, 500);
   const alerte = await txt(p, '.eqx-moi');
-  console.log('   Karim, carte habilitation :', alerte.slice(0, 260));
-  v('H1 Karim : une habilitation qui expire est annoncée en tête de « Ma journée », avec la date ou le nombre de jours', /expir|se termine/.test(alerte) && /jour/.test(alerte), alerte);
-  await L.capture(c, CAP + `habil-karim-${profil}-${J}.png`);
+  console.log(`   ${choisi.k}, carte habilitation :`, alerte.slice(0, 260));
+  v('H1 une habilitation qui expire est annoncée en tête de « Ma journée », avec le nombre de jours', /expir|se termine/.test(alerte) && /jour/.test(alerte), alerte);
+  await L.capture(c, CAP + `habil-${choisi.k}-${profil}-${J}.png`);
   const bp = await p.$('[data-eqx^="mesbureau"]');
-  v('H2 « Prévenir le bureau » est proposé', !!bp);
+  v('H2 « Prévenir le bureau » est proposé (habilitation sans formation prévue)', !!bp || !choisi.sansFormation, { choisi });
   if (bp) { await L.toucher(c, '[data-eqx^="mesbureau"]'); await L.calme(p, 500);
     console.log('   après « Prévenir le bureau » : toast', await toast(), '| carte :', (await txt(p, '.eqx-moi')).slice(0, 200));
     v('H3 après l’envoi la carte dit « Le bureau est prévenu » (et ne propose plus le bouton)', /prévenu/.test(await txt(p, '.eqx-moi')) && !(await p.$('[data-eqx^="mesbureau"]')), await txt(p, '.eqx-moi'));
     await devenir(p, 'marc', 'taches');
-    const tt = await txt(p); const notif = await p.evaluate(() => NOTIFS.filter(n => /Karim/.test(n.t || n.texte || JSON.stringify(n))).length);
-    v('H4 le gérant en est averti (une tâche ou une notification au nom de Karim)', /Karim/.test(tt) || notif > 0, { notif, tt: tt.slice(0, 200) }); }
+    const tt = await txt(p); const prenom = await p.evaluate(k => eqDe(k).prenom, choisi.k); const notif = await p.evaluate(pr => NOTIFS.filter(n => JSON.stringify(n).includes(pr)).length, prenom);
+    v('H4 le gérant en est averti (une tâche ou une notification au nom de ' + prenom + ')', tt.includes(prenom) || notif > 0, { notif, tt: tt.slice(0, 200) }); }
   await L.fin(c);
+  }
   c = await L.ouvrir({ profil, qui: 'sm', nuit, hash: 'majournee' }); p = c.p; await L.calme(p, 500);
   await L.toucher(c, '[data-eqx^="mesfiche"]'); await L.calme(p, 400);
   const hab = await panneau(); console.log('   Sophie, Mes habilitations :', hab.slice(0, 300));
@@ -70,12 +78,15 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   await L.capture(c, CAP + `habil-sophie-${profil}-${J}.png`);
   await L.ranger(p); v('H6 Échap ferme la fiche', !(await p.evaluate(() => !!document.querySelector('#calque .panneau'))));
   // ── S : souci avec le camion → « Prévenir le bureau »
-  await L.toucher(c, '[data-vx="souci"]'); await L.calme(p, 400);
+  await L.toucher(c, '[data-vx^="souci"]'); await L.calme(p, 400);
   const so = await panneau(); console.log('   Souci camion :', so.slice(0, 300));
   v('S1 « Signaler un souci » ouvre la fenêtre « Un souci avec le camion »', /souci/i.test(so), so.slice(0, 100));
   await L.capture(c, CAP + `souci-${profil}-${J}.png`);
   const ds = await L.doigts(p, '#calque'); v('S2 fenêtre du souci : cibles ≥ 44 px, champs ≥ 16 px', !c.doigt || (ds.petits.length === 0 && ds.champs.length === 0), { petits: ds.petits.slice(0, 6), champs: ds.champs.slice(0, 6) });
-  const envoi = await p.$('[data-vx^="soucisok"]'); if (envoi) { await L.toucher(c, '[data-vx^="soucisok"]'); await L.calme(p, 400); console.log('   envoi à vide, toast :', await toast()); v('S3 envoyer un souci sans le décrire : la page dit quoi faire (rien ne part en silence)', (await toast()).length > 5 || !!(await panneau()), await toast()); }
+  const envoi = await p.$('[data-vx^="soucisok"]');
+  if (envoi) { await p.evaluate(() => document.querySelector('[data-vx^="soucisok"]').click()); await L.calme(p, 400);
+    v('S3 envoyer un souci sans le décrire : la fenêtre dit quoi faire (« Dis ce qui ne va pas : touche l’un des quatre choix »), rien ne part en silence', /Dis ce qui ne va pas/.test(await panneau()) , (await panneau()).slice(-160)); }
+  else v('S3 le bouton d’envoi du souci existe', false);
   v('Z aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

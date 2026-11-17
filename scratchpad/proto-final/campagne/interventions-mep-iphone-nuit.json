@@ -1,0 +1,314 @@
+[
+ {
+  "n": "liste",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Voir dans Tâches › 344×41"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "liste-tout",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Voir dans Tâches › 344×41"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 856,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "fiche-aplanifier",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "creation",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 1601,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "creation-nouveau-client",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 1601,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "creation-forfait",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 1598,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "client-voit-pdf",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 712,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "client-voit-plein",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 844,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "client-voit-tel",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "client-voit-ordi",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "longues-fiche-tech",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "longues-fiche-bureau",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "longues-fiche-fait",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "longues-client-voit",
+  "dep": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 730,
+   "dernierBas": 716,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ }
+]

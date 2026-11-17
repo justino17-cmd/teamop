@@ -10,7 +10,7 @@ const fs = require('fs'), path = require('path');
 const C = require('./retour-commun.js'), L = C.L, v = C.v;
 const PROFIL = process.env.PROFIL || 'android';
 const ROLES = { marc: { ecran: 'clients', ligne: '[data-go^="client-x-"]', creer: true }, julie: { ecran: 'clients', ligne: '[data-go^="client-x-"]', creer: true },
-  sm: { ecran: 'interventions', ligne: '[data-go^="inter-x-"]', creer: false }, kb: { ecran: 'interventions', ligne: '[data-go^="inter-x-"]', creer: false } };
+  sm: { ecran: 'majournee', ligne: '[data-rl^="go|inter-x-"]', creer: false }, kb: { ecran: 'majournee', ligne: '[data-rl^="go|inter-x-"]', creer: false } };
 async function parcoursRole(qui) {
   const R = ROLES[qui], c = await L.ouvrir({ profil: PROFIL, qui }), p = c.p, nom = qui + ' · ' + PROFIL;
   await L.aller(p, 'accueil'); const a0 = await C.hist(p);
@@ -111,13 +111,14 @@ async function parcoursRole(qui) {
 
   // ── 6. la visite guidée (prototype « nu ») ──
   const g = await L.ouvrir({ profil: PROFIL, qui: 'marc', app: false }); const gp = g.p;
-  await L.aller(gp, 'accueil'); await L.aller(gp, 'clients'); const g0 = await C.hist(gp);
-  const lanc = await gp.evaluate(() => { try { gdCommencer(0, 'az'); return !!document.getElementById('gd-bulle'); } catch (e) { return String(e); } }); await C.attendre(gp, 700); const g1 = await C.hist(gp);
-  v('la visite guidée s\'ouvre : une entrée à la même adresse', lanc === true && g1.ouverts.includes('visite') && g1.h === g0.h && g1.pousse >= 1, [lanc, g1]);
+  await L.aller(gp, 'accueil'); await L.aller(gp, 'clients');
+  await gp.evaluate(() => { try { gdCommencer(0, 'az'); } catch (e) {} }); await C.attendre(gp, 1500); const g1 = await C.hist(gp);
+  // la visite guide : elle change d'écran toute seule (c'est SA navigation, pas celle du Retour) — on mesure donc par rapport à l'écran où elle s'est arrêtée
+  v('la visite guidée s\'ouvre : une entrée d\'historique', g1.ouverts.includes('visite') && g1.pousse >= 1 && g1.st && g1.st.cal >= 1, g1);
   await C.retour(gp); const g2 = await C.hist(gp);
-  v('Retour ferme la visite (rien d\'ouvert, écran dessous inchangé)', g2.ouverts === '' && g2.h === g0.h && g2.pousse === 0, g2);
+  v('Retour ferme la visite (rien d\'ouvert, pile vide, l\'écran dessous est resté où elle l\'avait laissé)', g2.ouverts === '' && g2.pousse === 0 && g2.h === g1.h && !(g2.st && g2.st.cal), [g1.h, g2]);
   await C.retour(gp); const g3 = await C.hist(gp);
-  v('… Retour encore : l\'écran d\'avant', g3.h === '#accueil', g3);
+  v('… Retour encore : l\'écran d\'avant', g3.h !== g1.h && g3.ouverts === '', [g1.h, g3]);
   v('aucune erreur de page (prototype nu)', g.err.length === 0, g.err.slice(0, 3)); await L.fin(g);
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
