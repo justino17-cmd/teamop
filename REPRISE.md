@@ -13,6 +13,56 @@ de ligne du tout.
 
 ---
 
+# 17 NOVEMBRE 2026 — test-981 (LES APPELS À DEUX D'OP MESSAGES) NE PARIE PLUS SUR LE TEMPS RÉEL — BRANCHE `claude/pensive-lovelace-0t26rl`
+
+Le banc est mort en CI le 5 novembre puis le 16 (demande de fusion 327, commit `3bcb1fb`, job « suites 6/6 » : « Cannot read properties of undefined (reading 'lie') », 39 ✓ 1 ✗) sur du
+code que personne n'avait touché, et tombait une fois sur trente en local à six de front. **Aucun défaut du service** : des défauts du banc et de ses OUTILS, chacun REJOUÉ à volonté
+avant d'être corrigé. Rien n'est désactivé ni mis en quarantaine ; `server-msg/` n'est pas touché. Pas de demande de fusion ouverte (non demandée) : la CI de la 327 ne sera à l'abri
+que lorsque cette branche aura rejoint `main`.
+
+**Ce qui tombait, et pourquoi** (reproduit sous charge : 30 verts sur 30 à six de front, puis 1 chute sur 60 et 2 sur 120 à douze de front avec quatre processus qui occupent les cœurs) :
+- ⛔ **L'horloge du service lue VIDE pendant qu'on l'avançait** — la mort de la CI. `svc.avancer` réécrivait le fichier de décalage par `fs.writeFileSync` (qui TRONQUE puis écrit) et
+  le greffon (`lib-horloge-msg.js`) lisait `parseInt(lu) || 0` : vide valait « aucun décalage », l'heure RÉELLE, vingt-huit jours après celle du banc. Le balayeur d'appels (toutes les
+  secondes) finissait alors la sonnerie (« manquée ») ou l'appel (« perdu »). Un espion l'a relevé (120 passages : neuf ont lu le fichier vide, un en est tombé, la pile menait de
+  `balayer` à `appelFinir`) ; le fichier laissé vide 1,3 s pendant une avance choisie donne, au contrôle près : avant « Ben répond » → la mort de la CI (39 ✓ 1 ✗) ; avant le débit →
+  81 ✓ 6 ✗ ; l'avance de 61 s → les cinq contrôles relevés en local le 16 novembre (82 ✓ 5 ✗). Corrigé dans l'OUTIL, deux gardes qui tiennent chacune seule : `svc.avancer` écrit à
+  côté puis RENOMME (`outils-msg.js`), le greffon garde le dernier décalage lu quand le contenu n'est pas un entier. **Une cinquantaine de bancs avancent une horloge par ce chemin.**
+- **Le service naissait à l'heure réelle** et le banc le reculait après coup : calé une seconde trop tard, il avait déjà balayé « dans le futur » (rejoué : 86 ✓ 1 ✗). Dans test-981 il
+  naît à l'heure du banc (`decalageInitial`).
+- **Un flux fermé par le banc n'est pas un flux que le service sait fermé** : un signal parti entre les deux est écrit dans le flux mort au lieu d'être retenu (rejoué, service gelé,
+  signal sur une connexion déjà ouverte : perdu 10 fois sur 10 ; après avoir attendu que `/health` compte un flux de moins : retenu 10 sur 10). Le banc attend ce constat, au geste.
+- **L'échéance du relais** se jugeait « à trois secondes près » (« 600 à 603 » au second passage) : elle est encadrée par l'horloge du banc lue juste avant et juste après la demande.
+- Et, trouvé par la même charge (une chute sur 120, des 401 `session_requise` partout) : **`portLibre()` rend un port libre à l'instant où on le demande** — deux bancs lancés de front
+  peuvent recevoir le même, le second service meurt (`EADDRINUSE`) et `/health` répond quand même : c'est le service de l'AUTRE banc. `lancerService` donne maintenant une IDENTITÉ à
+  chaque lancement (`OPMSG_SHA` → `svc.sha`, que `/health` redit) : un port pris se retente ailleurs, un port imposé qui est pris se DIT. La CI n'y était pas exposée (une suite à la
+  fois par machine) ; les lots de mutations (deux copies de front) et toute mesure sous charge, si. `test-903` et `test-2690` lisent `svc.sha` au lieu de « banc0000 ».
+
+**Une chute dit ce que le service a rendu.** Plus aucune lecture ne tue le banc (`champ`) : le contrôle tombe, suivi des derniers échanges (« Ben·1 POST …/repondre → 409
+{"error":"appel_fini"} »), de l'état de l'appel dans la base, de l'horloge du banc et de la vie des services ; la première chute est redite juste avant le total (la CI ne montre que
+les lignes « ✗ » et les huit dernières). ⚠️ Le diagnostic posé le 5 novembre gardait la mauvaise lecture : la mort à 39 ✓ est celle de `rep.j.appel.lie` (« Ben répond »), pas du
+lancement de l'appel. Deux populations de plus : l'appel SONNE encore quand Ben répond (la seule fenêtre que le temps réel peut encore fermer : 38,6 s de marge au plus bas sur 60
+passages sous charge), et les cinq services du banc ont vécu jusqu'à ce qu'il les ferme.
+
+**Les preuves** (17 novembre, machine de la session, 4 cœurs) :
+- sous charge, sur le code corrigé : **60 sur 60** à douze de front et quatre brûleurs, **60 sur 60** deux de front et huit brûleurs, **72 sur 72** à dix-huit de front et six brûleurs
+  (charge 22) — et 0 lecture illisible de l'horloge sur 243 807 (`scratchpad/charge-banc-opmessages.sh`, `scratchpad/espion-horloge-opmessages.js`) ;
+- **34 mutations sur 34 tombent**, une équivalente déclarée survit (`tests/mutations-appels.js`) : les vingt du catalogue qui visaient déjà test-981, neuf neuves du SERVICE (A41 à A49 :
+  l'échéance du relais, les signaux retenus et périmés, le débit, la fin dite aux deux, l'appareil lié à la réponse, « fini » au raccrochage) et cinq des OUTILS (O01 à O05, par
+  `test-947`). A42 (« les identifiants vivent deux secondes de trop ») SURVIVAIT à l'ancien contrôle (87 ✓ trois fois sur trois), elle tombe maintenant ;
+- `tests/test-947.js` (neuf, 20 contrôles) garde l'outil : le greffon, l'écriture d'un geste, la course entière (un lecteur qui ne s'arrête pas pendant deux mille avances), le port
+  déjà pris ; `test-900` déclare son numéro ;
+- la liste complète d'OP MESSAGES par la commande de la porte : **211 suites, 13 170 vérifications, verte** (les 13 148 de la CI du 5 novembre plus ces 22) — plancher relevé à 13156.
+  ⚠️ Mesuré en local : si la CI compte autrement au prochain déploiement d'OP MESSAGES, c'est elle qui fait foi.
+- Les sondes rangées (`scratchpad/sonde-opmessages-horloge-saut.js`, `-flux-ferme.js`, `-collision-port.js`) ont été rejouées telles quelles ; la première porte aussi de quoi rejouer
+  l'ANCIEN défaut contre le commit `a415080` (les chiffres ci-dessus, relus dans un arbre à part).
+
+**Ce qui reste ouvert :**
+- **au moins huit autres bancs calent encore leur service APRÈS son démarrage** (recensés au motif `svc.avancer(ZERO - Date.now())` : test-924, 925, 973, 974, 975, 987, 988, 2590) : le défaut « né à l'heure
+  réelle », pas vu tomber chez eux. La correction tient en une ligne par banc (`decalageInitial`, comme test-981, 983 et 989) ;
+- **trois mutations du catalogue des appels étaient déjà mal visées avant ce chantier** (C40, D10, D15 : leur motif ne se trouve plus dans la page ; `--verifier` : 175 sur 178) ;
+- un témoin essayé puis retiré, pour mémoire : envoyer un signal « frais » après l'avance de 31 s faisait passer le balai des périmés avant la réouverture — la mutation « le périmé
+  est livré » (A44) y survivait. Une population ne doit pas déclencher l'AUTRE garde de ce qu'on éprouve.
+
 # 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
 
 Justin : « il faut publier ça » (la vitesse de la bêta 804, OP MESSAGES, D1 et D2).

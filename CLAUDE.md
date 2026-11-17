@@ -291,6 +291,22 @@ de combien il passe) ; et une route qui appelle Google (la suppression d'une ent
 Firestore) y part VRAIMENT, depuis la CI comme d'ici — un banc qui la joue dépend du réseau tant qu'il ne remplace pas
 ce `fetch`.
 
+⛔ **UN FICHIER QU'UN AUTRE PROCESSUS RELIT SE REMPLACE D'UN GESTE — ET UNE LECTURE RATÉE NE VAUT PAS ZÉRO.** Pris le
+17 novembre 2026 : `test-981` (les appels d'OP MESSAGES) est mort en CI le 5 et le 16 novembre sur « undefined.lie », sur du
+code que personne n'avait touché. L'horloge d'un service de banc est un fichier que le banc réécrit (`svc.avancer`) et que
+le service relit à chaque `Date.now()` : `fs.writeFileSync` le VIDE puis l'écrit, et le greffon lisait `parseInt(lu) || 0`
+— vide valait « aucun décalage », l'heure RÉELLE, quatre semaines plus loin, et le balayeur finissait l'appel en cours.
+Deux gardes, chacune tient seule : écrire à côté puis RENOMMER (`tests/outils-msg.js`), garder le dernier décalage lu
+quand le contenu n'est pas un entier (`tests/lib-horloge-msg.js`) — `tests/test-947.js`. Quatre leçons : **`x || 0` sur
+une lecture confond « je n'ai pas pu lire » et « zéro »** (la règle des trois états, côté banc) ; **un banc qui tombe une
+fois sur cent sous charge tombe un jour en CI** — on le CHARGE (`scratchpad/charge-banc-opmessages.sh`) avec un espion qui
+dit QUI lisait quoi (la pile menait de `balayer` à `appelFinir`), on ne le relance pas ; **fermé pour le client n'est pas
+fermé pour le service** (un flux : on attend que `/health` en compte un de moins, au geste) ; et **une population ne
+déclenche pas l'AUTRE garde de ce qu'on éprouve** (un signal témoin faisait passer le balai avant le tri : la mutation
+survivait). ⚠️ Même campagne : `portLibre()` rend un port libre à l'instant où on le demande — deux bancs lancés de front
+peuvent recevoir le même, et `/health` répondait alors pour le service de l'AUTRE ; `lancerService` vérifie QUI répond
+(`svc.sha`). Le détail et les sondes : `REPRISE.md`, 17 novembre.
+
 ⛔ **UNE APOSTROPHE DANS LE MOT DE `${var:?mot}` CASSE LE PARSE DU SCRIPT ENTIER.** Bash
 re-interprète les quotes à l'intérieur du mot, **même entre guillemets doubles** :
 `"${1:?le SHA n'a pas été transmis}"` ouvre une simple quote qui ne se referme jamais, et le

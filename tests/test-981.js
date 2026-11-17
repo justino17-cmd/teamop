@@ -383,7 +383,8 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       const perime = await sig(a1, ben.id, 'candidats', { c: ['périmé'] });
       avancer(31 * SEC);
       /* ⛔ AUCUN autre signal ne part vers Ben entre l'avance et la réouverture : c'est le tri À LA LIVRAISON qu'on éprouve (`livrerRetenus`). Un signal de plus ferait passer le balai des périmés
-         (`purgerPerimes`, à chaque signal retenu) avant l'ouverture : le périmé serait déjà parti, et le contrôle passerait même si la livraison ne triait plus rien. */
+         (`purgerPerimes`, à chaque signal retenu) avant l'ouverture : le périmé serait déjà parti, et le contrôle passerait même si la livraison ne triait plus rien — essayé : avec un témoin « frais » envoyé
+         ici, la mutation « le périmé est livré » (`mutations-appels.js`, A44) survivait, 89 ✓ trois fois sur trois ; sans lui, elle tombe. */
       const f2 = await ouvrirFlux(b1);
       await b1.post('/api/conversations/' + directe + '/messages', { cid: 'cid-marqueur-0004', texte: 'marqueur après réouverture' });
       const marque2 = !!(await f2.attendre(e => e.event === 'message' && champ(e, 'data', 'texte') === 'marqueur après réouverture'));
