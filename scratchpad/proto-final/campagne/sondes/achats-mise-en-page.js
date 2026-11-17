@@ -20,6 +20,8 @@ const { L, CAP, devenir, txt, panneau, fermerGuide } = require('./achats-outils.
     rapport.push({ nom, population: pop, deborde: dep.bouge, petits: d.petits, champs: d.champs, ecrases: d.ecrases, capture: file }); };
   const ouvre = async (sel, nom, zone) => { const ok = await L.toucher(c, sel, { delai: 4000 }); v(`${nom} : le geste a été touché`, ok, sel); if (ok) await mesure(nom, zone || '#calque .panneau'); await L.ranger(p); };
   await E(() => { acOnglet = 'demandes'; }); await L.aller(p, 'achats'); await mesure('demandes', '#contenu');
+  const tq = await txt(p, '#contenu');
+  v('achats-12 les grandes quantités se lisent avec leur séparateur (« 1 523,5 kg », pas « 1523,5 kg »)', !/\b\d{4,}(,\d+)? (kg|u|m|L)\b/.test(tq), (tq.match(/\b\d{4,}(,\d+)? (kg|u|m|L)\b/) || [])[0]);
   // la PREMIÈRE chose à décider doit se voir sans défiler (achats-05 : sur un téléphone, il faut passer quatre blocs avant la première demande)
   const yDem = await E(() => { const e = document.querySelector('.ax-d'); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1; });
   v('achats-05 la première demande à décider commence dans le premier écran (' + yDem + ' px pour un écran de ' + c.hauteur + ' px)', yDem >= 0 && yDem < c.hauteur - 120, { yDem, hauteur: c.hauteur });
