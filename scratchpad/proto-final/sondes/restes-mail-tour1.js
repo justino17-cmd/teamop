@@ -36,7 +36,7 @@ const MESURE_TITRE = () => { const e = document.querySelector('#courrier-hote [d
   });
   // ═══ 2. téléphone tenu en paysage : au moins une ligne de message ENTIÈRE à l'ouverture (telephone-15), et rien de changé debout ni au bureau ═══
   if (veut(2)) await sec('paysage', async () => {
-    const lignes = () => S(c0, () => { const ls = R().querySelector('#listScroll').getBoundingClientRect(), tt = R().querySelector('#ltTitle'), vues = [...R().querySelectorAll('#rows .msg')].filter(r => { const b = r.getBoundingClientRect(); return b.top >= ls.top - 1 && b.bottom <= Math.min(ls.bottom, innerHeight) + 1; }).length; return { vues, ih:innerHeight, titre:Math.round(parseFloat(getComputedStyle(tt).fontSize)), sw:document.documentElement.scrollWidth, haut:Math.round(ls.height), voirTout:(b => b ? Math.round(b.getBoundingClientRect().height) : 0)(R().querySelector('[data-cat-tout]')), chips:Math.round(Math.min(...[...R().querySelectorAll('.catbar .cat')].map(x => x.getBoundingClientRect().height))) }; });
+    const lignes = () => S(c0, () => { const ls = R().querySelector('#listScroll').getBoundingClientRect(), tt = R().querySelector('#ltTitle'), vues = [...R().querySelectorAll('#rows .msg')].filter(r => { const b = r.getBoundingClientRect(); return b.top >= ls.top - 1 && b.bottom <= Math.min(ls.bottom, innerHeight) + 1; }).length; return { vues, ih:innerHeight, titre:Math.round(parseFloat(getComputedStyle(tt).fontSize)), sous:getComputedStyle(R().querySelector('#ltSub').parentElement).display, sw:document.documentElement.scrollWidth, haut:Math.round(ls.height), voirTout:(b => b ? Math.round(b.getBoundingClientRect().height) : 0)(R().querySelector('[data-cat-tout]')), chips:Math.round(Math.min(...[...R().querySelectorAll('.catbar .cat')].map(x => x.getBoundingClientRect().height))) }; });
     var c0;
     for (const nuit of [false, true]) {
       c0 = await entrer({ profil:'iphone', nuit }); const p = c0.p;
@@ -44,7 +44,7 @@ const MESURE_TITRE = () => { const e = document.querySelector('#courrier-hote [d
       await p.setViewportSize({ width:844, height:390 }); await p.waitForTimeout(1500);
       const l = await lignes();
       v('population paysage ' + (nuit ? 'nuit' : 'jour') + ' : la liste existe et a des messages (' + l.haut + ' px de haut)', l.haut > 50);
-      v('telephone-15 paysage 844×390 ' + (nuit ? 'nuit' : 'jour') + ' : au moins 1 ligne de message se voit en entière à l\'ouverture (' + l.vues + ' ; titre ' + l.titre + ' px)', l.vues >= 1 && l.sw <= 845, l);
+      v('telephone-15 paysage 844×390 ' + (nuit ? 'nuit' : 'jour') + ' : au moins 1 ligne de message se voit en entière à l\'ouverture (' + l.vues + ' ; titre ' + l.titre + ' px, phrase du dessous : ' + l.sous + ')', l.vues >= 1 && l.sw <= 845 && l.titre <= 22 && l.sous === 'none', l);   // le titre rétrécit ET la phrase du dessous part : c'est ce qui rend la place (la cascade avait déjà fait perdre la règle une fois)
       v('paysage ' + (nuit ? 'nuit' : 'jour') + ' : « Voir tout » (' + l.voirTout + ' px) et les catégories (' + l.chips + ' px) gardent leur zone de touche (« Voir tout » ' + debout.voirTout + ' px debout ; catégories 36 px au moins, la règle paysage d\'avant) — population : le lien existe', debout.voirTout > 0 && l.voirTout >= debout.voirTout && l.chips >= 36, { debout, l });
       await cap(c0, 'restes1-paysage-' + (nuit ? 'nuit' : 'jour'));
       await p.setViewportSize({ width:390, height:844 }); await p.waitForTimeout(1500);
