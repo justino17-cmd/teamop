@@ -1,0 +1,171 @@
+{
+ "partie": "Contrats",
+ "date": "2026-11-17",
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  8,
+  9,
+  10,
+  12
+ ],
+ "pasRegles": [
+  {
+   "n": "contrats-02",
+   "constat": "Réglé pour la facture (plus de seconde facture, carte Facturation juste) MAIS trois restes côté visite comprise : voir casses 2, 3 et 4 (pièce posée jamais facturée, message « garantie », bloc « Paiement sur place » encore proposé avant la fin)."
+  },
+  {
+   "n": "contrats-01",
+   "constat": "Le prix du contrat est bien repris (plus de tarif de dépannage), mais la ligne n'est pas arrondie au centime : voir casse 1."
+  },
+  {
+   "n": "contrats-06",
+   "constat": "Non corrigé, soumis à Justin : « Modèle de démonstration, à faire relire avant tout usage » toujours imprimé au pied du PDF (vu sur la capture iPhone nuit du formulaire), et « Les modèles seront relus par le juriste… » toujours sous la liste."
+  },
+  {
+   "n": "contrats-07",
+   "constat": "Non corrigé, soumis à Justin : la fiche n'a toujours ni date de fin, ni « Renouveler », ni « Mettre fin » (contrats-renouvellement.js : 9 ✓ · 3 ✗, les trois ✗ sont ce défaut). Une fois les 6 visites faites, la fiche dit « 6 sur 6 faites » et ne propose rien pour la suite."
+  },
+  {
+   "n": "contrats-11",
+   "constat": "Non touché (choix de libellé), soumis."
+  },
+  {
+   "n": "contrats-13",
+   "constat": "Non touché (ordre PDF puis cartes sur téléphone), soumis."
+  },
+  {
+   "n": "contrats-14",
+   "constat": "Non touché (fausse barre d'adresse sur la page de signature), soumis."
+  },
+  {
+   "n": "contrats-15",
+   "constat": "Non touché : le mode « chaque mois » ne prépare aucune facture mensuelle (la fiche dit 200,00 € par mois, rien ne le facture), soumis."
+  },
+  {
+   "n": "contrats-16",
+   "constat": "Non touché (« Envoyer par e-mail » sous l'aperçu d'un brouillon), soumis."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Prix d'une visite non arrondi au centime : champ « 166,66666… », HT + TVA ≠ TTC, 6 factures = 1 000,02 € ou 3 = 999,99 €",
+   "gravite": "gênant",
+   "etapes": "Contrat rapide › Chauffage, M. et Mme Durand (particulier), 6 visites, 1 000 €, « à chaque visite » › Envoyer à signer › signer › terminer la visite 1 › ouvrir la facture préparée. (Le PDF du contrat dit « soit 166,67 € HT par visite ».)",
+   "constat": "La ligne « Visite 1 sur 6 · contrat CTR-… » porte un prix de 166,6666… : le champ Prix HT affiche « 166,66666… » (coupé), l'écran dit Total HT 166,67 + TVA 16,67 mais Total TTC 183,33 (au lieu de 183,34), et six factures de visite ne font jamais 1 000,00 au centime. Rejoué sur mac et iPhone (R1 : 2 ✗ sur 20). Défaut introduit par la correction contrats-01 (pu = prix ÷ visites, sans arrondi) ; compta-ventes demandait « au centime ».",
+   "ou": "apercu/prototype-op-gestion.html factureDepuis, branche fm === 'contrat' : pu:c.prix / c.freq",
+   "correction": "Arrondir au centime (Math.round(prix/freq*100)/100) et faire porter le reste à la dernière visite.",
+   "zone": "prototype"
+  },
+  {
+   "titre": "Une pièce posée sur une visite comprise dans un contrat « par an » ou « par mois » n'est facturée nulle part",
+   "gravite": "gênant",
+   "etapes": "Contrat rapide › Cabinet dentaire Martin, par an › signer › fiche de la visite 1, pièce « Compresseur de remplacement » 1 × 420 € › Terminer. Idem « par mois ».",
+   "constat": "Aucune facture (factureDepuis sort à ctrCompris avant de lire les pièces) ; seul message : « Hors stock : Compresseur de remplacement. Pas de sortie à proposer. ». 420 € de fourniture jamais facturés, et le bureau n'est prévenu de rien. R4 : 2 ✗ sur 4 (mac). Défaut introduit par la correction contrats-02.",
+   "ou": "factureDepuis : « if (ctrCompris(i)) return; » avant la boucle des pièces",
+   "correction": "Pour une visite comprise, préparer une facture des seules pièces s'il y en a (sans ligne de main-d'œuvre), sinon rien.",
+   "zone": "prototype"
+  },
+  {
+   "titre": "« Terminer » une visite comprise dans le contrat dit « Intervention en garantie : pas de facture »",
+   "gravite": "gênant",
+   "etapes": "Contrat par an signé › fiche de la visite › Terminer.",
+   "constat": "Le message est « Terminée : le compte rendu part au client. Intervention en garantie : pas de facture. » : une visite de contrat n'est pas une garantie (le débutant comprend qu'on offre le travail). Mac et iPhone nuit (R3-2 ✗).",
+   "ou": "ACTIONS.terminer, dernier toast (fa absent → « garantie »)",
+   "correction": "Dire « comprise dans le contrat CTR-… : pas de facture à part » quand ctrCompris(i).",
+   "zone": "prototype"
+  },
+  {
+   "titre": "Avant la fin, la fiche de la visite d'un contrat « par an / par mois » propose encore « Paiement sur place · Pas encore payé : la facture lui sera envoyée »",
+   "gravite": "détail",
+   "etapes": "Contrat par an signé › ouvrir la visite (technicien ou gérant) avant de la terminer › bloc de saisie.",
+   "constat": "La correction contrats-02 n'a changé que la carte Facturation d'une visite TERMINÉE (« Sans facture · comprise… ») ; la saisie du technicien demande toujours si le client a payé sur place et promet l'envoi d'une facture. R3-1 ✗ (mac, iPhone nuit).",
+   "ou": "fiche d'intervention (bloc Paiement), à conditionner à ctrCompris(i)",
+   "correction": "Masquer le bloc Paiement et dire « comprise dans le contrat » dès l'ouverture.",
+   "zone": "prototype"
+  },
+  {
+   "titre": "Tâches : « Proposer le renouvellement… fin le 15/10/2026, dans -16 jours » pour un contrat échu",
+   "gravite": "détail",
+   "etapes": "Mettre une date de fin avant le 31/10/2026 à un contrat (données) › Tâches › Suggestions.",
+   "constat": "Nombre de jours négatif affiché. La liste, la fiche et Statistiques ne plantent pas (R2-12 à 16 ✓, contrat sans fin compris). Atteignable seulement quand un contrat arrive à échéance (la date du jour est figée dans le prototype).",
+   "ou": "suggestions de Tâches (renouvellement)",
+   "correction": "Écrire « échu depuis N jours » quand le nombre est négatif.",
+   "zone": "prototype"
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "contrats-parcours-a.js mac / iphone",
+   "resultat": "75 ✓ · 0 ✗ chacun"
+  },
+  {
+   "fichier": "contrats-parcours-b.js mac",
+   "resultat": "15 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "contrats-parcours-c.js mac / iphone",
+   "resultat": "35 ✓ · 0 ✗ chacun"
+  },
+  {
+   "fichier": "contrats-roles.js mac",
+   "resultat": "15 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "contrats-debut.js / contrats-atelier.js / contrats-fiche-taches.js (mac)",
+   "resultat": "4 ✓ · 5 ✓ · 5 ✓, 0 ✗"
+  },
+  {
+   "fichier": "contrats-visite-comprise.js mac jour / iphone nuit",
+   "resultat": "5 ✓ · 0 ✗ chacun"
+  },
+  {
+   "fichier": "contrats-fiche-barre.js mac / iphone nuit",
+   "resultat": "4 ✓ et 3 ✓, 0 ✗"
+  },
+  {
+   "fichier": "contrats-mise-en-page.js (mac jour 19, mac nuit 19, windows jour 19, iphone jour 27, iphone nuit 27, android nuit 27, ipad jour 27, petit jour 27)",
+   "resultat": "0 ✗ partout"
+  },
+  {
+   "fichier": "contrats-renouvellement.js mac",
+   "resultat": "9 ✓ · 3 ✗ (les 3 = contrats-07, non corrigé, soumis)"
+  },
+  {
+   "fichier": "contrats-balayage.js (page neuve par geste, état corrigé) mac : liste 9/9, fiche signée 8/10 (2 = tâche repliée, vus par fiche-taches), fiche en attente 8/8, Contrat rapide 15/16 (champ date caché), signature 36/36 ; iphone : liste 11/11, fiche 10/12, Contrat rapide 17/18, signature 38/38",
+   "resultat": "0 erreur de page, aucun geste qui ne fasse rien d'anormal"
+  },
+  {
+   "fichier": "contrats-recontrole-a.js (R1 : particulier, 6 visites, « à chaque visite », bouton Terminer réel, lectures à l'écran) mac / iphone",
+   "resultat": "18 ✓ · 2 ✗ chacun (casse 1)"
+  },
+  {
+   "fichier": "contrats-recontrole-b.js (R2 : par an, par mois, deux contrats pour un client, fins dépassée / absente) mac",
+   "resultat": "15 ✓ · 1 ✗ (casse 5)"
+  },
+  {
+   "fichier": "contrats-recontrole-c.js (R3 : visite comprise avant/après, pièce, Retour du navigateur, Planning, Tâches, formulaire rouvert) mac / iphone nuit",
+   "resultat": "7 ✓ · 3 ✗ chacun (casses 3 et 4 ; le 3e ✗, R3-8, est une erreur de ma sonde : les visites du contrat neuf tombent après la semaine affichée, pas un défaut)"
+  },
+  {
+   "fichier": "contrats-recontrole-d.js (R4 : pièce sur visite comprise) mac",
+   "resultat": "2 ✓ · 2 ✗ (casse 2)"
+  },
+  {
+   "fichier": "contrats-recontrole-e.js (R5 : prix hostiles, double appui, lieu de 130 signes) mac / iphone nuit",
+   "resultat": "12 ✓ · 0 ✗ chacun"
+  }
+ ],
+ "doutes": [
+  "Le pied du PDF du contrat dit encore « Modèle de démonstration, à faire relire avant tout usage » et la liste « Les modèles seront relus par le juriste » : un client qui signe le lit. Texte à décider avec le juriste (contrats-06).",
+  "Renouveler et mettre fin à un contrat n'existent pas sur la fiche, qui ne montre même pas la date de fin ; le renouvellement n'est qu'un courriel proposé depuis Statistiques ou Tâches. À trancher : bouton « Renouveler » (nouvelle échéance) et « Mettre fin » ? (contrats-07)",
+  "Le mode « chaque mois » ne produit aucune facture mensuelle : le garder (avec une facture préparée chaque mois) ou le retirer du formulaire ? (contrats-15)",
+  "Visite comprise dans un contrat par an ou par mois avec une pièce hors contrat : on facture la pièce seule ? (je propose oui, casse 2)",
+  "Arrondi : sur 6 visites à 1 000 €, 6 × 166,67 = 1 000,02. Faire porter le reste à la dernière visite ?",
+  "Deux boutons « Contrat rapide » / « Composer un contrat » sans explication ; ordre PDF puis cartes sur téléphone ; fausse barre d'adresse sur la page de signature du client ; « Envoyer par e-mail » sous un brouillon non signable (contrats-11, 13, 14, 16).",
+  "Non vérifié : le PDF réel et le courriel d'un contrat (pas de serveur) ; le contrat composé dans l'atelier (en refonte, seul le chemin ouvrir/fermer est vérifié) ; l'iPad et le Windows de nuit, regardés à la mesure seulement ; une date de fin dépassée réelle (le jour est figé au 31/10/2026, je l'ai simulée en changeant la date de fin)."
+ ]
+}
