@@ -25,7 +25,7 @@ const lit = f => f.evaluate(() => { const cnx = document.getElementById('cnx'), 
     hash: location.hash, drapeau: flag, parBouton: typeof APP_PAR_BOUTON !== 'undefined' && !!APP_PAR_BOUTON, contenu: (document.getElementById('contenu') || { innerText: '' }).innerText.length }; });
 // attend que la page (re)chargée soit prête : un état de la page lisible ET stable
 async function pret(c, ms) { const t0 = Date.now(); let e = null; while (Date.now() - t0 < (ms || 20000)) { await c.p.waitForTimeout(400); e = await lit(c.p).catch(() => null); if (e && (e.bande || (e.cnx && e.carte))) {   // l'écran de lancement (logo seul) couvre la page avant la carte : on attend la carte
-  await c.p.waitForTimeout(700); return await lit(c.p).catch(() => e); } } return e; }
+  await c.p.waitForTimeout(700); return await lit(c.p).catch(() => e); } } return e || {}; }
 const calmer = f => f.evaluate(() => { try { window.horsLigneDebut = function () {}; } catch (e) {} const e = document.getElementById('hl-ecran'); if (e) e.remove(); const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }).catch(() => {});
 // ouvre le prototype « comme un artefact » : sans requête, en mode revue. enCadre : dans un cadre (comme claude.ai) ; sinon page du haut.
 async function ouvrir(profil, nuit, pose, enCadre, hash) {
