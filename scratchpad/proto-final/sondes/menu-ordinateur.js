@@ -14,7 +14,7 @@ const { L, ATTENDU, ROUTES, G3D, lireMenu, aplatir, aplatirAttendu } = require('
     const cg = m.G.flatMap(g => g.L).find(l => l.l === 'Comptabilité');
     v(`${tag} : petit gris sous Comptabilité`, qui === 'sm' ? !cg : !!cg && cg.sous === 'Factures, paiements, paie', cg);
     v(`${tag} : le logo ramène à l'écran d'ouverture du rôle`, m.logo === '#' + ({ marc:'accueil', julie:'comptabilite', sm:'majournee' })[qui], m.logo);
-    v(`${tag} : pied = Apparence, Nouveautés, Se déconnecter (dans cet ordre, rien d'échafaudage)`, /^mode-seg/.test(m.pied[0] || '') && /^nv-menu/.test(m.pied[1] || '') && /^cn-out/.test(m.pied[2] || '') && m.pied.length === 3, m.pied);
+    v(`${tag} : pied = Apparence, Nouveautés, Mon compte, Se déconnecter (dans cet ordre, rien d'échafaudage ; double-auth étape 3 : « Mon compte » est une fiche, pas une rubrique)`, /^mode-seg/.test(m.pied[0] || '') && /^nv-menu/.test(m.pied[1] || '') && /^cn-out:.*Mon compte/.test(m.pied[2] || '') && /^cn-out:Se déconnecter/.test(m.pied[3] || '') && m.pied.length === 4, m.pied);
     const pied = await c.p.evaluate(() => { const e = document.querySelector('#menu .pied'), r = e.getBoundingClientRect(); return { bas:Math.round(r.bottom), h:innerHeight }; });
     v(`${tag} : le pied reste dans l'écran`, pied.bas <= pied.h + 1, pied);
     // chaque ligne : on la touche, la ligne se surligne, le surtitre dit le groupe, l'écran a un titre

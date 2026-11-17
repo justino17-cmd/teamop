@@ -119,11 +119,12 @@ const lignesAcc = c => ev(c, () => [...document.querySelectorAll('#contenu .lign
     }
 
     if (on('E')) {
-      for (const [qui, attendu, absent] of [['marc', 'Véhicules et Temps de travail, refaits', 'Tes heures, en deux onglets'], ['sm', 'Tes heures, en deux onglets', 'Véhicules et Temps de travail, refaits']]) {
+      // guide refait le 17 novembre : six cartes au plus par rôle ; le technicien a « Mes heures » et « Mon camion », le gérant n'a pas de carte Véhicules (carte prête à échanger, voir GUIDE-NOUVEAUTES.md)
+      for (const [qui, attendu, absent] of [['marc', 'Comptabilité : tout au même endroit', 'Mes heures : un seul bouton'], ['sm', 'Mes heures : un seul bouton', 'Comptabilité : tout au même endroit']]) {
         const c = await L.ouvrir({ profil, qui, calme:true, nuit, guide:true });
         const t = await ev(c, () => { try { return nvPages().map(p => p.t + ' ' + (p.c || '').replace(/<[^>]*>/g, ' ')).join(' | '); } catch (e) { return 'ERREUR ' + e.message; } });
         v(nom + ' · guide des nouveautés (' + qui + ') : « ' + attendu + ' » y est, « ' + absent + ' » n\'y est pas', t.includes(attendu) && !t.includes(absent), t.slice(0, 200));
-        if (qui === 'marc') v(nom + ' · …avec les mots de la spécification (trois phrases)', /Une rangée par véhicule qui dit s’il a besoin de toi\. Temps de travail : ce qu’il faut régler, d’un coup d’œil\. Ton camion et tes heures, au même endroit\./.test(t), null);
+        if (qui === 'sm') v(nom + ' · …et « Mon camion » (le plein, le compteur, ce qui manque) a sa carte', /Mon camion : ce qui manque/.test(t), null);
         v(nom + ' · …et n\'emploie plus « Ce n\'est pas ça », « pointées par », « sup. »', !/Ce n’est pas ça|heures sup\./.test(t), null);
         await L.fin(c); }
     }
