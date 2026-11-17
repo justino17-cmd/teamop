@@ -17,6 +17,7 @@ const SECOURS = /code[s]? de (secours|récupération|dépannage)|recovery|se con
   await lire('securite', () => { aller('securite'); }); ecrans.securite = norm(await c.p.evaluate(() => document.querySelector('#contenu').textContent));
   await c.p.evaluate(() => { aller('equipe'); }); await c.p.waitForTimeout(500); ecrans.equipe = norm(await c.p.evaluate(() => document.querySelector('#contenu').textContent));
   await lire('fiche', () => eqFiche('lr'));
+  await lire('fiche-julie', () => eqFiche('julie'));
   await lire('nouveau-telephone', () => secuPanTelephone('kb'));
   await lire('deverrouiller', () => secuPanDeverrouiller('lr'));
   await lire('deconnecter', () => secuPanDeconnecter('kb'));
@@ -29,13 +30,14 @@ const SECOURS = /code[s]? de (secours|récupération|dépannage)|recovery|se con
   await c.p.evaluate(() => { SESSION = 'marc'; SECU.vraie = 'marc'; SESSION = 'sm'; secuBande(); }); ecrans.bande = norm(await c.p.evaluate(() => document.querySelector('.sec-bande').textContent)); await c.p.evaluate(() => { SECU.vraie = null; SESSION = 'marc'; secuBande(); });
   await c.p.evaluate(() => { SECU.telCourant = 'kb'; secuPirate('kb'); opsOuvrir(); opsDemo(); opsDessiner(true); }); ecrans.demo = norm(await c.p.evaluate(() => document.querySelector('#opsec .sec-demo').textContent));
   await S.deverrouiller(c, 'kb', S.PIN); ecrans.pirate = norm((await S.cartes(c)).map(x => x.texte).join(' | '));
-  v('population : 14 écrans lus, tous non vides', Object.keys(ecrans).length >= 14 && Object.values(ecrans).every(t => t.length > 20), Object.entries(ecrans).map(([k, t]) => k + ':' + t.length).join(' '));
+  v('population : 15 écrans lus, tous non vides', Object.keys(ecrans).length >= 15 && Object.values(ecrans).every(t => t.length > 20), Object.entries(ecrans).map(([k, t]) => k + ':' + t.length).join(' '));
 
   console.log('\n── 1. les phrases témoins de l’annexe A, mot pour mot, sur LEUR écran ──');
   const T = {
     securite:['Sécurité', 'Qui s’est connecté de façon inhabituelle ou s’est fait refuser, et quels comptes sont verrouillés.', 'Comptes verrouillés', 'Une connexion inhabituelle (autre appareil, autre réseau, hors des heures de travail, mots de passe faux juste avant) n’aboutit qu’après approbation sur le téléphone de la personne. Tu ne vois ici ni mot de passe ni code.', 'Verrouillé depuis hier à 18:02 : bloquée depuis son téléphone', 'Déverrouiller'],
     equipe:['Téléphone à activer', 'Verrouillé', '1 compte verrouillé : Léa Roux.'],
-    fiche:['Connexion', 'Provisoire : à lui remettre en main propre.', 'Nouveau téléphone', 'Déverrouiller', 'Déconnecter partout', 'Verrouillé depuis hier à 18:02 (bloquée depuis son téléphone)', 'Copier le lien et l’identifiant', 'Reposer un mot de passe provisoire'],
+    'fiche-julie':['Provisoire : à lui remettre en main propre.', 'Julie le change à sa première connexion.', 'À activer à sa première connexion'],
+    fiche:['Connexion', 'Nouveau téléphone', 'Déverrouiller', 'Déconnecter partout', 'Verrouillé depuis hier à 18:02 (bloquée depuis son téléphone)', 'Copier le lien et l’identifiant', 'Reposer un mot de passe provisoire'],
     'nouveau-telephone':['Nouveau téléphone pour Karim', 'vérifie que c’est bien Karim, en personne', 'J’ai vérifié l’identité de Karim en personne', 'Il n’existe pas de code de secours : c’est voulu.'],
     deverrouiller:['Déverrouiller le compte de Léa', 'J’ai vérifié l’identité de Léa en personne', 'Déverrouiller et changer le mot de passe'],
     deconnecter:['Fermer toutes les connexions de Karim ? Il devra se reconnecter avec son téléphone.', 'Déconnecter'],

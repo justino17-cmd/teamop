@@ -1,7 +1,7 @@
 // GARDE de l'audit de sécurité (étape 7 sur 8, 17 novembre 2026), sans navigateur : ce qu'on lit dans les FICHIERS.
 //   S10 · chaque page porte sa politique de contenu (meta) ET sa politique de référent, et la politique est la bonne (rien d'ouvert à « * » ni à https: en bloc) ;
 //   S16 · chaque bibliothèque tierce chargée au vol porte son empreinte d'intégrité, et c'est la bonne (les six ont été recalculées sur les fichiers servis) ;
-//   S18 · aucune feuille de polices tierce ;
+//   S18 · aucune feuille de polices tierce — SAUF celle du compositeur de documents (ses treize polices), exception décidée le 17 novembre 2026 ;
 //   S17 · la coque mobile : sauvegarde automatique coupée, FileProvider borné, ?auto= fermé dans la coque ;
 //   fabrication : prototype-documents.html FABRIQUÉE porte la même politique que ses voisines (jamais retouchée à la main).
 // Chaque contrôle compte sa population : une page absente ou une politique vide ne passe pas.
@@ -23,18 +23,31 @@ for (const p of PAGES) {
   if (!pol) continue;
   v('S10 ' + p + ' : par défaut RIEN (default-src \'none\'), ni objet, ni base, ni formulaire', (pol['default-src'] || []).join() === "'none'" && (pol['object-src'] || []).join() === "'none'" && (pol['base-uri'] || []).join() === "'none'" && (pol['form-action'] || []).join() === "'none'", pol);
   const tout = Object.values(pol).flat();
-  v('S10 ' + p + ' : aucun joker (*), aucun « https: » en bloc, aucun hôte hors de la liste connue (cdnjs, unpkg, deux serveurs de tuiles)', !tout.includes('*') && !tout.includes('https:') && !tout.includes('http:') && tout.filter(x => /^https?:\/\//.test(x)).every(x => HOTES.has(x)), tout.filter(x => /^https?:\/\//.test(x) && !HOTES.has(x)));
+  v('S10 ' + p + ' : aucun joker (*), aucun « https: » en bloc, aucun hôte hors de la liste connue (cdnjs, unpkg, deux serveurs de tuiles)', !tout.includes('*') && !tout.includes('https:') && !tout.includes('http:') && tout.filter(x => /^https?:\/\//.test(x)).every(x => HOTES.has(x) || (p === 'prototype-documents.html' && ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'].includes(x))), tout.filter(x => /^https?:\/\//.test(x) && !HOTES.has(x)));   /* le compositeur : ses deux hôtes de polices, exception décidée (voir plus bas) */
   v('S10 ' + p + ' : les données ne sortent que vers soi et les deux serveurs de tuiles (connect-src)', (pol['connect-src'] || []).every(x => ["'self'", 'blob:', 'https://tiles.openfreemap.org', 'https://server.arcgisonline.com'].includes(x)) && (pol['connect-src'] || []).length >= 1, pol['connect-src']);
-  v('S10 ' + p + ' : les polices ne viennent que de soi (font-src), les feuilles de style de soi et de cdnjs', (pol['font-src'] || []).every(x => ["'self'", 'data:'].includes(x)) && !(pol['style-src'] || []).some(x => /googleapis|gstatic/.test(x)), [pol['font-src'], pol['style-src']]);
+  /* UNE exception, décidée par le chef de chantier le 17 novembre 2026 : le compositeur de documents garde ses treize polices (feuille de
+     fonts.googleapis.com, fichiers de fonts.gstatic.com) — sans elles le choix d'une police ne change plus rien, sur un écran validé par Justin ;
+     dans la vraie application elles se serviront depuis notre serveur (règle de S18). La garde tient donc l'état DÉCIDÉ : ces deux hôtes, pour
+     cette page-là, et rien d'autre nulle part. */
+  const POLICES = p === 'prototype-documents.html';
+  v('S10 ' + p + (POLICES ? ' : les polices ne viennent que de soi et de fonts.gstatic.com, les feuilles de soi, de cdnjs et de fonts.googleapis.com (le compositeur, exception décidée)' : ' : les polices ne viennent que de soi (font-src), les feuilles de style de soi et de cdnjs'),
+    (pol['font-src'] || []).every(x => ["'self'", 'data:'].concat(POLICES ? ['https://fonts.gstatic.com'] : []).includes(x))
+    && (pol['style-src'] || []).filter(x => /googleapis|gstatic/.test(x)).join(' ') === (POLICES ? 'https://fonts.googleapis.com' : '')
+    && (!POLICES || (pol['font-src'] || []).includes('https://fonts.gstatic.com')), [pol['font-src'], pol['style-src']]);
   v('S10 ' + p + ' : politique de référent « same-origin »', /<meta name="referrer" content="same-origin">/.test(pages[p]));
   const iMeta = pages[p].indexOf('Content-Security-Policy'), iScript = pages[p].search(/<script/i);
   v('S10 ' + p + ' : la politique est posée AVANT le premier script (sinon elle ne protège pas ce qui précède)', iMeta > 0 && iMeta < iScript, [iMeta, iScript]);
 }
 // ── S18 ──
-for (const p of PAGES) v('S18 ' + p + ' : aucune feuille de polices ni de style chez Google', !/fonts\.(googleapis|gstatic)\.com/.test(pages[p].replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')));
+for (const p of PAGES) { const nu = pages[p].replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, ''), corps = nu.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/, '');
+  if (p !== 'prototype-documents.html') v('S18 ' + p + ' : aucune feuille de polices ni de style chez Google', !/fonts\.(googleapis|gstatic)\.com/.test(nu));
+  else v('S18 ' + p + ' : UNE seule feuille de polices tierce, celle du compositeur (exception décidée), et aucun autre appel à Google',
+    (corps.match(/fonts\.googleapis\.com/g) || []).length === 1 && /<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com\/css2\?family=/.test(corps) && !/fonts\.gstatic\.com/.test(corps) && !/@import[^;]*googleapis/.test(corps), (corps.match(/fonts\.(googleapis|gstatic)\.com/g) || []).length); }
 const src = lire('scratchpad/proto-final/atelier/page.source'), fab = lire('scratchpad/proto-final/atelier/fabriquer.sh');
-v('S18 page.source (la SOURCE de l\'atelier) : aucune feuille Google non plus', !/<link[^>]*fonts\.googleapis\.com/.test(src));
-v('fabrication : fabriquer.sh écrit la même politique que les pages voisines (une variable POLITIQUE, jamais de retouche à la main)', /POLITIQUE="[^"]*default-src 'none'/.test(fab) && /content="%s"/.test(fab) && politique(pages['prototype-documents.html']) && JSON.stringify(politique(pages['prototype-documents.html'])) === JSON.stringify(politique(pages['prototype-op-gestion.html'])), 'la politique de l\'atelier diffère de celle d\'OP GESTION');
+v('S18 page.source (la SOURCE de l\'atelier) : une seule feuille Google, celle des treize polices du compositeur (exception décidée le 17 novembre)', (src.replace(/<!--[\s\S]*?-->/g, '').match(/<link[^>]*fonts\.googleapis\.com/g) || []).length === 1);
+/* la politique du compositeur = celle des voisines, PLUS ses deux hôtes de polices, et rien d'autre */
+const sansPolices = pol => pol && Object.fromEntries(Object.entries(pol).map(([k, L]) => [k, L.filter(x => !['https://fonts.googleapis.com', 'https://fonts.gstatic.com'].includes(x))]));
+v('fabrication : fabriquer.sh écrit la même politique que les pages voisines, plus les deux hôtes de polices du compositeur (une variable POLITIQUE, jamais de retouche à la main)', /POLITIQUE="[^"]*default-src 'none'/.test(fab) && /content="%s"/.test(fab) && politique(pages['prototype-documents.html']) && JSON.stringify(sansPolices(politique(pages['prototype-documents.html']))) === JSON.stringify(politique(pages['prototype-op-gestion.html'])), 'la politique de l\'atelier diffère de celle d\'OP GESTION autrement que par ses deux hôtes de polices');
 // ── S16 : les empreintes, et la bonne ──
 const SRI = { 'leaflet.min.css': 'sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb', 'leaflet.min.js': 'sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO',
   'maplibre-gl.min.css': 'sha384-K282sW/zFjTkrjR/+yr1H+gCukuy4OEYrkXRybV88g7pk+kZZYpNV6SAV59NcgFg', 'maplibre-gl.min.js': 'sha384-KKgyz2mG25bKJ1O2PyqTJPlAF8Kw2BpDmsLTNBXslICOBvhTAyF5F0XhLWF2ZovY',

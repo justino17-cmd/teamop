@@ -19,7 +19,7 @@ const PROFILS = (process.env.PROFILS || 'mac,iphone').split(',');
 
 (async () => {
   for (const profil of PROFILS) {
-    const nom = profil, tel = profil === 'iphone';
+    const nom = profil, tel = ['iphone', 'android', 'petit'].includes(profil);   // un téléphone (390, 360, 320) : la barre du bas, une page de ~1 700 px (§ 4.3), la rangée « Qui est où » est sous le premier écran
     /* ═══ § 5.2 — le gérant ═══ */
     { const c = await ouvrir('marc', profil); await sauf(c, 'pointage');
       /* 1. voir qui est au travail / absent : dans le premier écran, sans toucher */
