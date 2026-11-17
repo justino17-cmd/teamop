@@ -1,0 +1,79 @@
+{
+ "noms": [
+  "planning"
+ ],
+ "regles": [
+  "R5 « Voir dans Tâches › » 44 px au doigt : iphone, ipad, android nuit, petit 0 ✗ (rejoué)",
+  "R11 / R14 focus clavier d'une carte à moitié cachée (Vue d'ensemble) : mac, ipad, iphone, android nuit, petit, windows 0 ✗",
+  "R13 intervention terminée : curseur « pointer », message « ne se déplace pas », rien ne bouge, plus de clic sur la colonne dessous : mac, ipad, iphone, android nuit, petit, windows 0 ✗ ; un glisser d'une intervention à venir marche toujours (planning-parcours P3 P4 P5 mac : 18 ✓)",
+  "R7b carte réelle zoomée, passer au jour suivant : les repères du nouveau jour sont tous dans le cadre (mac 6 jours visités, 0 hors cadre)",
+  "R1 commune après le code postal : « 12 Route de La Rochelle, 17300 Rochefort », « 3 Rue de Rochefort, 17230 Marans », sans virgule ni code postal : placées à la bonne commune (mac 23 ✓ · 0 ✗) — voir pasRegles pour les communes inconnues",
+  "R12 bulles de trajet sous les repères / aucune bulle ne recouvre un repère, y compris après zoom : mac, ipad, iphone, android nuit, petit, windows 0 ✗ (à l'ouverture de la carte APRÈS un premier chargement ; voir casses pour la TOUTE PREMIÈRE ouverture)",
+  "planning-marqueurs ipad 9/9, planning-mise-en-page iphone jour et ipad nuit 31 ✓ · 0 ✗, planning-gestes mac (jour, semaine, général) 46 ✓ · 0 ✗, planning-parcours2 ipad P11 P12 P13 29 ✓ · 0 ✗"
+ ],
+ "pasRegles": [
+  {
+   "nom": "planning",
+   "defaut": "adresse dont le code postal désigne une commune hors de la liste du prototype, avec un nom de commune connue dans la rue",
+   "constat": "communeDe('12 Rue de La Rochelle, 17100 Saintes') rend « La Rochelle » et communeDe('5 route de Rochefort, 17400 Saint-Jean-d'Angély') rend « Rochefort » : la correction ne lit la commune qui SUIT le code postal que si elle est dans COMMUNES ; sinon elle retombe sur « la dernière commune nommée dans l'adresse », c'est-à-dire le nom de la rue. Le formulaire dit alors « Repérée : La Rochelle · 0 km » pour un client à Saintes. Même défaut que celui corrigé, pour toute commune non listée (la liste n'a que 11 communes). Gravité moyenne. Piste : quand un code postal est suivi d'un nom de commune qui n'est pas dans la liste, rendre null (« adresse non reconnue ») au lieu de deviner dans la rue ; garder le repli « dernière commune nommée » seulement quand il n'y a NI code postal NI virgule."
+  },
+  {
+   "nom": "planning",
+   "defaut": "(déjà soumis) chiffres du bandeau selon les personnes affichées ; première page du téléphone ; « Ordre proposé » absent",
+   "constat": "non rejoués : décisions de Justin en attente (items 7 à 9 du fichier restes-planning-tour1.json), aucune modification faite"
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Carte des tournées, TOUTE PREMIÈRE ouverture d'une session sur iPad portrait : le repère d'une étape reste CACHÉ sous les boutons « Plan · Satellite / Auto · Jour · Nuit » et le toucher y change le jour/nuit de la carte (la correction « repère écarté des boutons » ne joue pas à ce moment-là)",
+   "gravite": "moyenne (corrige à moitié un défaut déjà annoncé corrigé)",
+   "etapes": [
+    "iPad portrait (820 px), ouvrir le prototype, Planning > Carte, aller au lundi 26 octobre (2 étapes, la seconde à l'extrême bas-droit de la carte), sans avoir encore ouvert la carte dans la session",
+    "regarder le coin bas-droit de la carte : le repère « 2 » est sous les boutons ; toucher son centre"
+   ],
+   "constat": "Mesuré (sonde planning-recontrole.js ipad R7, jour 2026-10-26 : 1 ✗ « i20@708,899 couvert par BUTTON.cr-sg ») et rejoué à la main (capture /tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/restes-planning-recontrole/ipad-premiere-ouverture.png : le repère n'est pas visible, la ligne verte finit sous « Auto · Jour · Nuit ») ; un toucher au centre du repère change crTheme « auto » en « jour » et ne choisit pas l'étape (crSel reste nul). CAUSE trouvée : `.cr-carte:not([data-fond=\"reel\"]) .cr-fonds{display:none}` (ligne ~3023) — avant la première tuile reçue, le groupe de boutons est display:none (rectangle 0×0 en (-285,-465), journalisé dans crTracerReel), donc `obst` de crTracerReel (ligne ~4480) l'ignore ; `recue()` (ligne ~4443) pose data-fond=reel et le groupe apparaît, mais personne ne retrace les repères avant le prochain moveend. Les sondes de la correction passent parce que leur ouvrir() recadre la carte (crCadrerReel) après coup, ce qu'un utilisateur ne fait pas. Même défaut possible pour les bulles de trajet à la première ouverture. Correction proposée : appeler crTracerReel() à la fin de recue() (une fois data-fond posé), ou compter .cr-fonds comme obstacle même masqué en réservant son emplacement ; puis faire ouvrir à la sonde R7/R12/planning-marqueurs la carte SANS recadrage. Rejoué : ipad R7 1 ✗ ; mac, iphone, android nuit, petit, windows 0 ✗ (aucun repère n'y tombe sous les boutons ce jour-là, la cause est la même)."
+  }
+ ],
+ "nouveaux": [
+  "Sonde planning-recontrole.js R3 : faux rouge sur 4 contrôles depuis l'arrivée de l'atelier Documents (#opdz, fenêtre FERMÉE qui garde role=dialog, [hidden] + visibility:hidden) : le sélecteur [role=dialog] la comptait comme une fenêtre ouverte. Corrigé dans la sonde (dialogueVisible : seulement les fenêtres visibles) ; R3 mac 15 ✓ · 0 ✗. L'application n'était pas en cause (Échap ferme bien « Quels jours ? », le focus revient au bouton)."
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/planning-recontrole.js mac",
+   "resultat": "78 ✓ · 4 ✗ avant correction de la sonde (R3, faux rouge) ; R3 seul après : 15 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/planning-recontrole.js ipad",
+   "resultat": "87 ✓ · 1 ✗ (R7 jour 2026-10-26, repère i20 sous BUTTON.cr-sg : casse réelle ci-dessus)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-recontrole.js iphone / android nuit / petit",
+   "resultat": "87 ✓ · 0 ✗ chacun"
+  },
+  {
+   "fichier": "campagne/sondes/planning-recontrole.js windows",
+   "resultat": "78 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/planning-marqueurs.js ipad",
+   "resultat": "9/9 (mais sa fonction ouvrir() recadre la carte : elle ne voit pas la casse de la première ouverture)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-mise-en-page.js iphone, ipad nuit",
+   "resultat": "31 ✓ · 0 ✗ chacun"
+  },
+  {
+   "fichier": "campagne/sondes/planning-gestes.js mac jour semaine general",
+   "resultat": "46 ✓ · 0 ✗ (la vue carte, seule, dépasse 580 s sur la machine chargée : non rejouée)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-parcours.js mac P3 P4 P5 ; planning-parcours2.js ipad P11 P12 P13",
+   "resultat": "18 ✓ · 0 ✗ ; 29 ✓ · 0 ✗"
+  }
+ ],
+ "doutes": [
+  "Non rejoués faute de temps machine (charge 8 sur 4 cœurs) : mac720 et iphone nuit complets (le correcteur les annonce à 0 ✗), mutations 12a/12b/07e/05e du correcteur.",
+  "Une carte sur téléphone de 320 à 360 px n'a presque jamais de bulle de trajet (elle s'efface faute de place) : le temps de route est dit dans la liste ; à confirmer par Justin que c'est acceptable.",
+  "Communes hors liste (voir pasRegles) : à décider si l'on étend la liste des communes ou si l'on affiche « adresse non reconnue »."
+ ]
+}
