@@ -3644,9 +3644,10 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (max-width:760px){.vh-rl{grid-template-columns:minmax(0,1fr) auto}.vh-rb{grid-column:1/-1;grid-row:2}}
 /* le matériel de sécurité : huit lignes à 44 px et plus, un interrupteur chacune */
 .vh-mat{display:flex;flex-direction:column}.vh-mat-l{min-height:52px;cursor:pointer;justify-content:space-between}
-.vh-sw{appearance:none;-webkit-appearance:none;flex:none;width:52px;height:32px;border-radius:99px;background:var(--trait2);border:0;position:relative;cursor:pointer;margin:0}
-.vh-sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--on-etat);transition:transform .15s}
-.vh-sw:checked{background:var(--vert)}.vh-sw:checked::after{transform:translateX(20px)}
+.fo-r input[type=checkbox].vh-sw{appearance:none;-webkit-appearance:none;flex:none;width:52px;height:32px;border-radius:99px;background:var(--trait2);border:0;position:relative;cursor:pointer;margin:0}   /* plus spécifique que la case de 20 px des lignes .fo-r */
+.fo-r input[type=checkbox].vh-sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--on-etat);transition:transform .15s}
+.fo-r input[type=checkbox].vh-sw:checked{background:var(--vert)}.fo-r input[type=checkbox].vh-sw:checked::after{transform:translateX(20px)}
+.fo-r input[type=checkbox].vh-sw:focus-visible{outline:2px solid var(--lien);outline-offset:2px}
 .vh-fichier{cursor:pointer;min-height:44px;flex-wrap:wrap}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
@@ -4375,8 +4376,10 @@ function crMonter(el){
   L.control.scale({ imperial:false, position:'bottomleft' }).addTo(map);
   map.attributionControl.setPrefix(false);
   if (crLV && crLV.jour === plRef && crLV.focus === crFocus) map.setView(crLV.c, crLV.z, { animate:false }); else crCadrerReel(false);
-  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; });
-  map.on('zoomend', () => crTracerReel());
+  /* le tracé se refait à CHAQUE fin de mouvement, pas seulement du zoom : l'écartement des repères se calcule sur ce qui est visible, donc un
+     recadrage sans changement de zoom (« Recentrer », une étape lointaine puis retour) laissait des repères sortis du champ au tracé empilés
+     sur leur voisin (planning-07, rejoué sur iPhone) */
+  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; crTracerReel(); });
   map.on('click', () => { if (crSel) crChoisir(null, true); });
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
@@ -4386,8 +4389,11 @@ function crMonter(el){
   }
   crTracerReel();
 }
+/* la place prise en haut de la carte par la rangée de personnes (elle passe sur deux lignes sur un petit écran) : un repère ne doit pas s'y cacher,
+   sinon le toucher tombe sur la puce « Karim » (planning-07) */
+function crHautLibre(){ const ch = document.querySelector('#cr-carte .cr-chips'), z = document.getElementById('cr-lf'); if (!ch || !z) return 84; return Math.max(84, Math.round(ch.getBoundingClientRect().bottom - z.getBoundingClientRect().top + 26)); }
 function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
-  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
+  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, crHautLibre()] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
 /* tournées, arrêts numérotés, trajets et « à confier », posés sur la vraie carte (mêmes règles que le dessin) */
 function crTracerReel(){
   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
@@ -4412,8 +4418,10 @@ function crTracerReel(){
   pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
     /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
        sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
-    const lib = (x, y) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < ecart), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= 64 && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
-    if (!lib(X, Y)) { let trouve = false; for (k = 1; k <= 60 && !trouve; k++) { const a = k * 2.4, r = ecart * .6 + k * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny)) { X = nx; Y = ny; trouve = true; } } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+    /* sur un petit écran la carte est étroite : si l'écart de confort ne trouve pas de place, on en essaie de plus serrés (38, 31 px) plutôt
+       que de laisser le repère sur son voisin */
+    if (!lib(X, Y, ecart)) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
     p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
     if (k) { const v = map.containerPointToLatLng([X, Y]);
       L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
@@ -18036,7 +18044,7 @@ function vhPapiers(v){
 function vhCleFrais(f){ return f.own != null && f.own !== 'a' ? 'o' + f.own : f.own === 'a' ? 'a' + f.achat : f.achat ? 'A' + f.achat : f.ndf ? 'N' + f.ndf : ''; }
 function vhDepenses(v){
   const per = [['mois', 'Ce mois-ci'], ['12m', '12 mois'], ['tout', 'Tout']], c = vxCalcCout(v, VX.periode), F = vehFrais(v).filter(f => VX.periode === 'mois' ? f.d.slice(0, 7) === AUJ.slice(0, 7) : VX.periode === '12m' ? f.d >= ajoute(AUJ, -365) : true);
-  const sur = VX.periode === 'mois' ? 'ce mois-ci' : VX.periode === '12m' ? 'sur 12 mois' : 'depuis le premier relevé du compteur';
+  const sur = VX.periode === 'mois' ? 'ce mois-ci' : VX.periode === '12m' && c.deb <= ajoute(AUJ, -365) ? 'sur 12 mois' : 'depuis le ' + vhJM(c.deb);   // jamais « sur 12 mois » pour quatre mois de données : on dit depuis quand on compte
   const bits = []; if (c.auKm != null) bits.push(vhEuro2(c.auKm) + ' du kilomètre'); if (VX.periode !== 'mois' && c.parMois) bits.push(eur0(c.parMois) + ' par mois');
   const bilan = `${eur0(c.total)} dépensés ${sur}${bits.length ? ', soit ' + bits.join(' et ') : ''}.${c.conso != null ? ' ' + c.conso.toFixed(1).replace('.', ',') + (v.energie === 'Électrique' ? ' kWh' : ' litres') + ' aux 100 km.' : ''}`;
   const connu = vxDebut(v), vides = []; for (let k = 5; k >= 0; k--) { const d = vxMois(AUJ.slice(0, 8) + '01', -k); if (d.slice(0, 7) < connu.slice(0, 7)) vides.push(d); }

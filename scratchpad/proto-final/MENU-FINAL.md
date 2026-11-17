@@ -44,7 +44,10 @@ Le gérant garde « Personnaliser la barre du bas » (appui long ou pied de la f
 - **Matériel** : Stock · Fournisseurs, matériel & produits — DÉCIDÉ le 16 novembre (mandat de Justin, `refonte/MATERIEL.md` § 4) et
   appliqué par le lot Matériel : le bureau prépare les commandes, il voit donc le stock et les fournisseurs ; il n'a PAS
   « Dépôts et camions ». Les sondes du menu attendent ce groupe chez le bureau.
-- **Personnel** : Véhicules seul — ouvert au bureau par le lot Véhicules (VEHICULES-TEMPS § 11, sans réponse de Justin ; un groupe d'une seule ligne, seule exception à la règle).
+- **Personnel** : Véhicules — DÉCIDÉ le 17 novembre (mandat de Justin, `refonte/VEHICULES-TEMPS.md` § 11, recommandation appliquée) : le bureau lit, note un plein,
+  un rendez-vous, un contrôle et met au garage ; seul le gérant crée, modifie, change de conducteur, note une amende. C'est la SEULE exception à la règle 2
+  (un groupe d'une seule ligne) : À SOUMETTRE À JUSTIN. La case « Temps de travail et véhicules » de l'Équipe la ferme. « Temps de travail » reste fermé au bureau
+  (donnée de salaire). Les sondes du menu attendent ce groupe chez le bureau.
 - Pied : Jour / Nuit / Auto · Nouveautés · Se déconnecter
 - Barre : Comptabilité · Devis · Clients · Tâches · Achats (5 onglets, pas 6 ; pas d'émoji dans un libellé)
 - ⛔ **17 novembre 2026, étape 5 de la voie entreprise : ce menu SE DÉDUIT des cases d'Équipe** (`droitVoit`, `ROUTE_DROIT`) — le Secrétariat a donc DIX lignes (les sept validées, Stock et Fournisseurs, Véhicules), le Responsable les vingt du gérant en lecture. Voir `refonte/MON-ENTREPRISE-ET-DROITS.md` § 8.

@@ -27,7 +27,7 @@ const NUIT = process.env.NUIT === '1', CAP = process.env.CAP || '';
       v(`${tag} · ${li.l} : aucune erreur JavaScript`, c.err.length === avant, c.err.slice(avant, avant + 2));
       const d = await L.deborde(c);
       v(`${tag} · ${li.l} : la page ne glisse pas de côté`, !d || !(d.bouge > 0), d);
-      if (CAP) await L.capture(c, path.join(CAP, `${qui}-${profil}${NUIT ? '-nuit' : ''}-${li.k}.png`));
+      if (CAP) { await c.p.waitForTimeout(800); await L.capture(c, path.join(CAP, `${qui}-${profil}${NUIT ? '-nuit' : ''}-${li.k}.png`)); }
       if (e.plein) { await L.ranger(c.p); await c.p.evaluate(() => { try { if (typeof cmptFermer === 'function') cmptFermer(); } catch (x) {} }); await L.calme(c.p, 300); }
     }
     await L.fin(c);
