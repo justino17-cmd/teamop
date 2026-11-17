@@ -9144,7 +9144,7 @@ const ACTIONS = {
     const t2 = document.getElementById('m-tech').value, d2 = document.getElementById('m-d').value || i.d, h2 = document.getElementById('m-h').value || i.h;
     if ((t2 !== i.tech || d2 !== i.d || h2 !== i.h) && refusAbsent(t2, d2, h2)) return; // avant memo() : rien à annuler si c’est refusé
     memo(); const dAvant = i.d, hAvant = { h:i.h, dur:i.dur }, tAvant = i.tech, av = JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']);   /* une note absente et une note vide sont la même chose · 13 novembre 2026 */
-    Object.assign(i, { titre:document.getElementById('m-t').value.trim() || i.titre, d:document.getElementById('m-d').value || i.d, h:document.getElementById('m-h').value || i.h, dur:+document.getElementById('m-dur').value, tech:document.getElementById('m-tech').value, type:document.getElementById('m-type').value, note:document.getElementById('m-n').value.trim() });
+    Object.assign(i, { titre:libelleSur(document.getElementById('m-t').value, 120) || i.titre, d:document.getElementById('m-d').value || i.d, h:document.getElementById('m-h').value || i.h, dur:+document.getElementById('m-dur').value, tech:document.getElementById('m-tech').value, type:document.getElementById('m-type').value, note:document.getElementById('m-n').value.trim() });
     ficheSuivre(i, hAvant);
     if (!i.tech && i.st === 'planifiee') i.st = 'aplanifier'; else if (i.tech && i.st === 'aplanifier') i.st = 'planifiee';
     if (i.st === 'retard' && i.tech && (i.d > AUJ || (i.d === AUJ && hmin(i.h) + i.dur > MAINT_MIN))) i.st = 'planifiee'; // comme poser() : déplacée dans le futur, elle n’est plus en retard
@@ -9169,7 +9169,7 @@ const ACTIONS = {
     payer(f, m, { montant:v, d:dd ? dd.split('-').reverse().slice(0,2).join('/') : undefined, h, photo:window.__encPhoto }); window.__encPhoto = null; fermerPanneau(); filtreMode = 'tous'; rendre(); },
   bilanPdf(){ ouvrirPanneau(`<h2>Bilan d’octobre</h2>${bilanPdf()}`, true); },
   info(b){ toast(esc(b.dataset.txt)); },
-  blocOk(b){ const titre = document.getElementById('bl-titre').value.trim() || 'Créneau bloqué', h = document.getElementById('bl-h').value || '08:00', dur = +document.getElementById('bl-dur').value; memo();
+  blocOk(b){ const titre = libelleSur(document.getElementById('bl-titre').value, 120) || 'Créneau bloqué', h = document.getElementById('bl-h').value || '08:00', dur = +document.getElementById('bl-dur').value; memo();
     if (b.dataset.id) Object.assign(BUREAU.find(o => o.id === b.dataset.id), { titre, h, dur, indispo: titre === 'Indisponible' });
     else BUREAU.push({ id:'b' + Date.now(), tech:b.dataset.tech, d:b.dataset.d, h, dur, titre, indispo: titre === 'Indisponible' });
     fermerPanneau(); rendre(); toast(`${esc(titre)} · ${h} – ${fin(h, dur)}`, ANNULER); },
@@ -10427,6 +10427,8 @@ const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un courriel ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.
    Chaque écran qui les écrit en HTML les ÉCHAPPE à la sortie (esc). Toute création de client passe par cliNet(), toute modification aussi */
+/* texteNet : le même nettoyage, SANS rogner ni replier les espaces — pour ce qu'on garde pendant qu'on tape (une espace tapée en fin de mot ne doit pas disparaître sous le doigt) ; libelleSur() rogne à l'enregistrement */
+const texteNet = t => String(t == null ? '' : t).replace(/[<>"`\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '');
 const nomClientNet = (t, n) => libelleSur(t, n || 80);
 const cliNet = c => { const o = { ...c }; [['nom', 80], ['contact', 80], ['adr', 160], ['acces', 200]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], n); }); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, 120).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, 30); return o; };
 const nomNorm = s => prNorm(s).replace(/ /g, '');
@@ -10569,7 +10571,7 @@ let ML_BOITES = [
    bulle de message comprise). Jamais les deux (c'est ce qui affichait « &amp;amp; » dans l'Historique), jamais aucun des deux.
    Un expéditeur de courriel est un INCONNU : son nom ne porte ni balise, ni formule de tableur (= + - @ en tête), 80 signes au plus ; son adresse ni chevron, ni guillemet, ni espace ;
    un courriel sans champ d'adresse se lit « expéditeur inconnu » au lieu de faire jeter la Boîte mail. mlDeNet() est LA porte d'entrée : mlM() et MAILS.push() y passent. */
-const mailAdr = m => String((m && m.de && m.de.mail) || '').replace(/[<>"`\s\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').slice(0, 120);
+const mailAdr = m => String((m && m.de && m.de.mail) || '').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').slice(0, 120);   /* les espaces restent : « x@y.fr␣ » n'est PAS l'adresse du client (pas d'usurpation par variante) — seule la fiche client créée en retire (cliNet) */
 const mailNom = m => String((m && m.de && (m.de.nom || m.de.mail)) || '').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/^[\s=+\-@]+/, '').trim().slice(0, 80) || String((m && m.de && m.de.mail) || 'Expéditeur inconnu').replace(/^[=+\-@<>"`\s]+/, '').slice(0, 80) || 'Expéditeur inconnu';
 const mlDeNet = de => { const d = de && typeof de === 'object' ? de : {}; return { ...d, nom:String(d.nom == null ? '' : d.nom).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80), mail:mailAdr({ de:d }) }; };
 const mlM = (id, d, h, de, objet, txt, x = {}) => ({ id, d, h, de:mlDeNet(de), objet, txt, boite:'b1', dossier:'recu', lu:false, pj:[], ...x });
@@ -10644,7 +10646,7 @@ document.addEventListener('click', ev => {
   if (a === 'repondre') return mlRepondre(m, mlLire(m).sujet === 'panne' ? 'creneau' : mlLire(m).sujet === 'devis' ? 'creneau' : 'recu');
   if (a === 'modele') return mlRepondre(m, y);
   if (a === 'creneau') return mlRepondre(m, 'creneau');
-  if (a === 'creerint') { const R = mlLire(m); fermerPanneau(); ouvrirCreation({ cli:R.cli }); CREA.type = 'Dépannage'; CREA.titre = m.objet; CREA.titreTouche = true; CREA.motif = m.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); rendreCreation();
+  if (a === 'creerint') { const R = mlLire(m); fermerPanneau(); ouvrirCreation({ cli:R.cli }); CREA.type = 'Dépannage'; CREA.titre = libelleSur(m.objet, 120); CREA.titreTouche = true; CREA.motif = m.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); rendreCreation();
     CREA.mail = m.id; return toast('Intervention préremplie : client, titre et motif viennent de l’e-mail. Choisis le créneau.'); }
   if (a === 'nvdevis' || a === 'dvcli') { const R = mlLire(m); let k = R.cli;
     if (!k) { k = 'c' + Date.now().toString(36); CLIENTS[k] = cliNet({ nom:mailNom(m), type:'part', contact:mailNom(m), tel:R.tel || '', mail:mailAdr(m), adr:R.ville ? R.ville + ' (adresse à compléter)' : '', acces:'', depuis:'2026', appareils:[] }); }
@@ -13994,7 +13996,7 @@ document.addEventListener('pointerdown', () => { clearTimeout(window._dgT); doig
 document.addEventListener('pointerup', () => { clearTimeout(window._dgT); window._dgT = setTimeout(() => { doigtPose = false; }, 400); }, true);
 document.addEventListener('input', ev => { if (!CREA || !ev.target.closest('.fen')) return; const t = ev.target;
   if (t.dataset.cnv && t.dataset.cnv !== 'adr') { CREA.nv[t.dataset.cnv] = t.value; return; }
-  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = t.value; if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; if (t.dataset.cchamp === 'cpq') { const r = document.getElementById('cp-res'); if (r) r.innerHTML = crPiecesRes(); } syncBrouillon(); return; }
+  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = texteNet(t.value); if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; if (t.dataset.cchamp === 'cpq') { const r = document.getElementById('cp-res'); if (r) r.innerHTML = crPiecesRes(); } syncBrouillon(); return; }
   if (t.dataset.cnv === 'adr') { CREA.nv.adr = t.value; CREA.sug = true; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cnv="adr"]'); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.dataset.cherchecli) { CREA.cherche = t.value; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cherchecli]'); n.focus(); n.setSelectionRange(pos, pos); }
 }, true);
@@ -14013,7 +14015,7 @@ const ACTIONS_CREA = {
     if (CREA.nouveau && !CREA.doublonOk) { const dj = cfDoublonDe({ ...CREA.nv, nom:cfNomClient(CREA.nv) }); if (dj) { CREA.doublonOk = true; toast('Ce client existe peut-être déjà : « ' + esc(CLIENTS[dj].nom) + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer l’intervention » pour le créer quand même, ou choisis-le dans la liste.'); return; } }
     if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = cliNet({ ...cliCrea() }); SECT_CLI[k] = secteurCrea(); const g = geoDeAdresse(CLIENTS[k].adr); if (g) CR_GEO[k] = g; }
     const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
-    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', motif: CREA.motif.trim() || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
+    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', titre:libelleSur(b.titre, 120) || b.type, motif: texteNet(CREA.motif).trim().slice(0, 600) || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
@@ -19366,7 +19368,7 @@ mlCreneaux = function(n = 3){
   return L;
 };
 function mbxOptions(m, prop){ if (!prop || prop.id !== m.id) return; mbxLiberer(m.id);
-  prop.list.forEach((c, k) => BUREAU.push({ id:'o' + Date.now() + k, tech:c.t, d:c.d, h:c.h, dur:120, titre:'Option · ' + m.de.nom, option:true, optMail:m.id, optExp:ajoute(AUJ, 2) })); }
+  prop.list.forEach((c, k) => BUREAU.push({ id:'o' + Date.now() + k, tech:c.t, d:c.d, h:c.h, dur:120, titre:'Option · ' + mailNom(m), option:true, optMail:m.id, optExp:ajoute(AUJ, 2) })); }
 function mbxLiberer(id){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optMail === id) BUREAU.splice(k, 1); }
 function mbxPurge(){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optExp < AUJ) BUREAU.splice(k, 1); }
 (() => { const c0 = carteBur; carteBur = function(b){ let h = c0.apply(this, arguments);
@@ -19743,7 +19745,7 @@ document.addEventListener('click', ev => {
     return toast(`Règle créée : les e-mails de ${esc(m.de.nom)} arrivent archivés, en Information. ${mbxNb(n, 'message rangé', 'messages rangés')} tout de suite.`, { lib:'Annuler', fn:() => { MBX.regles = MBX.regles.filter(r => r.mail !== mailAdr(m).toLowerCase()); MAILS.forEach(o => { if (o.regleAuto && mailAdr(o).toLowerCase() === mailAdr(m).toLowerCase()) { o.arch = false; o.regleAuto = false; } }); rendre(); } }); }
   if (a === 'confcren') { const c = m.cren.choix; let cl = R.cli; if (!cl) { cl = 'c' + Date.now().toString(36); CLIENTS[cl] = cliNet({ nom:mailNom(m), type:'part', contact:mailNom(m), tel:R.tel || '', mail:mailAdr(m), adr:R.ville ? R.ville + ' (adresse à compléter)' : '', acces:'', depuis:'2026', appareils:[] }); }
     mbxLiberer(m.cren.orig); fermerPanneau(); ouvrirCreation({ cli:cl, tid:c.t, d:c.d, h:hmin(c.h) }); if (!CREA) return;
-    const o = mlDe(m.cren.orig) || m; CREA.type = 'Dépannage'; CREA.titre = o.objet.replace(/^re\s*:\s*/i, ''); CREA.titreTouche = true; CREA.motif = o.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); CREA.dur = 120; const bb = brouillon(); if (bb) { bb.dur = 120; bb.titre = CREA.titre; } rendreCreation(); CREA.mail = m.id;
+    const o = mlDe(m.cren.orig) || m; CREA.type = 'Dépannage'; CREA.titre = libelleSur(o.objet.replace(/^re\s*:\s*/i, ''), 120); CREA.titreTouche = true; CREA.motif = o.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); CREA.dur = 120; const bb = brouillon(); if (bb) { bb.dur = 120; bb.titre = CREA.titre; } rendreCreation(); CREA.mail = m.id;
     return toast('Intervention préremplie au créneau choisi (' + esc(jlong(c.d)) + ' à ' + mlH(c.h) + ') : les deux autres options sont libérées. Vérifie et crée.'); }
   if (a === 'lire') { ouvrirPanneau(`<span class="surtitre">E-mail confié</span><h2>${esc(m.objet)}</h2>` + mbxBlocConfie(m, acteur())); return; }
   if (a === 'confier') return mbxPanConfier(m);
