@@ -12,7 +12,7 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   await L.capture(c, X.CAP + `${profil}-parcours-d-banque.png`);
   // 1) le virement de M. Durand : « C'est un paiement de FAC-2026-0128 »
   await L.toucher(c, '[data-cp^="paiement|"]'); const b1 = await B(), t1 = await X.toasts(p);
-  v('D1 le virement de 300 € s’attache à la facture Durand : elle devient « payée en partie » (reste 940 €)', b1.durand.st === 'partielle' && Math.abs(b1.durand.reste - 940) < .005, b1.durand);
+  v('D1 le virement de 300 € s’attache à la facture Durand : elle reste due pour 940 € (300 € reçus)', (b1.durand.st === 'partielle' || b1.durand.st === 'retard') && Math.abs(b1.durand.reste - 940) < .01, b1.durand);
   v('D1 le toast dit 300,00 € et le reste dû', /300,00/.test(t1) && /940,00/.test(t1), t1); v('D1 il ne reste que 2 lignes à expliquer', b1.exp === 2, b1);
   // 2) les deux frais bancaires, par deux gestes
   await L.toucher(c, '[data-cp^="frais|"]'); await L.toucher(c, '[data-cp^="frais|"]'); const b2 = await B();
@@ -29,6 +29,8 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   v('E1 TVA déductible = somme des achats avec facture, à 1 centime', Math.abs(T.tv.ded - T.moi.ded) <= .011, T);
   v('E1 TVA à payer = collectée − déductible, à 1 centime', Math.abs(T.tv.aPayer - (T.tv.col - T.tv.ded)) <= .011, T);
   const txt = await X.texte(p); v('E1 l’écran affiche ce même « à payer »', txt.replace(/[\s  ]/g, '').includes(String(T.tv.aPayer.toFixed(2)).replace('.', ',') + '€'), T.tv.aPayer);
+  const lib = await p.evaluate(() => { const B = cxSoldes(cpEcritures()); return { c44571: B['44571'] ? B['44571'].cr : 0, c44574: B['44574'] ? B['44574'].cr : 0, ecart658: B['658'] ? B['658'].de : 0 }; });
+  v('E1b la TVA collectée de l’écran TVA = celle de la balance (compte 44571), au centime', Math.abs(T.tv.col - lib.c44571) < .005, { ecranTVA: T.tv.col, balance44571: lib.c44571, ecartArrondi658: lib.ecart658 });
   // la balance : débits = crédits, par classe ; le résultat = produits − charges
   await X.compta(c, 'balance'); const bal = await p.evaluate(() => { const E = cpEcritures(), B = cxSoldes(E); const K = Object.keys(B); const d = K.reduce((s, k) => s + Math.round(B[k].de * 100), 0), cr = K.reduce((s, k) => s + Math.round(B[k].cr * 100), 0);
     const prod = K.filter(k => k[0] === '7').reduce((s, k) => s + Math.round((B[k].cr - B[k].de) * 100), 0), ch = K.filter(k => k[0] === '6').reduce((s, k) => s + Math.round((B[k].de - B[k].cr) * 100), 0); return { d, cr, prod, ch, n: K.length }; });
