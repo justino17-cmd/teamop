@@ -2544,6 +2544,7 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
 .ctr-doc{min-width:0}
 .ctr-lire{display:none}
 .ctr-dates{display:block;margin-top:2px}
+.ctr-vl{flex-wrap:wrap}.ctr-vl>span:first-child{min-width:0;flex:1 1 9em}.ctr-vl .lien{text-align:left;white-space:normal}   /* « Visite 11 · mercredi 15 septembre » et son étiquette « Non faite · sortie du planning » ne tiennent pas côte à côte à 320 px : l'étiquette passe SOUS le nom, au lieu d'écraser le nom et d'élargir la page */
 .ctr-choix{flex:0 0 100%;max-width:100%;line-height:1.4}
 #contenu .tete .actions:has(> .ctr-choix){max-width:min(100%,460px)}   /* sans borne, la rangée tient en UNE ligne et la phrase se pose À CÔTÉ des boutons au lieu d'être dessous */
 .ctr-conf{margin:12px 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
@@ -5673,6 +5674,10 @@ function ctrFinDe(debut){ const [j, m, a] = String(debut || '').split('/').map(N
 function ctrVisiteNum(i){ const m = /^Contrat — visite (\d+) sur (\d+)$/.exec((i && i.titre) || ''); return m ? { n:+m[1], sur:+m[2] } : null; }
 function ctrDeVisite(i){ if (!i || i.type !== 'Contrat') return null; if (i.ctr) return CONTRATS.find(k => k.id === i.ctr) || null;
   const v = ctrVisiteNum(i); return CONTRATS.find(k => k.cli === i.cli && k.st === 'signe' && (!v || v.sur === k.freq)) || null; }
+/* Les visites de DÉPART d'un contrat (celles d'avant OP GESTION) ne portent pas son identifiant : elles vont « au premier contrat signé du client ». Dès que ce contrat cesse
+   d'être signé (« Mettre fin ») ou qu'un successeur arrive (renouvellement), on les lui NOTE, sinon le contrat suivant du même client les attraperait (restes contrats, recontrôle tour 1 :
+   un nouveau contrat de 4 visites disait « 1 sur 4 faites » à cause d'une visite de l'ancien, et le planning gardait deux « visite 2 sur 4 »). */
+function ctrFigerVisites(k){ INTS.forEach(i => { if (i.type === 'Contrat' && !i.ctr && ctrDeVisite(i) === k) i.ctr = k.id; }); }
 function ctrFaitesSet(k){ const faits = new Set(); for (let j = 1; j <= Math.min(k.freq, +k.faites || 0); j++) faits.add(j);
   INTS.forEach(o => { if (o.st !== 'fait' || o.type !== 'Contrat') return; const v = ctrVisiteNum(o); if (v && v.n <= k.freq && ctrDeVisite(o) === k) faits.add(v.n); }); return faits; }
 function ctrFaites(k){ return ctrFaitesSet(k).size; }
@@ -5694,7 +5699,7 @@ const ctrActifs = () => CONTRATS.filter(k => k.st === 'signe' && !k.renouvele);
    et la facture faite à la main la lisent ici (17/11, compta-ventes : la facture à la main proposait 20 % à un particulier et le disait « client professionnel ») */
 const tvaDefautDe = k => (CLIENTS[k] || {}).type === 'part' ? 10 : 20;
 const ctrTva = k => tvaDefautDe(k.cli);
-const ctrTTC = (ht, k) => Math.round(Number(ht) * (1 + ctrTva(k) / 100) * 100) / 100;
+const ctrTTC = (ht, k) => { const h = Number(ht); return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };   // un prix qui n'est pas un nombre (« abc » dans le champ) s'affiche 0 : jamais « NaN € TTC » dans l'aperçu
 const ctrFr = iso => iso.split('-').reverse().join('/');
 const ctrPrixTxt = (k, ht, par) => eur(ht) + ' HT · ' + eur(ctrTTC(ht, k)) + ' TTC' + (par ? ' ' + par : '');
 const ctrEtat = k => k.st === 'signe' ? (k.suiteDe ? ['Renouvelé le ' + k.renouvelLe, 'st-v'] : ['Signé le ' + k.signe, 'st-v']) : k.st === 'termine' ? ['Terminé le ' + k.termine, 'st-g'] : ['Envoyé · en attente', 'st-b'];
@@ -5768,7 +5773,7 @@ function vueContrat(id){
     <div class="actions">${k.st==='envoye'?`<button type="button" class="btn gris" data-action="relanceContrat" data-id="${id}">Renvoyer le lien</button><button type="button" class="btn" data-go="signer-x-${id}">Voir ce que le client voit</button>`:''}</div></div>
   <div class="grille2 ctr-grille"><div class="ctr-doc"><button type="button" class="btn gris ctr-lire" data-action="ctrLire" aria-expanded="false">Lire le contrat</button>${pdf}</div>
     <div class="col"><div class="carte"><h3>Le chemin du contrat</h3><div class="etapes">${[['Préparé',true,''],['Envoyé au client',true,k.envoye||'02/01/2026'],['Signé',k.st!=='envoye',k.signe||''],['Visites posées au planning',k.st!=='envoye','']].map(e=>`<div class="etape ${e[1]?'ok':''}"><span class="pt"></span><span><b>${e[0]}</b>${e[2]&&e[1]?'<br><span class="faible mini">le '+e[2]+'</span>':''}</span></div>`).join('')}${fini ? `<div class="etape ok"><span class="pt"></span><span><b>Terminé</b><br><span class="faible mini">le ${k.termine}</span></span></div>` : ''}</div></div>
-      <div class="carte"><h3>Les visites · ${faites} sur ${k.freq} faites</h3>${k.st!=='envoye'?V.map(v=>`<div class="ligne"><span>${v.i ? '<button type="button" class="lien" data-go="inter-x-' + v.i.id + '">Visite ' + v.num + ' · ' + jlong(v.d) + '</button>' : 'Visite ' + v.num + ' · ' + jlong(v.d)}</span><span class="st ${v.fait?'st-v':'st-b'}">${v.fait ? 'Faite' : fini ? 'Non faite · sortie du planning' : v.i ? ST[v.i.st][0] : 'À planifier'}</span></div>`).join(''):'<span class="gris">Elles se posent au planning dès la signature.</span>'}</div>
+      <div class="carte"><h3>Les visites · ${faites} sur ${k.freq} faites</h3>${k.st!=='envoye'?V.map(v=>`<div class="ligne ctr-vl"><span>${v.i ? '<button type="button" class="lien" data-go="inter-x-' + v.i.id + '">Visite ' + v.num + (fini && !v.fait ? '' : ' · ' + jlong(v.d)) + '</button>' : 'Visite ' + v.num + (fini && !v.fait ? '' : ' · ' + jlong(v.d))}</span><span class="st ${v.fait?'st-v':'st-b'}">${v.fait ? 'Faite' : fini ? 'Non faite · sortie du planning' : v.i ? ST[v.i.st][0] : 'À planifier'}</span></div>`).join(''):'<span class="gris">Elles se posent au planning dès la signature.</span>'}</div>
       ${suite ? `<div class="carte ctr-suite"><h3>La suite du contrat</h3>${toutes ? `<div class="ok-bloc ctr-suite-ok"><b>${k.freq > 1 ? 'Les ' + k.freq + ' visites sont faites.' : 'La visite est faite.'}</b><br><span class="gris petit">Le contrat arrive à son terme le ${esc(k.fin || ctrFinDe(k.debut))} : renouvelle-le pour un an, aux mêmes conditions, ou mets-y fin.</span></div>` : `<span class="gris petit">Fin le ${esc(k.fin || ctrFinDe(k.debut))}. Un an de plus aux mêmes conditions, ou on s’arrête là : à toi de choisir.</span>`}
         <div class="actions ctr-suite-b">${peutC ? `<button type="button" class="btn ${toutes ? '' : 'gris'}" data-action="renouvelerContrat" data-id="${id}">Renouveler pour un an</button>` : ''}${peutM ? `<button type="button" class="btn gris" data-action="finContratDemande" data-id="${id}">Mettre fin au contrat</button>` : ''}</div>
         ${peutM ? `<button type="button" class="lien" data-strelctr="${id}">D’abord, proposer le renouvellement au client par e-mail</button>` : ''}</div>` : ''}
@@ -8985,7 +8990,7 @@ const ACTIONS = {
     if (Number(B.prix) > CTR_PRIX_MAX) { toast('Ce prix est trop grand pour un contrat d’entretien (maximum ' + eur(CTR_PRIX_MAX) + ' par an).'); if (pf) pf.focus(); return; }
     if (!cfMailOk(CLIENTS[B.cli].mail)) { toast(esc(CLIENTS[B.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour lui envoyer le contrat à signer.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + B.cli) }); return; }
     cfCtrT = Date.now();
-    const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:Number(B.prix) || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
+    const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:Math.round(Number(B.prix) * 100) / 100 || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
     k.fin = ctrFinDe(k.debut);
     const mailK = CLIENTS[B.cli].mail;
     CONTRATS.push(k); journalAjout('marc', 'contrat', 'a envoyé le contrat à signer', { t:'contrat', id:k.id, lib:k.num, cli:k.cli }, { det:k.titre + ' · ' + eur(k.prix) + ' HT / an' });
@@ -9005,7 +9010,7 @@ const ACTIONS = {
     const fin = k.fin || ctrFinDe(k.debut), [j, m, a] = fin.split('/').map(Number), debFr = ctrFr(ajoute(`${a}-${String(m).padStart(2, '0')}-${String(j).padStart(2, '0')}`, 1));
     const n = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:k.cli, modele:k.modele, titre:k.titre, freq:k.freq, prix:k.prix, fact:k.fact, st:'signe', signe:k.signe, sigImg:k.sigImg, suiteDe:k.id, renouvelLe:ctrFr(AUJ), debut:debFr, fin:ctrFinDe(debFr), faites:0 };
     if (k.lieu != null) n.lieu = k.lieu; if (!k.fin) k.fin = fin;
-    k.renouvele = n.id; CONTRATS.push(n); ctrPoserVisites(n); const f = ctrFacturer(n);
+    ctrFigerVisites(k); k.renouvele = n.id; CONTRATS.push(n); ctrPoserVisites(n); const f = ctrFacturer(n);
     journalAjout('marc', 'contrat', 'a renouvelé le contrat pour un an', { t:'contrat', id:n.id, lib:n.num, cli:n.cli }, { det:k.num + ' → ' + n.num + ' · jusqu’au ' + n.fin + ' · ' + n.freq + ' visite' + (n.freq > 1 ? 's' : '') + ' à planifier' });
     fermerPanneau(); aller('contrat-x-' + n.id); toast(`Contrat renouvelé jusqu’au ${n.fin} (${n.num}) : ${n.freq} visite${n.freq > 1 ? 's' : ''} à planifier.${f ? (n.fact === 'mois' ? ' La facture du premier mois est préparée dans Factures.' : ' La facture de l’année est préparée dans Factures.') : ''}`); },
   /* METTRE FIN : aujourd'hui ; les visites pas encore faites sortent du planning (et la confirmation le DIT) ; plus de relance ni de facture à venir */
@@ -9015,6 +9020,7 @@ const ACTIONS = {
       <ul class="ctr-conf"><li>Le contrat se termine aujourd’hui, le ${ctrFr(AUJ)} (échéance prévue : ${esc(k.fin || ctrFinDe(k.debut))}).</li><li>${n ? `${n} visite${n > 1 ? 's' : ''} pas encore faite${n > 1 ? 's' : ''} sort${n > 1 ? 'ent' : ''} du planning.` : 'Aucune visite à venir : rien ne sort du planning.'}</li><li>Plus de proposition de renouvellement, plus de facture à venir. Ce qui est déjà fait et déjà facturé reste.</li><li>Une ligne s’ajoute à l’Historique.</li></ul>
       <div class="actions"><button type="button" class="btn rouge large" data-action="finContratOk" data-id="${k.id}">Oui, mettre fin au contrat</button><button type="button" class="btn gris large" data-ferme="1">Le garder</button></div>`); },
   finContratOk(b){ const k = CONTRATS.find(x => x.id === b.dataset.id); if (!k || k.st !== 'signe') { fermerPanneau(); return; }
+    ctrFigerVisites(k);   // AVANT de changer l'état : après, « le premier contrat signé du client » ne serait plus lui
     const sorties = INTS.filter(i => i.type === 'Contrat' && ctrDeVisite(i) === k && ['aplanifier', 'planifiee'].includes(i.st));
     sorties.forEach(i => INTS.splice(INTS.indexOf(i), 1));
     k.finPrevue = k.fin || ctrFinDe(k.debut); k.fin = ctrFr(AUJ); k.termine = ctrFr(AUJ); k.st = 'termine';
