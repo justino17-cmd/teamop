@@ -11,11 +11,23 @@
     "gestes sensibles : IBAN masqué, ouverture de la banque sans confirmation (rien ne s'ouvre), phrase de la fenêtre, focus piégé, Échap, mauvais nombre, bon nombre qui reprend le geste, fenêtre de 5 minutes sans prolongation",
     "Mon compte (Karim) : historique, appareils, changer le mot de passe (4 refus + succès), aucun secret dans les champs ni le rangement, ancien mot de passe refusé après",
     "mesures d'appareil sur l'écran de confirmation : nombre et pastille sur 6 profils (normal et rouge) ; débordement, cibles, champs ; téléphone en vue plein écran (iphone, android, petit)",
-    "rangement du navigateur après activation/connexion : seulement opg_proto_atelier, opg_proto_espace, opg_proto_nv_vu_* (aucun secret)"
+    "rangement du navigateur après activation/connexion : seulement opg_proto_atelier, opg_proto_espace, opg_proto_nv_vu_* (aucun secret)",
+    "?auto= : 26 contrôles (t39-auto.js) : session sans téléphone, 19 hôtes passés à secuAutoPermis (127.0.0.1.teamop.fr, evil-127.0.0.1, localhost.evil.com, 127.0.0.2, 0.0.0.0, 127.1, localhost. : tous refusés), confirmation accordée, pas d'inactivité après +1 h, IBAN en clair, ?auto=zzz = écran de connexion, ?auto=marc&tel=1 monte le téléphone",
+    "mot de passe provisoire : mort après le choix, 71 h valable, 73 h « a expiré » (message exact), phrase générique sur un provisoire expiré ; code d'activation : expiré à 16 min, refusé sur le téléphone (message exact), « Nouveau code » en tire un autre, nom d'appareil piégé (<img onerror>, 80 caractères) inerte et borné",
+    "5 PIN faux : message exact, téléphone effacé ; mode hors ligne : code à 6 chiffres accepté ; inactivité 16 min : message exact",
+    "secrets : provisoires, mot de passe choisi, PIN, nombre, IBAN : aucun dans le DOM hors Démonstration, ni attribut data-, ni champ, ni rangement, ni journal (t21-secrets.js)",
+    "Voir comme Sophie : fenêtre de confirmation avec sa note, bande, menu sans Sécurité, #securite renvoie vers Ma journée, Mon compte refusé pendant la bande, Revenir à mon compte",
+    "gestes sensibles par les vrais chemins de la page : paie (3 sous-onglets), Comptabilité banque et envoi, cadre de la Comptabilité (demande bien la confirmation), Équipe désactiver ; ouverture de la banque de Mon entreprise",
+    "captures REGARDÉES : mac jour (connexion, activation A, C, confirmation normale et rouge, Sécurité, Équipe, Mon compte), windows nuit (conf, téléphone, A), iphone jour/nuit (téléphone verrouillé, carte, Sécurité, conf, écran C en erreur, pied), android nuit (rouge, carte, Mon compte, menu), ipad jour (A, Sécurité), petit jour (rouge)",
+    "sondes existantes de la voie rejouées sur l'arbre fusionné : double-auth-compte 64 ✓, -pirate 49 ✓, -securite 45 ✓, -fenetre 16 ✓, secu-nombre 49 ✓, secu-activation 73 ✓, secu-inhabituelle 50 ✓, secu-structure 181 ✓ ; double-auth-sensibles 110 ✓ 1 ✗ et double-auth-equipe 46 ✓ 2 ✗ : ces trois ✗ viennent du texte changé par la campagne équipe (« Lui donner un mot de passe provisoire » / « Lui envoyer un lien pour choisir le sien » à la place de « Reposer un mot de passe provisoire » ; la fenêtre dit « Pour donner un mot de passe provisoire »), pas d'un défaut de la page : les deux sondes sont à mettre au diapason (ou le texte de la spécification à mettre à jour)"
   ],
   "non_couvert": [
     "le prototype de référence /home/user/kit-2fa/prototype-reference/index.html est ABSENT de cette machine (le dossier /home/user/kit-2fa n'existe pas : machine redémarrée) : la comparaison écran par écran n'a pas pu être faite ; seule la spécification DOUBLE-AUTHENTIFICATION.md (qui la décrit) sert de référence",
-    "?auto= sur un hôte non local : testé seulement dans le code (secuAutoPermis, ligne 25174) ; le serveur de la machine n'écoute que 127.0.0.1"
+    "?auto= sur un hôte non local : testé seulement dans le code (secuAutoPermis, ligne 25174) ; le serveur de la machine n'écoute que 127.0.0.1",
+    "Recommencer la démonstration, Activer tous les téléphones d'un coup (utilisé, pas jugé), parcours conseillé qui se coche, bouton « Un administrateur déverrouille mon compte (démonstration) » : non rejoués",
+    "vol de session simulé, désactivation / réactivation d'un compte, invitation (« Annuler » retire le compte de sécurité), « Oublier » un appareil : non rejoués par moi (couverts par les sondes existantes, vertes)",
+    "iPad en paysage (1180 × 820, la seule largeur entre 1100 et 1199 sur tablette) et clavier d'iPhone ouvert devant le champ du nombre : non mesurés (Chromium piloté n'émule pas le clavier)",
+    "mouvement réduit (prefers-reduced-motion) non rejoué sur tous les écrans"
   ],
   "defauts": [
     {
@@ -135,10 +147,40 @@
       "preuve": "Reproduit 2 fois (t28-histo.js : Marc ; t29-histo2.js : Karim : 3 lignes après C contre 2 avant) ; code : secuTraiter (ligne 25567) écrit secuHisto(..., 'approuvee') à l'approbation, et cnxPremierValider (ligne 26045) en écrit une autre. Pour l'activation du premier téléphone, une seule ligne : le défaut n'existe qu'avec un téléphone déjà actif.",
       "ou": "apercu/prototype-op-gestion.html lignes 25567 et 26045",
       "correction": "Dans cnxPremierValider, n'écrire la ligne que si aucune ligne « approuvee » n'a été écrite dans la même connexion (marque posée par secuTraiter), ou retirer l'écriture quand la personne vient d'être approuvée par le nombre."
+    },
+    {
+      "n": "tout-10",
+      "gravite": "bloquant",
+      "ecran": "Comptabilité › Paie › sous-onglets « Fiches de paie », « Salariés », « Charges et déclarations » (garde S7 paie-fiches)",
+      "role": "gérant",
+      "profils": "mac jour, windows nuit",
+      "etapes": "Gérant connecté, téléphone activé ; attendre plus de 5 minutes après la connexion (ou « Faire avancer l'horloge : +5 minutes ») → Comptabilité → Paie → toucher « Fiches de paie », puis « Salariés », puis « Charges et déclarations ».",
+      "attendu": "Spécification § 6.1 et § 6 en tête : « La garde se pose dans la fonction qui MONTRE… un second chemin (menu, recherche, raccourci) ne la contourne pas » ; S7 = voir les fiches de paie (les salaires de chacun) demande la confirmation sur le téléphone.",
+      "constate": "Aucune fenêtre de confirmation, et les salaires s'affichent : « Fiches de paie » 31 montants en euros (une fiche par personne), « Salariés » 12 (salaire de base de chacun), « Charges et déclarations » 10 (18 318,91 € de salaires bruts, charges). La garde n'est posée que sur le bouton « Voir et valider les fiches » (paieAller('fiches')) : les sous-onglets du haut sont un second chemin ouvert.",
+      "preuve": "Reproduit 2 fois (t31-paie.js mac jour ; t32-paie2.js windows nuit : « conf: false » aux trois onglets avec la fenêtre fermée, nombres de montants relevés) ; code : secuGarde('paie-fiches', …) n'existe qu'en tête de paieAller (ligne 13239, « if (o === 'fiches' && !secuGarde(…)) ») ; les boutons [data-cx=\"sec|fiches\"], [data-cx=\"sec|salaries\"], [data-cx=\"sec|charges\"] n'y passent pas.",
+      "ou": "apercu/prototype-op-gestion.html, vue Comptabilité (CX_NAV, cxGroupe 'paie', écouteur data-cx=\"sec|…\") et paieAller",
+      "correction": "Garder à la porte qui MONTRE : dans l'écouteur de data-cx=\"sec|fiches\" / \"sec|salaries\" / \"sec|charges\" (et dans la fonction qui rend ces vues), appeler secuGarde('paie-fiches', rejouer) en première instruction ; mutation à ajouter à la sonde : retirer cette ligne doit faire tomber un contrôle."
+    },
+    {
+      "n": "tout-11",
+      "gravite": "bloquant",
+      "ecran": "Comptabilité (page principale) › Trésorerie › Banque, et Pilotage › Clôture du mois › « Envoyer › » (gardes S5 compta-banque, S6 compta-export)",
+      "role": "gérant",
+      "profils": "mac jour, windows nuit",
+      "etapes": "Gérant connecté, fenêtre de 5 minutes écoulée → Comptabilité → Trésorerie → « Banque » ; puis Pilotage → « Clôture du mois » → « Envoyer › ».",
+      "attendu": "§ 6.1 S5 : « Comptabilité › onglet « Banque » (relevé, rapprochement) : cadre ET la vue de la page principale si elle existe (cxGroupe › « Banque ») » ; S6 : exporter la comptabilité et l'envoi à l'expert-comptable. La confirmation sur le téléphone est demandée.",
+      "constate": "Banque : aucune fenêtre, le relevé « Crédit Agricole ····4521 » et ses lignes (VIR SEPA M DURAND JEAN +300,00 €, COMMISSIONS CB OCTOBRE −5,94 €, 30 montants) s'affichent. « Envoyer › » ouvre le panneau « Envoyer octobre à ton expert-comptable » sans confirmation. À l'inverse, le même onglet « Banque » dans le cadre « Ouvrir dans la Comptabilité » (prototype-comptabilite.html) DEMANDE bien la confirmation : la même information est gardée d'un côté et ouverte de l'autre.",
+      "preuve": "Reproduit 2 fois (t35-banque.js mac jour ; t37-envoi.js windows nuit ; t36-cadre.js montre le cadre qui demande la confirmation) ; code : 'compta-banque' et 'compta-export' n'apparaissent que dans SECU_GESTES et SECU_CADRE_CLES (lignes 25927-26001), jamais dans un secuGarde() de la page principale.",
+      "ou": "apercu/prototype-op-gestion.html, vue Comptabilité (onglets sec|banque, onglet|banque, bouton Envoyer ›)",
+      "correction": "Poser secuGarde('compta-banque', …) à l'ouverture de sec|banque / onglet|banque et secuGarde('compta-export', …) à « Envoyer › », comme pour le cadre ; ajouter les deux portes à la liste « portes » de SECU_GESTES et au recensement de la sonde."
     }
   ],
   "arbre": "relu sur l'arbre fusionné au 17/11/2026 vers 13 h 20 (après 578847ec) ; les numéros de ligne sont ceux de ce moment",
   "revu_apres_fusion": [
     "tout-01 corrigé par un autre agent ; tout-02 à tout-09 revérifiés présents (mêmes chiffres) après la fusion"
+  ],
+  "lecons_pour_les_sondes": [
+    "tout-10 et tout-11 passent entre les mailles des sondes existantes : double-auth-sensibles joue les 14 gestes par leurs BOUTONS gardés, jamais par les autres portes qui montrent la même chose (sous-onglets de la Paie, onglet Banque de la Comptabilité de la page). Un recensement doit partir des données montrées (montants de salaires, relevé bancaire, IBAN) : parcourir tous les écrans et toutes les sous-rubriques fenêtre fermée et chercher ces motifs (t34-iban.js le fait pour l'IBAN).",
+    "tout-01 (débordement d'une ligne libellé/valeur dans une feuille) ne se voit pas à un audit de débordement de page : le panneau coupe ; il faut mesurer les rectangles libellé/valeur (t16-ligne.js)."
   ]
 }
