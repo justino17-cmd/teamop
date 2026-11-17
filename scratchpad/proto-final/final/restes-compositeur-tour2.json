@@ -1,0 +1,51 @@
+[
+ {
+  "nom": "compositeur",
+  "defaut": "Ctrl+Z (annuler) ne fait plus rien après un collage sur plusieurs lignes dans « Délai » / « Paiement » (reste du tour 1, mineure)",
+  "etat": "corrigé",
+  "changement": "atelier/page.source : un écouteur « beforeinput » sur la fenêtre de l'atelier aplatit le texte collé (retours à la ligne et blancs voisins → un espace) AVANT qu'il entre dans le champ et l'insère par document.execCommand('insertText'), que le navigateur sait défaire ; repli par setRangeText si la commande est refusée. uneLigne() (réécriture de t.value) reste comme filet pour une valeur posée sans insertion. Cause : réécrire t.value après coup vidait la pile d'annulation",
+  "preuve": "reproduit sur la page d'avant (copie du commit 265b3a3) : « avant l1 l2 » reste tel quel après Ctrl+Z, Ctrl+Y le salit (« avant l1 l2 l2l2 »), le vrai Ctrl+V d'un texte de 3 lignes aussi. Après : sonde neuve compositeur-restes2.js § E (annuler et rétablir un collage à la fin, au milieu, sur une sélection, deux collages de suite, un gros collage borné à 300 signes, un vrai Ctrl+V, témoins une ligne et frappe à la main, filet E9) : iphone, mac, windows, ipad, android, petit, iphone de nuit 39 à 41 ✓ · 0 ✗ ; recontrôle du tour 1 (compositeur-restes1-recontrole iphone 40 ✓, compositeur-restes1 20 ✓) et compositeur-gestes (mac 44, iphone 38, petit 38) toujours à 0 ✗ ; mutations S1 (écouteur retiré), S2 (insertion remplacée), R3a/R3b/R3c (filet) mordent. Non vérifié : l'annulation au toucher (secousse, menu du système) sur un vrai iPhone / Android"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Après « Supprimer ce brouillon » l'infobulle « Brouillon supprimé » est posée dans le cadre de l'atelier, que le prototype range aussitôt : aucune confirmation visible (reste du tour 1, gênant mineur)",
+  "etat": "corrigé",
+  "changement": "page.source : supprimer-brouillon pose le mot de fin « supprime » (OPG.motifFin), consommé par opdPlanifierFin qui envoie opd_fermer {motif:'supprime'} au lieu de 'fin' (remis à zéro à chaque ouverture : il ne sert que la fermeture qui suit la suppression). apercu/prototype-op-gestion.html : opdFermer reconnaît le motif « supprime » (liste fermée role / absent / supprime, le reste vaut « fin ») et dit « Brouillon supprimé » dans la page (#toast). La propre infobulle du cadre reste pour la page seule",
+  "preuve": "reproduit sur la page d'avant : aucune bulle dans la page ({\"present\":false}). Après, sonde compositeur-restes2.js § F, devis ET contrat : le cadre est rangé, #toast dit « Brouillon supprimé », visible (opacité 1), dans l'écran, rien ne la recouvre (mesurée touchable le temps de la mesure : elle laisse passer le toucher, voulu) ; refermer sans supprimer ne la dit pas ; une fermeture normale APRÈS une suppression ne la redit pas. Captures regardées : iPhone jour (bulle juste au-dessus de la barre d'onglets, sur le tableau des contrats), iPhone nuit, petit 320 × 568, Mac (bulle centrée en bas). Mutations S3, S4, S5 (les DEUX gardes du mot retirées), S6 (bulle dite à toute fermeture) mordent ; remise à zéro à l'ouverture seule : survit, neutralisée par la consommation (garde redondante, voulue)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Petit téléphone (320 × 568), contrat tout juste créé : la feuille « Format » recouvre la barre du bas, donc « Insérer » / « Aperçu » / « Envoyer » ne se touchent pas tant qu'on n'a pas touché « Terminé » (doute du recontrôle du tour 1)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié : c'est le comportement voulu de la feuille (« Terminé » la range), les autres menus (Zoom, Insérer d'un devis) restent atteignables",
+  "preuve": "capturé et regardé par le recontrôleur sur petit et iPhone ; décision de produit. Recommandation : garder (une feuille qui s'ouvre toute seule sur un contrat neuf a une issue claire) ; si Justin veut « Insérer » toujours à portée, la feuille se réduit à une ligne"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Sonde atelier-seule.js : 4 ✗ sur le Mac (un contrôle du titre « DEVIS » déplacé de 1 px) contre la référence ec8aafd",
+  "etat": "corrigé",
+  "changement": "sondes/atelier-seule.js : référence avancée à fe94b4c. L'écart vient de l'étape Sécurité (polices Google retirées), pas du compositeur : écart voulu",
+  "preuve": "contre ec8aafd : 52 ✓ · 4 ✗ avec ma page ; contre fe94b4c : 56 ✓ · 0 ✗ (mac et iphone, jour et nuit) — mon tour 2 ne déplace aucune boîte"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Sonde compositeur-restes1 : les mutations R3a/R3b/R3c survivaient depuis que le collage est aplati avant d'entrer",
+  "etat": "corrigé",
+  "changement": "compositeur-mutations.py : R3a, R3b, R3c visent désormais E9 de compositeur-restes2 (le filet « input »), plus la sonde du tour 1 qui ne passe plus par uneLigne ; le délai d'une mutation se règle (DELAI=<secondes>, machine partagée : 290 s tombaient sur l'attente d'une place de navigateur et rendaient de faux « mord »)",
+  "preuve": "R3a, R3b, R3c mordent (3 sur 3) ; en tout 9 mordent · 0 survivent pour le tour 2 (R3a-c, S1 à S6)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Les sept décisions « à soumettre à Justin » du tour 1 (aperçu à 100 % au téléphone, mot « atelier », « HT » dit dans le contrat, déplacement 29,17 € HT, numéro rendu à la suppression, Échap de « Nouveau client », appareils réels)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié : inchangées depuis restes-compositeur-tour1.json, toujours ouvertes",
+  "preuve": "voir restes-compositeur-tour1.json ; aucun recontrôle neuf (securite/recontrole.json, artefact/recontrole.json, final/regard-compositeur-recontrole.json : absents pour ce nom, non inventés)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Lignes non cochées de vus-par-le-chef.md qui touchent le compositeur",
+  "etat": "ne se reproduit pas",
+  "changement": "rien : les deux lignes du compositeur (aperçu au téléphone, sonde atelier-seule) sont cochées depuis le tour 1 ; les autres lignes ouvertes concernent Stock, la Boîte mail, le menu et les bandeaux, pas ce nom",
+  "preuve": "relu le 17/11 ; la sonde du logo (restes1 § 4) reste verte (iphone 20 ✓ · 0 ✗)"
+ }
+]
