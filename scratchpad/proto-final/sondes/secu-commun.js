@@ -44,15 +44,19 @@ exports.avancer = async (c, minutes) => { await c.p.evaluate(m => { SECU.decalag
 exports.activer = async (c, k, o) => { o = o || {}; const mdp = await exports.provisoire(c, k), pin = o.pin || '135792', perso = o.mdp || ('Cheval-agrafe-batterie-' + k + '-2026');
   await exports.connecter(c, k, mdp);
   if (!await exports.attendreSel(c, '#cn-form-activer', 8000)) throw new Error('écran d’activation absent pour ' + k);
+  if (o.etape) await o.etape('A');
   await exports.telephone(c, k);
   await c.p.evaluate(() => document.querySelector('#opsec [data-ops="commencer"]').click()); await exports.pin(c, pin); await exports.pin(c, pin);
   if (o.saisie) { await c.p.evaluate(() => document.querySelector('#opsec [data-ops="saisir-code"]').click()); const code = await c.p.evaluate(() => document.querySelector('[data-sec="code-activation"]').textContent.trim());
     await c.p.evaluate(({ code, nom }) => { const f = document.querySelector('#opsec [data-ops="form-activation"]'); f.querySelector('[data-ops="code-champ"]').value = code; if (nom) f.querySelector('[data-ops="nom-champ"]').value = nom; f.requestSubmit(); }, { code, nom:o.nom }); }
   else await c.p.evaluate(() => document.querySelector('#opsec [data-ops="scanner"]').click());
   await L.attendre(c.p, kk => !!document.querySelector('#opsec [data-ops="code6"]') || (SECU.comptes[kk] && SECU.comptes[kk].tel), 5000, k); await c.p.waitForTimeout(1000);
+  if (o.etape) await o.etape('telephone-active');
   await exports.fermerTel(c); await c.p.click('#cn-form-activer button[type=submit]'); if (!await exports.attendreSel(c, '#cn-form-verifier', 6000)) throw new Error('écran B absent');
+  if (o.etape) await o.etape('B');
   const code6 = await c.p.evaluate(k => { const c = SECU.comptes[k]; return secuTotp(c.tel.cle, secuMaint()); }, k);
   await c.p.fill('#cn-code6', code6); await c.p.click('#cn-form-verifier button[type=submit]'); if (!await exports.attendreSel(c, '#cn-form-premier', 6000)) throw new Error('écran C absent');
+  if (o.etape) await o.etape('C');
   await c.p.fill('#cn-n1', perso); await c.p.fill('#cn-n2', perso); await c.p.click('#cn-form-premier button[type=submit]'); await exports.attendreApp(c, 15000, o.guide); return { mdp:perso, pin }; };
 // une connexion de tous les jours : identifiant + mot de passe, nombre lu sur l'écran, tapé sur le téléphone
 exports.jour = async (c, k, mdp, pin) => { await exports.connecter(c, k, mdp); const n = await exports.lireNombre(c); await exports.approuver(c, k, n, pin); await exports.attendreApp(c, 15000); return n; };
