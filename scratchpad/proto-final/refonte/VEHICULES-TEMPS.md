@@ -151,7 +151,7 @@ Tiroir large (`foOuvrir(…, true)`), modèle `eqFiche`. Ouvert par : une rangé
 - Les « Messages du bureau » ne sont **plus répétés** ici : ils restent sur « Ma journée » et dans la cloche (c'était le même rappel de pointage affiché deux fois).
 - Les rappels au conducteur à 30 et 7 jours (`vxNotifs`) restent dans la cloche et alimentent la phrase d'état.
 
-**« Ma journée »** (`vueMaJournee`) : la carte « Mon véhicule » (300 px) ET le raccourci stock « Mon camion — N articles à remettre à bord » sont REMPLACÉS par **UNE ligne de la largeur de l'écran** sous « Ma journée de travail » : `.ligne-clic` « **Mon camion** · tout est en règle · 3 articles à remettre à bord ›» (ou « … contrôle technique dans 12 jours ›»). Toucher ouvre l'onglet Camion.
+**« Ma journée »** (`vueMaJournee`) : la carte « Mon véhicule » (300 px) ET le raccourci stock « Mon camion — N articles manquent à bord » sont REMPLACÉS par **UNE ligne de la largeur de l'écran** sous « Ma journée de travail » : `.ligne-clic` « **Mon camion** · tout est en règle · 3 articles à remettre à bord ›» (ou « … contrôle technique dans 12 jours ›»). Toucher ouvre l'onglet Camion.
 
 **Ordre des blocs sur Camion** : « À bord » avant « Le camion » (le geste de tous les jours est le stock ; le plein est hebdomadaire) — mais la phrase d'état et la ligne « Le camion » sont visibles sans défiler sur 390 × 844 (la carte « À bord » reste sobre : boutons + alerte ; les listes sont repliées).
 
@@ -333,7 +333,7 @@ Chaque ligne de l'inventaire de l'étude (§ 2) a une destination. « = » : gar
 | Changer de conducteur (ancien gardé, stock suit) | fiche | = lien de fiche + `vxCondOk` |
 | Coût d'un véhicule (total, par mois, au km, L/100 km, histogramme) | fiche › « Ce que ça coûte » | **onglet Dépenses** ; = `vxCalcCout`, `vxCoutBloc` |
 | Classement « les plus chers au km » | bas de la liste | **feuille L**, derrière le chiffre « dépensés » (une couleur neutre) |
-| Stock à bord, ce qui manque, aller au stock | cartes, fiche | chiffre « 3 à remettre à bord » + lien « Stock du camion › » de la fiche ; côté technicien : **Mon camion** (bloc « À bord ») |
+| Stock à bord, ce qui manque, aller au stock | cartes, fiche | chiffre « 3 manquent à bord » + lien « Stock du camion › » de la fiche ; côté technicien : **Mon camion** (bloc « À bord ») |
 | Matériel de sécurité (8 cases, contrôle, commande) | milieu de la fiche, cases de 20 px | **feuille F**, huit lignes à 44 px ; = `vxMatFait`, `vxCommander` |
 | Documents (carte grise, attestation, rapport) | trois lignes « Pas encore ajouté » | onglet Papiers, **une ligne « Aucun document »** puis une ligne par document |
 | Amende (désignation avant la date, tâche) / sinistre | bas de fiche, 3 écrans à descendre | onglet Papiers, « Une amende » / « Un accident » ; = `vxAmendeOk`, `vxSinistreOk` |

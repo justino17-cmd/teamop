@@ -127,6 +127,9 @@ async function pieges(qui) {
       v(nom + ' : … Retour 1 : la date se ferme, le panneau RESTE', t2.pile === 'panneau' && t2.h === '#taches' && !!(await p.$('#calque .panneau')), t2);
       await C.retour(p); const t3 = await etat(p);
       v(nom + ' : … Retour 2 : le panneau se ferme, on reste sur Tâches', t3.ouverts === '' && t3.h === '#taches' && t3.pousse === 0, t3);
+      // Avancer deux fois : les entrées des deux fenêtres sont devant nous, rien ne doit se rouvrir
+      await C.avancer(p); await C.avancer(p); await C.attendre(p, 700); const t3b = await etat(p);
+      v(nom + ' : … Avancer, Avancer : aucune fenêtre ne se rouvre, on reste sur Tâches, pile vide', t3b.ouverts === '' && t3b.pousse === 0 && t3b.h === '#taches' && !t3b.off, t3b);
       await C.retour(p); const t4 = await etat(p);
       v(nom + ' : … Retour 3 : on quitte Tâches', t4.h !== '#taches', t4);
     } else v(nom + ' : [fenêtre dans une fenêtre] la tâche et sa date s\'ouvrent', false);
@@ -139,6 +142,12 @@ async function pieges(qui) {
   await C.retour(p); const r2 = await etat(p);
   v(nom + ' : … UN Retour : on quitte ' + op.ecran + ' (pas une fenêtre fantôme)', r2.h !== H && r2.ouverts === '', r2);
 
+  // 4 bis. la croix PUIS Retour sans attendre (le recul demandé par la croix est encore en route quand le Retour arrive)
+  await prelude(); await op.ouvrir(); await op.fermer(); await p.goBack().catch(() => {}); await C.attendre(p, 1300); const x1 = await etat(p);
+  v(nom + ' : [croix puis Retour immédiat] la fenêtre est fermée, aucune entrée orpheline, pas coincé (état : ' + x1.h + ')', x1.ouverts === '' && x1.pousse === 0 && !x1.off && (x1.h !== H || (await (async () => { await C.retour(p); return (await etat(p)).h !== H; })())), x1);
+  // 4 ter. changer d'écran puis Retour sans attendre
+  await prelude(); await L.aller(p, 'taches'); await p.goBack().catch(() => {}); await C.attendre(p, 900); const x2 = await etat(p);
+  v(nom + ' : [écran changé puis Retour immédiat] on est revenu à ' + op.ecran + ', aucune fenêtre, pile vide', x2.h === H && x2.ouverts === '' && x2.pousse === 0, x2);
   // 5. vingt ouvertures-fermetures par la croix puis UN Retour : on quitte l'écran, history.length n'a pas grossi
   await prelude(); const base = await etat(p); let rate = 0;
   for (let i = 0; i < 20; i++) { if (!await op.ouvrir()) { rate++; continue; } if (!await op.fermer()) { rate++; await rangerTout(p); } }

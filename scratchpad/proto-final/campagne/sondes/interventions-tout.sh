@@ -27,7 +27,7 @@ lance(){ local nom="$1"; shift; local t0=$(date +%s); local s; s=$(timeout 400 e
 AUTRES="android petit ipad windows"
 
 # Les sondes « [profil] [nuit] » : l'ordinateur de jour, le téléphone de nuit.
-for f in interventions-client interventions-parcours-bureau interventions-parcours-facture interventions-parcours-suite interventions-parcours-tech interventions-mise-en-page; do
+for f in interventions-client interventions-parcours-bureau interventions-parcours-facture interventions-parcours-suite interventions-parcours-tech interventions-restes-1 interventions-mise-en-page; do
   lance "$f mac" node "$S/$f.js" mac
   lance "$f iphone nuit" node "$S/$f.js" iphone nuit
   [ -n "$AVEC_TOUS" ] && { lance "$f mac nuit" node "$S/$f.js" mac nuit; lance "$f iphone" node "$S/$f.js" iphone; for p in $AUTRES; do lance "$f $p" node "$S/$f.js" $p; done; lance "$f petit nuit" node "$S/$f.js" petit nuit; }
