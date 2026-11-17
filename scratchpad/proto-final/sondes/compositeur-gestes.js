@@ -123,7 +123,18 @@ const fermee = p => p.evaluate(() => { const z = document.getElementById('opdz')
     const apres = await p.evaluate(() => ATD.docs.length), nApres = await p.evaluate(t => t === 'devis' ? dvNum() : ctrNum(), type);
     v(`${tag} ${type} · supprimé : l'atelier se ferme et la liste d'OP GESTION perd ce document (${n0 + 1} → ${apres})`, apres === n0 && await fermee(p), [n0, apres]);
     v(`${tag} ${type} · son numéro se rend (le prochain était ${nSuiv}, redevient ${nApres})`, nApres !== nSuiv, [nSuiv, nApres]);
-    // un document ENVOYÉ ne se supprime pas ainsi : pas de menu de suppression
+    // un document ENVOYÉ ne se supprime pas ainsi : pas de menu de suppression (jouée plus bas, sur un devis réellement envoyé)
+  }
+  {
+    await L.aller(p, 'devis'); const f = await A.ouvrirAtelier(c, 'devis', null); await L.calme(p, 900);
+    await clic(c, f, '[data-vv="client"][data-id="vp"]'); await clic(c, f, '[data-vv="art-add"][data-id="EL-ALL"]'); await clic(c, f, '[data-act="vierge-creer"]:visible'); await p.waitForTimeout(1800);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(500);
+    await clic(c, f, '[data-act="envoyer"]:visible'); await p.waitForTimeout(700); await f.locator('[data-act="env-go"]:visible').first().click(); await p.waitForTimeout(1500);
+    const etat = await f.evaluate(() => D().etat); v(`${tag} devis envoyé · le devis est bien à « envoye » (la contre-épreuve joue un document envoyé)`, etat === 'envoye', etat);
+    if (await f.locator('#b-plus').isVisible()) { await clic(c, f, '#b-plus'); await p.waitForTimeout(350);
+      const items = await f.evaluate(() => [...document.querySelectorAll('.menu button, [role="menu"] button, .pop button')].map(b => b.textContent.trim()).filter(Boolean));
+      v(`${tag} devis envoyé · le menu « ⋯ » (${items.length} gestes) ne propose PAS « Supprimer ce brouillon »`, items.length >= 1 && !items.some(t => /Supprimer ce brouillon/.test(t)), items); await p.keyboard.press('Escape'); await p.waitForTimeout(300); }
+    else v(`${tag} devis envoyé · pas de menu « ⋯ » du tout (donc pas de suppression)`, true, null);
   }
   v(tag + ' · aucune erreur JavaScript', c.err.length === 0, c.err);
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
