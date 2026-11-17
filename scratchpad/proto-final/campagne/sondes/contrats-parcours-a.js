@@ -52,6 +52,7 @@ const cents = x => Math.round(x * 100);
     v(`A-${mode} : les dates des visites tombent dans l'année du contrat`, vis.every(x => x.d >= '2026-11-01' && x.d <= '2027-10-31'), vis.map(x => x.d));
     const fact = await p.evaluate(() => FACTURES.filter(f => f.cli === 'cp' && /^fc-/.test(f.id)).map(f => ({ id: f.id, objet: f.objet, ht: f.ht, lignes: f.lignes, st: f.st })));
     if (mode === 'an') v(`A-${mode} : la facture de l'année est préparée, 140 € HT`, fact.length === 1 && fact[0].lignes[0].pu === 140, fact);
+    else if (mode === 'mois') v(`A-${mode} : la facture du PREMIER MOIS est préparée à la signature (140 ÷ 12 = 11,67 € HT : décision du chef du 17/11, contrats-15)`, fact.length === 1 && fact[0].lignes[0].pu === 11.67 && fact[0].st === 'avalider', fact);
     else v(`A-${mode} : pas de facture à la signature`, fact.length === 0, fact);
     await L.capture(c, O.CAP + `A-${mode}-fiche-signe-${profil}.png`);
     // les chiffres de la liste

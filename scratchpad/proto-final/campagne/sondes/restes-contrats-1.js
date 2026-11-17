@@ -135,9 +135,9 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   v('16 …ni dans « Voir en grand »', !(await p.$('#docplein [data-pdfmail]')) && !!(await p.$('#docplein [data-pdfdl]')), '');
   await p.evaluate(() => docPleinFermer()); await L.calme(p, 200);
   v('06 le pied du PDF ne dit plus « Modèle de démonstration » : ce sont les coordonnées de l’entreprise', !/démonstration|à faire relire/i.test(br.pied) && /Clim Services 17/.test(br.pied) && /SIRET/.test(br.pied) && /climservices17\.fr/.test(br.pied), br.pied);
-  v('(i) l’article 4 du PDF donne HT ET TTC', /HT par an, soit .* TTC \(TVA \d+ %\)/.test(br.pdf), (br.pdf.match(/4 · Prix.{0,160}/) || [''])[0]);
+  v('(i) l’article 4 du PDF donne HT ET TTC', /HT par an, soit .* TTC \(TVA \d+\s%\)/.test(br.pdf), (br.pdf.match(/4 · Prix.{0,160}/) || [''])[0]);
   const hint = await txt(p, '[data-b="prix"] + .faible, label.champ:has([data-b="prix"])');
-  v('(i) le formulaire donne le TTC sous le prix HT', /TTC \(TVA \d+ %\)/.test(hint), hint);
+  v('(i) le formulaire donne le TTC sous le prix HT', /TTC \(TVA \d+\s%\)/.test(hint), hint);
   await L.aller(p, 'contrats'); const tc = await txt(p);
   v('06 sous la liste des modèles : « Ces modèles sont des exemples : fais-les relire par ton conseil avant de t’en servir. »', /Ces modèles sont des exemples : fais-les relire par ton conseil avant de t’en servir\./.test(tc) && !/relus par le juriste/.test(tc), '');
   v('11 sous les deux boutons : la phrase qui les distingue', /Contrat rapide\s*:\s*un modèle de ton métier, prêt à envoyer\./.test(tc) && /Composer un contrat\s*:\s*le tien, article par article\./.test(tc), '');

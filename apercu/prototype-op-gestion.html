@@ -2463,7 +2463,8 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
 .ctr-doc{min-width:0}
 .ctr-lire{display:none}
 .ctr-dates{display:block;margin-top:2px}
-.ctr-choix{flex:1 1 100%;max-width:min(100%,380px);text-align:right;line-height:1.4}
+.ctr-choix{flex:0 0 100%;max-width:100%;line-height:1.4}
+#contenu .tete .actions:has(> .ctr-choix){max-width:min(100%,460px)}   /* sans borne, la rangée tient en UNE ligne et la phrase se pose À CÔTÉ des boutons au lieu d'être dessous */
 .ctr-conf{margin:12px 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .ctr-suite-b{margin-top:10px}.ctr-suite .lien{margin-top:8px}
 .ctr-ech{margin-top:10px}
@@ -2473,7 +2474,7 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
   .ctr-grille > .col{order:1}.ctr-grille > .ctr-doc{order:2}
   .ctr-grille .ctr-lire{display:flex;width:100%;margin-bottom:10px}
   .ctr-grille .ctr-doc:not(.ouvert) > :is(.pdf,.doc-barre){display:none}
-  .ctr-choix{text-align:left;max-width:100%}
+  #contenu .tete .actions:has(> .ctr-choix){max-width:none}
 }
 .doc-barre{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
 .mail-pj{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}.mail-pj>span:last-child{display:flex;flex-direction:column}.mail-pj small{color:var(--faible)}
@@ -5557,7 +5558,7 @@ function vueContratNouveau(){
     <label class="champ">Modèle selon le métier<select data-b="modele">${metiersModeles().map(([k,m])=>`<option value="${k}" ${B.modele===k?'selected':''}>${m.nom}</option>`).join('')}</select></label>
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Ce qui est couvert (appareils, lieux)<input data-b="lieu" value="${esc(B.lieu)}" placeholder="ex. la chaudière du sous-sol"></label>
-    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${String(B.prix).replace('.', ',')}"><span class="faible mini">${Number(B.prix) > 0 ? 'soit ' + eur(ctrTTC(B.prix, B)) + ' TTC (TVA ' + ctrTva(B) + ' %)' : 'Indique le prix hors taxes.'}</span></label></div>
+    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${String(B.prix).replace('.', ',')}"><span class="faible mini">${Number(B.prix) > 0 ? 'soit ' + eur(ctrTTC(B.prix, B)) + ' TTC (TVA ' + ctrTva(B) + ' %)' : 'Indique le prix hors taxes.'}</span></label></div>
     <div class="deux-champs"><label class="champ">Facturation<select data-b="fact">${Object.entries(FACT_LIB).map(([k,l])=>`<option value="${k}" ${B.fact===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="champ">Début<input type="date" data-b="debut" value="${B.debut}"></label></div>
     <div><div class="groupe">Clauses</div>
       <label class="case"><input type="checkbox" data-bc="revision" ${B.revision?'checked':''}>Prix révisé une fois par an (indice des prix)</label>
@@ -5575,7 +5576,7 @@ function pdfContrat(B, k){
     <h6>1 · Objet</h6><div>${esc(Mo.nom)} : ${esc(B.lieu || metiersCtr(B.modele).objet)}.</div>
     <h6>2 · Ce qui est compris</h6><div>${Mo.presta.map(p=>'• '+esc(p)).join('<br>')}${B.pieces?'<br>• ' + esc(metiersCtr(B.modele).pieces):''}</div>
     <h6>3 · Visites</h6><div>${B.freq} visite${B.freq>1?'s':''} par an, planifiée${B.freq>1?'s':''} par le prestataire et annoncée${B.freq>1?'s':''} au client au moins 7 jours avant.${B.delai?' ' + esc(metiersCtr(B.modele).panne):''}</div>
-    <h6>4 · Prix et facturation</h6><div>${eur(Number(B.prix)||0)} HT par an, soit ${eur(ctrTTC(B.prix, B))} TTC (TVA ${ctrTva(B)} %)${B.freq>1?`, soit ${eur(prixVisite)} HT par visite`:''}. Facturation ${FACT_LIB[B.fact]}.${B.revision?' Prix révisé chaque année à la date anniversaire, selon l’évolution de l’indice des prix publié par l’Insee.':''}</div>
+    <h6>4 · Prix et facturation</h6><div>${eur(Number(B.prix)||0)} HT par an, soit ${eur(ctrTTC(B.prix, B))} TTC (TVA ${ctrTva(B)} %)${B.freq>1?`, soit ${eur(prixVisite)} HT par visite`:''}. Facturation ${FACT_LIB[B.fact]}.${B.revision?' Prix révisé chaque année à la date anniversaire, selon l’évolution de l’indice des prix publié par l’Insee.':''}</div>
     <h6>5 · Durée</h6><div>Un an à compter du ${B.debut.split('-').reverse().join('/')}, reconduit chaque année. Chaque partie peut y mettre fin par écrit au moins un mois avant l’échéance.</div>
     <div class="deux" style="margin-top:8px"><div class="zone-sig"><span class="mini">Pour le prestataire</span><b>${ENTREPRISE.patron}</b></div><div class="zone-sig"><span class="mini">Le client · lu et approuvé</span>${sig}</div></div>
     <div class="pdf-pied">${ENTREPRISE.nom} · ${ENTREPRISE.adr} · SIRET ${ENTREPRISE.siret} · ${ENTREPRISE.tel} · ${ENTREPRISE.mail}</div></div>`;
@@ -5598,7 +5599,7 @@ function vueContrat(id){
         ${peutM ? `<button type="button" class="lien" data-strelctr="${id}">D’abord, proposer le renouvellement au client par e-mail</button>` : ''}</div>` : ''}
       ${prochain ? `<div class="carte"><h3>Renouvelé</h3><div class="ligne"><span>Ce contrat continue sous le numéro</span><button type="button" class="lien" data-go="contrat-x-${prochain.id}">${prochain.num} ›</button></div><span class="faible mini">jusqu’au ${prochain.fin}, aux mêmes conditions.</span></div>` : ''}
       ${k.suiteDe && CONTRATS.find(x => x.id === k.suiteDe) ? `<div class="carte"><h3>Renouvellement</h3><div class="ligne"><span>Suite du contrat</span><button type="button" class="lien" data-go="contrat-x-${k.suiteDe}">${CONTRATS.find(x => x.id === k.suiteDe).num} ›</button></div></div>` : ''}
-      <div class="carte"><h3>Facturation</h3><div class="ligne"><span>${k.fact === 'mois' ? eur(ctrPart(k.prix, 12, 1)) + ' HT chaque mois' : k.fact === 'an' ? eur(k.prix) + ' HT une fois par an, à la signature' : eur(ctrPart(k.prix, k.freq, 1)) + ' HT à chaque visite'}</span><b>${eur(k.prix)} HT / an</b></div><div class="ligne"><span class="gris">Soit, avec la TVA à ${ctrTva(k)} %</span><b>${eur(ctrTTC(k.prix, k))} TTC / an</b></div>
+      <div class="carte"><h3>Facturation</h3><div class="ligne"><span>${k.fact === 'mois' ? eur(ctrPart(k.prix, 12, 1)) + ' HT chaque mois' : k.fact === 'an' ? eur(k.prix) + ' HT une fois par an, à la signature' : eur(ctrPart(k.prix, k.freq, 1)) + ' HT à chaque visite'}</span><b>${eur(k.prix)} HT / an</b></div><div class="ligne"><span class="gris">Soit, avec la TVA à ${ctrTva(k)} %</span><b>${eur(ctrTTC(k.prix, k))} TTC / an</b></div>
         <div class="faible mini">${k.fact === 'visite' ? 'La facture de chaque visite se prépare toute seule, avec son compte rendu joint.' + (Math.round(ctrPart(k.prix, k.freq, 1) * k.freq * 100) !== Math.round(k.prix * 100) ? ' La dernière visite porte le reste d’arrondi : le total fait exactement le prix du contrat.' : '') : k.fact === 'an' ? 'La facture de l’année est préparée à la signature. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.' : 'Le contrat se facture au mois : la facture du premier mois est préparée à la signature, les suivantes le 1er de chaque mois. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.'}</div>
         ${k.fact === 'mois' && k.st !== 'envoye' ? ctrEcheancesHtml(k) : ''}</div></div></div>`;
 }
