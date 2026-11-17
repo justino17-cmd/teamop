@@ -50,8 +50,8 @@
  {
   "n": "taches-absences-09",
   "etat": "corrigé",
-  "changement": "Soldes, ≤ 380 px : la colonne « À surveiller » disparaît et son alerte passe sous le prénom ; colonnes resserrées. Le tableau tient à 320, 360 et 390 px.",
-  "preuve": "taches-absences-sonde-soldes.js : 6 ✓ 0 ✗ (petit 286/286, android 326/326, iphone 356/356) ; avant 337 dans 286 et 337 dans 326 (le défaut touchait aussi 360 px). Capture petit relue."
+  "changement": "Soldes, ≤ 380 px : la colonne « À surveiller » disparaît et son alerte passe sous le prénom ; colonnes resserrées. Le tableau tient à 320, 360 et 390 px. Rejoué sur iPad : le tableau y mesurait 662 px dans 506 (colonne coupée sans signe) ; mêmes resserrements entre 761 et 1100 px, il tient (506/506).",
+  "preuve": "taches-absences-sonde-soldes.js : 8 ✓ 0 ✗ (petit 286/286, android 326/326, iphone 356/356, ipad 506/506) ; avant : 337 dans 286, 337 dans 326 (le défaut touchait aussi 360 px), 662 dans 506 sur iPad. Captures petit et ipad relues."
  },
  {
   "n": "taches-absences-10",
@@ -76,5 +76,11 @@
   "etat": "à soumettre à Justin",
   "changement": "Aucun : barres « mois par mois » des Soldes (38-40 px de large, douze par rangée) et bandes d'absence du calendrier (35-38 px) : c'est la densité voulue, comme les cases du planning écartées par décision ; douze mois à 44 px ne tiennent pas dans 320 px.",
   "preuve": "mise-en-page petit : ce sont les seules cibles qui restent sous 44 px sur les trois écrans (absences-calendrier, absences-soldes, mes-conges)."
+ },
+ {
+  "n": "taches-absences-14",
+  "etat": "corrigé",
+  "changement": "Trouvé au rejeu sur iPad (pas dans le rapport) : la ligne d'une intervention touchée par une absence (Absences › À valider) ne répondait que sur 41-42 px ; `.a-int` et `.a-int-l .a-int` à 44 px sous 1100 px ou au doigt.",
+  "preuve": "sonde ad hoc ipad + iphone : 2 ✓ 0 ✗ (41 px avant) ; mise en page ipad rejouée."
  }
 ]

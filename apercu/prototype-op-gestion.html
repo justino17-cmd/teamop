@@ -2495,6 +2495,7 @@ body.dp-ouvert{overflow:hidden}
 /* ══ Absences, reprise du 2 novembre : remplaçants, proposition de dates, décisions, calendrier, soldes ══ */
 .a-etat{align-self:flex-start}
 .a-int-l{display:flex;flex-direction:column;gap:6px;padding:8px 0;border-top:1px solid color-mix(in srgb,currentColor 15%,transparent)}.a-int-l .a-int{border-top:0;padding:0;min-height:36px}
+@media (max-width:1100px),(pointer:coarse){.a-int,.a-int-l .a-int{min-height:44px;align-items:center}}   /* la ligne d'une intervention touchée par une absence : 44 px (rejeu iPad, 42 px mesurés) ; après `.a-int-l .a-int` qui posait 36 */
 .a-remp{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px}
 .a-r{display:flex;align-items:center;gap:10px;text-align:left;padding:8px 10px;border-radius:12px;border:1.5px solid var(--trait2);background:var(--feuille);color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
 .a-r>span{display:flex;flex-direction:column;min-width:0}.a-r small{color:var(--doux);font-size:12.5px;line-height:1.3}.a-r em{font-style:normal;color:var(--vert);font-weight:650}
@@ -2545,6 +2546,9 @@ body.dp-ouvert{overflow:hidden}
 /* Soldes à 320 px : la colonne « À surveiller » sortait de sa boîte sans rien dire (tableau de 337 px dans 286). On resserre les colonnes
    et le texte, et la dernière passe à la ligne (défaut taches-absences-09). */
 @media (max-width:760px){.a-leg{display:flex}.as-t{font-size:13px}.as-t th,.as-t td{padding:8px 6px}.as-t th:first-child,.as-t td:first-child{padding-left:12px}.as-t td:last-child{white-space:normal}.as-t .st{white-space:normal;display:inline-block;line-height:1.25}.as-t thead th{font-size:10.5px;white-space:normal}.as-lg{display:none}.ac-aide{font-size:13px}.ac-nom{width:132px;padding:8px}.ac-nom small{display:none}.ac-nn{display:none}.ac-qui{margin-left:0;width:100%}.ac-ctrl .ac-per{width:100%}.ac-nav{flex:1}}
+/* Tablette (menu permanent : la boîte du tableau fait ~500 px) : mêmes resserrements que sur téléphone, sinon le tableau mesurait 662 px et la
+   colonne « À surveiller » sortait de la boîte sans que rien le dise (défaut trouvé au rejeu sur iPad, taches-absences-09). */
+@media (min-width:761px) and (max-width:1100px){.as-t{font-size:13px}.as-t th,.as-t td{padding:8px 8px}.as-t td:last-child{white-space:normal}.as-t .st{white-space:normal;display:inline-block;line-height:1.25}.as-t thead th{white-space:normal}}
 @media (max-width:380px){.as-t{font-size:12px}.as-t th,.as-t td{padding:8px 3px}.as-t th:first-child,.as-t td:first-child{padding-left:10px}.as-t td:last-child{padding-right:8px}/* à 320-380 px la colonne « À surveiller » ne tient plus : l'alerte passe sous le prénom, la colonne disparaît (défaut taches-absences-09) */
   .as-t thead th:last-child,.as-t td:last-child{display:none}.as-tel-al{display:block;margin-top:4px}.as-tel-al .st{font-size:11px;padding:2px 8px}.as-t thead th{font-size:10px}}
 /* une personne, mois par mois */
@@ -3345,6 +3349,7 @@ table.l th.n{text-align:right}
   .tt-lig{padding:8px 2px;gap:4px;display:block}.tt-txt{font-size:15px;display:block}.tt-txt>.gris{display:block}
   .tt-lig>.st{float:left;margin:1px 8px 2px 0}   /* l'étiquette ouvre la phrase au lieu d'avoir sa propre ligne : 34 px de moins par rangée */
   .tt-ges{clear:both;padding-top:2px;margin-top:0}.tt-ges .lien{padding-left:0;padding-right:0}
+  .tt-liens{display:contents}.tt-ges{gap:0 12px}   /* le geste et ses liens sur une même ligne tant qu'ils tiennent (iPad portrait : le menu de 272 px rend la liste étroite sans que l'écran le soit) */
   /* une rangée de « Qui est où » qui porte un geste : le geste à droite du nom, l'état dessous — plus une rangée à part pour le bouton */
   .tt-ligs .tt-l-b{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:2px 12px}
   .tt-ligs .tt-l-b .fo-n{display:contents}.tt-ligs .tt-l-b .eq-av{grid-row:1/4;align-self:start;margin-top:2px}
@@ -3422,7 +3427,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 /* au doigt, les flèches de la semaine répondent sur 44 px (40 à la souris) ; et une liste de personnes très étroite (320 px, nom long) range le total sous le nom plutôt qu'à côté, où il écrasait le nom */
 @media (pointer:coarse){.tt-barre .st-nav button{width:44px;height:44px;flex:none}}   /* flex:none : sur 320 px le nom de la semaine pousse, et sans lui la flèche rétrécissait à 38 px */
 @container ttl (max-width:300px){.tt-ligs .tt-l-b .btn{grid-column:2/4;grid-row:4;justify-self:start}.tt-ligs .tt-l-b .eq-av{grid-row:1/5}}   /* 320 px : un nom long a toute la largeur, le geste passe dessous */
-@container ttsem (max-width:380px){.tt-p>.tt-tot{grid-column:2;grid-row:2;align-items:flex-start;text-align:left}.tt-p>.tt-pp{grid-row:3}}
+@container ttsem (max-width:320px){.tt-p>.tt-tot{grid-column:2;grid-row:2;align-items:flex-start;text-align:left}.tt-p>.tt-pp{grid-row:3}}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
