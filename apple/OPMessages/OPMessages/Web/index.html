@@ -30,6 +30,7 @@
   --doux:#1b2a58; --champ:#19254e; --survol:#18244b; --sel:#1f3068; --vert:#34c26a; --vert-doux:#143524; --rouge:#ff6b6f; --rouge-doux:#3d1a22; --orange:#f2a93b; --orange-doux:#3a2a12;
   --ombre:0 10px 30px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.4);
 }
+:root[data-cote="perso"]{--cadre:#2b1a63;--cadre2:#5b33a8} :root[data-theme="dark"][data-cote="perso"]{--cadre:#0c0720;--cadre2:#0c0720}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{font:14px/20px -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--texte);background:var(--cadre);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
@@ -43,12 +44,16 @@ h1{font-size:17px;line-height:24px;font-weight:700;letter-spacing:-.01em} h2{fon
 /* ── le cadre : la barre du haut (recherche), le rail, l'espace de travail arrondi ── */
 #cadre{position:fixed;inset:0;height:var(--haut,100%);display:grid;grid-template-columns:76px minmax(0,1fr);grid-template-rows:50px minmax(0,1fr);background:linear-gradient(165deg,var(--cadre2),var(--cadre) 55%)}
 #haut{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 12px 0 14px;color:#fff}
-.marque{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;letter-spacing:.02em;white-space:nowrap;width:210px;flex:none}
+.marque{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;letter-spacing:.02em;white-space:nowrap;width:250px;flex:none}
 .marque i{width:28px;height:28px;border-radius:8px;background:#fff;color:var(--cadre);display:grid;place-items:center;font-size:8px;line-height:9px;font-weight:800;font-style:normal;text-align:center;flex:none}
 .marque em{font-size:9.5px;line-height:15px;font-weight:700;font-style:normal;letter-spacing:.06em;background:rgba(255,255,255,.2);padding:0 6px;border-radius:5px}
 .chercher{flex:1;min-width:0;max-width:560px;margin:0 auto;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:9px;background:rgba(255,255,255,.14);color:rgba(255,255,255,.85);font-size:13.5px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .chercher span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left} .chercher kbd{font:inherit;font-size:11.5px;padding:0 6px;border-radius:5px;background:rgba(255,255,255,.16)}
-.h-droite{display:flex;align-items:center;gap:6px;width:210px;justify-content:flex-end;flex:none}
+.h-droite{display:flex;align-items:center;gap:6px;width:250px;justify-content:flex-end;flex:none}
+.cotes{display:inline-flex;padding:2px;border-radius:9px;background:rgba(255,255,255,.14);margin-right:4px} .cotes button{min-height:28px;padding:0 12px;border-radius:7px;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.8)} .cotes button[aria-pressed="true"]{background:#fff;color:var(--cadre)}
+.cotes.clair{background:var(--champ);margin:0;display:flex} .cotes.clair button{flex:1;color:var(--second);min-height:34px} .cotes.clair button[aria-pressed="true"]{background:var(--carte);color:var(--texte);box-shadow:0 1px 3px rgba(15,23,60,.14)}
+.hp-jours{display:flex;gap:6px;flex-wrap:wrap} .hp-jours button{width:36px;height:36px;border-radius:50%;font-weight:700;font-size:13px;color:var(--second);box-shadow:inset 0 0 0 1px var(--bord);text-align:center} .hp-jours button[aria-pressed="true"]{background:var(--fill);color:#fff;box-shadow:none}
+.hp-ed{padding:12px 14px;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--bord)} .hp-ed .champ{flex:1}
 .h-btn{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;position:relative} .h-btn em{position:absolute;top:1px;right:0;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--rouge);color:#fff;font-size:10.5px;line-height:16px;font-weight:700;font-style:normal;text-align:center}
 .h-btn[aria-current]{background:rgba(255,255,255,.2)} .h-moi{border-radius:11px;padding:2px}
 .cote{grid-column:1;grid-row:2;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 6px 10px;min-height:0;overflow-y:auto;scrollbar-width:none}
@@ -244,7 +249,7 @@ h1{font-size:17px;line-height:24px;font-weight:700;letter-spacing:-.01em} h2{fon
 
 @media (min-width:1440px){ .gestes{flex-wrap:nowrap} }
 /* ══ FENÊTRE ÉTROITE ET TABLETTE (761 à 1000 px) ══ */
-@media (min-width:761px) and (max-width:1000px){ .marque{width:auto} .marque>span,.marque em{display:none} .h-droite{width:auto} #scene.deux{grid-template-columns:clamp(250px,36vw,320px) minmax(0,1fr)} .acc{grid-template-columns:minmax(0,1fr)} .bloc-g span{display:none} .bloc-g{padding:2px 4px;font-size:11px} .g-jours,.g-corps{grid-template-columns:40px repeat(7,minmax(0,1fr))} }
+@media (min-width:761px) and (max-width:1000px){ .marque{width:auto} .marque>span{display:none} .h-droite{width:auto} #scene.deux{grid-template-columns:clamp(250px,36vw,320px) minmax(0,1fr)} .acc{grid-template-columns:minmax(0,1fr)} .bloc-g span{display:none} .bloc-g{padding:2px 4px;font-size:11px} .g-jours,.g-corps{grid-template-columns:40px repeat(7,minmax(0,1fr))} }
 @media (min-width:761px) and (pointer:coarse){
   body{font-size:15px;line-height:21px} .cote a{padding:9px 0 7px;font-size:11px} .ligne{padding:10px} .bulle{font-size:15.5px;line-height:22px} .btn{min-height:42px} .rond{width:42px;height:42px} .seg button{min-height:38px} .cherche{height:42px} .filtres button{min-height:40px;padding:0 14px}
   .cherche input,.champ input,.champ select,.champ textarea,.compo textarea{font-size:16px} .champ input,.champ select{min-height:44px} .bascule{width:51px;height:31px;border-radius:16px} .bascule::after{width:27px;height:27px} .bascule[aria-checked="true"]::after{transform:translateX(20px)}
@@ -257,7 +262,7 @@ h1{font-size:17px;line-height:24px;font-weight:700;letter-spacing:-.01em} h2{fon
   body{font-size:16px;line-height:22px} svg{width:21px;height:21px}
   h1{font-size:22px;line-height:28px} h2{font-size:21px;line-height:27px} h3{font-size:13px;line-height:18px} .petit{font-size:14px;line-height:19px}
   #cadre{grid-template-columns:minmax(0,1fr);grid-template-rows:calc(52px + env(safe-area-inset-top,0px)) minmax(0,1fr) calc(60px + env(safe-area-inset-bottom,0px))} #haut{padding:env(safe-area-inset-top,0px) 10px 0 14px;gap:8px}
-  .marque{width:auto} .marque>span,.marque em{display:none} .chercher{height:36px;font-size:15px} .chercher kbd{display:none} .h-droite{width:auto;gap:2px} .h-btn{width:40px;height:40px}
+  .marque{width:auto} .marque>span,.marque em,.cotes-h{display:none} .chercher{height:36px;font-size:15px} .chercher kbd{display:none} .h-droite{width:auto;gap:2px} .h-btn{width:40px;height:40px}
   .cote{display:none} #app{grid-column:1;grid-row:2;margin:0;border-radius:16px 16px 0 0} #scene.deux{grid-template-columns:minmax(0,1fr)}
   #scene.deux .col.liste{border:0} #scene.deux.ouvert .col.liste{display:none} #scene.deux:not(.ouvert) .col.detail{display:none}
   .barre{min-height:54px;padding:0 14px} .page{padding:16px 14px 28px;gap:16px}
@@ -302,7 +307,7 @@ h1{font-size:17px;line-height:24px;font-weight:700;letter-spacing:-.01em} h2{fon
   .rond::before,.h-btn::before{content:"";position:absolute;inset:-4px} .lien{position:relative} .lien::before{content:"";position:absolute;inset:-10px -6px}
   .coche::before{content:"";position:absolute;inset:-11px} .bascule::before{content:"";position:absolute;inset:-7px -2px} .seg button{position:relative} .seg button::before{content:"";position:absolute;inset:-5px 0}
   .bulle[data-msg]{min-height:40px;min-width:44px;display:flex;flex-direction:column;justify-content:center} .tuile-b>header a,.tuile-b>header button{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:flex-end} .tuile-b>header{padding-top:2px;padding-bottom:0}
-  .marque{min-width:44px;min-height:44px;justify-content:center} .chercher{min-height:40px} .filtres button{min-height:40px} .vocal button{width:40px;height:40px} .sondage button{min-height:40px;align-items:center}
+  .marque{min-width:44px;min-height:44px;justify-content:center} .cotes button{min-height:40px} .hp-jours button{width:44px;height:44px} .chercher{min-height:40px} .filtres button{min-height:40px} .vocal button{width:40px;height:40px} .sondage button{min-height:40px;align-items:center}
   .bloc-g{min-height:40px} .menu-ctx{min-width:280px} .menu-ctx .tap button{width:40px;height:40px;line-height:40px}
   .compo .rep button{width:40px;height:40px} .appel .reduire{width:44px;height:44px} .qui{min-height:44px} #mini{min-height:44px} .presence a{min-height:44px} .cote .creer{width:48px;height:48px} .act .ges .btn{min-height:40px}
 }
@@ -5673,7 +5678,7 @@ const RAPPELS = [
 ];
 
 /* ── l'état ── */
-const S = { vue: 'accueil', id: null, theme: 'auto', statut: 'ok', filtreAppels: 'tous', filtreConv: 'tout', filtreAct: 'tout', agVue: 'semaine', agSem: 0, agJour: 0, rech: '', rep: null, appel: null, salle: null,
+const S = { mode: 'pro', auto: true, hp: { on: true, jours: [1, 2, 3, 4, 5], debut: '08:00', fin: '18:00' }, vue: 'accueil', id: null, theme: 'auto', statut: 'ok', filtreAppels: 'tous', filtreConv: 'tout', filtreAct: 'tout', agVue: 'semaine', agSem: 0, agJour: 0, rech: '', rep: null, appel: null, salle: null,
   regl: { notif: true, heuresPro: true, pauseReunion: true, lecture: true, enligne: true, apercuNotif: true } };
 const STATUTS = { ok: ['Disponible', ''], occ: ['Occupée', 'occ'], npd: ['Ne pas déranger', 'npd'], abs: ['Absente', 'abs'] };
 const NAV = [['accueil', 'groupe', 'Accueil'], ['messages', 'bulle', 'Messages'], ['appels', 'tel', 'Appels'], ['reunions', 'video', 'Réunions'], ['agenda', 'agenda', 'Agenda'], ['courrier', 'mail', 'Courrier'], ['contacts', 'contacts', 'Contacts']];
@@ -5682,6 +5687,50 @@ const nonLus = () => C.reduce((n, c) => n + (c.nl || 0), 0);
 const manques = () => APPELS.filter((a) => a.sens === 'manque' && !a.vu).length;
 const COUR = { inst: null, nl: 0, montage: false };
 const compte = (k) => (k === 'messages' ? nonLus() : k === 'appels' ? manques() : k === 'courrier' ? COUR.nl : 0);
+
+/* ══ PERSO ET PRO : DEUX CÔTÉS QUI NE SE MÉLANGENT PAS (comme dans la vraie application : une bascule pour TOUTE l'application). Le Perso est gratuit :
+   messages, appels, rendez-vous et contacts — ni tableau de bord, ni réunions à organiser (on y entre par un lien), ni courrier. Chaque côté a ses
+   personnes, ses conversations, ses appels, son agenda ; changer de côté échange le CONTENU des mêmes tableaux (tout le reste du code lit C, P, EVTS…). ══ */
+const PRO_SEULES = ['accueil', 'reunions', 'courrier'], NAV_PRO = NAV.slice(), NAV_PERSO = NAV.filter((n) => !PRO_SEULES.includes(n[0]));
+const perso = (o) => { Object.keys(o).forEach((k) => { o[k].id = k; }); return o; };
+const BASES = { pro: null, perso: {
+  P: Object.assign({ moi: P.moi }, perso({
+    cath: { n: 'Catherine Martin', r: 'Maman', eq: 1, st: 'ok', stt: 'En ligne', a: ['#f08a5d', '#d6336c'], tel: '06 00 00 00 31', mel: 'catherine.martin@courriel.example' },
+    hugo: { n: 'Hugo Martin', r: 'Frère', eq: 1, st: 'abs', stt: 'Vu hier soir', a: ['#59b98a', '#1f6e9c'], tel: '06 00 00 00 32', mel: 'hugo.martin@courriel.example' },
+    elodie: { n: 'Élodie Petit', r: 'Amie', st: 'ok', stt: 'En ligne', a: ['#a26be0', '#4b3fb0'], tel: '06 00 00 00 33', mel: 'elodie.petit@courriel.example' },
+    morel: { n: 'Cabinet du Dr Morel', r: 'Dentiste', a: ['#3fb6c9', '#3a55b4'], tel: '05 00 00 00 34', mel: 'cabinet.morel@sante.example' } })),
+  C: [
+    { id: 'famille', n: 'Famille', canal: 1, epingle: 1, membres: ['cath', 'hugo'], a: ['#f08a5d', '#d6336c'], nl: 2, msgs: [
+      { de: 'cath', j: -1, h: '19:12', t: 'Vous venez déjeuner dimanche ? Je fais un gratin.' }, { de: 'hugo', j: -1, h: '19:30', t: 'Oui ! J’apporte le dessert.', reac: ['❤️'] },
+      { de: 'cath', j: 0, h: '08:10', type: 'photo', leg: 'Le jardin ce matin' }, { de: 'cath', j: 0, h: '08:11', t: 'Julie, tu me confirmes pour dimanche ?' }] },
+    { id: 'elodie', avec: 'elodie', nl: 1, msgs: [{ de: 'moi', j: -2, h: '20:05', t: 'On se fait un ciné vendredi ?', lu: 'mercredi' }, { de: 'elodie', j: 0, h: '09:02', t: 'Vendredi 20 h, ça me va. Je réserve ?' }] },
+    { id: 'hugo', avec: 'hugo', nl: 0, msgs: [{ de: 'hugo', j: -1, h: '12:40', type: 'vocal', d: '0:18' }, { de: 'moi', j: -1, h: '12:55', t: 'Écouté, je te rappelle ce soir.', lu: '13:01' }] }],
+  APPELS: [{ id: 'p1', qui: 'cath', sens: 'manque', j: 0, h: '08:30' }, { id: 'p2', qui: 'hugo', sens: 'sortant', j: -1, h: '21:10', duree: '12 min' }, { id: 'p3', qui: 'elodie', sens: 'entrant', video: 1, j: -3, h: '18:45', duree: '31 min' }],
+  EVTS: [{ id: 'q1', type: 'rdv', titre: 'Dentiste', j: 1, deb: '18:30', fin: '19:00', lieu: 'Cabinet du Dr Morel, 3 place du Marché', rappel: 60 }, { id: 'q2', type: 'rdv', titre: 'Cinéma avec Élodie', j: 3, deb: '20:00', fin: '22:30', lieu: 'Cinéma du Port', rappel: 60 },
+    { id: 'q3', type: 'evt', titre: 'Déjeuner en famille', j: 5, deb: '12:30', fin: '15:00', lieu: 'Chez Maman', rappel: 1440 }],
+  RAPPELS: [{ id: 's1', t: 'Acheter un cadeau pour Hugo', j: 2, fait: false }] } };
+BASES.perso.C.forEach((c) => c.msgs.forEach((m) => { m.id = uid(); }));
+const echanger = (a, b) => { a.splice(0, a.length, ...b); };
+function changerMode(m, auto) {
+  if (m === S.mode || S.appel || S.salle) return false;
+  BASES[S.mode] = { P: Object.assign({}, P), C: C.slice(), APPELS: APPELS.slice(), EVTS: EVTS.slice(), RAPPELS: RAPPELS.slice() }; const b = BASES[m];
+  Object.keys(P).forEach((k) => { delete P[k]; }); Object.assign(P, b.P); echanger(C, b.C); echanger(APPELS, b.APPELS); echanger(EVTS, b.EVTS); echanger(RAPPELS, b.RAPPELS); echanger(NAV, m === 'pro' ? NAV_PRO : NAV_PERSO);
+  S.mode = m; S.rech = ''; S.rep = null; S.agSem = 0; S.agJour = 0; document.documentElement.dataset.cote = m; $('#calque').innerHTML = ''; fermerMenu();
+  const garde = S.vue === 'activite' || S.vue === 'profil' || NAV.some((n) => n[0] === S.vue); if (!garde || S.id) aller(garde ? S.vue : NAV[0][0]); else rendre();
+  if (!auto) toast(m === 'pro' ? 'OP MESSAGES PRO' : 'OP MESSAGES · Perso'); return true;
+}
+const coteSeg = (cls) => `<div class="cotes ${cls || ''}" role="group" aria-label="Perso ou Pro">${[['perso', 'Perso'], ['pro', 'Pro']].map((x) => `<button aria-pressed="${S.mode === x[0]}" data-cote="${x[0]}">${x[1]}</button>`).join('')}</div>`;
+/* ── les heures de travail (Pro) : en dehors, les messages et les mentions Pro ne sonnent pas (un résumé à la reprise), les appels sonnent toujours, le Perso
+   n'est jamais coupé. « Passer en Pro pendant mes heures » bascule AUX BORNES : au début des heures tout passe en Pro, à la fin en Perso ; basculer à la main
+   entre-temps l'emporte jusqu'à la borne suivante. ── */
+const JOURS_HP = [['L', 'Lundi'], ['M', 'Mardi'], ['M', 'Mercredi'], ['J', 'Jeudi'], ['V', 'Vendredi'], ['S', 'Samedi'], ['D', 'Dimanche']];
+const hTexte = (h) => +h.slice(0, 2) + ' h' + (h.slice(3) === '00' ? '' : ' ' + h.slice(3));
+function dansHeures() { const hp = S.hp, d = new Date(), j = d.getDay() === 0 ? 7 : d.getDay(), m = minutes(hMaintenant()); return hp.on && hp.jours.includes(j) && m >= minutes(hp.debut) && m < minutes(hp.fin); }
+let _coteHoraire = null;
+function horaireAppliquer() { const cote = dansHeures() ? 'pro' : 'perso', borne = _coteHoraire !== null && cote !== _coteHoraire; _coteHoraire = cote;
+  if (!borne || !S.auto || !S.hp.on) return; const nl = cote === 'pro' && BASES.pro ? BASES.pro.C.reduce((n, c) => n + (c.nl || 0), 0) : 0;
+  if (S.mode !== cote && !changerMode(cote, true)) return;
+  notifier(cote === 'pro' ? 'Heures de travail : OP MESSAGES PRO' : 'Fin des heures de travail : OP MESSAGES · Perso', cote === 'pro' ? (nl ? nl + ' message' + (nl > 1 ? 's' : '') + ' Pro reçu' + (nl > 1 ? 's' : '') + ' en ton absence' : 'Bonne journée') : 'Le Pro ne sonne plus jusqu’à ' + hTexte(S.hp.debut) + '. Les appels sonnent toujours.'); }
 
 /* ── le temps ── */
 const auj = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
@@ -5693,12 +5742,13 @@ const jourCourt = (j) => (j === 0 ? 'Aujourd’hui' : j === -1 ? 'Hier' : j === 
 const quand = (m) => (m.j === 0 ? m.h : jourCourt(m.j));
 /* l'heure du prototype : il est 9 h 42 à l'ouverture (les données d'exemple racontent une matinée), puis le temps passe pour de vrai */
 const _t0 = Date.now();
-const hMaintenant = () => { const m = 9 * 60 + 42 + Math.floor((Date.now() - _t0) / 60000); return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+let _decal = 0;
+const hMaintenant = () => { const m = 9 * 60 + 42 + _decal + Math.floor((Date.now() - _t0) / 60000); return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
 const minutes = (h) => +h.slice(0, 2) * 60 + +h.slice(3);
 const lundi = (sem) => { const d = auj(), k = (d.getDay() + 6) % 7; return -k + sem * 7; };       // le décalage (en jours) du lundi de la semaine visée
 
 /* ── la navigation : #vue ou #vue/identifiant ── */
-function lireAdresse() { const p = location.hash.slice(1).split('/'); S.vue = VUES[p[0]] ? p[0] : 'accueil'; S.id = p[1] ? decodeURIComponent(p[1]) : null; }
+function lireAdresse() { const p = location.hash.slice(1).split('/'); S.vue = VUES[p[0]] && (NAV.some((n) => n[0] === p[0]) || p[0] === 'activite' || p[0] === 'profil') ? p[0] : NAV[0][0]; S.id = p[1] ? decodeURIComponent(p[1]) : null; }
 function aller(vue, id) { const h = '#' + vue + (id ? '/' + encodeURIComponent(id) : ''); if (location.hash === h) rendre(); else location.hash = h; }
 /* la touche Retour (Android, navigateur) ferme aussi la feuille ouverte */
 window.addEventListener('hashchange', () => { if ($('#calque').innerHTML) fermer(); fermerMenu(); lireAdresse(); rendre(); });
@@ -5708,13 +5758,13 @@ function menuHtml() {
     + `<button class="creer" data-action="creer" aria-label="Créer" title="Créer : message, appel, réunion, rendez-vous">${svg('plus')}</button>`;
 }
 function hautHtml() { const n = activite().length;
-  return `<a class="marque" href="#accueil" aria-label="OP MESSAGES, accueil"><i>OP<br>MSG</i><span>OP MESSAGES</span><em>PRO</em></a>
+  return `<a class="marque" href="#${NAV[0][0]}" aria-label="OP MESSAGES"><i>OP<br>MSG</i><span>OP MESSAGES</span><em>${S.mode === 'pro' ? 'PRO' : 'PERSO'}</em></a>
     <button class="chercher" data-action="chercher">${svg('cherche')}<span>Rechercher une personne, un message, une réunion</span><kbd>${/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd></button>
-    <div class="h-droite"><a class="h-btn" href="#activite" ${S.vue === 'activite' ? 'aria-current="page"' : ''} aria-label="Activité${n ? ', ' + n + ' à traiter' : ''}" title="Activité">${svg('cloche')}${n ? `<em>${n}</em>` : ''}</a>
+    <div class="h-droite">${coteSeg('cotes-h')}<a class="h-btn" href="#activite" ${S.vue === 'activite' ? 'aria-current="page"' : ''} aria-label="Activité${n ? ', ' + n + ' à traiter' : ''}" title="Activité">${svg('cloche')}${n ? `<em>${n}</em>` : ''}</a>
       <a class="h-btn h-moi" href="#profil" ${S.vue === 'profil' ? 'aria-current="page"' : ''} aria-label="Mon profil et mes réglages" title="${esc(P.moi.n)} · ${STATUTS[S.statut][0]}">${av('moi', 'm', false).replace('</span>', `<u class="${STATUTS[S.statut][1] === 'npd' ? 'occ' : STATUTS[S.statut][1]}"></u></span>`)}</a></div>`;
 }
-const ONGLETS = ['accueil', 'messages', 'appels', 'agenda'];
-function ongletsHtml() { const plus = !ONGLETS.includes(S.vue) && S.vue !== 'activite' && S.vue !== 'profil';
+const onglets = () => (S.mode === 'pro' ? ['accueil', 'messages', 'appels', 'agenda'] : ['messages', 'appels', 'agenda', 'contacts']);
+function ongletsHtml() { const ONGLETS = onglets(), plus = !ONGLETS.includes(S.vue) && S.vue !== 'activite' && S.vue !== 'profil';
   return ONGLETS.map((k) => { const n = NAV.find((x) => x[0] === k), c = compte(k); return `<a href="#${k}" ${S.vue === k ? 'aria-current="page"' : ''}><i>${svg(n[1])}${c ? `<em>${c}</em>` : ''}</i>${n[2]}</a>`; }).join('')
     + `<button data-action="plus" ${plus ? 'aria-current="page"' : ''}><i>${svg('points')}${COUR.nl ? `<em>${COUR.nl}</em>` : ''}</i>Plus</button>`; }
 function majMenu() { $('#cote').innerHTML = menuHtml(); $('#onglets').innerHTML = ongletsHtml(); $('#haut').innerHTML = hautHtml(); }
@@ -5727,7 +5777,7 @@ function activite() {
   C.filter((c) => c.nl).forEach((c) => { const d = dernier(c); l.push({ id: 'm-' + c.id, g: c.canal ? 'mention' : 'message', ic: c.canal ? 'eclat' : 'bulle', c: '#2a4a9c', t: (c.canal ? 'Mention dans ' : '') + convNom(c), p: (c.canal ? prenom(d.de) + ' : ' : '') + apercu(d), h: quand(d), j: d.j, hh: d.h, go: 'messages/' + c.id, ges: [['Répondre', 'go']] }); });
   APPELS.filter((a) => a.sens === 'manque' && !a.vu).forEach((a) => l.push({ id: 'a-' + a.id, g: 'appel', ic: 'tel', c: '#e5484d', t: 'Appel manqué · ' + P[a.qui].n, p: P[a.qui].r, h: a.j === 0 ? a.h : jourCourt(a.j), j: a.j, hh: a.h, go: 'appels/' + a.id, ges: [['Rappeler', 'appeler', a.qui]] }));
   EVTS.filter((e) => e.invitation).forEach((e) => l.push({ id: 'i-' + e.id, g: 'invitation', ic: 'agenda', c: '#7d3c98', t: 'Invitation · ' + e.titre, p: jourLong(e.j) + ' · ' + e.deb + ' – ' + e.fin + ' · de ' + P[e.invitation].n, h: '', j: 0, hh: '07:00', go: 'reunions/' + e.id, ges: [['Accepter', 'inv', 'oui'], ['Refuser', 'inv', 'non']], e: e.id }));
-  if (COUR.nl) l.push({ id: 'c', g: 'courrier', ic: 'mail', c: '#0d8a6a', t: COUR.nl + ' courriel' + (COUR.nl > 1 ? 's' : '') + ' non lu' + (COUR.nl > 1 ? 's' : ''), p: 'Dans ta boîte professionnelle', h: '', j: 0, hh: '06:00', go: 'courrier', ges: [['Ouvrir', 'go']] });
+  if (COUR.nl && S.mode === 'pro') l.push({ id: 'c', g: 'courrier', ic: 'mail', c: '#0d8a6a', t: COUR.nl + ' courriel' + (COUR.nl > 1 ? 's' : '') + ' non lu' + (COUR.nl > 1 ? 's' : ''), p: 'Dans ta boîte professionnelle', h: '', j: 0, hh: '06:00', go: 'courrier', ges: [['Ouvrir', 'go']] });
   return l.filter((x) => !TRAITE.has(x.id)).sort((a, b) => b.j - a.j || b.hh.localeCompare(a.hh));
 }
 const actHtml = (x) => `<div class="act"><span class="ic" style="--c:${x.c}">${svg(x.ic)}</span><div class="t"><b class="coupe">${esc(x.t)}</b><p>${esc(x.p)}</p><div class="ges">${x.ges.map((g, k) => g[1] === 'go' ? `<a class="btn" href="#${x.go}">${g[0]}</a>` : g[1] === 'appeler' ? `<button class="btn" data-appeler="${g[2]}">${svg('tel')}${g[0]}</button>` : `<button class="btn ${k ? 'gris' : ''}" data-inv="${x.e}" data-rep="${g[2]}">${g[0]}</button>`).join('')}<button class="btn gris" data-traite="${x.id}">${svg('coche')}Traité</button></div></div><time>${x.h}</time></div>`;
@@ -5805,7 +5855,7 @@ function listeConvHtml() {
     return r.length ? r.map(ligneConv).join('') : `<p class="note" style="padding:20px;text-align:center">Aucun résultat pour « ${esc(S.rech)} ».</p>`; }
   if (f === 'nonlus') tri = tri.filter((c) => c.nl); else if (f === 'canaux') tri = tri.filter((c) => c.canal); else if (f === 'clients') tri = tri.filter((c) => c.avec && !P[c.avec].eq);
   if (!tri.length) return '<p class="note" style="padding:20px;text-align:center">Rien dans ce filtre.</p>';
-  const sec = [['Favoris', tri.filter((c) => c.epingle)], ['Canaux', tri.filter((c) => !c.epingle && c.canal)], ['Équipe', tri.filter((c) => !c.epingle && c.avec && P[c.avec].eq)], ['Clients et partenaires', tri.filter((c) => !c.epingle && c.avec && !P[c.avec].eq)]];
+  const pro = S.mode === 'pro', sec = [['Favoris', tri.filter((c) => c.epingle)], [pro ? 'Canaux' : 'Groupes', tri.filter((c) => !c.epingle && c.canal)], [pro ? 'Équipe' : 'Proches', tri.filter((c) => !c.epingle && c.avec && P[c.avec].eq)], [pro ? 'Clients et partenaires' : 'Autres', tri.filter((c) => !c.epingle && c.avec && !P[c.avec].eq)]];
   return sec.filter((s) => s[1].length).map((s) => `<p class="section-l">${s[0]}</p>${s[1].map(ligneConv).join('')}`).join('');
 }
 function bulleHtml(c, m, i) {
@@ -5835,7 +5885,7 @@ function convHtml(c) {
 }
 VUES.messages = () => {
   const c = conv(S.id); if (c && c.nl) c.nl = 0;
-  const f = [['tout', 'Tout'], ['nonlus', 'Non lus'], ['canaux', 'Canaux'], ['clients', 'Clients']];
+  const f = S.mode === 'pro' ? [['tout', 'Tout'], ['nonlus', 'Non lus'], ['canaux', 'Canaux'], ['clients', 'Clients']] : [['tout', 'Tout'], ['nonlus', 'Non lus'], ['canaux', 'Groupes']];
   const liste = `<div class="col liste">${tete('Messages', `<button class="rond" data-action="nouveau-message" aria-label="Nouvelle conversation" title="Nouvelle conversation">${svg('stylo')}</button>`)}
     <label class="cherche">${svg('cherche')}<input id="rech" placeholder="Filtrer les conversations" value="${esc(S.rech)}" aria-label="Filtrer les conversations" autocomplete="off"></label>
     <div class="filtres">${f.map((x) => `<button aria-pressed="${S.filtreConv === x[0]}" data-filtre-conv="${x[0]}">${x[1]}</button>`).join('')}</div><div class="defile" id="liste-conv">${listeConvHtml()}</div></div>`;
@@ -5847,7 +5897,7 @@ const ficheTete = (p, sous) => `<div class="tete">${av(p.id, 'xl', true)}<div><h
 VUES.contacts = () => {
   const q = S.rech.trim().toLowerCase(), gens = Object.values(P).filter((p) => p.id !== 'moi' && (!q || (p.n + ' ' + p.r).toLowerCase().includes(q))).sort((a, b) => a.n.localeCompare(b.n));
   const ligne = (p) => `<a class="ligne" href="#contacts/${p.id}" ${S.id === p.id ? 'aria-current="true"' : ''}>${av(p.id, '', true)}<span class="t"><span class="l1"><b class="coupe">${esc(p.n)}</b></span><span class="ap">${esc(p.r)}</span></span></a>`;
-  const grp = [['Mon équipe', gens.filter((p) => p.eq)], ['Clients et partenaires', gens.filter((p) => !p.eq)]].filter((g) => g[1].length);
+  const grp = [[S.mode === 'pro' ? 'Mon équipe' : 'Proches', gens.filter((p) => p.eq)], [S.mode === 'pro' ? 'Clients et partenaires' : 'Autres contacts', gens.filter((p) => !p.eq)]].filter((g) => g[1].length);
   const liste = `<div class="col liste">${tete('Contacts', `<button class="rond" data-action="contact-ajouter" aria-label="Ajouter un contact" title="Ajouter un contact">${svg('ajout')}</button>`)}
     <label class="cherche">${svg('cherche')}<input id="rech" placeholder="Filtrer les contacts" value="${esc(S.rech)}" aria-label="Filtrer les contacts" autocomplete="off"></label>
     <div class="defile">${grp.map((g) => `<p class="section-l">${g[0]}</p>${g[1].map(ligne).join('')}`).join('') || `<p class="note" style="padding:20px;text-align:center">Aucun contact pour « ${esc(S.rech)} ».</p>`}</div></div>`;
@@ -5946,14 +5996,20 @@ function placerCourrier() {
 }
 
 /* ═══ PROFIL ═══ */
+const heuresTexte = () => hTexte(S.hp.debut) + ' – ' + hTexte(S.hp.fin) + (S.hp.jours.join('') === '12345' ? ', du lundi au vendredi' : ' (' + S.hp.jours.map((j) => JOURS_HP[j - 1][1].slice(0, 3).toLowerCase()).join(', ') + ')');
 VUES.profil = () => {
   const b = (k, t, d) => `<div class="rang"><span class="t"><b>${t}</b>${d ? `<span>${d}</span>` : ''}</span><button class="bascule" role="switch" aria-checked="${S.regl[k]}" data-regl="${k}" aria-label="${t}"></button></div>`;
   const l = (ic, c, t, v, attr) => `<button class="rang ic-g" ${attr}><span class="ic" style="--c:${c}">${svg(ic)}</span><span class="t"><b>${t}</b></span>${v ? `<span class="v">${v}</span>` : ''}${chev()}</button>`;
   return { html: `<div class="col seule">${tete('Profil et réglages')}<div class="defile"><div class="page profil">
-    <div class="groupe"><button class="moi-c" data-action="profil-modifier">${av('moi', 'g')}<span><b>${esc(P.moi.n)}</b><span class="gris">${esc(P.moi.r)} · Clim Services 17</span></span>${chev()}</button>
+    <div class="groupe"><button class="moi-c" data-action="profil-modifier">${av('moi', 'g')}<span><b>${esc(P.moi.n)}</b><span class="gris">${S.mode === 'pro' ? esc(P.moi.r) + ' · Clim Services 17' : 'Compte personnel · gratuit'}</span></span>${chev()}</button>
       <button class="rang" data-action="statut"><span class="t"><b>Statut</b></span><span class="statut ${STATUTS[S.statut][1]}"><i></i>${STATUTS[S.statut][0]}</span>${chev()}</button></div>
-    <div class="groupe">${l('contacts', '#2a4a9c', 'Mon espace', 'Clim Services 17', 'data-action="espace"')}${l('etoile', '#d97706', 'Abonnement', 'Pro', 'data-action="abonnement"')}</div>
-    <div><h3 class="titre-s">Notifications</h3><div class="groupe">${b('notif', 'Autoriser les notifications')}${b('apercuNotif', 'Afficher l’aperçu', 'Le début du message dans la notification.')}${b('heuresPro', 'Heures de travail', 'De 8 h à 18 h, du lundi au vendredi. En dehors, rien ne sonne.')}${b('pauseReunion', 'Silence en réunion', 'Les notifications attendent la fin de la réunion.')}</div></div>
+    <div class="groupe">${S.mode === 'pro' ? l('contacts', '#2a4a9c', 'Mon espace', 'Clim Services 17', 'data-action="espace"') : ''}${l('etoile', '#d97706', 'Abonnement', S.mode === 'pro' ? 'Pro' : 'Gratuit', 'data-action="abonnement"')}</div>
+    <div><h3 class="titre-s">Perso et Pro</h3><div class="groupe"><div class="rang"><span class="t"><b>Côté affiché</b><span>Chaque côté a ses conversations, ses appels, ses contacts et son agenda. Ils ne se mélangent pas.</span></span></div><div style="padding:0 14px 12px">${coteSeg('clair')}</div>
+      <div class="rang"><span class="t"><b>Heures de travail (Pro)</b><span>${S.hp.on ? 'En dehors de ' + heuresTexte() + ', les messages et les mentions Pro ne font pas sonner tes appareils : un seul résumé arrive à la reprise. Les appels sonnent toujours, le Perso n’est jamais coupé.' : 'Coupé : le Pro sonne à toute heure.'}</span></span><button class="bascule" role="switch" aria-checked="${S.hp.on}" data-hp="on" aria-label="Heures de travail (Pro)"></button></div>
+      ${S.hp.on ? `<div class="hp-ed"><div class="hp-jours" role="group" aria-label="Jours de travail">${JOURS_HP.map((j, i) => `<button data-hp-jour="${i + 1}" aria-pressed="${S.hp.jours.includes(i + 1)}" aria-label="${j[1]}">${j[0]}</button>`).join('')}</div><div style="display:flex;gap:10px"><label class="champ"><span>Début</span><input type="time" id="hp-debut" step="300" value="${S.hp.debut}"></label><label class="champ"><span>Fin</span><input type="time" id="hp-fin" step="300" value="${S.hp.fin}"></label></div></div>
+      <div class="rang"><span class="t"><b>Passer en Pro pendant mes heures</b><span>${S.auto ? 'Au début de tes heures, toute l’application passe en Pro ; à la fin, en Perso. Basculer à la main l’emporte jusqu’à la borne suivante.' : 'Coupé : tu changes de côté toi-même.'}</span></span><button class="bascule" role="switch" aria-checked="${S.auto}" data-hp="auto" aria-label="Passer en Pro pendant mes heures"></button></div>
+      <div class="rang" style="flex-wrap:wrap"><span class="t" style="min-width:180px"><b>Il est ${hTexte(hMaintenant())}</b><span>${dansHeures() ? 'Tu es dans tes heures de travail.' : 'Tu es hors de tes heures de travail.'} Pour essayer la bascule dans ce prototype :</span></span><button class="btn gris" data-hp-essai="${dansHeures() ? 'fin' : 'debut'}">${dansHeures() ? 'Aller à la fin de mes heures' : 'Aller au début de mes heures'}</button></div>` : ''}</div></div>
+    <div><h3 class="titre-s">Notifications</h3><div class="groupe">${b('notif', 'Autoriser les notifications')}${b('apercuNotif', 'Afficher l’aperçu', 'Le début du message dans la notification.')}${b('pauseReunion', 'Silence en réunion', 'Les notifications attendent la fin de la réunion.')}</div></div>
     <div><h3 class="titre-s">Confidentialité</h3><div class="groupe">${b('lecture', 'Confirmations de lecture', 'Les autres voient « Lu » ; tu vois le leur.')}${b('enligne', 'Montrer que je suis en ligne')}</div></div>
     <div><h3 class="titre-s">Apparence</h3><div class="groupe"><div class="rang"><span class="t"><b>Thème</b><span>Dans la vraie application, il suit l’appareil.</span></span><div class="seg" role="group" aria-label="Thème">${[['auto', 'Auto'], ['light', 'Jour'], ['dark', 'Nuit']].map((m) => `<button aria-pressed="${S.theme === m[0]}" data-theme-choix="${m[0]}">${m[1]}</button>`).join('')}</div></div></div></div>
     <div class="groupe">${l('info', '#5a6377', 'À propos', 'Prototype', 'data-action="a-propos"')}</div>
@@ -6248,10 +6304,13 @@ function envoyer(c, m) {
   const msg = Object.assign({ id: uid(), de: 'moi', j: 0, h: hMaintenant() }, m); if (S.rep) { msg.rep = S.rep; S.rep = null; }
   c.msgs.push(msg); rendre();
   /* quelqu'un répond : la conversation vit (une seule personne — un canal reste calme) */
-  if (!c.avec || c._attend) return; c._attend = true;
-  setTimeout(() => { c.ecrit = true; if (S.vue === 'messages' && S.id === c.id) rendre(); }, 900);
+  if (!c.avec || c._attend) return; c._attend = true; const nom = P[c.avec].n, cote = S.mode, ici = () => C.includes(c);      // la réponse peut arriver après un changement de côté : P et C ne sont alors plus ceux de cette conversation
+  setTimeout(() => { c.ecrit = true; if (ici() && S.vue === 'messages' && S.id === c.id) rendre(); }, 900);
   setTimeout(() => { c.ecrit = false; c._attend = false; msg.lu = hMaintenant(); const r = { id: uid(), de: c.avec, j: 0, h: hMaintenant(), t: REPONSES[c.msgs.length % REPONSES.length] }; c.msgs.push(r);
-    if (S.vue === 'messages' && S.id === c.id && !S.salle && !S.appel) rendre(); else { c.nl = (c.nl || 0) + 1; if (!S.salle) { rendre(); } notifier(P[c.avec].n, r.t, () => aller('messages', c.id)); } }, 3200);
+    if (ici() && S.vue === 'messages' && S.id === c.id && !S.salle && !S.appel) { rendre(); return; }
+    c.nl = (c.nl || 0) + 1; if (ici() && !S.salle) rendre();
+    /* le Perso n'est jamais coupé ; un message Pro qui arrive pendant qu'on est côté Perso attend la reprise (il sera dans le résumé) */
+    if (ici() || cote === 'perso') notifier(nom, r.t, () => { if (ici()) aller('messages', c.id); else if (changerMode(cote)) aller('messages', c.id); }); }, 3200);
 }
 function majEnvoi() { const s = $('#saisie'), b = $('#btn-envoi'); if (!s || !b) return; const plein = !!s.value.trim();
   if (plein !== b.classList.contains('plein')) { b.classList.toggle('plein', plein); b.dataset.action = plein ? 'envoyer' : 'vocal'; b.setAttribute('aria-label', plein ? 'Envoyer' : 'Enregistrer un message vocal'); b.innerHTML = svg(plein ? 'envoyer' : 'micro'); }
@@ -6266,9 +6325,9 @@ function menuMessage(el, x, y) {
   d.style.left = Math.max(8, Math.min(x, W - r.width - 8)) + 'px'; d.style.top = Math.max(8, Math.min(y, H - r.height - 8)) + 'px';
 }
 function feuilleProgrammer(pre) {
-  pre = pre || {}; const type = pre.type || 'reunion', jours = Array.from({ length: 21 }, (_, k) => k);
+  pre = pre || {}; const type = pre.type || (S.mode === 'pro' ? 'reunion' : 'rdv'), jours = Array.from({ length: 21 }, (_, k) => k);
   ouvrir(`${fTete(pre.id ? 'Modifier' : 'Nouveau', pre.id ? 'OK' : 'Ajouter', 'data-action="evt-enregistrer"' + (pre.id ? ` data-id="${pre.id}"` : ''))}
-    <div class="seg" role="group" aria-label="Type" style="display:flex">${Object.keys(TYPES_E).map((t) => `<button aria-pressed="${type === t}" data-pe-type="${t}">${TYPES_E[t][0]}</button>`).join('')}</div>
+    <div class="seg" role="group" aria-label="Type" style="display:flex">${Object.keys(TYPES_E).filter((t) => S.mode === 'pro' || t !== 'reunion').map((t) => `<button aria-pressed="${type === t}" data-pe-type="${t}">${TYPES_E[t][0]}</button>`).join('')}</div>
     <label class="champ"><span>Titre</span><input id="pe-titre" value="${esc(pre.titre || '')}" placeholder="${type === 'reunion' ? 'Point d’équipe' : type === 'rdv' ? 'Rendez-vous client' : 'Salon, congé, livraison…'}" autofocus></label>
     <label class="champ"><span>Jour</span><select id="pe-jour">${jours.map((j) => `<option value="${j}" ${(pre.j != null ? pre.j : S.vue === 'agenda' && S.agJour > 0 ? S.agJour : 0) === j ? 'selected' : ''}>${jourLong(j)}</option>`).join('')}</select></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="champ"><span>Début</span><input id="pe-deb" type="time" value="${pre.deb || '10:00'}"></label><label class="champ"><span>Fin</span><input id="pe-fin" type="time" value="${pre.fin || '10:30'}"></label></div>
@@ -6279,7 +6338,7 @@ function feuilleProgrammer(pre) {
 /* la recherche du haut (⌘K / Ctrl K) : une personne, une conversation, un message, une réunion — ou une action, quand on n'a encore rien tapé */
 function palRes(q) {
   q = q.trim().toLowerCase(); const r = (attr, ic, c, t, s) => `<button class="rang ic-g" ${attr}><span class="ic" style="--c:${c}">${svg(ic)}</span><span class="t"><b class="coupe">${t}</b>${s ? `<span class="coupe">${s}</span>` : ''}</span></button>`;
-  if (!q) return `<p class="section-l">Actions</p>${r('data-action="nouveau-message"', 'stylo', '#2a4a9c', 'Nouveau message')}${r('data-action="nouvel-appel"', 'tel', '#16a34a', 'Appeler quelqu’un')}${r('data-action="reunion-maintenant"', 'video', '#d97706', 'Réunion immédiate')}${r('data-action="programmer"', 'agenda', '#7d3c98', 'Ajouter à l’agenda')}
+  if (!q) return `<p class="section-l">Actions</p>${r('data-action="nouveau-message"', 'stylo', '#2a4a9c', 'Nouveau message')}${r('data-action="nouvel-appel"', 'tel', '#16a34a', 'Appeler quelqu’un')}${S.mode === 'pro' ? r('data-action="reunion-maintenant"', 'video', '#d97706', 'Réunion immédiate') : r('data-action="rejoindre-code"', 'video', '#d97706', 'Rejoindre une réunion avec un code')}${r('data-action="programmer"', 'agenda', '#7d3c98', 'Ajouter à l’agenda')}
     <p class="section-l">Aller à</p>${NAV.map((n) => r(`data-go="${n[0]}"`, n[1], '#5a6377', n[2])).join('')}`;
   const gens = Object.values(P).filter((x) => x.id !== 'moi' && (x.n + ' ' + x.r).toLowerCase().includes(q)), cv = C.filter((c) => c.canal && c.n.toLowerCase().includes(q)), ms = [], ev = EVTS.filter((e) => e.titre.toLowerCase().includes(q));
   C.forEach((c) => c.msgs.forEach((m) => { if ((m.t || '').toLowerCase().includes(q) && ms.length < 6) ms.push([c, m]); }));
@@ -6289,8 +6348,8 @@ function palRes(q) {
 }
 const ACTIONS = {
   chercher: () => { ouvrir(`<label class="pal-champ">${svg('cherche')}<input id="pal" placeholder="Rechercher une personne, un message, une réunion" aria-label="Rechercher partout" autocomplete="off" autofocus></label><div class="pal-res defile" id="pal-res">${palRes('')}</div>`, 'palette'); const i = $('#pal'); if (i) i.focus(); },
-  plus: () => ouvrir(`${fTeteOk('Plus')}<div class="groupe">${[['reunions', 'video', 'Réunions', '#d97706'], ['courrier', 'mail', 'Courrier', '#0d8a6a'], ['contacts', 'contacts', 'Contacts', '#2a4a9c'], ['activite', 'cloche', 'Activité', '#e5484d'], ['profil', 'personne', 'Profil et réglages', '#5a6377']].map((x) => `<button class="rang ic-g" data-go="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span>${compte(x[0]) ? `<span class="pastille r">${compte(x[0])}</span>` : ''}${chev()}</button>`).join('')}</div>`),
-  creer: () => ouvrir(`${fTete('Créer')}<div class="groupe">${[['nouveau-message', 'stylo', 'Nouveau message', '#2a4a9c'], ['nouveau-groupe', 'contacts', 'Nouveau groupe', '#2a4a9c'], ['nouvel-appel', 'tel', 'Appel', '#16a34a'], ['reunion-maintenant', 'video', 'Réunion immédiate', '#d97706'], ['programmer', 'agenda', 'Réunion, rendez-vous ou événement', '#7d3c98'], ['rappel-ajouter', 'tache', 'Rappel', '#5a6377'], ['contact-ajouter', 'ajout', 'Contact', '#5a6377']].map((x) => `<button class="rang ic-g" data-action="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span></button>`).join('')}</div>`),
+  plus: () => ouvrir(`${fTeteOk('Plus')}${coteSeg('clair')}<div class="groupe">${[['reunions', 'video', 'Réunions', '#d97706'], ['courrier', 'mail', 'Courrier', '#0d8a6a'], ['contacts', 'contacts', 'Contacts', '#2a4a9c'], ['activite', 'cloche', 'Activité', '#e5484d'], ['profil', 'personne', 'Profil et réglages', '#5a6377']].filter((x) => S.mode === 'pro' || !['reunions', 'courrier', 'contacts'].includes(x[0])).map((x) => `<button class="rang ic-g" data-go="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span>${compte(x[0]) ? `<span class="pastille r">${compte(x[0])}</span>` : ''}${chev()}</button>`).join('')}</div>`),
+  creer: () => ouvrir(`${fTete('Créer')}<div class="groupe">${[['nouveau-message', 'stylo', 'Nouveau message', '#2a4a9c'], ['nouveau-groupe', 'contacts', 'Nouveau groupe', '#2a4a9c'], ['nouvel-appel', 'tel', 'Appel', '#16a34a'], ['reunion-maintenant', 'video', 'Réunion immédiate', '#d97706'], ['programmer', 'agenda', 'Réunion, rendez-vous ou événement', '#7d3c98'], ['rappel-ajouter', 'tache', 'Rappel', '#5a6377'], ['contact-ajouter', 'ajout', 'Contact', '#5a6377']].map((x) => (S.mode === 'pro' || x[0] !== 'reunion-maintenant' ? x : ['rejoindre-code', 'video', 'Rejoindre une réunion avec un code', '#d97706'])).map((x) => `<button class="rang ic-g" data-action="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span></button>`).join('')}</div>`),
   'nouveau-message': () => ouvrir(`${fTete('Nouveau message')}<button class="btn gris large" data-action="nouveau-groupe">${svg('contacts')}Nouveau groupe</button><div class="groupe">${choixContacts('data-ecrire')}</div>`),
   'nouveau-groupe': () => ouvrir(`${fTete('Nouveau groupe', 'Créer', 'data-action="groupe-creer"')}<label class="champ"><span>Nom du groupe</span><input id="g-nom" placeholder="Chantier Les Minimes" autofocus></label>
     <div class="champ"><span>Membres</span><div class="puces">${Object.values(P).filter((p) => p.id !== 'moi').map((p) => `<button class="puce" aria-pressed="false" data-pe-inv="${p.id}">${av(p.id)}${esc(prenom(p.id))}</button>`).join('')}</div></div>`),
@@ -6369,6 +6428,12 @@ document.addEventListener('click', (e) => {
     else if (k === 'repondre') { S.rep = apercu(m).slice(0, 60); rendre(); const s = $('#saisie'); if (s) s.focus(); }
     else { const r = b.getBoundingClientRect(); menuMessage($(`#fil [data-msg="${id}"]`), r.right - 230, r.bottom + 6); }
     return; }
+  /* Perso | Pro, et les heures de travail */
+  if ((b = q('button[data-cote]'))) {      /* ⛔ « button » : <html> porte aussi data-cote (la couleur du cadre) — sans lui, CHAQUE clic de la page s'arrêtait ici */ if (S.appel || S.salle) { toast('Termine d’abord l’appel en cours'); return; } changerMode(b.dataset.cote); return; }
+  if ((b = q('[data-hp]'))) { if (b.dataset.hp === 'on') S.hp.on = !S.hp.on; else S.auto = !S.auto; _coteHoraire = dansHeures() ? 'pro' : 'perso'; rendre(); return; }
+  if ((b = q('[data-hp-jour]'))) { const j = +b.dataset.hpJour, l = S.hp.jours, i = l.indexOf(j); if (i >= 0 && l.length === 1) { toast('Garde au moins un jour, ou coupe les heures de travail'); return; } if (i >= 0) l.splice(i, 1); else { l.push(j); l.sort(); } _coteHoraire = dansHeures() ? 'pro' : 'perso'; rendre(); return; }
+  if ((b = q('[data-hp-essai]'))) { const d = new Date().getDay() || 7; if (!S.hp.jours.includes(d)) { toast('Aujourd’hui n’est pas un jour travaillé : coche-le pour essayer'); return; }
+    _decal += minutes(b.dataset.hpEssai === 'fin' ? S.hp.fin : S.hp.debut) - minutes(hMaintenant()) + (minutes(b.dataset.hpEssai === 'fin' ? S.hp.fin : S.hp.debut) - minutes(hMaintenant()) < -720 ? 0 : 0); horaireAppliquer(); rendre(); return; }
   if ((b = q('[data-filtre-conv]'))) { S.filtreConv = b.dataset.filtreConv; rendre(); return; }
   if ((b = q('[data-filtre-act]'))) { S.filtreAct = b.dataset.filtreAct; rendre(); return; }
   if ((b = q('[data-traite]'))) { TRAITE.add(b.dataset.traite); rendre(); toast('Rangé : traité'); return; }
@@ -6472,7 +6537,7 @@ function menuEvt(e, x, y) { const l = (k, t, ic, cls) => `<button class="l ${cls
 document.addEventListener('contextmenu', (ev) => { const b = ev.target.closest('#scene [data-evt]'), col = !b && ev.target.closest('.g-col'); if (!b && !col) return; ev.preventDefault();
   if (b) { menuEvt(evt(b.dataset.evt), ev.clientX, ev.clientY); return; }
   const r = col.getBoundingClientRect(), m = Math.floor(((ev.clientY - r.top) / (r.height / GH) * 60) / 30) * 30 + G0 * 60, j = lundi(S.agSem) + $$('.g-col').indexOf(col);
-  const d = menuLibre(ev.clientX, ev.clientY, `<button class="l" data-ectx="neuf" data-type="reunion">Nouvelle réunion à ${hm(m)}${svg('video')}</button><button class="l" data-ectx="neuf" data-type="rdv">Nouveau rendez-vous à ${hm(m)}${svg('agenda')}</button>`); d.dataset.j = j; d.dataset.m = m; });
+  const d = menuLibre(ev.clientX, ev.clientY, (S.mode === 'pro' ? `<button class="l" data-ectx="neuf" data-type="reunion">Nouvelle réunion à ${hm(m)}${svg('video')}</button>` : '') + `<button class="l" data-ectx="neuf" data-type="rdv">Nouveau rendez-vous à ${hm(m)}${svg('agenda')}</button>`); d.dataset.j = j; d.dataset.m = m; });
 document.addEventListener('click', (ev) => { const b = ev.target.closest('[data-ectx]'); if (!b) return; const mn = b.closest('.menu-ctx'), k = b.dataset.ectx, e = evt(mn.dataset.pour); ev.stopPropagation(); fermerMenu();
   if (k === 'neuf') { const m = +mn.dataset.m; feuilleProgrammer({ type: b.dataset.type, j: +mn.dataset.j, deb: hm(m), fin: hm(m + (b.dataset.type === 'reunion' ? 30 : 60)) }); return; }
   if (!e) return;
@@ -6494,6 +6559,11 @@ const _glFin = (ev) => { const g = _gl; _gl = null; if (!g || !g.actif) return; 
 document.addEventListener('pointerup', _glFin); document.addEventListener('pointercancel', _glFin);
 /* le clic qui suit un glissement ouvrirait la fiche : on l'avale */
 document.addEventListener('click', (ev) => { if (_glFait) { _glFait = false; ev.stopPropagation(); ev.preventDefault(); } }, true);
+
+/* les deux heures de travail : une heure s'enregistre quand on la lâche ; début = fin n'est pas une plage */
+document.addEventListener('change', (e) => { const x = e.target; if (x.id !== 'hp-debut' && x.id !== 'hp-fin') return; const d = $('#hp-debut').value, f = $('#hp-fin').value;
+  if (!d || !f || d >= f) { toast('La fin doit venir après le début'); rendre(); return; } S.hp.debut = d; S.hp.fin = f; _coteHoraire = dansHeures() ? 'pro' : 'perso'; rendre(); const n = $('#' + x.id); if (n) n.focus({ preventScroll: true }); });
+_coteHoraire = dansHeures() ? 'pro' : 'perso'; document.documentElement.dataset.cote = S.mode; setInterval(horaireAppliquer, 20000);
 
 /* ── départ ── */
 appliquerTheme(); lireAdresse(); rendre();

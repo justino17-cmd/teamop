@@ -17,6 +17,7 @@ const SCENES = [
   { n: 'feuille:infos-canal', prep: R('messages/equipe') + ";S.id='equipe';ACTIONS['infos-conv']()" }, { n: 'feuille:infos-personne', prep: R('messages/marc') + ";S.id='marc';ACTIONS['infos-conv']()" },
   { n: 'feuille:joindre', prep: R('messages/marc') + ";S.id='marc';ACTIONS.joindre()" },
   { n: 'menu:message', prep: R('messages/sophie') + ";S.vue='messages';S.id='sophie';rendre();menuMessage(document.querySelectorAll('#fil [data-msg]')[1],200,300)" },
+  ...['messages', 'messages/famille', 'appels', 'agenda', 'contacts', 'contacts/cath', 'profil', 'activite'].map((h) => ({ n: 'perso:' + h, prep: "changerMode('perso',true);" + R(h) })),
   { n: 'appel:sonne', prep: "demarrerAppel('karim')" }, { n: 'appel:cours', prep: "demarrerAppel('karim');S.appel.etat='cours';S.appel.t0=Date.now();peindreAppel()" },
   { n: 'appel:video', prep: "demarrerAppel('karim',true);S.appel.etat='cours';S.appel.t0=Date.now();peindreAppel()" }, { n: 'appel:clavier', prep: "demarrerAppel('karim');S.appel.etat='cours';S.appel.t0=Date.now();S.appel.clavier=true;peindreAppel()" },
   { n: 'appel:entrant', prep: "demarrerAppel('leo',false,true)" }, { n: 'appel:reduit', prep: "demarrerAppel('karim');S.appel.etat='cours';S.appel.t0=Date.now();S.appel.reduit=true;peindreAppel()" },

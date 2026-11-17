@@ -41,7 +41,7 @@ function listeConvHtml() {
     return r.length ? r.map(ligneConv).join('') : `<p class="note" style="padding:20px;text-align:center">Aucun résultat pour « ${esc(S.rech)} ».</p>`; }
   if (f === 'nonlus') tri = tri.filter((c) => c.nl); else if (f === 'canaux') tri = tri.filter((c) => c.canal); else if (f === 'clients') tri = tri.filter((c) => c.avec && !P[c.avec].eq);
   if (!tri.length) return '<p class="note" style="padding:20px;text-align:center">Rien dans ce filtre.</p>';
-  const sec = [['Favoris', tri.filter((c) => c.epingle)], ['Canaux', tri.filter((c) => !c.epingle && c.canal)], ['Équipe', tri.filter((c) => !c.epingle && c.avec && P[c.avec].eq)], ['Clients et partenaires', tri.filter((c) => !c.epingle && c.avec && !P[c.avec].eq)]];
+  const pro = S.mode === 'pro', sec = [['Favoris', tri.filter((c) => c.epingle)], [pro ? 'Canaux' : 'Groupes', tri.filter((c) => !c.epingle && c.canal)], [pro ? 'Équipe' : 'Proches', tri.filter((c) => !c.epingle && c.avec && P[c.avec].eq)], [pro ? 'Clients et partenaires' : 'Autres', tri.filter((c) => !c.epingle && c.avec && !P[c.avec].eq)]];
   return sec.filter((s) => s[1].length).map((s) => `<p class="section-l">${s[0]}</p>${s[1].map(ligneConv).join('')}`).join('');
 }
 function bulleHtml(c, m, i) {
@@ -71,7 +71,7 @@ function convHtml(c) {
 }
 VUES.messages = () => {
   const c = conv(S.id); if (c && c.nl) c.nl = 0;
-  const f = [['tout', 'Tout'], ['nonlus', 'Non lus'], ['canaux', 'Canaux'], ['clients', 'Clients']];
+  const f = S.mode === 'pro' ? [['tout', 'Tout'], ['nonlus', 'Non lus'], ['canaux', 'Canaux'], ['clients', 'Clients']] : [['tout', 'Tout'], ['nonlus', 'Non lus'], ['canaux', 'Groupes']];
   const liste = `<div class="col liste">${tete('Messages', `<button class="rond" data-action="nouveau-message" aria-label="Nouvelle conversation" title="Nouvelle conversation">${svg('stylo')}</button>`)}
     <label class="cherche">${svg('cherche')}<input id="rech" placeholder="Filtrer les conversations" value="${esc(S.rech)}" aria-label="Filtrer les conversations" autocomplete="off"></label>
     <div class="filtres">${f.map((x) => `<button aria-pressed="${S.filtreConv === x[0]}" data-filtre-conv="${x[0]}">${x[1]}</button>`).join('')}</div><div class="defile" id="liste-conv">${listeConvHtml()}</div></div>`;
@@ -83,7 +83,7 @@ const ficheTete = (p, sous) => `<div class="tete">${av(p.id, 'xl', true)}<div><h
 VUES.contacts = () => {
   const q = S.rech.trim().toLowerCase(), gens = Object.values(P).filter((p) => p.id !== 'moi' && (!q || (p.n + ' ' + p.r).toLowerCase().includes(q))).sort((a, b) => a.n.localeCompare(b.n));
   const ligne = (p) => `<a class="ligne" href="#contacts/${p.id}" ${S.id === p.id ? 'aria-current="true"' : ''}>${av(p.id, '', true)}<span class="t"><span class="l1"><b class="coupe">${esc(p.n)}</b></span><span class="ap">${esc(p.r)}</span></span></a>`;
-  const grp = [['Mon équipe', gens.filter((p) => p.eq)], ['Clients et partenaires', gens.filter((p) => !p.eq)]].filter((g) => g[1].length);
+  const grp = [[S.mode === 'pro' ? 'Mon équipe' : 'Proches', gens.filter((p) => p.eq)], [S.mode === 'pro' ? 'Clients et partenaires' : 'Autres contacts', gens.filter((p) => !p.eq)]].filter((g) => g[1].length);
   const liste = `<div class="col liste">${tete('Contacts', `<button class="rond" data-action="contact-ajouter" aria-label="Ajouter un contact" title="Ajouter un contact">${svg('ajout')}</button>`)}
     <label class="cherche">${svg('cherche')}<input id="rech" placeholder="Filtrer les contacts" value="${esc(S.rech)}" aria-label="Filtrer les contacts" autocomplete="off"></label>
     <div class="defile">${grp.map((g) => `<p class="section-l">${g[0]}</p>${g[1].map(ligne).join('')}`).join('') || `<p class="note" style="padding:20px;text-align:center">Aucun contact pour « ${esc(S.rech)} ».</p>`}</div></div>`;
@@ -182,14 +182,20 @@ function placerCourrier() {
 }
 
 /* ═══ PROFIL ═══ */
+const heuresTexte = () => hTexte(S.hp.debut) + ' – ' + hTexte(S.hp.fin) + (S.hp.jours.join('') === '12345' ? ', du lundi au vendredi' : ' (' + S.hp.jours.map((j) => JOURS_HP[j - 1][1].slice(0, 3).toLowerCase()).join(', ') + ')');
 VUES.profil = () => {
   const b = (k, t, d) => `<div class="rang"><span class="t"><b>${t}</b>${d ? `<span>${d}</span>` : ''}</span><button class="bascule" role="switch" aria-checked="${S.regl[k]}" data-regl="${k}" aria-label="${t}"></button></div>`;
   const l = (ic, c, t, v, attr) => `<button class="rang ic-g" ${attr}><span class="ic" style="--c:${c}">${svg(ic)}</span><span class="t"><b>${t}</b></span>${v ? `<span class="v">${v}</span>` : ''}${chev()}</button>`;
   return { html: `<div class="col seule">${tete('Profil et réglages')}<div class="defile"><div class="page profil">
-    <div class="groupe"><button class="moi-c" data-action="profil-modifier">${av('moi', 'g')}<span><b>${esc(P.moi.n)}</b><span class="gris">${esc(P.moi.r)} · Clim Services 17</span></span>${chev()}</button>
+    <div class="groupe"><button class="moi-c" data-action="profil-modifier">${av('moi', 'g')}<span><b>${esc(P.moi.n)}</b><span class="gris">${S.mode === 'pro' ? esc(P.moi.r) + ' · Clim Services 17' : 'Compte personnel · gratuit'}</span></span>${chev()}</button>
       <button class="rang" data-action="statut"><span class="t"><b>Statut</b></span><span class="statut ${STATUTS[S.statut][1]}"><i></i>${STATUTS[S.statut][0]}</span>${chev()}</button></div>
-    <div class="groupe">${l('contacts', '#2a4a9c', 'Mon espace', 'Clim Services 17', 'data-action="espace"')}${l('etoile', '#d97706', 'Abonnement', 'Pro', 'data-action="abonnement"')}</div>
-    <div><h3 class="titre-s">Notifications</h3><div class="groupe">${b('notif', 'Autoriser les notifications')}${b('apercuNotif', 'Afficher l’aperçu', 'Le début du message dans la notification.')}${b('heuresPro', 'Heures de travail', 'De 8 h à 18 h, du lundi au vendredi. En dehors, rien ne sonne.')}${b('pauseReunion', 'Silence en réunion', 'Les notifications attendent la fin de la réunion.')}</div></div>
+    <div class="groupe">${S.mode === 'pro' ? l('contacts', '#2a4a9c', 'Mon espace', 'Clim Services 17', 'data-action="espace"') : ''}${l('etoile', '#d97706', 'Abonnement', S.mode === 'pro' ? 'Pro' : 'Gratuit', 'data-action="abonnement"')}</div>
+    <div><h3 class="titre-s">Perso et Pro</h3><div class="groupe"><div class="rang"><span class="t"><b>Côté affiché</b><span>Chaque côté a ses conversations, ses appels, ses contacts et son agenda. Ils ne se mélangent pas.</span></span></div><div style="padding:0 14px 12px">${coteSeg('clair')}</div>
+      <div class="rang"><span class="t"><b>Heures de travail (Pro)</b><span>${S.hp.on ? 'En dehors de ' + heuresTexte() + ', les messages et les mentions Pro ne font pas sonner tes appareils : un seul résumé arrive à la reprise. Les appels sonnent toujours, le Perso n’est jamais coupé.' : 'Coupé : le Pro sonne à toute heure.'}</span></span><button class="bascule" role="switch" aria-checked="${S.hp.on}" data-hp="on" aria-label="Heures de travail (Pro)"></button></div>
+      ${S.hp.on ? `<div class="hp-ed"><div class="hp-jours" role="group" aria-label="Jours de travail">${JOURS_HP.map((j, i) => `<button data-hp-jour="${i + 1}" aria-pressed="${S.hp.jours.includes(i + 1)}" aria-label="${j[1]}">${j[0]}</button>`).join('')}</div><div style="display:flex;gap:10px"><label class="champ"><span>Début</span><input type="time" id="hp-debut" step="300" value="${S.hp.debut}"></label><label class="champ"><span>Fin</span><input type="time" id="hp-fin" step="300" value="${S.hp.fin}"></label></div></div>
+      <div class="rang"><span class="t"><b>Passer en Pro pendant mes heures</b><span>${S.auto ? 'Au début de tes heures, toute l’application passe en Pro ; à la fin, en Perso. Basculer à la main l’emporte jusqu’à la borne suivante.' : 'Coupé : tu changes de côté toi-même.'}</span></span><button class="bascule" role="switch" aria-checked="${S.auto}" data-hp="auto" aria-label="Passer en Pro pendant mes heures"></button></div>
+      <div class="rang" style="flex-wrap:wrap"><span class="t" style="min-width:180px"><b>Il est ${hTexte(hMaintenant())}</b><span>${dansHeures() ? 'Tu es dans tes heures de travail.' : 'Tu es hors de tes heures de travail.'} Pour essayer la bascule dans ce prototype :</span></span><button class="btn gris" data-hp-essai="${dansHeures() ? 'fin' : 'debut'}">${dansHeures() ? 'Aller à la fin de mes heures' : 'Aller au début de mes heures'}</button></div>` : ''}</div></div>
+    <div><h3 class="titre-s">Notifications</h3><div class="groupe">${b('notif', 'Autoriser les notifications')}${b('apercuNotif', 'Afficher l’aperçu', 'Le début du message dans la notification.')}${b('pauseReunion', 'Silence en réunion', 'Les notifications attendent la fin de la réunion.')}</div></div>
     <div><h3 class="titre-s">Confidentialité</h3><div class="groupe">${b('lecture', 'Confirmations de lecture', 'Les autres voient « Lu » ; tu vois le leur.')}${b('enligne', 'Montrer que je suis en ligne')}</div></div>
     <div><h3 class="titre-s">Apparence</h3><div class="groupe"><div class="rang"><span class="t"><b>Thème</b><span>Dans la vraie application, il suit l’appareil.</span></span><div class="seg" role="group" aria-label="Thème">${[['auto', 'Auto'], ['light', 'Jour'], ['dark', 'Nuit']].map((m) => `<button aria-pressed="${S.theme === m[0]}" data-theme-choix="${m[0]}">${m[1]}</button>`).join('')}</div></div></div></div>
     <div class="groupe">${l('info', '#5a6377', 'À propos', 'Prototype', 'data-action="a-propos"')}</div>

@@ -36,6 +36,16 @@ réunions, les appels, les messages, les mails, l'agenda, et fais-moi ça mieux.
   d'une heure, Reporter au lendemain, Dupliquer, Annuler), clic droit sur une case vide (créer là). `prevenir(e, quoi)` est le SEUL endroit qui annonce
   un décalage ou une annulation aux invités (bannière, réponses remises « en attente ») : glisser, menu, feuille « Modifier » et suppression y passent.
   Mesuré : gestes 548 ✓, écrans 352, dessin 294. ⚠️ La sonde supprimait « le premier événement visible » — une réunion avec invités : viser l'identifiant.
+- **Perso et Pro, heures de travail (même jour)** — Justin : « fais pour une version public et gratuite comme j'avais fait avant, où on peut avoir le côté
+  pro et le côté perso ; regarde bien comment j'avais fait, et aussi le système de choisir les heures pro et perso ». Repris des règles de la vraie
+  application (`apercu/opmessages/index.html` : `choisirMode`, `heuresPro`, `modeAuto`, `coteHoraire`) : UNE bascule Perso | Pro pour toute
+  l'application (barre du haut ; au téléphone, « Plus » et le Profil) ; le Perso, gratuit, n'a ni accueil, ni réunions à organiser (on y entre par
+  un code), ni courrier ; chaque côté a ses personnes, conversations, appels, agenda (`changerMode` échange le CONTENU des tableaux C, P, APPELS,
+  EVTS, RAPPELS, NAV — tout le reste du code les lit tels quels) ; cadre violet côté Perso. **Heures de travail (Pro)** dans le Profil : jours,
+  début, fin ; « Passer en Pro pendant mes heures » bascule AUX BORNES et l'annonce, un geste à la main l'emporte jusqu'à la borne suivante ; deux
+  boutons « aller à la fin / au début de mes heures » pour l'essayer (l'heure du prototype est fictive). ⚠️ Deux pièges payés : `<html>` porte
+  `data-cote` (couleur du cadre) et `closest('[data-cote]')` arrêtait TOUS les clics — le sélecteur est `button[data-cote]` ; et une réponse simulée
+  qui arrive après un changement de côté lisait P de l'autre côté (nom capturé à l'envoi). Mesuré : gestes 618 ✓, écrans 484, dessin 294.
 - ⚠️ Leçon : deux refontes de suite ont gardé la même charpente et les mêmes bulles — pour Justin, « pas de différence ». Une refonte se juge à la
   première capture posée à côté de l'ancienne, avant d'écrire le reste.
 

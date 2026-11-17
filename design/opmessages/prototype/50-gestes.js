@@ -4,10 +4,13 @@ function envoyer(c, m) {
   const msg = Object.assign({ id: uid(), de: 'moi', j: 0, h: hMaintenant() }, m); if (S.rep) { msg.rep = S.rep; S.rep = null; }
   c.msgs.push(msg); rendre();
   /* quelqu'un répond : la conversation vit (une seule personne — un canal reste calme) */
-  if (!c.avec || c._attend) return; c._attend = true;
-  setTimeout(() => { c.ecrit = true; if (S.vue === 'messages' && S.id === c.id) rendre(); }, 900);
+  if (!c.avec || c._attend) return; c._attend = true; const nom = P[c.avec].n, cote = S.mode, ici = () => C.includes(c);      // la réponse peut arriver après un changement de côté : P et C ne sont alors plus ceux de cette conversation
+  setTimeout(() => { c.ecrit = true; if (ici() && S.vue === 'messages' && S.id === c.id) rendre(); }, 900);
   setTimeout(() => { c.ecrit = false; c._attend = false; msg.lu = hMaintenant(); const r = { id: uid(), de: c.avec, j: 0, h: hMaintenant(), t: REPONSES[c.msgs.length % REPONSES.length] }; c.msgs.push(r);
-    if (S.vue === 'messages' && S.id === c.id && !S.salle && !S.appel) rendre(); else { c.nl = (c.nl || 0) + 1; if (!S.salle) { rendre(); } notifier(P[c.avec].n, r.t, () => aller('messages', c.id)); } }, 3200);
+    if (ici() && S.vue === 'messages' && S.id === c.id && !S.salle && !S.appel) { rendre(); return; }
+    c.nl = (c.nl || 0) + 1; if (ici() && !S.salle) rendre();
+    /* le Perso n'est jamais coupé ; un message Pro qui arrive pendant qu'on est côté Perso attend la reprise (il sera dans le résumé) */
+    if (ici() || cote === 'perso') notifier(nom, r.t, () => { if (ici()) aller('messages', c.id); else if (changerMode(cote)) aller('messages', c.id); }); }, 3200);
 }
 function majEnvoi() { const s = $('#saisie'), b = $('#btn-envoi'); if (!s || !b) return; const plein = !!s.value.trim();
   if (plein !== b.classList.contains('plein')) { b.classList.toggle('plein', plein); b.dataset.action = plein ? 'envoyer' : 'vocal'; b.setAttribute('aria-label', plein ? 'Envoyer' : 'Enregistrer un message vocal'); b.innerHTML = svg(plein ? 'envoyer' : 'micro'); }
@@ -22,9 +25,9 @@ function menuMessage(el, x, y) {
   d.style.left = Math.max(8, Math.min(x, W - r.width - 8)) + 'px'; d.style.top = Math.max(8, Math.min(y, H - r.height - 8)) + 'px';
 }
 function feuilleProgrammer(pre) {
-  pre = pre || {}; const type = pre.type || 'reunion', jours = Array.from({ length: 21 }, (_, k) => k);
+  pre = pre || {}; const type = pre.type || (S.mode === 'pro' ? 'reunion' : 'rdv'), jours = Array.from({ length: 21 }, (_, k) => k);
   ouvrir(`${fTete(pre.id ? 'Modifier' : 'Nouveau', pre.id ? 'OK' : 'Ajouter', 'data-action="evt-enregistrer"' + (pre.id ? ` data-id="${pre.id}"` : ''))}
-    <div class="seg" role="group" aria-label="Type" style="display:flex">${Object.keys(TYPES_E).map((t) => `<button aria-pressed="${type === t}" data-pe-type="${t}">${TYPES_E[t][0]}</button>`).join('')}</div>
+    <div class="seg" role="group" aria-label="Type" style="display:flex">${Object.keys(TYPES_E).filter((t) => S.mode === 'pro' || t !== 'reunion').map((t) => `<button aria-pressed="${type === t}" data-pe-type="${t}">${TYPES_E[t][0]}</button>`).join('')}</div>
     <label class="champ"><span>Titre</span><input id="pe-titre" value="${esc(pre.titre || '')}" placeholder="${type === 'reunion' ? 'Point d’équipe' : type === 'rdv' ? 'Rendez-vous client' : 'Salon, congé, livraison…'}" autofocus></label>
     <label class="champ"><span>Jour</span><select id="pe-jour">${jours.map((j) => `<option value="${j}" ${(pre.j != null ? pre.j : S.vue === 'agenda' && S.agJour > 0 ? S.agJour : 0) === j ? 'selected' : ''}>${jourLong(j)}</option>`).join('')}</select></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="champ"><span>Début</span><input id="pe-deb" type="time" value="${pre.deb || '10:00'}"></label><label class="champ"><span>Fin</span><input id="pe-fin" type="time" value="${pre.fin || '10:30'}"></label></div>
@@ -35,7 +38,7 @@ function feuilleProgrammer(pre) {
 /* la recherche du haut (⌘K / Ctrl K) : une personne, une conversation, un message, une réunion — ou une action, quand on n'a encore rien tapé */
 function palRes(q) {
   q = q.trim().toLowerCase(); const r = (attr, ic, c, t, s) => `<button class="rang ic-g" ${attr}><span class="ic" style="--c:${c}">${svg(ic)}</span><span class="t"><b class="coupe">${t}</b>${s ? `<span class="coupe">${s}</span>` : ''}</span></button>`;
-  if (!q) return `<p class="section-l">Actions</p>${r('data-action="nouveau-message"', 'stylo', '#2a4a9c', 'Nouveau message')}${r('data-action="nouvel-appel"', 'tel', '#16a34a', 'Appeler quelqu’un')}${r('data-action="reunion-maintenant"', 'video', '#d97706', 'Réunion immédiate')}${r('data-action="programmer"', 'agenda', '#7d3c98', 'Ajouter à l’agenda')}
+  if (!q) return `<p class="section-l">Actions</p>${r('data-action="nouveau-message"', 'stylo', '#2a4a9c', 'Nouveau message')}${r('data-action="nouvel-appel"', 'tel', '#16a34a', 'Appeler quelqu’un')}${S.mode === 'pro' ? r('data-action="reunion-maintenant"', 'video', '#d97706', 'Réunion immédiate') : r('data-action="rejoindre-code"', 'video', '#d97706', 'Rejoindre une réunion avec un code')}${r('data-action="programmer"', 'agenda', '#7d3c98', 'Ajouter à l’agenda')}
     <p class="section-l">Aller à</p>${NAV.map((n) => r(`data-go="${n[0]}"`, n[1], '#5a6377', n[2])).join('')}`;
   const gens = Object.values(P).filter((x) => x.id !== 'moi' && (x.n + ' ' + x.r).toLowerCase().includes(q)), cv = C.filter((c) => c.canal && c.n.toLowerCase().includes(q)), ms = [], ev = EVTS.filter((e) => e.titre.toLowerCase().includes(q));
   C.forEach((c) => c.msgs.forEach((m) => { if ((m.t || '').toLowerCase().includes(q) && ms.length < 6) ms.push([c, m]); }));
@@ -45,8 +48,8 @@ function palRes(q) {
 }
 const ACTIONS = {
   chercher: () => { ouvrir(`<label class="pal-champ">${svg('cherche')}<input id="pal" placeholder="Rechercher une personne, un message, une réunion" aria-label="Rechercher partout" autocomplete="off" autofocus></label><div class="pal-res defile" id="pal-res">${palRes('')}</div>`, 'palette'); const i = $('#pal'); if (i) i.focus(); },
-  plus: () => ouvrir(`${fTeteOk('Plus')}<div class="groupe">${[['reunions', 'video', 'Réunions', '#d97706'], ['courrier', 'mail', 'Courrier', '#0d8a6a'], ['contacts', 'contacts', 'Contacts', '#2a4a9c'], ['activite', 'cloche', 'Activité', '#e5484d'], ['profil', 'personne', 'Profil et réglages', '#5a6377']].map((x) => `<button class="rang ic-g" data-go="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span>${compte(x[0]) ? `<span class="pastille r">${compte(x[0])}</span>` : ''}${chev()}</button>`).join('')}</div>`),
-  creer: () => ouvrir(`${fTete('Créer')}<div class="groupe">${[['nouveau-message', 'stylo', 'Nouveau message', '#2a4a9c'], ['nouveau-groupe', 'contacts', 'Nouveau groupe', '#2a4a9c'], ['nouvel-appel', 'tel', 'Appel', '#16a34a'], ['reunion-maintenant', 'video', 'Réunion immédiate', '#d97706'], ['programmer', 'agenda', 'Réunion, rendez-vous ou événement', '#7d3c98'], ['rappel-ajouter', 'tache', 'Rappel', '#5a6377'], ['contact-ajouter', 'ajout', 'Contact', '#5a6377']].map((x) => `<button class="rang ic-g" data-action="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span></button>`).join('')}</div>`),
+  plus: () => ouvrir(`${fTeteOk('Plus')}${coteSeg('clair')}<div class="groupe">${[['reunions', 'video', 'Réunions', '#d97706'], ['courrier', 'mail', 'Courrier', '#0d8a6a'], ['contacts', 'contacts', 'Contacts', '#2a4a9c'], ['activite', 'cloche', 'Activité', '#e5484d'], ['profil', 'personne', 'Profil et réglages', '#5a6377']].filter((x) => S.mode === 'pro' || !['reunions', 'courrier', 'contacts'].includes(x[0])).map((x) => `<button class="rang ic-g" data-go="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span>${compte(x[0]) ? `<span class="pastille r">${compte(x[0])}</span>` : ''}${chev()}</button>`).join('')}</div>`),
+  creer: () => ouvrir(`${fTete('Créer')}<div class="groupe">${[['nouveau-message', 'stylo', 'Nouveau message', '#2a4a9c'], ['nouveau-groupe', 'contacts', 'Nouveau groupe', '#2a4a9c'], ['nouvel-appel', 'tel', 'Appel', '#16a34a'], ['reunion-maintenant', 'video', 'Réunion immédiate', '#d97706'], ['programmer', 'agenda', 'Réunion, rendez-vous ou événement', '#7d3c98'], ['rappel-ajouter', 'tache', 'Rappel', '#5a6377'], ['contact-ajouter', 'ajout', 'Contact', '#5a6377']].map((x) => (S.mode === 'pro' || x[0] !== 'reunion-maintenant' ? x : ['rejoindre-code', 'video', 'Rejoindre une réunion avec un code', '#d97706'])).map((x) => `<button class="rang ic-g" data-action="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span></button>`).join('')}</div>`),
   'nouveau-message': () => ouvrir(`${fTete('Nouveau message')}<button class="btn gris large" data-action="nouveau-groupe">${svg('contacts')}Nouveau groupe</button><div class="groupe">${choixContacts('data-ecrire')}</div>`),
   'nouveau-groupe': () => ouvrir(`${fTete('Nouveau groupe', 'Créer', 'data-action="groupe-creer"')}<label class="champ"><span>Nom du groupe</span><input id="g-nom" placeholder="Chantier Les Minimes" autofocus></label>
     <div class="champ"><span>Membres</span><div class="puces">${Object.values(P).filter((p) => p.id !== 'moi').map((p) => `<button class="puce" aria-pressed="false" data-pe-inv="${p.id}">${av(p.id)}${esc(prenom(p.id))}</button>`).join('')}</div></div>`),
@@ -125,6 +128,12 @@ document.addEventListener('click', (e) => {
     else if (k === 'repondre') { S.rep = apercu(m).slice(0, 60); rendre(); const s = $('#saisie'); if (s) s.focus(); }
     else { const r = b.getBoundingClientRect(); menuMessage($(`#fil [data-msg="${id}"]`), r.right - 230, r.bottom + 6); }
     return; }
+  /* Perso | Pro, et les heures de travail */
+  if ((b = q('button[data-cote]'))) {      /* ⛔ « button » : <html> porte aussi data-cote (la couleur du cadre) — sans lui, CHAQUE clic de la page s'arrêtait ici */ if (S.appel || S.salle) { toast('Termine d’abord l’appel en cours'); return; } changerMode(b.dataset.cote); return; }
+  if ((b = q('[data-hp]'))) { if (b.dataset.hp === 'on') S.hp.on = !S.hp.on; else S.auto = !S.auto; _coteHoraire = dansHeures() ? 'pro' : 'perso'; rendre(); return; }
+  if ((b = q('[data-hp-jour]'))) { const j = +b.dataset.hpJour, l = S.hp.jours, i = l.indexOf(j); if (i >= 0 && l.length === 1) { toast('Garde au moins un jour, ou coupe les heures de travail'); return; } if (i >= 0) l.splice(i, 1); else { l.push(j); l.sort(); } _coteHoraire = dansHeures() ? 'pro' : 'perso'; rendre(); return; }
+  if ((b = q('[data-hp-essai]'))) { const d = new Date().getDay() || 7; if (!S.hp.jours.includes(d)) { toast('Aujourd’hui n’est pas un jour travaillé : coche-le pour essayer'); return; }
+    _decal += minutes(b.dataset.hpEssai === 'fin' ? S.hp.fin : S.hp.debut) - minutes(hMaintenant()) + (minutes(b.dataset.hpEssai === 'fin' ? S.hp.fin : S.hp.debut) - minutes(hMaintenant()) < -720 ? 0 : 0); horaireAppliquer(); rendre(); return; }
   if ((b = q('[data-filtre-conv]'))) { S.filtreConv = b.dataset.filtreConv; rendre(); return; }
   if ((b = q('[data-filtre-act]'))) { S.filtreAct = b.dataset.filtreAct; rendre(); return; }
   if ((b = q('[data-traite]'))) { TRAITE.add(b.dataset.traite); rendre(); toast('Rangé : traité'); return; }
@@ -228,7 +237,7 @@ function menuEvt(e, x, y) { const l = (k, t, ic, cls) => `<button class="l ${cls
 document.addEventListener('contextmenu', (ev) => { const b = ev.target.closest('#scene [data-evt]'), col = !b && ev.target.closest('.g-col'); if (!b && !col) return; ev.preventDefault();
   if (b) { menuEvt(evt(b.dataset.evt), ev.clientX, ev.clientY); return; }
   const r = col.getBoundingClientRect(), m = Math.floor(((ev.clientY - r.top) / (r.height / GH) * 60) / 30) * 30 + G0 * 60, j = lundi(S.agSem) + $$('.g-col').indexOf(col);
-  const d = menuLibre(ev.clientX, ev.clientY, `<button class="l" data-ectx="neuf" data-type="reunion">Nouvelle réunion à ${hm(m)}${svg('video')}</button><button class="l" data-ectx="neuf" data-type="rdv">Nouveau rendez-vous à ${hm(m)}${svg('agenda')}</button>`); d.dataset.j = j; d.dataset.m = m; });
+  const d = menuLibre(ev.clientX, ev.clientY, (S.mode === 'pro' ? `<button class="l" data-ectx="neuf" data-type="reunion">Nouvelle réunion à ${hm(m)}${svg('video')}</button>` : '') + `<button class="l" data-ectx="neuf" data-type="rdv">Nouveau rendez-vous à ${hm(m)}${svg('agenda')}</button>`); d.dataset.j = j; d.dataset.m = m; });
 document.addEventListener('click', (ev) => { const b = ev.target.closest('[data-ectx]'); if (!b) return; const mn = b.closest('.menu-ctx'), k = b.dataset.ectx, e = evt(mn.dataset.pour); ev.stopPropagation(); fermerMenu();
   if (k === 'neuf') { const m = +mn.dataset.m; feuilleProgrammer({ type: b.dataset.type, j: +mn.dataset.j, deb: hm(m), fin: hm(m + (b.dataset.type === 'reunion' ? 30 : 60)) }); return; }
   if (!e) return;
@@ -250,6 +259,11 @@ const _glFin = (ev) => { const g = _gl; _gl = null; if (!g || !g.actif) return; 
 document.addEventListener('pointerup', _glFin); document.addEventListener('pointercancel', _glFin);
 /* le clic qui suit un glissement ouvrirait la fiche : on l'avale */
 document.addEventListener('click', (ev) => { if (_glFait) { _glFait = false; ev.stopPropagation(); ev.preventDefault(); } }, true);
+
+/* les deux heures de travail : une heure s'enregistre quand on la lâche ; début = fin n'est pas une plage */
+document.addEventListener('change', (e) => { const x = e.target; if (x.id !== 'hp-debut' && x.id !== 'hp-fin') return; const d = $('#hp-debut').value, f = $('#hp-fin').value;
+  if (!d || !f || d >= f) { toast('La fin doit venir après le début'); rendre(); return; } S.hp.debut = d; S.hp.fin = f; _coteHoraire = dansHeures() ? 'pro' : 'perso'; rendre(); const n = $('#' + x.id); if (n) n.focus({ preventScroll: true }); });
+_coteHoraire = dansHeures() ? 'pro' : 'perso'; document.documentElement.dataset.cote = S.mode; setInterval(horaireAppliquer, 20000);
 
 /* ── départ ── */
 appliquerTheme(); lireAdresse(); rendre();

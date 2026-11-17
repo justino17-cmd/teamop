@@ -109,7 +109,7 @@ const RAPPELS = [
 ];
 
 /* ── l'état ── */
-const S = { vue: 'accueil', id: null, theme: 'auto', statut: 'ok', filtreAppels: 'tous', filtreConv: 'tout', filtreAct: 'tout', agVue: 'semaine', agSem: 0, agJour: 0, rech: '', rep: null, appel: null, salle: null,
+const S = { mode: 'pro', auto: true, hp: { on: true, jours: [1, 2, 3, 4, 5], debut: '08:00', fin: '18:00' }, vue: 'accueil', id: null, theme: 'auto', statut: 'ok', filtreAppels: 'tous', filtreConv: 'tout', filtreAct: 'tout', agVue: 'semaine', agSem: 0, agJour: 0, rech: '', rep: null, appel: null, salle: null,
   regl: { notif: true, heuresPro: true, pauseReunion: true, lecture: true, enligne: true, apercuNotif: true } };
 const STATUTS = { ok: ['Disponible', ''], occ: ['Occupée', 'occ'], npd: ['Ne pas déranger', 'npd'], abs: ['Absente', 'abs'] };
 const NAV = [['accueil', 'groupe', 'Accueil'], ['messages', 'bulle', 'Messages'], ['appels', 'tel', 'Appels'], ['reunions', 'video', 'Réunions'], ['agenda', 'agenda', 'Agenda'], ['courrier', 'mail', 'Courrier'], ['contacts', 'contacts', 'Contacts']];
@@ -118,6 +118,50 @@ const nonLus = () => C.reduce((n, c) => n + (c.nl || 0), 0);
 const manques = () => APPELS.filter((a) => a.sens === 'manque' && !a.vu).length;
 const COUR = { inst: null, nl: 0, montage: false };
 const compte = (k) => (k === 'messages' ? nonLus() : k === 'appels' ? manques() : k === 'courrier' ? COUR.nl : 0);
+
+/* ══ PERSO ET PRO : DEUX CÔTÉS QUI NE SE MÉLANGENT PAS (comme dans la vraie application : une bascule pour TOUTE l'application). Le Perso est gratuit :
+   messages, appels, rendez-vous et contacts — ni tableau de bord, ni réunions à organiser (on y entre par un lien), ni courrier. Chaque côté a ses
+   personnes, ses conversations, ses appels, son agenda ; changer de côté échange le CONTENU des mêmes tableaux (tout le reste du code lit C, P, EVTS…). ══ */
+const PRO_SEULES = ['accueil', 'reunions', 'courrier'], NAV_PRO = NAV.slice(), NAV_PERSO = NAV.filter((n) => !PRO_SEULES.includes(n[0]));
+const perso = (o) => { Object.keys(o).forEach((k) => { o[k].id = k; }); return o; };
+const BASES = { pro: null, perso: {
+  P: Object.assign({ moi: P.moi }, perso({
+    cath: { n: 'Catherine Martin', r: 'Maman', eq: 1, st: 'ok', stt: 'En ligne', a: ['#f08a5d', '#d6336c'], tel: '06 00 00 00 31', mel: 'catherine.martin@courriel.example' },
+    hugo: { n: 'Hugo Martin', r: 'Frère', eq: 1, st: 'abs', stt: 'Vu hier soir', a: ['#59b98a', '#1f6e9c'], tel: '06 00 00 00 32', mel: 'hugo.martin@courriel.example' },
+    elodie: { n: 'Élodie Petit', r: 'Amie', st: 'ok', stt: 'En ligne', a: ['#a26be0', '#4b3fb0'], tel: '06 00 00 00 33', mel: 'elodie.petit@courriel.example' },
+    morel: { n: 'Cabinet du Dr Morel', r: 'Dentiste', a: ['#3fb6c9', '#3a55b4'], tel: '05 00 00 00 34', mel: 'cabinet.morel@sante.example' } })),
+  C: [
+    { id: 'famille', n: 'Famille', canal: 1, epingle: 1, membres: ['cath', 'hugo'], a: ['#f08a5d', '#d6336c'], nl: 2, msgs: [
+      { de: 'cath', j: -1, h: '19:12', t: 'Vous venez déjeuner dimanche ? Je fais un gratin.' }, { de: 'hugo', j: -1, h: '19:30', t: 'Oui ! J’apporte le dessert.', reac: ['❤️'] },
+      { de: 'cath', j: 0, h: '08:10', type: 'photo', leg: 'Le jardin ce matin' }, { de: 'cath', j: 0, h: '08:11', t: 'Julie, tu me confirmes pour dimanche ?' }] },
+    { id: 'elodie', avec: 'elodie', nl: 1, msgs: [{ de: 'moi', j: -2, h: '20:05', t: 'On se fait un ciné vendredi ?', lu: 'mercredi' }, { de: 'elodie', j: 0, h: '09:02', t: 'Vendredi 20 h, ça me va. Je réserve ?' }] },
+    { id: 'hugo', avec: 'hugo', nl: 0, msgs: [{ de: 'hugo', j: -1, h: '12:40', type: 'vocal', d: '0:18' }, { de: 'moi', j: -1, h: '12:55', t: 'Écouté, je te rappelle ce soir.', lu: '13:01' }] }],
+  APPELS: [{ id: 'p1', qui: 'cath', sens: 'manque', j: 0, h: '08:30' }, { id: 'p2', qui: 'hugo', sens: 'sortant', j: -1, h: '21:10', duree: '12 min' }, { id: 'p3', qui: 'elodie', sens: 'entrant', video: 1, j: -3, h: '18:45', duree: '31 min' }],
+  EVTS: [{ id: 'q1', type: 'rdv', titre: 'Dentiste', j: 1, deb: '18:30', fin: '19:00', lieu: 'Cabinet du Dr Morel, 3 place du Marché', rappel: 60 }, { id: 'q2', type: 'rdv', titre: 'Cinéma avec Élodie', j: 3, deb: '20:00', fin: '22:30', lieu: 'Cinéma du Port', rappel: 60 },
+    { id: 'q3', type: 'evt', titre: 'Déjeuner en famille', j: 5, deb: '12:30', fin: '15:00', lieu: 'Chez Maman', rappel: 1440 }],
+  RAPPELS: [{ id: 's1', t: 'Acheter un cadeau pour Hugo', j: 2, fait: false }] } };
+BASES.perso.C.forEach((c) => c.msgs.forEach((m) => { m.id = uid(); }));
+const echanger = (a, b) => { a.splice(0, a.length, ...b); };
+function changerMode(m, auto) {
+  if (m === S.mode || S.appel || S.salle) return false;
+  BASES[S.mode] = { P: Object.assign({}, P), C: C.slice(), APPELS: APPELS.slice(), EVTS: EVTS.slice(), RAPPELS: RAPPELS.slice() }; const b = BASES[m];
+  Object.keys(P).forEach((k) => { delete P[k]; }); Object.assign(P, b.P); echanger(C, b.C); echanger(APPELS, b.APPELS); echanger(EVTS, b.EVTS); echanger(RAPPELS, b.RAPPELS); echanger(NAV, m === 'pro' ? NAV_PRO : NAV_PERSO);
+  S.mode = m; S.rech = ''; S.rep = null; S.agSem = 0; S.agJour = 0; document.documentElement.dataset.cote = m; $('#calque').innerHTML = ''; fermerMenu();
+  const garde = S.vue === 'activite' || S.vue === 'profil' || NAV.some((n) => n[0] === S.vue); if (!garde || S.id) aller(garde ? S.vue : NAV[0][0]); else rendre();
+  if (!auto) toast(m === 'pro' ? 'OP MESSAGES PRO' : 'OP MESSAGES · Perso'); return true;
+}
+const coteSeg = (cls) => `<div class="cotes ${cls || ''}" role="group" aria-label="Perso ou Pro">${[['perso', 'Perso'], ['pro', 'Pro']].map((x) => `<button aria-pressed="${S.mode === x[0]}" data-cote="${x[0]}">${x[1]}</button>`).join('')}</div>`;
+/* ── les heures de travail (Pro) : en dehors, les messages et les mentions Pro ne sonnent pas (un résumé à la reprise), les appels sonnent toujours, le Perso
+   n'est jamais coupé. « Passer en Pro pendant mes heures » bascule AUX BORNES : au début des heures tout passe en Pro, à la fin en Perso ; basculer à la main
+   entre-temps l'emporte jusqu'à la borne suivante. ── */
+const JOURS_HP = [['L', 'Lundi'], ['M', 'Mardi'], ['M', 'Mercredi'], ['J', 'Jeudi'], ['V', 'Vendredi'], ['S', 'Samedi'], ['D', 'Dimanche']];
+const hTexte = (h) => +h.slice(0, 2) + ' h' + (h.slice(3) === '00' ? '' : ' ' + h.slice(3));
+function dansHeures() { const hp = S.hp, d = new Date(), j = d.getDay() === 0 ? 7 : d.getDay(), m = minutes(hMaintenant()); return hp.on && hp.jours.includes(j) && m >= minutes(hp.debut) && m < minutes(hp.fin); }
+let _coteHoraire = null;
+function horaireAppliquer() { const cote = dansHeures() ? 'pro' : 'perso', borne = _coteHoraire !== null && cote !== _coteHoraire; _coteHoraire = cote;
+  if (!borne || !S.auto || !S.hp.on) return; const nl = cote === 'pro' && BASES.pro ? BASES.pro.C.reduce((n, c) => n + (c.nl || 0), 0) : 0;
+  if (S.mode !== cote && !changerMode(cote, true)) return;
+  notifier(cote === 'pro' ? 'Heures de travail : OP MESSAGES PRO' : 'Fin des heures de travail : OP MESSAGES · Perso', cote === 'pro' ? (nl ? nl + ' message' + (nl > 1 ? 's' : '') + ' Pro reçu' + (nl > 1 ? 's' : '') + ' en ton absence' : 'Bonne journée') : 'Le Pro ne sonne plus jusqu’à ' + hTexte(S.hp.debut) + '. Les appels sonnent toujours.'); }
 
 /* ── le temps ── */
 const auj = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
@@ -129,12 +173,13 @@ const jourCourt = (j) => (j === 0 ? 'Aujourd’hui' : j === -1 ? 'Hier' : j === 
 const quand = (m) => (m.j === 0 ? m.h : jourCourt(m.j));
 /* l'heure du prototype : il est 9 h 42 à l'ouverture (les données d'exemple racontent une matinée), puis le temps passe pour de vrai */
 const _t0 = Date.now();
-const hMaintenant = () => { const m = 9 * 60 + 42 + Math.floor((Date.now() - _t0) / 60000); return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+let _decal = 0;
+const hMaintenant = () => { const m = 9 * 60 + 42 + _decal + Math.floor((Date.now() - _t0) / 60000); return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
 const minutes = (h) => +h.slice(0, 2) * 60 + +h.slice(3);
 const lundi = (sem) => { const d = auj(), k = (d.getDay() + 6) % 7; return -k + sem * 7; };       // le décalage (en jours) du lundi de la semaine visée
 
 /* ── la navigation : #vue ou #vue/identifiant ── */
-function lireAdresse() { const p = location.hash.slice(1).split('/'); S.vue = VUES[p[0]] ? p[0] : 'accueil'; S.id = p[1] ? decodeURIComponent(p[1]) : null; }
+function lireAdresse() { const p = location.hash.slice(1).split('/'); S.vue = VUES[p[0]] && (NAV.some((n) => n[0] === p[0]) || p[0] === 'activite' || p[0] === 'profil') ? p[0] : NAV[0][0]; S.id = p[1] ? decodeURIComponent(p[1]) : null; }
 function aller(vue, id) { const h = '#' + vue + (id ? '/' + encodeURIComponent(id) : ''); if (location.hash === h) rendre(); else location.hash = h; }
 /* la touche Retour (Android, navigateur) ferme aussi la feuille ouverte */
 window.addEventListener('hashchange', () => { if ($('#calque').innerHTML) fermer(); fermerMenu(); lireAdresse(); rendre(); });
@@ -144,13 +189,13 @@ function menuHtml() {
     + `<button class="creer" data-action="creer" aria-label="Créer" title="Créer : message, appel, réunion, rendez-vous">${svg('plus')}</button>`;
 }
 function hautHtml() { const n = activite().length;
-  return `<a class="marque" href="#accueil" aria-label="OP MESSAGES, accueil"><i>OP<br>MSG</i><span>OP MESSAGES</span><em>PRO</em></a>
+  return `<a class="marque" href="#${NAV[0][0]}" aria-label="OP MESSAGES"><i>OP<br>MSG</i><span>OP MESSAGES</span><em>${S.mode === 'pro' ? 'PRO' : 'PERSO'}</em></a>
     <button class="chercher" data-action="chercher">${svg('cherche')}<span>Rechercher une personne, un message, une réunion</span><kbd>${/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd></button>
-    <div class="h-droite"><a class="h-btn" href="#activite" ${S.vue === 'activite' ? 'aria-current="page"' : ''} aria-label="Activité${n ? ', ' + n + ' à traiter' : ''}" title="Activité">${svg('cloche')}${n ? `<em>${n}</em>` : ''}</a>
+    <div class="h-droite">${coteSeg('cotes-h')}<a class="h-btn" href="#activite" ${S.vue === 'activite' ? 'aria-current="page"' : ''} aria-label="Activité${n ? ', ' + n + ' à traiter' : ''}" title="Activité">${svg('cloche')}${n ? `<em>${n}</em>` : ''}</a>
       <a class="h-btn h-moi" href="#profil" ${S.vue === 'profil' ? 'aria-current="page"' : ''} aria-label="Mon profil et mes réglages" title="${esc(P.moi.n)} · ${STATUTS[S.statut][0]}">${av('moi', 'm', false).replace('</span>', `<u class="${STATUTS[S.statut][1] === 'npd' ? 'occ' : STATUTS[S.statut][1]}"></u></span>`)}</a></div>`;
 }
-const ONGLETS = ['accueil', 'messages', 'appels', 'agenda'];
-function ongletsHtml() { const plus = !ONGLETS.includes(S.vue) && S.vue !== 'activite' && S.vue !== 'profil';
+const onglets = () => (S.mode === 'pro' ? ['accueil', 'messages', 'appels', 'agenda'] : ['messages', 'appels', 'agenda', 'contacts']);
+function ongletsHtml() { const ONGLETS = onglets(), plus = !ONGLETS.includes(S.vue) && S.vue !== 'activite' && S.vue !== 'profil';
   return ONGLETS.map((k) => { const n = NAV.find((x) => x[0] === k), c = compte(k); return `<a href="#${k}" ${S.vue === k ? 'aria-current="page"' : ''}><i>${svg(n[1])}${c ? `<em>${c}</em>` : ''}</i>${n[2]}</a>`; }).join('')
     + `<button data-action="plus" ${plus ? 'aria-current="page"' : ''}><i>${svg('points')}${COUR.nl ? `<em>${COUR.nl}</em>` : ''}</i>Plus</button>`; }
 function majMenu() { $('#cote').innerHTML = menuHtml(); $('#onglets').innerHTML = ongletsHtml(); $('#haut').innerHTML = hautHtml(); }
@@ -163,7 +208,7 @@ function activite() {
   C.filter((c) => c.nl).forEach((c) => { const d = dernier(c); l.push({ id: 'm-' + c.id, g: c.canal ? 'mention' : 'message', ic: c.canal ? 'eclat' : 'bulle', c: '#2a4a9c', t: (c.canal ? 'Mention dans ' : '') + convNom(c), p: (c.canal ? prenom(d.de) + ' : ' : '') + apercu(d), h: quand(d), j: d.j, hh: d.h, go: 'messages/' + c.id, ges: [['Répondre', 'go']] }); });
   APPELS.filter((a) => a.sens === 'manque' && !a.vu).forEach((a) => l.push({ id: 'a-' + a.id, g: 'appel', ic: 'tel', c: '#e5484d', t: 'Appel manqué · ' + P[a.qui].n, p: P[a.qui].r, h: a.j === 0 ? a.h : jourCourt(a.j), j: a.j, hh: a.h, go: 'appels/' + a.id, ges: [['Rappeler', 'appeler', a.qui]] }));
   EVTS.filter((e) => e.invitation).forEach((e) => l.push({ id: 'i-' + e.id, g: 'invitation', ic: 'agenda', c: '#7d3c98', t: 'Invitation · ' + e.titre, p: jourLong(e.j) + ' · ' + e.deb + ' – ' + e.fin + ' · de ' + P[e.invitation].n, h: '', j: 0, hh: '07:00', go: 'reunions/' + e.id, ges: [['Accepter', 'inv', 'oui'], ['Refuser', 'inv', 'non']], e: e.id }));
-  if (COUR.nl) l.push({ id: 'c', g: 'courrier', ic: 'mail', c: '#0d8a6a', t: COUR.nl + ' courriel' + (COUR.nl > 1 ? 's' : '') + ' non lu' + (COUR.nl > 1 ? 's' : ''), p: 'Dans ta boîte professionnelle', h: '', j: 0, hh: '06:00', go: 'courrier', ges: [['Ouvrir', 'go']] });
+  if (COUR.nl && S.mode === 'pro') l.push({ id: 'c', g: 'courrier', ic: 'mail', c: '#0d8a6a', t: COUR.nl + ' courriel' + (COUR.nl > 1 ? 's' : '') + ' non lu' + (COUR.nl > 1 ? 's' : ''), p: 'Dans ta boîte professionnelle', h: '', j: 0, hh: '06:00', go: 'courrier', ges: [['Ouvrir', 'go']] });
   return l.filter((x) => !TRAITE.has(x.id)).sort((a, b) => b.j - a.j || b.hh.localeCompare(a.hh));
 }
 const actHtml = (x) => `<div class="act"><span class="ic" style="--c:${x.c}">${svg(x.ic)}</span><div class="t"><b class="coupe">${esc(x.t)}</b><p>${esc(x.p)}</p><div class="ges">${x.ges.map((g, k) => g[1] === 'go' ? `<a class="btn" href="#${x.go}">${g[0]}</a>` : g[1] === 'appeler' ? `<button class="btn" data-appeler="${g[2]}">${svg('tel')}${g[0]}</button>` : `<button class="btn ${k ? 'gris' : ''}" data-inv="${x.e}" data-rep="${g[2]}">${g[0]}</button>`).join('')}<button class="btn gris" data-traite="${x.id}">${svg('coche')}Traité</button></div></div><time>${x.h}</time></div>`;

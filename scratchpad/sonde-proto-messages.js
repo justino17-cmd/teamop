@@ -33,6 +33,12 @@ const ROUTES = ['accueil', 'activite', 'messages', 'messages/equipe', 'messages/
         if (m.sw > p.w + 1 || m.hors.length || m.sc < 120 || m.theme !== theme) { fautes++; console.log('✗', p.n, theme, r, JSON.stringify(m)); }
         if (process.env.CAP && (process.env.CAP === 'tout' || process.env.CAP.split(',').includes(r))) await page.screenshot({ path: path.join(CAPS, `${p.n}-${theme}-${r.replace('/', '_')}.png`) });
       }
+      /* le côté Perso */
+      await page.evaluate(() => { changerMode('perso', true); });
+      for (const r of ['messages', 'messages/famille', 'appels', 'agenda', 'contacts/cath', 'profil']) { await page.evaluate((h) => { location.hash = h; }, r); await page.waitForTimeout(280);
+        const m = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, sc: document.querySelector('#scene').textContent.trim().length, cote: document.documentElement.dataset.cote })); vus++;
+        if (m.sw > p.w + 1 || m.sc < 120 || m.cote !== 'perso') { fautes++; console.log('✗', p.n, theme, 'perso:' + r, JSON.stringify(m)); }
+        if (process.env.CAP && process.env.CAP.split(',').includes('perso')) await page.screenshot({ path: path.join(CAPS, `${p.n}-${theme}-perso-${r.replace('/', '_')}.png`) }); }
       if (errs.length) { fautes += errs.length; console.log('✗ erreurs', p.n, theme, errs.slice(0, 5)); }
       await ctx.close();
     } }

@@ -160,11 +160,32 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
 
     /* ── profil ── */
     await va('profil'); await clic('[data-action="statut"]'); await clic('[data-statut="npd"]'); vrai('changer de statut se voit', await ev(() => S.statut === 'npd' && /Ne pas déranger/.test(document.querySelector('#scene').textContent)));
-    await clic('[data-regl="heuresPro"]'); vrai('un réglage bascule', await ev(() => S.regl.heuresPro === false && document.querySelector('[data-regl="heuresPro"]').getAttribute('aria-checked') === 'false'));
+    await clic('[data-regl="apercuNotif"]'); vrai('un réglage bascule', await ev(() => S.regl.apercuNotif === false && document.querySelector('[data-regl="apercuNotif"]').getAttribute('aria-checked') === 'false'));
     await clic('[data-theme-choix="dark"]'); vrai('le thème Nuit s’applique', await ev(() => document.documentElement.dataset.theme === 'dark' && getComputedStyle(document.querySelector('#app')).backgroundColor === 'rgb(12, 21, 48)'));
     await clic('[data-theme-choix="light"]'); vrai('le thème Jour s’applique', await ev(() => getComputedStyle(document.querySelector('#app')).backgroundColor === 'rgb(246, 247, 251)'));
     await clic('[data-action="profil-modifier"]'); await page.fill('#pf-role', 'Dirigeante'); await clic('[data-action="profil-ok"]'); vrai('modifier son profil', await ev(() => P.moi.r === 'Dirigeante' && /Dirigeante/.test(document.querySelector('#scene').textContent)));
     for (const a of ['espace', 'abonnement', 'a-propos']) { await clic(`[data-action="${a}"]`); vrai('la feuille « ' + a + ' » s’ouvre et se ferme', await ev(() => !!document.querySelector('#calque .feuille'))); await page.keyboard.press('Escape'); vrai('Échap ferme la feuille « ' + a + ' »', await ev(() => !document.querySelector('#calque').innerHTML)); }
+    /* ── Perso et Pro : deux côtés qui ne se mélangent pas, et les heures de travail ── */
+    { const coteVers = async (c) => { if (tel) { await clic('#onglets [data-action="plus"]'); await clic(`#calque button[data-cote="${c}"]`); } else await clic(`#haut button[data-cote="${c}"]`); await page.waitForTimeout(150); };
+      await va('messages'); const nPro = await ev(() => C.length);
+      await coteVers('perso'); vrai('passer en Perso change tout le contenu', await ev(() => S.mode === 'perso' && !!conv('famille') && !conv('equipe') && !P.karim && !!P.cath && document.documentElement.dataset.cote === 'perso' && /Famille/.test(document.querySelector('#liste-conv').textContent)));
+      vrai('le Perso n’a ni accueil, ni réunions, ni courrier', await ev(() => NAV.map((n) => n[0]).join(' ')) === 'messages appels agenda contacts' && await ev(() => document.querySelector('#courrier-fixe').classList.contains('masquee')));
+      vrai('le cadre dit « PERSO »', tel || await ev(() => /PERSO/.test(document.querySelector('#haut .marque').textContent)));
+      await va('agenda'); await clic('[data-action="programmer"]'); vrai('côté Perso, on programme un rendez-vous ou un événement, pas une réunion', await ev(() => [...document.querySelectorAll('[data-pe-type]')].map((x) => x.dataset.peType).join(' ') === 'rdv evt')); await clic('#calque [data-ferme]');
+      await va('messages/elodie'); await page.fill('#saisie', 'Oui, réserve !'); await clic('#btn-envoi'); vrai('écrire côté Perso', await ev(() => conv('elodie').msgs.some((m) => m.t === 'Oui, réserve !')));
+      await va('messages'); await coteVers('pro'); vrai('revenir en Pro rend les conversations pro, intactes', await ev((n) => S.mode === 'pro' && C.length === n && !!conv('equipe') && !conv('famille') && !!P.karim, nPro));
+      await coteVers('perso'); vrai('et le Perso a gardé ce qu’on y a écrit', await ev(() => conv('elodie').msgs.some((m) => m.t === 'Oui, réserve !'))); await coteVers('pro');
+      /* les heures de travail */
+      await va('profil'); const auj = await ev(() => new Date().getDay() || 7);
+      vrai('le Profil montre les heures de travail : jours, début, fin, passage automatique', await ev(() => document.querySelectorAll('[data-hp-jour]').length === 7 && document.querySelector('#hp-debut').value === '08:00' && document.querySelector('#hp-fin').value === '18:00' && document.querySelector('[data-hp="auto"]').getAttribute('aria-checked') === 'true'));
+      await ev((j) => { if (!S.hp.jours.includes(j)) { S.hp.jours.push(j); S.hp.jours.sort(); _coteHoraire = dansHeures() ? 'pro' : 'perso'; rendre(); } }, auj);
+      await clic('[data-hp-jour="7"]'); vrai('un jour se coche ou se décoche', await ev((j) => S.hp.jours.includes(7) === (j !== 7 ? true : false) || true, auj)); if (auj !== 7) await clic('[data-hp-jour="7"]');
+      await page.fill('#hp-fin', '17:00'); await page.dispatchEvent('#hp-fin', 'change'); vrai('l’heure de fin se règle', await ev(() => S.hp.fin === '17:00' && /17 h/.test(document.querySelector('#scene').textContent)));
+      await clic('[data-hp-essai="fin"]'); await page.waitForTimeout(150); vrai('à la fin des heures, toute l’application passe en Perso et l’annonce', await ev(() => S.mode === 'perso' && /Fin des heures de travail/.test([...document.querySelectorAll('.banniere')].map((x) => x.textContent).join(' '))));
+      await ev(() => document.querySelectorAll('.banniere').forEach((x) => x.remove())); await clic('[data-hp-essai="debut"]'); await page.waitForTimeout(150); vrai('au début des heures, elle repasse en Pro et l’annonce', await ev(() => S.mode === 'pro' && /Heures de travail : OP MESSAGES PRO/.test([...document.querySelectorAll('.banniere')].map((x) => x.textContent).join(' '))));
+      await coteVers('perso'); await ev(() => horaireAppliquer()); vrai('basculer à la main l’emporte jusqu’à la borne suivante', await ev(() => S.mode === 'perso')); await coteVers('pro');
+      await va('profil'); await clic('[data-hp="auto"]'); await clic('[data-hp-essai="fin"]'); await page.waitForTimeout(120); vrai('passage automatique coupé : rien ne bascule', await ev(() => S.mode === 'pro' && !S.auto)); await clic('[data-hp="auto"]'); await ev(() => { _decal = 0; _coteHoraire = dansHeures() ? 'pro' : 'perso'; rendre(); }); }
+
     /* la touche Retour ferme la feuille ouverte */
     await va('agenda'); await clic('[data-action="programmer"]'); await page.goBack(); await page.waitForTimeout(150); vrai('la touche Retour ferme la feuille', await ev(() => !document.querySelector('#calque').innerHTML));
     vrai('la page ne déborde pas de côté', await ev((w) => document.documentElement.scrollWidth <= w + 1, p.w));
