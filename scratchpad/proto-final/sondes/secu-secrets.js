@@ -10,6 +10,7 @@ const src = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion.
 const nette = src.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/\/\*[^\n]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 // le bloc de la double authentification dans le fichier (du premier « SECU_DEMO » à la fin des écrans de connexion)
 const i0 = src.indexOf('const SECU_DEMO'), i1 = src.indexOf('function cnxEntrer'); const bloc = src.slice(i0, i1);
+const j0 = nette.indexOf('const SECU_DEMO'), j1 = nette.indexOf('function cnxEntrer'), blocN = nette.slice(j0, j1);   // le même bloc, sans commentaires : on garde du CODE, jamais une phrase d'explication
 (async () => {
   console.log('\n── 1. le fichier : ce qui a disparu, ce qui ne doit jamais être écrit ──');
   v('population : le bloc de la double authentification est trouvé (plus de 20 000 caractères)', i0 > 0 && i1 > i0 && bloc.length > 20000, { i0, i1 });
@@ -17,14 +18,14 @@ const i0 = src.indexOf('const SECU_DEMO'), i1 = src.indexOf('function cnxEntrer'
   v('« opg_proto_mdp » (les mots de passe en clair dans le navigateur) n’existe plus', !/opg_proto_mdp/.test(src));
   v('« opg_proto_session » (la session rangée) n’existe plus', !/opg_proto_session/.test(src));
   v('MDP_PROVISOIRE, MDP_CLE, SESSION_CLE n’existent plus', !/MDP_PROVISOIRE|MDP_CLE|SESSION_CLE/.test(src));
-  v('la case « Rester connecté » (data-reste) n’existe plus', !/data-reste|Rester connecté/.test(nette));
+  v('la case « Rester connecté » n’existe plus (ni son identifiant, ni son texte)', !/Rester connecté|cn-reste|dataset\.reste|data-reste="1"/.test(nette));
   // aucun code de secours : les SEULES phrases qui prononcent le mot sont celles qui le nient (le métier de la page parle de « Dépannage » et de « trousse de secours » : on cherche le CODE)
   const secours = [...nette.matchAll(/[^.\n]{0,60}(code[s]? de (secours|récupération|dépannage|recovery|backup)|recovery code|backup code|code[s]? de sauvegarde)[^.\n]{0,60}/gi)].map(m => m[0].trim());
   v('le mot « code de secours » n’est écrit que pour dire qu’il n’y en a pas (' + secours.length + ' phrases)', secours.length > 0 && secours.every(t => /(n’y a pas|n’existe pas|pas de|aucun) (de )?code[s]? de secours/i.test(t)), secours);
-  v('aucun lien, bouton ni écran « se connecter sans téléphone »', !/sans téléphone|sans ton téléphone|autre moyen de te connecter/i.test(nette.slice(nette.indexOf('function cnxMontrer'), i1)));
+  v('aucun lien, bouton ni écran « se connecter sans téléphone »', !/sans téléphone\b|sans ton téléphone|autre moyen de te connecter/i.test(blocN));
   v('la démonstration ne fait jamais JSON.stringify de SECU ni de SECU.comptes', !/JSON\.stringify\(\s*SECU(\.comptes)?\s*[,)]/.test(nette));
-  v('aucun secret n’est rangé : le bloc n’écrit ni dans localStorage ni dans sessionStorage ni dans un cookie', !/(localStorage|sessionStorage)\.setItem|document\.cookie\s*=|window\.name\s*=/.test(bloc.replace(/opg_proto_espace/g, '')), (bloc.match(/.{40}(localStorage|sessionStorage)\.setItem.{60}/g) || []).slice(0, 3));
-  v('le hasard des secrets vient de crypto.getRandomValues (jamais Math.random)', !/Math\.random/.test(bloc));
+  v('aucun secret n’est rangé : le bloc n’écrit ni dans localStorage ni dans sessionStorage ni dans un cookie', !/(localStorage|sessionStorage)\.setItem|document\.cookie\s*=|window\.name\s*=/.test(blocN), (bloc.match(/.{40}(localStorage|sessionStorage)\.setItem.{60}/g) || []).slice(0, 3));
+  v('le hasard des secrets vient de crypto.getRandomValues (jamais Math.random, dans le bloc, hors commentaires)', blocN.length > 20000 && /crypto\.getRandomValues/.test(blocN) && !/Math\.random/.test(blocN), blocN.length);
 
   console.log('\n── 2. un parcours complet, fouillé après chaque étape ──');
   const c = await S.ouvrir({ profil:'mac' });
@@ -60,7 +61,7 @@ const i0 = src.indexOf('const SECU_DEMO'), i1 = src.indexOf('function cnxEntrer'
   await fouille('pendant la demande de connexion');
   const apresN = await c.p.evaluate(nn => { const d = []; document.querySelectorAll('*').forEach(e => { for (const a of e.attributes) if (/^data-/.test(a.name) && a.value === nn) d.push(e.tagName + '[' + a.name + ']'); if (e.id === nn) d.push('id'); }); return { d, ls:Object.values(localStorage).concat(Object.values(sessionStorage)).filter(x => x === nn).length }; }, n);
   v('le nombre (« ' + n + ' ») n’est la valeur d’aucune donnée data-*, d’aucun identifiant ni d’aucun rangement', apresN.d.length === 0 && apresN.ls === 0, apresN);
-  await S.approuver(c, 'marc', n); await S.attendreApp(c, 15000); await fouille('après la connexion par le nombre');
+  await S.approuver(c, 'marc', n, pin); await S.attendreApp(c, 15000); await fouille('après la connexion par le nombre');
   // une connexion inhabituelle, un code à 6 chiffres refusé : aucun secret de plus dans le journal
   await c.p.evaluate(() => sessionFermer('deconnexion')); await S.attendreSel(c, '#cn-id', 8000);
   await c.p.evaluate(() => { SECU.cases.autre = true; }); await S.connecter(c, 'marc', perso); await S.lireNombre(c);
@@ -68,5 +69,24 @@ const i0 = src.indexOf('const SECU_DEMO'), i1 = src.indexOf('function cnxEntrer'
   const jr = await c.p.evaluate(() => SECU.journal.map(j => j.action + ' ' + j.detail).join(' | '));
   v('le journal de la page ne dit que des faits (aucun mot de passe, aucun PIN) : ' + (jr.match(/login\.|mfa\./g) || []).length + ' lignes', /login\./.test(jr) && !jr.includes(perso) && !jr.includes(pin), jr.slice(0, 200));
   v('aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3));
-  await L.fin(c); await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);
+  await L.fin(c);
+
+  console.log('\n── 3. la fiche d’une personne (Équipe) : aucun mot de passe lisible, ni dans l’écran ni dans le texte à envoyer ──');
+  { const g = await L.ouvrir({ profil:'mac', qui:'marc' }); await L.aller(g.p, 'equipe');
+    const pop = await g.p.evaluate(() => EQUIPE.map(p => p.k)); v('population : les ' + pop.length + ' personnes de l’équipe', pop.length === 6, pop);
+    let lues = 0, secretsVus = 0;
+    for (const k of pop) {
+      const r = await g.p.evaluate(k => { fermerPanneau && fermerPanneau(); eqFiche(k); const P = document.querySelector('#calque .panneau'); if (!P) return null; const cl = SECU.comptes[k], clairs = [cl.prov, cl.demoClair].filter(Boolean);
+        const copier = P.querySelector('[data-cnx="copier"]'); const attrs = []; P.querySelectorAll('*').forEach(e => { for (const a of e.attributes) attrs.push(a.value); });
+        return { texte:P.textContent.replace(/\s+/g, ' '), html:P.innerHTML, copie:copier ? copier.dataset.t : null, clairs, acces:!!P.querySelector('.cn-acces'), attrs:attrs.join('\n'), prov:!!cl.prov, tel:!!cl.tel }; }, k);
+      if (!r) { v('fiche de ' + k + ' : le panneau s’ouvre', false); continue; } lues++;
+      v('fiche de ' + k + ' : le bloc « Connexion » est là (Marc est administrateur)', r.acces, k);
+      const trouves = r.clairs.filter(x => r.html.includes(x) || (r.copie || '').includes(x) || r.attrs.includes(x)); secretsVus += r.clairs.length;
+      v('fiche de ' + k + ' : aucun mot de passe (' + r.clairs.length + ' cherché' + (r.clairs.length > 1 ? 's' : '') + ') ni dans l’écran, ni dans le texte à copier, ni dans une donnée data-*', trouves.length === 0 && (r.clairs.length > 0 || !r.prov), trouves);
+      v('fiche de ' + k + ' : la ligne « Mot de passe » dit ' + (r.prov ? '« Provisoire : à lui remettre en main propre. »' : '« Personnel, choisi par … »'), r.prov ? /Provisoire : à lui remettre en main propre\./.test(r.texte) : /Personnel, choisi par/.test(r.texte), r.texte.slice(0, 200));
+      if (r.copie) v('fiche de ' + k + ' : le texte à copier dit « je te le remets en main propre » et ne contient aucun mot de passe', /je te le remets en main propre/.test(r.copie) && !/Bienvenue/.test(r.copie), r.copie);
+      v('fiche de ' + k + ' : le téléphone est dit (' + (r.tel ? 'activé' : 'à activer') + ')', /Téléphone/.test(r.texte) && (r.tel ? /activé le/.test(r.texte) || /Verrouillé/.test(r.texte) : /À activer à sa première connexion/.test(r.texte)), r.texte.slice(0, 300)); }
+    v('population : ' + lues + ' fiches lues, ' + secretsVus + ' mots de passe cherchés (zéro serait une mesure creuse)', lues === 6 && secretsVus >= 4, { lues, secretsVus });
+    v('aucune erreur JavaScript', g.err.length === 0, g.err.slice(0, 3)); await L.fin(g); }
+  await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('ERR', e); process.exit(1); });

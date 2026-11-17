@@ -31,7 +31,7 @@ exports.fermerTel = async c => { await c.p.evaluate(() => opsFermer()); await c.
 exports.pin = async (c, code) => { for (const d of String(code)) { await c.p.evaluate(d => { const b = document.querySelector('#opsec [data-ops="pin-touche"][data-k="' + d + '"]'); b.click(); }, d); } await c.p.waitForTimeout(200); };
 exports.deverrouiller = async (c, k, pin) => { await exports.telephone(c, k); const v = await c.p.evaluate(() => !!document.querySelector('#opsec .ops-barre')); if (v) return true; await exports.pin(c, pin || '246802'); return c.p.evaluate(() => !!document.querySelector('#opsec .ops-barre')); };
 // tape le nombre sur le téléphone de la personne et touche « Approuver »
-exports.approuver = async (c, k, nombre) => { await exports.deverrouiller(c, k);
+exports.approuver = async (c, k, nombre, pin) => { await exports.deverrouiller(c, k, pin);
   await c.p.evaluate(n => { const i = document.querySelector('#opsec [data-ops="nombre-champ"]'); i.value = n; i.dispatchEvent(new Event('input', { bubbles:true })); document.querySelector('#opsec [data-ops="approuver"]').click(); }, String(nombre)); await c.p.waitForTimeout(300); };
 // les cartes de demande que le téléphone montre (jamais le nombre)
 exports.cartes = c => c.p.evaluate(() => [...document.querySelectorAll('#opsec .ops-carte')].map(e => ({ titre:(e.querySelector('h2') || {}).textContent || '', texte:e.textContent.replace(/\s+/g, ' ').trim(), rouge:e.classList.contains('rouge') })));
@@ -55,7 +55,7 @@ exports.activer = async (c, k, o) => { o = o || {}; const mdp = await exports.pr
   await c.p.fill('#cn-code6', code6); await c.p.click('#cn-form-verifier button[type=submit]'); if (!await exports.attendreSel(c, '#cn-form-premier', 6000)) throw new Error('écran C absent');
   await c.p.fill('#cn-n1', perso); await c.p.fill('#cn-n2', perso); await c.p.click('#cn-form-premier button[type=submit]'); await exports.attendreApp(c, 15000, o.guide); return { mdp:perso, pin }; };
 // une connexion de tous les jours : identifiant + mot de passe, nombre lu sur l'écran, tapé sur le téléphone
-exports.jour = async (c, k, mdp, pin) => { await exports.connecter(c, k, mdp); const n = await exports.lireNombre(c); await exports.approuver(c, k, n); await exports.attendreApp(c, 15000); return n; };
+exports.jour = async (c, k, mdp, pin) => { await exports.connecter(c, k, mdp); const n = await exports.lireNombre(c); await exports.approuver(c, k, n, pin); await exports.attendreApp(c, 15000); return n; };
 // fouille de tout rangement : localStorage, sessionStorage, cookies, window.name, adresse, noms d'IndexedDB (rend un texte à chercher)
 exports.rangement = async c => { const base = await c.p.evaluate(async () => { const o = []; try { for (let i = 0; i < localStorage.length; i++) o.push('L:' + localStorage.key(i) + '=' + localStorage.getItem(localStorage.key(i))); } catch (e) {}
   try { for (let i = 0; i < sessionStorage.length; i++) o.push('S:' + sessionStorage.key(i) + '=' + sessionStorage.getItem(sessionStorage.key(i))); } catch (e) {}
