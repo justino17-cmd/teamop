@@ -31,7 +31,8 @@ const TECHNIQUE = /\b(login|logout|reset|token|payload|callback|timeout|admin(?!
   for (const [n, t] of Object.entries(T)) {
     const e = (t.match(ECHAFAUDAGE) || [])[0]; v(`${n} : aucun reste d’échafaudage`, !e, e);
     const q = (t.match(TECHNIQUE) || [])[0]; v(`${n} : aucun mot technique ou anglais`, !q, q);
-    t.split(/\n+|(?<=[.!?…])\s+|\s·\s/).forEach(s => { const m = s.trim().split(/\s+/).length; if (m > 35) long.push(n + ' (' + m + ' mots) : ' + s.trim().slice(0, 140)); });
+    t.split(/\n+|(?<=[.!?…])\s+|\s·\s/).forEach(s => { if (/\t/.test(s)) return;   /* une rangée de tableau (les titres de colonnes entiers de « Qui peut quoi ») n'est pas une phrase */
+      const m = s.trim().split(/\s+/).length; if (m > 35) long.push(n + ' (' + m + ' mots) : ' + s.trim().slice(0, 140)); });
   }
   v('equipe-20 aucune phrase de plus de 35 mots (liste en détail)', long.length === 0, long.slice(0, 6));
   fs.writeFileSync('/tmp/equipe-mots-' + PROFIL + '.json', JSON.stringify(T, null, 1));
