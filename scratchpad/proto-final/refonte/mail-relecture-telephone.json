@@ -1,0 +1,91 @@
+{
+  "lot": "mail",
+  "angle": "telephone",
+  "etat": "en cours (point de sauvegarde 1) : iphone, android, petit, jour et nuit ; lecture, réponse, composeur, clavier simulé, joindre, refus et envoi, sélection, filtre, boîtes, retour navigateur, brouillon quitté puis retrouvé",
+  "couvert": [
+    "iphone 390×844 (encoches 47/34 posées), android 360×740 (24/16), petit 320×568 ; jour et nuit ; toucher réel (tap), pas de clic souris",
+    "liste : recherche « devis » (2 résultats), 11 messages ouverts un à un, texte du message mesuré contre le bas de la zone de lecture",
+    "composeur : réponse rapide et Répondre, champs ≥ 16 px (17 mesurés), « Faire signer » caché, clavier simulé (fenêtre réduite à 55 %) : champ de saisie et Envoyer restent visibles à 390, 360 et 320",
+    "brouillon : texte tapé, départ vers Clients par aller('clients'), retour : la fenêtre est rouverte avec le texte et « Brouillon enregistré » (retrouvé sur iphone, android, petit, jour et nuit)",
+    "pièce jointe (1 Ko puis 30 Mo refusée avec un mot), refus d'envoi sans destinataire (champ À marqué, pris, message dit « Ajoutez un destinataire »), envoi annulable (message « Envoi en cours… Annuler l'envoi »)",
+    "sélection multiple (boutons ≥ 44 px), filtre (3 lignes de 44 px), colonne des boîtes (13 commandes, aucune < 44 px), « Ajouter une boîte mail » (feuille), aucun glissement latéral de la page sur tous ces écrans, 0 erreur JavaScript",
+    "retour du navigateur (page.goBack) depuis la lecture et depuis le composeur",
+    "relecture du diff opcourrier.js → apercu/prototype-courrier.js (113 blocs, 411 lignes) : voir « diff » plus bas"
+  ],
+  "faux_defauts_ecartes": [
+    "« Annuler l'envoi » mesure 132×39 : la zone tactile réelle fait 47 px (::before inset −4 px, l. 1409) — pas un défaut",
+    "« Ajouter une boîte mail » : 10 commandes à 40 px relevées sous la feuille ouverte : c'est la colonne REPLIÉE derrière la feuille (échelle 0,92 voulue) — ma sonde mesurait l'arrière-plan",
+    "le bandeau rouge « marc@… ne répond plus » à l'ouverture : déjà relevé (chef-01), à traiter par l'étape « corriger » ; sur téléphone il mange 100 px de la liste (à 320 px, la première ligne de message est coupée) : même cause"
+  ],
+  "defauts": [
+    {
+      "n": "telephone-01",
+      "gravite": "gênant",
+      "ecran": "Boîte mail › lecture d'un message (téléphone)",
+      "role": "marc (gérant)",
+      "profils": ["iphone", "android", "petit"],
+      "etapes": "Ouvrir l'application en gérant, Menu › Boîte mail, toucher un message de la liste (ex. « Climatisation chambre 214 en panne »), ne pas défiler.",
+      "attendu": "Le texte du courriel — ce qu'on vient lire — commence dans l'écran, avec au plus un bandeau court au-dessus ; un débutant lit d'abord le message.",
+      "constate": "Sous l'objet s'empilent : le bandeau « OP GESTION a reconnu » (≈ 280 px), la ligne de rangement « Principal · Pourquoi ce rangement ? · Ranger ailleurs… » (≈ 90 px) puis le bloc Suivi (À traiter / En cours / Résolu + Assigné à, ≈ 120 px). Le premier mot du message est à y = 824 pour une zone de lecture qui s'arrête à 724 (iPhone 390×844), 783/638 (Android), 841/482 (320×568). Sur les 11 messages de la boîte, 9 commencent sous le pli sur iPhone (de 771 à 947 pour 724) ; seuls « Nouveautés de la gamme 2027 » et « Photo du groupe extérieur » commencent dans l'écran. Même constat de nuit. 5 passages sur 5 (iphone jour/nuit, android, petit jour/nuit).",
+      "preuve": "mesure : sonde p5.js (corpsY de .rbody contre le bas de #readScroll) et p6.js scénario 1 (11 messages). Code : apercu/prototype-courrier.js, renderReading : catLine+=suiviHtml(m)+hoteHtml(m) est écrit AVANT « <div class=rsep></div><div class=rbody> » ; la règle .hband{order:2} (phone) ne change que l'ordre dans le bandeau. Captures : c-lecture-iphone-0.png, c-lecture-iphone-bas.png, c-lecture-petit-0.png.",
+      "ou": "apercu/prototype-courrier.js : renderReading (≈ l. 2570-2592) et feuille phone du bandeau (≈ l. 1519-1530)",
+      "correction": "Au téléphone, mettre le corps du message juste après l'en-tête (expéditeur, objet) et déplacer sous le texte le bandeau « reconnu » réduit à sa ligne + son geste principal (les autres gestes déjà sous « Autres gestes »), ainsi que le bloc Suivi et la ligne de rangement (ou les replier sous une seule ligne « Suivi · Principal »). Rejouer p6.js scénario 1 : 11 messages sur 11 avec le texte dans l'écran à 390, 360 et 320."
+    },
+    {
+      "n": "telephone-02",
+      "gravite": "gênant",
+      "ecran": "Boîte mail › lecture et composeur › bouton ou geste « retour » du navigateur",
+      "role": "marc (gérant)",
+      "profils": ["iphone"],
+      "etapes": "Accueil, puis Boîte mail, toucher un message, déclencher le retour du navigateur (Android : bouton retour ; iPhone : glisser depuis le bord gauche). Variante : ouvrir « Nouveau message » puis le retour.",
+      "attendu": "Depuis la lecture, le retour revient à la LISTE des messages (comme la flèche « Boîte de réception » en haut à gauche) ; depuis un message en cours, il ne fait pas disparaître la fenêtre sans un mot.",
+      "constate": "Le retour quitte la Boîte mail pour l'Accueil (route « accueil », #accueil, l'hôte est masqué). Depuis le composeur, le même retour mène à l'Accueil et la fenêtre en cours n'est plus visible (le brouillon, lui, est retrouvé en revenant dans la Boîte mail, mesuré).",
+      "preuve": "p6.js scénario 2 : avant {route:boiteMail, lecture visible}, après {route:accueil, hash:#accueil, hoteCache:true}. Code : aucune occurrence de history/popstate dans apercu/prototype-courrier.js (les trois vues liste/lecture/composeur se changent par go() sans entrée d'historique).",
+      "ou": "apercu/prototype-courrier.js : go(), openCompose ; apercu/prototype-op-gestion.html : addEventListener('popstate') côté prototype ne connaît pas l'état du module",
+      "correction": "Donner au module une entrée d'historique par niveau (liste → lecture → composeur) ou lui faire écouter popstate pour revenir d'un niveau avant de laisser l'hôte quitter la rubrique ; à défaut, un « Quitter ? » quand un message est en cours. À rejouer aussi sur android et petit (voir mon second passage)."
+    },
+    {
+      "n": "telephone-03",
+      "gravite": "gênant",
+      "ecran": "Boîte mail › composeur › pièce jointe ajoutée",
+      "role": "marc (gérant)",
+      "profils": ["iphone"],
+      "etapes": "Nouveau message, Joindre un fichier (un PDF), regarder la pastille de la pièce jointe.",
+      "attendu": "Chaque commande se touche du doigt : retirer une pièce jointe mesure au moins 44 px (les autres commandes du composeur : 44 px).",
+      "constate": "Le bouton « × Retirer » de la pièce mesure 26×26 px, à droite de « Aperçu » (62×44) ; le nom du fichier, lui, prend 362 px. Un doigt manque la croix ou touche « Aperçu ».",
+      "preuve": "mesure p6.js scénario 4 : att-x w 26 h 26. Code : .opc .att-x{width:26px;height:26px} (l. 689), aucune règle phone ni zone tactile élargie (contrairement à .toast .undo l. 1409). Capture j-joindre-iphone.png.",
+      "ou": "apercu/prototype-courrier.js l. 689",
+      "correction": "Sous (pointer:coarse) ou en format phone/pad : .att-x{min-width:44px;min-height:44px} (marge négative pour garder la pastille compacte) ou ::before inset −9px comme le bouton Annuler de l'envoi."
+    },
+    {
+      "n": "telephone-04",
+      "gravite": "gênant",
+      "ecran": "Boîte mail › composeur (téléphone et tablette) › bouton d'envoi",
+      "role": "marc (gérant)",
+      "profils": ["iphone", "android", "petit"],
+      "etapes": "Répondre à un message ou Nouveau message, regarder la barre du haut de la fenêtre.",
+      "attendu": "L'action principale porte son mot (plan § 5 : « Envoyer » en toutes lettres, D05) ; un débutant ne devine pas qu'une flèche vers le haut envoie le message.",
+      "constate": "Seule une flèche ↑ dans un rond bleu (44×44) tient lieu d'envoi ; « Annuler » et le titre ont leurs mots. D05 n'a été corrigé que pour le format ordinateur.",
+      "preuve": "mesure p5.js : send {w:44,h:44}, libellé « Envoyer » présent mais non affiché. Code : .opc:where([data-fmt=\"phone\"],[data-fmt=\"pad\"]) .send-btn .lbl{display:none} (l. 1169) et .ic-up affiché (l. 1170), alors que la règle mac (l. 995-1003) affiche le mot. Capture e-composeur-iphone.png. Même racine que ordinateur-16 (format tablette).",
+      "ou": "apercu/prototype-courrier.js l. 1168-1170",
+      "correction": "Afficher « Envoyer » à côté de la flèche en phone/pad (le titre « Nouveau message » se réduit à 320 px : 3 éléments de barre tiennent, mesure à refaire) ou remplacer la flèche par un bouton de texte « Envoyer » en gras à droite."
+    },
+    {
+      "n": "telephone-05",
+      "gravite": "détail",
+      "ecran": "Boîte mail › barres d'icônes de la lecture, de la liste et de la sélection (téléphone)",
+      "role": "marc (gérant)",
+      "profils": ["iphone", "android", "petit"],
+      "etapes": "Ouvrir un message : regarder la barre du bas (drapeau, boîte, corbeille, flèche, crayon) ; Sélectionner, choisir deux lignes : enveloppe, boîte, flèche, corbeille.",
+      "attendu": "Pour un public « pas doué avec la technologie », au moins le geste principal est écrit, ou une légende apparaît au premier usage.",
+      "constate": "Dix icônes sans un mot (seul le nom accessible existe) ; l'enveloppe et la flèche de la sélection ne disent pas qu'il s'agit de « Marquer non lu » et « Déplacer ». Conforme à Mail d'iOS, donc à trancher par Justin.",
+      "preuve": "recensement p3.js : txt = aria-label seulement ; captures c-lecture-iphone-bas.png, i-selection-iphone.png.",
+      "ou": "apercu/prototype-courrier.js : readTools, selBar (≈ l. 2490-2500)",
+      "correction": "Mettre un mot sous les trois gestes qui détruisent ou déplacent (Archiver, Supprimer, Déplacer) ou une infobulle de première utilisation ; ne rien changer à Répondre / Écrire."
+    }
+  ],
+  "diff": "à compléter : relecture du diff en cours",
+  "non_verifie": [
+    "Safari et iOS réels : clavier virtuel (visualViewport), glisser depuis le bord, appui long au doigt réel, sélecteur de date ; émulation Chromium seulement. Aucune gestion de visualViewport dans le module (grep) : à regarder sur un vrai iPhone"
+  ]
+}

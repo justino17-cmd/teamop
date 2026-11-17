@@ -45,6 +45,11 @@ const ROUTES_RENDUES = {
     const t = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? P.textContent.replace(/\s+/g, ' ') : ''; });
     v('droits : « Équipe et réglages » est devenu « Équipe », « Achats » « Achats et frais », « encaissements » « paiements »', t.length > 200 && !/Équipe et réglages/.test(t) && /Achats et frais/.test(t) && /dépôts/.test(t) && !/encaissements/.test(t), t.slice(0, 80));
     await L.fin(c); }
+  // « Ce que voit le client » n'a plus de ligne au menu : un texte ne doit pas y envoyer, il dit par où passer (la fiche d'une intervention)
+  { const c = await L.ouvrir({ profil:'mac', qui:'marc' }); await c.p.evaluate(() => panneauReglagesRdv()); await L.calme(c.p, 400);
+    const t = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? P.textContent.replace(/\s+/g, ' ') : ''; });
+    v('réglages des rendez-vous : le renvoi passe par la fiche d\'une intervention, pas par une ligne de menu qui n\'existe plus', /Pour les voir : ouvre une intervention, touche « Voir le lien client »/.test(t) && !/Pour les voir : « Ce que voit le client »/.test(t), t.slice(-300));
+    await L.fin(c); }
   v('population : des écrans lus, aucun vide', lus >= 60 && vides === 0, { lus, vides });
   await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);
 })();

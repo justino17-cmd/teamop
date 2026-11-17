@@ -113,6 +113,27 @@ correction, puis coque, interventions, clients, compta-ventes, technicien) · ca
 compta-reste, client, metier-3d). Pas encore lancées : `double-auth`, la seconde vague de la campagne. Rien n'est republié depuis
 la Version 62 ; on republie dès que le compositeur en grand et la boîte mail ont passé leurs corrections.
 
+**DÉCISIONS PRISES PAR LE CHEF DE CHANTIER LE 17 NOVEMBRE (mandat « à toi de jouer ») — À REDIRE À JUSTIN À LA FIN :**
+1. La démonstration de la Boîte mail s'ouvre sur DEUX boîtes connectées : plus de bandeau rouge « ne répond plus » au premier
+   regard (les sondes posent elles-mêmes l'état de panne pour le garder) — `refonte/mail-relecture-chef.json`, défaut chef-01.
+2. Le bouton Retour (Android, navigateur) ferme la fenêtre ouverte SANS quitter l'écran, partout — voie `retour` (constat
+   taches-absences-12 de la campagne).
+3. Les cases d'un jour du calendrier des absences et les barres « mois par mois » des soldes restent sous 44 px (douze par
+   rangée sur un téléphone) : ce sont des cases d'information, pas des gestes — laissé, à lui dire (taches-absences-13).
+4. Tout doit marcher DANS l'artefact publié (là où il regarde) : voie `artefact` — téléchargements par le pont, liens, rangement
+   refusé. À la republication, déclarer aussi la capacité `sample` pour que « Optimiser avec l'IA » marche dans l'atelier du
+   prototype (elle n'est déclarée aujourd'hui que sur l'artefact « Documents sur mesure »).
+**Horaires annoncés à Justin (17 novembre, 0 h 55) :** compositeur en grand et boîte mail corrigés et REPUBLIÉS vers 3 h 30 ;
+refontes finies vers 7 h ; campagne vers 11 h ; dernier passage, guide, publication et réponse chiffrée avec la liste des
+doutes vers 14 h. Lui redire à chaque étape finie.
+**Outils du chef de chantier ajoutés le 17 novembre :** `scratchpad/proto-final/tout-rejouer.sh` (le dernier passage : toutes
+les sondes, un tableau) ; `workflows/essai-a-blanc.js` (joue chaque voie du lanceur avec un faux agent : à lancer après toute
+retouche de `voies.js`) ; `preparer-publication.sh` (la page sans squelette + la liste des fichiers à publier, dont
+`prototype-courrier.js`) ; `sondes/compiler-pages.js` compile désormais les quatre pages et le module de courrier.
+Voies ajoutées à `voies.js` : `artefact` (2 étapes), `retour` (2), `guide` (4), `final-rejeu { familles, arbre }` (2),
+`final-regard { role, rubriques?, suffixe?, arbre }` (2), `final-parcours { arbre }` (2), `final-mots { arbre }` (1),
+`final-rapport { arbre }` (1).
+
 **TROISIÈME REDÉMARRAGE (16 novembre, 23 h 20)**, vingt minutes après le second, avec neuf voies en cours ; le disque a tenu.
 Depuis, un relevé de la machine s'écrit toutes les 15 s dans `/home/user/suivi-machine.log` (lancé par
 `/home/user/suivi-machine.sh`, à relancer après un redémarrage) : à lire en premier après une chute. Constat : cinq voies ont
