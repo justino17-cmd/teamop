@@ -1,0 +1,13 @@
+{
+ "lot": "mail",
+ "etat": "PROVISOIRE (recontrôle en cours, poussé pour ne rien perdre)",
+ "regles": [],
+ "pasRegles": [],
+ "casses": [
+  { "titre": "Titre de la feuille « Nouveau message » coupé à 390 px (« Nouveau messa… »)", "gravite": "détail", "etapes": "iPhone 390 px, Boîte mail, toucher Écrire", "constat": "Depuis que « Envoyer » s'écrit en toutes lettres (telephone-04), le titre de la feuille est tronqué : visible sur la capture rc-tel-composeur-iphone-nuit." }
+ ],
+ "sondes": [
+  { "fichier": "mail-tout.sh (20 sondes du correcteur)", "resultat": "458 ✓ · 1 ✗ ; le seul ✗ (mail-reconnaissance : « Rapprocher ») est une attente périmée : le panneau dit « COMMANDE 2026-036 » et non « BC-2026-036 »" }
+ ],
+ "doutes": []
+}
