@@ -1509,6 +1509,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .eq-dr{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,52px);align-items:center;gap:0;border-top:1px solid var(--trait);padding:0 6px 0 12px;min-height:46px}.eq-dr:first-child{border-top:0}
 .eq-dr>span:first-child{font-size:14px;line-height:1.3;padding:6px 8px 6px 0}.eq-dr label{display:flex;align-items:center;justify-content:center;min-height:44px;cursor:pointer}.eq-dr input{width:20px;height:20px;accent-color:var(--bleu)}
 .eq-dr-t{min-height:34px;background:var(--surf2)}
+.droits-voit{display:flex;flex-direction:column;gap:6px;margin:6px 0 4px;padding:12px 14px;border:1px solid var(--trait);border-radius:14px;background:var(--surf2);font-size:14px;line-height:1.5;overflow-wrap:anywhere}.droits-voit b{font-weight:650}
 /* le détail des droits sur téléphone : une feuille de quatre lignes par catégorie (une case, sa phrase) au lieu de quatre cases serrées dans 360 px */
 .eq-dr-tel{display:none}
 @media (max-width:760px){.eq-droits .eq-dr,.eq-droits .eq-dr-t{display:none}.eq-dr-tel{display:block;border:1px solid var(--trait);border-radius:14px;overflow:hidden;margin-top:8px}
@@ -8388,7 +8389,10 @@ function envoyerFactureParti(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (nu
   const ttc = ttcDe(f), v = P.etat === 'total' ? ttc : Math.min(ttc, parseFloat(String(P.montant).replace(',','.')) || 0); if (!v) return;
   f.recu = v; f.st = v >= ttc - .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
   ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); }
-function payer(f, m, o){ o = o || {}; const v = Math.min(restant(f), o.montant || restant(f)); f.recu = (f.recu || 0) + v; f.st = f.recu >= ttcDe(f) - .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = m; f.paye = o.d || '31/10'; }
+function payer(f, m, o){
+  /* PREMIÈRE instruction : noter un encaissement est « Devis, factures, contrats › Créer » (ou « Comptabilité › Modifier » dans la Comptabilité, ou la fiche de terrain du technicien) ; le client qui paie en ligne n'est pas une personne de l'entreprise */
+  if (ROLE !== 'client' && !(peut('ventes', 'c') || peut('compta', 'm') || peut('inter', 'm'))) { droitsRefus('ventes', 'c', 'payer'); return; }
+  o = o || {}; const v = Math.min(restant(f), o.montant || restant(f)); f.recu = (f.recu || 0) + v; f.st = f.recu >= ttcDe(f) - .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = m; f.paye = o.d || '31/10'; }
   ENCAISSEMENTS.unshift({ d:o.d || '31/10', h:o.h || hm(MAINT_MIN), cli:f.cli, fac:f.num, mode:m, ttc:v, tva:f.tva, photo:o.photo, preuve:o.photo ? undefined : undefined });
   toast(`${eur(v)} encaissés par ${m.toLowerCase()} le ${o.d || '31/10'} à ${ENCAISSEMENTS[0].h}${f.st !== 'payee' && f.recu ? ' · reste ' + eur(restant(f)) : ''}.`); }
 
@@ -11318,11 +11322,13 @@ const GESTES = {
   /* stock, fournisseurs, dépôts */
   bc:{ k:'stock', s:'delai', l:'revision pieces' },
   bxl:{ k:'stock', c:'nou', m:'modok nouok prendre', s:'fermerok', l:'fiche kit' },
-  ce:{ k:'stock', c:'nouvelle add', m:'envoi modif cpok recommander retour', s:'suppr jeter', l:'brouillon bon go voirbon portail' },
+  ce:{ k:'stock', c:'nouvelle add', m:'envoi envoyer modif cpok recommander retour', s:'suppr jeter', l:'brouillon bon go voirbon portail' },
   cm:{ k:'stock', m:'conf confok relok recok accepte conteste relance preparer', s:'annuler', c:'plus', l:'depl hors ancre filtre voir recep rappro' },
   fo:{ k:'stock', c:'ajouter creer', m:'localok appliquer facok commandes', s:'retirer', l:'liste plustard tarifs facture fiche local preparer tout exemple facex' },
   mat:{ k:'stock', m:'ajoute ajouter plus oublie manque pris prise toutpris envoyer modifier mchange menvoyer mplus mmoins moins chginter mchginter', s:'retire', l:'messages usage bord ret mliste mpiece mlibre mquand minter inter' },
   md:{ k:'stock', c:'nou aj dadd cmdadd', m:'deplacer dok rok dcop mettre avanttout remplir fplus dm dp dx dnon', l:'fiche avant stock plus rouvrir sortir compter tout' },
+  /* la liste des fournisseurs et des articles (fx) : des menus, des pas de quantité sur un panier, des filtres = lecture ; « Ajouter » ouvre la fiche d'un article et « Passer en comptoir » règle un fournisseur = modifier */
+  fx:{ k:'stock', m:'ajouteq comptoir', d:'l' },
   ms:{ k:'stock', m:'rok cok toutacc acc ref rmot ajouteq gajoute gmoins gplus gret grecevoir gchinter gfacture gechange genvoyer gpour cmoins cplus ctout fcmd fseuil fseuilx fseuilo fprix fprixx fprixo fchez fchange fmanque', l:'envois t habituels ou maj plus onglet filtrer pk fraz q gorig ginter cpt cgrp fusage fq fhisto' },
   msf:{ k:'stock', d:'m' }, msg:{ k:'stock', m:'ticket vers', l:'de qi collegue br texte lieu montant' }, msr:{ k:'stock', d:'m' },
   pdx:{ k:'stock', m:'decaler garder contok fournenreg facchoix achat perte dupfiche prop nat tpbon toutgo relgo toutprep relgroup', l:'pm etat cmdchez' },
@@ -11398,7 +11404,7 @@ const droitCaseActive = (cat, x) => x === 'v' || !!(DROIT_CASES[cat] && DROIT_CA
 const GESTES_SP = { eq:{ inviter:'comptes', inviterok:'comptes', relancer:'comptes' }, eqx:{ placeok:'comptes' },
   ptx:{ corrige:'corrpt' }, pt:{ ajout:'corrpt', closok:'corrpt', clore:'corrpt' },   /* corriger un pointage DÉJÀ enregistré (les déclarations du salarié sur sa propre journée, « plus tôt » et « fin d'hier », restent les siennes) */
   sx:{ toutval:'valstock', refok:'valstock', expok:'valstock', eok:'valstock', dotok:'valstock' }, ms:{ toutacc:'valstock', acc:'valstock', ref:'valstock' },
-  ce:{ envoi:'commander' }, cm:{ conf:'commander', confok:'commander' }, ac:{ commande:'commander' } };
+  ce:{ envoi:'commander', envoyer:'commander' }, cm:{ conf:'commander', confok:'commander' }, ac:{ commande:'commander' } };
 const DROIT_SP_PHRASE = { comptes:'créer des comptes, dans la limite des places', corrpt:'corriger un pointage', atelier:'se servir à l’atelier sans validation', valstock:'valider les gestes de stock des autres', commander:'envoyer une commande à un fournisseur', prix:'voir les prix d’achat et les marges' };
 const DROITS_REFUS = [];
 let droitsRefusVu = 0;
@@ -11438,7 +11444,7 @@ function droitsGeste(ev){
 function droitsRestaurer(el){
   if (!el) return;
   if (el.type === 'checkbox' || el.type === 'radio') el.checked = el.defaultChecked;
-  else if (el.tagName === 'SELECT') { const o = [...el.options].find(x => x.defaultSelected); if (o) el.value = o.value; }
+  else if (el.tagName === 'SELECT') { el.selectedIndex = Math.max(0, [...el.options].findIndex(x => x.defaultSelected)); }   /* l'option d'avant, ou la première (le navigateur n'a posé « selected » nulle part) */
   else if ('value' in el) el.value = el.defaultValue;
 }
 function droitsInstaller(){
