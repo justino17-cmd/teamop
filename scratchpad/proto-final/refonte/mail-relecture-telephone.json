@@ -1,7 +1,7 @@
 {
   "lot": "mail",
   "angle": "telephone",
-  "etat": "terminé : 16 défauts (voir plus bas pour le décompte), relecture du diff faite ; en attente de la capture finale de lecture avec valeurs longues",
+  "etat": "terminé : 16 défauts (6 gênants, 10 détails), 3 contre-épreuves, relecture du diff faite",
   "couvert": [
     "iphone 390×844 (encoches 47/34 posées), android 360×740 (24/16), petit 320×568 ; jour et nuit ; toucher réel (tap), pas de clic souris",
     "liste : recherche « devis » (2 résultats), 11 messages ouverts un à un, texte du message mesuré contre le bas de la zone de lecture",
@@ -37,9 +37,9 @@
       "etapes": "Ouvrir l'application en gérant, Menu › Boîte mail, toucher un message de la liste (ex. « Climatisation chambre 214 en panne »), ne pas défiler.",
       "attendu": "Le texte du courriel — ce qu'on vient lire — commence dans l'écran, avec au plus un bandeau court au-dessus ; un débutant lit d'abord le message.",
       "constate": "Sous l'objet s'empilent : le bandeau « OP GESTION a reconnu » (≈ 280 px), la ligne de rangement « Principal · Pourquoi ce rangement ? · Ranger ailleurs… » (≈ 90 px) puis le bloc Suivi (À traiter / En cours / Résolu + Assigné à, ≈ 120 px). Le premier mot du message est à y = 824 pour une zone de lecture qui s'arrête à 724 (iPhone 390×844), 783/638 (Android), 841/482 (320×568). Sur les 11 messages de la boîte, 9 commencent sous le pli sur iPhone (de 771 à 947 pour 724) ; seuls « Nouveautés de la gamme 2027 » et « Photo du groupe extérieur » commencent dans l'écran. Même constat de nuit. 5 passages sur 5 (iphone jour/nuit, android, petit jour/nuit).",
-      "preuve": "mesure : sonde p5.js (corpsY de .rbody contre le bas de #readScroll) et p6.js scénario 1 (11 messages). Code : apercu/prototype-courrier.js, renderReading : catLine+=suiviHtml(m)+hoteHtml(m) est écrit AVANT « <div class=rsep></div><div class=rbody> » ; la règle .hband{order:2} (phone) ne change que l'ordre dans le bandeau. Captures : c-lecture-iphone-0.png, c-lecture-iphone-bas.png, c-lecture-petit-0.png.",
-      "ou": "apercu/prototype-courrier.js : renderReading (≈ l. 2570-2592) et feuille phone du bandeau (≈ l. 1519-1530)",
-      "correction": "Au téléphone, mettre le corps du message juste après l'en-tête (expéditeur, objet) et déplacer sous le texte le bandeau « reconnu » réduit à sa ligne + son geste principal (les autres gestes déjà sous « Autres gestes »), ainsi que le bloc Suivi et la ligne de rangement (ou les replier sous une seule ligne « Suivi · Principal »). Rejouer p6.js scénario 1 : 11 messages sur 11 avec le texte dans l'écran à 390, 360 et 320."
+      "preuve": "mesure : sonde p5.js (corpsY de .rbody contre le bas de #readScroll) et p6.js scénario 1 (11 messages). Code : au téléphone l'ordre d'affichage est décidé par CSS « order », pas par l'ordre du DOM : .rhead{order:1}, .hband{order:2} (l. 1499), .rcat{order:3} (porte la ligne de rangement ET le bloc Suivi), .rsep{order:4}, .rbody{order:5} (l. 1363-1373). Contre-épreuve p17.js : déplacer le corps dans le DOM ne change rien (824 avant, 824 après) ; c'est l'ordre CSS qu'il faut changer. Captures : c-lecture-iphone-0.png, c-lecture-iphone-bas.png, c-lecture-petit-0.png.",
+      "ou": "apercu/prototype-courrier.js l. 1363-1373 (order des blocs de la lecture, format phone) et l. 1499 (.hband{order:2})",
+      "correction": "Dans la feuille phone : .rsep{order:2} .rbody{order:2} .hband{order:4} (le corps juste après l'objet, puis rangement et Suivi, puis le bandeau « reconnu » et ses gestes). Contre-épreuve p18.js, règles posées à la volée dans l'arbre d'ombre, aucun fichier modifié : à 390 px le texte commence dans l'écran pour 11 messages sur 11 (y de 302 à 508 pour un bas à 724) ; capture ab-lecture-corrigee-iphone.png. À 320 px, 9 sur 11 : « Rendez-vous du 12 novembre » (fil de conversation) commence encore à 486 pour 482 — il faut aussi replier la ligne de rangement et le Suivi sur 320 px."
     },
     {
       "n": "telephone-02",
@@ -276,7 +276,7 @@
       ],
       "etapes": "Boîte mail ouverte ; un courriel arrive avec un expéditeur et un objet longs (injecté par MAILS.unshift + courrierRafraichir()).",
       "attendu": "Une bulle de 2 à 3 lignes au plus, qui ne cache pas le message qu'on lit ou qu'on écrit.",
-      "constate": "Le nom et l'OBJET entiers sont écrits dans la bulle : à 320 px elle fait 13 lignes (≈ 330 px sur 568, plus de la moitié de l'écran, par-dessus la lecture) ; à 390 px (nuit), 9 lignes posées sur le texte du message qu'on est en train d'écrire. Elle porte la coche verte d'une réussite pour un simple avis. Le défaut vient du module d'origine (opcourrier.js l. 3310) : non corrigé dans la copie.",
+      "constate": "Le nom et l'OBJET entiers sont écrits dans la bulle : à 320 px elle mesure 256×415 px (73 % de la hauteur de l'écran, mesurée par getBoundingClientRect, par-dessus la lecture) ; à 390 px (nuit), 9 lignes posées sur le texte du message qu'on est en train d'écrire. Elle porte la coche verte d'une réussite pour un simple avis. Le défaut vient du module d'origine (opcourrier.js l. 3310) : non corrigé dans la copie.",
       "preuve": "captures aa-long-lecture-petit.png, aa-long-liste-petit.png, aa-long-composeur-iphone-nuit.png ; code : toast(\"Nouveau message de \"+senderName(m)+\" — \"+m.subject, …) (apercu/prototype-courrier.js l. 3475), aucune coupe.",
       "ou": "apercu/prototype-courrier.js l. 3475",
       "correction": "Couper l'objet à 60 signes (…) et limiter la bulle à 3 lignes (line-clamp) ; icône d'enveloppe plutôt que la coche."
@@ -306,5 +306,11 @@
   },
   "non_verifie": [
     "Safari et iOS réels : clavier virtuel (visualViewport), glisser depuis le bord, appui long au doigt réel, sélecteur de date ; émulation Chromium seulement. Aucune gestion de visualViewport dans le module (grep) : à regarder sur un vrai iPhone"
+  ],
+  "contre_epreuves": [
+    "telephone-06 (p17.js) : défaut mesuré (3 dossiers recouverts à 390 nuit) ; avec .opc .side-foot{position:static!important} posé à la volée : 0",
+    "telephone-14 (p17.js) : 3,86:1 mesuré ; avec color:#6b3a00 : 8,28:1",
+    "telephone-01 (p18.js) : voir sa correction : 11/11 à 390 px après changement de l'ordre CSS ; ma première simulation (déplacer le corps dans le DOM) ne changeait rien, ce qui a révélé que c'est l'ordre CSS « order » qui décide au téléphone",
+    "faux défauts écartés par contre-mesure : zone tactile de « Annuler l'envoi » (47 px réels), colonne repliée derrière la feuille « Ajouter une boîte mail » (échelle voulue), geste CDP synthétique de ma sonde qui ne fait pas défiler la page Clients non plus"
   ]
 }
