@@ -15,7 +15,7 @@ exports.creerSigner = async (c, o) => { const p = c.p, L = exports.L;
   const n0 = await p.evaluate(() => CONTRATS.length); await L.toucher(c, '[data-action="creerContrat"]'); await L.calme(p, 500);
   const k = await p.evaluate(n => CONTRATS.length > n ? CONTRATS[CONTRATS.length - 1] : null, n0); if (!k) return null;
   if (o.signer === false) return { id: k.id, num: k.num };
-  await L.aller(p, 'signer-x-' + k.id); await p.check('#lu'); const bb = await p.locator('#signe-ctr').boundingBox();
+  await L.aller(p, 'signer-x-' + k.id); await p.check('#lu'); await p.evaluate(() => document.getElementById('signe-ctr').scrollIntoView({ block: 'center' })); await L.calme(p, 250); const bb = await p.locator('#signe-ctr').boundingBox();   // sur un téléphone la case de signature est sous la ligne de flottaison : un tracé hors écran ne signe rien
   await p.mouse.move(bb.x + bb.width * .2, bb.y + bb.height * .6); await p.mouse.down(); await p.mouse.move(bb.x + bb.width * .5, bb.y + bb.height * .3, { steps: 6 }); await p.mouse.move(bb.x + bb.width * .8, bb.y + bb.height * .6, { steps: 6 }); await p.mouse.up();
   await L.toucher(c, '[data-action="signerContrat"]'); await L.calme(p, 500); return { id: k.id, num: k.num }; };
 // termine une visite de contrat comme le fait « Terminer » (contrôles cochés, signature du client, compte rendu), et rend la facture qui en sort

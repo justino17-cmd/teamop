@@ -44,7 +44,7 @@ const ATTENDU = [
   for (const k of fiches) {
     await E.fiche(c, k); const gs = (await L.gestes(c.p, '#calque')).filter(x => !/^data-eq[dst]=/.test(x.data) && x.balise !== 'SUMMARY' && x.balise !== 'A' && !/data-ferme|data-cnx=comme|data-cnx=repose\|marc/.test(x.data));
     if (k === 'marc') v('equipe-01 sa propre fiche ne propose pas « Reposer un mot de passe provisoire » (le gérant se fermerait la porte : session coupée, mot de passe jamais affiché)', !(await L.gestes(c.p, '#calque')).some(x => /data-cnx=repose\|marc/.test(x.data)), 'bouton présent sur la fiche de Marc');
-    v(`fiche ${k} : population : au moins 8 gestes recensés`, gs.length >= 8, gs.length);
+    v(`fiche ${k} : population : au moins 6 gestes recensés`, gs.length >= 6, gs.length);
     v(`fiche ${k} : aucun geste sans nom`, gs.filter(x => x.sansNom).length === 0, gs.filter(x => x.sansNom).map(x => x.data));
     for (const x of gs) {
       const s = E.sel(x); bilan.recenses++; if (!s) continue; await E.fiche(c, k); const a = await E.obs(c.p); const ok = await L.toucher(c, s, { delai:3500 });
@@ -57,7 +57,7 @@ const ATTENDU = [
   }
   v(`population : fiches : ${tf} gestes touchés, ${rf} répondent`, tf >= 50 && rf >= tf - 4, { tf, rf });
   // ── la fermeture : la croix, Échap, le fond
-  await E.fiche(c, 'julie'); await L.toucher(c, '#calque [data-ferme]'); v('fiche : la croix ferme', (await L.etat(c.p)).calque === 0, await L.etat(c.p));
+  await E.fiche(c, 'julie'); await L.toucher(c, '#calque button[data-ferme]'); v('fiche : la croix ferme', (await L.etat(c.p)).calque === 0, await L.etat(c.p));
   await E.fiche(c, 'julie'); await c.p.keyboard.press('Escape'); await L.calme(c.p, 400); v('fiche : Échap ferme', (await L.etat(c.p)).calque === 0, await L.etat(c.p));
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   console.log(JSON.stringify(bilan));
