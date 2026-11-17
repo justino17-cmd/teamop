@@ -27,7 +27,7 @@ sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 
 | campagne interventions | `{voie:"campagne", cles:["interventions"], arbre:"/home/user/wt-t-interventions"}` | /home/user/wt-t-interventions | wf_f053dfa7-004 (tâche wmr7wmbah) | 3 sur 3 (recontrôler) |
 | campagne clients | `{voie:"campagne", cles:["clients"], arbre:"/home/user/wt-t-clients"}` | /home/user/wt-t-clients | wf_9eac0989-473 (tâche wunwkw7f8) | 2 sur 3 |
 | campagne technicien | `{voie:"campagne", cles:["technicien"], arbre:"/home/user/wt-t-technicien"}` | /home/user/wt-t-technicien | wf_fa6ce9b9-e53 (tâche w30grs0qi) | 3 sur 3 |
-| restes (accueil) | `{voie:"restes", noms:["accueil"], arbre:"/home/user/wt-t-accueil"}` | /home/user/wt-t-accueil | (lancée à 9 h 22 : run et tâche dans le fil, « Workflow launched » le plus récent pour wt-t-accueil) | 1 sur 4 |
+| restes (accueil) | `{voie:"restes", noms:["accueil"], arbre:"/home/user/wt-t-accueil"}` | /home/user/wt-t-accueil | wf_e75a2c3e-5c8 (tâche wvg0ij15m) | 1 sur 4 (lancée à 9 h 22) |
 | restes (contrats) | `{voie:"restes", noms:["contrats"], arbre:"/home/user/wt-t-contrats"}` | /home/user/wt-t-contrats | wf_52f09861-809 (tâche wux16bxgi) | 1 sur 4 (lancée à 9 h 05 ; applique aussi les décisions du chef sur les sept points « à soumettre », dans `final/vus-par-le-chef.md`) |
 | campagne compta-ventes | `{voie:"campagne", cles:["compta-ventes"], arbre:"/home/user/wt-t-compta-ventes"}` | /home/user/wt-t-compta-ventes | wf_af182308-28c (tâche w7drh1rvl) | 3 sur 3 |
 | campagne compta-reste | `{voie:"campagne", cles:["compta-reste"], arbre:"/home/user/wt-t-compta-reste"}` | /home/user/wt-t-compta-reste | wf_6613e191-cd1 (tâche w3hlifa27) | 1 sur 3 |
