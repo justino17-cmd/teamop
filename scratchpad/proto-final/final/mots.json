@@ -90,6 +90,97 @@
    "apres": "Replanifier ouvre le planning sur la carte, pour la déplacer. Appelle le technicien pour savoir où il en est. Le titre ouvre la fiche.",
    "raison": "deux verbes de formes différentes dans une même phrase, tutoiement tenu",
    "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Stock › Sortir du stock",
+   "avant": "de ${d(G.de)}${pour}.`; }",
+   "apres": "${de(G.de)}${pour}.`; }",
+   "raison": "« sorti de le camion de Léa » : le, précédé de de, devient du",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Stock › Déplacer",
+   "avant": "déplacé${G.lignes.length > 1 ? 's' : ''} de ${d(G.de)} vers ${d(G.vers)}.`;",
+   "apres": "déplacé${G.lignes.length > 1 ? 's' : ''} ${de(G.de)} vers ${d(G.vers)}.`;",
+   "raison": "« déplacé de le camion de Léa » : du camion de Léa",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Stock › phrase de contrôle",
+   "avant": "'le camion de ' + prenomDe(lieu(id).tech) : 'la réserve';\n  if (G.mode === 'sortir')",
+   "apres": "'le camion de ' + prenomDe(lieu(id).tech) : 'la réserve', de = id => id === 'atelier' ? 'de l’atelier' : lieu(id).type === 'vehicule' ? 'du camion de ' + prenomDe(lieu(id).tech) : 'de la réserve';\n  if (G.mode === 'sortir')",
+   "raison": "la forme « de + lieu » s'écrit à part : de l’atelier, du camion de Léa, de la réserve",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Véhicules › échéance d’entretien",
+   "avant": ": /^révision/i.test(e.lib) ? 'La révision' : e.lib;",
+   "apres": ": /^révision/i.test(e.lib) ? 'La révision' : 'L’entretien « ' + e.lib + ' »';",
+   "raison": "« Courroie de distribution est dans 20 jours » : une phrase sans article",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Comment ça marche",
+   "avant": "(réservé au patron)",
+   "apres": "(réservé au gérant)",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Interventions › à planifier",
+   "avant": "Le planning est tenu par le patron",
+   "apres": "Le planning est tenu par le gérant",
+   "raison": "idem (la fenêtre et son message)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats et frais › notes de frais",
+   "avant": "Le tarif au kilomètre est celui réglé par le patron.",
+   "apres": "Le tarif au kilomètre est celui réglé par le gérant.",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats et frais › notes de frais",
+   "avant": "toast('Le patron demande un ticket pour chaque note de frais.')",
+   "apres": "toast('Le gérant demande un ticket pour chaque note de frais.')",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats et frais › notes de frais",
+   "avant": "kilomètres × le tarif au kilomètre réglé par le patron",
+   "apres": "kilomètres × le tarif au kilomètre réglé par le gérant",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Carte des box › secrétariat",
+   "avant": "La gestion voit la carte en lecture seule : le technicien et le patron posent les box.",
+   "apres": "Le secrétariat voit la carte en lecture seule : le technicien et le gérant posent les box.",
+   "raison": "« la gestion » est un nom de revue, la personne s’appelle Secrétariat dans Équipe ; et gérant",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Mes heures › fiches de paie",
+   "avant": "Toi seul les vois, avec ton patron.",
+   "apres": "Toi seul les vois, avec le gérant.",
+   "raison": "un seul nom pour la personne qui dirige : gérant",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Pilotage",
+   "avant": "Avec le pilote, tout cela se traite sans toi. Ici, tu le déclenches à la main pour voir chaque étape.",
+   "apres": "Avec le pilote, tout cela se traite sans toi. Sinon, tu le lances toi-même, étape par étape.",
+   "raison": "« Ici, tu le déclenches à la main pour voir » est une consigne de démonstration",
+   "fichier": "apercu/prototype-comptabilite.html"
+  },
+  {
+   "ecran": "Achats et frais › règle des notes",
+   "avant": "C’est le patron qui décide de ce réglage.",
+   "apres": "C’est le gérant qui décide de ce réglage.",
+   "raison": "un seul nom pour la personne qui dirige : gérant (menu, Équipe)",
+   "fichier": "apercu/prototype-op-gestion.html"
   }
  ]
 }
