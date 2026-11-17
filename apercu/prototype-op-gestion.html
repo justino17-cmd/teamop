@@ -496,7 +496,7 @@ html .mc-vide{display:flex;flex-direction:column;align-items:flex-start;gap:6px;
 html .mc-ok{display:flex;align-items:center;gap:14px;padding:16px 18px}html .mc-ok b{display:block;font-size:16px}html .mc-ok .gris{display:block}
 html .mc-coche{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:color-mix(in srgb,var(--vert) 16%,transparent);color:var(--vert);flex:none}html .mc-coche svg{width:22px;height:22px}
 html .mc-bord{margin:0;min-height:56px}
-@media (max-width:760px){html .mc-l{flex-wrap:wrap}html .mc-l>.fo-n{flex:1 1 150px}html .mc-dr{max-width:100%;align-items:flex-start;flex-direction:row;flex-wrap:wrap;gap:4px 12px}html .mc-dr .st{text-align:left}}
+@media (max-width:760px){html .mc-l{flex-wrap:wrap}html .mc-l>.fo-n{flex:1 1 150px}html .mc-dr{flex:1 1 100%;max-width:100%;align-items:flex-start;flex-direction:row;flex-wrap:wrap;gap:4px 12px}html .mc-dr .st{text-align:left}}   /* au téléphone l'état d'un envoi passe TOUJOURS sous le nom (à droite quand ça tenait, dessous sinon : deux rangées voisines ne se ressemblaient pas) */
 /* les feuilles */
 html .mat-h{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--doux);margin:14px 0 2px}
 html .mat-inter{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:14px;background:var(--surf2);border:1px solid var(--trait);min-height:60px}
@@ -522,7 +522,7 @@ html .mat-pied .btn{flex:1 1 auto}
 .pu-ajout{display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px}
 @media (max-width:480px){.pu-ajout{grid-template-columns:minmax(0,1fr) auto}.pu-ajout #p-nom{grid-column:1/-1}}   /* au téléphone le champ de recherche prend sa ligne entière (l’invite se lit : elle était coupée à « Chercher c »), la quantité et « Ajouter » dessous */
 html .fo-pied .mat-phrase{flex:1 1 100%;margin:0}html .fo-pied .mat-phrase:empty{display:none}   /* la phrase de contrôle (« Tu notes : 1 Filtre à charbon… ») se lit JUSTE AU-DESSUS du bouton, dans le pied qui reste en bas, pas tout en bas du défilement */
-@media (max-width:760px){html .mat-pied .btn{flex:1 1 40%}}
+@media (max-width:760px){html .mat-pied .btn{flex:1 1 40%}html .mat-pied .btn:not(.gris){flex:1.6 1 52%}html .mat-pied .btn.gris{flex:1 1 30%}}   /* le primaire se lit sur UNE ligne (« Envoyer : 3 articles » en demandait deux dans 144 px) ; « Annuler » s'y tient à 124 px */
 /* ══ MATÉRIEL — lot 2 : Stock (spec § 5) — la grammaire de Devis et de Clients, rien d'inventé ══ */
 html .ms-tete .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 html .ms-bandeau{padding:12px 16px}html .ms-bandeau .dv-tache{border-bottom:0;padding:2px 0;flex-wrap:wrap}html .ms-bandeau .dv-c b{font-size:16px}
@@ -3786,6 +3786,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (min-width:900px){.vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr))}.vh-cam-l{grid-column:auto}}
 /* Mon camion sur téléphone : la carte du véhicule tient sur UNE rangée de trois boutons, pour que « Il manque à bord » reste sur le premier écran AU-DESSUS de la barre d'onglets (spec Matériel § 8.1 : voir ce qui manque, c'est UN toucher et aucun défilement ; un plein se note toujours sans défiler). Le titre reste lu par les lecteurs d'écran. */
 @media (max-width:520px){html .mc-page .vh-cam{padding:10px 12px;gap:6px}html .mc-page .vh-cam h3{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}html .mc-page .vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}html .mc-page .vh-cam-g .btn{min-height:44px;font-size:13px;padding:6px 4px}html .mc-page .vh-cam-l{grid-column:auto}}
+@media (max-width:359px){html .mc-page .vh-cam-g{grid-template-columns:repeat(2,minmax(0,1fr))}html .mc-page .vh-cam-g .btn{font-size:14px}html .mc-page .vh-cam-l{grid-column:1/-1}}   /* regard technicien b : à 320 px trois colonnes de 83 px coupaient les libellés en trois lignes de 13 px */
 /* téléphone COURT (Android 360 × 740) : rangées resserrées pour que la première ligne de « Il manque à bord » reste au-dessus de la barre d'onglets */
 @media (max-width:520px) and (max-height:780px){html .mc-page{gap:10px}html .mc-duo .btn{min-height:48px}html .mc-page .vh-cam>.gris{display:none}html .mc-page .vh-cam{padding:8px 10px}}
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
@@ -3816,7 +3817,8 @@ html #mc-vehicule:empty{display:none}
 .vh-choix{gap:8px}.vh-choix .puce-c{min-height:48px;justify-content:center;text-align:center;line-height:1.25;white-space:normal}
 .vh-choix.vh-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.vh-choix.vh-2 .puce-c{border-radius:14px;padding:8px 10px}
 .vh-pied{margin-top:2px}.vh-pied .btn.large{flex:1 1 100%}
-#calque .panneau>.vh-pied{position:sticky;bottom:-1px;z-index:2;background:var(--feuille);padding:10px 0 4px;margin-bottom:-4px;box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
+#calque .panneau{--pan-bas:20px}#calque .panneau.fenetre{--pan-bas:28px}@media (max-width:760px){#calque .panneau,#calque .panneau.fenetre{--pan-bas:calc(22px + env(safe-area-inset-bottom,0px))}}   /* le rembourrage bas de la feuille, dit UNE fois : le pied collant s'y enfonce (regard technicien b : « Aujourd'hui · Un autre jour » défilait SOUS le bouton « Enregistrer le plein », dans la bande de l'encoche) */
+#calque .panneau>.vh-pied{position:sticky;bottom:calc(-1px - var(--pan-bas));z-index:2;background:var(--feuille);padding:10px 0 var(--pan-bas);margin-bottom:calc(0px - var(--pan-bas));box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
 .vh-ret{align-self:flex-start;min-height:44px}
 .deux-champs[hidden]{display:none}   /* « hidden » perdait contre display:grid : la paire de champs d'un détail replié restait ouverte */
 @media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}   /* la feuille qui monte ne dépasse pas 90 % de l'écran (le reste du voile reste visible : on sait où l'on est) */
@@ -15539,15 +15541,17 @@ function matResultats(q, L){
     return `<div class="mc-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${ou.length ? esc(dit) : '<b class="mc-o">Plus en stock nulle part</b>'}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(x.nom)}">Je l’ai pris</button>` : ou.length ? '' : `<button type="button" class="btn gris petit" data-mat="manque|${x.id}">Il me manque</button>`}</div>`; }).join('');
 }
 
+/* une unité entre parenthèses ne se détache pas de son nombre : « Nettoyant échangeur (0,5 / L) » se coupait sur deux lignes (regard technicien b) */
+const mcNom = n => esc(n).replace(/ ([^ ()]{1,6}\))/g, '\u00a0$1');
 function vueMonCamion(){
   const moi = sxMoi(), L = sxMonLieu();
-  if (!L) return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1><span class="gris">Aucun camion ne t’est confié pour l’instant : demande au bureau.</span></div></div>`;
+  if (!L) return `<div class="mc-page"><div class="tete mc-tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1></div></div><div class="carte mc-ok"><span><b>Aucun camion ne t’est confié pour l’instant.</b><span class="gris petit">Demande au bureau de t’en confier un : tu y retrouveras ce qu’il y a à bord et son entretien.</span></span></div></div>`;   /* une carte comme « Ton camion est complet », pas une phrase grise seule sous le titre (regard technicien b : l'écran était vide) */
   const V = typeof VEHICULES !== 'undefined' && VEHICULES.find(v => v.lieu === L.id), g = bxGarage(L.id), M = lieuManques(L.id), A = lieuArticles(L.id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), D = L.dot ? DOTATION[L.dot] || {} : {}, E = sxEnvois(moi), N = rlNotifsListe(moi, true);
   const bas = sxBoutsBas(L.id), liste = Object.keys(D).length > 0;
   const att = pid => MVTS_ATT.find(m => m.qui === moi && m.type === 'transfert' && m.vers === L.id && m.pid === pid);
   const prenables = M.filter(o => stkAt(o.x, 'atelier') > 0 && !att(o.x.id));
   const aBord = `<div class="carte mc-liste">${A.map(x => { const a = stkAt(x, L.id), c = D[x.id], ko = c && a < c;
-    return `<div class="mc-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${c ? (ko ? `il en manque ${prNum(stkR(c - a))} sur ${prNum(c)}` : `${prNum(c)} prévus : le compte y est`) : 'en plus de la liste'}</span></span><b class="${ko ? 'mc-o' : ''}">${sxQte(a, x)}</b></div>`; }).join('') || '<div class="gris" style="padding:12px 4px">Rien à bord.</div>'}</div>`;
+    return `<div class="mc-l"><span class="fo-n"><b>${mcNom(x.nom)}</b><span class="gris petit">${c ? (ko ? `il en manque ${prNum(stkR(c - a))} sur ${prNum(c)}` : `${prNum(c)} prévu${c > 1 ? 's' : ''} : le compte y est`) : 'en plus de la liste'}</span></span><b class="${ko ? 'mc-o' : ''}">${sxQte(a, x)}</b></div>`; }).join('') || '<div class="gris" style="padding:12px 4px">Rien à bord.</div>'}</div>`;
   /* La partie VÉHICULE (la phrase d'état de l'en-tête et la carte « Le camion ») vient de vhPhraseCamion et vhCamionBloc ; la carte se pose AVANT la liste de ce qui
      manque : un plein se note sans défiler, et « Il manque à bord » reste visible sur le premier écran (VEHICULES-TEMPS § 3.4, MATERIEL § Mon camion). */
   return `<div class="mc-page"><div class="tete mc-tete"><div><span class="surtitre">${esc(V ? vhNom(V) + ' · ' + V.plaque : H_NOM(moi))}</span><h1>Mon camion</h1>${V ? (e => `<span class="gris mc-etat ${e.c}">${esc(e.t)}</span>`)(vhPhraseCamion(V)) : `<span class="gris">${sxPl(A.length, 'article')} à bord</span>`}</div>
@@ -15560,8 +15564,8 @@ function vueMonCamion(){
     <div id="mc-vehicule" data-vis="camion-vehicule">${V ? vhCamionBloc(V) : ''}</div>
     ${g ? '' : M.length ? `<div class="carte mc-liste"${matVis('camion-manque')}><div class="mc-tete-c"><h3>Il manque à bord · ${M.length}</h3>${prenables.length ? `<button type="button" class="btn gris petit" data-mat="toutpris" aria-label="J’ai tout pris : ${prenables.length} articles">J’ai tout pris · ${prenables.length}</button>` : ''}</div>
       ${M.map(o => { const at = stkAt(o.x, 'atelier'), e = att(o.x.id), sous = `à bord ${prNum(o.a)} sur ${prNum(o.cible)} · ${at > 0 ? 'à l’atelier ' + prNum(at) : 'plus à l’atelier'}`;
-        return e ? `<div class="mc-l envoye"><span class="fo-n"><b>${esc(o.x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mc-dr"><span class="st st-b">Envoyé au bureau · en attente</span><button type="button" class="lien" data-mat="retire|${e.id}" aria-label="Annuler l’envoi de ${esc(o.x.nom)}">Annuler</button></span></div>`
-          : `<div class="mc-l"><span class="fo-n"><b>${esc(o.x.nom)}</b><span class="gris petit">${sous}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${o.x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(o.x.nom)}">Je l’ai pris</button>` : `<button type="button" class="btn gris petit" data-mat="manque|${o.x.id}">Il me manque</button>`}</div>`; }).join('')}</div>`
+        return e ? `<div class="mc-l envoye"><span class="fo-n"><b>${mcNom(o.x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mc-dr"><span class="st st-b">Envoyé au bureau · en attente</span><button type="button" class="lien" data-mat="retire|${e.id}" aria-label="Annuler l’envoi de ${esc(o.x.nom)}">Annuler</button></span></div>`
+          : `<div class="mc-l"><span class="fo-n"><b>${mcNom(o.x.nom)}</b><span class="gris petit">${sous}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${o.x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(o.x.nom)}">Je l’ai pris</button>` : `<button type="button" class="btn gris petit" data-mat="manque|${o.x.id}">Il me manque</button>`}</div>`; }).join('')}</div>`
       : `<div class="carte mc-ok"${matVis('camion-manque')}>${liste ? `<span class="mc-coche">${svg('coche')}</span><span><b>Ton camion est complet</b><span class="gris petit">Tout ce qu’il doit y avoir à bord y est.</span></span>` : '<span><b>Ton camion n’a pas encore de liste.</b><span class="gris petit">Demande au bureau ce qu’il doit y avoir à bord.</span></span>'}</div>`}
     <button type="button" class="ligne-clic mc-bord" data-mat="bord" aria-expanded="${MAT.bord}"><span><b>À bord · ${sxPl(A.length, 'article')}</b></span><span aria-hidden="true">${MAT.bord ? '⌄' : '›'}</span></button>${MAT.bord ? aBord : ''}
     ${E.length ? `<div class="carte mc-liste"><h3>Mes envois · ${E.length}</h3>${E.map(sxLigneEnvoi).join('')}</div>` : ''}
