@@ -27,6 +27,8 @@ SEC=scratchpad/proto-final/securite
 
 lance "securite liens (fuzz, sans navigateur)" node $SEC/recontrole-liens-fuzz.js
 if [ -z "$RAPIDE" ]; then
+  lance "securite restes (garde rapide : clients, expéditeurs, FEC, liens, bulles, unités, import — la contre-épreuve est mutations-restes-securite.py)" node $SEC/restes-garde.js
+  lance "securite restes (unité sans entité)" node $SEC/restes-unite-entite.js
   for f in nomclient confiance casse url client acces-client fichiers sortie chemins clientsaisi titre casse2 saisie; do lance "securite $f" node $SEC/recontrole-$f.js; done
   lance "securite données (4 clics, gérant)" node $SEC/recontrole-donnees.js --clics=4 --decal=0
   lance "securite données (4 clics, décalage 3, secrétaire)" node $SEC/recontrole-donnees.js --clics=4 --decal=3 --qui=julie

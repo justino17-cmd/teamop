@@ -9698,7 +9698,7 @@ function foColonnes(h){ const H = h.map(prNorm), pris = new Set(), m = {};
   return m; }
 function foLignes(){
   const { f, rows, m } = FO_IMP, out = [];
-  const propre = (t, n) => String(t || '').replace(/[<>\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, ' ').trim().replace(/^[=+\-@]+/, '').slice(0, n);   /* un fichier venu d'un tiers : bornée, sans balise, sans formule de tableur en tête */
+  const propre = (t, n) => String(t || '').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, ' ').trim().replace(/^[=+\-@]+/, '').slice(0, n);   /* un fichier venu d'un tiers : bornée, sans balise, sans formule de tableur en tête */
   rows.forEach((r, i) => { const nom = m.nom != null ? propre(r[m.nom], 200) : ''; if (!nom) return;
     const ref = m.ref != null ? propre(r[m.ref], 40) : '', ean = m.ean != null ? propre(r[m.ean], 20) : '', u = m.u != null ? uniteSure(r[m.u]) : '';
     let pa = m.net != null ? foNum(r[m.net]) : null;
@@ -14429,14 +14429,14 @@ function clientSeulLire(){ const v = id => { const e = document.getElementById(i
 ACTIONS.clientSeul = function(){ fermerPanneau(); CS_F = { type:'part', nom:'', contact:'', tel:'', mail:'', adr:'', err:'', doublonOk:false }; clientSeulFen(); setTimeout(() => document.getElementById('cs-nom')?.focus(), 50); };
 ACTIONS.clientSeulType = function(b){ clientSeulLire(); CS_F.type = b.dataset.v; CS_F.err = ''; clientSeulFen(); };
 ACTIONS.clientSeulOk = function(){ clientSeulLire(); const f = CS_F; f.err = '';
-  if (!f.nom) f.err = 'Indique le nom du client.'; else if (!f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir le prévenir.';
+  if (!nomClientNet(f.nom)) f.err = 'Indique le nom du client.'; else if (!f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir le prévenir.';
   else if (f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (!cfTelOk(f.tel)) f.err = TEL_MSG;
   const nom = cfNomClient(f);
   if (!f.err && cfNomCle(nom) && Object.entries(CLIENTS).some(([kk, x]) => kk !== '__nv' && cfNomCle(x.nom) === cfNomCle(nom) && !f.doublonOk)) { f.doublonOk = true; f.err = 'Un client porte déjà ce nom : « ' + nom + ' ». Touche encore « Créer le client » pour le créer quand même.'; }
   else if (!f.err && !f.doublonOk) { const dj = cfDoublonDe({ ...f, nom }); if (dj) { f.doublonOk = true; f.err = 'Ce client existe peut-être déjà : « ' + CLIENTS[dj].nom + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer le client » pour le créer quand même.'; } }
   if (f.err) return clientSeulFen();
   const k = 'c' + Date.now().toString(36);
-  CLIENTS[k] = { nom, type:f.type, contact:cfContactClient(f), tel:f.tel, mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] }; clientFinir(k);
+  CLIENTS[k] = cliNet({ nom, type:f.type, contact:cfContactClient(f), tel:f.tel, mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] }); clientFinir(k);
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:nom, cli:k }, { det:'sa fiche seule' });
   CS_F = null; fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('client-x-' + k); toast('Client créé : ' + esc(nom) + '. Tu peux maintenant lui créer une intervention ou un devis.'); };
 /* clients-17 : un client ne s'efface jamais (ses factures doivent garder leur client) : il s'ARCHIVE, et se remet dans la liste d'un geste */

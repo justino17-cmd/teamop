@@ -13,6 +13,8 @@ const L = require('../lib.js'), O = require('./injection-outils.js'), fs = requi
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.split('=').slice(1).join('=') : d; };
 const PAGE = arg('page', 'prototype-op-gestion.html'), ROLES_ARG = arg('roles', 'tous').split(','), MAXB = +arg('boutons', 14), SEUL = arg('routes', ''), NOMSORTIE = arg('nom-sortie', 'saisie-totale'), PROFIL = arg('profil', 'mac');
 const PRINCIPALE = PAGE === 'prototype-op-gestion.html';
+/* un BUDGET de temps (la commande de l'agent a un délai de 580 s : la première exécution est morte à 590 s SANS rien rendre) : les formulaires jusqu'à FORMES_S, puis la lecture des écrans jusqu'à BUDGET_S, puis le rendu — et ce qui n'a pas eu le temps est DIT */
+const T0 = Date.now(), BUDGET_S = +arg('budget', 500), FORMES_S = +arg('formes', 300), reste = () => (BUDGET_S * 1000 - (Date.now() - T0)) > 0, restFormes = () => (FORMES_S * 1000 - (Date.now() - T0)) > 0; let coupe = [];
 const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/restes-securite/'; fs.mkdirSync(SORTIE, { recursive: true });
 const FORMES = [
   id => `¤${id}¤<img src=x onerror=__xss('${id}')><i data-xss=${id}></i>`,
@@ -43,6 +45,8 @@ const FORMES = [
   for (const role of ROLES) {
     if (PRINCIPALE && role !== ROLES[0]) { try { await p.evaluate(r => rlChanger(r, { muet: true }), role); } catch (e) { continue; } await att(500); }
     for (const r of routes) {
+      if (!restFormes()) { coupe.push('formulaires : ' + r); continue; }
+      console.log('  . ' + Math.round((Date.now() - T0) / 1000) + ' s · ' + r + ' · formulaires ' + ouvertures + ' · champs ' + champsRemplis + ' · validations ' + valides + ' · données changées ' + changes);
       if (PRINCIPALE) { try { await p.evaluate(x => aller(x), r); await L.calme(p, 400); } catch (e) { continue; } }
       const gs = (await L.gestes(p, PRINCIPALE ? '#contenu' : 'body')).filter(g => !g.sansNom).slice(0, MAXB * 2);
       let tentes = 0;
@@ -76,7 +80,9 @@ const FORMES = [
           info.remplis.forEach(ch => { legende[ch.id] = r + ' ▸ ' + String(g.lib).trim().slice(0, 30) + ' ▸ ' + ch.nom; }); n += info.total + 2; champsRemplis += info.remplis.length;
           formulaires.set(sig, { r, bouton: String(g.lib).trim().slice(0, 40), champs: info.total, textes: info.remplis.length });
           if (info.remplis.length) {
-            const ok = await p.evaluate(() => { const z = document.querySelector('#calque') || document.querySelector('[role=dialog]') || document.querySelector('dialog[open]') || document; const cand = [...z.querySelectorAll('.actions .btn:not(.gris),.actions button:not(.gris),button.btn:not(.gris),button.primaire,button[type=submit]')].filter(b => b.getClientRects().length > 0 && !b.disabled); const b = cand[0]; if (!b) return false; b.click(); return true; });
+            /* le bouton principal : celui du plus PETIT conteneur qui contient à la fois un champ rempli et un bouton « principal » (ni .gris, ni .rouge, ni « Annuler/Fermer/Retour ») — le premier essai cherchait dans #calque seulement et ne validait presque rien (0 validation sur 24 formulaires) */
+            const ok = await p.evaluate(() => { const vis = e => e.getClientRects().length > 0 && !e.disabled; const bad = /^(annuler|fermer|retour|non|plus tard|ignorer|supprimer|retirer|effacer|vider|quitter|se déconnecter)/i; const champ = [...document.querySelectorAll('input,textarea,select')].filter(e => vis(e) && e.value && /¤n\d+¤/.test(e.value))[0]; if (!champ) return false;
+              let z = champ.parentElement; for (let k = 0; z && k < 12; k++, z = z.parentElement) { const cand = [...z.querySelectorAll('button.btn:not(.gris):not(.rouge),.actions button:not(.gris):not(.rouge),button[type=submit],button.primaire')].filter(b => vis(b) && !bad.test((b.textContent || '').trim())); if (cand.length) { cand[cand.length - 1].click(); return true; } } return false; });
             if (ok) { valides++; await att(500); await lire(sig + ' ▸ après validation'); }
             const e1 = await empreinte(); if (e1 !== e0) changes++; else refusees++;
           }
@@ -89,11 +95,11 @@ const FORMES = [
       try { Object.keys(CLIENTS).forEach(k => P.push('client-x-' + k)); } catch (e) {} try { INTS.forEach(i => P.push('inter-x-' + i.id)); } catch (e) {} try { DV.forEach(d => P.push('devis-x-' + d.id)); } catch (e) {} try { FACTURES.forEach(f => P.push('facture-x-' + (f.id || f.num))); } catch (e) {}
       return R.concat(P); }) : ['(page)'];
     let visites = 0;
-    for (const r of toutes) { if (PRINCIPALE) { try { await Promise.race([p.evaluate(x => aller(x), r), new Promise((_, q) => setTimeout(() => q(new Error('DELAI')), 9000))]); await att(220); } catch (e) { continue; } } visites++; await lire(r + ' ▸ ' + role);
+    for (const r of toutes) { if (!reste()) { coupe.push('lecture : ' + r); continue; } if (PRINCIPALE) { try { await Promise.race([p.evaluate(x => aller(x), r), new Promise((_, q) => setTimeout(() => q(new Error('DELAI')), 9000))]); await att(220); } catch (e) { continue; } } visites++; await lire(r + ' ▸ ' + role);
       const gs = (await L.gestes(p, PRINCIPALE ? '#contenu' : 'body')).slice(0, 2);
       for (const g of gs) { try { const ici = await p.evaluate(() => location.hash); await p.mouse.click(g.x + g.l / 2, g.y + g.h / 2); await att(160); await lire(r + ' ▸ ' + g.lib); await L.ranger(p); if (PRINCIPALE) { const la = await p.evaluate(() => location.hash); if (la !== ici) { await p.evaluate(x => aller(x), r); await L.calme(p, 220); } } } catch (e) { await L.ranger(p).catch(() => {}); } }
       await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} }).catch(() => {}); }
-    console.log('  · rôle', role, ': écrans lus', visites);
+    console.log('  · rôle', role, ': écrans lus', visites, '· écrans non lus faute de temps :', coupe.filter(x => x.startsWith('lecture')).length, '· rubriques sans formulaire faute de temps :', coupe.filter(x => x.startsWith('formulaires')).length);
   }
   const hits = await p.evaluate(() => (window.top.__hits || []).slice()), puits = await p.evaluate(() => (window.top.__puits || []).slice());
   const sorties = [...trouves.values()], lib = id => legende[id] || id;
@@ -102,10 +108,10 @@ const FORMES = [
   const parPile = new Map(); puits.forEach(x => { const k = x.k + ' ◂ ' + x.pile; if (!parPile.has(k)) parPile.set(k, []); parPile.get(k).push(lib(x.tok)); });
   [...parPile.entries()].slice(0, 20).forEach(([k, v]) => console.log('  PUITS', k.slice(0, 230), '←', [...new Set(v)].slice(0, 3).join(' | ')));
   [...new Set(hits)].slice(0, 20).forEach(h => console.log('  EXÉCUTION ←', lib(h)));
-  const min = PRINCIPALE ? { f: 40, c: 80, v: 25 } : { f: 3, c: 4, v: 1 };
+  const min = PRINCIPALE ? { f: +arg('min-f', 40), c: +arg('min-c', 80), v: +arg('min-v', 25) } : { f: 3, c: 4, v: 1 };   /* une exécution partielle (--routes, un rôle, un budget court) abaisse ces planchers À VOIX HAUTE : le total des passes est dit dans le rapport */
   L.v(`population : ≥ ${min.f} formulaires ouverts et ≥ ${min.c} champs de texte remplis`, ouvertures >= min.f && champsRemplis >= min.c, { ouvertures, champsRemplis });
   L.v(`population : ≥ ${min.v} validations ont CHANGÉ les données (la valeur est donc rangée, puis relue)`, changes >= min.v, { valides, changes, refusees });
-  L.v('population : des charges rangées sont retrouvées (échappées) à l\'écran', vus.size >= (PRINCIPALE ? 15 : 1), vus.size);
+  L.v('population : des charges rangées sont retrouvées (échappées) à l\'écran', vus.size >= (PRINCIPALE ? +arg('min-vues', 15) : 1), vus.size);
   L.v('AUCUNE exécution par une saisie (window.__hits) : ' + hits.length, hits.length === 0, [...new Set(hits)].slice(0, 8).map(lib));
   L.v('AUCUNE balise ni gestionnaire né d\'une saisie : ' + sorties.length, sorties.length === 0, sorties.slice(0, 8).map(s => lib(s.champ) + ' ▸ ' + s.sorte));
   L.v('AUCUNE écriture HTML ne reçoit une saisie brute (puits) : ' + puits.length, puits.length === 0, [...parPile.entries()].slice(0, 5).map(([k, v]) => k.slice(0, 150) + ' ← ' + v[0]));
