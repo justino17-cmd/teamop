@@ -738,69 +738,31 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 .pt-grille .pt-j{position:relative}
 .pt-grille .pt-r>.pt-j:nth-child(n+7):nth-child(-n+8):not(.pt-abs):not(.pt-ouv){background:color-mix(in srgb,var(--surf2) 55%,transparent)}
 .pt-entete span:nth-child(7),.pt-entete span:nth-child(8){opacity:.7}
-.pt-j.pt-sig,.ptx-jr2.pt-sig{border-color:var(--orange)}.pt-sig::after{content:"";position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:var(--orange)}
 .ptx-ref{color:var(--doux);font-size:12.5px}
-.ptx-tout{margin-left:auto}
-.ptx-auj,.ptx-sig,.ptx-rap{padding:14px 16px;margin:12px 0}
-.ptx-l{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:9px 0;border-top:1px solid var(--trait)}
-.ptx-t{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
-.ptx-sig-l{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--trait)}
-.ptx-sig-l .fo-n{flex:1 1 240px}
-.ptx-sig-a{display:flex;gap:8px;flex-wrap:wrap}
-.ptx-auj .btn,.ptx-sig .btn,.ptx-carte .btn,.ptx-mj .btn,.ptx-pers .btn,.ptx-tout.btn,.ptx-prop .btn,.ptx-oubli .btn,#calque .panneau .btn{min-height:44px!important}
-.ptx-sw{display:flex;gap:12px;align-items:flex-start;cursor:pointer;min-height:44px}
-.ptx-sw input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--lien)}
+.ptx-carte .btn,.ptx-prop .btn,.ptx-oubli .btn,#calque .panneau .btn{min-height:44px!important}
 /* la carte du salarié */
 .ptx-carte{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
 .ptx-etat{display:flex;flex-direction:column;gap:2px}.ptx-etat b{font-size:18px;font-variant-numeric:tabular-nums}
-.ptx-mj{margin-top:12px}
-.ptx-jr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--trait)}
-.ptx-jr .fo-n{flex:1 1 150px}.ptx-jh{font-variant-numeric:tabular-nums}
 /* fiche d'un jour et semaine d'une personne */
 .kpis.ptx-k3{grid-template-columns:repeat(3,minmax(0,1fr))}.ptx-k3 .kpi{padding:12px 10px}.ptx-k3 .kpi b{font-size:22px}
-.ptx-np{display:block;margin:6px 0 4px}
-.ptx-corr{margin:8px 0}.ptx-corr summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
-.ptx-liens{display:flex;flex-direction:column;align-items:flex-start;margin-top:12px}
 /* au téléphone : une carte par personne au lieu d'un tableau coupé */
-.ptx-cartes{display:none;flex-direction:column;gap:12px}
-.ptx-pers{padding:14px}
-.ptx-pers-t{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.ptx-jours{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:10px 0}
-.ptx-cartes .ptx-jr2{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px;min-width:0;padding:4px 0;border:1px solid var(--trait);background:var(--surf2);border-radius:10px;color:var(--encre);font:inherit;cursor:pointer}
-.ptx-jr2 small{font-size:11px;color:var(--doux);text-transform:uppercase;font-weight:650}.ptx-jr2 b{font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:650}
-.ptx-cartes .ptx-jr2.pt-abs{background:color-mix(in srgb,var(--violet) 12%,transparent)}.ptx-cartes .ptx-jr2.pt-ouv{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 10%,transparent)}.ptx-cartes .ptx-jr2.pt-manque{border-style:dashed;border-color:var(--rouge)}
-.ptx-jr2.ptx-rg{border-color:var(--rouge)}
-.ptx-jr2.pt-sig::after{top:4px;right:4px;width:7px;height:7px}
-.ptx-pers-b{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ptx-pers-b .btn{flex:1 1 100%}
 @media (max-width:760px){
-  .pt-grille{display:none}.ptx-cartes{display:flex}
-  .ptx-tout{margin-left:0;width:100%}
-  .ptx-sig-a .btn{flex:1 1 100%}
   .ptx-k3 .kpi b{font-size:20px}
 }
 /* ── vehicules ── */
-.vx-tuiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.vx-tuiles>div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:var(--surf2);border:1px solid var(--trait);min-width:0}
-.vx-tuiles small{font-size:12.5px;color:var(--doux)}.vx-tuiles b{font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-@media (max-width:520px){.vx-tuiles{grid-template-columns:1fr 1fr}}
 .vx-histo{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;align-items:end;padding-top:6px}
 .vx-mois{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}.vx-mois small{font-size:12px;color:var(--doux)}
 .vx-barre{height:84px;width:100%;max-width:38px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:6px;overflow:hidden;background:var(--surf-in)}.vx-barre i{display:block;width:100%}
 .vx-b-carb{background:var(--bleu)}.vx-b-ent{background:var(--orange)}.vx-b-ass{background:var(--vert)}
 .vx-legende{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--doux)}.vx-legende i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:baseline}
 .vx-seg{align-self:flex-start}
-.vx-ech{align-items:flex-start}.vx-ech>.ve-pt{margin-top:6px}
-.vx-ech-d{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none;max-width:60%;text-align:right}.vx-ech-d .btn{white-space:normal}
-.vx-manque{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);color:var(--encre);font:inherit;cursor:pointer}
-.vx-fr{flex-wrap:wrap}.vx-fr-a{flex:none;display:flex;gap:14px;justify-content:flex-end}.vx-fr-a .lien{min-height:44px;font-size:14px}
-.vx-doc{flex-wrap:wrap}.vx-ajout{cursor:pointer;min-height:44px}
+.vx-ajout{cursor:pointer;min-height:44px}
 .vx-mini{display:block;width:44px;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--trait2);flex:none}.vx-mini img{width:100%;height:100%;object-fit:cover;display:block}
 .vx-souci,.vx-immo{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .vx-alerte{display:flex;flex-direction:column;gap:8px}
 .vx-pl{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding-bottom:10px}.vx-pl small{font-size:14px;color:var(--doux);font-weight:550}.vx-pl b{font-size:20px;min-height:36px;display:flex;align-items:center}
 .vx-gar{font-weight:700}.vx-gar-b{align-self:flex-start;margin-bottom:6px}
-.vx-anc{padding:0 2px 6px}
-.vx-h{min-height:44px}.vx-inc{flex-wrap:wrap}
+.vx-h{min-height:44px}
 /* une cible au doigt : 44 px au moins, même pour un petit bouton (la refonte met 38/40 px à .btn.petit) */
 html .btn[data-vx],html label.vx-ajout,html .vx-seg button{min-height:44px}
 /* ── boiteMail ── (les règles de la Boîte mail sont dans un bloc plus bas du fichier : on les passe devant par la spécificité, `html` devant) */
@@ -1269,7 +1231,6 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
   #contenu .tete.mbx-tete>div:first-child{flex:1 1 0;min-width:0}   /* le titre cède la place au bouton « ＋ Écrire » (à 320 px, sa base de 220 px le poussait hors de l'écran) */
   #contenu .tete.tete-p>.actions .btn{max-width:100%}
 }
-@media (max-width:400px){ #contenu .ptx-jours{grid-template-columns:repeat(4,minmax(0,1fr))} }
 @media (pointer:coarse){
   html .mbx-q input[data-mbxq],html select.mbx-boite{font-size:16px}
   #contenu select.saisie,#contenu .t-pour,#contenu .tkx-rang .saisie{font-size:16px}
@@ -13045,9 +13006,9 @@ const TOUR_PAIE = [
     { c:'#calque [data-paie^="valsem|"]', t:'Touche « Valider quand même » sur chaque semaine', p:'Une fois validée, la semaine part sur la fiche de paie telle quelle.', ok:() => !gdPaieAttente(), si:() => !!gdPaieAttente() },
     gdFermer ] },
   { r:'tech', cat:'Le salarié', t:'Sophie confirme ses heures', d:'Tu es maintenant Sophie, technicienne. Dans « Mes heures », elle voit son relevé tel qu’il servira à sa fiche de paie, et le confirme.', go:gdMesHeures, gestes:[
-    { c:'#contenu .paie-conf', t:'Son relevé est prêt', p:'Elle vérifie ses heures, ses heures supplémentaires, ses absences.', suivant:1, si:() => !PAIE.confirmes.sm },
-    { c:'#contenu .paie-tr', t:'La correction du bureau, en clair', p:'Elle voit l’heure d’avant, la nouvelle, qui l’a changée et pourquoi. Rien ne se modifie dans son dos.', suivant:1 },
-    { c:'#contenu [data-paie="confirme|sm"]', t:'Touche « Je confirme mes heures »', p:'Si quelque chose n’allait pas, « Signaler une erreur » enverrait un message au bureau, comme Tom l’a fait.', ok:() => !!PAIE.confirmes.sm } ] },
+    { c:'#contenu .tt-pret', t:'Ses heures sont prêtes', p:'Elle vérifie ses heures du mois, et celles qui sont en plus.', suivant:1, si:() => !PAIE.confirmes.sm },
+    { c:'#contenu .tt-mh-j', t:'Ses journées, une par une', p:'Chaque journée est là. Quand le bureau a changé une heure, la mention « corrigée par le bureau » le dit : en touchant la journée, elle voit l’heure d’avant, la nouvelle, qui l’a changée et pourquoi. Rien ne se modifie dans son dos.', suivant:1 },
+    { c:'#contenu [data-tt^="mhconf|"]', t:'Touche « Je confirme mes heures »', p:'Si quelque chose n’allait pas, « Il y a une erreur » enverrait un message au bureau, comme Tom l’a fait.', ok:() => !!PAIE.confirmes.sm } ] },
   { r:'patron', cat:'Verrouiller', t:'Verrouiller le mois', d:'De retour chez Marc. Une fois le mois verrouillé, plus aucune heure d’octobre ne change : les fiches de paie se font sur des heures figées.', go:gdPaie('paiemois'), gestes:[
     { c:'#contenu [data-paie="verrouiller"]', t:'Touche « Verrouiller octobre »', p:'OP GESTION te dit qui n’a pas encore confirmé : son relevé portera « non confirmé ».', ok:() => gdPanneau() || paieVerrouille() },
     { c:'#calque [data-paie="verrouok"]', t:'Touche « Verrouiller »', p:'Une empreinte est calculée : elle prouve que les heures n’ont pas bougé depuis. Une erreur trouvée après se régularise sur le mois suivant.', ok:() => paieVerrouille() } ] },
@@ -23795,11 +23756,12 @@ immChap('tech', 'majournee', 'Le technicien', 'Le technicien : sa journée sur l
   { c:'#calque .panneau', t:'Il refuse, et il explique', p:'Le logiciel refuse de terminer et nomme ce qui manque. Si Sophie ne peut vraiment pas finir, « Je ne peux pas finir » prévient le bureau et crée une intervention de retour. Je ferme, et j’ouvre ses tâches.', jouer:() => fermerPanneau() },
   { c:'.tkx-bloc', t:'Ses tâches du jour', p:'Voici ses tâches. Celle-ci est liée à l’intervention : prévenir monsieur Durand avant la mise en service. Je la termine, puis j’écris « Racheter des cosses demain » : le logiciel comprend « demain » et date la tâche.',
     jouer:() => { immClic('[data-tfait="t11"]'); immRolesPhrase('Racheter des cosses demain'); } },
+  { c:'[data-vis="camion-vehicule"]', t:'Son camion, en trois boutons', p:'Sous la phrase qui dit si le camion est en règle : « Noter un plein », « Relever le compteur » et « Un souci avec le camion ». Pour un souci, le bureau est prévenu tout de suite ; les papiers du camion, c’est lui qui s’en occupe.' },
   { c:'[data-vis="camion-manque"]', t:'Son camion, ce qui manque', p:'Le logiciel compare ce que Sophie a à bord avec ce qu’il lui faut, et liste ce qui manque. Je touche « Je l’ai pris » sur le fluide : l’envoi part au bureau, sans autre question, et la ligne le dit.',
     jouer:() => immClic('[data-mat="pris|p4"]') },
   { c:'.carte:has([data-mat^="retire"])', t:'Ce qui part au bureau', p:'L’envoi apparaît dans « Mes envois », « En attente du bureau ». Le stock ne bouge qu’à la validation du bureau : rien ne se perd, et chaque sortie est notée, avec le client chez qui elle a servi.' },
-  { c:'.paie-conf', t:'Ses heures et sa paie', p:'Dans « Mes heures », Sophie retrouve ce qu’elle a pointé en octobre : 170 heures, dont les heures supplémentaires. Si une journée est fausse, « Ce n’est pas ça » prévient le bureau. Je touche « Je confirme mes heures ».',
-    jouer:() => immClic('[data-paie="confirme|sm"]') },
+  { c:'.tt-pret', t:'Ses heures et sa paie', p:'Dans « Mes heures », Sophie retrouve ce qu’elle a fait en octobre : 170 heures, dont celles qui sont en plus. Si une journée est fausse, « Il y a une erreur » prévient le bureau. Je touche « Je confirme mes heures ».',
+    jouer:() => immClic('[data-tt^="mhconf|"]') },
   { c:'.carte:has([data-rl^="ndfmod"])', t:'Ses frais, remboursés avec la paie', p:'Dernier écran : ses frais. Sophie a avancé 6 euros de parking, mais le ticket manque et le bureau le demande. Elle l’ajoute en photo, le bureau valide, et c’est remboursé avec la paie. La gestion les valide.' }
 ], { role:'tech' });
 
@@ -25155,7 +25117,9 @@ const NV_NEUF = [
   ['comptabilite', '📊', 'La comptabilité au même endroit', 'Factures, paiements, achats, paie et contrôle « aux normes » : tout l’argent de l’entreprise se suit dans Comptabilité.'],
   ['taches', '✅', 'Les tâches se proposent toutes seules', 'Un devis à relancer, une facture en retard, une pièce à commander : OP GESTION te le propose, et la tâche se termine quand le travail est fait.'],
   ['*materiel'],   /* la carte « Le matériel, refait » : quatre lignes, chacune ouvre SON écran (NV_MAT) */
+  ['vehicules', '🚐', 'Véhicules et Temps de travail, refaits', 'Une rangée par véhicule qui dit s’il a besoin de toi. Temps de travail : ce qu’il faut régler, d’un coup d’œil. Ton camion et tes heures, au même endroit.'],
   ['pointage', '⏱️', 'Le temps de travail jusqu’à la paie', 'Les heures de chacun, les corrections tracées, le mois confirmé puis envoyé au cabinet de paie.'],
+  ['mesheures', '⏱️', 'Tes heures, en deux onglets', 'Ce mois-ci, tes journées d’un coup d’œil et un seul bouton pour confirmer. Ton camion a maintenant sa propre page : le plein, le compteur, un souci.', 'tech'],
   ['absences', '🏖️', 'Absences et congés', 'Demander, valider, voir le calendrier de l’équipe et les soldes de chacun.', 'patron'],
   ['absences', '🏖️', 'Tes congés', 'Tes soldes, ta demande de congé, et la réponse du bureau, sur ton téléphone.', 'tech'],
   ['majournee', '🧭', 'Ta journée', 'Tes interventions dans l’ordre, l’itinéraire, le compte rendu et la signature du client sur place.', 'tech'],
