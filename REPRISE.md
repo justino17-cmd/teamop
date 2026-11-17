@@ -152,6 +152,22 @@ Voies ajoutées à `voies.js` : `artefact` (2 étapes), `retour` (2), `guide` (4
 `final-regard { role, rubriques?, suffixe?, arbre }` (2), `final-parcours { arbre }` (2), `final-mots { arbre }` (1),
 `final-rapport { arbre }` (1).
 
+**QUATRIÈME REDÉMARRAGE (17 novembre, 2 h 46)** — après 3 h 23 de marche. ⚠️ CE N'EST PAS LA CHARGE : le relevé des dernières
+minutes dit charge 3 à 4, 2,5 Go de mémoire sur 16, quatre navigateurs. Le noyau change à chaque fois (fc-v470, v509, v553) :
+c'est la plateforme qui remplace la machine, toutes les une à trois heures et demie. Conséquence : inutile de brider le
+nombre de voies pour « ménager » la machine (le plafond utile est celui des quatre navigateurs) ; ce qui compte, c'est que
+tout soit poussé toutes les 20 minutes et que chaque voie se reprenne — et ça a tenu : le disque, les arbres `/home/user/wt-*`
+(travail non commité compris), `/home/user/op-security/`, `/home/user/kit-2fa/` et `/root/.claude/` étaient intacts.
+Relancé à 2 h 50, d'après la dernière étiquette de chaque journal (`…/subagents/workflows/wf_*/journal.jsonl`) :
+`materiel {depuis:3}` (lot 4, Fournisseurs) · `vehtemps {depuis:2}` (Véhicules : liste et fiche) · `mail {depuis:4}` (recontrôle :
+37 défauts traités, 35 corrigés, 2 à soumettre) · `compositeur {depuis:3}` (recontrôle : 14 sur 14 corrigés) ·
+`entreprise {depuis:4}` (les droits) · `securite {depuis:1}` (angle « accès » ; l'angle « injection » a rendu 5 failles) ·
+`double-auth {depuis:1}` (spécification rendue : `refonte/DOUBLE-AUTHENTIFICATION.md`) · campagne 1 `{cles:[taches-absences,
+coque, interventions, clients, compta-ventes, technicien], arbre:/home/user/wt-t-taches-absences, depuis:3}` (tester la coque) ·
+campagne 2 `{cles:[planning, accueil, contrats, compta-reste, client, metier-3d], arbre:/home/user/wt-t-planning, depuis:1}`
+(corriger le planning) · l'étude OP Security reprise par `resumeFromRunId: wf_030e3b52-275` (six études et trois propositions
+déjà rendues). La voie `menu` est FINIE. En attente d'une place : `retour`, `artefact`, `restes {noms:[taches-absences, menu…]}`.
+
 **TROISIÈME REDÉMARRAGE (16 novembre, 23 h 20)**, vingt minutes après le second, avec neuf voies en cours ; le disque a tenu.
 Depuis, un relevé de la machine s'écrit toutes les 15 s dans `/home/user/suivi-machine.log` (lancé par
 `/home/user/suivi-machine.sh`, à relancer après un redémarrage) : à lire en premier après une chute. Constat : cinq voies ont
