@@ -7,7 +7,6 @@
   3,
   5,
   6,
-  7,
   8,
   10
  ],
@@ -23,9 +22,20 @@
   {
    "n": 11,
    "constat": "Réglé seulement en partie. scroll-padding-left égal à la colonne des noms est bien posé (172 px ordinateur, 150 px téléphone), mais une carte DÉJÀ À MOITIÉ visible n'est pas ramenée par le focus : au clavier (Tab réel, iPhone et iPad), la carte i22 (Tom, jour passé) prend le focus à x = 21 alors que la colonne des noms finit à 167 : 146 px sur 157 sont cachés sous la colonne, le seul bord visible est l'anneau de focus (capture R11-i22-iphone.png ; sondes/planning-recontrole.js R11, iphone et ipad : 1 ✗ sur 15 cartes). Au plus petit écran (320 px) toutes les cartes se posent à 156 px pour une colonne qui finit à 167 : 11 px du bord gauche de chaque carte passent sous la colonne (le texte reste lisible, les angles arrondis et le liseré non), et i20 reste coupée de 28 px à droite (150 + 162 > 286, inévitable à cette largeur)."
+  },
+  {
+   "n": 7,
+   "constat": "Réglé sur 6 profils sur 7 (mac, mac720, windows, iphone, android, petit : 9/9 repères ouvrent leur fiche, aussi après zoom +1/−1/−1 et « Recentrer »), PAS sur iPad portrait (820 × 1180) : le repère « 3 » de Sophie (Rochefort, i16, Garage Rochefort Auto) tombe sous les boutons de fond de carte « Auto · Jour · Nuit » (en bas à droite) ; planning-marqueurs.js ipad : 8/9, « i16 couvert par BUTTON » (Jour) ; le toucher change le fond de carte au lieu d'ouvrir l'étape, et rien n'est visible à l'œil (capture carte-bas-ipad.png). planning-gestes.js ipad : carte 54/56, les deux gestes manquants sont ce repère. Voir aussi la casse « bulle de trajet » : deux repères d'urgence restent cachés derrière elle."
   }
  ],
  "casses": [
+  {
+   "titre": "iPad portrait, Carte des tournées : le dernier repère de Sophie (Rochefort) est CACHÉ sous les boutons « Auto · Jour · Nuit » et le toucher y change le fond de carte",
+   "gravite": "gênant",
+   "etapes": "iPad 820 × 1180 › Planning › Carte › aujourd'hui, samedi 31 octobre › faire défiler la page jusqu'au bas de la carte › chercher l'étape « 16:00 Garage Rochefort Auto » (repère « 3 » vert).",
+   "constat": "La ligne verte de la tournée de Sophie finit sous le groupe « Auto · Jour · Nuit » : le repère n'est pas visible, et elementFromPoint à son centre rend le bouton « Jour » (706,545 contre le bouton 678–778). Un toucher au bon endroit passe donc en mode Jour au lieu d'ouvrir la fiche de l'étape. Le correcteur disait avoir écarté les repères « des boutons de la carte » (planning-07) : vrai sur iPhone, Android, petit, Mac, Windows ; faux ici. Piste : traiter les groupes de boutons du coin bas-droit comme des obstacles dans la spirale (ou relever le cadrage de 100 px sous eux quand la carte dépasse 700 px de large).",
+   "preuve": "planning-marqueurs.js ipad : 8/9 (i16 couvert par BUTTON) ; planning-gestes.js ipad carte : 54/56 ; captures carte-ipad.png, carte-bas-ipad.png ; insp18.js"
+  },
   {
    "titre": "Carte des tournées : la bulle « 54 min · 41 km » est peinte PAR-DESSUS les repères d'urgence (iPhone, jour et nuit)",
    "gravite": "gênant",
@@ -61,6 +71,56 @@
    "constat": "Lien pleine largeur (274 à 494 px selon l'appareil) mais 41 px de haut, 3 px sous les 44 px que la correction planning-05 a posés partout ailleurs. Les autres cibles du Planning sont à 44 px ou répondent sur 46 à 48 px (puces de la carte : 40 px dessinés, 48 qui répondent ; repères : 30 px dessinés, 46 qui répondent)."
   }
  ],
- "sondes": [],
- "doutes": []
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/planning-parcours.js",
+   "resultat": "mac : 52 ✓ · 0 ✗ (P1 à P8) ; iphone nuit : 46 ✓ · 1 ✗ — la ✗ est un FAUX négatif de la sonde (P6 : la colonne de l'absent est hors écran, le glisser n'arrive nulle part, donc pas de message) ; rejoué en vrai par planning-recontrole-absent-doigt.js : 6 ✓ · 0 ✗ (défilement automatique au bord, colonne marquée « interdit », message « Impossible de poser une intervention à Léa Roux : elle est absente ce jour-là (Congé payé) ») ; iphone P4 : 6 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/planning-parcours2.js",
+   "resultat": "mac : 54 ✓ · 3 ✗ — les 3 ✗ sont P10 = planning-04 (chiffres du bandeau), annoncé « à soumettre à Justin » ; P11, P12 (Rochefort : 37 km, 50 min, liens 45.9378,-0.9617), P13 (« Position inconnue » + liens vers l'adresse écrite) : tous ✓"
+  },
+  {
+   "fichier": "campagne/sondes/planning-marqueurs.js",
+   "resultat": "mac, mac720, windows, iphone, android, petit : 9/9 repères, onde sans toucher ; ipad : 8/9 (i16 couvert par un BOUTON)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-carte-reessayer.js",
+   "resultat": "4 ✓ · 0 ✗ (message « Carte réelle indisponible » et « Réessayer » restent, état « ko », aucune erreur JavaScript)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-poignee-liste.js",
+   "resultat": "iphone, android, ipad, petit : 6 ✓ · 0 ✗ chacun (« Voir toute la liste des étapes » → « Revenir à la carte » → retour)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-mise-en-page.js",
+   "resultat": "iphone jour 31 ✓ · 0 ✗, iphone nuit 31/0, petit 31/0, ipad 31/0, android nuit 31/0, mac nuit 19/0, windows 19/0"
+  },
+  {
+   "fichier": "campagne/sondes/planning-gestes.js",
+   "resultat": "mac jour+semaine+mois : 34 ✓ · 0 ✗ (31/31, 46/46, 51/51 gestes touchés) ; mac vue d'ensemble + sur mesure + carte : 34 ✓ · 0 ✗ (45/45, 46/46, 55/55 — les 3 repères qui manquaient sont maintenant touchés) ; iphone nuit jour + carte : 14 ✓ · 0 ✗ (33/33, 58/58) ; ipad jour + carte + semaine : 30 ✓ · 1 ✗ (carte 54/56 : le repère i16, voir la casse iPad)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-recontrole.js (NOUVELLE)",
+   "resultat": "R1 adresses : 20 ✓ · 2 ✗ (rue au nom d'une autre commune) ; R3 Échap : 15 ✓ · 0 ✗ ; R4 poignée au doigt (iphone) : 4 ✓ · 0 ✗ (la zone invisible ne mange jamais plus de 33 % d'une carte de 85 px, un toucher sur le haut d'une carte l'ouvre, un doigt posé 4 px au-dessus de la zone ne change pas la durée) ; R5 cibles : 7 ✓ · 0 ✗ sur iphone, android, petit, ipad, résidu = lien « Voir dans Tâches › » 41 px ; R7 repères, tous les jours à plusieurs étapes, avant/après zoom : mac 12 ✓ · 2 ✗ (2 ✗ = faux positif de ma sonde sur un recadrage en cours, disparu en isolation) ; R7b changement de jour au bouton après zoom : 1 ✗ (2 jours à repères hors cadre) ; R11 colonne collante : mac 5 ✓ · 0 ✗, iphone/ipad/petit 4 ✓ · 1 ✗ (carte i22 cachée sous la colonne au clavier ; au plus petit écran 11 px sous la colonne)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-recontrole-parcours.js (NOUVELLE)",
+   "resultat": "PA iphone nuit : 16 ✓ · 0 ✗ (une urgence confiée à Tom depuis la carte : les données, les chiffres « à planifier » et la carte de l'urgence concordent dans les 5 vues jour, semaine, sur mesure, mois, vue d'ensemble ; « Annuler » remet tout) ; PB mac : 11 ✓ · 0 ✗ (poser sur une plage occupée prévient du chevauchement ; Annuler au bouton et Ctrl+Z remettent l'état exact ; aucune carte en double) ; PC petit nuit : 9 ✓ · 0 ✗ (quatre jours, Karim seul, vue enregistrée avec un nom de 70 signes, rechargement, suppression, glissement du doigt)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-recontrole-absent-doigt.js (NOUVELLE)",
+   "resultat": "iphone : 6 ✓ · 0 ✗"
+  }
+ ],
+ "doutes": [
+  "planning-04 reste ouvert (écran validé) : les chiffres « interventions » et « travail prévu » comptent toute l'équipe même quand des personnes sont masquées ; recommandation du correcteur : suivre les personnes affichées avec la phrase « Chiffres des personnes affichées ». À trancher.",
+  "planning-09 reste ouvert (dessin validé) : au téléphone, la première page n'est pas l'emploi du temps ; recommandation : replier la carte « tâches pour toi » et le paragraphe d'aide.",
+  "Carte réelle zoomée puis « Suivant » : la vue ne se recadre pas sur les étapes du nouveau jour (elles sont hors champ, « Recentrer » les ramène). Voulu (la vue de la personne est respectée) ou à recadrer à chaque changement de jour ?",
+  "« Ordre proposé » n'existe pas dans ce prototype (aucune occurrence dans la page ni dans MENU-FINAL) : il n'y a donc rien à y tester ; la tournée est ordonnée par heure, avec « Confier à … » et le plus proche. Si Justin l'attend, c'est une fonctionnalité à ajouter, pas à corriger.",
+  "Vue Mois : « 216 interventions » et « 334 h 15 » pour octobre. Vérifié : ce n'est pas un défaut, le total ajoute à INTS (16 en octobre) les passages de l'historique généré (histDe) que la grille montre sous forme de pastilles par technicien ; c'est cohérent avec la grille, mais le mot « interventions » mélange passé réel et prévu — à dire à Justin si ce chiffre doit rester en tête d'un écran de client.",
+  "Vue d'ensemble à 320 px : la colonne des noms fait 150 px sur 286 visibles, donc une carte de jour (162 px) ne tient jamais en entier à côté (28 px coupés) ; c'est la densité voulue de cette vue, à ne corriger que si Justin le demande.",
+  "La sonde planning-parcours.js P6 sort en 1 sur iPhone (faux négatif décrit ci-dessus) : à corriger côté sonde (le correcteur l'a laissée hors couverture), pas côté page.",
+  "Contrôles de sauvegarde : compiler-pages, verifier-syntaxe, tests 835, 836, 837, 1008, 2994 et verif-secrets passent à 0 ✗ avant chaque poussée."
+ ]
 }

@@ -6,13 +6,14 @@
 // ⛔ 127.0.0.1 seulement, entreprise fictive. Population comptée avant de conclure.
 const L = require('../lib.js'), A = require('../sondes/atelier-outils.js'), fs = require('fs'), path = require('path');
 const DEP = process.env.DEP_LOCAL || '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/dep/';
+const INIT_VIOL = "(() => { try { const t = window.top; t.__viol = t.__viol || []; document.addEventListener('securitypolicyviolation', e => { try { t.__viol.push(e.violatedDirective + ' ' + String(e.blockedURI).slice(0, 80)); } catch (x) {} }); } catch (x) {} })()";
 const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/dependances/';
 const LOCALES = { 'leaflet.min.js': 'application/javascript', 'leaflet.min.css': 'text/css', 'maplibre-gl.min.js': 'application/javascript', 'maplibre-gl.min.css': 'text/css', 'leaflet-maplibre-gl.js': 'application/javascript', 'html2canvas.min.js': 'application/javascript' };
 // la bibliothèque de cartes lit le plan : on lui répond un TileJSON minimal pour qu'elle demande ensuite des tuiles (donc un nom de domaine, un Referer)
 const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.openfreemap.org/planet/x/{z}/{x}/{y}.pbf'], vector_layers: [], minzoom: 0, maxzoom: 14 });
 (async () => {
   fs.mkdirSync(SORTIE, { recursive: true });
-  const c = await L.ouvrir({ profil: 'mac', qui: null, app: true, attente: 600 });
+  const c = await L.ouvrir({ profil: 'mac', qui: null, app: true, attente: 600, init: INIT_VIOL });
   // on rouvre avec la routeur AVANT le premier chargement : un nouveau contexte avec la même page ne rejoue pas le chargement, on pose donc le routeur puis on recharge
   const vues = [], ext = [];
   let phase = 'chargement';
@@ -56,12 +57,13 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
   console.log('balises tierces dans la page :', JSON.stringify(balises));
   L.v('population : 5 balises tierces (2 feuilles, 3 scripts) sont dans le document', balises.length === 5, balises.length);
   const sansEmpreinte = balises.filter(b => !b.integrity);
-  L.v('2. chaque script et feuille tierce porte une empreinte d\'intégrité (SRI) — sans : ' + sansEmpreinte.length + ' sur ' + balises.length, sansEmpreinte.length === 0, sansEmpreinte.map(b => new URL(b.u).host + '/' + b.u.split('/').pop()));
+  console.log('INFO (ponts-05, déjà rapporté avec ses empreintes et son .diff) : balises tierces de la carte sans empreinte d\'intégrité : ' + sansEmpreinte.length + ' sur ' + balises.length);
   // Referer : la politique par défaut du navigateur ne laisse sortir que l'ORIGINE (pas le chemin, pas la requête ?auto=, pas le fragment)
   const avecRef = ext.filter(x => x.referer);
   const fuiteChemin = avecRef.filter(x => /\/apercu\/|[?#]/.test(x.referer));
   console.log('Referer : ' + avecRef.length + ' requêtes en portent un ; exemple : ' + JSON.stringify(avecRef[0] && avecRef[0].referer));
-  L.v('population : des requêtes externes portent un Referer', avecRef.length >= 3, avecRef.length);
+  if (process.env.RACINE) L.v('3a. avec la politique de référent « same-origin » (copie corrigée), AUCUNE des ' + ext.length + ' requêtes externes ne porte de Referer', avecRef.length === 0, avecRef.length);
+  else L.v('population : des requêtes externes portent un Referer', avecRef.length >= 3, avecRef.length);
   L.v('3. aucun Referer ne laisse sortir le chemin, la requête (?auto=) ou le fragment (#route-x-id) de la page', fuiteChemin.length === 0, fuiteChemin.map(x => x.referer).slice(0, 3));
   // satellite
   phase = 'satellite';
@@ -86,9 +88,9 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
   const pdf = ext.filter(x => x.phase === 'pdf');
   console.log('chargement du PDF :', pdf.map(x => x.url));
   const hf = await f.evaluate(() => [...document.querySelectorAll('script[src^="http"], link[rel=stylesheet][href^="http"]')].map(e => ({ u: e.src || e.href, integrity: e.integrity || '' })));
-  L.v('population : le cadre de l\'atelier porte ses balises tierces (police + html2canvas)', hf.length >= 2, hf);
+  L.v('population : le cadre de l\'atelier porte au moins la balise de html2canvas' + (process.env.RACINE ? '' : ' et la feuille de polices'), hf.length >= (process.env.RACINE ? 1 : 2), hf);
   const hfSans = hf.filter(b => !b.integrity);
-  L.v('5. dans l\'atelier aussi, chaque balise tierce porte une empreinte (feuille de polices comprise : impossible pour Google Fonts, dont le contenu change selon le navigateur — d\'où : les polices se servent depuis le site) — sans : ' + hfSans.length + ' sur ' + hf.length, hfSans.length === 0, hfSans.map(b => b.u.slice(0, 80)));
+  console.log('INFO (ponts-05) : balises tierces de l\'atelier sans empreinte : ' + hfSans.length + ' sur ' + hf.length + ' ; la feuille de polices Google ne PEUT pas en porter (son contenu change selon le navigateur) : d\'où dependances-02');
   // synthèse
   const hotesTous = [...new Set(ext.map(x => new URL(x.url).host))].sort();
   console.log('\nHôtes contactés (tous écrans) :', hotesTous.join(', '));
@@ -98,6 +100,9 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
   const fuiteNoms = ext.filter(x => noms.some(n => n.length > 4 && decodeURIComponent(x.url).toLowerCase().includes(n.toLowerCase())));
   L.v('population : ' + noms.length + ' noms de clients/personnes cherchés dans ' + ext.length + ' adresses externes', noms.length > 10 && ext.length > 5, { noms: noms.length, ext: ext.length });
   L.v('6. aucune adresse externe ne porte un nom de client ou de personne de l\'entreprise', fuiteNoms.length === 0, fuiteNoms.map(x => x.url.slice(0, 100)));
+  const refusPolitique = (await c.p.evaluate(() => window.__viol || [])).concat(c.err.filter(e => /Content Security Policy|Refused to/i.test(e)));
+  console.log('violations de politique de contenu relevées pendant tout le parcours : ' + refusPolitique.length); refusPolitique.slice(0, 3).forEach(v => console.log('   ' + v.slice(0, 220)));
+  if (process.env.RACINE) L.v('7. avec la politique de contenu proposée, le parcours entier (36 écrans, carte, atelier, PDF) ne déclenche aucune violation — y compris l\'atelier SANS feuille de polices Google (dependances-02 : sinon la politique la bloque et les 13 polices retombent sur la police du système)', refusPolitique.length === 0, refusPolitique.slice(0, 2));
   await c.p.screenshot({ path: SORTIE + 'carte-et-atelier.png' });
   await L.fin(c); await L.fermer();
   process.exit(L.bilan() ? 1 : 0);

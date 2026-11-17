@@ -5,8 +5,8 @@ const I = require('./interventions-outils.js'), L = I.L;
 (async () => {
   const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit';
   const c = await L.ouvrir({ profil, qui: 'sm', nuit }); const p = c.p, v = L.v; const tap = s => L.toucher(c, s, { delai: 4000 }); const txt = z => I.texte(p, z); const ev = (f, a) => p.evaluate(f, a);
-  // contre-épreuve de interventions-14 : CONTRE=1 rend visible le bandeau que le mode application cache — le contrôle doit alors PASSER
-  if (process.env.CONTRE === '1') await p.addStyleTag({ content: 'html[data-app] .bandeau-proto{display:flex!important}' });
+  // contre-épreuve de interventions-14 : CONTRE=1 cache le message (l'ancien défaut : la classe d'échafaudage) — le contrôle doit alors TOMBER
+  if (process.env.CONTRE === '1') await p.addStyleTag({ content: 'html[data-app] .bandeau-info{display:none!important}' });
   const CAPN = n => I.CAP + `fact-${profil}${nuit ? '-nuit' : ''}-${n}.png`; let e, t;
   // la technicienne termine (la fiche est remplie d'un coup : le geste « Terminer » est le vrai)
   await L.aller(p, 'inter-x-i1');
@@ -17,7 +17,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   console.log('  · lignes préparées :', JSON.stringify(f0 && f0.lignes), '· TVA', f0 && f0.tva);
   await I.devenir(c, 'marc', 'facture-x-f-i1'); t = await txt();
   const dis = await ev(() => { const b = document.querySelector('[data-action="apercuEnvoi"]'); return b && b.disabled; });
-  v('interventions-14 : une ligne sans prix : « Aperçu et envoi » est grisé, et la page dit pourquoi (le bandeau existe mais le mode application le cache)', dis === true && await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu .bandeau-proto')].find(e => /sans prix/.test(e.textContent)); return !!b && getComputedStyle(b).display !== 'none'; }), [dis, (t.match(/.{0,20}sans prix.{0,60}/) || [''])[0]]);
+  v('interventions-14 : une ligne sans prix : « Aperçu et envoi » est grisé, et la page dit pourquoi (le message est visible en mode application)', dis === true && await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu .bandeau-info')].find(e => /sans prix/.test(e.textContent)); return !!b && getComputedStyle(b).display !== 'none'; }), [dis, (t.match(/.{0,20}sans prix.{0,60}/) || [''])[0]]);
   await L.capture(c, CAPN('1-a-chiffrer'));
   // F3 chiffrer
   await p.fill('input[data-prix][placeholder="prix HT"]', '35,5'); await p.evaluate(() => document.querySelector('input[data-prix]:not([placeholder=""])') && 0); await p.keyboard.press('Tab'); await L.calme(p, 500);
@@ -48,11 +48,24 @@ const I = require('./interventions-outils.js'), L = I.L;
   const resteCents = Math.round(f1.reste * 100); const mc = t.match(new RegExp('FAC-2026-\\d+\\s*' + N)); console.log('  · page du client :', JSON.stringify((t.match(/FACTURE[\s\S]{0,140}/i) || [''])[0]));
   v('F6 le client voit son reste à payer (et non le total)', !!mc && L.cents(mc[1]) === resteCents, [mc && mc[1], resteCents]);
   // F7 « Ajouter une ligne » : la ligne libre peut-elle se nommer, se supprimer ?
-  await L.aller(p, 'inter-x-i6'); await tap('[data-action="prepFacture"]'); await L.aller(p, 'facture-x-f-i6'); const nb0 = await ev(() => document.querySelectorAll('#contenu table.l tbody tr').length);
-  await tap('[data-action="ligneAjout"]'); const ligne = await ev(() => { const r = [...document.querySelectorAll('#contenu table.l tbody tr')].slice(-1)[0]; return { texte: r.innerText.replace(/\s+/g, ' ').trim(), champs: [...r.querySelectorAll('input,textarea,select')].map(x => x.dataset.prix !== undefined ? 'prix' : x.tagName), suppr: !!r.querySelector('button, [data-action*="Sup"], [data-action*="Retir"]'), n: document.querySelectorAll('#contenu table.l tbody tr').length }; });
+  await L.aller(p, 'inter-x-i6'); await tap('[data-action="prepFacture"]'); await L.aller(p, 'facture-x-f-i6'); const nb0 = await ev(() => document.querySelectorAll('#contenu .fac-lgs .dv-lg:not(.dv-lg-t), #contenu table.l tbody tr').length);
+  await tap('[data-action="ligneAjout"]'); const ligne = await ev(() => { const r = [...document.querySelectorAll('#contenu .fac-lgs .dv-lg:not(.dv-lg-t), #contenu table.l tbody tr')].slice(-1)[0]; return { texte: r.innerText.replace(/\s+/g, ' ').trim(), champs: [...r.querySelectorAll('input,textarea,select')].map(x => x.dataset.prix !== undefined || x.dataset.fqte !== undefined ? 'prix' : x.tagName), suppr: !!r.querySelector('button, [data-action*="Sup"], [data-action*="Retir"]'), n: document.querySelectorAll('#contenu .fac-lgs .dv-lg:not(.dv-lg-t), #contenu table.l tbody tr').length }; });
   console.log('  · la ligne ajoutée :', JSON.stringify(ligne));
   v('interventions-15 : « Ajouter une ligne » : on peut NOMMER la ligne ajoutée', ligne.champs.some(x => x === 'INPUT' || x === 'TEXTAREA') && ligne.champs.filter(x => x !== 'prix').length > 0, ligne);
   v('interventions-15 : …et la retirer si on s’est trompé', ligne.suppr, ligne);
+  // 15 : la ligne libre se nomme, se chiffre, se retire ; une ligne sans nom ne part pas
+  const grise = () => ev(() => { const b = document.querySelector('[data-action="apercuEnvoi"]'); return b && b.disabled; });
+  await p.fill('input[data-ldes]', 'Déplacement exceptionnel'); await p.keyboard.press('Tab'); await L.calme(p, 400);
+  await p.fill('input[data-lqte]', '2'); await p.keyboard.press('Tab'); await L.calme(p, 400);
+  await p.fill('input[data-prix][placeholder="prix HT"]', '30'); await p.keyboard.press('Tab'); await L.calme(p, 400);
+  const lib = await ev(() => { const f = FACTURES.find(x => x.id === 'f-i6'); const l = f.lignes[f.lignes.length - 1]; return { d: l.d, q: l.q, pu: l.pu, ht: htDe(f) }; }); t = await txt();
+  v('interventions-15 : la ligne nommée, sa quantité et son prix sont retenus, le total suit', lib.d === 'Déplacement exceptionnel' && lib.q === '2' && lib.pu === 30, lib);
+  v('interventions-15 : la ligne nommée garde son nom dans son champ après le rendu (jamais « Ligne libre »)', (await ev(() => (document.querySelector('input[data-ldes]') || {}).value)) === 'Déplacement exceptionnel' && !/Ligne libre/.test(await txt('#contenu table.l')));
+  await tap('[data-action="ligneAjout"]'); const sansNom = await grise(); t = await txt();
+  v('interventions-15 : une ligne sans désignation grise « Aperçu et envoi » et la page le dit', sansNom === true && /n’a pas de désignation/.test(t), [sansNom, (t.match(/.{0,30}pas de désignation.{0,40}/) || [''])[0]]);
+  const n2 = await ev(() => document.querySelectorAll('#contenu table.l tbody tr').length); await tap('#contenu table.l tbody tr:last-child [data-action="ligneSuppr"]'); const n3 = await ev(() => document.querySelectorAll('#contenu table.l tbody tr').length);
+  v('interventions-15 : « Retirer cette ligne » retire la ligne', n3 === n2 - 1, [n2, n3]);
+  await L.capture(c, CAPN('4-ligne-libre'));
   console.log('  · erreurs de page :', c.err.length, c.err.slice(0, 3)); v('aucune erreur JavaScript pendant tout le parcours', c.err.length === 0, c.err.slice(0, 3));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.log('PLANTÉ', e.message); try { await L.fermer(); } catch (x) {} process.exit(2); });
