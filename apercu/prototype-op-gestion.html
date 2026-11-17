@@ -25212,7 +25212,7 @@ function cnxVider(){ if (SESSION) return; ['menu', 'contenu', 'barre-bas'].forEa
    (les autres écrans de la suite le retirent et le reposent d'eux-mêmes : il n'est lié qu'à la présence de #cnx) et n'ajoute rien à la mise en page. */
 document.head.insertAdjacentHTML('beforeend', `<style id="cnx-test-css">
 #cnx-test{display:none;position:fixed;z-index:1001;top:calc(6px + env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));min-height:44px;padding:0 12px;border:0;border-radius:12px;background:none;color:var(--doux);font:inherit;font-size:14px;font-weight:600;align-items:center;gap:6px;cursor:pointer}
-#cnx #cnx-test{display:inline-flex}
+body:has(#cnx) #cnx-test{display:inline-flex}
 #cnx-test:hover{color:var(--lien)}
 </style>`);
 /* Le lien vit DANS #cnx, jamais à côté : #cnx est une fenêtre modale (aria-modal) dont le piège de focus boucle sur SES éléments et dont un lecteur d'écran
@@ -25220,7 +25220,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="cnx-test-css">
    Un seul observateur le range dans chaque écran de connexion qui apparaît (connexion, lien, OP Security, chargement : tous recréent #cnx), EN PREMIER,
    donc c'est aussi le premier arrêt de Tab. Il disparaît avec l'écran : plus de règle « tant que #cnx existe ». */
 function cnxTestPoser(){ const c = document.getElementById('cnx'); if (!c || !APP_PAR_BOUTON || c.querySelector('#cnx-test')) return;
-  c.insertAdjacentHTML('afterbegin', '<button type="button" id="cnx-test" data-cnx="test"><span aria-hidden="true">‹</span> Revenir au mode test</button>'); }
+  document.body.insertAdjacentHTML('beforeend', '<button type="button" id="cnx-test" data-cnx="test"><span aria-hidden="true">‹</span> Revenir au mode test</button>'); }
 new MutationObserver(cnxTestPoser).observe(document.body, { childList:true });
 function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider();
   /* le guide des nouveautés passe au-dessus de tout (il doit couvrir la Comptabilité plein écran) : si la session se ferme pendant qu'il est ouvert
