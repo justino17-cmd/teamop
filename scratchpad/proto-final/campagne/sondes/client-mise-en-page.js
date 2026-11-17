@@ -3,6 +3,7 @@
 const O = require('./client-outils.js'), L = O.L, v = L.v;
 const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === 'nuit', longs = process.argv.includes('longs'), app = process.argv.includes('app');
 const tag = `${profil}-${nuit ? 'nuit' : 'jour'}${longs ? '-longs' : ''}${app ? '-app' : ''}`;
+const ECHAF = /^(📘 Apprendre|De A à Z|(👔|🧾|🧰|🙋)?(Patron|Gestion|Technicien|Client)\b|Métiers)/u;   // la bande « Tester en tant que » du prototype nu est de l'échafaudage, pas l'écran du client
 const contraste = p => p.evaluate(() => { const lum = ([r, g, b]) => { const f = x => { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
   const lire = s => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { c: v.slice(0, 3), a: v.length > 3 ? v[3] : 1 }; };
   const fond = e => { let n = e; const pile = []; while (n && n.nodeType === 1) { const b = lire(getComputedStyle(n).backgroundColor); if (b && b.a > 0) { pile.push(b); if (b.a >= .99) break; } n = n.parentElement; } let base = [255, 255, 255]; if (document.documentElement.dataset.mode === 'nuit') base = [11, 20, 38];
@@ -23,11 +24,12 @@ const contraste = p => p.evaluate(() => { const lum = ([r, g, b]) => { const f =
   for (const [t, nom] of ecrans) {
     await p.evaluate(x => { EC.tab = x; rendre(); scrollTo(0, 0); }, t); await L.calme(p, 450);
     const dep = await L.deborde(c); v(`${tag} · ${nom} : la page ne glisse pas de côté`, dep.bouge === 0, JSON.stringify(dep));
-    const dg = await L.doigts(p, 'body'); if (c.doigt) { v(`${tag} · ${nom} : cibles au doigt ≥ 44 px`, dg.petits.length === 0, dg.petits.join(' ; ')); v(`${tag} · ${nom} : champs ≥ 16 px`, dg.champs.length === 0, dg.champs.join(' ; ')); }
+    const dg = await L.doigts(p, 'body'); dg.petits = dg.petits.filter(x => !ECHAF.test(x)); if (c.doigt) { v(`${tag} · ${nom} : cibles au doigt ≥ 44 px`, dg.petits.length === 0, dg.petits.join(' ; ')); v(`${tag} · ${nom} : champs ≥ 16 px`, dg.champs.length === 0, dg.champs.join(' ; ')); }
     v(`${tag} · ${nom} : aucun texte écrasé`, dg.ecrases.length === 0, dg.ecrases.join(' ; '));
     const ct = await contraste(p); v(`${tag} · ${nom} : contraste des textes ≥ seuil (${ct.n} éléments)`, ct.bas.length === 0, ct.bas.join(' ; '));
     // le dernier contenu n'est pas caché par la barre du bas
-    if (c.doigt) { const oc = await p.evaluate(() => { const b = document.querySelector('.opg-tabs, #barre, nav.opg-barre, .opg-tab') && document.querySelector('.opg-tab').parentElement; if (!b || !b.offsetParent) return { barre: false }; scrollTo(0, 99999); const rb = b.getBoundingClientRect(), z = document.querySelector('.ec-pied') || document.querySelector('.ec'), rz = z.getBoundingClientRect(); const r = { barre: true, hautBarre: Math.round(rb.top), basPied: Math.round(rz.bottom), h: innerHeight }; scrollTo(0, 0); return r; });
+    if (c.doigt) { const oc = await p.evaluate(() => { const b = document.querySelector('.opg-tabs, #barre, nav.opg-barre, .opg-tab') && document.querySelector('.opg-tab').parentElement; if (!b || !b.offsetParent) return { barre: false }; scrollTo(0, 99999); const rb = b.getBoundingClientRect(), z = document.querySelector('.ec-pied') || document.querySelector('.ec'), rz = z.getBoundingClientRect(); const r = { barre: true, basBarre: Math.round(rb.bottom), hautBarre: Math.round(rb.top), basPied: Math.round(rz.bottom), h: innerHeight }; scrollTo(0, 0); return r; });
+      if (oc.barre) v(`${tag} · ${nom} : la barre du bas tient entière dans l’écran`, oc.basBarre <= oc.h + 1, JSON.stringify(oc));
       if (oc.barre) v(`${tag} · ${nom} : le pied de page se lit entier au-dessus de la barre du bas`, oc.basPied <= oc.hautBarre + 1, JSON.stringify(oc)); }
     await L.capture(c, O.CAP + `mep-${tag}-${t}.png`); }
   // les fenêtres
@@ -39,7 +41,7 @@ const contraste = p => p.evaluate(() => { const lum = ([r, g, b]) => { const f =
   await p.evaluate(() => { EC.tab = 'accueil'; rendre(); }); await L.calme(p, 300);
   await L.toucher(c, '[data-ec="demande"]'); await L.capture(c, O.CAP + `mep-${tag}-demande.png`); dp = await L.doigts(p, '#calque'); v(`${tag} · fenêtre de demande : champs ≥ 16 px et cibles ≥ 44 px`, !c.doigt || (dp.champs.length === 0 && dp.petits.length === 0), JSON.stringify(dp)); await O.nettoyer(p);
   await p.evaluate(() => { RL_CLI.cli = 'cm'; EC.tab = 'contrats'; rendre(); }); await L.calme(p, 300);
-  await L.toucher(c, '[data-go^="signer-x-"]'); await L.calme(p, 400); await L.capture(c, O.CAP + `mep-${tag}-contrat-signer.png`); dep = await L.deborde(c); v(`${tag} · page de signature du contrat : pas de glissement latéral`, dep.bouge === 0, JSON.stringify(dep)); dp = await L.doigts(p, 'body'); v(`${tag} · page de signature : cibles ≥ 44 px`, !c.doigt || dp.petits.filter(x => !/Tester|Patron|Gestion|Technicien|Client|Métiers|Apprendre|De A/.test(x)).length === 0, dp.petits.join(' ; '));
+  await L.toucher(c, '[data-go^="signer-x-"]'); await L.calme(p, 400); await L.capture(c, O.CAP + `mep-${tag}-contrat-signer.png`); dep = await L.deborde(c); v(`${tag} · page de signature du contrat : pas de glissement latéral`, dep.bouge === 0, JSON.stringify(dep)); dp = await L.doigts(p, 'body'); v(`${tag} · page de signature : cibles ≥ 44 px`, !c.doigt || dp.petits.filter(x => !ECHAF.test(x)).length === 0, dp.petits.join(' ; '));
   v(`${tag} · aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 3)); await L.fin(c);
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
