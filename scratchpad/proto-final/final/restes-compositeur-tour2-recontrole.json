@@ -1,0 +1,26 @@
+{
+ "noms": ["compositeur"],
+ "regles": [
+  "compositeur — Ctrl+Z après un collage multiligne dans « Délai » / « Paiement » : rejoué par la sonde de recontrôle (compositeur-restes2-recontrole.js § G, 43 ✓ · 0 ✗ sur iphone, mac, petit, windows, ipad, android de nuit, et en julie) : fins de ligne Windows et lignes vides aplaties en un espace, curseur et focus gardés après le collage, la frappe qui suit s'annule seule puis un second Ctrl+Z défait le collage, champ à 290 signes borné à 300 sans retour à la ligne et annulation propre, champ plein inchangé, glisser-déposer, insertParagraph / insertLineBreak d'un clavier virtuel, Entrée, composition (IME) non interceptée, collage d'une ligne non interceptée, recherche du catalogue sans retour",
+  "compositeur — voisins du collage aplati (sonde neuve compositeur-restes2-voisins.js, mac et iphone, 7 ✓ · 0 ✗) : l'objet et le mot d'introduction (zones multilignes) gardent leurs retours à la ligne ET leur Ctrl+Z, la valeur de la page (VV) est d'accord avec le champ, un collage dans le Délai ne touche pas l'objet ; la zone « Texte » d'un article de contrat garde ses lignes et s'annule (G10)",
+  "compositeur — « Brouillon supprimé » dit dans la page : devis ET contrat, brouillon rouvert depuis la liste, depuis la fiche du client, deux suppressions rapprochées (la bulle se redit), liste de la page à jour, focus hors du cadre rangé, zone « status », bulle éteinte seule en moins de 8 s, mots de fermeture role / absent gardés et motifs étrangers (« constructor », « toString ») muets (§ H, mêmes 43 ✓)",
+  "compositeur — sondes du correcteur rejouées toutes à 0 ✗ : compositeur-restes2 (iphone, mac, petit de nuit : 41 ✓), compositeur-restes1-recontrole iphone 40 ✓, compositeur-restes1 iphone 20 ✓, compositeur-gestes mac 44 ✓ et iphone 38 ✓, compositeur-mise-en-page iphone 15 ✓, compositeur-liste iphone 16 ✓",
+  "compositeur — mutations S2, S3, S4, S5, S6 (et S1 vue au passage) mordent toutes, en les rejouant ; apercu/prototype-documents.html est IDENTIQUE à ce que fabrique fabriquer.sh depuis page.source (comparé octet pour octet)",
+  "compositeur — captures REGARDÉES (android nuit, petit jour, windows jour) : la bulle « Brouillon supprimé » est lisible, dans l'écran, au-dessus de la barre d'onglets au téléphone et centrée en bas au bureau"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [],
+ "sondes": [
+  { "fichier": "sondes/compositeur-restes2-recontrole.js", "resultat": "43 ✓ · 0 ✗ sur iphone, mac, petit, android (nuit), windows, ipad, et iphone en julie" },
+  { "fichier": "sondes/compositeur-restes2-voisins.js (neuve)", "resultat": "7 ✓ · 0 ✗ sur iphone et mac" },
+  { "fichier": "sondes/compositeur-restes2.js", "resultat": "41 ✓ · 0 ✗ iphone, mac, petit de nuit" },
+  { "fichier": "sondes/compositeur-restes1-recontrole.js · compositeur-restes1.js · compositeur-gestes.js · compositeur-mise-en-page.js · compositeur-liste.js", "resultat": "40 ✓ · 20 ✓ · 44 (mac) et 38 (iphone) ✓ · 15 ✓ · 16 ✓, toutes à 0 ✗" },
+  { "fichier": "sondes/compositeur-mutations.py (S2 à S6)", "resultat": "5 mordent sur 5" }
+ ],
+ "doutes": [
+  "L'annulation au toucher (secousse, menu « Annuler » du système) et le collage par le menu du doigt ne sont vérifiés que sur Chromium piloté ; Safari iOS et Firefox peuvent livrer le collage dans beforeinput avec data nul et dataTransfer (le code lit les deux, mais seul Chromium est rejoué ici). À regarder sur un vrai iPhone et un vrai Android.",
+  "« Brouillon supprimé » n'offre aucun « Annuler » : une suppression par erreur ne se rattrape pas (comportement d'avant, pas un défaut de ce tour). À trancher par Justin si une annulation de quelques secondes est voulue.",
+  "Toujours à soumettre à Justin, inchangé depuis le tour 1 : la feuille « Format » qui recouvre « Insérer / Aperçu / Envoyer » sur un contrat neuf au petit téléphone (320 × 568) tant qu'on n'a pas touché « Terminé » ; et les sept décisions de restes-compositeur-tour1.json (aperçu à 100 % au téléphone, mot « atelier », « HT » dit dans le contrat, déplacement 29,17 € HT, numéro rendu à la suppression, Échap de « Nouveau client », appareils réels)."
+ ]
+}

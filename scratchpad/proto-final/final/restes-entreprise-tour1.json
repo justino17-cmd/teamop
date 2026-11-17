@@ -1,0 +1,86 @@
+[
+ {
+  "nom": "tout-08 — Boîte mail avec la seule case « Voir » : la personne peut encore écrire, répondre, archiver, supprimer",
+  "defaut": "Le module de courrier (apercu/prototype-courrier.js, arbre d'ombre) ne lisait pas capacites().droits : les gestes d'écriture restaient proposés et agissaient. Reproduit avant correction (recontrôle r08).",
+  "etat": "corrigé",
+  "changement": "Le module lit capacites().droits = { ecrire (Créer), ranger (Modifier : répondre, marquer, archiver, ranger), supprimer (Supprimer) } et capacites().refus(geste). Un geste refusé n'est PAS proposé (data-ecrire / data-ranger / data-supprimer sur le cadre + règles CSS, entrées de menus filtrées, « Sélectionner » retiré quand rien n'est permis) et il est REFUSÉ s'il est tenté autrement (clavier c f e Suppr, sélection multiple, hôte « Écrire à… » / « Répondre », « Ajouter une boîte », « Supprimer la boîte ») par la phrase des autres rubriques : « Ce geste n’est pas ouvert à ton compte : … Demande à Marc. ». Lire un courriel le marque toujours lu (c'est lire). L'hôte passe les cases de com, masque son « ＋ Écrire » sans la case Créer, et pose la note du pied « Tu peux regarder cet écran, pas le modifier » sur la Boîte mail (elle dit vrai maintenant). Les phrases DROIT_PHRASES.com disent ce que la page garde vraiment. Pas de glisser pour archiver dans le module : rien à garder (décision (l) inchangée).",
+  "preuve": "scratchpad/proto-final/sondes/entreprise-restes1.js section m : cinq jeux de cases (1000, 1010, 1100, 1001, 1111) sur Mac, 54 ✓ · 0 ✗ avec mt (iPhone nuit/jour, Android) ; section mt : rien ne dépasse de côté. Captures lues : cap/entreprise-restes1/m-1000-mac.png, mt-1000-iphone-nuit.png. Mutations : voir le rapport."
+ },
+ {
+  "nom": "casse 1 — la rangée « Enregistrer / Annuler » collée cache le champ refusé sur téléphone",
+  "defaut": "Le navigateur range le champ refusé au bord bas de la feuille, SOUS la rangée collée (24 contrôles ✗ sur 36 au recontrôle).",
+  "etat": "corrigé",
+  "changement": "#calque .panneau.ent-pan{scroll-padding-bottom:200px} sous 760 px (la piste mesurée par le recontrôleur ; 140 px laissait le message coupé de 9 px).",
+  "preuve": "entreprise-recontrole.js casse1 + casse1b : 42 ✓ · 0 ✗ (iPhone jour, Android nuit, 320 px jour : Ton entreprise, Ta banque, Tes horaires, Tes mentions légales) ; entreprise-restes1.js section c : 2 ✓."
+ },
+ {
+  "nom": "tout-11 — la barre « ‹ Retour · Mon entreprise » sort de l'écran après « Facture envoyée toute seule » et « Notes de frais »",
+  "defaut": "La page défile jusqu'au réglage (centré) et la barre, posée en haut de page, reste hors de l'écran (y = −1209 iPhone, −1407 Android, −473 Mac).",
+  "etat": "corrigé",
+  "changement": "entDefiler colle la barre en haut le temps de l'arrivée (classe rl-colle : position:sticky, fond opaque var(--feuille) — la vitre laissait passer le texte de la page, vu sur la première capture).",
+  "preuve": "entreprise-restes1.js section r : 5 liens × iPhone, Android, Mac = 30 ✓ · 0 ✗ (barre entre 0 et la hauteur de l'écran ; un toucher ramène à Mon entreprise). Captures lues : r-auto-iphone.png, r-ndf-iphone.png."
+ },
+ {
+  "nom": "fiche « Droits » d'une personne : glisse de côté à 360 px (3 px) et 320 px (43 px) — bloc « Mot de passe provisoire »",
+  "defaut": "Le texte « Provisoire : à lui remettre en main propre. » (white-space:nowrap) et le bouton « Reposer un mot de passe provisoire » dépassent.",
+  "etat": "corrigé",
+  "changement": "Une autre voie (equipe-08/17, fusion du 17/11) avait posé en même temps un correctif du même bloc : on a gardé le sien (pas de doublon). Il reste correct à 320 px : mesuré après fusion.",
+  "preuve": "entreprise-restes1.js section d : 320 px jour et nuit, 360, 390 = 8 ✓ · 0 ✗ (scrollWidth égal à la largeur, aucun enfant du bloc ne dépasse). Capture lue : d-petit-nuit.png."
+ },
+ {
+  "nom": "deux sondes périmées par d'autres lots (menu avec « Sécurité », sept champs d'une fiche client)",
+  "defaut": "Attentes chiffrées dépassées : structure 200 ✓ · 1 ✗, corrections 153 ✓ · 4 ✗.",
+  "etat": "corrigé",
+  "changement": "entreprise-corrections.js §05 attend 7 champs (le contrôle garde sa force : 7 figés sans Modifier, 0 figé avec). entreprise-structure.js attendait déjà « Équipe|Temps de travail|Véhicules|Mon entreprise|Sécurité » (mis à jour par un autre lot). entreprise-recontrole.js r08 : « reste connu » remplacé par le contrôle du nouveau comportement.",
+  "preuve": "voir le rapport (entreprise-tout.sh)."
+ },
+ {
+  "nom": "arrondi du centime : 1,005 → 1 ; 8,575 → 8,57 ; 10,075 → 10,07 ; 1,255 → 1,25",
+  "defaut": "Math.round(x*100)/100 subit la virgule flottante (aucun effet sur un vrai tarif).",
+  "etat": "corrigé",
+  "changement": "cent = x => Number(Math.round(x + 'e2') + 'e-2') (exposant décimal) pour le tarif horaire et les trois zones de déplacement.",
+  "preuve": "entreprise-restes1.js section a : 1,005 → 1,01 ; 8,575 → 8,58 ; 10,075 → 10,08 ; 1,255 → 1,26 ; 65,555 → 65,56 ; 65 → 65 ; 0,5 et 501 refusés = 9 ✓ · 0 ✗."
+ },
+ {
+  "nom": "vus par le chef — bandeaux d'alerte teintés (« Tes factures peuvent partir… » ambre, « 1 compte verrouillé » rouge) : gris-brun / gris-rose ternes de jour sur Mac",
+  "defaut": "Reproduit : la teinte (--orange #994900 ou --rouge à 11-12 %) posée sur le verre donnait un beige-gris et un rose-gris.",
+  "etat": "corrigé",
+  "changement": "Mon entreprise (.ent-ban.attention) prend le jeton du gérant A, background:var(--alerte-fond) (crème d'ambre de jour, voile d'avant la nuit : vu sur capture, il est juste) ; Équipe, rouge : de jour seulement (:root:not([data-mode=\"nuit\"])), .alerte mêle le rouge à du BLANC (rose clair franc). Texte et bouton intacts. .alerte sert à treize endroits : même défaut partout, même correction.",
+  "preuve": "captures lues : ban-mac.png (avant), ban-iphone.png (après), verrou-mac.png, ban-iphone-nuit.png (inchangé)."
+ },
+ {
+  "nom": "doute — « +33 (0)5 46 11 22 33 » est refusé comme numéro de téléphone de l'entreprise",
+  "defaut": "Écriture courante, refusée par la validation (« +33 5 46… » et « 05 46… » passent).",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : accepter ou laisser est une décision (la validation garde des chiffres propres pour les factures).",
+  "preuve": "recontrôle r02."
+ },
+ {
+  "nom": "doute — une facture peut partir avec le seul SIRET (sans forme juridique, capital, immatriculation, assurance)",
+  "defaut": "Décision de la spécification (§ 1.4) ; ces mentions sont obligatoires sur une facture de société : à faire valider côté droit français.",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé.",
+  "preuve": "recontrôle (doutes)."
+ },
+ {
+  "nom": "doute — une personne « Voir + Créer » (sans Modifier) compose un devis ou un contrat mais ne peut pas le rouvrir pour le continuer",
+  "defaut": "Logique des cases, surprenante pour un débutant. Le même schéma existe maintenant à la Boîte mail : « Voir + Créer » écrit un message neuf mais ne répond pas (répondre = Modifier, comme l'écrivait la spécification § droits).",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé.",
+  "preuve": "recontrôle (doutes) ; entreprise-restes1.js m « Voir + Créer »."
+ },
+ {
+  "nom": "décisions déjà prises (rien touché)",
+  "defaut": "(a) bouton Retour qui ferme la fenêtre ET quitte l'écran : voie à part ; (c) Boîte mail sur deux boîtes sans bandeau de panne ; (l) glisser pour archiver, Planning au téléphone, Boîte mail pour le bureau : à soumettre.",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "REPRISE.md, décisions du chef de chantier."
+ },
+ {
+  "nom": "constat hors de mon périmètre (achats-08, ligne non cochée du chef)",
+  "defaut": "Dans l'onglet Notes de frais, la phrase « Kilomètres : 0,60 € le km (exemple de démonstration, à vérifier avec ton expert-comptable) » est encore à l'écran (vue sur r-ndf-iphone.png) alors que le chef a décidé « plus de exemple de démonstration ».",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : c'est la ligne achats-05/08/10 de la voie achats (ligne vus-par-le-chef non cochée), pas un reste de « Mon entreprise ». À signaler à la voie qui la porte.",
+  "preuve": "capture cap/entreprise-restes1/r-ndf-iphone.png."
+ }
+]
