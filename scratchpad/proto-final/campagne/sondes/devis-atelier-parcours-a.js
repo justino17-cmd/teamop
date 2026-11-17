@@ -47,7 +47,7 @@ const fiche = p => p.evaluate(() => ({ h1: (document.querySelector('#contenu h1'
   await p.fill(champ(1, 1), '1,5'); await p.press(champ(1, 1), 'Tab'); await L.calme(p, 300); await p.fill(champ(1, 2), '29,17'); await p.press(champ(1, 2), 'Tab'); await L.calme(p, 300);
   f = await fiche(p); const lignes3 = [[0.5, 29.17], [1.5, 29.17]]; const att3 = calc(lignes3, mr.tva);
   const somLig = f.lignes.reduce((s, l) => s + cents(l[3]), 0);
-  v('P1-défaut-01 (centime) : le HT affiché = la somme des totaux de lignes AFFICHÉS (un client qui additionne le devis retombe sur le même HT)', cents(f.totaux[0]) === somLig, [f.totaux[0], f.lignes.map(l => l[3]), somLig, att3]);
+  v('devis-atelier-01 (centime) : le HT affiché = la somme des totaux de lignes AFFICHÉS (un client qui additionne le devis retombe sur le même HT)', cents(f.totaux[0]) === somLig, [f.totaux[0], f.lignes.map(l => l[3]), somLig, att3]);
   v('P1 (centime) : le TTC affiché = HT affiché + TVA affichée', cents(f.totaux[2]) === cents(f.totaux[0]) + cents(f.totaux[1]), f.totaux);
   const doc = await p.evaluate(() => { const d = document.querySelector('#contenu .pdf'); return d ? [...d.querySelectorAll('tfoot td')].map(x => x.innerText.replace(/\s+/g, ' ')) : null; });
   v('P1 (centime) : le PDF (« Le devis tel que le client le reçoit ») donne les mêmes HT, TVA, TTC que la fiche', doc && cents(doc[1]) === cents(f.totaux[0]) && cents(doc[3]) === cents(f.totaux[1]) && cents(doc[5]) === cents(f.totaux[2]), [doc, f.totaux]);
