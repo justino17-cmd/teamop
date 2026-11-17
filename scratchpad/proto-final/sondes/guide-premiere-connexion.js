@@ -15,14 +15,14 @@ const PROFIL = process.env.PROFIL || 'mac', QUIS = (process.env.QUI || 'marc').s
     const pg = await G.pages(c);
     v(`${tag} : …avec les cartes de son rôle (${G.QUIS[QUI]} : ${pg.length} cartes, la première « ${pg[0] && pg[0].t} »)`, pg.length >= 2 && pg[0].k === 'menu', pg.map(x => x.k));
     await L.capture(c, G.CAP + `connexion-${PROFIL}-${QUI}.png`);
-    const surtout = await p.evaluate(() => { const z = document.getElementById('nv'), r = z.getBoundingClientRect(); return { devant:document.elementFromPoint(innerWidth / 2, innerHeight - 30) === z || z.contains(document.elementFromPoint(innerWidth / 2, innerHeight - 30)), cnx:!!document.getElementById('cnx') }; });
+    const surtout = await p.evaluate(() => { const z = document.getElementById('nv'); if (!z) return { devant:false, cnx:!!document.getElementById('cnx'), absent:true }; return { devant:document.elementFromPoint(innerWidth / 2, innerHeight - 30) === z || z.contains(document.elementFromPoint(innerWidth / 2, innerHeight - 30)), cnx:!!document.getElementById('cnx') }; });
     v(`${tag} : le guide est au-dessus de l'application (rien ne le recouvre) et l'écran de connexion est parti`, surtout.devant && !surtout.cnx, surtout);
     await L.toucher(c, '#nv .nv-tard'); await L.calme(p, 500);
     v(`${tag} : « Plus tard » le ferme`, !(await G.ouvert(p)));
     // reconnexion du MÊME compte (sans rejouer la double authentification : la fonction que la connexion appelle)
     await p.evaluate(() => { const k = SESSION; sessionFermer(); sessionOuvrir(k); }); await p.waitForTimeout(2200);
     v(`${tag} : une reconnexion du même compte ne le rouvre pas`, !(await G.ouvert(p)));
-    v(`${tag} : …et il se rouvre à la demande (« Nouveautés »)`, await (async () => { if (TEL) { await L.toucher(c, '#contenu .tt-menu'); await L.calme(p, 300); await L.toucher(c, '#calque .nv-menu'); } else await L.toucher(c, '#menu .nv-menu'); await L.calme(p, 500); const o = await G.ouvert(p); await p.evaluate(() => nvFermer(true)); return o; })());
+    v(`${tag} : …et il se rouvre à la demande (« Nouveautés »)`, await (async () => { if (TEL) { await L.toucher(c, p.locator('#contenu .tt-menu:visible, .cpsys-menu:visible').first()); await L.calme(p, 300); await L.toucher(c, '#calque .nv-menu'); } else await L.toucher(c, '#menu .nv-menu'); await L.calme(p, 500); const o = await G.ouvert(p); await p.evaluate(() => nvFermer(true)); return o; })());
     await L.ranger(p);
   }
   v('aucune erreur de console', c.err.length === 0, c.err.slice(0, 3));

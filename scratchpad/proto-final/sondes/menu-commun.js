@@ -14,7 +14,7 @@ exports.ATTENDU = {
 // la route de chaque ligne (les routes ne changent pas), par rôle
 exports.ROUTES = {
   marc:{ 'Accueil':'accueil', 'Statistiques':'statistiques', 'Historique':'historique', 'Planning':'planning', 'Interventions':'interventions', 'Tâches':'taches', 'Absences et congés':'absences', 'Clients':'clients', 'Devis':'devis', 'Contrats':'contrats', 'Boîte mail':'boiteMail',
-    'Comptabilité':'comptabilite', 'Achats et frais':'achats', 'Stock':'stock', 'Fournisseurs, matériel & produits':'produits', 'Dépôts et camions':'boxes', 'Équipe':'equipe', 'Temps de travail':'pointage', 'Véhicules':'vehicules', 'Mon entreprise':'entreprise', 'Registre sanitaire':'registre', 'Carte des box':'carteBox', 'Devis xylophage':'devisXylo' },
+    'Comptabilité':'comptabilite', 'Achats et frais':'achats', 'Stock':'stock', 'Fournisseurs, matériel & produits':'produits', 'Dépôts et camions':'boxes', 'Équipe':'equipe', 'Temps de travail':'pointage', 'Véhicules':'vehicules', 'Mon entreprise':'entreprise', 'Sécurité':'securite', 'Registre sanitaire':'registre', 'Carte des box':'carteBox', 'Devis xylophage':'devisXylo' },
   julie:{ 'Mes tâches':'taches', 'Interventions':'interventions', 'Clients':'clients', 'Devis':'devis', 'Contrats':'contrats', 'Comptabilité':'comptabilite', 'Achats et frais':'achats', 'Stock':'stock', 'Fournisseurs, matériel & produits':'produits', 'Véhicules':'vehicules' },
   sm:{ 'Ma journée':'majournee', 'Mes tâches':'taches', 'Mes frais':'techfrais', 'Mes heures':'mesheures', 'Mon camion':'moncamion', 'Mes congés':'absences', 'Registre sanitaire':'registre' }
 };

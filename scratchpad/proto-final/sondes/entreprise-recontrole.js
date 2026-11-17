@@ -32,10 +32,12 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
       if (ok) break;
     }
     // la fiche d'une facture : plus de blocage du SIRET, et la facture PEUT partir par le vrai bouton
-    const fac = await p.evaluate(() => { const f = FACTURES.find(x => x.st === 'avalider' && lignesDe(x).every(ligneOk)); return f ? f.id : null; });
+    await p.evaluate(() => { reglages.auto = false; const cli = Object.keys(CLIENTS).find(k => CLIENTS[k].mail && CLIENTS[k].type === 'pro'); INTS.push({ id:'t-ent-r01', d:AUJ, h:'09:00', dur:60, tech:'sm', cli, titre:'Essai Mon entreprise', type:'Entretien', st:'planifiee', fact:{ mode:'forfait', forfait:100, tva:20, zone:1 } });
+      const F = fiche('t-ent-r01'); F.coches = Object.fromEntries(tousControles(F).map(k => [k, true])); F.signature = 'signee'; F.absent = false; F.compte = 'Entretien réalisé.'; ACTIONS.terminer({ dataset:{ id:'t-ent-r01' } }); }); await L.calme(p, 400);
+    const fac = await p.evaluate(() => { const f = FACTURES.find(x => x.int === 't-ent-r01'); return f && f.st === 'avalider' ? f.id : null; });
     v(`r01 ${pr} : population : une facture « à valider » est prête`, !!fac, fac);
     if (fac) { await L.aller(p, 'facture-x-' + fac); await L.calme(p, 600);
-      const g = await p.evaluate(() => ({ bloquee:!!document.querySelector('.ent-ban .btn[data-ent="completer"]'), texte:norm(document.querySelector('#contenu').textContent).slice(0, 300), M:entrepriseManque().length })); function norm(x) { return x.replace(/\s+/g, ' ').trim(); }
+      const g = await p.evaluate(() => ({ bloquee:!!document.querySelector('.ent-ban .btn[data-ent="completer"]'), texte:document.querySelector('#contenu').textContent.replace(/\s+/g, ' ').trim().slice(0, 300), M:entrepriseManque().length }));
       v(`r01 ${pr} : la fiche de la facture ne demande plus de compléter pour partir`, g.M === 0 && !g.bloquee, g); }
     await L.capture(c, CAP + `r01-${pr}.png`, false); await L.fin(c);
   }
@@ -378,13 +380,40 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
       await L.toucher(c, '[data-ent="carte|horaires"]'); await L.calme(p, 400); await C.remplir(p, 'en-horaire', '72,5'); await L.toucher(c, '[data-ent="horairesok"]'); await L.calme(p, 500);
       const th = await p.evaluate(() => TARIFS.horaire); v('p3 : le tarif horaire est changé (72,5)', th === 72.5, th);
       // les cinq liens : on part, on revient par « Retour »
-      await L.toucher(c, '[data-ent="lien|rdv"]'); await L.calme(p, 700); const bar = await p.evaluate(() => { const r = document.querySelector('.retour, [data-retour], #retour'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
+      await L.toucher(c, '[data-ent="lien|rdv"]'); await L.calme(p, 700); const bar = await p.evaluate(() => { const r = document.querySelector('.rl-retour'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
       v('p3 : après « Rendez-vous en ligne », une barre « Retour · Mon entreprise » est là', /Mon entreprise/.test(bar), bar);
-      await p.evaluate(() => { const r = document.querySelector('.retour, [data-retour], #retour'); if (r) r.click(); }); await L.calme(p, 600);
+      await p.evaluate(() => { const r = document.querySelector('.rl-retour'); if (r) r.click(); }); await L.calme(p, 600);
       const rt = await p.evaluate(() => route); v('p3 : « Retour » ramène à Mon entreprise', rt === 'entreprise', rt);
       await L.aller(p, 'devis'); await L.toucher(c, '[data-opd="devis"]'); await L.calme(p, 2800); const f2 = L.cadre(p); v('p3 : l\'atelier se rouvre (population : un cadre) sans erreur de page', !!f2 && c.err.length === 0, c.err.slice(0, 3));
     }
     await L.fin(c);
+  }
+
+
+  // ───── CASSE 4 : sur téléphone, la barre « Retour · Mon entreprise » se retrouve-t-elle et ramène-t-elle vraiment, pour chacun des cinq liens ? (on remonte la page, on touche, on lit la route)
+  if (veut('casse4')) for (const pr of ['iphone', 'android']) for (const lien of ['rdv', 'auto', 'ndf', 'stock', 'boites']) {
+    const c = await C.ouvrirEnt({ profil:pr }); const p = c.p;
+    await L.toucher(c, `[data-ent="lien|${lien}"]`); await L.calme(p, 1400); await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} }); await L.calme(p, 300);
+    const av = await p.evaluate(() => { const b = document.querySelector('.rl-retour'); if (!b) return null; const r = b.getBoundingClientRect(); return { y:Math.round(r.top), H:innerHeight, scrollY:Math.round(scrollY), contenu:(document.getElementById('contenu') || {}).scrollTop || 0 }; });
+    v(`casse4 ${pr} « ${lien} » : la barre de retour existe (population)`, !!av, av);
+    if (av) { await p.evaluate(() => { const b = document.querySelector('.rl-retour'); b.scrollIntoView({ block:'center' }); }); await L.calme(p, 300);
+      await p.evaluate(() => document.querySelector('.rl-retour').click()); await L.calme(p, 700); const rt = await p.evaluate(() => ({ route, h1:(document.querySelector('#contenu h1') || {}).textContent }));
+      v(`casse4 ${pr} « ${lien} » : un toucher sur « Retour » ramène à Mon entreprise`, rt.route === 'entreprise' && rt.h1 === 'Mon entreprise', rt);
+      console.log(`  · ${pr} ${lien} : la barre est à y=${av.y} sur un écran de ${av.H} (visible sans remonter : ${av.y >= 0 && av.y < av.H})`); }
+    await L.fin(c);
+  }
+
+  // ───── CASSE 5 : le bloc Droits (correction tout-13) à 360 et 320 px — QUI déborde, et la page glisse-t-elle de côté ?
+  if (veut('casse5')) for (const [pr, nuit] of [['android', false], ['petit', true]]) {
+    const c = await C.ouvrirEnt({ profil:pr, nuit }); const p = c.p; await L.aller(p, 'equipe'); await p.evaluate(() => { eqFiche('julie'); const dt = document.querySelector('details.eqx-det'); if (dt) dt.open = true; }); await L.calme(p, 700);
+    const r = await p.evaluate(() => { const z = document.querySelector('#calque .panneau'), W = z.clientWidth, rz = z.getBoundingClientRect(), L = [];
+      z.querySelectorAll('*').forEach(e => { const r = e.getBoundingClientRect(); if (r.width > 0 && r.right > rz.right + 1) { let a = e.parentElement, scr = false; while (a && a !== z) { const o = getComputedStyle(a).overflowX; if (o === 'auto' || o === 'scroll') { scr = true; break; } a = a.parentElement; } L.push({ el:e.tagName + '.' + String(e.className).slice(0, 30), texte:(e.textContent || '').trim().slice(0, 50), parent:e.parentElement.tagName + '.' + String(e.parentElement.className).slice(0, 30), droite:Math.round(r.right - rz.right), dansRouleau:scr }); } });
+      const avant = z.scrollLeft; z.scrollLeft = 999; const glisse = z.scrollLeft; z.scrollLeft = 0;
+      return { W, scrollW:z.scrollWidth, depassent:L.length, horsRouleau:L.filter(x => !x.dansRouleau).slice(0, 6), glisse:glisse - avant, echantillon:L.slice(0, 3) }; });
+    v(`casse5 ${pr}${nuit ? ' nuit' : ''} : population : le bloc Droits est ouvert (${r.W} px)`, r.W > 0, r);
+    v(`casse5 ${pr}${nuit ? ' nuit' : ''} : rien ne dépasse de la feuille hors d'un rouleau voulu ; la feuille ne glisse pas de côté`, r.horsRouleau.length === 0 && r.glisse <= 1, r);
+    await p.evaluate(() => { const z = document.querySelector('#calque .panneau'); let cible = null; z.querySelectorAll('*').forEach(e => { if (!cible && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().right > z.getBoundingClientRect().right + 1) cible = e; }); if (cible) cible.scrollIntoView({ block:'center' }); }); await L.calme(p, 400);
+    await L.capture(c, CAP + `casse5-${pr}-${nuit ? 'nuit' : 'jour'}.png`, false); await L.fin(c);
   }
 
   await C.fin();
