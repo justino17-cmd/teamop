@@ -749,6 +749,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .mbx-opt-c[aria-pressed="true"]{border-color:var(--bleu);background:color-mix(in srgb,var(--bleu) 11%,var(--surf2));box-shadow:inset 0 0 0 1px var(--bleu)}
 .mbx-pas{display:flex;gap:6px;margin:6px 0 10px}.mbx-pas i{flex:1;height:5px;border-radius:3px;background:var(--trait)}.mbx-pas i.on{background:var(--bleu)}.mbx-pas i.fait{background:var(--vert)}
 .mbx-acc{display:flex;flex-direction:column;gap:6px;margin:10px 0}.mbx-acc ul{margin:0;padding-left:20px;line-height:1.5}
+.mbx-bo{flex-wrap:wrap;align-items:flex-start}.mbx-bo>.ve-pt{margin-top:6px}.mbx-bo>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}.mbx-bo>.fo-n>b{overflow-wrap:anywhere}.mbx-act{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;padding-left:22px}.mbx-act:empty{display:none}   /* l'adresse prend la ligne, les boutons passent dessous : « marc@climservices17.f / r » ne se coupe plus */
 .mbx-case{display:flex;align-items:center;gap:10px;min-height:44px;margin:6px 0;cursor:pointer}.mbx-case input{width:22px;height:22px;flex:none}
 .mbx-rel{display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:14px;background:color-mix(in srgb,var(--vert) 9%,var(--surf2));border:1px solid color-mix(in srgb,var(--vert) 30%,transparent);margin:8px 0}
 .mbx-aperc{margin:6px 0 10px}.mbx-aperc pre{margin:4px 0 0;padding:10px 12px;border-radius:12px;background:var(--surf2);font:inherit;font-size:14px;white-space:pre-wrap}
@@ -9863,7 +9864,7 @@ function notifier(k, txt){ NOTIFS.push({ k, txt, d:AUJ, h:hm(MAINT_MIN) }); }
    à sa place ; une réponse à un bon de commande se range avec lui par son numéro. Données fictives. */
 let ML_BOITES = [
   { id:'b1', adr:'contact@climservices17.fr', fourni:'Google', etat:'ok', vu:'il y a 2 min' },
-  { id:'b2', adr:'marc@climservices17.fr', fourni:'Microsoft', etat:'reco', vu:'le 28 oct.' }
+  { id:'b2', adr:'marc@climservices17.fr', fourni:'Microsoft', etat:'ok', vu:'il y a 4 min' }   /* deux boîtes connectées à l'ouverture : un bandeau rouge « ne répond plus » en première ligne se lit « ça ne marche pas ». Le cas « à reconnecter » reste jouable (etat:'reco'), posé par les sondes — jamais par un bouton visible */
 ];
 const mlM = (id, d, h, de, objet, txt, x = {}) => ({ id, d, h, de, objet, txt, boite:'b1', dossier:'recu', lu:false, pj:[], ...x });
 let MAILS = [
@@ -9928,8 +9929,8 @@ document.addEventListener('click', ev => {
   const [a, x, y] = b.dataset.ml.split('|'), m = mlDe(x);
   if (a === 'ouvrir') return courrierOuvrir(x);
   if (a === 'reco') { const bo = ML_BOITES.find(o => o.id === x); if (bo.etat === 'ok') return fermerPanneau(); bo.etat = 'ok'; bo.vu = 'à l’instant'; fermerPanneau(); MAILS.push(mlM('m' + Date.now(), jour(-2), '15:12', { nom:'Clim Pièces Atlantique', mail:'commandes@climpieces-atlantique.fr' }, 'Votre compte professionnel', 'Bonjour,\n\nVotre remise de 32 % est reconduite pour 2027.\n\nL’équipe commerciale', { boite:'b2', info:true })); rendre(); return toast(`${esc(bo.adr)} est reconnectée : ses messages sont de nouveau lus.`); }
-  if (a === 'boites') return ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span>${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-ml="reco|${bo.id}">Reconnecter</button>`}</div>`).join('')}</div>
-    <div class="groupe">Ajouter une boîte</div><div class="cmd-liens"><button type="button" class="lien" data-ml="ajout|Google">Google ›</button><button type="button" class="lien" data-ml="ajout|Microsoft">Microsoft ›</button><button type="button" class="lien" data-ml="ajout|IMAP">Autre boîte (IMAP) ›</button></div>
+  if (a === 'boites') return ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r mbx-bo"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span><span class="mbx-act">${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-ml="reco|${bo.id}">Reconnecter</button>`}</span></div>`).join('')}</div>
+    <div class="groupe">Ajouter une boîte</div><div class="cmd-liens"><button type="button" class="lien" data-ml="ajout|Google">Google ›</button><button type="button" class="lien" data-ml="ajout|Microsoft">Microsoft ›</button><button type="button" class="lien" data-ml="ajout|IMAP">Autre messagerie (iCloud, Orange, Free, OVH…) ›</button></div>
     <span class="gris petit">Le mot de passe de la boîte n’est jamais montré ; une boîte qui ne répond plus est signalée ici et en haut de la Boîte mail.</span>`);
   if (a === 'ajout') return toast(x === 'IMAP' ? 'Dans l’application, on saisit l’adresse du serveur et le mot de passe d’application de la boîte.' : `Dans l’application, la connexion s’ouvre chez ${x}, qui demande ton accord.`);
   if (a === 'four') { fermerPanneau(); return typeof fournFiche === 'function' ? fournFiche(x) : aller('fournisseurs'); }
@@ -17563,6 +17564,8 @@ const COURRIER = { inst:null, etat:'rien', role:null, suite:[], tard:false, time
 const COURRIER_FICHIER = 'prototype-courrier.js';
 const courrierDate = m => new Date(m.d + 'T' + (m.h || '00:00') + ':00').getTime();
 const courrierNbATraiter = () => MAILS.filter(m => mbxATraiter(m) && !m.suiviEnCours).length;
+/* la phrase sous le titre de la page suit les gestes du module (suivi, rangement, lecture) : elle ne se relisait qu'au prochain rendu de la page, et disait « 7 » quand il en restait 6 */
+function courrierEnteteMaj(){ const e = document.querySelector('.mbx-tete .gris'); if (!e) return; const n = courrierNbATraiter(); e.textContent = n ? mbxNb(n, 'message') + ' à traiter.' : 'Tout est traité.'; }
 const courrierImg = n => /\.(jpe?g|png|heic)$/i.test(n);
 /* ce que le courriel dit de son suivi : « À traiter / En cours / Résolu » du module ; absent pour une simple information (pas de pastille de plus) */
 function courrierSuivi(m){
@@ -17578,7 +17581,7 @@ function courrierMsg(m){
   const R = mlLire(m), b = mbxBoite(m);
   return { id:m.id, dossier:m.arch ? 'archive' : m.dossier === 'envoye' ? 'sent' : 'inbox', de:{ nom:m.de.nom, email:m.de.mail }, a:m.dossier === 'envoye' ? (m.a || '') : b.adr,
     objet:m.objet, apercu:m.txt.replace(/\s+/g, ' ').slice(0, 140), corps:m.txt, date:courrierDate(m), lu:!!m.lu, drapeau:!!m.drapeau,
-    pj:(m.pj || []).map(([n, t], k) => ({ nom:n, taille:t, type:courrierImg(n) ? 'img' : 'pdf', id:String(k) })),
+    pj:(m.pj || []).map(([n, t], k) => ({ nom:n, taille:courrierImg(n) ? t : courrierKo(courrierPdfTaille(m, n)), type:courrierImg(n) ? 'img' : 'pdf', id:String(k) })),
     // un client ou un fournisseur connu écrit comme une PERSONNE : le tri automatique ne le range pas en notification (la facture d'un fournisseur n'est plus « Reçus »)
     automatique:m.info ? true : (R.qui === 'client' || R.qui === 'four' || R.qui === 'nouveau') ? false : undefined,
     categorie:!m.info && (R.qui === 'client' || R.qui === 'four') ? 'principal' : undefined, categorieRaison:R.qui === 'client' ? 'l’expéditeur est un de vos clients' : R.qui === 'four' ? 'l’expéditeur est un de vos fournisseurs' : undefined,
@@ -17601,9 +17604,40 @@ MAILS.push(
   mlM('n12', jour(-3), '16:25', { nom:'Sophie Marchand', mail:'sophie@climservices17.fr' }, 'Photo du groupe extérieur — Hôtel de la Plage', 'Voici la photo du groupe extérieur avant intervention. Je passe demain pour le nettoyage des filtres.', { info:true, lu:true, pj:[['groupe-exterieur.jpg', '1,4 Mo']] })
 );
 /* la source : fictive, branchée sur les données VIVANTES du prototype (MAILS, CLIENTS, planning…). Aucun réseau. */
+/* les pièces jointes de la démonstration : un VRAI petit PDF d'une page (le texte du courriel), ou une vraie image dessinée — pas 61 octets illisibles.
+   Leur taille affichée est celle du fichier qui sera téléchargé (calculée par la même fabrique), jamais un chiffre annoncé à côté d'un autre. */
+function pdfUnePage(titre, lignes){
+  const ops = [`BT /F2 17 Tf 0.12 0.20 0.38 rg 56 ${(A4.h - 80).toFixed(0)} Td (${pdfOctets(titre)}) Tj ET`]; let y = A4.h - 116;
+  lignes.forEach(l => { if (y < 60) return; ops.push(`BT /F1 11 Tf 0 0 0 rg 56 ${y.toFixed(0)} Td (${pdfOctets(l)}) Tj ET`); y -= 16; });
+  const objs = [], ajoute = x => { objs.push(x); return objs.length; };
+  const cat = ajoute(''), arbre = ajoute(''), f1 = ajoute('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'), f2 = ajoute('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  const flux = ops.join('\n'), cn = ajoute(`<< /Length ${flux.length} >>\nstream\n${flux}\nendstream`);
+  const pg = ajoute(`<< /Type /Page /Parent ${arbre} 0 R /MediaBox [0 0 ${A4.l} ${A4.h}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${cn} 0 R >>`);
+  objs[cat - 1] = `<< /Type /Catalog /Pages ${arbre} 0 R >>`; objs[arbre - 1] = `<< /Type /Pages /Kids [${pg} 0 R] /Count 1 >>`;
+  const info = ajoute(`<< /Title (${pdfOctets(titre)}) /Producer (OP GESTION) /Creator (OP GESTION) >>`);
+  let out = '%PDF-1.4\n%\xe2\xe3\xcf\xd3\n'; const pos = [];
+  objs.forEach((x, i) => { pos.push(out.length); out += `${i + 1} 0 obj\n${x}\nendobj\n`; });
+  const xref = out.length; out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + pos.map(q => String(q).padStart(10, '0') + ' 00000 n \n').join('');
+  out += `trailer\n<< /Size ${objs.length + 1} /Root ${cat} 0 R /Info ${info} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const octets = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) octets[i] = out.charCodeAt(i) & 255;
+  return octets;
+}
+function courrierPieceLignes(m, nom){
+  const coupe = (t, n) => { const L = []; String(t).split('\n').forEach(par => { let c = ''; par.split(/\s+/).forEach(w => { if ((c + ' ' + w).trim().length > n) { L.push(c); c = w; } else c = (c + ' ' + w).trim(); }); L.push(c); }); return L; };
+  return ['De : ' + m.de.nom + ' <' + m.de.mail + '>', 'Date : ' + jlong(m.d) + ' à ' + m.h.replace(':', ' h '), 'Objet : ' + m.objet, '', ...coupe(m.txt, 92), '', 'Pièce d’exemple fabriquée par la démonstration d’OP GESTION : aucune donnée réelle.'];
+}
+const COURRIER_TAILLES = {};
+const courrierPdfTaille = (m, nom) => COURRIER_TAILLES[m.id + '|' + nom] || (COURRIER_TAILLES[m.id + '|' + nom] = pdfUnePage(nom.replace(/\.pdf$/i, ''), courrierPieceLignes(m, nom)).length);
+const courrierKo = o => o < 1024 ? '1 Ko' : o < 1048576 ? Math.round(o / 1024) + ' Ko' : (o / 1048576).toFixed(1).replace('.', ',') + ' Mo';
+function courrierImageBlob(m, nom){
+  return new Promise(ok => { const c = document.createElement('canvas'); c.width = 1200; c.height = 900; const g = c.getContext('2d');
+    const d = g.createLinearGradient(0, 0, 1200, 900); d.addColorStop(0, '#dbe7f5'); d.addColorStop(1, '#f6efe3'); g.fillStyle = d; g.fillRect(0, 0, 1200, 900);
+    g.fillStyle = '#1f3358'; g.font = '600 46px Helvetica, Arial, sans-serif'; g.fillText(nom.replace(/\.[a-z]+$/i, ''), 70, 150);
+    g.fillStyle = '#445'; g.font = '30px Helvetica, Arial, sans-serif'; g.fillText(m.objet.slice(0, 60), 70, 220); g.fillText('Photo d’exemple de la démonstration d’OP GESTION', 70, 800);
+    c.toBlob(b => ok(b), /\.png$/i.test(nom) ? 'image/png' : 'image/jpeg', .8); });
+}
 function courrierSource(){
   const boite = id => ML_BOITES.find(o => o.id === id);
-  const faux = (m, n) => new Blob([`%PDF-1.4\n% ${n} — pièce fictive du prototype\n`], { type:'application/pdf' });
   return {
     capacites:() => Promise.resolve({ marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
       dossiers:['inbox', 'sent', 'archive'], destinataires:5, pj:{ nombre:5, octets:8 * 1048576 }, signature:false, signatureMaintenance:false, journalEnvois:false, traduire:false }),
@@ -17615,13 +17649,14 @@ function courrierSource(){
       return Promise.resolve(L.map(courrierMsg));
     },
     lire:id => { const m = mlDe(id); return m ? Promise.resolve({ corps:m.txt }) : Promise.reject(new Error('Message introuvable')); },
-    marquer:(id, p) => { const m = mlDe(id); if (!m) return Promise.reject(new Error('Message introuvable')); if (p.lu != null) m.lu = !!p.lu; if (p.drapeau != null) m.drapeau = !!p.drapeau; return Promise.resolve(); },
-    deplacer:(id, dos) => { const m = mlDe(id); if (!m) return Promise.reject(new Error('Message introuvable')); m.arch = dos === 'archive'; return Promise.resolve(); },
+    marquer:(id, p) => { const m = mlDe(id); if (!m) return Promise.reject(new Error('Message introuvable')); if (p.lu != null) m.lu = !!p.lu; if (p.drapeau != null) m.drapeau = !!p.drapeau; courrierEnteteMaj(); return Promise.resolve(); },
+    deplacer:(id, dos) => { const m = mlDe(id); if (!m) return Promise.reject(new Error('Message introuvable')); m.arch = dos === 'archive'; courrierEnteteMaj(); return Promise.resolve(); },
     envoyer:mail => { const bo = boite(mail.boite) || ML_BOITES.find(o => o.etat === 'ok'), orig = mail.enReponseA ? mlDe(mail.enReponseA) : null;
       MAILS.push(mlM('m' + Date.now() + Math.floor(Math.random() * 99), AUJ, hm(MAINT_MIN), { nom:'Toi', mail:bo.adr }, mail.objet, mail.texte, { boite:bo.id, dossier:'envoye', lu:true, a:mail.a, pj:(mail.pieces || []).map(f => [f.name, Math.max(1, Math.round(f.size / 1024)) + ' Ko']) }));
       if (orig) (orig.reponses = orig.reponses || []).push({ h:hm(MAINT_MIN), txt:mail.texte });
       return Promise.resolve(); },
-    piece:(id, k) => { const m = mlDe(id), p = m && m.pj[+k]; return p ? Promise.resolve(faux(m, p[0])) : Promise.reject(new Error('Pièce introuvable')); },
+    piece:(id, k) => { const m = mlDe(id), p = m && m.pj[+k]; if (!p) return Promise.reject(new Error('Pièce introuvable'));
+      return courrierImg(p[0]) ? courrierImageBlob(m, p[0]) : Promise.resolve(new Blob([pdfUnePage(p[0].replace(/\.pdf$/i, ''), courrierPieceLignes(m, p[0]))], { type:'application/pdf' })); },
     suivi:(id, p) => { const m = mlDe(id); if (!m) return Promise.reject(new Error('Message introuvable'));
       if (p.statut === 'resolu') { if (!m.fait) mlTraite(m, 'Marqué comme traité'); m.suiviEnCours = false; }
       else if (p.statut === 'aTraiter') { m.fait = ''; m.faitLien = ''; m.attente = null; m.suiviEnCours = false; }
@@ -17630,7 +17665,7 @@ function courrierSource(){
         if (k && !(m.confie && !m.confie.fini && m.confie.qui === k)) mbxConfier(m, k);   // un prénom d'équipier = « Confier à quelqu'un » (tâche + notification)
         else if (!nom) { m.assigneTexte = ''; if (m.confie && !m.confie.fini) m.confie = null; }
         else if (!k) { m.assigneTexte = String(p.assigne).trim(); m.suiviEnCours = true; } }
-      return Promise.resolve(courrierSuivi(m) || { statut:'aTraiter', assigne:'', par:'' }); },
+      courrierEnteteMaj(); return Promise.resolve(courrierSuivi(m) || { statut:'aTraiter', assigne:'', par:'' }); },
     gererBoites:() => { mbxPanBoites(); return Promise.resolve(); },
     ajouterBoite:p => { const id = 'b' + Date.now().toString(36); ML_BOITES.push({ id, adr:p.email, fourni:p.fournisseur || 'Autre', etat:'ok', vu:'à l’instant' }); return Promise.resolve({ id, email:p.email, nom:p.nom || p.email, cote:'pro' }); },
     retirerBoite:id => { const k = ML_BOITES.findIndex(o => o.id === id); if (k < 0 || ML_BOITES.length < 2) return Promise.reject(new Error('Il faut garder au moins une boîte.')); ML_BOITES.splice(k, 1); return Promise.resolve(); }
@@ -17702,11 +17737,11 @@ function courrierAgir(id, x){
   courrierRafraichir();
 }
 const courrierHoteApi = {
-  lecture:x => { const m = mlDe(x.id); return m ? courrierBandeau(m) : null; },
+  lecture:x => { if (x.local) return null; const m = mlDe(x.id); return m ? courrierBandeau(m) : null; },
   agir:(id, x) => courrierAgir(id, x),
-  pastille:x => { const m = mlDe(x.id); if (!m || m.dossier !== 'recu' || m.info) return null; const R = mlLire(m);   // une notification ou une promotion n'est pas un « nouveau contact »
+  pastille:x => { if (x.local) return null; const m = mlDe(x.id); if (!m || m.dossier !== 'recu' || m.info) return null; const R = mlLire(m);   // une notification ou une promotion n'est pas un « nouveau contact »
     return R.qui === 'client' ? { texte:'Client', ton:'b' } : R.qui === 'four' ? { texte:'Fournisseur', ton:'v' } : R.qui === 'nouveau' ? { texte:'Nouveau contact', ton:'o' } : null; },
-  reponses:x => { const m = mlDe(x.id); if (!m || m.dossier !== 'recu') return null; const M = mbxMod(m);
+  reponses:x => { if (x.local) return null; const m = mlDe(x.id); if (!m || m.dossier !== 'recu') return null; const M = mbxMod(m);
     return mbxModeles(m).slice(0, 4).map(([k, l]) => ({ lib:l, texte:courrierSansFin(M[k]) + '\n\nBien cordialement', cle:k })); },
   avantEnvoi:mail => mail.objet ? true : { refus:'Il manque l’objet : dites en quelques mots de quoi parle ce message.', champ:'cSub' },
   apresEnvoi:mail => { const orig = mail.enReponseA ? mlDe(mail.enReponseA) : null;
@@ -17758,7 +17793,7 @@ function courrierQuand(f){
   if (COURRIER.inst && COURRIER.role === ROLE) setTimeout(() => { courrierCaler(); f(COURRIER.inst); }, ici ? 0 : 160); else COURRIER.suite.push(f);
 }
 const courrierOuvrir = id => courrierQuand(c => c.ouvrir(id));
-const courrierRechercher = t => courrierQuand(c => c.rechercher(t));
+const courrierRechercher = t => courrierQuand(c => c.rechercher(t, { partout:true }));   /* « Voir tous » d'une fiche client : reçus ET envoyés, pas la seule boîte de réception */
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-courrier]'); if (!b) return;
   if (b.dataset.courrier === 'reessayer') { COURRIER.etat = 'rien'; courrierCharger(); rendre(); } });
 function vueBoiteMail(){
@@ -17790,6 +17825,7 @@ function mbxMod(m){
   let conf;
   if (R.sujet === 'choixcren') { const c = m.cren.choix; conf = `C’est noté : votre intervention est prévue le ${jlong(c.d)} à ${mlH(c.h)} avec ${prenomDe(c.t)}. Vous recevrez un rappel la veille.`; }
   else if (I && I.tech) conf = `votre intervention est prévue le ${jlong(I.d)} à ${mlH(I.h)} avec ${prenomDe(I.tech)}. Vous recevrez un rappel la veille.`;
+  else if (I && R.sujet !== 'accord') conf = `nous avons bien enregistré votre demande${R.sujet === 'panne' ? ' de dépannage' : ''}. Nous vous confirmons le jour et l’heure du passage dès qu’ils sont fixés.`;   /* « votre accord… l'installation » n'est vrai que pour l'accord d'un devis : une panne reçoit une phrase de dépannage */
   else if (I) conf = `nous avons bien noté votre accord${R.devis ? ' pour le devis ' + R.devis.num : ''}. L’installation est prévue autour du ${jCourt(I.d)} : nous vous confirmons l’heure et l’équipe dès qu’elles sont fixées.`;
   else conf = 'nous vous confirmons la date très vite.';
   return {
@@ -17929,24 +17965,24 @@ function mbxDevisFait(m){
 function mbxPanBoites(){
   const A = MBX.add, pas = n => `<div class="mbx-pas" aria-label="Étape ${n} sur 3">${[1, 2, 3].map(i => `<i class="${i < n ? 'fait' : i === n ? 'on' : ''}"></i>`).join('')}</div>`;
   if (A) {
-    const nom = A.rec ? ML_BOITES.find(o => o.id === A.rec).adr : A.adr, four = A.rec ? ML_BOITES.find(o => o.id === A.rec).fourni : A.fourni;
-    if (A.step === 1) return ouvrirPanneau(`<span class="surtitre">Ajouter une boîte · ${esc(four)}</span><h2>1. Choisis le compte</h2>${pas(1)}
+    const fourNom = (A.rec ? ML_BOITES.find(o => o.id === A.rec).fourni : A.fourni) === 'IMAP' ? 'Autre messagerie' : (A.rec ? ML_BOITES.find(o => o.id === A.rec).fourni : A.fourni), nom = A.rec ? ML_BOITES.find(o => o.id === A.rec).adr : A.adr, four = A.rec ? ML_BOITES.find(o => o.id === A.rec).fourni : A.fourni;
+    if (A.step === 1) return ouvrirPanneau(`<span class="surtitre">Ajouter une boîte · ${esc(fourNom)}</span><h2>1. Choisis le compte</h2>${pas(1)}
       ${four === 'IMAP' ? `<label class="champ">Serveur de la boîte<input data-mbxf="serveur" value="${esc(A.serveur || '')}" placeholder="imap.exemple.fr" autocomplete="off"></label>` : ''}
       <label class="champ">Adresse de la boîte<input type="email" data-mbxf="adr" value="${esc(A.adr || '')}" placeholder="prenom@entreprise.fr" autocomplete="off"></label>
       ${four === 'IMAP' ? `<label class="champ">Mot de passe d’application<input type="password" data-mbxf="mdp" value="${esc(A.mdp || '')}" autocomplete="new-password"></label><span class="gris petit">Un mot de passe d’application se crée chez ton fournisseur de boîte ; ce n’est pas ton mot de passe habituel.</span>` : ''}
       <div class="actions"><button type="button" class="btn" data-mbx="addpas|2">Continuer</button><button type="button" class="btn gris" data-mbx="addstop">Annuler</button></div>`);
-    if (A.step === 2) return ouvrirPanneau(`<span class="surtitre">${A.rec ? 'Reconnecter' : 'Ajouter une boîte'} · ${esc(four)}</span><h2>2. Autorise la lecture et l’envoi</h2>${pas(2)}
+    if (A.step === 2) return ouvrirPanneau(`<span class="surtitre">${A.rec ? 'Reconnecter' : 'Ajouter une boîte'} · ${esc(fourNom)}</span><h2>2. Autorise la lecture et l’envoi</h2>${pas(2)}
       <div class="fo-bloc"><div class="fo-r"><span class="fo-n"><b>${esc(nom || 'Ta boîte')}</b><span class="gris petit">${four === 'IMAP' ? 'Serveur ' + esc(A.serveur || '') : 'La connexion s’ouvre chez ' + esc(four) + ', qui te demande ton accord.'}</span></span></div></div>
-      <div class="mbx-acc"><b>OP GESTION pourra :</b><ul><li>lire les messages reçus, pour reconnaître le client ou le fournisseur et proposer le geste qui suit ;</li><li>envoyer un message depuis cette adresse, seulement quand tu cliques sur « Envoyer ».</li></ul><span class="gris petit">Aucun mot de passe n’est conservé dans OP GESTION. Tu peux couper l’accès à tout moment, ici ou chez ${esc(four)}.</span></div>
+      <div class="mbx-acc"><b>OP GESTION pourra :</b><ul><li>lire les messages reçus, pour reconnaître le client ou le fournisseur et proposer le geste qui suit ;</li><li>envoyer un message depuis cette adresse, seulement quand tu cliques sur « Envoyer ».</li></ul><span class="gris petit">Aucun mot de passe n’est conservé dans OP GESTION. Tu peux couper l’accès à tout moment, ici ou chez ${four === 'IMAP' ? 'ton fournisseur de messagerie' : esc(four)}.</span></div>
       <label class="mbx-case"><input type="checkbox" data-mbxf="accord"${A.accord ? ' checked' : ''}><span>Je donne mon accord</span></label>
       <div class="actions"><button type="button" class="btn" data-mbx="addpas|3">Autoriser</button><button type="button" class="btn gris" data-mbx="addstop">Annuler</button></div>`);
-    return ouvrirPanneau(`<span class="surtitre">${A.rec ? 'Reconnecter' : 'Ajouter une boîte'} · ${esc(four)}</span><h2>3. Premier relevé</h2>${pas(3)}
+    return ouvrirPanneau(`<span class="surtitre">${A.rec ? 'Reconnecter' : 'Ajouter une boîte'} · ${esc(fourNom)}</span><h2>3. Premier relevé</h2>${pas(3)}
       <div class="mbx-rel"><b>La boîte est prête</b><span class="gris petit">Ses nouveaux messages arrivent dans « Reçus » : chacun est reconnu (client, fournisseur, commande…) et le geste qui suit est proposé.</span></div>
       <div class="actions"><button type="button" class="btn" data-mbx="addfin">Terminer</button></div>`);
   }
   const regles = MBX.regles.map(r => `<div class="fo-r"><span class="fo-n"><b>${esc(r.nom)}</b><span class="gris petit">${esc(r.mail)} → toujours archivé, en Information</span></span><button type="button" class="btn gris petit" data-mbx="rmregle|${esc(r.mail)}">Supprimer</button></div>`).join('') || '<div class="fo-r"><span class="gris petit">Aucune règle. Depuis un courriel d’information, « Toujours ranger… » en crée une.</span></div>';
-  ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span>${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-mbx="reco|${bo.id}">Reconnecter</button>`}${ML_BOITES.length > 1 ? `<button type="button" class="btn gris petit" data-mbx="deco|${bo.id}">Déconnecter</button>` : ''}</div>`).join('')}</div>
-    ${ML_BOITES.length === 1 ? '<div class="gris petit">C’est ta seule boîte : il en faut au moins une. Connecte-en une autre pour pouvoir déconnecter celle-ci.</div>' : ''}<div class="groupe">Ajouter une boîte</div><div class="cmd-liens"><button type="button" class="lien" data-mbx="add|Google">Google ›</button><button type="button" class="lien" data-mbx="add|Microsoft">Microsoft ›</button><button type="button" class="lien" data-mbx="add|IMAP">Autre boîte (IMAP) ›</button></div>
+  ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r mbx-bo"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span><span class="mbx-act">${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-mbx="reco|${bo.id}">Reconnecter</button>`}${ML_BOITES.length > 1 ? `<button type="button" class="btn gris petit" data-mbx="deco|${bo.id}">Déconnecter</button>` : ''}</span></div>`).join('')}</div>
+    ${ML_BOITES.length === 1 ? '<div class="gris petit">C’est ta seule boîte : il en faut au moins une. Connecte-en une autre pour pouvoir déconnecter celle-ci.</div>' : ''}<div class="groupe">Ajouter une boîte</div><div class="cmd-liens"><button type="button" class="lien" data-mbx="add|Google">Google ›</button><button type="button" class="lien" data-mbx="add|Microsoft">Microsoft ›</button><button type="button" class="lien" data-mbx="add|IMAP">Autre messagerie (iCloud, Orange, Free, OVH…) ›</button></div>
     <div class="groupe">Réglages</div>
     <label class="champ">Boîte d’envoi par défaut<select id="mbx-def">${ML_BOITES.map(b => `<option value="${b.id}"${MBX.boiteDef === b.id ? ' selected' : ''}>${esc(b.adr)}</option>`).join('')}</select></label>
     <label class="mbx-case"><input type="checkbox" id="mbx-sig-on"${MBX.sig ? ' checked' : ''}><span>Ajouter ma signature aux réponses</span></label>
@@ -18322,7 +18358,7 @@ vueAchats = function () {
   const O = [['demandes', 'Demandes de matériel', 'Matériel', nd], ['notes', 'Notes de frais', 'Frais', nn]], lect = axLect();
   if (!O.some(o => o[0] === acOnglet)) acOnglet = 'demandes';
   const compta = rlPermis('comptabilite'), apTot = ap.reduce((t, a) => t + acTTC(a), 0);
-  return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
+  return `<div class="tete ach-tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
       ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Demande</button></div>'}</div>
     <div class="kpis ach-k2"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} de matériel ${lect ? 'en attente' : 'à décider'}${na ? ' · ' + na + ' à acheter' : ''}</span></button>
       <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
@@ -18921,7 +18957,7 @@ img.logo-ent{background:#fff;object-fit:contain;overflow:hidden;padding:0;width:
 .ach-compta .ligne-clic b{font-weight:600;overflow-wrap:anywhere}
 .kpis.ach-k2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .ach-aide{align-self:flex-start;min-height:44px;display:inline-flex;align-items:center}
-@media (max-width:760px){.tete .actions.ach-act{width:100%}.tete .actions.ach-act .btn{width:100%;min-height:46px;justify-content:center}}
+@media (max-width:760px){#contenu .tete.ach-tete{flex-wrap:wrap}#contenu .tete.ach-tete > div:first-child{flex:1 1 100%}#contenu .tete.ach-tete .actions.ach-act{flex:1 1 100%;width:100%}#contenu .tete.ach-tete .actions.ach-act .btn{width:100%;min-height:46px;justify-content:center}}
 </style>`);
 
 
@@ -22702,14 +22738,19 @@ document.head.insertAdjacentHTML('beforeend', `<style id="app-mac">
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform || '') || /Macintosh/.test(navigator.userAgent || '');
 const RC_CMD = MAC ? '⌘' : 'Ctrl';
 const rcBureau = () => innerWidth > 760;
+/* Le champ qui reçoit la frappe : la Boîte mail vit dans un arbre d'ombre, où l'événement est reciblé sur son hôte (ev.target = #courrier-hote) ;
+   sans composedPath() on ne voyait jamais le champ de recherche, « À : » ou le corps d'un message, et les lettres a, c, d, n ouvraient des fenêtres du prototype. */
+const rcCible = ev => (ev.composedPath && ev.composedPath()[0]) || ev.target;
 const rcSaisie = t => !!(t && t.closest && t.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]'));
 const rcSansAccent = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 /* les rubriques du rôle en cours, dans l'ordre du menu : la source des raccourcis Cmd 1 à 9 et de la recherche */
 function rcRubriques(){ return rlLignes().filter(c => !c.ec).map(c => ({ k:c.k, l:c.l, ic:emoLigne(c) })); }
 function rcChampRecherche(){ return [...document.querySelectorAll('#contenu input[type="search"],#contenu input[placeholder^="Recherch"],#contenu input[placeholder^="Cherch"],#contenu input[placeholder^="Trouver"]')].find(i => i.offsetParent !== null && !i.disabled) || null; }
 let PAL = null;
+/* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
+const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais' };
 function palEntrees(){ const R = rcRubriques(), E = [];
-  R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', fn:() => cpSysAllerRubrique(r.k) }));
+  R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
   if (rlPermis('comptabilite')) E.push({ g:'Aller à', l:'Factures', ic:svg('factures'), d:'Comptabilité', fn:() => aller('factures') }, { g:'Aller à', l:'Paiements', ic:svg('encaissements'), d:'Comptabilité', fn:() => aller('encaissements') });
   if (ROLE !== 'patron' && rlPermis('comptabilite')) E.push({ g:'Faire', l:'Nouvelle facture', ic:'＋', fn:() => cpSysFacture() });   /* la gestion des factures est celle qui en fait : « facture » doit lui répondre aussi, pas au seul patron */
@@ -22772,7 +22813,9 @@ document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing |
     if (k === '[') { ev.preventDefault(); opgRaccourci('precedent'); return; }
     if (k === ']') { ev.preventDefault(); opgRaccourci('suivant'); return; }
     return; }
-  if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(ev.target)) return;
+  if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(rcCible(ev))) return;
+  /* la Boîte mail a SES raccourcis (c écrire, / chercher, r répondre, j k e f…) : le prototype ne prend aucune touche qui vient d'elle */
+  if (ev.target && ev.target.id === 'courrier-hote') return;
   const ouvert = document.querySelector('#calque .voile, .fen-voile, .ctx, #cpsys:not([hidden]), #opdz:not([hidden]), #gd-bulle');
   if (k === '?') { ev.preventDefault(); opgRaccourci('aide'); return; }
   if (ouvert) return;
