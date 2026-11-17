@@ -45,7 +45,7 @@
   "nom": "vus par le chef — bandeaux d'alerte teintés (« Tes factures peuvent partir… » ambre, « 1 compte verrouillé » rouge) : gris-brun / gris-rose ternes de jour sur Mac",
   "defaut": "Reproduit : la teinte (--orange #994900 ou --rouge à 11-12 %) posée sur le verre donnait un beige-gris et un rose-gris.",
   "etat": "corrigé",
-  "changement": "De jour seulement (:root:not([data-mode=\"nuit\"])), .ent-ban.attention et .alerte mêlent leur teinte à du BLANC (crème et rose clairs francs) ; la nuit garde le voile d'avant (vu sur capture, il est juste). Texte et bouton intacts. .alerte sert à treize endroits : même défaut partout, même correction.",
+  "changement": "Mon entreprise (.ent-ban.attention) prend le jeton du gérant A, background:var(--alerte-fond) (crème d'ambre de jour, voile d'avant la nuit : vu sur capture, il est juste) ; Équipe, rouge : de jour seulement (:root:not([data-mode=\"nuit\"])), .alerte mêle le rouge à du BLANC (rose clair franc). Texte et bouton intacts. .alerte sert à treize endroits : même défaut partout, même correction.",
   "preuve": "captures lues : ban-mac.png (avant), ban-iphone.png (après), verrou-mac.png, ban-iphone-nuit.png (inchangé)."
  },
  {

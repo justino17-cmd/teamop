@@ -170,7 +170,7 @@ button.kpi:hover{border-color:var(--trait2)}
 .btn.large{width:100%;min-height:56px;font-size:17px}
 .btn.petit{min-height:40px;padding:0 14px;font-size:14px}
 .btn[disabled]{opacity:.4;cursor:not-allowed}
-.lien{background:none;border:0;color:var(--lien);font-weight:600;padding:0;min-height:44px;display:inline-flex;align-items:center;gap:4px;text-decoration:none}
+.lien{background:none;border:0;color:var(--lien);font-weight:600;padding:0;min-height:44px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;text-align:left}
 .lien:hover{text-decoration:underline;text-underline-offset:3px}
 .retour{align-self:flex-start;margin-bottom:-8px}
 .st{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:650;white-space:nowrap;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c)}
@@ -290,7 +290,7 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
 /* le filtre des interventions ne défile jamais de côté (restes interventions : sur iPad portrait, « Toutes » sortait à droite sans indice) : il passe à la ligne dès que la colonne est trop étroite, quel que soit l'appareil */
 .seg:has([data-filtreint]){flex-wrap:wrap;overflow-x:visible}.seg:has([data-filtreint]) button{flex:1 1 auto}
 /* Devis : cinq filtres qui ne tiennent pas sur une ligne (téléphone, iPad en colonne) passent à la ligne au lieu de défiler : « Tous » ne se perd plus derrière le bord (regard gérant B) */
-.seg:has([data-dvf]){flex-wrap:wrap;overflow-x:visible}.seg:has([data-dvf]) button{flex:1 1 auto}
+.seg:has([data-dvf]){flex-wrap:wrap;overflow-x:visible}
 
 /* [10] tableau des contrats au téléphone : N° et client (avec titre, prix et état dessous) ; les colonnes de droite se replient */
 .ctr-tab .ctr-m{display:none}
@@ -5707,7 +5707,7 @@ function vueContrats(){
 }
 function vueContratNouveau(){
   const B = BROUILLON, Mo = MODELES[B.modele];
-  return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button><div class="tete"><div><span class="surtitre">Nouveau contrat</span><h1>${Mo.nom}</h1></div></div>
+  return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button><div class="tete"><div><span class="surtitre">Nouveau contrat</span><h1>${esc(Mo.nom).replace(/ · /g, '\u00a0· ')}</h1></div></div>
   <div class="grille2"><div class="carte" style="display:flex;flex-direction:column;gap:12px">
     <label class="champ">Modèle selon le métier<select data-b="modele">${metiersModeles().map(([k,m])=>`<option value="${k}" ${B.modele===k?'selected':''}>${m.nom}</option>`).join('')}</select></label>
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
@@ -20651,8 +20651,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
    avec son propre fond (relecture « tout-03 » ; la spécification § 1.2 le demandait). La feuille n'a plus de rembourrage en bas : c'est la rangée qui porte l'encoche (une marge basse négative sur un élément collant remonte aussi le point où il se colle). 
    scroll-padding-bottom : un champ refusé prend le focus et le navigateur le range au bord bas, donc SOUS la rangée collée (avec son message) : 200 px, car 140 px laissait le message coupé. */
 @media (max-width:760px){#calque .panneau.ent-pan{padding-bottom:0;scroll-padding-bottom:200px}#calque .panneau.ent-pan > .actions:last-child{position:sticky;bottom:0;z-index:2;background:var(--feuille);margin:0 -16px;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 12px -8px var(--feuille)}}
-.ent-ban.attention{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
-:root:not([data-mode="nuit"]) .ent-ban.attention{background:color-mix(in srgb,#e8a317 17%,#fff);border-color:color-mix(in srgb,#c9840a 45%,#fff)}   /* même raison que .alerte : de jour, l'ambre se mêle au blanc, pas au verre */
+.ent-ban.attention{padding:13px 15px;border-radius:16px;background:var(--alerte-fond);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
 .bx-grille.ent-grille{grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))}
 .ent-c{min-width:0}
 .ent-c .bx-t{align-items:center}

@@ -1,0 +1,156 @@
+{
+ "role": "gerant",
+ "voie": "final-regard",
+ "suffixe": "b",
+ "date": "2026-11-17",
+ "rubriques": [
+  {
+   "nom": "Clients",
+   "ecrans": "liste, par semaine, fiche (5 onglets), nouveau client, valeurs longues (nom de 78 signes), vide, recherche sans résultat",
+   "captures": 148,
+   "regardees": "~95 vignettes (mac, iphone, android, petit, ipad ; jour et nuit) ; windows relu par planche"
+  },
+  {
+   "nom": "Devis",
+   "ecrans": "cinq filtres, fiche brouillon / envoyé / accepté, devis rapide, dicter, valeurs longues, vide",
+   "captures": 136,
+   "regardees": "~85 vignettes (mac, iphone, petit, ipad ; jour et nuit)"
+  },
+  {
+   "nom": "Contrats",
+   "ecrans": "liste, fiche signé / envoyé, contrat rapide, modèle, valeurs longues, vide",
+   "captures": 84,
+   "regardees": "~55 vignettes (mac, iphone, petit ; jour et nuit)"
+  },
+  {
+   "nom": "Boîte mail",
+   "ecrans": "boîte, message ouvert, nouveau message, boîtes connectées, corbeille",
+   "captures": 50,
+   "regardees": "~25 vignettes (mac, ipad, iphone ; jour et nuit) — module relu en détail par la voie mail, non retouché"
+  },
+  {
+   "nom": "Comptabilité",
+   "ecrans": "sept espaces, clôture, ventes › factures, fiche facture, achats, nouvelle opération",
+   "captures": 144,
+   "regardees": "~60 vignettes (mac, windows, iphone, petit ; jour et nuit)"
+  },
+  {
+   "nom": "Achats et frais",
+   "ecrans": "demandes, notes, nouvelle demande, vide (deux onglets), valeurs longues",
+   "captures": 80,
+   "regardees": "~45 vignettes (mac, windows, iphone, petit, ipad ; jour et nuit)"
+  }
+ ],
+ "defauts": [
+  {
+   "n": 1,
+   "ecran": "Achats et frais › onglets Demandes / Notes",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "Aucun des deux onglets ne se voyait choisi : le segmenté ne dessine que aria-pressed et ces onglets n'écrivaient que aria-selected.",
+   "etat": "corrigé",
+   "changement": "aria-pressed posé avec aria-selected dans les deux générateurs d'Achats (comme les onglets de la fiche client)."
+  },
+  {
+   "n": 2,
+   "ecran": "Devis › filtres À envoyer / En attente / Acceptés / Refusés / Tous",
+   "profils": "iphone, android, petit, ipad",
+   "jourNuit": "jour et nuit",
+   "constat": "« Tous » (et « Refusés, expirés » à moitié) sortaient de l'écran, le groupe défilait de côté sans indice.",
+   "etat": "corrigé",
+   "changement": ".seg:has([data-dvf]) passe à la ligne (téléphone : boutons étalés ; ailleurs : largeur naturelle)."
+  },
+  {
+   "n": 3,
+   "ecran": "Clients vide",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "Un carnet sans client disait « Aucun client ne correspond à «  » » (message de recherche).",
+   "etat": "corrigé",
+   "changement": "Message dédié : « Tu n'as pas encore de client… » ; la recherche sans résultat garde le sien."
+  },
+  {
+   "n": 4,
+   "ecran": "Devis, listes vides",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "« Rien ici. » seul.",
+   "etat": "corrigé",
+   "changement": "Une phrase par filtre qui dit pourquoi et quoi faire."
+  },
+  {
+   "n": 5,
+   "ecran": "Contrats vide",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "Un tableau avec ses seuls titres de colonnes, sans un mot.",
+   "etat": "corrigé",
+   "changement": "Plus de tableau vide ; « Tu n'as pas encore de contrat… »."
+  },
+  {
+   "n": 6,
+   "ecran": "Nouveau contrat",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "« ‹ Retour » en lien nu, alors que tous les écrans profonds ont la pastille « Retour · Contrats ».",
+   "etat": "corrigé",
+   "changement": "route contrat-nouveau comptée parmi les écrans profonds (rlRetourBouton)."
+  },
+  {
+   "n": 7,
+   "ecran": "Nouveau contrat (320 px)",
+   "profils": "petit",
+   "jourNuit": "jour et nuit",
+   "constat": "Le titre passait à la ligne avec la puce « · » en tête de ligne.",
+   "etat": "corrigé",
+   "changement": "espace insécable avant la puce dans le titre."
+  },
+  {
+   "n": 8,
+   "ecran": "Clients, cartes (et Matériel qui partage le composant)",
+   "profils": "iphone, android",
+   "jourNuit": "jour et nuit",
+   "constat": "« prochain passage » passait sur deux lignes et allongeait chaque carte.",
+   "etat": "corrigé",
+   "changement": ".client-chiffres : colonnes 1fr 1fr 1,3fr."
+  },
+  {
+   "n": 9,
+   "ecran": "Devis, fiche, nom de client long",
+   "profils": "iphone",
+   "jourNuit": "jour et nuit",
+   "constat": "Le lien du client (60 signes) se centrait sur ses lignes sous un titre aligné à gauche.",
+   "etat": "corrigé",
+   "changement": ".lien : text-align:left (valable pour tous les liens)."
+  },
+  {
+   "n": 10,
+   "ecran": "Comptabilité › fiche d'une facture, valeurs longues",
+   "profils": "iphone",
+   "jourNuit": "jour et nuit",
+   "constat": "La désignation d'une ligne (« Installation pompe à chaleur — main-d'œuvre ») tient dans une colonne d'environ 95 px, quatre lignes, quand les deux prix de 1 127,27 € prennent la place.",
+   "etat": "à soumettre",
+   "changement": "Le tableau à quatre colonnes vient d'être réglé par la voie compta-ventes (rien ne sort à 320 px) ; l'empiler désignation au-dessus des chiffres sur téléphone est un dessin à décider."
+  },
+  {
+   "n": 11,
+   "ecran": "Achats et frais, téléphone",
+   "profils": "iphone, android, petit",
+   "jourNuit": "jour et nuit",
+   "constat": "La première demande à décider est sous deux écrans de tuiles, de liens et de réglages.",
+   "etat": "à soumettre",
+   "changement": "Décision achats-05 du chef (12 h), déjà confiée à la campagne « achats » (session 23) : non touchée ici pour ne pas se marcher dessus."
+  },
+  {
+   "n": 12,
+   "ecran": "Boîte mail, bureau",
+   "profils": "mac",
+   "jourNuit": "jour",
+   "constat": "Décision de la secrétaire qui voit ou non la Boîte mail (ligne du chef 14).",
+   "etat": "à soumettre",
+   "changement": "inchangée : décision de Justin."
+  }
+ ],
+ "sonde": "scratchpad/proto-final/sondes/regard-gerant-b.js (46 contrôles, 0 échec ; contre la page d'avant mes changements : 25 échecs dont les huit familles de défauts)",
+ "nonVerifie": "windows et mac720 relus sur une planche par rubrique seulement, pas à chaque écran ; compta valeurs longues non jouées ; Boîte mail : module en arbre d'ombre, mise en page relue mais non retouchée."
+}
