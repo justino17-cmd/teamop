@@ -398,6 +398,7 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
 .pdx-prop{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;margin-top:-4px}
 .pdx-nat{align-self:flex-start;max-width:100%}
 .pdx-nat button{white-space:normal}
+@media (max-width:760px){html .pdx-nat{flex-direction:column}html .pdx-nat button{white-space:normal;min-height:44px;padding:8px 10px;line-height:1.25;overflow-wrap:anywhere}}   /* au téléphone, « Non, c’est du matériel pour mon équipe » est coupé dans une moitié de rangée : deux choix l’un sous l’autre, chacun en entier */
 .pdx-tel{display:flex;gap:8px;align-items:center}
 .pdx-tel input{flex:1;min-width:0}
 .pdx-retour{margin-bottom:-6px;align-self:flex-start}
