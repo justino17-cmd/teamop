@@ -240,6 +240,24 @@ compression et le cache réglés par nous (poids mesuré le 17 : `app.html` 4,96
 0,38 Mo) ; (3) les deux vrais risques, dits tels quels : une panne du serveur arrête le site ET l'API ensemble, et un pic ou une
 attaque arrive droit sur lui, là où GitHub l'absorbait — avec l'option d'un réseau de protection et d'accélération devant
 (Cloudflare, déjà proposé le 9 octobre), à lui faire trancher.
+**Idée de Justin pour le chantier B (17 novembre, 17 h 45) — LES CLÉS D'ACCÈS, « comme Apple ».** Mot pour mot : « on peut proposer
+aux utilisateurs d'enregistrer une clé d'accès. Que quand ils se reconnectent avec leur téléphone, ils ont une clé d'accès qui est
+valable un certain temps. Une fois qu'ils l'ont perdue, il faut qu'ils refassent les démarches. Je sais pas comment ça fonctionne
+exactement, mais je sais que Apple le fait ». Répondu : oui, c'est la norme des clés d'accès (WebAuthn) — le téléphone fabrique une
+clé qui reste dans sa puce de sécurité, le serveur n'en garde que la moitié publique, on ouvre par Face ID ou l'empreinte, et un
+faux site ne peut pas s'en servir. À METTRE DANS LE PLAN du chantier B, à étudier puis à attaquer sur la copie d'essai, pas avant
+le chantier 0 : (1) dans l'application OP Security, la clé gardée par la PUCE du téléphone et le visage ou l'empreinte, au lieu de
+l'application et d'un code — cela répond à un constat des essais du 17 (S4, document privé) ; (2) dans OP GESTION, sur un téléphone
+ou un ordinateur enregistré, se connecter par la clé d'accès (deux preuves en un geste : l'appareil et le visage) ; (3) « valable un
+certain temps » est NOTRE règle au serveur : durée de vie de la clé, nouvelle preuve tous les N jours (sa décision D1 : 90 jours au
+plus), retrait immédiat quand le compte est désactivé ; (4) « perdue = refaire les démarches » : nouvel enregistrement avec un
+administrateur (sa décision D2). ⚠️ Trois points à lui dire et à trancher : Apple et Google RECOPIENT par défaut une clé d'accès
+sur les autres appareils du même compte (iCloud, Google) — pour que « perdue » veuille dire « à refaire », la clé doit rester liée
+à UN appareil (possible dans l'application installée, par la puce du téléphone ; pas garanti dans un simple navigateur) ; il faut
+un chemin de secours pour un téléphone trop ancien (mot de passe + confirmation OP Security) ; et le premier enregistrement reste
+le point faible (c'est lui qu'un pirate vise) : mot de passe du compte ET code d'un administrateur, comme déjà décidé. Côté code :
+la vérification au serveur se fait à la main avec `node:crypto` ou par une bibliothèque relue — à trancher dans le plan (règle du
+dépôt : pas de dépendance de plus sans raison, mais c'est une pièce de sécurité).
 **Ce qui attend Justin** : (1) le résultat de cette commande et la confirmation de l'endroit où se règle l'adresse teamop.fr ;
 (2) ses deux essais de la version 64 (Véhicules › coût › « Exporter en tableau » ; Comptabilité › « Télécharger le FEC ») ;
 (3) reporté par lui : changer l'identifiant GitHub.
