@@ -11888,6 +11888,7 @@ function rlPastille(k){
     if (k === 'taches') n = tkxNb(q);
     else if (k === 'entreprise') n = entModifiable() ? entrepriseManque().length : 0;   // ce qui manque pour qu'une facture parte : seulement pour qui peut le régler
     else if (k === 'mesheures' && ROLE === 'tech') n = paieATraiter(q);
+    else if (k === 'produits') n = cmdNbACommander();   // UN compte de « à commander » : celui de la tuile de Stock, de l'onglet Commandes et de la carte de l'Accueil (spec Matériel § 3.1)
     else if (k === 'moncamion' && ROLE === 'tech') n = SX.refus.filter(o => o.m.qui === q).length;   // la pastille rouge compte les envois REFUSÉS (ce qui demande un geste), pas les messages ni ce qui manque
   } catch (e) { n = 0; }
   return n || 0;
