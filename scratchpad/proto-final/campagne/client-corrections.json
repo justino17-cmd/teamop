@@ -1,0 +1,128 @@
+[
+ {
+  "n": "client-01",
+  "etat": "corrigé",
+  "changement": "Messages de la fenêtre « Votre devis » vouvoyés : « Cochez… », « Indiquez votre nom et votre prénom. », « Signez dans le cadre… », refus : « Voulez-vous vraiment refuser ce devis ? L’entreprise sera prévenue… Touchez encore… » (aperçu du gérant : « Le bureau sera prévenu »). Message du refus aussi : « Devis refusé. Votre réponse est transmise à Clim Services 17. »",
+  "preuve": "client-parcours P2 (92 ✓ · 1 ✗ restant = client-12 à soumettre) ; Reproduit sur copie mutée (défaut remis, mutations-client.py) : la sonde tombe ; corrigé : elle passe (3 messages remis : tombe)"
+ },
+ {
+  "n": "client-02",
+  "etat": "corrigé",
+  "changement": "Le client lit « Merci, votre devis est accepté et signé. [Une facture d’acompte de X € vous est envoyée.] Nous vous appelons pour fixer la date. » ; « Côté bureau : intervention à planifier » reste pour l’aperçu du gérant",
+  "preuve": "client-parcours P2 « ne parle pas du côté bureau » ; mutation tombe"
+ },
+ {
+  "n": "client-03",
+  "etat": "corrigé",
+  "changement": "signerContrat : pour le client, retour dans SON espace (onglet Contrat) avant le message, dans les deux branches (signature et « déjà signé ») ; la confirmation n’est plus écrasée par le refus de page",
+  "preuve": "client-parcours P3 (un toucher, second toucher) ; mutation : 2 ✗"
+ },
+ {
+  "n": "client-04",
+  "etat": "corrigé",
+  "changement": "rlRefus : pour le rôle client, toujours « Cette page n’est pas dans votre espace. » (plus de prénom de technicien ni de « les tiennes »)",
+  "preuve": "client-parcours P6 : 14 adresses du bureau refusées en vouvoiement ; mutation : 14 ✗"
+ },
+ {
+  "n": "client-05",
+  "etat": "corrigé",
+  "changement": "Compte rendu du client : titre « Votre compte rendu », sans la carte du bureau (heures, technicien, note d’accès), sans « Ouvrir la page complète » (qui menait à une page refusée)",
+  "preuve": "client-parcours P4 ; client-regard (capture iphone jour relue) ; mutation : tombe"
+ },
+ {
+  "n": "client-06",
+  "etat": "corrigé",
+  "changement": "« Demander un contrat » ouvre « Demander un contrat d’entretien » (sans le choix « C’est pour ») et crée une tâche « Proposer un contrat d’entretien à <client> » pour le bureau, plus une intervention « Entretien » ; message « on vous rappelle pour vous proposer un contrat »",
+  "preuve": "client-parcours P5 ; client-regard (capture relue) ; mutation : tombe"
+ },
+ {
+  "n": "client-07",
+  "etat": "corrigé",
+  "changement": "Liste des devis du client : « À signer » (« valable jusqu’au … »), « Expiré » avec « Demander un nouveau devis » (nouveau geste data-ec nvdevis, pré-remplit la demande), « accepté le », « refusé le » ; plus jamais « sans réponse », « relancé N× » ni « à planifier » côté client",
+  "preuve": "client-mots-documents iphone app : 263 ✓ · 0 ✗ ; mutation : 3 écrans tombent"
+ },
+ {
+  "n": "client-08",
+  "etat": "corrigé",
+  "changement": "Visite en retard : étiquette orange « Un peu de retard » et « · nous vous appelons » sous le titre",
+  "preuve": "client-constats ; capture interventions-retard relue ; mutation : tombe"
+ },
+ {
+  "n": "client-09",
+  "etat": "corrigé",
+  "changement": "Fenêtre de paiement : grille .cx-montants.deux en auto-fit (deux tuiles pleine largeur, empilées à 320 px) et numéro de facture insécable, titre idem",
+  "preuve": "client-constats iphone ; captures payer iphone jour/nuit, 320 px nuit, mac relues ; mutation : 2 ✗"
+ },
+ {
+  "n": "client-10",
+  "etat": "corrigé",
+  "changement": "Carte : date MM/AA (mois 01-12, non échue) et code à 3 ou 4 chiffres contrôlés, avec le message qui dit quoi corriger",
+  "preuve": "client-parcours P1 ; client-regard (code vide refusé) ; mutation (deux contrôles retirés) : tombe"
+ },
+ {
+  "n": "client-11",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : « Carte d’essai… dans la vraie version, la page de paiement est celle de la banque » reste dans la fenêtre de paiement du mode application. Proposition : « Démonstration : aucun argent ne bouge. » en mode application, l’explication « vraie version » réservée au prototype nu.",
+  "preuve": "Constat du testeur, décision « soumettre »"
+ },
+ {
+  "n": "client-12",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : la fausse barre d’adresse « 🔒 climservices17.teamop.fr/signer/K7P2 » reste en haut de la page de signature. CLAUDE.md dit « on ne dessine JAMAIS de barre d’adresse » ; proposition : la retirer en rôle client / mode application, la garder au bureau (maquette de ce que voit le client).",
+  "preuve": "client-parcours P3 (seul ✗ restant sur iPhone, Android, Mac)"
+ },
+ {
+  "n": "client-13",
+  "etat": "corrigé",
+  "changement": "vueSigner : le contrat d’un autre client ne s’ouvre pas (retour à l’espace du client), même par une adresse tapée",
+  "preuve": "client-parcours P6 ; mutation : tombe"
+ },
+ {
+  "n": "client-14",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : trois navigations (onglets du haut, barre du bas, menu) en trois ordres et trois jeux de noms sur téléphone, menu latéral + onglets sur ordinateur et iPad. Décision de produit (laquelle garder, où mettre les pastilles). Proposition : téléphone = barre du bas seule avec pastilles, ordinateur = menu latéral seul, un seul ordre Accueil · Factures · Devis · Interventions · Contrat.",
+  "preuve": "client-constats iphone/ipad/mac : 4 ✗ / 3 ✗ restants (client-14 et client-15)"
+ },
+ {
+  "n": "client-15",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : carré « OP » du logiciel devant le nom de l’entreprise dans la barre du haut du téléphone, et nom de l’entreprise écrit deux fois (barre + entête de page) ; proposition : retirer « OP » pour le client, supprimer l’entête redondant.",
+  "preuve": "client-constats (client-15 ✗ restants)"
+ },
+ {
+  "n": "client-16",
+  "etat": "corrigé",
+  "changement": "Une intervention demandée par le client affiche « Votre demande : « … » · disponibilités » (champs clientDit et clientDispo ; `demande` est déjà l’objet du Planning)",
+  "preuve": "client-parcours P5 ; mutation : tombe"
+ },
+ {
+  "n": "client-17",
+  "etat": "corrigé",
+  "changement": "Ligne de facture : la date de l’objet identique à l’émission est retirée (« Réglage pompe à chaleur · du 29/10 »), « du » et la date insécables",
+  "preuve": "client-constats ; capture factures relue (jour et nuit) ; mutation : tombe"
+ },
+ {
+  "n": "client-18",
+  "etat": "corrigé",
+  "changement": "Boutons « Copier » à côté de l’IBAN et du BIC (rcCopier). La première version poussait la page de 35 px sur iPhone (IBAN insécable + bouton : scrollWidth 425 pour 390) : trouvé parce que la sonde ne pouvait plus toucher « Payer » ; la ligne passe à la ligne (.ec-vir)",
+  "preuve": "client-constats iphone ; mesure des 5 onglets du client : débordement 0 ; mutation : tombe"
+ },
+ {
+  "n": "client-19",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : donnée de démonstration (deux devis du Vieux Port pour le même ventilateur, 034 accepté et 041 à signer). Le parcours A à Z en dépend : à toi de dire si on retire 034 ou si 041 devient la suite d’un autre appareil.",
+  "preuve": "Constat du testeur, décision « soumettre »"
+ },
+ {
+  "n": "client-20",
+  "etat": "corrigé",
+  "changement": "Jour / Nuit / Auto du pied de la barre latérale : 44 px sous (pointer:coarse)",
+  "preuve": "client-constats ipad ; mutation : 3 ✗ (36 px)"
+ },
+ {
+  "n": "client-21",
+  "etat": "corrigé",
+  "changement": "Téléchargement : pour le client « Votre téléchargement démarre. S’il ne démarre pas, autorisez les téléchargements dans votre navigateur. »",
+  "preuve": "client-document iphone ; mutation : tombe"
+ }
+]
