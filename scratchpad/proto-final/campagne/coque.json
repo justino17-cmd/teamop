@@ -118,7 +118,9 @@
   "OP Security au téléphone (confirmation par le nombre, activation) : jouée par les sondes secu-* de l'autre voie ; ici seulement l'écran de connexion qui y mène.",
   "Le clic droit et le long appui sur le menu : aucune action n'y est attachée dans la coque.",
   "L'espace client est mesuré dans le prototype nu (bande « Tester en tant que »), jamais en mode application : un client n'a pas de connexion dans l'application des équipes. Les deux cibles de 40 px relevées sur iPhone (« 📘 Apprendre », « De A à Z ») sont celles de la bande de revue, pas de l'espace client : non rapportées.",
-  "Android et iPhone réels : la vibration, le clavier logiciel qui masque le bas de l'écran, la barre d'adresse qui se replie ; émulés par la largeur, le toucher et les encoches seulement."
+  "Android et iPhone réels : la vibration, le clavier logiciel qui masque le bas de l'écran, la barre d'adresse qui se replie ; émulés par la largeur, le toucher et les encoches seulement.",
+  "La pastille 📱 de la démonstration OP Security (voie double authentification) : après une connexion saisie à la main elle flotte en bas à droite sur ordinateur et recouvre le coin des écrans (vue sur capture : elle masque la touche « T » du panneau des raccourcis) ; après une ouverture directe par ?auto= elle n'est pas montée. Non mesurée (sa place dans l'application finale est une décision de cette voie ; elle n'existera pas en vrai).",
+  "coque-connexion.js (reprise par la voie double authentification : elle joue la reconnexion par secu-commun.js) meurt depuis la fusion de ce matin à secu-commun.js:35 (approuver : le champ « nombre » du téléphone de Julie est absent, `Cannot set properties of null`) APRÈS ses 36 premiers contrôles : les contrôles de fin (Tab ne sort pas de la connexion [coque-01]) ne se jouent donc plus tant que cette voie n'a pas réparé son outil. Le défaut coque-01 a été mesuré avant, à la main, sur trois profils."
  ],
  "defauts": [
   {

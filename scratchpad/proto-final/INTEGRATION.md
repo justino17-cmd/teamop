@@ -63,6 +63,10 @@ Atelier → prototype :
   - « Non enregistré » sur la ligne d'un document que l'appareil n'a pas pu ranger.
 - Numéros : `dvNum()` et le numéro de « Contrat rapide » tiennent compte des documents composés ; aucun doublon dans
   les deux sens (rapide → composé → rapide).
+- ⛔ Bouton Retour, depuis le 17 novembre 2026 : l'atelier n'a PLUS son propre pushState ni son propre popstate. C'est le mécanisme COMMUN du prototype
+  (`CAL_GENRES`, `calSync`, un seul observateur du document et un seul écouteur de popstate : une entrée d'historique par calque ouvert, Retour ferme le dernier
+  ouvert) qui le fait, avec les panneaux, fenêtres, menus, recherche, plein écran… (13 sortes). L'atelier y est le genre « atelier » (`#opdz:not([hidden])`).
+  Le marqueur d'état est `{cal:n}` (plus `{opdz:1}`). Sondes : `sondes/retour-*.js` (`retour-tout.sh`), contre-épreuves `retour-mutations.js`.
 - Bouton Retour (navigateur, Android) : ouvrir l'atelier pousse UNE entrée d'historique (même adresse) ; Retour FERME
   l'atelier et laisse l'écran dessous où il était ; fermer par bouton, Échap ou `opd_fermer` consomme l'entrée poussée.
   À jouer : Clients → Devis → Composer → Retour (Devis, atelier fermé) → Retour (Clients), en comptant `history.length`.

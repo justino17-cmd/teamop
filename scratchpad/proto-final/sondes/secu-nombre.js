@@ -17,7 +17,7 @@ const demarrer = async c => { await c.p.evaluate(() => { secuDemarrer(); opsDess
   v('les 90 valeurs possibles sortent (pas de plage rétrécie)', new Set(t).size >= 85, new Set(t).size);
   console.log('\n── 2. le DOM du téléphone ne contient JAMAIS le nombre (30 demandes) ──');
   const fuites = await c.p.evaluate(() => { const o = []; for (let i = 0; i < 30; i++) { SECU.demandes.length = 0; const d = secuDemander('kb', 'connexion'); SECU.telCourant = 'kb'; const u = secuUi('kb'); u.ecran = 'ouvert'; u.derniere = secuMaint(); opsDessiner(true);
-      const ec = document.querySelector('#opsec .ops-ecran'), h = ec.innerHTML.replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/60 s/g, ''), re = new RegExp('(?<![0-9a-f.:])' + d.nombre + '(?![0-9a-f.:])');
+      const ec = document.querySelector('#opsec .ops-ecran'), h = ec.innerHTML.replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/ style="[^"]*"/g, '').replace(/60 s/g, '').replace(/Clim Services 17/g, 'Clim Services')   /* le nom de l'entreprise porte « 17 » : un tirage de 17 faisait tomber le contrôle à tort (vu dans quatre contre-épreuves de suite) ; le style de l'anneau (width: 17 %) n'est pas un texte : sans ça, un tirage égal au pourcentage affiché faisait tomber le contrôle une fois sur quatre */, re = new RegExp('(?<![0-9a-f.:])' + d.nombre + '(?![0-9a-f.:])');
       const carte = ec.querySelector('.ops-carte'); o.push({ n:d.nombre, carte:!!carte, hit:re.test(h), champ:!!ec.querySelector('[data-ops="nombre-champ"]'), vide:ec.querySelector('[data-ops="nombre-champ"]').value === '' }); }
     SECU.demandes.length = 0; return o; });
   v('population : 30 demandes, la carte et le champ du nombre sont là à chaque fois', fuites.length === 30 && fuites.every(f => f.carte && f.champ));

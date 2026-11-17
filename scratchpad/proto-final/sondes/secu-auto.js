@@ -48,5 +48,7 @@ const adr = u => { try { const x = new URL(u); return { protocol:x.protocol, hos
   const nette = src.replace(/\/\*[\s\S]*?\*\//g, ' ');
   v('le démarrage ne lit ?auto= que si secuAutoPermis(location)', /const auto = secuAutoPermis\(location\) \?/.test(nette));
   v('une personne désactivée ne s’ouvre pas par ?auto=', /auto && eqDe\(auto\) && eqDe\(auto\)\.actif/.test(nette));
+  const ecritures = [...nette.matchAll(/(?<![\w.])SESSION\s*=(?!=)(?!\s*null\b)([^;]{0,20})/g)].map(m => m[0]);
+  v('LA seule porte qui pose SESSION : une écriture non nulle dans tout le fichier (sessionOuvrir), recensée — ' + ecritures.length, ecritures.length === 1 && /SESSION = k/.test(ecritures[0]), ecritures);
   await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('ERR', e); process.exit(1); });
