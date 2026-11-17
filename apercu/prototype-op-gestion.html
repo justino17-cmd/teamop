@@ -2161,6 +2161,8 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 /* « Voir comme l'application » (17 novembre 2026) : même pastille que « Apprendre », sans pousser la rangée à droite */
 .rl-voir{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,#4f8cff 45%,var(--trait));background:color-mix(in srgb,#4f8cff 10%,var(--surf));color:var(--lien);font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:6px}
 @media (pointer:coarse){.rl-voir{min-height:44px}}
+/* pendant une visite parlée la bande reste, mais pas ce bouton : un effleurement aurait rechargé la page et perdu la place dans la visite sans un mot (recontrôle artefact, tour 1) */
+body.gd-on .rl-voir{display:none!important}
 .mch-b ~ .rl-voir{margin-left:0}
 .gd-ap{display:flex;flex-direction:column;gap:10px;margin:12px 0;padding:14px 16px;border-radius:16px;border:1px solid var(--trait);background:var(--surf)}
 .gd-ap-t{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -2575,7 +2577,7 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
 .doc-barre{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
 .mail-pj{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}.mail-pj>span:last-child{display:flex;flex-direction:column}.mail-pj small{color:var(--faible)}
 .mail-pj-i{width:38px;height:46px;border-radius:7px;background:#b0263c;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;flex:none}
-#ml-m{min-height:200px;font:inherit;line-height:1.5}
+#ml-m{min-height:200px;font:inherit;font-size:16px;line-height:1.5}   /* 16 px : sous cette taille un iPhone zoome toute la page au toucher (devis-atelier-12) */
 @media (max-width:760px){.st-ctr-d{align-items:flex-start}.st-int-3{grid-template-columns:52px minmax(0,1fr) auto}}
 /* ══ HISTORIQUE ══ */
 .h-comme{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.h-note{font-size:13px;color:var(--orange);font-weight:600}
@@ -2995,14 +2997,17 @@ body.dp-ouvert{overflow:hidden}
 .dv-focus-t{display:flex;justify-content:space-between;align-items:center}.dv-focus-t h3{margin:0}
 .dv-tache{display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--trait)}.dv-tache .dv-c{flex:1}.dv-tache.fait b{color:var(--faible);text-decoration:line-through}
 .dv-lgs{display:flex;flex-direction:column}
-.dv-lg{display:grid;grid-template-columns:minmax(0,1fr) 64px 110px 96px 40px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--trait)}
+.dv-lg{display:grid;grid-template-columns:minmax(0,1fr) 88px 110px minmax(96px,max-content) 44px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--trait)}
 .dv-lg .saisie{margin:0;min-width:0}.dv-lg .dv-q2,.dv-lg .dv-pu{text-align:right}.dv-pu.manque{border-color:var(--orange)}
 .dv-lg-t{font-size:12.5px;color:var(--doux);font-weight:600;border-bottom:1px solid var(--trait2)}.dv-lg-t span:nth-child(n+2){text-align:right}
 .dv-tot{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-.dv-x{width:40px;height:40px;border-radius:50%;border:0;background:var(--surf2);color:var(--doux);font-size:15px}
+.dv-x{width:44px;height:44px;border-radius:50%;border:0;background:var(--surf2);color:var(--doux);font-size:15px}
 .dv-lg.lu{grid-template-columns:minmax(0,1fr) auto auto;padding:11px 0}.dv-lg.lu b{font-variant-numeric:tabular-nums;text-align:right;min-width:90px}
-@media (max-width:1250px){.dv-lg{grid-template-columns:minmax(0,1fr) 56px 92px 40px;grid-template-areas:"d d d d" "q q p x";row-gap:6px}
-  .dv-lg>input:first-child{grid-column:1/-1}.dv-lg .dv-tot{display:none}.dv-lg-t{display:none}.dv-lg .dv-q2{grid-column:2}.dv-lg .dv-pu{grid-column:3}
+@media (max-width:1250px){.dv-lg{grid-template-columns:minmax(0,1fr) minmax(76px,.45fr) minmax(112px,.8fr) 44px;grid-template-areas:"d d d d" "q q p x";row-gap:6px}
+  .dv-lg>input:first-child{grid-column:1/-1}.dv-lg-t{display:none}.dv-lg .dv-q2{grid-column:2}.dv-lg .dv-pu{grid-column:3}
+  /* le total de la ligne ne se cache plus : sous la quantité et le prix, dans sa propre rangée, il tient en entier (devis-atelier-13) */
+  .dv-lg .dv-tot{grid-column:1/-1;grid-row:3;text-align:right;font-size:13px;font-weight:500;color:var(--doux);white-space:nowrap}.dv-lg .dv-tot::before{content:'Total de la ligne : '}.dv-lg .dv-tot.vide{display:none}
+  .dv-lg .dv-x{grid-row:2;grid-column:4}
   .dv-lg.lu{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:none}.dv-lg.lu>span:nth-child(2){grid-column:1;grid-row:2;font-size:13px}.dv-lg.lu b{grid-column:2;grid-row:1/3}}
 /* les lignes d'une facture à valider : mêmes champs que le devis, mais la quantité peut porter une unité (« 250 mL ») et la croix se touche au doigt */
 .fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 110px 96px 44px}
@@ -3010,7 +3015,7 @@ body.dp-ouvert{overflow:hidden}
 .fac-lgs .saisie.manque{border-color:var(--orange)}.fac-note{padding:0 0 8px;margin-top:-2px}
 @media (max-width:1250px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 104px 44px}}
 .fac-edit table.l{margin-top:6px}
-.dv-ajouts,.dv-modeles{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.dv-ajouts,.dv-modeles{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.dv-ajouts .puce-c,.dv-modeles .puce-c{min-height:44px}   /* comme toutes les autres rangées de pastilles : un doigt les touche sans viser (devis-atelier-11) */
 .dv-ajouts label.puce-c select{border:0;background:none;color:inherit;font:inherit;max-width:150px}
 .dv-totaux{margin-top:10px}.dv-totaux .ligne b{font-variant-numeric:tabular-nums;white-space:nowrap}.dv-ttc span,.dv-ttc b{font-size:19px;font-weight:750}
 .dv-sel{width:auto;min-height:38px;padding:4px 8px;display:inline-block}
@@ -3614,9 +3619,14 @@ table.l th.n{text-align:right}
   /* ce qu'on verse à un organisme : le montant et la date passent sous le nom (il lui restait 60 px) */
   .paie-org{flex-wrap:wrap}.paie-org>span:first-child{flex:1 1 100%}   /* réservé à cet écran : les autres .paie-sem gardent le libellé à gauche et la valeur à droite */
 }
-/* sous 340 px, l'aperçu d'un document écrit la quantité après la désignation et referme sa colonne (la désignation tenait dans 88 px) */
+/* L'aperçu d'un document se mesure sur SA largeur, pas sur celle de l'écran (la fenêtre d'un téléphone fait 358 px de large, l'aperçu 326 : « Qté » et 155,00 € se coupaient en deux lignes
+   alors que l'écran dépassait le seuil de 340 px). Un montant ne se coupe jamais — « 155,0 / 0 € » est un document laid que le client reçoit — : cellules chiffrées insécables, et dès que le
+   document est étroit la quantité passe derrière la désignation (« × 3 ») et sa colonne se referme. */
 .p-q{display:none}
-@media (max-width:340px){.pdf:where(:not(.doc-fixe)) table :is(th,td).p-qc{font-size:0;padding-inline:0;width:0}.pdf:where(:not(.doc-fixe)) table .p-q{display:inline;white-space:nowrap}.pdf:where(:not(.doc-fixe)) table{font-size:11px}}
+.pdf:where(:not(.doc-fixe)){container:pdf/inline-size}
+.pdf table :is(td,th)[style*="text-align:right"],.pdf table .p-qc{white-space:nowrap}
+.pdf table :is(td,th)[style*="text-align:right"]{padding-left:12px}   /* sans ça, « 3 » (la quantité) et « 3 703,50 € » se lisent « 3 3 703,50 € » */
+@container pdf (max-width:440px){.pdf table :is(th,td).p-qc{font-size:0;padding-inline:0;width:0}.pdf table .p-q{display:inline;white-space:nowrap}.pdf table{font-size:11px}.pdf table th[style*="text-align:right"]{white-space:normal}}
 
 /* 8. Les fiches que l'audit n'ouvrait pas avant le 10 novembre (un devis n'a pas d'« id » : la route rouvrait la liste) */
 /* le champ d'un prix manquant portait le nom « manque », donc la taille (15 px), la couleur et la graisse du MESSAGE du même nom :
@@ -4765,6 +4775,16 @@ async function pontFichiers(){
   let p = null; try { p = cl && typeof cl.use === 'function' ? await cl.use('downloads') : null; } catch (e) { p = null; }
   return (_pontFichiers = p && typeof p.save === 'function' ? p : null);   // un « rien » n'est pas retenu : on le redemandera
 }
+/* Un fichier fabriqué ICI n'est pas un « instanceof Blob » de la fenêtre qui porte le pont : dans un cadre, window.claude est celui de la page du haut, et un
+   pont qui teste le type (le contrat dit « string | Blob | ArrayBuffer | vue ») répondrait bad_request, sans qu'aucun fichier ne sorte. Un TEXTE passe en chaîne ;
+   un fichier binaire se REFAIT avec le constructeur de la fenêtre du pont avant l'appel. Sans cadre, ou si la fenêtre du pont est fermée à la lecture, rien ne change. */
+async function donneesPourPont(data){
+  try { const H = (!window.claude && window.parent !== window) ? window.parent : window;
+    if (H === window || typeof data === 'string' || data == null || typeof H.Blob !== 'function') return data;
+    if (typeof data.arrayBuffer === 'function' && typeof data.size === 'number') return new H.Blob([await data.arrayBuffer()], { type:data.type || '' });
+    return new H.Blob([data]); }
+  catch (e) { return data; }
+}
 const nomAvecExt = (nom, type) => /\.[a-z0-9]{2,5}$/i.test(nom) ? nom : nom + '.' + (({ 'image/jpeg':'jpg', 'image/png':'png', 'image/webp':'webp', 'application/pdf':'pdf', 'text/plain':'txt', 'text/csv':'csv' })[type] || 'pdf');
 async function telechargerFichier(nom, data, o){
   o = o || {};
@@ -4773,7 +4793,7 @@ async function telechargerFichier(nom, data, o){
   const texte = typeof o.texte === 'string' ? o.texte : (typeof data === 'string' ? data : null);
   const pont = await pontFichiers();
   if (pont) {
-    try { await pont.save({ filename:nom, data }); toast(o.ok || 'Fichier enregistré : ' + esc(nom)); return 'enregistre'; }
+    try { await pont.save({ filename:nom, data:await donneesPourPont(data) }); toast(o.ok || 'Fichier enregistré : ' + esc(nom)); return 'enregistre'; }
     catch (e) { const c = e && e.code;
       if (c === 'declined') { toast('Rien n’a été enregistré : tu as refusé le téléchargement. Tu peux recommencer.'); return 'refuse'; }
       if (c === 'rate_limited') { toast('Une demande d’enregistrement est déjà ouverte : réponds-y, puis recommence.'); return 'attente'; }
@@ -5582,7 +5602,7 @@ function vueFacture(id){
         ${L.map((l,k)=>`<tr><td>${esc(l.d)} <span class="l-q">×\u00a0${esc(l.q)}</span>${l.note?`<br><span class="faible mini">${esc(l.note)}</span>`:''}</td><td class="n">${l.pu!=null?eur(l.pu):'—'}</td><td class="l-qc n">${esc(l.q)}</td><td class="n">${l.pu!=null?eur(totLigne(l)):'—'}</td></tr>`).join('')}
       </tbody><tfoot>`}<tr><td colspan="${modifiable?2:3}">Total HT${complet?'':' (partiel)'}</td><td class="n">${eur(ht)}</td></tr>
         <tr><td colspan="${modifiable?2:3}" style="font-weight:500">TVA ${modifiable?`<select class="saisie" style="width:auto;min-height:38px;padding:4px 8px" data-tva="${id}">${[20,10,5.5].map(t=>`<option value="${t}" ${f.tva===t?'selected':''}>${String(t).replace('.',',')} %</option>`).join('')}</select>`:String(f.tva).replace('.',',')+' %'} <span class="faible mini">${f.tva===10?(c.type==='pro'?'taux réduit : attestation du client à conserver':'particulier, logement de plus de 2 ans, attestation signée'):f.tva===5.5?'travaux d’économie d’énergie':c.type==='pro'?'client professionnel':'taux normal : logement neuf ou de moins de 2 ans'}</span></td><td class="n">${eur(ht*f.tva/100)}</td></tr>
-        <tr><td colspan="${modifiable?2:3}" class="ttc-l">Total TTC</td><td class="n ttc-m">${eur(ht*(1+f.tva/100))}</td></tr>${f.recu?`<tr><td colspan="${modifiable?2:3}" style="font-weight:500">Déjà reçu</td><td class="n">− ${eur(f.recu)}</td></tr>${f.st==='annulee'?`<tr><td colspan="${modifiable?2:3}">À rembourser au client</td><td class="n">${eur(f.recu)}</td></tr>`:`<tr><td colspan="${modifiable?2:3}">Reste à payer</td><td class="n">${eur(restant(f))}</td></tr>`}`:''}</tfoot></table>
+        <tr><td colspan="${modifiable?2:3}" class="ttc-l">Total TTC</td><td class="n ttc-m">${eur(ht*(1+f.tva/100))}</td></tr>${f.recu?`<tr><td colspan="${modifiable?2:3}" style="font-weight:500">Déjà reçu</td><td class="n">− ${eur(f.recu)}</td></tr>${f.st==='annulee'?`<tr><td colspan="${modifiable?2:3}">${rembourseFait(f) ? 'Remboursé au client' : 'À rembourser au client'}</td><td class="n">${eur(f.recu)}</td></tr>`:`<tr><td colspan="${modifiable?2:3}">Reste à payer</td><td class="n">${eur(restant(f))}</td></tr>`}`:''}</tfoot></table>
         ${modifiable?'<button type="button" class="lien" data-action="ligneAjout" data-id="'+id+'">＋ Ajouter une ligne</button>':''}</div>
       <div class="carte"><h3>${f.st === 'avoir' ? 'Facture d’origine' : 'Joint à la facture'}</h3>${i ? `<div class="ligne"><span><b>${esc(i.titre)}</b><br><span class="gris petit">${jlong(i.d)} · sur place ${fiche(i.id).debut} – ${fiche(i.id).fin} · ${tech(i.tech).nom}</span></span><button type="button" class="lien" data-go="inter-x-${i.id}">Ouvrir</button></div>
         <div class="ligne"><span>📄 Compte rendu de l’intervention (PDF)<br><span class="gris petit">${fiche(i.id).photos.length} photo(s) · ${fiche(i.id).absent?'client absent':'signé par '+esc(fiche(i.id).signeNom)}</span></span><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir</button></div>` : (f.st === 'avoir' ? (o => o ? '<div class="ligne"><span>Avoir sur la facture <b>' + o.num + '</b></span><button type="button" class="lien" data-go="facture-x-' + o.id + '">Ouvrir</button></div>' : '<span class="gris">Avoir sans facture d’origine retrouvée.</span>')(FACTURES.find(o => o.st !== 'avoir' && f.objet === 'Avoir sur ' + o.num)) : (d => d ? '<div class="ligne"><span>Facture tirée du devis <b>' + esc(d.num) + '</b> · ' + (d.facAcompte === f.id ? 'acompte' : 'solde') + '</span><button type="button" class="lien" data-go="devis-x-' + dvCle(d) + '">Ouvrir le devis</button></div>' : (k => k ? '<div class="ligne"><span>Facture tirée du contrat <b>' + esc(k.num) + '</b> · ' + esc(k.titre) + '</span><button type="button" class="lien" data-go="contrat-x-' + k.id + '">Ouvrir le contrat</button></div>' : '<span class="gris">Facture faite à la main, sans intervention.</span>')(CONTRATS.find(x => 'fc-' + x.id === f.id)))(dvInit().find(x => x.facAcompte === f.id || x.facSolde === f.id)))}</div>
@@ -5599,8 +5619,13 @@ function vueFacture(id){
       ${f.st === 'payee' ? `<div class="carte"><h3>Paiement</h3><div class="ligne"><span>Payée le ${f.paye}</span><b>${f.mode}</b></div>${(av => av ? `<div class="ligne"><span>Un avoir existe : <b>${av.num}</b></span><button type="button" class="lien" data-go="facture-x-${av.id}">Ouvrir</button></div>` : `<button type="button" class="lien" data-action="avoir" data-id="${id}">Faire un avoir (remboursement, erreur)</button>`)(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))}</div>` : ''}
     </div></div>`;
 }
+/* Le remboursement d'une facture annulée n'a qu'un cycle de vie : la tâche « Rembourser » (clé remb-<id>), terminée par la personne. Une fois faite, la fiche, la ligne du bas, le cadre de la
+   Comptabilité et la fenêtre de l'avoir le disent d'une seule voix — avant, ils affirmaient jusqu'au bout « À rembourser 500,00 € » pour une somme déjà rendue. */
+function rembourseFait(f){ const t = TACHES.find(x => x.cle === 'remb-' + f.id); return !!(t && t.fait); }
 function etapes(f){
   const E = [['Préparée toute seule', true, f.int ? 'à la fin de l’intervention' : ''], ['Validée et envoyée', f.st !== 'avalider', f.emise !== '—' ? 'le ' + f.emise : ''], ['Ouverte par le client', (f.vue !== false || ['payee','partielle'].includes(f.st)) && ['envoyee','retard','payee','partielle'].includes(f.st), f.st !== 'avalider' ? 'le ' + (f.emise === '—' ? '31/10' : f.emise) : ''], ['Payée', f.st === 'payee', f.paye ? 'le ' + f.paye + ' · ' + f.mode : f.st === 'partielle' ? 'en partie' : '']];
+  /* une facture annulée n'attend plus ni ouverture ni paiement : deux ronds vides qui ne viendront jamais mentent sur ce qui reste à faire */
+  if (f.st === 'annulee') E.splice(2, 2, ['Annulée par un avoir', true, '']);
   return `<div class="etapes">${(f.st === 'avoir' ? E.slice(0, 2) : E).map(e=>`<div class="etape ${e[1]?'ok':''}"><span class="pt"></span><span><b>${e[0]}</b>${e[2]&&e[1]?`<br><span class="faible mini">${e[2]}</span>`:''}</span></div>`).join('')}</div>${f.st==='retard'?`<div class="alerte" style="margin-top:10px">Échéance du ${f.ech} dépassée${f.relances?' · relancée '+f.relances+' fois':''}</div>`:''}`;
 }
 function pdfFacture(f){
@@ -6013,7 +6038,7 @@ document.addEventListener('click', ev => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)) { toast('Adresse e-mail à vérifier'); document.getElementById('ml-a').focus(); return; }
     const mm = document.getElementById('ml-m'); if (mm && !mm.value.trim() && !b.dataset.sur) { b.dataset.sur = '1'; toast('Le message est vide : touche encore « Envoyer » pour l’envoyer quand même, ou écris-le d’abord.'); mm.focus(); return; }   // Ventes · 13 novembre 2026
     ENVOIS.push({ a, objet:document.getElementById('ml-o').value, quand:'31 octobre · ' + hm(MAINT_MIN), pj:o.pj }); fermerPanneau();
-    toast(`E-mail envoyé à ${esc(a)}${o.pj ? ', PDF joint' : ''}`); if (o.apres) o.apres(); return;
+    toast(`E-mail envoyé à ${esc(a)}${o.pj ? ', PDF joint' : ''}`); if (o.apres) o.apres(a); return;   /* l'adresse tapée est transmise : « apres » peut la ranger dans la fiche (devis-atelier-09) */
   }
   if (b.dataset.pdfdl || b.dataset.pdfmail) {
     const doc = b.closest('#docplein') ? document.querySelector('#docplein .doc-feuille > .pdf, #docplein .doc-feuille > .bil') : b.closest('.doc-barre') && b.closest('.doc-barre').previousElementSibling; if (!doc) return;
@@ -6091,28 +6116,35 @@ function devisLignes(x){ // un devis d'exemple des statistiques : fourniture, ma
   const f = Math.round(x.ht * .58 * 100) / 100, dpl = 29.17, mo = Math.round((x.ht - f - dpl) * 100) / 100;
   return [[x.objet + ' — fourniture', 1, f], ['Main-d’œuvre (' + Math.max(1, Math.round(mo / 65)) + ' h)', 1, mo], ['Déplacement', 1, dpl]];
 }
+/* UN SEUL total de ligne, arrondi au centime comme on l'affiche : avant, chaque ligne s'arrondissait à l'écran mais le total additionnait les produits bruts
+   (14,585 + 43,755 = 58,34 affiché sous deux lignes à 14,59 et 43,76) — le client refaisait l'addition et trouvait un centime de moins (devis-atelier-01).
+   La TVA se calcule sur ce HT arrondi et le TTC est HT + TVA : trois nombres qui s'additionnent, sur l'écran, le PDF et le message. */
+function dvLigneHT(l){ return Math.round((Number(l[1]) || 0) * (Number(l[2]) || 0) * 100 + 1e-7) / 100; }
+function dvSomme(L){ return Math.round(L.reduce((s, l) => s + dvLigneHT(l), 0) * 100 + 1e-7) / 100; }
+function dvTvaDe(ht, tva){ return Math.round(ht * tva + 1e-7) / 100; }
+function dvTtcDe(ht, tva){ return Math.round((ht + dvTvaDe(ht, tva)) * 100 + 1e-7) / 100; }
 function docDevis(x){
-  const c = CLIENTS[x.cli], L = devisLignes(x), ht = L.reduce((s, l) => s + l[1] * l[2], 0), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), [y, m, j] = x.d.split('-');
+  const c = CLIENTS[x.cli], L = devisLignes(x), ht = dvSomme(L), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), [y, m, j] = x.d.split('-');
   const fin = new Date(+y, +m - 1, +j + (x.valid || 30)), valid = String(fin.getDate()).padStart(2, '0') + '/' + String(fin.getMonth() + 1).padStart(2, '0') + '/' + fin.getFullYear();
-  return `<div class="pdf" ${x.num ? '' : 'data-brouillon="1" data-nom="Brouillon de devis.pdf"'} data-a="${esc(c.mail)}" data-objet="Devis ${x.num || '(brouillon)'} — ${esc(x.objet)}" data-corps="${esc(`${saluer(c.contact)},\n\nVoici notre devis ${x.num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(ht * (1 + tva / 100))} TTC.\n\nVous pouvez l’accepter en ligne depuis le lien de ce message et choisir votre date d’intervention. Il est valable jusqu’au ${valid}.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}">
+  return `<div class="pdf" ${x.num ? '' : 'data-brouillon="1" data-nom="Brouillon de devis.pdf"'} data-a="${esc(c.mail)}" data-objet="Devis ${x.num || '(brouillon)'} — ${esc(x.objet)}" data-corps="${esc(`${saluer(c.contact)},\n\nVoici notre devis ${x.num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(dvTtcDe(ht, tva))} TTC.\n\nVous pouvez l’accepter en ligne depuis le lien de ce message et choisir votre date d’intervention. Il est valable jusqu’au ${valid}.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}">
     <div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}<br>${ENTREPRISE.tel} · ${ENTREPRISE.mail}</div>
       <div style="text-align:right;margin-left:auto"><h4>Devis</h4><b>${x.num || 'Brouillon'}</b><br>Établi le ${j}/${m}/${y}<br>Valable jusqu’au ${valid}</div></div>
     <div class="deux"><div><h6>Client</h6><b>${esc(c.nom)}</b>${c.contact && c.contact !== c.nom ? '<br>' + esc(c.contact) : ''}<br>${esc(c.adr)}</div><div><h6>Objet</h6>${esc(x.objet)}${c.adr ? '<br>Lieu : ' + esc(c.adr) : ''}</div></div>
     <table><thead><tr><th>Désignation</th><th class="p-qc">Qté</th><th style="text-align:right">Prix unitaire HT</th><th style="text-align:right">Total HT</th></tr></thead>
-      <tbody>${L.map(l => `<tr><td>${esc(l[0])} <span class="p-q">×\u00a0${prNum(l[1])}</span></td><td class="p-qc">${prNum(l[1])}</td><td style="text-align:right">${l[2] == null ? 'à chiffrer' : eur(l[2])}</td><td style="text-align:right">${l[2] == null ? '—' : eur(l[1] * l[2])}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="3">Total HT</td><td style="text-align:right">${eur(ht)}</td></tr><tr><td colspan="3">TVA ${tva} %</td><td style="text-align:right">${eur(ht * tva / 100)}</td></tr><tr><td colspan="3"><b>Total TTC</b></td><td style="text-align:right"><b>${eur(ht * (1 + tva / 100))}</b></td></tr></tfoot></table>
+      <tbody>${L.map(l => `<tr><td>${esc(l[0])} <span class="p-q">×\u00a0${prNum(l[1])}</span></td><td class="p-qc">${prNum(l[1])}</td><td style="text-align:right">${l[2] == null ? 'à chiffrer' : eur(l[2])}</td><td style="text-align:right">${l[2] == null ? '—' : eur(dvLigneHT(l))}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="3">Total HT</td><td style="text-align:right">${eur(ht)}</td></tr><tr><td colspan="3">TVA ${tva} %</td><td style="text-align:right">${eur(dvTvaDe(ht, tva))}</td></tr><tr><td colspan="3"><b>Total TTC</b></td><td style="text-align:right"><b>${eur(dvTtcDe(ht, tva))}</b></td></tr></tfoot></table>
     ${tva === 10 ? '<div class="mini">TVA à 10 % : travaux dans un logement de plus de deux ans ; une attestation simplifiée sera demandée au client.</div>' : tva === 5.5 ? '<div class="mini">TVA à 5,5 % : travaux d’amélioration énergétique dans un logement de plus de deux ans ; une attestation simplifiée sera demandée au client.</div>' : ''}
     <div class="deux"><div><h6>Conditions</h6>Délai d’intervention : sous 10 jours après accord.<br>Règlement : à réception de facture, par virement, carte ou chèque.<br>${x.acompte ? 'Acompte de ' + x.acompte + ' % à l’accord, déduit de la facture.' : 'Pas d’acompte demandé.'}</div>
       <div><h6>Bon pour accord</h6>${x.e === 'accepte' ? `<b style="color:#1c7a3a">${x.via && x.via !== 'en ligne' ? 'Accord ' + esc(x.via) : 'Accepté et signé en ligne'} le ${x.rep}/${y}</b><br>par ${esc(x.signePar || c.contact.split(',')[0])}${x.rdv ? '<br>Date choisie : ' + x.rdv : ''}` : 'Date, signature et mention « bon pour accord » :<div style="height:46px;border:1px dashed #c4cbd8;border-radius:6px;margin-top:6px"></div>'}</div></div>
     <div class="pdf-pied">${ENTREPRISE.nom} · SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}. Devis gratuit. ${c.type === 'pro' ? 'En cas de retard de paiement : pénalités au taux d’intérêt de la BCE majoré de 10 points et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L441-10 du Code de commerce).' : 'Pas d’escompte pour paiement anticipé.'}</div></div>`;
 }
 function apercuDevis(x){
-  const c = CLIENTS[x.cli], L = devisLignes(x), ht = L.reduce((s, l) => s + l[1] * l[2], 0), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), lib = { accepte:['Accepté','st-v'], refuse:['Refusé','st-r'], attente:['Sans réponse','st-o'] }[x.e] || DV_ETATS[x.e] || ['—','st-g'];
+  const c = CLIENTS[x.cli], L = devisLignes(x), ht = dvSomme(L), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), lib = { accepte:['Accepté','st-v'], refuse:['Refusé','st-r'], attente:['Sans réponse','st-o'] }[x.e] || DV_ETATS[x.e] || ['—','st-g'];
   const [y, m, j] = x.d.split('-');
   const etapes = [['Envoyé', `le ${j}/${m}`, true], ['Ouvert par le client', x.e === 'attente' ? 'pas encore' : 'le ' + (x.rep || j + '/' + m), x.e !== 'attente'], [x.e === 'refuse' ? 'Refusé' : 'Accepté', x.rep ? 'le ' + x.rep + (x.rdv ? ' · date choisie ' + x.rdv : '') : 'en attente', x.e !== 'attente']];
   ouvrirPanneau(`<button type="button" class="lien" data-ferme="1" style="align-self:flex-start;margin-top:-6px">‹ Retour</button>
     <span class="st ${lib[1]}" style="align-self:flex-start">${lib[0]}</span><h2>Devis ${x.num}</h2><span class="gris">${esc(c.nom)} · ${esc(x.objet)}</span>
-    <div class="kpis"><div class="kpi"><b>${eur(ht * (1 + tva / 100))}</b><span>TTC · ${eur(ht)} HT</span></div><div class="kpi"><b>${lib[0]}</b><span>${x.rep ? 'le ' + x.rep : 'envoyé le ' + j + '/' + m}</span></div></div>
+    <div class="kpis"><div class="kpi"><b>${eur(dvTtcDe(ht, tva))}</b><span>TTC · ${eur(ht)} HT</span></div><div class="kpi"><b>${lib[0]}</b><span>${x.rep ? 'le ' + x.rep : 'envoyé le ' + j + '/' + m}</span></div></div>
     <div class="carte"><div class="etapes-d">${etapes.map(([t, s, ok]) => `<div class="${ok ? 'ok' : ''}"><i></i><span><b>${t}</b><small>${s}</small></span></div>`).join('')}</div>
       ${x.e === 'attente' ? `<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-streldev="${encodeURIComponent(JSON.stringify(x))}">Relancer le client</button></div>` : ''}</div>
     ${!estGrise('devis') && (dvInit(), DV.includes(DEVIS_REG[x.num])) ? `<div class="actions"><button type="button" class="btn" data-go="devis-x-${x.num}">Ouvrir la fiche du devis</button></div>` : ''}
@@ -6486,7 +6518,7 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-strel],[data-streldev],[data-strelctr]'); if (!b) return;
   if (b.dataset.strel) panneauEnvoi(stRelanceFacture(JSON.parse(decodeURIComponent(b.dataset.strel))));
   else if (b.dataset.streldev) { const x = JSON.parse(decodeURIComponent(b.dataset.streldev)), c = CLIENTS[x.cli];
-    if (x.ht == null) x.ht = devisLignes(x).reduce((s, l) => s + l[1] * l[2], 0);   // un devis venu d'ailleurs que des statistiques n'a que ses lignes
+    if (x.ht == null) x.ht = dvSomme(devisLignes(x));   // un devis venu d'ailleurs que des statistiques n'a que ses lignes
     panneauEnvoi({ titre:'Relancer le devis', a:c.mail, pj:x.num + '.pdf', objet:`Devis ${x.num} — ${x.objet}`,
       corps:`${saluer(c.contact)},\n\nJe reviens vers vous au sujet du devis ${x.num} (${x.objet.toLowerCase()}, ${eur(x.ht)} HT) envoyé le ${jcourt(x.d)}.\n\nAvez-vous pu le regarder ? Je reste disponible pour en parler ou l’ajuster. Vous pouvez l’accepter en ligne depuis le lien reçu, et choisir votre date d’intervention.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}` }); }
   else stRelanceContrat(CONTRATS.find(c => c.id === b.dataset.strelctr));
@@ -7092,7 +7124,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-st
 (() => { const avant = panneauEnvoi; panneauEnvoi = function(o){
   const tid = tEnvoiPour; tEnvoiPour = null; if (!tid) return avant.call(this, o);
   const ap = o.apres;
-  return avant.call(this, { ...o, apres:() => { const x = TACHES.find(t => t.id === tid); if (ap) ap();
+  return avant.call(this, { ...o, apres:a => { const x = TACHES.find(t => t.id === tid); if (ap) ap(a);
     if (x) { (x.actions = x.actions || []).push(({ 'Relancer le paiement':'relance du paiement envoyée', 'Relancer le devis':'relance du devis envoyée', 'Commander au fournisseur':'commande envoyée au fournisseur', 'Prévenir le client':'client prévenu', 'Écrire au client':'e-mail envoyé au client' })[o.titre] || o.titre.toLowerCase());
       x.actions[x.actions.length - 1] += ' le 31/10 à ' + hm(MAINT_MIN);
       if (tBut(x) === 'relancer' && /^(Relancer|Proposer le renouvellement)/.test(o.titre)) tFaire(x, x.actions[x.actions.length - 1]);
@@ -7179,7 +7211,7 @@ document.addEventListener('change', ev => {
 const tLiee = (x, t, id) => !x.fait && x.lien && x.lien.t === t && x.lien.id === id;
 (() => { const avant = panneauEnvoi; panneauEnvoi = function(o){
   const ap = o.apres, txt = [o.objet, o.pj].filter(Boolean).join(' ');
-  return avant.call(this, { ...o, apres:() => { const nj = JOURNAL.length; if (ap) ap(); if (JOURNAL.length === nj) emailJournal(o);
+  return avant.call(this, { ...o, apres:a => { const nj = JOURNAL.length; if (ap) ap(a); if (JOURNAL.length === nj) emailJournal(o);
     if (/^(Relancer|Proposer le renouvellement)/.test(o.titre || '')) TACHES.filter(x => !x.fait && tBut(x) === 'relancer' && x.lien && txt.includes(x.lien.lib)).forEach(x => { tFaire(x, ({ 'Relancer le paiement':'relance du paiement envoyée', 'Relancer le devis':'relance du devis envoyée' })[o.titre] || o.titre.toLowerCase() + ' : envoyé'); rendre(); }); } });
 }; })();
 (() => { const avant = poser; poser = function(i, tid, d, h, dur, forcer){
@@ -8068,9 +8100,18 @@ function dvSync(){ // « Ce que voit le client » et la fiche disent la même ch
     if (x.suite && x.e === 'accepte' && !x.int) { const n = INTS.find(o => o.id === 'n-ven-' + x.suite || (o.demande && o.demande.depuis === x.suite && o.st !== 'annulee')); if (n) x.int = n.id; } });   // l’intervention du rendez-vous est déjà là : sans ce lien, « Créer l’intervention » en ferait un doublon
 }
 const dvEtat = x => x.e === 'attente' && ajoute(x.d, x.valid) < AUJ ? 'expire' : x.e;
-const dvComplet = x => x.lignes.every(l => l[2] != null && l[2] !== '');
-const dvHT = x => x.lignes.reduce((s, l) => s + (Number(l[1]) || 0) * (Number(l[2]) || 0), 0);
-const dvTTC = x => Math.round(dvHT(x) * (1 + x.tva / 100) * 100) / 100;
+/* un devis part avec AU MOINS une ligne, et chaque ligne a un nom ET un prix : sur un tableau vide `every` rendait « vrai » et on envoyait un devis de 0,00 € (devis-atelier-08) */
+const dvSansPrix = x => x.lignes.filter(l => l[2] == null || l[2] === '').length;
+const dvSansNom = x => x.lignes.filter(l => !String(l[0]).trim()).length;
+const dvComplet = x => x.lignes.length > 0 && !dvSansPrix(x) && !dvSansNom(x);
+function dvManque(x){ // la phrase qui dit pourquoi « Aperçu et envoi » est grisé
+  if (!x.lignes.length) return '<b>Aucune ligne</b> — ajoute au moins une ligne pour pouvoir envoyer.';
+  const p = dvSansPrix(x), n = dvSansNom(x), pl = k => k + ' ligne' + (k > 1 ? 's' : '');
+  return '<b>' + [p ? pl(p) + ' sans prix' : '', n ? pl(n) + ' sans nom' : ''].filter(Boolean).join(' · ') + '</b> — ' + (p && !n ? 'chiffre-' + (p > 1 ? 'les' : 'la') : 'complète-' + (p + n > 1 ? 'les' : 'la')) + ' pour pouvoir envoyer. Le numéro du devis se donne à l’envoi.';
+}
+const dvHT = x => dvSomme(x.lignes);
+const dvTTC = x => dvTtcDe(dvHT(x), x.tva);
+const dvQui = () => prenomDe(acteur());   /* le prénom de la personne connectée : le devis, la relance et l'historique ne disent plus « Marc » quand c'est Julie (devis-atelier-10) */
 const dvFr = d => d.slice(8) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4);
 const dvPct = n => String(n).replace('.', ',') + ' %';
 function dvNum(){ // le numéro suivant : plus grand numéro DÉJÀ DONNÉ + 1 — un brouillon supprimé n'en avait pas, un remplacé garde le sien
@@ -8142,12 +8183,12 @@ function vueDevisFiche(k){
     : e === 'accepte' ? (iv && iv.st === 'aplanifier' && peut('planif', 'm') ? `<button type="button" class="btn" data-dv="planifier|${dvCle(x)}">Planifier l’intervention</button>` : iv ? `<button type="button" class="btn gris" data-go="inter-x-${iv.id}">Voir l’intervention</button>` : `<button type="button" class="btn" data-dv="creerInt|${dvCle(x)}">Créer l’intervention à planifier</button>`)
     : `<button type="button" class="btn gris" data-dv="version|${dvCle(x)}">Refaire ce devis</button>`;
   const lignes = x.lignes.map((l, n) => ed
-    ? `<div class="dv-lg"><input class="saisie" data-dvl="${dvCle(x)}|${n}|0" value="${esc(l[0])}" aria-label="Désignation"><input class="saisie dv-q2" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|1" value="${String(l[1]).replace('.', ',')}" aria-label="Quantité"><input class="saisie dv-pu ${l[2] == null ? 'manque' : ''}" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|2" value="${l[2] == null ? '' : String(l[2]).replace('.', ',')}" placeholder="prix HT" aria-label="Prix unitaire HT"><span class="dv-tot">${l[2] == null ? '—' : eur(l[1] * l[2])}</span><button type="button" class="dv-x" data-dv="ligneSup|${dvCle(x)}|${n}" aria-label="Retirer la ligne ${esc(l[0])}">✕</button></div>`
-    : `<div class="dv-lg lu"><span>${esc(l[0])}</span><span class="gris">${String(l[1]).replace('.', ',')} × ${eur(l[2])}</span><b>${eur(l[1] * l[2])}</b></div>`).join('');
+    ? `<div class="dv-lg"><input class="saisie" data-dvl="${dvCle(x)}|${n}|0" value="${esc(l[0])}" aria-label="Désignation"><input class="saisie dv-q2" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|1" value="${String(l[1]).replace('.', ',')}" aria-label="Quantité"><input class="saisie dv-pu ${l[2] == null ? 'manque' : ''}" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|2" value="${l[2] == null ? '' : String(l[2]).replace('.', ',')}" placeholder="prix HT" aria-label="Prix unitaire HT"><span class="dv-tot${l[2] == null ? ' vide' : ''}">${l[2] == null ? '—' : eur(dvLigneHT(l))}</span><button type="button" class="dv-x" data-dv="ligneSup|${dvCle(x)}|${n}" aria-label="Retirer la ligne ${esc(l[0])}">✕</button></div>`
+    : `<div class="dv-lg lu"><span>${esc(l[0])}</span><span class="gris">${String(l[1]).replace('.', ',')} × ${eur(l[2])}</span><b>${eur(dvLigneHT(l))}</b></div>`).join('');
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
   <div class="tete"><div><span class="st ${DV_ETATS[e][1]}" style="align-self:flex-start">${DV_ETATS[e][0]}</span><h1>${x.num || 'Devis en préparation'}</h1><button type="button" class="lien" data-go="client-x-${x.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris">${esc(x.objet)}</span></div>
     <div class="actions">${gestes}</div></div>
-  ${ed && !complet ? `<div class="bandeau-info"><b>${x.lignes.filter(l => l[2] == null || l[2] === '').length} ligne${x.lignes.filter(l => l[2] == null || l[2] === '').length > 1 ? 's' : ''} sans prix</b> — chiffre-${x.lignes.filter(l => l[2] == null || l[2] === '').length > 1 ? 'les' : 'la'} pour pouvoir envoyer. Le numéro du devis se donne à l’envoi.</div>` : ''}
+  ${ed && !complet ? `<div class="bandeau-info" data-dvmanque="1">${dvManque(x)}</div>` : ''}
   ${x.remplace ? `<div class="info petit">Nouvelle version du devis <b>${x.remplace}</b> : à l’envoi, l’ancien passe « remplacé » et le client ne peut plus l’accepter.</div>` : ''}
   ${e === 'accepte' && x.signePar ? `<div class="ok-bloc"><b>✓ Accepté ${x.via === 'en ligne' ? 'et signé en ligne' : '(' + esc(x.via) + ')'} le ${x.rep} par ${esc(x.signePar)}.</b>${x.acompte ? `<br><span class="petit">Acompte de ${x.acompte} % : ${x.facAcompte ? 'la facture d’acompte est ' + dvFacEtat(dvFacLue(x.facAcompte)) + '.' : x.facSolde ? 'sans objet, la facture du solde est déjà faite pour le montant entier.' : 'facture d’acompte à préparer.'}</span>` : ''}</div>` : ''}
   ${e === 'refuse' ? `<div class="info petit"><b>Refusé le ${x.rep}</b>${x.motif ? ' · ' + esc(x.motif) : ''}</div>` : ''}
@@ -8157,9 +8198,9 @@ function vueDevisFiche(k){
         ${ed ? `<div class="dv-ajouts"><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|libre">＋ Ligne</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|mo">＋ 1 h de main-d’œuvre</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|dep">＋ Déplacement</button>
           <label class="puce-c">📦 Du catalogue<select data-dvcat="${dvCle(x)}" aria-label="Ajouter une pièce du catalogue"><option value="">…</option>${CATALOGUE.map(p => `<option value="${esc(p[0])}">${esc(p[0])} · ${eur(p[1])}</option>`).join('')}</select></label></div>` : ''}
         <div class="dv-totaux"><div class="ligne"><span>Total HT${complet ? '' : ' (partiel)'}</span><b>${eur(ht)}</b></div>
-          <div class="ligne"><span>TVA ${ed ? `<select class="saisie dv-sel" data-dvtva="${dvCle(x)}" aria-label="Taux de TVA">${[20, 10, 5.5].map(t => `<option value="${t}" ${x.tva === t ? 'selected' : ''}>${dvPct(t)}</option>`).join('')}</select>` : dvPct(x.tva)}<br><span class="faible mini">${DV_TVA[x.tva]}</span></span><b>${eur(ht * x.tva / 100)}</b></div>
-          <div class="ligne dv-ttc"><span>Total TTC</span><b>${eur(ht * (1 + x.tva / 100))}</b></div>
-          ${x.acompte ? `<div class="ligne"><span>Acompte demandé à l’accord (${x.acompte} %)</span><b>${eur(ht * (1 + x.tva / 100) * x.acompte / 100)}</b></div>` : ''}</div></div>
+          <div class="ligne"><span>TVA ${ed ? `<select class="saisie dv-sel" data-dvtva="${dvCle(x)}" aria-label="Taux de TVA">${[20, 10, 5.5].map(t => `<option value="${t}" ${x.tva === t ? 'selected' : ''}>${dvPct(t)}</option>`).join('')}</select>` : dvPct(x.tva)}<br><span class="faible mini">${DV_TVA[x.tva]}</span></span><b>${eur(dvTvaDe(ht, x.tva))}</b></div>
+          <div class="ligne dv-ttc"><span>Total TTC</span><b>${eur(dvTtcDe(ht, x.tva))}</b></div>
+          ${x.acompte ? `<div class="ligne"><span>Acompte demandé à l’accord (${x.acompte} %)</span><b>${eur(dvTtcDe(ht, x.tva) * x.acompte / 100)}</b></div>` : ''}</div></div>
       <div class="carte"><h3>Conditions</h3>
         ${ed ? `<div class="deux-champs"><label class="champ">Valable<select data-dvvalid="${dvCle(x)}">${[15, 30, 60, 90].map(n => `<option value="${n}" ${x.valid === n ? 'selected' : ''}>${n} jours</option>`).join('')}</select></label>
           <label class="champ">Acompte à l’accord<select data-dvacompte="${dvCle(x)}">${[0, 20, 30, 40, 50].map(n => `<option value="${n}" ${x.acompte === n ? 'selected' : ''}>${n ? n + ' %' : 'Pas d’acompte'}</option>`).join('')}</select></label></div>`
@@ -8189,24 +8230,27 @@ function dvCorps(x, num){
   const c = CLIENTS[x.cli];
   return `${saluer(c.contact)},\n\nVoici notre devis ${num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(dvTTC(x))} TTC.\n\nVous pouvez l’accepter et le signer en ligne depuis le lien de ce message. Il est valable jusqu’au ${dvFr(ajoute(AUJ, x.valid))}.${x.acompte ? `\nUn acompte de ${x.acompte} % vous sera demandé à l’accord.` : ''}\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`;
 }
+/* l'adresse tapée à l'envoi d'un devis ou d'une relance se range dans la fiche du client quand elle n'en a pas : sinon il faut la retaper à chaque devis, et la facture n'en aura pas (devis-atelier-09) */
+function dvMailRanger(x, a){ const c = CLIENTS[x.cli]; if (!c || (c.mail || '').trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a || '')) return ''; c.mail = a;
+  journalAjout('marc', 'client', 'a ajouté l’adresse e-mail du client', { t:'client', id:x.cli, lib:c.nom, cli:x.cli }, { det:'à l’envoi d’un devis' }); return ' Adresse enregistrée dans la fiche de ' + c.nom + '.'; }
 function dvEnvoyer(x){
-  if (!dvComplet(x)) { toast('Chiffre toutes les lignes avant d’envoyer.'); return; }
+  if (!dvComplet(x)) { toast(x.lignes.length ? 'Complète toutes les lignes (nom et prix) avant d’envoyer.' : 'Ajoute au moins une ligne avant d’envoyer.'); return; }
   const c = CLIENTS[x.cli], num = dvNum();
-  panneauEnvoi({ titre:'Envoyer le devis', a:c.mail, objet:`Devis ${num} — ${x.objet}`, corps:dvCorps(x, num), pj:'Devis ' + num + '.pdf', apres:() => {
+  panneauEnvoi({ titre:'Envoyer le devis', a:c.mail, objet:`Devis ${num} — ${x.objet}`, corps:dvCorps(x, num), pj:'Devis ' + num + '.pdf', apres:a => {
     const n = dvNum(), ancien = dvCle(x); DVN = +n.slice(7); x.num = n; x.e = 'attente'; x.d = AUJ; DEVIS_REG[n] = x;
-    dvTrace(x, 'Envoyé à ' + c.mail + ' · numéro ' + n + ' donné à l’envoi', 'a envoyé le devis');
+    const rangee = dvMailRanger(x, a); dvTrace(x, 'Envoyé à ' + a + ' · numéro ' + n + ' donné à l’envoi', 'a envoyé le devis');
     if (x.remplace) { const v = DEVIS_REG[x.remplace]; if (v && v.e === 'attente') { v.e = 'remplace'; v.remplacePar = n; v.trace.push([jcourt(AUJ), 'Remplacé par la nouvelle version ' + n + ' : le client ne peut plus l’accepter']); } }
-    dvFiltre = 'attente'; if (ancien !== n) oublierEcran('devis-x-' + ancien); aller('devis-x-' + n); } });
+    dvFiltre = 'attente'; if (ancien !== n) oublierEcran('devis-x-' + ancien); aller('devis-x-' + n); if (rangee) toast('E-mail envoyé à ' + esc(a) + ', PDF joint.' + rangee); } });
 }
 function dvRelancer(x){
   const c = CLIENTS[x.cli], n = -tJours(x.d);
   panneauEnvoi({ titre:'Relancer le devis', a:c.mail, objet:`Devis ${x.num} — ${x.objet}`, pj:'Devis ' + x.num + '.pdf',
-    corps:`${saluer(c.contact)},\n\nJe reviens vers vous au sujet de notre devis ${x.num} (${x.objet.toLowerCase()}, ${eur(dvTTC(x))} TTC), envoyé ${n === 0 ? 'aujourd’hui' : 'il y a ' + n + ' jour' + (n > 1 ? 's' : '')}. Il reste valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}.\n\nAvez-vous des questions ? Je peux aussi l’ajuster si besoin.\n\nBien cordialement,\nMarc\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`,
-    apres:() => { x.relances++; x.relanceLe = AUJ; dvTrace(x, 'Relancé par Marc (e-mail)', 'a relancé le devis'); const T = document.getElementById('toast'), av = T ? T.innerHTML : ''; dvTachesFinir(x, 'relance du devis envoyée le 31/10 à ' + hm(MAINT_MIN), 'relancer'); const plus = T && T.innerHTML !== av && T.firstElementChild ? ' ' + T.firstElementChild.innerHTML : ''; rendre(); toast('Relance envoyée à ' + esc(c.mail) + '.' + plus); } });
+    corps:`${saluer(c.contact)},\n\nJe reviens vers vous au sujet de notre devis ${x.num} (${x.objet.toLowerCase()}, ${eur(dvTTC(x))} TTC), envoyé ${n === 0 ? 'aujourd’hui' : 'il y a ' + n + ' jour' + (n > 1 ? 's' : '')}. Il reste valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}.\n\nAvez-vous des questions ? Je peux aussi l’ajuster si besoin.\n\nBien cordialement,\n${dvQui()}\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`,
+    apres:a => { const rangee = dvMailRanger(x, a); x.relances++; x.relanceLe = AUJ; dvTrace(x, 'Relancé par ' + dvQui() + ' (e-mail)', 'a relancé le devis'); const T = document.getElementById('toast'), av = T ? T.innerHTML : ''; dvTachesFinir(x, 'relance du devis envoyée le 31/10 à ' + hm(MAINT_MIN), 'relancer'); const suite = T && T.innerHTML !== av && T.firstElementChild ? T.firstElementChild.innerHTML.replace(/^\s*Relance envoyée\s*·\s*/i, '').trim() : '', plus = suite ? ' ' + suite.charAt(0).toUpperCase() + suite.slice(1) + (/[.!?]$/.test(suite) ? '' : '.') : '';   /* la tâche cochée dit déjà « Relance envoyée » : on ne garde que sa suite (devis-atelier-02) */ rendre(); toast('Relance envoyée à ' + esc(a) + '.' + plus + rangee); } });
 }
 function dvAccepter(x, o){
   x.e = 'accepte'; x.rep = jcourt(AUJ); x.via = o.via; x.signePar = o.par; x.vu = true;
-  x.trace.push([jcourt(AUJ), o.via === 'en ligne' ? 'Accepté et signé en ligne par ' + o.par : 'Accord noté par Marc (' + o.via + ', ' + o.par + ')']);
+  x.trace.push([jcourt(AUJ), o.via === 'en ligne' ? 'Accepté et signé en ligne par ' + o.par : 'Accord noté par ' + dvQui() + ' (' + o.via + ', ' + o.par + ')']);
   journalAjout(o.via === 'en ligne' ? 'client' : 'marc', 'devis', o.via === 'en ligne' ? 'a accepté le devis' : 'a noté l’accord du client', { t:'devis', id:x.num, lib:x.num, cli:x.cli }, { det:x.objet });
   if (x.suite && etatSuite(x.suite) === 'aaccepter') SUITE_ETAT[x.suite] = 'accepte';
   dvCreerInt(x); if (x.acompte) dvAcompte(x, true);
@@ -8235,11 +8279,11 @@ function dvAcompte(x, seul){
 }
 function dvVersion(x){
   const n = { id:'BR' + (++dvSeq + 1), num:null, cli:x.cli, objet:x.objet, d:AUJ, e:'brouillon', tva:x.tva, valid:x.valid, acompte:x.acompte, lignes:x.lignes.map(l => l.slice()),
-    remplace:dvEtat(x) === 'attente' ? x.num : null, source:'Repris du devis ' + x.num + ' (' + DV_ETATS[dvEtat(x)][0].toLowerCase() + ')', trace:[[jcourt(AUJ), 'Repris du devis ' + x.num + ' par Marc']], relances:0 };
+    remplace:dvEtat(x) === 'attente' ? x.num : null, source:'Repris du devis ' + x.num + ' (' + DV_ETATS[dvEtat(x)][0].toLowerCase() + ')', trace:[[jcourt(AUJ), 'Repris du devis ' + x.num + ' par ' + dvQui()]], relances:0 };
   DV.push(n); DEVIS_REG[n.id] = n; dvFiltre = 'aenvoyer'; aller('devis-x-' + n.id); toast('Brouillon créé. Change ce qu’il faut, puis envoie : il aura un nouveau numéro.');
 }
 function dvCreer(o){ // o : { cli, objet, lignes, source }
-  const n = { id:'BR' + (++dvSeq + 1), num:null, cli:o.cli, objet:o.objet, d:AUJ, e:'brouillon', lignes:o.lignes, source:o.source, trace:[[jcourt(AUJ), o.trace || 'Préparé par Marc']], relances:0, acompte:0, valid:30 };
+  const n = { id:'BR' + (++dvSeq + 1), num:null, cli:o.cli, objet:o.objet, d:AUJ, e:'brouillon', lignes:o.lignes, source:o.source, trace:[[jcourt(AUJ), o.trace || 'Préparé par ' + dvQui()]], relances:0, acompte:0, valid:30 };
   n.tva = tvaDefautDe(o.cli); DV.push(n); DEVIS_REG[n.id] = n; journalAjout('marc', 'devis', 'a préparé un devis', { t:'devis', id:n.id, lib:'brouillon', cli:n.cli }, { det:n.objet });
   fermerPanneau(); dvFiltre = 'aenvoyer'; aller('devis-x-' + n.id);
 }
@@ -8264,6 +8308,9 @@ function dvNouveau(){
 function dvnLire(){ const f = DVN_F, v = id => { const e = document.getElementById(id); return e ? e.value.trim() : null; };
   if (f.nv) ['nom','prenom','tel','mail','adr'].forEach(k => { const x = v('dvn-' + k); if (x != null) f[k] = x; }); else { const x = v('dvn-cli'); if (x != null) f.cli = x; }
   const o = v('dvn-objet'); if (o != null) f.objet = o; }
+/* un client neuf se PLACE à sa création : secteur et position sur la carte des tournées, lus sur son adresse. Un seul endroit, pour tous les chemins qui créent un client
+   (nouveau devis, atelier de devis et de contrats, devis xylophage) : sans lui, la carte le posait au dépôt et Waze / Plans y envoyaient le technicien (devis-atelier-17) */
+function cliPositionner(k, adr){ const r = reconnaitre(adr), g = geoDeAdresse(adr); if (r) SECT_CLI[k] = r.secteur; if (g) CR_GEO[k] = g; }
 function dvnCreer(){
   dvnLire(); const f = DVN_F; f.err = '';
   if (f.nv && !f.nom) f.err = 'Indique le nom du client.'; else if (f.nv && !f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir lui envoyer le devis.';
@@ -8273,12 +8320,12 @@ function dvnCreer(){
   let cli = f.cli;
   if (f.nv) { cli = 'n' + Date.now().toString(36); const r = reconnaitre(f.adr);
     CLIENTS[cli] = { nom:f.type === 'pro' ? f.nom : [f.prenom, f.nom].filter(Boolean).join(' '), type:f.type, contact:f.type === 'pro' ? (f.prenom || f.nom) : [f.prenom, f.nom].filter(Boolean).join(' '), tel:cfTelFmt(f.tel), mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] };
-    if (r) SECT_CLI[cli] = r.secteur; { const g = geoDeAdresse(f.adr); if (g) CR_GEO[cli] = g; }   /* comme pour le client créé avec une intervention : la carte des tournées le place (clients-05) */
+    cliPositionner(cli, f.adr);   /* comme pour le client créé avec une intervention : la carte des tournées le place (clients-05) */
     journalAjout('marc', 'client', 'a créé le client', { t:'client', id:cli, lib:CLIENTS[cli].nom, cli }, { det:'depuis un nouveau devis' }); }
   const m = f.modele >= 0 ? DV_MODELES[f.modele][1] : [['', 1, null]];
   const zone = f.nv ? ((reconnaitre(f.adr) || {}).zone || 1) : ({ hp:2, cp:1, mr:1 }[cli] || 1);
   const lignes = m.map(l => l[0] === 'Déplacement' ? ['Déplacement', 1, TARIFS.zone[zone]] : l.slice());
-  DVN_F = null; dvCreer({ cli, objet:f.objet, lignes, source:f.nv ? 'Nouveau client créé avec le devis' : null, trace:'Préparé par Marc' + (f.nv ? ' · client créé en même temps' : '') });
+  DVN_F = null; dvCreer({ cli, objet:f.objet, lignes, source:f.nv ? 'Nouveau client créé avec le devis' : null, trace:'Préparé par ' + dvQui() + (f.nv ? ' · client créé en même temps' : '') });
 }
 /* dicter : prototype, la voix est simulée — dans l'application, c'est l'assistant « Devis IA » qui fait ce travail */
 let DVD = null;
@@ -8304,7 +8351,7 @@ function dvdPreparer(){
   if (!L.length) L.push(['À préciser', 1, null]);
   const obj = (/(remplacement|installation|entretien|depannage|reparation)[^:,.]*/.exec(s) || [])[0];
   const objet = obj ? t.substr(s.indexOf(obj), obj.length).replace(/^./, c => c.toUpperCase()) : 'Travaux';
-  DVD = null; dvCreer({ cli, objet, lignes:L, source:'Dicté au micro : « ' + t + ' » — à vérifier', trace:'Dicté par Marc au micro, préparé tout seul' });
+  DVD = null; dvCreer({ cli, objet, lignes:L, source:'Dicté au micro : « ' + t + ' » — à vérifier', trace:'Dicté par ' + dvQui() + ' au micro, préparé tout seul' });
 }
 /* ce que voit le client : son lien, le devis, la case « bon pour accord » et la signature au doigt */
 function dvClient(x){
@@ -8312,7 +8359,7 @@ function dvClient(x){
   ouvrirPanneau(`<button type="button" class="lien" data-ferme="1" style="align-self:flex-start;margin-top:-6px">‹ Retour</button><span class="surtitre">Ce que voit ${esc(c.contact.split(',')[0])} sur son téléphone</span>
     <div class="dv-cv"><div class="dv-cv-t">${logoEnt('span')}<span><b>${ENTREPRISE.nom}</b><small>Devis ${x.num} · valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}</small></span></div>
       <h3>${esc(x.objet)}</h3>
-      ${x.lignes.map(l => `<div class="ligne"><span class="petit">${esc(l[0])}${l[1] > 1 ? ' × ' + l[1] : ''}</span><b>${eur(l[1] * l[2])}</b></div>`).join('')}
+      ${x.lignes.map(l => `<div class="ligne"><span class="petit">${esc(l[0])}${l[1] > 1 ? ' × ' + l[1] : ''}</span><b>${eur(dvLigneHT(l))}</b></div>`).join('')}
       <div class="ligne"><span>Total TTC <span class="faible mini">dont TVA ${dvPct(x.tva)}</span></span><b class="dv-cv-tot">${eur(dvTTC(x))}</b></div>
       ${x.acompte ? `<div class="gris petit">Acompte de ${x.acompte} % à l’accord : ${eur(dvTTC(x) * x.acompte / 100)}</div>` : ''}
       <button type="button" class="lien" data-dv="pdf|${dvCle(x)}">Voir le devis complet (PDF)</button>
@@ -8354,14 +8401,14 @@ document.addEventListener('click', ev => {
   if (a === 'creerInt') { dvCreerInt(x); rendre(); toast('Intervention créée, à planifier.'); return; }
   if (a === 'acompte') return dvAcompte(x);
   if (a === 'signer') { const ok = document.getElementById('dv-ok').checked, nom = document.getElementById('dv-nom').value.trim(), sig = document.getElementById('dv-signe').dataset.signe;
-    const manque = !ok ? 'Cochez « bon pour accord » pour accepter.' : !nom ? 'Indiquez votre nom et votre prénom.' : !sig ? 'Signez dans le cadre, avec le doigt.' : '', er = document.getElementById('dv-err');   /* la fenêtre est celle du CLIENT (ou son aperçu au bureau : « Ce que voit Marc ») : on la vouvoie, jamais de tutoiement (client-01) */
+    const manque = !ok ? 'Cochez « bon pour accord » pour accepter.' : !nom ? 'Indiquez votre nom et votre prénom.' : !sig ? (document.getElementById('dv-signe').dataset.court ? 'Ce trait est trop court pour une signature : signez-la en entier.' : 'Signez dans le cadre, avec le doigt.') : '', er = document.getElementById('dv-err');   /* la fenêtre est celle du CLIENT (ou son aperçu au bureau : « Ce que voit Marc ») : on la vouvoie, jamais de tutoiement (client-01) */
     if (manque) { er.textContent = manque; er.hidden = false; return; }
     dvAccepter(x, { par:nom, via:'en ligne' }); fermerPanneau(); rendre();
     /* le client lit ce qui se passe POUR LUI ; « côté bureau : à planifier » est la conséquence interne, réservée à l'aperçu du gérant (client-02) */
     toast(RL_ACTIF && ROLE === 'client' ? 'Merci, votre devis est accepté et signé.' + (x.acompte ? ' Une facture d’acompte de ' + eur(dvTTC(x) * x.acompte / 100) + ' vous est envoyée.' : '') + ' Nous vous appelons pour fixer la date.' : '✓ Accepté et signé. Côté bureau : intervention à planifier' + (x.acompte ? ', facture d’acompte prête.' : '.')); return; }
   if (a === 'clientRefus') { if (!b.dataset.sur) { b.dataset.sur = '1'; b.textContent = 'Oui, refuser ce devis'; const er = document.getElementById('dv-err'); if (er) { er.textContent = 'Voulez-vous vraiment refuser ce devis ? ' + (RL_ACTIF && ROLE === 'client' ? 'L’entreprise sera prévenue' : 'Le bureau sera prévenu') + ' et vous ne pourrez plus l’accepter. Touchez encore « Oui, refuser ce devis » pour confirmer.'; er.hidden = false; } return; } x.e = 'refuse'; x.rep = jcourt(AUJ); x.motif = 'Refusé en ligne par le client'; x.vu = true; x.trace.push([jcourt(AUJ), 'Refusé en ligne par ' + CLIENTS[x.cli].contact.split(',')[0]]); journalAjout('client', 'devis', 'a refusé le devis', { t:'devis', id:x.num, lib:x.num, cli:x.cli }, { det:x.objet }); dvTachesFinir(x, 'devis refusé'); fermerPanneau(); rendre(); toast(RL_ACTIF && ROLE === 'client' ? 'Devis refusé. Votre réponse est transmise à ' + esc(ENTREPRISE.nom) + '.' : 'Devis refusé. Le bureau en est prévenu.'); return; }
   if (a === 'repOui') { const qui = document.getElementById('dvr-qui').value.trim() || CLIENTS[x.cli].contact, via = document.getElementById('dvr-via').value; dvAccepter(x, { par:qui, via }); fermerPanneau(); rendre(); toast('Accord noté. Intervention à planifier' + (x.acompte ? ', facture d’acompte prête.' : '.')); return; }
-  if (a === 'repNon') { const mo0 = document.getElementById('dvr-motif').value; if (!mo0) { toast('Choisis d’abord pourquoi il refuse.'); return; } const av = { e:x.e, rep:x.rep, motif:x.motif, vu:x.vu, nt:x.trace.length, nj:JOURNAL.length, ts:TACHES.filter(t => !t.fait) }; x.e = 'refuse'; x.rep = jcourt(AUJ); x.motif = document.getElementById('dvr-motif').value; x.vu = true; dvTrace(x, 'Refus noté par Marc : ' + x.motif.toLowerCase(), 'a noté le refus du devis'); dvTachesFinir(x, 'devis refusé'); fermerPanneau(); rendre(); toast('Refus noté : ' + esc(x.motif.toLowerCase()) + '. Le devis passe dans les refusés.', { lib:'Annuler', fn:() => { x.e = av.e; x.rep = av.rep; x.motif = av.motif; x.vu = av.vu; x.trace.length = av.nt; JOURNAL.splice(av.nj); av.ts.forEach(t => { t.fait = null; }); rendre(); toast('Refus annulé : le devis est de nouveau en attente.'); } }); return; }
+  if (a === 'repNon') { const mo0 = document.getElementById('dvr-motif').value; if (!mo0) { toast('Choisis d’abord pourquoi il refuse.'); return; } const av = { e:x.e, rep:x.rep, motif:x.motif, vu:x.vu, nt:x.trace.length, nj:JOURNAL.length, ts:TACHES.filter(t => !t.fait) }; x.e = 'refuse'; x.rep = jcourt(AUJ); x.motif = document.getElementById('dvr-motif').value; x.vu = true; dvTrace(x, 'Refus noté par ' + dvQui() + ' : ' + x.motif.toLowerCase(), 'a noté le refus du devis'); dvTachesFinir(x, 'devis refusé'); fermerPanneau(); rendre(); toast('Refus noté : ' + esc(x.motif.toLowerCase()) + '. Le devis passe dans les refusés.', { lib:'Annuler', fn:() => { x.e = av.e; x.rep = av.rep; x.motif = av.motif; x.vu = av.vu; x.trace.length = av.nt; JOURNAL.splice(av.nj); av.ts.forEach(t => { t.fait = null; }); rendre(); toast('Refus annulé : le devis est de nouveau en attente.'); } }); return; }
   if (a === 'ligneSup') { const l = x.lignes.splice(+p, 1)[0]; rendre(); toast('Ligne retirée', { lib:'Annuler', fn:() => { x.lignes.splice(+p, 0, l); rendre(); } }); return; }
   if (a === 'ligneAj') { x.lignes.push(p === 'mo' ? ['Main-d’œuvre (1 h)', 1, TARIFS.horaire] : p === 'dep' ? ['Déplacement', 1, TARIFS.zone[{ hp:2 }[x.cli] || 1]] : ['', 1, null]); rendre();
     if (p === 'libre') { const L = document.querySelectorAll('[data-dvl$="|0"]'); L[L.length - 1] && L[L.length - 1].focus(); } return; }
@@ -8914,10 +8961,11 @@ function brancherSignature(idCanvas, _f, id){
   const cv = document.getElementById(idCanvas); if (!cv) return;
   const F = idCanvas === 'signe' ? fiche(id) : null, x = cv.getContext('2d'); x.lineWidth = 3.2; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0b1426';
   if (F && F.signature && F.signature !== 'signee') { const im = new Image(); im.onload = () => x.drawImage(im, 0, 0); im.src = F.signature; }
-  let on = false; const p = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
-  cv.addEventListener('pointerdown', e => { on = true; cv.setPointerCapture(e.pointerId); const [a,b] = p(e); x.beginPath(); x.moveTo(a,b); x.lineTo(a+.1,b); x.stroke(); });
-  cv.addEventListener('pointermove', e => { if (!on) return; const [a,b] = p(e); x.lineTo(a,b); x.stroke(); });
-  const fini = () => { if (!on) return; on = false; if (F) { F.signature = cv.toDataURL('image/png'); majCollant(id); } else cv.dataset.signe = cv.toDataURL('image/png'); };
+  let on = false, dern = null, long = 0; const p = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
+  cv.addEventListener('pointerdown', e => { on = true; cv.setPointerCapture(e.pointerId); const [a,b] = p(e); dern = [a, b]; x.beginPath(); x.moveTo(a,b); x.lineTo(a+.1,b); x.stroke(); });
+  cv.addEventListener('pointermove', e => { if (!on) return; const [a,b] = p(e); if (dern) long += Math.hypot(a - dern[0], b - dern[1]); dern = [a, b]; x.lineTo(a,b); x.stroke(); });
+  /* un simple appui n'est pas une signature : celle du devis demande un vrai trait (un doigt qui frôle le cadre en faisant défiler la fenêtre suffisait ; devis-atelier-06) */
+  const fini = () => { if (!on) return; on = false; if (F) { F.signature = cv.toDataURL('image/png'); majCollant(id); } else if (idCanvas === 'dv-signe' && long < 40) { cv.dataset.court = '1'; } else { cv.dataset.signe = cv.toDataURL('image/png'); delete cv.dataset.court; } };
   cv.addEventListener('pointerup', fini); cv.addEventListener('pointercancel', fini);
 }
 function majCollant(id){ const c = document.getElementById('collant'); if (!c) return; const man = manque(fiche(id));
@@ -9162,7 +9210,7 @@ document.addEventListener('click', ev => {
     const [t, id] = b.dataset.go.split('-x-'), ici = BASE[route] || route;
     if (id && PAGE_DE[t] && PAGE_DE[t] !== ici && !['accueil','planning'].includes(ici) && b.closest('#contenu,.panneau')) { apercuElement(t, id); return; }
     aller(b.dataset.go); return; }
-  if ((b = q('[data-retour]'))) { let prev = histo.pop(); while (prev && prev === location.hash.slice(1)) prev = histo.pop(); enRetour = true; aller(prev || retourSure(BASE[route] || 'accueil')); return; }
+  if ((b = q('[data-retour]'))) { let prev = histo.pop(); while (prev && prev === location.hash.slice(1)) prev = histo.pop(); enRetour = true; aller(prev || retourSure(BASE[route] || (route === 'devis' && param ? 'devis' : 'accueil'))); return; }   /* sans écran d'où l'on vient, la fiche d'un devis ramène à sa liste, pas à l'Accueil (devis-atelier-05) */
   if ((b = q('[data-modetheme]'))) { mode = b.dataset.modetheme; try { localStorage.setItem(MODE_CLE, mode); } catch (e) { /* rangement plein ou refusé : le choix vaut pour cette ouverture */ } appliquerMode(); document.querySelectorAll('[data-modetheme]').forEach(x => x.setAttribute('aria-pressed', x.dataset.modetheme === mode)); return; }
   if ((b = q('[data-creer]'))) { ouvrirCreation(route === 'client' ? { cli:param } : {}); return; }
   if ((b = q('[data-plvue]'))) { plVue = b.dataset.plvue; rendre(); return; }
@@ -14319,11 +14367,11 @@ document.addEventListener('input', ev => {
   const [k, n, c] = t.dataset.dvl.split('|'); if (+c === 0) return; const x = DEVIS_REG[k]; if (!x || !x.lignes[+n]) return;
   const v = t.value.trim(); if (v !== '' && isNaN(dvLireNb(v))) return; x.lignes[+n][+c] = v === '' ? (+c === 1 ? 1 : null) : Math.min(dvLireNb(v), +c === 1 ? DV_Q_MAX : DV_PU_MAX);
   const ht = dvHT(x), complet = dvComplet(x), tot = document.querySelectorAll('.dv-totaux .ligne b'), lg = x.lignes[+n], st = t.closest('.dv-lg') && t.closest('.dv-lg').querySelector('.dv-tot');
-  if (st) st.textContent = lg[2] == null ? '—' : eur(lg[1] * lg[2]);
-  if (tot[0]) tot[0].textContent = eur(ht); if (tot[1]) tot[1].textContent = eur(ht * x.tva / 100); if (tot[2]) tot[2].textContent = eur(ht * (1 + x.tva / 100)); if (tot[3] && x.acompte) tot[3].textContent = eur(ht * (1 + x.tva / 100) * x.acompte / 100);
+  if (st) { st.textContent = lg[2] == null ? '—' : eur(dvLigneHT(lg)); st.classList.toggle('vide', lg[2] == null); }
+  if (tot[0]) tot[0].textContent = eur(ht); if (tot[1]) tot[1].textContent = eur(dvTvaDe(ht, x.tva)); if (tot[2]) tot[2].textContent = eur(dvTtcDe(ht, x.tva)); if (tot[3] && x.acompte) tot[3].textContent = eur(dvTtcDe(ht, x.tva) * x.acompte / 100);
   const lib = document.querySelector('.dv-totaux .ligne span'); if (lib) lib.textContent = 'Total HT' + (complet ? '' : ' (partiel)');
   const bt = document.querySelector('[data-dv^="envoyer|"]'); if (bt) bt.disabled = !complet;
-  const bd = [...document.querySelectorAll('#contenu .bandeau-info')].find(e => /sans prix/.test(e.textContent)); if (bd) bd.style.display = complet ? 'none' : '';
+  const bd = document.querySelector('#contenu .bandeau-info[data-dvmanque]'); if (bd) { bd.style.display = complet ? 'none' : ''; if (!complet) bd.innerHTML = dvManque(x); }
 });
 
 /* ══ Lot mail-équipe-3d ══ */
@@ -22467,7 +22515,7 @@ function dxClientCreer(){
   if (DX.cli) return DX.cli;
   const nom = DX.nom.trim(), pre = DX.prenom.trim(), k = 'n' + Date.now().toString(36), r = reconnaitre(DX.adr), complet = DX.type === 'pro' ? nom : [pre, nom].filter(Boolean).join(' ');
   CLIENTS[k] = { nom:complet, type:DX.type, contact:DX.type === 'pro' ? (pre || nom) : complet, tel:DX.tel.trim(), mail:DX.mail.trim(), adr:DX.adr.trim(), acces:'', depuis:'2026', appareils:[{ nom:'Chantier', det:'traitement du bois' }] };
-  if (r) SECT_CLI[k] = r.secteur;
+  if (r) SECT_CLI[k] = r.secteur; { const g = geoDeAdresse(DX.adr.trim()); if (g) CR_GEO[k] = g; }
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:CLIENTS[k].nom, cli:k }, { det:'depuis le devis xylophage' });
   DX.cli = k; DX.nv = false; DX.nom = DX.prenom = DX.tel = DX.mail = DX.adr = ''; return k;
 }
@@ -22787,7 +22835,7 @@ addEventListener('message', ev => {
 function opLiaDonnees(){
   const nom = k => (CLIENTS[k] || {}).nom, typ = k => (CLIENTS[k] || {}).type;
   return { prochain:numSuiv,
-    factures:FACTURES.filter(f => f.num !== '—').map(f => ({ num:f.num, cli:f.cli, nom:nom(f.cli), type:typ(f.cli), objet:f.objet, ht:cpR(f.st === 'avoir' ? f.ht : htDe(f)), taux:f.tva, st:f.st, emise:cxIso(f.emise), ech:cxIso(f.ech) || '', mode:f.mode || '', paye:cxIso(f.paye) || '', recu:cpR(f.recu || 0), relances:f.relances || 0, avoir:f.st === 'avoir' ? '' : ((av => av ? av.num : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))) })),
+    factures:FACTURES.filter(f => f.num !== '—').map(f => ({ num:f.num, cli:f.cli, nom:nom(f.cli), type:typ(f.cli), objet:f.objet, ht:cpR(f.st === 'avoir' ? f.ht : htDe(f)), taux:f.tva, st:f.st, emise:cxIso(f.emise), ech:cxIso(f.ech) || '', mode:f.mode || '', paye:cxIso(f.paye) || '', recu:cpR(f.recu || 0), rembourse:f.st === 'annulee' && rembourseFait(f), relances:f.relances || 0, avoir:f.st === 'avoir' ? '' : ((av => av ? av.num : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))) })),
     enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
 }
 function opLiaSrc(){ const app = typeof MODE_APP !== 'undefined' && MODE_APP; let u = 'prototype-comptabilite.html'; if (!app) return u;
@@ -22956,6 +23004,7 @@ function opdClientRecu(c){
   const id = opdA(c, 'id'), nom = opdT(opdA(c, 'nom'), 120); if (typeof id !== 'string' || !OPD_RE_ID.test(id) || !nom || id in CLIENTS) return;   // « in » : « __proto__ » et « constructor » existent déjà sur tout objet
   const adr = opdT(opdA(c, 'adresse'), 120), cp = opdT(opdA(c, 'cp'), 10), ville = opdT(opdA(c, 'ville'), 80), mail = opdT(opdA(c, 'email'), 120).replace(/[<>"'`]/g, ''), tel = opdT(opdA(c, 'tel'), 30).replace(/[<>"'`]/g, '');
   CLIENTS[id] = { nom, type:opdA(c, 'pro') === true ? 'pro' : 'part', contact:nom, tel, mail, adr:[adr, (cp + ' ' + ville).trim()].filter(Boolean).join(', '), acces:'', depuis:'2026', appareils:[] };
+  cliPositionner(id, CLIENTS[id].adr);
   opdSync();
 }
 addEventListener('message', ev => {
@@ -25163,12 +25212,17 @@ function cnxVider(){ if (SESSION) return; ['menu', 'contenu', 'barre-bas'].forEa
    (les autres écrans de la suite le retirent et le reposent d'eux-mêmes : il n'est lié qu'à la présence de #cnx) et n'ajoute rien à la mise en page. */
 document.head.insertAdjacentHTML('beforeend', `<style id="cnx-test-css">
 #cnx-test{display:none;position:fixed;z-index:1001;top:calc(6px + env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));min-height:44px;padding:0 12px;border:0;border-radius:12px;background:none;color:var(--doux);font:inherit;font-size:14px;font-weight:600;align-items:center;gap:6px;cursor:pointer}
-body:has(#cnx) #cnx-test{display:inline-flex}
+#cnx #cnx-test{display:inline-flex}
 #cnx-test:hover{color:var(--lien)}
 </style>`);
-function cnxTestPoser(){ document.getElementById('cnx-test')?.remove(); if (!APP_PAR_BOUTON) return;
-  document.body.insertAdjacentHTML('beforeend', '<button type="button" id="cnx-test" data-cnx="test"><span aria-hidden="true">‹</span> Revenir au mode test</button>'); }
-function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider(); cnxTestPoser();
+/* Le lien vit DANS #cnx, jamais à côté : #cnx est une fenêtre modale (aria-modal) dont le piège de focus boucle sur SES éléments et dont un lecteur d'écran
+   ignore tout le reste — posé en enfant de <body>, « Revenir au mode test » était inatteignable au clavier (40 Tab sur 40 sans y arriver, Mac et Windows).
+   Un seul observateur le range dans chaque écran de connexion qui apparaît (connexion, lien, OP Security, chargement : tous recréent #cnx), EN PREMIER,
+   donc c'est aussi le premier arrêt de Tab. Il disparaît avec l'écran : plus de règle « tant que #cnx existe ». */
+function cnxTestPoser(){ const c = document.getElementById('cnx'); if (!c || !APP_PAR_BOUTON || c.querySelector('#cnx-test')) return;
+  c.insertAdjacentHTML('afterbegin', '<button type="button" id="cnx-test" data-cnx="test"><span aria-hidden="true">‹</span> Revenir au mode test</button>'); }
+new MutationObserver(cnxTestPoser).observe(document.body, { childList:true });
+function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider();
   /* le guide des nouveautés passe au-dessus de tout (il doit couvrir la Comptabilité plein écran) : si la session se ferme pendant qu'il est ouvert
      (lien d'une autre entreprise ouvert du dehors, compte désactivé), il restait posé SUR l'écran de connexion et bloquait la saisie. On le retire
      sans le marquer « vu » : la personne le retrouvera à sa prochaine connexion · 14 novembre 2026 */
@@ -25301,7 +25355,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .ops-code6{border:0;background:none;color:#eef3fb;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-size:34px;font-weight:700;letter-spacing:.12em;text-align:center;min-height:52px;cursor:pointer}
 .ops-anneau{height:5px;border-radius:3px;background:#24365a;overflow:hidden}.ops-anneau i{display:block;height:100%;background:#7aa2ff;transition:width 1s linear}
 .ops-act ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}.ops-act li{display:flex;flex-direction:column;font-size:13.5px}.ops-act li small{color:#9cadc8;font-size:12.5px;overflow-wrap:anywhere}
-.ops-retour{margin:0;padding:10px 12px;border-radius:12px;font-size:14px}.ops-retour.ok{background:#12301f;color:#8fe0ad}.ops-retour.danger{background:#3a1720;color:#ff8f95}
+.ops-retour{margin:0;padding:10px 12px;border-radius:12px;font-size:14px}.ops-centre .ops-retour{margin:0 0 12px;text-align:left}.ops-retour.ok{background:#12301f;color:#8fe0ad}.ops-retour.danger{background:#3a1720;color:#ff8f95}
 /* le grand écran : la fenêtre se pose à droite ; en dessous de 1100 px, c'est une vue plein écran (le vrai comportement : on quitte l'application pour ouvrir l'autre) */
 .ops-pastille{display:none}
 @media (max-width:1099px){
@@ -25379,7 +25433,10 @@ const SECU_MDP_COURANTS = ['azerty123456', 'motdepasse123', 'password1234', '123
 const SECU_ADRESSE_ICI = '203.0.113.42', SECU_ADRESSE_AUTRE = '198.51.100.7', SECU_ADRESSE_PIRATE = '192.0.2.99';   /* les adresses de documentation, jamais celles d'un vrai réseau */
 const SECU = { comptes:{}, demandes:[], sessions:{}, confirmeA:{}, decalage:0, telCourant:'marc', vraie:null, secondaire:false, parcours:new Set(),
   cases:{ autre:false, nuit:false }, horsLigne:false, ui:{}, pc:{ ecran:null, k:null, demandeId:null }, journal:[], auto:false, ouvert:false, demoOuvert:true, message:null };
-const secuMaint = () => Date.now() + SECU.decalage;   /* l'horloge de démonstration : « Faire avancer l'horloge » s'y ajoute */
+/* l'horloge de démonstration : elle PART de l'heure de l'entreprise fictive (AUJ à MAINT_MIN, comme Ma journée et l'Historique), et n'ajoute que le temps écoulé depuis le chargement
+   + « Faire avancer l'horloge ». Lire Date.now() donnait l'heure de la machine de qui regarde : la même connexion s'écrivait deux heures différentes selon l'écran. */
+const SECU_T0 = new Date(AUJ + 'T00:00:00').getTime() + MAINT_MIN * 60000, SECU_P0 = Date.now();
+const secuMaint = () => SECU_T0 + (Date.now() - SECU_P0) + SECU.decalage;
 /* ── le hasard : TOUJOURS crypto.getRandomValues, jamais Math.random (un nombre prévisible n'approuve rien) ── */
 const secuAleaInt = n => { const m = Math.floor(4294967296 / n) * n, a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= m); return a[0] % n; };
 const secuAleaTexte = (jeu, n) => Array.from({ length:n }, () => jeu[secuAleaInt(jeu.length)]).join('');
@@ -25555,7 +25612,7 @@ function opsCarte(d, u){ const rouge = d.raisons.length > 0, titre = d.motif !==
 function opsEcran(k){ const c = secuCompte(k), u = opsSynchro(k), p = eqDe(k), now = secuMaint(), tete = `<div class="ops-etat"><span>OP Security</span><b data-ops="heure">${secuHHMM(now)}</b></div>`;
   const retour = u.retour && (!u.retour.jusqua || now < u.retour.jusqua) ? `<p class="ops-retour ${u.retour.ton || ''}" role="status">${esc(u.retour.txt)}</p>` : '';
   if (c.tel && !c.tel.efface && u.ecran === 'verrouille') { const att = SECU.demandes.some(d => d.k === k && secuDemandeVivante(d));
-    return tete + `<div class="ops-centre">${opsCadenas()}<h1>OP Security</h1><p>${att ? 'Une demande t’attend : saisis ton code PIN' : 'Saisis ton code PIN'}</p>${opsPoints(u.pin.length)}${opsErr(u.err)}</div>${opsPave()}`; }
+    return tete + `<div class="ops-centre">${retour}${opsCadenas()}<h1>OP Security</h1><p>${att ? 'Une demande t’attend : saisis ton code PIN' : 'Saisis ton code PIN'}</p>${opsPoints(u.pin.length)}${opsErr(u.err)}</div>${opsPave()}`; }
   if (c.tel && !c.tel.efface && u.ecran === 'ouvert') {
     const vivantes = SECU.horsLigne ? [] : SECU.demandes.filter(d => d.k === k && secuDemandeVivante(d)), code = secuTotp(c.tel.cle, now), reste = SECU_REGLES.pasMs - (now % SECU_REGLES.pasMs);
     const act = c.histo.slice(0, 5).map(h => `<li><span>${secuHHMM(h.ts)} · ${esc(h.appareil)}</span><small>${esc(h.adresse)} — ${esc(opsRaisonResultat[h.resultat] || h.resultat)}</small></li>`).join('');
@@ -25743,12 +25800,14 @@ function secuTraiter(d, res){ const k = d.k, c = secuCompte(k), now = secuMaint(
   if (d.motif !== 'connexion') { if (res === 'mauvais') { secuEchec(k, 'nombre'); secuJ('login.number_mismatch', k, 'action sensible'); } return secuConfSuite(d, res); }   /* une confirmation d'action sensible n'est pas une connexion : ni historique ni appareil reconnu */
   if (SECU.pirate && SECU.pirate.id === d.id) { SECU.pirate.issue = res === 'ok' ? 'entre' : 'mauvais'; opsDemo(); }
   if (res === 'ok' && d.motif === 'connexion') { secuReconnaitre(k, { id:d.appareilId, nom:d.appareil, adresse:d.adresse }); c.echecs = 0; c.nVerrous = 0; SECU.confirmeA[k] = now;
-    secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'approuvee' }); secuJ('mfa.approved_on_phone', k, d.raisons.length ? 'connexion inhabituelle' : '');
+    secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'approuvee' }); c.histoConnexion = true;   /* une connexion = une ligne : l'écran « Choisis ton mot de passe » qui suit ne réécrit pas la sienne */
+    secuJ('mfa.approved_on_phone', k, d.raisons.length ? 'connexion inhabituelle' : '');
     SECU.parcours.add('nombre'); if (d.raisons.length && d.source === 'ici') SECU.parcours.add('autre'); if (eqDe(k) && sessionRole(eqDe(k)) !== 'patron') SECU.parcours.add('technicienne'); }
   else if (res === 'mauvais') { secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'nombre' }); secuEchec(k, 'nombre'); secuJ('login.number_mismatch', k, d.appareil); }
   secuPcSuite(d); }
 const SECU_MSG = { deconnexion:['Tu es déconnecté.', true], reinit:['La démonstration repart de zéro.', true], inactif:['Tu as été déconnecté : 15 minutes sans rien toucher. Reconnecte-toi.', false],
   bloquee:['Tes connexions ont été fermées : une connexion a été bloquée depuis ton téléphone. Ton compte est verrouillé jusqu’à ce qu’un administrateur change ton mot de passe.', false],
+  verrou:['Trop d’erreurs de mot de passe : ton compte est verrouillé 15 minutes et tes connexions ont été fermées. Un administrateur peut le déverrouiller tout de suite.', false],
   vol:['Par sécurité, ta connexion a été fermée : elle a été utilisée depuis un autre navigateur. Reconnecte-toi.', false], admin:['Un administrateur a fermé tes connexions. Reconnecte-toi.', false] };
 function secuPcSuite(d){ if (SECU.pc.demandeId !== d.id || !document.getElementById('cnx')) return; const p = eqDe(d.k);
   if (d.etat === 'approuvee') { SECU.pc.demandeId = null; return secuApprouveePC(d); }
@@ -25967,7 +26026,7 @@ function secuMonCompte(){ const k = SESSION; if (!k) return; if (SECU.vraie && S
   const histo = c.histo.slice(0, 20).map(h => `<li class="sec-h${h.raisons.length || h.resultat !== 'approuvee' ? ' sec-rouge' : ''}"><div class="sec-h1"><b>${esc(secuMaj(secuQuand(h.ts)))}</b>${h.raisons.length || h.resultat !== 'approuvee' ? `<span class="st st-r">${h.resultat === 'approuvee' ? 'Inhabituelle' : 'Refusée'}</span>` : ''}<span>${esc(SECU_RES_CPT[h.resultat] || h.resultat)}</span></div>
     <div class="gris petit sec-adr">${esc(h.appareil)} · ${esc(h.adresse)}</div>${h.raisons.length ? `<ul class="sec-rs">${h.raisons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}</li>`).join('');
   const apps = c.appareils.map(a => `<li class="sec-ap"><div class="fo-n"><b>${esc(a.nom)}${a.id === ici ? ' <span class="st st-v">Cet appareil</span>' : ''}</b><span class="gris petit">Première connexion ${esc(secuQuand(a.premiere))} · dernière ${esc(secuQuand(a.derniere))}</span><span class="gris petit sec-adr">${esc(a.adresse)}</span></div>${a.id === ici ? '' : `<button type="button" class="btn gris sec-oubli" data-sec2="oublier|${esc(a.id)}">Oublier</button>`}</li>`).join('');
-  foOuvrir(`<button type="button" class="sec-retour" data-ferme="1">‹ Retour</button><span class="surtitre">${esc(p.role)}</span><div class="eq-tete">${secuAv(p)}<h2>Mon compte</h2></div>
+  foOuvrir(`<span class="surtitre">${esc(p.role)}</span><div class="eq-tete">${secuAv(p)}<h2>Mon compte</h2></div>
     <div class="gris petit sec-ident">${esc(eqNom(p))} · ${esc(p.mail)} · identifiant <b>${esc(cnxLogin(p))}</b></div>
     <div class="carte sec-bloc"><h3>Mon téléphone</h3><p>${c.tel ? 'OP Security est activée sur <b>' + esc(c.tel.nom) + '</b> (depuis le ' + secuJJMM(c.tel.activeLe) + '). Chaque connexion se confirme sur ce téléphone.' : 'OP Security n’est pas encore activée sur un téléphone.'}</p>
       <p class="gris petit">Tu as perdu ton téléphone ? Va voir ton administrateur avec une pièce d’identité : il vérifie que c’est bien toi, puis il active ton nouveau téléphone. Il n’existe pas de code de secours : c’est voulu, personne ne peut s’en servir à ta place.</p></div>
@@ -25985,7 +26044,9 @@ function secuPanMdp(){ const k = SESSION; if (!k) return;
     <div class="actions"><button type="button" class="btn" data-sec2="mdp-ok">Changer mon mot de passe</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
 /* mêmes règles et mêmes messages qu'au choix du premier mot de passe (§ 3.3) ; l'empreinte et le sel sont renouvelés, les autres connexions se ferment */
 function secuMdpChanger(a0, a, b){ const k = SESSION, c = k && SECU.comptes[k]; if (!c) return 'Reconnecte-toi.';
-  if (!secuMdpJuste(c, a0)) return 'Mot de passe actuel incorrect.';
+  if (!secuMdpJuste(c, a0)) { secuEchec(k, 'mdp');   /* le même compteur que la connexion : quelqu'un devant un ordinateur resté ouvert ne devine pas le mot de passe sans limite */
+    if (secuVerrouMaj(c)) { secuFermerSessions(k, 'verrou'); return SECU_MSG.verrou[0]; }
+    return 'Mot de passe actuel incorrect.'; }
   const sans = a.replace(/\s/g, '');
   if (sans.length < SECU_REGLES.mdpMin) return 'Trop court : ' + SECU_REGLES.mdpMin + ' caractères au minimum, sans compter les espaces.';
   if (SECU_MDP_COURANTS.includes(sans.toLowerCase())) return 'Ce mot de passe est trop courant. Choisis-en un autre.';
@@ -26009,7 +26070,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest && ev.tar
   if (a === 'revenir') return secuRevenir();
   if (a === 'mdp') return secuPanMdp();
   if (a === 'mdp-ok') { const m = secuMdpChanger(document.getElementById('sec-m0').value, document.getElementById('sec-m1').value, document.getElementById('sec-m2').value), e = document.getElementById('sec-merr');
-    if (m) { e.textContent = m; const h = document.getElementById('sec-maide'); if (h && /Trop court/.test(m)) h.style.display = 'none'; return; }
+    if (m) { if (!e) return; e.textContent = m; const h = document.getElementById('sec-maide'); if (h && /Trop court/.test(m)) h.style.display = 'none'; return; }
     fermerPanneau(); secuMonCompte(); return toast('Mot de passe changé. Tes autres connexions ont été fermées.'); }
   if (a === 'oublier') { const c = SECU.comptes[SESSION], ap = c && c.appareils.find(o => o.id === x); if (!ap) return;
     return eqxPan(`<span class="surtitre">Mon compte</span><h2>Oublier cet appareil ?</h2><p>Oublier ${esc(ap.nom)} ? La prochaine connexion depuis cet appareil sera signalée comme inhabituelle.</p>
@@ -26146,8 +26207,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec3-css">
 .sec-verif{min-height:48px;align-items:center}.sec-verif input{width:24px;height:24px;flex:none}
 .sec-conseq{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .sec-expire-pan{margin-bottom:8px}
-.sec-retour{display:none;min-height:48px;margin:0 0 6px;padding:0 6px;background:none;border:0;color:var(--lien);font:inherit;font-size:16px;font-weight:600;cursor:pointer;text-align:left}
-@media (max-width:760px){.sec-retour{display:inline-flex;align-items:center}}
+/* « ‹ Retour » de Mon compte : celui que le panneau pose lui-même (ouvrirPanneau, quand on vient du menu), un seul, à 48 px sur téléphone */
+@media (max-width:760px){.panneau:has(.sec-ident) .p-retour{min-height:48px;margin-top:-10px}}
 .sec-bloc{margin:12px 0}.sec-bloc h3{margin:0 0 8px}.sec-ident{overflow-wrap:anywhere}
 .sec-histo,.sec-apps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
 .sec-h{border-left:3px solid transparent;padding-left:10px}.sec-h.sec-rouge{border-left-color:var(--rouge)}.sec-h1{display:flex;gap:4px 8px;flex-wrap:wrap;align-items:center}
@@ -26221,7 +26282,8 @@ function cnxPremierValider(f){ const p = eqDe(f.dataset.k), c = secuCompte(p.k),
   if (new Set(sans).size < 6) return cnxDire('Ce mot de passe est trop répétitif.');
   if (a !== b) return cnxDire('Les deux mots de passe ne sont pas les mêmes.');
   if (secuMdpJuste(c, a)) return cnxDire('Choisis un mot de passe différent du mot de passe provisoire.');
-  secuMdpDefinir(p.k, a); c.echecs = 0; c.nVerrous = 0; secuReconnaitre(p.k, secuAppareilCourant()); SECU.confirmeA[p.k] = secuMaint(); secuHisto(p.k, { appareil:secuAppareilCourant().nom, adresse:secuAppareilCourant().adresse, resultat:'approuvee' });
+  secuMdpDefinir(p.k, a); c.echecs = 0; c.nVerrous = 0; secuReconnaitre(p.k, secuAppareilCourant()); SECU.confirmeA[p.k] = secuMaint();
+  if (!c.histoConnexion) secuHisto(p.k, { appareil:secuAppareilCourant().nom, adresse:secuAppareilCourant().adresse, resultat:'approuvee' }); c.histoConnexion = false;
   opsRetour(p.k, 'Approuvé. La suite se passe sur l’ordinateur.', 'ok', 5000); opsDemo(); opsDessiner(true); cnxEntrer(p); }
 /* Écran « Confirme sur ton téléphone » (tous les jours) : le NOMBRE en grand, le téléphone montre l'appareil et l'adresse, la personne tape le nombre */
 function cnxConfirmerCorps(d){ const rouge = d.raisons.length > 0;
@@ -26234,7 +26296,12 @@ function cnxConfirmerCorps(d){ const rouge = d.raisons.length > 0;
       : `<details class="sec-codes"><summary>Le téléphone n’a pas de réseau ?</summary><label>Code à 6 chiffres affiché dans OP Security<input id="cn-code6" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000 000"></label><button type="button" class="btn" data-cnx="code6">Valider le code</button></details>`}
     <p class="cn-err" id="cn-err" role="alert"></p><button type="button" class="cn-lien" data-cnx="annuler-demande">Annuler</button>`; }
 function cnxConfirmer(p, d){ SECU.pc = { ecran:'confirme', k:p.k, demandeId:d.id, codesFaux:0 }; SECU.telCourant = p.k; if (opsLarge()) SECU.ouvert = true;
-  cnxPoser('Confirme sur ton téléphone', `<form class="cn-carte" id="cn-form-confirme" data-d="${d.id}" novalidate>${cnxConfirmerCorps(d)}</form>${cnxPastilleTel()}`); }
+  cnxPoser('Confirme sur ton téléphone', `<form class="cn-carte" id="cn-form-confirme" data-d="${d.id}" novalidate>${cnxConfirmerCorps(d)}</form>${cnxPastilleTel()}`); if (d.raisons.length) setTimeout(cnxNombreEnVue, 520); }
+/* l'alerte rouge ajoute trois ou quatre lignes AU-DESSUS du nombre : sur un écran court (Android, 320 × 568) il tombait sous le bord, et la personne devait deviner qu'il fallait défiler.
+   On fait donc défiler jusqu'à lui (la carte garde l'alerte juste au-dessus), sans mouvement si la personne a demandé moins d'animations — et seulement si ça ne tient pas déjà. */
+function cnxNombreEnVue(){ const f = document.getElementById('cn-form-confirme'), z = f && f.querySelector('.sec-expire'); if (!z || f.dataset.mort) return;
+  if (z.getBoundingClientRect().bottom <= innerHeight - 8) return;
+  z.scrollIntoView({ block:'end', behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
 function cnxConfirmerExpire(){ const f = document.getElementById('cn-form-confirme'); if (!f || f.dataset.mort) return; f.dataset.mort = '1';
   f.innerHTML = `<h1>Confirme sur ton téléphone</h1><p class="cn-expl" role="alert">La demande a expiré.</p><button type="button" class="btn plein" data-cnx="recommencer">Recommencer</button>`; }
 function cnxCode6(texte){ const d = SECU.demandes.find(x => x.id === SECU.pc.demandeId); if (!d || !secuDemandeVivante(d)) return; const c = secuCompte(d.k), p = eqDe(d.k), t = texte != null ? texte : ((document.getElementById('cn-code6') || {}).value || '');
@@ -26249,8 +26316,9 @@ function cnxAnnulerDemande(){ const d = SECU.demandes.find(x => x.id === SECU.pc
 function cnxValider(){ const id = cnxIdNorm(document.getElementById('cn-id').value), mdp = document.getElementById('cn-mdp').value;
   if (!id || !mdp) return cnxDire('Écris ton identifiant et ton mot de passe.');
   const r = secuConnexion(id, mdp); cnxFauxMaj(); if (r.refus) return cnxDire(r.refus);
-  const p = r.p, c = r.c; SECU.telCourant = p.k;
+  const p = r.p, c = r.c; SECU.telCourant = p.k; c.histoConnexion = false;   /* chaque connexion repart sans ligne d'historique écrite */
   if (!c.tel) return cnxGlisser(() => cnxActiver(p));
+  if (c.tel.efface) return cnxDire('Ton téléphone a été effacé. Demande un nouveau téléphone à ton administrateur.');   /* aucune demande ne naît : il n'y a plus de téléphone pour la valider */
   const d = secuDemander(p.k, 'connexion'); if (!d) return cnxDire('Trop de demandes de connexion. Attends quelques minutes avant de réessayer.');
   secuJ(d.raisons.length ? 'login.unusual' : 'login.requested', p.k, d.appareil + ' · ' + d.adresse);
   cnxGlisser(() => cnxConfirmer(p, d)); }
@@ -26452,6 +26520,7 @@ function nvVoir(k){ const p = (NV ? NV.pages : []).find(x => x.k === k); if (!p)
 function nvOccupe(){ try { return calOuverts().some(k => k !== 'nouveautes') || !!document.getElementById('cnx') || !!document.getElementById('gd-bulle') || (typeof GD !== 'undefined' && GD.actif); } catch (e) { return false; } }
 /* à la première connexion : une fois l'écran de l'application posé ; si une fenêtre s'est ouverte entre-temps, on retente un peu plus tard (six fois), puis on laisse — il reste dans « Nouveautés » */
 function nvProposer(essai){ essai = essai || 0; if (!MODE_APP || !SESSION || !nvRole() || nvVu() || document.getElementById('nv')) return;
+  if (typeof SECU !== 'undefined' && SECU.vraie && SECU.vraie !== SESSION) return;   /* « Ouvrir l'application comme … » : regarder chez quelqu'un ne lui prend pas son guide (il ne s'ouvrirait plus quand il se connecte pour de vrai) */
   if (nvOccupe()) { if (essai < 6) setTimeout(() => nvProposer(essai + 1), 1500); return; }
   nvOuvrir(); }
 document.addEventListener('click', ev => { const t = ev.target; if (t && t.id === 'nv') { nvFermer(); return; }   /* le toucher en dehors de la feuille */

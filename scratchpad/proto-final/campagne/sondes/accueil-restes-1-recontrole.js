@@ -88,7 +88,7 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
       v(`C · ${w} px · rien ne sort de la carte et la page ne glisse pas de côté`, g.sortDeLaCarte <= 1 && g.page <= w + 1, g);
       v(`C · ${w} px · les 12 libellés de mois tiennent dans leur colonne (colonne la plus étroite : ${g.colMin} px)`, g.libCoupes.length === 0, g);
       if (g.defile) v(`C · ${w} px · il défile : au bout, le premier mois est entier (bord à ${g.debut} px), fondu posé et « Glisse vers la droite » dit`, g.debut >= 29 && g.mask && g.glisse, g);
-      else v(`C · ${w} px · il ne défile pas : ni marge, ni fondu, ni « Glisse vers la droite » (restes accueil, tour 2 : un graphique immobile ne s'annonce pas glissant)`, !g.mask && !g.glisse && (w <= 760 ? g.pad === 0 && g.debut <= 2 : g.pad === 44), g);   // au bureau, 44 px = la gouttière des graduations « 1 k€ » (voulue)
+      else v(`C · ${w} px · il ne défile pas : ni marge, ni fondu, ni « Glisse vers la droite » (restes accueil, tour 2 : un graphique immobile ne s'annonce pas glissant)`, !g.mask && !g.glisse && (w <= 760 || (w <= 900 && ['ipad', 'iphone', 'android'].includes(profil)) ? g.pad === 0 && g.debut <= 2 : g.pad === 44), g);   // au bureau (souris), 44 px = la gouttière des graduations « 1 k€ » (voulue) ; sur tablette au doigt (761-900 px) les graduations sont masquées, marge 0 (restes accueil, tour 3 : le seuil à 527 px a rendu ce cas atteignable à 890-900 px)
       if (w === 900 || w === 1000 || w === 820) { await p.evaluate(() => { const e = document.querySelector('.st-graph'); e.scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(250); await cap('graphique-' + w); }
     }
   }

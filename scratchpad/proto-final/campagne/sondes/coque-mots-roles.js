@@ -35,5 +35,7 @@ const ATTENDU = {
     v(`${qui} population : ${nbs} mots essayés`, nbs >= 5, nbs);
     await L.fin(c);
   }
-  L.bilan();
-})();
+  // la sonde rend sa place de navigateur et SORT : sans cela le processus reste vivant jusqu'au délai et garde une des quatre places de la machine (vu le 17 novembre, restes coque tour 2)
+  await L.fermer();
+  process.exit(L.bilan() ? 1 : 0);
+})().catch(e => { console.error('SONDE MORTE', e); process.exit(2); });

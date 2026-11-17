@@ -64,7 +64,32 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
       return { ph: i.placeholder, texte: Math.round(cv.measureText(i.placeholder).width), place: Math.round(i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) }; });
     v(`[${J}] H · population : un champ de recherche est visible sur ${hash}`, !!H, H);
     if (H) v(`[${J}] H · l'invite « ${H.ph} » tient en entier (${H.texte} px pour ${H.place})`, H.texte <= H.place, H);
+    // F · technicien-12, les autres listes : un nombre et son unité (« 8 L », « (2 m) ») ne se séparent pas, dans Stock comme dans Articles
+    const U = await p2.evaluate(() => { const w = document.createTreeWalker(document.querySelector('#contenu'), NodeFilter.SHOW_TEXT), tous = []; let n; while ((n = w.nextNode())) { const m = n.nodeValue.match(/\d[ \u00a0](?:L|kg|m)\b/g); if (m && n.parentElement.closest('.fo-n, .ms-l, .mc-l, b')) tous.push(...m); }
+      return { n: tous.length, ordinaires: tous.filter(x => x.indexOf('\u00a0') < 0).length, ex: tous.slice(0, 3) }; });
+    if (U.n) v(`[${J}] F · ${hash} : aucun nombre séparé de son unité par une espace ordinaire (${U.n} vus)`, U.ordinaires === 0, U);
     await L.fin(c2);
+  }
+  // ── C · un montant écrit comme on le dit (« 12 € », « 12, ») est LU dans Mes frais et dans l'achat en magasin ──
+  await L.aller(p, 'techfrais');
+  await R(() => { const d = DEM_ACHAT.find(o => o.id === 'da3'); Object.assign(d, { etat: 'aacheter', accord: AUJ, par: 'marc', le: AUJ }); rendre(); }); await L.calme(p, 300);
+  const dispo = await R(() => !!document.querySelector('[data-axa="tick|da3"]'));
+  v(`[${J}] C · population : la demande « à acheter » de Sophie propose « J'ai acheté »`, dispo);
+  if (dispo) for (const [saisie, attendu] of [['12 €', 12], ['12,', 12], ['12 euros', 12], ['douze', null], ['12,5,6', null]]) {
+    await L.toucher(c, '[data-axa="tick|da3"]'); await L.calme(p, 300); await p.fill('#ax-m', saisie); await L.toucher(c, '[data-axa^="tickok"]'); await L.calme(p, 400);
+    const A = await R(() => { const a = ACHATS.find(o => o.id === 'ada3'); return a ? a.ht * (1 + a.tva / 100) : null; }), t = await R(() => (document.getElementById('toast') || {}).textContent || '');
+    v(`[${J}] C · achat en magasin : « ${saisie} » ${attendu === null ? 'est refusé avec une phrase, rien n’est créé' : 'est lu 12 €'}`, attendu === null ? (A === null && /\S/.test(t) && !/^Indique le montant payé/.test(t)) : (A !== null && Math.abs(A - attendu) < 0.01), { A, t });
+    if (A !== null) await R(() => { const i = ACHATS.findIndex(o => o.id === 'ada3'); if (i >= 0) ACHATS.splice(i, 1); const d = DEM_ACHAT.find(o => o.id === 'da3'); Object.assign(d, { etat: 'aacheter' }); delete d.reel; rendre(); });
+    else await L.ranger(p);
+    await L.calme(p, 200);
+  }
+  // ── I · technicien-02 : journée non commencée + un message du bureau : la 1re intervention montre au moins 80 px au-dessus de la barre (320 × 568 : 40 avant le tour 2) ──
+  if (profil !== 'mac' && profil !== 'ipad') {
+    await L.aller(p, 'majournee'); await R(() => scrollTo(0, 0));
+    const I = await R(() => { const i = document.querySelector('#contenu .rl-int'), bb = document.querySelector('.barre-bas'), bar = bb && getComputedStyle(bb).display !== 'none' ? bb.getBoundingClientRect().top : innerHeight;
+      return { y: i ? Math.round(i.getBoundingClientRect().top) : -1, bar: Math.round(bar), puce: !!document.querySelector('.mj-puce'), nonCommence: /pas encore commencé/.test(document.getElementById('contenu').textContent) }; });
+    v(`[${J}] I · population : journée non commencée avec un message du bureau`, I.puce && I.nonCommence && I.y > 0, I);
+    v(`[${J}] I · la 1re intervention montre au moins 80 px au-dessus de la barre (${I.bar - I.y} px)`, I.bar - I.y >= 80, I);
   }
   const err = c.err.filter(x => !/ERR_/.test(x)); v(`[${J}] aucune erreur JavaScript`, err.length === 0, err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
