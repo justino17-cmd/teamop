@@ -1,0 +1,56 @@
+[
+ {
+  "n": "technicien-01",
+  "etat": "corrigé",
+  "changement": "droitsNote : la note du pied « Dans cette rubrique, ton compte ne peut pas créer/supprimer… » n'est plus écrite pour une personne de forme « terrain » (ses écrans personnels sont faits pour créer une note de frais, une demande, une pièce) ; la note « tu peux regarder cet écran, pas le modifier » (tout fermé) reste.",
+  "preuve": "technicien-mise-en-page.js : plus aucun ✗ technicien-01 sur iphone, petit, android (jour et nuit), mac, windows ; technicien-corrections.js : 5 écrans sans note, après avoir prouvé que Sophie a une catégorie à moitié ouverte (13 ✓ · 0 ✗ sur iphone nuit, mac, petit nuit)."
+ },
+ {
+  "n": "technicien-02",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : redessiner Ma journée (messages repliés, carte Mon camion sous les interventions) change un écran validé.",
+  "preuve": "Reproduit : première intervention à y = 832 (iphone 844), 861 (android 740), 886 (petit 568), 716 (windows 768) ; mac ✓. Proposition du testeur : « Messages du bureau » en une ligne repliable, Mon camion et « Mes habilitations » sous les interventions, la carte « Ma journée de travail » seulement tant que la journée n'est pas commencée."
+ },
+ {
+  "n": "technicien-03",
+  "etat": "corrigé",
+  "changement": "droitsGeste : table GESTES_SOI (paie : confirme, signalok) — une personne confirme ou signale SON relevé (le second morceau de la valeur, « confirme|sm », est l'identifiant de la personne connectée), quelle que soit sa case Comptabilité. Celui d'un autre reste refusé.",
+  "preuve": "technicien-parcours-heures.js : 6 ✓ · 2 ✗ avant, 8 ✓ · 0 ✗ après (iphone et mac) ; technicien-corrections.js : contre-épreuve Sophie ne confirme pas les heures de Thomas (confirmes.tl inchangé). La sonde a été ajustée : après une confirmation réussie, la carte « prêtes » n'est plus là, elle remet l'état d'avant pour rejouer « Il y a une erreur »."
+ },
+ {
+  "n": "technicien-04",
+  "etat": "corrigé",
+  "changement": "« Voir mes notes » devient « Voir mes frais » (le nom de l'écran) sur Ma journée et dans la carte « Il me faut du matériel ».",
+  "preuve": "technicien-corrections.js : aucun « Voir mes notes », un « Voir mes frais » ; capture corr-majournee-iphone-nuit.png et mac-jour regardées."
+ },
+ {
+  "n": "technicien-05",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : choix de produit (le rappel du matin sur Mes frais et Mon camion ; il disparaît dès que la journée commence).",
+  "preuve": "Reproduit par lecture du code : rlNotifsCarte(moi) est appelée par vueMaJournee et vueTechFrais."
+ },
+ {
+  "n": "technicien-06",
+  "etat": "reporté",
+  "changement": "Aucun : l'écran Mon camion (vueMonCamion, « Il me manque une pièce ») est refait par un autre agent.",
+  "preuve": "Cause relevée par le testeur : le gestionnaire `input` du champ « Combien ? » grise le bouton sans réécrire .mat-pourquoi ; seul `change` le fait."
+ },
+ {
+  "n": "technicien-07",
+  "etat": "corrigé",
+  "changement": "« ‹ Retour » sans historique : retourSure(base) ne ramène qu'à un écran que la personne a le droit d'ouvrir, sinon à sa première rubrique (Ma journée pour un terrain) — plus de « Cette page n'est pas dans ton espace ».",
+  "preuve": "technicien-parcours-intervention.js I11c ✗ avant, 15 ✓ · 0 ✗ après."
+ },
+ {
+  "n": "technicien-08",
+  "etat": "corrigé",
+  "changement": "aria-label sur les deux grands champs de la fiche : « Ce que j'ai trouvé » et le titre du compte rendu du métier (« Ce que nous avons fait »…).",
+  "preuve": "technicien-corrections.js : les deux champs portent leur nom."
+ },
+ {
+  "n": "technicien-09 (nouveau, non rapporté)",
+  "etat": "ne se reproduit pas",
+  "changement": "Aucun : à 320 px, la case d'un jour de la semaine dans le calendrier de Mes congés mesure 38×66 px — une grille de sept colonnes sur 284 px ne peut pas faire 44 px de large ; même décision que les cases des grilles de planning. Le doigt a la hauteur.",
+  "preuve": "technicien-absences-petit.js (nomme l'élément : ac-x acm-x dans acm-sem)."
+ }
+]
