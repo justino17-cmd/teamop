@@ -62,7 +62,8 @@ parcours('P1 · créer une intervention depuis le bouton « ＋ Nouvelle interve
   L.v('P1 · le compteur « interventions » = nombre réel de la période', +k2.int === att.n, { affiche: k2.int, reel: att.n });
   L.v('P1 · « de travail prévu » = somme réelle des durées (recalculée)', dureeLue(k2.temps) === att.mn, { affiche: k2.temps, reel: att.mn });
   // la liste Interventions et l'historique le montrent
-  await L.aller(c.p, 'interventions'); const dansListe = await c.p.evaluate(t => document.getElementById('contenu').textContent.includes(t), apres.n.titre);
+  // la liste s'ouvre sur « Aujourd’hui » : on la met sur « Toutes » par le bouton, comme le ferait la personne
+  await L.aller(c.p, 'interventions'); await L.toucher(c, '[data-filtreint="tout"]'); const dansListe = await c.p.evaluate(({ t, id }) => !!document.querySelector('#contenu [data-go="inter-x-' + id + '"]') && document.getElementById('contenu').textContent.includes(t), { t: apres.n.titre, id: apres.n.id });
   L.v('P1 · l’intervention paraît dans la liste « Interventions »', dansListe, apres.n.titre);
   await L.aller(c.p, 'historique'); const dansHisto = await c.p.evaluate(() => /a créé l’intervention/.test(document.getElementById('contenu').textContent));
   L.v('P1 · l’historique note « a créé l’intervention »', dansHisto, '');
@@ -170,7 +171,7 @@ parcours('P7 · réglages des rendez-vous en ligne : ouvrir, changer, revoir', a
   const rel = await c.p.evaluate(() => ({ h: document.querySelector('#calque [data-rr="horizon"]').value, lun: document.querySelector('#calque [data-rr="j1matin"]').checked, mar: document.querySelector('#calque [data-rr="j2matin"]').checked }));
   L.v('P7 · en rouvrant, les réglages choisis sont là (horizon 21 j, lundi matin seul)', rel.h === '21' && rel.lun && !rel.mar, rel);
   const txt = await c.p.evaluate(() => document.querySelector('#calque .panneau').textContent.replace(/\s+/g, ' '));
-  L.v('P7 · le texte d’aide ne renvoie pas vers un menu qui n’existe plus (« Ce que voit le client ») (planning-RDVAIDE)', !/Ce que voit le client/.test(txt), (txt.match(/Pour les voir[^.]*\./) || [''])[0]);
+  L.v('P7 · le texte d’aide ne renvoie pas vers un menu qui n’existe plus (« Ce que voit le client ») (planning-02)', !/Ce que voit le client/.test(txt), (txt.match(/Pour les voir[^.]*\./) || [''])[0]);
   const fermeX = await c.p.evaluate(() => !!document.querySelector('#calque .panneau .x, #calque [data-fermer], #calque .fermer'));
   await c.p.keyboard.press('Escape'); await L.calme(c.p, 250); L.v('P7 · Échap ferme le panneau', !(await L.etat(c.p)).panneau, '');
 });
