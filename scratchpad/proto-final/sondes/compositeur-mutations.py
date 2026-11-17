@@ -22,7 +22,7 @@ MUT = [
  M("T05 un prix ne se réécrit plus à deux décimales", 'A', "const champPrix=c=>Math.floor(c/100)+','+String(c%100).padStart(2,'0');", "const champPrix=c=>String(c/100).replace('.',',');", "compositeur-gestes.js"),
  M("T14 la pastille « Modifié » n'est plus posée dès la première lettre", 'A', "if(tt&&!tt.querySelector('.vv-opt-b')){ const em", "if(false){ const em", "compositeur-gestes.js"),
  M("T09 plus de mise en service au catalogue envoyé à l'atelier", 'P', "{ ref:'MO-MS', des:'Mise en service et contrôle d’étanchéité', unite:'forfait', puC:12000, tvaBp:1000, cat:'Main-d’œuvre' },", "", "atelier-devis.js"),   # gardée par le catalogue EXACT d'atelier-devis (références MO-H…DEP-Z3) : compositeur-gestes ne regarde qu'une prestation de chaque famille
- M("T13 le modèle « maintenance » ne dit plus HT", 'A', "Le prix de la maintenance est de {{prix}} HT par an (hors taxes : la TVA s’ajoute).", "Le prix de la maintenance est de {{prix}} par an.", "compositeur-liste.js"),
+ M("T13 le modèle « maintenance » ne dit plus HT", 'A', "Le prix de la maintenance est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).", "Le prix de la maintenance est de {{prix}} par an.", "compositeur-liste.js"),
  M("T11 un envoyé ne se dit plus « envoyé aujourd'hui »", 'P', "return 'envoyé ' + (n === 0 ? 'aujourd’hui' : n === 1 ? 'hier' : 'il y a ' + n + ' jours');", "return 'Envoyé le ' + opdDate(x.maj);", "compositeur-liste.js"),
  M("T08 le titre de la carte des composés perd son rembourrage", 'P', ".opd-liste .opd-t{margin:6px 0 4px;padding:0 12px}", ".opd-liste .opd-t{margin:6px 0 4px;padding:0}", "compositeur-liste.js"),
  M("T02 la rangée de gestes d'un article ne rétrécit plus (320 px)", 'A', ".vv-a .vv-l-a{flex:0 1 auto;max-width:100%;margin:0}", ".vv-a .vv-l-a{flex:none;margin:0}", "compositeur-mise-en-page.js", {'PROFIL':'petit'}),
@@ -40,6 +40,12 @@ MUT = [
  M("R3b « Paiement » garde ses lignes dans le champ", 'A', "V.paiement=uneLigne(t);", "V.paiement=t.value.replace(/\\s*\\n\\s*/g,' ');", "compositeur-restes1.js", {'PROFIL':'iphone'}),
  M("R3c le curseur ne reste plus à sa place après un collage", 'A', "try{ t.setSelectionRange(c,c) }catch(e){}", "", "compositeur-restes1.js", {'PROFIL':'iphone'}),
  M("R5 les initiales du logo ne sont plus protégées contre la mise en page d'avant l'échelle", 'A', 'svg[role="img"] text{text-rendering:geometricPrecision}', "", "compositeur-restes1.js", {'PROFIL':'iphone'}),
+ M("S1 le collage multiligne n'est plus aplati AVANT d'entrer dans le champ (Ctrl+Z ne rend plus rien)", 'A', "if(!t||(t.id!=='vv-delai'&&t.id!=='vv-paiement')||ev.isComposing) return;", "return;", "compositeur-restes2.js", {'PROFIL':'iphone'}),
+ M("S2 l'aplatissement ne passe plus par une insertion que le navigateur sait défaire", 'A', "ok=document.execCommand('insertText',false,plat)", "ok=false", "compositeur-restes2.js", {'PROFIL':'iphone'}),
+ M("S3 l'atelier ne dit plus au parent que le brouillon est supprimé", 'A', "OPG.motifFin='supprime';", "", "compositeur-restes2.js", {'PROFIL':'iphone'}),
+ M("S4 le prototype ne reconnaît plus le motif « supprime » (la fermeture ne dit rien)", 'P', "m === 'absent' || m === 'supprime' ? m : 'fin'", "m === 'absent' ? m : 'fin'", "compositeur-restes2.js", {'PROFIL':'iphone'}),
+ M("S5 le mot « supprime » reste collé pour la fermeture d'après", 'A', "OPG.motifFin=''; opdPoster({opd_fermer:{motif:m}})", "opdPoster({opd_fermer:{motif:m}})", "compositeur-restes2.js", {'PROFIL':'iphone'}),
+ M("S6 le prototype dit « Brouillon supprimé » même sans suppression (motif « fin »)", 'P', "else if (motif === 'supprime') toast('Brouillon supprimé');", "else if (motif === 'supprime' || motif === 'fin') toast('Brouillon supprimé');", "compositeur-restes2.js", {'PROFIL':'iphone'}),
  M("R4 un blanc du modèle ne se met plus entre crochets (résumé de bibliothèque)", 'A', "const v=defVar(k); return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+k+']') });", "const v=defVar(k); return v?v.n:(k==='entreprise'?'le prestataire':k) });", "compositeur-restes1.js", {'PROFIL':'iphone'}),
 ]
 filtre = sys.argv[1] if len(sys.argv) > 1 else ''
