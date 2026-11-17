@@ -7,13 +7,14 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 4 h 55 (heure de la machine ; +1 h en France) — dix-sept voies :
+État au 17 novembre, 4 h 55 (heure de la machine ; +1 h en France) — dix-huit voies à 5 h 06 :
 
 | Voie | Arguments | Arbre | Dernier lancement (run) | Étape au dernier relevé |
 |---|---|---|---|---|
 | materiel | `{voie:"materiel"}` | /home/user/wt-c-materiel | wf_cb393850-8a2 | 4 sur 9 (Fournisseurs) |
 | vehtemps | `{voie:"vehtemps"}` | /home/user/wt-c-vehicules-temps | wf_2b1326f9-4dc | 4 sur 9 (Véhicules : les feuilles) |
-| compositeur | `{voie:"compositeur"}` | /home/user/wt-atelier | wf_46ec83f3-977 | 4 sur 4 (recontrôle) |
+| restes (compositeur) | `{voie:"restes", noms:["compositeur"], arbre:"/home/user/wt-atelier"}` | /home/user/wt-atelier | wf_6c0f850c-5cd | 1 sur 4 (lancée à 5 h 06) |
+| campagne compta-ventes | `{voie:"campagne", cles:["compta-ventes"], arbre:"/home/user/wt-t-compta-ventes"}` | /home/user/wt-t-compta-ventes | wf_af182308-28c | 1 sur 3 (lancée à 5 h 06) |
 | entreprise | `{voie:"entreprise"}` | /home/user/wt-entreprise | wf_d48d52bb-f55 | 6 sur 8 (relire-tout) |
 | securite | `{voie:"securite"}` | /home/user/wt-securite | wf_c59af0fe-bf3 | 4 sur 8 (angle courrier) |
 | double-auth | `{voie:"double-auth"}` | /home/user/wt-double-auth | wf_f90564b0-275 | 2 sur 6 |
@@ -29,10 +30,10 @@ Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 
 | campagne accueil | `{voie:"campagne", cles:["accueil"], arbre:"/home/user/wt-t-accueil"}` | /home/user/wt-t-accueil | wf_a77cf25d-3ce | 1 sur 3 |
 | campagne contrats | `{voie:"campagne", cles:["contrats"], arbre:"/home/user/wt-t-contrats"}` | /home/user/wt-t-contrats | wf_8d381f43-df8 | 1 sur 3 |
 
-Finies : `menu` (17/11, 1 h 57) · `mail` (17/11, 4 h 45 : 34 défauts réglés, 1 partiel, 5 casses reprises par « restes ») ·
+Finies : `compositeur` (17/11, 5 h 05 : 14 défauts sur 14 réglés et recontrôlés, 1 casse gênante à 320 px reprise par « restes ») · `menu` (17/11, 1 h 57) · `mail` (17/11, 4 h 45 : 34 défauts réglés, 1 partiel, 5 casses reprises par « restes ») ·
 l'étude OP Security (`/home/user/op-security/PLAN.md`).
 
-À lancer ensuite, dans l'ordre : campagne `compta-ventes`, `compta-reste`, `client`, `metier-3d` (un arbre chacune :
+À lancer ensuite, dans l'ordre : campagne `compta-reste`, `client`, `metier-3d` (un arbre chacune :
 `/home/user/wt-t-<partie>`) · `restes` pour chaque recontrôle rendu (compositeur, planning, coque…) · seconde vague de la campagne
 quand les refontes sont finies : `devis-atelier`, `mail`, `achats`, `materiel`, `vehicules-temps`, `equipe` · `guide` · puis le
 dernier passage : `final-rejeu` (par groupes de familles), `final-regard` (par rôle), `final-parcours`, `final-mots`, `final-rapport`.

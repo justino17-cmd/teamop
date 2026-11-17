@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+# (numéros de ligne relevés le 17/11/2026 sur la branche fusionnée : d'autres agents déplacent le fichier, se fier d'abord au NOM de la fonction)
+# Assemble scratchpad/proto-final/campagne/compta-ventes.json : le rapport de la partie « compta-ventes » (campagne du 17 novembre 2026).
+# Le JSON est écrit d'ici (jamais à la main) pour qu'une machine qui redémarre le retrouve à l'identique. Relancer après chaque lot de constats.
+import json, os
+D = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+P = 'apercu/prototype-op-gestion.html'
+ecrans = [
+ {"nom": "Cadre plein écran « OP COMPTABLE » — accueil", "fonction": "VUES.accueil (prototype-comptabilite.html)", "acces": "menu Comptabilité → fenêtre plein écran ; « ‹ OP GESTION » ramène"},
+ {"nom": "Cadre — Ventes et encaissements", "fonction": "VUES.ventes (prototype-comptabilite.html, redéfinie vers la ligne 3443)", "acces": "cadre › menu « Ventes et encaissements » ou la tuile « Les clients te doivent »"},
+ {"nom": "Cadre — panneau d'une facture (où elle en est, relancer, PDF, ouvrir dans OP GESTION)", "fonction": "ouvrirExplication + cmptFactureBloc / cmptRelancer / cmptPdf", "acces": "cadre › Ventes › touche une ligne"},
+ {"nom": "Cadre — « Relié à OP GESTION »", "fonction": "cmptLecture", "acces": "cadre › pastille en haut"},
+ {"nom": "Comptabilité du quotidien — Pilotage › Vue d'ensemble", "fonction": "vueComptabilite → cxVueTableau", "acces": "cadre › « Factures et paiements », ou #comptabilite hors cadre"},
+ {"nom": "Ventes › Par intervention (dossiers)", "fonction": "cxVueDossiers / cxOuvrirDossier", "acces": "Comptabilité › Ventes › « Par intervention »"},
+ {"nom": "Ventes › Factures & avoirs", "fonction": "cxVueFactures / cxListe", "acces": "Comptabilité › Ventes › « Factures & avoirs »"},
+ {"nom": "Ventes › Comptes clients (relevé d'un client)", "fonction": "cxVueClients / cxReleve", "acces": "Comptabilité › Ventes › « Comptes clients »"},
+ {"nom": "Ventes › Contrats", "fonction": "cxVueContrats / cxContrat", "acces": "Comptabilité › Ventes › « Contrats »"},
+ {"nom": "Trésorerie › Paiements", "fonction": "cxVuePaiements / cxMouvements", "acces": "Comptabilité › Trésorerie › « Paiements »"},
+ {"nom": "Trésorerie › Caisse & chèques (remises en banque)", "fonction": "cpVueCaisse", "acces": "Comptabilité › Trésorerie › « Caisse & chèques »"},
+ {"nom": "Fiche d'une facture", "fonction": "vueFacture (ligne 5302, enveloppée ligne 10722)", "acces": "une ligne de la liste, #facture-x-<id>, « Ouvrir la facture » du cadre"},
+ {"nom": "Fenêtres : Ajouter, Nouvelle facture, Aperçu et envoi, Relancer, Paiement en partie, Paiement reçu, Faire un avoir", "fonction": "cxNouveau, cxNouvelleFacture, ACTIONS.apercuEnvoi / relance / partiel / ajoutEnc / avoir", "acces": "boutons de la fiche et de l'en-tête de la Comptabilité"},
+]
+defauts = [
+ {"n": "compta-ventes-01", "gravite": "gênant", "ecran": "Nouvelle facture (formulaire)", "role": "marc", "profils": ["mac"], "decision": "corriger",
+  "etapes": "Comptabilité › Ventes › Factures & avoirs › ＋ Ajouter › Facture client ; désignation « Mise en service », quantité « -3 », prix « 100 » ; Créer la facture.",
+  "attendu": "Une quantité négative ou nulle est refusée avec une phrase (« La quantité doit être supérieure à zéro »).",
+  "constate": "La facture est créée avec la quantité « -3 » affichée sur la fiche et sur le PDF, alors que le total HT compte la ligne une fois (100,00 €) : le document se contredit. Une quantité « 0 » ou « abc » devient 1 en silence.",
+  "preuve": "sonde compta-ventes-parcours-a.js (✗ compta-ventes-01) : {\"q\":\"-3\",\"ht\":100}", "ou": P + ":10675 (factureok : cxNum(nf-q) || 1) ; htDe ligne 5268 retombe sur 1 si la quantité n'est pas > 0",
+  "correction": "Dans factureok : si la quantité saisie n'est pas un nombre > 0, toast « Indique une quantité supérieure à zéro. » et ne rien créer (au lieu de « || 1 »)."},
+ {"n": "compta-ventes-02", "gravite": "bloquant", "ecran": "Fiche d'une facture à valider", "role": "marc", "profils": ["mac"], "decision": "corriger",
+  "etapes": "Ouvrir une facture « à valider » ; toucher « ＋ Ajouter une ligne ».",
+  "attendu": "La nouvelle ligne se nomme (champ désignation), a une quantité modifiable et une croix pour la supprimer.",
+  "constate": "Une ligne « Ligne libre » × 1 apparaît : seul son prix se saisit. On ne peut ni la nommer ni la supprimer ni changer sa quantité ; si on l'oublie sans prix, « Aperçu et envoi » reste grisé pour toujours ; chiffrée, elle part chez le client sous le nom « Ligne libre ». (Confirme l'indice de MENU-FINAL.)",
+  "preuve": "sonde compta-ventes-parcours-a.js (✗ compta-ventes-02, 02b) : la ligne 2 n'a qu'1 champ (le prix), aucun bouton de suppression ; capture a-mac-ligne-libre.png ; code : ACTIONS.ligneAjout pousse {d:'Ligne libre',q:'1',pu:null}",
+  "ou": P + ":8438 (ACTIONS.ligneAjout) et 5311 (vueFacture : la désignation et la quantité sont du texte, pas des champs)",
+  "correction": "Sur une facture « à valider », rendre la désignation (champ texte) et la quantité (champ décimal, > 0) modifiables pour TOUTES les lignes, ajouter une croix « Retirer cette ligne » par ligne, et poser le focus sur la désignation de la ligne ajoutée."},
+ {"n": "compta-ventes-05", "gravite": "gênant", "ecran": "Fenêtre « Relancer » (OP GESTION)", "role": "marc", "profils": ["mac"], "decision": "corriger",
+  "etapes": "Fiche de la facture FAC-2026-0128 › Relancer maintenant.",
+  "attendu": "Le message dit « avec le lien ci-dessous » : le lien de paiement est visible sous le message (ou la phrase n'existe pas).",
+  "constate": "Le texte promet « payer par carte en un clic avec le lien ci-dessous » ; sous le texte il n'y a que « Si le paiement est déjà parti… Bien à vous ». Le client recevrait une promesse sans lien (ou le gérant relit un message qui ne montre pas ce que le client verra).",
+  "preuve": "sonde compta-ventes-parcours-c.js (✗ compta-ventes-05) ; capture c-mac-relance.png", "ou": P + ":8446 (ACTIONS.relance)",
+  "correction": "Ajouter sous le message une ligne visible « Payer par carte : lien de paiement » (un bouton-lien factice sans cible dans le prototype, comme « Envoyer un lien de paiement par carte » de la fiche), ou remplacer « ci-dessous » par « dans ce message »."},
+ {"n": "compta-ventes-06", "gravite": "bloquant", "ecran": "Fiche d'une facture envoyée, pas payée", "role": "marc", "profils": ["mac"], "decision": "corriger",
+  "etapes": "Ouvrir FAC-2026-0143 (envoyée, 114,00 € à encaisser) ; chercher comment corriger une erreur.",
+  "attendu": "L'aperçu d'envoi dit « Une facture envoyée ne se modifie plus : on la corrige par un avoir » : le bouton « Faire un avoir » est donc offert dès l'envoi (facture envoyée ou en retard).",
+  "constate": "« Faire un avoir (remboursement, erreur) » n'existe que sur une facture PAYÉE. Une facture envoyée avec une erreur (mauvais prix, mauvais client) ne peut ni se modifier ni se corriger : impasse.",
+  "preuve": "sonde compta-ventes-parcours-c.js (✗ compta-ventes-06) : avoirNonPayee=false ; capture c-mac-fiche-envoyee.png", "ou": P + ":5328 (vueFacture : le bouton « avoir » est dans le bloc `f.st === 'payee'`) ; ACTIONS.avoir/avoirOk lignes 8449-8453",
+  "correction": "Offrir « Annuler cette facture par un avoir » aussi sur les états envoyée et en retard (même fenêtre, même numéro d'avoir), et à la création de l'avoir passer la facture d'origine à « annulée par l'avoir AV-… » pour qu'elle sorte du « à recevoir ». Pour « payée en partie », soumettre à Justin (remboursement partiel)."},
+ {"n": "compta-ventes-07", "gravite": "gênant", "ecran": "Fiche d'une facture à valider", "role": "marc", "profils": ["mac"], "decision": "corriger",
+  "etapes": "Fiche d'une facture à valider dont une ligne n'a pas de prix (par exemple après « ＋ Ajouter une ligne »).",
+  "attendu": "Une phrase dit pourquoi « Aperçu et envoi » est grisé : « 1 ligne sans prix — chiffre-la ci-dessous ».",
+  "constate": "Le bouton est grisé, aucune phrase ne l'explique : seule la case de prix est bordée d'orange. Dans le prototype nu la phrase existe ; en mode application elle est cachée.",
+  "preuve": "code : `html[data-app] .bandeau-proto{display:none!important}` cache aussi le bandeau d'information « N ligne sans prix » (5316, 7757) ; sonde compta-ventes-parcours-a.js (✗ compta-ventes-07) ; capture a-mac-ligne-libre.png",
+  "ou": P + ":23883 (règle d'échafaudage) et 5316 (bandeau utile qui porte la même classe)",
+  "correction": "Donner au bandeau « sans prix » une classe à lui (par exemple `bandeau-info`) que la règle d'échafaudage ne vise pas ; la ligne 13546 qui le masque quand tout est chiffré reste juste."},
+ {"n": "compta-ventes-08", "gravite": "bloquant", "ecran": "Fenêtres « Paiement en partie » et « Paiement reçu »", "role": "marc", "profils": ["mac"], "decision": "corriger",
+  "etapes": "Fiche de FAC-2026-0128 (reste 1 240,00 €) › Paiement en partie ; effacer le montant et taper « 1 240,01 » (l'écriture que l'application affiche partout) ; Enregistrer. Même chose avec « 500 ,5 ».",
+  "attendu": "Le montant est lu 1 240,01 € et refusé (« dépasse ce qu'il reste à payer »), ou lu correctement.",
+  "constate": "« 1,00 € encaissés, rangés dans les paiements d'octobre » : l'espace des milliers coupe la lecture (parseFloat('1 240.01') = 1). « 500 ,5 » devient 500 €. Un paiement faux est enregistré sans un mot (le toast « Annuler » est la seule issue). Même défaut dans « ＋ Paiement reçu » (ajoutEncOk).",
+  "preuve": "sonde compta-ventes-parcours-b.js (✗ compta-ventes-08 : recu=1 ; ✗ « 500 ,5 » : recu=500)", "ou": P + ":8440 (partielOk) et 8505 (ajoutEncOk) : parseFloat(x.replace(',','.')) ; la nouvelle facture, elle, utilise cxNum (ligne 10645) qui retire les espaces",
+  "correction": "Lire les montants par cxNum (retire espaces et espaces insécables avant de remplacer la virgule) dans partielOk et ajoutEncOk ; refuser le texte qui contient autre chose que des chiffres, un espace, une virgule ou un point."},
+ {"n": "compta-ventes-09", "gravite": "détail", "ecran": "Fenêtre « Nouvelle facture »", "role": "marc", "profils": ["mac"], "decision": "corriger",
+  "etapes": "Comptabilité › Ventes › Factures & avoirs › ＋ Ajouter › Facture client.",
+  "attendu": "Aucune phrase d'échafaudage.",
+  "constate": "« La vente de matériel seul (sans pose) viendra avec la vraie version : sa TVA se déclare à la facture… » : une promesse de « vraie version » dans l'application que l'utilisateur croit réelle.",
+  "preuve": "capture a-mac-formulaire.png", "ou": P + ":10626 (cxNouvelleFacture)",
+  "correction": "Remplacer par une consigne utile : « Pour de la vente de matériel seul (sans pose), demande conseil à ton comptable : sa TVA se déclare à la facture. » ou retirer la phrase."},
+ {"n": "compta-ventes-10", "gravite": "gênant", "ecran": "Fenêtre « Nouvelle facture »", "role": "marc", "profils": ["mac"], "decision": "corriger",
+  "etapes": "＋ Ajouter › Facture client ; remplir désignation et prix sans toucher au champ Client ; Créer.",
+  "attendu": "Le client doit être choisi : le champ propose « Choisir le client… » et la création est refusée tant qu'il n'est pas choisi.",
+  "constate": "Le champ Client est déjà rempli avec le premier client par ordre alphabétique (« Cabinet dentaire Martin ») : on peut facturer le mauvais client sans l'avoir choisi, et le document qui part chez lui est faux.",
+  "preuve": "capture a-mac-formulaire.png ; la facture de la sonde est créée pour « Cabinet dentaire Martin » sans que le champ soit touché", "ou": P + ":10619 (cxNouvelleFacture : `C.map(...)` sans option vide)",
+  "correction": "Première option « Choisir le client… » (valeur vide) ; dans factureok, toast « Choisis le client. » si vide."},
+ {"n": "compta-ventes-11", "gravite": "gênant", "ecran": "Fiche facture, aperçu et PDF d'une facture", "role": "marc", "profils": ["mac"], "decision": "soumettre",
+  "etapes": "Nouvelle facture : quantité 2, prix unitaire 12 345,67 ; ajouter une ligne à 50 € ; Aperçu et envoi.",
+  "attendu": "Chaque ligne montre son prix unitaire ET son total ; un client qui additionne les lignes retrouve le Total HT.",
+  "constate": "La colonne s'appelle « Prix HT » et montre le prix unitaire (12 345,67) pour la ligne ×2 : le client additionne 12 345,67 + 50 = 12 395,67 et lit un Total HT de 24 741,34. Pour une ligne dont la quantité est un texte (« 1 h 30 »), le même « Prix HT » est le total de la ligne : la colonne change de sens d'une ligne à l'autre.",
+  "preuve": "capture a-mac-apercu.png ; code : htDe ligne 5268 (multiplie seulement si la quantité est un nombre > 0)", "ou": P + ":5314 (vueFacture) et pdfFacture ligne 5342",
+  "correction": "Passer à trois colonnes « Prix unitaire HT · Qté · Total HT » sur la fiche et sur le PDF, avec le total de ligne calculé par la même fonction que htDe. À soumettre : cela change le dessin d'un document client que Justin a vu."},
+]
+J = {
+ "partie": "compta-ventes", "date": "2026-11-17",
+ "ecrans": ecrans,
+ "couverture": {"ecrans": len(ecrans), "gestesRecenses": 0, "gestesTouches": 0, "parcours": 6, "profils": []},
+ "nonCouvert": [],
+ "defauts": defauts,
+}
+# couverture lue depuis les balayages déjà écrits
+tot, tou, profs = 0, 0, set()
+for f in os.listdir(D):
+    if f.startswith('balayage-compta-ventes-') and f.endswith('.json'):
+        d = json.load(open(os.path.join(D, f)))
+        if 'profil' not in d: continue
+        profs.add(d['profil'])
+        for k, v in d['sorties'].items(): tot += v['recenses']; tou += v['touches']
+J['couverture'].update({"gestesRecenses": tot, "gestesTouches": tou, "profils": sorted(profs)})
+extra = os.path.join(D, 'compta-ventes-extra.json')   # constats ajoutés par les lots suivants (même forme), pour ne pas retoucher ce fichier
+if os.path.exists(extra):
+    e = json.load(open(extra)); J['defauts'] += e.get('defauts', []); J['nonCouvert'] += e.get('nonCouvert', []); J['couverture'].update(e.get('couverture', {}))
+json.dump(J, open(os.path.join(D, 'compta-ventes.json'), 'w'), ensure_ascii=False, indent=1)
+print('écrit :', len(J['defauts']), 'défauts,', tot, 'gestes recensés,', tou, 'touchés, profils', sorted(profs))
