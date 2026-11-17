@@ -688,7 +688,7 @@ html .btn[data-vx],html label.vx-ajout,html .vx-seg button{min-height:44px}
   #contenu:has(.courrier-place){padding-bottom:0}   /* le module remplit déjà tout le haut de la barre d'onglets : les 128 px de marge de la page ajoutaient 7 px de défilement inutile sous une liste qui défile elle-même */
   .mbx-tete .mbx-ecrire{display:inline-flex}
   #courrier-hote{border-radius:0;box-shadow:none}
-  .courrier-place{border-radius:0}
+  .courrier-place{border-radius:0;min-height:300px}   /* l'en-tête de la rubrique (55 px) reprend de la place : à 320×568 le plancher de 360 px passait sous la barre d'onglets */
 }
 html .mbx-tete{flex-wrap:nowrap;align-items:flex-end}.mbx-tete>div:first-child{flex:1 1 auto}
 html .mbx-act{display:flex;align-items:center;gap:10px;flex:none;flex-wrap:nowrap}
@@ -717,7 +717,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .mbx-opt-c[aria-pressed="true"]{border-color:var(--bleu);background:color-mix(in srgb,var(--bleu) 11%,var(--surf2));box-shadow:inset 0 0 0 1px var(--bleu)}
 .mbx-pas{display:flex;gap:6px;margin:6px 0 10px}.mbx-pas i{flex:1;height:5px;border-radius:3px;background:var(--trait)}.mbx-pas i.on{background:var(--bleu)}.mbx-pas i.fait{background:var(--vert)}
 .mbx-acc{display:flex;flex-direction:column;gap:6px;margin:10px 0}.mbx-acc ul{margin:0;padding-left:20px;line-height:1.5}
-.mbx-bo{flex-wrap:wrap;align-items:flex-start}.mbx-bo>.ve-pt{margin-top:6px}.mbx-bo>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}.mbx-bo>.fo-n>b{overflow-wrap:anywhere}.mbx-act{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;padding-left:22px}.mbx-act:empty{display:none}   /* l'adresse prend la ligne, les boutons passent dessous : « marc@climservices17.f / r » ne se coupe plus */
+.mbx-lig-bte{width:100%;flex-wrap:wrap;align-items:flex-start}.mbx-lig-bte>.ve-pt{margin-top:6px}.mbx-lig-bte>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}.mbx-lig-bte>.fo-n>b{overflow-wrap:anywhere}.mbx-bo-act{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;padding-left:22px}.mbx-bo-act:empty{display:none}   /* l'adresse prend la ligne, les boutons passent dessous : « marc@climservices17.f / r » ne se coupe plus */
 .mbx-case{display:flex;align-items:center;gap:10px;min-height:44px;margin:6px 0;cursor:pointer}.mbx-case input{width:22px;height:22px;flex:none}
 .mbx-rel{display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:14px;background:color-mix(in srgb,var(--vert) 9%,var(--surf2));border:1px solid color-mix(in srgb,var(--vert) 30%,transparent);margin:8px 0}
 .mbx-aperc{margin:6px 0 10px}.mbx-aperc pre{margin:4px 0 0;padding:10px 12px;border-radius:12px;background:var(--surf2);font:inherit;font-size:14px;white-space:pre-wrap}
@@ -1133,10 +1133,10 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 /* mise en page · divers */
 @media (max-width:760px){
   #contenu .tete.tete-p,#contenu .tete.mbx-tete{flex-wrap:wrap;gap:10px 14px;align-items:flex-start}
-  #contenu .tete.mbx-tete{flex-wrap:nowrap;align-items:center}
-  #contenu .tete.mbx-tete>div:first-child{flex:1 1 0;min-width:0}   /* surtitre + titre à gauche, « ＋ Écrire » à droite, sur UNE ligne (le module prend tout le reste de l'écran) */
+  #contenu .tete.mbx-tete{flex-wrap:nowrap;align-items:center}   /* surtitre + titre à gauche, « ＋ Écrire » à droite, sur UNE ligne (le module prend tout le reste de l'écran) */
   #contenu .tete.tete-p>div:first-child,#contenu .tete.mbx-tete>div:first-child{flex:1 1 220px;min-width:min(100%,220px);overflow-wrap:anywhere}
   #contenu .tete.tete-p>.actions,#contenu .tete.tete-p>.btn,#contenu .tete.mbx-tete>.actions{flex:0 1 auto;max-width:100%}
+  #contenu .tete.mbx-tete>div:first-child{flex:1 1 0;min-width:0}   /* le titre cède la place au bouton « ＋ Écrire » (à 320 px, sa base de 220 px le poussait hors de l'écran) */
   #contenu .tete.tete-p>.actions .btn{max-width:100%}
 }
 @media (max-width:400px){ #contenu .ptx-jours{grid-template-columns:repeat(4,minmax(0,1fr))} }
@@ -9940,7 +9940,7 @@ document.addEventListener('click', ev => {
   const [a, x, y] = b.dataset.ml.split('|'), m = mlDe(x);
   if (a === 'ouvrir') return courrierOuvrir(x);
   if (a === 'reco') { const bo = ML_BOITES.find(o => o.id === x); if (bo.etat === 'ok') return fermerPanneau(); bo.etat = 'ok'; bo.vu = 'à l’instant'; fermerPanneau(); MAILS.push(mlM('m' + Date.now(), jour(-2), '15:12', { nom:'Clim Pièces Atlantique', mail:'commandes@climpieces-atlantique.fr' }, 'Votre compte professionnel', 'Bonjour,\n\nVotre remise de 32 % est reconduite pour 2027.\n\nL’équipe commerciale', { boite:'b2', info:true })); rendre(); return toast(`${esc(bo.adr)} est reconnectée : ses messages sont de nouveau lus.`); }
-  if (a === 'boites') return ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r mbx-bo"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span><span class="mbx-act">${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-ml="reco|${bo.id}">Reconnecter</button>`}</span></div>`).join('')}</div>
+  if (a === 'boites') return ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r mbx-lig-bte"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span><span class="mbx-bo-act">${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-ml="reco|${bo.id}">Reconnecter</button>`}</span></div>`).join('')}</div>
     <div class="groupe">Ajouter une boîte</div><div class="cmd-liens"><button type="button" class="lien" data-ml="ajout|Google">Google ›</button><button type="button" class="lien" data-ml="ajout|Microsoft">Microsoft ›</button><button type="button" class="lien" data-ml="ajout|IMAP">Autre messagerie (iCloud, Orange, Free, OVH…) ›</button></div>
     <span class="gris petit">Le mot de passe de la boîte n’est jamais montré ; une boîte qui ne répond plus est signalée ici et en haut de la Boîte mail.</span>`);
   if (a === 'ajout') return toast(x === 'IMAP' ? 'Dans l’application, on saisit l’adresse du serveur et le mot de passe d’application de la boîte.' : `Dans l’application, la connexion s’ouvre chez ${x}, qui demande ton accord.`);
@@ -18278,7 +18278,7 @@ function courrierCaler(){
   if (!COURRIER.inst) { if (COURRIER.etat === 'rien') courrierCharger(); if (h) h.hidden = true; return; }
   const hote = courrierHoteEl(), barre = document.getElementById('barre-bas'), cs = barre ? getComputedStyle(barre) : null;
   const r0 = place.getBoundingClientRect(), bas = barre && cs.display !== 'none' && cs.position === 'fixed' ? barre.getBoundingClientRect().top : innerHeight;
-  const haut = Math.max(innerHeight < 500 ? 240 : 360, Math.round(bas - r0.top - (innerWidth <= 760 ? 6 : 16)));   /* un téléphone tenu en paysage (390 px de haut) : plancher de 240 px, la tête de page se range (voir @media max-height) */
+  const haut = Math.max(innerHeight < 500 ? 240 : innerWidth <= 760 ? 300 : 360, Math.round(bas - r0.top - (innerWidth <= 760 ? 6 : 16)));   /* un téléphone tenu en paysage (390 px de haut) : plancher de 240 px, la tête de page se range (voir @media max-height) */
   place.style.height = haut + 'px';
   const r = place.getBoundingClientRect();
   hote.hidden = false; Object.assign(hote.style, { left:Math.round(r.left + scrollX) + 'px', top:Math.round(r.top + scrollY) + 'px', width:Math.round(r.width) + 'px', height:haut + 'px' });
@@ -18484,7 +18484,7 @@ function mbxPanBoites(){
       <div class="actions"><button type="button" class="btn" data-mbx="addfin">Terminer</button></div>`);
   }
   const regles = MBX.regles.map(r => `<div class="fo-r"><span class="fo-n"><b>${esc(r.nom)}</b><span class="gris petit">${esc(r.mail)} → toujours archivé, en Information</span></span><button type="button" class="btn gris petit" data-mbx="rmregle|${esc(r.mail)}">Supprimer</button></div>`).join('') || '<div class="fo-r"><span class="gris petit">Aucune règle. Depuis un courriel d’information, « Toujours ranger… » en crée une.</span></div>';
-  ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r mbx-bo"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span><span class="mbx-act">${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-mbx="reco|${bo.id}">Reconnecter</button>`}${ML_BOITES.length > 1 ? `<button type="button" class="btn gris petit" data-mbx="deco|${bo.id}">Déconnecter</button>` : ''}</span></div>`).join('')}</div>
+  ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r mbx-lig-bte"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span><span class="mbx-bo-act">${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-mbx="reco|${bo.id}">Reconnecter</button>`}${ML_BOITES.length > 1 ? `<button type="button" class="btn gris petit" data-mbx="deco|${bo.id}">Déconnecter</button>` : ''}</span></div>`).join('')}</div>
     ${ML_BOITES.length === 1 ? '<div class="gris petit">C’est ta seule boîte : il en faut au moins une. Connecte-en une autre pour pouvoir déconnecter celle-ci.</div>' : ''}<div class="groupe">Ajouter une boîte</div><div class="cmd-liens"><button type="button" class="lien" data-mbx="add|Google">Google ›</button><button type="button" class="lien" data-mbx="add|Microsoft">Microsoft ›</button><button type="button" class="lien" data-mbx="add|IMAP">Autre messagerie (iCloud, Orange, Free, OVH…) ›</button></div>
     <div class="groupe">Réglages</div>
     <label class="champ">Boîte d’envoi par défaut<select id="mbx-def">${ML_BOITES.map(b => `<option value="${b.id}"${MBX.boiteDef === b.id ? ' selected' : ''}>${esc(b.adr)}</option>`).join('')}</select></label>
@@ -22882,7 +22882,7 @@ immChap('boiteMail', 'boiteMail', 'Boîte mail', 'La boîte mail : chaque courri
     jouer:immAvmeJ('boiteMail', () => courrierAgir('mbx:confier|m5', { id:'m5' })) },
   { c:'#calque .panneau', t:'Confier un courriel', p:'La personne reçoit une tâche et une notification. Si elle n’a pas accès à ta Boîte mail, elle reçoit ce courriel seul, en lecture, avec le geste proposé : rien d’autre de ta boîte. Je ferme, puis j’ouvre les boîtes connectées.',
     jouer:() => { immAvmeFermer(); immAvmePlus(immAvmeBoites, 500); } },
-  { c:'#calque .panneau', t:'Les boîtes connectées', p:'Ici, tes boîtes : contact est lue il y a 2 minutes, marc est à reconnecter. Tu peux en ajouter une, régler ta signature et le délai de relance. La Boîte mail est reliée aux clients, aux interventions et aux tâches.',
+  { c:'#calque .panneau', t:'Les boîtes connectées', p:'Ici, tes boîtes : contact et marc sont connectées et lues. Tu peux en ajouter une, en reconnecter une qui demande son mot de passe, régler ta signature et le délai de relance. La Boîte mail est reliée aux clients, aux interventions et aux tâches.',
     jouer:() => immAvmeFermer() }]);
 
 immChap('equipe', 'equipe', 'Équipe', 'L’équipe : qui fait quoi, avec quels droits',

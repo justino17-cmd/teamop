@@ -10,7 +10,9 @@ const { lib, v, entrer, cap, fin, sortie } = require('./mail-commun.js');
         theme:getComputedStyle(R.querySelector('.opc')).colorScheme, mode:document.documentElement.dataset.mode, fmt:R.querySelector('.opc').getAttribute('data-fmt') }; });
     v(nom + ' : un seul module monté, avec des messages', e.montes === 1 && e.lignes >= 5, e);
     v(nom + ' : l\'hôte tient dans la largeur posée du profil', e.g >= 0 && e.d <= c.largeur + 1, e);
-    v(nom + ' : l\'hôte a une hauteur utile (≥ 360 px) et ne sort pas de l\'écran par le bas', e.h >= 360 && e.b <= e.ih + 1, e);
+    // 17 novembre 2026 : au téléphone l'en-tête de la rubrique (55 px) est revenu (telephone-08) ; le plancher y est de 300 px (360 ailleurs) — à 320×568 l'hôte garde ~336 px, au-dessus de la barre d'onglets
+    const plancher = e.fmt === 'phone' ? 300 : 360;
+    v(nom + ' : l\'hôte a une hauteur utile (≥ ' + plancher + ' px) et ne sort pas de l\'écran par le bas', e.h >= plancher && e.b <= e.ih + 1, e);
     v(nom + ' : le thème du module suit le Jour / Nuit du prototype', e.theme === (nuit ? 'dark' : 'light') && e.mode === (nuit ? 'nuit' : 'jour'), e);
     const d = await lib.deborde(c); v(nom + ' : la page ne glisse pas de côté', d.bouge === 0, d);
     v(nom + ' : aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3));

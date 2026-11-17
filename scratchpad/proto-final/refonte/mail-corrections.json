@@ -1,0 +1,224 @@
+[
+ {
+  "n": "chef-01",
+  "etat": "corrigé",
+  "changement": "Les données de démonstration déclarent la seconde boîte connectée (ML_BOITES b2 etat:'ok') : plus de bandeau rouge ni d'écran d'erreur à l'ouverture. L'état « à reconnecter » reste jouable, posé par les sondes (mail-commun.js casserBoite). Le pas-à-pas de la visite guidée ne parle plus d'une boîte en panne.",
+  "preuve": "mail-corr-liste.js « chef-01 à l'ouverture » (aucun .loaderr ni écran d'erreur, deux boîtes ok, ≥5 messages) ; mail-defauts.js D16 rejoue la reconnexion sur l'état posé ; capture corr-liste-mac-jour.png regardée"
+ },
+ {
+  "n": "ordinateur-01",
+  "etat": "corrigé",
+  "changement": "prototype-courrier.js renderList/sousTitreListe/statusHtml : le sous-titre ne porte plus le nom de la catégorie et dit « 7 non lus en tout » quand une catégorie est ouverte (le nombre est celui de la boîte, comme la pastille du dossier).",
+  "preuve": "mail-corr-liste.js : six catégories jouées, sous-titre sans nom de catégorie et nombre = pastille du dossier ; mutation « le nom recolle au nombre »"
+ },
+ {
+  "n": "ordinateur-02",
+  "etat": "corrigé",
+  "changement": "Un dossier local (Brouillons, À envoyer plus tard, Signatures, journal) ne dépend plus d'aucune boîte (dossierLocal) ; une liste vide dit « Aucun message » AVEC le bandeau de la boîte en panne ; l'écran « Réception indisponible » n'apparaît que si TOUTES les boîtes de la vue sont en panne (nbBoitesPortee).",
+  "preuve": "mail-corr-liste.js : huit dossiers parcourus avec une boîte sur deux en panne (aucun « Réception indisponible »), puis toutes en panne (une seule vérité) ; mutation « une boîte en panne vide les dossiers locaux »"
+ },
+ {
+  "n": "ordinateur-03",
+  "etat": "corrigé",
+  "changement": "Format tablette (portable de 1280 px, iPad) : le petit titre de la liste n'est plus absolu et centré mais la case qui reste entre « Boîtes » et « Sélectionner » (.lb-titles static, flex:1).",
+  "preuve": "mail-corr-liste.js : mac720 et iPad, jour et nuit, liste défilée : le titre ne touche ni « Sélectionner » ni « Boîtes » (4 contrôles)"
+ },
+ {
+  "n": "ordinateur-04",
+  "etat": "corrigé",
+  "changement": "La lecture est un ordre d'AFFICHAGE (flex + order) valable pour les trois formats : objet, expéditeur, TEXTE, puis le bandeau « reconnu », le suivi, les réponses rapides, le rangement, la conversation.",
+  "preuve": "mail-corr-lecture.js : 3 profils × 7 courriels (≥15 lectures, ≥6 avec bandeau) : le premier mot est au-dessus du pli et le bandeau après le texte ; mutation « le bandeau repasse avant » ; captures corr-lecture-windows-jour.png regardée"
+ },
+ {
+  "n": "ordinateur-05",
+  "etat": "corrigé",
+  "changement": "Le pied de colonne reste collé en bas sur ordinateur seulement, avec un fondu de 22 px au-dessus qui dit « ça défile » (au lieu d'un dossier coupé net).",
+  "preuve": "mail-corr-liste.js windows 1366×768 : au bout du défilement Archive/Indésirable/Corbeille sont au-dessus du pied, fondu présent"
+ },
+ {
+  "n": "ordinateur-06",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : c'est une décision (la secrétaire de gestion voit-elle la Boîte mail ? le plan dit oui, ROLES.gestion.routes et mail-roles.js disent non). Une ligne à changer dans ROLES.gestion.routes quand Justin tranche.",
+  "preuve": "décision, pas un défaut : mail-roles.js garde le comportement actuel (julie = false)"
+ },
+ {
+  "n": "ordinateur-07",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : rcSaisie lit le champ réel (rcCible = composedPath()[0]) et le gestionnaire de raccourcis ne prend aucune touche qui vient du module (la racine d'ombre du module est un div DANS #courrier-hote : ev.target.closest('#courrier-hote')).",
+  "preuve": "mail-corr-clavier.js : 50 touches tapées dans la recherche, « À : », objet et corps (a, c, d, n, /, ?) arrivent toutes ; hors champ n/d/a n'ouvrent rien, « / » cherche, « c » écrit ; mutation « raccourcis du prototype de retour »"
+ },
+ {
+  "n": "ordinateur-08",
+  "etat": "corrigé",
+  "changement": "Le module dit à l'hôte qu'un message est écrit ici (horsModule.local) ; l'hôte ne lui calcule plus de pastille, de bandeau ni de réponses rapides d'après un autre courriel qui porte le même identifiant.",
+  "preuve": "mail-corr-clavier.js : un brouillon pour x@y.fr et un envoi à une cliente (6 s d'attente de l'envoi annulable) sans aucune pastille, et contre-épreuve : les pastilles de la boîte de réception existent toujours ; mutation « local:false »"
+ },
+ {
+  "n": "ordinateur-09",
+  "etat": "corrigé",
+  "changement": "Dossier virtuel « Tous les courriels » (reçus + envoyés + archivés), jamais dans la colonne, éteint avec la recherche ; « Voir tous » d'une fiche client l'ouvre (rechercher(texte,{partout:true})).",
+  "preuve": "mail-corr-clavier.js : M. et Mme Durand, 2 courriels attendus, 2 lignes dont « FAC-2026-0144 », titre « Tous les courriels », retour à la boîte de réception en effaçant ; mutation « Voir tous ne cherche que la réception »"
+ },
+ {
+  "n": "ordinateur-10",
+  "etat": "corrigé",
+  "changement": "L'adresse prend toute la ligne, les boutons passent dessous (.mbx-lig-bte) ; « Autre boîte (IMAP) » devient « Autre messagerie (iCloud, Orange, Free, OVH…) » partout, plus de « IMAP » écrit nulle part dans le panneau.",
+  "preuve": "mail-corr-clavier.js : deux boîtes, colonne ≥ 200 px, boutons dessous, pas de « IMAP » ; capture corr-boites-mac.png regardée (une première version collait à une classe existante : mbx-bo, mbx-boite, mbx-act — trois collisions de noms trouvées au regard de la capture et par la sonde de largeur)"
+ },
+ {
+  "n": "ordinateur-11",
+  "etat": "corrigé",
+  "changement": "« Fuseau » retiré ; « aujourd’hui à 18 h », « demain à 8 h » ; la catégorie s'appelle « Factures et reçus » dans la feuille de rangement comme dans la barre ; « Pourquoi ce rangement ? » ne parle plus d'appareil ni de vérification. NON fait : le compteur « à traiter » sur la ligne « Boîte mail » du menu (il changerait le nombre du bouton Menu de tous les profils) — à soumettre à Justin.",
+  "preuve": "mail-corr-lecture.js : envoi programmé sans Fuseau/Europe/08:00, « Pourquoi » sans appareil/vérifié, cinq choix de rangement dont « Factures et reçus » ; capture corr-programmer-mac.png"
+ },
+ {
+  "n": "ordinateur-12",
+  "etat": "corrigé",
+  "changement": "mbxMod : « votre accord… l'installation… » seulement pour l'accord d'un devis ; une panne reçoit « nous avons bien enregistré votre demande de dépannage… ».",
+  "preuve": "mail-corr-lecture.js : après Créer l'intervention › Plus tard › Créer, « Prévenir le client » ne dit ni accord ni installation ; mutation « phrase d'avant »"
+ },
+ {
+  "n": "ordinateur-13",
+  "etat": "corrigé",
+  "changement": "Souris : dossiers, filtres, catégories, bandeau d'erreur à 14 px au moins, nombres 13, sous-titre 12,5, pastilles 12,5, champ de recherche 34 px, segments 30 px (les règles tactiles plus grandes gardent la main).",
+  "preuve": "mail-corr-liste.js : tailles relevées au navigateur (recherche ≥14 px/34 px, filtres, dossiers, catégories, nombres, sous-titre, pastilles)"
+ },
+ {
+  "n": "ordinateur-14",
+  "etat": "corrigé",
+  "changement": "La barre de sélection garde sa largeur naturelle (« 2 sélectionnés » entier) ; les boutons à la souris passent à 30 px pour lui laisser la place.",
+  "preuve": "mail-corr-liste.js : « 2 sélectionnés » ni coupé ni débordant à 1440 px"
+ },
+ {
+  "n": "ordinateur-15",
+  "etat": "corrigé",
+  "changement": "courrierEnteteMaj() : la phrase sous le titre de la page suit les gestes du module (suivi, lecture, rangement) sans attendre un redessin.",
+  "preuve": "mail-corr-lecture.js : En cours puis Résolu, l'en-tête dit le nombre recalculé ; mutation « l'en-tête ne suit pas »"
+ },
+ {
+  "n": "ordinateur-16",
+  "etat": "corrigé",
+  "changement": "« Envoyer » en toutes lettres au format tablette et téléphone ; la feuille d'écriture est centrée (iPad) ; le cadre noir de l'effet « feuille iOS » n'apparaît que si le module occupe tout l'écran (sheet-plein).",
+  "preuve": "mail-corr-clavier.js : mac720, iPad jour et nuit : mot « Envoyer », feuille centrée, pas de fond noir ; capture corr-compose-ipad.png"
+ },
+ {
+  "n": "ordinateur-17",
+  "etat": "corrigé",
+  "changement": "Pièces jointes de la démonstration : un vrai PDF d'une page (le texte du courriel) ou une vraie image JPEG dessinée ; la taille affichée est celle du fichier téléchargé (calculée par la même fabrique).",
+  "preuve": "mail-corr-lecture.js : pdfinfo = 1 page, pdftotext contient FA-CDA-10-552, taille annoncée = taille réelle, la photo est un JPEG (FF D8 FF) ; mutation « 61 octets »"
+ },
+ {
+  "n": "ordinateur-18",
+  "etat": "corrigé",
+  "changement": "« Assigné à » propose les prénoms de l'équipe (datalist, capacité equipe de l'hôte) ; un nom inconnu se refuse en le disant (« Personne ne s’appelle « Zorro »… ») et le champ revient à vide ; soi-même reste permis.",
+  "preuve": "mail-corr-lecture.js : liste de ≥3 prénoms dont Sophie, « Zorro » refusé avec bulle, « Sophie » accepté ; mutation « plus de liste »"
+ },
+ {
+  "n": "ordinateur-19",
+  "etat": "corrigé",
+  "changement": "« Reconnecter » est traité aussi dans la liste (gererBoites) ; « Réessayer » dit ce qu'il a trouvé (« … ne répond toujours pas » / « Votre courrier est à jour »).",
+  "preuve": "mail-corr-lecture.js : les deux boutons du bandeau, souris réelle ; mutation « Réessayer muet »"
+ },
+ {
+  "n": "ordinateur-20",
+  "etat": "corrigé",
+  "changement": "Ordinateur et tablette : les six catégories passent à la ligne avec leur mot seul (2 à 3 rangées) au lieu d'une rangée qui défile derrière un fondu ; iPad portrait (carte de 500 px) idem par requête de conteneur ; un vrai téléphone garde la rangée qui défile.",
+  "preuve": "mail-corr-liste.js : mac, windows, mac720, iPad : six catégories dedans, entières, sans défilement ; mutation « rangée qui défile »"
+ },
+ {
+  "n": "telephone-01",
+  "etat": "corrigé",
+  "changement": "Même cause et même correction que ordinateur-04, plus l'ordre du format téléphone (phone : rhead 1, objet 2, texte 5, bandeau 6, suivi 7, réponses 8, rangement 9).",
+  "preuve": "mail-corr-telephone.js : 11 messages sur iPhone jour et nuit, Android et 320 px : premier mot au-dessus du pli pour chacun ; mutation « bandeau avant le texte au téléphone » ; capture corr-tel-lecture-iphone.png regardée"
+ },
+ {
+  "n": "telephone-02",
+  "etat": "corrigé",
+  "changement": "Le module pose une entrée d'historique par niveau (lecture, colonne des boîtes, feuille ouverte) à la même adresse ; le retour du navigateur recule d'UN niveau ; un geste de l'application qui recule retire son entrée (aucune entrée orpheline). S'éteint seul si l'historique ne répond pas.",
+  "preuve": "mail-corr-telephone.js : retour depuis la lecture → liste ; depuis un message en cours → la Boîte mail reste ouverte avec la feuille Supprimer/Enregistrer ; après « ‹ Boîte de réception » UN retour quitte la rubrique ; mutation « retour qui quitte »"
+ },
+ {
+  "n": "telephone-03",
+  "etat": "corrigé",
+  "changement": "Au doigt, la croix « Retirer » d'une pièce jointe mesure 44×44 px (marges négatives, la pastille ne grossit pas).",
+  "preuve": "mail-corr-telephone.js iPhone : 44×44 mesuré"
+ },
+ {
+  "n": "telephone-04",
+  "etat": "corrigé",
+  "changement": "Même correction que ordinateur-16 : « Envoyer » s'écrit au téléphone, titre de la feuille à 16 px.",
+  "preuve": "mail-corr-telephone.js : 5 profils jour/nuit : mot affiché, Annuler · titre · Envoyer sans chevauchement ; mutation « flèche sans mot » ; capture corr-tel-composeur-petit.png"
+ },
+ {
+  "n": "telephone-05",
+  "etat": "corrigé",
+  "changement": "Un mot sous chaque icône des barres du bas (Drapeau, Archiver, Supprimer, Répondre, Écrire ; sélection : Lu, Archiver, Transférer, Supprimer). Choix réversible (une règle CSS) : Justin peut préférer les icônes seules comme Mail d'iOS.",
+  "preuve": "mail-corr-telephone.js : 4 gestes de la barre de lecture portent leur mot sur 5 profils ; capture corr-tel-lecture-iphone.png"
+ },
+ {
+  "n": "telephone-06",
+  "etat": "corrigé",
+  "changement": "Le pied « Ajouter une boîte mail / Réglages » n'est plus collé en bas qu'au format ordinateur ; au téléphone il est à la fin du défilement et ne recouvre plus aucun dossier.",
+  "preuve": "mail-corr-telephone.js : iPhone jour/nuit, Android nuit, 320 px : aucun dossier recouvert, pied dans l'écran en bas du défilement ; mutation « le pied recouvre » ; captures corr-tel-boites-*.png"
+ },
+ {
+  "n": "telephone-07",
+  "etat": "corrigé",
+  "changement": "Même correction que ordinateur-02 : l'adresse est retirée du début du message de la source (sansAdresse).",
+  "preuve": "mail-corr-liste.js et mail-corr-telephone.js (320 px) : chaque adresse est écrite UNE fois"
+ },
+ {
+  "n": "telephone-08",
+  "etat": "corrigé",
+  "changement": "Au téléphone l'en-tête de la rubrique revient en une ligne de 55 px : « Clients et ventes / Boîte mail » et un grand bouton foncé « ＋ Écrire » (nouvelle API ecrire() du module), comme Clients et Devis. La phrase « n messages à traiter » reste à l'ordinateur. À confirmer par Justin (le plan avait masqué l'en-tête pour gagner 100 px).",
+  "preuve": "mail-corr-telephone.js : 5 profils : surtitre, titre, bouton 44 px dans la largeur (à 320 px le bouton dépassait : base de 220 px du titre), une ligne ; mutation « en-tête masqué »"
+ },
+ {
+  "n": "telephone-09",
+  "etat": "corrigé",
+  "changement": "« Confier à quelqu'un » dit la règle UNE fois en tête ; sous un nom, seule l'exception « A déjà la Boîte mail ».",
+  "preuve": "mail-gestes.js (règle écrite une fois, exception seule) et mail-corr-telephone.js : « en lecture » écrit une fois, ≥4 personnes ; capture corr-tel-confier-iphone.png"
+ },
+ {
+  "n": "telephone-10",
+  "etat": "corrigé",
+  "changement": "À 320 px : le titre « Mes boîtes mail » suit la même réduction que celui de la liste ; le bouton « ‹ Boîte de réception » peut prendre 66 % de la largeur.",
+  "preuve": "mail-corr-telephone.js petit : titre non tronqué, étiquette du retour entière"
+ },
+ {
+  "n": "telephone-11",
+  "etat": "corrigé",
+  "changement": "La page ne reçoit plus ses 128 px de marge basse sous la Boîte mail au téléphone (#contenu:has(.courrier-place)) : 844 px de page pour 844.",
+  "preuve": "mail-corr-telephone.js : 5 profils : scrollHeight ≤ innerHeight ; mutation « la marge revient »"
+ },
+ {
+  "n": "telephone-12",
+  "etat": "corrigé",
+  "changement": "Le curseur ne va dans « Chercher un client » que s'il n'y a pas de client ; sur téléphone, quand une fenêtre est ouverte la bulle passe en haut au lieu de couvrir « Annuler / Créer ».",
+  "preuve": "mail-corr-telephone.js iPhone : activeElement n'est pas le champ de recherche, la bulle ne coupe pas la barre d'actions ; capture corr-tel-creer-intervention-iphone.png"
+ },
+ {
+  "n": "telephone-13",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : le glissement sur une ligne (archiver / supprimer comme Mail d'iOS) n'existe pas dans le module d'origine non plus ; c'est une fonction à décider, pas un défaut. Le menu de l'appui long existe.",
+  "preuve": "décision de produit"
+ },
+ {
+  "n": "telephone-14",
+  "etat": "corrigé",
+  "changement": "« Nouveau contact » de jour : #6b3a00 sur #fde7c4 (8,3:1 au lieu de 3,86:1) ; la nuit garde sa teinte (6,78:1).",
+  "preuve": "mail-corr-telephone.js : ratio calculé ≥ 4,5 de jour, population ≥4 pastilles dont « Nouveau contact »"
+ },
+ {
+  "n": "telephone-15",
+  "etat": "corrigé",
+  "changement": "Téléphone en paysage (hauteur < 500 px) : plancher de l'hôte à 240 px, en-tête de rubrique masqué, grand titre réduit et catégories sur une rangée qui défile : une ligne de message se voit sans défiler la page.",
+  "preuve": "mail-corr-telephone.js (PARTIE 3) : 844×390, au moins une ligne dans la fenêtre, l'hôte finit dans l'écran ; capture corr-tel-paysage-iphone.png regardée"
+ },
+ {
+  "n": "telephone-16",
+  "etat": "corrigé",
+  "changement": "La bulle d'un message qui arrive : nom coupé à 26 signes, objet à 34, 3 lignes au plus, icône d'enveloppe au lieu de la coche d'une réussite.",
+  "preuve": "mail-corr-telephone.js : 320 px et iPhone : bulle ≤ 25 % de la hauteur de l'écran ; capture corr-tel-bulle-petit.png"
+ }
+]
