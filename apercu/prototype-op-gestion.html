@@ -244,6 +244,7 @@ body.dp-ouvert #sortie-carte{z-index:300}
 /* ── la Comptabilité complète s'ouvre comme une fenêtre par-dessus OP GESTION (Justin, 10 novembre 2026) ── */
 #cpsys{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc)}
 body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouvelle intervention » ouverte depuis la Comptabilité plein écran (touche N, recherche) restait dessous, invisible */
+body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein écran (9000) et la fenêtre ouverte depuis elle (9100) couvraient la bulle (90 ou 300) : « Annuler » y était peint derrière et ne recevait pas le toucher */
 #cpsys[hidden]{display:none}
 .cpsys-barre{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--trait);background:var(--feuille,#f8f9fc)}
 .cpsys-barre b{flex:1;min-width:0;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -742,7 +743,6 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 .pt-grille .pt-j{position:relative}
 .pt-grille .pt-r>.pt-j:nth-child(n+7):nth-child(-n+8):not(.pt-abs):not(.pt-ouv){background:color-mix(in srgb,var(--surf2) 55%,transparent)}
 .pt-entete span:nth-child(7),.pt-entete span:nth-child(8){opacity:.7}
-.ptx-ref{color:var(--doux);font-size:12.5px}
 .ptx-carte .btn,.ptx-prop .btn,.ptx-oubli .btn,#calque .panneau .btn{min-height:44px!important}
 /* la carte du salarié */
 .ptx-carte{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
@@ -3617,7 +3617,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .tt-edit .btn.large:disabled{opacity:.45;cursor:not-allowed}
 .tt-ferme{padding:13px 15px;border-radius:16px;background:var(--surf-in);border:1px solid var(--trait);color:var(--doux);margin:6px 0}
 .tt-mh-auj{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px}.tt-mh-auj .btn{min-height:44px}
-.tt-pret{display:flex;flex-direction:column;gap:10px}.tt-pret .fo-n{gap:2px;font-size:16px}.tt-pret .btn.large{width:100%}.tt-pret .lien{align-self:flex-start;min-height:44px}
+.tt-pret{display:flex;flex-direction:column;gap:8px}.tt-pret .fo-n{gap:2px;font-size:16px}.tt-pret .btn.large{width:100%}.tt-pret .lien{align-self:flex-start;min-height:44px}
 .tt-mh-k{margin:12px 0 6px}
 @media (min-width:761px){.tt-pret .btn.large{width:auto;min-width:320px;align-self:flex-start}}   /* sur ordinateur le bouton n'a pas à faire 1 100 px de large */
 .tt-mh-j{display:flex;flex-direction:column;gap:2px}.tt-mh-j>h3{margin:0 0 2px}
@@ -5082,7 +5082,7 @@ function finiEcran(i, F){
       <p class="fin-p">PDF et lien en ligne pour ${esc(CLIENTS[i.cli].contact.split(',')[0])}, au nom de ${esc(ENTREPRISE.nom)}.</p>
       <div class="fin-a">${boutonsEnvoi(i.id)}<div class="actions"><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir le PDF</button><button type="button" class="lien" data-voirclient="${i.id}|ordi">Voir le lien client</button></div></div></section>
     <section class="carte fin-c"><div class="fin-t"><h3>Facturation</h3>${i.fact && i.fact.mode === 'garantie' || ctrCompris(i) ? '<span class="st st-g">Sans facture</span>' : f ? `<span class="st ${STF[f.st][1]}">${STF[f.st][0]}</span>` : '<span class="st st-o">À préparer</span>'}</div>
-      <div class="fin-p paie-bloc">${f && f.st === 'payee' ? `<div class="ligne"><span>Paiement</span><span class="st st-v">reçu</span></div><span class="gris petit">Réglée ${f.mode ? 'par ' + f.mode.toLowerCase() : ''}${f.paye ? ' le ' + f.paye : ''}${F.paiement.etat !== 'rien' ? ' · ' + esc(paiementTexte(F.paiement)) : ''}.</span>` : `<div class="ligne"><span>Paiement sur place</span>${paiementPastille(F.paiement)}</div><span class="gris petit">${esc(paiementTexte(F.paiement))} · noté par ${tech(i.tech).nom.split(' ')[0]}</span>`}
+      <div class="fin-p paie-bloc">${ctrCompris(i) ? '' : f && f.st === 'payee' ? `<div class="ligne"><span>Paiement</span><span class="st st-v">reçu</span></div><span class="gris petit">Réglée ${f.mode ? 'par ' + f.mode.toLowerCase() : ''}${f.paye ? ' le ' + f.paye : ''}${F.paiement.etat !== 'rien' ? ' · ' + esc(paiementTexte(F.paiement)) : ''}.</span>` : `<div class="ligne"><span>Paiement sur place</span>${paiementPastille(F.paiement)}</div><span class="gris petit">${esc(paiementTexte(F.paiement))} · noté par ${tech(i.tech).nom.split(' ')[0]}</span>`}
         ${i.fact && i.fact.mode === 'garantie' ? '<div class="gris petit" style="margin-top:6px">Garantie / offert, décidé par le bureau à la création.</div>' : ctrCompris(i) ? '<div class="gris petit" style="margin-top:6px">Visite comprise dans le contrat ' + esc(ctrCompris(i).num) + ' (facturé ' + FACT_LIB[ctrCompris(i).fact] + ') : rien à facturer pour cette visite.</div>' : f ? `<div class="ligne"><span>${f.num === '—' ? 'Facture préparée' : 'Facture ' + f.num}</span>${typeof ROLE !== 'undefined' && RL_ACTIF && ROLE === 'tech' ? '<span class="gris petit">chiffrée par le bureau</span>' : `<b>${lignesDe(f).every(l=>l.pu!=null)?eur(ttcDe(f)):'à chiffrer'}</b>`}</div>` : ''}</div>
       <div class="fin-a">${i.fact && i.fact.mode === 'garantie' || ctrCompris(i) ? '' : f ? `<button type="button" class="btn" data-go="facture-x-${f.id}">Ouvrir la facture</button>` : `<button type="button" class="btn" data-action="prepFacture" data-id="${i.id}">Préparer la facture</button>`}</div></section>
     <section class="carte fin-c"><div class="fin-t"><h3>Suites à donner</h3><span class="st ${F.suite.ventilo || F.suite.entretien ? 'st-b' : 'st-g'}">${(F.suite.ventilo?1:0)+(F.suite.entretien?1:0) || 'Aucune'}${F.suite.ventilo || F.suite.entretien ? ' prévue' + ((F.suite.ventilo?1:0)+(F.suite.entretien?1:0) > 1 ? 's' : '') : ''}</span></div>
@@ -5311,9 +5311,11 @@ const htDe = f => lignesDe(f).reduce((s,l) => s + (l.pu || 0) * (parseFloat(Stri
 const ttcDe = f => f.st === 'avoir' ? -f.ht * (1 + f.tva/100) : htDe(f) * (1 + f.tva/100);
 const restant = f => f.st === 'annulee' ? 0 : ttcDe(f) - (f.recu || 0);   /* annulée par un avoir : plus rien à recevoir, plus de relance (compta-ventes-06) */
 function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
-  const F = fiche(i.id); if (FACTURES.find(f => f.int === i.id)) return;
+  const F = fiche(i.id), prec = FACTURES.filter(f => f.int === i.id); if (prec.some(f => f.st !== 'annulee')) return;
   if (i.fact && i.fact.mode === 'garantie') return;
   if (ctrCompris(i)) return;   // visite d'un contrat facturé à l'année ou au mois : rien à préparer
+  /* une facture ANNULÉE par un avoir se refait : la nouvelle reprend l'identifiant, l'ancienne garde sa place dans les documents sous un autre (« Préparer la facture » ne tombe pas dans le vide) */
+  prec.forEach((f, k) => { f.id = 'f-' + i.id + '-annulee' + (k || ''); });
   const dv = dvInit().find(x => x.int === i.id && x.e === 'accepte');   // devis accepté lié à l’intervention : la fiche du devis promet ses lignes et l’acompte déduit
   if (dv && !i.fact) { const L3 = dv.lignes.map(l => ({ d:l[0], q:String(l[1]), pu:l[2] }));
     if (dv.acompte && dv.facAcompte) L3.push({ d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });
@@ -8691,10 +8693,11 @@ const ACTIONS = {
     INTS.push(i); journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:i.tech ? tech(i.tech).nom + ' · ' + jlib(i.d) + ' à ' + i.h : 'à planifier' }); fermerPanneau(); if (route !== 'planning') { plRef = q.d; aller('planning'); } else { plRef = q.d; rendre(); } flash(i.id); toast(`Créée : <b>${esc(titre)}</b> · ${q.tid ? tech(q.tid).nom : 'à planifier'} · ${jlib(q.d)} ${q.h}`, ANNULER); },
   noteOk(b){ memo(); const t = document.getElementById('note-t').value.trim(); if (t) NOTES[b.dataset.d] = t; else delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); toast('Note enregistrée, visible par toute l’équipe.', ANNULER); },
   noteSuppr(b){ memo(); delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); },
-  creerContrat(){ const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Math.round(Number(B.prix) * 100) >= 100)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
+  creerContrat(){ if (Date.now() - cfCtrT < 1200) return;   // le double-clic d'avant a déjà créé le contrat (et remis le formulaire à zéro) : le second ne relit pas le prix resté affiché
+    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Math.round(Number(B.prix) * 100) >= 100)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
     if (Number(B.prix) > CTR_PRIX_MAX) { toast('Ce prix est trop grand pour un contrat d’entretien (maximum ' + eur(CTR_PRIX_MAX) + ' par an).'); if (pf) pf.focus(); return; }
     if (!cfMailOk(CLIENTS[B.cli].mail)) { toast(esc(CLIENTS[B.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour lui envoyer le contrat à signer.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + B.cli) }); return; }
-    if (Date.now() - cfCtrT < 1200) return; cfCtrT = Date.now();   // le double-clic d'avant a déjà créé le contrat : la page ne s'est pas encore redessinée
+    cfCtrT = Date.now();
     const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:Number(B.prix) || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
     k.fin = ctrFinDe(k.debut);
     const mailK = CLIENTS[B.cli].mail;
@@ -12680,7 +12683,7 @@ document.addEventListener('click', ev => {
     return toast(PAIE.valide ? 'Enregistré : les fiches d’octobre sont validées, le changement vaudra pour novembre.' : `Enregistré${PAIE.calc ? ' : sa fiche est recalculée' : ''}.`); }
   if (a === 'comptabiliser') return paieComptabiliser();
   if (a === 'dsn') { if (!PAIE.valide) return toast('D’abord valider les fiches de paie.'); PAIE.dsn = { le:'31/10 · ' + hNow() }; rendre(); return toast('DSN d’octobre préparée : à déposer avant le 15 novembre.'); }
-  if (a === 'confirme') { PAIE.confirmes[x] = { le:'31/10 · ' + hNow() }; delete PAIE.signales[x]; rendre(); return toast('Merci : tes heures sont confirmées, le bureau le voit.'); }
+  if (a === 'confirme') return paieConfirmer(x);
   if (a === 'signaler') return ouvrirPanneau(`<span class="surtitre">Mes heures · ${esc(PAIE_NOM_MOIS)}</span><h2>Signaler une erreur</h2><span class="gris">Dis quel jour et ce qui ne va pas : le bureau corrige, et tu confirmes ensuite.</span><label class="champ">Ce qui ne va pas<textarea id="pa-sig" rows="4" placeholder="ex. Le mardi 27, j’ai fini à 18 h et pas à 17 h"></textarea></label><div class="actions"><button type="button" class="btn" data-paie="signalok|${x}">Envoyer au bureau</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   if (a === 'signalok') { const m = document.getElementById('pa-sig').value.trim(); if (!m) return toast('Écris ce qui ne va pas.'); PAIE.signales[x] = { msg:m, le:'31/10 · ' + hNow() }; delete PAIE.confirmes[x]; fermerPanneau(); rendre(); return toast('Parti au bureau : on te préviendra quand c’est corrigé.'); }
 });
@@ -12835,6 +12838,9 @@ function paieBulletinDoc(k, ym){
 /* ─── l'espace « Paie » de la Comptabilité ─── */
 CX_NAV.splice(3, 0, ['paie', 'Paie', '💶', [['paiemois', 'Le mois'], ['fiches', 'Fiches de paie'], ['salaries', 'Salariés'], ['charges', 'Charges et déclarations']]]);
 const paieOk = (o, m) => `<div class="ok-bloc petit">✓ ${m}</div>`;
+/* confirmer SES heures : un geste du salarié sur SES heures, jamais celui d'un écran de comptabilité. « Mes heures » l'appelle directement : passer par un bouton data-paie
+   le ferait lire comme un geste de Comptabilité › Paie, que la garde des droits refuse à un compte de terrain (relevé à la recette de l'étape 5 : « Je confirme mes heures » refusé à Sophie). */
+function paieConfirmer(k){ PAIE.confirmes[k] = { le:'31/10 · ' + hNow() }; delete PAIE.signales[k]; rendre(); return toast('Merci : tes heures sont confirmées, le bureau le voit.'); }
 function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
   if (CP.envoye) return toast('Octobre est envoyé : l’écriture de paie s’écrira en novembre.'); if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.');
@@ -16957,7 +16963,6 @@ const ptxMotifCloture = p => { const s = PTX.src[p.id]; return 'journée clôtur
 
 /* ── les alertes : la semaine entière, la pause, le repos hebdomadaire, et la référence de chaque règle ── */
 function ptxVeille(k, jours, i){ if (i > 0) return ptJour(k, jours[i - 1])[0]; for (let n = 1; n <= 3; n++) { const P = ptJour(k, ajoute(jours[0], -n))[0]; if (P) return P; } }
-const ptxRef = o => o.ref ? ' <small class="ptx-ref">(Code du travail ' + o.ref + ')</small>' : '';
 (() => { const a0 = ptAlertes; ptAlertes = function(k, jours){
   const R = a0.apply(this, arguments);
   jours.forEach(d => ptJour(k, d).forEach(p => { if (!p.fin) return; const brut = ptDuree(p) + (p.pause || 0);
@@ -16973,11 +16978,6 @@ const ptxRef = o => o.ref ? ' <small class="ptx-ref">(Code du travail ' + o.ref 
   return R; }; })();
 
 /* ── valider en bloc ── */
-function ptxSemainesOk(L0){ const J = ptxJours(L0), ok = [], reste = [];
-  PT_GENS.forEach(k => { if (PT_VALIDE[k + L0]) return; const al = ptAlertes(k, J); if (!al.tot && !POINTAGES.some(p => p.qui === k && J.includes(p.date))) return;
-    const rouges = al.A.filter(o => o.g === 'r').length, ouv = al.A.some(o => o.ouvert), sig = !!PAIE.signales[k] && J.includes(paieJourSignale(k));
-    if (rouges || ouv || sig) reste.push({ k, rouges, ouv, sig }); else ok.push(k); });
-  return { ok, reste }; }
 function ptxRestaurerValid(av){ Object.keys(PT_VALIDE).forEach(x => delete PT_VALIDE[x]); Object.assign(PT_VALIDE, av); if (typeof TT !== 'undefined') TT.vus = { ...av }; }   /* « à revalider » ne se dit que d'une validation que des heures ont défaite, pas d'une validation annulée */
 function ptxValiderLot(L0, ks){ const av = { ...PT_VALIDE }; ks.forEach(k => { PT_VALIDE[k + L0] = true; });
   journalAjout('marc', 'equipe', 'a validé ' + ptxPl(ks.length, 'semaine') + ' de temps de travail', { lib:'Temps de travail' }, { det:'semaine du ' + jCourt(L0) + ' · ' + ks.map(prenomDe).join(', ') }); return av; }
@@ -16989,13 +16989,9 @@ function ptxFinValidation(av, n){ const ks = Object.keys(PT_VALIDE).filter(x => 
 function ptxRappeler(){ const att = PT_GENS.filter(k => !ptJour(k, AUJ).length && !absDe(k, AUJ) && prevuMin(k, AUJ)); if (!att.length) return toast('Tout le monde a pointé.');
   att.forEach(k => { notifier(k, 'Tu n’as pas encore commencé ta journée. Touche « Je commence ma journée ».'); PTX.rappele[k] = hNow(); });
   journalAjout('marc', 'equipe', 'a rappelé de pointer à ' + ptxPl(att.length, 'personne'), { lib:att.map(prenomDe).join(', ') }); rendre(); toast('Rappel envoyé à ' + att.map(k => esc(prenomDe(k))).join(', ') + '.'); }
-function ptxDemander(){ const o = POINTAGES.filter(ptOuvert); if (!o.length) return toast('Aucune journée à fermer.');
-  PTX.demande = PTX.demande || {}; o.forEach(p => { notifier(p.qui, `Ta journée du ${jlong(p.date)} est restée ouverte. À quelle heure as-tu fini ? Réponds dans « Ma journée ».`); PTX.demande[p.id] = hNow(); });
-  journalAjout('marc', 'equipe', 'a demandé l’heure de fin à ' + o.map(p => prenomDe(p.qui)).join(', '), { lib:'Temps de travail' }); rendre(); toast('Demande envoyée à ' + o.map(p => esc(prenomDe(p.qui))).join(', ') + '.'); }
 
 /* ── les erreurs signalées par un salarié, côté bureau ── */
 const ptxReq = k => { const s = PAIE.signales[k]; return s ? (s.req || (s.apres ? { fin:s.apres } : null)) : null; };
-const ptxReqLib = r => { const T = [r.debut && 'début à ' + r.debut, r.fin && 'fin à ' + r.fin, r.pause != null && 'pause de ' + r.pause + ' min'].filter(Boolean); return T.length > 2 ? 'Appliquer la demande' : 'Corriger : ' + T.join(', '); };
 function ptxCorriger(k){
   const s = PAIE.signales[k], d = paieJourSignale(k), r = ptxReq(k), p = ptJour(k, d)[0]; if (!s || !r || !p) return toast('Ouvre la journée pour la corriger à la main.');
   if (paieMoisVerrou(d)) return toast(`${PAIE_MOIS_MAJ} est verrouillé : ${esc(prenomDe(k))} sera régularisé le mois suivant.`);
@@ -17606,7 +17602,7 @@ function ttMhJour(k, d){
 }
 function ttMhConfirmer(k){
   const O = POINTAGES.filter(p => p.qui === k && !p.fin && p.date.slice(0, 7) === PAIE_MOIS);
-  if (!O.length) return ttViaPaie('confirme|' + k);
+  if (!O.length) return paieConfirmer(k);
   const p = O[0];
   ouvrirPanneau(`<span class="surtitre">Mes heures</span><h2>${p.date === AUJ ? 'Ta journée d’aujourd’hui n’est pas terminée.' : `Ta journée du ${esc(jlong(p.date))} n’est pas terminée.`}</h2><span class="gris">Confirmer quand même ? Les heures de cette journée ne seront pas comptées tant qu’elle n’est pas terminée.</span>
     <div class="actions"><button type="button" class="btn large" data-tt="mhconfok|${k}">Confirmer quand même</button><button type="button" class="btn gris large" data-tt="mhfin">Je termine d’abord</button></div>`);
@@ -17647,7 +17643,7 @@ document.addEventListener('click', ev => {
   if (a === 'mhtout') { TT.mhTout = !TT.mhTout; return rendre(); }
   if (a === 'mhjour') return ttMhJour(x, y);
   if (a === 'mhconf') return ttMhConfirmer(x);
-  if (a === 'mhconfok') { fermerPanneau(); return ttViaPaie('confirme|' + x); }
+  if (a === 'mhconfok') { fermerPanneau(); return paieConfirmer(x); }
   if (a === 'mhfin') { fermerPanneau(); return aller('majournee'); }
   if (a === 'erreur') return ptxSigPanneau(x, y);
 });
@@ -17670,7 +17666,6 @@ const vxN = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 const vxKm = n => Math.round(n).toLocaleString('fr-FR') + ' km';
 const vxDm = d => d.slice(8) + '/' + d.slice(5, 7);
 const vxId = p => p + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
-const vxEuroKm = n => n.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €/km';
 const vxPren = k => prenomDe(k);
 function vxMois(d, m){ const x = dObj(d), j = x.getDate(); x.setMonth(x.getMonth() + m); if (x.getDate() !== j) x.setDate(0); return dLoc(x); }
 const vxQuand = d => JL[dObj(d).getDay()] + ' ' + jCourt(d);
@@ -17796,7 +17791,6 @@ const vxMsgConcernees = (v, retour) => { const n = vxIntsConcernees(v, retour).l
 /* ─── gestes communs ─── */
 const vxG = id => document.getElementById(id);
 /* revenir à la fiche (si on en venait) ou fermer */
-const vxRetour = (from, vid) => from === 'fiche' ? `<button type="button" class="btn gris" data-vh="retour|${vid}">Retour</button>` : '<button type="button" class="btn gris" data-ferme="1">Annuler</button>';
 const vxApres = (from, vid) => { rendre(); if (from === 'fiche') vxFiche(vid); };
 /* un message d'alerte DANS le panneau (le toast serait recouvert par lui) ; renvoie vrai pour dire « on s'arrête là » */
 function vxAlerte(html){ const a = vxG('vx-al'); if (a) { a.innerHTML = `<div class="alerte vx-alerte" role="alert">${html}</div>`; a.scrollIntoView({ block:'nearest' }); } return true; }
@@ -18202,7 +18196,6 @@ function vxCsv(vid){
 }
 
 /* ─── 4. le technicien : son plein, son compteur, ses soucis (son écran : « Mon camion », vhCamionBloc) ─── */
-const VX_SOUCIS = ['Voyant allumé', 'Pneu', 'Choc ou rayure', 'Autre'];
 function vxSouciPanel(vid){
   const v = vehDe(vid); if (!v) return;
   ouvrirPanneau(`${vhEnt(v)}<h2>Un souci avec le camion</h2><span class="gris">Le bureau est prévenu tout de suite : une tâche urgente est créée.</span>
@@ -22348,13 +22341,18 @@ function opdCreer(){
   z.innerHTML = `<iframe title="Documents sur mesure : devis et contrats" src="${opdSrc()}"></iframe><div class="opdz-att" role="status"><div class="opdz-att-c"><b>Ouverture de l’atelier…</b><span class="gris petit opdz-sous"></span><div class="actions"><button type="button" class="btn gris" data-opdz="reessayer" hidden>Réessayer</button><button type="button" class="btn gris" data-opdz="fermer">Fermer</button></div></div></div>`;
   document.body.appendChild(z); return z;
 }
+/* le cadre de l'atelier est créé AU DÉMARRAGE (caché), pas à la première ouverture. Le navigateur range les entrées d'historique d'un cadre dans l'entrée où il a été créé ; si cette entrée est
+   ensuite effacée (on ferme l'atelier, on change d'écran : les entrées d'après partent), le cadre devient orphelin et son premier Retour dans l'éditeur ne fait RIEN — un appui perdu, puis un second qui
+   ferme tout (reproduit sur la page d'avant aussi : une fois l'atelier ouvert, fermé, puis rouvert après un changement d'écran). Créé à l'entrée de base, qui ne s'efface jamais, il reste rattaché. */
+function opdPrecharger(){ try { opdCreer(); } catch (e) { /* sans cadre au démarrage, l'ouverture le créera */ } }
+if (document.readyState === 'complete') opdPrecharger(); else addEventListener('load', opdPrecharger);
 function opdOuvrir(faire, o){
   o = o || {}; const doc = faire === 'doc' ? ATD.docs.find(x => x.id === o.id) : null, droit = faire === 'contrat' || (doc && doc.type === 'contrat') ? 'contrats' : 'devis';
   if (faire === 'doc' && !doc) return toast('Ce document n’est plus sur cet appareil.');
   if (!rlPermis(droit)) return toast('Ton rôle n’a pas accès à ' + (droit === 'contrats' ? 'l’atelier de contrats.' : 'l’atelier de devis.'));
   const z = opdCreer(); if (!z.hidden) return;   // un double toucher ne l'ouvre pas deux fois
   OPDZ.depart = o.depart ? '[data-opd="' + faire + '"]' + (o.client ? '[data-cli="' + o.client + '"]' : '') + (o.id ? '[data-id="' + o.id + '"]' : '') : '';
-  OPDZ.overflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; fermerPanneau(); fermerMenu(); z.hidden = false;
+  OPDZ.overflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; fermerPanneau(); fermerMenu(); z.hidden = false; calSync();   // l'entrée d'historique de la page est posée TOUT DE SUITE, avant que le cadre de l'atelier pose les siennes : dans l'ordre inverse (l'observateur ne passe qu'ensuite), le premier Retour dans l'éditeur ne faisait rien
   const m = { opd_ouvrir:{ faire, ...(o.client && opdCli(o.client) ? { client:o.client } : {}), ...(faire === 'doc' ? { id:o.id } : {}) } };
   OPDZ.file = [m];
   if (OPDZ.pret) { opdAttente(false); z.querySelector('.opdz-att').hidden = true; opdEnvoyer(OPDZ.file.shift()); const f = opdCadre(); try { f.contentWindow.focus(); } catch (e) {} }

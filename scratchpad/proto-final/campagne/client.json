@@ -1,0 +1,507 @@
+{
+ "partie": "client",
+ "date": "2026-11-17",
+ "ecrans": [
+  {
+   "nom": "Accueil du client",
+   "fonction": "vueEspaceClient (EC.tab = accueil)",
+   "acces": "rôle « Client » (bande « Tester en tant que »), logo, menu, #espaceclient"
+  },
+  {
+   "nom": "Mes factures",
+   "fonction": "vueEspaceClient (factures)",
+   "acces": "onglet / barre du bas / menu « Mes factures » / « Voir et payer » de l’accueil"
+  },
+  {
+   "nom": "Payer une facture",
+   "fonction": "ecPayer (fenêtre)",
+   "acces": "« Payer X € » d’une facture"
+  },
+  {
+   "nom": "Facture en grand (PDF)",
+   "fonction": "docPlein(pdfFacture)",
+   "acces": "« Voir » d’une facture"
+  },
+  {
+   "nom": "Mes interventions",
+   "fonction": "vueEspaceClient (interventions)",
+   "acces": "onglet / barre / menu"
+  },
+  {
+   "nom": "Compte rendu",
+   "fonction": "apercuElement('cr')",
+   "acces": "« Compte rendu » d’une intervention faite"
+  },
+  {
+   "nom": "Mes devis",
+   "fonction": "vueEspaceClient (devis)",
+   "acces": "onglet / barre / menu"
+  },
+  {
+   "nom": "Lire et signer un devis (lien reçu par e-mail)",
+   "fonction": "dvClient (fenêtre « Votre devis »)",
+   "acces": "« Lire et signer » (accueil ou devis)"
+  },
+  {
+   "nom": "Mon contrat",
+   "fonction": "vueEspaceClient (contrats)",
+   "acces": "onglet / barre / menu"
+  },
+  {
+   "nom": "Signer un contrat (page reçue par lien)",
+   "fonction": "vueSigner + lireContrat",
+   "acces": "« Lire et signer » du contrat, adresse #signer-x-<id>"
+  },
+  {
+   "nom": "Demander une intervention / un contrat",
+   "fonction": "ecDemande",
+   "acces": "« Demander une intervention » ; « Demander un contrat »"
+  },
+  {
+   "nom": "Menu du client",
+   "fonction": "feuilleMenu (rôle client)",
+   "acces": "bouton « Menu » (téléphone)"
+  }
+ ],
+ "couverture": {
+  "ecrans": 12,
+  "gestesRecenses": 506,
+  "gestesTouches": 506,
+  "parcours": 7,
+  "profils": [
+   "mac (jour, nuit, mode application)",
+   "windows (nuit)",
+   "ipad (jour, nuit)",
+   "iphone (jour, nuit, mode application)",
+   "android (nuit)",
+   "petit 320 px (jour avec valeurs longues, nuit)"
+  ],
+  "detail": "Gestes : 506 recensés dans le DOM et touchés (mac : 388 sur 5 clients × 5 onglets ; iPhone : 118 sur 2 clients), 0 geste sans effet, Échap ferme tout ce qui s’ouvre. Parcours : payer (double toucher, saisies fausses, cohérence au centime accueil / liste / encaissements / bureau), devis (refus en deux temps, signature, double toucher), contrat, compte rendu, demande, garde des adresses du bureau, retour et rechargement. Mots et documents : 7 clients × 5 écrans lus, factures et devis recalculés au centime."
+ },
+ "nonCouvert": [
+  "Le rôle client n’a AUCUNE entrée en mode application (pas de lien, pas de connexion pour un client) : ses écrans ne s’ouvrent que par la bande « Tester en tant que » du prototype nu. Je l’ai donc joué aussi en mode application par rlChanger('client') pour voir ce qu’un vrai client verrait sans l’échafaudage. À décider : comment un client arrive-t-il dans son espace (lien reçu par e-mail ?) — aujourd’hui rien ne le montre.",
+  "Le lien « page reçue par e-mail » pour signer un devis n’est pas une page séparée : c’est la fenêtre « Votre devis » ; seul le contrat a une vraie page (#signer-x-<id>).",
+  "Aucun navigateur Safari / Windows réels : Chromium émule les profils (largeur, toucher, encoches). Les contrastes de nuit sont calculés (fonds superposés), pas lus au pixel sous le verre.",
+  "Le courriel du reçu de paiement et la copie signée « par e-mail » : annoncés à l’écran, rien n’est envoyé (prototype sans serveur) — non jugé comme défaut."
+ ],
+ "defauts": [
+  {
+   "n": "client-01",
+   "gravite": "gênant",
+   "ecran": "Devis › fenêtre « Votre devis » (lire, accepter, refuser)",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client « M. et Mme Durand » › Devis › « Lire et signer » › toucher « Accepter et signer » sans rien faire ; puis sans signature ; puis « Refuser ».",
+   "attendu": "Une personne extérieure à l’entreprise est vouvoyée partout ailleurs dans son espace (« Vos disponibilités », « Votre devis »).",
+   "constate": "Les messages de la fenêtre la TUTOIENT : « Coche « bon pour accord » pour accepter. », « Indique ton nom et ton prénom. », « Signe dans le cadre, avec le doigt. », « Tu veux vraiment refuser ce devis ? Le bureau sera prévenu et tu ne pourras plus l’accepter. Touche encore « Oui, refuser ce devis » pour confirmer. ». Lus à l’écran, rejoués deux fois (sonde client-parcours P2).",
+   "preuve": "client-parcours.js P2 « le message d’erreur ne tutoie pas le client » ; client-mots-documents.js (même fenêtre vue par le bureau).",
+   "ou": "apercu/prototype-op-gestion.html · gestionnaire des data-dv, branches « signer » (l. 8047) et « clientRefus » (l. 8050)",
+   "correction": "Vouvoyer : « Cochez « bon pour accord » pour accepter. », « Indiquez votre nom et votre prénom. », « Signez dans le cadre, avec le doigt. », « Voulez-vous vraiment refuser ce devis ? L’entreprise sera prévenue et vous ne pourrez plus l’accepter. Touchez encore « Oui, refuser ce devis » pour confirmer. » (la même fenêtre sert à l’aperçu du bureau : « Ce que voit Marc sur son téléphone », donc le vouvoiement y est juste aussi).",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-02",
+   "gravite": "gênant",
+   "ecran": "Devis › accepter et signer : message de confirmation",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client « Restaurant Le Vieux Port » › Devis › « Lire et signer » D-2026-041 › cocher, signer, « Accepter et signer ».",
+   "attendu": "Le client lit une confirmation qui le concerne : merci, le devis est accepté, ce qui se passe ensuite pour LUI.",
+   "constate": "Le message lu par le client est : « ✓ Accepté et signé. Côté bureau : intervention à planifier. » (avec un acompte : « …facture d’acompte prête. »). C’est la conséquence interne de l’entreprise, dite avec ses mots (« côté bureau », « à planifier »).",
+   "preuve": "client-parcours.js P2 « le message du client ne parle pas du « côté bureau » ».",
+   "ou": "apercu/prototype-op-gestion.html · gestionnaire data-dv, branche « signer » (l. 8049)",
+   "correction": "Pour le client : « Merci, votre devis est accepté et signé. » + (acompte) « Une facture d’acompte de X € vous est envoyée. » + « Nous vous appelons pour fixer la date. ». Le message actuel reste pour le bureau (aperçu du gérant).",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-03",
+   "gravite": "gênant",
+   "ecran": "Contrat › signer le contrat : retour après la signature",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client « Cabinet dentaire Martin » › Contrat › « Lire et signer » › cocher, signer › « Signer le contrat ».",
+   "attendu": "Le contrat est signé et le client lit « Contrat signé. La copie signée vous est envoyée par e-mail. » puis voit son contrat « Signé le … ».",
+   "constate": "Le contrat est bien signé (état, visites, facture), mais le message affiché est « Cette page n’est pas dans ton espace. » : la signature appelle aller('contrat-x-…') (page du bureau), la garde du rôle client la refuse et son message REMPLACE la confirmation. Le client croit à une erreur, et tutoyé de surcroît. Il atterrit sur l’accueil de son espace, pas sur son contrat.",
+   "preuve": "client-parcours.js P3 « le message du client est pour le client » (toast mesuré : « Cette page n’est pas dans ton espace. »).",
+   "ou": "apercu/prototype-op-gestion.html · signerContrat (l. 8709) → aller('contrat-x-'+id) puis rlRefus (l. 13772)",
+   "correction": "Quand le rôle est « client » : EC.tab = 'contrats'; aller('espaceclient') puis le toast « Contrat signé. La copie signée vous est envoyée par e-mail. » (le message existe déjà dans la fonction, il est juste écrasé).",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-04",
+   "gravite": "gênant",
+   "ecran": "Toute page du bureau demandée par un client : message de refus",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client › taper une adresse du bureau (#clients, #comptabilite, #inter-x-i1…).",
+   "attendu": "Le client reste dans son espace, avec une phrase qui s’adresse à lui (vouvoiement).",
+   "constate": "Il reste bien dans son espace (14 adresses essayées, 0 fuite), mais la phrase est « Cette page n’est pas dans ton espace. » — écrite pour un collègue de l’entreprise (tutoiement).",
+   "preuve": "client-parcours.js P6 : 14 adresses du bureau refusées ; texte lu au toast.",
+   "ou": "apercu/prototype-op-gestion.html · rlRefus (l. 13772)",
+   "correction": "Pour le rôle « client » : « Cette page n’est pas dans votre espace. ».",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-05",
+   "gravite": "gênant",
+   "ecran": "Interventions › « Compte rendu »",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client « Hôtel de la Plage » › Interventions › une intervention faite › « Compte rendu ».",
+   "attendu": "Le client lit SON compte rendu, intitulé comme tel.",
+   "constate": "La fenêtre commence par la carte du BUREAU (heure de début et fin, durée, pastille du technicien « KB Karim Benali », statut « Terminée », nom du contact, note d’accès au site « Badge à l’accueil. Local technique au 2ᵉ sous-sol. ») puis un titre « Le compte rendu envoyé au client » — le client est lui-même « le client » à la troisième personne. Le compte rendu proprement dit n’arrive qu’après.",
+   "preuve": "client-parcours.js P4 (texte de la fenêtre) ; capture client-hp-cr.",
+   "ou": "apercu/prototype-op-gestion.html · apercuElement('cr') (l. 5622) : infoCarte(i) + titre « Le compte rendu envoyé au client »",
+   "correction": "Pour le rôle client : ne pas poser infoCarte(i) ; titre « Votre compte rendu » ; ne garder que le document (compteRenduPdf) et « Fermer ».",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-06",
+   "gravite": "gênant",
+   "ecran": "Contrat › « Demander un contrat »",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client sans contrat (M. et Mme Durand) › Contrat › « Demander un contrat ».",
+   "attendu": "Une fenêtre qui parle de contrat d’entretien, et la demande arrive chez le bureau comme une demande de contrat.",
+   "constate": "La fenêtre s’intitule « Demander une intervention », propose « Pour quel appareil ? » et « C’est pour : Un entretien » avec le texte pré-rempli « Je voudrais un contrat d’entretien. ». À l’envoi elle crée une INTERVENTION « Entretien · <appareil> » à planifier (et une tâche de rappel), pas une demande de contrat : le client a demandé une chose, la fenêtre en annonce une autre.",
+   "preuve": "client-parcours.js P5 « « Demander un contrat » ouvre une fenêtre qui parle de contrat » (titre mesuré : « Demander une intervention »).",
+   "ou": "apercu/prototype-op-gestion.html · gestionnaire [data-ecctr] (l. 22997) → ecDemande()",
+   "correction": "Titre « Demander un contrat d’entretien », sans le choix « C’est pour », et une tâche « Proposer un contrat à <client> » au lieu d’une intervention « Entretien » ; ou, plus simple, renommer le bouton « Demander un entretien » (ce qu’il fait).",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-07",
+   "gravite": "gênant",
+   "ecran": "Devis, liste du client : étiquette d’état",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client avec un devis envoyé (Vieux Port, Hôtel de la Plage, M. et Mme Durand) › Devis.",
+   "attendu": "Une étiquette qui dit au client ce qu’il a à faire : « À signer ».",
+   "constate": "L’étiquette est « Envoyé · sans réponse » — le vocabulaire du bureau, qui lit le client comme un retardataire (3 clients sur 7 ; vue en mode application sur iPhone). Même source pour « Expiré » : le client ne peut alors rien faire d’autre que « Voir ». Et le code écrit à la ligne du devis « · relancé N× » / « relancé aujourd’hui » (dvQuand) : le client lirait combien de fois l’entreprise l’a relancé (aucune donnée de démonstration n’en porte, mais « Relancer » du bureau la fait apparaître).",
+   "preuve": "client-mots-documents.js « pas de vocabulaire du bureau » : 3 écrans tombent (vp/devis, hp/devis, md/devis) ; capture mep-iphone-jour-app-devis.",
+   "ou": "apercu/prototype-op-gestion.html · DV_ETATS (l. 7722) lu par vueEspaceClient/dvL ; dvQuand (l. 7774)",
+   "correction": "Dans l’espace client : « À signer » pour « attente » (+ « Valable jusqu’au 19/11 »), « Expiré — demandez-nous un nouveau devis » avec un bouton « Demander un nouveau devis » ; ne jamais écrire « relancé » côté client.",
+   "decision": "corriger",
+   "sonde": "client-mots-documents.js"
+  },
+  {
+   "n": "client-08",
+   "gravite": "gênant",
+   "ecran": "Interventions › statut d’une visite en retard",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client « Copropriété Les Mimosas » › Interventions › « À venir ».",
+   "attendu": "Le client lit un statut qui ne le met pas en cause.",
+   "constate": "« samedi 31 octobre · 09:00 — Récupération du fluide d’un ancien split · Karim » porte l’étiquette « En retard » : pour le client, c’est lui qui serait en retard, alors que c’est la visite de l’entreprise qui l’est. La tuile d’accueil dit pourtant « Prochaine visite 31/10 ».",
+   "preuve": "Lecture de l’écran mi/interventions (explo3) ; code ci-contre.",
+   "ou": "apercu/prototype-op-gestion.html · vueEspaceClient › intL (l. 12232)",
+   "correction": "Pour le client : « Un peu de retard — nous vous appelons » (ou « Passage en cours de confirmation »), en gris ou en orange, pas en rouge.",
+   "decision": "corriger"
+  },
+  {
+   "n": "client-09",
+   "gravite": "gênant",
+   "ecran": "Factures › Payer : fenêtre de paiement",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client « M. et Mme Durand » › Factures › « Payer 121,00 € » (iPhone, Android, 320 px ; vérifié aussi au bureau).",
+   "attendu": "Montant et numéro de facture lisibles, chacun sur sa tuile, sur toute la largeur.",
+   "constate": "Les deux tuiles « Montant » et « Facture » n’occupent que les deux tiers de la largeur (grille forcée à trois colonnes avec deux éléments) et le numéro « FAC-2026-0144 » casse en TROIS lignes (« FAC- / 2026- / 0144 ») sur iPhone, Android et 320 px, jour comme nuit.",
+   "preuve": "Capture mep-iphone-jour-payer.png et mep-iphone-nuit-payer.png.",
+   "ou": "apercu/prototype-op-gestion.html · CSS .cx-montants (l. 1670) — grille repeat(3,1fr)",
+   "correction": ".cx-montants{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))} et white-space:nowrap sur le numéro (ou réduire sa taille à 16 px).",
+   "decision": "corriger"
+  },
+  {
+   "n": "client-10",
+   "gravite": "gênant",
+   "ecran": "Factures › Payer : contrôles de saisie",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client › Factures › « Payer » › vider « Expire fin » et « Code au dos » › « Payer ».",
+   "attendu": "Une carte sans date d’expiration ni code n’est pas acceptée, avec un message qui dit quoi corriger.",
+   "constate": "Le paiement est ACCEPTÉ (facture « Payée », encaissement noté, reçu annoncé) : seul le numéro de carte est contrôlé (16 chiffres). Date et code ne sont jamais lus. Le message de refus du numéro, lui, est bon (« Le numéro de carte a 16 chiffres. »).",
+   "preuve": "client-parcours.js P1 « expiration et code au dos vides : le paiement est accepté quand même » ; encaissement noté au bon montant (121,00 €), un seul malgré un double toucher.",
+   "ou": "apercu/prototype-op-gestion.html · gestionnaire data-ec, branche « payok » (l. 12342)",
+   "correction": "Exiger MM/AA (mois 01-12, date non échue) et 3 ou 4 chiffres, avec les messages « La date d’expiration s’écrit mois/année, par exemple 12/28. » et « Le code au dos a 3 chiffres. ».",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-11",
+   "gravite": "gênant",
+   "ecran": "Factures › Payer : reste d’échafaudage",
+   "role": "client",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Mode application, rôle client › Factures › « Payer ».",
+   "attendu": "Aucune phrase de maquette dans ce que lit un client en mode application (règle « Prototype · … » → « Démonstration · »).",
+   "constate": "La fenêtre dit « Carte d’essai : aucun argent ne bouge. Dans la vraie version, la page de paiement est celle de la banque (paiement sécurisé, validation par l’application de la banque). » et la carte « 4242 4242 4242 4242 » est pré-remplie. La phrase ne commence pas par « Prototype » : le nettoyage du mode application (appNettoyer) ne la voit pas.",
+   "preuve": "Capture mep-iphone-jour-payer.png ; client-mots-documents.js (mode app) cherche « d’essai » et « vraie version ».",
+   "ou": "apercu/prototype-op-gestion.html · ecPayer (l. 12259)",
+   "correction": "En mode application : « Démonstration : aucun argent ne bouge. » et le numéro de carte reste pré-rempli (c’est la démonstration) ; l’explication de « la vraie version » est réservée au prototype nu.",
+   "decision": "soumettre",
+   "recommandation": "Garder la carte pré-remplie (la démonstration doit se jouer sans clavier) mais remplacer la phrase par « Démonstration : aucun argent ne bouge. » en mode application."
+  },
+  {
+   "n": "client-12",
+   "gravite": "détail",
+   "ecran": "Contrat › page de signature",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client « Cabinet dentaire Martin » › Contrat › « Lire et signer ».",
+   "attendu": "La page de signature du contrat n’affiche pas d’adresse de site : le navigateur de l’appareil a déjà la sienne (CLAUDE.md : « on ne dessine JAMAIS de barre d’adresse »).",
+   "constate": "Une fausse barre d’adresse « 🔒 climservices17.teamop.fr/signer/K7P2 » est dessinée en haut de la carte, dans la page, au bureau comme sur téléphone (où deux barres d’adresse se superposent avec celle du navigateur).",
+   "preuve": "Captures mep-iphone-jour-contrat-signer.png ; client-parcours.js P3.",
+   "ou": "apercu/prototype-op-gestion.html · vueSigner (l. 5537) : <div class=\"url\">",
+   "correction": "Retirer la ligne .url de la page quand le rôle est client / mode application.",
+   "decision": "soumettre",
+   "recommandation": "La retirer (une page de signature réelle n’a pas à dessiner son adresse). Gardée seulement dans le prototype nu pour le bureau, qui voit « la page que le client ouvre depuis l’e-mail »."
+  },
+  {
+   "n": "client-13",
+   "gravite": "détail",
+   "ecran": "Contrat › page de signature (adresse saisie à la main)",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client « Restaurant Le Vieux Port » › taper l’adresse #signer-x-c1 (contrat d’un autre client).",
+   "attendu": "Une page de signature ne s’ouvre que pour un contrat du client connecté.",
+   "constate": "La page s’ouvre et montre le contrat (titre, nombre de visites, prix) d’un AUTRE client : vueSigner cherche le contrat par son identifiant sans comparer k.cli à RL_CLI.cli. Aucune fuite par l’interface (aucun bouton n’y mène) ; seule une adresse tapée l’atteint. Dans la vraie version le lien porte un jeton propre au contrat.",
+   "preuve": "client-parcours.js P6 « la page de signature d’un contrat d’un autre client n’est pas montrée ».",
+   "ou": "apercu/prototype-op-gestion.html · vueSigner (l. 5532)",
+   "correction": "if (ROLE === 'client' && k.cli !== RL_CLI.cli) return vueEspaceClient();",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-14",
+   "gravite": "gênant",
+   "ecran": "Navigation de l’espace client (téléphone)",
+   "role": "client",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "ipad"
+   ],
+   "etapes": "Client sur téléphone, n’importe quel écran.",
+   "attendu": "UNE navigation : la barre du bas (Accueil · Factures · Devis · Interventions · Contrat) ou le menu.",
+   "constate": "Trois navigations pour les mêmes cinq destinations, avec trois ordres et trois jeux de noms : onglets du haut « Accueil · Factures · Interventions · Devis · Contrat » (qui passent sur DEUX lignes à 390, 360 et 320 px), barre du bas « Accueil · Factures · Devis · Interventions · Contrat », menu « Accueil · Mes factures · Mes interventions · Mes devis · Mon contrat ». Au bureau : le menu latéral ET les onglets. Un artisan de 55 ans se demande s’il y a deux endroits différents. Seuls les onglets du haut portent les pastilles « Factures · 2 » et « Devis · 1 » ; la barre du bas n’en a pas.",
+   "preuve": "Captures mep-iphone-jour-app-accueil.png, mep-iphone-jour-app-devis.png (mode application, sans la bande de revue) ; client-parcours.js P6 (menu).",
+   "ou": "apercu/prototype-op-gestion.html · vueEspaceClient › onglets (.ec-seg) ; rlOnglets / BARRE_ROLE.client (l. 12077) ; LIGNES_CLIENT (l. 11995) ; CSS .ec-seg (l. 1250)",
+   "correction": "Téléphone : retirer .ec-seg (la barre du bas fait le travail) et mettre les pastilles (2 factures, 1 devis) sur la barre. Ordinateur : garder le menu latéral, retirer les onglets. Un seul ordre : Accueil · Factures · Devis · Interventions · Contrat.",
+   "decision": "soumettre",
+   "recommandation": "Faire exactement cela : c’est la même décision que « une seule catégorie au menu » (MENU-FINAL, 7 novembre) appliquée à l’espace client. Les noms « Mes … » du menu restent (c’est la décision de MENU-FINAL), la barre garde ses noms courts."
+  },
+  {
+   "n": "client-15",
+   "gravite": "détail",
+   "ecran": "Entête de l’espace client (téléphone et ordinateur)",
+   "role": "client",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "mac",
+    "ipad"
+   ],
+   "etapes": "Client, mode application.",
+   "attendu": "Le nom de l’entreprise une seule fois, et rien du logiciel.",
+   "constate": "Téléphone : la barre du haut dit « [OP] Clim Services 17 » (le carré « OP » est le logo du logiciel OP GESTION, que le client ne connaît pas) et, juste dessous, la page répète « [CS] Clim Services 17 — Votre espace client ». Ordinateur : le nom est dans le menu latéral ET dans l’entête de la page.",
+   "preuve": "Captures mep-iphone-jour-app-accueil.png, mep-mac-jour-accueil.png.",
+   "ou": "apercu/prototype-op-gestion.html · rlLogo (l. 11968) et vueEspaceClient › .ec-tete",
+   "correction": "Retirer « OP » devant le nom de l’entreprise pour le client (garder le logo de l’entreprise « CS ») et supprimer l’entête de la page quand le logo du menu le dit déjà.",
+   "decision": "soumettre",
+   "recommandation": "Une seule marque : celle de l’entreprise (CS Clim Services 17), jamais le carré « OP » dans l’espace du client."
+  },
+  {
+   "n": "client-16",
+   "gravite": "détail",
+   "ecran": "Interventions › une demande envoyée",
+   "role": "client",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Client « M. et Mme Durand » › Demander une intervention › décrire la panne › Envoyer › Interventions.",
+   "attendu": "Le client retrouve sa demande, avec ce qu’il a écrit.",
+   "constate": "La ligne « Rendez-vous à fixer — Dépannage · Atlantic Alféa — Date à fixer » est là (une seule intervention et une seule tâche pour le bureau, même au double toucher) mais la phrase du client n’est lisible nulle part côté client, ni son choix de disponibilité.",
+   "preuve": "client-parcours.js P5 « le client retrouve ce qu’il a écrit ».",
+   "ou": "apercu/prototype-op-gestion.html · vueEspaceClient › intL",
+   "correction": "Sous le titre d’une intervention « à planifier » d’origine client : « Votre demande : « … » ».",
+   "decision": "corriger",
+   "sonde": "client-parcours.js"
+  },
+  {
+   "n": "client-17",
+   "gravite": "détail",
+   "ecran": "Factures › ligne de facture",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client › Factures.",
+   "attendu": "Un libellé, une date.",
+   "constate": "La date est écrite deux fois : « Réglage pompe à chaleur · 29/10 · du 29/10 », « Entretien annuel · 12/05 · du 12/05 » (l’objet de la facture porte déjà la date, la ligne ajoute « du <émission> »).",
+   "preuve": "Capture mep-ipad-jour-factures.png.",
+   "ou": "apercu/prototype-op-gestion.html · vueEspaceClient › fac (l. 12229)",
+   "correction": "Écrire « Facture du 29/10 · Réglage pompe à chaleur » en retirant la date de l’objet quand elle est identique à l’émission.",
+   "decision": "corriger"
+  },
+  {
+   "n": "client-18",
+   "gravite": "détail",
+   "ecran": "Factures › Payer par virement",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client avec une facture à régler › Factures › carte « Payer par virement ».",
+   "attendu": "Un bouton « Copier » sur l’IBAN : au téléphone on ne recopie pas 27 caractères à la main.",
+   "constate": "L’IBAN et le BIC sont affichés sans bouton de copie (le module sait copier : rcCopier).",
+   "preuve": "Capture mep-ipad-jour-factures.png.",
+   "ou": "apercu/prototype-op-gestion.html · vueEspaceClient (l. 12237)",
+   "correction": "Ajouter « Copier » à côté de l’IBAN et du BIC (rcCopier).",
+   "decision": "corriger"
+  },
+  {
+   "n": "client-19",
+   "gravite": "détail",
+   "ecran": "Devis du Vieux Port : deux devis pour le même ventilateur",
+   "role": "client",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Client « Restaurant Le Vieux Port » › Devis.",
+   "attendu": "Un seul devis pour une même pièce.",
+   "constate": "D-2026-034 « Remplacer le ventilateur extérieur » (537,80 €, accepté le 28/10, intervention déjà prévue le 4 novembre) et D-2026-041 « Remplacement du ventilateur extérieur » (412,80 €, à signer) coexistent : un client verrait deux prix pour la même pièce. C’est l’histoire de la démonstration (parcours A à Z), pas un défaut de code.",
+   "preuve": "Lecture de l’écran vp/devis.",
+   "ou": "apercu/prototype-op-gestion.html · DEVIS_SUITE / dvInit (devisDe('D-2026-034'))",
+   "correction": "Donnée de démonstration : faire du devis 041 la suite d’un autre appareil (par exemple « Remplacement du groupe extérieur ») ou retirer 034.",
+   "decision": "soumettre",
+   "zone": "demo",
+   "recommandation": "Décision de Justin : l’histoire de la démonstration est la sienne (parcours A à Z). À défaut, laisser tel quel."
+  },
+  {
+   "n": "client-20",
+   "gravite": "détail",
+   "ecran": "Barre latérale (iPad) : bouton Jour / Nuit / Auto",
+   "role": "client",
+   "profils": [
+    "ipad"
+   ],
+   "etapes": "iPad (820 px) › n’importe quel écran du client, menu latéral.",
+   "attendu": "Cible tactile ≥ 44 px.",
+   "constate": "Jour, Nuit et Auto mesurent 74 × 36 px (le reste du menu fait 44). C’est la barre du pied de la coque, commune à tous les rôles.",
+   "preuve": "client-mise-en-page.js ipad jour/nuit « cibles au doigt ≥ 44 px ».",
+   "ou": "apercu/prototype-op-gestion.html · pied de la barre latérale (coque) — .m-mode / data-modetheme",
+   "correction": "min-height:44px sous (pointer:coarse).",
+   "decision": "corriger",
+   "zone": "coque",
+   "sonde": "client-mise-en-page.js"
+  }
+ ]
+}
