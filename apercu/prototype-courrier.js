@@ -849,6 +849,13 @@ var CSS = `
   .opc .toast.show{opacity:1;transform:none}
   .opc .toast.show.act .undo{pointer-events:auto} /* le HUD ne capte jamais les touchers ; seuls « Annuler l'envoi » / « Annuler » sont cliquables */
   .opc .toast > span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}   /* un objet de 200 signes couvrait 73 % de l'écran à 320 px */
+  /* LES DROITS DE LA PERSONNE (17 novembre 2026, « tout-08 ») : l'hôte dit ce qu'elle peut faire (capacites().droits) et le module pose data-ecrire / data-ranger / data-supprimer="0"
+     sur son cadre. Un geste refusé n'est PAS proposé (la garde de doAct, multiAct et des raccourcis refuse aussi, pour qui passerait par le clavier ou l'hôte). */
+  .opc[data-ecrire="0"] :is(#btnCompose,[data-act="forward"],[data-act="editDraft"],[data-act="sendNow"],[data-act="reschedule"],[data-act="unschedule"],[data-multi="forward"],[data-signnew],[data-addaccount]),
+  .opc[data-ranger="0"] :is([data-act="reply"],[data-act="replyAll"],[data-act="flag"],[data-act="unread"],[data-act="archive"],[data-act="toInbox"],[data-act="junk"],[data-act="notJunk"],[data-act="moveCat"],[data-q="flag"],[data-q="archive"],[data-q="toInbox"],[data-quick],[data-multi="read"],[data-multi="archive"],[data-multi="toInbox"]),
+  .opc[data-ecrire="0"][data-ranger="0"] [data-act="replyMenu"],
+  .opc[data-supprimer="0"] :is([data-act="trash"],[data-q="trash"],[data-multi="trash"]),
+  .opc[data-ecrire="0"][data-ranger="0"][data-supprimer="0"] #btnSelect{display:none !important}
   .opc .toast.two{flex-wrap:wrap;row-gap:8px}   /* « Annuler » + « Annuler l'envoi » : le texte sur sa ligne, les deux boutons dessous, à droite */
   .opc .toast.two > span:not(.ok){flex:1 1 calc(100% - 40px)}
   .opc .toast.two #tAct{margin-left:auto}   /* une longue adresse passe à la ligne au lieu de sortir du HUD */
@@ -1588,7 +1595,7 @@ var CSS = `
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:20px;line-height:24px}
   }
   /* téléphone tenu en paysage ET court (Android 740×360, petit 568×320) : le grand titre, la recherche et les catégories occupaient toute la place visible au-dessus de la barre d'onglets
-     de l'hôte — la première chose vue était « aucun courriel ». Le titre passe dans la barre (comme quand la liste défile : .lb-titles), « Boîtes » n'y garde que sa flèche pour lui laisser la place ;
+     de l'hôte — la première chose vue était « aucun e-mail ». Le titre passe dans la barre (comme quand la liste défile : .lb-titles), « Boîtes » n'y garde que sa flèche pour lui laisser la place ;
      l'iPhone 844×390 (plus haut) garde son grand titre. */
   @media (max-height:380px){
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lt{display:none}
@@ -1875,8 +1882,8 @@ var MARKUP = `
     {id:"archive",name:"Archive",            icon:"archive"},
     {id:"junk",   name:"Courrier indésirable", icon:"junk"},
     {id:"trash",  name:"Corbeille",          icon:"trash"},
-    // Dossier VIRTUEL d'une recherche « partout » (la fiche d'un client : « Voir tous ses courriels ») : reçus, envoyés et archivés ensemble. Jamais dans la colonne, jamais rangé : il s'éteint avec la recherche.
-    {id:"tout",   name:"Tous les courriels", icon:"inbox",   cache:true},
+    // Dossier VIRTUEL d'une recherche « partout » (la fiche d'un client : « Voir tous ses e-mails ») : reçus, envoyés et archivés ensemble. Jamais dans la colonne, jamais rangé : il s'éteint avec la recherche.
+    {id:"tout",   name:"Tous les e-mails", icon:"inbox",   cache:true},
     // Le SUIVI d'une demande (seulement si la source le déclare) : des dossiers intelligents, lus sur l'état de suivi du message — jamais des dossiers de la boîte
     {id:"s_atraiter",name:"À traiter",        icon:"clock",   suivi:true, smart:true},
     {id:"s_encours", name:"En cours",         icon:"tray2",   suivi:true, smart:true},
@@ -1926,6 +1933,11 @@ var MARKUP = `
     // Faux par défaut : OP MESSAGES, qui ne les déclare pas, garde exactement la feuille d'avant.
     CAP.boutonsFournisseurs=c.boutonsFournisseurs===true;
     CAP.gererBoites=c.gererBoites===true&&typeof SRC.gererBoites==="function";
+    // Les droits de la personne (facultatif) : { ecrire, ranger, supprimer } — FAUX = refusé ; absents ou vrais = permis (OP MESSAGES, qui ne les déclare pas, ne change pas).
+    // `refus(geste)` (facultatif) rend la phrase que l'hôte dit à un geste refusé, la même que dans ses autres rubriques.
+    CAP.droits=c.droits&&typeof c.droits==="object"?{ecrire:c.droits.ecrire!==false,ranger:c.droits.ranger!==false,supprimer:c.droits.supprimer!==false}:null;
+    CAP.refus=typeof c.refus==="function"?c.refus:null;
+    ["ecrire","ranger","supprimer"].forEach(function(k){ if(CAP.droits&&!CAP.droits[k]) cadre.setAttribute("data-"+k,"0"); else cadre.removeAttribute("data-"+k); });
     CAP.moi=CAP.suivi&&typeof c.moi==="string"?c.moi.trim():"";   // le nom sous lequel la personne connectée est « assignée » (sans lui, « Assignés à moi » n'existe pas)
     if(!CAP.journalEnvois&&state.folder==="envois") state.folder="inbox";
     CAP.dossiers=Array.isArray(c.dossiers)&&c.dossiers.length?c.dossiers.filter(function(d){ var f=folderOfStrict(d); return !!f&&!f.journal; }):["inbox"];
@@ -1933,6 +1945,14 @@ var MARKUP = `
     CAP.destinataires=c.destinataires>0?Math.floor(c.destinataires):50;
     CAP.pj={nombre:c.pj&&c.pj.nombre>0?c.pj.nombre:99,octets:c.pj&&c.pj.octets>0?c.pj.octets:25*1024*1024};
   }
+  // Le geste est-il permis à cette personne ? Un refus se DIT (la phrase de l'hôte), il ne reste jamais muet.
+  function droit(x){ if(!CAP.droits||CAP.droits[x]!==false) return true;
+    var ph=""; try{ ph=CAP.refus?String(CAP.refus(x)||""):""; }catch(e){}
+    toast(ph||"Ce geste n’est pas ouvert à ton compte."); return false; }
+  var ACT_DROIT={flag:"ranger",unread:"ranger",markRead:"ranger",archive:"ranger",toInbox:"ranger",junk:"ranger",notJunk:"ranger",moveCat:"ranger",reply:"ranger",replyAll:"ranger",
+    forward:"ecrire",editDraft:"ecrire",sendNow:"ecrire",unschedule:"ecrire",reschedule:"ecrire",trash:"supprimer"};
+  // les entrées d'un menu : un geste refusé n'y figure pas
+  function permis(items){ return items.filter(function(i){ return !ACT_DROIT[i.id]||!CAP.droits||CAP.droits[ACT_DROIT[i.id]]!==false; }); }
   function folderOfStrict(id){ for(var i=0;i<FOLDERS.length;i++) if(FOLDERS[i].id===id) return FOLDERS[i]; return null; }
 
   // ---------- Chargement : trois états, jamais deux ----------
@@ -2509,7 +2529,7 @@ var MARKUP = `
     if(state.multi){ var vis=msgs.map(function(m){return m.id;}); state.multi=state.multi.filter(function(id){ return vis.indexOf(id)>=0; }); }
     // Liste à sélection (listbox) : un seul arrêt de tabulation (la ligne sélectionnée, sinon la première), flèches / Origine / Fin pour naviguer.
     var stop=msgs.some(function(m){ return m.id===state.selected; })?state.selected:msgs[0].id, multi=viewAccounts()>1, TC=threadCounts();
-    // D14 : une boîte d'un an a des milliers de courriels ; la liste entière redessinée à chaque clic coûtait 0,6 s. On n'écrit que les premières lignes
+    // D14 : une boîte d'un an a des milliers d’e-mails ; la liste entière redessinée à chaque clic coûtait 0,6 s. On n'écrit que les premières lignes
     // (120), le reste vient en défilant (ou par « Afficher la suite ») ; la ligne choisie est toujours dans la page.
     var cleL=[state.folder,state.scope,state.cat,state.query,state.filter].join("|"); if(cleL!==cleListe){ cleListe=cleL; state.lim=LIGNES; }
     var lim=Math.max(state.lim||LIGNES,1), reste=msgs.length-lim;
@@ -2564,6 +2584,7 @@ var MARKUP = `
   function multiAct(act){
     var sel=pickedMsgs(); if(act==="all"){ var ids=listMessages().map(function(m){return m.id;}); state.multi=state.multi.length===ids.length?[]:ids; renderList(); return; }
     if(!sel.length) return;
+    if(!droit(act==="forward"?"ecrire":act==="trash"?"supprimer":"ranger")) return;
     var n=sel.length, snap=sel.map(function(m){ return {m:m,folder:m.folder,read:m.read,sendAt:m.sendAt,uj:m.uj,aj:m.aj,idx:MESSAGES.indexOf(m)}; });
     var restore=function(){ snap.slice().sort(function(a,b){return a.idx-b.idx;}).forEach(function(x){ if(MESSAGES.indexOf(x.m)<0) MESSAGES.splice(Math.min(x.idx,MESSAGES.length),0,x.m);
       x.m.folder=x.folder; x.m.read=x.read; x.m.uj=x.uj; x.m.aj=x.aj; if(x.sendAt!=null) x.m.sendAt=x.sendAt; }); refreshCls(); renderAll(); persist(); };
@@ -2734,7 +2755,7 @@ var MARKUP = `
     var b; try{ b=HOTE.lecture(horsModule(m)); }catch(e){ return ""; } if(!b) return "";
     var liens=(b.liens||[]).map(function(l){ return '<button type="button" class="lnk" data-hote="'+H(l.id)+'">'+H(l.lib)+'<span class="chv" aria-hidden="true">'+I.chevR+'</span></button>'; }).join("");
     var bts=(b.actions||[]).map(function(a){ return '<button type="button" class="btn'+(a.primaire?' primary':'')+'" data-hote="'+H(a.id)+'"'+(a.inactif?' disabled aria-disabled="true" title="'+H(a.aide||"")+'"':'')+'>'+H(a.lib)+'</button>'; });
-    /* sur un téléphone, cinq gros boutons repoussaient le TEXTE du courriel sous le pli : on garde les deux premiers gestes (le principal d'abord) et on range les autres sous « Autres gestes » */
+    /* sur un téléphone, cinq gros boutons repoussaient le TEXTE de l’e-mail sous le pli : on garde les deux premiers gestes (le principal d'abord) et on range les autres sous « Autres gestes » */
     var plus=isPhone()&&bts.length>3, acts=bts.length?'<div class="hacts">'+(plus?bts.slice(0,2):bts).join("")+'</div>'+(plus?'<details class="hplus"><summary>Autres gestes ('+(bts.length-2)+')</summary><div class="hacts">'+bts.slice(2).join("")+'</div></details>':""):"";
     return '<section class="hband'+(b.urgent?' urgent':'')+'" aria-label="'+H(b.kicker||"Ce que l’application a compris")+'">'+
       (b.kicker?'<span class="hk">'+H(b.kicker)+'</span>':'')+(b.titre?'<b class="ht">'+H(b.titre)+'</b>':'')+(b.detail?'<span class="hd">'+H(b.detail)+'</span>':'')+
@@ -2918,7 +2939,7 @@ var MARKUP = `
   }
   /* (20 octobre 2026, Justin : « quand je vais en bas ça me remonte direct en haut ») : redessiner la liste (un relevé toutes les minutes) la remettait en haut — elle garde
      sa position ; seuls les gestes qui CHANGENT de liste (dossier, boîte, recherche) la remontent, eux-mêmes, après ce rendu */
-  // Paysage COURT (≤ 380 px de haut) : il ne reste que ~120 px de liste au-dessus de la barre d'onglets, et la recherche et les catégories les remplissaient — la première chose vue était « aucun courriel ».
+  // Paysage COURT (≤ 380 px de haut) : il ne reste que ~120 px de liste au-dessus de la barre d'onglets, et la recherche et les catégories les remplissaient — la première chose vue était « aucun e-mail ».
   // La liste s'ouvre donc PLIÉE sur ses messages (comme Mail sur iPhone : la recherche est au-dessus, un geste vers le bas la ramène). Une fois par ouverture : si la personne a déjà fait défiler, on n'y touche pas.
   var COURT=false;
   function listeCourtePlier(){
@@ -3005,6 +3026,7 @@ var MARKUP = `
   }
 
   function doAct(act,id){
+    if(ACT_DROIT[act]&&!droit(ACT_DROIT[act])) return;
     var m=id?msgById(id):msgById(state.selected); if(!m||m.jr) return;   // le journal des envois se lit, il ne se range pas, ne se marque pas, ne reçoit pas de réponse
     if(act==="flag"){ m.flagged=!m.flagged; renderAll(); persist(); toast(m.flagged?"Message marqué":"Drapeau retiré"); }
     else if(act==="unread"){ m.read=false; if(isPhone()){ state.selected=null; backToListMobile(); } renderAll(); persist(); toast("Marqué comme non lu"); }   // sur grand écran le message reste ouvert (D16)
@@ -3041,7 +3063,7 @@ var MARKUP = `
     return d; }
   // Ce que le module donne à l'hôte d'un message : des copies simples, jamais l'objet interne
   function horsModule(m){ var o={id:m.src&&m.sid!=null?m.sid:m.id,dossier:m.folder,de:m.from?{nom:senderName(m),email:emailOf(m)}:null,a:m.to||"",objet:m.subject||"",date:tsOf(m),lu:!!m.read,pj:(m.att||[]).map(function(a,i){ return {nom:a.name,taille:a.size,type:a.kind,i:i}; }),boite:m.acct,
-      local:!m.src};   /* écrit ICI (brouillon, envoi programmé) : son identifiant est celui du module, il ne désigne aucun message de la source — l'hôte ne le cherche pas dans ses propres courriels (une pastille « Client » sur un brouillon pour une adresse inconnue) */
+      local:!m.src};   /* écrit ICI (brouillon, envoi programmé) : son identifiant est celui du module, il ne désigne aucun message de la source — l'hôte ne le cherche pas dans ses propres e-mails (une pastille « Client » sur un brouillon pour une adresse inconnue) */
     Object.defineProperty(o,"corps",{enumerable:true,get:function(){ return bodyText(m); }}); return o; }
   // « Re: Re: Re: Rendez-vous » s'écrit « Re: Rendez-vous » en tête de lecture (la ligne d'objet réelle n'est pas modifiée)
   function objetPropre(s){ s=String(s||""); var p=/^\s*((?:re|tr|fwd?|fw)\s*(?:\[\d+\])?\s*:\s*)+/i.exec(s); return p?(/^\s*(tr|fwd?|fw)/i.test(p[0])?"Tr: ":"Re: ")+s.slice(p[0].length):s; }
@@ -3162,10 +3184,10 @@ var MARKUP = `
   }
   function openReplyMenu(anchor){
     var m=msgById(state.selected); if(!m) return;
-    openMenu(anchor,{label:"Actions sur le message",sheet:true,title:m.subject,items:[
+    openMenu(anchor,{label:"Actions sur le message",sheet:true,title:m.subject,items:permis([
       {id:"reply",label:"Répondre",icon:I.reply},{id:"replyAll",label:"Répondre à tous",icon:I.replyAll},{id:"forward",label:"Transférer",icon:I.forward},
       {id:"unread",label:"Marquer comme non lu",icon:I.unread}].concat(
-      m.folder==="junk"?[{id:"notJunk",label:"Ce n’est pas un indésirable",icon:I.inbox}]:m.from?[{id:"junk",label:"Classer en courrier indésirable",icon:I.junk}]:[]),
+      m.folder==="junk"?[{id:"notJunk",label:"Ce n’est pas un indésirable",icon:I.inbox}]:m.from?[{id:"junk",label:"Classer en courrier indésirable",icon:I.junk}]:[])),
       onPick:function(a){ doAct(a); }});
   }
 
@@ -3183,9 +3205,9 @@ var MARKUP = `
     else if(peutRemettre(m)) items.push({id:"toInbox",label:REMETTRE,icon:I.inbox});
     else if(m.folder!=="archive"&&m.folder!=="trash") items.push({id:"archive",label:"Archiver",icon:I.archive});
     items.push({id:"trash",label:m.folder==="trash"?"Supprimer définitivement":"Supprimer",icon:I.trash,danger:true},{id:"pick",label:"Sélectionner plusieurs…",icon:I.check});
-    openMenu(anchor,{label:"Actions sur le message",sheet:true,title:m.subject||"(Sans objet)",items:items,onPick:function(a){
+    openMenu(anchor,{label:"Actions sur le message",sheet:true,title:m.subject||"(Sans objet)",items:permis(items),onPick:function(a){
       if(a==="pick"){ setMulti(true,id); return; }
-      if(a==="markRead"){ m.read=true; renderAll(); persist(); toast("Marqué comme lu"); return; }
+      if(a==="markRead"){ if(!droit("ranger")) return; m.read=true; renderAll(); persist(); toast("Marqué comme lu"); return; }
       if(a==="trash"&&m.folder==="trash"){ state.multi=[id]; multiAct("trash"); return; }
       doAct(a,id); }});
   }
@@ -3196,13 +3218,13 @@ var MARKUP = `
       {id:"rename",label:"Renommer…",icon:I.compose||I.mail},
       {id:"logo",label:"Changer le logo…",icon:I.img||I.mail},
       UN_COTE?null:{id:"side",label:"Passer côté "+KINDS[other],icon:other==="pro"?I.briefcase:I.house},
-      {id:"del",label:"Supprimer la boîte…",icon:I.trash,danger:true}].filter(Boolean),
+      {id:"del",label:"Supprimer la boîte…",icon:I.trash,danger:true}].filter(function(i){ return i&&(i.id!=="del"||!CAP.droits||CAP.droits.supprimer!==false); }),
       onPick:function(x){
         if(x==="open"){ state.scope=id; state.folder="inbox"; state.selected=null; renderAll(); persist(); go("list"); }
         else if(x==="rename") openRenameAcct(a);
         else if(x==="logo") openLogoAcct(a);
         else if(x==="side"){ a.kind=other; if(state.scope===k&&!accountsOfKind(k).length) state.scope=other; renderAll(); persist(); toast(a.email+" est maintenant côté "+KINDS[other]); }
-        else if(x==="del") confirmDeleteAcct(a,anchor);
+        else if(x==="del"){ if(droit("supprimer")) confirmDeleteAcct(a,anchor); }
       }});
   }
   function confirmDeleteAcct(a,anchor){
@@ -4084,6 +4106,7 @@ var MARKUP = `
   }
 
   function openAddAccount(){
+    if(!droit("ecrire")) return;   // connecter une boîte = Créer
     closeDrawer(); closeOverlay();
     var ov=makeOverlay("acct");
     var row=function(id,label,type,ph,extra){ return '<div class="fld"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+type+'" placeholder="'+H(ph)+'"'+(extra||"")+'></div>'; };
@@ -4509,10 +4532,10 @@ var MARKUP = `
     var op=e.target.closest("[data-open]"); if(op){ var x=msgById(op.getAttribute("data-open")); if(x){ state.folder=x.folder; renderAll(); selectMessage(x.id); } return; }
     var hb=e.target.closest("[data-hote]"); if(hb&&HOTE&&typeof HOTE.agir==="function"){ var hm0=msgById(state.selected); closeOverlay();
       try{ HOTE.agir(hb.getAttribute("data-hote"),hm0?horsModule(hm0):null); }catch(x){ toast("Ce geste n’a pas pu s’ouvrir : "+((x&&x.message)||"erreur"),{refus:true}); } return; }
-    var qk=e.target.closest("[data-quick]"); if(qk){ var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",intro:qk.getAttribute("data-quick"),body:rm?rm.body:"",title:"Répondre",acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
+    var qk=e.target.closest("[data-quick]"); if(qk){ if(!droit("ranger")) return; var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",intro:qk.getAttribute("data-quick"),body:rm?rm.body:"",title:"Répondre",acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
   });
 
-  $("#btnCompose").onclick=function(){ if(state.folder==="sign") openSignRequest(); else openCompose(); };
+  $("#btnCompose").onclick=function(){ if(!droit("ecrire")) return; if(state.folder==="sign") openSignRequest(); else openCompose(); };
   $("#btnNav").onclick=function(){ if(isPhone()) go("mailboxes"); else if(app.classList.contains("nav-open")) closeDrawer(); else openDrawer(); };
   $("#scrim").onclick=closeDrawer;
   /* ⛔ La valeur se lit PENDANT l'événement (4 novembre 2026, « la barre de recherche ne marche pas ») : l'arbre est un arbre d'ombre, et à la
@@ -4543,7 +4566,7 @@ var MARKUP = `
       closeDrawer(); return; }
     if(typing||cadre.classList.contains("has-sheet")) return;
     if(e.key==="/"){ e.preventDefault(); var s=$("#search"); if(isPhone()&&app.getAttribute("data-view")!=="list") go("list"); s.focus(); }
-    else if(e.key==="c"||e.key==="C"){ e.preventDefault(); openCompose(); }
+    else if(e.key==="c"||e.key==="C"){ e.preventDefault(); if(droit("ecrire")) openCompose(); }
     else if(e.key==="r"&&state.selected){ e.preventDefault(); var sm=msgById(state.selected); if(sm&&sm.folder!=="drafts"&&sm.folder!=="scheduled") doAct("reply"); }   /* sans preventDefault, le « r » tombait dans le champ que la fenêtre venait de focaliser (D01) */
     else if(e.key==="f"&&state.selected){ doAct("flag"); }
     else if((e.key==="e")&&state.selected){ doAct("archive"); }
@@ -4588,13 +4611,13 @@ var MARKUP = `
     // l'hôte ouvre une feuille « Nouveau message » vers cette adresse (« Écrire à… » d'une fiche) ; sans boîte connectée, le module le dit et n'ouvre rien
     // (le premier relevé des boîtes n'est pas fini : la feuille s'ouvre à son arrivée, sinon elle dirait « Ajoutez d'abord une boîte » à tort)
     ecrire:function(a,objet,texte){
-      var ouvrir=function(){ if(!vivant) return false; openCompose({to:String(a||""),subject:String(objet||""),body:"",intro:texte?String(texte):""}); return ACCOUNTS.length>0; };
+      var ouvrir=function(){ if(!vivant||!droit("ecrire")) return false; openCompose({to:String(a||""),subject:String(objet||""),body:"",intro:texte?String(texte):""}); return ACCOUNTS.length>0; };
       if(LOAD.boites==="wait"&&chargement){ chargement.then(ouvrir); return true; }
       return ouvrir(); },
     // H7 — liens d'une tâche, de l'Accueil, d'une fiche client : le module peut ne pas être encore chargé (la demande attend son premier relevé)
     ouvrir:function(id){ apresChargement(function(){ if(vivant) ouvrirMessage(id); }); return true; },
-    repondre:function(id,intro){ apresChargement(function(){ if(vivant) repondreA(id,intro); }); return true; },
-    ecrire:function(m){ apresChargement(function(){ if(vivant) openCompose(m||null); }); return true; },   // un nouveau message, depuis un bouton de l'hôte (« ＋ Écrire » de l'en-tête de la rubrique)
+    repondre:function(id,intro){ apresChargement(function(){ if(vivant&&droit("ranger")) repondreA(id,intro); }); return true; },
+    ecrire:function(m){ apresChargement(function(){ if(vivant&&droit("ecrire")) openCompose(m||null); }); return true; },   // un nouveau message, depuis un bouton de l'hôte (« ＋ Écrire » de l'en-tête de la rubrique)
     rechercher:function(t,o){ apresChargement(function(){ if(vivant) rechercher(t,o); }); return true; },
     // ferme la fenêtre ouverte (composeur, menu) sans rien enregistrer d'inventé : sert la visite guidée de l'hôte
     fermer:function(){ try{ if(state.compose&&state.compose.dismiss) state.compose.dismiss(); }catch(e){} closeOverlay(); return true; },
