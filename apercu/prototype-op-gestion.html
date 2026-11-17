@@ -3447,7 +3447,25 @@ body.ac-glisse .ac-x{pointer-events:none}
 }}
 /* les sous-rubriques de la Comptabilité sont des DESTINATIONS : sur une tablette en portrait elles passent à la ligne plutôt que de
    se couper au bord (au téléphone, la rangée défile de bord à bord, c'est voulu) */
-@media (min-width:761px) and (max-width:1100px){.cx-sous{flex-wrap:wrap;overflow-x:visible}}
+@media (max-width:1100px){.cx-sous{flex-wrap:wrap;overflow-x:visible}}
+/* 17/11 (compta-ventes-15, décision du chef : « une destination qu'on ne voit pas n'existe pas ») : au téléphone aussi les onglets d'un espace tiennent sur l'écran,
+   sur deux lignes s'il le faut, au lieu de défiler de côté sans indice (« Comptes clients », « Contrats », « Paiement en ligne » étaient coupés au bord) */
+@media (max-width:760px){
+  .cx-sous{margin:-2px 0 0;padding:0}
+  .cx-sous button{flex:1 1 auto;justify-content:center;text-align:center;white-space:normal;line-height:1.15;min-height:46px;padding:0 10px}
+}
+/* 16 et 17 : au téléphone seulement, de la hauteur gagnée sans rien redessiner. La phrase de la tête tient sur une ligne (le reste est derrière « Comment ça marche ? ») ;
+   sur la fiche d'une facture, la pastille « Retour » suffit (plus de fil d'Ariane), l'encadré « Il manque… » tient sur une ligne et « Voir dans la Comptabilité »
+   comme « Tout le dossier de l'intervention » passent dans la rangée d'actions, à côté de « Voir le PDF » */
+.cx-mq-c,.cx-tel-act{display:none}
+@media (max-width:760px){
+  .cx-plus{display:none}
+  .cx-fil,.cmpt-rangee-fac{display:none}
+  .btn.cx-tel-act{display:inline-flex}
+  .cx-mq{flex-wrap:nowrap;gap:8px;padding:8px 12px}
+  .cx-mq-l{display:none}.cx-mq-c{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cx-mq .lien{flex:none;white-space:nowrap}.cx-mq .lien .cx-mq-c{display:inline;white-space:nowrap}
+}
 
 /* 7. Les factures d'un client, au téléphone : l'objet passe sous le numéro (quatre colonnes ne tenaient pas, le tableau était coupé) */
 .l-sous{display:none}
@@ -3540,6 +3558,14 @@ table.l th.n{text-align:right}
   .tableau table.l:not(:has(thead th:nth-child(5))) :is(th,td).l-qc{font-size:0;padding-inline:0;width:0}.tableau table.l .l-q{display:inline;color:var(--doux);white-space:nowrap}
 }
 .l-q{display:none}
+/* une facture a QUATRE colonnes depuis le 17/11 (désignation, prix unitaire HT, quantité, total HT) : jusqu'à 440 px la quantité passe après la désignation (« × 3 ») et sa colonne se referme,
+   sinon « Total HT » sortait du cadre à l'iPhone ; l'en-tête « Prix unitaire HT » peut passer sur deux lignes */
+@media (max-width:440px){
+  .tableau table.l:not(:has(thead th:nth-child(5))) :is(th,td).l-qc{font-size:0;padding-inline:0;width:0}.tableau table.l .l-q{display:inline;color:var(--doux);white-space:nowrap}
+  .tableau table.l:not(:has(thead th:nth-child(5))) th{white-space:normal;line-height:1.2;vertical-align:bottom}
+  .tableau table.l td.ttc-m{font-size:17px}   /* le total TTC en 19 px faisait à lui seul une colonne de 92 px : le tableau sortait de la carte de 26 px à 320 */
+}
+@media (max-width:340px){.tableau table.l:not(:has(thead th:nth-child(5))) td{font-size:13px}.tableau table.l:not(:has(thead th:nth-child(5))) td.n{padding-inline:3px}.tableau table.l td.ttc-m{font-size:16px}.tableau table.l td.ttc-l{font-size:15px}}   /* 320 px : trois colonnes de chiffres et une désignation tenaient dans 254 px à 17 px près */
 /* sous 340 px : les six tuiles de la Comptabilité l'une sous l'autre (à deux de front leur phrase tenait dans 113 px), et deux champs côte à côte
    passent l'un sous l'autre (« Pas d’acompte » se lisait « Pas d’acco ») */
 @media (max-width:371px){.cx-kpis{grid-template-columns:minmax(0,1fr)}}
@@ -5435,7 +5461,7 @@ function vueFacture(id){
   <div class="grille2">
     <div class="col">
       <div class="carte tableau${modifiable ? ' fac-edit' : ''}"><h3>Les lignes${i?' — reprises de l’intervention':''}</h3>${modifiable ? `<div class="dv-lgs fac-lgs"><div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix unitaire HT</span><span>Total HT</span><span></span></div>${L.map((l,k)=>`<div class="dv-lg"><input class="saisie ${String(l.d || '').trim() ? '' : 'manque'}" data-fdes="${k}" data-id="${id}" value="${esc(l.d)}" placeholder="Ce que tu factures" maxlength="120" aria-label="Désignation de la ligne ${k+1}"><input class="saisie dv-q2" inputmode="decimal" data-fqte="${k}" data-id="${id}" value="${esc(l.q)}" maxlength="14" aria-label="Quantité de ${esc(l.d || 'la ligne ' + (k+1))}"><input class="saisie dv-pu ${l.pu == null ? 'manque' : ''}" inputmode="decimal" data-prix="${k}" data-id="${id}" value="${l.pu == null ? '' : String(l.pu).replace('.',',')}"${l.pu == null ? ' placeholder="prix HT"' : ''} aria-label="Prix HT de ${esc(l.d || 'la ligne ' + (k+1))}"><span class="dv-tot">${l.pu == null ? '—' : eur(totLigne(l))}</span><button type="button" class="dv-x" data-action="ligneSup" data-id="${id}" data-k="${k}" aria-label="Retirer la ligne ${esc(l.d || (k+1))}">✕</button></div>${l.note ? `<div class="faible mini fac-note">${esc(l.note)}</div>` : ''}`).join('')}</div><table class="l"><tfoot>` : `<table class="l"><thead><tr><th>Désignation</th><th class="n">Prix unitaire HT</th><th class="l-qc n">Qté</th><th class="n">Total HT</th></tr></thead><tbody>
-        ${L.map((l,k)=>`<tr><td>${esc(l.d)}<span class="l-q">\u00a0×\u00a0${esc(l.q)}</span>${l.note?`<br><span class="faible mini">${esc(l.note)}</span>`:''}</td><td class="n">${l.pu!=null?eur(l.pu):'—'}</td><td class="l-qc n">${esc(l.q)}</td><td class="n">${l.pu!=null?eur(totLigne(l)):'—'}</td></tr>`).join('')}
+        ${L.map((l,k)=>`<tr><td>${esc(l.d)} <span class="l-q">×\u00a0${esc(l.q)}</span>${l.note?`<br><span class="faible mini">${esc(l.note)}</span>`:''}</td><td class="n">${l.pu!=null?eur(l.pu):'—'}</td><td class="l-qc n">${esc(l.q)}</td><td class="n">${l.pu!=null?eur(totLigne(l)):'—'}</td></tr>`).join('')}
       </tbody><tfoot>`}<tr><td colspan="${modifiable?2:3}">Total HT${complet?'':' (partiel)'}</td><td class="n">${eur(ht)}</td></tr>
         <tr><td colspan="${modifiable?2:3}" style="font-weight:500">TVA ${modifiable?`<select class="saisie" style="width:auto;min-height:38px;padding:4px 8px" data-tva="${id}">${[20,10,5.5].map(t=>`<option value="${t}" ${f.tva===t?'selected':''}>${String(t).replace('.',',')} %</option>`).join('')}</select>`:String(f.tva).replace('.',',')+' %'} <span class="faible mini">${f.tva===10?(c.type==='pro'?'taux réduit : attestation du client à conserver':'particulier, logement de plus de 2 ans, attestation signée'):f.tva===5.5?'travaux d’économie d’énergie':c.type==='pro'?'client professionnel':'taux normal : logement neuf ou de moins de 2 ans'}</span></td><td class="n">${eur(ht*f.tva/100)}</td></tr>
         <tr><td colspan="${modifiable?2:3}" class="ttc-l">Total TTC</td><td class="n ttc-m">${eur(ht*(1+f.tva/100))}</td></tr>${f.recu?`<tr><td colspan="${modifiable?2:3}" style="font-weight:500">Déjà reçu</td><td class="n">− ${eur(f.recu)}</td></tr>${f.st==='annulee'?`<tr><td colspan="${modifiable?2:3}">À rembourser au client</td><td class="n">${eur(f.recu)}</td></tr>`:`<tr><td colspan="${modifiable?2:3}">Reste à payer</td><td class="n">${eur(restant(f))}</td></tr>`}`:''}</tfoot></table>
@@ -5463,7 +5489,7 @@ function pdfFacture(f){
   const c = CLIENTS[f.cli], L = lignesDe(f), ht = htDe(f), i = f.int && INTS.find(o => o.id === f.int);
   return `<div class="pdf" ${f.num==='—' ? 'data-brouillon="1"' : ''}><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}</div><div style="text-align:right;margin-left:auto"><h4>${f.st==='avoir' ? 'Avoir' : 'Facture'}</h4><b>${f.num==='—'?'FAC-2026-0' + numSuiv:f.num}</b><br>Émise le ${f.emise==='—'?'31/10/2026':f.emise+'/2026'}${f.st==='avoir' ? '' : '<br>Échéance ' + (f.ech==='—'?'30/11/2026':f.ech+'/2026')}</div></div>
     <div class="deux"><div><h6>Facturé à</h6><b>${esc(c.nom)}</b><br>${esc(c.adr)}</div><div><h6>Prestation</h6>${i?`${esc(i.titre)}<br>le ${jlong(i.d)}, ${fiche(i.id).debut} – ${fiche(i.id).fin}<br>par ${tech(i.tech).nom}`:esc(f.objet)}</div></div>
-    <table><thead><tr><th>Désignation</th><th style="text-align:right">Prix unitaire HT</th><th class="p-qc" style="text-align:right">Qté</th><th style="text-align:right">Total HT</th></tr></thead><tbody>${L.map(l=>`<tr><td>${esc(l.d)}<span class="p-q">\u00a0×\u00a0${esc(l.q)}</span></td><td style="text-align:right">${eur(l.pu||0)}</td><td class="p-qc" style="text-align:right">${esc(l.q)}</td><td style="text-align:right">${eur(totLigne(l))}</td></tr>`).join('')}</tbody>
+    <table><thead><tr><th>Désignation</th><th style="text-align:right">Prix unitaire HT</th><th class="p-qc" style="text-align:right">Qté</th><th style="text-align:right">Total HT</th></tr></thead><tbody>${L.map(l=>`<tr><td>${esc(l.d)} <span class="p-q">×\u00a0${esc(l.q)}</span></td><td style="text-align:right">${eur(l.pu||0)}</td><td class="p-qc" style="text-align:right">${esc(l.q)}</td><td style="text-align:right">${eur(totLigne(l))}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td colspan="3">Total HT</td><td style="text-align:right">${eur(ht)}</td></tr><tr><td colspan="3">TVA ${String(f.tva).replace('.',',')} %</td><td style="text-align:right">${eur(ht*f.tva/100)}</td></tr><tr><td colspan="3"><b>Total TTC</b></td><td style="text-align:right"><b>${eur(ht*(1+f.tva/100))}</b></td></tr></tfoot></table>
     ${f.tva===10?'<div class="mini">TVA à 10 % : travaux dans un logement de plus de deux ans, attestation du client conservée.</div>':''}
     <div class="deux">${f.st==='avoir' ? '' : '<div><h6>Paiement</h6>Virement : ' + ENTREPRISE.iban + (ENTREPRISE.bic ? ' · BIC ' + ENTREPRISE.bic : '') + '<br>Carte : lien de paiement dans l’e-mail</div>'}<div><h6>Pièce jointe</h6>${i?'Compte rendu de l’intervention du '+jcourt(i.d)+' (PDF)':'—'}</div></div>
@@ -5951,7 +5977,7 @@ function docDevis(x){
       <div style="text-align:right;margin-left:auto"><h4>Devis</h4><b>${x.num || 'Brouillon'}</b><br>Établi le ${j}/${m}/${y}<br>Valable jusqu’au ${valid}</div></div>
     <div class="deux"><div><h6>Client</h6><b>${esc(c.nom)}</b>${c.contact && c.contact !== c.nom ? '<br>' + esc(c.contact) : ''}<br>${esc(c.adr)}</div><div><h6>Objet</h6>${esc(x.objet)}${c.adr ? '<br>Lieu : ' + esc(c.adr) : ''}</div></div>
     <table><thead><tr><th>Désignation</th><th class="p-qc">Qté</th><th style="text-align:right">Prix unitaire HT</th><th style="text-align:right">Total HT</th></tr></thead>
-      <tbody>${L.map(l => `<tr><td>${esc(l[0])}<span class="p-q">\u00a0×\u00a0${prNum(l[1])}</span></td><td class="p-qc">${prNum(l[1])}</td><td style="text-align:right">${l[2] == null ? 'à chiffrer' : eur(l[2])}</td><td style="text-align:right">${l[2] == null ? '—' : eur(l[1] * l[2])}</td></tr>`).join('')}</tbody>
+      <tbody>${L.map(l => `<tr><td>${esc(l[0])} <span class="p-q">×\u00a0${prNum(l[1])}</span></td><td class="p-qc">${prNum(l[1])}</td><td style="text-align:right">${l[2] == null ? 'à chiffrer' : eur(l[2])}</td><td style="text-align:right">${l[2] == null ? '—' : eur(l[1] * l[2])}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="3">Total HT</td><td style="text-align:right">${eur(ht)}</td></tr><tr><td colspan="3">TVA ${tva} %</td><td style="text-align:right">${eur(ht * tva / 100)}</td></tr><tr><td colspan="3"><b>Total TTC</b></td><td style="text-align:right"><b>${eur(ht * (1 + tva / 100))}</b></td></tr></tfoot></table>
     ${tva === 10 ? '<div class="mini">TVA à 10 % : travaux dans un logement de plus de deux ans ; une attestation simplifiée sera demandée au client.</div>' : tva === 5.5 ? '<div class="mini">TVA à 5,5 % : travaux d’amélioration énergétique dans un logement de plus de deux ans ; une attestation simplifiée sera demandée au client.</div>' : ''}
     <div class="deux"><div><h6>Conditions</h6>Délai d’intervention : sous 10 jours après accord.<br>Règlement : à réception de facture, par virement, carte ou chèque.<br>${x.acompte ? 'Acompte de ' + x.acompte + ' % à l’accord, déduit de la facture.' : 'Pas d’acompte demandé.'}</div>
@@ -10918,7 +10944,7 @@ vueComptabilite = function(){
   const corps = { ensemble:() => cxVueTableau(K, D, DD, conf), cloture:() => cxVueCloture(), dossiers:() => cxVueDossiers(DD), fventes:() => cxVueFactures(D, 'ventes'), clients:() => cxVueClients(DD), contrats:() => cxVueContrats(),
     fachats:() => cxVueFactures(D, 'achats'), ndf:() => cxVueNdf(D), fournisseurs:() => cxVueFournisseurs(), paiements:() => cxVuePaiements(K), banque:() => cpVueBanque(K.rap, K.soldeBq), caisse:() => cpVueCaisse(K.ca), enligne:() => cxVueEnLigne(),
     tva:() => cpVueTva(K.tv), ecritures:() => cpVueEcritures(), balance:() => cxBalance(E), grandlivre:() => cxGrandLivre(E), resultat:() => cxResultat(E), envoi:() => cxEnvoi(E), normes:() => cxVueNormes(conf), archives:() => cxVueArchives(K, D), paiemois:() => paieVueMois(), fiches:() => paieVueFiches(), salaries:() => paieVueSalaries(), charges:() => paieVueCharges() }[O]();
-  return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris">Tes ventes, tes achats, ta trésorerie et ta TVA, rangés comme chez un expert-comptable. Tout s’écrit tout seul ; tu vérifies, tu envoies.</span></div>
+  return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris">Tes ventes, tes achats, ta trésorerie et ta TVA<span class="cx-plus">, rangés comme chez un expert-comptable. Tout s’écrit tout seul ; tu vérifies, tu envoies</span>.</span></div>
     <div class="actions"><button type="button" class="btn gris" data-gd="apprendre">📘 Visite guidée</button><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Nouvelle opération</button></div></div>
   ${clos}
   <nav class="cx-nav1" aria-label="Espaces de la comptabilité">${CX_NAV.filter(g => g[0] !== 'paie' || cxEstPatron()).map(g => `<button type="button" data-cx="grp|${g[0]}" aria-current="${G[0] === g[0] ? 'page' : 'false'}"><span class="cx-gi" aria-hidden="true">${g[2]}</span><span class="cx-gl1">${g[1]}</span><span class="cx-gl2">${g[4] || g[1]}</span>${nbG(g) ? `<span class="cx-nb">${nbG(g)}</span>` : ''}</button>`).join('')}</nav>
@@ -11223,7 +11249,7 @@ vueEncaissements = function(){ cpSysteme = false; CP.onglet = 'paiements'; route
 ACTIONS.nouvelleFacture = () => cxNouvelleFacture();
 /* une facture client s'ouvre en page : on dit où l'on est */
 (() => { const f0 = vueFacture; vueFacture = function(id){ const h = f0.apply(this, arguments), f = FACTURES.find(o => o.id === id); if (!f) return h;
-  return `<nav class="cx-fil" aria-label="Où tu es"><button type="button" class="lien" data-cx="sec|ensemble">Comptabilité</button><span aria-hidden="true">›</span><button type="button" class="lien" data-cx="sec|fventes|${f.st === 'avoir' ? 'avoirs' : 'clients'}">Ventes · ${f.st === 'avoir' ? 'Avoirs' : 'Factures clients'}</button><span aria-hidden="true">›</span><span>${f.num === '—' ? 'Facture préparée' : esc(f.num)}</span>${f.int ? `<button type="button" class="lien cx-fil-dos" data-cx="dossier|${f.int}">Tout le dossier de l’intervention ›</button>` : ''}</nav>${cxMentionsManquantes().length ? `<div class="info petit cx-mq"><span>Il manque sur ${f.st === 'avoir' ? 'cet avoir' : 'cette facture'} : ${cxMentionsManquantes().join(', ')}.</span><button type="button" class="lien" data-cx="fiche">Compléter ma fiche légale</button></div>` : ''}` + h; }; })();
+  return `<nav class="cx-fil" aria-label="Où tu es"><button type="button" class="lien" data-cx="sec|ensemble">Comptabilité</button><span aria-hidden="true">›</span><button type="button" class="lien" data-cx="sec|fventes|${f.st === 'avoir' ? 'avoirs' : 'clients'}">Ventes · ${f.st === 'avoir' ? 'Avoirs' : 'Factures clients'}</button><span aria-hidden="true">›</span><span>${f.num === '—' ? 'Facture préparée' : esc(f.num)}</span>${f.int ? `<button type="button" class="lien cx-fil-dos" data-cx="dossier|${f.int}">Tout le dossier de l’intervention ›</button>` : ''}</nav>${cxMentionsManquantes().length ? `<div class="info petit cx-mq"><span class="cx-mq-l">Il manque sur ${f.st === 'avoir' ? 'cet avoir' : 'cette facture'} : ${cxMentionsManquantes().join(', ')}.</span><span class="cx-mq-c">Il manque ${cxMentionsManquantes().length} mention${cxMentionsManquantes().length > 1 ? 's' : ''} légale${cxMentionsManquantes().length > 1 ? 's' : ''}</span><button type="button" class="lien" data-cx="fiche"><span class="cx-mq-l">Compléter ma fiche légale</span><span class="cx-mq-c">Compléter</span></button></div>` : ''}` + (f.int ? h.replace('<div class="actions">', '<div class="actions"><button type="button" class="btn gris petit cx-tel-act" data-cx="dossier|' + f.int + '">Tout le dossier de l’intervention</button>') : h); }; })();
 /* ══ PAR INTERVENTION — 8 novembre 2026 ══
    Justin : « rassemble tout ce qui est contrats, factures, historique des paiements, par intervention ; tout ce qui doit être
    dans la comptabilité, vraiment logique et compréhensible, facile d'utilisation ; inspire-toi des meilleurs logiciels pros et
@@ -11785,9 +11811,9 @@ document.addEventListener('change', ev => { const i = ev.target.closest('[data-c
    (prestataire, banque), son guide de 25 tests. Il garde pour l'instant SES factures d'exemple : on le dit, plutôt que de laisser
    croire que ce sont celles de la Comptabilité. Le cadre peut passer en plein écran sans recharger (son état est gardé). */
 function cxVueEnLigne(){
-  return `<div class="cx-explique"><span aria-hidden="true">💳</span><span><b>Paiement en ligne</b> · le module qui fait payer tes clients : par carte depuis un lien, par virement, par prélèvement, en trois fois. Le prestataire de paiement garde l’argent quelques jours, puis le verse sur ta banque moins ses frais ; chaque étape s’écrit en comptabilité. Ses 25 essais guidés sont dans « Tous les tests », le panneau du guide du module.</span></div>
-  <div class="cx-enligne" id="cx-enligne"><div class="cx-enligne-barre"><b>Module de paiement en ligne</b><span class="gris petit">Pour l’instant, il garde ses propres factures : elles ne se retrouvent pas encore dans ta Comptabilité.</span><button type="button" class="btn gris petit" data-cx="enlignePlein">⤢ Plein écran</button></div>
-    <iframe src="prototype-paiement.html" title="Module de paiement en ligne"></iframe></div>`;
+  return `<div class="cx-explique"><span aria-hidden="true">💳</span><span><b>Paiement en ligne</b> · le module qui fait payer tes clients : par carte depuis un lien, par virement, par prélèvement, en trois fois. Le prestataire de paiement garde l’argent quelques jours, puis le verse sur ta banque moins ses frais.${enApp() ? ' Ci-dessous, des exemples pour voir le parcours.' : ' Chaque étape s’écrit en comptabilité. Ses 25 essais guidés sont dans « Tous les tests », le panneau du guide du module.'}</span></div>
+  <div class="cx-enligne" id="cx-enligne"><div class="cx-enligne-barre"><b>${enApp() ? 'Paiement en ligne · exemples' : 'Module de paiement en ligne'}</b><span class="gris petit">${enApp() ? 'Ces factures sont des exemples : celles de ta Comptabilité ne s’y retrouvent pas encore.' : 'Pour l’instant, il garde ses propres factures : elles ne se retrouvent pas encore dans ta Comptabilité.'}</span><button type="button" class="btn gris petit" data-cx="enlignePlein">⤢ Plein écran</button></div>
+    <iframe src="prototype-paiement.html${enApp() ? '?app=1' : ''}" title="Module de paiement en ligne"></iframe></div>`;
 }
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-cx="enlignePlein"]'); if (!b) return; const z = document.getElementById('cx-enligne'); if (!z) return; const on = z.classList.toggle('plein'); b.textContent = on ? '✕ Quitter le plein écran' : '⤢ Plein écran'; document.body.style.overflow = on ? 'hidden' : ''; document.body.classList.toggle('cx-plein', on); });
 document.addEventListener('keydown', ev => { const z = document.getElementById('cx-enligne'); if (ev.key === 'Escape' && z && z.classList.contains('plein')) { z.classList.remove('plein'); document.body.style.overflow = ''; document.body.classList.remove('cx-plein'); const b = z.querySelector('[data-cx="enlignePlein"]'); if (b) b.textContent = '⤢ Plein écran'; } });
@@ -22746,7 +22772,9 @@ const CMPT_RUBRIQUES = { tva:['tva'], resultat:['resultat'], envoi:['clotures'],
 function cmptApres(){
   const c = document.getElementById('contenu'); if (!c) return; c.querySelectorAll('.cmpt-pont, .cmpt-rangee').forEach(e => e.remove());
   const bouton = (a, t, cl) => `<button type="button" class="btn ${cl || 'gris'} petit" data-cmptv="${a}">${t}</button>`;
-  if (route === 'facture' && param) { const f = FACTURES.find(x => x.id === param); if (f && f.num !== '—') { const n = c.querySelector('.cx-fil'); const h = `<div class="cmpt-rangee">${bouton('facture|' + f.id, '📊 Voir dans la Comptabilité')}</div>`; if (n) n.insertAdjacentHTML('afterend', h); } }
+  if (route === 'facture' && param) { const f = FACTURES.find(x => x.id === param); if (f && f.num !== '—') { const n = c.querySelector('.cx-fil'); const h = `<div class="cmpt-rangee cmpt-rangee-fac">${bouton('facture|' + f.id, '📊 Voir dans la Comptabilité')}</div>`; if (n) n.insertAdjacentHTML('afterend', h);
+    /* au téléphone, le fil d'Ariane et cette rangée s'effacent (la pastille « Retour » suffit) : le même bouton vit dans les actions de la tête, à côté de « Voir le PDF » */
+    const ac = c.querySelector('.tete .actions'); if (ac && !ac.querySelector('[data-cmptv^="facture|"]')) ac.insertAdjacentHTML('beforeend', bouton('facture|' + f.id, '📊 Voir dans la Comptabilité', 'gris cx-tel-act')); } }
   else if ((route === 'client' || route === 'inter') && param && rlPermis('comptabilite')) {   // un lien vers un écran interdit n'est pas proposé · 13 novembre 2026
     let txt = '', a = ''; if (route === 'client' && CLIENTS[param]) { txt = 'Voir ses factures dans la Comptabilité'; a = 'client|' + param; }
     else { const f = FACTURES.find(x => x.int === param && x.num !== '—'); if (f) { txt = 'Voir sa facture dans la Comptabilité'; a = 'facture|' + f.id; } }
@@ -26252,7 +26280,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="nv-style">
 </style>`);
 if (MODE_APP) {
   /* la proposer : dès que la session est ouverte par l'écran de connexion (pas pour une fenêtre de plus, pas pour les sondes en ?auto=) */
-  { const s1 = sessionOuvrir; sessionOuvrir = function(){ const v = s1.apply(this, arguments); if (v && !sessionOuvrir.muet && !/[?&]auto=/.test(location.search)) setTimeout(nvProposer, 900); return v; }; }
+  { const s1 = sessionOuvrir; sessionOuvrir = function(){ const v = s1.apply(this, arguments); if (v && !sessionOuvrir.muet && (!/[?&]auto=/.test(location.search) || /[?&]guide=1\b/.test(location.search))) setTimeout(nvProposer, 900); return v; }; }   /* « &guide=1 » : une sonde qui entre par ?auto= veut voir le guide paraître comme à une vraie première connexion (lib.ouvrir({ guide:true })) */
   if (/[?&]nv=1\b/.test(location.search)) setTimeout(() => { try { localStorage.removeItem(NV_CLE + SESSION); } catch (e) {} NV_MEM.delete(SESSION); nvOuvrir(); }, 700);
 }
 /* ── l'application sur iPhone : la barre et les gestes · 12 novembre 2026 ──

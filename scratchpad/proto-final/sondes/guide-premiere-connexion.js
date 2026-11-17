@@ -22,7 +22,7 @@ const PROFIL = process.env.PROFIL || 'mac', QUIS = (process.env.QUI || 'marc').s
     // reconnexion du MÊME compte (sans rejouer la double authentification : la fonction que la connexion appelle)
     await p.evaluate(() => { const k = SESSION; sessionFermer(); sessionOuvrir(k); }); await p.waitForTimeout(2200);
     v(`${tag} : une reconnexion du même compte ne le rouvre pas`, !(await G.ouvert(p)));
-    v(`${tag} : …et il se rouvre à la demande (« Nouveautés »)`, await (async () => { if (TEL) { await L.toucher(c, '#contenu .tt-menu'); await L.calme(p, 300); await L.toucher(c, '#calque .nv-menu'); } else await L.toucher(c, '#menu .nv-menu'); await L.calme(p, 500); const o = await G.ouvert(p); await p.evaluate(() => nvFermer(true)); return o; })());
+    v(`${tag} : …et il se rouvre à la demande (« Nouveautés »)`, await (async () => { if (TEL) { await L.toucher(c, p.locator('#contenu .tt-menu:visible, .cpsys-menu:visible').first()); await L.calme(p, 300); await L.toucher(c, '#calque .nv-menu'); } else await L.toucher(c, '#menu .nv-menu'); await L.calme(p, 500); const o = await G.ouvert(p); await p.evaluate(() => nvFermer(true)); return o; })());
     await L.ranger(p);
   }
   v('aucune erreur de console', c.err.length === 0, c.err.slice(0, 3));
