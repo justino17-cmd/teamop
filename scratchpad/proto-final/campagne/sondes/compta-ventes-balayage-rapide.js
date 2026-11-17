@@ -10,7 +10,7 @@ const ECRANS = {
 const signature = p => p.evaluate(() => { const s = JSON.stringify([FACTURES, ENCAISSEMENTS, ACHATS, CP.depots, CP.chq, CP.remis, CONTRATS, INTS.length, typeof TACHES !== 'undefined' ? TACHES.length : 0]); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return s.length + ':' + h; });
 (async () => {
   const profil = process.argv[2] || 'mac', qui = process.argv[3] || 'marc', noms = process.argv.slice(4).length ? process.argv.slice(4) : Object.keys(ECRANS);
-  const c = await L.ouvrir({ profil, qui, hash: 'accueil' }), p = c.p; const sorties = {}, sortie = path.join(__dirname, '..', `balayage-compta-ventes-${qui}-${profil}.json`);
+  const c = await L.ouvrir({ profil, qui, hash: 'accueil' }), p = c.p; const sorties = {}, sortie = path.join(__dirname, '..', `balayage-compta-ventes-${qui}-${profil}${process.env.SUFFIXE ? '-' + process.env.SUFFIXE : ''}.json`);   // SUFFIXE : une reprise d'un seul écran ne remplace pas le fichier des autres
   const neuf = async () => { await X.O.neuf(c, 'comptabilite'); };
   const prep = async e => { await X.compta(c, e.onglet, { cat: e.cat }); };
   for (const nom of noms) {
