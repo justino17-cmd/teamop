@@ -18,7 +18,8 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   const D = await f.evaluate(() => ({ cl: S.clients.map(x => [x.id, x.nom, x.pro, x.adresse, x.cp, x.ville, x.email, x.tel, x.contact || '']), cat: CATALOGUE.map(a => [a.ref, a.des, a.unite, a.puC, a.tvaBp]), ent: ENTREPRISE.nom + '|' + ENTREPRISE.siret + '|' + ENTREPRISE.iban + '|' + ENTREPRISE.rcs + '|' + ENTREPRISE.forme + '|' + ENTREPRISE.capital + '|' + ENTREPRISE.assureur + '|' + ENTREPRISE.bic }));
   const att = await p.evaluate(() => ({ cl: Object.entries(CLIENTS).map(([k, x]) => [k, x.nom, x.type === 'pro', x.mail, x.tel]), cat: PRODUITS.filter(x => prVend(x) && !x.retire && PACKS_ENT.includes(x.p)).sort((a, b) => (a.o || 99) - (b.o || 99)).map(x => [x.ref || x.id, x.nom, x.u || 'u', Math.round(x.pv * 100), Math.round((x.tva == null ? 20 : x.tva) * 100)]), ent: [ENTREPRISE.nom, ENTREPRISE.siret, ENTREPRISE.iban] }));
   v('clients reçus : même nombre, mêmes identifiants, mêmes noms, types, e-mails, téléphones', D.cl.length === att.cl.length && att.cl.every((x, i) => D.cl[i][0] === x[0] && D.cl[i][1] === x[1] && D.cl[i][2] === x[2] && D.cl[i][6] === x[3] && D.cl[i][7] === x[4]), [D.cl.length, att.cl.length]);
-  v('catalogue reçu AU CENTIME : même nombre, mêmes références, mêmes prix, mêmes taux de TVA', D.cat.length === att.cat.length && att.cat.every((x, i) => D.cat[i][0] === x[0] && D.cat[i][3] === x[3] && D.cat[i][4] === x[4] && D.cat[i][1] === x[1]), [D.cat.length, att.cat.length]);
+  // les produits vendables d'abord, AU CENTIME (mêmes références, mêmes prix, mêmes taux de TVA) ; puis les six prestations de l'entreprise (main-d'œuvre, mise en service, entretien, trois zones de déplacement) — ajoutées le 17 novembre (compositeur, tout-09)
+  v('catalogue reçu AU CENTIME : les produits (même nombre, mêmes références, mêmes prix, mêmes taux de TVA) puis les 6 prestations', D.cat.length === att.cat.length + 6 && att.cat.every((x, i) => D.cat[i][0] === x[0] && D.cat[i][3] === x[3] && D.cat[i][4] === x[4] && D.cat[i][1] === x[1]) && D.cat.slice(att.cat.length).map(x => x[0]).join() === 'MO-H,MO-MS,ENT-AN,DEP-Z1,DEP-Z2,DEP-Z3', [D.cat.length, att.cat.length, D.cat.slice(att.cat.length).map(x => x[0])]);
   v('population : un prix à décimale (au centime) est bien dans le catalogue', att.cat.some(x => x[3] % 100 !== 0), att.cat.slice(0, 3));
   v('aucune valeur d\'exemple d\'atelier : forme, capital, RCS, assureur, BIC vides', /^Clim Services 17\|123 456 789 00012\|FR76 3000 6000 0112 3456 7890 189\|\|\|\|\|$/.test(D.ent), D.ent);
   v('l\'IBAN du prototype a une clé de contrôle valide (l\'atelier le vérifierait)', await f.evaluate(() => ibanOk(ENTREPRISE.iban)));
@@ -59,7 +60,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   let R = await rangee();
   v('Tous : le devis composé est dans « Composés dans l\'atelier » (1 ligne de plus)', R.length === avant.liste + 1, R);
   const ligne = R.find(t => /D-2026-0\d\d/.test(t)) || '';
-  v('la ligne dit numéro, client, objet (sans le client répété), date, TTC et état', /D-2026-042/.test(ligne) && /Hôtel de la Plage/.test(ligne) && /Remplacement de deux anodes/.test(ligne) && !/ — Hôtel/.test(ligne) && /31\/10/.test(ligne) && L.cents(await p.locator('#contenu .opd-l .dv-m b').first().textContent()) === attendu && /Brouillon/.test(ligne), ligne);
+  v('la ligne dit numéro, client, objet (sans le client répété), date, TTC et état', /D-2026-042/.test(ligne) && /Hôtel de la Plage/.test(ligne) && /Remplacement de deux anodes/.test(ligne) && !/ — Hôtel/.test(ligne) && /préparé le 31\/10/.test(ligne) && L.cents(await p.locator('#contenu .opd-l .dv-m b').first().textContent()) === attendu && /À envoyer/.test(ligne), ligne);   // mêmes mots que les autres devis (tout-11)
   const k1 = await p.evaluate(() => [...document.querySelectorAll('#contenu .kpis .kpi')].map(k => ({ b: k.querySelector('b').textContent, s: k.querySelector('span').textContent })));
   v('chiffre 1 « à finir et envoyer » : +1 (le brouillon composé)', nb(k1[0].b) === nb(k0[0].b) + 1, [k0[0].b, k1[0].b]);
   v('chiffres 2, 3 : inchangés (le brouillon n\'est ni en attente ni accepté)', k1[1].b === k0[1].b && k1[2].b === k0[2].b, [k0.map(x => x.b), k1.map(x => x.b)]);
@@ -87,7 +88,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   await f3.locator('[data-act="retour"]:visible').first().click(); await p.waitForTimeout(900);
   await L.toucher(c, '.seg [data-dvf="accepte"]'); R = await rangee();
   const k3 = await p.evaluate(() => [...document.querySelectorAll('#contenu .kpis .kpi')].map(k => ({ b: k.querySelector('b').textContent, s: k.querySelector('span').textContent })));
-  v('Acceptés : le devis signé y est, pastille « Signé »', R.some(t => /D-2026-042/.test(t) && /Signé/.test(t)), R);
+  v('Acceptés : le devis signé y est, pastille « Accepté » (les mots des autres devis)', R.some(t => /D-2026-042/.test(t) && /accepté le 31\/10/.test(t) && /Accepté$/.test(t)), R);
   v('chiffre 3 « acceptés » : + le TTC et +1 ; chiffre 4 : le nombre de décidés +1', L.cents(k3[2].b) === L.cents(k0[2].b) + attendu && /· (\d+) décidés/.test(k3[3].s) && +k3[3].s.match(/· (\d+) décidés/)[1] === +k0[3].s.match(/· (\d+) décidés/)[1] + 1, [k0[2].b, k3[2].b, k0[3].s, k3[3].s]);
   await L.toucher(c, '.seg [data-dvf="perdu"]'); R = await rangee();
   v('Refusés, expirés : aucun devis composé (la liste n\'est pas là)', R.length === 0, R);
