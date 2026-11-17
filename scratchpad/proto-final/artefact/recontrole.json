@@ -1,0 +1,123 @@
+{
+ "date": "2026-11-17",
+ "couvert": [
+  "Relu l'outil (artefact-bac.js) règle par règle : il simule bien a (lien download, blob:, data:, a.click() détaché), b (window.claude seulement dans la page du haut), c (alert/confirm/prompt), d (print), e (window.open → null), f (tel/mailto/sms annulés et comptés), g (presse-papiers écrit, jamais lu), i (réseau hors 127.0.0.1 coupé, hôtes permis rangés à part), j (rangement refusé, 3 variantes). Il ne simule PAS : la page principale DANS un cadre (window.top !== window : la branche « cadre sans pont » de telechargerFichier n'y était jouée que par les pages voisines), window.claude présent mais use('downloads') nul ou qui jette, un parent d'une autre origine, history.pushState/replaceState qui jettent, un presse-papiers qui exige un geste récent, notifications/son/voix refusés, dispatchEvent(click) sur un lien détaché, location.href = blob:/data:, l'entrée SANS ?app=1 (seul #nom passe). Écrit : recontrole-artefact-pose.js (+ hote-artefact.html).",
+  "Rejoué les 8 sondes d'artefact-tout.sh (sans recensement) : 302 ✓ · 0 ✗ (63 + 26 + 14 + 144 + 10 + 16 + 24 + 5), conforme au rapport de l'étape 1.",
+  "Prototype servi DANS un cadre (comme claude.ai), pont ok / visiteur refuse / sans window.claude / use('downloads') nul / use() qui jette / trop lourd : 36 ✓ · 0 ✗ (recontrole-artefact-hote.js). Contre-épreuve : la branche « cadre » du téléchargement neutralisée sur une copie → 3 ✗ (la sonde mord).",
+  "Pages voisines sous le prototype en cadre : FEC et PDF de l'atelier arrivent au pont du prototype, refus dit : 10 ✓ · 0 ✗ (voisins). Comptabilité d'une VRAIE autre origine (cadre rechargé sous localhost : window.parent.claude jette réellement) : le FEC dit « pas disponible », jamais un silence : 6 ✓ · 0 ✗ (origine).",
+  "Recensement refait en mode REVUE (l'entrée réelle de l'artefact, sans ?app=1) et DANS un cadre, avec pose adverse : patron/mac 33 ✓ · 0 ✗ (28 gestes jugés, 18 routes faute de temps) ; client/iphone (rôle jamais recensé avant) 10 ✓ · 0 ✗ ; tech/iphone rangement refusé 32 ✓ · 0 ✗ ; gestion/mac pose adverse totale 20 ✓ · 2 ✗ (voir casses et doutes).",
+  "Recensement DANS les cadres (l'agent précédent n'y descendait pas) : 30 vues de la Comptabilité parcourues, atelier à l'ouverture : seules sorties réelles trouvées = FEC (ok), Copier / Photographier / Déposer (Achats, ok), « Choisir une image » de l'atelier (champs cachés, non atteignables sans document ouvert : écartés et comptés). Aucun bouton de sortie manqué trouvé.",
+  "Carte avec bibliothèques chargées (scripts cdnjs/unpkg servis depuis des copies), feuilles de style cdnjs et tuiles COUPÉES comme l'artefact : 9 ✓ · 0 ✗ ; la carte tombe au bout de 10 s sur « Carte réelle indisponible ici : dessin simplifié » avec Réessayer ; captures mac et iPhone regardées : rien de cassé.",
+  "Historique qui jette (pushState/replaceState, 3 rôles, 2 cas) : 17 ✓ · 1 ✗ (voir casses). Module de courrier sous notifications refusées, son refusé, rangement refusé, historique qui jette (mac) : aucune erreur, Réglages et Écrire répondent.",
+  "Hors artefact (127.0.0.1, sans bac, vrais téléchargements Playwright) : page principale OK (CSV véhicules, FEC : nom et taille reçus, mac et iPhone) ; 4 ✗ = FEC de la Comptabilité en cadre et PDF de l'atelier (voir casses : pas une régression).",
+  "Captures REGARDÉES : entrée en cadre (mac jour, iPad jour, Android nuit, iPhone nuit) et carte « Le téléchargement n'est pas disponible ici » avec le texte sélectionné : dans l'écran, au-dessus de la barre d'onglets, lisible de jour et de nuit. Un défaut de MON hôte (pas de balise viewport : iPhone rendu à 980 px) a été vu sur capture et corrigé avant de conclure.",
+  "Bancs du dépôt depuis l'arbre : compiler-pages, verifier-syntaxe, test-835 (844 ✓), 836 (307 ✓), 837 (122 ✓), 1008 (54 ✓), 2994 (15 ✓), verif-secrets : tous à 0 ✗."
+ ],
+ "manques": [
+  {
+   "ou": "recensement de l'agent (artefact-recensement.js)",
+   "bouton": "tous les boutons des pages voisines en cadre (Comptabilité 30 vues, atelier, paiement)",
+   "role": "patron",
+   "profil": "mac",
+   "constat": "son comptage visait #contenu de la page principale : il ne descendait pas dans les cadres (le commentaire du fichier disait le contraire). Rejoué par recontrole-artefact-cadres.js : aucune sortie manquante trouvée, mais couverture partielle (voir doutes)."
+  },
+  {
+   "ou": "recensement de l'agent",
+   "bouton": "tous (rôle client : Espace client, Signer)",
+   "role": "client",
+   "profil": "iphone",
+   "constat": "seuls gérant, secrétariat et technicienne étaient recensés. Rôle client rejoué : 10 ✓ · 0 ✗ (appeler, copier, voir en grand, télécharger le PDF, envoyer par e-mail)."
+  },
+  {
+   "ou": "toutes les sondes de l'agent",
+   "bouton": "entrée sans ?app=1&auto=…",
+   "role": "tous",
+   "profil": "tous",
+   "constat": "elles ouvrent l'application par ?app=1&auto=marc, adresse qu'un artefact ne peut pas porter (seul #nom passe). Rejoué en mode revue (l'entrée réelle, avec la bande « Tester en tant que »)."
+  }
+ ],
+ "casses": [
+  {
+   "ou": "Comptabilité (cadre) › Fichier des écritures › Télécharger le FEC ; atelier de devis › Télécharger le PDF",
+   "constat": "HORS artefact (onglet normal, coque), ces deux sorties n'enregistrent RIEN : sans pont « downloads », la Comptabilité montre seulement le début du texte et l'atelier dit « pas disponible » (la fabrique de lien n'est gardée que pour file:). Mesuré : 4 ✗ sur 4 dans recontrole-artefact-hors.js. PAS une régression des corrections (le même comportement est dans la version d'avant, base e0a082c) mais une limite qui joue contre le produit réel : la coque mobile a besoin d'un pont natif pour ces deux sorties.",
+   "gravite": "limite connue, hors artefact"
+  },
+  {
+   "ou": "prototype-op-gestion.html : history.replaceState sans try (lignes 8415, 10916, 10917, 12076, 22705, 23374, 23803)",
+   "constat": "si le cadre refuse l'historique (origine opaque), l'appel jette et le rendu s'arrête. Prouvé ligne 12076 (technicienne ouvrant une rubrique refusée : redirection impossible, 2 erreurs) avec un historique qui jette même sur « #nom » ; avec seul « #nom » permis (le cas probable d'après la spécification), 0 erreur. Un try/catch par appel suffit (pushState ligne 8508 et ceux du courrier et de l'atelier sont déjà gardés).",
+   "gravite": "faible, probabilité faible"
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/sondes/artefact-tout.sh (RECENSEMENT=0)",
+   "resultat": "8 sondes, 302 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-hote.js",
+   "resultat": "36 ✓ · 0 ✗ ; mutation (branche cadre retirée) → 33 ✓ · 3 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-voisins.js",
+   "resultat": "10 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-origine.js",
+   "resultat": "6 ✓ · 0 ✗ (atelier d'une autre origine : non rejouable, dit)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-carte.js",
+   "resultat": "9 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-cadres.js",
+   "resultat": "population 12 candidats, FEC touché ✓ ; sorties de l'atelier : champs cachés écartés"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-historique.js",
+   "resultat": "17 ✓ · 1 ✗ (jette-tout/tech : replaceState ligne 12076)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-courrier.js",
+   "resultat": "mac : 10 ✓ · 0 ✗ ; iPhone : le bouton Réglages n'est pas atteint par la sonde (2 ✗ de la sonde, pas de la page)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-recensement.js (REVUE=1 HOTE=1)",
+   "resultat": "patron/mac 33 ✓ ; client/iphone 10 ✓ ; tech/iphone 32 ✓ ; gestion/mac pose adverse 20 ✓ · 2 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-hors.js",
+   "resultat": "12 ✓ · 4 ✗ (limite, voir casses)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-artefact-captures.js",
+   "resultat": "4 ✓ · 0 ✗ (captures regardées)"
+  }
+ ],
+ "nonVerifiable": [
+  "Ouvre l'artefact sur ordinateur : Véhicules › coût › « Exporter en tableau ». Une fenêtre de confirmation de l'enregistrement s'ouvre-t-elle ? Accepte : le fichier cout-des-vehicules.csv arrive-t-il ? Recommence et REFUSE : la page dit-elle « Rien n'a été enregistré » ?",
+  "Même chose sur iPhone et sur Android dans l'application claude.ai (la confirmation et le dossier de réception ne sont connus que par une ouverture réelle).",
+  "Comptabilité › Fichier des écritures › « Télécharger le FEC », dans le cadre : le fichier arrive-t-il (ce qui prouve que le cadre voisin atteint le pont du parent, donc même origine) ou la page dit-elle « pas disponible ici » ?",
+  "Devis › composer un document › « Télécharger le PDF » (l'atelier est un cadre voisin) : même question ; le PDF est fabriqué par html2canvas chargé depuis cdnjs, que ce poste de test ne peut pas atteindre.",
+  "Boîte mail › Écrire › joindre un PDF › Aperçu : le PDF s'affiche-t-il dans la fenêtre (cadre blob:) ou reste-t-elle vide ? Puis « Télécharger ».",
+  "Notes de frais ou Achats › ajouter la photo d'un ticket : la photo s'affiche-t-elle (adresse blob: dans une image) ?",
+  "Planning › Carte : les fonds de carte arrivent-ils, ou « dessin simplifié » apparaît-il après 10 s ? La page reste-t-elle utilisable pendant l'attente ?",
+  "Sur un vrai téléphone, touche « Appeler » : le téléphone appelle-t-il ? La carte avec le numéro apparaît-elle dans tous les cas ?",
+  "Toucher « Copier » (texte du SMS, lien du registre, IBAN) puis coller ailleurs : le texte collé est-il le bon ? Sinon, la carte « à copier à la main » apparaît-elle avec le texte sélectionné ?",
+  "Ouvrir l'artefact avec une adresse qui finit par #clients, puis #client-x-cm : la page arrive-t-elle sur la bonne rubrique ?",
+  "Au premier écran, vois-tu la bande « Tester en tant que » (mode revue) ou l'écran de connexion (mode application) ? Les sondes ont rejoué les deux ; il faut dire lequel tu veux dans l'artefact.",
+  "Menu Aide du guide : la voix du guide parle-t-elle après ton premier toucher ? Sinon le guide reste écrit, sans erreur."
+ ],
+ "doutes": [
+  "ENTRÉE : sans ?app=1, la page s'ouvre en mode revue (bande « Tester en tant que », pastilles « FAITE », « Prototype : rien n'est enregistré »). Le mode application ne s'atteint que par ?app=1 / ?lien= (impossibles dans un artefact) ou window.OPG_MODE_APP ou l'adresse #lien-… Toutes les sondes de l'étape 1 tournaient en mode application avec ?auto=marc (permis seulement en local). À trancher avec Justin : quel écran doit voir un visiteur de l'artefact ?",
+  "Dans l'artefact, la page principale n'est PAS la fenêtre du haut (window.top !== window) : telechargerFichier prend donc la branche « cadre » quand le pont manque (carte « pas disponible » avec le texte à copier, jamais un lien). C'est le bon comportement, mais il n'avait été joué que sur les pages voisines ; il l'est maintenant (36 ✓).",
+  "Blob fabriqué dans un cadre : le bac de l'étape 1 a été ASSOUPLI pour l'accepter (un Blob d'un cadre n'est pas un « instanceof Blob » de la page du haut). Si le vrai pont teste instanceof, le PDF de l'atelier et les justificatifs choisis dans un cadre seraient refusés. Un ArrayBuffer (ou un Blob refait dans la page du haut) serait plus sûr : à faire si le test réel échoue.",
+  "Les pages voisines sont chargées avec une requête (prototype-comptabilite.html?app=1&liaison=<JSON encodé, long>, prototype-documents.html?app=1&mode=jour). L'artefact ne garantit qu'un « #nom » pour la page du haut ; si un fichier voisin est servi sans sa requête, la Comptabilité s'ouvre sans ses données de liaison et l'atelier hors mode application.",
+  "La page principale garde l'adresse du cadre de l'atelier (la sonde ne peut pas le recharger sous une autre origine) : le cas atelier d'une autre origine est lu dans le code (claudeHote et HOTE sous try/catch), pas joué.",
+  "gestion/mac sous pose adverse totale : 8 sur 25 boutons « Commencer au chapitre » du guide jugés non touchables (recouverts) ; non rejoué sans la pose, donc non attribuable avec certitude (à rejouer seul).",
+  "Couverture du recensement : machine partagée, 150 à 330 s d'attente de navigateur par passage, 18 routes du patron non faites dans son passage ; les sorties des pages voisines sont recensées par le DOM mais seul le premier état de chaque vue l'est (l'état de la Comptabilité change avec les gestes : certaines vues n'offrent des boutons qu'après d'autres).",
+  "Réglages du module de courrier sur iPhone : le bouton n'est pas atteint par ma sonde (il est derrière la navigation du module) ; notifications et son non rejoués sur téléphone.",
+  "Deux boutons « Imprimer les étiquettes » (registre) ne font qu'un message « Aperçu » : simulation dite, sans dépendre de print ; à garder en tête si Justin attend une vraie impression.",
+  "Le visionneur PDF du justificatif (cadre blob:) et l'aperçu du courrier dépendent de la politique de contenu réelle pour les cadres : repli « enregistrer le PDF » présent dans le premier cas ; dans le second le texte de repli est derrière le cadre, donc invisible si le cadre reste vide mais le bouton « Télécharger » reste là."
+ ]
+}
