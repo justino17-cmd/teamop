@@ -6,7 +6,7 @@ const fs = require('fs'), vm = require('vm'), path = require('path');
 const L = require('../lib.js');
 const src = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion.html'), 'utf8'), v = L.v;
 const i0 = src.indexOf('const secuAutoPermis'); const ctx = {}; vm.createContext(ctx); vm.runInContext(src.slice(i0, src.indexOf('\n', i0)) + ';this.f=secuAutoPermis', ctx);
-const adr = u => { const x = new URL(u); return { protocol:x.protocol, hostname:x.hostname }; };
+const adr = u => { try { const x = new URL(u); return { protocol:x.protocol, hostname:x.hostname }; } catch (e) { const m = /^(\w+:)\/\/([^\/:]+)/.exec(u); return { protocol:m[1], hostname:m[2] }; } };   /* « evil-127.0.0.1 » n'est pas une adresse que new URL accepte : on la passe telle quelle à la fonction */
 (async () => {
   console.log('\n── 1. quatorze adresses jugées par la vraie fonction ──');
   const oui = ['http://127.0.0.1:8123/apercu/p.html', 'http://localhost:3000/', 'http://[::1]:8080/', 'file:///home/justin/apercu/prototype-op-gestion.html'],
