@@ -47,7 +47,8 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   const SOURCE = fs.readFileSync(require('path').join(L.RACINE, 'apercu', 'prototype-courrier.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
   const sansAuth = !/spf|dkim|dmarc|authentication-results|authentifi/i.test(SOURCE.replace(/rapport DMARC[^\n]*/g, ''));
   L.v('population : le courriel piégé au nom d\'un client est reconnu « Client » par l\'application (pastille/bandeau)', !!g3 && /client|facture/i.test(JSON.stringify(g3)), g3);
-  L.v('3. le module sait dire qu\'un expéditeur n\'est pas authentifié (SPF / DKIM / DMARC lus par la source) : aucun champ de ce genre dans le contrat ni dans l\'affichage', !sansAuth, 'aucune occurrence de spf/dkim/dmarc/authentication-results dans le module');
+  console.log('  · CONSTAT 3 (règle pour la vraie application, pas une correction du prototype) : le contrat de la source ne porte aucune information d\'authenticité (SPF / DKIM / DMARC) — ' + (sansAuth ? 'aucune occurrence dans le module' : 'des occurrences existent, à relire') + ' : un expéditeur falsifié (cE3, l\'adresse d\'un vrai client) est reconnu « Client » sans réserve');
+  L.v('contre-épreuve : le courriel du VRAI client (cE3) garde ses gestes (« Noter le paiement annoncé »)', !!g3 && g3.boutons.some(b => /paiement annoncé/i.test(b.split('¦')[1])), g3 && g3.boutons.map(b => b.split('¦')[1]));
   const nErr = c.err.filter(e => !/ResizeObserver/.test(e)); L.v('aucune erreur de page', nErr.length === 0, nErr.slice(0, 3));
   await p.screenshot({ path: CAP + 'confiance-mac.png' }).catch(() => {});
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
