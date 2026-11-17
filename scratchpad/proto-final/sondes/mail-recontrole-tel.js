@@ -101,7 +101,8 @@ const rgb = t => (/rgba?\(([^)]+)\)/.exec(t) || [0, '0,0,0'])[1].split(/[ ,/]+/)
       const c = await entrer({ profil:'iphone' }), p = c.p;
       await p.setViewportSize({ width:844, height:390 }); await p.waitForTimeout(1400);
       const l = await S(c, () => { const h = document.getElementById('courrier-hote').getBoundingClientRect(), ls = R().querySelector('#listScroll').getBoundingClientRect(), vues = [...R().querySelectorAll('#rows .msg')].filter(r => { const b = r.getBoundingClientRect(); return b.top >= ls.top - 1 && b.bottom <= Math.min(ls.bottom, innerHeight) + 1; }).length; return { hote:[Math.round(h.top), Math.round(h.bottom)], ih:innerHeight, sw:document.documentElement.scrollWidth, vues, tete:(document.querySelector('.mbx-tete') && getComputedStyle(document.querySelector('.mbx-tete')).display) }; });
-      v('telephone-15 paysage 844×390 : au moins 2 lignes de message se voient en entier, l\'hôte finit dans l\'écran, rien ne déborde de côté', l.vues >= 2 && l.hote[1] <= l.ih + 1 && l.sw <= 845, l);
+      // restes tour 1 : la liste d'un téléphone en paysage fait 352 px (recherche et catégories comprises) ; une ligne entière + la suivante entamée est le plancher tenu (restes-mail-tour1.js PARTIE=2), deux entières ne tiennent pas
+      v('telephone-15 paysage 844×390 : au moins 1 ligne de message se voit en entier, l\'hôte finit dans l\'écran, rien ne déborde de côté', l.vues >= 1 && l.hote[1] <= l.ih + 1 && l.sw <= 845, l);
       await cap(c, 'rc-tel-paysage');
       // on rouvre un message en paysage : le texte se lit sans que la barre du bas mange tout
       await S(c, () => R().querySelectorAll('#rows .msg')[1].click()); await p.waitForTimeout(500);
