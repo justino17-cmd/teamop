@@ -3,7 +3,7 @@
 // node client-recontrole.js <profil> [jour|nuit] [sections]   sections : mots, paiement, autres, demande, routes, regard (toutes par défaut)
 // → « N ✓ · M ✗ », sortie 1 si un contrôle tombe. Captures (à REGARDER) dans O.CAP + 'rc-…'.
 const O = require('./client-outils.js'), L = O.L, v = L.v, fs = require('fs');
-const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === 'nuit', sections = (process.argv[4] || 'mots,paiement,autres,demande,routes,regard').split(',');
+const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === 'nuit', sections = (process.argv[4] || 'mots,paiement,autres,demande,routes,noms,regard').split(',');
 const APP = process.argv.includes('app'), ES = s => sections.includes(s), tag = `${profil}-${nuit ? 'nuit' : 'jour'}${APP ? '-app' : ''}`;   // « app » : le mode application, sans la bande « Tester en tant que » : ce que voit un vrai client
 const ev = (p, f, a) => p.evaluate(f, a);
 const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); if (!e) return ''; const k = e.cloneNode(true); k.querySelectorAll('.rl-bande,[data-rlcli]').forEach(x => x.remove()); document.body.appendChild(k); k.style.cssText = 'position:absolute;left:-9999px;width:' + e.offsetWidth + 'px'; const t = k.innerText; k.remove(); return t.replace(/\s+/g, ' ').trim(); }, sel);
@@ -143,6 +143,9 @@ const BUREAU = /sans réponse|côté bureau|à planifier|aplanifier|avalider|rel
     const ct = await texte(p, '.ec'); v('D · « Demander un contrat » : UNE tâche « Proposer un contrat d’entretien » pour le bureau', nt1 === nt0 + 1 && (await ev(p, () => /Proposer un contrat d’entretien à M\. et Mme Durand/.test(TACHES.slice(-1)[0].t))), nt0 + ' → ' + nt1);
     await L.capture(c, O.CAP + `rc-${tag}-contrat-apres-demande.png`);
     v('D · après sa demande de contrat, le client voit que la demande est partie (un mot « demande envoyée / on vous rappelle », ou plus de bouton « Demander un contrat »)', !/Demander un contrat/.test(ct) || /demande (envoyée|reçue|en cours)|on vous rappelle|nous vous rappelons/i.test(ct), ct.slice(0, 300));
+    // il redemande tout de suite (rien ne lui a dit que c'était parti) : le bureau ne doit pas recevoir deux fois la même demande
+    await clic(p, '[data-ecctr]'); await L.calme(p, 300); await clic(p, '.panneau [data-ec^="demandeok"]'); await L.calme(p, 350); const nt2 = await ev(p, () => TACHES.length);
+    v('D · une seconde demande de contrat, tout de suite après, ne crée pas une seconde tâche « Proposer un contrat » pour le bureau', nt2 === nt1, nt1 + ' → ' + nt2);
     // le bureau voit ce que le client a demandé : tâche, fiche à planifier, sans erreur
     await p.evaluate(() => { rlChanger('patron', { h: 'taches', muet: true }); }); await L.calme(p, 600); const tt = await texte(p, '#contenu');
     v('D · côté patron : la tâche « Rappeler Copropriété Les Mimosas pour fixer la date (demande en ligne) » est dans Tâches', /Rappeler Copropriété Les Mimosas pour fixer la date/.test(tt) || /Mimosas/.test(tt), tt.slice(0, 200));
@@ -180,6 +183,32 @@ const BUREAU = /sans réponse|côté bureau|à planifier|aplanifier|avalider|rel
     console.log('   navigation :', JSON.stringify(nav));
     v('R · la navigation ne montre que l’espace du client (aucune rubrique du bureau)', ![...nav.barre, ...nav.lat].some(x => /Planning|Clients|Comptabilité|Équipe|Stock|Paramètres|Statistiques|Historique|Tâches|Mon entreprise/i.test(x)), nav);
     v('R · aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c); }
+
+  /* ═══ N · le clavier et les lecteurs d'écran : un nom pour chaque commande, le focus reste dans la fenêtre ouverte, Échap rend la main ═══ */
+  if (ES('noms')) { console.log('\n## N · noms et clavier');
+    const c = await O.client({ profil, nuit, cli: 'md' }), p = c.p; let n = 0; const sans = [];
+    for (const cli of ['md', 'vp', 'mi', 'cm', 'hp']) for (const tab of ['accueil', 'factures', 'interventions', 'devis', 'contrats']) {
+      await ev(p, ({ cli, tab }) => { try { fermerPanneau(); } catch (e) {} RL_CLI.cli = cli; EC.tab = tab; if (route !== 'espaceclient') aller('espaceclient'); else rendre(); }, { cli, tab }); await L.calme(p, 150);
+      const r = await ev(p, () => { const tout = [...document.querySelectorAll('#contenu button, #contenu a[href], #contenu input, #contenu select, #contenu textarea, #contenu [role=tab], #barre-bas button, #menu button')].filter(e => e.offsetParent && !e.closest('.rl-bande'));
+        return { n: tout.length, sans: tout.filter(e => !((e.getAttribute('aria-label') || e.textContent || e.title || (e.labels && e.labels[0] && e.labels[0].textContent) || e.getAttribute('placeholder') || '').replace(/\s/g, ''))).map(e => e.outerHTML.slice(0, 90)) }; });
+      n += r.n; r.sans.forEach(x => sans.push(cli + '/' + tab + ' ' + x)); }
+    v(`N · population : ${n} commandes recensées sur 25 écrans`, n >= 150, n);
+    v('N · chaque commande a un nom (texte, aria-label, titre ou étiquette)', !sans.length, sans.slice(0, 5));
+    // client-18 : « Copier » à côté de l'IBAN et du BIC dit qu'il a copié, sans erreur
+    await espions(p); await ev(p, () => { RL_CLI.cli = 'md'; EC.tab = 'factures'; rendre(); }); await L.calme(p, 250);
+    const aBic = await ev(p, () => !!ENTREPRISE.bic); console.log('   BIC renseigné pour l’entreprise :', aBic);
+    for (const w of aBic ? ['iban', 'bic'] : ['iban']) { await ev(p, () => { window.__toasts.length = 0; }); const ok = await clic(p, `[data-ec="copier|${w}"]`); await L.calme(p, 250); const t = await ev(p, () => window.__toasts.join(' | '));
+      v(`N · client-18 · « Copier » (${w.toUpperCase()}) existe et annonce « Copié »`, ok && /Copi/.test(t), t); }
+    // la fenêtre de paiement : le focus ne sort pas, Échap ferme, le focus revient à « Payer »
+    await ev(p, () => { RL_CLI.cli = 'md'; EC.tab = 'factures'; rendre(); }); await L.calme(p, 250);
+    await p.focus('[data-ec^="payer|"]').catch(() => {}); await p.keyboard.press('Enter'); await L.calme(p, 400); let d = await dessus(p);
+    v('N · « Entrée » sur « Payer » ouvre la fenêtre de paiement', /Payer la facture/.test(d.panneau), d.panneau.slice(0, 60));
+    const dehors = []; for (let i = 0; i < 14; i++) { await p.keyboard.press('Tab'); const dans = await ev(p, () => { const a = document.activeElement; return !!(a && a.closest && a.closest('#calque')); }); if (!dans) dehors.push(i); }
+    v('N · Tab dans la fenêtre de paiement : le focus ne part pas derrière (14 pressions)', !dehors.length, dehors);
+    await p.keyboard.press('Escape'); await L.calme(p, 300); d = await dessus(p); v('N · Échap ferme la fenêtre', !d.panneau, d.panneau.slice(0, 60));
+    const foc = await ev(p, () => { const a = document.activeElement; return a ? (a.tagName + ' ' + (a.dataset.ec || a.id || '')) : ''; });
+    v('N · après Échap, le focus revient sur une commande de la page (pas sur la page nue)', /^(BUTTON|A) /.test(foc), foc);
+    v('N · aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c); }
 
   /* ═══ V · ce qu'on REGARDE : une capture par écran du client, à relire à l'œil ═══ */
   if (ES('regard')) { console.log('\n## V · captures');

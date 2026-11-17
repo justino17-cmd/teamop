@@ -1,0 +1,44 @@
+{
+ "noms": ["contrats"],
+ "date": "2026-11-17",
+ "regles": [
+  "contrats-02 casses 2, 3, 4 (pièce posée sur une visite comprise facturée seule ; message de fin « comprise dans le contrat » et non « garantie » ; plus de « Paiement sur place » avant la fin) : rejoué par restes-contrats-1.js sur mac, iPhone nuit, Android (57 / 59 / 59 ✓, 0 ✗) et par un contrôle neuf (restes-contrats-1-recontrole.js G : une visite « à chaque visite » avec pièce donne UNE facture, la ligne de visite à 350 € et la pièce, même appelée deux fois ; une intervention hors contrat garde sa main-d'œuvre et son déplacement)",
+  "contrats-01 casse 1 (prix d'une visite au centime, le reste sur la dernière) : 132 couples fréquence 1 à 12 × 11 prix (dont 999,99, 0,10, 3333,33) : la somme des parts = le prix au centime, 132 / 132",
+  "casse 5 (« échu depuis N jours ») : fin à −16, −1, 0, +1, +2 jours : jamais de nombre négatif, de NaN ni d'erreur dans Tâches, Statistiques et la fiche ; « échu depuis 1 jour » et « dans 1 jour » au singulier",
+  "contrats-06 (plus de « Modèle de démonstration » dans le PDF) , 11 (phrase sous les deux boutons), 13 (PDF replié au téléphone), 14 (plus de fausse barre d'adresse), 15 (facture du premier mois, douze échéances), 16 (pas d'« Envoyer par e-mail » sous un brouillon), (i) HT ET TTC, (h) « atelier » : tous rejoués, verts",
+  "contrats-07 (Renouveler / Mettre fin) : panneaux et fiches terminée / renouvelée rejoués sur 7 profils (petit, android, iphone, ipad, windows, mac) jour et nuit, captures regardées ; le technicien ne peut pas les déclencher (un clic réel sur un bouton injecté ne change rien : la table des gestes refuse) ; le client voit « Terminé » avec HT et TTC et aucun geste du bureau",
+  "visites sorties du planning par « Mettre fin » : l'adresse de la visite sortie n'ouvre pas une page cassée, aucune tâche ni ligne de journal ne la cite, Planning / Interventions / Tâches / Statistiques / fiche client / Comptabilité sans erreur",
+  "contre-épreuve : la correction annonce 17 mutations sur 17 qui mordent ; non rejouée ici (aucune page modifiée par ce tour)"
+ ],
+ "pasRegles": [
+  { "nom": "contrats", "defaut": "contrats-07 / Mettre fin : un NOUVEAU contrat du même client reprend les visites FAITES de l'ancien contrat terminé",
+    "constat": "restes-contrats-1-recontrole.js A (mac) : « Mettre fin » à c1 (Copropriété Les Mimosas, 4 visites, visite 2 faite et sans contrat noté), puis un nouveau contrat de 4 visites pour le même client : la fiche du nouveau dit 1 sur 4 faites (la visite 2 de l'ANCIEN), et le planning garde deux « Contrat — visite 2 sur 4 » (i22 faite le 27/10 et n-ctr-c42 « à planifier » le 27/10, dans le passé). Cause : ctrDeVisite rend, pour une visite de départ sans identifiant de contrat, « le premier contrat SIGNÉ du client » ; une fois c1 terminé (st 'termine'), c'est le contrat suivant qui l'attrape. Piste : au moment de « Mettre fin » (et à la signature d'un nouveau contrat), noter k.id sur les visites de départ du contrat (i.ctr), comme ctrPoserVisites le fait pour les visites posées ; sonde A prête à rejouer (3 ✗ avant correction)." }
+ ],
+ "casses": [
+  { "titre": "Fiche d'un contrat TERMINÉ au téléphone : la page dépasse l'écran (345 px pour 320) et le nom d'une visite est écrasé", "gravite": "gênant",
+    "etapes": ["Profil petit (320 px) ou Android (360 px), nuit ou jour", "Signer un contrat de 12 visites (ou ouvrir c1 : 4 visites dont 2 non faites)", "Mettre fin au contrat (« Oui, mettre fin »)", "Ouvrir la fiche du contrat terminé et descendre jusqu'à « Les visites »"],
+    "constat": "À 320 px : scrollWidth 345 (la carte « Le chemin du contrat » mesure 16 → 345, 25 px hors écran). À 320 comme à 360 px : « Visite 11 · mercredi 15 septembre » tient sur 81 px et 3 à 4 lignes, à côté de l'étiquette « Non faite · sortie du planning » qui ne se replie pas (capture visites-termine-android-nuit.png). Pas de défaut à 390 px, iPad, Windows. Piste : sur .ligne de la carte des visites, flex-wrap:wrap (l'étiquette passe sous le nom) et min-width:0 sur la colonne pour que la carte ne s'élargisse pas ; sinon étiquette plus courte (« Non faite »). Sonde restes-contrats-1-recontrole-ecrans.js petit / android (2 ✗ et 1 ✗ avant correction)." },
+  { "titre": "Aperçu d'un contrat : « soit NaN € TTC » quand le prix saisi n'est pas un nombre", "gravite": "détail",
+    "etapes": ["Contrats › Contrat rapide", "Taper « abc » (ou « 12,5€ ») dans « Prix par an (HT) »", "Toucher « Envoyer à signer » : le refus « au moins 1 € » est juste", "Lire l'article 4 de l'aperçu du contrat à droite"],
+    "constat": "« 0,00 € HT par an, soit NaN € TTC (TVA 20 %) » : le TTC ajouté par la décision (i) ne passe pas par la même garde que le refus. Capture prix-abc.png. Aucun contrat n'est créé, aucune erreur de la page ; seul l'aperçu montre NaN. Piste : ctrTTC rend 0 quand le prix n'est pas fini." }
+ ],
+ "nouveaux": [
+  "Les visites NON faites d'un contrat terminé portent toutes la même date (« mardi 3 novembre » pour les visites 3 et 4 de c1) : la liste a l'air d'un doublon. Cosmétique, déjà présent avant ce tour ; si Justin le veut, ne pas dater une visite « sortie du planning »."
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-contrats-1.js mac", "resultat": "57 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-contrats-1.js iphone nuit", "resultat": "59 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-contrats-1.js android", "resultat": "59 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-contrats-composes.js", "resultat": "10 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/contrats-recontrole-a.js à e.js", "resultat": "20 · 16 · 10 · 4 · 12 ✓, 0 ✗" },
+  { "fichier": "campagne/sondes/contrats-renouvellement / visite-comprise / atelier / roles / mise-en-page", "resultat": "12 · 5 · 5 · 15 · 19 ✓, 0 ✗" },
+  { "fichier": "campagne/sondes/contrats-parcours-a / b / c, fiche-barre, fiche-taches, debut", "resultat": "75 · 15 · 35 · 4 · 5 · 4 ✓, 0 ✗" },
+  { "fichier": "campagne/sondes/contrats-balayage.js", "resultat": "balayage de gestes, 0 erreur de la page (pas de compteur)" },
+  { "fichier": "campagne/sondes/restes-contrats-1-recontrole.js mac (NOUVELLE, adverse)", "resultat": "26 ✓ · 4 ✗ : les 4 ✗ sont le défaut « pasRegles » (3) et le NaN (1)" },
+  { "fichier": "campagne/sondes/restes-contrats-1-recontrole-ecrans.js (NOUVELLE) petit nuit / petit / android nuit / iphone / ipad nuit / windows", "resultat": "16 ✓ 2 ✗ / 16 ✓ 2 ✗ / 17 ✓ 1 ✗ / 18 ✓ / 18 ✓ / 18 ✓ ; les ✗ sont la casse « fiche terminée au téléphone »" }
+ ],
+ "doutes": [
+  "Un prix saisi à trois décimales (« 1000.005 ») est accepté et stocké tel quel : la fiche l'affiche arrondi mais ctrPart travaille sur le prix brut ; l'écart est d'au plus un centime. À arrondir à la saisie si Justin le veut.",
+  "Une visite comprise avec pièce, terminée par le technicien (sm) en vrai : la fiche et le paiement sont joués par la sonde du correcteur ; ici seule la fiche avant la fin est regardée (« rien à payer sur place », aucun prix de contrat visible du technicien). Le PDF réel et le courriel réel d'un contrat restent hors du prototype (aucun serveur)."
+ ]
+}
