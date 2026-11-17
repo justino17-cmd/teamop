@@ -161,7 +161,9 @@ const TITRE = 'Dentiste QXW', LIEU = 'Cabinet du centre QXW', NOTE = 'Apporter l
 
     /* ═══ 8. (8 octobre 2026) L'AGENDA PERSO ET L'AGENDA PRO — « il faudrait bien séparer l'agenda perso et pro » (migration 25, `evenement.cote`) ═══ */
     console.log('\n8. ⛔ L\'agenda Perso et l\'agenda Pro : chaque événement dit de quel côté il est');
-    const jourC = '2026-11-20', fenC = '?du=' + Date.UTC(2026, 10, 19) + '&au=' + Date.UTC(2026, 10, 22);
+    /* ⛔ Une date LOIN de « maintenant » (17 novembre 2026, CI rouge à minuit) : le 20/11 figé tombait dans la fenêtre des
+       événements que les sections 1 à 7 posent RELATIVEMENT à l'heure du banc (« reporter à demain »…) dès qu'on approchait du 20. */
+    const jourC = '2027-03-20', fenC = '?du=' + Date.UTC(2027, 2, 19) + '&au=' + Date.UTC(2027, 2, 22);
     const cPro = await A.post('/api/agenda', { titre: 'Revue client', debut: jourC + 'T10:00', tz: 'Europe/Paris', cote: 'pro' });
     const cPerso = await A.post('/api/agenda', { titre: 'Piscine', debut: jourC + 'T18:00', tz: 'Europe/Paris', cote: 'perso' });
     const cSans = await A.post('/api/agenda', { titre: 'Sans côté', debut: jourC + 'T12:00', tz: 'Europe/Paris' });
