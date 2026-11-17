@@ -84,7 +84,7 @@ const ADR120 = '12 bis rue du Docteur Jean-Baptiste de la Fontaine-Mortagne, Ré
   // ── doublon : le même téléphone ──
   await ouvrirNv('devis'); await remplir({ nom: 'Autre', prenom: 'Quelqu', tel: '06 11 22 33 44', mail: '', adr: 'ici', objet: 'Test doublon' }, 'devis'); await L.toucher(c, '[data-dvn="creer|1"]'); await L.calme(p, 300);
   const dbl = await p.evaluate(() => (document.querySelector('#calque .alerte') || {}).textContent || ''); v('même téléphone qu’un client existant : l’écran prévient (« ' + dbl.slice(0, 60) + '… »)', /existe peut-être déjà/.test(dbl) && /Jean-Pierre Dupont/.test(dbl), dbl);
-  await L.toucher(c, '[data-ferme="1"]'); await L.calme(p, 300); v('« Annuler » du devis ferme sans rien créer', (await nb()) === n2 && !(await p.evaluate(() => !!document.querySelector('#calque .panneau'))));
+  await L.toucher(c, p.locator('#calque .panneau button', { hasText: /^Annuler$/ }).first()); await L.calme(p, 300); v('« Annuler » du devis ferme sans rien créer', (await nb()) === n2 && !(await p.evaluate(() => !!document.querySelector('#calque .panneau'))));
   // ── annuler au milieu : la création par intervention ne laisse rien derrière ──
   await ouvrirNv('int'); await remplir({ nom: 'Fantome', tel: '06 99 88 77 66' }); await L.toucher(c, '[data-action="cFermer"]'); await L.calme(p, 400);
   v('✕ au milieu de la création : aucun client créé, fenêtre fermée, pas de client « __nv » qui traîne', (await nb()) === n2 && !(await fen()) && await p.evaluate(() => !CLIENTS.__nv), null);
