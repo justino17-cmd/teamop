@@ -38,6 +38,6 @@ async function pret(c, vue) { await L.ranger(c.p); await c.p.evaluate(v => { if 
     L.v('vue ' + vue + ' : aucun geste ne reste sans effet (' + rien + ' sans effet)', rien === 0, RES.filter(r => r.vue === vue && r.touche && !r.change.length).map(r => r.lib));
   }
   L.v('aucune erreur JavaScript pendant les gestes', c.err.length === 0, c.err.slice(0, 5));
-  fs.writeFileSync(path.join(__dirname, '..', 'planning-gestes-' + profil + (nuit ? '-nuit' : '') + '.json'), JSON.stringify({ profil, nuit, RES, err: c.err }, null, 1));
+  fs.writeFileSync(path.join(__dirname, '..', 'planning-gestes-' + profil + (nuit ? '-nuit' : '') + (VUES.length < 6 ? '-' + VUES.join('+') : '') + '.json'), JSON.stringify({ profil, nuit, RES, err: c.err }, null, 1));
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
 })();

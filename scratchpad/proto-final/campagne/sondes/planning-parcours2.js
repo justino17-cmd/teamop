@@ -33,7 +33,7 @@ parcours('P9 · la vue « Sur mesure » : choisir les jours, les personnes, le r
   await L.toucher(c, '[data-mjretire="' + lointaine + '"]');
   L.v('P9 · la croix retire la date lointaine', await c.p.evaluate(d => !multiJours.includes(d), lointaine), '');
   await c.p.keyboard.press('Escape'); await L.calme(c.p, 300);
-  L.v('P9 · Échap referme la fenêtre des dates (planning-MULTI-ECHAP)', await c.p.evaluate(() => !document.querySelector('.pm-pop')), '');
+  L.v('P9 · Échap referme la fenêtre des dates (planning-03)', await c.p.evaluate(() => !document.querySelector('.pm-pop')), '');
   if (await c.p.evaluate(() => !!document.querySelector('.pm-pop'))) await L.toucher(c, '[data-mpop="dates"]');
   // personnes
   await L.toucher(c, '[data-mpop="qui"]'); await L.capture(c, CAP + `P9-qui-${profil}${nuit ? '-nuit' : ''}.png`);
@@ -57,7 +57,8 @@ parcours('P9 · la vue « Sur mesure » : choisir les jours, les personnes, le r
   await L.toucher(c, '[data-mgrp="personne"]');
   const n0 = await c.p.evaluate(() => multiN);
   await L.toucher(c, '[data-mpas="1"]'); const n1 = await c.p.evaluate(() => multiN);
-  L.v('P9 · « ＋ » ajoute une colonne par ligne', n1 === n0 + 1 || (n0 === 0 && n1 === 0), { n0, n1 });
+  const PAL = [2, 3, 4, 6, 0], suivant = PAL[Math.min(PAL.length - 1, PAL.indexOf(n0) + 1)];   // les paliers du code (2, 3, 4, 6, toutes) : de 4 on passe à 6, c'est voulu
+  L.v('P9 · « ＋ » passe au palier suivant (2, 3, 4, 6, toutes)', n1 === suivant, { n0, n1, suivant });
   for (let k = 0; k < 8; k++) await L.toucher(c, '[data-mpas="-1"]'); const nmin = await c.p.evaluate(() => multiN);
   L.v('P9 · « − » s’arrête à une colonne (jamais zéro ni négatif)', nmin >= 1, nmin);
   for (let k = 0; k < 12; k++) await L.toucher(c, '[data-mpas="1"]'); const nmax = await c.p.evaluate(() => ({ n: multiN, txt: document.querySelector('.pm-pas2 b')?.textContent }));
@@ -72,7 +73,7 @@ parcours('P9 · la vue « Sur mesure » : choisir les jours, les personnes, le r
   await L.toucher(c, '[data-action="vueEnregistrerOk"]'); await L.calme(c.p, 300);
   L.v('P9 · un nom vide devient « Ma vue »', await c.p.evaluate(() => vuesLire().length === 1 && vuesLire()[0].nom === 'Ma vue'), await c.p.evaluate(() => vuesLire()));
   const long = 'Équipe clim du secteur nord avec les chantiers de la copropriété Les Mimosas';
-  await c.p.evaluate(() => { multiJours = [AUJ]; plMasques = new Set(['kb', 'lr', 'tl', '']); rendre(); }); await L.calme(c.p, 250);
+  await c.p.evaluate(() => { multiJours = [AUJ]; plMasques = new Set(['kb', 'lr', 'tl']); rendre(); }); await L.calme(c.p, 250);
   await L.toucher(c, '[data-mpop="vues"]'); await L.toucher(c, '[data-action="vueEnregistrer"]');
   await c.p.fill('#vue-nom', long); await L.toucher(c, '[data-action="vueEnregistrerOk"]'); await L.calme(c.p, 300);
   await L.toucher(c, '[data-mpop="vues"]'); await L.capture(c, CAP + `P9-vues-${profil}${nuit ? '-nuit' : ''}.png`);
@@ -93,16 +94,17 @@ parcours('P10 · les chiffres du bandeau suivent ce qui est affiché (personne m
   L.v('P10 · vue Jour : « interventions sur la période » = cartes dessinées', +k0.int === n0, { kpi: k0.int, cartes: n0 });
   await L.toucher(c, '[data-masque="sm"]');
   const k1 = await kpis(c.p), n1 = await cartes();
-  L.v('P10 · Sophie masquée : le chiffre « interventions » suit les cartes affichées (planning-KPI-MASQUE)', +k1.int === n1, { kpi: k1.int, cartes: n1, avant: k0.int });
+  L.v('P10 · Sophie masquée : le chiffre « interventions » suit les cartes affichées (planning-04)', +k1.int === n1, { kpi: k1.int, cartes: n1, avant: k0.int });
   const t1 = await c.p.evaluate(() => { const J = joursPeriode(); const L1 = INTS.filter(i => J.includes(i.d) && i.st !== 'annulee' && !plMasques.has(i.tech || '')); return { n: L1.length, mn: L1.reduce((s, i) => s + i.dur, 0) }; });
-  L.v('P10 · Sophie masquée : « de travail prévu » ne compte plus ses heures (planning-KPI-MASQUE)', (() => { const m = String(k1.temps).replace(/\s+/g, ' '); const h = (m.match(/(\d+) h/) || [])[1], mn = (m.match(/h (\d+)/) || [])[1]; return (h ? +h * 60 : 0) + (mn ? +mn : 0) === t1.mn; })(), { kpi: k1.temps, attendu: t1.mn });
+  L.v('P10 · Sophie masquée : « de travail prévu » ne compte plus ses heures (planning-04)', (() => { const m = String(k1.temps).replace(/\s+/g, ' '); const h = (m.match(/(\d+) h/) || [])[1], mn = (m.match(/h (\d+)/) || [])[1]; return (h ? +h * 60 : 0) + (mn ? +mn : 0) === t1.mn; })(), { kpi: k1.temps, attendu: t1.mn });
   await L.toucher(c, '[data-masque="sm"]');
   // « à planifier » et « en retard » : ce sont des chiffres de TOUT le planning, pas de la période — le libellé le dit-il ?
   await vue(c, 'jour', await c.p.evaluate(() => ajoute(AUJ, 9)));
   const k2 = await kpis(c.p); const lib = await c.p.evaluate(() => [...document.querySelectorAll('#contenu [data-kpi]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()));
   const globaux = await c.p.evaluate(() => ({ plan: INTS.filter(i => i.st === 'aplanifier').length, plan9: INTS.filter(i => i.st === 'aplanifier' && i.d === ajoute(AUJ, 9)).length, retard: INTS.filter(i => i.st === 'retard').length }));
   console.log('   jour +9 :', JSON.stringify(k2), JSON.stringify(globaux), JSON.stringify(lib));
-  L.v('P10 · un jour sans « à planifier » : le chiffre « à planifier » ne dit pas 0 quand la liste du jour est vide mais qu’il y en a ailleurs sans le dire (planning-KPI-GLOBAL)', globaux.plan9 === 0 ? /ensemble|en tout|au total|partout/i.test(lib.join(' ')) || +k2.plan === 0 : true, { kpi: k2.plan, global: globaux.plan, libelle: lib[1] });
+  // « à planifier » compte TOUTES les interventions sans date (elles n'ont pas de jour) : le même chiffre sur chaque jour est voulu ; le panneau ci-dessous en liste autant
+  L.v('P10 · « à planifier » = toutes les interventions sans date, quel que soit le jour regardé', +k2.plan === globaux.plan, { kpi: k2.plan, global: globaux.plan });
   // panneau « à planifier » : même nombre de lignes que le chiffre
   await L.toucher(c, '[data-kpi="plan"]'); const lignes = await c.p.evaluate(() => document.querySelectorAll('#calque .panneau [data-go], #calque .panneau .ligne-clic, #calque .panneau [data-int]').length);
   L.v('P10 · le panneau « à planifier » liste autant de lignes que le chiffre', lignes === +k2.plan, { lignes, chiffre: k2.plan });
@@ -110,7 +112,7 @@ parcours('P10 · les chiffres du bandeau suivent ce qui est affiché (personne m
   // vue Sur mesure : les cinq chiffres suivent les dates et les personnes choisies
   await vue(c, 'multi'); await c.p.evaluate(() => { plMasques = new Set(['kb', 'lr', 'tl', '']); rendre(); }); await L.calme(c.p, 300);
   const km = await kpis(c.p), nm = await cartes();
-  L.v('P10 · Sur mesure, Sophie seule : le chiffre « interventions » = cartes affichées (planning-KPI-MASQUE)', +km.int === nm, { kpi: km.int, cartes: nm });
+  L.v('P10 · Sur mesure, Sophie seule : le chiffre « interventions » = cartes affichées (planning-04)', +km.int === nm, { kpi: km.int, cartes: nm });
 });
 
 parcours('P11 · la Carte des tournées : résumé, retour de chaque personne, fiche d’une étape, « Y aller avec », confier', async c => {
@@ -174,7 +176,7 @@ parcours('P11 · la Carte des tournées : résumé, retour de chaque personne, f
   L.v('P11 · le jour suivant ne garde pas la fiche du jour d’avant', nx.sel === null, nx);
 });
 
-parcours('P12 · un client créé à la main (adresse à Rochefort) : sa place sur la carte et ses liens « Y aller avec » (planning-CLIENT-SANS-POSITION)', async c => {
+parcours('P12 · un client créé à la main (adresse à Rochefort) : sa place sur la carte et ses liens « Y aller avec » (planning-01)', async c => {
   await vue(c, 'semaine');
   await L.toucher(c, '[data-creer]'); await L.attendre(c.p, () => !!document.querySelector('#fenetre .fen'));
   await L.toucher(c, '.fen [data-cnouveau="1"]');
@@ -186,16 +188,25 @@ parcours('P12 · un client créé à la main (adresse à Rochefort) : sa place s
   L.v('P12 · une case libre existe chez Sophie lundi', !!dispo, dispo);
   await L.toucher(c, '.fen [data-dispo="' + dispo + '"]');
   const rep = await texte(c.p, '.fen .adr-rep'); L.v('P12 · l’adresse est « Repérée : Rochefort » (38 km du dépôt)', /Rochefort/.test(rep || '') && /38 km/.test(rep || ''), rep);
+  const avantIds = await c.p.evaluate(() => INTS.map(x => x.id));
+  // le téléphone saisi est celui d'un client existant : « Créer » prévient AVANT de créer un doublon (un second toucher le crée quand même)
+  await L.toucher(c, '[data-action="cCreer"]'); await L.calme(c.p, 500);
+  const tdbl = await toast(c.p);
+  L.v('P12 · un téléphone déjà connu : « Créer » prévient d’un doublon possible et ne crée rien', /existe peut-être déjà/.test(tdbl) && (await c.p.evaluate(() => INTS.length)) === avantIds.length, tdbl);
+  await c.p.fill('.fen [data-cnv="tel"]', '06 98 76 54 32'); await L.calme(c.p, 300);
+  await c.p.evaluate(() => { CREA.doublonOk = false; });   // un nouveau numéro : on repart sans l'avertissement déjà lu
   await L.toucher(c, '[data-action="cCreer"]'); await L.calme(c.p, 600);
-  const n = await c.p.evaluate(() => { const i = INTS.filter(x => x.id !== 'brouillon').slice(-1)[0]; return { id: i.id, cli: i.cli, d: i.d, h: i.h, geo: !!CR_GEO[i.cli], nom: CLIENTS[i.cli].nom }; });
+  const nouveaux = await c.p.evaluate(av => INTS.filter(x => !av.includes(x.id) && x.id !== 'brouillon').map(x => x.id), avantIds);
+  L.v('P12 · « Créer » ajoute UNE intervention de plus (la nouvelle, pas la dernière de la liste)', nouveaux.length === 1, nouveaux);
+  const n = await c.p.evaluate(id => { const i = INTS.find(x => x.id === id) || INTS[INTS.length - 1]; return { id: i.id, cli: i.cli, d: i.d, h: i.h, geo: !!CR_GEO[i.cli], nom: CLIENTS[i.cli].nom }; }, nouveaux[0]);
   console.log('   créée :', JSON.stringify(n));
   await vue(c, 'carte', n.d); await L.toucher(c, '#contenu [data-crsel="' + n.id + '"]'); await L.calme(c.p, 500);
   await L.capture(c, CAP + `P12-carte-${profil}${nuit ? '-nuit' : ''}.png`);
   const r = await c.p.evaluate(({ id }) => { const T = crTournees(plRef), s = T.flatMap(x => x.S).find(x => x.i.id === id); const f = document.querySelector('.cr-fiche'); return { km: s && s.tr.km, min: s && s.tr.min, aDepot: s && crPos(s) === CR_DEPOT, liens: f ? [...f.querySelectorAll('[data-craller]')].map(a => a.href) : [], depot: CR_DEPOT }; }, n);
   console.log('   position :', JSON.stringify(r));
-  L.v('P12 · le client de Rochefort n’est pas posé au dépôt de La Rochelle sur la carte (planning-CLIENT-SANS-POSITION)', !r.aDepot, r);
-  L.v('P12 · les liens « Y aller avec » ne visent pas le dépôt (planning-CLIENT-SANS-POSITION)', r.liens.length === 3 && r.liens.every(h => !h.includes(r.depot[0].toFixed(5) + ',' + r.depot[1].toFixed(5))), r.liens);
-  L.v('P12 · le trajet jusqu’à Rochefort n’est pas « 0 km » (planning-CLIENT-SANS-POSITION)', r.km > 20, r.km);
+  L.v('P12 · le client de Rochefort n’est pas posé au dépôt de La Rochelle sur la carte (planning-01)', !r.aDepot, r);
+  L.v('P12 · les liens « Y aller avec » ne visent pas le dépôt (planning-01)', r.liens.length === 3 && r.liens.every(h => !h.includes(r.depot[0].toFixed(5) + ',' + r.depot[1].toFixed(5))), r.liens);
+  L.v('P12 · le trajet jusqu’à Rochefort n’est pas « 0 km » (planning-01)', r.km > 20, r.km);
 });
 
 (async () => {

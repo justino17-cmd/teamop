@@ -171,7 +171,7 @@ parcours('P7 · réglages des rendez-vous en ligne : ouvrir, changer, revoir', a
   const rel = await c.p.evaluate(() => ({ h: document.querySelector('#calque [data-rr="horizon"]').value, lun: document.querySelector('#calque [data-rr="j1matin"]').checked, mar: document.querySelector('#calque [data-rr="j2matin"]').checked }));
   L.v('P7 · en rouvrant, les réglages choisis sont là (horizon 21 j, lundi matin seul)', rel.h === '21' && rel.lun && !rel.mar, rel);
   const txt = await c.p.evaluate(() => document.querySelector('#calque .panneau').textContent.replace(/\s+/g, ' '));
-  L.v('P7 · le texte d’aide ne renvoie pas vers un menu qui n’existe plus (« Ce que voit le client ») (planning-RDVAIDE)', !/Ce que voit le client/.test(txt), (txt.match(/Pour les voir[^.]*\./) || [''])[0]);
+  L.v('P7 · le texte d’aide ne renvoie pas vers un menu qui n’existe plus (« Ce que voit le client ») (planning-02)', !/Ce que voit le client/.test(txt), (txt.match(/Pour les voir[^.]*\./) || [''])[0]);
   const fermeX = await c.p.evaluate(() => !!document.querySelector('#calque .panneau .x, #calque [data-fermer], #calque .fermer'));
   await c.p.keyboard.press('Escape'); await L.calme(c.p, 250); L.v('P7 · Échap ferme le panneau', !(await L.etat(c.p)).panneau, '');
 });
