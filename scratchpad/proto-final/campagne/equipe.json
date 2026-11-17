@@ -339,6 +339,39 @@
    "ou": "apercu/prototype-op-gestion.html : EQX_CATS (≈ l. 20494) et DR_CATS (≈ l. 9957)",
    "correction": "Une seule liste de noms (DR_CATS) lue par le tableau, la fiche et les aria-label ; le tableau a la place de les écrire en entier si on retourne l’en-tête en deux lignes.",
    "decision": "corriger"
+  },
+  {
+   "n": "equipe-16",
+   "gravite": "gênant",
+   "ecran": "Équipe › Qui peut quoi (iPad en portrait, 820 px)",
+   "role": "gérant",
+   "profils": [
+    "ipad"
+   ],
+   "etapes": "iPad portrait : Équipe › Qui peut quoi.",
+   "attendu": "Le tableau tient dans la largeur, ou la forme en listes (celle du téléphone) prend le relais, ou un indice montre qu’il y a des colonnes à droite.",
+   "constate": "Avec le menu latéral (272 px), il reste 520 px : le tableau a 17 colonnes de 48 px, on n’en voit que 2 (« Planning », « Interventions ») ; les 15 autres sont cachées derrière un défilement latéral sans barre ni dégradé. Le gérant croit que le tableau n’a que deux colonnes. La forme en listes n’est utilisée qu’au téléphone.",
+   "preuve": "sondes/equipe-mise-en-page.js (ipad-jour) ; capture mep-equipe-qui-peut-quoi-ipad-jour.png",
+   "ou": "apercu/prototype-op-gestion.html : eqxDroitsVue (≈ l. 20353) et la règle de bascule table / listes (feuille de style .eqx-dr-tab, .eqx-dr-liste)",
+   "correction": "Basculer en listes dès que la zone de contenu fait moins de 1 000 px (requête de conteneur sur .eqx-dr-tab, pas de largeur d’écran) ; sinon ajouter un dégradé et une flèche « → » à droite du tableau.",
+   "decision": "corriger"
+  },
+  {
+   "n": "equipe-17",
+   "gravite": "gênant",
+   "ecran": "Équipe › fiche d’une personne › bloc Connexion (Android 360 px, petit 320 px)",
+   "role": "gérant",
+   "profils": [
+    "android",
+    "petit"
+   ],
+   "etapes": "Android (360 px) : Équipe › n’importe quelle personne (même « Julie Petit ») › descendre au bloc « Connexion ».",
+   "attendu": "La fiche ne défile pas de côté.",
+   "constate": "La ligne « Mot de passe : Provisoire : à lui remettre en main propre. » est écrite en une seule ligne : elle dépasse de 3 px, tout le panneau devient défilable de côté (scrollWidth 363 pour 360). À 320 px, c’est pire : 43 px de défilement latéral dès la fiche de Julie (le bouton « Reposer un mot de passe provisoire » ne passe pas non plus à la ligne). Même cause que le défaut 08 (valeur longue dans une ligne « libellé + valeur », bouton sans retour à la ligne).",
+   "preuve": "sondes/equipe-mise-en-page.js : « fiche-julie : rien ne dépasse du panneau (android-jour) » → {\"sw\":363,\"cw\":360 ; petit-jour : sw 363 pour cw 320,\"enfants\":[\"B.:Provisoire : à lui remettre en…\"]}",
+   "ou": "apercu/prototype-op-gestion.html : secuFicheConnexion (.cn-acces .ligne b)",
+   "correction": "Même correction que le défaut 08 : .ligne > b {min-width:0; overflow-wrap:anywhere}.",
+   "decision": "corriger"
   }
  ],
  "doutes": [],
