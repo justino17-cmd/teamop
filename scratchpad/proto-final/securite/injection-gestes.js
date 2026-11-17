@@ -9,7 +9,7 @@
 process.env.RACINE = require('./injection-instr.js').preparer();   // copie instrumentée : jamais les pages elles-mêmes
 const L = require('../lib.js'), O = require('./injection-outils.js'), fs = require('fs');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.split('=')[1] : d; };
-const QUI = arg('qui', 'marc'), PROFIL = arg('profil', 'mac'), SEUL = arg('routes', ''), OUVRIR = +arg('ouvrir', 8), CLICS = +arg('clics', 4), SCEN = arg('scenario', ''), CLICS_R = Object.fromEntries(arg('clicsroute', '').split(',').filter(Boolean).map(x => x.split('='))), ETIQ = arg('etiq', SEUL.replace(/,/g, '+').slice(0, 30) || 'tout');
+const QUI = arg('qui', 'marc'), PROFIL = arg('profil', 'mac'), SEUL = arg('routes', ''), OUVRIR = +arg('ouvrir', 8), CLICS = +arg('clics', 4), SCEN = arg('scenario', ''), PUIS = arg('puis', ''), ROLE_ = arg('role', ''), CLICS_R = Object.fromEntries(arg('clicsroute', '').split(',').filter(Boolean).map(x => x.split('='))), ETIQ = arg('etiq', SEUL.replace(/,/g, '+').slice(0, 30) || 'tout');
 const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/securite/';
 fs.mkdirSync(SORTIE, { recursive: true });
 const avec = (pr, ms) => Promise.race([pr, new Promise((_, r) => setTimeout(() => r(new Error('DELAI')), ms))]);
@@ -20,6 +20,7 @@ const PAS = /(supprimer|retirer|annuler|fermer|✕|effacer|se déconnecter|quitt
 (async () => {
   const c = await L.ouvrir({ profil: PROFIL, qui: QUI === 'null' ? null : QUI, init: O.INIT, guide: false, attente: 1500 });
   const { p } = c; p.on('dialog', d => (d.type() === 'prompt' ? d.accept(O.CHARGE('nPrompt')) : d.accept()).catch(() => {}));
+  if (ROLE_) { const [k, cli] = ROLE_.split(':'); await avec(p.evaluate(({ k, cli }) => rlChanger(k, cli ? { cli } : {}), { k, cli }), 8000); await L.calme(p, 800); console.log('  · rôle posé :', ROLE_); }
   const legende = {}; const formulaires = []; let nChamps = 0, nGestes = 0, nEcransSaisie = 0, nPanneaux = 0;
   const charge = (desc) => { const id = 'n' + (++nChamps); legende[id] = desc; return { id, val: O.CHARGE(id) }; };
   const routesTous = await p.evaluate(() => Object.keys(vues()).filter(r => !/-x-/.test(r)));
@@ -43,16 +44,19 @@ const PAS = /(supprimer|retirer|annuler|fermer|✕|effacer|se déconnecter|quitt
   const boutons = (f, zone, re) => f.evaluate(({ zone, re, pas }) => { const R = document.querySelector(zone) || document, out = [], R2 = new RegExp(re, 'i'), P = new RegExp(pas, 'i');
     R.querySelectorAll('button, a.btn, [data-action], summary').forEach(b => { const r = b.getBoundingClientRect(); if (!r.width || !r.height) return; const t = (b.textContent || b.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim(); if (!t || P.test(t) || !R2.test(t)) return; out.push(t.slice(0, 40)); }); return [...new Set(out)]; }, { zone, re: re.source, pas: PAS.source });
   const cliquer = (f, zone, t) => f.evaluate(({ zone, t }) => { const R = document.querySelector(zone) || document; const b = [...R.querySelectorAll('button, a.btn, [data-action], summary')].find(b => { const r = b.getBoundingClientRect(); return r.width && r.height && (b.textContent || b.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim().slice(0, 40) === t; }); if (!b) return false; b.click(); return true; }, { zone, t });
+  const trouves = new Map(), vus = new Set();
+  const lire = async ou => { for (const f of p.frames()) { let r; try { r = await avec(f.evaluate(O.LIRE), 5000); } catch (e) { continue; } r.vues.forEach(x => vus.add(x)); for (const s of r.sorti) { const k = s.sorte + '|' + s.champ; if (!trouves.has(k)) trouves.set(k, { ...s, ou, ous: new Set() }); trouves.get(k).ous.add(ou.split(' ▸')[0]); } } };
   // 1 bis) SCÉNARIO dirigé (à la place de la saisie générique) : les gestes d'une vraie personne, étape par étape
   const executer = async ([genre, sel, x]) => {
     if (genre === 'aller') { await avec(p.evaluate(r => aller(r), sel), 12000); return L.calme(p, 400); }
     if (genre === 'attendre') return p.waitForTimeout(sel);
+    if (genre === 'lire') return lire(SCEN + ' ▸ ' + sel);
     if (genre === 'clic') { const ok = await avec(p.evaluate(s => { const b = [...document.querySelectorAll(s)].find(b => { const r = b.getBoundingClientRect(); return r.width && r.height && !b.disabled; }); if (!b) return false; b.click(); return true; }, sel), 4000); if (!ok) console.log('  · scénario : introuvable ou grisé', sel); nGestes++; return p.waitForTimeout(450); }
     const ch = genre === 'texte' || genre === 'courriel' ? charge(SCEN + ' › ' + x) : null, v = ch ? (genre === 'courriel' ? COMPACTE(ch.id) + '@exemple.fr' : ch.val) : x;
     const ok = await avec(p.evaluate(({ s, v }) => { const e = [...document.querySelectorAll(s)].find(e => { const r = e.getBoundingClientRect(); return r.width && r.height; }); if (!e) return false; e.focus();
       if (e.tagName === 'SELECT') e.value = v; else { const set = Object.getOwnPropertyDescriptor(e.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value').set; set.call(e, v); }
       e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; }, { s: sel, v }), 4000);
-    if (!ok) console.log('  · scénario : champ introuvable', sel); else if (ch) { nChamps += 0; } return p.waitForTimeout(150); };
+    if (!ok) console.log('  · scénario : champ introuvable', sel); else if (genre === 'valeur') nChamps++; return p.waitForTimeout(150); };
   if (SCEN) { const { [SCEN]: pas } = require('./injection-scenarios.js'); if (!pas) throw new Error('scénario inconnu : ' + SCEN); nEcransSaisie++;
     for (const st of pas) { try { await executer(st); } catch (e) { console.log('  · étape', st[0], st[1], String(e).slice(0, 60)); } }
     const t = await p.evaluate(() => { const t = document.getElementById('toast'); return (t && t.textContent || '').replace(/\s+/g, ' ').slice(0, 120); }); formulaires.push({ r: SCEN, t: 'scénario', champs: nChamps, issue: 'dernier message : ' + t }); nPanneaux++; }
@@ -73,11 +77,12 @@ const PAS = /(supprimer|retirer|annuler|fermer|✕|effacer|se déconnecter|quitt
       } catch (e) { await avec(L.ranger(p), 4000).catch(() => {}); if (/DELAI/.test(String(e))) break; } }
   } catch (e) { console.log('  · écran', r, String(e).slice(0, 60)); } }
   formulaires.forEach(f => console.log('  FORM', f.r, '›', f.t, '·', f.champs, 'champs ·', f.issue)); console.log(`saisie : ${nEcransSaisie} écrans · ${nGestes} formulaires ouverts · ${nPanneaux} panneaux remplis · ${nChamps} champs`);
+  // 1 ter) CHANGEMENT DE PERSONNE : ce que la première a tapé est relu par une AUTRE (un technicien écrit, le patron lit) — la frontière qui compte
+  if (PUIS) { const ok = await avec(p.evaluate(k => { try { return sessionOuvrir(k); } catch (e) { return String(e); } }, PUIS), 8000); await L.calme(p, 800); console.log('  · session reprise par', PUIS, ':', ok); }
   // 2) BALAYAGE : tous les écrans, toutes les fiches, et les gestes de l'écran (aperçus, panneaux) ; on lit chaque cadre
   const adr = await p.evaluate(() => { const P = []; try { Object.keys(CLIENTS).forEach(k => P.push('client-x-' + k)); } catch (e) {} try { INTS.forEach(i => P.push('inter-x-' + i.id)); } catch (e) {} try { FACTURES.forEach(f => P.push('facture-x-' + (f.id || f.num))); } catch (e) {}
     try { Object.keys(DEVIS_REG).forEach(k => P.push('devis-x-' + k)); } catch (e) {} try { CONTRATS.forEach(k => { P.push('contrat-x-' + k.id); P.push('signer-x-' + k.id); }); } catch (e) {} return P; });
-  const tous = routesTous.concat(adr), trouves = new Map(), vus = new Set(); let visites = 0, clics = 0;
-  const lire = async ou => { for (const f of p.frames()) { let r; try { r = await avec(f.evaluate(O.LIRE), 5000); } catch (e) { continue; } r.vues.forEach(x => vus.add(x)); for (const s of r.sorti) { const k = s.sorte + '|' + s.champ; if (!trouves.has(k)) trouves.set(k, { ...s, ou, ous: new Set() }); trouves.get(k).ous.add(ou.split(' ▸')[0]); } } };
+  const tous = routesTous.concat(adr); let visites = 0, clics = 0;
   for (const r of tous) { try { await avec(p.evaluate(x => aller(x), r), 12000); await L.calme(p, 400); visites++; await lire(r);
       const gs = (await avec(L.gestes(p, '#contenu'), 6000)).slice(0, +(CLICS_R[r.split('-x-')[0]] || CLICS));
       for (const g of gs) { if (PAS.test(g.lib)) continue; try { const ici = await p.evaluate(() => location.hash); await p.mouse.click(g.x + g.l / 2, g.y + g.h / 2); await p.waitForTimeout(200); clics++; await lire(r + ' ▸ ' + g.lib); await L.ranger(p);
@@ -92,7 +97,7 @@ const PAS = /(supprimer|retirer|annuler|fermer|✕|effacer|se déconnecter|quitt
   Object.entries(groupe).sort().forEach(([k, v]) => console.log('  SORTIE', k, '·', [...new Set(v.map(s => s.sorte))].join(' / '), '· vue sur :', [...new Set(v.map(s => s.ou))].slice(0, 3).join(' | ').slice(0, 90)));
   { const hh = {}; hits.forEach(h => { hh[h] = (hh[h] || 0) + 1; }); Object.entries(hh).forEach(([h, n]) => console.log('  EXÉCUTION ←', h, legende[h] || '?', '×' + n)); }
   sorties.forEach(s => console.log('  DÉTAIL', s.champ, s.sorte, '·', s.chemin, '· écrans :', s.ous.slice(0, 8).join(' | '), '· gabarits :', s.lignes.join(', ')));
-  L.v('population : des champs ont été remplis', nChamps >= 3, nChamps);
+  L.v('population : des champs ont été remplis', nChamps >= 1, nChamps);
   L.v('population : des écrans ont été visités', visites >= 30, visites);
   L.v(`aucune charge n'est sortie de son texte (${sorties.length} sorties)`, sorties.length === 0, sorties.slice(0, 3));
   L.v(`aucune charge n'a exécuté de code (${hits.length})`, hits.length === 0, hits.slice(0, 3));

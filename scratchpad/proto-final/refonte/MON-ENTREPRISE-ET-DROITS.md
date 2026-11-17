@@ -875,3 +875,23 @@ windows, ipad, iphone, android, petit ; jour ET nuit.
 11. ⟲ **Julie passe de « Comptabilité en lecture » (profil d'avant, jamais appliqué) à « Comptabilité en écriture »** (1110). Dans le prototype rien n'était gardé : elle note des paiements, relance, saisit des dépenses depuis le début de la démonstration ; 1000 le lui retirerait. À lui de dire si une secrétaire doit
     seulement LIRE la Comptabilité (alors l'envoi des factures reste dans « Devis, factures, contrats », case `ventes`, qu'elle a).
 12. ⟲O10 **Le SIRET de démonstration (123 456 789 00012) ne passe pas la clé de contrôle** : la clé avertit sans bloquer (certains vrais SIRET, ceux de La Poste, ne la passent pas non plus). Rien à décider, à savoir : l'avertissement paraîtra dans la démonstration.
+
+---
+
+## 8. Ce que l'APPLICATION de l'étape 5 a changé à cette spécification (17 novembre 2026, soir)
+
+Écrit après coup, par l'agent qui a appliqué les droits : ce qui diffère de ce document, et pourquoi. Rien n'est décidé en silence.
+
+1. **Julie a DIX lignes, pas neuf** : entre-temps le lot Véhicules lui a ouvert « Véhicules » (VEHICULES-TEMPS § 11, recommandation, sans réponse de Justin). Pour que les cases le disent sans lui ouvrir les heures de toute l'équipe (données de salaire),
+   le Secrétariat a `temps` = 1110 ; **« Temps de travail » et « Dépôts et camions » demandent « Supprimer » EN PLUS de « Voir »** (`pointage` : `temps` + `temps.s` ; `boxes` : `stock` + `stock.s`), et le bureau « complet » (Responsable, gérant) gère les véhicules en entier
+   (`vhBureau` = coque gestion ET pas `temps.s`). Le couplage « Supprimer ouvre les heures de l'équipe » est écrit dans la phrase de la case (« Temps de travail et véhicules › Supprimer »). Doute pour Justin.
+2. **« Mes tâches » n'a aucune case** (outil personnel, toujours ouvert) : tous les gestes de tâche sont `d:'l'` dans la table, jamais `planif`. Sans ça la secrétaire (Planning 0000) ne pouvait plus cocher une tâche.
+3. **La portée suit la forme jusque dans la table** : sur l'écran d'un terrain, un geste classé `ventes` (noter un paiement sur place, envoyer le compte rendu) compte comme `inter › Modifier` (`gesteForme`) ; la feuille de style fait le même calcul.
+4. **Un champ de saisie ne se cache pas, il se FIGE** (`pointer-events:none`, valeur lisible) et la garde lui rend sa valeur ; un bouton, un lien, une ligne ne sont pas dessinés. `champ` est la famille des champs de la FICHE D'INTERVENTION (`inter › Modifier`), pas du pointage.
+5. **`prix` n'est PAS branché** (spec § 2.7, repli décidé d'avance) : ~25 écrans, 153 lectures de `.pa`, et Matériel montre au bureau le prix d'achat. La case n'est pas dessinée (`DR_SP_BRANCHES`), sa valeur reste dans les données ; la phrase « Le prix d'achat est réservé au gérant » n'est PAS écrite (elle serait fausse).
+   `tout` est retiré de l'affichage comme prévu. `corrpt` ne couvre que ce que le BUREAU fait sur un pointage enregistré (`ptx|corrige`, `pt|clore`, `pt|closok`, `pt|ajout`) : « J'ai commencé plus tôt » et « J'ai fini hier » restent les déclarations du salarié sur sa propre journée (doute).
+6. **`atelier` / `valstock` / `commander` / `comptes` / `corrpt` agissent** : `droitsAtelier` (sortie du technicien : « À valider » sans le droit, appliquée avec ; `msPoser`, `sxDepose`), `GESTES_SP` (valider, commander, comptes, corriger les pointages), `ACTE_DROIT.stockAccepter` (valstock).
+7. **Les ponts** : `droitsDe(cat)` = `{c, m, s}` est envoyé à l'atelier (`opd_role.droits` pour `ventes`, `client.c` pour `crm`), à la fenêtre OP COMPTABLE (`opc_role.droits` pour `compta`) et à la Boîte mail (`capacites().droits`). Les trois fenêtres reçoivent le message ; **les lire reste à faire de leur côté**
+   (la garde de la page ne voit pas un clic dans un cadre ni dans l'arbre d'ombre du courrier) : voies compositeur et mail, et `prototype-comptabilite.html` (la Comptabilité plein écran n'est pas encore gardée dans son cadre).
+8. **Le détail des droits sur téléphone** : une catégorie = une ligne qui se déplie en quatre lignes (une case, sa phrase) ; sur ordinateur la grille reste, repliée, avec la phrase de la case qu'on touche.
+9. Tests : `droits-*.js` (`droits-tout.sh`), 22 mutations (`droits-mutations.js`), `droits-table.js` entre dans les contrôles de CHAQUE poussée.

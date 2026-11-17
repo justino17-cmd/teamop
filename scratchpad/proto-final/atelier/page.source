@@ -1358,6 +1358,7 @@ button.vv-art-b:hover{background:var(--survol)}
 .vv-a-t b{min-width:0;overflow-wrap:anywhere;font-weight:600}
 .vv-a-n{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-fond);color:var(--encre);font-size:12.5px;font-weight:700}
 .vv-a .vv-l-a .bt.contour{margin-right:4px}
+@media (max-width:400px){.vv-a .vv-l-a{gap:2px}.vv-a .vv-l-a .bt.contour{margin-right:0}}      /* 360 px : « Modifier le texte · ↑ · ↓ · ✕ » tiennent sur UNE ligne (sinon ✕ restait seul dessous) ; les icônes gardent leurs 44 px de toucher */
 .vv-a-e{margin:8px 0 0}
 .vv-vide-l:empty{display:none}
 .vv-rg{margin-top:6px}
