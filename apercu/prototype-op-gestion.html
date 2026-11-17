@@ -26109,6 +26109,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="nv-style">
 .nv-defile::-webkit-scrollbar{display:none}
 .nv-carte{flex:0 0 100%;min-width:0;box-sizing:border-box;scroll-snap-align:center;scroll-snap-stop:always;display:flex;flex-direction:column;gap:14px;padding:4px 22px 6px;overflow-y:auto}
 .nv-haut{display:flex;align-items:center;gap:14px}
+@media (min-height:700px){.nv-haut{flex-direction:column;align-items:flex-start;gap:14px}.nv-carte .nv-ic{width:56px;height:56px;border-radius:16px}.nv-carte .nv-ic svg{width:28px;height:28px}.nv-carte .nv-phrase{font-size:19px}}   /* un écran haut : l'icône au-dessus du titre remplit la carte au lieu de laisser un trou entre la phrase et « Voir » ; un écran bas garde la rangée */
 .nv-ic{flex:none;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:23px;background:color-mix(in srgb,var(--lien) 13%,transparent);color:var(--lien)}
 .nv-ic svg{width:24px;height:24px}
 .nv-carte h2{margin:0;font-size:23px;line-height:1.2;letter-spacing:-.01em;text-wrap:balance}
@@ -26145,7 +26146,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="nv-style">
   .nv-voir{align-self:stretch;min-height:52px}
   .nv-pied{padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
   .nv-pied .btn{flex:1 1 0;min-width:0;min-height:50px}
-  .nv-sep,.nv-prec{display:none}
+  .nv-sep{display:none}
   .nv-aide{display:none}
   .nv-lignes li{padding:10px 12px;font-size:15px}
   .nv-avant{flex:1 1 100%}
