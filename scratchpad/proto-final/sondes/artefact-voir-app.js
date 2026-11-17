@@ -75,6 +75,9 @@ const photo = async (c, nom) => { try { await (c.hote || c.p).screenshot({ path:
     if (sec('B')) { let c = await L.ouvrir({ profil, qui: null, app: true, nuit, guide: true }); await calmer(c.p); await c.p.waitForTimeout(900); let e = await lit(c.p);
     v(`${T} B : population (?app=1 sans session : l'écran de connexion est là)`, e.app && e.cnx, e);
     v(`${T} B : ?app=1 → AUCUN « Revenir au mode test »`, !e.lien && !e.parBouton, e);
+    // le même, un drapeau de session posé (la personne a touché le bouton plus tôt dans l'onglet) : ?app=1 reste l'entrée « application » pure, sans lien de retour
+    await c.p.evaluate(() => { try { sessionStorage.setItem('opg_proto_voir_app', '1'); } catch (e) {} }); await c.p.reload({ waitUntil: 'load', timeout: 60000 }).catch(() => {}); await calmer(c.p); await c.p.waitForTimeout(1200); e = await lit(c.p);
+    v(`${T} B : ?app=1 avec un drapeau posé → toujours aucun lien de retour`, e.app && e.cnx && !e.lien && !e.parBouton && e.drapeau === '1', e);
     await L.fin(c);
     c = await L.ouvrir({ profil, qui: null, app: false, nuit, guide: true, requete: '', init: 'window.OPG_MODE_APP = true;' }); await calmer(c.p); await c.p.waitForTimeout(900); e = await lit(c.p);
     v(`${T} B : population (coque : OPG_MODE_APP, l'écran de connexion est là)`, e.app && e.cnx && !e.bande, e);
