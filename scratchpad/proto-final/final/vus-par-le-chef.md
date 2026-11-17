@@ -80,3 +80,29 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       blanc ; de nuit les deux sont deux pilules bleu nuit presque pareilles (`--fill:#2c3d63` contre `--surf2` + filet).
       Recommandation : de nuit, le principal en clair (`--fill:#e9eef8; --on-fill:#0b1426`), le miroir exact du jour — une
       ligne de jetons, à essayer sur tous les écrans avant d'adopter (`--fill` sert aussi ailleurs : le recenser).
+- [ ] **Dans l'artefact, le mode application n'est pas atteignable — À CONSTRUIRE (artefact)** — décision du chef du 17/11,
+      9 h 15. L'artefact s'ouvre en mode REVUE (la bande « Tester en tant que ») : c'est voulu, Justin y passe d'un rôle à
+      l'autre d'un toucher. Mais tout ce qui n'existe qu'en mode APPLICATION (écran de connexion, OP Security, guide à la
+      première connexion, aucun échafaudage) lui est invisible : `?app=1` ne passe pas dans un artefact, seul un `#nom` passe.
+      À faire, à la source, avec ses sondes dans le bac simulé de l'artefact (`sondes/artefact-bac.js`, la page DANS un cadre,
+      sans requête) :
+      · dans la bande, un bouton « Voir comme l'application » : il pose l'adresse `#lien-<espace>` (la page sait déjà la lire :
+        `MODE_APP`, `opgLien`) ET un drapeau de session rangé sous `try`, puis recharge la page (`location.reload()`). Si le
+        rechargement est refusé ou si rien ne se range, le dire (« Impossible ici : ouvre l'adresse … ») sans rien casser ;
+      · au démarrage, le drapeau vaut `#lien-…` (l'un OU l'autre suffit) ;
+      · en mode application entré par ce bouton, l'écran de connexion porte un lien discret « Revenir au mode test » qui retire
+        le drapeau, remet l'adresse nue et recharge ; il n'existe PAS dans la coque (`window.OPG_MODE_APP`) ni avec `?app=1` ;
+      · prouver : bouton → écran de connexion ; retour → la bande ; rangement refusé → le `#lien-` seul suffit ; historique
+        refusé → pas d'erreur ; mutations qui tombent. Regarder les deux écrans (Mac et iPhone, jour et nuit).
+      · les deux casses du recontrôle (`artefact/recontrole.json`) se corrigent aussi : hors artefact et hors cadre verrouillé,
+        un cadre voisin sans pont retombe sur le LIEN de téléchargement avec la phrase honnête (« téléchargement demandé ; s'il
+        ne démarre pas, ton navigateur le bloque »), comme la page du haut — le texte à copier reste le dernier recours ; et
+        chaque `history.replaceState` nu prend son `try` (sept lignes citées).
+- [ ] **Artefact : un fichier fabriqué dans un cadre voisin (artefact)** — relu par le chef dans le contrat du pont
+      (`downloads.d.ts` 0.2.96 : `data: string | Blob | ArrayBuffer | ArrayBufferView`). Un Blob ou un ArrayBuffer né dans le
+      cadre de l'atelier ou de la Comptabilité n'est PAS un « instanceof Blob / ArrayBuffer » de la page du haut, là où vit
+      `window.claude` : si le pont teste le type, il répond `bad_request` et rien ne s'enregistre (le doute du recontrôle).
+      Règle sûre, à appliquer dans les trois chemins qui passent par `window.parent.claude` : un TEXTE (CSV, FEC) se passe en
+      chaîne ; un fichier binaire (PDF, image) se REFAIT avec le constructeur du parent avant l'appel —
+      `new window.parent.Blob([await blob.arrayBuffer()], { type })`. Sonde : dans le bac, un pont qui REFUSE tout ce qui
+      n'est pas `instanceof` de sa propre fenêtre ; les trois téléchargements des cadres passent quand même.

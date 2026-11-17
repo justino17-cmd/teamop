@@ -1716,9 +1716,11 @@ var MARKUP = `
     return s.replace(/&#x([0-9a-f]{1,6});/gi,function(t,h){ var n=parseInt(h,16); return n>0&&n<0x110000?String.fromCodePoint(n):t; })
       .replace(/&#([0-9]{1,7});/g,function(t,d){ var n=+d; return n>0&&n<0x110000?String.fromCodePoint(n):t; })
       .replace(/&[a-zA-Z][a-zA-Z0-9]{1,31};/g,function(t){ try{ _deco=_deco||document.createElement("textarea"); _deco.innerHTML=t; return _deco.value; }catch(e){ return t; } }); }
+  /* un lien se lit tel qu'il s'ouvre : « аррӏе.com » en lettres cyrilliques ressemble à « apple.com », on écrit donc sa forme réelle (xn--…) quand l'adresse n'est pas en lettres latines */
+  function adresseVue(u){ var m=/^(https?:\/\/)([^\/?#]*)/i.exec(u); if(!m||!/[^\x00-\x7f]/.test(m[2])) return u; try{ return m[1]+new URL(m[1]+m[2]).host+u.slice(m[0].length); }catch(e){ return u; } }
   function corpsLu(s,liens){ var h=H(entitesLues(s)).replace(/\u00a0/g," ");
-    if(liens) h=h.replace(/\bhttps?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)[^\s<>"'])+/g,function(u){ var fin=""; var m=/(?:[.,;:!?)\]]|&gt;|&#39;|&quot;)+$/.exec(u); if(m){ fin=u.slice(m.index); u=u.slice(0,m.index); } if(!/^https?:\/\/./.test(u)) return u+fin;
-      return '<a class="rlien" href="'+u+'" target="_blank" rel="noopener noreferrer nofollow">'+u+'</a>'+fin; });
+    if(liens) h=h.replace(/\bhttps?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)[^\s<>"'])+/g,function(u){ var fin=""; var m=/(?:[.,;:!?)\]]|&gt;|&#39;|&quot;)+$/.exec(u); if(m){ fin=u.slice(m.index); u=u.slice(0,m.index); } if(!/^https?:\/\/./.test(u)||/^https?:\/\/[^\/?#]*@/i.test(u)) return u+fin;
+      return '<a class="rlien" href="'+u+'" target="_blank" rel="noopener noreferrer nofollow">'+adresseVue(u)+'</a>'+fin; });
     return h.replace(/\n/g,"<br>"); }
   var app=$("#app"), cadre=$(".opc"), layerEl=$(".opc-layer");
   var actif=function(){ return sr.activeElement; };
