@@ -21,7 +21,8 @@ const SCENES = [
   { n: 'appel:video', prep: "demarrerAppel('karim',true);S.appel.etat='cours';S.appel.t0=Date.now();peindreAppel()" }, { n: 'appel:clavier', prep: "demarrerAppel('karim');S.appel.etat='cours';S.appel.t0=Date.now();S.appel.clavier=true;peindreAppel()" },
   { n: 'appel:entrant', prep: "demarrerAppel('leo',false,true)" }, { n: 'appel:reduit', prep: "demarrerAppel('karim');S.appel.etat='cours';S.appel.t0=Date.now();S.appel.reduit=true;peindreAppel()" },
   { n: 'reunion:preparation', prep: "ouvrirSalle(evt('e1'))" }, { n: 'reunion:salle', prep: "ouvrirSalle(evt('e1'),true)" },
-  ...['participants', 'discussion', 'options'].map((v) => ({ n: 'reunion:' + v, prep: `ouvrirSalle(evt('e1'),true);S.salle.volet='${v}';peindreSalle()` })),
+  ...['participants', 'discussion', 'notes', 'options'].map((v) => ({ n: 'reunion:' + v, prep: `ouvrirSalle(evt('e1'),true);S.salle.volet='${v}';peindreSalle()` })),
+  { n: 'menu:evenement', prep: R('agenda') + ";menuEvt(evt('e1'),300,300)" }, { n: 'feuille:compte-rendu-fin', prep: "ouvrirSalle(evt('e1'),true);S.salle.fichiers.push('Planning.pdf');quitterSalle()" },
   { n: 'reunion:partage', prep: "ouvrirSalle(evt('e1'),true);S.salle.partage=true;S.salle.st=true;peindreSalle()" },
 ];
 (async () => {

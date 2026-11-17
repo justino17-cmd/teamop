@@ -4,12 +4,12 @@
    travail arrondi ; des messages en LIGNES (auteur, heure, texte) avec leurs gestes au survol, plus de bulles ; une liste de conversations en
    sections avec filtres ; un fil « Activité » ; un agenda en GRILLE HORAIRE ; des cartes bordées, des angles moins ronds, 14 px au bureau. ══ */
 :root{
-  --cadre:#1c357f; --cadre2:#152764; --fond:#f5f6fa; --carte:#fff; --bord:#e3e6ee; --texte:#131a2c; --second:#5a6377; --faible:#99a1b3; --accent:#2a4a9c; --fill:#2a4a9c;
-  --doux:#e9effd; --champ:#eef0f6; --survol:#f1f3f8; --sel:#e6edff; --vert:#16a34a; --vert-doux:#e3f6ea; --rouge:#e5484d; --rouge-doux:#fde8e8; --orange:#d97706; --orange-doux:#fdf0d9;
+  --cadre:#0f1b47; --cadre2:#1b3384; --fond:#f6f7fb; --carte:#fff; --bord:#e3e6ee; --texte:#131a2c; --second:#5a6377; --faible:#99a1b3; --accent:#2d5be0; --fill:#2d5be0;
+  --doux:#e7eeff; --champ:#eef0f6; --survol:#f1f3f8; --sel:#e3ebff; --vert:#12a150; --vert-doux:#e3f6ea; --rouge:#e5484d; --rouge-doux:#fde8e8; --orange:#d97706; --orange-doux:#fdf0d9;
   --ombre:0 10px 30px rgba(15,23,60,.14),0 1px 3px rgba(15,23,60,.08); --r:12px; --ressort:cubic-bezier(.2,.9,.25,1);
 }
 :root[data-theme="dark"]{
-  --cadre:#050b1f; --cadre2:#050b1f; --fond:#0c1530; --carte:#131e40; --bord:#25325e; --texte:#eef2ff; --second:#a9b4d6; --faible:#6d7aa4; --accent:#93b2f6; --fill:#3b63c4;
+  --cadre:#050b1f; --cadre2:#050b1f; --fond:#0c1530; --carte:#131e40; --bord:#25325e; --texte:#eef2ff; --second:#a9b4d6; --faible:#6d7aa4; --accent:#9db9ff; --fill:#3f6df0;
   --doux:#1b2a58; --champ:#19254e; --survol:#18244b; --sel:#1f3068; --vert:#34c26a; --vert-doux:#143524; --rouge:#ff6b6f; --rouge-doux:#3d1a22; --orange:#f2a93b; --orange-doux:#3a2a12;
   --ombre:0 10px 30px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.4);
 }
@@ -24,7 +24,7 @@ h1{font-size:17px;line-height:24px;font-weight:700;letter-spacing:-.01em} h2{fon
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 
 /* ── le cadre : la barre du haut (recherche), le rail, l'espace de travail arrondi ── */
-#cadre{position:fixed;inset:0;height:var(--haut,100%);display:grid;grid-template-columns:76px minmax(0,1fr);grid-template-rows:50px minmax(0,1fr);background:linear-gradient(180deg,var(--cadre),var(--cadre2))}
+#cadre{position:fixed;inset:0;height:var(--haut,100%);display:grid;grid-template-columns:76px minmax(0,1fr);grid-template-rows:50px minmax(0,1fr);background:linear-gradient(165deg,var(--cadre2),var(--cadre) 55%)}
 #haut{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 12px 0 14px;color:#fff}
 .marque{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;letter-spacing:.02em;white-space:nowrap;width:210px;flex:none}
 .marque i{width:28px;height:28px;border-radius:8px;background:#fff;color:var(--cadre);display:grid;place-items:center;font-size:8px;line-height:9px;font-weight:800;font-style:normal;text-align:center;flex:none}
@@ -153,8 +153,8 @@ h1{font-size:17px;line-height:24px;font-weight:700;letter-spacing:-.01em} h2{fon
 .jour-c b{font-size:17px;font-weight:700;color:var(--texte);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;letter-spacing:0} .jour-c.auj b{background:var(--fill);color:#fff} .jour-c[aria-pressed="true"]:not(.auj) b{box-shadow:inset 0 0 0 2px var(--fill)} .jour-c .pt-j{display:none}
 .g-corps{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr));position:relative;height:calc(var(--hh) * 15)} .g-h{position:relative} .g-h span{position:absolute;right:8px;font-size:11px;color:var(--faible);transform:translateY(-50%)}
 .g-col{position:relative;border-left:1px solid var(--bord);background-image:linear-gradient(var(--bord) 1px,transparent 1px);background-size:100% var(--hh)} .g-col.auj{background-color:color-mix(in srgb,var(--doux) 45%,transparent)}
-.bloc-g{position:absolute;left:3px;right:3px;border-radius:7px;padding:3px 7px;font-size:12px;line-height:15px;background:color-mix(in srgb,var(--c) 16%,var(--carte));border-left:3px solid var(--c);overflow:hidden;text-align:left} .bloc-g b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .bloc-g span{color:var(--second)}
-.g-now{position:absolute;left:0;right:0;height:2px;background:var(--rouge);z-index:1} .g-now::before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--rouge)}
+.bloc-g{touch-action:none;cursor:grab;position:absolute;left:3px;right:3px;border-radius:7px;padding:3px 7px;font-size:12px;line-height:15px;background:color-mix(in srgb,var(--c) 16%,var(--carte));border-left:3px solid var(--c);overflow:hidden;text-align:left} .bloc-g b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .bloc-g span{color:var(--second)}
+.bloc-g.glisse{z-index:3;box-shadow:var(--ombre);cursor:grabbing;opacity:.94} .g-now{pointer-events:none;position:absolute;left:0;right:0;height:2px;background:var(--rouge);z-index:1} .g-now::before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--rouge)}
 .mois{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--bord);border:1px solid var(--bord);border-radius:var(--r);overflow:hidden} .mois .e{background:var(--carte);font-size:11px;font-weight:700;color:var(--second);text-align:center;padding:7px 0;text-transform:uppercase;letter-spacing:.03em}
 .mois button{background:var(--carte);min-height:92px;padding:6px;display:flex;flex-direction:column;gap:3px;align-items:stretch;text-align:left;min-width:0} .mois button>b{font-size:12.5px;font-weight:600;width:24px;height:24px;border-radius:50%;display:grid;place-items:center} .mois button.hors>b{color:var(--faible)} .mois button.auj>b{background:var(--fill);color:#fff}
 .mois button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--fill)} .mois .blocs{display:flex;flex-direction:column;gap:2px;min-width:0} .mois .pts{display:none;gap:3px;justify-content:center} .mois .pts i{width:5px;height:5px;border-radius:50%;background:var(--c)}
@@ -219,6 +219,7 @@ h1{font-size:17px;line-height:24px;font-weight:700;letter-spacing:-.01em} h2{fon
 .v-tete{display:flex;align-items:center;padding:10px 8px 6px 14px} .v-tete b{flex:1;font-size:14px} .v-tete .rond{color:#fff}
 .v-corps{flex:1;min-height:0;overflow-y:auto;padding:4px 12px 10px;display:flex;flex-direction:column;gap:8px;font-size:13px}
 .volet .l-p{display:flex;align-items:center;gap:9px} .volet .l-p>span:not(.av){flex:1;min-width:0} .v-pied{display:flex;gap:6px;padding:8px 10px 10px;flex-wrap:wrap}
+.chat-f{display:inline-flex;align-items:center;gap:6px;margin-top:3px;padding:5px 9px;border-radius:8px;background:rgba(255,255,255,.12)} .chat-f svg{width:15px;height:15px} .volet textarea{flex:1;min-height:140px;border-radius:10px;border:0;background:rgba(255,255,255,.1);color:#fff;padding:10px;outline:0;resize:none;font-size:14px;line-height:20px}
 .v-pied input{flex:1;min-width:0;min-height:36px;border-radius:9px;border:0;background:rgba(255,255,255,.14);color:#fff;padding:0 12px;outline:0}
 .salle .bas{flex:none;display:flex;justify-content:center;gap:4px;flex-wrap:wrap;padding:10px 10px calc(12px + env(safe-area-inset-bottom,0px))}
 .ctl{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:66px;padding:7px 8px;border-radius:11px;font-size:11px;color:rgba(255,255,255,.9)} .ctl svg{width:21px;height:21px} .ctl[aria-pressed="true"]{background:rgba(255,255,255,.16)} .ctl.off svg{color:#ff8a82}

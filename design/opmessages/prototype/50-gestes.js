@@ -61,18 +61,23 @@ const ACTIONS = {
   'evt-modifier': (b) => feuilleProgrammer(evt(b.dataset.id)),
   'evt-enregistrer': (b) => { const titre = $('#pe-titre').value.trim(); if (!titre) { $('#pe-titre').focus(); toast('Donne un titre'); return; }
     const type = $('[data-pe-type][aria-pressed="true"]').dataset.peType, deb = $('#pe-deb').value || '10:00', fin = $('#pe-fin').value || deb; if (fin < deb) { $('#pe-fin').focus(); toast('La fin est avant le début'); return; }
-    const e = b.dataset.id ? evt(b.dataset.id) : { id: uid() }, neuf = !b.dataset.id, anciens = e.invites || [];
+    const e = b.dataset.id ? evt(b.dataset.id) : { id: uid() }, neuf = !b.dataset.id, anciens = e.invites || [], avant = '' + e.j + e.deb + e.fin;
     Object.assign(e, { type, titre, j: +$('#pe-jour').value, deb, fin, rappel: +$('#pe-rappel').value, lieu: type === 'reunion' ? undefined : $('#pe-lieu').value.trim() || undefined,
       invites: type === 'reunion' ? $$('[data-pe-inv][aria-pressed="true"]').map((x) => { const a = anciens.find((i) => i[0] === x.dataset.peInv); return a || [x.dataset.peInv, 'attente']; }) : undefined });
     if (neuf) EVTS.push(e); fermer(); S.agJour = e.j; S.agSem = Math.floor((e.j - lundi(0)) / 7); S.agVue = 'semaine';
     if (S.vue === 'reunions' && type === 'reunion') aller('reunions', e.id); else aller('agenda');
+    if (!neuf && avant !== '' + e.j + e.deb + e.fin && prevenir(e, 'decale')) return;
     notifier(neuf ? 'Ajouté à ton agenda' : 'Modifié', e.titre + ' · ' + jourCourt(e.j) + ' à ' + e.deb + (e.invites && e.invites.length ? ' · ' + e.invites.length + ' invité' + (e.invites.length > 1 ? 's prévenus' : ' prévenu') : '')); },
-  'evt-supprimer': (b) => { const i = EVTS.findIndex((e) => e.id === b.dataset.id); if (i < 0) return; const t = EVTS[i].titre; EVTS.splice(i, 1); fermer(); if (S.id === b.dataset.id) aller(S.vue); else rendre(); toast('« ' + t + ' » supprimé'); },
+  'evt-supprimer': (b) => { const i = EVTS.findIndex((e) => e.id === b.dataset.id); if (i < 0) return; const t = EVTS[i].titre, prevenus = prevenir(EVTS[i], 'annule'); EVTS.splice(i, 1); fermer(); if (S.id === b.dataset.id) aller(S.vue); else rendre(); if (!prevenus) toast('« ' + t + ' » supprimé'); },
   'lien-reunion': () => toast('Lien de la réunion copié'),
   'compte-rendu': (b) => { const e = evt(b.dataset.id); ouvrir(`${fTeteOk('Compte rendu')}<p class="gris" style="text-align:center">${esc(e.titre)} · ${e.cr.duree}</p>
     <div><h3 class="titre-s" style="padding-left:14px">Décisions</h3><div class="groupe">${e.cr.decisions.map((d) => `<div class="rang"><span class="t"><b>${esc(d)}</b></span></div>`).join('')}</div></div>
     <div><h3 class="titre-s" style="padding-left:14px">À faire</h3><div class="groupe">${e.cr.actions.map((a) => `<div class="rang av-g">${av(a[1])}<span class="t"><b>${esc(a[0])}</b><span>${esc(P[a[1]].n)}</span></span></div>`).join('')}</div></div>`); },
-  'cr-envoyer': (b) => { const c = conv('equipe'); c.msgs.push({ id: uid(), de: 'moi', j: 0, h: hMaintenant(), t: 'Compte rendu de « ' + b.dataset.titre + ' » : je vous l’envoie dans la journée.' }); fermer(); rendre(); toast('Envoyé dans « Équipe terrain »'); },
+  'cr-envoyer': () => { const cr = S._cr; if (!cr) { fermer(); return; } const notes = ($('#cr-notes') || {}).value || '', c = conv('equipe'), gens = cr.presents.map(prenom).join(', ') || 'toi seule';
+    const texte = 'Compte rendu · ' + cr.titre + '\nDurée : ' + cr.duree + ' · Présents : ' + gens + (notes.trim() ? '\n' + notes.trim() : '') + (cr.dessins ? '\nPartage annoté joint (' + cr.dessins + ' dessin' + (cr.dessins > 1 ? 's' : '') + ').' : '');
+    cr.fichiers.forEach((f) => c.msgs.push({ id: uid(), de: 'moi', j: 0, h: hMaintenant(), type: 'fichier', nom: f, taille: '212 Ko' })); c.msgs.push({ id: uid(), de: 'moi', j: 0, h: hMaintenant(), t: texte });
+    const e = cr.id && evt(cr.id); if (e) e.cr = { duree: cr.duree, decisions: notes.trim() ? notes.trim().split('\n').filter(Boolean) : ['Aucune note prise'], actions: [] };
+    S._cr = null; fermer(); rendre(); notifier('Compte rendu envoyé', cr.a === 'equipe' ? 'Dans le canal Équipe terrain' : (cr.presents.length ? gens + (cr.presents.length > 1 ? ' l’ont reçu' : ' l’a reçu') : 'Rangé dans Équipe terrain') + (cr.a === 'equipe' ? '' : ', copie dans Équipe terrain'), () => aller('messages', 'equipe')); },
   'rappel-ajouter': () => ouvrir(`${fTete('Nouveau rappel', 'Ajouter', 'data-action="rappel-ok"')}<label class="champ"><span>À faire</span><input id="rap-t" placeholder="Rappeler le fournisseur" autofocus></label>
     <label class="champ"><span>Quand</span><select id="rap-j"><option value="0">Aujourd’hui</option><option value="1">Demain</option><option value="7">Dans une semaine</option></select></label>`),
   'rappel-ok': () => { const t = $('#rap-t').value.trim(); if (!t) { $('#rap-t').focus(); toast('Écris ce qu’il faut faire'); return; } RAPPELS.push({ id: uid(), t, j: +$('#rap-j').value, fait: false }); fermer(); rendre(); },
@@ -149,6 +154,7 @@ document.addEventListener('click', (e) => {
   if ((b = q('[data-regl]'))) { S.regl[b.dataset.regl] = !S.regl[b.dataset.regl]; rendre(); return; }
   if ((b = q('[data-theme-choix]'))) { S.theme = b.dataset.themeChoix; appliquerTheme(); rendre(); return; }
   if ((b = q('[data-statut]'))) { S.statut = b.dataset.statut; fermer(); rendre(); return; }
+  if ((b = q('[data-cr-a]'))) { $$('[data-cr-a]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); if (S._cr) S._cr.a = b.dataset.crA; return; }
   if ((b = q('[data-pe-type]'))) { $$('[data-pe-type]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); const r = b.dataset.peType === 'reunion'; $('#pe-lieu-z').hidden = r; $('#pe-inv-z').hidden = !r; return; }
   if ((b = q('[data-pe-inv]'))) { b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); return; }
   /* — appel — */
@@ -170,12 +176,14 @@ document.addEventListener('click', (e) => {
     else if (k === 'admettre') { s.attente = s.attente.filter((p) => p !== b.dataset.p); s.presents.push(b.dataset.p); toast(prenom(b.dataset.p) + ' a rejoint la réunion'); }
     else if (k === 'refuser') { s.attente = s.attente.filter((p) => p !== b.dataset.p); toast('Demande refusée'); }
     else if (k === 'inviter') { toast('Lien de la réunion copié'); return; } else if (k === 'tout-couper') { toast('Tous les micros sont coupés'); return; }
+    else if (k === 'fichier') { const f = ['Planning semaine 47.pdf', 'Devis hall Les Minimes.pdf', 'Photos du chantier.zip'][s.fichiers.length % 3]; s.fichiers.push(f); s.chat.push({ de: 'moi', f }); s.volet = 'discussion'; toast('« ' + f + ' » envoyé à tous les participants'); }
     else if (k === 'chat-envoyer') { const i = $('#salle-msg'), t = i.value.trim(); if (!t) { i.focus(); toast('Écris ton message'); return; } s.chat.push({ de: 'moi', t }); }
     peindreSalle(); const ch = $('#salle-chat'); if (ch) ch.scrollTop = ch.scrollHeight; return; }
 });
 /* — clavier, saisie, recherche — */
 document.addEventListener('input', (e) => {
   if (e.target.id === 'saisie') majEnvoi();
+  if (e.target.id === 'salle-notes' && S.salle) { S.salle.notes = e.target.value; return; }
   if (e.target.id === 'pal') { $('#pal-res').innerHTML = palRes(e.target.value); return; }
   if (e.target.id === 'rech') { S.rech = e.target.value; if (S.vue === 'messages') $('#liste-conv').innerHTML = listeConvHtml(); else { const p = e.target.selectionStart; rendre(); const n = $('#rech'); n.focus(); n.setSelectionRange(p, p); } }
 });
@@ -190,8 +198,8 @@ document.addEventListener('keydown', (e) => {
 /* le menu d'un message : clic droit à l'ordinateur, appui long au doigt */
 document.addEventListener('contextmenu', (e) => { const b = e.target.closest('[data-msg]'); if (!b) return; e.preventDefault(); menuMessage(b, e.clientX, e.clientY); });
 let _long = 0, _longFait = false;
-document.addEventListener('touchstart', (e) => { const b = e.target.closest('[data-msg]'); _longFait = false; if (!b || e.touches.length > 1) return; const t = e.touches[0], x = t.clientX, y = t.clientY;
-  _long = setTimeout(() => { _longFait = true; const r = b.getBoundingClientRect(); menuMessage(b, x - 110, r.bottom + 6); }, 480); }, { passive: true });
+document.addEventListener('touchstart', (e) => { const b = e.target.closest('[data-msg],#scene .evt[data-evt]'); _longFait = false; if (!b || e.touches.length > 1) return; const t = e.touches[0], x = t.clientX, y = t.clientY;
+  _long = setTimeout(() => { _longFait = true; const r = b.getBoundingClientRect(); if (b.dataset.evt) menuEvt(evt(b.dataset.evt), x - 110, y + 10); else menuMessage(b, x - 110, r.bottom + 6); }, 480); }, { passive: true });
 ['touchmove', 'touchend', 'touchcancel'].forEach((n) => document.addEventListener(n, () => clearTimeout(_long), { passive: true }));
 /* le clic qui suit le relâcher d'un appui long tomberait sur le menu qui vient de s'ouvrir sous le doigt : on avale celui-là, et lui seul */
 document.addEventListener('click', (e) => { if (_longFait) { _longFait = false; e.stopPropagation(); e.preventDefault(); } }, true);
@@ -202,6 +210,46 @@ document.addEventListener('touchmove', (e) => { if (!_tire) return; _tire.d = Ma
 document.addEventListener('touchend', () => { if (!_tire) return; const t = _tire; _tire = null; t.f.style.transition = 'transform .25s'; if (t.d > 110) fermer(); else t.f.style.transform = ''; }, { passive: true });
 /* la zone de saisie reste au-dessus du clavier : la page se cale sur la hauteur réellement visible */
 if (window.visualViewport) { const cale = () => document.documentElement.style.setProperty('--haut', Math.round(visualViewport.height) + 'px'); visualViewport.addEventListener('resize', cale); cale(); }
+
+/* ══ L'AGENDA SE MANIE À LA MAIN (17 novembre 2026, Justin : « un super système pour gérer les rendez-vous ; si on décale, les autres reçoivent une
+   notification, pareil pour les annulations ; clic droit, et rester cliqué pour déplacer »). ══ */
+const hm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+/* prévenir les invités d'un décalage ou d'une annulation : leur réponse repasse « en attente » (ils doivent revalider le nouvel horaire) */
+function prevenir(e, quoi) { const inv = e.invites || []; if (!inv.length) return ''; const noms = inv.map((i) => prenom(i[0])), qui = noms.length > 2 ? noms.slice(0, 2).join(', ') + ' et ' + (noms.length - 2) + ' autre' + (noms.length > 3 ? 's' : '') : noms.join(' et ');
+  if (quoi !== 'annule') inv.forEach((i) => { i[1] = 'attente'; });
+  notifier(quoi === 'annule' ? 'Réunion annulée' : 'Réunion décalée', '« ' + e.titre + ' »' + (quoi === 'annule' ? '' : ' passe à ' + jourCourt(e.j).toLowerCase() + ' ' + e.deb) + ' · ' + qui + (inv.length > 1 ? ' sont prévenus' : ' est prévenu')); return qui; }
+function deplacerEvt(e, j, deb) { const dur = minutes(e.fin) - minutes(e.deb), m = Math.max(0, Math.min(24 * 60 - dur, minutes(deb))); if (e.j === j && e.deb === hm(m)) { rendre(); return; }
+  e.j = j; e.deb = hm(m); e.fin = hm(m + dur); S.agJour = j; rendre(); if (!prevenir(e, 'decale')) toast('Déplacé : ' + jourCourt(j).toLowerCase() + ' à ' + e.deb); }
+/* le menu d'un événement (clic droit, ou appui long au doigt) ; sur une case vide de la grille : créer là */
+function menuLibre(x, y, html, pour) { fermerMenu(); const d = document.createElement('div'); d.className = 'menu-ctx'; d.setAttribute('role', 'menu'); d.dataset.pour = pour || ''; d.innerHTML = html; document.body.appendChild(d);
+  const r = d.getBoundingClientRect(); d.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px'; d.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px'; return d; }
+function menuEvt(e, x, y) { const l = (k, t, ic, cls) => `<button class="l ${cls || ''}" data-ectx="${k}">${t}${svg(ic)}</button>`;
+  menuLibre(x, y, l('ouvrir', 'Ouvrir', 'info') + (e.type === 'reunion' && !e.passe ? l('rejoindre', 'Rejoindre', 'video') : '') + (e.passe ? '' : l('modifier', 'Modifier', 'stylo') + l('plus1h', 'Décaler d’une heure', 'horloge') + l('demain', 'Reporter au lendemain', 'agenda') + l('dupliquer', 'Dupliquer', 'copier') + l('annuler', e.invites && e.invites.length ? 'Annuler la réunion' : 'Supprimer', 'corbeille', 'r')), e.id); }
+document.addEventListener('contextmenu', (ev) => { const b = ev.target.closest('#scene [data-evt]'), col = !b && ev.target.closest('.g-col'); if (!b && !col) return; ev.preventDefault();
+  if (b) { menuEvt(evt(b.dataset.evt), ev.clientX, ev.clientY); return; }
+  const r = col.getBoundingClientRect(), m = Math.floor(((ev.clientY - r.top) / (r.height / GH) * 60) / 30) * 30 + G0 * 60, j = lundi(S.agSem) + $$('.g-col').indexOf(col);
+  const d = menuLibre(ev.clientX, ev.clientY, `<button class="l" data-ectx="neuf" data-type="reunion">Nouvelle réunion à ${hm(m)}${svg('video')}</button><button class="l" data-ectx="neuf" data-type="rdv">Nouveau rendez-vous à ${hm(m)}${svg('agenda')}</button>`); d.dataset.j = j; d.dataset.m = m; });
+document.addEventListener('click', (ev) => { const b = ev.target.closest('[data-ectx]'); if (!b) return; const mn = b.closest('.menu-ctx'), k = b.dataset.ectx, e = evt(mn.dataset.pour); ev.stopPropagation(); fermerMenu();
+  if (k === 'neuf') { const m = +mn.dataset.m; feuilleProgrammer({ type: b.dataset.type, j: +mn.dataset.j, deb: hm(m), fin: hm(m + (b.dataset.type === 'reunion' ? 30 : 60)) }); return; }
+  if (!e) return;
+  if (k === 'ouvrir') ouvrir(`${fTeteOk(TYPES_E[e.type][0])}${ficheEvt(e)}`); else if (k === 'rejoindre') ouvrirSalle(e); else if (k === 'modifier') feuilleProgrammer(e);
+  else if (k === 'plus1h') deplacerEvt(e, e.j, hm(minutes(e.deb) + 60)); else if (k === 'demain') deplacerEvt(e, e.j + 1, e.deb);
+  else if (k === 'dupliquer') { EVTS.push(Object.assign({}, e, { id: uid(), j: e.j + 7, invites: e.invites ? e.invites.map((i) => [i[0], 'attente']) : undefined, cr: undefined, invitation: undefined })); rendre(); toast('Dupliqué : une semaine plus tard'); }
+  else if (k === 'annuler') ACTIONS['evt-supprimer']({ dataset: { id: e.id } }); }, true);
+/* rester cliqué sur un bloc de la grille et le glisser : il suit, par quarts d'heure, d'un jour à l'autre. Au doigt : tenir un instant avant de bouger. */
+let _gl = null, _glFait = false;
+document.addEventListener('pointerdown', (ev) => { const b = ev.target.closest && ev.target.closest('.bloc-g'); if (!b || ev.button) return; const e = evt(b.dataset.evt); if (!e || e.passe) return;
+  _gl = { b, e, x: ev.clientX, y: ev.clientY, dy: ev.clientY - b.getBoundingClientRect().top, actif: false, tactile: ev.pointerType === 'touch', t: Date.now(), hh: b.parentElement.getBoundingClientRect().height / GH, dur: minutes(e.fin) - minutes(e.deb) }; });
+document.addEventListener('pointermove', (ev) => { const g = _gl; if (!g) return;
+  if (!g.actif) { if (Math.hypot(ev.clientX - g.x, ev.clientY - g.y) < 6) return; if (g.tactile && Date.now() - g.t < 280) { _gl = null; return; } g.actif = true; g.b.classList.add('glisse'); fermerMenu(); }
+  const cols = $$('.g-col'), k = cols.findIndex((c) => { const r = c.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX < r.right; }); if (k < 0) return; const c = cols[k], r = c.getBoundingClientRect();
+  const m = Math.max(G0 * 60, Math.min((G0 + GH) * 60 - g.dur, Math.round(((ev.clientY - g.dy - r.top) / g.hh * 60) / 15) * 15 + G0 * 60)); g.k = k; g.m = m;
+  if (g.b.parentElement !== c) c.appendChild(g.b); g.b.style.top = `calc(var(--hh) * ${(m - G0 * 60) / 60} + 1px)`; const s = $('span', g.b); if (s) s.textContent = hm(m) + ' – ' + hm(m + g.dur); });
+const _glFin = (ev) => { const g = _gl; _gl = null; if (!g || !g.actif) return; _glFait = true; setTimeout(() => { _glFait = false; }, 60);
+  if (ev.type === 'pointercancel' || g.k == null) { rendre(); return; } deplacerEvt(g.e, lundi(S.agSem) + g.k, hm(g.m)); };
+document.addEventListener('pointerup', _glFin); document.addEventListener('pointercancel', _glFin);
+/* le clic qui suit un glissement ouvrirait la fiche : on l'avale */
+document.addEventListener('click', (ev) => { if (_glFait) { _glFait = false; ev.stopPropagation(); ev.preventDefault(); } }, true);
 
 /* ── départ ── */
 appliquerTheme(); lireAdresse(); rendre();

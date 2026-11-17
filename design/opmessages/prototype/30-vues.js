@@ -129,7 +129,7 @@ function ficheEvt(e) {
     ${e.lieu ? `<div class="groupe"><div class="rang ic-g"><span class="ic" style="--c:#16a34a">${svg('position')}</span><span class="t"><span>Lieu</span><b>${esc(e.lieu)}</b></span></div></div>` : ''}
     ${e.invites && e.invites.length ? `<div><h3 class="titre-s">Invités</h3><div class="groupe">${e.invites.map((i) => `<div class="rang av-g">${av(i[0])}<span class="t"><b>${esc(P[i[0]].n)}</b><span>${esc(P[i[0]].r)}</span></span><span class="pastille ${st[i[1]][1]}">${st[i[1]][0]}</span></div>`).join('')}</div></div>` : ''}
     ${e.odj ? `<div><h3 class="titre-s">Ordre du jour</h3><div class="groupe">${e.odj.map((o, k) => `<div class="rang"><span class="v tab">${k + 1}</span><span class="t"><b>${esc(o)}</b></span></div>`).join('')}</div></div>` : ''}
-    ${!e.passe ? `<div class="groupe"><div class="rang"><span class="t"><b>Rappel</b></span><span class="v">${rap[e.rappel] || 'Aucun'}</span></div></div><button class="btn gris large" style="color:var(--rouge)" data-action="evt-supprimer" data-id="${e.id}">Supprimer</button>` : ''}`;
+    ${!e.passe ? `<div class="groupe"><div class="rang"><span class="t"><b>Rappel</b></span><span class="v">${rap[e.rappel] || 'Aucun'}</span></div></div>${e.invites && e.invites.length ? '<p class="note" style="padding:0">Les invités sont prévenus dès que tu décales ou annules.</p>' : ''}<button class="btn gris large" style="color:var(--rouge)" data-action="evt-supprimer" data-id="${e.id}">${e.invites && e.invites.length ? 'Annuler la réunion' : 'Supprimer'}</button>` : ''}`;
 }
 VUES.reunions = () => {
   const r = EVTS.filter((e) => e.type === 'reunion').sort((a, b) => a.j - b.j || a.deb.localeCompare(b.deb)), av2 = r.filter((e) => !e.passe), pa = r.filter((e) => e.passe);

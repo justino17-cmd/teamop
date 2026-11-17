@@ -90,7 +90,7 @@ const APPELS = [
 ];
 
 /* ── l'agenda : réunions, rendez-vous, événements ── */
-const TYPES_E = { reunion: ['Réunion', '#2a4a9c'], rdv: ['Rendez-vous', '#1c7a3a'], evt: ['Événement', '#a05a00'] };
+const TYPES_E = { reunion: ['Réunion', '#2d5be0'], rdv: ['Rendez-vous', '#12a150'], evt: ['Événement', '#e07b00'] };
 const EVTS = [
   { id: 'e0', type: 'reunion', titre: 'Visio client · Hôtel des Remparts', j: 0, deb: '10:00', fin: '10:30', invites: [['james', 'oui'], ['sophie', 'oui']], rappel: 15, odj: ['Planning de l’entretien annuel', 'Accès au troisième étage', 'Date de la prochaine visite'] },
   { id: 'e1', type: 'reunion', titre: 'Point d’équipe', j: 0, deb: '14:00', fin: '14:30', invites: [['karim', 'oui'], ['leo', 'oui'], ['sophie', 'oui'], ['ines', 'attente']], rappel: 15, repete: 'Chaque semaine', odj: ['Chantiers de la semaine', 'Stock et commandes', 'Questions diverses'] },
@@ -195,6 +195,6 @@ function notifier(titre, texte, go) {
 
 /* ── jour et nuit : en production, l'application suit l'appareil ; le réglage n'existe que dans ce prototype ── */
 function appliquerTheme() { const nuit = S.theme === 'dark' || (S.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.dataset.theme = nuit ? 'dark' : 'light';
-  const m = $('meta[name="theme-color"]'); if (m) m.content = nuit ? '#050b1f' : '#1c357f'; if (COUR.inst && COUR.inst.rafraichir) COUR.inst.rafraichir({ donnees: false }); }
+  const m = $('meta[name="theme-color"]'); if (m) m.content = nuit ? '#050b1f' : '#16296b'; if (COUR.inst && COUR.inst.rafraichir) COUR.inst.rafraichir({ donnees: false }); }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', appliquerTheme);
 const themeHote = () => (document.documentElement.dataset.theme === 'dark' ? 'nuit' : 'jour');

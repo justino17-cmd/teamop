@@ -27,6 +27,15 @@ réunions, les appels, les messages, les mails, l'agenda, et fais-moi ça mieux.
   quatre onglets et « Plus ». Le Courrier reste la vraie boîte mail ; appels, réunions et dessin sur le partage gardent leur logique.
 - **Parties** : `design/opmessages/prototype/` (assembler.sh), comme la veille. **Mesuré** : écrans 352 (11 profils, jour et nuit) 0 faute ; gestes
   499 ✓ sur cinq appareils ; dessin 294 ✓ ; clics : voir le dernier passage. Toujours pas essayé : Safari, Firefox, Xcode.
+- **Même jour, après « ok pas mal »** (Justin : « revois les couleurs et le système de réunion […] écrire sur le partage, envoyer des fichiers, un compte
+  rendu ; l'agenda : si on décale, les autres reçoivent une notification, pareil pour les annulations ; clic droit, et rester cliqué pour déplacer ») :
+  **couleurs** — cadre bleu nuit plus profond (#0f1b47 → #1b3384), bleu d'action plus vif (#2d5be0), agenda en bleu / vert / orange francs ;
+  **réunion** — envoyer un fichier dans la discussion, volet « Notes », et à la sortie un compte rendu prêt (durée, présents, notes, fichiers, partage
+  annoté) qu'on relit et qu'on envoie aux participants ou au canal (il se range aussi sur la réunion) ; **agenda** — on GLISSE un bloc de la grille
+  (quarts d'heure, d'un jour à l'autre ; au doigt : tenir un instant), clic droit ou appui long sur un événement (Ouvrir, Rejoindre, Modifier, Décaler
+  d'une heure, Reporter au lendemain, Dupliquer, Annuler), clic droit sur une case vide (créer là). `prevenir(e, quoi)` est le SEUL endroit qui annonce
+  un décalage ou une annulation aux invités (bannière, réponses remises « en attente ») : glisser, menu, feuille « Modifier » et suppression y passent.
+  Mesuré : gestes 548 ✓, écrans 352, dessin 294. ⚠️ La sonde supprimait « le premier événement visible » — une réunion avec invités : viser l'identifiant.
 - ⚠️ Leçon : deux refontes de suite ont gardé la même charpente et les mêmes bulles — pour Justin, « pas de différence ». Une refonte se juge à la
   première capture posée à côté de l'ancienne, avant d'écrire le reste.
 

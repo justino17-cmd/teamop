@@ -40,7 +40,7 @@ const ST_PHRASES = [['karim', 'Le compresseur arrive demain avant dix heures.'],
 function ouvrirSalle(e, direct) {
   fermer(); const inv = (e.invites || []).map((i) => i[0]);
   S.salle = { e, etape: 'prepa', micro: true, cam: true, flou: false, volet: null, main: false, st: false, rec: false, verrou: false, partage: false, parle: 0, phrase: 0, t0: 0, reac: null,
-    presents: inv.slice(0, Math.max(1, inv.length - 1)), attente: inv.length > 1 ? inv.slice(-1) : [], chat: inv.length ? [{ de: inv[0], t: 'Bonjour à tous.' }] : [] };
+    presents: inv.slice(0, Math.max(1, inv.length - 1)), attente: inv.length > 1 ? inv.slice(-1) : [], chat: inv.length ? [{ de: inv[0], t: 'Bonjour à tous.' }] : [], notes: '', fichiers: [] };
   if (S.appel) { S.appel = null; peindreAppel(); }
   if (direct) entrerSalle(); else peindreSalle();
 }
@@ -70,8 +70,9 @@ function voletHtml() {
     ${s.attente.map((p) => `<div class="l-p">${av(p, 'p')}<span>${esc(P[p].n)}<br><small style="opacity:.7">dans la salle d’attente</small></span><button class="btn-s ok" data-salle="admettre" data-p="${p}">Admettre</button></div>`).join('')}
     <div class="l-p">${av('moi', 'p')}<span>Toi <small style="opacity:.7">· organisatrice</small></span></div>${s.presents.map((p) => `<div class="l-p">${av(p, 'p')}<span>${esc(P[p].n)}</span>${p === 'sophie' ? svg('microoff') : ''}</div>`).join('')}</div>
     <div class="v-pied"><button class="btn-s" data-salle="inviter">${svg('lien')}Copier le lien</button><button class="btn-s" data-salle="tout-couper">Couper les micros</button></div></aside>`;
-  if (v === 'discussion') return `<aside class="volet">${t('Discussion')}<div class="v-corps" id="salle-chat">${s.chat.map((m) => `<div><b>${m.de === 'moi' ? 'Toi' : esc(prenom(m.de))}</b><br>${esc(m.t)}</div>`).join('') || '<span style="opacity:.6">Aucun message.</span>'}</div>
-    <div class="v-pied"><input id="salle-msg" placeholder="Écrire à tous" aria-label="Écrire à tous"><button class="btn-s ok" data-salle="chat-envoyer" aria-label="Envoyer">${svg('envoyer')}</button></div></aside>`;
+  if (v === 'discussion') return `<aside class="volet">${t('Discussion')}<div class="v-corps" id="salle-chat">${s.chat.map((m) => `<div><b>${m.de === 'moi' ? 'Toi' : esc(prenom(m.de))}</b><br>${m.f ? `<span class="chat-f">${svg('doc')}${esc(m.f)}</span>` : esc(m.t)}</div>`).join('') || '<span style="opacity:.6">Aucun message.</span>'}</div>
+    <div class="v-pied"><button class="btn-s" data-salle="fichier" aria-label="Envoyer un fichier" title="Envoyer un fichier">${svg('doc')}</button><input id="salle-msg" placeholder="Écrire à tous" aria-label="Écrire à tous"><button class="btn-s ok" data-salle="chat-envoyer" aria-label="Envoyer">${svg('envoyer')}</button></div></aside>`;
+  if (v === 'notes') return `<aside class="volet">${t('Notes de la réunion')}<div class="v-corps"><textarea id="salle-notes" placeholder="Décisions, points à retenir, qui fait quoi…" aria-label="Notes de la réunion">${esc(s.notes)}</textarea><small style="opacity:.7">Ces notes partent dans le compte rendu, à la fin.</small></div></aside>`;
   const l = (k, lib, on) => `<div class="l-p"><span>${lib}</span><button class="bascule" role="switch" aria-checked="${!!on}" data-salle="${k}" aria-label="${lib}"></button></div>`;
   return `<aside class="volet">${t('Options')}<div class="v-corps" style="gap:14px">${l('rec', 'Enregistrer la réunion', s.rec)}${l('st', 'Sous-titres en direct', s.st)}${l('flou', 'Flouter mon arrière-plan', s.flou)}${l('verrou', 'Verrouiller la réunion', s.verrou)}</div></aside>`;
 }
@@ -87,11 +88,16 @@ function peindreSalle() {
     ${s.attente.length ? `<div class="attente">${av(s.attente[0], 'p')}<span><b>${esc(P[s.attente[0]].n)}</b> attend dans la salle d’attente</span><button class="btn-s ok" data-salle="admettre" data-p="${s.attente[0]}">Admettre</button><button class="btn-s non" data-salle="refuser" data-p="${s.attente[0]}">Refuser</button></div>` : ''}
     <div class="milieu"><div style="flex:1;min-width:0;min-height:0;display:flex;flex-direction:column"><div class="tuiles" id="tuiles" style="--cols:${t.cols}">${t.html}</div>${s.st ? `<div class="soustitres" id="soustitres">${stHtml()}</div>` : ''}</div>${voletHtml()}</div>
     <div class="bas">${c('micro', s.micro ? 'micro' : 'microoff', 'Micro', false, s.micro ? '' : 'off')}${c('cam', s.cam ? 'video' : 'camoff', 'Caméra', false, s.cam ? '' : 'off')}${c('partage', 'ecran', s.partage ? 'Arrêter' : 'Partager', s.partage)}${c('reagir', 'sourire', 'Réagir')}${c('main', 'main', 'Main', s.main)}
-      ${c('volet', 'contacts', 'Participants', s.volet === 'participants').replace('data-salle="volet"', 'data-salle="volet" data-v="participants"')}${c('volet', 'bulle', 'Discussion', s.volet === 'discussion').replace('data-salle="volet"', 'data-salle="volet" data-v="discussion"')}${c('volet', 'points', 'Options', s.volet === 'options').replace('data-salle="volet"', 'data-salle="volet" data-v="options"')}
+      ${c('volet', 'contacts', 'Participants', s.volet === 'participants').replace('data-salle="volet"', 'data-salle="volet" data-v="participants"')}${c('volet', 'bulle', 'Discussion', s.volet === 'discussion').replace('data-salle="volet"', 'data-salle="volet" data-v="discussion"')}${c('volet', 'note', 'Notes', s.volet === 'notes').replace('data-salle="volet"', 'data-salle="volet" data-v="notes"')}${c('volet', 'points', 'Options', s.volet === 'options').replace('data-salle="volet"', 'data-salle="volet" data-v="options"')}
       <button class="ctl quitter" data-salle="quitter">Quitter</button></div></div>`;
 }
+/* quitter : le COMPTE RENDU se prépare tout seul (durée, présents, notes prises, fichiers envoyés, dessins du partage) ; on le relit, on choisit à qui il part */
 function quitterSalle() {
-  const s = S.salle; if (!s) return; clearInterval(_tic); const duree = dureeTxt(s.t0), n = s.presents.length + 1; S.salle = null; $('#plein').innerHTML = ''; rendre();
-  ouvrir(`${fTeteOk('Réunion terminée')}<div class="groupe"><div class="rang"><span class="t"><b>${esc(s.e.titre)}</b><span>${duree} · ${n} participant${n > 1 ? 's' : ''}${s.rec ? ' · enregistrée' : ''}</span></span></div></div>
-    <button class="btn large" data-action="cr-envoyer" data-titre="${esc(s.e.titre)}">Envoyer un compte rendu à l’équipe</button>`);
+  const s = S.salle; if (!s) return; clearInterval(_tic); const n = $('#salle-notes'); if (n) s.notes = n.value;
+  const cr = S._cr = { titre: s.e.titre, id: s.e.id, duree: dureeTxt(s.t0), presents: s.presents.slice(), notes: s.notes, fichiers: s.fichiers.slice(), dessins: s.an ? s.an.items.filter((i) => i.par === 'moi').length : 0, rec: s.rec, a: 'participants' };
+  S.salle = null; $('#plein').innerHTML = ''; rendre();
+  ouvrir(`${fTete('Compte rendu', 'Envoyer', 'data-action="cr-envoyer"')}<div class="groupe"><div class="rang"><span class="t"><b>${esc(cr.titre)}</b><span>${cr.duree} · ${cr.presents.length + 1} participant${cr.presents.length ? 's' : ''}${cr.rec ? ' · enregistrée' : ''}</span></span><span class="avs">${cr.presents.slice(0, 4).map((x) => av(x)).join('')}</span></div>
+      ${cr.fichiers.map((f) => `<div class="rang ic-g"><span class="ic" style="--c:#e5484d">${svg('doc')}</span><span class="t"><b>${esc(f)}</b><span>Envoyé pendant la réunion</span></span></div>`).join('')}${cr.dessins ? `<div class="rang ic-g"><span class="ic" style="--c:#7d3c98">${svg('stylo')}</span><span class="t"><b>Partage annoté</b><span>${cr.dessins} dessin${cr.dessins > 1 ? 's' : ''} sur le document partagé, joint en image</span></span></div>` : ''}</div>
+    <label class="champ"><span>Notes et décisions</span><textarea id="cr-notes" rows="5" placeholder="Ce qui a été décidé, qui fait quoi…">${esc(cr.notes)}</textarea></label>
+    <div class="champ"><span>Envoyer à</span><div class="seg" role="group" aria-label="Destinataires" style="display:flex"><button aria-pressed="true" data-cr-a="participants">Les participants</button><button aria-pressed="false" data-cr-a="equipe">Le canal Équipe terrain</button></div></div>`);
 }
