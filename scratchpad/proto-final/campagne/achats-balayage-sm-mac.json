@@ -1,0 +1,102 @@
+{
+ "profil": "mac",
+ "qui": "sm",
+ "nuit": false,
+ "onglets": {
+  "techfrais": {
+   "recenses": 5,
+   "touches": 5,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "＋ Nouvelle note de frais",
+     "data": "data-rl=ndf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Ce que tu as payé de ta poche",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 226,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Demande d’achat",
+     "data": "data-axa=dem",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Il me faut…",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 194,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "Modifier",
+     "data": "data-axa=demmod|da3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Modifier la demande",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 88,
+     "h": 40
+    },
+    {
+     "i": 3,
+     "lib": "Annuler la demande",
+     "data": "data-axa=demannul|da3",
+     "touche": true,
+     "change": [
+      "toast",
+      "contenu"
+     ],
+     "donnees": true,
+     "h1": "Mes frais",
+     "panneau": "",
+     "toast": "Demande annulée.Annuler",
+     "hash": "#techfrais",
+     "l": 155,
+     "h": 44
+    },
+    {
+     "i": 4,
+     "lib": "📷 Ajouter le ticket",
+     "data": "data-rl=ndfmod|n3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Modifier ma note",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 157,
+     "h": 40
+    }
+   ]
+  }
+ }
+}
