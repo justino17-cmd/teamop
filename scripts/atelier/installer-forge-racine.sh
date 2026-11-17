@@ -16,8 +16,10 @@ case "$ICI" in /home/*) echo "✗ ce script ne se lance pas depuis un dossier pe
 for h in "$PORTE" "$FORGE"; do case "$h" in teamop.fr|www.teamop.fr|api.teamop.fr|msg*.teamop.fr) echo "✗ $h est une adresse de production"; exit 1;; esac; done
 if [ -d /opt/teamop ] || [ -d /etc/teamop ] || systemctl list-unit-files 2>/dev/null | grep -qE '^teamop-(api|msg)'; then echo "✗ ce serveur porte la production : rien de ceci ne s'y installe"; exit 1; fi
 if id -nG atelier 2>/dev/null | tr ' ' '\n' | grep -qxE 'sudo|docker|lxd|adm|disk|root'; then echo "✗ le compte atelier est dans un groupe d'administration : à retirer d'abord"; exit 1; fi
-[ -x "$(ls /home/atelier/forge/bin/forgejo-* 2>/dev/null | head -1)" ] || { echo "✗ la forge n'est pas installée dans /home/atelier/forge (forge-installer.sh d'abord)"; exit 1; }
-BIN="$(ls /home/atelier/forge/bin/forgejo-* | sort -V | tail -1)"
+# Le PROGRAMME, pas ses voisins : le dossier garde aussi l'empreinte et la signature du téléchargement (forgejo-….sha256, .asc).
+BIN="$(ls /home/atelier/forge/bin/ 2>/dev/null | grep -E '^forgejo-[0-9]+(\.[0-9]+)*$' | sort -V | tail -1 || true)"
+[ -n "$BIN" ] && BIN="/home/atelier/forge/bin/$BIN"
+[ -x "$BIN" ] || { echo "✗ la forge n'est pas installée dans /home/atelier/forge (forge-installer.sh d'abord)"; exit 1; }
 
 echo "── [1/7] Les deux noms mènent-ils à ce serveur ?"
 IP_MOI="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')"
@@ -87,6 +89,7 @@ systemctl daemon-reload
 systemctl enable -q atelier-forge atelier-porte
 systemctl restart atelier-forge atelier-porte
 for i in $(seq 1 40); do curl -s -o /dev/null --max-time 2 http://127.0.0.1:3000/api/healthz && break; sleep 0.5; done
+curl -s -o /dev/null --max-time 3 http://127.0.0.1:3000/api/healthz || { echo "✗ la forge ne démarre pas sous systemd :"; systemctl status atelier-forge --no-pager 2>&1 | sed -n '3,6p'; exit 1; }
 
 echo "── [4/7] Caddy : les deux noms, interface d'administration fermée…"
 [ -f /etc/caddy/Caddyfile ] && cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.avant-$(date +%Y%m%d-%H%M%S)"
