@@ -750,6 +750,15 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 .ptx-carte .btn,.ptx-prop .btn,.ptx-oubli .btn,#calque .panneau .btn{min-height:44px!important}
 /* la carte du salarié */
 .ptx-carte{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+/* « Ma journée » du technicien : la même carte de pointage, COUCHÉE (état à gauche, geste à droite) comme sur « Temps de travail », pour que la première intervention se voie sans défiler. */
+.ptx-carte.mj-pt{flex-direction:row;flex-wrap:wrap;align-items:center;gap:2px 12px;padding:12px 14px;margin-bottom:10px}
+.ptx-carte.mj-pt>h3{flex:1 1 100%;margin:0}.ptx-carte.mj-pt .ptx-etat{flex:1 1 130px;min-width:0}
+.ptx-carte.mj-pt>.btn.large{flex:0 0 auto;width:auto;min-height:48px;padding-left:16px;padding-right:16px;font-size:15px}
+.ptx-carte.mj-pt>.actions{flex:0 0 auto}.ptx-carte.mj-pt>.lien{flex:1 1 100%;justify-content:flex-start}
+.ptx-carte.mj-pt>.ptx-oubli,.ptx-carte.mj-pt>.ptx-prop,.ptx-carte.mj-pt>.ok-bloc{flex:1 1 100%}
+.mj-puce{margin:0 0 10px}#mj-messages{scroll-margin-top:72px}
+/* 320 à 380 px : la phrase d'état tient sur UNE ligne et le titre de la carte (que la phrase dit déjà) ne garde que sa place pour un lecteur d'écran — sans ça, sur 320 × 568, le haut de la 1re intervention tombait sous la barre du bas (498 px pour une barre à 488). */
+@media (max-width:380px){.ptx-carte.mj-pt>h3{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.ptx-carte.mj-pt .ptx-etat b{font-size:16px}}
 .ptx-etat{display:flex;flex-direction:column;gap:2px}.ptx-etat b{font-size:18px;font-variant-numeric:tabular-nums}
 /* fiche d'un jour et semaine d'une personne */
 .kpis.ptx-k3{grid-template-columns:repeat(3,minmax(0,1fr))}.ptx-k3 .kpi{padding:12px 10px}.ptx-k3 .kpi b{font-size:22px}
@@ -1423,6 +1432,8 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .fo-map summary{cursor:pointer;list-style:none;font-size:14px;color:var(--doux);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;min-height:44px}.fo-map summary::-webkit-details-marker{display:none}
 .fo-mapg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:6px 0 8px}
 .panneau .champ{min-width:0}.panneau .champ select{min-width:0;max-width:100%}
+/* La fenêtre « Il manque encore des choses » : la colonne du panneau ajoute déjà son écart (14 px) ; les marges d'un <p> et d'un <ul> par défaut s'y ajoutaient (≈ 50 px de vide avant la liste et avant la phrase de fin). */
+.panneau .mq-i,.panneau .mq-s{margin:0}.panneau .mq-l{margin:0;padding:0 0 0 22px;display:flex;flex-direction:column;gap:6px}
 .fo-garder{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;cursor:pointer}
 /* une case qui porte une phrase de quatre lignes (téléphone) s'aligne sur son TITRE, pas sur le milieu du paragraphe ; sous le sélecteur « Appliquer un profil », elle respire (relecture « tout-13 ») */
 .fo-garder.fo-terrain,.fo-garder.eq-sp{align-items:flex-start;padding-block:6px;flex:none}   /* flex:none : dans la feuille (colonne flex), la case se RÉTRÉCISSAIT à 44 px et sa phrase de quatre lignes débordait sur le sélecteur du dessus et sur le cadre du dessous */.fo-garder.fo-terrain>input,.fo-garder.eq-sp>input{margin-top:1px}
@@ -2687,6 +2698,10 @@ body.dp-ouvert{overflow:hidden}
 .ac-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 /* le texte garde au moins 180 px : si les gestes (« Voir au planning › », « Vu ») ne tiennent pas à côté, ils passent SOUS le texte au lieu de l'écraser (12 px de large à 320 px, un mot par ligne : défaut des recontrôles du 17 novembre) */
 .a-avis{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--vert)}
+/* Le liseré suit l'ÉTAT que dit la pastille (restes technicien 1) : une demande REFUSÉE portait le vert de la réussite. Refus = rouge ; « d'autres dates » = ambre (pastille comprise,
+   sinon deux couleurs pour un seul avis) ; la tâche confiée (.tkx-avis) garde son rendu. */
+.a-avis:has(.a-dec-i.non){box-shadow:inset 3px 0 0 var(--rouge)}
+.a-avis:not(.tkx-avis):has(.a-dec-i.info){box-shadow:inset 3px 0 0 var(--ambre)}.a-avis:not(.tkx-avis) .a-dec-i.info{background:var(--ambre)}
 .a-avis-c{overflow-wrap:anywhere;flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
 .a-mot{margin:10px 0 4px}.a-mot textarea{width:100%}.a-avis-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ac-choix-g{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
@@ -5514,7 +5529,7 @@ function ctrCompris(i){ const k = ctrDeVisite(i); return k && k.fact !== 'visite
    de visite fasse exactement le prix du contrat (1 000 € ÷ 6 : 5 × 166,67 + 166,65). Même règle pour les douze mois d'un contrat facturé chaque mois. */
 const ctrPart = (prix, n, rang) => { const p = Math.round(prix * 100), u = Math.round(p / n), r = rang >= n ? p - u * (n - 1) : u; return r / 100; };
 function visitesDe(k){ const fa = ctrFaites(k), faits = ctrFaitesSet(k), n = k.freq, deb = k.debut.split('/').reverse().join('-'); const finC = k.fin ? k.fin.split('/').reverse().join('-') : ajoute(deb, 364), aVenir = Math.max(3, Math.round((dObj(finC) - dObj(AUJ)) / 864e5));
-  return Array.from({length:n}, (_,j) => { const reel = INTS.find(o => o.cli === k.cli && o.st !== 'annulee' && o.titre === `Contrat — visite ${j+1} sur ${n}`); const fait = faits.has(j + 1); let d = ajoute(deb, Math.round(j * 365 / n) + 14);
+  return Array.from({length:n}, (_,j) => { const reel = INTS.find(o => o.cli === k.cli && o.st !== 'annulee' && o.titre === `Contrat — visite ${j+1} sur ${n}` && (!o.ctr || o.ctr === k.id));   /* une visite posée par un AUTRE contrat du même client (le renouvellement a le même titre) n'est pas la sienne */ const fait = faits.has(j + 1); let d = ajoute(deb, Math.round(j * 365 / n) + 14);
     if (reel) d = reel.d; else if (!fait && d < AUJ) d = ouvres(1, ajoute(AUJ, Math.max(3, Math.round((j - fa + 1) * aVenir / (n - fa + 1)))))[0]; else d = ouvres(1, d)[0];
     return { d, fait, num:j+1, plan:!!reel, i:reel }; }); }
 /* ── La vie d'un contrat (restes contrats, 17 novembre 2026) ──
@@ -5574,7 +5589,7 @@ function vueContratNouveau(){
 }
 function pdfContrat(B, k){
   const c = CLIENTS[B.cli], Mo = MODELES[B.modele], prixVisite = (Number(B.prix)||0) / (Number(B.freq)||1);
-  const sig = k && k.st === 'signe' ? (k.sigImg ? `<img class="sig" src="${k.sigImg}" alt="Signature du client">` : `<b style="font-family:'Snell Roundhand','Segoe Script',cursive;font-size:22px">${esc(c.contact.split(',')[0])}</b>`) + `<span class="mini" style="color:#15803d">Signé électroniquement le ${k.signe}</span>` : '<i>à signer</i>';
+  const sig = k && k.st !== 'envoye' ? (k.sigImg ? `<img class="sig" src="${k.sigImg}" alt="Signature du client">` : `<b style="font-family:'Snell Roundhand','Segoe Script',cursive;font-size:22px">${esc(c.contact.split(',')[0])}</b>`) + `<span class="mini" style="color:#15803d">Signé électroniquement le ${k.signe}</span>` : '<i>à signer</i>';
   return `<div class="pdf" ${k ? '' : 'data-brouillon="1" data-sans-mail="1"'}><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Contrat d’entretien</h4><b>${k?k.num:'CTR-2026-' + String(9 + CONTRATS.length).padStart(3,'0')}</b></div></div>
     <h6>Entre les soussignés</h6><div><b>${ENTREPRISE.nom}</b>, représentée par ${ENTREPRISE.patron}, ci-après « le prestataire », et <b>${esc(c.nom)}</b>, ${esc(c.adr)}, ci-après « le client ».</div>
     <h6>1 · Objet</h6><div>${esc(Mo.nom)} : ${esc(B.lieu || metiersCtr(B.modele).objet)}.</div>
@@ -5604,7 +5619,7 @@ function vueContrat(id){
       ${prochain ? `<div class="carte"><h3>Renouvelé</h3><div class="ligne"><span>Ce contrat continue sous le numéro</span><button type="button" class="lien" data-go="contrat-x-${prochain.id}">${prochain.num} ›</button></div><span class="faible mini">jusqu’au ${prochain.fin}, aux mêmes conditions.</span></div>` : ''}
       ${k.suiteDe && CONTRATS.find(x => x.id === k.suiteDe) ? `<div class="carte"><h3>Renouvellement</h3><div class="ligne"><span>Suite du contrat</span><button type="button" class="lien" data-go="contrat-x-${k.suiteDe}">${CONTRATS.find(x => x.id === k.suiteDe).num} ›</button></div></div>` : ''}
       <div class="carte"><h3>Facturation</h3><div class="ligne"><span>${k.fact === 'mois' ? eur(ctrPart(k.prix, 12, 1)) + ' HT chaque mois' : k.fact === 'an' ? eur(k.prix) + ' HT une fois par an, à la signature' : eur(ctrPart(k.prix, k.freq, 1)) + ' HT à chaque visite'}</span><b>${eur(k.prix)} HT / an</b></div><div class="ligne"><span class="gris">Soit, avec la TVA à ${ctrTva(k)} %</span><b>${eur(ctrTTC(k.prix, k))} TTC / an</b></div>
-        <div class="faible mini">${k.fact === 'visite' ? 'La facture de chaque visite se prépare toute seule, avec son compte rendu joint.' + (k.freq > 1 ? ' La dernière visite porte le reste d’arrondi : le total fait exactement le prix du contrat.' : '') : k.fact === 'an' ? 'La facture de l’année est préparée à la signature. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.' : 'Le contrat se facture au mois : la facture du premier mois est préparée à la signature, les suivantes le 1er de chaque mois. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.'}</div>
+        <div class="faible mini">${k.fact === 'visite' ? 'La facture de chaque visite se prépare toute seule, avec son compte rendu joint.' + (Math.round(ctrPart(k.prix, k.freq, 1) * k.freq * 100) !== Math.round(k.prix * 100) ? ' La dernière visite porte le reste d’arrondi : le total fait exactement le prix du contrat.' : '') : k.fact === 'an' ? 'La facture de l’année est préparée à la signature. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.' : 'Le contrat se facture au mois : la facture du premier mois est préparée à la signature, les suivantes le 1er de chaque mois. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.'}</div>
         ${k.fact === 'mois' && k.st !== 'envoye' ? ctrEcheancesHtml(k) : ''}</div></div></div>`;
 }
 /* la liste des douze échéances d'un contrat mensuel : la première « préparée » (avec son lien), les autres « le 1er de chaque mois » ; un contrat terminé n'en a plus à venir */
@@ -5623,7 +5638,7 @@ function vueSigner(id){
   <div class="client-web" style="max-width:620px"><div class="corps">
     <div style="display:flex;gap:12px;align-items:center">${logoEnt('span')}<div><b style="font-size:17px">${ENTREPRISE.nom}</b><div class="gris petit">vous propose un contrat d’entretien</div></div></div>
     <div class="bloc"><h5>${esc(k.titre)}</h5><div>${k.freq} visite${k.freq>1?'s':''} par an · ${eur(k.prix)} HT, soit ${eur(ctrTTC(k.prix, k))} TTC par an</div><button type="button" class="btnc clair" data-action="lireContrat" data-id="${id}">Lire le contrat en entier</button></div>
-    ${k.st === 'signe' ? `<div class="bloc"><h5>Ce contrat est déjà signé</h5><div>Signé le ${k.signe}. La copie signée a été envoyée par e-mail.</div>${chezClient ? '' : `<button type="button" class="btnc" data-go="contrat-x-${id}">Voir le contrat</button>`}</div>` : `<label class="bloc" style="flex-direction:row;align-items:center;gap:12px;cursor:pointer"><input type="checkbox" id="lu" style="width:24px;height:24px">J’ai lu le contrat et je l’accepte</label>
+    ${k.st !== 'envoye' ? `<div class="bloc"><h5>${k.st === 'termine' ? 'Ce contrat est terminé' : 'Ce contrat est déjà signé'}</h5><div>${k.st === 'termine' ? 'Signé le ' + k.signe + ', il a pris fin le ' + k.termine + '.' : 'Signé le ' + k.signe + '. La copie signée a été envoyée par e-mail.'}</div>${chezClient ? '' : `<button type="button" class="btnc" data-go="contrat-x-${id}">Voir le contrat</button>`}</div>` : `<label class="bloc" style="flex-direction:row;align-items:center;gap:12px;cursor:pointer"><input type="checkbox" id="lu" style="width:24px;height:24px">J’ai lu le contrat et je l’accepte</label>
     <div class="bloc"><h5>Votre signature</h5><canvas class="signe" id="signe-ctr" width="600" height="200" aria-label="Signer ici"></canvas><button type="button" class="lien" data-action="sigCtrEfface">Effacer</button></div>
     <button type="button" class="btnc" data-action="signerContrat" data-id="${id}">Signer le contrat</button>
     `}<div class="gris mini" style="text-align:center">Vous recevez la copie signée par e-mail.</div></div></div>`;
@@ -8702,7 +8717,7 @@ function majCollant(id){ const c = document.getElementById('collant'); if (!c) r
 /* ══ LES ACTIONS ══ */
 const ACTIONS = {
   terminer(b){ const id = b.dataset.id, F = fiche(id), man = manque(F), i = INTS.find(o => o.id === id);
-    if (man.length) { ouvrirPanneau(`<h2>Il manque encore des choses</h2><p>Avant de terminer, il manque :</p><ul>${man.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul><p class="gris">Si tu ne peux pas tout faire, utilise « Je ne peux pas finir » : le bureau est prévenu et une intervention de retour est créée.</p>`); return; }
+    if (man.length) { ouvrirPanneau(`<h2>Il manque encore des choses</h2><p class="mq-i">Avant de terminer, il manque :</p><ul class="mq-l">${man.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul><p class="gris mq-s">Si tu ne peux pas tout faire, utilise « Je ne peux pas finir » : le bureau est prévenu et une intervention de retour est créée.</p>`); return; }
     F.etat = 'bureau'; F.envoye = true; i.st = 'fait'; factureDepuis(i);
     if (F.suite.entretien) INTS.push({ id:'n-ent-' + id, d:ouvres(1, ajoute(i.d, 364))[0], h:'09:00', dur:60, tech:'', cli:i.cli, titre:'Entretien annuel', type:'Entretien', st:'aplanifier' });
     if (F.suite.ventilo) INTS.push({ id:'n-ven-' + id, d:ajoute(i.d, 4), h:'13:30', dur:120, tech:'', cli:i.cli, titre:'Remplacer le ventilateur (devis à faire)', type:'2ᵉ passage', st:'aplanifier' });
@@ -8820,7 +8835,7 @@ const ACTIONS = {
     fermerPanneau(); rendre(); toast(`${k.num} est terminé.` + (sorties.length ? ` ${sorties.length} visite${sorties.length > 1 ? 's' : ''} non faite${sorties.length > 1 ? 's' : ''} sorti${sorties.length > 1 ? 'es' : 'e'} du planning.` : '')); },
   sigCtrEfface(){ const cv = document.getElementById('signe-ctr'); cv.getContext('2d').clearRect(0,0,cv.width,cv.height); delete cv.dataset.signe; },
   signerContrat(b){ const ks = CONTRATS.find(x => x.id === b.dataset.id), chezCli = RL_ACTIF && ROLE === 'client';   /* le client revient dans SON espace : la page du contrat est celle du bureau, la garde du rôle la refuse et son message écrasait la confirmation (client-03) */
-    if (ks && ks.st === 'signe') { if (chezCli) { EC.tab = 'contrats'; aller('espaceclient'); toast('Ce contrat est déjà signé : la copie signée vous a été envoyée par e-mail.'); } else aller('contrat-x-' + ks.id); return; }   // déjà signé (Retour du navigateur, double-clic) : pas de seconde visite ni de seconde facture
+    if (ks && ks.st !== 'envoye') { if (chezCli) { EC.tab = 'contrats'; aller('espaceclient'); toast('Ce contrat est déjà signé : la copie signée vous a été envoyée par e-mail.'); } else aller('contrat-x-' + ks.id); return; }   // déjà signé (Retour du navigateur, double-clic) : pas de seconde visite ni de seconde facture
     const cv = document.getElementById('signe-ctr'), lu = document.getElementById('lu');
     if (!lu.checked || !cv.dataset.signe) { toast(!lu.checked ? 'Cochez « J’ai lu le contrat et je l’accepte ».' : 'Signez dans le cadre avec le doigt ou la souris.'); return; }
     const k = CONTRATS.find(x => x.id === b.dataset.id); k.st = 'signe'; k.signe = '31/10/2026'; k.sigImg = cv.dataset.signe; if (!k.fin) k.fin = ctrFinDe(k.debut);
@@ -12368,7 +12383,7 @@ function vueTechFrais(){
   const moi = rlQui(), L = NDF.filter(n => n.qui === moi).sort((a, b) => b.d.localeCompare(a.d));
   const et = n => n.etat === 'attente' ? ['En attente', 'st-o'] : n.etat === 'refusee' ? ['Refusée', 'st-r'] : n.sansJustif ? ['Validée sans ticket', 'st-v'] : ['Validée · remboursée avec la paie', 'st-v'];
   return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mes frais</h1><span class="gris">Ce que tu avances de ta poche pour le travail. Une photo du ticket suffit ; le bureau valide, c’est remboursé avec la paie, hors salaire. Tant qu’elle est en attente, tu peux la modifier ou ajouter le ticket.</span></div><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button></div>
-    ${rlNotifsCarte(moi)}<div class="carte">${L.map(n => { const e = et(n); return `<div class="ligne rl-ndf"><span><b>${esc(n.objet)}</b><br><span class="gris petit">${jcourt(n.d)} · TVA ${String(n.tva).replace('.', ',')} % · ${n.recu ? `<button type="button" class="lien" data-cx="justif|ndf|${n.id}">📎 voir le ticket</button>` : '<span class="cx-rt">sans ticket</span>' + (n.ticketDemande && n.etat !== 'refusee' ? ' · <b class="ve-ot">le bureau demande le ticket</b>' : '')}</span></span>
+    ${rlNotifsCarte(moi, true)}<div class="carte">${L.map(n => { const e = et(n); return `<div class="ligne rl-ndf"><span><b>${esc(n.objet)}</b><br><span class="gris petit">${jcourt(n.d)} · TVA ${String(n.tva).replace('.', ',')} % · ${n.recu ? `<button type="button" class="lien" data-cx="justif|ndf|${n.id}">📎 voir le ticket</button>` : '<span class="cx-rt">sans ticket</span>' + (n.ticketDemande && n.etat !== 'refusee' ? ' · <b class="ve-ot">le bureau demande le ticket</b>' : '')}</span></span>
       <span class="rl-dr"><b>${eur(n.ttc)}</b><span class="st ${e[1]}">${e[0]}</span>${n.etat === 'attente' ? `<button type="button" class="btn ${n.recu ? 'gris ' : ''}petit" data-rl="ndfmod|${n.id}">${n.recu ? 'Modifier' : '📷 Ajouter le ticket'}</button>` : ''}</span></div>`; }).join('') || '<span class="gris">Aucune note.</span>'}</div>`;
 }
 function rlNdfModifier(id){
@@ -13981,9 +13996,9 @@ function prRetirerAvertir(o){
     <div class="actions"><button type="button" class="btn" data-pr="retirerok|${o.id}">Retirer quand même</button><button type="button" class="btn gris" data-ferme="1">Garder l’article</button></div>`);
 }
 /* [3] ce que le bureau a dit à cette personne (refus avec motif, demande acceptée, ticket demandé) */
-function rlNotifsCarte(k){
-  const L = rlNotifsListe(k); if (!L.length) return '';
-  return `<div class="carte"><h3>Messages du bureau · ${L.length}</h3>${L.map(o => `<div class="ligne"><span>${esc(o.txt)}<br><span class="gris petit">${jCourt(o.d)} · ${esc(o.h)}</span></span></div>`).join('')}</div>`;
+function rlNotifsCarte(k, ailleurs){
+  const L = rlNotifsListe(k, ailleurs); if (!L.length) return '';
+  return `<div class="carte" id="${ailleurs ? 'mj-autres' : 'mj-messages'}"><h3>Messages du bureau · ${L.length}</h3>${L.map(o => `<div class="ligne"><span>${esc(o.txt)}<br><span class="gris petit">${jCourt(o.d)} · ${esc(o.h)}</span></span></div>`).join('')}</div>`;
 }
 /* [14] le premier jour ouvré à partir d'une date (samedi et dimanche passent au lundi) */
 function cmdJourOuvre(d){ const j = dObj(d).getDay(); return j === 6 ? ajoute(d, 2) : j === 0 ? ajoute(d, 1) : d; }
@@ -15316,7 +15331,9 @@ function matIntsDe(moi){
 const matInterQuand = i => (i.d === AUJ ? 'aujourd’hui' : i.d === jour(-1) ? 'hier' : i.d === jour(1) ? 'demain' : pdxJC(i.d)) + ' ' + i.h;
 const matInterTitre = i => `${i.titre} · ${CLIENTS[i.cli].nom}`;
 /* ce que le bureau a dit à cette personne : la liste, que la carte de Ma journée et la pastille de Mon camion lisent toutes deux */
-function rlNotifsListe(k){ return NOTIFS.filter(o => o.k === k && !(/^Rappel automatique : tu n’as pas encore commencé/.test(o.txt) && o.d === AUJ && ptJour(k, AUJ).length)).slice().reverse().slice(0, 5); }
+const RL_RAPPEL_MATIN = /^Rappel automatique : tu n’as pas encore commencé/;
+/* Le rappel du matin (« tu n'as pas encore commencé ta journée ») ne vit que sur « Ma journée » (restes technicien 1, décision du chef) : sur Mes frais et Mon camion il se répétait, alors que la carte « Ma journée de travail » et la pastille de « Heures » le disent déjà. `ailleurs` = vrai pour tout autre écran. */
+function rlNotifsListe(k, ailleurs){ return NOTIFS.filter(o => o.k === k && !(RL_RAPPEL_MATIN.test(o.txt) && ((o.d === AUJ && ptJour(k, AUJ).length) || ailleurs))).slice().reverse().slice(0, 5); }
 /* « Mes envois » : ce qui attend, ce qui est refusé (avec son motif), ce qui est accepté depuis une semaine, et ce qui attend le réseau */
 function sxEnvois(moi){
   const att = MVTS_ATT.filter(m => m.qui === moi).map(m => ({ m, e:'att' })), ref = SX.refus.filter(o => o.m.qui === moi).map(o => ({ m:o.m, e:'ref', motif:o.motif, id:o.id })),
@@ -15331,7 +15348,7 @@ function sxLigneEnvoi(o){
   return `<div class="mc-l"><span class="fo-n"><b>${esc(matQte(m.q, x))}</b><span class="gris petit">${esc(lib)} · ${jCourt(m.d)} ${m.h}</span></span><span class="mc-dr">${etat}${geste}</span></div>`;
 }
 function matMessages(moi){
-  const L = rlNotifsListe(moi);
+  const L = rlNotifsListe(moi, true);
   ouvrirPanneau(`<span class="surtitre">Mon camion</span><h2>${L.length > 1 ? 'Messages du bureau' : 'Message du bureau'}</h2>
     <div class="fo-bloc">${L.map(o => `<div class="fo-r"><span class="fo-n"><b>${esc(o.txt)}</b><span class="gris petit">${jCourt(o.d)} · ${esc(o.h)}</span></span></div>`).join('') || '<div class="gris" style="padding:8px 2px">Rien de nouveau.</div>'}</div>
     <div class="fo-pied"><button type="button" class="btn" data-ferme="1">Fermer</button></div>`);
@@ -15348,7 +15365,7 @@ function matResultats(q, L){
 function vueMonCamion(){
   const moi = sxMoi(), L = sxMonLieu();
   if (!L) return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1><span class="gris">Aucun camion ne t’est confié pour l’instant : demande au bureau.</span></div></div>`;
-  const V = typeof VEHICULES !== 'undefined' && VEHICULES.find(v => v.lieu === L.id), g = bxGarage(L.id), M = lieuManques(L.id), A = lieuArticles(L.id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), D = L.dot ? DOTATION[L.dot] || {} : {}, E = sxEnvois(moi), N = rlNotifsListe(moi);
+  const V = typeof VEHICULES !== 'undefined' && VEHICULES.find(v => v.lieu === L.id), g = bxGarage(L.id), M = lieuManques(L.id), A = lieuArticles(L.id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), D = L.dot ? DOTATION[L.dot] || {} : {}, E = sxEnvois(moi), N = rlNotifsListe(moi, true);
   const bas = SX.bout.filter(b => !b.rec && b.lieu === L.id && b.reste <= 1), liste = Object.keys(D).length > 0;
   const att = pid => MVTS_ATT.find(m => m.qui === moi && m.type === 'transfert' && m.vers === L.id && m.pid === pid);
   const prenables = M.filter(o => stkAt(o.x, 'atelier') > 0 && !att(o.x.id));
@@ -18819,6 +18836,9 @@ document.addEventListener('change', ev => { const t = ev.target; if (!t || !t.ma
    chose) puis trois gestes. Il n'a rien à régler lui-même : une échéance se dit « le bureau s'en occupe » (les rappels à 30 et 7 jours vont dans sa cloche, vxNotifs).
    La partie STOCK de l'écran (À bord, Il manque, Mes envois) est celle de la refonte du Matériel ; celle-ci se pose dans #mc-vehicule. */
 const vhCamionDe = moi => VEHICULES.find(o => o.conducteur === moi);
+/* « en règle » parle des PAPIERS et de l'entretien du véhicule, jamais des pièces à bord (restes technicien 1 : « Tout est en règle. » au-dessus de « Il manque à bord · 3 » se contredisait pour qui lit vite).
+   UNE phrase pour les deux endroits : l'en-tête de Mon camion (vhPhraseCamion) et la ligne de Ma journée (vhLigneCamion). */
+const VH_EN_REGLE = 'Papiers et entretien : en règle';
 function vhPhraseCamion(v){
   const E = vhEtat(v, 'camion'), im = v.immo || {};
   if (v.souci) return { t:'Ton souci est signalé : le bureau est prévenu.', c:'ve-ot' };
@@ -18826,7 +18846,7 @@ function vhPhraseCamion(v){
   if (v.statut === 'hs') return { t:'Ce camion ne roule plus. Demande au bureau.', c:'' };
   if (E.e) return { t:vhSujet(E.e) + ' est ' + vhQuand(E.e) + '. Le bureau s’en occupe.', c:E.couleur };
   if (E.k === 'afaire') return { t:'Le bureau doit encore compléter les papiers de ton camion.', c:'ve-ot' };
-  return { t:'Tout est en règle.', c:'ve-vt' };
+  return { t:VH_EN_REGLE + '.', c:'ve-vt' };
 }
 function vhCamionBloc(v){
   const dr = v.releves[v.releves.length - 1], km = v.km || v.releves.length ? v.km.toLocaleString('fr-FR') + ' km' + (dr ? ' · relevé le ' + vhJM(dr.d) : '') : 'Kilométrage pas encore relevé';
@@ -18845,11 +18865,14 @@ function vhLigneCamion(){
     else if (v.statut === 'hs') { etat = 'ne roule plus'; cl = 'st-o'; }
     else if (E.e) { etat = vhLib(E.e).toLowerCase() + ' ' + vhQuand(E.e); cl = E.e.urg === 'r' ? 'st-r' : 'st-o'; }
     else if (E.k === 'afaire') { etat = 'papiers à compléter par le bureau'; cl = 'st-o'; }
-    else etat = 'tout est en règle'; }
+    else etat = VH_EN_REGLE.toLowerCase(); }
   const stock = r ? `${sxPl(r, 'envoi refusé', 'envois refusés')} : le bureau t’explique pourquoi` : n ? `${sxPl(n, 'article')} à remettre à bord` : a ? `${sxPl(a, 'envoi')} en attente du bureau` : '';
   if (stock && cl === 'st-v') cl = r ? 'st-r' : 'st-o';
   if (!etat) { etat = stock; }
-  return `<button type="button" class="ligne-clic sx-raccourci vh-ligne-cam" data-go="moncamion"><span class="af-l" style="display:flex;gap:12px;align-items:center"><span class="st ${cl} etiq-af">Mon camion</span><span><b>${esc(etat.charAt(0).toUpperCase() + etat.slice(1))}</b>${stock && stock !== etat ? `<br><span class="gris petit">${esc(stock)}</span>` : ''}</span></span><span>›</span></button>`;
+  /* des pièces à remettre : on commence par elles, les papiers en règle passent dessous (« 3 articles à remettre à bord · papiers en règle ») */
+  let haut = etat, bas = stock && stock !== etat ? stock : '';
+  if (etat === VH_EN_REGLE.toLowerCase() && stock) { haut = stock; bas = VH_EN_REGLE; }
+  return `<button type="button" class="ligne-clic sx-raccourci vh-ligne-cam" data-go="moncamion"><span class="af-l" style="display:flex;gap:12px;align-items:center"><span class="st ${cl} etiq-af">Mon camion</span><span><b>${esc(haut.charAt(0).toUpperCase() + haut.slice(1))}</b>${bas ? `<br><span class="gris petit">${esc(bas)}</span>` : ''}</span></span><span>›</span></button>`;
 }
 
 /* ── les deux lignes de l'Accueil (VEHICULES-TEMPS § 8) : « Véhicules · 3 choses à faire » et « Temps de travail · 3 choses à régler »
@@ -19863,7 +19886,7 @@ vueTechFrais = function () {
   const aToi = NDF.filter(n => n.qui === moi && n.etat === 'validee').reduce((s, n) => s + n.ttc, 0), nAtt = D.filter(d => d.etat === 'attente').length;
   return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mes frais</h1><span class="gris">Tu as acheté quelque chose pour le travail ? Envoie la photo du ticket. Il te manque du matériel ? Écris-le : le bureau te répond.</span></div>
       <div class="actions"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-axa="dem">＋ Demande d’achat</button></div></div>
-    ${rlNotifsCarte(moi)}${aToi ? `<div class="carte ax-atoi"><span class="fo-n"><b>À toi avec la paie de novembre : ${eur(aToi)}</b><span class="gris petit">Les notes déjà validées par le bureau, hors salaire.</span></span></div>` : ''}
+    ${rlNotifsCarte(moi, true)}${aToi ? `<div class="carte ax-atoi"><span class="fo-n"><b>À toi avec la paie de novembre : ${eur(aToi)}</b><span class="gris petit">Les notes déjà validées par le bureau, hors salaire.</span></span></div>` : ''}
     <div class="carte ax-dems"><h3>Mes demandes${nAtt ? ' · ' + nAtt + ' en attente' : ''}</h3>
       ${D.length ? D.map(axTechDemLigne).join('') : '<span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide et tu es prévenu ici.</span>'}</div>
     <div class="carte"><h3>Mes dépenses</h3>${L.map(axTechNoteLigne).join('') || '<span class="gris">Aucune note.</span>'}</div>`;
@@ -19881,7 +19904,7 @@ function axNdfForm() {
   const ints = rlMesInts().filter(i => i.d <= AUJ).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 6);
   ouvrirPanneau(`<span class="surtitre">Note de frais</span><h2>Ce que tu as payé de ta poche</h2>
     <label class="btn gris" id="rn-ph" style="cursor:pointer;white-space:normal;flex-direction:column;gap:2px;padding:8px 18px;text-align:center;line-height:1.25;height:auto;min-height:44px;flex:none">📷 Prendre le ticket en photo <span class="faible" id="rn-pn">(sans ticket, le bureau te le demandera avant de te rembourser)</span><input type="file" accept="image/*" capture="environment" id="rn-p" hidden></label>
-    <label class="champ">C’est quoi ?<select class="saisie" id="rn-o">${AX_NATURES.map(o => `<option>${o}</option>`).join('')}</select></label>
+    <label class="champ">C’est quoi ?<select class="saisie" id="rn-o"><option value="" selected disabled>Choisis dans la liste…</option>${AX_NATURES.map(o => `<option>${o}</option>`).join('')}</select></label>
     <label class="champ">Précise <span class="faible">(facultatif)</span><input class="saisie" id="rn-pr" placeholder="ex. parking du centre-ville de La Rochelle"></label>
     <div class="champ">Date de la dépense<div class="puces ax-puces" role="group" aria-label="Date de la dépense"><button type="button" class="puce-c" data-axa="ndate|${AUJ}" aria-pressed="true">Aujourd’hui</button><button type="button" class="puce-c" data-axa="ndate|${jour(-1)}" aria-pressed="false">Hier</button></div>
       <input class="saisie" id="rn-d" type="date" max="${AUJ}" value="${AUJ}" aria-label="Ou choisis une autre date"></div>
@@ -19902,6 +19925,8 @@ function axNdfNature() {
 function axNdfEnvoyer(forcer) {
   const g = id => document.getElementById(id), nat = g('rn-o').value, km = nat === AX_NATURES[4], pr = g('rn-pr').value.trim(), iid = g('rn-i').value, d = g('rn-d').value || AUJ;
   const k = km ? axNum(g('rn-km').value) : NaN, m = km ? (k > 0 ? axR2(k * AX.kmTarif) : NaN) : axNum(g('rn-m').value), ph = km ? null : g('rn-p') && g('rn-p').files[0], t = km ? 0 : +g('rn-t').value;
+  /* Rien n'est choisi d'avance (restes technicien 1) : « Carburant » pré-rempli titrait « Carburant · Péage A10 · AB-123-CD » un péage ou des gants. */
+  if (!nat) { const o = g('rn-o'); if (o) o.focus(); return toast('Choisis d’abord ce que c’est dans la liste : carburant, repas, péage…'); }
   if (km ? !(k > 0) : !(m > 0)) return toast(km ? 'Indique les kilomètres parcourus.' : 'Indique le montant payé.');
   if (d > AUJ) return toast('La date de la dépense ne peut pas être dans le futur.');
   if (!forcer && (km ? k > 1500 : m > 2000)) { const z = g('rn-dbl'); z.hidden = false;
@@ -20971,6 +20996,26 @@ function eqxCarteMoi(p) {
 (() => { const v0 = vueMaJournee; vueMaJournee = function () {
   const h = v0.apply(this, arguments), p = eqDe(rlQui());
   return p && h.includes('<div class="rl-jour">') ? h.replace('<div class="rl-jour">', eqxCarteMoi(p) + '<div class="rl-jour">') : h; }; })();
+
+/* « Ma journée » : ce pour quoi l'écran existe — les interventions du jour — se voit SANS défiler sur un téléphone (restes technicien 1, décision du chef du 17/11 : « technicien-02 »).
+   Les refontes avaient posé AVANT elles la carte de pointage (231 px), les messages du bureau (182 px), la ligne « Mon camion » et les habilitations : la première intervention
+   commençait à y = 832 sur 844. Ordre voulu : bonjour → pointage COMPACT → une puce « N message(s) du bureau › » → LES INTERVENTIONS → les messages en entier → Mon camion →
+   habilitations → le reste. Aucun texte ni geste ne change : seul l'ORDRE (et la hauteur de la carte de pointage, en CSS). Posé en DERNIER, après toutes les cartes que les autres lots ajoutent :
+   on réordonne le résultat final, on ne devine pas où chacun a posé la sienne. */
+(() => { const v0 = vueMaJournee; vueMaJournee = function () {
+  const h = v0.apply(this, arguments); if (typeof document === 'undefined') return h;
+  const T = document.createElement('template'); T.innerHTML = h; const F = T.content, K = [...F.children];
+  const jour = K.find(e => e.classList.contains('rl-jour')), pt = K.find(e => e.classList.contains('ptx-carte')), msg = K.find(e => e.id === 'mj-messages');
+  if (!jour) return h;
+  const camion = K.find(e => e.classList.contains('sx-raccourci') || e.classList.contains('bxl-jour')), hab = K.find(e => e.classList.contains('eqx-moi'));
+  const haut = K.slice(0, K.indexOf(jour)).filter(e => e !== pt && e !== msg && e !== camion && e !== hab), bas = K.slice(K.indexOf(jour) + 1).filter(e => e !== pt && e !== msg && e !== camion && e !== hab);
+  const n = msg ? msg.querySelectorAll('.ligne').length : 0;
+  if (pt) pt.classList.add('mj-pt');
+  const puce = n ? (() => { const d = document.createElement('div'); d.className = 'mj-puce'; d.innerHTML = `<button type="button" class="st st-b mc-msg" data-mjmsg="1">${n} message${n > 1 ? 's' : ''} du bureau ›</button>`; return d; })() : null;
+  const sortie = [...haut, pt, puce, jour, msg, camion, hab, ...bas].filter(Boolean), W = document.createElement('div'); sortie.forEach(e => W.appendChild(e));
+  return W.innerHTML; }; })();
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-mjmsg]'); if (!b) return;
+  const m = document.getElementById('mj-messages'); if (!m) return; m.scrollIntoView({ block:'center', behavior:(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) ? 'auto' : 'smooth' }); });
 
 eqxSynchro();
 /* ── registre ── */
@@ -22436,7 +22481,7 @@ function opdLigne(x){
     <span class="dv-n">${x.numero ? `<span class="mono">${esc(x.numero)}</span>` : '<span class="dv-br">Brouillon</span>'}</span>
     <span class="dv-c"><b>${esc(x.client || 'Sans client')}</b><span class="gris petit">${esc(opdNom(x) || (x.type === 'devis' ? 'Devis' : 'Contrat'))}</span></span>
     <span class="dv-q petit ${opdVieux(x) ? 'dv-vieux' : 'gris'}">${opdQuand(x)}${x.nr ? ' · <b class="opd-nr">Non enregistré</b>' : ''}</span>
-    <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'HT par an'}</small></span>
+    <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'HT par an'}</small>${x.type !== 'devis' && x.ttc > 0 ? `<small>${eur(x.ttc / 100)} TTC</small>` : ''}</span>
     <span class="dv-e"><span class="st ${e[1]}">${e[0]}</span></span></${ouvre ? 'button' : 'div'}>`;
 }
 function opdCarte(type, etats){
@@ -22495,11 +22540,10 @@ function opdCreer(){
   z.innerHTML = `<iframe title="Documents sur mesure : devis et contrats" src="${opdSrc()}"></iframe><div class="opdz-att" role="status"><div class="opdz-att-c"><b>Ouverture du document…</b><span class="gris petit opdz-sous"></span><div class="actions"><button type="button" class="btn gris" data-opdz="reessayer" hidden>Réessayer</button><button type="button" class="btn gris" data-opdz="fermer">Fermer</button></div></div></div>`;
   document.body.appendChild(z); return z;
 }
-/* le cadre de l'atelier est créé AU DÉMARRAGE (caché), pas à la première ouverture. Le navigateur range les entrées d'historique d'un cadre dans l'entrée où il a été créé ; si cette entrée est
+/* le cadre de l'atelier est créé au PREMIER RENDU de l'application d'une personne qui a le droit de s'en servir (caché), pas à la première ouverture ; sans droit, aucun cadre n'existe. Le navigateur range les entrées d'historique d'un cadre dans l'entrée où il a été créé ; si cette entrée est
    ensuite effacée (on ferme l'atelier, on change d'écran : les entrées d'après partent), le cadre devient orphelin et son premier Retour dans l'éditeur ne fait RIEN — un appui perdu, puis un second qui
    ferme tout (reproduit sur la page d'avant aussi : une fois l'atelier ouvert, fermé, puis rouvert après un changement d'écran). Créé à l'entrée de base, qui ne s'efface jamais, il reste rattaché. */
 function opdPrecharger(){ try { opdCreer(); } catch (e) { /* sans cadre au démarrage, l'ouverture le créera */ } }
-if (document.readyState === 'complete') opdPrecharger(); else addEventListener('load', opdPrecharger);
 function opdOuvrir(faire, o){
   o = o || {}; const doc = faire === 'doc' ? ATD.docs.find(x => x.id === o.id) : null, droit = faire === 'contrat' || (doc && doc.type === 'contrat') ? 'contrats' : 'devis';
   if (faire === 'doc' && !doc) return toast('Ce document n’est plus sur cet appareil.');
@@ -22562,7 +22606,7 @@ document.addEventListener('click', ev => {
   else if (a === 'reessayer') { const f = opdCadre(); if (!f) return; OPDZ.pret = false; opdAttente(false); clearTimeout(OPDZ.tAtt); OPDZ.tAtt = setTimeout(() => { if (opdOuvert() && !OPDZ.pret) opdAttente(true); }, 8000); f.src = opdSrc(); }
 });
 window.addEventListener('storage', ev => { if (ev.key !== OPD_CLE || !ev.newValue) return; try { opdDocsRecus(JSON.parse(ev.newValue)); } catch (e) {} });   // un autre onglet a rangé sa liste
-(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); try { opdSync(); } catch (e) {} return v; }; })();
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); try { if (!document.getElementById('opdz') && (rlPermis('devis') || rlPermis('contrats'))) opdPrecharger(); opdSync(); } catch (e) {} return v; }; })();
 (() => { const c0 = rlChanger; rlChanger = function(){ const v = c0.apply(this, arguments); opdEnvoyer(opdRoleMsg()); if (opdOuvert() && !(rlPermis('devis') || rlPermis('contrats'))) opdFermer('role'); return v; }; })();
 (() => { const m0 = cxEnLigneMode; cxEnLigneMode = function(){ m0(); opdEnvoyer(opdModeMsg()); }; })();
 /* un paiement que la banque de la Comptabilité range sur une facture : la facture de l'application est payée, et le paiement paraît dans ses encaissements */
@@ -26031,6 +26075,7 @@ button.nv-ligne{cursor:pointer}
 .nv-menu{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--trait);border-radius:12px;background:none;color:inherit;font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-align:left}
 .nv-menu:hover{background:color-mix(in srgb,var(--lien) 9%,transparent)}
 .nv-menu i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--lien)}
+@media (pointer:coarse){.nv-menu{min-height:44px}}   /* « Nouveautés » du pied du menu : 40 px au doigt sur iPad (restes technicien 1) ; Jour · Nuit · Auto le sont déjà (ligne .pied .mode-seg) */
 @media (max-width:760px){
   #nv{align-items:flex-end;padding:calc(10px + env(safe-area-inset-top,0px)) 0 0}
   .nv-feuille{width:100%;max-height:100%;border-radius:26px 26px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));animation-name:nvMonteTel}

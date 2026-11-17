@@ -27,7 +27,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       const pop = await ev(c, () => ({ veh:!!VEHICULES.find(o => o.id === 'veh1' && o.conducteur === 'sm'), page:!!document.querySelector('#contenu .mc-page'), h1:(document.querySelector('#contenu h1') || {}).textContent }));
       v(nom + ' · population : Sophie conduit le Trafic et l\'écran Camion est ouvert', pop.veh && pop.page && pop.h1 === 'Mon camion', pop);
       const e = await etat(c);
-      v(nom + ' · en-tête : le véhicule en surtitre, « Mon camion », UNE phrase d\'état', e.sur === 'Renault Trafic L2H1 · GH-482-KL' && e.h1 === 'Mon camion' && e.phrase === 'Tout est en règle.' && /ve-vt/.test(e.cl), e);
+      v(nom + ' · en-tête : le véhicule en surtitre, « Mon camion », UNE phrase d\'état', e.sur === 'Renault Trafic L2H1 · GH-482-KL' && e.h1 === 'Mon camion' && e.phrase === 'Papiers et entretien : en règle.' && /ve-vt/.test(e.cl), e);
       const k = await ev(c, () => { const b = document.querySelector('#mc-vehicule .vh-cam'); const bt = b ? [...b.querySelectorAll('button')] : [];
         const pos = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect().top + scrollY : -1; };
         return { h3:b && b.querySelector('h3').textContent, libs:bt.map(x => x.textContent.trim()), data:bt.map(x => x.dataset.vx), noir:bt.map(x => x.classList.contains('gris') ? 'gris' : 'noir'), km:b && b.querySelector('.petit').textContent.replace(/\s+/g, ' '),
@@ -49,7 +49,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
         ['au garage, avec un remplaçant', () => { const x = vehDe('veh1'); x.souci = null; x.statut = 'atelier'; x.immo = { motif:'Entretien', garage:'Renault Pro', du:jour(-2), retour:jour(2), remplacement:'Citroën Berlingo VW-123-AB' }; }, /^Ton camion est au garage jusqu’au \S+ \d+ \S+\. Tu prends\s:\sCitroën Berlingo VW-123-AB\.$/, /ve-ot/],
         ['hors service', () => { const x = vehDe('veh1'); x.statut = 'hs'; x.immo = null; }, /^Ce camion ne roule plus\. Demande au bureau\.$/, /^(?!.*ve-)/],
         ['papiers pas encore renseignés', () => { const x = vehDe('veh1'); x.statut = 'service'; x.assur.fin = null; x.ct = null; }, /^Le bureau doit encore compléter les papiers de ton camion\.$/, /ve-ot/],
-        ['de nouveau en règle', () => { const x = vehDe('veh1'); x.assur.fin = jour(41); x.ct = jour(205); }, /^Tout est en règle\.$/, /ve-vt/]];
+        ['de nouveau en règle', () => { const x = vehDe('veh1'); x.assur.fin = jour(41); x.ct = jour(205); }, /^Papiers et entretien : en règle\.$/, /ve-vt/]];
       for (const [lib, f, re, cl] of cas) { await refaire(c, f); const e = await etat(c); v(nom + ' · phrase d\'état : ' + lib + ' (« ' + e.phrase + ' »)', re.test(e.phrase) && cl.test(e.cl), e); }
       // la MÊME source que la liste du gérant : ce que vhEtat rend et ce que dit l'écran ne se contredisent pas
       await refaire(c, () => { vehDe('veh1').ct = jour(12); });
@@ -64,19 +64,19 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       const c = await ouvrirSm(profil, nuit); await L.aller(c.p, 'majournee');
       const l = await ev(c, () => ({ n:document.querySelectorAll('#contenu .vh-ligne-cam').length, tous:document.querySelectorAll('#contenu [data-go="moncamion"]').length, ancien:!!document.querySelector('.vx-cam'), mv:/Mon véhicule/.test(document.getElementById('contenu').textContent), txt:((document.querySelector('.vh-ligne-cam') || {}).textContent || '').replace(/\s+/g, ' ').trim(), bxl:!!document.querySelector('.bxl-jour'), h:Math.round((document.querySelector('.vh-ligne-cam') || { getBoundingClientRect:() => ({ height:0 }) }).getBoundingClientRect().height) }));
       v(nom + ' · Ma journée : UNE ligne « Mon camion » (pas deux raccourcis, pas de carte « Mon véhicule »)', l.n === 1 && l.tous === 1 && !l.ancien && !l.mv && !l.bxl, l);
-      v(nom + ' · …elle dit l\'état et ce qu\'il faut remettre à bord, en une ligne de la largeur de l\'écran (' + l.h + ' px)', /^Mon camion\s*Tout est en règle\s*3 articles à remettre à bord\s*›?$/.test(l.txt) && l.h <= 90, l);
+      v(nom + ' · …elle dit l\'état et ce qu\'il faut remettre à bord, en une ligne de la largeur de l\'écran (' + l.h + ' px)', /^Mon camion\s*3 articles à remettre à bord\s*Papiers et entretien : en règle\s*›?$/.test(l.txt) && l.h <= 90, l);
       const cas = [
         ['contrôle dans 12 jours', () => { vehDe('veh1').ct = jour(12); }, /Contrôle technique dans 12 jours/, /st-o/],
         ['en retard', () => { vehDe('veh1').ct = jour(-3); }, /Contrôle technique en retard de 3 jours/, /st-r/],
         ['souci', () => { const x = vehDe('veh1'); x.ct = jour(205); x.souci = { type:'Pneu', txt:'', qui:'sm', d:AUJ }; }, /Souci signalé au bureau/, /st-r/],
         ['garage', () => { const x = vehDe('veh1'); x.souci = null; x.statut = 'atelier'; x.immo = { motif:'Entretien', garage:'Renault Pro', du:jour(-2), retour:jour(2), remplacement:'' }; }, /Au garage jusqu’au/, /st-o/],
         ['hors service', () => { const x = vehDe('veh1'); x.statut = 'hs'; x.immo = null; }, /Ne roule plus/, /st-o/],
-        ['retour en règle', () => { const x = vehDe('veh1'); x.statut = 'service'; }, /Tout est en règle/, /st-o/]];
+        ['retour en règle', () => { const x = vehDe('veh1'); x.statut = 'service'; }, /Papiers et entretien : en règle/, /st-o/]];
       for (const [lib, f, re, cl] of cas) { await refaire(c, f); const r = await ev(c, () => { const b = document.querySelector('.vh-ligne-cam'); return { t:b ? b.textContent.replace(/\s+/g, ' ').trim() : '', p:b ? b.querySelector('.st').className : '' }; }); v(nom + ' · la ligne de Ma journée : ' + lib, re.test(r.t) && cl.test(r.p), r); }
-      // sans rien à remettre à bord, la ligne le dit : « tout est en règle » seul
+      // sans rien à remettre à bord, la ligne le dit : « papiers et entretien : en règle » seul
       await ev(c, () => { window.__lm = window.lieuManques; window.lieuManques = () => []; window.__att = MVTS_ATT.splice(0); vehDe('veh1').statut = 'service'; rendre(); }); await L.calme(c.p, 300);
       const z = await ev(c, () => { const b = document.querySelector('.vh-ligne-cam'); window.lieuManques = window.__lm; MVTS_ATT.push(...window.__att); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; });
-      v(nom + ' · …et quand rien ne manque à bord : « Tout est en règle » seul, sans deuxième ligne', /^Mon camion\s*Tout est en règle\s*›?$/.test(z), z);
+      v(nom + ' · …et quand rien ne manque à bord : « Papiers et entretien : en règle » seul, sans deuxième ligne', /^Mon camion\s*Papiers et entretien : en règle\s*›?$/.test(z), z);
       await ev(c, () => rendre()); await L.calme(c.p, 300);
       touches = 0; await toucher(c, '.vh-ligne-cam'); const h = await ev(c, () => ({ h1:(document.querySelector('#contenu h1') || {}).textContent }));
       v(nom + ' · toucher la ligne ouvre « Mon camion » (1 toucher)', h.h1 === 'Mon camion' && touches === 1, h);
@@ -139,7 +139,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     }
 
     if (on('F')) {   // les autres techniciens : leur camion à eux (Karim : contrôle dans 12 jours ; Tom : au garage ; Léa : en règle) — un rôle qui change les écrans est une POPULATION
-      for (const [qui, veh, attendu] of [['kb', 'veh2', /^Le contrôle technique est dans 12 jours\. Le bureau s’en occupe\.$/], ['tl', 'veh4', /^Ton camion est au garage jusqu’au/], ['lr', 'veh3', /^Tout est en règle\.$/]]) {
+      for (const [qui, veh, attendu] of [['kb', 'veh2', /^Le contrôle technique est dans 12 jours\. Le bureau s’en occupe\.$/], ['tl', 'veh4', /^Ton camion est au garage jusqu’au/], ['lr', 'veh3', /^Papiers et entretien : en règle\.$/]]) {
         const c = await ouvrirSm(profil, nuit, qui); await L.aller(c.p, 'moncamion');
         const r = await ev(c, id => ({ sur:(document.querySelector('#contenu .mc-tete .surtitre') || {}).textContent, phrase:((document.querySelector('#contenu .mc-etat') || {}).textContent || '').trim(), boutons:[...document.querySelectorAll('#mc-vehicule .vh-cam-b')].map(b => b.dataset.vx), plaque:vehDe(id).plaque }), veh);
         v(nom + ' · ' + qui + ' : SON camion (' + r.plaque + ') en surtitre, la phrase d\'état qui lui correspond (« ' + r.phrase + ' »)', (r.sur || '').includes(r.plaque) && attendu.test(r.phrase), r);
