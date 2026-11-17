@@ -21,8 +21,8 @@ async function parcoursRole(qui) {
   // le calque posé par-dessus la fiche : « ＋ Nouvelle intervention » si le rôle la voit, sinon la feuille « Menu » (téléphone) ou un menu contextuel (ordinateur)
   let genre = '';
   if (R.creer && await L.toucher(c, '[data-creer]')) genre = 'fenetre';
-  else if (C.tel(c) && await L.toucher(c, '.tt-menu[data-menu="ouvrir"]')) genre = 'panneau';
-  else if (!C.tel(c)) { try { await p.locator('#contenu [data-go]').first().click({ button: 'right', timeout: 3000 }); await L.calme(p, 250); genre = 'menu'; } catch (e) {} }
+  else if (C.etroit(c) && await L.toucher(c, '.tt-menu[data-menu="ouvrir"]')) genre = 'panneau';
+  else if (!C.etroit(c)) { try { await p.locator('#contenu [data-go]').first().click({ button: 'right', timeout: 3000 }); await L.calme(p, 250); genre = 'menu'; } catch (e) {} }
   const o = await C.hist(p);
   v(nom + ' : un calque est ouvert par-dessus la fiche (' + genre + ') sans changer l\'adresse', genre && o.ouverts.includes(genre) && o.h === f.h && o.pousse === 1, o);
   await C.retour(p); const r1 = await C.hist(p);
@@ -43,7 +43,7 @@ async function parcoursRole(qui) {
   // ── 1. le parcours, quatre rôles ──
   for (const qui of Object.keys(ROLES)) await parcoursRole(qui);
 
-  const c = await L.ouvrir({ profil: PROFIL, qui: 'marc' }), p = c.p, tel = C.tel(c);
+  const c = await L.ouvrir({ profil: PROFIL, qui: 'marc' }), p = c.p, tel = C.etroit(c);
   // ── 2. une fenêtre qui mène à un autre écran : pas d'entrée fantôme ──
   await L.aller(p, 'accueil'); const a0 = await C.hist(p);
   if (tel) {
@@ -73,7 +73,7 @@ async function parcoursRole(qui) {
   await C.retour(p); const z3 = await C.hist(p);
   v('… UN Retour mène à l\'écran d\'avant (l\'entrée orpheline a été reculée au chargement)', z3.h === '#accueil', [z3.h, z2.n, z3.n]);
   // ── 3 bis. une adresse changée à la main (lien, saisie) alors qu'une fenêtre est ouverte : la fenêtre part avec l'écran, la pile repart de zéro ──
-  await L.aller(p, 'accueil'); await L.toucher(c, '.tt-menu[data-menu="ouvrir"], [data-creer]'); const y1 = await C.hist(p);
+  await L.aller(p, 'accueil'); await L.toucher(c, C.etroit(c) ? '.tt-menu[data-menu="ouvrir"]' : '[data-creer]'); const y1 = await C.hist(p);
   await p.evaluate(() => { location.hash = '#devis'; }); await C.attendre(p, 900); const y2 = await C.hist(p);
   v('adresse changée à la main fenêtre ouverte : on arrive, la fenêtre est fermée, la pile est vide', y1.pousse === 1 && y2.h === '#devis' && y2.ouverts === '' && y2.pousse === 0 && y2.pile === '', [y1, y2]);
   await L.toucher(c, '[data-opd="devis"], [data-dv="nouveau"]'); await C.attendre(p, 500); const y3 = await C.hist(p);

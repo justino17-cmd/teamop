@@ -13,15 +13,15 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   const champs = await p.evaluate(() => [...document.querySelectorAll('#contenu [data-ci]')].map(e => e.dataset.ci + (e.tagName === 'SELECT' ? ':select' : '')));
   console.log('  · champs de l’onglet Infos : ' + champs.join(', '));
   v('population : l’onglet Infos porte six champs (contact, téléphone, e-mail, type, adresse, accès)', champs.length === 6, champs);
-  v('infos-02 : on peut corriger le NOM (ou la raison sociale) d’un client — une faute de frappe à la création ne se rattrape sinon pas', champs.some(x => /^nom/.test(x)), champs);
-  v('infos-03 : l’onglet Infos permet de supprimer ou d’archiver un client (la case d’Équipe promet « supprimer un client »)', await p.evaluate(() => !!document.querySelector('#contenu [data-action*="clientSuppr"], #contenu [data-action*="clientArch"]')) , null);
+  v('clients-06 : on peut corriger le NOM (ou la raison sociale) d’un client — une faute de frappe à la création ne se rattrape sinon pas', champs.some(x => /^nom/.test(x)), champs);
+  v('clients-17 : l’onglet Infos permet de supprimer ou d’archiver un client (la case d’Équipe promet « supprimer un client »)', await p.evaluate(() => !!document.querySelector('#contenu [data-action*="clientSuppr"], #contenu [data-action*="clientArch"]')) , null);
   // refus
   await champ('contact', ''); await enreg(); v('contact vidé : refusé (« Indique le contact du client. »)', /Indique le contact/.test(await t()), await t());
   await ouvrirInfos('mr'); await champ('mail', 'pas-un-mail'); await enreg(); v('e-mail invalide : refusé', /e-mail est à vérifier/.test(await t()), await t());
   await ouvrirInfos('mr'); await champ('tel', 'abc'); await enreg(); v('téléphone « abc » refusé', /téléphone est à vérifier/.test(await t()), await t());
-  await ouvrirInfos('mr'); await champ('tel', '12'); await enreg(); const t12 = await t(); v('téléphone « 12 » refusé (le formulaire de création, lui, l’accepte : intervention-01)', /téléphone est à vérifier/.test(t12), t12);
+  await ouvrirInfos('mr'); await champ('tel', '12'); await enreg(); const t12 = await t(); v('téléphone « 12 » refusé ', /téléphone est à vérifier/.test(t12), t12);
   await ouvrirInfos('mr'); await champ('mail', ''); await champ('tel', ''); await enreg(); const vide = await t(); console.log('  · e-mail et téléphone vidés → « ' + vide + ' »');
-  v('on peut vider e-mail ET téléphone : le client n’a plus aucun moyen d’être joint — l’écran le dit-il ? « ' + vide + ' »', !/enregistrée/.test(vide) || /aucun moyen|ni téléphone|joindre/i.test(vide), vide);
+  v('clients-12 : on peut vider e-mail ET téléphone : le client n’a plus aucun moyen d’être joint — l’écran le dit-il ? « ' + vide + ' »', !/enregistrée/.test(vide) || /aucun moyen|ni téléphone|joindre/i.test(vide), vide);
   // valeur valide : ce qui change ailleurs
   await ouvrirInfos('mr'); await champ('contact', 'Mme Roux-Lefèvre'); await champ('tel', '06 55 44 33 99'); await champ('mail', 'roux.lefevre@mail.fr');
   await champ('adr', '3 rue de Rochefort, 17300 Rochefort'); await champ('acces', 'Code du portail : 4567. Chien gentil.'); await enreg();
@@ -29,7 +29,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   const apres = await p.evaluate(() => ({ h: (document.querySelector('.tete-client .gris') || {}).textContent, mail: (document.querySelector('.tete-client a[href^="mailto:"]') || {}).href, geo: CR_GEO.mr, sect: SECT_CLI.mr, c: CLIENTS.mr }));
   v('l’en-tête de la fiche montre le nouveau téléphone et la nouvelle adresse', /06 55 44 33 99/.test(apres.h) && /Rochefort/.test(apres.h), apres.h);
   v('le bouton « E-mail » écrit à la nouvelle adresse', /roux\.lefevre@mail\.fr/.test(apres.mail), apres.mail);
-  v('infos-04 : changer l’adresse de Mme Roux d’Aytré à Rochefort déplace aussi son point sur la carte des tournées (CR_GEO ' + JSON.stringify(apres.geo) + ', secteur ' + apres.sect + ')', !!apres.geo && Math.abs(apres.geo[0] - 45.9378) < 0.05, { geo: apres.geo, sect: apres.sect });
+  v('clients-07 : changer l’adresse de Mme Roux d’Aytré à Rochefort déplace aussi son point sur la carte des tournées (CR_GEO ' + JSON.stringify(apres.geo) + ', secteur ' + apres.sect + ')', !!apres.geo && Math.abs(apres.geo[0] - 45.9378) < 0.05, { geo: apres.geo, sect: apres.sect });
   await L.aller(p, 'clients'); await p.evaluate(() => { chercheClient = ''; }); await p.fill('[data-cherche]', '06 55 44 33 99'); await L.calme(p, 250);
   v('la liste retrouve Mme Roux par son nouveau téléphone', (await p.evaluate(() => [...document.querySelectorAll('#contenu .client-carte b')].map(b => b.textContent))).includes('Mme Roux'));
   await p.fill('[data-cherche]', '06 55 44 33 22'); await L.calme(p, 250); v('… et plus par l’ancien', !(await p.evaluate(() => [...document.querySelectorAll('#contenu .client-carte b')].map(b => b.textContent))).includes('Mme Roux'));
