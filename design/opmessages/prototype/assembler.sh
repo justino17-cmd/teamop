@@ -18,7 +18,7 @@ demo() { echo '<script>'; echo '/* Source de DÉMONSTRATION du courrier : copie 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#1c357f">
+<meta name="theme-color" content="#2a4a9c">
 <title>Prototype OP MESSAGES</title>
 <!-- Aperçu de travail (16 novembre 2026) : le PROTOTYPE d'OP MESSAGES, CÔTÉ PRO, refait de A à Z à la demande de Justin (« refais tout, style
      Apple », « concentre-toi sur le côté pro »). Les rubriques sont celles de la vraie application : Tableau de bord, Messages, Contacts, Appels,
@@ -29,6 +29,6 @@ demo() { echo '<script>'; echo '/* Source de DÉMONSTRATION du courrier : copie 
      chargé à côté de cette page, avec sa source de démonstration. -->
 T
 style; echo '</head>'; echo '<body>'; cat 60-corps.html; echo '<script src="opcourrier.js"></script>'; demo; moi; echo '</body></html>'; } > "$DEPOT/apercu/prototype-op-messages.html"
-if [ -n "$1" ]; then { echo '<title>Prototype OP MESSAGES</title>'; echo '<meta name="theme-color" content="#1c357f">'; style; cat 60-corps.html; echo '<script>'; cat "$DEPOT/opcourrier.js"; echo '</script>'; demo; moi; } > "$1"; fi
+if [ -n "$1" ]; then { echo '<title>Prototype OP MESSAGES</title>'; echo '<meta name="theme-color" content="#2a4a9c">'; style; cat 60-corps.html; echo '<script>'; cat "$DEPOT/opcourrier.js"; echo '</script>'; demo; moi; } > "$1"; fi
 node -e "
 const s=require('fs').readFileSync('$DEPOT/apercu/prototype-op-messages.html','utf8');const m=[...s.matchAll(/<script>([\s\S]*?)<\/script>/g)];m.forEach(x=>new Function(x[1]));console.log('syntaxe OK',m.length,'blocs,',s.length,'octets');"

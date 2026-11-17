@@ -46,6 +46,13 @@ réunions, les appels, les messages, les mails, l'agenda, et fais-moi ça mieux.
   boutons « aller à la fin / au début de mes heures » pour l'essayer (l'heure du prototype est fictive). ⚠️ Deux pièges payés : `<html>` porte
   `data-cote` (couleur du cadre) et `closest('[data-cote]')` arrêtait TOUS les clics — le sélecteur est `button[data-cote]` ; et une réponse simulée
   qui arrive après un changement de côté lisait P de l'autre côté (nom capturé à l'envoi). Mesuré : gestes 618 ✓, écrans 484, dessin 294.
+- **Couleurs tranchées et jour / nuit (même jour)** — interrogé, Justin a choisi **« bleu du logo, plus clair »** : le cadre est au bleu d'OP MESSAGES
+  (#2a4a9c, dégradé vers #3d63c0), boutons et liens au même bleu, le Perso dans le MÊME bleu (seule l'étiquette « PERSO » le distingue ; le violet
+  est retiré) ; nuit en bleu nuit #0b1633. Puis « fais un mode jour et nuit » : un bouton lune / soleil dans la barre du haut bascule d'un geste
+  (« Auto », dans le Profil, suit l'appareil). Trouvé à l'œil sur une capture Android : le nom d'un groupe coupé en « F… » dans l'en-tête d'une
+  conversation (le nom partageait la place avec un espace vide) — corrigé et gardé par la sonde. Trouvé par les clics : côté Perso, « Simuler un
+  appel entrant » appelait une personne du côté Pro ; la bascule Perso | Pro sous 40 px au doigt. Mesuré après tout cela : gestes 638 ✓ (Mac, Windows,
+  iPad, iPhone, Android), écrans 484 (11 profils, jour et nuit, deux côtés), dessin 294 (6 appareils), clics 1 082 cibles par ordinateur sans défaut.
 - ⚠️ Leçon : deux refontes de suite ont gardé la même charpente et les mêmes bulles — pour Justin, « pas de différence ». Une refonte se juge à la
   première capture posée à côté de l'ancienne, avant d'écrire le reste.
 

@@ -46,6 +46,7 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     await clic('.tuile-b a[href="#messages/marc"]'); vrai('un message non lu mène à sa conversation', await ev(() => S.vue === 'messages' && S.id === 'marc'));
 
     /* ── messages ── */
+    vrai('le nom de la conversation tient dans son en-tête', await ev(() => { const b = document.querySelector('.conv .qui b .coupe'); return b.scrollWidth <= b.clientWidth + 1 && b.clientWidth > 60; }), await ev(() => { const b = document.querySelector('.conv .qui b .coupe'); return [b.scrollWidth, b.clientWidth]; }));
     vrai('ouvrir une conversation la marque lue', await ev(() => conv('marc').nl === 0));
     vrai('au téléphone la barre d’onglets se retire dans une conversation', !tel || await ev(() => getComputedStyle(document.querySelector('#onglets')).display === 'none'));
     await page.fill('#saisie', 'Le prix arrive dans l’heure.'); vrai('écrire transforme le micro en bouton d’envoi', await ev(() => document.querySelector('#btn-envoi').dataset.action === 'envoyer'));
@@ -65,6 +66,7 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     await page.keyboard.press('Escape');
     await clic('[data-action="joindre"]'); await clic('#calque [data-joint="photo"]'); vrai('joindre une photo l’envoie', await ev(() => dernier(conv('marc')).type === 'photo' && !document.querySelector('#calque').innerHTML));
     await clic('[data-action="joindre"]'); await clic('#calque [data-joint="sondage"]'); await page.fill('#sd-q', 'Quel jour ?'); await page.fill('#sd-1', 'Lundi'); await page.fill('#sd-2', 'Mardi'); await clic('[data-action="sondage-ok"]'); vrai('créer un sondage l’envoie', await ev(() => dernier(conv('marc')).type === 'sondage' || conv('marc').msgs.slice(-2).some((m) => m.type === 'sondage')));
+    await va('messages/equipe'); vrai('le nom d’un canal tient dans son en-tête', await ev(() => { const b = document.querySelector('.conv .qui b .coupe'); return b.scrollWidth <= b.clientWidth + 1 && b.clientWidth > 80; }), await ev(() => { const b = document.querySelector('.conv .qui b .coupe'); return [b.scrollWidth, b.clientWidth]; }));
     await va('messages/equipe'); await clic('[data-vote]', 1); vrai('voter dans un sondage compte la voix', await ev(() => { const m = conv('equipe').msgs.find((x) => x.type === 'sondage'); return m.v === 1 && m.opts[1][1] === 2 && /tu as voté/.test(document.querySelector('.sondage').textContent); }));
     await clic('[data-jouer]'); vrai('écouter un message vocal anime la forme d’onde', await ev(() => !!document.querySelector('.vocal.joue')));
     await clic('[data-action="infos-conv"]'); vrai('les infos du canal listent ses membres', await ev(() => document.querySelectorAll('#calque .rang.av-g').length === 5));
@@ -161,8 +163,10 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     /* ── profil ── */
     await va('profil'); await clic('[data-action="statut"]'); await clic('[data-statut="npd"]'); vrai('changer de statut se voit', await ev(() => S.statut === 'npd' && /Ne pas déranger/.test(document.querySelector('#scene').textContent)));
     await clic('[data-regl="apercuNotif"]'); vrai('un réglage bascule', await ev(() => S.regl.apercuNotif === false && document.querySelector('[data-regl="apercuNotif"]').getAttribute('aria-checked') === 'false'));
-    await clic('[data-theme-choix="dark"]'); vrai('le thème Nuit s’applique', await ev(() => document.documentElement.dataset.theme === 'dark' && getComputedStyle(document.querySelector('#app')).backgroundColor === 'rgb(12, 21, 48)'));
-    await clic('[data-theme-choix="light"]'); vrai('le thème Jour s’applique', await ev(() => getComputedStyle(document.querySelector('#app')).backgroundColor === 'rgb(246, 247, 251)'));
+    await clic('#haut [data-action="theme"]'); vrai('le bouton lune passe en mode nuit', await ev(() => document.documentElement.dataset.theme === 'dark' && /jour/.test(document.querySelector('#haut [data-action="theme"]').getAttribute('aria-label'))));
+    await clic('#haut [data-action="theme"]'); vrai('le bouton soleil revient au mode jour', await ev(() => document.documentElement.dataset.theme === 'light'));
+    await clic('[data-theme-choix="dark"]'); vrai('le thème Nuit s’applique', await ev(() => document.documentElement.dataset.theme === 'dark' && getComputedStyle(document.querySelector('#app')).backgroundColor === 'rgb(14, 24, 56)'));
+    await clic('[data-theme-choix="light"]'); vrai('le thème Jour s’applique', await ev(() => getComputedStyle(document.querySelector('#app')).backgroundColor === 'rgb(246, 248, 252)'));
     await clic('[data-action="profil-modifier"]'); await page.fill('#pf-role', 'Dirigeante'); await clic('[data-action="profil-ok"]'); vrai('modifier son profil', await ev(() => P.moi.r === 'Dirigeante' && /Dirigeante/.test(document.querySelector('#scene').textContent)));
     for (const a of ['espace', 'abonnement', 'a-propos']) { await clic(`[data-action="${a}"]`); vrai('la feuille « ' + a + ' » s’ouvre et se ferme', await ev(() => !!document.querySelector('#calque .feuille'))); await page.keyboard.press('Escape'); vrai('Échap ferme la feuille « ' + a + ' »', await ev(() => !document.querySelector('#calque').innerHTML)); }
     /* ── Perso et Pro : deux côtés qui ne se mélangent pas, et les heures de travail ── */

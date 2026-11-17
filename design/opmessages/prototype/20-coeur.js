@@ -90,7 +90,7 @@ const APPELS = [
 ];
 
 /* ── l'agenda : réunions, rendez-vous, événements ── */
-const TYPES_E = { reunion: ['Réunion', '#2d5be0'], rdv: ['Rendez-vous', '#12a150'], evt: ['Événement', '#e07b00'] };
+const TYPES_E = { reunion: ['Réunion', '#2a4a9c'], rdv: ['Rendez-vous', '#12a150'], evt: ['Événement', '#e07b00'] };
 const EVTS = [
   { id: 'e0', type: 'reunion', titre: 'Visio client · Hôtel des Remparts', j: 0, deb: '10:00', fin: '10:30', invites: [['james', 'oui'], ['sophie', 'oui']], rappel: 15, odj: ['Planning de l’entretien annuel', 'Accès au troisième étage', 'Date de la prochaine visite'] },
   { id: 'e1', type: 'reunion', titre: 'Point d’équipe', j: 0, deb: '14:00', fin: '14:30', invites: [['karim', 'oui'], ['leo', 'oui'], ['sophie', 'oui'], ['ines', 'attente']], rappel: 15, repete: 'Chaque semaine', odj: ['Chantiers de la semaine', 'Stock et commandes', 'Questions diverses'] },
@@ -191,7 +191,7 @@ function menuHtml() {
 function hautHtml() { const n = activite().length;
   return `<a class="marque" href="#${NAV[0][0]}" aria-label="OP MESSAGES"><i>OP<br>MSG</i><span>OP MESSAGES</span><em>${S.mode === 'pro' ? 'PRO' : 'PERSO'}</em></a>
     <button class="chercher" data-action="chercher">${svg('cherche')}<span>Rechercher une personne, un message, une réunion</span><kbd>${/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd></button>
-    <div class="h-droite">${coteSeg('cotes-h')}<a class="h-btn" href="#activite" ${S.vue === 'activite' ? 'aria-current="page"' : ''} aria-label="Activité${n ? ', ' + n + ' à traiter' : ''}" title="Activité">${svg('cloche')}${n ? `<em>${n}</em>` : ''}</a>
+    <div class="h-droite">${coteSeg('cotes-h')}<button class="h-btn" data-action="theme" aria-label="${document.documentElement.dataset.theme === 'dark' ? 'Passer en mode jour' : 'Passer en mode nuit'}" title="${document.documentElement.dataset.theme === 'dark' ? 'Mode jour' : 'Mode nuit'}">${svg(document.documentElement.dataset.theme === 'dark' ? 'soleil' : 'lune')}</button><a class="h-btn" href="#activite" ${S.vue === 'activite' ? 'aria-current="page"' : ''} aria-label="Activité${n ? ', ' + n + ' à traiter' : ''}" title="Activité">${svg('cloche')}${n ? `<em>${n}</em>` : ''}</a>
       <a class="h-btn h-moi" href="#profil" ${S.vue === 'profil' ? 'aria-current="page"' : ''} aria-label="Mon profil et mes réglages" title="${esc(P.moi.n)} · ${STATUTS[S.statut][0]}">${av('moi', 'm', false).replace('</span>', `<u class="${STATUTS[S.statut][1] === 'npd' ? 'occ' : STATUTS[S.statut][1]}"></u></span>`)}</a></div>`;
 }
 const onglets = () => (S.mode === 'pro' ? ['accueil', 'messages', 'appels', 'agenda'] : ['messages', 'appels', 'agenda', 'contacts']);
@@ -240,6 +240,6 @@ function notifier(titre, texte, go) {
 
 /* ── jour et nuit : en production, l'application suit l'appareil ; le réglage n'existe que dans ce prototype ── */
 function appliquerTheme() { const nuit = S.theme === 'dark' || (S.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.dataset.theme = nuit ? 'dark' : 'light';
-  const m = $('meta[name="theme-color"]'); if (m) m.content = nuit ? '#050b1f' : '#16296b'; if (COUR.inst && COUR.inst.rafraichir) COUR.inst.rafraichir({ donnees: false }); }
+  const m = $('meta[name="theme-color"]'); if (m) m.content = nuit ? '#0b1633' : '#2a4a9c'; if (COUR.inst && COUR.inst.rafraichir) COUR.inst.rafraichir({ donnees: false }); }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', appliquerTheme);
 const themeHote = () => (document.documentElement.dataset.theme === 'dark' ? 'nuit' : 'jour');
