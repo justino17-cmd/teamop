@@ -32,4 +32,4 @@ const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{2714}\u{2716}-\u{27BF}\u{1F000}-\
   v('chaque bouton à icône seule porte un nom (aria-label ou texte)', sansNom.length === 0, sansNom);
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
-})().catch(e => { console.error(e); process.exit(2); });
+})().catch(e => { console.error(e); L.v('le parcours a pu se jouer jusqu\'au bout (' + String(e.message).split('\n')[0].slice(0, 90) + ')', false); try { L.fermer(); } catch (x) {} process.exit(L.bilan() ? 1 : 2); });   // un parcours qui plante est un parcours qui échoue : la mutation ne doit pas rester « vivante » sur un code de sortie 2
