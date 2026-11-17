@@ -154,7 +154,7 @@
    "attendu": "Un brouillon fait par erreur ou pour essayer se supprime ; sinon la liste s'encombre pour toujours",
    "constate": "Aucun geste « Supprimer » ni « Dupliquer » : le menu de l'éditeur au téléphone ne contient que Annuler, Rétablir, Modèles, Optimiser avec l'IA ; à l'ordinateur « Supprimer la ligne » ne vise qu'une ligne du devis. Et le numéro est donné dès la création (D-2026-042 en brouillon), alors que « Devis rapide » dit « Le numéro se donnera à l'envoi » : chaque essai consomme un numéro qu'on ne peut plus rendre",
    "preuve": "menu-editeur.js : iphone « éléments du menu : [Annuler, Rétablir, Modèles, Optimiser avec l'IA] », mac « [Ligne de prix, Section, En option, Dupliquer, Monter, Descendre, Supprimer la ligne] » (ce sont des gestes de ligne) ; cas-limites.js iphone : « gestes supprimer/dupliquer visibles dans l'éditeur : [] » ; code : la suppression d'un document n'existe que dans le menu de l'accueil de l'atelier (page.source:3185-3187), masqué dans OP GESTION (html[data-app] #vue-accueil{display:none}, :1399)",
-   "ou": "scratchpad/proto-final/atelier/page.source:3184-3188 (ACTIONS['menu-doc'], le seul « Supprimer » d'un document, dans l'accueil de l'atelier) et :1398 (html[data-app] #vue-accueil{display:none}) ; apercu/prototype-op-gestion.html : opdLigne (20534) et opdCarte (20543), sans geste de suppression",
+   "ou": "scratchpad/proto-final/atelier/page.source:3184-3188 (ACTIONS['menu-doc'], le seul « Supprimer » d'un document, dans l'accueil de l'atelier) et :1398 (html[data-app] #vue-accueil{display:none}) ; apercu/prototype-op-gestion.html : opdLigne (≈ 20918) et opdCarte (≈ 20927), sans geste de suppression",
    "correction": "Ajouter « Supprimer ce brouillon » (avec confirmation) à la ligne de la liste ou dans le menu de l'éditeur, limité aux brouillons ; ne donner le numéro qu'à l'envoi comme « Devis rapide », ou dire dans l'éditeur « Numéro provisoire »"
   },
   {
@@ -173,7 +173,7 @@
    "attendu": "Le titre de la carte est calé comme le contenu qu'il annonce, avec l'aération des cartes voisines (21 px du bord, aligné sur le numéro du document)",
    "constate": "Le titre « COMPOSÉS DANS L'ATELIER · 1 » est collé à 9 px du bord de la carte, 12 px à gauche du numéro (293 contre 305 à l'ordinateur ; 25 contre 33 à 390 px) : il a l'air posé après coup. Le mot « atelier » ne dit rien à un débutant (la page de Devis l'explique plus bas seulement)",
    "preuve": "titre-liste.js : décalage 9 px (devis et contrat, mac et iphone, 4/4), cartes à padding 6px 8px ; captures liste-mac-jour-1-brouillon.png et contrat-ct-mac-jour-marc-3-liste.png comparées au tableau de la carte voisine",
-   "ou": "apercu/prototype-op-gestion.html : opdCarte (20543), le titre n'a pas le rembourrage des lignes",
+   "ou": "apercu/prototype-op-gestion.html : opdCarte (≈ 20927), le titre n'a pas le rembourrage des lignes",
    "correction": "Rembourrer le titre comme les lignes (12 px de plus à gauche) ; envisager « Devis préparés avec le compositeur » / « Documents composés » plutôt que « atelier »"
   },
   {
@@ -192,7 +192,7 @@
    "attendu": "Des prestations à choisir : un devis d'entreprise de terrain commence presque toujours par la main-d'œuvre et le déplacement ; une pastille proposée mène à des articles",
    "constate": "Les 25 articles du catalogue sont tous du matériel (filtres, fluides, pompes…) : « Matériel » donne la même liste que « Tout » (25 / 25) et « Main-d'œuvre », « Entretien », « Déplacement » donnent 0 article avec le message « Rien ne correspond. Essaie un autre mot, ou écris une ligne libre. » alors qu'on n'a rien cherché. Il faut retaper « Main-d'œuvre 58 € » en ligne libre à chaque devis, alors que le prototype connaît ces prestations (tarif de zone, « Main-d'œuvre technicien 58 € / h », les modèles de Devis rapide)",
    "preuve": "chips.js : « pastille Main-d'œuvre → 0 article », « Entretien → 0 », « Déplacement → 0 », « catalogue envoyé par OP GESTION : 25 articles, aucune main-d'œuvre ni déplacement » ; lignes-gestes.js : « filtre Main-d'œuvre : 0 article(s) » sur mac ET iphone ; capture chips-mac-jour-vide.png",
-   "ou": "apercu/prototype-op-gestion.html:20947-20948 (opdDonnees : le catalogue n'est que PRODUITS vendables) ; scratchpad/proto-final/atelier/page.source:5221 (les cinq pastilles sont fixes) et :4989 (vvCatDe)",
+   "ou": "apercu/prototype-op-gestion.html : opdDonnees (≈ 20949 : le catalogue n'est que PRODUITS vendables) ; scratchpad/proto-final/atelier/page.source:5221 (les cinq pastilles sont fixes) et :4989 (vvCatDe)",
    "correction": "Ajouter au catalogue envoyé les prestations du prototype (Main-d'œuvre à l'heure, Déplacement par zone, Entretien annuel, Mise en service) avec leur catégorie, et ne montrer une pastille que si elle a au moins un article ; sinon un message qui dit « Aucun article dans cette catégorie »"
   },
   {
@@ -214,6 +214,65 @@
    "preuve": "clavier-confirm.js (windows) : « Échap → focus Continuer data-r=0 ; Tab → focus Continuer data-r=0 ; Entrée → dialogue false, focus « 3 Matériel et prestations » » ; clavier.js windows jour ET mac nuit : « Tab puis Entrée dans la confirmation : atelier fermé = false »",
    "ou": "scratchpad/proto-final/atelier/page.source:3456 (ouvrirFenetre, f.touche : la branche Tab n'écarte pas la confirmation, alors que la branche Échap, 3455, regarde .voile:not(.fen-v)) : le piège de focus de la fenêtre remet le focus au premier élément du compositeur, puis le piège de la confirmation (2791) le ramène sur « Continuer »",
    "correction": "Dans f.touche, ne rien faire sur Tab quand une confirmation est ouverte : if(document.querySelector('.voile:not(.fen-v)')) return; comme pour Échap"
+  },
+  {
+   "n": "tout-11",
+   "gravite": "gênant",
+   "ecran": "Devis (onglets À envoyer, En attente, Acceptés…) et Contrats : où paraît un document composé",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac nuit",
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un devis, l'envoyer (Envoyer (exemple)), revenir à OP GESTION",
+    "Onglet « En attente »"
+   ],
+   "attendu": "Un devis envoyé est dans la liste « En attente » avec les autres, dit comme les autres (« envoyé aujourd'hui », « Envoyé · sans réponse »), et compte dans la ligne de chiffres comme dans la liste",
+   "constate": "La liste « En attente » montre 3 devis, le chiffre du haut dit « en attente de réponse · 4 » : le quatrième est dans une AUTRE carte plus bas, « Composés dans l'atelier », avec une autre forme (« 31/10 » au lieu de « envoyé aujourd'hui », pastille « Envoyé » au lieu de « Envoyé · sans réponse »). Le même état est donc dit à deux endroits et de deux façons ; au téléphone la seconde carte est sous le pli. Un devis composé envoyé depuis 8 jours ne se propose jamais à la relance (« 2 à relancer » ne compte que les autres)",
+   "preuve": "liste-numeros.js (mac et iphone) : KPI « en attente de réponse · 4 » pour 3 lignes dans la liste, 1 dans la carte « Composés » ; capture devis-mac-nuit-marc-4-liste.png (D-2026-041 « envoyé aujourd'hui · Envoyé · sans réponse » contre D-2026-042 « 31/10 · Envoyé ») ; code : opdCarte/opdLigne affichent une carte à part (apercu/prototype-op-gestion.html : opdLigne et opdCarte (≈ 20918-20930))",
+   "ou": "apercu/prototype-op-gestion.html : opdCarte (≈ 20927), opdLigne (≈ 20918), les chiffres du haut (opdKpi…) ; décision d'intégration « liste à part » (INTEGRATION.md, « Dans le prototype »)",
+   "correction": "Mêler les documents composés aux lignes existantes (même gabarit, même vocabulaire d'état et de date, tri par date) ; au minimum, dire la même chose que les autres lignes et compter la relance (> 7 jours sans réponse)"
+  },
+  {
+   "n": "tout-12",
+   "gravite": "gênant",
+   "ecran": "Composer un devis / un contrat > « Nouveau client… » > « Ajouter ce client »",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un devis > Nouveau client…",
+    "Nom « Restaurant Le Vieux Port », e-mail « marc@vieuxport.fr », téléphone « 06 12 34 56 78 » (les mêmes qu'un client existant)",
+    "Ajouter ce client"
+   ],
+   "attendu": "« Ce client existe peut-être déjà » comme dans « Devis rapide » (dvnCreer : doublon par e-mail, téléphone ou adresse) ; au moins un message avant de créer le second",
+   "constate": "Le client est créé sans un mot : la base passe de 9 à 10 clients, deux fiches identiques « Restaurant Le Vieux Port », et les devis se répartissent entre les deux",
+   "preuve": "nouveau-client.js : « doublon : clients 9 → 10 · message : '' » sur mac ET iphone ; à comparer au refus du chemin court (apercu/prototype-op-gestion.html : dvnCreer, « Ce client existe peut-être déjà : … Touche encore « Préparer le devis » »)",
+   "ou": "scratchpad/proto-final/atelier/page.source:3109-3129 (nouveauClient ne cherche pas de doublon) ; apercu/prototype-op-gestion.html : opdClientRecu (≈ 21002 : « id in CLIENTS » ne regarde que l'identifiant)",
+   "correction": "Chercher un client existant de même e-mail, téléphone, ou nom (comparaison sans accents ni casse) dans les données reçues et proposer « Utiliser ce client » avant de créer"
+  },
+  {
+   "n": "tout-13",
+   "gravite": "détail",
+   "ecran": "Composer un contrat > informations > « Prix annuel (€) » et texte de l'article « Prix et paiement »",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un contrat, prix annuel « 280,50 »",
+    "Regarder la page : « Article 5 Prix et paiement »"
+   ],
+   "attendu": "Le montant dit s'il est hors taxes ou toutes taxes comprises, comme la page Contrats (« Prix / an HT ») et le « Contrat rapide » (« 180,00 € HT par an. Facturation à chaque visite. TVA en sus »)",
+   "constate": "« Le prix de l'entretien est de 280,50 € par an, pour l'ensemble des visites. » : ni HT ni TTC ; le champ s'appelle « Prix annuel (€) » ; la ligne composée de la liste dit « 280,50 € par an » sans HT, juste sous un tableau dont la colonne est « Prix / an HT »",
+   "preuve": "capture contrat-ct-mac-jour-marc-1-composition.png (article 5), contrat-ct-mac-jour-marc-3-liste.png, rapide-mac-jour-contrat-rapide.png (« 180,00 € HT par an ») ; texte source : page.source:1980",
+   "ou": "scratchpad/proto-final/atelier/page.source:1980 (article « prix ») et :1939 (VARS prix « Prix annuel (€) »)",
+   "correction": "Écrire « Prix annuel (€ HT) » et « … est de {{prix}} HT par an » (à faire relire par `juriste` : un contrat avec une copropriété doit dire HT ou TTC)"
   }
  ]
 }
