@@ -48,117 +48,7 @@
   }
  },
  {
-  "n": "fiche-encours",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "fiche-planifiee",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
   "n": "fiche-aplanifier",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "fiche-retard",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "fiche-fait",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "fiche-fait-facturee",
   "dep": {
    "largeur": 390,
    "premiere": 390,
@@ -195,7 +85,7 @@
   },
   "bas": {
    "barreHaut": 730,
-   "dernierBas": 4193,
+   "dernierBas": 1601,
    "fixes": [
     "barre-bas"
    ]
@@ -217,7 +107,7 @@
   },
   "bas": {
    "barreHaut": 730,
-   "dernierBas": 4208,
+   "dernierBas": 1601,
    "fixes": [
     "barre-bas"
    ]
@@ -239,73 +129,7 @@
   },
   "bas": {
    "barreHaut": 730,
-   "dernierBas": 4254,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "modifier",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 788,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "mail",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 788,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "sms",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 788,
+   "dernierBas": 1598,
    "fixes": [
     "barre-bas"
    ]
@@ -343,11 +167,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "⤓ Télécharger 150×40",
-    "✉ Envoyer 150×40",
-    "Fermer 42×42"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
@@ -404,138 +224,6 @@
   }
  },
  {
-  "n": "tech-journee",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "tech-fiche",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "tech-fiche-planifiee",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "tech-pas-fini",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 788,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "tech-manque",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 772,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "tech-fait",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
   "n": "longues-fiche-tech",
   "dep": {
    "largeur": 390,
@@ -559,52 +247,6 @@
  },
  {
   "n": "longues-fiche-bureau",
-  "dep": {
-   "largeur": 390,
-   "premiere": 528,
-   "seconde": 528,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 1029,
-   "dernierBas": 1015,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "longues-liste",
-  "dep": {
-   "largeur": 390,
-   "premiere": 390,
-   "seconde": 390,
-   "bouge": 0,
-   "coupable": ""
-  },
-  "d": {
-   "petits": [
-    "Voir dans Tâches › 344×41"
-   ],
-   "champs": [],
-   "ecrases": []
-  },
-  "bas": {
-   "barreHaut": 730,
-   "dernierBas": 716,
-   "fixes": [
-    "barre-bas"
-   ]
-  }
- },
- {
-  "n": "longues-journee",
   "dep": {
    "largeur": 390,
    "premiere": 390,

@@ -1,0 +1,74 @@
+{
+ "voie": "restes",
+ "etape": "recontroler-restes-1",
+ "noms": ["mail"],
+ "date": "2026-11-17",
+ "lu": "final/restes-mail-tour1.json (corrigés au commit e5ed9d2, consignés au 6fbbfeb) ; pages : apercu/prototype-courrier.js et apercu/prototype-op-gestion.html (toast). Aucune page modifiée par ce recontrôle.",
+ "regles": [
+  "Titre « Nouveau message » / « Brouillon » de la feuille d'écriture non coupé, debout : 40 ✓ sur 8 profils (iPhone, Android, 320 px, iPad, Mac, Windows ; jour et nuit) — SAUF après une rotation, voir casses[2]",
+  "Paysage iPhone 844×390 : grand titre 20 px, phrase du dessous retirée, une ligne entière + la suivante entamée, retour debout identique (9 ✓)",
+  "Numéro de commande à l'écran sans « BC- » (3 ✓)",
+  "Pastille « Nouveau contact » sur une ligne choisie : 11,9:1 Mac jour, 9,1:1 Mac / Windows nuit, 21:1 iPad portrait nuit, 11,9 et 9,1 iPad paysage jour et nuit — SAUF sur téléphone et iPad portrait de jour, voir casses[0]",
+  "Bulle d'une fenêtre « Nouvelle intervention » (téléphone, ouverte depuis le tableau de bord ou le courrier) : ni sur le titre et la croix, ni sur la barre d'actions, texte long de 190 px de haut sur 320 et 360 px, bouton « Annuler » touchable (petit jour, Android nuit) — SAUF fenêtre ouverte depuis la Comptabilité plein écran, voir casses[2]",
+  "L'hôte retire une bulle simple du module (« Brouillon enregistré ») et laisse « Annuler l'envoi » (le geste en cours reste devant)",
+  "À 1280×720 deux lignes entières à l'ouverture (décision d'ordinateur-20, à soumettre : inchangée)"
+ ],
+ "pasRegles": [
+  {
+   "nom": "telephone-15 — aucune ligne de message entière en paysage : réglé pour l'iPhone 844×390 seulement",
+   "defaut": "Android 740×360 : 0 ligne entière sur 11, la zone de liste (140 px) est remplie par le grand titre, la recherche et les catégories ; iPhone SE 568×320 : 0 ligne entière, la zone de liste est masquée par la barre d'onglets flottante (capture paysage-petit-jour : on voit la recherche et les catégories, puis la barre du bas). La liste défile, donc rien n'est perdu, mais la première chose vue est « aucun courriel ».",
+   "constat": "sondes/restes-mail-tour1-recontrole.js PARTIE=2 : population 11 lignes par profil ; 1 ligne entière à 844×390, 0 à 740×360 et 0 à 568×320. Le correcteur a baissé l'attente de mail-recontrole-tel.js de « 2 lignes en paysage » à 1 pour que la sonde passe : le plancher d'origine n'est donc plus tenu même sur l'iPhone. Captures cap/restes1r/paysage-android-jour.png, paysage-petit-jour.png (regardées). Parade possible : sous 400 px de haut, la recherche et les catégories défilent avec la liste (ou les catégories se replient en un seul bouton « Principal ▾ »)."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Pastille « Nouveau contact » : texte blanc sur gris 2,1:1 sur la ligne choisie d'un téléphone ou d'un iPad portrait, de jour",
+   "gravite": "moyenne (lisibilité, la ligne reste dans cet état tant qu'on ne choisit pas une autre)",
+   "etapes": "iPhone 390×844 (ou Android, 320 px, iPad portrait), jour : toucher la ligne « Claire Fontaine » (premier courriel, pastille « Nouveau contact »), puis « ‹ Boîtes… » / bouton retour : la ligne garde la classe sel.",
+   "constat": "La règle ajoutée par le correcteur « .opc .msg.sel .hpast{background:rgba(0,0,0,.3);color:#fff} » vaut pour toutes les mises en page, or sur téléphone et iPad portrait la ligne choisie n'est PAS bleue (le bloc « .msg.sel{background:none} » de la mise en page à une colonne) : le voile noir à 30 % sur le blanc de la page donne un gris (179,179,179) sous du texte blanc. Mesuré 2,11:1 sur 4 profils de jour (iPhone, Android, 320 px, iPad portrait) ; de nuit 19:1 (ok). Capture cap/restes1r/explo-iphone-jour.png : la pastille de Claire Fontaine est grise à lettres blanches. Sonde : restes-mail-tour1-recontrole.js PARTIE=1 (4 ✗). Piste : n'assombrir la pastille que là où la ligne choisie est bleue (là où « --sel » s'applique), la laisser telle quelle sur téléphone."
+  },
+  {
+   "titre": "Bulle de la fenêtre « Nouvelle intervention » invisible et intouchable quand elle est ouverte depuis la Comptabilité plein écran",
+   "gravite": "faible à moyenne (toute bulle de la fenêtre, dont « Annuler », est perdue ; le correctif du tour 1 ne vaut que pour les autres entrées)",
+   "etapes": "Téléphone, Julie (arrive dans la Comptabilité plein écran) ou Marc depuis la Comptabilité : touche N / « ＋ Nouvelle intervention » ; une bulle est émise pendant que la fenêtre est ouverte (toast(…, { lib:'Annuler' })).",
+   "constat": "Le voile de la fenêtre passe à z-index 9100 quand #cpsys est ouvert (« body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100} », ligne 242) alors que la bulle reste à 300 : elle est PEINTE derrière la fenêtre. Mesuré iPhone Julie nuit : bulle bien placée (506–695) et pourtant elementsFromPoint sur son bouton rend « .puces » (pas la bulle) ; un vrai toucher ne déclenche pas « Annuler » (0 appel, 1 chez Marc). Capture cap/restes1r/explo3-julie.png : aucune bulle. Sonde : PARTIE=5, le contrôle « le bouton de la bulle reçoit le toucher » tombe pour ce cas seul. Piste : même condition pour le z-index de #toast (« body:has(#cpsys:not([hidden])) #toast{z-index:9200} »)."
+  },
+  {
+   "titre": "Feuille d'écriture ouverte en paysage puis téléphone redressé : titre de nouveau coupé en « Nouveau messa… »",
+   "gravite": "faible (se corrige en rouvrant la feuille)",
+   "etapes": "iPhone ou 320 px : tenir en paysage, « Écrire » (titre « Nouveau message » entier), redresser le téléphone sans fermer la feuille.",
+   "constat": "fitSheetTitles() n'est appelée que par placeSheetChrome, qui ne repasse pas quand la mise en page téléphone reste la même (paysage et debout sont tous deux « phone ») : mesuré iPhone et 320 px, titre « Nouveau message », tronque = true (scrollWidth > clientWidth), après le redressement. Capture cap/restes1r/rotation-inverse-iphone.png : « Nouveau messa… » entre Annuler et l'horloge. (Sur Android 740×360, le sens est repris par un changement de mise en page : le titre se raccourcit bien.) Même cause dans l'autre sens : un iPhone ouvert debout puis tourné reste « Message » alors qu'il y a de la place — sans gravité. Sonde : PARTIE=3 (2 ✗). Piste : rappeler fitSheetTitles() sur resize / orientationchange."
+  },
+  {
+   "titre": "Deux bulles l'une sur l'autre quand l'hôte parle D'ABORD, puis le module (ordinateur)",
+   "gravite": "faible (6 secondes, bulle de l'hôte à moitié cachée)",
+   "etapes": "Mac ou Windows : une bulle de l'hôte (« Commande … terminée : … »), puis dans les 6 s « Enregistrer le brouillon » dans une feuille d'écriture.",
+   "constat": "Le correctif du tour 1 retire la bulle du module quand l'hôte parle, pas l'inverse : « Brouillon enregistré » (573–740 × 834–868) s'écrit au milieu de « Commande 2026-036 terminée… » (426–1014 × 826–874). Capture cap/restes1r/explo6-mac.png (regardée). Sur iPhone les deux s'empilent sans se couvrir (module au-dessus). Sonde : PARTIE=6, 3 ✗ (mac jour, mac nuit, windows). Piste : quand une bulle de l'hôte est à l'écran, la bulle du module se pose au-dessus d'elle (ou celle de l'hôte est retirée à son tour)."
+  }
+ ],
+ "nouveaux": [
+  "Plancher « 2 lignes entières en paysage » (mail-recontrole-tel.js) abaissé à 1 par le correcteur pour faire passer la sonde — voir pasRegles",
+  "Le seuil « max-height:500px » du paysage (grand titre à 20 px, phrase du dessous retirée) s'applique aussi quand le clavier d'un téléphone debout réduit la fenêtre à ~430 px (Android 360×430, iPhone 390×430) : le titre rétrécit et la phrase disparaît pendant la frappe dans la recherche. Pas gênant (la liste reste à 240 px, rien ne déborde), à regarder sur un vrai téléphone",
+  "iPhone 844×390 : une feuille d'écriture ouverte debout garde « Message » en paysage alors qu'il y a de la place (non coupé, cosmétique)",
+  "Constat de tour 1 vérifié : « déjà décidé » (matNumAff) — l'écran dit « COMMANDE 2026-036 » partout ; le sujet du courriel du fournisseur garde « BC-2026-036 » (texte du fournisseur)"
+ ],
+ "sondes": [
+  { "fichier": "sondes/restes-mail-tour1.js (parties 1 à 5)", "resultat": "67 ✓ · 0 ✗ (40+9+3+8+7)" },
+  { "fichier": "sondes/mail-reconnaissance.js", "resultat": "70 ✓ · 0 ✗" },
+  { "fichier": "sondes/mail-corr-telephone.js", "resultat": "69 ✓ · 0 ✗" },
+  { "fichier": "sondes/mail-telephone.js", "resultat": "40 ✓ · 0 ✗" },
+  { "fichier": "sondes/mail-recontrole-tel.js (parties 1 et 3)", "resultat": "22 ✓ · 0 ✗ et 21 ✓ · 0 ✗" },
+  { "fichier": "sondes/mail-recontrole-reste.js (parties 1 et 3)", "resultat": "14 ✓ · 0 ✗ et 23 ✓ · 0 ✗" },
+  { "fichier": "sondes/mail-roles.js", "resultat": "15 ✓ · 0 ✗" },
+  { "fichier": "sondes/mail-recontrole-ordi.js", "resultat": "88 ✓ · 0 ✗" },
+  { "fichier": "sondes/mail-recontrole-parcours.js", "resultat": "24 ✓ · 0 ✗" },
+  { "fichier": "sondes/restes-mail-tour1-recontrole.js (NOUVELLE, adverse)", "resultat": "PARTIE=1 : 20 ✓ · 4 ✗ (pastille) ; 2 : 20 ✓ · 0 ✗ (population 11 lignes, informations de lignes entières) ; 3 : 16 ✓ · 2 ✗ (rotation) ; 4 : 4 ✓ · 0 ✗ ; 5 : 13 ✓ · 1 ✗ (bulle sous la fenêtre de la Comptabilité) ; 6 : 5 ✓ · 3 ✗ (deux bulles). Les 10 ✗ sont les 4 casses : la sonde reste rouge jusqu'à leur correction" },
+  { "fichier": "sondes/restes-mail-mutations.py", "resultat": "voir bilan_mutations" }
+ ],
+ "bilan_mutations": "à compléter",
+ "doutes": [
+  "Safari, Windows et Android réels, clavier virtuel, polices du système : non vérifiables ici (profils émulés dans Chromium)",
+  "Glisser pour archiver / supprimer, mot sous les icônes, « Écrire » en double au téléphone, secrétaire de gestion et Boîte mail : décisions de Justin déjà listées par le tour 1, rien de nouveau",
+  "La machine est partagée (charge 7 à 11, jusqu'à 51 processus chrome d'autres agents) : une sonde de 400 s sur 580 a été rejouée sans résultat différent"
+ ]
+}

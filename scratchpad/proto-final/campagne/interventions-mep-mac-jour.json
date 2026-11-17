@@ -1,5 +1,284 @@
 [
  {
+  "n": "liste",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Voir dans Tâches › 1114×41",
+    "Aujourd’hui · 9 140×40",
+    "À venir · 8 104×40",
+    "À planifier · 3 127×40",
+    "Terminées · 8 129×40",
+    "Toutes · 24 112×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "liste-tout",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Voir dans Tâches › 1114×41",
+    "Aujourd’hui · 9 136×40",
+    "À venir · 8 104×40",
+    "À planifier · 3 127×40",
+    "Terminées · 8 129×40",
+    "Toutes · 24 114×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-aplanifier",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Hôtel de la Plage › 469×32",
+    "＋ Nouvelle tâche 141×34",
+    "Prendre dans la réserve 192×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "creation",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Client existant 137×40",
+    "＋ Nouveau client 158×40",
+    "Un jour · toute l’équipe 196×40",
+    "Une personne · sa semaine 226×40",
+    "Le premier créneau libre 195×40",
+    "Plus tard · « à planifier » 195×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 2626,
+   "fixes": []
+  }
+ },
+ {
+  "n": "creation-nouveau-client",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Client existant 134×40",
+    "＋ Nouveau client 161×40",
+    "Particulier 108×40",
+    "Professionnel 130×40",
+    "Un jour · toute l’équipe 196×40",
+    "Une personne · sa semaine 226×40",
+    "Le premier créneau libre 195×40",
+    "Plus tard · « à planifier » 195×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 2579,
+   "fixes": []
+  }
+ },
+ {
+  "n": "creation-forfait",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Client existant 137×40",
+    "＋ Nouveau client 158×40",
+    "Un jour · toute l’équipe 196×40",
+    "Une personne · sa semaine 226×40",
+    " 876×40",
+    "Le premier créneau libre 195×40",
+    "Plus tard · « à planifier » 195×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 2738,
+   "fixes": []
+  }
+ },
+ {
+  "n": "client-voit-pdf",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Le PDF (ce qu’il reçoit) 196×40",
+    "Le lien sur téléphone 181×40",
+    "Le lien sur ordinateur 183×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 848,
+   "fixes": []
+  }
+ },
+ {
+  "n": "client-voit-plein",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 1199,
+   "fixes": []
+  }
+ },
+ {
+  "n": "client-voit-tel",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Le PDF (ce qu’il reçoit) 194×40",
+    "Le lien sur téléphone 184×40",
+    "Le lien sur ordinateur 183×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "client-voit-ordi",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Le PDF (ce qu’il reçoit) 194×40",
+    "Le lien sur téléphone 181×40",
+    "Le lien sur ordinateur 187×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-fiche-tech",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Société d’exploitation des établissement 1128×32",
+    "Retirer la photo Avant 30×30",
+    "Retirer la photo Roulement usé 30×30",
+    "Retirer la photo Photo de l’unité extéri 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
   "n": "longues-fiche-bureau",
   "dep": {
    "largeur": 1440,
@@ -15,6 +294,53 @@
     "Retirer la photo Avant 30×30",
     "Retirer la photo Roulement usé 30×30",
     "Retirer la photo Photo de l’unité extéri 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-fiche-fait",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Madame Marie-Hélène de Montmorency-Laval 528×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-client-voit",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Le PDF (ce qu’il reçoit) 194×40",
+    "Le lien sur téléphone 184×40",
+    "Le lien sur ordinateur 183×40"
    ],
    "champs": [],
    "ecrases": []
