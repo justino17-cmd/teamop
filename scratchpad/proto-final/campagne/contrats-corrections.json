@@ -1,0 +1,98 @@
+[
+ {
+  "n": "contrats-01",
+  "etat": "corrigé",
+  "changement": "Une visite d'un contrat facturé « à chaque visite » se prépare au prix du contrat : factureDepuis reconnaît la visite par son contrat (champ `ctr` posé à la signature, ou le titre « Contrat — visite n sur N ») et écrit « Visite n sur N · contrat CTR-… », prix ÷ visites, TVA 10 % particulier / 20 % pro, au lieu du tarif de dépannage + « heure entamée due, comme prévu au devis ».",
+  "preuve": "contrats-parcours-a.js mac : visite terminée → ligne unique « Visite 1 sur 2 · contrat CTR-2026-012 » 70 € HT, TVA 20, sans Déplacement ni Main-d'œuvre"
+ },
+ {
+  "n": "contrats-02",
+  "etat": "corrigé",
+  "changement": "(a) une visite d'un contrat « par an » ou « par mois » ne prépare plus aucune facture (ctrCompris) : la carte Facturation de l'intervention dit « Sans facture · Visite comprise dans le contrat … » et le dossier de Comptabilité la range « réglée par le contrat ». (c) la carte Facturation de la fiche dit le montant du mode (prix ÷ visites, prix ÷ 12, prix) et UNE phrase par mode. (b) les 12 factures mensuelles : voir contrats-15.",
+  "preuve": "contrats-parcours-a.js mac, modes mois et an : visite terminée → aucune facture ; capture de la fiche"
+ },
+ {
+  "n": "contrats-03",
+  "etat": "corrigé",
+  "changement": "Une seule lecture du nombre de visites faites : ctrFaites(k) = visites d'avant (chiffre de départ du contrat) + visites « Contrat — visite n sur N » terminées au planning (ensemble, sans double compte). Lue par la liste, la fiche, la carte du dossier, Statistiques, le courriel de renouvellement, Comptabilité, l'aperçu de création et le libellé « Visite k sur N ». visitesDe marque « Faite » la visite terminée.",
+  "preuve": "contrats-parcours-a.js mac : fiche = 1 visite faite après la fin de la visite, sur les 3 modes"
+ },
+ {
+  "n": "contrats-04",
+  "etat": "corrigé",
+  "changement": "journalAjout à l'envoi (« a envoyé le contrat à signer », par la personne connectée) et à la signature (« a signé le contrat », par le client), avec lien vers la fiche.",
+  "preuve": "contrats-parcours-a.js : le journal grandit à l'envoi, sur les 3 modes"
+ },
+ {
+  "n": "contrats-05",
+  "etat": "corrigé",
+  "changement": "Le PDF et sa barre « Voir en grand / Télécharger / Envoyer » vivent dans UNE cellule (.ctr-doc) de la grille : les trois cartes restent en seconde colonne.",
+  "preuve": "voir contrats-mise-en-page.js"
+ },
+ {
+  "n": "contrats-06",
+  "etat": "à soumettre à Justin",
+  "changement": "Non touché : trois restes d'échafaudage (pied du PDF « Modèle de démonstration… », phrase « relus par le juriste », bouton « Télécharger le PDF signé » — ce dernier est retiré avec contrats-12). Le texte du pied d'un document juridique est à Justin et au juriste.",
+  "preuve": "—"
+ },
+ {
+  "n": "contrats-07",
+  "etat": "à soumettre à Justin",
+  "changement": "Décision de produit (renouveler / mettre fin à un contrat, date de fin sur la fiche) : non faite.",
+  "preuve": "—"
+ },
+ {
+  "n": "contrats-08",
+  "etat": "corrigé",
+  "changement": "Un contrat à moins de 1 € par an est refusé avec « Indique le prix du contrat (par an, HT) : au moins 1 €. » (arrondi au centime avant le test).",
+  "preuve": "contrats-parcours-c.js"
+ },
+ {
+  "n": "contrats-09",
+  "etat": "corrigé",
+  "changement": "Après un envoi réussi, le formulaire repart des valeurs du modèle (client, lieu, prix, fréquence, clauses). Le toast lit l'adresse AVANT la remise à zéro (une première version la disait au mauvais client : la sonde l'a vu).",
+  "preuve": "contrats-parcours-a.js (toast juste) ; contrats-parcours-c.js"
+ },
+ {
+  "n": "contrats-10",
+  "etat": "corrigé",
+  "changement": "overflow-wrap:anywhere sur .pdf : un mot de 130 signes se coupe au lieu de faire glisser la page.",
+  "preuve": "contrats-mise-en-page.js"
+ },
+ {
+  "n": "contrats-11",
+  "etat": "à soumettre à Justin",
+  "changement": "Deux boutons « Contrat rapide » / « Composer un contrat » sans explication : choix de libellé, non fait.",
+  "preuve": "—"
+ },
+ {
+  "n": "contrats-12",
+  "etat": "corrigé",
+  "changement": "Le bouton du haut « Télécharger le PDF signé » (qui ne répondait que par un message) est retiré : la barre sous le PDF télécharge le vrai fichier.",
+  "preuve": "capture de la fiche signée"
+ },
+ {
+  "n": "contrats-13",
+  "etat": "à soumettre à Justin",
+  "changement": "Ordre PDF puis cartes sur téléphone : choix de mise en page, non fait.",
+  "preuve": "—"
+ },
+ {
+  "n": "contrats-14",
+  "etat": "à soumettre à Justin",
+  "changement": "Fausse barre d'adresse sur la page de signature du client : non touchée.",
+  "preuve": "—"
+ },
+ {
+  "n": "contrats-15",
+  "etat": "à soumettre à Justin",
+  "changement": "Facturation « chaque mois » : aucune facture mensuelle n'est préparée (préparer le 1er mois à la signature, ou retirer le mode). La fiche dit seulement « Le contrat se facture au mois ».",
+  "preuve": "—"
+ },
+ {
+  "n": "contrats-16",
+  "etat": "à soumettre à Justin",
+  "changement": "« Envoyer par e-mail » sous l'aperçu d'un brouillon : non touché.",
+  "preuve": "—"
+ }
+]
