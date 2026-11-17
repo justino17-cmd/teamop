@@ -186,6 +186,33 @@ Trois défauts de MES consignes trouvés et corrigés ce matin, qui ralentissaie
 rejouait les sondes de TOUS les lots (des heures de navigateur : une voie a tourné en rond 3 h 30) ; un agent attendait par une
 boucle sans pause (un cœur entier) ; un autre tuait les sondes des autres par motif (`pkill -f`). Les trois sont dans `REGLES`.
 
+⛔⛔⛔ **DERNIER ORDRE DE JUSTIN, 17 NOVEMBRE, 18 H (heure française) — ON QUITTE GITHUB TOTALEMENT, EN UN SEUL DÉMÉNAGEMENT. LIRE
+CECI AVANT TOUT LE RESTE : il REMPLACE « l'ordre recommandé » écrit plus bas (site d'abord, GitHub gardé comme atelier).**
+Mot pour mot : « Et pourquoi on ne fait pas un système de GitHub sur notre serveur ? Comme ça, on peut tout transférer avant,
+demain, pour éviter de devoir tout faire demain et après quitter GitHub, tu vois. Je préfère quitter GitHub, faire toutes les
+vérifications, tout ce que je t'ai demandé par rapport à l'application, retester tout, vérifier les sécurités, tout ça. Mais ce
+sera directement sur nos serveurs à nous et on n'a plus GitHub dans les pattes. Et en plus de ça, ça mettra moins de temps à
+vérifier par la suite, étant donné que ça sera directement nos serveurs et que ça passera pas par GitHub et que ça mettra pas
+entre 30 et 40 minutes. » C'est une DÉCISION (il avait entendu la recommandation de garder l'atelier sur GitHub) : on ne la
+rediscute pas, on la réussit. **Le chantier 0 devient donc : TOUT CHEZ NOUS** — le dépôt et son historique dans une forge à
+nous (un « GitHub » libre et léger, du type Forgejo : à choisir dans l'étude), les vérifications et la mise en ligne lancées par
+NOS machines, la surveillance, le site servi par notre serveur — puis GitHub fermé. Un seul plan, une seule bascule.
+**Ce qui lui a été dit, et qui borne le plan** : (1) la forge et les vérifications vont sur un SECOND serveur, jamais sur celui
+des clients (charge, et surtout sécurité : des vérifications exécutent du code) ; les deux serveurs se surveillent l'un l'autre ;
+(2) « plus rapide » ne sera vrai que si ce second serveur est assez gros — viser 8 cœurs et 16 Go de mémoire ; c'est LÀ qu'une
+offre IONOS sert (un serveur privé virtuel, pas l'« Hébergement Web ») : il envoie la capture des offres, on lui dit laquelle ;
+mesurer nos durées contre celles de GitHub avant de promettre un chiffre ; (3) ⛔ LA CONDITION : mes sessions reçoivent
+aujourd'hui le code PAR GitHub. Avant de couper quoi que ce soit, PROUVER qu'une session Claude sait prendre et pousser le code
+sur sa forge (accès par HTTPS avec un secret posé dans l'environnement, jamais dans la conversation ; ou Claude Code installé sur
+le second serveur). Tant que ce n'est pas prouvé, GitHub reste, gelé, en secours ; (4) une copie du code ailleurs que chez
+l'hébergeur des serveurs (le coffre de sauvegarde, son Mac) ; (5) rien n'est promis pour « demain » : demain soir = l'étude, le
+plan d'une page et l'installeur éprouvé sur un jumeau ; le transfert réel dépend du second serveur (à commander par lui) et de
+ses gestes (il lance l'installeur, il règle les adresses) ; (6) ⛔ aucun geste sur ses serveurs ni en production sans sa phrase
+pour CE geste — inchangé. Ensuite seulement : chantier A (prototype : tout retester, « tout ce que je t'ai demandé par rapport à
+l'application ») et chantier B (sécurité, OP Security, clés d'accès), joués sur NOS machines.
+**Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
+&& uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
+
 ⛔⛔ **FIN DE JOURNÉE DU 17 NOVEMBRE, 17 H 15 (heure française) — VERSION 66 PUBLIÉE, PLUS RIEN NE TOURNE. LIRE CECI EN PREMIER.**
 Reprise programmée le 18 à 22 h 10 (`trig_01ARF4xswzMN4Z5rmX7c9NfF`) : CHANTIER 0 SEULEMENT (« tout servir depuis notre serveur »,
 bloc « NOUVEL ORDRE DE PRIORITÉ » plus bas) ; le prototype (chantier A) et OP Security ↔ OP GESTION (chantier B) restent en pause
