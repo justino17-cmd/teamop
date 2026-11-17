@@ -1,0 +1,433 @@
+{
+ "jour": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "SMSophie 81×38",
+    "KBKarim 81×38",
+    "LRLéa 78×38",
+    "TLTom 81×38",
+    "?Non assigné 81×38"
+   ],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "SMSophie 99×38",
+    "KBKarim 92×38",
+    "LRLéa 77×38",
+    "TLTom 82×38",
+    "?Non assigné 136×38"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "semaine": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "Jour 81×40",
+    "Semaine 81×40",
+    "Mois 81×40",
+    "Vue d’ensemble 81×40",
+    "Sur mesure 81×40",
+    "Carte 81×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Lun → Ven 81×40",
+    "Lun → Sam 81×40",
+    "7 jours 58×40",
+    "SMSophie 81×38",
+    "KBKarim 81×38",
+    "LRLéa 78×38",
+    "TLTom 81×38",
+    "?Non assigné 81×38"
+   ],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41",
+    "Jour 92×40",
+    "Semaine 92×40",
+    "Mois 92×40",
+    "Vue d’ensemble 139×40",
+    "Sur mesure 139×40",
+    "Carte 280×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Lun → Ven 83×40",
+    "Lun → Sam 87×40",
+    "7 jours 57×40",
+    "SMSophie 99×38",
+    "KBKarim 92×38",
+    "LRLéa 77×38",
+    "TLTom 82×38",
+    "?Non assigné 136×38"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "mois": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "Jour 81×40",
+    "Semaine 81×40",
+    "Mois 81×40",
+    "Vue d’ensemble 81×40",
+    "Sur mesure 81×40",
+    "Carte 81×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "SMSophie 81×38",
+    "KBKarim 81×38",
+    "LRLéa 78×38",
+    "TLTom 81×38",
+    "?Non assigné 81×38",
+    "Ouvrir le lundi 28 septembre 81×40",
+    "Ouvrir le mardi 29 septembre 81×40",
+    "Ouvrir le mercredi 30 septembre 81×40",
+    "Ouvrir le jeudi 1er octobre 81×40",
+    "Ouvrir le vendredi 2 octobre 81×40",
+    "Ouvrir le lundi 5 octobre 81×40",
+    "Ouvrir le mardi 6 octobre 81×40",
+    "Ouvrir le mercredi 7 octobre 81×40",
+    "Ouvrir le jeudi 8 octobre 81×40",
+    "Ouvrir le vendredi 9 octobre 81×40",
+    "Ouvrir le lundi 12 octobre 81×40",
+    "Ouvrir le mardi 13 octobre 81×40",
+    "Ouvrir le mercredi 14 octobre 81×40",
+    "Ouvrir le jeudi 15 octobre 81×40",
+    "Ouvrir le vendredi 16 octobre 81×40",
+    "Ouvrir le lundi 19 octobre 81×40",
+    "Ouvrir le mardi 20 octobre 81×40"
+   ],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41",
+    "Jour 92×40",
+    "Semaine 92×40",
+    "Mois 92×40",
+    "Vue d’ensemble 139×40",
+    "Sur mesure 139×40",
+    "Carte 280×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "SMSophie 99×38",
+    "KBKarim 92×38",
+    "LRLéa 77×38",
+    "TLTom 82×38",
+    "?Non assigné 136×38",
+    "Ouvrir le lundi 28 septembre 108×40",
+    "Ouvrir le mardi 29 septembre 107×40",
+    "Ouvrir le mercredi 30 septembre 107×40",
+    "Ouvrir le jeudi 1er octobre 107×40",
+    "Ouvrir le vendredi 2 octobre 107×40",
+    "Ouvrir le lundi 5 octobre 108×40",
+    "Ouvrir le mardi 6 octobre 107×40",
+    "Ouvrir le mercredi 7 octobre 107×40",
+    "Ouvrir le jeudi 8 octobre 107×40",
+    "Ouvrir le vendredi 9 octobre 107×40",
+    "Ouvrir le lundi 12 octobre 108×40",
+    "Ouvrir le mardi 13 octobre 107×40",
+    "Ouvrir le mercredi 14 octobre 107×40",
+    "Ouvrir le jeudi 15 octobre 107×40",
+    "Ouvrir le vendredi 16 octobre 107×40",
+    "Ouvrir le lundi 19 octobre 108×40"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "general": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "Jour 81×40",
+    "Semaine 81×40",
+    "Mois 81×40",
+    "Vue d’ensemble 81×40",
+    "Sur mesure 81×40",
+    "Carte 81×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Lun → Ven 81×40",
+    "Lun → Sam 81×40",
+    "7 jours 58×40",
+    "SMSophie 81×38",
+    "KBKarim 81×38",
+    "LRLéa 78×38",
+    "TLTom 81×38",
+    "?Non assigné 81×38",
+    "09:00 – 10:30✓ faitEntretien climatisati (recouvert au centre)",
+    "13:30 – 15:00✓ faitRéglage pompe à chale (recouvert au centre)",
+    "14:00 – 15:00✓ faitDépannage — fuite d’e (recouvert au centre)",
+    "09:00 – 10:00✓ faitEntretien climatisati (recouvert au centre)",
+    "10:30 – 11:30✓ faitContrôle chauffe-eauC (recouvert au centre)",
+    "08:00 – 10:00✓ faitContrat — visite 2 su (recouvert au centre)"
+   ],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41",
+    "Jour 92×40",
+    "Semaine 92×40",
+    "Mois 92×40",
+    "Vue d’ensemble 139×40",
+    "Sur mesure 139×40",
+    "Carte 280×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Lun → Ven 83×40",
+    "Lun → Sam 87×40",
+    "7 jours 57×40",
+    "SMSophie 99×38",
+    "KBKarim 92×38",
+    "LRLéa 77×38",
+    "TLTom 82×38",
+    "?Non assigné 136×38"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "multi": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "Jour 81×40",
+    "Semaine 81×40",
+    "Mois 81×40",
+    "Vue d’ensemble 81×40",
+    "Sur mesure 81×40",
+    "Carte 81×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Par personne 81×22",
+    "Par date 81×22",
+    "Moins de colonnes 74×22",
+    "Plus de colonnes 74×22"
+   ],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41",
+    "Jour 92×40",
+    "Semaine 92×40",
+    "Mois 92×40",
+    "Vue d’ensemble 139×40",
+    "Sur mesure 139×40",
+    "Carte 280×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Par personne 117×22",
+    "Par date 117×22",
+    "Moins de colonnes 73×22",
+    "Plus de colonnes 73×22"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "carte": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "Jour 81×40",
+    "Semaine 81×40",
+    "Mois 81×40",
+    "Vue d’ensemble 81×40",
+    "Sur mesure 81×40",
+    "Carte 81×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "1 (recouvert au centre)",
+    "2 (recouvert au centre)",
+    "3 (recouvert au centre)",
+    "1 (recouvert au centre)",
+    "2 (recouvert au centre)",
+    "1 (recouvert au centre)",
+    "2 (recouvert au centre)",
+    "! (recouvert au centre)",
+    "! (recouvert au centre)",
+    "Sophie 81×40",
+    "Karim 81×40",
+    "Tom 71×40",
+    "Rapprocher 40×40",
+    "Éloigner 40×40",
+    "Recentrer sur la journée 40×40",
+    "Plein écran 40×40"
+   ],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Jour 92×40",
+    "Semaine 92×40",
+    "Mois 92×40",
+    "Vue d’ensemble 139×40",
+    "Sur mesure 139×40",
+    "Carte 280×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "1 30×30",
+    "2 30×30",
+    "3 30×30",
+    "! 30×30",
+    "Sophie 86×40",
+    "Karim 80×40",
+    "Tom 70×40",
+    "Rapprocher 40×40",
+    "Éloigner 40×40",
+    "Recentrer sur la journée 40×40",
+    "Plein écran 40×40"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ }
+}

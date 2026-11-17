@@ -6,7 +6,8 @@ const fs = require('fs'), path = require('path'), cp = require('child_process');
 const REPO = path.join(__dirname, '..', '..', '..'), PAGE = path.join(REPO, 'apercu', 'prototype-op-gestion.html');
 const TMP = process.env.MUT_DIR || '/tmp/mutations-vehtemps';
 const SRC = fs.readFileSync(PAGE, 'utf8');
-const G = 'gestes', S = 'structure';
+const G = 'gestes', S = 'structure', J = 'journee', SA = 'salarie', K = 'g56';
+const FICHIER = { gestes:'vehtemps-t1-gestes.js', structure:'vehtemps-t1-structure.js', journee:'vehtemps-t5-journee.js', salarie:'vehtemps-t6-salarie.js', g56:'vehtemps-t56-gestes.js' };
 const M = [
   ['1 · « Terminer à… » écrit l\'heure qu\'il est au lieu de la fin d\'habitude (et la garde de l\'heure proposée tombe)', [
     ["act:'terminer|' + p.id + '|' + f.h }", "act:'terminer|' + p.id + '|' + hNow() }"],
@@ -26,6 +27,26 @@ const M = [
   ['14 · les flèches de la semaine rétrécissent de nouveau sous 44 px au doigt', [["@media (pointer:coarse){.tt-barre .st-nav button{width:44px;height:44px;flex:none}}", "@media (pointer:coarse){.tt-barre .st-nav button{width:44px;height:44px}}"]], [S], { PROFILS:'petit' }],
   ['15 · le mois ne propose plus « Valider ce qui est en règle » quand des semaines attendent', [["else if (B.aValider) { bouton = `<button type=\"button\" class=\"btn\" data-tt=\"validertout\">Valider ce qui est en règle</button>`", "else if (false) { bouton = `<button type=\"button\" class=\"btn\" data-tt=\"validertout\">Valider ce qui est en règle</button>`"]], [G]],
   ['16 · la journée oubliée de Tom est dite DEUX fois (une rangée en plus)', [["  /* 2. une demande de correction du salarié", "  POINTAGES.filter(p => ptOuvert(p) && p.qui !== 'marc').forEach(p => R.push({ rang:0, g:'r', lib:'À terminer', k:p.qui, texte:'Tom n’a pas terminé sa journée du ' + jlong(p.date) + '.', bouton:{ lib:'Voir la journée', act:'jour|' + p.qui + '|' + p.date }, liens:[] }));\n  /* 2. une demande de correction du salarié"]], [S]],
+  /* ── étape 2 : la journée d'une personne (T5), « Mes heures » (T6), les gestes comptés ── */
+  ['17 · « Enregistrer la correction » n\'exige plus le motif (la fonction ne le vérifie plus)', [["if (B.heures.length && !motif) return dire('Écris d’abord pourquoi.');", ""]], [J], { SEULS:'A' }],
+  ['18 · le bouton « Enregistrer la correction » n\'est plus grisé tant que le motif est vide', [["btn.disabled = !ok; g('tt-aide').hidden = ok;", "btn.disabled = false; g('tt-aide').hidden = ok;"]], [J], { SEULS:'A' }],
+  ['19 · choisir une heure écrit tout de suite (le défaut d\'avant : écriture à la sortie du champ)', [["const B = ttBrouillon(); if (!B) return; const g = i => document.getElementById(i), motif", "const B = ttBrouillon(); if (!B) return; B.ch.forEach(x => { x.p[x.c] = x.c === 'pause' ? parseInt(x.apres, 10) || 0 : x.apres; }); const g = i => document.getElementById(i), motif"]], [J], { SEULS:'A' }],
+  ['20 · la correction n\'écrit plus la trace (avant → après, qui, quand, pourquoi)', [["if (x.c !== 'note') PT_TRACE.push({ pid:x.p.id, qui:k, date:d, champ:x.c,", "if (0 && x.c !== 'note') PT_TRACE.push({ pid:x.p.id, qui:k, date:d, champ:x.c,"]], [J], { SEULS:'A' }],
+  ['21 · la correction ne retire plus la validation de la semaine (ptDevalide)', [["if (B.heures.length) { ptDevalide(k, d); delete PAIE.confirmes[k];", "if (B.heures.length) { delete PAIE.confirmes[k];"]], [J], { SEULS:'A' }],
+  ['22 · la correction ne défait plus la confirmation du salarié (il ne reconfirme pas)', [["if (B.heures.length) { ptDevalide(k, d); delete PAIE.confirmes[k];", "if (B.heures.length) { ptDevalide(k, d);"]], [J], { SEULS:'A' }],
+  ['23 · le toast de la correction perd son « Annuler »', [["{ lib:'Annuler', fn:() => { copies.forEach(", "{ lib:'Défaire', fn:() => { copies.forEach("]], [J], { SEULS:'A' }],
+  ['24 · le mois fermé laisse les champs d\'heure ouverts dans la fiche', [["const R = verr ? [ligne('Début', p.debut)", "const R = 0 ? [ligne('Début', p.debut)"]], [J], { SEULS:'E' }],
+  ['25 · une heure dans le futur est acceptée dans la fiche', [["if (d === AUJ && (ptMin(deb) > MAINT_MIN || (fin && ptMin(fin) > MAINT_MIN))) return dire(", "if (0 && (ptMin(deb) > MAINT_MIN || (fin && ptMin(fin) > MAINT_MIN))) return dire("]], [J], { SEULS:'C' }],
+  ['26 · une pause plus longue que la journée est acceptée dans la fiche', [["if (pau > f - ptMin(deb)) return dire('La pause est plus longue que la journée.');", ""]], [J], { SEULS:'B' }],
+  ['27 · un refus reste affiché après la réussite (le message d\'erreur n\'est plus effacé)', [["const B = ttBrouillon(), err = document.getElementById('tt-err'); if (err) err.textContent = ''; if (!B || !B.ch.length) return;", "const B = ttBrouillon(), err = document.getElementById('tt-err'); if (!B || !B.ch.length) return;"], ["g('tt-aide').hidden = ok; g('tt-err').textContent = '';", "g('tt-aide').hidden = ok;"]], [J], { SEULS:'B' }],
+  ['28 · « Mes heures » recopie la carte « Ma journée de travail » (la carte vue deux fois)', [["return `${ttMhPret(k, v)}${ttMhAuj(k)}", "return `${ttMhPret(k, v)}${ptxCarteSalarie(k)}${ttMhAuj(k)}"]], [SA], { SEULS:'A' }],
+  ['29 · confirmer ses heures n\'avertit plus d\'une journée restée ouverte', [["if (!O.length) return ttViaPaie('confirme|' + k);", "if (1) return ttViaPaie('confirme|' + k);"]], [SA], { SEULS:'B' }],
+  ['30 · un mois fermé garde le bouton « Je confirme mes heures »', [["if (paieVerrouille()) return `<div class=\"info petit\">Le mois est fermé", "if (0) return `<div class=\"info petit\">Le mois est fermé"]], [SA], { SEULS:'E' }],
+  ['31 · la liste de « Mes heures » ouvre la fiche du GÉRANT (avec ses champs) au lieu de la feuille du salarié', [["${ttJoursListe(k, w.L, 'mhjour', { jours:jrs, pointees:true })}", "${ttJoursListe(k, w.L, 'jour', { jours:jrs, pointees:true })}"]], [SA], { SEULS:'C,D' }],
+  ['32 · « Il y a une erreur » retrouve son second bouton « Annuler » (deux gros boutons)', [["<div class=\"actions\"><button type=\"button\" class=\"btn large\" data-ptx=\"sigok|${k}\">Envoyer au bureau</button></div>", "<div class=\"actions\"><button type=\"button\" class=\"btn large\" data-ptx=\"sigok|${k}\">Envoyer au bureau</button><button type=\"button\" class=\"btn gris\" data-ferme=\"1\">Annuler</button></div>"]], [SA], { SEULS:'C' }],
+  ['33 · « Mes heures » redit « sup. » (le mot d\'artisan « en plus » disparaît)', [["<span>en plus ce mois-ci</span>", "<span>sup. ce mois-ci</span>"]], [SA], { SEULS:'A' }],
+  ['34 · le mois fermé fait perdre à « Il y a une erreur » son retrait dans la feuille d\'une journée', [["${paieMoisVerrou(d) ? `<div class=\"info petit\">Le mois est fermé : pour une erreur, parle au bureau, elle sera régularisée le mois prochain.</div>` : `<div class=\"actions\"><button type=\"button\" class=\"btn gris large\" data-tt=\"erreur|${k}|${d}\">Il y a une erreur</button></div>`}", "<div class=\"actions\"><button type=\"button\" class=\"btn gris large\" data-tt=\"erreur|${k}|${d}\">Il y a une erreur</button></div>"]], [SA], { SEULS:'E' }],
+  ['35 · « Je confirme mes heures » demande toujours une fenêtre de plus (un geste de trop)', [["if (!O.length) return ttViaPaie('confirme|' + k);\n  const p = O[0];", "const p = O[0] || { date:AUJ };"]], [K]],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });
@@ -36,6 +57,7 @@ function racine(nom, page) {
 let tombes = 0, vivantes = [], jouees = 0;
 for (const [nom, paires, sondes, env] of M) {
   if (filtre && !nom.includes(filtre)) continue;
+  if (+process.env.MIN && parseInt(nom, 10) < +process.env.MIN) continue;   // MIN=17 : seulement les mutations de l'étape 2
   let page = SRC;
   for (const [ancien, neuf] of paires) { const c = page.split(ancien).length - 1;
     if (c !== 1) { console.log(`✗ « ${nom} » : ${c} occurrence(s) du texte visé, 1 attendue — la mutation est mal visée, rien n'est joué\n   ${ancien.slice(0, 90)}`); process.exit(2); }
@@ -43,9 +65,9 @@ for (const [nom, paires, sondes, env] of M) {
   if (process.env.DRY) { console.log('✓ visée juste :', nom); continue; }
   const R = racine('m', page); if (page === SRC) { console.log('✗ la copie est identique à la page : ' + nom); process.exit(2); }
   let tombe = false, detail = '';
-  for (const s of sondes) { const r = cp.spawnSync('node', [path.join(__dirname, 'vehtemps-t1-' + (s === G ? 'gestes' : 'structure') + '.js')], { env: { ...process.env, RACINE: R, PROFILS:'mac,iphone', NUIT:'0', ...(env || {}) }, encoding: 'utf8', timeout: 400000 });
+  for (const s of sondes) { const r = cp.spawnSync('node', [path.join(__dirname, FICHIER[s])], { env: { ...process.env, RACINE: R, PROFILS:(s === J || s === SA || s === K) ? 'iphone' : 'mac,iphone', NUIT:'0', ...(env || {}) }, encoding: 'utf8', timeout: 400000 });
     const bil = ((r.stdout || '').match(/== (\d+) ✓ · (\d+) ✗/) || [])[0] || '(pas de bilan : ' + String(r.stderr || '').split('\n')[0].slice(0, 80) + ')';
-    detail += ` ${s}: ${bil} sortie ${r.status}`; if (r.status === 1 && /✗/.test(r.stdout || '')) { tombe = true; break; }
+    detail += ` ${s}: ${bil} sortie ${r.status}`; if ((r.status === 1 || r.status === 2) && /^  ✗/m.test(r.stdout || '')) { tombe = true; if (r.status === 2) detail += ' (une vérification a échoué, puis la sonde est morte faute de l\'écran attendu)'; break; }
     if (r.status === 2 && /TypeError: Cannot (read|set) properties of null/.test(r.stderr || '')) { tombe = true; detail += ' (la sonde meurt faute de l\'élément gardé)'; break; } }
   jouees++; if (tombe) tombes++; else vivantes.push(nom);
   console.log((tombe ? '✓ TOMBE ' : '✗ VIVANTE') + ' · ' + nom + ' →' + detail);

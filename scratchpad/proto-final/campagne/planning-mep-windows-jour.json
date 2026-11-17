@@ -1,0 +1,170 @@
+{
+ "jour": {
+  "debordement": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 768,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 1106
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 1338
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "semaine": {
+  "debordement": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 768,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 1106
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 1338
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "mois": {
+  "debordement": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 768,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 1106
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 1338
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "general": {
+  "debordement": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 768,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 1106
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 1338
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "multi": {
+  "debordement": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 768,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 1106
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 1338
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "carte": {
+  "debordement": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 768,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 1106
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 1338
+    }
+   ],
+   "h1": "Planning"
+  }
+ }
+}
