@@ -21,7 +21,8 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   v('H1a « Je confirme mes heures » : le relevé est confirmé (technicien-03)', apres !== avant && apres !== 'null', { avant, apres, toast: t });
   v('H1b le message ne parle pas de comptabilité à un technicien (technicien-03)', !/payer|relancer|fiche légale/.test(t), t);
   await L.capture(c, CAP + `heures-confirmer-${profil}-${J}.png`);
-  // H2 : signaler une erreur
+  // H2 : signaler une erreur — le relevé vient d'être confirmé (H1), la carte « prêtes » n'est plus là : on remet l'état d'avant pour rejouer l'autre voie
+  await p.evaluate(() => { delete PAIE.confirmes.sm; });
   await L.aller(p, 'mesheures');
   await L.toucher(c, '[data-tt^="erreur|"]'); await L.calme(p, 400);
   v('H2a « Il y a une erreur » ouvre la fenêtre', /Il y a une erreur/.test(await txt(p, '#calque .panneau h2')), await txt(p, '#calque .panneau h2'));

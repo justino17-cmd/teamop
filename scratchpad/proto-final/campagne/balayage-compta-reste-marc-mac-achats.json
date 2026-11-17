@@ -1,0 +1,1270 @@
+{
+ "profil": "mac",
+ "sorties": {
+  "marc-mac-achats-fachats": {
+   "recenses": 35,
+   "touches": 35,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Factures & dépenses3",
+     "data": "data-cx=sec|fachats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 208,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Notes de frais3",
+     "data": "data-cx=sec|ndf",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 156,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Comptes fournisseurs",
+     "data": "data-cx=sec|fournisseurs",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 189,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Tous les achats 13",
+     "data": "data-cx=cat|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 156,
+     "h": 40
+    },
+    {
+     "i": 13,
+     "lib": "📦 Matériel & produits 7",
+     "data": "data-cx=cat|materiel",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 197,
+     "h": 40
+    },
+    {
+     "i": 14,
+     "lib": "🚐 Véhicules & carburant 1",
+     "data": "data-cx=cat|vehicules",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 218,
+     "h": 40
+    },
+    {
+     "i": 15,
+     "lib": "🏢 Frais généraux 2",
+     "data": "data-cx=cat|frais",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 169,
+     "h": 40
+    },
+    {
+     "i": 16,
+     "lib": "Toutes",
+     "data": "data-cx=st|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 82,
+     "h": 40
+    },
+    {
+     "i": 17,
+     "lib": "À traiter",
+     "data": "data-cx=st|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 89,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "En retard",
+     "data": "data-cx=st|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 97,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Payées",
+     "data": "data-cx=st|payee",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "Sans facture",
+     "data": "data-cx=st|sanspiece",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 122,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "Chercher une facture",
+     "data": "data-cxq=1",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 627,
+     "h": 46
+    },
+    {
+     "i": 22,
+     "lib": "30 oct. Tom LeroyNote N1 · Repas, chantier de Rochefort 🧑‍\ud83d",
+     "data": "data-cx=doc|ndf|n1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Repas, chantier de Rochefort",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 23,
+     "lib": "29 oct. Karim BenaliNote N2 · Péage A10, Saintes 🧑‍🔧Note d",
+     "data": "data-cx=doc|ndf|n2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Péage A10, Saintes",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 24,
+     "lib": "28 oct. Clim Pièces AtlantiqueFA-CPA-88790 · Ventilateur ext",
+     "data": "data-cx=doc|ach|a7",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Clim Pièces Atlantique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 25,
+     "lib": "28 oct. Sophie MartinNote N3 · Parking, centre-ville de La R",
+     "data": "data-cx=doc|ndf|n3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Parking, centre-ville de La Rochelle",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 26,
+     "lib": "26 oct. Leroy Merlin ProCB-LM-2610 · Petit outillage 📦Matér",
+     "data": "data-cx=doc|ach|a6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Leroy Merlin Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 27,
+     "lib": "22 oct. Sanitaire Pro 17SP17-4410 · Raccords, vannes, flexib",
+     "data": "data-cx=doc|ach|a8",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sanitaire Pro 17",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 28,
+     "lib": "20 oct. Orange ProORANGE-2026-10 · Téléphones et internet · ",
+     "data": "data-cx=doc|ach|a5",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Orange Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 29,
+     "lib": "17 oct. Frigo Distribution 17CB-FD17-1710 · Fluide R32 · 2 b",
+     "data": "data-cx=doc|ach|a4",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Frigo Distribution 17",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 30,
+     "lib": "15 oct. Daikin Pro OuestDKO-2026-10-0241 · Carte électroniqu",
+     "data": "data-cx=doc|ach|a9",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Daikin Pro Ouest",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 31,
+     "lib": "12 oct. TotalEnergiesTICKET-TOTAL-1210 · Gazole · camionnett",
+     "data": "data-cx=doc|ach|a3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "TotalEnergies",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 32,
+     "lib": "8 oct. Daikin Pro OuestDKO-2026-10-0193 · Kit cassette (Hôte",
+     "data": "data-cx=doc|ach|a2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Daikin Pro Ouest",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 33,
+     "lib": "5 oct. MAAF ProECH-MAAF-2026-10 · Assurance responsabilité c",
+     "data": "data-cx=doc|ach|a0",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "MAAF Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 34,
+     "lib": "3 oct. Clim Pièces AtlantiqueFA-CPA-88412 · Condensateurs, c",
+     "data": "data-cx=doc|ach|a1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Clim Pièces Atlantique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 68
+    }
+   ]
+  },
+  "marc-mac-achats-ndf": {
+   "recenses": 17,
+   "touches": 17,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Factures & dépenses3",
+     "data": "data-cx=sec|fachats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 207,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Notes de frais3",
+     "data": "data-cx=sec|ndf",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Comptes fournisseurs",
+     "data": "data-cx=sec|fournisseurs",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 189,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Décider les demandes d’achat ›",
+     "data": "data-axa=goach|demandes",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Achats et frais",
+     "panneau": "",
+     "hash": "#achats",
+     "toast": "",
+     "sansNom": false,
+     "l": 245,
+     "h": 40
+    },
+    {
+     "i": 13,
+     "lib": "30 oct. Tom LeroyNote N1 · Repas, chantier de Rochefort 🧑‍\ud83d",
+     "data": "data-cx=doc|ndf|n1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Repas, chantier de Rochefort",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 14,
+     "lib": "29 oct. Karim BenaliNote N2 · Péage A10, Saintes 🧑‍🔧Note d",
+     "data": "data-cx=doc|ndf|n2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Péage A10, Saintes",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 15,
+     "lib": "28 oct. Sophie MartinNote N3 · Parking, centre-ville de La R",
+     "data": "data-cx=doc|ndf|n3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Parking, centre-ville de La Rochelle",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 70
+    },
+    {
+     "i": 16,
+     "lib": "on",
+     "data": "data-ndfregle=1",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Un ticket est maintenant demandé pour chaque note de frais.",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    }
+   ]
+  },
+  "marc-mac-achats-fournisseurs": {
+   "recenses": 22,
+   "touches": 22,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Factures & dépenses3",
+     "data": "data-cx=sec|fachats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 207,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Notes de frais3",
+     "data": "data-cx=sec|ndf",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 156,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Comptes fournisseurs",
+     "data": "data-cx=sec|fournisseurs",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 191,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "896,28 €encore à payer",
+     "data": "data-cx=sec|fachats|achats|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 90
+    },
+    {
+     "i": 13,
+     "lib": "3achats sans facture",
+     "data": "data-cx=sec|fachats|achats|sanspiece",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 90
+    },
+    {
+     "i": 14,
+     "lib": "Sanitaire Pro 171 pièce 382,08 €—382,08 € à jour",
+     "data": "data-cx=relevef|sp17",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sanitaire Pro 17",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 15,
+     "lib": "Daikin Pro Ouest2 pièces 1 077,60 €734,40 €343,20 € 1 en ret",
+     "data": "data-cx=relevef|dko",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Daikin Pro Ouest",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 16,
+     "lib": "Clim Pièces Atlantique2 pièces 394,68 €223,68 €171,00 € à jo",
+     "data": "data-cx=relevef|cpa",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Clim Pièces Atlantique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 17,
+     "lib": "Frigo Distribution 171 pièce 288,00 €288,00 €— 1 sans factur",
+     "data": "data-cx=relevef|fd",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Frigo Distribution 17",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 18,
+     "lib": "TotalEnergies1 pièce 95,00 €95,00 €— 1 sans facture",
+     "data": "data-cx=relevef|tote",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "TotalEnergies",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 19,
+     "lib": "MAAF Pro1 pièce 68,00 €68,00 €— à jour",
+     "data": "data-cx=relevef|maaf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "MAAF Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 20,
+     "lib": "Orange Pro1 pièce 65,99 €65,99 €— à jour",
+     "data": "data-cx=relevef|orange",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Orange Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 21,
+     "lib": "Leroy Merlin Pro1 pièce 55,00 €55,00 €— 1 sans facture",
+     "data": "data-cx=relevef|lmpro",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Leroy Merlin Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    }
+   ]
+  }
+ },
+ "err": []
+}
