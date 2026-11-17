@@ -186,6 +186,40 @@ Trois défauts de MES consignes trouvés et corrigés ce matin, qui ralentissaie
 rejouait les sondes de TOUS les lots (des heures de navigateur : une voie a tourné en rond 3 h 30) ; un agent attendait par une
 boucle sans pause (un cœur entier) ; un autre tuait les sondes des autres par motif (`pkill -f`). Les trois sont dans `REGLES`.
 
+⛔⛔ **ARRÊT DU 17 NOVEMBRE, 13 H 50 (heure française) — LE CHANTIER REPREND LE 18 À 22 H 10. LIRE CECI D'ABORD.**
+Justin, à 13 h 45 : « on est à 81 % hebdomadaire de consommation, ça peut le faire ? » ; puis « fais comme tu le sens, sinon demain à
+22 h mise à jour de la consommation » ; puis « sinon coupe et tu reprends tout demain à 22 h, plus sûr pour que ça bug pas » ; puis
+« et là tu fais le plus important ». Ce qui a été fait, dans l'ordre : (1) ordre d'arrêt propre aux 38 sessions sœurs — 31 tout de
+suite, 7 après la fin de leur étape de CORRECTION (Véhicules et Temps de travail, Équipe, Achats, Clients, espace client, sécurité,
+bouton de nuit) ; chacune écrit `scratchpad/proto-final/arret/soeur-<n>.md` (args, étape, dernier commit, reste) puis est fermée
+(`archive_session`) ; (2) la tête de la branche repasse les huit contrôles (compiler-pages, verifier-syntaxe, tests 835, 836, 837,
+1008, 2994, verif-secrets) à 0 ✗ après les arrêts ; (3) **VERSION 65 DE L'ARTEFACT PUBLIÉE à 14 h 05 (française)** depuis les pages
+du commit `8ec9130` (12 h 43 machine), figées dans le dossier `pub-65` du scratchpad : fumée jour 396 ✓, espace client et chef
+d'équipe 127 ✓, nuit (gérant, bureau, technicienne) 396 ✓, sondes de l'artefact 302 ✓, bouton « Voir comme l'application » 132 ✓ —
+1 353 contrôles, 0 ✗ ; planches REGARDÉES (nuit iPhone et Mac, espace client, parties refaites de jour) ; (4) la REPRISE est
+programmée par `send_later` au 18 novembre 22 h 10 (heure française ; le forfait se remet à zéro à 22 h) — sa consigne dit quoi
+relancer ; la liste est dans `VOIES-EN-COURS.md`, section « ARRÊT DU 17 NOVEMBRE », et les fiches `arret/soeur-*.md` font foi.
+**Ce que porte la version 65 de plus que la 64** : corrections de Clients (12), de l'espace client (une seule navigation par appareil,
+l'entreprise une fois en haut), du technicien, de la Comptabilité (ventes et reste), des Contrats, des Interventions, de l'Accueil,
+du Planning, de Mon entreprise, de Matériel (27), une partie de Véhicules et Temps de travail et d'Équipe, les premiers regards du
+gérant (21 défauts d'aspect), et le **bouton principal de nuit CLAIR** (décision du chef, à dire à Justin : une ligne de jetons à
+défaire s'il préfère l'ancien ; les pages paiement et documents ne sont pas encore passées). **Elle ne porte PAS** : la fin des
+corrections de Véhicules et Temps de travail, d'Équipe, de Clients (restes) et de la sécurité (poussées après 12 h 43).
+**À FAIRE À LA REPRISE, en plus des fiches** : · la campagne « compta-reste » a rendu ICI à 12 h 50 (7 corrections confirmées, 3
+incomplètes : 03 le formulaire de note de frais de la technicienne lit « 1.234 » comme 1,23 € ; 07 des mots d'échafaudage dans
+« Paiement en ligne » ; 10 un numéro de facture sur trois lignes au téléphone) → voie `restes {noms:["compta-reste"], tours:1}` ;
+deux points BLOQUANTS « à soumettre » à trancher par le chef ou par Justin : compta-reste-01 (le cadre « OP COMPTABLE » montre
+d'autres chiffres qu'OP GESTION le même jour : banque 22 165,18 € contre 9 792,95 €, etc.) et compta-reste-02 (payer par carte dans
+« Paiement en ligne » ne paie rien dans OP GESTION) ; · la sécurité : recontrôle rendu (14 failles fermées sur 18, 5 variantes
+ouvertes dont S01 haute, 4 casses), corrections du tour 1 en cours à l'arrêt (sœur 38) → recontrôle demain ; · regard gérant b :
+second regard rendu, 10 défauts nouveaux dont 2 moyens (`final/regard-gerant-b-recontrole.json`) ; · conseil de la sœur 20 : des
+sondes ne ferment pas leur navigateur (`grep -L fermer scratchpad/proto-final/campagne/sondes/*.js scratchpad/proto-final/sondes/*.js`)
+et occupent une place 580 s ; · `tests/test-846.js` tombait en ligne (une page de sonde sans `<html lang="fr">`) : corrigé à 14 h ;
+⛔ une consigne de sœur doit dire « [skip ci] » aussi pour les commits faits HORS du workflow (les décisions recopiées dans
+`vus-par-le-chef.md`) — c'est un tel commit qui a lancé la vérification en ligne ; · les outils du chef (`/home/user/*.sh`) sont
+sauvegardés dans `scratchpad/proto-final/outils-chef/` ; · les captures se regardent par PLANCHES (`scratchpad/proto-final/planches.js`,
+huit par image) : les consignes le disent, c'est six fois moins de lectures d'images.
+
 **ÉTAT À 12 H 20 (machine ; 13 h 20 en France) — 34 SESSIONS SŒURS, DEUX VOIES ENCORE ICI.** Justin, à 12 h 55 (heure française) :
 « Ok fait un maximum de saison sœur que tu fermera quand elle auront fini » → chaque sœur qui a rendu (« SŒUR n : ») reçoit sa voie
 suivante (`send_message` : « VOIE SUIVANTE : <args> ») ou est FERMÉE (`archive_session`) s'il n'y a plus rien pour elle. Annoncé à

@@ -12,7 +12,11 @@ const net = t => String(t).replace(/[  ]/g, ' ');
   for (const profil of PROFILS) {
     const nom = profil;
     /* ── gerant-01 : julie (Secrétariat) ne voit pas « Ses heures › » et ne l'obtient pas en forçant le geste ── */
-    { const c = await L.ouvrir({ profil, qui:'julie', calme:true }); await L.aller(c.p, 'equipe');
+    { const c = await L.ouvrir({ profil, qui:'julie', calme:true });
+      /* le profil Secrétariat voit Temps de travail depuis la décision du chef du 17 novembre (la case « Voir » décide seule) : on retire la case, la population de ce contrôle est « un compte qui ne voit PAS Temps de travail » */
+      const sans = await ev(c, () => { eqDe('julie').droits.cats.temps = { v:0, c:0, m:0, s:0 }; droitsMaj(); return droitVoit('pointage'); });
+      v(nom + ' · population : le compte d\'essai ne voit pas Temps de travail', sans === false, { sans });
+      await L.aller(c.p, 'equipe');
       const n = await ev(c, () => [...document.querySelectorAll('#contenu [data-eq="fiche"], #contenu [data-eq^="fiche|"]')].length);
       await ev(c, () => eqFiche('sm')); await L.calme(c.p, 400);
       const bouton = await ev(c, () => document.querySelectorAll('#calque [data-eq^="heures|"]').length);
@@ -25,6 +29,10 @@ const net = t => String(t).replace(/[  ]/g, ' ');
       v(nom + ' · julie : le geste forgé « heures » n\'ouvre ni le panneau salaire ni Temps de travail', !/170h46|Ses semaines/.test(net(panneau)) && (await ev(c, () => location.hash)) !== '#pointage', { hash:await ev(c, () => location.hash), debut:net(panneau).slice(0, 80) });
       const direct = await ev(c, () => { try { fermerPanneau(); ttMoisPers('sm'); } catch (e) { return 'ERR ' + e.message; } return (document.querySelector('#calque') || {}).textContent || ''; });
       v(nom + ' · julie : ttMoisPers appelée directement ne lit rien (garde en première instruction)', !/170h46|Ses semaines/.test(net(direct)), net(direct).slice(0, 80));
+      await L.fin(c); }
+    { const c = await L.ouvrir({ profil, qui:'julie', calme:true }); await L.aller(c.p, 'equipe'); await ev(c, () => eqFiche('sm')); await L.calme(c.p, 400);
+      const n = await ev(c, () => ({ voit:droitVoit('pointage'), b:document.querySelectorAll('#calque [data-eq^="heures|"]').length }));
+      v(nom + ' · julie AVEC la case « Voir » de Temps de travail : le bouton « Ses heures › » est là (contre-épreuve)', n.voit === true && n.b === 1, n);
       await L.fin(c); }
     /* le gérant, lui, l'a toujours (contre-épreuve : on n'a pas supprimé le geste) */
     { const c = await L.ouvrir({ profil, qui:'marc', calme:true }); await L.aller(c.p, 'equipe'); await ev(c, () => eqFiche('sm')); await L.calme(c.p, 400);

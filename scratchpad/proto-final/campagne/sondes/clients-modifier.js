@@ -14,14 +14,14 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   console.log('  · champs de l’onglet Infos : ' + champs.join(', '));
   v('population : l’onglet Infos porte sept champs (nom, contact, téléphone, e-mail, type, adresse, accès)', champs.length === 7, champs);
   v('clients-06 : on peut corriger le NOM (ou la raison sociale) d’un client — une faute de frappe à la création ne se rattrape sinon pas', champs.some(x => /^nom/.test(x)), champs);
-  v('clients-17 : l’onglet Infos permet de supprimer ou d’archiver un client (la case d’Équipe promet « supprimer un client »)', await p.evaluate(() => !!document.querySelector('#contenu [data-action*="clientSuppr"], #contenu [data-action*="clientArch"]')) , null);
+  v('clients-17 : l’onglet Infos permet d’archiver un client (la case d’Équipe dit « archiver un client » ; un client ne s’efface jamais)', await p.evaluate(() => !peut('crm', 's') || !!document.querySelector('#contenu [data-action="clientArchiverDemande"]')) , null);
   // refus
   await champ('contact', ''); await enreg(); v('contact vidé : refusé (« Indique le contact du client. »)', /Indique le contact/.test(await t()), await t());
   await ouvrirInfos('mr'); await champ('mail', 'pas-un-mail'); await enreg(); v('e-mail invalide : refusé', /e-mail est à vérifier/.test(await t()), await t());
   await ouvrirInfos('mr'); await champ('tel', 'abc'); await enreg(); v('téléphone « abc » refusé', /téléphone est à vérifier/.test(await t()), await t());
   await ouvrirInfos('mr'); await champ('tel', '12'); await enreg(); const t12 = await t(); v('téléphone « 12 » refusé ', /téléphone est à vérifier/.test(t12), t12);
   await ouvrirInfos('mr'); await champ('mail', ''); await champ('tel', ''); await enreg(); const vide = await t(); console.log('  · e-mail et téléphone vidés → « ' + vide + ' »');
-  v('clients-12 : on peut vider e-mail ET téléphone : le client n’a plus aucun moyen d’être joint — l’écran le dit-il ? « ' + vide + ' »', !/enregistrée/.test(vide) || /aucun moyen|ni téléphone|joindre/i.test(vide), vide);
+  v('clients-12 : vider e-mail ET téléphone est refusé, avec la phrase « Garde au moins un téléphone ou un e-mail » (« ' + vide + ' »)', /Garde au moins un téléphone ou un e-mail/.test(vide), vide);
   // valeur valide : ce qui change ailleurs
   await ouvrirInfos('mr'); await champ('contact', 'Mme Roux-Lefèvre'); await champ('tel', '06 55 44 33 99'); await champ('mail', 'roux.lefevre@mail.fr');
   await champ('adr', '3 rue de Rochefort, 17300 Rochefort'); await champ('acces', 'Code du portail : 4567. Chien gentil.'); await enreg();
@@ -45,8 +45,10 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   if (c.doigt) { const g = await L.doigts(p, '#contenu'); v('onglet Infos : cibles ≥ 44 px', g.petits.length === 0, g.petits); v('onglet Infos : champs ≥ 16 px', g.champs.length === 0, g.champs); }
   await L.capture(c, CAP + `infos-${PROFIL}${NUIT ? '-nuit' : ''}.png`);
   // abandon : on modifie, on change d'onglet, on revient — la phrase le dit
-  await ouvrirInfos('cp'); await champ('contact', 'Quelqu’un d’autre'); await L.toucher(c, '#contenu [role=tab][data-oc="histo"]'); await L.toucher(c, '#contenu [role=tab][data-oc="infos"]');
-  v('quitter l’onglet sans enregistrer abandonne la saisie (la phrase « Rien n’est gardé tant que… » le dit)', (await p.evaluate(() => document.querySelector('[data-ci="contact"]').value)) === 'M. Pineau' && /Rien n’est gardé/.test(await p.evaluate(() => document.querySelector('#contenu .grille2').innerText)), null);
+  await ouvrirInfos('cp'); await champ('contact', 'Quelqu’un d’autre'); await L.toucher(c, '#contenu [role=tab][data-oc="histo"]');
+  v('clients-15 : quitter l’onglet avec une saisie non enregistrée DEMANDE d’abord (fenêtre de l’application : Enregistrer / Abandonner / Continuer)', await p.evaluate(() => /sans l’enregistrer/.test((document.querySelector('#calque .panneau h2') || {}).textContent || '')), null);
+  await L.toucher(c, '#calque [data-v="abandon"]'); await L.toucher(c, '#contenu [role=tab][data-oc="infos"]');
+  v('abandonner la saisie : elle est perdue (la phrase « Rien n’est gardé tant que… » le dit)', (await p.evaluate(() => document.querySelector('[data-ci="contact"]').value)) === 'M. Pineau' && /Rien n’est gardé/.test(await p.evaluate(() => document.querySelector('#contenu .grille2').innerText)), null);
   // qui est noté comme auteur ? (journalAjout('marc',…) lit acteur(), le 17 novembre)
   const jn = await p.evaluate(() => { const L = JOURNAL.filter(j => /fiche du client/.test(j.action)); const e = L[L.length - 1]; return e ? { qui: e.qui, lib: e.el && e.el.lib } : null; });
   v(`historique-auteur : la modification d’une fiche client est notée au nom de celui qui la fait (${QUI})`, !!jn && jn.qui === QUI, jn);
