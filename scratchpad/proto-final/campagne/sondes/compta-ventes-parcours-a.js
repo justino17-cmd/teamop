@@ -15,18 +15,26 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await L.toucher(c, '[data-cx="nouveau"]'); L.v('« ＋ Ajouter » ouvre une fenêtre à 4 choix', (await X.panneau(p)).includes('Facture client') && (await X.panneau(p)).includes('Paiement reçu'));
   await L.toucher(c, '#calque [data-cx="facture"]'); L.v('« Facture client » ouvre le formulaire', /Nouvelle facture/.test(await X.panneau(p)));
   await L.capture(c, X.CAP + `a-${profil}-formulaire.png`);
+  // le client doit être CHOISI (compta-ventes-10) : le champ propose « Choisir le client… », la création est refusée tant que ce n'est pas fait
+  const cl0 = await p.evaluate(() => { const s = document.getElementById('nf-c'); return { v: s.value, t: s.options[0].textContent }; });
+  L.v('compta-ventes-10 · le champ Client propose « Choisir le client… » au départ (pas le premier client par ordre alphabétique)', cl0.v === '' && /Choisir le client/.test(cl0.t), cl0);
+  await X.saisir(c, '#nf-d', 'Mise en service'); await X.saisir(c, '#nf-p', '100'); await L.toucher(c, '#calque [data-cx="factureok"]');
+  let t = await X.toasts(p); L.v('compta-ventes-10 · sans client choisi, la création est refusée avec une phrase', /client/i.test(t) && !(await p.evaluate(() => FACTURES.some(f => f.id.startsWith('fm')))), t);
+  await p.selectOption('#nf-c', 'vp'); await X.saisir(c, '#nf-d', ''); await X.saisir(c, '#nf-p', '');
   // champs vides
-  await L.toucher(c, '#calque [data-cx="factureok"]'); let t = await X.toasts(p); L.v('désignation vide : un message dit quoi faire', /désignation|factures/i.test(t), t);
+  await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p); L.v('désignation vide : un message dit quoi faire', /désignation|factures/i.test(t), t);
   await X.saisir(c, '#nf-d', 'Mise en service'); await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p); L.v('prix vide : un message dit quoi faire', /prix/i.test(t), t);
   // valeurs absurdes
   await X.saisir(c, '#nf-p', '-50'); await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p); L.v('prix négatif refusé', /prix/i.test(t) && !(await p.evaluate(() => FACTURES.some(f => f.id.startsWith('fm')))), t);
   await X.saisir(c, '#nf-p', '100'); await X.saisir(c, '#nf-q', '-3');
-  const avantNeg = await p.evaluate(() => FACTURES.length); await L.toucher(c, '#calque [data-cx="factureok"]');
+  const avantNeg = await p.evaluate(() => FACTURES.length); await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p);
+  L.v('compta-ventes-01 · le refus dit pourquoi (quantité supérieure à zéro)', /quantité/i.test(t), t);
+  for (const q of ['0', 'abc', '1,5,5']) { await X.saisir(c, '#nf-q', q); await L.toucher(c, '#calque [data-cx="factureok"]'); t = await X.toasts(p); L.v(`compta-ventes-01 · quantité « ${q} » refusée, pas transformée en 1`, /quantité/i.test(t) && !(await p.evaluate(() => FACTURES.some(f => f.id.startsWith('fm')))), t); }
   const negat = await p.evaluate(() => { const f = FACTURES.find(x => x.id.startsWith('fm')); return f ? { q: f.lignes[0].q, ht: htDe(f) } : null; });
   L.v('compta-ventes-01 · une quantité négative ne fabrique pas une facture négative (ou est refusée)', !negat || (parseFloat(String(negat.q).replace(',', '.')) > 0 && negat.ht > 0), negat);
   // remettre d'aplomb : repartir d'une page neuve pour la suite
   await X.O.neuf(c, 'comptabilite'); await X.compta(c, 'fventes', { cat: 'ventes' });
-  await L.toucher(c, '[data-cx="nouveau"]'); await L.toucher(c, '#calque [data-cx="facture"]');
+  await L.toucher(c, '[data-cx="nouveau"]'); await L.toucher(c, '#calque [data-cx="facture"]'); await p.selectOption('#nf-c', 'vp');
   const nom60 = 'Mise en service d’une pompe à chaleur air-eau avec groupe extérieur';
   await X.saisir(c, '#nf-o', nom60); await X.saisir(c, '#nf-d', nom60); await X.saisir(c, '#nf-q', '2'); await X.saisir(c, '#nf-p', '12 345,67');
   await L.toucher(c, '#calque [data-cx="factureok"]'); await p.waitForTimeout(400);
@@ -40,9 +48,9 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await L.toucher(c, '[data-action="ligneAjout"]');
   const lig = await p.evaluate(id => { const f = FACTURES.find(x => x.id === id); return f.lignes.map(l => l.d + '|' + l.pu); }, nf.id);
   L.v('« ＋ Ajouter une ligne » ajoute une ligne', lig.length === 2, lig);
-  const champsLigne = await p.evaluate(() => [...document.querySelectorAll('#contenu tbody tr')].map(tr => ({ txt: tr.innerText.replace(/\s+/g, ' ').trim().slice(0, 40), champs: tr.querySelectorAll('input,select').length, suppr: !!tr.querySelector('[data-action*="uppr"],[aria-label*="upprimer"],[data-lignesup]') })));
-  L.v('compta-ventes-02 · la ligne ajoutée peut être NOMMÉE (un champ texte pour la désignation)', champsLigne.length > 1 && champsLigne[1].champs >= 2, champsLigne);
-  L.v('compta-ventes-02b · la ligne ajoutée peut être SUPPRIMÉE', champsLigne.length > 1 && champsLigne[1].suppr, champsLigne);
+  const champsLigne = await p.evaluate(() => [...document.querySelectorAll('#contenu .fac-lgs .dv-lg:not(.dv-lg-t)')].map(tr => ({ champs: tr.querySelectorAll('input').length, suppr: !!tr.querySelector('[data-action="ligneSup"]'), foc: document.activeElement === tr.querySelector('[data-fdes]') })));
+  L.v('compta-ventes-02 · la ligne ajoutée peut être NOMMÉE (un champ texte pour la désignation, déjà actif) ET changée de quantité', champsLigne.length === 2 && champsLigne[1].champs === 3 && champsLigne[1].foc, champsLigne);
+  L.v('compta-ventes-02b · la ligne ajoutée peut être SUPPRIMÉE (et la première aussi)', champsLigne.length === 2 && champsLigne.every(x => x.suppr), champsLigne);
   await L.capture(c, X.CAP + `a-${profil}-ligne-libre.png`);
   // « Aperçu et envoi » est grisé tant qu'une ligne n'a pas de prix, et dit pourquoi
   const apercuOff = await p.evaluate(() => { const b = document.querySelector('[data-action="apercuEnvoi"]'); return b ? b.disabled : null; });
@@ -50,7 +58,19 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   const dit = await X.texte(p, '#contenu');
   L.v('compta-ventes-07 · l’écran dit POURQUOI « Aperçu et envoi » est grisé (une phrase « ligne sans prix » visible, pas seulement un champ bordé)', /sans prix/.test(dit) && await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu *')].find(e => e.children.length === 0 && /sans prix/.test(e.textContent)); return !!b && b.offsetParent !== null; }), dit.slice(0, 60));
   // on chiffre la ligne libre
-  await p.evaluate(id => { const f = FACTURES.find(x => x.id === id); f.lignes[1].pu = 50; rendre(); }, nf.id); await L.calme(p, 300);
+  const grise = await p.evaluate(() => document.querySelector('[data-action="apercuEnvoi"]').disabled);
+  await p.locator('[data-fdes="1"]').fill('Déplacement'); await p.locator('[data-fdes="1"]').blur(); await L.calme(p, 300);
+  const dit2 = await X.texte(p, '#contenu'); L.v('compta-ventes-02 · la ligne nommée mais sans prix garde « Aperçu et envoi » grisé', await p.evaluate(() => document.querySelector('[data-action="apercuEnvoi"]').disabled) && /sans prix/.test(dit2), grise);
+  await p.locator('[data-fdes="1"]').fill(''); await p.locator('[data-fdes="1"]').blur(); await L.calme(p, 300);
+  await p.locator('[data-prix="1"]').fill('50'); await p.locator('[data-prix="1"]').blur(); await L.calme(p, 300);
+  const dit3 = await X.texte(p, '#contenu'); L.v('compta-ventes-02 · une ligne chiffrée mais SANS NOM garde « Aperçu et envoi » grisé et le dit', await p.evaluate(() => document.querySelector('[data-action="apercuEnvoi"]').disabled) && /sans nom/.test(dit3), dit3.slice(0, 80));
+  await p.locator('[data-fdes="1"]').fill('Déplacement'); await p.locator('[data-fdes="1"]').blur(); await L.calme(p, 300);
+  await p.locator('[data-fqte="1"]').fill('-2'); await p.locator('[data-fqte="1"]').blur(); await L.calme(p, 200);
+  const qv = await p.evaluate(() => ({ champ: document.querySelector('[data-fqte="1"]').value, t: (document.getElementById('toast') || {}).textContent })); L.v('compta-ventes-01 · une quantité de ligne négative est refusée et l’ancienne valeur revient', qv.champ === '1' && /quantité/i.test(qv.t || ''), qv);
+  await p.locator('[data-fqte="1"]').fill('2'); await p.locator('[data-fqte="1"]').blur(); await L.calme(p, 300);
+  const ht2 = await p.evaluate(id => Math.round(htDe(FACTURES.find(x => x.id === id)) * 100), nf.id); L.v('compta-ventes-02 · la quantité modifiée compte dans le total (24 691,34 + 2 × 50)', ht2 === 2479134, ht2);
+  await L.capture(c, X.CAP + `a-${profil}-ligne-nommee.png`);
+  await p.locator('[data-fqte="1"]').fill('1'); await p.locator('[data-fqte="1"]').blur(); await L.calme(p, 300);
   await L.toucher(c, '[data-action="apercuEnvoi"]');
   const ap = await X.panneau(p); L.v('l’aperçu montre le client, l’objet et les pièces jointes', /À\s*:/.test(ap) && /Objet/.test(ap), ap.slice(0, 80));
   await L.capture(c, X.CAP + `a-${profil}-apercu.png`);
