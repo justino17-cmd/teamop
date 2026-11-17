@@ -186,6 +186,17 @@ Trois défauts de MES consignes trouvés et corrigés ce matin, qui ralentissaie
 rejouait les sondes de TOUS les lots (des heures de navigateur : une voie a tourné en rond 3 h 30) ; un agent attendait par une
 boucle sans pause (un cœur entier) ; un autre tuait les sondes des autres par motif (`pkill -f`). Les trois sont dans `REGLES`.
 
+⛔⛔⛔⛔ **ORDRE DU JOUR DU 18, FIXÉ PAR JUSTIN LE 17 À 22 H 40 — IL PASSE AVANT TOUT CE QUI SUIT.** Mot pour mot : « ce qu'on fera
+demain, c'est qu'on fera tout ce qu'il faut pour OP GESTION, la version du prototype, les vérifications qui restaient à faire et
+tout. Après, on déménage tout le GitHub sur notre serveur. Et après, une fois que tout sera fait et mis en place, on fera le
+reste au fur et à mesure. » DONC, dans cet ordre : **(1) LE PROTOTYPE OP GESTION** — reprendre le chantier A là où l'arrêt du 17
+l'a laissé (fiches `scratchpad/proto-final/arret/soeur-*.md`, `VOIES-EN-COURS.md` : recontrôles, regards, retouches, rejeu final,
+rapport, liste des doutes) ; **(2) LE DÉMÉNAGEMENT DE GITHUB** vers notre forge (déjà en place : `git.teamop.fr`, code entier,
+cette session y lit et y pousse) — vérifications automatiques, mise en ligne, site, surveillance, bascule, GitHub gelé puis
+fermé ; **(3) LE RESTE, au fur et à mesure** : compte d'origine d'OP MESSAGES à transférer, version de test d'OP GESTION sur
+l'atelier, Firebase à retirer du serveur puis à supprimer, renfort de la porte, OP Security. Les blocs ci-dessous restent vrais
+pour les FAITS ; pour l'ORDRE, c'est celui-ci.
+
 ⛔⛔⛔ **DERNIER ORDRE DE JUSTIN, 17 NOVEMBRE, 17 H 10 (heure française) — ON QUITTE GITHUB TOTALEMENT, EN UN SEUL DÉMÉNAGEMENT. LIRE
 CECI AVANT TOUT LE RESTE : il REMPLACE « l'ordre recommandé » écrit plus bas (site d'abord, GitHub gardé comme atelier).**
 Mot pour mot : « Et pourquoi on ne fait pas un système de GitHub sur notre serveur ? Comme ça, on peut tout transférer avant,
