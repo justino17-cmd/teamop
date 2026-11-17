@@ -1,0 +1,189 @@
+{
+  "angle": "acces — qui peut voir et faire quoi",
+  "date": "2026-11-17",
+  "page": "apercu/prototype-op-gestion.html (tête 88d42e0) et ses cadres voisins",
+  "modeleDeMenace": "Un prototype n'a pas de serveur : tout ce que la page contient, un visiteur qui ouvre la console le lit. On ne rapporte donc comme faille que ce qu'obtient quelqu'un qui passe par l'adresse, le rangement du navigateur, le clavier ou un geste d'écran (pas par la console). Les failles « prototype » se corrigent maintenant ; les « vraie application » sont des règles que seul le serveur garantira.",
+  "couvert": {
+    "adresses": "6 personnes × toutes les routes de vues() (36 routes) tapées à la main : aucune route fermée par droitVoit() ne s'affiche (acces-routes.js : julie 22 ouvertes / 14 refusées, sm 11 / 25, kb, lr, tl 11 / 25 chacun, 0 « fermée mais montrée » ; marc a tout ouvert) ; liens profonds #inter-x- #facture-x- #client-x- #devis-x- #contrat-x- pour sm, lr, tl, kb, julie : 0 fiche d'un écran fermé ouverte, 0 intervention d'un AUTRE technicien ouverte par un technicien (acces-liens.js, 6 ✓ 0 ✗ et 4 ✓ 0 ✗)",
+    "recherche": "la palette Cmd K (palEntrees) ne propose les clients et les gestes qu'aux personnes dont la case est ouverte (marc, julie, sm, kb : 8 ✓), et les raccourcis clavier sont coupés tant que l'écran de connexion est posé (document.getElementById('cnx') en tête de l'écouteur)",
+    "argentEtSalaires": "un technicien ne lit aucun mot sensible (marge, prix d'achat, salaire, IBAN, coût) sur ses 11 écrans ; kb : seulement « hors salaire » dans Mes frais (bénin) ; la Paie est fermée à la secrétaire dans le cadre Comptabilité quand l'hôte l'encadre ; « Équipe », « Mon entreprise », « Statistiques » sont fermés à qui n'est pas administrateur",
+    "connexion": "même message pour un identifiant inconnu et un mot de passe faux (pas de sondage des comptes) ; un compte désactivé ne passe ni par le formulaire ni par ?auto= ; la déconnexion efface la clé rangée et « Précédent » ne rouvre rien ; l'espace client : le client ne voit que ses factures dans sa liste ; le dernier administrateur ne se désactive pas",
+    "liensNatifs": "opgestion://e/<entreprise> (SceneDelegate.swift:85-91) : le nom est filtré [a-z0-9-] puis injecté dans une chaîne JavaScript, sans injection possible ; il ne fait que relier l'appareil à l'entreprise",
+    "nonVerifie": "l'artefact publié (claude.ai) : la chaîne de requête de l'artefact n'atteint peut-être pas la page, donc ?app=1&auto= n'y a pas été essayé ; le comportement sur un vrai serveur n'existe pas (aucun serveur) ; la coque iOS/Android n'a pas été lancée (le code qui la concerne est lu, pas rejoué)",
+    "sondes": "acces-routes.js, acces-liens.js, acces-connexion.js (7 ✓ · 10 ✗ = 8 failles gardées), acces-preuves.js (16 ✓ · 13 ✗), acces-visite.js. Un ✗ y est une faille prouvée : la sonde garde la règle et tombe tant que la faille existe"
+  },
+  "failles": [
+    {
+      "n": "acces-01",
+      "titre": "Derrière l'écran de connexion, l'application d'un GÉRANT reste vivante et se pilote au clavier ; après la déconnexion d'un technicien, c'est elle qui reste dessous",
+      "gravite": "haute",
+      "qui": "toute personne devant un appareil sans session ouverte : poste partagé, tablette de l'atelier, téléphone prêté, appareil laissé après qu'un collègue s'est déconnecté (sans connaître aucun mot de passe)",
+      "obtient": "Tab puis Entrée (ou un lecteur d'écran) traversent l'écran de connexion : menu complet du gérant (21 rubriques dont Équipe, Mon entreprise, Comptabilité, Statistiques, Historique), tableau de bord « Bonjour Marc », écran Équipe avec les 6 personnes et leurs habilitations. Quand c'est un technicien qui vient de se déconnecter, la page derrière passe du rôle technicien au rôle gérant : le prochain venu a plus de droits que la personne qui était connectée",
+      "etapes": "1) ouvrir ?app=1 sans session : l'écran « Bienvenue / Connexion » couvre la page (opaque, rien ne se voit). 2) appuyer 9 fois sur Tab : le focus sort de l'écran de connexion et atteint Accueil, Statistiques, Historique, Planning, Interventions, Tâches… (9 éléments sur 14 frappes). 3) Entrée sur « Équipe » : hash #equipe, h1 « Équipe », 6 noms, habilitations lues. Variante : se connecter comme Sophie (technicienne), « Se déconnecter » : session=null, ROLE='patron', acteur()='marc', h1 « Bonjour Marc », menu de 21 rubriques avec Équipe, Mon entreprise, Comptabilité, aucun inert ni aria-hidden",
+      "preuve": "acces-connexion.js (A et F) et acces-preuves.js (A) : 'A. le clavier ne sort pas de l'écran de connexion' ✗ → [\"OP GESTION…\",\"Accueil\",\"Statistiques\",\"Historique\",\"Planning\",\"Interventions\",\"Tâches 1\"] ; 'derrière l'écran de connexion, la page n'est PLUS celle d'un gérant' ✗ {\"session\":null,\"role\":\"patron\",\"acteur\":\"marc\",\"cnx\":true,\"h1\":\"Bonjour Marc\",\"menu\":21,\"equipe\":true,\"entreprise\":true,\"compta\":true,\"inert\":false} ; clic sur Équipe → {\"hash\":\"#equipe\",\"h1\":\"Équipe\",\"habil\":true,\"noms\":6}. Code : acteur() renvoie 'marc' quand SESSION est nul (prototype-op-gestion.html:9700) ; sessionFermer() fait rlChanger('patron',{h:'accueil'}) (:23730) ; cnxMontrer() ne rend rien d'autre inerte (:23909-23932) ; l'écouteur de raccourcis, lui, regarde bien #cnx (c'est pourquoi Cmd K reste fermé : seul le clavier de navigation passe). Capture : cap/acces/derriere-connexion.png (à l'œil, on ne voit que l'écran de connexion : la fuite n'existe que pour le clavier et les lecteurs d'écran)",
+      "ou": "prototype-op-gestion.html : acteur() ligne 9700, sessionFermer() 23730, cnxMontrer() 23909",
+      "correction": "1) acteur() sans session rend null et droitRaison() refuse tout quand personne n'est connecté (aujourd'hui le repli 'marc' donne les droits du gérant à « personne »). 2) cnxMontrer() pose l'attribut inert sur #menu, #contenu, la barre du bas et tout autre frère de #cnx, et le retire quand #cnx disparaît (cnxEntrer / sessionOuvrir) ; un balayage de Tab ne peut plus sortir de la boîte de dialogue. 3) sessionFermer() vide #contenu et #menu avant de montrer l'écran de connexion et ne rappelle plus rlChanger('patron')",
+      "portee": "les deux"
+    },
+    {
+      "n": "acces-02",
+      "titre": "?auto=<personne> ouvre une session SANS mot de passe, et elle reste ouverte après la fermeture de la page",
+      "gravite": "haute",
+      "qui": "toute personne qui connaît ou devine l'adresse de la page servie avec ?app=1 (l'aperçu du dossier apercu/, 127.0.0.1) et le prénom d'un compte (marc, julie, sm, kb, lr, tl)",
+      "obtient": "la session de n'importe quelle personne de l'équipe, gérant compris (rôle patron, tous les droits), puis le rangement du navigateur la garde : la page rouverte sans ?auto= reste connectée",
+      "etapes": "ouvrir .../apercu/prototype-op-gestion.html?app=1&auto=marc : l'écran de connexion est contourné, « Bonjour Marc » s'affiche ; recharger sans ?auto= : toujours gérant (sessionOuvrir écrit opg_proto_session=marc)",
+      "preuve": "lib.js ouvre toutes les sondes ainsi (qui:'marc') ; code : la branche « else if (auto && eqDe(auto)) { ESPACE = ESPACE_SLUG; SESSION_VUE = vueBoot; sessionOuvrir(auto); } » (prototype-op-gestion.html:24077) ne contrôle ni le nom d'hôte, ni un secret, et pose ESPACE (l'appareil est « relié ») ; sessionOuvrir(k) range la clé (:23717-23720). À froid, sans ?auto=, la même page montre bien l'écran de connexion (cap/acces/connexion-a-froid.png)",
+      "ou": "prototype-op-gestion.html:24077 (branche ?auto=) ; son commentaire dit « les sondes entrent sans passer par l'écran »",
+      "correction": "n'honorer ?auto= que sur 127.0.0.1 / localhost : « else if (auto && eqDe(auto) && /^(127\\.0\\.0\\.1|localhost|\\[::1\\])$/.test(location.hostname)) ». Les sondes (lib.js sert la page sur 127.0.0.1) continuent de marcher ; la page publiée (autre nom d'hôte) ignore le paramètre. Retirer aussi l'effet « ESPACE = ESPACE_SLUG » hors de cette condition",
+      "portee": "prototype (à corriger maintenant) ; vraie application : aucun paramètre d'adresse ne crée jamais une session"
+    },
+    {
+      "n": "acces-03",
+      "titre": "Qui modifie une clé du rangement du navigateur devient la personne qu'il veut, gérant compris",
+      "gravite": "moyenne",
+      "qui": "toute personne qui peut ouvrir la console ou les outils du navigateur sur l'appareil (poste partagé, extension, script d'une autre page de la même origine)",
+      "obtient": "la session d'une autre personne, sans mot de passe : écrire opg_proto_espace=clim-services-17 puis opg_proto_session=<prénom> et recharger. Même résultat avec une « passe de fenêtre » plantée (opg_proto_fenetre) pendant les 20 secondes où elle est lue",
+      "etapes": "localStorage.setItem('opg_proto_espace','clim-services-17'); localStorage.setItem('opg_proto_session','sm'); recharger → Sophie, rôle technicien, sans écran de connexion ; idem 'julie' (gestion) ; idem avec {k:'marc',vue:'accueil',mode:'jour',t:Date.now()} dans opg_proto_fenetre → gérant",
+      "preuve": "acces-connexion.js E : 'changer opg_proto_session ne donne pas la session d'un autre' ✗ (sm → {\"session\":\"sm\",\"role\":\"tech\",\"cnx\":false} ; julie → role gestion) ; H : 'un passage rangé à la main n'ouvre pas de session' ✗ {\"session\":\"marc\",\"role\":\"patron\"}. Code : la session est le NOM de la personne et rien d'autre (prototype-op-gestion.html:24069-24081 ; fenLire :24043)",
+      "ou": "sessionOuvrir (:23717), le démarrage (:24067-24081), fenLire (:24043)",
+      "correction": "dans le prototype : ranger un jeton aléatoire (crypto.getRandomValues, 128 bits) avec la personne et une échéance dans un registre de sessions, jamais le nom ; refuser tout jeton inconnu ou expiré. Cela n'arrête pas qui lit le rangement (le prototype n'a pas de serveur) mais supprime la prise de rôle par simple écriture d'un prénom ; le vrai remède est la règle ci-dessous",
+      "portee": "les deux (vraie application : session = jeton émis et vérifié par le serveur, révocable)"
+    },
+    {
+      "n": "acces-04",
+      "titre": "Les mots de passe sont rangés EN CLAIR dans le navigateur",
+      "gravite": "haute",
+      "qui": "toute personne qui lit le rangement de l'appareil (poste partagé, extension, sauvegarde du profil)",
+      "obtient": "le mot de passe de chaque collègue qui s'est connecté sur cet appareil, gérant compris, à réutiliser ailleurs (les gens réutilisent leurs mots de passe)",
+      "etapes": "se connecter (ou choisir son mot de passe à la première connexion) puis lire localStorage.opg_proto_mdp → {\"marc\":\"MotDePasseDuPirate1\"}",
+      "preuve": "acces-connexion.js D : 'le navigateur ne range aucun mot de passe en clair' ✗ → {\"marc\":\"MotDePasseDuPirate1\"}. Code : MDP[p.k] = a ; cnxGarder() écrit JSON.stringify(MDP) (prototype-op-gestion.html:23902, :23995)",
+      "ou": "cnxGarder (:23902), cnxPremierValider (:24005), cnxValider (:23998 ; la comparaison en clair est ligne 24001)",
+      "correction": "ne ranger qu'une empreinte salée : sel aléatoire par personne + PBKDF2-SHA-256 (crypto.subtle.deriveBits, ≥ 210 000 tours) ; cnxValider recalcule l'empreinte du mot de passe saisi et compare. Ni le mot de passe, ni le provisoire ne se rangent",
+      "portee": "les deux (vraie application : empreinte argon2id côté serveur, jamais rien d'autre)"
+    },
+    {
+      "n": "acces-05",
+      "titre": "Le mot de passe provisoire est le MÊME pour tout le monde, écrit dans la page, et le premier arrivé choisit le mot de passe du gérant",
+      "gravite": "haute",
+      "qui": "n'importe qui qui connaît l'identifiant d'une personne qui ne s'est pas encore connectée (l'identifiant est son prénom : marc, julie, sophie…) et le nom de l'entreprise (qui sert de « lien », voir acces-10)",
+      "obtient": "le compte de cette personne pour toujours : en tapant « marc » / « Bienvenue17 », l'écran « Choisir ton mot de passe » s'ouvre ; ce que le pirate y écrit devient le mot de passe du gérant (session « marc », rôle patron, avec tous les droits). Même chose quand l'administrateur « repose un mot de passe provisoire » : la constante revient pour tous",
+      "etapes": "1) lien de connexion : « clim-services-17 » ; 2) identifiant « marc », mot de passe « Bienvenue17 » ; 3) écran « Bonjour Marc — C'est ta première connexion » ; 4) choisir MotDePasseDuPirate1 : « Enregistrer et entrer » → gérant",
+      "preuve": "acces-connexion.js C : 'le compte du gérant ne s'ouvre pas avec le mot de passe provisoire commun' ✗ {\"premier\":true} ; D '(preuve) le premier arrivé choisit le mot de passe du gérant' ✓ avec le rangement {\"session\":\"marc\",\"role\":\"patron\"}. Code : const MDP_PROVISOIRE = 'Bienvenue17' (:23897), « mdp !== (MDP[p.k] || MDP_PROVISOIRE) » (:24001), « repose » (:24024)",
+      "ou": "MDP_PROVISOIRE (:23897), cnxValider (:24001), bouton « Reposer un mot de passe provisoire » (:24024)",
+      "correction": "supprimer la constante commune. À la création d'une personne (et à « Reposer »), générer un mot de passe provisoire ALÉATOIRE propre à cette personne (≥ 12 caractères, crypto.getRandomValues), l'afficher une fois à l'administrateur (« Copier pour lui envoyer ») et ne ranger que son empreinte ; échéance 72 h. Les six comptes de démonstration reçoivent chacun le leur, écrit dans la fiche de revue et pas dans le code servi",
+      "portee": "les deux (vraie application : lien d'invitation à usage unique et à échéance, envoyé par courriel ; aucun mot de passe provisoire commun ni déduit)"
+    },
+    {
+      "n": "acces-06",
+      "titre": "Aucune limite d'essais : 40 mots de passe faux en 4,6 secondes",
+      "gravite": "moyenne",
+      "qui": "n'importe qui devant l'écran de connexion (ou un script dans la page)",
+      "obtient": "la possibilité de deviner un mot de passe par essais répétés, sans ralentissement, sans verrou, sans alerte à l'administrateur",
+      "etapes": "boucle : remplir « marc » + un mot faux, valider, 40 fois : toujours « Identifiant ou mot de passe incorrect. », 4 619 ms en tout (115 ms par essai)",
+      "preuve": "acces-connexion.js C : 'au bout de 40 essais faux le compte se verrouille ou ralentit' ✗ {\"messages\":[\"Identifiant ou mot de passe incorrect.\"],\"ms\":4619}. Code : cnxValider ne compte rien (:23998-24004)",
+      "ou": "cnxValider (:23998)",
+      "correction": "compteur d'échecs par identifiant (en mémoire de la page) : à partir du 5e, attente croissante (2, 4, 8… jusqu'à 15 minutes), bouton grisé avec « Trop d'essais : réessaie dans N s », sans changer le message d'erreur d'origine ; remis à zéro à la réussite",
+      "portee": "les deux (vraie application : limite par compte ET par adresse côté serveur, alerte à l'administrateur après dix échecs)"
+    },
+    {
+      "n": "acces-07",
+      "titre": "« Ouvrir l'application comme … » prend la place d'une personne sans bandeau, sans trace, et pour toujours",
+      "gravite": "moyenne",
+      "qui": "un administrateur (le bouton n'est que sur la fiche Équipe d'un administrateur) — ou toute personne qui a obtenu un compte administrateur (acces-02, acces-05)",
+      "obtient": "agir au nom d'une autre personne : la session devient la sienne (rôle, droits, notifications) et le rangement la garde ; rien n'est écrit au journal, aucun bandeau ne dit que c'est une prise de rôle, impossible de revenir à son compte sans se reconnecter ; chaque geste est attribué à la personne imitée. Seul « marc » est exclu : un autre administrateur peut être pris",
+      "etapes": "Équipe → fiche de Sophie → « Ouvrir l'application comme Sophie » : session=sm, localStorage.opg_proto_session=sm, aucun bandeau, JOURNAL 48 → 48 lignes",
+      "preuve": "acces-preuves.js B : 'la prise de rôle est consignée au journal' ✗ (journalAvant 48, journalApres 48) ; 'un bandeau permanent dit qu'on voit l'application comme une autre personne' ✗ ; 'la prise de rôle ne survit pas à un rechargement' ✗ (stocke:'sm'). Code : sessionOuvrir(x) depuis le clic « comme » (:24027), bouton (:23745)",
+      "ou": "gestionnaire data-cnx=\"comme\" (:24027), bouton (:23745)",
+      "correction": "en faire un mode à part : une variable VUE_COMME (mémoire seulement, jamais rangée) qui ne touche pas SESSION ni opg_proto_session, un bandeau fixe « Tu vois l'application comme Sophie · Revenir à mon compte » ; une ligne au journal « Marc a ouvert l'application comme Sophie » ; les gestes d'écriture portent « par Marc, au nom de Sophie » ou sont refusés (lecture seule) ; refuser un autre administrateur",
+      "portee": "les deux (vraie application : prise de rôle journalisée côté serveur, limitée dans le temps, en lecture seule, annoncée à la personne)"
+    },
+    {
+      "n": "acces-08",
+      "titre": "« Se déconnecter » ne ferme pas la session des autres fenêtres de l'appareil, et une session n'expire jamais",
+      "gravite": "moyenne",
+      "qui": "qui utilise un appareil après la déconnexion de quelqu'un qui avait une deuxième fenêtre (Mac : plusieurs fenêtres) ou qui a laissé « Rester connecté » coché (c'est la valeur par défaut)",
+      "obtient": "reste connecté comme la personne partie, dans l'autre fenêtre ; une session sans date de fin reste valable des mois ; une personne désactivée par l'entreprise garde sa fenêtre ouverte jusqu'au prochain rechargement",
+      "etapes": "ouvrir deux fenêtres sur la même personne, se déconnecter dans la première : la seconde reste {\"session\":\"marc\",\"cnx\":false}",
+      "preuve": "acces-connexion.js F : 'une autre fenêtre déjà ouverte tombe aussi en déconnexion' ✗ ; code : aucun écouteur « storage » sur opg_proto_session ; la session ne porte ni échéance ni dernier usage ; « Rester connecté » est coché d'office (:23930)",
+      "ou": "sessionFermer (:23730), cnxMontrer (case « Rester connecté »)",
+      "correction": "écouter l'événement « storage » : si opg_proto_session disparaît ou change, appeler sessionFermer() ici aussi ; ranger avec la clé une date de dernier usage et fermer après 8 h d'inactivité ; décocher « Rester connecté » par défaut sur un appareil qui n'est pas celui de la personne (au minimum : le dire plus clairement)",
+      "portee": "les deux (vraie application : session côté serveur, durée d'inactivité, révocation immédiate à la désactivation)"
+    },
+    {
+      "n": "acces-09",
+      "titre": "Les liens donnés aux clients se déduisent de ce que l'on sait déjà : rapport /r/<identifiant>X4, registre /registre/<client>-demo, signature /signer/K7P2 identique pour tous les contrats",
+      "gravite": "moyenne",
+      "qui": "n'importe qui (aucun compte) qui connaît un identifiant d'intervention ou de client, ou qui a reçu UN lien",
+      "obtient": "la possibilité de lire les rapports d'intervention des autres clients (adresses, photos, produits utilisés), leur registre sanitaire, et d'ouvrir la page de signature de n'importe quel contrat : le modèle montré par le prototype est celui qui serait copié dans la vraie application",
+      "etapes": "lienClient('i20') = https://climservices17.teamop.fr/r/I20X4 ; i21 → …/I21X4 ; i22 → …/I22X4 (7 liens sur 8 suivent le motif identifiant + X4) ; registre : https://teamop.fr/registre/<identifiant du client>-demo ; page de signature de 3 contrats différents : climservices17.teamop.fr/signer/K7P2 chaque fois",
+      "preuve": "acces-preuves.js C : 'les liens de rapport ne se déduisent pas de l'identifiant de l'intervention' ✗ (…/I50X4 …/I20X4 …/I21X4 …/I22X4 …/I23X4 …/I24X4 …/I25X4 …/7Q2K) ; 'chaque contrat a son propre lien de signature' ✗ (K7P2 × 3). Code : « const lienClient = id => 'https://climservices17.teamop.fr/r/' + ({ i1:'7Q2K' }[id] || id.toUpperCase() + 'X4') » (prototype-op-gestion.html:4920), registre (:10099), signature (:5341)",
+      "ou": "lienClient (:4920), « Copier le lien du registre » (:10099), vueSigner (:5341)",
+      "correction": "lienClient(id) rend un jeton aléatoire de 22 caractères (crypto.getRandomValues → base64url), créé une fois par document et mémorisé (une table JETONS_LIEN en mémoire) ; idem pour le registre (…/registre/<jeton>) et pour chaque page de signature (…/signer/<jeton du contrat>). Les textes d'exemple ne montrent plus jamais d'identifiant dans l'adresse",
+      "portee": "les deux (vraie application : jeton ≥ 128 bits, un lien = un document, échéance, révocable, journal de consultation ; une facture payée garde son lien lisible mais plus modifiable)"
+    },
+    {
+      "n": "acces-10",
+      "titre": "Le « lien de connexion » est le nom public de l'entreprise : il ne protège rien, mais l'écran affirme « lien vérifié »",
+      "gravite": "faible",
+      "qui": "n'importe qui qui connaît le nom de l'entreprise (page d'accueil, carte de visite, devis)",
+      "obtient": "un faux sentiment de protection : coller « clim-services-17 » ou « Clim Services 17 » suffit à relier un appareil, et l'écran affiche « ✓ Clim Services 17 · lien vérifié » ; la seule barrière réelle est alors le mot de passe (acces-04, 05, 06)",
+      "etapes": "écran « Bienvenue » → champ « Lien de connexion » : taper « Clim Services 17 » → Continuer → écran de connexion avec la pastille « lien vérifié »",
+      "preuve": "acces-connexion.js B ✓ « le nom public de l'entreprise suffit comme lien de connexion » ; code : cnxLienLire(t) = cnxSlug(dernier segment) comparé à ESPACE_SLUG = cnxSlug(ENTREPRISE.nom) (:23907, :23973)",
+      "ou": "cnxLienLire / cnxRelier (:23907, :23973-23976), texte « lien vérifié » (:23925, :23986)",
+      "correction": "ne pas écrire « lien vérifié » tant que le lien n'est pas un jeton secret ; dans le prototype, afficher « Entreprise reconnue : Clim Services 17 » (c'est tout ce que l'écran sait) ; dans la vraie application, le lien d'invitation est un jeton à usage unique (voir règle 3)",
+      "portee": "les deux"
+    },
+    {
+      "n": "acces-11",
+      "titre": "Un client qui tape l'adresse du contrat d'un AUTRE client le lit en entier (titre, nombre de visites, prix)",
+      "gravite": "moyenne",
+      "qui": "la personne qui incarne un client dans l'espace client simulé (échafaudage « Tester en tant que Client ») — le modèle de ce que serait un client connecté",
+      "obtient": "le contrat d'entretien d'un autre client : titre « Entretien climatisation · 12 appareils », « 4 visites par an · 1 400,00 € HT par an », et « Lire le contrat en entier ». Le même défaut existe dans les gestes de l'espace client (payer / signer / compte rendu) : aucun ne vérifie que la facture, le devis ou l'intervention appartient au client connecté",
+      "etapes": "Tester en tant que Client → « Restaurant Le Vieux Port » ; dans la barre d'adresse : #signer-x-c1 (contrat de la Copropriété Les Mimosas) → la page de signature de l'autre client s'affiche",
+      "preuve": "acces-preuves.js D : 'un client ne lit pas le contrat (titre, prix, état) d'un AUTRE client' ✗ {\"moi\":\"vp\",\"contrat\":\"CTR-2026-004\",\"de\":\"Copropriété Les Mimosas\",\"titreLu\":true,\"prixLu\":true,\"route\":\"signer\",\"param\":\"c1\"}. Code : vueSigner(id) cherche le contrat par identifiant sans comparer k.cli à RL_CLI.cli quand ROLE==='client' (:5335-5338)",
+      "ou": "vueSigner (:5335) ; mêmes manques dans les gestionnaires data-ec « payer », « signer », « cr », « fpdf » (:11802-11807)",
+      "correction": "en tête de vueSigner : « if (RL_ACTIF && ROLE === 'client' && k.cli !== RL_CLI.cli) return vueEspaceClient(); » ; même contrôle (le document appartient à RL_CLI.cli) au début de chaque gestionnaire data-ec qui reçoit un identifiant",
+      "portee": "les deux (vraie application : chaque ressource d'un client est vérifiée contre le compte du client par le serveur ; l'identifiant dans l'adresse n'est jamais une preuve)"
+    },
+    {
+      "n": "acces-12",
+      "titre": "Un contrat signé par le bureau garde la signature mais pas QUI l'a posée",
+      "gravite": "moyenne",
+      "qui": "un membre de l'équipe ayant la case « Ventes » (la secrétaire ; un technicien ayant « signer » sur le terrain)",
+      "obtient": "pouvoir signer à la place d'un client (même page, même bouton « Signer le contrat ») sans que l'enregistrement ne distingue une signature du client d'une signature faite par l'équipe : le contrat devient « signé » avec la date et un dessin, rien d'autre (clés de l'enregistrement : id, num, cli, modele, titre, lieu, freq, prix, fact, st, envoye, debut, fin, faites, signe, sigImg). En cas de litige, rien ne dit si le client était là",
+      "etapes": "Julie (secrétariat) → #signer-x-<contrat à signer> → case « J'ai lu » + trait dans le cadre → « Signer le contrat » : état « signe », signeLe 31/10/2026, aucun champ signataire",
+      "preuve": "acces-preuves.js E : 'le contrat signé garde QUI a posé la signature' ✗ (liste des clés ci-dessus). Code : signerContrat n'écrit que st, signe et sigImg (:8323)",
+      "ou": "signerContrat (:8323), vueSigner (:5344)",
+      "correction": "écrire avec la signature un bloc sigPar {k, nom, role, le:ISO complet, appareil:UA court, devantClient:booléen} ; si le signataire n'est pas le client (RL_ACTIF && ROLE !== 'client'), demander « Le client est-il devant toi ? » et l'écrire ; la page « Contrat signé » affiche « Signé par Julie Petit, secrétariat, en présence du client, le 31/10/2026 à 10 h 12 »",
+      "portee": "les deux (vraie application : preuve de signature complète — identité, horodatage, adresse IP, empreinte du document — conforme à la signature électronique)"
+    },
+    {
+      "n": "acces-13",
+      "titre": "Le cadre Comptabilité (Paie, masse salariale) s'ouvre seul par son adresse, et accepte un message de rôle de n'importe quelle fenêtre",
+      "gravite": "moyenne",
+      "qui": "n'importe qui qui connaît l'adresse de prototype-comptabilite.html (elle est publiée avec le prototype) ; ou une page qui ouvre ce cadre et lui écrit",
+      "obtient": "la Paie : masse salariale (17 738,95 € contre 17 073,57 € en septembre), contrôles de paie, virements de salaires, banque, TVA ; et, si le cadre est inséré dans une autre page, le droit de lui écrire « patron + paie » (le rôle et les droits qu'il croit viennent d'un message)",
+      "etapes": "ouvrir directement /apercu/prototype-comptabilite.html : aller('paie') ouvre la Paie (opcPaieOuverte() vaut vrai quand window.parent === window) ; depuis la même page, window.postMessage({opc_role:{role:'patron',paie:true}},'*') → CMPT.role 'patron', paie vrai",
+      "preuve": "acces-preuves.js F : 'la Paie ne s'ouvre pas dans la Comptabilité ouverte seule' ✗ {\"paieOuverte\":true,\"euros\":8,\"masse\":true,\"role\":\"gestion\"} ; 'le message opc_role d'une fenêtre qui n'est pas l'hôte est ignoré' ✗ {\"roleApres\":\"patron\",\"paie\":true}. Captures : cap/securite-acces/paie-page-seule.png (la Paie « Valider la paie » à l'écran) et paie-julie-forge.png. Code : « function opcPaieOuverte(){ … window.parent === window || … } » (prototype-comptabilite.html:2295) ; l'écouteur « message » (:3310) ne teste ni ev.source ni ev.origin, alors que l'hôte (prototype-op-gestion.html:21586) teste ev.source !== z.contentWindow",
+      "ou": "prototype-comptabilite.html:2295 (opcPaieOuverte) et :3310 (écouteur message) ; l'atelier (prototype-documents.html:7691) teste déjà « e.source !== HOTE » — c'est le modèle",
+      "correction": "au début de l'écouteur de la Comptabilité : « if (ev.source !== window.parent) return; » (comme l'atelier) ; et opcPaieOuverte() : « return CMPT.role === 'patron' || CMPT.paie === true; » avec, pour la page seule, un rôle par défaut sans Paie (la démonstration de la Paie se fait depuis OP GESTION, ou avec ?seul=1 déjà prévu). Décision à confirmer par Justin : la page seule montrait la Paie exprès pour la revue",
+      "portee": "les deux (vraie application : OP COMPTABLE authentifie sa propre page et décide de la Paie côté serveur ; un message d'une autre fenêtre n'accorde jamais un droit)"
+    }
+  ],
+  "constatsDeCode": [
+    "ROUTE_DROIT (prototype-op-gestion.html:11218-11236) est la seule porte des routes : menu, barre du bas, adresse, recherche, raccourcis, notifications passent par droitVoit() ; sessionVue() (:23705-23719) revérifie l'ouverture d'une fiche au démarrage, y compris le technicien et ses seules interventions. Rien à signaler.",
+    "Secrétariat : lit « prix d'achat » dans Stock et « prix d'achat » + « marge » dans Produits (case Stock › Voir, sans case propre pour les marges). C'est cohérent avec « Voir l'écran » mais la lecture de la marge n'a pas de case à part : à soumettre à Justin plutôt qu'à corriger seul (ACTE_DROIT.produitsPrixVente ne gouverne que l'ÉCRITURE du prix de vente).",
+    "L'espace client simulé garde, dans ses gestionnaires data-ec (payer, signer, cr, fpdf), un identifiant reçu tel quel : la sonde4.js du premier passage a ouvert le panneau « Payer la facture FAC-2026-0144 » d'un AUTRE client par un bouton fabriqué — cela exige la console, donc seul le contrôle d'appartenance de acces-11 est demandé."
+  ],
+  "reglesPourLaVraieApplication": [
+    "R1. Aucune donnée avant l'authentification : la réponse du serveur à une requête sans session valide ne contient AUCUNE donnée d'entreprise (ni menu, ni noms, ni nombres). Le prototype la dessine derrière l'écran de connexion parce que tout est dans la page ; la vraie application ne le peut pas (acces-01).",
+    "R2. Une session est un jeton aléatoire (≥ 128 bits) émis par le serveur, lié à un appareil, avec une échéance et une inactivité maximale ; il se révoque à la déconnexion, à la désactivation de la personne et au changement de mot de passe (acces-03, 08). Aucun paramètre d'adresse, aucun nom, aucune valeur du navigateur ne crée ou ne choisit une session (acces-02).",
+    "R3. Pas de mot de passe provisoire commun ni déduit : une invitation = un lien à usage unique, ≥ 128 bits, 72 h, envoyé par courriel à l'adresse de la personne ; le lien « de l'entreprise » n'est qu'un nom d'entreprise, jamais un secret (acces-05, 10).",
+    "R4. Mots de passe : empreinte argon2id côté serveur, jamais rangés ni transmis en clair par l'appareil ; longueur minimale 12 ; refus des mots de passe courants ; limite d'essais par compte ET par adresse, délai croissant, alerte à l'administrateur après 10 échecs ; même message d'erreur dans tous les cas (acces-04, 06).",
+    "R5. Chaque ressource d'un client (devis, contrat, facture, rapport, registre) est vérifiée contre le compte du client par le serveur à CHAQUE requête : un identifiant dans l'adresse n'est jamais une preuve (acces-11). Les liens envoyés par courriel sont des jetons ≥ 128 bits, un jeton = un document, avec échéance et journal de consultation (acces-09).",
+    "R6. Les droits se décident par le serveur : l'écran cache, le serveur refuse. Un message d'une autre fenêtre (postMessage) n'accorde jamais un droit, le cadre vérifie ev.source ET ev.origin (acces-13) ; OP COMPTABLE et la Boîte mail authentifient leurs propres requêtes.",
+    "R7. Prise de rôle (« ouvrir comme ») : lecture seule, limitée à 30 minutes, annoncée par un bandeau permanent, écrite au journal « X a ouvert comme Y », notifiée à Y ; jamais deux administrateurs l'un sur l'autre (acces-07).",
+    "R8. Signature : l'enregistrement garde le signataire (client ou membre de l'équipe en présence du client), l'horodatage complet, l'adresse IP, l'empreinte du document signé ; une signature posée par l'équipe est marquée comme telle (acces-12).",
+    "R9. Les marges, prix d'achat et salaires ont leurs propres cases de lecture (aujourd'hui la case « Stock › Voir » donne aussi les marges) ; la Paie ne se lit qu'avec la case « Paie » ET une double authentification récente (OP Security)."
+  ]
+}

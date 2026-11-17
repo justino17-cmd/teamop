@@ -4,7 +4,7 @@
 // fenêtre redimensionnée), les noms d'objet de base dans les autres entrées d'adresse (?lien=, ?auto=, #lien-…), le poste sous le nom pour
 // TOUS les comptes, la demande de congé de bout en bout jusqu'à la validation par le gérant, le chemin cité par le réglage « Rendez-vous en ligne ».
 // ⛔ 127.0.0.1 seulement. Chaque partie compte d'abord sa population. PART=… pour n'en jouer qu'une.
-const { L } = require('./menu-commun.js'), v = L.v;
+const { L } = require('./menu-commun.js'), v = L.v, S = require('./secu-commun.js');
 const PART = process.env.PART || 'tout', cap = process.env.CAP;
 const jouer = n => PART === 'tout' || PART.split(',').includes(n);
 const pause = (p, ms) => p.waitForTimeout(ms);
@@ -150,11 +150,8 @@ const pause = (p, ms) => p.waitForTimeout(ms);
     const sortie = await L.toucher(c, '#calque [data-cnx="sortir"]'); await L.calme(c.p, 800);
     v('« Se déconnecter » de la feuille Menu mène à l\'écran de connexion', sortie && await c.p.evaluate(() => !!document.getElementById('cnx')));
     // 4. le gérant se connecte avec son identifiant et son mot de passe
-    const ids = await c.p.evaluate(() => { const p = eqDe('marc'); return { id:cnxLogin(p), mdp:MDP[p.k] || MDP_PROVISOIRE, premier:!MDP[p.k] }; });
-    await c.p.fill('#cn-id', ids.id); await c.p.fill('#cn-mdp', ids.mdp); await c.p.click('#cn-form button[type=submit]'); await L.calme(c.p, 1200);
-    // première connexion : le mot de passe provisoire doit être remplacé par un mot de passe à soi (écran « premier »)
-    if (await c.p.evaluate(() => !!document.getElementById('cn-n1'))) { await c.p.fill('#cn-n1', 'Recontrole-Menu-2026'); await c.p.fill('#cn-n2', 'Recontrole-Menu-2026'); await c.p.click('#cn-form-premier button[type=submit]'); await L.calme(c.p, 2200); }
-    await c.p.waitForFunction(() => !document.getElementById('cnx'), null, { timeout:8000 }).catch(() => {});
+    // (double authentification : la personne se reconnecte par la première connexion complète — provisoire, téléphone, mot de passe à elle —, comme les sondes secu-*)
+    const ids = { premier:true }; await S.activer(c, 'marc', { mdp:'Recontrole-Menu-2026' });
     await c.p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }); await L.calme(c.p, 400);
     const connecte = await c.p.evaluate(() => ({ sess:SESSION, cnx:!!document.getElementById('cnx'), role:ROLE, route }));
     v('le gérant est connecté (sans écran de connexion restant) et le rôle est « patron »', connecte.sess === 'marc' && !connecte.cnx && connecte.role === 'patron', { connecte, ids:{ premier:ids.premier } });
@@ -172,10 +169,7 @@ const pause = (p, ms) => p.waitForTimeout(ms);
     if (cap) await L.capture(c, `${cap}/G1-valide-android.png`);
     // 6. la technicienne se reconnecte et retrouve la décision dans « Mes congés »
     await L.toucher(c, '#contenu .tt-menu'); await L.toucher(c, '#calque [data-cnx="sortir"]'); await L.calme(c.p, 800);
-    const ids2 = await c.p.evaluate(() => { const p = eqDe('sm'); return { id:cnxLogin(p), mdp:MDP[p.k] || MDP_PROVISOIRE }; });
-    await c.p.fill('#cn-id', ids2.id); await c.p.fill('#cn-mdp', ids2.mdp); await c.p.click('#cn-form button[type=submit]'); await L.calme(c.p, 1200);
-    if (await c.p.evaluate(() => !!document.getElementById('cn-n1'))) { await c.p.fill('#cn-n1', 'Recontrole-Sophie-2026'); await c.p.fill('#cn-n2', 'Recontrole-Sophie-2026'); await c.p.click('#cn-form-premier button[type=submit]'); await L.calme(c.p, 2200); }
-    await c.p.waitForFunction(() => !document.getElementById('cnx'), null, { timeout:8000 }).catch(() => {});
+    await S.activer(c, 'sm', { mdp:'Recontrole-Sophie-2026' });
     await c.p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }); await L.calme(c.p, 400);
     await L.toucher(c, '#contenu .tt-menu'); await L.toucher(c, '#calque [data-go="absences"]'); await L.calme(c.p, 700);
     const fin = await c.p.evaluate(() => ({ sess:SESSION, h1:(document.querySelector('#contenu h1') || {}).textContent, texte:document.getElementById('contenu').innerText.replace(/\s+/g, ' '), lect:aLecture() }));
