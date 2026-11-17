@@ -7,7 +7,7 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   const profil = process.argv[2] || 'mac';
   const c = await L.ouvrir({ profil, qui: 'marc' }), p = c.p;
   const r = await p.evaluate(() => {
-    const out = { cas: 0, ecartSomme: [], ecartPart: [], sansDeduction: 0, erreurs: [] }; let graine = 20261117; const alea = () => (graine = (graine * 1664525 + 1013904223) % 4294967296) / 4294967296;
+    const out = { cas: 0, ecartSomme: [], ecartPart: [], sansDeduction: 0, exacts: 0, erreurs: [] }; let graine = 20261117; const alea = () => (graine = (graine * 1664525 + 1013904223) % 4294967296) / 4294967296;
     const TVAS = [20, 10, 5.5], ACS = [20, 30, 40, 50];
     for (let n = 0; n < 600; n++) {
       try {
@@ -22,6 +22,7 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
         out.cas++;
         if (Math.abs(ttcA + ttcS - ttcDev) > .0101) out.ecartSomme.length < 5 && out.ecartSomme.push({ num, tva, ac, ttcDev, ttcA: Math.round(ttcA * 100) / 100, ttcS: Math.round(ttcS * 100) / 100, ecart: Math.round((ttcA + ttcS - ttcDev) * 100) / 100 });
         if (Math.abs(ttcA - ttcDev * ac / 100) > .0101) out.ecartPart.length < 5 && out.ecartPart.push({ num, tva, ac, ttcDev, ttcA: Math.round(ttcA * 100) / 100, attendu: Math.round(ttcDev * ac) / 100 });
+        { const cA = Math.round(ttcA * 100), cS = Math.round(ttcS * 100), cT = Math.round(ttcDev * 100); if (cA + cS === cT && cA === Math.floor((cT * ac) / 100 + .5)) out.exacts++; }   // les DEUX promesses tombent juste, en centimes entiers
         if (!lignesDe(fs).some(l => l.pu < 0)) out.sansDeduction++;
       } catch (e) { out.erreurs.length < 3 && out.erreurs.push(e.message); }
     }
@@ -30,6 +31,8 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   L.v('population : 600 devis à acompte rejoués', r.cas === 600, r.cas);
   L.v('compta-ventes-18 · acompte TTC + solde TTC = TTC du devis (à un centime près) sur les 600 cas', r.ecartSomme.length === 0, r.ecartSomme);
   L.v('l’acompte vaut l’acompte % du TTC du devis (à un centime près)', r.ecartPart.length === 0, r.ecartPart);
+  console.log('  · cas où l’acompte ET la somme tombent juste au centime :', r.exacts, 'sur', r.cas);
+  L.v('compta-ventes-18 · le HT de l’acompte est CHERCHÉ pour tenir les deux promesses (≥ 65 % de cas exacts ; le HT « au plus près » n’en donne que 61 % sur ces 600 devis)', r.exacts / r.cas >= 0.65, r.exacts);
   L.v('chaque facture de solde porte sa ligne négative « acompte déjà facturé »', r.sansDeduction === 0, r.sansDeduction);
   L.v('aucune exception pendant le rejeu', r.erreurs.length === 0, r.erreurs);
   L.v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
