@@ -8770,14 +8770,14 @@ function fournPreparer(id){
     return `<details class="fo-cat" ${j === 0 && k === Object.keys(C)[0] ? 'open' : ''}><summary><span><b>${PACKS[k].ic} ${esc(cn)}</b><span class="gris petit">${c.ex.length} produits typiques${c.t === 'm' ? ' · matériel' : ''}</span></span><span class="fo-nb" data-fonb="${k}|${esc(cn)}"></span></summary>
       ${libres ? `<button type="button" class="lien" data-fo="tout|${k}|${esc(cn)}">Tout cocher</button>` : ''}
       <div class="fo-cks">${c.ex.map(([nom, u], i) => { const pris = deja.has(prNorm(nom)); return `<label class="fo-ck${pris ? ' pris' : ''}"><input type="checkbox" data-foex="${k}|${esc(cn)}|${i}" ${pris ? 'disabled checked' : ''}><span>${esc(nom)} <i>${esc(u)}</i></span>${pris ? '<em>déjà là</em>' : ''}</label>`; }).join('')}</div></details>`; }).join('')).join('');
-  foOuvrir(`<span class="surtitre">${esc(f.nom)}</span><h2>Préparer mes articles</h2>
-    <span class="gris">Coche ce que tu achètes chez ${esc(f.nom)}. Les articles arrivent rangés, à son nom. Les prix viendront de son fichier de tarifs ou de ta prochaine facture : tu n’as rien à taper.</span>
+  foOuvrir(`<span class="surtitre">${esc(f.nom)}</span><h2>Choisir parmi ses articles habituels</h2>
+    <span class="gris">Coche ce que tu achètes chez ${esc(f.nom)}. Les articles arrivent rangés, à son nom. Les prix viendront de son fichier de prix ou de ta prochaine facture : tu n’as rien à taper.</span>
     ${blocs || '<div class="gris">Ce fournisseur ne couvre aucune catégorie de tes métiers.</div>'}
     <div class="fo-pied"><button type="button" class="btn" id="fo-creer" data-fo="creer|${f.id}" disabled>Coche des articles</button><button type="button" class="btn gris" data-fo="fiche|${f.id}">Retour</button></div>`, true);
 }
 function foCompterCoches(){
   const n = document.querySelectorAll('[data-foex]:checked:not(:disabled)').length, b = document.getElementById('fo-creer'); if (!b) return;
-  b.disabled = !n; b.textContent = n ? `Ajouter ${n} article${n > 1 ? 's' : ''}` : 'Coche des articles';
+  b.disabled = !n; b.textContent = n ? `Créer ${n} article${n > 1 ? 's' : ''}` : 'Coche des articles';
   document.querySelectorAll('[data-fonb]').forEach(s => { const [k, cn] = s.dataset.fonb.split('|'); const m = [...document.querySelectorAll('[data-foex]:checked:not(:disabled)')].filter(i => i.dataset.foex.startsWith(k + '|' + cn + '|')).length; s.textContent = m ? m + ' ✓' : ''; });
 }
 function foCreer(id){
@@ -8787,7 +8787,7 @@ function foCreer(id){
     PRODUITS.push(x); cree.push(x); });
   if (!cree.length) return; prCatalogueMaj(); fermerPanneau(); prPack = 'tous'; prCat = null; rendre();
   const ac = cree.filter(x => x.ac).length;
-  toast(`${cree.length} article${cree.length > 1 ? 's' : ''} ajouté${cree.length > 1 ? 's' : ''} chez ${esc(f.nom)}${ac ? ` · ${ac} attend${ac > 1 ? 'ent leur' : ' son'} prix` : ''}.`, { lib:'Importer ses tarifs', fn:() => fournTarifs(f.id) });
+  toast(`${cree.length} article${cree.length > 1 ? 's' : ''} ajouté${cree.length > 1 ? 's' : ''} chez ${esc(f.nom)}${ac ? ` · ${ac} attend${ac > 1 ? 'ent leur' : ' son'} prix` : ''}.`, { lib:'Importer ses prix', fn:() => fournTarifs(f.id) });
 }
 
 /* ── le fichier de tarifs : CSV ou texte exporté du tableur, séparateur deviné, colonnes reconnues par leur titre ── */
@@ -8871,9 +8871,9 @@ function foAppliquer(){
     else if (o.sorte === 'ailleurs') { x.paAvant = x.pa; if (prVend(x) && x.pa && FO_IMP.garder) x.pv = foArr(x.pv * o.pa / x.pa); x.pa = o.pa; x.four = f.nom; if (o.ref) x.ref = o.ref; nc++; }
     else if (o.sorte === 'neuf') { const r = o.r || { p:PACKS_ENT[0], cat:PACKS[PACKS_ENT[0]].cats[0].n, t:'p' }; PRODUITS.push({ id:'p' + Date.now().toString(36) + o.i, p:r.p, cat:r.cat, nom:o.nom, ref:o.ref || '—', ean:o.ean || undefined, u:o.u || r.u || 'u', pa:o.pa, pv:r.t === 'm' ? null : foArr(o.pa * foCoef(r.p, r.cat)), tva:20, four:f.nom, q:0, seuil:0 }); nn++; }
   });
-  f.tarifsLe = '31 octobre'; prCatalogueMaj(); fermerPanneau(); rendre();
+  const tarifsAvant = f.tarifsLe; f.tarifsLe = '31 octobre'; prCatalogueMaj(); fermerPanneau(); rendre();
   const bouts = [nm && `${nm} prix mis à jour`, nr && `${nr} prix complétés`, nc && `${nc} passés chez ${esc(f.nom)}`, nn && `${nn} articles ajoutés`].filter(Boolean);
-  toast((bouts.join(' · ') || 'Prix notés pour comparer') + '. Les prochains devis prennent ces prix.', { lib:'Annuler', fn:() => { PRODUITS.splice(0, PRODUITS.length, ...avant); prCatalogueMaj(); rendre(); } });
+  toast((bouts.join(' · ') || 'Prix notés pour comparer') + '. Les prochains devis prennent ces prix.', { lib:'Annuler', fn:() => { PRODUITS.splice(0, PRODUITS.length, ...avant); if (tarifsAvant === undefined) delete f.tarifsLe; else f.tarifsLe = tarifsAvant; prCatalogueMaj(); rendre(); } });
 }
 /* un fichier d'exemple, tel qu'un espace client le rend : les articles de ce fournisseur (quelques hausses), deux articles d'un autre
    fournisseur un peu moins chers ici, et des articles du métier que l'entreprise n'a pas encore. Fictif : aucun prix réel. */
@@ -15413,7 +15413,7 @@ function prFiche(id){
     <details class="ms-acc"><summary>Où il est</summary>${ou.map(l => `<div class="ligne"><span>${esc(l.nom)}</span><span class="fo-dr"><b>${prNum(stkAt(x, l.id))}</b>${tech ? '' : `<button type="button" class="lien ms-lien" data-ms="fq|deplacer|${x.id}|${l.id}">Déplacer</button>`}</span></div>`).join('') || '<div class="gris">Nulle part.</div>'}</details>
     <details class="ms-acc"><summary>Derniers gestes</summary>${gestes.map(m => `<div class="ms-ph ligne">${msPhraseHtml(m)}</div>`).join('') || '<div class="gris">Aucun geste.</div>'}${gestes.length ? `<button type="button" class="lien ms-lien" data-ms="fhisto|${x.id}">Tout voir</button>` : ''}</details>
     <details class="ms-acc"><summary>Dans tes documents</summary><div class="gris">Utilisé dans ${pdxPl(usage.inters.length, 'intervention')} et ${pdxPl(usage.devis.length, 'devis', 'devis')}.</div></details>
-    ${tech ? '' : `<div class="actions ms-pied-f"><button type="button" class="btn gris" data-pr="modif|${x.id}">Modifier</button>${msGerant() ? `<button type="button" class="lien ms-rouge" data-pr="retirer|${x.id}">Retirer cet article</button>` : ''}</div>`}`);
+    ${tech ? '' : `<div class="actions ms-pied-f"><button type="button" class="btn gris" data-pr="modif|${x.id}">Modifier</button>${msReglages() ? `<button type="button" class="lien ms-rouge" data-pr="retirer|${x.id}">Retirer cet article</button>` : ''}</div>`}`);
   const p = document.querySelector('#calque .panneau'); if (p) p.dataset.pdxart = id;
 }
 
@@ -16077,7 +16077,7 @@ document.addEventListener('input', ev => {
    Les écritures et les calculs restent ceux d’avant : cmdPaniers, cmdSuggere, cmdFranco, cmdMoinsCher, cmdAlerte, cmdReceptionner, cmdFacturer, foAppliquer, foFactureValider. */
 const FX = { filtre:'tout', term:false, ajTab:'liste' };
 try { const v = localStorage.getItem('opg_prvue'); if (v === 'commandes' || v === 'articles' || v === 'fournisseurs') prVue = v; } catch (e) {}   // l’onglet est celui que l’appareil a quitté ; la première fois : Commandes
-const fxGerant = () => msGerant();   // ajouter ou retirer un fournisseur, retirer un article : le gérant ; le bureau prépare, envoie et reçoit les commandes
+const fxGerant = () => msReglages();   // ajouter ou retirer un fournisseur, retirer un article : la case « Stock › Supprimer » (le gérant) ; le bureau, lui, prépare, envoie et reçoit les commandes, change un prix d’achat — un réglage du stock, pas son travail du jour
 const fxQuand = d => { const n = tJours(d); return n === 0 ? 'aujourd’hui' : n === 1 ? 'demain' : n === -1 ? 'hier' : jlong(d); };
 const fxLiv = f => !f || f.dj == null ? '' : f.dj === 0 ? 'Retrait au comptoir' : `Livraison en ${f.dj} jour${f.dj > 1 ? 's' : ''}`;
 const fxGratuite = f => f && f.franco > 0 ? `gratuite dès ${eur(f.franco)}` : '';
