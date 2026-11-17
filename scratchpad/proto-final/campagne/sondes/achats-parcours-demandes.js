@@ -61,6 +61,8 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   const bt = await p.evaluate(() => [...document.querySelectorAll('.ax-d[data-axid="da1"] button')].map(b => b.textContent.trim()));
   console.log('   boutons da1 :', JSON.stringify(bt));
   await clic('[data-ac="transfert|da1"]'); await L.calme(p, 500);
+  // si le camion est au garage, l'application demande « Tu les mets quand même ? » : la personne répond « Oui, transférer »
+  if (/au garage/.test(await panneau(p))) { console.log('   (le camion de Tom est au garage : confirmation « Oui, transférer »)'); await clic('[data-ac^="transfertok"]'); await L.calme(p, 500); }
   const s1 = await st(), d1b = await dem('da1');
   const q = Math.min(10, s0.atelier);
   v('P3a transfert : l’atelier perd exactement ce qu’il a donné', s1.atelier === s0.atelier - q, { s0, s1, q });
