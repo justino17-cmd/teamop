@@ -24299,7 +24299,7 @@ function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.rem
     <form class="cn-carte" id="cn-form" novalidate>
       <h1>Connexion</h1>
       <p class="cn-expl">Accès réservé à l’équipe. Après ton mot de passe, tu confirmes sur ton téléphone avec OP Security.</p>
-      <label>Identifiant<input id="cn-id" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ton prénom (voir ton message)" value="${esc(ident || '')}"></label>
+      <label>Identifiant<input id="cn-id" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ton prénom" value="${esc(ident || '')}"></label>
       <label>Mot de passe<input id="cn-mdp" type="password" autocomplete="current-password" placeholder="Ton mot de passe"></label>
       <p class="cn-err" id="cn-err" role="alert"${doux ? ' style="color:var(--doux)"' : ''}>${esc(err || '')}</p>
       <button type="submit" class="btn plein">Se connecter</button>
