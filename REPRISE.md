@@ -270,6 +270,9 @@ jour, `unattended-upgrades` actif ; `ufw` actif, seules 22, 80 et 443 ouvertes (
 (`Permission denied (publickey)`). Rien d'autre n'est installé dessus. Reste pour ce serveur : un nom d'hôte, une adresse en
 `…teamop.fr`, un compte non-root pour les services, fail2ban ou équivalent — dans le plan. ⚠️ Il se trompe facilement de fenêtre
 (PC ou serveur) : toujours écrire OÙ taper, et le repère (`PS C:\Users\…>` = son PC, `root@…#` = le serveur).
+Deux ordinateurs chez Justin : il entre sur le serveur ACTUEL (clients) depuis son MAC, et sur l'ATELIER depuis son PC Windows
+(raccourci `ssh atelier` posé le 17, en double dans `~/.ssh/config`, sans conséquence). À la reprise : dire à chaque commande sur
+QUEL ordinateur et QUEL serveur ; poser plus tard la clé du Mac sur l'atelier s'il veut tout faire du même endroit.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
