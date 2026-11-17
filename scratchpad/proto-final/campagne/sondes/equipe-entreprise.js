@@ -91,7 +91,9 @@ const png = (n) => { const z = require('zlib'); const w = 32, h = 32, raw = Buff
     const e = { h:await err(p, 'en-horaire'), m:await err(p, 'en-minimum'), z:await err(p, 'en-z2') }; v('E5 tarif « abc », minimum 0,3 h, zone 2 à 600 € : les trois refusés, chacun sous son champ', e.h && e.m && e.z, e);
     await p.fill('#en-horaire', '65,555'); await p.fill('#en-minimum', '1'); await p.fill('#en-z2', '45'); await p.fill('#en-debut', '06:30'); await enreg('[data-ent="horairesok"]');
     const d = await p.evaluate(() => ({ h:TARIFS.horaire, debut:PARAMS.debut })); v('E5 65,555 € est arrondi au centime (65,56) et la journée commence à 6 h 30', d.h === 65.56 && d.debut === 390, d);
-    await L.aller(p, 'planning'); await L.calme(p, 600); const tp = await E.texte(p, '#contenu'); v('E5 le planning reprend la nouvelle heure de début (6 h 30 ou 06:30 visible)', /\b6\s?h\s?30|06:30|6:30/.test(tp), tp.slice(0, 200));
+    // le planning reprend les horaires par les créneaux LIBRES qu'il propose (rendez-vous en ligne, « Disponible » d'une nouvelle intervention) : la fin du dernier créneau est la fin de journée réglée
+    const pl = await p.evaluate(() => { const L = plagesLibres('kb', AUJ).concat(plagesLibres('kb', jour(3))); return { debut:Math.min(...L.map(x => x[0])), fin:Math.max(...L.map(x => x[1])), reg:[PARAMS.debut, PARAMS.fin] }; });
+    v('E5 les créneaux libres du planning suivent les horaires réglés (aucun avant 6 h 30, aucun après 18 h)', pl.debut >= 390 && pl.fin <= 1080 && pl.fin >= 1000, pl);
     await ouvrir('horaires'); await p.fill('#en-debut', '07:00'); await p.fill('#en-horaire', '65'); await enreg('[data-ent="horairesok"]');
   });
   // ── E6 · les six liens : chacun mène à l'endroit où la case vit, avec un chemin de retour

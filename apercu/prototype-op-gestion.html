@@ -1317,6 +1317,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .pl-nav button:hover{background:var(--survol)}
 .pl-nav b{padding:0 8px;font-size:15px;white-space:nowrap;min-width:190px;text-align:center}
 .pl-equipe{display:flex;gap:6px;flex-wrap:wrap}
+.pl-kpis-note{margin:8px 0 0;font-size:13px;line-height:1.4;color:var(--doux)}.pl-kpis-note .lien{padding:0 6px}
 .pl-equipe button{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font-size:14px;font-weight:550}
 .pl-equipe button[aria-pressed="false"]{opacity:.45}
 .pl-equipe .av{width:26px;height:26px;font-size:10.5px}
@@ -4086,15 +4087,27 @@ function joursPeriode(){
   if (plVue === 'mois') { const n = new Date(+plRef.slice(0,4), +plRef.slice(5,7), 0).getDate(); return Array.from({length:n},(_,k)=>plRef.slice(0,8)+String(k+1).padStart(2,'0')); }
   return Array.from({length:plJours},(_,k)=>ajoute(lundi(plRef),k));
 }
-function chiffresPlanning(){
+/* Qui compte dans les chiffres du bandeau (décision du chef de chantier, 17 novembre, après le constat planning-04 : « 9 interventions · 11 h »
+   pour 6 cartes quand Sophie est masquée). « Interventions », « travail prévu » et « absent » suivent les personnes AFFICHÉES — celles de la rangée
+   de prénoms, et, en Sur mesure, une personne masquée un jour seulement ne compte pas ce jour-là. « À planifier » et « en retard » restent ceux de
+   toute l'équipe : ce sont des alertes à traiter, qui n'ont pas de colonne (une intervention à planifier n'a justement personne). La Carte a sa
+   propre rangée de personnes et ne passe pas par ces masques. Une SEULE définition, lue par la tuile ET par le panneau qu'elle ouvre. */
+const kpiDe = (tech, d) => plVue === 'carte' || (!plMasques.has(tech || '') && !(plVue === 'multi' && multiExclu.has((tech || '') + '|' + d)));
+function kpiFiltre(){ return plVue !== 'carte' && (plMasques.size > 0 || (plVue === 'multi' && joursPeriode().some(d => TECHS.some(t => multiExclu.has(t.id + '|' + d))))); }
+function kpiPopulation(){
   const J = joursPeriode();
-  const L = INTS.filter(i => J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe)), mn = L.reduce((s,i)=>s+i.dur,0);
+  return { J, DANS: INTS.filter(i => J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe)).filter(i => kpiDe(i.tech, i.d)),
+    ABS: ABSENCES.filter(a => J.some(j => a.du <= j && j <= a.au && kpiDe(a.tech, j))) };
+}
+function chiffresPlanning(){
+  const { J, DANS: L, ABS } = kpiPopulation(), mn = L.reduce((s,i)=>s+i.dur,0), filtre = kpiFiltre();
+  const note = !filtre ? '' : `<div class="pl-kpis-note" role="status">Interventions, travail prévu et absents : seulement les personnes affichées (${techsVus().length} sur ${TECHS.length}). « À planifier » et « en retard » comptent toute l’équipe. <button type="button" class="lien" data-mqtous="1">Tout afficher</button></div>`;
   return `<div class="kpis kpis-rang ${plVue === 'carte' ? 'kpis-serre' : ''}">
     <button type="button" class="kpi" data-kpi="int"><b>${L.length}</b><span>${L.length > 1 ? 'interventions' : 'intervention'}${plVue === 'carte' ? '' : ' sur la période'}</span></button>
     <button type="button" class="kpi" data-kpi="plan"><b style="color:var(--orange)">${INTS.filter(i=>i.st==='aplanifier').length}</b><span>à planifier</span></button>
     <button type="button" class="kpi" data-kpi="retard"><b style="color:var(--rouge)">${INTS.filter(i=>i.st==='retard').length}</b><span>en retard</span></button>
-    <button type="button" class="kpi" data-kpi="abs"><b style="color:var(--violet)">${new Set(ABSENCES.filter(a=>J.some(j=>a.du<=j&&j<=a.au)).map(a=>a.tech)).size}</b><span>absent</span></button>
-    <button type="button" class="kpi" data-kpi="temps"><b>${duree(mn)}</b><span>de travail prévu</span></button></div>`;
+    <button type="button" class="kpi" data-kpi="abs"><b style="color:var(--violet)">${new Set(ABS.map(a=>a.tech)).size}</b><span>absent</span></button>
+    <button type="button" class="kpi" data-kpi="temps"><b>${duree(mn)}</b><span>de travail prévu</span></button></div>${note}`;
 }
 /* la note du jour · 13 novembre 2026 : le panneau promet « visible par toute l'équipe, en haut du jour », mais en vue Jour, sur la Carte et
    en « par personne » aucune ligne ne la montrait (surtout sur iPhone, où la vue Jour est celle d'ouverture). Un bandeau au-dessus du planning. */
@@ -4113,7 +4126,7 @@ function vuePlanning(){
   ${plVue === 'multi' ? barreMulti() : ''}
   ${plVue === 'multi' || plVue === 'carte' ? '' : `<div class="pl-equipe" role="group" aria-label="Afficher ou masquer une personne">${TECHS.map(t=>`<button type="button" data-masque="${t.id}" aria-pressed="${!plMasques.has(t.id)}">${avatar(t)}${t.id?t.nom.split(' ')[0]:'Non assigné'}</button>`).join('')}</div>`}
   ${chiffresPlanning()}${plNotesJour()}
-  ${plVue !== 'multi' && plVue !== 'carte' && TECHS.every(t => plMasques.has(t.id)) ? '<div class="info pl-vide-masque" role="status">Personne n’est affiché : touche un prénom au-dessus pour voir son planning. Les chiffres comptent toute l’équipe.</div>' : ''}
+  ${plVue !== 'multi' && plVue !== 'carte' && TECHS.every(t => plMasques.has(t.id)) ? '<div class="info pl-vide-masque" role="status">Personne n’est affiché : touche un prénom au-dessus pour voir son planning. Les chiffres « interventions », « travail prévu » et « absent » sont alors à zéro.</div>' : ''}
   ${plVue === 'carte' ? vueCarte() : `  <div class="pl-aide">${plVue === 'mois' || plVue === 'general' ? (tactile() ? '<b>Appui long</b> sur une intervention, puis glisse-la sur une autre case : elle y va, à la même heure. Lâche, c’est enregistré. Appui long sans bouger : l’aperçu et les actions. Appui long sur une case vide : le menu pour créer. Touche : la fiche.' : '<b>Glisse</b> une intervention sur une autre case : elle y va, à la même heure. Lâche, c’est enregistré. <b>Alt + glisser</b> : une copie. <b>Passe la souris</b> dessus : l’aperçu. <b>Clic droit</b> : les actions. <b>Double-clic</b> sur une case vide : créer.') : tactile() ? '<b>Appui long</b> sur une intervention, puis glisse : deux barres montrent l’heure de début et de fin. Lâche, c’est enregistré. Appui long sans bouger : l’aperçu (heure, client, adresse, contact) et les actions. Appui long sur la petite barre en bas d’une carte, puis glisse : la durée change. Touche : la fiche.' : '<b>Glisse</b> une intervention : deux barres suivent l’heure de début et de fin, à gauche et à droite. Lâche, c’est enregistré. <b>Alt + glisser</b> : une copie. <b>Tire le bas</b> pour la durée. <b>Passe la souris</b> dessus : l’aperçu. <b>Clic droit</b> : les actions. <b>Double-clic</b> sur une case vide : créer.'}</div>
   <div class="pl-boite"><div class="pl-defile">${plVue==='multi' ? vueMulti() : plVue==='general' ? vueGenerale() : plVue==='semaine' ? vueSemaine() : plVue==='jour' ? vueJour() : vueMois()}</div></div>
   <div class="legende"><span><i style="background:color-mix(in srgb,#1f9d6b 20%,transparent);border-left:4px solid #1f9d6b"></i>Intervention, à la couleur du technicien</span><span><i style="border:1.5px solid var(--rouge)"></i>En retard</span><span><i style="border:1.5px dashed var(--violet)"></i>Bureau, réunion, indisponible</span><span><i style="background:repeating-linear-gradient(135deg,var(--trait2) 0 3px,transparent 3px 6px)"></i>Absence</span><span><i style="border-top:2px solid var(--rouge);border-radius:0;height:0;vertical-align:4px"></i>Maintenant</span></div>`}`;
@@ -4492,7 +4505,10 @@ function crMonter(el){
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
     const t = setTimeout(() => { if (!fini) { fini = true; crRepli('aucune donnée de carte reçue en 10 s'); } }, 10000);
-    const recue = () => { if (fini) return; fini = true; clearTimeout(t); crReelEtat = 'ok'; const c = document.getElementById('cr-carte'); if (c) c.dataset.fond = 'reel'; };
+    const recue = () => { if (fini) return; fini = true; clearTimeout(t); crReelEtat = 'ok'; const c = document.getElementById('cr-carte'); if (c) c.dataset.fond = 'reel';
+      /* les boutons « Plan · Satellite / Auto · Jour · Nuit » n'existent à l'écran (display) qu'à partir de CE moment : tracés avant, les repères ne les voyaient pas
+         et le dernier de la tournée restait dessous (iPad portrait, toute première ouverture de la session — recontrôle du planning, 17 novembre). On retrace maintenant. */
+      try { crTracerReel(); } catch (e) {} };
     const g = gl.getMaplibreMap(); if (g) { g.on('sourcedata', e => { if (e.isSourceLoaded) recue(); }); g.on('error', () => { if (fini) return; if (++erreurs >= 4) { fini = true; clearTimeout(t); crRepli('les données de la carte sont refusées'); } }); }
   }
   crTracerReel();
@@ -4960,23 +4976,23 @@ function panneauNote(d){
 function detailKpi(k){
   /* Chaque chiffre mène là où l'on AGIT (Justin, 1er novembre) : « à planifier » → la carte au planning, « en retard » →
      replanifier ou appeler, « absent » → le planning de la personne sur ses jours d'absence. La fiche reste à un clic. */
-  const J = joursPeriode();
-  // même population que la tuile (chiffresPlanning) : sinon « 214 » s'ouvre sur « Rien ici »
-  const DANS = INTS.filter(i => J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe)).sort((a, b) => a.d.localeCompare(b.d) || a.h.localeCompare(b.h));
+  // même population que la tuile (chiffresPlanning, par kpiPopulation) : sinon « 214 » s'ouvre sur « Rien ici »
+  const { J, DANS: DANS0, ABS } = kpiPopulation(), filtre = kpiFiltre(), DANS = DANS0.slice().sort((a, b) => a.d.localeCompare(b.d) || a.h.localeCompare(b.h));
+  const seulement = filtre && ['int', 'abs', 'temps'].includes(k) ? `<div class="info petit">Seulement les personnes affichées au planning (${techsVus().length} sur ${TECHS.length}).</div>` : '';
   const L = k === 'plan' ? INTS.filter(i => i.st === 'aplanifier') : k === 'retard' ? INTS.filter(i => i.st === 'retard') : DANS;
   const titre = { int:'Interventions sur la période', plan:'À planifier', retard:'En retard', abs:'Absences', temps:'Travail prévu' }[k] + (['int','temps'].includes(k) ? ' · ' + libellePeriode() : '');
   const ligne = (i, droite) => `<div class="kpi-l"><button type="button" class="kpi-l-t" data-go="inter-x-${i.id}"><b>${jlib(i.d)} · ${i.h} · ${esc(i.titre)}</b><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}${i.demande ? ' · <b style="color:var(--bleu)">demande client</b>' : ''}</span></button><span class="kpi-l-a">${droite}</span></div>`;
   let corps, aide = '';
-  if (k === 'abs') { corps = ABSENCES.map((a, n) => !J.some(j => a.du <= j && j <= a.au) ? '' : `<button type="button" class="ligne-clic" data-kabs="${n}"><span style="display:flex;gap:10px;align-items:center">${avatar(tech(a.tech))}<span><b>${tech(a.tech).nom}</b><br><span class="gris petit">${a.type} · ${a.du === a.au ? 'le ' + jlong(a.du) : 'du ' + jlong(a.du) + ' au ' + jlong(a.au)} · ${(nb => nb ? nb + ' intervention' + (nb > 1 ? 's' : '') + ' à réaffecter' : 'aucune intervention à réaffecter')(INTS.filter(i => i.tech === a.tech && i.d >= a.du && i.d <= a.au && i.st !== 'annulee').length)}</span></span></span><span>Voir son planning ›</span></button>`).join('') || '<p class="gris">Personne n’est absent sur cette période.</p>';
+  if (k === 'abs') { corps = ABSENCES.map((a, n) => !ABS.includes(a) ? '' : `<button type="button" class="ligne-clic" data-kabs="${n}"><span style="display:flex;gap:10px;align-items:center">${avatar(tech(a.tech))}<span><b>${tech(a.tech).nom}</b><br><span class="gris petit">${a.type} · ${a.du === a.au ? 'le ' + jlong(a.du) : 'du ' + jlong(a.du) + ' au ' + jlong(a.au)} · ${(nb => nb ? nb + ' intervention' + (nb > 1 ? 's' : '') + ' à réaffecter' : 'aucune intervention à réaffecter')(INTS.filter(i => i.tech === a.tech && i.d >= a.du && i.d <= a.au && i.st !== 'annulee').length)}</span></span></span><span>Voir son planning ›</span></button>`).join('') || '<p class="gris">Personne n’est absent sur cette période.</p>';
     corps += `<button type="button" class="btn gris" data-kabsnouv="1" style="align-self:flex-start">＋ Ajouter une absence</button>`; }
   else if (k === 'temps') { const tot = DANS.reduce((s,i)=>s+i.dur,0);
-    corps = `<div class="info petit">C’est la somme des durées prévues des interventions de la période (${J.length===1?'ce jour-là':J.length+' jours'}), toutes personnes confondues — y compris celles « à planifier ». Les réunions et activités de bureau ne comptent pas. Touche une personne pour voir son planning.</div>` + TECHS.map(t => { const L2 = DANS.filter(i => i.tech === t.id), mn = L2.reduce((s,i)=>s+i.dur,0); return `<button type="button" class="ligne-clic" data-kseul="${t.id}"><span style="display:flex;gap:10px;align-items:center">${avatar(t)}<span>${t.nom}<br><span class="gris petit">${L2.length} intervention${L2.length>1?'s':''}${t.id && J.some(d => aOuvre(d)) ? ' · sur ' + duree(J.filter(d => aOuvre(d)).length * 420) + ' de contrat' : ''}</span></span></span><b>${duree(mn)} ›</b></button>`; }).join('') + `<div class="ligne" style="font-size:17px"><b>Total</b><b>${duree(tot)}</b></div>`; }
+    corps = `<div class="info petit">C’est la somme des durées prévues des interventions de la période (${J.length===1?'ce jour-là':J.length+' jours'}), ${filtre ? 'pour les personnes affichées seulement' : 'toutes personnes confondues — y compris celles « à planifier »'}. Les réunions et activités de bureau ne comptent pas. Touche une personne pour voir son planning.</div>` + (filtre ? techsVus() : TECHS).map(t => { const L2 = DANS.filter(i => i.tech === t.id), mn = L2.reduce((s,i)=>s+i.dur,0); return `<button type="button" class="ligne-clic" data-kseul="${t.id}"><span style="display:flex;gap:10px;align-items:center">${avatar(t)}<span>${t.nom}<br><span class="gris petit">${L2.length} intervention${L2.length>1?'s':''}${t.id && J.some(d => aOuvre(d)) ? ' · sur ' + duree(J.filter(d => aOuvre(d)).length * 420) + ' de contrat' : ''}</span></span></span><b>${duree(mn)} ›</b></button>`; }).join('') + `<div class="ligne" style="font-size:17px"><b>Total</b><b>${duree(tot)}</b></div>`; }
   else if (k === 'plan') { aide = '<div class="info petit">« Placer au planning » ouvre le jour prévu : la carte clignote dans la colonne « Non assigné », ' + (tactile() ? 'appui long dessus, puis glisse-la' : 'glisse-la') + ' sur un technicien. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, i.demande ? `<button type="button" class="btn petit" data-dem="${i.id}">Valider la demande</button>` : `<button type="button" class="btn petit" data-kplacer="${i.id}">Placer au planning</button>`)).join('') || '<p class="gris">Rien à planifier.</p>'; }
   else if (k === 'retard') { aide = '<div class="info petit">Replanifier ouvre le planning sur la carte pour la déplacer ; appeler le technicien pour savoir où il en est. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, `<button type="button" class="btn petit" data-kplacer="${i.id}">Replanifier</button>${i.tech ? `<a class="btn gris petit" href="${lienTel(((typeof EQUIPE !== 'undefined' ? EQUIPE : []).find(e => e.k === i.tech) || {}).tel || '')}" data-kappel="${i.tech}">Appeler ${tech(i.tech).nom.split(' ')[0]}</a>` : ''}`)).join('') || '<p class="gris">Rien en retard.</p>'; }
   else corps = L.map(i => `<${i.hist ? 'div' : 'button type="button"'} class="ligne-clic"${i.hist ? ' style="cursor:default"' : ` data-go="inter-x-${i.id}"`}><span><b>${jlib(i.d)} · ${i.h} · ${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span></span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></${i.hist ? 'div' : 'button'}>`).join('') || '<p class="gris">Rien ici.</p>';
-  ouvrirPanneau(`<h2>${titre}</h2>${aide}${corps}`);
+  ouvrirPanneau(`<h2>${titre}</h2>${seulement}${aide}${corps}`);
 }
 function kpiPlacer(id){
   const i = INTS.find(o => o.id === id); if (!i) return; fermerPanneau();
@@ -13494,6 +13510,9 @@ function communeDe(adr){
   const a = sansAccent(adr || ''), cp = a.match(/\b\d{5}\b(.*)$/), vir = a.lastIndexOf(',');
   const queue = [cp ? cp[1] : '', vir >= 0 ? a.slice(vir + 1) : ''];
   for (const t of queue) { const c = t.trim() && COMMUNES.find(x => t.includes(x[0])); if (c) return c; }
+  /* un code postal suivi d'un nom de commune qui n'est PAS dans la liste (« 12 Rue de La Rochelle, 17100 Saintes ») : le client est ailleurs, et chercher dans la rue
+     le plaçait à « La Rochelle · 0 km » (recontrôle du planning, 17 novembre). On dit « adresse pas encore reconnue » plutôt que de deviner. */
+  if (cp && cp[1].replace(/[^a-z]/g, '').length > 1) return null;
   /* ni code postal ni virgule : l'adresse se termine par la commune, donc c'est la dernière nommée qui l'emporte (« 12 Route de La Rochelle Rochefort ») */
   return COMMUNES.filter(x => a.includes(x[0])).sort((x, y) => a.lastIndexOf(y[0]) - a.lastIndexOf(x[0]))[0] || null;
 }
@@ -24390,8 +24409,8 @@ function rcRubriques(){ return rlLignes().filter(c => !c.ec).map(c => ({ k:c.k, 
 function rcChampRecherche(){ return [...document.querySelectorAll('#contenu input[type="search"],#contenu input[placeholder^="Recherch"],#contenu input[placeholder^="Cherch"],#contenu input[placeholder^="Trouver"]')].find(i => i.offsetParent !== null && !i.disabled) || null; }
 let PAL = null;
 /* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
-const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais', securite:'sécurité connexion connexions téléphone nombre verrouillé verrou pirate inhabituelle mot de passe',
-  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture relance impayé impayés imprimer export exporter',
+const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande mes demandes matériel notes de frais', securite:'sécurité connexion connexions téléphone nombre verrouillé verrou pirate inhabituelle mot de passe',
+  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture factures paiement paiements écriture relance impayé impayés imprimer export exporter',
   equipe:'utilisateur utilisateurs technicien techniciens salarié salariés employé mot de passe droits permissions inviter', produits:'commande commandes bons de commande matériel articles', stock:'produits matériel inventaire',
   planning:'rendez-vous rdv agenda calendrier', absences:'congés vacances arrêt maladie',
   vehicules:'véhicule voiture camion camionnette essence carburant plein entretien', interventions:'rapport photo photos chantier passage', clients:'contact téléphone coordonnées adresse',
@@ -24422,7 +24441,8 @@ function palOuvrir(){ if (PAL || !rcBureau() || rcDevant()) return; fermerMenu()
   palDessiner(); document.getElementById('pal-q').focus(); }
 function palFermer(rendreFocus){ const z = document.getElementById('pal'); if (z) z.remove(); const av = PAL && PAL.avant; PAL = null; if (rendreFocus && av && av.isConnected && av.focus) av.focus(); }
 function palFiltre(){ const q = rcSansAccent(PAL.q).trim(); if (!q) return PAL.E.filter(e => e.g !== 'Clients' && e.g !== 'Articles');
-  const mots = q.split(/\s+/); return PAL.E.filter(e => { const t = rcSansAccent(e.l + ' ' + (e.m || '') + ' ' + e.g); return mots.every(m => t.includes(m)); })
+  /* « factures et paiements », « tableau de bord » : les petits mots (et, de, du, la…) ne se cherchent pas — l'ancien nom d'une rubrique, tapé en entier, la retrouve */
+  const mots = q.split(/\s+/).filter(m => !['et', 'de', 'du', 'des', 'la', 'le', 'les', 'un', 'une'].includes(m)); if (!mots.length) return PAL.E.filter(e => e.g !== 'Clients' && e.g !== 'Articles'); return PAL.E.filter(e => { const t = rcSansAccent(e.l + ' ' + (e.m || '') + ' ' + e.g); return mots.every(m => t.includes(m)); })
     .sort((a, b) => (rcSansAccent(b.l).startsWith(q) ? 1 : 0) - (rcSansAccent(a.l).startsWith(q) ? 1 : 0)); }
 function palDessiner(){ const L = palFiltre(); PAL.L = L; PAL.i = Math.max(0, Math.min(PAL.i, L.length - 1)); let g = '';
   document.getElementById('pal-l').innerHTML = L.length ? L.map((e, n) => `${e.g !== g ? `<div class="pal-g">${esc(g = e.g)}</div>` : ''}<button type="button" class="pal-i${n === PAL.i ? ' on' : ''}" role="option" aria-selected="${n === PAL.i}" data-pal="${n}"><span class="ic" aria-hidden="true">${e.ic || ''}</span><b>${esc(e.l)}</b>${e.d ? (/^(⌘|Ctrl|[NDCA]$|\?$)/.test(e.d) ? `<kbd>${esc(e.d)}</kbd>` : `<small>${esc(e.d)}</small>`) : ''}</button>`).join('') : `<div class="pal-v">Rien ne correspond à « ${esc(PAL.q)} ».</div>`;
@@ -26062,7 +26082,7 @@ const NV_CARTES = {
     { k:'compta', t:'Comptabilité : tout au même endroit', d:'Factures, paiements, achats, paie et TVA se suivent au même endroit, rangés comme chez ton comptable.', voir:'comptabilite', mot:'Comptabilité' },
     { k:'stock', t:'Stock : où est chaque article', d:'Tape le nom d’un article : tu vois où il est et combien il en reste.', voir:'stock', mot:'Stock' },
     { k:'taches', t:'Tâches : elles arrivent seules', d:'Un devis à relancer, une facture en retard : OP GESTION te propose la tâche, qui se termine seule.', voir:'taches', mot:'Tâches' },
-    { k:'equipe', t:'Équipe : qui peut faire quoi', d:'Pour chaque personne, tu choisis ce qu’elle voit et peut faire. Son menu s’adapte tout seul.', voir:'equipe', mot:'Équipe' },
+    { k:'equipe', t:'Équipe : qui peut faire quoi', d:'Pour chaque personne, tu choisis ce qu’elle voit et peut faire, et son menu s’adapte tout seul.', voir:'equipe', mot:'Équipe' },
     { k:'entreprise', t:'Mon entreprise : réglée une fois', d:'Tes mentions légales, ton logo, ta banque et tes horaires s’écrivent ici une fois, puis servent partout.', voir:'entreprise', mot:'Mon entreprise' }
   ],
   gestion:[
@@ -26072,7 +26092,7 @@ const NV_CARTES = {
     { k:'devis', t:'Devis : composer en grand', d:'« Composer un devis » ouvre une grande page claire : tu remplis, tu vérifies le prix, tu envoies.', voir:'devis', mot:'Devis', si:() => peut('ventes', 'c') },
     { k:'achats', t:'Achats et frais : les demandes', d:'Les demandes de matériel et les notes de frais de l’équipe sont réunies ici.', voir:'achats', mot:'Achats et frais' },
     { k:'produits', t:'Fournisseurs, matériel & produits', d:'Les commandes, les articles et les fournisseurs sont réunis ici, en trois parties.', voir:'produits', mot:'Fournisseurs' },
-    { k:'taches', t:'Mes tâches : elles arrivent seules', d:'Un devis à relancer, une facture en retard : OP GESTION te propose la tâche, qui se termine seule.', voir:'taches', mot:'tâches' }
+    { k:'taches', t:'Mes tâches : elles arrivent seules', d:'Ce qu’on t’a confié arrive ici, et chaque tâche se termine seule quand le travail est fait.', voir:'taches', mot:'tâches' }   /* « OP GESTION te propose » est écrit sur l'écran du gérant seul : la phrase du bureau ne le promet pas */
   ],
   tech:[
     { k:'menu', t:'Où sont passées mes rubriques ?', voir:'menu', mot:'Menu',
@@ -26098,7 +26118,7 @@ function nvCartes(){ const r = nvRole(); if (!r) return [];
   return NV_CARTES[r].filter(c => c.k === 'menu' || ((!c.voir || nvVoit(c.voir)) && (!c.si || c.si()))); }
 /* les pages = les cartes, avec leur HTML (`c`) : la phrase, ou les trois lignes de la première carte */
 function nvPages(){ return nvCartes().map(c => ({ k:c.k, t:c.t, voir:c.voir, mot:c.mot, ic:nvIcone(c.k === 'menu' ? 'menu' : c.voir),
-  c: c.k === 'menu' ? `<ul class="nv-lignes" aria-label="Ce qui s’appelait comment avant">${nvLignes(c).map(([a, n]) => `<li><span class="nv-avant">${esc(a)}</span><span class="nv-fl" aria-hidden="true">→</span><b class="nv-apres">${esc(n)}</b></li>`).join('')}</ul>` : `<p class="nv-phrase">${esc(c.d)}</p>` })); }
+  c: c.k === 'menu' ? `<ul class="nv-lignes" aria-label="Ce qui s’appelait comment avant">${nvLignes(c).map(([a, n]) => `<li><span class="nv-avant">${esc(a)}</span><span class="nv-fl" aria-hidden="true">→</span><span class="nv-sr">, maintenant : </span><b class="nv-apres">${esc(n)}</b></li>`).join('')}</ul>` : `<p class="nv-phrase">${esc(c.d)}</p>` })); }
 let NV = null;
 function nvHtml(){ const P = NV.pages, n = P.length;
   return `<div class="nv-tete"><span class="surtitre">Nouveautés</span><span class="nv-compte" aria-live="polite"><span data-nv-i>1</span> sur ${n}</span><button type="button" class="nv-x" data-nv="fermer" aria-label="Fermer le guide des nouveautés">✕</button></div>
@@ -26176,6 +26196,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="nv-style">
 .nv-lignes li:first-child{border-top:0}
 .nv-avant{flex:1 1 38%;min-width:0;color:var(--encre2,var(--encre));opacity:.85}
 .nv-fl{flex:none;opacity:.5}
+.nv-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}   /* lu par un lecteur d'écran, jamais vu : la flèche est muette pour lui */
 .nv-apres{flex:1 1 46%;min-width:0;font-weight:700}
 .nv-voir{margin-top:auto;align-self:flex-start;min-height:50px;min-width:140px;padding:0 26px;font-size:17px}
 .nv-points-nav{display:flex;justify-content:center;gap:7px;min-height:10px}
