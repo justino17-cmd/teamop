@@ -106,6 +106,11 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   const tfin = await txt(p);
   v('07 la fiche dit « Terminé le 31/10/2026 » et n’offre plus de suite', /Terminé le 31\/10\/2026/.test(tfin) && !/Renouveler pour un an/.test(tfin) && !/Mettre fin au contrat/.test(tfin), tfin.slice(0, 200));
   await L.capture(c, CAP + `termine-fiche-${tag}.png`);
+  const pdfT = await txt(p, '.ctr-doc .pdf');
+  v('07 le PDF d’un contrat terminé porte sa signature (jamais « à signer »)', /Signé électroniquement/.test(pdfT) && !/à signer/.test(pdfT), pdfT.slice(-160));
+  await L.aller(p, 'signer-x-c2'); const tsg = await txt(p);
+  v('07 la page de signature d’un contrat terminé le dit et ne propose plus de signer', /Ce contrat est terminé/.test(tsg) && !(await p.$('#signe-ctr')), tsg.slice(0, 200));
+  await L.aller(p, 'contrat-x-c2');
   await L.aller(p, 'taches'); const ttf = await txt(p, 'body');
   v('07 plus aucune proposition de renouvellement pour un contrat terminé', !/CTR-2026-007/.test((ttf.match(/Proposer le renouvellement[^.]{0,80}/g) || []).join(' ')), '');
   await L.aller(p, 'contrats'); const tl2 = await txt(p);
