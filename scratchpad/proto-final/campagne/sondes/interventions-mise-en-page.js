@@ -47,6 +47,7 @@ const ECRANS = [
   for (const e of ECRANS) {
     if (filtre && !filtre.test(e.n)) continue;
     if (e.qui !== courant) { await I.devenir(c, e.qui, 'accueil'); courant = e.qui; }
+    await p.evaluate(() => { try { if (CREA) fermerCreation(); } catch (x) {} try { docPleinFermer(); } catch (x) {} try { fermerPanneau(); } catch (x) {} });   // l'écran d'avant ne reste pas ouvert par-dessus : une fenêtre de création ou un document plein écran couvrent tout
     await L.aller(p, e.h); if (e.prep) { try { await p.evaluate(e.prep); } catch (x) { console.log('  · préparation de', e.n, ':', x.message.slice(0, 80)); } await L.calme(p, 700); }
     const zone = e.zone || '#contenu', nom = `${e.n}/${profil}${nuit ? '/nuit' : ''}`;
     const existe = await p.evaluate(z => !!document.querySelector(z) && document.querySelector(z).offsetHeight > 0, zone); if (!v(`${nom} : l’écran est là (population)`, existe)) continue;
@@ -60,7 +61,7 @@ const ECRANS = [
       return { n, out }; }, zone);
     v(`${nom} : tous les boutons et champs ont un nom (${nu.n} recensés)`, nu.out.length === 0, nu.out.slice(0, 6));
     v(`${nom} : aucun texte écrasé`, d.ecrases.length === 0, d.ecrases);
-    if (c.doigt) { v(`${nom} : champs à 16 px au moins`, d.champs.length === 0, d.champs); const r = await I.doigtsReel(p, zone); v(`${nom} : cibles au doigt ≥ 44 px`, r.length === 0, r); }
+    if (c.doigt) { v(`${nom} : champs à 16 px au moins`, d.champs.length === 0, d.champs); if (process.env.REEL !== '0') { const r = await I.doigtsReel(p, zone); v(`${nom} : cibles au doigt ≥ 44 px`, r.length === 0, r); } else v(`${nom} : cibles au doigt ≥ 44 px (mesure simple)`, d.petits.length === 0, d.petits); }
     // le bas de l'écran n'est pas recouvert par la barre fixe : le dernier contenu doit pouvoir passer au-dessus
     const bas = await p.evaluate(z => { const R = document.querySelector(z); if (!R) return null; scrollTo(0, 1e6); if (R.scrollHeight > R.clientHeight + 4 && getComputedStyle(R).overflowY !== 'visible') R.scrollTop = 1e6;
       const fixes = [...document.querySelectorAll('body *')].filter(x => { const cs = getComputedStyle(x); return cs.position === 'fixed' && x.offsetHeight > 20 && x.offsetHeight < 260 && x.getBoundingClientRect().bottom > innerHeight - 4 && x.getBoundingClientRect().width > innerWidth * .5 && cs.visibility !== 'hidden' && !/voile|calque|fenetre/.test(x.id + x.className); });

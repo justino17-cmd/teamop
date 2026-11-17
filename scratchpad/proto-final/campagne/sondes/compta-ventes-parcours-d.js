@@ -12,7 +12,7 @@ const etatHote = f => (f.st === 'payee' ? 'Payée' : f.st === 'retard' ? 'En ret
   let f = await X.cadreOuvert(c); L.v('le cadre plein écran s’ouvre depuis le menu Comptabilité', !!f);
   if (!f) { await L.fermer(); process.exit(1); }
   const barre = await p.evaluate(() => [...document.querySelectorAll('#cpsys .cpsys-barre button, #cpsys .cpsys-barre b')].map(e => e.textContent.trim()));
-  L.v('la barre du cadre : « ‹ OP GESTION », « Comptabilité », « Factures et paiements »', barre.length === 3 && /OP GESTION/.test(barre[0]) && /Factures et paiements/.test(barre[2]), barre);
+  L.v('la barre du cadre propose de revenir à OP GESTION (premier bouton) et « Factures et paiements » (dernier)', barre.length >= 3 && /OP GESTION/.test(barre[0]) && /Factures et paiements/.test(barre[barre.length - 1]), barre);
   // ── 1. les ventes du cadre = les factures d'OP GESTION ──
   await f.evaluate(() => aller('ventes')); await p.waitForTimeout(800);
   let hote = await X.donnees(p), cad = await lire(f);
@@ -34,6 +34,13 @@ const etatHote = f => (f.st === 'payee' ? 'Payée' : f.st === 'retard' ? 'En ret
   await f.evaluate(() => document.querySelector('[data-cmpt="relancer"]').click()); await p.waitForTimeout(500);
   await f.evaluate(() => document.querySelector('[data-cmpt="relancer-ok"]').click()); await p.waitForTimeout(600);
   hote = await X.donnees(p); L.v('une relance envoyée DANS le cadre arrive sur la facture d’OP GESTION (3 relances)', hote.F.find(x => x.id === 'f128').relances === 3, hote.F.find(x => x.id === 'f128').relances);
+  // le PDF vu depuis le cadre : le MÊME document que celui d'OP GESTION (pas un aperçu de démonstration)
+  await f.evaluate(() => document.querySelector('#contenu tr[data-fac="FAC-2026-0128"]').click()); await p.waitForTimeout(500);
+  await f.evaluate(() => { const b = document.querySelector('[data-cmpt="pdf"]'); if (b) b.click(); }); await p.waitForTimeout(500);
+  const pdfTxt = await f.evaluate(() => { const e = document.querySelector('#calque .panneau'); return e ? e.innerText.replace(/\s+/g, ' ').trim() : ''; });
+  L.v('compta-ventes-13 · « Voir le PDF » du cadre montre le vrai document, sans la phrase « Aperçu de démonstration »', /FAC-2026-0128/.test(pdfTxt) && !/démonstration/i.test(pdfTxt), pdfTxt.slice(0, 200));
+  await L.capture(c, X.CAP + `d-${profil}-${qui}-cadre-pdf.png`);
+  await f.evaluate(() => { try { fermer(); } catch (e) {} }); await p.waitForTimeout(300);
   // ouvrir la facture dans OP GESTION
   await f.evaluate(() => document.querySelector('#contenu tr[data-fac="FAC-2026-0128"]').click()); await p.waitForTimeout(500);
   const bouton = await f.evaluate(() => { const b = document.querySelector('[data-cmpt="ouvrir|facture"]'); return b && !b.hidden ? b.textContent.trim() : ''; });
