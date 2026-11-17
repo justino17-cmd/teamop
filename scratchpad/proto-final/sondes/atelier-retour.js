@@ -2,7 +2,7 @@
 // était ; fermer par le bouton, Échap ou la demande de l'atelier CONSOMME l'entrée poussée (un Retour de plus mène alors à l'écran d'avant, jamais à un doublon de Devis) ; l'historique
 // ne grandit pas à chaque ouverture. Parcours : Clients → Devis → Composer → Retour (Devis, atelier fermé) → Retour (Clients). Rend « N ✓ · M ✗ ».
 const A = require('./atelier-outils.js'), L = A.L, v = L.v;
-const hist = p => p.evaluate(() => ({ n: history.length, h: location.hash, st: history.state, atelier: (() => { const z = document.getElementById('opdz'); return !!z && !z.hidden; })() }));
+const hist = async p => { await p.waitForTimeout(250); return p.evaluate(() => ({ n: history.length, h: location.hash, st: history.state, atelier: (() => { const z = document.getElementById('opdz'); return !!z && !z.hidden; })() })); };
 async function aPartirDeClientsDevis(c) { await L.aller(c.p, 'clients'); await L.aller(c.p, 'devis'); }
 (async () => {
   const c = await L.ouvrir({ profil: process.env.PROFIL || 'android', qui: 'marc' }), p = c.p;

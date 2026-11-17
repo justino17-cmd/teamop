@@ -5,7 +5,7 @@ const path = require('path');
 const C = require('./retour-commun.js'), L = C.L, v = C.v;
 const CAP = process.env.CAP || '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/retour';
 (async () => {
-  const profil = process.env.PROFIL || 'android', nuit = !!process.env.NUIT, c = await L.ouvrir({ profil, qui: 'marc', nuit }), p = c.p, tel = C.tel(c), tag = profil + (nuit ? '-nuit' : '-jour');
+  const profil = process.env.PROFIL || 'android', nuit = !!process.env.NUIT, c = await L.ouvrir({ profil, qui: 'marc', nuit }), p = c.p, tel = C.etroit(c), tag = profil + (nuit ? '-nuit' : '-jour');
   await L.aller(p, 'accueil'); await L.aller(p, 'clients'); await C.defiler(p); await L.calme(p, 300);
   await L.capture(c, path.join(CAP, 'retour-' + tag + '-1-avant.png'));
   await L.toucher(c, '[data-action="clientNouveau"]'); await L.calme(p, 400);
