@@ -73,12 +73,14 @@ async function parcoursRole(qui) {
   await C.retour(p); const z3 = await C.hist(p);
   v('… UN Retour mène à l\'écran d\'avant (l\'entrée orpheline a été reculée au chargement)', z3.h === '#accueil', [z3.h, z2.n, z3.n]);
   // ── 3 bis. une adresse changée à la main (lien, saisie) alors qu'une fenêtre est ouverte : la fenêtre part avec l'écran, la pile repart de zéro ──
-  await L.aller(p, 'accueil'); await L.toucher(c, C.etroit(c) ? '.tt-menu[data-menu="ouvrir"]' : '[data-creer]'); const y1 = await C.hist(p);
+  await L.aller(p, 'accueil'); await L.aller(p, 'clients'); await L.toucher(c, '[data-action="clientNouveau"]'); const y1 = await C.hist(p);
   await p.evaluate(() => { location.hash = '#devis'; }); await C.attendre(p, 900); const y2 = await C.hist(p);
   v('adresse changée à la main fenêtre ouverte : on arrive, la fenêtre est fermée, la pile est vide', y1.pousse === 1 && y2.h === '#devis' && y2.ouverts === '' && y2.pousse === 0 && y2.pile === '', [y1, y2]);
   await L.toucher(c, '[data-opd="devis"], [data-dv="nouveau"]'); await C.attendre(p, 500); const y3 = await C.hist(p);
   await L.ranger(p); await C.attendre(p, 600); const y4 = await C.hist(p);
   v('… et la fenêtre suivante repart d\'une pile saine (ouvrir : 1 entrée, fermer : 0, plus d\'état)', y3.pousse === 1 && y4.pousse === 0 && y4.pile === '' && !(y4.st && y4.st.cal), [y3, y4]);
+  await C.retour(p); await C.attendre(p, 500); const y5 = await C.hist(p);
+  v('… et UN Retour ramène à l\'écran d\'avant (Clients), aucune fenêtre rouverte par l\'entrée que l\'adresse a laissée derrière elle', y5.h === '#clients' && y5.ouverts === '' && y5.pousse === 0, y5);
   // ── 4. la Comptabilité dans son cadre ──
   await L.aller(p, 'accueil'); const k0 = await C.hist(p);
   const entree = tel ? async () => { await L.toucher(c, '.tt-menu[data-menu="ouvrir"]'); return L.toucher(c, '#calque [data-go="comptabilite"]'); } : async () => L.toucher(c, '#menu [data-go="comptabilite"], #menu a[href="#comptabilite"]');
@@ -121,4 +123,4 @@ async function parcoursRole(qui) {
   v('… Retour encore : l\'écran d\'avant', g3.h !== g1.h && g3.ouverts === '', [g1.h, g3]);
   v('aucune erreur de page (prototype nu)', g.err.length === 0, g.err.slice(0, 3)); await L.fin(g);
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);
-})().catch(e => { console.error(e); process.exit(2); });
+})().catch(e => { v('la sonde va jusqu\'au bout (une exception l\'a arrêtée)', false, String(e.message).split('\n')[0].slice(0, 200)); L.bilan(); L.fermer().then(() => process.exit(1), () => process.exit(1)); });

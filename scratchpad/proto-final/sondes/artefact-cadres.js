@@ -32,7 +32,9 @@ const A = require('./artefact-commun.js'), { bac, L, v } = A;
     await c.p.evaluate(() => { const a = document.querySelector('#menu a[href="#comptabilite"]'); if (a) a.click(); else location.hash = 'comptabilite'; }); await L.calme(c.p, 1800);
     f = L.cadre(c.p, /prototype-comptabilite\.html/);
     if (f) { await f.evaluate(() => aller('fec')); await L.calme(c.p, 500); await f.locator('[data-a="fec-dl"]').first().click(); await c.p.waitForTimeout(600); const t = await f.evaluate(() => (document.getElementById('fec-msg') || {}).textContent || ''), e = await bac.etat(c);
-      v(`${T} compta : sans pont, le cadre dit « pas disponible » et montre le début du fichier`, /pas disponible/.test(t) && /JournalCode/.test(t) && e.liensInertes.length === 0, t.slice(0, 120)); }
+      // la page est ici la fenêtre du HAUT (hors artefact : un onglet, la coque) : sans pont, un lien de téléchargement est demandé (le bac, lui, le rend inerte et le COMPTE)
+      // et la phrase dit la vérité. Le cas « dans un cadre verrouillé » (« pas disponible », texte à copier) se joue dans recontrole-artefact-voisins.js.
+      v(`${T} compta : hors artefact sans pont, le cadre demande un lien et dit « s'il ne démarre pas, ton navigateur le bloque »`, /téléchargement demandé/i.test(t) && /ne démarre pas, ton navigateur le bloque/.test(t) && !/pas disponible/.test(t) && e.liensInertes.length === 1 && /FEC/.test(e.liensInertes[0].nom), { t: t.slice(0, 120), li: e.liensInertes }); }
     await L.fin(c);
     // ── l'atelier de documents : l'enregistrement passe par le pont du PARENT ──
     c = await bac.ouvrir({ profil, qui: 'marc' }, {}); await A.calmer(c.p);

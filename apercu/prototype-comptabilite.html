@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>
+<html lang="fr"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; font-src 'self' data:; connect-src 'self' blob: https://tiles.openfreemap.org https://server.arcgisonline.com; frame-src 'self' blob: data:; worker-src blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="same-origin"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>
 <title>Comptabilité OP GESTION</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1347,7 +1347,7 @@ const emetteur = P => P.de ? nomTiers(P.de) : P.emetteur;
 function docHtml(P){
   if (P.paie) { const p = P.paie; return `<div class="doc"><div class="dtete"><div><b>${esc(DOSSIER.cab)}</b><br>Journal de paie</div><div style="text-align:right"><b>${esc(DOSSIER.nom)}</b><br>Octobre 2026 · 6 salariés</div></div>
     <table><tbody>${[['Salaires bruts (dont ' + nb(p.sup) + ' € d’heures supplémentaires)', p.brut], ['Cotisations salariales URSSAF', p.sal1], ['Cotisations salariales retraite et prévoyance', p.sal2], ['Prélèvement à la source', p.pas], ['Net à payer', p.net], ['Cotisations patronales URSSAF', p.pat1], ['Cotisations patronales retraite et prévoyance', p.pat2]].map(([l, m]) => `<tr><td>${l}</td><td class="n">${nb(m)} €</td></tr>`).join('')}</tbody></table>
-    <p style="margin-top:8px;color:#5a6578">Montants fictifs. Le détail par salarié est dans les fiches de paie.</p></div>`; }
+    <p style="margin-top:8px;color:#5a6578">${opcSi('Montants fictifs.', 'Montants indicatifs.')} Le détail par salarié est dans les fiches de paie.</p></div>`; }
   const L = ligneDoc(P), ht = htDe(P), tva = r2(ht * P.taux / 100);
   return `<div class="doc"><div class="dtete"><div><b>${esc(emetteur(P))}</b><br>${P.type}${P.avoir ? '' : ''}</div><div style="text-align:right"><b>${P.ref}</b><br>du ${dCourt(P.date)}${P.ech ? '<br>échéance ' + dCourt(P.ech) : ''}</div></div>
     <div>Client : <b>${esc(DOSSIER.nom)}</b>, ${esc(DOSSIER.adr)}</div>
@@ -1715,7 +1715,7 @@ VUES.paie = () => {
         <td>${e ? `<button type="button" class="lien" data-a="ecr" data-id="${e.id}">${e.num || 'au brouillard'}</button>` : `<button type="button" class="btn petit" data-a="piece" data-id="P6">Passer le journal</button>`}</td></tr>`; }).join('')}</tbody></table></div>
     <div class="carte petit"><h3>L’écriture d’un mois de paie</h3><div class="defile" style="border:0"><table class="t"><tbody>
       <tr><td class="compte">641000</td><td>Salaires bruts</td><td>au débit</td></tr><tr><td class="compte">645000</td><td>Charges patronales</td><td>au débit</td></tr><tr><td class="compte">421000</td><td>Net à payer aux salariés</td><td>au crédit</td></tr><tr><td class="compte">431000</td><td>URSSAF, parts salariale et patronale</td><td>au crédit</td></tr><tr><td class="compte">437000</td><td>Retraite complémentaire et prévoyance</td><td>au crédit</td></tr><tr><td class="compte">442100</td><td>Prélèvement à la source</td><td>au crédit</td></tr></tbody></table></div>
-    <p class="mute" style="margin-top:6px">Montants fictifs. Les taux réels dépendent de la convention collective et de chaque salarié : c’est le métier du cabinet.</p></div>
+    <p class="mute" style="margin-top:6px">${opcSi('Montants fictifs.', 'Montants indicatifs.')} Les taux réels dépendent de la convention collective et de chaque salarié : c’est le métier du cabinet.</p></div>
     ${P6 && P6.statut === 'a_traiter' ? '<div class="alerte petit">Le journal de paie d’octobre est arrivé du cabinet : il attend dans les pièces à traiter.</div>' : ''}`;
 };
 
@@ -1723,7 +1723,7 @@ VUES.paie = () => {
 const STOCK_FINAL = 7450;
 const ETAPES_CLOTURE = [
   { k:'amort', t:'Amortissements de l’année', d:'La part de l’usure des biens, du 1er janvier au 31 octobre.', l:() => { const P = {}; IMMOS.forEach(i => { const d = dotation(i, '2026-01-01', '2026-10-31'); if (d) P[AMORT[i.c]] = r2((P[AMORT[i.c]] || 0) + d); }); const tot = r2(Object.values(P).reduce((s, x) => s + cts(x), 0) / 100); return [['681100', null, tot, 0, 'Dotations aux amortissements'], ...Object.entries(P).map(([c, m]) => [c, null, 0, m, libCpt(c)])]; } },
-  { k:'stock', t:'Stock de matériel', m:() => r2(STOCK_FINAL - 6200), d:`On sort le stock du début d’année (6 200 €) et on entre celui compté au 31 octobre (${nb(STOCK_FINAL)} €, inventaire fictif).`, l:() => [['603100', null, 6200, 0, 'Stock initial'], ['310000', null, 0, 6200, 'Stock initial sorti'], ['310000', null, STOCK_FINAL, 0, 'Stock final compté'], ['603100', null, 0, STOCK_FINAL, 'Stock final']] },
+  { k:'stock', t:'Stock de matériel', m:() => r2(STOCK_FINAL - 6200), d:`On sort le stock du début d’année (6 200 €) et on entre celui compté au 31 octobre (${nb(STOCK_FINAL)} €, ${opcSi('inventaire fictif', 'inventaire de fin de mois')}).`, l:() => [['603100', null, 6200, 0, 'Stock initial'], ['310000', null, 0, 6200, 'Stock initial sorti'], ['310000', null, STOCK_FINAL, 0, 'Stock final compté'], ['603100', null, 0, STOCK_FINAL, 'Stock final']] },
   { k:'cca', t:'Charge payée d’avance', d:'L’assurance de 4 800 € couvre avril 2026 à mars 2027 : 5 mois concernent la suite (novembre à mars).', l:() => [['486000', null, 2000, 0, 'Assurance de novembre 2026 à mars 2027'], ['616000', null, 0, 2000, 'Part de l’assurance qui concerne la suite']] },
   { k:'fnp', t:'Facture pas encore reçue', d:'Électricité Pro 17 a livré le 27 octobre ; sa facture (380 € HT) n’est pas arrivée. La charge appartient à octobre.', l:() => [['601000', null, 380, 0, 'Livraison du 27/10, facture à recevoir'], ['445860', null, 76, 0, 'TVA sur facture à recevoir'], ['408000', null, 0, 456, 'Électricité Pro 17 · facture non parvenue']] },
   { k:'fae', t:'Travail fait, pas encore facturé', d:'L’entretien de l’Hôtel Les Mouettes, fait le 30 octobre, sera facturé en novembre (640 € HT). Le produit appartient à octobre.', l:() => [['418000', null, 768, 0, 'Hôtel Les Mouettes · facture à établir'], ['706000', null, 0, 640, 'Entretien du 30/10'], ['445870', null, 0, 128, 'TVA sur facture à établir']] },
@@ -1813,7 +1813,7 @@ VUES.resultat = () => {
 const FEC_COLS = ['JournalCode', 'JournalLib', 'EcritureNum', 'EcritureDate', 'CompteNum', 'CompteLib', 'CompAuxNum', 'CompAuxLib', 'PieceRef', 'PieceDate', 'EcritureLib', 'Debit', 'Credit', 'EcritureLet', 'DateLet', 'ValidDate', 'Montantdevise', 'Idevise'];
 function fecLignes(){
   const d8 = d => d ? d.replace(/-/g, '') : '', m = x => x.toFixed(2).replace('.', ','), net = s => String(s || '').replace(/[|\r\n]/g, ' ');
-  return E.filter(e => e.etat === 'valide' && !e.essai).sort((a, b) => (a.valideLe + a.num).localeCompare(b.valideLe + b.num)).flatMap(e => e.lignes.map(l => [e.j, JOURNAUX[e.j], e.num, d8(e.date), l.c, libCpt(l.c), l.aux || '', l.aux ? nomTiers(l.aux) : '', e.piece || e.num, d8(e.date), net(l.lib), m(l.d), m(l.cr), l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map(net)));
+  return E.filter(e => e.etat === 'valide' && !e.essai).sort((a, b) => (a.valideLe + a.num).localeCompare(b.valideLe + b.num)).flatMap(e => e.lignes.map(l => [e.j, JOURNAUX[e.j], e.num, d8(e.date), l.c, libCpt(l.c), l.aux || '', l.aux ? nomTiers(l.aux) : '', e.piece || e.num, d8(e.date), net(l.lib), m(l.d), m(l.cr), l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map((v, i) => [5, 7, 8, 10].includes(i) ? net(v).replace(/^[=+\-@]/, "'$&") : net(v))));
 }
 const fecNom = () => DOSSIER.siren + 'FEC' + EXO.fin.replace(/-/g, '') + '.txt';
 VUES.fec = () => {
@@ -1827,11 +1827,19 @@ VUES.fec = () => {
     <div class="defile"><table class="t" style="font-size:12px"><thead><tr>${FEC_COLS.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${L.slice(0, 40).map(x => `<tr>${x.map((v, i) => `<td class="${[11, 12].includes(i) ? 'n' : ''} ${[2, 4, 6].includes(i) ? 'mono' : ''}" style="white-space:nowrap">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <p class="mute petit">Les 40 premières lignes sur ${L.length}.</p>`;
 };
+/* « dans un artefact » = la page principale (celle qui nous contient) est elle-même dans un cadre : window.top n'est ni nous ni notre parent */
+const dansArtefact = () => { try { return window.parent !== window && window.parent !== window.top; } catch (e) { return true; } };
 async function fecTelecharger(){
   const txt = [FEC_COLS.join('|'), ...fecLignes().map(x => x.join('|'))].join('\r\n'); UI.fecFait = true;
   /* window.claude n'est promis que dans la page du HAUT : la comptabilité vit dans un cadre, elle passe par celui du parent (même origine), sans jamais supposer qu'il existe */
   let dl = null; try { const cl = window.claude || (window.parent !== window ? window.parent.claude : null); dl = cl && cl.use ? await cl.use('downloads') : null; } catch (e) { dl = null; }
   const msg = $('#fec-msg');
+  /* Hors artefact (la page principale est la fenêtre du haut : la coque, un onglet), un lien de téléchargement marche ; dans un cadre verrouillé il ne ferait rien, et on ne l'annonce pas. 17 novembre 2026 */
+  if (!dl && !dansArtefact()) {
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type:'text/plain' })); a.download = fecNom(); a.hidden = true; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      if (msg) msg.innerHTML = `<div class="info">Téléchargement demandé : « ${esc(fecNom())} ». S’il ne démarre pas, ton navigateur le bloque ici.</div>`; }
+    catch (e) { if (msg) msg.innerHTML = `<div class="erreur">Le téléchargement n’a pas abouti ici.</div>`; }
+    parcoursVerifier(); return; }
   if (!dl) { if (msg) msg.innerHTML = `<div class="info">Le téléchargement n’est pas disponible ici : voici seulement le début du fichier (${fecLignes().length} lignes en tout).</div><pre class="fec-apercu mono" tabindex="0" role="region" aria-label="Début du fichier des écritures">${esc(txt.slice(0, 4000))}</pre>`; parcoursVerifier(); return; }
   try { await dl.save({ filename:fecNom(), data:txt }); toast('FEC enregistré : ' + fecNom() + '.'); }
   catch (e) { if (msg) msg.innerHTML = `<div class="${e && e.code === 'declined' ? 'info' : 'erreur'}">${e && e.code === 'declined' ? 'Téléchargement annulé.' : 'Le téléchargement n’a pas abouti ici.'}</div>`; }
@@ -2012,7 +2020,7 @@ function paieValider(){
   PAIE.vire = { total }; PAIE.dsn = { le:horloge() };
   fil('Paie', `Paie d’octobre validée · écriture ${e.num}`, 'Salaires, paniers et charges en dépenses ; en face, ce qui est dû aux salariés, à l’URSSAF, à la caisse de retraite et à l’impôt. Chaque salarié retrouve sa fiche dans « Mes heures ».', [e.id], 'paie');
   fil('Paie', `Fichier de virements envoyé à la banque · ${eur(total)}`, 'Un seul fichier pour les six salaires et les notes de frais à rembourser, en virements instantanés : la banque les exécute le jour même, samedi compris.', [], 'paie-vire');
-  fil('Paie', 'Déclaration sociale (DSN) d’octobre prête', `Dans ce prototype, rien n’est transmis. À déposer au plus tard le lundi 16 novembre (le 15 tombe un dimanche) : ${eur(r2(F.reduce((s, b) => s + b.orgs.urssaf, 0)))} pour l’URSSAF, ${eur(r2(F.reduce((s, b) => s + b.orgs.retraite, 0)))} pour la retraite, la prévoyance, la mutuelle et les caisses du bâtiment, ${eur(paieTotal(F, 'pas'))} d’impôt prélevé à la source.`, [], 'dsn');
+  fil('Paie', 'Déclaration sociale (DSN) d’octobre prête', `${opcSi('Dans ce prototype, rien n’est transmis. ', '')}À déposer au plus tard le lundi 16 novembre (le 15 tombe un dimanche) : ${eur(r2(F.reduce((s, b) => s + b.orgs.urssaf, 0)))} pour l’URSSAF, ${eur(r2(F.reduce((s, b) => s + b.orgs.retraite, 0)))} pour la retraite, la prévoyance, la mutuelle et les caisses du bâtiment, ${eur(paieTotal(F, 'pas'))} d’impôt prélevé à la source.`, [], 'dsn');
   synchroniserBanque(); return '';
 }
 
@@ -2119,7 +2127,7 @@ function paieControles(){
   return [
     { ok:nonValides.length === 0, t:'Toutes les heures du mois sont validées dans OP GESTION', d:nonValides.length ? 'Il manque la validation des heures de ' + nonValides.join(', ') + '.' : '6 salariés, 4 semaines complètes et la dernière jusqu’au 31.' },
     { ok:F.every(x => x.netPaye > 0), t:'Aucune fiche à zéro ou négative', d:'Chaque salarié a un net à payer.' },
-    { ok:hs <= 60, t:'Pas d’heures supplémentaires hors norme', d:`Le plus haut : ${nb(hs)} h sur le mois. (Le plafond annuel d’heures supplémentaires n’est pas contrôlé dans ce prototype.)` },
+    { ok:hs <= 60, t:'Pas d’heures supplémentaires hors norme', d:`Le plus haut : ${nb(hs)} h sur le mois. (Le plafond annuel d’heures supplémentaires n’est pas contrôlé ici.)` },
     { ok:ec <= 12, t:'Masse salariale proche du mois dernier', d:`${eur(b)} contre ${eur(b9)} en septembre (${ec < .05 ? 'identique' : (b > b9 ? '+' : '−') + nb(ec) + ' %'}).` }
   ];
 }
@@ -2295,6 +2303,8 @@ const plur = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
    ouvert seul (hors du cadre) il n'y a pas de rôle et tout reste visible. CMPT est déclarée plus bas : avant elle, le cadre est fermé par défaut. */
 function opcPaieOuverte(){ try { return window.parent === window || CMPT.role === 'patron' || CMPT.paie === true; } catch (e) { return window.parent === window; } }
 function opcModeApp(){ return /[?&]app=1\b/.test(location.search); }
+/* une phrase en deux versions : la démonstration seule (ouverte à part) et l'application (?app=1), où personne ne doit lire « prototype », « données fictives » ou « simulée » (compta-reste-08) */
+function opcSi(demo, app){ return opcModeApp() ? app : demo; }
 /* une rubrique fermée à ce visiteur : la paie hors patron, et dans l'application la démo, ses tests guidés et le film (leurs boutons y sont cachés : la page n'aurait aucune issue, et le test de la paie mènerait à une rubrique fermée) */
 function opcRouteFermee(r){ return (r === 'paie' && !opcPaieOuverte()) || (opcModeApp() && (r === 'demo' || r === 'tests' || r === 'film')); }
 function opcRouteRefusee(){ const r = UI.route; UI.route = 'accueil'; try { if (location.hash.slice(1) === r) history.replaceState(null, '', '#accueil'); } catch (e) {}
@@ -2447,7 +2457,7 @@ VUES.accueil = () => {
       ${kpi('ventes', 'Les clients te doivent', eur(clients), retard ? `dont ${eur(retard)} en retard` : 'rien en retard')}
       ${kpi('achats', 'Tu dois aux fournisseurs', eur(fourn), 'factures reçues, pas encore payées')}
       ${kpi('tva', 'TVA d’octobre', eur(tva), D.decl ? (D.pret ? 'arrêtée · à déposer d’ici le 23/11' : 'déposée · prélevée le 23/11') : 'à déposer au plus tard le 23/11')}
-      ${kpi('resultat', 'Bénéfice de l’année', eur(res), (PAIE.valide ? 'janvier à octobre, avant impôt' : 'avant impôt · octobre n’a pas encore sa paie') + (LIA ? ' · paie et achats d’exemple' : ''))}
+      ${kpi('resultat', 'Bénéfice de l’année', eur(res), (PAIE.valide ? 'janvier à octobre, avant impôt' : 'avant impôt · octobre n’a pas encore sa paie') + (LIA ? opcSi(' · paie et achats d’exemple', ' · paie et achats estimés') : ''))}
       ${kpi('fil', 'Fait tout seul en octobre', pct + ' %', P.auto === P.n ? `${P.n} écritures, toutes seules` : `${P.auto} écritures sur ${P.n}`)}
     </div>
     <div class="carte" id="mois-etapes"><h2>Ton mois d’octobre · ${oct ? 'clôturé' : faits + '/' + F.length + ' avant la clôture'}</h2>
@@ -2574,7 +2584,7 @@ VUES.paie = () => {
         <li><b>Les absences</b> (congé, maladie) viennent des demandes validées dans OP GESTION. Dans le bâtiment, les congés des salariés affiliés sont versés par la caisse de congés payés : l’entreprise cotise chaque mois. Dans cet exemple, tous les salariés sont supposés affiliés (à confirmer avec la caisse pour la secrétaire).</li>
         <li><b>Les paniers repas</b> : un par jour travaillé sur un chantier, sans cotisations jusqu’à 10,40 € en 2026.</li>
         <li><b>Les notes de frais</b> photographiées sont remboursées avec le salaire, sans charges.</li>
-        <li><b>Les cotisations</b> suivent des taux d’exemple (barèmes 2026, données fictives) : un vrai calcul suit les barèmes en vigueur et la convention collective, à faire valider par l’expert-comptable.</li></ul></div>
+        <li><b>Les cotisations</b> suivent ${opcSi('des taux d’exemple (barèmes 2026, données fictives) : un vrai calcul suit', 'des taux simplifiés (barèmes 2026) : le calcul définitif suit')} les barèmes en vigueur et la convention collective, à faire valider par l’expert-comptable.</li></ul></div>
       <div class="carte"><h2>Janvier à septembre</h2><div class="defile"><table class="t"><thead><tr><th>Mois</th><th class="n">Brut</th><th class="n">Net</th><th class="n masque-tel">Charges</th></tr></thead><tbody>${mois.map(x => `<tr><td>${nomMois(x.m)}${x.m.endsWith('-08') ? ' *' : ''}</td><td class="n">${nb(x.brut)}</td><td class="n">${nb(x.net)}</td><td class="n masque-tel">${nb(x.pat)}</td></tr>`).join('')}</tbody></table></div><p class="mute petit" style="margin-top:8px">* En août, les congés d’été sont versés par la caisse de congés du bâtiment : la paie de l’entreprise est plus basse.</p></div></div>`;
 };
 
@@ -2583,7 +2593,7 @@ const banqueDetail = VUES.banque, tvaDetail = VUES.tva, cloturesDetail = VUES.cl
 VUES.banque = () => {
   const n = UI.mode === 'choix' ? 0 : nouvellesLignes().length, att = RELEVE.filter(r => !r.pointe && !r.nouveau && r.attente).length, aR = releveAPasser().length;   // aR : les lignes du relevé qui attendent encore leur écriture (13 novembre 2026)
   const carte = `<div class="carte synchro ${n || aR ? '' : 'fait'}">${tuile(n ? 'synchro' : aR ? 'banque' : 'coche', n ? 'bleu' : aR ? 'ambre' : 'vert', 'g')}<div class="s-c"><h2>${n ? plur(n, 'nouvelle ligne', 'nouvelles lignes') + ' cette nuit' : aR ? plur(aR, 'ligne à rapprocher', 'lignes à rapprocher') : 'Banque à jour'}</h2>
-      <span class="mute petit">La banque envoie ses mouvements chaque nuit, par une connexion en lecture seule (ici simulée ; en vrai, un service agréé, avec ton accord à confirmer tous les 180 jours). Chaque ligne cherche son écriture.${att ? ` ${plur(att, 'ligne attend', 'lignes attendent')} leur pièce.` : ''}</span></div>${n ? '<button type="button" class="btn" data-a="synchro">Synchroniser maintenant</button>' : ''}</div>
+      <span class="mute petit">La banque envoie ses mouvements chaque nuit, par une connexion en lecture seule (${opcSi('ici simulée ; en vrai, un service agréé', 'par un service agréé')}, avec ton accord à confirmer tous les 180 jours). Chaque ligne cherche son écriture.${att ? ` ${plur(att, 'ligne attend', 'lignes attendent')} leur pièce.` : ''}</span></div>${n ? '<button type="button" class="btn" data-a="synchro">Synchroniser maintenant</button>' : ''}</div>
     <div class="carte"><h2>Comment une ligne trouve son écriture</h2><div class="defile"><table class="t pile-tel"><tbody>
       <tr><td>Le libellé cite un numéro de facture (FAC-…)</td><td>encaissement du client : la facture est notée payée, sa TVA devient due ce mois-ci</td></tr>
       <tr><td>« VERSEMENT PRESTATAIRE CARTES »</td><td>argent des paiements par carte, moins les frais du prestataire</td></tr>
@@ -2712,7 +2722,7 @@ VUES.aide = () => tete('Apprendre', 'Comment ça marche', 'La comptabilité de t
     <li><b>Un gros achat qui va durer</b> (l’ordinateur) : au-dessus de 500 € HT, il s’étale sur sa durée d’usage au lieu de passer en dépense d’un coup.</li>
     <li><b>Un prélèvement inconnu</b> : il applique la réponse la plus probable et la retient comme règle.</li>
     <li><b>La paie</b> : il la valide si ses quatre contrôles passent, sinon il te demande.</li>
-    <li><b>La TVA</b> : il l’arrête quand tout le mois est lu ; la déclaration est alors prête à déposer (dans ce prototype, rien n’est transmis).</li>
+    <li><b>La TVA</b> : il l’arrête quand tout le mois est lu ; la déclaration est alors prête à déposer${opcSi(' (dans ce prototype, rien n’est transmis)', '')}.</li>
     <li><b>La fin de mois</b> : il ferme quand tout est vert et envoie le dossier au cabinet.</li>
     <li><b>Tu restes responsable</b> de tes déclarations, des erreurs et des retards : chaque décision est notée, et tu peux exiger de tout valider toi-même.</li></ul></div>
     <div class="carte"><h2>Les cinq idées à retenir</h2><ul class="liste">
@@ -2729,14 +2739,20 @@ VUES.aide = () => tete('Apprendre', 'Comment ça marche', 'La comptabilité de t
       ['Brouillard', 'Une écriture pas encore validée : on peut encore la changer.'], ['Validation', 'L’écriture reçoit son numéro définitif et ne bouge plus.'], ['Contrepassation', 'L’écriture inverse qui annule une erreur sans l’effacer.'], ['Clôture', 'Fermer un mois ou une année : plus rien n’y entre.'],
       ['FEC', 'Le fichier des écritures comptables que l’administration fiscale peut demander lors d’un contrôle.'], ['DSN', 'La déclaration sociale nominative, envoyée chaque mois après la paie.'], ['Brut, net, charges', 'Le brut est le salaire avant cotisations ; le net est ce que le salarié touche ; les charges patronales s’ajoutent au brut.'],
       ['Prélèvement à la source', 'L’impôt sur le revenu du salarié, retenu sur sa paie et reversé à l’État.'], ['Bilan', 'Ce que l’entreprise possède et ce qu’elle doit, à une date.'], ['Compte de résultat', 'Ce qu’elle a gagné et dépensé sur l’année : la différence est le bénéfice (ou la perte).']].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl></div>
-  <div class="carte"><h2>Cette démonstration et la vraie vie</h2><ul class="liste">
+  ${opcModeApp() ? `<div class="carte"><h2>Ce qu’il faut savoir</h2><ul class="liste">
+    <li>La banque se relie par un service agréé, en lecture seule, avec ton accord à confirmer tous les 180 jours.</li>
+    <li>Depuis le 1er septembre 2026, toute entreprise doit pouvoir recevoir des factures électroniques ; les petites et moyennes entreprises devront en émettre à partir du 1er septembre 2027.</li>
+    <li><b>La TVA des factures est simplifiée.</b> L’entretien et le dépannage chez un particulier sont en principe à 10 % (le client le certifie sur la facture). Depuis le 18 juillet 2026, la pose d’une pompe à chaleur air/air qui remplit les critères est à 5,5 % ; sinon, 10 % sur la pose et 20 % sur l’appareil.</li>
+    <li>Les <b>taux de paie</b> sont simplifiés (barèmes 2026) ; la TVA et la DSN se déposent par un partenaire habilité ou par toi-même.</li>
+    <li>Un logiciel qui enregistre des paiements de particuliers doit garantir qu’on ne peut pas les modifier après coup (conformité attestée par l’éditeur, ou certifiée).</li>
+    <li>Les règles ont été relues sur les sources officielles en novembre 2026, mais restent <b>à faire valider par ton expert-comptable</b>.</li></ul></div>` : `<div class="carte"><h2>Cette démonstration et la vraie vie</h2><ul class="liste">
     <li>Les données sont <b>fictives</b> : ${esc(DOSSIER.nom)} n’existe pas, ses clients non plus. Rien n’est enregistré : recharger la page remet le dossier au 31 octobre au matin.</li>
     <li>La banque est <b>simulée</b>. En vrai, elle se relie par un service agréé, en lecture seule, avec ton accord à confirmer tous les 180 jours.</li>
     <li>La lecture des factures est <b>simulée</b>. Depuis le 1er septembre 2026, toute entreprise doit pouvoir recevoir des factures électroniques ; les petites et moyennes entreprises devront en émettre à partir du 1er septembre 2027.</li>
     <li><b>La TVA des factures de démonstration est simplifiée.</b> L’entretien et le dépannage chez un particulier sont en principe à 10 % (le client le certifie sur la facture). Depuis le 18 juillet 2026, la pose d’une pompe à chaleur air/air qui remplit les critères est à 5,5 % ; sinon, 10 % sur la pose et 20 % sur l’appareil.</li>
     <li>Les <b>taux de paie</b> sont des exemples (barèmes 2026) ; la TVA et la DSN ne sont pas réellement transmises. En vrai, elles passent par un partenaire habilité.</li>
     <li>Un logiciel qui enregistre des paiements de particuliers doit garantir qu’on ne peut pas les modifier après coup (conformité attestée par l’éditeur, ou certifiée) : un point à cadrer avant la mise en service.</li>
-    <li>Les règles de ce prototype ont été relues sur les sources officielles en novembre 2026, mais restent <b>à faire valider par l’expert-comptable</b> avant tout usage réel.</li></ul></div>`;
+    <li>Les règles de ce prototype ont été relues sur les sources officielles en novembre 2026, mais restent <b>à faire valider par l’expert-comptable</b> avant tout usage réel.</li></ul></div>`}`;
 
 /* ══ LES TESTS GUIDÉS — une bulle qui accompagne chaque geste, chaque test se coche tout seul et dit ce qui a été écrit ══ */
 const tvaQuestionsEnAttente = () => aVerifier().filter(x => x.kind === 'immo' || x.kind === 'ligne').length;
@@ -3309,6 +3325,7 @@ const cmptParent = m => { try { if (parent !== window) { parent.postMessage(m, '
 const cmptPluriel = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
 /* un message d'OP GESTION : qui regarde (le titre et « Ce qui t'attend »), ou « ouvre-moi cette rubrique avec ce filtre » */
 addEventListener('message', ev => {
+  if (window.parent === window || ev.source !== window.parent) return;   /* ouverte seule, la page n'accepte AUCUN message ; dans son cadre, seulement ceux de la page qui la contient : le rôle, la Paie et les liens ne se décident QUE par la page qui nous contient (OP GESTION) : une autre fenêtre, de n'importe quelle origine, ne peut pas se déclarer patron */
   const d = ev.data; if (!d || typeof d !== 'object') return;
   if (d.opc_role) { window.CMPT_DROITS = d.opc_role.droits && typeof d.opc_role.droits === 'object' ? d.opc_role.droits : null; const roleAvant = CMPT.role; const paieAvant = CMPT.paie; CMPT.role = d.opc_role.role === 'patron' ? 'patron' : 'gestion'; CMPT.paie = d.opc_role.paie === true;   /* le comptable du cabinet reste « gestion » pour tout le reste, mais garde la Paie : la règle « patron seul » la lui avait retirée, alors que le défaut était la gestion des factures (secrétariat) · 13 novembre 2026 */ if (d.opc_role.prenom) CMPT.prenom = String(d.opc_role.prenom).slice(0, 30); if (UI.route === 'accueil' || CMPT.role !== roleAvant || CMPT.paie !== paieAvant) rendre(); }
   if (d.opc_aller) cmptAller(d.opc_aller);
@@ -3388,7 +3405,7 @@ function cmptPdf(num){
   ouvrir(haut('Facture ' + esc(num), `${esc(nomTiers(f.cli))} · ${dCourt(F.e.date)}`, 'Aperçu du PDF') + `<div class="cmpt-pdf"><h3>${esc(DOSSIER.nom)}</h3><span>${esc(DOSSIER.adr)} · SIRET ${esc(DOSSIER.siret)}</span>
     <p style="margin:12px 0 0"><b>Facture ${esc(num)}</b> du ${dCourt(F.e.date)}<br>Client : ${esc(nomTiers(f.cli))}<br>Échéance : ${F.e.ech ? dCourt(F.e.ech) : '—'}</p>
     <table><thead><tr><th>Désignation</th><th class="n">HT</th><th class="n">TVA ${tx} %</th><th class="n">TTC</th></tr></thead><tbody><tr><td>${esc(f.lib)}</td><td class="n">${nb(F.ht)}</td><td class="n">${nb(F.tva)}</td><td class="n">${nb(F.ttc)}</td></tr></tbody></table>
-    <p style="text-align:right;margin:10px 0 0"><b>Total à payer : ${eur(r2(F.ttc))}</b></p></div><p class="mute petit">Aperçu de démonstration : le vrai PDF part avec la facture, depuis OP GESTION.</p>`, true);
+    <p style="text-align:right;margin:10px 0 0"><b>Total à payer : ${eur(r2(F.ttc))}</b></p></div><p class="mute petit">${opcSi('Aperçu de démonstration : le vrai PDF part avec la facture, depuis OP GESTION.', 'Aperçu : le PDF définitif part avec la facture, depuis OP GESTION.')}</p>`, true);
 }
 /* la pastille « Relié à OP GESTION » dit où en est la lecture, et relit à la demande */
 function cmptLecture(){
@@ -3433,7 +3450,7 @@ VUES.accueil = () => {
   else { const cr = cmptCreux(); if (cr) h = h.replace('<div class="kpis six"', `<div class="alerte cmpt-ecart" role="status"><b>Trésorerie :</b> ${cr.deja ? `le compte est déjà sous ton seuil : ${eur(cr.s)} aujourd’hui, pour un seuil de ${eur(CMPT.seuil)}.` : `le ${dCourt(cr.d)}, le compte descendrait à ${eur(cr.s)}, sous ton seuil de ${eur(CMPT.seuil)}.`} <button type="button" class="lien" data-cmpt="attend|previsions">Voir la courbe</button></div><div class="kpis six"`); }
   h = h.replace('à déposer au plus tard le 23/11', 'calculée sur les paiements reçus au 31/10 · à déposer d’ici le 23/11');
   if (!PAIE.valide && opcPaieOuverte()) { const F = paieFichesDe('2026-10'), cout = r2(paieTotal(F, 'brut') + paieTotal(F, 'paniers') + paieTotal(F, 'totP')), res = -(solde('6', { au:AUJ }) + solde('7', { au:AUJ }));
-    h = h.replace(/<button type="button" class="kpi" data-a="aller" data-r="resultat">[\s\S]*?<\/button>/, kpi('resultat', 'Bénéfice de l’année estimé', eur(r2(res - cout)), `avec la paie d’octobre prévue (− ${eur(cout)}) · ${eur(res)} avant la paie` + (LIA ? ' · paie et achats d’exemple' : ''))); }   /* relié à OP GESTION, les ventes sont celles de l'application (petites dans ce prototype) et la paie et les achats restent des exemples : le bénéfice en sort négatif, on dit d'où viennent les charges (ici et sur la tuile du tableau de bord) · 13 novembre 2026 */
+    h = h.replace(/<button type="button" class="kpi" data-a="aller" data-r="resultat">[\s\S]*?<\/button>/, kpi('resultat', 'Bénéfice de l’année estimé', eur(r2(res - cout)), `avec la paie d’octobre prévue (− ${eur(cout)}) · ${eur(res)} avant la paie` + (LIA ? opcSi(' · paie et achats d’exemple', ' · paie et achats estimés') : ''))); }   /* relié à OP GESTION, les ventes sont celles de l'application (petites dans ce prototype) et la paie et les achats restent des exemples : le bénéfice en sort négatif, on dit d'où viennent les charges (ici et sur la tuile du tableau de bord) · 13 novembre 2026 */
   return h;
 };
 /* la nuit lue : une ligne fixe qui dit ce qui a changé, au lieu d'un message qui passe et couvre l'écran */
@@ -3615,7 +3632,7 @@ document.addEventListener('click', ev => {
   if (a === 'depot') return film ? toast('La démo joue déjà la journée.') : cmptDepot(x);
   if (a === 'hero') { CMPT.heroReplie = x === '1'; try { localStorage.setItem('cmpt_hero_replie', x); } catch (e) {} return rendre(); }
   if (a === 'attend') { if (y) UI.vf = y; return aller(x); }
-  if (a === 'impots') return toast('Dans la vraie version, ton espace impots.gouv.fr s’ouvre ici. Dans la démonstration, rien n’est transmis.');
+  if (a === 'impots') return toast(opcSi('Dans la vraie version, ton espace impots.gouv.fr s’ouvre ici. Dans la démonstration, rien n’est transmis.', 'Dépose ta déclaration sur ton espace impots.gouv.fr : rien n’est transmis depuis ici.'));
   if (a === 'rappel') { CMPT.rappelTva = !CMPT.rappelTva; return toast(CMPT.rappelTva ? 'Rappels activés : un message le 16/11 (sept jours avant) puis le 22/11.' : 'Rappels coupés pour la TVA.'); }
   if (a === 'treso-tva') { UI.prevTout = true; UI.prevSurligne = 'tva'; return aller('previsions'); }
   if (a === 'seuil') { CMPT.seuilOn = !CMPT.seuilOn; return rendre(); }

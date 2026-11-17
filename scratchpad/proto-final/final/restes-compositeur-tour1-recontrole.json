@@ -1,0 +1,62 @@
+{
+ "noms": [
+  "compositeur"
+ ],
+ "regles": [
+  "compositeur — « ⋯ » après la création d'un contrat au petit téléphone : « Supprimer ce brouillon » atteignable (rejoué petit, iphone, android, ipad, mac, windows ; jour et nuit iphone) ; la feuille « Format » est rangée AVEC l'espace qu'elle réservait (fmt-bas retirée, bas du bureau rendu), elle se rouvre par « Format », ce qu'on y avait tapé survit (valeur d'une variable gardée), les autres menus (Zoom, Insérer d'un devis) restent entièrement atteignables au doigt, 14 gestes d'« Insérer » compris",
+  "compositeur — infobulles masquées sous un menu : la classe menu-ouvert ne reste JAMAIS collée (Échap, toucher dehors, pivot/redimensionnement menu ouvert, trois menus à la suite) ; au bureau (> 760 px) rien n'est masqué ; « Brouillon supprimé » reste affichée dans le cadre après le geste du menu",
+  "compositeur — collage multiligne dans Délai et Paiement : champ = page, curseur juste (collage à la fin, au milieu, en tête, sur une sélection remplacée), collage de 10 lignes longues borné à 300 signes sans retour à la ligne, Entrée n'insère rien, un collage d'une seule ligne ne bouge pas",
+  "compositeur — blancs du modèle entre crochets : variable inconnue → [nom], « entreprise » reste « le prestataire », texte sans variable inchangé, résumé ≤ 110 signes même avec les crochets, aucun résumé de bibliothèque au-dessus de la limite, la recherche par le mot du blanc trouve toujours",
+  "compositeur — initiales du logo : peintes au centre jugées sur les PIXELS à 30/250/600/1200 ms, aux trois ouvertures successives de l'aperçu en grand et au va-et-vient Ajuster (19 px) ↔ 100 % (52 px), au bureau (mac, 2 colonnes), iPhone, Android, petit, iPad, de nuit ; tous les logos SVG à initiales de la page (26) sont centrés à ± 3 px",
+  "compositeur — atelier-seule rebasée : 56 ✓ · 0 ✗ ; les deux entrées « déjà décidé » (sondes rouges, deux correctifs sans sonde) : compositeur-mise-en-page petit 14, iphone 15, mac 9 ✓ · 0 ✗ ; atelier-devis iphone 41 / mac 41, atelier-contrat iphone 23, atelier-grand petit 76, compositeur-liste 16 ✓ · 0 ✗"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Ctrl+Z (annuler) ne fait plus rien après un collage sur plusieurs lignes dans « Délai » / « Paiement »",
+   "gravite": "mineure",
+   "etapes": "petit téléphone ou bureau : devis, champ « Délai », y mettre « avant », coller « ⏎ l1⏎l2 » (collage multiligne), puis Ctrl+Z (clavier externe ou menu « Annuler » du système)",
+   "constat": "avant la correction le champ gardait ses lignes et l'annulation native fonctionnait ; maintenant uneLigne() réécrit t.value, ce qui vide la pile d'annulation du navigateur : « avant l1 l2 » reste « avant l1 l2 ». Témoin : le même geste avec une seule ligne est bien annulé (« avant »). Piste, non appliquée (je ne modifie aucune page) : réécrire par document.execCommand('insertText') après avoir sélectionné tout le champ, qui s'inscrit dans l'historique. Mesuré par la sonde compositeur-restes1-recontrole.js (C5/C5b), seulement au clavier : sur téléphone l'annulation passe par secousse / menu et n'a pas été jouée"
+  }
+ ],
+ "nouveaux": [
+  "compositeur — après « Supprimer ce brouillon » (menu « ⋯ », confirmation, « Supprimer »), l'infobulle « Brouillon supprimé » est posée dans le cadre de l'atelier, que le parent range aussitôt (visibility:hidden mesuré sur petit 320 × 568 et iPhone) : la personne ne voit AUCUNE confirmation, seulement la ligne qui disparaît de la liste. Antérieur aux corrections (le toast suit fermerDoc() depuis le lot d'origine), gênant mineur ; piste : poser l'infobulle dans le parent (le pont existe) ou avant de ranger le cadre",
+  "compositeur — la sonde compositeur-gestes.js (tout-14) supposait que le premier Échap ferme la zone de texte d'un article et que le second ouvre la confirmation : l'application ouvre la confirmation dès le premier Échap (contenu non vide) et le second la referme (« Continuer ») — le compositeur restait ouvert et la section suivante tombait (« Cannot read properties of null », mac, sur le parent actuel ; la même chute avec la page documents d'AVANT les corrections : ce n'est donc pas un effet des corrections). Sonde CORRIGÉE (on cherche la confirmation après chaque Échap) : compositeur-gestes mac 44 ✓ · 0 ✗, iphone 38, petit 38"
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/sondes/compositeur-restes1-recontrole.js (NEUVE, adverse : menus et feuille, collage, logo au pixel, crochets)",
+   "resultat": "petit 40 ✓ · 0 ✗ ; iphone 40 ✓ · 0 ✗ ; mac 30 ✓ · 0 ✗ ; ipad 41 ✓ · 0 ✗ ; android 38 ✓ · 0 ✗ ; iphone nuit 38 ✓ · 0 ✗ (avant l'ajout de B5/C5b ; petit et iphone rejoués ensuite à 40)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/compositeur-restes1.js",
+   "resultat": "iphone 20 ✓ · 0 ✗, petit 19 ✓ · 0 ✗ (rejouées en début de recontrôle) ; windows 17 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/compositeur-gestes.js (corrigée, voir nouveaux)",
+   "resultat": "mac 44, iphone 38, petit 38 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/compositeur-mise-en-page.js",
+   "resultat": "petit 14, iphone 15, mac 9 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/atelier-devis.js, atelier-contrat.js, atelier-grand.js, atelier-seule.js, compositeur-liste.js",
+   "resultat": "devis iphone 41 / mac 41, contrat iphone 23, grand petit 76, seule 56, liste 16 — tous ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/compositeur-mutations.py R (R1, R2, R2b, R3a, R3b, R3c, R4, R5)",
+   "resultat": "8 mordent · 0 survivent sur 8 (copies, dépôt intact)"
+  },
+  {
+   "fichier": "bancs",
+   "resultat": "compiler-pages, verifier-syntaxe, test-835 (844), 836 (307), 837 (122), 1008 (54), 2994 (15), verif-secrets : tous à zéro ✗"
+  }
+ ],
+ "doutes": [
+  "petit téléphone (320 × 568), contrat tout juste créé : la feuille « Format » (qui s'ouvre toute seule) recouvre la barre du bas, donc « Insérer » (et « Aperçu », « Envoyer ») ne se touchent pas tant qu'on n'a pas touché « Terminé » (capturé et regardé sur petit et iPhone). Il semble voulu (« Terminé » est l'issue claire), mais Justin voudra peut-être qu'« Insérer » reste atteignable : à soumettre",
+  "R2 (infobulles masquées sous le menu) : une infobulle à bouton « Annuler » dont les 6,5 s s'écoulent pendant que le menu est ouvert n'est plus lisible à sa fermeture ; assumé par le correcteur, reste vrai",
+  "Non vérifié : Safari / Chrome réels sur iPhone, Android, Windows, iPad (profils émulés, encoches simulées, Chromium) — surtout l'initiale du logo (propriété text-rendering standard, défaut observé sous Chromium), l'annulation au toucher après un collage, le clavier virtuel ; l'artefact publié n'a pas été rejoué",
+  "Les 7 décisions « à soumettre à Justin » du fichier restes-compositeur-tour1.json (aperçu à 100 %, mot « atelier », « HT » dit dans le contrat, déplacement 29,17 € HT, numéro rendu à la suppression, Échap de « Nouveau client », appareils réels) restent ouvertes et n'ont pas bougé ; la voie « mots » et l'agent juriste sont à solliciter"
+ ]
+}

@@ -1,0 +1,119 @@
+{
+ "partie": "accueil",
+ "date": "2026-11-17",
+ "recontroleur": "recontrôle adverse (étape 3 sur 3)",
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  8,
+  9,
+  10
+ ],
+ "pasRegles": [
+  {
+   "n": "accueil-07",
+   "constat": "Pas corrigé, exprès : « À faire maintenant » garde ses lignes de même poids (mesuré au recensement des gestes : 17 lignes cliquables, plus 4 dans la carte « Matériel » ; il y en avait 16 quand le rapport a été écrit). Décision de Justin : la proposition du testeur (6 premières lignes, « En retard » d'abord, puis « Voir les autres ») touche au dessin de l'Accueil validé."
+  },
+  {
+   "n": "accueil-03 (partie)",
+   "constat": "Réglé pour les cinq chemins que le correcteur a nommés (rejoués : fiche « Virement » = +1 encaissement, +1 ligne, bonne facture, bon montant ; « Annuler » = +1 ligne ; en partie, rapprochement de la banque, OP Lia : les mutations C2 à C8 tombent). RESTE un chemin qui encaisse sans écrire dans l'Historique : l'argent reçu par le technicien sur place. Rejoué : une intervention terminée, fiche d'argent « total en espèces », envoyerFacture() ⇒ +1 encaissement, facture « payée », 0 ligne de journal ; et aucune des 51 lignes de l'Historique ne cite les 40 € reçus sur place par Tom (le tableau de bord les compte pourtant dans « reçu en octobre »). Le correcteur l'avait laissé exprès (« il a déjà sa ligne côté intervention ») : la ligne est côté intervention, pas côté Historique, et le filtre « Factures et paiements » ne la montre pas. À trancher : une ligne « Tom Leroy a noté 40,00 € reçus sur place · Espèces » quand le technicien l'enregistre, et à l'envoi de la facture."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Le bilan du mois (PDF) dit 3 045 € « encaissé » quand l'Accueil et la Comptabilité disent 3 085 € « reçu » — sans un mot d'explication",
+   "gravite": "gênant",
+   "etapes": "Accueil : tuile « 3 085,00 € reçu en octobre (dont 40,00 € reçus sur place) ». Statistiques › « Bilan du mois en PDF » : synthèse « Encaissé 3 045 € TTC » et ligne « Encaissé sur la période 3 045,00 € ».",
+   "constat": "Effet de bord d'accueil-01. Avant, l'Accueil disait 3 045 comme le bilan ; maintenant il dit 3 085 (juste, c'est la Comptabilité), et le bilan — le document qui part chez le comptable — ne dit pas pourquoi il en montre 40 de moins. La tuile des Statistiques le dit (« hors 40 € reçus sur place, sans facture »), le bilan non (aucun « sur place » dans le texte du bilan, cherché). Capture : recontrole-bilan-mac-jour.png. Sonde : accueil-recontrole-divers.js (le seul ✗, laissé rouge exprès). Proposition : une ligne sous « Encaissé sur la période » : « Non compris : 40,00 € reçus sur place, pas encore sur une facture »."
+  },
+  {
+   "titre": "Iphone et iPad : le graphique des 12 mois coupe son premier mois visible (« éc » au lieu de « déc »)",
+   "gravite": "détail",
+   "etapes": "Statistiques sur iPad (820 px) : le graphique défile désormais comme au téléphone (accueil-05) ; il s'ouvre calé à droite.",
+   "constat": "La barre et le libellé du mois de gauche sont coupés net contre le bord de la carte (capture regard-stats-ipad-jour.png : « éc »). C'est un défilement, rien ne manque, mais ça se lit comme un défaut. Pistes : un fondu à gauche (comme le fondu des puces de l'Historique) ou un arrondi du défilement sur une colonne. Non touché : la page est interdite à ce recontrôle."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "accueil-corrections.js",
+   "resultat": "mac 27 ✓ · 0 ✗ ; ipad 31 ✓ · 0 ✗ ; iphone 27 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "accueil-coherence.js",
+   "resultat": "mac 22 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "accueil-vides.js",
+   "resultat": "10 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "accueil-mots.js",
+   "resultat": "36 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "accueil-parcours.js",
+   "resultat": "27 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "accueil-parcours2.js",
+   "resultat": "12 ✓ · 0 ✗ (rouge au départ, 11 ✓ · 1 ✗ : la sonde attendait « reçu en octobre = encaissé + 40 », nombre d'avant accueil-01 ; attendu corrigé, pas la page)"
+  },
+  {
+   "fichier": "accueil-mise-en-page.js",
+   "resultat": "mac jour 16/0, mac nuit 16/0, windows jour 16/0, ipad jour 28/0, ipad nuit 28/0, iphone jour 28/0, iphone nuit valeurs longues 28/0, android nuit valeurs longues 28/0, petit (320 px) jour 28/0, petit nuit 28/0"
+  },
+  {
+   "fichier": "accueil-roles.js",
+   "resultat": "4 personnes : Marc sur l'Accueil ; Julie sur Comptabilité, Karim et Sophie sur « Ma journée » ; #accueil, #statistiques et #historique les y ramènent ; 0 erreur JavaScript"
+  },
+  {
+   "fichier": "accueil-destinations.js",
+   "resultat": "11 destinations d'Accueil : toutes au bon endroit"
+  },
+  {
+   "fichier": "accueil-historique-lignes.js mac",
+   "resultat": "51 lignes d'Historique touchées une à une : aucune ne mène à une mauvaise page ; 14 reconnues par leur numéro (OK-num) ; 1 « numéro absent » = paiement d'une facture que la liste ne contient pas, dit à l'écran (voulu)"
+  },
+  {
+   "fichier": "accueil-gestes.js",
+   "resultat": "Accueil mac 36/36, iphone 38/38 ; Statistiques mac 49/49, iphone 51/51 ; Historique mac 34/44, iphone 36/46 (les 10 manquants sont des lignes d'un jour replié que la sonde ne retrouve pas au rejeu : limite de l'outil, couverte par accueil-historique-lignes à 51/51)"
+  },
+  {
+   "fichier": "accueil-recontrole.js (nouvelle)",
+   "resultat": "mac jour 15 ✓ · 0 ✗ ; iphone nuit 15 ✓ · 0 ✗ (14 ✓ · 1 ✗ au premier passage : ma sonde oubliait les reçus sur place dans son recalcul)"
+  },
+  {
+   "fichier": "accueil-recontrole-parcours.js (nouvelle)",
+   "resultat": "trois parcours de bout en bout : iphone jour 25 ✓ · 0 ✗ ; mac nuit 25 ✓ · 0 ✗ (A : un règlement par le vrai bouton, nombres relus à l'Accueil, à la Comptabilité, aux Statistiques, ligne d'Historique → fiche → Retour ; B : jour sans intervention → fenêtre → création → l'Accueil la range ; C : Statistiques → technicien → intervention → Retour, période gardée, Historique filtré → ligne → fiche → Retour, filtre gardé)"
+  },
+  {
+   "fichier": "accueil-recontrole-divers.js (nouvelle)",
+   "resultat": "7 ✓ · 1 ✗ : le ✗ est le bilan PDF (voir casses)"
+  },
+  {
+   "fichier": "mutations-accueil-corrections.py",
+   "resultat": "8 mutations sur 8 : la sonde tombe à chaque fois, sur le contrôle qui porte le numéro du défaut"
+  },
+  {
+   "fichier": "mutations-accueil.py",
+   "resultat": "4 sur 4 tombent"
+  },
+  {
+   "fichier": "mutations-accueil-recontrole.py (nouvelle)",
+   "resultat": "4 sur 4 tombent (R1 payer() sans journal, R2 tuile sans les reçus sur place, R3 idem dans le parcours A, R4 le bouton « Chèque » n'encaisse plus). R3 ne tombait au premier passage que sur une étape de la sonde qui se trompait (le contrôle de la ligne d'Historique était trop souple) : resserré, retombe pour la bonne raison"
+  }
+ ],
+ "doutes": [
+  "Julie (secrétariat) s'ouvre sur la Comptabilité : pour elle « l'accueil » n'existe pas, #accueil la ramène sur sa page sans un mot. Est-ce voulu ?",
+  "accueil-07 : l'Accueil du gérant montre 17 lignes de même poids dans « À faire maintenant » (plus 4 lignes dans « Matériel »). Un débutant voit tout d'un coup. Proposition prête (6 premières lignes triées « En retard » d'abord, puis « Voir les autres ») : on la fait ?",
+  "Le bilan du mois (PDF) ne dit pas les 40 € reçus sur place : le chiffre diffère de l'Accueil de 40 €. Une ligne de plus dans le bilan, ou on laisse ?",
+  "L'argent reçu sur place par le technicien n'apparaît pas dans l'Historique (« Tom a noté 40,00 € en espèces ») : on veut une ligne, comme pour les autres paiements ?",
+  "Sur un Mac de 900 px de haut le pied du menu (Jour / Nuit, Nouveautés, Mon compte, Se déconnecter) prend ~220 px : il reste onze lignes de menu visibles, Argent, Matériel et Personnel sont sous le pli, et dans l'Historique le menu défile jusqu'à cacher Accueil et Statistiques. C'est la coque (pas ma partie) : à regarder par l'agent de la coque.",
+  "Statistiques d'un mois d'avant octobre : les chiffres sont fabriqués par le prototype (seule leur cohérence interne est vérifiée).",
+  "Non vérifié : Windows en nuit et le téléchargement réel des PDF (aperçu vérifié seulement) ; au doigt, les gestes simples ont été touchés un à un sur iPhone, les parcours enchaînés l'ont été sur iPhone (A, B, C) mais pas sur iPad ni Android."
+ ]
+}
