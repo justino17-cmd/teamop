@@ -92,7 +92,7 @@
  "doutes": [
   "S01/S03 : le titre d'une intervention tapé dans « Modifier l'intervention » (champ Titre, ≈ 8987/9039) est rangé BRUT (entrée non gardée, confirmé par recontrole-titre.js : 4 interventions changées, 5 ✓ · 1 ✗ sur l'entrée) ; sur les 19 écrans, fiches et panneaux visités la lecture ne voit aucune sortie, mais la sonde « toute donnée mutée » (recontrole-donnees decal 3, 99 écrans) a signalé INTS[].titre sur deux fiches (inter-x-i3, inter-x-i4) avec des charges de forme mXSS (<math><mtext><table><mglyph><style>) que ce rejeu à la main n'a pas reproduites : à rejouer par la correction (borner l'entrée comme un libellé) plutôt qu'à débusquer le gabarit.",
   "Toute donnée mutée (recontrole-donnees decal 3, 13 892 champs, 668 vus à l'écran, 99 écrans, 389 clics) : 174 sorties, toutes sur des constantes du code (CX_NAV, CX_CATS, IC, CONTROLES, RELEVES, DX_PRE…), des numéros fabriqués (FACTURES/CONTRATS/DEVIS num), des champs de Mon entreprise (ENTREPRISE.adr, mail, patron : entrée gardée par entEnregistrerIdent) et des noms de l'équipe (TECHS, H_GENS : entrée gardée par nomPersonneOk) — aucune ne vient d'un champ libre à l'entrée non gardée sauf INTS[].titre. Même ensemble pour la bêta.",
-  "Le rejeu « toute donnée mutée » avec les charges de rang décalé 0 (recontrole-donnees decal 0) a expiré deux fois à 580 s (machine à 17 de charge) : son résultat est dans la partie « vérifié » seulement s'il est rendu plus bas (voir note finale).",
+  "Toute donnée mutée, charges de rang décalé 0 (recontrole-donnees --decal=0, rejeu long de 580 s refusé deux fois par la charge de la machine, rendu en 25 min : 99 écrans, 292 clics, 13 906 champs, 932 vus à l'écran) : 215 sorties, mêmes familles que décalé 3 (constantes du code, numéros fabriqués, ENTREPRISE.adr, noms de l'équipe) et INTS[].titre sur trois fiches (inter-x-i2, i7, i14) avec quatre formes (onerror, onload, onfocus, onmouseover) ; recontrole-titre.js a rejoué à la main ces trois fiches avec les formes mXSS, attribut sans guillemet, img et svg : aucune sortie vue (le gabarit exact n'est pas trouvé), l'entrée, elle, est bien brute.",
   "recontrole-saisie.js (formulaires remplis un à un) : 36 formulaires, 36 champs, 12 validations dont 1 seule a changé les données : sa population est trop mince pour rien conclure (0 sortie ne vaut pas preuve) ; la méthode est à poursuivre formulaire par formulaire, comme recontrole-clientsaisi.js et recontrole-titre.js.",
   "S11 : bornes de l'import de prix relues dans le code, non rejouées avec un fichier hostile (1e999, 10²³, 100 000 signes, 20 000 lignes, BOM, séparateur exotique) dans ce recontrôle.",
   "S15 : opcourrier.js (racine, apercu/, server-msg/public/) porte toujours l'ancien corpsLu : les lettres cyrilliques et les adresses à identifiants y restent cliquables ; ce n'est pas un fichier de cette voie, à reporter par la voie qui le tient.",
@@ -116,7 +116,9 @@
   "recontrole-casse2": "4 ✓ · 1 ✗",
   "recontrole-sortie": "7 ✓ · 5 ✗",
   "recontrole-titre": "5 ✓ · 1 ✗ (entrée non gardée, aucune sortie vue)",
-  "recontrole-saisie": "4 ✓ · 2 ✗ (population trop mince)"
+  "recontrole-saisie": "4 ✓ · 2 ✗ (population trop mince)",
+  "recontrole-donnees decal 0": "1 ✓ · 2 ✗ (215 sorties, famille constantes/numéros/Mon entreprise/équipe + INTS[].titre)",
+  "recontrole-donnees decal 3 (secrétaire)": "1 ✓ · 2 ✗ (174 sorties, mêmes familles)"
  },
  "encore_ouvertes_resume": "S01 (×2 variantes), S05, S06, S10 : 5 variantes encore ouvertes ; S02, S03 (personnes), S04, S07, S08, S09, S11*, S12, S13, S14, S15, S16, S17, S18 fermées (*S11 relue, non rejouée)."
 }
