@@ -1,0 +1,100 @@
+[
+ {
+  "nom": "interventions-16 : entretien annuel coché d'office après un dépannage, pas de « autre passage » pour tous les clients",
+  "defaut": "interventions-16 : entretien annuel coché d'office après un dépannage, pas de « autre passage » pour tous les clients",
+  "etat": "corrigé",
+  "changement": "Case « Un autre passage est nécessaire — le bureau prépare le devis » pour TOUS les clients (elle n'existait que pour le Vieux Port) ; « Entretien annuel » cochée d'office seulement après un Entretien, une Mise en service ou une Installation (jamais après un dépannage ni une garantie, y compris la fiche de démonstration i1) ; l'intervention de suite, la carte « Suites à donner », le compte rendu PDF et la page du client disent « Un autre passage » (la démonstration du devis du ventilateur reste sur l'intervention i1 du Vieux Port).",
+  "preuve": "interventions-restes-1.js section B (17 ✓, jour iphone/mac, nuit iphone/ipad/android/petit/windows/mac720) ; interventions-parcours-suite.js 38 ✓ · 0 ✗ (il restait 1 ✗ exprès) ; mutations M3, M4, M5 tombent ; captures restes1-*-b1/b2/b3 regardées"
+ },
+ {
+  "nom": "Garantie : la fiche (technicienne et bureau) parle encore d'une facture (casse + pasRegles 2 + doute)",
+  "defaut": "Garantie : la fiche (technicienne et bureau) parle encore d'une facture (casse + pasRegles 2 + doute)",
+  "etat": "corrigé",
+  "changement": "Avant comme après « Terminer », le bloc « Paiement sur place » est remplacé par « Garantie : rien à encaisser, aucune facture » (technicienne et bureau) ; plus de « Pas encore payé », « Payé en totalité », « Acompte versé », « la facture lui sera envoyée » ; la fiche terminée dit « Sans facture » et la même phrase.",
+  "preuve": "section A (6 contrôles dont la contre-épreuve : une intervention normale garde son bloc) ; mutations M1 et M2 tombent ; captures a1/a2/a3 jour et nuit regardées"
+ },
+ {
+  "nom": "iPad : le filtre « Toutes » de la liste est caché à droite, sans indice",
+  "defaut": "iPad : le filtre « Toutes » de la liste est caché à droite, sans indice",
+  "etat": "corrigé",
+  "changement": "Le segmenté Aujourd'hui · À venir · À planifier · Terminées · Toutes passe à la ligne dès que la colonne est étroite, sur tous les appareils (règle CSS ajoutée, la règle téléphone reste).",
+  "preuve": "section C : scrollWidth = clientWidth (506/506 à 820 px), aucun bouton hors écran ; mutation M6 tombe (3 ✗) ; capture ipad-nuit-c1 regardée (3 + 2 filtres)"
+ },
+ {
+  "nom": "« Voir dans Tâches › » répond sur 41 px au doigt",
+  "defaut": "« Voir dans Tâches › » répond sur 41 px au doigt",
+  "etat": "ne se reproduit pas",
+  "changement": "Mesuré point par point (elementFromPoint) : rectangle 44 px, zone qui répond 45 px sur iPhone, et 44 px sur iPad, android, petit (déjà réglé par la voie Tâches) ; rien changé.",
+  "preuve": "interventions-recontrole.js R16 : 7 ✓ · 0 ✗ ; section D de la sonde (≥ 43 px)"
+ },
+ {
+  "nom": "iPad : la case « Seulement les techniciens du secteur » répond sur 41 px",
+  "defaut": "iPad : la case « Seulement les techniciens du secteur » répond sur 41 px",
+  "etat": "corrigé",
+  "changement": "min-height de la case passé de 40 à 44 px (le style en ligne battait la feuille, qui disait 50).",
+  "preuve": "section D (zone qui répond ≥ 43 px) ; mutation M8 tombe ; interventions-mise-en-page.js ipad nuit 207 ✓ · 0 ✗ (le ✗ « creation-forfait 60×41 » signalé n'existe plus)"
+ },
+ {
+  "nom": "Liste au téléphone : « À planifier — » en gras puis « date à fixer » en petit",
+  "defaut": "Liste au téléphone : « À planifier — » en gras puis « date à fixer » en petit",
+  "etat": "corrigé",
+  "changement": "La carte écrit « Date à fixer » en gras à la place du tiret (comme le tableau du bureau).",
+  "preuve": "section C (texte, gras, sans coupure) ; mutation M7 tombe ; capture iphone-nuit-c2 regardée"
+ },
+ {
+  "nom": "Un relevé accepte des lettres (« abc »)",
+  "defaut": "Un relevé accepte des lettres (« abc »)",
+  "etat": "corrigé",
+  "changement": "Un relevé dont l'exemple est un nombre (charge, températures, pression, surface…) n'accepte que chiffres, une virgule ou un point, un signe moins ; « abc » reste vide, « 12x3 » devient « 123 », « 1,2,3 » devient « 1,23 », et l'écran explique (« Ce relevé est un nombre… ») ; les relevés en mots (Infestation) et en heures restent libres.",
+  "preuve": "section E (9 contrôles) ; mutation M9 tombe ; capture e1 regardée (message au-dessus du champ)"
+ },
+ {
+  "nom": "Téléphone : numéro de 24 chiffres accepté, « poste 12 » refusé",
+  "defaut": "Téléphone : numéro de 24 chiffres accepté, « poste 12 » refusé",
+  "etat": "corrigé",
+  "changement": "cfTelOk accepte « poste 12 », « p. 12 », « ext. 345 » (le poste ne compte pas dans les chiffres), refuse plus de 20 chiffres (deux numéros français passent encore) ; le message dit les deux règles ; le lien « Appeler » compose le premier numéro seul (ni le poste ni le second numéro collés).",
+  "preuve": "section F, à l'écran (création d'un nouveau client) et sur la fonction ; mutations M10 et M11 tombent ; recontrôle R18 passe maintenant (il tombait sur « poste 12 » et le numéro de 24 chiffres)"
+ },
+ {
+  "nom": "Prix d'une ligne de facture sans plafond (9 999 999 999 € accepté)",
+  "defaut": "Prix d'une ligne de facture sans plafond (9 999 999 999 € accepté)",
+  "etat": "corrigé",
+  "changement": "Même plafond que le forfait de création : un prix de 1 000 000 € ou plus est refusé, l'ancien prix est conservé, le champ revient à l'ancien et l'écran dit pourquoi.",
+  "preuve": "section F (4 contrôles dont 999 999,99 accepté) ; mutation M12 tombe"
+ },
+ {
+  "nom": "« ton compte ne peut pas créer, demande à Marc » sur Ma journée et la fiche du technicien (interventions-05)",
+  "defaut": "« ton compte ne peut pas créer, demande à Marc » sur Ma journée et la fiche du technicien (interventions-05)",
+  "etat": "ne se reproduit pas",
+  "changement": "Déjà retiré par la campagne Technicien (droitsNote ne s'écrit plus sur un écran de terrain) ; vérifié sur Sophie et Tom.",
+  "preuve": "interventions-parcours-roles.js 16 ✓ · 0 ✗ (il restait 2 ✗) ; section G de la sonde"
+ },
+ {
+  "nom": "Vu sur les captures : les trois cartes de la fiche terminée gardent 250 px de hauteur même sur une seule colonne (160 px de vide sous « Garantie : rien à encaisser »)",
+  "defaut": "Vu sur les captures : les trois cartes de la fiche terminée gardent 250 px de hauteur même sur une seule colonne (160 px de vide sous « Garantie : rien à encaisser »)",
+  "etat": "corrigé",
+  "changement": "min-height de 250 px réservée au bureau en trois colonnes ; sous 1100 px les cartes prennent leur hauteur.",
+  "preuve": "captures iphone-nuit a2/b2 avant et après ; interventions-mise-en-page.js iphone/ipad/petit/mac 207/207/207/147 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Vu sur les captures : le lien « Mon entreprise » au milieu de l'aide de la fenêtre de création coupait la phrase (44 px de haut, ligne cassée avant et après)",
+  "defaut": "Vu sur les captures : le lien « Mon entreprise » au milieu de l'aide de la fenêtre de création coupait la phrase (44 px de haut, ligne cassée avant et après)",
+  "etat": "corrigé",
+  "changement": "Dans cette aide, le lien reste dans la phrase (display:inline).",
+  "preuve": "capture iphone-nuit-d2 regardée ; sondes de mise en page 207 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Durée écrite « 1 h 30 » par duree() alors que la règle (g) du chef dit « 1h30 » collé",
+  "defaut": "Durée écrite « 1 h 30 » par duree() alors que la règle (g) du chef dit « 1h30 » collé",
+  "etat": "à soumettre à Justin",
+  "changement": "Non changé : duree() est lue par 34 appels (planning, devis, factures, création…) hors de mon périmètre ; l'unifier est un changement du prototype entier (à décider/faire une fois par le chef de chantier). Sur les écrans Interventions elle est cohérente d'une carte à l'autre.",
+  "preuve": "grep : 34 appels de duree( dans prototype-op-gestion.html"
+ },
+ {
+  "nom": "Sonde interventions-recontrole.js R22 (double toucher sur Terminer) tombe en parcours complet (« null.click »)",
+  "defaut": "Sonde interventions-recontrole.js R22 (double toucher sur Terminer) tombe en parcours complet (« null.click »)",
+  "etat": "ne se reproduit pas",
+  "changement": "Même résultat sur l'état d'AVANT mes changements (2d0c295) : un enchaînement de la sonde, pas un défaut de l'écran ; seule, la section passe (4 ✓ · 0 ✗) et i7 se termine une seule fois. R15 est un délai de la machine chargée : il passe 2 fois sur 2 en section isolée.",
+  "preuve": "R22 seul : 4 ✓ · 0 ✗ ; parcours complet sur 2d0c295 : même ✗"
+ }
+]
