@@ -20,6 +20,7 @@ const ESSAIS = [
   ['campagne', { cles: ['coque', 'accueil', 'planning', 'taches-absences', 'interventions', 'clients', 'contrats', 'compta-ventes', 'compta-reste', 'technicien', 'client', 'metier-3d', 'devis-atelier', 'mail', 'achats', 'materiel', 'vehicules-temps', 'equipe'], arbre: '/home/user/wt-x' }],
   ['final-rejeu', { familles: ['atelier', 'mail'], arbre: '/home/user/wt-x' }],
   ['final-regard', { role: 'gerant', rubriques: ['Accueil', 'Planning'], arbre: '/home/user/wt-x' }],
+  ['restes', { noms: ['taches-absences', 'planning'], arbre: '/home/user/wt-x' }],
   ['final-parcours', { arbre: '/home/user/wt-x' }], ['final-mots', { arbre: '/home/user/wt-x' }], ['final-rapport', { arbre: '/home/user/wt-x' }],
 ];
 const seule = process.argv[2];
