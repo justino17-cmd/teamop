@@ -7,7 +7,7 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 11 h 31 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 11 h 36 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
@@ -42,9 +42,25 @@ sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 
 Justin, 17 novembre : « Tu peux pas mettre plus d'agent pour aller plus vite ? ». Sur cette machine non (quatre cœurs) ; une session sœur a la sienne.
 Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elles rendent compte par un message « SŒUR n : ».
 
-| Sœur | Session | Voie et args | Lancée | État |
+| Sœur | Session | Voie et args (toujours `arbre:"/home/user/wt-soeur"`) | Lancée | État |
 |---|---|---|---|---|
-| 1 | session_01PfEEAFnTAeSbLdaDRiaDkW | `{voie:"final-rejeu", familles:["atelier","compositeur","mail","menu","taches"], arbre:"/home/user/wt-soeur", jusqua:0}` (scripts de rejeu, aucune page modifiée) | 11 h 31 | ESSAI : si elle marche (navigateur, poussée, compte rendu), en ouvrir d'autres pour les étapes SUIVANTES du chemin le plus long (vehtemps corriger, guide relire, double-auth 4 à 6) et les autres groupes de rejeu |
+| 1 | session_01PfEEAFnTAeSbLdaDRiaDkW | `{voie:"final-rejeu", familles:["atelier","compositeur","mail","menu","taches"], jusqua:0}` | 11 h 31 | a lancé son workflow en 40 s (run wf_c453a43c-86c chez elle) : le mécanisme MARCHE |
+| 2 | session_01PfEEAFqwm1iizSCQmKY7RG | `{voie:"final-rejeu", familles:["materiel","droits","entreprise"], jusqua:0}` | 11 h 34 | |
+| 3 | session_01PfEEAF4SpPFViGgXxJDrwQ | `{voie:"final-rejeu", familles:["vehtemps","secu","securite","artefact","retour","double"], jusqua:0}` | 11 h 34 | |
+| 4 | session_01PfEEAGMXkbXjCC8u8EMYk6 | `{voie:"final-rejeu", familles:["compta","contrats"], jusqua:0}` | 11 h 34 | |
+| 5 | session_01PfEEAEff7UZykLhFfX6Wb5 | `{voie:"final-rejeu", familles:["accueil","technicien","clients","client","interventions"], jusqua:0}` | 11 h 35 | |
+| 6 | session_01PfEEAE8QfHePY97Xr11gak | `{voie:"final-rejeu", familles:["coque","planning","restes","recontrole","relire"], jusqua:0}` | 11 h 35 | |
+| 7 | session_01PfEEAGsBxUrnuiouVbKSSw | `{voie:"campagne", cles:["devis-atelier"]}` (tester, corriger, recontrôler) | 11 h 35 | |
+
+Reste à couvrir par un rejeu (familles en cours d'écriture) : `guide`, `metier`, `achats`, `equipe`, `fumee`.
+
+**PASSER LA MAIN À CHAQUE CHANGEMENT D'ÉTAPE** (Justin, 12 h 40 heure française : « Ouvre un maximum […] pour que ça aille beaucoup plus vite ») :
+le guetteur `/home/user/guetter-etapes.sh` (outil Monitor, 30 minutes, à RÉARMER) imprime « ÉTAPE · <run> · A → B » dès qu'une voie d'ici
+passe à l'étape suivante. À ce moment : (1) TaskStop de la voie d'ici (son nouvel agent vient de démarrer : rien n'est perdu, l'étape d'avant
+est poussée) ; (2) `create_session` d'une sœur avec les MÊMES args plus `depuis` = le numéro de la nouvelle étape moins un, et
+`arbre:"/home/user/wt-soeur"` ; (3) noter ici. Une voie d'ici qui FINIT (dernière étape) : sa suite (« restes ») se lance sur une sœur.
+Une sœur qui a rendu (« SŒUR n : … ») peut recevoir « VOIE SUIVANTE : <args> » par `send_message` plutôt que d'en ouvrir une neuve.
+On ne déplace PAS une étape de correction en cours (le travail non poussé de son arbre resterait ici).
 
 La « tâche » entre parenthèses est l'identifiant à donner à TaskStop pour arrêter la voie (retrouvé dans le fil de la conversation :
 `grep -o 'Task ID: [a-z0-9]*[^R]\{0,700\}Run ID: wf_[0-9a-f-]*' <fil>.jsonl`).
