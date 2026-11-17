@@ -286,6 +286,17 @@ pour travailler »). Reste : l'enregistrement DNS `atelier` (type A) chez OVH �
 l'installation par lui, la clé posée par `request_credential` (hôte `atelier.teamop.fr`), puis un premier appel réel. À FAIRE
 RELIRE par `gardien` avant de s'en servir pour de bon ; le compte « atelier » n'a pas de droits d'administrateur (les gestes en
 root restent à Justin tant qu'il n'a pas dit autre chose).
+✅✅ **LA PORTE DE L'ATELIER EST OUVERTE — CETTE CONVERSATION LANCE SES COMMANDES SUR LE SERVEUR (17 novembre, 19 h 38).** Justin a
+ajouté l'enregistrement `atelier` (A) chez OVH, lancé `installer-porte.sh atelier.teamop.fr` (certificat obtenu), et posé la clé
+dans les secrets réseau de l'environnement « Justino » (le formulaire `request_credential` a échoué : « session trop longue » —
+il l'a saisie dans Réglages de l'environnement › Secrets réseau ; type Bearer, site `atelier.teamop.fr`, en-tête Authorization).
+Elle a pris DANS cette session, sans en ouvrir une autre. PREUVE : `bash scripts/atelier/appel.sh '<commande>' [délai]` rend la
+sortie et le code de la commande (compte `atelier`, 12 cœurs). C'est la condition (b) du chantier 0 à moitié levée : une session
+du cloud travaille sur NOTRE serveur par HTTPS + secret d'environnement — le même chemin servira à la forge (git par HTTPS).
+Limites à garder en tête : le compte n'a PAS de droits d'administrateur (installer un paquet, toucher à Caddy ou à systemd reste
+un geste de Justin en root, ou une décision de lui d'en donner) ; une réponse dure au plus 900 s (travaux longs en fond, puis
+relecture) ; ⛔ jamais de secret dans une commande (journal) ; ⛔ jamais de donnée réelle de client sur ce serveur. Première
+tâche lancée par la porte : les 835 suites, l'une après l'autre, dépendances installées (`~/bancs.out` sur l'atelier).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
