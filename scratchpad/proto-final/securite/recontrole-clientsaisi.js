@@ -23,11 +23,11 @@ const FORMES = [
   const crees = [];
   for (let i = 0; i < FORMES.length; i++) {
     const nom = FORMES[i](ids[i]);
-    const etat = await p.evaluate(async nom => { DVN_F = null; dvNouveau(); await new Promise(r => setTimeout(r, 300)); const b = document.querySelector('[data-dvn="nv|1"]'); if (!b) return { ok: false, etape: 'bouton nouveau client' }; b.click(); await new Promise(r => setTimeout(r, 300));
+    const etat = await p.evaluate(async ([nom, i]) => { DVN_F = null; dvNouveau(); await new Promise(r => setTimeout(r, 300)); const b = document.querySelector('[data-dvn="nv|1"]'); if (!b) return { ok: false, etape: 'bouton nouveau client' }; b.click(); await new Promise(r => setTimeout(r, 300));
       const set = (id, v) => { const e = document.getElementById(id); if (e) { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); return true; } return false; };
-      const champs = [set('dvn-nom', nom), set('dvn-tel', '06 45 67 89 01'), set('dvn-mail', 'saisi' + Date.now().toString(36) + '@exemple.fr'), set('dvn-adr', '12 rue du Port, 17000 La Rochelle'), set('dvn-objet', 'Pose')];
+      const champs = [set('dvn-nom', nom), set('dvn-tel', '06 45 67 89 0' + (i % 10)), set('dvn-mail', 'saisi' + i + Date.now().toString(36) + '@exemple.fr'), set('dvn-adr', (12 + i * 7) + ' rue du Port, 17000 La Rochelle'), set('dvn-objet', 'Pose')];   /* trois clients DIFFÉRENTS : la même adresse déclenchait l'avertissement de doublon dès le deuxième (tour 1 des restes : la sonde ne rangeait qu'un client sur trois) */
       const av = Object.keys(CLIENTS).length; const cr = document.querySelector('[data-dvn="creer|1"]'); if (!cr) return { ok: false, etape: 'bouton préparer', champs }; cr.click(); await new Promise(r => setTimeout(r, 600));
-      const nouveaux = Object.keys(CLIENTS).filter(k => CLIENTS[k].nom === nom || CLIENTS[k].nom.indexOf(nom.slice(0, 8)) === 0 || /¤n50\d¤/.test(CLIENTS[k].nom)); try { fermerPanneau(); } catch (e) {} return { ok: true, champs, nouveaux, avant: av, apres: Object.keys(CLIENTS).length }; }, nom);
+      const nouveaux = Object.keys(CLIENTS).filter(k => CLIENTS[k].nom === nom || CLIENTS[k].nom.indexOf(nom.slice(0, 8)) === 0 || /¤n50\d¤/.test(CLIENTS[k].nom)); try { fermerPanneau(); } catch (e) {} return { ok: true, champs, nouveaux, avant: av, apres: Object.keys(CLIENTS).length }; }, [nom, i]);
     crees.push(etat); await att(400);
   }
   const clients = await p.evaluate(() => Object.keys(CLIENTS).filter(k => /¤n50\d¤/.test(CLIENTS[k].nom)).map(k => ({ k, nom: CLIENTS[k].nom })));

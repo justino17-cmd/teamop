@@ -1,4 +1,4 @@
-// PARCOURS 1 — « un courriel de client arrive » jusqu'à « payée au centime » (17 novembre 2026, étape 1 « jouer-la-semaine »).
+// PARCOURS 1 — « un e-mail de client arrive » jusqu'à « payée au centime » (17 novembre 2026, étape 1 « jouer-la-semaine »).
 //   marc (gérant) : Boîte mail → « Créer l'intervention » → Planning → la ramène à aujourd'hui (✎ Modifier)
 //   sm (technicienne) : Ma journée → la fiche : pièce prise dans son camion, photo, contrôles, compte rendu, signature → Terminer
 //   marc : accepte la sortie de stock (le camion de Sophie baisse d'autant) → facture préparée → mentions légales → envoyée
@@ -24,16 +24,16 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
 
     const k0 = await kpis(c);
     v('0b population : l’Accueil donne « à recevoir » et « reçu en octobre »', k0.arecevoir > 0 && k0.recu > 0, k0);
-    /* ── A. le gérant : le courriel de Mme Bernard → l'intervention ── */
+    /* ── A. le gérant : l’e-mail de Mme Bernard → l'intervention ── */
     await L.aller(p, 'boiteMail'); await L.attendre(p, () => !!(window.R && window.R() && window.R().querySelectorAll('.msg').length), 9000); await p.waitForTimeout(600);
     const msg = p.locator('#courrier-hote .msg', { hasText:'Climatisation chambre 214' }).first();
-    v('A1 population : le courriel « Climatisation chambre 214 » est dans la Boîte mail', await msg.count() === 1);
+    v('A1 population : l’e-mail « Climatisation chambre 214 » est dans la Boîte mail', await msg.count() === 1);
     if (c.doigt) await msg.tap(); else await msg.click(); await p.waitForTimeout(800);
     const bouton = p.locator('#courrier-hote .hband button', { hasText:'Créer l’intervention' }).first();
     v('A2 la boîte reconnaît une panne et propose « Créer l’intervention »', await bouton.count() === 1);
     if (c.doigt) await bouton.tap(); else await bouton.click(); await p.waitForTimeout(900);
     const fen = await S(c, () => ({ ouverte:!!document.querySelector('.fen'), cli:CREA && CREA.cli, mail:CREA && CREA.mail, titre:CREA && CREA.titre }));
-    v('A3 la fenêtre s’ouvre avec le client reconnu (Hôtel de la Plage) et le courriel lié', fen.ouverte && fen.cli === 'hp' && fen.mail === 'm1' && /chambre 214/.test(fen.titre || ''), fen);
+    v('A3 la fenêtre s’ouvre avec le client reconnu (Hôtel de la Plage) et l’e-mail lié', fen.ouverte && fen.cli === 'hp' && fen.mail === 'm1' && /chambre 214/.test(fen.titre || ''), fen);
     await S(c, () => document.querySelector('.fen [data-cfact="temps"]').click()); await p.waitForTimeout(250);   // « Au temps passé » : une visite sous contrat ne se facture pas
     await S(c, () => document.querySelector('.fen [data-action="cPlusTot"]').click()); await p.waitForTimeout(300);
     await cap(c, '1-A-fenetre-' + P.PROFIL);
@@ -42,7 +42,7 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
     const id = nv.id;
     v('A4 (donnée) l’intervention existe : une de plus, chez Hôtel de la Plage, une technicienne, « planifiée », facturée au temps passé', nv.n === e0.ints + 1 && nv.cli === 'hp' && !!nv.tech && nv.st === 'planifiee' && nv.fact === 'temps', nv);
     v('A5 (donnée) la technicienne choisie est celle que le planning laissait libre : Sophie, lundi 2 novembre', nv.tech === 'sm' && nv.d === '2026-11-02', nv);
-    v('A6 (donnée) le courriel est marqué « traité » : une intervention en est née', /Intervention créée/i.test(nv.mail), nv.mail);
+    v('A6 (donnée) l’e-mail est marqué « traité » : une intervention en est née', /Intervention créée/i.test(nv.mail), nv.mail);
     /* le Planning la montre (la carte porte l'identifiant) */
     await L.aller(p, 'planning'); await p.waitForTimeout(500);
     v('B1 (écran) le Planning montre la carte de la nouvelle intervention, au nom de Sophie', await S(c, i => { const k = document.querySelector('.pc[data-int="' + i + '"]'); return !!k || /chambre 214/.test(document.getElementById('contenu').innerText); }, id));

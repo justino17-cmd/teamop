@@ -22,7 +22,7 @@ const fiche = p => p.evaluate(() => ({ h1: (document.querySelector('#contenu h1'
   v('P4 : sans signature → « Signez dans le cadre… »', /Signez/.test(er), er);
   // un simple point (clic sans tracé) compte-t-il comme signature ?
   const bb = await p.locator('#dv-signe').boundingBox(); await p.mouse.move(bb.x + 20, bb.y + 20); await p.mouse.down(); await p.mouse.up();
-  const sig1 = await p.evaluate(() => document.getElementById('dv-signe').dataset.signe || ''); console.log('  · un simple point sur le cadre : signe =', sig1 ? 'OUI' : 'non');
+  const sig1 = await p.evaluate(() => document.getElementById('dv-signe').dataset.signe || ''); v('devis-atelier-06 : un simple point dans le cadre n’est pas une signature (« Signez dans le cadre… »)', !sig1, sig1 ? 'un clic sans tracé a posé une signature' : '');
   // tracé complet
   await p.mouse.move(bb.x + bb.width * .2, bb.y + bb.height * .6); await p.mouse.down(); await p.mouse.move(bb.x + bb.width * .5, bb.y + bb.height * .3, { steps: 6 }); await p.mouse.move(bb.x + bb.width * .8, bb.y + bb.height * .6, { steps: 6 }); await p.mouse.up();
   await L.capture(c, O.CAP + `P4-signature-${profil}.png`);

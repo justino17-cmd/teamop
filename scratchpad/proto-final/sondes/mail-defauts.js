@@ -96,13 +96,13 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   const titre = await S(c, () => { const t = R().querySelector('#ltTitle'); return t ? { tronque:t.scrollWidth > t.clientWidth + 1, txt:t.textContent } : null; });
   v('D16 le titre « Boîte de réception » n\'est pas tronqué à 1280 px', !!titre && !titre.tronque, titre);
   await fin(c);
-  // D14 : 1 500 courriels
+  // D14 : 1 500 e-mails
   c = await entrer({ profil:'mac' }); p = c.p;
   await S(c, () => { for (let i = 0; i < 1500; i++) MAILS.push(mlM('g' + i, jour(-(i % 60)), '09:' + String(i % 60).padStart(2, '0'), { nom:'Contact ' + i, mail:'c' + i + '@exemple.fr' }, 'Message numéro ' + i, 'Texte ' + i, { lu:i % 3 === 0 })); COURRIER.inst.rafraichir(); });
   await p.waitForTimeout(2500);
   const ms = await S(c, () => new Promise(ok => { const t = performance.now(); R().querySelectorAll('.msg')[8].click(); requestAnimationFrame(() => requestAnimationFrame(() => ok(Math.round(performance.now() - t)))); }));
   const lignes = await S(c, () => R().querySelectorAll('.msg').length);
-  v('D14 boîte de 1 500+ courriels : le clic sur un message < 150 ms, et la page ne porte pas 1 500 lignes', ms < 150 && lignes <= 240 && lignes >= 100, { ms, lignes });
+  v('D14 boîte de 1 500+ e-mails : le clic sur un message < 150 ms, et la page ne porte pas 1 500 lignes', ms < 150 && lignes <= 240 && lignes >= 100, { ms, lignes });
   await fin(c);
   await sortie();
 })().catch(e => { console.log('ERREUR', e.message, e.stack.split('\n')[1]); process.exit(1); });

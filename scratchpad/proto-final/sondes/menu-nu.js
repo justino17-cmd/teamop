@@ -10,7 +10,9 @@ const { L, ATTENDU, lireMenu, aplatir, aplatirAttendu } = require('./menu-commun
   v('nu : Jour / Nuit / Auto au pied', sc.mode === 3);
   for (const [role, att] of [['gestion', ATTENDU.julie], ['tech', ATTENDU.sm], ['client', ATTENDU.client]]) {
     await L.toucher(c, `[data-rl="role|${role}"]`); await L.calme(c.p, 500);
-    const mm = await lireMenu(c.p); v(`nu, « Tester en tant que » ${role} : mêmes lignes que dans l'application`, aplatir(mm.G) === aplatirAttendu(att), aplatir(mm.G));
+    if (role === 'client') { const k = await c.p.evaluate(() => ({ lignes:document.querySelectorAll('#menu .rl-mlien, #menu .m-liste a:not(.btn)').length, contact:!!document.querySelector('#menu .rl-contact') }));
+      v(`nu, « Tester en tant que » client : le menu de gauche ne répète pas les cinq destinations (les onglets de la page les portent), il dit comment joindre l'entreprise`, k.lignes === 0 && k.contact, k); }
+    else { const mm = await lireMenu(c.p); v(`nu, « Tester en tant que » ${role} : mêmes lignes que dans l'application`, aplatir(mm.G) === aplatirAttendu(att), aplatir(mm.G)); }
     const e = await c.p.evaluate(() => ({ bande:!!document.querySelector('.rl-bande'), barre:document.querySelectorAll('#barre-bas .opg-tab').length })); v(`nu, ${role} : la bande de revue reste`, e.bande, e);
   }
   await L.toucher(c, '[data-rl="role|patron"]'); await L.calme(c.p, 500);
