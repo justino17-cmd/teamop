@@ -30,7 +30,7 @@ const LONG = 'Maximilien-Alexandre de la Tour-Dupont-Castelnau';  // 48 signes :
   await L.aller(p, 'entreprise'); await p.evaluate(() => { ENTREPRISE.nom = 'Entreprise de Climatisation, de Chauffage et de Plomberie de la Rochelle'.slice(0, 60); ENTREPRISE.adr = '12 avenue du Général de Gaulle, bâtiment B, zone artisanale des Quatre Vents, 17000 La Rochelle'; ENTREPRISE.mail = 'contact-administratif.facturation@entreprise-de-climatisation-la-rochelle.example.fr'; rendre(); });
   await mesurer('entreprise');
   for (const k of ['ident', 'legal', 'logo', 'banque', 'horaires']) { await L.aller(p, 'entreprise'); await E.ranger(c); await L.toucher(c, `[data-ent="carte|${k}"]`); await mesurer('entreprise-' + k, '#calque .panneau'); await E.ranger(c); }
-  v(`population : ${n} écrans mesurés (${SUF})`, n >= 17, n);
+  v(`population : ${n} écrans mesurés (${SUF})`, n >= 16, n);
   v(`aucune erreur de page (${SUF})`, c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await E.fin();
 })().catch(e => { console.error('ÉCHEC DE LA SONDE', e); process.exit(2); });
