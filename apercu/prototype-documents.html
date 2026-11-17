@@ -1957,7 +1957,7 @@ const VARS=[
   {k:'prix',n:'prix annuel',l:'Prix annuel (€ HT)',type:'montant',ex:'280'},
   {k:'paiement',n:'mode de paiement',l:'Mode de paiement',ex:'par prélèvement',sug:['par prélèvement','par virement','par carte bancaire','par chèque','après chaque visite, sur facture']}];
 const VARS_AUTO={entreprise:1,email:1,tel:1,prixttc:1,tva:1};          // toujours connues : l'entreprise, et le prix TTC / la TVA que le CLIENT paie (calculés du prix HT et du client : un contrat affiche HT ET TTC)
-const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA'};
+const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA',tel:'téléphone',email:'e-mail'};
 const defVar=k=>VARS.find(v=>v.k===k)||null;
 const cap=s=>String(s||'').charAt(0).toUpperCase()+String(s||'').slice(1);
 
@@ -2002,7 +2002,7 @@ const AMOD={
   pro:{
     objet:['Objet du contrat','{{entreprise}} (le prestataire) assure la maintenance des installations de climatisation de {{client}} (le client), situées à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} assure la maintenance des installations de climatisation de {{client}}, situées à l’adresse suivante : {{adresse}}.'],
     visites:['Maintenance préventive','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il contrôle le bon fonctionnement des appareils, nettoie ce qui doit l’être et note ses constats dans un compte rendu remis au client.','Le prestataire effectue {{frequence}} et remet un compte rendu au client.'],
-    depannage:['Dépannage','En cas de panne, le client prévient le prestataire par téléphone au {{tel}} ou par courriel à {{email}}.\nLe prestataire intervient dès que possible, en commençant par les pannes qui arrêtent l’activité du client. Les pièces remplacées sont facturées à part, après accord du client sur un devis.','Le client signale une panne au {{tel}} ou à {{email}}. Le prestataire intervient dès que possible ; les pièces sont facturées à part, sur devis.'],
+    depannage:['Dépannage','En cas de panne, le client prévient le prestataire par téléphone au {{tel}} ou par e-mail à {{email}}.\nLe prestataire intervient dès que possible, en commençant par les pannes qui arrêtent l’activité du client. Les pièces remplacées sont facturées à part, après accord du client sur un devis.','Le client signale une panne au {{tel}} ou à {{email}}. Le prestataire intervient dès que possible ; les pièces sont facturées à part, sur devis.'],
     acces:['Accès et sécurité','Le client donne accès aux installations aux jours convenus et indique les consignes de sécurité du site.\nLe prestataire respecte ces consignes et intervient aux heures d’ouverture du client, sauf accord contraire.','Le client donne accès aux installations et indique les consignes de sécurité ; le prestataire les respecte.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
     prix:['Prix et paiement','Le prix de la maintenance est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Chaque facture est payable à la date qu’elle indique.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC, payé {{paiement}}.']},
@@ -4863,7 +4863,7 @@ function ouvrirIdentite(id,o){
     <h4 class="id-t">Coordonnées</h4>
     ${ch('nom','Nom de l’entreprise',{ph:'Par exemple Clim Services 17',ac:'organization'})}${ch('adresse','Adresse',{ac:'street-address'})}
     <div class="deux">${ch('cp','Code postal',{mode:'numeric',max:5,ac:'postal-code'})}${ch('ville','Ville',{ac:'address-level2'})}</div>
-    <div class="deux">${ch('tel','Téléphone',{type:'tel',ac:'tel'})}${ch('mail','Courriel',{type:'email',mode:'email',ac:'email'})}</div>${ch('site','Site web')}
+    <div class="deux">${ch('tel','Téléphone',{type:'tel',ac:'tel'})}${ch('mail','E-mail',{type:'email',mode:'email',ac:'email'})}</div>${ch('site','Site web')}
     <h4 class="id-t">Mentions légales</h4>
     <div class="deux">${ch('siret','SIRET',{mode:'numeric',max:20,ph:'14 chiffres'})}${ch('tva','Numéro de TVA',{ph:'FR 12 345678901'})}</div>
     <div class="deux">${ch('forme','Forme juridique',{ph:'SARL, SAS, entreprise individuelle…'})}${ch('capital','Capital',{ph:'10 000 €'})}</div>${ch('rcs','RCS ou RM',{ph:'RCS La Rochelle 812 345 678'})}
@@ -5149,7 +5149,7 @@ function vvBib(){
   return VV_BIB=o;
 }
 function vvResume(t){
-  let s=String(t||'').split('\n')[0].replace(/\{\{art:[a-z0-9-]+\}\}/g,'l’article').replace(/\{\{([a-z]+)\}\}/g,(x,k)=>{ const v=defVar(k); return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+k+']') });      // entre crochets, comme dans le document : « …le prestataire effectue [fréquence des visites] » se lit comme un blanc à remplir, pas comme une phrase fautive
+  let s=String(t||'').split('\n')[0].replace(/\{\{art:[a-z0-9-]+\}\}/g,'l’article').replace(/\{\{([a-z]+)\}\}/g,(x,k)=>{ const v=defVar(k); return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+(NOMS_AUTO[k]||k)+']') });      // entre crochets, comme dans le document : « …le prestataire effectue [fréquence des visites] » se lit comme un blanc à remplir, pas comme une phrase fautive
   return abrege(s,110);
 }
 const vvArtDe=(e)=>({uid:vvId('a'),cle:e.cle,modele:e.modele,titre:e.titre,texte:e.texte,court:e.court||'',perso:false,edite:false,bib:e.id});
@@ -5204,7 +5204,7 @@ function vvCorpsDevis(V){
     <p class="vv-cnt" id="vv-cnt" role="status"></p>
     <button type="button" class="bt contour vv-libre-b" data-vv="libre-ouvrir" aria-expanded="${V.libre.ouvert}" aria-controls="vv-libre">${ic('plus')}Ligne libre</button>
     <div class="vv-libre" id="vv-libre"${V.libre.ouvert?'':' hidden'}>
-      <label class="champ">Désignation<input id="vv-l-des" value="${esc(V.libre.des)}" maxlength="200" autocomplete="off" placeholder="Ex. : pose d’une prise dédiée"></label>
+      <label class="champ">Désignation<input id="vv-l-des" value="${esc(V.libre.des)}" maxlength="200" autocomplete="off" placeholder="ex. pose d’une prise dédiée"></label>
       <div class="deux"><label class="champ">Quantité<input id="vv-l-qte" inputmode="decimal" value="${esc(V.libre.qte)}" autocomplete="off"></label>
         <label class="champ">Unité<select id="vv-l-unite">${VV_UNITES.map(u=>`<option${u===V.libre.unite?' selected':''}>${esc(u)}</option>`).join('')}</select></label></div>
       <div class="deux"><label class="champ">Prix unitaire HT (€)<input id="vv-l-pu" inputmode="decimal" value="${esc(V.libre.pu)}" autocomplete="off" placeholder="0,00"></label>
@@ -5914,7 +5914,7 @@ function htPanDocBase(d){
   <section class="pg"><h4>En-tête de l’entreprise</h4>${pCase('Téléphone','rg-case','entete.tel',en.tel)}${pCase('E-mail','rg-case','entete.mail',en.mail)}${pCase('Site web','rg-case','entete.site',en.site)}${pCase('SIRET','rg-case','entete.siret',en.siret)}${pCase('N° de TVA','rg-case','entete.tva',en.tva)}<p class="note">Si tu retires le SIRET ou la TVA de l’en-tête, ils passent dans le pied de page : la mention reste sur le document.</p>${pBtn('ident-ouvrir','building','Modifier les coordonnées de cet en-tête…')}</section>
   <section class="pg"><h4>Pied de page</h4>${pCase('Nom et mentions de l’entreprise','rg-case','pied.mentions',pi.mentions)}${pCase('Numéro de page','rg-case','pied.numero',pi.numero)}
     ${pi.numero?`<p class="sous">Position du numéro</p>${pSeg('Position du numéro','rg','pied.numeroPos',[['gauche','Gauche'],['centre','Centre'],['droite','Droite']],pi.numeroPos)}`:''}
-    <label class="champ" style="margin-top:10px">Ligne libre 1<input data-pin="pied1" value="${esc(pi.ligne1)}" maxlength="160" autocomplete="off" placeholder="Par exemple : Merci de votre confiance"></label>
+    <label class="champ" style="margin-top:10px">Ligne libre 1<input data-pin="pied1" value="${esc(pi.ligne1)}" maxlength="160" autocomplete="off" placeholder="ex. Merci de votre confiance"></label>
     <label class="champ">Ligne libre 2<input data-pin="pied2" value="${esc(pi.ligne2)}" maxlength="160" autocomplete="off" placeholder="Une mention, un IBAN…"></label>
     <p class="sous">Reprendre depuis Mon entreprise</p><div class="puces-pied">${puce('legal','Mentions légales',!!(E.forme||E.rcs))}${puce('iban','IBAN et BIC',!!E.iban)}${puce('assur','Assurance',!!E.assureur)}${puce('merci','Merci de votre confiance',true)}</div>
     <p class="note">Une puce remplit la première ligne libre vide. Le pied peut porter jusqu’à trois lignes sur chaque page.</p></section>
@@ -7369,7 +7369,7 @@ const secEcheancier=d=>{
 };
 const secInterlocuteur=d=>{
   const E=identDe(d), v=x=>String(x||'').trim()||'à compléter';
-  const e=bEncadre(lignesDe(['Votre interlocuteur','Nom et prénom : à compléter','Fonction : à compléter','Téléphone : '+v(E.tel),'Courriel : '+v(E.mail)]));
+  const e=bEncadre(lignesDe(['Votre interlocuteur','Nom et prénom : à compléter','Fonction : à compléter','Téléphone : '+v(E.tel),'E-mail : '+v(E.mail)]));
   fmtSur(e,'texte',0,[[null,null,{g:1,c:'c'}]]); return {blocs:[e],objets:[]};
 };
 const secBon=d=>({blocs:[bSignature('Bon pour accord','Date, mention manuscrite « Lu et approuvé, bon pour accord » et signature.',[d.type==='contrat'?identDe(d).nom:'Le client'])],objets:[]});
@@ -7383,7 +7383,7 @@ const SECTIONS=[
   {k:'avantapres',nom:'Avant / après',desc:'Deux photos côte à côte',faire:secAvantApres},
   {k:'options',nom:'Options proposées',desc:'Des options avec leur prix, hors total',faire:secOptions},
   {k:'echeancier',nom:'Échéancier de règlement',desc:'Acompte, solde et dates',faire:secEcheancier},
-  {k:'interlocuteur',nom:'Votre interlocuteur',desc:'Nom, fonction, téléphone et courriel',faire:secInterlocuteur},
+  {k:'interlocuteur',nom:'Votre interlocuteur',desc:'Nom, fonction, téléphone et e-mail',faire:secInterlocuteur},
   {k:'bon',nom:'Bon pour accord',desc:'Date, mention manuscrite et signature',faire:secBon,indispo:d=>d.blocs.some(b=>b.type==='signature')?'Ce document a déjà une signature.':''}
 ];
 /* le paquet → des blocs aux identifiants neufs, normalisés, prêts à poser */
