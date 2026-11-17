@@ -40,6 +40,7 @@ const CAS = [
 ];
 for (const [regle, mauvais, bon, opt] of CAS) { v(regle + ' tombe sur « ' + mauvais.slice(0, 40) + ' »', tombe(mauvais, regle, opt)); v(regle + ' se tait sur « ' + bon.slice(0, 40) + ' »', !tombe(bon, regle, opt), JSON.stringify(R.controler(bon, Object.assign({ role: 'equipe', type: 'écran', ou: 'x' }, opt)))); }
 // ce que les règles ne doivent PAS prendre : un mot qui contient un autre (« rendez-vous » n’est pas « vous »), un message écrit pour quelqu'un d'autre, un attribut
+v('trois phrases courtes ne font pas une phrase longue', !tombe(Array(3).fill(Array(14).fill('Mot').join(' ') + '.').join(' '), 'phrase-longue'));
 v('« Rendez-vous » n’est pas un vouvoiement', !tombe('Rendez-vous en ligne', 'vouvoiement-equipe'));
 v('un e-mail écrit à un fournisseur garde son « Veuillez »', !tombe('Veuillez trouver ci-joint notre bon de commande BC-2026-040', 'vouvoiement-equipe'));
 v('« e-mail » n’est pas « mail » seul à écarter', !tombe('Envoyer par e-mail', 'deux-mots-courriel'));

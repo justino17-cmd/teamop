@@ -281,6 +281,139 @@
    "fichier": "scratchpad/proto-final/atelier/page.source"
   },
   {
+   "ecran": "Contrats › liste des articles",
+   "avant": "const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA'};",
+   "apres": "const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA',tel:'téléphone',email:'e-mail'};",
+   "raison": "« [tel] », « [email] » : les blancs à remplir se lisent avec des mots, pas avec le nom de la variable",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › résumé d’un article",
+   "avant": "return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+k+']') });",
+   "apres": "return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+(NOMS_AUTO[k]||k)+']') });",
+   "raison": "« [prixttc] » : le résumé d’un article écrivait le nom de la variable",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "« Prestation de services » est écrit sur tes factures : pour des travaux et de la main-d’œuvre, la TVA est due quand le client paie, sauf si tu as choisi de la payer « d’après les débits » (alors une mention de plus).",
+   "apres": "« Prestation de services » est écrit sur tes factures. Pour des travaux et de la main-d’œuvre, la TVA est due quand le client paie. Si tu as choisi de la payer « d’après les débits », il y a alors une mention de plus.",
+   "raison": "une phrase de 44 mots coupée en trois",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "sont comptés ensemble : la plupart se vérifient tout seuls sur tes données (fiche, factures et leur PDF, banque, caisse, achats), les autres demandent ton attention.",
+   "apres": "sont comptés ensemble. La plupart se vérifient tout seuls sur tes données (fiche, factures et leur PDF, banque, caisse, achats). Les autres demandent ton attention.",
+   "raison": "une phrase de 41 mots coupée en trois",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "à la suite du dernier numéro donné${dernier ? ` (le dernier : ${dernier.num})` : ''} ; une facture envoyée ne se modifie plus et ne s’efface pas : une erreur se corrige par un avoir.",
+   "apres": "à la suite du dernier${dernier ? ` (${dernier.num})` : ''}. Une facture envoyée ne se modifie plus et ne se supprime pas : une erreur se corrige par un avoir.",
+   "raison": "38 mots ; « efface » devient « supprime » (un seul mot)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "Au même moment, les montants et la TVA de tes ventes aux particuliers, et les dates de paiement de tes services, seront transmis à l’administration par ta plateforme (des totaux, pas le détail de chaque client).",
+   "apres": "Au même moment, ta plateforme transmettra à l’administration les montants, la TVA et les dates de paiement de tes ventes aux particuliers. Ce sont des totaux, pas le détail de chaque client.",
+   "raison": "36 mots coupés en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › TVA",
+   "avant": "Une facture d’octobre payée en novembre compte en novembre ; une facture de septembre payée en octobre compte ici ; un acompte reçu sur place compte le jour où le technicien l’encaisse.",
+   "apres": "Une facture d’octobre payée en novembre compte en novembre. Une facture de septembre payée en octobre compte ici. Un acompte reçu sur place compte le jour où le technicien l’encaisse.",
+   "raison": "trois idées, trois phrases",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "Une dette de plus de 1 000 € ne se paie pas en espèces quand le client vit en France, particulier ou professionnel, même en plusieurs fois : au-dessus, refuse les espèces.",
+   "apres": "On ne paie pas en espèces une dette de plus de 1 000 €, même en plusieurs fois, quand le client vit en France (particulier ou professionnel). Au-dessus de ce montant, refuse les espèces.",
+   "raison": "32 mots, et le verbe en tête",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "'Aucun paiement en espèces au-dessus. '",
+   "apres": "'Aucun paiement en espèces n’a dépassé ce plafond. '",
+   "raison": "« refuse les espèces. Aucun paiement en espèces au-dessus. » se répétait",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "Le taux réduit vaut pour des travaux dans un logement terminé depuis plus de deux ans : le devis ou la facture doit porter la mention prévue, certifiée par ton client.",
+   "apres": "Le taux réduit vaut pour des travaux dans un logement terminé depuis plus de deux ans. Le devis ou la facture doit porter la mention prévue, certifiée par ton client.",
+   "raison": "31 mots coupés en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "doit les rendre inaltérables, les sécuriser, les conserver et les archiver, et l’éditeur doit en fournir la preuve (certificat ou attestation).",
+   "apres": "doit les rendre inaltérables, les sécuriser, les conserver et les archiver. L’éditeur doit en fournir la preuve (certificat ou attestation).",
+   "raison": "30 mots coupés en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "Les grandes entreprises et les ETI t’en envoient déjà.",
+   "apres": "Les grandes entreprises t’en envoient déjà.",
+   "raison": "« ETI » : un sigle que l’artisan ne connaît pas",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "(2026 pour une grande entreprise ou une ETI)",
+   "apres": "(2026 pour une grande entreprise)",
+   "raison": "« ETI » : un sigle que l’artisan ne connaît pas",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Temps de travail › Valider",
+   "avant": "data-tt=\"areg\">Voir À régler ›</button>",
+   "apres": "data-tt=\"areg\">Voir les points à régler ›</button>",
+   "raison": "« Voir À régler » : une majuscule au milieu d’une phrase, et on ne sait pas ce qu’on va voir",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Par intervention",
+   "avant": "Aucune pièce ni achat pour cette intervention. Dans la vraie version, la main-d’œuvre (heures pointées) s’ajoutera ici.",
+   "apres": "Aucune pièce ni achat pour cette intervention.",
+   "raison": "« Dans la vraie version… » : une promesse de développeur lue par un utilisateur",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis › champ",
+   "avant": "placeholder=\"Ex. : pose d’une prise dédiée",
+   "apres": "placeholder=\"ex. pose d’une prise dédiée",
+   "raison": "une seule façon d’écrire un exemple dans un champ",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Devis › champ",
+   "avant": "placeholder=\"Par exemple : Merci de votre confiance",
+   "apres": "placeholder=\"ex. Merci de votre confiance",
+   "raison": "idem",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Tous les champs › exemple",
+   "avant": "« Ex. : entretien climatisation » / « Ex. rappeler M. Durand »",
+   "apres": "« ex. entretien climatisation » / « ex. rappeler M. Durand »",
+   "raison": "une seule façon d’écrire un exemple dans un champ",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité (cadre) › reçu par mail",
+   "avant": "« reçue par mail »",
+   "apres": "« reçue par e-mail »",
+   "raison": "un seul mot : e-mail",
+   "fichier": "apercu/prototype-comptabilite.html"
+  },
+  {
    "ecran": "Tous les écrans (page) › courriel",
    "avant": "« Voir le courriel », « Confier ce courriel », « Courriels · 3 »",
    "apres": "« Voir l’e-mail », « Confier cet e-mail », « E-mails · 3 »",

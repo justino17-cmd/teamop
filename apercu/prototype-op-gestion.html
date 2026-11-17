@@ -5059,16 +5059,16 @@ function panneauDate(id){
 function panneauCreer(tid, d, h){
   ouvrirPanneau(`<h2>Nouvelle intervention</h2>
   <label class="champ">Client<select id="n-cli">${Object.entries(CLIENTS).map(([k,c])=>`<option value="${k}">${esc(c.nom)}</option>`).join('')}</select></label>
-  <label class="champ">Ce qu’il faut faire<input id="n-titre" placeholder="Ex. : entretien climatisation"></label>
+  <label class="champ">Ce qu’il faut faire<input id="n-titre" placeholder="ex. entretien climatisation"></label>
   <label class="champ">Type<select id="n-type">${['Dépannage','Entretien','Installation','Mise en service','Contrat','2ᵉ passage'].map(x=>`<option>${x}</option>`).join('')}</select></label>
   ${champsQuand(tid ?? '', d || plRef, h || '09:00', 60)}
-  <label class="champ">Ce que le client a dit (le technicien le lira)<textarea id="n-motif" placeholder="Ex. : la clim fait du bruit depuis ce matin"></textarea></label>
+  <label class="champ">Ce que le client a dit (le technicien le lira)<textarea id="n-motif" placeholder="ex. la clim fait du bruit depuis ce matin"></textarea></label>
   <button type="button" class="btn large" data-action="creerOk">Créer et placer au planning</button>`);
   setTimeout(() => document.getElementById('n-titre')?.focus(), 60);
 }
 function panneauNote(d){
   ouvrirPanneau(`<h2>Note du ${jlong(d)}</h2><span class="gris">Visible par toute l’équipe, en haut du jour.</span>
-  <label class="champ">La note<textarea id="note-t" placeholder="Ex. : le dépôt ferme à 16 h">${esc(NOTES[d]||'')}</textarea></label>
+  <label class="champ">La note<textarea id="note-t" placeholder="ex. le dépôt ferme à 16 h">${esc(NOTES[d]||'')}</textarea></label>
   <div class="actions"><button type="button" class="btn" data-action="noteOk" data-d="${d}">Enregistrer</button>${NOTES[d]?`<button type="button" class="btn rouge" data-action="noteSuppr" data-d="${d}">Supprimer</button>`:''}</div>`);
 }
 function detailKpi(k){
@@ -5274,7 +5274,7 @@ function finiEcran(i, F){
 function feuillePasFini(id){
   ouvrirPanneau(`<h2>Je ne peux pas finir</h2><p class="gris" style="margin:0">Tu pars, mais ce n’est pas réglé. Choisis la raison : le bureau est prévenu tout de suite, une intervention de retour est créée, et le client ne reçoit pas un « réparé ».</p>
   ${['Pièce à commander','Client absent','Accès impossible','Il faut revenir (plus de temps)'].map((m,k)=>`<label class="radio"><input type="radio" name="motif" value="${m}" ${k===0&&id==='i1'?'checked':''}>${m}</label>`).join('')}
-  <label class="champ">Un mot pour le bureau<textarea id="mot-bureau" placeholder="Ex. : pièce à commander, machine laissée en marche">${id === 'i1' ? 'Ventilateur extérieur Daikin à commander. Machine laissée en marche.' : ''}</textarea></label>
+  <label class="champ">Un mot pour le bureau<textarea id="mot-bureau" placeholder="ex. pièce à commander, machine laissée en marche">${id === 'i1' ? 'Ventilateur extérieur Daikin à commander. Machine laissée en marche.' : ''}</textarea></label>
   <button type="button" class="btn large" data-action="envoiePb" data-id="${id}">Envoyer au bureau</button>`);
 }
 
@@ -5402,7 +5402,7 @@ function blocRdv(i, F){
       <div class="rdv-jours">${L.map(j => `<div class="rdv-j"><b>${jlong(j.d)}</b><span>${j.opts.map(o => `<button type="button" data-rdvc="${j.d}|${o.h}|${o.tid}" aria-pressed="${RDV.d === j.d && RDV.h === o.h}"><b>${hm(o.h)}</b><small>→ ${hm(o.h + dur)}</small></button>`).join('')}</span></div>`).join('') || '<span class="gris">Aucun moment libre pour le moment.</span>'}</div>
       <button type="button" class="btnc clair" data-rdvc="rappel">Aucun ne me va — qu’on m’appelle</button><button type="button" class="lien" data-rdvraz="1">Annuler</button>`; }
   return pas + `<div class="rdv-recap"><div class="lgn"><span>Pour</span><b>Remplacer le ventilateur</b></div><div class="lgn"><span>Quand</span><b>${rdvTexte(RDV)}</b></div><div class="lgn"><span>Où</span><b>${esc(c.adr)}</b></div></div>
-    <label class="champ">Un mot pour le technicien (facultatif)<textarea class="saisie" rows="2" data-rdvnote="1" placeholder="Ex. : code du portail, chien dans le jardin…">${esc(RDV.note || '')}</textarea></label>
+    <label class="champ">Un mot pour le technicien (facultatif)<textarea class="saisie" rows="2" data-rdvnote="1" placeholder="ex. code du portail, chien dans le jardin…">${esc(RDV.note || '')}</textarea></label>
     <div class="gris petit">${RDV.rappel ? esc(ENTREPRISE.nom) + ' vous appelle pour convenir d’une date.' : 'En confirmant, le rendez-vous est réservé pour vous.'}</div>
     <button type="button" class="btnc" data-rdvok="1">${RDV.rappel ? 'Envoyer la demande' : 'Confirmer ce rendez-vous'}</button><button type="button" class="lien" data-rdvet="2">‹ Changer d’heure</button>`;
 }
@@ -6868,7 +6868,7 @@ function tPanneau(x){
   x = x || { t:'', qui:(tQui !== 'tous' ? tQui : 'marc'), d:AUJ, h:null, urgent:false, rep:null, lien:null, note:'' };
   const raccourcis = [['Demain', 1], ['Lundi', ((8 - new Date(AUJ + 'T12:00:00').getDay()) % 7) || 7], ['Dans une semaine', 7]];
   ouvrirPanneau(`<h2>${neuf ? 'Nouvelle tâche' : 'Modifier la tâche'}</h2>
-    <label class="champ">Quoi<input id="tk-t" value="${esc(x.t)}" placeholder="Ex. rappeler M. Durand"></label>
+    <label class="champ">Quoi<input id="tk-t" value="${esc(x.t)}" placeholder="ex. rappeler M. Durand"></label>
     <div class="deux-champs"><label class="champ">Pour qui<select id="tk-qui">${T_GENS.map(k => `<option value="${k}" ${x.qui === k ? 'selected' : ''}>${tNom(k)}</option>`).join('')}</select></label>
       <label class="champ">Répéter<select id="tk-rep"><option value="">Jamais</option><option value="semaine" ${x.rep === 'semaine' ? 'selected' : ''}>Chaque semaine</option><option value="mois" ${x.rep === 'mois' ? 'selected' : ''}>Chaque mois</option></select></label></div>
     <div class="deux-champs"><label class="champ">Pour quand<input id="tk-d" type="date" value="${x.d || ''}"></label><label class="champ">Heure (facultatif)<input id="tk-h" type="time" step="300" value="${x.h || ''}"></label></div>
@@ -7511,7 +7511,7 @@ function aPanneauNouveau(tid){
       <label class="champ">Type<select id="an-ty">${Object.keys(A_TYPES).map(k => `<option>${k}</option>`).join('')}</select></label></div>
     <div class="deux-champs"><label class="champ">Du<input type="date" id="an-du" value="${jour(2)}"></label><label class="champ">Au<input type="date" id="an-au" value="${jour(2)}"></label></div>
     <label class="champ">Sur un seul jour<select id="an-demi"><option value="">Journée entière</option><option value="matin">Le matin seulement</option><option value="aprem">L’après-midi seulement</option></select></label>
-    <label class="champ">Motif (facultatif)<input id="an-m" placeholder="Ex. arrêt de travail, formation…"></label>
+    <label class="champ">Motif (facultatif)<input id="an-m" placeholder="ex. arrêt de travail, formation…"></label>
     <div id="an-apercu"></div>
     <button type="button" class="btn large" data-anouvok="1">Enregistrer l’absence</button>`);
   aApercu();
@@ -7591,7 +7591,7 @@ function aPanneauModif(d){ // l'employeur propose d'autres dates ; la personne a
   ouvrirPanneau(`<h2>Proposer d’autres dates</h2><span class="gris">${tech(d.tech).nom} a demandé ${aPeriode(d)} (${aTypeBas(d.type)}). ${aPrenom(d.tech)} recevra ta proposition et pourra l’accepter.</span>
     <div class="deux-champs"><label class="champ">Du<input type="date" id="am-du" value="${d.du}"></label><label class="champ">Au<input type="date" id="am-au" value="${d.au}"></label></div>
     <label class="champ">Sur un seul jour<select id="am-demi"><option value="">Journée entière</option><option value="matin" ${d.demi === 'matin' ? 'selected' : ''}>Le matin seulement</option><option value="aprem" ${d.demi === 'aprem' ? 'selected' : ''}>L’après-midi seulement</option></select></label>
-    <label class="champ">Un mot pour ${aPrenom(d.tech)}<textarea id="am-msg" rows="3" placeholder="Ex. on a la visite des Mimosas ce jour-là, est-ce que la semaine d’après te va ?"></textarea></label>
+    <label class="champ">Un mot pour ${aPrenom(d.tech)}<textarea id="am-msg" rows="3" placeholder="ex. on a la visite des Mimosas ce jour-là, est-ce que la semaine d’après te va ?"></textarea></label>
     <div id="am-apercu"></div>
     <div class="actions"><button type="button" class="btn" data-amodifok="${d.id}">Envoyer la proposition à ${aPrenom(d.tech)}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   aApercuModif(d);
@@ -7645,7 +7645,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.anon) { const d = DEMANDES_ABS.find(x => x.id === b.dataset.anon);
     return ouvrirPanneau(`<h2>Refuser la demande</h2><span class="gris">${tech(d.tech).nom} · ${d.type} · ${aPeriode(d)}</span>
       <div class="info">Plutôt que refuser, tu peux aussi <button type="button" class="lien" data-amodif="${d.id}">proposer d’autres dates</button>.</div>
-      <label class="champ">Pourquoi (${aPrenom(d.tech)} le lira)<textarea id="an-raison" rows="3" placeholder="Ex. trop d’interventions prévues cette semaine-là."></textarea></label>
+      <label class="champ">Pourquoi (${aPrenom(d.tech)} le lira)<textarea id="an-raison" rows="3" placeholder="ex. trop d’interventions prévues cette semaine-là."></textarea></label>
       <div class="actions"><button type="button" class="btn rouge" data-anonok="${d.id}">Refuser</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
   if (b.dataset.anonok) { const r = document.getElementById('an-raison').value.trim(); if (!r) { toast('Écris pourquoi : la personne le lira'); return document.getElementById('an-raison').focus(); }
     const d = DEMANDES_ABS.find(x => x.id === b.dataset.anonok); DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d); aRefusees.unshift({ ...d, raison:r });
@@ -7882,7 +7882,7 @@ function aPanneauDemande(){ const tid = aTech(), cp = aSolde(tid, 'Congé payé'
     <label class="champ">Type<select id="ad-ty">${T.map(([k, s]) => `<option value="${k}">${k}${s ? ' · ' + s : ''}</option>`).join('')}</select></label>
     <div class="deux-champs"><label class="champ">Du<input type="date" id="ad-du" value="${jour(9)}"></label><label class="champ">Au<input type="date" id="ad-au" value="${jour(11)}"></label></div>
     <div class="champ"><span>Sur la journée</span><div class="seg ad-demi" role="radiogroup" aria-label="Sur la journée" id="ad-demi" data-v="">${[['', 'Journée entière'], ['matin', 'Matin'], ['aprem', 'Après-midi']].map(([k, l]) => `<button type="button" role="radio" data-addemi="${k || 'jour'}" aria-pressed="${!k}" aria-checked="${!k}">${l}</button>`).join('')}</div><small class="gris" id="ad-demi-n"></small></div>
-    <label class="champ">Motif (facultatif, Marc le lira)<textarea id="ad-m" rows="2" placeholder="Ex. vacances en famille, rendez-vous médical…"></textarea></label>
+    <label class="champ">Motif (facultatif, Marc le lira)<textarea id="ad-m" rows="2" placeholder="ex. vacances en famille, rendez-vous médical…"></textarea></label>
     <div id="ad-apercu"></div>
     <button type="button" class="btn large" data-atenvoi="1">Envoyer la demande à Marc</button>`);
   aApercuDemande();
@@ -8568,7 +8568,7 @@ function cpVueTva(tv){
       <div class="groupe">À déduire : la TVA de tes achats</div><div class="ligne"><span>${tv.avec.length} achat${tv.avec.length > 1 ? 's' : ''} avec leur facture</span><b>− ${eur(tv.ded)}</b></div>
       <div class="ligne" style="font-size:18px"><span><b>TVA à payer</b></span><b style="color:var(--orange)">${eur(tv.aPayer)}</b></div>
       <span class="gris petit" style="display:block;margin-top:8px">À déclarer en novembre (déclaration CA3 de la période d’octobre), avant ta date limite (espace professionnel impots.gouv.fr). L’écriture de déclaration est déjà passée dans le journal. Les lignes exactes se vérifient avec ton expert-comptable.</span></div>
-      <div class="carte"><h3>Pourquoi « sur ce qui a été payé » ?</h3><span class="gris petit">Tes interventions sont des services : leur TVA est due quand le client paie, pas quand la facture part. Une facture d’octobre payée en novembre compte en novembre ; une facture de septembre payée en octobre compte ici ; un acompte reçu sur place compte le jour où le technicien l’encaisse. (Une vente de pièces seules, sans pose, suit une autre règle : la TVA est due à la livraison.)</span>
+      <div class="carte"><h3>Pourquoi « sur ce qui a été payé » ?</h3><span class="gris petit">Tes interventions sont des services : leur TVA est due quand le client paie, pas quand la facture part. Une facture d’octobre payée en novembre compte en novembre. Une facture de septembre payée en octobre compte ici. Un acompte reçu sur place compte le jour où le technicien l’encaisse. (Une vente de pièces seules, sans pose, suit une autre règle : la TVA est due à la livraison.)</span>
         <button type="button" class="lien" data-cp="regimes" style="margin-top:6px">Les autres régimes de TVA</button></div></div>
     <div class="col"><div class="carte"><h3>Achats d’octobre · ${ACHATS.filter(a => cpOct(a.d)).length}</h3>${ACHATS.filter(a => cpOct(a.d)).map(a => `<div class="ligne"><span><b>${esc(a.four)}</b><br><span class="gris petit">${a.d} · ${esc(a.objet)} · ${a.tva ? 'TVA ' + eur(cpTVA(a)) : 'sans TVA'}</span></span><span class="cp-dr"><b>${eur(cpTTC(a))}</b><br>${a.tva ? etat(a) : `<span class="gris petit">✓ ${esc(a.just || '')}</span>`}</span></div>`).join('')}
       ${tv.sans.length ? `<div class="info petit" style="margin-top:10px">${tv.sans.length} achat${tv.sans.length > 1 ? 's' : ''} sans facture : ${eur(tv.manque)} de TVA que tu ne peux pas récupérer tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}. Une photo de la facture suffit ; un ticket de carte seul ne permet pas de récupérer la TVA (la station ou le magasin te la donne sur demande).</div>` : ''}</div></div></div>`;
@@ -9036,7 +9036,7 @@ const ACTIONS = {
       <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="champ" style="flex:1 1 150px">Date<input type="date" id="m-d" value="${i.d}"></label><label class="champ" style="flex:1 1 110px">Heure<input type="time" id="m-h" value="${i.h}"></label><label class="champ" style="flex:1 1 110px">Durée<select id="m-dur">${[...new Set([30,60,90,120,180,240,480,i.dur])].sort((a,b)=>a-b).map(n=>`<option value="${n}" ${i.dur===n?'selected':''}>${duree(n)}</option>`).join('')}</select></label></div>
       <label class="champ">Technicien<select id="m-tech">${TECHS.map(t=>`<option value="${t.id}" ${i.tech===t.id?'selected':''}>${t.nom}</option>`).join('')}</select></label>
       <label class="champ">Type<select id="m-type">${[...new Set([i.type, ...TYPES])].map(t=>`<option ${i.type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label>
-      <label class="champ">Note pour le technicien<textarea class="saisie" id="m-n" rows="2" placeholder="Ex. : apporter l’échelle, le client a changé de code">${esc(i.note || '')}</textarea></label>
+      <label class="champ">Note pour le technicien<textarea class="saisie" id="m-n" rows="2" placeholder="ex. apporter l’échelle, le client a changé de code">${esc(i.note || '')}</textarea></label>
       <button type="button" class="btn large" data-action="modifIntOk" data-id="${i.id}">Enregistrer les modifications</button>`); },
   modifIntOk(b){ const i = INTS.find(o => o.id === b.dataset.id);
     const t2 = document.getElementById('m-tech').value, d2 = document.getElementById('m-d').value || i.d, h2 = document.getElementById('m-h').value || i.h;
@@ -9077,7 +9077,7 @@ const ACTIONS = {
     <div class="carte"><h3>2 · Envoyer toute seule</h3><div style="line-height:1.55">Quand le technicien appuie sur « Terminer », la facture se prépare. Si la case est cochée <b>et</b> que tout est en ordre, elle part tout de suite : numéro définitif, PDF, e-mail au client avec le compte rendu joint. Si le technicien a noté un paiement sur place, elle part déjà marquée payée (ou avec l’acompte déduit).<br><br><b>Elle ne part jamais seule</b> — elle t’attend « à valider » — si :<br>• une ligne n’a pas de prix ;<br>• le client n’a pas d’adresse e-mail ;<br>• le technicien a cliqué « Je ne peux pas finir » ;<br>• il manque ton nom, ton adresse ou ton SIRET dans <button type="button" class="lien" data-go="entreprise">Mon entreprise</button>.</div></div>
     <div class="carte"><h3>3 · Relancer tout seul</h3><div style="line-height:1.55">Chaque matin, l’application regarde les factures envoyées dont la date d’échéance est passée et qui ne sont pas payées.<br>• <b>7 jours après l’échéance</b> : un rappel aimable par e-mail, avec la facture et le lien pour payer par carte.<br>• <b>15 jours après</b> : un second rappel, plus ferme ; pour un client professionnel, il rappelle les pénalités et l’indemnité de 40 €.<br>• Ensuite, elle <b>s’arrête</b> et te la signale « à relancer toi-même » (un appel vaut mieux qu’un troisième e-mail).<br><br>Elle arrête tout de suite dès que la facture est payée : paiement en ligne, encaissement noté, ou « payée » cochée. Tu peux aussi couper les relances pour un client précis (un bon client qui paie toujours en retard, une facture contestée). Chaque relance partie s’affiche dans le suivi de la facture.</div></div>
     ${enApp() ? '' : '<div class="info petit">Dans ce prototype, l’envoi automatique est simulé et les relances ne partent pas : c’est la règle qui sera construite.</div>'}`, true); },
-  vueEnregistrer(){ ouvrirPanneau(`<h2>Enregistrer cette vue</h2><span class="gris">${[...multiJours].sort().map(jlib).join(', ')} · ${techsVus().map(t=>t.id?t.nom.split(' ')[0]:'Non assigné').join(', ')} · ${multiGrp==='jour'?'par jour':'par personne'}</span><label class="champ">Son nom<input id="vue-nom" placeholder="Ex. : équipe clim, chantier Mimosas"></label><div class="info petit">Les dates sont gardées par rapport à aujourd’hui : « aujourd’hui et lundi » reste « aujourd’hui et lundi » demain.</div><button type="button" class="btn large" data-action="vueEnregistrerOk">Enregistrer</button>`); setTimeout(()=>document.getElementById('vue-nom')?.focus(),60); },
+  vueEnregistrer(){ ouvrirPanneau(`<h2>Enregistrer cette vue</h2><span class="gris">${[...multiJours].sort().map(jlib).join(', ')} · ${techsVus().map(t=>t.id?t.nom.split(' ')[0]:'Non assigné').join(', ')} · ${multiGrp==='jour'?'par jour':'par personne'}</span><label class="champ">Son nom<input id="vue-nom" placeholder="ex. équipe clim, chantier Mimosas"></label><div class="info petit">Les dates sont gardées par rapport à aujourd’hui : « aujourd’hui et lundi » reste « aujourd’hui et lundi » demain.</div><button type="button" class="btn large" data-action="vueEnregistrerOk">Enregistrer</button>`); setTimeout(()=>document.getElementById('vue-nom')?.focus(),60); },
   vueEnregistrerOk(){ const nom = document.getElementById('vue-nom').value.trim() || 'Ma vue'; const V = vuesLire(); V.push({ nom, jours:[...multiJours].sort().map(d => Math.round((dObj(d) - dObj(AUJ)) / 864e5)), techs:techsVus().map(t=>t.id), exclu:[...multiExclu].map(x => { const [tid, d] = x.split('|'); return tid + '|' + Math.round((dObj(d) - dObj(AUJ)) / 864e5); }), grp:multiGrp, n:multiN }); vuesEcrire(V); fermerPanneau(); rendre(); toast('Vue « ' + esc(nom) + ' » enregistrée'); },
   prepFacture(b){ factureDepuis(INTS.find(o => o.id === b.dataset.id)); rendre(); toast('Facture préparée à partir de l’intervention.'); },
   envoiMail(b){ panneauMail(b.dataset.id); },
@@ -11471,7 +11471,7 @@ function cxOuvrirDossier(id){
     <div class="cx-bloc"><h3>Du devis au paiement</h3>${ev.length ? `<ol class="cx-tl">${ev.map(e => `<li><span class="cx-tl-i" aria-hidden="true">${e[2]}</span><span class="cx-tl-d">${e[0] ? jCourt(e[0]) : ''}</span><span>${e[3]}</span></li>`).join('')}</ol>` : '<span class="gris petit">Rien encore.</span>'}</div>
     <div class="cx-bloc"><h3>Ce qu’elle a coûté</h3>${x.pieces.length || x.achats.length ? `${x.pieces.map(p => `<div class="ligne"><span>${esc(p.nom)} <span class="gris petit">· ${esc(p.q)} · pris dans le stock</span></span><b>${p.cout != null ? eur(p.cout) : '<span class="gris petit">prix d’achat inconnu</span>'}</b></div>`).join('')}
       ${x.achats.map(a => `<div class="ligne"><button type="button" class="lien" data-cx="doc|ach|${a.id}">${esc(a.four)} · ${esc(a.objet)}</button><b>${eur(a.ht)} HT</b></div>`).join('')}
-      <div class="ligne"><b>Total des coûts${x.pieces.some(p => p.cout == null) ? ' connus' : ''}</b><b>${eur(x.cout)} HT</b></div>${x.pieces.some(p => p.cout == null) ? '<span class="gris petit">Une pièce n’a pas de prix d’achat dans le stock : la marge est un peu trop haute tant qu’il manque.</span>' : ''}` : '<span class="gris petit">Aucune pièce ni achat pour cette intervention. Dans la vraie version, la main-d’œuvre (heures pointées) s’ajoutera ici.</span>'}</div>
+      <div class="ligne"><b>Total des coûts${x.pieces.some(p => p.cout == null) ? ' connus' : ''}</b><b>${eur(x.cout)} HT</b></div>${x.pieces.some(p => p.cout == null) ? '<span class="gris petit">Une pièce n’a pas de prix d’achat dans le stock : la marge est un peu trop haute tant qu’il manque.</span>' : ''}` : '<span class="gris petit">Aucune pièce ni achat pour cette intervention.</span>'}</div>
     <div class="cx-bloc"><h3>Les documents</h3><div class="actions">${docs}</div></div>`, true);
 }
 
@@ -11604,34 +11604,34 @@ function cxConformite(K, D){
       d:E.assureur && E.assurc && E.assurZone ? `${esc(E.assureur)} · ${esc(E.assurZone)} : écrite toute seule en bas de chaque devis et de chaque facture. Vérifie qu’elle est à jour et qu’elle couvre la pose.` : 'L’assureur, ses coordonnées et la zone couverte s’écrivent sur tes devis et tes factures. La pose d’une pompe à chaleur relève en général de la décennale ; pour une climatisation, vois avec ton assureur.',
       act:E.assureur && E.assurc && E.assurZone ? null : ['Ajouter mon assurance', 'data-cx="fiche"'] },
     { g:'factures', k:'reduit', v:1, s:reduit.length ? 'att' : 'info', t:'Le taux réduit de TVA, avec sa mention', ref:'CGI, art. 279-0 bis et 278-0 bis A' + aVoir,
-      d:reduit.length ? `${pl(reduit.length, 'facture')} à 10 % ou 5,5 % (${reduit.map(f => esc(f.num)).join(', ')}). Le taux réduit vaut pour des travaux dans un logement terminé depuis plus de deux ans : le devis ou la facture doit porter la mention prévue, certifiée par ton client. Sans elle, c’est 20 %.` : 'Aucune facture au taux réduit. Dans un logement de plus de deux ans, vérifie que le taux réduit n’a pas été oublié.',
+      d:reduit.length ? `${pl(reduit.length, 'facture')} à 10 % ou 5,5 % (${reduit.map(f => esc(f.num)).join(', ')}). Le taux réduit vaut pour des travaux dans un logement terminé depuis plus de deux ans. Le devis ou la facture doit porter la mention prévue, certifiée par ton client. Sans elle, c’est 20 %.` : 'Aucune facture au taux réduit. Dans un logement de plus de deux ans, vérifie que le taux réduit n’a pas été oublié.',
       act:reduit.length ? ['Voir les factures', 'data-cx="sec|fventes|clients"'] : null },
     { g:'factures', k:'numeros', s:'auto', t:'Une numérotation qui se suit, sans trou', ref:'CGI, annexe II, art. 242 nonies A',
-      d:`Une facture prend son numéro à l’envoi, à la suite du dernier numéro donné${dernier ? ` (le dernier : ${dernier.num})` : ''} ; une facture envoyée ne se modifie plus et ne s’efface pas : une erreur se corrige par un avoir.` },
+      d:`Une facture prend son numéro à l’envoi, à la suite du dernier${dernier ? ` (${dernier.num})` : ''}. Une facture envoyée ne se modifie plus et ne se supprime pas : une erreur se corrige par un avoir.` },
     { g:'factures', k:'nature', s:'auto', t:'La nature de l’opération', ref:'Nouvelle mention de la facture électronique (septembre 2027 pour une PME)',
-      d:'« Prestation de services » est écrit sur tes factures : pour des travaux et de la main-d’œuvre, la TVA est due quand le client paie, sauf si tu as choisi de la payer « d’après les débits » (alors une mention de plus).' },
+      d:'« Prestation de services » est écrit sur tes factures. Pour des travaux et de la main-d’œuvre, la TVA est due quand le client paie. Si tu as choisi de la payer « d’après les débits », il y a alors une mention de plus.' },
     { g:'factures', k:'acompte', s:'auto', t:'Les acomptes déduits de la facture finale', ref:'TVA d’un acompte sur une prestation : due quand tu le reçois',
       d:'Un acompte reçu sur place ou à la signature d’un devis est déduit tout seul de la facture finale ; sa TVA compte le mois où tu l’as reçu.' },
     { g:'efacture', k:'reception', v:1, s:!CX_CONF.pa ? 'non' : CX_CONF.paVerif ? 'ok' : 'att', t:'Recevoir les factures électroniques', ref:'Obligatoire pour toutes les entreprises depuis le 1er septembre 2026',
-      d:!CX_CONF.pa ? 'Depuis le 1er septembre 2026, toute entreprise doit pouvoir recevoir ses factures fournisseurs au format électronique, par une plateforme agréée. Les grandes entreprises et les ETI t’en envoient déjà. Choisis ta plateforme.'
+      d:!CX_CONF.pa ? 'Depuis le 1er septembre 2026, toute entreprise doit pouvoir recevoir ses factures fournisseurs au format électronique, par une plateforme agréée. Les grandes entreprises t’en envoient déjà. Choisis ta plateforme.'
         : CX_CONF.paVerif ? `Tes fournisseurs t’envoient leurs factures par ${esc(CX_CONF.pa)}, plateforme agréée, et tu es inscrit dans l’annuaire.` : `Tu as noté ${esc(CX_CONF.pa)}. Vérifie qu’elle est sur la liste officielle des plateformes agréées et que tu es inscrit dans l’annuaire comme la recevant.`,
       act:[CX_CONF.pa ? 'Modifier' : 'Choisir ma plateforme', 'data-cx="plateforme"'] },
-    { g:'efacture', k:'siren', v:1, s:sansSiren.length ? 'avenir' : 'ok', t:'Le SIREN de tes clients professionnels', ref:'Nouvelle mention : 1er septembre 2027 pour une PME (2026 pour une grande entreprise ou une ETI)',
+    { g:'efacture', k:'siren', v:1, s:sansSiren.length ? 'avenir' : 'ok', t:'Le SIREN de tes clients professionnels', ref:'Nouvelle mention : 1er septembre 2027 pour une PME (2026 pour une grande entreprise)',
       d:sansSiren.length ? `${pl(sansSiren.length, 'client professionnel', 'clients professionnels')} sans SIREN (${sansSiren.map(c => esc(c.nom)).join(', ')}). Il deviendra obligatoire sur tes factures aux professionnels le 1er septembre 2027 : note-le dès maintenant.` : `Les ${pros.length} clients professionnels ont leur SIREN : il s’écrit déjà sur leurs factures.`,
       act:['Renseigner les SIREN', 'data-cx="siren"'] },
     { g:'efacture', k:'emission', s:'avenir', t:'Envoyer tes factures en électronique', ref:'1er septembre 2027 pour les PME et les micro-entreprises',
       d:`Dans ${pl(moisAvant, 'mois', 'mois')}, tes factures aux professionnels partiront dans un format électronique (Factur-X, par exemple), par ta plateforme. Les factures aux particuliers continuent comme avant.` },
     { g:'efacture', k:'ereporting', s:'avenir', t:'Déclarer tes ventes aux particuliers (e-reporting)', ref:'Même calendrier que l’envoi',
-      d:'Au même moment, les montants et la TVA de tes ventes aux particuliers, et les dates de paiement de tes services, seront transmis à l’administration par ta plateforme (des totaux, pas le détail de chaque client). Chaque paiement est enregistré ici avec sa date : c’est la donnée qu’il faudra.' },
+      d:'Au même moment, ta plateforme transmettra à l’administration les montants, la TVA et les dates de paiement de tes ventes aux particuliers. Ce sont des totaux, pas le détail de chaque client. Chaque paiement est enregistré ici avec sa date : c’est la donnée qu’il faudra.' },
     { g:'efacture', k:'chorus', s:'info', t:'Un client public ?', ref:'Chorus Pro, obligatoire pour les factures au secteur public',
       d:'Une mairie, une école, un hôpital : la facture se dépose sur Chorus Pro, le portail de l’État. Aucun de tes clients n’est public aujourd’hui.' },
     { g:'argent', k:'inalterable', s:'att', t:'Des paiements qu’on ne peut ni modifier ni effacer', ref:'CGI, art. 286, I-3° bis' + aVoir,
-      d:'Un logiciel qui enregistre les paiements de clients particuliers doit les rendre inaltérables, les sécuriser, les conserver et les archiver, et l’éditeur doit en fournir la preuve (certificat ou attestation). Sans cette preuve, c’est l’entreprise qui l’utilise qui risque l’amende. TeamOP la fournira ici, dès qu’elle est délivrée.' },
+      d:'Un logiciel qui enregistre les paiements de clients particuliers doit les rendre inaltérables, les sécuriser, les conserver et les archiver. L’éditeur doit en fournir la preuve (certificat ou attestation). Sans cette preuve, c’est l’entreprise qui l’utilise qui risque l’amende. TeamOP la fournira ici, dès qu’elle est délivrée.' },
     { g:'argent', k:'banque', v:1, s:rap.aExpliquer.length ? 'non' : 'ok', t:'La banque rapprochée', ref:'Le solde du compte en comptabilité doit être celui de la banque',
       d:rap.aExpliquer.length ? `${pl(rap.aExpliquer.length, 'ligne')} du relevé sans explication : tant qu’elles restent, la comptabilité et la banque ne disent pas la même chose.` : `Les ${CP_RELEVE.length} lignes du relevé d’octobre ont chacune leur pièce.`,
       act:rap.aExpliquer.length ? ['Expliquer', 'data-cx="sec|banque"'] : null },
     { g:'argent', k:'especes', v:1, s:espGros.length || enMain ? 'att' : 'ok', t:'Les espèces et les chèques', ref:'Code monétaire et financier, art. L112-6' + aVoir,
-      d:`Une dette de plus de 1 000 € ne se paie pas en espèces quand le client vit en France, particulier ou professionnel, même en plusieurs fois : au-dessus, refuse les espèces. ${espGros.length ? `À revoir : ${espGros.map(esc).join(', ')}. ` : 'Aucun paiement en espèces au-dessus. '}${enMain ? `${eur(enMain)} reçus en espèces ou en chèques ne sont pas encore à la banque.` : 'Tout l’argent reçu en main est déposé.'}`,
+      d:`On ne paie pas en espèces une dette de plus de 1 000 €, même en plusieurs fois, quand le client vit en France (particulier ou professionnel). Au-dessus de ce montant, refuse les espèces. ${espGros.length ? `À revoir : ${espGros.map(esc).join(', ')}. ` : 'Aucun paiement en espèces n’a dépassé ce plafond. '}${enMain ? `${eur(enMain)} reçus en espèces ou en chèques ne sont pas encore à la banque.` : 'Tout l’argent reçu en main est déposé.'}`,
       act:enMain ? ['Voir la caisse', 'data-cx="sec|caisse"'] : null },
     { g:'argent', k:'delais', v:1, s:delaiMax > 60 ? 'non' : rtCli.length || rtFour.length ? 'att' : 'ok', t:'Les délais de paiement', ref:'Code de commerce, art. L441-10 (entre professionnels : 60 jours après la facture, ou 45 jours fin de mois)',
       d:`${emisesPro.length ? `Tes factures aux professionnels laissent au plus ${delaiMax} jours : ${delaiMax > 60 ? 'c’est au-dessus du plafond.' : 'sous le plafond.'} ` : ''}${rtCli.length ? pl(rtCli.length, 'facture client', 'factures clients') + ' en retard : relance. ' : ''}${rtFour.length ? pl(rtFour.length, 'facture fournisseur', 'factures fournisseurs') + ' que tu paies en retard : un retard de ta part peut valoir des pénalités.' : 'Tes fournisseurs sont payés à l’heure.'}`,
@@ -11765,7 +11765,7 @@ function cxVueNormes(conf){
   const ligne = c => { const e = CX_ETATS[c.s]; return `<div class="cx-norme cx-n-${c.s}" data-k="${c.k}"><span class="st ${e[1]}">${e[0]}</span><span class="cx-tc"><b>${c.t}</b><span class="gris petit">${c.d}</span>${c.ref ? `<span class="cx-ref">${esc(c.ref)}</span>` : ''}</span>${c.act ? `<button type="button" class="btn ${c.s === 'non' ? '' : 'gris '}petit" ${c.act[1]}>${c.act[0]}</button>` : '<span></span>'}</div>`; };
   return `<div class="carte cx-score"><div class="cx-score-g"><b class="${n('non') ? 'neg' : 'pos'}">${ok} sur ${compte}</b><span>points suivis sont en règle</span><span class="cx-barre cx-barre-l" aria-hidden="true"><i style="width:${pc}%"></i></span></div>
       <div class="cx-score-d">${[['non', 'à régler'], ['att', 'à surveiller'], ['avenir', 'à préparer'], ['auto', 'faits par OP GESTION']].map(([s, l]) => `<span class="st ${CX_ETATS[s][1]}">${n(s)} ${l}</span>`).join('')}</div>
-      <span class="gris petit">Les points « en règle », « à régler » et « à surveiller » sont comptés ensemble : la plupart se vérifient tout seuls sur tes données (fiche, factures et leur PDF, banque, caisse, achats), les autres demandent ton attention. « Fait par OP GESTION » : c’est le logiciel qui le garantit, il n’y a rien à vérifier de ton côté. Les références des textes t’aident à t’y retrouver ; ton expert-comptable reste celui qui valide.</span></div>
+      <span class="gris petit">Les points « en règle », « à régler » et « à surveiller » sont comptés ensemble. La plupart se vérifient tout seuls sur tes données (fiche, factures et leur PDF, banque, caisse, achats). Les autres demandent ton attention. « Fait par OP GESTION » : c’est le logiciel qui le garantit, il n’y a rien à vérifier de ton côté. Les références des textes t’aident à t’y retrouver ; ton expert-comptable reste celui qui valide.</span></div>
     ${CX_GROUPES_CONF.map(([g, t, ic]) => { const G = conf.filter(c => c.g === g); return G.length ? `<div class="carte cx-normes"><h3 class="cx-ng"><span class="cx-ng-i" aria-hidden="true">${ic}</span><span>${t}</span></h3>${G.map(ligne).join('')}</div>` : ''; }).join('')}`;
 }
 function cxVueArchives(K, D){
@@ -13797,7 +13797,7 @@ function rendreCreation_(){
     <div class="groupe">Durée prévue</div><div class="puces">${[30,60,90,120,180,240].map(m => `<button type="button" class="puce-c" data-cdur="${m}" aria-pressed="${CREA.dur===m}">${duree(m)}</button>`).join('')}</div>
     <div class="groupe">Pièces à prévoir <span class="faible mini" style="font-weight:500">— le technicien les voit sans prix, et coche celles qu’il pose</span></div>
     <div class="puces" data-vis="crea-pieces">${crPiecesPuces()}</div>
-    <label class="champ" style="margin-top:8px">Chercher un autre article<input type="search" data-cchamp="cpq" value="${esc(CREA.cpq || '')}" placeholder="Ex. condensateur, siphon, fluide…" autocomplete="off"></label>
+    <label class="champ" style="margin-top:8px">Chercher un autre article<input type="search" data-cchamp="cpq" value="${esc(CREA.cpq || '')}" placeholder="ex. condensateur, siphon, fluide…" autocomplete="off"></label>
     <div class="puces" id="cp-res">${crPiecesRes()}</div></section>`;
   const jours = ouvres(6);
   const etape3 = `<section class="carte"><div class="ni-etape"><b>3</b><h2>Ajouter au planning</h2>${b ? `<span class="st ${b.tech ? 'st-v' : 'st-o'} ok">${b.tech ? tech(b.tech).nom.split(' ')[0] + ' · ' + jlib(b.d) + ' · ' + b.h + ' – ' + fin(b.h, b.dur) : 'à planifier · ligne « Non assigné »'}</span>` : ''}</div>
@@ -13884,7 +13884,7 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && CREA && 
 function creaAvaleClic(){ const t0 = Date.now(), avale = e => { if (e.detail >= 2 && Date.now() - t0 < 800) { e.stopPropagation(); e.preventDefault(); } document.removeEventListener('click', avale, true); }; document.addEventListener('click', avale, true); setTimeout(() => document.removeEventListener('click', avale, true), 800); }
 const ACTIONS_CREA = {
   cFermer(){ fermerCreation(); },
-  cAjoutType(){ ouvrirPanneau(`<h2>Ajouter un type</h2><label class="champ">Son nom<input id="t-nom" placeholder="Ex. : Désembouage, Remise en service"></label><span class="faible mini">Il sera proposé pour toutes les prochaines interventions.</span><button type="button" class="btn large" data-action="cAjoutTypeOk">Ajouter</button>`); setTimeout(() => document.getElementById('t-nom')?.focus(), 50); },
+  cAjoutType(){ ouvrirPanneau(`<h2>Ajouter un type</h2><label class="champ">Son nom<input id="t-nom" placeholder="ex. Désembouage, Remise en service"></label><span class="faible mini">Il sera proposé pour toutes les prochaines interventions.</span><button type="button" class="btn large" data-action="cAjoutTypeOk">Ajouter</button>`); setTimeout(() => document.getElementById('t-nom')?.focus(), 50); },
   cPlusTot(){ for (const d of ouvres(10)) for (const t of TECHS.filter(x => x.id && (!CREA.secteurSeul || !secteurCrea() || SECT_TECH[x.id].includes(secteurCrea())))) { const p = plagesLibres(t.id, d).find(([a,z]) => z - a >= CREA.dur); if (p) { CREA.vue = 'jour'; CREA.jour = d; placerBrouillon(t.id, d, p[0]); rendre(); toast(`Premier créneau libre : ${t.nom} · ${jlong(d)} · ${hm(p[0])}`); return; } } toast('Aucun créneau libre sur les 10 prochains jours.'); },
   cPlusTard(){ placerBrouillon('', CREA.jour, PARAMS.debut); CREA.vue = 'jour'; rendre(); },
   cCreer(){ const b = brouillon(); if (!b) return; if (CREA.fact === 'forfait' && Date.now() - (CREA.forfaitRefus || 0) < 1500) { toast('Prix du forfait invalide : un montant en euros, positif et inférieur à 1 000 000 €. Corrige-le, puis crée.'); return; }   /* 13 novembre 2026 */ if (b.tech && refusAbsent(b.tech, b.d, b.h)) return; let k = CREA.cli;
@@ -17739,7 +17739,7 @@ function ttOngletMois(){
   const phrase = verr ? `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer. Fermé le ${PAIE.verrou.le.split(' ')[0]}.` : P.length ? 'Il reste ' + (P.length > 1 ? P.slice(0, -1).join(', ') + ' et ' + P[P.length - 1] : P[0]) + '.' : `${ttMaj(ttMois())} est prêt : les heures sont validées et confirmées.`;
   let bouton, lien = '';
   if (verr) bouton = `<button type="button" class="btn" data-tt="paie">Voir la paie</button>`;
-  else if (B.aValider) { bouton = `<button type="button" class="btn" data-tt="validertout">Valider ce qui est en règle</button>`; if (B.R.length) lien = `<button type="button" class="lien" data-tt="areg">Voir À régler ›</button>`; }
+  else if (B.aValider) { bouton = `<button type="button" class="btn" data-tt="validertout">Valider ce qui est en règle</button>`; if (B.R.length) lien = `<button type="button" class="lien" data-tt="areg">Voir les points à régler ›</button>`; }
   else if (B.nonVal || B.bloques) bouton = `<button type="button" class="btn" data-tt="areg">Voir ce qu’il reste à régler</button>`;
   else if (B.nonConf) { bouton = `<button type="button" class="btn gris" data-tt="confirmer">Demander de confirmer</button>`; lien = `<button type="button" class="lien" data-tt="paie">Passer à la paie quand même</button>`; }
   else bouton = `<button type="button" class="btn" data-tt="paie">Passer à la paie</button>`;
@@ -17846,7 +17846,7 @@ function ttAjouterPanneau(k, d){
     <div class="deux-champs"><label class="champ">Qui ?<select id="tt-aq">${PT_GENS.map(g => `<option value="${g}" ${g === kk ? 'selected' : ''}>${esc(H_NOM(g))}</option>`).join('')}</select></label><label class="champ">Quel jour ?<input type="date" id="tt-aj" value="${dd}" max="${AUJ}"></label></div>
     <div class="deux-champs"><label class="champ">Début<input type="time" id="tt-ad" value="08:00"></label><label class="champ">Fin<input type="time" id="tt-af" value="17:00"></label></div>
     <label class="champ">Pause (minutes)<input inputmode="numeric" id="tt-ap" value="60"></label>
-    <label class="champ">Pourquoi ? <span class="gris petit">(obligatoire)</span><input id="tt-am" placeholder="Ex. : oubli de pointer, confirmé avec lui"></label>
+    <label class="champ">Pourquoi ? <span class="gris petit">(obligatoire)</span><input id="tt-am" placeholder="ex. oubli de pointer, confirmé avec lui"></label>
     <div class="actions"><button type="button" class="btn large" data-tt="ajoutok">Ajouter la journée</button></div>`);
 }
 function ttAjouterOk(){
@@ -17915,7 +17915,7 @@ function ttFicheJour(k, d){
   const vide = !P.length ? (verr ? '' : `<div class="tt-vide-j"><span class="gris">${d > AUJ ? 'Cette journée n’est pas encore arrivée.' : 'Aucune heure ce jour-là.'}</span>${d <= AUJ && !a ? `<button type="button" class="btn gris" data-tt="ajout|${k}|${d}">Ajouter les heures</button>` : ''}</div>`) : '';
   /* le champ du motif est DANS le pied : posé au-dessus, le pied collant le recouvrait au téléphone (le bouton grisé se lisait, le champ qu'il réclame était dessous) */
   const edit = !verr && P.length ? `<div class="tt-edit" id="tt-edit" hidden><div class="tt-pied"><div class="tt-motif" id="tt-motif-bloc"><b>Pourquoi changes-tu cette heure ?</b><span class="gris petit">Obligatoire. ${esc(prenom)} le verra sur ses heures du mois.</span>
-      <input class="saisie" id="pt-motif" placeholder="Ex. : oubli de pointer en partant" autocomplete="off" maxlength="140" aria-label="Pourquoi changes-tu cette heure ?"></div>
+      <input class="saisie" id="pt-motif" placeholder="ex. oubli de pointer en partant" autocomplete="off" maxlength="140" aria-label="Pourquoi changes-tu cette heure ?"></div>
       <span class="tt-err" id="tt-err" role="alert"></span>
       <div class="actions"><button type="button" class="btn large" id="tt-enr" data-tt="jourok|${k}|${d}" disabled>Enregistrer la correction</button></div><span class="tt-aide-o" id="tt-aide">Écris d’abord pourquoi.</span></div></div>` : '';
   const trace = T.map(t => `<div class="paie-tr"><span class="paie-tr-c"><b>${t.champ === 'journee' ? 'Journée ajoutée : ' + esc(t.apres) : (t.champ === 'debut' ? 'Début' : t.champ === 'fin' ? 'Fin' : 'Pause') + ' : <s>' + esc(String(t.avant)) + '</s> → ' + esc(String(t.apres))}</b><span class="gris petit">par ${esc(prenomDe(t.par))} · le ${esc(t.le.replace(' · ', ' à '))} · parce que : ${esc(t.motif)}</span></span></div>`).join('');
