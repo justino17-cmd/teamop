@@ -97,6 +97,12 @@ const dit = (titre, l) => { const a = titre.toLowerCase(), b = l.toLowerCase(); 
         const titre = await p.evaluate(() => (document.querySelector('#calque .panneau h2') || {}).textContent);
         v('marc : « Personnaliser la barre du bas » ouvre « Ma barre »', titre === 'Ma barre', titre);
         await p.screenshot({ path: CAP + `menu-ma-barre-${PROFIL}${NUIT ? '-nuit' : ''}.png` });
+        const retourBarre = await p.evaluate(() => { const b = document.querySelector('#calque .rl-retour, #calque [data-rl="retour"], #calque .lien.retour'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : null; });
+        console.log('  · « Ma barre » porte un bouton retour :', retourBarre);
+        if (retourBarre) { const avant = await p.evaluate(() => (document.querySelector('#calque .panneau h2') || {}).textContent); await L.toucher(c, '#calque .rl-retour, #calque [data-rl="retour"], #calque .lien.retour'); await L.calme(p, 500);
+          const apres = await p.evaluate(() => ({ h2: (document.querySelector('#calque .panneau h2') || {}).textContent || null, hash: location.hash }));
+          v('[coque-10] « ‹ Retour » de « Ma barre » ramène à la feuille Menu (et non à un autre écran du parcours) — il a mené à ' + JSON.stringify(apres), apres.h2 === 'Menu', apres);
+          await L.toucher(c, '.tt-menu'); await L.toucher(c, '[data-mabarre="~ouvrir"]'); await L.calme(p, 400); }
         const nbLignes = await p.evaluate(() => document.querySelectorAll('#calque .mb-l').length);
         v('marc : « Ma barre » propose toutes les rubriques du menu (' + nbLignes + ')', nbLignes === (await p.evaluate(() => rlLignes().length)));
         const dit1 = async () => p.evaluate(() => (document.querySelector('#calque .mb-dit') || {}).textContent);
