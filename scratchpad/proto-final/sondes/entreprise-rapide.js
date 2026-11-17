@@ -62,7 +62,7 @@ const cliquer = async (c, sel) => { if (/carte\|/.test(sel)) await L.ranger(c.p)
     const a = await c2.p.evaluate(() => ({ kpis:document.querySelectorAll('#contenu .kpis .kpi').length, lignes:[...document.querySelectorAll('#contenu .ach-compta .ligne-clic')].map(e => e.textContent.replace(/\s+/g, ' ').trim()), groupe:(document.querySelector('#contenu .groupe') || {}).textContent, sous:document.querySelector('#contenu .tete .gris').textContent, menu:(document.querySelector('#menu a[href="#achats"] .m-sous') || {}).textContent, onglets:[...document.querySelectorAll('#contenu .pr-vues .l-long')].map(e => e.textContent) }));
     v('Achats : deux chiffres puis deux lignes sous « Ça se règle dans la Comptabilité »', a.kpis === 2 && a.lignes.length === 2 && norm(a.groupe) === 'Ça se règle dans la Comptabilité', a);
     v('Achats : sous-titre, ligne du menu et onglets', norm(a.sous) === 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.' && a.menu === 'Demandes de l’équipe' && a.onglets.join('|') === 'Demandes de matériel|Notes de frais', a);
-    v('plus aucune phrase « Paramètres » dans le fichier (hors NV_PLACE)', PAGE.split('\n').filter(l => /Paramètres/.test(l)).length === 1, 1);
+    v('plus aucune phrase « Paramètres » dans le fichier (le guide refait ne cite plus l’ancienne ligne)', PAGE.split('\n').filter(l => /Paramètres/.test(l)).length === 0, 0);
     v('aucune erreur de page', c2.err.length === 0, c2.err);
     await L.fin(c2); }
   await fin();

@@ -1,1 +1,314 @@
-{ "partie": "achats", "etat": "en cours (1/n) : sondes rejouées, rapport complété au fil de l'eau", "ecrans": [], "couverture": {}, "nonCouvert": [], "defauts": [] }
+{
+ "partie": "achats",
+ "etat": "campagne achats terminée côté jeu (17 novembre 2026) : rapport complet ; recontrôle des 13 points attendu après les corrections",
+ "ecrans": [
+  {
+   "nom": "Achats et frais (gérant, secrétariat en lecture seule)",
+   "fonction": "vueAchats (page.html ~19749)",
+   "acces": "menu Argent › Achats et frais ; #achats ; cloche et « À faire maintenant » de l'accueil ; Tâches › propositions"
+  },
+  {
+   "nom": "Achats et frais › Demandes de matériel",
+   "fonction": "acDemandes, axDemCarte, axAcheterLigne, axDemDecidee",
+   "acces": "onglet « Demandes de matériel » ou tuile « demandes à décider »"
+  },
+  {
+   "nom": "Achats et frais › Notes de frais",
+   "fonction": "acNotes, axNoteLigne",
+   "acces": "onglet « Notes de frais » ou tuile « notes à valider »"
+  },
+  {
+   "nom": "Mes frais (technicien, chef d'équipe)",
+   "fonction": "vueTechFrais",
+   "acces": "menu « Mes frais » ; barre du bas « Frais » ; carte « Il me faut du matériel » de Ma journée"
+  },
+  {
+   "nom": "Fenêtres",
+   "fonction": "axDemForm (Il me faut… / Noter une demande reçue), axPrecForm, refus de demande (data-ac refuser), axBudget, axTickForm (ticket d'achat en magasin), axNdfForm (note de frais), fiche note (axa fiche), axRefusNote, valider sans ticket (ndfsans), axToutValiderPanneau, tarif km (kmtarif), Comment ça marche (achatsAide), commande brouillon après transfert",
+   "acces": "boutons des écrans ci-dessus"
+  },
+  {
+   "nom": "Liaisons",
+   "fonction": "Stock/Dépôts (transfert), Fournisseurs › commandes (brouillon), Comptabilité › Factures & dépenses et Notes de frais, Temps de travail › Mois (paie), Tâches, Accueil, Historique",
+   "acces": "liens et messages des écrans ci-dessus"
+  }
+ ],
+ "couverture": {
+  "ecrans": 6,
+  "gestesRecenses": {
+   "gerant_mac_demandes": 26,
+   "gerant_mac_notes": 28,
+   "gerant_iphone_demandes": 28,
+   "gerant_iphone_notes": 30,
+   "technicien_mac": 5,
+   "technicien_iphone": 7
+  },
+  "gestesTouches": "tous : 26/26 et 28/28 (gérant, ordinateur), 28/28 et 30/30 (gérant, iPhone), 5/5 (technicienne, ordinateur), 7/7 (technicienne iPhone), 7/7 (chef d'équipe, ordinateur nuit) ; chacun fait quelque chose et toute fenêtre se ferme par Échap",
+  "parcours": [
+   "P1 le technicien demande (formulaire, refus de quantité, double toucher, valeurs longues)",
+   "P2 le gérant voit arriver la demande (compteurs, cloche)",
+   "P3 transférer depuis l'atelier + commande du reste",
+   "P4 achat en magasin puis ticket du technicien (HT au centime, immobilisation > 500 €)",
+   "P5 refus motivé",
+   "P6 demander une précision",
+   "P7 annuler / Annuler",
+   "N1-N4 note de frais avec ticket, sans ticket, kilomètres, doublon",
+   "N5-N6 le gérant valide : écriture 625, HT, TVA, Annuler",
+   "N7 valider sans ticket (trace)",
+   "N8 refuser, le technicien corrige",
+   "N9 Tout valider / Annuler",
+   "N10 refacturer au client",
+   "N11 remboursement avec la paie",
+   "rôles (gérant, secrétariat, chef d'équipe, technicienne)",
+   "liaisons : Tâches, accueil, menu, Stock, commande, Comptabilité, paie, Historique"
+  ],
+  "profils": [
+   "mac (jour)",
+   "iphone (jour)",
+   "petit 320 (nuit)",
+   "ipad (jour)",
+   "android (nuit)",
+   "windows (nuit)",
+   "mac (nuit)"
+  ]
+ },
+ "nonCouvert": [
+  "L'envoi réel de la paie au cabinet (étapes verrouiller / envoyer de « La paie d'octobre ») : le passage des notes à « remboursée » n'a été lu que dans le code (paieEnvoyer) ; zone refonte (Temps de travail).",
+  "Les droits d'Équipe (cases Achats et frais pour un rôle) : en cours de refonte par un autre agent ; seul l'état actuel (gérant, secrétariat en lecture seule, techniciens sans la rubrique) est mesuré.",
+  "Le client (espace client) : aucune relation avec Achats et frais.",
+  "Windows et Android en jour, iPad en nuit : seuls les croisements jour/nuit × profil listés ci-dessus sont joués."
+ ],
+ "defauts": [
+  {
+   "n": "achats-01",
+   "gravite": "bloquant",
+   "ecran": "Demande d'achat › « Combien ? »",
+   "role": "technicien, gérant",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Mes frais (ou Achats et frais) › ＋ Demande d'achat › taper « 1,5 » dans « Combien ? » (clavier, comme une personne française).",
+   "attendu": "Le champ garde 1,5 (la virgule est la virgule décimale française ; le message de refus d'une quantité à virgule le dit lui-même).",
+   "constate": "Le champ contient « 15 » : la virgule est avalée (« 2,25 » → 225, « 12,5 » → 125). Aucun message : 15 kg partent au bureau, pour du fluide R32 à 38 € le kg, au lieu de 1,5 kg. Le garde-fou « Vraiment ? » ne se déclenche qu'au-delà de 500.",
+   "preuve": "scratchpad/proto-final/campagne/sondes/achats-virgule.js : 0 ✓ · 3 ✗ sur mac, 0 ✓ · 3 ✗ sur le profil iPhone (Chromium en fr-FR). Même piège déjà écrit dans CLAUDE.md (« Un <input type=\"number\"> AVALE la virgule décimale »). C'est le seul champ de ce type dans la partie (tous les autres montants sont des champs texte à clavier décimal).",
+   "ou": "apercu/prototype-op-gestion.html:19693 (`<input class=\"saisie\" id=\"ax-n\" type=\"number\" … step=\"any\">`) ; la lecture (axNum → cxNum) comprend déjà la virgule",
+   "correction": "Remplacer par `<input class=\"saisie\" id=\"ax-n\" inputmode=\"decimal\" autocomplete=\"off\">` (type texte, clavier décimal) ; la validation (« Indique combien. », « nombre entier ») lit déjà le texte par axNum. Rejouer achats-virgule.js (3 ✓ attendus).",
+   "decision": "corriger"
+  },
+  {
+   "n": "achats-02",
+   "gravite": "detail",
+   "ecran": "Achats et frais › Notes de frais › À rembourser avec la paie",
+   "role": "gérant",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Notes de frais › lire la phrase sous « À rembourser avec la paie de novembre ».",
+   "attendu": "Le chemin écrit nomme un endroit qui existe.",
+   "constate": "« Ajouté à l'export de paie (Temps de travail → Paie) » : il n'y a plus d'onglet « Paie » dans Temps de travail (onglets : Aujourd'hui, Semaine, Mois).",
+   "preuve": "achats-liaisons.js : contrôle « achats-02 » (onglets lus dans le DOM : Aujourd'hui · Semaine · Mois).",
+   "ou": "apercu/prototype-op-gestion.html:19883 (acNotes, définition qui gagne ; l'ancien texte de la ligne 10543 est mort)",
+   "correction": "Écrire « Ajouté à la paie du mois (Temps de travail › Mois), en remboursement de frais, hors salaire. ». ",
+   "decision": "corriger"
+  },
+  {
+   "n": "achats-03",
+   "gravite": "genant",
+   "ecran": "Achats et frais › Notes de frais › « Voir dans l'export de paie › »",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Valider une note (16,50 €) › « Voir dans l'export de paie › ».",
+   "attendu": "On arrive là où ces 16,50 € à rembourser se voient.",
+   "constate": "On arrive sur Temps de travail › Mois, qui ne dit rien des frais à rembourser : « La paie d'octobre » ne parle que d'heures. Les frais n'apparaissent que dans le relevé de chaque personne (Mois › Tom › Son relevé de paie), où ils sont justes (16,50 € Tom, 14,90 € Karim). Le gérant ne peut pas confirmer d'un coup d'œil que son remboursement part avec la paie.",
+   "preuve": "achats-liaisons.js : E0 ✓ (le lien mène à Temps de travail), E1 ✗ (aucun mot « frais » ou « rembours… » sur l'écran d'arrivée), E2 ✓ pour tl (le relevé montre 16,50 € et « rembours… »). Aussi lu au passage : parcours-notes N11, « paie contient « frais » : false ».",
+   "ou": "écran refondu en ce moment (Temps de travail › Mois, bloc « La paie d'octobre ») ; lien : prototype-op-gestion.html:20110 (data-axa=\"paie\") ; ancienne carte « Notes de frais à rembourser avec cette paie » (classe pt-frais) non reprise dans la vue refondue",
+   "correction": "Ajouter dans « La paie d'octobre » une ligne « Frais à rembourser avec cette paie : Tom 16,50 € · Karim 14,90 € — hors salaire » (les chiffres viennent de paieVariables(k).frais, déjà justes) avec le lien « Voir les notes ›  » (data-ac=allernotes). La carte existait dans l'ancienne vue de la paie (pt-frais, ligne ~10029) et n'a pas été reprise.",
+   "decision": "soumettre",
+   "zone": "refonte"
+  },
+  {
+   "n": "achats-04",
+   "gravite": "genant",
+   "ecran": "Achats et frais › Demandes de matériel › carte d'une demande",
+   "role": "gérant",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Lire les boutons d'une demande : Transférer… / Tout commander / Achat en magasin / Demander une précision / Refuser.",
+   "attendu": "Un bouton dit « Accepter » (« Comment ça marche ? » promet : « Toi, tu acceptes ou tu refuses »).",
+   "constate": "Aucun bouton ne dit « Accepter ». Pour accepter l'achat, il faut deviner que « Achat en magasin » est l'acceptation (le message qui suit dit « Accepté. Tom Leroy achète… »). Un débutant cherche le bouton « Accepter » et ne le trouve pas.",
+   "preuve": "achats-details.js : D7 ✗ (boutons de la carte : Achat en magasin | Demander une précision | Refuser) ; textes des boutons lus dans le DOM.",
+   "ou": "apercu/prototype-op-gestion.html:19829 (bouton data-ac=\"magasin|…\") et :19779 (message « Accepté. … achète »)",
+   "correction": "Renommer « Achat en magasin » en « Accepter : il l'achète en magasin » (l'ordre des boutons ne change pas ; la fenêtre ne change pas).",
+   "decision": "corriger"
+  },
+  {
+   "n": "achats-05",
+   "gravite": "genant",
+   "ecran": "Achats et frais › premier écran",
+   "role": "gérant",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "windows",
+    "mac"
+   ],
+   "etapes": "Ouvrir Achats et frais, sans défiler, avec 3 demandes et 3 notes en attente.",
+   "attendu": "Au moins la première demande (ou la première note) se voit dans le premier écran : c'est ce qu'on vient y décider.",
+   "constate": "Au téléphone, il faut passer quatre blocs avant la première chose à décider : le titre, le grand bouton « ＋ Nouvelle demande d'achat », les deux tuiles de chiffres (qui répètent les chiffres des deux onglets juste en dessous), « Ça se règle dans la Comptabilité » (deux lignes sur les factures fournisseurs, sans rapport avec ce que l'équipe demande), les onglets, « Comment ça marche ? », les filtres par personne. Première demande à 868 px sur un écran de 844 (iPhone), 834 sur 740 (Android) ; première note à 1156 px (iPhone et Android), 801 px sur un portable de 768 px de haut et sur un Mac de 900 px (derrière deux lignes de réglages « Les notes sans ticket… » et « Kilomètres… »).",
+   "preuve": "achats-mise-en-page.js : contrôles « achats-05 » ✗ sur iPhone (868 > 844 ; 1156 > 844), Android nuit (834 > 740 ; 1156 > 740), Windows nuit et Mac nuit (note à 801 px) ; ✓ sur iPad ; captures mep-demandes-iphone-jour.png, mep-demandes-petit-nuit.png.",
+   "ou": "vueAchats (prototype-op-gestion.html:19930) et acNotes (:19870, lignes de réglage 19875)",
+   "correction": "Sur téléphone : retirer les deux tuiles (les onglets portent déjà les chiffres) ; remonter la liste ; descendre « Ça se règle dans la Comptabilité » sous la liste ; ranger les deux lignes de réglage des notes derrière « Réglages › » en bas de l'onglet. À décider avec Justin : l'écran a été dessiné avec lui (17 novembre, voie entreprise étape 4).",
+   "decision": "soumettre"
+  },
+  {
+   "n": "achats-06",
+   "gravite": "genant",
+   "ecran": "Demandes › Transférer depuis l'atelier › fenêtre « Commande … · brouillon »",
+   "role": "gérant",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Demandes › « Transférer 6 kg et commander 4 kg » (confirmer « Oui, transférer » si le camion est au garage).",
+   "attendu": "La fenêtre de la commande qui s'ouvre montre ses boutons « Envoyer à … » et « Enregistrer sans envoyer ».",
+   "constate": "Le message de confirmation (3 lignes sur iPhone) se pose au bas de l'écran, pendant 8 secondes, exactement sur les deux boutons de la fenêtre : « Envoyer à Frigo Distribution 17 » est caché. Mesuré : le message couvre les deux boutons (haut du message à 783 px sur l'écran de 900).",
+   "preuve": "achats-details.js : D3 ✗ (couverts : « Envoyer à Frigo Distribution 1 », « Enregistrer sans envoyer »). Captures dem-transfert-mac-jour.png et dem-transfert-iphone-jour.png.",
+   "ou": "sxToast (prototype-op-gestion.html:15275) appelé par la branche 'transfert' (~10585-10600) ; message de 3 lignes posé à bottom du toast",
+   "correction": "Quand une fenêtre est ouverte, poser le message AU-DESSUS du pied de la fenêtre (ou en haut de l'écran), ou ne pas le montrer : le titre de la fenêtre dit déjà « Commande … · brouillon », et « Annuler » reste dans la fenêtre. À corriger pour tous les messages qui s'ouvrent avec une fenêtre (Stock aussi).",
+   "decision": "corriger",
+   "zone": "refonte"
+  },
+  {
+   "n": "achats-07",
+   "gravite": "detail",
+   "ecran": "Achats et frais › titre « Ça se règle dans la Comptabilité »",
+   "role": "gérant",
+   "profils": [
+    "mac",
+    "iphone",
+    "petit"
+   ],
+   "etapes": "Ouvrir Achats et frais, regarder le petit titre bleu au-dessus des deux lignes de factures.",
+   "attendu": "Un titre de groupe ne ressemble pas à un lien.",
+   "constate": "Le titre est écrit en gras bleu, exactement la couleur des liens (rgb(10, 95, 194)) comme « Comment ça marche ? » ; il ne répond pas au toucher (curseur normal). Une personne le touche et il ne se passe rien.",
+   "preuve": "achats-details.js : D2 ✗ (couleurs calculées : groupe rgb(10, 95, 194) = lien rgb(10, 95, 194), curseur auto contre pointer).",
+   "ou": "classe .groupe dans vueAchats (prototype-op-gestion.html:19941)",
+   "correction": "Même gris que les autres titres de groupe du menu (« CLIENTS ET VENTES »), en majuscules espacées.",
+   "decision": "corriger"
+  },
+  {
+   "n": "achats-08",
+   "gravite": "detail",
+   "ecran": "Achats et frais › Notes de frais › réglages",
+   "role": "gérant",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Notes de frais › lire la ligne « Kilomètres : 0,60 € le km … ».",
+   "attendu": "Une phrase d'application, sans mot de maquette.",
+   "constate": "« Kilomètres : 0,60 € le km (exemple de démonstration, à vérifier avec ton expert-comptable) » ; la fenêtre de la note du technicien dit aussi « Le chiffre affiché est un exemple de démonstration ».",
+   "preuve": "achats-details.js : D9 ✗ (texte du DOM) ; code lignes 19691 et 19921.",
+   "ou": "apercu/prototype-op-gestion.html:19875 (réglages) et :20107 (fenêtre « Tarif au kilomètre »)",
+   "correction": "« Kilomètres : 0,60 € le km (à régler avec ton expert-comptable : le barème dépend de la puissance du véhicule) ».",
+   "decision": "soumettre"
+  },
+  {
+   "n": "achats-09",
+   "gravite": "detail",
+   "ecran": "Achats et frais › ＋ Nouvelle demande d'achat (gérant)",
+   "role": "gérant",
+   "profils": [
+    "mac",
+    "iphone",
+    "petit"
+   ],
+   "etapes": "Toucher « ＋ Nouvelle demande d'achat ».",
+   "attendu": "La fenêtre porte le nom du bouton.",
+   "constate": "La fenêtre s'appelle « Noter une demande reçue » (avec « Qui la demande ? »). Le gérant qui veut acheter quelque chose lui-même ne sait pas si c'est la bonne porte.",
+   "preuve": "achats-details.js : D8 ✗ ; captures mep-fenetre-demande-iphone-jour.png.",
+   "ou": "axDemForm (prototype-op-gestion.html:19688, titre selon `patron`) et le bouton dans vueAchats (:19930)",
+   "correction": "Renommer le bouton « ＋ Noter une demande » ou le titre « Nouvelle demande d'achat (pour quelqu'un de l'équipe ou pour moi) ».",
+   "decision": "corriger"
+  },
+  {
+   "n": "achats-10",
+   "gravite": "detail",
+   "ecran": "Achats et frais › « N achats sans facture »",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Lire « 4 achats sans facture ›» puis ouvrir la liste.",
+   "attendu": "Le même mot dans le lien, la liste et ses lignes ; que des achats.",
+   "constate": "Trois noms pour la même liste (« sans facture » sur le lien et la puce de la Comptabilité, « sans justificatif » sur chaque ligne, « sans pièce » dans le code) ; le compte mêle une NOTE de frais encore à valider (une note sans ticket) et un achat qui a bien son ticket mais pas de facture (gazole) : « 4 achats » n'est donc pas 4 achats sans rien.",
+   "preuve": "Mesuré au DOM : cxDocs() filtré (!piece || sf) → [Note N3 (note en attente), Petit outillage (sans pièce), Fluide R32 (sans pièce), Gazole (ticket joint, sans facture)] ; achats-details.js : D10.",
+   "ou": "axSansJustif (prototype-op-gestion.html:19673), vueAchats (:19930)",
+   "correction": "Choisir un mot (« sans justificatif ») pour le lien, la puce et les lignes ; ne pas compter les notes à valider.",
+   "decision": "soumettre"
+  },
+  {
+   "n": "achats-11",
+   "gravite": "detail",
+   "ecran": "Mes frais › Nouvelle note de frais › Montant payé",
+   "role": "technicien",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Taper « 12 € », « 12,5 € » ou « 12, » dans « Montant payé (TTC, € ) » puis « Envoyer au bureau ».",
+   "attendu": "Soit le montant est compris (12 €), soit un message dit comment l'écrire.",
+   "constate": "Refus avec « Indique le montant payé. » : la personne l'a indiqué, le message ne lui dit pas qu'il faut écrire le nombre seul. (Aucun montant n'est lu de travers : « 12,5,6 », « douze », « -5 », « 0 » sont refusés ; « 1.234,56 » = 1 234,56 ; « 1 000 » = 1 000.)",
+   "preuve": "achats-saisies.js : 14 ✓ · 3 ✗ (S5, S6, S15 portent « achats-11 »).",
+   "ou": "axNdfEnvoyer (prototype-op-gestion.html, ~20140) ; cxNum (lecture commune avec la Comptabilité, compta-reste-03)",
+   "correction": "Accepter un « € » et une virgule finale dans cxNum, ou répondre « Écris le montant en chiffres, par exemple 12,50. ».",
+   "decision": "corriger"
+  },
+  {
+   "n": "achats-12",
+   "gravite": "detail",
+   "ecran": "Achats et frais › cartes de demande",
+   "role": "gérant",
+   "profils": [
+    "iphone",
+    "ipad"
+   ],
+   "etapes": "Une demande de 1523,5 kg à 12345,67 € estimés.",
+   "attendu": "Les grands nombres se lisent comme les montants : « 1 523,5 kg ».",
+   "constate": "« 1523,5 kg », « Transférer 6 kg et commander 1517,5 kg », champ « 12345,67 » : sans espace, alors que les montants en euros de l'écran en ont (« 12 345,67 € »).",
+   "preuve": "achats-mise-en-page.js : contrôle « achats-12 » ✗ (1517,5 kg).",
+   "ou": "axQte / prNum (cartes de demande, ~19830) ; champ d'estimation `.ax-esti` (axDemCarte)",
+   "correction": "Passer les quantités et le champ d'estimation par le formateur des montants (espace insécable).",
+   "decision": "corriger"
+  },
+  {
+   "n": "achats-13",
+   "gravite": "detail",
+   "ecran": "Demandes › Transférer › « Ce camion est au garage »",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Demandes › « Transférer 6 kg et commander 4 kg » (le camion de Tom est au garage dans les données).",
+   "attendu": "La question dit ce qu'on met dans le camion.",
+   "constate": "« Ce camion est au garage. Tu les mets quand même ? » : « les » ne renvoie à rien (la quantité n'est que dans le bouton).",
+   "preuve": "Lu au DOM par achats-details.js (D11) et sur la capture de la fenêtre.",
+   "ou": "prototype-op-gestion.html:10585 (fenêtre « Transférer vers … ») ; même phrase dans Dépôts et camions :16069",
+   "correction": "« Le camion de Tom est au garage. Mettre quand même les 6 kg dedans ? ».",
+   "decision": "corriger"
+  }
+ ],
+ "vuMaisPasUnDefaut": [
+  "« Cette page n'est pas dans ton espace » vu à l'ouverture d'Achats par la sonde après un changement de personne : artefact de la sonde (elle appelle aller() dans le même instant que la connexion). Rejoué comme une personne (déconnexion, nouvelle connexion) : aucun message.",
+  "« Aperçu fictif / données de démonstration » sous le ticket d'une note : voulu par Justin (8 novembre), ticket simulé « dit comme tel ».",
+  "Le chef d'équipe (Karim) n'a pas « Achats et frais » : ses droits sont en cours de refonte (Équipe) ; à reprendre au recontrôle.",
+  "Menu du technicien : « Mon téléphone (démonstration) » : hors de ma partie (OP Security), à signaler au chantier correspondant.",
+  "Tâches › propositions : les demandes et les notes y sont, derrière le bandeau « OP GESTION te propose » (A1 et A2 ✓ après correction de la sonde)."
+ ]
+}

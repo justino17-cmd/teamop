@@ -16,14 +16,18 @@ const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ 
     const liste = await L.gestes(p, '#contenu'); recenses += liste.length; v(`${r} : population recensée (> 3)`, liste.length > 3, liste.length);
     liste.filter(g => g.sansNom).forEach(g => { defauts.push({ r, type: 'sans nom', g }); });
     for (const g of liste) {
+      // remise à zéro de l'état de la carte entre deux touchers (relevé commencé, plan en édition, box choisie, filtre) : sinon un toucher change l'état du suivant
+      await p.evaluate(() => { try { cbReleve = null; cbEdit = null; d3Sel = null; d3Mode = null; cbFiltre = 'tout'; cbZone = ''; d3Cli = Object.keys(D3_CLI)[0]; rgTous = true; } catch (e) {} });
       await p.evaluate(x => aller(x), r); await L.calme(p, 450);
       const avant = await L.etat(p), n0 = await p.evaluate(() => document.querySelectorAll('input:checked').length);
       const res = await p.evaluate(({ lib, data, balise }) => { const R = document.getElementById('contenu'); const cand = [...R.querySelectorAll(balise)].filter(e => e.offsetParent !== null || getComputedStyle(e).position === 'fixed');
         const e = cand.find(x => { const l = (x.getAttribute('aria-label') || x.textContent || x.title || '').replace(/\s+/g, ' ').trim().slice(0, 60); const d = [...x.attributes].filter(a => a.name.startsWith('data-')).map(a => a.name + '=' + a.value.slice(0, 40)).join(' '); return l === lib && d === data; });
         if (!e) return { trouve: false }; e.scrollIntoView({ block: 'center' }); const rc = e.getBoundingClientRect(); return { trouve: true, x: rc.left + rc.width / 2, y: rc.top + rc.height / 2, l: Math.round(rc.width), h: Math.round(rc.height) }; }, { lib: g.lib, data: g.data, balise: g.balise });
       if (!res.trouve) continue;
+      const dejaChoisi = await p.evaluate(({ lib, data }) => { const R = document.getElementById('contenu'); const e = [...R.querySelectorAll('button')].find(x => (x.getAttribute('aria-label') || x.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60) === lib); return !!e && e.getAttribute('aria-pressed') === 'true'; }, { lib: g.lib, data: g.data });
+      if (dejaChoisi) { couverts.push({ r, lib: g.lib + ' (déjà choisi : retoucher ne change rien)' }); continue; }
       // un élément dans un menu FERMÉ (« Plus d'actions ») est dans le DOM mais ne reçoit rien : il se teste par son menu (metier-3d-carte-boutons.js), pas ici
-      const recu = await p.evaluate(({ x, y, lib }) => { const e = document.elementFromPoint(x, y); return !!e && (e.closest('button,a,summary,label,[data-go],[role=button]') || e).textContent.replace(/\s+/g, ' ').trim().slice(0, 60) === lib; }, { x: res.x, y: res.y, lib: g.lib });
+      const recu = await p.evaluate(({ x, y, lib }) => { const e = document.elementFromPoint(x, y); if (!e) return false; const c = e.closest('button,a,summary,label,[data-go],[role=button]') || e; return (c.getAttribute('aria-label') || c.textContent || c.title || '').replace(/\s+/g, ' ').trim().slice(0, 60) === lib; }, { x: res.x, y: res.y, lib: g.lib });
       if (!recu) { couverts.push({ r, lib: g.lib }); continue; }
       // un vrai toucher / clic à la position de l'élément (comme un doigt), et la cible doit être L'ÉLÉMENT (ou son contenu)
       const cible = await p.evaluate(({ x, y, lib }) => { const e = document.elementFromPoint(x, y); return e ? (e.closest('button,a,summary,label,[data-go],[role=button]') ? (e.closest('button,a,summary,label,[data-go],[role=button]').textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60) : (e.textContent || '').trim().slice(0, 40)) : ''; }, { x: res.x, y: res.y, lib: g.lib });

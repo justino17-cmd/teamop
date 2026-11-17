@@ -1,0 +1,149 @@
+[
+ {
+  "nom": "contrats",
+  "defaut": "contrats-02 / casse 2 : une pièce posée sur une visite comprise dans un contrat « par an » ou « par mois » n'était facturée nulle part (420 € de fourniture perdus)",
+  "etat": "corrigé",
+  "changement": "factureDepuis : pour une visite comprise, une facture « à valider » est préparée avec les SEULES pièces posées (sans main-d'œuvre, TVA du client) ; sans pièce, toujours rien. La carte Facturation de la visite terminée montre alors la facture (« Ouvrir la facture ») au lieu de « Sans facture », et le dossier de Comptabilité suit cette facture au lieu de « Couverte par le contrat ».",
+  "preuve": "restes-contrats-1.js (mac, iPhone nuit, Android) : « la pièce de 420 € finit sur UNE facture à valider, seule » ; contrats-recontrole-d.js 4 ✓ · 0 ✗ ; mutation C2 (pièce plus facturée) mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-02 / casse 3 : « Terminer » une visite comprise dans le contrat disait « Intervention en garantie : pas de facture »",
+  "etat": "corrigé",
+  "changement": "Message de fin selon le cas : « Visite comprise dans le contrat CTR-… : pas de facture à part » ; avec une pièce, « … la facture ne porte que les pièces posées ». « Garantie » ne reste que pour une vraie garantie.",
+  "preuve": "restes-contrats-1.js « sans pièce, aucune facture et le message dit pas de facture à part, jamais garantie » ; contrats-recontrole-c.js 10 ✓ (R3-1 et R3-2 verts) ; mutation C3 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-02 / casse 4 : avant la fin, la fiche d'une visite comprise proposait « Paiement sur place · la facture lui sera envoyée »",
+  "etat": "corrigé",
+  "changement": "Le bloc Paiement du technicien est remplacé par « Visite comprise dans le contrat CTR-… : rien à payer sur place pour la visite » ; si une pièce est posée, la question du paiement réapparaît (la pièce se facture à part).",
+  "preuve": "restes-contrats-1.js : plus de « Paiement sur place » avant la fin, il revient avec une pièce ; mutation C4 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-01 / casse 1 : prix d'une visite non arrondi au centime (166,66666… ; 6 factures = 1 000,02 €) ",
+  "etat": "corrigé",
+  "changement": "ctrPart(prix, n, rang) : prix ÷ visites arrondi au centime, la DERNIÈRE visite porte le reste (1 000 € en 6 visites = 5 × 166,67 + 166,65, somme 1 000,00). Même règle pour les douze mois. La fiche ne parle du reste d'arrondi que quand il existe. (La sonde du recontrôle attendait 183,33 TTC pour 166,67 HT : 166,67 × 1,10 = 183,337, donc 183,34 ; corrigée.)",
+  "preuve": "restes-contrats-1.js : 6 factures [166,67 ×5 ; 166,65] somme 1 000,00 ; champ « Prix HT » 166,67 ; TTC 183,34 ; contrats-recontrole-a.js 20 ✓ · 0 ✗ (avant : 19 ✓ · 1 ✗ dont 2 ✗ de la casse) ; mutation C1 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "casse 5 : Tâches et Statistiques disaient « dans -16 jours » pour un contrat échu",
+  "etat": "corrigé",
+  "changement": "ctrDansTxt / ctrDansCourt : « échu depuis 16 jours », « échéance aujourd'hui », « dans 1 jour » (singulier).",
+  "preuve": "restes-contrats-1.js (contrat c2 mis à fin 15/10/2026) ; contrats-recontrole-b.js 16 ✓ · 0 ✗ (avant : 15 ✓ · 1 ✗) ; mutation C5 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-06 : le PDF que le client lit et signe portait « Modèle de démonstration, à faire relire avant tout usage » ; sous la liste des modèles, « Les modèles seront relus par le juriste… »",
+  "etat": "corrigé",
+  "changement": "Pied du PDF = les coordonnées de l'entreprise (nom, adresse, SIRET, téléphone, courriel). Sous les modèles : « Ces modèles sont des exemples : fais-les relire par ton conseil avant de t'en servir. » (côté entreprise seulement ; la bannière de la page de composition reste). Plus de « Télécharger le PDF signé » ni de « Dans la vraie version… » (vérifié).",
+  "preuve": "restes-contrats-1.js « le pied du PDF ne dit plus Modèle de démonstration » et « sous la liste des modèles… » ; capture F-liste-mac-jour.png regardée ; mutation C14 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-07 : la fiche n'avait ni date de fin, ni Renouveler, ni Mettre fin ; après la dernière visite faite, aucune suite proposée",
+  "etat": "corrigé",
+  "changement": "En-tête : « Fin le 31/12/2026 » (« Début le … · fin le … » pour un envoyé). Carte « La suite du contrat » : « Renouveler pour un an » (cases Contrats : créer) et « Mettre fin au contrat » (cases : modifier), chacun avec une confirmation qui DIT ce qui change (panneau de la page, pas de boîte du navigateur). Renouveler = un contrat suivant (CTR suivant, mêmes conditions, an suivant), ses visites posées « à planifier », la facture de l'année / du premier mois préparée, une ligne à l'Historique ; l'ancien dit « renouvelé jusqu'au … » et n'est plus compté deux fois (« HT par an », Tâches, Statistiques) ; un second « Oui » ne renouvelle pas deux fois. Mettre fin = fin aujourd'hui (31/10/2026), les visites non faites sortent du planning (la confirmation le dit), plus de proposition de renouvellement ni de facture à venir, état « Terminé le … » partout (liste, fiche, client, espace client, Comptabilité). Une fois toutes les visites faites, la carte l'annonce (« Les 6 visites sont faites… »). Le courriel de proposition reste le premier pas (lien « D'abord, proposer le renouvellement au client par e-mail »). Gestes inscrits dans la table des droits (GESTES).",
+  "preuve": "restes-contrats-1.js (mac 55 ✓, iPhone nuit 55 ✓, Android 55 ✓ · 0 ✗) ; contrats-renouvellement.js 11 ✓ (avant : 9 ✓ · 3 ✗, les 3 ✗ étaient ce défaut ; le ✗ restant était mon test du courriel, mis à jour) ; captures renouveler-panneau, renouvele-fiche, fin-panneau, termine-fiche (Mac jour, iPhone nuit) regardées ; mutations C6, C7, C8 mordent"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-11 : deux boutons « Contrat rapide » / « Composer un contrat » sans explication",
+  "etat": "corrigé",
+  "changement": "Sous les boutons : « Contrat rapide : un modèle de ton métier, prêt à envoyer. Composer un contrat : le tien, article par article. » (la seconde moitié disparaît pour qui n'a pas le droit de composer).",
+  "preuve": "restes-contrats-1.js + captures F-liste-mac-jour.png et F-liste-iphone-nuit.png regardées ; contrats-mise-en-page.js mac 19 ✓ et iPhone nuit 27 ✓ · 0 ✗"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-13 : au téléphone, le PDF passait avant le chemin, les visites et la facturation",
+  "etat": "corrigé",
+  "changement": "≤ 760 px : les cartes d'abord, le PDF replié derrière « Lire le contrat » (un toucher l'ouvre avec sa barre ; le bouton propose « Replier le contrat », aria-expanded). Ordinateur et tablette : inchangés, le bouton est caché.",
+  "preuve": "restes-contrats-1.js (iPhone nuit et Android : cartes avant le PDF, PDF replié puis ouvert d'un toucher ; Mac : PDF ouvert, sans bouton) ; captures fiche-plie / fiche-ouvert regardées ; mutation C12 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-14 : fausse barre d'adresse « 🔒 climservices17.teamop.fr/signer/K7P2 » sur la page de signature",
+  "etat": "corrigé",
+  "changement": "Barre retirée ; côté bureau la phrase est « C'est la page que ton client ouvre. ».",
+  "preuve": "restes-contrats-1.js « aucune fausse barre d'adresse » ; capture signature-mac-jour.png regardée ; mutation C10 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-15 : le mode « chaque mois » ne produisait aucune facture (la fiche disait 200 € par mois, rien ne le facturait)",
+  "etat": "corrigé",
+  "changement": "À la signature (et au renouvellement) la facture du premier mois est préparée (prix ÷ 12, reste d'arrondi sur le dernier mois) ; la carte Facturation liste les douze échéances (la première « préparée, à valider », les onze autres « le 1er de chaque mois ») ; Comptabilité compte le premier mois facturé ; un contrat terminé n'a plus d'échéance à venir. La sonde du correcteur contrats-parcours-a.js attendait « aucune facture » : mise à jour (74 ✓ · 1 ✗ avant mise à jour, c'était cette attente).",
+  "preuve": "restes-contrats-1.js : 83,33 € HT préparée, 12 échéances, somme 1 000,00 ; capture mensuel-fiche regardée ; mutation C11 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "contrats-16 : « Envoyer par e-mail » sous le brouillon d'un contrat (il ne ferait pas signer)",
+  "etat": "corrigé",
+  "changement": "Un brouillon de contrat (data-sans-mail) n'a que « Voir en grand » et « Télécharger », sous l'aperçu comme dans la vue en grand ; l'envoi qui fait signer reste le bouton du haut.",
+  "preuve": "restes-contrats-1.js (aperçu et vue en grand) ; mutation C9 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Décision (i) : un contrat affiche son prix HT ET TTC",
+  "etat": "corrigé",
+  "changement": "HT et TTC (TVA 10 % chez un particulier, 20 % chez un professionnel, comme les factures) dans : la liste et le tableau de Contrats, le formulaire (« soit … TTC (TVA 10 %) » sous le prix), l'article 4 du PDF, la carte Facturation, la page de signature du client, l'espace client, les deux courriels (proposition de renouvellement, relance de signature), la fiche de contrat de Tâches. Contrat COMPOSÉ en grand : l'article Prix dit « 1 280,50 € HT par an, soit 1 408,55 € TTC (TVA à 10 %) » (variables prixttc et tva calculées du client, 20 % pour un professionnel : 1 536,60 €), la fiche du contrat, la liste des contrats composés et l'aperçu du client aussi ; page de composition refabriquée par fabriquer.sh.",
+  "preuve": "restes-contrats-composes.js (Mac) 10 ✓ · 0 ✗ ; restes-contrats-1.js ; captures compose-particulier et liste-composes regardées ; mutations C13, C17 mordent. Le texte juridique de l'article reste « à faire relire » (mention de la page de composition)."
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Décision (h) : le mot « atelier » ne désigne que le lieu (dépôt)",
+  "etat": "corrigé",
+  "changement": "Page principale : « Composés dans l'atelier » devient « Devis composés » / « Contrats composés » ; « Ton rôle n'a pas accès à la composition des contrats / des devis » ; « Ouverture du devis… / du contrat… » (« du document » avant de savoir) ; « Le document ne s'ouvre pas / n'a pas pu s'ouvrir » ; aide de Devis et visite guidée (« Composer un devis ouvre ton devis en grand », « Composer un contrat ouvre ton contrat en grand, article par article »). Restent « atelier » dans des commentaires de code et le LIEU (Matériel, camions, commandes). Le texte propre à la page de composition (page.source) n'est pas touché ici : voie compositeur.",
+  "preuve": "recensement par grep des textes d'écran de la page principale, sans les phrases du dépôt ; restes-contrats-1.js ; contrats-atelier.js 5 ✓"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Trouvé en vérifiant : les visites d'un contrat renouvelé reprenaient les dates et les états des visites de l'ANCIEN contrat du même client (même titre « Contrat — visite n sur N »)",
+  "etat": "corrigé",
+  "changement": "visitesDe ne retient une visite que si elle porte son contrat (ctr) ou n'en porte aucun.",
+  "preuve": "restes-contrats-1.js « ses 4 visites sont posées à planifier » + capture renouvele-fiche regardée ; mutation C15 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Trouvé en vérifiant : le PDF et la page de signature d'un contrat TERMINÉ le disaient « à signer » et proposaient de signer",
+  "etat": "corrigé",
+  "changement": "Un contrat terminé se lit comme un contrat signé (signature visible) ; sa page de signature dit « Ce contrat est terminé » ; signerContrat ne le ressuscite plus.",
+  "preuve": "restes-contrats-1.js (PDF et page de signature de c2 terminé) ; mutation C16 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Trouvé en vérifiant : « TVA à 20 % » se coupait entre 20 et % sur téléphone ; la phrase sous les deux boutons se posait À CÔTÉ des boutons sur ordinateur",
+  "etat": "corrigé",
+  "changement": "Espace insécable avant %, rangée des boutons bornée pour que la phrase passe dessous, alignée à gauche comme les boutons.",
+  "preuve": "captures fiche-ouvert-iphone-nuit et F-liste-mac-jour regardées après correction"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "doutes du recontrôle : une pièce hors contrat se facture-t-elle seule ? le reste d'arrondi sur la dernière visite ?",
+  "etat": "déjà décidé",
+  "changement": "Décisions du chef du 17/11 : oui aux deux ; appliquées (casses 1 et 2).",
+  "preuve": "voir ci-dessus"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Décisions (a) retour, (b) cases des calendriers, (c) Boîte mail, (e) bouton Menu de Comptabilité, (f) rendez-vous en ligne, (g) écriture des heures, (l) Planning au téléphone / glisser / Boîte mail du bureau",
+  "etat": "déjà décidé",
+  "changement": "Rien touché. (Le « · signer » dans « ‹ Retour · signer » sur les fiches de contrat relève du bouton Retour, décision (a).)",
+  "preuve": "—"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Décisions (j) numéro de devis jamais réutilisé et (k) chiffres du bandeau du Planning",
+  "etat": "déjà décidé",
+  "changement": "Non traitées ici : elles ne touchent ni un contrat ni la page des contrats (voies devis et planning). Le numéro d'un contrat (y compris d'un renouvellement) reste calculé sur le plus grand existant, composés compris, comme avant.",
+  "preuve": "—"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Non vérifié : le PDF réel et le courriel réel d'un contrat (aucun serveur) ; une date de fin dépassée réelle (le jour est figé au 31/10/2026)",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien à corriger : limites du prototype. La date dépassée est jouée en changeant la date de fin d'un contrat (« échu depuis 16 jours »).",
+  "preuve": "—"
+ }
+]

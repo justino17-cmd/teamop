@@ -16,7 +16,7 @@ const { L, v, CAP, PROFILS, ouvrirEnt, fin } = require('./entreprise-commun.js')
   // 2. la ligne est dans le groupe « Personnel », après « Véhicules »
   { const c = await L.ouvrir({ profil:'mac', qui:'marc' }); await L.calme(c.p, 300);
     const g = await c.p.evaluate(() => { const R = [...document.querySelectorAll('#menu .m-liste > *')]; let cur = '', out = {}; R.forEach(e => { if (e.classList.contains('grp')) { cur = e.textContent.trim(); out[cur] = []; } else if (cur) out[cur].push((e.querySelector('.m-n') || e).textContent.trim()); }); return out; });
-    v('menu du gérant : « Personnel » = Équipe, Temps de travail, Véhicules, Mon entreprise (jamais un groupe d’une seule ligne)', (g['Personnel'] || []).join('|') === 'Équipe|Temps de travail|Véhicules|Mon entreprise', g['Personnel']);
+    v('menu du gérant : « Personnel » = Équipe, Temps de travail, Véhicules, Mon entreprise, Sécurité (jamais un groupe d’une seule ligne ; double-auth étape 3 : la 21e ligne du gérant)', (g['Personnel'] || []).join('|') === 'Équipe|Temps de travail|Véhicules|Mon entreprise|Sécurité', g['Personnel']);
     await L.fin(c); }
   // 3. l'écran, aux six largeurs
   let nEcrans = 0;

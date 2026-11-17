@@ -1,0 +1,146 @@
+[
+ {
+  "nom": "demandes",
+  "population": 38,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-demandes-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-demande",
+  "population": 16,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-demande-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-precision",
+  "population": 7,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-precision-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-refus-demande",
+  "population": 8,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-refus-demande-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-budget",
+  "population": 4,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-budget-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-aide",
+  "population": 2,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-aide-android-nuit.png"
+ },
+ {
+  "nom": "notes",
+  "population": 34,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-notes-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-fiche-note",
+  "population": 4,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-fiche-note-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-sans-ticket",
+  "population": 4,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-sans-ticket-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-refus-note",
+  "population": 8,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-refus-note-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-tout-valider",
+  "population": 3,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tout-valider-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-tarif-km",
+  "population": 4,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tarif-km-android-nuit.png"
+ },
+ {
+  "nom": "mes-frais",
+  "population": 10,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-mes-frais-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-note-de-frais",
+  "population": 15,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-note-de-frais-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-ma-demande",
+  "population": 14,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-ma-demande-android-nuit.png"
+ },
+ {
+  "nom": "fenetre-modifier-demande",
+  "population": 14,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-modifier-demande-android-nuit.png"
+ }
+]

@@ -84,6 +84,8 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   const tn = await txt(p);
   v('07 la fiche du nouveau contrat dit « Fin le 31/12/2027 » et propose la suite', /Fin le 31\/12\/2027/.test(tn) && /Renouveler pour un an/.test(tn), tn.slice(0, 160));
   await L.capture(c, CAP + `renouvele-fiche-${tag}.png`);
+  const stV = await p.evaluate(() => { const c = [...document.querySelectorAll('#contenu .carte')].find(x => x.querySelector('h3') && /Les visites/.test(x.querySelector('h3').textContent)); return c ? [...c.querySelectorAll('.ligne .st')].map(e => e.textContent.trim()) : null; });
+  v('07 la fiche du nouveau contrat montre SES 4 visites, toutes « À planifier » (pas celles de l’ancien contrat du même client)', !!stV && stV.length === 4 && stV.every(x => x === 'À planifier'), stV);
   await L.aller(p, 'contrat-x-c1'); const to = await txt(p);
   v('07 l’ancien contrat dit « renouvelé jusqu’au 31/12/2027 » et ne propose plus de renouveler', /renouvelé jusqu’au 31\/12\/2027/.test(to) && !/Renouveler pour un an/.test(to), '');
   await p.evaluate(() => { ACTIONS.renouvelerOk({ dataset: { id: 'c1' } }); ACTIONS.renouvelerOk({ dataset: { id: 'c1' } }); });
@@ -93,7 +95,8 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
 
   // mettre fin (c2 : 2 visites, 1 faite, 1 à venir)
   await L.aller(p, 'contrat-x-c2');
-  const avf = await p.evaluate(() => ({ actifs: ctrActifs().length, j: JOURNAL.length, vis: INTS.filter(i => i.type === 'Contrat' && ctrDeVisite(i) && ctrDeVisite(i).id === 'c2' && ['aplanifier', 'planifiee'].includes(i.st)).length }));
+  const avf = await p.evaluate(() => { const ids = INTS.filter(i => i.type === 'Contrat' && ctrDeVisite(i) && ctrDeVisite(i).id === 'c2' && ['aplanifier', 'planifiee'].includes(i.st)).map(i => i.id); window.__visAvant = ids; return { actifs: ctrActifs().length, j: JOURNAL.length, vis: ids.length }; });
+  v('07 population : le contrat c2 a au moins une visite pas encore faite avant d’y mettre fin (un zéro sans cela ne prouverait rien)', avf.vis >= 1, avf);
   await L.toucher(c, '[data-action="finContratDemande"]'); await L.calme(p, 400);
   const pf = await txt(p, '#calque .panneau');
   v('07 « Mettre fin » demande confirmation et DIT ce qui sort du planning', /Mettre fin à CTR-2026-007/.test(pf) && /sort(ent)? du planning|Aucune visite à venir/.test(pf) && /Historique/.test(pf), pf.slice(0, 400));
@@ -101,11 +104,16 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   await L.toucher(c, '[data-ferme="1"]'); await L.calme(p, 300);
   v('07 « Le garder » ne change rien', (await p.evaluate(() => CONTRATS.find(o => o.id === 'c2').st)) === 'signe', '');
   await L.toucher(c, '[data-action="finContratDemande"]'); await L.calme(p, 300); await L.toucher(c, '[data-action="finContratOk"]'); await L.calme(p, 600);
-  const apf = await p.evaluate(() => ({ st: CONTRATS.find(o => o.id === 'c2').st, fin: CONTRATS.find(o => o.id === 'c2').fin, actifs: ctrActifs().length, j: JOURNAL.length, last: JOURNAL[JOURNAL.length - 1] && JOURNAL[JOURNAL.length - 1].action, vis: INTS.filter(i => i.type === 'Contrat' && i.ctr === 'c2').length, toast: (document.getElementById('toast') || {}).textContent }));
-  v('07 le contrat est terminé aujourd’hui (31/10/2026), les visites non faites sont sorties, une ligne à l’Historique', apf.st === 'termine' && apf.fin === '31/10/2026' && apf.actifs === avf.actifs - 1 && apf.j === avf.j + 1 && /mis fin/.test(apf.last || ''), apf);
+  const apf = await p.evaluate(() => ({ st: CONTRATS.find(o => o.id === 'c2').st, fin: CONTRATS.find(o => o.id === 'c2').fin, actifs: ctrActifs().length, j: JOURNAL.length, last: JOURNAL[JOURNAL.length - 1] && JOURNAL[JOURNAL.length - 1].action, vis: window.__visAvant.filter(id => INTS.some(o => o.id === id)).length, toast: (document.getElementById('toast') || {}).textContent }));
+  v('07 le contrat est terminé aujourd’hui (31/10/2026), les visites non faites sont sorties, une ligne à l’Historique', apf.st === 'termine' && apf.fin === '31/10/2026' && apf.vis === 0 && apf.actifs === avf.actifs - 1 && apf.j === avf.j + 1 && /mis fin/.test(apf.last || ''), apf);
   const tfin = await txt(p);
   v('07 la fiche dit « Terminé le 31/10/2026 » et n’offre plus de suite', /Terminé le 31\/10\/2026/.test(tfin) && !/Renouveler pour un an/.test(tfin) && !/Mettre fin au contrat/.test(tfin), tfin.slice(0, 200));
   await L.capture(c, CAP + `termine-fiche-${tag}.png`);
+  const pdfT = await txt(p, '.ctr-doc .pdf');
+  v('07 le PDF d’un contrat terminé porte sa signature (jamais « à signer »)', /Signé électroniquement/.test(pdfT) && !/à signer/.test(pdfT), pdfT.slice(-160));
+  await L.aller(p, 'signer-x-c2'); const tsg = await txt(p);
+  v('07 la page de signature d’un contrat terminé le dit et ne propose plus de signer', /Ce contrat est terminé/.test(tsg) && !(await p.$('#signe-ctr')), tsg.slice(0, 200));
+  await L.aller(p, 'contrat-x-c2');
   await L.aller(p, 'taches'); const ttf = await txt(p, 'body');
   v('07 plus aucune proposition de renouvellement pour un contrat terminé', !/CTR-2026-007/.test((ttf.match(/Proposer le renouvellement[^.]{0,80}/g) || []).join(' ')), '');
   await L.aller(p, 'contrats'); const tl2 = await txt(p);
@@ -135,9 +143,9 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   v('16 …ni dans « Voir en grand »', !(await p.$('#docplein [data-pdfmail]')) && !!(await p.$('#docplein [data-pdfdl]')), '');
   await p.evaluate(() => docPleinFermer()); await L.calme(p, 200);
   v('06 le pied du PDF ne dit plus « Modèle de démonstration » : ce sont les coordonnées de l’entreprise', !/démonstration|à faire relire/i.test(br.pied) && /Clim Services 17/.test(br.pied) && /SIRET/.test(br.pied) && /climservices17\.fr/.test(br.pied), br.pied);
-  v('(i) l’article 4 du PDF donne HT ET TTC', /HT par an, soit .* TTC \(TVA \d+ %\)/.test(br.pdf), (br.pdf.match(/4 · Prix.{0,160}/) || [''])[0]);
+  v('(i) l’article 4 du PDF donne HT ET TTC', /HT par an, soit .* TTC \(TVA \d+\s%\)/.test(br.pdf), (br.pdf.match(/4 · Prix.{0,160}/) || [''])[0]);
   const hint = await txt(p, '[data-b="prix"] + .faible, label.champ:has([data-b="prix"])');
-  v('(i) le formulaire donne le TTC sous le prix HT', /TTC \(TVA \d+ %\)/.test(hint), hint);
+  v('(i) le formulaire donne le TTC sous le prix HT', /TTC \(TVA \d+\s%\)/.test(hint), hint);
   await L.aller(p, 'contrats'); const tc = await txt(p);
   v('06 sous la liste des modèles : « Ces modèles sont des exemples : fais-les relire par ton conseil avant de t’en servir. »', /Ces modèles sont des exemples : fais-les relire par ton conseil avant de t’en servir\./.test(tc) && !/relus par le juriste/.test(tc), '');
   v('11 sous les deux boutons : la phrase qui les distingue', /Contrat rapide\s*:\s*un modèle de ton métier, prêt à envoyer\./.test(tc) && /Composer un contrat\s*:\s*le tien, article par article\./.test(tc), '');
