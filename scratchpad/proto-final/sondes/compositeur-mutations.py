@@ -31,6 +31,16 @@ MUT = [
  M("T03 l'échelle ne règle plus que la première zone", 'A', "zones.forEach(zone=>{", "zones.slice(0,1).forEach(zone=>{", "compositeur-mise-en-page.js", {'PROFIL':'ipad'}),
  M("T07a un brouillon supprimé est ré-adopté par sauverStock (plus « connu »)", 'A', "fermerDoc(); if(APP) OPG.connus.add(id);", "fermerDoc();", "compositeur-gestes.js"),
  M("T07b « Supprimer ce brouillon » est proposé aussi pour un document envoyé", 'A', "const suppr=APP&&d&&d.etat==='brouillon'&&(d.type", "const suppr=APP&&d&&(d.type", "compositeur-gestes.js", {'PROFIL':'iphone'}),   # au téléphone le menu existe aussi pour un document envoyé ; à l'ordinateur il n'y a pas de menu du tout
+
+ # ── restes du recontrôle, tour 1 (garde : compositeur-restes1.js) ──
+ M("R1 le menu « ⋯ » ne range plus la feuille « Contrat » (elle le recouvre au petit écran)", 'A', "  if(FEN&&FEN.souple) fermerFenetre(false);\n", "", "compositeur-restes1.js", {'PROFIL':'petit'}),
+ M("R2 les infobulles ne se masquent plus sous un menu ouvert (CSS)", 'A', "@media (max-width:760px){ body.menu-ouvert #toasts{visibility:hidden} }", "", "compositeur-restes1.js", {'PROFIL':'iphone'}),
+ M("R2b un menu ouvert ne pose plus sa classe", 'A', "if(o.menu) document.body.classList.add('menu-ouvert');", "", "compositeur-restes1.js", {'PROFIL':'iphone'}),
+ M("R3a « Délai » garde ses lignes dans le champ", 'A', "V.delai=uneLigne(t);", "V.delai=t.value.replace(/\\s*\\n\\s*/g,' ');", "compositeur-restes1.js", {'PROFIL':'iphone'}),
+ M("R3b « Paiement » garde ses lignes dans le champ", 'A', "V.paiement=uneLigne(t);", "V.paiement=t.value.replace(/\\s*\\n\\s*/g,' ');", "compositeur-restes1.js", {'PROFIL':'iphone'}),
+ M("R3c le curseur ne reste plus à sa place après un collage", 'A', "try{ t.setSelectionRange(c,c) }catch(e){}", "", "compositeur-restes1.js", {'PROFIL':'iphone'}),
+ M("R5 les initiales du logo ne sont plus protégées contre la mise en page d'avant l'échelle", 'A', 'svg[role="img"] text{text-rendering:geometricPrecision}', "", "compositeur-restes1.js", {'PROFIL':'iphone'}),
+ M("R4 un blanc du modèle ne se met plus entre crochets (résumé de bibliothèque)", 'A', "const v=defVar(k); return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+k+']') });", "const v=defVar(k); return v?v.n:(k==='entreprise'?'le prestataire':k) });", "compositeur-restes1.js", {'PROFIL':'iphone'}),
 ]
 filtre = sys.argv[1] if len(sys.argv) > 1 else ''
 journal = open(os.path.join(CAP, 'mutations.log'), 'a', encoding='utf-8')

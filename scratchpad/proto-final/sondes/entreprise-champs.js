@@ -55,11 +55,10 @@ async function refus(c, bouton, id, val, msg, avant, nom) {
     for (const [id, val] of Object.entries(bons)) await remplir(c.p, id, val); await c.p.selectOption('#fl-forme', 'SARL');
     for (const x of ['123', '1234567890123', 'abcdefghijklmn']) await refus(c, BTN, 'fl-siret', x, 'Le SIRET a quatorze chiffres. Tu le trouves sur ton avis de situation de l’Insee ou sur l’Annuaire des entreprises (annuaire-entreprises.data.gouv.fr).', avant); await remplir(c.p, 'fl-siret', bons['fl-siret']);
     for (const x of ['XX123456789', 'FR12', 'FR 12 12345678']) await refus(c, BTN, 'fl-tva', x, 'Un numéro de TVA français commence par FR, puis deux chiffres et les neuf chiffres de ton SIREN.', avant); await remplir(c.p, 'fl-tva', bons['fl-tva']);
-    await refus(c, BTN, 'fl-cap', '', 'Une société écrit son capital sur ses factures : indique-le.', avant); await remplir(c.p, 'fl-cap', bons['fl-cap']);
-    await refus(c, BTN, 'fl-rcs', '', 'Indique ton immatriculation (RCS et ville du greffe, ou répertoire des métiers).', avant); await remplir(c.p, 'fl-rcs', bons['fl-rcs']);
+    // ⛔ « tout-01 » : on ne refuse que ce qui est FAUX. Un capital qui n'est pas un montant est refusé ; un capital VIDE ne l'est pas (voir plus bas)
+    for (const x of ['abc', 'beaucoup', '0']) await refus(c, BTN, 'fl-cap', x, 'Le capital est un montant en euros, par exemple 5 000.', avant); await remplir(c.p, 'fl-cap', bons['fl-cap']);
     for (const id of ['fl-rcs', 'fl-ass', 'fl-num', 'fl-asc', 'fl-zone', 'fl-med', 'fl-cap']) for (const x of ['a<b', 'a"b']) { await refus(c, BTN, id, x, INT, avant); await remplir(c.p, id, bons[id]); }
     await refus(c, BTN, 'fl-ass', 'x'.repeat(81), 'Ce champ ne peut pas dépasser 80 signes.', avant); await remplir(c.p, 'fl-ass', bons['fl-ass']);
-    await c.p.selectOption('#fl-forme', ''); await cliquer(c, BTN); nCas++; { const r = await champ(c.p, 'fl-forme'); v('forme juridique vide : refusée « Choisis la forme juridique. » sous le champ', !!r && r.err === 'Choisis la forme juridique.' && r.sousLeChamp, r); }
     await c.p.selectOption('#fl-forme', 'SARL');
     await cliquer(c, BTN); nCas++;
     const ap = await fiche(c.p);
@@ -67,6 +66,13 @@ async function refus(c, bouton, id, val, msg, avant, nom) {
     v('assurance en QUATRE champs sous les noms de l’atelier (assureur, assurNum, assurc, assurZone), plus d’« assur » ni « zone »', ap.E.assureur === 'MAAF Pro' && ap.E.assurNum === 'décennale n° 123456' && ap.E.assurc === 'MAAF, 79036 Niort' && ap.E.assurZone === 'France métropolitaine' && !('assur' in ap.E) && !('zone' in ap.E), Object.keys(ap.E));
     v('forme, capital, immatriculation, médiateur écrits', ap.E.forme === 'SARL' && ap.E.capital === '5 000' && ap.E.rcs === bons['fl-rcs'] && ap.E.mediateur === bons['fl-med'], ap.E);
     const carte = await c.p.evaluate(() => { const e = document.querySelector('[data-ent="carte|legal"] .st'); return e && e.textContent; }); v('la carte passe à « Complète » (SIRET + mentions)', carte === 'Complète', carte);
+    // « tout-01 » : forme, capital, immatriculation et assurance VIDES, SIRET juste : l'enregistrement passe, la fiche dit ce qui reste, la facture est débloquée
+    await L.toucher(c, '[data-ent="carte|legal"]');
+    for (const id of ['fl-cap', 'fl-rcs', 'fl-ass', 'fl-num', 'fl-asc', 'fl-zone', 'fl-med']) await remplir(c.p, id, ''); await c.p.selectOption('#fl-forme', ''); await cliquer(c, BTN); nCas++;
+    { const ap2 = await fiche(c.p), ouv2 = await panneauOuvert(c.p), t3 = await toast(c.p), m = await c.p.evaluate(() => ({ M:entrepriseManque().length, L:cxMentionsManquantes().length }));
+      v('SIRET seul (forme, capital, immatriculation, assurance vides) : enregistré, panneau fermé', ouv2 === '' && ap2.E.siret === '732 829 320 00074' && ap2.E.forme === '' && ap2.E.rcs === '', { ouv2, E:ap2.E });
+      v('…la facture est débloquée (rien ne manque côté SIRET) et la fiche dit ce qui reste à compléter', m.M === 0 && m.L === 3, m);
+      v('…le toast nomme ce qui reste', /Il reste à compléter : la forme juridique, l’immatriculation et l’assurance professionnelle\./.test(t3), t3); }
     await L.fin(c); }
   // le SIRET de démonstration ne passe pas la clé : il s'enregistre AVEC l'avertissement, la fiche reste « Complète » côté facture
   { const c = await ouvrirEnt({ profil:'mac' }); await L.toucher(c, '[data-ent="carte|legal"]');

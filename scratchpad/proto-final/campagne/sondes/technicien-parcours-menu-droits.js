@@ -67,6 +67,22 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
     await L.capture(c, CAP + `fiche-${id}-${qui}-${profil}-${J}.png`);
     v(`D3b fiche ${id} : pas de glissement latéral`, (await L.deborde(c)).bouge === 0);
   }
+  // ── J : « Ma journée » — commencer sa journée, les messages du bureau, itinéraire, appel ──
+  await L.aller(p, 'majournee');
+  const avantMsg = await txt(p, '#contenu');
+  const pasCommence = /Tu n’as pas encore commencé/.test(avantMsg);   // Sophie n'a pas commencé, Karim si : on ne rejoue « commencer » que pour qui n'a pas commencé
+  if (pasCommence) {
+    v('J1 avant de commencer : un message du bureau rappelle de commencer', /pas encore commencé ta journée/.test(avantMsg), avantMsg.slice(0, 200));
+    await L.toucher(c, '[data-ptx^="debut"]'); await L.calme(p, 500);
+    const apresMsg = await txt(p, '#contenu');
+    console.log('   après « Je commence ma journée » :', apresMsg.slice(0, 380));
+    v('J2 après « Je commence ma journée » : la carte dit « commencée à … »', /commenc[ée]+e? à \d/i.test(apresMsg) || /Journée en cours|en cours depuis/i.test(apresMsg), apresMsg.slice(0, 200));
+    v('J3 après avoir commencé, le rappel « tu n’as pas encore commencé ta journée » ne reste pas affiché (message périmé)', !/pas encore commencé/.test(apresMsg), apresMsg.slice(0, 260));
+    await L.capture(c, CAP + `journee-commencee-${qui}-${profil}-${J}.png`);
+  } else console.log('   (journée déjà commencée : J1 à J3 ne se jouent pas pour', qui + ')');
+  const liens = await p.evaluate(() => [...document.querySelectorAll('#contenu .rl-int a')].map(a => ({ t: a.textContent.trim(), h: a.getAttribute('href') })));
+  v('J4 chaque intervention a « Y aller » avec une adresse non vide', liens.filter(l => l.t === 'Y aller').length >= 1 && liens.filter(l => l.t === 'Y aller').every(l => !/destination=$/.test(l.h)), liens);
+  v('J5 « Appeler » est un lien tel: valide', liens.filter(l => l.t === 'Appeler').every(l => /^tel:\+?[\d]{6,}/.test(l.h.replace(/[\s.]/g, ''))), liens.filter(l => l.t === 'Appeler'));
   v('Z aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

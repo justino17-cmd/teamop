@@ -11,7 +11,7 @@ async function aPartirDeClientsDevis(c) { await L.aller(c.p, 'clients'); await L
   // ── 1. Retour ferme l'atelier (fenêtre de composition ouverte), puis ramène à Clients ──
   let f = await A.ouvrirAtelier(c, 'devis', null); const h1 = await hist(p);
   v('ouvrir l\'atelier pousse UNE entrée (même adresse)', h1.n === h0.n + 1 && h1.h === '#devis' && h1.atelier, [h0.n, h1.n, h1.h]);
-  v('… elle porte son marqueur d\'état', !!(h1.st && h1.st.opdz), h1.st);
+  v('… elle porte son marqueur d\'état', !!(h1.st && h1.st.cal === 1), h1.st);
   await p.goBack(); await p.waitForTimeout(500); const h2 = await hist(p);
   v('Retour : l\'atelier est fermé et l\'écran dessous est resté où il était (#devis, rubrique Devis)', !h2.atelier && h2.h === '#devis' && (await L.etat(p)).h1 === 'Devis', h2);
   v('… et l\'historique n\'a pas grandi', h2.n === h1.n, [h1.n, h2.n]);
@@ -23,12 +23,12 @@ async function aPartirDeClientsDevis(c) { await L.aller(c.p, 'clients'); await L
   await aPartirDeClientsDevis(c); const b0 = await hist(p);
   f = await A.ouvrirAtelier(c, 'devis', null); await f.locator('[data-fen-x]').first().click(); await p.waitForTimeout(900);
   const b1 = await hist(p);
-  v('fermer par « Annuler » : atelier fermé, état de l\'entrée poussée consommé (plus de marqueur)', !b1.atelier && !(b1.st && b1.st.opdz) && b1.h === '#devis', b1);
+  v('fermer par « Annuler » : atelier fermé, état de l\'entrée poussée consommé (plus de marqueur)', !b1.atelier && !(b1.st && b1.st.cal) && b1.h === '#devis', b1);
   await p.goBack(); await p.waitForTimeout(500); const b2 = await hist(p);
   v('… et UN Retour mène à Clients (l\'entrée de l\'atelier n\'est pas restée en travers)', b2.h === '#clients', [b0.h, b2.h]);
   // ── 3. Échap dans l'atelier : même chose ──
   await aPartirDeClientsDevis(c); f = await A.ouvrirAtelier(c, 'devis', null); await f.locator('#vv-q, .fenetre').first().focus().catch(() => {}); await p.keyboard.press('Escape'); await p.waitForTimeout(900);
-  const e1 = await hist(p); v('Échap ferme l\'atelier (rien saisi : aucune confirmation)', !e1.atelier && !(e1.st && e1.st.opdz), e1);
+  const e1 = await hist(p); v('Échap ferme l\'atelier (rien saisi : aucune confirmation)', !e1.atelier && !(e1.st && e1.st.cal), e1);
   await p.goBack(); await p.waitForTimeout(500); v('… et UN Retour mène à Clients', (await hist(p)).h === '#clients');
   // ── 4. un éditeur ouvert (l'atelier pose ses propres entrées) : Retour, puis Retour ──
   await aPartirDeClientsDevis(c); f = await A.ouvrirAtelier(c, 'devis', null);
@@ -44,7 +44,7 @@ async function aPartirDeClientsDevis(c) { await L.aller(c.p, 'clients'); await L
   await aPartirDeClientsDevis(c); f = await A.ouvrirAtelier(c, 'devis', null);
   await A.composerDevis(c, f, { client: 'hp', objet: 'Essai du bouton', articles: [{ ref: 'EL-ALL', qte: 1 }] });
   await f.locator('[data-act="retour"]:visible').first().click(); await p.waitForTimeout(1400); const g1 = await hist(p);
-  v('« ‹ OP GESTION » : atelier fermé, #devis, plus de marqueur d\'état', !g1.atelier && g1.h === '#devis' && !(g1.st && g1.st.opdz), g1);
+  v('« ‹ OP GESTION » : atelier fermé, #devis, plus de marqueur d\'état', !g1.atelier && g1.h === '#devis' && !(g1.st && g1.st.cal), g1);
   await p.goBack(); await p.waitForTimeout(500); v('… un Retour mène à Clients', (await hist(p)).h === '#clients', await hist(p));
   // ── 6. ouvrir et fermer dix fois : l'historique ne grandit pas ──
   await aPartirDeClientsDevis(c); const n0 = (await hist(p)).n;
