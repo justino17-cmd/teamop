@@ -3265,6 +3265,7 @@ table.l th.n{text-align:right}
   .tt-lig{padding:8px 2px;gap:4px;display:block}.tt-txt{font-size:15px;display:block}.tt-txt>.gris{display:block}
   .tt-lig>.st{float:left;margin:1px 8px 2px 0}   /* l'étiquette ouvre la phrase au lieu d'avoir sa propre ligne : 34 px de moins par rangée */
   .tt-ges{clear:both;padding-top:2px;margin-top:0}.tt-ges .lien{padding-left:0;padding-right:0}
+  .tt-liens{display:contents}.tt-ges{gap:0 12px}   /* le geste et ses liens sur une même ligne tant qu'ils tiennent (iPad portrait : le menu de 272 px rend la liste étroite sans que l'écran le soit) */
   /* une rangée de « Qui est où » qui porte un geste : le geste à droite du nom, l'état dessous — plus une rangée à part pour le bouton */
   .tt-ligs .tt-l-b{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:2px 12px}
   .tt-ligs .tt-l-b .fo-n{display:contents}.tt-ligs .tt-l-b .eq-av{grid-row:1/4;align-self:start;margin-top:2px}
@@ -3342,7 +3343,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 /* au doigt, les flèches de la semaine répondent sur 44 px (40 à la souris) ; et une liste de personnes très étroite (320 px, nom long) range le total sous le nom plutôt qu'à côté, où il écrasait le nom */
 @media (pointer:coarse){.tt-barre .st-nav button{width:44px;height:44px;flex:none}}   /* flex:none : sur 320 px le nom de la semaine pousse, et sans lui la flèche rétrécissait à 38 px */
 @container ttl (max-width:300px){.tt-ligs .tt-l-b .btn{grid-column:2/4;grid-row:4;justify-self:start}.tt-ligs .tt-l-b .eq-av{grid-row:1/5}}   /* 320 px : un nom long a toute la largeur, le geste passe dessous */
-@container ttsem (max-width:380px){.tt-p>.tt-tot{grid-column:2;grid-row:2;align-items:flex-start;text-align:left}.tt-p>.tt-pp{grid-row:3}}
+@container ttsem (max-width:320px){.tt-p>.tt-tot{grid-column:2;grid-row:2;align-items:flex-start;text-align:left}.tt-p>.tt-pp{grid-row:3}}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
