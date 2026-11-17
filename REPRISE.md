@@ -46,14 +46,16 @@ passages sous charge), et les cinq services du banc ont vécu jusqu'à ce qu'il 
 
 **Les preuves** (17 novembre, machine de la session, 4 cœurs) :
 - sous charge, sur le code corrigé : **60 sur 60** à douze de front et quatre brûleurs, **60 sur 60** deux de front et huit brûleurs, **72 sur 72** à dix-huit de front et six brûleurs
-  (charge 22) — et 0 lecture illisible de l'horloge sur 243 807 (`scratchpad/charge-banc-opmessages.sh`, `scratchpad/espion-horloge-opmessages.js`) ;
+  (charge 20 à 22) — et pas une lecture illisible de l'horloge (`scratchpad/charge-banc-opmessages.sh`, `scratchpad/espion-horloge-opmessages.js`). Joué DEUX fois : avant la relecture
+  (192 passages, 243 807 lectures d'horloge) puis sur le code final `c57c060` (192 passages, chacun à 89 contrôles joués, 249 932 lectures) — 384 passages sans une chute ;
 - **52 mutations sur 52 tombent**, une équivalente déclarée survit (`tests/mutations-appels.js`) : les 34 du catalogue qui visaient déjà test-981 (20 de la série A, 14 de la série E),
   neuf neuves du SERVICE (A41 à A49 : l'échéance du relais, les signaux retenus et périmés, le débit, la fin dite aux deux, l'appareil lié à la réponse, « fini » au raccrochage) et
   neuf des OUTILS (O01 à O09, par `test-947`). A42 (« les identifiants vivent deux secondes de trop ») SURVIVAIT à l'ancien contrôle (87 ✓ trois fois sur trois), elle tombe maintenant ;
 - `tests/test-947.js` (neuf, 26 contrôles) garde l'outil : le greffon (un contenu illisible garde le dernier décalage, et le DIT une fois), l'écriture d'un geste et en entier (une
   avance qui n'est pas un nombre lève), la course entière (un lecteur qui ne s'arrête pas pendant deux mille avances), un banc sorti sans arrêter son service, le port pris, imposé ou
   tenu par un processus muet ; `test-900` déclare son numéro ;
-- la liste complète d'OP MESSAGES par la commande de la porte : **211 suites, 13 170 vérifications, verte** (les 13 148 de la CI du 5 novembre plus ces 22) — plancher relevé à 13156.
+- la liste complète d'OP MESSAGES par la commande de la porte, mesurée deux fois, verte les deux : 13 170 vérifications avant la relecture, puis **211 suites, 13 176 vérifications** sur
+  le code final (les 13 148 de la CI du 5 novembre plus 28 : 26 de test-947, 2 de test-981) — plancher relevé à 13162.
   ⚠️ Mesuré en local : si la CI compte autrement au prochain déploiement d'OP MESSAGES, c'est elle qui fait foi.
 - Les sondes rangées (`scratchpad/sonde-opmessages-horloge-saut.js`, `-flux-ferme.js`, `-collision-port.js`) ont été rejouées telles quelles ; la première porte aussi de quoi rejouer
   l'ANCIEN défaut contre le commit `a415080` (les chiffres ci-dessus, relus dans un arbre à part).
