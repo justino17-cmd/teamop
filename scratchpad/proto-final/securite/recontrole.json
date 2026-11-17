@@ -1,0 +1,122 @@
+{
+ "date": "2026-11-17",
+ "methode": "Recontrôle adverse de l'étape 8 : chaque faille S01 à S18 rejouée contre la tête fusionnée avec des charges et des gestes que le correcteur n'avait pas prévus ; gardes de l'audit (securite-*.js, 7 sondes à zéro ✗ : 49, 32, 19, 15, 9, 66, 23 ✓), contrôle de fumée (376 ✓ · 0 ✗) ; sondes nouvelles recontrole-*.js dans scratchpad/proto-final/securite/ (rejeu : bash scratchpad/proto-final/sondes/recontrole-tout.sh). Sorties entières : /tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/securite-rec/ et cap/recontrole/.",
+ "fermees": [
+  "S02",
+  "S03",
+  "S04",
+  "S07",
+  "S08",
+  "S09",
+  "S11",
+  "S12",
+  "S13",
+  "S14",
+  "S15",
+  "S16",
+  "S17",
+  "S18"
+ ],
+ "fermees_notes": {
+  "S02": "Historique : 6 gestes du courrier (tâche, règle, client, devis, intervention, accord, annonce, confier, créneau) joués sur 6 courriels aux nom et objet piégés, trois encodages que l'audit n'avait pas (entités doublées, sortie de conteneurs sans guillemet, guillemet simple seul) : 151 écrans, 0 sortie, 0 exécution (recontrole-chemins 6 ✓). Mais voir casses[0] : un « & » y s'affiche « &amp; ».",
+  "S03": "noms de PERSONNES : recontrole-donnees / securite-injection 32 ✓ : l'entrée (nomPersonneOk) tient pour Inviter, Modifier la fiche, et l'équipe de l'atelier ; l'extension aux noms de CLIENTS est rouverte sous S01 (variante 2).",
+  "S04": "recontrole-fichiers 19 ✓ : SVG déguisé par six types déclarés (image/SVG+XML en majuscules, charset, text/html, vide, xhtml, nom .png sur type svg), logo SVG par <img data:> seulement, noms de fichiers piégés par quatre chemins.",
+  "S06": "fermée pour =, +, -, @ et la tabulation des CSV d'OP GESTION ; variante rouverte pour le FEC de la Comptabilité (voir encoreOuvertes, S06 variante).",
+  "S07": "entrée (uniteSure) et sortie (esc dans sxQte) tiennent ; mais l'entrée refuse des unités de bonne foi (casses[1]).",
+  "S08": "tDetail écrit esc(f.tel), esc(f.delai) ; aucune sortie sur 99 écrans de la sonde « toute donnée mutée » (decal 3, 7 formes, 13 892 champs).",
+  "S09": "recontrole-fichiers : le message du dépôt de fiches de paie n'écrit aucun nom de fichier en HTML (3 noms piégés).",
+  "S10": "la politique est posée et tient pour les canaux de chargement (img, fetch, XHR, WebSocket, cadre, préconnexion, WebRTC : 0 requête reçue par l'attaquant) ; la NAVIGATION n'est pas gouvernée par une politique de contenu : voir encoreOuvertes, S10 variante.",
+  "S11": "relu dans le code (bornes 200/40/20 signes, prix ≤ 1 000 000 €, 2 Mo, 5 000 lignes) mais NON rejoué par un fichier propre dans ce recontrôle (voir doutes).",
+  "S12": "le message « Plateforme enregistrée » échappe ; mais toast() écrit toujours en innerHTML et d'autres messages recopient un nom de client non échappé (voir encoreOuvertes, S01 variante 2).",
+  "S13": "les quatre écouteurs de message (OP GESTION ×3 + Comptabilité ×2 + atelier) vérifient la source ; relu et rejoué dans securite-acces (15 ✓).",
+  "S14": "recontrole-acces-client : 61 adresses (fiches et écrans de liste) jouées par aller() ET par l'adresse, 122 lectures en rôle client, 0 fuite d'un nom, d'un numéro de facture, de devis ou de contrat d'un autre client ; témoin (SES documents) et contre-épreuve (le gérant voit les 7 autres noms) présents.",
+  "S15": "recontrole-liens-fuzz : 60 000 chaînes d'un vocabulaire hostile (entités, schémas, retournements bidi, adresses non latines) mâchées par les vraies fonctions de corpsLu : 9 ✓ · 0 ✗. Copies de production (opcourrier.js) non touchées, à reporter (doutes).",
+  "S16": "les six empreintes sha384 posées (Leaflet js/css, MapLibre js/css, plugin MapLibre-Leaflet, html2canvas) sont IDENTIQUES à celles recalculées ce jour sur les fichiers servis par cdnjs et unpkg (6 sur 6).",
+  "S17": "relu : window.OPG_MODE_APP posé par la coque seule (mobile/fabriquer.js), allowBackup=false, file_paths réduit à cache/partage ; minifyEnabled reste décidé ailleurs.",
+  "S18": "garde securite-statique 49 ✓ : l'état décidé par le chef (treize polices du compositeur remises, deux hôtes Google) tient ; non compté comme faille rouverte."
+ },
+ "encoreOuvertes": [
+  {
+   "n": "S01",
+   "variante": "« Préparer le devis » et « Créer le client et son devis » depuis le courriel (mbxDevisFait, apercu/prototype-op-gestion.html ≈ 19594) recopient le NOM D'EXPÉDITEUR brut dans CLIENTS[].nom et .contact et dans la trace du devis : la correction n'a posé mailNom() qu'aux quatre créations qu'elle connaissait (cinquième création oubliée).",
+   "preuve": "recontrole-nomclient.js : 7 ✓ · 4 ✗. Un courriel dont le nom d'affichage est « <img src=x onerror=…> » : après « Créer le client et son devis » puis « Préparer le devis », CLIENTS[k].nom vaut la charge entière ; planifier ensuite une intervention sur une plage déjà prise écrit « Sophie est déjà chez <charge> de 09:00 à 11:00 » en innerHTML (toast, ≈ 12797) : une balise et un gestionnaire onerror naissent, window.__hits = [n310]. Les formes svg et fermeture d'attribut sont rangées brutes elles aussi. gravité : haute (comme S01, le nom vient d'un inconnu).",
+   "correction_attendue": "mailNom(m) dans mbxDevisFait (nom, contact, trace), et idem pour les deux autres recopies brutes de m.de.nom (journal « a créé le client », titre « Option · … ») ; en défense : esc(CLIENTS[gene.cli].nom) dans le message de conflit et dans les autres toasts (12440 « Tu es maintenant … (client) », 4722, 5054, 7501, 8921, 9020)."
+  },
+  {
+   "n": "S01",
+   "variante": "Le nom d'un client TAPÉ par l'équipe n'est pas nettoyé : cinq formulaires créent un client sans nomPersonneOk/libelleSur (Nouveau devis › Nouveau client ≈ 8121, créer une intervention ≈ 13742, fiche rapide ≈ 10760, devis xylophage ≈ 22211, atelier ≈ 22700).",
+   "preuve": "recontrole-clientsaisi.js : 3 ✓ · 5 ✗. Le vrai formulaire « Nouveau devis › Nouveau client » reçoit « <img src=x onerror=__xss('n500')>… » dans Nom : le client est créé avec ce nom, et le même message « est déjà chez … » exécute le code (hits = [n500]). Le correcteur avait borné les noms de PERSONNES (nomPersonneOk) mais pas ceux de CLIENTS. gravité : moyenne (saisi par une personne de l'équipe, mais l'entreprise est partagée : le code s'exécute chez les autres à la synchro).",
+   "correction_attendue": "un nomClientOk() (même règle que nomPersonneOk, mais le « & » et les guillemets droits y sont permis puisque « Martin & Fils » est un vrai nom : on retire < > \" ` et les caractères de contrôle, 80 signes) aux cinq formulaires, ET l'échappement à la sortie des toasts."
+  },
+  {
+   "n": "S05",
+   "variante": "un FOURNISSEUR connu qui cite la commande d'un AUTRE fournisseur se la voit rattachée : mlLire fait cmd: bc && f && COMMANDES.find(c => c.num === bc) sans comparer le fournisseur de la commande à l'expéditeur (apercu/prototype-op-gestion.html ≈ 10427).",
+   "preuve": "recontrole-confiance.js (9 ✓ · 2 ✗) : « Clim Pièces Atlantique » écrit « BC-2026-035 » (commande de « Daikin Pro Ouest ») : R.sujet = « expedition », le geste « Mettre à jour la livraison » est offert. Les huit autres variantes tiennent (adresse vide, espace ou +suite, nom d'affichage du client, adresse de l'attaquant, vrai client en témoin). gravité : faible (un fournisseur déjà connu, geste sans montant).",
+   "correction_attendue": "COMMANDES.find(c => c.num === bc && c.four === f.nom) (ou l'identifiant du fournisseur)."
+  },
+  {
+   "n": "S06",
+   "variante": "FEC de la Comptabilité (apercu/prototype-comptabilite.html ≈ 1822) : net() ne retire que | CR LF ; une cellule qui commence par une TABULATION puis = + - @ n'est pas neutralisée (le test /^[=+\\-@]/ ne voit que le premier signe).",
+   "preuve": "exécuté sur la vraie expression : \"\\t=cmd|' /C calc'!A0\" → \"\\t=cmd ' /C calc'!A0\" (aucune apostrophe de tête) ; le CSV d'OP GESTION (q = /^[=+\\-@\\t\\r]/) et cpFec traitent bien la tabulation. gravité : faible (colonnes libellé, tiers, pièce, compte tiers du FEC).",
+   "correction_attendue": "mettre la tabulation et le retour dans le test de tête, comme vxCsv : /^[=+\\-@\\t\\r]/."
+  },
+  {
+   "n": "S10",
+   "variante": "la politique de contenu ne gouverne pas la NAVIGATION : un code injecté qui s'exécute peut encore faire sortir des données par location.href, location.replace, window.open, un lien cliqué par programme ou une balise meta refresh (le navigateur envoie l'adresse, donc ce qu'elle porte, à l'attaquant). La phrase de l'audit « le script injecté ne peut RIEN envoyer » est vraie pour les requêtes de fond, fausse pour la navigation.",
+   "preuve": "recontrole-sortie.js : 7 ✓ · 5 ✗. Un serveur « attaquant » sur un autre port de 127.0.0.1 reçoit une requête GET marquée pour les cinq canaux (n-location, n-replace, n-open, n-lien, n-refresh) ; les six canaux de chargement (img, fetch, XHR, WebSocket, iframe, préconnexion, WebRTC) tiennent. gravité : faible (il faut déjà un script exécuté ; 'unsafe-inline' reste nécessaire tant que le prototype écrit des gestionnaires en ligne).",
+   "correction_attendue": "pas corrigeable par une balise meta (navigate-to n'existe plus, frame-ancestors est ignoré en meta) : le dire dans la liste des doutes pour la vraie application, où les en-têtes HTTP le permettent ; ne plus annoncer « ne peut RIEN envoyer »."
+  }
+ ],
+ "casses": [
+  {
+   "ou": "Historique (liste, fiche d'une ligne, tableau imprimé)",
+   "quoi": "« a répondu à Café « Chez Léa » &amp; Cie » : le nom est échappé à la source (journalAjout('…a répondu à ' + esc(m.de.nom)), ≈ 19159) ET à la sortie (esc(j.action), ≈ 6536) : le « & » s'affiche « &amp; » à l'écran (le courriel de démonstration « Café « Chez Léa » & Cie » le montre déjà). recontrole-casse.js, 8 ✓ · 3 ✗.",
+   "correction": "retirer esc() à la source : l'Historique échappe déjà à la sortie."
+  },
+  {
+   "ou": "Stock › Unité d'un article (uniteSure, ≈ 9280, et son message ≈ 14947)",
+   "quoi": "des unités de bonne foi sont REFUSÉES : « pièce(s) », « paquet de 100 » (13 signes), « €/h », « boîte d'1 » (recontrole-casse.js). Le message promet « u, kg, m, lot… » sans dire que les parenthèses, le € et l'apostrophe sont exclus.",
+   "correction": "autoriser ( ) € ' ’ et 20 signes, ou lister dans le message ce qui est permis."
+  },
+  {
+   "ou": "Stock › Voir (PRODUITS[].u)",
+   "quoi": "recontrole-casse2.js (toute donnée de bonne foi « Dupont & Fils d'Arc », 13 892 champs, 88 écrans) : une seule entité visible, « &amp; » à la suite d'une unité d'article, écran Stock › Voir : l'unité est échappée deux fois quelque part (esc dans sxQte + esc au gabarit). Inatteignable par la saisie actuelle (uniteSure refuse « & ») mais visible sur une base d'avant ou un import.",
+   "correction": "un seul esc() entre la donnée et le HTML pour l'unité."
+  },
+  {
+   "ou": "Boîte mail (mlLire)",
+   "quoi": "un courriel dont l'en-tête n'a PAS de champ « mail » fait jeter mlLire (Cannot read properties of undefined (reading 'toLowerCase'), ≈ 10347) : la Boîte mail ne s'ouvre plus tant que ce courriel y est. Une adresse vide (« ») passe. La correction de S05 a ajouté la comparaison d'adresse mais pas la garde de son absence.",
+   "correction": "const mail = String((m.de && m.de.mail) || '').toLowerCase()."
+  }
+ ],
+ "doutes": [
+  "S01/S03 : le titre d'une intervention tapé dans « Modifier l'intervention » (champ Titre, ≈ 8987/9039) est rangé BRUT (entrée non gardée, confirmé par recontrole-titre.js : 4 interventions changées, 5 ✓ · 1 ✗ sur l'entrée) ; sur les 19 écrans, fiches et panneaux visités la lecture ne voit aucune sortie, mais la sonde « toute donnée mutée » (recontrole-donnees decal 3, 99 écrans) a signalé INTS[].titre sur deux fiches (inter-x-i3, inter-x-i4) avec des charges de forme mXSS (<math><mtext><table><mglyph><style>) que ce rejeu à la main n'a pas reproduites : à rejouer par la correction (borner l'entrée comme un libellé) plutôt qu'à débusquer le gabarit.",
+  "Toute donnée mutée (recontrole-donnees decal 3, 13 892 champs, 668 vus à l'écran, 99 écrans, 389 clics) : 174 sorties, toutes sur des constantes du code (CX_NAV, CX_CATS, IC, CONTROLES, RELEVES, DX_PRE…), des numéros fabriqués (FACTURES/CONTRATS/DEVIS num), des champs de Mon entreprise (ENTREPRISE.adr, mail, patron : entrée gardée par entEnregistrerIdent) et des noms de l'équipe (TECHS, H_GENS : entrée gardée par nomPersonneOk) — aucune ne vient d'un champ libre à l'entrée non gardée sauf INTS[].titre. Même ensemble pour la bêta.",
+  "Le rejeu « toute donnée mutée » avec les charges de rang décalé 0 (recontrole-donnees decal 0) a expiré deux fois à 580 s (machine à 17 de charge) : son résultat est dans la partie « vérifié » seulement s'il est rendu plus bas (voir note finale).",
+  "recontrole-saisie.js (formulaires remplis un à un) : 36 formulaires, 36 champs, 12 validations dont 1 seule a changé les données : sa population est trop mince pour rien conclure (0 sortie ne vaut pas preuve) ; la méthode est à poursuivre formulaire par formulaire, comme recontrole-clientsaisi.js et recontrole-titre.js.",
+  "S11 : bornes de l'import de prix relues dans le code, non rejouées avec un fichier hostile (1e999, 10²³, 100 000 signes, 20 000 lignes, BOM, séparateur exotique) dans ce recontrôle.",
+  "S15 : opcourrier.js (racine, apercu/, server-msg/public/) porte toujours l'ancien corpsLu : les lettres cyrilliques et les adresses à identifiants y restent cliquables ; ce n'est pas un fichier de cette voie, à reporter par la voie qui le tient.",
+  "S05 : même corrigé, le rattachement se fait sur l'ADRESSE d'expédition affichée : un courriel falsifié (en-tête From usurpé, sans SPF/DKIM vérifiés) reste crédible ; pas corrigeable dans l'écran (décidé par l'audit), à traiter côté réception dans la vraie application.",
+  "S10 : sans en-tête HTTP, ni frame-ancestors ni sandbox : la page peut être mise en cadre par un site tiers (clic piégé). Une politique de contenu en meta ne s'y oppose pas ; à poser sur le serveur de la vraie application.",
+  "Politique de contenu : script-src autorise tout cdnjs.cloudflare.com et tout unpkg.com (n'importe quel paquet publié) avec 'unsafe-inline' ; c'est le « niveau inline » déjà annoncé, sans nonce possible tant que le prototype écrit des gestionnaires en ligne."
+ ],
+ "chiffres": {
+  "gardes de l'audit": "securite-statique 49, injection 32, fichiers 19, acces 15, confiance 9, liens 66, politique 23 : 0 ✗ partout",
+  "fumee-routes": "376 ✓ · 0 ✗",
+  "recontrole-liens-fuzz": "9 ✓ · 0 ✗ (60 000 chaînes)",
+  "recontrole-url": "4 ✓ · 0 ✗ (14 adresses piégées)",
+  "recontrole-acces-client": "6 ✓ · 0 ✗ (122 lectures)",
+  "recontrole-fichiers": "19 ✓ · 0 ✗",
+  "recontrole-client": "11 ✓ · 0 ✗ (rôle client : demande, signature, toutes les adresses)",
+  "recontrole-chemins": "6 ✓ · 0 ✗ (6 courriels × 8 gestes × 3 encodages, 151 écrans)",
+  "recontrole-nomclient": "7 ✓ · 4 ✗",
+  "recontrole-clientsaisi": "3 ✓ · 5 ✗",
+  "recontrole-confiance": "9 ✓ · 2 ✗",
+  "recontrole-casse": "8 ✓ · 3 ✗",
+  "recontrole-casse2": "4 ✓ · 1 ✗",
+  "recontrole-sortie": "7 ✓ · 5 ✗",
+  "recontrole-titre": "5 ✓ · 1 ✗ (entrée non gardée, aucune sortie vue)",
+  "recontrole-saisie": "4 ✓ · 2 ✗ (population trop mince)"
+ },
+ "encore_ouvertes_resume": "S01 (×2 variantes), S05, S06, S10 : 5 variantes encore ouvertes ; S02, S03 (personnes), S04, S07, S08, S09, S11*, S12, S13, S14, S15, S16, S17, S18 fermées (*S11 relue, non rejouée)."
+}

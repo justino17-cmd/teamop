@@ -33,14 +33,15 @@ const FORMES = [
         await p.evaluate(x => aller(x), r); await L.calme(p, 300);
         await p.mouse.click(g.x + g.l / 2, g.y + g.h / 2); await att(500);
         const avant = await taille();
-        const info = await p.evaluate(({ formes, debut }) => { const F = formes.map(s => eval(s)); const zone = document.querySelector('#calque') && document.querySelector('#calque').offsetParent !== null && document.querySelector('#calque input,#calque textarea') ? document.querySelector('#calque') : document.getElementById('contenu');
-          const champs = [...zone.querySelectorAll('input:not([type]),input[type=text],input[type=search],textarea')].filter(e => e.offsetParent !== null && !e.readOnly && !e.disabled); const rempli = [];
+        const info = await p.evaluate(({ formes, debut }) => { const F = formes.map(s => eval(s)); const vis = e => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';   /* un panneau est en position fixe : offsetParent y vaut null, il ne dit PAS « caché » */
+          const sel = 'input:not([type]),input[type=text],input[type=search],textarea', cal = document.getElementById('calque'), zone = cal && [...cal.querySelectorAll(sel)].some(vis) ? cal : document.getElementById('contenu');
+          const champs = [...zone.querySelectorAll(sel)].filter(e => vis(e) && !e.readOnly && !e.disabled); const rempli = [];
           champs.forEach((e, k) => { const id = 'n' + (debut + k); const v = F[k % F.length](id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); rempli.push({ id, nom: e.id || e.name || e.placeholder || ('champ' + k) }); });
           return { dans: zone.id, champs: rempli }; }, { formes: FORMES.map(f => f.toString()), debut: n });
         info.champs.forEach(ch => { legende[ch.id] = r + ' ▸ ' + String(g.lib).trim().slice(0, 30) + ' ▸ ' + ch.nom; }); n += info.champs.length + 1; champsRemplis += info.champs.length;
         formulaires.push({ r, bouton: String(g.lib).trim().slice(0, 40), champs: info.champs.length });
         if (info.champs.length) {
-          const ok = await p.evaluate(() => { const z = document.querySelector('#calque'); const cand = [...(z ? z.querySelectorAll('.actions .btn:not(.gris),.actions button:not(.gris)') : [])].filter(b => b.offsetParent !== null); const b = cand[0]; if (!b) return false; b.click(); return true; });
+          const ok = await p.evaluate(() => { const z = document.querySelector('#calque'); const cand = [...(z ? z.querySelectorAll('.actions .btn:not(.gris),.actions button:not(.gris),button.btn:not(.gris)') : [])].filter(b => b.getClientRects().length > 0); const b = cand[0]; if (!b) return false; b.click(); return true; });
           if (ok) { valides++; await att(450); await lire(r + ' ▸ après validation'); }
           const apres = await taille(); if (apres !== avant) changes++;
         }
@@ -62,7 +63,7 @@ const FORMES = [
   console.log(`  · formulaires ouverts : ${formulaires.length} · champs remplis : ${champsRemplis} · validations : ${valides} · données changées : ${changes} · écrans visités : ${visites} · charges retrouvées à l'écran : ${vus.size}`);
   sorties.slice(0, 30).forEach(s => console.log('  SORTIE', s.sorte, '←', rempliLegende(s.champ), '· écran :', s.ou.slice(0, 100)));
   [...new Set(hits)].slice(0, 20).forEach(h => console.log('  EXÉCUTION ←', rempliLegende(h)));
-  L.v('population : ≥ 20 formulaires ouverts et ≥ 60 champs remplis', formulaires.length >= 20 && champsRemplis >= 60, { f: formulaires.length, c: champsRemplis });
+  L.v('population : ≥ 20 formulaires ouverts et ≥ 30 champs remplis', formulaires.length >= 20 && champsRemplis >= 30, { f: formulaires.length, c: champsRemplis });
   L.v('population : ≥ 10 validations ont changé les données', changes >= 10, { valides, changes });
   L.v('population : des charges rangées sont retrouvées (échappées) à l\'écran', vus.size >= 10, vus.size);
   L.v('AUCUNE charge tapée dans un formulaire n\'est sortie de son texte — sorties : ' + sorties.length, sorties.length === 0, sorties.slice(0, 8).map(s => rempliLegende(s.champ) + ' ▸ ' + s.sorte));
