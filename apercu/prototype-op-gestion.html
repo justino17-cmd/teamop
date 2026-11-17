@@ -183,6 +183,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .champ input,.champ select,.champ textarea,.saisie{min-height:46px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);padding:10px 12px;font-size:16px;font-weight:400;width:100%}
 .champ textarea{min-height:104px;resize:vertical;line-height:1.45}
 .deux-champs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:760px){ html #contenu .tete.cl-tete{flex-wrap:wrap;align-items:flex-start;gap:8px}html .cl-tete>div:first-child{flex:1 1 100%}   /* la feuille de #contenu impose « nowrap » aux en-têtes : la phrase d'aide se coinçait à 170 px à côté du bouton (clients-03) */
+  .deux-champs.ci-champs{grid-template-columns:minmax(0,1fr)} }   /* contact et e-mail se lisent en entier (clients-13) */
 .trois-champs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 @media (max-width:520px){.trois-champs{grid-template-columns:1fr 1fr}}
 .ligne{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--trait)}
@@ -737,9 +739,6 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 /* ── pointage ── */
 /* la semaine compte 7 jours (le samedi et le dimanche sont dans la paie) ; le tableau garde sa largeur propre et défile s'il le faut */
 /* ce style est inséré avant la feuille de l'écran : on gagne par la spécificité, pas par l'ordre */
-.pt-grille .pt-r{grid-template-columns:150px repeat(7,minmax(72px,1fr)) 104px 84px;min-width:1010px}
-.pt-grille .pt-j{position:relative}
-.pt-grille .pt-r>.pt-j:nth-child(n+7):nth-child(-n+8):not(.pt-abs):not(.pt-ouv){background:color-mix(in srgb,var(--surf2) 55%,transparent)}
 .pt-entete span:nth-child(7),.pt-entete span:nth-child(8){opacity:.7}
 .ptx-carte .btn,.ptx-prop .btn,.ptx-oubli .btn,#calque .panneau .btn{min-height:44px!important}
 /* la carte du salarié */
@@ -760,7 +759,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 .vx-seg{align-self:flex-start}
 .vx-ajout{cursor:pointer;min-height:44px}
 .vx-mini{display:block;width:44px;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--trait2);flex:none}.vx-mini img{width:100%;height:100%;object-fit:cover;display:block}
-.vx-souci,.vx-immo{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.vx-immo{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .vx-alerte{display:flex;flex-direction:column;gap:8px}
 .vx-pl{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding-bottom:10px}.vx-pl small{font-size:14px;color:var(--doux);font-weight:550}.vx-pl b{font-size:20px;min-height:36px;display:flex;align-items:center}
 .vx-gar{font-weight:700}.vx-gar-b{align-self:flex-start;margin-bottom:6px}
@@ -1495,20 +1494,9 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .ve-mat{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0 12px}
 .ve-c .fo-stats i{font-style:normal}
 @media (max-width:760px){.ve-mat{grid-template-columns:1fr 1fr}}
-.pt-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pt-nav b{font-size:16px}
-.pt-grille{padding:6px 10px;overflow-x:auto}
-.pt-r{display:grid;grid-template-columns:170px repeat(5,minmax(86px,1fr)) 112px 92px;gap:6px;align-items:stretch;border-bottom:1px solid var(--trait);padding:8px 0;min-width:840px}
-.pt-grille .pt-r:last-child{border-bottom:0}.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);text-transform:capitalize;padding:6px 0}
-.pt-qui{display:flex;flex-direction:column;justify-content:center;text-align:left;background:none;border:0;color:var(--encre);font:inherit;cursor:pointer;padding:4px;border-radius:10px}
-.pt-j{display:flex;flex-direction:column;gap:1px;align-items:flex-start;justify-content:center;text-align:left;border:1px solid var(--trait);background:var(--surf2);border-radius:10px;padding:6px 8px;color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
-@media (hover:hover){.pt-j:hover,.pt-qui:hover{background:var(--survol)}}
-.pt-j span{font-size:12px;color:var(--doux)}.pt-j b{font-size:14.5px;font-variant-numeric:tabular-nums}
-.pt-abs{background:color-mix(in srgb,var(--violet) 12%,transparent)}.pt-ouv{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 10%,transparent)}.pt-manque{border-style:dashed;border-color:var(--rouge)}
-.pt-tot{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;font-variant-numeric:tabular-nums}.pt-val{display:flex;align-items:center;justify-content:flex-end}
-.pt-al{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;padding:0 4px}
+.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);text-transform:capitalize;padding:6px 0}
 .pt-paie{padding:6px 14px}.pt-p{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:8px;padding:11px 2px;border-bottom:1px solid var(--trait);align-items:center;font-variant-numeric:tabular-nums}.pt-paie .pt-p:last-child{border-bottom:0}
-@media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}.pt-r{grid-template-columns:118px repeat(5,minmax(80px,1fr)) 100px 86px;min-width:780px}}
-.pt-alertes{display:flex;flex-direction:column;padding:14px 16px}
+@media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}}
 .pt-frais{display:flex;gap:12px;align-items:center;padding:12px 16px}.pt-frais .fo-n{flex:1}
 .eq-av{width:40px;height:40px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:800;color:#fff;background:color-mix(in srgb,var(--c) 82%,#000);text-shadow:0 1px 1px rgba(0,0,0,.25)}.eq-av.grand{width:52px;height:52px;font-size:17px}
 .eq-tete{display:flex;align-items:center;gap:12px;margin:2px 0 6px}.eq-tete h2{margin:0}
@@ -3671,6 +3659,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (min-width:900px){.vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr))}.vh-cam-l{grid-column:auto}}
 /* Mon camion sur téléphone : la carte du véhicule tient sur UNE rangée de trois boutons, pour que « Il manque à bord » reste sur le premier écran AU-DESSUS de la barre d'onglets (spec Matériel § 8.1 : voir ce qui manque, c'est UN toucher et aucun défilement ; un plein se note toujours sans défiler). Le titre reste lu par les lecteurs d'écran. */
 @media (max-width:520px){html .mc-page .vh-cam{padding:10px 12px;gap:6px}html .mc-page .vh-cam h3{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}html .mc-page .vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}html .mc-page .vh-cam-g .btn{min-height:44px;font-size:13px;padding:6px 4px}html .mc-page .vh-cam-l{grid-column:auto}}
+/* téléphone COURT (Android 360 × 740) : rangées resserrées pour que la première ligne de « Il manque à bord » reste au-dessus de la barre d'onglets */
+@media (max-width:520px) and (max-height:780px){html .mc-page{gap:10px}html .mc-duo .btn{min-height:48px}html .mc-page .vh-cam>.gris{display:none}html .mc-page .vh-cam{padding:8px 10px}}
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
 html #mc-vehicule:empty{display:none}
 .vh-fcorps{container:vhf/inline-size;display:flex;flex-direction:column;gap:2px}
@@ -5418,13 +5408,18 @@ function vueClientsSemaine(){
   ${J.map(d => { const L = INTS.filter(i => i.d === d && i.st !== 'annulee').sort((a,b2)=>a.h.localeCompare(b2.h)); return L.length ? `<div class="carte" style="padding:12px 16px"><h3 style="margin-bottom:6px">${jlong(d)}${d===AUJ?' · aujourd’hui':''}</h3>${L.map(i => `<button type="button" class="ligne-clic cs-l" style="margin-bottom:6px" data-go="client-x-${i.cli}"><span style="display:flex;gap:12px;align-items:center;min-width:0"><b style="font-variant-numeric:tabular-nums;min-width:48px">${i.h}</b><span style="min-width:0"><b>${esc(CLIENTS[i.cli].nom)}</b><br><span class="gris petit">${esc(i.titre)} · ${tech(i.tech).nom}</span></span></span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></button>`).join('')}</div>` : ''; }).join('') || '<div class="carte gris">Aucune intervention cette semaine.</div>'}`;
 }
 function vueClients(){
-  const cq = sansAccent(chercheClient.trim()).replace(/\s+/g, ' '), cqt = cq.replace(/\s/g, ''); const L = Object.entries(CLIENTS).filter(([k,c]) => k !== '__nv' && (!cq || sansAccent([c.nom, c.contact, c.adr, c.mail, CONTRATS.some(x => x.cli === k && x.st === 'signe') ? 'contrat' : ''].join(' ')).includes(cq) || (/^[\d ]+$/.test(cq) && String(c.tel || '').replace(/\s/g, '').includes(cqt)))).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
+  const cq = sansAccent(chercheClient.trim()).replace(/\s+/g, ' '), mots = cq.split(' ').filter(Boolean);
+  /* un numéro se tape avec des espaces, des points, des tirets, « +33 » collé d'un courriel : on compare les CHIFFRES seuls, « +33 6… » ramené à « 06… » (clients-18) */
+  let cqt = /^[\d\s.+()]+$/.test(cq) ? cq.replace(/\D/g, '') : ''; if (cqt && /^(\+|00)/.test(cq)) cqt = cqt.replace(/^(?:0033|33)/, '0'); if (cqt.length < 4) cqt = '';
+  /* « hôtel plage » retrouve « Hôtel de la Plage » : chaque mot doit se trouver quelque part, dans l'ordre qu'on veut (clients-01) */
+  const L = Object.entries(CLIENTS).filter(([k,c]) => { if (k === '__nv') return false; if (!cq) return true; const botte = sansAccent([c.nom, c.contact, c.adr, c.mail, CONTRATS.some(x => x.cli === k && x.st === 'signe') ? 'contrat' : ''].join(' '));
+    return mots.every(m => botte.includes(m)) || (cqt && String(c.tel || '').replace(/\D/g, '').includes(cqt)); }).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
   const seg = `<div class="seg" role="group" aria-label="Ranger les clients">${[['tous','Tous les clients'],['semaine','Par semaine'],['mois','Par mois']].map(([k,l])=>`<button type="button" data-rangc="${k}" aria-pressed="${rangClients===k||(chercheClient&&k==='tous')}">${l}</button>`).join('')}</div>`;
-  if (!chercheClient && rangClients !== 'tous') return `<div class="tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1><span class="gris">${rangClients==='mois'?'Rangés par mois : qui, combien d’interventions, ce qui est payé et ce qui reste à payer.':'Une semaine, jour par jour : retrouve un client par la date de son passage.'}</span></div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
+  if (!chercheClient && rangClients !== 'tous') return `<div class="tete cl-tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1><span class="gris">${rangClients==='mois'?'Rangés par mois : qui, combien d’interventions, ce qui est payé et ce qui reste à payer.':'Une semaine, jour par jour : retrouve un client par la date de son passage.'}</span></div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
     <input class="saisie" placeholder="Chercher un client…" value="" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}${rangClients==='mois'?vueClientsMois():vueClientsSemaine()}`;
-  return `<div class="tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1></div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
+  return `<div class="tete cl-tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1></div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
   <input class="saisie" placeholder="Chercher un client…" value="${esc(chercheClient)}" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}
-  ${L.length ? '' : `<div class="carte gris">Aucun client ne correspond à « ${esc(chercheClient.trim())} ».</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
+  ${L.length ? '' : `<div class="carte gris" style="overflow-wrap:anywhere">Aucun client ne correspond à « ${esc(chercheClient.trim())} ». Vérifie l’orthographe, ou touche « ＋ Nouveau client » pour l’ajouter.</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
     return `<button type="button" class="carte client-carte" data-go="client-x-${k}"><span style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b style="font-size:17px">${esc(c.nom)}</b>${ctr?'<span class="st st-v">contrat</span>':''}</span><span class="gris petit">${[c.contact && c.contact !== c.nom ? esc(c.contact) : '', esc((c.adr || '').split(',').pop().trim())].filter(Boolean).join(' · ')}</span>
       <span class="client-chiffres"><span><b>${eur(paye)}</b><small>payé</small></span><span><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><small>à recevoir</small></span><span><b>${proch?jcourt(proch.d):'—'}</b><small>prochain passage</small></span></span></button>`; }).join('')}</div>`;
 }
@@ -5444,10 +5439,10 @@ function vueClient(k){
   let corps = '';
   if (ongletClient === 'histo') corps = `<div class="tl">${histoClient(k).map(h=>`<button type="button" ${h.go?`data-go="${h.go}"`:'disabled'}><span class="faible mini" style="text-align:right">${jcourt(h.d)}/${h.d.slice(2,4)}</span><span class="pt" style="background:${h.c}"></span><span><b>${esc(h.t)}</b><br><span class="gris petit">${esc(h.s)}</span></span><span class="gris mini${h.droite ? '' : ' tl-vide'}" style="white-space:nowrap">${h.droite}${h.go?' ›':(h.droite ? ' · ' : '') + 'archive'}</span></button>`).join('')}</div>`;
   if (ongletClient === 'factures') corps = `<div class="tableau"><table class="l"><thead><tr><th>N°</th><th class="l-obj">Objet</th><th class="n">TTC</th><th>État</th></tr></thead><tbody>${F.map(f=>`<tr class="clic" data-go="facture-x-${f.id}"><td class="mono">${f.num}<span class="l-sous">${esc(f.objet)}</span></td><td class="l-obj">${esc(f.objet)}</td><td class="n">${eur(ttcDe(f))}</td><td><span class="st ${STF[f.st][1]}">${STF[f.st][0]}</span></td></tr>`).join('') || '<tr><td colspan="4" class="gris">Aucune facture.</td></tr>'}</tbody></table></div>${ancien > .5 ? `<div class="gris petit" style="margin-top:10px">« Payé depuis le début » compte ${eur(paye)} : ${eur(ancien)} viennent de règlements anciens ou de paiements rangés dans la Comptabilité, dont la facture n’est pas dans cette liste.</div>` : ''}`;
-  if (ongletClient === 'appareils') corps = (c.appareils.length ? '' : '<div class="gris">Aucun appareil enregistré pour l’instant.</div>') + c.appareils.map((a,n)=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span>${k==='vp'&&n===1?'<br><span class="st st-r" style="margin-top:6px">3 pannes du ventilateur en 14 mois</span>':''}</span><span class="gris petit">${INTS.filter(i => i.cli === k && i.st !== 'annulee').length} passages</span></div>`).join('');
+  if (ongletClient === 'appareils') corps = (c.appareils.length ? '' : '<div class="gris">Aucun appareil enregistré pour l’instant.</div>') + c.appareils.map((a,n)=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span>${k==='vp'&&n===1?'<br><span class="st st-r" style="margin-top:6px">3 pannes du ventilateur en 14 mois</span>':''}</span></div>`).join('');   /* le chiffre était celui du CLIENT entier, collé à chaque appareil : faux, retiré (clients-10) */
   if (ongletClient === 'contrats') corps = ctrs.map(x=>`<button type="button" class="ligne-clic" data-go="contrat-x-${x.id}"><span><b>${x.num} · ${esc(x.titre)}</b><br><span class="gris petit">${x.freq} visite${x.freq>1?'s':''} par an · ${eur(x.prix)} HT / an</span></span><span class="st ${x.st==='signe'?'st-v':'st-b'}">${x.st==='signe'?'signé':'en attente'}</span></button>`).join('') + `<button type="button" class="btn gris" data-action="contratPour" data-cli="${k}" style="margin-top:10px">Proposer un contrat d’entretien</button>` + (rlPermis('contrats') ? `<button type="button" class="btn" data-opd="contrat" data-cli="${k}" style="margin-top:10px">Composer un contrat</button>` : '');
   if (ongletClient === 'docs') corps = [...INTS.filter(i=>i.cli===k&&(i.st==='fait'||fiche(i.id).etat==='bureau')).map(i=>`<div class="ligne"><span>📄 Compte rendu du ${jcourt(i.d)} · ${esc(i.titre)}</span><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir</button></div>`), ...F.filter(f=>f.st!=='avalider').map(f=>`<div class="ligne"><span>🧾 Facture ${f.num}</span><button type="button" class="lien" data-go="facture-x-${f.id}">Voir</button></div>`), ...ctrs.filter(x=>x.st==='signe').map(x=>`<div class="ligne"><span>✍️ Contrat ${x.num} signé le ${x.signe}</span><button type="button" class="lien" data-go="contrat-x-${x.id}">Voir</button></div>`)].join('') || '<span class="gris">Aucun document.</span>';
-  if (ongletClient === 'infos') corps = `<div class="deux-champs"><label class="champ">Contact<input data-ci="contact" value="${esc(c.contact)}"></label><label class="champ">Téléphone<input data-ci="tel" inputmode="tel" value="${esc(c.tel)}"></label><label class="champ">E-mail<input data-ci="mail" inputmode="email" value="${esc(c.mail)}"></label><label class="champ">Type<select data-ci="type"><option value="pro" ${c.type==='pro'?'selected':''}>Professionnel</option><option value="part" ${c.type==='part'?'selected':''}>Particulier</option></select></label></div><label class="champ" style="margin-top:10px">Adresse<input data-ci="adr" value="${esc(c.adr)}"></label><label class="champ" style="margin-top:10px">Accès et consignes (le technicien les lit avant d’entrer)<textarea data-ci="acces">${esc(c.acces)}</textarea></label><div class="actions" style="margin-top:12px;align-items:center"><button type="button" class="btn" data-action="clientEnreg" data-cli="${k}">Enregistrer</button><span class="gris petit">Rien n’est gardé tant que tu n’as pas touché « Enregistrer ».</span></div>`;
+  if (ongletClient === 'infos') corps = `<label class="champ" style="margin-bottom:10px">${c.type==='pro'?'Raison sociale':'Nom'}<input data-ci="nom" value="${esc(c.nom)}" autocomplete="off"></label><div class="deux-champs ci-champs"><label class="champ">Contact<input data-ci="contact" value="${esc(c.contact)}"></label><label class="champ">Téléphone<input data-ci="tel" inputmode="tel" value="${esc(c.tel)}"></label><label class="champ">E-mail<input data-ci="mail" inputmode="email" value="${esc(c.mail)}"></label><label class="champ">Type<select data-ci="type"><option value="pro" ${c.type==='pro'?'selected':''}>Professionnel</option><option value="part" ${c.type==='part'?'selected':''}>Particulier</option></select></label></div><label class="champ" style="margin-top:10px">Adresse<input data-ci="adr" value="${esc(c.adr)}"></label><label class="champ" style="margin-top:10px">Accès et consignes (le technicien les lit avant d’entrer)<textarea data-ci="acces">${esc(c.acces)}</textarea></label><div class="actions" style="margin-top:12px;align-items:center"><button type="button" class="btn" data-action="clientEnreg" data-cli="${k}">Enregistrer</button><span class="gris petit">Rien n’est gardé tant que tu n’as pas touché « Enregistrer ».</span></div>`;
   /* « Enregistrer » de cette fiche CHANGE un client déjà là : c'est la case « Modifier » qui l'ouvre (la case « Créer » n'ouvre que « Nouveau client »). Sans elle, les champs se figent et la phrase le dit (relecture « tout-05 ») */
   if (ongletClient === 'infos' && !peut('crm', 'm')) corps = corps.replace(/<(input|select|textarea) data-ci=/g, '<$1 disabled data-ci=').replace(/<span class="gris petit">Rien n’est gardé[^<]*<\/span>/, `<span class="gris petit">Tu peux regarder cette fiche ; pour la changer, demande à ${esc(droitPremierAdmin())}.</span>`);
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
@@ -5496,7 +5491,7 @@ function vueContrats(){
 }
 function vueContratNouveau(){
   const B = BROUILLON, Mo = MODELES[B.modele];
-  return `<button type="button" class="lien retour" data-go="contrats">‹ Contrats</button><div class="tete"><div><span class="surtitre">Nouveau contrat</span><h1>${Mo.nom}</h1></div></div>
+  return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button><div class="tete"><div><span class="surtitre">Nouveau contrat</span><h1>${Mo.nom}</h1></div></div>
   <div class="grille2"><div class="carte" style="display:flex;flex-direction:column;gap:12px">
     <label class="champ">Modèle selon le métier<select data-b="modele">${metiersModeles().map(([k,m])=>`<option value="${k}" ${B.modele===k?'selected':''}>${m.nom}</option>`).join('')}</select></label>
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
@@ -7971,7 +7966,8 @@ function dvnCreer(){
   let cli = f.cli;
   if (f.nv) { cli = 'n' + Date.now().toString(36); const r = reconnaitre(f.adr);
     CLIENTS[cli] = { nom:f.type === 'pro' ? f.nom : [f.prenom, f.nom].filter(Boolean).join(' '), type:f.type, contact:f.type === 'pro' ? (f.prenom || f.nom) : [f.prenom, f.nom].filter(Boolean).join(' '), tel:cfTelFmt(f.tel), mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] };
-    if (r) SECT_CLI[cli] = r.secteur; journalAjout('marc', 'client', 'a créé le client', { t:'client', id:cli, lib:CLIENTS[cli].nom, cli }, { det:'depuis un nouveau devis' }); }
+    if (r) SECT_CLI[cli] = r.secteur; { const g = geoDeAdresse(f.adr); if (g) CR_GEO[cli] = g; }   /* comme pour le client créé avec une intervention : la carte des tournées le place (clients-05) */
+    journalAjout('marc', 'client', 'a créé le client', { t:'client', id:cli, lib:CLIENTS[cli].nom, cli }, { det:'depuis un nouveau devis' }); }
   const m = f.modele >= 0 ? DV_MODELES[f.modele][1] : [['', 1, null]];
   const zone = f.nv ? ((reconnaitre(f.adr) || {}).zone || 1) : ({ hp:2, cp:1, mr:1 }[cli] || 1);
   const lignes = m.map(l => l[0] === 'Déplacement' ? ['Déplacement', 1, TARIFS.zone[zone]] : l.slice());
@@ -8540,7 +8536,7 @@ const CAL_GENRES = [
   { k:'nouveautes',  ouvert:() => !!document.querySelector('#nv:not(.part)'),           ferme:() => nvFermer() },         // le guide des nouveautés
   { k:'visite',      ouvert:() => !!document.getElementById('gd-bulle'),                ferme:() => gdQuitter() },        // la visite guidée
 ];
-const CAL = { pile:[], pousse:0, ignore:0, suite:null, minuteur:0, echecs:0, off:false, sale:false, prevu:false };
+const CAL = { pile:[], pousse:0, ignore:0, suite:null, minuteur:0, echecs:0, off:false, sale:false, prevu:false, hash:'' };
 const calOuverts = () => CAL_GENRES.filter(g => { try { return g.ouvert(); } catch (e) { return false; } }).map(g => g.k);
 /* un recul demandé à l'historique est ASYNCHRONE : tant qu'il n'est pas arrivé (popstate), rien d'autre ne touche à l'historique — sinon l'entrée poussée entre-temps
    serait la mauvaise cible. S'il n'arrive jamais (historique muet), on s'éteint après deux essais plutôt que de rester muet à l'infini. */
@@ -8559,7 +8555,7 @@ function calSync(){
   CAL.pile = CAL.pile.filter(k => ouv.includes(k)).concat(ouv.filter(k => !CAL.pile.includes(k)));
   const d = CAL.pile.length;
   try {
-    while (CAL.pousse < d) { history.pushState({ cal:CAL.pousse + 1 }, '', location.href); CAL.pousse++; }
+    while (CAL.pousse < d) { history.pushState({ cal:CAL.pousse + 1 }, '', location.href); CAL.pousse++; CAL.hash = location.hash; }
     if (CAL.pousse > d) { const n = CAL.pousse - d; CAL.pousse = d; calReculer(n); }
   } catch (e) { CAL.off = true; CAL.pousse = 0; }
 }
@@ -8582,6 +8578,8 @@ function calApresNavigation(){ if (CAL.ignore === 0) { CAL.pousse = 0; CAL.pile 
 addEventListener('popstate', ev => {
   if (CAL.off) return;
   if (CAL.ignore > 0) { CAL.ignore = 0; clearTimeout(CAL.minuteur); CAL.echecs = 0; calFinRecul(); return; }
+  /* un changement d'adresse (lien, saisie) fait aussi un popstate, d'état nul : ce n'est PAS un Retour — l'écran change, les fenêtres se ferment avec lui (lireHash → calApresNavigation) */
+  if (CAL.pousse > 0 && location.hash !== CAL.hash) return;
   const n = ev.state && typeof ev.state.cal === 'number' ? ev.state.cal : 0;
   if (n < CAL.pousse) {   // RETOUR : le navigateur a retiré des entrées, on ferme autant de calques, le dernier ouvert d'abord
     let k = CAL.pousse - n; CAL.pousse = n;
@@ -9714,8 +9712,8 @@ let MVTS = [
   { id:'m1', d:jour(-24), h:'16:10', type:'entree', pid:'p11', q:1, vers:'atelier', qui:'marc', motif:'Réception de la commande BC-2026-035', bc:'c35' },
   { id:'m2', d:jour(-4), h:'09:05', type:'entree', pid:'p18', q:1, vers:'atelier', qui:'julie', motif:'Réception de la commande BC-2026-036', bc:'c36' },
   { id:'m3', d:jour(-4), h:'09:05', type:'entree', pid:'p21', q:6, vers:'atelier', qui:'julie', motif:'Réception de la commande BC-2026-036', bc:'c36' },
-  { id:'m4', d:jour(-3), h:'07:40', type:'transfert', pid:'p1', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Réassort du camion', valPar:'marc' },
-  { id:'m5', d:jour(-3), h:'07:40', type:'transfert', pid:'p4', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Réassort du camion', valPar:'marc' },
+  { id:'m4', d:jour(-3), h:'07:40', type:'transfert', pid:'p1', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Camion rempli', valPar:'marc' },
+  { id:'m5', d:jour(-3), h:'07:40', type:'transfert', pid:'p4', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Camion rempli', valPar:'marc' },
   { id:'m6', d:jour(-3), h:'17:20', type:'entree', pid:'p25', q:2, vers:'atelier', qui:'julie', motif:'Réception partielle de BC-2026-038', bc:'c38' },
   { id:'m7', d:jour(-2), h:'13:45', type:'sortie', pid:'p3', q:1, de:'v1', qui:'sm', pourQui:'sm', motif:'Utilisé chez le client', inter:'i24', valPar:'marc' },
   { id:'m8', d:jour(-1), h:'08:15', type:'sortie', pid:'p27', q:2, de:'atelier', qui:'julie', pourQui:'lr', motif:'Donné à un collègue', br:'BR-2026-017', valPar:'marc' },
@@ -12837,8 +12835,8 @@ function paieBulletinDoc(k, ym){
 /* ─── l'espace « Paie » de la Comptabilité ─── */
 CX_NAV.splice(3, 0, ['paie', 'Paie', '💶', [['paiemois', 'Le mois'], ['fiches', 'Fiches de paie'], ['salaries', 'Salariés'], ['charges', 'Charges et déclarations']]]);
 const paieOk = (o, m) => `<div class="ok-bloc petit">✓ ${m}</div>`;
-/* confirmer SES heures : un geste du salarié sur SES heures, jamais celui d'un écran de comptabilité. « Mes heures » l'appelle directement : passer par un bouton data-paie
-   le ferait lire comme un geste de Comptabilité › Paie, que la garde des droits refuse à un compte de terrain (relevé à la recette de l'étape 5 : « Je confirme mes heures » refusé à Sophie). */
+/* confirmer SES heures : UNE définition, appelée par le bouton de la comptabilité (data-paie « confirme ») ET par « Mes heures » (« Je confirme mes heures », « Confirmer quand même »). « Mes heures » ne passe PAS par un bouton data-paie caché : la garde des droits lit
+   ce bouton comme un geste de Comptabilité › Paie et le refusait à un compte de terrain (relevé à la recette de l'étape 5, avant que GESTES_SOI ne laisse le salarié confirmer SA ligne) — un écran de salarié ne dépend pas de la case d'un écran du bureau. */
 function paieConfirmer(k){ PAIE.confirmes[k] = { le:'31/10 · ' + hNow() }; delete PAIE.signales[k]; rendre(); return toast('Merci : tes heures sont confirmées, le bureau le voit.'); }
 function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
@@ -13348,7 +13346,7 @@ function rendreCreation_(){
   syncBrouillon();
   const c = cliCrea(), b = brouillon(), sect = secteurCrea(), rep = CREA.nouveau ? reconnaitre(CREA.nv.adr) : null, k = CREA.nouveau ? null : CREA.cli;
   const aContrat = !!CONTRATS.find(x => x.cli === k && x.st === 'signe'), aDevis = !!devisOk(k);
-  const sugs = CREA.nouveau && CREA.sug && CREA.nv.adr.length >= 3 ? ADRESSES.filter(a => sansAccent(a).includes(sansAccent(CREA.nv.adr).trim().split(' ').slice(-1)[0] || '')).slice(0, 5) : [];
+  const sugs = CREA.nouveau && CREA.sug && CREA.nv.adr.length >= 3 ? ADRESSES.filter(a => { const q = sansAccent(CREA.nv.adr).replace(/,/g, ' ').trim().split(/\s+/).filter(Boolean), A = sansAccent(a).replace(/,/g, ' '); return q.every(m => A.includes(m)) && sansAccent(a) !== sansAccent(CREA.nv.adr).trim(); }).slice(0, 5)   /* chaque mot tapé, pas seulement le dernier ; et plus rien une fois l'adresse complète (clients-16) */ : [];
   const etape1 = `<section class="carte"><div class="ni-etape"><b>1</b><h2>Le client</h2></div>
     <div class="seg" role="group" aria-label="Client" style="width:auto;margin-bottom:10px"><button type="button" data-cnouveau="0" aria-pressed="${!CREA.nouveau}">Client existant</button><button type="button" data-cnouveau="1" aria-pressed="${CREA.nouveau}">＋ Nouveau client</button></div>
     ${CREA.nouveau ? `<div class="seg" role="group" aria-label="Type de client" style="width:auto;margin-bottom:10px"><button type="button" data-cnvtype="part" aria-pressed="${CREA.nv.type==='part'}">Particulier</button><button type="button" data-cnvtype="pro" aria-pressed="${CREA.nv.type==='pro'}">Professionnel</button></div>
@@ -13752,14 +13750,19 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-ts
 /* ══ lot « interventions-clients » ══ */
 /* [3] fiche client › Infos : enregistrer */
 ACTIONS.clientEnreg = function(b){ const c = CLIENTS[b.dataset.cli]; if (!c) return; const v = k => ((document.querySelector('[data-ci="' + k + '"]') || {}).value || '').trim();
+  if (!v('nom')) return toast('Indique le nom du client.');
+  if (sansAccent(v('nom')) !== sansAccent(c.nom) && Object.entries(CLIENTS).some(([kk, x]) => kk !== '__nv' && kk !== b.dataset.cli && sansAccent(x.nom) === sansAccent(v('nom')))) return toast('Un autre client porte déjà ce nom : « ' + esc(v('nom')) + ' ».');
   if (!v('contact')) return toast('Indique le contact du client.');
   if (v('mail') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('mail'))) return toast('L’adresse e-mail est à vérifier.');
   if (!cfTelOk(v('tel'))) return toast('Le numéro de téléphone est à vérifier : des chiffres, avec éventuellement des espaces ou un +.');
-  Object.assign(c, { contact:v('contact'), tel:cfTelFmt(v('tel')), mail:v('mail'), type:v('type') === 'part' ? 'part' : 'pro', adr:v('adr'), acces:v('acces') });
-  journalAjout('marc', 'client', 'a modifié la fiche du client', { t:'client', id:b.dataset.cli, lib:c.nom, cli:b.dataset.cli }, { det:'coordonnées et consignes' });
+  const adrAvant = c.adr, nomAvant = c.nom;
+  Object.assign(c, { nom:v('nom'), contact:v('contact'), tel:cfTelFmt(v('tel')), mail:v('mail'), type:v('type') === 'part' ? 'part' : 'pro', adr:v('adr'), acces:v('acces') });
+  /* une nouvelle adresse déplace aussi le point de la carte des tournées et le secteur : sinon le technicien est envoyé à l'ancienne (clients-07) */
+  if (c.adr !== adrAvant) { const kk = b.dataset.cli, g = geoDeAdresse(c.adr), rec = reconnaitre(c.adr); if (g) CR_GEO[kk] = g; else delete CR_GEO[kk]; if (rec) SECT_CLI[kk] = rec.secteur; else delete SECT_CLI[kk]; }
+  journalAjout('marc', 'client', 'a modifié la fiche du client', { t:'client', id:b.dataset.cli, lib:c.nom, cli:b.dataset.cli }, { det:c.nom !== nomAvant ? 'nom, coordonnées et consignes' : 'coordonnées et consignes' });
   rendre(); toast('Fiche de ' + esc(c.nom) + ' enregistrée.'); };
 /* [4] « ＋ Client » : un client se crée avec son premier travail, par l'un des deux formulaires qui existent déjà */
-ACTIONS.clientNouveau = function(){ ouvrirPanneau(`<h2>Nouveau client</h2><p class="gris" style="margin:0">Un client se crée avec son premier travail. Choisis par quoi commencer : son adresse et ses coordonnées se remplissent dans ce formulaire.</p>
+ACTIONS.clientNouveau = function(){ ouvrirPanneau(`<h2>Nouveau client</h2><p class="gris" style="margin:0">Pour ajouter un client, on prépare son premier travail : une intervention à planifier, ou un devis à lui envoyer. Tu rentres ses coordonnées dans la fenêtre qui s’ouvre.</p>
   <div class="actions"><button type="button" class="btn" data-action="clientNvInt">Avec une intervention</button><button type="button" class="btn gris" data-action="clientNvDevis">Avec un devis</button></div>`); };
 ACTIONS.clientNvInt = function(){ fermerPanneau(); ouvrirCreation({}); if (CREA) { CREA.nouveau = true; if (['devis', 'contrat'].includes(CREA.fact)) CREA.fact = 'temps'; rendreCreation(); } };
 ACTIONS.clientNvDevis = function(){ fermerPanneau(); DVN_F = { nv:true, cli:'', type:'part', nom:'', prenom:'', tel:'', mail:'', adr:'', objet:'', modele:0, err:'' }; dvNouveau(); };
@@ -15453,27 +15456,6 @@ function sxExport(){
       <div class="actions" style="margin-top:8px"><button type="button" class="btn gris" data-sx="expok|pdf">Exporter en PDF</button></div><span class="gris petit">La valeur du stock se retient avec ta comptabilité : à vérifier avec ton expert-comptable.</span></div>`);
 }
 
-/* ── la dotation d'un camion : ce qu'il doit toujours avoir à bord ── */
-function sxDot(id){
-  const l = lieu(id), D = l.dot && DOTATION[l.dot] ? DOTATION[l.dot] : {};
-  SX.D = { id, lignes:Object.entries(D).map(([pid, q]) => ({ pid, q })) }; sxDotVue();
-}
-function sxDotVue(){
-  const Dd = SX.D; if (!Dd) return; const l = lieu(Dd.id), dispo = PRODUITS.filter(x => !x.retire && !Dd.lignes.some(o => o.pid === x.id)).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), autres = LIEUX.filter(o => o.type === 'vehicule' && o.id !== Dd.id);
-  foOuvrir(`<span class="surtitre">${esc(l.nom)}</span><h2>Modifier la dotation</h2><span class="gris">Ce que ce camion doit toujours avoir à bord. Le réassort et les alertes s’appuient dessus, ${esc(prenomDe(l.tech))} a la sienne.</span>
-    <label class="champ">Copier la dotation de<select data-sxdcop="1"><option value="">Choisir un camion…</option>${autres.map(o => `<option value="${o.id}">${esc(o.nom)}</option>`).join('')}</select></label>
-    <div class="fo-bloc">${Dd.lignes.map((o, j) => { const x = PRODUITS.find(p => p.id === o.pid) || { nom:'?', u:'u' }; return `<div class="fo-r"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">à bord aujourd’hui : ${sxQte(stkAt(x, Dd.id), x)}</span></span><label class="fo-q"><span class="gris petit">Cible</span><input inputmode="decimal" data-sxdq="${j}" value="${prNum(o.q)}" aria-label="Dotation de ${esc(x.nom)}"></label><button type="button" class="cmd-x" data-sx="dx|${j}" aria-label="Retirer ${esc(x.nom)}">✕</button></div>`; }).join('') || '<div class="gris" style="padding:8px 2px">Aucun article : le camion n’a pas de dotation.</div>'}</div>
-    <label class="champ">＋ Ajouter un article<select data-sxdadd="1"><option value="">${sxPl(dispo.length, 'article')}…</option>${dispo.map(x => `<option value="${x.id}">${esc(x.nom)}</option>`).join('')}</select></label>
-    <div class="fo-pied"><button type="button" class="btn" data-sx="dotok">Enregistrer la dotation</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
-}
-function sxDotOk(){
-  const Dd = SX.D; if (!Dd) return; const l = lieu(Dd.id), snap = sxPhoto(), k = 'dot-' + l.id, nv = {};
-  Dd.lignes.filter(o => o.q > 0).forEach(o => { nv[o.pid] = o.q; }); DOTATION[k] = nv; l.dot = k; SX.D = null; fermerPanneau();
-  sxJournal('a modifié la dotation', l.nom, sxPl(Object.keys(nv).length, 'article') + ' à bord en permanence');
-  const m = lieuManques(l.id); rendre();
-  sxToast(`Ce qu’il doit y avoir à bord de ${esc(l.nom)} est enregistré${m.length ? ' : il manque ' + sxPl(m.length, 'article') : ''}.`, m.length ? { lib:'Remplir', fn:() => bxReassort(l.id) } : null, snap, 'ce qu’il doit y avoir à bord de ' + l.nom);
-}
-
 /* « Utilisé 0 intervention » ignorait les sorties « chez le client » : on les compte aussi, sans doubler une intervention déjà comptée par ses pièces */
 function sxIntsEnPlus(x, n){
   const deja = new Set(INTS.filter(i => (typeof FICHES === 'object' && FICHES[i.id] && (FICHES[i.id].pieces || []).some(p => n(p.nom))) || (i.prevues || []).some(p => n(p.nom))).map(i => i.id));
@@ -16000,8 +15982,7 @@ if (typeof hAutreLien === 'function') (() => { const h0 = hAutreLien; hAutreLien
 document.addEventListener('click', ev => {
   const k = ev.target.closest('[data-sk]');
   if (k) { const [a, x] = k.dataset.sk.split('|');
-    if (a === 'invok') { ev.stopPropagation(); return sxInvValider(); }
-    if (['fok', 'reassok', 'val'].includes(a)) SX.pre = { a, x, snap:sxPhoto(), type:a === 'fok' && SK_F ? SK_F.type : null, m:a === 'val' ? MVTS_ATT.find(o => o.id === x) : null }; }
+    if (a === 'invok') { ev.stopPropagation(); return sxInvValider(); } }
   const b = ev.target.closest('[data-sx]'); if (!b) return;
   const [a, x, y] = b.dataset.sx.split('|'); if (b.closest('[data-sk]') && b.matches('.sx-voir')) ev.stopPropagation();
   if (a === 'stkintertout') { SX.interTout = true; return foGarder(stkFormVue); }
@@ -16013,9 +15994,6 @@ document.addEventListener('click', ev => {
   if (a === 'mvexp') return sxExport();
   if (a === 'expok') { fermerPanneau(); return toast(x === 'csv' ? `Tableur préparé (simulé) : historique-du-stock, ${sxPl(msMvVisibles().faits.length, 'ligne')}.` : x === 'reg' ? 'Registre des fluides préparé en PDF (simulé).' : `PDF préparé (simulé) : stock valorisé au ${dFr(AUJ)}, par lieu.`); }
   if (a === 'annuler') { const D = SX.dernier; return D ? sxAnnule(D.photo, D.lib, D.sig) : undefined; }
-  if (a === 'dot') return sxDot(x);
-  if (a === 'dx') { SX.D.lignes.splice(+x, 1); return foGarder(sxDotVue); }
-  if (a === 'dotok') return sxDotOk();
   if (a === 'mvart') { fermerPanneau(); mvRech = sxNom(x); mvFiltre = 'tous'; SX.mvPer = 'tout'; SX.mvQui = 'tous'; stkOnglet = 'mvts'; return aller('stock'); }
   if (a === 'fluides') return sxRegistre();
   if (a === 'fprel') return sxFluidePreleve(x);
@@ -16023,29 +16001,12 @@ document.addEventListener('click', ev => {
   if (a === 'intajout') { fermerPanneau(); prVue = 'articles'; return aller('produits'); }
   if (a === 'voirlieu') { SX.lieuF = x; stkOnglet = 'ensemble'; stkFiltre = 'tous'; stkQ = ''; return aller('stock'); }
 }, true);
-/* après le geste d'origine : « Annuler » sur son message, la trace dans l'Historique, et la notification du technicien dont on valide le geste */
-document.addEventListener('click', () => {
-  const p = SX.pre; if (!p) return; SX.pre = null;
-  const nv = MVTS.length - p.snap.mvts.length; if (nv <= 0 && MVTS_ATT.length === p.snap.att.length) return;
-  const N = MVTS.slice(0, Math.max(0, nv)); let lib, act, det;
-  if (p.a === 'val') { if (!p.m || MVTS[0] !== p.m) return; lib = 'la validation du geste de ' + prenomDe(p.m.qui); act = 'a validé le geste de ' + prenomDe(p.m.qui); det = sxMvResume([p.m]) + ' · ' + (p.m.motif || '');
-    if (p.m.qui !== 'marc') notifier(p.m.qui, `Ton geste « ${sxNom(p.m.pid)} × ${prNum(p.m.q)} » est validé : ton stock est à jour.`); }
-  else if (p.a === 'reassok') { lib = 'le réassort des camions'; act = 'a fait le réassort des camions'; det = sxPl(N.length, 'transfert') + ' de l’atelier vers les camions'; }
-  else { if (!N.length) return; const t = N[0].type; lib = t === 'transfert' ? 'le transfert' : 'la sortie'; act = t === 'transfert' ? 'a transféré du stock' : 'a sorti du stock'; det = (t === 'transfert' ? lieuNom(N[0].de) + ' → ' + lieuNom(N[0].vers) : lieuNom(N[0].de)) + ' · ' + N[0].motif + (N[0].pourQui && N[0].pourQui !== N[0].qui ? ' · pour ' + H_NOM(N[0].pourQui) : ''); }
-  const first = p.a === 'val' ? p.m : N[0]; const i = first && first.inter && INTS.find(o => o.id === first.inter);
-  sxJournal(act, p.a === 'reassok' ? sxPl(N.length, 'transfert') : sxMvResume(p.a === 'val' ? [p.m] : N), det, i && i.cli);
-  const sig = sxSig(); SX.dernier = { lib, photo:p.snap, sig };
-  const t = document.getElementById('toast'); if (t && t.classList.contains('on')) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Annuler'; b.onclick = () => { t.classList.remove('on'); sxAnnule(p.snap, lib, sig); }; t.appendChild(b); }
-});
 document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.matches('[data-sxauto]')) { SX.autoUsage = t.checked; const snap = sxPhoto(); let n = 0;
     if (t.checked) MVTS_ATT.slice().forEach(m => { if (sxAuto(m) && stkAppliquer(m) > 0) { MVTS_ATT.splice(MVTS_ATT.indexOf(m), 1); m.valPar = 'auto'; MVTS.unshift(m); n++; if (m.qui !== 'marc') notifier(m.qui, `Ton geste « ${sxNom(m.pid)} × ${prNum(m.q)} » est validé automatiquement.`); } });
     sxJournal(t.checked ? 'a activé la validation automatique' : 'a coupé la validation automatique', 'Utilisé chez le client', n ? sxPl(n, 'geste') + ' validé' + (n > 1 ? 's' : '') + ' d’un coup' : null); rendre();
     return n ? sxToast(`Règle activée : ${sxPl(n, 'geste validé', 'gestes validés')} d’un coup, « validé automatiquement » dans le journal.`, null, snap, 'la règle automatique') : toast(t.checked ? 'Règle activée : ce que les techniciens utilisent chez un client passera seul.' : 'Règle coupée : tout repasse par ta validation.'); }
-  if (t.matches('[data-sxdq]') && SX.D) { const n = foNum(t.value); if (n != null && n >= 0) SX.D.lignes[+t.dataset.sxdq].q = n; else toast('La dotation ne peut pas être négative.'); return foRefocus(() => foGarder(sxDotVue)); }
-  if (t.matches('[data-sxdadd]') && SX.D && t.value) { const x = PRODUITS.find(p => p.id === t.value); SX.D.lignes.push({ pid:x.id, q:Math.max(1, sxPas(x) < 1 ? 1 : 1) }); return foGarder(sxDotVue); }
-  if (t.matches('[data-sxdcop]') && SX.D && t.value) { const o = lieu(t.value), D = o.dot && DOTATION[o.dot] ? DOTATION[o.dot] : {}; SX.D.lignes = Object.entries(D).map(([pid, q]) => ({ pid, q })); return foGarder(sxDotVue); }
   if (t.matches('[data-sxper]')) { SX.mvPer = t.value; if (t.value === 'perso' && !SX.mvDu) { SX.mvDu = jour(-30); SX.mvAu = AUJ; } return rendre(); }
   if (t.matches('[data-sxdu]')) { SX.mvDu = t.value; return rendre(); }
   if (t.matches('[data-sxau]')) { SX.mvAu = t.value; return rendre(); }
@@ -24100,9 +24061,10 @@ function rcChampRecherche(){ return [...document.querySelectorAll('#contenu inpu
 let PAL = null;
 /* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
 const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais', securite:'sécurité connexion connexions téléphone nombre verrouillé verrou pirate inhabituelle mot de passe',
-  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture',
+  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture relance impayé impayés imprimer export exporter',
   equipe:'utilisateur utilisateurs technicien techniciens salarié salariés employé mot de passe droits permissions inviter', produits:'commande commandes bons de commande matériel articles', stock:'produits matériel inventaire',
-  planning:'rendez-vous rdv agenda', absences:'congés vacances arrêt maladie' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
+  planning:'rendez-vous rdv agenda calendrier', absences:'congés vacances arrêt maladie',
+  vehicules:'véhicule voiture camion camionnette essence carburant plein entretien', interventions:'rapport photo photos chantier passage', clients:'contact téléphone coordonnées adresse' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
 function palEntrees(){ const R = rcRubriques(), E = [];
   R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
@@ -24122,7 +24084,7 @@ function palEntrees(){ const R = rcRubriques(), E = [];
   if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof immLancer === 'function') E.push({ g:'Aide', l:'Découvrir l’application (visite parlée)', ic:'🎧', fn:() => immLancer(0) }); if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof nvOuvrir === 'function') E.push({ g:'Aide', l:'Nouveautés de cette version', ic:'✨', fn:() => nvOuvrir() });
   return E; }
 function rcMode(k){ const b = document.querySelector(`[data-modetheme="${k}"]`); if (b) b.click(); }
-function palOuvrir(){ if (PAL || !rcBureau()) return; fermerMenu();
+function palOuvrir(){ if (PAL || !rcBureau() || rcDevant()) return; fermerMenu();
   PAL = { E:palEntrees(), q:'', i:0, avant:document.activeElement };
   document.body.insertAdjacentHTML('beforeend', `<div id="pal" role="dialog" aria-modal="true" aria-label="Rechercher ou aller à"><div class="pal-b"><div class="pal-c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="pal-q" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Une rubrique, un client, une action…" aria-label="Rechercher ou aller à" aria-controls="pal-l"><kbd>Échap</kbd></div><div class="pal-l" id="pal-l" role="listbox"></div></div></div>`);
   palDessiner(); document.getElementById('pal-q').focus(); }
@@ -24148,7 +24110,10 @@ const RC_LISTE = [
 const RC_CREER_OK = { 'Nouvelle intervention':() => rcInterOk(), 'Nouveau devis':() => rcCreerOk(RC_CREER.find(c => c.nom === 'devis')), 'Nouveau client':() => rcCreerOk(RC_CREER.find(c => c.nom === 'client')), 'Nouvelle tâche':() => rcCreerOk(RC_CREER.find(c => c.nom === 'tache')) };
 function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => [t, t === 'Créer' ? L.filter(([l]) => !RC_CREER_OK[l] || RC_CREER_OK[l]()) : L]).filter(([t, L]) => L.length && (t !== 'Trackpad' || MAC)).map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
 /* ce que la barre de menus du Mac (ou un raccourci) déclenche par son nom */
-function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; const R = rcRubriques();
+/* ce qui couvre TOUT l'écran et passe devant les fenêtres : le guide des nouveautés, le document en grand, la pièce jointe du client. Derrière eux, une touche (N, D, C, A, ?, Ctrl+K) ouvrait
+   une fenêtre qu'on ne voyait pas, et le focus partait dedans : les touches suivantes s'y écrivaient sans rien montrer · campagne coque, recontrôle, 17 novembre 2026 */
+const rcDevant = () => !!document.querySelector('#nv:not(.part), #docplein, #cx-vis');
+function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; if (rcDevant()) return false; const R = rcRubriques();
   if (nom === 'palette') { PAL ? palFermer(true) : palOuvrir(); return true; }
   if (nom === 'aide') { palFermer(false); rcAide(); return true; }
   if (nom === 'precedent') { history.back(); return true; }
@@ -24167,6 +24132,7 @@ document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing |
     if (k === 'Tab') { ev.preventDefault(); return; }
     if (cmd && !ev.shiftKey && !ev.altKey && k.toLowerCase() === 'k') { ev.preventDefault(); palFermer(true); }
     return; }
+  if (rcDevant()) return;   /* Échap et la fermeture restent à leurs propres gestionnaires */
   if (cmd && !ev.altKey && !ev.shiftKey) {
     if (k.toLowerCase() === 'k') { ev.preventDefault(); opgRaccourci('palette'); return; }
     if (/^[1-9]$/.test(k)) { if (opgRaccourci('rubrique' + k)) ev.preventDefault(); return; }
@@ -25772,7 +25738,7 @@ function nvRendre(){ const z = document.getElementById('nv'); if (!z || !NV) ret
     <div class="nv-pied"><div class="nv-points-nav" aria-hidden="true">${P.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
       <div class="nv-boutons">${i ? '<button type="button" class="btn gris" data-nv="avant">Précédent</button>' : '<button type="button" class="btn gris" data-nv="fermer">Passer</button>'}<button type="button" class="btn" data-nv="${fin ? 'fermer' : 'apres'}">${fin ? 'C’est parti' : 'Suivant'}</button></div></div>`;
   z.querySelector('.nv-corps').scrollTop = 0; const b = z.querySelector('.nv-boutons .btn:not(.gris)'); if (b && innerWidth > 760) b.focus({ preventScroll:true }); }
-function nvOuvrir(){ if (!SESSION) return false; fermerPanneau(); fermerMenu(); document.getElementById('nv')?.remove();
+function nvOuvrir(){ if (!SESSION) return false; fermerPanneau(); fermerMenu(); if (PAL) palFermer(false); document.getElementById('nv')?.remove();
   NV = { pages:nvPages(), i:0 };
   document.body.insertAdjacentHTML('beforeend', `<div id="nv" role="dialog" aria-modal="true" aria-labelledby="nv-titre"><div class="nv-feuille"></div></div>`);
   nvRendre(); return true; }

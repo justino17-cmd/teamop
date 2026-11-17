@@ -20,4 +20,4 @@ const M = require('./mail-commun.js'), lib = M.lib, v = M.v, C = require('./reto
   v('Retour encore : on quitte la Boîte mail (l\'écran d\'avant)', e5.h !== '#boiteMail', e5);
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await M.fin(c); await M.sortie();
-})().catch(e => { console.error(e); process.exit(2); });
+})().catch(e => { v('la sonde va jusqu\'au bout (une exception l\'a arrêtée)', false, String(e.message).split('\n')[0].slice(0, 200)); lib.bilan(); lib.fermer().then(() => process.exit(1), () => process.exit(1)); });
