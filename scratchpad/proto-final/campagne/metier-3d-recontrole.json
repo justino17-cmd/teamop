@@ -1,0 +1,110 @@
+{
+ "partie": "metier-3d",
+ "date": "2026-11-17",
+ "recontroleur": "étape 3 sur 3 (recontrôle adverse)",
+ "regles": [
+  "metier-3d-01",
+  "metier-3d-02",
+  "metier-3d-03",
+  "metier-3d-04",
+  "metier-3d-05",
+  "metier-3d-07",
+  "metier-3d-11"
+ ],
+ "pasRegles": [
+  {
+   "n": "metier-3d-06",
+   "constat": "Toujours présent, confirmé au navigateur (mac et iPhone) : le Devis xylophage s'ouvre sur une zone d'exemple « Charpente 42 m² » et affiche 970,72 € TTC avant toute mesure ; « Créer le devis » ne demande que le client. Annoncé « à soumettre à Justin », donc non corrigé exprès."
+  },
+  {
+   "n": "metier-3d-08",
+   "constat": "Toujours présent : « Mon entreprise › Tes métiers » dit « Réglé par TEAM OP à l'ouverture de ton compte. » sans moyen de demander un autre métier ni contact ; aucune autre porte ne parle du métier en mode application. À soumettre à Justin (décision de produit)."
+  },
+  {
+   "n": "metier-3d-09",
+   "constat": "Toujours présent : « RAS » (boutons de box, « Toute la zone RAS ») et « N° d'AMM » restent sans explication dans la saisie d'un passage. À soumettre à Justin (vocabulaire réglementaire)."
+  },
+  {
+   "n": "metier-3d-10",
+   "constat": "Non corrigé (annoncé à soumettre) : les types d'intervention gardent les noms de la climatisation pour tous les métiers (nettoyage : « Installation »). Décision de produit : la valeur sert aux statistiques et à la facturation."
+  },
+  {
+   "n": "metier-3d-07 (reste)",
+   "constat": "Réglé pour les trois indications citées (tâche, achat « Quoi », recherche d'article) sur 13 jeux de métiers. Mais le SECOND exemple de la demande d'achat, « ex. la mienne ne tient plus la charge », reste identique pour tous les métiers et ne va pas avec « éponges », « postes d'appâtage » ou « joints » : voir casse recontrole-03."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "recontrole-01 · « Le stock du camion de Sophie descend… » reste figé quand on change d'applicateur",
+   "gravite": "gênant",
+   "etapes": "Gérant (Marc, mac) : Registre sanitaire › un site › ＋ Saisir un passage ; changer l'applicateur (Karim, Léa, Tom) ; relire la phrase sous « Produits posés ».",
+   "constat": "La phrase reste « Le stock du camion de Sophie descend de ce que tu poses. » quel que soit l'applicateur choisi (mesuré : Sophie, Karim, Léa, Tom → toujours « Sophie »), alors que la liste des produits et les lots, eux, changent bien et que le message d'enregistrement dit le bon camion (« 100 g retirés du camion de Karim »). Le gérant lit le nom d'une autre personne que celle dont le camion va baisser. Les données sont justes, c'est le texte : la phrase est écrite une fois à l'ouverture dans rgSaisieRendre et n'est pas remise à jour par le changement d'applicateur (rgf = appl). Défaut déjà là avant les corrections, trouvé par le parcours « passage avec produit » que le rapport n'avait pas joué. Capture : cap/campagne-metier-3d/rc-P2-iphone-saisie.png. Non corrigé (je ne modifie aucune page)."
+  },
+  {
+   "titre": "recontrole-02 · En-tête « Recommandations » du tableau « Tous les sites » qui sort de la carte, de 760 à 925 px de liste",
+   "gravite": "gênant",
+   "etapes": "Gérant, métier 3D : Registre sanitaire, fenêtre de 1120 à 1260 px (iPad paysage 1180, petit portable) ; regarder la ligne d'en-tête du tableau « Tous les sites ».",
+   "constat": "Entre 760 px de liste (au-delà, la correction metier-3d-03 garde le tableau) et 925 px, la colonne « Recommandations » mesure 101 à 129 px pour un en-tête de 133 px : le mot sort à droite de sa colonne, au-delà du filet des lignes, et à 1125 px de fenêtre il dépasse le bord de la carte (texte à x 1101 pour une carte qui finit à 1097). Mesuré sur 1100 à 1340 px (pas de 20) : 8 largeurs touchées sur 18, aucune au-dessus de 925 px de liste ni en dessous de 760 ; le correctif du rapport a posé le seuil à 760 sans mesurer cette bande. Aucune cellule de ligne n'est coupée (0 sur 3 lignes). Captures : cap/campagne-metier-3d/rc-R3-1180-tab2.png (jour), rc-R3-1125-nuit.png (nuit). Pistes : « Recommandations » raccourci en « À suivre » ou deux lignes (comme « Dernier passage »), ou seuil du conteneur relevé à 930 px. Non corrigé."
+  },
+  {
+   "titre": "recontrole-03 · Deuxième exemple de la demande d'achat identique pour tous les métiers",
+   "gravite": "détail",
+   "etapes": "Entreprise de plomberie, de chauffage, de nettoyage ou de 3D : Achats › ＋ Nouvelle demande d'achat ; lire les deux indications.",
+   "constat": "Le premier champ a maintenant l'exemple du métier (« gants, éponges, produit pour les sols », « gants, postes d'appâtage, produit biocide », « siphon, joint ») mais le second reste « ex. la mienne ne tient plus la charge » (un outil ou une batterie) : un nettoyeur ou un dératiseur lit un motif qui ne va pas avec ce qu'il vient de lire au-dessus. Aucun mot de climatisation, donc ce n'est pas un défaut de métier mais d'exemple. Non corrigé."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "metier-3d-parcours.js (A à K)",
+   "resultat": "93 ✓ · 4 ✗ — les 4 sont metier-3d-06 (×2), -08 et -09, annoncés à soumettre ; la suite du parcours F (le relevé de la technicienne arrive chez le gérant : « 1 relevé à chiffrer », tâche « Chiffrer le relevé », devis créé) passe : 11 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "metier-3d-mise-en-page.js (mac, ipad, iphone, android, petit, jour et nuit)",
+   "resultat": "220 ✓ · 0 ✗ (40 écrans, aucune phrase de revue, aucun glissement, cibles ≥ 44 px, champs ≥ 16 px) ; puis windows et mac720 : 56 ✓ · 0 ✗ (16 écrans). Captures relues : iPad jour du registre (liste de cartes), petit nuit technicienne, Mac jour, Android nuit Devis, Windows nuit Carte, Windows jour Devis"
+  },
+  {
+   "fichier": "metier-3d-zone-pastilles.js",
+   "resultat": "16 ✓ · 0 ✗ (iPhone, Android, 320, iPad, jour et nuit)"
+  },
+  {
+   "fichier": "metier-3d-creation.js · fiches.js · multi.js · carte-filtres.js · carte-boutons.js · droits.js · menu.js · donnees.js · gestes.js",
+   "resultat": "42 ✓ · 98 ✓ · 31 ✓ · 23 ✓ · 20 ✓ · 10 ✓ · 39 ✓ · 194 ✓ · 9 ✓ — tous à 0 ✗ ; gestes encore joués sur iPhone gérant (87 recensés, 55 touchés, 0 sans effet), Android technicienne (10 / 8 / 0), Windows bureau (70 / 43 / 0), iPad gérant (81 / 49 / 0) : 32 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "metier-3d-mots.js sur 12 métiers de plus (froid, paysagiste, peinture, ascenseurs, ramonage, piscine, multiservices, maconnerie, electricite, serrurerie, autre, incendie)",
+   "resultat": "21 écrans et 20 boutons de création touchés par métier, 0 erreur de page ; les seuls relevés sont le nom de l'entreprise de démonstration « Clim Services 17 » (2 par métier). Les sept packs restants : voir ligne suivante"
+  },
+  {
+   "fichier": "metier-3d-mots.js sur les 7 derniers packs (couverture, menuiserie, assainissement, portails, energies, alarme, eau)",
+   "resultat": "À RENSEIGNER PAR LE RÉSULTAT DE LA SONDE (mots3)"
+  },
+  {
+   "fichier": "metier-3d-recontrole-a.js (nouvelle : R1 à R5)",
+   "resultat": "R1 relevé de la technicienne sur iPhone, Android nuit, 320, iPad nuit : part, « Faire un autre relevé » marche, aucun prix rangé, aucun geste de devis chiffré ouvert (dxb|creer, garder, att, attok restent « ventes ») ; R5 la revue garde sa phrase d'exemple (registre, devis) : 32 ✓ · 0 ✗. R2 passage avec produit (mac gérant, iPhone technicienne : lot, quantité, camion −100 g, journal, Annuler remet tout), R3 registre à 15 largeurs et 7 largeurs d'en-tête, R4 pastilles : 99 ✓ · 1 ✗ — le ✗ est la casse recontrole-02 (1180 px), laissé rouge exprès"
+  },
+  {
+   "fichier": "metier-3d-recontrole-b.js (nouvelle)",
+   "resultat": "balayage 1000 → 1340 px, pas de 20 : nomme la bande 1120–1260 où « Recommandations » dépasse (recontrole-02)"
+  },
+  {
+   "fichier": "metier-3d-recontrole-c.js (nouvelle)",
+   "resultat": "47 ✓ · 0 ✗ : 13 jeux de métiers (clim, 3D, nettoyage, plomberie, chauffage, électricité, serrurerie, peinture, paysagiste, 3D + clim, démonstration clim + chauffage + plomberie, plomberie + chauffage, aucun) : l'exemple des tâches ne dit plus PAC, achats et recherche d'article lisent un exemple du métier (rien de climatisation hors clim, chauffage, cumul avec clim)"
+  },
+  {
+   "fichier": "metier-3d-recontrole-d.js (nouvelle : parcours P1 et P2 sur iPhone)",
+   "resultat": "15 ✓ · 0 ✗ : P1 Sophie relève 27,5 m² et l'envoie, Marc voit « 1 relevé à chiffrer », le devis reprend UNE zone de 27,5 m², total 722,00 € TTC annoncé = total du devis ouvert, devis dans la liste, plus rien à chiffrer ; P2 Marc saisit un passage avec 150 g de « Bloc appât rongeurs 25 ppm », la page du site le range en tête de « Produits biocides posés » et l'aperçu PDF le cite"
+  },
+  {
+   "fichier": "metier-3d-mutations.py M5, M9, M10 rejouées",
+   "resultat": "3 mutations sur 3 font tomber leur sonde (M5 3 ✓ · 2 ✗, M9 46 ✓ · 2 ✗ sur iPad 858 px, M10 2 ✓ · 2 ✗)"
+  }
+ ],
+ "doutes": [
+  "Où se choisit le métier en mode application : nulle part. Le seul écran qui en parle (« Mon entreprise › Tes métiers ») est en lecture seule, « Réglé par TEAM OP à l'ouverture de ton compte », sans contact. Un plombier qui se met au chauffage ne sait pas comment faire, et « TEAM OP » n'est pas le nom du logiciel vu par l'entreprise (OP GESTION). Décision de produit : qui règle le métier, et par quel message ou lien (metier-3d-08).",
+  "Le Devis xylophage s'ouvre prérempli (« Charpente 42 m² », 970,72 € TTC) : on peut créer et envoyer un devis chiffré sur des mesures inventées. Recommandation : l'ouvrir sans zone ; cela change ce que Justin a vu (metier-3d-06).",
+  "Les types d'intervention gardent les mots de la climatisation pour tous les métiers (un nettoyeur « fait » une « Installation ») : à trancher avec la facturation et les statistiques (metier-3d-10). « RAS » et « N° d'AMM » sans explication pour un débutant en 3D : à valider (metier-3d-09).",
+  "Une entreprise qui cumule deux métiers dont la climatisation (3D + clim, mesuré) reçoit des exemples neutres (« en panne depuis ce matin », « lot de visserie ») : ni mot de clim ni mot de nuisibles, donc pas faux, mais moins parlant que pour un seul métier. À savoir, pas à corriger.",
+  "Les clients, interventions et produits d'exemple sont ceux de « Clim Services 17 » pour tous les métiers (82 occurrences de mots de climatisation dans les données, écartées comme données d'exemple) : normal pour un prototype sans serveur, mais un plombier ou un nettoyeur ouvre une application dont la liste de clients parle de climatisation. À ne pas confondre avec un texte de l'application.",
+  "Non vérifié : de vrais Windows, Android et iPad (appareils émulés dans le Chromium de la machine : largeur, toucher, densité, encoches ; polices de la machine et non celles du système) ; le moteur de rendu et les polices d'un vrai iPhone peuvent couper un mot autrement que l'émulation."
+ ]
+}

@@ -16,7 +16,7 @@ const txt = c => c.p.evaluate(() => document.querySelector('#opsec .ops-ecran').
   v('téléphone verrouillé : « Saisis ton code PIN » et « Une demande t’attend » (une demande attend)', /Une demande t’attend : saisis ton code PIN/.test(pin0), pin0.slice(0, 200));
   for (let i = 1; i <= 4; i++) { await S.pin(c, '11122' + i); const t = await txt(c); v('PIN faux ' + i + ' : « Code PIN incorrect. ' + (5 - i) + ' essai' + (5 - i > 1 ? 's' : '') + ' avant effacement. »', new RegExp('Code PIN incorrect\\. ' + (5 - i) + ' essai' + (5 - i > 1 ? 's' : '') + ' avant effacement\\.').test(t), t.slice(0, 160)); }
   await S.pin(c, '111229'); await c.p.waitForTimeout(300); const t5 = await txt(c);
-  v('PIN faux 5 : « Trop de codes PIN erronés : le compte a été effacé de ce téléphone. Demande à un administrateur de te donner un nouveau téléphone. »', /Trop de codes PIN erronés : le compte a été effacé de ce téléphone\. Demande à un administrateur de te donner un nouveau téléphone\./.test(t5), t5.slice(0, 300));
+  v('PIN faux 5 : « Trop de codes PIN erronés : le compte a été supprimé de ce téléphone. Demande à un administrateur de te donner un nouveau téléphone. »', /Trop de codes PIN erronés : le compte a été supprimé de ce téléphone\. Demande à un administrateur de te donner un nouveau téléphone\./.test(t5), t5.slice(0, 300));
   const ef = await c.p.evaluate(() => ({ efface:SECU.comptes.kb.tel && SECU.comptes.kb.tel.efface, ecran:SECU.ui.kb.ecran })); v('le téléphone est revenu à « neuf » et ne peut plus approuver', ef.efface === true && ef.ecran === 'neuf', ef);
   v('le bon PIN n’y change plus rien : il n’y a plus de pavé, le compte est effacé et le téléphone ne montre plus aucun code', await c.p.evaluate(() => !document.querySelector('#opsec [data-ops="pin-touche"]') && !document.querySelector('#opsec .ops-barre') && !document.querySelector('#opsec [data-ops="code6"]')));
   await L.fin(c);
@@ -40,7 +40,7 @@ const txt = c => c.p.evaluate(() => document.querySelector('#opsec .ops-ecran').
   v('« Annuler » ne change rien (le téléphone est toujours activé)', annuler && await d.p.evaluate(() => !!SECU.comptes.lr.tel && !!document.querySelector('#opsec .ops-barre')));
   // révoqué : l'administrateur a donné un nouveau téléphone
   await d.p.evaluate(() => { SECU.comptes.lr.tel = null; opsDessiner(true); }); await d.p.waitForTimeout(300); const rev = await txt(d);
-  v('téléphone révoqué : « Ce téléphone n’est plus autorisé… Le compte a été effacé de cet appareil. »', /Ce téléphone n’est plus autorisé \(un nouveau téléphone a été activé, ou ton compte a été réinitialisé\)\. Le compte a été effacé de cet appareil\./.test(rev), rev.slice(0, 300));
+  v('téléphone révoqué : « Ce téléphone n’est plus autorisé… Le compte a été supprimé de cet appareil. »', /Ce téléphone n’est plus autorisé \(un nouveau téléphone a été activé, ou ton compte a été réinitialisé\)\. Le compte a été supprimé de cet appareil\./.test(rev), rev.slice(0, 300));
   v('pas de pastille ni de fenêtre cachée : le téléphone révoqué revient à « neuf »', /OP Security n’est pas installée|Commencer/.test(rev));
   v('aucune erreur JavaScript', d.err.length === 0 && c.err.length === 0, d.err.concat(c.err).slice(0, 3)); await L.fin(d);
 
