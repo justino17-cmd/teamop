@@ -253,6 +253,8 @@ disent `mentions-legales.html`, `confidentialite.html`, `sous-traitance.html` et
 France. Avis général d'IONOS sur PHP (27 octobre) : sans objet a priori (Node), à vérifier sur le serveur actuel par
 `command -v php || echo "pas de PHP"`. Ce soir, à sa demande (« ce qui consomme le moins en priorité »), on SÉCURISE le serveur
 d'atelier, lui aux commandes : connexion, clé à la place du mot de passe, pare-feu, mises à jour automatiques.
+Au survol de la pastille du serveur actuel, IONOS affiche seulement « Europe » (Justin, 17 h 31) : le PAYS reste inconnu — à
+établir (contrat, facture ou service client d'IONOS), puis à comparer à ce que disent les pages légales (« en France » ?).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
