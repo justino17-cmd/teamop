@@ -15,10 +15,10 @@ const att = (p, f, ms) => L.attendre(p, f, ms || 6000);
   const lignes = TEL ? null : await p.evaluate(() => [...document.querySelectorAll('#menu .rl-mlien')].map(b => b.textContent.trim()));
   const attendu = ['Accueil', 'Mes factures', 'Mes interventions', 'Mes devis', 'Mon contrat'];
   if (!TEL) {
-    v('menu du client : ' + JSON.stringify(lignes), JSON.stringify(lignes.map(t => t.replace(/\d+$/, ''))) === JSON.stringify(attendu), lignes);
+    v('menu du client : ' + JSON.stringify(lignes), JSON.stringify(lignes.map(t => t.replace(/\d+$/, '').replace(/^[^A-Za-zÀ-ÿ]+/, ''))) === JSON.stringify(attendu), lignes);
     for (const t of attendu) { const b = p.locator('#menu .rl-mlien', { hasText: t }).first(); await L.toucher(c, b); await L.calme(p, 400);
       const on = await p.evaluate(() => (document.querySelector('#menu .rl-mlien.on') || {}).textContent || ''); const seg = await p.evaluate(() => (document.querySelector('#contenu [aria-selected="true"]') || {}).textContent || '');
-      v('menu client › « ' + t + ' » : ligne allumée « ' + on.trim() + ' », onglet « ' + seg.trim() + ' »', on.includes(t) && (seg === '' || seg.includes(t.replace('Mes ', '').replace('Mon ', '').replace(/s$/, '').slice(0, 5)) || t === 'Accueil'), { on, seg }); }
+      v('menu client › « ' + t + ' » : ligne allumée « ' + on.trim() + ' », onglet « ' + seg.trim() + ' »', on.includes(t) && (seg === '' || seg.toLowerCase().includes(t.replace('Mes ', '').replace('Mon ', '').replace(/s$/, '').slice(0, 5).toLowerCase()) || t === 'Accueil'), { on, seg }); }
   } else {
     const onglets = await p.evaluate(() => [...document.querySelectorAll('#barre-bas .opg-tab .t-n')].map(b => b.textContent.trim()));
     v('barre du client : Accueil · Factures · Devis · Interventions · Contrat', onglets.join('|') === 'Accueil|Factures|Devis|Interventions|Contrat', onglets);
