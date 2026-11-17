@@ -7,7 +7,7 @@ exports.G3D = 'Hygiène anti-nuisibles (3D)';
 exports.ATTENDU = {
   marc:[['', ['Accueil', 'Statistiques', 'Historique']], ['Travail', ['Planning', 'Interventions', 'Tâches', 'Absences et congés']], ['Clients et ventes', ['Clients', 'Devis', 'Contrats', 'Boîte mail']],
     ['Argent', ['Comptabilité', 'Achats et frais']], ['Matériel', ['Stock', 'Fournisseurs, matériel & produits', 'Dépôts et camions']], ['Personnel', ['Équipe', 'Temps de travail', 'Véhicules', 'Mon entreprise']]],
-  julie:[['Travail', ['Mes tâches', 'Interventions']], ['Clients et ventes', ['Clients', 'Devis', 'Contrats']], ['Argent', ['Comptabilité', 'Achats et frais']]],
+  julie:[['Travail', ['Mes tâches', 'Interventions']], ['Clients et ventes', ['Clients', 'Devis', 'Contrats']], ['Argent', ['Comptabilité', 'Achats et frais']], ['Matériel', ['Stock', 'Fournisseurs, matériel & produits']]],   // + Matériel : le bureau voit Stock et Fournisseurs (MATERIEL.md § 4, étape 2)
   sm:[['', ['Ma journée', 'Mes tâches', 'Mes frais', 'Mes heures', 'Mon camion', 'Mes congés']]],
   client:[['', ['Accueil', 'Mes factures', 'Mes interventions', 'Mes devis', 'Mon contrat']]]
 };
@@ -15,7 +15,7 @@ exports.ATTENDU = {
 exports.ROUTES = {
   marc:{ 'Accueil':'accueil', 'Statistiques':'statistiques', 'Historique':'historique', 'Planning':'planning', 'Interventions':'interventions', 'Tâches':'taches', 'Absences et congés':'absences', 'Clients':'clients', 'Devis':'devis', 'Contrats':'contrats', 'Boîte mail':'boiteMail',
     'Comptabilité':'comptabilite', 'Achats et frais':'achats', 'Stock':'stock', 'Fournisseurs, matériel & produits':'produits', 'Dépôts et camions':'boxes', 'Équipe':'equipe', 'Temps de travail':'pointage', 'Véhicules':'vehicules', 'Mon entreprise':'entreprise', 'Registre sanitaire':'registre', 'Carte des box':'carteBox', 'Devis xylophage':'devisXylo' },
-  julie:{ 'Mes tâches':'taches', 'Interventions':'interventions', 'Clients':'clients', 'Devis':'devis', 'Contrats':'contrats', 'Comptabilité':'comptabilite', 'Achats et frais':'achats' },
+  julie:{ 'Mes tâches':'taches', 'Interventions':'interventions', 'Clients':'clients', 'Devis':'devis', 'Contrats':'contrats', 'Comptabilité':'comptabilite', 'Achats et frais':'achats', 'Stock':'stock', 'Fournisseurs, matériel & produits':'produits' },
   sm:{ 'Ma journée':'majournee', 'Mes tâches':'taches', 'Mes frais':'techfrais', 'Mes heures':'mesheures', 'Mon camion':'moncamion', 'Mes congés':'absences', 'Registre sanitaire':'registre' }
 };
 // lit le menu de l'ordinateur tel que la page le DESSINE : groupes, lignes, ligne surlignée, petit gris
