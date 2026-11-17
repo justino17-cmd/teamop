@@ -1,0 +1,2229 @@
+{
+ "profil": "iphone",
+ "qui": "marc",
+ "sorties": {
+  "marc-iphone-fventes": {
+   "recenses": 32,
+   "touches": 32,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu, 7 à traiter",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Menu",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Bonjour Marc",
+     "panneau": "",
+     "hash": "#accueil",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 2,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 224,
+     "h": 46
+    },
+    {
+     "i": 3,
+     "lib": "＋ Ajouter",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Ajouter",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 126,
+     "h": 46
+    },
+    {
+     "i": 4,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 115,
+     "h": 50
+    },
+    {
+     "i": 5,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 115,
+     "h": 50
+    },
+    {
+     "i": 6,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 115,
+     "h": 50
+    },
+    {
+     "i": 7,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 115,
+     "h": 50
+    },
+    {
+     "i": 8,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 115,
+     "h": 50
+    },
+    {
+     "i": 9,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 115,
+     "h": 50
+    },
+    {
+     "i": 10,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 358,
+     "h": 50
+    },
+    {
+     "i": 11,
+     "lib": "Par intervention3",
+     "data": "data-cx=sec|dossiers",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 160,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Factures & avoirs3",
+     "data": "data-cx=sec|fventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 171,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Comptes clients",
+     "data": "data-cx=sec|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 135,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "Contrats",
+     "data": "data-cx=sec|contrats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 82,
+     "h": 46
+    },
+    {
+     "i": 15,
+     "lib": "Factures et avoirs 8",
+     "data": "data-cx=cat|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 166,
+     "h": 40
+    },
+    {
+     "i": 16,
+     "lib": "🧾 Factures clients 8",
+     "data": "data-cx=cat|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 177,
+     "h": 40
+    },
+    {
+     "i": 17,
+     "lib": "Toutes",
+     "data": "data-cx=st|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 80,
+     "h": 44
+    },
+    {
+     "i": 18,
+     "lib": "À traiter",
+     "data": "data-cx=st|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 87,
+     "h": 44
+    },
+    {
+     "i": 19,
+     "lib": "En retard",
+     "data": "data-cx=st|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 94,
+     "h": 44
+    },
+    {
+     "i": 20,
+     "lib": "Payées",
+     "data": "data-cx=st|payee",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 82,
+     "h": 44
+    },
+    {
+     "i": 21,
+     "lib": "Chercher une facture",
+     "data": "data-cxq=1",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 358,
+     "h": 46
+    },
+    {
+     "i": 22,
+     "lib": "30 oct. Hôtel de la PlageFAC-2026-0145 · Entretien climatisa",
+     "data": "data-cx=doc|fac|f145",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0145",
+     "panneau": "",
+     "hash": "#facture-x-f145",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 100
+    },
+    {
+     "i": 23,
+     "lib": "29 oct. M. et Mme DurandFAC-2026-0144 · Réglage pompe à chal",
+     "data": "data-cx=doc|fac|f144",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0144",
+     "panneau": "",
+     "hash": "#facture-x-f144",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 100
+    },
+    {
+     "i": 24,
+     "lib": "28 oct. Cabinet dentaire MartinFAC-2026-0143 · Contrôle chau",
+     "data": "data-cx=doc|fac|f143",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0143",
+     "panneau": "",
+     "hash": "#facture-x-f143",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 100
+    },
+    {
+     "i": 25,
+     "lib": "27 oct. Copropriété Les MimosasFAC-2026-0142 · Contrat · vis",
+     "data": "data-cx=doc|fac|f142",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0142",
+     "panneau": "",
+     "hash": "#facture-x-f142",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 100
+    },
+    {
+     "i": 26,
+     "lib": "26 oct. Camping Les PinsFAC-2026-0141 · Dépannage fuite d’ea",
+     "data": "data-cx=doc|fac|f141",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0141",
+     "panneau": "",
+     "hash": "#facture-x-f141",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 100
+    },
+    {
+     "i": 27,
+     "lib": "26 oct. Hôtel de la PlageFAC-2026-0140 · Entretien climatisa",
+     "data": "data-cx=doc|fac|f140",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0140",
+     "panneau": "",
+     "hash": "#facture-x-f140",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 100
+    },
+    {
+     "i": 28,
+     "lib": "12 oct. M. et Mme DurandFAC-2026-0128 · Installation pompe à",
+     "data": "data-cx=doc|fac|f128",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0128",
+     "panneau": "",
+     "hash": "#facture-x-f128",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 100
+    },
+    {
+     "i": 29,
+     "lib": "12 mai Restaurant Le Vieux PortFAC-2026-0121 · Entretien ann",
+     "data": "data-cx=doc|fac|f121",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0121",
+     "panneau": "",
+     "hash": "#facture-x-f121",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 99
+    },
+    {
+     "i": 30,
+     "lib": "on",
+     "data": "data-reglage=auto",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Activé",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 31,
+     "lib": "on",
+     "data": "data-reglage=relance",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Désactivé",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    }
+   ]
+  },
+  "marc-iphone-paiements": {
+   "recenses": 29,
+   "touches": 29,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu, 7 à traiter",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Menu",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Bonjour Marc",
+     "panneau": "",
+     "hash": "#accueil",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 15,
+     "lib": "3 085,00 €reçu en octobre dont 40,00 € reçus sur place, pas ",
+     "data": "data-cx=psens|in",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 174,
+     "h": 138
+    },
+    {
+     "i": 16,
+     "lib": "1 530,07 €payé en octobre",
+     "data": "data-cx=psens|out",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 174,
+     "h": 138
+    },
+    {
+     "i": 17,
+     "lib": "1 475,00 €encore à recevoir des clients",
+     "data": "data-cx=sec|factures|clients|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 174,
+     "h": 104
+    },
+    {
+     "i": 18,
+     "lib": "896,28 €encore à payer aux fournisseurs · 3",
+     "data": "data-cx=sec|factures|achats|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 174,
+     "h": 104
+    },
+    {
+     "i": 19,
+     "lib": "Tout",
+     "data": "data-cx=psens|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 109,
+     "h": 44
+    },
+    {
+     "i": 20,
+     "lib": "Reçus",
+     "data": "data-cx=psens|in",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 119,
+     "h": 44
+    },
+    {
+     "i": 21,
+     "lib": "Payés",
+     "data": "data-cx=psens|out",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 118,
+     "h": 44
+    },
+    {
+     "i": 22,
+     "lib": "Tous les moyens",
+     "data": "data-cx=pmode|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 145,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "Carte",
+     "data": "data-cx=pmode|Carte",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 67,
+     "h": 40
+    },
+    {
+     "i": 24,
+     "lib": "Virement",
+     "data": "data-cx=pmode|Virement",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 92,
+     "h": 40
+    },
+    {
+     "i": 25,
+     "lib": "Chèque",
+     "data": "data-cx=pmode|Chèque",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 83,
+     "h": 40
+    },
+    {
+     "i": 26,
+     "lib": "Espèces",
+     "data": "data-cx=pmode|Espèces",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 87,
+     "h": 40
+    },
+    {
+     "i": 27,
+     "lib": "Prélèvement",
+     "data": "data-cx=pmode|Prélèvement",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 116,
+     "h": 40
+    },
+    {
+     "i": 28,
+     "lib": "Bilan des encaissements (PDF)",
+     "data": "data-action=bilanPdf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Bilan d’octobre",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 241,
+     "h": 44
+    },
+    {
+     "i": 29,
+     "lib": "＋ Paiement reçu",
+     "data": "data-action=ajoutEnc",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Paiement reçu",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 143,
+     "h": 44
+    },
+    {
+     "i": 30,
+     "lib": "＋ Paiement fait",
+     "data": "data-cx=payerliste",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Quelle facture as-tu payée ?",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 137,
+     "h": 44
+    },
+    {
+     "i": 31,
+     "lib": "FAC-2026-0145",
+     "data": "data-cp=fac|f145",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0145",
+     "panneau": "",
+     "hash": "#facture-x-f145",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 109,
+     "h": 44
+    },
+    {
+     "i": 32,
+     "lib": "FAC-2026-0142",
+     "data": "data-cp=fac|f142",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0142",
+     "panneau": "",
+     "hash": "#facture-x-f142",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 33,
+     "lib": "FAC-2026-0140",
+     "data": "data-cp=fac|f140",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0140",
+     "panneau": "",
+     "hash": "#facture-x-f140",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 109,
+     "h": 44
+    },
+    {
+     "i": 34,
+     "lib": "FAC-2026-0141",
+     "data": "data-cp=fac|f141",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0141",
+     "panneau": "",
+     "hash": "#facture-x-f141",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 105,
+     "h": 44
+    },
+    {
+     "i": 35,
+     "lib": "CB-LM-2610",
+     "data": "data-cx=doc|ach|a6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Leroy Merlin Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 86,
+     "h": 44
+    },
+    {
+     "i": 36,
+     "lib": "ORANGE-2026-10",
+     "data": "data-cx=doc|ach|a5",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Orange Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 123,
+     "h": 44
+    },
+    {
+     "i": 37,
+     "lib": "CB-FD17-1710",
+     "data": "data-cx=doc|ach|a4",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Frigo Distribution 17",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 94,
+     "h": 44
+    },
+    {
+     "i": 38,
+     "lib": "DKO-2026-10-0193",
+     "data": "data-cx=doc|ach|a2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Daikin Pro Ouest",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 133,
+     "h": 44
+    },
+    {
+     "i": 39,
+     "lib": "TICKET-TOTAL-1210",
+     "data": "data-cx=doc|ach|a3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "TotalEnergies",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 136,
+     "h": 44
+    },
+    {
+     "i": 40,
+     "lib": "FA-CPA-88412",
+     "data": "data-cx=doc|ach|a1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Clim Pièces Atlantique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 41,
+     "lib": "ECH-MAAF-2026-10",
+     "data": "data-cx=doc|ach|a0",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "MAAF Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 141,
+     "h": 44
+    }
+   ]
+  },
+  "marc-iphone-clients": {
+   "recenses": 10,
+   "touches": 10,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu, 7 à traiter",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Menu",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Bonjour Marc",
+     "panneau": "",
+     "hash": "#accueil",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 15,
+     "lib": "M. et Mme Durand3 interventions · particulier 1 361,00 €242,",
+     "data": "data-cx=releve|md",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 80
+    },
+    {
+     "i": 16,
+     "lib": "Cabinet dentaire Martin3 interventions · professionnel 114,0",
+     "data": "data-cx=releve|cm",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 74
+    },
+    {
+     "i": 17,
+     "lib": "Copropriété Les Mimosas3 interventions · contrat · professio",
+     "data": "data-cx=releve|mi",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 74
+    },
+    {
+     "i": 18,
+     "lib": "Hôtel de la Plage5 interventions · contrat · professionnel 3",
+     "data": "data-cx=releve|hp",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 80
+    },
+    {
+     "i": 19,
+     "lib": "Camping Les Pins3 interventions · professionnel 95,00 €175,0",
+     "data": "data-cx=releve|cp",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Camping Les Pins",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 74
+    },
+    {
+     "i": 20,
+     "lib": "Restaurant Le Vieux Port2 interventions · professionnel —240",
+     "data": "data-cx=releve|vp",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Restaurant Le Vieux Port",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 74
+    },
+    {
+     "i": 21,
+     "lib": "Mme Roux4 interventions · particulier —132,00 €— 1 à facture",
+     "data": "data-cx=releve|mr",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 80
+    },
+    {
+     "i": 22,
+     "lib": "Garage Rochefort Auto1 intervention · professionnel ——— à jo",
+     "data": "data-cx=releve|rf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Garage Rochefort Auto",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 74
+    }
+   ]
+  },
+  "marc-iphone-caisse": {
+   "recenses": 5,
+   "touches": 5,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu, 7 à traiter",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Menu",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Bonjour Marc",
+     "panneau": "",
+     "hash": "#accueil",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 15,
+     "lib": "Tom me l’a remis",
+     "data": "data-cp=remis|i6",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Remis au bureau : l’argent passe de la caisse des techniciens à celle du bureau.",
+     "ecrit": true,
+     "sansNom": false,
+     "l": 134,
+     "h": 44
+    },
+    {
+     "i": 16,
+     "lib": "FAC-2026-0142",
+     "data": "data-cp=fac|f142",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0142",
+     "panneau": "",
+     "hash": "#facture-x-f142",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 17,
+     "lib": "Remis en banque aujourd’hui",
+     "data": "data-cp=chq|30/10|FAC-2026-0142",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Chèque remis : il apparaîtra sur le prochain relevé",
+     "ecrit": true,
+     "sansNom": false,
+     "l": 217,
+     "h": 44
+    }
+   ]
+  },
+  "marc-iphone-dossiers": {
+   "recenses": 38,
+   "touches": 38,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu, 7 à traiter",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Menu",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Bonjour Marc",
+     "panneau": "",
+     "hash": "#accueil",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 15,
+     "lib": "2interventions terminées à facturer",
+     "data": "data-cx=dosf|afacturer",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 174,
+     "h": 104
+    },
+    {
+     "i": 16,
+     "lib": "1 475,00 €à encaisser sur 3 interventions",
+     "data": "data-cx=dosf|aencaisser",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 174,
+     "h": 104
+    },
+    {
+     "i": 17,
+     "lib": "1 240,00 €en retard · 1",
+     "data": "data-cx=dosf|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 174,
+     "h": 165
+    },
+    {
+     "i": 18,
+     "lib": "944,17 €marge des interventions d’octobre (HT, pièces et ach",
+     "data": "data-cx=dosf|payee",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 174,
+     "h": 165
+    },
+    {
+     "i": 19,
+     "lib": "Toutes",
+     "data": "data-cx=dosf|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 59,
+     "h": 44
+    },
+    {
+     "i": 20,
+     "lib": "À facturer",
+     "data": "data-cx=dosf|afacturer",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 79,
+     "h": 44
+    },
+    {
+     "i": 21,
+     "lib": "À encaisser",
+     "data": "data-cx=dosf|aencaisser",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 91,
+     "h": 44
+    },
+    {
+     "i": 22,
+     "lib": "En retard",
+     "data": "data-cx=dosf|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 73,
+     "h": 44
+    },
+    {
+     "i": 23,
+     "lib": "Réglées",
+     "data": "data-cx=dosf|payee",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 65,
+     "h": 44
+    },
+    {
+     "i": 24,
+     "lib": "À venir",
+     "data": "data-cx=dosf|arealiser",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 59,
+     "h": 44
+    },
+    {
+     "i": 25,
+     "lib": "Chercher une intervention",
+     "data": "data-cxdq=1",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 358,
+     "h": 46
+    },
+    {
+     "i": 26,
+     "lib": "31 oct. Mme RouxContrôle d’étanchéité · Tom 💶 reçu sur plac",
+     "data": "data-cx=dossier|i6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux · Contrôle d’étanchéité",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 27,
+     "lib": "16 oct. Hôtel de la PlageEntretien climatisation · Karim — —",
+     "data": "data-cx=dossier|i50",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien climatisation",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 28,
+     "lib": "12 oct. M. et Mme DurandInstallation pompe à chaleur · 12/10",
+     "data": "data-cx=dossier|f:f128",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand · Installation pompe à chaleur · 12/10",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 29,
+     "lib": "29 oct. M. et Mme DurandRéglage pompe à chaleur · Sophie 🧾 ",
+     "data": "data-cx=dossier|i24",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand · Réglage pompe à chaleur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 149
+    },
+    {
+     "i": 30,
+     "lib": "28 oct. Cabinet dentaire MartinContrôle chauffe-eau · Léa 🧾",
+     "data": "data-cx=dossier|i23",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin · Contrôle chauffe-eau",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 149
+    },
+    {
+     "i": 31,
+     "lib": "30 oct. Hôtel de la PlageEntretien climatisation — 6 cassett",
+     "data": "data-cx=dossier|i25",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien climatisation — 6 cassettes",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 149
+    },
+    {
+     "i": 32,
+     "lib": "27 oct. Copropriété Les MimosasContrat — visite 2 sur 4 · To",
+     "data": "data-cx=dossier|i22",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas · Contrat — visite 2 sur 4",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 150
+    },
+    {
+     "i": 33,
+     "lib": "26 oct. Hôtel de la PlageEntretien climatisation — 6 cassett",
+     "data": "data-cx=dossier|i20",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien climatisation — 6 cassettes",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 149
+    },
+    {
+     "i": 34,
+     "lib": "26 oct. Camping Les PinsDépannage — fuite d’eau · Karim 🧾 F",
+     "data": "data-cx=dossier|i21",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Camping Les Pins · Dépannage — fuite d’eau",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 149
+    },
+    {
+     "i": 35,
+     "lib": "31 oct. Mme RouxUrgent — plus de chauffage — — — À réaliser",
+     "data": "data-cx=dossier|i17",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux · Urgent — plus de chauffage",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 36,
+     "lib": "31 oct. Garage Rochefort AutoDépannage pompe à chaleur ateli",
+     "data": "data-cx=dossier|i16",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Garage Rochefort Auto · Dépannage pompe à chaleur atelier",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 37,
+     "lib": "31 oct. Camping Les PinsRemplacement condensateur · Tom — — ",
+     "data": "data-cx=dossier|i7",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Camping Les Pins · Remplacement condensateur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 38,
+     "lib": "31 oct. Hôtel de la PlageEntretien chaudière granulés — — — ",
+     "data": "data-cx=dossier|i5",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien chaudière granulés",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 39,
+     "lib": "31 oct. Cabinet dentaire MartinEntretien chauffe-eau thermod",
+     "data": "data-cx=dossier|i4",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin · Entretien chauffe-eau thermodynamique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 40,
+     "lib": "31 oct. Copropriété Les MimosasRécupération du fluide d’un a",
+     "data": "data-cx=dossier|i3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas · Récupération du fluide d’un ancien split",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 41,
+     "lib": "31 oct. M. et Mme DurandMise en service pompe à chaleur · So",
+     "data": "data-cx=dossier|i2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand · Mise en service pompe à chaleur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 42,
+     "lib": "31 oct. Restaurant Le Vieux PortDépannage climatisation · So",
+     "data": "data-cx=dossier|i1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Restaurant Le Vieux Port · Dépannage climatisation",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 43,
+     "lib": "2 nov. Mme RouxDépannage climatisation — — — À réaliser",
+     "data": "data-cx=dossier|i10",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux · Dépannage climatisation",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 44,
+     "lib": "2 nov. Camping Les PinsDépannage — fuite d’eau · Sophie — — ",
+     "data": "data-cx=dossier|i9",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Camping Les Pins · Dépannage — fuite d’eau",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 45,
+     "lib": "2 nov. Mme RouxInstallation d’un split mural · Karim 💰 D-20",
+     "data": "data-cx=dossier|i8",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux · Installation d’un split mural",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 46,
+     "lib": "3 nov. Cabinet dentaire MartinEntretien climatisation · Soph",
+     "data": "data-cx=dossier|i12",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin · Entretien climatisation",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 47,
+     "lib": "3 nov. Copropriété Les MimosasContrat — visite 3 sur 4 · Tom",
+     "data": "data-cx=dossier|i11",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas · Contrat — visite 3 sur 4",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 48,
+     "lib": "4 nov. Restaurant Le Vieux PortRemplacer le ventilateur exté",
+     "data": "data-cx=dossier|i13",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Restaurant Le Vieux Port · Remplacer le ventilateur extérieur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 49,
+     "lib": "5 nov. Hôtel de la PlageContrat — visite 2 sur 2 · Léa 📑 CT",
+     "data": "data-cx=dossier|i14",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Contrat — visite 2 sur 2",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    },
+    {
+     "i": 50,
+     "lib": "6 nov. M. et Mme DurandVisite de contrôle pompe à chaleur · ",
+     "data": "data-cx=dossier|i15",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand · Visite de contrôle pompe à chaleur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 127
+    }
+   ]
+  },
+  "marc-iphone-contrats": {
+   "recenses": 5,
+   "touches": 5,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu, 7 à traiter",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Menu",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Bonjour Marc",
+     "panneau": "",
+     "hash": "#accueil",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 15,
+     "lib": "Copropriété Les MimosasCTR-2026-004 · Entretien climatisatio",
+     "data": "data-cx=ctr|c1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas · Entretien climatisation · 12 appareils",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 106
+    },
+    {
+     "i": 16,
+     "lib": "Hôtel de la PlageCTR-2026-007 · Entretien climatisation · 12",
+     "data": "data-cx=ctr|c2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien climatisation · 12 cassettes",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 106
+    },
+    {
+     "i": 17,
+     "lib": "Cabinet dentaire MartinCTR-2026-011 · Entretien chauffe-eau ",
+     "data": "data-cx=ctr|c3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin · Entretien chauffe-eau thermodynamique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 332,
+     "h": 106
+    }
+   ]
+  }
+ },
+ "err": []
+}
