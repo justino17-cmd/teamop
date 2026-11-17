@@ -2161,6 +2161,8 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 /* « Voir comme l'application » (17 novembre 2026) : même pastille que « Apprendre », sans pousser la rangée à droite */
 .rl-voir{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,#4f8cff 45%,var(--trait));background:color-mix(in srgb,#4f8cff 10%,var(--surf));color:var(--lien);font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:6px}
 @media (pointer:coarse){.rl-voir{min-height:44px}}
+/* pendant une visite parlée la bande reste, mais pas ce bouton : un effleurement aurait rechargé la page et perdu la place dans la visite sans un mot (recontrôle artefact, tour 1) */
+body.gd-on .rl-voir{display:none!important}
 .mch-b ~ .rl-voir{margin-left:0}
 .gd-ap{display:flex;flex-direction:column;gap:10px;margin:12px 0;padding:14px 16px;border-radius:16px;border:1px solid var(--trait);background:var(--surf)}
 .gd-ap-t{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -4773,6 +4775,16 @@ async function pontFichiers(){
   let p = null; try { p = cl && typeof cl.use === 'function' ? await cl.use('downloads') : null; } catch (e) { p = null; }
   return (_pontFichiers = p && typeof p.save === 'function' ? p : null);   // un « rien » n'est pas retenu : on le redemandera
 }
+/* Un fichier fabriqué ICI n'est pas un « instanceof Blob » de la fenêtre qui porte le pont : dans un cadre, window.claude est celui de la page du haut, et un
+   pont qui teste le type (le contrat dit « string | Blob | ArrayBuffer | vue ») répondrait bad_request, sans qu'aucun fichier ne sorte. Un TEXTE passe en chaîne ;
+   un fichier binaire se REFAIT avec le constructeur de la fenêtre du pont avant l'appel. Sans cadre, ou si la fenêtre du pont est fermée à la lecture, rien ne change. */
+async function donneesPourPont(data){
+  try { const H = (!window.claude && window.parent !== window) ? window.parent : window;
+    if (H === window || typeof data === 'string' || data == null || typeof H.Blob !== 'function') return data;
+    if (typeof data.arrayBuffer === 'function' && typeof data.size === 'number') return new H.Blob([await data.arrayBuffer()], { type:data.type || '' });
+    return new H.Blob([data]); }
+  catch (e) { return data; }
+}
 const nomAvecExt = (nom, type) => /\.[a-z0-9]{2,5}$/i.test(nom) ? nom : nom + '.' + (({ 'image/jpeg':'jpg', 'image/png':'png', 'image/webp':'webp', 'application/pdf':'pdf', 'text/plain':'txt', 'text/csv':'csv' })[type] || 'pdf');
 async function telechargerFichier(nom, data, o){
   o = o || {};
@@ -4781,7 +4793,7 @@ async function telechargerFichier(nom, data, o){
   const texte = typeof o.texte === 'string' ? o.texte : (typeof data === 'string' ? data : null);
   const pont = await pontFichiers();
   if (pont) {
-    try { await pont.save({ filename:nom, data }); toast(o.ok || 'Fichier enregistré : ' + esc(nom)); return 'enregistre'; }
+    try { await pont.save({ filename:nom, data:await donneesPourPont(data) }); toast(o.ok || 'Fichier enregistré : ' + esc(nom)); return 'enregistre'; }
     catch (e) { const c = e && e.code;
       if (c === 'declined') { toast('Rien n’a été enregistré : tu as refusé le téléchargement. Tu peux recommencer.'); return 'refuse'; }
       if (c === 'rate_limited') { toast('Une demande d’enregistrement est déjà ouverte : réponds-y, puis recommence.'); return 'attente'; }
@@ -25200,12 +25212,17 @@ function cnxVider(){ if (SESSION) return; ['menu', 'contenu', 'barre-bas'].forEa
    (les autres écrans de la suite le retirent et le reposent d'eux-mêmes : il n'est lié qu'à la présence de #cnx) et n'ajoute rien à la mise en page. */
 document.head.insertAdjacentHTML('beforeend', `<style id="cnx-test-css">
 #cnx-test{display:none;position:fixed;z-index:1001;top:calc(6px + env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));min-height:44px;padding:0 12px;border:0;border-radius:12px;background:none;color:var(--doux);font:inherit;font-size:14px;font-weight:600;align-items:center;gap:6px;cursor:pointer}
-body:has(#cnx) #cnx-test{display:inline-flex}
+#cnx #cnx-test{display:inline-flex}
 #cnx-test:hover{color:var(--lien)}
 </style>`);
-function cnxTestPoser(){ document.getElementById('cnx-test')?.remove(); if (!APP_PAR_BOUTON) return;
-  document.body.insertAdjacentHTML('beforeend', '<button type="button" id="cnx-test" data-cnx="test"><span aria-hidden="true">‹</span> Revenir au mode test</button>'); }
-function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider(); cnxTestPoser();
+/* Le lien vit DANS #cnx, jamais à côté : #cnx est une fenêtre modale (aria-modal) dont le piège de focus boucle sur SES éléments et dont un lecteur d'écran
+   ignore tout le reste — posé en enfant de <body>, « Revenir au mode test » était inatteignable au clavier (40 Tab sur 40 sans y arriver, Mac et Windows).
+   Un seul observateur le range dans chaque écran de connexion qui apparaît (connexion, lien, OP Security, chargement : tous recréent #cnx), EN PREMIER,
+   donc c'est aussi le premier arrêt de Tab. Il disparaît avec l'écran : plus de règle « tant que #cnx existe ». */
+function cnxTestPoser(){ const c = document.getElementById('cnx'); if (!c || !APP_PAR_BOUTON || c.querySelector('#cnx-test')) return;
+  c.insertAdjacentHTML('afterbegin', '<button type="button" id="cnx-test" data-cnx="test"><span aria-hidden="true">‹</span> Revenir au mode test</button>'); }
+new MutationObserver(cnxTestPoser).observe(document.body, { childList:true });
+function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider();
   /* le guide des nouveautés passe au-dessus de tout (il doit couvrir la Comptabilité plein écran) : si la session se ferme pendant qu'il est ouvert
      (lien d'une autre entreprise ouvert du dehors, compte désactivé), il restait posé SUR l'écran de connexion et bloquait la saisie. On le retire
      sans le marquer « vu » : la personne le retrouvera à sa prochaine connexion · 14 novembre 2026 */

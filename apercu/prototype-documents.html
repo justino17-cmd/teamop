@@ -7616,11 +7616,19 @@ function pdfBandeau(titre,sous,fraction,annulable){
   $('#pdf-t').textContent=titre; $('#pdf-s').textContent=sous||''; $('#pdf-b').style.width=Math.round(100*Math.max(0,Math.min(1,fraction||0)))+'%'; $('#pdf-x').hidden=annulable===false;
 }
 const pdfTaille=o=>o>=1048576?(o/1048576).toFixed(1).replace('.',',')+' Mo':Math.max(1,Math.round(o/1024))+' Ko';
+/* Un Blob né dans CE cadre n'est pas un « instanceof Blob » de la fenêtre qui porte le pont (celle du parent) : un pont qui teste le type répondrait bad_request et rien ne
+   s'enregistrerait. Le fichier se REFAIT avec le constructeur de la fenêtre du pont avant l'appel ; si elle est fermée à la lecture, on garde le nôtre. */
+async function blobPourPont(blob){
+  try{ const H=(window.claude&&typeof window.claude.use==='function')?window:(window.parent!==window?window.parent:window);
+    if(H===window||typeof H.Blob!=='function') return blob;
+    return new H.Blob([await blob.arrayBuffer()],{type:blob.type||'application/pdf'});
+  }catch(e){ return blob }
+}
 /* l'enregistrement : « status:saved » ou rien — on n'annonce JAMAIS un PDF téléchargé sans cette réponse */
 async function pdfEnregistrer(blob,nom){
   let dl=null; try{ const cl=claudeHote(); dl=cl?await cl.use('downloads'):null }catch(e){ dl=null }
   if(dl&&typeof dl.save==='function'){
-    try{ const r=await dl.save({filename:nom,data:blob});
+    try{ const r=await dl.save({filename:nom,data:await blobPourPont(blob)});
       if(r&&r.status==='saved'){ toast('PDF enregistré : '+nom+' ('+pdfTaille(blob.size)+')'); return 'saved' }
       toast('Le PDF n’a pas été enregistré : le téléchargement n’a pas abouti.'); return 'nonconfirme';
     }catch(e){ const c=e&&e.code;
