@@ -1,0 +1,370 @@
+{
+ "profil": "iphone",
+ "qui": "sm",
+ "route": "taches",
+ "etiq": "",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Menu",
+   "data": "data-menu=ouvrir",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "Menu",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "OP GESTION : revenir à l’écran d’ouverture",
+   "data": "data-logo=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Sophie",
+   "panneau": "",
+   "hash": "#majournee",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 249,
+   "h": 44
+  },
+  {
+   "i": 2,
+   "lib": "Plus d’options",
+   "data": "data-tkxplus=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "Plus d’options",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 50,
+   "h": 44
+  },
+  {
+   "i": 3,
+   "lib": "Aujourd’hui 1",
+   "data": "data-tonglet=auj",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 156,
+   "h": 44
+  },
+  {
+   "i": 4,
+   "lib": "À venir",
+   "data": "data-tonglet=avenir",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 101,
+   "h": 44
+  },
+  {
+   "i": 5,
+   "lib": "Faites",
+   "data": "data-tonglet=faites",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 94,
+   "h": 44
+  },
+  {
+   "i": 6,
+   "lib": "Chercher une tâche",
+   "data": "data-tkxcherche=1",
+   "touche": true,
+   "change": [],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 358,
+   "h": 45
+  },
+  {
+   "i": 7,
+   "lib": "En retard 0",
+   "data": "data-tkxfiltre=retard",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 113,
+   "h": 44
+  },
+  {
+   "i": 8,
+   "lib": "Urgentes 0",
+   "data": "data-tkxfiltre=urgent",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 114,
+   "h": 44
+  },
+  {
+   "i": 9,
+   "lib": "Sans date 0",
+   "data": "data-tkxfiltre=sansdate",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 119,
+   "h": 44
+  },
+  {
+   "i": 10,
+   "lib": "Ajouter une tâche",
+   "data": "data-tajout=1",
+   "touche": true,
+   "change": [],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 231,
+   "h": 44
+  },
+  {
+   "i": 11,
+   "lib": "Détails",
+   "data": "data-tnouv=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "Nouvelle tâche",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 53,
+   "h": 44
+  },
+  {
+   "i": 12,
+   "lib": "Choisir : Prévenir M. Durand 30 min avant la mise en service",
+   "data": "data-tsel=t11",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 13,
+   "lib": "Prévenir M. Durand 30 min avant la mise en service de sa PAC",
+   "data": "data-tmodif=t11",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "Prévenir M. Durand 30 min avant la mise en service de sa PAC",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 252,
+   "h": 133
+  },
+  {
+   "i": 14,
+   "lib": "Ma journée",
+   "data": "data-tab=majournee",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Sophie",
+   "panneau": "",
+   "hash": "#majournee",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 15,
+   "lib": "Mes frais",
+   "data": "data-tab=techfrais",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mes frais",
+   "panneau": "",
+   "hash": "#techfrais",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 16,
+   "lib": "Mes heures · 1",
+   "data": "data-tab=mesheures",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mes heures",
+   "panneau": "",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 17,
+   "lib": "Mes tâches",
+   "data": "data-tab=taches",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 18,
+   "lib": "Mon camion",
+   "data": "data-tab=moncamion",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  }
+ ],
+ "err": []
+}

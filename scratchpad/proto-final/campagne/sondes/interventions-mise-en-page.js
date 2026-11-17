@@ -2,6 +2,11 @@
 // champs sous 16 px, texte écrasé, contenu caché sous la barre du bas, et une capture de chaque écran à REGARDER.
 // usage : node interventions-mise-en-page.js <profil> [nuit] [filtre de noms]   → « N ✓ · M ✗ », code 1 si un contrôle tombe
 const I = require('./interventions-outils.js'), L = I.L, fs = require('fs');
+const LONGUES = `CLIENTS.mr.nom = 'Madame Marie-Hélène de Montmorency-Laval-Saint-Aubin'; CLIENTS.vp.nom = 'Société d’exploitation des établissements Dupont-Lefèvre et fils, Saint-Jean-d’Angély'; CLIENTS.vp.adr = '12 quai Valin, bâtiment B, résidence des Hauts de la Rochelle-sur-Mer, 17000 La Rochelle';
+  { const i = INTS.find(o => o.id === 'i1'); i.titre = 'Dépannage de la climatisation de la grande salle du restaurant et de la cuisine centrale'; i.motif = 'La clim de la salle fait un bruit de ferraille et ne refroidit plus depuis ce matin, et le client demande qu’on regarde aussi l’unité de la cuisine centrale avant le service de midi. ' + 'Très long. '.repeat(20); }
+  { const F = fiche('i1'); F.compte = 'Le ventilateur extérieur faisait un bruit de ferraille : nous l’avons graissé, resserré, puis nous avons testé la machine pendant vingt minutes. '.repeat(5) + 'Supercalifragilisticexpialidocious'.repeat(3); F.trouve = 'Roulement usé. '.repeat(40); F.signeNom = 'Jean-Baptiste de la Tour-Maubourg-Saint-Exupéry';
+    F.pieces = [{ nom:'Roulement à billes à double rangée étanche pour moteur de ventilateur extérieur Daikin RXM35R', q:'12 345,67 L', pu:10 }, { nom:'Supercalifragilisticexpialidocious'.repeat(2), q:'1' }]; F.photos.push({ nom:'Photo de l’unité extérieure sur le toit, côté nord, prise depuis l’échelle' }); }
+  `;
 const ECRANS = [
   { n: 'liste', qui: 'marc', h: 'interventions' },
   { n: 'liste-tout', qui: 'marc', h: 'interventions', prep: "filtreInt='tout'; rendre();" },
@@ -18,6 +23,7 @@ const ECRANS = [
   { n: 'mail', qui: 'marc', h: 'inter-x-i6', prep: "panneauMail('i6');", zone: '#calque .panneau' },
   { n: 'sms', qui: 'marc', h: 'inter-x-i6', prep: "panneauSms('i6');", zone: '#calque .panneau' },
   { n: 'client-voit-pdf', qui: 'marc', h: 'clientvoit', prep: "voirInt='i6'; modeClient='pdf'; rendre();" },
+  { n: 'client-voit-plein', qui: 'marc', h: 'clientvoit', prep: "voirInt='i6'; modeClient='pdf'; rendre(); docPlein(document.querySelector('.pdf'));", zone: '#docplein' },
   { n: 'client-voit-tel', qui: 'marc', h: 'clientvoit', prep: "voirInt='i6'; modeClient='web'; rendre();" },
   { n: 'client-voit-ordi', qui: 'marc', h: 'clientvoit', prep: "voirInt='i6'; modeClient='ordi'; rendre();" },
   { n: 'tech-journee', qui: 'sm', h: 'majournee' },
@@ -26,6 +32,13 @@ const ECRANS = [
   { n: 'tech-pas-fini', qui: 'sm', h: 'inter-x-i2', prep: "feuillePasFini('i2');", zone: '#calque .panneau' },
   { n: 'tech-manque', qui: 'sm', h: 'inter-x-i1', prep: "ACTIONS.terminer({dataset:{id:'i1'}});", zone: '#calque .panneau' },
   { n: 'tech-fait', qui: 'sm', h: 'inter-x-i20' },
+  // les valeurs LONGUES : un nom de client de 80 signes, un titre de 90, des pièces au nom interminable, un compte rendu de 700 signes, un mot sans espace
+  { n: 'longues-fiche-tech', qui: 'sm', h: 'inter-x-i1', prep: LONGUES },
+  { n: 'longues-fiche-bureau', qui: 'marc', h: 'inter-x-i1', prep: LONGUES },
+  { n: 'longues-liste', qui: 'marc', h: 'interventions', prep: LONGUES + "filtreInt='tout'; rendre();" },
+  { n: 'longues-journee', qui: 'sm', h: 'majournee', prep: LONGUES },
+  { n: 'longues-fiche-fait', qui: 'marc', h: 'inter-x-i6', prep: LONGUES },
+  { n: 'longues-client-voit', qui: 'marc', h: 'clientvoit', prep: LONGUES + "voirInt='i1'; modeClient='web'; rendre();" },
 ];
 (async () => {
   const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === 'nuit', filtre = process.argv[4] ? new RegExp(process.argv[4]) : null;
@@ -56,6 +69,7 @@ const ECRANS = [
       return { barreHaut: Math.round(haut), dernierBas: Math.round(dern), fixes: fixes.map(x => x.id || x.className).slice(0, 3) }; }, zone);
     if (bas && !e.zone) v(`${nom} : le bas du contenu passe au-dessus de la barre fixe`, bas.dernierBas <= bas.barreHaut + 2, bas);
     await L.capture(c, I.CAP + `mep-${e.n}-${profil}${nuit ? '-nuit' : '-jour'}.png`);
+    if (process.env.TEXTES) fs.writeFileSync(I.CAP + `txt-${e.n}.txt`, await I.texte(p, zone));   // les mots de l'écran, à relire comme un artisan de 55 ans
     sortie.push({ n: e.n, dep, d, bas });
   }
   console.log('erreurs de page :', c.err.length, c.err.slice(0, 3)); v('aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3));
