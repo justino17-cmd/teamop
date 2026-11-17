@@ -398,6 +398,7 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
 .pdx-prop{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;margin-top:-4px}
 .pdx-nat{align-self:flex-start;max-width:100%}
 .pdx-nat button{white-space:normal}
+@media (max-width:760px){html .pdx-nat{flex-direction:column}html .pdx-nat button{white-space:normal;min-height:44px;padding:8px 10px;line-height:1.25;overflow-wrap:anywhere}}   /* au téléphone, « Non, c’est du matériel pour mon équipe » est coupé dans une moitié de rangée : deux choix l’un sous l’autre, chacun en entier */
 .pdx-tel{display:flex;gap:8px;align-items:center}
 .pdx-tel input{flex:1;min-width:0}
 .pdx-retour{margin-bottom:-6px;align-self:flex-start}
@@ -467,7 +468,6 @@ html .mc-page{display:flex;flex-direction:column;gap:16px;max-width:720px}html .
 html .mc-msg{min-height:44px;padding:0 16px;font-size:14.5px;border:0;cursor:pointer;color:color-mix(in srgb,var(--c) 80%,var(--encre))}
 @media (hover:hover){html .mc-msg:hover{background:color-mix(in srgb,var(--c) 24%,transparent)}}
 @media (max-width:760px){html #contenu .tete.mc-tete{flex-wrap:wrap}html .mc-tete .actions{width:auto}}
-html .mc-garage{margin:0}
 html .mc-cherche{display:flex;flex-direction:column;gap:8px}
 html .mc-gros{display:flex;flex-direction:column;gap:10px}
 html .mc-duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -511,11 +511,15 @@ html .mat-pas button{width:44px;height:44px;border-radius:50%;border:1px solid v
 html .mat-pas input{width:64px;min-height:44px;border-radius:10px;border:1px solid var(--trait2);background:var(--feuille);color:var(--encre);text-align:center;font-size:16px;padding:6px}
 html .mat-pourquoi{flex:1 1 100%;color:var(--rouge);font-size:14px;font-weight:600}
 html .mat-pied .btn{flex:1 1 auto}
+.pu-ajout{display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px}
+@media (max-width:480px){.pu-ajout{grid-template-columns:minmax(0,1fr) auto}.pu-ajout #p-nom{grid-column:1/-1}}   /* au téléphone le champ de recherche prend sa ligne entière (l’invite se lit : elle était coupée à « Chercher c »), la quantité et « Ajouter » dessous */
+html .fo-pied .mat-phrase{flex:1 1 100%;margin:0}html .fo-pied .mat-phrase:empty{display:none}   /* la phrase de contrôle (« Tu notes : 1 Filtre à charbon… ») se lit JUSTE AU-DESSUS du bouton, dans le pied qui reste en bas, pas tout en bas du défilement */
 @media (max-width:760px){html .mat-pied .btn{flex:1 1 40%}}
 /* ══ MATÉRIEL — lot 2 : Stock (spec § 5) — la grammaire de Devis et de Clients, rien d'inventé ══ */
 html .ms-tete .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 html .ms-bandeau{padding:12px 16px}html .ms-bandeau .dv-tache{border-bottom:0;padding:2px 0;flex-wrap:wrap}html .ms-bandeau .dv-c b{font-size:16px}
-html .ms-bd{display:flex;gap:8px;flex:none}html .ms-bd .btn{min-height:44px}
+html .ms-bd{display:flex;gap:8px;flex:none}
+html .ms-bd-t{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer;align-items:flex-start}   /* le texte du bandeau ouvre les envois, comme « Voir » */html .ms-bd .btn{min-height:44px}
 html .ms-kpis .kpi{cursor:pointer;min-width:0}html .ms-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
 html .ms-seg{align-self:flex-start;max-width:100%}
 html .ms-cherche{display:flex;gap:10px;align-items:center}html .ms-cherche .saisie{flex:1 1 0;min-width:0;width:auto;margin:0;min-height:48px}html .ms-cherche .btn{flex:none;min-height:48px}
@@ -573,8 +577,10 @@ html .ms-pied-f{align-items:center;justify-content:space-between}html .ms-pied-f
   html .ms-tete{flex-wrap:wrap;align-items:flex-end;gap:8px}html .ms-tete>div:first-child{flex:0 0 auto}html .ms-tete>div:first-child>.gris{display:none}   /* le titre est court : le bouton tient à côté de lui */
   html .ms-tete .actions{display:contents}html .ms-tete .actions .btn:first-child{flex:1 1 150px}
   html .ms-tete .ms-plusb{flex:none;width:46px;padding:0;font-size:0}html .ms-tete .ms-plusb::before{content:'⋯';font-size:24px;line-height:1;letter-spacing:0}
-  html .ms-bd{width:100%}html .ms-bd .btn{flex:1}html .ms-bandeau{padding:10px 14px}html .ms-bandeau .dv-tache{gap:8px 10px}
+  /* au téléphone le bandeau tient sur UNE rangée (texte à gauche, « Tout accepter » à droite) : toucher le texte ouvre les envois, « Voir » n’a plus besoin d’exister — la liste commence ~55 px plus haut et un toucher de moins la précède */
+  html .ms-bd{width:auto}html .ms-bd .btn[data-ms="envois"]{display:none}html .ms-bandeau{padding:10px 14px}html .ms-bandeau .dv-tache{gap:8px 10px;flex-wrap:nowrap}html .ms-bd .btn[data-ms="toutacc"]{white-space:normal;line-height:1.2}
   html .ms-kpis{gap:8px}html .ms-kpis .kpi{min-height:0;padding:10px 10px}html .ms-kpis .kpi span{font-size:13px}
+  @media (max-width:360px){html .ms-kpis.ptx-k3 .kpi{padding:10px 6px}html .ms-kpis.ptx-k3 .kpi span{font-size:12.5px}}   /* « commander » (73 px) ne tenait pas dans une tuile de 69 px à 320 : le mot se coupait en « commande » / « r » */
   html .ms-seg{margin:0}
   html .ms-l{gap:12px;padding:10px 6px;min-height:64px}html .ms-l .fo-dr b{font-size:18px}html .ms-l .fo-dr{max-width:48%}
   html .ms-cherche .btn{padding:0 14px}
@@ -1323,8 +1329,10 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .pl-nav button{min-width:40px;min-height:40px;border:0;border-radius:10px;background:none;color:var(--encre);font-size:20px}
 .pl-nav button:hover{background:var(--survol)}
 .pl-nav b{padding:0 8px;font-size:15px;white-space:nowrap;min-width:190px;text-align:center}
+/* à 320–380 px « Aujourd’hui · samedi 31 octobre » (205 px) ne tient pas entre les deux flèches : il passait SOUS la flèche de droite (recontrôle du planning, tour 2). Il passe à la ligne. */
+@media (max-width:380px){.pl-nav b{white-space:normal;min-width:0;padding:0 4px;font-size:14px;line-height:1.2}}
 .pl-equipe{display:flex;gap:6px;flex-wrap:wrap}
-.pl-kpis-note{margin:8px 0 0;font-size:13px;line-height:1.4;color:var(--doux)}.pl-kpis-note .lien{padding:0 6px}
+.pl-kpis-note{margin:8px 0 0;font-size:13px;line-height:1.4;color:var(--doux);display:flex;flex-wrap:wrap;align-items:center;gap:0 12px}.pl-kpis-note span{flex:1 1 260px;min-width:0}.pl-kpis-note .lien{flex:none}
 .pl-equipe button{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font-size:14px;font-weight:550}
 .pl-equipe button[aria-pressed="false"]{opacity:.45}
 .pl-equipe .av{width:26px;height:26px;font-size:10.5px}
@@ -4134,7 +4142,7 @@ function kpiPopulation(){
 }
 function chiffresPlanning(){
   const { J, DANS: L, ABS } = kpiPopulation(), mn = L.reduce((s,i)=>s+i.dur,0), filtre = kpiFiltre();
-  const note = !filtre ? '' : `<div class="pl-kpis-note" role="status">Interventions, travail prévu et absents : seulement les personnes affichées (${techsVus().length} sur ${TECHS.length}). « À planifier » et « en retard » comptent toute l’équipe. <button type="button" class="lien" data-mqtous="1">Tout afficher</button></div>`;
+  const note = !filtre ? '' : `<div class="pl-kpis-note" role="status"><span>Interventions, travail prévu et absents : seulement les personnes affichées (${techsVus().length} sur ${TECHS.length}). « À planifier » et « en retard » comptent toute l’équipe.</span><button type="button" class="lien" data-mqtous="1">Tout afficher</button></div>`;
   return `<div class="kpis kpis-rang ${plVue === 'carte' ? 'kpis-serre' : ''}">
     <button type="button" class="kpi" data-kpi="int"><b>${L.length}</b><span>${L.length > 1 ? 'interventions' : 'intervention'}${plVue === 'carte' ? '' : ' sur la période'}</span></button>
     <button type="button" class="kpi" data-kpi="plan"><b style="color:var(--orange)">${INTS.filter(i=>i.st==='aplanifier').length}</b><span>à planifier</span></button>
@@ -5141,9 +5149,9 @@ function vueFiche(id){
       <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="photos">${F.photos.map((p,k)=>`<div class="ph" style="${p.src?`background-image:url(${p.src})`:''}"><span>${esc(p.nom)}</span><button type="button" aria-label="Retirer la photo ${esc(p.nom)}" data-action="photoSuppr" data-k="${k}">✕</button></div>`).join('')}<label class="ph ajout">＋ Photo<input type="file" accept="image/*" capture="environment" data-photo="${id}" hidden></label></div></div>
       <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" aria-label="Ce que j’ai trouvé" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
       <div class="carte"><h3>Relevés</h3><div class="trois-champs">${RELEVES[F.metier].map(([l,v,u])=>`<label class="champ">${l}${u?' ('+u+')':''}<input inputmode="decimal" data-releve="${esc(l)}" data-id="${id}" value="${esc(cfReleve(F, i, l, v))}" placeholder="ex. ${esc(v)}"></label>`).join('')}</div></div>
-      ${i.prevues && i.prevues.length ? `<div class="carte"><h3 data-vis="inter-pieces">Pièces prévues par le bureau</h3>${i.prevues.map(p => `<div class="pp-l"><label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>${matPieceLigne(i, p)}</div>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : ça part sur la facture au prix du catalogue. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
+      ${i.prevues && i.prevues.length ? `<div class="carte"><h3 data-vis="inter-pieces">Pièces prévues par le bureau</h3>${i.prevues.map(p => `<div class="pp-l"><label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>${matPieceLigne(i, p)}</div>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : le bureau le met sur la facture. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
       <div class="carte"><h3>Pièces et produits utilisés</h3>${F.pieces.map((p,k)=>`<div class="ligne" style="flex-wrap:wrap"><span style="min-width:0;flex:1 1 170px;overflow-wrap:anywhere">${esc(p.nom)}</span><span style="display:flex;gap:10px;align-items:center;flex:none;white-space:nowrap;margin-left:auto"><b>${esc(p.q)}</b><button type="button" class="lien" data-action="pieceSuppr" data-k="${k}" data-id="${id}" aria-label="Retirer ${esc(p.nom)}">Retirer</button></span></div>`).join('')}
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px"><input class="saisie" id="p-nom" list="catalogue" placeholder="Chercher dans le stock…"><datalist id="catalogue">${CATALOGUE.map(([n]) => `<option>${esc(n)}</option>`).join('')}</datalist><input class="saisie" id="p-q" placeholder="Qté"><button type="button" class="btn gris" data-action="pieceAjout" data-id="${id}">Ajouter</button></div>
+        <div class="pu-ajout"><input class="saisie" id="p-nom" list="catalogue" placeholder="Chercher dans le stock…"><datalist id="catalogue">${CATALOGUE.map(([n]) => `<option>${esc(n)}</option>`).join('')}</datalist><input class="saisie" id="p-q" placeholder="Qté"><button type="button" class="btn gris" data-action="pieceAjout" data-id="${id}">Ajouter</button></div>
         <div class="faible mini" style="margin-top:8px">Aucun prix ici : le bureau chiffre au moment de la facture.</div></div>
     </div>
     <div class="col">
@@ -9217,13 +9225,6 @@ const uniteSure = t => { const x = String(t == null ? '' : t).trim(); return /^[
 const prU = (q, u) => metiersU(q, u);   // « 9 lots », « 7 flacons » ; « 4 kg », « 35 m » ne bougent pas
 const prMarge = x => prVend(x) && x.pa ? Math.round((x.pv - x.pa) / x.pv * 100) : null;
 /* combien de fois l'article sert : posé sur une intervention ou prévu sur un devis */
-function prUsage(x){
-  const n = s => pdxMemeArticle(s, x);
-  const inter = INTS.filter(i => (typeof FICHES === 'object' && FICHES[i.id] && (FICHES[i.id].pieces || []).some(p => n(p.nom))) || (i.prevues || []).some(p => n(p.nom))).length;
-  if (DV == null && typeof dvSync === 'function') dvSync();   // la liste des devis se construit à la première ouverture de Devis
-  const devis = Array.isArray(DV) ? DV.filter(d => (d.lignes || []).some(l => n(l[0]))).length : 0;
-  return { inter:inter + sxIntsEnPlus(x, n), devis };
-}
 function prRangement(k){
   const P = PACKS[k], n = P.cats.reduce((s, c) => s + c.ex.length, 0);
   ouvrirPanneau(`<span class="surtitre">Fixé par TEAM OP · 24 métiers</span><h2>Le rangement par métier</h2>
@@ -9712,12 +9713,6 @@ const dansBrouillon = k => COMMANDES.some(c => c.st === 'brouillon' && c.lignes.
 const dFr = d => dObj(d).toLocaleDateString('fr-FR');
 const interLib = i => `${jCourt(i.d)} · ${CLIENTS[i.cli].nom} · ${i.titre}`;
 const interAVenir = () => INTS.filter(i => i.st !== 'fait' && i.st !== 'annulee' && i.d >= AUJ && CLIENTS[i.cli]).sort((a, b) => (a.d + a.h < b.d + b.h ? -1 : 1));
-function cmdDansFiltre(c, k){
-  if (k === 'traiter') return c.st === 'brouillon' || !!cmdAlerte(c);
-  if (k === 'cours') return ['envoyee', 'confirmee', 'partielle', 'recue'].includes(c.st);
-  if (k === 'finies') return c.st === 'facturee' || c.st === 'annulee';
-  return true;
-}
 /* ── l'éditeur du bon de commande : une proposition de l'application, ou une commande libre ── */
 function cmdEdOuvrir(src){
   const f = MES_FOURN[0];
@@ -14109,10 +14104,6 @@ function rlNotifsCarte(k, ailleurs){
 /* [14] le premier jour ouvré à partir d'une date (samedi et dimanche passent au lundi) */
 function cmdJourOuvre(d){ const j = dObj(d).getDay(); return j === 6 ? ajoute(d, 2) : j === 0 ? ajoute(d, 1) : d; }
 /* [15] où est le stock d'un article (chaque lieu s'ouvre) et dans quelle commande est le « commandé » */
-function prOuEst(x){
-  const lieux = LIEUX.filter(l => stkAt(x, l.id) > 0), cmds = COMMANDES.filter(c => cmdOuverte(c) && c.lignes.some(l => l.pid === x.id && l.recu < l.q));
-  return `${lieux.length ? `<div class="ligne"><span>Où</span><span class="fo-dr">${lieux.map(l => `<button type="button" class="lien" data-sk="lieu|${l.id}">${esc(lieuNom(l.id))} · ${prNum(stkAt(x, l.id))}</button>`).join(' ')}</span></div>` : ''}${cmds.length ? `<div class="ligne"><span>Commandé</span><span class="fo-dr">${cmds.map(c => `<button type="button" class="lien" data-cm="voir|${c.id}">${esc(c.num)} · ${prNum(c.lignes.filter(l => l.pid === x.id).reduce((t, l) => t + Math.max(0, l.q - l.recu), 0))} ${esc(prU(2, x.u))} à recevoir</button>`).join(' ')}</span></div>` : ''}`;
-}
 
 /* [2][3] un écran qu'on vient de quitter pour de bon (brouillon envoyé, formulaire validé) sort du chemin du « Retour » */
 let OUBLI = [];
@@ -14697,16 +14688,6 @@ const pdxMin = s => String(s || '').replace(/^./, c => c.toLowerCase());
 const pdxQ = n => String(Math.round(n * 100) / 100).replace('.', ',');
 
 /* le pluriel d'une unité : « bidon 5 L » → « bidons de 5 L », « rouleau » → « rouleaux », « lot 10 » → « lots de 10 » ; en français, 1,5 reste au singulier */
-function pdxPlu(q, u){
-  u = String(u == null ? '' : u);
-  if (!(q >= 2) || u.length < 3) return u;
-  const un = w => /[sxz]$/.test(w) || w.length < 3 ? w : /(au|eu)$/.test(w) ? w + 'x' : /al$/.test(w) ? w.slice(0, -2) + 'aux' : w + 's';
-  const p = u.split(' ');
-  if (p.length === 1) return un(u);
-  if (/^\d/.test(p[1])) return un(p[0]) + ' de ' + p.slice(1).join(' ');
-  if (/^(de|d’|d')/.test(p[1])) return un(p[0]) + ' ' + p.slice(1).join(' ');
-  return u;
-}
 
 /* la recherche d'articles : sans accent, sans casse, trait d'union = espace, chaque mot cherché quelque part dans le nom, la référence ou le fournisseur */
 function pdxChercheOk(x, q){
@@ -14888,16 +14869,6 @@ function pdxUsageListes(x){
   if (DV == null && typeof dvSync === 'function') dvSync();
   const devis = Array.isArray(DV) ? DV.filter(d => (d.lignes || []).some(l => pdxMemeArticle(l[0], x))) : [];
   return { inters, devis };
-}
-function pdxAchatsArticle(x){
-  const L = []; COMMANDES.filter(c => c.st !== 'brouillon' && c.st !== 'annulee').forEach(c => c.lignes.forEach(l => { if (l.pid === x.id) L.push({ c, l, d:c.env || c.cree || AUJ }); }));
-  return L.sort((a, b) => (b.d > a.d ? 1 : -1)).slice(0, 5);
-}
-function pdxCourbe(pts){
-  if (pts.length < 2) return '';
-  const W = 120, H = 28, mn = Math.min(...pts), mx = Math.max(...pts), s = mx - mn || 1;
-  const xy = pts.map((v, k) => [Math.round(k * (W - 8) / (pts.length - 1) + 4), Math.round(H - 4 - (v - mn) / s * (H - 8))]);
-  return `<svg class="pdx-courbe" viewBox="0 0 ${W} ${H}" role="img" aria-label="Courbe du prix d’achat"><polyline fill="none" stroke="var(--lien)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${xy.map(p => p.join(',')).join(' ')}"/><circle cx="${xy[xy.length - 1][0]}" cy="${xy[xy.length - 1][1]}" r="3" fill="var(--lien)"/></svg>`;
 }
 function pdxPvConseil(x){
   if (!prVend(x) || !x.pa || !x.paAvant || x.pa <= x.paAvant) return null;
@@ -15300,7 +15271,7 @@ function sxRestaurer(p){
 }
 function sxAnnule(p, lib, sig){
   if (sig && sig !== sxSig()) return toast('Trop tard pour annuler : le stock a encore bougé depuis. Passe une correction ou un mouvement inverse.');
-  sxRestaurer(p); SX.dernier = null; prCatalogueMaj(); sxJournal('a annulé', lib); fermerPanneau(); rendre(); toast('Annulé : ' + lib + '. Le stock est revenu comme avant.');
+  sxRestaurer(p); SX.dernier = null; prCatalogueMaj(); sxJournal('a annulé', lib.replace(/^t(a|on|es) /, (m, k) => ({ a:'sa ', on:'son ', es:'ses ' })[k]));   // le toast parle à la personne (« ta prise à l’atelier »), le journal est lu par le gérant : « Sophie a annulé sa prise à l’atelier » fermerPanneau(); rendre(); toast('Annulé : ' + lib + '. Le stock est revenu comme avant.');
 }
 /* un message de geste fini avec « Annuler » (le bouton reste aussi dans Mouvements tant que le stock n'a pas bougé ailleurs) */
 function sxToast(msg, actions, photo, lib){
@@ -15561,9 +15532,8 @@ function matFeuilleVue(){
     <div class="fo-bloc mat-lignes">${F.lignes.map((l, j) => matLigneHtml(F, l, j)).join('')}</div>
     ${F.confirme ? '' : `<h3 class="mat-h">${n ? 'Ajouter un autre article' : usage ? 'Qu’est-ce que tu as utilisé ?' : 'Qu’est-ce que tu as pris ?'}</h3><input class="saisie" id="mat-q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Chercher un article" aria-label="Chercher un article" value="${esc(F.q)}"><div id="mat-res" class="mat-resl">${matResultatsFeuille(F)}</div>`}
     ${F.hors.length ? `<div class="info petit"><b>Hors stock</b> : ${F.hors.map(esc).join(', ')}. Pour le suivre, ajoute-le dans « Fournisseurs, matériel & produits » : <button type="button" class="lien" data-mat="ajouter">Ajouter un article</button></div>` : ''}
-    <div class="mat-phrase gris petit" aria-live="polite">${esc(matPhraseControle(F))}</div>
     <div class="info petit">${STK_VALID ? 'Ça part au bureau : ton stock bougera quand il aura accepté.' : 'Ton stock bouge tout de suite : le bureau n’a rien à accepter.'}${usage && SX.autoUsage ? ' Ce que tu utilises chez un client passe tout seul.' : ''}</div>
-    <div class="fo-pied mat-pied">${pb ? `<span class="mat-pourquoi" role="status">${pb}</span>` : ''}<button type="button" class="btn" data-mat="envoyer" ${pb ? 'disabled' : ''}>${F.confirme ? 'C’est bon' : n ? 'Envoyer : ' + sxPl(n, 'article') : 'Envoyer'}</button>${F.confirme ? '<button type="button" class="btn gris" data-mat="modifier">Modifier</button>' : '<button type="button" class="btn gris" data-ferme="1">Annuler</button>'}</div>`, true);
+    <div class="fo-pied mat-pied"><span class="mat-phrase gris petit" aria-live="polite">${esc(matPhraseControle(F))}</span>${pb ? `<span class="mat-pourquoi" role="status">${pb}</span>` : ''}<button type="button" class="btn" data-mat="envoyer" ${pb ? 'disabled' : ''}>${F.confirme ? 'C’est bon' : n ? 'Envoyer : ' + sxPl(n, 'article') : 'Envoyer'}</button>${F.confirme ? '<button type="button" class="btn gris" data-mat="modifier">Modifier</button>' : '<button type="button" class="btn gris" data-ferme="1">Annuler</button>'}</div>`, true);
 }
 /* un envoi : le bureau accepte d’abord (réglage de l’entreprise) ; sans réseau, il part dès que ça revient */
 function matEnvoyer(){
@@ -15617,7 +15587,7 @@ function matManquePourquoi(M){ return !M.pid && !M.texte.trim() ? 'Choisis une p
 function matManqueVue(){
   const M = MAT.M; if (!M) return; const x = M.pid && PRODUITS.find(p => p.id === M.pid), i = INTS.find(o => o.id === M.inter), pb = matManquePourquoi(M), ints = M.choisir ? matIntsDe(M.moi) : [];
   const trouves = !M.pid && !M.libre && M.rech.trim() ? PRODUITS.filter(p => !p.retire && pdxChercheOk(p, M.rech)).slice(0, 6) : [];
-  foOuvrir(`<span class="surtitre">${i && !M.choisir ? esc(CLIENTS[i.cli].nom) : 'Mon camion'}</span><h2>Il me manque une pièce</h2>
+  foOuvrir(`<span class="surtitre">Mon camion</span><h2>Il me manque une pièce</h2>
     <span class="gris">Le bureau reçoit ta demande tout de suite. Poser une pièce ne change pas le stock : c’est le bureau qui commande.</span>
     <h3 class="mat-h">Quelle pièce ?</h3>
     ${x ? `<div class="mat-inter"><span class="fo-n"><b>${esc(x.nom)}</b></span><button type="button" class="lien" data-mat="mchange">Changer</button></div>`
@@ -15870,7 +15840,7 @@ const msQuand = j => j == null ? 'pas encore compté' : j < 1 ? 'compté aujourd
 function msBandeau(){
   if (!STK_VALID || !MVTS_ATT.length || !msAccepte()) return '';
   const A = matEnvoisAAccepter(), n = A.n;
-  return `<div class="carte dv-focus ms-bandeau"${matVis('stock-bandeau')}><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><span class="dv-c"><b>${n} envoi${n > 1 ? 's' : ''} à accepter</b><span class="gris petit">${esc(A.qui.length > 1 ? A.qui.slice(0, -1).join(', ') + ' et ' + A.qui[A.qui.length - 1] : A.qui[0] || '')}</span></span>
+  return `<div class="carte dv-focus ms-bandeau"${matVis('stock-bandeau')}><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><button type="button" class="dv-c ms-bd-t" data-ms="envois"><b>${n} envoi${n > 1 ? 's' : ''} à accepter</b><span class="gris petit">${esc(A.qui.length > 1 ? A.qui.slice(0, -1).join(', ') + ' et ' + A.qui[A.qui.length - 1] : A.qui[0] || '')}</span></button>
     <span class="ms-bd"><button type="button" class="btn gris petit" data-ms="envois">Voir</button><button type="button" class="btn petit" data-ms="toutacc">Tout accepter</button></span></div></div>`;
 }
 function msTuiles(){
@@ -16099,9 +16069,8 @@ function matGVue(){
       <div class="info petit">Tu as la facture ? Photographie-la, tout se range seul. <button type="button" class="lien" data-ms="gfacture">Photographier une facture</button></div>` : ''}
     ${m === 'deplacer' ? `<div class="ms-de-vers"><label class="champ">De<select data-msg="de">${msLieuxOpt(G.de)}</select></label><button type="button" class="ms-echange" data-ms="gechange" aria-label="Échanger les deux lieux" title="Échanger les deux lieux">${svg('deplacer')}</button><label class="champ">Vers<select data-msg="vers">${msLieuxOpt(G.vers)}</select></label></div>
       ${garage ? `<div class="info petit fo-alerte">Ce camion est au garage. Tu les mets quand même ?</div>` : ''}` : ''}
-    <div class="mat-phrase gris petit" aria-live="polite">${esc(matGPhrase(G))}</div>
     <div class="info petit">${STK_VALID && !msGerant() && !droitsAtelier(sxQui()) ? 'Ça part au gérant : le stock bougera quand il aura accepté.' : 'Le stock bouge tout de suite. Tu peux le défaire avec « Annuler ».'}</div>
-    <div class="fo-pied mat-pied">${pb ? `<span class="mat-pourquoi" role="status">${pb}</span>` : ''}<button type="button" class="btn" data-ms="genvoyer" ${pb ? 'disabled' : ''}>${bouton}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`}`);
+    <div class="fo-pied mat-pied"><span class="mat-phrase gris petit" aria-live="polite">${esc(matGPhrase(G))}</span>${pb ? `<span class="mat-pourquoi" role="status">${pb}</span>` : ''}<button type="button" class="btn" data-ms="genvoyer" ${pb ? 'disabled' : ''}>${bouton}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`}`);
 }
 /* un geste de plus : le gérant applique tout de suite, les autres passent par son accord (la même règle que le technicien) */
 const droitsAtelier = k => { const p = eqDe(k); return droitSp(p, 'atelier') || droitSp(p, 'valstock'); };   /* « Se servir à l'atelier sans validation » (ou valider celles des autres) */
