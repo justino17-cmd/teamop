@@ -99,7 +99,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   // ── rechargement : la liste est là AU PREMIER RENDU, avant toute réponse de l'atelier ──
   await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(1200);
   await L.aller(p, 'devis'); await L.toucher(c, '.seg [data-dvf="tous"]');
-  const apres = await p.evaluate(() => ({ lignes: document.querySelectorAll('#contenu .opd-l').length, cadre: !!document.getElementById('opdz') }));
+  const apres = await p.evaluate(() => ({ lignes: document.querySelectorAll('#contenu .opd-l').length, cadre: (() => { const z = document.getElementById('opdz'); return !!z && !z.hidden; })() }));   // le cadre existe dès le démarrage (caché : bouton Retour, 17 novembre) — ce qui compte est qu'il ne soit pas OUVERT
   v('après rechargement : la ligne est là sans avoir ouvert l\'atelier (copie rangée côté hôte)', apres.lignes === 1 && apres.cadre === false, apres);
   const f4 = await A.ouvrirAtelier(c, 'devis', null); await f4.locator('[data-fen-x]').first().click(); await p.waitForTimeout(800);
   const apres2 = await p.evaluate(() => document.querySelectorAll('#contenu .opd-l').length);
