@@ -6,10 +6,13 @@
 //   R4  planning-06 : la zone invisible de la poignée de durée ne mange ni le toucher de la carte ni celui d'une carte courte
 //   R5  planning-05 : cibles au doigt, mesurées par ce qui RÉPOND au point touché, sur chaque vue
 //   R7  planning-07 : repères de la carte, TOUS les jours qui ont au moins deux étapes, avant et après un zoom
+//   R12 restes : la bulle de trajet de la carte ne recouvre aucun repère et aucun repère n'est sous un bouton de la carte
+//   R13 restes : une intervention terminée n'a pas la main qui attrape, et un glissement dit pourquoi rien ne bouge
+//   R14 restes : le focus clavier ramène à droite de la colonne des noms une carte à moitié cachée (Vue d'ensemble)
 //   R11 planning-11 : colonne collante de la Vue d'ensemble — carte amenée à l'écran, Tab, « Aujourd'hui », défilement normal
 const L = require('../../lib.js');
 const args = process.argv.slice(2), profil = args.find(a => L.PROFILS[a]) || 'mac', nuit = args.includes('nuit');
-const veut = args.filter(a => /^R\d+$/.test(a));
+const veut = args.filter(a => /^R\d+b?$/.test(a));
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-planning-recontrole/';
 const PARC = [];
 const parcours = (nom, fn) => PARC.push([nom, fn]);
@@ -24,6 +27,8 @@ parcours('R1 · planning-01 : le point d’une adresse écrite à la main', asyn
       ['9 rue de la Mer, 17690 Angoulins', 'angoulins'], ['4 chemin des Vignes, Salles sur Mer', 'salles sur mer'], ['20 rue Saint-Jean du Pérot, 17000 La Rochelle', 'la rochelle'], ['5 rue du Port, 17138 Puilboreau', 'puilboreau'],
       ['12 Route de La Rochelle, 17300 Rochefort', 'rochefort'],        // rue qui porte le nom d'une AUTRE commune : le client est à Rochefort
       ['3 Rue de Rochefort, 17230 Marans', 'marans'],
+      ['12 Route de La Rochelle Rochefort', 'rochefort'],               // ni virgule ni code postal : la dernière commune nommée l'emporte
+      ['4 Avenue de Rochefort 17000 La Rochelle', 'la rochelle'],
     ];
     return cas.map(([adr, attendu]) => { const g = geoDeAdresse(adr), a = COMMUNES_GEO[attendu]; return { adr, attendu, g, ok: !!g && !!a && g[0] === a[0] && g[1] === a[1] }; });
   });
@@ -145,7 +150,14 @@ parcours('R5 · planning-05 : cibles au doigt (44 px), chaque vue, hauteur ET la
   }
   require('fs').mkdirSync(CAP, { recursive: true }); require('fs').writeFileSync(CAP + `R5-${profil}${nuit ? '-nuit' : ''}.json`, JSON.stringify(rap, null, 1));
   // les cibles de 40 px de la vue Mois : les pastilles de jours
-  const v = await c.p.evaluate(() => 0);
+  // le lien « Voir dans Tâches › » de la carte « tâches pour toi » (le résidu de la première recontrôle : 41 px) : ouvert, mesuré, et touché pour de vrai.
+  // Elle n'est pas posée sur toutes les vues (la Carte n'en a pas) : on mesure celles qui l'ont, et on exige qu'au moins une l'ait.
+  let vues = 0;
+  for (const v of ['jour', 'semaine', 'mois', 'general', 'multi', 'carte']) { await vue(c, v); await L.calme(c.p, 400);
+    const l = await c.p.evaluate(() => { const d = document.querySelector('details.t-ici'); if (!d) return null; d.open = true; const a = d.querySelector('.t-ici-tout'); if (!a) return null; a.scrollIntoView({ block: 'center' }); const r = a.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { h: Math.round(r.height), w: Math.round(r.width), touche: !!t && (t === a || a.contains(t)), txt: a.textContent.trim() }; });
+    if (!l) { console.log('   vue ' + v + ' : pas de carte « tâches pour toi » (sans objet)'); continue; } vues++;
+    L.v('R5 · vue ' + v + ' : « Voir dans Tâches › » se touche sur ' + l.h + ' px de haut (44 au moins) et répond en son centre', l.h >= 44 && l.touche, l); }
+  L.v('R5 · « Voir dans Tâches › » mesuré sur au moins une vue (population)', vues >= 1, vues);
 });
 
 parcours('R7 · planning-07 : repères de la carte, tous les jours à plusieurs étapes, avant et après un zoom', async c => {
@@ -205,6 +217,76 @@ parcours('R11 · planning-11 : Vue d’ensemble, colonne collante et carte amen�
   const sl = await c.p.evaluate(() => { const sc = document.querySelector('.pl-defile:has(.pg-g)'); sc.scrollLeft = 0; const a = sc.scrollLeft; sc.scrollLeft = 300; return { a, b: sc.scrollLeft, max: sc.scrollWidth - sc.clientWidth }; });
   L.v('R11 · le défilement latéral reste libre (0 → 300 px)', sl.b >= Math.min(300, sl.max) - 2, sl);
   await L.capture(c, CAP + `R11-general-${profil}${nuit ? '-nuit' : ''}.png`);
+});
+
+parcours('R12 · restes : la bulle de trajet ne recouvre aucun repère, aucun repère sous un bouton de la carte', async c => {
+  await vue(c, 'carte');
+  for (let i = 0; i < 40; i++) { await c.p.waitForTimeout(500); if (await c.p.evaluate(() => crReelEtat === 'ok' && document.querySelectorAll('.cr-mk[data-crpin]').length > 0)) break; }
+  await L.calme(c.p, 1500); await c.p.evaluate(() => { crLV = null; crCadrerReel(false); }); await L.calme(c.p, 900);
+  const r = await c.p.evaluate(() => { const rr = e => e.getBoundingClientRect(), I = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+    const pins = [...document.querySelectorAll('.cr-mk[data-crpin]')], bulles = [...document.querySelectorAll('.cr-lbl-tr')], pane = e => e.closest('.leaflet-pane'), z = e => parseInt(getComputedStyle(pane(e)).zIndex, 10);
+    const dessus = [], dessous = []; for (const b of bulles) for (const p of pins) { if (I(rr(b), rr(p)) > 30) (z(p) > z(b) ? dessus : dessous).push(p.dataset.crpin + ' / ' + b.textContent); }
+    const obst = [...document.querySelectorAll('#cr-carte .cr-fonds, #cr-carte .cr-outils, #cr-carte .cr-chips, #cr-carte .cr-note')].filter(e => rr(e).width > 0);
+    const sous = pins.filter(p => obst.some(o => I(rr(p), rr(o)) > 0)).map(p => p.dataset.crpin + ' sous ' + obst.find(o => I(rr(p), rr(o)) > 0).className);
+    return { nPins: pins.length, nBulles: bulles.length, dessus, dessous, sous, nObst: obst.length }; });
+  console.log('   ', JSON.stringify(r));
+  L.v('R12 · la carte a ses repères et ses boutons (population)', r.nPins >= 6 && r.nObst >= 2, r);
+  // sur un téléphone la carte fait 290 px de large : une bulle de 130 px ne trouve pas de place entre neuf repères et s'efface (le temps de route reste dit dans la liste des étapes)
+  const liste = await c.p.evaluate(() => { const l = document.getElementById('cr-l'); return l ? /\d+ min/.test(l.textContent) && /\d+ km/.test(l.textContent) : false; });
+  L.v('R12 · le temps et les km de route sont dits (bulle sur la carte, ou à défaut dans la liste des étapes)', r.nBulles >= 1 || liste, { nBulles: r.nBulles, liste });
+  if (!c.doigt || c.largeur >= 700) L.v('R12 · sur un grand écran au moins une bulle de trajet est posée (population)', r.nBulles >= 1, r);
+  L.v('R12 · aucune bulle de trajet ne recouvre un repère (elle se pose ailleurs sur le trajet, ou s\'efface) — ' + r.dessus.length + ' dessus, ' + r.dessous.length + ' dessous', r.dessous.length === 0 && r.dessus.length === 0, { dessus: r.dessus, dessous: r.dessous });
+  L.v('R12 · aucun repère n\'est posé sous un bouton de la carte', r.sous.length === 0, r.sous);
+  // le même, après un zoom de chaque sens : les repères se refont, la règle tient
+  for (const k of [1, 1, -1, -1, -1]) { await c.p.evaluate(k => document.querySelector('[data-crzoom="' + k + '"]').click(), k); await L.calme(c.p, 900);
+    const q = await c.p.evaluate(() => { const rr = e => e.getBoundingClientRect(), I = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+      const cont = document.querySelector('#cr-carte').getBoundingClientRect(), pins = [...document.querySelectorAll('.cr-mk[data-crpin]')].filter(p => { const b = rr(p), x = b.left + b.width / 2, y = b.top + b.height / 2; return x > cont.left + 24 && x < cont.right - 24 && y > cont.top + 24 && y < cont.bottom - 24; });   // un repère à moins de 24 px du bord est à moitié hors cadre : il se panoramique, on ne le compte pas
+      const obst = [...document.querySelectorAll('#cr-carte .cr-fonds, #cr-carte .cr-outils, #cr-carte .cr-chips, #cr-carte .cr-note')].filter(e => rr(e).width > 0);
+      const bul = [...document.querySelectorAll('.cr-lbl-tr')], rec = []; for (const b of bul) for (const p of document.querySelectorAll('.cr-mk[data-crpin]')) if (I(rr(b), rr(p)) > 30) rec.push(p.dataset.crpin + ' / ' + b.textContent);
+      return { n: pins.length, nb: bul.length, rec, sous: pins.filter(p => obst.some(o => I(rr(p), rr(o)) > 0)).map(p => p.dataset.crpin) }; });
+    L.v('R12 · zoom ' + (k > 0 ? '+' : '−') + ' : ' + q.n + ' repères dans le cadre, ' + q.nb + ' bulle(s), aucun repère sous un bouton ni sous une bulle', q.sous.length === 0 && q.rec.length === 0, q); }
+  await L.capture(c, CAP + `R12-carte-${profil}${nuit ? '-nuit' : ''}.png`);
+});
+
+parcours('R13 · restes : une intervention terminée ne promet pas un geste qui ne vient pas', async c => {
+  await vue(c, c.doigt && c.largeur < 800 ? 'jour' : 'semaine');
+  const f = await c.p.evaluate(() => { const e = [...document.querySelectorAll('.pc.fait[data-int]')].find(x => x.getBoundingClientRect().width > 20); if (!e) return null; e.scrollIntoView({ block: 'center', inline: 'center' }); return { id: e.dataset.int, cur: getComputedStyle(e).cursor, n: document.querySelectorAll('.pc.fait[data-int]').length, autre: getComputedStyle(document.querySelector('.pc[data-int]:not(.fait)') || e).cursor }; });
+  L.v('R13 · une intervention terminée est affichée (population)', !!f, f); if (!f) return;
+  L.v('R13 · terminée : curseur « pointer » (elle s\'ouvre) et non la main qui attrape (' + f.cur + ')', f.cur === 'pointer', f);
+  L.v('R13 · une intervention à venir garde la main qui attrape (' + f.autre + ') : elle se déplace', f.autre === 'grab', f);
+  if (c.doigt) return;
+  await L.calme(c.p, 300);
+  const b = await c.p.evaluate(id => { const r = document.querySelector('.pc[data-int="' + id + '"]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + Math.min(r.height / 2, 12), id, h0: INTS.find(i => i.id === id).h, t0: INTS.find(i => i.id === id).tech }; }, f.id);
+  await c.p.evaluate(() => { const t = document.getElementById('toast'); if (t) t.classList.remove('on'); });
+  await c.p.mouse.move(b.x, b.y); await c.p.mouse.down(); await c.p.mouse.move(b.x + 6, b.y + 30, { steps: 4 }); await c.p.mouse.move(b.x + 20, b.y + 90, { steps: 6 }); await c.p.waitForTimeout(150);
+  const pendant = await c.p.evaluate(() => ({ glisse: document.body.classList.contains('glisse'), toast: (document.getElementById('toast') || {}).textContent, on: (document.getElementById('toast') || { classList: { contains: () => false } }).classList.contains('on') }));
+  await c.p.mouse.up(); await L.calme(c.p, 300);
+  const apres = await c.p.evaluate(id => { const i = INTS.find(x => x.id === id); return { h: i.h, t: i.tech, st: i.st, n: document.querySelectorAll('.pc[data-int="' + id + '"]').length }; }, f.id);
+  console.log('   ', JSON.stringify({ pendant, apres }));
+  L.v('R13 · le glissement n\'ouvre aucun fantôme', !pendant.glisse, pendant);
+  L.v('R13 · il dit « Une intervention terminée ne se déplace pas »', pendant.on && /terminée ne se déplace pas/.test(pendant.toast || ''), pendant);
+  L.v('R13 · rien n\'a bougé (même heure, même personne, même état, une seule carte)', apres.h === b.h0 && apres.t === b.t0 && apres.st === 'fait' && apres.n === 1, apres);
+  // un simple clic (sans glisser) ne dit rien et ouvre la fiche
+  await c.p.evaluate(() => { const t = document.getElementById('toast'); if (t) t.classList.remove('on'); });
+  const clic = await c.p.evaluate(id => { const r = document.querySelector('.pc[data-int="' + id + '"]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + Math.min(r.height / 2, 12) }; }, f.id);
+  await c.p.mouse.click(clic.x, clic.y); await L.calme(c.p, 500);
+  const o = await c.p.evaluate(() => ({ toast: (document.getElementById('toast') || { classList: { contains: () => false } }).classList.contains('on'), ouvert: !!document.querySelector('#fenetre .fen, .fen-voile, #contenu .fiche, [data-fiche]') || location.hash }));
+  L.v('R13 · un simple clic ne dit pas « ne se déplace pas »', !o.toast, o);
+});
+
+parcours('R14 · restes : le focus clavier ramène à droite des noms une carte à moitié cachée', async c => {
+  await vue(c, 'general');
+  const res = await c.p.evaluate(async () => { const sc = document.querySelector('.pl-defile:has(.pg-g)'); if (!sc) return null; const g = sc.querySelector('.pg-tec'), cartes = [...sc.querySelectorAll('[data-int]')]; const mal = [], moitie = []; let n = 0;
+    const calme = async () => { let a = -1, k = 0; for (let t = 0; t < 60 && k < 4; t++) { await new Promise(r => setTimeout(r, 60)); k = sc.scrollLeft === a ? k + 1 : 0; a = sc.scrollLeft; } };
+    for (const e of cartes) { if (!e.hasAttribute('tabindex')) e.tabIndex = 0;
+      // l'état qui échouait : la carte déjà à moitié visible sous la colonne, 11 px dépassant à droite
+      const sx = g.getBoundingClientRect().right; let r = e.getBoundingClientRect(); sc.scrollLeft += r.left - (sx - r.width + 11); await calme(); r = e.getBoundingClientRect();
+      const avant = Math.round(r.left - sx); if (avant < -20) moitie.push(e.dataset.int);
+      e.focus(); await calme(); r = e.getBoundingClientRect(); n++; if (r.width > 2 && r.left < sx - 1) mal.push(e.dataset.int + ' sous la colonne ' + Math.round(r.left) + '<' + Math.round(sx)); }
+    return { n, mal, moitie }; });
+  L.v('R14 · la Vue d\'ensemble a un conteneur et des cartes', !!res && res.n >= 6, res); if (!res) return;
+  // sur un écran large presque toute la grille tient : peu de cartes peuvent être mises à moitié sous la colonne ; au téléphone et sur iPad il y en a au moins trois
+  L.v('R14 · ' + res.n + ' cartes mises à moitié sous la colonne puis focalisées (' + res.moitie.length + ' réellement à moitié cachées) : aucune ne reste sous les noms', res.mal.length === 0 && (c.largeur >= 1000 || res.moitie.length >= 3), res);
 });
 
 (async () => {
