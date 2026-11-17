@@ -107,7 +107,7 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
     await toastClic(c, 'Annuler');
     /* tout validé, des confirmations manquent : état 2 */
     await ev(c, () => { const p = POINTAGES.find(o => o.qui === 'tl' && ptOuvert(o)); p.fin = '16:40'; p.pause = 45; delete PAIE.signales.tl; PT_GENS.forEach(k => paieVariables(k).semaines.forEach(w => { PT_VALIDE[k + w.L] = true; })); delete PAIE.confirmes.kb; ptOnglet = 'mois'; rendre(); });
-    const m2 = await ev(c, () => ({ btn:[...document.querySelectorAll('.tt-paie .btn, .tt-paie .lien')].map(b => b.textContent.trim() + '|' + b.className), nc:PT_GENS.filter(k => !PAIE.confirmes[k]).length }));
+    const m2 = await ev(c, () => ({ btn:[...document.querySelectorAll('.tt-paie .tt-ges .btn, .tt-paie .tt-ges .lien')].map(b => b.textContent.trim() + '|' + b.className), nc:PT_GENS.filter(k => !PAIE.confirmes[k]).length }));
     v('G : état 2 — tout est validé : « Demander de confirmer » (gris, pas bloquant) et le lien « Passer à la paie quand même »', /^Demander de confirmer\|btn gris/.test(m2.btn[0]) && /^Passer à la paie quand même/.test(m2.btn[1]), m2);
     const nt = await ev(c, () => NOTIFS.length); await clic(c, '[data-tt="confirmer"]'); const nt2 = await ev(c, () => NOTIFS.length);
     v('G : « Demander de confirmer » notifie chaque salarié qui n\'a pas confirmé, et le dit', nt2 - nt === m2.nc && /Demande envoyée à/.test(await txt(c, '.tt-paie')), { nt, nt2, nc:m2.nc });
