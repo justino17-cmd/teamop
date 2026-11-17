@@ -247,6 +247,32 @@
    "preuve": "sonde t2.js : valeur du champ, tâche créée, toast vide après « Zorro »",
    "ou": "#suiviAssigne dans prototype-courrier.js (source.suivi) ; datalist vide",
    "correction": "Liste déroulante des personnes de l’équipe (comme la fenêtre « Confier à quelqu’un »), ou message pour un nom inconnu."
+  },
+  {
+   "n": "ordinateur-19",
+   "gravite": "gênant",
+   "ecran": "Boîte mail › bandeau rouge « ne répond plus » › Reconnecter et Réessayer",
+   "role": "patron",
+   "profils": "mac, jour",
+   "etapes": "Boîte mail › dans le bandeau rouge « marc@climservices17.fr ne répond plus : le mot de passe est à saisir de nouveau », toucher « Reconnecter » ; puis « Réessayer » (souris, deux fois).",
+   "attendu": "« Reconnecter » ouvre la fenêtre « Boîtes connectées » (comme « Gérer les boîtes ») ; « Réessayer » dit ce qu’il a trouvé.",
+   "constate": "« Reconnecter » ne fait rien : mbxPanBoites n’est jamais appelé (alors que « Gérer les boîtes » l’appelle) ; « Réessayer » relance la lecture et le bandeau revient identique, sans un mot (« toujours injoignable »). Deux boutons morts sur le seul message d’erreur de l’écran.",
+   "preuve": "sonde x3.js (souris réelle, mbxPanBoites instrumenté : [] après Reconnecter, 1 appel après Gérer les boîtes) ; x2.js : 2 ✗ ; cause dans apercu/prototype-courrier.js : le bouton porte data-gererboites (l. 2371) mais l’écouteur de ce attribut n’existe que sur #sidebar (l. 4252), pas sur la liste (l. 4283, qui ne connaît que data-retry)",
+   "ou": "apercu/prototype-courrier.js l. 4283 (écouteur de la liste)",
+   "correction": "Traiter data-gererboites aussi dans l’écouteur de la liste ; faire dire un toast à « Réessayer » (« Toujours injoignable » / « Reconnectée »)."
+  },
+  {
+   "n": "ordinateur-20",
+   "gravite": "gênant",
+   "ecran": "Boîte mail › barre des catégories (Principal, Notifications, Factures et reçus, Voyages, Promotions, Tout)",
+   "role": "patron",
+   "profils": "mac, windows, mac720, ipad ; jour",
+   "etapes": "Ouvrir Boîte mail et regarder la rangée de catégories sous « Tous / Non lus / Avec drapeau ».",
+   "attendu": "Les six catégories (D03 les a mises en mots) se voient sans chercher ; « Tout », qui rend le courrier rangé ailleurs, aussi.",
+   "constate": "Seules « Principal » et « Notifications » tiennent ; « Factures et reçus » est coupée en deux (« Factu »), « Voyages », « Promotions » et « Tout » sont hors de l’écran, à droite, derrière un fondu, sans flèche : 4 catégories sur 6 invisibles sur Mac, Windows et 1280×720 ; 3 sur 6 sur iPad. Sur un ordinateur à souris, défiler une rangée de côté n’est pas un geste que connaît un débutant ; les mots ont été ajoutés pour rien si on ne les voit pas.",
+   "preuve": "sonde y1.js : catBar scrollWidth 697 pour clientWidth 304 (mac), 303 (windows), 840 / 389 (mac720), 832 / 508 (ipad) ; 4 ✗ sur 4 ; captures y1-categories-*.png, a1-mac-marc.png",
+   "ou": "apercu/prototype-courrier.js, #catBar (colonne de liste de 304-390 px)",
+   "correction": "Passer les catégories sur deux lignes, ou en menu déroulant « Catégorie : Principal ▾ » (un seul mot visible, six choix lisibles), ou raccourcir (« Factures », « Autres »)."
   }
  ]
 }
