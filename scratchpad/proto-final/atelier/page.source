@@ -553,6 +553,7 @@ body.col-glisse,body.col-glisse *{cursor:col-resize!important;user-select:none}
 .dialogue h3{margin:0 0 6px;font-size:18px}.dialogue p{margin:0 0 16px;color:var(--doux);text-wrap:pretty}
 .dialogue .rangee{display:flex;gap:8px;justify-content:flex-end}
 #toasts{position:fixed;left:0;right:0;bottom:calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:8px;z-index:80;pointer-events:none;padding:0 16px}
+@media (max-width:760px){ body.menu-ouvert #toasts{visibility:hidden} }      /* au téléphone un menu ouvert couvre presque tout l'écran : les infobulles (« Modèle posé · Annuler ») ne se posent pas par-dessus ses gestes */
 .toast{pointer-events:none;display:flex;align-items:center;gap:14px;max-width:min(520px,100%);padding:10px 14px;border-radius:12px;background:var(--encre);color:var(--fond);font-size:14px;box-shadow:var(--ombre-haute);animation:monte .2s var(--ressort)}
 .toast span{min-width:0;overflow-wrap:anywhere}
 body.fen-ouverte #toasts,body.ap-ouvert #toasts{top:calc(12px + env(safe-area-inset-top,0px));bottom:auto}
@@ -2808,7 +2809,7 @@ let POP=null;
 function fermerPop(retour){
   if(!POP) return; const p=POP; POP=null;
   if(p.fen){ if(FEN===p.fen) fermerFenetre(retour); return }
-  p.el.remove();
+  p.el.remove(); document.body.classList.remove('menu-ouvert');
   document.removeEventListener('pointerdown',p.hors,true); document.removeEventListener('keydown',p.touche,true); window.removeEventListener('resize',p.fermer);
   if(p.ancre&&p.ancre.getAttribute&&p.ancre.getAttribute('aria-expanded')!==null) p.ancre.setAttribute('aria-expanded','false');
   if(retour!==false&&p.ancre&&p.ancre.focus&&document.contains(p.ancre)) p.ancre.focus({preventScroll:true});
@@ -2836,7 +2837,7 @@ function ouvrirPop(ancre,html,o){
   const p={el,ancre,onFerme:o.onFerme,fermer:()=>fermerPop(),
     hors:e=>{ if(!el.contains(e.target)&&!(ancre.contains&&ancre.contains(e.target))) fermerPop(false) },
     touche:e=>{ if(e.key==='Escape'){e.stopPropagation();fermerPop()} else if(o.menu) navMenu(e,el) }};
-  POP=p; if(ancre.getAttribute&&ancre.getAttribute('aria-expanded')!==null) ancre.setAttribute('aria-expanded','true');
+  POP=p; if(o.menu) document.body.classList.add('menu-ouvert'); if(ancre.getAttribute&&ancre.getAttribute('aria-expanded')!==null) ancre.setAttribute('aria-expanded','true');
   document.addEventListener('pointerdown',p.hors,true); document.addEventListener('keydown',p.touche,true); window.addEventListener('resize',p.fermer,{once:true});
   return el;
 }
@@ -3898,6 +3899,8 @@ function ouvrirLigneForm(blocId,rowId,o){
 /* ── menus et divers ── */
 ACTIONS['menu-plus']=t=>{
   if(POP&&POP.ancre===t){ fermerPop(); return }
+  /* la feuille « Format / Contrat » est posée AU-DESSUS de la couche des menus : sur un petit écran elle cachait « Supprimer ce brouillon ». On la range avant d'ouvrir le menu (« Terminé » rend le même geste), partout, pour que le geste soit le même sur tous les téléphones */
+  if(FEN&&FEN.souple) fermerFenetre(false);
   const d=D(), tel=matchMedia('(max-width:760px)').matches;
   /* un brouillon fait pour essayer, ou par erreur, se supprime : sans ce geste la liste d'OP GESTION s'encombrait pour toujours */
   const suppr=APP&&d&&d.etat==='brouillon'&&(d.type==='devis'||d.type==='contrat')?[{lib:'Supprimer ce brouillon',ico:'trash',fn:()=>ACTIONS['supprimer-brouillon']()}]:[];
@@ -5129,7 +5132,7 @@ function vvBib(){
   return VV_BIB=o;
 }
 function vvResume(t){
-  let s=String(t||'').split('\n')[0].replace(/\{\{art:[a-z0-9-]+\}\}/g,'l’article').replace(/\{\{([a-z]+)\}\}/g,(x,k)=>{ const v=defVar(k); return v?v.n:(k==='entreprise'?'le prestataire':k) });
+  let s=String(t||'').split('\n')[0].replace(/\{\{art:[a-z0-9-]+\}\}/g,'l’article').replace(/\{\{([a-z]+)\}\}/g,(x,k)=>{ const v=defVar(k); return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+k+']') });      // entre crochets, comme dans le document : « …le prestataire effectue [fréquence des visites] » se lit comme un blanc à remplir, pas comme une phrase fautive
   return abrege(s,110);
 }
 const vvArtDe=(e)=>({uid:vvId('a'),cle:e.cle,modele:e.modele,titre:e.titre,texte:e.texte,court:e.court||'',perso:false,edite:false,bib:e.id});
@@ -5648,8 +5651,8 @@ function ouvrirVierge(retour,type,opt){
     else if(t.id==='vv-val'){ V.validite=t.value; err('vv-val-err',''); t.removeAttribute('aria-invalid'); viergeMaj(f,{tard:true}) }
     else if(t.id==='vv-cq'){ V.cq=t.value; vvMajCat(f) }
     else if(t.id==='vv-bq'){ V.bq=t.value; vvMajBib(f) }
-    else if(t.id==='vv-delai'){ V.delai=t.value.replace(/\s*\n\s*/g,' '); viergeMaj(f,{tard:true}) }
-    else if(t.id==='vv-paiement'){ V.paiement=t.value.replace(/\s*\n\s*/g,' '); viergeMaj(f,{tard:true}) }
+    else if(t.id==='vv-delai'){ V.delai=uneLigne(t); viergeMaj(f,{tard:true}) }
+    else if(t.id==='vv-paiement'){ V.paiement=uneLigne(t); viergeMaj(f,{tard:true}) }
     else if(t.id==='vv-mot'){ V.mot=t.value; viergeMaj(f,{tard:true}) }
     else if(t.id==='vv-ac-v'){ V.acV=t.value; const r=lireDecimal(t.value,2), bon=t.value.trim()===''||(r.code==='ok'&&!r.neg&&r.n<=10000); err('vv-ac-err',bon?'':'L’acompte est un pourcentage entre 0 et 100.'); if(bon) t.removeAttribute('aria-invalid'); else t.setAttribute('aria-invalid','true'); viergeMaj(f,{tard:true}) }
     else if(t.id==='vv-l-des'){ V.libre.des=t.value; t.removeAttribute('aria-invalid'); err('vv-l-err','') } else if(t.id==='vv-l-qte'){ V.libre.qte=t.value; t.removeAttribute('aria-invalid'); err('vv-l-err','') } else if(t.id==='vv-l-pu'){ V.libre.pu=t.value; t.removeAttribute('aria-invalid'); err('vv-l-err','') }
@@ -5683,6 +5686,12 @@ function ouvrirVierge(retour,type,opt){
     } else if(t.id==='vv-bq'||t.id==='vv-delai'||t.id==='vv-paiement'){ ev.preventDefault() }      // une ligne de texte : Entrée ne coupe pas la phrase
     else if(t.matches('#vv-l-des,#vv-l-qte,#vv-l-pu,#vv-l-unite,#vv-l-tva')){ ev.preventDefault(); libreAjouter() }
   });
+}
+/* un collage sur plusieurs lignes dans une zone d'UNE ligne : le champ montre ce que la page gardera (les retours à la ligne deviennent un espace), curseur resté à sa place */
+function uneLigne(t){
+  const a=t.value.replace(/\s*\n\s*/g,' ');
+  if(a!==t.value){ const c=t.selectionStart==null?a.length:t.value.slice(0,t.selectionStart).replace(/\s*\n\s*/g,' ').length; t.value=a; try{ t.setSelectionRange(c,c) }catch(e){} }
+  return a;
 }
 function vvBibHtml(V){
   const q=norm(V.bq), tk=q?q.split(' '):[];

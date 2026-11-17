@@ -1,12 +1,16 @@
 // SONDE « la page SEULE n'a pas changé » : l'atelier sans ?app=1 doit rendre et ranger comme avant. Deux pages dans une racine temporaire : l'ORIGINE (la source d'avant le mode « dans OP GESTION »,
-// copie gardée dans le dossier temporaire, sinon relue du commit 629da64) et l'ACTUELLE (apercu/prototype-documents.html). Le même parcours est joué sur chacune, dans un contexte neuf :
+// relue du commit de référence (voir REF)) et l'ACTUELLE (apercu/prototype-documents.html). Le même parcours est joué sur chacune, dans un contexte neuf :
 // accueil, compositeur de devis, compositeur de contrat, éditeur, envoi — de jour et de nuit, sur ordinateur et téléphone. On compare la STRUCTURE rendue (balise, classe, texte, boîte
 // au pixel près, pour chaque élément visible) et les CLÉS de rangement. Rend « N ✓ · M ✗ », sort en 1 si un contrôle tombe.
 const fs = require('fs'), path = require('path'), cp = require('child_process');
 const TMP = process.env.TMP_SEULE || '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/racine-seule';
-const DEPOT = path.join(__dirname, '..', '..', '..'), ORIGINE_CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/atelier/page-origine.source';
+const DEPOT = path.join(__dirname, '..', '..', '..');
 fs.mkdirSync(path.join(TMP, 'apercu'), { recursive: true }); fs.mkdirSync(path.join(TMP, 'x', 'y', 'z'), { recursive: true });
-const orig = fs.existsSync(ORIGINE_CAP) ? fs.readFileSync(ORIGINE_CAP, 'utf8') : cp.execSync('git show 629da64:scratchpad/proto-final/atelier/page.source', { cwd: DEPOT, maxBuffer: 1 << 28 }).toString();
+// POINT DE RÉFÉRENCE : l'état de la source APRÈS les corrections du compositeur (commit 52c1a8f : prix à deux décimales, aides raccourcies, prestations au catalogue, champs « Délai/Paiement » sur deux lignes),
+// pas l'état d'avant le mode « dans OP GESTION » (629da64) — celui-là faisait tomber 12 contrôles sur des écarts VOULUS. Ce que la sonde garde reste « rien d'autre n'a bougé » : un écart nouveau, lui, tombe.
+// ORIGINE=<commit> la rejoue contre un autre point (ex. 629da64) ; ORIGINE_CAP=<fichier> contre une copie gardée.
+const REF = process.env.ORIGINE || '52c1a8f';
+const orig = process.env.ORIGINE_CAP && fs.existsSync(process.env.ORIGINE_CAP) ? fs.readFileSync(process.env.ORIGINE_CAP, 'utf8') : cp.execSync('git show ' + REF + ':scratchpad/proto-final/atelier/page.source', { cwd: DEPOT, maxBuffer: 1 << 28 }).toString();
 const gabarit = s => '<!doctype html>\n<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>\n' + s + '\n</body>\n</html>\n';
 fs.writeFileSync(path.join(TMP, 'apercu', 'doc-origine.html'), gabarit(orig));
 fs.writeFileSync(path.join(TMP, 'apercu', 'doc-actuel.html'), fs.readFileSync(process.env.ACTUEL || path.join(DEPOT, 'apercu', 'prototype-documents.html'), 'utf8'));      // ACTUEL : une copie mutée (atelier-mutations)

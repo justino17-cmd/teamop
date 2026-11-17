@@ -2,7 +2,8 @@
 // Lit le TEXTE de la page (pas de navigateur) : commentaires de bloc en début de ligne et lignes « // » retirés AVANT de chercher (un motif vise du code, jamais une phrase).
 // Usage : node materiel-four-fonctions.js [fichier]   → « N ✓ · M ✗ », sort en 1 si un contrôle tombe.
 const fs = require('fs'), path = require('path');
-const f = process.argv[2] || path.join(__dirname, '..', '..', '..', 'apercu', 'prototype-op-gestion.html');
+// RACINE : la copie mutée d'une contre-épreuve (materiel-mutations.js) — sans elle, la sonde lirait toujours la vraie page et ne tomberait jamais
+const f = process.argv[2] || path.join(process.env.RACINE || path.join(__dirname, '..', '..', '..'), 'apercu', 'prototype-op-gestion.html');
 const code = fs.readFileSync(f, 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 let ok = 0, ko = 0; const v = (n, c, d) => { if (c) { ok++; console.log('  ✓', n); } else { ko++; console.log('  ✗', n, d !== undefined ? '→ ' + d : ''); } };
 const defs = nom => (code.match(new RegExp('^function ' + nom + '\\(', 'gm')) || []).length + (code.match(new RegExp('^(?:const|let|var) ' + nom + '\\s*=', 'gm')) || []).length + (code.match(new RegExp('^' + nom + '\\s*=\\s*function', 'gm')) || []).length;

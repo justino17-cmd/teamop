@@ -9,12 +9,13 @@ const L = require('../lib.js');
   const tp = src.slice(src.indexOf("tourPartie('produits'"), src.indexOf("tourPartie('stock'")), cibles = [...tp.matchAll(/\['(\[data-vis="[a-z-]+"\])'/g)].map(m => m[1]);
   v('population : la visite guidée vise ' + cibles.length + ' attributs data-vis', cibles.length === 3, cibles);
   await L.aller(p, 'produits'); await p.evaluate(() => { prVue = 'commandes'; rendre(); }); await L.calme(p, 400);
-  for (const s of cibles) { const r = await p.evaluate(s => { const e = document.querySelector(s); if (!e) return { existe:false }; e.scrollIntoView({ block:'center' }); const b = e.getBoundingClientRect(), t = document.elementFromPoint(b.left + b.width / 2, b.top + Math.min(b.height / 2, 40)); return { existe:true, vu:b.width > 5 && b.height > 5, libre:!!t && (e.contains(t) || t.contains(e)) }; }, s);
+  // un élément plus haut que l'écran (la carte « À commander ») se vise DANS la fenêtre, pas hors d'elle
+  for (const s of cibles) { const r = await p.evaluate(s => { const e = document.querySelector(s); if (!e) return { existe:false }; e.scrollIntoView({ block:'center' }); const b = e.getBoundingClientRect(), t = document.elementFromPoint(b.left + b.width / 2, Math.max(80, Math.min(innerHeight - 100, b.top + Math.min(b.height / 2, 40)))); return { existe:true, vu:b.width > 5 && b.height > 5, libre:!!t && (e.contains(t) || t.contains(e)) }; }, s);
     v('la visite guidée : ' + s + ' existe, se voit et rien ne le recouvre', r.existe && r.vu && r.libre, r); }
   const k = await p.evaluate(() => GD_TOURS.imm.chap().findIndex(e => e.cle === 'produits'));
   v('population : le chapitre « produits » existe dans la visite parlée (rang ' + k + ')', k >= 0);
   const sels = await p.evaluate(k => GD_TOURS.imm.chap()[k].gestes.map(s => s.sel), k);
-  v('chaque étape vise un attribut data-vis, un identifiant, le panneau ou un geste qui existe — jamais une classe renommable (' + sels.length + ' étapes)', sels.length === 14 && sels.every(x => /^\[data-vis=|^#calque|^\[data-pr|^\[data-cm|^#contenu \.fx-arts/.test(x)), sels);
+  v('chaque étape vise un attribut data-vis, un identifiant, le panneau ou un geste qui existe — jamais une classe renommable (' + sels.length + ' étapes)', sels.length === 15 && sels.every(x => /^\[data-vis=|^#calque|^\[data-pr|^\[data-cm|^#contenu \.fx-arts|^#contenu h1$/.test(x)), sels);
   const e0 = await p.evaluate(() => JSON.stringify({ c:COMMANDES, p:PRODUITS.map(x => [x.id, x.q, x.pa, x.pv, x.retire || false]), n:PRODUITS.length }));
   await p.evaluate(i => { window.__immRapide = true; immLancer(i); }, k);
   const dit = [], t0 = Date.now();

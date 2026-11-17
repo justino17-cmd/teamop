@@ -1,0 +1,40 @@
+{
+ "profil": "mac",
+ "sorties": {
+  "marc-mac-fventes": {
+   "recenses": 2,
+   "touches": 0,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Ouvrir la comptabilité",
+     "data": "data-cpsys=ouvrir",
+     "touche": false,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "Factures et paiements",
+     "data": "data-cpsys=quotidien",
+     "touche": false,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 211,
+     "h": 46
+    }
+   ]
+  }
+ },
+ "err": []
+}

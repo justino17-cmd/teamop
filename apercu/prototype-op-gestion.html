@@ -214,7 +214,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 #toast.on{opacity:1;translate:-50% 0;pointer-events:none}#toast.on button{pointer-events:auto} /* un toast est du texte : il n'avale pas le toucher de ce qu'il couvre (une signature), seul son bouton répond */
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
-  body:has(.fen-voile) #toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}   /* une fenêtre est ouverte : sa barre « Annuler / Créer » est en bas, la bulle passe en haut au lieu de la couvrir */
+  body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
 #sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
@@ -237,6 +237,7 @@ body.dp-ouvert #sortie-carte{z-index:300}
 
 /* ── la Comptabilité complète s'ouvre comme une fenêtre par-dessus OP GESTION (Justin, 10 novembre 2026) ── */
 #cpsys{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc)}
+body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouvelle intervention » ouverte depuis la Comptabilité plein écran (touche N, recherche) restait dessous, invisible */
 #cpsys[hidden]{display:none}
 .cpsys-barre{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--trait);background:var(--feuille,#f8f9fc)}
 .cpsys-barre b{flex:1;min-width:0;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -245,6 +246,10 @@ body.dp-ouvert #sortie-carte{z-index:300}
 .cpsys-attente{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 @media (max-width:520px){.cpsys-barre b{display:none}.cpsys-barre{justify-content:space-between}}
 @media (pointer:coarse){.cpsys-barre button{min-height:44px}}
+.cpsys-barre .cpsys-menu{display:none;align-items:center;gap:7px}.cpsys-barre .cpsys-menu svg{width:18px;height:18px}
+@media (max-width:760px){.cpsys-barre .cpsys-menu{display:inline-flex;min-height:44px}}
+/* trois boutons dans la barre à 320 px : marges et écarts resserrés pour que « Factures » ne sorte pas */
+@media (max-width:400px){.cpsys-barre{gap:6px}.cpsys-barre button{padding:0 10px;font-size:13.5px}}
 /* L'atelier de devis et de contrats (prototype-documents.html), plein écran. « hidden » garde la LARGEUR (visibility, pas display:none) : un cadre à 0 px
    se croit un téléphone et l'atelier se refermait à la première ouverture. L'encoche du HAUT est réservée ICI (la barre de l'atelier ne la lit pas) ; le bas et les côtés, l'atelier les lit lui-même (env() y est la valeur de l'appareil dans le cadre : les réserver aussi ici les compterait deux fois). */
 #opdz{position:fixed;inset:0;z-index:9100;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc);padding-top:env(safe-area-inset-top,0px)}
@@ -608,6 +613,8 @@ html .fx-acmd{padding:18px 20px}
 html .fx-ch{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;margin-bottom:6px}html .fx-ch h3{margin:0 0 2px;font-size:20px}
 html .fx-pan{padding:14px 0 6px;border-top:1px solid var(--trait)}html .fx-pan:first-of-type{border-top:0}
 html .fx-pt{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}html .fx-pt>b{font-size:17px;overflow-wrap:anywhere}
+/* l'en-tête a la MÊME forme sur les trois onglets (titre, puis boutons dessous) : « ＋ Ajouter un article » est plus court que « ＋ Ajouter un fournisseur » et tenait à côté du titre, ce qui faisait SAUTER la barre d'onglets de 58 px en changeant d'onglet */
+html #contenu .tete.fx-tete{flex-wrap:wrap;row-gap:12px}html .fx-tete>div:first-child{flex:1 1 100%;min-width:0}html .fx-tete .actions{flex:1 1 100%}
 @media (min-width:761px){html .fx-pt{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px}}   /* sur ordinateur le nom du fournisseur et sa phrase tiennent sur une ligne : la première ligne à commander remonte de 24 px */
 html .fx-pl{display:flex;align-items:flex-start;gap:14px;padding:10px 0}
 html .fx-pl>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:3px}html .fx-pl>.fo-n>b{font-size:16px;overflow-wrap:anywhere}html .fx-pl .gris{overflow-wrap:anywhere}
@@ -650,6 +657,7 @@ html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html
 /* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
 html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
 html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}   /* « Envoyer à Établissements Dupont-Delaunay… » : le nom d'un fournisseur ne fait plus sortir le bouton de la feuille (678 px dans 390) */
+html .fo-depot{flex:none}   /* la feuille est une colonne flex : la zone « Choisir le fichier » (min-height 64) se laissait écraser à 64 px sous son propre texte, et le trait pointillé coupait le titre */
 html select[data-pdxlieu]{font-size:16px}   /* « Où ranger ? » de la réception : un champ à 15 px fait zoomer la page sur un iPhone */
 html .fx-lg .pdx-tel{display:flex;gap:8px;align-items:center;flex:none;width:min(62%,300px)}html .fx-lg .pdx-tel .saisie{flex:1 1 0;width:auto;min-width:0}
 html .fx-jours{display:inline-flex;align-items:center;gap:8px;flex:none}html .fx-jours .saisie{width:112px}
@@ -668,7 +676,7 @@ html .fx-dir{align-items:center}
 html .fx-voir .cmd-pre{white-space:pre-wrap;overflow-wrap:anywhere}
 html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html .fx-etape>b{font-size:16px}
 @media (max-width:760px){
-  html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:8px}html .fx-tete>div:first-child{flex:1 1 100%}
+  html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:12px 8px}html .fx-tete>div:first-child{flex:1 1 100%}
   html .fx-tete .actions{flex:1 1 100%;display:flex;flex-wrap:nowrap;gap:8px}
   html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){flex:1 1 0;min-width:0;min-height:48px;white-space:normal;line-height:1.2}
   html #contenu .tete.fx-tete .actions>.fx-photo,html #contenu .tete.fx-tete .actions>.fx-plusb{flex:none!important;width:46px!important;min-width:46px!important;min-height:48px;padding:0;font-size:0}   /* !important : la règle générale des en-têtes (ligne ~1208) donne à tout .btn « flex:1 1 auto; min-width:0 » et rétrécissait ces deux boutons à 38 px sur un écran de 320 */
@@ -688,6 +696,9 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html .fx-grille{grid-template-columns:minmax(0,1fr)}
   html .fx-el>.fo-n{flex:1 1 100%}
 }
+@media (min-width:761px) and (max-width:980px){   /* iPad portrait : le menu latéral laisse ~490 px, le tableau des commandes terminées (518 px de colonnes fixes) y écrasait le fournisseur à 0 px — même forme qu'au téléphone */
+  html .fx-te{display:none}html .fx-tr{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}html .fx-tr>b{grid-column:1;grid-row:1}html .fx-tf{grid-column:1;grid-row:2}html .fx-tm{grid-column:1;grid-row:3}html .fx-td{grid-column:1;grid-row:4}html .fx-tr .st{grid-column:2;grid-row:1;justify-self:end;text-align:right}
+}
 @media (max-width:520px){
   /* le bon de commande à l'écran (le fac-similé du PDF) : quatre colonnes de 60 px ne tiennent pas, la désignation passait sur huit lignes ; chaque ligne devient un petit bloc (désignation, puis quantité · prix · total) */
   html .bc-t thead{display:none}html .bc-t,html .bc-t tbody{display:block}html .bc-t tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--trait)}
@@ -695,6 +706,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 }
 @media (max-width:400px){
   /* un écran de 320 : le nom de la commande ne peut pas partager sa ligne avec la pastille (4 lignes de 127 px) ; la pastille passe dessous */
+  html .fx-a .ms-ic{display:none}   /* l'icône de catégorie (décorative) ne vaut pas 52 px sur 360 : le nom et la référence passaient de 140 à 192 px */
   html .fx-lm{flex-wrap:wrap;gap:6px 10px}html .fx-lm>.fo-n{flex:1 1 100%}html .fx-lm .fo-dr{max-width:100%;flex:none;align-items:flex-start;text-align:left}
   /* trois onglets dans 286 px : police et marges resserrées, la pastille de compte aussi */
   html .fx-seg button{padding:0 4px;gap:4px;font-size:13.5px}html .fx-seg .pr-nb{min-width:20px;height:20px;font-size:12px;padding:0 5px}
@@ -3689,6 +3701,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .vh-pied{margin-top:2px}.vh-pied .btn.large{flex:1 1 100%}
 #calque .panneau>.vh-pied{position:sticky;bottom:-1px;z-index:2;background:var(--feuille);padding:10px 0 4px;margin-bottom:-4px;box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
 .vh-ret{align-self:flex-start;min-height:44px}
+.deux-champs[hidden]{display:none}   /* « hidden » perdait contre display:grid : la paire de champs d'un détail replié restait ouverte */
+@media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}   /* la feuille qui monte ne dépasse pas 90 % de l'écran (le reste du voile reste visible : on sait où l'on est) */
 .vh-prochain{margin:0;font-size:14.5px;line-height:1.45;overflow-wrap:anywhere}
 .vh-plus{border:1px solid var(--trait);border-radius:14px;padding:0 14px;background:var(--surf2)}.vh-plus>summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600;color:var(--lien)}.vh-plus[open]{padding-bottom:14px}.vh-plus-c{display:flex;flex-direction:column;gap:12px}
 .vh-fin{display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--trait);padding-top:12px}
@@ -4521,6 +4535,8 @@ function toast(msg, action){ // action : { lib, fn }
   // une seule bulle à la fois : la Boîte mail a la sienne (dans son module) ; une bulle simple du module (« Pièce téléchargée… ») laisse la place à celle-ci
   // au lieu de se faire recouvrir à moitié — celle d'« Annuler l'envoi » (classe act) reste, elle porte un geste en cours
   try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
+  // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
+  try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } catch (e) {}
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
@@ -8344,9 +8360,10 @@ function placerPops(){
     if (droite > W - marge) e.style.left = (e.offsetLeft - (droite - (W - marge))) + 'px';
   });
 }
-function aller(h){ fermerPanneau(); fermerMenu(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
+function aller(h){ if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
 function lireHash(){
   const h = (location.hash || '#accueil').slice(1), [r, p] = h.split('-x-'), ici = route + (param ? '-x-' + param : '');
+  calApresNavigation();
   // le chemin parcouru, tenu par la page : l'historique du navigateur ne répond pas dans toutes les fenêtres (artefact, iframe)
   if (enRetour) enRetour = false; else if (ici !== h && lireHash.deja) histo.push(ici);
   lireHash.deja = true;
@@ -8364,9 +8381,122 @@ function ouvrirPanneau(html, large){
      Un message de LA MÊME action (moins de 0,4 s) reste, et un panneau déjà ouvert qu'on redessine n'y touche pas. */
   { const to = document.getElementById('toast'); if (to && to.classList.contains('on') && !document.querySelector('#calque .panneau') && Date.now() - (to._t0 || 0) > 400) to.classList.remove('on'); }
   const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
+  if (!document.querySelector('#calque .panneau') && av && av !== document.body) PANNEAU_AVANT = av;   /* le bouton qui ouvre la fenêtre : on le lui rend à la fermeture (clavier, lecteur d'écran) */
   document.getElementById('calque').innerHTML = `<div class="voile" data-ferme="1"><div class="panneau ${large?'large':''}" role="dialog" aria-modal="true"><button type="button" class="x" data-ferme="1" aria-label="Fermer">✕</button>${html}</div></div>`;
+  { const z = document.getElementById('cpsys'), v = document.querySelector('#calque .voile'); if (z && !z.hidden && v) v.style.zIndex = '9100'; }   // un panneau ouvert pendant la Comptabilité plein écran (z-index 9000) restait dessous, invisible
   if (!saisie) document.querySelector('#calque .panneau .x')?.focus({ preventScroll:true }); }
-function fermerPanneau(){ document.getElementById('calque').innerHTML = ''; }
+let PANNEAU_AVANT = null;
+function fermerPanneau(){ const c = document.getElementById('calque'), avait = !!c.querySelector('.panneau'); c.innerHTML = '';
+  if (avait && PANNEAU_AVANT) { const a = PANNEAU_AVANT; PANNEAU_AVANT = null; if (a.isConnected && !a.disabled && a.focus && !a.closest('[inert]')) a.focus({ preventScroll:true }); } }
+/* ── une fenêtre garde le focus, et le rend ── campagne coque, 17 novembre 2026 (coque-01, coque-11)
+   Toutes les fenêtres se déclarent aria-modal, mais rien ne retenait Tab : au clavier (ou avec un lecteur d'écran, ou le clavier d'un iPad)
+   le focus sortait de la fenêtre vers la page cachée derrière — 30 tabulations sur 30 au bureau pour le panneau des raccourcis (son seul
+   élément focalisable est ✕), jusqu'à 19 sur 30 pour la feuille « Menu » d'un Android, 9 sur 14 pour l'écran de connexion.
+   Un seul gestionnaire pour toutes : la fenêtre du dessus (la plus haute par son z-index) boucle sur ses propres éléments. La recherche (#pal) a
+   déjà sa règle (Tab n'y fait rien) : on la laisse. */
+(() => { const SEL = 'a[href],button,input:not([type="hidden"]),select,textarea,summary,[tabindex]:not([tabindex="-1"]),[contenteditable="true"]';
+  const visible = e => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const zDe = e => { for (let n = e; n && n !== document.body; n = n.parentElement) { const c = getComputedStyle(n); if (c.position === 'fixed' || c.position === 'absolute') { const z = parseInt(c.zIndex, 10); if (!isNaN(z)) return z; } } return 0; };
+  const modaleHaute = () => { let best = null, bz = -1; document.querySelectorAll('[aria-modal="true"]').forEach(m => { if (!visible(m) || m.closest('[inert]')) return; const z = zDe(m); if (z >= bz) { best = m; bz = z; } }); return best; };
+  const focalisables = m => { const L = [...m.querySelectorAll(SEL)].filter(e => !e.disabled && !e.closest('[hidden],[inert]') && visible(e) && (e.tabIndex >= 0));
+    return L.filter(e => !(e.type === 'radio' && !e.checked && L.some(o => o !== e && o.type === 'radio' && o.name === e.name && o.checked))); };
+  document.addEventListener('keydown', ev => { if (ev.key !== 'Tab' || ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const m = modaleHaute(); if (!m || m.id === 'pal') return;
+    const L = focalisables(m), a = document.activeElement, dedans = !!(a && m.contains(a));
+    if (!L.length) { ev.preventDefault(); if (!m.hasAttribute('tabindex')) m.setAttribute('tabindex', '-1'); m.focus({ preventScroll:true }); return; }
+    if (!dedans) { ev.preventDefault(); (ev.shiftKey ? L[L.length - 1] : L[0]).focus({ preventScroll:true }); return; }
+    if (ev.shiftKey && (a === L[0] || a === m)) { ev.preventDefault(); L[L.length - 1].focus({ preventScroll:true }); }
+    else if (!ev.shiftKey && a === L[L.length - 1]) { ev.preventDefault(); L[0].focus({ preventScroll:true }); } }, true);
+  /* la feuille « Menu » du téléphone ne survit pas à un élargissement de la fenêtre : sur l'écran de bureau elle resterait posée, avec son voile qui avale le premier toucher (coque-08) */
+  matchMedia('(min-width:761px)').addEventListener('change', e => { if (e.matches && document.querySelector('#calque .panneau .fm-liste')) fermerPanneau(); });
+  /* tant que l'écran de connexion est là, l'application derrière n'existe ni pour le clavier ni pour un lecteur d'écran (coque-01) */
+  const fond = () => { const on = !!document.getElementById('cnx'); document.querySelectorAll('.app, #barre-bas, #fenetre').forEach(e => { if (on) { e.setAttribute('inert', ''); e.setAttribute('aria-hidden', 'true'); } else { e.removeAttribute('inert'); e.removeAttribute('aria-hidden'); } }); };
+  new MutationObserver(fond).observe(document.body, { childList:true }); fond(); })();
+
+/* ══ LE BOUTON « RETOUR » DU NAVIGATEUR (Android, balayage de l'iPhone, Alt+←) — 17 novembre 2026 ══
+   Constat de la campagne (taches-absences-12) : dans tout le prototype, Retour fermait bien la fenêtre ouverte MAIS quittait aussi l'écran pour la page d'avant.
+   Sur Android c'est le geste le plus fait : on perdait sa place à chaque fenêtre fermée. La règle, UNE pour tout ce qui s'ouvre PAR-DESSUS un écran :
+   chaque niveau ouvert pose UNE entrée d'historique à la même adresse (l'adresse #route ne bouge pas) ; Retour ferme le dernier ouvert et laisse l'écran
+   dessous où il était (son rendu n'est pas rejoué : défilement et champs restent) ; fermer par la croix, Échap ou un toucher dehors consomme l'entrée.
+   UN seul mécanisme, à UN endroit : la liste CAL_GENRES dit comment se RECONNAÎT un calque ouvert (dans le document, jamais dans une variable de plus) et comment
+   on le FERME ; un seul observateur du document compare la pile des calques ouverts à celle de l'historique (`calSync`), un seul écouteur de popstate réagit au Retour.
+   Un calque nouveau n'a donc rien à écrire : il s'ajoute à la liste, ou n'existe pas pour le Retour (tests : sondes retour-*.js).
+   · une fenêtre qui MÈNE à un autre écran (aller) ne laisse pas d'entrée fantôme : les entrées partent d'abord (calAvantAller), puis l'adresse change ;
+   · Avancer après un Retour ne rouvre pas une fenêtre vide : l'entrée atteinte est repoussée aussitôt ;
+   · un rechargement fenêtre ouverte : la page ne rouvre rien, et l'entrée orpheline est reculée au chargement ;
+   · l'atelier de devis (#opdz) et le module de courrier (prototype-courrier.js, entrées {opcourrier}) ont leurs propres entrées dans le même historique : on ne lit que `state.cal`.
+   Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre, artefact), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
+const CAL_GENRES = [
+  { k:'panneau',     ouvert:() => !!document.querySelector('#calque .voile'),            ferme:() => fermerPanneau() },   // fiches, formulaires, la feuille « Menu »
+  { k:'fenetre',     ouvert:() => !!document.querySelector('#fenetre .fen-voile'),      ferme:() => fermerCreation() },   // « Nouvelle intervention »
+  { k:'menu',        ouvert:() => !!document.querySelector('.ctx'),                     ferme:() => fermerMenu() },       // menus contextuels
+  { k:'date',        ouvert:() => !!document.getElementById('dtpop'),                   ferme:() => dtFermer() },         // choisir une date ou une heure
+  { k:'planning',    ouvert:() => !!document.querySelector('.pm-pop'),                  ferme:() => { multiPop = null; rendre(); } },   // « Quels jours ? », « Personnes », « Mes vues »
+  { k:'recherche',   ouvert:() => !!document.getElementById('pal'),                     ferme:() => palFermer(true) },
+  { k:'pdf',         ouvert:() => !!document.getElementById('docplein'),               ferme:() => docPleinFermer() },   // un document en grand
+  { k:'visionneuse', ouvert:() => !!document.getElementById('cx-vis'),                  ferme:() => cxVoirFermer() },     // la pièce jointe du client en grand
+  { k:'paiement',    ouvert:() => !!document.querySelector('#cx-enligne.plein'),        ferme:() => { const b = document.querySelector('[data-cx="enlignePlein"]'); if (b) b.click(); } },   // le module de paiement en plein écran
+  { k:'carte',       ouvert:() => !!document.querySelector('.cr.cr-plein'),             ferme:() => { const b = document.querySelector('[data-crplein]'); if (b) b.click(); else { crPlein = false; rendre(); } } },   // la carte du planning en plein écran
+  { k:'atelier',     ouvert:() => !!document.querySelector('#opdz:not([hidden])'),      ferme:() => opdFermer('fin') },   // l'atelier de devis et de contrats
+  { k:'nouveautes',  ouvert:() => !!document.querySelector('#nv:not(.part)'),           ferme:() => nvFermer() },         // le guide des nouveautés
+  { k:'visite',      ouvert:() => !!document.getElementById('gd-bulle'),                ferme:() => gdQuitter() },        // la visite guidée
+];
+const CAL = { pile:[], pousse:0, ignore:0, suite:null, minuteur:0, echecs:0, off:false, sale:false, prevu:false };
+const calOuverts = () => CAL_GENRES.filter(g => { try { return g.ouvert(); } catch (e) { return false; } }).map(g => g.k);
+/* un recul demandé à l'historique est ASYNCHRONE : tant qu'il n'est pas arrivé (popstate), rien d'autre ne touche à l'historique — sinon l'entrée poussée entre-temps
+   serait la mauvaise cible. S'il n'arrive jamais (historique muet), on s'éteint après deux essais plutôt que de rester muet à l'infini. */
+function calReculer(n, suite){
+  if (suite) CAL.suite = suite;
+  if (CAL.ignore > 0) return;   // un recul est déjà en route : il emportera la suite
+  CAL.ignore = 1; clearTimeout(CAL.minuteur);
+  CAL.minuteur = setTimeout(() => { if (CAL.ignore > 0) { CAL.ignore = 0; CAL.echecs++; if (CAL.echecs >= 2) CAL.off = true; calFinRecul(); } }, 1500);
+  try { history.go(-n); } catch (e) { CAL.off = true; CAL.ignore = 0; clearTimeout(CAL.minuteur); calFinRecul(); }
+}
+function calFinRecul(){ const s = CAL.suite; CAL.suite = null; if (s) s(); calSync(); }
+function calSync(){
+  if (CAL.off) return;
+  if (CAL.ignore > 0) { CAL.sale = true; return; }
+  const ouv = calOuverts();
+  CAL.pile = CAL.pile.filter(k => ouv.includes(k)).concat(ouv.filter(k => !CAL.pile.includes(k)));
+  const d = CAL.pile.length;
+  try {
+    while (CAL.pousse < d) { history.pushState({ cal:CAL.pousse + 1 }, '', location.href); CAL.pousse++; }
+    if (CAL.pousse > d) { const n = CAL.pousse - d; CAL.pousse = d; calReculer(n); }
+  } catch (e) { CAL.off = true; CAL.pousse = 0; }
+}
+/* aller() depuis une fenêtre : ses entrées partent d'abord (un seul recul), l'adresse change ensuite — l'historique reste [écran d'avant, écran d'arrivée], sans entrée fantôme */
+function calAvantAller(suite){
+  if (CAL.off || (CAL.pousse === 0 && CAL.ignore === 0)) return false;
+  const n = CAL.pousse; CAL.pousse = 0; CAL.pile = []; calReculer(n, suite); return true;
+}
+/* un bouton qui RAMÈNE à l'écran d'où l'on venait (« ‹ OP GESTION » de la Comptabilité) recule d'une entrée au lieu d'en ajouter une : sans ça, [Accueil, Comptabilité, Accueil] —
+   et Retour rouvrait la Comptabilité qu'on venait de quitter. `histo` dit d'où l'on vient ; si l'écran d'avant n'est pas celui-là, ou si l'historique ne répond pas (cadre, artefact), on navigue comme avant. */
+function calRevenirA(d){
+  if (CAL.off || CAL.pousse > 0 || CAL.ignore > 0 || histo[histo.length - 1] !== d || history.length < 2) return false;
+  histo.pop(); enRetour = true;
+  const h = location.hash; try { history.back(); } catch (e) { enRetour = false; histo.push(d); return false; }
+  setTimeout(() => { if (location.hash === h) { enRetour = false; if (histo[histo.length - 1] !== d) histo.push(d); aller(d); } }, 600);   // l'historique n'a pas répondu : on va à l'écran demandé
+  return true;
+}
+/* une adresse changée autrement que par aller() (lien, saisie) : les fenêtres se ferment avec l'écran, la pile repart de zéro */
+function calApresNavigation(){ if (CAL.ignore === 0) { CAL.pousse = 0; CAL.pile = []; } }
+addEventListener('popstate', ev => {
+  if (CAL.off) return;
+  if (CAL.ignore > 0) { CAL.ignore = 0; clearTimeout(CAL.minuteur); CAL.echecs = 0; calFinRecul(); return; }
+  const n = ev.state && typeof ev.state.cal === 'number' ? ev.state.cal : 0;
+  if (n < CAL.pousse) {   // RETOUR : le navigateur a retiré des entrées, on ferme autant de calques, le dernier ouvert d'abord
+    let k = CAL.pousse - n; CAL.pousse = n;
+    while (k-- > 0) { const dernier = CAL.pile.pop(), g = CAL_GENRES.find(x => x.k === dernier); if (g) { try { g.ferme(); } catch (e) { console.error('retour', g.k, e); } } }
+    calSync();
+  } else if (n > CAL.pousse) { CAL.ignore = 1; clearTimeout(CAL.minuteur); CAL.minuteur = setTimeout(() => { CAL.ignore = 0; CAL.echecs++; if (CAL.echecs >= 2) CAL.off = true; }, 1500); try { history.go(CAL.pousse - n); } catch (e) { CAL.off = true; CAL.ignore = 0; } }   // AVANCER vers une entrée sans fenêtre : on ne rouvre rien, on repousse l'entrée
+});
+/* le navigateur rend à chaque entrée SON défilement quand on y revient : un Retour qui ferme une fenêtre remettait donc l'écran en haut (mesuré : 180 px → 0). Les changements d'écran remontent déjà
+   eux-mêmes (lireHash) : la restauration automatique ne sert à rien ici, et elle défait ce que la règle promet — l'écran dessous reste où il était. */
+try { history.scrollRestoration = 'manual'; } catch (e) {}
+{ const veille = () => { if (CAL.prevu) return; CAL.prevu = true; queueMicrotask(() => { CAL.prevu = false; calSync(); }); };
+  new MutationObserver(veille).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden', 'class'] });
+  try { const e = history.state; if (e && typeof e.cal === 'number' && e.cal > 0) calReculer(e.cal); } catch (e) {}   // rechargé fenêtre ouverte : l'entrée orpheline est reculée
+}
 
 /* la signature : un vrai tracé au doigt ou à la souris */
 function brancherSignature(idCanvas, _f, id){
@@ -10447,7 +10577,7 @@ vueComptabilite = function(){
     fachats:() => cxVueFactures(D, 'achats'), ndf:() => cxVueNdf(D), fournisseurs:() => cxVueFournisseurs(), paiements:() => cxVuePaiements(K), banque:() => cpVueBanque(K.rap, K.soldeBq), caisse:() => cpVueCaisse(K.ca), enligne:() => cxVueEnLigne(),
     tva:() => cpVueTva(K.tv), ecritures:() => cpVueEcritures(), balance:() => cxBalance(E), grandlivre:() => cxGrandLivre(E), resultat:() => cxResultat(E), envoi:() => cxEnvoi(E), normes:() => cxVueNormes(conf), archives:() => cxVueArchives(K, D), paiemois:() => paieVueMois(), fiches:() => paieVueFiches(), salaries:() => paieVueSalaries(), charges:() => paieVueCharges() }[O]();
   return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris">Tes ventes, tes achats, ta trésorerie et ta TVA, rangés comme chez un expert-comptable. Tout s’écrit tout seul ; tu vérifies, tu envoies.</span></div>
-    <div class="actions"><button type="button" class="btn gris" data-gd="apprendre">📘 Visite guidée</button><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Ajouter</button></div></div>
+    <div class="actions"><button type="button" class="btn gris" data-gd="apprendre">📘 Visite guidée</button><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Nouvelle opération</button></div></div>
   ${clos}
   <nav class="cx-nav1" aria-label="Espaces de la comptabilité">${CX_NAV.filter(g => g[0] !== 'paie' || cxEstPatron()).map(g => `<button type="button" data-cx="grp|${g[0]}" aria-current="${G[0] === g[0] ? 'page' : 'false'}"><span class="cx-gi" aria-hidden="true">${g[2]}</span><span class="cx-gl1">${g[1]}</span><span class="cx-gl2">${g[4] || g[1]}</span>${nbG(g) ? `<span class="cx-nb">${nbG(g)}</span>` : ''}</button>`).join('')}</nav>
   <div class="cx-sous" role="tablist" aria-label="${esc(G[1])}">${G[3].map(([k, l]) => `<button type="button" role="tab" data-cx="sec|${k}" aria-selected="${O === k}">${l}${nb[k] ? `<span class="cx-nb">${nb[k]}</span>` : ''}</button>`).join('')}</div>
@@ -10466,7 +10596,7 @@ function cxVueFactures(D, famille){
   if (CX.st === 'sanspiece' && !sans) CX.st = 'tous'; if (CX.cat === 'avoirs' && CX.st !== 'tous') CX.st = 'tous';
   const c = CX_CATS.find(o => o.k === CX.cat);
   return `<div class="cx-cats" role="group" aria-label="Catégories">${famille === 'ventes' ? chip('ventes', '', 'Factures et avoirs') + cats('ventes') : chip('achats', '', 'Tous les achats') + cats('achats')}</div>
-    ${c ? `<div class="cx-explique"><span aria-hidden="true">${c.ic}</span><span><b>${c.l}</b> · ${c.d}.${c.k === 'clients' ? ' Elles se préparent toutes seules à la fin de chaque intervention : tu valides, elles partent.' : c.fam === 'achats' ? ' Ajoute une facture ou une photo de ticket avec « ＋ Ajouter ».' : ''}</span></div>` : ''}
+    ${c ? `<div class="cx-explique"><span aria-hidden="true">${c.ic}</span><span><b>${c.l}</b> · ${c.d}.${c.k === 'clients' ? ' Elles se préparent toutes seules à la fin de chaque intervention : tu valides, elles partent.' : c.fam === 'achats' ? ' Ajoute une facture ou une photo de ticket avec « ＋ Nouvelle opération ».' : ''}</span></div>` : ''}
     <div class="cx-outils"><div class="seg" role="group" aria-label="Où elles en sont">${filtres.map(([k, l]) => `<button type="button" data-cx="st|${k}" aria-pressed="${CX.st === k}">${l}</button>`).join('')}</div>
       <input class="saisie cx-q" type="search" placeholder="${famille === 'ventes' ? 'Chercher un client, un numéro de facture…' : 'Chercher un fournisseur, un numéro…'}" value="${esc(CX.q)}" data-cxq="1" aria-label="Chercher une facture"></div>
     <div id="cx-liste">${cxListe(D)}</div>
@@ -10603,7 +10733,7 @@ function cxEnvoi(E){
 
 /* ─── Ajouter : une facture client, une dépense, un paiement ─── */
 function cxNouveau(){
-  ouvrirPanneau(`<span class="surtitre">Comptabilité</span><h2>Ajouter</h2><div class="cx-choix">
+  ouvrirPanneau(`<span class="surtitre">Comptabilité</span><h2>Nouvelle opération</h2><div class="cx-choix">
     <button type="button" data-cx="facture"><span aria-hidden="true">🧾</span><b>Facture client</b><span class="gris petit">Pour une vente sans intervention : une pièce, un acompte… Les autres se préparent toutes seules à la fin de l’intervention.</span></button>
     <button type="button" data-cx="depense"><span aria-hidden="true">📦</span><b>Facture fournisseur ou dépense</b><span class="gris petit">Matériel, carburant, assurance, téléphone… avec sa photo, rangée dans sa catégorie.</span></button>
     <button type="button" data-action="ajoutEnc"><span aria-hidden="true">💶</span><b>Paiement reçu</b><span class="gris petit">Un client t’a payé : sa facture passe payée.</span></button>
@@ -12829,7 +12959,7 @@ const TOUR_COMPTA = [
     { c:'#cx-liste [data-cx^="doc|ach|"]', t:'Ouvre un achat sans justificatif', p:'On voit ce qui a été payé, quand, à qui, et ce qui manque.', ok:() => gdPanneau() },
     { c:'#calque .panneau .cx-bloc', t:'La pièce justificative', p:'Une photo de la facture suffit : prise au téléphone ou glissée depuis un e-mail, elle est rangée avec l’achat et envoyée à ton expert-comptable.', suivant:1, si:() => gdPanneau() },
     gdFermer,
-    { c:'.tete [data-cx="nouveau"]', t:'« ＋ Ajouter » : un achat, une dépense, un paiement', p:'Pour ce qui n’arrive pas tout seul. Le reste (commandes aux fournisseurs, notes de frais, banque) s’écrit sans que tu le tapes.', suivant:1 } ] },
+    { c:'.tete [data-cx="nouveau"]', t:'« ＋ Nouvelle opération » : une facture, une dépense, un paiement', p:'Pour ce qui n’arrive pas tout seul. Le reste (commandes aux fournisseurs, notes de frais, banque) s’écrit sans que tu le tapes.', suivant:1 } ] },
   { r:'gestion', cat:'Achats', t:'Notes de frais & fournisseurs', d:'Ce que l’équipe avance de sa poche (un repas, un plein, un parking), et ce que tu dois à chaque fournisseur.', go:gdCompta('ndf'), gestes:[
     { c:'.cx-explique', t:'Comment marche une note de frais', p:'Le technicien prend le ticket en photo depuis son téléphone. Tu valides, c’est remboursé avec la paie.', suivant:1 },
     { c:'input[data-ndfregle]', t:'Les notes sans ticket : un réglage du patron', p:'Certains patrons acceptent de rembourser sans ticket. Si la case est cochée, on peut valider sans ticket, mais une question est posée à chaque fois. Seul le patron peut changer ce réglage.', suivant:1 },
@@ -13262,7 +13392,7 @@ document.addEventListener('click', ev => {
   const b = t.closest('[data-cpsys]'); if (!b) return; const a = b.dataset.cpsys;
   if (a === 'ouvrir') { cpSysteme = true; rendre(); }
   else if (a === 'quotidien') { cpSysteme = false; CP.onglet = 'ensemble'; if (route === 'comptabilite') { rendre(); scrollTo({ top:0 }); } else aller('comptabilite'); }
-  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; aller(d); }
+  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; calRevenirA(d) || aller(d); }
 }, true);
 document.addEventListener('keydown', ev => { const z = document.getElementById('cpsys'); if (ev.key === 'Escape' && z && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
 /* ══ LA VOIX DU GUIDE (Justin, 10 novembre 2026 : « un guide avec une voix qui me parle, qui m'explique tout, à quoi ça consiste,
@@ -13823,7 +13953,7 @@ document.addEventListener('click', ev => {
   if (!but.length) return;   // rien d'automatique dans la sélection : « Fait » termine d'un clic, comme avant
   ev.stopPropagation(); ev.preventDefault();
   const C = [...new Set(L.map(tCat))], R = C.length === 1 ? T_ROUTES[C[0]] || null : null;
-  ouvrirPanneau(`<span class="tkx-lot" hidden></span><h2>Qu’as-tu fait ?</h2><span class="gris">${but.length > 1 ? but.length + ' de ces tâches se terminent' : 'Cette tâche se termine'} toute${but.length > 1 ? 's' : ''} seule${but.length > 1 ? 's' : ''} quand le geste est fait dans l’application. Dis ce qui s’est passé : ça s’écrit dans l’Historique.</span>
+  ouvrirPanneau(`<span class="tkx-lot" hidden></span><h2>Qu’as-tu fait ?</h2><span class="gris">${but.length > 1 ? but.length + ' de ces tâches se terminent' : 'Cette tâche se termine'} d’elle${but.length > 1 ? 's-mêmes' : '-même'} quand le travail est fait dans l’application (une relance envoyée, une intervention planifiée…). Tu l’as fait autrement, par téléphone ou sur place ? Dis ce qui s’est passé : ${but.length > 1 ? 'elles sont terminées' : 'elle est terminée'} et ça s’écrit dans l’Historique.</span>
     <div class="tkx-lot-l">${but.map(x => `<span class="tkx-lot-t">${esc(x.t)}</span>`).join('')}</div>
     <div class="t-gestes tkx-lot-g"><button type="button" class="btn" data-tkxlot="J’ai appelé">📞 J’ai appelé</button><button type="button" class="btn gris" data-tkxlot="J’ai envoyé un message en dehors de l’application">✉ J’ai envoyé un message ailleurs</button>${R ? `<button type="button" class="btn gris" data-tkxlotouvrir="${R[0]}">${R[2]} Ouvrir dans ${R[1]} pour le faire</button>` : ''}</div>`);
 }, true);
@@ -17988,7 +18118,7 @@ function vxNouveauPanel(){
       <label class="champ">Prochain contrôle technique<input id="vn-ct" type="date"></label>
       <div class="deux-champs"><label class="champ">Dernière révision, le<input id="vn-rd" type="date" max="${AUJ}"></label><label class="champ">à (km)<input id="vn-rk" inputmode="numeric" autocomplete="off"></label></div>
       <label class="champ">Énergie exacte<select id="vn-en2"><option value="">Comme choisi plus haut</option>${VX_ENERGIES.map(o => `<option>${o}</option>`).join('')}</select></label>
-      <span class="gris petit">Révision proposée tous les 15 000 km ou 12 mois · <button type="button" class="lien" data-vh="montrer|vn-iv">Changer</button></span>
+      <span class="gris petit">Révision proposée tous les 15 000 km ou 12 mois.</span><button type="button" class="lien vh-ret" data-vh="montrer|vn-iv">Changer</button>
       <div class="deux-champs" id="vn-iv" hidden><label class="champ">Tous les (km)<input id="vn-ik" inputmode="numeric" value="15000" autocomplete="off"></label><label class="champ">ou tous les (mois)<input id="vn-im" inputmode="numeric" value="12" autocomplete="off"></label></div>
     </div></details>
     <div id="vx-al"></div>
@@ -18306,7 +18436,7 @@ function vxRdv(vid, k, from){
     <span class="gris">${esc(vhSujet(e))} est ${esc(vhQuand(e))}. Le rendez-vous devient une tâche, au jour que tu écris.</span>
     <label class="champ">Quel jour ?<input type="date" id="vh-rd" value="${prop}" min="${AUJ}"></label>
     <label class="champ"><span>Quel garage ? <span class="faible">(facultatif)</span></span><input id="vh-rg" list="vh-gl" placeholder="ex. ${esc(garages[0] || 'Renault Pro')}" value="${esc(garages[0] || '')}" autocomplete="off"><datalist id="vh-gl">${garages.map(g => `<option value="${esc(g)}">`).join('')}</datalist></label>
-    <div class="actions"><button type="button" class="btn large" data-vh="rdvok|${v.id}|${e.k}|${from || 'liste'}">Noter le rendez-vous</button></div>
+    <div class="actions vh-pied"><button type="button" class="btn large" data-vh="rdvok|${v.id}|${e.k}|${from || 'liste'}">Noter le rendez-vous</button></div>
     <button type="button" class="lien" data-vh="fait|${v.id}|${e.k}|${from || 'liste'}">C’est déjà fait ? ${esc(VH_FAIT[e.k])}</button>`);
 }
 function vxRdvOk(vid, k, from){
@@ -18323,7 +18453,7 @@ function vhDocPanel(vid){
   ouvrirPanneau(`<span class="surtitre">${esc(vhNom(v))} · ${esc(v.plaque)}</span><h2>Ajouter un document</h2>
     <label class="champ">Lequel ?<select id="vh-dk">${[['carte', 'Carte grise'], ['assur', 'Attestation d’assurance'], ['ct', 'Rapport du contrôle technique']].map(([k, l]) => `<option value="${k}" ${v.docs[k] ? '' : 'selected'}>${l}${v.docs[k] ? ' (à remplacer)' : ''}</option>`).join('')}</select></label>
     <label class="btn gris vx-ajout vh-fichier">Photo ou fichier <span class="faible" id="vh-dn">(aucun pour l’instant)</span><input type="file" id="vh-df" accept="image/*,application/pdf" capture="environment" hidden></label>
-    <div class="actions"><button type="button" class="btn large" data-vh="docok|${v.id}">Ajouter le document</button></div>
+    <div class="actions vh-pied"><button type="button" class="btn large" data-vh="docok|${v.id}">Ajouter le document</button></div>
     <button type="button" class="lien" data-vh="fiche|${v.id}|papiers">‹ Retour à la fiche</button>`);
 }
 const VH_MAT_PAN = { id:null, from:'liste' };
@@ -19305,7 +19435,7 @@ vueAchats = function () {
   if (!O.some(o => o[0] === acOnglet)) acOnglet = 'demandes';
   const compta = rlPermis('comptabilite'), apTot = ap.reduce((t, a) => t + acTTC(a), 0);
   return `<div class="tete ach-tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
-      ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Demande</button></div>'}</div>
+      ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Nouvelle demande d’achat</button></div>'}</div>
     <div class="kpis ach-k2"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} de matériel ${lect ? 'en attente' : 'à décider'}${na ? ' · ' + na + ' à acheter' : ''}</span></button>
       <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
     ${compta ? `<div class="groupe">Ça se règle dans la Comptabilité</div><div class="fo-bloc ach-compta">
@@ -21880,7 +22010,7 @@ function opdListeNet(L){
 }
 function opdListeLire(){ try { const t = localStorage.getItem(OPD_CLE); return (t && opdListeNet(JSON.parse(t))) || []; } catch (e) { return []; } }
 const ATD = { docs:opdListeLire() };
-const OPDZ = { pret:false, file:[], ouvert:false, tAtt:0, push:false, ignore:0, sale:false, depart:'', sigDocs:JSON.stringify(ATD.docs), sigDon:'', overflow:'' };
+const OPDZ = { pret:false, file:[], ouvert:false, tAtt:0, sale:false, depart:'', sigDocs:JSON.stringify(ATD.docs), sigDon:'', overflow:'' };
 const opdOuvert = () => { const z = document.getElementById('opdz'); return !!z && !z.hidden; };
 const opdCadre = () => { const z = document.getElementById('opdz'); return z && z.querySelector('iframe'); };
 const opdDocsDe = (type, etats) => ATD.docs.filter(x => x.type === type && (!etats || etats.includes(x.etat))).sort((a, b) => b.maj - a.maj);
@@ -21971,16 +22101,14 @@ function opdOuvrir(faire, o){
   const z = opdCreer(); if (!z.hidden) return;   // un double toucher ne l'ouvre pas deux fois
   OPDZ.depart = o.depart ? '[data-opd="' + faire + '"]' + (o.client ? '[data-cli="' + o.client + '"]' : '') + (o.id ? '[data-id="' + o.id + '"]' : '') : '';
   OPDZ.overflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; fermerPanneau(); fermerMenu(); z.hidden = false;
-  try { history.pushState({ opdz:1 }, '', location.href); OPDZ.push = true; } catch (e) { OPDZ.push = false; }   // UNE entrée d'historique : Retour (navigateur, Android) ferme l'atelier et laisse l'écran dessous où il était
   const m = { opd_ouvrir:{ faire, ...(o.client && opdCli(o.client) ? { client:o.client } : {}), ...(faire === 'doc' ? { id:o.id } : {}) } };
   OPDZ.file = [m];
   if (OPDZ.pret) { opdAttente(false); z.querySelector('.opdz-att').hidden = true; opdEnvoyer(OPDZ.file.shift()); const f = opdCadre(); try { f.contentWindow.focus(); } catch (e) {} }
   else { opdAttente(false); clearTimeout(OPDZ.tAtt); OPDZ.tAtt = setTimeout(() => { if (opdOuvert() && !OPDZ.pret) opdAttente(true); }, 8000); }
 }
-function opdFermer(motif, dejaParti){
+function opdFermer(motif){
   const z = document.getElementById('opdz'); if (!z || z.hidden) return; clearTimeout(OPDZ.tAtt); OPDZ.file = [];
   z.hidden = true; document.body.style.overflow = OPDZ.overflow || '';
-  if (OPDZ.push) { OPDZ.push = false; if (!dejaParti) { OPDZ.ignore++; try { history.back(); } catch (e) { OPDZ.ignore--; } } }   // fermer par un bouton, Échap ou la demande de l'atelier consomme l'entrée poussée
   if (motif === 'role') toast('Ton rôle n’a pas accès aux documents sur mesure.'); else if (motif === 'absent') toast('L’atelier n’a pas pu s’ouvrir.');
   const de = OPDZ.depart; OPDZ.depart = '';
   if (OPDZ.sale) { OPDZ.sale = false; opdRedessiner(); }
@@ -22012,10 +22140,7 @@ addEventListener('message', ev => {
     const q = opdA(d, 'opd_fermer'); if (q !== undefined) { const m = opdA(q, 'motif'); opdFermer(m === 'role' || m === 'absent' ? m : 'fin'); }
   } catch (e) { console.error('opd', e); }
 });
-addEventListener('popstate', () => {
-  if (OPDZ.ignore > 0) { OPDZ.ignore--; return; }
-  if (opdOuvert() && OPDZ.push && !(history.state && history.state.opdz)) { OPDZ.push = false; opdFermer(null, true); }   // Retour : l'entrée poussée est partie, l'atelier se ferme (un Retour traité DANS l'atelier laisse l'état en place)
-});
+/* le bouton Retour de l'atelier : le mécanisme COMMUN des calques (CAL_GENRES, « atelier ») pose et consomme son entrée d'historique ; un Retour traité DANS l'atelier (cadre) ne touche pas à la nôtre */
 window.addEventListener('keydown', ev => {   // l'atelier est ouvert : les raccourcis du prototype ne partent pas pendant qu'il a la main
   if (!opdOuvert()) return; const z = document.getElementById('opdz');
   if (ev.key === 'Escape' && !OPDZ.pret) { ev.preventDefault(); opdFermer('fin'); return; }
@@ -23153,11 +23278,11 @@ immChap('produits', 'produits', 'Fournisseurs, matériel & produits', 'Les produ
   'Cette catégorie réunit ce que ton équipe commande : les commandes aux fournisseurs, les articles avec leur prix, et les fournisseurs eux-mêmes. Je te montre comment passer une commande et la recevoir.', [
   { c:'[data-vis="four-onglets"]', t:'Trois onglets, une seule catégorie', p:'En haut, trois onglets. Commandes, pour acheter et suivre. Articles, avec tes 29 articles et leurs prix. Et Fournisseurs, avec les 5 chez qui tu achètes. Le gros bouton noir change avec l’onglet.' },
   { c:'[data-vis="four-commander"]', t:'Ce qu’il faut commander', p:'La carte « À commander » range ce qui est bientôt fini par fournisseur, avec la quantité déjà calculée sur ce que tu utilises. Chaque ligne se règle d’un toucher : plus, moins, ou retirer.' },
-  { c:'[data-vis="four-photo"]', t:'Photographier une facture', p:'Le bouton appareil photo lit une facture de fournisseur : les quantités entrent en stock, les prix d’achat se mettent à jour, et une hausse se voit tout de suite.' },
-  { c:'[data-vis="four-articles"]', t:'Les articles', p:'Je passe sur l’onglet Articles. Une recherche, un filtre, et la liste rangée par catégorie : chaque ligne montre le prix de vente et la marge.',
-    jouer:() => { immStockRegler(); immClic('[data-pr="vue|articles"]'); } },
+  { c:'[data-vis="four-photo"]', t:'Photographier une facture', p:'Le bouton appareil photo lit une facture de fournisseur : les quantités entrent en stock, les prix d’achat se mettent à jour, et une hausse se voit tout de suite. Je passe maintenant sur l’onglet Articles.',
+    jouer:() => { immStockRegler(); immClic('[data-pr="vue|articles"]'); } },   /* la cible de l'étape suivante n'existe qu'une fois l'onglet ouvert : c'est le geste de l'étape d'AVANT qui l'ouvre */
+  { c:'[data-vis="four-articles"]', t:'Les articles', p:'Voici l’onglet Articles. Une recherche, un filtre, et la liste rangée par catégorie : chaque ligne montre le prix de vente et la marge.' },
   { c:'[data-pr^="nouveau|"]', t:'Ajouter un article', p:'Pour ajouter un article, je touche « Ajouter un article ». Un formulaire s’ouvre, et l’application va remplir presque tout toute seule.',
-    jouer:() => { immStockRegler(); immClic('[data-pr^="nouveau|"]'); } },
+    jouer:() => immClic('[data-pr^="nouveau|"]') },   /* pas de immStockRegler ici : il remet l'onglet sur Commandes, et la liste où l'article doit apparaître n'existerait plus */
   { c:'#calque .panneau', t:'Il se range tout seul', p:'Je tape le nom : siphon de condensats. L’application le range toute seule dans la bonne catégorie, avec le fournisseur habituel. Je mets 4 euros à l’achat : elle propose 8 euros à la vente, avec la marge de la catégorie.',
     jouer:() => { immEcrire('#pr-nom', 'Siphon de condensats'); immStockPlus(() => { immEcrire('#pr-pa', '4'); immStockPlus(() => immClic('[data-pdx^="prop|"]'), 250); }, 250); } },
   { c:'[data-pr="garder|"]', t:'Les protections de l’application', p:'Avant d’enregistrer, l’application te protège : elle prévient d’un doublon, refuse un prix négatif, et te demande confirmation si tu vends à perte. Je touche Ajouter.',
@@ -23687,7 +23812,7 @@ if (typeof rendre === 'function' && typeof scrollX === 'number' && document.getE
    Une recherche rapide (Cmd K), des raccourcis qui ne volent jamais une frappe dans un champ, et la carte qui obéit au trackpad
    (deux doigts déplacent, le pincement zoome). Rien ici ne s'allume sur un téléphone : pas de clavier, pas de palette. */
 document.head.insertAdjacentHTML('beforeend', `<style id="app-mac">
-#pal{position:fixed;inset:0;z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;background:rgba(8,14,28,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#pal{position:fixed;inset:0;z-index:9200;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;background:rgba(8,14,28,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .pal-b{width:min(640px,100%);max-height:70vh;display:flex;flex-direction:column;border-radius:20px;background:var(--feuille,#f8f9fc);border:1px solid var(--trait);box-shadow:0 40px 90px rgba(0,0,0,.38);overflow:hidden;color:var(--encre)}
 .pal-c{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--trait)}
 .pal-c svg{flex:none;width:20px;height:20px;color:var(--doux)}
@@ -23721,7 +23846,10 @@ function rcRubriques(){ return rlLignes().filter(c => !c.ec).map(c => ({ k:c.k, 
 function rcChampRecherche(){ return [...document.querySelectorAll('#contenu input[type="search"],#contenu input[placeholder^="Recherch"],#contenu input[placeholder^="Cherch"],#contenu input[placeholder^="Trouver"]')].find(i => i.offsetParent !== null && !i.disabled) || null; }
 let PAL = null;
 /* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
-const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais' };
+const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais',
+  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture',
+  equipe:'utilisateur utilisateurs technicien techniciens salarié salariés employé mot de passe droits permissions inviter', produits:'commande commandes bons de commande matériel articles', stock:'produits matériel inventaire',
+  planning:'rendez-vous rdv agenda', absences:'congés vacances arrêt maladie' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
 function palEntrees(){ const R = rcRubriques(), E = [];
   R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
@@ -23733,7 +23861,7 @@ function palEntrees(){ const R = rcRubriques(), E = [];
   if (rlPermis('clients')) {
     Object.entries(CLIENTS).forEach(([id, c]) => E.push({ g:'Clients', l:c.nom, ic:'🏢', d:(c.adr || '').split(',').pop().trim(), m:[c.contact, c.tel, c.mail, c.adr].join(' '), fn:() => aller('client-x-' + id) })); }
   E.push({ g:'Affichage', l:'Mode jour', ic:'☀️', fn:() => rcMode('jour') }, { g:'Affichage', l:'Mode nuit', ic:'🌙', fn:() => rcMode('nuit') }, { g:'Affichage', l:'Mode automatique (suit l’appareil)', ic:'🌗', fn:() => rcMode('auto') },
-    ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Se déconnecter', ic:'🚪', fn:() => sessionFermer() }] : []),   /* hors du mode application il n'y a pas de compte : « Se déconnecter » menait à un écran de lien sans issue */
+    ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Se déconnecter', ic:'🚪', m:'déconnexion quitter fermer la session', fn:() => sessionFermer() }] : []),   /* hors du mode application il n'y a pas de compte : « Se déconnecter » menait à un écran de lien sans issue */
     { g:'Aide', l:'Raccourcis clavier', ic:'⌨️', d:'?', fn:() => rcAide() });
   if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof immLancer === 'function') E.push({ g:'Aide', l:'Découvrir l’application (visite parlée)', ic:'🎧', fn:() => immLancer(0) }); if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof nvOuvrir === 'function') E.push({ g:'Aide', l:'Nouveautés de cette version', ic:'✨', fn:() => nvOuvrir() });
   return E; }
@@ -23757,12 +23885,12 @@ const RC_LISTE = [
   ['Partout', [['Rechercher, aller à une rubrique ou à un client', [RC_CMD, 'K']], ['Aller à la rubrique 1 à 9 du menu', [RC_CMD, '1…9']], ['Écran précédent', [RC_CMD, '[']], ['Écran suivant', [RC_CMD, ']']], ['Chercher dans l’écran', ['/']], ['Annuler le dernier geste', [RC_CMD, 'Z']], ['Fermer la fenêtre ou le panneau', ['Échap']], ['Afficher ces raccourcis', ['?']]]],
   ['Créer', [['Nouvelle intervention', ['N']], ['Nouveau devis', ['D']], ['Nouveau client', ['C']], ['Nouvelle tâche', ['A']]]],
   ['Listes', [['Ligne suivante', ['↓']], ['Ligne précédente', ['↑']], ['Ouvrir la ligne choisie', ['Entrée']], ['Menu de la ligne', ['Clic droit']]]],
-  ['Planning', [['Période précédente', ['←']], ['Période suivante', ['→']], ['Revenir à aujourd’hui', ['T']]]],
-  ['Trackpad', [['Écran précédent ou suivant', ['2 doigts ← →']], ['Déplacer la carte', ['2 doigts']], ['Zoomer la carte', ['Pincer']], ['Menu d’une intervention, d’une case du planning', ['Clic droit']]]],
+  ['Planning', [['Période précédente', ['←']], ['Période suivante', ['→']], ['Revenir à aujourd’hui', ['T']], ['Menu d’une intervention, d’une case du planning', ['Clic droit']]]],
+  ['Trackpad', [['Écran précédent ou suivant', ['2 doigts ← →']], ['Déplacer la carte', ['2 doigts']], ['Zoomer la carte', ['Pincer']]]],   /* l'application ne tient ces trois gestes que sur Mac (`if (MAC)`) : la rubrique ne s'affiche que là (campagne, coque-06) */
 ];
 /* seuls les raccourcis de création que la personne a le droit de faire sont listés (une touche qui ne ferait rien n'est pas promise) */
 const RC_CREER_OK = { 'Nouvelle intervention':() => rcInterOk(), 'Nouveau devis':() => rcCreerOk(RC_CREER.find(c => c.nom === 'devis')), 'Nouveau client':() => rcCreerOk(RC_CREER.find(c => c.nom === 'client')), 'Nouvelle tâche':() => rcCreerOk(RC_CREER.find(c => c.nom === 'tache')) };
-function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => [t, t === 'Créer' ? L.filter(([l]) => !RC_CREER_OK[l] || RC_CREER_OK[l]()) : L]).filter(([t, L]) => L.length).map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
+function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => [t, t === 'Créer' ? L.filter(([l]) => !RC_CREER_OK[l] || RC_CREER_OK[l]()) : L]).filter(([t, L]) => L.length && (t !== 'Trackpad' || MAC)).map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
 /* ce que la barre de menus du Mac (ou un raccourci) déclenche par son nom */
 function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; const R = rcRubriques();
   if (nom === 'palette') { PAL ? palFermer(true) : palOuvrir(); return true; }
@@ -23792,12 +23920,13 @@ document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing |
   if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(rcCible(ev))) return;
   /* la Boîte mail a SES raccourcis (c écrire, / chercher, r répondre, j k e f…) : le prototype ne prend aucune touche qui vient d'elle */
   if (ev.target && ev.target.closest && ev.target.closest('#courrier-hote')) return;   /* l'événement est reciblé sur la racine du module (un div DANS #courrier-hote) */
-  const ouvert = document.querySelector('#calque .voile, .fen-voile, .ctx, #cpsys:not([hidden]), #opdz:not([hidden]), #gd-bulle');
+  const ouvert = document.querySelector('#calque .voile, .fen-voile, .ctx, #opdz:not([hidden]), #gd-bulle'), plein = !!document.querySelector('#cpsys:not([hidden])');
   if (k === '?') { ev.preventDefault(); opgRaccourci('aide'); return; }
-  if (ouvert) return;
+  if (ouvert) return;   /* la Comptabilité plein écran n'est pas « un panneau ouvert » : « ? » l'annonçait déjà, N D C A et « / » doivent donc y marcher aussi (campagne, coque-10) */
   if (k === '/') { ev.preventDefault(); opgRaccourci('chercher'); return; }
   if (k.toLowerCase() === 'n' && !ev.shiftKey) { if (opgRaccourci('intervention')) ev.preventDefault(); return; }
   { const c = !ev.shiftKey && RC_CREER.find(c => c.t.toLowerCase() === k.toLowerCase()); if (c) { if (opgRaccourci(c.nom)) ev.preventDefault(); return; } }
+  if (plein) return;
   if ((k === 'ArrowDown' || k === 'ArrowUp') && !ev.shiftKey && rcLigneBouger(k === 'ArrowDown' ? 1 : -1, ev.target)) { ev.preventDefault(); return; }
   if (route === 'planning' && !ev.shiftKey && !CREA) { const b = k === 'ArrowLeft' ? '[data-plnav="-1"]' : k === 'ArrowRight' ? '[data-plnav="1"]' : k.toLowerCase() === 't' ? '[data-plnav="0"]' : '';
     const el = b && document.querySelector('#contenu ' + b); if (el && !ev.target.closest('.pl-defile,#cr-svg,[role="tablist"],[role="radiogroup"]')) { ev.preventDefault(); el.click(); } }
@@ -23973,6 +24102,9 @@ function sessionOuvrir(k){ const vueVoulue = SESSION_VUE; SESSION_VUE = null; co
   const f = z.querySelector('iframe'), ret = z.querySelector('[data-cpsys="retour"]'), quo = z.querySelector('[data-cpsys="quotidien"]'), t = z.querySelector('.cpsys-barre b'), seul = ROLE === 'compta';
   if (neuf && f && MODE_APP && !/app=1/.test(f.getAttribute('src') || '')) f.src = opLiaSrc();
   if (f) f.title = 'OP COMPTABLE'; z.setAttribute('aria-label', 'OP COMPTABLE'); if (t && t.textContent !== 'OP COMPTABLE') t.textContent = 'OP COMPTABLE';
+  /* au téléphone, le bouton « Menu » du bureau reste à portée de doigt DANS la Comptabilité plein écran (décision du 17 novembre : le menu était à deux gestes, « ‹ OP GESTION » puis « Menu ») ;
+     celui de la page est dessous, recouvert. Même `data-menu` que le sien : c'est la même feuille, la même garde de droits. */
+  if (!seul && ret && !z.querySelector('.cpsys-menu')) ret.insertAdjacentHTML('afterend', '<button type="button" class="cpsys-menu" data-menu="ouvrir" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>');
   if (ret) { const l = seul ? (MODE_APP ? 'Se déconnecter' : '‹ Revenir au compte de Marc') : (tel() ? '‹ OP GESTION' : '‹ Retourner à OP GESTION'); if (ret.textContent !== l) { ret.textContent = l; ret.setAttribute('aria-label', l.replace('‹ ', '')); } }
   if (quo) { quo.hidden = seul; const lq = tel() ? 'Factures' : 'Factures et paiements'; if (quo.textContent !== lq) { quo.textContent = lq; quo.setAttribute('aria-label', 'Factures et paiements'); } }
   return v; }; }
@@ -24146,7 +24278,10 @@ function cnxLogin(p){ const b = o => cnxSlug(o.prenom).replace(/-/g, ''), i = EQ
 /* ce qu'on colle : le lien entier, l'adresse de l'application, ou le nom de l'entreprise */
 const cnxLienLire = t => cnxSlug(String(t || '').trim().replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop());
 const cnxTete = () => `<span class="cn-logo" style="display:block;overflow:hidden">${CNX_DESSIN}</span><span class="cn-app">OP GESTION</span>`;
-function cnxMontrer(err, ident, doux){ document.getElementById('cnx')?.remove();
+function cnxVider(){ if (SESSION) return; ['menu', 'contenu', 'barre-bas'].forEach(i => { const e = document.getElementById(i); if (e) e.innerHTML = ''; });
+  const z = document.getElementById('cpsys'); if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } }   /* avant la connexion, ou après « Se déconnecter », rien de l'écran de la personne d'avant ne reste dans la page (« Bonjour Marc », montants) · coque-01 */
+(() => { const r0 = rendre; rendre = function(){ if (typeof MODE_APP !== 'undefined' && MODE_APP && !SESSION && document.getElementById('cnx')) { cnxVider(); return; } return r0.apply(this, arguments); }; })();   /* « Se déconnecter » change d'écran PAR une transition : le dessin de l'écran du gérant arrivait APRÈS le vidage, derrière la connexion — tant que personne n'est connecté, rien ne se dessine */
+function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider();
   /* le guide des nouveautés passe au-dessus de tout (il doit couvrir la Comptabilité plein écran) : si la session se ferme pendant qu'il est ouvert
      (lien d'une autre entreprise ouvert du dehors, compte désactivé), il restait posé SUR l'écran de connexion et bloquait la saisie. On le retire
      sans le marquer « vu » : la personne le retrouvera à sa prochaine connexion · 14 novembre 2026 */
@@ -24155,19 +24290,19 @@ function cnxMontrer(err, ident, doux){ document.getElementById('cnx')?.remove();
     <form class="cn-carte" id="cn-form-lien" novalidate>
       <h1>Bienvenue</h1>
       <p class="cn-expl">Pour relier cet appareil à ton entreprise, ouvre le <b>lien de connexion</b> qu’elle t’a envoyé par e-mail. Tu peux aussi le coller ici.</p>
-      <label>Lien de connexion<input id="cn-lien" type="text" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="teamop.fr/e/ton-entreprise"></label>
+      <label>Lien de connexion<input id="cn-lien" type="text" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="teamop.fr/e/ton-entreprise" value="${esc(lien || '')}"></label>
       <p class="cn-err" id="cn-err" role="alert">${esc(err || '')}</p>
       <button type="submit" class="btn plein">Continuer</button>
     </form>
     <p class="cn-expl" style="text-align:center;font-size:13px">Pas de lien ? Demande-le à l’administrateur de ton entreprise : il le trouve dans Équipe.</p></div></div>`);
-    const l = document.getElementById('cn-lien'); if (l && !tel() && !window.Capacitor) l.focus(); return; }
+    const l = document.getElementById('cn-lien'); if (l && !tel() && !window.Capacitor) { l.focus(); if (l.value) l.select(); } return; }   /* un lien refusé reste dans le champ, sélectionné : la personne le corrige au lieu de le recoller en entier */
   document.body.insertAdjacentHTML('beforeend', `<div id="cnx" role="dialog" aria-modal="true" aria-label="Connexion à OP GESTION"><div class="cn-col">${cnxTete()}
     <span class="cn-pastille"><span>✓ ${esc(ENTREPRISE.nom)} · lien vérifié</span></span>
     <form class="cn-carte" id="cn-form" novalidate>
       <h1>Connexion</h1>
       <p class="cn-expl">Accès réservé à l’équipe. Après ton mot de passe, tu confirmes sur ton téléphone avec OP Security.</p>
-      <label>Identifiant<input id="cn-id" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ton identifiant" value="${esc(ident || '')}"></label>
-      <label>Mot de passe<input id="cn-mdp" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+      <label>Identifiant<input id="cn-id" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ton prénom (voir ton message)" value="${esc(ident || '')}"></label>
+      <label>Mot de passe<input id="cn-mdp" type="password" autocomplete="current-password" placeholder="Ton mot de passe"></label>
       <p class="cn-err" id="cn-err" role="alert"${doux ? ' style="color:var(--doux)"' : ''}>${esc(err || '')}</p>
       <button type="submit" class="btn plein">Se connecter</button>
     </form>${cnxPastilleTel()}${cnxDemoCases()}
@@ -24213,7 +24348,7 @@ function cnxGlisser(suite){ const col = document.querySelector('#cnx .cn-col');
   setTimeout(() => { suite(); const n = document.querySelector('#cnx .cn-col'); if (n) n.classList.add('cn-fixe', 'cn-arrive'); }, 230); }
 function cnxRelier(texte){ const sl = cnxLienLire(texte), surPlace = false;   /* un écran de chargement, dans le style du lancement (Justin, 13 novembre 2026) */
   const fin = () => { if (sl !== ESPACE_SLUG) return false; ESPACE = ESPACE_SLUG; cnxGarder(); return true; };
-  if (!surPlace) { cnxCharger(() => { if (!fin()) return cnxMontrer('Lien de connexion invalide — redemande-le à ton entreprise.'); cnxMontrer(); toast('Appareil relié à ' + ENTREPRISE.nom); }, 'Vérification du lien…', 1300); return; }
+  if (!surPlace) { cnxCharger(() => { if (!fin()) return cnxMontrer('Lien de connexion invalide — redemande-le à ton entreprise.', '', false, texte); cnxMontrer(); toast('Appareil relié à ' + ENTREPRISE.nom); }, 'Vérification du lien…', 1300); return; }
   const rendre = cnxOccupe('Vérification du lien…');
   setTimeout(() => { if (!fin()) { rendre(); return cnxDire('Lien de connexion invalide — redemande-le à ton entreprise.'); } cnxGlisser(() => cnxMontrer()); }, 750); }
 document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
@@ -25258,7 +25393,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="app-iphone2">
   html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{min-height:46px;padding:0 10px;font-size:14.5px;white-space:nowrap;min-width:0;justify-content:center}
   .cpsys-barre{gap:8px!important;padding-left:max(12px,env(safe-area-inset-left,0px))!important;padding-right:max(12px,env(safe-area-inset-right,0px))!important;flex-wrap:nowrap!important}
   .cpsys-barre b{display:none!important}
-  .cpsys-barre button{min-height:40px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .cpsys-barre button{min-height:44px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .cpsys-barre button[data-cpsys="quotidien"]{margin-left:auto}
 }
 @media (max-width:340px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){grid-template-columns:1fr} }
