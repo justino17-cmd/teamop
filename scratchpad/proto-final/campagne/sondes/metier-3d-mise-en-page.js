@@ -18,7 +18,7 @@ const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ 
       const d = await L.deborde(c); v(nom + ' : aucun glissement latéral' + tag, d.bouge === 0 && d.seconde <= c.largeur + 1, JSON.stringify(d));
       if (c.doigt && r === 'registre') { const col = await c.p.evaluate(() => { const t = document.querySelector('#contenu .tete > div:first-child'), z = document.getElementById('contenu'); return t && z ? { titre: Math.round(t.getBoundingClientRect().width), zone: Math.round(z.getBoundingClientRect().width) } : null; });
         v(nom + ' [metier-3d-02] : le titre du registre garde au moins 60 % de la largeur (le bouton passe dessous)', !!col && col.titre >= 0.6 * col.zone, JSON.stringify(col)); }
-      if (c.doigt) { const t = await L.doigts(c.p, '#contenu'); const pt = (t.petits || []), ch = (t.champs || []);
+      if (c.doigt) { const t = await L.doigts(c.p, '#contenu'); /* les pastilles P1…P10 du plan se dessinent à 28–30 px mais répondent sur 44 px (::after inset:-10px) : leur zone se mesure au toucher, par metier-3d-zone-pastilles.js [metier-3d-04] */ const pt = (t.petits || []).filter(x => !/^P\d+, /.test(x)), ch = (t.champs || []);
         v(nom + ' : cibles au doigt ≥ 44 px' + tagC, pt.length === 0, pt.slice(0, 6).join(' | ')); v(nom + ' : champs ≥ 16 px', ch.length === 0, ch.slice(0, 4).join(' | ')); }
       await L.capture(c, O.CAP + 'mep-' + nom + '.png');
     }
