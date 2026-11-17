@@ -185,7 +185,7 @@ rapport = dict(
   'Le rôle client n’a AUCUNE entrée en mode application (pas de lien, pas de connexion pour un client) : ses écrans ne s’ouvrent que par la bande « Tester en tant que » du prototype nu. Je l’ai donc joué aussi en mode application par rlChanger(\'client\') pour voir ce qu’un vrai client verrait sans l’échafaudage. À décider : comment un client arrive-t-il dans son espace (lien reçu par e-mail ?) — aujourd’hui rien ne le montre.',
   'Le lien « page reçue par e-mail » pour signer un devis n’est pas une page séparée : c’est la fenêtre « Votre devis » ; seul le contrat a une vraie page (#signer-x-<id>).',
   'Aucun navigateur Safari / Windows réels : Chromium émule les profils (largeur, toucher, encoches). Les contrastes de nuit sont calculés (fonds superposés), pas lus au pixel sous le verre.',
-  'Le courriel du reçu de paiement et la copie signée « par e-mail » : annoncés à l’écran, rien n’est envoyé (prototype sans serveur) — non jugé comme défaut.',
+  'L’e-mail du reçu de paiement et la copie signée « par e-mail » : annoncés à l’écran, rien n’est envoyé (prototype sans serveur) — non jugé comme défaut.',
  ],
  defauts=defauts)
 open('client.json', 'w').write(json.dumps(rapport, ensure_ascii=False, indent=1) + '\n')

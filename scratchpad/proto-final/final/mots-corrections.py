@@ -126,6 +126,7 @@ c('atelier', 'Devis › champ', 'placeholder="Ex. : pose d’une prise dédiée'
 c('atelier', 'Devis › champ', 'placeholder="Par exemple : Merci de votre confiance', 'placeholder="ex. Merci de votre confiance', "idem", 1)
 c('page', 'Planning › absence', "toast(`${tech(a.tech).nom} pendant son absence, et « Non assigné » pour réaffecter.`)", "toast(`Planning de ${tech(a.tech).nom} pendant son absence, avec la colonne « Non assigné » pour réaffecter.`)", "un début de phrase sans sujet : « Léa Roux pendant son absence, et… »", 1)
 c('page', 'Absences › Télécharger le PDF', 'data-nom="Absences ${titre}.pdf"', 'data-nom="Absences ${String(titre).replace(/^Du /, \'du \')}.pdf"', "un nom de fichier n’a pas de majuscule au milieu : « Absences du 2 nov. au 15 nov. 2026.pdf »", 1)
+c('page', 'Devis › aide', "ouvre ton devis en grand : tu choisis le client et le matériel du catalogue, tu écris le texte, tu vois la page se faire.", "ouvre ton devis en grand. Tu choisis le client et le matériel du catalogue, tu écris le texte, tu vois la page se faire.", "31 mots : deux phrases", 1)
 
 def appliquer():
     lus = {}; res = []; manques = []

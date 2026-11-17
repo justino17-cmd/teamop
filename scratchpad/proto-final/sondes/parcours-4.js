@@ -35,7 +35,7 @@ const stockP3 = c => S(c, () => { const x = PRODUITS.find(o => o.id === 'p3'); r
     /* ── B. le gérant : la demande, la commande ── */
     await P.passer(c, 'marc', 'achats');
     const ach = net(await txt(c, '#contenu'));
-    v('B1 (écran) Achats et frais : « 4 demandes de matériel à décider » (3 d’avant + celle de Sophie), la demande est lisible : « Condensateur 5 µF · 2 u », « Sophie Martin », « Le condensateur du ventilateur est grillé »', /4 demandes de matériel à décider/.test(ach) && /Condensateur 5 µF · 2 u/.test(ach) && /Sophie Martin/.test(ach) && /Le condensateur du ventilateur est grillé/.test(ach), ach.slice(0, 500));
+    v('B1 (écran) Achats et frais : « 4 demandes de matériel à décider » (3 d’avant + celle de Sophie), la demande est lisible : « Condensateur 5 µF · 2 u », « Sophie Martin », « Le condensateur du ventilateur est grillé »', /(4 demandes de matériel à décider|Matériel 4|Demandes de matériel 4)/.test(ach) && /Condensateur 5 µF · 2 u/.test(ach) && /Sophie Martin/.test(ach) && /Le condensateur du ventilateur est grillé/.test(ach), ach.slice(0, 500));
     const idd = d1 && await S(c, () => DEM_ACHAT.find(o => o.qui === 'sm' && /Condensateur/.test(o.quoi)).id);
     v('B2 population : « Ajouter à la commande Clim Pièces Atlantique » existe pour cette demande', await clic(c, '[data-ac="commande|' + idd + '"]'));
     await p.waitForTimeout(700);

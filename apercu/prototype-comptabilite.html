@@ -1818,8 +1818,10 @@ VUES.resultat = () => {
 const FEC_COLS = ['JournalCode', 'JournalLib', 'EcritureNum', 'EcritureDate', 'CompteNum', 'CompteLib', 'CompAuxNum', 'CompAuxLib', 'PieceRef', 'PieceDate', 'EcritureLib', 'Debit', 'Credit', 'EcritureLet', 'DateLet', 'ValidDate', 'Montantdevise', 'Idevise'];
 function fecLignes(){
   const d8 = d => d ? d.replace(/-/g, '') : '', m = x => x.toFixed(2).replace('.', ','), net = s => String(s || '').replace(/[|\r\n]/g, ' ');
-  return E.filter(e => e.etat === 'valide' && !e.essai).sort((a, b) => (a.valideLe + a.num).localeCompare(b.valideLe + b.num)).flatMap(e => e.lignes.map(l => [e.j, JOURNAUX[e.j], e.num, d8(e.date), l.c, libCpt(l.c), l.aux || '', l.aux ? nomTiers(l.aux) : '', e.piece || e.num, d8(e.date), net(l.lib), m(l.d), m(l.cr), l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map((v, i) => [5, 7, 8, 10].includes(i) ? net(v).replace(/^[=+\-@]/, "'$&") : net(v))));
+  return E.filter(e => e.etat === 'valide' && !e.essai).sort((a, b) => (a.valideLe + a.num).localeCompare(b.valideLe + b.num)).flatMap(e => e.lignes.map(l => [e.j, JOURNAUX[e.j], e.num, d8(e.date), l.c, libCpt(l.c), l.aux || '', l.aux ? nomTiers(l.aux) : '', e.piece || e.num, d8(e.date), net(l.lib), m(l.d), m(l.cr), l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map((v, i) => [11, 12, 16].includes(i) ? net(v) : fecTexteSur(net(v)))));
 }
+/* une cellule de TEXTE qui commence par = + - @ (après des espaces ou une tabulation, que le tableur ignore) est lue comme une FORMULE : apostrophe de tête. Jamais un montant (Debit, Credit, Montantdevise) : un nombre négatif commence par « - » et reste un nombre */
+const fecTexteSur = v => /^[\s\u0000-\u001f]*[=+\-@]/.test(v) ? "'" + v : v;
 const fecNom = () => DOSSIER.siren + 'FEC' + EXO.fin.replace(/-/g, '') + '.txt';
 VUES.fec = () => {
   const L = fecLignes(), V = E.filter(e => e.etat === 'valide' && !e.essai), cont = Object.keys(JOURNAUX).every(j => { const N = V.filter(e => e.j === j).map(e => +e.num.slice(-5)).sort((a, b) => a - b); return N.every((n, i) => n === i + 1); });
@@ -3797,6 +3799,8 @@ addEventListener('message', ev => { if (!opcHote() || ev.source !== parent) retu
     if (!OPC_SENS.enCours) { OPC_SENS.enCours = true; opcSensible('compta-banque', () => { OPC_SENS.enCours = false; OPC_SENS.visite = true; rendre(); }, () => { OPC_SENS.enCours = false; aller(OPC_SENS.avant || 'accueil'); }); } }; }
 /* le FEC et l'envoi au cabinet : le geste est avalé tant que la page n'a pas confirmé, puis rejoué une fois */
 addEventListener('click', ev => { if (!opcHote() || OPC_SENS.libre) return; const b = ev.target.closest && ev.target.closest('[data-a="fec-dl"],[data-a="cloturer-envoyer"],[data-a="cloturer-oct"]'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+  /* un compte en lecture seule est refusé AVANT qu'on lui demande de confirmer sur son téléphone : sinon il confirmait pour rien, puis le refus tombait (la garde des droits écoute le document, celle-ci la fenêtre, qui passe la première) */
+  if (window.CMPT_DROITS && window.CMPT_DROITS.m === false && CMPT_ECRIT.test(b.dataset.a)) return;
   ev.stopImmediatePropagation(); ev.preventDefault(); const sel = '[data-a="' + b.dataset.a + '"]';
   opcSensible('compta-export', () => { OPC_SENS.libre = true; try { (b.isConnected ? b : document.querySelector(sel)).click(); } finally { OPC_SENS.libre = false; } }, () => {}); }, true);
 </script>
