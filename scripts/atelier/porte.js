@@ -23,7 +23,7 @@ const PORT = Number(process.env.PORTE_PORT || 7070);
 const FICHIER_EMPREINTE = process.env.PORTE_EMPREINTE || '/etc/atelier-porte/empreinte';
 const DOSSIER = process.env.PORTE_DOSSIER || process.env.HOME || '/';
 const CORPS_MAX = 256 * 1024, SORTIE_MAX = 400 * 1024, DELAI_DEFAUT = 120, DELAI_MAX = 900, SIMULTANES_MAX = 8;
-const REFUS_MAX = 20, REFUS_FENETRE_MS = 10 * 60 * 1000;
+const REFUS_MAX = 20, REFUS_FENETRE_MS = 10 * 60 * 1000, REFUS_ADRESSES_MAX = 5000;
 
 // L'empreinte attendue : 64 caractères hexadécimaux (SHA-256 de la clé). Absente ou mal formée, on ne démarre pas —
 // une porte sans serrure ne s'ouvre pas « en attendant ».
@@ -46,7 +46,12 @@ function tropDeRefus(ip, maintenant) {
   if (l.length) refus.set(ip, l); else refus.delete(ip);
   return l.length >= REFUS_MAX;
 }
-function noterRefus(ip, maintenant) { const l = refus.get(ip) || []; l.push(maintenant); refus.set(ip, l.slice(-REFUS_MAX)); }
+function noterRefus(ip, maintenant) {
+  const l = refus.get(ip) || []; l.push(maintenant); refus.delete(ip); refus.set(ip, l.slice(-REFUS_MAX));
+  // Bornée : une adresse différente par demande (un bloc IPv6 entier) ferait grossir la table sans fin. La plus ancienne sort.
+  while (refus.size > REFUS_ADRESSES_MAX) refus.delete(refus.keys().next().value);
+}
+setInterval(() => { const m = Date.now(); for (const [ip, l] of refus) if (!l.some(t => m - t < REFUS_FENETRE_MS)) refus.delete(ip); }, 60 * 1000).unref();
 function cleJuste(req) {
   const m = /^Bearer ([0-9A-Za-z_\-.=+/]{20,200})$/.exec(String(req.headers.authorization || ''));
   if (!m) return false;
@@ -69,6 +74,7 @@ function executer(cmd, delai, dossier) {
     p.stdout.on('data', prendre); p.stderr.on('data', prendre);
     const minuterie = setTimeout(() => { expire = true; try { process.kill(-p.pid, 'SIGKILL'); } catch (e) {} }, delai * 1000);
     const finir = (code, signal, erreur) => { if (rendu) return; rendu = true; clearTimeout(minuterie);
+      try { p.stdout.destroy(); p.stderr.destroy(); } catch (e) {}   /* un travail de fond garde les tuyaux : on cesse de les lire */
       fini({ code: erreur ? -1 : code, signal: signal || null, expire, coupe, ms: Date.now() - debut, sortie: (erreur ? 'porte : ' + erreur.message + '\n' : '') + sortie.toString('utf8') }); };
     p.on('error', e => finir(null, null, e));
     // « exit » et non « close » : une commande qui laisse un travail de fond (nohup … &) garde les tuyaux ouverts ; on rend
@@ -81,9 +87,13 @@ const serveur = http.createServer((req, res) => {
   const ip = adresse(req), maintenant = Date.now(), chemin = req.url.split('?')[0];
   if (req.method === 'GET' && chemin === '/porte/sante') return rendre(res, 200, { ok: true });   // dit seulement que la porte existe
   if (req.method !== 'POST' || chemin !== '/porte/exec') return rendre(res, 404, { erreur: 'inconnu' });
-  if (tropDeRefus(ip, maintenant)) return rendre(res, 429, { erreur: 'trop de refus, réessayer plus tard' });
-  if (!cleJuste(req)) { noterRefus(ip, maintenant); journal(ip, 'REFUS clé'); return rendre(res, 401, { erreur: 'clé refusée' }); }
-  if (enCours >= SIMULTANES_MAX) return rendre(res, 429, { erreur: 'trop de commandes en cours' });
+  // LA CLÉ D'ABORD (relecture de `gardien`, 17 novembre) : une clé juste passe TOUJOURS. Le compteur ne ferme que les clés
+  // fausses — sinon vingt essais d'un inconnu sortant par la même adresse (un proxy partagé) fermaient la porte à son
+  // propriétaire, et la clé factice d'appel.sh, envoyée sans secret posé, l'enfermait lui-même dix minutes.
+  if (!cleJuste(req)) {
+    if (tropDeRefus(ip, maintenant)) return rendre(res, 429, { erreur: 'trop de refus, réessayer plus tard' });
+    noterRefus(ip, maintenant); journal(ip, 'REFUS clé'); return rendre(res, 401, { erreur: 'clé refusée' });
+  }
   let taille = 0; const morceaux = []; let trop = false;
   req.on('data', d => { taille += d.length; if (taille > CORPS_MAX) trop = true; else morceaux.push(d); });
   req.on('end', async () => {
@@ -94,12 +104,19 @@ const serveur = http.createServer((req, res) => {
     const delai = Math.min(DELAI_MAX, Math.max(1, Number(b.delai) || DELAI_DEFAUT));
     const dossier = typeof b.dossier === 'string' && b.dossier.startsWith('/') ? b.dossier : DOSSIER;
     if (!fs.existsSync(dossier)) return rendre(res, 400, { erreur: 'dossier absent' });
+    if (cmd.includes('\0')) return rendre(res, 400, { erreur: 'commande illisible' });
+    if (enCours >= SIMULTANES_MAX) return rendre(res, 429, { erreur: 'trop de commandes en cours' });
     enCours++;
+    // Le journal s'écrit AVANT l'exécution, avec la longueur et l'empreinte de la commande ENTIÈRE : une commande qui tue la
+    // porte laisse quand même sa trace, et 300 caractères de remplissage ne cachent pas la suite (on sait qu'il y en a une).
+    const marque = crypto.createHash('sha256').update(cmd).digest('hex').slice(0, 16);
+    journal(ip, `DÉBUT ${marque} ${cmd.length} car. :: ${cmd.replace(/\s+/g, ' ').slice(0, 300)}`);
     try {
       const r = await executer(cmd, delai, dossier);
-      journal(ip, `exec code=${r.code}${r.expire ? ' EXPIRÉ' : ''} ${r.ms}ms :: ${cmd.replace(/\s+/g, ' ').slice(0, 300)}`);
+      journal(ip, `exec ${marque} code=${r.code}${r.expire ? ' EXPIRÉ' : ''} ${r.ms}ms`);
       rendre(res, 200, r);
-    } finally { enCours--; }
+    } catch (e) { journal(ip, `exec ${marque} ÉCHEC ${e.message}`); rendre(res, 500, { erreur: 'la commande n\'a pas pu être lancée' }); }
+    finally { enCours--; }
   });
   req.on('error', () => {});
 });

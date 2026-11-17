@@ -8,8 +8,9 @@
 set -uo pipefail
 HOTE="${ATELIER_HOTE:-atelier.teamop.fr}"; CMD="${1:-}"; DELAI="${2:-120}"
 [ -n "$CMD" ] || { echo "usage : bash scripts/atelier/appel.sh '<commande>' [délai]"; exit 2; }
-CORPS="$(node -e 'process.stdout.write(JSON.stringify({cmd:process.argv[1],delai:Number(process.argv[2])}))' "$CMD" "$DELAI")"
-REP="$(curl -sS --max-time "$((DELAI + 20))" -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer cle-posee-par-le-proxy-0000000000' --data "$CORPS" -w '\n%{http_code}' "https://$HOTE/porte/exec")" || { echo "✗ la porte ne répond pas"; exit 3; }
-HTTP="${REP##*$'\n'}"; JSON="${REP%$'\n'*}"
-if [ "$HTTP" != 200 ]; then echo "✗ la porte a répondu $HTTP : $JSON"; exit 4; fi
-node -e 'const r=JSON.parse(process.argv[1]);process.stdout.write(r.sortie);if(r.coupe)console.error("[sortie coupée : seule la fin est rendue]");if(r.expire)console.error("[commande arrêtée au délai]");process.exit(r.code===null?137:Math.min(255,Math.max(0,r.code)))' "$JSON"
+# Commande et réponse passent par des FICHIERS, jamais en argument : au-delà de 128 Ko, un argument est refusé par le système.
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+printf '%s' "$CMD" | DELAI="$DELAI" node -e 'let t="";process.stdin.on("data",d=>t+=d).on("end",()=>process.stdout.write(JSON.stringify({cmd:t,delai:Number(process.env.DELAI)})))' > "$T/corps"
+HTTP="$(curl -sS --max-time "$((DELAI + 20))" -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer cle-posee-par-le-proxy-0000000000' --data-binary "@$T/corps" -o "$T/rep" -w '%{http_code}' "https://$HOTE/porte/exec")" || { echo "✗ la porte ne répond pas"; exit 3; }
+if [ "$HTTP" != 200 ]; then echo "✗ la porte a répondu $HTTP : $(head -c 300 "$T/rep")"; exit 4; fi
+node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write(r.sortie);if(r.coupe)console.error("[sortie coupée : seule la fin est rendue]");if(r.expire)console.error("[commande arrêtée au délai]");process.exit(typeof r.code!=="number"||r.code<0?137:Math.min(255,r.code))' "$T/rep"

@@ -90,16 +90,22 @@ function appel(methode, chemin, { cle, corps, ip, brut } = {}) {
   // 6. Les refus se comptent PAR adresse : vingt refus d'une adresse la ferment dix minutes, sans fermer la porte aux autres.
   let codes = []; for (let i = 0; i < 20; i++) codes.push((await appel('POST', '/porte/exec', { ip: '203.0.113.9', corps: { cmd: 'id' } })).code);
   vrai('population : vingt refus ont bien été comptés (401)', codes.every(c => c === 401), codes);
-  const ferme = await appel('POST', '/porte/exec', { ip: '203.0.113.9', cle: CLE, corps: { cmd: 'echo passe-zut' } });
-  vrai('la vingt et unième demande de cette adresse est refusée (429), même avec la bonne clé', ferme.code === 429, ferme);
+  const ferme = await appel('POST', '/porte/exec', { ip: '203.0.113.9', corps: { cmd: 'id' } });
+  vrai('la vingt et unième demande SANS clé de cette adresse est refusée (429)', ferme.code === 429, ferme);
+  const fermeFausse = await appel('POST', '/porte/exec', { ip: '203.0.113.9', cle: crypto.randomBytes(32).toString('hex'), corps: { cmd: 'id' } });
+  vrai('une clé fausse de cette adresse aussi (429)', fermeFausse.code === 429, fermeFausse);
+  const proprio = await appel('POST', '/porte/exec', { ip: '203.0.113.9', cle: CLE, corps: { cmd: 'echo passe-zut' } });
+  vrai('mais la BONNE clé passe toujours, même de cette adresse : personne ne ferme la porte à son propriétaire', proprio.code === 200 && proprio.j && /passe-zut/.test(proprio.j.sortie), proprio);
   const autre = await appel('POST', '/porte/exec', { ip: '198.51.100.7', cle: CLE, corps: { cmd: 'echo passe-zut' } });
   vrai('une AUTRE adresse, avec la bonne clé, passe toujours', autre.code === 200 && autre.j && /passe-zut/.test(autre.j.sortie), autre);
-  const usurpe = await appel('POST', '/porte/exec', { ip: '198.51.100.7, 203.0.113.9', cle: CLE, corps: { cmd: 'echo passe-zut' } });
+  const usurpe = await appel('POST', '/porte/exec', { ip: '198.51.100.7, 203.0.113.9', corps: { cmd: 'id' } });
   vrai('c\'est la DERNIÈRE adresse de l\'en-tête qui compte (celle que pose le proxy), pas celle qu\'un client écrit devant', usurpe.code === 429, usurpe);
+  const nul = await appel('POST', '/porte/exec', { cle: CLE, corps: { cmd: 'echo a\u0000b' } });
+  vrai('un octet nul dans la commande : 400, et la porte reste debout', nul.code === 400 && (await appel('GET', '/porte/sante')).code === 200, nul);
 
   // 7. Le journal dit ce qui a été fait, et ne porte jamais la clé.
   await attendre(200);
-  vrai('le journal note les commandes et les refus', /exec code=0/.test(journal) && /REFUS clé/.test(journal), journal.slice(-300));
+  vrai('le journal note chaque commande AVANT de la lancer (longueur, empreinte, début), puis son résultat, et les refus', /DÉBUT [0-9a-f]{16} \d+ car\. :: echo porte-zut/.test(journal) && /exec [0-9a-f]{16} code=0/.test(journal) && /REFUS clé/.test(journal), journal.slice(-300));
   vrai('le journal ne porte pas la clé', !journal.includes(CLE));
 
   p.kill(); try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {}
