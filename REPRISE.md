@@ -154,6 +154,35 @@ la Version 62 ; on republie dès que le compositeur en grand et la boîte mail o
 4. Tout doit marcher DANS l'artefact publié (là où il regarde) : voie `artefact` — téléchargements par le pont, liens, rangement
    refusé. À la republication, déclarer aussi la capacité `sample` pour que « Optimiser avec l'IA » marche dans l'atelier du
    prototype (elle n'est déclarée aujourd'hui que sur l'artefact « Documents sur mesure »).
+**ÉTAT AU 17 NOVEMBRE, 8 H 20 (heure de la machine ; 9 h 20 en France) — machine debout depuis 5 h 30, vingt voies.**
+Horaire redit à Justin à 8 h 25 (heure française) : la fin « plutôt en début de soirée, vers 19 h » (heure française, donc 18 h à la
+machine). Le tableau qui fait foi : `scratchpad/proto-final/VOIES-EN-COURS.md` (arguments, arbre, run ET identifiant de tâche de
+chaque voie). Fini depuis la Version 63 : `restes` de Tâches, Absences et Menu (deux tours : 0 pas réglé, 0 cassé, 2 mineurs
+nouveaux, 6 doutes — `final/restes-taches-absences-tour2-recontrole.json`). Arrêtées exprès : « campagne 1 » à son étape 7 et
+« campagne 2 » après le planning (chaque partie a désormais SA voie). Lancées à 8 h 13 : `restes` de la coque, campagne `metier-3d`.
+Sécurité : étape 6 presque rendue, **17 failles confirmées sur 38 rejouées** (3 hautes : l'objet ou l'expéditeur d'un courriel,
+et le nom d'une personne de l'équipe, deviennent du code à l'Accueil, dans l'Historique, au planning ; 6 moyennes ; 8 faibles —
+`securite/failles.json`, `securite/RAPPORT.md`) ; restent ses étapes 7 (corriger) et 8 (recontrôler).
+Ce qui reste, dans l'ordre : finir `materiel` et `vehtemps` (étape 5 sur 9 ; leurs deux relectures se jouent CÔTE À CÔTE, voir
+le tableau : `/home/user/attendre-etape.sh <run> 6` prévient) · `restes` pour chaque recontrôle rendu · seconde vague réduite
+(`devis-atelier`, `achats`, `equipe`) · `guide` · le dernier passage (`final-rejeu`, `final-parcours`, `final-mots`,
+`final-regard`, `final-rapport`) à lancer vers 14 h (machine) au plus tard · contrôle de fumée et captures regardées par le chef ·
+republication · réponse chiffrée à Justin avec la LISTE DES DOUTES. Le plan OP Security (vraie application) attend toujours sa réponse.
+
+**VERSION 64 DE L'ARTEFACT PUBLIÉE LE 17 NOVEMBRE À 9 H 20 (machine ; 10 h 20 en France)** — version d'ÉTAPE, à la question de
+Justin « tu en es où ? ». Pages du commit `5f87524` (8 h 06), figées dans le dossier `pub-64` du scratchpad avant publication.
+Vérifié par le chef AVANT, sur ces pages-là : fumée `sondes/fumee-routes.js` gérant, bureau, technicienne × Mac et iPhone
+302 ✓ · 0 ✗ ; espace client (cinq onglets) et chef d'équipe 104 ✓ · 0 ✗ ; de nuit, gérant et technicienne 220 ✓ · 0 ✗ ; captures
+regardées une à une (Stock, Fournisseurs, Dépôts et camions, Véhicules, Temps de travail, Mon entreprise, Sécurité, Équipe,
+Accueil, Planning, Boîte mail, Devis, Tâches du bureau, Ma journée, Mon camion, Mes heures, espace client). Ce qu'elle porte de
+plus que la 63 : Fournisseurs construit, Mon entreprise, les droits d'Équipe qui agissent, la page Sécurité (OP Security, en
+cours), les téléchargements réparés (pont de l'artefact), les corrections de Tâches, Absences, Planning, coque, compositeur, mail.
+EN CHANTIER dedans : relectures de Matériel et de Véhicules pas encore passées, OP Security à mi-chemin, sécurité pas encore
+corrigée, Contrats et Accueil en second tour. ⚠️ Dans l'artefact l'application s'ouvre en mode REVUE (bande « Tester en tant
+que ») : l'écran de connexion et OP Security n'y sont pas atteignables tant que le bouton « Voir comme l'application » n'est pas
+construit (voie `restes` de l'artefact, lancée à 9 h 15). Décisions du chef prises ce matin sans Justin (à lui redire à la fin) :
+`final/vus-par-le-chef.md` et les décisions g à l de `voies.js`.
+
 **Horaires annoncés à Justin (17 novembre, 0 h 55) :** compositeur en grand et boîte mail corrigés et REPUBLIÉS vers 3 h 30 ;
 refontes finies vers 7 h ; campagne vers 11 h ; dernier passage, guide, publication et réponse chiffrée avec la liste des
 doutes vers 14 h. Lui redire à chaque étape finie.

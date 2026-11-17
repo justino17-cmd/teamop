@@ -19,12 +19,13 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   let t = await valider(); v('A1 formulaire vide → « Indique le fournisseur »', /fournisseur/i.test(t), t);
   await remplir({ 'dp-f': 'Clim Pièces Atlantique' }); t = await valider(); v('A1 sans description → refus dit', /ce que c.est|décri|Écris/i.test(t), t);
   await remplir({ 'dp-o': 'Fluide R32, 2 bouteilles' }); t = await valider(); v('A1 sans montant → refus dit', /montant/i.test(t), t);
-  for (const bad of ['-50', 'abc', '0', '1e9']) { await remplir({ 'dp-h': bad }); const av = await etat(); t = await valider(); const ap = await etat();
-    v(`A2 montant « ${bad} » : ${bad === '1e9' ? 'une valeur absurde ne passe pas en silence' : 'refusé'}`, bad === '1e9' ? ap.n === av.n : (ap.n === av.n && !!t), { toast: t, avant: av.n, apres: ap.n }); }
+  for (const bad of ['-50', 'abc', '0']) { if (!(await p.evaluate(() => !!document.getElementById('dp-h')))) { await ouvrir(); await remplir({ 'dp-f': 'Clim Pièces Atlantique', 'dp-o': 'Fluide R32, 2 bouteilles' }); } await remplir({ 'dp-h': bad }); const av = await etat(); t = await valider(); const ap = await etat();
+    v(`A2 montant « ${bad} » : refusé`, ap.n === av.n && !!t, { toast: t, avant: av.n, apres: ap.n }); }
+  if (!(await p.evaluate(() => !!document.getElementById('dp-h')))) { await ouvrir(); await remplir({ 'dp-f': 'Clim Pièces Atlantique', 'dp-o': 'Fluide R32, 2 bouteilles' }); }
   // 3. la virgule et le point des milliers
   const lire = async txt => { await remplir({ 'dp-h': txt }); await p.dispatchEvent('#dp-h', 'input'); await p.waitForTimeout(80); return p.evaluate(() => document.getElementById('dp-ttc').textContent.replace(/[\s  ]/g, '')); };
   const e1 = await lire('1 234,56'), e2 = await lire('1.234,56'), e3 = await lire('1234.56'), e4 = await lire('12 345,67');
-  v('A3 « 1 234,56 » + 20 % = 1481,47 €', e1 === '1481,47€', e1); v('A3 « 1.234,56 » (point des milliers) + 20 % = 1481,47 € (ou refusé)', e2 === '1481,47€' || e2 === '0,00€', e2);
+  v('A3 « 1 234,56 » + 20 % = 1481,47 €', e1 === '1481,47€', e1); v('compta-reste-03 · A3 « 1.234,56 » (point des milliers) + 20 % = 1481,47 € (ou refusé)', e2 === '1481,47€' || e2 === '0,00€', e2);
   v('A3 « 1234.56 » + 20 % = 1481,47 €', e3 === '1481,47€', e3); v('A3 « 12 345,67 » + 20 % = 14814,80 €', e4 === '14814,80€', e4);
   // 4. une dépense juste, au centime
   await remplir({ 'dp-h': '100', just: 'facture', 'dp-r': 'T-RESTE-001' });
@@ -41,13 +42,16 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   v('A5 la même facture ne s’enregistre pas deux fois', (await etat()).n === n0 && /Déjà saisie/.test(t), t);
   // 6. date hors octobre
   await ouvrir(); await remplir({ 'dp-f': 'Test date', 'dp-o': 'Date', 'dp-h': '10', 'dp-d': '2026-11-05' }); t = await valider();
-  v('A6 une date de novembre est refusée', (await etat()).n === n0, t); v('A6 le refus ne parle pas de « prototype » (mot d’échafaudage)', !/prototype/i.test(t), t);
+  v('A6 une date de novembre est refusée', (await etat()).n === n0, t); v('compta-reste-05 · A6 le refus ne parle pas de « prototype » (mot d’échafaudage)', !/prototype/i.test(t), t);
   // 7. échéance avant la date
   await ouvrir(); await remplir({ 'dp-f': 'Test échéance', 'dp-o': 'Éch', 'dp-h': '10', 'dp-e': '2026-10-01' }); t = await valider(); v('A7 une échéance avant la facture est refusée', (await etat()).n === n0 && /échéance/i.test(t), t);
   // 8. un nom de fournisseur de 60 caractères et une description très longue : la liste tient
   const long = 'Établissements Dupont-Lefèvre & Fils Matériaux Spécialisés'; await ouvrir(); await remplir({ 'dp-f': long, 'dp-o': 'Description très longue '.repeat(6), 'dp-h': '12345.67', 'dp-t': '10' }); t = await valider();
   await X.compta(c, 'fachats', { cat: 'achats' }); const dep = await L.deborde(c); v('A8 un fournisseur de 60 signes et un montant de 12 345,67 € : la page ne glisse pas', !dep.bouge, dep);
   await L.capture(c, X.CAP + `${profil}-parcours-a-liste-longue.png`);
+  // 8b. une valeur absurde (une faute de frappe de plus) ne passe pas en silence : deux zéros de trop, ou une écriture scientifique
+  for (const gros of ['1e9', '12000000']) { await ouvrir(); await remplir({ 'dp-f': 'Test montant', 'dp-o': 'Montant absurde', 'dp-h': gros }); const av = await etat(); t = await valider(); const ap = await etat();
+    v(`compta-reste-04 · A8b un montant de « ${gros} » € n’est pas rangé sans un mot (refusé ou signalé)`, ap.n === av.n, { toast: t, avant: av.n, apres: ap.n }); }
   // 9. échap ferme la fenêtre ; annuler ne crée rien
   await ouvrir(); const n1 = (await etat()).n; await p.keyboard.press('Escape'); await p.waitForTimeout(250); v('A9 Échap ferme le formulaire', await p.evaluate(() => !document.querySelector('#calque .panneau')));
   await ouvrir(); await L.toucher(c, '#calque [data-ferme="1"]'); v('A9 « Annuler » ne crée rien', (await etat()).n === n1);

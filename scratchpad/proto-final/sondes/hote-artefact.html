@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hôte d'artefact simulé</title>
+<!-- Recontrôle de l'artefact (17 novembre 2026) : claude.ai sert la page d'un artefact DANS un cadre. La page n'est donc PAS la fenêtre du haut
+     (window.top !== window) — ce que les sondes qui ouvrent le prototype en direct ne jouent pas. Ce fichier est servi par lib.js (jamais publié). -->
+<style>html,body{margin:0;height:100%;background:#fff}iframe{border:0;width:100vw;height:100vh;display:block}</style>
+<iframe id="art" title="artefact"></iframe>
+<script>
+  // seuls la requête et l'adresse de l'hôte sont repris tels quels : la sonde choisit ce qu'elle laisse passer (l'artefact réel ne laisse passer que « #nom »)
+  document.getElementById('art').src = '/apercu/' + (new URLSearchParams(location.search).get('page') || 'prototype-op-gestion.html') + (new URLSearchParams(location.search).get('q') || '') + location.hash;
+</script>

@@ -38,7 +38,13 @@ const etatHote = f => (f.st === 'payee' ? 'Payée' : f.st === 'retard' ? 'En ret
   await f.evaluate(() => document.querySelector('#contenu tr[data-fac="FAC-2026-0128"]').click()); await p.waitForTimeout(500);
   await f.evaluate(() => { const b = document.querySelector('[data-cmpt="pdf"]'); if (b) b.click(); }); await p.waitForTimeout(500);
   const pdfTxt = await f.evaluate(() => { const e = document.querySelector('#calque .panneau'); return e ? e.innerText.replace(/\s+/g, ' ').trim() : ''; });
-  L.v('compta-ventes-13 · « Voir le PDF » du cadre montre le vrai document, sans la phrase « Aperçu de démonstration »', /FAC-2026-0128/.test(pdfTxt) && !/démonstration/i.test(pdfTxt), pdfTxt.slice(0, 200));
+  // le vrai document s'ouvre dans OP GESTION, AU-DESSUS du cadre (le panneau de la facture du cadre, lui, ne dit pas « PDF » : on lit la page d'OP GESTION)
+  const hotePdf = await p.evaluate(() => { const e = document.querySelector('#calque .panneau'); if (!e) return null; const r = e.getBoundingClientRect(), pt = document.elementFromPoint(r.left + r.width / 2, Math.min(r.top + 80, innerHeight - 5));
+    return { txt: e.innerText.replace(/\s+/g, ' ').trim(), auDessus: !!pt && e.contains(pt), pdf: !!e.querySelector('.pdf') }; });
+  L.v('compta-ventes-13 · « Voir le PDF » du cadre ouvre le MÊME document que la facture d’OP GESTION (désignation complète, IBAN), visible au-dessus du cadre, sans la phrase « Aperçu de démonstration »',
+    !!hotePdf && hotePdf.pdf && /FAC-2026-0128/.test(hotePdf.txt) && /IBAN|SIRET/.test(hotePdf.txt) && /main-d’œuvre|Installation/.test(hotePdf.txt) && hotePdf.auDessus && !/démonstration/i.test(hotePdf.txt), hotePdf && { auDessus: hotePdf.auDessus, pdf: hotePdf.pdf, txt: hotePdf.txt.slice(0, 160) });
+  L.v('compta-ventes-13 · le cadre lui-même n’ouvre plus son aperçu d’une ligne', !/démonstration/i.test(pdfTxt), pdfTxt.slice(0, 120));
+  await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} });
   await L.capture(c, X.CAP + `d-${profil}-${qui}-cadre-pdf.png`);
   await f.evaluate(() => { try { fermer(); } catch (e) {} }); await p.waitForTimeout(300);
   // ouvrir la facture dans OP GESTION
@@ -55,7 +61,7 @@ const etatHote = f => (f.st === 'payee' ? 'Payée' : f.st === 'retard' ? 'En ret
   L.v('« Retour » rouvre le cadre de la Comptabilité', st2.route === 'comptabilite' && st2.cadre, st2);
   // ── 3. payer ici → payé là-bas ──
   await p.evaluate(() => { cpSysteme = false; rendre(); }); await X.fiche(c, 'f144'); await L.toucher(c, '[data-payer="f144|Carte"]'); await p.waitForTimeout(400);
-  await p.evaluate(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }); await p.waitForTimeout(1500); f = L.cadre(p);
+  await p.evaluate(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }); await p.waitForTimeout(1500); f = L.cadre(p, /prototype-comptabilite\.html/);
   await f.evaluate(() => aller('ventes')); await p.waitForTimeout(900); cad = await lire(f);
   L.v('payée dans OP GESTION par carte : le cadre dit « Payée · carte » sur FAC-2026-0144', /Payée.*carte/i.test(cad.lignes['FAC-2026-0144'] || ''), cad.lignes['FAC-2026-0144']);
   const du2 = (await X.du(p)) / 100, kp2 = (cad.kpi.find(k => /Reste à encaisser/.test(k)) || '');
@@ -70,7 +76,7 @@ const etatHote = f => (f.st === 'payee' ? 'Payée' : f.st === 'retard' ? 'En ret
   await X.fiche(c, 'fz1'); await L.toucher(c, '[data-action="apercuEnvoi"]'); await L.toucher(c, '#calque [data-action="envoyer"]'); await p.waitForTimeout(500);
   const num = (await X.donnees(p)).F.find(x => x.id === 'fz1').num;
   L.v('la facture neuve prend le numéro attendu (le suivant)', num === 'FAC-2026-0' + nouv, { num, nouv });
-  await p.evaluate(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }); await p.waitForTimeout(1500); f = L.cadre(p);
+  await p.evaluate(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }); await p.waitForTimeout(1500); f = L.cadre(p, /prototype-comptabilite\.html/);
   await f.evaluate(() => aller('ventes')); await p.waitForTimeout(900); cad = await lire(f);
   L.v('la facture neuve est dans le cadre, « À encaisser », 240,00 € TTC', !!cad.lignes[num] && /À encaisser/.test(cad.lignes[num]) && /240,00/.test(cad.lignes[num]), cad.lignes[num]);
   // ── 5. le retour ──
