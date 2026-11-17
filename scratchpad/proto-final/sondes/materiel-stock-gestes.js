@@ -105,7 +105,7 @@ const L = require('../lib.js');
   // FICHE d'un article : une seule fenêtre, la réponse d'abord ; prix ; seuil ; Annuler
   await retour(); await p.fill('#ms-q', 'condensateur'); await L.calme(p, 400); await T('.ms-l'); await L.calme(p, 400);
   const fi = await R(() => { const P = document.querySelector('#calque .panneau'); return { big:P && P.querySelector('.ms-big') && P.querySelector('.ms-big').textContent.replace(/\s+/g, ' '), h3:P ? [...P.querySelectorAll('h3')].map(e => e.textContent) : [], acc:P ? [...P.querySelectorAll('summary')].map(e => e.textContent) : [], boutons:P ? [...P.querySelectorAll('.ms-boutons .btn')].map(e => e.textContent) : [] }; });
-  v('la fiche d\'un article ouvre sur LA réponse (« Il en reste … »), le prix, et trois sections repliées', /^Il en reste/.test(fi.big || '') && fi.h3.includes('Prix') && fi.acc.join('|') === 'Où il est|Derniers gestes|Dans tes documents', fi);
+  v('la fiche d\'un article ouvre sur LA réponse (« Il en reste … »), le prix, et trois sections repliées', /^Il (en reste|n’en reste plus)/.test(fi.big || '') && fi.h3.includes('Prix') && fi.acc.join('|') === 'Où il est|Derniers gestes|Dans tes documents', fi);
   await T('#calque [data-ms^="fprixo|"]'); await p.fill('#calque [data-msf="pa"]', '50'); const pa0 = await R(() => PRODUITS.find(x => /Condensateur 5/.test(x.nom)).pa); await T('#calque [data-ms^="fprix|"]'); await L.calme(p, 400);
   const pa1 = await R(() => PRODUITS.find(x => /Condensateur 5/.test(x.nom)).pa);
   v('changer un prix : le prix d\'achat passe à 50, et la hausse se dit en toutes lettres', pa1 === 50 && /de plus qu’avant|de moins qu’avant/.test(await R(() => (document.querySelector('#calque .ms-haus') || {}).textContent || '')), [pa0, pa1]);

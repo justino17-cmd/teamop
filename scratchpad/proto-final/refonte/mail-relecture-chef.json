@@ -1,0 +1,22 @@
+{
+  "lot": "mail",
+  "angle": "chef",
+  "couvert": [
+    "captures regardées le 17 novembre à 0 h 50 par le chef de chantier : montage-mac-jour, telephone-liste-iphone (dossier de captures du lot mail)"
+  ],
+  "defauts": [
+    {
+      "n": "chef-01",
+      "gravite": "gênant",
+      "ecran": "Boîte mail › Boîte de réception, à l'ouverture (gérant, tous profils)",
+      "role": "marc",
+      "profils": ["mac", "iphone"],
+      "etapes": "Ouvrir l'application en gérant, toucher « Boîte mail ». Ne rien faire d'autre.",
+      "attendu": "Une boîte de réception qui marche : la première chose que voit Justin, un client ou un examinateur de magasin d'applications ne doit pas être un message d'erreur. Justin a demandé « celle qu'on avait déjà, juste améliorer et corriger les bugs » : un bandeau rouge au premier regard se lit « ça ne marche pas ».",
+      "constate": "Un bandeau rouge occupe le haut de la liste : « marc@climservices17.fr ne répond plus : le mot de passe est à saisir de nouveau (dernière lecture le 28 oct.) » avec « Reconnecter » et « Réessayer » ; huit listes vides répondent « Réception indisponible » (défaut ordinateur-02). Ce n'est pas une panne du module : les données de démonstration déclarent la seconde boîte en échec.",
+      "preuve": "apercu/prototype-op-gestion.html, table ML_BOITES : { id:'b2', adr:'marc@climservices17.fr', fourni:'Microsoft', etat:'reco', vu:'le 28 oct.' } ; courrierSource().messages rejette toute boîte dont etat !== 'ok'.",
+      "ou": "apercu/prototype-op-gestion.html : ML_BOITES (vers la ligne 9862) et courrierSource (vers la ligne 17600)",
+      "correction": "DÉCISION DU CHEF DE CHANTIER : l'état de démonstration par défaut a ses DEUX boîtes connectées (etat:'ok', dernière lecture récente). L'état « boîte à reconnecter » reste entièrement jouable et gardé par les sondes : elles le posent elles-mêmes dans la page (ML_BOITES[1].etat = 'reco' puis nouveau rendu, par l'option init de lib.ouvrir ou un evaluate), jamais par un bouton « pour l'essai » visible en mode application. Vérifier après coup : aucune alerte rouge à l'ouverture sur mac, iphone et android, jour et nuit (capture regardée) ; « Boîtes connectées » (Mon entreprise ou réglages) affiche deux boîtes en ordre ; les sondes mail-defauts.js, mail-montage.js et la relecture de la reconnexion passent toujours, sur l'état posé par elles. Si la visite guidée ou le guide des nouveautés parlent de la boîte à reconnecter, ils décrivent le cas sans le montrer en panne."
+    }
+  ]
+}
