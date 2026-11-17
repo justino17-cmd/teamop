@@ -6,7 +6,7 @@
 //   I  le métier 3D retiré alors que des passages existent : Historique et adresses
 // Usage : node metier-3d-parcours.js [lettres, ex. ABE]. Rend « N ✓ · M ✗ » ; chaque ✗ dit ce qui a été vu. Les textes lus sont rendus pour la relecture « artisan ».
 const O = require('./metier-3d-outils.js'), L = O.L;
-const LETTRES = (process.argv[2] || 'ABCDEFGHI').split('');
+const LETTRES = (process.argv[2] || 'ABCDEFGHIJ').split('');
 let ok = 0, ko = 0; const notes = [];
 const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ ' + nom + (det ? ' — ' + det : '')); } };
 const dit = (t) => { notes.push(t); console.log('  · ' + t); };
@@ -85,6 +85,10 @@ const S = {
       v(`D ${profil} : toucher une box ouvre sa fiche (« ${lib} »)`, !!(bulle || pa) || apresBox !== t.length, 'bulle=' + bulle + ' panneau=' + pa.slice(0, 100)); dit(`${profil} · fiche d'une box : ` + (bulle || pa).slice(0, 260)); await O.nettoyer(p);
       // les autres sites
       for (const nom of ['Boulangerie Lemoine', 'Entrepôt Logistique Atlantique']) { const ok2 = await bouton(c, new RegExp(nom)); await L.calme(p, 500); const t2 = await txt(p); v(`D ${profil} : le site « ${nom} » s'affiche`, ok2 && t2.includes(nom) && t2 !== t, t2.slice(0, 120)); }
+      // les filtres de la carte : chacun doit changer ce qui est montré (nombre de pastilles), « Tout » les montre toutes
+      await L.aller(p, 'carteBox'); const comptes = {}; for (const f of ['tout', 'regarder', 'r', 'i', 'v']) { const b = p.locator(`#contenu [data-cbx="filtre|${f}"]`).first(); if (!(await b.count())) { comptes[f] = 'absent'; continue; } await L.toucher(c, b); await L.calme(p, 400); comptes[f] = await p.evaluate(() => document.querySelectorAll('#contenu [data-d3^="box|"]').length); }
+      dit(`${profil} · pastilles montrées par filtre : ` + JSON.stringify(comptes)); v(`${profil} : « Tout » montre toutes les box, chaque filtre en montre au plus autant`, comptes.tout > 0 && ['regarder', 'r', 'i', 'v'].every(f => comptes[f] === 'absent' || comptes[f] <= comptes.tout), JSON.stringify(comptes));
+      v(`${profil} : les filtres Rongeurs, Insectes et UV ne montrent pas tous la même chose`, new Set([comptes.r, comptes.i, comptes.v]).size > 1, JSON.stringify(comptes));
       // relever les box
       await L.aller(p, 'carteBox'); const r = await bouton(c, /Relever les box/); await L.calme(p, 600); dit(`${profil} · Relever les box → ` + (await txt(p)).slice(0, 300) + ' ¦ ' + (await pan(p)).slice(0, 200)); v(`D ${profil} : « Relever les box » ouvre un relevé`, r);
       v(`D ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
@@ -125,7 +129,15 @@ const S = {
     await O.poser(p, O.METIERS.clim); await L.aller(p, 'historique'); const h2 = await txt(p), puces2 = await p.evaluate(() => [...document.querySelectorAll('#contenu .h-puces button')].map(b => b.textContent.trim()));
     v('I : le filtre « Registre » de l\'Historique n\'est offert qu\'avec le métier 3D', puces1.some(x => /registre/i.test(x)) && !puces2.some(x => /registre/i.test(x)), JSON.stringify([puces1, puces2]));
     v('I : l\'Historique d\'une entreprise sans 3D ne dit pas « registre sanitaire »', !/registre sanitaire/i.test(h2) || true, ''); dit('Historique sans 3D, mentions « registre » : ' + ((h2.match(/.{30}registre.{30}/gi) || []).slice(0, 3).join(' ¦ ') || 'aucune'));
-    v('I : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); }
+    v('I : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
+  async J() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 500);
+    const liste = await L.gestes(p, '#contenu'); dit('Registre d\'un site, gestes : ' + liste.map(g => g.lib).join(' · ').slice(0, 900));
+    for (const re of [/PDF/i, /lien/i, /Envoyer/i, /Voir l.intervention/i, /carte/i]) { await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 400);
+      const b = p.locator('#contenu button, #contenu a').filter({ hasText: re }).locator('visible=true').first(); if (!(await b.count())) { dit('J : pas de bouton ' + re.source); continue; }
+      const lib = (await b.innerText()).replace(/\s+/g, ' ').trim(); const h0 = await p.evaluate(() => location.hash); await L.toucher(c, b); await L.calme(p, 600);
+      const t = await toast(p), pa = await pan(p), h1 = await p.evaluate(() => location.hash); dit(`J · « ${lib} » → toast « ${t.slice(0, 260)} » ¦ fenêtre « ${pa.slice(0, 260)} » ¦ adresse ${h0} → ${h1}`);
+      v(`J : « ${lib} » fait quelque chose de visible`, !!(t || pa) || h0 !== h1); await O.nettoyer(p); }
+    v('J : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); }
 };
 (async () => {
   for (const l of LETTRES) { try { console.log('— parcours ' + l); await S[l](); } catch (e) { ko++; console.log('  ✗ parcours ' + l + ' interrompu : ' + String(e.message || e).split('\n')[0]); } }
