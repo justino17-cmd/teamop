@@ -6,10 +6,10 @@
 const E = require('./equipe-outils.js'); const { L, v } = E; const fs = require('fs');
 const PROFIL = process.argv[2] || 'mac';
 const ECHAFAUDAGE = /prototype|pour l.essai|dans cette démo|\bdémo\b|lorem|\btodo\b|undefined|\bnull\b|\bNaN\b|\[object|\bfoo\b|test test/i;
-const TECHNIQUE = /\b(login|logout|reset|token|payload|callback|timeout|admin(?!istrat)|e-?mails?\b(?! )|\bID\b|URL|API|JSON|cookie|bug|debug|offline|online)\b/;
+const TECHNIQUE = /\b(login|logout|reset|token|payload|callback|timeout|admin(?!istrat)|emails?\b|\bID\b|URL|API|JSON|cookie|bug|debug|offline|online)\b/;
 (async () => {
   const c = await E.marc(PROFIL); const p = c.p; const T = {};
-  const lire = async (nom, zone) => { const t = await E.texte(p, zone || '#contenu'); T[nom] = t; return t; };
+  const lire = async (nom, zone) => { const t = await p.evaluate(z => { const q = document.querySelector(z || '#contenu'); return q ? q.innerText.replace(/[  ]/g, ' ') : ''; }, zone); T[nom] = t; return t; };   // les retours à la ligne sont gardés : une phrase finit à la ligne ou au point
   await L.aller(p, 'equipe'); await lire('equipe-liste');
   for (const f of ['terrain', 'bureau', 'invites', 'off', 'droits']) { await L.toucher(c, `[data-eq="filtre|${f}"]`); await lire('equipe-filtre-' + f); }
   await L.toucher(c, '[data-eq="filtre|tous"]');
@@ -31,9 +31,9 @@ const TECHNIQUE = /\b(login|logout|reset|token|payload|callback|timeout|admin(?!
   for (const [n, t] of Object.entries(T)) {
     const e = (t.match(ECHAFAUDAGE) || [])[0]; v(`${n} : aucun reste d’échafaudage`, !e, e);
     const q = (t.match(TECHNIQUE) || [])[0]; v(`${n} : aucun mot technique ou anglais`, !q, q);
-    t.split(/(?<=[.!?…])\s+|\s·\s/).forEach(s => { const m = s.trim().split(/\s+/).length; if (m > 35) long.push(n + ' (' + m + ' mots) : ' + s.trim().slice(0, 140)); });
+    t.split(/\n+|(?<=[.!?…])\s+|\s·\s/).forEach(s => { const m = s.trim().split(/\s+/).length; if (m > 35) long.push(n + ' (' + m + ' mots) : ' + s.trim().slice(0, 140)); });
   }
-  v('aucune phrase de plus de 35 mots (liste en détail)', long.length === 0, long.slice(0, 6));
+  v('equipe-20 aucune phrase de plus de 35 mots (liste en détail)', long.length === 0, long.slice(0, 6));
   fs.writeFileSync('/tmp/equipe-mots-' + PROFIL + '.json', JSON.stringify(T, null, 1));
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await E.fin();

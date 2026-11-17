@@ -23,17 +23,39 @@ const { L, CAP, txt, panneau } = require('./achats-outils.js'), v = L.v;
   v('D2 (achats-07) le titre « Ça se règle dans la Comptabilité » n’a pas la couleur d’un lien', st.groupe && st.lien && st.groupe.couleur !== st.lien.couleur, st);
   // (3) le message de « Transférer » et le bouton principal de la fenêtre qui s'ouvre
   await clic('[data-ac^="transfert|"]'); await L.calme(p, 700);
+  if (/au garage/.test(await panneau(p))) { await clic('[data-ac^="transfertok"]'); await L.calme(p, 700); }
   const rec = await E(() => { const t = document.getElementById('toast'), vis = e => e && e.classList.contains('on'); const bs = [...document.querySelectorAll('#calque .panneau .actions button, #calque .panneau button')].filter(b => b.offsetParent && b.getBoundingClientRect().height > 10); const rt = t && vis(t) ? t.getBoundingClientRect() : null;
     const touche = rt ? bs.filter(b => { const r = b.getBoundingClientRect(); return !(r.right < rt.left || r.left > rt.right || r.bottom < rt.top || r.top > rt.bottom); }).map(b => b.textContent.trim().slice(0, 30)) : []; return { toast: !!rt, haut: rt ? Math.round(rt.top) : null, couverts: touche, boutonsToast: t ? [...t.querySelectorAll('button')].map(b => b.textContent.trim()) : [], texte: t ? t.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : '' }; });
   console.log('   toast / boutons de la fenêtre :', JSON.stringify(rec)); await L.capture(c, CAP + `det-toast-fenetre-${tag}.png`);
-  v('D3 (achats-08) le message qui suit « Transférer » ne recouvre aucun bouton de la fenêtre de commande', rec.couverts.length === 0, rec);
-  v('D3b (achats-09) le message d’un transfert garde son bouton « Annuler » (un geste de stock se défait, huit secondes)', rec.boutonsToast.includes('Annuler'), rec);
+  v('D3 (achats-06) le message qui suit « Transférer » ne recouvre aucun bouton de la fenêtre de commande', rec.couverts.length === 0, rec);
+  v('D3b le message d’un transfert garde son bouton « Annuler » (un geste de stock se défait, huit secondes)', rec.boutonsToast.includes('Annuler'), rec);
   await L.ranger(p);
   // (4) le retour du navigateur ferme la fenêtre ouverte, sans quitter l'écran
   await L.aller(p, 'achats'); await clic('[data-axa="dem"]'); await L.calme(p, 400); const h0 = await E(() => location.hash);
   await p.goBack().catch(() => {}); await L.calme(p, 600); const f = await L.etat(p);
   console.log('   retour depuis la fenêtre « nouvelle demande » :', JSON.stringify({ avant: h0, apres: f.hash, h1: f.h1, panneau: f.panneau.slice(0, 40) }));
   v('D4 le retour du navigateur depuis une fenêtre ouverte ne fait pas quitter Achats et frais sans fermer la fenêtre d’abord (ou la ferme)', !!f.panneau === false || /achats/.test(f.hash), f);
+  // (6) les mots : un bouton qui DIT sa décision, une fenêtre qui porte le nom du bouton, un réglage sans « démonstration »
+  await E(() => { acOnglet = 'demandes'; }); await L.aller(p, 'achats');
+  const bt = await E(() => [...document.querySelectorAll('.ax-d[data-axid="da3"] .actions button')].map(b => b.textContent.trim()));
+  v('D7 (achats-04) une carte de demande a un bouton qui dit « Accepter » (aujourd’hui : ' + bt.join(' | ') + ')', bt.some(b => /Accepter/.test(b)), bt);
+  const bout = await E(() => (document.querySelector('[data-axa="dem"]') || {}).textContent.trim());
+  await clic('[data-axa="dem"]'); await L.calme(p, 400); const tf = await E(() => (document.querySelector('#calque .panneau h2') || {}).textContent); await L.ranger(p);
+  v('D8 (achats-09) la fenêtre ouverte par « ' + bout + ' » porte le même nom (« ' + tf + ' »)', /demande d.achat/i.test(tf || ''), { bout, tf });
+  await E(() => { acOnglet = 'notes'; }); await L.aller(p, 'achats'); const tn = await txt(p);
+  v('D9 (achats-08) aucun « démonstration » dans les réglages des notes de frais', !/démonstration/i.test(tn), tn.slice(tn.indexOf('Kilomètres'), tn.indexOf('Kilomètres') + 120));
+  // (7) « N achats sans facture » : la liste où mène ce lien ne contient que des achats, et dit le même mot que le lien
+  await E(() => { acOnglet = 'demandes'; }); await L.aller(p, 'achats');
+  const lienTxt = await E(() => (document.querySelector('[data-cx="sec|factures|achats|sanspiece"]') || {}).textContent.replace(/\s+/g, ' ').trim());
+  await clic('[data-cx="sec|factures|achats|sanspiece"]'); await L.calme(p, 600);
+  const liste = await E(() => { const z = document.getElementById('cx-liste'); return z ? z.textContent.replace(/\s+/g, ' ').trim() : ''; }), chip = await E(() => { const b = document.querySelector('#contenu [aria-pressed="true"], #contenu .on'); return b ? b.textContent.trim() : ''; });
+  console.log('   lien « ' + lienTxt + ' » → liste :', liste.slice(0, 200));
+  v('D10 (achats-10) « ' + lienTxt + ' » : la liste ne contient que des achats et dit le même mot que le lien (sans facture / sans justificatif)', !/Note de frais/.test(liste) && !(/sans justificatif/.test(liste) && /sans facture/.test(lienTxt)), { lienTxt, liste: liste.slice(0, 160) });
+  // (8) la confirmation « camion au garage » dit de QUOI il s'agit (la quantité) dans sa phrase, pas seulement dans le bouton
+  await L.aller(p, 'achats'); await clic('[data-ac^="transfert|"]'); await L.calme(p, 500);
+  const ph = await E(() => { const i = document.querySelector('#calque .panneau .info'); return i ? i.textContent.replace(/\s+/g, ' ').trim() : ''; });
+  if (ph) v('D11 (achats-13) la question « ' + ph + ' » nomme ce qu’on met dans le camion (quantité)', /\d/.test(ph), ph); else console.log('   (pas de confirmation « garage » dans cet état)');
+  await L.ranger(p);
   // (5) double toucher sur « Valider » et sur « Refuser et prévenir » : un seul effet (une seule écriture, un seul message)
   await E(() => { acOnglet = 'notes'; AX.fn = 'tous'; }); await L.aller(p, 'achats');
   const a0 = await E(() => [ACHATS.length, NOTIFS.length, JOURNAL.length]);
