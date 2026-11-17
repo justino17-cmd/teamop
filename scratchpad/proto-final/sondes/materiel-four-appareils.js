@@ -14,6 +14,11 @@ const L = require('../lib.js');
     if (pn) v(tag + ' · ' + nom + ' : la feuille ne déborde pas (' + pn.sw + ' sur ' + pn.cw + ')', pn.sw <= pn.cw + 1, pn);
     const T = [...doigts.champs, ...doigtsP.champs]; v(tag + ' · ' + nom + ' : champs ≥ 16 px', T.length === 0, T);
     if (c.doigt) { const P = [...doigts.petits, ...doigtsP.petits]; v(tag + ' · ' + nom + ' : cibles au doigt ≥ 44 px', P.length === 0, P); }
+    // un contenu qui sort de sa boîte par le bas (une boîte flex écrasée sous son propre texte : « Choisir le fichier » à 64 px pour 120 de texte)
+    // volets repliés (details fermé : des boîtes sans être montrées) et marges négatives (zone tactile de 44 px autour d'un rond de 22) sont écartés
+    const S = await R(() => { const o = []; for (const e of document.querySelectorAll('#contenu *, #calque .panneau *')) { if (!e.offsetParent || !e.children.length || e.closest('details:not([open])')) continue; const cs = getComputedStyle(e); if (cs.overflow !== 'visible' || !/flex|grid|block/.test(cs.display) || cs.position === 'fixed') continue; const r = e.getBoundingClientRect(); if (r.height < 20) continue;
+        for (const k of e.children) { const kk = getComputedStyle(k); if (kk.position === 'absolute' || kk.position === 'fixed' || kk.display === 'none' || kk.display === 'contents' || parseFloat(kk.marginBottom) < 0) continue; const b = k.getBoundingClientRect(); if (b.height > 8 && b.bottom > r.bottom + 6 && r.bottom > 0) { o.push((e.className || e.tagName).toString().slice(0, 30) + ' ← ' + (k.className || k.tagName).toString().slice(0, 24) + ' de ' + Math.round(b.bottom - r.bottom) + ' px'); break; } } } return [...new Set(o)].slice(0, 8); });
+    v(tag + ' · ' + nom + ' : aucun contenu ne sort de sa boîte', S.length === 0, S);
     const E = [...doigts.ecrases, ...doigtsP.ecrases]; v(tag + ' · ' + nom + ' : aucun texte écrasé', E.length === 0, E); };
   const ranger = () => L.ranger(p);
   await L.aller(p, 'produits');
