@@ -535,6 +535,8 @@ html .ms-pied-f{align-items:center;justify-content:space-between}html .ms-pied-f
   html .ms-l{gap:12px;padding:10px 6px;min-height:64px}html .ms-l .fo-dr b{font-size:18px}html .ms-l .fo-dr{max-width:48%}
   html .ms-cherche .btn{padding:0 14px}
   html .ms-ev{align-items:flex-start}html .ms-evb{width:100%}html .ms-evb .btn{flex:1}
+  html .ms-g{flex-wrap:wrap;gap:6px 12px;padding:10px 6px}html .ms-g>.fo-n{flex:1 1 0}html .ms-g .fo-dr{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:6px 10px;max-width:100%;padding-left:44px}
+  html .ms-boutons .btn{flex:1 1 96px}
 }
 /* ── boxes ── */
 .bxl-c{gap:8px}
@@ -15038,7 +15040,7 @@ function msJournal(){
   const { att, faits } = msMvVisibles(), tous = [...att.map(m => [m, true]), ...faits.map(m => [m, false])], jours = [...new Set(tous.map(([m]) => m.d))].sort().reverse();
   const D = SX.dernier && SX.dernier.sig === sxSig() ? SX.dernier : null, premier = faits[0];
   const sorties = faits.filter(m => m.type === 'sortie'), perdu = sorties.filter(m => m.motif === 'Cassé ou perdu'), v = L => L.reduce((s, m) => s + sxMvValeur(m), 0), n = msNbFiltres();
-  return `<div class="ms-cherche"><input class="saisie" id="ms-mq" type="search" data-skmvq="1" value="${esc(mvRech)}" placeholder="Chercher un article, une personne, un client, un bon de remise…" aria-label="Chercher dans ce qui a bougé" autocomplete="off"><button type="button" class="btn gris" data-ms="filtrer">Filtrer${n ? ' · ' + n : ''}</button></div>
+  return `<div class="ms-cherche"><input class="saisie" id="ms-mq" type="search" data-skmvq="1" value="${esc(mvRech)}" placeholder="${tel() ? 'Chercher un article, une personne…' : 'Chercher un article, une personne, un client, un bon de remise…'}" aria-label="Chercher dans ce qui a bougé" autocomplete="off"><button type="button" class="btn gris" data-ms="filtrer">Filtrer${n ? ' · ' + n : ''}</button></div>
     ${tous.length ? `<div class="carte dv-liste ms-liste"${matVis('stock-journal')}>${jours.map(d => `<div class="groupe">${esc(msD(d))}</div>${tous.filter(([m]) => m.d === d).map(([m, a]) => msLigneJournal(m, a, !!D && m === premier)).join('')}`).join('')}</div>
     <div class="gris petit ms-pied">${faits.length} geste${faits.length > 1 ? 's' : ''} · ${eur(v(sorties))} sortis${perdu.length ? ` · ${eur(v(perdu))} cassés ou perdus` : ''}</div>`
     : `<div class="carte ms-vide"><span class="ms-vic">${svg('compter')}</span><b>Rien n’a bougé pour l’instant</b><span class="gris">Change la période ou les filtres.</span></div>`}`;
@@ -15134,6 +15136,7 @@ function msgPool(G){
   return pool.sort((a, b) => sxConsoSem(b.id) - sxConsoSem(a.id) || a.nom.localeCompare(b.nom, 'fr')).slice(0, q ? 8 : 5);
 }
 function msgResultats(G){
+  if (G.lignes.length && !G.q.trim()) return '';   // une ligne est choisie : la liste ne repousse pas la suite, elle revient quand on tape
   const pool = msgPool(G), ranger = G.mode === 'ranger', ou = id => id === 'atelier' ? 'à l’atelier' : id.startsWith('v') ? 'dans le camion de ' + prenomDe(lieu(id).tech) : 'dans la réserve';
   if (!pool.length) return G.q.trim() ? `<div class="gris petit mat-rien">Rien trouvé pour « ${esc(G.q)} »${ranger ? '' : ' ' + ou(G.de)}.</div>` : '';
   return pool.map(x => `<button type="button" class="ligne-clic mat-res" data-ms="gajoute|${x.id}"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${ranger ? `en tout ${sxQte(x.q, x)}` : `${ou(G.de)} ${prNum(stkAt(x, G.de))}`}</span></span><span class="mat-plus" aria-hidden="true">＋</span></button>`).join('');
@@ -15175,9 +15178,9 @@ function matGVue(){
   foOuvrir(`<span class="surtitre">Stock</span><h2>${titre}</h2>
     ${m === 'ranger' ? `<h3 class="mat-h">D’où ça vient ?</h3><div class="seg ms-seg2" role="group" aria-label="D’où ça vient">${[['livraison', 'Une livraison'], ['comptoir', 'Un achat au comptoir'], ['retour', 'Un retour']].map(([k, l]) => `<button type="button" data-ms="gorig|${k}" aria-pressed="${G.origine === k}">${l}</button>`).join('')}</div>` : ''}
     ${liv ? (att.length ? `<h3 class="mat-h">Quelle livraison ?</h3><div class="carte ms-envois">${att.map(c => `<button type="button" class="ligne-clic mat-res" data-ms="grecevoir|${c.id}"><span class="fo-n"><b>Commande ${esc(matNumAff(c.num))} · ${esc(c.four)}</b><span class="gris petit">${c.lignes.length} article${c.lignes.length > 1 ? 's' : ''} · attendue ${(c.st === 'partielle' ? c.reliquat : c.prevue) ? (c.st === 'partielle' ? c.reliquat : c.prevue) < AUJ ? 'depuis le ' + jCourt(c.st === 'partielle' ? c.reliquat : c.prevue) : 'le ' + jCourt(c.st === 'partielle' ? c.reliquat : c.prevue) : 'bientôt'}</span></span><span class="mat-plus" aria-hidden="true">›</span></button>`).join('')}</div>` : '<div class="carte ms-vide"><span class="ms-vic">' + svg('livraison') + '</span><b>Aucune livraison attendue</b><span class="gris">Quand une commande est envoyée, elle apparaît ici pour la ranger.</span></div>') : `
-    <h3 class="mat-h">${n ? 'Ajouter un autre article' : 'Quel article ?'}</h3>
+    <h3 class="mat-h">${n ? 'Quels articles' : 'Quel article ?'}</h3>
     ${G.lignes.length ? `<div class="fo-bloc mat-lignes">${G.lignes.map((l, j) => msgLigne(G, l, j)).join('')}</div>` : ''}
-    <input class="saisie" id="msg-q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Chercher un article" aria-label="Chercher un article" value="${esc(G.q)}"><div id="msg-res" class="mat-resl">${msgResultats(G)}</div>
+    <input class="saisie" id="msg-q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="${n ? '＋ Un autre article' : 'Chercher un article'}" aria-label="${n ? 'Ajouter un autre article' : 'Chercher un article'}" value="${esc(G.q)}"><div id="msg-res" class="mat-resl">${msgResultats(G)}</div>
     ${m === 'sortir' ? `<label class="champ">Sorti d’où ?<select data-msg="de">${msLieuxOpt(G.de)}</select></label>
       <h3 class="mat-h">Pour qui ?</h3><div class="seg ms-seg2" role="group" aria-label="Pour qui">${[['client', 'Un client'], ['collegue', 'Un collègue'], ['perdu', 'Cassé ou perdu']].map(([k, l]) => `<button type="button" data-ms="gpour|${k}" aria-pressed="${G.pour === k}">${l}</button>`).join('')}</div>
       ${G.pour === 'client' ? (intSel && !G.choisirInter ? `<div class="mat-inter"><span class="fo-n"><b>${esc(matInterTitre(intSel))}</b><span class="gris petit">${esc(matInterQuand(intSel))}</span></span><button type="button" class="lien" data-ms="gchinter">Changer</button></div>`
@@ -15259,7 +15262,7 @@ function sxRegistre(){
 
 /* ══ LA FICHE D’UN ARTICLE — UNE seule fenêtre, ouverte de partout (Stock, Articles, une commande, un lieu, le journal) ══ */
 const MS_FICHE = { seuil:null, prix:null };
-function msConseilSeuil(x){ const f = foDe(x.four), dj = f && f.dj != null ? f.dj : 2, cs = sxConsoSem(x.id); if (!(cs > 0)) return null; const c = Math.max(1, Math.ceil(cs * (1 + dj / 7))); return c !== x.seuil ? c : null; }
+function msConseilSeuil(x){ const f = foDe(x.four), dj = f && f.dj != null ? f.dj : 2, cs = sxConsoSem(x.id); if (!(cs > 0)) return null; const c = Math.max(1, Math.ceil(cs * (1 + dj / 7))); return c > x.seuil ? c : null; }   // un conseil ne propose que de prévenir PLUS TÔT : plus bas, ce serait te laisser tomber en panne
 function prFiche(id){
   const x = PRODUITS.find(o => o.id === id); if (!x) return; const t = document.getElementById('toast'); if (t) t.classList.remove('on');
   const e = matEtat(x), tech = ROLE === 'tech', P = PACKS[x.p] || { nom:'', ic:'' }, L = LIEUX.filter(l => stkAt(x, l.id) > 0), cs = sxConsoSem(x.id), cons = msConseilSeuil(x), ed = MS_FICHE.seuil === id, edp = MS_FICHE.prix === id, M = prMarge(x), f = foDe(x.four);
@@ -15268,9 +15271,9 @@ function prFiche(id){
   const rep = L.length ? L.map(l => `<button type="button" class="lien ms-lien" data-sk="lieu|${l.id}">${esc(l.type === 'atelier' ? 'à l’atelier' : l.type === 'vehicule' ? 'dans le camion de ' + prenomDe(l.tech) : 'dans la réserve')} ${prNum(stkAt(x, l.id))}</button>`).join(' · ') : '<span class="gris">Il n’y en a nulle part pour l’instant.</span>';
   const noir = tech ? `<button type="button" class="btn" data-ms="fusage|${x.id}">J’ai utilisé</button>` : (e && ['plus', 'bientot'].includes(e.k)) ? `<button type="button" class="btn" data-ms="fcmd|${x.id}">Commander</button>` : `<button type="button" class="btn" data-ms="fq|sortir|${x.id}">Sortir du stock</button>`;
   const bout = sxEstFluide(x) ? sxBoutsDe(x.id) : [];
-  ouvrirPanneau(`<span class="surtitre">${esc(P.nom)} › ${esc(x.cat)}</span><h2>${esc(x.nom)}</h2>
+  ouvrirPanneau(`<span class="surtitre">${esc(P.nom.split(/ \/|,/)[0])} › ${esc(x.cat)}</span><h2>${esc(x.nom)}</h2>
     <span class="gris">Réf. ${esc(x.ref)}${x.four && x.four !== '—' ? ' · ' + (f ? `<button type="button" class="lien ms-lien" data-fo="fiche|${f.id}">${esc(x.four)}</button>` : esc(x.four)) : ''}</span>
-    <div class="ms-rep carte"${matVis('article-reste')}><div class="ms-big">Il en reste ${sxQte(x.q, x)}${e ? ` <span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}</div><div class="gris petit">${rep}</div>
+    <div class="ms-rep carte"${matVis('article-reste')}><div class="ms-big">${x.q > 0 ? 'Il en reste ' + sxQte(x.q, x) : 'Il n’en reste plus'}${e ? ` <span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}</div>${L.length ? `<div class="gris petit">${rep}</div>` : ''}
       ${tech ? '' : `<div class="ms-seuil">${ed ? `<label class="champ">Je te préviens quand il en reste moins de<input class="saisie" inputmode="decimal" data-msf="seuil" value="${prNum(x.seuil)}" id="ms-seuil"></label><span class="ms-fb"><button type="button" class="btn petit" data-ms="fseuil|${x.id}">Enregistrer</button><button type="button" class="btn gris petit" data-ms="fseuilx">Annuler</button></span>`
         : `<button type="button" class="lien ms-lien" data-ms="fseuilo|${x.id}">${x.seuil > 0 ? `Je te préviens quand il en reste moins de ${prNum(x.seuil)}` : 'Je ne te préviens pas : choisis à partir de combien'}</button>${cons ? `<span class="gris petit">Conseil : sous ${cons}, d’après ce que tu utilises <button type="button" class="lien ms-lien" data-ms="fseuil|${x.id}|${cons}">Mettre ${cons}</button></span>` : ''}`}</div>`}
       ${cs > 0 ? `<div class="gris petit">Tu en utilises environ ${prNum(Math.round(cs * 10) / 10)} par semaine${x.q > 0 ? ` : de quoi tenir ${Math.max(1, Math.floor(x.q / cs))} semaine${Math.floor(x.q / cs) > 1 ? 's' : ''}` : ''}.</div>` : ''}</div>
@@ -15305,6 +15308,7 @@ function msFormApres(x){
   const prix = pa && pa.parentElement; if (prix) { if (pa) { pa.firstChild.textContent = 'Prix d’achat HT (€)'; plus.appendChild(pa); } if (tva) plus.appendChild(tva); }
   const nat = document.getElementById('pdx-nat'); if (nat) { nat.querySelectorAll('button').forEach(b => { b.textContent = b.dataset.pdx.endsWith('vente') ? 'Oui, je le facture' : 'Non, c’est du matériel pour mon équipe'; });
     const q0 = document.createElement('h3'); q0.className = 'mat-h'; q0.textContent = 'Je le vends au client ?'; nat.insertAdjacentElement('beforebegin', q0); if (pv) { pv.firstChild.textContent = 'Prix de vente HT (€)'; nat.insertAdjacentElement('afterend', pv); } }
+  ['pdx-hab'].forEach(id => { const e = document.getElementById(id); if (e) plus.appendChild(e); });
   const act = p.querySelector('.actions'); if (act) { act.insertAdjacentElement('beforebegin', plus); const b = act.querySelector('[data-pr^="garder|"]'); if (b) b.textContent = x ? 'Enregistrer' : 'Ajouter l’article'; }
   const refresh = () => rng(); p.addEventListener('input', refresh); p.addEventListener('change', refresh);
 }
