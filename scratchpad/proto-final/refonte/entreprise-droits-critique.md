@@ -148,3 +148,11 @@ sur les mêmes 19 routes : **20 ✓ · 0 ✗** (19 routes + la population). Troi
 - Le comportement des gardes en capture sur un vrai doigt (planning : `touchstart`) : la spécification le demande à D3/D7, rien à mesurer sans le code.
 - Le rendu du pied « ton compte ne peut pas supprimer » et des cartes de « Mon entreprise » : ce sont des écrans à construire (étapes 4 et 5).
 - Si Justin veut que le bureau ait Stock (O1) : sa réponse n'existe pas ; les deux branches sont écrites.
+
+## E. Outils ajoutés par cette étape (aucune page modifiée)
+
+- `refonte/entreprise-droits-outils/bureau-toutes-cases-avant.js` : 19 routes d'équipe ouvertes pour Julie, comparées à Marc : 20 ✓ · 0 ✗.
+- `refonte/entreprise-droits-outils/derive-table-finale.js` : applique `ROUTE_DROIT`, `ACTE_DROIT` et les profils types RÉVISÉS tels qu'écrits dans la spécification : 12 ✓ · 0 ✗ (Marc 20, Responsable 20, Julie 9, Sophie 6) ;
+  mutations de la table : retirer `stock` à Julie (tombe), retirer le second droit de `boxes` (tombe, 2 contrôles), faire de `majournee` une route d'équipe (tombe), donner `com` au technicien (ne tombe pas, et c'est juste : sa FORME
+  « terrain » ferme la Boîte mail — la mutation est neutralisée par une autre règle, pas un banc aveugle). Remplace `derive.js`, qui rejouait les profils d'avant.
+- La spécification révisée compte 78 marques ⟲ (chaque passage corrigé renvoie à son objection).
