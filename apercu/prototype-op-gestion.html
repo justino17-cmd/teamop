@@ -246,7 +246,7 @@ body.dp-ouvert #sortie-carte{z-index:300}
 .opg-barre{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:6px;border-radius:34px;background:var(--tab-fond);border:1px solid var(--tab-lise);box-shadow:0 24px 56px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.32);-webkit-backdrop-filter:blur(40px) saturate(2.2) brightness(1.06);backdrop-filter:blur(40px) saturate(2.2) brightness(1.06)}
 .opg-tab{min-height:48px;border:0;background:none;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--tab-ink);font-size:11px;font-weight:600}
 .opg-tab svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.menu a .nb{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--rouge);color:var(--on-etat);font-size:12px;font-style:normal;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.menu a .nb{margin-left:auto;margin-right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--rouge);color:var(--on-etat);font-size:12px;font-style:normal;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 .opg-tab{position:relative}.opg-tab .nb{position:absolute;top:2px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--rouge);color:var(--on-etat);font-size:11px;font-style:normal;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 .opg-tab.on{background:var(--tab-cur);color:var(--tab-cur-ink);box-shadow:0 6px 16px rgba(11,20,38,.18),inset 0 1px 0 rgba(255,255,255,.3)}
 @media (prefers-reduced-motion:no-preference){.vue-entre{animation:vueEntre .28s var(--ressort) both}@keyframes vueEntre{from{opacity:0;transform:translateY(6px)}}}
@@ -525,7 +525,7 @@ html .fo-pied .mat-phrase{flex:1 1 100%;margin:0}html .fo-pied .mat-phrase:empty
 @media (max-width:760px){html .mat-pied .btn{flex:1 1 40%}}
 /* ══ MATÉRIEL — lot 2 : Stock (spec § 5) — la grammaire de Devis et de Clients, rien d'inventé ══ */
 html .ms-tete .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-html .ms-bandeau{padding:12px 16px}html .ms-bandeau .dv-tache{border-bottom:0;padding:2px 0;flex-wrap:wrap}html .ms-bandeau .dv-c b{font-size:16px}
+html .ms-bandeau{padding:12px 16px}html .ms-bandeau .dv-tache{border-bottom:0;padding:2px 0;flex-wrap:wrap}html .ms-bandeau .t-etat{display:none}   /* le rond vide est le « à faire » des tâches : ici rien ne se coche, il faisait croire à une case (regard gérant C, 17 novembre 2026) ; le texte du bandeau dit déjà ce qu'il y a à faire */html .ms-bandeau .dv-c b{font-size:16px}
 html .ms-bd{display:flex;gap:8px;flex:none}
 html .ms-bd-t{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer;align-items:flex-start}   /* le texte du bandeau ouvre les envois, comme « Voir » */html .ms-bd .btn{min-height:44px}
 html .ms-kpis .kpi{cursor:pointer;min-width:0}html .ms-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
@@ -551,6 +551,8 @@ html .ms-pied{padding:2px 8px}
 html .ms-vide{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:22px 20px}html .ms-vide b{font-size:17px}
 html .ms-vic{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--surf2);color:var(--doux);border:1px solid var(--trait)}html .ms-vic svg{width:24px;height:24px}
 html .ms-vb{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+html .ms-vb .btn{max-width:100%;white-space:normal;line-height:1.25;padding-block:8px;text-align:center}   /* « Choisir parmi les articles habituels de mon métier » sortait de la carte à 360 px : le libellé passe à la ligne au lieu de se couper (regard gérant C) */
+input.saisie{text-overflow:ellipsis}   /* une invite trop longue pour son champ finit par « … » au lieu d'être coupée net */
 html .ms-g{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 12px;border-bottom:1px solid var(--trait)}html .ms-liste>.ms-g:last-child{border-bottom:0}
 html .ms-g.att{background:color-mix(in srgb,var(--orange) 7%,transparent);border-radius:12px}
 html .ms-gi{width:32px;height:32px;border-radius:50%}html .ms-gi svg{width:18px;height:18px}
@@ -693,7 +695,7 @@ html .fx-c .md-t>b{overflow-wrap:anywhere}
 html .fx-fc{margin-top:12px}html .fx-fc h3{margin:0 0 6px}
 html .fx-lg{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 0;border-bottom:1px solid var(--trait)}html .fx-fc>.fx-lg:last-of-type{border-bottom:0}
 html .fx-lg>span:first-child{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}html .fx-aide{display:block}
-html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html .fx-lg .fx-n{width:112px;text-align:right}
+html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html .fx-lg .saisie[type=email]{width:min(70%,340px)}   /* « commandes@climpieces-atlantique.fr » se lit en entier (il était coupé à « …-atl ») */html .fx-lg .fx-n{width:112px;text-align:right}
 /* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
 html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
 html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}   /* « Envoyer à Établissements Dupont-Delaunay… » : le nom d'un fournisseur ne fait plus sortir le bouton de la feuille (678 px dans 390) */
@@ -758,8 +760,27 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html .fx-seg button{padding:0 4px;gap:4px;font-size:13.5px}html .fx-seg .pr-nb{min-width:20px;height:20px;font-size:12px;padding:0 5px}
 }
 @media (max-width:520px){
-  html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}html .fx-lg .dt-btn{width:100%}html .fx-lg .saisie,html .fx-lg .fx-n{width:100%;text-align:left}html .fx-lg .pdx-tel{width:100%}html .fx-jours{width:100%}html .fx-jours .saisie{flex:1 1 0;width:auto;min-width:0}
+  html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}html .fx-lg .dt-btn{width:100%}html .fx-lg .saisie,html .fx-lg .saisie[type=email],html .fx-lg .fx-n{width:100%;text-align:left}html .fx-lg .pdx-tel{width:100%}html .fx-jours{width:100%}html .fx-jours .saisie{flex:1 1 0;width:auto;min-width:0}
   html .fx-ep{width:100%}html .fx-eq,html .fx-ep,html .fx-et{flex:1 1 100%;text-align:left}
+}
+/* regard gérant C, 17 novembre 2026 — téléphone étroit */
+@media (max-width:380px){
+  html .fx-ch{flex-wrap:wrap}html .fx-ch>div{flex:1 1 100%}html .fx-ch h3{white-space:normal}   /* « À commander · 6 » et « Tout préparer · 4 » se touchaient à 360 px : le bouton passe dessous */
+}
+@media (max-width:430px){
+  /* l'état d'un article (« Commandé · arrive le 4/11 ») prend sa propre ligne sous le nom : à côté, il écrasait le nom sur deux lignes à 390 px */
+  html .ms-l.sk-l:not(.fx-a){display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px;row-gap:0;align-items:center}
+  html .ms-l.sk-l:not(.fx-a) .ms-ic{grid-column:1;grid-row:1 / span 2;align-self:center}
+  html .ms-l.sk-l:not(.fx-a)>.fo-n{grid-column:2;grid-row:1}
+  html .ms-l.sk-l:not(.fx-a) .fo-dr{display:contents}
+  html .ms-l.sk-l:not(.fx-a) .fo-dr b{grid-column:3;grid-row:1;justify-self:end;text-align:right;white-space:nowrap}
+  html .ms-l.sk-l:not(.fx-a) .fo-dr .st{grid-column:2 / span 2;grid-row:2;justify-self:start;margin-top:6px;white-space:nowrap;text-align:left;max-width:100%}
+  /* les trois tuiles d'une fiche de camion : la colonne du montant est la plus large, et le montant garde une seule ligne (« 37 233,11 € » montait sur la tuile voisine à 360 px) */
+  html .kpis.md-kpis{grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) minmax(0,1fr)}
+  html .md-kpis .kpi b{font-size:clamp(17px,5vw,22px);white-space:nowrap}
+}
+@media (max-width:340px){   /* sans l'icône (cachée à cette largeur) : deux colonnes */
+  html .ms-l.sk-l:not(.fx-a){grid-template-columns:minmax(0,1fr) auto}html .ms-l.sk-l:not(.fx-a)>.fo-n{grid-column:1}html .ms-l.sk-l:not(.fx-a) .fo-dr b{grid-column:2}html .ms-l.sk-l:not(.fx-a) .fo-dr .st{grid-column:1 / span 2}
 }
 /* ── ce que d'autres écrans empruntent encore à Dépôts (carte « Réserve sur place » d'une intervention et d'un client, raccourci de « Ma journée », ligne repérée) ── */
 .bxl-vert{color:var(--vert);font-weight:650}
@@ -15937,7 +15958,7 @@ function msArticles(){
     ${q && msGerant() ? `<span class="ms-vb"><button type="button" class="btn gris" data-ms="ajouteq">＋ Ajouter « ${esc(q)} »</button></span>` : ''}</div>` : '';
   const grp = (t, A) => A.length ? `<div class="groupe">${t}</div>${A.map(x => matLigneArticle(x, lf)).join('')}` : '';
   const parCat = reste.length > 40 ? [...new Set(reste.map(x => x.cat))].map(c => `<details class="ms-cat" ${q ? 'open' : ''}><summary class="groupe">${esc(c)}</summary>${reste.filter(x => x.cat === c).map(x => matLigneArticle(x, lf)).join('')}</details>`).join('') : null;
-  return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? 'Chercher un article…' : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou"${matVis('stock-lieu')} aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
+  return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? (innerWidth < 340 ? 'Chercher…' : 'Chercher un article…') : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou"${matVis('stock-lieu')} aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
     ${vide || rien || `<div class="carte dv-liste ms-liste"${matVis('stock-liste')}>${grp('À surveiller', surv)}${parCat ? `<div class="groupe">Tout le reste</div>${parCat}` : grp(surv.length ? 'Tout le reste' : 'Tous les articles', reste)}</div>`}
     ${tous.length && !rien ? `<div class="gris petit ms-pied">${L.length} article${L.length > 1 ? 's' : ''}${l ? ' ici' : ''}${!l && !q ? ` · ${eur(val)} de matériel (prix d’achat HT)` : ''}</div>` : ''}`;   // le montant est celui de TOUT le stock : une recherche ne le recopie pas sous un seul article
 }
@@ -15985,7 +16006,7 @@ function msJournal(){
   const { att, faits } = msMvVisibles(), tous = [...att.map(m => [m, true]), ...faits.map(m => [m, false])], jours = [...new Set(tous.map(([m]) => m.d))].sort().reverse();
   const D = SX.dernier && SX.dernier.sig === sxSig() ? SX.dernier : null, premier = faits[0];
   const sorties = faits.filter(m => m.type === 'sortie'), perdu = sorties.filter(m => m.motif === 'Cassé ou perdu'), v = L => L.reduce((s, m) => s + sxMvValeur(m), 0), n = msNbFiltres();
-  return `<div class="ms-cherche"><input class="saisie" id="ms-mq" type="search" data-skmvq="1" value="${esc(mvRech)}" placeholder="${tel() ? 'Chercher un article, une personne…' : 'Chercher un article, une personne, un client, un bon de remise…'}" aria-label="Chercher dans ce qui a bougé" autocomplete="off"><button type="button" class="btn gris" data-ms="filtrer">Filtrer${n ? ' · ' + n : ''}</button></div>
+  return `<div class="ms-cherche"><input class="saisie" id="ms-mq" type="search" data-skmvq="1" value="${esc(mvRech)}" placeholder="${tel() ? 'Article, personne…' : innerWidth < 1000 ? 'Chercher un article, une personne…' : 'Chercher un article, une personne, un client, un bon de remise…'}" aria-label="Chercher dans ce qui a bougé" autocomplete="off"><button type="button" class="btn gris" data-ms="filtrer">Filtrer${n ? ' · ' + n : ''}</button></div>
     ${tous.length ? `<div class="carte dv-liste ms-liste"${matVis('stock-journal')}>${jours.map(d => `<div class="groupe">${esc(msD(d))}</div>${tous.filter(([m]) => m.d === d).map(([m, a]) => msLigneJournal(m, a, !!D && m === premier)).join('')}`).join('')}</div>
     <div class="gris petit ms-pied">${faits.length} geste${faits.length > 1 ? 's' : ''} · ${eur(v(sorties))} sortis${perdu.length ? ` · ${eur(v(perdu))} cassés ou perdus` : ''}</div>`
     : `<div class="carte ms-vide"><span class="ms-vic">${svg('compter')}</span><b>Rien n’a bougé pour l’instant</b><span class="gris">Change la période ou les filtres.</span></div>`}`;
@@ -16613,7 +16634,7 @@ function bxTransferts(cfg, surPlace){
 }
 function bxMaj(){ const b = document.getElementById('md-rok'); if (!b || !BX.cfg) return;
   const n = BX.cfg.groupes.reduce((s, g) => s + g.L.filter(m => m.q > 0 && BX.sel.has(m.cle)).length, 0);
-  b.disabled = !n; b.textContent = n ? `${BX.cfg.okLib} · ${n}` : 'Rien n’est coché'; }
+  b.disabled = !n; b.textContent = n ? `${BX.cfg.okLib}\u00a0·\u00a0${n}` : 'Rien n’est coché'; }   // insécables : « · 6 » ne reste pas seul sur la ligne d'un bouton étroit
 function bxTransfertsOk(){
   const cfg = BX.cfg; if (!cfg) return; const snap = sxPhoto(), n = [], parLieu = {};
   cfg.groupes.forEach(g => g.L.filter(m => m.q > 0 && BX.sel.has(m.cle)).forEach(m => {
@@ -16655,7 +16676,7 @@ function mdAvant(){
   const G = bxBesoins(), n = G.reduce((s, g) => s + g.L.filter(m => m.q > 0 && !g.garage).length, 0);
   foOuvrir(`<div data-md-p="avant"></div><span class="surtitre">Matériel</span><h2>Avant les visites</h2><span class="gris">Les pièces prévues pour les interventions des trois prochains jours, comparées à ce qu’il y a dans chaque camion.</span>
     ${G.length ? `<div class="carte ms-envois"${matVis('depots-visites-liste')}>${G.flatMap(g => g.L.map(m => mdLigneAvant(g, m))).join('')}</div>` : '<div class="carte ms-vide"><span class="ms-vic">' + svg('coche') + '</span><b>Rien ne manque avant les visites</b><span class="gris">Les camions ont tout ce que le bureau a prévu.</span></div>'}
-    ${n ? `<div class="fo-pied"><button type="button" class="btn" data-md="avanttout">Tout mettre dans les camions · ${n}</button></div>` : ''}`, true);
+    ${n ? `<div class="fo-pied"><button type="button" class="btn" data-md="avanttout">Tout mettre dans les camions&nbsp;·&nbsp;${n}</button></div>` : ''}`, true);
 }
 /* on rafraîchit la feuille qui est vraiment ouverte (jamais une autre qui l'aurait remplacée) */
 function mdRafraichir(){
@@ -17021,7 +17042,7 @@ function fxArticles(){
   const vide = !tous.length ? `<div class="carte ms-vide"><span class="ms-vic">${svg('article')}</span><b>Aucun article.</b><span class="gris">Choisis ceux de ton métier, ils se rangent tout seuls.</span><span class="ms-vb"><button type="button" class="btn" data-fx="habituels">Choisir parmi les articles habituels de mon métier</button><button type="button" class="btn gris" data-pr="nouveau|${PACKS_ENT[0]}|">＋ Ajouter un article</button></span></div>`
     : !L.length ? `<div class="carte ms-vide"><span class="ms-vic">${svg('article')}</span><b>${q ? `Rien trouvé pour « ${esc(q)} ».` : 'Aucun article ici.'}</b><span class="gris">${q ? 'Vérifie l’orthographe, ou ajoute-le.' : 'Change le filtre pour voir les autres.'}</span><span class="ms-vb">${q ? `<button type="button" class="btn gris" data-fx="ajouteq">＋ Ajouter « ${esc(q)} »</button>` : ''}<button type="button" class="btn gris" data-fx="toutvoir">Tout afficher</button></span></div>` : '';
   const nv = tous.filter(prVend).length;
-  return `<div class="ms-cherche fx-cherche"${matVis('four-articles')}><input class="saisie" id="fx-q" type="search" data-prq="1" value="${esc(prQ)}" placeholder="Chercher un article, une référence, un fournisseur" aria-label="Chercher un article, une référence ou un fournisseur" autocomplete="off" enterkeyhint="search">
+  return `<div class="ms-cherche fx-cherche"${matVis('four-articles')}><input class="saisie" id="fx-q" type="search" data-prq="1" value="${esc(prQ)}" placeholder="${tel() ? 'Article, référence, fournisseur…' : 'Chercher un article, une référence, un fournisseur'}" aria-label="Chercher un article, une référence ou un fournisseur" autocomplete="off" enterkeyhint="search">
       <button type="button" class="btn gris fx-filtre" data-fx="filtre" aria-haspopup="menu">${esc(fxFiltreNom[f])} ▾</button>${plusMetiers}</div>
     ${bandeau}${vide || `<div class="carte dv-liste ms-liste fx-arts">${groupes}</div>`}
     ${tous.length ? `<div class="gris petit ms-pied">${pdxPl(L.length, 'article')}${L.length !== tous.length ? ' sur ' + tous.length : ''} · ${nv} que je vends · ${tous.filter(x => !prVend(x)).length} de matériel (non facturé)</div>` : ''}
@@ -17043,7 +17064,7 @@ function fxFournisseurs(){
   const L = MES_FOURN.slice().sort((a, b) => dern(b).localeCompare(dern(a)) || a.nom.localeCompare(b.nom, 'fr'));
   const carte = f => { const d = foDir(f), A = foArticles(f), pan = pans.find(p => p.four === f.nom), cm = COMMANDES.filter(c => c.four === f.nom && c.st !== 'annulee' && c.env && c.env.slice(0, 7) === mois).reduce((s, c) => s + cmdHT(c), 0);
     const ret = COMMANDES.find(c => c.four === f.nom && (cmdAlerte(c) || {}).t === 'retard'), l2 = [fxLiv(f), fxGratuite(f)].filter(Boolean).join(' · ') || (d ? d.type : 'Livraison à préciser');
-    const pas = ret ? `<span class="st st-r">En retard sur la commande ${esc(matNumAff(ret.num))}</span>` : pan ? `<span class="st st-o">${pdxPl(pan.lignes.length, 'article')} à commander</span>` : '';
+    const pas = ret ? `<span class="st st-r">En retard sur la commande ${esc(matNumAff(ret.num)).replace('-', '\u2011')}</span>` : pan ? `<span class="st st-o">${pdxPl(pan.lignes.length, 'article')} à commander</span>` : '';
     const ch = (b, t, cl) => `<span><b${cl ? ` class="${cl}"` : ''}>${b}</b><small>${t}</small></span>`;
     return `<button type="button" class="carte client-carte md-c fx-c" data-fo="fiche|${f.id}"><span class="md-t"><b>${esc(f.nom)}</b>${pas}</span><span class="gris md-l2">${esc(l2)}</span>
       <span class="client-chiffres">${ch(A.length, A.length > 1 ? 'articles' : 'article')}${ch(eur(cm), 'ce mois-ci')}${ch(f.hist ? f.hist.heure + ' %' : '—', 'à l’heure', f.hist && f.hist.heure < 90 ? 'md-o' : '')}</span></button>`; };
