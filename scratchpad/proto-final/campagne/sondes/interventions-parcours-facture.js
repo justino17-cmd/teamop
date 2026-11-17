@@ -5,6 +5,8 @@ const I = require('./interventions-outils.js'), L = I.L;
 (async () => {
   const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit';
   const c = await L.ouvrir({ profil, qui: 'sm', nuit }); const p = c.p, v = L.v; const tap = s => L.toucher(c, s, { delai: 4000 }); const txt = z => I.texte(p, z); const ev = (f, a) => p.evaluate(f, a);
+  // contre-épreuve de interventions-14 : CONTRE=1 rend visible le bandeau que le mode application cache — le contrôle doit alors PASSER
+  if (process.env.CONTRE === '1') await p.addStyleTag({ content: 'html[data-app] .bandeau-proto{display:flex!important}' });
   const CAPN = n => I.CAP + `fact-${profil}${nuit ? '-nuit' : ''}-${n}.png`; let e, t;
   // la technicienne termine (la fiche est remplie d'un coup : le geste « Terminer » est le vrai)
   await L.aller(p, 'inter-x-i1');

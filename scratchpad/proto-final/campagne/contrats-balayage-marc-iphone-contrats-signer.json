@@ -1,0 +1,141 @@
+{
+ "profil": "iphone",
+ "qui": "marc",
+ "route": "contrats",
+ "etiq": "signer",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Menu, 7 à traiter",
+   "data": "data-menu=ouvrir",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "",
+   "panneau": "Menu",
+   "hash": "#signer-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "OP GESTION : revenir à l’écran d’ouverture",
+   "data": "data-logo=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Marc",
+   "panneau": "",
+   "hash": "#accueil",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 249,
+   "h": 44
+  },
+  {
+   "i": 2,
+   "lib": "‹ Retour · Contrats",
+   "data": "data-rl=retour",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Contrats",
+   "panneau": "",
+   "hash": "#contrats",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 164,
+   "h": 44
+  },
+  {
+   "i": 3,
+   "lib": "Lire le contrat en entier",
+   "data": "data-action=lireContrat data-id=c3",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "",
+   "panneau": "✕CSClim Services 174 rue du Port, 17000 La RochelleSIRET 123 456 789 00012Contrat d’entretienCTR-202",
+   "hash": "#signer-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 286,
+   "h": 50
+  },
+  {
+   "i": 4,
+   "lib": "on",
+   "data": "",
+   "touche": true,
+   "change": [],
+   "h1": "",
+   "panneau": "",
+   "hash": "#signer-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 5,
+   "lib": "Effacer",
+   "data": "data-action=sigCtrEfface",
+   "touche": true,
+   "change": [],
+   "h1": "",
+   "panneau": "",
+   "hash": "#signer-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 286,
+   "h": 44
+  },
+  {
+   "i": 6,
+   "lib": "Signer le contrat",
+   "data": "data-action=signerContrat data-id=c3",
+   "touche": true,
+   "change": [
+    "toast"
+   ],
+   "h1": "",
+   "panneau": "",
+   "hash": "#signer-x-c3",
+   "toast": "Cochez « J’ai lu le contrat et je l’accepte ».",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 320,
+   "h": 50
+  }
+ ],
+ "err": []
+}

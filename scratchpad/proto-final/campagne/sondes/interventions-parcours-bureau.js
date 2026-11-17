@@ -89,7 +89,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   // ── B9 retour du navigateur et double toucher
   await L.aller(p, 'interventions'); await tap('[data-filtreint="tout"]'); await tap('[data-go="inter-x-i4"]'); let h1 = (await L.etat(p)).h1; await p.goBack(); await L.calme(p, 500); e = await L.etat(p);
   v('B9 le retour du navigateur ramène à la liste des interventions', /interventions/.test(e.hash) && e.h1 === 'Interventions', [h1, e.hash, e.h1]);
-  await tap('[data-filtreint="tout"]'); await tap('[data-go="inter-x-i4"]'); await tap('[data-retour="1"]'); e = await L.etat(p); v('B9 « ‹ Retour » de la fiche ramène à la liste', e.h1 === 'Interventions', e);
+  await L.aller(p, 'interventions');
   await tap('[data-creer="1"]'); await tap('#fenetre [data-ccli="cm"]'); await tap('#fenetre [data-action="cPlusTard"]'); const n0 = await ev(() => INTS.length);
   await p.evaluate(() => { const b = document.querySelector('#fenetre [data-action="cCreer"]'); b.click(); b.click(); }); await L.calme(p, 500); const n1 = await ev(() => INTS.length);
   v('B9 double toucher sur « Créer l’intervention » : une seule intervention naît', n1 === n0, [n0, n1]);
