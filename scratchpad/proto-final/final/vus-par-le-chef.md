@@ -125,7 +125,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         un péage ou des gants (le titre du message reprend ce qui est tapé, la plaque seulement pour un plein) ; la fenêtre
         « Il manque encore des choses » sans grands vides. technicien-06 (« Prévenir le bureau » grisé sans raison, Mon
         camion) : à corriger aussi s'il se reproduit encore sur la tête.
-- [ ] **Comptabilité, ventes — décisions du chef du 17/11, 9 h 50, à APPLIQUER (compta-ventes)** : Justin a dit « Comptabilité,
+- [x] (compta-ventes, restes tour 1 : commits acf640d, 2b473e0 et le suivant, rapport `final/restes-compta-ventes-tour1.json` ; 11, 15, 16, 17, 22 et les cinq casses du recontrôle réglés ; 20 : harnais caché et onglet « exemples », le branchement aux factures d'OP GESTION reste À SOUMETTRE ; 19 : rien changé) **Comptabilité, ventes — décisions du chef du 17/11, 9 h 50, à APPLIQUER (compta-ventes)** : Justin a dit « Comptabilité,
       ça c'est bon » : on ne redessine pas l'écran. Mais ce qui est FAUX, trompeur ou d'échafaudage se corrige :
       · **11** : sur la fiche d'une facture ET sur son PDF, trois colonnes « Prix unitaire HT · Qté · Total HT » (une seule
         fonction pour le total de ligne, celle du total de la facture). « Prix HT » qui veut dire tantôt l'unité, tantôt la
