@@ -48,3 +48,30 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
 - [ ] **Décision du chef du 17/11, 8 h 55, à APPLIQUER (planning)** — (k) les chiffres du bandeau du Planning suivent les
       personnes affichées (Sophie masquée : plus « 9 interventions · 11 h » pour 6 cartes) et le disent quand un filtre est
       posé. Rien d'autre ne bouge sur cet écran validé.
+- [ ] **Contrats — décisions du chef du 17/11, 9 h, à APPLIQUER (contrats)** : les points que la campagne voulait « soumettre à
+      Justin » sont TRANCHÉS (son mandat : « fais tout ce qu'il y a à faire, il faut que tout fonctionne »), sauf mention :
+      · **contrats-06** : le PDF que le client lit et signe ne porte plus « Modèle de démonstration, à faire relire avant tout
+        usage » : son pied = les coordonnées de l'entreprise. L'avertissement reste, mais côté ENTREPRISE seulement : sous la
+        liste des modèles, « Ces modèles sont des exemples : fais-les relire par ton conseil avant de t'en servir. » (à la place
+        de « Les modèles seront relus par le juriste… », une phrase d'équipe de développement). Le bouton du haut « Télécharger le
+        PDF signé » et son toast « Dans la vraie version… » sont déjà retirés (contrats-12) : vérifier qu'il n'en reste pas.
+      · **contrats-07** : À CONSTRUIRE. La fiche d'un contrat dit « Fin le … » dans son en-tête ; un bouton « Renouveler »
+        (un an de plus, mêmes conditions, même client : nouvelle échéance, visites de l'année posées « à planifier », une ligne
+        à l'Historique ; le courriel de proposition existant reste le premier pas quand le client n'a pas encore dit oui) ; un
+        bouton « Mettre fin au contrat » avec une confirmation DANS la page (date de fin = aujourd'hui, les visites non faites
+        sortent du planning et le disent, une ligne à l'Historique, plus de relance ni de facture à venir) ; après la dernière
+        visite faite (6 sur 6), la fiche PROPOSE la suite. Les droits : les cases de Contrats (créer, modifier, supprimer).
+      · **contrats-11** : sous les deux boutons, une phrase : « Contrat rapide : un modèle de ton métier, prêt à envoyer.
+        Composer un contrat : le tien, article par article. »
+      · **contrats-13** : au téléphone, « Chemin du contrat », « Visites » et « Facturation » passent AVANT le PDF (le PDF
+        replié derrière « Lire le contrat », ouvert d'un toucher).
+      · **contrats-14** : plus aucune fausse barre d'adresse dessinée (règle du dépôt : « on ne dessine jamais de barre
+        d'adresse ») ; côté bureau, une phrase suffit : « C'est la page que ton client ouvre. »
+      · **contrats-15** : le mode « chaque mois » AGIT : à la signature, la facture du premier mois se prépare (prix ÷ 12, le
+        reste d'arrondi sur le dernier mois) et la carte Facturation liste les douze échéances (la première « préparée », les
+        autres « le 1er de chaque mois »). Une option qui ne fait rien est un défaut.
+      · **contrats-16** : pas de « Envoyer par e-mail » sous un BROUILLON (il ne ferait pas signer) : « Voir en grand » et
+        « Télécharger » seulement ; l'envoi qui fait signer reste le bouton du haut.
+      · Doutes du recontrôle, tranchés : une pièce hors contrat posée sur une visite comprise se facture SEULE (casse 2) ;
+        le reste d'arrondi du prix d'une visite (1 000 € ÷ 6) est porté par la DERNIÈRE visite, pour que la somme fasse le prix
+        du contrat au centime (casse 1) ; les casses 3, 4, 5 du recontrôle se corrigent.
