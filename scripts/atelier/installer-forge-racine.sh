@@ -175,7 +175,7 @@ echo "── [7/7] Vérifications…"
 sleep 2
 v() { if [ "$2" = "$3" ]; then echo "   ✓ $1"; else echo "   ✗ $1 (reçu $2, attendu $3)"; fi; }
 v "le service de la porte répond" "$(curl -s --max-time 5 http://127.0.0.1:7070/porte/sante | grep -c '"ok":true')" 1
-v "la forge répond sur le serveur" "$(curl -s --max-time 5 http://127.0.0.1:3000/api/healthz | grep -c '"status": *"pass"')" 1
+v "la forge répond sur le serveur" "$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:3000/api/healthz)" 200
 OK=0; for i in $(seq 1 25); do [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 6 "https://$FORGE/api/healthz" 2>/dev/null)" = 200 ] && { OK=1; break; }; sleep 3; done
 v "https://$FORGE répond (certificat obtenu)" "$OK" 1
 v "https://$PORTE/porte/sante répond toujours" "$(curl -s --max-time 8 "https://$PORTE/porte/sante" | grep -c '"ok":true')" 1

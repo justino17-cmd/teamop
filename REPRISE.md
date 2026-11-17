@@ -318,6 +318,17 @@ socket tenue par systemd ; changer la clé ne tue pas ce qui tourne déjà (la v
 la clé s'affiche une fois à l'installation. ⏳ ATTEND JUSTIN : l'enregistrement DNS `git` (A) chez OVH, le script en root, son
 mot de passe de forge, le jeton `claude` dans les secrets réseau (site `git.teamop.fr`, type Bearer). ENSUITE : premier clone
 et première poussée d'une session par `https://git.teamop.fr/teamop/teamop.git` = la condition (b) entièrement levée.
+✅✅✅ **LA CONDITION (b) EST LEVÉE — CETTE SESSION LIT ET POUSSE LE CODE SUR NOTRE FORGE (17 novembre, 20 h 34).** Justin a posé
+l'enregistrement `git` chez OVH, lancé `installer-forge-racine.sh` depuis une copie de root (8 contrôles : 7 ✓, 1 fausse alerte
+de mon contrôle, corrigée), changé son mot de passe de forge (le provisoire, collé par erreur dans la conversation, est mort), et
+posé le jeton `claude` dans les secrets réseau (type Bearer, site `git.teamop.fr`). PREUVE, depuis le conteneur du cloud :
+`git -c http.extraHeader="Authorization: Bearer <valeur factice>" ls-remote https://git.teamop.fr/teamop/teamop.git` → 312
+branches ; `push` de la branche de travail → la forge et le conteneur au même commit. Le proxy remplace la valeur factice.
+En service sur l'atelier : porte (version corrigée, unité durcie), forge (unité systemd), Caddy (deux noms, administration
+fermée), fail2ban, copie nocturne GitHub → forge à 3 h 17. ⚠️ À FAIRE À LA REPRISE : la branche par défaut de la forge n'est pas
+`main` (à régler par l'API, compte administrateur) ; tant que GitHub reste la source, la copie de 3 h 17 ÉCRASE dans la forge ce
+qui n'est pas sur GitHub — donc on pousse encore sur GitHub d'abord ; les robots de vérification de la forge (Forgejo Actions)
+ne sont pas installés ; les 835 suites lancées sur l'atelier semblaient arrêtées sur une suite (`~/bancs.out` à relire).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
