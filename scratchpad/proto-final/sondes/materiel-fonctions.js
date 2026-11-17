@@ -17,6 +17,14 @@ const UNE = ['matEtat', 'camionsARemplir', 'matPhrase', 'matEnvoisAAccepter', 'm
 let n = 0;
 for (const nom of UNE) { const d = defs(nom); n++; if (nom === 'stkAppliquer') { v('stkAppliquer : la seule porte du stock, déclarée une fois puis enveloppée (' + d + ' formes)', d >= 1 && d <= 3, d); continue; } v(nom + ' : une définition', d === 1, d + ' définitions'); }
 v('population : ' + UNE.length + ' fonctions contrôlées', n === UNE.length && UNE.length >= 30);
+// Stock (lot 2) : une seule définition de la page, de la fiche d'article, du registre et des portes qui disent ce qui s'est passé
+const UNE2 = ['vueStock', 'prFiche', 'sxRegistre', 'matLigneArticle', 'msArticles', 'msBandeau', 'msTuiles', 'msJournal', 'msFiltrer', 'msEnvois', 'msAccepter', 'msRefuser', 'msRefusOk', 'matGOuvrir', 'matGVue', 'matGEnvoyer', 'matCompter', 'matCVue', 'matCEnregistrer', 'msReglagesVue', 'msMenuPlus', 'msMenuOu', 'msPhraseHtml', 'msMvVisibles', 'msFormApres', 'msPoser'];
+let n2 = 0; for (const nom of UNE2) { n2++; if (nom === 'msFormApres' || nom === 'msPoser') { v(nom + ' : une définition', defs(nom) === 1, defs(nom)); continue; } v(nom + ' : une définition', defs(nom) === 1, defs(nom)); }
+v('population Stock : ' + UNE2.length + ' fonctions contrôlées', n2 === UNE2.length && UNE2.length >= 25);
+// prFormulaire : la déclaration d'origine + les enveloppes qui l'habillent (chaînes voulues : doublon, rangement, quatre champs) — au plus quatre formes
+v('prFormulaire : la déclaration puis ses enveloppes (au plus 4 formes)', defs('prFormulaire') >= 1 && defs('prFormulaire') <= 4, defs('prFormulaire'));
+const MORT2 = ['sxBandeau', 'sxChips', 'sxListeStock', 'sxNbPourInter', 'sxEntree', 'sxEntreeVue', 'sxEntreeOk', 'sxToutValider', 'sxRefus', 'sxRefusOk', 'sxLigneAtt', 'stkVueValider', 'stkVueMouvements', 'pdxFicheApres', 'sxPrFiche0', 'sxVueStock0', 'sxLieuFiche0'];
+for (const nom of MORT2) { const d = (code.match(new RegExp('\\b' + nom + '\\b', 'g')) || []).length; v(nom + ' : supprimée du Stock (aucune occurrence dans le code)', d === 0, d + ' occurrences'); }
 // le code mort et les anciennes portes ont disparu (ni déclaration, ni appel)
 const MORT = ['bxMonCamion', 'bxManquePanel', 'bxDemOk', 'sxTForm', 'sxTFormVue', 'sxEnvoi', 'sxManqueVue', 'sxManqueEnvoi', 'pdxPmEnvoyer', 'sxIntVue', 'sxIntOk'];
 for (const nom of MORT) { const d = (code.match(new RegExp('\\b' + nom + '\\s*\\(', 'g')) || []).length; v(nom + ' : supprimée (aucun appel, aucune déclaration)', d === 0, d + ' occurrences'); }
