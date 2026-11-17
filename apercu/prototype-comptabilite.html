@@ -49,7 +49,7 @@
   --surf:#1e2a42; --surf2:#25334f; --surf-in:rgba(255,255,255,.05); --survol:rgba(255,255,255,.07);
   --trait:rgba(255,255,255,.10); --trait2:rgba(255,255,255,.16);
   --ombre:0 1px 2px rgba(0,0,0,.25),0 12px 32px rgba(0,0,0,.28); --ombre-haute:0 24px 60px rgba(0,0,0,.55);
-  --lien:#8fb4ff; --fill:#2c3d63; --on-fill:#f0f3f8; --seg-cur:rgba(255,255,255,.22); --seg-ink:#f0f3f8;
+  --lien:#8fb4ff; --fill:#e9eef8; --on-fill:#0b1426; --seg-cur:rgba(255,255,255,.22); --seg-ink:#f0f3f8;
   --vert:#30d158; --orange:#ff9f0a; --rouge:#ff7d8e; --bleu:#6aabff; --violet:#cb90f5; --ambre:#ffd60a;
   --menu-fond:#15213a; --feuille:#15213a; --voile:rgba(2,5,12,.6); --carte-fond:#1e2a42; --bande:#0f1a30;
   --page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),radial-gradient(120% 90% at 0% 0%,#1a2a4d 0%,rgba(26,42,77,0) 55%),radial-gradient(110% 80% at 100% 100%,#12234a 0%,rgba(18,35,74,0) 60%),linear-gradient(160deg,#0f1a30 0%,#070b16 100%);
@@ -157,7 +157,6 @@ button.kpi{transition:transform .2s var(--ressort),border-color .2s}
 button.kpi:hover{border-color:var(--trait2)}button.kpi:active{transform:scale(.98)}
 .btn{min-height:46px;padding:0 18px;border:0;border-radius:999px;background:var(--fill);color:var(--on-fill);font-weight:650;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;white-space:nowrap;transition:transform .2s var(--ressort),opacity .2s}
 .btn:active{transform:scale(.97);opacity:.9}
-:root[data-mode="nuit"] .btn:not(.gris):not(.danger){border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
 .btn.gris{background:var(--surf2);color:var(--encre);border:1px solid var(--trait)}
 .btn.gris:hover{border-color:var(--trait2)}
 .btn.danger{background:none;color:var(--rouge);border:1px solid color-mix(in srgb,var(--rouge) 40%,transparent)}
@@ -316,7 +315,7 @@ body.guide-on .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 .choix.premier{background:var(--fill);color:var(--on-fill);border-color:transparent}
 .choix.premier small{color:inherit;opacity:.78}
 .choix.premier .ic{background:rgba(255,255,255,.16);color:inherit}
-:root[data-mode="nuit"] .choix.premier{border:1px solid rgba(255,255,255,.16)}
+:root[data-mode="nuit"] .choix.premier .ic{background:rgba(11,20,38,.12)}   /* le bouton principal de nuit est clair : le voile de l'icône se pose en sombre, sinon il ne se voit plus */
 .reglages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px}
 .reglages .regl>span{font-size:13px}
 
