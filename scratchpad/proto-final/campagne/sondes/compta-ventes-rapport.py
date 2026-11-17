@@ -77,7 +77,7 @@ defauts = [
  {"n": "compta-ventes-09", "gravite": "détail", "ecran": "Fenêtre « Nouvelle facture »", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Comptabilité › Ventes › Factures & avoirs › ＋ Ajouter › Facture client.",
   "attendu": "Aucune phrase d'échafaudage.",
-  "constate": "« La vente de matériel seul (sans pose) viendra avec la vraie version : sa TVA se déclare à la facture… » : une promesse de « vraie version » dans l'application que l'utilisateur croit réelle.",
+  "constate": "« La vente de matériel seul (sans pose) viendra avec la vraie version : sa TVA se déclare à la facture… » : une promesse de « vraie version » dans l'application que l'utilisateur croit réelle. (Même formule ailleurs, côté Achats et pour le testeur de cette partie : le message d'une dépense saisie après l'envoi d'octobre dit « la saisie de novembre viendra avec la vraie version ».)",
   "preuve": "capture a-mac-formulaire.png", "ou": P + ":10626 (cxNouvelleFacture)",
   "correction": "Remplacer par une consigne utile : « Pour de la vente de matériel seul (sans pose), demande conseil à ton comptable : sa TVA se déclare à la facture. » ou retirer la phrase."},
  {"n": "compta-ventes-10", "gravite": "gênant", "ecran": "Fenêtre « Nouvelle facture »", "role": "marc", "profils": ["mac"], "decision": "corriger",
@@ -153,6 +153,18 @@ defauts = [
   "constate": "Un module de test intégré tel quel : bandeau « PROTOTYPE · OP GESTION », « Tests 0 / 25 », « + 1 jour · + 1 semaine · Jusqu'au prochain événement », « Recommencer », « ＋ Nouvelle facture de test », et la phrase « Pour l'instant, il a ses propres factures d'exemple ; dans la vraie version, ce sont celles de ta Comptabilité. ». Ses factures (FAC-2026-0147 « Restaurant Le Vieux Port, Remplacement du ventilateur extérieur 1 284,00 € Brouillon », 0145, 0144, 0143) ne sont pas celles d'OP GESTION (qui s'arrête à FAC-2026-0145 : la 0147 y n'existe pas encore) : deux jeux de factures, sous des numéros qui se recoupent. Le module n'est pas relié (confirme l'indice de MENU-FINAL) ; le renvoi d'un paiement vers OP GESTION n'a pas été joué.",
   "preuve": "sonde compta-ventes-enligne.js (✗ compta-ventes-20 : numéros du cadre [0147, 0145, 0144, 0143] contre [0145 … 0121] côté OP GESTION) ; capture enligne-mac-1.png", "ou": P + ":cxVueEnLigne (vers 11380, iframe prototype-paiement.html sans liaison, alors que la Comptabilité reçoit ses factures par opLiaDonnees)",
   "correction": "À soumettre (travail de fond) : donner à prototype-paiement.html, en mode application, les factures d'OP GESTION par le même message que la Comptabilité (`opc_ventes`), renvoyer les paiements par `opc_paiement` (déjà géré côté OP GESTION), cacher le harnais de test (« PROTOTYPE », « Tests », « + 1 jour », « Recommencer », « Nouvelle facture de test ») sous `html[data-app]`, et retirer la phrase « dans la vraie version »."},
+ {"n": "compta-ventes-21", "gravite": "gênant", "ecran": "Cadre « OP COMPTABLE » — Ventes et encaissements (téléphone)", "role": "marc", "profils": ["iphone"], "decision": "corriger",
+  "etapes": "iPhone : onglet « Comptabilité » de la barre du bas › cadre › Ventes et encaissements ; mesurer ce qui répond au doigt.",
+  "attendu": "Chaque cible au doigt fait au moins 44 px.",
+  "constate": "« Revenir au tableau de bord » et « Fermer la fenêtre » répondent sur 40 × 40 px ; les filtres « Toutes (8) · À encaisser (3) · En retard (1) · Payées (5) » sur 42 px de haut.",
+  "preuve": "sonde compta-ventes-cadre-explore.js iphone marc (gestes : A 40×40, BUTTON data-cmpt=vf|… 100×42) ; capture cadre-iphone-marc-ventes.png", "ou": "apercu/prototype-comptabilite.html : `.fen-r` (« Revenir au tableau de bord », ligne 2357) et `.fen-x` (« Fermer la fenêtre »), et les boutons de `.cmpt-filtres .seg` (ligne 519)",
+  "correction": "Passer ces quatre commandes à 44 px minimum sous `(pointer:coarse)`."},
+ {"n": "compta-ventes-22", "gravite": "gênant", "ecran": "Cadre « OP COMPTABLE » (téléphone)", "role": "marc", "profils": ["iphone"], "decision": "soumettre",
+  "etapes": "iPhone : onglet « Comptabilité » de la barre du bas.",
+  "attendu": "Une seule barre du haut et un seul bouton de menu.",
+  "constate": "Deux barres du haut s'empilent : celle d'OP GESTION (« ‹ OP GESTION · ≡ Menu · Factures ») et celle du cadre (« ≡ · OP COMPTABLE · ● 05:55 »), puis, en bas, la barre propre du cadre (Accueil · À vérifier · Journée · Banque · Plus). Deux boutons de menu ouvrent deux menus différents (celui d'OP GESTION et celui de la comptabilité) : on ne sait pas lequel est lequel. L'heure « 05:55 » est celle de la simulation, sans libellé.",
+  "preuve": "captures cadre-iphone-marc-accueil.png et cadre-iphone-marc-ventes.png", "ou": "apercu/prototype-op-gestion.html:cpSysMaj (barre .cpsys-barre) + apercu/prototype-comptabilite.html (en-tête mobile)",
+  "correction": "À soumettre : le bouton « Menu » d'OP GESTION est voulu (MENU-FINAL, ligne 54) ; recommandation : retirer le ≡ du cadre (la barre du bas « Plus » porte déjà son menu) et libeller l'heure (« Lu à 05:55 »)."},
 ]
 J = {
  "partie": "compta-ventes", "date": "2026-11-17",
@@ -173,6 +185,16 @@ for f in sorted(os.listdir(D), key=lambda n: (n.count('-'), n)):   # ordre alpha
 for k, v in vus.items(): tot += v['recenses']; tou += v['touches']
 J['couverture'].update({"gestesRecenses": tot, "gestesTouches": tou, "profils": ["mac", "windows", "ipad", "iphone", "android", "petit"], "profilsDuBalayage": sorted(profs), "parcours": 10})
 J['sondes'] = SONDES
+J['mutations'] = {"fait": "compta-ventes-mutations.py : une COPIE des pages avec un défaut remis, la sonde qui garde ce comportement rejouée ; une mutation mord si elle fait tomber un contrôle qui ne tombait pas sans elle", "jouees": 5, "mordent": 5,
+  "detail": ["M1 reste dû sans les paiements partiels → parcours B : 3 contrôles de plus tombent", "M2 un encaissement ne laisse aucune ligne → parcours B : 3 de plus", "M3 relance du cadre non reçue par OP GESTION → parcours D : 1 de plus", "M5 avoir de 0 € → parcours C : 1 de plus", "M8 facture sans désignation acceptée → parcours A : 1 de plus"],
+  "nonJouees": ["M4 (cadre sans les paiements), M6 (numéro d'avoir fixe), M7 (paiement sous un centime) : écrites, pas jouées faute de temps de machine"]}
+J['nonCouvert'] += [
+ "Les autres moitiés de la Comptabilité (Achats, Banque, TVA, Paie, Clôture, Conformité, Fiscal) : à un autre testeur.",
+ "Le balayage geste par geste n'a été joué qu'à l'ordinateur (Mac) et à l'iPhone ; Windows, iPad, Android et 320 px ont la mise en page (jour et nuit, captures regardées) et les parcours E/B sur iPhone, pas le balayage de chaque geste.",
+ "Un paiement fait DANS le module « Paiement en ligne » et son renvoi vers OP GESTION : le module n'est pas relié (défaut 20), le renvoi n'a donc pas été joué.",
+ "Le cadre « OP COMPTABLE » au téléphone : l'ouverture par l'onglet « Comptabilité » de la barre du bas a été essayée à l'iPhone (voir cadre-iphone dans les captures) ; ses écrans de comptable (écritures, TVA, banque) ne sont pas de cette partie.",
+ "La vraie réception d'un courriel de relance et le vrai PDF téléchargé : le prototype n'envoie rien (non défauts).",
+]
 extra = os.path.join(D, 'compta-ventes-extra.json')   # constats ajoutés par les lots suivants (même forme), pour ne pas retoucher ce fichier
 if os.path.exists(extra):
     e = json.load(open(extra)); J['defauts'] += e.get('defauts', []); J['nonCouvert'] += e.get('nonCouvert', []); J['couverture'].update(e.get('couverture', {}))
