@@ -18,7 +18,6 @@ sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 
 | securite | `{voie:"securite", depuis:7}` | /home/user/wt-securite | wf_ddbf05bc-b79 (tâche wkrvtuozl) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée ; les 18 failles sont corrigées (`securite/corrections.json`) ; les polices du compositeur sont REMISES par décision du chef |
 | restes (interventions) | `{voie:"restes", noms:["interventions"], arbre:"/home/user/wt-t-interventions", tours:1}` | /home/user/wt-t-interventions | wf_a3784188-c7f (tâche wj94wa354) | 1 sur 2 (lancée à 10 h 31, UN tour) |
 | campagne clients | `{voie:"campagne", cles:["clients"], arbre:"/home/user/wt-t-clients"}` | /home/user/wt-t-clients | wf_9eac0989-473 (tâche wunwkw7f8) | 2 sur 3 |
-| restes (compta-ventes) | `{voie:"restes", noms:["compta-ventes"], arbre:"/home/user/wt-t-compta-ventes"}` | /home/user/wt-t-compta-ventes | wf_3718062f-7bd (tâche wwf12gpep) | 1 sur 4 (lancée à 9 h 52) |
 | campagne compta-reste | `{voie:"campagne", cles:["compta-reste"], arbre:"/home/user/wt-t-compta-reste"}` | /home/user/wt-t-compta-reste | wf_6613e191-cd1 (tâche w3hlifa27) | 1 sur 3 |
 | campagne client | `{voie:"campagne", cles:["client"], arbre:"/home/user/wt-t-client"}` | /home/user/wt-t-client | wf_161f5d3d-d34 (tâche w2w2augv0) | 2 sur 3 |
 
@@ -55,6 +54,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 24 | session_01PfEEAGGKUWWuaWr9RUDWGg | `{voie:"restes", noms:["entreprise"], tours:1}` (le recontrôle du lot a rendu à 12 h : 11 réglés sur 13, une casse gênante ; décision du chef : « Voir » seul sur la Boîte mail = lecture seule) | 12 h 01 | |
 | 25 | session_01PfEEAJdV1V3V9mH9kzT2vm | `{voie:"materiel", depuis:8}` (recontrôle adverse : 27 corrigés sur 29, technicien-11 à 14 à vérifier) — CHEMIN LE PLUS LONG | 12 h 03 | |
 | 26 | session_01PfEEAHX8VDxaNpXNdvLovo | `{voie:"vehtemps", depuis:7}` (corriger, recontrôler ; relecture salarié rendue : 12 défauts dont 1 bloquant ; la relecture gérant finit ici) — CHEMIN LE PLUS LONG | 12 h 03 | |
+| 27 | session_01PfEEAEYoMW25Tb5XEZ7wKd | `{voie:"restes", noms:["compta-ventes"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 12 h 03 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
