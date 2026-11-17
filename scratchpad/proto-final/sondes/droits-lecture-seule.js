@@ -15,7 +15,7 @@ const BALAYAGE = () => { const fuite = [], cache = new Set(), vus = new Set(); c
   for (const r of ROUTES) {
     await c.p.evaluate(x => { try { fermerPanneau(); } catch (e) {} aller(x); }, r); await L.calme(c.p, 600);
     const ok = await c.p.evaluate(() => ({ h:location.hash.slice(1), cadre:!!document.getElementById('cpsys') && !document.getElementById('cpsys').hidden }));
-    if (['boxes', 'pointage'].includes(r)) { v(`${r} : fermé à qui n'a que « Voir » (il demande « Supprimer » en plus : données de salaire, dépôts)`, ok.h !== r, ok); continue; }
+    /* equipe-11 (décision du chef, 17/11) : « Voir » décide SEUL — Dépôts et camions et Temps de travail s'ouvrent à qui n'a que « Voir » (avant : fermés, ils demandaient « Supprimer » en plus) */
     if (ok.h !== r) { v(`${r} : l'écran s'ouvre pour une personne en lecture seule`, false, ok); continue; }
     const b = await c.p.evaluate(BALAYAGE), note = await c.p.evaluate(() => (document.querySelector('.droits-note') || {}).textContent || '');
     nEcrans++; nCaches += b.cache.length; nFuites += b.fuite.length; if (note) nNotes++;

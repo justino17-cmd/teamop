@@ -18,7 +18,7 @@ const TECHNIQUE = /\b(login|logout|reset|token|payload|callback|timeout|admin(?!
   for (const [nom, sel] of [['inviter', '[data-eq="inviter"]'], ['regles', '[data-eqx="regles"]'], ['formation', '[data-eqx^="formation"]']]) { await L.aller(p, 'equipe'); await L.toucher(c, sel); await lire('equipe-' + nom, '#calque'); await E.ranger(c); }
   await E.fiche(c, 'kb'); await L.toucher(c, '[data-eq="habajout|kb"]'); await lire('habilitation-ajout', '#calque'); await E.ranger(c);
   await E.fiche(c, 'kb'); const j = await p.evaluate(() => eqDe('kb').habil.findIndex(h => /électrique/i.test(h[0]))); await L.toucher(c, `[data-eq="renouv|kb|${j}"]`); await lire('habilitation-renouveler', '#calque'); await E.ranger(c);
-  await E.fiche(c, 'lr'); await L.toucher(c, '[data-eq="actif|lr"]'); await lire('desactiver', '#calque'); await E.ranger(c);
+  await E.fiche(c, 'lr'); await L.toucher(c, '[data-eq="desact|lr"]'); await lire('desactiver', '#calque'); await E.ranger(c);
   await E.fiche(c, 'julie'); await L.toucher(c, '[data-cnx="repose|julie"]'); await lire('mot-de-passe-provisoire', '#calque'); await E.ranger(c);
   await E.fiche(c, 'julie'); await L.toucher(c, '[data-sec2="telephone|julie"]'); await lire('nouveau-telephone', '#calque'); await E.ranger(c);
   await E.fiche(c, 'julie'); await L.toucher(c, '[data-sec2="deconnecter|julie"]'); await lire('deconnecter', '#calque'); await E.ranger(c);
@@ -31,7 +31,8 @@ const TECHNIQUE = /\b(login|logout|reset|token|payload|callback|timeout|admin(?!
   for (const [n, t] of Object.entries(T)) {
     const e = (t.match(ECHAFAUDAGE) || [])[0]; v(`${n} : aucun reste d’échafaudage`, !e, e);
     const q = (t.match(TECHNIQUE) || [])[0]; v(`${n} : aucun mot technique ou anglais`, !q, q);
-    t.split(/\n+|(?<=[.!?…])\s+|\s·\s/).forEach(s => { const m = s.trim().split(/\s+/).length; if (m > 35) long.push(n + ' (' + m + ' mots) : ' + s.trim().slice(0, 140)); });
+    t.split(/\n+|(?<=[.!?…])\s+|\s·\s/).forEach(s => { if (/\t/.test(s)) return;   /* une rangée de tableau (les titres de colonnes entiers de « Qui peut quoi ») n'est pas une phrase */
+      const m = s.trim().split(/\s+/).length; if (m > 35) long.push(n + ' (' + m + ' mots) : ' + s.trim().slice(0, 140)); });
   }
   v('equipe-20 aucune phrase de plus de 35 mots (liste en détail)', long.length === 0, long.slice(0, 6));
   fs.writeFileSync('/tmp/equipe-mots-' + PROFIL + '.json', JSON.stringify(T, null, 1));

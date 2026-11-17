@@ -1,0 +1,703 @@
+{
+ "corrections": [
+  {
+   "ecran": "Temps de travail › Envoyer au cabinet de paie",
+   "avant": "Prototype : le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois.",
+   "apres": "Le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois. Ici, rien n’est envoyé.",
+   "raison": "reste d’échafaudage « Prototype : »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Registre sanitaire › PDF",
+   "avant": "Dans l’application, le registre part en PDF au nom de l’entreprise (passages, produits avec lot et AMM, recommandations, plan des box). Ici, c’est un aperçu : aucun fichier n’est fabriqué.",
+   "apres": "Le registre part en PDF au nom de l’entreprise (passages, produits avec lot et AMM, recommandations, plan des box). Ici, aucun fichier n’est créé.",
+   "raison": "« Dans l’application » alors qu’on y est ; « aperçu » et « fabriqué » sont des mots de développeur",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Registre sanitaire › PDF du site",
+   "avant": "prêt (exemple : aucun fichier n’est fabriqué ici).",
+   "apres": "préparé. Ici, aucun fichier n’est créé.",
+   "raison": "« exemple » et « fabriqué »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Registre sanitaire › Prévenir les clients",
+   "avant": "par e-mail (exemple).`",
+   "apres": "par e-mail. Ici, aucun message ne part vraiment.`",
+   "raison": "« (exemple) » ne dit pas ce qui se passe",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Carte des box › Plan en PDF",
+   "avant": "Aperçu : dans l’application, le plan en PDF est enregistré et joint au registre.",
+   "apres": "Le plan en PDF est joint au registre. Ici, aucun fichier n’est créé.",
+   "raison": "« Aperçu : dans l’application »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Carte des box › Envoyer le plan",
+   "avant": "envoyés à ${esc(CB_MAIL[c])} (simulation : rien n’est parti).`",
+   "apres": "envoyés à ${esc(CB_MAIL[c])}. Ici, aucun message ne part vraiment.`",
+   "raison": "« simulation »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Carte des box › Étiquettes",
+   "avant": "Aperçu : la planche d’étiquettes part à l’impression dans l’application.",
+   "apres": "La planche d’étiquettes part à l’impression. Ici, rien n’est imprimé.",
+   "raison": "« Aperçu : … dans l’application »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis xylophage › Attestation PDF",
+   "avant": "Dans l’application, l’attestation part en PDF au nom de l’entreprise. Ici, c’est un aperçu : aucun fichier n’est fabriqué.",
+   "apres": "L’attestation part en PDF au nom de l’entreprise. Ici, aucun fichier n’est créé.",
+   "raison": "« aperçu », « fabriqué »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › ouvrir une facture absente",
+   "avant": "Cette facture n’est pas dans la démonstration d’OP GESTION (elle a moins de factures que la comptabilité).",
+   "apres": "Cette facture n’a pas de page à ouvrir ici.",
+   "raison": "« démonstration d’OP GESTION » (échafaudage)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › ouvrir un client absent",
+   "avant": "Ce client n’est pas dans la démonstration d’OP GESTION.",
+   "apres": "Ce client n’a pas de fiche à ouvrir ici.",
+   "raison": "« démonstration d’OP GESTION » (échafaudage)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis et contrats › droit refusé",
+   "avant": "Ton rôle n’a pas accès à ' + (droit === 'contrats' ? 'la composition des contrats.' : 'la composition des devis.')",
+   "apres": "Ce geste n’est pas ouvert à ton compte : ' + (droit === 'contrats' ? 'composer un contrat.' : 'composer un devis.')",
+   "raison": "une seule formule de refus (« Ce geste n’est pas ouvert à ton compte »), et « rôle » est un mot interne",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Planning › Rendez-vous en ligne",
+   "avant": "Enregistré tout de suite. Pour les voir : ouvre une intervention TERMINÉE (le bouton n’existe que sur celles-là), puis touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.",
+   "apres": "Enregistré tout de suite : les moments proposés à tes clients changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.",
+   "raison": "mode d’emploi de test (« ouvre une intervention TERMINÉE… ») écrit dans l’écran d’un vrai utilisateur",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Planning › Retards",
+   "avant": "Replanifier ouvre le planning sur la carte pour la déplacer ; appeler le technicien pour savoir où il en est. Le titre ouvre la fiche.",
+   "apres": "Replanifier ouvre le planning sur la carte, pour la déplacer. Appelle le technicien pour savoir où il en est. Le titre ouvre la fiche.",
+   "raison": "deux verbes de formes différentes dans une même phrase, tutoiement tenu",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Stock › Sortir du stock",
+   "avant": "de ${d(G.de)}${pour}.`; }",
+   "apres": "${de(G.de)}${pour}.`; }",
+   "raison": "« sorti de le camion de Léa » : le, précédé de de, devient du",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Stock › Déplacer",
+   "avant": "déplacé${G.lignes.length > 1 ? 's' : ''} de ${d(G.de)} vers ${d(G.vers)}.`;",
+   "apres": "déplacé${G.lignes.length > 1 ? 's' : ''} ${de(G.de)} vers ${d(G.vers)}.`;",
+   "raison": "« déplacé de le camion de Léa » : du camion de Léa",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Stock › phrase de contrôle",
+   "avant": "'le camion de ' + prenomDe(lieu(id).tech) : 'la réserve';\n  if (G.mode === 'sortir')",
+   "apres": "'le camion de ' + prenomDe(lieu(id).tech) : 'la réserve', de = id => id === 'atelier' ? 'de l’atelier' : lieu(id).type === 'vehicule' ? 'du camion de ' + prenomDe(lieu(id).tech) : 'de la réserve';\n  if (G.mode === 'sortir')",
+   "raison": "la forme « de + lieu » s'écrit à part : de l’atelier, du camion de Léa, de la réserve",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Véhicules › échéance d’entretien",
+   "avant": ": /^révision/i.test(e.lib) ? 'La révision' : e.lib;",
+   "apres": ": /^révision/i.test(e.lib) ? 'La révision' : 'L’entretien « ' + e.lib + ' »';",
+   "raison": "« Courroie de distribution est dans 20 jours » : une phrase sans article",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Comment ça marche",
+   "avant": "(réservé au patron)",
+   "apres": "(réservé au gérant)",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Interventions › à planifier",
+   "avant": "Le planning est tenu par le patron",
+   "apres": "Le planning est tenu par le gérant",
+   "raison": "idem (la fenêtre et son message)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats et frais › notes de frais",
+   "avant": "Le tarif au kilomètre est celui réglé par le patron.",
+   "apres": "Le tarif au kilomètre est celui réglé par le gérant.",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats et frais › notes de frais",
+   "avant": "toast('Le patron demande un ticket pour chaque note de frais.')",
+   "apres": "toast('Le gérant demande un ticket pour chaque note de frais.')",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats et frais › notes de frais",
+   "avant": "kilomètres × le tarif au kilomètre réglé par le patron",
+   "apres": "kilomètres × le tarif au kilomètre réglé par le gérant",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Carte des box › secrétariat",
+   "avant": "La gestion voit la carte en lecture seule : le technicien et le patron posent les box.",
+   "apres": "Le secrétariat voit la carte en lecture seule : le technicien et le gérant posent les box.",
+   "raison": "« la gestion » est un nom de revue, la personne s’appelle Secrétariat dans Équipe ; et gérant",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Mes heures › fiches de paie",
+   "avant": "Toi seul les vois, avec ton patron.",
+   "apres": "Toi seul les vois, avec le gérant.",
+   "raison": "un seul nom pour la personne qui dirige : gérant",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Pilotage",
+   "avant": "Avec le pilote, tout cela se traite sans toi. Ici, tu le déclenches à la main pour voir chaque étape.",
+   "apres": "Avec le pilote, tout cela se traite sans toi. Sinon, tu le lances toi-même, étape par étape.",
+   "raison": "« Ici, tu le déclenches à la main pour voir » est une consigne de démonstration",
+   "fichier": "apercu/prototype-comptabilite.html"
+  },
+  {
+   "ecran": "Achats et frais › règle des notes",
+   "avant": "C’est le patron qui décide de ce réglage.",
+   "apres": "C’est le gérant qui décide de ce réglage.",
+   "raison": "un seul nom pour la personne qui dirige : gérant (menu, Équipe)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Planning › choisir une personne",
+   "avant": "`${L.length} int. · ${duree(mn)}`",
+   "apres": "`${L.length} ${L.length > 1 ? 'interventions' : 'intervention'} · ${duree(mn)}`",
+   "raison": "« int. » n’est pas un mot : une abréviation inventée",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › Par type d’intervention",
+   "avant": "· ${x.n} int.${x.n ?",
+   "apres": "· ${x.n} ${x.n > 1 ? 'interventions' : 'intervention'}${x.n ?",
+   "raison": "« 5 int. » : une abréviation inventée",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › Bilan PDF",
+   "avant": "<th>Moyen</th><th class=\"n\">Règl.</th>",
+   "apres": "<th>Moyen de paiement</th><th class=\"n\">Nombre</th>",
+   "raison": "« Règl. » est une abréviation de développeur ; « Moyen » seul ne dit pas de quoi",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › Bilan PDF",
+   "avant": "<th class=\"n\">Nb</th>",
+   "apres": "<th class=\"n\">Nombre</th>",
+   "raison": "« Nb » : une abréviation que l’artisan ne dit pas",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Tâches › en retard",
+   "avant": "` · ${-n} j de retard`",
+   "apres": "` · ${vxN(-n, 'jour')} de retard`",
+   "raison": "« 2 j de retard » : les jours s’écrivent en toutes lettres dans une phrase",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Contrats › échéance",
+   "avant": "'échu depuis ' + (-n) + ' j' : n === 0 ? 'aujourd’hui' : 'dans ' + n + ' j'",
+   "apres": "'échu depuis ' + vxN(-n, 'jour') : n === 0 ? 'aujourd’hui' : 'dans ' + vxN(n, 'jour')",
+   "raison": "« dans 61 j » : en toutes lettres",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › à payer",
+   "avant": "échue depuis ' + -j + ' j'",
+   "apres": "échue depuis ' + vxN(-j, 'jour')",
+   "raison": "« échue depuis 2 j » : en toutes lettres",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › à encaisser",
+   "avant": "échue depuis ${-j} j",
+   "apres": "échue depuis ${vxN(-j, 'jour')}",
+   "raison": "« échue depuis 2 j » : en toutes lettres",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Typographie de tous les écrans",
+   "avant": "const typoTxt = s => s.replace(/ ([:;?!»])/g, '\\u00a0$1').replace(/« /g, '«\\u00a0');",
+   "apres": "const typoTxt = s => s.replace(/ ([:;?!»])/g, '\\u00a0$1').replace(/« /g, '«\\u00a0').replace(/(\\d) ([%€])/g, '$1\\u00a0$2');",
+   "raison": "« 10 % » et « 100 € » : l’espace avant % et € est insécable (le chiffre et son signe ne se séparent pas en fin de ligne)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Typographie du cadre Comptabilité",
+   "avant": "const typoTxt = s => String(s).replace(/ ([:;?!»])/g, '\\u00a0$1').replace(/« /g, '«\\u00a0');",
+   "apres": "const typoTxt = s => String(s).replace(/ ([:;?!»])/g, '\\u00a0$1').replace(/« /g, '«\\u00a0').replace(/(\\d) ([%€])/g, '$1\\u00a0$2');",
+   "raison": "idem, dans le cadre de la Comptabilité",
+   "fichier": "apercu/prototype-comptabilite.html"
+  },
+  {
+   "ecran": "Devis et contrats › fiche de l’interlocuteur",
+   "avant": "ch('mail','Courriel',",
+   "apres": "ch('mail','E-mail',",
+   "raison": "un seul mot pour un message électronique",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › parties",
+   "avant": "'Courriel : '+v(E.mail)",
+   "apres": "'E-mail : '+v(E.mail)",
+   "raison": "idem",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › article de contact",
+   "avant": "ou par courriel à {{email}}",
+   "apres": "ou par e-mail à {{email}}",
+   "raison": "idem",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › interlocuteur",
+   "avant": "Nom, fonction, téléphone et courriel",
+   "apres": "Nom, fonction, téléphone et e-mail",
+   "raison": "idem",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › liste des articles",
+   "avant": "const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA'};",
+   "apres": "const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA',tel:'téléphone',email:'e-mail'};",
+   "raison": "« [tel] », « [email] » : les blancs à remplir se lisent avec des mots, pas avec le nom de la variable",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › résumé d’un article",
+   "avant": "return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+k+']') });",
+   "apres": "return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+(NOMS_AUTO[k]||k)+']') });",
+   "raison": "« [prixttc] » : le résumé d’un article écrivait le nom de la variable",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "« Prestation de services » est écrit sur tes factures : pour des travaux et de la main-d’œuvre, la TVA est due quand le client paie, sauf si tu as choisi de la payer « d’après les débits » (alors une mention de plus).",
+   "apres": "« Prestation de services » est écrit sur tes factures. Pour des travaux et de la main-d’œuvre, la TVA est due quand le client paie. Si tu as choisi de la payer « d’après les débits », il y a alors une mention de plus.",
+   "raison": "une phrase de 44 mots coupée en trois",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "sont comptés ensemble : la plupart se vérifient tout seuls sur tes données (fiche, factures et leur PDF, banque, caisse, achats), les autres demandent ton attention.",
+   "apres": "sont comptés ensemble. La plupart se vérifient tout seuls sur tes données (fiche, factures et leur PDF, banque, caisse, achats). Les autres demandent ton attention.",
+   "raison": "une phrase de 41 mots coupée en trois",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "à la suite du dernier numéro donné${dernier ? ` (le dernier : ${dernier.num})` : ''} ; une facture envoyée ne se modifie plus et ne s’efface pas : une erreur se corrige par un avoir.",
+   "apres": "à la suite du dernier${dernier ? ` (${dernier.num})` : ''}. Une facture envoyée ne se modifie plus et ne se supprime pas : une erreur se corrige par un avoir.",
+   "raison": "38 mots ; « efface » devient « supprime » (un seul mot)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "Au même moment, les montants et la TVA de tes ventes aux particuliers, et les dates de paiement de tes services, seront transmis à l’administration par ta plateforme (des totaux, pas le détail de chaque client).",
+   "apres": "Au même moment, ta plateforme transmettra à l’administration les montants, la TVA et les dates de paiement de tes ventes aux particuliers. Ce sont des totaux, pas le détail de chaque client.",
+   "raison": "36 mots coupés en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › TVA",
+   "avant": "Une facture d’octobre payée en novembre compte en novembre ; une facture de septembre payée en octobre compte ici ; un acompte reçu sur place compte le jour où le technicien l’encaisse.",
+   "apres": "Une facture d’octobre payée en novembre compte en novembre. Une facture de septembre payée en octobre compte ici. Un acompte reçu sur place compte le jour où le technicien l’encaisse.",
+   "raison": "trois idées, trois phrases",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "Une dette de plus de 1 000 € ne se paie pas en espèces quand le client vit en France, particulier ou professionnel, même en plusieurs fois : au-dessus, refuse les espèces.",
+   "apres": "On ne paie pas en espèces une dette de plus de 1 000 €, même en plusieurs fois, quand le client vit en France (particulier ou professionnel). Au-dessus de ce montant, refuse les espèces.",
+   "raison": "32 mots, et le verbe en tête",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "'Aucun paiement en espèces au-dessus. '",
+   "apres": "'Aucun paiement en espèces n’a dépassé ce plafond. '",
+   "raison": "« refuse les espèces. Aucun paiement en espèces au-dessus. » se répétait",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "Le taux réduit vaut pour des travaux dans un logement terminé depuis plus de deux ans : le devis ou la facture doit porter la mention prévue, certifiée par ton client.",
+   "apres": "Le taux réduit vaut pour des travaux dans un logement terminé depuis plus de deux ans. Le devis ou la facture doit porter la mention prévue, certifiée par ton client.",
+   "raison": "31 mots coupés en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "doit les rendre inaltérables, les sécuriser, les conserver et les archiver, et l’éditeur doit en fournir la preuve (certificat ou attestation).",
+   "apres": "doit les rendre inaltérables, les sécuriser, les conserver et les archiver. L’éditeur doit en fournir la preuve (certificat ou attestation).",
+   "raison": "30 mots coupés en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "Les grandes entreprises et les ETI t’en envoient déjà.",
+   "apres": "Les grandes entreprises t’en envoient déjà.",
+   "raison": "« ETI » : un sigle que l’artisan ne connaît pas",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Conformité",
+   "avant": "(2026 pour une grande entreprise ou une ETI)",
+   "apres": "(2026 pour une grande entreprise)",
+   "raison": "« ETI » : un sigle que l’artisan ne connaît pas",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Temps de travail › Valider",
+   "avant": "data-tt=\"areg\">Voir À régler ›</button>",
+   "apres": "data-tt=\"areg\">Voir les points à régler ›</button>",
+   "raison": "« Voir À régler » : une majuscule au milieu d’une phrase, et on ne sait pas ce qu’on va voir",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › Par intervention",
+   "avant": "Aucune pièce ni achat pour cette intervention. Dans la vraie version, la main-d’œuvre (heures pointées) s’ajoutera ici.",
+   "apres": "Aucune pièce ni achat pour cette intervention.",
+   "raison": "« Dans la vraie version… » : une promesse de développeur lue par un utilisateur",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis › champ",
+   "avant": "placeholder=\"Ex. : pose d’une prise dédiée",
+   "apres": "placeholder=\"ex. pose d’une prise dédiée",
+   "raison": "une seule façon d’écrire un exemple dans un champ",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Devis › champ",
+   "avant": "placeholder=\"Par exemple : Merci de votre confiance",
+   "apres": "placeholder=\"ex. Merci de votre confiance",
+   "raison": "idem",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Planning › absence",
+   "avant": "toast(`${tech(a.tech).nom} pendant son absence, et « Non assigné » pour réaffecter.`)",
+   "apres": "toast(`Planning de ${tech(a.tech).nom} pendant son absence, avec la colonne « Non assigné » pour réaffecter.`)",
+   "raison": "un début de phrase sans sujet : « Léa Roux pendant son absence, et… »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Absences › Télécharger le PDF",
+   "avant": "data-nom=\"Absences ${titre}.pdf\"",
+   "apres": "data-nom=\"Absences ${String(titre).replace(/^Du /, 'du ')}.pdf\"",
+   "raison": "un nom de fichier n’a pas de majuscule au milieu : « Absences du 2 nov. au 15 nov. 2026.pdf »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis › aide",
+   "avant": "ouvre ton devis en grand : tu choisis le client et le matériel du catalogue, tu écris le texte, tu vois la page se faire.",
+   "apres": "ouvre ton devis en grand. Tu choisis le client et le matériel du catalogue, tu écris le texte, tu vois la page se faire.",
+   "raison": "31 mots : deux phrases",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Tous les champs › exemple",
+   "avant": "« Ex. : entretien climatisation » / « Ex. rappeler M. Durand »",
+   "apres": "« ex. entretien climatisation » / « ex. rappeler M. Durand »",
+   "raison": "une seule façon d’écrire un exemple dans un champ",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Historique, Comptabilité, Sécurité › « efface »",
+   "avant": "« Rien ne s’y efface ni ne s’y modifie », « pas en effaçant », « effacé de ce téléphone »",
+   "apres": "« Rien ne s’y supprime ni ne s’y modifie », « pas en supprimant », « supprimé de ce téléphone »",
+   "raison": "un seul mot pour faire disparaître : supprimer",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité (cadre) › reçu par mail",
+   "avant": "« reçue par mail »",
+   "apres": "« reçue par e-mail »",
+   "raison": "un seul mot : e-mail",
+   "fichier": "apercu/prototype-comptabilite.html"
+  },
+  {
+   "ecran": "Tous les écrans (page) › courriel",
+   "avant": "« Voir le courriel », « Confier ce courriel », « Courriels · 3 »",
+   "apres": "« Voir l’e-mail », « Confier cet e-mail », « E-mails · 3 »",
+   "raison": "un seul mot pour un message électronique : « e-mail » (le menu dit « Boîte mail »)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Tous les écrans (courrier) › courriel",
+   "avant": "« Voir le courriel », « Confier ce courriel », « Courriels · 3 »",
+   "apres": "« Voir l’e-mail », « Confier cet e-mail », « E-mails · 3 »",
+   "raison": "un seul mot pour un message électronique : « e-mail » (le menu dit « Boîte mail »)",
+   "fichier": "apercu/prototype-courrier.js"
+  },
+  {
+   "ecran": "Absences et congés › soldes (phrases)",
+   "avant": "« 3 j aujourd’hui → 2 j après cette absence »",
+   "apres": "« 3 jours aujourd’hui → 2 jours après cette absence »",
+   "raison": "les jours en toutes lettres dans une phrase ; les tuiles et tableaux gardent « j »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  }
+ ],
+ "textesLus": 6400,
+ "parRole": {
+  "marc": {
+   "ecrans": 21,
+   "gestesJoues": 851,
+   "fenetresOuvertes": 396,
+   "toastsLus": 80,
+   "cadresLus": [
+    "prototype-documents.html"
+   ],
+   "textesDistincts": 5384,
+   "parType": {
+    "écran": 2050,
+    "attribut": 730,
+    "fenêtre": 2362,
+    "toast": 53,
+    "cadre": 189
+   }
+  },
+  "julie": {
+   "ecrans": 10,
+   "gestesJoues": 305,
+   "fenetresOuvertes": 147,
+   "toastsLus": 8,
+   "cadresLus": [
+    "prototype-comptabilite.html",
+    "prototype-documents.html"
+   ],
+   "textesDistincts": 2118,
+   "parType": {
+    "écran": 846,
+    "attribut": 356,
+    "cadre": 359,
+    "fenêtre": 549,
+    "toast": 8
+   }
+  },
+  "sm": {
+   "ecrans": 6,
+   "gestesJoues": 213,
+   "fenetresOuvertes": 80,
+   "toastsLus": 29,
+   "cadresLus": [],
+   "textesDistincts": 696,
+   "parType": {
+    "écran": 335,
+    "attribut": 134,
+    "toast": 25,
+    "fenêtre": 202
+   }
+  },
+  "kb": {
+   "ecrans": 6,
+   "gestesJoues": 201,
+   "fenetresOuvertes": 76,
+   "toastsLus": 23,
+   "cadresLus": [],
+   "textesDistincts": 726,
+   "parType": {
+    "écran": 341,
+    "attribut": 138,
+    "toast": 21,
+    "fenêtre": 226
+   }
+  },
+  "client": {
+   "ecrans": 1,
+   "gestesJoues": 5,
+   "fenetresOuvertes": 0,
+   "toastsLus": 0,
+   "cadresLus": [],
+   "textesDistincts": 64,
+   "parType": {
+    "écran": 59,
+    "attribut": 5
+   }
+  }
+ },
+ "relevé": {
+  "date": "2026-11-17",
+  "profil": "mac (ordinateur)",
+  "methode": "mots-releve.js : le navigateur ouvre chaque rubrique du rôle puis joue chaque geste visible, trois niveaux, et lit le texte rendu, les aria-label, title, placeholder et options ; mots-hors-rubriques.js : connexion et guide des nouveautés ; mots-visite.js : la visite parlée"
+ },
+ "synonymes": [
+  {
+   "chose": "la personne qui dirige l’entreprise",
+   "motsTrouves": [
+    "patron",
+    "gérant",
+    "administrateur"
+   ],
+   "motGarde": "gérant",
+   "note": "le menu et la fiche Équipe disent « Gérant » ; « patron » est retiré partout. « Administrateur » reste, mais pour une AUTRE chose : le compte qui règle les accès (sécurité, connexion, droits), qui peut être quelqu’un d’autre que le gérant."
+  },
+  {
+   "chose": "un message électronique",
+   "motsTrouves": [
+    "courriel",
+    "e-mail",
+    "mail",
+    "email"
+   ],
+   "motGarde": "e-mail",
+   "note": "le nom du menu « Boîte mail » est gardé (décidé) ; partout ailleurs « e-mail » (Voir l’e-mail, Confier cet e-mail, E-mails · 3)."
+  },
+  {
+   "chose": "faire disparaître une donnée",
+   "motsTrouves": [
+    "supprimer",
+    "effacer",
+    "retirer"
+   ],
+   "motGarde": "supprimer",
+   "note": "« retirer » reste pour sortir une ligne d’une liste ou d’une commande sans détruire ; « effacer une signature » reste (on gomme un dessin)."
+  },
+  {
+   "chose": "le devis court",
+   "motsTrouves": [
+    "Devis rapide",
+    "devis simple"
+   ],
+   "motGarde": "Devis rapide",
+   "note": "c’est le nom du bouton ; « simple » n’y est qu’un adjectif."
+  },
+  {
+   "chose": "le travail planifié chez un client",
+   "motsTrouves": [
+    "intervention",
+    "passage",
+    "visite",
+    "rendez-vous"
+   ],
+   "motGarde": "intervention",
+   "note": "quatre mots, quatre sens gardés : INTERVENTION = le travail (menu, fiche) ; PASSAGE = la venue du technicien (« 2ᵉ passage », « Un autre passage est nécessaire ») ; VISITE = une visite d’un contrat d’entretien (« visite 2 sur 4 ») ; RENDEZ-VOUS = ce que le client demande en ligne. Aucun « RDV » à l’écran."
+  },
+  {
+   "chose": "une période en jours",
+   "motsTrouves": [
+    "j",
+    "jour",
+    "jours"
+   ],
+   "motGarde": "jours (en toutes lettres dans une phrase)",
+   "note": "« j » reste dans une tuile ou une colonne de tableau (« 20 j », « 10 j restants ») ; dans une phrase : « 2 jours de retard », « dans 61 jours »."
+  },
+  {
+   "chose": "sauvegarder une saisie",
+   "motsTrouves": [
+    "enregistrer",
+    "sauvegarder"
+   ],
+   "motGarde": "enregistrer",
+   "note": "« sauvegarder » n’est écrit nulle part."
+  },
+  {
+   "chose": "toucher un bouton",
+   "motsTrouves": [
+    "toucher",
+    "cliquer",
+    "appuyer",
+    "taper"
+   ],
+   "motGarde": "toucher",
+   "note": "« touche » partout ; « clic droit » et « double-clic » ne se lisent que dans les aides du planning (souris)."
+  },
+  {
+   "chose": "écrire un exemple dans un champ",
+   "motsTrouves": [
+    "Ex. :",
+    "Ex.",
+    "ex.",
+    "Par exemple :"
+   ],
+   "motGarde": "ex.",
+   "note": "minuscule, sans deux-points : « ex. entretien climatisation »."
+  }
+ ],
+ "laisses": [
+  {
+   "ecran": "Produits › Photographier une facture",
+   "texte": "Essayer avec une facture d’exemple",
+   "pourquoi": "une action de démonstration nécessaire : sans appareil photo, c’est le seul moyen d’éprouver le geste ; le libellé dit honnêtement ce que c’est."
+  },
+  {
+   "ecran": "Connexion (double authentification)",
+   "texte": "Démonstration",
+   "regle": "echafaudage",
+   "pourquoi": "le bloc « Démonstration » de l’écran de connexion donne les comptes de l’essai : sans serveur, personne ne pourrait se connecter. Écrit par la voie « double authentification », qui le juge nécessaire."
+  },
+  {
+   "ecran": "Connexion (double authentification)",
+   "texte": "Recommencer la démonstration",
+   "regle": "echafaudage",
+   "pourquoi": "idem"
+  },
+  {
+   "ecran": "Temps de travail › Paie",
+   "texte": "Recevoir un fichier du cabinet pour essayer",
+   "pourquoi": "une action de l’essai : le cabinet de paie n’existe pas ici, ce bouton joue sa réponse."
+  },
+  {
+   "ecran": "Équipe › droits d’une personne",
+   "texte": "Modif.",
+   "pourquoi": "en-têtes de colonnes de 52 px (Voir, Créer, Modif., Suppr.) : le mot entier ne tient pas ; la phrase juste dessous les écrit en entier (« Modifier », « Supprimer »)."
+  },
+  {
+   "ecran": "Bons de commande, comptabilité",
+   "texte": "Qté",
+   "pourquoi": "« Qté », « Réf. », « N° », « HT », « TTC » sont les mots du métier (bons de commande, factures, devis)."
+  },
+  {
+   "ecran": "Stock, Produits, Matériel",
+   "texte": "1 u",
+   "pourquoi": "DOUTE À SOUMETTRE À JUSTIN : « u » (unité) pour un article sans unité propre (« 40 u », « en tout 40 u »). Un débutant lit « u » comme une lettre. Remplacer par « pièce(s) » touche le stock, les commandes et dix sondes : à faire en un lot, sur sa phrase."
+  },
+  {
+   "ecran": "Comptabilité (cadre)",
+   "texte": "Archives & exports",
+   "pourquoi": "les noms des espaces de la Comptabilité (« Fiscal & comptable », « Caisse & chèques ») ont été validés par Justin (« Comptabilité, ça c’est bon »)."
+  },
+  {
+   "ecran": "Boîte mail › aperçus de message",
+   "texte": "Objet :",
+   "regle": "espace-ordinaire-avant-ponctuation",
+   "pourquoi": "un message écrit dans un bloc de texte brut (« pre ») : la typographie de l’écran ne le traverse pas, c’est le texte tel qu’il part."
+  },
+  {
+   "ecran": "Messages écrits pour un fournisseur, un client ou un confrère",
+   "texte": "Veuillez trouver ci-joint notre bon de commande",
+   "pourquoi": "ces messages parlent à leur DESTINATAIRE : ils le vouvoient, comme le client dans son espace ; seul l’écran de l’utilisateur se tutoie."
+  },
+  {
+   "ecran": "Espace client",
+   "texte": "Prochaine visite",
+   "pourquoi": "DOUTE À SOUMETTRE À JUSTIN : dans l’espace client, la carte dit « Prochaine visite » et l’onglet « Interventions ». Un client dit « visite » ; l’entreprise dit « intervention ». Un seul mot serait plus clair ; lequel ?"
+  }
+ ]
+}

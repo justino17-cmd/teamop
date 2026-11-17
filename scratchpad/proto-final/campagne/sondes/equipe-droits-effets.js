@@ -53,7 +53,7 @@ const SORTIE = process.argv[3] || '';
     for (const r of Object.keys(base)) { const b = base[r], s = sans[r]; if (!b || !b.ouvert) continue; bilan.routes++; if (!s || !s.ouvert) { ferme.push(r); continue; } const pb = new Set(s.boutons); b.boutons.forEach(o => { if (!pb.has(o)) perdus.push(r + ' » ' + o); }); }
     bilan.disparus[cat + '.' + x] = { fermees:ferme, boutonsPerdus:perdus.length, exemples:perdus.slice(0, 6) };
     if (x === 'v') v(`case ${cat}.v décochée : au moins une route de la catégorie se ferme`, ferme.length >= 1, { ferme });
-    else { const PAR_CONCEPTION = { 'stock.s':['boxes'], 'temps.s':['pointage'] };   // ROUTE_DROIT : « Dépôts et camions » et les heures de toute l'équipe demandent « Supprimer » en plus (décidé, spec § 2.6)
+    else { const PAR_CONCEPTION = {};   // equipe-11 (décision du chef, 17/11) : « Voir » décide SEUL — « Dépôts et camions » et les heures de toute l'équipe ne demandent plus « Supprimer » (avant : { 'stock.s':['boxes'], 'temps.s':['pointage'] }, spec § 2.6)
       const att = PAR_CONCEPTION[cat + '.' + x] || []; v(`case ${cat}.${x} décochée : ne ferme que ce que la conception lui donne (${att.join(', ') || 'rien : seul « Voir » ferme'})`, JSON.stringify(ferme.slice().sort()) === JSON.stringify(att.slice().sort()), { ferme, att }); }
     // on la recoche à la souris
     await E.fiche(c, k); await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; }); await L.toucher(c, sel);
