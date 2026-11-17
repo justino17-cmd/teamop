@@ -1,0 +1,74 @@
+[
+ {
+  "n": "gerant-01",
+  "etat": "corrigé",
+  "changement": "« Ses heures › » n'est dessiné que pour qui voit Temps de travail (fiche Équipe, panneau de désactivation) ; le geste « heures » et ttMoisPers refusent en première instruction (toast, rien ne s'ouvre).",
+  "preuve": "vehtemps-corr-droits.js : avant 5 ✓ · 16 ✗ (julie voyait le bouton, le panneau 170h46 s'ouvrait), après 36 ✓ · 0 ✗ (mac, iphone) ; contre-épreuve : marc garde le bouton et le mois de Sophie s'ouvre."
+ },
+ {
+  "n": "gerant-02",
+  "etat": "corrigé",
+  "changement": "GESTES_SP porte la famille tt (terminer, fin, termineok, jourok, ajout, ajoutok, accepter → « Corriger les pointages ») ; ttTerminer, ttAjouterOk, ttJourEnregistrer et ptxCorriger lisent la case en première instruction (ttCorrOk).",
+  "preuve": "vehtemps-corr-droits.js : avant, 4 fonctions et 4 boutons forgés écrivaient (trace 2→4, notifications 6→8) et 4 boutons dessinés ; après rien n'est écrit, aucun bouton dessiné, et avec la case la même fonction écrit."
+ },
+ {
+  "n": "gerant-03",
+  "etat": "corrigé",
+  "changement": "Au garage, vhBoutonEch ne propose plus « Noter le rendez-vous » (ct, entretien) et la ligne de l'onglet À faire dit « Au garage jusqu'au lundi 2 novembre » (point orange) au lieu de « en retard de 3 jours ».",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Capture c-garage-afaire-iphone-n.png regardée ; contre-épreuve : hors garage, « Noter le rendez-vous » reste proposé."
+ },
+ {
+  "n": "gerant-08",
+  "etat": "corrigé",
+  "changement": "L'onglet Dépenses écrit la ligne « Assurance · 1 080 € par an, comptés 4 mois · déjà dans le total » (360,00 €) quand l'assurance est répartie : la somme des lignes est le total de la phrase.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Somme des lignes = total pour les 4 véhicules (avant : 1 999,50 € contre 2 359,50 €). Capture c-depenses-bas-iphone-n.png regardée."
+ },
+ {
+  "n": "gerant-09",
+  "etat": "corrigé",
+  "changement": "Légende « Montants hors taxes : un ticket de 120 € toutes taxes comprises compte pour 100 € » sous la liste des dépenses de chaque véhicule.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Contrôle « hors taxes » présent pour les 4 véhicules. La phrase du haut n'a pas été modifiée (la légende est dessous)."
+ },
+ {
+  "n": "gerant-10",
+  "etat": "corrigé",
+  "changement": "vxCalcCout : « par mois » = total ÷ vrais mois (jours arrondis ÷ 30,4), l'arrondi en mois ne sert plus qu'à l'assurance répartie.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Trafic : 590 € → 552 € par mois ; sur 45 jours : total ÷ 1,48 au lieu de ÷ 1."
+ },
+ {
+  "n": "gerant-13",
+  "etat": "corrigé",
+  "changement": "Toasts « Dépense supprimée / modifiée » (le mot « Frais » retiré, et « cette dépense se corrige en novembre ») ; Annuler rend « Annulé : la dépense est revenue. »",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Contrôle : t1 « Dépense supprimée », Annuler → « Annulé : la dépense est revenue », 6 lignes → 5 → 6."
+ },
+ {
+  "n": "gerant-14",
+  "etat": "corrigé",
+  "changement": "Sur la fiche d'un véhicule au garage (sans souci), la rangée de gestes n'a plus « Le remettre en service » : il est dans l'encadré du haut, une seule fois.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Contre-épreuve : un véhicule en service garde « Mettre au garage »."
+ },
+ {
+  "n": "gerant-15",
+  "etat": "corrigé",
+  "changement": "vhEtat « En règle » : la prochaine échéance exclut l'assurance d'un groupe (dite une fois, sur sa rangée) ; « Aucune autre échéance à venir » s'il n'y en a pas.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Liste : l'assurance n'est plus écrite que sur la rangée du groupe, les rangées disent « la révision, dans 62 jours »."
+ },
+ {
+  "n": "gerant-16",
+  "etat": "corrigé",
+  "changement": "L'encadré « Il manque : … » du Matériel prend la classe vh-alerte (colonne) : le lien « Les commander » passe sous la phrase.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Capture c-materiel-mac-j.png regardée."
+ },
+ {
+  "n": "salarie-08",
+  "etat": "ne se reproduit pas",
+  "changement": "Aucun changement.",
+  "preuve": "« bulletin » est dans la liste LECTURE (l) de la famille paie : gesteBrut rend null, la garde ne l'arrête pas. Rejoué AVANT toute correction (sm android/mac, kb, tl) : « Voir » ouvre #docplein « Fiche de paie septembre 2026 - Sophie Martin », DROITS_REFUS = 0. La sonde f1 du relecteur cherchait la fiche dans #calque, or le document s'ouvre en pleine page (#docplein). Contrôle durable ajouté (vehtemps-corr-droits.js : sm, kb, tl, « Voir » ouvre le document)."
+ },
+ {
+  "n": "salarie-10",
+  "etat": "corrigé",
+  "changement": "ptxCommencer et ptxTerminer refusent en première instruction si le mois est verrouillé (comme ptxFinHier).",
+  "preuve": "vehtemps-corr-droits.js : avant, la journée se commençait dans le mois fermé (commence=true) ; après, rien n'est écrit (mac, iphone)."
+ }
+]

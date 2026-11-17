@@ -69,6 +69,32 @@
       "preuve": "Reproduit deux fois (t12-compte.js, compte de Karim : echecs 0 avant et après 8 essais) ; code : secuMdpChanger, ligne 25720 : if (!secuMdpJuste(c, a0)) return 'Mot de passe actuel incorrect.' sans appel à secuEchec.",
       "ou": "apercu/prototype-op-gestion.html, secuMdpChanger",
       "correction": "Appeler secuEchec(k, 'mdp') avant de rendre le refus (et traiter le verrou comme à la connexion : fermeture de la session au 5e)."
+    },
+    {
+      "n": "tout-05",
+      "gravite": "gênant",
+      "ecran": "Téléphone OP Security après « Ce n'est pas moi » (connexion ouverte sur l'ordinateur)",
+      "role": "chef d'équipe (Karim) ; vaut pour tout compte connecté",
+      "profils": "mac jour, mac nuit, windows jour",
+      "etapes": "Karim se connecte (nombre) → téléphone de Karim, « Simuler une connexion pirate » → déverrouiller par le PIN → la carte rouge → « Ce n'est pas moi » → « Bloquer ».",
+      "attendu": "§ 4.2.6 : le téléphone dit « Connexion bloquée. Ton compte est verrouillé et toutes tes connexions sont fermées. Un administrateur doit changer ton mot de passe. » (rouge) et le garde jusqu'au verrouillage du téléphone.",
+      "constate": "Le téléphone retombe sur l'écran « Saisis ton code PIN » : le message n'est affiché nulle part sur le téléphone. La personne qui vient de se défendre ne reçoit aucune confirmation de ce qu'elle a déclenché (seul l'ordinateur, derrière, le dit). Si Karim n'est PAS connecté au moment du blocage (le pirate seul), le message est bien affiché : le défaut n'existe que quand une session est ouverte.",
+      "preuve": "Reproduit 3 fois (t18-bloc.js : mac nuit, windows jour ; t17-pirate.js : mac jour) avec et sans session : connecté → écran PIN, non connecté → message présent ; code : opsBloquer, ligne 25405, appelle secuBloquer (qui ferme la session : secuFermerSessions → sessionFermer, ligne 26018, remet tout téléphone ouvert en 'verrouille') PUIS opsRetour : le message est posé sur un téléphone déjà reverrouillé.",
+      "ou": "apercu/prototype-op-gestion.html, opsBloquer (ordre secuBloquer / opsRetour) et sessionFermer (verrouillage des téléphones)",
+      "correction": "Dans opsBloquer, poser le message APRÈS la fermeture de session et exempter ce téléphone du reverrouillage (ou afficher le message sur l'écran de PIN : « Connexion bloquée… » au-dessus du pavé) jusqu'à ce que la personne le ferme."
+    },
+    {
+      "n": "tout-06",
+      "gravite": "gênant",
+      "ecran": "Équipe › « Ouvrir l'application comme Sophie » (bande « Tu vois l'application comme … »)",
+      "role": "gérant",
+      "profils": "mac jour, iphone nuit",
+      "etapes": "Gérant (téléphone activé) → Équipe → fiche de Sophie → « Ouvrir l'application comme Sophie » → confirmer sur le téléphone → attendre 2 s.",
+      "attendu": "Regarder l'application comme Sophie ne touche à rien chez Sophie : l'écran de Sophie, sous la bande. Le guide des nouveautés de Sophie n'a pas à s'ouvrir devant le gérant ni à se marquer « vu » pour elle.",
+      "constate": "Le guide « Nouveautés 1 sur 6 : Où sont passées mes rubriques ? » de Sophie s'ouvre par-dessus (sur iPhone il cache l'écran sous la bande rouge) et la marque opg_proto_nv_vu_sm passe de null à « 2026-11-b » : quand Sophie se connecte pour de vrai, son guide ne s'ouvre plus. La bande dit « Rien ne lui est signalé », et pourtant on lui a pris son guide.",
+      "preuve": "Reproduit 2 fois (t20-comme-guide.js : mac jour, iphone nuit : localStorage avant null, après « 2026-11-b », #nv ouvert) ; capture comme-guide.png ; code : secuVoirComme → sessionOuvrir(k) → nvProposer (900 ms après sessionOuvrir, § 3.8 de la spécification) et nvMarquer(), ligne 26198.",
+      "ou": "apercu/prototype-op-gestion.html, secuVoirComme / sessionOuvrir (appel de nvProposer) et nvMarquer",
+      "correction": "Ne pas proposer le guide (ni le marquer) quand SECU.vraie est posé : sessionOuvrir.muet existe déjà pour la fenêtre secondaire, le réutiliser pour « voir comme »."
     }
   ]
 }

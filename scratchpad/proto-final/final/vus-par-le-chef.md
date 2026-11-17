@@ -160,7 +160,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       notre serveur (à redire à Justin dans la liste des doutes). La garde `sondes/securite-statique.js` tient l'état décidé
       (49 ✓ · 0 ✗ ; trois mutations tombent : un troisième hôte, les polices dans une autre page, deux feuilles).
       ⛔ Ne pas la re-retirer : le recontrôle de la sécurité doit lire cette ligne.
-- [ ] **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
+- [x] (restes interventions, tour 1 : commits 23c61df et c4a97c1 ; `final/restes-interventions-tour1.json` ; sonde `campagne/sondes/interventions-restes-1.js` 63 ✓ · 0 ✗ sur sept profils, douze mutations qui tombent ; à remarquer : « Terminer » d'une garantie, la case « Un autre passage », « Date à fixer » en gras, les relevés en nombre, le téléphone avec poste, le plafond du prix d'une ligne, tous joués et regardés) **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
       · **16** : à la fin d'une intervention, une case générique pour TOUS les clients : « Un autre passage est nécessaire
         (le bureau prépare le devis) » ; « Entretien annuel » n'est cochée d'office que pour un Entretien, une Mise en service
         ou une Installation — jamais après un dépannage ni une garantie (sinon chaque dépannage crée un entretien dans un an).
@@ -223,3 +223,37 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       du métier 3D compris : la garde du rôle passe avant) ; « Demander un contrat » laisse une trace visible côté client (« Demande envoyée
       le … ») et ne crée pas une seconde tâche si on redemande ; un mot très long ne sort pas de sa carte ; « CTR-2026-011 » ne se coupe pas ;
       pour une entreprise cliente, on salue la personne (« Bonjour Mme … ») ou « Bonjour, » — jamais « Bonjour Syndic Foncia ».
+
+- [ ] **Véhicules et Temps de travail — décisions du chef du 17/11, 12 h 25 (vehtemps)** : les cinq « doutes » de la relecture du gérant
+      (`refonte/vehtemps-relecture-gerant.json`) ne restent pas « à soumettre », ils s'APPLIQUENT : · **Pas pointé alors qu'une intervention
+      tourne** : dans Temps de travail, la ligne d'une personne « Pas encore commencé » qui a une intervention en cours ou terminée aujourd'hui
+      le dit (« Une intervention est en cours depuis 08:30, rien n'est pointé »), pour que le gérant sache quoi faire du rappel. · **La semaine
+      EN COURS ne se valide pas** : « Valider les N personnes en règle » et « Valider ce qui est en règle » ne prennent que les semaines FINIES ;
+      la semaine en cours le dit (« Semaine en cours : elle se valide une fois finie ») et son bouton de validation n'est pas proposé. · **Mois** :
+      quand une semaine est à cheval sur deux mois, la feuille de la personne porte une ligne « dont X en octobre », pour que la somme des lignes
+      retombe sur le chiffre du haut. · **Assurance payée à l'année** : le chiffre du haut de Véhicules reste ce qui a été PAYÉ dans le mois, et il
+      le dit (« payés en octobre (hors taxes) »), avec dessous « dont l'assurance de l'année : 4 200 € » quand une prime annuelle y est ; le coût
+      au kilomètre continue de la lisser sur douze mois. · **Deux mots pour un fait** : partout, relevé de la Paie compris, « en plus » (jamais
+      « sup. ») et « payée avec novembre » (jamais « se termine en novembre · sur novembre ») — ce sont deux mots à aligner dans un écran validé,
+      pas un écran à redessiner.
+- [ ] **Clients — décisions du chef du 17/11, 12 h 30 (clients)** : les cinq points « à soumettre » et les questions du recontrôle sont TRANCHÉS, ils s'appliquent. · **clients-04** : créer un client « avec une intervention » exige une adresse (le technicien doit savoir où aller) ET un téléphone ou un e-mail, comme le formulaire du devis ; le refus nomme le champ qui manque. · **clients-11** : l'onglet Appareils de la fiche a « ＋ Ajouter un appareil » (nom, détail) et, par ligne, modifier et retirer, sous la case « changer un client » ; « 0 appareil · à renseigner » mène à ce geste. · **clients-12** : vider le téléphone ET l'e-mail est refusé, avec la phrase du devis (« Garde au moins un téléphone ou un e-mail »). · **clients-15** : quitter l'onglet Infos avec une saisie non enregistrée demande avant de la perdre (Enregistrer / Abandonner / Continuer la saisie), avec la fenêtre de confirmation que l'application emploie déjà ailleurs — jamais confirm() du navigateur. · **clients-17** : la case devient un geste : « Archiver ce client » dans la fiche (confirmation dans la page ; l'historique, les factures et les contrats restent), le client quitte la liste, un filtre « Archivés » le montre avec « Remettre dans la liste » ; on n'efface jamais un client (ses factures doivent garder leur client) ; le libellé de la case dit « archiver un client ». · **Le téléphone** : à l'enregistrement, un numéro français s'écrit « 06 12 34 56 78 » (« +33 » et « 0033 » ramenés à « 0 »), un numéro étranger garde son « + » ; la recherche et le refus de doublon comparent les chiffres (casse 1, clients-18). · **Annuler** (Ctrl ou Cmd + Z) après « nouveau client + intervention » retire aussi le client : le message dit « retour à l'état d'avant », il doit être vrai (casse 8). · **Créer un client sans créer ni intervention ni devis** : le panneau « Nouveau client » offre toujours « Le client seul » (sa fiche, rien d'autre) à qui a la case « créer un client » (casse 4) ; « aucun résultat » ne renvoie vers « ＋ Nouveau client » que si la personne a ce bouton (casse 9). · Les autres casses se corrigent : renommer un particulier renomme aussi son contact, sa carte et les titres de ses tâches (2, 7) ; TOUTES les créations de client posent le point de la carte et le secteur — composer un devis, le devis xylophage, les quatre chemins « C'est un client » de la Boîte mail (3) ; un seul rangement enfoncé à la fois pendant une recherche (5) ; deux espaces ne contournent pas le refus de doublon de nom (6) ; les suggestions d'adresse font 44 px au doigt (10). · Ce que le recontrôle n'a pas pu jouer se JOUE par l'interface : la création d'un client depuis un vrai courriel de la boîte de démonstration, et depuis la fenêtre « Composer un devis » (dans son cadre).
+
+- [ ] **Vu sur les captures de la fumée de 12 h 15 (tête fusionnée, 396 ✓ · 0 ✗) — pour les regards (gerant c, e ; coque)** :
+      · **La bande d'onglets a trois dessins à l'ordinateur** : colonnes égales sur toute la largeur (Devis : validé, on n'y touche pas) ;
+      une bande à la largeur de ses onglets (Équipe, Stock, Fournisseurs : bien) ; et, sur Véhicules (« Tous · À faire · Au garage ») et
+      Temps de travail (« Aujourd'hui · Semaine · Mois »), une bande grise étirée sur toute la largeur avec trois onglets tassés à gauche et
+      800 px de vide. Ces deux-là prennent la largeur de leurs onglets, comme Équipe et Stock ; au téléphone rien ne change (colonnes égales).
+      · **La ligne « Fournisseurs, matériel & produits » du menu change de hauteur quand on la choisit** : deux lignes au repos, trois une
+      fois active (le gras élargit le texte, « produits » passe à la ligne) — le menu saute de 22 px sous le doigt. Même nombre de lignes
+      dans les deux états (réserver la largeur du gras, ou resserrer la pastille), mesuré sur Mac, Windows 1366 et iPad.
+      · **Temps de travail, phrase sous le titre** : « 1 personne au travail, 1 absente » oublie les « 2 pas encore commencé » que les
+      chiffres juste dessous affichent : la phrase et les chiffres disent la même chose.
+      · **Sécurité** : « Comptes verrouillés » est dans une carte, « Connexions inhabituelles ou refusées » a son titre posé hors carte au-dessus
+      d'un tableau nu : même habillage pour les deux blocs.
+
+- [ ] **Retouches décidées par le chef, hors des voies en cours (retouches)** — à traiter par la voie `restes` de nom « retouches », lancée
+      en fin de chantier ; chaque point se reproduit, se corrige au plus petit, se rejoue et se regarde (ordinateur et téléphone, jour et nuit) :
+      · **Compositeur de devis et de contrats** : « Brouillon supprimé » offre « Annuler » pendant quelques secondes (la bulle porte le geste,
+      comme les autres suppressions de l'application) ; l'annulation rend le brouillon tel quel, avec son numéro (décision j : un numéro ne se
+      réutilise jamais, donc rien ne peut l'avoir pris entre-temps). Correction dans `scratchpad/proto-final/atelier/page.source`, page refabriquée
+      par `fabriquer.sh` (jamais `apercu/prototype-documents.html` à la main).
