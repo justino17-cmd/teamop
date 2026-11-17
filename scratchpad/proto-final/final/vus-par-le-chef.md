@@ -193,3 +193,33 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       « Réglages › ». · **achats-08** : « Kilomètres : 0,60 € le km (à régler avec ton expert-comptable : le barème dépend de la
       puissance du véhicule) » — plus de « exemple de démonstration ». · **achats-10** : UN mot, « sans justificatif », pour le lien,
       la puce et les lignes ; une note de frais encore à valider ne se compte pas parmi les achats sans justificatif.
+
+- [ ] **Mon entreprise et droits — décisions du chef du 17/11, 12 h 05 (entreprise)** : · **tout-08** : À CORRIGER, ce n'est pas « à soumettre ».
+      Une personne qui n'a que « Voir » sur la Boîte mail LIT ses courriels et rien d'autre : écrire, répondre, transférer, archiver,
+      supprimer, déplacer, marquer exigent la case qui va avec (un droit qui ne fait rien est un défaut qu'un client signalerait). La
+      correction se fait dans l'hôte et dans apercu/prototype-courrier.js (le module du prototype ; opcourrier.js ne se touche pas) :
+      les gestes d'écriture ne sont pas proposés, et un geste refusé le dit par la phrase des autres rubriques. · **La casse du
+      recontrôle** : au téléphone, le champ refusé d'une feuille se voit toujours, avec son message, au-dessus de la rangée
+      « Enregistrer / Annuler » collée en bas (la piste mesurée par le recontrôleur : scroll-padding-bottom de 200 px sous 760 px de
+      large). · **tout-11** : après « Facture envoyée toute seule » et « Notes de frais », la barre « Retour · Mon entreprise » reste
+      visible. · La fiche « Droits » ne glisse plus de côté à 360 et 320 px (bloc « Mot de passe provisoire »). · Les deux sondes
+      périmées (menu avec « Sécurité », sept champs) se mettent à jour sans affaiblir leur contrôle.
+- [ ] **Matériel — décisions du chef du 17/11, 12 h 05 (materiel, vehtemps, technicien)** : · **technicien-05** : UN seul mot pour
+      les pièces qui ne sont pas dans le camion : « manque à bord » (« Il manque à bord · 3 » sur Mon camion, « 3 articles manquent
+      à bord » sur Ma journée et dans Véhicules) ; « à remettre à bord » disparaît partout, sondes et spécification de Véhicules
+      comprises (la sonde vehtemps-v5-camion se met à jour, elle ne décide pas du mot). · **technicien-08** : l'unité « u » RESTE
+      (c'est celle de la vraie application et d'une facture) : rien à changer, à dire à Justin dans la liste des doutes.
+      · Les défauts technicien-11 à 14 de la relecture (dont « Je l'ai pris » qui dit « Envoyé au bureau » sans réseau) n'étaient
+      pas dans la liste lue par le correcteur (il en a lu 10 sur 14) : à corriger au tour « restes » s'ils sont encore là.
+
+- [ ] **Espace client — décisions du chef du 17/11, 12 h 10 (client)** : · **client-14** : UNE seule navigation par appareil pour les cinq
+      destinations du client (Accueil, Factures, Interventions, Devis, Contrat). Au téléphone : la barre du bas, et plus d'onglets répétés
+      dans la page. À l'ordinateur : les onglets de la page, et le menu de gauche ne répète pas les cinq entrées. Les mêmes mots et le même
+      ordre partout. · **client-15** : le client voit l'entreprise, pas le logiciel : en haut, le logo ou les initiales de l'entreprise et son
+      nom UNE fois (plus de carré « OP », plus de nom répété juste dessous). · **client-11** : la phrase du paiement reste (c'est un
+      prototype : aucun argent ne bouge) mais elle vouvoie et se lit simplement : « Démonstration : aucun paiement réel. Dans l'application,
+      le paiement se fait sur la page sécurisée de la banque. » · **client-19** : les deux devis presque pareils du client de démonstration
+      n'en font plus qu'un. · Les casses du recontrôle se corrigent : plus AUCUN message tutoyé ni de bureau pour le client (les trois écrans
+      du métier 3D compris : la garde du rôle passe avant) ; « Demander un contrat » laisse une trace visible côté client (« Demande envoyée
+      le … ») et ne crée pas une seconde tâche si on redemande ; un mot très long ne sort pas de sa carte ; « CTR-2026-011 » ne se coupe pas ;
+      pour une entreprise cliente, on salue la personne (« Bonjour Mme … ») ou « Bonjour, » — jamais « Bonjour Syndic Foncia ».
