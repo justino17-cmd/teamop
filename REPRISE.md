@@ -255,6 +255,14 @@ France. Avis général d'IONOS sur PHP (27 octobre) : sans objet a priori (Node)
 d'atelier, lui aux commandes : connexion, clé à la place du mot de passe, pare-feu, mises à jour automatiques.
 Au survol de la pastille du serveur actuel, IONOS affiche seulement « Europe » (Justin, 17 h 31) : le PAYS reste inconnu — à
 établir (contrat, facture ou service client d'IONOS), puis à comparer à ce que disent les pages légales (« en France » ?).
+**Mesure du 17 novembre (machine d'essai, 4 cœurs)** : `scripts/bancs-ci.sh`, 835 suites jouées l'une après l'autre, 39 373
+vérifications, **1 404 s (23 min 24 s)**. ⚠️ C'est un PLANCHER : `server/node_modules` était absent, 129 suites ont sauté une partie
+(les bancs du vrai serveur), et une douzaine ont échoué ou se sont interrompues (2864, 2901, 2903, 2918, 3089, 3101, 3132, 3150,
+3162, 3163, 3166, 3225) — à rejouer avec les dépendances avant d'en conclure quoi que ce soit (réseau coupé du conteneur ?
+dépendances ? vrai défaut ?). Ordre de grandeur pour l'atelier (12 cœurs, suites en parallèle) : quelques minutes ; à mesurer sur
+place. Serveur d'atelier vérifié par Justin à 17 h 33 : Ubuntu 24.04.5, 12 cœurs, 23 Go, 697 Go ; son adresse est dans la
+conversation, pas ici (dépôt public, serveur pas encore durci). Sa clé SSH existante a un mot de passe qu'il ne retrouve plus :
+on lui en fait créer une neuve pour l'atelier (`~/.ssh/atelier`) — et il faudra voir comment il entre sur le serveur actuel.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
