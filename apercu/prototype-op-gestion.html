@@ -4759,7 +4759,7 @@ function poser(i, tid, d, h, dur){
   if (bouge && !estBloc(i) && refusAbsent(tid, d, h || i.h)) { rendre(); return false; }
   if (bouge && estBloc(i) && absentA(tid, d, h || i.h)) { rendre(); toast(`${tech(tid).nom} est absent${absE(tid)} ce jour-là : rien n’a bougé.`); return false; }
   memo(); const av = { tech:i.tech, d:i.d, h:i.h, dur:i.dur };
-  i.tech = tid; i.d = d; i.h = h || i.h; i.dur = dur || i.dur;
+  i.tech = tid; i.d = d; i.h = h || i.h; i.dur = dur || i.dur; ficheSuivre(i, av);
   if (i.demande && !i.demande.confirme) { demandePlacee(i); return true; }
   if (!estBloc(i) && i.st !== 'brouillon') { if (!tid) i.st = 'aplanifier'; else if (i.st === 'aplanifier' || (i.st === 'retard' && bouge && (d > AUJ || (d === AUJ && hmin(i.h) + i.dur > MAINT_MIN)))) i.st = 'planifiee'; }
   rendre(); flash(i.id);
@@ -5113,7 +5113,17 @@ function paiementTexte(P){ if (!P) return '—';
   const m = P.montant ? eur(parseFloat(String(P.montant).replace(',','.')) || 0) + ' ' : '';
   const par = { Carte:'par carte', 'Espèces':'en espèces', 'Chèque':'par chèque', Virement:'par virement' }[P.mode] || '';
   return (P.etat === 'total' ? 'Payé en totalité sur place ' + par + (m ? ' · ' + m.trim() : '') : 'Acompte de ' + m.trim() + ' versé sur place ' + par + ' · le reste sera sur la facture') + (P.ticket ? ' · ' + PREUVE[P.mode][0].toLowerCase() + ' joint' + PREUVE[P.mode][4] : ''); }
+/* l'argent EN VRAI d'une intervention terminée : une facture réglée (le client a payé en ligne, par virement, au bureau) l'emporte sur la note du technicien « pas encore payé » ;
+   l'Accueil disait « à payer » d'une intervention dont la facture était payée · 17 novembre 2026, parcours 1 */
+function pastillePaiementInt(i){ const fa = FACTURES.find(f => f.int === i.id && f.st !== 'annulee');
+  if (fa && fa.st === 'payee') return '<span class="st st-v">payée</span>'; if (fa && fa.st === 'partielle') return '<span class="st st-b">payée en partie</span>';
+  return paiementPastille(fiche(i.id).paiement); }
 const paiementPastille = P => !P ? '' : P.etat === 'total' ? `<span class="st st-v">payé sur place · ${P.mode.toLowerCase()}</span>` : P.etat === 'acompte' ? `<span class="st st-b">acompte ${P.montant ? eur(parseFloat(String(P.montant).replace(',','.'))||0) : ''} · ${P.mode.toLowerCase()}</span>` : `<span class="st st-o">à payer</span>`;
+/* Les heures « remplies toutes seules » d'une fiche (arrivée, départ) sont celles du rendez-vous. Si le bureau DÉPLACE le rendez-vous après que la fiche a été ouverte
+   (le gérant la regarde, puis la ramène à aujourd'hui), la fiche gardait l'ancienne heure : la facture et le compte rendu du client disaient « sur place 07:00 – 08:00 »
+   pour un passage de 11 h. On ne touche que des heures que PERSONNE n'a retouchées (égales à celles de l'ancien rendez-vous) et une fiche encore en cours. · 17 novembre 2026, parcours 1 */
+function ficheSuivre(i, avant){ const F = FICHES[i.id]; if (!F || !avant || F.etat !== 'encours' || !avant.h) return;
+  if (F.debut === avant.h && F.fin === fin(avant.h, avant.dur)) { F.debut = i.h; F.fin = fin(i.h, i.dur); } }
 function fiche(id){
   if (FICHES[id]) return FICHES[id];
   const i = INTS.find(o => o.id === id), fait = i && i.st === 'fait', met = metiersFicheMetier(i);
@@ -5790,7 +5800,7 @@ function vueAccueil(){
   ].filter(Boolean);
   return `<div class="tete tete-p"><div><span class="surtitre" style="color:var(--lien)">Samedi 31 octobre</span><h1>Bonjour ${esc(prenomDe(acteur()))}</h1><span class="gris">${ENTREPRISE.nom}</span></div><div class="actions"><button type="button" class="btn btn-planning" data-go="planning">${svg('planning')}Planning de l’équipe</button><button type="button" class="btn gris" data-creer="1">＋ Nouvelle intervention</button></div></div>
   <div class="kpis"><button type="button" class="kpi" data-kdash="jour"><b>${auj.length}</b><span>interventions aujourd’hui</span></button><button type="button" class="kpi" data-kdash="rec"><b style="color:var(--orange)">${eur(FACTURES.filter(f=>['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0))}</b><span>à recevoir</span></button><button type="button" class="kpi" data-kdash="enc"><b style="color:var(--vert)">${eur(ENCAISSEMENTS.reduce((s,e)=>s+e.ttc,0) + cpPaieTerrain().reduce((s,e)=>s+e.ttc,0))}</b><span>reçu en octobre${(T => T.length ? ` <i class="cp-k">dont ${eur(T.reduce((s, e) => s + e.ttc, 0))} reçus sur place, pas encore sur une facture</i>` : '')(cpPaieTerrain())}</span></button><button type="button" class="kpi" data-go="contrats"><b>${eur(CONTRATS.filter(k=>k.st==='signe').reduce((s,k)=>s+k.prix,0))}</b><span>HT de contrats par an</span></button></div>
-  <div class="grille2"><div class="carte"><h3>Aujourd’hui, toute l’équipe</h3>${auj.length ? '' : `<p class="gris" style="margin:6px 0 12px">Rien de prévu aujourd’hui. Quand une intervention est posée sur un jour, elle s’affiche ici.</p><button type="button" class="btn" data-creer="1">＋ Nouvelle intervention</button>`}${auj.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span><b class="jl-h">${i.h}</b></span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span>${i.st==='fait'?'<br>'+paiementPastille(fiche(i.id).paiement):''}</span></span><span>›</span></button>`).join('')}</div>
+  <div class="grille2"><div class="carte"><h3>Aujourd’hui, toute l’équipe</h3>${auj.length ? '' : `<p class="gris" style="margin:6px 0 12px">Rien de prévu aujourd’hui. Quand une intervention est posée sur un jour, elle s’affiche ici.</p><button type="button" class="btn" data-creer="1">＋ Nouvelle intervention</button>`}${auj.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span><b class="jl-h">${i.h}</b></span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span>${i.st==='fait'?'<br>'+pastillePaiementInt(i):''}</span></span><span>›</span></button>`).join('')}</div>
     <div class="carte"><h3>À faire maintenant</h3>${afaire.length ? '' : `<p class="gris" style="margin:6px 0 0">Tout est à jour : rien n’attend ta décision pour le moment.</p>`}${afaire.map(a=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" ${a.devisLien ? `data-devislien="${a.devisLien}"` : a.kd ? `data-kdash="${a.kd}"` : a.voirRdv ? `data-voirrdv="${a.voirRdv}"` : a.tache ? `data-tache="${a.tache}"` : a.dem ? `data-dem="${a.dem}"` : `data-go="${a.go}"`} ${a.ff?`data-ff2="${a.ff}"`:''} ${a.acc ? `data-vhacc="${a.acc}"` : ''}><span class="af-l" style="display:flex;gap:12px;align-items:center">${(([lib, cl]) => `<span class="st ${cl} etiq-af">${lib}</span>`)(a.c.includes('rouge') ? ['En retard','st-r'] : a.c.includes('orange') ? ['À faire','st-o'] : ['À traiter','st-b'])}<span><b>${esc(a.t)}</b><br><span class="gris petit">${esc(a.s)}</span></span></span><span>›</span></button>`).join('')}</div></div>`;
 }
 
@@ -8962,11 +8972,15 @@ const ACTIONS = {
   modifIntOk(b){ const i = INTS.find(o => o.id === b.dataset.id);
     const t2 = document.getElementById('m-tech').value, d2 = document.getElementById('m-d').value || i.d, h2 = document.getElementById('m-h').value || i.h;
     if ((t2 !== i.tech || d2 !== i.d || h2 !== i.h) && refusAbsent(t2, d2, h2)) return; // avant memo() : rien à annuler si c’est refusé
-    memo(); const dAvant = i.d, av = JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']);   /* une note absente et une note vide sont la même chose · 13 novembre 2026 */
+    memo(); const dAvant = i.d, hAvant = { h:i.h, dur:i.dur }, tAvant = i.tech, av = JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']);   /* une note absente et une note vide sont la même chose · 13 novembre 2026 */
     Object.assign(i, { titre:document.getElementById('m-t').value.trim() || i.titre, d:document.getElementById('m-d').value || i.d, h:document.getElementById('m-h').value || i.h, dur:+document.getElementById('m-dur').value, tech:document.getElementById('m-tech').value, type:document.getElementById('m-type').value, note:document.getElementById('m-n').value.trim() });
+    ficheSuivre(i, hAvant);
     if (!i.tech && i.st === 'planifiee') i.st = 'aplanifier'; else if (i.tech && i.st === 'aplanifier') i.st = 'planifiee';
     if (i.st === 'retard' && i.tech && (i.d > AUJ || (i.d === AUJ && hmin(i.h) + i.dur > MAINT_MIN))) i.st = 'planifiee'; // comme poser() : déplacée dans le futur, elle n’est plus en retard
-    fermerPanneau(); rendre(); toast(av === JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']) ? 'Rien n’a changé.' : `Intervention modifiée${i.tech ? ' · ' + tech(i.tech).nom.split(' ')[0] + ' reçoit une notification' : ''}.${i.d !== dAvant ? planAvert(i, false) : ''}`, ANNULER); },
+    const change = av !== JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']);
+    /* le toast PROMET « reçoit une notification » : elle existe (un message du bureau dans « Ma journée »), et « Annuler » la retire avec le changement */
+    let nt = null; if (change && i.tech) { notifier(i.tech, `${H_NOM(acteur())} a modifié ton intervention chez ${CLIENTS[i.cli].nom} : ${i.d === AUJ ? 'aujourd’hui' : jlong(i.d)} à ${i.h}${i.tech !== tAvant ? ' (elle t’est confiée)' : ''}.`); nt = NOTIFS[NOTIFS.length - 1]; }
+    fermerPanneau(); rendre(); toast(!change ? 'Rien n’a changé.' : `Intervention modifiée${i.tech ? ' · ' + tech(i.tech).nom.split(' ')[0] + ' reçoit une notification' : ''}.${i.d !== dAvant ? planAvert(i, false) : ''}`, nt ? { lib:'Annuler', fn:() => { const k = NOTIFS.indexOf(nt); if (k >= 0) NOTIFS.splice(k, 1); annuler(); } } : ANNULER); },
   ajoutEnc(){ if (CP.envoye) { toast('Octobre est envoyé : ce paiement s’écrira en novembre.'); return; } const imp = FACTURES.filter(f => ['envoyee','retard','partielle'].includes(f.st)), j = AUJ.split('-').reverse().slice(0,2).join('/');
     ouvrirPanneau(`<h2>Paiement reçu</h2><span class="gris">Le paiement est rangé avec sa facture ; elle passe « payée » (ou « payée en partie ») toute seule.</span>
       <label class="champ">Pour quelle facture<select id="e-f">${imp.map(f=>`<option value="${f.id}" data-reste="${restant(f)}">${f.num} · ${esc(CLIENTS[f.cli].nom)} · reste ${eur(restant(f))}</option>`).join('')}</select></label>
