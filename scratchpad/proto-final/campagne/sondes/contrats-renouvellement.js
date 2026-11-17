@@ -1,5 +1,5 @@
 // Le RENOUVELLEMENT et la FIN d'un contrat : ce que le gérant voit à l'approche de l'échéance (Statistiques « À renouveler », Tâches
-// « Proposer le renouvellement », la fiche du contrat), le courriel proposé, et ce qui change une fois envoyé.
+// « Proposer le renouvellement », la fiche du contrat), l’e-mail proposé, et ce qui change une fois envoyé.
 // usage : node contrats-renouvellement.js [profil]
 const O = require('./contrats-outils.js'), L = O.L, v = L.v;
 (async () => {
@@ -12,16 +12,16 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   v('E1 : Statistiques annonce aussi le contrat en attente de signature, avec « Relancer la signature »', lig.some(t => /CTR-2026-011/.test(t) && /Relancer la signature/.test(t)), lig);
   await L.capture(c, O.CAP + `E1-statistiques-renouveler-${profil}.png`);
   const nb = await p.evaluate(() => [...document.querySelectorAll('[data-strelctr]')].map(b => b.innerText.trim() + '|' + b.dataset.strelctr)); console.log('  · boutons :', JSON.stringify(nb));
-  // E2 — « Proposer le renouvellement » : le courriel
+  // E2 — « Proposer le renouvellement » : l’e-mail
   const sel = '[data-strelctr="c1"]'; await L.toucher(c, sel); await L.calme(p, 400); const e2 = await O.lire(p);
   console.log('  · panneau :', JSON.stringify(e2.panneau));
-  v('E2 : « Proposer le renouvellement » ouvre le courriel', /renouvellement/i.test(e2.panneau), e2);
+  v('E2 : « Proposer le renouvellement » ouvre l’e-mail', /renouvellement/i.test(e2.panneau), e2);
   const mail = await p.evaluate(() => { const g = s => { const e = document.querySelector('#calque ' + s); return e ? (e.value !== undefined && e.tagName !== 'BUTTON' ? e.value : e.innerText) : ''; }; return { a: [...document.querySelectorAll('#calque input')].map(i => i.value).join(' | '), corps: [...document.querySelectorAll('#calque textarea')].map(t => t.value).join('\n'), pj: document.querySelector('#calque').innerText.match(/CTR-\S+\.pdf/) }; });
-  console.log('  · courriel :', JSON.stringify(mail).slice(0, 700));
-  v('E2 : le courriel dit « passés 2 fois sur les 4 visites » (chiffres du contrat)', /2 fois sur les 4 visites/.test(mail.corps), mail.corps.slice(0, 300));
-  v('E2 : le courriel cite le prix 1 400,00 € HT, soit 1 680,00 € TTC, et 4 visites', /1.400,00 € HT, soit 1.680,00 € TTC par an, 4 visites/.test(mail.corps.replace(/[\s\u202f\u00a0]+/g, ' ')), mail.corps.slice(0, 400));
-  await L.capture(c, O.CAP + `E2-courriel-renouvellement-${profil}.png`);
-  const bts = await p.evaluate(() => [...document.querySelectorAll('#calque button')].map(b => b.innerText.trim()).filter(Boolean)); console.log('  · boutons du courriel :', JSON.stringify(bts));
+  console.log('  · e-mail :', JSON.stringify(mail).slice(0, 700));
+  v('E2 : l’e-mail dit « passés 2 fois sur les 4 visites » (chiffres du contrat)', /2 fois sur les 4 visites/.test(mail.corps), mail.corps.slice(0, 300));
+  v('E2 : l’e-mail cite le prix 1 400,00 € HT, soit 1 680,00 € TTC, et 4 visites', /1.400,00 € HT, soit 1.680,00 € TTC par an, 4 visites/.test(mail.corps.replace(/[\s\u202f\u00a0]+/g, ' ')), mail.corps.slice(0, 400));
+  await L.capture(c, O.CAP + `E2-e-mail-renouvellement-${profil}.png`);
+  const bts = await p.evaluate(() => [...document.querySelectorAll('#calque button')].map(b => b.innerText.trim()).filter(Boolean)); console.log('  · boutons de l’e-mail :', JSON.stringify(bts));
   const env = bts.find(t => /^Envoyer/.test(t)); const av = await p.evaluate(() => ({ j: JOURNAL.length, relance: CONTRATS[0].relance || '' }));
   if (env) { await p.evaluate(() => [...document.querySelectorAll('#calque button')].find(b => /^Envoyer/.test(b.innerText.trim())).click()); await L.calme(p, 600); }
   const ap = await p.evaluate(() => ({ j: JOURNAL.length, relance: CONTRATS[0].relance || '', der: JOURNAL[JOURNAL.length - 1] || JOURNAL[0] })); const e3 = await O.lire(p);
