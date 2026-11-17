@@ -150,11 +150,14 @@ parcours('R5 · planning-05 : cibles au doigt (44 px), chaque vue, hauteur ET la
   }
   require('fs').mkdirSync(CAP, { recursive: true }); require('fs').writeFileSync(CAP + `R5-${profil}${nuit ? '-nuit' : ''}.json`, JSON.stringify(rap, null, 1));
   // les cibles de 40 px de la vue Mois : les pastilles de jours
-  // le lien « Voir dans Tâches › » de la carte « tâches pour toi » (le résidu de la première recontrôle : 41 px) : ouvert, mesuré, et touché pour de vrai
-  for (const v of ['jour', 'carte']) { await vue(c, v); await L.calme(c.p, 400);
+  // le lien « Voir dans Tâches › » de la carte « tâches pour toi » (le résidu de la première recontrôle : 41 px) : ouvert, mesuré, et touché pour de vrai.
+  // Elle n'est pas posée sur toutes les vues (la Carte n'en a pas) : on mesure celles qui l'ont, et on exige qu'au moins une l'ait.
+  let vues = 0;
+  for (const v of ['jour', 'semaine', 'mois', 'general', 'multi', 'carte']) { await vue(c, v); await L.calme(c.p, 400);
     const l = await c.p.evaluate(() => { const d = document.querySelector('details.t-ici'); if (!d) return null; d.open = true; const a = d.querySelector('.t-ici-tout'); if (!a) return null; a.scrollIntoView({ block: 'center' }); const r = a.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { h: Math.round(r.height), w: Math.round(r.width), touche: !!t && (t === a || a.contains(t)), txt: a.textContent.trim() }; });
-    L.v('R5 · vue ' + v + ' : « Voir dans Tâches › » existe (population)', !!l, l); if (!l) continue;
+    if (!l) { console.log('   vue ' + v + ' : pas de carte « tâches pour toi » (sans objet)'); continue; } vues++;
     L.v('R5 · vue ' + v + ' : « Voir dans Tâches › » se touche sur ' + l.h + ' px de haut (44 au moins) et répond en son centre', l.h >= 44 && l.touche, l); }
+  L.v('R5 · « Voir dans Tâches › » mesuré sur au moins une vue (population)', vues >= 1, vues);
 });
 
 parcours('R7 · planning-07 : repères de la carte, tous les jours à plusieurs étapes, avant et après un zoom', async c => {

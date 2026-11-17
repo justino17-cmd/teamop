@@ -12,7 +12,7 @@ const h1 = p => p.evaluate(() => ((document.querySelector('#contenu h1') || {}).
 // ce qu'une ligne « A › B › C » du guide promet : chaque mot entre « » ou chaque segment doit se lire quelque part sur la rubrique ou dans ses onglets
 const PROMESSES = [
   ['statistiques', ['Bilan du mois']], ['planning', ['Vue d’ensemble', 'Mois', 'Carte']], ['devis', ['Dicter']],
-  ['stock', ['Mouvements', 'À valider', 'Sortie']], ['produits', ['Bons de commande', 'Commandes en cours']], ['achats', ['Demande']], ['equipe', ['Qui peut quoi']],   // « Boîte mail › Boîtes connectées » n'est pas vérifié ici : le module de courrier est dans un hôte dont le texte ne se lit pas depuis la page (la fenêtre « Boîtes connectées » s'ouvre aussi par Mon entreprise)
+  ['stock', ['Ce qui a bougé', 'Envois à accepter']], ['produits', ['Commandes', 'Articles', 'Fournisseurs']], ['achats', ['Demande']], ['equipe', ['Qui peut quoi']],   // « Boîte mail › Boîtes connectées » n'est pas vérifié ici : le module de courrier est dans un hôte dont le texte ne se lit pas depuis la page (la fenêtre « Boîtes connectées » s'ouvre aussi par Mon entreprise)
 ];
 (async () => {
   for (const QUI of QUIS) {
@@ -52,6 +52,8 @@ const PROMESSES = [
       if (!vois) continue;
       await L.aller(p, k); await L.calme(p, 600);
       const txt = await p.evaluate(() => (document.getElementById('contenu').innerText + ' ' + [...document.querySelectorAll('#contenu [aria-label],#contenu [title]')].map(e => (e.getAttribute('aria-label') || '') + ' ' + (e.getAttribute('title') || '')).join(' ')).replace(/\s+/g, ' '));
+      const derives = await p.evaluate(k => (typeof NV_PLACE !== 'undefined' ? NV_PLACE : []).filter(r => r[2] === k).flatMap(r => [...r[1].matchAll(/«\s*([^»]+?)\s*»/g)].map(m => m[1])), k);
+      for (const m of derives.filter(m => !mots.includes(m))) v(QUI + ' : « ' + m + ' » (écrit dans le guide, NV_PLACE) se lit sur ' + k, txt.toLowerCase().includes(m.toLowerCase()), txt.slice(0, 160));
       for (const m of mots) v((k === 'stock' || k === 'produits' ? '[coque-07] ' : '') + QUI + ' : le guide promet « ' + m + ' » dans ' + k + ' : on le lit à l’écran', txt.toLowerCase().includes(m.toLowerCase()), txt.slice(0, 160));
     }
     // ---- se ferme : ✕, Passer (ou C'est parti), Échap ; reste fermé ; se rouvre par le menu

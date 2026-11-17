@@ -1,6 +1,6 @@
 {
  "partie": "clients",
- "etat": "rapport complet de la première passe (17 novembre 2026), sondes rejouables : voir couverture",
+ "etat": "première passe terminée le 17 novembre 2026, rejouée sur le code fusionné (mac, windows, iphone, android, petit ; ipad : liste) — 18 constats, dont 1 déjà corrigé par un autre lot ; sondes rejouables (voir sondes/clients-*.js), contre-épreuves : mutations-clients.py",
  "ecrans": [
   {
    "nom": "Clients (liste, recherche, Tous / Par semaine / Par mois)",
@@ -20,15 +20,38 @@
  ],
  "couverture": {
   "ecrans": 3,
-  "gestesRecenses": "liste 13, fiche 22 par onglet (22 sur histo, 20 sur factures), création : ~40, Infos : 8",
-  "gestesTouches": "tous ceux de la liste (13/13 au balayage), de la fiche (8 clients × 6 onglets = 48 onglets, chaque ligne de l'historique, des factures, des documents, des contrats de l'Hôtel), des fenêtres de création",
-  "parcours": 14,
+  "gestesRecenses": "liste 13 ; fiche 22 (Historique) / 20 (Factures) ; création : ~40 ; Infos : 8 (balayage clients-balayage.js, un geste à la fois dans une page neuve)",
+  "gestesTouches": "liste 13/13 ; fiche : 22/22 (histo) et 20/20 (factures) au balayage ; 48 onglets (8 clients × 6) ; chaque ligne d'historique cliquable, de factures (Hôtel), de documents (6/6), de contrats ; les gestes Appeler, E-mail, Devis rapide, Composer un devis, Nouvelle intervention, Nouvelle tâche, Voir ses factures, Proposer / Composer un contrat",
+  "parcours": 16,
   "profils": [
    "mac",
-   "iphone"
-  ]
+   "windows",
+   "iphone",
+   "android",
+   "petit",
+   "ipad (liste)"
+  ],
+  "sondes": {
+   "clients-liste.js": "mac 46✓·5✗ (les 5 = défauts clients-01, 02 ×2, 18 ×2) ; iphone 48✓·3✗ ; petit 48✓·3✗ ; android, ipad 48✓·3✗ ; windows 46✓·5✗",
+   "clients-fiche.js": "mac, iphone, petit, windows : 107✓·0✗",
+   "clients-creer.js": "mac 33✓·2✗ (clients-04, 05) ; iphone, petit : mêmes",
+   "clients-modifier.js": "mac, petit 17-19✓·4✗ (clients-06, 07, 12, 17)",
+   "clients-gestes.js": "mac, iphone, android 28✓·1✗ (clients-09)",
+   "clients-roles.js": "mac 23✓·0✗ (4 rôles + cases de Julie)",
+   "clients-croise.js": "mac 10✓·1✗ (lecture du total, sonde corrigée) puis iphone 11✓·0✗",
+   "clients-clavier.js": "windows 8✓·0✗ ; mac : C, Ctrl+K, palette, Entrée ✓",
+   "contre-epreuves": "mutations-clients.py : 6 mutations (M1-M6) font tomber la sonde visée, 4 correctifs recommandés (S1, S2, S4 ; clients-08 déjà corrigé) la font passer"
+  }
  },
- "nonCouvert": [],
+ "nonCouvert": [
+  "ipad : gestes, création, modification (la sonde des gestes dépasse le délai de la machine partagée ; liste et fiche passent)",
+  "android et petit : modification et droits (passent sur petit pour création/modification ; pas rejoués sur android)",
+  "windows : création, modification, gestes (clavier, liste, fiche passent)",
+  "jour ET nuit : captures relues sur iphone nuit (liste, fiche, onglets, Infos), mac nuit (liste), android nuit (fiche) ; création, modification et gestes rejoués de jour seulement",
+  "client créé à la main puis sa position sur la CARTE : lue dans CR_GEO (donnée) mais pas regardée sur la carte des tournées (relève de la campagne planning)",
+  "le technicien et le chef d'équipe n'ont pas la rubrique Clients (case « voir » décochée) : refus propre vérifié ; le client vu depuis une intervention relève de la campagne interventions",
+  "les captures de création montrent l'écran à l'ouverture ; la grande fenêtre « Nouvelle intervention » (3 étapes, planning) n'est regardée qu'en haut de page"
+ ],
  "defauts": [
   {
    "n": "clients-01",
@@ -43,7 +66,7 @@
    "attendu": "Trouver « Hôtel de la Plage » : on tape les mots qu'on a en tête, dans l'ordre ou non.",
    "constate": "« Aucun client ne correspond à « hôtel plage » ». La recherche exige la phrase entière d'un seul tenant (includes) : « hôtel » seul marche, « hôtel plage » non, « la plage » oui seulement parce que les deux mots se suivent.",
    "preuve": "clients-liste.js : « recherche « hôtel plage » » (rejoué mac et iphone) ; reproduit deux fois.",
-   "ou": "vueClients, filtre `sansAccent([...]).includes(cq)` (ligne 5381)",
+   "ou": "vueClients, filtre `sansAccent([...]).includes(cq)`",
    "correction": "Découper la saisie en mots et exiger que CHAQUE mot soit trouvé quelque part dans nom + contact + adresse + e-mail (le téléphone en chiffres reste comme avant).",
    "decision": "corriger"
   },
@@ -78,26 +101,26 @@
    "attendu": "Le titre et sa phrase d'aide sur toute la largeur, le bouton « ＋ Nouveau client » à côté ou dessous.",
    "constate": "La phrase d'aide (« Rangés par mois : qui, combien d'interventions, ce qui est payé et ce qui reste à payer. ») est écrasée dans une colonne de ~170 px à côté du bouton : 5 lignes (iPhone, capture liste-mois-iphone.png / liste-semaine-iphone-nuit.png).",
    "preuve": "captures liste-mois-iphone.png et liste-semaine-iphone-nuit.png ; mesure : colonne du titre = largeur de l'écran − largeur du bouton.",
-   "ou": "vueClients, `.tete` des vues semaine/mois (ligne 5382)",
+   "ou": "vueClients, `.tete` des vues semaine/mois",
    "correction": "Sur téléphone, laisser `.tete` passer à la ligne (le bouton sous le titre) ou donner à la phrase `flex:1 1 100%` — même règle que les autres écrans à bouton d'en-tête.",
    "decision": "corriger"
   },
   {
    "n": "clients-04",
-   "gravite": "gênant",
-   "ecran": "Nouveau client › « Avec une intervention » (création)",
+   "gravite": "détail",
+   "ecran": "Nouveau client › « Avec une intervention »",
    "role": "marc, julie",
    "profils": [
     "mac",
     "iphone"
    ],
-   "etapes": "Clients › ＋ Nouveau client › Avec une intervention ; taper seulement « Dupont » (ou nom + téléphone « 12 » + e-mail « pas-un-mail »), « Plus tard », « Créer l'intervention ».",
-   "attendu": "Mêmes refus que le formulaire du devis et que l'onglet Infos : un client sans moyen d'être joint, sans adresse, avec un téléphone ou un e-mail faux ne se crée pas, une phrase dit quoi corriger.",
-   "constate": "Le client est créé sans rien, avec une intervention « à planifier » : « Intervention créée ». Trois clients « Essai un/deux/trois » (nom seul, téléphone « 12 », e-mail « pas-un-mail ») sont entrés dans la liste. La fiche de ces clients n'a ni téléphone, ni adresse : le technicien ne sait pas où aller.",
+   "etapes": "Clients › ＋ Nouveau client › Avec une intervention ; taper seulement le nom « Dupont » ; « Plus tard » ; « Créer l'intervention ».",
+   "attendu": "Un client qu'on peut joindre et où l'on peut aller : au moins une adresse (pour l'intervention) et un téléphone ou un e-mail, comme le formulaire du devis l'exige.",
+   "constate": "Le client est créé avec le seul nom, une intervention « à planifier » et rien d'autre : la fiche n'a ni téléphone, ni adresse, le technicien ne sait pas où aller et la carte le place au dépôt. (Le format du téléphone et de l'e-mail, lui, est maintenant contrôlé : corrigé par le lot « interventions » entre-temps — « champs facultatifs, mais justes s'ils sont remplis ».)",
    "preuve": "clients-creer.js : « intervention-01 » (3 contrôles) mac et iphone.",
-   "ou": "fenêtre de création : `const pret = !!(c.nom && … && b)` (ligne 13103) et ACTIONS_CREA.cCreer (ligne 13167) ne contrôlent que le nom",
-   "correction": "Dans cCreer, pour un nouveau client : mêmes contrôles que dvnCreer (téléphone ou e-mail obligatoire, `cfTelOk`, regex e-mail) PLUS l'adresse (l'intervention en a besoin), avec les mêmes phrases ; et le bouton « Créer l'intervention » dit ce qui manque.",
-   "decision": "corriger"
+   "ou": "fenêtre de création : `const pret = !!(c.nom && … && b)` et ACTIONS_CREA.cCreer ne contrôlent que le nom",
+   "correction": "Exiger l'adresse (et un téléphone ou un e-mail) comme dvnCreer, ou au moins prévenir : « Sans adresse, le technicien ne saura pas où aller. ». À confirmer avec Justin : le lot « interventions » a choisi « facultatifs ».",
+   "decision": "soumettre"
   },
   {
    "n": "clients-05",
@@ -111,8 +134,8 @@
    "etapes": "Clients › ＋ Nouveau client › Avec un devis ; client « Établissements… », adresse « 12 rue de la République, 17300 Rochefort » ; Préparer le devis. Puis lire CR_GEO du client.",
    "attendu": "Comme pour le client créé avec une intervention : son point (Rochefort) est posé pour la carte des tournées et les liens Waze / Plans (indice du menu final, vérifié).",
    "constate": "CR_GEO[client] est vide (le secteur, lui, est posé : « Sud »). Dès qu'on lui crée une intervention, la carte le place au dépôt (0 km) et « Y aller avec » envoie le technicien au dépôt.",
-   "preuve": "clients-creer.js : « client créé avec un devis : il a lui aussi sa position » ; la version intervention passe (CR_GEO posé ligne 13168).",
-   "ou": "dvnCreer (ligne ~7880) : `if (r) SECT_CLI[cli] = r.secteur` sans `CR_GEO[cli] = geoDeAdresse(f.adr)`",
+   "preuve": "clients-creer.js : « client créé avec un devis : il a lui aussi sa position » ; la version intervention passe (CR_GEO posé).",
+   "ou": "dvnCreer : `if (r) SECT_CLI[cli] = r.secteur` sans `CR_GEO[cli] = geoDeAdresse(f.adr)`",
    "correction": "Dans dvnCreer, après `SECT_CLI` : `const g = geoDeAdresse(f.adr); if (g) CR_GEO[cli] = g;` (même ligne que cCreer).",
    "decision": "corriger"
   },
@@ -129,7 +152,7 @@
    "attendu": "Pouvoir corriger le nom ou la raison sociale (une faute de frappe à la création, « Ledoux » écrit « Ledoix »).",
    "constate": "Six champs : contact, téléphone, e-mail, type, adresse, accès. Aucun champ « Nom ». Un nom mal tapé reste pour toujours, dans la liste, les devis et les factures.",
    "preuve": "clients-modifier.js : « infos-02 ».",
-   "ou": "vueClient, onglet infos (ligne 5410) et ACTIONS.clientEnreg (ligne 13457)",
+   "ou": "vueClient, onglet infos et ACTIONS.clientEnreg",
    "correction": "Ajouter un champ « Nom » (« Raison sociale » pour un pro) en tête de l'onglet Infos, avec le contrôle de doublon `cfDoublonDe` ; le nom modifié se répercute (la liste lit CLIENTS[k].nom).",
    "decision": "corriger"
   },
@@ -145,7 +168,7 @@
    "attendu": "L'en-tête change (c'est le cas) ET le point de la carte des tournées suit, ainsi que le secteur et la zone de déplacement.",
    "constate": "L'en-tête dit Rochefort ; CR_GEO.mr reste [46.1352, -1.1148] (Aytré), secteur « Sud » : la carte envoie le technicien à l'ancienne adresse.",
    "preuve": "clients-modifier.js : « infos-04 ».",
-   "ou": "ACTIONS.clientEnreg (ligne 13457) : `Object.assign(c, {…adr…})` sans recalcul",
+   "ou": "ACTIONS.clientEnreg : `Object.assign(c, {…adr…})` sans recalcul",
    "correction": "Après l'enregistrement : `const g = geoDeAdresse(c.adr); if (g) CR_GEO[k] = g; else delete CR_GEO[k]; SECT_CLI[k] = (reconnaitre(c.adr)||{}).secteur || SECT_CLI[k];`",
    "decision": "corriger"
   },
@@ -159,11 +182,11 @@
    ],
    "etapes": "Équipe : donner à une personne « voir les clients » + « changer un client » SANS « créer un client » (ou l'inverse). Fiche client › Infos › Enregistrer.",
    "attendu": "« Enregistrer » dépend de la case « changer un client, ses coordonnées, ses notes ».",
-   "constate": "« Enregistrer » dépend de la case « créer un client » : avec voir + changer, le bouton n'agit pas ; avec voir + créer, on modifie les coordonnées de tous les clients.",
+   "constate": "(constat de la première passe, 17 novembre au matin) « Enregistrer » dépendait de la case « créer un client ». CORRIGÉ depuis par le lot « droits d'Équipe » : l'onglet Infos est en lecture seule sans la case « changer un client » et le dit (« Tu peux regarder cette fiche ; c'est Marc qui la modifie »), « ＋ Nouveau client » ne paraît qu'avec « créer ». Vérifié par clients-roles.js (23 ✓ · 0 ✗) et contre-épreuve M6 (le défaut remis fait tomber la sonde).",
    "preuve": "clients-roles.js : « droits-01 » (cases {v,m} puis {v,c} sur Julie).",
-   "ou": "table GESTES, ligne 11442 : `clientNouveau@crm clientEnreg@crm` dans la liste `c:` ; `m:` n'a que `ccli…` (ligne 11467 `ci:{k:'crm', d:'l'}`)",
-   "correction": "Retirer `clientEnreg@crm` de la liste `c:` et le mettre en `m:` ; ajouter la contre-épreuve à clients-roles.js (déjà écrite).",
-   "decision": "corriger"
+   "ou": "table GESTES : `clientNouveau@crm clientEnreg@crm` dans la liste `c:` ; `m:` n'a que `ccli…`",
+   "correction": "Aucune.",
+   "decision": "déjà corrigé"
   },
   {
    "n": "clients-09",
@@ -178,7 +201,7 @@
    "attendu": "Revenir sur la fiche du client d'où l'on vient.",
    "constate": "« ‹ Contrats » mène à la liste des Contrats (rl-retour n'est pas posé : « une page qui porte déjà son propre retour n'en reçoit pas un second »). On perd sa place, et il faut re-chercher le client.",
    "preuve": "clients-gestes.js : « contrat-01 » (mac et iphone).",
-   "ou": "formContrat / vueContratNouveau, bouton `class=\"lien retour\" data-go=\"contrats\"` (rlRetourBouton ligne 11331)",
+   "ou": "formContrat / vueContratNouveau, bouton `class=\"lien retour\" data-go=\"contrats\"` (rlRetourBouton)",
    "correction": "En application (RL_ACTIF), faire poser le bouton « ‹ Retour · <lieu précédent> » de la pile à la place du retour propre de cette page, comme pour les fiches.",
    "decision": "corriger"
   },
@@ -195,7 +218,7 @@
    "attendu": "« N passages » à côté de chaque appareil dit les passages de CET appareil.",
    "constate": "Chaque ligne affiche le nombre de passages du CLIENT entier (4 passages pour la pompe à chaleur et 4 pour le split à installer ; 2 et 2 au Vieux Port). Faux et trompeur.",
    "preuve": "captures tab-vp-appareils-bas-iphone-nuit.png ; code : `INTS.filter(i => i.cli === k …).length` dans la boucle des appareils.",
-   "ou": "vueClient, onglet appareils (ligne 5407)",
+   "ou": "vueClient, onglet appareils",
    "correction": "Retirer ce chiffre (les interventions n'ont pas de champ « appareil »), ou le lier à un vrai champ avant de l'afficher.",
    "decision": "corriger"
   },
@@ -212,7 +235,7 @@
    "attendu": "« à renseigner » doit offrir un moyen de renseigner (indice du menu final : « Aucun appareil ni second site modifiable dans la fiche client », confirmé).",
    "constate": "Un texte « Aucun appareil enregistré pour l'instant. » et aucun bouton : ni « ＋ Ajouter un appareil », ni modifier, ni supprimer. Un client créé reste sans appareil pour toujours.",
    "preuve": "clients-creer.js (tuile « 0 appareil à renseigner », onglet sans bouton) ; clients-fiche.js (onglet appareils sans commande).",
-   "ou": "vueClient, onglet appareils (ligne 5407)",
+   "ou": "vueClient, onglet appareils",
    "correction": "Ajouter « ＋ Ajouter un appareil » (nom, détail) et ✎ / ✕ par ligne, sous la case « changer un client ».",
    "decision": "soumettre"
   },
@@ -263,7 +286,7 @@
    "attendu": "Une phrase qu'un artisan comprend du premier coup.",
    "constate": "« Un client se crée avec son premier travail. Choisis par quoi commencer : son adresse et ses coordonnées se remplissent dans ce formulaire. » : « se remplissent dans ce formulaire » est lourd, et on ne comprend pas pourquoi on ne peut pas simplement ajouter un contact.",
    "preuve": "clients-creer.js (capture creer-panneau-*.png) et texte du panneau.",
-   "ou": "ACTIONS.clientNouveau, ligne 13465",
+   "ou": "ACTIONS.clientNouveau",
    "correction": "« Pour ajouter un client, on prépare son premier travail : une intervention à planifier, ou un devis à lui envoyer. Tu rentres ses coordonnées dans la fenêtre qui s'ouvre. »",
    "decision": "corriger"
   },
@@ -295,7 +318,7 @@
    "attendu": "La liste se referme quand l'adresse est complète ou quand on quitte le champ.",
    "constate": "Deux adresses sans rapport (« 10 Rue de la Gravière », « 2 Rue de la Gare ») restent affichées et recouvrent la carte « Repérée » (capture creer-rempli-iphone.png). Filtre sur le dernier mot seulement (« mer »).",
    "preuve": "captures creer-rempli-iphone.png.",
-   "ou": "ADRESSES.filter(... .split(' ').slice(-1)[0] ...), ligne 13061",
+   "ou": "ADRESSES.filter(... .split(' ').slice(-1)[0] ...)",
    "correction": "Filtrer sur toute la saisie, fermer la liste à la perte du focus.",
    "decision": "corriger"
   },
@@ -311,9 +334,32 @@
    "attendu": "La case a un geste derrière.",
    "constate": "Aucun bouton « Supprimer » ni « Archiver » dans la fiche : la case promet un geste qui n'existe pas.",
    "preuve": "clients-modifier.js : « infos-03 ».",
-   "ou": "DROIT_PHRASES.crm.s (ligne 11507)",
+   "ou": "DROIT_PHRASES.crm.s",
    "correction": "Soit retirer la case « supprimer » de la catégorie, soit ajouter « Archiver ce client » (l'historique reste) — décision de produit.",
    "decision": "soumettre"
+  },
+  {
+   "n": "clients-18",
+   "gravite": "détail",
+   "ecran": "Clients › recherche par téléphone",
+   "role": "marc, julie",
+   "profils": [
+    "mac",
+    "windows",
+    "iphone",
+    "petit"
+   ],
+   "etapes": "Clients ; taper « 06.55.44.33.22 » ou « +33 6 55 44 33 22 » (le numéro de Mme Roux, 06 55 44 33 22).",
+   "attendu": "Retrouver la cliente : un numéro se tape avec des points, avec +33, collé depuis un courriel.",
+   "constate": "« Aucun client ne correspond ». Seuls les chiffres et les espaces (et les tirets, transformés en espaces) sont reconnus : « 06 55 44 », « 0655443 », « 06-55-44 » marchent ; « 06.55.44.33.22 » et « +33 6 55 44 33 22 » non.",
+   "preuve": "clients-liste.js : « clients-18 : recherche « 06.55.44.33.22 » » et « +33… » (mac, windows).",
+   "ou": "vueClients, `/^[\\d ]+$/.test(cq)` puis `String(c.tel).replace(/\\s/g,'').includes(cqt)`",
+   "correction": "Quand la saisie contient au moins 4 chiffres : comparer les chiffres seuls (`cq.replace(/\\D/g,'')`, avec « 33 » initial ramené à « 0 ») aux chiffres du téléphone.",
+   "decision": "corriger"
   }
- ]
+ ],
+ "indices": {
+  "Un client créé à la main n'a pas de position": "CONFIRMÉ pour le client créé AVEC UN DEVIS (clients-05) ; RÉFUTÉ pour le client créé avec une intervention (CR_GEO posé, corrigé par la campagne planning) ; et modifier l'adresse d'un client existant ne déplace pas son point (clients-07)",
+  "Aucun appareil ni second site modifiable dans la fiche client": "CONFIRMÉ (clients-11, soumis : « ＋ Ajouter un appareil »)"
+ }
 }

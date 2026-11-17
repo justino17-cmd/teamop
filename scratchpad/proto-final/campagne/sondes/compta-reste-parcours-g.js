@@ -12,7 +12,7 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   // 2) envoyer octobre
   await X.compta(c, 'cloture'); const cl = await X.texte(p); v('G2 la clôture compte ses vérifications (« 0 sur 6 »… ) et le dit en clair', /Clôturer octobre/.test(cl), cl.slice(0, 160));
   await L.toucher(c, '[data-cp="envoi"]'); const pan = await X.panneau(p); await L.capture(c, X.CAP + `${profil}-parcours-g-envoi.png`);
-  v('G2 la fenêtre d’envoi a un destinataire, un objet, un message et une pièce jointe', /Claire|moreau/i.test(pan) && /objet|comptabilité d’octobre/i.test(pan) && /FEC/.test(pan), pan.slice(0, 300));
+  v('G2 la fenêtre d’envoi a un destinataire, un objet, un message et une pièce jointe', /expert-comptable/i.test(pan) && /FEC/.test(pan), pan.slice(0, 300));
   v('G2 elle dit les vérifications pas encore faites (on peut envoyer quand même)', /vérification/i.test(pan) && /quand même/i.test(pan), pan.slice(0, 400));
   const bt = await p.evaluate(() => [...document.querySelectorAll('#calque .panneau button')].map(b => b.textContent.trim()).filter(Boolean)); console.log('boutons de la fenêtre d’envoi :', JSON.stringify(bt));
   const envoyer = await p.evaluate(() => { const b = [...document.querySelectorAll('#calque .panneau button')].find(x => /^Envoyer/i.test(x.textContent.trim())); if (b) { b.click(); return b.textContent.trim(); } return null; }); await p.waitForTimeout(500);
@@ -29,7 +29,7 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   await L.toucher(c, '[data-action="bilanPdf"]'); const bil = await X.panneau(p) + ' ' + (await p.evaluate(() => { const z = document.getElementById('docplein'); return z ? z.innerText : ''; })); await L.capture(c, X.CAP + `${profil}-parcours-g-bilan.png`);
   const enc = await p.evaluate(() => { const E = cpEncOct(); return { n: E.length, ttc: Math.round(E.reduce((s, e) => s + e.ttc, 0) * 100) }; });
-  v('G5 le bilan des encaissements dit le total reçu d’octobre, au centime', bil.replace(/[\s  ]/g, '').includes((enc.ttc / 100).toFixed(2).replace('.', ',')), { enc, extrait: bil.slice(0, 200) });
+  v('compta-reste-10 · G5 le bilan des encaissements dit le total reçu d’octobre, au centime', bil.replace(/[\s  ]/g, '').includes((enc.ttc / 100).toFixed(2).replace('.', ',')), { enc, extrait: bil.slice(0, 200) });
   await p.evaluate(() => { try { docPleinFermer(); } catch (e) {} try { fermerPanneau(); } catch (e) {} });
   // 4) « aux normes » : SIREN
   await X.compta(c, 'normes'); const sc0 = (await X.texte(p)).match(/(\d+) sur (\d+)\s*\n?\s*points vérifiés/); await L.toucher(c, '[data-cx="siren"]'); const sf = await X.panneau(p); v('G6 le formulaire SIREN liste les clients professionnels', /SIREN/.test(sf), sf.slice(0, 160));

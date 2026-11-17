@@ -11,7 +11,7 @@ const L = require('../lib.js'), fs = require('fs'), path = require('path');
     'visite parlée · Fournisseurs':tranche("immChap('produits'", "immChap('stock'"), 'visite parlée · Stock':tranche("immChap('stock'", "immChap('boxes'"), 'visite parlée · Dépôts':tranche("immChap('boxes'", "\nimmChap('") };
   let nCibles = 0; const classes = [], vis = new Set();
   for (const [nom, t] of Object.entries(visites)) {
-    const cibles = [...t.matchAll(/(?:^|[\s{(,\[])(?:c|sel):\s*'((?:[^'\\]|\\.)*)'|\[\s*'(\[data-vis="[a-z-]+"\])'/gm)].map(m => (m[1] || m[2] || '').replace(/\\'/g, "'")).filter(Boolean);
+    const cibles = [...t.matchAll(/(?:^|[\s{(,\[])(?:c|sel):\s*'((?:[^'\\]|\\.)*)'|\[\s*'((?:[^'\\]|\\.)*)'\s*,\s*'/gm)].map(m => (m[1] || m[2] || '').replace(/\\'/g, "'")).filter(Boolean);
     v('population : « ' + nom + ' » vise ' + cibles.length + ' cible(s)', cibles.length >= 2, cibles); nCibles += cibles.length;
     for (const sel of cibles) { for (const m of sel.matchAll(/\[data-vis="([a-z-]+)"\]/g)) vis.add(m[1]);
       // une classe n'est permise que dans « #calque .panneau » (le panneau qui s'ouvre) ou « #contenu .kpis » : le reste se renomme sans prévenir

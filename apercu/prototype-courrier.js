@@ -1587,6 +1587,16 @@ var CSS = `
   @media (max-height:500px){
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:20px;line-height:24px}
   }
+  /* téléphone tenu en paysage ET court (Android 740×360, petit 568×320) : le grand titre, la recherche et les catégories occupaient toute la place visible au-dessus de la barre d'onglets
+     de l'hôte — la première chose vue était « aucun courriel ». Le titre passe dans la barre (comme quand la liste défile : .lb-titles), « Boîtes » n'y garde que sa flèche pour lui laisser la place ;
+     l'iPhone 844×390 (plus haut) garde son grand titre. */
+  @media (max-height:380px){
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lt{display:none}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lb-titles{opacity:1}
+    .opc:where([data-fmt="pad"]) .list #btnNav .nb-lbl{display:none}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lb-title{font-size:14px}   /* à 17 px, « Boîte de réception » se coupait entre la flèche et « Sélectionner » dans la colonne de 315 px */
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .search-row{margin-top:4px;margin-bottom:6px}
+  }
 `;
 var FEUILLE = null;
 function feuilleDans(sr) {
@@ -1706,9 +1716,11 @@ var MARKUP = `
     return s.replace(/&#x([0-9a-f]{1,6});/gi,function(t,h){ var n=parseInt(h,16); return n>0&&n<0x110000?String.fromCodePoint(n):t; })
       .replace(/&#([0-9]{1,7});/g,function(t,d){ var n=+d; return n>0&&n<0x110000?String.fromCodePoint(n):t; })
       .replace(/&[a-zA-Z][a-zA-Z0-9]{1,31};/g,function(t){ try{ _deco=_deco||document.createElement("textarea"); _deco.innerHTML=t; return _deco.value; }catch(e){ return t; } }); }
+  /* un lien se lit tel qu'il s'ouvre : « аррӏе.com » en lettres cyrilliques ressemble à « apple.com », on écrit donc sa forme réelle (xn--…) quand l'adresse n'est pas en lettres latines */
+  function adresseVue(u){ var m=/^(https?:\/\/)([^\/?#]*)/i.exec(u); if(!m||!/[^\x00-\x7f]/.test(m[2])) return u; try{ return m[1]+new URL(m[1]+m[2]).host+u.slice(m[0].length); }catch(e){ return u; } }
   function corpsLu(s,liens){ var h=H(entitesLues(s)).replace(/\u00a0/g," ");
-    if(liens) h=h.replace(/\bhttps?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)[^\s<>"'])+/g,function(u){ var fin=""; var m=/(?:[.,;:!?)\]]|&gt;|&#39;|&quot;)+$/.exec(u); if(m){ fin=u.slice(m.index); u=u.slice(0,m.index); } if(!/^https?:\/\/./.test(u)) return u+fin;
-      return '<a class="rlien" href="'+u+'" target="_blank" rel="noopener noreferrer nofollow">'+u+'</a>'+fin; });
+    if(liens) h=h.replace(/\bhttps?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)[^\s<>"'])+/g,function(u){ var fin=""; var m=/(?:[.,;:!?)\]]|&gt;|&#39;|&quot;)+$/.exec(u); if(m){ fin=u.slice(m.index); u=u.slice(0,m.index); } if(!/^https?:\/\/./.test(u)||/^https?:\/\/[^\/?#]*@/i.test(u)) return u+fin;
+      return '<a class="rlien" href="'+u+'" target="_blank" rel="noopener noreferrer nofollow">'+adresseVue(u)+'</a>'+fin; });
     return h.replace(/\n/g,"<br>"); }
   var app=$("#app"), cadre=$(".opc"), layerEl=$(".opc-layer");
   var actif=function(){ return sr.activeElement; };
@@ -2906,7 +2918,19 @@ var MARKUP = `
   }
   /* (20 octobre 2026, Justin : « quand je vais en bas ça me remonte direct en haut ») : redessiner la liste (un relevé toutes les minutes) la remettait en haut — elle garde
      sa position ; seuls les gestes qui CHANGENT de liste (dossier, boîte, recherche) la remontent, eux-mêmes, après ce rendu */
-  function renderAll(){ var ls=$("#listScroll"), y=ls?ls.scrollTop:0; refreshCls(); renderSidebar(); renderSpace(); renderList(); if(ls&&ls.scrollTop!==y) ls.scrollTop=y; renderReading(); paintTitle(); signOuverture(); }
+  // Paysage COURT (≤ 380 px de haut) : il ne reste que ~120 px de liste au-dessus de la barre d'onglets, et la recherche et les catégories les remplissaient — la première chose vue était « aucun courriel ».
+  // La liste s'ouvre donc PLIÉE sur ses messages (comme Mail sur iPhone : la recherche est au-dessus, un geste vers le bas la ramène). Une fois par ouverture : si la personne a déjà fait défiler, on n'y touche pas.
+  var COURT=false;
+  function listeCourtePlier(){
+    try{ var court=window.matchMedia("(max-height:380px)").matches&&(isPhone()||layout()==="pad");
+      if(!court){ COURT=false; return; }
+      var ls=$("#listScroll"), r=$("#rows"), m1=r&&r.querySelector(".msg"); if(COURT||!ls||!m1||ls.scrollTop>2) return;   // on se cale sur la PREMIÈRE ligne : l'encart « rangés ailleurs » qui la précède se replie avec le reste
+      if(isPhone()&&app.getAttribute("data-view")!=="list") return;   // la liste n'est pas à l'écran : sa boîte vaut zéro, on attend
+      var bar=$(".list .list-bar"), haut=Math.max(ls.getBoundingClientRect().top, bar?bar.getBoundingClientRect().bottom:0);   // sur téléphone la barre du haut est posée PAR-DESSUS la liste : la première ligne se cale sous elle, pas dessous
+      COURT=true; ls.scrollTop=Math.round(m1.getBoundingClientRect().top-haut+ls.scrollTop); }catch(e){}
+  }
+  function listeEnHaut(){ var ls=$("#listScroll"); ls.scrollTop=0; COURT=false; listeCourtePlier(); }
+  function renderAll(){ var ls=$("#listScroll"), y=ls?ls.scrollTop:0; refreshCls(); renderSidebar(); renderSpace(); renderList(); if(ls&&ls.scrollTop!==y) ls.scrollTop=y; listeCourtePlier(); renderReading(); paintTitle(); signOuverture(); }
   // Pastille dans l'onglet : nombre de mails non lus dans les boîtes de réception.
   function paintTitle(){ compter(); }
 
@@ -4403,7 +4427,7 @@ var MARKUP = `
     var sp=b.getAttribute("data-space");
     state.scope=sp; app.setAttribute("data-scope",state.scope);
     state.selected=null; clearSearch(); if(isPhone()) state.folder=state.folder||"inbox";
-    renderAll(); persist(); $("#listScroll").scrollTop=0; $("#list").classList.remove("scrolled");
+    renderAll(); persist(); listeEnHaut(); $("#list").classList.remove("scrolled");
   });
   $("#sidebar").addEventListener("click",function(e){
     if(e.target.closest("[data-retry]")){ reessayer(); return; }
@@ -4414,13 +4438,13 @@ var MARKUP = `
     if(sc){ state.scope=sc.getAttribute("data-scope"); app.setAttribute("data-scope",state.scope);
       // Comme Apple Mail : choisir une boîte ouvre SA boîte de réception, quel que soit le dossier regardé avant (Archive, Marqués, le journal…) — sur tous les formats.
       state.selected=null; clearSearch(); state.folder="inbox"; state.filter="all";
-      if(isPhone()){ renderAll(); persist(); $("#listScroll").scrollTop=0; $("#list").classList.remove("scrolled"); go("list"); return; }
-      renderAll(); persist(); $("#listScroll").scrollTop=0; $("#list").classList.remove("scrolled");
+      if(isPhone()){ renderAll(); persist(); listeEnHaut(); $("#list").classList.remove("scrolled"); go("list"); return; }
+      renderAll(); persist(); listeEnHaut(); $("#list").classList.remove("scrolled");
       if(layout()==="pad"){ closeDrawer(); return; }
       var again=$('#sidebar .scope-row[data-scope="'+state.scope+'"]'); if(again) again.focus({preventScroll:true}); return; }
     var f=e.target.closest(".folder[data-folder]");
     if(f){ state.folder=f.getAttribute("data-folder"); state.selected=null; state.filter="all"; clearSearch();
-      closeDrawer(); renderAll(); persist(); $("#listScroll").scrollTop=0; $("#list").classList.remove("scrolled"); go("list"); }
+      closeDrawer(); renderAll(); persist(); listeEnHaut(); $("#list").classList.remove("scrolled"); go("list"); }
   });
 
   // Catégorie choisie : la liste suit ; un message affiché d'une autre catégorie n'est plus sélectionné.
@@ -4541,7 +4565,7 @@ var MARKUP = `
   if(restoredLost) toast(restoredLost>1?restoredLost+" envois n’ont pas été confirmés : les messages sont dans Brouillons":"Un envoi n’a pas été confirmé : le message est dans Brouillons");
   charger(false);
   // Le format suit le conteneur (la fenêtre change, le menu de l'hôte s'ouvre…) ; le module s'éteint si l'hôte a retiré son conteneur
-  try{ var obsTaille=new ResizeObserver(function(){ if(!hote.isConnected){ demonter(); return; } if(appliquerFormat()) placeChrome(); fitSheetTitles(); catFade(); });   /* le titre d'une feuille se REMESURE aussi quand le format reste « téléphone » (debout ↔ paysage) : placeChrome ne repasse alors pas */
+  try{ var obsTaille=new ResizeObserver(function(){ if(!hote.isConnected){ demonter(); return; } if(appliquerFormat()) placeChrome(); fitSheetTitles(); listeCourtePlier(); catFade(); });   /* le titre d'une feuille se REMESURE aussi quand le format reste « téléphone » (debout ↔ paysage) : placeChrome ne repasse alors pas */
     obsTaille.observe(hote); finis.push(function(){ obsTaille.disconnect(); }); }catch(e){}
   var iv=setInterval(function(){ if(!hote.isConnected){ demonter(); return; } flushScheduled(); if(!document.hidden&&opt.intervalle!==0&&maintenant()-LOAD.essai>=(opt.intervalle||60000)-100) charger(true);
     if(!document.hidden&&maintenant()-SIGN_RAF.t>=60000-100&&signEnCours()) signRafraichir(false); },Math.max(250,Math.min(5000,opt.intervalle||60000)));
