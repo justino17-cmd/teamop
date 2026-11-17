@@ -17,14 +17,19 @@ const ecoute = p => p.evaluate(() => { window.__fermes = []; addEventListener('m
   let tot = 0; for (const h of ['majournee', 'techfrais', 'registre']) { await p.evaluate(x => { location.hash = x; }, h); await L.calme(p, 400); tot += await p.locator('[data-opd]').count(); }
   v('technicien : aucun bouton de l\'atelier sur ses écrans (3 écrans comptés)', tot === 0, tot);
   await p.evaluate(() => opdOuvrir('devis', {})); await L.calme(p, 300);
-  v('technicien : l\'appel direct est refusé (toast) et AUCUN cadre n\'est créé', (await p.evaluate(() => !document.getElementById('opdz'))) && /rôle/.test((await L.etat(p)).toast), await L.etat(p));
+  v('technicien : l\'appel direct est refusé (toast) et AUCUN cadre n\'est créé', (await p.evaluate(() => !document.getElementById('opdz'))) && /pas ouvert à ton compte : composer un devis/.test((await L.etat(p)).toast)   /* « Les mots (1/n) », f5d88883 : le refus ne dit plus « rôle » mais « Ce geste n’est pas ouvert à ton compte : composer un devis. » */, await L.etat(p));
   await L.fin(c);
   // ═════ B. UN RÔLE QUI CHANGE PENDANT QUE L'ATELIER EST OUVERT ═════
   c = await L.ouvrir({ profil: 'mac', qui: 'marc' }); p = c.p; await ecoute(p);
   let f = await A.ouvrirAtelier(c, 'devis', 'devis'); v('patron : l\'atelier s\'ouvre', !!f);
-  await p.evaluate(() => rlChanger('tech', { muet: true, h: 'majournee' })); await p.waitForTimeout(700);
+  // Le chemin RÉEL d'un changement de personne est la session (sessionOuvrir pose SESSION puis appelle rlChanger) : depuis b8b6b92a (« Droits d'Équipe
+  // qui agissent ») les droits se lisent sur acteur() = la personne connectée, et rlChanger('tech') seul ne change plus rien en mode application (la bande
+  // « Tester en tant que » n'y existe pas). La sonde rejoue donc la vraie ouverture de session de Sophie.
+  await p.evaluate(() => { sessionOuvrir('sm'); }); await p.waitForTimeout(700);   // sans sessionFermer : « Ouvrir comme » passe d'une personne à l'autre sans déconnexion, et c'est le crochet de rlChanger qui retire l'atelier (la déconnexion, elle, le ferme par la liste des fenêtres, ligne « atelier » du registre)
+  v('population : la personne connectée est bien Sophie (technicienne), pas Marc', await p.evaluate(() => SESSION === 'sm' && !rlPermis('devis')));
   v('le rôle devient technicien : l\'atelier se ferme tout seul (pas un cadre ouvert pour qui n\'y a pas droit)', (await L.etat(p)).atelier === false);
-  await p.evaluate(() => rlChanger('patron', { muet: true, h: 'devis' })); await L.calme(p, 500);
+  v('le rôle devient technicien : le CADRE de l\'atelier est retiré (il porterait les documents et les clients de la personne d\'avant)', await p.evaluate(() => !document.getElementById('opdz')));
+  await p.evaluate(() => { sessionFermer('deconnexion'); sessionOuvrir('marc'); rlChanger('patron', { muet: true, h: 'devis' }); }); await L.calme(p, 500);   // Marc se reconnecte, comme une personne
   // l'atelier lui-même refuse sans le booléen à vrai
   f = await A.ouvrirAtelier(c, 'devis', 'devis'); await f.locator('[data-fen-x]').first().click(); await p.waitForTimeout(700);
   await p.evaluate(() => { window.__fermes.length = 0; const w = document.querySelector('#opdz iframe').contentWindow; w.postMessage({ opd_role: { role: 'x', devis: 'true', contrats: 1 } }, '*'); w.postMessage({ opd_ouvrir: { faire: 'devis' } }, '*'); }); await p.waitForTimeout(700);
