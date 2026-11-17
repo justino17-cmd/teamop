@@ -47,24 +47,6 @@
   },
   {
    "i": 2,
-   "lib": "Télécharger le PDF signé",
-   "data": "data-action=info data-txt=Dans la vraie version : le PDF signé se ",
-   "touche": true,
-   "change": [
-    "toast"
-   ],
-   "h1": "CTR-2026-004",
-   "panneau": "",
-   "hash": "#contrat-x-c1",
-   "toast": "Dans la vraie version : le PDF signé se télécharge, avec le certificat de signature.",
-   "atelier": false,
-   "compta": false,
-   "sansNom": false,
-   "l": 231,
-   "h": 46
-  },
-  {
-   "i": 3,
    "lib": "✅1 tâche ouvertepour ce contrat",
    "data": "",
    "touche": true,
@@ -82,7 +64,7 @@
    "h": 44
   },
   {
-   "i": 4,
+   "i": 3,
    "lib": "Préparer la visite 3 sur 4 des MimosasTom · mardi 3 novembre",
    "data": "data-tmodif=t4",
    "touche": false,
@@ -98,7 +80,7 @@
    "h": 66
   },
   {
-   "i": 5,
+   "i": 4,
    "lib": "＋ Nouvelle tâche",
    "data": "data-tkxnouv=contrat|c1",
    "touche": false,
@@ -114,7 +96,7 @@
    "h": 34
   },
   {
-   "i": 6,
+   "i": 5,
    "lib": "⤢ Voir en grand",
    "data": "data-pdfplein=1",
    "touche": true,
@@ -130,18 +112,15 @@
    "h": 46
   },
   {
-   "i": 7,
+   "i": 6,
    "lib": "⤓ Télécharger le PDF",
    "data": "data-pdfdl=1",
    "touche": true,
    "change": [
-    "panneau",
-    "toast",
-    "calque",
-    "longCalque"
+    "toast"
    ],
    "h1": "CTR-2026-004",
-   "panneau": "Fichier",
+   "panneau": "",
    "hash": "#contrat-x-c1",
    "toast": "« Contrat CTR-2026-004.pdf » : téléchargement demandé. S’il ne démarre pas, ton navigateur le bloque",
    "atelier": false,
@@ -151,7 +130,7 @@
    "h": 46
   },
   {
-   "i": 8,
+   "i": 7,
    "lib": "✉ Envoyer par e-mail",
    "data": "data-pdfmail=1",
    "touche": true,
@@ -171,7 +150,7 @@
    "h": 46
   },
   {
-   "i": 9,
+   "i": 8,
    "lib": "Visite 2 · mardi 27 octobre",
    "data": "data-go=inter-x-i22",
    "touche": true,
@@ -191,7 +170,7 @@
    "h": 44
   },
   {
-   "i": 10,
+   "i": 9,
    "lib": "Visite 3 · mardi 3 novembre",
    "data": "data-go=inter-x-i11",
    "touche": true,

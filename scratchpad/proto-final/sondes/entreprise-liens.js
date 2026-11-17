@@ -33,7 +33,8 @@ const lire = c => c.p.evaluate(() => ({ hash:location.hash, h2:(document.querySe
   // une ligne dont la destination est refusée n'est pas dessinée : on le joue avec la VRAIE mécanique de droits, par la personne du bureau (Julie) à qui l'écran est ouvert
   await L.fin(c);
   { const j = await ouvrirEnt({ profil:'mac', qui:'julie' }); let n = 0;
-    await j.p.evaluate(() => { ROLES.gestion.routes.push('entreprise'); }); await L.aller(j.p, 'entreprise');
+    /* depuis les droits d'Équipe qui agissent (D1), la rubrique s'ouvre par la case « Équipe et entreprise › Voir », plus par la liste de routes d'un rôle (ROLES.gestion.routes n'existe plus) */
+    await j.p.evaluate(() => { eqDe('julie').droits.cats.admin.v = 1; rendre(); }); await L.aller(j.p, 'entreprise');
     const ks = async () => j.p.evaluate(() => [...document.querySelectorAll('[data-ent^="lien|"]')].map(e => e.dataset.ent.split('|')[1]));
     const k1 = await ks(); n++;
     v('le bureau (ni Planning, ni Stock, ni Boîte mail, et pas la règle des notes de frais) : seules « Facture envoyée toute seule » et « Tes métiers » sont dessinées', k1.join('|') === 'auto|metiers', k1);
