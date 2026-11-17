@@ -160,3 +160,18 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       notre serveur (à redire à Justin dans la liste des doutes). La garde `sondes/securite-statique.js` tient l'état décidé
       (49 ✓ · 0 ✗ ; trois mutations tombent : un troisième hôte, les polices dans une autre page, deux feuilles).
       ⛔ Ne pas la re-retirer : le recontrôle de la sécurité doit lire cette ligne.
+- [ ] **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
+      · **16** : à la fin d'une intervention, une case générique pour TOUS les clients : « Un autre passage est nécessaire
+        (le bureau prépare le devis) » ; « Entretien annuel » n'est cochée d'office que pour un Entretien, une Mise en service
+        ou une Installation — jamais après un dépannage ni une garantie (sinon chaque dépannage crée un entretien dans un an).
+      · **Garantie** : avant comme après « Terminer », la fiche (technicienne et bureau) dit « Garantie : rien à encaisser,
+        aucune facture » à la place du bloc « Paiement sur place » ; plus de « Payé en totalité », d'« Acompte versé » ni de
+        « la facture lui sera envoyée ».
+      · **05** : la note « ton compte ne peut pas créer, demande à Marc » ne s'écrit sur AUCUN écran de terrain du technicien
+        (Ma journée, sa fiche d'intervention) ; la campagne Technicien l'a retirée de quatre écrans : vérifier la fiche.
+      · **iPad** : le filtre « Toutes » de la liste se voit sans défiler (libellés plus courts ou retour à la ligne, comme au
+        téléphone) ; règle du dépôt : ce qu'on ne voit pas n'existe pas.
+      · Détails du recontrôle : « Voir dans Tâches › » et la case « Seulement les techniciens du secteur » à 44 px au doigt ;
+        au téléphone « Date à fixer » en gras à la place du tiret ; un relevé n'accepte qu'un nombre (avec virgule) ; un
+        téléphone accepte « poste 12 » et refuse plus de 20 chiffres ; une ligne de facture a le même plafond de prix que le
+        forfait de création.
