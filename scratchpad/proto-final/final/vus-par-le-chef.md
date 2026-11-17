@@ -193,3 +193,14 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       « Réglages › ». · **achats-08** : « Kilomètres : 0,60 € le km (à régler avec ton expert-comptable : le barème dépend de la
       puissance du véhicule) » — plus de « exemple de démonstration ». · **achats-10** : UN mot, « sans justificatif », pour le lien,
       la puce et les lignes ; une note de frais encore à valider ne se compte pas parmi les achats sans justificatif.
+
+- [ ] **Mon entreprise et droits — décisions du chef du 17/11, 12 h 05 (entreprise)** : · **tout-08** : À CORRIGER, ce n'est pas « à soumettre ».
+      Une personne qui n'a que « Voir » sur la Boîte mail LIT ses courriels et rien d'autre : écrire, répondre, transférer, archiver,
+      supprimer, déplacer, marquer exigent la case qui va avec (un droit qui ne fait rien est un défaut qu'un client signalerait). La
+      correction se fait dans l'hôte et dans apercu/prototype-courrier.js (le module du prototype ; opcourrier.js ne se touche pas) :
+      les gestes d'écriture ne sont pas proposés, et un geste refusé le dit par la phrase des autres rubriques. · **La casse du
+      recontrôle** : au téléphone, le champ refusé d'une feuille se voit toujours, avec son message, au-dessus de la rangée
+      « Enregistrer / Annuler » collée en bas (la piste mesurée par le recontrôleur : scroll-padding-bottom de 200 px sous 760 px de
+      large). · **tout-11** : après « Facture envoyée toute seule » et « Notes de frais », la barre « Retour · Mon entreprise » reste
+      visible. · La fiche « Droits » ne glisse plus de côté à 360 et 320 px (bloc « Mot de passe provisoire »). · Les deux sondes
+      périmées (menu avec « Sécurité », sept champs) se mettent à jour sans affaiblir leur contrôle.
