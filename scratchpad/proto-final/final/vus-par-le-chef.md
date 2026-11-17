@@ -125,3 +125,29 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         un péage ou des gants (le titre du message reprend ce qui est tapé, la plaque seulement pour un plein) ; la fenêtre
         « Il manque encore des choses » sans grands vides. technicien-06 (« Prévenir le bureau » grisé sans raison, Mon
         camion) : à corriger aussi s'il se reproduit encore sur la tête.
+- [ ] **Comptabilité, ventes — décisions du chef du 17/11, 9 h 50, à APPLIQUER (compta-ventes)** : Justin a dit « Comptabilité,
+      ça c'est bon » : on ne redessine pas l'écran. Mais ce qui est FAUX, trompeur ou d'échafaudage se corrige :
+      · **11** : sur la fiche d'une facture ET sur son PDF, trois colonnes « Prix unitaire HT · Qté · Total HT » (une seule
+        fonction pour le total de ligne, celle du total de la facture). « Prix HT » qui veut dire tantôt l'unité, tantôt la
+        ligne, n'est pas acceptable sur une facture.
+      · **15** : au téléphone, les onglets d'un espace (Ventes : … « Comptes clients », « Contrats » ; Trésorerie : …
+        « Paiement en ligne ») ne défilent plus de côté sans indice : ils tiennent sur l'écran (deux lignes s'il le faut).
+        Règle du dépôt : une destination qu'on ne voit pas n'existe pas.
+      · **16** et **17** : au téléphone seulement, gagner de la hauteur SANS redessiner — la phrase d'explication sur une
+        ligne (le reste derrière « Comment ça marche ? »), et sur la fiche d'une facture : plus de fil d'Ariane (la pastille
+        Retour suffit), l'encadré « Il manque sur cette facture… » sur une ligne avec son lien, « Voir dans la Comptabilité »
+        dans la rangée d'actions. Attendu : le titre « FAC-… » dans le premier écran d'un iPhone.
+      · **19** : NE RIEN CHANGER (la porte « Comptabilité » ouvre la fenêtre de la comptabilité : validé). Reste « à
+        soumettre » : le nom « OP COMPTABLE » de la fenêtre, différent du mot du menu.
+      · **20** : en mode application, « Paiement en ligne » ne montre plus son harnais d'essai (bandeau « PROTOTYPE »,
+        « Tests 0 / 25 », « + 1 jour », « + 1 semaine », « Jusqu'au prochain événement », « Recommencer », « Nouvelle facture
+        de test », « dans la vraie version… »). Et il montre les factures d'OP GESTION (même message que la Comptabilité,
+        `opc_ventes` ; un paiement revient par `opc_paiement`). Si ce branchement ne peut pas être fini PROPREMENT (sondes
+        vertes, chiffres égaux au centime avec Ventes), l'onglet dit clairement « Exemples » et on le note « à soumettre ».
+      · **22** : au téléphone, un seul bouton de menu par barre visible : le ≡ de la fenêtre de la comptabilité s'efface
+        (sa barre du bas « Plus » porte déjà son menu) ; l'heure « 05:55 » est libellée (« Relevé à 05:55 ») ou retirée.
+      · Recontrôle (`campagne/compta-ventes-recontrole.json`) : une facture annulée par un avoir FERME ses tâches de relance ;
+        une facture encaissée en partie puis annulée dit « 500,00 € déjà reçus : à rembourser » et crée la tâche
+        « Rembourser 500,00 € à <client> » (une ligne à l'Historique) ; une facture payée puis annulée se lit « Payée · avoir
+        AV-… » dans la fenêtre ; une facture faite à la main prend la TVA par la MÊME fonction que le devis (un particulier
+        n'est jamais étiqueté « client professionnel ») ; « Plus bas » et le menu de la fenêtre à 44 px au doigt, iPad compris.
