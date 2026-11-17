@@ -28,7 +28,7 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
   v('la carte « Messages du bureau » n’est plus un bloc : une pastille « 1 message du bureau › »', !S.carteMsg && /^1 message du bureau ›$/.test(S.msg || ''), [S.carteMsg, S.msg]);
   v('champ « Chercher une pièce » présent (data-vis camion-cherche)', S.cherche);
   v('un seul bouton NOIR « J’ai utilisé chez un client » (pleine largeur) puis deux gris', S.utilise === 'J’ai utilisé chez un client' && /btn large/.test(S.noir) && !/gris/.test(S.noir) && JSON.stringify(S.duo) === JSON.stringify(['J’ai pris à l’atelier', 'Il me manque une pièce']), [S.utilise, S.noir, S.duo]);
-  v('carte « Il manque à bord · 3 » avec « J’ai tout pris · 3 » et trois « Je l’ai pris »', S.titre === 'Il manque à bord · 3' && /J’ai tout pris · 3/.test(S.tout || '') && S.lignes === 3 && S.boutons.filter(b => b === 'Je l’ai pris').length === 3, S);
+  v('carte « Il manque à bord · 3 » avec « J’ai tout pris · 3 » et trois « Je l’ai pris »', S.titre.replace(/\u00a0/g, ' ') === 'Il manque à bord · 3' && /J’ai tout pris · 3/.test(S.tout || '') && S.lignes === 3 && S.boutons.filter(b => b === 'Je l’ai pris').length === 3, S);
   v('GESTE 1 : ce qui manque est visible SANS défiler (première ligne avant le bas de l’écran) — ' + S.basManque + ' px sur ' + S.H, S.basManque < S.H - 90, S.basManque);
   v('densité : au plus 12 éléments touchables avant la première ligne de donnée (population ' + S.avant + ')', S.avant >= 4 && S.avant <= 12, S.avant);
   v('« À bord · 6 articles » est REPLIÉ au départ', S.bordPlie === 'false' && S.lignes === 3);

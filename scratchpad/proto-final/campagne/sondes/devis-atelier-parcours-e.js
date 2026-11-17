@@ -52,6 +52,13 @@ const O = require('./devis-atelier-outils.js'), L = O.L, A = O.A, v = L.v;
   const nn = await f.evaluate(() => S.docs.map(d => d.meta.numero)); await clic(f, '[data-act="retour"]:visible'); await p.waitForTimeout(1100);
   N = await nums(); const t2 = [...N.dv, ...N.at].filter(Boolean);
   v('P11 : le devis composé APRÈS le rapide prend le numéro suivant (aucun doublon)', new Set(t2).size === t2.length, [nn, t2]);
+  // conditions : le devis composé et le devis rapide disent le même délai
+  { const fx = await A.ouvrirAtelier(c, 'devis', 'devis'); await L.calme(p, 800); await A.composerDevis(c, fx, { client: 'hp', objet: 'Conditions', articles: [{ ref: 'EL-ALL', qte: 1 }] });
+    const compose = await fx.evaluate(() => (document.querySelector('.page, #page, .papier') || document.body).innerText.replace(/\s+/g, ' ')); await clic(fx, '[data-act="retour"]:visible'); await p.waitForTimeout(1000);
+    const rapide = await p.evaluate(() => docDevis(DEVIS_REG['D-2026-034']).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));
+    const dc = (/Délai[^.]*?(\d+ (?:jours|semaines))/i.exec(compose) || [])[1], dr = (/Délai[^.]*?(\d+ (?:jours|semaines))/i.exec(rapide) || [])[1];
+    v('devis-atelier-07 : le devis composé et le devis rapide promettent le même délai d’intervention (' + dc + ' contre ' + dr + ')', !!dc && dc === dr, [dc, dr]);
+    const ac = /Acompte[^.]*?(\d+) ?%/i.exec(compose); v('devis-atelier-07 : le devis composé ne demande pas d’acompte que le devis rapide ne demande pas par défaut', !ac, ac && ac[0]); }
   // ── P12 : accord du client sur un devis composé ─────────────────────────────────────────────────────────────
   const av = await p.evaluate(() => ({ ints: INTS.length, fac: FACTURES.length }));
   f = await A.ouvrirAtelier(c, 'devis', 'devis'); await L.calme(p, 800); await A.composerDevis(c, f, { client: 'md', objet: 'Split salon', articles: [{ ref: 'DKO-K4V', qte: 1 }] });
@@ -67,7 +74,7 @@ const O = require('./devis-atelier-outils.js'), L = O.L, A = O.A, v = L.v;
   const ap = await p.evaluate(() => ({ ints: INTS.length, fac: FACTURES.length, doc: ATD.docs.find(x => /Split salon/.test(x.nom)) }));
   console.log('  · après la signature dans l’atelier :', JSON.stringify(ap));
   v('P12 : le devis composé est « signé » dans la liste d’OP GESTION', ap.doc && ap.doc.etat === 'signe', ap.doc);
-  v('P12-défaut-03 : l’accord d’un devis composé prépare, comme pour un devis rapide, l’intervention « à planifier » (promesse de la page Devis)', ap.ints === av.ints + 1, [av, ap]);
+  v('devis-atelier-03 : l’accord d’un devis composé prépare, comme pour un devis rapide, l’intervention « à planifier » (promesse de la page Devis)', ap.ints === av.ints + 1, [av, ap]);
   await L.aller(p, 'devis'); await L.toucher(c, '[data-dvf="accepte"]'); const la = await O.liste(p);
   v('P12 : le devis signé est dans « Acceptés » et compté', la.some(s => /Split salon/.test(s)), la);
   console.log('err', c.err.length, c.err.slice(0, 4));
