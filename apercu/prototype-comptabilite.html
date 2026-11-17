@@ -1829,7 +1829,8 @@ VUES.fec = () => {
 };
 async function fecTelecharger(){
   const txt = [FEC_COLS.join('|'), ...fecLignes().map(x => x.join('|'))].join('\r\n'); UI.fecFait = true;
-  let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  /* window.claude n'est promis que dans la page du HAUT : la comptabilité vit dans un cadre, elle passe par celui du parent (même origine), sans jamais supposer qu'il existe */
+  let dl = null; try { const cl = window.claude || (window.parent !== window ? window.parent.claude : null); dl = cl && cl.use ? await cl.use('downloads') : null; } catch (e) { dl = null; }
   const msg = $('#fec-msg');
   if (!dl) { if (msg) msg.innerHTML = `<div class="info">Le téléchargement n’est pas disponible ici : voici seulement le début du fichier (${fecLignes().length} lignes en tout).</div><pre class="fec-apercu mono" tabindex="0" role="region" aria-label="Début du fichier des écritures">${esc(txt.slice(0, 4000))}</pre>`; parcoursVerifier(); return; }
   try { await dl.save({ filename:fecNom(), data:txt }); toast('FEC enregistré : ' + fecNom() + '.'); }

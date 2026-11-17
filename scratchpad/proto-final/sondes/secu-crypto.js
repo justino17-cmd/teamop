@@ -3,7 +3,7 @@
 // d'activation, PIN trop simples, hasard (jamais Math.random), appareil lu dans l'agent du navigateur.
 // ⛔ Les vecteurs de test sont ceux des normes : si le code horaire du téléphone ne s'accordait pas avec eux, aucune vraie application ne pourrait le lire.
 const fs = require('fs'), vm = require('vm'), path = require('path');
-const RACINE = path.join(__dirname, '..', '..', '..');
+const RACINE = process.env.RACINE || path.join(__dirname, '..', '..', '..');   // RACINE : la copie mutée des contre-épreuves
 const src = fs.readFileSync(path.join(RACINE, 'apercu', 'prototype-op-gestion.html'), 'utf8');
 let ok = 0, ko = 0; const v = (n, c, d) => { if (c) { ok++; console.log('  ✓', n); } else { ko++; console.log('  ✗', n, d === undefined ? '' : '→ ' + JSON.stringify(d)); } };
 const a = src.indexOf('const SECU_DEMO = true;'), b = src.indexOf('const secuPinFaible');

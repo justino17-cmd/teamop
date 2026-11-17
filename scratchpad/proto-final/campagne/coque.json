@@ -76,10 +76,52 @@
    "nom": "Comptabilité plein écran (porte d'entrée)",
    "fonction": "cpsys, data-cpsys=retour",
    "acces": "ligne Comptabilité du menu, ouverture de la secrétaire"
+  },
+  {
+   "nom": "Guide des nouveautés",
+   "fonction": "nvOuvrir, nvPages, nvRendre",
+   "acces": "première connexion, menu › Nouveautés, recherche › Nouveautés de cette version"
   }
  ],
- "couverture": {},
- "nonCouvert": [],
+ "couverture": {
+  "ecrans": 16,
+  "gestesRecenses": "menu : 42 lignes par passage (marc 20, julie 10, sm 6, kb 6) ; recherche : 31 entrées ; guide : 20 cartes marc, 6 sm, 4 julie ; création rapide : 4 boutons ; barre du bas : 5 onglets par rôle",
+  "gestesTouches": "tout ce qui est recensé a été touché : menu 20/20, 10/10, 6/6, 6/6 sur 8 profils-passages ; recherche 31/31 ; cartes du guide 30/30",
+  "parcours": [
+   "connexion complète (lien, identifiant, provisoire, téléphone, mot de passe, déconnexion)",
+   "menu de chaque rôle sur 7 profils",
+   "Ma barre (cocher, Terminé, Barre d'origine, Retour)",
+   "recherche et raccourcis (clavier Windows, Mac simulé, iPad)",
+   "Jour / Nuit / Auto retenus après rechargement",
+   "adresses inconnues ou refusées (19 adresses × 4 rôles)",
+   "Retour du navigateur (écran par écran, après déconnexion)",
+   "changement de forme en route (fenêtre réduite, élargie)",
+   "clavier seul (focus, Tab, Échap)",
+   "double toucher (connexion, bouton de création, ligne du menu)",
+   "guide des nouveautés (feuilleter, cartes, fermeture, réouverture)",
+   "espace client (menu, barre, logo)"
+  ],
+  "profils": [
+   "mac",
+   "mac720",
+   "windows",
+   "ipad",
+   "iphone",
+   "android",
+   "petit"
+  ],
+  "bilan": "44 passages de sonde, 2 129 contrôles verts au dernier passage de chacune ; les ✗ restants sont les défauts coque-01 à coque-11 ci-dessous (chacun porte son numéro dans le nom du contrôle)"
+ },
+ "nonCouvert": [
+  "Le dessin des écrans en refonte (Stock, Fournisseurs, Dépôts et camions, Mon camion, Véhicules, Temps de travail, Boîte mail, atelier de devis, Mon entreprise, droits d'Équipe) : seuls leurs BORDS avec la coque ont été testés (la ligne du menu, l'adresse, le titre à l'arrivée).",
+  "Le geste « retour » du Mac (deux doigts) et le glissement entre rubriques : le navigateur piloté ne produit pas les événements de trackpad ; seule la molette réelle d'un Mac les déclenche.",
+  "OP Security au téléphone (confirmation par le nombre, activation) : jouée par les sondes secu-* de l'autre voie ; ici seulement l'écran de connexion qui y mène.",
+  "Le clic droit et le long appui sur le menu : aucune action n'y est attachée dans la coque.",
+  "L'espace client est mesuré dans le prototype nu (bande « Tester en tant que »), jamais en mode application : un client n'a pas de connexion dans l'application des équipes. Les deux cibles de 40 px relevées sur iPhone (« 📘 Apprendre », « De A à Z ») sont celles de la bande de revue, pas de l'espace client : non rapportées.",
+  "Android et iPhone réels : la vibration, le clavier logiciel qui masque le bas de l'écran, la barre d'adresse qui se replie ; émulés par la largeur, le toucher et les encoches seulement.",
+  "La pastille 📱 de la démonstration OP Security (voie double authentification) : après une connexion saisie à la main elle flotte en bas à droite sur ordinateur et recouvre le coin des écrans (vue sur capture : elle masque la touche « T » du panneau des raccourcis) ; après une ouverture directe par ?auto= elle n'est pas montée. Non mesurée (sa place dans l'application finale est une décision de cette voie ; elle n'existera pas en vrai).",
+  "coque-connexion.js (reprise par la voie double authentification : elle joue la reconnexion par secu-commun.js) meurt depuis la fusion de ce matin à secu-commun.js:35 (approuver : le champ « nombre » du téléphone de Julie est absent, `Cannot set properties of null`) APRÈS ses 36 premiers contrôles : les contrôles de fin (Tab ne sort pas de la connexion [coque-01]) ne se jouent donc plus tant que cette voie n'a pas réparé son outil. Le défaut coque-01 a été mesuré avant, à la main, sur trois profils."
+ ],
  "defauts": [
   {
    "n": "coque-01",
@@ -168,8 +210,9 @@
    "preuve": "coque-clavier.js [coque-05] ; ligne 22797 et rcCreer",
    "ou": "apercu/prototype-op-gestion.html:22783-22784 RC_LISTE, 22861 rcCreer",
    "correction": "Ne lister le bloc « Créer » (et les lignes de la recherche) que si ROLE === 'patron'.",
-   "decision": "corriger",
-   "zone": "coque"
+   "decision": "corrigé",
+   "zone": "coque",
+   "etat": "corrigé depuis (rcAide filtre « Créer » par RC_CREER_OK) — recontrôlé le 17/11 : coque-clavier julie ne tombe plus sur ce contrôle"
   },
   {
    "n": "coque-06",
@@ -185,6 +228,81 @@
    "preuve": "coque-clavier.js [coque-06]",
    "ou": "apercu/prototype-op-gestion.html:22787 RC_LISTE, 22831 `if (MAC) document.addEventListener('wheel'`",
    "correction": "N'ajouter la rubrique Trackpad que si MAC.",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-07",
+   "gravite": "gênant",
+   "ecran": "Guide des nouveautés › « Ce qui a changé de place »",
+   "role": "gérant, secrétariat",
+   "profils": "[\"mac\",\"iphone\"]",
+   "etapes": "Ouvrir le guide (menu › Nouveautés), aller à la page « Ce qui a changé de place », lire les chemins puis les suivre.",
+   "attendu": "Chaque chemin « Rubrique › onglet › bouton » existe à l'écran.",
+   "constate": "Deux lignes ne sont plus vraies depuis la refonte du matériel : « Mouvements de stock et Validation des mouvements → Stock › onglets « Mouvements » et « À valider » » et « Consommation produits et Produits donnés → Stock › « Sortie » » (le Stock refait n'a ni ces onglets ni ce bouton) ; « Produits, Fournisseurs, Bons de commande, Commandes en cours → Fournisseurs, matériel & produits (un onglet chacun) » (il n'y a plus que trois onglets : Commandes, Articles, Fournisseurs). Les 30 cartes du guide, elles, mènent toutes à la bonne rubrique.",
+   "preuve": "coque-guide.js, contrôles [coque-07] (marc, julie, deux profils) ; texte du Stock relevé à l'écran.",
+   "ou": "apercu/prototype-op-gestion.html:NV_PLACE (lignes « Mouvements de stock… », « Consommation produits… », « Produits, Fournisseurs… »)",
+   "correction": "Réécrire ces trois lignes avec les noms de l'écran refait (le guide doit être refait de toute façon) ; rejouer coque-guide.js après la refonte du matériel : il relit chaque chemin sur l'écran.",
+   "decision": "corriger",
+   "zone": "refonte"
+  },
+  {
+   "n": "coque-08",
+   "gravite": "détail",
+   "ecran": "Feuille « Menu » (téléphone) ouverte puis fenêtre élargie",
+   "role": "tous",
+   "profils": "[\"android\",\"iphone\"]",
+   "etapes": "Au téléphone, toucher « Menu » (la feuille s'ouvre), puis élargir la fenêtre à 1 280 px (iPad ou téléphone pliant qui s'ouvre, fenêtre de bureau tirée).",
+   "attendu": "La feuille se referme avec le passage à la colonne, ou au moins ne laisse rien devant l'écran.",
+   "constate": "La feuille (et son voile de 32 % de noir, 1 280 × 800 px) reste ouverte au-dessus de l'écran de bureau : un toucher au milieu de la page tombe sur le voile (elementFromPoint = voile). Le voile se referme au toucher, donc rien n'est coincé, mais l'écran paraît figé et assombri jusque-là.",
+   "preuve": "coque-parcours.js, contrôle [coque-08] (iphone et android, deux fois chacun)",
+   "ou": "apercu/prototype-op-gestion.html:feuilleMenu / ouvrirPanneau, passage rcBureau()",
+   "correction": "Fermer le panneau « Menu » quand la largeur passe au-dessus de 760 px (un seul écouteur de redimensionnement ou matchMedia).",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-09",
+   "gravite": "détail",
+   "ecran": "Boutons « ＋ » de plusieurs rubriques",
+   "role": "gérant, secrétariat",
+   "profils": "[\"iphone\",\"mac\"]",
+   "etapes": "Parcourir chaque rubrique du menu et relever le libellé de ses boutons « ＋ ».",
+   "attendu": "Une seule règle (MENU-FINAL) : « ＋ Nouveau… » / « ＋ Nouvelle… ».",
+   "constate": "Deux boutons disent trop peu : Achats et frais « ＋ Demande » (de quoi ? le même écran dit ailleurs « ＋ Demande d'achat » et « ＋ Nouvelle note de frais ») et, côté secrétariat, Comptabilité « ＋ Ajouter » (ajouter quoi ?). Les autres libellés relevés sont des verbes justes et non des créations d'enregistrement à normaliser : Statistiques « ＋ À faire » (met la ligne dans la liste À faire : c'est un interrupteur), Boîte mail « ＋ Écrire » (le mot du module), Équipe « ＋ Inviter une personne ». Dans les écrans en refonte : Stock « ＋ Mettre à jour le stock », Temps de travail « ＋ Ajouter une journée », et sur Produits une puce « ＋ Nettoyant échangeur… (il t'en reste 7) » qui est une suggestion. Clients et Véhicules suivent la règle.",
+   "preuve": "coque-creation.js, contrôle [coque-09] (marc iphone, marc mac, julie mac)",
+   "ou": "apercu/prototype-op-gestion.html:19225 (data-axa=\"dem\", « ＋ Demande »), cadre Comptabilité (« ＋ Ajouter »)",
+   "correction": "« ＋ Nouvelle demande d'achat » (Achats et frais) et « ＋ Nouvelle écriture » (Comptabilité, secrétariat) ; le reste est à garder. Le contrôle [coque-09] de coque-creation.js reste rouge tant que sa liste d'exceptions (verbes légitimes) n'est pas posée : à faire au recontrôle.",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-10",
+   "gravite": "gênant",
+   "ecran": "Comptabilité plein écran (écran d'ouverture de la secrétaire) : recherche et touches de création",
+   "role": "secrétariat, gérant",
+   "profils": "[\"windows\",\"mac\",\"ipad\"]",
+   "etapes": "Se connecter comme Julie (la Comptabilité s'ouvre en plein écran). Appuyer sur Ctrl+K, puis, dans un autre essai, sur N, D, C ou A.",
+   "attendu": "La recherche s'affiche devant l'écran ; les touches promises par le panneau « ? » ouvrent leur geste (ou sortent de la Comptabilité pour l'ouvrir).",
+   "constate": "Ctrl+K ouvre la recherche DERRIÈRE le plein écran (#pal z-index 400 contre #cpsys 9000) : on ne voit rien, mais le clavier la pilote (taper « nouveau client » puis Entrée ouvre bien la fenêtre, sans qu'on ait rien vu). Les touches N, D, C, A ne font rien du tout : le gestionnaire de clavier sort dès qu'un #cpsys est ouvert (`ouvert`), alors que le panneau « ? », ouvrable au même endroit, les annonce. Capture parcours-palette-compta-windows.png regardée : écran de comptabilité intact, aucune recherche.",
+   "preuve": "coque-parcours.js §F, contrôles [coque-10] ×4 + recherche « DEVANT » (windows julie, mac marc, ipad marc : mêmes résultats)",
+   "ou": "apercu/prototype-op-gestion.html:23607 #pal (z-index), 23712 `const ouvert = …#cpsys:not([hidden])…` dans le gestionnaire keydown",
+   "correction": "Passer #pal au-dessus de #cpsys (par exemple 9200, sous le guide à 9500) ; pour N, D, C, A depuis la Comptabilité : les faire passer par rcCreer / cpSysAllerRubrique comme le fait la recherche (déjà juste) ou retirer ces quatre lignes du panneau « ? » tant qu'on y est.",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-11",
+   "gravite": "gênant",
+   "ecran": "Toutes les fenêtres (panneaux), la feuille « Menu » et l'écran de connexion",
+   "role": "tous (clavier, lecteur d'écran, clavier d'iPad ou d'Android)",
+   "profils": "[\"mac\",\"windows\",\"ipad\",\"iphone\",\"android\"]",
+   "etapes": "Ouvrir un panneau (touche ?) ou, au téléphone, la feuille « Menu » au clavier (Entrée sur « Menu »), puis appuyer 30 fois sur Tab ; fermer par Échap.",
+   "attendu": "Le focus reste dans la fenêtre (elle se déclare aria-modal), et revient au bouton qui l'a ouverte à la fermeture.",
+   "constate": "Au bureau le panneau des raccourcis n'a qu'un élément focalisable (✕) : 30 tabulations sur 30 sortent de la fenêtre, vers la page cachée derrière. Au téléphone la feuille « Menu » laisse sortir le focus (4 sorties sur 30 sur iPhone, 19 sur Android : vers le logo, le bouton Menu et les champs de la page), et à la fermeture par Échap le focus tombe sur <body> au lieu de revenir au bouton « Menu ». Même cause que coque-01 pour l'écran de connexion (9 tabulations sur 14 sortent). La recherche (Ctrl+K), elle, tient bien le focus.",
+   "preuve": "coque-parcours.js, contrôles [coque-11] (mac, windows, ipad, iphone, android) et « le focus revient au bouton Menu » ; coque-connexion.js [coque-01]",
+   "ou": "apercu/prototype-op-gestion.html:8279 ouvrirPanneau (aucun piège à focus ni retour du focus), cnxMontrer",
+   "correction": "Un seul gestionnaire pour tout ce qui porte aria-modal : sur Tab, boucler entre le premier et le dernier élément focalisable du dernier [aria-modal=true] de la page ; sur la fermeture, rendre le focus à l'élément mémorisé à l'ouverture (la recherche le fait déjà : PAL.avant). Règle coque-01 incluse.",
    "decision": "corriger",
    "zone": "coque"
   }

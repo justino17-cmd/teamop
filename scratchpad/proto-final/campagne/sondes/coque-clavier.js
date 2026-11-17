@@ -76,19 +76,22 @@ let apres_;
   const lignesAide = await p.evaluate(() => [...document.querySelectorAll('#calque .rc-l')].map(r => r.innerText.replace(/\s+/g, ' ')));
   console.log('  · lignes du panneau :', lignesAide.length);
   v('le panneau cite ' + (MACSIM ? '⌘' : 'Ctrl') + ' et pas l’autre', lignesAide.some(t => t.includes(MACSIM ? '⌘' : 'Ctrl')) && !lignesAide.some(t => t.includes(MACSIM ? 'Ctrl' : '⌘')), lignesAide.slice(0, 2));
-  v('[coque-05] le panneau ne promet que ce que cette personne peut faire (N, D, C, A pour ' + QUI + ')', QUI === 'marc' || !lignesAide.some(t => /Nouvelle intervention|Nouveau devis|Nouveau client|Nouvelle tâche/.test(t)), lignesAide.filter(t => /Nouvel/.test(t)));
+  // ce que la personne a le droit de créer se lit dans les cases de ses droits (le panneau et les touches doivent dire la même chose)
+  const droits = await p.evaluate(() => ({ N: rcInterOk(), D: rcCreerOk(RC_CREER.find(c => c.nom === 'devis')), C: rcCreerOk(RC_CREER.find(c => c.nom === 'client')), A: rcCreerOk(RC_CREER.find(c => c.nom === 'tache')) }));
+  const promis = { N: lignesAide.some(t => /Nouvelle intervention/.test(t)), D: lignesAide.some(t => /Nouveau devis/.test(t)), C: lignesAide.some(t => /Nouveau client/.test(t)), A: lignesAide.some(t => /Nouvelle tâche/.test(t)) };
+  v('[coque-05] le panneau ne promet que ce que cette personne peut faire, et promet tout ce qu’elle peut (N, D, C, A pour ' + QUI + ')', ['N', 'D', 'C', 'A'].every(k => promis[k] === droits[k]), { droits, promis });
   v('[coque-06] le panneau n’annonce pas le « Trackpad » à qui n’a pas de Mac (' + PROFIL + ')', MACSIM || !lignesAide.some(t => /2 doigts|Pincer/.test(t)), lignesAide.filter(t => /doigts|Pincer/.test(t)));
   await k('Escape'); v('Échap ferme le panneau des raccourcis', !(await panneau(p)));
   // ---- les touches de création
   const essais = [['n', /Nouvelle intervention|intervention/i, 'N'], ['d', /Devis|devis/, 'D'], ['c', /client/i, 'C'], ['a', /tâche|Tâches/i, 'A']];
   for (const [t, motif, nom] of essais) {
-    await L.aller(p, 'accueil'); await p.evaluate(() => { const n = document.getElementById('fenetre'); if (n) n.innerHTML = ''; }); await p.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await L.aller(p, QUI === 'marc' ? 'accueil' : 'clients'); await p.evaluate(() => { const n = document.getElementById('fenetre'); if (n) n.innerHTML = ''; });   // une personne dont l'écran d'ouverture est la Comptabilité plein écran : on part d'un écran ordinaire (la Comptabilité est jouée dans coque-parcours § F) await p.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
     const avant = await L.etat(p); await p.keyboard.press(t); await L.calme(p, 900);
     const apres = await L.etat(p), ch = L.change(avant, apres);
-    const traitee = QUI === 'marc';
+    const traitee = !!droits[nom];
     const texte = (apres.panneau || '') + ' ' + (await fen()) + ' ' + (apres.h1 || '') + ' ' + (await p.evaluate(() => document.activeElement ? (document.activeElement.placeholder || document.activeElement.id || '') : ''));
     if (traitee) v('touche ' + nom + ' : ouvre le bon geste (« ' + texte.trim().slice(0, 60) + ' »)', (ch.length > 0 || (await fen())) && (motif.test(texte) || (nom === 'A' && /taches|tkx/.test(await p.evaluate(() => location.hash + (document.activeElement.getAttribute('data-tkxajout') !== null ? 'tkx' : ''))))), { ch, texte });
-    else v('touche ' + nom + ' : ne fait rien pour ' + QUI + ' (pas de geste caché)', ch.filter(x => x !== 'focus').length === 0 && !(await fen()), ch);
+    else v('touche ' + nom + ' : ne fait rien pour ' + QUI + ' qui n’a pas la case (pas de geste caché)', ch.filter(x => x !== 'focus').length === 0 && !(await fen()), ch);
     await p.screenshot({ path: CAP + `creation-${nom}-${PROFIL}-${QUI}.png` });
     await p.evaluate(() => { try { fermerPanneau(); } catch (x) {} try { if (typeof CREA !== 'undefined' && CREA) fermerCreation && fermerCreation(); } catch (x) {} }); await p.keyboard.press('Escape'); await L.calme(p, 300);
   }
@@ -102,9 +105,11 @@ let apres_;
   v('« / » met le curseur dans le champ de recherche de l’écran', await p.evaluate(() => { const a = document.activeElement; return !!a && /INPUT/.test(a.tagName) && /Cherch|Recherch/i.test(a.placeholder || ''); }));
   await p.evaluate(() => document.activeElement.blur());
   // précédent / suivant
-  await L.aller(p, 'planning'); await L.aller(p, 'stock'); await k(CMD + '+[');
-  v(CMD + ' + [ revient à l’écran d’avant (Planning)', /Planning/.test(await h1(p)), await h1(p));
-  await k(CMD + '+]'); v(CMD + ' + ] avance (Stock)', /Stock/.test(await h1(p)), await h1(p));
+  const [ra, rb] = await p.evaluate(() => rcRubriques().filter(r => r.k !== 'comptabilite').slice(0, 2).map(r => [r.k, r.l]));   // deux écrans que CETTE personne a au menu
+  await L.aller(p, ra[0]); await L.aller(p, rb[0]); await k(CMD + '+[');
+  const hash = () => p.evaluate(() => location.hash);   // on lit l'adresse : le titre d'« Accueil » est « Bonjour Marc »
+  v(CMD + ' + [ revient à l’écran d’avant (' + ra[1] + ')', (await hash(p)).includes(ra[0]), await hash(p));
+  await k(CMD + '+]'); v(CMD + ' + ] avance (' + rb[1] + ')', (await hash(p)).includes(rb[0]), await hash(p));
   // annuler le dernier geste quand il n'y a rien à annuler
   const av = await L.etat(p); await k(CMD + '+z'); const ap = await L.etat(p);
   console.log('  · Ctrl/Cmd+Z sans rien à annuler → changements :', L.change(av, ap).join(',') || 'aucun', '| toast :', ap.toast);

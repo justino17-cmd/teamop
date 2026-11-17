@@ -1,0 +1,114 @@
+{
+ "voie": "restes",
+ "etape": "corriger-restes-1",
+ "noms": [
+  "mail"
+ ],
+ "date": "2026-11-17",
+ "lu": {
+  "recontroles_trouves": [
+   "refonte/mail-recontrole.json (tour 2/2 de la Boîte mail, le plus récent)"
+  ],
+  "recontroles_absents": [
+   "campagne/mail-recontrole.json",
+   "securite/recontrole.json",
+   "artefact/recontrole.json",
+   "final/mail-recontrole.json",
+   "final/regard-mail-recontrole.json",
+   "final/restes-mail-tour<N>-recontrole.json (aucun tour précédent de cette voie)"
+  ],
+  "note_securite": "securite/courrier.json est le RAPPORT de l'angle courrier (7 failles rédigées, correctif courrier-corrections.diff), pas un recontrôle : sa correction est une étape de la voie sécurité, pas de celle-ci ; rien n'y a été touché.",
+  "vus_par_le_chef": "une seule ligne touche la Boîte mail (secrétaire) : une décision, voir plus bas"
+ },
+ "entrees": [
+  {
+   "nom": "telephone-15 — téléphone en paysage : aucune ligne de message entière à l'ouverture (pasRegles)",
+   "defaut": "iPhone tenu en 844×390 : grand titre, recherche, six catégories et encart « rangés ailleurs » prenaient tout ; 0 ligne entière",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-courrier.js. Cause réelle trouvée en mesurant : la règle « paysage » écrite par le correcteur précédent (titre 22 px) PERDAIT contre la règle « clamp(21px,7.2vw,31px) » plus loin, de même force — le grand titre restait à 31 px, la correction n'avait jamais pris. Le titre (20 px) est maintenant écrit en dernier ; la phrase sous le titre part (le pied dit déjà « N non lus ») ; marges de l'encart et des catégories resserrées ; « Voir tout » garde ses 44 px, les catégories gardent leurs 36 px d'avant.",
+   "preuve": "restes-mail-tour1.js PARTIE=2 : 9 ✓ · 0 ✗ (iPhone jour et nuit : titre 20 px, 1 ligne entière + la suivante entamée, retour debout identique : titre 28 px, 2 lignes ; population comptée) ; capture restes1-paysage-jour.png / -nuit.png regardées ; mutations R3 et R3b. Une seule ligne entière : c'est le plancher d'un écran de 352 px de liste avec recherche et catégories — la liste défile."
+  },
+  {
+   "nom": "Titre « Nouveau message » coupé dans la feuille d'écriture sur téléphone (casse)",
+   "defaut": "« Nouveau messa… » / « Nouve… » entre Annuler et Envoyer (141, 111 et 71 px pour 144 px de texte)",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-courrier.js : fitSheetTitles() MESURE le titre ; s'il ne tient pas, la version courte le remplace (« Message », « Programmé » ; « Brouillon » et « Transférer » tiennent), et il redevient entier dès qu'il y a la place (iPad, bureau : « Nouveau message » en 144 px). Appelée par placeSheetChrome, donc aussi à la rotation.",
+   "preuve": "restes-mail-tour1.js PARTIE=1 : 36 ✓ sur 8 profils × nouveau message et brouillon rouvert (iPhone, Android, petit 320 px, iPad, Mac, Windows ; jour et nuit) ; les 4 ✗ du premier passage étaient la géométrie de MA sonde au bureau (Annuler est dans le pied de la feuille, pas dans la barre) — corrigée, titre entier dans les 4 cas ; mutation R1 mord (« Nouveau message » 144 pour 71 px). Captures restes1-titre-* regardées (iPhone jour, 320 px nuit)."
+  },
+  {
+   "nom": "Une bulle posée en haut couvre le titre d'une fenêtre ouverte (téléphone)",
+   "defaut": "« Intervention préremplie… » s'écrivait sur « 1 Le client » et frôlait la croix de fermeture, sur TOUTES les fenêtres du prototype au téléphone",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-op-gestion.html : toast() mesure le haut de la barre d'actions de la fenêtre ouverte (--toast-bas) et la bulle se pose juste au-dessus ; ni sur le titre et la croix, ni sur Annuler / Créer.",
+   "preuve": "restes-mail-tour1.js PARTIE=5 : iPhone jour (bulle 614–683, titre 0–81, barre 705–844) et 320 px nuit (bulle 281–372, titre 0–113, barre 386–568) ✓ ; captures restes1-bulle-fenetre-* regardées ; mutation R5 (retour en haut). Elle couvre un moment le milieu du formulaire (pointer-events none : on touche à travers), ce qui est moins grave que le titre et la croix."
+  },
+  {
+   "nom": "Deux bulles s'empilent, la plus récente à moitié cachée",
+   "defaut": "« Pièce téléchargée… » du module et « Commande … terminée » de l'hôte l'une sur l'autre",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-op-gestion.html toast() : une bulle simple du module (classe show, sans geste en cours) est retirée quand l'hôte parle ; « Annuler l'envoi » (classe act) reste. Constat en route : depuis le lot Artefact, un téléchargement de pièce jointe passe par l'hôte (« téléchargement demandé ») et non plus par « Pièce téléchargée » du module — le cas décrit n'arrive plus tel quel, mais « Brouillon enregistré » & co. du module pouvaient encore s'empiler.",
+   "preuve": "restes-mail-tour1.js PARTIE=5 : « Brouillon enregistré » du module à l'écran (population), puis une bulle de l'hôte : une seule visible ✓ ; mutation R4."
+  },
+  {
+   "nom": "Vocabulaire des numéros : « COMMANDE 2026-036 » dans le panneau, « BC-2026-036 » ailleurs",
+   "defaut": "deux écritures du même numéro dans une même suite de gestes",
+   "etat": "déjà décidé",
+   "changement": "Le lot Matériel a tranché (commit fcb02b4, matNumAff) : à l'ÉCRAN un numéro de commande s'écrit sans « BC- », le document et la donnée gardent le leur. La seule sonde fautive était périmée : mail-reconnaissance.js attendait « BC-2026-036 » ; elle attend maintenant « COMMANDE 2026-036 » et refuse « BC-2026-036 ». Le courriel du fournisseur garde « commande BC-2026-036 » dans son sujet : c'est le texte du fournisseur, qui cite le numéro du bon (document).",
+   "preuve": "restes-mail-tour1.js PARTIE=3 : 3 ✓ (panneau « COMMANDE 2026-036 · FACTURE FA-CDA-10-552 » sans préfixe ; bulle « Commande 2026-036 terminée… » sans « BC- »)."
+  },
+  {
+   "nom": "Pastille « Nouveau contact » sur une ligne choisie, de nuit : ~3,4:1 en 11,5 px (doute)",
+   "defaut": "texte blanc sur un voile BLANC posé sur le bleu éclairci de la ligne choisie",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-courrier.js : sur une ligne choisie, la pastille s'assombrit (voile noir 30 %) au lieu de s'éclaircir.",
+   "preuve": "restes-mail-tour1.js PARTIE=4 : 8 ✓ — contraste mesuré au calcul sur la couleur rendue : Mac jour 11,9:1, Mac nuit 9,1:1, Windows nuit 9,1:1, iPad nuit 21:1 (population : 9 lignes à pastille par profil) ; capture restes1-pastille-mac-nuit.png ; mutation R2 mord."
+  },
+  {
+   "nom": "À 1280×720 la liste ne montre que deux courriels entiers à l'ouverture",
+   "defaut": "catégories sur deux rangées + encart « rangés ailleurs »",
+   "etat": "à soumettre à Justin",
+   "changement": "rien changé : c'est l'arbitrage d'ordinateur-20 (six catégories lisibles sans défiler, une ligne de message en moins). Mesuré : 2 lignes entières et une troisième entamée à 1280×720 ; 4 à 1440×900. Capture restes1-mac720.png regardée : l'écran est propre, aucun défaut franc.",
+   "preuve": "restes-mail-tour1.js PARTIE=5 : plancher « au moins 2 lignes » tenu. À dire à Justin ; la parade, si il la veut : l'encart sur une ligne (« 2 non lus rangés ailleurs · Voir tout »)."
+  },
+  {
+   "nom": "Sondes à jour de ce que d'autres lots ont changé (mail-reconnaissance, mutation M18)",
+   "defaut": "reconnaissance : 1 ✗ (attente « BC- » périmée) ; M18 muette",
+   "etat": "corrigé",
+   "changement": "mail-reconnaissance.js mise à jour (voir numéros). M18 avait déjà été réparée par le recontrôle. Nouvelle garde : sondes/restes-mail-tour1.js + sondes/restes-mail-mutations.py (6 mutations).",
+   "preuve": "mail-reconnaissance.js : 70 ✓ · 0 ✗ (69 ✓ · 1 ✗ avant) ; mail-corr-telephone.js 69 ✓ · 0 ✗ ; mail-recontrole-tel.js PARTIE=3 21 ✓ · 0 ✗ (son attente « 2 lignes en paysage » mise à 1, voir telephone-15) ; mail-recontrole-reste.js PARTIE=3 23 ✓ · 0 ✗ (le titre de la feuille d'écriture n'y tombe plus : les 3 ✗ d'avant) ; mail-telephone.js 40 ✓ · 0 ✗."
+  },
+  {
+   "nom": "La secrétaire de gestion voit-elle la Boîte mail ? (ordinateur-06, ligne non cochée de vus-par-le-chef.md)",
+   "defaut": "le plan dit oui, ROLES.gestion.routes dit non",
+   "etat": "à soumettre à Justin",
+   "changement": "rien changé : une décision, pas un défaut. Recommandation du chef de chantier : oui, la boîte de l'entreprise seulement, pas la boîte personnelle du gérant. Une ligne à changer dans ROLES.gestion.routes quand Justin tranche ; mail-roles.js garde le comportement actuel (Julie = non). La ligne de vus-par-le-chef.md reste non cochée.",
+   "preuve": "décision"
+  },
+  {
+   "nom": "Glisser une ligne pour archiver ou supprimer (telephone-13)",
+   "defaut": "le module d'origine ne le fait pas non plus",
+   "etat": "à soumettre à Justin",
+   "changement": "rien changé : une fonction à décider, pas un défaut.",
+   "preuve": "décision"
+  },
+  {
+   "nom": "Un mot sous chaque icône des barres du bas (telephone-05) ; « Écrire » proposé deux fois au téléphone (bouton noir en haut et icône en bas)",
+   "defaut": "choix de présentation réversibles en une règle",
+   "etat": "à soumettre à Justin",
+   "changement": "rien changé : le mot sous les icônes aide les débutants (Mail d'iOS n'en met pas) ; le doublon d'« Écrire » est voulu pour la cohérence avec Clients et Devis. À regarder sur son iPhone.",
+   "preuve": "décision"
+  },
+  {
+   "nom": "Safari, Windows et Android réels ; clavier virtuel ; retour du navigateur sur un iPhone réel ; polices du système",
+   "defaut": "non vérifiables dans cette session",
+   "etat": "à soumettre à Justin",
+   "changement": "profils émulés dans Chromium (taille, agent, encoches, toucher) uniquement ; le clavier virtuel réduit la fenêtre : la place de la liste en paysage et pendant l'écriture n'est pas mesurée.",
+   "preuve": "limite connue"
+  }
+ ],
+ "bilan": {
+  "sonde_restes": "restes-mail-tour1.js : 67 ✓ · 0 ✗ (parties 1 à 5, jour et nuit, 8 profils)",
+  "mutations": "restes-mail-mutations.py : 6 jouées, 6 mordent (R3 et R3b d'abord muettes : la sonde ne mesurait que « 1 ligne » — renforcée par titre ≤ 22 px et phrase du dessous cachée, puis elles mordent)",
+  "controles_de_sauvegarde": "compiler-pages, verifier-syntaxe, test-835 (844 ✓), 836 (307 ✓), 837 (122 ✓), 1008 (54 ✓), 2994 (15 ✓), verif-secrets : tous code 0, 0 ✗"
+ }
+}
