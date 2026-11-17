@@ -13514,7 +13514,7 @@ const TOUR_APP = [
     ['[data-vis="depots-remplir"]', 'Remplir les camions', 'Le bouton noir met d’un coup, dans chaque camion, ce que l’atelier a de ce qui manque.']]),
     tourPartie('pointage', 'Temps de travail', 'Le temps de travail et la paie', 'Les heures de chacun, à côté de ce que le planning prévoyait. Les repères du Code du travail sont vérifiés tout seuls, et en fin de mois les heures validées deviennent les fiches de paie.', [
     ['#contenu .tt-k', 'Ce qui attend', 'Aujourd’hui, la semaine, le mois : trois onglets. Les chiffres du haut sont des portes, et la liste « À régler » réunit tout ce qui attend un geste : une journée oubliée, une demande de correction, un repère du Code du travail.']]),
-  tourPartie('vehicules', 'Véhicules', 'Les véhicules de l’entreprise', 'La flotte : le contrôle technique, l’assurance et l’entretien avant qu’ils tombent, ce qu’il y a à bord, qui conduit, et ce que chaque véhicule coûte.', [
+  tourPartie('vehicules', 'Véhicules', 'Les véhicules de l’entreprise', 'Le contrôle technique, l’assurance et l’entretien, avant qu’ils tombent ; qui conduit, ce qu’il y a à bord, et ce que chaque véhicule coûte.', [
     ['#contenu .vh-liste', 'Une ligne par véhicule', 'Chaque ligne dit en une phrase ce que le véhicule demande, avec le seul geste qui suit. Touche une ligne pour sa fiche : À faire, Papiers, Dépenses. « Noter un plein » ajoute une dépense de carburant.']]),
   tourPartie('boiteMail', 'Boîte mail', 'La boîte mail : chaque courriel reconnu', 'Tes courriels arrivent ici. L’application reconnaît s’il vient d’un client ou d’un fournisseur, et te propose le geste qui suit, déjà rempli : créer l’intervention, ranger la facture, répondre.', [
     ['#courrier-hote', 'Traite un message', 'Tes boîtes, tes messages, le message ouvert. Quand tu en ouvres un, le bandeau sous son titre dit ce que l’application a reconnu, et ses boutons font le travail en un geste.']]),
@@ -23858,7 +23858,7 @@ immChap('gestion', 'comptabilite', 'La gestion', 'La gestion : les factures, san
   { c:'.rl-seg', t:'La visite est finie', p:'La visite est finie : tu as vu toute l’application, du patron au client. Maintenant, à toi. Ferme le guide, choisis une personne en haut, patron, gestion, technicien ou client, et refais les gestes toi-même. Rien n’est enregistré.', jouer:() => { fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); immRolesRemettre(); cpSysteme = false; rlChanger('patron', { h:'accueil', muet:true }); } }
 ], { role:'gestion' });
 ['tech', 'client', 'gestion'].forEach(immRolesDebut);
-immRolesEcran('tech', 7, 'majournee'); immRolesEcran('tech', 8, 'moncamion'); immRolesEcran('tech', 10, 'mesheures'); immRolesEcran('tech', 11, 'techfrais');
+immRolesEcran('tech', 7, 'majournee'); immRolesEcran('tech', 8, 'moncamion'); immRolesEcran('tech', 11, 'mesheures'); immRolesEcran('tech', 12, 'techfrais');   /* l'étape 5 a inséré « Son camion, en trois boutons » en 8 : « Ses heures » passe en 11, « Ses frais » en 12 */
 immRolesOnglet('client', 4, 'factures'); immRolesOnglet('client', 7, 'devis'); immRolesOnglet('client', 10, 'accueil');
 immRolesEcran('gestion', 7, 'taches'); immRolesEcran('gestion', 8, 'devis'); immRolesEcran('gestion', 9, 'clients'); immRolesEcran('gestion', 10, 'interventions');
 
