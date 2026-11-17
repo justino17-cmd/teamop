@@ -37,7 +37,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await p.fill('[data-cherche]', ''); await L.aller(p, 'client-x-' + k1); await L.capture(c, CAP + 'p1-fiche-' + ETQ + '.png');
   const fiche1 = await p.evaluate(() => ({ h1: document.querySelector('#contenu h1').textContent, kpi: [...document.querySelectorAll('#contenu .kpis .kpi')].map(e => e.textContent.replace(/\s+/g, ' ').trim()), appeler: (document.querySelector('.tete-client a[href^="tel"]') || {}).href || null, mail: (document.querySelector('.tete-client a[href^="mailto"]') || {}).href || null, devis: [...document.querySelectorAll('#contenu .col .carte')].map(e => e.innerText.replace(/\s+/g, ' ').slice(0, 90)) }));
   v('P1 : fiche : « Appeler » compose le numéro, sans espace (' + fiche1.appeler + ')', /^tel:\+?\d{9,}$/.test(fiche1.appeler || ''), fiche1);
-  v('P1 : fiche : « E-mail » ouvre le courriel (' + fiche1.mail + ')', /^mailto:sophie\.lemoine@mail\.fr/.test(fiche1.mail || ''), fiche1);
+  v('P1 : fiche : « E-mail » ouvre l’e-mail (' + fiche1.mail + ')', /^mailto:sophie\.lemoine@mail\.fr/.test(fiche1.mail || ''), fiche1);
   v('P1 : le devis paraît sur la fiche (colonne Devis)', fiche1.devis.some(t => /Remplacement de la climatisation/.test(t)), fiche1.devis);
   await garde('P1 fiche');
   // intervention depuis la fiche : le client est déjà choisi

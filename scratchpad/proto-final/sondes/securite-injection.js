@@ -3,7 +3,7 @@
 //   A. L'ENTRÉE : le vrai formulaire, une vraie charge tapée, le geste de validation — ce qui n'est pas permis est refusé avec un message
 //      (prénom, nom, unité, téléphone) ou nettoyé (nom de la plateforme) ; chaque refus a son TÉMOIN (une saisie légitime passe, sinon la garde
 //      refuserait tout) ;
-//   B. LA SORTIE : la charge est posée DIRECTEMENT dans les données (comme le ferait une base d'avant, un import ou un courriel), sans passer
+//   B. LA SORTIE : la charge est posée DIRECTEMENT dans les données (comme le ferait une base d'avant, un import ou un e-mail), sans passer
 //      par le formulaire, puis les écrans qui l'écrivent sont revisités : aucune balise, aucune exécution.
 // Une charge « sort » si elle crée une balise <img data-ch=…> ; elle « s'exécute » si window.__xss monte. Chaque mesure compte sa population.
 // ⛔ 127.0.0.1 seulement, entreprise fictive. « N ✓ · M ✗ », sortie 1 si un contrôle tombe. RACINE=<copie> rejoue la sonde sur une copie mutée.

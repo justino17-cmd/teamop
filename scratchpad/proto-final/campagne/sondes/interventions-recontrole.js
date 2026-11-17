@@ -67,7 +67,7 @@ const I = require('./interventions-outils.js'), L = I.L;
       const focus = await ev(() => document.activeElement && document.activeElement.getAttribute('data-cnv')); const ouverte = await ev(() => !!document.querySelector('#fenetre .fen'));
       if (attendu === 'refus') { v(`R03 ${nom} : refusé, rien créé, la fenêtre reste ouverte`, ap.cli === av.cli && ap.ints === av.ints && ouverte, [av, ap, ouverte]); v(`R03 ${nom} : un message dit pourquoi`, /vérifier|numéro|adresse e-mail|nom/i.test(e.toast || ''), e.toast); return focus; }
       v(`R03 ${nom} : accepté`, ap.cli === av.cli + 1 && ap.ints === av.ints + 1, [av, ap, e.toast]); return focus; };
-    let f = await essai('téléphone « abc » et e-mail « pas-un-courriel »', { nom: 'Boulangerie Martineau', tel: 'abc', mail: 'pas-un-courriel', adr: '5 rue Gambetta, 17440 Aytré' }, 'refus'); console.log('  · curseur dans :', f);
+    let f = await essai('téléphone « abc » et e-mail « pas-un-e-mail »', { nom: 'Boulangerie Martineau', tel: 'abc', mail: 'pas-un-e-mail', adr: '5 rue Gambetta, 17440 Aytré' }, 'refus'); console.log('  · curseur dans :', f);
     v('R03 le curseur est dans le champ fautif', f === 'tel' || f === 'mail', f);
     f = await essai('téléphone trop court « 12 »', { tel: '12', mail: '' }, 'refus');
     f = await essai('e-mail sans point « a@b »', { tel: '', mail: 'a@b' }, 'refus');

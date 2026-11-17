@@ -55,7 +55,7 @@
  },
  {
   "nom": "notes",
-  "population": 34,
+  "population": 35,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -97,15 +97,6 @@
   "champs": [],
   "ecrases": [],
   "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tout-valider-iphone-jour.png"
- },
- {
-  "nom": "fenetre-tarif-km",
-  "population": 4,
-  "deborde": 0,
-  "petits": [],
-  "champs": [],
-  "ecrases": [],
-  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tarif-km-iphone-jour.png"
  },
  {
   "nom": "mes-frais",
