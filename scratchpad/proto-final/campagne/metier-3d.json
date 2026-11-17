@@ -35,24 +35,26 @@
  ],
  "couverture": {
   "ecrans": 6,
-  "gestesRecenses": "220 sur les trois écrans 3D (70 mac · 78 iPhone · 72 iPad, gérant) + 8/10 pour la technicienne ; 21 écrans du menu × leurs boutons de création pour 5 métiers",
-  "gestesTouches": "82 touchés un par un (30 mac · 37 iPhone · 31 iPad) + les gestes des parcours A à K (regarder, saisir, enregistrer, annuler, PDF, lien, relever, filtrer, créer un devis…)",
+  "gestesRecenses": "70 (mac) · 78 (iPhone) · 72 (iPad) sur les trois écrans 3D du gérant, 8 à 10 pour la technicienne, 64 pour le bureau (Windows) ; plus les boutons de création des 21 écrans du menu pour 5 métiers",
+  "gestesTouches": "36 / 70 (mac) · 44 / 78 (iPhone) · jusqu'à 31 (iPad) un par un par metier-3d-gestes.js ; le reste (menus fermés, pastilles du plan, étapes d'une fenêtre) est joué par les parcours et par metier-3d-carte-boutons.js (20 ✓ : les trois gestes de « Plus d'actions » reçoivent le toucher ET font quelque chose, mac et iPhone)",
   "parcours": 11,
   "profils": [
    "mac",
-   "windows",
+   "windows (bureau, gestes)",
    "ipad",
    "iphone",
    "android",
-   "petit"
+   "petit (320)"
   ],
   "sondes": [
-   "metier-3d-menu.js : 39 ✓ · 0 ✗",
-   "metier-3d-donnees.js : 194 ✓ · 0 ✗ (24 métiers)",
-   "metier-3d-droits.js : 10 ✓ · 0 ✗",
-   "metier-3d-carte-boutons.js : 14 ✓ · 0 ✗",
-   "metier-3d-mise-en-page.js : 146 ✓ · 18 ✗ (40 écrans, 5 profils, jour et nuit)",
-   "metier-3d-parcours.js : voir le détail des passes dans le rapport de l'agent"
+   "metier-3d-menu.js : 39 ✓ · 0 ✗ (gérant, bureau, technicienne ; mac et iPhone ; avec et sans 3D ; retrait en direct ; adresse tapée à la main)",
+   "metier-3d-donnees.js : 194 ✓ · 0 ✗ (24 métiers lus seuls : types, titres, motifs, 4 modèles de devis, modèle de contrat, contrôles, relevés, compte rendu ; aucun mot d'un autre métier)",
+   "metier-3d-creation.js : 42 ✓ · 0 ✗ (fenêtre « Nouvelle intervention », 7 jeux de métiers) · metier-3d-fiches.js : 98 ✓ · 0 ✗ (fiches d'interventions NEUVES, contrôles, relevés, pas de carte « Fluide frigorigène » hors climatisation, formulaire « Nouveau contrat ») · metier-3d-multi.js : 31 ✓ · 0 ✗ (3D + clim, nettoyage + 3D, plomberie + électricité…)",
+   "metier-3d-droits.js : 10 ✓ · 0 ✗ · metier-3d-carte-boutons.js : 20 ✓ · 0 ✗ · metier-3d-carte-filtres.js : 23 ✓ · 0 ✗",
+   "metier-3d-mise-en-page.js : 160 ✓ · 60 ✗ (40 écrans × 2 modes, 5 profils ; les 60 ✗ portent tous [metier-3d-01] à [metier-3d-05])",
+   "metier-3d-parcours.js (A à K) : 84 ✓ · 12 ✗ (tous portent [metier-3d-06] à [metier-3d-09] et [metier-3d-11], ou sont la suite non jouable de F)",
+   "metier-3d-gestes.js : 34 ✓ · 3 ✗ (les 3 ✗ sont du bruit de la sonde, corrigé ensuite : site et filtre qui restent d'un toucher à l'autre)",
+   "metier-3d-mutations.py : 4 mutations sur 4 font tomber leur sonde, sur une COPIE de la page (M1 technicien voit le Registre sans 3D : menu 36 ✓ · 3 ✗ ; M2 groupe 3D toujours là : 30 ✓ · 9 ✗ ; M3 « Traitement du bois » proposé partout : 32 ✓ · 10 ✗ ; M4 un titre de plomberie parle de climatisation : 193 ✓ · 1 ✗). La première passe de M3 était RESTÉE VERTE à juste titre : deux gardes se doublent (le filtre des types et le retrait qui suit), il faut retirer les deux."
   ]
  },
  "verifieDeLaLecture": [
@@ -63,6 +65,7 @@
   }
  ],
  "nonCouvert": [
+  "La suite du parcours F (le gérant voit « 1 relevé à chiffrer », la tâche « Chiffrer le relevé », le devis créé depuis le relevé) : écrite dans metier-3d-parcours.js mais non jouable tant que metier-3d-11 n'est pas corrigé (le relevé de la technicienne ne part pas).",
   "Les cases d'Équipe qui règlent les trois écrans 3D (Voir / Créer / Modifier) : la phrase « Ce que Julie voit » suit le métier (testé), mais l'éditeur de droits n'a pas été ouvert par la sonde (bouton non trouvé).",
   "La saisie d'un passage avec un produit biocide (ligne « Produits posés », lots, stock du camion) : le passage « Tout est intact » est joué (gérant, technicienne, double toucher, Annuler), pas la pose d'un produit.",
   "Le relevé du technicien (« Relever les mesures ») jusqu'à « Relevé envoyé au bureau » puis « Chiffrer le relevé » : seule l'ouverture est jouée.",
@@ -71,6 +74,23 @@
   "Les 18 autres métiers (hors plomberie, chauffage, nettoyage, électricité, 3D, climatisation, serrurerie) ont été lus dans leurs tables (194 contrôles) mais pas parcourus écran par écran."
  ],
  "defauts": [
+  {
+   "n": "metier-3d-11",
+   "gravite": "bloquant",
+   "ecran": "Devis xylophage › Relever les mesures (technicien) › Envoyer au bureau",
+   "role": "technicienne (Sophie), tout technicien sans droit « Devis »",
+   "profils": [
+    "mac"
+   ],
+   "zone": "metier-3d",
+   "decision": "corriger",
+   "etapes": "Connectée en Sophie (technicienne), métier 3D : Ma journée › carte « Traitement du bois » › « Relever les mesures » ; choisir le client, ajouter une zone, saisir 18,5 m² ; toucher « Envoyer au bureau » (la carte ou la barre du bas).",
+   "attendu": "Le relevé part au bureau : « Relevé envoyé », une tâche « Chiffrer le relevé » pour le gérant (c'est ce que promet la carte : « Relève les mesures sur place : pas de prix, le bureau chiffre le devis »).",
+   "constate": "Rien ne part, l'écran reste sur le formulaire, et un message dit « Ce geste n'est pas ouvert à ton compte : modifier, envoyer, relancer, faire signer. Demande à Marc. » (DROITS_REFUS enregistre le refus). Aucun relevé n'est créé (DX_REL 0 avant et après), aucune tâche pour le gérant : toute la fonction du relevé par le technicien est inutilisable, et le message (quatre verbes de devis) ne lui dit pas quoi faire. D'après la même table, la remarque, la photo et « Faire un autre relevé » (famille dxr / dxrb) sont refusés de la même façon (non rejoués un à un).",
+   "preuve": "parcours F (deux passes, 17/11 à 10 h 50 et 11 h 20) : toasts [« Ce geste n'est pas ouvert à ton compte : modifier, envoyer, relancer, faire signer. Demande à Marc. »], relevesAvant 0 / relevesApres 0, envoye false, cli « vp », zones [18.5], erreurs [] ; prouvé dans le code : la table GESTES classe les gestes du relevé du technicien sous la catégorie des DEVIS du gérant",
+   "ou": "apercu/prototype-op-gestion.html:11966-11967 GESTES : `dxr:{ k:'ventes', m:'photo note', l:'cli zm' }, dxrb:{ k:'ventes', c:'nouveau', m:'envoyer', l:'insecte mode' }` (le registre, la carte et le passage voisins sont `k:'inter'`)",
+   "correction": "Classer les familles dxr et dxrb sous k:'inter' (c'est un travail d'intervention, comme rg, cbx et d3) ; garder dx et dxb sous 'ventes' (le devis du gérant). Rejouer metier-3d-parcours.js F : la suite (le gérant voit « 1 relevé à chiffrer », la tâche, le devis créé depuis le relevé) est écrite et attend ce correctif."
+  },
   {
    "n": "metier-3d-01",
    "gravite": "gênant",
@@ -148,6 +168,42 @@
    "correction": "Zone de toucher agrandie sans changer le dessin (::before inset:-8px, ou pointer-events sur un rond transparent de 44 px) ; vérifier que deux zones ne se recouvrent pas."
   },
   {
+   "n": "metier-3d-06",
+   "gravite": "gênant",
+   "ecran": "Devis xylophage (ouverture)",
+   "role": "gérant, bureau",
+   "profils": [
+    "mac",
+    "iphone",
+    "android"
+   ],
+   "zone": "metier-3d",
+   "decision": "soumettre",
+   "etapes": "Ouvrir Devis xylophage sans rien saisir.",
+   "attendu": "Un formulaire vide : « Aucune zone : ajoute celle où tu traites » (l'état vide existe dans le code).",
+   "constate": "Le devis s'ouvre déjà rempli d'un exemple (zone « Charpente 42 m² », capricorne, curatif) et affiche 970,72 € TTC dans la barre du bas avant qu'on ait mesuré quoi que ce soit ; « Créer le devis » est actif (il ne manque que le client). On peut envoyer à un client un devis chiffré sur des mesures inventées.",
+   "preuve": "captures mep-iphone-jour-marc-devisXylo.png, mep-mac-nuit-marc-devisXylo.png ; parcours E (« à l'ouverture, valeurs d'exemple déjà saisies »)",
+   "ou": "apercu/prototype-op-gestion.html:21820 dxNeuf (zones:[dxZone('Charpente', 42, 'bois')])",
+   "correction": "RECOMMANDATION : zones vides à l'ouverture (la phrase d'état vide et le bouton grisé « Indique au moins une surface… » existent déjà). À SOUMETTRE : touche à ce que Justin a vu du devis (une démonstration chiffrée dès l'ouverture)."
+  },
+  {
+   "n": "metier-3d-08",
+   "gravite": "gênant",
+   "ecran": "Mon entreprise › Tes métiers",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "zone": "metier-3d",
+   "decision": "soumettre",
+   "etapes": "Mon entreprise › Tes métiers.",
+   "attendu": "Savoir comment ajouter un métier (un plombier qui se met au chauffage) quand l'application ne le laisse pas choisir.",
+   "constate": "Le panneau est en lecture seule et dit « Réglé par TEAM OP à l'ouverture de ton compte. » Aucun moyen de demander un changement, aucun contact. En mode application c'est le SEUL endroit qui parle du métier : l'entreprise ne peut ni le choisir ni le faire changer, et ne sait pas qui est « TEAM OP » (le nom du logiciel est OP GESTION).",
+   "preuve": "parcours H : « MON ENTREPRISE Tes métiers Plomberie Réglé par TEAM OP à l'ouverture de ton compte. Fermer »",
+   "ou": "apercu/prototype-op-gestion.html:20177 entPanMetiers",
+   "correction": "RECOMMANDATION : une ligne d'action « Un autre métier ? Écris-nous » (lien vers le message ou la boîte d'assistance) et « TEAM OP, l'éditeur d'OP GESTION ». À SOUMETTRE : décision de produit (qui règle le métier)."
+  },
+  {
    "n": "metier-3d-05",
    "gravite": "détail",
    "ecran": "Devis xylophage",
@@ -168,25 +224,6 @@
    "correction": "min-height 44 px sur le résumé ; min-width 44 px sur les boutons du segmenté."
   },
   {
-   "n": "metier-3d-06",
-   "gravite": "gênant",
-   "ecran": "Devis xylophage (ouverture)",
-   "role": "gérant, bureau",
-   "profils": [
-    "mac",
-    "iphone",
-    "android"
-   ],
-   "zone": "metier-3d",
-   "decision": "soumettre",
-   "etapes": "Ouvrir Devis xylophage sans rien saisir.",
-   "attendu": "Un formulaire vide : « Aucune zone : ajoute celle où tu traites » (l'état vide existe dans le code).",
-   "constate": "Le devis s'ouvre déjà rempli d'un exemple (zone « Charpente 42 m² », capricorne, curatif) et affiche 970,72 € TTC dans la barre du bas avant qu'on ait mesuré quoi que ce soit ; « Créer le devis » est actif (il ne manque que le client). On peut envoyer à un client un devis chiffré sur des mesures inventées.",
-   "preuve": "captures mep-iphone-jour-marc-devisXylo.png, mep-mac-nuit-marc-devisXylo.png ; parcours E (« à l'ouverture, valeurs d'exemple déjà saisies »)",
-   "ou": "apercu/prototype-op-gestion.html:21820 dxNeuf (zones:[dxZone('Charpente', 42, 'bois')])",
-   "correction": "RECOMMANDATION : zones vides à l'ouverture (la phrase d'état vide et le bouton grisé « Indique au moins une surface… » existent déjà). À SOUMETTRE : touche à ce que Justin a vu du devis (une démonstration chiffrée dès l'ouverture)."
-  },
-  {
    "n": "metier-3d-07",
    "gravite": "détail",
    "ecran": "Achats › Nouvelle demande · Tâches › Nouvelle tâche · Nouvelle intervention › Chercher un autre article",
@@ -202,23 +239,6 @@
    "preuve": "mots-plomberie|chauffage|nettoyage|electricite|3d-mac.json (achats) ; les deux autres PROUVÉES dans le code",
    "ou": "apercu/prototype-op-gestion.html:19371 (achats) · :6602 (tâche) · :13366 (recherche d'article)",
    "correction": "Ajouter ces trois clés à MET_EXEMPLES (clim) et à MET_EX_FAM (chauffage, plomberie, nettoyage…), avec un exemple générique pour les autres métiers."
-  },
-  {
-   "n": "metier-3d-08",
-   "gravite": "gênant",
-   "ecran": "Mon entreprise › Tes métiers",
-   "role": "gérant",
-   "profils": [
-    "mac"
-   ],
-   "zone": "metier-3d",
-   "decision": "soumettre",
-   "etapes": "Mon entreprise › Tes métiers.",
-   "attendu": "Savoir comment ajouter un métier (un plombier qui se met au chauffage) quand l'application ne le laisse pas choisir.",
-   "constate": "Le panneau est en lecture seule et dit « Réglé par TEAM OP à l'ouverture de ton compte. » Aucun moyen de demander un changement, aucun contact. En mode application c'est le SEUL endroit qui parle du métier : l'entreprise ne peut ni le choisir ni le faire changer, et ne sait pas qui est « TEAM OP » (le nom du logiciel est OP GESTION).",
-   "preuve": "parcours H : « MON ENTREPRISE Tes métiers Plomberie Réglé par TEAM OP à l'ouverture de ton compte. Fermer »",
-   "ou": "apercu/prototype-op-gestion.html:20177 entPanMetiers",
-   "correction": "RECOMMANDATION : une ligne d'action « Un autre métier ? Écris-nous » (lien vers le message ou la boîte d'assistance) et « TEAM OP, l'éditeur d'OP GESTION ». À SOUMETTRE : décision de produit (qui règle le métier)."
   },
   {
    "n": "metier-3d-09",
@@ -254,23 +274,6 @@
    "preuve": "metier-3d-creation.js (types lus dans la fenêtre pour 7 jeux de métiers) ; MET_JEUX.nett.types / .nuis.types ne renomment que les titres",
    "ou": "apercu/prototype-op-gestion.html:22759 MET_JEUX (types:TYPES.filter…) et :13577 (puces .data-ctype)",
    "correction": "RECOMMANDATION : afficher le libellé du métier sur la puce (TITRES[type]) tout en gardant la valeur ; À SOUMETTRE : la valeur « Installation » sert aux statistiques et à la facturation, donc c'est une décision de produit."
-  },
-  {
-   "n": "metier-3d-11",
-   "gravite": "bloquant",
-   "ecran": "Devis xylophage › Relever les mesures (technicien) › Envoyer au bureau",
-   "role": "technicienne (Sophie), tout technicien sans droit « Devis »",
-   "profils": [
-    "mac"
-   ],
-   "zone": "metier-3d",
-   "decision": "corriger",
-   "etapes": "Connectée en Sophie (technicienne), métier 3D : Ma journée › carte « Traitement du bois » › « Relever les mesures » ; choisir le client, ajouter une zone, saisir 18,5 m² ; toucher « Envoyer au bureau » (la carte ou la barre du bas).",
-   "attendu": "Le relevé part au bureau : « Relevé envoyé », une tâche « Chiffrer le relevé » pour le gérant (c'est ce que promet la carte : « Relève les mesures sur place : pas de prix, le bureau chiffre le devis »).",
-   "constate": "Rien ne part, l'écran reste sur le formulaire, et un message dit « Ce geste n'est pas ouvert à ton compte : modifier, envoyer, relancer, faire signer. Demande à Marc. » (DROITS_REFUS enregistre le refus). Aucun relevé n'est créé (DX_REL 0 avant et après), aucune tâche pour le gérant : toute la fonction du relevé par le technicien est inutilisable, et le message (quatre verbes de devis) ne lui dit pas quoi faire. D'après la même table, la remarque, la photo et « Faire un autre relevé » (famille dxr / dxrb) sont refusés de la même façon (non rejoués un à un).",
-   "preuve": "parcours F (deux passes, 17/11 à 10 h 50 et 11 h 20) : toasts [« Ce geste n'est pas ouvert à ton compte : modifier, envoyer, relancer, faire signer. Demande à Marc. »], relevesAvant 0 / relevesApres 0, envoye false, cli « vp », zones [18.5], erreurs [] ; prouvé dans le code : la table GESTES classe les gestes du relevé du technicien sous la catégorie des DEVIS du gérant",
-   "ou": "apercu/prototype-op-gestion.html:11966-11967 GESTES : `dxr:{ k:'ventes', m:'photo note', l:'cli zm' }, dxrb:{ k:'ventes', c:'nouveau', m:'envoyer', l:'insecte mode' }` (le registre, la carte et le passage voisins sont `k:'inter'`)",
-   "correction": "Classer les familles dxr et dxrb sous k:'inter' (c'est un travail d'intervention, comme rg, cbx et d3) ; garder dx et dxb sous 'ventes' (le devis du gérant). Rejouer metier-3d-parcours.js F : la suite (le gérant voit « 1 relevé à chiffrer », la tâche, le devis créé depuis le relevé) est écrite et attend ce correctif."
   }
  ]
 }

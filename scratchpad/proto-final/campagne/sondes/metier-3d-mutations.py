@@ -8,7 +8,7 @@ MUTS = [
  ("M1 le technicien voit le Registre même sans pack 3D", "pack3d = typeof PACKS_ENT !== 'undefined' && PACKS_ENT.includes('3d')", "pack3d = true", 'metier-3d-menu.js', "technicienne"),
  ("M2 le groupe 3D du menu paraît toujours", "const metiersA3d = () => PACKS_ENT.includes('3d');", "const metiersA3d = () => true;", 'metier-3d-menu.js', "groupe 3D"),
  # ⚠️ DEUX gardes se doublent ici (le filtre des types ET le retrait qui suit) : retirer l'une seule ne change rien (la première passe a rendu « reste vert », à juste titre)
- ("M3 « Traitement du bois » proposé à tout métier", [("J.types.filter(t => t !== 'Traitement du bois' || PACKS_ENT.includes('3d'))", "J.types.filter(t => true)"), ("if (!metiersA3d()) { const kb = TYPES.indexOf('Traitement du bois'); if (kb >= 0) TYPES.splice(kb, 1); }", "")], 'metier-3d-creation.js', "Traitement du bois"),
+ ("M3 « Traitement du bois » proposé à tout métier", [("J.types.filter(t => t !== 'Traitement du bois' || PACKS_ENT.includes('3d'))", "J.types.filter(t => true)"), ("if (!metiersA3d()) { const kb = TYPES.indexOf('Traitement du bois'); if (kb >= 0) TYPES.splice(kb, 1); }", "")], None, 'metier-3d-creation.js', "Traitement du bois"),
  ("M4 un titre de plomberie parle de climatisation", "'Dépannage':'Dépannage plomberie'", "'Dépannage':'Dépannage climatisation'", 'metier-3d-donnees.js', "climatisation"),
 ]
 src = open(os.path.join(DEPOT, PAGE), encoding='utf-8').read(); bilan = []
