@@ -57,6 +57,10 @@ passages sous charge), et les cinq services du banc ont vécu jusqu'à ce qu'il 
 - la liste complète d'OP MESSAGES par la commande de la porte, mesurée deux fois, verte les deux : 13 170 vérifications avant la relecture, puis **211 suites, 13 176 vérifications** sur
   le code final (les 13 148 de la CI du 5 novembre plus 28 : 26 de test-947, 2 de test-981) — plancher relevé à 13162.
   ⚠️ Mesuré en local : si la CI compte autrement au prochain déploiement d'OP MESSAGES, c'est elle qui fait foi.
+- le RESTE du dépôt, parce que `tests/outils-msg.js` est chargé par 204 bancs dont huit hors de cette liste (`test-851`, `test-3030` à `3036`) : les 625 autres suites, une par une, par
+  `scripts/bancs-ci.sh` (ESLint, Playwright et `server-courrier/node_modules` présents, comme en CI) : **34 019 vérifications, une seule suite rouge, `test-837`** (« aucune page servie
+  n'écrit « HT » pour un prix » : trois articles du blog). Elle tombe à l'identique sur `main` (`a415080` : 118 ✓ 1 ✗), la branche ne touche ni `blog/` ni `contenu/`, et la demande de
+  fusion 331 la traite. ⚠️ « Vérification des pages » sera donc rouge sur le morceau qui la joue, ici comme sur `main` : ce n'est pas cette branche.
 - Les sondes rangées (`scratchpad/sonde-opmessages-horloge-saut.js`, `-flux-ferme.js`, `-collision-port.js`) ont été rejouées telles quelles ; la première porte aussi de quoi rejouer
   l'ANCIEN défaut contre le commit `a415080` (les chiffres ci-dessus, relus dans un arbre à part).
 
