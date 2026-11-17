@@ -15,7 +15,7 @@ const PROFIL = process.env.PROFIL || 'mac', QUIS = (process.env.QUI || 'marc').s
     const pg = await G.pages(c);
     v(`${tag} : …avec les cartes de son rôle (${G.QUIS[QUI]} : ${pg.length} cartes, la première « ${pg[0] && pg[0].t} »)`, pg.length >= 2 && pg[0].k === 'menu', pg.map(x => x.k));
     await L.capture(c, G.CAP + `connexion-${PROFIL}-${QUI}.png`);
-    const surtout = await p.evaluate(() => { const z = document.getElementById('nv'), r = z.getBoundingClientRect(); return { devant:document.elementFromPoint(innerWidth / 2, innerHeight - 30) === z || z.contains(document.elementFromPoint(innerWidth / 2, innerHeight - 30)), cnx:!!document.getElementById('cnx') }; });
+    const surtout = await p.evaluate(() => { const z = document.getElementById('nv'); if (!z) return { devant:false, cnx:!!document.getElementById('cnx'), absent:true }; return { devant:document.elementFromPoint(innerWidth / 2, innerHeight - 30) === z || z.contains(document.elementFromPoint(innerWidth / 2, innerHeight - 30)), cnx:!!document.getElementById('cnx') }; });
     v(`${tag} : le guide est au-dessus de l'application (rien ne le recouvre) et l'écran de connexion est parti`, surtout.devant && !surtout.cnx, surtout);
     await L.toucher(c, '#nv .nv-tard'); await L.calme(p, 500);
     v(`${tag} : « Plus tard » le ferme`, !(await G.ouvert(p)));

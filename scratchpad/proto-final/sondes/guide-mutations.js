@@ -15,7 +15,7 @@ const M = [
   ['5 · le guide s\'ouvre par-dessus une fenêtre ouverte', "function nvOccupe(){ try { return calOuverts()", "function nvOccupe(){ try { return false && calOuverts()", ['guide-fermer.js', { PROFIL:'mac', QUI:'marc' }]],
   ['6 · le toucher en dehors de la feuille ne ferme plus le guide', "if (t && t.id === 'nv') { nvFermer(); return; }", "if (false) { nvFermer(); return; }", ['guide-fermer.js', { PROFIL:'mac', QUI:'marc' }]],
   ['7 · Échap ne ferme plus le guide', "if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); nvFermer(); }\n  else if (ev.key === 'ArrowRight'", "if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); }\n  else if (ev.key === 'ArrowRight'", ['guide-fermer.js', { PROFIL:'mac', QUI:'marc' }]],
-  ['8 · « Voir » et « Suivant » retombent à 30 px au téléphone', ".nv-voir{align-self:stretch;min-height:52px}", ".nv-voir{align-self:stretch;min-height:30px}", ['guide-mise-en-page.js', { PROFIL:'iphone', QUI:'sm' }]],
+  ['8 · la croix ✕ retombe à 28 px au téléphone', ".nv-x{flex:none;width:44px;height:44px;", ".nv-x{flex:none;width:28px;height:28px;", ['guide-mise-en-page.js', { PROFIL:'iphone', QUI:'sm' }]],
   ['9 · le client reçoit la ligne « Nouveautés » au pied du menu', "const nv = enApp() && nvRole() ? `<button", "const nv = enApp() ? `<button", ['guide-fermer.js', { PROFIL:'mac', QUI:'marc' }]],
   ['10 · plus de mémoire de page quand le rangement est refusé', "const nvVu = () => { if (NV_MEM.has(SESSION)) return true; try", "const nvVu = () => { try", ['guide-fermer.js', { PROFIL:'mac', QUI:'marc' }]],
   ['11 · à l\'ordinateur, la première carte parle du bouton « Plus »', "return (nvEtroit() ? [c.tel, ...L] : L).slice(0, 3); }", "return [c.tel, ...L].slice(0, 3); }", ['guide-mots.js', { PROFIL:'mac', QUI:'marc' }]],
@@ -28,7 +28,7 @@ const M = [
   ['18 · la première connexion n\'ouvre plus le guide', "if (v && !sessionOuvrir.muet && (!/[?&]auto=/.test(location.search) || /[?&]guide=1\\b/.test(location.search))) setTimeout(nvProposer, 900); return v;", "return v;", ['guide-premiere-connexion.js', { PROFIL:'mac', QUI:'marc' }]]
 ];
 const filtre = process.argv[2] || '';
-fs.mkdirSync(TMP, { recursive: true });
+if (!process.env.DRY) fs.mkdirSync(TMP, { recursive: true });   // DRY ne touche à aucun dossier : il tournait en même temps qu'un vrai lot et lui effaçait sa copie
 function racine(nom, page) {   // une copie du dépôt visible du serveur : apercu/ en liens, sauf la page mutée
   const R = path.join(TMP, nom), A = path.join(R, 'apercu'); fs.rmSync(R, { recursive: true, force: true }); fs.mkdirSync(A, { recursive: true });
   for (const f of fs.readdirSync(path.join(REPO, 'apercu'))) if (f !== 'prototype-op-gestion.html') fs.symlinkSync(path.join(REPO, 'apercu', f), path.join(A, f));
@@ -44,7 +44,7 @@ for (const [k, [nom, ancien, neuf, [sonde, env]]] of M.entries()) {
   if (process.env.DRY) { console.log('✓ visée juste :', nom); continue; }
   const R = racine('m', SRC.replace(ancien, () => neuf));
   const jouer = () => cp.spawnSync('node', [path.join(__dirname, sonde)], { env: { ...process.env, ...env, RACINE: R }, encoding: 'utf8', timeout: 560000 });
-  let r = jouer(); if (!/== \d+ ✓ · \d+ ✗/.test(r.stdout || '')) r = jouer();   // une sonde qui meurt sans bilan (machine chargée) se REJOUE avant d'en conclure quoi que ce soit
+  let r = jouer(); if (!/== \d+ ✓ · \d+ ✗/.test(r.stdout || '')) { racine('m', SRC.replace(ancien, () => neuf)); r = jouer(); }   // une sonde qui meurt sans bilan (machine chargée) se REJOUE avant d'en conclure quoi que ce soit
   const bil = ((r.stdout || '').match(/== (\d+) ✓ · (\d+) ✗/) || [])[0] || '(pas de bilan : ' + String(r.stderr || '').split('\n')[0].slice(0, 100) + ')';
   const tombe = r.status === 1 && /✗/.test(r.stdout || '');
   jouees++; if (tombe) tombes++; else vivantes.push(nom + ' ' + bil);
@@ -52,5 +52,5 @@ for (const [k, [nom, ancien, neuf, [sonde, env]]] of M.entries()) {
   if (tombe) { const premier = (r.stdout.split('\n').find(l => /^ ✗/.test(l)) || '').slice(0, 170); if (premier) console.log('     ' + premier); }
 }
 console.log(`\n== ${tombes} ✓ · ${vivantes.length} ✗  (${jouees} mutations jouées)`); vivantes.forEach(v => console.log(' ✗ vivante :', v));
-fs.rmSync(TMP, { recursive: true, force: true });
+if (!process.env.DRY) fs.rmSync(TMP, { recursive: true, force: true });
 process.exit(vivantes.length ? 1 : 0);

@@ -461,7 +461,7 @@
   "sondes/equipe-droits-effets.js mac : 129 ✓ · 6 ✗ (45 cases + 6 droits à part ; les 6 ✗ : 2 par conception → défaut 11, 3 contrôles de la sonde corrigés, 1 réglage de la sonde)",
   "sondes/equipe-droits-profonds.js mac : 9 ✓ · 7 ✗ (les cases sans bouton visible à l’ouverture : 4 gardées à la fonction, 3 du module courrier ; admin.s → défaut 19)",
   "sondes/equipe-droits-supprimer.js mac : 6 ✓ · 2 ✗ (equipe-19)",
-  "sondes/equipe-mise-en-page.js : mac 31/2, windows 31/0, ipad 76/3, iphone 79/5, android 74/5, petit 74/5 (jour) ; mac nuit 30/1, iphone nuit 76/3 (✓/✗ ; les ✗ = défauts 08, 16, 17 et deux seuils de population de la sonde)",
+  "sondes/equipe-mise-en-page.js (jour) : mac 42 ✓ · 2 ✗ (equipe-08), iPhone 85 ✓ · 7 ✗ (equipe-08, 17 et le panneau de la fiche qui défile de côté), windows 31/0, iPad 76/3 (equipe-16 et 08), Android 74/5 et 320 px 74/5 (equipe-17) ; nuit : mac 30/1, iPhone 76/3 (mêmes défauts, avant l’ajout du contrôle equipe-08 pour les deux derniers) — dix-sept à dix-neuf écrans et fenêtres par profil, chacun capturé hors dépôt",
   "sondes/equipe-mots.js mac : 33 écrans et fenêtres lus, 62 ✓ · 3 ✗ (la phrase de 42 mots du panneau Rendez-vous en ligne = défaut 20 ; deux faux positifs sur « e-mail », motif corrigé) ; aucun « Prototype », « pour l’essai », « undefined », « NaN » dans les 33 textes"
  ]
 }

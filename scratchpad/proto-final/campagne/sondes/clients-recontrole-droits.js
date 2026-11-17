@@ -11,10 +11,12 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   console.log('  · Julie au départ : ' + JSON.stringify(D)); v('population : la personne connectée existe et n’est pas administratrice', !!D.crm && !D.admin, D);
   await p.evaluate(() => { const d = eqDe(acteur()).droits.cats; d.crm = { v: true, c: true, m: true, s: false }; d.inter = { v: true, c: false, m: false, s: false }; d.ventes = { v: true, c: false, m: false, s: false }; });
   await L.aller(p, 'clients');
-  const bouton = await p.evaluate(() => !!document.querySelector('[data-action="clientNouveau"]')); console.log('  · « ＋ Nouveau client » visible avec crm.c seul : ' + bouton);
+  const vis = `(e => !!e && e.offsetParent !== null && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none')`;
+  const bouton = await p.evaluate(`${vis}(document.querySelector('[data-action="clientNouveau"]'))`); console.log('  · « ＋ Nouveau client » visible avec crm.c seul : ' + bouton);
   if (bouton) {
     await L.toucher(c, '[data-action="clientNouveau"]'); await L.capture(c, CAP + 'droits-panneau-' + ETQ + '.png');
-    const pan = await p.evaluate(() => ({ h2: (document.querySelector('#calque .panneau h2') || {}).textContent, boutons: [...document.querySelectorAll('#calque .panneau button')].map(b => b.textContent.trim()) }));
+    const pan = await p.evaluate(`(() => { const vis = ${vis}; return { h2: (document.querySelector('#calque .panneau h2') || {}).textContent, boutons: [...document.querySelectorAll('#calque .panneau button')].filter(vis).map(b => b.textContent.trim()) }; })()`);
+    v('« ＋ Nouveau client » ouvre un panneau qui laisse au moins UN geste VISIBLE pour avancer (visibles : ' + pan.boutons.filter(x => x !== '✕').join(' | ') + ')', pan.boutons.some(x => x !== '✕'), pan);
     console.log('  · panneau : ' + JSON.stringify(pan));
     for (const [lib, sel] of [['Avec une intervention', '[data-action="clientNvInt"]'], ['Avec un devis', '[data-action="clientNvDevis"]']]) {
       if (!pan.boutons.includes(lib)) { console.log('  · « ' + lib + ' » n’est pas proposé (bien)'); continue; }
@@ -24,6 +26,13 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
       await L.ranger(p); await L.aller(p, 'clients'); await L.toucher(c, '[data-action="clientNouveau"]'); }
     await L.capture(c, CAP + 'droits-apres-' + ETQ + '.png');
   } else v('sans la case créer une intervention ni un devis, « ＋ Nouveau client » n’est pas proposé (rien ne s’y fait)', true);
+  // sans la case « créer un client » : le message « aucun résultat » renvoie-t-il à un bouton qu'on n'a pas ?
+  await p.evaluate(() => { const d = eqDe(acteur()).droits.cats; d.crm = { v: true, c: false, m: false, s: false }; }); await L.ranger(p); await L.aller(p, 'clients');
+  await p.fill('[data-cherche]', 'zzzz'); await L.calme(p, 300);
+  const sb = await p.evaluate(`(() => ({ bouton: ${vis}(document.querySelector('[data-action="clientNouveau"]')), msg: ((document.querySelector('#contenu .carte.gris') || {}).textContent || '').trim() }))()`);
+  console.log('  · sans la case « créer un client » : ' + JSON.stringify(sb));
+  v('sans la case « créer un client » : « aucun résultat » ne renvoie pas vers un bouton « ＋ Nouveau client » qui n’existe pas pour cette personne', sb.bouton || !/Nouveau client/.test(sb.msg), sb);
+  await L.capture(c, CAP + 'droits-sans-creer-' + ETQ + '.png');
   v('aucune erreur JavaScript', c.err.length === 0, c.err);
   const code = L.bilan(); await L.fin(c); await L.fermer(); process.exit(code ? 1 : 0);
 })().catch(e => { console.error('PLANTÉ', e); process.exit(2); });

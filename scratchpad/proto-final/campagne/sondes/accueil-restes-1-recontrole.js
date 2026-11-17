@@ -35,9 +35,9 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
     for (const [nom, pa, auto, attendu] of [
       ['A1 · Chèque, acompte 40,50 €, facture à valider', { etat: 'acompte', mode: 'Chèque', montant: '40,50', ticket: false }, false, true],
       ['A2 · Espèces, « payé en totalité » SANS montant (« si tu le connais »), facture à valider', { etat: 'total', mode: 'Espèces', montant: '', ticket: false }, false, true],
-      ['A3 · Carte, « payé en totalité » sans montant, facture à valider', { etat: 'total', mode: 'Carte', montant: '', ticket: false }, false, true],
+      ['A3 · Carte, « payé en totalité » sans montant, facture à valider (décision du chef, 17/11 : le moyen ne change pas la règle — une ligne, comptée, comme pour les espèces)', { etat: 'total', mode: 'Carte', montant: '', ticket: false }, false, true],
       ['A4 · Virement, « payé en totalité » sans montant, envoi automatique', { etat: 'total', mode: 'Virement', montant: '', ticket: false }, true, true],
-      ['A6 · Carte, acompte 30 € (terminal), facture à valider', { etat: 'acompte', mode: 'Carte', montant: '30', ticket: true }, false, true],
+      ['A6 · Carte, acompte 30 € (terminal), facture à valider : une ligne, comptée (même règle que les espèces)', { etat: 'acompte', mode: 'Carte', montant: '30', ticket: true }, false, true],
       ['A7 · Chèque, « payé en totalité » SANS montant, facture à valider', { etat: 'total', mode: 'Chèque', montant: '', ticket: false }, false, true],
       ['A8 · Espèces, « payé en totalité » avec un montant retapé (150), facture à valider', { etat: 'total', mode: 'Espèces', montant: '150', ticket: false }, false, true],
       ['A5 · contre-épreuve : « pas encore payé » ne fait AUCUNE ligne', { etat: 'rien', mode: 'Carte', montant: '', ticket: false }, false, false]]) {
@@ -73,7 +73,7 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
 
   // ── C. le graphique des 12 mois, à toutes les largeurs : le premier mois n'est jamais coupé net, rien ne sort de la carte
   if (veut('C')) {
-    const larges = profil === 'ipad' ? [744, 768, 820, 834, 900, 901, 1024, 1180] : [320, 390, 430, 700, 760, 761, 800, 900, 1000, 1100, 1280];
+    const larges = profil === 'ipad' ? [744, 768, 820, 834, 900, 901, 1024, 1180] : [320, 390, 430, 560, 600, 700, 730, 744, 760, 761, 800, 900, 1000, 1100, 1280];
     for (const w of larges) {
       await p.setViewportSize({ width: w, height: profil === 'ipad' ? 1366 : 900 }); await p.waitForTimeout(250);
       await p.evaluate("stPer='mois'; stK=ST_FIN;"); await L.aller(p, 'statistiques'); await L.calme(p, 500);
@@ -81,14 +81,14 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
         if (defile) e.scrollLeft = -(e.scrollWidth - e.clientWidth);   // direction:rtl, la fin du défilement est négative
         const r = e.getBoundingClientRect(), cols = [...e.querySelectorAll('.st-col')], r0 = cols[0].getBoundingClientRect(), r1 = cols[cols.length - 1].getBoundingClientRect(), carte = (e.closest('.carte') || e.parentElement).getBoundingClientRect();
         const lib = cols.map(k => { const s = k.querySelector('small'), q = s.getBoundingClientRect(), kr = k.getBoundingClientRect(); return { txt: s.textContent.trim(), coupe: s.scrollWidth > s.clientWidth + 1, deborde: q.width > kr.width + 1 }; });
-        return { defile, mask: /gradient/.test(cs.maskImage || cs.webkitMaskImage || ''), pad: parseFloat(cs.paddingLeft), debut: Math.round(r0.left - r.left), colMin: Math.round(Math.min(...cols.map(k => k.getBoundingClientRect().width))),
+        return { defile, glisse: (() => { const q = document.querySelector('.st-glisse'); return !!q && getComputedStyle(q).display !== 'none'; })(), mask: /gradient/.test(cs.maskImage || cs.webkitMaskImage || ''), pad: parseFloat(cs.paddingLeft), debut: Math.round(r0.left - r.left), colMin: Math.round(Math.min(...cols.map(k => k.getBoundingClientRect().width))),
           sortDeLaCarte: Math.round(defile ? Math.max(0, r.right - carte.right, carte.left - r.left) : Math.max(0, r1.right - carte.right, carte.left - r0.left))   /* un graphique qui DÉFILE a ses colonnes hors de la fenêtre par construction : on mesure alors la fenêtre elle-même contre la carte */, n: cols.length, w: Math.round(r.width), libCoupes: lib.filter(x => x.coupe || x.deborde).map(x => x.txt), page: document.documentElement.scrollWidth }; });
       v(`C · ${w} px · population : le graphique et ses 12 mois`, !!g && g.n === 12, g);
       if (!g) continue;
       v(`C · ${w} px · rien ne sort de la carte et la page ne glisse pas de côté`, g.sortDeLaCarte <= 1 && g.page <= w + 1, g);
       v(`C · ${w} px · les 12 libellés de mois tiennent dans leur colonne (colonne la plus étroite : ${g.colMin} px)`, g.libCoupes.length === 0, g);
-      if (g.defile) v(`C · ${w} px · il défile : au bout, le premier mois est entier (bord à ${g.debut} px)`, g.debut >= 29 && g.mask, g);
-      else console.log(`   · C · ${w} px · il ne défile pas ; masque ${g.mask}, marge gauche ${g.pad} px (observé, voir le constat du recontrôle : un vide de 30 px à gauche quand tout tient)`);
+      if (g.defile) v(`C · ${w} px · il défile : au bout, le premier mois est entier (bord à ${g.debut} px), fondu posé et « Glisse vers la droite » dit`, g.debut >= 29 && g.mask && g.glisse, g);
+      else v(`C · ${w} px · il ne défile pas : ni marge, ni fondu, ni « Glisse vers la droite » (restes accueil, tour 2 : un graphique immobile ne s'annonce pas glissant)`, !g.mask && !g.glisse && (w <= 760 ? g.pad === 0 && g.debut <= 2 : g.pad === 44), g);   // au bureau, 44 px = la gouttière des graduations « 1 k€ » (voulue)
       if (w === 900 || w === 1000 || w === 820) { await p.evaluate(() => { const e = document.querySelector('.st-graph'); e.scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(250); await cap('graphique-' + w); }
     }
   }
