@@ -20,10 +20,10 @@ const chercher = async (p, t) => { await p.fill('[data-cherche]', t); await L.ca
   const essais = [['roux', ['Mme Roux']], ['ROUX', ['Mme Roux']], ['  roux  ', ['Mme Roux']], ['mimosa', ['Copropriété Les Mimosas']], ['foncia', ['Copropriété Les Mimosas']], ['aytre', ['Camping Les Pins', 'Mme Roux']], ['Aytré', ['Camping Les Pins', 'Mme Roux']],
     ['hotel', ['Hôtel de la Plage']], ['hôtel plage', ['Hôtel de la Plage']], ['0655443', ['Mme Roux']], ['06 55 44', ['Mme Roux']], ['05 46', ['Cabinet dentaire Martin', 'Hôtel de la Plage', 'Copropriété Les Mimosas']], ['contrat', ['Copropriété Les Mimosas', 'Hôtel de la Plage']], ['mimosas@syndic', ['Copropriété Les Mimosas']], ['rue gambetta', ['Mme Roux']], ['06.55.44.33.22', ['Mme Roux']], ['06-55-44', ['Mme Roux']], ['+33 6 55 44 33 22', ['Mme Roux']]];
   for (const [q, att] of essais) { await chercher(p, q); const s = await lire(p); const ok = att.every(n => s.noms.includes(n)) && (s.noms.length === att.length || ['05 46', 'contrat'].includes(q));
-    v(`recherche « ${q} » → ${s.noms.join(' · ') || s.vide}`, ok, { att, vu: s.noms }); }
+    v((['hôtel plage'].includes(q) ? 'clients-01 : ' : ['06.55.44.33.22', '+33 6 55 44 33 22'].includes(q) ? 'clients-18 : ' : '') + `recherche « ${q} » → ${s.noms.join(' · ') || s.vide}`, ok, { att, vu: s.noms }); }
   await chercher(p, 'zzzz'); let s = await lire(p); v('recherche sans résultat : le message le dit et propose quoi faire', /Aucun client/.test(s.vide) && s.cartes === 0, s.vide);
-  v('… et il dit comment s’en sortir (effacer la recherche ou créer le client) — constat de compréhension', /efface|essaie|crée|nouveau/i.test(s.vide), s.vide);
-  await chercher(p, 'x'.repeat(220)); let d = await L.deborde(c); v('recherche de 220 caractères sans espace : la page ne glisse pas de côté', d.bouge === 0, d);
+  v('clients-02 : … et il dit comment s’en sortir (effacer la recherche ou créer le client) — constat de compréhension', /efface|essaie|crée|nouveau/i.test(s.vide), s.vide);
+  await chercher(p, 'x'.repeat(220)); let d = await L.deborde(c); v('clients-02 : recherche de 220 caractères sans espace : la page ne glisse pas de côté', d.bouge === 0, d);
   await chercher(p, '<b>gras</b><img src=x onerror=window.__xss=1>'); await p.waitForTimeout(200); v('recherche avec du HTML : rien n’est interprété', await p.evaluate(() => !window.__xss && !document.querySelector('#contenu .carte.gris b')), null);
   for (const q of ['(', '[', '\\', '+', '.*', '$']) { await chercher(p, q); const e = await p.evaluate(() => !!document.querySelector('#contenu h1')); v(`recherche « ${q} » : l’écran tient`, e); }
   await chercher(p, ''); s = await lire(p); v('recherche effacée : tous les clients reviennent', s.cartes === base.n, s);
