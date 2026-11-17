@@ -13,6 +13,7 @@ S=scratchpad/proto-final/sondes
 if veut camion;   then lance "Mon camion (structure, états, Ma journée, gestes, mise en page)" PROFILS=$P NUIT=$N node $S/vehtemps-v5-camion.js; fi
 if veut voisins;  then lance "écrans voisins (Accueil, Équipe, Paie, Planning, Tâches, guide)" PROFILS=$P NUIT=$N node $S/vehtemps-v5-voisins.js; fi
 if veut visites;  then lance "visites parlées (cinq chapitres + le guide du salarié)" node $S/vehtemps-v5-visites.js; fi
+if veut visites4; then lance "Véhicules : les visites (immersion et partie parlée : aucun sélecteur perdu)" node $S/vehtemps-v4-visites.js; fi
 if veut liste;    then lance "Véhicules : la liste" PROFILS=$P NUIT=$N node $S/vehtemps-v1-liste.js; fi
 if veut fiche;    then lance "Véhicules : la fiche" PROFILS=$P NUIT=$N node $S/vehtemps-v2-fiche.js; fi
 if veut vgestes;  then lance "Véhicules : les gestes de la fiche" PROFILS=$P node $S/vehtemps-v3-gestes.js; fi

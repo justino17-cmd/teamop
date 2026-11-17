@@ -400,10 +400,31 @@
    "fichier": "scratchpad/proto-final/atelier/page.source"
   },
   {
+   "ecran": "Planning › absence",
+   "avant": "toast(`${tech(a.tech).nom} pendant son absence, et « Non assigné » pour réaffecter.`)",
+   "apres": "toast(`Planning de ${tech(a.tech).nom} pendant son absence, avec la colonne « Non assigné » pour réaffecter.`)",
+   "raison": "un début de phrase sans sujet : « Léa Roux pendant son absence, et… »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Absences › Télécharger le PDF",
+   "avant": "data-nom=\"Absences ${titre}.pdf\"",
+   "apres": "data-nom=\"Absences ${String(titre).replace(/^Du /, 'du ')}.pdf\"",
+   "raison": "un nom de fichier n’a pas de majuscule au milieu : « Absences du 2 nov. au 15 nov. 2026.pdf »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
    "ecran": "Tous les champs › exemple",
    "avant": "« Ex. : entretien climatisation » / « Ex. rappeler M. Durand »",
    "apres": "« ex. entretien climatisation » / « ex. rappeler M. Durand »",
    "raison": "une seule façon d’écrire un exemple dans un champ",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Historique, Comptabilité, Sécurité › « efface »",
+   "avant": "« Rien ne s’y efface ni ne s’y modifie », « pas en effaçant », « effacé de ce téléphone »",
+   "apres": "« Rien ne s’y supprime ni ne s’y modifie », « pas en supprimant », « supprimé de ce téléphone »",
+   "raison": "un seul mot pour faire disparaître : supprimer",
    "fichier": "apercu/prototype-op-gestion.html"
   },
   {
@@ -434,5 +455,88 @@
    "raison": "les jours en toutes lettres dans une phrase ; les tuiles et tableaux gardent « j »",
    "fichier": "apercu/prototype-op-gestion.html"
   }
- ]
+ ],
+ "textesLus": 6400,
+ "parRole": {
+  "marc": {
+   "ecrans": 21,
+   "gestesJoues": 851,
+   "fenetresOuvertes": 396,
+   "toastsLus": 80,
+   "cadresLus": [
+    "prototype-documents.html"
+   ],
+   "textesDistincts": 5384,
+   "parType": {
+    "écran": 2050,
+    "attribut": 730,
+    "fenêtre": 2362,
+    "toast": 53,
+    "cadre": 189
+   }
+  },
+  "julie": {
+   "ecrans": 10,
+   "gestesJoues": 305,
+   "fenetresOuvertes": 147,
+   "toastsLus": 8,
+   "cadresLus": [
+    "prototype-comptabilite.html",
+    "prototype-documents.html"
+   ],
+   "textesDistincts": 2118,
+   "parType": {
+    "écran": 846,
+    "attribut": 356,
+    "cadre": 359,
+    "fenêtre": 549,
+    "toast": 8
+   }
+  },
+  "sm": {
+   "ecrans": 6,
+   "gestesJoues": 213,
+   "fenetresOuvertes": 80,
+   "toastsLus": 29,
+   "cadresLus": [],
+   "textesDistincts": 696,
+   "parType": {
+    "écran": 335,
+    "attribut": 134,
+    "toast": 25,
+    "fenêtre": 202
+   }
+  },
+  "kb": {
+   "ecrans": 6,
+   "gestesJoues": 201,
+   "fenetresOuvertes": 76,
+   "toastsLus": 23,
+   "cadresLus": [],
+   "textesDistincts": 726,
+   "parType": {
+    "écran": 341,
+    "attribut": 138,
+    "toast": 21,
+    "fenêtre": 226
+   }
+  },
+  "client": {
+   "ecrans": 1,
+   "gestesJoues": 5,
+   "fenetresOuvertes": 0,
+   "toastsLus": 0,
+   "cadresLus": [],
+   "textesDistincts": 64,
+   "parType": {
+    "écran": 59,
+    "attribut": 5
+   }
+  }
+ },
+ "relevé": {
+  "date": "2026-11-17",
+  "profil": "mac (ordinateur)",
+  "methode": "mots-releve.js : le navigateur ouvre chaque rubrique du rôle puis joue chaque geste visible, trois niveaux, et lit le texte rendu, les aria-label, title, placeholder et options ; mots-hors-rubriques.js : connexion et guide des nouveautés ; mots-visite.js : la visite parlée"
+ }
 }
