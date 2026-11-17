@@ -81,7 +81,7 @@ const L = require('../lib.js');
   const M = {};
   for (const h of ['boxes', 'stock', 'produits']) { await L.aller(p, h); M[h] = await p.evaluate(() => (document.getElementById('contenu').textContent || '').replace(/\s+/g, ' ')); }
   const montants = t => (t.match(/\d[\d   ]*(?:,\d+)?[  ]€/g) || []);
-  for (const h of ['boxes', 'stock']) { const m = montants(M[h]); v(`montants de « ${h} » : population ${m.length}, chacun en 2 décimales`, m.length >= 2 && m.every(x => /,\d{2}[  ]€$/.test(x)), m.filter(x => !/,\d{2}[  ]€$/.test(x)).slice(0, 4)); }
+  for (const h of ['boxes', 'stock']) { const m = montants(M[h]); v(`montants de « ${h} » : population ${m.length} (Stock n'en montre plus qu'un : la valeur est en pied de liste), chacun en 2 décimales`, m.length >= (h === 'stock' ? 1 : 2) && m.every(x => /,\d{2}[  ]€$/.test(x)), m.filter(x => !/,\d{2}[  ]€$/.test(x)).slice(0, 4)); }
   v('aucune erreur de page', c.err.length === 0, c.err);
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

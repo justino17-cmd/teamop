@@ -7,6 +7,7 @@
 // PROFILS=mac,iphone NUIT=0,1 pour restreindre. Navigateur sur 127.0.0.1 seulement, un seul à la fois.
 const L = require('../lib.js'), v = L.v;
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/vehtemps2/';
+const SEULS = (process.env.SEULS || '').split(',').filter(Boolean), on = x => !SEULS.length || SEULS.includes(x);   // SEULS=A,C : ne jouer que ces sections (contre-épreuves)
 const ev = (c, f, a) => c.p.evaluate(f, a);
 const net = t => String(t).replace(/[\u00a0\u202f]/g, ' ');   // l'application pose une espace insécable avant « : » : on compare sur du texte normalisé
 const txt = async (c, sel) => net(await c.p.evaluate(s => (document.querySelector(s) || {}).textContent || '', sel));
@@ -23,7 +24,7 @@ const PROFILS = (process.env.PROFILS || 'mac,windows,ipad,iphone,android,petit')
 
 (async () => {
   /* ── A. le geste complet : changer la fin de Sophie, mercredi 28 ── */
-  { const c = await frais(); const D = '2026-10-28', K = 'sm';
+  if (on('A')) { const c = await frais(); const D = '2026-10-28', K = 'sm';
     const av = await ev(c, ([K, D]) => { const p = ptJour(K, D)[0]; PT_VALIDE[K + lundi(D)] = true; TT.vus[K + lundi(D)] = true; PAIE.confirmes[K] = { le:'30/10 · 18:00' }; return { id:p.id, fin:p.fin, debut:p.debut, pause:p.pause, tr:PT_TRACE.length, nt:NOTIFS.length, sem:K + lundi(D) }; }, [K, D]);
     await ouvrir(c, K, D);
     const cadre = await ev(c, () => { const q = s => document.querySelector('#calque ' + s); return { sur:(q('.surtitre') || {}).textContent, h2:(q('h2') || {}).textContent, lignes:[...document.querySelectorAll('#calque .tt-ch .tt-cl')].map(e => e.textContent.trim()), stats:[...document.querySelectorAll('#calque .tt-stats span')].map(e => e.innerText.replace(/\s+/g, ' ').trim()), champs:document.querySelectorAll('#calque [data-ptc]').length, boutons:[...document.querySelectorAll('#calque button')].filter(b => b.offsetParent).length, plan:(q('.tt-h3 + .fo-bloc') || {}).textContent }; });
@@ -57,7 +58,7 @@ const PROFILS = (process.env.PROFILS || 'mac,windows,ipad,iphone,android,petit')
     await L.fin(c); }
 
   /* ── B. les refus s'écrivent dans la fiche et s'EFFACENT à la réussite ; la note seule ne demande pas de motif ── */
-  { const c = await frais(); const D = '2026-10-28', K = 'kb';
+  if (on('B')) { const c = await frais(); const D = '2026-10-28', K = 'kb';
     const id = await ev(c, ([K, D]) => ptJour(K, D)[0].id, [K, D]); await ouvrir(c, K, D);
     await ev(c, id => { const p = POINTAGES.find(o => o.id === id); p.pause = 30; }, id); await ouvrir(c, K, D);
     // une pause plus longue que la journée est refusée, dans la fiche
@@ -79,7 +80,7 @@ const PROFILS = (process.env.PROFILS || 'mac,windows,ipad,iphone,android,petit')
     await L.fin(c); }
 
   /* ── C. aujourd'hui : une heure dans le futur ne se pointe pas (refus dans la fiche, puis réussite) ── */
-  { const c = await frais(); const D = '2026-10-31', K = 'kb'; await ouvrir(c, K, D);
+  if (on('C')) { const c = await frais(); const D = '2026-10-31', K = 'kb'; await ouvrir(c, K, D);
     const id = await ev(c, ([K, D]) => ptJour(K, D)[0].id, [K, D]);
     const rf = await ev(c, () => [...document.querySelectorAll('#calque .tt-ch')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
     v('C : la journée en cours de Karim — la fin n\'est pas un champ (« en cours »)', rf.some(x => /^Fin en cours$/.test(x)) && !(await ev(c, id => !!document.querySelector(`[data-ptc="${id}|fin"]`), id)), rf);
@@ -93,7 +94,7 @@ const PROFILS = (process.env.PROFILS || 'mac,windows,ipad,iphone,android,petit')
     await L.fin(c); }
 
   /* ── D. journée ouverte (Tom, vendredi 30) : UN geste à sa fin d'habitude, jamais l'heure qu'il est ── */
-  { const c = await frais(); const D = '2026-10-30', K = 'tl'; await ouvrir(c, K, D);
+  if (on('D')) { const c = await frais(); const D = '2026-10-30', K = 'tl'; await ouvrir(c, K, D);
     const av = await ev(c, () => { const p = POINTAGES.find(o => o.qui === 'tl' && ptOuvert(o)); return { id:p.id, h:ptxFinPropose(p).h, now:hNow(), tr:PT_TRACE.length }; });
     const rows = await ev(c, () => [...document.querySelectorAll('#calque .tt-ch')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
     v('D : la population — la journée de Tom est ouverte, sa fin proposée n\'est pas l\'heure qu\'il est', !!av.id && av.h !== av.now, av);
@@ -106,7 +107,7 @@ const PROFILS = (process.env.PROFILS || 'mac,windows,ipad,iphone,android,petit')
     await L.fin(c); }
 
   /* ── E. journée vide, mois fermé, règle légale, liens, absence ── */
-  { const c = await frais(); const K = 'sm'; await ouvrir(c, K, '2026-10-31');
+  if (on('E')) { const c = await frais(); const K = 'sm'; await ouvrir(c, K, '2026-10-31');
     const vide = await ev(c, () => ({ t:document.querySelector('#calque .tt-vide-j').innerText.replace(/\s+/g, ' '), champs:document.querySelectorAll('#calque [data-ptc]').length }));
     v('E : journée vide — « Aucune heure ce jour-là. » et UN bouton « Ajouter les heures » (aucun champ)', /Aucune heure ce jour-là\./.test(vide.t) && /Ajouter les heures/.test(vide.t) && vide.champs === 0, vide);
     await clic(c, '[data-tt^="ajout|sm|"]'); const aj = await ev(c, () => ({ h2:(document.querySelector('#calque h2') || {}).textContent, motif:!!document.getElementById('tt-am') }));
@@ -127,7 +128,7 @@ const PROFILS = (process.env.PROFILS || 'mac,windows,ipad,iphone,android,petit')
     await L.fin(c); }
 
   /* ── F. à neuf appareils, jour ET nuit : la fiche ne déborde pas, se touche, se lit ── */
-  for (const profil of PROFILS) for (const nuit of NUITS) {
+  if (on('F')) for (const profil of PROFILS) for (const nuit of NUITS) {
     const c = await frais(profil, nuit), nom = profil + (nuit ? ' nuit' : ' jour'); await ouvrir(c, 'kb', '2026-10-28');
     await ev(c, () => { const id = ptJour('kb', '2026-10-28')[0].id, f = document.querySelector(`[data-ptc="${id}|fin"]`); f.value = '21:15'; f.dispatchEvent(new Event('change', { bubbles:true })); });
     await c.p.fill('#pt-motif', 'Un motif volontairement long pour voir comment la fiche se comporte quand on écrit une phrase entière sur un téléphone de terrain'); await L.calme(c.p, 250);
