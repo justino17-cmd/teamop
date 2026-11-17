@@ -47,7 +47,7 @@ const lire = s => { let m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec
     const k = await c.p.evaluate(() => { const l = document.getElementById('cnx-test'), r = l.getBoundingClientRect(), cn = document.getElementById('cnx');
       const cs = getComputedStyle(l), colonne = cn.querySelector('.cn-col');
       // tout ce que le lien pourrait chevaucher : les éléments visibles de l'écran de connexion (hors le conteneur plein écran lui-même et ses enveloppes)
-      const ch = [...cn.querySelectorAll('*')].filter(x => { if (x === colonne || x.contains(l) || x.children.length > 3) return false; const q = x.getBoundingClientRect(); if (q.width < 4 || q.height < 4) return false;
+      const ch = [...cn.querySelectorAll('*')].filter(x => { if (x === colonne || x.contains(l) || l.contains(x) || x.children.length > 3) return false;   /* le lien vit DANS #cnx (tour 2) : ni lui ni son chevron ne comptent comme un voisin */ const q = x.getBoundingClientRect(); if (q.width < 4 || q.height < 4) return false;
         const s = getComputedStyle(x); if (s.visibility === 'hidden' || s.display === 'none') return false; if (!(x.textContent.trim() || x.tagName === 'IMG' || x.tagName === 'svg' || x.tagName === 'SVG')) return false;
         return !(q.right <= r.left + 1 || q.left >= r.right - 1 || q.bottom <= r.top + 1 || q.top >= r.bottom - 1); }).map(x => (x.tagName + '.' + (x.className && x.className.baseVal === undefined ? x.className : '')).slice(0, 40) + ':' + x.textContent.trim().slice(0, 24));
       const p = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
