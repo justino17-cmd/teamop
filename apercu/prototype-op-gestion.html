@@ -4468,14 +4468,14 @@ function crTracerReel(){
      hauteur à l'écran, et une bulle posée plus bas que le repère d'une urgence le recouvrait (recontrôle du planning, 17 novembre) */
   if (!map.getPane('crTrajets')) map.createPane('crTrajets').style.zIndex = 590;
   const d = plRef, T = crTournees(d), C = crAConfier(d), maint = d === AUJ ? MAINT_MIN : d < AUJ ? 9e9 : -1;
+  const bulles = [];   // les bulles de trajet se posent APRÈS les repères : on sait alors où ils sont
   T.forEach(({ t, S, retour }) => { if (!S.length) return; const loin = crFocus && crFocus !== t.id;
     let prec = CR_DEPOT;
     const segs = S.map(x => { const o = { a:prec, b:crPos(x), tr:x.tr, retard:x.retard, passe:hmin(x.i.h) + x.i.dur <= maint && x.i.st === 'fait' }; prec = crPos(x); return o; }); segs.push({ a:prec, b:CR_DEPOT, tr:retour, retour:1 });
     segs.forEach(o => { if (!o.tr || !o.tr.km) return; const op = loin ? .18 : o.passe ? .5 : 1;
       L.polyline([o.a, o.b], { color:'#ffffff', weight:8, opacity:.85 * op, interactive:false }).addTo(g);
       L.polyline([o.a, o.b], { color:t.c, weight:4.5, opacity:op, dashArray:o.retour ? '2 9' : null, lineCap:'round', interactive:false }).addTo(g);
-      if (!loin && !o.retour && map.latLngToContainerPoint(o.a).distanceTo(map.latLngToContainerPoint(o.b)) > 120) { const txt = crMinTxt(o.tr.min) + ' · ' + crKmTxt(o.tr.km), w = Math.round(txt.length * 6.6 + 18);
-        L.marker([(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2], { pane:'crTrajets', interactive:false, keyboard:false, icon:L.divIcon({ className:'', html:`<span class="cr-lbl-tr ${o.retard ? 'r' : ''}">${txt}</span>`, iconSize:[w, 22], iconAnchor:[w / 2, 11] }) }).addTo(g); } }); });
+      if (!loin && !o.retour && map.latLngToContainerPoint(o.a).distanceTo(map.latLngToContainerPoint(o.b)) > 120) { const txt = crMinTxt(o.tr.min) + ' · ' + crKmTxt(o.tr.km); bulles.push({ a:o.a, b:o.b, txt, w:Math.round(txt.length * 6.6 + 18), retard:o.retard }); } }); });
   const pins = [{ dep:1, ll:CR_DEPOT }];
   T.forEach(({ t, S }) => S.forEach(x => { if (!x.bureau) pins.push({ id:x.i.id, ll:crPos(x), c:t.c, n:x.n, loin:crFocus && crFocus !== t.id, retard:x.retard, nom:CLIENTS[x.i.cli].nom, h:x.i.h, qui:t.nom }); }));
   C.forEach(i => pins.push({ id:i.id, ll:CR_GEO[i.cli] || CR_DEPOT, c:i.urgent ? 'var(--rouge)' : 'var(--orange)', n:'!', urgent:i.urgent, conf:1, loin:!!crFocus, nom:CLIENTS[i.cli].nom, h:i.h, qui:'à confier' }));
@@ -4484,14 +4484,14 @@ function crTracerReel(){
      ne s'ouvraient pas au clic. On mesure en pixels sur la carte telle qu'elle est (le tracé est refait à chaque zoom), on
      écarte en spirale comme le dessin de secours, et un fil relie chaque repère déplacé à sa vraie place. */
   const places = [], sz = map.getSize(), ecart = matchMedia('(pointer:coarse)').matches ? 45 : 31;   // au doigt, deux zones de 44 px ne se touchent pas
+  /* ni sous un bouton de la carte — mesuré sur la carte telle qu'elle est : sur iPad, le dernier repère de Sophie (Rochefort) tombait sous « Auto · Jour · Nuit »
+     et le toucher y changeait le fond de carte (recontrôle du planning, 17 novembre) ; le plan de la page donne le rectangle de chaque groupe de boutons */
+  const cont = map.getContainer().getBoundingClientRect(), obst = [...document.querySelectorAll('#cr-carte .cr-fonds, #cr-carte .cr-outils, #cr-carte .cr-chips, #cr-carte .cr-note')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
+    .map(r => [r.left - cont.left - 17, r.top - cont.top - 17, r.right - cont.left + 17, r.bottom - cont.top + 17]);
+  const sous = (x, y) => obst.some(r => x > r[0] && x < r[2] && y > r[1] && y < r[3]);
   pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
     /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
        sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
-    /* ni sous un bouton de la carte — mesuré sur la carte telle qu'elle est : sur iPad, le dernier repère de Sophie (Rochefort) tombait sous « Auto · Jour · Nuit »
-       et le toucher y changeait le fond de carte (recontrôle du planning, 17 novembre) ; le plan de la page donne le rectangle de chaque groupe de boutons */
-    const cont = map.getContainer().getBoundingClientRect(), obst = [...document.querySelectorAll('#cr-carte .cr-fonds, #cr-carte .cr-outils, #cr-carte .cr-chips, #cr-carte .cr-note')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
-      .map(r => [r.left - cont.left - 17, r.top - cont.top - 17, r.right - cont.left + 17, r.bottom - cont.top + 17]);
-    const sous = (x, y) => obst.some(r => x > r[0] && x < r[2] && y > r[1] && y < r[3]);
     const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178) && !sous(x, y);
     /* sur un petit écran la carte est étroite : si l'écart de confort ne trouve pas de place, on en essaie de plus serrés (38, 31 px) plutôt
        que de laisser le repère sur son voisin */
@@ -4500,6 +4500,13 @@ function crTracerReel(){
     if (k) { const v = map.containerPointToLatLng([X, Y]);
       L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
       L.circleMarker(p.ll, { radius:2.5, color:'#1d1d1f', weight:0, fillColor:'#1d1d1f', fillOpacity:.8, interactive:false }).addTo(g); } });
+  /* une bulle « 54 min · 41 km » se pose là où aucun repère ne la mange : le milieu du trajet d'abord, puis plus près de chaque bout ; si tout le trajet est pris,
+     elle s'efface (le temps de route est dit sur la ligne de l'étape) — mieux vaut pas de bulle qu'une bulle dont on ne lit que la moitié */
+  bulles.forEach(b => { for (const f of [.5, .4, .6, .3, .7, .2, .8, .12, .88]) { const ll = [b.a[0] + (b.b[0] - b.a[0]) * f, b.a[1] + (b.b[1] - b.a[1]) * f], pt = map.latLngToContainerPoint(ll), h = b.w / 2;
+    if (pt.x - h < 6 || pt.x + h > sz.x - 6 || pt.y < 14 || pt.y > sz.y - 16) continue;   // dans la carte
+    /* un repère d'urgence est un losange : sa demi-diagonale fait 21 px, d'où 33 px de marge verticale et h + 22 de côté */
+    if (places.some(q => Math.abs(q[0] - pt.x) < h + 22 && Math.abs(q[1] - pt.y) < 33) || obst.some(r => pt.x + h > r[0] + 17 && pt.x - h < r[2] - 17 && pt.y + 11 > r[1] + 17 && pt.y - 11 < r[3] - 17)) continue;   // la marge de 17 px des rectangles est celle d'un repère, pas d'une bulle
+    L.marker(ll, { pane:'crTrajets', interactive:false, keyboard:false, icon:L.divIcon({ className:'', html:`<span class="cr-lbl-tr ${b.retard ? 'r' : ''}">${b.txt}</span>`, iconSize:[b.w, 22], iconAnchor:[h, 11] }) }).addTo(g); break; } });
   pins.forEach(p => { const dx = p.dx, dy = p.dy;
     const html = p.dep ? '<div class="cr-mk dep">⌂</div>' : `<div class="cr-mk ${p.conf ? 'conf' : ''} ${p.urgent ? 'urg' : ''} ${p.id === crSel ? 'on' : ''} ${p.loin ? 'estompe' : ''}" style="--c:${p.c}" data-crpin="${p.id}"><i>${p.n}</i>${p.retard ? '<b class="cr-mk-r"></b>' : ''}</div>`;
     const m = L.marker(p.ll, { icon:L.divIcon({ className:'', html, iconSize:[30, 30], iconAnchor:[15 - dx, 15 - dy] }), keyboard:!p.dep, title:p.dep ? 'Dépôt' : `${p.h} · ${p.nom} · ${p.qui}`, zIndexOffset:p.id === crSel ? 1000 : p.dep ? -100 : 0, riseOnHover:true }).addTo(g);
