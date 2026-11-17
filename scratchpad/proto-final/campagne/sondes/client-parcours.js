@@ -37,7 +37,7 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   const acc = await texte(p, '.ec-tuiles'); v('P1 · l’accueil recalcule « À régler 1 240,00 € »', /À régler 1 240,00/.test(acc), acc.slice(0, 120));
   // le bureau voit-il le paiement ?
   await p.evaluate(() => rlChanger('gestion', { h: 'comptabilite', muet: true })); await L.calme(p, 600);
-  const bur = await ev(p, () => ({ f: FACTURES.find(f => f.id === 'f144').st, enc: ENCAISSEMENTS[0].fac, jr: (JOURNAL[0] || {}) }));
+  const bur = await ev(p, () => ({ f: FACTURES.find(f => f.id === 'f144').st, enc: ENCAISSEMENTS[0].fac, jr: (JOURNAL.find(j => /payé en ligne/.test(j.action || '')) || { absent: 'aucune ligne « a payé en ligne » au journal' }) }));
   v('P1 · côté bureau : la facture est payée et le paiement est le premier de la liste', bur.f === 'payee' && bur.enc === 'FAC-2026-0144', JSON.stringify(bur).slice(0, 200));
   console.log('   journal :', JSON.stringify(bur.jr).slice(0, 220));
   v('P1 · aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c);
@@ -104,7 +104,7 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   await tape(c, '[data-ec^="cr|"]'); d = await O.dessus(p); const cr = await texte(p, '.panneau'); console.log('   fenêtre :', cr.slice(0, 600));
   v('P4 · le compte rendu s’ouvre', /Compte rendu/.test(cr), cr.slice(0, 100));
   v('P4 · le client ne voit pas « Ouvrir la page complète » (page du bureau)', !/Ouvrir la page complète/.test(cr), cr.slice(-120));
-  v('P4 · le titre parle au client (« Votre compte rendu »), pas « envoyé au client »', !/envoyé au client/.test(cr), 'titre « Le compte rendu envoyé au client » lu par le client lui-même');
+  v('P4 · le titre parle au client (« Votre compte rendu »), pas « envoyé au client »', !/envoyé au client/i.test(cr), 'titre « Le compte rendu envoyé au client » lu par le client lui-même');
   v('P4 · pas de numéro de téléphone du technicien ni de notes internes', !/Léa|Karim.*06/.test(cr) || true);
   await p.keyboard.press('Escape'); await L.calme(p, 250); d = await O.dessus(p); v('P4 · Échap ferme', !d.panneau, d.panneau);
   v('P4 · aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c);
