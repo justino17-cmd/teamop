@@ -28,6 +28,20 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
     v(`M5 « ${a} » du menu mène à l’écran qui porte ce nom`, ok && TITRE[a].test(h), { h, ok });
     v(`M5b après « ${a} », le menu est refermé`, !(await p.evaluate(() => !!document.querySelector('#calque .panneau'))));
   }
+  // ── A : Jour / Nuit / Auto et Nouveautés (le pied du menu) ──
+  const ouvrirMenu = async () => { if (tel) { await L.aller(p, 'majournee'); await L.toucher(c, '[data-menu="ouvrir"]'); await L.calme(p, 300); } };
+  for (const [lib, attendu] of [['Nuit', 'nuit'], ['Jour', 'jour']]) {
+    await ouvrirMenu();
+    await p.evaluate(l => { const e = [...document.querySelectorAll('[data-modetheme]')].find(b => b.textContent.trim() === l); e && e.click(); }, lib); await L.calme(p, 400);
+    v(`A1 « ${lib} » dans le pied du menu change l’apparence (data-mode = ${attendu})`, (await p.evaluate(() => document.documentElement.dataset.mode)) === attendu, await p.evaluate(() => document.documentElement.dataset.mode));
+  }
+  await ouvrirMenu(); await p.evaluate(() => { const e = [...document.querySelectorAll('[data-modetheme]')].find(b => b.textContent.trim() === 'Auto'); e && e.click(); }); await L.calme(p, 300);
+  v('A2 « Auto » est coché ensuite (aria-pressed)', await p.evaluate(() => { const e = [...document.querySelectorAll('[data-modetheme]')].find(b => b.textContent.trim() === 'Auto'); return !!e && e.getAttribute('aria-pressed') === 'true'; }));
+  await ouvrirMenu();
+  await p.evaluate(() => { const e = [...document.querySelectorAll('button, a')].find(b => b.textContent.replace(/\s+/g, ' ').trim().startsWith('Nouveautés')); e && e.click(); }); await L.calme(p, 600);
+  v('A3 « Nouveautés » ouvre le guide des nouveautés', await p.evaluate(() => { const e = document.getElementById('nv'); return !!e && e.offsetParent !== null || (!!e && getComputedStyle(e).display !== 'none'); }), await txt(p, '#nv'));
+  await L.capture(c, CAP + `nouveautes-${qui}-${profil}-${J}.png`);
+  await p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }); await L.calme(p, 300);
   // ── B : la barre du bas ──
   if (tel) {
     await L.aller(p, 'majournee');

@@ -27,7 +27,7 @@ const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').
     const t = await C.toast(p), ouv = await C.panneauOuvert(p);
     v(`01 ${pr} : le SIRET seul s'enregistre (forme, capital, immatriculation, assurance vides), panneau fermé`, ap.siret === '732 829 320 00074' && ap.forme === '' && ouv === '', { ap, ouv, t });
     v(`01 ${pr} : la facture est débloquée (rien ne manque côté SIRET, nom, adresse)`, ap.M === 0, ap);
-    v(`01 ${pr} : le toast nomme ce qui reste (population : ${ap.L.length} mentions)`, ap.L.length >= 3 && /Il reste à compléter : la forme juridique/.test(t), t);
+    v(`01 ${pr} : le toast nomme ce qui reste (population : ${ap.L.length} mentions)`, ap.L.length >= 2 && /Il reste à compléter : la forme juridique et l’immatriculation\./.test(t), t);
     // 12 : le bandeau ne dit plus « complète » — orange, avec la liste et un bouton « Compléter » qui rouvre les mentions
     const b2 = await p.evaluate(() => { const b = document.querySelector('.ent-ban'); return { orange:b.classList.contains('attention'), vert:b.classList.contains('ok-bloc'), t:b.textContent.replace(/\s+/g, ' ').trim(), bouton:(b.querySelector('[data-ent="completer|legal"]') || {}).textContent || '' }; });
     v(`12 ${pr} : mentions manquantes → bandeau ORANGE, plus « complète », avec la liste`, b2.orange && !b2.vert && !/Ta fiche est complète/.test(b2.t) && /Il reste à compléter, dans tes mentions légales : la forme juridique/.test(b2.t), b2);
@@ -42,14 +42,14 @@ const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').
     // 01 : une valeur FAUSSE reste refusée (SIRET, TVA), et un capital qui n'est pas un montant
     await L.aller(p, 'entreprise'); await L.toucher(c, '[data-ent="carte|legal"]');
     await p.locator('#fl-siret').fill('123'); await L.toucher(c, '[data-cx="ficheok"]');
-    v(`01 ${pr} : un SIRET faux est toujours refusé`, /quatorze chiffres/.test((await C.champ(p, 'fl-siret')).err), await C.champ(p, 'fl-siret'));
+    const rs = await C.champ(p, 'fl-siret'); v(`01 ${pr} : un SIRET faux est toujours refusé`, !!rs && /quatorze chiffres/.test(rs.err), rs);
     await L.fin(c);
   }
 
   // ───── 02 : un téléphone sans six chiffres est refusé
   if (veut('02')) for (const pr of ['mac', 'iphone']) {
     const c = await C.ouvrirEnt({ profil:pr }); await L.toucher(c, '[data-ent="carte|ident"]'); const BTN = '[data-ent="identok"]'; let n = 0;
-    for (const x of ['......', '++++++', '------', '+ + + +', '12345', '+..--..']) { await C.remplir(c.p, 'en-tel', x); await L.toucher(c, BTN); n++; const r = await C.champ(c.p, 'en-tel'); v(`02 ${pr} : « ${x} » refusé`, r.err === 'Ce numéro de téléphone ne semble pas juste.' && r.invalide, r); }
+    for (const x of ['......', '++++++', '------', '+ + + +', '12345', '+..--..']) { await C.remplir(c.p, 'en-tel', x); await L.toucher(c, BTN); n++; const r = await C.champ(c.p, 'en-tel'); v(`02 ${pr} : « ${x} » refusé`, !!r && r.err === 'Ce numéro de téléphone ne semble pas juste.' && r.invalide, r); if (!r) await L.toucher(c, '[data-ent="carte|ident"]'); }
     for (const x of ['+33 5 46 11 22 33', '05.46.11.22.33', '0546112233', '(+33) 546 112']) { await C.remplir(c.p, 'en-tel', x.replace(/[()]/g, '')); await L.toucher(c, BTN); n++; const ouv = await C.panneauOuvert(c.p); v(`02 ${pr} : « ${x.replace(/[()]/g, '')} » accepté`, ouv === '', ouv); if (ouv !== '') {} else await L.toucher(c, '[data-ent="carte|ident"]'); }
     v(`02 ${pr} : population : ${n} cas joués`, n === 10, n); await L.fin(c);
   }
@@ -80,11 +80,11 @@ const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').
   // ───── 05 : la fiche d'un client se modifie avec « Modifier », pas avec « Créer »
   if (veut('05')) for (const [crm, nom] of [['1100', 'Voir + Créer'], ['1010', 'Voir + Modifier'], ['1110', 'Voir + Créer + Modifier'], ['1000', 'Voir seul']]) {
     const c = await personne('mac', { cases:cases({ crm }) }); const p = c.p; await L.aller(p, 'clients'); await L.calme(p, 400);
-    const cle = await p.evaluate(() => Object.keys(CLIENTS)[0]); await p.evaluate(k => { ongletClient = 'infos'; aller('client-x-' + k); }, cle); await L.calme(p, 700);
+    const cle = 'cm'; await L.aller(p, 'client-x-' + cle); await L.toucher(c, '[data-oc="infos"]'); await L.calme(p, 500);
     const m = crm[2] === '1'; const avant = await p.evaluate(k => CLIENTS[k].acces, cle);
     const r = await p.evaluate(() => { const ch = [...document.querySelectorAll('[data-ci]')], b = document.querySelector('[data-action="clientEnreg"]'); return { champs:ch.length, figes:ch.filter(e => e.disabled).length, bouton:!!b && getComputedStyle(b).display !== 'none', texte:(document.querySelector('#contenu .actions .gris.petit') || {}).textContent || '' }; });
     v(`05 « ${nom} » (population : ${r.champs} champs) : ${m ? 'les champs sont saisissables et « Enregistrer » est là' : 'les champs sont figés et « Enregistrer » n’est pas dessiné'}`, r.champs === 6 && (m ? r.figes === 0 && r.bouton : r.figes === 6 && !r.bouton), r);
-    if (!m) v(`05 « ${nom} » : la phrase dit pourquoi`, /Tu peux regarder cette fiche ; pour la changer, demande à Marc\./.test(r.texte), r.texte);
+    if (!m) v(`05 « ${nom} » : la phrase dit pourquoi`, /Tu peux regarder cette fiche ; pour la changer, demande à Marc\./.test(norm(r.texte)), r.texte);
     // le geste forcé (clic synthétique sur le bouton, même caché) : modifie SEULEMENT avec « Modifier »
     const ap = await p.evaluate(async k => { const ta = document.querySelector('[data-ci="acces"]'); if (!ta.disabled) ta.value = 'Consigne posée par la sonde'; const b = document.querySelector('[data-action="clientEnreg"]'); if (b) b.click(); await new Promise(r => setTimeout(r, 200)); return { acces:CLIENTS[k].acces, refus:DROITS_REFUS.filter(x => x.verbe === 'clientEnreg').length }; }, cle);
     v(`05 « ${nom} » : ${m ? 'l’enregistrement passe' : 'le clic forcé est avalé, le client ne change pas'}`, m ? ap.acces === 'Consigne posée par la sonde' : (ap.acces === avant && ap.refus >= 1), { ap, avant });
@@ -94,18 +94,18 @@ const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').
 
   // ───── 07 : l'atelier mène à Mon entreprise
   if (veut('07')) {
-    for (const [qui, doit] of [['marc', true], ['julie', null]]) {
-      const c = await L.ouvrir({ profil:'mac', qui }); const p = c.p;
-      const voit = await p.evaluate(() => !!droitVoit('entreprise'));
+    for (const [qui, doit] of [['marc', true], ['zoé (tout sauf « Équipe et entreprise »)', null]]) {
+      const c = qui === 'marc' ? await L.ouvrir({ profil:'mac', qui }) : await personne('mac', { cases:cases({ admin:'0000' }) }); const p = c.p;
+      const voit = await p.evaluate(() => !!droitVoit('entreprise')); const devisOk = await p.evaluate(() => !!rlPermis('devis')); v(`07 ${qui} : population : la personne a la rubrique Devis (sinon le contrôle serait creux)`, devisOk, devisOk);
       await p.evaluate(() => { opdOuvrir('devis', {}); }); await L.calme(p, 2500);
       const f = L.cadre(p); v(`07 ${qui} : l'atelier est ouvert (population : un cadre)`, !!f, p.frames().map(x => x.url()));
       if (f) {
-        await f.evaluate(() => { ouvrirIdentite(DEFAUT_ID); }); await L.calme(p, 600);
+        await f.waitForSelector('[data-act="ident-ouvrir"]', { state:'attached', timeout:30000 }).catch(() => {}); await f.evaluate(() => { const b = document.querySelector('[data-act="ident-ouvrir"]'); if (b) b.click(); }); await L.calme(p, 700);
         const bouton = await f.evaluate(() => { const b = document.querySelector('[data-ent-ouvrir]'); return b ? b.textContent.trim() : ''; });
         const comp = await f.evaluate(() => [...document.querySelectorAll('.fen-pied [data-fen-x]')].map(b => b.textContent.trim()));
         v(`07 ${qui} : le bouton « Ouvrir Mon entreprise » ${voit ? 'est là' : 'n’est pas là (il ne voit pas Mon entreprise)'} ; « Compris » reste`, (voit ? bouton === 'Ouvrir Mon entreprise' : bouton === '') && comp.includes('Compris'), { bouton, comp, voit });
         if (voit) { await f.evaluate(() => document.querySelector('[data-ent-ouvrir]').click()); await L.calme(p, 900);
-          const ap = await p.evaluate(() => ({ route, atelier:!document.getElementById('opdz').hidden, h1:(document.querySelector('#contenu h1') || {}).textContent }));
+          const ap = await p.evaluate(() => ({ route, atelier:!!document.getElementById('opdz') && !document.getElementById('opdz').hidden, h1:(document.querySelector('#contenu h1') || {}).textContent }));
           v('07 marc : l’atelier se ferme et Mon entreprise s’ouvre', ap.route === 'entreprise' && !ap.atelier && ap.h1 === 'Mon entreprise', ap); }
       }
       await L.fin(c);
@@ -128,11 +128,11 @@ const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').
     v(`09 « ${nom} » : « Composer un devis » ${cree ? 'est dessiné' : 'n’est pas dessiné'} (population : ${r.lignes} ligne de la liste)`, r.lignes === 1 && (cree ? r.composer === 1 : r.composer === 0), r);
     v(`09 « ${nom} » : la ligne du document composé ${modifie ? 'est un bouton qui rouvre' : 'se lit sans s’ouvrir'}`, modifie ? r.lignesBouton === 1 && r.lect === 0 : r.lignesBouton === 0 && r.lect === 1, r);
     // le geste forcé : avalé par la garde (clic synthétique sur le bouton, même caché)
-    const g = await p.evaluate(async () => { const n0 = DROITS_REFUS.length; const b = document.querySelector('[data-opd="devis"]'); if (b) b.click(); await new Promise(r => setTimeout(r, 300)); return { refus:DROITS_REFUS.length - n0, ouvert:!document.getElementById('opdz').hidden }; });
+    const g = await p.evaluate(async () => { const n0 = DROITS_REFUS.length; const b = document.querySelector('[data-opd="devis"]'); if (b) b.click(); await new Promise(r => setTimeout(r, 300)); const z = document.getElementById('opdz'); return { refus:DROITS_REFUS.length - n0, ouvert:!!z && !z.hidden }; });
     if (!cree) v(`09 « ${nom} » : le clic forcé sur « Composer » est avalé (un refus compté), l’atelier ne s’ouvre pas`, g.refus >= 1 && !g.ouvert, g);
     // l'atelier se défend aussi tout seul : le message de rôle porte les droits, l'ouverture d'un document NEUF sans « Créer » est refusée DANS l'atelier
     await p.evaluate(() => { opdEnvoyer(opdRoleMsg()); opdOuvrir('devis', {}); }); await L.calme(p, 2600);
-    const a = await p.evaluate(() => ({ ouvert:!document.getElementById('opdz').hidden })); const f = L.cadre(p);
+    const a = await p.evaluate(() => { const z = document.getElementById('opdz'); return { ouvert:!!z && !z.hidden }; }); const f = L.cadre(p);
     const fl = f && await f.evaluate(() => ({ creer:OPG.role.creer, modifier:OPG.role.modifier }));
     v(`09 « ${nom} » : l'atelier a reçu les droits (créer ${cree}, modifier ${modifie}) — population : un cadre`, !!fl && fl.creer === cree && fl.modifier === modifie, fl);
     v(`09 « ${nom} » : ${cree ? 'composer un document neuf s’ouvre' : 'composer un document neuf est refusé par l’atelier lui-même (hors clic)'}`, cree ? a.ouvert === true : a.ouvert === false, a);
@@ -171,6 +171,8 @@ const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').
       return { ecart:sel ? Math.round(rt.top - rs.bottom) : null, decalage:Math.round(Math.abs((ri.top + ri.height / 2) - (rb.top + rb.height / 2))), nonN:non.length, vides, lignesTitre:Math.round(rb.height / (parseFloat(getComputedStyle(titre).lineHeight) || 20)) }; });
     v(`13 ${pr}${nuit ? ' nuit' : ''} : « Travaille sur le terrain » respire sous « Appliquer un profil » (≥ 12 px)`, r.ecart === null || r.ecart >= 12, r);
     v(`13 ${pr}${nuit ? ' nuit' : ''} : la case est alignée sur le TITRE (écart de centre ≤ 6 px)`, r.decalage <= 6, r);
+    const ht = await p.evaluate(() => { const t = document.querySelector('#calque .panneau .fo-terrain'), sp = t.querySelector('span'), nx = t.nextElementSibling, rt = t.getBoundingClientRect(), rs = sp.getBoundingClientRect(), rn = nx.getBoundingClientRect(); return { boite:Math.round(rt.height), texte:Math.round(rs.height), basLabel:Math.round(rt.bottom), hautSuivant:Math.round(rn.top), basTexte:Math.round(rs.bottom) }; });
+    v(`13 ${pr}${nuit ? ' nuit' : ''} : la case contient TOUTE sa phrase (elle ne se rétrécit plus, rien ne déborde sur le cadre du dessous)`, ht.basTexte <= ht.basLabel + 1 && ht.basLabel <= ht.hautSuivant, ht);
     if (pr === 'mac') { v(`13 ${pr} : la grille détaillée — population : ${r.nonN} cases sans geste, toutes ont un tiret (0 vide sans signe)`, r.nonN > 0 && r.vides === 0, r); }
     await p.evaluate(() => { const z = document.querySelector('#calque .panneau'), t = z.querySelector('.fo-terrain'); if (z && t) z.scrollTop = t.offsetTop - 140; }); await L.calme(p, 300);
     await L.capture(c, CAP + `corr-droits-bloc-${pr}-${nuit ? 'nuit' : 'jour'}.png`, false); await L.fin(c);

@@ -1,0 +1,114 @@
+[
+ {
+  "nom": "compositeur",
+  "defaut": "Petit téléphone (320 × 568) : « Supprimer ce brouillon » est sous la feuille « Contrat » après la création d'un contrat",
+  "etat": "corrigé",
+  "changement": "atelier/page.source, ACTIONS['menu-plus'] : la feuille de format (voile z-index 70) recouvrait le menu (couche z-index 60) ; ouvrir « ⋯ » range maintenant la feuille (fermerFenetre) avant d'ouvrir le menu, sur tous les téléphones, pour que le geste soit le même partout",
+  "preuve": "reproduit (compositeur-gestes PROFIL=petit : clic intercepté par #fen-fmt) ; sonde neuve sondes/compositeur-restes1.js (20 ✓ · 0 ✗ iphone, 19 ✓ petit) : le menu est atteignable au doigt, la feuille est rangée ; capture cap/atelier/crest1-petit-jour-menu-contrat.png regardée ; mutation R1 mord ; compositeur-gestes petit 38 ✓, iphone 38 ✓, mac 44 ✓ · 0 ✗. Commit e7ae24e"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Infobulles empilées sur le menu « ⋯ » au téléphone (« Modèle posé · Annuler » + « Contrat créé » par-dessus les gestes)",
+  "etat": "corrigé",
+  "changement": "page.source : un menu ouvert pose la classe body.menu-ouvert (ouvrirPop/fermerPop) et, sous 760 px, #toasts passe en visibility:hidden tant qu'il est ouvert ; les infobulles reviennent à la fermeture",
+  "preuve": "sonde restes1 : au téléphone, infobulle en attente masquée pendant le menu, classe retirée et visibilité rendue à la fermeture ; mutations R2 (CSS) et R2b (classe) mordent. Commit e7ae24e. Limite : une infobulle à bouton « Annuler » dont les 6,5 s s'écoulent pendant que le menu est ouvert n'est plus lisible à sa fermeture (transitoire, assumé)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Collage sur plusieurs lignes dans « Délai » ou « Paiement » : le champ garde ses deux lignes, la page n'en montre qu'une",
+  "etat": "corrigé",
+  "changement": "page.source : uneLigne(t) aplatit le collage dans le champ lui-même (retours à la ligne et blancs voisins → un espace), curseur laissé à sa place, la page reçoit la même valeur",
+  "preuve": "reproduit (le champ gardait « Ligne 1⏎Ligne 2 ») ; sonde restes1 : collage de 3 lignes (dont une vide et des espaces) → « Ligne 1 Ligne 2 Ligne 3 » dans le champ ET dans VV, frappe suivante ajoutée à la fin, collage au milieu → curseur juste après (14), pour Délai et Paiement ; mutations R3a, R3b, R3c mordent. Commit e7ae24e"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Aperçu de la bibliothèque de clauses : les trous du modèle se lisent comme des mots (« Le prestataire effectue fréquence des visites »)",
+  "etat": "corrigé",
+  "changement": "page.source, vvResume : un blanc du modèle s'écrit entre crochets (« [fréquence des visites] », « [adresse du site] »), comme le fait déjà le document pour une information manquante (valVar)",
+  "preuve": "reproduit sur les résumés de la bibliothèque (25 résumés, 11 portent un blanc) ; sonde restes1 : aucun blanc nu parmi adresse du site / fréquence des visites / prix annuel / mode de paiement / date de début, aucune accolade brute, crochets présents dans la liste affichée (2 855 signes) ; mutation R4 mord. Commit e7ae24e. Antérieur au lot : oui (vvResume existait avant)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Aperçu d'un devis au téléphone (« Ton devis, en grand », 100 %) : les initiales du logo sont minuscules dans un coin du carré (« cs »), « 17 » absent (ligne non cochée de vus-par-le-chef.md)",
+  "etat": "corrigé",
+  "changement": "page.source : svg[role=\"img\"] text{text-rendering:geometricPrecision}. Cause : les initiales sont du texte dans un SVG que la page met à l'échelle par transform (--s) ; Chromium gardait la mise en page du texte à l'échelle d'avant (45 %) quand on passe à 100 % — la mise en page disait 22 px de large, le dessin montrait « cs » minuscule en haut à gauche",
+  "preuve": "reproduit 3 fois sur 4 (iPhone), stable à 30, 250 et 1 200 ms ; après : « CS 17 » centré, 3 mesures sur iPhone ET Android, relues sur capture ; sonde restes1 § 4 jugée sur les PIXELS peints (centre, hauteur, nombre de pixels clairs) rend ✓ ; mutation R5 mord. Commit 400cee8. Non vérifié : Safari réel (le défaut est celui de Chromium ; le correctif est une propriété standard)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "atelier-seule.js : 44 ✓ · 12 ✗ — la sonde « la page seule n'a pas changé » compare à une copie d'AVANT le lot",
+  "etat": "corrigé",
+  "changement": "sondes/atelier-seule.js : le point de référence n'est plus le commit 629da64 (ni la copie gardée) mais l'état de la source après les corrections du compositeur (ORIGINE=<commit> pour en choisir un autre ; défaut ec8aafd), la vérification « rien d'autre n'a bougé » est gardée",
+  "preuve": "contre 52c1a8f : 52 ✓ · 4 ✗, tous sur compoContrat et tous dus à MON changement voulu (crochets de la bibliothèque) — la garde a donc mordu sur un écart neuf, puis référence avancée à ec8aafd : 56 ✓ · 0 ✗ (mac, ipad, iphone, jour et nuit)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Sondes devenues rouges après les corrections (compositeur-mise-en-page, atelier-grand, atelier-devis)",
+  "etat": "déjà décidé",
+  "changement": "déjà corrigé et poussé par le recontrôle (245be4e)",
+  "preuve": "rejoué : compositeur-mise-en-page petit 14 ✓ · 0 ✗, atelier-devis iphone 41 ✓ · 0 ✗, atelier-contrat iphone 23 ✓ · 0 ✗"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Deux correctifs sans sonde qui les morde (T09 mise en service au catalogue, T07b « Supprimer » pour un devis envoyé)",
+  "etat": "déjà décidé",
+  "changement": "déjà gardés par le recontrôle (16 mutations sur 16 mordent)",
+  "preuve": "compositeur-mutations.py : 8 mutations neuves (R1, R2, R2b, R3a, R3b, R3c, R4, R5) ajoutées, 8 sur 8 mordent"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Aperçu au téléphone ouvert sur 100 % (texte lisible, la page glisse de côté) plutôt que la page entière à 45 % (texte de 5 px)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié : choix de produit réversible en une ligne (vvGrand : fit<.7)",
+  "preuve": "Recommandation : garder 100 % (c'est la réponse à « composer un devis, c'est trop petit »), « Ajuster » reste à un toucher"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Les documents composés restent dans une carte à part sous la liste (« Composés dans l'atelier ») ; et le mot « atelier » (carte, aide « Composer un devis ouvre l'atelier ») est un mot de l'équipe de développement",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié : mots d'écran dans apercu/prototype-op-gestion.html (lignes ~21913 et ~7727), à trancher avec la voie « mots »",
+  "preuve": "Recommandation : « Documents composés » pour la carte, « ouvre la page de composition » pour l'aide ; mêler ou garder à part : à part est plus lisible tant que la liste d'OP GESTION ne porte pas leurs états"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Contrat : le prix annuel est dit HT (« 1 280,50 € HT par an (hors taxes : la TVA s'ajoute) »)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié",
+  "preuve": "Texte à faire relire par l'agent juriste avant tout usage réel (convention d'OP GESTION)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "« Déplacement zone 1 » vaut 29,17 € HT (35 € TTC) : un prix HT peu rond ; TVA 10 % main-d'œuvre et entretien, 20 % déplacement",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié",
+  "preuve": "Valeurs des TARIFS du prototype, à confirmer (prix TTC rond demandé ?)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Un brouillon supprimé rend son numéro (D-2026-043 redevient libre s'il était le dernier) : si le PDF était déjà sorti, un autre devis portera le même numéro",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié",
+  "preuve": "Voulu ? Recommandation : un numéro dont un PDF est sorti ne se rend pas (le prototype ne sait pas encore si un PDF est sorti)"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "« Nouveau client » : Échap ferme la fenêtre et perd ce qui était tapé, sans demander (inchangé depuis avant le lot)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié",
+  "preuve": "À confirmer ; recommandation : demander quand un champ est rempli, comme pour « Abandonner ce devis »"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Non vérifié sur vrai iPhone / Android / Windows / iPad, clavier virtuel, signature au doigt, artefact publié",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié",
+  "preuve": "profils émulés (encoches simulées) seulement"
+ },
+ {
+  "nom": "compositeur",
+  "defaut": "Partie « regard » et « sécurité » / « artefact » : aucun recontrôle propre au compositeur (fichiers final/regard-compositeur-recontrole.json, securite et artefact : absents pour ce nom)",
+  "etat": "ne se reproduit pas",
+  "changement": "rien",
+  "preuve": "fichiers absents : non recontrôlé, rien inventé. Le tour 2 de cette voie lira les recontrôles qui arriveront"
+ }
+]

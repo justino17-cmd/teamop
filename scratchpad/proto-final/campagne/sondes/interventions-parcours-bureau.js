@@ -13,6 +13,10 @@ const I = require('./interventions-outils.js'), L = I.L;
     const attendu = await ev(k => { const f = k; return INTS.filter(i => i.id !== 'brouillon' && (f === 'tout' ? true : f === 'auj' ? i.d === AUJ && i.st !== 'annulee' : f === 'avenir' ? i.d > AUJ && i.st !== 'fait' && i.st !== 'annulee' : f === 'plan' ? i.st === 'aplanifier' : i.st === 'fait')).length; }, k);
     v(`B1 filtre « ${lib} » : ${attendu} lignes, et le chiffre de l’onglet le dit`, n === attendu && new RegExp('· ' + attendu + '$').test(badge.trim()), [n, attendu, badge]);
   }
+  { await tap('[data-filtreint="plan"]'); const ligne = await ev(() => { const r = [...document.querySelectorAll('#contenu table.l tbody tr.clic')].find(x => /Entretien chaudière granulés/.test(x.textContent)); return r ? r.textContent.replace(/\s+/g, ' ') : null; });
+    await L.aller(p, 'inter-x-i5'); const fiche5 = await txt('#contenu');
+    v('interventions-12 : une intervention « À planifier » dit la même chose dans la liste et sur sa fiche (« Date à fixer » / « pas encore de date »)', !!ligne && (/pas encore de date/.test(fiche5) ? /Date à fixer|à fixer/.test(ligne) : true), { liste: ligne && ligne.slice(0, 90), fiche: (fiche5.match(/pas encore de date[^\n]*/) || [''])[0] });
+    await L.aller(p, 'interventions'); }
   await tap('[data-filtreint="tout"]'); const ordre = await ev(() => [...document.querySelectorAll('#contenu table.l tbody tr.clic')].map(r => r.dataset.go));
   v('B1 « Toutes » : les interventions sont rangées par date', true, ordre.length);   // l'ordre est lu sur l'écran à regarder ; ici on compte
   let t = '', e = {};
@@ -27,6 +31,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await tap('[data-creer="1"]'); await L.calme(p, 600); e = await L.etat(p);
   v('B2 « ＋ Nouvelle intervention » ouvre la fenêtre', await ev(() => !!document.querySelector('#fenetre .fen[aria-label="Nouvelle intervention"]')));
   t = await txt('#fenetre .fen'); v('B2 le bas de la fenêtre dit quoi faire (choisir le client)', /Choisis d’abord le client/.test(t), (t.match(/Choisis[^.]*\./) || [''])[0]);
+  v('interventions-08 : la liste des clients ne montre pas « secteur — » (un secteur absent se tait ou se dit en mots)', !/secteur —/.test(t), (t.match(/.{0,50}secteur —/) || [''])[0]);
   const creerOff = await ev(() => { const b = document.querySelector('#fenetre [data-action="cCreer"]'); return b ? { disabled: b.disabled, aria: b.getAttribute('aria-disabled'), cls: b.className } : null; });
   v('B2 « Créer l’intervention » existe', !!creerOff, creerOff);
   await L.capture(c, I.CAP + `bur-${profil}${nuit ? '-nuit' : ''}-1-creation-vide.png`);
@@ -70,7 +75,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await p.evaluate(() => { fermerCreation(); }); await tap('[data-creer="1"]'); await tap('#fenetre [data-cnouveau="1"]');
   const nomLong = 'Société d’exploitation des établissements Dupont-Lefèvre et fils, Saint-Jean-d’Angély';
   await p.fill('#fenetre [data-cnv="nom"]', nomLong); await p.fill('#fenetre [data-cnv="contact"]', 'Jean-Baptiste de la Tour-Maubourg'); await p.fill('#fenetre [data-cnv="tel"]', 'abc'); await p.fill('#fenetre [data-cnv="mail"]', 'pas-un-courriel'); await p.fill('#fenetre [data-cnv="adr"]', '10 rue de la gravière'); await L.calme(p, 500);
-  const ban = await ev(() => { const b = document.querySelector('#fenetre .bandeau-proto'); return b ? { texte: b.textContent.trim().slice(0, 80), affiche: getComputedStyle(b).display !== 'none' } : null; });
+  const ban = await ev(() => { const b = document.querySelector('#fenetre .bandeau-info'); return b ? { texte: b.textContent.trim().slice(0, 80), affiche: getComputedStyle(b).display !== 'none' } : null; });
   v('interventions-14 : une adresse non reconnue le dit à l’écran (le message existe mais le mode application le cache)', !!ban && ban.affiche && !!(await txt('#fenetre')).match(/pas encore reconnue/), ban);
   await tap('#fenetre [data-action="cPlusTard"]'); t = await txt('#fenetre .fen-pied');
   await L.capture(c, I.CAP + `bur-${profil}${nuit ? '-nuit' : ''}-3-nouveau-client.png`);
