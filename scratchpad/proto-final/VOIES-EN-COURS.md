@@ -7,13 +7,12 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 12 h 11 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 12 h 14 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
 | Voie | Arguments | Arbre | Dernier lancement (run) | Étape au dernier relevé (8 h 10) |
 |---|---|---|---|---|
-| vehtemps, relecture gérant | `{voie:"vehtemps", depuis:5, jusqua:5}` | /home/user/wt-c-vehicules-temps | wf_9f5e34e3-a03 (tâche wnzrthpgv) | étape 6 sur 9, SEULE (lancée à 10 h 55). DÈS QU'ELLE A RENDU : lancer `{voie:"vehtemps", depuis:7}` (corriger puis recontrôler) dans /home/user/wt-c-vehicules-temps — le correcteur prend la seconde relecture en route |
 | securite | `{voie:"securite", depuis:7}` | /home/user/wt-securite | wf_ddbf05bc-b79 (tâche wkrvtuozl) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée ; les 18 failles sont corrigées (`securite/corrections.json`) ; les polices du compositeur sont REMISES par décision du chef |
 | restes (interventions) | `{voie:"restes", noms:["interventions"], arbre:"/home/user/wt-t-interventions", tours:1}` | /home/user/wt-t-interventions | wf_a3784188-c7f (tâche wj94wa354) | 1 sur 2 (lancée à 10 h 31, UN tour) |
 | campagne clients | `{voie:"campagne", cles:["clients"], arbre:"/home/user/wt-t-clients"}` | /home/user/wt-t-clients | wf_9eac0989-473 (tâche wunwkw7f8) | 2 sur 3 |
@@ -51,10 +50,13 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 23 | session_01PfEEAEbusuhCyEHjC2Kj8A | `{voie:"campagne", cles:["achats"], depuis:1}` (corriger, recontrôler ; 13 défauts dont 1 bloquant : la virgule avalée ; cinq décisions du chef données dans sa consigne) | 11 h 58 | |
 | 24 | session_01PfEEAGGKUWWuaWr9RUDWGg | `{voie:"restes", noms:["entreprise"], tours:1}` (le recontrôle du lot a rendu à 12 h : 11 réglés sur 13, une casse gênante ; décision du chef : « Voir » seul sur la Boîte mail = lecture seule) | 12 h 01 | |
 | 25 | session_01PfEEAJdV1V3V9mH9kzT2vm | `{voie:"materiel", depuis:8}` (recontrôle adverse : 27 corrigés sur 29, technicien-11 à 14 à vérifier) — CHEMIN LE PLUS LONG | 12 h 03 | |
-| 26 | session_01PfEEAHX8VDxaNpXNdvLovo | `{voie:"vehtemps", depuis:7}` (corriger, recontrôler ; relecture salarié rendue : 12 défauts dont 1 bloquant ; la relecture gérant finit ici) — CHEMIN LE PLUS LONG | 12 h 03 | |
+| 26 | session_01PfEEAHX8VDxaNpXNdvLovo | `{voie:"vehtemps", depuis:7}` (corriger, recontrôler ; relecture salarié rendue : 12 défauts dont 1 bloquant ; la relecture gérant a rendu à 12 h 10 : 21 défauts dont 1 bloquant — le bureau ouvre « Ses heures » d'un salarié sans le droit —, fichier `refonte/vehtemps-relecture-gerant.json` poussé (2ae8e87) : le correcteur le reprend à sa prochaine sauvegarde) — CHEMIN LE PLUS LONG | 12 h 03 | |
 | 27 | session_01PfEEAEYoMW25Tb5XEZ7wKd | `{voie:"restes", noms:["compta-ventes"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 12 h 03 | |
 | 28 | session_01PfEEAHD9WGFD22a8Jo2xqs | `{voie:"guide", depuis:1}` (relire, corriger, recontrôler ; le guide est construit et prouvé) — CHEMIN LE PLUS LONG | 12 h 08 | |
 | 29 | session_01PfEEAGyYh9kb2dxeKW7v6z | `{voie:"restes", noms:["client"], tours:1}` (campagne client finie à 12 h 07 : 13 réglés, 2 en partie, 5 casses ; décisions du chef dans sa consigne) | 12 h 11 | |
+| 30 | session_01PfEEAJEJjn7GkJkVzqExAL | `{voie:"final-regard", role:"technicien", rubriques:["Ma journée","Mes tâches","Mes congés"], suffixe:"a"}` (les trois autres rubriques du technicien — frais, heures, camion — après leurs corrections) | 12 h 14 | |
+| 31 | session_01PfEEAHtyszBWeHthei8qkg | `{voie:"final-regard", role:"gerant", rubriques:["Stock","Fournisseurs, matériel & produits","Dépôts et camions"], suffixe:"c"}` (en même temps que le recontrôle de la sœur 25) | 12 h 14 | |
+| 32 | session_01PfEEAEFzaAtuY9Swr9Ssn1 | `{voie:"final-regard", role:"bureau", rubriques:["Mes tâches","Interventions","Clients","Devis","Contrats","Comptabilité"], suffixe:"a"}` (ce qui est propre au bureau ; Achats, Stock, Fournisseurs, Véhicules après leurs corrections) | 12 h 14 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
