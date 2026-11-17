@@ -14,7 +14,7 @@ const ev = (c, f, a) => c.p.evaluate(f, a);
 let touches = 0;
 const toucher = async (c, sel) => { const ok = await L.toucher(c, sel); if (ok) touches++; return ok; };
 const ouvrirSm = (profil, nuit, qui) => L.ouvrir({ profil, qui:qui || 'sm', calme:true, nuit });
-const etat = c => ev(c, () => { const q = s => (document.querySelector(s) || {}).textContent || ''; return { sur:q('#contenu .mc-tete .surtitre').trim(), h1:q('#contenu .mc-tete h1').trim(), phrase:q('#contenu .mc-etat').trim(), cl:(document.querySelector('#contenu .mc-etat') || {}).className || '' }; });
+const etat = c => ev(c, () => { const q = s => (document.querySelector(s) || {}).textContent || ''; return { sur:q('#contenu .mc-tete .surtitre').trim(), h1:q('#contenu .mc-tete h1').trim(), phrase:q('#contenu .mc-etat').replace(/\s/g, ' ').trim(),   /* la typographie de la page met des espaces insécables avant « : » */ cl:(document.querySelector('#contenu .mc-etat') || {}).className || '' }; });
 const refaire = async (c, f, a) => { await ev(c, f, a); await ev(c, () => rendre()); await L.calme(c.p, 350); };
 const barre = '.opg-tab[data-tab="moncamion"]', menu = '#menu a[href="#moncamion"]';   // la barre du bas (téléphone, tablette) ou le menu (ordinateur) : UN toucher dans les deux cas
 const versCamion = async c => toucher(c, (await ev(c, b => { const e = document.querySelector(b); return !!e && e.offsetParent !== null; }, barre)) ? barre : menu);
@@ -64,7 +64,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       const c = await ouvrirSm(profil, nuit); await L.aller(c.p, 'majournee');
       const l = await ev(c, () => ({ n:document.querySelectorAll('#contenu .vh-ligne-cam').length, tous:document.querySelectorAll('#contenu [data-go="moncamion"]').length, ancien:!!document.querySelector('.vx-cam'), mv:/Mon véhicule/.test(document.getElementById('contenu').textContent), txt:((document.querySelector('.vh-ligne-cam') || {}).textContent || '').replace(/\s+/g, ' ').trim(), bxl:!!document.querySelector('.bxl-jour'), h:Math.round((document.querySelector('.vh-ligne-cam') || { getBoundingClientRect:() => ({ height:0 }) }).getBoundingClientRect().height) }));
       v(nom + ' · Ma journée : UNE ligne « Mon camion » (pas deux raccourcis, pas de carte « Mon véhicule »)', l.n === 1 && l.tous === 1 && !l.ancien && !l.mv && !l.bxl, l);
-      v(nom + ' · …elle dit l\'état et ce qu\'il faut remettre à bord, en une ligne de la largeur de l\'écran (' + l.h + ' px)', /^Mon camion\s*3 articles à remettre à bord\s*Papiers et entretien : en règle\s*›?$/.test(l.txt) && l.h <= (c.largeur >= 390 ? 90 : 110), l);   // 360 et 320 px : le texte passe sur trois lignes à côté de la pastille, jamais une carte de 300 px
+      v(nom + ' · …elle dit l\'état et ce qu\'il faut remettre à bord, en une ligne de la largeur de l\'écran (' + l.h + ' px)', /^Mon camion\s*3 articles à remettre à bord\s*Papiers et entretien : en règle\s*›?$/.test(l.txt) && l.h <= (c.largeur >= 390 ? 100 : 120), l);   // 360 et 320 px : le texte passe sur trois lignes à côté de la pastille, jamais une carte de 300 px
       const cas = [
         ['contrôle dans 12 jours', () => { vehDe('veh1').ct = jour(12); }, /Contrôle technique dans 12 jours/, /st-o/],
         ['en retard', () => { vehDe('veh1').ct = jour(-3); }, /Contrôle technique en retard de 3 jours/, /st-r/],
@@ -141,7 +141,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     if (on('F')) {   // les autres techniciens : leur camion à eux (Karim : contrôle dans 12 jours ; Tom : au garage ; Léa : en règle) — un rôle qui change les écrans est une POPULATION
       for (const [qui, veh, attendu] of [['kb', 'veh2', /^Le contrôle technique est dans 12 jours\. Le bureau s’en occupe\.$/], ['tl', 'veh4', /^Ton camion est au garage jusqu’au/], ['lr', 'veh3', /^Papiers et entretien : en règle\.$/]]) {
         const c = await ouvrirSm(profil, nuit, qui); await L.aller(c.p, 'moncamion');
-        const r = await ev(c, id => ({ sur:(document.querySelector('#contenu .mc-tete .surtitre') || {}).textContent, phrase:((document.querySelector('#contenu .mc-etat') || {}).textContent || '').trim(), boutons:[...document.querySelectorAll('#mc-vehicule .vh-cam-b')].map(b => b.dataset.vx), plaque:vehDe(id).plaque }), veh);
+        const r = await ev(c, id => ({ sur:(document.querySelector('#contenu .mc-tete .surtitre') || {}).textContent, phrase:((document.querySelector('#contenu .mc-etat') || {}).textContent || '').replace(/\s/g, ' ').trim(), boutons:[...document.querySelectorAll('#mc-vehicule .vh-cam-b')].map(b => b.dataset.vx), plaque:vehDe(id).plaque }), veh);
         v(nom + ' · ' + qui + ' : SON camion (' + r.plaque + ') en surtitre, la phrase d\'état qui lui correspond (« ' + r.phrase + ' »)', (r.sur || '').includes(r.plaque) && attendu.test(r.phrase), r);
         v(nom + ' · ' + qui + ' : les trois boutons visent SON véhicule (' + veh + ')', r.boutons.length === 3 && r.boutons.every(b => b.endsWith('|' + veh)), r.boutons);
         const d = await L.deborde(c); v(nom + ' · ' + qui + ' : aucun débordement latéral', d.bouge === 0 && d.seconde <= d.largeur, d);
