@@ -64,7 +64,7 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   }
   v('D aucune écriture négative, « NaN » ou erreur pour une fin à −16, −1, 0, +1, +2 jours', Object.values(jours).every(j => !j.neg && !j.nan && j.err === 0), jours);
   v('D la veille : « échu depuis 1 jour » (singulier) quelque part', jours.veille.mots.some(m => /échu depuis 1 jour\b/.test(m) || /échu depuis 1 j\b/.test(m)), jours.veille);
-  v('D le lendemain : « dans 1 jour » au singulier, jamais « 1 jours »', !jours.demain.mots.some(m => /1 jours/.test(m)), jours.demain);
+  v('D le lendemain : « dans 1 jour » au singulier, jamais « 1 jours »', !jours.demain.mots.some(m => /(^|[^0-9])1 jours/.test(m)), jours.demain);
   await L.fin(c);
 
   // ───────────── E : le technicien (sm) ─────────────
