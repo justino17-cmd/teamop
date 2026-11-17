@@ -18,7 +18,7 @@ const HMAX = { iphone:1600, android:1650, petit:1750 };   // § 4.7 : ≤ 1 600 
 (async () => {
   /* ── A. la structure, sur Sophie (iPhone) ── */
   if (on('A')) { const c = await salarie('sm', 'iphone');
-    const s = await ev(c, () => { const z = document.getElementById('contenu'); return { h:z.scrollHeight, sur:(z.querySelector('.surtitre') || {}).textContent, h1:(z.querySelector('h1') || {}).textContent, gris:(z.querySelector('.tete .gris') || {}).textContent,
+    const s = await ev(c, () => { const z = document.getElementById('contenu'); return { h:z.scrollHeight - ((n) => n ? n.offsetHeight + 14 : 0)(z.querySelector('.droits-note'))   /* la note « ton compte ne peut pas… » (droits d'Équipe) est posée sur TOUS les écrans de terrain : elle ne fait pas partie de la mise en page de celui-ci */, sur:(z.querySelector('.surtitre') || {}).textContent, h1:(z.querySelector('h1') || {}).textContent, gris:(z.querySelector('.tete .gris') || {}).textContent,
       onglets:[...z.querySelectorAll('.seg [data-tt^="mhonglet|"]')].map(b => b.textContent.trim()), txt:z.innerText.replace(/[\u00a0\u202f]/g, ' '), carteJournee:z.querySelectorAll('.ptx-carte').length, kpis:[...z.querySelectorAll('.tt-mh-k .kpi')].map(k => k.innerText.replace(/\s+/g, ' ').trim()),
       sem:[...z.querySelectorAll('.tt-mh-sem')].map(e => e.innerText.replace(/\s+/g, ' ').trim()), jours:z.querySelectorAll('.tt-mh-j .tt-jr').length, boutons:z.querySelectorAll('button').length }; });
     v('A : le cadre — surtitre « Octobre 2026 », titre « Mes heures », la phrase', /Octobre 2026/i.test(s.sur) && s.h1 === 'Mes heures' && s.gris === 'Ce que tu as fait, et ce qui part sur ta paie.', s);
@@ -103,7 +103,7 @@ const HMAX = { iphone:1600, android:1650, petit:1750 };   // § 4.7 : ≤ 1 600 
   /* ── H. les neuf appareils, jour ET nuit ── */
   if (on('H')) for (const profil of PROFILS) for (const nuit of NUITS) { const c = await salarie('sm', profil, nuit), nom = profil + (nuit ? ' nuit' : ' jour');
     for (const onglet of ['mois', 'fiches']) { await ev(c, o => { TT.mh = o; rendre(); }, onglet); await L.calme(c.p, 350);
-      const h = await ev(c, () => document.getElementById('contenu').scrollHeight), d = await L.deborde(c), t = await L.doigts(c.p, '#contenu'), pop = await ev(c, () => document.querySelectorAll('#contenu .tt-jr, #contenu .tt-fp').length);
+      const h = await ev(c, () => { const z = document.getElementById('contenu'); return z.scrollHeight - ((n) => n ? n.offsetHeight + 14 : 0)(z.querySelector('.droits-note'))   /* la note « ton compte ne peut pas… » (droits d'Équipe) est posée sur TOUS les écrans de terrain : elle ne fait pas partie de la mise en page de celui-ci */; }), d = await L.deborde(c), t = await L.doigts(c.p, '#contenu'), pop = await ev(c, () => document.querySelectorAll('#contenu .tt-jr, #contenu .tt-fp').length);
       v(nom + ' · ' + onglet + ' : la population — la liste a des lignes', pop >= 2, pop);
       if (onglet === 'mois' && HMAX[profil]) v(nom + ' : la hauteur reste sous la cible (' + HMAX[profil] + ' px)', h <= HMAX[profil], h);
       v(nom + ' · ' + onglet + ' : aucun débordement latéral contre la largeur posée (' + c.largeur + ')', d.bouge === 0 && d.seconde <= c.largeur + 1, d);
