@@ -3671,6 +3671,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (min-width:900px){.vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr))}.vh-cam-l{grid-column:auto}}
 /* Mon camion sur téléphone : la carte du véhicule tient sur UNE rangée de trois boutons, pour que « Il manque à bord » reste sur le premier écran AU-DESSUS de la barre d'onglets (spec Matériel § 8.1 : voir ce qui manque, c'est UN toucher et aucun défilement ; un plein se note toujours sans défiler). Le titre reste lu par les lecteurs d'écran. */
 @media (max-width:520px){html .mc-page .vh-cam{padding:10px 12px;gap:6px}html .mc-page .vh-cam h3{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}html .mc-page .vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}html .mc-page .vh-cam-g .btn{min-height:44px;font-size:13px;padding:6px 4px}html .mc-page .vh-cam-l{grid-column:auto}}
+/* téléphone COURT (Android 360 × 740) : rangées resserrées pour que la première ligne de « Il manque à bord » reste au-dessus de la barre d'onglets */
+@media (max-width:520px) and (max-height:780px){html .mc-page{gap:10px}html .mc-duo .btn{min-height:48px}html .mc-page .vh-cam>.gris{display:none}html .mc-page .vh-cam{padding:8px 10px}}
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
 html #mc-vehicule:empty{display:none}
 .vh-fcorps{container:vhf/inline-size;display:flex;flex-direction:column;gap:2px}
