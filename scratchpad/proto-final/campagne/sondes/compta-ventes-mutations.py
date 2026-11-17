@@ -24,7 +24,15 @@ def lancer(nom, sonde):
     env = dict(os.environ, RACINE=TMP)
     r = subprocess.run(['node', os.path.join(ICI, f'compta-ventes-parcours-{sonde}.js'), 'mac'], env=env, capture_output=True, text=True, timeout=900)
     sortie = r.stdout; m = re.findall(r'== (\d+) ✓ · (\d+) ✗', sortie)
-    return r.returncode, (m[-1] if m else None), [l.strip() for l in sortie.splitlines() if l.strip().startswith('✗')][:4]
+    # les contrôles qui tombent, par NOM (le début de la ligne, avant « → »)
+    tombes = {re.split(r' → | :: ', l.strip())[0] for l in sortie.splitlines() if l.strip().startswith('✗')}
+    return r.returncode, (m[-1] if m else None), tombes
+BASE = {}   # sonde → ensemble des contrôles qui tombent SANS mutation (les défauts déjà rapportés) : une mutation mord si elle en fait tomber d'AUTRES
+def base(sonde):
+    if sonde not in BASE:
+        shutil.copyfile(os.path.join(DEPOT, PAGE), os.path.join(TMP, PAGE)); shutil.copyfile(os.path.join(DEPOT, CADRE), os.path.join(TMP, CADRE))
+        code, bilan, tombes = lancer('base', sonde); BASE[sonde] = tombes; print(f'base sonde {sonde} : bilan={bilan}, {len(tombes)} contrôle(s) déjà tombé(s) (défauts rapportés)')
+    return BASE[sonde]
 choix = [a for a in sys.argv[1:]] or [m[0] for m in M]
 prepare(); resultats = []
 for nom, fichier, ancre, rempl, sonde, quoi in M:
@@ -32,8 +40,8 @@ for nom, fichier, ancre, rempl, sonde, quoi in M:
     src = os.path.join(DEPOT, fichier); dst = os.path.join(TMP, fichier); shutil.copyfile(src, dst)
     t = open(dst, encoding='utf-8').read()
     if t.count(ancre) != 1: print(f'{nom} : ANCRE ABSENTE OU MULTIPLE ({t.count(ancre)}) — mutation non jouée'); resultats.append((nom, 'ancre', None)); continue
-    open(dst, 'w', encoding='utf-8').write(t.replace(ancre, rempl))
-    code, bilan, echecs = lancer(nom, sonde); mord = code != 0
-    print(f'{nom} [{quoi}] sonde {sonde} : {"MORD" if mord else "NE MORD PAS"}  bilan={bilan}  {echecs[:2]}'); resultats.append((nom, 'mord' if mord else 'ne-mord-pas', bilan))
+    avant = base(sonde); open(dst, 'w', encoding='utf-8').write(t.replace(ancre, rempl))
+    code, bilan, tombes = lancer(nom, sonde); nouveaux = sorted(tombes - avant); mord = bool(nouveaux) or code == 2
+    print(f'{nom} [{quoi}] sonde {sonde} : {"MORD" if mord else "NE MORD PAS"}  bilan={bilan}  nouveaux contrôles tombés : {len(nouveaux)}  {[x[:90] for x in nouveaux[:2]]}'); resultats.append((nom, 'mord' if mord else 'ne-mord-pas', bilan))
     shutil.copyfile(src, dst)   # la copie revient à l'original avant la mutation suivante
 n = sum(1 for r in resultats if r[1] == 'mord'); print(f'\n{n} mutations mordent sur {len(resultats)} jouées')

@@ -1,6 +1,7 @@
 // SONDE DURABLE du compositeur — « restes » du recontrôle, tour 1 (17 novembre 2026). Chaque contrôle garde un défaut rapporté par le recontrôle adverse :
 //   1. « ⋯ » après la création d'un contrat (petit téléphone) : la feuille « Contrat » ne couvre plus « Supprimer ce brouillon » ; un menu ouvert ne porte pas d'infobulle par-dessus
 //   2. un collage sur plusieurs lignes dans « Délai » et « Paiement » : le CHAMP montre ce que la page garde (une ligne)
+//   4. les initiales du logo dans l'aperçu en grand (jugées sur les pixels)
 //   3. la bibliothèque de clauses : un blanc du modèle se lit comme un blanc (« [fréquence des visites] »), jamais comme un mot de la phrase
 // PROFIL=mac|windows|ipad|iphone|android|petit  NUIT=0|1  node compositeur-restes1.js — rend « N ✓ · M ✗ », sort en 1 si un contrôle tombe.
 const A = require('./atelier-outils.js'), L = A.L, v = L.v;
@@ -76,6 +77,29 @@ const clic = async (c, f, s, opt) => { const l = f.locator(s).first(); if (c.doi
     // à l'écran : la liste de la bibliothèque montre ces résumés
     const txt = await f.evaluate(() => { const c = document.getElementById('vv-bib'); return c ? c.innerText.replace(/\s+/g, ' ') : null; });
     v(`${tag} · la liste affichée (zone « Bibliothèque ») montre les crochets (population : ${txt ? txt.length : 0} signes)`, !!txt && /\[[^\]]+\]/.test(txt), txt && txt.slice(0, 200));
+    await p.keyboard.press('Escape'); await p.waitForTimeout(500); if (await f.locator('.dialogue').count()) { await clic(c, f, '.dialogue button[data-r="1"]'); await p.waitForTimeout(900); }
+  }
+  // ── 4. les initiales du logo dans « Ton devis, en grand » (une colonne : iPhone, Android, petit, iPad) — jugées sur les PIXELS peints : la mise en page disait « 22 px de large » quand le dessin montrait « cs » minuscule dans un coin
+  {
+    await L.aller(p, 'devis'); const f = await A.ouvrirAtelier(c, 'devis', null); await L.calme(p, 900);
+    await clic(c, f, '[data-vv="client"][data-id="vp"]'); await clic(c, f, '[data-vv="art-add"][data-id="EL-ALL"]'); await p.waitForTimeout(300);
+    if (await f.locator('[data-vv="grand"]:visible').count()) {
+      await clic(c, f, '[data-vv="grand"]');
+      const PNG = require('../../png.js'); let vus = 0, mal = [];
+      for (const ms of [30, 250, 1200]) {
+        await p.waitForTimeout(ms);
+        const r = await f.evaluate(() => { const s = document.querySelector('.vv-grand .ent-logo svg'); if (!s) return null; s.scrollIntoView({ block: 'center' }); const b = s.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; });
+        if (!r) { mal.push(ms + ' ms : pas de logo'); continue; }
+        const fr = await p.evaluate(() => { const e = document.querySelector('iframe'); const b = e.getBoundingClientRect(); return { x: b.left, y: b.top }; });
+        const buf = await p.screenshot({ clip: { x: fr.x + r.x, y: fr.y + r.y, width: r.w, height: r.h } }), img = PNG.decoder(buf);
+        let n = 0, sx = 0, sy = 0, y0 = 1e9, y1 = -1;      // les pixels CLAIRS du carré bleu : l'encre des initiales (blanc) ; le carré, lui, est sombre
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) { const q = PNG.px(img, x, y); if (q[0] > 190 && q[1] > 190 && q[2] > 190 && Math.min(x, img.w - 1 - x, y, img.h - 1 - y) > img.w * .1) { n++; sx += x; sy += y; y0 = Math.min(y0, y); y1 = Math.max(y1, y); } }
+        vus++; const cx = n ? sx / n / img.w : 0, cy = n ? sy / n / img.h : 0, haut = n ? (y1 - y0 + 1) / img.h : 0;
+        if (!(n >= 40 && cx > .4 && cx < .6 && cy > .35 && cy < .65 && haut > .35)) mal.push(ms + ' ms : ' + n + ' pixels clairs, centre (' + cx.toFixed(2) + ', ' + cy.toFixed(2) + '), hauteur ' + haut.toFixed(2));
+        if (ms === 1200) await L.capture(c, CAP + tag + '-logo-grand.png');
+      }
+      v(`${tag} · les initiales du logo (« CS » et « 17 ») sont peintes au centre du carré, à 30, 250 et 1 200 ms après l'ouverture de l'aperçu en grand (${vus} mesures)`, vus === 3 && mal.length === 0, mal);
+    } else console.log('  · ' + tag + ' : deux colonnes, pas d\'aperçu en grand à part (rien à mesurer ici)');
     await p.keyboard.press('Escape'); await p.waitForTimeout(500); if (await f.locator('.dialogue').count()) { await clic(c, f, '.dialogue button[data-r="1"]'); await p.waitForTimeout(900); }
   }
   v(tag + ' · aucune erreur JavaScript', c.err.length === 0, c.err);
