@@ -57,14 +57,17 @@ const I = require('./interventions-outils.js'), L = I.L;
   // voir le PDF / le lien client depuis la fiche
   await tap('[data-voirclient="i6|pdf"]'); await L.calme(p, 500); e = await L.etat(p); console.log('  · « Voir le PDF » :', JSON.stringify({ h1: e.h1, hash: e.hash, panneau: e.panneau }));
   v('S3 « Voir le PDF » montre le compte rendu', await ev(() => !!document.querySelector('.pdf')), e);
+  { const titre = await ev(() => { const h = document.querySelector('.pdf .pdf-tete h4'); return h ? h.textContent.trim() : null; }); v('interventions-04 : le titre du compte rendu PDF est « Compte rendu d’intervention »', /Compte rendu d’intervention/i.test(titre || ''), titre); }
   await L.capture(c, CAPN('5-voir-pdf')); await p.keyboard.press('Escape'); await L.calme(p, 300);
   await L.aller(p, 'inter-x-i6'); await tap('[data-voirclient="i6|ordi"]'); e = await L.etat(p); v('S3 « Voir le lien client » mène à « Ce que voit le client »', /clientvoit/.test(e.hash) && /Ce que voit le client/.test(e.h1), e);
   // le menu déroulant des interventions, et les trois vues
   const opts = await ev(() => [...document.querySelectorAll('[data-voirint] option')].map(o => o.textContent)); console.log('  · interventions proposées au choix :', opts.length); v('S3 le choix d’intervention propose les terminées et l’en cours', opts.length >= 8, opts.length);
+  v('S3 chaque choix d’intervention se distingue des autres', new Set(opts).size === opts.length, opts.filter((o, k) => opts.indexOf(o) !== k));
   for (const k of ['pdf', 'web', 'ordi']) { await tap(`[data-vc="${k}"]`); v(`S3 vue « ${k} » : aucune erreur, du contenu`, (await txt('#contenu')).length > 400); }
   await tap('[data-vc="web"]'); await tap('.client-web [data-action="info"]'); e = await L.etat(p); console.log('  · « Payer en ligne » (prototype) :', JSON.stringify(e.toast));
   // ── S5 le client n'était pas sur place : pas de signature, compte rendu par e-mail (i9, à Sophie)
-  await I.devenir(c, 'sm', 'inter-x-i9'); await tap('[data-absent="i9"]'); t = await txt();
+  await I.devenir(c, 'sm', 'inter-x-i9'); { const coche = await ev(() => { const e = document.querySelector('input[data-suite="entretien"]'); return e ? e.checked : null; }); v('interventions-16 : après un dépannage, « Entretien annuel » n’est pas cochée d’office (et un autre passage peut être demandé pour tout client)', coche === false && (await ev(() => !!document.querySelector('input[data-suite="ventilo"]'))), { entretienCochee: coche }); }
+  await tap('[data-absent="i9"]'); t = await txt();
   v('S5 « Client pas sur place » : la zone de signature disparaît et la page l’explique', !(await ev(() => !!document.getElementById('signe'))) && /compte rendu lui est envoyé par e-mail, sans signature/.test(t), (t.match(/Le client n’était pas sur place[\s\S]{0,80}/) || [''])[0]);
   const m5 = await ev(() => manque(fiche('i9'))); v('S5 …et la signature n’est plus exigée', !m5.some(m => /signature/.test(m)), m5);
   // ── S4 le client choisit la date du 2ᵉ passage depuis « Ce que voit le client » : ce que le BUREAU lit à l'écran ensuite

@@ -48,7 +48,7 @@ const ECRANS = [
     if (filtre && !filtre.test(e.n)) continue;
     if (e.qui !== courant) { await I.devenir(c, e.qui, 'accueil'); courant = e.qui; }
     await p.evaluate(() => { try { if (CREA) fermerCreation(); } catch (x) {} try { docPleinFermer(); } catch (x) {} try { fermerPanneau(); } catch (x) {} });   // l'écran d'avant ne reste pas ouvert par-dessus : une fenêtre de création ou un document plein écran couvrent tout
-    await L.aller(p, e.h); if (e.prep) { try { await p.evaluate(e.prep); } catch (x) { console.log('  · préparation de', e.n, ':', x.message.slice(0, 80)); } await L.calme(p, 700); }
+    await L.aller(p, e.h); if (e.prep) { try { await p.evaluate(e.prep); await p.evaluate(() => { try { rendre(); } catch (x) {} }); }   /* la préparation change des données : on redessine, sinon l'écran montre l'état d'avant */ catch (x) { console.log('  · préparation de', e.n, ':', x.message.slice(0, 80)); } await L.calme(p, 700); }
     const zone = e.zone || '#contenu', nom = `${e.n}/${profil}${nuit ? '/nuit' : ''}`;
     const existe = await p.evaluate(z => !!document.querySelector(z) && document.querySelector(z).offsetHeight > 0, zone); if (!v(`${nom} : l’écran est là (population)`, existe)) continue;
     const dep = await L.deborde(c); v(`${nom} : pas de glissement latéral`, dep.bouge === 0, dep);
@@ -60,8 +60,8 @@ const ECRANS = [
         if (!nomE && !(e.type === 'file') && !(e.hasAttribute('hidden'))) out.push(e.tagName + ' ' + [...e.attributes].filter(a => a.name.startsWith('data-')).map(a => a.name + '=' + a.value.slice(0, 20)).join(' ')); }
       return { n, out }; }, zone);
     v(`${nom} : tous les boutons et champs ont un nom (${nu.n} recensés)`, nu.out.length === 0, nu.out.slice(0, 6));
-    v(`${nom} : aucun texte écrasé`, d.ecrases.length === 0, d.ecrases);
-    if (c.doigt) { v(`${nom} : champs à 16 px au moins`, d.champs.length === 0, d.champs); if (process.env.REEL !== '0') { const r = await I.doigtsReel(p, zone); v(`${nom} : cibles au doigt ≥ 44 px`, r.length === 0, r); } else v(`${nom} : cibles au doigt ≥ 44 px (mesure simple)`, d.petits.length === 0, d.petits); }
+    v(`${nom} : aucun texte écrasé${e.n.startsWith('creation') ? ' (interventions-06)' : ''}`, d.ecrases.length === 0, d.ecrases);
+    if (c.doigt) { v(`${nom} : champs à 16 px au moins`, d.champs.length === 0, d.champs); if (process.env.REEL !== '0') { const r = await I.doigtsReel(p, zone); v(`${nom} : cibles au doigt ≥ 44 px${e.n.startsWith('creation') ? ' (interventions-13)' : e.n === 'client-voit-plein' ? ' (interventions-10)' : ''}`, r.length === 0, r); } else v(`${nom} : cibles au doigt ≥ 44 px (mesure simple)${e.n === 'client-voit-plein' ? ' (interventions-10)' : ''}`, d.petits.length === 0, d.petits); }
     // le bas de l'écran n'est pas recouvert par la barre fixe : le dernier contenu doit pouvoir passer au-dessus
     const bas = await p.evaluate(z => { const R = document.querySelector(z); if (!R) return null; scrollTo(0, 1e6); if (R.scrollHeight > R.clientHeight + 4 && getComputedStyle(R).overflowY !== 'visible') R.scrollTop = 1e6;
       const fixes = [...document.querySelectorAll('body *')].filter(x => { const cs = getComputedStyle(x); return cs.position === 'fixed' && x.offsetHeight > 20 && x.offsetHeight < 260 && x.getBoundingClientRect().bottom > innerHeight - 4 && x.getBoundingClientRect().width > innerWidth * .5 && cs.visibility !== 'hidden' && !/voile|calque|fenetre/.test(x.id + x.className); });
@@ -70,6 +70,11 @@ const ECRANS = [
       return { barreHaut: Math.round(haut), dernierBas: Math.round(dern), fixes: fixes.map(x => x.id || x.className).slice(0, 3) }; }, zone);
     if (bas && !e.zone) v(`${nom} : le bas du contenu passe au-dessus de la barre fixe`, bas.dernierBas <= bas.barreHaut + 2, bas);
     await L.capture(c, I.CAP + `mep-${e.n}-${profil}${nuit ? '-nuit' : '-jour'}.png`);
+    // interventions-09 : une quantité longue ne se casse pas en plusieurs lignes ; interventions-11 : un numéro de téléphone du client reste d'un bloc
+    if (e.n === 'longues-fiche-bureau' || e.n === 'longues-fiche-tech') { const q = await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu *')].find(x => !x.children.length && /^12\s345,67\sL$/.test(x.textContent.trim())); if (!b) return null; const lh = parseFloat(getComputedStyle(b).lineHeight) || 20; return { lignes: Math.round(b.getBoundingClientRect().height / lh), larg: Math.round(b.getBoundingClientRect().width) }; });
+      v(`${nom} : interventions-09 : la quantité « 12 345,67 L » tient sur une ligne`, !!q && q.lignes <= 1, q); }
+    if (/^(client-voit-tel|client-voit-ordi|longues-client-voit)$/.test(e.n)) { const tel = await p.evaluate(() => { const z = document.querySelector('.client-web'); if (!z) return null; const w = document.createTreeWalker(z, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const i = n.textContent.indexOf('05 46 00 00 17'); if (i >= 0) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 14); const tops = [...new Set([...r.getClientRects()].map(x => Math.round(x.top)))]; return { lignes: tops.length }; } } return { lignes: 0 }; });
+      v(`${nom} : interventions-11 : le numéro de téléphone du client tient sur une ligne`, !!tel && tel.lignes === 1, tel); }
     if (process.env.TEXTES) fs.writeFileSync(I.CAP + `txt-${e.n}.txt`, await I.texte(p, zone));   // les mots de l'écran, à relire comme un artisan de 55 ans
     sortie.push({ n: e.n, dep, d, bas });
   }
