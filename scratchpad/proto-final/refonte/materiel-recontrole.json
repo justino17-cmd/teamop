@@ -1,0 +1,62 @@
+{
+ "lot": "materiel",
+ "etape": "9 sur 9 (recontrôler)",
+ "etat": "brouillon poussé en cours de travail (sondes du lot encore en rejeu)",
+ "regles": [
+  "bureau-01",
+  "bureau-02",
+  "bureau-03",
+  "bureau-04",
+  "bureau-06",
+  "bureau-07",
+  "bureau-08",
+  "bureau-09",
+  "bureau-10",
+  "bureau-11",
+  "bureau-12",
+  "bureau-13",
+  "bureau-14",
+  "bureau-15",
+  "bureau-16",
+  "bureau-17",
+  "bureau-18",
+  "bureau-19",
+  "technicien-01",
+  "technicien-02",
+  "technicien-03",
+  "technicien-04",
+  "technicien-06",
+  "technicien-07",
+  "technicien-09",
+  "technicien-10"
+ ],
+ "pasRegles": [
+  {
+   "n": "bureau-05",
+   "constat": "Le transfert vers un camion au garage demande bien confirmation et le toast porte « Annuler », mais Annuler ne défait PLUS proprement : la ligne de code qui sert à tous les « Annuler » (sxAnnule) a été cassée par la correction technicien-07 (voir casse 1). La commande brouillon née du transfert reste OUVERTE à l'écran après l'annulation et peut être envoyée au fournisseur (« Commande envoyée à Frigo Distribution 17 · 152,00 € HT ») alors que le transfert est défait et que la demande est redevenue « en attente »."
+  },
+  {
+   "n": "technicien-05",
+   "constat": "Pas corrigé (laissé « à soumettre » par le correcteur). La décision du chef (12 h 05 : un seul mot, « manque à bord ») n'est pas encore appliquée : « 3 articles à remettre à bord » s'affiche toujours sur Ma journée (ligne 19019) et dans Véhicules (ligne 18843)."
+  },
+  {
+   "n": "technicien-11",
+   "constat": "Pas corrigé : le correcteur n'a lu que 10 défauts sur 14. « Je l'ai pris » hors réseau dit encore « Envoyé au bureau : Filtre à charbon × 1 » (MVTS_ATT 2 → 3, file hors ligne MAT.file = 0). Rejoué au navigateur (iphone, réseau coupé)."
+  },
+  {
+   "n": "technicien-12",
+   "constat": "Pas corrigé : « Nettoyant échangeur (0,5 L) » passe sur deux lignes à l'iPhone (213 px) et se coupe entre « (0,5 » et « L) » ; tient sur une ligne à 320 px (254 px)."
+  },
+  {
+   "n": "technicien-13",
+   "constat": "Non rejoué comme défaut à 320 px : à 320 px la première pièce qui manque est à 590 px pour une barre du bas à 488 : à vérifier par la sonde du correcteur au rejeu final (la mesure iphone, 590 sur 730, passe)."
+  },
+  {
+   "n": "technicien-14",
+   "constat": "Pas corrigé : l'invite « Chercher un article, une référence, un fournisseur » (Fournisseurs › Articles) fait 378 px pour un champ de 332 (iPhone), 302 (Android) et 262 (320 px) ; l'invite de Stock « Chercher un article… » fait 159 pour 153 à 320 px. Mesure par largeur du texte avec la police du champ."
+  }
+ ],
+ "casses": [],
+ "sondes": [],
+ "doutes": []
+}
