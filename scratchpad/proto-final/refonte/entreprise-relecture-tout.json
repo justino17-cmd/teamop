@@ -1,7 +1,7 @@
 {
  "lot": "entreprise",
  "angle": "tout : profils mac, windows, ipad, iphone, android, petit ; jour et nuit ; mode application ; Mon entreprise (cartes, champs, facture débloquée, liens), cases de la fiche d'une personne et effet promis, Achats et frais",
- "etat": "en cours (premier point d'étape, 17 novembre 2026)",
+ "etat": "terminé pour cet angle (17 novembre 2026) ; sondes dans /tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/relire-entreprise-tout/*.js",
  "couvert": [
   "Mon entreprise comme Marc, 6 profils x jour/nuit : 5 cartes, 6 liens, aucun débordement, cibles >= 44 px au doigt (32 contrôles, 0 échec), captures regardées (mac jour, ipad jour, petit jour, iphone nuit)",
   "panneau Ton entreprise : 12 refus joués sur mac et iphone (message exact, écrit sous le champ, aria-invalid, panneau gardé, fiche inchangée)",
@@ -16,7 +16,12 @@
   "Sophie : « Travaille sur le terrain » décochée par vrai clic, menu de bureau de 9 écrans tous ouverts sans vide ni erreur, recochée = menu d'avant (6 ✓)",
   "Marc : sa propre fiche figée (84 cases, 0 active) ; Responsable fabriqué : 20 lignes, Mon entreprise en lecture (8 champs désactivés, pas d'Enregistrer, phrase), clic forcé sur Enregistrer avalé, case de la fiche de Julie sans effet",
   "fiche d'une personne : bloc Droits, grille repliée, feuille par catégorie : captures iphone nuit, mac jour, android jour regardées",
-  "Boîte mail, atelier de documents : joués avec une personne qui n'a que Voir"
+  "Boîte mail, atelier de documents : joués avec une personne qui n'a que Voir",
+  "valeurs longues : nom de 60 signes, rue de 78, e-mail de 90 : Mon entreprise, facture, devis, contrat, marque du menu (mac, windows nuit, iphone)",
+  "logo SVG choisi par le vrai champ fichier : aperçu, enregistrement, présent dans le devis et le contrat ; aucun logo dans la fiche facture ouverte (voir note)",
+  "six liens de « Ce qui se règle ailleurs » : bonne rubrique et bon panneau (iphone nuit) ; cinq panneaux : cibles >= 44 px et champs >= 16 px (iphone nuit)",
+  "raccourcis N, D, C avec et sans la case Créer : 5 ✓ · 0 ✗",
+  "Achats et frais : petit (320) jour, android nuit, ipad jour, aide, Mes frais de Sophie (iphone jour, petit nuit) : 5 ✓ · 0 ✗ ; captures regardées"
  ],
  "defauts": [
   {
@@ -135,6 +140,63 @@
    "preuve": "/tmp/rel/d14.js : 0 ✓ 1 ✗ ; scratchpad/proto-final/atelier/page.source : « droits » n'apparaît que dans les coins (LOOK_VALEURS) ; capture atelier-ventes-lecture-seule.png",
    "ou": "famille data-opd absente de GESTES + page.source (opd_role.droits jamais lu)",
    "correction": "Classer data-opd (devis, contrat : ventes.c) dans GESTES pour que la page cache et refuse le bouton ; l'atelier lit ensuite opd_role.droits (voie compositeur) pour ne pas enregistrer sans ventes.m."
+  },
+  {
+   "n": "tout-10",
+   "gravite": "gênant",
+   "ecran": "Menu latéral, bloc de marque (OP GESTION + nom de l'entreprise)",
+   "role": "Marc",
+   "profils": "mac jour, windows nuit",
+   "etapes": "Mon entreprise : nom de 60 signes (le maximum que la fiche accepte) « Entreprise Générale de Climatisation et Plomberie Littoral ». Regarder le haut du menu.",
+   "attendu": "Un nom long passe à la ligne ou se coupe proprement sans écraser la tuile « OP » ni masquer le titre.",
+   "constate": "Le nom prend trois lignes, la tuile « OP » est écrasée en bande étroite d'environ 22 px de large, « OP GESTION » est coupé en haut (windows 1366x768, nuit) et le bloc recouvre la première ligne du menu.",
+   "preuve": "captures marque-longue-windows-nuit.png et facture-longue-mac.png (deux profils) ; /tmp/rel/d15.js, d16.js",
+   "ou": "CSS de la marque (applyBrand / .side-marque)",
+   "correction": "Tuile en flex:none (carrée, 38 px), nom limité à deux lignes avec -webkit-line-clamp et title complet, ou limiter le nom de l'entreprise à 40 signes dans le champ."
+  },
+  {
+   "n": "tout-11",
+   "gravite": "détail",
+   "ecran": "Mon entreprise > « Ce qui se règle ailleurs » (les cinq liens vers une autre rubrique)",
+   "role": "Marc",
+   "profils": "iphone",
+   "etapes": "Toucher « Rendez-vous en ligne » (ou Notes de frais, Facture envoyée toute seule).",
+   "attendu": "On arrive au bon endroit et on peut revenir (comme depuis une facture : « Retour · Mon entreprise »).",
+   "constate": "On arrive au bon endroit (planning + panneau, comptabilité en bas de page, etc.) ; aucune barre « Retour » : après avoir fermé le panneau, la personne est dans Planning, et le chemin de retour est le menu.",
+   "preuve": "/tmp/rel/d17.js : retour:false pour les six liens",
+   "ou": "entAllerLien",
+   "correction": "Poser RETOUR (même mécanisme que la fiche facture) avant aller()."
+  },
+  {
+   "n": "tout-12",
+   "gravite": "détail",
+   "ecran": "Mon entreprise (bandeau vert) puis fiche d'une facture (bandeau bleu)",
+   "role": "Marc",
+   "profils": "mac",
+   "etapes": "Lire « Ta fiche est complète : tes factures peuvent partir. Il reste à compléter… la forme juridique, l'immatriculation et l'assurance » puis ouvrir FAC-2026-0143.",
+   "attendu": "Un seul mot pour « complète ».",
+   "constate": "Le bandeau vert dit « complète » et liste ce qui reste ; la facture dit « Il manque sur cette facture : la forme juridique… » : un débutant lit deux verdicts contraires sur la même fiche.",
+   "preuve": "captures ent-mac-jour.png et facture-longue-mac.png",
+   "ou": "vueEntreprise (bandeau) et la fiche facture",
+   "correction": "Bandeau orange « Il reste … » dès que cxMentionsManquantes() n'est pas vide, vert seulement quand tout est en règle."
+  },
+  {
+   "n": "tout-13",
+   "gravite": "détail",
+   "ecran": "Équipe > fiche d'une personne > bloc Droits",
+   "role": "Marc",
+   "profils": "iphone nuit, mac jour",
+   "etapes": "Ouvrir la fiche de Julie, descendre au bloc Droits.",
+   "attendu": "Même rythme que le reste de la fiche (espace au-dessus de chaque rangée).",
+   "constate": "La ligne « Travaille sur le terrain » touche le sélecteur « Appliquer un profil » (aucun espace) ; sur iPhone sa case est centrée sur quatre lignes de texte et non alignée sur le titre ; la grille détaillée a des cases vides sans signe (« Clients : Supprimer »).",
+   "preuve": "captures droits-bloc-iphone-nuit.png, droits-bloc-mac-jour.png, droits-grille-mac-jour.png",
+   "ou": "droitsBlocFiche (.fo-garder)",
+   "correction": "margin-top: 14px sur le premier .fo-garder du bloc ; align-items:flex-start ; un tiret grisé dans les cases sans geste."
   }
+ ],
+ "pas_verifie": [
+  "la case « prix » (non branchée, repli décidé) ; la poussée de droits vers l'espace client ; la plateforme réelle (Safari, Edge) : seules des émulations Chromium",
+  "chaque geste d'écriture de chaque catégorie de bout en bout : seuls Clients, Devis (touche D), Boîte mail, atelier, Comptabilité (cadre) et raccourcis ont été joués en vrai ; les 40 autres cases sont couvertes par le balayage « bouton refusé visible » (0) et par les sondes droits-*.js existantes que je n'ai pas rejouées",
+  "facture ouverte (fiche) : l'absence de .logo-ent est peut-être normale (aperçu PDF dans un cadre) : non tranché"
  ]
 }

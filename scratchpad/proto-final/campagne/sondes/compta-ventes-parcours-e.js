@@ -16,7 +16,7 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await X.fiche(c, 'f128'); await L.toucher(c, '[data-action="relance"]'); await L.toucher(c, '#calque [data-action="relanceOk"]'); d = await X.donnees(p);
   L.v('Julie peut relancer (3e relance)', d.F.find(x => x.id === 'f128').relances === 3, d.F.find(x => x.id === 'f128').relances);
   const paieVisible = await p.evaluate(() => { cpSysteme = false; CP.onglet = 'ensemble'; rendre(); return [...document.querySelectorAll('.cx-nav1 button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()); });
-  L.v('compta-ventes-11 · la Paie n’est pas proposée à Julie dans la barre d’espaces (patron seul)', !paieVisible.some(t => /^\W*Paie/.test(t)), paieVisible);
+  L.v('droits · la Paie n’est pas proposée à Julie dans la barre d’espaces (patron seul)', !paieVisible.some(t => /^\W*Paie/.test(t)), paieVisible);
   await L.capture(c, X.CAP + `e-${profil}-julie-compta.png`);
   L.v('Julie : aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
