@@ -6,9 +6,9 @@ const fs = require('fs'), path = require('path');
 const { L, v, ouvrirEnt, fin } = require('./entreprise-commun.js');
 const PAGE = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion.html'), 'utf8');
 (async () => {
-  // le fichier : le mot ne reste que dans la colonne « avant » de NV_PLACE
+  // le fichier : le mot ne reste nulle part (le guide refait du 17 novembre ne cite plus l'ancienne ligne « Boîtes mail (Paramètres) »)
   const L1 = PAGE.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => /Paramètres/.test(l));
-  v('dans le fichier : « Paramètres » ne reste que dans NV_PLACE (la colonne « avant » de l’ancienne application)', L1.length === 1 && /Boîtes mail \(Paramètres\)/.test(L1[0][1]), L1.map(([n, l]) => n + ' ' + l.slice(0, 80)));
+  v('dans le fichier : « Paramètres » ne reste nulle part (le guide ne cite plus l’ancienne application ligne à ligne)', L1.length === 0, L1.map(([n, l]) => n + ' ' + l.slice(0, 80)));
   const c = await ouvrirEnt({ profil:'mac' });
   const routes = await c.p.evaluate(() => rlLignes().map(l => l.k));
   let lus = 0;
@@ -28,7 +28,7 @@ const PAGE = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion
   v('« Ajouter un type » : la parenthèse « réglable aussi dans Paramètres » est retirée', !/Paramètres/.test(P.type) && /Il sera proposé pour toutes les prochaines interventions\./.test(P.type), P.type);
   v('« Comment ça marche » : aucun renvoi à Paramètres', !/Paramètres|dans tes réglages/.test(P.comment), P.comment.slice(0, 60));
   v('la création d’intervention : aide des créneaux « (tes horaires, dans Mon entreprise) » avec un LIEN', /tes horaires, dans Mon entreprise/.test(P.creation) && P.lienCreation && !/Paramètres/.test(P.creation), (P.creation.match(/.{40}tes horaires.{30}/) || [''])[0]);
-  const avenir = await c.p.evaluate(() => { const s = String(typeof NV_PLACE === 'object' ? '' : ''); return document.documentElement.innerHTML.includes('ton entreprise, l’équipe, les chiffres'); });
+  const avenir = await c.p.evaluate(() => { return document.documentElement.innerHTML.includes('ton entreprise, l’équipe, les chiffres'); });
   v('la visite « à venir » : « Patron : ton entreprise, l’équipe, les chiffres »', avenir, avenir);
   v('aucune erreur de page', c.err.length === 0, c.err);
   await L.fin(c); await fin();

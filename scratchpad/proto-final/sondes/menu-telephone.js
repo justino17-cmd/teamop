@@ -6,7 +6,7 @@ const BARRE = {
   julie:{ route:'devis', onglets:[['Comptabilité', 'Comptabilité'], ['Devis', 'Devis'], ['Clients', 'Clients'], ['Tâches', 'Mes tâches'], ['Achats', 'Achats et frais']] },
   sm:{ route:'majournee', onglets:[['Journée', 'Ma journée'], ['Frais', 'Mes frais'], ['Heures', 'Mes heures'], ['Tâches', 'Mes tâches'], ['Camion', 'Mon camion']] }
 };
-const PIED = { marc:['mode-seg', 'nv-menu', 'btn', 'cn-out'], julie:['mode-seg', 'nv-menu', 'cn-out'], sm:['mode-seg', 'nv-menu', 'cn-out'] };
+const PIED = { marc:['mode-seg', 'nv-menu', 'btn', 'cn-out', 'cn-out'], julie:['mode-seg', 'nv-menu', 'cn-out', 'cn-out'], sm:['mode-seg', 'nv-menu', 'cn-out', 'cn-out'] };   // double-auth étape 3 : « Mon compte » (une fiche) puis « Se déconnecter »
 async function bilanBarre(c, tag, attendu) {
   const b = await c.p.evaluate(() => { const nav = document.querySelector('#barre-bas .opg-barre'); if (!nav) return null; const rn = nav.getBoundingClientRect();
     return { rn:{ g:Math.round(rn.left), d:Math.round(rn.right) }, plus:!!document.querySelector('#barre-bas [data-tab="plus"]') || /(^|\s)Plus(\s|$)/.test(nav.innerText),
@@ -36,13 +36,13 @@ async function bilanFeuille(c, tag, qui, groupes) {
   const ok = await L.toucher(c, '#contenu .tt-menu'); v(`${tag} : le bouton « Menu » ouvre la feuille`, ok);
   const f = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); if (!P) return null; const G = []; let g = null;
     for (const e of P.querySelector('.fm-liste').children) { if (e.classList.contains('plus-grp')) { g = { t:e.textContent.trim(), L:[] }; G.push(g); continue; } if (!g) { g = { t:'', L:[] }; G.push(g); } g.L.push((e.querySelector('b') || e).textContent.trim()); }
-    return { titre:(P.querySelector('h2') || {}).textContent, G, pied:[...P.querySelectorAll('.fm-pied > *')].map(e => e.className.split(' ')[0] || e.tagName), mode:[...P.querySelectorAll('.mode-seg button')].map(b => b.textContent), plus:/Toutes les catégories|Mon compte/.test(P.innerText), larg:P.scrollWidth, cl:P.clientWidth }; });
+    return { titre:(P.querySelector('h2') || {}).textContent, G, pied:[...P.querySelectorAll('.fm-pied > *')].map(e => e.className.split(' ')[0] || e.tagName), mode:[...P.querySelectorAll('.mode-seg button')].map(b => b.textContent), plus:/Toutes les catégories/.test(P.innerText) || [...P.querySelectorAll('.m-liste a, .m-liste button')].some(x => /Mon compte/.test(x.textContent)), larg:P.scrollWidth, cl:P.clientWidth }; });
   if (!v(`${tag} : la feuille est ouverte`, !!f)) return;
   v(`${tag} : la feuille s'appelle « Menu »`, f.titre === 'Menu', f.titre);
   v(`${tag} : la liste complète du rôle, groupes et ordre`, f.G.map(g => g.t + '=' + g.L.join('|')).join(' ‖ ') === groupes.map(([g, l]) => g + '=' + l.join('|')).join(' ‖ '), f.G.map(g => g.t + '=' + g.L.join('|')));
   v(`${tag} : le pied de la feuille (Apparence, Nouveautés, ${qui === 'marc' ? 'la barre, ' : ''}Se déconnecter)`, f.pied.filter(x => x !== 'surtitre').join(',') === PIED[qui].join(','), f.pied);
   v(`${tag} : Jour / Nuit / Auto`, f.mode.join('|') === 'Jour|Nuit|Auto', f.mode);
-  v(`${tag} : plus d'« Toutes les catégories » ni de « Mon compte »`, !f.plus);
+  v(`${tag} : plus d'« Toutes les catégories » ni de « Mon compte » parmi les rubriques (la fiche « Mon compte » est au pied)`, !f.plus);
   v(`${tag} : la feuille ne glisse pas de côté`, f.larg <= f.cl + 1, f);
   const d = await L.doigts(c.p, '#calque .panneau');
   v(`${tag} : cibles de la feuille ≥ 44 px`, d.petits.filter(x => !/^Fermer|^✕/.test(x)).length === 0, d.petits);

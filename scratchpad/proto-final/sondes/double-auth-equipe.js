@@ -20,7 +20,7 @@ const txt = c => c.p.evaluate(() => ((document.querySelector('#calque .panneau')
   v('« Voir » mène à la page Sécurité', await c.p.evaluate(() => route === 'securite'));
   await c.p.evaluate(() => { SECU.comptes.lr.verrou = null; aller('equipe'); }); await c.p.waitForTimeout(600);
   v('plus aucun compte verrouillé : plus de carte rouge (jamais de carte quand tout va bien)', await c.p.evaluate(() => !document.querySelector('#contenu .sec-bandeau')));
-  await c.p.evaluate(() => { SECU.comptes.lr.verrou = { le:secuMaint() - 20 * 3600000, par:'telephone', jusqua:null, n:1 }; });
+  await c.p.evaluate(() => { const h = new Date(secuMaint()); h.setHours(18, 2, 0, 0); h.setDate(h.getDate() - 1); SECU.comptes.lr.verrou = { le:h.getTime(), par:'telephone', jusqua:null, n:1 }; });   // le verrou de départ : hier à 18:02
 
   console.log('\n── 2. la fiche : le bloc « Connexion » — JAMAIS un mot de passe lisible (6 fiches fouillées) ──');
   const secrets = await c.p.evaluate(() => EQUIPE.map(p => { const x = SECU.comptes[p.k]; return { k:p.k, prov:x.prov, clair:x.demoClair }; }));

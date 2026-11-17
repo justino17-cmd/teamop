@@ -9,9 +9,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "Voir dans Tâches › 494×41"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
@@ -31,9 +29,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "Voir dans Tâches › 494×41"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
@@ -179,7 +175,7 @@
   },
   "bas": {
    "barreHaut": 1180,
-   "dernierBas": 3535,
+   "dernierBas": 1679,
    "fixes": []
   }
  },
@@ -199,7 +195,7 @@
   },
   "bas": {
    "barreHaut": 1180,
-   "dernierBas": 3488,
+   "dernierBas": 1678,
    "fixes": []
   }
  },
@@ -221,7 +217,7 @@
   },
   "bas": {
    "barreHaut": 1180,
-   "dernierBas": 3643,
+   "dernierBas": 1736,
    "fixes": []
   }
  },
@@ -315,17 +311,13 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "⤓ Télécharger 149×40",
-    "✉ Envoyer 119×40",
-    "Fermer 42×42"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
   "bas": {
    "barreHaut": 1180,
-   "dernierBas": 1211,
+   "dernierBas": 1213,
    "fixes": []
   }
  },
@@ -539,9 +531,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "Voir dans Tâches › 494×41"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },

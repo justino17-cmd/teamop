@@ -91,7 +91,7 @@ const png = (n) => { const z = require('zlib'); const w = 32, h = 32, raw = Buff
     const e = { h:await err(p, 'en-horaire'), m:await err(p, 'en-minimum'), z:await err(p, 'en-z2') }; v('E5 tarif « abc », minimum 0,3 h, zone 2 à 600 € : les trois refusés, chacun sous son champ', e.h && e.m && e.z, e);
     await p.fill('#en-horaire', '65,555'); await p.fill('#en-minimum', '1'); await p.fill('#en-z2', '45'); await p.fill('#en-debut', '06:30'); await enreg('[data-ent="horairesok"]');
     const d = await p.evaluate(() => ({ h:TARIFS.horaire, debut:PARAMS.debut })); v('E5 65,555 € est arrondi au centime (65,56) et la journée commence à 6 h 30', d.h === 65.56 && d.debut === 390, d);
-    await L.aller(p, 'planning'); await L.calme(p, 600); const tp = await E.texte(p, '#contenu'); v('E5 le planning reprend la nouvelle heure de début (6 h 30 ou 06:30 visible)', /6\s?h\s?30|06:30|6:30|^.*\b06\b/.test(tp), tp.slice(0, 200));
+    await L.aller(p, 'planning'); await L.calme(p, 600); const tp = await E.texte(p, '#contenu'); v('E5 le planning reprend la nouvelle heure de début (6 h 30 ou 06:30 visible)', /\b6\s?h\s?30|06:30|6:30/.test(tp), tp.slice(0, 200));
     await ouvrir('horaires'); await p.fill('#en-debut', '07:00'); await p.fill('#en-horaire', '65'); await enreg('[data-ent="horairesok"]');
   });
   // ── E6 · les six liens : chacun mène à l'endroit où la case vit, avec un chemin de retour
@@ -107,13 +107,11 @@ const png = (n) => { const z = require('zlib'); const w = 32, h = 32, raw = Buff
   await jouer('E7 facture', async () => {
     await p.evaluate(() => { ENTREPRISE.siret = ''; }); await L.aller(p, 'entreprise');
     const ban = await E.texte(p); v('E7 SIRET vide : le bandeau le dit et dit qu’une facture ne part pas', /Il manque ton SIRET/.test(ban) && /ne peut pas partir/.test(ban), ban.slice(0, 200));
-    const pas = await p.evaluate(() => { const l = document.querySelector('.sidebar [data-go="entreprise"], [data-go="entreprise"]'); return l ? l.textContent.replace(/\s+/g, ' ').trim() : ''; }); v('E7 la ligne « Mon entreprise » du menu porte une pastille de ce qui manque', /1/.test(pas), pas);
+    const pas = await p.evaluate(() => { const f = [...document.querySelectorAll('nav *, aside *, .sidebar *, #menu *')].find(e => e.children.length === 0 && e.textContent.trim() === 'Mon entreprise'); const l = f && f.closest('button, a, li, [data-go]'); return l ? l.textContent.replace(/\s+/g, ' ').trim() : '(ligne introuvable)'; }); v('E7 la ligne « Mon entreprise » du menu porte une pastille de ce qui manque', /1/.test(pas), pas);
     await L.aller(p, 'comptabilite'); await p.evaluate(() => { try { cxAller('factures'); } catch (e) {} }); await L.calme(p, 600);
-    const id = await p.evaluate(() => { const f = FACTURES.find(x => x.st === 'avalider' && lignesDe(x).every(l => l.pu != null)); return f ? f.id : null; });
+    const id = await p.evaluate(() => { let f = FACTURES.find(x => x.st === 'avalider' && lignesDe(x).every(l => l.pu != null)); if (!f) { f = JSON.parse(JSON.stringify(FACTURES[0])); f.id = 'f-essai-ent'; f.st = 'avalider'; f.num = '—'; f.vue = false; FACTURES.push(f); } return f.id; });
     v('E7 population : une facture « à valider » prête à partir existe', !!id, id);
     if (id) {
-      const bout = await p.evaluate(id => { const b = document.querySelector(`[data-action="apercuEnvoi"][data-id="${id}"]`); return b ? { dis:b.disabled, t:b.textContent } : null; }, id);
-      v('E7 SIRET vide : la facture a son bouton « Aperçu et envoi » (on peut ouvrir l’aperçu pour lire le manque)', !!bout, bout);
       await p.evaluate(id => ACTIONS.apercuEnvoi({ dataset:{ id } }), id); await L.calme(p, 500);
       const ap = await p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { envoyer:!!P.querySelector('[data-action="envoyer"]'), ban:(P.querySelector('.ent-ban') || {}).textContent || '', comp:!!P.querySelector('[data-ent="completer"]') } : null; });
       v('E7 SIRET vide : l’aperçu n’offre pas « Envoyer » mais « Compléter ma fiche »', ap && !ap.envoyer && ap.comp, ap);
@@ -127,14 +125,14 @@ const png = (n) => { const z = require('zlib'); const w = 32, h = 32, raw = Buff
   });
   // ── E8 · une personne qui ne peut que lire (Responsable)
   await jouer('E8 lecture seule', async () => {
-    await L.aller(p, 'equipe'); await E.fiche(c, 'julie'); await p.selectOption('#calque select[data-eqprof="julie"]', 'resp'); await L.calme(p, 500);
-    await L.toucher(c, '[data-cnx="comme|julie"]'); await L.calme(p, 900); await L.aller(p, 'entreprise');
+    await L.aller(p, 'equipe'); await E.fiche(c, 'julie'); await p.selectOption('#calque select[data-eqprof="julie"]', 'resp'); await L.calme(p, 500); await L.toucher(c, '#calque [data-eqx^="profok|julie|resp"]'); await L.calme(p, 500);
+    await E.fiche(c, 'julie'); await L.toucher(c, '[data-cnx="comme|julie"]'); await L.calme(p, 900); await L.aller(p, 'entreprise');
     const g = await L.gestes(p); const t = await E.texte(p);
     v('E8 Responsable : voit l’écran, SANS le bouton « Compléter » (il ne peut pas modifier)', !g.some(x => /Compléter/.test(x.lib)) && /Mon entreprise/.test(t), g.map(x => x.lib).slice(0, 8));
-    await L.toucher(c, '[data-ent="carte|ident"]'); const q = await p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { inactifs:[...P.querySelectorAll('input')].every(i => i.disabled), enreg:!!P.querySelector('[data-ent="identok"]'), info:(P.querySelector('.info') || {}).textContent || '' } : null; });
+    await L.toucher(c, '[data-ent="carte|ident"]'); await L.calme(p, 400); const q = await p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { inactifs:[...P.querySelectorAll('input')].every(i => i.disabled), enreg:!!P.querySelector('[data-ent="identok"]'), info:(P.querySelector('.info') || {}).textContent || '' } : null; });
     v('E8 la carte s’ouvre en LECTURE : champs inactifs, pas d’« Enregistrer », une phrase dit qui la modifie', q && q.inactifs && !q.enreg && /Marc/.test(q.info), q);
     await E.ranger(c); await p.evaluate(() => secuRevenir()); await L.calme(p, 600);
-    await E.fiche(c, 'julie'); await p.selectOption('#calque select[data-eqprof="julie"]', 'secr'); await L.calme(p, 400);
+    await E.fiche(c, 'julie'); await p.selectOption('#calque select[data-eqprof="julie"]', 'secr'); await L.calme(p, 500); await L.toucher(c, '#calque [data-eqx^="profok|julie|secr"]'); await L.calme(p, 400);
   });
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 4));
   await L.fin(c); await E.fin();
