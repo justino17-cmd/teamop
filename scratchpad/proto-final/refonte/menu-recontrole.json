@@ -1,0 +1,171 @@
+{
+ "lot": "menu — étape 2 sur 2 (recontrôle adverse), 17 novembre 2026",
+ "base": "tête 1c717e5 de claude/op-gestion-interface-yb6p32 (corrections e4bd24d, 17d771e, 20b2cde ; le lot « Matériel » 2b2c5e5 et suivants y est fusionné)",
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7
+ ],
+ "notes_regles": {
+  "1": "Colonne du menu : défilement gardé, ligne courante visible, voile haut/bas, pied (Jour/Nuit, Nouveautés, Se déconnecter) entièrement dans la fenêtre à 720, 640 et 560 px de haut, par la souris, le retour du navigateur et une adresse tapée à la main (menu-recontrole.js partie A : 20 ✓ · 0 ✗ ; menu-defilement 60 ✓). Ouverture directe sur #vehicules, #equipe, #pointage : la ligne est dans la colonne, la page ne bouge pas (scrollY 0). Captures regardées, jour et nuit : mac720-marc-jour.png, mac720-marc-nuit.png.",
+  "2": "Technicienne en lecture seule (sm, tl, kb, ordinateur et iPhone) ; le gérant garde ses gestes : parcours congé joué de bout en bout (demande de Sophie, validation par Marc, retour de Sophie), 12 ✓ · 0 ✗.",
+  "3": "« Voir comme Marc » n'existe plus en mode application (toast de la demande de congé relu sur Android).",
+  "4": "#constructor, #toString, #__proto__, #valueOf, #hasOwnProperty à l'ouverture et en navigation (menu-routes 100 ✓), plus huit entrées voisines que le correcteur n'avait pas cadrées (?lien=constructor, #lien-constructor, ?auto=constructor, ?auto=toString, ?lien=__proto__, #constructor-x-1, #inter-x-constructor, #clients-x-__proto__) : aucune erreur, aucun « [object Object] ».",
+  "5": "Appui long au doigt (CDP) sur la barre : « Ma barre » s'ouvre, rien ne se coche, le clic du relâcher est avalé (iPhone et Android). Une régression voisine est rapportée dans casses (premier toucher avalé quand aucun clic ne suit).",
+  "6": "Sous le nom, le poste d'Équipe, pour les six comptes (Gérant, Secrétariat, Technicienne, Chef d'équipe, Technicienne, Technicien) : 24 ✓ · 0 ✗ ; menu-poste 25 ✓. Captures regardées : iphone-feuille-marc-nuit.png, petit-feuille-sm-nuit.png, julie-feuille-iphone.png.",
+  "7": "Écart écarté, confirmé : une barre personnalisée à cinq onglets dont « Boîte mail » passe sur deux lignes à 320 px, entière, sans point ; MENU-FINAL dit « préférer deux lignes ». Les barres de série tiennent sur une ligne (relire-menu-telephone-2 : 56 ✓ · 1 ✗ nommé)."
+ },
+ "pasRegles": [
+  {
+   "n": 8,
+   "constat": "Le texte du réglage « Rendez-vous en ligne » ne cite plus « Ce que voit le client », mais dit « ouvre une intervention, touche « Voir le lien client »… ». Le bouton « Voir le lien client » n'existe que sur une intervention TERMINÉE : joué sur les 14 premières interventions, 8 le portent (i6, i20 à i25, i50, toutes « fait »), 6 non (i1 en cours, i2, i4, i7 planifiées, i3 en retard, i5 à planifier). Une débutante qui ouvre l'intervention d'aujourd'hui ne trouve rien. Une fois le bouton touché, le chemin est juste (« Ce que voit le client », onglet « Le lien sur téléphone »). À écrire « ouvre une intervention terminée »."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Le bureau (secrétariat) a un groupe « Matériel » (Stock, Fournisseurs, matériel & produits) que MENU-FINAL ne lui donne pas : trois sondes du menu sont rouges (6 ✗)",
+   "gravite": "moyenne",
+   "etapes": [
+    "ouvrir le prototype en mode application comme Julie (?app=1&auto=julie), ordinateur ou téléphone",
+    "lire le menu / la feuille « Menu »"
+   ],
+   "constat": "Travail · Clients et ventes · Argent · MATÉRIEL (Stock, Fournisseurs, matériel & produits). MENU-FINAL.md : le bureau a Travail, Clients et ventes, Argent seulement. Cause : le commit 2b2c5e5 du lot Matériel (« bureau ouvert à Stock », ROLES.gestion.routes.push('stock','produits')), pas les corrections du menu. Effet : menu-ordinateur 298 ✓ · 2 ✗ (mac et windows), menu-telephone 442 ✓ · 3 ✗ (iphone, android, petit), menu-nu 11 ✓ · 1 ✗. Le bilan du correcteur (300 ✓, 445 ✓, 12 ✓ à zéro ✗) n'est donc plus vrai sur la branche. Décision à prendre (voir doutes) : ou le bureau a Stock et MENU-FINAL + les trois sondes changent, ou la route se referme."
+  },
+  {
+   "titre": "L'avis « Marc a validé ta demande » de « Mes congés » est écrasé sur téléphone : colonne de texte de 12 px à 320, 52 px à 360, 82 px à 390",
+   "gravite": "haute",
+   "etapes": [
+    "comme Sophie (technicienne) sur Android 360, faire une demande de congé",
+    "se reconnecter comme Marc, valider",
+    "se reconnecter comme Sophie, ouvrir Menu › Mes congés"
+   ],
+   "constat": "Mesuré sur la page : à 320 px la carte fait 1 971 px de haut (texte 12 px de large, un caractère par ligne), à 360 px 553 px (52 px), à 390 px 301 px (82 px) ; correct seulement sur iPad (232 px). Cause : .a-avis{display:flex} + .a-avis-g (« Voir au planning › » et « Vu », 196 px) ne cède rien, .a-avis-c garde min-width:0 : c'est la colonne de texte qui cède tout (règle « UNE COLONNE QUI CÈDE TOUT » de CLAUDE.md). Le défaut préexiste au lot, mais « Mes congés » est une ligne du menu de TOUTE technicienne depuis ce lot, et l'avis paraît après chaque décision du gérant : c'est le premier écran qu'elle verra. Captures : G1-retour-sophie-android.png, avis-android.png. Correction attendue : sous un seuil de largeur de la carte (requête de conteneur), les gestes passent sous le texte."
+  },
+  {
+   "titre": "Un appui long sur la barre du bas dont le relâcher ne produit AUCUN clic fait perdre le premier toucher suivant, même plusieurs secondes après",
+   "gravite": "moyenne",
+   "etapes": [
+    "gérant au téléphone, appui long de 550 ms sur la barre : « Ma barre » s'ouvre",
+    "(sur un appareil dont le relâcher ne produit pas de clic) attendre 6 s",
+    "toucher une ligne de la feuille"
+   ],
+   "constat": "mbAvale est posé par la minuterie de l'appui long, remis à Date.now() à CHAQUE touchend/mouseup tant qu'il n'est pas à zéro, et n'est mis à zéro que par un clic. Sans clic de relâcher, il reste posé ; le toucher suivant le rafraîchit à son propre touchend, et son clic (quelques ms plus tard, < 500 ms) est avalé : rien ne se passe au premier toucher, le second répond. Reproduit en posant l'état laissé par un appui long sans clic (mbAvale = maintenant - 6 s) : premier toucher sans effet (barre inchangée, pas de message), second toucher efficace. Dans Chromium piloté le relâcher PRODUIT un clic (avalé, état remis à zéro), donc le cas n'est pas prouvé sur un appareil réel ; CLAUDE.md décrit pourtant le même piège (« un appui long n'en produit pas toujours, et passé une demi-seconde c'est un nouveau geste »). Correction attendue : borner la vie de mbAvale (une minuterie de 500 ms qui le remet à zéro) au lieu de le rafraîchir sans fin."
+  },
+  {
+   "titre": "Revue (prototype nu) : le bouton « Voir comme Marc » du message de demande de congé ne fait rien quand on teste en tant que technicien",
+   "gravite": "basse",
+   "etapes": [
+    "prototype nu (sans ?app=1), « Tester en tant que » Technicien",
+    "Mes congés › Demande de congé › Envoyer",
+    "toucher « Voir comme Marc » dans le message"
+   ],
+   "constat": "ROLE reste « tech » et aLecture() reste vrai : l'écran reste « Mes congés » en lecture seule, aucune validation en vue (0 bouton « Valider »). Le correcteur a gardé le bouton dans la revue (sa sonde vérifie seulement qu'il est présent), mais il ne mène nulle part. Préexistant (l'ancien test était ROLE === 'tech' || aComme !== 'marc') ; sans effet en mode application."
+  },
+  {
+   "titre": "Le bureau sur téléphone ouvre sur la Comptabilité plein écran : le menu est à DEUX gestes (« ‹ OP GESTION » puis « Menu »), avec un cadre de focus épais sur le premier bouton à l'ouverture",
+   "gravite": "basse",
+   "etapes": [
+    "Julie sur iPhone 390, ouverture de l'application"
+   ],
+   "constat": "Le bouton « Menu » existe mais est recouvert par « ‹ OP GESTION » du module Comptabilité ; le toucher direct échoue (c'est ce qu'a mesuré ma première sonde). Une fois « ‹ OP GESTION » touché, la feuille « Menu » s'ouvre normalement (« Julie Petit · Secrétariat »). À l'ouverture, « ‹ OP GESTION » porte un cadre de focus bleu épais (julie-ouverture-iphone-jour.png). Conception du module, pas du menu ; à dire."
+  }
+ ],
+ "parcours": [
+  {
+   "nom": "Congé de bout en bout (Android 360)",
+   "resultat": "12 ✓ · 0 ✗ : Sophie ouvre Menu › Mes congés, fait une demande (toast « Demande envoyée à Marc », sans « Voir comme Marc »), se déconnecte par la feuille Menu ; Marc se connecte (première connexion : nouveau mot de passe), ouvre Menu › Absences et congés, valide ; Sophie se reconnecte et lit la décision, en lecture seule."
+  },
+  {
+   "nom": "Nouveau client avec une intervention (iPhone 390, gérant)",
+   "resultat": "7 ✓ · 0 ✗ : Menu › Clients › « ＋ Nouveau client » › « Avec une intervention » › formulaire rempli › « Plus tard » › « Créer l'intervention » ; le client est dans la table et dans la liste, retrouvé par la feuille Menu. Le détecteur de doublon a retenu mon premier jeu de données (même adresse que le Vieux Port) : il fonctionne."
+  },
+  {
+   "nom": "Le bureau à l'ordinateur, jour et nuit (Windows 1366)",
+   "resultat": "36 ✓ · 0 ✗ : « ‹ OP GESTION » puis Devis, Clients, Achats et frais, Contrats, Tâches, Interventions (chaque ligne ouvre son écran, surlignée, sans refus, sans glissement latéral), le logo ramène à la Comptabilité ; aucune erreur JavaScript."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "menu-defilement.js",
+   "resultat": "60 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-conges-bureau.js",
+   "resultat": "30 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-conges.js",
+   "resultat": "22 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-routes.js",
+   "resultat": "100 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-poste.js",
+   "resultat": "25 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-renommages.js",
+   "resultat": "18 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-ordinateur.js",
+   "resultat": "298 ✓ · 2 ✗ (mac/julie et windows/julie : groupe « Matériel » du bureau, voir casses)"
+  },
+  {
+   "fichier": "menu-telephone.js",
+   "resultat": "442 ✓ · 3 ✗ (iphone, android, petit / julie : groupe « Matériel » du bureau)"
+  },
+  {
+   "fichier": "menu-nu.js",
+   "resultat": "11 ✓ · 1 ✗ (Tester en tant que gestion : groupe « Matériel »)"
+  },
+  {
+   "fichier": "menu-echafaudage.js",
+   "resultat": "9 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-memoire.js",
+   "resultat": "25 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-pack3d.js",
+   "resultat": "17 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-visites.js",
+   "resultat": "8 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "relire-menu-telephone.js",
+   "resultat": "1 448 ✓ · 0 ✗ avant le délai de 580 s (machine partagée, jusqu'à petit/jour/marc), puis petit/jour/julie+sm : 175 ✓ · 0 ✗ et petit/nuit/marc+julie+sm : 342 ✓ · 0 ✗ ; les 18 combinaisons profil × jour/nuit × rôle sont couvertes, 0 ✗"
+  },
+  {
+   "fichier": "relire-menu-telephone-2.js",
+   "resultat": "56 ✓ · 1 ✗ (écart nommé, défaut 7, écarté)"
+  },
+  {
+   "fichier": "relire-menu-telephone-3.js",
+   "resultat": "140 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "relire-menu-telephone-4.js",
+   "resultat": "61 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "menu-recontrole.js (neuve, du recontrôleur)",
+   "resultat": "partie A 20 ✓ · 0 ✗ ; B (surtitres contre groupes, 22 lignes) 3 ✓ · 0 ✗ ; C (entrées d'adresse) 24 ✓ · 0 ✗ ; D (poste sous le nom, 6 comptes) 24 ✓ · 0 ✗ ; E 14 ✓ · 1 ✗ (défaut 8, attendu) ; F (appui long) 10 ✓ · 0 ✗ ; G1 12 ✓ · 0 ✗ ; G2 7 ✓ · 0 ✗ ; G3 36 ✓ · 0 ✗"
+  }
+ ],
+ "doutes": [
+  "Le bureau doit-il avoir Stock et Fournisseurs, matériel & produits ? Le lot Matériel les lui a ouverts (commit 2b2c5e5) alors que MENU-FINAL.md ne les met pas dans son menu et listait « le rôle bureau n'a pas Stock » parmi les constats à vérifier. Si oui : on change MENU-FINAL et les trois sondes (ATTENDU.julie). Si non : on referme la route.",
+  "Le secrétariat ouvre sur la Comptabilité plein écran ; pour atteindre son menu il touche d'abord « ‹ OP GESTION » : est-ce voulu pour quelqu'un qui n'est pas à l'aise ? Un « Menu » visible dès l'ouverture serait plus simple.",
+  "Le message « Marc a validé ta demande » est illisible sur les téléphones étroits (voir casses) : à corriger avant de montrer « Mes congés » à une technicienne.",
+  "L'appui long qui avale le toucher suivant n'est prouvé que par l'état forcé, pas sur un iPhone ni un Android réels : à regarder à la main sur un vrai appareil."
+ ]
+}

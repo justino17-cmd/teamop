@@ -7,7 +7,7 @@ const { L, v, ouvrirEnt, remplir, fiche, toast, fin } = require('./entreprise-co
 const PAGE = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion.html'), 'utf8');
 const PREP = (id, cli) => `(() => { INTS.push({ id:'${id}', d:AUJ, h:'09:00', dur:60, tech:'sm', cli:'${cli}', titre:'Essai', type:'Entretien', st:'planifiee', fact:{ mode:'forfait', forfait:100, tva:20, zone:1 } }); const F = fiche('${id}'); F.coches = Object.fromEntries(tousControles(F).map(k => [k, true])); F.signature = 'signee'; F.absent = false; F.compte = 'Entretien réalisé.'; return manque(F).length; })()`;
 const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim();
-const cliquer = async (c, sel) => { await c.p.locator(sel).first().click(); await L.calme(c.p, 200); };
+const cliquer = async (c, sel) => { if (/carte\|/.test(sel)) await L.ranger(c.p); await c.p.locator(sel).first().click({ timeout:8000 }); await L.calme(c.p, 200); };
 (async () => {
   v('fichier : dix-sept appels à logoEnt dans les gabarits et aucune initiale écrite en dur', ((i0 => PAGE.slice(0, i0) + PAGE.slice(PAGE.indexOf('</style>`);', PAGE.indexOf('id="entreprise-css"')) + 11))(PAGE.indexOf('/* ══ MON ENTREPRISE ·')).match(/\$\{logoEnt\('(?:div|span)'\)\}/g) || []).length === 17 && !/class="logo-ent">CS</.test(PAGE));
   const c = await ouvrirEnt({ profil:'mac' });
@@ -16,6 +16,7 @@ const cliquer = async (c, sel) => { await c.p.locator(sel).first().click(); awai
   await remplir(c.p, 'en-nom', '<img src=x onerror="window.__pwn=1">'); await cliquer(c, '[data-ent="identok"]');
   const inj = await c.p.evaluate(() => ({ nom:ENTREPRISE.nom, pwn:window.__pwn, img:!!document.querySelector('img[src="x"]'), err:(document.getElementById('en-nom-err') || {}).textContent }));
   v('< > " refusés dans le nom : rien d’écrit, aucun élément injecté', inj.nom === avant.E.nom && !inj.pwn && !inj.img && /ne peut pas contenir de signes/.test(inj.err || ''), inj);
+  await cliquer(c, '[data-ent="carte|ident"]');   // (un défaut qui aurait laissé passer l'injection a refermé le panneau : on le rouvre pour continuer)
   await remplir(c.p, 'en-nom', 'Essai Climat'); await remplir(c.p, 'en-rue', '3 rue des Mouettes'); await remplir(c.p, 'en-cp', '17000'); await remplir(c.p, 'en-ville', 'La Rochelle'); await cliquer(c, '[data-ent="identok"]');
   const od = await c.p.evaluate(() => ({ adr:ENTREPRISE.adr, o:opdDonnees().entreprise }));
   v('adresse en UNE chaîne « rue, code postal ville », relue par opdDonnees', od.adr === '3 rue des Mouettes, 17000 La Rochelle' && od.o.adresse === '3 rue des Mouettes' && od.o.cp === '17000' && od.o.ville === 'La Rochelle', od);

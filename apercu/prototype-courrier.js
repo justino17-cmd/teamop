@@ -1398,9 +1398,10 @@ var CSS = `
     .opc:where([data-fmt="phone"]) .sched-banner .tx span{font-size:13px}
 
     /* Feuilles iOS (glissent du bas, poignée, zones sûres) */
-    .opc.has-sheet:where([data-fmt="phone"]) .opc-root{background:#000}
-    .opc.sheet-under:where([data-fmt="phone"]) .app{transform-origin:50% 0;transform:translateY(max(var(--sa-top),20px)) scale(.92);border-radius:12px;overflow:hidden;filter:brightness(.85)}
-    .opc:where([data-fmt="phone"]) .overlay{display:flex;align-items:flex-end;padding:calc(max(var(--sa-top),20px) + 10px) 0 0}
+    /* l'effet « feuille iOS » (la page recule sur fond noir) n'a de sens que si le module occupe TOUT l'écran : dans une carte de 508 px sur un iPad de 820, il dessinait un cadre noir autour d'elle */
+    .opc.has-sheet.sheet-plein:where([data-fmt="phone"]) .opc-root{background:#000}
+    .opc.sheet-under.sheet-plein:where([data-fmt="phone"]) .app{transform-origin:50% 0;transform:translateY(max(var(--sa-top),20px)) scale(.92);border-radius:12px;overflow:hidden;filter:brightness(.85)}
+    .opc:where([data-fmt="phone"]) .overlay{display:flex;align-items:flex-end;justify-content:center;padding:calc(max(var(--sa-top),20px) + 10px) 0 0}   /* centrée : la feuille d'écriture (700 px) restait collée au bord gauche d'un iPad */
     .opc:where([data-fmt="phone"]) .sheet{width:100%;max-height:100%;border-radius:12px 12px 0 0;padding-bottom:var(--sa-bottom);animation:opc-sheetUp .42s var(--ease)}
     .opc:where([data-fmt="phone"]) .sheet::before{content:"";position:absolute;z-index:9;top:5px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--label-3)}
     .opc:where([data-fmt="phone"]) .sheet.compose,.opc:where([data-fmt="phone"]) .sheet.acct{height:100%}
@@ -1509,6 +1510,12 @@ var CSS = `
   .opc:where([data-fmt="mac"],[data-fmt="pad"]) .cat{flex:0 0 auto;height:30px;min-width:0;padding:0 10px;font-size:14px}
   .opc:where([data-fmt="mac"],[data-fmt="pad"]) .cat svg{display:none}
   @media (pointer:coarse){ .opc:where([data-fmt="mac"],[data-fmt="pad"]) .cat{height:40px;padding:0 13px;font-size:15px} }
+  /* un iPad en portrait : le module est une carte de 500 px au format « téléphone », et six catégories n'y tiennent pas sur une rangée — elles passent à la ligne, comme sur ordinateur. Sur un vrai téléphone (≤ 430 px) la rangée défile, comme Mail d'iOS. */
+  @container (min-width:440px){
+    .opc:where([data-fmt="phone"]) .catbar{flex-wrap:wrap;gap:6px 8px}
+    .opc:where([data-fmt="phone"]) .cat{height:40px;padding:0 14px;font-size:15px}
+    .opc:where([data-fmt="phone"]) .cat svg{display:none}
+  }
   .opc:where([data-fmt="mac"]) .cat[aria-pressed="true"] .cl{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:nowrap}
   /* ordinateur-13 : l'écran était écrit en 11–13 px, alors que Clients et Devis sont à 16 px : on monte les libellés de dossiers, de filtres, de catégories, les pastilles,
      les sous-titres et le bandeau d'erreur à 14 px au moins, et les champs et segments à 34 px de haut (souris : sous le doigt, les règles tactiles plus grandes gardent la main) */
@@ -1541,9 +1548,17 @@ var CSS = `
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn.primary{grid-column:1/-1;background:var(--tint);color:var(--on-tint);box-shadow:none;font-weight:600}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .hband .hacts .btn:not(.primary){background:var(--btn);color:var(--label);box-shadow:0 0 0 1px var(--btn-edge);font-weight:500}
   /* D16 : « Boîte de réception » se tronquait en « Boîte de récept… » sur un téléphone de 360 px (34 px de gras) */
-  .opc:where([data-fmt="phone"]) .list .large-title{font-size:clamp(21px,7.2vw,31px);line-height:1.2;letter-spacing:-.015em}
+  .opc:where([data-fmt="phone"]) .list .large-title,.opc:where([data-fmt="phone"]) .sidebar .large-title{font-size:clamp(21px,7.2vw,31px);line-height:1.2;letter-spacing:-.015em}   /* « Mes boîtes … » : la règle ne visait que le titre de la liste */
+  .opc:where([data-fmt="phone"]) #btnBack{max-width:66cqw}   /* « ‹ Boîte de réc… » : à 320 px la place existe (les deux flèches ne prennent que 88 px) */
+  .opc:where([data-fmt="phone"]) .sheet.compose .sheet-title{font-size:16px}
   .opc:where([data-fmt="phone"],[data-fmt="pad"]) .rquick button{min-height:44px}   /* cible au doigt */
   .opc .hpast{margin-right:6px}
+  .opc .tl{display:none}
+  /* téléphone : un mot sous chaque icône de la barre du bas (comme la barre d'onglets de l'application) */
+  .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:56px;padding:0 4px;height:46px}
+  .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb) svg{width:22px;height:22px}
+  .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb) .tl{display:block;font-size:10.5px;line-height:12px;font-weight:500;color:var(--label-2);white-space:nowrap}
+  .opc:where([data-fmt="phone"]) .selbar .sb.dng .tl{color:var(--red-text)}
   .opc .msg.sel .hpast{background:rgba(255,255,255,.24);color:#fff}
 `;
 var FEUILLE = null;
@@ -1857,6 +1872,7 @@ var MARKUP = `
     CAP.journalEnvois=c.journalEnvois===true&&typeof SRC.envois==="function";
     CAP.telechargerPiece=c.telechargerPiece===true&&typeof SRC.piece==="function";
     CAP.suivi=c.suivi===true&&typeof SRC.suivi==="function";
+    CAP.equipe=Array.isArray(c.equipe)?c.equipe.map(String).filter(Boolean):null;   // (facultatif) les prénoms que « Assigné à » propose : sans liste, un débutant doit deviner qu'il faut écrire un prénom
     CAP.traduire=c.traduire===true&&typeof SRC.traduire==="function";   // « Traduire en français » (20 octobre 2026) : la source traduit, le module ne devine rien
     // La VRAIE signature exige la déclaration ET les six méthodes de l'objet `signature` : sans elles, le module ne promet rien de plus qu'avant.
     var sg=SRC.signature;
@@ -2175,9 +2191,9 @@ var MARKUP = `
   function hhmm(d){ return d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }
   function dayDiff(d){ var t0=new Date(maintenant()); t0.setHours(0,0,0,0); var d0=new Date(d); d0.setHours(0,0,0,0); return Math.round((d0-t0)/DAY); }
   function fmtSched(t){ var d=new Date(t), n=dayDiff(d), day;
-    if(n===0) day="aujourd'hui"; else if(n===1) day="demain"; else if(n>1&&n<7) day=d.toLocaleDateString("fr-FR",{weekday:"long"});
+    if(n===0) day="aujourd’hui"; else if(n===1) day="demain"; else if(n>1&&n<7) day=d.toLocaleDateString("fr-FR",{weekday:"long"});
     else day="le "+d.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"}).replace(/\./g,"");
-    return day+" à "+hhmm(d); }
+    return day+" à "+d.getHours()+" h"+(d.getMinutes()?" "+(d.getMinutes()<10?"0":"")+d.getMinutes():""); }   // « 8 h », « 18 h 30 » : l'heure comme le reste de l'écran la dit (jamais « 08:00 »)
   function fmtSchedShort(t){ var d=new Date(t), n=dayDiff(d), day;
     if(n===0) day="Auj."; else if(n===1) day="Demain"; else if(n>1&&n<7) day=cap(d.toLocaleDateString("fr-FR",{weekday:"short"}).replace(".",""));
     else day=d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});
@@ -2266,10 +2282,25 @@ var MARKUP = `
     placeSheetChrome(); paintStatus(); catReveal(); catFade();
   }
   // Pile de navigation iPhone : mailboxes → list → reading
+  /* LE RETOUR DU TÉLÉPHONE (relecture du 17 novembre 2026) : le bouton retour d'Android, le glissement depuis le bord de l'iPhone quittaient la Boîte mail pour l'Accueil —
+     depuis la lecture d'un message comme depuis un message en cours d'écriture, qui disparaissait sans un mot. Chaque niveau (lecture, colonne des boîtes, feuille ouverte) pose UNE entrée
+     d'historique à la même adresse ; le retour du navigateur recule d'un niveau, et ce n'est qu'au niveau de la liste qu'il laisse l'hôte quitter la rubrique.
+     La profondeur voulue se déduit de l'écran (histCible) et l'historique la rejoint (histSync) : un geste de l'application qui recule retire son entrée, il n'en laisse pas d'orpheline.
+     Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
+  var HIST={niv:0,ignorer:0,off:false,t:null,ti:null};
+  function overlayDePage(){ var o=$("#overlay"); return !!o&&!o.classList.contains("ov-menu"); }
+  function histCible(){ return isPhone()?((app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0)):0; }
+  function histSync(){
+    if(HIST.off||!vivant) return; clearTimeout(HIST.t);
+    HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return; var c=histCible();
+      try{
+        while(HIST.niv<c){ history.pushState({opcourrier:HIST.niv+1},"",location.href); HIST.niv++; }
+        if(HIST.niv>c){ var n=HIST.niv-c; HIST.niv=c; HIST.ignorer++; clearTimeout(HIST.ti); HIST.ti=setTimeout(function(){ HIST.ignorer=0; },900); history.go(-n); }
+      }catch(e){ HIST.off=true; } },0); }
   function go(view){
     if(!isPhone()) return;
     var prev=app.getAttribute("data-view"); if(prev===view) return;
-    app.setAttribute("data-view",view);
+    app.setAttribute("data-view",view); histSync();
     if(pendingUndo&&$("#tUndo")){ if(toastKind==="undo") $("#toast").classList.toggle("quiet",view!=="reading"); else { $("#tUndo").hidden=view!=="reading"; $("#toast").classList.toggle("two",view==="reading"&&!!$("#tAct")); } }
     var target=view==="mailboxes"?$("#sidebar"):view==="list"?$("#list"):$("#reading");
     try{ target.focus({preventScroll:true}); }catch(e){}
@@ -2360,7 +2391,7 @@ var MARKUP = `
     var all=catScoped(), u=all.filter(function(m){return !m.read;}).length, l1;
     if(state.folder==="scheduled") l1=all.length?plural(all.length,"envoi programmé","envois programmés"):"Aucun envoi programmé";
     else if(state.folder==="drafts") l1=all.length?plural(all.length,"brouillon","brouillons"):"Aucun brouillon";
-    else if(state.folder==="inbox"&&!state.query){ var uf=folderMessages("inbox").filter(function(m){return !m.read;}).length; l1=uf?plural(uf,"non lu","non lus"):all.length?"Tout est lu":"Aucun message"; }
+    else if(state.folder==="inbox"&&!state.query){ var uf=folderMessages("inbox").filter(function(m){return !m.read;}).length; l1=uf?plural(uf,"non lu","non lus")+(cl?" en tout":""):all.length?"Tout est lu":"Aucun message"; }   // le nombre est celui de TOUTE la boîte : collé au nom d'une catégorie il se lisait comme le sien
     else if(u) l1=plural(u,"non lu","non lus");
     else l1=all.length?plural(all.length,"message","messages"):"Aucun message";
     return '<span class="st1">'+H(l1)+'</span><span class="st2">'+st2+'</span>';
@@ -2477,14 +2508,14 @@ var MARKUP = `
   function renderSelBar(){
     var bar=$("#selBar"); if(!state.multi){ bar.hidden=true; bar.innerHTML=""; return; }
     var n=state.multi.length, tot=listMessages().length, sel=pickedMsgs(), anyUnread=sel.some(function(m){return !m.read;}), inTrash=state.folder==="trash";
-    var b=function(act,icon,label,cls){ return '<button type="button" class="sb'+(cls?" "+cls:"")+'" data-multi="'+act+'" aria-label="'+H(label)+'" title="'+H(label)+'"'+(n?'':' disabled')+'>'+icon+'</button>'; };
+    var b=function(act,icon,label,cls,court){ return '<button type="button" class="sb'+(cls?" "+cls:"")+'" data-multi="'+act+'" aria-label="'+H(label)+'" title="'+H(label)+'"'+(n?'':' disabled')+'>'+icon+(court?'<span class="tl" aria-hidden="true">'+H(court)+'</span>':'')+'</button>'; };
     bar.hidden=false;
     bar.innerHTML='<button type="button" class="sa" data-multi="all">'+(n&&n===tot?"Aucun":"Tout")+'</button>'+
       '<span class="sc" aria-live="polite">'+(n?plural(n,"sélectionné","sélectionnés"):"Touchez des messages")+'</span>'+
-      b("read",anyUnread?I.mail:I.unread,anyUnread?"Marquer comme lu":"Marquer comme non lu")+
-      (state.folder==="archive"||state.folder==="junk"||inTrash?b("toInbox",I.inbox,REMETTRE):b("archive",I.archive,"Archiver"))+
-      b("forward",I.forward,n>1?"Transférer les "+n+" messages":"Transférer")+
-      b("trash",I.trash,inTrash?"Supprimer définitivement":"Supprimer","dng");
+      b("read",anyUnread?I.mail:I.unread,anyUnread?"Marquer comme lu":"Marquer comme non lu","",anyUnread?"Lu":"Non lu")+
+      (state.folder==="archive"||state.folder==="junk"||inTrash?b("toInbox",I.inbox,REMETTRE,"","Remettre"):b("archive",I.archive,"Archiver","","Archiver"))+
+      b("forward",I.forward,n>1?"Transférer les "+n+" messages":"Transférer","","Transférer")+
+      b("trash",I.trash,inTrash?"Supprimer définitivement":"Supprimer","dng",inTrash?"Effacer":"Supprimer");
   }
   function pickedMsgs(){ return (state.multi||[]).map(msgById).filter(Boolean); }
   function setMulti(on,firstId){ if(on&&folderOf(state.folder).journal){ toast("Le journal des envois est en lecture seule"); return; }
@@ -2521,7 +2552,8 @@ var MARKUP = `
 
   // ---------- Rendu : lecture ----------
   function tb(act,icon,label,cls){ return '<button type="button" class="tb'+(cls?" "+cls:"")+'" data-act="'+act+'" aria-label="'+H(label)+'" title="'+H(label)+'">'+icon+'</button>'; }
-  function tbtn(act,icon,label,cls){ return '<button type="button" class="tbtn'+(cls?" "+cls:"")+'" data-act="'+act+'" aria-label="'+H(label)+'">'+icon+'</button>'; }
+  // `court` : le mot écrit sous l'icône au téléphone (« Archiver », « Supprimer ») — dix icônes sans un mot ne disaient pas ce qu'elles font à qui n'a pas l'habitude (relecture du 17 novembre 2026)
+  function tbtn(act,icon,label,cls,court){ return '<button type="button" class="tbtn'+(cls?" "+cls:"")+'" data-act="'+act+'" aria-label="'+H(label)+'">'+icon+(court?'<span class="tl" aria-hidden="true">'+H(court)+'</span>':'')+'</button>'; }
   function readActsHtml(m){
     var msgs=listMessages(), idx=-1; if(m) for(var i=0;i<msgs.length;i++) if(msgs[i].id===m.id){idx=i;break;}
     var nav='<div class="acts-nav"><button type="button" class="tb" data-nav="-1" aria-label="Message précédent" title="Message précédent"'+(idx>0?'':' disabled')+'>'+I.chevU+'</button>'+
@@ -2552,9 +2584,9 @@ var MARKUP = `
   function readToolsHtml(m){
     if(!m||m.jr) return '';
     var isDraft=m.folder==="drafts"||m.folder==="scheduled";
-    return '<button type="button" class="tbtn'+(m.flagged?" on-flag":"")+'" data-act="flag" aria-pressed="'+m.flagged+'" aria-label="Drapeau">'+(m.flagged?I.flagFill:I.flag)+'</button>'+
-      (peutRemettre(m)?tbtn("toInbox",I.inbox,REMETTRE):tbtn("archive",I.archive,"Archiver"))+tbtn("trash",I.trash,"Supprimer")+
-      (isDraft?'<button type="button" class="tbtn txt" data-act="editDraft">Modifier</button>':tbtn("replyMenu",I.reply,"Répondre, transférer…"))+
+    return '<button type="button" class="tbtn'+(m.flagged?" on-flag":"")+'" data-act="flag" aria-pressed="'+m.flagged+'" aria-label="Drapeau">'+(m.flagged?I.flagFill:I.flag)+'<span class="tl" aria-hidden="true">Drapeau</span></button>'+
+      (peutRemettre(m)?tbtn("toInbox",I.inbox,REMETTRE,"","Remettre"):tbtn("archive",I.archive,"Archiver","","Archiver"))+tbtn("trash",I.trash,"Supprimer","","Supprimer")+
+      (isDraft?'<button type="button" class="tbtn txt" data-act="editDraft">Modifier</button>':tbtn("replyMenu",I.reply,"Répondre, transférer…","","Répondre"))+
       '<span class="tool-gap"></span>';
   }
   // Corps d'un message que la source n'a pas rendu avec sa liste : lu à l'ouverture.
@@ -2636,7 +2668,7 @@ var MARKUP = `
         '<button type="button" class="lnk" id="whyBtn" aria-expanded="'+open+'" aria-controls="whyPanel">Pourquoi ce rangement&nbsp;?<span class="chv" aria-hidden="true">'+I.chevR+'</span></button>'+
         '<button type="button" class="lnk" data-act="moveCat" aria-haspopup="dialog" aria-label="Ranger ailleurs…">'+I.moveTo+'<span class="mv-long">Ranger ailleurs…</span><span class="mv-short">Ranger…</span></button></div>'+
         '<div class="why" id="whyPanel"'+(open?'':' hidden')+'><p class="why-t">Rangé dans '+H(catName(cid))+' :</p><ul>'+whyOf(m).map(function(x){ return '<li>'+H(cap(x))+'</li>'; }).join("")+'</ul>'+
-        '<p class="why-note">'+I.info+'<span>Tri fait sur cet appareil, d’après l’expéditeur et le contenu. Le tri est fait sur cet appareil ; l’expéditeur n’est pas encore vérifié.</span></p></div>'; }
+        '<p class="why-note">'+I.info+'<span>Le tri se fait d’après l’expéditeur et le contenu du message. Si ce n’est pas la bonne catégorie, touchez « Ranger ailleurs… ».</span></p></div>'; }
     catLine+=suiviHtml(m)+hoteHtml(m);
     var k=kindOf(acc);
     // « via » seulement si le destinataire affiché n'est pas déjà l'adresse de la boîte (le badge Pro / Perso nomme la boîte)
@@ -2695,7 +2727,8 @@ var MARKUP = `
     var s=m.suivi;
     return '<div class="rcat rsuivi" role="group" aria-label="Suivi de la demande"><span class="rs-l">Suivi</span>'+
       '<span class="rs-seg">'+SUIVI_ETATS.map(function(e){ return '<button type="button" class="rs-b" data-suivi="'+e[0]+'" aria-pressed="'+(s.statut===e[0])+'">'+e[1]+'</button>'; }).join("")+'</span>'+
-      '<label class="rs-a"><span class="rs-l">Assigné à</span><input type="text" id="suiviAssigne" maxlength="60" autocomplete="off" placeholder="Personne" value="'+H(s.assigne)+'"></label>'+
+      '<label class="rs-a"><span class="rs-l">Assigné à</span><input type="text" id="suiviAssigne" maxlength="60" autocomplete="off" placeholder="'+(CAP.equipe&&CAP.equipe.length?"Choisir quelqu’un":"Personne")+'" value="'+H(s.assigne)+'"'+(CAP.equipe&&CAP.equipe.length?' list="suiviEquipe"':'')+'>'+
+        (CAP.equipe&&CAP.equipe.length?'<datalist id="suiviEquipe">'+CAP.equipe.map(function(n){ return '<option value="'+H(n)+'"></option>'; }).join("")+'</datalist>':'')+'</label>'+
       (s.par?'<span class="rs-par">Dernier geste : '+H(s.par)+'</span>':'')+'</div>'; }
   // Se met à jour SUR PLACE (jamais en remplaçant la ligne) : la réponse du serveur arrive pendant que la personne tape un nom ou enchaîne un second geste, et ne doit pas lui voler le focus.
   function repeindreSuivi(m,focus){
@@ -2977,7 +3010,8 @@ var MARKUP = `
     returnFocus=actif();
     $("#overlays").appendChild(ov);
     cadre.classList.add("has-sheet"); if(kind!=="menu") cadre.classList.add("sheet-under");
-    app.inert=true;
+    try{ if(hote.getBoundingClientRect().width>=window.innerWidth-2) cadre.classList.add("sheet-plein"); }catch(e){}
+    app.inert=true; histSync();
     // Fond voilé : ne ferme que si l'appui ET le relâchement y ont lieu (une sélection de texte glissée hors de la feuille ne ferme rien).
     var downOnOv=false;
     ov.addEventListener("pointerdown",function(e){ downOnOv=e.target===ov; });
@@ -2995,9 +3029,9 @@ var MARKUP = `
   function closeOverlay(){
     fermerApercu();
     var had=false, o; while((o=$("#overlay"))){ o.remove(); had=true; }
-    cadre.classList.remove("has-sheet","sheet-under"); app.inert=false; state.compose=null; rsOpenId=null;
+    cadre.classList.remove("has-sheet","sheet-under","sheet-plein"); app.inert=false; state.compose=null; rsOpenId=null;
     if(had&&returnFocus&&sr.contains(returnFocus)&&returnFocus!==document.body){ try{ returnFocus.focus({preventScroll:true}); }catch(e){} }
-    returnFocus=null;
+    returnFocus=null; histSync();
     if(had) setTimeout(flushScheduled,0);   // un envoi retenu pendant que sa feuille était ouverte part maintenant
   }
   function closeCompose(){ closeOverlay(); }
@@ -3750,15 +3784,13 @@ var MARKUP = `
     return out;
   }
   function schedPanel(id){
-    var tz=""; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(e){}
     var def=new Date(maintenant()); def.setDate(def.getDate()+1); def.setHours(9,0,0,0);
     var dv=toLocalInput(def).split("T"), today=toLocalInput(new Date(maintenant())).split("T")[0];
     return '<div class="sched" id="'+id+'">'+
-      '<div class="sched-head"><b>Programmer l’envoi</b>'+(tz?'<span>Fuseau : '+H(tz)+'</span>':'')+'</div>'+
+      '<div class="sched-head"><b>Programmer l’envoi</b></div>'+
       // D13 : l'avertissement est EN TÊTE et en mots simples (il était une ligne grise de 12 px sous le bouton : on programmait « demain 8 h », on fermait le téléphone, rien ne partait)
       (CAP.programmeServeur?'':'<div class="sched-warn" role="note">'+I.warn+'<span><b>Le message ne part que si cette page reste ouverte à l’heure choisie.</b> Si vous fermez l’application avant, il attendra votre retour dans « Programmés ».</span></div>')+
       '<div class="gcard sched-list">'+presetsHtml()+'</div>'+
-      (tz?'<p class="sched-tz">Fuseau horaire : '+H(tz)+'</p>':'')+
       '<div class="ghead" aria-hidden="true">Autre date</div>'+
       '<div class="gcard"><div class="fld sched-custom"><label for="'+id+'Date">Date</label>'+
         '<input type="date" id="'+id+'Date" lang="fr" value="'+dv[0]+'" min="'+today+'">'+
@@ -3878,7 +3910,7 @@ var MARKUP = `
         '<div class="ghead" id="mvLbl">Catégorie</div>'+
         '<div class="gcard" id="mvList" role="radiogroup" aria-labelledby="mvLbl">'+OPClassify.CATS.map(function(c){ var on=c.id===cur;
           return '<button type="button" class="sp mvopt" role="radio" aria-checked="'+on+'" tabindex="'+(on?0:-1)+'" data-cat="'+c.id+'">'+
-            '<span class="mvic" aria-hidden="true">'+I[CAT_ICON[c.id]]+'</span><span class="sp-l"><b>'+H(c.name)+'</b>'+(on?' <i>actuelle</i>':'')+'</span><span class="mck" aria-hidden="true">'+I.check+'</span></button>'; }).join("")+'</div>'+
+            '<span class="mvic" aria-hidden="true">'+I[CAT_ICON[c.id]]+'</span><span class="sp-l"><b>'+H(catName(c.id))+'</b>'+(on?' <i>actuelle</i>':'')+'</span><span class="mck" aria-hidden="true">'+I.check+'</span></button>'; }).join("")+'</div>'+
         '<div class="gcard mv-card"><label class="swrow" for="mvAlways"><span class="swl">Toujours ranger les mails de <b>'+H(email)+'</b> ici</span>'+
           '<input type="checkbox" class="switch" id="mvAlways" role="switch"></label></div>'+
         '<p class="gfoot-s">'+I.info+'<span>'+(sameSender>1?'Avec cette option, les '+sameSender+' messages reçus de cette adresse sont rangés aussi, ':'Avec cette option, ')+'la boîte mail s’en souvient pour les prochains mails.</span></p>'+
@@ -4275,6 +4307,15 @@ var MARKUP = `
   }
   sur(sr,"click",function(e){ if(e.target.closest("[data-undo]")&&pendingUndo) pendingUndo.cancel(); });
   // Page quittée ou rechargée pendant les 5 s : l'envoi part (il est de toute façon déjà dans la boîte d'envoi persistée) ; un retrait de boîte en attente aussi.
+  // le retour du navigateur : on recule d'UN niveau (feuille fermée, ou lecture → liste) ; sans niveau poussé, l'hôte garde la main
+  sur(window,"popstate",function(){
+    if(!vivant||HIST.off) return;
+    if(HIST.ignorer>0){ HIST.ignorer=0; return; }
+    if(HIST.niv<=0||!isPhone()) return;
+    HIST.niv--;
+    if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
+    else if(app.getAttribute("data-view")!=="list") go("list");
+    histSync(); });
   sur(window,"pagehide",function(){ if(pendingUndo) pendingUndo.finish(true,true); retraits.forEach(function(r){ if(!r.annule) retirerCoteSource(r); }); });
 
   // ---------- Colonne Boîtes (iPad) ----------
@@ -4472,6 +4513,7 @@ var MARKUP = `
     // H7 — liens d'une tâche, de l'Accueil, d'une fiche client : le module peut ne pas être encore chargé (la demande attend son premier relevé)
     ouvrir:function(id){ apresChargement(function(){ if(vivant) ouvrirMessage(id); }); return true; },
     repondre:function(id,intro){ apresChargement(function(){ if(vivant) repondreA(id,intro); }); return true; },
+    ecrire:function(m){ apresChargement(function(){ if(vivant) openCompose(m||null); }); return true; },   // un nouveau message, depuis un bouton de l'hôte (« ＋ Écrire » de l'en-tête de la rubrique)
     rechercher:function(t,o){ apresChargement(function(){ if(vivant) rechercher(t,o); }); return true; },
     // ferme la fenêtre ouverte (composeur, menu) sans rien enregistrer d'inventé : sert la visite guidée de l'hôte
     fermer:function(){ try{ if(state.compose&&state.compose.dismiss) state.compose.dismiss(); }catch(e){} closeOverlay(); return true; },
