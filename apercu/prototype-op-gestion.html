@@ -2498,9 +2498,11 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
    · sous 400 px chaque liste prend sa ligne (« Tout le mo… » ne nomme rien) ;
    · sur iPad en portrait le graphique des 12 mois défile comme au téléphone au lieu d'écraser ses mois à 35 px. */
 @media (pointer:coarse){.h-puces .puce-c{min-height:44px}.st-nav button{width:44px;height:44px}}
+@media (max-width:480px){#contenu .tete.tete-h{flex-wrap:wrap;align-items:flex-start;gap:10px 14px}#contenu .tete.tete-h>div:first-child{flex:1 1 220px;min-width:min(100%,220px);overflow-wrap:anywhere}#contenu .tete.tete-h>.btn{flex:0 1 auto;max-width:100%}}   /* à 320 px le bouton prenait la place du titre : « Historiq / ue » */
 @media (max-width:400px){.h-sel{grid-template-columns:minmax(0,1fr)}}
 @media (pointer:coarse) and (min-width:761px) and (max-width:900px){
-  .st-graph{overflow-x:auto;direction:rtl;-webkit-overflow-scrolling:touch}
+  .st-graph{overflow-x:auto;direction:rtl;-webkit-overflow-scrolling:touch;padding-left:0}
+  .st-grad span{display:none}   /* comme au téléphone : l'échelle de gauche se lirait à l'envers dans un défilement de droite à gauche */
   .st-glisse{display:inline}
   .st-graph .st-cols{direction:ltr;min-width:528px}
   .st-graph .st-bulle{display:none}
@@ -6368,7 +6370,7 @@ function vueHistorique(){
   const gensVus = Object.keys(H_GENS).filter(k => JOURNAL.some(j => j.qui === k) && (hVoirComme === 'marc' || k === hVoirComme));
   const clis = Object.keys(CLIENTS).filter(k => JOURNAL.some(j => j.el && j.el.cli === k));
   const filtres = hQui !== 'tous' || hType !== 'tous' || hCli !== 'tous' || hJourSel !== 'tous' || hCherche, ouvert = d => filtres || hOuverts.has(d);
-  return `<div class="tete tete-p"><div><span class="surtitre">Accueil</span><h1>Historique</h1><span class="gris">Qui a fait quoi, et quand. Rien ne s’y efface ni ne s’y modifie.</span></div>
+  return `<div class="tete tete-h"><div><span class="surtitre">Accueil</span><h1>Historique</h1><span class="gris">Qui a fait quoi, et quand. Rien ne s’y efface ni ne s’y modifie.</span></div>
     <button type="button" class="btn gris" data-hexport="1">Exporter en PDF</button></div>
   ${enApp() ? '' : `<div class="h-comme"><span class="gris petit">Pour l’essai, voir comme :</span><div class="seg" role="group" aria-label="Voir comme">${[['marc', 'Marc · gérant'], ['sm', 'Sophie · technicienne']].map(([k, l]) => `<button type="button" data-hcomme="${k}" aria-pressed="${hVoirComme === k}">${l}</button>`).join('')}</div>
     ${hVoirComme !== 'marc' ? '<span class="h-note">Sans le droit « Tout voir », Sophie ne voit que ses propres actions.</span>' : ''}</div>`}
@@ -9957,7 +9959,7 @@ function vueEquipe(){
     <div class="seg" role="group" aria-label="Filtre" style="align-self:flex-start">${[['tous', 'Tout le monde'], ['terrain', 'Terrain'], ['bureau', 'Bureau'], ['off', 'Désactivés']].map(([k, l]) => `<button type="button" data-eq="filtre|${k}" aria-pressed="${eqFiltre === k}">${l}</button>`).join('')}</div>
     <div class="bx-grille eq-grille">${L.map(p => { const r = eqResume(p), c = (H_GENS[p.k] || {}).c || '#5b6676';
       return `<button type="button" class="carte bx-c eq-c${p.actif ? '' : ' eq-off'}" data-eq="fiche|${p.k}"><span class="bx-t"><span class="eq-av" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><span class="fo-n"><b>${esc(eqNom(p))}</b><span class="gris petit">${esc(p.role)}</span></span>${!p.actif ? '<span class="st st-g">Désactivé</span>' : p.invite ? '<span class="st st-b">Invité</span>' : p.droits.profil === 'admin' ? '<span class="st st-p">Admin</span>' : ''}</span>
-        <span class="eq-puces">${r.ints.length ? `<span>🗓 ${r.ints.length} interv. cette semaine</span>` : ''}${r.heures ? `<span${r.heures > 48 * 60 ? ' class="eq-rouge" title="Au-delà de 48 h dans la semaine (Code du travail, L3121-20)"' : ''}>⏱ ${ptH(r.heures)} pointées</span>` : ''}${r.v ? `<span>🚐 ${esc(r.v.plaque)}</span>` : ''}${r.absEn ? `<span class="eq-abs">🏖 ${esc(absTexte(r.absEn))}</span>` : r.absPro && tJours(r.absPro.du) <= 21 ? `<span>🏖 ${esc(absTexte(r.absPro))}</span>` : ''}${r.hab.length ? `<span class="eq-alerte">⚠️ ${r.hab.length} habilitation${r.hab.length > 1 ? 's' : ''}</span>` : ''}</span></button>`; }).join('') || '<p class="gris">Personne ici pour le moment.</p>'}</div>`;
+        <span class="eq-puces">${r.ints.length ? `<span>🗓 ${r.ints.length} interv. cette semaine</span>` : ''}${r.heures ? `<span${r.heures > 48 * 60 ? ' class="eq-rouge" title="Au-delà de 48 h dans la semaine (Code du travail, L3121-20)"' : ''}>⏱ ${ptH(r.heures)} travaillées</span>` : ''}${r.v ? `<span>🚐 ${esc(r.v.plaque)}</span>` : ''}${r.absEn ? `<span class="eq-abs">🏖 ${esc(absTexte(r.absEn))}</span>` : r.absPro && tJours(r.absPro.du) <= 21 ? `<span>🏖 ${esc(absTexte(r.absPro))}</span>` : ''}${r.hab.length ? `<span class="eq-alerte">⚠️ ${r.hab.length} habilitation${r.hab.length > 1 ? 's' : ''}</span>` : ''}</span></button>`; }).join('') || '<p class="gris">Personne ici pour le moment.</p>'}</div>`;
 }
 function eqFiche(k){
   const p = eqDe(k), r = eqResume(p), c = (H_GENS[k] || {}).c || '#5b6676', admin = p.droits.profil === 'admin', seulAdmin = admin && EQUIPE.filter(o => o.actif && o.droits.profil === 'admin').length === 1;
@@ -20303,7 +20305,7 @@ const eqxHabTexte = (p, j) => { const h = p.habil[j], m = h[2] || {};
 function eqxCarte(p) {
   const r = eqResume(p), c = (H_GENS[p.k] || {}).c || '#5b6676';
   return `<button type="button" class="carte bx-c eq-c${p.actif ? '' : ' eq-off'}" data-eq="fiche|${p.k}"><span class="bx-t"><span class="eq-av" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><span class="fo-n"><b>${esc(eqNom(p))}</b><span class="gris petit">${esc(p.role)}</span></span>${!p.actif ? '<span class="st st-g">Désactivé</span>' : p.invite ? '<span class="st st-b">Invité</span>' : p.droits.profil === 'admin' ? '<span class="st st-p">Admin</span>' : ''}</span>
-    <span class="eq-puces">${r.ints.length ? `<span>🗓 ${r.ints.length} interv. cette semaine</span>` : ''}${r.heures ? `<span${r.heures > 48 * 60 ? ' class="eq-rouge" title="Au-delà de 48 h dans la semaine (Code du travail, L3121-20)"' : ''}>⏱ ${ptH(r.heures)} pointées</span>` : ''}${r.v ? `<span>🚐 ${esc(r.v.plaque)}</span>` : ''}${r.absEn ? `<span class="eq-abs">🏖 ${esc(absTexte(r.absEn))}</span>` : r.absPro && tJours(r.absPro.du) <= 21 ? `<span>🏖 ${esc(absTexte(r.absPro))}</span>` : ''}${r.hab.length ? `<span class="eq-alerte">⚠️ ${eqxPl(r.hab.length, 'habilitation')}</span>` : ''}</span></button>`;
+    <span class="eq-puces">${r.ints.length ? `<span>🗓 ${r.ints.length} interv. cette semaine</span>` : ''}${r.heures ? `<span${r.heures > 48 * 60 ? ' class="eq-rouge" title="Au-delà de 48 h dans la semaine (Code du travail, L3121-20)"' : ''}>⏱ ${ptH(r.heures)} travaillées</span>` : ''}${r.v ? `<span>🚐 ${esc(r.v.plaque)}</span>` : ''}${r.absEn ? `<span class="eq-abs">🏖 ${esc(absTexte(r.absEn))}</span>` : r.absPro && tJours(r.absPro.du) <= 21 ? `<span>🏖 ${esc(absTexte(r.absPro))}</span>` : ''}${r.hab.length ? `<span class="eq-alerte">⚠️ ${eqxPl(r.hab.length, 'habilitation')}</span>` : ''}</span></button>`;
 }
 /* « Qui peut quoi » : une ligne par personne sur ordinateur, une ligne par droit sur téléphone */
 function eqxDroitsVue() {
@@ -23617,7 +23619,7 @@ immChap('equipe', 'equipe', 'Équipe', 'L’équipe : qui fait quoi, avec quels 
   'L’équipe, c’est qui travaille avec toi, ce que chacun peut faire, et ses habilitations. Je te montre comment inviter quelqu’un, régler ses droits, et ne jamais oublier un renouvellement.', [
   { c:'#contenu .kpis', t:'L’équipe d’un coup d’œil', p:'Ici, 6 places utilisées sur 8, 4 personnes sur le terrain, 2 habilitations à renouveler, et aucune invitation en attente. Chaque tuile se touche pour filtrer la liste.' },
   { c:'#eqx-renouv', t:'Les habilitations à renouveler', p:'Les habilitations qui arrivent à échéance sont rassemblées ici. Celle de Karim, électrique, finit dans 24 jours, et sa formation est prévue. Celle de Léa, sur l’amiante, est expirée : un bouton planifie la formation.' },
-  { c:'.eq-grille [data-eq="fiche|kb"]', t:'Une carte par personne', p:'Chaque personne a sa carte : son rôle, ses heures pointées, son véhicule, ses absences. Sur celle de Karim, les 48 heures 45 sont en rouge : c’est au-delà de la limite de 48 heures dans la semaine. J’ouvre sa fiche.',
+  { c:'.eq-grille [data-eq="fiche|kb"]', t:'Une carte par personne', p:'Chaque personne a sa carte : son rôle, ses heures travaillées, son véhicule, ses absences. Sur celle de Karim, les 48 heures 45 sont en rouge : c’est au-delà de la limite de 48 heures dans la semaine. J’ouvre sa fiche.',
     jouer:immAvmeJ('equipe', () => immClic('.eq-grille [data-eq="fiche|kb"]')) },
   { c:'#calque .panneau .fo-stats', t:'La fiche de Karim', p:'La fiche donne sa semaine : 4 interventions, ses heures, ses congés restants. Plus bas, des liens mènent à son planning, son véhicule et son historique, puis viennent ses habilitations.' },
   { c:'#calque .panneau [data-eq="renouv|kb|1"]', t:'Renouveler une habilitation', p:'L’habilitation électrique de Karim est valable jusqu’au 24 novembre. Je touche Renouveler : le logiciel va me demander ce qui s’est passé.',

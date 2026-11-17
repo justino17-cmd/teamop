@@ -110,6 +110,7 @@ const M = [
   ["91 · le guide des nouveautés ne parle plus de Véhicules et Temps de travail", [["  ['vehicules', '🚐', 'Véhicules et Temps de travail, refaits', 'Une rangée par véhicule qui dit s’il a besoin de toi. Temps de travail : ce qu’il faut régler, d’un coup d’œil. Ton camion et tes heures, au même endroit.'],\n", ""]], [N5], { PROFILS:'mac', SEULS:'E' }],
   ["92 · la visite du technicien vise de nouveau .paie-conf (un bloc qui n'existe plus : elle se bloque sans bruit)", [["{ c:'.tt-pret', t:'Ses heures et sa paie',", "{ c:'.paie-conf', t:'Ses heures et sa paie',"]], [I5], { CHAPS:'tech' }],
   ["93 · la visite du technicien navigue vers Mes heures une étape trop tôt (l'index du chapitre n'a pas suivi l'étape insérée)", [["immRolesEcran('tech', 11, 'mesheures'); immRolesEcran('tech', 12, 'techfrais');", "immRolesEcran('tech', 10, 'mesheures'); immRolesEcran('tech', 11, 'techfrais');"]], [I5], { CHAPS:'tech' }],
+  ["94 · la carte d'une personne, dans la liste d'Équipe, redit « pointées » (aux deux endroits)", [["⏱ ${ptH(r.heures)} travaillées", "⏱ ${ptH(r.heures)} pointées", 2]], [N5], { PROFILS:'mac', SEULS:'B' }],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });
