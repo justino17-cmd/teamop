@@ -18,7 +18,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
 - [x] (compositeur, restes tour 1 : référence avancée à ec8aafd, 56 ✓ · 0 ✗) **Sonde `atelier-seule.js`** — elle compare la page seule « au pixel près » à la Version 11 : les corrections du
       compositeur (prix à deux décimales, aides raccourcies, prestations au catalogue) déplacent des boîtes. À re-baser sur
       l'état corrigé, en gardant la vérification « rien d'autre n'a bougé ».
-- [ ] **Menu de l'ordinateur (coque, menu, materiel)** — gérant, Mac 1440 × 900, capture du 17/11 à 8 h 15 : l'entrée CHOISIE
+- [x] (restes coque, tour 1 : commit du lot (5/n), sonde coque-menu-choisie.js, 41 ✓ · 0 ✗ ; la ligne restait à 44 px pendant que le texte en sortait — colonne flex qui défile) **Menu de l'ordinateur (coque, menu, materiel)** — gérant, Mac 1440 × 900, capture du 17/11 à 8 h 15 : l'entrée CHOISIE
       « Fournisseurs, matériel & produits » passe sur TROIS lignes (elle est en gras, donc plus large : non choisie elle tient sur
       deux), et sa troisième ligne (« produits ») est coupée par le pied du menu (Jour · Nuit · Auto) : le menu n'a pas défilé
       assez pour montrer l'entrée entière. Attendu : la même hauteur choisie ou non (le gras ne doit pas changer le retour à la
@@ -98,3 +98,30 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         un cadre voisin sans pont retombe sur le LIEN de téléchargement avec la phrase honnête (« téléchargement demandé ; s'il
         ne démarre pas, ton navigateur le bloque »), comme la page du haut — le texte à copier reste le dernier recours ; et
         chaque `history.replaceState` nu prend son `try` (sept lignes citées).
+- [ ] **Artefact : un fichier fabriqué dans un cadre voisin (artefact)** — relu par le chef dans le contrat du pont
+      (`downloads.d.ts` 0.2.96 : `data: string | Blob | ArrayBuffer | ArrayBufferView`). Un Blob ou un ArrayBuffer né dans le
+      cadre de l'atelier ou de la Comptabilité n'est PAS un « instanceof Blob / ArrayBuffer » de la page du haut, là où vit
+      `window.claude` : si le pont teste le type, il répond `bad_request` et rien ne s'enregistre (le doute du recontrôle).
+      Règle sûre, à appliquer dans les trois chemins qui passent par `window.parent.claude` : un TEXTE (CSV, FEC) se passe en
+      chaîne ; un fichier binaire (PDF, image) se REFAIT avec le constructeur du parent avant l'appel —
+      `new window.parent.Blob([await blob.arrayBuffer()], { type })`. Sonde : dans le bac, un pont qui REFUSE tout ce qui
+      n'est pas `instanceof` de sa propre fenêtre ; les trois téléchargements des cadres passent quand même.
+- [ ] **Technicien — décisions du chef du 17/11, 9 h 30, à APPLIQUER (technicien)** : les deux points « à soumettre » de la
+      campagne sont tranchés, parce qu'ils ne touchent pas un dessin validé : ce sont les cartes AJOUTÉES par les refontes
+      (pointage, Mon camion) qui ont poussé les interventions sous le pli.
+      · **technicien-02** : sur « Ma journée », la première intervention du jour doit se voir SANS défiler sur un iPhone
+        (aujourd'hui elle commence à y = 832 sur 844 px). Ordre : le bonjour → la carte de pointage, COMPACTE (une phrase et
+        son bouton, « J'ai commencé plus tôt » à côté ou dessous en petit) → s'il y en a, une puce d'une ligne « 1 message du
+        bureau › » → LES INTERVENTIONS DU JOUR → puis, dessous, les messages du bureau en entier, Mon camion, les habilitations.
+        Preuve : sur iphone, android et petit (320 × 568), le haut de la première intervention est au-dessus de la barre du
+        bas, pointage commencé ou non, avec ou sans message ; rien d'autre ne change (mêmes gestes, mêmes textes).
+        ⚠️ Deux autres voies touchent ces cartes (materiel, vehtemps) : ne change que l'ORDRE et la hauteur de la carte de
+        pointage ; fusionne souvent.
+      · **technicien-05** : le rappel du matin (« tu n'as pas encore commencé ta journée ») ne se répète pas sur Mes frais ni
+        sur Mon camion : il vit sur « Ma journée » (et la pastille de « Heures » le signale ailleurs).
+      · Les quatre casses du recontrôle (`campagne/technicien-recontrole.json`) se corrigent : le liseré VERT d'une demande de
+        congé REFUSÉE (la couleur suit l'état : refusée = rouge, autres dates = ambre) ; au doigt, le pied du menu (Jour ·
+        Nuit · Auto, Nouveautés) à 44 px au moins, tous les rôles ; « C'est quoi ? » n'est plus pré-rempli « Carburant » pour
+        un péage ou des gants (le titre du message reprend ce qui est tapé, la plaque seulement pour un plein) ; la fenêtre
+        « Il manque encore des choses » sans grands vides. technicien-06 (« Prévenir le bureau » grisé sans raison, Mon
+        camion) : à corriger aussi s'il se reproduit encore sur la tête.
