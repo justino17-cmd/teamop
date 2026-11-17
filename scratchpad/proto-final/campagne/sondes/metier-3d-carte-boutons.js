@@ -8,7 +8,7 @@ let ok = 0, ko = 0; const v = (nom, cond, det) => { if (cond) ok++; else { ko++;
     const c = await O.ouvrir({ profil, qui: 'marc', packs: O.METIERS.d3 }), p = c.p;
     await p.evaluate(() => aller('carteBox')); await L.calme(p, 900);
     // ces trois gestes vivent dans le menu « Plus d'actions » : on l'ouvre par SON bouton, comme la personne
-    const menu = await L.toucher(c, p.getByRole('button', { name: /Plus d.actions/ })); v(`${profil} : « Plus d'actions » s'ouvre`, menu);
+    const menu = await L.toucher(c, p.locator('#contenu summary').filter({ hasText: /Plus d.actions/ }).first()); v(`${profil} : « Plus d'actions » s'ouvre`, menu);
     for (const cle of ['envoi', 'etiq', 'edit']) {
       const r = await p.evaluate(async cle => { const e = document.querySelector(`#contenu [data-cbx="${cle}"]`); if (!e) return { absent: true };
         e.scrollIntoView({ block: 'center' }); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); void document.documentElement.offsetWidth;

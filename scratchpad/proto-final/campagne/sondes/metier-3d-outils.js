@@ -21,3 +21,12 @@ exports.nettoyer = async p => { await p.evaluate(() => { try { docPleinFermer();
 exports.MOTS_CLIM = /clim(?:atisation|atiseur)?\b|\bsplit\b|frigorig|\bR-?32\b|R-?410|daikin|pompe à chaleur|groupe froid|unité extérieure|unité intérieure|\bPAC\b|gainable|cassette/i;
 exports.MOTS_3D = /rongeur|\brats?\b|nuisible|biocide|xylophage|dératis|deratis|appât|appat|cafard|punaise|capricorne|vrillette|termite|désinsect|desinsect|\b3D\b|hygiène anti/i;
 exports.bilan = (nom, ok, ko, notes) => { console.log('\n' + nom + ' : ' + ok + ' ✓ · ' + ko + ' ✗'); (notes || []).forEach(n => console.log('  · ' + n)); return ko ? 1 : 0; };
+// le corpus des DONNÉES d'exemple (tables de démonstration) : un relevé est une donnée si le mot, avec son voisin de gauche ou de droite, s'y lit tel quel
+exports.donnees = async p => { const corpus = await p.evaluate(() => { const bruts = []; const marcher = (o, d) => { if (d > 5 || o == null) return; if (typeof o === 'string') { if (o.length > 4) bruts.push(o); return; } if (typeof o !== 'object') return; for (const k of Object.keys(o).slice(0, 400)) marcher(o[k], d + 1); };
+    ['INTS', 'CLIENTS', 'TACHES', 'PRODUITS', 'MES_FOURN', 'FOURN_DIR', 'JOURNAL', 'DEVIS_REG', 'CONTRATS', 'COMMANDES', 'EQUIPE', 'ABSENCES', 'ACHATS', 'DEMANDES_ACHAT', 'BOXES', 'STOCK', 'VEHICULES', 'MESSAGES', 'NOTES', 'FICHES'].forEach(n => { try { marcher(eval(n), 0); } catch (e) {} });
+    return bruts.map(x => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ')); });
+  const joint = corpus.join(' ¦ '), norm = x => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+  const dansPh = (txt, i) => { const a = txt.lastIndexOf('CHAMP[', i); if (a < 0) return false; const seg = txt.slice(a + 6, i); return !seg.includes('|') && !seg.includes(']'); };
+  const estDonnee = (txt, i, mot) => { if (dansPh(txt, i)) return false; const g = txt.slice(0, i).match(/(\S+)\s*$/), d = txt.slice(i + mot.length).match(/^\s*(\S+)/); return [g && norm(g[1] + ' ' + mot), d && norm(mot + ' ' + d[1])].filter(Boolean).some(x => joint.includes(x)); };
+  const trouver = (txt, re) => { const r = [], g = new RegExp(re.source, 'gi'); let m; while ((m = g.exec(txt))) { r.push({ mot: m[0], ctx: txt.slice(Math.max(0, m.index - 45), m.index + m[0].length + 45), donnee: estDonnee(txt, m.index, m[0]) }); if (r.length > 40) break; } return r; };
+  return { estDonnee, trouver, taille: corpus.length }; };
