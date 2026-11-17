@@ -25,7 +25,10 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   // ouvrir la facture comme une personne : par la ligne de Comptabilité si elle y est, sinon par l'adresse
   await L.aller(p, 'facture-x-' + f.id);
   v('A · la fiche s’ouvre pour CETTE facture', (await corps()).includes(f.num), await hash());
+  const jA = await p.evaluate(() => JOURNAL.length);
   await L.toucher(c, `[data-payer="${f.id}|Chèque"]`); await p.waitForTimeout(600);
+  const apA = await p.evaluate(() => ({ n: JOURNAL.length, der: JOURNAL[JOURNAL.length - 1] }));
+  v('A · le geste écrit UNE ligne dans l’Historique, au nom de la bonne facture', apA.n - jA === 1 && apA.der.el && apA.der.el.lib === f.num && /paiement/.test(apA.der.action), { avant: jA, apres: apA.n, der: apA.der && apA.der.action });
   const toast = await p.evaluate(() => (document.querySelector('#toast') || {}).textContent || '');
   v('A · le toast dit « encaissés » et le moyen de paiement', /encaiss/.test(toast) && /chèque/i.test(toast), toast);
   await cap('A-apres-paiement');
@@ -43,7 +46,7 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   await p.evaluate("hQui='tous';hType='tous';hCli='tous';hCherche='';hMax=60;hJourSel='tous';hOuverts=new Set([AUJ]);"); await L.aller(p, 'historique');
   await p.fill('[data-hcherche]', f.num); await p.waitForTimeout(500);
   const lignes = await p.evaluate(() => [...document.querySelectorAll('.h-l')].map(e => e.innerText.replace(/\s+/g, ' ').slice(0, 140)));
-  v('A · Historique : une recherche par numéro de facture rend la ligne du règlement (population ≥ 1)', lignes.length >= 1 && lignes.some(l => /paiement/.test(l)), lignes);
+  v('A · Historique : une recherche par numéro de facture rend la ligne « enregistré un paiement » (population ≥ 1)', lignes.length >= 1 && lignes.some(l => /enregistré un paiement/.test(l) && l.includes(String(f.rest.toFixed(2)).replace('.', ','))), lignes);
   await cap('A-historique');
   const hj = await p.evaluate(() => { const l = [...document.querySelectorAll('[data-hj]')].find(e => /paiement/.test(e.innerText)); return l ? l.dataset.hj : null; });
   await L.toucher(c, `[data-hj="${hj}"]`); await p.waitForTimeout(500);
@@ -70,7 +73,7 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   const ac = await corps();
   v('B · l’Accueil range la nouvelle intervention parmi celles à planifier', /à planifier/.test(ac), ac.slice(0, 300));
   await cap('B-apres');
-  await p.evaluate(() => { INTS.length = 0; window.__sv.forEach(x => INTS.push(x)); });
+  await p.evaluate(() => { window.__sv.forEach(x => INTS.push(x)); });   // on rend les interventions mises de côté SANS retirer celle qui vient d'être créée : la ligne du journal qui la nomme doit garder sa fiche
 
   // ─────────────── C. retours : la période des Statistiques, le filtre de l'Historique
   await p.evaluate("stPer='trimestre'; stK=ST_FIN; stFiltreTech='tout';"); await L.aller(p, 'statistiques');
