@@ -12,7 +12,8 @@
   "sorties : Échap sans contenu (ferme), Échap avec contenu (confirmation), Échap sur la confirmation, croix, Continuer, Abandonner (rien créé, rouvert vide), Retour du navigateur (UNE entrée d'historique consommée, saisie reprise AVEC le dire « Ton devis en cours est repris ») : devis et contrat, mac et iphone, 31 contrôles chacun",
   "rotation et redimensionnement : mac 1440 → 1180 → 1024 → 900 → 1440 ; ipad portrait → paysage → 1024 → 900 → 1440, avec et sans l'aperçu plein écran ouvert",
   "débordement dans la colonne des étapes avec des textes longs : petit (320), android, iphone, ipad",
-  "double clic sur « Créer » : mac, windows, ipad ; menu de l'éditeur (supprimer, dupliquer) : iphone, mac ; devis sans client ; mode Auto qui passe au sombre pendant l'ouverture (iphone : blanc → bleu nuit) ; atelier absent (404 puis Réessayer) ; rôles : gérant, secrétariat (devis et contrat complets, 18 ✓ chacun), techniciens (aucun bouton, forcer par le code refusé avec un mot)"
+  "double clic sur « Créer » : mac, windows, ipad ; menu de l'éditeur (supprimer, dupliquer) : iphone, mac ; devis sans client ; mode Auto qui passe au sombre pendant l'ouverture (iphone : blanc → bleu nuit) ; atelier absent (404 puis Réessayer) ; rôles : gérant, secrétariat (devis et contrat complets, 18 ✓ chacun), techniciens (aucun bouton, forcer par le code refusé avec un mot)",
+  "gestes du devis (iphone et mac) : recherche de client (accents, majuscules, ville, sans résultat, « + 4 autres clients » = 8 − 4), catalogue (recherche, filtres, « Mon matériel »), quantités +/−, option (non comptée), monter, descendre, retirer, « Ranger par catégorie », « Garder dans mon matériel » (gardé après fermeture) : 26 contrôles justes sur 27"
  ],
  "defauts": [
   {
@@ -173,6 +174,25 @@
    "preuve": "titre-liste.js : décalage 9 px (devis et contrat, mac et iphone, 4/4), cartes à padding 6px 8px ; captures liste-mac-jour-1-brouillon.png et contrat-ct-mac-jour-marc-3-liste.png comparées au tableau de la carte voisine",
    "ou": "apercu/prototype-op-gestion.html : opdCarte (20543), le titre n'a pas le rembourrage des lignes",
    "correction": "Rembourrer le titre comme les lignes (12 px de plus à gauche) ; envisager « Devis préparés avec le compositeur » / « Documents composés » plutôt que « atelier »"
+  },
+  {
+   "n": "tout-09",
+   "gravite": "gênant",
+   "ecran": "Composer un devis > étape 3 « Matériel et prestations » > pastilles de catégorie du catalogue",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un devis",
+    "Étape 3 : toucher « Main-d'œuvre » (puis « Entretien », puis « Déplacement »)"
+   ],
+   "attendu": "Des prestations à choisir : un devis d'entreprise de terrain commence presque toujours par la main-d'œuvre et le déplacement ; une pastille proposée mène à des articles",
+   "constate": "Les 25 articles du catalogue sont tous du matériel (filtres, fluides, pompes…) : « Matériel » donne la même liste que « Tout » (25 / 25) et « Main-d'œuvre », « Entretien », « Déplacement » donnent 0 article avec le message « Rien ne correspond. Essaie un autre mot, ou écris une ligne libre. » alors qu'on n'a rien cherché. Il faut retaper « Main-d'œuvre 58 € » en ligne libre à chaque devis, alors que le prototype connaît ces prestations (tarif de zone, « Main-d'œuvre technicien 58 € / h », les modèles de Devis rapide)",
+   "preuve": "chips.js : « pastille Main-d'œuvre → 0 article », « Entretien → 0 », « Déplacement → 0 », « catalogue envoyé par OP GESTION : 25 articles, aucune main-d'œuvre ni déplacement » ; lignes-gestes.js : « filtre Main-d'œuvre : 0 article(s) » sur mac ET iphone ; capture chips-mac-jour-vide.png",
+   "ou": "apercu/prototype-op-gestion.html:20947-20948 (opdDonnees : le catalogue n'est que PRODUITS vendables) ; scratchpad/proto-final/atelier/page.source:5221 (les cinq pastilles sont fixes) et :4989 (vvCatDe)",
+   "correction": "Ajouter au catalogue envoyé les prestations du prototype (Main-d'œuvre à l'heure, Déplacement par zone, Entretien annuel, Mise en service) avec leur catégorie, et ne montrer une pastille que si elle a au moins un article ; sinon un message qui dit « Aucun article dans cette catégorie »"
   }
  ]
 }
