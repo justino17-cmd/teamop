@@ -7,7 +7,7 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 12 h 18 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 12 h 22 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
@@ -57,6 +57,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 32 | session_01PfEEAEFzaAtuY9Swr9Ssn1 | `{voie:"final-regard", role:"bureau", rubriques:["Mes tâches","Interventions","Clients","Devis","Contrats","Comptabilité"], suffixe:"a"}` (ce qui est propre au bureau ; Achats, Stock, Fournisseurs, Véhicules après leurs corrections) | 12 h 14 | |
 | 33 | session_01PfEEAJaRT8KkR1fdFWStSb | `{voie:"restes", noms:["clients"], tours:1}` (campagne clients finie à 12 h 17 : 12 réglés, clients-18 incomplet, 10 casses ; les 5 points « à soumettre » tranchés par le chef, dans sa consigne) | 12 h 17 | |
 | 34 | session_01PfEEAFPpeU7baS6TDXPPpZ | `{voie:"restes", noms:["interventions"], tours:1, depuis:1}` (recontrôle du tour 1 : les corrections sont poussées, 14 entrées) | 12 h 18 | |
+| 35 | session_01PfEEAE6Dx8R8cDTAgEhREX | `{voie:"final-regard", role:"gerant", rubriques:["Registre sanitaire","Carte des box","Devis xylophage"], suffixe:"f"}` (les trois écrans 3D, et le Registre vu par la technicienne) | 12 h 22 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
