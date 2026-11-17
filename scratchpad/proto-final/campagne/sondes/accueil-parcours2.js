@@ -19,7 +19,7 @@ const c100 = s => L.cents(s);
   await L.aller(p, 'statistiques'); const stAp = (await corps()).match(/Encaissé TTC (\d[\d ]*) €/)[1];
   v('P8 Statistiques : « encaissé TTC » monte aussi (à l’euro près)', Math.abs((c100(stAp + ',00€') - c100(stAv + ',00€')) - ttc) <= 100, { avant: stAv, apres: stAp });
   await L.aller(p, 'accueil'); await L.toucher(c, '[data-kdash="enc"]'); await p.waitForTimeout(500); const cp = await corps(), recu = c100((cp.match(/(\d[\d ]*,\d{2}) € reçu en octobre/) || [])[1] + '€');
-  v('P8 Comptabilité : « reçu en octobre » = encaissé de l’Accueil + les reçus sur place', recu === ap.enc + 4000, { compta: recu, accueil: ap.enc });
+  v('P8 Comptabilité : « reçu en octobre » = « reçu en octobre » de l’Accueil (les 40 € reçus sur place y sont compris depuis accueil-01)', recu === ap.enc, { compta: recu, accueil: ap.enc });
   await L.aller(p, 'historique'); const nAp = await p.evaluate(() => JOURNAL.length), dernier = await p.evaluate(() => { const j = JOURNAL[JOURNAL.length - 1]; return j && (H_GENS[j.qui].nom + ' ' + j.action + ' ' + (j.el && j.el.lib)); });
   v('accueil-03 · P8 Historique : un paiement enregistré s’inscrit (« qui a fait quoi »)', nAp === nAv + 1, { avant: nAv, apres: nAp, derniere: dernier });
   await c.p.evaluate(() => { try { fermerPanneau(); } catch (e) {} });

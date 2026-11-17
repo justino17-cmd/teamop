@@ -31,5 +31,14 @@ const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" onl
       await pop.close(); }
     else L.v('1. le clic du milieu n\'ouvre aucun onglet (rien à exécuter)', true);
   }
+  // ── injection-08 (noms de fichiers) : le message de l'import des fiches de paie reprend le NOM du fichier déposé — un nom que choisit celui qui l'a produit ──
+  await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} PAIE.mode = 'cabinet'; paieRecevoir(); }); await p.waitForTimeout(600);
+  const champ = p.locator('[data-paiefichiers]').first(); L.v('population : le champ de dépôt des fiches de paie est atteint', (await champ.count()) > 0);
+  const NOMF = 'ZQnf"\'><img src=x data-ch="nf1" onerror="window.__xss=(window.__xss||0)+1">';
+  await champ.setInputFiles({ name: NOMF + '.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF') }); await p.waitForTimeout(700);
+  const nf = await p.evaluate(() => ({ balise: document.querySelectorAll('#toast img[data-ch="nf1"]').length, exec: window.__xss || 0, texte: ((document.getElementById('toast') || {}).textContent || '').slice(0, 80) }));
+  console.log('nom de fichier piégé déposé comme fiche de paie :', JSON.stringify(nf));
+  L.v('population : le message de l\'import dit qu\'une fiche est « sans nom reconnu » (le nom du fichier y est repris)', /sans nom reconnu/.test(nf.texte), nf);
+  L.v('injection-08 le nom d\'un fichier déposé ne sort pas de son texte dans le message de l\'import (sortie : ' + nf.balise + ', exécutions : ' + nf.exec + ')', !nf.balise && !nf.exec, nf);
   console.log('erreurs page :', c.err.slice(0, 3)); await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(async e => { console.error(e); try { await L.fermer(); } catch (x) {} process.exit(2); });
