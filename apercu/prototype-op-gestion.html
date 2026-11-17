@@ -599,13 +599,14 @@ html .fx-acmd{padding:18px 20px}
 html .fx-ch{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;margin-bottom:6px}html .fx-ch h3{margin:0 0 2px;font-size:20px}
 html .fx-pan{padding:14px 0 6px;border-top:1px solid var(--trait)}html .fx-pan:first-of-type{border-top:0}
 html .fx-pt{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}html .fx-pt>b{font-size:17px;overflow-wrap:anywhere}
+@media (min-width:761px){html .fx-pt{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px}}   /* sur ordinateur le nom du fournisseur et sa phrase tiennent sur une ligne : la première ligne à commander remonte de 24 px */
 html .fx-pl{display:flex;align-items:flex-start;gap:14px;padding:10px 0}
 html .fx-pl>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:3px}html .fx-pl>.fo-n>b{font-size:16px;overflow-wrap:anywhere}html .fx-pl .gris{overflow-wrap:anywhere}
 html .fx-pq{display:flex;flex-direction:column;align-items:flex-end;gap:0;flex:none}html .fx-pq .mat-pas input{width:56px}html .fx-u{text-align:right;white-space:nowrap}
 html .fx-lien{text-align:left;overflow-wrap:anywhere}
 html .fx-ph{display:flex;align-items:flex-start;gap:8px}html .fx-ph>.gris{flex:0 1 auto;min-width:0}
-html .fx-ib{position:relative;flex:none;width:22px;height:22px;margin:1px 0 0 2px;padding:0;border-radius:50%;border:1.5px solid var(--doux);background:none;color:var(--doux);cursor:pointer;display:grid;place-items:center;font:italic 700 13px/1 Georgia,serif}
-html .fx-ib::after{content:'';position:absolute;inset:-11px}   /* le rond fait 22 px, ce qui répond au doigt en fait 44 */
+html .fx-ib{position:relative;flex:none;width:44px;height:44px;margin:-10px -10px -10px -8px;padding:0;border:0;background:none;color:var(--doux);cursor:pointer;display:grid;place-items:center;font:italic 700 13px/1 Georgia,serif}
+html .fx-ib::before{content:'';position:absolute;left:11px;top:11px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--doux);box-sizing:border-box}   /* le bouton fait 44 px (ce que mesure un doigt) ; le rond dessiné n'en fait que 22 */
 html .fx-det{display:none;overflow-wrap:anywhere}html .fx-pl.info .fx-det{display:block}
 html .fx-pr{display:flex;align-items:center;gap:6px 12px;justify-content:flex-end;flex-wrap:wrap}
 html .fx-tard{color:var(--orange);font-weight:650}
@@ -637,6 +638,10 @@ html .fx-fc{margin-top:12px}html .fx-fc h3{margin:0 0 6px}
 html .fx-lg{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 0;border-bottom:1px solid var(--trait)}html .fx-fc>.fx-lg:last-of-type{border-bottom:0}
 html .fx-lg>span:first-child{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}html .fx-aide{display:block}
 html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html .fx-lg .fx-n{width:112px;text-align:right}
+/* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
+html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
+html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}   /* « Envoyer à Établissements Dupont-Delaunay… » : le nom d'un fournisseur ne fait plus sortir le bouton de la feuille (678 px dans 390) */
+html select[data-pdxlieu]{font-size:16px}   /* « Où ranger ? » de la réception : un champ à 15 px fait zoomer la page sur un iPhone */
 html .fx-lg .pdx-tel{display:flex;gap:8px;align-items:center;flex:none;width:min(62%,300px)}html .fx-lg .pdx-tel .saisie{flex:1 1 0;width:auto;min-width:0}
 html .fx-jours{display:inline-flex;align-items:center;gap:8px;flex:none}html .fx-jours .saisie{width:112px}
 html .fx-case{margin:8px 0 2px;min-height:48px}
@@ -657,11 +662,14 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:8px}html .fx-tete>div:first-child{flex:1 1 100%}
   html .fx-tete .actions{flex:1 1 100%;display:flex;flex-wrap:nowrap;gap:8px}
   html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){flex:1 1 0;min-width:0;min-height:48px;white-space:normal;line-height:1.2}
-  html .fx-photo,html .fx-plusb{flex:none;width:46px;min-height:48px;padding:0;font-size:0}
+  html #contenu .tete.fx-tete .actions>.fx-photo,html #contenu .tete.fx-tete .actions>.fx-plusb{flex:none!important;width:46px!important;min-width:46px!important;min-height:48px;padding:0;font-size:0}   /* !important : la règle générale des en-têtes (ligne ~1208) donne à tout .btn « flex:1 1 auto; min-width:0 » et rétrécissait ces deux boutons à 38 px sur un écran de 320 */
   html .fx-photo .fx-lib{display:none}html .fx-plusb::before{content:'⋯';font-size:24px;line-height:1;letter-spacing:0}
   html .fx-tete .actions>.fx-photo:first-child{margin-left:auto}
   html .fx-seg{display:flex;width:100%}html .fx-seg button{flex:1 1 auto;min-width:0;padding:0 8px;font-size:14.5px}
   html .fx-acmd{padding:14px 14px}
+  html #contenu:has(>.fx-seg){gap:10px}html .fx-arts .groupe{padding:8px 12px 2px}   /* téléphone : l'écart entre les rangées de l'en-tête et le titre de groupe se resserrent — la première ligne d'article remonte de ~25 px */
+  /* l'en-tête de « À commander » tient sur UNE rangée (le titre et sa phrase à gauche, « Tout préparer » à droite) : la première ligne à commander remonte de ~55 px, sur un écran où chaque ligne compte */
+  html .fx-ch{flex-wrap:nowrap;align-items:center}html .fx-ch>div{flex:1 1 0;min-width:0}html .fx-ch>div>.gris{font-size:14px;line-height:1.3;display:block}html .fx-ch .btn{flex:none;min-height:44px;padding:0 12px;font-size:15px}html .fx-ch h3{font-size:19px;white-space:nowrap}
   html .fx-pl{flex-wrap:wrap}html .fx-pl>.fo-n{flex:1 1 100%}html .fx-pq{flex-direction:row;align-items:center;flex-wrap:wrap;gap:0 10px;width:100%}html .fx-pr{flex:1 1 auto;justify-content:space-between}html .fx-u{text-align:left}
   html .fx-l{flex-wrap:wrap}html .fx-lm{flex:1 1 100%;min-height:64px}html .fx-ab{margin:-4px 8px 10px}html .fx-long{display:none}html .fx-court{display:inline}
   html .fx-lm .fo-dr{max-width:44%}
@@ -672,7 +680,18 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html .fx-el>.fo-n{flex:1 1 100%}
 }
 @media (max-width:520px){
-  html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}html .fx-lg .saisie,html .fx-lg .fx-n{width:100%;text-align:left}html .fx-lg .pdx-tel{width:100%}html .fx-jours{width:100%}html .fx-jours .saisie{flex:1 1 0;width:auto}
+  /* le bon de commande à l'écran (le fac-similé du PDF) : quatre colonnes de 60 px ne tiennent pas, la désignation passait sur huit lignes ; chaque ligne devient un petit bloc (désignation, puis quantité · prix · total) */
+  html .bc-t thead{display:none}html .bc-t,html .bc-t tbody{display:block}html .bc-t tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--trait)}
+  html .bc-t td{padding:0;border:0;text-align:left}html .bc-t td:first-child{grid-column:1/-1}html .bc-t td:nth-child(3){text-align:right;color:var(--doux)}html .bc-t td:nth-child(4){text-align:right;font-weight:650}
+}
+@media (max-width:400px){
+  /* un écran de 320 : le nom de la commande ne peut pas partager sa ligne avec la pastille (4 lignes de 127 px) ; la pastille passe dessous */
+  html .fx-lm{flex-wrap:wrap;gap:6px 10px}html .fx-lm>.fo-n{flex:1 1 100%}html .fx-lm .fo-dr{max-width:100%;flex:none;align-items:flex-start;text-align:left}
+  /* trois onglets dans 286 px : police et marges resserrées, la pastille de compte aussi */
+  html .fx-seg button{padding:0 4px;gap:4px;font-size:13.5px}html .fx-seg .pr-nb{min-width:20px;height:20px;font-size:12px;padding:0 5px}
+}
+@media (max-width:520px){
+  html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}html .fx-lg .dt-btn{width:100%}html .fx-lg .saisie,html .fx-lg .fx-n{width:100%;text-align:left}html .fx-lg .pdx-tel{width:100%}html .fx-jours{width:100%}html .fx-jours .saisie{flex:1 1 0;width:auto;min-width:0}
   html .fx-ep{width:100%}html .fx-eq,html .fx-ep,html .fx-et{flex:1 1 100%;text-align:left}
 }
 /* ── ce que d'autres écrans empruntent encore à Dépôts (carte « Réserve sur place » d'une intervention et d'un client, raccourci de « Ma journée », ligne repérée) ── */
@@ -2127,6 +2146,8 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 @media (max-width:760px){.kpis-rang{display:flex;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.kpis-rang::-webkit-scrollbar{display:none}.kpis-rang .kpi{flex:0 0 132px;min-height:62px;padding:10px 12px}.kpis-rang .kpi b{font-size:20px}.kpis-rang .kpi span{font-size:13px}.pl-equipe{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.pl-equipe button{flex:none}.pl-nav{width:100%;justify-content:space-between}.pl-nav b{min-width:0}}
 .pg-g .pl-jh{position:sticky;top:0}
 .pg-tec{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--grille);position:sticky;left:0;z-index:3;background:var(--carte-fond)}
+/* la colonne des noms colle à gauche : sans cette marge, amener une carte à l'écran (clavier, lecteur d'écran, « scrollIntoView ») la posait SOUS les noms */
+.pl-defile:has(.pg-g){scroll-padding-left:172px}@media (max-width:760px){.pl-defile:has(.pg-g){scroll-padding-left:150px}}
 .pg-tec b{display:block;font-size:15px;line-height:1.2}.pg-tec small{display:block;color:var(--doux);font-size:13px}
 .pl-cel{border-top:1px solid var(--grille);border-left:1px solid var(--grille);padding:6px;display:flex;flex-direction:column;gap:6px;min-height:96px;cursor:copy}
 .pl-cel.auj{background:var(--cel-auj)}
@@ -8638,7 +8659,7 @@ function prRangement(k){
   const P = PACKS[k], n = P.cats.reduce((s, c) => s + c.ex.length, 0);
   ouvrirPanneau(`<span class="surtitre">Fixé par TEAM OP · 24 métiers</span><h2>Le rangement par métier</h2>
     <span class="gris">Chaque entreprise ajoute ses propres articles ; les catégories, elles, sont les mêmes pour tous les clients d’un métier, et l’application range toute seule ce qu’on tape.</span>
-    <label class="champ" style="margin-top:12px">Métier<select data-prmet="1">${Object.entries(PACKS).map(([c, p]) => `<option value="${c}" ${c === k ? 'selected' : ''}>${p.ic} ${esc(p.nom)}${PACKS_ENT.includes(c) ? ' · le tien' : ''}</option>`).join('')}</select></label>
+    <label class="champ" style="margin-top:12px">Métier<select data-prmet="1">${Object.entries(PACKS).map(([c, p]) => `<option value="${c}" ${c === k ? 'selected' : ''}>${esc(p.nom)}${PACKS_ENT.includes(c) ? ' · le tien' : ''}</option>`).join('')}</select></label>
     <label class="champ">Essayer le rangement<input data-pressai="${k}" placeholder="ex. ${esc(P.cats[0].ex[0][0])}" autocomplete="off"></label><div id="pr-essai" class="pr-sugg" aria-live="polite"></div>
     <div class="gris petit" style="margin:8px 0">${P.cats.length} catégories · ${n} produits typiques</div>
     ${P.cats.map(c => `<details class="pr-rg"><summary><b>${esc(c.n)}</b><span class="st ${c.t === 'm' ? 'st-g' : c.t === 'x' ? 'st-b' : 'st-v'}">${prTypeLib[c.t]}</span></summary><div class="gris petit" style="margin:6px 0">${esc(c.q)}</div><div class="pr-exs">${c.ex.map(e => `<span>${esc(e[0])}<i>${esc(e[1])}</i></span>`).join('')}</div></details>`).join('')}`, true);
@@ -8652,7 +8673,7 @@ document.addEventListener('input', ev => {
 function prFormulaire(x, pack, cat){
   const k = x ? x.p : pack, P = PACKS[k], cats = P.cats.map(c => c.n); prFormulaire.touche = !!x; prFormulaire.met = false; prFormulaire.uTouche = !!x; prFormulaire.ouvert = { p:k, cat:x ? x.cat : cat };
   ouvrirPanneau(`<h2>${x ? 'Modifier l’article' : 'Ajouter un article'}</h2>
-    <div class="deux-champs pr-met"><label class="champ">Métier<select id="pr-pack" data-prpack="1">${[...PACKS_ENT, ...(PACKS_ENT.includes(k) ? [] : [k])].map(p => `<option value="${p}" ${p === k ? 'selected' : ''}>${PACKS[p].ic} ${esc(PACKS[p].nom.split(/ \/|,/)[0])}</option>`).join('')}</select></label>
+    <div class="deux-champs pr-met"><label class="champ">Métier<select id="pr-pack" data-prpack="1">${[...PACKS_ENT, ...(PACKS_ENT.includes(k) ? [] : [k])].map(p => `<option value="${p}" ${p === k ? 'selected' : ''}>${esc(PACKS[p].nom.split(/ \/|,/)[0])}</option>`).join('')}</select></label>
       <label class="champ">Catégorie<select id="pr-cat">${cats.map(c => `<option value="${esc(c)}" ${c === (x ? x.cat : cat) ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label></div>
     <label class="champ">Nom<input id="pr-nom" data-prnom="1" value="${esc(x ? x.nom : '')}" placeholder="Tape le nom : il se range tout seul" autocomplete="off"></label><div id="pr-sugg" class="pr-sugg" aria-live="polite"></div>
     <div class="deux-champs"><label class="champ">Référence<input id="pr-ref" value="${esc(x ? x.ref : '')}"></label><label class="champ">Fournisseur<input id="pr-four" list="fo-dl" value="${esc(x ? x.four : '')}" autocomplete="off"><datalist id="fo-dl">${MES_FOURN.map(f => `<option value="${esc(f.nom)}">`).join('')}</datalist></label></div>
@@ -8698,7 +8719,7 @@ document.addEventListener('input', ev => {
   if (!ev.target.matches('[data-prnom]')) return;
   const sp = document.getElementById('pr-pack'), r = prRanger(ev.target.value, prFormulaire.met && sp ? [sp.value] : PACKS_ENT), z = document.getElementById('pr-sugg'); if (!z) return;
   if (!r) { z.innerHTML = ev.target.value.trim().length > 2 ? '<span class="gris">Je ne sais pas le ranger : choisis la catégorie ci-dessous.</span>' : ''; if (!prFormulaire.touche) { if (prFormulaire.met) { const sc = document.getElementById('pr-cat'), sp2 = document.getElementById('pr-pack'); if (sc && sp2) sc.value = PACKS[sp2.value].cats[0].n; } else metiersRevenir(); } return; }
-  z.innerHTML = `<span class="pr-sg">↳ ${r.sur === false ? 'Peut-être dans' : 'Rangé dans'} <b>${PACKS[r.p].ic} ${esc(PACKS[r.p].nom.split(' /')[0])} › ${esc(r.cat)}</b>${r.t === 'm' ? ' · matériel de l’équipe' : ''}${r.sur === false && !prFormulaire.touche ? ' (mis dans la liste : change-la si ce n’est pas ça)' : ''}</span>${prFormulaire.touche ? ' <button type="button" class="lien" data-pr="sugg">Prendre cette catégorie</button>' : ''}`;
+  z.innerHTML = `<span class="pr-sg">↳ ${r.sur === false ? 'Peut-être dans' : 'Rangé dans'} <b>${esc(PACKS[r.p].nom.split(' /')[0])} › ${esc(r.cat)}</b>${r.t === 'm' ? ' · matériel de l’équipe' : ''}${r.sur === false && !prFormulaire.touche ? ' (mis dans la liste : change-la si ce n’est pas ça)' : ''}</span>${prFormulaire.touche ? ' <button type="button" class="lien" data-pr="sugg">Prendre cette catégorie</button>' : ''}`;
   if (!prFormulaire.touche) prAppliquer(r);
 });
 function prAppliquer(r){
@@ -8792,17 +8813,17 @@ function fournPreparer(id){
   const f = MES_FOURN.find(o => o.id === id); if (!f) return; const C = foCats(f), deja = new Set(PRODUITS.filter(x => !x.retire).map(x => prNorm(x.nom)));
   const blocs = Object.entries(C).map(([k, L]) => L.map((cn, j) => { const c = PACKS[k].cats.find(o => o.n === cn); if (!c) return '';
     const libres = c.ex.filter(([nom]) => !deja.has(prNorm(nom))).length;
-    return `<details class="fo-cat" ${j === 0 && k === Object.keys(C)[0] ? 'open' : ''}><summary><span><b>${PACKS[k].ic} ${esc(cn)}</b><span class="gris petit">${c.ex.length} produits typiques${c.t === 'm' ? ' · matériel' : ''}</span></span><span class="fo-nb" data-fonb="${k}|${esc(cn)}"></span></summary>
+    return `<details class="fo-cat" ${j === 0 && k === Object.keys(C)[0] ? 'open' : ''}><summary><span><b>${esc(cn)}</b><span class="gris petit">${c.ex.length} produits typiques${c.t === 'm' ? ' · matériel' : ''}</span></span><span class="fo-nb" data-fonb="${k}|${esc(cn)}"></span></summary>
       ${libres ? `<button type="button" class="lien" data-fo="tout|${k}|${esc(cn)}">Tout cocher</button>` : ''}
       <div class="fo-cks">${c.ex.map(([nom, u], i) => { const pris = deja.has(prNorm(nom)); return `<label class="fo-ck${pris ? ' pris' : ''}"><input type="checkbox" data-foex="${k}|${esc(cn)}|${i}" ${pris ? 'disabled checked' : ''}><span>${esc(nom)} <i>${esc(u)}</i></span>${pris ? '<em>déjà là</em>' : ''}</label>`; }).join('')}</div></details>`; }).join('')).join('');
-  foOuvrir(`<span class="surtitre">${esc(f.nom)}</span><h2>Préparer mes articles</h2>
-    <span class="gris">Coche ce que tu achètes chez ${esc(f.nom)}. Les articles arrivent rangés, à son nom. Les prix viendront de son fichier de tarifs ou de ta prochaine facture : tu n’as rien à taper.</span>
+  foOuvrir(`<span class="surtitre">${esc(f.nom)}</span><h2>Choisir parmi ses articles habituels</h2>
+    <span class="gris">Coche ce que tu achètes chez ${esc(f.nom)}. Les articles arrivent rangés, à son nom. Les prix viendront de son fichier de prix ou de ta prochaine facture : tu n’as rien à taper.</span>
     ${blocs || '<div class="gris">Ce fournisseur ne couvre aucune catégorie de tes métiers.</div>'}
     <div class="fo-pied"><button type="button" class="btn" id="fo-creer" data-fo="creer|${f.id}" disabled>Coche des articles</button><button type="button" class="btn gris" data-fo="fiche|${f.id}">Retour</button></div>`, true);
 }
 function foCompterCoches(){
   const n = document.querySelectorAll('[data-foex]:checked:not(:disabled)').length, b = document.getElementById('fo-creer'); if (!b) return;
-  b.disabled = !n; b.textContent = n ? `Ajouter ${n} article${n > 1 ? 's' : ''}` : 'Coche des articles';
+  b.disabled = !n; b.textContent = n ? `Créer ${n} article${n > 1 ? 's' : ''}` : 'Coche des articles';
   document.querySelectorAll('[data-fonb]').forEach(s => { const [k, cn] = s.dataset.fonb.split('|'); const m = [...document.querySelectorAll('[data-foex]:checked:not(:disabled)')].filter(i => i.dataset.foex.startsWith(k + '|' + cn + '|')).length; s.textContent = m ? m + ' ✓' : ''; });
 }
 function foCreer(id){
@@ -8812,7 +8833,7 @@ function foCreer(id){
     PRODUITS.push(x); cree.push(x); });
   if (!cree.length) return; prCatalogueMaj(); fermerPanneau(); prPack = 'tous'; prCat = null; rendre();
   const ac = cree.filter(x => x.ac).length;
-  toast(`${cree.length} article${cree.length > 1 ? 's' : ''} ajouté${cree.length > 1 ? 's' : ''} chez ${esc(f.nom)}${ac ? ` · ${ac} attend${ac > 1 ? 'ent leur' : ' son'} prix` : ''}.`, { lib:'Importer ses tarifs', fn:() => fournTarifs(f.id) });
+  toast(`${cree.length} article${cree.length > 1 ? 's' : ''} ajouté${cree.length > 1 ? 's' : ''} chez ${esc(f.nom)}${ac ? ` · ${ac} attend${ac > 1 ? 'ent leur' : ' son'} prix` : ''}.`, { lib:'Importer ses prix', fn:() => fournTarifs(f.id) });
 }
 
 /* ── le fichier de tarifs : CSV ou texte exporté du tableur, séparateur deviné, colonnes reconnues par leur titre ── */
@@ -8879,7 +8900,7 @@ function foImportVue(){
     ${sec('Tes prix qui changent', maj, o => { const v = vente(o.x, o.pa), p = foPct(o.x.pa, o.pa); return ligne(o, true, `achat ${eur(o.x.pa)} → <b class="${p > 0 ? 'fo-up' : 'fo-down'}">${eur(o.pa)} (${p > 0 ? '+' : ''}${prNum(p)} %)</b>${v && FO_IMP.garder ? ` · vente ${eur(o.x.pv)} → ${eur(v)}` : ''}`); })}
     ${sec('Prix à compléter', rem, o => { const v = pv0(o.x.p, o.x.cat, o.pa); return ligne(o, true, `achat ${eur(o.pa)}${v ? ` · vente ${eur(v)} (× ${prNum(foCoef(o.x.p, o.x.cat))}, ta moyenne en ${esc(o.x.cat.replace(/ \(.*\)$/, ''))})` : ' · matériel'}`); }, 'Les articles préparés chez ce fournisseur, qui attendaient leur prix.')}
     ${sec('Ailleurs chez un autre de tes fournisseurs', ail, o => { const p = o.x.pa ? foPct(o.x.pa, o.pa) : null; return ligne(o, false, `chez ${esc(o.x.four)} : ${o.x.pa ? eur(o.x.pa) : '—'} · ici ${eur(o.pa)}${p != null ? ` <b class="${p < 0 ? 'fo-down' : 'fo-up'}">(${p > 0 ? '+' : ''}${prNum(p)} %)</b>` : ''} — coche pour passer chez ${esc(f.nom)}`); }, 'Les deux prix restent notés sur la fiche de l’article, pour comparer.')}
-    ${sec('Nouveaux articles possibles', neuf, o => ligne(o, false, o.r ? `rangé dans ${PACKS[o.r.p].ic} ${esc(o.r.cat.replace(/ \(.*\)$/, ''))} · achat ${eur(o.pa)}${o.r.t !== 'm' ? ' · vente ' + eur(foArr(o.pa * foCoef(o.r.p, o.r.cat))) : ' · matériel'}` : `achat ${eur(o.pa)} · catégorie à choisir`), 'Tout le catalogue de ton fournisseur ne t’intéresse pas : coche seulement ce que tu utilises.')}
+    ${sec('Nouveaux articles possibles', neuf, o => ligne(o, false, o.r ? `rangé dans ${esc(o.r.cat.replace(/ \(.*\)$/, ''))} · achat ${eur(o.pa)}${o.r.t !== 'm' ? ' · vente ' + eur(foArr(o.pa * foCoef(o.r.p, o.r.cat))) : ' · matériel'}` : `achat ${eur(o.pa)} · catégorie à choisir`), 'Tout le catalogue de ton fournisseur ne t’intéresse pas : coche seulement ce que tu utilises.')}
     ${pareil.length ? `<div class="gris petit">${pareil.length} prix inchangé${pareil.length > 1 ? 's' : ''}.</div>` : ''}
     <div class="fo-pied"><button type="button" class="btn" data-fo="appliquer" id="fo-appl">Mettre à jour mes prix</button><button type="button" class="btn gris" data-fo="tarifs|${f.id}">Un autre fichier</button></div>`, true);
   foComptImp();
@@ -8896,9 +8917,9 @@ function foAppliquer(){
     else if (o.sorte === 'ailleurs') { x.paAvant = x.pa; if (prVend(x) && x.pa && FO_IMP.garder) x.pv = foArr(x.pv * o.pa / x.pa); x.pa = o.pa; x.four = f.nom; if (o.ref) x.ref = o.ref; nc++; }
     else if (o.sorte === 'neuf') { const r = o.r || { p:PACKS_ENT[0], cat:PACKS[PACKS_ENT[0]].cats[0].n, t:'p' }; PRODUITS.push({ id:'p' + Date.now().toString(36) + o.i, p:r.p, cat:r.cat, nom:o.nom, ref:o.ref || '—', ean:o.ean || undefined, u:o.u || r.u || 'u', pa:o.pa, pv:r.t === 'm' ? null : foArr(o.pa * foCoef(r.p, r.cat)), tva:20, four:f.nom, q:0, seuil:0 }); nn++; }
   });
-  f.tarifsLe = '31 octobre'; prCatalogueMaj(); fermerPanneau(); rendre();
+  const tarifsAvant = f.tarifsLe; f.tarifsLe = '31 octobre'; prCatalogueMaj(); fermerPanneau(); rendre();
   const bouts = [nm && `${nm} prix mis à jour`, nr && `${nr} prix complétés`, nc && `${nc} passés chez ${esc(f.nom)}`, nn && `${nn} articles ajoutés`].filter(Boolean);
-  toast((bouts.join(' · ') || 'Prix notés pour comparer') + '. Les prochains devis prennent ces prix.', { lib:'Annuler', fn:() => { PRODUITS.splice(0, PRODUITS.length, ...avant); prCatalogueMaj(); rendre(); } });
+  toast((bouts.join(' · ') || 'Prix notés pour comparer') + '. Les prochains devis prennent ces prix.', { lib:'Annuler', fn:() => { PRODUITS.splice(0, PRODUITS.length, ...avant); if (tarifsAvant === undefined) delete f.tarifsLe; else f.tarifsLe = tarifsAvant; prCatalogueMaj(); rendre(); } });
 }
 /* un fichier d'exemple, tel qu'un espace client le rend : les articles de ce fournisseur (quelques hausses), deux articles d'un autre
    fournisseur un peu moins chers ici, et des articles du métier que l'entreprise n'a pas encore. Fictif : aucun prix réel. */
@@ -8939,9 +8960,9 @@ function foFactureVue(){
   foOuvrir(`<span class="surtitre">${esc(F.f.nom)} · facture ${esc(F.num)} du ${F.d}</span><h2>J’ai lu ${F.L.length} ligne${F.L.length > 1 ? 's' : ''} · ${eur(F.ht)} HT</h2>
     ${F.fichier ? `<div class="info petit">Prototype : ta photo n’est pas lue ici (elle ne quitte pas l’appareil) ; voici la lecture d’une facture d’exemple.</div>` : ''}
     <div class="fo-bloc">${F.L.map(o => { const p = o.x && o.x.pa ? foPct(o.x.pa, o.pu) : null;
-      return `<div class="fo-r fo-rf"><span class="fo-n"><b>${esc(o.nom)}</b><span class="gris petit">${o.x ? `${esc(o.ref)} · en stock ${prNum(o.x.q)} → <b>${prNum(o.x.q + o.q)}</b> ${esc(prU(o.x.q + o.q, o.x.u))}` : `nouvel article · rangé dans ${o.r ? PACKS[o.r.p].ic + ' ' + esc(o.r.cat.replace(/ \(.*\)$/, '')) : '—'}`}</span></span>
+      return `<div class="fo-r fo-rf"><span class="fo-n"><b>${esc(o.nom)}</b><span class="gris petit">${o.x ? `${esc(o.ref)} · en stock ${prNum(o.x.q)} → <b>${prNum(o.x.q + o.q)}</b> ${esc(prU(o.x.q + o.q, o.x.u))}` : `nouvel article · rangé dans ${o.r ? esc(o.r.cat.replace(/ \(.*\)$/, '')) : '—'}`}</span></span>
         <span class="fo-dr"><b>${prNum(o.q)} × ${eur(o.pu)}</b>${p ? `<span class="${p > 0 ? 'fo-up' : 'fo-down'} petit">${p > 0 ? '↑ +' : '↓ '}${prNum(p)} % depuis le dernier achat</span>` : o.x ? '<span class="gris petit">même prix</span>' : ''}</span></div>`; }).join('')}</div>
-    ${F.L.some(o => o.x && o.x.pa && o.pu > o.x.pa) ? `<div class="info petit fo-alerte">⚠️ <b>Hausse</b> : ${F.L.filter(o => o.x && o.x.pa && o.pu > o.x.pa).map(o => '+' + eur(o.pu - o.x.pa) + ' sur ' + esc(o.nom)).join(', ')}. ${F.marges ? 'Tes prix de vente suivront pour garder ta marge.' : 'Tes prix de vente ne bougent pas : ta marge baisse.'}</div>` : ''}
+    ${F.L.some(o => o.x && o.x.pa && o.pu > o.x.pa) ? `<div class="info petit fo-alerte"><b>Ça coûte plus cher</b> : ${F.L.filter(o => o.x && o.x.pa && o.pu > o.x.pa).map(o => '+' + eur(o.pu - o.x.pa) + ' sur ' + esc(o.nom)).join(', ')}. ${F.marges ? 'Tes prix de vente suivront pour garder ta marge.' : 'Tes prix de vente ne bougent pas : ta marge baisse.'}</div>` : ''}
     <div>${t('stock', 'Entrer les quantités en stock')}${t('prix', 'Mettre à jour mes prix d’achat')}${t('marges', 'Garder mes marges (le prix de vente suit)')}${t('achats', 'Ranger la facture dans les achats du mois')}</div>
     <div class="fo-pied"><button type="button" class="btn" data-fo="facok">Mettre à jour le stock et les prix</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
 }
@@ -8974,7 +8995,7 @@ document.addEventListener('click', ev => {
   if (a === 'tout') { ev.preventDefault(); document.querySelectorAll(`[data-foex^="${CSS.escape(x + '|' + y + '|')}"]:not(:disabled)`).forEach(i => { i.checked = true; }); return foCompterCoches(); }
   if (a === 'creer') return foCreer(x);
   if (a === 'tarifs') return fournTarifs(x);
-  if (a === 'exemple') { const f = foFournChoisi(); return foAnalyser(foExemple(f), f, 'tarifs-' + foSlug(f.nom) + '.csv'); }
+  if (a === 'exemple') { const f = foFournChoisi(); return foAnalyser(foExemple(f), f, 'prix-' + foSlug(f.nom) + ' (fichier d’exemple)'); }
   if (a === 'appliquer') return foAppliquer();
   if (a === 'facture') return fournFacture(x);
   if (a === 'facex') { const s = document.getElementById('fo-f-four'); return foFactureExemple(MES_FOURN.find(o => o.id === (s && s.value)) || MES_FOURN[0], false); }
@@ -9168,7 +9189,7 @@ function cmdDoc(o){
     ${o.note ? `<div class="bc-note"><small>Note</small>${esc(o.note)}</div>` : ''}
     <div class="bc-pied"><span>Merci de confirmer cette commande (votre référence et la date de livraison) par le lien joint à l’e-mail, ou en y répondant.</span><span>Bon pour commande · ${esc(tNom('marc'))}, ${esc(ENTREPRISE.nom)}</span></div></div>`;
 }
-const cmdLien = c => 'teamop.fr/c/' + c.num.toLowerCase() + '-' + (c.num.length * 7919 % 9000 + 1000).toString(36);
+const cmdLien = c => 'teamop.fr/c/' + matNumAff(c.num).toLowerCase() + '-' + (c.num.length * 7919 % 9000 + 1000).toString(36);
 function cmdMail(c){ const f = foDe(c.four) || {};
   return `Objet : Bon de commande ${c.num} · ${ENTREPRISE.nom}${f.compte ? ' (compte ' + f.compte + ')' : ''}\n\nBonjour,\n\nVeuillez trouver ci-joint notre bon de commande ${c.num} (${c.lignes.length} ligne${c.lignes.length > 1 ? 's' : ''}, ${eur(cmdHT(c))} HT)${c.souh ? ', ' + (c.liv === 'comptoir' ? 'à retirer' : 'à livrer') + ' le ' + jlong(c.souh) : ''}.\n\nConfirmez-la en un clic, ou signalez un article en rupture :\n${cmdLien(c)}\n\nMerci, bonne journée.\n${tNom('marc')} · ${ENTREPRISE.nom} · ${ENTREPRISE.tel}`; }
 /* ce que voit le fournisseur en ouvrant le lien de l'e-mail : la commande, et deux gestes (confirmer, signaler une rupture) — sans compte */
@@ -9190,7 +9211,7 @@ function cmdPortailValider(id){
   if (part) c.reliquat = d; else { c.st = 'confirmee'; c.conf = { le:AUJ, num, lien:true }; c.prevue = d; }   // reçue en partie, elle le reste : seul le reliquat se confirme
   c.journal.push([AUJ, `${part ? 'Reliquat confirmé' : 'Confirmée'} par ${c.four} depuis le lien${num ? ' (n° ' + num + ')' : ''}, livraison le ${jCourt(d)}${rupt.length ? ' · rupture : ' + rupt.map(l => cmdNom(l) + ' (prévu le ' + jCourt(l.rupture) + ')').join(', ') : ''}`]);
   rendre(); cmdFiche(c.id);
-  toast(`${esc(c.four)} a confirmé ${part ? 'le reliquat de ' : ''}${esc(c.num)}${rupt.length ? ' : ' + rupt.length + ' article' + (rupt.length > 1 ? 's' : '') + ' en rupture, suivi' + (rupt.length > 1 ? 's' : '') : ''}. Tu n’as rien eu à saisir.`);
+  toast(`${esc(c.four)} a confirmé ${part ? 'le reste de la commande ' : 'la commande '}${esc(matNumAff(c.num))}${rupt.length ? ' : ' + rupt.length + ' article' + (rupt.length > 1 ? 's' : '') + ' en rupture, suivi' + (rupt.length > 1 ? 's' : '') : ''}. Tu n’as rien eu à saisir.`);
 }
 
 /* ── la fiche d'une commande : où elle en est, ce qui reste, les gestes du moment ── */
@@ -9205,18 +9226,18 @@ document.addEventListener('click', ev => {
     else if (x === 't') { const [nom, u] = PACKS[k2].cats[+ci].ex[+j]; E.lignes.push({ pid:null, nom, ref:'—', u, q:1, pu:null, tva:20, recu:0 }); }
     else { const t = (document.querySelector('[data-cedrech]') || {}).value || ''; if (!t.trim()) return; E.lignes.push({ pid:null, nom:t.trim(), ref:'—', u:'u', q:1, pu:null, tva:20, recu:0 }); }
     foGarder(cmdEdVue); const s = document.querySelector('[data-cedrech]'); if (s) s.focus(); return; }
-  if (a === 'brouillon') { const c = cmdEdEnregistrer(); CMD_ED = null; fermerPanneau(); cmdFiltre = 'traiter'; rendre(); return toast(`Brouillon ${esc(c.num)} enregistré : il attend dans « À traiter ».`, { lib:'Ouvrir', fn:() => cmdFiche(c.id) }); }
-  if (a === 'bon') { const E = CMD_ED; return foOuvrir(`<span class="surtitre">Aperçu du PDF</span><h2>Bon de commande ${esc(E.num)}</h2>${cmdDoc(E)}<div class="fo-pied"><button type="button" class="btn" data-ce="retour">‹ Revenir à la commande</button></div>`, true); }
+  if (a === 'brouillon') { const c = cmdEdEnregistrer(); CMD_ED = null; fermerPanneau(); cmdFiltre = 'traiter'; rendre(); return toast(`Brouillon ${esc(matNumAff(c.num))} enregistré : il attend dans « À traiter ».`, { lib:'Ouvrir', fn:() => cmdFiche(c.id) }); }
+  if (a === 'bon') { const E = CMD_ED; return foOuvrir(`<span class="surtitre">Aperçu du PDF</span><h2>Bon de commande ${esc(matNumAff(E.num))}</h2>${cmdDoc(E)}<div class="fo-pied"><button type="button" class="btn" data-ce="retour">‹ Revenir à la commande</button></div>`, true); }
   if (a === 'retour') return cmdEdVue();
   if (a === 'envoyer') { const c = x ? COMMANDES.find(o => o.id === x) : cmdEdEnregistrer(); return c ? cmdEnvoyer(c.id) : null; }
   if (a === 'modif') { const c = COMMANDES.find(o => o.id === x); return cmdEdOuvrir(JSON.parse(JSON.stringify({ id:c.id, num:c.num, four:c.four, lignes:c.lignes, liv:c.liv || 'atelier', souh:c.souh || '', pour:c.pour || '', note:c.note || '' }))); }
-  if (a === 'voirbon') { const c = COMMANDES.find(o => o.id === x); return foOuvrir(`<span class="surtitre">${c.st === 'brouillon' ? 'Aperçu du PDF' : 'Envoyé le ' + jCourt(c.env)}</span><h2>Bon de commande ${esc(c.num)}</h2>${cmdDoc(c)}<div class="fo-pied"><button type="button" class="btn gris" data-cm="voir|${c.id}">‹ Retour à la commande</button></div>`, true); }
+  if (a === 'voirbon') { const c = COMMANDES.find(o => o.id === x); return foOuvrir(`<span class="surtitre">${c.st === 'brouillon' ? 'Aperçu du PDF' : 'Envoyé le ' + jCourt(c.env)}</span><h2>Bon de commande ${esc(matNumAff(c.num))}</h2>${cmdDoc(c)}<div class="fo-pied"><button type="button" class="btn gris" data-cm="voir|${c.id}">‹ Retour à la commande</button></div>`, true); }
   if (a === 'portail') return cmdPortail(x);
   if (a === 'cpok') return cmdPortailValider(x);
   if (a === 'recommander') { const c = COMMANDES.find(o => o.id === x), f = foDe(c.four) || {};
     return cmdEdOuvrir({ id:null, num:'BC-2026-0' + cmdNum, four:c.four, lignes:c.lignes.map(l => ({ pid:l.pid, nom:l.nom, ref:l.ref, u:l.u, q:l.q, pu:l.pid ? prixChez(cmdArt(l) || {}, c.four) || l.pu : l.pu, tva:l.tva || 20, recu:0 })), liv:c.liv || 'atelier', souh:cmdJourOuvre(ajoute(AUJ, f.dj || 1)), pour:'', note:c.note || '' }); }
   if (a === 'jeter') { const k = COMMANDES.findIndex(o => o.id === x), c = COMMANDES[k]; COMMANDES.splice(k, 1); fermerPanneau(); rendre();
-    return toast(`Brouillon ${esc(c.num)} supprimé.`, { lib:'Annuler', fn:() => { COMMANDES.splice(k, 0, c); rendre(); } }); }
+    return toast(`Brouillon ${esc(matNumAff(c.num))} supprimé.`, { lib:'Annuler', fn:() => { COMMANDES.splice(k, 0, c); rendre(); } }); }
 });
 document.addEventListener('change', ev => {
   const t = ev.target;
@@ -9238,7 +9259,7 @@ document.addEventListener('input', ev => {
 });
 
 function cmdConfirmer(id){ const c = COMMANDES.find(o => o.id === id), f = foDe(c.four);
-  foOuvrir(`<span class="surtitre">${esc(c.num)} · ${esc(c.four)}</span><h2>Le fournisseur a confirmé</h2>
+  foOuvrir(`<span class="surtitre">Commande ${esc(matNumAff(c.num))} · ${esc(c.four)}</span><h2>Le fournisseur a confirmé</h2>
     <div class="deux-champs"><label class="champ">Sa référence de commande<input id="cmd-cnum" placeholder="ex. AR-55120" autocomplete="off"></label><label class="champ">Livraison prévue le<input id="cmd-cdate" type="date" value="${c.prevue || ajoute(AUJ, f && f.dj != null ? f.dj : 2)}"></label></div>
     <span class="gris petit">Si la date passe sans livraison, la commande passe en retard et une relance est prête.</span>
     <div class="actions"><button type="button" class="btn" data-cm="confok|${c.id}">Enregistrer</button><button type="button" class="btn gris" data-cm="voir|${c.id}">Retour</button></div>`);
@@ -9246,7 +9267,7 @@ function cmdConfirmer(id){ const c = COMMANDES.find(o => o.id === id), f = foDe(
 function cmdRelance(id){ const c = COMMANDES.find(o => o.id === id), f = foDe(c.four) || {}, a = cmdAlerte(c);
   const reste = c.lignes.filter(l => l.recu < l.q).map(l => `- ${prNum(l.q - l.recu)} ${prU(l.q - l.recu, cmdU(l))} de ${cmdNom(l)}`).join('\n');
   const txt = `Objet : Relance commande ${c.num}${c.conf && c.conf.num ? ' (votre réf. ' + c.conf.num + ')' : ''}\n\nBonjour,\n\n${a && a.t === 'silence' ? `Nous vous avons envoyé la commande ${c.num} le ${jCourt(c.env)} et n’avons pas encore de confirmation. Pouvez-vous nous confirmer la date de livraison ?` : `Notre commande ${c.num} était prévue le ${jCourt(c.st === 'partielle' ? c.reliquat : c.prevue)} et n’est pas encore arrivée${c.st === 'partielle' ? ' en totalité' : ''}. Il nous manque :\n${reste}\n\nPouvez-vous nous donner une nouvelle date ?`}\n\nMerci,\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`;
-  foOuvrir(`<span class="surtitre">${esc(c.num)} · ${esc(c.four)}</span><h2>Relancer</h2><span class="gris">${f.mail ? `À ${esc(f.mail)}, depuis ta boîte.` : `Pas d’e-mail : appelle le ${esc(f.tel || 'fournisseur')}.`}</span>
+  foOuvrir(`<span class="surtitre">Commande ${esc(matNumAff(c.num))} · ${esc(c.four)}</span><h2>Relancer</h2><span class="gris">${f.mail ? `À ${esc(f.mail)}, depuis ta boîte.` : `Pas d’e-mail : appelle le ${esc(f.tel || 'fournisseur')}.`}</span>
     <pre class="cmd-pre">${esc(txt)}</pre>
     <div class="actions"><button type="button" class="btn" data-cm="relok|${c.id}">${f.mail ? 'Envoyer la relance' : 'Noter la relance'}</button><button type="button" class="btn gris" data-cm="voir|${c.id}">Retour</button></div>`, true);
 }
@@ -9277,7 +9298,7 @@ function cmdFacturer(id, conteste){
   c.st = 'facturee'; c.fac = { num:F.num, le:AUJ }; c.journal.push([AUJ, `Facture ${F.num} comparée${E.length ? ' : ' + E.length + ' écart' + (E.length > 1 ? 's' : '') + ' accepté' + (E.length > 1 ? 's' : '') + ', prix d’achat mis à jour' : ' : conforme'} · rangée dans les achats`]);
   MAILS.filter(mm => !mm.fait && mm.dossier === 'recu' && mlLire(mm).sujet === 'facfour' && mlLire(mm).cmd === c).forEach(mm => mlTraite(mm, `Facture comparée à ${c.num} et rangée dans les achats`, `data-ml="cmd|${c.id}"`));   // le courriel n’est traité qu’une fois la facture validée
   prCatalogueMaj(); rendre(); cmdFiche(c.id);
-  toast(`Commande ${esc(c.num)} terminée : facture comparée et rangée dans les achats.`);
+  toast(`Commande ${esc(matNumAff(c.num))} terminée : facture comparée et rangée dans les achats.`);
 }
 
 document.addEventListener('click', ev => {
@@ -9303,7 +9324,7 @@ document.addEventListener('click', ev => {
   if (a === 'annuler') { const c = COMMANDES.find(o => o.id === x), st = c.st; c.st = 'annulee'; c.journal.push([AUJ, 'Annulée']);
     const tt = [...new Set(c.lignes.map(l => l.inter).filter(Boolean))].map(i => TACHES.find(o => o.id === i)).filter(T => T && T.etat === 'commandee' && !COMMANDES.some(o => o !== c && o.st !== 'annulee' && o.st !== 'brouillon' && o.lignes.some(l => l.inter === T.id))), avT = tt.map(T => [T, T.etat, T.commandeLe]);
     tt.forEach(T => { T.etat = 'acommander'; delete T.commandeLe; }); rendre(); cmdFiche(c.id);
-    return toast(`${esc(c.num)} annulée : ses articles reviennent dans « À commander » s’ils sont sous le seuil.${tt.length ? ' Les pièces de l’intervention y reviennent aussi.' : ''}`, { lib:'Annuler', fn:() => { c.st = st; c.journal.pop(); avT.forEach(([T, e, l]) => { T.etat = e; T.commandeLe = l; }); rendre(); cmdFiche(c.id); } }); }
+    return toast(`Commande ${esc(matNumAff(c.num))} annulée : ses articles reviennent dans « À commander » s’ils sont bientôt finis.${tt.length ? ' Les pièces de l’intervention y reviennent aussi.' : ''}`, { lib:'Annuler', fn:() => { c.st = st; c.journal.pop(); avT.forEach(([T, e, l]) => { T.etat = e; T.commandeLe = l; }); rendre(); cmdFiche(c.id); } }); }
 });
 document.addEventListener('change', ev => {
   const t = ev.target;
@@ -11375,6 +11396,8 @@ const GESTES = {
   ec:{ d:'l' },
   /* gestes de soi et de l'écran : aucune case */
   gd:{ d:'l' }, imm:{ d:'l' }, nv:{ d:'l' }, mch:{ d:'l' }, menu:{ d:'l' }, mode:{ d:'l' }, tab:{ d:'l' }, go:{ d:'l' }, kpi:{ d:'l' }, kdash:{ d:'l' }, l:{ d:'l' }, vc:{ d:'l' }, vis:{ d:'l' }, oc:{ d:'l' }, tour:{ d:'l' }, taller:{ d:'l' }, voix:{ d:'l' },
+  /* le téléphone simulé d'OP Security (ops) est l'appareil PERSONNEL de la personne : verrouiller, supprimer SON activation, bloquer une connexion ne touchent aucune donnée de l'entreprise et ne dépendent d'aucune case */
+  ops:{ d:'l' },
   cmpt:{ k:'compta', m:'relance', d:'l' }, cmptfin:{ k:'compta', d:'m' }, cpsys:{ d:'l' }, retour:{ d:'l' }, retourva:{ d:'l' }, retourx:{ d:'l' }, pretour:{ d:'l' }, rlcli:{ d:'l' }
 };
 /* ── la phrase de chaque case : ce qu'elle change, en mots de tous les jours. Elle sert à la fiche (sous chaque case), au refus (« Ce geste n'est pas ouvert à ton compte : … ») et à l'infobulle. ── */
@@ -14040,7 +14063,7 @@ function pdxAchatsLignes(){
   COMMANDES.forEach(c => { const a = cmdAlerte(c); if (!a) return;
     if (a.t === 'retard') L.push({ k:'r', t:`${esc(c.num)} ${esc(c.four)} : ${esc(pdxMin(a.txt.replace(/ \(.*\)$/, '')))}`, go:'voir|' + c.id });
     else if (a.t === 'silence') L.push({ k:'s', t:`${esc(c.num)} ${esc(c.four)} : pas de confirmation`, go:'voir|' + c.id });
-    else if (a.t === 'facture') L.push({ k:'f', t:`Facture fournisseur à rapprocher : ${esc(c.num)} ${esc(c.four)}`, go:'rappro|' + c.id }); });
+    else if (a.t === 'facture') L.push({ k:'f', t:`Facture fournisseur à comparer : commande ${esc(matNumAff(c.num))}, ${esc(c.four)}`, go:'rappro|' + c.id }); });
   const br = COMMANDES.filter(c => c.st === 'brouillon'); if (br.length) L.push({ k:'b', t:`${pdxPl(br.length, 'commande')} en brouillon à envoyer`, go:'voir|' + br[0].id });
   const ordre = 'arsfb'; return L.sort((a, b) => ordre.indexOf(a.k) - ordre.indexOf(b.k));
 }
@@ -14060,7 +14083,7 @@ function pdxMatin(){
 function pdxSuggTaches(S, deja){
   COMMANDES.forEach(c => { const a = cmdAlerte(c); if (!a) return; const cle = 'cmd-' + c.id + '-' + a.t; if (deja(cle)) return;
     const n = a.t === 'retard' ? -tJours(c.st === 'partielle' ? c.reliquat : c.prevue) : 0;
-    S.push({ cle, t:a.t === 'facture' ? `Rapprocher la facture de ${c.num} (${c.four})` : a.t === 'silence' ? `Relancer ${c.four} : ${c.num} sans confirmation` : `Relancer ${c.four} : ${c.num} en retard de ${pdxPl(n, 'jour')}`,
+    S.push({ cle, t:a.t === 'facture' ? `Comparer la facture de la commande ${matNumAff(c.num)} (${c.four})` : a.t === 'silence' ? `Relancer ${c.four} : commande ${matNumAff(c.num)} sans confirmation` : `Relancer ${c.four} : commande ${matNumAff(c.num)} en retard de ${pdxPl(n, 'jour')}`,
       pourquoi:a.t === 'facture' ? a.txt : a.txt + ' · l’e-mail de relance est prêt', lien:null, urgent:a.t === 'retard' }); });
   return S;
 }
@@ -14073,7 +14096,7 @@ function pdxTachesSync(){
 }
 /* la fiche d'une tâche de commande : le geste du moment (relancer, rapprocher) et le chemin vers la commande */
 (() => { const o = tDetail; tDetail = function(id){ const r = o.apply(this, arguments); const x = TACHES.find(t => t.id === id), m = x && x.cle && x.cle.match(/^cmd-(.+)-(retard|silence|facture)$/), c = m && COMMANDES.find(k => k.id === m[1]), p = document.querySelector('#calque .panneau .t-gestes-b');
-  if (c && p && !x.fait) p.insertAdjacentHTML('beforebegin', `<div class="t-gestes pdx-tg">${m[2] === 'facture' ? `<button type="button" class="btn" data-pdx="achat|rappro|${c.id}">Rapprocher la facture</button>` : `<button type="button" class="btn" data-pdx="achat|relance|${c.id}">Relancer ${esc(c.four)}</button>`}<button type="button" class="btn gris" data-pdx="achat|voir|${c.id}">Ouvrir la commande</button></div>`);
+  if (c && p && !x.fait) p.insertAdjacentHTML('beforebegin', `<div class="t-gestes pdx-tg">${m[2] === 'facture' ? `<button type="button" class="btn" data-pdx="achat|rappro|${c.id}">Comparer avec la facture</button>` : `<button type="button" class="btn" data-pdx="achat|relance|${c.id}">Relancer ${esc(c.four)}</button>`}<button type="button" class="btn gris" data-pdx="achat|voir|${c.id}">Ouvrir la commande</button></div>`);
   return r; }; })();
 
 /* ── ouvrir un point d'achat depuis un autre écran : Commandes, une commande, le rapprochement ; le panneau s'ouvre après le dessin de l'écran ── */
@@ -14292,7 +14315,7 @@ function pdxEnvoiSilencieux(c){   // ce que cmdEnvoyer fait, sans la fenêtre ni
 function pdxToutPanneau(){
   const pans = cmdPaniers(); if (!pans.length) return toast('Rien à commander pour le moment.');
   const ligne = pan => { const F = cmdFranco(pan), f = foDe(pan.four), sans = pan.lignes.filter(l => l.pu == null).length, ht = Math.round(pan.lignes.reduce((s, l) => s + l.q * (l.pu || 0), 0) * 100) / 100;
-    return `<div class="fo-r pdx-tp"><label class="pdx-cb"><input type="checkbox" data-pdxtp="${esc(pan.four)}" data-ht="${ht}" ${sans ? '' : 'checked'} aria-label="Envoyer la commande de ${esc(pan.four)}"><span class="fo-n"><b>${esc(pan.four)}</b><span class="gris petit">${pdxPl(pan.lignes.length, 'ligne')}${F.f && F.f.franco ? ' · ' + (F.manque > 0 ? 'il manque ' + eur(F.manque) + ' pour le franco' : 'franco atteint') : ''}${f && f.mail ? '' : ' · pas d’e-mail : notée comme commandée'}${sans ? ` · <b class="fo-up">${pdxPl(sans, 'ligne')} sans prix : à vérifier</b>` : ''}</span></span></label><span class="fo-dr"><b>${eur(ht)}</b><button type="button" class="lien" data-pdx="tpbon|${esc(pan.four)}">Voir le bon</button></span></div>`; };
+    return `<div class="fo-r pdx-tp"><label class="pdx-cb"><input type="checkbox" data-pdxtp="${esc(pan.four)}" data-ht="${ht}" ${sans ? '' : 'checked'} aria-label="Envoyer la commande de ${esc(pan.four)}"><span class="fo-n"><b>${esc(pan.four)}</b><span class="gris petit">${pdxPl(pan.lignes.length, 'ligne')}${F.f && F.f.franco ? ' · ' + (F.manque > 0 ? 'il manque ' + eur(F.manque) + ' pour la livraison gratuite' : 'livraison gratuite atteinte') : ''}${f && f.mail ? '' : ' · pas d’e-mail : notée comme commandée'}${sans ? ` · <b class="fo-up">${pdxPl(sans, 'ligne')} sans prix : à vérifier</b>` : ''}</span></span></label><span class="fo-dr"><b>${eur(ht)}</b><button type="button" class="lien" data-pdx="tpbon|${esc(pan.four)}">Voir le bon</button></span></div>`; };
   ouvrirPanneau(`<span class="surtitre">Commandes</span><h2>Tout préparer · ${pdxPl(pans.length, 'commande')}</h2>
     <span class="gris">Une ligne par fournisseur, tout est prêt. Chaque bon part avec son PDF, comme d’habitude. Décoche ce que tu préfères vérifier : une commande dont une ligne n’a pas de prix est décochée d’office.</span>
     <div class="fo-bloc">${pans.map(ligne).join('')}</div><div class="pdx-tot" id="pdx-tot" aria-live="polite"></div>
@@ -14325,7 +14348,7 @@ function pdxRelGroupe(){
   const L = pdxEnRetard(); if (!L.length) return toast('Aucune commande à relancer.');
   ouvrirPanneau(`<span class="surtitre">Commandes</span><h2>Relancer ${L.length > 1 ? 'les ' + L.length + ' commandes' : 'la commande'} en retard</h2>
     <span class="gris">Un e-mail prêt par fournisseur, depuis ta boîte. Lis-les, décoche ceux que tu préfères passer toi-même.</span>
-    ${L.map(c => { const f = foDe(c.four) || {}; return `<div class="pdx-rel"><label class="pdx-cb"><input type="checkbox" data-pdxrel="${c.id}" ${c.relanceLe === AUJ ? '' : 'checked'}> <span class="fo-n"><b>${esc(c.num)} · ${esc(c.four)}</b><span class="gris petit">${esc(cmdAlerte(c).txt)}${c.relanceLe === AUJ ? ' · <b class="fo-up">déjà relancée aujourd’hui : coche pour relancer encore</b>' : ''}${f.mail ? ' · à ' + esc(f.mail) : ' · pas d’e-mail : appelle le ' + esc(f.tel || 'fournisseur')}</span></span></label><details class="fo-mail"><summary>L’e-mail</summary><pre class="cmd-pre">${esc(pdxRelTexte(c))}</pre></details></div>`; }).join('')}
+    ${L.map(c => { const f = foDe(c.four) || {}; return `<div class="pdx-rel"><label class="pdx-cb"><input type="checkbox" data-pdxrel="${c.id}" ${c.relanceLe === AUJ ? '' : 'checked'}> <span class="fo-n"><b>Commande ${esc(matNumAff(c.num))} · ${esc(c.four)}</b><span class="gris petit">${esc(cmdAlerte(c).txt)}${c.relanceLe === AUJ ? ' · <b class="fo-up">déjà relancée aujourd’hui : coche pour relancer encore</b>' : ''}${f.mail ? ' · à ' + esc(f.mail) : ' · pas d’e-mail : appelle le ' + esc(f.tel || 'fournisseur')}</span></span></label><details class="fo-mail"><summary>L’e-mail</summary><pre class="cmd-pre">${esc(pdxRelTexte(c))}</pre></details></div>`; }).join('')}
     <div class="fo-pied"><button type="button" class="btn" data-pdx="relgo">Envoyer les relances</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
 }
 function pdxRelEnvoyer(){
@@ -14368,7 +14391,7 @@ function pdxIntDeLigne(c, l){ const t = l.inter && TACHES.find(o => o.id === l.i
     h += '</div>'; ligne.insertAdjacentHTML('afterend', h); }); }; })();
 function pdxRangement(l, c){   // où irait l'article d'une ligne hors liste, et ce qu'il serait : produit facturé ou matériel de l'équipe
   const r = prRanger(l.nom || '', PACKS_ENT), f = foDe(c.four), k = r ? r.p : (f && (f.packs || [])[0]) || PACKS_ENT[0], cat = r ? r.cat : PACKS[k].cats[0].n, t = r ? r.t : 'p';
-  return { p:k, cat, t, txt:`${PACKS[k].ic} ${cat.replace(/ \(.*\)$/, '')}${t === 'm' || l.pu == null ? ' · matériel de l’équipe' : ' · produit facturé'}`, u:(r && r.u) || l.u || 'u' };
+  return { p:k, cat, t, txt:`${cat.replace(/ \(.*\)$/, '')}${t === 'm' || l.pu == null ? ' · matériel de l’équipe' : ' · produit facturé'}`, u:(r && r.u) || l.u || 'u' };
 }
 (() => { const o = cmdReceptionner; cmdReceptionner = function(id){
   const c = COMMANDES.find(k => k.id === id); if (!c) return o.apply(this, arguments);
@@ -14411,9 +14434,9 @@ function pdxApresReception(c){
   const r = o.apply(this, arguments);
   const a = ACHATS[ACHATS.length - 1], ech = a && a.id === 'a' + c.id ? pdxEcheance(f, (c.facLue && c.facLue.le) || AUJ) : null; if (ech) { a.ech = ech; c.journal.push([AUJ, `Échéance de paiement : le ${ech} (${(PDX_PAIE.find(k => k[0] === f.paie) || [0, ''])[1].toLowerCase()})`]); }
   journalAjout('marc', 'achats', 'a comparé une facture fournisseur', { lib:c.num }, { det:`${c.facLue.num} · ${c.four}` });
-  toast(`Commande ${esc(c.num)} terminée : facture comparée et rangée dans les achats.`, { lib:'Annuler', fn:() => {
+  toast(`Commande ${esc(matNumAff(c.num))} terminée : facture comparée et rangée dans les achats.`, { lib:'Annuler', fn:() => {
     Object.keys(c).forEach(k => delete c[k]); Object.assign(c, snap.c); snap.p.forEach(([x, pa, pv, pav]) => { x.pa = pa; x.pv = pv; if (pav === undefined) delete x.paAvant; else x.paAvant = pav; }); ACHATS.splice(snap.nA); snap.tk.forEach(([t, e]) => { t.etat = e; }); nm.forEach(([m, f2, fl, lu]) => { m.fait = f2; m.faitLien = fl; m.lu = lu; });
-    PDX.noRep = new Set(); prCatalogueMaj(); rendre(); cmdFiche(c.id); toast('Annulé : les prix reviennent, la commande repasse en « Reçue · facture à rapprocher ».'); } });
+    PDX.noRep = new Set(); prCatalogueMaj(); rendre(); cmdFiche(c.id); toast('Annulé : les prix reviennent, la commande repasse en « Facture à comparer ».'); } });
   PDX.noRep = new Set(); return r; }; })();
 function pdxContesteApercu(c){
   const F = c.facLue, E = cmdEcarts(c), f = foDe(c.four) || {};
@@ -14443,10 +14466,10 @@ function pdxFacCandidates(F){
   const lues = F.L.map(o2 => ({ o2, m:ligneCmd(o2) })).filter(k => k.m);
   const titre = lues.map(k => `${pdxQ(k.m.l.q)} ${prU(k.m.l.q, cmdU(k.m.l))} de ${esc(k.o2.nom.replace(/ \(le .*\)$/, ''))}`).join(', ');
   const autres = COMMANDES.filter(cmdOuverte).filter(k => k.four === F.f.nom);
-  const bl = `<div class="pdx-fac" role="group" aria-label="Choisir la commande"><div><b>Cette facture correspond à ${esc(c.num)}</b> <span class="gris petit">(${titre})</span></div>
+  const bl = `<div class="pdx-fac" role="group" aria-label="Choisir la commande"><div><b>Cette facture correspond à la commande ${esc(matNumAff(c.num))}</b> <span class="gris petit">(${titre})</span></div>
     <span class="pdx-bt"><button type="button" class="btn petit" data-pdx="facchoix|lie" aria-pressed="${S.choix === 'lie'}">C’est cette commande</button>${autres.length > 1 ? `<button type="button" class="btn gris petit" data-pdx="facchoix|autre" aria-pressed="${S.choix === 'autre'}">Autre commande</button>` : ''}<button type="button" class="btn gris petit" data-pdx="facchoix|aucune" aria-pressed="${S.choix === 'aucune'}">Aucune commande</button></span>
-    ${S.choix === 'autre' ? `<label class="champ">Quelle commande ?<select data-pdxfacsel="1">${autres.map(k => `<option value="${k.id}" ${k.id === S.cmd ? 'selected' : ''}>${esc(k.num)} · ${eur(cmdHT(k))} HT</option>`).join('')}</select></label>` : ''}
-    <span class="gris petit">${S.choix === 'aucune' ? 'La facture entre en stock seule. Attention : si tu réceptionnes ensuite la commande, le stock sera compté deux fois.' : `Le stock monte une seule fois : c’est la livraison de ${esc(c.num)} (« Réception de ${esc(c.num)} » dans ce qui a bougé). ${lues.every(k => k.m.n >= k.m.l.q - k.m.l.recu) ? 'La commande passe à « Terminée ».' : 'Le reste de la commande reste attendu.'}`}</span></div>`;
+    ${S.choix === 'autre' ? `<label class="champ">Quelle commande ?<select data-pdxfacsel="1">${autres.map(k => `<option value="${k.id}" ${k.id === S.cmd ? 'selected' : ''}>${esc(matNumAff(k.num))} · ${eur(cmdHT(k))} HT</option>`).join('')}</select></label>` : ''}
+    <span class="gris petit">${S.choix === 'aucune' ? 'La facture entre en stock seule. Attention : si tu notes ensuite la livraison de la commande, le stock sera compté deux fois.' : `Le stock monte une seule fois : c’est la livraison de la commande ${esc(matNumAff(c.num))} (elle apparaît dans « Ce qui a bougé »). ${lues.every(k => k.m.n >= k.m.l.q - k.m.l.recu) ? 'La commande passe à « Terminée ».' : 'Le reste de la commande reste attendu.'}`}</span></div>`;
   const h2 = p.querySelector('h2'); if (h2) h2.insertAdjacentElement('afterend', Object.assign(document.createElement('div'), { innerHTML:bl }).firstElementChild);
 }; })();
 document.addEventListener('change', ev => { if (ev.target.matches('[data-pdxfacsel]') && PDX.fac) { PDX.fac.cmd = ev.target.value; foGarder(foFactureVue); } });
@@ -14466,7 +14489,7 @@ document.addEventListener('change', ev => { if (ev.target.matches('[data-pdxfacs
   if (F.achats) ACHATS.push({ id:'a' + Date.now().toString(36), d:F.d, fid:F.f.id, four:F.f.nom, objet:F.L.map(o2 => o2.nom).slice(0, 3).join(', '), ht:F.ht, tva:20, compte:'607', mode:null, piece:'facture', ref:F.num, just:F.num + ' (rapprochée de ' + c.num + ')' });
   pdxApresReception(c); journalAjout('marc', 'achats', 'a comparé une facture photographiée', { lib:c.num }, { det:`${F.num} · ${F.f.nom}` });
   PDX.fac = null; prCatalogueMaj(); fermerPanneau(); rendre();
-  toast(`Facture ${esc(F.num)} validée et comparée à ${esc(c.num)} : stock entré une seule fois${tout ? ', commande terminée' : ', le reste est attendu'}.`, { lib:'Annuler', fn:() => {
+  toast(`Facture ${esc(F.num)} validée et comparée à la commande ${esc(matNumAff(c.num))} : stock entré une seule fois${tout ? ', commande terminée' : ', le reste est attendu'}.`, { lib:'Annuler', fn:() => {
     PRODUITS.splice(0, PRODUITS.length, ...avant); Object.keys(c).forEach(k => delete c[k]); Object.assign(c, cS); ACHATS.splice(nA); MVTS.splice(0, MVTS.length - nM); tk.forEach(([t, e]) => { t.etat = e; }); prCatalogueMaj(); rendre(); } });
 }; })();
 
@@ -14573,6 +14596,7 @@ const MAT = { F:null, M:null, bord:false, file:[] };
 const matVis = n => ` data-vis="${n}"`;   // un attribut, jamais un style : la visite guidée vise l’attribut, pas une classe qu’on renomme
 const matNomCourt = x => String(x.nom).replace(/\s*\([^)]*\)\s*$/, '');
 const matQte = (q, x) => /^(kg|m|l)$/i.test(x.u) ? `${prNum(q)} ${x.u} de ${matNomCourt(x)}` : `${prNum(q)} ${matNomCourt(x)}`;
+const matSansPrefixe = t => String(t || '').replace(/\b(BC|BR)-(?=\d)/g, '');   // une phrase entière (journal d’une commande) : tous les numéros de document, sans leur préfixe, à l’écran
 const matNumAff = n => String(n || '').replace(/^(BC|BR)-/, '');   // « BC-2026-039 » devient « 2026-039 » À L’ÉCRAN ; le document et la donnée gardent leur numéro
 const matDCourt = d => { const o = dObj(d); return o.getDate() + '/' + (o.getMonth() + 1); };
 
@@ -15449,7 +15473,7 @@ function prFiche(id){
     <details class="ms-acc"><summary>Où il est</summary>${ou.map(l => `<div class="ligne"><span>${esc(l.nom)}</span><span class="fo-dr"><b>${prNum(stkAt(x, l.id))}</b>${tech ? '' : `<button type="button" class="lien ms-lien" data-ms="fq|deplacer|${x.id}|${l.id}">Déplacer</button>`}</span></div>`).join('') || '<div class="gris">Nulle part.</div>'}</details>
     <details class="ms-acc"><summary>Derniers gestes</summary>${gestes.map(m => `<div class="ms-ph ligne">${msPhraseHtml(m)}</div>`).join('') || '<div class="gris">Aucun geste.</div>'}${gestes.length ? `<button type="button" class="lien ms-lien" data-ms="fhisto|${x.id}">Tout voir</button>` : ''}</details>
     <details class="ms-acc"><summary>Dans tes documents</summary><div class="gris">Utilisé dans ${pdxPl(usage.inters.length, 'intervention')} et ${pdxPl(usage.devis.length, 'devis', 'devis')}.</div></details>
-    ${tech ? '' : `<div class="actions ms-pied-f"><button type="button" class="btn gris" data-pr="modif|${x.id}">Modifier</button>${msGerant() ? `<button type="button" class="lien ms-rouge" data-pr="retirer|${x.id}">Retirer cet article</button>` : ''}</div>`}`);
+    ${tech ? '' : `<div class="actions ms-pied-f"><button type="button" class="btn gris" data-pr="modif|${x.id}">Modifier</button>${msReglages() ? `<button type="button" class="lien ms-rouge" data-pr="retirer|${x.id}">Retirer cet article</button>` : ''}</div>`}`);
   const p = document.querySelector('#calque .panneau'); if (p) p.dataset.pdxart = id;
 }
 
@@ -16113,7 +16137,7 @@ document.addEventListener('input', ev => {
    Les écritures et les calculs restent ceux d’avant : cmdPaniers, cmdSuggere, cmdFranco, cmdMoinsCher, cmdAlerte, cmdReceptionner, cmdFacturer, foAppliquer, foFactureValider. */
 const FX = { filtre:'tout', term:false, ajTab:'liste' };
 try { const v = localStorage.getItem('opg_prvue'); if (v === 'commandes' || v === 'articles' || v === 'fournisseurs') prVue = v; } catch (e) {}   // l’onglet est celui que l’appareil a quitté ; la première fois : Commandes
-const fxGerant = () => msGerant();   // ajouter ou retirer un fournisseur, retirer un article : le gérant ; le bureau prépare, envoie et reçoit les commandes
+const fxGerant = () => msReglages();   // ajouter ou retirer un fournisseur, retirer un article : la case « Stock › Supprimer » (le gérant) ; le bureau, lui, prépare, envoie et reçoit les commandes, change un prix d’achat — un réglage du stock, pas son travail du jour
 const fxQuand = d => { const n = tJours(d); return n === 0 ? 'aujourd’hui' : n === 1 ? 'demain' : n === -1 ? 'hier' : jlong(d); };
 const fxLiv = f => !f || f.dj == null ? '' : f.dj === 0 ? 'Retrait au comptoir' : `Livraison en ${f.dj} jour${f.dj > 1 ? 's' : ''}`;
 const fxGratuite = f => f && f.franco > 0 ? `gratuite dès ${eur(f.franco)}` : '';
@@ -16400,7 +16424,7 @@ function cmdFiche(id){
       <div class="fo-r"><span class="fo-n"><b>Total HT</b><span class="gris petit">TTC ${eur(cmdHT(c) + cmdTVA(c))}</span></span><b>${eur(cmdHT(c))}</b></div></div>
     ${c.note ? `<div class="gris petit">Note au fournisseur : ${esc(c.note)}</div>` : ''}
     <div class="ms-boutons fx-boutons">${noir}${a && (a.t === 'retard' || a.t === 'silence') ? `<button type="button" class="btn gris" data-cm="relance|${c.id}">Relancer</button>` : ''}<button type="button" class="btn gris" data-fx="cplus|${c.id}" aria-haspopup="menu" aria-label="Plus d’actions">Plus ▾</button></div>
-    <details class="ms-acc"><summary>Ce qui s’est passé</summary><div class="cmd-journal">${[...c.journal].reverse().map(([d, t]) => `<div><span class="gris petit">${jCourt(d)}</span><span>${esc(t)}</span></div>`).join('')}</div></details>
+    <details class="ms-acc"><summary>Ce qui s’est passé</summary><div class="cmd-journal">${[...c.journal].reverse().map(([d, t]) => `<div><span class="gris petit">${jCourt(d)}</span><span>${esc(matSansPrefixe(t))}</span></div>`).join('')}</div></details>
     ${f ? `<button type="button" class="lien" data-fo="fiche|${f.id}">${esc(c.four)} : son compte et ses articles ›</button>` : ''}`, true);
 }
 function fxMenuCmd(b, id){
