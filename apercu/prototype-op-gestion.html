@@ -15136,7 +15136,7 @@ function pdxEdPour(four){   // le bon d'un fournisseur, comme cmdPreparer le con
 }
 function pdxEnvoiSilencieux(c){   // ce que cmdEnvoyer fait, sans la fenêtre ni le message : l'envoi groupé en dit un seul
   const f = foDe(c.four) || {}; c.lignes.forEach(l => { if (l.pid) delete CMD_PANIER['+' + l.pid]; });
-  const av = { prevue:c.prevue }; c.st = 'envoyee'; c.sansMail = !f.mail; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) c.prevue = c.souh || ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2);
+  const av = { prevue:c.prevue }; c.st = 'envoyee'; c.sansMail = !f.mail; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) { const tot = ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2), dispo = c.liv === 'comptoir' ? tot : ouvres(1, tot)[0]; c.prevue = c.souh && c.souh >= dispo ? c.souh : dispo; }   /* la date SOUHAITÉE ne vaut pas livraison : « pour aujourd'hui » à un fournisseur qui livre en un jour s'affichait « livraison prévue aujourd'hui » · 17 novembre 2026, parcours 4 */
   c.journal.push([AUJ, f.mail ? `Envoyée à ${f.mail} (bon ${c.num} en PDF, lien de confirmation) · envoi groupé` : 'Notée comme commandée (téléphone ou comptoir) · envoi groupé']);
   const tt = [...new Set(c.lignes.map(l => l.inter).filter(Boolean))].map(t => TACHES.find(o => o.id === t)).filter(Boolean), avT = tt.map(T => [T, T.etat, T.commandeLe]);
   tt.forEach(T => { T.etat = 'commandee'; T.commandeLe = jCourt(AUJ); });
@@ -17228,7 +17228,7 @@ document.addEventListener('toggle', ev => { if (ev.target.matches && ev.target.m
 function cmdEnvoyer(id){
   const c = COMMANDES.find(o => o.id === id), f = foDe(c.four) || {}, avant = JSON.parse(JSON.stringify(c)), tk = TACHES.map(t => [t, t.etat, t.commandeLe]), pan = c.lignes.filter(l => l.pid).map(l => ['+' + l.pid, CMD_PANIER['+' + l.pid]]);
   c.lignes.forEach(l => { if (l.pid) delete CMD_PANIER['+' + l.pid]; });   // ce qui part en commande quitte « À commander »
-  c.st = 'envoyee'; c.sansMail = !f.mail; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) c.prevue = c.souh || ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2);
+  c.st = 'envoyee'; c.sansMail = !f.mail; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) { const tot = ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2), dispo = c.liv === 'comptoir' ? tot : ouvres(1, tot)[0]; c.prevue = c.souh && c.souh >= dispo ? c.souh : dispo; }   /* la date SOUHAITÉE ne vaut pas livraison : « pour aujourd'hui » à un fournisseur qui livre en un jour s'affichait « livraison prévue aujourd'hui » · 17 novembre 2026, parcours 4 */
   c.journal.push([AUJ, f.mail ? `Envoyée à ${f.mail} (bon ${c.num} en PDF, lien de confirmation)` : 'Notée comme commandée (téléphone ou comptoir)']);
   [...new Set(c.lignes.map(l => l.inter).filter(Boolean))].forEach(t => { const T = TACHES.find(o => o.id === t); if (T) { T.etat = 'commandee'; T.commandeLe = jCourt(AUJ); } });
   CMD_ED = null; fermerPanneau(); prVue = 'commandes'; rendre();
