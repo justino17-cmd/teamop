@@ -59,9 +59,9 @@ const S = (c, f, a) => c.p.evaluate(f, a);
 
   // ── ordinateur-10 : « Boîtes connectées » — l'adresse tient, les boutons dessous, un seul nom pour « autre messagerie » ──
   await S(c, () => { ML_BOITES[1].etat = 'reco'; ML_BOITES[1].vu = 'le 28 oct.'; mbxPanBoites(); }); await p.waitForTimeout(500);
-  const bo = await S(c, () => ({ lignes:[...document.querySelectorAll('#calque .mbx-bo')].map(r => { const b = r.querySelector('.fo-n b'), a = r.querySelector('.mbx-act'); return { adr:b.textContent, coupe:b.getBoundingClientRect().right > r.querySelector('.fo-n').getBoundingClientRect().right + 1, haut:Math.round(b.getBoundingClientRect().height), boutonsSous:!a.children.length || a.getBoundingClientRect().top >= b.getBoundingClientRect().bottom - 1 }; }), texte:(document.querySelector('#calque .panneau') || {}).textContent || '' }));
+  const bo = await S(c, () => ({ lignes:[...document.querySelectorAll('#calque .mbx-lig-bte')].map(r => { const b = r.querySelector('.fo-n b'), a = r.querySelector('.mbx-bo-act'), fn = r.querySelector('.fo-n').getBoundingClientRect(); return { adr:b.textContent, large:Math.round(fn.width), coupe:b.getBoundingClientRect().right > r.querySelector('.fo-n').getBoundingClientRect().right + 1, haut:Math.round(b.getBoundingClientRect().height), boutonsSous:!a.children.length || a.getBoundingClientRect().top >= b.getBoundingClientRect().bottom - 1 }; }), texte:(document.querySelector('#calque .panneau') || {}).textContent || '' }));
   v('ordinateur-10 population : deux boîtes listées', bo.lignes.length === 2, bo.lignes);
-  v('ordinateur-10 l\'adresse de la boîte à reconnecter tient sur UNE ligne, ses boutons sont DESSOUS', bo.lignes.every(l => !l.coupe && l.haut < 28 && l.boutonsSous), bo.lignes);
+  v('ordinateur-10 l\'adresse de la boîte à reconnecter tient sur UNE ligne (colonne ≥ 200 px), ses boutons sont DESSOUS', bo.lignes.every(l => !l.coupe && l.haut < 28 && l.boutonsSous && l.large >= 200), bo.lignes);
   v('ordinateur-10 un seul nom : « Autre messagerie », jamais « IMAP »', /Autre messagerie/.test(bo.texte) && !/IMAP/.test(bo.texte), bo.texte.replace(/\s+/g, ' ').slice(0, 300));
   await cap(c, 'corr-boites-mac');
   await S(c, () => { ML_BOITES[1].etat = 'ok'; try { fermerPanneau(); } catch (e) {} });

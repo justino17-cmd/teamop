@@ -1257,6 +1257,14 @@ function rendre(){
 function aller(r, o){ Object.assign(UI, o || {}); if (location.hash.slice(1) === r) { if (ROUTES.includes(r)) UI.route = r; rendre(); } else location.hash = r; scrollTo({ top:0 }); }
 addEventListener('hashchange', () => { const r = location.hash.slice(1); UI.route = ROUTES.includes(r) ? r : 'accueil'; rendre(); scrollTo({ top:0, behavior:'auto' }); });
 let ouvertDepuis = null, dernierClic = null, dernierClicA = 0;
+/* LES DROITS de la personne (OP GESTION les envoie avec son rôle, étape 5) : cette fenêtre est un cadre, le code d'OP GESTION n'y voit aucun clic. Sans « Comptabilité › Modifier » on LIT : les gestes qui écrivent
+   (pointer un rapprochement, saisir, passer une écriture, déclarer la TVA, valider la paie, clôturer…) sont avalés en capture, avant tout autre écouteur, et le refus est dit. Sans droits reçus (la fenêtre ouverte seule) : rien n'est gardé. */
+window.CMPT_DROITS = null;
+const CMPT_ECRIT = /^(rappro-ok|rappro-pointer|tout-traiter|piece-ok|piece-depuis-banque|paie-valider|paie-calc|tva-declarer|tva-complement|tva-auto|tva-liquider|ecr-supprimer|ecr-modifier|cloturer-envoyer|valider-tout|valider-sel|saisie-ok|saisie-vider|regle-essai|reset|reset-tests)$/;
+window.CMPT_REFUS = 0;
+document.addEventListener('click', ev => { const d = window.CMPT_DROITS; if (!d || d.m !== false) return; const b = ev.target && ev.target.closest ? ev.target.closest('[data-a]') : null; if (!b || !CMPT_ECRIT.test(b.dataset.a)) return;
+  ev.stopImmediatePropagation(); ev.preventDefault(); window.CMPT_REFUS++; const t = document.getElementById('toast');
+  if (t) { t.textContent = 'Ce geste n’est pas ouvert à ton compte : payer, valider, relancer, régler la fiche légale. Demande à ' + (d.qui || 'le gérant') + '.'; t.hidden = false; clearTimeout(window.__tCmptRefus); window.__tCmptRefus = setTimeout(() => { t.hidden = true; }, 3200); } }, true);
 /* au doigt (et à la souris sous Safari), un bouton touché ne prend pas le focus : on retient donc ce qui vient d'être touché, pour savoir où revenir */
 document.addEventListener('click', ev => { dernierClic = ev.target.closest ? ev.target.closest('[data-a], a, button') : null; dernierClicA = performance.now(); }, true);
 const derriere = on => ['#menu', '#barre', '#contenu', '#barre-bas'].forEach(s => { const n = $(s); if (n) n.inert = on; });
@@ -3301,7 +3309,7 @@ const cmptPluriel = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
 /* un message d'OP GESTION : qui regarde (le titre et « Ce qui t'attend »), ou « ouvre-moi cette rubrique avec ce filtre » */
 addEventListener('message', ev => {
   const d = ev.data; if (!d || typeof d !== 'object') return;
-  if (d.opc_role) { const roleAvant = CMPT.role; const paieAvant = CMPT.paie; CMPT.role = d.opc_role.role === 'patron' ? 'patron' : 'gestion'; CMPT.paie = d.opc_role.paie === true;   /* le comptable du cabinet reste « gestion » pour tout le reste, mais garde la Paie : la règle « patron seul » la lui avait retirée, alors que le défaut était la gestion des factures (secrétariat) · 13 novembre 2026 */ if (d.opc_role.prenom) CMPT.prenom = String(d.opc_role.prenom).slice(0, 30); if (UI.route === 'accueil' || CMPT.role !== roleAvant || CMPT.paie !== paieAvant) rendre(); }
+  if (d.opc_role) { window.CMPT_DROITS = d.opc_role.droits && typeof d.opc_role.droits === 'object' ? d.opc_role.droits : null; const roleAvant = CMPT.role; const paieAvant = CMPT.paie; CMPT.role = d.opc_role.role === 'patron' ? 'patron' : 'gestion'; CMPT.paie = d.opc_role.paie === true;   /* le comptable du cabinet reste « gestion » pour tout le reste, mais garde la Paie : la règle « patron seul » la lui avait retirée, alors que le défaut était la gestion des factures (secrétariat) · 13 novembre 2026 */ if (d.opc_role.prenom) CMPT.prenom = String(d.opc_role.prenom).slice(0, 30); if (UI.route === 'accueil' || CMPT.role !== roleAvant || CMPT.paie !== paieAvant) rendre(); }
   if (d.opc_aller) cmptAller(d.opc_aller);
   if (d.opc_liens) cmptLiensRecus(d.opc_liens);
   if (d.opc_ventes) oplSync(d.opc_ventes);

@@ -96,6 +96,17 @@ const rgb = t => (/rgba?\(([^)]+)\)/.exec(t) || [0, '0,0,0'])[1].split(/[ ,/]+/)
     await fin(c);
   }
 
+  // ── telephone-05 (suite) : la barre de sélection, avec un mot sous chaque icône, tient dans l'écran à 320 et 390 px ──
+  for (const pr of ['petit', 'iphone']) {
+    const c = await entrer({ profil:pr }), p = c.p;
+    await S(c, () => R().querySelector('#btnSelect').click()); await p.waitForTimeout(300);
+    await S(c, () => R().querySelectorAll('#rows .msg')[0].click()); await p.waitForTimeout(250); await S(c, () => R().querySelectorAll('#rows .msg')[1].click()); await p.waitForTimeout(400);
+    const sb = await S(c, () => { const b = R().querySelector('#selBar'), br = b.getBoundingClientRect(); return { deborde:b.scrollWidth > b.clientWidth + 1, hors:[...b.children].filter(x => { const r = x.getBoundingClientRect(); return r.right > innerWidth + 1 || r.left < -1; }).length, mots:[...b.querySelectorAll('.sb .tl')].map(x => x.textContent), nb:b.children.length, compteur:(b.querySelector('.sc') || {}).textContent }; });
+    v('telephone-05 ' + pr + ' : barre de sélection : quatre gestes avec leur mot (' + sb.mots + '), rien ne sort de l\'écran ni ne déborde', sb.mots.length === 4 && !sb.deborde && sb.hors === 0, sb);
+    await cap(c, 'corr-tel-selection-' + pr);
+    await fin(c);
+  }
+
   // ── telephone-07 : tout en panne, l'adresse n'est écrite qu'une fois (petit) ──
   let c = await entrer({ profil:'petit' }), p = c.p;
   await S(c, () => { ML_BOITES.forEach(b => { b.etat = 'reco'; b.vu = 'le 28 oct.'; }); return COURRIER.inst.rafraichir(); }); await p.waitForTimeout(1000);

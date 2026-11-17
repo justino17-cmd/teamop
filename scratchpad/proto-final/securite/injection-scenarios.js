@@ -11,6 +11,12 @@ module.exports = {
   plateforme: [['aller', 'factures'], ['clic', '[data-cx="grp|conformite"]'], ['clic', '[data-cx="sec|normes"]'], ['clic', '[data-cx="plateforme"]'],
     ['texte', '#pa-n', 'nom de la plateforme agréée'], ['clic', '[data-cx="plateformeok"]'], ['attendre', 500]],
   // le délai d'un fournisseur (texte libre de sa fiche) : il revient dans le détail d'une tâche « pièces à commander »
-  fournisseur: [['aller', 'produits'], ['clic', '[data-pr="vue|fournisseurs"]'], ['attendre', 300], ['clic', '[data-fo="liste"]'], ['clic', '[data-fo^="fiche|"]'],
-    ['texte', '[data-fochamp$="|delai"]', 'délai du fournisseur'], ['texte', '[data-fochamp$="|contact"]', 'contact du fournisseur'], ['attendre', 300]],
+  fournisseur: [['aller', 'produits'], ['clic', '[data-pr="vue|fournisseurs"]'], ['attendre', 300], ['clic', '[data-fo="fiche|cpa"]'],
+    ['texte', '[data-fochamp$="|delai"]', 'délai du fournisseur'], ['texte', '[data-fochamp$="|tel"]', 'téléphone du fournisseur'], ['attendre', 300], ['aller', 'taches'], ['clic', '[data-tmodif="t2"]'], ['attendre', 500], ['lire', 'détail de la tâche t2']],
+  // « Mon entreprise » : la garde d'entrée refuse < > \" ; on essaie ce qu'elle laisse passer (apostrophe, esperluette, entités écrites en toutes lettres) :
+  // une entité (&lt;) devient un vrai < quand un attribut est relu par le JavaScript (dataset) puis réécrit dans du HTML
+  entreprise: [['aller', 'entreprise'], ['clic', '[data-ent="carte|ident"]'],
+    ['valeur', '#en-nom', "Dupont's &lt;img src=x onerror=__xss('nE1')&gt; &amp; Fils"], ['valeur', '#en-patron', "D'Artagnan &lt;img src=x onerror=__xss('nE2')&gt;"],
+    ['valeur', '#en-rue', "4 rue de l'Ancre &lt;img src=x onerror=__xss('nE3')&gt;"], ['valeur', '#en-cp', '17000'], ['valeur', '#en-ville', "La Rochelle &lt;img src=x onerror=__xss('nE4')&gt;"], ['valeur', '#en-site', "exemple.fr/&lt;img/src=x/onerror=__xss('nE5')&gt;"],
+    ['clic', '[data-ent="identok"]'], ['attendre', 700]],
 };
