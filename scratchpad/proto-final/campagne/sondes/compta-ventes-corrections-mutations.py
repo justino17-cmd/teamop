@@ -18,7 +18,7 @@ M = [
  ('M9 « 1 240,01 » se lit de nouveau 1 € (parseFloat)', G, "v0 = dvLireNb(document.getElementById('pp-m').value)", "v0 = parseFloat(document.getElementById('pp-m').value.replace(',','.')) || 0", 'parcours-b'),
  ('M10 « Paiement reçu » lit de nouveau 1 € pour « 1 114,00 »', G, "v = dvLireNb(document.getElementById('e-v').value)", "v = parseFloat(document.getElementById('e-v').value.replace(',','.')) || 0", 'parcours-b'),
  ('M11 l\'acompte HT redevient le HT « au plus près »', G, "let a = a0, mieux = Infinity;", "let a = a0, mieux = -1;", 'parcours-i'),
- ('M12 la facture annulée compte encore dans le « à recevoir »', G, "const restant = f => f.st === 'annulee' ? 0 : ttcDe(f) - (f.recu || 0);", "const restant = f => ttcDe(f) - (f.recu || 0);", 'parcours-c'),
+ ('M12 la fiche d\'une facture annulée propose encore d\'encaisser', G, "${f.st !== 'avalider' && f.st !== 'payee' && f.st !== 'avoir' && f.st !== 'annulee' ? `<div class=\"carte\"><h3>Encaisser</h3>", "${f.st !== 'avalider' && f.st !== 'payee' && f.st !== 'avoir' ? `<div class=\"carte\"><h3>Encaisser</h3>", 'parcours-c'),
  ('M13 le cadre garde la facture annulée « à encaisser »', C, "return !lettrer([F.ref, ref(ea, i)], ea.date > AUJ ? AUJ : ea.date).err;", "return false;", 'annulee-cadre'),
  ('M14 le PDF du cadre redevient l\'aperçu d\'une ligne', C, "if (cmptParent({ opc_ouvrir:{ sorte:'pdf', cle:num } })) return;", "", 'parcours-d'),
  ('M15 « Annuler » de la ligne retirée : la croix ne retire plus rien', G, "const l = f.lignes.splice(k, 1)[0]; rendre();", "const l = f.lignes[k]; rendre();", 'parcours-a'),

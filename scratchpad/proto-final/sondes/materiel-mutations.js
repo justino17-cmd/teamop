@@ -22,8 +22,8 @@ const M = [
   ['10 · « J\'ai tout pris » compte aussi ce qui attend déjà (le bouton promet une double demande)', "prenables = M.filter(o => stkAt(o.x, 'atelier') > 0 && !att(o.x.id))", "prenables = M.filter(o => stkAt(o.x, 'atelier') > 0)", [['camion']]],   // le filtre du clic, lui, est doublé par matDejaEnvoye (mutation 1) : le muter seul ne change rien, c'est un mutant équivalent
   ['11 · une prise dépasse ce que l\'atelier a en stock', "q = Math.min(man || sxPas(x), stkAt(x, 'atelier'))", "q = man || sxPas(x)", [['camion']]],
   ['12 · la ligne grise « Envoyé au bureau » ne remplace plus le bouton', "return e ? `<div class=\"mc-l envoye\">", "return false ? `<div class=\"mc-l envoye\">", [['camion']]],
-  ['13 · le technicien n\'a plus la phrase du garage', "${g ? '<div class=\"info petit mc-garage\">Ton camion est au garage.</div>' : ''}", "", [['camion']]],
-  ['14 · le conteneur réservé à la partie Véhicule disparaît', "<div id=\"mc-vehicule\" data-vis=\"camion-vehicule\"></div>", "", [['camion']]],
+  ['13 · le technicien n\'a plus la phrase du garage (l\'état du camion ne passe plus par vhPhraseCamion)', "if (v.statut === 'atelier') return { t:'Ton camion est au garage'", "if (false) return { t:'Ton camion est au garage'", [['camion']]],
+  ['14 · le conteneur réservé à la partie Véhicule disparaît', "<div id=\"mc-vehicule\" data-vis=\"camion-vehicule\">${V ? vhCamionBloc(V) : ''}</div>", "", [['camion']]],
   // ── Lot 2 : Stock ──
   ['18 · un comptage qui trouve un écart NÉGATIF ne s\'enregistre plus (« > 0 » au lieu de « !== 0 »)', "(stkAppliquer(m) !== 0 ? (MVTS.unshift(m), 'applique') : 'rien')", "(stkAppliquer(m) > 0 ? (MVTS.unshift(m), 'applique') : 'rien')", [['stock-gestes']]],
   ['19 · le bureau perd la route Stock (sa case « Stock › Voir » ne suffit plus à l\'ouvrir)', "stock:{ equipe:['stock'] }, produits:{ equipe:['stock'] },", "stock:{ equipe:['admin'] }, produits:{ equipe:['stock'] },", [['stock-roles']]],
@@ -78,6 +78,20 @@ const M = [
   ['62 · le rond « Pourquoi cette quantité ? » retombe à 22 px sous le doigt', "html .fx-ib{position:relative;flex:none;width:44px;height:44px;", "html .fx-ib{position:relative;flex:none;width:22px;height:22px;", [['four-appareils', 'iphone']]],
   ['63 · le bon de commande garde ses quatre colonnes sur téléphone (la désignation passe sur huit lignes)', "  html .bc-t thead{display:none}html .bc-t,html .bc-t tbody{display:block}html .bc-t tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--trait)}\n  html .bc-t td{padding:0;border:0;text-align:left}html .bc-t td:first-child{grid-column:1/-1}html .bc-t td:nth-child(3){text-align:right;color:var(--doux)}html .bc-t td:nth-child(4){text-align:right;font-weight:650}", "", [['four-appareils', 'iphone']]],
   ['64 · le nom d\'un fournisseur long fait sortir le bouton « Envoyer à… » de la feuille', "html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}", "html .fo-pied .btn{white-space:nowrap}", [['four-appareils', 'iphone']]],
+  // ── Lot 5 et lot 6 : voisins, guides et recette ──
+  ['65 · la carte « Matériel » de l\'Accueil compte les camions au lieu des articles qui manquent', "t:`${sxPl(c.n, 'article')} ${c.n > 1 ? 'manquent' : 'manque'} dans", "t:`${sxPl(c.camions.length, 'article')} ${c.n > 1 ? 'manquent' : 'manque'} dans", [['voisins'], ['coherence']]],
+  ['66 · le bureau lit sur sa carte « N envois à accepter » (la ligne ne regarde plus le droit d\'accepter)', "if (voit('stock') && typeof msAccepte === 'function' && msAccepte() && STK_VALID)", "if (voit('stock') && typeof msAccepte === 'function' && STK_VALID)", [['voisins']]],
+  ['67 · la technicienne reçoit le bouton « Commander » sur ses pièces prévues', "const peut = ROLE !== 'tech' && ROLE !== 'client' && rlPermis('produits');", "const peut = true;", [['voisins']]],
+  ['68 · une pièce est « Prête » dès qu\'on a un article quelque part (plus de « À commander »)', "if (at + bord >= q) return { k:'prete'", "if (at + bord >= 0) return { k:'prete'", [['voisins']]],
+  ['69 · la pastille du menu « Fournisseurs, matériel & produits » ne compte plus le « à commander »', "    else if (k === 'produits') n = cmdNbACommander();", "", [['coherence']]],
+  ['70 · le guide montre à chacun les quatre lignes du matériel, même celles qu\'il ne peut pas ouvrir', "const L = NV_MAT.filter(l => l[0] !== 'moncamion' ? ROLE !== 'tech' && nvVoit(l[0]) : ROLE === 'tech' && nvVoit(l[0]));", "const L = NV_MAT;", [['voisins']]],
+  ['71 · la création d\'une intervention n\'enregistre plus l\'article de la pièce prévue (le pid se perd)', "return x ? { nom, q, pid:x.id } : { nom, q };", "return { nom, q };", [['voisins']]],
+  ['72 · « Annuler » son envoi redevient une suppression de Stock (la règle des cases le cache à la technicienne)', "mchginter', l:'retire messages usage bord ret mliste mpiece mlibre mquand minter inter' },", "mchginter', s:'retire', l:'messages usage bord ret mliste mpiece mlibre mquand minter inter' },", [['camion']]],
+  ['73 · la visite perd sa cible « Où est l\'article ? » (le bouton du lieu n\'a plus son attribut)', "data-ms=\"ou\"${matVis('stock-lieu')} aria-haspopup", "data-ms=\"ou\" aria-haspopup", [['visites']]],
+  ['74 · le guide redit « Mouvements » et « À valider » pour dire où est passé le journal', "'Stock › onglet « Ce qui a bougé » et « Envois à accepter »'", "'Stock › onglets « Mouvements » et « À valider »'", [['mots']]],
+  ['75 · la pastille « Pièces » du planning dit « commandées » au lieu de « en route »', "court:'en route', arr }", "court:'commandées', arr }", [['mots']]],
+  ['76 · la pastille d\'une pièce « Prête » devient pâle (elle ne se lit plus de nuit)', ".pp-e .btn{margin-left:auto}", ".pp-e .btn{margin-left:auto}.pp-e .st{opacity:.4}", [['nuit', 'mac']]],
+  ['77 · une étape de la visite guidée du Stock vise une classe au lieu d\'un attribut', "['[data-vis=\"stock-lieu\"]', 'Où est l’article ?'", "['#contenu .ms-cherche', 'Où est l’article ?'", [['visites']]],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });

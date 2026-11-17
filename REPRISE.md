@@ -154,6 +154,21 @@ la Version 62 ; on republie dès que le compositeur en grand et la boîte mail o
 4. Tout doit marcher DANS l'artefact publié (là où il regarde) : voie `artefact` — téléchargements par le pont, liens, rangement
    refusé. À la republication, déclarer aussi la capacité `sample` pour que « Optimiser avec l'IA » marche dans l'atelier du
    prototype (elle n'est déclarée aujourd'hui que sur l'artefact « Documents sur mesure »).
+**ÉTAT AU 17 NOVEMBRE, 8 H 20 (heure de la machine ; 9 h 20 en France) — machine debout depuis 5 h 30, vingt voies.**
+Horaire redit à Justin à 8 h 25 (heure française) : la fin « plutôt en début de soirée, vers 19 h » (heure française, donc 18 h à la
+machine). Le tableau qui fait foi : `scratchpad/proto-final/VOIES-EN-COURS.md` (arguments, arbre, run ET identifiant de tâche de
+chaque voie). Fini depuis la Version 63 : `restes` de Tâches, Absences et Menu (deux tours : 0 pas réglé, 0 cassé, 2 mineurs
+nouveaux, 6 doutes — `final/restes-taches-absences-tour2-recontrole.json`). Arrêtées exprès : « campagne 1 » à son étape 7 et
+« campagne 2 » après le planning (chaque partie a désormais SA voie). Lancées à 8 h 13 : `restes` de la coque, campagne `metier-3d`.
+Sécurité : étape 6 presque rendue, **17 failles confirmées sur 38 rejouées** (3 hautes : l'objet ou l'expéditeur d'un courriel,
+et le nom d'une personne de l'équipe, deviennent du code à l'Accueil, dans l'Historique, au planning ; 6 moyennes ; 8 faibles —
+`securite/failles.json`, `securite/RAPPORT.md`) ; restent ses étapes 7 (corriger) et 8 (recontrôler).
+Ce qui reste, dans l'ordre : finir `materiel` et `vehtemps` (étape 5 sur 9 ; leurs deux relectures se jouent CÔTE À CÔTE, voir
+le tableau : `/home/user/attendre-etape.sh <run> 6` prévient) · `restes` pour chaque recontrôle rendu · seconde vague réduite
+(`devis-atelier`, `achats`, `equipe`) · `guide` · le dernier passage (`final-rejeu`, `final-parcours`, `final-mots`,
+`final-regard`, `final-rapport`) à lancer vers 14 h (machine) au plus tard · contrôle de fumée et captures regardées par le chef ·
+republication · réponse chiffrée à Justin avec la LISTE DES DOUTES. Le plan OP Security (vraie application) attend toujours sa réponse.
+
 **Horaires annoncés à Justin (17 novembre, 0 h 55) :** compositeur en grand et boîte mail corrigés et REPUBLIÉS vers 3 h 30 ;
 refontes finies vers 7 h ; campagne vers 11 h ; dernier passage, guide, publication et réponse chiffrée avec la liste des
 doutes vers 14 h. Lui redire à chaque étape finie.

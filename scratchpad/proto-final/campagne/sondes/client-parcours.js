@@ -21,10 +21,14 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
     v(`P1 · carte ${nom} : refusée avec un message qui dit quoi faire`, /16 chiffres/.test(d.toast) && /Payer la facture/.test(d.panneau), JSON.stringify(d).slice(0, 200)); }
   await p.fill('#ec-cb', '4242 4242 4242 4242'); await p.fill('#ec-ex', ''); await p.fill('#ec-cvc', '');
   const nbAvant = await ev(p, () => ENCAISSEMENTS.length);
+  // d'abord SANS date d'expiration ni code : doit être refusé (client-10) ; si la page l'accepte, le parcours continue sur ce paiement
+  await tape(c, '[data-ec^="payok|"]'); d = await O.dessus(p);
+  const accepteSans = await ev(p, () => FACTURES.find(f => f.id === 'f144').st === 'payee');
+  v('P1 · client-10 · sans date d’expiration ni code au dos : le paiement est refusé, avec un message qui dit quoi corriger', !accepteSans && /expiration|code/i.test(d.toast), accepteSans ? 'accepté sans date ni code' : d.toast);
+  if (!accepteSans) { await p.fill('#ec-ex', '12/28'); await p.fill('#ec-cvc', '123'); }
   // double toucher rapide sur « Payer »
-  await p.evaluate(() => { const b = document.querySelector('.panneau [data-ec^="payok|"]'); b.click(); b.click(); }); await L.calme(p, 400);
-  const apres = await ev(p, () => ({ enc: ENCAISSEMENTS.length, f: FACTURES.find(f => f.id === 'f144'), du: FACTURES.filter(f => f.cli === 'md' && ['envoyee', 'retard', 'partielle'].includes(f.st)).reduce((s, f) => s + restant(f), 0), e0: ENCAISSEMENTS[0], jr: JOURNAL.filter(j => /payé en ligne/.test(j.action || j.t || '')).length }));
-  v('P1 · expiration et code au dos vides : le paiement est accepté quand même (défaut client-02)', false || apres.f.st !== 'payee', 'accepté sans date d’expiration ni code');
+  if (!accepteSans) await p.evaluate(() => { const b = document.querySelector('.panneau [data-ec^="payok|"]'); b.click(); b.click(); }); await L.calme(p, 400);
+  const apres = await ev(p, () => ({ enc: ENCAISSEMENTS.length, f: FACTURES.find(f => f.id === 'f144'), du: FACTURES.filter(f => f.cli === 'md' && ['envoyee', 'retard', 'partielle'].includes(f.st)).reduce((s, f) => s + restant(f), 0), e0: ENCAISSEMENTS[0] }));
   v('P1 · un double toucher ne fait qu’UN encaissement', apres.enc === nbAvant + 1, `encaissements ${nbAvant} → ${apres.enc}`);
   v('P1 · la facture est payée, au centime : encaissé 121,00 €', apres.f.st === 'payee' && Math.round(apres.e0.ttc * 100) === 12100, JSON.stringify({ st: apres.f.st, ttc: apres.e0 && apres.e0.ttc }));
   v('P1 · l’encaissement porte la bonne facture et le mode Carte', apres.e0.fac === 'FAC-2026-0144' && apres.e0.mode === 'Carte', JSON.stringify(apres.e0));
@@ -37,7 +41,7 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   const acc = await texte(p, '.ec-tuiles'); v('P1 · l’accueil recalcule « À régler 1 240,00 € »', /À régler 1 240,00/.test(acc), acc.slice(0, 120));
   // le bureau voit-il le paiement ?
   await p.evaluate(() => rlChanger('gestion', { h: 'comptabilite', muet: true })); await L.calme(p, 600);
-  const bur = await ev(p, () => ({ f: FACTURES.find(f => f.id === 'f144').st, enc: ENCAISSEMENTS[0].fac, jr: (JOURNAL[0] || {}) }));
+  const bur = await ev(p, () => ({ f: FACTURES.find(f => f.id === 'f144').st, enc: ENCAISSEMENTS[0].fac, jr: (JOURNAL.find(j => /payé en ligne/.test(j.action || '')) || { absent: 'aucune ligne « a payé en ligne » au journal' }) }));
   v('P1 · côté bureau : la facture est payée et le paiement est le premier de la liste', bur.f === 'payee' && bur.enc === 'FAC-2026-0144', JSON.stringify(bur).slice(0, 200));
   console.log('   journal :', JSON.stringify(bur.jr).slice(0, 220));
   v('P1 · aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c);
@@ -54,7 +58,7 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   await p.evaluate(() => { document.getElementById('dv-ok').checked = true; }); await p.fill('#dv-nom', ''); await tape(c, '[data-dv^="signer|"]'); er = await texte(p, '#dv-err'); v('P2 · sans nom : message', /nom/.test(er), er);
   await p.fill('#dv-nom', 'Marc Durand'); await tape(c, '[data-dv^="signer|"]'); er = await texte(p, '#dv-err'); v('P2 · sans signature : message', /Signe|signature/i.test(er), er);
   console.log('   messages d’erreur du client :', er);
-  v('P2 · le message d’erreur ne tutoie pas le client', !/\b(Signe|Coche|Indique)\b/.test(er) || false, 'tutoiement : « ' + er + ' »');
+  v('P2 · client-01 · le message d’erreur ne tutoie pas le client', !/\b(Signe|Coche|Indique)\b/.test(er) || false, 'tutoiement : « ' + er + ' »');
   // le PDF complet depuis la fenêtre
   await tape(c, '.panneau [data-dv^="pdf|"]'); d = await O.dessus(p); v('P2 · « Voir le devis complet (PDF) » ouvre le document', !!d.doc, JSON.stringify(d).slice(0, 160));
   await p.keyboard.press('Escape'); await L.calme(p, 250); d = await O.dessus(p); v('P2 · Échap ferme le document et laisse le devis ouvert', !d.doc && /Votre devis/i.test(d.panneau), JSON.stringify(d).slice(0, 200));
@@ -62,7 +66,7 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   const av2 = await ev(p, () => ({ nInt: INTS.length, nFac: FACTURES.length, nJ: JOURNAL.length, nT: TACHES.length }));
   await p.evaluate(() => { const b = document.querySelector('.panneau [data-dv^="signer|"]'); b.click(); b.click(); }); await L.calme(p, 500);
   d = await O.dessus(p); console.log('   message après signature :', d.toast);
-  v('P2 · le message du client ne parle pas du « côté bureau » (défaut client-04)', !/bureau/i.test(d.toast), d.toast);
+  v('P2 · client-02 · le message du client ne parle pas du « côté bureau »', !/bureau/i.test(d.toast), d.toast);
   const ap2 = await ev(p, () => ({ nInt: INTS.length, nFac: FACTURES.length, nJ: JOURNAL.length, e: DV.find(x => x.num === 'D-2026-041').e, interAPlanifier: INTS.filter(i => i.st === 'aplanifier' && i.cli === 'vp').length }));
   v('P2 · le devis passe « accepté » une seule fois (double toucher)', ap2.e === 'accepte' && ap2.nInt - av2.nInt <= 1, JSON.stringify({ av2, ap2 }));
   const tt = await texte(p, '.ec'); v('P2 · la liste montre « Accepté » pour D-2026-041', /D-2026-041[^]*?Accepté/.test(tt), tt.slice(0, 300));
@@ -83,16 +87,20 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   await tape(c, '[data-go^="signer-x-"]'); d = await O.dessus(p);
   v('P3 · « Lire et signer » mène à la page de signature du contrat', /signer-x-/.test(d.hash), d.hash);
   const pg = await texte(p, '#contenu'); console.log('   page :', pg.slice(0, 500));
-  v('P3 · la page de signature ne montre pas d’adresse de site fabriquée (barre d’adresse)', !/teamop\.fr\/signer/.test(pg), 'une fausse barre d’adresse « climservices17.teamop.fr/signer/K7P2 » s’affiche dans la page');
+  v('P3 · client-12 · la page de signature ne montre pas d’adresse de site fabriquée (barre d’adresse)', !/teamop\.fr\/signer/.test(pg), 'une fausse barre d’adresse « climservices17.teamop.fr/signer/K7P2 » s’affiche dans la page');
   await tape(c, '[data-action="signerContrat"]'); d = await O.dessus(p); v('P3 · signer sans cocher : message', /Cochez/.test(d.toast), d.toast);
   await p.evaluate(() => { document.getElementById('lu').checked = true; }); await tape(c, '[data-action="signerContrat"]'); d = await O.dessus(p); v('P3 · signer sans signature : message', /Signez/.test(d.toast), d.toast);
   await tape(c, '[data-action="lireContrat"]'); d = await O.dessus(p); v('P3 · « Lire le contrat en entier » ouvre le contrat', /contrat/i.test(d.panneau), d.panneau); await O.nettoyer(p);
   await signer(c, '#signe-ctr'); const av3 = await ev(p, () => ({ nInt: INTS.length, nFac: FACTURES.length }));
-  await p.evaluate(() => { const b = document.querySelector('[data-action="signerContrat"]'); b.click(); b.click(); }); await L.calme(p, 600); d = await O.dessus(p);
+  await p.evaluate(() => { document.querySelector('[data-action="signerContrat"]').click(); }); await L.calme(p, 500); d = await O.dessus(p);
+  console.log('   message au premier toucher :', d.toast, '| hash', d.hash);
+  v('P3 · client-03 · un toucher sur « Signer le contrat » : le message confirme la signature et la copie par e-mail', /Contrat signé/.test(d.toast) && /e-mail/.test(d.toast), d.toast);
+  // un second toucher (double toucher un peu tardif, retour du navigateur) sur le bouton encore là
+  await p.evaluate(() => { const b = document.querySelector('[data-action="signerContrat"]'); if (b) b.click(); }); await L.calme(p, 500); d = await O.dessus(p);
   const ap3 = await ev(p, () => ({ nInt: INTS.length, nFac: FACTURES.length, k: CONTRATS.find(x => x.cli === 'cm' && x.st === 'signe') }));
-  console.log('   message :', d.toast, '| hash', d.hash);
-  v('P3 · le contrat est signé, UNE seule série de visites (double toucher)', !!ap3.k && ap3.nInt - av3.nInt <= 1 && ap3.nFac - av3.nFac <= 1, JSON.stringify({ av3, nInt: ap3.nInt, nFac: ap3.nFac }));
-  v('P3 · le message du client est pour le client (copie par e-mail), sans « planning »', /e-mail/.test(d.toast) && !/planning|à planifier/.test(d.toast), d.toast);
+  console.log('   message au second toucher :', d.toast, '| hash', d.hash);
+  v('P3 · le contrat est signé, UNE seule série de visites et UNE facture (second toucher)', !!ap3.k && ap3.nInt - av3.nInt <= 1 && ap3.nFac - av3.nFac <= 1, JSON.stringify({ av3, nInt: ap3.nInt, nFac: ap3.nFac }));
+  v('P3 · client-03 · un second toucher ne montre pas au client un refus de page (« Cette page n’est pas dans … »)', !/Cette page/.test(d.toast), d.toast);
   const pg2 = await texte(p, '#contenu'); console.log('   après signature :', pg2.slice(0, 400));
   await p.evaluate(() => { EC.tab = 'contrats'; aller('espaceclient'); }); await L.calme(p, 400); const ctr = await texte(p, '.ec');
   v('P3 · l’espace du client montre « Signé le 31/10/2026 »', /Signé le 31\/10\/2026/.test(ctr), ctr.slice(0, 300));
@@ -104,7 +112,7 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   await tape(c, '[data-ec^="cr|"]'); d = await O.dessus(p); const cr = await texte(p, '.panneau'); console.log('   fenêtre :', cr.slice(0, 600));
   v('P4 · le compte rendu s’ouvre', /Compte rendu/.test(cr), cr.slice(0, 100));
   v('P4 · le client ne voit pas « Ouvrir la page complète » (page du bureau)', !/Ouvrir la page complète/.test(cr), cr.slice(-120));
-  v('P4 · le titre parle au client (« Votre compte rendu »), pas « envoyé au client »', !/envoyé au client/.test(cr), 'titre « Le compte rendu envoyé au client » lu par le client lui-même');
+  v('P4 · client-05 · le titre parle au client (« Votre compte rendu »), pas « envoyé au client »', !/envoyé au client/i.test(cr), 'titre « Le compte rendu envoyé au client » lu par le client lui-même');
   v('P4 · pas de numéro de téléphone du technicien ni de notes internes', !/Léa|Karim.*06/.test(cr) || true);
   await p.keyboard.press('Escape'); await L.calme(p, 250); d = await O.dessus(p); v('P4 · Échap ferme', !d.panneau, d.panneau);
   v('P4 · aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c);
@@ -123,11 +131,11 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   v('P5 · une demande envoyée = UNE intervention et UNE tâche (double toucher)', ap5.nInt - av5.nInt === 1 && ap5.nT - av5.nT === 1, JSON.stringify({ av5, ap5 }));
   await p.evaluate(() => document.querySelector('[data-ec="tab|interventions"]').click()); await L.calme(p, 300); const li = await texte(p, '.ec');
   v('P5 · la demande paraît dans « À venir » avec « Rendez-vous à fixer »', /Rendez-vous à fixer[^]*?Dépannage/.test(li), li.slice(0, 300));
-  v('P5 · le client retrouve ce qu’il a écrit (sa phrase)', /ne chauffe plus/.test(li), 'la demande envoyée n’est lisible nulle part côté client : ' + li.slice(0, 200));
+  v('P5 · client-16 · le client retrouve ce qu’il a écrit (sa phrase)', /ne chauffe plus/.test(li), 'la demande envoyée n’est lisible nulle part côté client : ' + li.slice(0, 200));
   // « Demander un contrat »
   await p.evaluate(() => { RL_CLI.cli = 'md'; EC.tab = 'contrats'; rendre(); }); await L.calme(p, 300);
   await tape(c, '[data-ecctr]'); d = await O.dessus(p); console.log('   demander un contrat → titre', d.panneauTitre);
-  v('P5 · « Demander un contrat » ouvre une fenêtre qui parle de contrat', /contrat/i.test(d.panneauTitre), 'bouton « Demander un contrat » → fenêtre « ' + d.panneauTitre + ' »');
+  v('P5 · client-06 · « Demander un contrat » ouvre une fenêtre qui parle de contrat', /contrat/i.test(d.panneauTitre), 'bouton « Demander un contrat » → fenêtre « ' + d.panneauTitre + ' »');
   v('P5 · aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c);
 
   /* ═══ P6 · ce que le client ne doit pas voir ═══ */
@@ -135,11 +143,14 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   c = await O.client({ profil, nuit, cli: 'vp', ec: 'accueil' }); p = c.p;
   for (const h of ['factures', 'clients', 'comptabilite', 'inter-x-i1', 'client-x-vp', 'contrats', 'devis', 'equipe', 'statistiques', 'historique', 'encaissements', 'facture-x-f144', 'contrat-x-c1', 'devis-x-D-2026-034']) {
     await p.evaluate(x => aller(x), h); await L.calme(p, 400); const e = await O.etat(p);
-    v(`P6 · adresse #${h} : le client reste dans son espace`, e.route === 'espaceclient' || e.route === 'signer', `route=${e.route} h1=${e.h1.slice(0, 40)}`); }
+    v(`P6 · adresse #${h} : le client reste dans son espace`, e.route === 'espaceclient' || e.route === 'signer', `route=${e.route} h1=${e.h1.slice(0, 40)}`);
+    const dd = await O.dessus(p); if (dd.toast) v(`P6 · client-04 · la phrase de refus de #${h} vouvoie le client`, !/\b(ton|ta|tes|tu|toi)\b/.test(dd.toast), dd.toast); }
   // le contrat d'un AUTRE client par son identifiant
   const autre = await ev(p, () => (CONTRATS.find(k => k.cli !== 'vp') || {}).id);
   await p.evaluate(x => aller('signer-x-' + x), autre); await L.calme(p, 400); const ac = await texte(p, '#contenu');
-  v('P6 · la page de signature d’un contrat d’un autre client n’est pas montrée (défaut client-06)', !/Contrat|visites? par an/.test(ac) || /Hôtel|Vieux Port/.test(ac) && false, 'contrat ' + autre + ' ouvert par le restaurant : ' + ac.slice(0, 160));
+  const titreAutre = await ev(p, x => (CONTRATS.find(k => k.id === x) || {}).titre, autre);
+  v('population : un contrat d’un autre client existe (' + autre + ' · ' + titreAutre + ')', !!autre && !!titreAutre, autre);
+  v('P6 · client-13 · la page de signature d’un contrat d’un autre client n’est pas montrée', !ac.toUpperCase().includes(String(titreAutre).toUpperCase()), 'contrat « ' + titreAutre + ' » (' + autre + ') ouvert par le restaurant');
   await p.evaluate(() => { RL_CLI.cli = 'vp'; EC.tab = 'accueil'; aller('espaceclient'); }); await L.calme(p, 300);
   await p.evaluate(() => document.querySelector('[data-menu="ouvrir"]').click()); await L.calme(p, 400);
   const menu = await ev(p, () => [...document.querySelectorAll('#calque button, #calque a')].map(b => (b.textContent || '').replace(/\s+/g, ' ').trim()).filter(Boolean));

@@ -1,0 +1,79 @@
+[
+ {
+  "nom": "taches-absences",
+  "defaut": "« Modifier les dates » (absence validée) accepte un week-end seul (0 jour ouvré enregistré)",
+  "etat": "corrigé",
+  "changement": "aApercuDates : message « Ces jours ne sont pas travaillés » et « Enregistrer » grisé ; aAppliquer (bouton forcé, appel direct, glisser sur le calendrier) refuse aussi, sans rien bouger.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-1-recontrole.js 17 ✓ · 0 ✗ ; mutations N1 (aperçu) 15 ✓ · 1 ✗ et N2 (aAppliquer) 16 ✓ · 1 ✗ ; captures relues mac jour, iphone nuit, petit jour et nuit (restes2-modifier-dates-weekend-*.png)"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "« Modifier les dates » déplace une absence sur les jours d'une demande en attente de la même personne (double absence à l'acceptation)",
+  "etat": "corrigé",
+  "changement": "Même règle que « Nouvelle absence » : message « a déjà … : accorde-la ou refuse-la d'abord, dans « À valider » », bouton grisé, et refus dans aAppliquer.",
+  "preuve": "Même sonde ; mutation N3 : 16 ✓ · 1 ✗"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "« Proposer d'autres dates » envoie une proposition de 0 jour ouvré (week-end seul)",
+  "etat": "corrigé",
+  "changement": "aApercuModif : message et bouton « Envoyer la proposition » grisé ; l'envoi forcé affiche un message et n'écrit rien.",
+  "preuve": "Même sonde ; mutations N4 (envoi) 16 ✓ · 1 ✗ et N5 (aperçu) 16 ✓ · 1 ✗ ; capture relue (restes2-proposer-weekend-petit-nuit.png : message, bouton grisé, rien ne déborde)"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "« Au » ne suit pas « Du » dans les formulaires du gérant (Nouvelle absence, Proposer d'autres dates, Modifier les dates)",
+  "etat": "corrigé",
+  "changement": "Un seul écouteur en capture (an-, am-, ax-) : « Au » suit « Du » tant qu'on n'a pas touché « Au », le bouton de date est repeint (comme la demande du technicien).",
+  "preuve": "Même sonde (3 contrôles) ; mutation N6 : 15 ✓ · 2 ✗"
+ },
+ {
+  "nom": "menu",
+  "defaut": "Un appui long annulé par le système (touchcancel) fait avaler le premier toucher ordinaire qui suit",
+  "etat": "corrigé",
+  "changement": "touchcancel remet le drapeau « doigt tenu » à faux (le système ne produit aucun clic au relâcher : rien à avaler). Non prouvé sur appareil réel : la sonde rejoue l'événement.",
+  "preuve": "Même sonde : le premier toucher d'après arrive (recu 1) ; mutation N7 : 16 ✓ · 1 ✗"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Pastille « Tâches » (1) contre l'écran « Aujourd'hui 7 · En retard 2 »",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : le chiffre est juste (retards de Marc seul, ce qui demande une action) mais jamais expliqué.",
+  "preuve": "Décision du tour 1 maintenue ; aucun défaut nouveau"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Cibles sous 44 px : cases d'un jour du calendrier des absences, barres « mois par mois » des soldes",
+  "etat": "déjà décidé",
+  "changement": "Aucun (décision b : cases d'information).",
+  "preuve": "—"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Retour du navigateur depuis une fiche de tâche (défaut 12)",
+  "etat": "déjà décidé",
+  "changement": "Aucun : voie « retour » (décision a).",
+  "preuve": "—"
+ },
+ {
+  "nom": "menu",
+  "defaut": "Au téléphone, la Comptabilité plein écran porte deux boutons à trois traits : « Menu » (page) et le ≡ d'OP COMPTABLE",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : le bouton « Menu » est DÉCIDÉ (e) ; seul le risque d'hésitation d'un débutant devant les deux menus est à trancher.",
+  "preuve": "Capture restes1-bureau-petit-nuit du tour 1"
+ },
+ {
+  "nom": "menu",
+  "defaut": "Un message posé par la page pendant la Comptabilité plein écran serait sous elle (z-index 9000)",
+  "etat": "ne se reproduit pas",
+  "changement": "Aucun : le doute persiste (pile IFRAME mesurée sur un toast forcé à la main) mais aucun geste réel ne pose de message de la page à ce moment.",
+  "preuve": "Doute imprimé par la sonde du recontrôle ; à revoir si un geste de la Comptabilité demande un message à la page"
+ },
+ {
+  "nom": "menu",
+  "defaut": "technicien-parcours-menu-droits J2 tombait (regex sensible à la casse « Commencée »)",
+  "etat": "déjà décidé",
+  "changement": "Déjà corrigé dans la sonde (drapeau /i) avant ce tour ; pas un défaut de la page.",
+  "preuve": "grep de la sonde"
+ }
+]
