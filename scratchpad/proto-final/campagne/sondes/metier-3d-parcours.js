@@ -6,7 +6,7 @@
 //   I  le métier 3D retiré alors que des passages existent : Historique et adresses
 // Usage : node metier-3d-parcours.js [lettres, ex. ABE]. Rend « N ✓ · M ✗ » ; chaque ✗ dit ce qui a été vu. Les textes lus sont rendus pour la relecture « artisan ».
 const O = require('./metier-3d-outils.js'), L = O.L;
-const LETTRES = (process.argv[2] || 'ABCDEFGHI').split('');
+const LETTRES = (process.argv[2] || 'ABCDEFGHIJK').split('');
 let ok = 0, ko = 0; const notes = [];
 const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ ' + nom + (det ? ' — ' + det : '')); } };
 const dit = (t) => { notes.push(t); console.log('  · ' + t); };
@@ -21,15 +21,20 @@ const eurN = s => parseFloat(String(s).replace(/[^\d,.-]/g, '').replace(/\s/g, '
 async function ouvrir(o) { const c = await O.ouvrir(Object.assign({ packs: O.METIERS.d3 }, o)); c.p.on('dialog', d => d.dismiss().catch(() => {})); return c; }
 const S = {
   async A() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 500);
-    const k0 = await kpis(p), n0 = await nb(p); v('A registre d\'un site : 4 compteurs et des recommandations', k0.length === 4 && n0.recos > 0, JSON.stringify(k0) + ' ' + JSON.stringify(n0));
-    const att0 = parseInt((k0[3] || '').match(/\d+/)), ouv = await p.evaluate(() => [...document.querySelectorAll('#contenu [data-d3reco]')].findIndex(e => !e.checked));
-    v('A : il reste une recommandation à cocher', ouv >= 0);
-    if (ouv >= 0) { await p.locator('#contenu [data-d3reco]').nth(ouv).check(); await L.calme(p, 600); const k1 = await kpis(p), n1 = await nb(p), t = await toast(p);
-      v('A : cocher une recommandation fait baisser le compteur « en attente » de 1', parseInt((k1[3] || '').match(/\d+/)) === att0 - 1, `${att0} → ${k1[3]}`);
-      v('A : elle porte « faite le … »', (await txt(p)).includes('faite le'));
-      dit('Toast après avoir coché : « ' + t + ' »');
+    const k0 = await kpis(p), att0 = parseInt((k0.find(x => /recommandations? en attente/.test(x)) || '').match(/\d+/)), btn = await p.locator('#contenu [data-rg^="reco|faite|"]').count();
+    v('A registre d\'un site : 4 compteurs, des recommandations en attente et un bouton « Marquer comme faite » par recommandation', k0.length === 4 && att0 > 0 && btn === att0, JSON.stringify(k0) + ' boutons=' + btn);
+    if (btn) { await L.toucher(c, p.locator('#contenu [data-rg^="reco|faite|"]').first()); await L.calme(p, 500); const pa = await pan(p), t = await toast(p);
+      dit('Marquer comme faite → fenêtre : « ' + pa.slice(0, 320) + ' » toast : « ' + t + ' »');
+      if (pa) { await L.toucher(c, p.locator('#calque .btn:not(.gris)').locator('visible=true').last()); await L.calme(p, 600); }
+      const k1 = await kpis(p), att1 = parseInt((k1.find(x => /recommandations? en attente/.test(x)) || '').match(/\d+/)), t1 = await toast(p);
+      v('A : marquer une recommandation comme faite fait baisser le compteur « en attente » de 1', att1 === att0 - 1, `${att0} → ${att1} ${await pan(p)}`);
+      v('A : la recommandation porte « faite le … »', (await txt(p)).includes('faite le')); dit('Toast après confirmation : « ' + t1 + ' »');
       await L.aller(p, 'historique'); const h = await txt(p); v('A : l\'Historique garde la trace de la recommandation notée', /recommandation/i.test(h), h.slice(0, 160));
-      await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 400); v('A : après un autre écran, la case est toujours cochée', (await nb(p)).faites === n1.faites); }
+      await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 400);
+      const k2 = await kpis(p); v('A : après un autre écran, elle est toujours marquée faite', JSON.stringify(k2) === JSON.stringify(k1), JSON.stringify(k1) + ' ≠ ' + JSON.stringify(k2));
+      // la remettre en attente
+      const rem = await L.toucher(c, p.locator('#contenu [data-rg^="reco|attente|"]').first()); await L.calme(p, 500); const k3 = await kpis(p), att3 = parseInt((k3.find(x => /recommandations? en attente/.test(x)) || '').match(/\d+/));
+      v('A : « Remettre en attente » ramène le compteur', rem && att3 === att0, `${att0} → ${att3}`); }
     v('A : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
   async B() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'registre'); const n0 = await nb(p), k0 = await kpis(p);
     v('B : « Saisir un passage » ouvre la fenêtre', await bouton(c, /Saisir un passage/) && /Saisir un passage/.test(await pan(p)), (await pan(p)).slice(0, 80));
@@ -70,9 +75,10 @@ const S = {
       v(`C ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
   async D() { for (const profil of ['mac', 'iphone']) { const c = await ouvrir({ profil }), p = c.p; await L.aller(p, 'carteBox');
       const t = await txt(p); dit(`Carte des box (${profil}) : ` + t.slice(0, 300));
-      v(`D ${profil} : « Plus d'actions » offre Envoyer / Imprimer / Modifier`, await bouton(c, /Plus d.actions/, '#contenu summary') && await p.locator('#contenu .cb-plus-l button').locator('visible=true').count() >= 3);
-      for (const [re, att] of [[/Imprimer les étiquettes/, /étiquette|PDF|QR/i], [/Envoyer au client/, /envoy|client|e-mail|mail/i], [/Modifier le plan/, /plan|déplacer|zone/i]]) {
-        await bouton(c, /Plus d.actions/, '#contenu summary'); const avant = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; const f = await bouton(c, re, '#contenu .cb-plus-l button');
+      v(`D ${profil} : « Plus d'actions » offre Envoyer / Imprimer / Modifier`, await bouton(c, /Plus d.actions/, '#contenu summary') && await p.locator('#contenu .cb-plus-l button').locator('visible=true').count() >= 3); await L.aller(p, 'carteBox');
+      for (const [re, att] of [[/Envoyer au client/, /envoy|client|e-mail|mail/i], [/Imprimer les étiquettes/, /étiquette|PDF|QR/i], [/Modifier le plan/, /plan|déplacer|zone/i]]) {
+        // le menu peut être resté OUVERT d'un tour à l'autre (rendre() garde l'attribut open) : on ne le referme pas en le touchant de nouveau
+        if (!(await p.locator('#contenu .cb-plus-l button').first().isVisible())) await bouton(c, /Plus d.actions/, '#contenu summary'); await L.calme(p, 500); const avant = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; const f = await bouton(c, re, '#contenu .cb-plus-l button');
         await L.calme(p, 500); const apres = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; v(`D ${profil} : « ${re.source} » fait quelque chose`, f && apres !== avant, apres.slice(0, 160)); dit(`${profil} · ${re.source} → ` + (await pan(p) || await toast(p)).slice(0, 200)); await O.nettoyer(p); await L.aller(p, 'carteBox'); }
       // une box
       const b0 = await p.locator('#contenu [data-d3^="box|"]').first(); const lib = await b0.getAttribute('aria-label'); await L.toucher(c, b0); await L.calme(p, 500);
@@ -80,11 +86,16 @@ const S = {
       v(`D ${profil} : toucher une box ouvre sa fiche (« ${lib} »)`, !!(bulle || pa) || apresBox !== t.length, 'bulle=' + bulle + ' panneau=' + pa.slice(0, 100)); dit(`${profil} · fiche d'une box : ` + (bulle || pa).slice(0, 260)); await O.nettoyer(p);
       // les autres sites
       for (const nom of ['Boulangerie Lemoine', 'Entrepôt Logistique Atlantique']) { const ok2 = await bouton(c, new RegExp(nom)); await L.calme(p, 500); const t2 = await txt(p); v(`D ${profil} : le site « ${nom} » s'affiche`, ok2 && t2.includes(nom) && t2 !== t, t2.slice(0, 120)); }
+      // les filtres de la carte : chacun doit changer ce qui est montré (nombre de pastilles), « Tout » les montre toutes
+      await L.aller(p, 'carteBox'); const comptes = {}; for (const f of ['tout', 'regarder', 'r', 'i', 'v']) { const b = p.locator(`#contenu [data-cbx="filtre|${f}"]`).first(); if (!(await b.count())) { comptes[f] = 'absent'; continue; } await L.toucher(c, b); await L.calme(p, 400); comptes[f] = await p.evaluate(() => document.querySelectorAll('#contenu .cb-planc [data-d3^="box|"]:not(.cb-off)').length); }
+      dit(`${profil} · pastilles montrées par filtre : ` + JSON.stringify(comptes)); v(`${profil} : « Tout » montre toutes les box, chaque filtre en montre au plus autant`, comptes.tout > 0 && ['regarder', 'r', 'i', 'v'].every(f => comptes[f] === 'absent' || comptes[f] <= comptes.tout), JSON.stringify(comptes));
+      v(`${profil} : les filtres Rongeurs, Insectes et UV ne montrent pas tous la même chose`, new Set([comptes.r, comptes.i, comptes.v]).size > 1, JSON.stringify(comptes));
       // relever les box
       await L.aller(p, 'carteBox'); const r = await bouton(c, /Relever les box/); await L.calme(p, 600); dit(`${profil} · Relever les box → ` + (await txt(p)).slice(0, 300) + ' ¦ ' + (await pan(p)).slice(0, 200)); v(`D ${profil} : « Relever les box » ouvre un relevé`, r);
       v(`D ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
   async E() { for (const profil of ['mac', 'iphone']) { const c = await ouvrir({ profil }), p = c.p; await L.aller(p, 'devisXylo');
-      const t0 = await txt(p); v(`E ${profil} : sans client ni mesure, « Créer le devis » est grisé et dit pourquoi`, await p.evaluate(() => { const b = document.querySelector('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]'); return !!b && b.disabled; }), (await p.locator('#dx-raison').textContent().catch(() => '')));
+      const t0 = await txt(p); { const h0 = await p.evaluate(() => location.hash); await L.toucher(c, p.locator('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]').locator('visible=true').first()); await L.calme(p, 500); const tt = await toast(p), h1 = await p.evaluate(() => location.hash), ra = await p.locator('#dx-raison').textContent().catch(() => '');
+      v(`E ${profil} : « Créer le devis » sans client ne crée rien et dit pourquoi`, h1 === h0 && /client/i.test(tt + ra), `hash ${h0} → ${h1} toast=« ${tt} » raison=« ${ra} »`); dit(`${profil} · devis xylophage à l'ouverture (valeurs d'exemple déjà saisies) : ` + (await p.locator('#dx-res').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 260)); }
       // client
       const opt = await p.evaluate(() => [...document.querySelector('[data-dx="cli"]').options].filter(o => o.value && o.value !== '__nv').slice(0, 1).map(o => [o.value, o.textContent])[0]); await p.selectOption('[data-dx="cli"]', opt[0]); await L.calme(p, 500);
       // zone : une zone de bois de 42 m² et un mur de 12 m
@@ -104,9 +115,29 @@ const S = {
       const tt = eurN((t1.match(/(\d[\d\s]*[,.]\d{2})\s*€\s*TTC|TTC\s*:?\s*(\d[\d\s]*[,.]\d{2})/) || [0, '0'])[1] || 0); dit(`${profil} · fiche du devis créé : ` + t1.slice(0, 380));
       await L.aller(p, 'devis'); const lt = await txt(p); v(`E ${profil} : le devis créé est dans la liste des devis, au nom du client`, lt.includes(opt[1].slice(0, 12)), lt.slice(0, 200));
       v(`E ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
-  async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); const t = await txt(p); dit('F : ' + JSON.stringify(await p.evaluate(() => ({ rlJour: !!document.querySelector('#contenu .rl-jour'), dxCarte: !!document.querySelector('.dx-rel-carte'), cbMj: !!document.querySelector('.cb-mj'), a3d: metiersA3d(), role: ROLE, route, hauteur: document.getElementById('contenu').scrollHeight }))));
-    v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/.test(t), t.slice(0, 200));
-    const r = await bouton(c, /Relever les mesures|Faire un relevé|Relever/, '#contenu button'); await L.calme(p, 700); const t1 = await txt(p); dit('Relevé du technicien (début) : ' + t1.slice(0, 420)); v('F : le relevé s\'ouvre', r && /relev|mesure/i.test(t1), t1.slice(0, 120));
+  async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); await L.calme(p, 900); const t = await txt(p);
+    v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/i.test(t), t.slice(0, 200));
+    const r = await L.toucher(c, p.locator('#contenu [data-dxb="relever|"]').first()); await L.calme(p, 800); const t1 = await txt(p); dit('Relevé du technicien (début) : ' + t1.slice(0, 380));
+    v('F : « Relever les mesures » ouvre l\'écran de relevé, sans aucun prix', r && /Relever les mesures/.test(t1) && !/€/.test(t1), t1.slice(0, 160));
+    // envoyer à vide : refusé avec un mot clair
+    const h0 = await p.evaluate(() => location.hash); await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"], #contenu [data-dxrb="envoyer"]').locator('visible=true').first()); await L.calme(p, 600); const tv = await toast(p), tr = await txt(p);
+    v('F : « Envoyer au bureau » sans client ni mesure ne part pas et dit pourquoi', !/Relevé envoyé/.test(tr) && /client|mesure|zone/i.test(tv + tr), 'toast=« ' + tv + ' »');
+    // un vrai relevé : client, une zone de 18,5 m²
+    const opt = await p.evaluate(() => [...document.querySelector('[data-dxr="cli"]').options].filter(o => o.value)[0].value); await p.selectOption('[data-dxr="cli"]', opt); await L.calme(p, 400);
+    await L.toucher(c, p.locator('[data-dxrb^="zadd|"]').first()); await L.calme(p, 300); const zm = p.locator('[data-dxr^="zm|"]').first(); await zm.fill('18,5'); await zm.blur(); await L.calme(p, 500);
+    dit('Résumé du relevé : ' + (await p.locator('#dxr-resume').innerText().catch(() => '')).replace(/\s+/g, ' '));
+    await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"], #contenu [data-dxrb="envoyer"]').locator('visible=true').first()); await L.calme(p, 800); const t2 = await txt(p);
+    v('F : le relevé part au bureau (« Relevé envoyé »)', /Relevé envoyé/.test(t2) && /Envoyé au bureau/.test(t2), t2.slice(0, 200));
+    // le gérant le retrouve, le chiffre, en fait un devis
+    await p.evaluate(() => rlChanger('patron', { h: 'devisXylo', muet: true })); await L.calme(p, 900); const t3 = await txt(p);
+    v('F : le gérant voit « 1 relevé à chiffrer » sur le Devis xylophage', /1 relevé à chiffrer/.test(t3), t3.slice(0, 260));
+    await p.evaluate(() => aller('taches')); await L.calme(p, 600); const tt = await txt(p); v('F : une tâche « Chiffrer le relevé » attend le gérant', /Chiffrer le relevé/.test(tt), tt.slice(0, 160));
+    await p.evaluate(() => aller('devisXylo')); await L.calme(p, 600);
+    await L.toucher(c, p.locator('#contenu [data-dxrel]').first()); await L.calme(p, 800); const t4 = await txt(p);
+    v('F : « Chiffrer le relevé » ouvre le devis avec les mesures du technicien (18,5)', /18,5/.test(await p.evaluate(() => [...document.querySelectorAll('[data-dx^="zm|"]')].map(e => e.value).join(' '))), t4.slice(0, 200));
+    const cr = await L.toucher(c, p.locator('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]').locator('visible=true').first()); await L.calme(p, 900); const h = await p.evaluate(() => location.hash);
+    v('F : le devis créé depuis le relevé s\'ouvre', cr && /devis/i.test(h) && !/devisXylo/.test(h), h);
+    await p.evaluate(() => aller('devisXylo')); await L.calme(p, 600); const t5 = await txt(p); v('F : plus aucun relevé « à chiffrer » ensuite', !/relevés? à chiffrer/.test(t5), t5.slice(0, 160));
     v('F : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
   async G() { const c = await ouvrir({ qui: 'julie' }), p = c.p;
     for (const r of ['registre', 'carteBox', 'devisXylo']) { await L.aller(p, r); const t = await txt(p), e = await O.lire(p); v(`G : le bureau ouvre « ${r} »`, e.route === r, 'route=' + e.route); dit(`Bureau · ${r} : ` + t.slice(0, 220)); const g = await L.gestes(p, '#contenu'); dit(`Bureau · ${r} : ${g.length} gestes dont ${g.filter(x => /Saisir|Créer|Relever|Ajouter|Modifier/.test(x.lib)).map(x => x.lib).join(', ')}`); }
@@ -119,7 +150,23 @@ const S = {
     await O.poser(p, O.METIERS.clim); await L.aller(p, 'historique'); const h2 = await txt(p), puces2 = await p.evaluate(() => [...document.querySelectorAll('#contenu .h-puces button')].map(b => b.textContent.trim()));
     v('I : le filtre « Registre » de l\'Historique n\'est offert qu\'avec le métier 3D', puces1.some(x => /registre/i.test(x)) && !puces2.some(x => /registre/i.test(x)), JSON.stringify([puces1, puces2]));
     v('I : l\'Historique d\'une entreprise sans 3D ne dit pas « registre sanitaire »', !/registre sanitaire/i.test(h2) || true, ''); dit('Historique sans 3D, mentions « registre » : ' + ((h2.match(/.{30}registre.{30}/gi) || []).slice(0, 3).join(' ¦ ') || 'aucune'));
-    v('I : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); }
+    v('I : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
+  async J() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 500);
+    const liste = await L.gestes(p, '#contenu'); dit('Registre d\'un site, gestes : ' + liste.map(g => g.lib).join(' · ').slice(0, 900));
+    for (const re of [/PDF/i, /lien/i, /Envoyer/i, /Voir l.intervention/i, /carte/i]) { await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 400);
+      const b = p.locator('#contenu button, #contenu a').filter({ hasText: re }).locator('visible=true').first(); if (!(await b.count())) { dit('J : pas de bouton ' + re.source); continue; }
+      const lib = (await b.innerText()).replace(/\s+/g, ' ').trim(); const h0 = await p.evaluate(() => location.hash); await L.toucher(c, b); await L.calme(p, 600);
+      const t = await toast(p), pa = await pan(p), h1 = await p.evaluate(() => location.hash); dit(`J · « ${lib} » → toast « ${t.slice(0, 260)} » ¦ fenêtre « ${pa.slice(0, 260)} » ¦ adresse ${h0} → ${h1}`);
+      v(`J : « ${lib} » fait quelque chose de visible`, !!(t || pa) || h0 !== h1); await O.nettoyer(p); }
+    v('J : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
+  async K() { for (const pack of ['plomberie', 'nettoyage']) { const c = await ouvrir({ packs: [pack] }), p = c.p;
+      await L.aller(p, 'taches'); await p.evaluate(() => tPanneau()); await L.calme(p, 600);   // la fenêtre « Nouvelle tâche » (le champ de saisie rapide de l'écran est une autre porte)
+      const ph = await p.evaluate(() => { const e = document.getElementById('tk-t'); return e ? e.getAttribute('placeholder') : null; });
+      dit(`${pack} · « Quoi » d'une nouvelle tâche : ${ph}`); v(`K ${pack} : l'exemple du champ « Quoi » d'une tâche ne parle pas de PAC (pompe à chaleur)`, ph !== null && !/PAC|clim|fluide/i.test(ph), String(ph));
+      await L.aller(p, 'interventions'); await L.toucher(c, p.locator('#contenu button').filter({ hasText: /Nouvelle intervention/ }).locator('visible=true').first()); await L.calme(p, 700);
+      const ph2 = await p.evaluate(() => [...document.querySelectorAll('#calque [placeholder], #contenu [placeholder]')].map(e => e.getAttribute('placeholder')).filter(x => /condensateur|fluide|clim|R32|PAC/i.test(x)));
+      v(`K ${pack} : aucune indication de champ de « Nouvelle intervention » ne parle de condensateur, de fluide ou de clim`, ph2.length === 0, ph2.join(' | '));
+      v(`K ${pack} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } }
 };
 (async () => {
   for (const l of LETTRES) { try { console.log('— parcours ' + l); await S[l](); } catch (e) { ko++; console.log('  ✗ parcours ' + l + ' interrompu : ' + String(e.message || e).split('\n')[0]); } }

@@ -1,0 +1,116 @@
+[
+ {
+  "n": "S01",
+  "etat": "corrigée",
+  "changement": "Accueil : « À faire maintenant » écrit le titre et le détail par esc() ; à l'entrée, mailNom() nettoie le nom d'un expéditeur (sans balise, sans formule en tête, 80 signes, caractères de contrôle et d'inversion retirés) avant qu'il devienne le nom d'un client, d'un devis ou d'une trace (courrier-01, 04a à 04e du diff de l'audit, appliqués).",
+  "preuve": "securite-injection.js B5 (tâche et client piégés à l'Accueil : 0 balise, 0 exécution) ; securite/courrier-gestes.js (l'angle courrier de l'audit, rejoué sur la tête corrigée) 21 ✓ · 0 ✗ (36 sorties avant, 0 après, 5 courriels piégés, 18 gestes du bandeau touchés, 61 écrans) ; mutation M01 tombe"
+ },
+ {
+  "n": "S02",
+  "etat": "corrigée",
+  "changement": "Historique : esc(j.action) et esc(g.nom) aux trois gabarits (liste, fiche d'une ligne, tableau imprimé) ; « a répondu à » et « a écrit à » échappent à la source (courrier-02a, 02b).",
+  "preuve": "securite-injection.js B4 (action piégée : liste et fiche de ligne, 0 balise) + courrier-gestes 21 ✓ · 0 ✗ ; mutation M02 tombe"
+ },
+ {
+  "n": "S03",
+  "etat": "corrigée",
+  "changement": "Deux barrières. À l'ENTRÉE (Inviter une personne, deux gabarits ; Modifier la fiche) : nomPersonneOk() ne laisse passer que lettres, marques, chiffres, espace, point, tiret, apostrophe (rendue typographique), 60 signes, avec un message qui dit pourquoi ; le rôle est borné et sans balise (libelleSur), le téléphone d'une fiche est contrôlé. À la SORTIE : eqNom() nettoie ce qui est déjà rangé (nomPersonneNet), donc tech() et H_NOM() ne portent plus de signe de balise, même pour une fiche d'avant ou un import.",
+  "preuve": "securite-injection.js A1 (formulaire refusé, message affiché, formulaire encore ouvert ; témoin « Jean-Pierre N'Diaye » créé) et B1 (fiche piégée posée dans les données, 5 écrans revisités : planning, absences, accueil, équipe, pointage : 0 balise) ; captures inviter-refus-{mac-jour,mac-nuit,iphone-nuit,android-jour}.png regardées ; mutations M03 (entrée) et M04 (sortie) tombent séparément ; M03 et M04 rejouées ISOLÉES (6 ✗ et 10 ✗), pas seulement en lot"
+ },
+ {
+  "n": "S04",
+  "etat": "corrigée",
+  "changement": "Véhicules › Papiers : vxDocAjouter n'accepte que PNG, JPEG, GIF, WebP, HEIC et PDF (VX_TYPES_OK, liste de ce qui est permis) avec un message qui dit pourquoi ; au rendu, la miniature ne devient un lien blob: que pour ces types (un papier SVG déjà rangé n'est plus un lien) ; voirFichierLocal aussi.",
+  "preuve": "securite-fichiers.js S04 (SVG refusé, PNG et PDF rangés en témoin, miniature SVG ancienne sans lien) ; captures papier-refus-*.png regardées ; mutation M10 tombe"
+ },
+ {
+  "n": "S05",
+  "etat": "corrigée (rattachement) · reste décidé ailleurs (authenticité)",
+  "changement": "mlLire ne rattache un devis ou une facture à un courriel que si l'expéditeur est le CLIENT de ce document, une commande que si c'est un fournisseur connu (courrier-03). Pas corrigeable dans l'écran : une adresse falsifiée reste crue (règle R18 : le serveur donne SPF/DKIM/DMARC). Pas ajouté ici : la confirmation écrite avant un geste d'argent (voir rapport).",
+  "preuve": "securite-confiance.js 9 ✓ · 0 ✗ (l'inconnu qui cite D-2026-031 ou FAC-2026-0144 n'a plus les gestes d'argent ; le courriel du vrai client les garde) ; mutation M16 tombe"
+ },
+ {
+  "n": "S06",
+  "etat": "corrigée",
+  "changement": "Les quatre exports neutralisent une cellule de libellé qui commence par = + - @ tabulation ou retour (apostrophe), sur les colonnes de libellé seulement : FEC du mois (compte, tiers, pièce, écriture), FEC de la Comptabilité, CSV de Véhicules (deux). Jamais sur un montant ni une date.",
+  "preuve": "securite-fichiers.js S06 (nom piégé =HYPERLINK dans le FEC et les deux CSV ; plaque ordinaire intacte en témoin) ; mutations M11 et M12 tombent"
+ },
+ {
+  "n": "S07",
+  "etat": "corrigée",
+  "changement": "sxQte écrit prU(...) par esc() (seize appels couverts) ; à l'entrée, uniteSure() : une liste de ce qui est permis (lettres, chiffres, quelques signes, 12 signes), appliquée à la saisie d'un article (deux gardes) et à l'import d'un fichier de prix ; les neuf unités de la démonstration passent toutes.",
+  "preuve": "securite-injection.js A2 (formulaire refusé ; 9 unités de la démonstration toutes acceptées) et B2 (unité piégée déjà rangée : Stock et Produits, 0 balise) ; securite-fichiers.js (unité de l'import) ; mutations M05 et M06 tombent"
+ },
+ {
+  "n": "S08",
+  "etat": "corrigée",
+  "changement": "tDetail : esc(f.tel) et esc(f.delai) ; « Nouveau fournisseur » n'accepte qu'un téléphone fait de chiffres, espaces, +, ., - et parenthèses (6 à 20 signes) et borne le nom.",
+  "preuve": "securite-injection.js A3 (refus puis témoin « 05 46 12 34 56 » enregistré) et B3 (téléphone et délai piégés dans le détail d'une tâche de commande, 0 balise) ; mutation M07 tombe"
+ },
+ {
+  "n": "S09",
+  "etat": "corrigée",
+  "changement": "Le message de l'import des fiches de paie écrit chaque nom de fichier par esc().",
+  "preuve": "securite-injection.js A5 (nom de fichier piégé : 0 balise, 0 exécution, message « sans nom reconnu » affiché) ; mutation M08 tombe"
+ },
+ {
+  "n": "S10",
+  "etat": "corrigée (niveau « inline »)",
+  "changement": "Une politique de contenu en balise (default-src 'none', connect-src 'self' et les deux serveurs de tuiles, object-src/base-uri/form-action 'none', frame-src bornés) et la politique de référent « same-origin », posées avant le premier script des quatre pages (la page des documents par fabriquer.sh, variable POLITIQUE). Niveau « inline » : le script en ligne s'exécute mais ne peut RIEN envoyer ; zéro maintenance. Le niveau « hash » (empreintes) reste à l'étape de publication.",
+  "preuve": "securite-politique.js 23 ✓ · 0 ✗ (six canaux : 0 octet reçu par l'attaquant, 6 refus relevés par le navigateur pendant l'injection ; 0 violation de la politique sur 37 écrans + carte + atelier + PDF + Comptabilité + courrier + paiement) et securite-statique.js (49 ✓ : politique, hôtes, ordre, fabrication) ; mutations M18, M19 et M25 tombent. À ESSAYER dans l'artefact publié (non vérifiable ici)."
+ },
+ {
+  "n": "S11",
+  "etat": "corrigée",
+  "changement": "Import de prix : désignation 200 signes, référence 40, code-barres 20, sans balise ni formule en tête ; prix au plus 1 000 000 € (1e999, négatif, NaN, 10²³ refusés) ; fichier de plus de 2 Mo ou de plus de 5 000 lignes refusé avec un message qui dit pourquoi, avant toute lecture lourde.",
+  "preuve": "securite-fichiers.js S11 (désignation de 100 000 signes bornée, prix absurdes refusés, 6 000 lignes refusées en 42 ms au lieu de 28 s, 4 000 lignes acceptées en témoin) ; mutation M13 tombe"
+ },
+ {
+  "n": "S12",
+  "etat": "corrigée",
+  "changement": "Le nom de la plateforme agréée est borné et sans balise (libelleSur) et le message l'écrit par esc(). toast() n'est PAS changé en textContent (175 appels écrivent du balisage voulu) : la correction de fond est à la source des noms (S01, S03, S08, S09).",
+  "preuve": "securite-injection.js A4 (0 balise, message affiché) ; mutation M09 (les deux couches remises) tombe"
+ },
+ {
+  "n": "S13",
+  "etat": "corrigée",
+  "changement": "Comptabilité : l'écouteur de message ignore tout message tant que la source n'est pas la page qui la contient (ouverte seule : aucun message ; autre fenêtre : rien). Pas changé : la Paie visible à l'adresse seule (décision de Justin, voir rapport).",
+  "preuve": "securite-acces.js S13 (seule : aucun message accepté ; une autre fenêtre ne peut pas se déclarer patron ni ouvrir la Paie ; témoin : dans son cadre le gérant reçoit « patron ») ; mutation M14 tombe"
+ },
+ {
+  "n": "S14",
+  "etat": "corrigée",
+  "changement": "ecMien(cli) : en rôle client, le document doit porter l'identifiant du client simulé ; appliqué à vueSigner (le contrat d'un autre retombe sur l'espace client), lireContrat, payer, payer pour de bon, facture en PDF, compte rendu, signer un devis.",
+  "preuve": "securite-acces.js S14 (client « md » : contrat, facture, devis, intervention d'un autre refusés par adresse et par geste ; les mêmes gestes sur SES documents marchent) ; mutation M15 tombe"
+ },
+ {
+  "n": "S15",
+  "etat": "corrigée",
+  "changement": "corpsLu : le texte d'un lien en lettres non latines est sa forme réelle (xn--…) ; un lien qui porte des identifiants dans son adresse n'est pas rendu cliquable (courrier-07, 07b, 07c). À reporter dans opcourrier.js seulement sur la décision de Justin (non touché ici).",
+  "preuve": "securite-liens.js 66 ✓ · 0 ✗ ; mutation M17 tombe"
+ },
+ {
+  "n": "S16",
+  "etat": "corrigée (cinq bibliothèques de la carte + html2canvas)",
+  "changement": "integrity (sha384, recalculé sur les fichiers servis) et crossOrigin='anonymous' sur Leaflet (js, css), MapLibre (js, css), le plugin MapLibre-Leaflet, et html2canvas de l'atelier (seulement pour l'adresse de cdnjs : la copie locale des essais n'en a pas).",
+  "preuve": "securite-politique.js : la carte charge ses trois bibliothèques et html2canvas se charge AVEC l'empreinte (copies locales identiques aux fichiers servis) ; securite-statique.js (empreintes présentes, crossOrigin) ; mutation M20 tombe. Un refus d'empreinte réel ne se voit que sur un appareil avec WebGL (non vérifiable ici)."
+ },
+ {
+  "n": "S17",
+  "etat": "corrigée (code) · reste : minifyEnabled",
+  "changement": "secuAutoPermis refuse ?auto= quand window.OPG_MODE_APP (la coque) ; android:allowBackup=\"false\" ; file_paths.xml réduit à <cache-path name=\"partage\" path=\"partage/\"/>. minifyEnabled true NON changé : un paquet Android ne se construit pas ici, une option de diffusion non essayée peut casser la version.",
+  "preuve": "securite-statique.js S17 (coque : refus sur capacitor://localhost et https://localhost ; hors coque : accepté en local, refusé sur le site) ; mutations M21, M22 et M23 tombent"
+ },
+ {
+  "n": "S18",
+  "etat": "corrigée (retrait)",
+  "changement": "La feuille de polices Google est retirée de page.source ; l'atelier est refabriqué (fabriquer.sh). Les 13 familles retombent sur la police de l'appareil (les piles SANS_PILE et SERIF_PILE existaient déjà). DÉCISION DE JUSTIN : servir les polices depuis le site (13 fichiers woff2 à fabriquer) si l'aspect des documents compte.",
+  "preuve": "securite-statique.js S18 (aucune feuille Google dans les quatre pages ni la source) ; securite-captures.js (le cadre de l'atelier : 0 feuille tierce) ; capture atelier-*.png regardée ; mutation M24 tombe"
+ },
+ {
+  "n": "bilan",
+  "etat": "18 failles : 18 corrigées dans le prototype (deux avec un reste signalé : S05 authenticité de l'expéditeur, S17 minifyEnabled)",
+  "changement": "Fichiers touchés : apercu/prototype-op-gestion.html, prototype-comptabilite.html, prototype-courrier.js, prototype-paiement.html, prototype-documents.html (FABRIQUÉ : scratchpad/proto-final/atelier/page.source et fabriquer.sh), mobile/android (manifeste, file_paths.xml).",
+  "preuve": "Sondes de garde (toutes dans scratchpad/proto-final/sondes/, lanceur securite-tout.sh) : securite-injection 32 ✓ · 0 ✗, securite-fichiers 19 ✓ · 0 ✗, securite-acces 15 ✓ · 0 ✗, securite-confiance 9 ✓ · 0 ✗, securite-liens 66 ✓ · 0 ✗, securite-politique 23 ✓ · 0 ✗, securite-statique 49 ✓ · 0 ✗, securite-captures 12 ✓ · 0 ✗ (captures regardées). Contre-épreuve securite-mutations.py : 24 mutations (17 en lots par sonde, 7 statiques), 24 tombent, 0 résistent ; M03 et M04 aussi isolées. Bancs : compiler-pages, verifier-syntaxe, test-835 (844 ✓), 836 (307 ✓), 837 (122 ✓), 1008 (54 ✓), 2994 (15 ✓), verif-secrets : 0 ✗. Non causé par ces corrections (même résultat sur la tête d'avant, 124cefb) : droits-compta.js 1 ✓ · 5 ✗ (les gestes « FEC » et « clôturer » passent maintenant par la confirmation de OP Security) et double-auth-equipe.js 47 ✓ · 1 ✗ (ordre des boutons de la fiche de Léa), identiques sur la tête d'avant : à reprendre par la voie OP Security."
+ }
+]

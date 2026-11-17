@@ -6,6 +6,9 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   const profil = process.argv[2] || 'mac', nuit = process.argv[3] === '1', tag = `${profil}-${nuit ? 'nuit' : 'jour'}`;
   const c = await L.ouvrir({ profil, qui: 'sm', nuit, hash: 'techfrais' }), p = c.p;
   const clic = s => L.toucher(c, s), E = (f, a) => p.evaluate(f, a);
+  // « Combien ? » est un <input type=number> : une VIRGULE tapée y est avalée (« 1,5 » → 15, défaut achats-01, mesuré par achats-virgule.js).
+  // Ici on remplit avec le point, pour jouer les REFUS de quantité sans que ce défaut ne les fausse.
+  const taper = (sel, t) => p.fill(sel, String(t).replace(',', '.'));
   const dem = id => E(i => { const d = DEM_ACHAT.find(o => o.id === i); return d ? JSON.parse(JSON.stringify(d)) : null; }, id);
   const nbDem = () => E(() => DEM_ACHAT.length);
   const notifs = k => E(k => NOTIFS.filter(n => n.k === k || n.pour === k || n.qui === k).length, k);
@@ -17,11 +20,11 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   const n0 = await nbDem();
   await clic('[data-axa^="demok"]');
   v('P1c envoi à vide : « Dis ce qu’il faut. », rien créé', /Dis ce qu’il faut/.test(await toast(p)) && (await nbDem()) === n0, await toast(p));
-  await p.fill('#ax-q', 'Rallonge électrique 25 m'); await p.fill('#ax-n', '0');
+  await p.fill('#ax-q', 'Rallonge électrique 25 m'); await taper('#ax-n', '0');
   await clic('[data-axa^="demok"]'); v('P1d quantité 0 refusée', /Indique combien/.test(await toast(p)) && (await nbDem()) === n0, await toast(p));
-  await p.fill('#ax-n', '1,5'); await clic('[data-axa^="demok"]');
+  await taper('#ax-n', '1,5'); await clic('[data-axa^="demok"]');
   v('P1e « 1,5 u » refusé avec une explication claire (entier, ou changer l’unité)', /nombre entier/.test(await toast(p)) && (await nbDem()) === n0, await toast(p));
-  await p.fill('#ax-n', '2'); await clic('[data-axa^="quand|"] >> nth=1'); await L.calme(p, 200);
+  await taper('#ax-n', '2'); await clic('[data-axa^="quand|"] >> nth=1'); await L.calme(p, 200);
   v('P1f la puce « Demain » remplit la date', (await p.inputValue('#ax-qd')) !== '', await p.inputValue('#ax-qd'));
   await L.capture(c, CAP + `dem-formulaire-${tag}.png`);
   const dep = await L.deborde(c); v('P1g formulaire sans glissement latéral', dep.bouge === 0, dep);
@@ -34,7 +37,7 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   v('P1l le bureau est prévenu (notification)', await E(() => NOTIFS.some(n => /Rallonge/.test(n.txt || n.t || JSON.stringify(n)))));
   v('P1m l’Historique a une ligne « demande d’achat »', await E(() => JOURNAL.some(j => /Rallonge/.test(JSON.stringify(j)))));
   // quantité extrême : confirmation, valeurs longues
-  await clic('[data-axa="dem"]'); await p.fill('#ax-q', 'Câble de raccordement électrique triphasé renforcé, section 5 × 16 mm², longueur 25 m, avec embouts'); await p.fill('#ax-n', '1523,5'); await p.selectOption('#ax-u', 'kg');
+  await clic('[data-axa="dem"]'); await p.fill('#ax-q', 'Câble de raccordement électrique triphasé renforcé, section 5 × 16 mm², longueur 25 m, avec embouts'); await taper('#ax-n', '1523,5'); await p.selectOption('#ax-u', 'kg');
   await p.fill('#ax-p', 'Pour le gros chantier de la zone industrielle de Périgny : trois groupes de toiture à raccorder avant le 28, le fournisseur habituel est en rupture.');
   await clic('[data-axa^="demok"]'); await L.calme(p, 300);
   v('P1n 1523,5 kg : demande de confirmation avant d’envoyer (> 500)', /Vraiment/.test(await toast(p)), await toast(p));

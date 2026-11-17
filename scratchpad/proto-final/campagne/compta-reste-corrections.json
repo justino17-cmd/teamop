@@ -1,0 +1,98 @@
+[
+ {
+  "n": "compta-reste-01",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : le cadre OP COMPTABLE calcule banque, dû fournisseurs, TVA et paie de son côté (22 165,18 € contre 9 792,95 € en banque). Les relier au registre d'OP GESTION est un choix de produit (une seule comptabilité, ou retirer les tuiles qui contredisent), pas un correctif de mot.",
+  "preuve": "décision « soumettre » du testeur, non touchée"
+ },
+ {
+  "n": "compta-reste-02",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : le module de paiement en ligne garde ses factures ; sa barre le dit désormais sans « vraie version » (« il garde ses propres factures : elles ne se retrouvent pas encore dans ta Comptabilité »). Le relier à la Comptabilité est un chantier.",
+  "preuve": "compta-reste-mots.js 18 ✓ · 0 ✗ ; texte de la barre du module relu"
+ },
+ {
+  "n": "compta-reste-03",
+  "etat": "corrigé",
+  "changement": "cxNum (apercu/prototype-op-gestion.html) lit « 1.234,56 » et « 1,234.56 » comme 1 234,56, rend NaN pour « 1e9 », « 12abc », « -5 » ; cxMontantRefus dit une phrase pour « 1.234 » (« n’est pas clair : écris 1234 ou 1,23 »), trois décimales et illisible ; branchée sur la dépense, la nouvelle facture (prix), la note de frais et sa modification ; axNum (formulaire technicien) y renvoie.",
+  "preuve": "compta-reste-parcours-a.js mac 28 ✓ · 0 ✗ (« 1.234,56 » : total en direct 1481,47 €) ; compta-reste-corr.js mac, ipad, iphone jour et nuit 13/19 ✓ · 0 ✗ (« 1.234 » refusé avec phrase, « 1.234,56 » enregistré à 1 234,56 € HT)"
+ },
+ {
+  "n": "compta-reste-04",
+  "etat": "corrigé",
+  "changement": "Plafond : au-delà de 1 000 000 € (100 000 € pour une note de frais), « Vérifie le montant : ce chiffre est très élevé. » ; « 1e9 » est illisible donc refusé. Rien n’est rangé.",
+  "preuve": "compta-reste-parcours-a.js A8b 2 ✓ ; compta-reste-corr.js"
+ },
+ {
+  "n": "compta-reste-05",
+  "etat": "corrigé",
+  "changement": "« Octobre est le seul mois ouvert : choisis une date d’octobre pour que cette dépense soit comptée. »",
+  "preuve": "compta-reste-parcours-a.js A6 ✓ ; capture iphone-nuit-corr-achats-total.png (la bulle se lit)"
+ },
+ {
+  "n": "compta-reste-06",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : le pied de la fiche de paie (« Prototype : taux d’exemple… données fictives ») est un texte de document remis au salarié ; sa réécriture (avertissement de fond gardé, sans « Prototype ») est une décision sur un document juridique. Même texte dans le cadre OP COMPTABLE (bulletin).",
+  "preuve": "non touché"
+ },
+ {
+  "n": "compta-reste-07",
+  "etat": "corrigé",
+  "changement": "Onze phrases réécrites sans « prototype », « vraie version » ni « exemple » : fiches de paie (calcul indicatif, taux simplifiés), charges (montants indicatifs à faire valider), salariés (CIBTP), DSN (« se dépose ensuite sur net-entreprises.fr »), plateforme agréée, normes, paiement en ligne (barre et carte d’essai), import de paie (pied, option, « Recevoir un fichier du cabinet pour essayer »), bulletin du cabinet, SMIC, étape du guide, aperçu des pièces justificatives.",
+  "preuve": "compta-reste-mots.js 18 ✓ · 0 ✗ (17 onglets) ; grep des fenêtres : plus un « vraie version » dans la partie, hors commentaires de code et pied du bulletin (06)"
+ },
+ {
+  "n": "compta-reste-08",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-comptabilite.html : opcSi(demo, app) ; en application (?app=1) l’aide devient « Ce qu’il faut savoir » (sans « démonstration », « simulée », « fictives »), banque, paie, clôtures (« inventaire de fin de mois »), dossier (plus d’« Entreprise fictive »), tableau de bord (« paie et achats estimés »), DSN, TVA, aperçu de facture, bouton impôts, montants indicatifs. La démonstration seule garde ses phrases.",
+  "preuve": "compta-reste-cadre-mots.js 40 ✓ · 0 ✗ (vue simple et vue comptable, toutes les rubriques)"
+ },
+ {
+  "n": "compta-reste-09",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : le bandeau « Cet écran est un résumé… Ouvrir dans la Comptabilité » des neuf onglets mène au cadre plein écran OP COMPTABLE ; le renommer (« Ouvrir OP COMPTABLE ») touche la navigation validée de la Comptabilité.",
+  "preuve": "compta-reste-details.js : 09 et 09b restent ✗, attendus"
+ },
+ {
+  "n": "compta-reste-10",
+  "etat": "corrigé",
+  "changement": "bilanPdf lit cpEncOct() et cpTva() : mêmes 12 paiements, même total (3 085,00 €), même TVA (445,17 + 37,64 = 482,81 €) que Paiements et TVA ; ligne « dont 40,00 € reçus sur place, pas encore sur une facture » ; cellules sans retour à la ligne sur téléphone.",
+  "preuve": "compta-reste-corr.js 3 ✓ (total, TVA, espèces) sur mac, ipad, iphone ; compta-reste-parcours-g.js 22 ✓ · 0 ✗ ; captures mac-corr-bilan.png, iphone-corr-bilan.png regardées"
+ },
+ {
+  "n": "compta-reste-11",
+  "etat": "corrigé",
+  "changement": "defileRepere : un tableau qui défile (.cx-liste, .paie-liste, .tableau) pose d-plus-droite / d-plus-gauche et reçoit un fondu de 44 px du côté où il reste à voir (Balance, Grand livre, Journal, Fiches de paie, Salariés sur iPad portrait) ; mis à jour au défilement, au redimensionnement et à chaque changement de #contenu.",
+  "preuve": "compta-reste-tableaux.js ipad (critère désormais « rien ne dépasse, ou le fondu le dit ») : 7 onglets ✓ ; compta-reste-corr.js ipad : fondu à droite au départ, à gauche en fin de course, 6 ✓ ; captures ipad-corr-fondu-balance-debut.png et -fin.png regardées"
+ },
+ {
+  "n": "compta-reste-12",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : 482,81 € (écran TVA) contre 482,80 € (compte 44571 de la balance, avec 0,01 € en 658) vient de la règle d’arrondi de la comptabilité ; à trancher avec l’expert-comptable.",
+  "preuve": "non touché"
+ },
+ {
+  "n": "compta-reste-13",
+  "etat": "corrigé",
+  "changement": "cxSuivis : « 0 sur 14 points suivis sont en règle » compte les mêmes points que les pastilles (6 à régler + 8 à surveiller + en règle) ; même population sur la tuile de Pilotage ; phrase d’explication corrigée (deux points à surveiller ne se vérifient pas tout seuls).",
+  "preuve": "compta-reste-details.js 13 ✓ ; compta-reste-corr.js ✓ ; capture mac-corr-normes.png"
+ },
+ {
+  "n": "compta-reste-14",
+  "etat": "corrigé",
+  "changement": "text-transform:capitalize retiré de .pt-entete (les libellés sont déjà bien écrits : « Entré le », « Salaire de base », « Impôt (taux) »).",
+  "preuve": "compta-reste-details.js 14 ✓ ; capture mac-corr-salaries.png"
+ },
+ {
+  "n": "compta-reste-15",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : « Valider quand même » passe par une bulle de 6 s ; une fenêtre de confirmation (comme « Verrouiller octobre ») est un changement de parcours dans Paie › Le mois.",
+  "preuve": "non touché"
+ },
+ {
+  "n": "compta-reste-20",
+  "etat": "corrigé",
+  "changement": "cxListe : « à payer » ne compte plus les notes de frais pas encore validées (comme Comptes fournisseurs) ; elles ont leur propre mot : « notes de frais à valider 30,70 € ».",
+  "preuve": "compta-reste-details.js 20 ✓ ; compta-reste-corr.js ✓ ; capture iphone-nuit-corr-achats-total.png"
+ }
+]
