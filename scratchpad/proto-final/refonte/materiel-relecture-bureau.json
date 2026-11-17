@@ -1,0 +1,115 @@
+{
+ "lot": "materiel",
+ "angle": "bureau : profils mac, windows, ipad ; jour et nuit ; marc puis julie ; Stock, Dépôts et camions, Fournisseurs, matériel & produits",
+ "couvert": [
+  "marc, mac, jour : Stock (Articles, journal ouvert, bandeau, trois tuiles, pied de liste), chaque bouton de l’écran touché (parcours à deux niveaux : menus Plus et Partout, feuilles Mettre à jour, Envois, Filtrer, fiche d’article), 0 erreur JS sur 108 gestes",
+  "marc, mac, jour : nombres recalculés à la main depuis les données brutes — à commander 6 (6 lignes, 4 fournisseurs), camions à remplir 6 (Sophie 3 + Karim 3, Tom au garage exclu), valeur 2 306,50 € (atelier 1 724,30 + camions + réserve), 29 articles ; mêmes chiffres dans Stock, Commandes, Accueil, menu",
+  "marc, mac, jour : Tout accepter puis Annuler (stock, valeurs, journal rendus à l’identique), Sortir (client, collègue avec bon de remise, cassé), Ranger au comptoir (ticket rangé dans les achats, annulé), Déplacer, Compter (écart, Tout est juste, annuler), Remplir les camions (6 articles, 2 camions, notifications, annuler), J’ai reçu la livraison (stock +33 € juste, annuler), Comparer avec la facture, Préparer la commande, fiche d’article R32 et pompe, fiche d’un camion et de l’atelier"
+ ],
+ "defauts": [
+  {
+   "gravite": "gênant",
+   "ecran": "Dépôts et camions › carte et fiche de l’atelier",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Ouvrir Dépôts et camions ; lire la carte « L’atelier » (« 4 bientôt finis ») ; la toucher ; comparer le chiffre orange de la fiche à l’en-tête de liste.",
+   "attendu": "Un seul nombre : la fiche et la carte comptent ce que la liste montre (spec § 6.1 : « 3 bientôt finis »).",
+   "constate": "La carte et la fiche annoncent « 4 bientôt finis », la liste de la même fiche s’intitule « Bientôt fini · 3 » : le compte prend aussi le Condensateur 5 µF (« Nulle part pour l’instant », donc pas dans l’atelier), et il range « Plus en stock » sous « bientôt fini ».",
+   "preuve": "Lecture du texte affiché (crawl + sonde in-5 : kpi « 4 » contre groupe « Bientôt fini · 3 »). Code : mdCarte (const bf) et bxFiche (const bf) comptent PRODUITS entiers, alors que la liste ne prend que lieuArticles(id).",
+   "ou": "apercu/prototype-op-gestion.html : mdCarte, bxFiche (lignes « const bf = atl ? PRODUITS.filter(x => !x.retire && ['plus', 'bientot']… »)",
+   "correction": "Compter seulement les articles présents à l’atelier (stkAt(x,'atelier') > 0) dont l’état est « bientôt fini » ; ou titrer la carte « 4 à surveiller » et mettre l’article manquant dans la liste de la fiche.",
+   "n": "bureau-01"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Stock › À surveiller, fiche d’atelier",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Ouvrir Stock : ligne « Fluide R410A (le kg) » ; ouvrir ensuite Fournisseurs › Commandes.",
+   "attendu": "Une commande en retard ne dit pas qu’elle « arrive » à une date passée ; Stock et Commandes disent la même chose.",
+   "constate": "Stock affiche « Commandé · arrive le 30/10 » alors que nous sommes le 31/10 et que Commandes dit « En retard d’1 jour » pour la même commande.",
+   "preuve": "Texte affiché dans les deux écrans (sonde in-1 et crawl) ; code : matEtat rend toujours « Commandé · arrive le <prévue> » sans comparer à AUJ.",
+   "ou": "matEtat (prototype-op-gestion.html ~ligne 15225)",
+   "correction": "Si la date prévue est passée : « Commandé · en retard » (st-r ou st-o) ; garder « arrive le … » pour une date à venir.",
+   "n": "bureau-02"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Stock › Mettre à jour › Compter (toast)",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Stock › Mettre à jour le stock › Compter › Camion de Léa › Tout est juste › Enregistrer le comptage.",
+   "attendu": "« Tout est juste dans le camion de Léa. »",
+   "constate": "« Tout est juste dans le camion de léa » : le prénom perd sa majuscule (idem « sophie », « karim »).",
+   "preuve": "Reproduit deux fois (Léa, Tom) ; code : matCEnregistrer fait lieuNom(l).toLowerCase().replace('camion de', 'le camion de').",
+   "ou": "matCEnregistrer (prototype-op-gestion.html, const nom = …toLowerCase())",
+   "correction": "Construire la phrase par mdDe(lieu(l)) (« le camion de Léa ») au lieu de passer le nom en minuscules.",
+   "n": "bureau-03"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Achats et frais ↔ Fournisseurs › Commandes",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Ouvrir Fournisseurs › Commandes : ligne « Fluide R32 (le kg) … demandé par Tom » = 10 kg, 380,00 €. Ouvrir Achats et frais : la demande de Tom dit « L’atelier en a 6 kg sur 10 : … les 4 kg qui manquent partent dans la commande Frigo Distribution 17 ».",
+   "attendu": "Une demande, une quantité : la commande proposée est de 4 kg (152,00 €) comme Achats l’annonce.",
+   "constate": "Commandes propose 10 kg à 380 € (il en reste 11,5) ; seul le bouton « Transférer 6 kg et commander 4 kg » crée un brouillon à 4 kg (152,00 € HT, constaté).",
+   "preuve": "Reproduit (in-1 : quantité 10 ; in-7 : brouillon 2026-040 de 152,00 €). Code : cmdPaniers pose q:Math.max(d.q,1) pour une demande du catalogue sans retirer ce que l’atelier a déjà.",
+   "ou": "cmdPaniers (DEM_ACHAT.filter… mettre(four, { q:CMD_PANIER[x.id] || Math.max(d.q, 1) …)",
+   "correction": "Pour une demande du catalogue, proposer max(d.q − stock de l’atelier, 0) quand l’atelier en a, ou dire dans la ligne « 6 sont à l’atelier ».",
+   "n": "bureau-04"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Achats et frais › « Transférer 6 kg et commander 4 kg »",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Achats et frais › demande de Tom (R32) › Transférer 6 kg et commander 4 kg.",
+   "attendu": "Le camion de Tom est au garage (Dépôts : « On le remplira à son retour ») : l’écran le dit ou demande « tu les mets quand même ? » (spec § 5.3 c).",
+   "constate": "« 6 kg transférés vers le camion de Tom » sans un mot sur le garage ; le stock du camion au garage monte de 6 kg. Et ce geste n’a AUCUN « Annuler » (le toast n’en porte pas) alors que chaque geste de stock doit se défaire (spec § 3.6) : un transfert de 6 kg ne se rattrape qu’à la main.",
+   "preuve": "Reproduit au navigateur (in-7 : toast sans bouton Annuler, v4 +6 kg). Code : le gestionnaire data-ac=\"transfert\" appelle stkAppliquer puis toast simple, sans sxToast/sxPhoto et sans bxGarage.",
+   "ou": "gestionnaire data-ac=\"transfert|…\" (Achats et frais)",
+   "correction": "Passer par sxPhoto + sxToast (Annuler) et reprendre la phrase du déplacement vers un camion au garage (« Ce camion est au garage. Tu les mets quand même ? »).",
+   "n": "bureau-05"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Stock › Compter",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Compter l’atelier ; taper « 6 » dans la ligne Dégrippant (prévu 8) sans quitter le champ.",
+   "attendu": "« 2 de moins que prévu » et « 1 écart · −6,80 € » apparaissent pendant la frappe.",
+   "constate": "Tant qu’on n’a pas quitté le champ, la ligne dit « Prévu 8 » et le pied « Aucun écart pour l’instant » ; l’écart n’apparaît qu’après Tab. L’enregistrement, lui, prend bien la valeur (clic direct sur Enregistrer : 1 écart écrit).",
+   "preuve": "Reproduit deux fois (sonde in-5 puis in-6/in-7).",
+   "ou": "matCVue : saisie [data-mscq] écoutée sur « change », pas sur « input »",
+   "correction": "Écouter « input » pour recalculer la somme et la phrase d’écart.",
+   "n": "bureau-06"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Dépôts et camions › bandeau « Avant les visites »",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Dépôts et camions : lire la sous-ligne du bandeau.",
+   "attendu": "La sous-ligne ne lie pas des personnes à une intervention qui n’est pas la leur.",
+   "constate": "« Sophie, Karim, Tom · Mise en service pompe à chaleur » : le titre est celui de la seule première intervention (celle de Sophie) ; Karim et Tom ont d’autres visites.",
+   "preuve": "Code : mdBandeau écrit G.map(prénom).join(', ') + ' · ' + i0.titre ; texte affiché.",
+   "ou": "mdBandeau",
+   "correction": "Ne mettre que les prénoms (« Sophie, Karim, Tom · 3 visites d’ici lundi ») ou un titre par personne.",
+   "n": "bureau-07"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Stock › Plus",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Stock › Plus ▾ : regarder l’icône de « Exporter l’historique ».",
+   "attendu": "Une icône d’export.",
+   "constate": "L’export porte l’icône d’un appareil photo (celle de « Photographier une facture »).",
+   "preuve": "Code : msMenuPlus et mdMenuPlus utilisent svg('photo') pour Exporter.",
+   "ou": "msMenuPlus, mdMenuPlus",
+   "correction": "Une icône de téléchargement (flèche vers le bas) ou celle du registre.",
+   "n": "bureau-08"
+  }
+ ]
+}
