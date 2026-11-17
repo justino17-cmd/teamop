@@ -19,7 +19,7 @@ const { L, ouvrirAchats, toast, panneau, txt, CAP } = require('./achats-outils.j
     v('01-1 « ' + txtq + ' » devient ' + attendu + ' (et non ' + txtq.replace(/[,. ]/g, '') + ')', ap === av + 1 && d.q === attendu, { av, ap, q: d.q });
     await E(() => { try { fermerPanneau(); } catch (e) {} });
   }
-  for (const [mauvais, motif] of [['douze', /chiffres/], ['1.500', /pas clair/], ['0', /plus grande que zéro/], ['', /Indique combien/], ['-3', /chiffres/], ['1,2,3', /chiffres/]]) {
+  for (const [mauvais, motif] of [['douze', /chiffres/], ['1.500', /pas clair/], ['0', /plus grand que zéro/], ['', /Indique combien/], ['-3', /chiffres/], ['1,2,3', /chiffres/]]) {
     await ouvrir(); await taper('Gants', mauvais, 'kg'); const av = await n0(); await envoyer(); const ap = await n0(), t = await toast(p), ouvert = /Demande d’achat|Nouvelle demande/.test(await panneau(p));
     v('01-2 « ' + mauvais + ' » est refusé avec une phrase, rien n’est envoyé', ap === av && ouvert && motif.test(t), { av, ap, t });
   }
