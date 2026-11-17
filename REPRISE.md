@@ -344,6 +344,17 @@ publique en dépend encore » plus bas dans ce fichier est PÉRIMÉE. À FAIRE �
 ces 7 lignes (restes ou usage vivant) et les retirer si ce sont des restes ; (2) installer la BÊTA d'OP MESSAGES (`server-msg/`)
 sur l'atelier, données d'essai ; (3) décider du sort de l'ancienne `messages.html` ; (4) une dernière sauvegarde de ce que le
 projet Firebase contient ; (5) PUIS les gestes de Justin pour supprimer le projet (définitif : sa phrase pour CE geste).
+✅ **LA BÊTA D'OP MESSAGES EST EN LIGNE SUR L'ATELIER (17 novembre, 22 h 26)** : https://msg-atelier.teamop.fr — `server-msg/`
+v1.9.0, instance `beta`, port 8091, données d'ESSAI dans `/home/atelier/opmsg-beta` (configuration faite par l'étape 4
+d'`install-msg.sh`, clé maître née SUR le serveur dans le compte atelier : bon pour des essais seulement), unité
+`atelier-opmsg`, site ajouté au Caddyfile par `scripts/atelier/installer-msg-racine.sh` (lancé par Justin en root). Contrôlé :
+`/health` répond `ok` depuis le conteneur. NON fait : SMS, courriel, appels, visio, transcription, sauvegarde de cette instance.
+ZONE DNS d'OVH lue en entier (34 lignes) : AUCUNE entrée Firebase ; le site y pointe GitHub (quatre A `185.199.108-111.153`
+sur `@`, `www` CNAME `justino17-cmd.github.io`) — ce sont elles qu'on changera à la bascule. FIREBASE, ce qui BLOQUE encore sa
+suppression : `server/index.js` appelle Google quand la Tour ferme, supprime ou fait repartir à neuf une entreprise
+(`fbRevoquerEquipe`, effacement Firestore, vérification de jeton) — à retirer, bancs à l'appui, puis mise en ligne du serveur
+sur la phrase de Justin, AVANT de supprimer le projet. Piège de la soirée : un nom demandé juste avant d'exister reste « inconnu »
+dans la mémoire du serveur (`resolvectl flush-caches`).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
