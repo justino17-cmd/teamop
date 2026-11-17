@@ -42,8 +42,10 @@ const FICHE = () => { const z = document.querySelector('#calque .panneau'); retu
   for (const [appareil, nuit] of [['iphone', false], ['android', true], ['petit', false], ['ipad', true], ['mac', true]]) {
     const d = await ouvrirComme({ qui:'marc', appareil, nuit }); await L.aller(d.p, 'equipe'); await d.p.evaluate(() => { eqFiche('julie'); const dt = document.querySelector('details.eqx-det'); if (dt) dt.open = true; }); await L.calme(d.p, 500); n++;
     const dep = await L.deborde(d, null); v(`${appareil} ${nuit ? 'nuit' : 'jour'} : la fiche déborde-t-elle ? (contre la largeur du profil)`, dep.bouge === 0 && dep.seconde <= dep.largeur + 1, dep);
-    await d.p.evaluate(() => { const z = document.querySelector('#calque .panneau'); if (z) z.scrollTop = 99999; }); await L.calme(d.p, 300);
+    await d.p.evaluate(() => { const z = document.querySelector('#calque .panneau'), t = document.getElementById('eqx-voit'); if (z && t) z.scrollTop = t.offsetTop - 120; }); await L.calme(d.p, 300);
     await L.capture(d, CAP + `fiche-julie-${appareil}-${nuit ? 'nuit' : 'jour'}.png`);
+    await d.p.evaluate(() => { const z = document.querySelector('#calque .panneau'), t = document.querySelector('#eqx-phrase'); if (z && t) z.scrollTop = t.offsetTop - 420; }); await L.calme(d.p, 300);
+    await L.capture(d, CAP + `fiche-julie-grille-${appareil}-${nuit ? 'nuit' : 'jour'}.png`);
     await L.fin(d);
   }
   v('population : cinq appareils / modes joués', n === 5, n);

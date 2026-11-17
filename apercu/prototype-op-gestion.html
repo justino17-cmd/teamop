@@ -6379,7 +6379,7 @@ document.addEventListener('change', ev => { if (ev.target.dataset && ev.target.d
 document.addEventListener('keydown', ev => {
   const t = ev.target; if (!t.dataset || !t.dataset.tajout || ev.key !== 'Enter') return; ev.preventDefault();
   const v = t.value.trim(); if (!v) return;
-  const x = { id:'t' + Date.now(), t:v, qui:tQui !== 'tous' ? tQui : 'marc', d:tOnglet === 'auj' ? AUJ : jour(1), h:null, creePar:'marc', creeLe:'31/10' };
+  const x = { id:'t' + Date.now(), t:v, qui:tQui !== 'tous' ? tQui : 'marc', d:tOnglet === 'auj' ? AUJ : jour(1), h:null, creePar:acteur(), creeLe:'31/10' };
   TACHES.push(x); journalAjout('marc', 'equipe', 'a créé une tâche', { lib:v }, { det:'pour ' + tNom(x.qui) + ' · ' + tQuand(x) });
   rendre(); const n = document.querySelector('[data-tajout]'); if (n) n.focus();
   toast('Ajoutée ' + (tOnglet === 'auj' ? 'pour aujourd’hui' : 'pour demain'), { lib:'Annuler', fn:() => { TACHES = TACHES.filter(o => o !== x); rendre(); } });
@@ -6965,7 +6965,7 @@ function aValider(d, origine){
   });
   const ab = { tech:d.tech, du:d.du, au:d.au, demi:d.demi || null, type:d.type, motif:d.motif || '', id:'a' + Date.now() + Math.floor(Math.random() * 99), statut:'validee', decidePar:'marc' };
   ABSENCES.push(ab);
-  DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'validee', demande:origine === 'saisie' ? null : d.le || null, le:'31/10', par:'marc', moves });
+  DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'validee', demande:origine === 'saisie' ? null : d.le || null, le:'31/10', par:acteur(), moves });
   if (origine === 'accord') DECISIONS_ABS[0].accord = true;
   journalAjout(origine === 'accord' ? d.tech : 'marc', 'equipe', origine === 'saisie' ? 'a ajouté une absence' : origine === 'accord' ? 'a accepté les dates proposées : absence validée' : 'a validé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + (moves.length ? ' · ' + moves.map(m => m.titre + ' → ' + (m.vers ? tech(m.vers).nom : 'à planifier')).join(', ') : '') });
   return moves;
@@ -7049,7 +7049,7 @@ document.addEventListener('click', ev => {
     if (!p.du || !p.au || p.au < p.du) return toast('La date de fin est avant la date de début');
     if (p.du === d.du && p.au === d.au && (p.demi || null) === (d.demi || null)) return toast('Ce sont les mêmes dates que sa demande');
     if (p.demi && p.du !== p.au) p.demi = null;
-    d.prop = p; d.etat = 'proposee'; d.choix = {}; (d.fil = d.fil || []).push({ qui:'marc', quoi:`a proposé ${aPeriode(p)} ${('au lieu de ' + aPeriode(d)).replace(/de (le|du) /, 'du ')}${p.msg ? ' : « ' + p.msg + ' »' : ''}`, le:aLe() });
+    d.prop = p; d.etat = 'proposee'; d.choix = {}; (d.fil = d.fil || []).push({ qui:acteur(), quoi:`a proposé ${aPeriode(p)} ${('au lieu de ' + aPeriode(d)).replace(/de (le|du) /, 'du ')}${p.msg ? ' : « ' + p.msg + ' »' : ''}`, le:aLe() });
     journalAjout('marc', 'equipe', 'a proposé d’autres dates', { lib:tech(d.tech).nom }, { avant:aPeriode(d), apres:aPeriode(p) });
     aAvis(d.tech, { ic:'info', titre:'Marc te propose d’autres dates', det:`${aMaj(aPeriode(p))} ${('au lieu de ' + aPeriode(d)).replace(/de (le|du) /, 'du ')} · réponds sous « Mes demandes »`, msg:p.msg }); fermerPanneau(); rendre();
     return toast(`Proposition envoyée à ${aPrenom(d.tech)}. Tu revalideras quand ${aE(d.tech) ? 'elle' : 'il'} aura répondu.`); }
@@ -7068,7 +7068,7 @@ document.addEventListener('click', ev => {
       <div class="actions"><button type="button" class="btn rouge" data-anonok="${d.id}">Refuser</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
   if (b.dataset.anonok) { const r = document.getElementById('an-raison').value.trim(); if (!r) { toast('Écris pourquoi : la personne le lira'); return document.getElementById('an-raison').focus(); }
     const d = DEMANDES_ABS.find(x => x.id === b.dataset.anonok); DEMANDES_ABS = DEMANDES_ABS.filter(x => x !== d); aRefusees.unshift({ ...d, raison:r });
-    DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'refusee', demande:d.le || null, le:'31/10', par:'marc', moves:[], raison:r });
+    DECISIONS_ABS.unshift({ id:'x' + Date.now(), tech:d.tech, type:d.type, du:d.du, au:d.au, demi:d.demi || null, decision:'refusee', demande:d.le || null, le:'31/10', par:acteur(), moves:[], raison:r });
     journalAjout('marc', 'equipe', 'a refusé l’absence', { lib:tech(d.tech).nom }, { det:d.type + ' · ' + aPeriode(d) + ' · « ' + r + ' »' });
     aAvis(d.tech, { ic:'non', titre:'Marc a refusé ta demande', det:`${d.type} · ${aPeriode(d)}`, msg:r, rep:true, ref:{ type:d.type, du:d.du, au:d.au, demi:d.demi || null } }); fermerPanneau(); rendre(); return toast('Demande refusée · ' + aPrenom(d.tech) + ' reçoit la raison'); }
   if (b.dataset.acqui !== undefined) { const v = b.dataset.acqui, tous = TECHS.filter(t => t.id).length;
@@ -8599,7 +8599,7 @@ document.addEventListener('click', ev => {
     const pv = prLire('pr-pv'), o = x ? PRODUITS.find(z => z.id === x) : { id:'p' + Date.now() }; o.ac = !!(o.ac && pv == null);
     Object.assign(o, { p:document.getElementById('pr-pack').value, cat:document.getElementById('pr-cat').value, nom, ref:document.getElementById('pr-ref').value.trim() || '—', four:document.getElementById('pr-four').value.trim() || '—',
       q:x ? o.q : (prLire('pr-q') || 0), u:document.getElementById('pr-u').value.trim() || 'u', seuil:prLire('pr-seuil') || 0, pa:prLire('pr-pa'), pv:pv, tva:parseFloat(document.getElementById('pr-tva').value) });
-    if (!x) { PRODUITS.push(o); if (o.q > 0) MVTS.unshift({ id:'m' + Date.now().toString(36), d:AUJ, h:hm(MAINT_MIN), type:'entree', pid:o.id, q:o.q, vers:'atelier', qui:'marc', motif:'Stock initial' }); } prCatalogueMaj(); fermerPanneau(); prPack = o.p; prCat = null; rendre();
+    if (!x) { PRODUITS.push(o); if (o.q > 0) MVTS.unshift({ id:'m' + Date.now().toString(36), d:AUJ, h:hm(MAINT_MIN), type:'entree', pid:o.id, q:o.q, vers:'atelier', qui:acteur(), motif:'Stock initial' }); } prCatalogueMaj(); fermerPanneau(); prPack = o.p; prCat = null; rendre();
     return toast(x ? 'Article enregistré' + (prVend(o) ? ' : le prochain devis prendra ce prix.' : '.') : 'Article ajouté dans « ' + o.cat + ' »' + (prVend(o) ? ' : il est proposé dans les devis.' : ' au matériel de l’équipe.')); }
 });
 document.addEventListener('change', ev => {
@@ -9491,7 +9491,7 @@ function stkAppliquer(m){
 }
 const hNow = () => hm(MAINT_MIN);
 /* une réception de commande ou une facture lue entre aussi au journal (Commandes → Stock) */
-function stkJournalEntree(pid, q, motif, bc){ MVTS.unshift({ id:'m' + Date.now().toString(36) + MVTS.length, d:AUJ, h:hNow(), type:'entree', pid, q, vers:'atelier', qui:'marc', motif, bc }); }
+function stkJournalEntree(pid, q, motif, bc){ MVTS.unshift({ id:'m' + Date.now().toString(36) + MVTS.length, d:AUJ, h:hNow(), type:'entree', pid, q, vers:'atelier', qui:acteur(), motif, bc }); }
 const lieuValeur = l => PRODUITS.filter(x => !x.retire).reduce((s, x) => s + (x.pa || 0) * Math.max(0, stkAt(x, l)), 0);
 const lieuArticles = l => PRODUITS.filter(x => !x.retire && stkAt(x, l) > 0);
 function lieuManques(l){ const L = lieu(l), D = L.dot ? DOTATION[L.dot] : null; if (!D) return [];
@@ -9561,7 +9561,7 @@ document.addEventListener('click', ev => {
     return; }
   if (a === 'invlieu') { fermerPanneau(); stkOnglet = 'inventaire'; invLieu = x; INV = {}; return aller('stock'); }
   if (a === 'invok') { const l = invLieu, n = []; Object.entries(INV).forEach(([pid, c]) => { const x = PRODUITS.find(p => p.id === pid), e = stkR(c - stkAt(x, l)); if (!e) return;
-      const m = { id:'m' + Date.now().toString(36) + n.length, d:AUJ, h:hNow(), type:'correction', pid, q:e, de:l, qui:'marc', motif:`Inventaire (${lieuNom(l)}) : ${prNum(Math.abs(e))} de ${e > 0 ? 'plus' : 'moins'} que prévu` }; stkAppliquer(m); MVTS.unshift(m); n.push(m); });
+      const m = { id:'m' + Date.now().toString(36) + n.length, d:AUJ, h:hNow(), type:'correction', pid, q:e, de:l, qui:acteur(), motif:`Inventaire (${lieuNom(l)}) : ${prNum(Math.abs(e))} de ${e > 0 ? 'plus' : 'moins'} que prévu` }; stkAppliquer(m); MVTS.unshift(m); n.push(m); });
     INV = {}; invLieu = null; prCatalogueMaj(); rendre(); return toast(`Inventaire validé : ${n.length} correction${n.length > 1 ? 's' : ''} tracée${n.length > 1 ? 's' : ''}.`); }
   if (a === 'br') return stkBon(x);
 });
@@ -9684,7 +9684,7 @@ document.addEventListener('click', ev => {
   if (a === 'sem') { ptSem = x === '0' ? 0 : Math.min(0, ptSem + +x); return rendre(); }
   if (a === 'jour') return ptFicheJour(x, y);
   if (a === 'pers') { ptOnglet = 'semaine'; return ptFicheJour(x, ptJour(x, AUJ).length ? AUJ : jour(-1)); }
-  if (a === 'debut') { POINTAGES.push({ id:'pmarc' + AUJ + '-' + POINTAGES.length, qui:'marc', date:AUJ, debut:hNow(), fin:null, pause:0 }); ptDevalide('marc', AUJ); rendre(); return toast(`Journée commencée à ${hNow()}.`); }
+  if (a === 'debut') { POINTAGES.push({ id:'pmarc' + AUJ + '-' + POINTAGES.length, qui:acteur(), date:AUJ, debut:hNow(), fin:null, pause:0 }); ptDevalide('marc', AUJ); rendre(); return toast(`Journée commencée à ${hNow()}.`); }
   if (a === 'fin') { const p = POINTAGES.find(o => o.qui === 'marc' && o.date === AUJ && !o.fin); p.fin = hm(Math.max(MAINT_MIN, ptMin(p.debut) + 1)); ptDevalide(p.qui, p.date); rendre(); return toast(`Journée terminée : ${ptH(ptDuree(p))}.`); }
   if (a === 'clore') { const p = POINTAGES.find(o => o.id === x); return ouvrirPanneau(`<span class="surtitre">${esc(H_NOM(p.qui))} · ${esc(jlong(p.date))}</span><h2>Clôturer la journée</h2><span class="gris">Commencée à ${p.debut} et jamais fermée. À quelle heure s’est-elle vraiment terminée ? (On ne compte jamais jusqu’à maintenant.)</span>
       <label class="champ">Fin réelle<input type="time" id="pt-fin" value="${ptxFinPropose(p).h}"></label>${ptxChampsCloture(p)}<div class="actions"><button type="button" class="btn" data-pt="closok|${p.id}">Clôturer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
@@ -10084,7 +10084,7 @@ function acVersCommande(s, q, d){
   if (br) { const E = JSON.parse(JSON.stringify(br)), m = E.lignes.find(o => o.pid === l.pid); if (m) m.q += q; else E.lignes.push(l); return garder(E); }
   return garder({ id:null, num:'BC-2026-0' + cmdNum, four:s.x.four, lignes:[l], liv:'atelier', souh:d.quand || cmdJourOuvre(ajoute(AUJ, s.f.dj || 1)), pour:'', note:'Demande de ' + H_NOM(d.qui) });
 }
-const acNoter = (d, suite) => { d.etat = 'approuvee'; d.suite = suite; d.par = 'marc'; d.le = AUJ; };
+const acNoter = (d, suite) => { d.etat = 'approuvee'; d.suite = suite; d.par = acteur(); d.le = AUJ; };
 const acPrevenir = (k, txt) => notifier(k, txt);   // une notification sur son téléphone (la Messagerie a été retirée)
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-ac]'); if (!b) return;
@@ -10092,7 +10092,7 @@ document.addEventListener('click', ev => {
   if (a === 'onglet') { const deja = acOnglet === x && b.classList.contains('kpi'); acOnglet = x; rendre(); if (deja) { const l = document.querySelector('.ach-d, .ach-n'); if (l) l.scrollIntoView({ behavior:'smooth', block:'start' }); else toast('Rien d’autre à décider ici.'); } return; }
   if (a === 'allernotes') { acOnglet = 'notes'; return aller('achats'); }
   if (a === 'transfert') { const s = acSource(d), q = Math.min(d.q, s.at), m = { type:'transfert', pid:s.x.id, q, de:'atelier', vers:s.camion.id };
-    stkAppliquer(m); MVTS.unshift({ id:'m' + Date.now().toString(36), d:AUJ, h:hm(MAINT_MIN), type:'transfert', pid:s.x.id, q:m.q, de:'atelier', vers:s.camion.id, qui:'marc', motif:'Demande de ' + H_NOM(d.qui) });
+    stkAppliquer(m); MVTS.unshift({ id:'m' + Date.now().toString(36), d:AUJ, h:hm(MAINT_MIN), type:'transfert', pid:s.x.id, q:m.q, de:'atelier', vers:s.camion.id, qui:acteur(), motif:'Demande de ' + H_NOM(d.qui) });
     const reste = Math.max(0, d.q - m.q);
     acNoter(d, `${prNum(m.q)} ${s.x.u} transférés de l’atelier vers ${s.versLe}${reste && s.f ? `, ${prNum(reste)} ${s.x.u} commandés chez ${s.f.nom}` : ''}`);
     acPrevenir(d.qui, `C’est bon pour « ${d.quoi} » : ${prNum(m.q)} ${s.x.u} sont dans ton camion : je les ai sortis de l’atelier pour toi.${reste && s.f ? ` Les ${prNum(reste)} ${s.x.u} qui manquent sont commandés.` : ''}`);
@@ -12143,7 +12143,7 @@ document.addEventListener('click', ev => {
     memo(); Object.assign(i, { d, h, dur:u, tech:t });
     if (i.demande && !i.demande.confirme) { demandePlacee(i); return; }   // comme au planning : confirmé dans sa fenêtre, sinon proposé au client
     i.st = 'planifiee';
-    if (typeof TACHES !== 'undefined') TACHES.filter(z => z.lien && z.lien.id === i.id && !z.fait).forEach(z => { z.fait = { par:'marc', quand:'31/10', quoi:'planifiée' }; });
+    if (typeof TACHES !== 'undefined') TACHES.filter(z => z.lien && z.lien.id === i.id && !z.fait).forEach(z => { z.fait = { par:acteur(), quand:'31/10', quoi:'planifiée' }; });
     journalAjout('marc', 'inter', 'a planifié l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:jlong(d) + ' à ' + h + ' · ' + tech(t).nom });
     rendre(); scrollTo({ top:0 }); return toast(`Planifiée ${jlong(d)} à ${h} avec ${tech(t).nom.split(' ')[0]} : elle apparaît dans sa journée.`); }
   if (a === 'visitefin' && i) { const F = fiche(i.id); if (!F.besoin.trim()) return toast('Écris ce qu’il faut prévoir : c’est ce que le bureau chiffrera.');
@@ -14514,7 +14514,7 @@ function pdxRangement(l, c){   // où irait l'article d'une ligne hors liste, et
     if (!x && p.creer) { const g = pdxRangement(p.l, c), pa = p.l.pu; x = { id:'p' + Date.now().toString(36) + PRODUITS.length, p:g.p, cat:g.cat, nom:p.l.nom, ref:p.l.ref && p.l.ref !== '—' ? p.l.ref : '—', u:g.u, pa:pa != null ? pa : null, pv:g.t === 'm' || pa == null ? null : foArr(pa * foCoef(g.p, g.cat)), tva:20, four:c.four, q:p.n, seuil:0, ac:pa == null };
       PRODUITS.push(x); p.l.pid = x.id; stkJournalEntree(x.id, p.n, 'Réception de la commande ' + c.num, c.id); dits.push(`« ${esc(x.nom)} » ajouté à ta liste${prVend(x) ? '' : ' (matériel de l’équipe)'}`); }
     if (!x) return;
-    if (p.lieu !== 'atelier') { const m = { id:'m' + Date.now().toString(36) + MVTS.length, d:AUJ, h:hNow(), type:'transfert', pid:x.id, q:p.n, de:'atelier', vers:p.lieu, qui:'marc', motif:'Rangé à la réception de ' + c.num, bc:c.id }; if (stkAppliquer(m)) { MVTS.unshift(m); rangs.add(p.lieu); } }
+    if (p.lieu !== 'atelier') { const m = { id:'m' + Date.now().toString(36) + MVTS.length, d:AUJ, h:hNow(), type:'transfert', pid:x.id, q:p.n, de:'atelier', vers:p.lieu, qui:acteur(), motif:'Rangé à la réception de ' + c.num, bc:c.id }; if (stkAppliquer(m)) { MVTS.unshift(m); rangs.add(p.lieu); } }
     if (p.resa) { const i = pdxIntDeLigne(c, p.l); if (i) { x.resa = (x.resa || []).concat({ inter:i.id, q:Math.min(p.resa, p.n), bc:c.num }); dits.push(`${pdxQ(Math.min(p.resa, p.n))} mis de côté pour ${esc(CLIENTS[i.cli].nom)}`); } } });
   if (rangs.size === 1) { const k = [...rangs][0]; if (plan.every(p => p.lieu === k)) c.rangeDans = lieuNom(k); }
   c.journal.push([AUJ, 'Rangement : ' + (plan.map(p => `${pdxQ(p.n)} ${cmdNom(p.l)} → ${lieuNom(p.lieu)}`).join(', ')) + (dits.length ? ' · ' + dits.join(' ; ').replace(/<[^>]*>/g, '') : '')]);
@@ -15970,7 +15970,7 @@ function bxMaj(){ const b = document.getElementById('md-rok'); if (!b || !BX.cfg
 function bxTransfertsOk(){
   const cfg = BX.cfg; if (!cfg) return; const snap = sxPhoto(), n = [], parLieu = {};
   cfg.groupes.forEach(g => g.L.filter(m => m.q > 0 && BX.sel.has(m.cle)).forEach(m => {
-    const o = { id:bxUnique(m.x.id), d:AUJ, h:hNow(), type:'transfert', pid:m.x.id, q:m.q, de:'atelier', vers:g.vers, qui:'marc', motif:m.motif || cfg.motif };
+    const o = { id:bxUnique(m.x.id), d:AUJ, h:hNow(), type:'transfert', pid:m.x.id, q:m.q, de:'atelier', vers:g.vers, qui:acteur(), motif:m.motif || cfg.motif };
     if (stkAppliquer(o)) { MVTS.unshift(o); n.push(o); parLieu[g.vers] = (parLieu[g.vers] || 0) + 1; } }));
   if (!n.length) return toast('Rien n’est coché : le stock ne bouge pas.');
   Object.entries(parLieu).filter(([id]) => lieu(id).tech).forEach(([id, k]) => NOTIFS.push({ k:lieu(id).tech, txt:`Ton camion a été rempli : ${sxPl(k, 'article')}.`, d:AUJ, h:hm(MAINT_MIN) }));
@@ -16072,7 +16072,7 @@ function bxFermer(id){
 }
 function bxFermerOk(id){
   const l = lieu(id), snap = sxPhoto(), n = [];
-  lieuArticles(id).forEach(x => { const o = { id:bxUnique(x.id), d:AUJ, h:hNow(), type:'transfert', pid:x.id, q:stkAt(x, id), de:id, vers:'atelier', qui:'marc', motif:'Retour à l’atelier' }; if (stkAppliquer(o)) { MVTS.unshift(o); n.push(o); } });
+  lieuArticles(id).forEach(x => { const o = { id:bxUnique(x.id), d:AUJ, h:hNow(), type:'transfert', pid:x.id, q:stkAt(x, id), de:id, vers:'atelier', qui:acteur(), motif:'Retour à l’atelier' }; if (stkAppliquer(o)) { MVTS.unshift(o); n.push(o); } });
   l.ferme = AUJ; bxJ('a fermé la réserve', l.nom, n.length ? `${sxPl(n.length, 'article')} remis à l’atelier` : 'elle était vide');
   fermerPanneau(); prCatalogueMaj(); rendre();
   sxToast(`${esc(l.nom)} est fermée${n.length ? ' : ' + sxPl(n.length, 'article') + ' remis à l’atelier' : ''}.`, null, snap, 'la fermeture de ' + l.nom);
