@@ -4518,6 +4518,9 @@ function annuler(){ if (!pile.length) return; const s = JSON.parse(pile.pop()); 
 function toast(msg, action){ // action : { lib, fn }
   let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
   t.innerHTML = `<span>${msg}</span>`; [].concat(action || []).forEach(ac => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ac.lib; b.onclick = () => { t.classList.remove('on'); ac.fn(); }; t.appendChild(b); });
+  // une seule bulle à la fois : la Boîte mail a la sienne (dans son module) ; une bulle simple du module (« Pièce téléchargée… ») laisse la place à celle-ci
+  // au lieu de se faire recouvrir à moitié — celle d'« Annuler l'envoi » (classe act) reste, elle porte un geste en cours
+  try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
@@ -4599,7 +4602,7 @@ function voirFichierLocal(url, nom){
   const b = BLOBS_LOCAUX.get(url), type = (b && b.type) || '', n = nom || (b && b.name) || 'Fichier';
   ouvrirPanneau(`<h2>${esc(n)}</h2>${/^image\//.test(type) ? `<img class="vfl-img" src="${esc(url)}" alt="${esc(n)}">` : '<p class="gris">Ce fichier ne s’affiche pas dans cette page : enregistre-le sur ton appareil pour l’ouvrir.</p>'}<div class="actions"><button type="button" class="btn" data-sortie="enregistrer" data-u="${esc(url)}" data-n="${esc(n)}">Enregistrer sur cet appareil</button><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
 }
-document.addEventListener('click', ev => { const a = ev.target.closest && ev.target.closest('a[href^="blob:"]'); if (!a) return; ev.preventDefault(); voirFichierLocal(a.getAttribute('href')); });
+document.addEventListener('click', ev => { const a = ev.target.closest && ev.target.closest('a[href^="blob:"]:not([download])'); if (!a) return; ev.preventDefault(); voirFichierLocal(a.getAttribute('href')); });
 const trouve = id => INTS.find(o => o.id === id) || BUREAU.find(o => o.id === id);
 const estBloc = i => BUREAU.includes(i);
 function poser(i, tid, d, h, dur){
@@ -8197,8 +8200,8 @@ function cpFec(){
 }
 const cpFecNom = () => ENTREPRISE.siret.replace(/\s/g, '').slice(0, 9) + '_ecritures_2026-10_format-FEC.txt';
 async function cpFecTelecharger(){
-  const nom = cpFecNom(), data = new Blob([CP.fecEnvoye || cpFec()], { type:'text/plain' });
-  await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom) });
+  const nom = cpFecNom(), txt = CP.fecEnvoye || cpFec(), data = new Blob([txt], { type:'text/plain' });
+  await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom), texte:txt });   // « texte » : dans un cadre sans pont, le début du fichier s'affiche à copier
 }
 async function cpSceller(){
   CP.fecEnvoye = cpFec(); CP.empreinte = null;

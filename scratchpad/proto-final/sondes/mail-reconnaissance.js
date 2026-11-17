@@ -36,7 +36,8 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   await ouvrirMsg(c, 'm3');
   await p.locator('#courrier-hote .hband button', { hasText:'Rapprocher' }).first().click(); await p.waitForTimeout(900);
   const rap = await S(c, () => (document.querySelector('#calque .panneau') || {}).innerText || '');
-  v('« Rapprocher » : le panneau compare la facture à la commande BC-2026-036 et montre l\'écart', /BC-2026-036/.test(rap) && /1,20/.test(rap), rap.slice(0, 200));
+  // le lot Matériel a tranché : un numéro de commande s'écrit SANS « BC- » à l'ÉCRAN (matNumAff), le document et la donnée gardent le leur — le panneau dit « 2026-036 », jamais « BC-2026-036 »
+  v('« Rapprocher » : le panneau compare la facture à la commande 2026-036 (écrite sans préfixe à l\'écran) et montre l\'écart', /COMMANDE 2026-036/i.test(rap) && !/BC-2026-036/.test(rap) && /1,20/.test(rap), rap.slice(0, 200));
   await S(c, () => fermerPanneau()); await p.waitForTimeout(300);
   await ouvrirMsg(c, 'm9');
   await p.locator('#courrier-hote .hband button', { hasText:'Noter l’accord du devis' }).first().click(); await p.waitForTimeout(900);
