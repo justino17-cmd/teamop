@@ -23,7 +23,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 
 | Sœur | Session | Voie et args (toujours `arbre:"/home/user/wt-soeur"`) | Lancée | État |
 |---|---|---|---|---|
-| 1 | session_01PfEEAFnTAeSbLdaDRiaDkW | `{voie:"final-rejeu", familles:["atelier","compositeur","mail","menu","taches"], jusqua:0}` | 11 h 31 | a lancé son workflow en 40 s (run wf_c453a43c-86c chez elle) : le mécanisme MARCHE |
+| 1 | session_01PfEEAFnTAeSbLdaDRiaDkW | `{voie:"final-rejeu", familles:["atelier","compositeur","mail","menu","taches"], jusqua:0}` | 11 h 31 | RENDUE à 12 h 23 (51 min) : scripts de rejeu écrits (compositeur 483 ✓ · 0 ✗ ; menu 2 rouges ; tâches 3 rouges — `final/rejeu-atelier.json`). Décisions du chef sur les trois rouges (21 lignes au menu du gérant avec « Sécurité », « Mon compte » permis au pied et en titre de sa page, cases du calendrier sous 44 px écartées en les nommant) envoyées avec la VOIE SUIVANTE à 12 h 26 : mêmes familles, `depuis:1` (rejouer et réparer, premier passage) |
 | 2 | session_01PfEEAFqwm1iizSCQmKY7RG | `{voie:"final-rejeu", familles:["materiel","droits","entreprise"], jusqua:0}` | 11 h 34 | |
 | 3 | session_01PfEEAF4SpPFViGgXxJDrwQ | `{voie:"final-rejeu", familles:["vehtemps","secu","securite","artefact","retour","double"], jusqua:0}` | 11 h 34 | |
 | 4 | session_01PfEEAGMXkbXjCC8u8EMYk6 | `{voie:"final-rejeu", familles:["compta","contrats"], jusqua:0}` | 11 h 34 | |
