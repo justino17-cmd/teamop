@@ -363,8 +363,8 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
   .tkx-cherche{flex:1 1 0;min-width:0}
   #contenu .tkx-resume{padding:6px 10px;font-size:14px}#contenu .tkx-resume .tkx-retard-p{padding:0 12px}.tkx-pills{flex:1 1 100%}.tkx-pill{padding:0 10px;font-size:14px;flex:1 1 auto;justify-content:center}
   .tkx-rang{flex:0 0 118px;order:0}.tkx-pills{order:1}
-  /* 320 px : trois pastilles de filtre à 14 px ne tiennent pas sur une ligne, la dernière passait seule en pleine largeur ; à 13 px, trois colonnes égales (regard-technicien-a) */
-  @media (max-width:350px){.tkx-pills{flex-wrap:nowrap}.tkx-pill{flex:1 1 0;min-width:0;padding:0 4px;font-size:13px;gap:4px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
+  /* 320 et 360 px : trois pastilles de filtre à 14 px ne tiennent pas sur une ligne, la dernière passait seule en pleine largeur ; à 13 px, trois colonnes égales (regard-technicien-a ; 390 px tient déjà) */
+  @media (max-width:370px){.tkx-pills{flex-wrap:nowrap}.tkx-pill{flex:1 1 0;min-width:0;padding:0 4px;font-size:13px;gap:4px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
   .tkx-s{grid-template-columns:auto minmax(0,1fr)}.tkx-s-g{flex:1 1 100%}.tkx-s-g .btn{flex:1}
   .tkx-s-ch label{flex:1 1 100%;justify-content:space-between}.tkx-s-ch .saisie{flex:1 1 auto}
   .tkx-s-haut .btn{flex:1 1 100%}
@@ -500,7 +500,7 @@ html .mc-vide{display:flex;flex-direction:column;align-items:flex-start;gap:6px;
 html .mc-ok{display:flex;align-items:center;gap:14px;padding:16px 18px}html .mc-ok b{display:block;font-size:16px}html .mc-ok .gris{display:block}
 html .mc-coche{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:color-mix(in srgb,var(--vert) 16%,transparent);color:var(--vert);flex:none}html .mc-coche svg{width:22px;height:22px}
 html .mc-bord{margin:0;min-height:56px}
-@media (max-width:760px){html .mc-l{flex-wrap:wrap}html .mc-l>.fo-n{flex:1 1 150px}html .mc-dr{max-width:100%;align-items:flex-start;flex-direction:row;flex-wrap:wrap;gap:4px 12px}html .mc-dr .st{text-align:left}}
+@media (max-width:760px){html .mc-l{flex-wrap:wrap}html .mc-l>.fo-n{flex:1 1 150px}html .mc-dr{flex:1 1 100%;max-width:100%;align-items:flex-start;flex-direction:row;flex-wrap:wrap;gap:4px 12px}html .mc-dr .st{text-align:left}}   /* au téléphone l'état d'un envoi passe TOUJOURS sous le nom (à droite quand ça tenait, dessous sinon : deux rangées voisines ne se ressemblaient pas) */
 /* les feuilles */
 html .mat-h{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--doux);margin:14px 0 2px}
 html .mat-inter{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:14px;background:var(--surf2);border:1px solid var(--trait);min-height:60px}
@@ -526,7 +526,7 @@ html .mat-pied .btn{flex:1 1 auto}
 .pu-ajout{display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px}
 @media (max-width:480px){.pu-ajout{grid-template-columns:minmax(0,1fr) auto}.pu-ajout #p-nom{grid-column:1/-1}}   /* au téléphone le champ de recherche prend sa ligne entière (l’invite se lit : elle était coupée à « Chercher c »), la quantité et « Ajouter » dessous */
 html .fo-pied .mat-phrase{flex:1 1 100%;margin:0}html .fo-pied .mat-phrase:empty{display:none}   /* la phrase de contrôle (« Tu notes : 1 Filtre à charbon… ») se lit JUSTE AU-DESSUS du bouton, dans le pied qui reste en bas, pas tout en bas du défilement */
-@media (max-width:760px){html .mat-pied .btn{flex:1 1 40%}}
+@media (max-width:760px){html .mat-pied .btn{flex:1 1 40%}html .mat-pied .btn:not(.gris){flex:1.6 1 52%}html .mat-pied .btn.gris{flex:1 1 30%}}   /* le primaire se lit sur UNE ligne (« Envoyer : 3 articles » en demandait deux dans 144 px) ; « Annuler » s'y tient à 124 px */
 /* ══ MATÉRIEL — lot 2 : Stock (spec § 5) — la grammaire de Devis et de Clients, rien d'inventé ══ */
 html .ms-tete .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 html .ms-bandeau{padding:12px 16px}html .ms-bandeau .dv-tache{border-bottom:0;padding:2px 0;flex-wrap:wrap}html .ms-bandeau .dv-c b{font-size:16px}
@@ -2854,6 +2854,8 @@ body.dp-ouvert{overflow:hidden}
 .bil-t{border:1px solid #e6e9f0;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;background:#f7f8fb}
 .bil-t span{font-size:11px;color:#5b6478;font-weight:600;text-transform:uppercase;letter-spacing:.05em}.bil-t b{font-size:19px;color:#15213a;font-variant-numeric:tabular-nums}.bil-t b i{font-style:normal;font-size:11px;color:#5b6478;font-weight:600}
 .bil-t small{font-size:11px;color:#6a7387}
+/* le montant et son unité ne se séparent jamais : à 320 px « 3 045 € » et « TTC » tombaient sur deux lignes dans la tuile Encaissé, pas dans Facturé (restes accueil, tour 3) */
+.bil-t b{white-space:nowrap}
 .bil-e{font-weight:700;color:#5b6478}.bil-e.up{color:#1c7a3a}.bil-e.down{color:#b0263c}
 .bil-2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
 .bil-graph{position:relative;display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:130px;align-items:end;padding:0 0 18px;border-bottom:1px solid #e6e9f0}
@@ -3358,6 +3360,8 @@ body.ac-glisse .ac-x{pointer-events:none}
 .acm-c.fer .acm-n{color:var(--orange)}
 .acm-n b{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 6px;border-radius:13px;background:var(--lien);color:var(--on-etat);font-weight:800}
 .acm-f{position:relative;z-index:2;pointer-events:none;font-size:11.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:color-mix(in srgb,var(--orange) 72%,var(--encre));line-height:1.15;overflow-wrap:anywhere}
+/* colonne étroite (iPad) : « TOUSSAINT » se coupait en « TOUSSA / INT » ; un nom de jour férié tient sur une ligne à 9 px */
+.acm-etroit .acm-f{font-size:9px;letter-spacing:-.01em}.acm-etroit .acm-c{padding-left:4px;padding-right:4px}
 .acm-x{grid-row:1;align-self:stretch;position:relative;z-index:1;margin:0;border:0;border-radius:0;display:flex;align-items:flex-end;padding:0 9px 9px;min-width:0;overflow:hidden;white-space:nowrap;cursor:pointer;font:inherit;font-size:13.5px;font-weight:750;color:var(--encre);
   background:repeating-linear-gradient(90deg,transparent 0 calc(100% / var(--n) - 1px),color-mix(in srgb,var(--carte-fond) 40%,transparent) calc(100% / var(--n) - 1px) calc(100% / var(--n))),color-mix(in srgb,var(--c) 50%,var(--carte-fond));
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 85%,transparent)}
@@ -3808,6 +3812,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (min-width:900px){.vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr))}.vh-cam-l{grid-column:auto}}
 /* Mon camion sur téléphone : la carte du véhicule tient sur UNE rangée de trois boutons, pour que « Il manque à bord » reste sur le premier écran AU-DESSUS de la barre d'onglets (spec Matériel § 8.1 : voir ce qui manque, c'est UN toucher et aucun défilement ; un plein se note toujours sans défiler). Le titre reste lu par les lecteurs d'écran. */
 @media (max-width:520px){html .mc-page .vh-cam{padding:10px 12px;gap:6px}html .mc-page .vh-cam h3{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}html .mc-page .vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}html .mc-page .vh-cam-g .btn{min-height:44px;font-size:13px;padding:6px 4px}html .mc-page .vh-cam-l{grid-column:auto}}
+@media (max-width:359px){html .mc-page .vh-cam-g{grid-template-columns:repeat(2,minmax(0,1fr))}html .mc-page .vh-cam-g .btn{font-size:14px}html .mc-page .vh-cam-l{grid-column:1/-1}}   /* regard technicien b : à 320 px trois colonnes de 83 px coupaient les libellés en trois lignes de 13 px */
 /* téléphone COURT (Android 360 × 740) : rangées resserrées pour que la première ligne de « Il manque à bord » reste au-dessus de la barre d'onglets */
 @media (max-width:520px) and (max-height:780px){html .mc-page{gap:10px}html .mc-duo .btn{min-height:48px}html .mc-page .vh-cam>.gris{display:none}html .mc-page .vh-cam{padding:8px 10px}}
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
@@ -3838,7 +3843,8 @@ html #mc-vehicule:empty{display:none}
 .vh-choix{gap:8px}.vh-choix .puce-c{min-height:48px;justify-content:center;text-align:center;line-height:1.25;white-space:normal}
 .vh-choix.vh-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.vh-choix.vh-2 .puce-c{border-radius:14px;padding:8px 10px}
 .vh-pied{margin-top:2px}.vh-pied .btn.large{flex:1 1 100%}
-#calque .panneau>.vh-pied{position:sticky;bottom:-1px;z-index:2;background:var(--feuille);padding:10px 0 4px;margin-bottom:-4px;box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
+#calque .panneau{--pan-bas:20px}#calque .panneau.fenetre{--pan-bas:28px}@media (max-width:760px){#calque .panneau,#calque .panneau.fenetre{--pan-bas:calc(22px + env(safe-area-inset-bottom,0px))}}   /* le rembourrage bas de la feuille, dit UNE fois : le pied collant s'y enfonce (regard technicien b : « Aujourd'hui · Un autre jour » défilait SOUS le bouton « Enregistrer le plein », dans la bande de l'encoche) */
+#calque .panneau>.vh-pied{position:sticky;bottom:calc(-1px - var(--pan-bas));z-index:2;background:var(--feuille);padding:10px 0 var(--pan-bas);margin-bottom:calc(0px - var(--pan-bas));box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
 .vh-ret{align-self:flex-start;min-height:44px}
 .deux-champs[hidden]{display:none}   /* « hidden » perdait contre display:grid : la paire de champs d'un détail replié restait ouverte */
 @media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}   /* la feuille qui monte ne dépasse pas 90 % de l'écran (le reste du voile reste visible : on sait où l'on est) */
@@ -6602,7 +6608,7 @@ let JOURNAL = (() => {
   });
   /* l'argent reçu sur place par un technicien et pas encore repris par une facture émise : sa ligne, au nom du technicien (restes accueil) */
   INTS.filter(i => i.st === 'fait' && i.tech).forEach(i => { const P = PAIE_DEMO[i.id], mt = P ? parseFloat(String(P.montant).replace(',', '.')) || 0 : 0;
-    if (!P || P.etat === 'rien' || !(mt > 0) || (P.mode !== 'Espèces' && P.mode !== 'Chèque') || FACTURES.some(f => f.int === i.id && f.num !== '—')) return;
+    if (!P || P.etat === 'rien' || !(mt > 0) || FACTURES.some(f => f.int === i.id && f.num !== '—')) return;
     P.journale = true; aj(i.d, hm(hmin(i.h) + i.dur + 2), i.tech, 'facture', 'a noté un paiement reçu sur place', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:eur(mt) + ' · ' + P.mode }); });
   FACTURES.filter(f => f.emise.endsWith('/10') && f.int).forEach(f => {
     aj(dIso(f.emise), '17:' + String(10 + (+f.num.slice(-2) % 40)).padStart(2, '0'), 'julie', 'facture', 'a validé et envoyé la facture', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:eur(f.ht * (1 + f.tva / 100)) + ' TTC' });
@@ -7406,17 +7412,18 @@ function aCalMois(J, tid){ const T = tel(), dep = aDeplCible();
   const blocs = aCalPer === 0.5 ? [{ titre:'Du ' + aCourte(J[0]) + ' au ' + aCourte(J[J.length - 1]) + ' ' + J[J.length - 1].slice(0, 4), jours:J }]
     : [...new Set(J.map(d => d.slice(0, 7)))].map(k => ({ titre:aMoisLib(k), jours:J.filter(d => d.startsWith(k)) }));
   const cw = (aLargeurs() - (T ? 22 : 30)) / 7;   // une case : la carte en sept
-  const entete = (T ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'] : ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']).map((x, k) => `<span class="${k > 4 ? 'we' : ''}">${x}</span>`).join('');
+  const etroit = !T && cw < 84;   // iPad : la colonne du calendrier fait ~66 px, « MERCREDI » en demande 78 et « DIMANCHE » sortait de la carte
+  const entete = (T ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'] : etroit ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] : ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']).map((x, k) => `<span class="${k > 4 ? 'we' : ''}">${x}</span>`).join('');
   return blocs.map(b => { const dans = new Set(b.jours), fin = ajoute(aLundi(b.jours[b.jours.length - 1]), 6), sems = [];
     for (let s = aLundi(b.jours[0]); s <= fin; s = ajoute(s, 7)) sems.push(s);
     const rangs = sems.map(s => { const S = Array.from({ length:7 }, (_, k) => ajoute(s, k));
       const cells = S.map((d, k) => !dans.has(d) ? `<div class="acm-c hors${k === 6 ? ' k7' : ''}" style="grid-column:${k + 1}" aria-hidden="true"></div>`
-        : `<div class="acm-c${aOuvre(d) ? '' : A_FERIES[d] ? ' fer' : ' we'}${d === AUJ ? ' auj' : ''}${k === 6 ? ' k7' : ''}${dep && dep.tech === tid ? ' ac-choix' : ''}" style="grid-column:${k + 1}" data-acd="${d}" data-act="${tid}" title="${aMaj(aDate(d, true))}${A_FERIES[d] ? ' · ' + A_FERIES[d] + ' (jour férié)' : !aOuvre(d) ? ' · non travaillé' : ''}"><span class="acm-n">${d === AUJ ? `<b>${+d.slice(8)}</b>` : +d.slice(8)}</span>${A_FERIES[d] ? `<span class="acm-f">${A_FERIES[d]}</span>` : ''}</div>`).join('');
+        : `<div class="acm-c${aOuvre(d) ? '' : A_FERIES[d] ? ' fer' : ' we'}${d === AUJ ? ' auj' : ''}${k === 6 ? ' k7' : ''}${dep && dep.tech === tid ? ' ac-choix' : ''}" style="grid-column:${k + 1}" data-acd="${d}" data-act="${tid}" title="${aMaj(aDate(d, true))}${A_FERIES[d] ? ' · ' + A_FERIES[d] + ' (jour férié)' : !aOuvre(d) ? ' · non travaillé' : ''}"><span class="acm-n">${d === AUJ ? `<b>${+d.slice(8)}</b>` : +d.slice(8)}</span>${A_FERIES[d] ? `<span class="acm-f">${cw < 56 ? 'Férié' : A_FERIES[d]}</span>` : ''}</div>`).join('');   /* une case de téléphone (38 à 48 px) ne tient pas « Toussaint » : « Férié », le nom reste dans l'infobulle de la case */
       const bandes = [...A.map(a => [a, false]), ...D.map(a => [a, true])].map(([a, att]) => { const ds = S.filter(d => dans.has(d) && d >= a.du && d <= a.au); if (!ds.length) return '';
         const k0 = S.indexOf(ds[0]), n = ds.length, demi = a.demi && a.du === a.au ? a.demi : '';
         return aBandeHtml(a, att, demi, `grid-column:${k0 + 1} / span ${n};--n:${n}`, aLib(a, att, demi, n * cw, T ? [[11.5, 8, ''], [10, 4, 'mini']] : [[13.5, 18, ''], [12, 10, 'serre'], [10.5, 4, 'mini']]), ds[0] > a.du, ds[n - 1] < a.au, 'acm-x'); }).join('');
       return `<div class="acm-sem">${cells}${bandes}</div>`; }).join('');
-    return `<div class="carte acm"><h4 class="acm-t${blocs.length === 1 ? ' rl-sr' : ''}">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
+    return `<div class="carte acm${etroit ? ' acm-etroit' : ''}"><h4 class="acm-t${blocs.length === 1 ? ' rl-sr' : ''}">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
 }
 function aCalFin(ctrl, seul, corps, J){ const lecture = aLecture(), souris = matchMedia('(hover:hover) and (pointer:fine)').matches, dep = aDeplCible();
   const aide = seul ? (lecture ? '' : aCalSeulTete(aCalQui, J)) : `<div class="ac-aide"><span aria-hidden="true">👆</span><span>Une <b>case par jour</b> et par personne. Coche <b>une ou plusieurs personnes</b> en haut pour les comparer ; touche <b>un nom</b> pour n’afficher que son calendrier. Sur une absence : ${souris ? '<b>clic</b> pour le détail, <b>clic droit</b> pour les actions (valider, refuser, déplacer…), ou <b>glisse-la</b> pour la déplacer' : '<b>touche</b> pour le détail, <b>appui long</b> pour les actions (valider, refuser, déplacer…), appui long puis glisse pour la déplacer'}.</span></div>`;
@@ -7424,7 +7431,7 @@ function aCalFin(ctrl, seul, corps, J){ const lecture = aLecture(), souris = mat
   const leg = Object.entries(A_TYPES).map(([k, [c]]) => `<span><i style="background:color-mix(in srgb,${c} 50%,var(--carte-fond));box-shadow:inset 0 0 0 1px ${c}"></i>${k}</span>`).join('')
     + `<span><i class="att"></i>En attente${lecture ? '' : ' de ta décision'}</span><span><i class="demi"></i>Demi-journée</span>`
     + (seul ? '' : '<span><i class="pr"></i>Présents : ✓ tout le monde · 3/4 un absent · 2/4 ou moins</span><span><i class="pt"></i>Une demande attend ce jour-là</span>')
-    + '<span><i class="nt"></i>Non travaillé (week-end, jour férié : son nom est écrit)</span><span><i class="auj"></i>Aujourd’hui</span>';
+    + '<span><i class="nt"></i>Non travaillé (week-end, jour férié)</span><span><i class="auj"></i>Aujourd’hui</span>';
   return ctrl + aide + bandeau + `<div class="ac-zone${dep ? ' ac-mode-depl' : ''}">${corps}</div><div class="a-leg ac-leg">${leg}</div>` + (seul ? aCalSeulListe(lecture ? aTech() : aCalQui, J) : '');
 }
 /* une personne : retour à l'équipe, son nom, ＋ Absence ; dessous, toutes ses absences de la période, demandes en attente comprises */
@@ -8408,13 +8415,16 @@ const cpDedOct = a => cpDed(a) && (cpService(a) ? !!a.paye && cpOct(a.paye) : cp
 /* ce qu'un technicien a encaissé sur place et qu'aucune facture émise n'a encore repris : c'est un encaissement, daté du jour où il l'a
    reçu ; le taux est celui de la facture qui suivra (même règle que `factureDepuis`), à confirmer sur la facture */
 const cpTvaInt = i => (i.fact && i.fact.tva) || (CLIENTS[i.cli].type === 'part' ? 10 : 20);
+/* UNE règle (restes accueil, tour 3, décision du chef) : l'argent compte le JOUR où le technicien le reçoit (`P.recuLe`, posé à « Terminer »), pas le jour prévu de l'intervention — une
+   intervention prévue le 2 novembre et finie le 31 octobre avec 50 € compte 50 € en octobre — et le moyen de paiement ne change rien : espèces, chèque, carte ou virement noté sur place
+   sont tous « reçus sur place » tant que la facture n'est pas partie (une carte ou un virement attend en plus sa ligne de banque : la Comptabilité le dit déjà). */
 function cpPaieTerrain(){
-  return INTS.filter(i => i.st === 'fait' && i.tech && cpOct(cpDM(i.d))).map(i => ({ i, P:fiche(i.id).paiement }))
-    .filter(({ i, P }) => P && (P.etat === 'acompte' || P.etat === 'total') && (P.mode === 'Espèces' || P.mode === 'Chèque') && !FACTURES.some(f => f.int === i.id && f.num !== '—'))
-    .map(({ i, P }) => ({ d:cpDM(i.d), h:fin(i.h, i.dur), cli:i.cli, fac:'Reçu ' + i.id.toUpperCase(), int:i.id, mode:P.mode,
+  return INTS.filter(i => i.st === 'fait' && i.tech).map(i => ({ i, P:fiche(i.id).paiement }))
+    .filter(({ i, P }) => P && (P.etat === 'acompte' || P.etat === 'total') && !FACTURES.some(f => f.int === i.id && f.num !== '—'))
+    .map(({ i, P }) => ({ d:cpDM(P.recuLe || i.d), h:P.recuLe ? (P.recuH || hm(MAINT_MIN)) : fin(i.h, i.dur), cli:i.cli, fac:'Reçu ' + i.id.toUpperCase(), int:i.id, mode:P.mode,
       /* « payé en totalité » sans montant retapé : c'est le TTC de la facture préparée (même règle que l'envoi de la facture) ; sans cela l'Historique disait 142,61 € quand l'Accueil comptait 0 */
       ttc:parseFloat(String(P.montant).replace(',', '.')) || (P.etat === 'total' ? (f => f ? ttcDe(f) : 0)(FACTURES.find(f => f.int === i.id && f.st !== 'annulee')) : 0), tva:cpTvaInt(i), virtuel:true, preuve:'Noté sur la fiche par ' + tech(i.tech).nom.split(' ')[0] }))
-    .filter(e => e.ttc > 0);
+    .filter(e => e.ttc > 0 && cpOct(e.d));
 }
 const cpEncOct = () => [...ENCAISSEMENTS.filter(e => cpOct(e.d)), ...cpPaieTerrain()];
 const cpTechDe = e => { const i = e.int && INTS.find(o => o.id === e.int); return i && i.tech; };
@@ -8900,7 +8910,9 @@ const ACTIONS = {
   terminer(b){ const id = b.dataset.id, F = fiche(id), man = manque(F), i = INTS.find(o => o.id === id);
     if (man.length) { ouvrirPanneau(`<h2>Il manque encore des choses</h2><p class="mq-i">Avant de terminer, il manque :</p><ul class="mq-l">${man.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul><p class="gris mq-s">Si tu ne peux pas tout faire, utilise « Je ne peux pas finir » : le bureau est prévenu et une intervention de retour est créée.</p>`); return; }
     F.etat = 'bureau'; F.envoye = true; i.st = 'fait';
+    if (F.paiement && F.paiement.etat !== 'rien' && !F.paiement.recuLe) { F.paiement.recuLe = AUJ; F.paiement.recuH = hm(MAINT_MIN); }   /* le jour où l'argent est reçu : aujourd'hui, quel que soit le jour prévu de l'intervention */
     journalAjout(rlQui(), 'inter', 'a terminé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'compte rendu envoyé au client' });
+    const dejaPartie = FACTURES.some(f => f.int === id && f.num !== '—' && f.st !== 'annulee');   /* avant l'envoi automatique, qui fait partir la facture préparée */
     factureDepuis(i);
     if (F.suite.entretien) INTS.push({ id:'n-ent-' + id, d:ouvres(1, ajoute(i.d, 364))[0], h:'09:00', dur:60, tech:'', cli:i.cli, titre:'Entretien annuel', type:'Entretien', st:'aplanifier' });
     if (F.suite.ventilo) INTS.push({ id:'n-ven-' + id, d:ajoute(i.d, 4), h:'13:30', dur:120, tech:'', cli:i.cli, titre:autrePassageTitre(i), type:'2ᵉ passage', st:'aplanifier' });
@@ -8908,7 +8920,7 @@ const ACTIONS = {
     if (reglages.auto && fa && lignesDe(fa).every(ligneOk) && entClientJoignable(fa.cli)) envoyerFacture(fa, true, true);   /* elle attend « à valider » si un prix manque, si le client n'a pas d'e-mail, ou si la fiche de l'entreprise est incomplète (refus silencieux : le technicien n'y peut rien) */
     { const P = F.paiement;   /* l'argent noté sur place : sa ligne vient APRÈS « a terminé », et une seule fois (un second appel ne double pas) ;
       elle dit ce que l'Accueil et la Comptabilité COMPTENT (argent reçu en Espèces/Chèque pas encore sur une facture, ou encaissement de la facture déjà partie) — jamais une autre règle */
-      const mt = fa && fa.num !== '—' ? ENCAISSEMENTS.filter(e => e.int === id && e.fac === fa.num).reduce((s, e) => s + e.ttc, 0) : cpPaieTerrain().filter(e => e.int === id).reduce((s, e) => s + e.ttc, 0);
+      const mt = fa && fa.num !== '—' ? (dejaPartie ? encaisserPaieTech(fa, P) : ENCAISSEMENTS.filter(e => e.int === id && e.fac === fa.num).reduce((s, e) => s + e.ttc, 0)) : cpPaieTerrain().filter(e => e.int === id).reduce((s, e) => s + e.ttc, 0);
       journalPaieTerrain(i, P.etat === 'rien' ? null : P, mt); }
     rendre(); scrollTo({ top:0 }); toast(fa ? (kcomp ? 'Terminée : le compte rendu part au client. La visite est comprise dans le contrat ' + kcomp.num + ' ; la facture ne porte que les pièces posées.' : 'Terminée : le compte rendu part au client, la facture est préparée.') : kcomp ? 'Terminée : le compte rendu part au client. Visite comprise dans le contrat ' + kcomp.num + ' : pas de facture à part.' : 'Terminée : le compte rendu part au client. Intervention en garantie : pas de facture.'); },
   pasFini(b){ feuillePasFini(b.dataset.id); },
@@ -9099,10 +9111,13 @@ function envoyerFacture(f, muet, auto){ if (!auto && !peut('ventes', 'm')) { if 
   if (!lignesDe(f).every(ligneOk)) { if (!muet) toast('Une ligne n’a pas de nom ou pas de prix : complète-la, ou retire-la.'); return false; }   /* une ligne sans nom ne part jamais chez un client */
   const M = entrepriseManque(); if (M.length) { if (!muet) entRefusFacture(M); return false; } envoyerFactureParti(f); return true; }
 function envoyerFactureParti(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (numSuiv++); f.st = 'envoyee'; f.emise = '31/10'; f.ech = '30/11'; f.ht = htDe(f); f.vue = false;
-  const P = f.paieTech; if (!P || P.etat === 'rien') return;
-  const ttc = ttcDe(f), v = P.etat === 'total' ? ttc : Math.min(ttc, parseFloat(String(P.montant).replace(',','.')) || 0); if (!v) return;
-  f.recu = v; f.st = v >= ttc - .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
-  ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); }
+  encaisserPaieTech(f, f.paieTech); }
+/* L'argent que le technicien a noté sur place devient l'encaissement de la facture : à l'envoi (facture neuve), ou à « Terminer » quand la facture était DÉJÀ partie (acompte, facture de devis) —
+   alors pour ce qui RESTE à payer et pas plus, et l'Historique ne dit que ce que le technicien a reçu, jamais le total de la facture (restes accueil, tour 3). Rend le montant inscrit. */
+function encaisserPaieTech(f, P){ if (!P || P.etat === 'rien' || P.encaisse) return 0;   /* une fois : « Terminer » rejoué après une reprise ne recompte pas */
+  const reste = restant(f), v = P.etat === 'total' ? reste : Math.min(reste, parseFloat(String(P.montant).replace(',','.')) || 0); if (!(v > .004)) return 0;
+  f.recu = (f.recu || 0) + v; f.st = f.recu >= ttcDe(f) - .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
+  ENCAISSEMENTS.unshift({ d:'31/10', h:P.recuH || P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); P.encaisse = f.num; return v; }
 function payer(f, m, o){
   /* PREMIÈRE instruction : noter un encaissement est « Devis, factures, contrats › Créer » (ou « Comptabilité › Modifier » dans la Comptabilité, ou la fiche de terrain du technicien) ; le client qui paie en ligne n'est pas une personne de l'entreprise */
   if (ROLE !== 'client' && !(peut('ventes', 'c') || peut('compta', 'm') || peut('inter', 'm'))) { droitsRefus('ventes', 'c', 'payer'); return; }
@@ -15143,7 +15158,7 @@ function pdxEdPour(four){   // le bon d'un fournisseur, comme cmdPreparer le con
 }
 function pdxEnvoiSilencieux(c){   // ce que cmdEnvoyer fait, sans la fenêtre ni le message : l'envoi groupé en dit un seul
   const f = foDe(c.four) || {}; c.lignes.forEach(l => { if (l.pid) delete CMD_PANIER['+' + l.pid]; });
-  const av = { prevue:c.prevue }; c.st = 'envoyee'; c.sansMail = !f.mail; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) c.prevue = c.souh || ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2);
+  const av = { prevue:c.prevue }; c.st = 'envoyee'; c.sansMail = !f.mail; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) { const tot = ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2), dispo = c.liv === 'comptoir' ? tot : ouvres(1, tot)[0]; c.prevue = c.souh && c.souh >= dispo ? c.souh : dispo; }   /* la date SOUHAITÉE ne vaut pas livraison : « pour aujourd'hui » à un fournisseur qui livre en un jour s'affichait « livraison prévue aujourd'hui » · 17 novembre 2026, parcours 4 */
   c.journal.push([AUJ, f.mail ? `Envoyée à ${f.mail} (bon ${c.num} en PDF, lien de confirmation) · envoi groupé` : 'Notée comme commandée (téléphone ou comptoir) · envoi groupé']);
   const tt = [...new Set(c.lignes.map(l => l.inter).filter(Boolean))].map(t => TACHES.find(o => o.id === t)).filter(Boolean), avT = tt.map(T => [T, T.etat, T.commandeLe]);
   tt.forEach(T => { T.etat = 'commandee'; T.commandeLe = jCourt(AUJ); });
@@ -15585,15 +15600,17 @@ function matResultats(q, L){
     return `<div class="mc-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${ou.length ? esc(dit) : '<b class="mc-o">Plus en stock nulle part</b>'}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(x.nom)}">Je l’ai pris</button>` : ou.length ? '' : `<button type="button" class="btn gris petit" data-mat="manque|${x.id}">Il me manque</button>`}</div>`; }).join('');
 }
 
+/* une unité entre parenthèses ne se détache pas de son nombre : « Nettoyant échangeur (0,5 / L) » se coupait sur deux lignes (regard technicien b) */
+const mcNom = n => esc(n).replace(/ ([^ ()]{1,6}\))/g, '\u00a0$1');
 function vueMonCamion(){
   const moi = sxMoi(), L = sxMonLieu();
-  if (!L) return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1><span class="gris">Aucun camion ne t’est confié pour l’instant : demande au bureau.</span></div></div>`;
+  if (!L) return `<div class="mc-page"><div class="tete mc-tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1></div></div><div class="carte mc-ok"><span><b>Aucun camion ne t’est confié pour l’instant.</b><span class="gris petit">Demande au bureau de t’en confier un : tu y retrouveras ce qu’il y a à bord et son entretien.</span></span></div></div>`;   /* une carte comme « Ton camion est complet », pas une phrase grise seule sous le titre (regard technicien b : l'écran était vide) */
   const V = typeof VEHICULES !== 'undefined' && VEHICULES.find(v => v.lieu === L.id), g = bxGarage(L.id), M = lieuManques(L.id), A = lieuArticles(L.id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), D = L.dot ? DOTATION[L.dot] || {} : {}, E = sxEnvois(moi), N = rlNotifsListe(moi, true);
   const bas = sxBoutsBas(L.id), liste = Object.keys(D).length > 0;
   const att = pid => MVTS_ATT.find(m => m.qui === moi && m.type === 'transfert' && m.vers === L.id && m.pid === pid);
   const prenables = M.filter(o => stkAt(o.x, 'atelier') > 0 && !att(o.x.id));
   const aBord = `<div class="carte mc-liste">${A.map(x => { const a = stkAt(x, L.id), c = D[x.id], ko = c && a < c;
-    return `<div class="mc-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${c ? (ko ? `il en manque ${prNum(stkR(c - a))} sur ${prNum(c)}` : `${prNum(c)} prévus : le compte y est`) : 'en plus de la liste'}</span></span><b class="${ko ? 'mc-o' : ''}">${sxQte(a, x)}</b></div>`; }).join('') || '<div class="gris" style="padding:12px 4px">Rien à bord.</div>'}</div>`;
+    return `<div class="mc-l"><span class="fo-n"><b>${mcNom(x.nom)}</b><span class="gris petit">${c ? (ko ? `il en manque ${prNum(stkR(c - a))} sur ${prNum(c)}` : `${prNum(c)} prévu${c > 1 ? 's' : ''} : le compte y est`) : 'en plus de la liste'}</span></span><b class="${ko ? 'mc-o' : ''}">${sxQte(a, x)}</b></div>`; }).join('') || '<div class="gris" style="padding:12px 4px">Rien à bord.</div>'}</div>`;
   /* La partie VÉHICULE (la phrase d'état de l'en-tête et la carte « Le camion ») vient de vhPhraseCamion et vhCamionBloc ; la carte se pose AVANT la liste de ce qui
      manque : un plein se note sans défiler, et « Il manque à bord » reste visible sur le premier écran (VEHICULES-TEMPS § 3.4, MATERIEL § Mon camion). */
   return `<div class="mc-page"><div class="tete mc-tete"><div><span class="surtitre">${esc(V ? vhNom(V) + ' · ' + V.plaque : H_NOM(moi))}</span><h1>Mon camion</h1>${V ? (e => `<span class="gris mc-etat ${e.c}">${esc(e.t)}</span>`)(vhPhraseCamion(V)) : `<span class="gris">${sxPl(A.length, 'article')} à bord</span>`}</div>
@@ -15606,8 +15623,8 @@ function vueMonCamion(){
     <div id="mc-vehicule" data-vis="camion-vehicule">${V ? vhCamionBloc(V) : ''}</div>
     ${g ? '' : M.length ? `<div class="carte mc-liste"${matVis('camion-manque')}><div class="mc-tete-c"><h3>Il manque à bord · ${M.length}</h3>${prenables.length ? `<button type="button" class="btn gris petit" data-mat="toutpris" aria-label="J’ai tout pris : ${prenables.length} articles">J’ai tout pris · ${prenables.length}</button>` : ''}</div>
       ${M.map(o => { const at = stkAt(o.x, 'atelier'), e = att(o.x.id), sous = `à bord ${prNum(o.a)} sur ${prNum(o.cible)} · ${at > 0 ? 'à l’atelier ' + prNum(at) : 'plus à l’atelier'}`;
-        return e ? `<div class="mc-l envoye"><span class="fo-n"><b>${esc(o.x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mc-dr"><span class="st st-b">Envoyé au bureau · en attente</span><button type="button" class="lien" data-mat="retire|${e.id}" aria-label="Annuler l’envoi de ${esc(o.x.nom)}">Annuler</button></span></div>`
-          : `<div class="mc-l"><span class="fo-n"><b>${esc(o.x.nom)}</b><span class="gris petit">${sous}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${o.x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(o.x.nom)}">Je l’ai pris</button>` : `<button type="button" class="btn gris petit" data-mat="manque|${o.x.id}">Il me manque</button>`}</div>`; }).join('')}</div>`
+        return e ? `<div class="mc-l envoye"><span class="fo-n"><b>${mcNom(o.x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mc-dr"><span class="st st-b">Envoyé au bureau · en attente</span><button type="button" class="lien" data-mat="retire|${e.id}" aria-label="Annuler l’envoi de ${esc(o.x.nom)}">Annuler</button></span></div>`
+          : `<div class="mc-l"><span class="fo-n"><b>${mcNom(o.x.nom)}</b><span class="gris petit">${sous}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${o.x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(o.x.nom)}">Je l’ai pris</button>` : `<button type="button" class="btn gris petit" data-mat="manque|${o.x.id}">Il me manque</button>`}</div>`; }).join('')}</div>`
       : `<div class="carte mc-ok"${matVis('camion-manque')}>${liste ? `<span class="mc-coche">${svg('coche')}</span><span><b>Ton camion est complet</b><span class="gris petit">Tout ce qu’il doit y avoir à bord y est.</span></span>` : '<span><b>Ton camion n’a pas encore de liste.</b><span class="gris petit">Demande au bureau ce qu’il doit y avoir à bord.</span></span>'}</div>`}
     <button type="button" class="ligne-clic mc-bord" data-mat="bord" aria-expanded="${MAT.bord}"><span><b>À bord · ${sxPl(A.length, 'article')}</b></span><span aria-hidden="true">${MAT.bord ? '⌄' : '›'}</span></button>${MAT.bord ? aBord : ''}
     ${E.length ? `<div class="carte mc-liste"><h3>Mes envois · ${E.length}</h3>${E.map(sxLigneEnvoi).join('')}</div>` : ''}
@@ -17235,7 +17252,7 @@ document.addEventListener('toggle', ev => { if (ev.target.matches && ev.target.m
 function cmdEnvoyer(id){
   const c = COMMANDES.find(o => o.id === id), f = foDe(c.four) || {}, avant = JSON.parse(JSON.stringify(c)), tk = TACHES.map(t => [t, t.etat, t.commandeLe]), pan = c.lignes.filter(l => l.pid).map(l => ['+' + l.pid, CMD_PANIER['+' + l.pid]]);
   c.lignes.forEach(l => { if (l.pid) delete CMD_PANIER['+' + l.pid]; });   // ce qui part en commande quitte « À commander »
-  c.st = 'envoyee'; c.sansMail = !f.mail; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) c.prevue = c.souh || ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2);
+  c.st = 'envoyee'; c.sansMail = !f.mail; c.env = AUJ; c.lien = { lu:null }; if (!c.prevue) { const tot = ajoute(AUJ, f.dj != null ? Math.max(f.dj, c.liv === 'comptoir' ? 0 : 1) : 2), dispo = c.liv === 'comptoir' ? tot : ouvres(1, tot)[0]; c.prevue = c.souh && c.souh >= dispo ? c.souh : dispo; }   /* la date SOUHAITÉE ne vaut pas livraison : « pour aujourd'hui » à un fournisseur qui livre en un jour s'affichait « livraison prévue aujourd'hui » · 17 novembre 2026, parcours 4 */
   c.journal.push([AUJ, f.mail ? `Envoyée à ${f.mail} (bon ${c.num} en PDF, lien de confirmation)` : 'Notée comme commandée (téléphone ou comptoir)']);
   [...new Set(c.lignes.map(l => l.inter).filter(Boolean))].forEach(t => { const T = TACHES.find(o => o.id === t); if (T) { T.etat = 'commandee'; T.commandeLe = jCourt(AUJ); } });
   CMD_ED = null; fermerPanneau(); prVue = 'commandes'; rendre();
@@ -21311,7 +21328,7 @@ function eqxCarteMoi(p) {
   const hs = p.habil.map((h, j) => ({ h, j })).filter(o => o.h[1] && habEtat(o.h[1]) !== 'v');
   if (!hs.length) return `<div class="eqx-moi"><button type="button" class="lien" data-eqx="mesfiche|${p.k}">Mes habilitations : à jour ›</button></div>`;
   return `<div class="carte eqx-moi eqx-moi-alerte" role="status">${hs.map(({ h }) => { const n = tJours(h[1]), fo = eqxFormation(p.k, h[1]);
-    return `<div class="eqx-moi-l"><b>${n < 0 ? 'Ton habilitation « ' + esc(h[0]) + ' » est expirée depuis ' + eqxPl(-n, 'jour') : 'Ton habilitation « ' + esc(h[0]) + ' » se termine dans ' + eqxPl(n, 'jour')}</b>${fo ? `<span class="gris">Formation prévue le ${jCourt(fo.du).replace(/\.$/, '')}.</span>` : ''}</div>`; }).join('')}
+    return `<div class="eqx-moi-l"><b>${(/^habilitation\s/i.test(h[0]) ? 'Ton habilitation ' + esc(h[0].replace(/^habilitation\s+/i, '')) : 'Ton habilitation « ' + esc(h[0]) + ' »') + (n < 0 ? ' est expirée depuis ' + eqxPl(-n, 'jour') : ' se termine dans ' + eqxPl(n, 'jour'))}</b>${fo ? `<span class="gris">Formation prévue le ${jCourt(fo.du).replace(/\.$/, '')}.</span>` : ''}</div>`; }).join('')}
     <div class="actions"><button type="button" class="btn gris petit" data-eqx="mesfiche|${p.k}">${hs.some(o => eqxFormation(p.k, o.h[1])) ? 'Voir ma formation ›' : 'Mes habilitations ›'}</button>${eqxPrevenus[p.k] ? '<span class="gris petit">Le bureau est prévenu.</span>' : hs.every(o => eqxFormation(p.k, o.h[1])) ? '' : '<button type="button" class="btn petit" data-eqx="mesbureau|' + p.k + '">Prévenir le bureau</button>'}</div></div>`;
 }
 (() => { const v0 = vueMaJournee; vueMaJournee = function () {
@@ -26565,11 +26582,11 @@ document.head.insertAdjacentHTML('beforeend', `<style id="defile-cote">
 /* Le graphique des 12 mois défile (téléphone, iPad en portrait) et s'ouvre calé à droite : sa colonne de gauche tombait coupée net contre le bord de la carte (« éc » au lieu de « déc »),
    ce qui se lisait comme un défaut. Un fondu de 30 px à gauche dit « ça continue » (22 px laissaient encore lire « éc » sur iPad), et la même marge au bout du défilement laisse le premier mois entier (restes accueil, tour 1).
    Mais seulement s'il DÉFILE vraiment (restes accueil, tour 2) : entre 700 et 760 px les 12 mois tiennent sans défiler, et la marge, le fondu et « Glisse vers la droite » décalaient un graphique immobile.
-   Ce n'est pas la largeur de l'écran qui décide, c'est celle de la carte : 528 px de colonnes + 30 px de marge = 558 px, d'où la requête de conteneur sur l'enveloppe. */
+   Ce n'est pas la largeur de l'écran qui décide, c'est celle de la carte : les colonnes demandent 528 px, donc le graphique ne défile qu'en dessous (527 px) ; la marge de 30 px n'est utile QUE s'il défile — posée dès 557 px (528 + 30), elle le faisait défiler de 4 à 24 px pour rien entre 528 et 557 px (restes accueil, tour 3). D'où la requête de conteneur sur l'enveloppe. */
 .st-gcont{container-type:inline-size}
 .st-glisse{display:none!important}
-@media (max-width:760px){ @container (max-width:557px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} .st-glisse{display:inline!important} } }
-@media (pointer:coarse) and (min-width:761px) and (max-width:900px){ @container (max-width:557px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} .st-glisse{display:inline!important} } }
+@media (max-width:760px){ @container (max-width:527px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} .st-glisse{display:inline!important} } }
+@media (pointer:coarse) and (min-width:761px) and (max-width:900px){ @container (max-width:527px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} .st-glisse{display:inline!important} } }
 </style>`);
 
 /* ── le logo au lancement : plus grand, et un mouvement plus marqué · 13 novembre 2026 ──
