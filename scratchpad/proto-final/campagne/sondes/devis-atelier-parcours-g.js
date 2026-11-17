@@ -9,12 +9,12 @@ const tot = p => p.evaluate(() => [...document.querySelectorAll('#contenu .dv-to
   // 1. vider le brouillon de toutes ses lignes
   for (let i = 0; i < 4; i++) { await L.toucher(c, '[data-dv^="ligneSup|BR1|0"]'); }
   const vide = await p.evaluate(() => ({ n: DEVIS_REG.BR1.lignes.length, envoi: !!document.querySelector('[data-dv="envoyer|BR1"]') && !document.querySelector('[data-dv="envoyer|BR1"]').disabled, txt: (document.querySelector('#contenu .dv-lgs') || {}).innerText }));
-  v('P14-défaut-08 : un brouillon sans AUCUNE ligne ne peut pas être envoyé (« Aperçu et envoi » inactif, avec une phrase qui dit pourquoi)', vide.n === 0 && !vide.envoi, vide);
+  v('devis-atelier-08 : un brouillon sans AUCUNE ligne ne peut pas être envoyé (« Aperçu et envoi » inactif, avec une phrase qui dit pourquoi)', vide.n === 0 && !vide.envoi, vide);
   await L.capture(c, O.CAP + `P14-brouillon-vide-${profil}.png`);
   // 2. ligne sans désignation mais avec un prix
   await L.toucher(c, '[data-dv="ligneAj|BR1|libre"]'); await p.fill('[data-dvl="BR1|0|2"]', '120'); await p.press('[data-dvl="BR1|0|2"]', 'Tab'); await L.calme(p, 500);
   const sans = await p.evaluate(() => ({ envoi: !!document.querySelector('[data-dv="envoyer|BR1"]') && !document.querySelector('[data-dv="envoyer|BR1"]').disabled, ligne: DEVIS_REG.BR1.lignes[0] }));
-  v('P14-défaut-08 : une ligne SANS désignation (prix 120 €) bloque l’envoi, avec un message', !sans.envoi, sans);
+  v('devis-atelier-08 : une ligne SANS désignation (prix 120 €) bloque l’envoi, avec un message', !sans.envoi, sans);
   // 3. prix à 0
   await p.fill('[data-dvl="BR1|0|0"]', 'Geste commercial'); await p.press('[data-dvl="BR1|0|0"]', 'Tab'); await p.fill('[data-dvl="BR1|0|2"]', '0'); await p.press('[data-dvl="BR1|0|2"]', 'Tab'); await L.calme(p, 500);
   const t0 = (await O.lire(p)).toast; console.log('  · toast prix 0 :', t0);
@@ -44,7 +44,7 @@ const tot = p => p.evaluate(() => [...document.querySelectorAll('#contenu .dv-to
   await p.fill('#ml-a', 'sansmail@exemple.fr'); await L.toucher(c, '[data-mailenvoi]'); await L.calme(p, 500);
   const sm = await p.evaluate(() => { const x = DV.find(o => o.cli && CLIENTS[o.cli] && /Sansmail/.test(CLIENTS[o.cli].nom)); return { e: x && x.e, mailClient: CLIENTS[x.cli].mail }; });
   console.log('  · après envoi à une adresse tapée :', JSON.stringify(sm));
-  v('P14-défaut-09 : l’adresse tapée à l’envoi est RETENUE dans la fiche du client (sinon on la retape à chaque devis et à chaque relance)', sm.mailClient === 'sansmail@exemple.fr', sm);
+  v('devis-atelier-09 : l’adresse tapée à l’envoi est RETENUE dans la fiche du client (sinon on la retape à chaque devis et à chaque relance)', sm.mailClient === 'sansmail@exemple.fr', sm);
   console.log('err', c.err.length, c.err.slice(0, 4));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.log('ÉCHEC', e.stack); await L.fermer(); process.exit(2); });

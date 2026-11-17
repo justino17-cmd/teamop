@@ -15,7 +15,7 @@ const profils = (process.argv[2] || 'iphone').split(','), nuit = process.argv[3]
         return { sw, cw, bouge, petits: [...new Set(petits)].slice(0, 25), champs: [...new Set(champs)].slice(0, 12), n: R.querySelectorAll('button, input, select, textarea, a').length }; }, zone || 'body');
       v(`${tag} ${nom} : population (${m.n} éléments)`, m.n >= 3);
       v(`${tag} ${nom} : aucun glissement latéral (page ${m.sw} / ${c.largeur})`, m.bouge === 0 && m.sw <= c.largeur + 1, m);
-      if (c.doigt) { v(`${tag} ${nom} : cibles au doigt ≥ 44 px (${m.petits.length} sous le seuil)`, m.petits.length === 0, m.petits); v(`${tag} ${nom} : champs ≥ 16 px (zoom d’iOS)`, m.champs.length === 0, m.champs); }
+      if (c.doigt) { v(`devis-atelier-15 ${tag} ${nom} : cibles au doigt ≥ 44 px (${m.petits.length} sous le seuil)`, m.petits.length === 0, m.petits); v(`${tag} ${nom} : champs ≥ 16 px (zoom d’iOS)`, m.champs.length === 0, m.champs); }
       if (process.env.CAPT) await L.capture(c, O.CAP + `MEP-${tag}-${nom}.png`);
     };
     await mesure('compositeur', '.fenetre');

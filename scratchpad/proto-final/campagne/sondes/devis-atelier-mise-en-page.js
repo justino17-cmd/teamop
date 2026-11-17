@@ -17,7 +17,7 @@ const PREP_LONG = `CLIENTS.zl = { nom:${JSON.stringify(LONG.nom)}, type:'pro', c
       const pop = await p.evaluate(z => { const R = document.querySelector(z) || document.body; return R.querySelectorAll('button, a, input, select, textarea').length; }, zone || '#contenu');
       v(`${tag} ${nom} : population mesurée (${pop} éléments)`, pop > 0);
       v(`${tag} ${nom} : aucun glissement latéral (page ${d.seconde} / ${d.largeur})`, d.bouge === 0 && d.seconde <= d.largeur + 1, d);
-      if (c.doigt) { v(`${tag} ${nom} : cibles au doigt ≥ 44 px (${dg.petits.length} sous le seuil)`, dg.petits.length === 0, dg.petits); v(`${tag} ${nom} : champs ≥ 16 px`, dg.champs.length === 0, dg.champs); }
+      if (c.doigt) { v(`devis-atelier-11 ${tag} ${nom} : cibles au doigt ≥ 44 px (${dg.petits.length} sous le seuil)`, dg.petits.length === 0, dg.petits); v(`devis-atelier-12 ${tag} ${nom} : champs ≥ 16 px`, dg.champs.length === 0, dg.champs); }
       v(`${tag} ${nom} : aucun texte écrasé`, dg.ecrases.length === 0, dg.ecrases);
       if (process.env.CAPT) await L.capture(c, O.CAP + `MEP-${tag}-${nom}.png`);
     };
