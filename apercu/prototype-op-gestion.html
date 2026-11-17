@@ -244,7 +244,7 @@ body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sino
 .opdz-att[hidden]{display:none}
 .opdz-att-c{display:flex;flex-direction:column;gap:12px;align-items:flex-start;max-width:420px}
 .opdz-att-c b{font-size:18px}
-.opd-t{margin:6px 12px 4px}.opd-nr{color:var(--orange)}
+.opd-liste .opd-t{margin:6px 0 4px;padding:0 12px}      /* le titre s'aligne sur le numéro des lignes (12 px de rembourrage, comme elles), pas sur le bord de la carte */.opd-nr{color:var(--orange)}
 .opd-cl{text-align:left}
 
 .gd-voix{font-size:16px}.gd-bulle.mini .gd-voix{margin-left:auto}
@@ -7352,7 +7352,7 @@ function vueDevis(){
   const L = DV.filter(tab[dvFiltre]).sort((a, b) => (b.d + (b.num || 'Z')).localeCompare(a.d + (a.num || 'Z')));
   const somme = fn => DV.filter(fn).reduce((s, x) => s + dvTTC(x), 0), nb = fn => DV.filter(fn).length;
   const decides = DV.filter(x => x.num && ['accepte','refuse','expire'].includes(E(x))), nDec = decides.length + atN(AT.accepte), taux = nDec ? Math.round(100 * (decides.filter(tab.accepte).length + atN(AT.accepte)) / nDec) : 0;
-  const aRelancer = DV.filter(x => E(x) === 'attente' && -tJours(x.d) >= 7 && x.relanceLe !== AUJ);   // relancé aujourd'hui : on attend sa réponse
+  const aRelancer = DV.filter(x => E(x) === 'attente' && -tJours(x.d) >= 7 && x.relanceLe !== AUJ), nRel = aRelancer.length + opdDocsDe('devis', ['envoye', 'attente']).filter(opdVieux).length;   // relancé aujourd'hui : on attend sa réponse ; un devis composé envoyé depuis 7 jours se propose aussi
   const tachesDv = TACHES.filter(x => !x.fait && tCat(x) === 'devis');
   const focus = dvFocus && dvFocus.map(id => TACHES.find(t => t.id === id)).filter(Boolean);
   return `<div class="tete"><div><span class="surtitre">Clients et ventes</span><h1>Devis</h1><span class="gris">Tu prépares, le client accepte et signe en ligne. L’intervention et la facture suivent toutes seules.</span></div>
@@ -7362,7 +7362,7 @@ function vueDevis(){
     <span class="faible mini">Chaque tâche se coche toute seule quand son geste est fait (la relance envoyée, le devis accepté).</span></div>` : ''}
   <div class="kpis">
     <button type="button" class="kpi" data-dvf="aenvoyer"><b style="color:var(--orange)">${nb(tab.aenvoyer) + atN(AT.aenvoyer)}</b><span>à finir et envoyer</span></button>
-    <button type="button" class="kpi" data-dvf="attente"><b>${eur(somme(tab.attente) + atS(AT.attente))}</b><span>en attente de réponse · ${nb(tab.attente) + atN(AT.attente)}${aRelancer.length ? ` <i class="dv-k-o">· ${aRelancer.length} à relancer</i>` : ''}</span></button>
+    <button type="button" class="kpi" data-dvf="attente"><b>${eur(somme(tab.attente) + atS(AT.attente))}</b><span>en attente de réponse · ${nb(tab.attente) + atN(AT.attente)}${nRel ? ` <i class="dv-k-o">· ${nRel} à relancer</i>` : ''}</span></button>
     <button type="button" class="kpi" data-dvf="accepte"><b style="color:var(--vert)">${eur(somme(tab.accepte) + atS(AT.accepte))}</b><span>acceptés · ${nb(tab.accepte) + atN(AT.accepte)}</span></button>
     <button type="button" class="kpi" data-dvf="perdu"><b>${taux} %</b><span>des devis aboutissent · ${nDec} décidés</span></button></div>
   <div class="seg" role="group" aria-label="Filtre">${[['aenvoyer','À envoyer'],['attente','En attente'],['accepte','Acceptés'],['perdu','Refusés, expirés'],['tous','Tous']].map(([k, l]) => `<button type="button" data-dvf="${k}" aria-pressed="${dvFiltre === k}">${l}</button>`).join('')}</div>
@@ -20915,13 +20915,23 @@ const opdDate = ms => ms ? String(new Date(ms).getDate()).padStart(2, '0') + '/'
 const OPD_ET = { brouillon:['Brouillon', 'st-o'], envoye:['Envoyé', 'st-b'], attente:['En attente de signature', 'st-b'], signe:['Signé', 'st-v'] };
 const opdMontant = x => x.type === 'devis' ? (x.ttc > 0 ? eur(x.ttc / 100) : 'à chiffrer') : (x.prix > 0 ? eur(x.prix / 100) : '—');
 const opdLib = x => (x.type === 'devis' ? 'Devis ' : 'Contrat ') + (x.numero || 'brouillon') + (x.client ? ', ' + x.client : '');
+/* un document composé se dit avec les MÊMES mots que les autres lignes de la page : l'état (À envoyer, Envoyé · sans réponse, Accepté) et depuis quand (« envoyé hier », « il y a 9 jours ») ; sans ça le même devis se lisait deux fois, de deux façons */
+const opdJours = x => { if (!x.maj) return 0; const d = new Date(x.maj), iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); return Math.max(0, -tJours(iso)); };
+const opdEnvoye = x => x.etat === 'envoye' || x.etat === 'attente';
+const opdVieux = x => x.type === 'devis' && opdEnvoye(x) && opdJours(x) >= 7;   // sans réponse depuis une semaine : se propose à la relance comme les autres devis
+function opdEt(x){ if (x.type === 'devis') return DV_ETATS[x.etat === 'brouillon' ? 'brouillon' : opdEnvoye(x) ? 'attente' : 'accepte']; return x.etat === 'signe' ? ['Signé', 'st-v'] : x.etat === 'brouillon' ? OPD_ET.brouillon : ['Envoyé · en attente', 'st-b']; }
+function opdQuand(x){
+  if (x.etat === 'brouillon') return 'préparé le ' + opdDate(x.maj);
+  if (x.etat === 'signe') return (x.type === 'devis' ? 'accepté le ' : 'signé le ') + opdDate(x.maj);
+  const n = opdJours(x); return 'envoyé ' + (n === 0 ? 'aujourd’hui' : n === 1 ? 'hier' : 'il y a ' + n + ' jours');
+}
 function opdLigne(x){
-  const e = OPD_ET[x.etat];
+  const e = opdEt(x);
   return `<button type="button" class="dv-l opd-l" data-opd="doc" data-id="${esc(x.id)}" aria-label="Rouvrir : ${esc(opdLib(x))}">
     <span class="dv-n">${x.numero ? `<span class="mono">${esc(x.numero)}</span>` : '<span class="dv-br">Brouillon</span>'}</span>
     <span class="dv-c"><b>${esc(x.client || 'Sans client')}</b><span class="gris petit">${esc(opdNom(x) || (x.type === 'devis' ? 'Devis' : 'Contrat'))}</span></span>
-    <span class="dv-q petit gris">${opdDate(x.maj)}${x.nr ? ' · <b class="opd-nr">Non enregistré</b>' : ''}</span>
-    <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'par an'}</small></span>
+    <span class="dv-q petit ${opdVieux(x) ? 'dv-vieux' : 'gris'}">${opdQuand(x)}${x.nr ? ' · <b class="opd-nr">Non enregistré</b>' : ''}</span>
+    <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'HT par an'}</small></span>
     <span class="dv-e"><span class="st ${e[1]}">${e[0]}</span></span></button>`;
 }
 function opdCarte(type, etats){
@@ -20930,7 +20940,7 @@ function opdCarte(type, etats){
 }
 function opdClientLignes(k, type){   // la fiche d'un client : ses documents composés, dans la carte Devis ou la carte Contrat
   if (!rlPermis(type === 'devis' ? 'devis' : 'contrats')) return '';
-  return opdDocsDe(type).filter(x => x.clientId === k).map(x => `<div class="ligne lg-pli"><button type="button" class="lien opd-cl" data-opd="doc" data-id="${esc(x.id)}">${esc((x.numero ? x.numero + ' · ' : '') + (opdNom(x) || (type === 'devis' ? 'Devis' : 'Contrat')))}</button><span class="st ${OPD_ET[x.etat][1]}">${OPD_ET[x.etat][0]}</span></div>`).join('');
+  return opdDocsDe(type).filter(x => x.clientId === k).map(x => `<div class="ligne lg-pli"><button type="button" class="lien opd-cl" data-opd="doc" data-id="${esc(x.id)}">${esc((x.numero ? x.numero + ' · ' : '') + (opdNom(x) || (type === 'devis' ? 'Devis' : 'Contrat')))}</button><span class="st ${opdEt(x)[1]}">${opdEt(x)[0]}</span></div>`).join('');
 }
 /* les numéros : l'atelier suit la série d'OP GESTION, et OP GESTION compte ce que l'atelier a composé — dans les deux sens, jamais deux fois le même */
 const opdNums = (type, pre) => ATD.docs.filter(x => x.type === type && x.numero.startsWith(pre)).map(x => +x.numero.slice(pre.length)).filter(n => Number.isInteger(n));
@@ -20938,6 +20948,15 @@ const opdDevisMax = () => Math.max(0, DVN || 0, ...[...DV.map(x => x.num), DEVIS
 const opdContratMax = () => Math.max(0, ...CONTRATS.map(k => k.num).filter(n => /^CTR-2026-\d+$/.test(n || '')).map(n => +n.slice(9)));
 function ctrNum(){ return 'CTR-2026-' + String(Math.max(opdContratMax(), ...opdNums('contrat', 'CTR-2026-')) + 1).padStart(3, '0'); }
 /* ce que le prototype donne à l'atelier */
+/* les prestations de l'entreprise, dans leurs catégories (Main-d'œuvre, Entretien, Déplacement) ; les prix viennent des tarifs réglés dans OP GESTION, jamais d'un chiffre écrit ici */
+function opdPrestations(){
+  const c = v => Math.round(Number(v) * 100), z = TARIFS.zone || {};
+  return [{ ref:'MO-H', des:'Main-d’œuvre technicien', unite:'h', puC:c(TARIFS.horaire), tvaBp:1000, cat:'Main-d’œuvre' },
+    { ref:'MO-MS', des:'Mise en service et contrôle d’étanchéité', unite:'forfait', puC:12000, tvaBp:1000, cat:'Main-d’œuvre' },
+    { ref:'ENT-AN', des:'Entretien annuel climatisation (nettoyage, contrôle, mesures)', unite:'u', puC:9500, tvaBp:1000, cat:'Entretien' },
+    ...[1, 2, 3].filter(n => z[n] != null).map(n => ({ ref:'DEP-Z' + n, des:'Déplacement zone ' + n, unite:'forfait', puC:c(z[n]), tvaBp:2000, cat:'Déplacement' }))]
+    .filter(x => Number.isInteger(x.puC) && x.puC >= 0);
+}
 function opdDonnees(){
   const adr = String(ENTREPRISE.adr || ''), m = /^(.*?),\s*(\d{5})\s+(.+)$/.exec(adr), lig = x => String(x == null ? '' : x);
   const entreprise = { nom:lig(ENTREPRISE.nom), adresse:m ? m[1] : adr, cp:m ? m[2] : '', ville:m ? m[3] : '', tel:lig(ENTREPRISE.tel), mail:lig(ENTREPRISE.mail), site:lig(ENTREPRISE.site), siret:lig(ENTREPRISE.siret), tva:lig(ENTREPRISE.tva), iban:lig(ENTREPRISE.iban),
@@ -20947,7 +20966,8 @@ function opdDonnees(){
     const o = { id, nom:lig(c.nom), pro:c.type === 'pro', adresse:q ? q[1] : a, cp:q ? q[2] : '', ville:q ? q[3] : '', email:lig(c.mail), tel:lig(c.tel) };
     if (personne && nomC.trim() && nomC.trim() !== c.nom) o.contact = nomC.trim(); return o; });
   const catalogue = PRODUITS.filter(x => prVend(x) && !x.retire && PACKS_ENT.includes(x.p)).sort((a, b) => (a.o || 99) - (b.o || 99))
-    .map(x => ({ ref:x.ref || x.id, des:x.nom, unite:x.u || 'u', puC:Math.round(Number(x.pv) * 100), tvaBp:Math.round((x.tva == null ? 20 : Number(x.tva)) * 100), cat:x.cat || '' }));
+    .map(x => ({ ref:x.ref || x.id, des:x.nom, unite:x.u || 'u', puC:Math.round(Number(x.pv) * 100), tvaBp:Math.round((x.tva == null ? 20 : Number(x.tva)) * 100), cat:x.cat || '' }))
+    .concat(opdPrestations());   // un devis d'entreprise de terrain commence presque toujours par la main-d'œuvre et le déplacement : les tarifs de l'entreprise (TARIFS) sont proposés comme articles, pas à retaper en ligne libre
   return { entreprise, clients, catalogue, numeros:{ devis:{ prefixe:'D-2026-', dernier:opdDevisMax() }, contrat:{ prefixe:'CTR-2026-', dernier:opdContratMax() } } };
 }
 function opdEnvoyer(m){ const f = opdCadre(); if (f && OPDZ.pret) { try { f.contentWindow.postMessage(m, '*'); return true; } catch (e) {} } return false; }

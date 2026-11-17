@@ -1,0 +1,86 @@
+[
+ {
+  "n": "tout-01",
+  "etat": "corrigé",
+  "changement": "Au téléphone (page qui ne tient pas à 70 % ou plus dans l'écran), l'aperçu plein écran s'ouvre sur 100 % : texte à 12 px, la page défile de côté ; « Ajuster » (vue d'ensemble) est à un toucher, une phrase dit « Fais glisser pour lire la page ; « Ajuster » la montre en entier » (affichée seulement quand la page dépasse). Un réglage choisi par la personne n'est jamais remplacé, et la colonne de la tablette garde « Ajuster ». À SOUMETTRE quand même : c'est un choix de produit (lire ou voir la page entière), réversible en une ligne.",
+  "preuve": "sondes/compositeur-mise-en-page.js (iphone, android, petit) : texte rendu 12,2 px à l'ouverture (5,5 avant), « Ajuster » 358 ≤ 390 px, choix gardé à la réouverture"
+ },
+ {
+  "n": "tout-02",
+  "etat": "corrigé",
+  "changement": "page.source : .vv-a .vv-l-a passe de flex:none à flex:0 1 auto + max-width:100 % : la rangée de gestes d'un article rétrécit et passe à la ligne au lieu de sortir de la colonne à 320 px.",
+  "preuve": "sondes/compositeur-mise-en-page.js (population : 12 articles, 0 bouton dehors, colonne 320 ≤ 320)"
+ },
+ {
+  "n": "tout-03",
+  "etat": "corrigé",
+  "changement": "page.source, vvEchelle : règle les DEUX zones (colonne et aperçu plein écran) à chaque appel et vvGrand la rappelle à la fermeture ; l'étiquette « Ajuster · N % » dit la taille de la zone visible.",
+  "preuve": "sondes/compositeur-mise-en-page.js (ipad) : paysage 1180 avec aperçu ouvert → --vs posé, page 636 px, étiquette = taille réelle (80 % pour 80 %) ; 1440 → 800 px"
+ },
+ {
+  "n": "tout-04",
+  "etat": "corrigé",
+  "changement": "« Délai » et « Paiement » deviennent des zones de texte de deux lignes (une phrase, Entrée n'ajoute pas de ligne, un collage multiligne est aplati) ; les recherches d'article disent « Chercher un article… » ; les exemples du titre de contrat et du mot au client sont raccourcis. La sonde mesure TOUS les textes d'aide (largeur du texte contre la place du champ) : elle a trouvé deux coupures de plus que la relecture (titre du contrat, mot au client à 320 px).",
+  "preuve": "sondes/compositeur-mise-en-page.js (population 5 et 6 champs à aide, 0 coupé, sur iphone, android, petit, ipad, mac)"
+ },
+ {
+  "n": "tout-05",
+  "etat": "corrigé",
+  "changement": "champPrix() : un prix se lit à deux décimales dans son champ, au rendu comme à la sortie du champ (199,9 → 199,90 ; 62,5 → 62,50 ; 1234 → 1234,00) ; la saisie brute est gardée pendant la frappe, une saisie fausse reste telle quelle avec son message.",
+  "preuve": "sondes/compositeur-gestes.js"
+ },
+ {
+  "n": "tout-06",
+  "etat": "corrigé",
+  "changement": "page.source : après « Créer », le second clic du même geste est avalé 450 ms (agir) ; un toucher volontaire ensuite sur « Envoyer » passe.",
+  "preuve": "sondes/compositeur-gestes.js : double clic devis et contrat → éditeur ouvert, aucune fenêtre d'envoi ; toucher volontaire → envoi ouvert (avant : fenêtre d'envoi ouverte, 2 ✗)"
+ },
+ {
+  "n": "tout-07",
+  "etat": "corrigé",
+  "changement": "« Supprimer ce brouillon » (avec confirmation, brouillons seulement) dans le menu « ⋯ » de l'éditeur : au téléphone avec les gestes déjà là, à l'ordinateur seul (le bouton n'apparaît que pour un brouillon). Le document disparaît de la liste d'OP GESTION et son numéro se rend (le prochain numéro redevient celui-là). Cause trouvée en route : sauverStock ré-adoptait le document supprimé comme celui d'un autre onglet ; il est marqué « connu ». Le numéro donné dès la création n'est PAS changé (voir doutes).",
+  "preuve": "sondes/compositeur-gestes.js : devis et contrat, annuler garde, supprimer → liste n → n−1, prochain numéro rendu"
+ },
+ {
+  "n": "tout-08",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : le titre de la carte des documents composés prend le rembourrage des lignes (12 px), son texte commence à 21 px du bord comme le numéro. Le mot « atelier » reste (décision de nom à Justin).",
+  "preuve": "sondes/compositeur-liste.js : 21 / 21 px (9 / 21 avant)"
+ },
+ {
+  "n": "tout-09",
+  "etat": "corrigé",
+  "changement": "Le catalogue envoyé à l'atelier reçoit les prestations de l'entreprise (main-d'œuvre à l'heure, mise en service, entretien annuel, déplacement zones 1 à 3 — tarifs lus dans TARIFS) ; une pastille de catégorie vide n'est plus proposée (« Mon matériel » reste). TVA des prestations : 10 % main-d'œuvre et entretien, 20 % déplacement, comme l'exemple de l'atelier : à confirmer (voir doutes).",
+  "preuve": "sondes/compositeur-gestes.js : 0 pastille vide, 3 zones de déplacement, main-d'œuvre technicien (avant : 3 pastilles vides, 0 prestation)"
+ },
+ {
+  "n": "tout-10",
+  "etat": "corrigé",
+  "changement": "page.source, f.touche : Tab ne fait rien tant qu'une confirmation est ouverte par-dessus la fenêtre (comme Échap) ; la confirmation garde son propre piège.",
+  "preuve": "sondes/compositeur-gestes.js (mac) : Tab → « Abandonner », Maj+Tab → « Continuer », Entrée → ferme tout (avant : 2 ✗)"
+ },
+ {
+  "n": "tout-11",
+  "etat": "corrigé",
+  "changement": "Un document composé se dit avec les mots des autres lignes : « envoyé aujourd'hui / hier / il y a N jours », pastille « Envoyé · sans réponse » (devis) ou « Envoyé · en attente » (contrat), « préparé le », « accepté le » ; passé 7 jours, couleur d'alerte et compté dans « N à relancer » ; la fiche du client dit les mêmes mots. NON changé, à soumettre : les documents composés restent dans une carte à part sous la liste (décision d'intégration : mêler ou garder).",
+  "preuve": "sondes/compositeur-liste.js : 16 ✓ (avant : 11 ✗ sur les mêmes contrôles)"
+ },
+ {
+  "n": "tout-12",
+  "etat": "corrigé",
+  "changement": "« Nouveau client » : même e-mail, même téléphone (chiffres seuls, 6 au moins) ou même nom (sans accents ni casse) qu'un client connu → « Ce client existe peut-être déjà : … », bouton « Utiliser <nom> », et le bouton principal devient « Ajouter quand même » ; changer un champ efface l'avertissement.",
+  "preuve": "sondes/compositeur-gestes.js : 3 critères, utiliser (8 → 8 clients), ajouter quand même (8 → 9)"
+ },
+ {
+  "n": "tout-13",
+  "etat": "corrigé",
+  "changement": "Champ « Prix annuel (€ HT) », les trois modèles disent « {{prix}} HT par an (hors taxes : la TVA s'ajoute) » (version courte « HT par an, TVA en plus »), ligne composée « HT par an », ligne de l'éditeur « Prix annuel HT ». À FAIRE RELIRE par l'agent juriste avant tout usage réel (c'est un texte de contrat) ; choix HT = convention du reste d'OP GESTION (« Prix / an HT »).",
+  "preuve": "sondes/compositeur-liste.js : champ, 3 modèles, page, ligne de liste"
+ },
+ {
+  "n": "tout-14",
+  "etat": "corrigé",
+  "changement": "La pastille « Modifié » est posée sur la ligne dès la première lettre, sans redessiner la liste (la zone de saisie garde le doigt).",
+  "preuve": "sondes/compositeur-gestes.js : 0 pastille avant, 1 après une lettre, jamais 2"
+ }
+]
