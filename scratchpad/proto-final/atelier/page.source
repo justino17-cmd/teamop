@@ -155,6 +155,7 @@ button{cursor:pointer}
 .pan-vide{color:var(--faible);font-size:14px;text-wrap:pretty}
 .barre-bas{display:none}
 .tel-seul{display:none}
+html[data-app] #b-plus.peut-suppr{display:inline-flex}      /* à l'ordinateur, le menu « ⋯ » n'existe que pour supprimer un BROUILLON : le reste de ses gestes est déjà dans la barre */
 /* Entre 761 et 1100 px la barre n'a plus la place de tout dire sur une ligne : les gestes passent en icônes (chacun a un nom accessible),
    le nom du document prend la ligne du haut et son état (Brouillon · Enregistré) la ligne du dessous, comme le titre d'un document de Pages. */
 @media (max-width:1100px){
@@ -593,6 +594,9 @@ body.fen-ouverte #toasts,body.ap-ouvert #toasts{top:calc(12px + env(safe-area-in
 .interr.haut{align-items:flex-start;padding-top:2px}.interr.haut input{margin-top:2px}
 .interr small{display:block;margin-top:1px;font-weight:400;font-size:12.5px;color:var(--faible);text-wrap:pretty}
 .nv-client .fen-corps{padding-top:10px}
+.nv-dbl{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--surf2);border:1px solid var(--trait2);border-left:4px solid var(--accent)}
+.nv-dbl p{margin:0 0 10px;font-size:14.5px;line-height:1.4;overflow-wrap:anywhere}
+.nv-dbl .bt{width:100%;max-width:100%;overflow-wrap:anywhere}
 
 /* fenêtres : centrées au bureau, feuille du bas au téléphone */
 .voile.fen-v{align-items:center}
@@ -1285,6 +1289,8 @@ body.fen-ouverte .pdf-etat,body.ap-ouvert .pdf-etat{top:calc(12px + env(safe-are
 .vv-sub2{margin-top:16px}
 .vv-sub span{text-transform:none;letter-spacing:0;font-weight:600}
 .vv-c>.vv-sub:first-child{margin-top:4px}
+.champ textarea.vv-une,.fen-corps .champ textarea.vv-une,.vv-pl .champ textarea.vv-une{min-height:68px;resize:none;line-height:1.35;overflow:auto}
+@media(max-width:520px){.champ textarea.vv-une,.fen-corps .champ textarea.vv-une,.vv-pl .champ textarea.vv-une{min-height:96px}}      /* délai et paiement : une phrase qui peut tenir sur deux lignes, jamais coupée net au bord du champ */
 .vv-ta{width:100%;min-height:64px;padding:10px 12px;border:1px solid var(--trait2);border-radius:9px;background:var(--surf2);color:var(--encre);font:inherit;font-size:16px;font-weight:450;line-height:1.4;resize:vertical}
 .vierge .champ .vv-ta{min-height:64px}
 .vv-ta:focus,.vv-rech input:focus,.vv-mini input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
@@ -1345,7 +1351,7 @@ button.vv-art-b:hover{background:var(--survol)}
 .vv-l-a .bt.icone{width:44px;min-height:44px}
 .vv-l-a .bt.danger{color:var(--rouge)}
 .vv-a{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
-.vv-a .vv-l-a{flex:none;margin:0}
+.vv-a .vv-l-a{flex:0 1 auto;max-width:100%;margin:0}      /* elle rétrécit (et passe à la ligne) au lieu de sortir de la colonne à 320 px : « Retirer » ne se coupe plus */
 .vv-a-t{flex:1 1 220px;min-width:0;display:flex;align-items:flex-start;gap:10px;font-size:14.5px}
 .vv-a-e{flex:1 1 100%}
 .vv-a>.fen-note{flex:1 1 100%}
@@ -1448,8 +1454,9 @@ html[data-app] #vue-accueil{display:none!important}
 .vv-zoom button{min-height:40px;padding:0 10px;font-size:14px;white-space:nowrap}
 .vv-grand-plein .vv-grand-t{padding:10px 16px;min-height:60px}
 .vv-grand-plein .vv-grand-t .bt{min-height:48px}
-.vv-grand-plein .vv-grand-z{flex:none;display:flex;justify-content:center;padding:8px 16px;border-bottom:1px solid var(--trait);background:var(--surf)}
+.vv-grand-plein .vv-grand-z{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 16px;border-bottom:1px solid var(--trait);background:var(--surf)}
 .vv-grand-plein .vv-grand-z .vv-zoom{width:100%;max-width:420px}.vv-grand-plein .vv-grand-z .vv-zoom button{flex:1;min-height:44px}
+.vv-grand-n{margin:0;font-size:13px;line-height:1.35;color:var(--doux);text-align:center;text-wrap:balance}
 .vv-grand-plein .vv-grand-c{padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px))}
 /* champs et boutons à la taille des écrans d'OP GESTION : 48 px de haut, texte de 16 à 17 px, titres d'étape de 18 px */
 .vv-pl .champ{font-size:14px}
@@ -1936,7 +1943,7 @@ const VARS=[
   {k:'frequence',n:'fréquence des visites',l:'Fréquence des visites',ex:'2 visites par an',sug:['1 visite par an','2 visites par an','4 visites par an (une par trimestre)']},
   {k:'duree',n:'durée',l:'Durée',ex:'1 an',sug:['6 mois','1 an','2 ans','3 ans']},
   {k:'debut',n:'date de début',l:'Date de début',type:'date'},
-  {k:'prix',n:'prix annuel',l:'Prix annuel (€)',type:'montant',ex:'280'},
+  {k:'prix',n:'prix annuel',l:'Prix annuel (€ HT)',type:'montant',ex:'280'},
   {k:'paiement',n:'mode de paiement',l:'Mode de paiement',ex:'par prélèvement',sug:['par prélèvement','par virement','par carte bancaire','par chèque','après chaque visite, sur facture']}];
 const VARS_AUTO={entreprise:1,email:1,tel:1};          // toujours connues : l'entreprise
 const defVar=k=>VARS.find(v=>v.k===k)||null;
@@ -1977,7 +1984,7 @@ const AMOD={
     visites:['Visites d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il nettoie les filtres, contrôle le fonctionnement et vérifie les raccordements. Il remet ensuite un compte rendu au client.','Le prestataire effectue {{frequence}} : nettoyage des filtres, contrôle de l’appareil et compte rendu.'],
     acces:['Rendez-vous et accès','Le prestataire propose les dates de visite au client, qui peut les décaler en le prévenant à l’avance.\nLe client donne accès aux appareils le jour convenu. S’il est absent sans avoir prévenu, la visite peut être facturée.','Les dates sont fixées avec le client, qui donne accès aux appareils. Une absence non signalée peut être facturée.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} par an, pour l’ensemble des visites.\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} par an. Il est payé {{paiement}}, sur facture.'],
+    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an (hors taxes : la TVA s’ajoute), pour l’ensemble des visites.\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, TVA en plus. Il est payé {{paiement}}, sur facture.'],
     pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant une visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.'],
     obligations:['Obligations du client','Le client utilise les appareils normalement et signale sans attendre un bruit, une fuite ou une panne.\nPendant la durée du contrat, il prévient le prestataire avant de faire intervenir une autre entreprise sur les appareils.','Le client utilise normalement les appareils, signale vite tout problème et prévient le prestataire avant de faire venir une autre entreprise.']},
   pro:{
@@ -1986,13 +1993,13 @@ const AMOD={
     depannage:['Dépannage','En cas de panne, le client prévient le prestataire par téléphone au {{tel}} ou par courriel à {{email}}.\nLe prestataire intervient dès que possible, en commençant par les pannes qui arrêtent l’activité du client. Les pièces remplacées sont facturées à part, après accord du client sur un devis.','Le client signale une panne au {{tel}} ou à {{email}}. Le prestataire intervient dès que possible ; les pièces sont facturées à part, sur devis.'],
     acces:['Accès et sécurité','Le client donne accès aux installations aux jours convenus et indique les consignes de sécurité du site.\nLe prestataire respecte ces consignes et intervient aux heures d’ouverture du client, sauf accord contraire.','Le client donne accès aux installations et indique les consignes de sécurité ; le prestataire les respecte.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de la maintenance est de {{prix}} par an.\nIl est payé {{paiement}}. Chaque facture est payable à la date qu’elle indique.','Le prix est de {{prix}} par an, payé {{paiement}}.']},
+    prix:['Prix et paiement','Le prix de la maintenance est de {{prix}} HT par an (hors taxes : la TVA s’ajoute).\nIl est payé {{paiement}}. Chaque facture est payable à la date qu’elle indique.','Le prix est de {{prix}} HT par an, TVA en plus, payé {{paiement}}.']},
   pac:{
     objet:['Objet du contrat','{{entreprise}} (le prestataire) entretient la pompe à chaleur de {{client}} (le client), installée à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} entretient la pompe à chaleur de {{client}} installée à l’adresse suivante : {{adresse}}.'],
     visites:['Visite d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il contrôle le circuit, les réglages et le bon fonctionnement de la pompe à chaleur, puis remet un compte rendu au client.','Le prestataire effectue {{frequence}} : contrôle du circuit et des réglages, puis compte rendu.'],
     acces:['Rendez-vous et accès','Le prestataire propose la date de la visite au client, qui peut la décaler en le prévenant à l’avance.\nLe client donne accès à la pompe à chaleur le jour convenu. S’il est absent sans avoir prévenu, la visite peut être facturée.','La date est fixée avec le client, qui donne accès à l’appareil. Une absence non signalée peut être facturée.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} par an.\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} par an. Il est payé {{paiement}}, sur facture.'],
+    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an (hors taxes : la TVA s’ajoute).\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, TVA en plus. Il est payé {{paiement}}, sur facture.'],
     pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant la visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.']}};
 const CONTRATS={
   part:{nom:'Contrat d’entretien de climatisation — particulier',modele:'classique',couleur:'#1b3a6b',
@@ -2079,6 +2086,8 @@ function fmtQte(m){const e=Math.floor(m/1000),f=m%1000;return groupe(e)+(f?','+S
 function fmtPct(bp){const e=Math.floor(bp/100),f=bp%100;return e+(f?','+String(f).padStart(2,'0').replace(/0+$/,''):'')+NB+'%'}
 const rawQte=m=>fmtQte(m).replace(/ /g,'');
 const rawMontant=c=>{const e=Math.floor(c/100),f=c%100;return e+(f?','+String(f).padStart(2,'0').replace(/0+$/,''):'')};
+/* un PRIX dans un champ se lit comme partout ailleurs sur l'écran : deux décimales (« 199,90 », pas « 199,9 »). rawMontant reste la forme brute des champs de remise, d'acompte et de l'éditeur */
+const champPrix=c=>Math.floor(c/100)+','+String(c%100).padStart(2,'0');
 const rawPct=bp=>fmtPct(bp).replace(/[\s  ]*%/,'');
 const rawDe={qteM:rawQte,puC:rawMontant,remBp:rawPct,tvaBp:rawPct};
 const ttcMode=b=>!!b&&b.type==='tableau'&&b.affichage==='ttc'&&!(D()&&D().meta.franchise);   // la colonne « Prix unitaire TTC » s'édite en TTC
@@ -2637,6 +2646,7 @@ function majBarre(){
   $('#b-format').setAttribute('aria-pressed',String(!!S.ui.panneau&&!etroit()));
   $('#panneau').hidden=!S.ui.panneau;
   $('#pan-t-contrat').hidden=d.type!=='contrat'; majBandeau(); majOptBouton(d);
+  const bp=$('#b-plus'); if(bp) bp.classList.toggle('peut-suppr',!!APP&&d.etat==='brouillon'&&(d.type==='devis'||d.type==='contrat'));
 }
 /* zoom : une seule variable CSS (--s) ; la feuille est mise à l'échelle par transform, les cadres prennent la taille mise à l'échelle */
 function echelle(){
@@ -3106,6 +3116,16 @@ function ouvrirClient(ancre){
 }
 /* « Nouveau client » : une FENÊTRE (centrée, boutons dans son pied, toujours visibles) et non un menu qui se déplie : il couvrait la barre
    du haut et son bouton principal passait sous son bord */
+/* un client déjà connu qui ressemble à celui qu'on saisit : même e-mail, même numéro (chiffres seuls, 6 au moins) ou même nom (sans accents ni casse) */
+function clientSemblable(n){
+  const mail=String(n.email||'').trim().toLowerCase(), tel=String(n.tel||'').replace(/\D/g,''), nom=norm(n.nom||'');
+  for(const c of S.clients){
+    if(mail&&String(c.email||'').trim().toLowerCase()===mail) return {client:c,raison:'même adresse e-mail'};
+    if(tel.length>=6&&String(c.tel||'').replace(/\D/g,'')===tel) return {client:c,raison:'même téléphone'};
+    if(nom&&norm(c.nom||'')===nom) return {client:c,raison:'même nom'};
+  }
+  return null;
+}
 function nouveauClient(poser,revenir){
   const f=ouvrirFenetre({titre:'Nouveau client',classe:'nv-client',focus:'input[name="nom"]',onFerme:revenir,corps:`<form data-form novalidate>
     <label class="champ">Nom ou raison sociale<input name="nom" autocomplete="off" required></label><label class="champ">Adresse<input name="adresse" autocomplete="off"></label>
@@ -3121,6 +3141,18 @@ function nouveauClient(poser,revenir){
     if(v('email')&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('email'))){ champErr(form.email,'Cette adresse e-mail n’est pas valide : il manque le @ ou le point.'); ok=false }
     if(v('cp')&&!/^\d{5}$/.test(v('cp'))){ champErr(form.cp,'Un code postal a 5 chiffres.'); ok=false }
     if(!ok){ const m=$('[aria-invalid="true"]',form); if(m) m.focus(); return }
+    /* un client qui existe déjà (même e-mail, même téléphone ou même nom) se PROPOSE avant d'en créer un second : deux fiches identiques se répartissent les devis et on ne sait plus laquelle est la bonne.
+       Comme « Devis rapide » : on le dit une fois, et un second geste sur « Ajouter quand même » crée bien le client. */
+    if(!f.doublonVu){
+      const d=clientSemblable({nom:v('nom'),email:v('email'),tel:v('tel')});
+      if(d){ f.doublonVu=true; const bt=f.pied.querySelector('[data-ok]'), n=document.createElement('div'); n.className='nv-dbl'; n.setAttribute('role','alert');
+        n.innerHTML=`<p><b>Ce client existe peut-être déjà</b> : ${esc(d.client.nom)} (${esc(d.raison)}).</p><button type="button" class="bt primaire" data-utiliser>Utiliser ${esc(abrege(d.client.nom,30))}</button>`;
+        form.appendChild(n); bt.textContent='Ajouter quand même'; bt.classList.remove('primaire'); bt.classList.add('contour');
+        n.querySelector('[data-utiliser]').onclick=()=>{ poser(d.client,true) };
+        const rouvrir=()=>{ if(!f.doublonVu) return; f.doublonVu=false; n.remove(); bt.textContent='Ajouter ce client'; bt.classList.add('primaire'); bt.classList.remove('contour') };
+        ['nom','email','tel'].forEach(k=>form[k].addEventListener('input',rouvrir,{once:true}));
+        n.querySelector('[data-utiliser]').focus({preventScroll:false}); return }
+    }
     const c={id:uid('c'),nom:v('nom'),pro:form.pro.checked,adresse:v('adresse'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')};
     S.clients.push(APP?Object.assign({local:true},c):c); sauverStock(); if(APP) opdClientCree(c); poser(c,true);
   };
@@ -3177,7 +3209,10 @@ function choisirPhoto(blocId){
 
 /* — le routeur des actions : chaque bouton porte data-act ; les passes suivantes ajoutent leurs entrées à ACTIONS — */
 const ACTIONS={};
-function agir(act,t,e){ const f=ACTIONS[act]; if(f) f(t,e) }
+/* après « Créer », l'éditeur prend la place de la fenêtre : « Envoyer » s'y trouve à peu près où était « Créer ». Un double clic (geste courant sur un ordinateur) ouvrait donc l'envoi d'un document qu'on n'avait pas encore relu.
+   Le second clic d'un même geste est avalé pendant 450 ms ; un nouveau geste, volontaire, passe. */
+let _SILENCE=0;
+function agir(act,t,e){ if(performance.now()<_SILENCE) return; const f=ACTIONS[act]; if(f) f(t,e) }
 ACTIONS['theme']=t=>appliquerTheme(t.dataset.v);
 ACTIONS['nouveau-devis']=()=>ouvrirGalerie();
 ACTIONS['ouvrir']=t=>ouvrirDoc(t.dataset.id);
@@ -3453,7 +3488,7 @@ function ouvrirFenetre(o){
   f.piege=e=>{ if(FEN!==f||f.souple||POP||BULLE) return; const t=e.target; if(!t||t===document.body||f.el.contains(t)||(t.closest&&t.closest('#toasts,.voile'))) return; const b=f.tabs(); if(b.length) b[0].focus({preventScroll:true}) };
   f.touche=e=>{
     if(e.key==='Escape'){ if(POP||BULLE||document.querySelector('.voile:not(.fen-v)')||apercuOuvert()) return; e.stopPropagation(); fermerFenetre() }
-    else if(e.key==='Tab'&&!f.souple){ if(POP&&POP.fen!==f) return; const b=f.tabs(); if(!b.length) return; const i=b.indexOf(document.activeElement); if(e.shiftKey&&i<=0){e.preventDefault();b[b.length-1].focus()} else if(!e.shiftKey&&(i===b.length-1||i<0)){e.preventDefault();b[0].focus()} }
+    else if(e.key==='Tab'&&!f.souple){ if(POP&&POP.fen!==f) return; if(document.querySelector('.voile:not(.fen-v)')) return; /* une confirmation est ouverte par-dessus : c'est SON piège de focus qui répond, pas celui de la fenêtre (sinon Tab la laissait sur « Continuer » et on ne pouvait pas abandonner au clavier) */ const b=f.tabs(); if(!b.length) return; const i=b.indexOf(document.activeElement); if(e.shiftKey&&i<=0){e.preventDefault();b[b.length-1].focus()} else if(!e.shiftKey&&(i===b.length-1||i<0)){e.preventDefault();b[0].focus()} }
   };
   document.addEventListener('keydown',f.touche,true); document.addEventListener('focusin',f.piege,true);
   v.addEventListener('click',e=>{ if(e.target.closest('[data-fen-x]')||(e.target===v&&!f.souple)) fermerFenetre() });
@@ -3580,7 +3615,7 @@ function htClientVue(d,r){
     ${d.etat==='brouillon'?`<div class="cl-ruban">Aperçu : le client ne reçoit ce lien qu’après l’envoi.</div>`:''}
     ${signe?`<div class="cl-ok">${ic('check')} Signé${ps&&ps.date?' le '+esc(fmtDate(ps.date)):''}. Merci !</div>`:''}
     <div class="cl-carte"><h2>${contrat?'Contrat':'Devis'} ${esc(d.meta.numero)}</h2>${objet?`<p>${esc(objet)}</p>`:`<p>${esc(d.nom)}</p>`}
-      ${contrat?`<div class="ligne"><span>Pour</span><b>${esc(c?c.nom:'—')}</b></div>${valVar(d,'prix')?`<div class="ligne"><span>Prix annuel</span><b>${esc(valVar(d,'prix'))}</b></div>`:''}${valVar(d,'debut')?`<div class="ligne"><span>À partir du</span><b>${esc(valVar(d,'debut'))}</b></div>`:''}`:`<div class="ligne"><span>Total TTC</span><b class="gros">${fmtMontant(calc.ttc)}</b></div><div class="ligne"><span>Acompte à la commande</span><b>${fmtMontant(calc.acompte)}</b></div>${d.meta.validite>0?`<div class="ligne"><span>Valable jusqu’au</span><b>${esc(fmtDate(ajouterJours(d.meta.date,d.meta.validite)))}</b></div>`:''}`}</div>
+      ${contrat?`<div class="ligne"><span>Pour</span><b>${esc(c?c.nom:'—')}</b></div>${valVar(d,'prix')?`<div class="ligne"><span>Prix annuel HT</span><b>${esc(valVar(d,'prix'))}</b></div>`:''}${valVar(d,'debut')?`<div class="ligne"><span>À partir du</span><b>${esc(valVar(d,'debut'))}</b></div>`:''}`:`<div class="ligne"><span>Total TTC</span><b class="gros">${fmtMontant(calc.ttc)}</b></div><div class="ligne"><span>Acompte à la commande</span><b>${fmtMontant(calc.acompte)}</b></div>${d.meta.validite>0?`<div class="ligne"><span>Valable jusqu’au</span><b>${esc(fmtDate(ajouterJours(d.meta.date,d.meta.validite)))}</b></div>`:''}`}</div>
     <div class="cl-loupe"><button type="button" data-act="ap-grand" aria-pressed="${AP.grand}">${ic('zoom')}${AP.grand?'Voir la page entière':'Lire en grand'}</button></div>
     <div class="pile papier cl-pile" id="cl-pile"></div></div>
     <div class="cl-actions">${signe?`<button type="button" class="cl-lien" data-act="ap-rejouer">Rejouer l’exemple : effacer la signature</button>`:contrat&&d.etat==='brouillon'?`<p class="cl-note">Le client ne peut signer qu’une fois le contrat envoyé : ferme l’aperçu, puis choisis « Envoyer à signer ».</p><button type="button" class="cl-btn" data-act="ap-signer" aria-disabled="true">Lire et signer</button>`:`<button type="button" class="cl-btn" data-act="ap-signer">${contrat?'Lire et signer':'Accepter et signer'}</button>`}<button type="button" class="cl-lien" data-act="pdf-telecharger" aria-label="Télécharger le PDF">${ic('download')}Télécharger le PDF</button></div></div>`;
@@ -3862,7 +3897,17 @@ function ouvrirLigneForm(blocId,rowId,o){
 /* ── menus et divers ── */
 ACTIONS['menu-plus']=t=>{
   if(POP&&POP.ancre===t){ fermerPop(); return }
-  ouvrirMenu(t,[{lib:'Annuler',ico:'undo',off:!S.hist.undo.length,fn:annuler},{lib:'Rétablir',ico:'redo',off:!S.hist.redo.length,fn:retablir},{sep:1},{lib:'Modèles',ico:'layout',fn:ouvrirModeles}].concat(D()&&(D().type==='devis'||D().type==='contrat')?[{sep:1},{lib:'Optimiser avec l’IA',ico:'sparkle',fn:ouvrirOptimiser}]:[]),{droite:true});
+  const d=D(), tel=matchMedia('(max-width:760px)').matches;
+  /* un brouillon fait pour essayer, ou par erreur, se supprime : sans ce geste la liste d'OP GESTION s'encombrait pour toujours */
+  const suppr=APP&&d&&d.etat==='brouillon'&&(d.type==='devis'||d.type==='contrat')?[{lib:'Supprimer ce brouillon',ico:'trash',fn:()=>ACTIONS['supprimer-brouillon']()}]:[];
+  const base=[{lib:'Annuler',ico:'undo',off:!S.hist.undo.length,fn:annuler},{lib:'Rétablir',ico:'redo',off:!S.hist.redo.length,fn:retablir},{sep:1},{lib:'Modèles',ico:'layout',fn:ouvrirModeles}].concat(d&&(d.type==='devis'||d.type==='contrat')?[{sep:1},{lib:'Optimiser avec l’IA',ico:'sparkle',fn:ouvrirOptimiser}]:[]);
+  ouvrirMenu(t,(tel||!suppr.length?base.concat(suppr.length?[{sep:1}]:[]):[]).concat(suppr),{droite:true});
+};
+ACTIONS['supprimer-brouillon']=async()=>{
+  const d=D(); if(!d||d.etat!=='brouillon') return;
+  if(!await confirmer({titre:'Supprimer ce brouillon ?',texte:`« ${d.nom} »${d.meta&&d.meta.numero?' ('+d.meta.numero+')':''} sera supprimé. Tu ne pourras pas le retrouver.`,ok:'Supprimer',danger:true})) return;
+  const id=d.id; fermerDoc(); if(APP) OPG.connus.add(id);      // « connu » : sauverStock relit le rangement et y retrouverait ce document, qu'il ré-adopterait comme celui d'un autre onglet
+  S.docs=S.docs.filter(x=>x.id!==id); sauverStock(); toast('Brouillon supprimé');
 };
 
 
@@ -5129,7 +5174,7 @@ function vvCorpsDevis(V){
     <div class="vv-clients" id="vv-clients" role="group" aria-label="Client du devis">${viergeClients(V)}</div>
     <button type="button" class="bt contour" data-vv="client-nouveau">${ic('plus')}Nouveau client…</button>`;
   const objet=`<label class="champ">Objet du devis<textarea id="vv-objet" class="vv-ta" rows="2" maxlength="200" placeholder="Ex. : pose d’une climatisation dans le salon" autocomplete="off">${esc(V.objet)}</textarea></label>`;
-  const matos=`<div class="vv-rech"><input id="vv-cq" type="search" value="${esc(V.cq)}" placeholder="Chercher : climatiseur, main-d’œuvre…" aria-label="Chercher dans mon catalogue" autocomplete="off" spellcheck="false" enterkeyhint="done"></div>
+  const matos=`<div class="vv-rech"><input id="vv-cq" type="search" value="${esc(V.cq)}" placeholder="Chercher un article…" aria-label="Chercher dans mon catalogue" autocomplete="off" spellcheck="false" enterkeyhint="done"></div>
     <p class="fen-note vv-mem" id="vv-mem" role="status" hidden></p>
     <div class="vv-cats" id="vv-cats" role="group" aria-label="Catégories du catalogue"></div>
     <div class="vv-cat" id="vv-cat" role="list" aria-label="Catalogue"></div>
@@ -5153,11 +5198,11 @@ function vvCorpsDevis(V){
   const cond=`<p class="vv-sub">Acompte</p>
     <div class="seg" role="group" aria-label="Acompte">${VV_ACOMPTES.map(([v,l])=>`<button type="button" data-vv="ac" data-v="${v}" aria-pressed="${V.acK===v}">${l}</button>`).join('')}</div>
     <label class="champ vv-ac-a" id="vv-ac-a"${V.acK==='autre'?'':' hidden'}>Acompte en pourcentage<input id="vv-ac-v" inputmode="decimal" value="${esc(V.acV)}" autocomplete="off" placeholder="Ex. : 25"><span class="err" id="vv-ac-err" role="alert" hidden></span></label>
-    <label class="champ vv-sub2">Délai<input id="vv-delai" value="${esc(V.delai)}" maxlength="300" autocomplete="off" placeholder="${esc(VV_DELAI_DEF)}"></label>${vvChips('delai',VV_DELAIS)}
-    <label class="champ vv-sub2">Paiement<input id="vv-paiement" value="${esc(V.paiement)}" maxlength="300" autocomplete="off" placeholder="${esc(VV_PAIE_DEF)}"></label>${vvChips('paiement',VV_PAIEMENTS)}
+    <label class="champ vv-sub2">Délai<textarea id="vv-delai" class="vv-une" rows="2" maxlength="300" autocomplete="off" placeholder="${esc(VV_DELAI_DEF)}">${esc(V.delai)}</textarea></label>${vvChips('delai',VV_DELAIS)}
+    <label class="champ vv-sub2">Paiement<textarea id="vv-paiement" class="vv-une" rows="2" maxlength="300" autocomplete="off" placeholder="${esc(VV_PAIE_DEF)}">${esc(V.paiement)}</textarea></label>${vvChips('paiement',VV_PAIEMENTS)}
     <p class="fen-note vv-n">Laisse un champ vide pour garder la phrase habituelle (en gris).</p>
     <label class="champ vv-sub2">Valable (en jours)<input id="vv-val" inputmode="numeric" value="${esc(V.validite)}" maxlength="3" autocomplete="off"><span class="err" id="vv-val-err" role="alert" hidden></span></label>
-    <label class="champ">Un mot pour le client (facultatif)<textarea id="vv-mot" class="vv-ta" rows="3" maxlength="1200" placeholder="Ex. : Merci de votre confiance, je reste disponible pour toute question." autocomplete="off">${esc(V.mot)}</textarea></label>
+    <label class="champ">Un mot pour le client (facultatif)<textarea id="vv-mot" class="vv-ta" rows="3" maxlength="1200" placeholder="Ex. : Merci de votre confiance, je reste disponible." autocomplete="off">${esc(V.mot)}</textarea></label>
     <div class="vv-act"><button type="button" class="bt contour" data-vv="cond-garder">${ic('bookmark')}Garder comme mes conditions habituelles</button></div>
     <p class="fen-note vv-n" id="vv-cond-msg" role="status"></p>`;
   return vvEtape('client',1,'Client',client,V)+vvEtape('objet',2,'Objet',objet,V)+vvEtape('matos',3,'Matériel et prestations',matos,V)+vvEtape('cond',4,'Conditions et textes',cond,V)+vvEtape('pres',5,'Présentation',vvPresentation(V,'devis'),V);
@@ -5172,13 +5217,13 @@ function vvCorpsContrat(V){
       :`<input id="vv-v-${v.k}" data-vv-var="${v.k}"${v.type==='date'?' type="date"':''}${v.type==='montant'?' inputmode="decimal"':''} value="${esc(brut)}" maxlength="160" autocomplete="off" placeholder="${esc(v.ex||'')}">`;
     return `<div class="vv-var"><label class="champ">${esc(v.l)}${saisie}<span class="err" id="vv-ve-${v.k}" role="alert" hidden></span></label>${v.sug?`<div class="vv-chips" role="group" aria-label="${esc(v.l)} : valeurs toutes prêtes">${v.sug.map((t,i)=>`<button type="button" class="chip-i" data-vv="sug" data-k="${v.k}" data-i="${i}">${esc(t)}</button>`).join('')}</div>`:''}</div>`;
   };
-  const infos=`<label class="champ">Titre du contrat<input id="vv-titre" value="${esc(V.titre)}" maxlength="120" placeholder="Ex. : Entretien annuel de la climatisation" autocomplete="off"></label>
+  const infos=`<label class="champ">Titre du contrat<input id="vv-titre" value="${esc(V.titre)}" maxlength="120" placeholder="Ex. : Entretien annuel" autocomplete="off"></label>
     <p class="vv-sub">Informations à remplir</p><p class="fen-note vv-n">Tu les remplis une seule fois : elles se posent partout dans le texte des articles. Ce que tu laisses vide reste à compléter dans le contrat.</p>
     ${VARS.filter(v=>v.k!=='client').map(champ).join('')}`;
   const arts=`<p class="vv-sub">Partir d’un modèle</p>
     <div class="vv-chips" id="vv-tpl" role="group" aria-label="Modèles de contrat">${['part','pro','pac'].map(m=>`<button type="button" class="chip-i" data-vv="tpl" data-v="${m}" aria-pressed="false">${esc(VV_TPL_NOM[m])}</button>`).join('')}<button type="button" class="chip-i" data-vv="tpl" data-v="" aria-pressed="false">Aucun</button></div>
     <p class="vv-sub">Bibliothèque d’articles</p>
-    <div class="vv-rech"><input id="vv-bq" type="search" value="${esc(V.bq)}" placeholder="Chercher un article : prix, résiliation, assurance…" aria-label="Chercher un article" autocomplete="off" spellcheck="false"></div>
+    <div class="vv-rech"><input id="vv-bq" type="search" value="${esc(V.bq)}" placeholder="Chercher un article…" aria-label="Chercher un article" autocomplete="off" spellcheck="false"></div>
     <p class="fen-note vv-mem" id="vv-mem" role="status" hidden></p>
     <div class="vv-cat" id="vv-bib" role="list" aria-label="Bibliothèque d’articles"></div>
     <p class="vv-cnt" id="vv-cnt" role="status"></p>
@@ -5218,7 +5263,8 @@ const vvFmtHT=c=>fmtMontant(c)+' HT';
 function vvCatHtml(V){
   const all=vvCatalogue(), q=norm(V.cq), toks=q?q.split(' '):[];
   const nb=c=>all.filter(a=>a.cat===c).length;
-  const cats=[['','Tout']].concat(['Matériel','Main-d’œuvre','Entretien','Déplacement','Mon matériel'].map(c=>[c,c]));
+  /* une pastille mène à des articles : celle d'une catégorie vide n'est pas proposée (« Mon matériel » reste : on y range les siens) — sinon elle répondait « Rien ne correspond » à quelqu'un qui n'avait rien cherché */
+  const cats=[['','Tout']].concat(['Matériel','Main-d’œuvre','Entretien','Déplacement','Mon matériel'].filter(c=>c==='Mon matériel'||c===V.cc||nb(c)>0).map(c=>[c,c]));
   const pas=cats.map(([v,l])=>`<button type="button" class="vv-pas" data-vv="cat" data-v="${esc(v)}" aria-pressed="${V.cc===v}">${esc(l)}${v==='Mon matériel'?` <i>${nb(v)}</i>`:''}</button>`).join('');
   const L=all.filter(a=>(!V.cc||a.cat===V.cc)&&toks.every(t=>norm(a.des+' '+a.ref+' '+a.cat).includes(t)));
   const ligneDe=id=>V.lignes.find(l=>l.cle===id);
@@ -5258,7 +5304,7 @@ function vvLigHtml(V){
     return tete+`<li class="vv-l${l.opt?' opt':''}" data-id="${esc(l.id)}">
       <div class="vv-l-t">${esc(l.des)}${l.ref?`<i>${esc(l.ref)}</i>`:''}${l.opt?`<em class="vv-opt-b">Option</em>`:''}</div>
       <div class="vv-l-c"><label class="vv-mini">Quantité<input data-vv-q data-id="${esc(l.id)}" data-fk="q:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['qb:'+l.id]!==undefined?V.erreurs['qb:'+l.id]:rawQte(l.qteM))}" autocomplete="off" aria-label="Quantité : ${nom}"${V.erreurs['q:'+l.id]?' aria-invalid="true"':''}></label><span class="vv-u">${esc(l.unite)}</span>
-        <label class="vv-mini">Prix HT (€)<input data-vv-p data-id="${esc(l.id)}" data-fk="p:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['pb:'+l.id]!==undefined?V.erreurs['pb:'+l.id]:rawMontant(l.puC))}" autocomplete="off" aria-label="Prix unitaire HT : ${nom}"${V.erreurs['p:'+l.id]?' aria-invalid="true"':''}></label>
+        <label class="vv-mini">Prix HT (€)<input data-vv-p data-id="${esc(l.id)}" data-fk="p:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['pb:'+l.id]!==undefined?V.erreurs['pb:'+l.id]:champPrix(l.puC))}" autocomplete="off" aria-label="Prix unitaire HT : ${nom}"${V.erreurs['p:'+l.id]?' aria-invalid="true"':''}></label>
         <span class="vv-l-m" data-m="${esc(l.id)}">${esc(fmtMontant(htDeLigne(vvLigneDoc(l))))}</span></div>
       <span class="err" role="alert"${err?'':' hidden'}>${esc(err)}</span>
       <div class="vv-l-a"><label class="interr vv-opt"><input type="checkbox" role="switch" data-vv-sw="opt" data-id="${esc(l.id)}" data-fk="sw:${esc(l.id)}"${l.opt?' checked':''}><span>En option</span></label>
@@ -5370,28 +5416,41 @@ function vvPiedHtml(V){
   if(APP) return `<span class="vv-pied-tot"><small>${ct?'Contrat':'Total TTC'}</small><b id="${ct?'vv-pied-n':'vv-pied-ttc'}"></b></span><button type="button" class="bt primaire" data-act="vierge-creer">${ic('check')}${ct?'Créer le contrat':'Créer le devis'}</button>`;
   return `<button type="button" class="bt contour" data-fen-x>Annuler</button>${ct?'':`<span class="vv-pied-tot"><small>Total TTC</small><b id="vv-pied-ttc"></b></span>`}<button type="button" class="bt primaire" data-act="vierge-creer">${ic('check')}${ct?'Créer le contrat':'Créer le devis'}</button>`;
 }
-/* la taille de la page : une seule variable (--vs), posée sur la zone qui défile (la colonne de droite, ou l'aperçu plein écran) ; « Ajuster » prend la largeur de la zone, plafonnée à 125 % */
+/* la taille de la page : une seule variable (--vs), posée sur CHAQUE zone qui défile (la colonne de droite et l'aperçu plein écran) : « Ajuster » prend la largeur de la zone, plafonnée à 125 %.
+   Les deux zones sont réglées à chaque appel : quand on tourne la tablette avec l'aperçu ouvert, celle qui reste visible ne dépend pas de celle qu'on vient de fermer.
+   Rend l'échelle de la zone VISIBLE (celle qui a une largeur). */
 function vvEchelle(f){
   const V=VV; if(!APP||!V||FEN!==f) return 0;
-  const g=f.fen.querySelector('.vv-grand-plein'), zone=g?g.querySelector('.vv-grand-c'):f.fen.querySelector('#vv-ap-sc');
-  if(!zone||!zone.clientWidth) return 0;
-  const cs=getComputedStyle(zone), w=zone.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
-  const fit=Math.max(.3,Math.min(1.25,w/794)), s=V.zoom==='ajuster'?fit:+V.zoom;
-  zone.style.setProperty('--vs',s.toFixed(4));
-  f.fen.querySelectorAll('[data-vv="zoom"]').forEach(b=>{ b.setAttribute('aria-pressed',String(String(b.dataset.v)===String(V.zoom))); if(b.dataset.v==='ajuster') b.textContent='Ajuster · '+Math.round(fit*100)+' %' });
+  const g=f.fen.querySelector('.vv-grand-plein'), zones=[g&&g.querySelector('.vv-grand-c'),f.fen.querySelector('#vv-ap-sc')].filter(Boolean);
+  let s=0, fitVu=0;
+  zones.forEach(zone=>{
+    if(!zone.clientWidth) return;
+    const cs=getComputedStyle(zone), w=zone.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+    const fit=Math.max(.3,Math.min(1.25,w/794)), z=V.zoom==='ajuster'?fit:+V.zoom;
+    zone.style.setProperty('--vs',z.toFixed(4));
+    if(!s){ s=z; fitVu=fit }
+  });
+  if(!s) return 0;
+  const nl=f.fen.querySelector('.vv-grand-n'); if(nl) nl.hidden=!(s>fitVu+.02);      // « Fais glisser pour lire » n'a de sens que si la page dépasse l'écran
+  f.fen.querySelectorAll('[data-vv="zoom"]').forEach(b=>{ b.setAttribute('aria-pressed',String(String(b.dataset.v)===String(V.zoom))); if(b.dataset.v==='ajuster') b.textContent='Ajuster · '+Math.round(fitVu*100)+' %' });
   return s;
 }
 function vvGrand(f,ouvrir){
   const V=VV; let g=f.fen.querySelector('.vv-grand');
-  if(!ouvrir){ if(g){ g.remove(); const b=f.fen.querySelector('[data-vv="grand"]'); if(b) b.focus({preventScroll:true}) } return }
+  if(!ouvrir){ if(g){ g.remove(); if(APP&&!V.zoomVoulu&&V.zoomAvant!==undefined) V.zoom=V.zoomAvant; vvEchelle(f); const b=f.fen.querySelector('[data-vv="grand"]'); if(b) b.focus({preventScroll:true}) } return }
   if(g) return;
   vvAp(f);
   g=document.createElement('div'); g.className='vv-grand'; g.setAttribute('role','dialog'); g.setAttribute('aria-label','Aperçu de la première page');
   const w=Math.max(240,Math.min(f.fen.clientWidth-24,794)); g.style.setProperty('--vs',(w/794).toFixed(4));
   if(APP){      // le document entier, à la largeur de l'écran, avec le réglage de taille : on lit le texte en passant à 100 % ou 150 %, et la page défile
     g.className='vv-grand vv-grand-plein';
-    g.innerHTML=`<div class="vv-grand-t"><b>${V.type==='contrat'?'Ton contrat':'Ton devis'}, en grand</b><button type="button" class="bt primaire" data-vv="grand-x">Fermer</button></div><div class="vv-grand-z">${vvZoomHtml(V)}</div><div class="vv-grand-c"><div class="vv-ap-cadre" id="vv-ap-g">${miniature(viergeDoc(V),true)}</div></div>`;
-    f.fen.appendChild(g); vvEchelle(f); g.querySelector('[data-vv="grand-x"]').focus({preventScroll:true}); return;
+    g.innerHTML=`<div class="vv-grand-t"><b>${V.type==='contrat'?'Ton contrat':'Ton devis'}, en grand</b><button type="button" class="bt primaire" data-vv="grand-x">Fermer</button></div><div class="vv-grand-z">${vvZoomHtml(V)}<p class="vv-grand-n">Fais glisser pour lire la page ; « Ajuster » la montre en entier.</p></div><div class="vv-grand-c"><div class="vv-ap-cadre" id="vv-ap-g">${miniature(viergeDoc(V),true)}</div></div>`;
+    f.fen.appendChild(g);
+    /* au téléphone, « Ajuster » rend la page entière à 45 % : le texte y fait 5 px, illisible sans pincer (Justin : « composer un devis, c'est trop petit »). On ouvre donc sur 100 % (texte à 12 px, la page défile de côté) ;
+       « Ajuster » reste à un toucher pour la vue d'ensemble, et un réglage choisi par la personne n'est jamais remplacé. */
+    const zn=g.querySelector('.vv-grand-c'), cs=getComputedStyle(zn), fit=(zn.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight))/794;
+    V.zoomAvant=V.zoom; if(!V.zoomVoulu&&V.zoom==='ajuster'&&fit<.7) V.zoom=1;
+    vvEchelle(f); g.querySelector('[data-vv="grand-x"]').focus({preventScroll:true}); return;
   }
   g.innerHTML=`<div class="vv-grand-t"><b>Aperçu de la première page</b><button type="button" class="bt primaire" data-vv="grand-x">Fermer</button></div><div class="vv-grand-c"><div class="vv-ap-cadre" id="vv-ap-g">${miniature(viergeDoc(V))}</div></div>`;
   f.fen.appendChild(g); g.querySelector('[data-vv="grand-x"]').focus({preventScroll:true});
@@ -5488,7 +5547,7 @@ function ouvrirVierge(retour,type,opt){
     else if(a==='client-nouveau'){ quitter(); nouveauClient((c)=>{ V.clientId=c.id; fermerFenetre(false) },()=>setTimeout(()=>{ if(!FEN) ouvrirVierge(true) },0)) }
     else if(a==='grand') vvGrand(f,true);
     else if(a==='grand-x') vvGrand(f,false);
-    else if(a==='zoom'){ V.zoom=b.dataset.v==='ajuster'?'ajuster':(VV_ZOOMS.some(z=>String(z[0])===b.dataset.v)?+b.dataset.v:'ajuster'); vvEchelle(f) }
+    else if(a==='zoom'){ V.zoomVoulu=true; V.zoom=b.dataset.v==='ajuster'?'ajuster':(VV_ZOOMS.some(z=>String(z[0])===b.dataset.v)?+b.dataset.v:'ajuster'); vvEchelle(f) }
     /* — devis — */
     else if(a==='cat'){ V.cc=b.dataset.v; vvMajCat(f) }
     else if(a==='art-add') ajouterId(id);
@@ -5586,14 +5645,16 @@ function ouvrirVierge(retour,type,opt){
     else if(t.id==='vv-val'){ V.validite=t.value; err('vv-val-err',''); t.removeAttribute('aria-invalid'); viergeMaj(f,{tard:true}) }
     else if(t.id==='vv-cq'){ V.cq=t.value; vvMajCat(f) }
     else if(t.id==='vv-bq'){ V.bq=t.value; vvMajBib(f) }
-    else if(t.id==='vv-delai'){ V.delai=t.value; viergeMaj(f,{tard:true}) }
-    else if(t.id==='vv-paiement'){ V.paiement=t.value; viergeMaj(f,{tard:true}) }
+    else if(t.id==='vv-delai'){ V.delai=t.value.replace(/\s*\n\s*/g,' '); viergeMaj(f,{tard:true}) }
+    else if(t.id==='vv-paiement'){ V.paiement=t.value.replace(/\s*\n\s*/g,' '); viergeMaj(f,{tard:true}) }
     else if(t.id==='vv-mot'){ V.mot=t.value; viergeMaj(f,{tard:true}) }
     else if(t.id==='vv-ac-v'){ V.acV=t.value; const r=lireDecimal(t.value,2), bon=t.value.trim()===''||(r.code==='ok'&&!r.neg&&r.n<=10000); err('vv-ac-err',bon?'':'L’acompte est un pourcentage entre 0 et 100.'); if(bon) t.removeAttribute('aria-invalid'); else t.setAttribute('aria-invalid','true'); viergeMaj(f,{tard:true}) }
     else if(t.id==='vv-l-des'){ V.libre.des=t.value; t.removeAttribute('aria-invalid'); err('vv-l-err','') } else if(t.id==='vv-l-qte'){ V.libre.qte=t.value; t.removeAttribute('aria-invalid'); err('vv-l-err','') } else if(t.id==='vv-l-pu'){ V.libre.pu=t.value; t.removeAttribute('aria-invalid'); err('vv-l-err','') }
     else if(t.id==='vv-e-titre'){ V.ecrire.titre=t.value; t.removeAttribute('aria-invalid'); err('vv-e-err','') } else if(t.id==='vv-e-texte'){ V.ecrire.texte=t.value; t.removeAttribute('aria-invalid'); err('vv-e-err','') }
     else if(t.dataset&&t.dataset.vvVar) vvVarMaj(t.dataset.vvVar,t.value);
-    else if(t.dataset&&t.dataset.vvAtexte!==undefined){ const x=V.articles.find(y=>y.uid===t.dataset.vvAtexte); if(x){ x.texte=t.value; x.edite=true; viergeMaj(f,{tard:true}) } }
+    else if(t.dataset&&t.dataset.vvAtexte!==undefined){ const x=V.articles.find(y=>y.uid===t.dataset.vvAtexte); if(x){ x.texte=t.value; x.edite=true; viergeMaj(f,{tard:true});
+      /* la pastille « Modifié » paraît dès la première lettre : on ne redessine pas la liste (la zone de texte perdrait le doigt), on pose la pastille sur la ligne ; vvMajArts l'écrira de la même façon au rendu suivant */
+      const tt=t.closest('.vv-a')&&t.closest('.vv-a').querySelector('.vv-a-t'); if(tt&&!tt.querySelector('.vv-opt-b')){ const em=document.createElement('em'); em.className='vv-opt-b'; em.textContent='Modifié'; tt.appendChild(em) } } }
     else if(t.dataset&&(t.dataset.vvQ!==undefined||t.dataset.vvP!==undefined)){
       const q=t.dataset.vvQ!==undefined, id=t.dataset.id, l=V.lignes.find(x=>x.id===id); if(!l) return;
       const r=validerChamp(q?'qteM':'puC',t.value), li=t.closest('.vv-l'), e=li.querySelector('.err');
@@ -5606,7 +5667,7 @@ function ouvrirVierge(retour,type,opt){
   f.fen.addEventListener('focusout',ev=>{      // un champ de ligne qui garde une saisie juste se réécrit proprement (« 2,50 » → « 2,5 »), un champ faux reste tel quel avec son message
     const t=ev.target; if(!t.dataset||(t.dataset.vvQ===undefined&&t.dataset.vvP===undefined)) return;
     const q=t.dataset.vvQ!==undefined, id=t.dataset.id, l=V.lignes.find(x=>x.id===id); if(!l) return;
-    if(!V.erreurs[(q?'q:':'p:')+id]){ delete V.erreurs[(q?'qb:':'pb:')+id]; t.value=q?rawQte(l.qteM):rawMontant(l.puC) }
+    if(!V.erreurs[(q?'q:':'p:')+id]){ delete V.erreurs[(q?'qb:':'pb:')+id]; t.value=q?rawQte(l.qteM):champPrix(l.puC) }
   });
   f.fen.addEventListener('keydown',ev=>{
     if(ev.key!=='Enter'||ev.isComposing) return; const t=ev.target;
@@ -5616,7 +5677,7 @@ function ouvrirVierge(retour,type,opt){
       if(prem){ ajouterId(prem.id); V.cq=''; t.value=''; vvMajCat(f); sel('#vv-cnt').textContent='Ajouté : '+vvTxt(prem.des,60); t.focus({preventScroll:true}) }
     } else if(t.id==='vv-q'){
       ev.preventDefault(); const q=norm(V.q); if(!q) return; const c=S.clients.find(x=>norm([x.nom,x.ville,x.cp,x.adresse].join(' ')).includes(q)); if(c){ V.clientId=c.id; V.q=''; t.value=''; sel('#vv-clients').innerHTML=viergeClients(V); viergeMaj(f) }
-    } else if(t.id==='vv-bq'){ ev.preventDefault() }
+    } else if(t.id==='vv-bq'||t.id==='vv-delai'||t.id==='vv-paiement'){ ev.preventDefault() }      // une ligne de texte : Entrée ne coupe pas la phrase
     else if(t.matches('#vv-l-des,#vv-l-qte,#vv-l-pu,#vv-l-unite,#vv-l-tva')){ ev.preventDefault(); libreAjouter() }
   });
 }
@@ -5665,7 +5726,7 @@ function viergeCreer(){
   clearTimeout(V.tAp);
   const d=viergeDoc(V); viergeSauver(V); clearTimeout(V.tBr); vvBrouillonOublier(V.type);
   const r=enteteListe().find(x=>x.id===V.identId), n=ct?V.articles.length:V.lignes.length, plein=ct?(V.articles.length||Object.keys(V.vars).length):(V.lignes.length||V.objet.trim()||V.mot.trim()); VV=null;
-  fermerFenetre(false); creerDocument(d);
+  fermerFenetre(false); creerDocument(d); _SILENCE=performance.now()+450;
   const sfx=' en-tête « '+enteteNom(r)+' »';
   if(ct){ toast(n?'Contrat créé : '+vvPl(n,'article')+','+sfx:'Contrat vierge créé,'+sfx); revelerContrat(d) }      // au téléphone, la feuille « Contrat » s'ouvre : c'est là qu'on complète ce qui manque
   else toast(plein&&n?'Devis créé : '+vvPl(n,'ligne')+','+sfx:'Devis vierge créé,'+sfx);
