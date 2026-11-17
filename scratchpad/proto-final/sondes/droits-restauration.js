@@ -11,11 +11,11 @@ const { L, v, ouvrirComme, fin } = require('./droits-commun.js');
   const avant = await c.p.evaluate(s => { const i = document.querySelector(s); return { coche:i.checked, donnee:eqDe('julie').droits.cats.crm.c, visible:getComputedStyle(i).pointerEvents }; }, sel);
   await c.p.evaluate(s => { const i = document.querySelector(s); i.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true })); }, sel); await L.calme(c.p, 300); n++;
   const ap = await c.p.evaluate(s => { const i = document.querySelector(s); return { coche:i.checked, donnee:eqDe('julie').droits.cats.crm.c, refus:DROITS_REFUS.length }; }, sel);
-  v('case de droit : le clic est avalé, la case montre la donnée (rien n\'a changé)', ap.coche === ap.donnee && ap.donnee === avant.donnee && ap.refus >= 1, { avant, ap });
+  v('case de droit : le clic est avalé, la case montre la donnée (rien n\'a changé)', ap.coche === !!ap.donnee && ap.donnee === avant.donnee && ap.refus >= 1, { avant, ap });
   // un « change » qui arrive quand même (clavier, clic synthétique de coche) : l'écran revient à la donnée
   await c.p.evaluate(s => { const i = document.querySelector(s); i.checked = !i.checked; i.dispatchEvent(new Event('change', { bubbles:true })); }, sel); await L.calme(c.p, 300); n++;
   const ap2 = await c.p.evaluate(s => { const i = document.querySelector(s); return { coche:i.checked, donnee:eqDe('julie').droits.cats.crm.c }; }, sel);
-  v('case de droit : un « change » forcé est refusé et la case revient à la donnée', ap2.coche === ap2.donnee && ap2.donnee === avant.donnee, ap2);
+  v('case de droit : un « change » forcé est refusé et la case revient à la donnée', ap2.coche === !!ap2.donnee && ap2.donnee === avant.donnee, ap2);
   // 2. un <select> : le profil appliqué (data-eqprof) revient à « Choisir… »
   await c.p.evaluate(() => { const s = document.querySelector('select[data-eqprof]'); if (s) { s.value = 'resp'; s.dispatchEvent(new Event('change', { bubbles:true })); } }); await L.calme(c.p, 300); n++;
   const sp = await c.p.evaluate(() => { const s = document.querySelector('select[data-eqprof]'); return { valeur:s ? s.value : null, profil:eqDe('julie').droits.profil }; });

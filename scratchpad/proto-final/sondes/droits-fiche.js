@@ -48,6 +48,15 @@ const FICHE = () => { const z = document.querySelector('#calque .panneau'); retu
     await L.capture(d, CAP + `fiche-julie-grille-${appareil}-${nuit ? 'nuit' : 'jour'}.png`);
     await L.fin(d);
   }
+  // le téléphone : une catégorie = une ligne qui se déplie en quatre lignes (une case, sa phrase) ; la catégorie qu'on règle reste ouverte
+  const t = await ouvrirComme({ qui:'marc', appareil:'iphone' }); await L.aller(t.p, 'equipe'); await t.p.evaluate(() => { eqFiche('julie'); const dt = document.querySelector('details.eqx-det'); if (dt) dt.open = true; }); await L.calme(t.p, 500);
+  const tel = await t.p.evaluate(() => { const g = document.querySelector('.eq-dr:not(.eq-dr-t)'), m = document.querySelectorAll('.eq-dr-m'); return { grilleCachee:!!g && getComputedStyle(g).display === 'none', nCat:m.length, premiere:m[2] ? m[2].querySelector('summary').textContent.replace(/\s+/g, ' ').trim() : '' }; });
+  v('téléphone : la grille de quatre colonnes est remplacée par dix lignes qui se déplient', tel.grilleCachee && tel.nCat === 10, tel);
+  const ouvert = await t.p.evaluate(() => { const m = document.querySelectorAll('.eq-dr-m')[2]; m.open = true; const L = [...m.querySelectorAll('.eq-dr-l')].map(l => l.textContent.replace(/\s+/g, ' ').trim()); const i = m.querySelector('input[data-eqd="julie|crm|c"]'); const avant = eqDe('julie').droits.cats.crm.c; i.click(); return { L, avant, apres:eqDe('julie').droits.cats.crm.c }; }); await L.calme(t.p, 500);
+  const reste = await t.p.evaluate(() => { const m = document.querySelectorAll('.eq-dr-m')[2]; return { ouvert:!!m && m.open, c:eqDe('julie').droits.cats.crm.c }; });
+  v('téléphone : la catégorie Clients a trois lignes (Voir, Créer, Modifier) chacune avec sa phrase ; toucher « Créer » règle la case', ouvert.L.length === 3 && /Créer.*créer un client/.test(ouvert.L[1]) && ouvert.avant !== ouvert.apres, ouvert);
+  v('téléphone : la catégorie qu\'on vient de régler reste ouverte', reste.ouvert === true, reste);
+  await L.fin(t);
   v('population : cinq appareils / modes joués', n === 5, n);
   await fin();
 })().catch(e => { console.error(e); process.exit(1); });

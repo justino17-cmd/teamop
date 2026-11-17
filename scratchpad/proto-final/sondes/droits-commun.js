@@ -5,7 +5,7 @@ exports.CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16
 exports.fin = async () => { await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0); };
 // les personnes de la démonstration, plus des personnes FABRIQUÉES pour les profils que la démonstration n'a pas (Responsable) : on les injecte dans l'Équipe, puis on s'y connecte par la vraie ouverture de session
 exports.INJECTER = ({ k, prenom, nom, pd, terrain, cases, sp }) => { const profil = pd, c = copieProfil(pd || 'secr'); if (cases) Object.entries(cases).forEach(([cat, x]) => { const [v, a, m, s] = String(x).padStart(4, '0').split('').map(Number); c.cats[cat] = { v, c:a, m, s }; });
-  if (sp) Object.assign(c.sp, sp); if (EQUIPE.some(p => p.k === k)) EQUIPE.splice(EQUIPE.findIndex(p => p.k === k), 1);
+  if (sp) { Object.keys(c.sp).forEach(k => { c.sp[k] = 0; }); Object.assign(c.sp, sp); }   /* des droits à part donnés : ceux-là, et aucun autre */ if (EQUIPE.some(p => p.k === k)) EQUIPE.splice(EQUIPE.findIndex(p => p.k === k), 1);
   EQUIPE.push({ k, prenom, nom, role:profil || 'Personne', mail:k + '@climservices17.fr', tel:'', actif:true, terrain:!!terrain, droits:c, habil:[] }); H_GENS[k] = { nom:prenom + ' ' + nom, role:profil, c:'#7a5af8' };
   if (typeof eqxSynchro === 'function') eqxSynchro(); sessionOuvrir(k); return true; };
 // ouvre l'application comme `qui` (une personne de la démonstration) ou comme une personne fabriquée { k, prenom, nom, profil, terrain, cases, sp }
