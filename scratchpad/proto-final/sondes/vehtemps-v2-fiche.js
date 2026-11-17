@@ -55,7 +55,7 @@ const larg = (c, sel) => ev(c, s => { const p = document.querySelector(s || '#ca
       await L.toucher(c, '#calque .panneau .vh-fr'); await L.calme(c.p, 450);
       const fe = await ev(c, () => { const q = document.querySelector('#calque .panneau'); return { h2:(q.querySelector('h2') || {}).textContent, supp:[...q.querySelectorAll('.btn.rouge')].map(b => b.textContent.trim()), enreg:[...q.querySelectorAll('.btn')].some(b => b.textContent.trim() === 'Enregistrer') }; });
       v(nom + ' : toucher une dépense ouvre « Cette dépense » avec « Enregistrer » et « Supprimer cette dépense » (rouge)', fe.h2 === 'Cette dépense' && fe.supp.join() === 'Supprimer cette dépense' && fe.enreg, fe);
-      await L.toucher(c, '#calque .panneau [data-ve^="fiche|"]'); await L.calme(c.p, 450);
+      await L.toucher(c, '#calque .panneau [data-vh^="retour|"]'); await L.calme(c.p, 450);
       const rt = await lire(c); v(nom + ' : « Retour » ramène à la fiche, sur l\'onglet Dépenses où l\'on était', !!rt && rt.onglets.join() === 'À faire|false,Papiers|false,Dépenses|true', rt && rt.onglets);
       await L.toucher(c, '#calque .panneau [data-vh="fonglet|afaire"]'); await L.calme(c.p, 350);
       const re = await lire(c); v(nom + ' : un onglet qu\'on touche se choisit (À faire), le contenu change', re.onglets[0] === 'À faire|true' && re.ech.length === 4, re.onglets);
