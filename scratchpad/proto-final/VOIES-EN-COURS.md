@@ -11,26 +11,34 @@ Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 
 
 | Voie | Arguments | Arbre | Dernier lancement (run) | Étape au dernier relevé (8 h 10) |
 |---|---|---|---|---|
-| materiel | `{voie:"materiel"}` | /home/user/wt-c-materiel | wf_cb393850-8a2 | 5 sur 9 (voisins, guides, recette) |
-| vehtemps | `{voie:"vehtemps"}` | /home/user/wt-c-vehicules-temps | wf_2b1326f9-4dc | 5 sur 9 (Mon camion véhicule, voisins, recette) |
-| entreprise | `{voie:"entreprise"}` | /home/user/wt-entreprise | wf_d48d52bb-f55 | 7 sur 8 (corriger) |
-| securite | `{voie:"securite"}` | /home/user/wt-securite | wf_c59af0fe-bf3 | 6 sur 8 (juger et rapporter) |
-| double-auth | `{voie:"double-auth"}` | /home/user/wt-double-auth | wf_f90564b0-275 | 3 sur 6 |
-| artefact | `{voie:"artefact"}` | /home/user/wt-artefact | wf_0f3ab435-044 | 2 sur 2 (recontrôle) |
-| retour | `{voie:"retour"}` | /home/user/wt-retour | wf_a81c7b71-04c | 1 sur 2 |
-| restes (mail) | `{voie:"restes", noms:["mail"], arbre:"/home/user/wt-c-mail"}` | /home/user/wt-c-mail | wf_a21861bd-55e | 3 sur 4 (tour 2, corriger) |
-| restes (compositeur) | `{voie:"restes", noms:["compositeur"], arbre:"/home/user/wt-atelier"}` | /home/user/wt-atelier | wf_6c0f850c-5cd | 2 sur 4 (tour 1, recontrôler) |
-| restes (planning) | `{voie:"restes", noms:["planning"], arbre:"/home/user/wt-t-planning"}` | /home/user/wt-t-planning | wf_d6496cc1-e84 | 1 sur 4 |
+| materiel | `{voie:"materiel"}` | /home/user/wt-c-materiel | wf_cb393850-8a2 (tâche wbgrboy4e) | 5 sur 9 (voisins, guides, recette) |
+| vehtemps | `{voie:"vehtemps"}` | /home/user/wt-c-vehicules-temps | wf_2b1326f9-4dc (tâche wkzibxa6z) | 5 sur 9 (Mon camion véhicule, voisins, recette) |
+| entreprise | `{voie:"entreprise"}` | /home/user/wt-entreprise | wf_d48d52bb-f55 (tâche woax1c3di) | 7 sur 8 (corriger) |
+| securite | `{voie:"securite"}` | /home/user/wt-securite | wf_c59af0fe-bf3 (tâche wx9juj4s7) | 6 sur 8 (juger et rapporter) |
+| double-auth | `{voie:"double-auth"}` | /home/user/wt-double-auth | wf_f90564b0-275 (tâche w4dugueuh) | 3 sur 6 |
+| artefact | `{voie:"artefact"}` | /home/user/wt-artefact | wf_0f3ab435-044 (tâche wne6iwk8k) | 2 sur 2 (recontrôle) |
+| retour | `{voie:"retour"}` | /home/user/wt-retour | wf_a81c7b71-04c (tâche wbja7hic2) | 1 sur 2 |
+| restes (mail) | `{voie:"restes", noms:["mail"], arbre:"/home/user/wt-c-mail"}` | /home/user/wt-c-mail | wf_a21861bd-55e (tâche wmc503kyq) | 3 sur 4 (tour 2, corriger) |
+| restes (compositeur) | `{voie:"restes", noms:["compositeur"], arbre:"/home/user/wt-atelier"}` | /home/user/wt-atelier | wf_6c0f850c-5cd (tâche wvbc2b9g3) | 2 sur 4 (tour 1, recontrôler) |
+| restes (planning) | `{voie:"restes", noms:["planning"], arbre:"/home/user/wt-t-planning"}` | /home/user/wt-t-planning | wf_d6496cc1-e84 (tâche wq7rc642j) | 1 sur 4 |
 | restes (coque) | `{voie:"restes", noms:["coque"], arbre:"/home/user/wt-t-taches-absences"}` | /home/user/wt-t-taches-absences | wf_e863236e-f53 (tâche w5lp74p1n) | 1 sur 4 (lancée à 8 h 13) |
-| campagne interventions | `{voie:"campagne", cles:["interventions"], arbre:"/home/user/wt-t-interventions"}` | /home/user/wt-t-interventions | wf_f053dfa7-004 | 3 sur 3 (recontrôler) |
-| campagne clients | `{voie:"campagne", cles:["clients"], arbre:"/home/user/wt-t-clients"}` | /home/user/wt-t-clients | wf_9eac0989-473 | 2 sur 3 |
-| campagne technicien | `{voie:"campagne", cles:["technicien"], arbre:"/home/user/wt-t-technicien"}` | /home/user/wt-t-technicien | wf_fa6ce9b9-e53 | 3 sur 3 |
-| campagne accueil | `{voie:"campagne", cles:["accueil"], arbre:"/home/user/wt-t-accueil"}` | /home/user/wt-t-accueil | wf_a77cf25d-3ce | 3 sur 3 |
-| campagne contrats | `{voie:"campagne", cles:["contrats"], arbre:"/home/user/wt-t-contrats"}` | /home/user/wt-t-contrats | wf_8d381f43-df8 | 3 sur 3 |
-| campagne compta-ventes | `{voie:"campagne", cles:["compta-ventes"], arbre:"/home/user/wt-t-compta-ventes"}` | /home/user/wt-t-compta-ventes | wf_af182308-28c | 3 sur 3 |
-| campagne compta-reste | `{voie:"campagne", cles:["compta-reste"], arbre:"/home/user/wt-t-compta-reste"}` | /home/user/wt-t-compta-reste | wf_6613e191-cd1 | 1 sur 3 |
-| campagne client | `{voie:"campagne", cles:["client"], arbre:"/home/user/wt-t-client"}` | /home/user/wt-t-client | wf_161f5d3d-d34 | 2 sur 3 |
+| campagne interventions | `{voie:"campagne", cles:["interventions"], arbre:"/home/user/wt-t-interventions"}` | /home/user/wt-t-interventions | wf_f053dfa7-004 (tâche wmr7wmbah) | 3 sur 3 (recontrôler) |
+| campagne clients | `{voie:"campagne", cles:["clients"], arbre:"/home/user/wt-t-clients"}` | /home/user/wt-t-clients | wf_9eac0989-473 (tâche wunwkw7f8) | 2 sur 3 |
+| campagne technicien | `{voie:"campagne", cles:["technicien"], arbre:"/home/user/wt-t-technicien"}` | /home/user/wt-t-technicien | wf_fa6ce9b9-e53 (tâche w30grs0qi) | 3 sur 3 |
+| campagne accueil | `{voie:"campagne", cles:["accueil"], arbre:"/home/user/wt-t-accueil"}` | /home/user/wt-t-accueil | wf_a77cf25d-3ce (tâche wygaoyvv0) | 3 sur 3 |
+| campagne contrats | `{voie:"campagne", cles:["contrats"], arbre:"/home/user/wt-t-contrats"}` | /home/user/wt-t-contrats | wf_8d381f43-df8 (tâche wofr2i07g) | 3 sur 3 |
+| campagne compta-ventes | `{voie:"campagne", cles:["compta-ventes"], arbre:"/home/user/wt-t-compta-ventes"}` | /home/user/wt-t-compta-ventes | wf_af182308-28c (tâche w7drh1rvl) | 3 sur 3 |
+| campagne compta-reste | `{voie:"campagne", cles:["compta-reste"], arbre:"/home/user/wt-t-compta-reste"}` | /home/user/wt-t-compta-reste | wf_6613e191-cd1 (tâche w3hlifa27) | 1 sur 3 |
+| campagne client | `{voie:"campagne", cles:["client"], arbre:"/home/user/wt-t-client"}` | /home/user/wt-t-client | wf_161f5d3d-d34 (tâche w2w2augv0) | 2 sur 3 |
 | campagne metier-3d | `{voie:"campagne", cles:["metier-3d"], arbre:"/home/user/wt-t-metier-3d"}` | /home/user/wt-t-metier-3d | wf_394daf2a-530 (tâche wy3c5wjkm) | 1 sur 3 (lancée à 8 h 13) |
+
+La « tâche » entre parenthèses est l'identifiant à donner à TaskStop pour arrêter la voie (retrouvé dans le fil de la conversation :
+`grep -o 'Task ID: [a-z0-9]*[^R]\{0,700\}Run ID: wf_[0-9a-f-]*' <fil>.jsonl`).
+
+GAGNER UNE HEURE sur `materiel` et `vehtemps` : leurs étapes 6 et 7 sont deux RELECTURES (aucune page modifiée), donc jouables côte à
+côte. Dès que la voie passe à l'étape 6 (`/home/user/attendre-etape.sh <run> 6` tourne en fond et prévient) : arrêter la voie
+(TaskStop), puis lancer `{voie, depuis:5, jusqua:5}` dans son arbre ET `{voie, depuis:6, jusqua:6, arbre:<arbre libre>}` ; quand les
+DEUX ont rendu, lancer `{voie, depuis:7}` (corriger, recontrôler) dans l'arbre de la voie. Même idée pour `guide` : rien à paralléliser.
 
 Arbres LIBRES et propres : /home/user/wt-restes, /home/user/wt-menu, /home/user/wt-camp-1, /home/user/wt-camp-2 (à remettre sur la branche avant
 usage : la consigne de chaque étape le fait). /home/user/wt-t-coque porte un dossier non suivi d'un agent arrêté le 16 : ne pas s'en servir.
