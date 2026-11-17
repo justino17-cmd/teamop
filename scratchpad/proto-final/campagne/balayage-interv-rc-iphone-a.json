@@ -1,0 +1,1096 @@
+{
+ "profil": "iphone",
+ "sorties": {
+  "sm-iphone-majournee": {
+   "recenses": 19,
+   "touches": 19,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "Menu",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 2,
+     "lib": "Je commence ma journée",
+     "data": "data-ptx=debut|sm",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "hash": "#majournee",
+     "toast": "Bonne journée ! Commencée à 10:40.",
+     "sansNom": false,
+     "l": 324,
+     "h": 44
+    },
+    {
+     "i": 3,
+     "lib": "J’ai commencé plus tôt",
+     "data": "data-ptx=plustot|sm",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "J’ai commencé plus tôt",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 324,
+     "h": 44
+    },
+    {
+     "i": 4,
+     "lib": "Mon camionTout est en règle3 articles à remettre à bord›",
+     "data": "data-go=moncamion",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Mon camion",
+     "panneau": "",
+     "hash": "#moncamion",
+     "toast": "",
+     "sansNom": false,
+     "l": 358,
+     "h": 72
+    },
+    {
+     "i": 5,
+     "lib": "Mes habilitations : à jour ›",
+     "data": "data-eqx=mesfiche|sm",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "Sophie Martin",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 199,
+     "h": 44
+    },
+    {
+     "i": 6,
+     "lib": "Continuer",
+     "data": "data-rl=go|inter-x-i1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "toast",
+      "long",
+      "url"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "Tu n’as pas commencé ta journée. Commencer à 10:40 ?Oui, commencerNon",
+     "sansNom": false,
+     "l": 96,
+     "h": 44
+    },
+    {
+     "i": 7,
+     "lib": "Y aller",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 73,
+     "h": 44
+    },
+    {
+     "i": 8,
+     "lib": "Appeler",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 44
+    },
+    {
+     "i": 9,
+     "lib": "Commencer",
+     "data": "data-rl=go|inter-x-i2",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "toast",
+      "long",
+      "url"
+     ],
+     "h1": "Mise en service pompe à chaleur",
+     "panneau": "",
+     "hash": "#inter-x-i2",
+     "toast": "Tu n’as pas commencé ta journée. Commencer à 10:40 ?Oui, commencerNon",
+     "sansNom": false,
+     "l": 112,
+     "h": 44
+    },
+    {
+     "i": 10,
+     "lib": "Commencer",
+     "data": "data-rl=go|inter-x-i16",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "toast",
+      "long",
+      "url"
+     ],
+     "h1": "Dépannage pompe à chaleur atelier",
+     "panneau": "",
+     "hash": "#inter-x-i16",
+     "toast": "Tu n’as pas commencé ta journée. Commencer à 10:40 ?Oui, commencerNon",
+     "sansNom": false,
+     "l": 112,
+     "h": 44
+    },
+    {
+     "i": 11,
+     "lib": "Terminer : Prévenir M. Durand 30 min avant la mise en servic",
+     "data": "data-tfait=t11",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "hash": "#majournee",
+     "toast": "Tâche faiteAnnuler",
+     "sansNom": false,
+     "l": 44,
+     "h": 44
+    },
+    {
+     "i": 12,
+     "lib": "Prévenir M. Durand 30 min avant la mise en service de sa pom",
+     "data": "data-tmodif=t11",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "Prévenir M. Durand 30 min avant la mise en service de sa pompe à chaleur",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 272,
+     "h": 91
+    },
+    {
+     "i": 13,
+     "lib": "＋ Nouvelle tâche",
+     "data": "data-tkxajout=1",
+     "touche": true,
+     "change": [],
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 324,
+     "h": 45
+    },
+    {
+     "i": 14,
+     "lib": "Toutes mes tâches",
+     "data": "data-go=taches",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Mes tâches",
+     "panneau": "",
+     "hash": "#taches",
+     "toast": "",
+     "sansNom": false,
+     "l": 150,
+     "h": 44
+    },
+    {
+     "i": 15,
+     "lib": "＋ Nouvelle note de frais",
+     "data": "data-rl=ndf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "Ce que tu as payé de ta poche",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 226,
+     "h": 46
+    },
+    {
+     "i": 16,
+     "lib": "Voir mes frais",
+     "data": "data-go=techfrais",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Mes frais",
+     "panneau": "",
+     "hash": "#techfrais",
+     "toast": "",
+     "sansNom": false,
+     "l": 146,
+     "h": 46
+    },
+    {
+     "i": 17,
+     "lib": "＋ Demande d’achat",
+     "data": "data-axa=dem",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "Il me faut…",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 192,
+     "h": 46
+    },
+    {
+     "i": 18,
+     "lib": "Mes demandes",
+     "data": "data-go=techfrais",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Mes frais",
+     "panneau": "",
+     "hash": "#techfrais",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    }
+   ]
+  },
+  "sm-iphone-inter-x-i1": {
+   "recenses": 48,
+   "touches": 46,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "Menu",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 2,
+     "lib": "‹ Retour",
+     "data": "data-retour=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "hash": "#majournee",
+     "toast": "",
+     "sansNom": false,
+     "l": 62,
+     "h": 44
+    },
+    {
+     "i": 3,
+     "lib": "Restaurant Le Vieux Port ›",
+     "data": "data-go=client-x-vp",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "Restaurant Le Vieux Port",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 358,
+     "h": 44
+    },
+    {
+     "i": 4,
+     "lib": "Y aller",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 169,
+     "h": 46
+    },
+    {
+     "i": 5,
+     "lib": "Appeler",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 181,
+     "h": 46
+    },
+    {
+     "i": 6,
+     "lib": "Retirer la photo Avant",
+     "data": "data-action=photoSuppr data-k=0",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "Photo retirée.Annuler",
+     "sansNom": false,
+     "l": 44,
+     "h": 44
+    },
+    {
+     "i": 7,
+     "lib": "Retirer la photo Roulement usé",
+     "data": "data-action=photoSuppr data-k=1",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "Photo retirée.Annuler",
+     "sansNom": false,
+     "l": 44,
+     "h": 44
+    },
+    {
+     "i": 8,
+     "lib": "Ce que j’ai trouvé",
+     "data": "data-champ=trouve data-id=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 324,
+     "h": 104
+    },
+    {
+     "i": 9,
+     "lib": "2,4",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "R32-2231 · 2,5 kg · camionR32-2207 · 6 kg · atelierR410-1180",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Daikin FTXM35RDaikin RXM35R",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 324,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Prélever sur la bouteille",
+     "data": "data-sx=fprel|i1",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "Cette intervention a déjà 1,5 kg de Fluide R32 (le kg) sortis du stock (pièces prévues). Si c’est la",
+     "sansNom": false,
+     "l": 219,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "ex. 1,8",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "REC-0003 · 2,1 kg",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 15,
+     "lib": "Noter la récupération",
+     "data": "data-sx=frec|i1",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "Écris combien de kilos tu as récupérés.",
+     "sansNom": false,
+     "l": 203,
+     "h": 46
+    },
+    {
+     "i": 16,
+     "lib": "Registre des fluides",
+     "data": "data-sx=fluides",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "Registre des fluides",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 193,
+     "h": 46
+    },
+    {
+     "i": 17,
+     "lib": "2,4",
+     "data": "data-releve=Charge de fluide data-id=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 18,
+     "lib": "12",
+     "data": "data-releve=Soufflage data-id=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 19,
+     "lib": "24",
+     "data": "data-releve=Reprise data-id=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 20,
+     "lib": "Retirer Nettoyant échangeur",
+     "data": "data-action=pieceSuppr data-k=0 data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 51,
+     "h": 44
+    },
+    {
+     "i": 21,
+     "lib": "Retirer Dégrippant",
+     "data": "data-action=pieceSuppr data-k=1 data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 51,
+     "h": 44
+    },
+    {
+     "i": 22,
+     "lib": "Chercher dans le stock…",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 128,
+     "h": 46
+    },
+    {
+     "i": 23,
+     "lib": "Qté",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 46
+    },
+    {
+     "i": 24,
+     "lib": "Ajouter",
+     "data": "data-action=pieceAjout data-id=i1",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "Tape le nom d’une pièce ou d’un produit.",
+     "sansNom": false,
+     "l": 96,
+     "h": 46
+    },
+    {
+     "i": 25,
+     "lib": "Il me manque une pièce",
+     "data": "data-pdx=pm|i1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "Il me manque une pièce",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 222,
+     "h": 46
+    },
+    {
+     "i": 26,
+     "lib": "on",
+     "data": "data-ctrl=Alimentation électrique data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 27,
+     "lib": "on",
+     "data": "data-ctrl=Ventilateur extérieur data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 28,
+     "lib": "on",
+     "data": "data-ctrl=Recherche de fuite data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 29,
+     "lib": "on",
+     "data": "data-ctrl=Contrôle de la charge data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 30,
+     "lib": "on",
+     "data": "data-ctrl=Nettoyage des filtres data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 31,
+     "lib": "on",
+     "data": "data-ctrl=Essai de fonctionnement data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 32,
+     "lib": "Ce que nous avons fait",
+     "data": "data-champ=compte data-id=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 324,
+     "h": 104
+    },
+    {
+     "i": 33,
+     "lib": "08:34",
+     "data": "data-champ=debut data-id=i1 data-dt=time",
+     "touche": false,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 26,
+     "h": 46
+    },
+    {
+     "i": 34,
+     "lib": "Arrivée : 08:34",
+     "data": "data-dtpour=1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 48
+    },
+    {
+     "i": 35,
+     "lib": "09:21",
+     "data": "data-champ=fin data-id=i1 data-dt=time",
+     "touche": false,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 26,
+     "h": 46
+    },
+    {
+     "i": 36,
+     "lib": "Départ : 09:21",
+     "data": "data-dtpour=1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 48
+    },
+    {
+     "i": 37,
+     "lib": "Marc Durand",
+     "data": "data-champ=signeNom data-id=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 324,
+     "h": 46
+    },
+    {
+     "i": 38,
+     "lib": "Effacer la signature",
+     "data": "data-action=sigEfface data-id=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 150,
+     "h": 44
+    },
+    {
+     "i": 39,
+     "lib": "on",
+     "data": "data-absent=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 40,
+     "lib": "rien",
+     "data": "data-paie=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 41,
+     "lib": "total",
+     "data": "data-paie=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 42,
+     "lib": "acompte",
+     "data": "data-paie=i1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 43,
+     "lib": "on",
+     "data": "data-paiepromis=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 44,
+     "lib": "on",
+     "data": "data-suite=ventilo data-id=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 45,
+     "lib": "on",
+     "data": "data-suite=entretien data-id=i1",
+     "touche": true,
+     "change": [],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 46,
+     "lib": "Je ne peux pas finir",
+     "data": "data-action=pasFini data-id=i1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "Je ne peux pas finir",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 332,
+     "h": 52
+    },
+    {
+     "i": 47,
+     "lib": "Terminer",
+     "data": "data-action=terminer data-id=i1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "Il manque encore des choses",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 332,
+     "h": 52
+    }
+   ]
+  }
+ },
+ "err": []
+}
