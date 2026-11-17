@@ -236,6 +236,25 @@ PERDU si la machine est rendue — le résumé donné à Justin est dans la conv
 le chantier « relier OP Security à OP GESTION » démarre sur une COPIE D'ESSAI (jumeau local : vrai serveur isolé, page bêta,
 application de téléphone du kit), marche par marche selon le plan, chaque marche testée et attaquée ; aucune mise en ligne.
 
+⛔⛔ **NOUVEL ORDRE DE PRIORITÉ, JUSTIN, 17 NOVEMBRE, 15 H 45 — « TOUT SERVIR DEPUIS NOTRE SERVEUR » D'ABORD, LES AUTRES CHANTIERS EN
+PAUSE.** Mot pour mot : « Pourquoi on ne fait pas directement tout par le serveur, au fait ? », puis « ce qu'on peut faire, c'est
+mettre tous les chantiers en pause. On fait tout sur notre serveur et une fois fait, on reprend les chantiers. », puis « même pour
+toi, pour la vérification, ça ira plus vite que GitHub ». D'où ça vient : pour passer le dépôt en PRIVÉ (ce qu'il veut, pour le
+système de sécurité), il fallait d'abord GitHub Pro (48 $ par an ou 4 $ par mois) — le site et les pages (teamop.fr, application,
+bêta, Tour) sont servis par GitHub Pages, et Pages ne sert un dépôt privé qu'avec une offre payante (vu sur son écran de
+facturation : « Pages for static website hosting » n'est pas dans l'offre gratuite ; « Pages in private repos » est dans Pro).
+Son compte propriétaire du dépôt est `justino17-cmd` (compte personnel) ; il a aussi un autre compte, qui ne sert pas ici. Il n'a
+PAS pris Pro à 15 h 45 (il était sur la page de paiement). CE QUI EST DÉCIDÉ : chantier 0 = le site servi par NOTRE serveur (Caddy
+sur le VPS), avec les en-têtes de sécurité que Pages ne permet pas ; puis GitHub Pages coupé, dépôt passé en privé gratuitement ;
+PUIS reprise du prototype (chantier A) et de la liaison OP Security ↔ OP GESTION (chantier B). GitHub reste l'atelier (code,
+historique, vérifications, déploiement). ⛔ Aucun geste de production sans sa phrase pour CE geste (réglage du serveur, poussée
+sur `main`, bascule de l'adresse) ; l'enregistrement de l'adresse teamop.fr se change chez son hébergeur de nom, par lui, avec les
+valeurs qu'on lui donne ; GitHub Pages reste en place jusqu'à la vérification (retour arrière = remettre l'adresse). À NE PAS
+CONFONDRE avec l'autre moitié de « tout chez nous », la sortie de Firebase (sections de septembre et d'octobre de ce fichier) : en
+relire l'état et le lui dire. Reporté par lui : changer l'identifiant GitHub `justino17-cmd` (« on le fera plus tard ») — à faire à
+part, à un moment calme, en vérifiant chaque branchement (serveur, vérifications, sessions). La reprise programmée du 18 à 22 h 10
+porte cet ordre (`trig_01ARF4xswzMN4Z5rmX7c9NfF`).
+
 ⛔ **PRÉCISION DE JUSTIN, 17 NOVEMBRE, 14 H 45 (dictée) — CE QU'IL ATTEND D'OP SECURITY.** Mot pour mot : « On veut que
 l'application Security, comme tu as pu voir, qui a été créée, que tu la testes, que tu la vérifies, et je veux que cette application
 oblige de se connecter avec son compte OP GESTION. Pour être sûr que déjà, au niveau de la sécurité, c'est bien des comptes qui sont
