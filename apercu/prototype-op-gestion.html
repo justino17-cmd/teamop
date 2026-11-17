@@ -363,8 +363,8 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
   .tkx-cherche{flex:1 1 0;min-width:0}
   #contenu .tkx-resume{padding:6px 10px;font-size:14px}#contenu .tkx-resume .tkx-retard-p{padding:0 12px}.tkx-pills{flex:1 1 100%}.tkx-pill{padding:0 10px;font-size:14px;flex:1 1 auto;justify-content:center}
   .tkx-rang{flex:0 0 118px;order:0}.tkx-pills{order:1}
-  /* 320 px : trois pastilles de filtre à 14 px ne tiennent pas sur une ligne, la dernière passait seule en pleine largeur ; à 13 px, trois colonnes égales (regard-technicien-a) */
-  @media (max-width:350px){.tkx-pills{flex-wrap:nowrap}.tkx-pill{flex:1 1 0;min-width:0;padding:0 4px;font-size:13px;gap:4px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
+  /* 320 et 360 px : trois pastilles de filtre à 14 px ne tiennent pas sur une ligne, la dernière passait seule en pleine largeur ; à 13 px, trois colonnes égales (regard-technicien-a ; 390 px tient déjà) */
+  @media (max-width:370px){.tkx-pills{flex-wrap:nowrap}.tkx-pill{flex:1 1 0;min-width:0;padding:0 4px;font-size:13px;gap:4px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
   .tkx-s{grid-template-columns:auto minmax(0,1fr)}.tkx-s-g{flex:1 1 100%}.tkx-s-g .btn{flex:1}
   .tkx-s-ch label{flex:1 1 100%;justify-content:space-between}.tkx-s-ch .saisie{flex:1 1 auto}
   .tkx-s-haut .btn{flex:1 1 100%}
@@ -3357,6 +3357,8 @@ body.ac-glisse .ac-x{pointer-events:none}
 .acm-c.fer .acm-n{color:var(--orange)}
 .acm-n b{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 6px;border-radius:13px;background:var(--lien);color:var(--on-etat);font-weight:800}
 .acm-f{position:relative;z-index:2;pointer-events:none;font-size:11.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:color-mix(in srgb,var(--orange) 72%,var(--encre));line-height:1.15;overflow-wrap:anywhere}
+/* colonne étroite (iPad) : « TOUSSAINT » se coupait en « TOUSSA / INT » ; un nom de jour férié tient sur une ligne à 9 px */
+.acm-etroit .acm-f{font-size:9px;letter-spacing:-.01em}.acm-etroit .acm-c{padding-left:4px;padding-right:4px}
 .acm-x{grid-row:1;align-self:stretch;position:relative;z-index:1;margin:0;border:0;border-radius:0;display:flex;align-items:flex-end;padding:0 9px 9px;min-width:0;overflow:hidden;white-space:nowrap;cursor:pointer;font:inherit;font-size:13.5px;font-weight:750;color:var(--encre);
   background:repeating-linear-gradient(90deg,transparent 0 calc(100% / var(--n) - 1px),color-mix(in srgb,var(--carte-fond) 40%,transparent) calc(100% / var(--n) - 1px) calc(100% / var(--n))),color-mix(in srgb,var(--c) 50%,var(--carte-fond));
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 85%,transparent)}
@@ -7400,17 +7402,18 @@ function aCalMois(J, tid){ const T = tel(), dep = aDeplCible();
   const blocs = aCalPer === 0.5 ? [{ titre:'Du ' + aCourte(J[0]) + ' au ' + aCourte(J[J.length - 1]) + ' ' + J[J.length - 1].slice(0, 4), jours:J }]
     : [...new Set(J.map(d => d.slice(0, 7)))].map(k => ({ titre:aMoisLib(k), jours:J.filter(d => d.startsWith(k)) }));
   const cw = (aLargeurs() - (T ? 22 : 30)) / 7;   // une case : la carte en sept
-  const entete = (T ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'] : ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']).map((x, k) => `<span class="${k > 4 ? 'we' : ''}">${x}</span>`).join('');
+  const etroit = !T && cw < 84;   // iPad : la colonne du calendrier fait ~66 px, « MERCREDI » en demande 78 et « DIMANCHE » sortait de la carte
+  const entete = (T ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'] : etroit ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] : ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']).map((x, k) => `<span class="${k > 4 ? 'we' : ''}">${x}</span>`).join('');
   return blocs.map(b => { const dans = new Set(b.jours), fin = ajoute(aLundi(b.jours[b.jours.length - 1]), 6), sems = [];
     for (let s = aLundi(b.jours[0]); s <= fin; s = ajoute(s, 7)) sems.push(s);
     const rangs = sems.map(s => { const S = Array.from({ length:7 }, (_, k) => ajoute(s, k));
       const cells = S.map((d, k) => !dans.has(d) ? `<div class="acm-c hors${k === 6 ? ' k7' : ''}" style="grid-column:${k + 1}" aria-hidden="true"></div>`
-        : `<div class="acm-c${aOuvre(d) ? '' : A_FERIES[d] ? ' fer' : ' we'}${d === AUJ ? ' auj' : ''}${k === 6 ? ' k7' : ''}${dep && dep.tech === tid ? ' ac-choix' : ''}" style="grid-column:${k + 1}" data-acd="${d}" data-act="${tid}" title="${aMaj(aDate(d, true))}${A_FERIES[d] ? ' · ' + A_FERIES[d] + ' (jour férié)' : !aOuvre(d) ? ' · non travaillé' : ''}"><span class="acm-n">${d === AUJ ? `<b>${+d.slice(8)}</b>` : +d.slice(8)}</span>${A_FERIES[d] ? `<span class="acm-f">${A_FERIES[d]}</span>` : ''}</div>`).join('');
+        : `<div class="acm-c${aOuvre(d) ? '' : A_FERIES[d] ? ' fer' : ' we'}${d === AUJ ? ' auj' : ''}${k === 6 ? ' k7' : ''}${dep && dep.tech === tid ? ' ac-choix' : ''}" style="grid-column:${k + 1}" data-acd="${d}" data-act="${tid}" title="${aMaj(aDate(d, true))}${A_FERIES[d] ? ' · ' + A_FERIES[d] + ' (jour férié)' : !aOuvre(d) ? ' · non travaillé' : ''}"><span class="acm-n">${d === AUJ ? `<b>${+d.slice(8)}</b>` : +d.slice(8)}</span>${A_FERIES[d] ? `<span class="acm-f">${cw < 56 ? 'Férié' : A_FERIES[d]}</span>` : ''}</div>`).join('');   /* une case de téléphone (38 à 48 px) ne tient pas « Toussaint » : « Férié », le nom reste dans l'infobulle de la case */
       const bandes = [...A.map(a => [a, false]), ...D.map(a => [a, true])].map(([a, att]) => { const ds = S.filter(d => dans.has(d) && d >= a.du && d <= a.au); if (!ds.length) return '';
         const k0 = S.indexOf(ds[0]), n = ds.length, demi = a.demi && a.du === a.au ? a.demi : '';
         return aBandeHtml(a, att, demi, `grid-column:${k0 + 1} / span ${n};--n:${n}`, aLib(a, att, demi, n * cw, T ? [[11.5, 8, ''], [10, 4, 'mini']] : [[13.5, 18, ''], [12, 10, 'serre'], [10.5, 4, 'mini']]), ds[0] > a.du, ds[n - 1] < a.au, 'acm-x'); }).join('');
       return `<div class="acm-sem">${cells}${bandes}</div>`; }).join('');
-    return `<div class="carte acm"><h4 class="acm-t${blocs.length === 1 ? ' rl-sr' : ''}">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
+    return `<div class="carte acm${etroit ? ' acm-etroit' : ''}"><h4 class="acm-t${blocs.length === 1 ? ' rl-sr' : ''}">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
 }
 function aCalFin(ctrl, seul, corps, J){ const lecture = aLecture(), souris = matchMedia('(hover:hover) and (pointer:fine)').matches, dep = aDeplCible();
   const aide = seul ? (lecture ? '' : aCalSeulTete(aCalQui, J)) : `<div class="ac-aide"><span aria-hidden="true">👆</span><span>Une <b>case par jour</b> et par personne. Coche <b>une ou plusieurs personnes</b> en haut pour les comparer ; touche <b>un nom</b> pour n’afficher que son calendrier. Sur une absence : ${souris ? '<b>clic</b> pour le détail, <b>clic droit</b> pour les actions (valider, refuser, déplacer…), ou <b>glisse-la</b> pour la déplacer' : '<b>touche</b> pour le détail, <b>appui long</b> pour les actions (valider, refuser, déplacer…), appui long puis glisse pour la déplacer'}.</span></div>`;
@@ -7418,7 +7421,7 @@ function aCalFin(ctrl, seul, corps, J){ const lecture = aLecture(), souris = mat
   const leg = Object.entries(A_TYPES).map(([k, [c]]) => `<span><i style="background:color-mix(in srgb,${c} 50%,var(--carte-fond));box-shadow:inset 0 0 0 1px ${c}"></i>${k}</span>`).join('')
     + `<span><i class="att"></i>En attente${lecture ? '' : ' de ta décision'}</span><span><i class="demi"></i>Demi-journée</span>`
     + (seul ? '' : '<span><i class="pr"></i>Présents : ✓ tout le monde · 3/4 un absent · 2/4 ou moins</span><span><i class="pt"></i>Une demande attend ce jour-là</span>')
-    + '<span><i class="nt"></i>Non travaillé (week-end, jour férié : son nom est écrit)</span><span><i class="auj"></i>Aujourd’hui</span>';
+    + '<span><i class="nt"></i>Non travaillé (week-end, jour férié)</span><span><i class="auj"></i>Aujourd’hui</span>';
   return ctrl + aide + bandeau + `<div class="ac-zone${dep ? ' ac-mode-depl' : ''}">${corps}</div><div class="a-leg ac-leg">${leg}</div>` + (seul ? aCalSeulListe(lecture ? aTech() : aCalQui, J) : '');
 }
 /* une personne : retour à l'équipe, son nom, ＋ Absence ; dessous, toutes ses absences de la période, demandes en attente comprises */
@@ -21304,7 +21307,7 @@ function eqxCarteMoi(p) {
   const hs = p.habil.map((h, j) => ({ h, j })).filter(o => o.h[1] && habEtat(o.h[1]) !== 'v');
   if (!hs.length) return `<div class="eqx-moi"><button type="button" class="lien" data-eqx="mesfiche|${p.k}">Mes habilitations : à jour ›</button></div>`;
   return `<div class="carte eqx-moi eqx-moi-alerte" role="status">${hs.map(({ h }) => { const n = tJours(h[1]), fo = eqxFormation(p.k, h[1]);
-    return `<div class="eqx-moi-l"><b>${n < 0 ? 'Ton habilitation « ' + esc(h[0]) + ' » est expirée depuis ' + eqxPl(-n, 'jour') : 'Ton habilitation « ' + esc(h[0]) + ' » se termine dans ' + eqxPl(n, 'jour')}</b>${fo ? `<span class="gris">Formation prévue le ${jCourt(fo.du).replace(/\.$/, '')}.</span>` : ''}</div>`; }).join('')}
+    return `<div class="eqx-moi-l"><b>${(/^habilitation\s/i.test(h[0]) ? 'Ton habilitation ' + esc(h[0].replace(/^habilitation\s+/i, '')) : 'Ton habilitation « ' + esc(h[0]) + ' »') + (n < 0 ? ' est expirée depuis ' + eqxPl(-n, 'jour') : ' se termine dans ' + eqxPl(n, 'jour'))}</b>${fo ? `<span class="gris">Formation prévue le ${jCourt(fo.du).replace(/\.$/, '')}.</span>` : ''}</div>`; }).join('')}
     <div class="actions"><button type="button" class="btn gris petit" data-eqx="mesfiche|${p.k}">${hs.some(o => eqxFormation(p.k, o.h[1])) ? 'Voir ma formation ›' : 'Mes habilitations ›'}</button>${eqxPrevenus[p.k] ? '<span class="gris petit">Le bureau est prévenu.</span>' : hs.every(o => eqxFormation(p.k, o.h[1])) ? '' : '<button type="button" class="btn petit" data-eqx="mesbureau|' + p.k + '">Prévenir le bureau</button>'}</div></div>`;
 }
 (() => { const v0 = vueMaJournee; vueMaJournee = function () {
