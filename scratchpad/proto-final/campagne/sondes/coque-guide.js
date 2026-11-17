@@ -12,7 +12,7 @@ const h1 = p => p.evaluate(() => ((document.querySelector('#contenu h1') || {}).
 // ce qu'une ligne « A › B › C » du guide promet : chaque mot entre « » ou chaque segment doit se lire quelque part sur la rubrique ou dans ses onglets
 const PROMESSES = [
   ['statistiques', ['Bilan du mois']], ['planning', ['Vue d’ensemble', 'Mois', 'Carte']], ['devis', ['Dicter']],
-  ['stock', ['Mouvements', 'À valider', 'Sortie']], ['produits', ['Bons de commande', 'Commandes en cours']], ['achats', ['Demande']], ['equipe', ['Qui peut quoi']], ['boiteMail', ['Boîtes connectées']],
+  ['stock', ['Mouvements', 'À valider', 'Sortie']], ['produits', ['Bons de commande', 'Commandes en cours']], ['achats', ['Demande']], ['equipe', ['Qui peut quoi']],   // « Boîte mail › Boîtes connectées » n'est pas vérifié ici : le module de courrier est dans un hôte dont le texte ne se lit pas depuis la page (la fenêtre « Boîtes connectées » s'ouvre aussi par Mon entreprise)
 ];
 (async () => {
   for (const QUI of QUIS) {

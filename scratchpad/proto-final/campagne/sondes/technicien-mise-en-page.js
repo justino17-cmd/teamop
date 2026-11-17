@@ -16,7 +16,10 @@ const ROUTES = ['majournee', 'taches', 'techfrais', 'mesheures', 'moncamion', 'a
       const nom = `[${profil} ${nuit ? 'nuit' : 'jour'}] ${r}`;
       v(nom + ' : aucun glissement latéral', d.bouge === 0 && d.premiere <= c.largeur, d);
       if (c.doigt) { v(nom + ' : cibles ≥ 44 px', f.petits.length === 0, f.petits.slice(0, 6)); v(nom + ' : champs ≥ 16 px', f.champs.length === 0, f.champs.slice(0, 6)); }
+      const note = await c.p.evaluate(() => { const e = document.querySelector('#contenu .droits-note'); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; });
+      v(nom + ' : pas de phrase « ton compte ne peut pas … » sur un écran fait pour le technicien (technicien-01)', !note, note);
       v(nom + ' : aucun texte écrasé', f.ecrases.length === 0, f.ecrases.slice(0, 4));
+      if (r === 'majournee') { const y = await c.p.evaluate(() => { const e = document.querySelector('#contenu .rl-int'); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1; }); console.log('   1re intervention du jour à y =', y, 'px (écran de', c.hauteur, 'px)'); v(nom + ' : la 1re intervention du jour se voit sans défiler (technicien-02)', y > 0 && y < c.hauteur - 120, { y, hauteur: c.hauteur }); }
       await L.capture(c, CAP + `mep-${qui}-${profil}-${nuit ? 'nuit' : 'jour'}-${r}.png`, true);
     }
     v(`[${profil} ${nuit ? 'nuit' : 'jour'}] population : les 6 écrans ont été vus`, vus === ROUTES.length, vus);

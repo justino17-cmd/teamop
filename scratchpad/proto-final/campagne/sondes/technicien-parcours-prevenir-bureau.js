@@ -2,6 +2,7 @@
 // sur le camion — et le gérant le reçoit-il, au bon endroit, avec les bons mots ? Usage : node technicien-parcours-prevenir-bureau.js [profil] [nuit=0|1]
 const L = require('../../lib.js'), v = L.v;
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-technicien/';
+const devenir = async (p, k, h) => { await p.evaluate(([k, h]) => { if (SESSION) sessionFermer('deconnexion'); sessionOuvrir(k); aller(h); }, [k, h]); await L.calme(p, 800); };   // changer de personne comme le fait l'application : se déconnecter, puis ouvrir la session de l'autre (les données restent en mémoire)
 const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#contenu'); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }, s);
 (async () => {
   const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === '1', J = nuit ? 'nuit' : 'jour';
@@ -37,12 +38,12 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   await L.aller(p, 'techfrais');
   v('K3 il retrouve sa demande dans « Mes frais › Mes demandes »', /Condensateur/.test(await txt(p)), (await txt(p)).slice(0, 300));
   // le gérant
-  await p.evaluate(() => rlChanger('patron', { h: 'achats', muet: true })); await L.calme(p, 800);
+  await devenir(p, 'marc', 'achats');
   const ach = await txt(p);
   v('K4 le gérant voit la demande de Sophie dans Achats et frais (pièce et quantité)', /Condensateur/.test(ach) && /Sophie/.test(ach), ach.slice(0, 300));
   await L.capture(c, CAP + `camion-gerant-achats-${profil}-${J}.png`);
   // messages du bureau (Mon camion)
-  await p.evaluate(() => rlChanger('tech', { h: 'moncamion', muet: true })); await L.calme(p, 600);
+  await devenir(p, 'sm', 'moncamion');
   if (await p.$('[data-mat="messages"]')) { await L.toucher(c, '[data-mat="messages"]'); await L.calme(p, 300); v('K5 « 1 message du bureau » ouvre les messages', (await panneau()).length > 20, (await panneau()).slice(0, 200)); await L.capture(c, CAP + `camion-messages-${profil}-${J}.png`); await L.ranger(p); }
   // J'ai utilisé / J'ai pris : ouvrent et se ferment (écrans en refonte)
   for (const k of ['usage', 'prise']) { await L.toucher(c, `[data-mat="${k}"]`); await L.calme(p, 300); v(`K6 « ${k} » ouvre une fenêtre`, (await panneau()).length > 20, (await panneau()).slice(0, 80)); await L.ranger(p); v(`K6b Échap ferme « ${k} »`, !(await p.evaluate(() => !!document.querySelector('#calque .panneau')))); }
@@ -58,7 +59,7 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   if (bp) { await L.toucher(c, '[data-eqx^="mesbureau"]'); await L.calme(p, 500);
     console.log('   après « Prévenir le bureau » : toast', await toast(), '| carte :', (await txt(p, '.eqx-moi')).slice(0, 200));
     v('H3 après l’envoi la carte dit « Le bureau est prévenu » (et ne propose plus le bouton)', /prévenu/.test(await txt(p, '.eqx-moi')) && !(await p.$('[data-eqx^="mesbureau"]')), await txt(p, '.eqx-moi'));
-    await p.evaluate(() => rlChanger('patron', { h: 'taches', muet: true })); await L.calme(p, 800);
+    await devenir(p, 'marc', 'taches');
     const tt = await txt(p); const notif = await p.evaluate(() => NOTIFS.filter(n => /Karim/.test(n.t || n.texte || JSON.stringify(n))).length);
     v('H4 le gérant en est averti (une tâche ou une notification au nom de Karim)', /Karim/.test(tt) || notif > 0, { notif, tt: tt.slice(0, 200) }); }
   await L.fin(c);
