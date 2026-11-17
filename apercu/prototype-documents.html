@@ -1926,7 +1926,7 @@ function nouveauContrat(o){
   if(pin) nd.identId=pin;      // absent = l'en-tête par défaut : un contrat fait sans choisir est identique à celui d'avant
   return nd;
 }
-const OPG={donnees:false,role:{devis:false,contrats:false},numeros:{devis:{prefixe:'D-',dernier:0},contrat:{prefixe:'CTR-',dernier:0}},ouvert:false,sauves:{},connus:new Set(),sigDocs:'',tFin:0,mode:''};
+const OPG={donnees:false,role:{devis:false,contrats:false,entreprise:false,creer:true,modifier:true},numeros:{devis:{prefixe:'D-',dernier:0},contrat:{prefixe:'CTR-',dernier:0}},ouvert:false,sauves:{},connus:new Set(),sigDocs:'',tFin:0,mode:''};
 function prochainNumero(type){
   if(APP){      // la série d'OP GESTION : son préfixe, son dernier numéro, et tout ce que cet appareil a déjà composé (y compris dans un autre onglet)
     const N=OPG.numeros[type], re=new RegExp('^'+N.prefixe.replace(/[.*+?^${}()|[\]\\\-]/g,'\\$&')+'(\\d+)$'); let max=N.dernier;
@@ -4829,7 +4829,9 @@ function ouvrirIdentite(id,o){
   if(!nouveau){ if(!id){ const dd=S.vue==='editeur'?D():null; id=dd?enteteIdDe(dd):DEFAUT_ID } if(!enteteExiste(id)) id=DEFAUT_ID }
   if(APP&&!nouveau&&id===DEFAUT_ID){      // l'entreprise appartient à OP GESTION : on le dit, on ne propose aucun champ
     const f=ouvrirFenetre({titre:'Mon entreprise',classe:'ident',corps:`<p class="fen-note">Ton entreprise se règle dans OP GESTION.</p><p class="fen-note">Son nom, son adresse, son SIRET, sa TVA et son IBAN viennent de là : tes devis et tes contrats les reprennent tout seuls. Tu peux créer d’autres en-têtes ici, pour une autre société ou une agence.</p>`,
-      pied:`<button type="button" class="bt primaire" data-fen-x>Compris</button>`,onFerme:()=>{ const a=o.apres; if(a) setTimeout(()=>a(null),0) }});
+      /* « Ton entreprise se règle dans OP GESTION » sans chemin vers l'écran qui la règle laissait la personne chercher (relecture « tout-07 ») : pour qui voit Mon entreprise, un bouton y mène — l'atelier se ferme (tout est déjà gardé, la fenêtre « Compris » reste le geste de ceux qui n'y ont pas accès) */
+      pied:OPG.role.entreprise?`<button type="button" class="bt" data-fen-x>Compris</button><button type="button" class="bt primaire" data-ent-ouvrir>Ouvrir Mon entreprise</button>`:`<button type="button" class="bt primaire" data-fen-x>Compris</button>`,onFerme:()=>{ const a=o.apres; if(a) setTimeout(()=>a(null),0) }});
+    const ouvrirEnt=f.el.querySelector('[data-ent-ouvrir]'); if(ouvrirEnt) ouvrirEnt.addEventListener('click',()=>{ opdFermerTout(); OPG.ouvert=false; opdPoster({opd_fermer:{motif:'entreprise'}}) });
     return f;
   }
   const defaut=!nouveau&&id===DEFAUT_ID, rec=!nouveau&&!defaut?ENTETES.find(x=>x.id===id):null;
@@ -7683,7 +7685,8 @@ function opdFermerTout(){
 }
 function opdRole(r){
   if(!r||typeof r!=='object'||Array.isArray(r)) return;
-  OPG.role={devis:own(r,'devis')===true,contrats:own(r,'contrats')===true};
+  const dr=own(r,'droits');   // les droits de la case « Devis et contrats » de la personne : { c, m, s } — absents (page seule, sans OP GESTION) = rien n'est refusé
+  OPG.role={devis:own(r,'devis')===true,contrats:own(r,'contrats')===true,entreprise:own(r,'entreprise')===true,creer:!(dr&&typeof dr==='object')||own(dr,'c')!==false,modifier:!(dr&&typeof dr==='object')||own(dr,'m')!==false};
   const d=S.vue==='editeur'?D():null, vv=FEN&&VV?VV.type:null, type=d?d.type:vv;
   if((!OPG.role.devis&&!OPG.role.contrats)||(type==='devis'&&!OPG.role.devis)||(type==='contrat'&&!OPG.role.contrats)){ const etait=OPG.ouvert; opdFermerTout(); OPG.ouvert=false; if(etait) opdPoster({opd_fermer:{motif:'role'}}) }
 }
@@ -7692,12 +7695,12 @@ function opdOuvrir(o){
   const refuser=m=>{ OPG.ouvert=false; opdPoster({opd_fermer:{motif:m}}) };
   if(!OPG.donnees) return refuser('absent');
   if(faire==='devis'||faire==='contrat'){
-    if(!(faire==='devis'?OPG.role.devis:OPG.role.contrats)) return refuser('role');
+    if(!(faire==='devis'?OPG.role.devis:OPG.role.contrats)||!OPG.role.creer) return refuser('role');   // composer un document neuf demande « Créer » : la page cache déjà le bouton, l'atelier le redit (relecture « tout-09 »)
     const c=own(o,'client'); opdFermerTout(); OPG.ouvert=true;
     ouvrirVierge(false,faire,{client:typeof c==='string'&&RE_ID.test(c)?c:''});
   } else if(faire==='doc'){
     const id=own(o,'id'), d=typeof id==='string'?S.docs.find(x=>x.id===id):null;
-    if(!d) return refuser('fin'); if(!(d.type==='devis'?OPG.role.devis:OPG.role.contrats)) return refuser('role');
+    if(!d) return refuser('fin'); if(!(d.type==='devis'?OPG.role.devis:OPG.role.contrats)||!OPG.role.modifier) return refuser('role');   // rouvrir un document, c'est pouvoir le changer : sans « Modifier », l'atelier ne s'ouvre pas dessus
     opdFermerTout(); OPG.ouvert=true; ouvrirDoc(d.id);
   } else refuser('fin');
 }

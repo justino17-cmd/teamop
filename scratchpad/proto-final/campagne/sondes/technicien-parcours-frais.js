@@ -3,6 +3,7 @@
 const L = require('../../lib.js'), v = L.v;
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-technicien/';
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const devenir = async (p, k, h) => { await p.evaluate(([k, h]) => { if (SESSION) sessionFermer('deconnexion'); sessionOuvrir(k); aller(h); }, [k, h]); await L.calme(p, 800); };   // changer de personne comme le fait l'application : se déconnecter, puis ouvrir la session de l'autre (les données restent en mémoire)
 const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#contenu'); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }, s);
 (async () => {
   const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === '1';
@@ -56,7 +57,13 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   page = await txt(p);
   v('F5c la note avec ticket est dans la liste, « voir le ticket » présent', /12 345,67|12345,67/.test(page.replace(/ | /g, ' ')) && /voir le ticket/.test(page), page.slice(0, 500));
   // F6 : « voir le ticket » ouvre bien quelque chose
-  const btn = await p.$('[data-cx^="justif|ndf"]'); if (btn) { await L.toucher(c, '[data-cx^="justif|ndf"]'); await L.calme(p, 400); v('F6 « voir le ticket » ouvre le ticket (fenêtre ou aperçu)', await p.evaluate(() => !!document.querySelector('#calque .panneau, #calque img, .dp-barre, #opdz:not([hidden])')), await txt(p, '#calque')); await L.ranger(p); } else v('F6 « voir le ticket » trouvé', false);
+  const btn = await p.$('[data-cx^="justif|ndf"]');
+  if (btn) { await L.toucher(c, '[data-cx^="justif|ndf"]'); await L.calme(p, 400);
+    v('F6a « voir le ticket » ouvre le ticket en grand (#cx-vis)', await p.evaluate(() => !!document.getElementById('cx-vis')), await txt(p, 'body').then(t => t.slice(0, 80)));
+    await L.capture(c, CAP + `frais-ticket-grand-${profil}-${nuit ? 'nuit' : 'jour'}.png`);
+    await p.keyboard.press('Escape'); await L.calme(p, 300);
+    v('F6b Échap referme le ticket', !(await p.evaluate(() => !!document.getElementById('cx-vis')))); }
+  else v('F6 « voir le ticket » trouvé', false);
   // F7 : modifier une note en attente, puis Annuler / Supprimer avec « Annuler »
   const mod = await p.$('[data-rl^="ndfmod|"]'); 
   if (mod) { await L.toucher(c, '[data-rl^="ndfmod|"]'); await L.calme(p, 300); v('F7a Modifier/Ajouter le ticket ouvre la note', /Modifier ma note|Corriger ma note|ticket/i.test(await txt(p, '#calque .panneau h2')), await txt(p, '#calque .panneau h2'));
@@ -66,7 +73,8 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   } else v('F7 il y a une note modifiable', false);
   // F8 : le gérant voit-il ces notes dans « Achats et frais » ?
   const total = await nb();
-  await p.evaluate(() => rlChanger('patron', { h: 'achats', muet: true })); await L.calme(p, 700);
+  await devenir(p, 'marc', 'achats');
+  await p.evaluate(() => { const b = document.querySelector('[data-ac="onglet|notes"]'); b && b.click(); }); await L.calme(p, 500);   // les notes de frais sont dans le second onglet « Frais » d'Achats et frais
   const achats = await txt(p);
   v('F8a le gérant arrive sur Achats et frais', /Achats et frais|Achats/.test(await txt(p, '#contenu h1')), await txt(p, '#contenu h1'));
   v('F8b la note de 6,50 € de Sophie y est (nom, objet, montant)', /Sophie/.test(achats) && /6,50/.test(achats), achats.slice(0, 300));

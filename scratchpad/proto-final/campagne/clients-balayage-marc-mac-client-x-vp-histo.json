@@ -1,0 +1,418 @@
+{
+ "profil": "mac",
+ "qui": "marc",
+ "route": "client-x-vp",
+ "etiq": "histo",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "‹ Retour",
+   "data": "data-retour=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Clients",
+   "panneau": "",
+   "hash": "#clients",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 62,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "Appeler",
+   "data": "",
+   "touche": true,
+   "change": [],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 100,
+   "h": 46
+  },
+  {
+   "i": 2,
+   "lib": "E-mail",
+   "data": "",
+   "touche": true,
+   "change": [],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 88,
+   "h": 46
+  },
+  {
+   "i": 3,
+   "lib": "Devis rapide",
+   "data": "data-action=clientDevis data-cli=vp",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "Nouveau devis",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 135,
+   "h": 46
+  },
+  {
+   "i": 4,
+   "lib": "Composer un devis",
+   "data": "data-opd=devis data-cli=vp",
+   "touche": true,
+   "change": [
+    "atelier"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": true,
+   "compta": false,
+   "sansNom": false,
+   "l": 187,
+   "h": 46
+  },
+  {
+   "i": 5,
+   "lib": "＋ Nouvelle intervention",
+   "data": "data-creer=1",
+   "touche": true,
+   "change": [],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 224,
+   "h": 46
+  },
+  {
+   "i": 6,
+   "lib": "📊 Voir ses factures dans la Comptabilité",
+   "data": "data-cmptv=client|vp",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Comptabilité",
+   "panneau": "",
+   "hash": "#comptabilite",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 309,
+   "h": 44
+  },
+  {
+   "i": 7,
+   "lib": "＋ Nouvelle tâche",
+   "data": "data-tkxnouv=client|vp",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "Nouvelle tâche",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 141,
+   "h": 34
+  },
+  {
+   "i": 8,
+   "lib": "2 856,00 €payé depuis le début · dont 2 670,00 € sans factur",
+   "data": "data-oc=factures",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 273,
+   "h": 110
+  },
+  {
+   "i": 9,
+   "lib": "0,00 €à recevoir",
+   "data": "data-oc=factures",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 273,
+   "h": 110
+  },
+  {
+   "i": 10,
+   "lib": "2 appareilsDaikin FTXM35R",
+   "data": "data-oc=appareils",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 273,
+   "h": 110
+  },
+  {
+   "i": 11,
+   "lib": "Historique",
+   "data": "data-oc=histo",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 108,
+   "h": 40
+  },
+  {
+   "i": 12,
+   "lib": "Factures · 1",
+   "data": "data-oc=factures",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 113,
+   "h": 40
+  },
+  {
+   "i": 13,
+   "lib": "Appareils",
+   "data": "data-oc=appareils",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 100,
+   "h": 40
+  },
+  {
+   "i": 14,
+   "lib": "Contrats · 0",
+   "data": "data-oc=contrats",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 116,
+   "h": 40
+  },
+  {
+   "i": 15,
+   "lib": "Documents",
+   "data": "data-oc=docs",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 114,
+   "h": 40
+  },
+  {
+   "i": 16,
+   "lib": "Infos",
+   "data": "data-oc=infos",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 68,
+   "h": 40
+  },
+  {
+   "i": 17,
+   "lib": "04/11/26Remplacer le ventilateur extérieur · KarimPlanifiée ",
+   "data": "data-go=inter-x-i13",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "✕‹ Retour13:30 – 15:302 h · mercredi 4 novembre Remplacer le ventilateur extérieur Restaurant Le Vie",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 634,
+   "h": 71
+  },
+  {
+   "i": 18,
+   "lib": "31/10/26Dépannage climatisation · SophieEn cours ›",
+   "data": "data-go=inter-x-i1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "✕‹ Retour08:30 – 09:301 h · samedi 31 octobre Dépannage climatisation Restaurant Le Vieux Port12 qua",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 634,
+   "h": 71
+  },
+  {
+   "i": 19,
+   "lib": "12/05/26Facture FAC-2026-0121Entretien annuel · 12/05186,00 ",
+   "data": "data-go=facture-x-f121",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "Facture FAC-2026-0121",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 634,
+   "h": 71
+  },
+  {
+   "i": 20,
+   "lib": "Proposer un contrat",
+   "data": "data-action=contratPour data-cli=vp",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Climatisation · entretien",
+   "panneau": "",
+   "hash": "#contrat-nouveau",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 154,
+   "h": 44
+  },
+  {
+   "i": 21,
+   "lib": "Composer un contrat",
+   "data": "data-opd=contrat data-cli=vp",
+   "touche": true,
+   "change": [
+    "atelier"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": true,
+   "compta": false,
+   "sansNom": false,
+   "l": 163,
+   "h": 44
+  }
+ ],
+ "err": []
+}
