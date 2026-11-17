@@ -243,6 +243,16 @@ aucune option, récapitulatif avant de payer, mot de passe jamais collé ici). �
 proposait d'en créer un second : évité). Le serveur d'atelier existe donc ; son adresse n'est pas encore connue ici, son mot de
 passe ne doit jamais l'être. PREMIERS GESTES à lui donner à la reprise, avant toute installation : clé SSH à la place du mot de
 passe, pare-feu (22, 80, 443), mises à jour de sécurité automatiques — puis seulement la forge.
+**Vu dans son espace IONOS après la commande (17 novembre, vers 17 h 40)** : le serveur d'atelier (« My VPS », « VPS 12-24-720 »,
+Ubuntu 24.04) est en ALLEMAGNE (Berlin) — le choix « EU » de la commande ne laissait pas choisir le pays ; dit à Justin : sans
+gravité pour un serveur d'essais aux données fictives, mais AUCUNE donnée réelle de client n'y va sans que les pages légales le
+disent d'abord. Le serveur actuel s'appelle « TeamOP » et porte la taille « VPS 4-4-120 » : sans doute 4 cœurs, 4 Go, 120 Go
+(l'offre M+ d'aujourd'hui en donne 2 : la sienne date de juillet) — à confirmer par la commande de mesure ; son pays n'est PAS
+vérifié (pastille bleue, pas de drapeau français lisible) : le lui faire lire au survol, et faire relire par `juriste` ce que
+disent `mentions-legales.html`, `confidentialite.html`, `sous-traitance.html` et `registre-traitements.html` si ce n'est pas la
+France. Avis général d'IONOS sur PHP (27 octobre) : sans objet a priori (Node), à vérifier sur le serveur actuel par
+`command -v php || echo "pas de PHP"`. Ce soir, à sa demande (« ce qui consomme le moins en priorité »), on SÉCURISE le serveur
+d'atelier, lui aux commandes : connexion, clé à la place du mot de passe, pare-feu, mises à jour automatiques.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
