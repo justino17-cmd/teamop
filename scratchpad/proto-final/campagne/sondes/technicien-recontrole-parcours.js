@@ -4,6 +4,8 @@
 //   P3 journée : Commencer → fiche → compte rendu → Terminer → le gérant voit l'intervention terminée et le compte rendu
 // Usage : node technicien-recontrole-parcours.js [profil] [nuit=0|1] [parcours=P1,P2,P3]
 const L = require('../../lib.js'), v = L.v, I = require('./interventions-outils.js');
+// « C'est quoi ? » n'est plus pré-rempli (restes du technicien, tour 1) : le geste qui ENVOIE choisit d'abord une nature, comme le ferait la personne — sinon le parcours bute sur « Choisis d'abord ce que c'est ».
+const T0 = L.toucher; L.toucher = async (c, sel, o) => { if (/data-rl="ndfok"/.test(sel)) await c.p.evaluate(() => { const e = document.getElementById('rn-o'); if (e && e.value === '') e.selectedIndex = 1; }); return T0(c, sel, o); };
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-technicien-recontrole/';
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const devenir = async (p, k, h) => { await p.evaluate(([k, h]) => { if (SESSION) sessionFermer('deconnexion'); sessionOuvrir(k); aller(h); }, [k, h]); await L.calme(p, 800); };

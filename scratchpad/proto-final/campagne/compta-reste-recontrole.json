@@ -1,27 +1,138 @@
 {
  "partie": "compta-reste",
  "date": "2026-11-17",
- "etat": "PROVISOIRE (en cours de recontrôle)",
  "regles": [
   "compta-reste-04",
   "compta-reste-05",
-  "compta-reste-10",
   "compta-reste-11",
   "compta-reste-13",
   "compta-reste-14",
-  "compta-reste-20"
+  "compta-reste-20",
+  "compta-reste-08"
+ ],
+ "reglesPartiels": [
+  {
+   "n": "compta-reste-10",
+   "reste": "Chiffres justes partout (3 085,00 €, TVA 445,17 + 37,64 = 482,81 €, 40,00 € sur place) sur Mac, iPad, iPhone, Android, jour et nuit ; la synthèse ne coupe plus ses montants. Le tableau « Détail » du bilan passe encore le numéro de facture sur trois lignes sur téléphone (voir pasRegles)."
+  }
  ],
  "pasRegles": [
   {
    "n": "compta-reste-03",
-   "constat": "Réglé seulement dans l'ancien formulaire de note de frais (rlNdfForm, code mort) et dans la dépense du bureau. Le formulaire que la technicienne ouvre vraiment (axNdfForm → axNdfEnvoyer) lit encore par axNum→cxNum SANS cxMontantRefus : « 1.234 » est enregistré 1,23 €, « 9.999 » 10,00 €, « 0,001 » 0,00 € (note envoyée au bureau, toast « Note envoyée »). Rejoué par les vrais gestes (compta-reste-recontrole-ndf.js mac : 12 ✓ · 4 ✗, dont 3 vrais). Reste aussi, en direct dans la dépense du bureau, un total TTC faux avant le refus (« 1.234 » affiche 1,48 € TTC, « 9.999 » 12,00 €)."
+   "constat": "RÉGLÉ SEULEMENT À MOITIÉ. Dépense du bureau : 28 saisies jouées, toutes justes (« 1.234,56 », « 1,234.56 », « 1 234,56 » lus 1 234,56 ; « 1.234 », « 9.999 », « 1e9 », « 12abc », « -5 », « 0,001 » refusés avec une phrase). Mais le formulaire que la technicienne ouvre vraiment (Mes frais › Note de frais → axNdfForm → axNdfEnvoyer, apercu/prototype-op-gestion.html) lit son montant par axNum→cxNum SANS cxMontantRefus : « 1.234 » est enregistré 1,23 €, « 9.999 » 10,00 €, « 0,001 » 0,00 €, avec le toast « Note envoyée au bureau ». Le correcteur a branché le garde-fou sur rlNdfForm, un formulaire que « le formulaire neuf prend la place de l'ancien » rend mort. Même lecture silencieuse (axNum) dans le montant du ticket d'une demande d'achat (ax-m), dans le tarif au kilomètre et dans le capital de « Mon entreprise » (« 10.000 » = 10). Reste aussi, dans la dépense du bureau, un total TTC en direct qui annonce un chiffre faux avant le refus (« 1.234 » affiche 1,48 €, « 9.999 » 12,00 €), et un total sans espace des milliers (« 1481,47 € » dans le formulaire, « 1 481,47 € » partout ailleurs). Rejoué par les vrais gestes sur Mac et iPhone : compta-reste-recontrole-ndf.js 12 ✓ · 4 ✗ (3 vrais ; le 4e est le garde-fou de doublon, juste).",
+   "gravite": "gênant (de l'argent mal lu en silence)"
   },
   {
    "n": "compta-reste-07",
-   "constat": "« (exemple) » est encore lisible dans Conformité › Archives & exports (lignes Septembre et Août 2026 : « Envoyé le 03/10, gardé tel quel (exemple) »), et « non simulées » dans la fiche de paie d'un salarié en maladie (indemnités journalières). Le module Paiement en ligne garde SIMULATION, « Tests 1 / 25 », « essais guidés » (cadre jamais lu par la sonde du correcteur)."
+   "constat": "Mots d'échafaudage encore lisibles par une vraie personne, hors de ce que la sonde du correcteur lisait : (1) Trésorerie › Paiement en ligne, À L'INTÉRIEUR du cadre prototype-paiement.html : « PROTOTYPE · OP GESTION », « Tout est simulé : aucun argent ne bouge, aucune donnée n'est réelle », « Pour la démonstration », « COULISSES · SIMULATION », « Tests 0 / 25 », « Nous sommes le samedi 31 octobre », boutons « + 1 jour » / « Jusqu'au prochain événement » (la barre au-dessus du cadre, seule relue, est propre) ; (2) Conformité › Archives & exports : « Envoyé le 03/10, gardé tel quel (exemple) » et « 04/09 … (exemple) » ; (3) bulletin de paie d'un salarié en maladie (Tom Leroy) : « …indemnités journalières en subrogation : non simulées » ; (4) cadre OP COMPTABLE › Paie : « Dans cet exemple, tous les salariés sont supposés affiliés… ». Réglé : le menu du cadre ne propose plus « La démo » ni « Tests guidés », et 18 onglets, 72 fenêtres et 40 rubriques du cadre sont propres.",
+   "gravite": "gênant"
+  },
+  {
+   "n": "compta-reste-10",
+   "constat": "« cellules sans retour à la ligne sur téléphone » n'est vrai que pour la synthèse. Dans « Détail · 12 paiements », le numéro de facture passe sur trois lignes (« FAC- / 2026- / 0145 ») et chaque ligne du tableau fait trois lignes de haut, à 390, 360 et 320 px (compta-reste-recontrole-bilan.js, capture rc-bilan-tableau-iphone.png). Lisible, pas fini : white-space:nowrap sur la colonne Facture ou « n° 0145 ».",
+   "gravite": "détail"
+  },
+  {
+   "n": "compta-reste-01",
+   "constat": "Décision inchangée : le cadre OP COMPTABLE calcule banque, dû fournisseurs, TVA et paie de son côté (non touché).",
+   "gravite": "bloquant (décision de Justin)"
+  },
+  {
+   "n": "compta-reste-02",
+   "constat": "Décision inchangée, rejouée : la facture FAC-2026-0143 payée par carte dans le module reste « Envoyée » dans OP GESTION (à recevoir 1 475,00 € avant et après, encaissements 11 → 11). La barre du module le dit maintenant, mais l'intérieur du module se présente comme un simulateur (voir 07).",
+   "gravite": "bloquant (décision de Justin)"
+  },
+  {
+   "n": "compta-reste-06",
+   "constat": "Décision inchangée : le pied « Prototype : taux d'exemple (barèmes 2025)… données fictives » est sur les 6 bulletins (compta-reste-parcours-f.js F5 ✗, attendu).",
+   "gravite": "gênant (décision de Justin)"
+  },
+  {
+   "n": "compta-reste-09",
+   "constat": "Décision inchangée : le bandeau « Cet écran est un résumé… Ouvrir dans la Comptabilité » est lu sur un écran déjà intitulé Comptabilité (capture rc-ipad-balance.png).",
+   "gravite": "gênant (décision de Justin)"
+  },
+  {
+   "n": "compta-reste-12",
+   "constat": "Décision inchangée : 510,08 € (écran TVA) contre 510,07 € (balance 44571), écart d'arrondi de 0,01 € (parcours D, ✗ attendu).",
+   "gravite": "détail (décision de Justin)"
+  },
+  {
+   "n": "compta-reste-15",
+   "constat": "Décision inchangée : « Valider quand même » reste sans fenêtre de confirmation.",
+   "gravite": "détail (décision de Justin)"
   }
  ],
  "casses": [],
- "sondes": [],
- "doutes": []
+ "casses_note": "Aucune casse introduite par les corrections : 460 gestes touchés un à un sur Mac (jour) rendent EXACTEMENT les mêmes effets avant et après les corrections (0 différence, 0 erreur JavaScript, 5 groupes), 496 gestes sur iPhone (nuit) : 0 erreur, 0 geste non touché, 0 sans nom ; les 32 « sans effet visible » sont des champs de recherche, une liste déroulante et les fiches de paie qui s'ouvrent en plein écran (même constat sur Mac, avant et après). Parcours de bout en bout sans écart : dépense « 1.234,56 » → achats, à payer (+1 481,47 €), TVA déductible (+246,91 €), journal équilibré, comptes fournisseurs, balance, résultat (16 ✓ · 0 ✗ sur Mac et iPhone nuit) ; note de frais de la technicienne (5 ✓) ; mois de paie, clôture et exports, notes de frais du gérant, achats, banque et fournisseurs, droits par rôle, pilote automatique du cadre (169 ✓ · 2 ✗, tous deux attendus : décisions 06 et 12).",
+ "sondes": [
+  {
+   "fichier": "compta-reste-corr.js (correcteur) mac / iphone nuit / ipad",
+   "resultat": "13 ✓ · 0 ✗ ; 13 ✓ · 0 ✗ ; 19 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "compta-reste-recontrole.js mac montants",
+   "resultat": "28 saisies de montants + 4 dates + 12 000 000 € : 34 ✓ · 3 ✗ (les 3 ✗ = le total en direct faux avant le refus, « 1.234 », « 1,234 », « 9.999 »)"
+  },
+  {
+   "fichier": "compta-reste-recontrole.js chiffres (mac jour, iphone nuit, android jour, mac nuit)",
+   "resultat": "12 ✓ · 0 ✗ chacun (bilan 3 085,00 € et TVA, « N sur M », en-têtes, « à payer » avant et après une dépense de 120 €)"
+  },
+  {
+   "fichier": "compta-reste-recontrole.js mise (ipad, android, iphone nuit, mac nuit)",
+   "resultat": "16 ✓ · 0 ✗ ; 23 ✓ · 0 ✗ ; 23 ✓ · 0 ✗ ; 22 ✓ · 0 ✗ (5 tableaux qui défilent sur iPad, tous avec fondu ; aucun fondu sur un tableau qui ne déborde pas)"
+  },
+  {
+   "fichier": "compta-reste-recontrole.js mots (onglets et 72 fenêtres)",
+   "resultat": "17 onglets propres sur 18 (sauf Archives & exports) ; 72 fenêtres propres (achats, normes, clôture, envoi, TVA, notes, fournisseurs, banque, paie, charges, journal)"
+  },
+  {
+   "fichier": "compta-reste-recontrole-ndf.js mac et iphone",
+   "resultat": "12 ✓ · 4 ✗ chacun (03 non réglé dans le vrai formulaire de note de frais)"
+  },
+  {
+   "fichier": "compta-reste-recontrole-bilan.js iphone, android, petit",
+   "resultat": "4 ✓ · 2 ✗ chacun (facture sur trois lignes)"
+  },
+  {
+   "fichier": "compta-reste-recontrole-paiement-mots.js mac",
+   "resultat": "2 ✓ · 3 ✗ (mots de simulation dans le module)"
+  },
+  {
+   "fichier": "compta-reste-recontrole-bulletin.js mac",
+   "resultat": "1 ✓ · 6 ✗ (pied « Prototype » sur 6 bulletins, « non simulées » sur celui de Tom)"
+  },
+  {
+   "fichier": "compta-reste-recontrole-cadre-mots.js mac",
+   "resultat": "menu sans « La démo » ni « Tests guidés » ✓ ; une phrase « Dans cet exemple » à reprendre (les autres trouvailles sont légitimes : « écritures d'essai », « Test Compta Demat », « ressaisir »)"
+  },
+  {
+   "fichier": "compta-reste-recontrole-parcours.js (marc mac, marc iphone nuit, sm iphone nuit)",
+   "resultat": "16 ✓ · 0 ✗ ; 16 ✓ · 0 ✗ ; 5 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "compta-reste-enligne.js mac",
+   "resultat": "3 ✓ · 2 ✗ (le paiement par carte ne rend pas la facture payée dans OP GESTION, décision 02)"
+  },
+  {
+   "fichier": "compta-reste-parcours-a/b/c/d/f/g.js mac, roles, cadre-parcours",
+   "resultat": "28 ✓ · 0 ✗ ; 17 ✓ · 0 ✗ ; 19 ✓ · 0 ✗ ; 21 ✓ · 1 ✗ (12, attendu) ; 17 ✓ · 1 ✗ (06, attendu) ; 22 ✓ · 0 ✗ ; 13 ✓ · 0 ✗ ; 32 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "compta-reste-recontrole-balayage-tout.sh mac jour (achats, paie, banque, fiscal, conformité)",
+   "resultat": "460 gestes touchés, 0 différence avec le balayage d'avant les corrections, 0 erreur"
+  },
+  {
+   "fichier": "compta-reste-recontrole-balayage-tout.sh iphone nuit (mêmes groupes)",
+   "resultat": "496 gestes touchés, 0 erreur, 0 non touché"
+  }
+ ],
+ "doutes": [
+  "Le module « Paiement en ligne » est entièrement un simulateur (bandeau PROTOTYPE, « Tout est simulé », 25 tests, horloge qu'on avance). Justin l'a demandé tel quel le 8 novembre pour tout tester ; pour la version finale, soit on le garde comme page de démonstration à part, soit on le remplace par un écran qui paie vraiment les factures d'OP GESTION. À trancher (02 et 07).",
+  "Le cadre OP COMPTABLE et OP GESTION donnent deux comptabilités différentes (banque 22 165,18 € contre 9 792,95 € ; dû fournisseurs, TVA, paie) : une seule comptabilité, ou on retire les tuiles qui se contredisent (01).",
+  "Le pied de chaque bulletin de paie dit « Prototype : taux d'exemple… données fictives » ; c'est un document remis au salarié, donc une décision juridique (06). La ligne maladie dit « non simulées » (07).",
+  "Le montant d'une note de frais du technicien : « 1.234 » devient 1,23 € sans un mot. À corriger dans axNdfEnvoyer (appeler cxMontantRefus comme la dépense du bureau) ; la même lecture existe dans la demande d'achat, le tarif au kilomètre et le capital de « Mon entreprise ».",
+  "Sur iPad en portrait, le Journal ne montre que Date, N°, Pièce et Compte : les colonnes Débit et Crédit sont à glisser (le fondu le dit, mais ce sont les chiffres qu'on vient chercher). À voir avec Justin : version en cartes comme sur téléphone ?",
+  "Non rejoué : le balayage complet des 956 gestes n'a pas été fait sur Mac de nuit ni sur iPhone de jour (les sondes de chiffres et de mise en page l'ont été sur ces profils) ; les gestes du cadre OP COMPTABLE (plein écran) ont été relus par mots et par les parcours du cadre, pas touchés un à un ; le paiement en ligne n'est testé que sur son premier écran client."
+ ]
 }

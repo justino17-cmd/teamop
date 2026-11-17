@@ -1,0 +1,36 @@
+### double-auth-sensibles
+  ✗ equipe-inviter : sans fenêtre valable, la confirmation s’ouvre avec SA phrase « Pour reposer un mot de passe » → Confirme sur ton téléphonePour donner un mot de passe provisoire, OP GESTION vérifie que c’est bien toi. 1. Ouvre OP Security et tape ton co
+== 110 ✓ · 1 ✗
+ ✗ equipe-inviter : sans fenêtre valable, la confirmation s’ouvre avec SA phrase « Pour reposer un mot de passe » :: Confirme sur ton téléphonePour donner un mot de passe provisoire, OP GESTION vérifie que c’est bien toi. 1. Ouvre OP Security et tape ton co
+exit 1
+### double-auth-equipe
+  ✗ ses boutons : « Copier le lien et l’identifiant », « Nouveau téléphone », « Déconnecter partout », « Reposer un mot de passe provisoire », « Ouvrir l’application comme Karim » → main propre. Il en choisira un autre à sa prochaine connexion. Lui envoyer un lien pour choisir le sien Karim reçoit un e-mail et choisit son mot de passe lui-même : rien à lui remettre. Ouvrir l’application comme Karim Désactiver le compte
+  ✗ toast « Mot de passe provisoire reposé. À sa prochaine connexion, Sophie choisira le sien. » 
+== 46 ✓ · 2 ✗
+ ✗ ses boutons : « Copier le lien et l’identifiant », « Nouveau téléphone », « Déconnecter partout », « Reposer un mot de passe provisoire », « Ouvrir l’application comme Karim » :: main propre. Il en choisira un autre à sa prochaine connexion. Lui envoyer un lien pour choisir le sien Karim reçoit un e-mail et choisit son mot de passe lui-même : rien à lui remettre. Ouvrir l’application comme Karim Désactiver le compte
+ ✗ toast « Mot de passe provisoire reposé. À sa prochaine connexion, Sophie choisira le sien. »
+exit 1
+### double-auth-compte
+== 64 ✓ · 0 ✗
+exit 0
+### double-auth-pirate
+== 49 ✓ · 0 ✗
+exit 0
+### double-auth-securite
+== 45 ✓ · 0 ✗
+exit 0
+### double-auth-fenetre
+== 16 ✓ · 0 ✗
+exit 0
+### secu-nombre
+== 49 ✓ · 0 ✗
+exit 0
+### secu-activation
+== 73 ✓ · 0 ✗
+exit 0
+### secu-inhabituelle
+== 50 ✓ · 0 ✗
+exit 0
+### secu-structure
+== 181 ✓ · 0 ✗
+exit 0
