@@ -1,10 +1,136 @@
 {
  "partie": "client",
  "date": "2026-11-17",
- "recontroleur": "recontrôle adverse (étape 3 sur 3) — ÉTAT PROVISOIRE, complété à la fin",
- "regles": [],
- "pasRegles": [],
- "casses": [],
- "sondes": [],
- "doutes": []
+ "recontroleur": "recontrôle adverse (étape 3 sur 3)",
+ "regles": [
+  1,
+  2,
+  3,
+  5,
+  7,
+  8,
+  9,
+  10,
+  13,
+  16,
+  17,
+  18,
+  20,
+  21,
+  12
+ ],
+ "pasRegles": [
+  {
+   "n": "client-04 (en partie)",
+   "constat": "Réglé pour les 14 adresses du bureau que la sonde testait, et pour les 37 vues et les 70 fiches (interventions, factures, clients, contrats, devis) tapées une à une : « Cette page n’est pas dans votre espace. » et le client reste chez lui. RESTE un chemin : les trois écrans du métier 3D (#registre, #carteBox, #devisXylo) passent par metiersSync (apercu/prototype-op-gestion.html, ~ligne 23020), AVANT la garde du rôle, et le client lit « Cet écran est celui du métier 3D (hygiène anti-nuisibles) : il n’existe pas dans ton entreprise. Retour à l’accueil. » — tutoiement, et un mot d’organisation interne. Rejoué iPhone jour, Mac nuit : 3 adresses sur 3. Voir casses[0]."
+  },
+  {
+   "n": "client-06 (en partie)",
+   "constat": "La demande de contrat crée bien la tâche « Proposer un contrat d’entretien à … » pour le bureau (rejoué : +1 tâche, +1 ligne de journal, visible côté patron dans Tâches). Mais client-corrections.json dit aussi « plus une intervention Entretien » : le code n’en crée AUCUNE (volontaire, le commentaire de la page le dit) — la note du correcteur est inexacte. Et côté client la demande ne laisse aucune trace : voir casses[1]."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Un client qui tape l’adresse d’un écran du métier 3D lit un message tutoyé qui parle du métier de l’entreprise",
+   "gravite": "gênant (rare, mais c’est exactement « un client voit-il quelque chose qui ne le regarde pas »)",
+   "etapes": "Client (rôle Client, n’importe quel client, iPhone ou Mac) › taper #registre, #carteBox ou #devisXylo dans l’adresse.",
+   "constat": "Message affiché : « Cet écran est celui du métier 3D (hygiène anti-nuisibles) : il n’existe pas dans ton entreprise. Retour à l’accueil. ». Le client reste bien dans son espace (route espaceclient), mais lit un tutoiement et le métier interne de l’entreprise. Cause : metiersSync() tourne à chaque rendre() et remplace la route par « accueil » avec ce toast avant que la garde du rôle (rlRefus) n’ait parlé. Défaut d’avant les corrections (non introduit par elles), non vu par la sonde de la première campagne qui ne testait que 14 adresses. Sonde : client-recontrole.js routes (4 ✗ sur 16, iPhone jour et Mac nuit). Piste de correction : en rôle client, dire « Cette page n’est pas dans votre espace. » (la phrase de rlRefus) au lieu du message du métier."
+  },
+  {
+   "titre": "Après « Demander un contrat », rien n’indique au client que sa demande est partie, et il peut l’envoyer deux fois",
+   "gravite": "gênant",
+   "etapes": "Client sans contrat (M. et Mme Durand) › Contrat › « Demander un contrat » › « Envoyer la demande », puis revenir sur l’onglet Contrat.",
+   "constat": "Seul un message passager (« Demande envoyée : on vous rappelle pour vous proposer un contrat ») confirme l’envoi ; l’onglet Contrat redevient exactement « Pas de contrat d’entretien. Demandez-en un… [Demander un contrat] » (capture rc-petit-jour-contrat-apres-demande.png). Redemander tout de suite crée une seconde tâche pour le bureau : 17 tâches puis 18 (rejoué, iPhone nuit). Pour une demande d’intervention, au contraire, le client retrouve sa demande dans « À venir » (« Rendez-vous à fixer · Votre demande : … »), donc l’écart est net. Piste : après l’envoi, remplacer la carte par « Votre demande est envoyée, nous vous rappelons » et ne plus offrir le bouton."
+  },
+  {
+   "titre": "Un mot très long dans une demande sort de la carte et élargit la page",
+   "gravite": "détail",
+   "etapes": "Client › Demander une intervention › écrire un mot de 83 lettres sans espace (une adresse web collée, par exemple) › Envoyer › Interventions.",
+   "constat": "La ligne « Votre demande : « … » » ne coupe pas le mot : il sort à droite de la carte (texte à x = 648 pour un écran de 390 ; la page ne défile pas mais le message « Demande envoyée » est alors posé hors de l’écran, à moitié coupé, sur un 320 px — capture rc-petit-jour-demande-longue.png). Des phrases très longues, elles, passent à la ligne sans problème. Piste : overflow-wrap:anywhere sur la ligne de demande."
+  },
+  {
+   "titre": "Le numéro du contrat se coupe en deux lignes sur iPhone",
+   "gravite": "détail",
+   "etapes": "Client avec un contrat signé (Cabinet dentaire Martin) › Contrat, iPhone 390 px.",
+   "constat": "« Contrat CTR-2026-011 » passe sur deux lignes au milieu du numéro (« CTR-2026- / 011 », capture rc-iphone-jour-app-18-contrat-signe.png). Le numéro de facture et les dates du client sont insécables depuis les corrections (client-09, client-17), pas celui du contrat."
+  },
+  {
+   "titre": "« Bonjour Syndic Foncia »",
+   "gravite": "détail",
+   "etapes": "Client « Copropriété Les Mimosas » › Accueil.",
+   "constat": "Le prénom est pris dans le contact de la fiche (« Syndic Foncia ») : le titre dit « Bonjour Syndic Foncia ». Voulu ou donnée de démonstration ? À dire à Justin plutôt qu’à corriger seul."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "client-parcours.js (mac)",
+   "resultat": "93 ✓ · 0 ✗ (client-12 repasse au vert : la fausse barre d’adresse n’existe plus dans la page)"
+  },
+  {
+   "fichier": "client-parcours.js (iphone)",
+   "resultat": "93 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "client-constats.js (iphone, ipad)",
+   "resultat": "iphone 14 ✓ · 4 ✗, ipad 9 ✓ · 3 ✗ : les seuls ✗ sont client-14 (navigation triple) et client-15 (carré OP, nom écrit deux fois), les points laissés à Justin ; 08, 17, 18, 20 au vert"
+  },
+  {
+   "fichier": "client-regard.js (iphone jour, nuit)",
+   "resultat": "2 ✓ · 0 ✗ chacune, captures relues"
+  },
+  {
+   "fichier": "client-mots-documents.js (mac)",
+   "resultat": "213 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "client-document.js (iphone)",
+   "resultat": "10 ✓ · 0 ✗ (client-21 inclus)"
+  },
+  {
+   "fichier": "client-mise-en-page.js (iphone nuit ; petit jour avec valeurs longues)",
+   "resultat": "43 ✓ · 0 ✗ chacune"
+  },
+  {
+   "fichier": "client-gestes.js (iphone jour md,vp ; iphone nuit hp,mi ; mac md,cm)",
+   "resultat": "118/118, 115/115 et 210/210 gestes touchés ; 146 ✓, 142 ✓, 237 ✓, 0 ✗. ATTENTION : telle que livrée, la sonde tombait sur l’iPhone (elle touchait « Voir comme l’application » et « Revenir au mode test », l’échafaudage du prototype nu, ce qui faisait passer la page en mode application) ; exclusion ajoutée dans la sonde elle-même (data-apv, data-cnx), aucune page touchée"
+  },
+  {
+   "fichier": "client-recontrole.js (nouvelle) mots",
+   "resultat": "iphone jour 34 ✓ · 0 ✗ et android nuit 34 ✓ · 0 ✗ : huit clients, tous leurs écrans et fenêtres (liste, paiement, devis, refus, compte rendu, demande, PDF), tous les messages : aucun tutoiement, aucun mot du bureau, aucun nom, adresse, numéro de facture, de devis ou de contrat d’un AUTRE client"
+  },
+  {
+   "fichier": "client-recontrole.js paiement",
+   "resultat": "iphone jour 30 ✓ · 0 ✗ et petit nuit 30 ✓ · 0 ✗ : 11 saisies fausses refusées sans rien encaisser, Échap et Annuler, variantes valides acceptées, puis les 3 factures à régler de 2 clients payées au centime, une seule fois (double toucher), accueil et compteur de l’onglet recalculés"
+  },
+  {
+   "fichier": "client-recontrole.js autres",
+   "resultat": "nuit 9 ✓ · 0 ✗ : technicien et comptable refusés avec leur phrase (« ton espace »), patron signe le contrat comme avant (fiche du contrat, message du bureau), compte rendu du patron avec sa carte et « Ouvrir la page complète », refus et acceptation du devis dits côté bureau"
+  },
+  {
+   "fichier": "client-recontrole.js demande",
+   "resultat": "iphone nuit 10 ✓ · 4 ✗ (les 4 sont les défauts casses[1] ×2 et casses[2] ×2 : un mot long sort de la carte, la demande de contrat ne laisse pas de trace et se double)"
+  },
+  {
+   "fichier": "client-recontrole.js routes",
+   "resultat": "iphone jour et mac nuit 12 ✓ · 4 ✗ (les 4 : les trois écrans 3D et la phrase de refus tutoyée, casses[0]) ; 37 vues, 24 interventions, 8 factures, 8 clients, 3 contrats, tous les devis, adresses tapées dans la barre, navigation, les contrats des autres clients jamais montrés"
+  },
+  {
+   "fichier": "client-recontrole.js noms",
+   "resultat": "iphone et mac : 370 commandes sur 25 écrans toutes nommées, « Entrée » ouvre le paiement, Tab ne sort pas de la fenêtre (14 pressions), Échap ferme et rend le focus, « Copier » l’IBAN annonce « Copié » (le BIC n’est pas renseigné : pas de bouton, voulu)"
+  },
+  {
+   "fichier": "client-recontrole.js regard",
+   "resultat": "captures relues : iphone jour/nuit (nu et mode application), mac jour/nuit, 320 px nuit, 18 écrans chacune ; rien de coupé hors les deux détails de casses"
+  }
+ ],
+ "doutes": [
+  "Le rapport des corrections (client-corrections.json) dit encore client-12 « à soumettre » : la fausse barre d’adresse de la page de signature n’existe plus (retirée par le lot « Restes contrats », commit f0dea81 de 9 h 12). Rien à décider.",
+  "client-11 : en mode application, la fenêtre de paiement dit toujours « Carte d’essai : aucun argent ne bouge. Sur un vrai paiement, la page est celle de la banque… » (proposition : « Démonstration : aucun argent ne bouge. » en mode application).",
+  "client-14 : trois navigations (onglets du haut, barre du bas, menu) en trois ordres sur téléphone, menu et onglets sur ordinateur et iPad. Décision de produit.",
+  "client-15 : carré « OP » du logiciel devant le nom de l’entreprise sur téléphone, et nom de l’entreprise écrit deux fois.",
+  "client-19 : deux devis du Vieux Port pour le même ventilateur (034 accepté, 041 à signer) : donnée de démonstration dont le parcours A à Z dépend.",
+  "Le rôle client n’a aucune entrée en mode application (pas de lien reçu par e-mail, pas de connexion) : on ne le voit que par la bande « Tester en tant que ». À décider : comment un vrai client arrive dans son espace.",
+  "« Bonjour Syndic Foncia » pour la copropriété : voulu ou donnée à changer ?",
+  "Non vérifié : Safari et Windows réels (émulation Chromium), l’e-mail du reçu de paiement et la copie signée (rien ne part, prototype sans serveur), le courriel de lien de signature."
+ ]
 }
