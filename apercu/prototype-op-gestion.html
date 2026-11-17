@@ -20063,6 +20063,7 @@ function entEnregistrerBanque(){
   if (!V) return;
   const iban = V['en-iban'].replace(/\s/g, '').toUpperCase();
   Object.assign(ENTREPRISE, { iban:iban.replace(/(.{4})/g, '$1 ').trim(), bic:V['en-bic'].toUpperCase() });
+  if (secuMasqueActif()) { SECU.parcours.add('iban'); setTimeout(opsDemo, 0); }
   Object.assign(CP_EXPERT, { cab:V['en-cab'], qui:V['en-expqui'], mail:V['en-expmail'] });
   entApresEnregistrement('Ta banque et ton comptable sont enregistrés.');
 }
@@ -25021,10 +25022,9 @@ function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVi
 /* ── ce que fait l'ordinateur d'une demande que le téléphone vient de traiter ── */
 function secuTraiter(d, res){ const k = d.k, c = secuCompte(k), now = secuMaint();
   if (d.motif !== 'connexion') { if (res === 'mauvais') { secuEchec(k, 'nombre'); secuJ('login.number_mismatch', k, 'action sensible'); } return secuConfSuite(d, res); }   /* une confirmation d'action sensible n'est pas une connexion : ni historique ni appareil reconnu */
-  if (SECU.pirate && SECU.pirate.id === d.id) SECU.pirate.issue = res === 'ok' ? 'entre' : 'mauvais';
+  if (SECU.pirate && SECU.pirate.id === d.id) { SECU.pirate.issue = res === 'ok' ? 'entre' : 'mauvais'; opsDemo(); }
   if (res === 'ok' && d.motif === 'connexion') { secuReconnaitre(k, { id:d.appareilId, nom:d.appareil, adresse:d.adresse }); c.echecs = 0; c.nVerrous = 0; SECU.confirmeA[k] = now;
     secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'approuvee' }); secuJ('mfa.approved_on_phone', k, d.raisons.length ? 'connexion inhabituelle' : '');
-    if (d.source === 'pirate') { opsDemo(); }
     SECU.parcours.add('nombre'); if (d.raisons.length && d.source === 'ici') SECU.parcours.add('autre'); if (eqDe(k) && sessionRole(eqDe(k)) !== 'patron') SECU.parcours.add('technicienne'); }
   else if (res === 'mauvais') { secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'nombre' }); secuEchec(k, 'nombre'); secuJ('login.number_mismatch', k, d.appareil); }
   secuPcSuite(d); }
@@ -25103,6 +25103,7 @@ const secuAv = p => `<span class="eq-av" style="--c:${(H_GENS[p.k] || {}).c || '
 function vueSecurite(){
   const tete = '<div class="tete"><div><span class="surtitre">Personnel</span><h1>Sécurité</h1><span class="gris">Qui s’est connecté de façon inhabituelle ou s’est fait refuser, et quels comptes sont verrouillés.</span></div></div>';
   if (!secuPeut()) return tete + '<div class="info" role="status">Cette page n’est pas pour toi.</div>';
+  if (secuMasqueActif() && !SECU.parcours.has('securite')) { SECU.parcours.add('securite'); setTimeout(opsDemo, 0); }   /* le parcours conseillé du bloc « Démonstration » se coche tout seul */
   const L = secuLignes(), V = secuVerrous(), bloq = L.filter(x => x.h.resultat === 'bloquee').length, moi = SECU.vraie || SESSION;
   const kpi = (n, un, plus, rouge) => `<div class="kpi"><b${rouge && n ? ' style="color:var(--rouge)"' : ''}>${n || 'Aucune'}</b><span>${n > 1 ? plus : un}</span></div>`;
   const cartes = `<div class="kpis sec-kpis">${kpi(L.length, 'connexion inhabituelle ou refusée', 'connexions inhabituelles ou refusées', false)}${kpi(bloq, 'bloquée depuis un téléphone', 'bloquées depuis un téléphone', true)}${kpi(V.length, 'compte verrouillé', 'comptes verrouillés', true)}</div>`;
@@ -25429,7 +25430,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec3-css">
 .sec-bande-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sec-bande-b{flex:none;min-height:44px;padding:0 12px;border:0;background:none;color:#fff;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
 html.sec-voir body{padding-top:44px}
-.cn-tel{justify-content:center}.cn-quit{justify-content:center;margin-bottom:0}
+.cn-compte,.cn-tel,.cn-quit{min-height:44px}.cn-tel{justify-content:center}.cn-quit{justify-content:center;margin-bottom:0}.sec-adr{overflow-wrap:anywhere}.sec-tab td.sec-adr{min-width:9.5em}
 @media (min-width:1100px){.cn-tel{display:none}}
 </style>`);
 
