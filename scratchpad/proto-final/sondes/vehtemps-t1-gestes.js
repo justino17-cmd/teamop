@@ -13,13 +13,14 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
 
 (async () => {
   /* ── A. « Terminer à 16:47 » : un geste, à la fin d'habitude, jamais l'heure qu'il est ── */
-  { const c = await frais(); const av = await ev(c, () => { const p = POINTAGES.find(o => o.qui === 'tl' && ptOuvert(o)); return { id:p.id, h:ptxFinPropose(p).h, now:hNow(), tr:PT_TRACE.length, debut:p.debut }; });
+  { const c = await frais(); const av = await ev(c, () => { const p = POINTAGES.find(o => o.qui === 'tl' && ptOuvert(o)); PT_VALIDE['tl' + lundi(p.date)] = true; return { id:p.id, h:ptxFinPropose(p).h, now:hNow(), tr:PT_TRACE.length, debut:p.debut, sem:'tl' + lundi(p.date) }; });   // une semaine DÉJÀ validée : terminer une journée doit la remettre à valider
     const l0 = await lignes(c); v('A : la population — la journée de Tom est ouverte et sa fin proposée n\'est pas l\'heure qu\'il est', !!av.id && av.h !== av.now && l0.length === 4, { av, l0 });
     const lib = await txt(c, '[data-tt^="terminer|"]'); v('A : le bouton dit l\'heure proposée', lib.trim() === 'Terminer à ' + av.h, lib);
     await clic(c, '[data-tt^="terminer|"]');
     const ap = await ev(c, id => { const p = POINTAGES.find(o => o.id === id), t = PT_TRACE[PT_TRACE.length - 1]; return { fin:p.fin, pause:p.pause, tr:PT_TRACE.length, t, val:Object.keys(PT_VALIDE).filter(k => /^tl/.test(k)), toast:(document.getElementById('toast') || {}).innerText }; }, av.id);
     v('A : la journée est terminée à la fin proposée (jamais « maintenant »)', ap.fin === av.h && ap.fin !== av.now, ap);
     v('A : la pause est celle d\'habitude, la trace est écrite (avant → après, qui, pourquoi)', ap.pause > 0 && ap.tr === av.tr + 1 && ap.t.champ === 'fin' && ap.t.apres === av.h && ap.t.par === 'marc' && ap.t.motif.length > 10, ap.t);
+    v('A : la semaine de Tom, validée avant, est remise à valider (ptDevalide) — la population : elle l\'était', (await ev(c, k => !PT_VALIDE[k], av.sem)), av.sem);
     v('A : le toast dit ce qui est parti et porte « Annuler »', /terminée à/.test(ap.toast) && /Annuler/.test(ap.toast), ap.toast);
     const l1 = await lignes(c); v('A : la rangée a disparu de « À régler » (4 → 3) et la pastille de l\'onglet suit', l1.length === 3 && (await txt(c, '[data-tt="onglet|auj"] .t-nb')).trim() === '3', l1.length);
     await toastClic(c, 'Annuler'); await c.p.waitForTimeout(250);
@@ -124,6 +125,8 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
     await ev(c, () => { const p = POINTAGES.find(o => o.qui === 'tl' && ptOuvert(o)); ttTerminerRapide(p.id, ptxFinPropose(p).h); });
     const a1 = await ev(c, () => ({ p:JSON.stringify(POINTAGES), tr:PT_TRACE.length, t:document.getElementById('toast').innerText })); v('H : forcer « Terminer » ne change rien et le dit', a1.p === av.p && a1.tr === av.tr && /fermé/.test(a1.t), a1.t);
     await ev(c, () => ttValiderUn('sm', lundi(AUJ))); v('H : forcer « Valider » ne change rien', (await ev(c, () => JSON.stringify(PT_VALIDE))) === av.val);
+    { const okN = await ev(c, () => ttSemEtat(lundi(AUJ)).ok.length); await ev(c, () => ttValiderLot(lundi(AUJ)));   // le bouton du lot est caché, mais la fonction est joignable : la garde doit tenir seule
+      v('H : forcer « Valider le lot » (des personnes EN RÈGLE existent : ' + okN + ') ne valide personne', okN > 0 && (await ev(c, () => JSON.stringify(PT_VALIDE))) === av.val, okN); }
     await clic(c, '[data-tt="ajout"]'); await ev(c, () => { document.getElementById('tt-aq').value = 'lr'; document.getElementById('tt-aj').value = jour(-2); document.getElementById('tt-am').value = 'test'; }); await clic(c, '[data-tt="ajoutok"]');
     const a2 = await ev(c, () => ({ p:JSON.stringify(POINTAGES), t:document.getElementById('toast').innerText })); v('H : « Ajouter une journée » dans un mois fermé est refusé, rien n\'est écrit', a2.p === av.p && /fermé/.test(a2.t), a2.t);
     await L.ranger(c.p); await clic(c, '[data-tt="onglet|semaine"]'); v('H : la Semaine dit « Octobre est fermé » et ne propose plus de valider', /Octobre est fermé/.test(await txt(c, '.tt-conteneur, #contenu')) && (await n(c, '.tt-barre .btn')) === 0);
@@ -135,7 +138,7 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
     const lea = await ev(c, () => { document.getElementById('tt-aq').value = 'lr'; document.getElementById('tt-aj').value = jour(-1); document.getElementById('tt-ad').value = '08:00'; document.getElementById('tt-af').value = '12:00'; document.getElementById('tt-ap').value = '0'; return { prevu:ptJour('lr', jour(-1)).length, abs:!!absDe('lr', jour(-1)) }; });
     await clic(c, '[data-tt="ajoutok"]'); const r0 = await ev(c, () => ({ np:POINTAGES.length, t:document.getElementById('toast').innerText }));
     v('I : sans motif, rien n\'est écrit et on dit pourquoi (la condition est VISIBLE avant)', r0.np === base.np && /pourquoi/i.test(r0.t) && (await n(c, '#calque .panneau')) === 1, r0.t);
-    await ev(c, () => { document.getElementById('tt-am').value = 'Oubli de pointer, confirmé avec elle'; }); await clic(c, '[data-tt="ajoutok"]');
+    await ev(c, () => { const m = document.getElementById('tt-am'); if (m) m.value = 'Oubli de pointer, confirmé avec elle'; }); await clic(c, '[data-tt="ajoutok"]');
     const r1 = await ev(c, () => { const t = PT_TRACE[PT_TRACE.length - 1], p = POINTAGES[POINTAGES.length - 1]; return { np:POINTAGES.length, tr:PT_TRACE.length, t, p, nt:NOTIFS.length, toast:document.getElementById('toast').innerText }; });
     v('I : avec le motif, la journée est ajoutée, tracée (« pas de pointage → 08:00–12:00 »), le salarié prévenu', r1.np === base.np + 1 && r1.tr === base.tr + 1 && r1.t.champ === 'journee' && r1.t.apres === '08:00–12:00' && r1.t.motif.length > 5 && r1.nt === base.nt + 1 && r1.p.qui === 'lr', r1);
     v('I : le toast porte « Annuler » ; annuler retire la journée et la trace', /Annuler/.test(r1.toast) && await (async () => { await toastClic(c, 'Annuler'); const r = await ev(c, () => ({ np:POINTAGES.length, tr:PT_TRACE.length })); return r.np === base.np && r.tr === base.tr; })());

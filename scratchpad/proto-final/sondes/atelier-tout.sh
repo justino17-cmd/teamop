@@ -13,6 +13,7 @@ for p in android iphone mac; do lance "retour $p" PROFIL=$p node $S/atelier-reto
 for p in mac android; do lance "numeros $p" PROFIL=$p node $S/atelier-numeros.js; done
 lance "echecs" node $S/atelier-echecs.js
 for p in mac mac720 windows ipad iphone android petit; do lance "mise en page $p" PROFIL=$p node $S/atelier-miseenpage.js; done
+for p in mac mac720 windows ipad iphone android petit; do lance "compositeur en grand $p" PROFIL=$p node $S/atelier-grand.js; done
 lance "page seule (4 configurations)" node $S/atelier-seule.js
 if [ -n "$AVEC_MENU" ]; then for f in $S/menu-*.js; do case "$f" in *menu-commun.js|*menu-mutations.js) continue;; esac; lance "$(basename $f)" node "$f"; done; fi
 echo FINI | tee -a "$J"

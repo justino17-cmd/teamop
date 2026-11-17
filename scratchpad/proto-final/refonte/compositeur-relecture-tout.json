@@ -1,0 +1,119 @@
+{
+ "lot": "compositeur",
+ "angle": "tout : profils mac, mac720, windows, ipad, iphone, android (et petit), jour et nuit, mode application, gérant puis bureau ; devis et contrat complets de bout en bout, sorties, numéros, fiche client, listes",
+ "etat": "en cours : devis 7 profils jour, contrat mac, mise en page 7 profils jour et nuit, sorties mac et iphone, valeurs difficiles mac et iphone, numéros, rotation ; il reste nuit, contrat sur téléphones, rôles, atelier absent",
+ "couvert": [
+  "devis complet (client par recherche, 2 articles du catalogue dont prix « 199,90 » et quantité « 1,75 » à virgule, ligne libre 1,5 h à 10 %, acompte 25 % qui tombe sur un demi-centime, mot, aperçu, créer, remise de 10 % dans l'éditeur, envoyer, retour, liste En attente, rouvrir) : mac, mac720, windows, ipad, iphone, android, petit en jour — 18 contrôles chacun à zéro échec, totaux recalculés au centime (HT 777,05 ; TVA 6,89 + 141,64 ; TTC 925,58 ; acompte 231,40 ; reste 694,18 ; avec remise : 717,08 / 853,62 / 213,41 / 640,21)",
+  "contrat complet (client, titre à signes HTML, prix « 280,50 », modèle, article de la bibliothèque, « Écrire mon article » avec {{variables}}, créer, numéro CTR-2026-012, envoyer, retour, liste, rouvrir) : mac jour",
+  "mise en page : largeur de la page d'aperçu, taille de texte réellement rendue, hauteur et texte des champs, titres d'étape, cibles au doigt, débordement, contrastes, texte le plus fin, captures regardées : mac, iphone, ipad, android en jour et nuit",
+  "sorties (Échap sans et avec contenu, croix, Continuer, Abandonner, Retour du navigateur, historique) : mac et iphone, devis",
+  "valeurs difficiles (devis) : quantités « 2.5 », « 1 000 », « abc », « -2 », « 0 », « 1e3 », « 999999999 », « 0,001 » ; prix « 199,90 », « 1.234,56 », « 12,345 », « abc », « -5 », « 99999999,99 » ; ligne libre vide ou au prix « abc » ; acompte « 150 », « -5 », « abc », « 12,5 » ; objet de 780 signes : mac et iphone — chaque refus se dit, aucun total ne dit NaN",
+  "numéros : devis composé D-2026-042, devis rapide D-2026-043, devis composé D-2026-044, aucun numéro en double (10 numéros relevés) ; brouillon, envoyé, signé (raccourci DIT : la signature au doigt n'est pas rejouée) : onglets À envoyer / En attente / Acceptés / Refusés / Tous et quatre chiffres du haut recalculés (+1, +57,60 €) : mac et iphone ; fiche du client",
+  "sorties : Échap sans contenu (ferme), Échap avec contenu (confirmation), Échap sur la confirmation, croix, Continuer, Abandonner (rien créé, rouvert vide), Retour du navigateur (UNE entrée d'historique consommée, saisie reprise AVEC le dire « Ton devis en cours est repris ») : devis et contrat, mac et iphone, 31 contrôles chacun",
+  "rotation et redimensionnement : mac 1440 → 1180 → 1024 → 900 → 1440 ; ipad portrait → paysage → 1024 → 900 → 1440, avec et sans l'aperçu plein écran ouvert",
+  "débordement dans la colonne des étapes avec des textes longs : petit (320), android, iphone, ipad"
+ ],
+ "defauts": [
+  {
+   "n": "tout-01",
+   "gravite": "gênant",
+   "ecran": "Composer un devis / Composer un contrat > bouton « Aperçu » (une colonne)",
+   "role": "gérant (Marc)",
+   "profils": [
+    "iphone jour",
+    "iphone nuit",
+    "android jour",
+    "android nuit"
+   ],
+   "etapes": [
+    "Ouvrir le prototype en mode application, aller sur Devis (ou Contrats)",
+    "Toucher « Composer un devis », choisir un client et trois articles",
+    "Toucher « Aperçu » en haut à droite"
+   ],
+   "attendu": "La page du devis se lit sans zoom : Justin a dit « composer un devis, c'est trop petit » et la spécification demande « la page entière en grand » au téléphone",
+   "constate": "« Ajuster » ouvre la page à 45 % sur iPhone (358 px sur 390) et 41 % sur Android (328 px sur 360) : le texte du document est rendu à 5,5 px (devis) / 5,9 px (contrat) sur iPhone et 5,0 / 5,4 px sur Android ; à 100 % il passe à 12,2 px mais la page fait 794 px et se lit en défilant de côté (la table est coupée à « Qté »)",
+   "preuve": "mise-en-page.js (relire-compositeur-tout) : « aperçu plein écran : page 358 px sur 390, texte rendu 5.5 px, échelle 0.45 » ×4 (iphone jour/nuit, android jour/nuit, devis et contrat) ; captures mep-iphone-jour-devis-apercu.png et -apercu100.png ; code : vvEchelle, fit = largeur de la zone / 794 (page.source:5379)",
+   "ou": "scratchpad/proto-final/atelier/page.source:5374-5383 (vvEchelle), valeur par défaut V.zoom='ajuster'",
+   "correction": "Au téléphone, ouvrir l'aperçu sur 100 % (texte 12 px) en laissant défiler dans les deux sens, ou proposer « Lire » à 75 % ; garder « Ajuster » comme vue d'ensemble ; dire « pince pour agrandir » sous le réglage. Décision de Justin : c'est un choix de produit (voir la page entière ou la lire)"
+  },
+  {
+   "n": "tout-02",
+   "gravite": "gênant",
+   "ecran": "Composer un contrat > étape 3 « Articles du contrat » > ligne d'un article (Modifier le texte, monter, descendre, retirer)",
+   "role": "gérant (Marc)",
+   "profils": [
+    "petit (320×568) jour"
+   ],
+   "etapes": [
+    "Profil 320 px de large",
+    "Contrats > Composer un contrat > choisir un modèle (Entretien clim — particulier : 11 articles)",
+    "Descendre jusqu'à « Mes articles »"
+   ],
+   "attendu": "Les quatre gestes de chaque article tiennent dans la largeur ; rien ne se coupe",
+   "constate": "La rangée « Modifier le texte · ↑ · ↓ · ✕ » mesure 343 px dans une colonne de 320 : le bouton rouge « Retirer » sort à droite, coupé par le bord, et la colonne des étapes défile de 23 px de côté. Rien de tel à 360, 390 et 820 px",
+   "preuve": "debord-form.js : « contrat {sw:343, cw:320, coup:[DIV.vv-l-a « Modifier le texte » droite=343 bord=320, BUTTON.bt icone danger « Retirer : … » droite=343 …]} » ; la même coupure se voit sur la capture mep-petit-jour-contrat-compo-bas.png (le ✕ rouge est rogné) — deux sondes indépendantes",
+   "ou": "scratchpad/proto-final/atelier/page.source:1343 et 1348 (.vv-l-a{flex-wrap:wrap} mais .vv-a .vv-l-a{flex:none;margin:0} : la rangée ne peut pas passer à la ligne dans l'article)",
+   "correction": "Laisser la rangée passer à la ligne dans l'article à moins de 340 px (par exemple .vv-a{flex-wrap:wrap} ou .vv-a .vv-l-a{flex:1 1 100%;min-width:0}) et garder la zone de toucher du ✕ à 44 px"
+  },
+  {
+   "n": "tout-03",
+   "gravite": "détail",
+   "ecran": "Composer un devis / un contrat, quand l'aperçu plein écran est ouvert PUIS qu'on tourne la tablette (ou agrandit la fenêtre) PUIS qu'on le ferme",
+   "role": "gérant (Marc)",
+   "profils": [
+    "ipad portrait → paysage 1180",
+    "ipad → 1440"
+   ],
+   "etapes": [
+    "iPad portrait (820 px) : Composer un devis, un client, un article",
+    "Toucher « Aperçu » (la page en grand s'ouvre)",
+    "Tourner la tablette en paysage (1180 px)",
+    "Toucher « Fermer »"
+   ],
+   "attendu": "La colonne de droite montre la page à la largeur « Ajuster » (636 px à 1180 px, 800 px à 1440 px)",
+   "constate": "La page reste à 476 px (échelle par défaut 0,6, aucune échelle posée : --vs vide) dans une colonne de 700 px ; le réglage affiche pourtant « Ajuster · 125 % » ; à 1440 px elle fait 476 px au lieu de 800 (spécification : au moins 620). Un toucher sur « Ajuster » la remet d'aplomb. Sans aperçu ouvert la rotation est juste (80 %, 636 px)",
+   "preuve": "rotation2.js : « (b) après fermeture de l'aperçu : feuilleCol 476, vs '' » contre « (a) rotation simple : feuilleCol 636, vs 0.8010 » ; rotation.js : feuille 476 à 1180 et à 1440 ; capture rot-ipad-jour-1440.png",
+   "ou": "scratchpad/proto-final/atelier/page.source:5376 (vvEchelle ne règle que la zone de l'aperçu tant qu'il existe) et 5386 (vvGrand(f,false) retire l'aperçu sans rappeler vvEchelle)",
+   "correction": "Appeler vvEchelle(f) après g.remove() dans vvGrand, ou faire régler les deux zones (colonne et aperçu) à chaque appel"
+  },
+  {
+   "n": "tout-04",
+   "gravite": "détail",
+   "ecran": "Composer un devis > étape « Conditions et textes » (Délai, Paiement) ; Composer un contrat > étape 3 (recherche d'un article)",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "android jour"
+   ],
+   "etapes": [
+    "Ouvrir le compositeur",
+    "Déplier l'étape Conditions et textes (devis) ou l'étape 3 (contrat)"
+   ],
+   "attendu": "Le texte d'aide du champ se lit en entier, ou se termine proprement",
+   "constate": "Le texte gris du champ est coupé net au bord : « Par virement ou carte bancaire. Solde à la réception de la » (la fin « facture. » manque) ; « Chercher un article : prix, résilia » (sur 360 px). C'est un champ d'une seule ligne",
+   "preuve": "captures mep-mac-jour-devis-compo-bas.png et mep-android-jour-contrat-compo.png, relevées sur deux profils",
+   "ou": "scratchpad/proto-final/atelier/page.source : #vv-paiement, #vv-delai (champs input à une ligne), #vv-bq (placeholder « Chercher un article : prix, résiliation, assurance… »)",
+   "correction": "Raccourcir les textes d'aide (« Solde à la réception de la facture » → phrase plus courte) ou passer ces champs en zone de texte de deux lignes ; au téléphone : « Chercher un article… »"
+  },
+  {
+   "n": "tout-05",
+   "gravite": "détail",
+   "ecran": "Composer un devis > étape Matériel > une ligne ajoutée (champ Prix HT) ; aussi la fiche « Ligne de prix » de l'éditeur au téléphone",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac",
+    "iphone",
+    "android"
+   ],
+   "etapes": [
+    "Ajouter un article du catalogue",
+    "Écrire « 199,90 » dans Prix HT, puis quitter le champ"
+   ],
+   "attendu": "« 199,90 » (deux décimales, comme tout ce que l'écran écrit en euros)",
+   "constate": "Le champ se relit « 199,9 » ; « 62,5 » reste « 62,5 », alors que la page à côté dit « 199,90 € » et « 62,50 € »",
+   "preuve": "valeurs.js : « prix « 199,90 » (champ relu : « 199,9 ») » sur mac et iphone ; capture devis-android-jour-marc-3-remise.png (fiche Ligne de prix : « 199,9 »)",
+   "ou": "scratchpad/proto-final/atelier/page.source:5261 (rawMontant(l.puC))",
+   "correction": "Rendre le champ avec deux décimales quand on le quitte (199,90) ; garder la saisie brute pendant la frappe"
+  }
+ ]
+}

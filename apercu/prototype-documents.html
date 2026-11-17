@@ -1468,6 +1468,11 @@ html[data-app] #vue-accueil{display:none!important}
 .vv-pl .vv-cat{max-height:min(480px,55vh)}
 .vv-pl .vv-art-b{min-height:64px}.vv-pl .vv-art-t b{font-size:16.5px}.vv-pl .vv-art-t i{font-size:14px}.vv-pl .vv-art-p{font-size:16px}.vv-pl .vv-art-p small{font-size:12.5px}
 .vv-pl .vv-pm button{width:44px;height:44px}.vv-pl .vv-pm output{font-size:17px}
+/* un nom d'article ne se coupe pas au milieu d'un mot : « allumag / e » à 320 px. Le nom garde une base de 9,5 em ; s'il n'a plus la place à côté du compteur, le compteur passe dessous, à droite */
+.vv-pl .vv-art-b.ajoute{flex-wrap:wrap;row-gap:6px}
+.vv-pl .vv-art-t{flex:1 1 9.5em}
+.vv-pl .vv-art-t b,.vv-pl .vv-art-t i{overflow-wrap:break-word}
+.vv-pl .vv-art-b.ajoute .vv-pm{margin-left:auto}
 .vv-pl .vv-pas,.vv-pl .chip-i{min-height:44px;font-size:15px}
 .vv-pl .vv-act .bt,.vv-pl .vv-c>.bt,.vv-pl .vv-s>.bt{min-height:48px;font-size:16px}
 .vv-pl .seg button{min-height:44px;font-size:15px}
