@@ -1311,6 +1311,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .pl-nav button:hover{background:var(--survol)}
 .pl-nav b{padding:0 8px;font-size:15px;white-space:nowrap;min-width:190px;text-align:center}
 .pl-equipe{display:flex;gap:6px;flex-wrap:wrap}
+.pl-kpis-note{margin:8px 0 0;font-size:13px;line-height:1.4;color:var(--doux)}.pl-kpis-note .lien{padding:0 6px}
 .pl-equipe button{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font-size:14px;font-weight:550}
 .pl-equipe button[aria-pressed="false"]{opacity:.45}
 .pl-equipe .av{width:26px;height:26px;font-size:10.5px}
@@ -4080,15 +4081,27 @@ function joursPeriode(){
   if (plVue === 'mois') { const n = new Date(+plRef.slice(0,4), +plRef.slice(5,7), 0).getDate(); return Array.from({length:n},(_,k)=>plRef.slice(0,8)+String(k+1).padStart(2,'0')); }
   return Array.from({length:plJours},(_,k)=>ajoute(lundi(plRef),k));
 }
-function chiffresPlanning(){
+/* Qui compte dans les chiffres du bandeau (décision du chef de chantier, 17 novembre, après le constat planning-04 : « 9 interventions · 11 h »
+   pour 6 cartes quand Sophie est masquée). « Interventions », « travail prévu » et « absent » suivent les personnes AFFICHÉES — celles de la rangée
+   de prénoms, et, en Sur mesure, une personne masquée un jour seulement ne compte pas ce jour-là. « À planifier » et « en retard » restent ceux de
+   toute l'équipe : ce sont des alertes à traiter, qui n'ont pas de colonne (une intervention à planifier n'a justement personne). La Carte a sa
+   propre rangée de personnes et ne passe pas par ces masques. Une SEULE définition, lue par la tuile ET par le panneau qu'elle ouvre. */
+const kpiDe = (tech, d) => plVue === 'carte' || (!plMasques.has(tech || '') && !(plVue === 'multi' && multiExclu.has((tech || '') + '|' + d)));
+function kpiFiltre(){ return plVue !== 'carte' && (plMasques.size > 0 || (plVue === 'multi' && joursPeriode().some(d => TECHS.some(t => multiExclu.has(t.id + '|' + d))))); }
+function kpiPopulation(){
   const J = joursPeriode();
-  const L = INTS.filter(i => J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe)), mn = L.reduce((s,i)=>s+i.dur,0);
+  return { J, DANS: INTS.filter(i => J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe)).filter(i => kpiDe(i.tech, i.d)),
+    ABS: ABSENCES.filter(a => J.some(j => a.du <= j && j <= a.au && kpiDe(a.tech, j))) };
+}
+function chiffresPlanning(){
+  const { J, DANS: L, ABS } = kpiPopulation(), mn = L.reduce((s,i)=>s+i.dur,0), filtre = kpiFiltre();
+  const note = !filtre ? '' : `<div class="pl-kpis-note" role="status">Interventions, travail prévu et absents : seulement les personnes affichées (${techsVus().length} sur ${TECHS.length}). « À planifier » et « en retard » comptent toute l’équipe. <button type="button" class="lien" data-mqtous="1">Tout afficher</button></div>`;
   return `<div class="kpis kpis-rang ${plVue === 'carte' ? 'kpis-serre' : ''}">
     <button type="button" class="kpi" data-kpi="int"><b>${L.length}</b><span>${L.length > 1 ? 'interventions' : 'intervention'}${plVue === 'carte' ? '' : ' sur la période'}</span></button>
     <button type="button" class="kpi" data-kpi="plan"><b style="color:var(--orange)">${INTS.filter(i=>i.st==='aplanifier').length}</b><span>à planifier</span></button>
     <button type="button" class="kpi" data-kpi="retard"><b style="color:var(--rouge)">${INTS.filter(i=>i.st==='retard').length}</b><span>en retard</span></button>
-    <button type="button" class="kpi" data-kpi="abs"><b style="color:var(--violet)">${new Set(ABSENCES.filter(a=>J.some(j=>a.du<=j&&j<=a.au)).map(a=>a.tech)).size}</b><span>absent</span></button>
-    <button type="button" class="kpi" data-kpi="temps"><b>${duree(mn)}</b><span>de travail prévu</span></button></div>`;
+    <button type="button" class="kpi" data-kpi="abs"><b style="color:var(--violet)">${new Set(ABS.map(a=>a.tech)).size}</b><span>absent</span></button>
+    <button type="button" class="kpi" data-kpi="temps"><b>${duree(mn)}</b><span>de travail prévu</span></button></div>${note}`;
 }
 /* la note du jour · 13 novembre 2026 : le panneau promet « visible par toute l'équipe, en haut du jour », mais en vue Jour, sur la Carte et
    en « par personne » aucune ligne ne la montrait (surtout sur iPhone, où la vue Jour est celle d'ouverture). Un bandeau au-dessus du planning. */
@@ -4107,7 +4120,7 @@ function vuePlanning(){
   ${plVue === 'multi' ? barreMulti() : ''}
   ${plVue === 'multi' || plVue === 'carte' ? '' : `<div class="pl-equipe" role="group" aria-label="Afficher ou masquer une personne">${TECHS.map(t=>`<button type="button" data-masque="${t.id}" aria-pressed="${!plMasques.has(t.id)}">${avatar(t)}${t.id?t.nom.split(' ')[0]:'Non assigné'}</button>`).join('')}</div>`}
   ${chiffresPlanning()}${plNotesJour()}
-  ${plVue !== 'multi' && plVue !== 'carte' && TECHS.every(t => plMasques.has(t.id)) ? '<div class="info pl-vide-masque" role="status">Personne n’est affiché : touche un prénom au-dessus pour voir son planning. Les chiffres comptent toute l’équipe.</div>' : ''}
+  ${plVue !== 'multi' && plVue !== 'carte' && TECHS.every(t => plMasques.has(t.id)) ? '<div class="info pl-vide-masque" role="status">Personne n’est affiché : touche un prénom au-dessus pour voir son planning. Les chiffres « interventions », « travail prévu » et « absent » sont alors à zéro.</div>' : ''}
   ${plVue === 'carte' ? vueCarte() : `  <div class="pl-aide">${plVue === 'mois' || plVue === 'general' ? (tactile() ? '<b>Appui long</b> sur une intervention, puis glisse-la sur une autre case : elle y va, à la même heure. Lâche, c’est enregistré. Appui long sans bouger : l’aperçu et les actions. Appui long sur une case vide : le menu pour créer. Touche : la fiche.' : '<b>Glisse</b> une intervention sur une autre case : elle y va, à la même heure. Lâche, c’est enregistré. <b>Alt + glisser</b> : une copie. <b>Passe la souris</b> dessus : l’aperçu. <b>Clic droit</b> : les actions. <b>Double-clic</b> sur une case vide : créer.') : tactile() ? '<b>Appui long</b> sur une intervention, puis glisse : deux barres montrent l’heure de début et de fin. Lâche, c’est enregistré. Appui long sans bouger : l’aperçu (heure, client, adresse, contact) et les actions. Appui long sur la petite barre en bas d’une carte, puis glisse : la durée change. Touche : la fiche.' : '<b>Glisse</b> une intervention : deux barres suivent l’heure de début et de fin, à gauche et à droite. Lâche, c’est enregistré. <b>Alt + glisser</b> : une copie. <b>Tire le bas</b> pour la durée. <b>Passe la souris</b> dessus : l’aperçu. <b>Clic droit</b> : les actions. <b>Double-clic</b> sur une case vide : créer.'}</div>
   <div class="pl-boite"><div class="pl-defile">${plVue==='multi' ? vueMulti() : plVue==='general' ? vueGenerale() : plVue==='semaine' ? vueSemaine() : plVue==='jour' ? vueJour() : vueMois()}</div></div>
   <div class="legende"><span><i style="background:color-mix(in srgb,#1f9d6b 20%,transparent);border-left:4px solid #1f9d6b"></i>Intervention, à la couleur du technicien</span><span><i style="border:1.5px solid var(--rouge)"></i>En retard</span><span><i style="border:1.5px dashed var(--violet)"></i>Bureau, réunion, indisponible</span><span><i style="background:repeating-linear-gradient(135deg,var(--trait2) 0 3px,transparent 3px 6px)"></i>Absence</span><span><i style="border-top:2px solid var(--rouge);border-radius:0;height:0;vertical-align:4px"></i>Maintenant</span></div>`}`;
@@ -4486,7 +4499,10 @@ function crMonter(el){
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
     const t = setTimeout(() => { if (!fini) { fini = true; crRepli('aucune donnée de carte reçue en 10 s'); } }, 10000);
-    const recue = () => { if (fini) return; fini = true; clearTimeout(t); crReelEtat = 'ok'; const c = document.getElementById('cr-carte'); if (c) c.dataset.fond = 'reel'; };
+    const recue = () => { if (fini) return; fini = true; clearTimeout(t); crReelEtat = 'ok'; const c = document.getElementById('cr-carte'); if (c) c.dataset.fond = 'reel';
+      /* les boutons « Plan · Satellite / Auto · Jour · Nuit » n'existent à l'écran (display) qu'à partir de CE moment : tracés avant, les repères ne les voyaient pas
+         et le dernier de la tournée restait dessous (iPad portrait, toute première ouverture de la session — recontrôle du planning, 17 novembre). On retrace maintenant. */
+      try { crTracerReel(); } catch (e) {} };
     const g = gl.getMaplibreMap(); if (g) { g.on('sourcedata', e => { if (e.isSourceLoaded) recue(); }); g.on('error', () => { if (fini) return; if (++erreurs >= 4) { fini = true; clearTimeout(t); crRepli('les données de la carte sont refusées'); } }); }
   }
   crTracerReel();
@@ -4954,23 +4970,23 @@ function panneauNote(d){
 function detailKpi(k){
   /* Chaque chiffre mène là où l'on AGIT (Justin, 1er novembre) : « à planifier » → la carte au planning, « en retard » →
      replanifier ou appeler, « absent » → le planning de la personne sur ses jours d'absence. La fiche reste à un clic. */
-  const J = joursPeriode();
-  // même population que la tuile (chiffresPlanning) : sinon « 214 » s'ouvre sur « Rien ici »
-  const DANS = INTS.filter(i => J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe)).sort((a, b) => a.d.localeCompare(b.d) || a.h.localeCompare(b.h));
+  // même population que la tuile (chiffresPlanning, par kpiPopulation) : sinon « 214 » s'ouvre sur « Rien ici »
+  const { J, DANS: DANS0, ABS } = kpiPopulation(), filtre = kpiFiltre(), DANS = DANS0.slice().sort((a, b) => a.d.localeCompare(b.d) || a.h.localeCompare(b.h));
+  const seulement = filtre && ['int', 'abs', 'temps'].includes(k) ? `<div class="info petit">Seulement les personnes affichées au planning (${techsVus().length} sur ${TECHS.length}).</div>` : '';
   const L = k === 'plan' ? INTS.filter(i => i.st === 'aplanifier') : k === 'retard' ? INTS.filter(i => i.st === 'retard') : DANS;
   const titre = { int:'Interventions sur la période', plan:'À planifier', retard:'En retard', abs:'Absences', temps:'Travail prévu' }[k] + (['int','temps'].includes(k) ? ' · ' + libellePeriode() : '');
   const ligne = (i, droite) => `<div class="kpi-l"><button type="button" class="kpi-l-t" data-go="inter-x-${i.id}"><b>${jlib(i.d)} · ${i.h} · ${esc(i.titre)}</b><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}${i.demande ? ' · <b style="color:var(--bleu)">demande client</b>' : ''}</span></button><span class="kpi-l-a">${droite}</span></div>`;
   let corps, aide = '';
-  if (k === 'abs') { corps = ABSENCES.map((a, n) => !J.some(j => a.du <= j && j <= a.au) ? '' : `<button type="button" class="ligne-clic" data-kabs="${n}"><span style="display:flex;gap:10px;align-items:center">${avatar(tech(a.tech))}<span><b>${tech(a.tech).nom}</b><br><span class="gris petit">${a.type} · ${a.du === a.au ? 'le ' + jlong(a.du) : 'du ' + jlong(a.du) + ' au ' + jlong(a.au)} · ${(nb => nb ? nb + ' intervention' + (nb > 1 ? 's' : '') + ' à réaffecter' : 'aucune intervention à réaffecter')(INTS.filter(i => i.tech === a.tech && i.d >= a.du && i.d <= a.au && i.st !== 'annulee').length)}</span></span></span><span>Voir son planning ›</span></button>`).join('') || '<p class="gris">Personne n’est absent sur cette période.</p>';
+  if (k === 'abs') { corps = ABSENCES.map((a, n) => !ABS.includes(a) ? '' : `<button type="button" class="ligne-clic" data-kabs="${n}"><span style="display:flex;gap:10px;align-items:center">${avatar(tech(a.tech))}<span><b>${tech(a.tech).nom}</b><br><span class="gris petit">${a.type} · ${a.du === a.au ? 'le ' + jlong(a.du) : 'du ' + jlong(a.du) + ' au ' + jlong(a.au)} · ${(nb => nb ? nb + ' intervention' + (nb > 1 ? 's' : '') + ' à réaffecter' : 'aucune intervention à réaffecter')(INTS.filter(i => i.tech === a.tech && i.d >= a.du && i.d <= a.au && i.st !== 'annulee').length)}</span></span></span><span>Voir son planning ›</span></button>`).join('') || '<p class="gris">Personne n’est absent sur cette période.</p>';
     corps += `<button type="button" class="btn gris" data-kabsnouv="1" style="align-self:flex-start">＋ Ajouter une absence</button>`; }
   else if (k === 'temps') { const tot = DANS.reduce((s,i)=>s+i.dur,0);
-    corps = `<div class="info petit">C’est la somme des durées prévues des interventions de la période (${J.length===1?'ce jour-là':J.length+' jours'}), toutes personnes confondues — y compris celles « à planifier ». Les réunions et activités de bureau ne comptent pas. Touche une personne pour voir son planning.</div>` + TECHS.map(t => { const L2 = DANS.filter(i => i.tech === t.id), mn = L2.reduce((s,i)=>s+i.dur,0); return `<button type="button" class="ligne-clic" data-kseul="${t.id}"><span style="display:flex;gap:10px;align-items:center">${avatar(t)}<span>${t.nom}<br><span class="gris petit">${L2.length} intervention${L2.length>1?'s':''}${t.id && J.some(d => aOuvre(d)) ? ' · sur ' + duree(J.filter(d => aOuvre(d)).length * 420) + ' de contrat' : ''}</span></span></span><b>${duree(mn)} ›</b></button>`; }).join('') + `<div class="ligne" style="font-size:17px"><b>Total</b><b>${duree(tot)}</b></div>`; }
+    corps = `<div class="info petit">C’est la somme des durées prévues des interventions de la période (${J.length===1?'ce jour-là':J.length+' jours'}), ${filtre ? 'pour les personnes affichées seulement' : 'toutes personnes confondues — y compris celles « à planifier »'}. Les réunions et activités de bureau ne comptent pas. Touche une personne pour voir son planning.</div>` + (filtre ? techsVus() : TECHS).map(t => { const L2 = DANS.filter(i => i.tech === t.id), mn = L2.reduce((s,i)=>s+i.dur,0); return `<button type="button" class="ligne-clic" data-kseul="${t.id}"><span style="display:flex;gap:10px;align-items:center">${avatar(t)}<span>${t.nom}<br><span class="gris petit">${L2.length} intervention${L2.length>1?'s':''}${t.id && J.some(d => aOuvre(d)) ? ' · sur ' + duree(J.filter(d => aOuvre(d)).length * 420) + ' de contrat' : ''}</span></span></span><b>${duree(mn)} ›</b></button>`; }).join('') + `<div class="ligne" style="font-size:17px"><b>Total</b><b>${duree(tot)}</b></div>`; }
   else if (k === 'plan') { aide = '<div class="info petit">« Placer au planning » ouvre le jour prévu : la carte clignote dans la colonne « Non assigné », ' + (tactile() ? 'appui long dessus, puis glisse-la' : 'glisse-la') + ' sur un technicien. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, i.demande ? `<button type="button" class="btn petit" data-dem="${i.id}">Valider la demande</button>` : `<button type="button" class="btn petit" data-kplacer="${i.id}">Placer au planning</button>`)).join('') || '<p class="gris">Rien à planifier.</p>'; }
   else if (k === 'retard') { aide = '<div class="info petit">Replanifier ouvre le planning sur la carte pour la déplacer ; appeler le technicien pour savoir où il en est. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, `<button type="button" class="btn petit" data-kplacer="${i.id}">Replanifier</button>${i.tech ? `<a class="btn gris petit" href="${lienTel(((typeof EQUIPE !== 'undefined' ? EQUIPE : []).find(e => e.k === i.tech) || {}).tel || '')}" data-kappel="${i.tech}">Appeler ${tech(i.tech).nom.split(' ')[0]}</a>` : ''}`)).join('') || '<p class="gris">Rien en retard.</p>'; }
   else corps = L.map(i => `<${i.hist ? 'div' : 'button type="button"'} class="ligne-clic"${i.hist ? ' style="cursor:default"' : ` data-go="inter-x-${i.id}"`}><span><b>${jlib(i.d)} · ${i.h} · ${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span></span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></${i.hist ? 'div' : 'button'}>`).join('') || '<p class="gris">Rien ici.</p>';
-  ouvrirPanneau(`<h2>${titre}</h2>${aide}${corps}`);
+  ouvrirPanneau(`<h2>${titre}</h2>${seulement}${aide}${corps}`);
 }
 function kpiPlacer(id){
   const i = INTS.find(o => o.id === id); if (!i) return; fermerPanneau();
@@ -13480,6 +13496,9 @@ function communeDe(adr){
   const a = sansAccent(adr || ''), cp = a.match(/\b\d{5}\b(.*)$/), vir = a.lastIndexOf(',');
   const queue = [cp ? cp[1] : '', vir >= 0 ? a.slice(vir + 1) : ''];
   for (const t of queue) { const c = t.trim() && COMMUNES.find(x => t.includes(x[0])); if (c) return c; }
+  /* un code postal suivi d'un nom de commune qui n'est PAS dans la liste (« 12 Rue de La Rochelle, 17100 Saintes ») : le client est ailleurs, et chercher dans la rue
+     le plaçait à « La Rochelle · 0 km » (recontrôle du planning, 17 novembre). On dit « adresse pas encore reconnue » plutôt que de deviner. */
+  if (cp && cp[1].replace(/[^a-z]/g, '').length > 1) return null;
   /* ni code postal ni virgule : l'adresse se termine par la commune, donc c'est la dernière nommée qui l'emporte (« 12 Route de La Rochelle Rochefort ») */
   return COMMUNES.filter(x => a.includes(x[0])).sort((x, y) => a.lastIndexOf(y[0]) - a.lastIndexOf(x[0]))[0] || null;
 }
