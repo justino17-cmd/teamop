@@ -2291,7 +2291,7 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 @media (max-width:760px){.collant{position:static;box-shadow:var(--ombre)}.deux-boutons{grid-template-columns:1fr}.deux-boutons .btn:last-child{order:-1}}
 .manque{font-size:15px;color:var(--orange);text-align:center;font-weight:550}.ok-msg{font-size:15px;color:var(--vert);text-align:center;font-weight:650}
 /* ── documents (toujours blancs, comme un PDF) ── */
-.pdf{background:#fff;color:#1b2333;border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,.25);padding:36px 40px;max-width:780px;width:100%;margin:0 auto;font-size:13.5px;line-height:1.5;display:flex;flex-direction:column;gap:10px;border-top:8px solid #0b1426}
+.pdf{overflow-wrap:anywhere;background:#fff;color:#1b2333;border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,.25);padding:36px 40px;max-width:780px;width:100%;margin:0 auto;font-size:13.5px;line-height:1.5;display:flex;flex-direction:column;gap:10px;border-top:8px solid #0b1426}
 .pdf-tete{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid #e3e7ef}
 .logo-ent{width:46px;height:46px;border-radius:12px;background:#0b1426;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:none}
 .pdf h4{margin:0;font-size:19px;color:#0b1426}
@@ -2496,6 +2496,7 @@ td.mono,.mono{white-space:nowrap}.ligne>b{white-space:nowrap}
 .st-int-3{grid-template-columns:58px minmax(0,1fr) auto}
 button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 8px;margin:0 -8px 6px;width:calc(100% + 16px);border-radius:10px;text-align:left;color:var(--encre);font:inherit;cursor:pointer}button.st-barre-l:hover{background:var(--survol)}
 .st-chev{color:var(--faible);font-weight:600}
+.ctr-doc{min-width:0}
 .doc-barre{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
 .mail-pj{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}.mail-pj>span:last-child{display:flex;flex-direction:column}.mail-pj small{color:var(--faible)}
 .mail-pj-i{width:38px;height:46px;border-radius:7px;background:#b0263c;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;flex:none}
@@ -5074,10 +5075,10 @@ function finiEcran(i, F){
     <section class="carte fin-c"><div class="fin-t"><h3>Compte rendu</h3><span class="st ${F.envoye ? 'st-v' : 'st-o'}">${F.envoye ? 'Envoyé' : 'À envoyer'}</span></div>
       <p class="fin-p">PDF et lien en ligne pour ${esc(CLIENTS[i.cli].contact.split(',')[0])}, au nom de ${esc(ENTREPRISE.nom)}.</p>
       <div class="fin-a">${boutonsEnvoi(i.id)}<div class="actions"><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir le PDF</button><button type="button" class="lien" data-voirclient="${i.id}|ordi">Voir le lien client</button></div></div></section>
-    <section class="carte fin-c"><div class="fin-t"><h3>Facturation</h3>${i.fact && i.fact.mode === 'garantie' ? '<span class="st st-g">Sans facture</span>' : f ? `<span class="st ${STF[f.st][1]}">${STF[f.st][0]}</span>` : '<span class="st st-o">À préparer</span>'}</div>
+    <section class="carte fin-c"><div class="fin-t"><h3>Facturation</h3>${i.fact && i.fact.mode === 'garantie' || ctrCompris(i) ? '<span class="st st-g">Sans facture</span>' : f ? `<span class="st ${STF[f.st][1]}">${STF[f.st][0]}</span>` : '<span class="st st-o">À préparer</span>'}</div>
       <div class="fin-p paie-bloc">${f && f.st === 'payee' ? `<div class="ligne"><span>Paiement</span><span class="st st-v">reçu</span></div><span class="gris petit">Réglée ${f.mode ? 'par ' + f.mode.toLowerCase() : ''}${f.paye ? ' le ' + f.paye : ''}${F.paiement.etat !== 'rien' ? ' · ' + esc(paiementTexte(F.paiement)) : ''}.</span>` : `<div class="ligne"><span>Paiement sur place</span>${paiementPastille(F.paiement)}</div><span class="gris petit">${esc(paiementTexte(F.paiement))} · noté par ${tech(i.tech).nom.split(' ')[0]}</span>`}
-        ${i.fact && i.fact.mode === 'garantie' ? '<div class="gris petit" style="margin-top:6px">Garantie / offert, décidé par le bureau à la création.</div>' : f ? `<div class="ligne"><span>${f.num === '—' ? 'Facture préparée' : 'Facture ' + f.num}</span>${typeof ROLE !== 'undefined' && RL_ACTIF && ROLE === 'tech' ? '<span class="gris petit">chiffrée par le bureau</span>' : `<b>${lignesDe(f).every(l=>l.pu!=null)?eur(ttcDe(f)):'à chiffrer'}</b>`}</div>` : ''}</div>
-      <div class="fin-a">${i.fact && i.fact.mode === 'garantie' ? '' : f ? `<button type="button" class="btn" data-go="facture-x-${f.id}">Ouvrir la facture</button>` : `<button type="button" class="btn" data-action="prepFacture" data-id="${i.id}">Préparer la facture</button>`}</div></section>
+        ${i.fact && i.fact.mode === 'garantie' ? '<div class="gris petit" style="margin-top:6px">Garantie / offert, décidé par le bureau à la création.</div>' : ctrCompris(i) ? '<div class="gris petit" style="margin-top:6px">Visite comprise dans le contrat ' + esc(ctrCompris(i).num) + ' (facturé ' + FACT_LIB[ctrCompris(i).fact] + ') : rien à facturer pour cette visite.</div>' : f ? `<div class="ligne"><span>${f.num === '—' ? 'Facture préparée' : 'Facture ' + f.num}</span>${typeof ROLE !== 'undefined' && RL_ACTIF && ROLE === 'tech' ? '<span class="gris petit">chiffrée par le bureau</span>' : `<b>${lignesDe(f).every(l=>l.pu!=null)?eur(ttcDe(f)):'à chiffrer'}</b>`}</div>` : ''}</div>
+      <div class="fin-a">${i.fact && i.fact.mode === 'garantie' || ctrCompris(i) ? '' : f ? `<button type="button" class="btn" data-go="facture-x-${f.id}">Ouvrir la facture</button>` : `<button type="button" class="btn" data-action="prepFacture" data-id="${i.id}">Préparer la facture</button>`}</div></section>
     <section class="carte fin-c"><div class="fin-t"><h3>Suites à donner</h3><span class="st ${F.suite.ventilo || F.suite.entretien ? 'st-b' : 'st-g'}">${(F.suite.ventilo?1:0)+(F.suite.entretien?1:0) || 'Aucune'}${F.suite.ventilo || F.suite.entretien ? ' prévue' + ((F.suite.ventilo?1:0)+(F.suite.entretien?1:0) > 1 ? 's' : '') : ''}</span></div>
       <div class="fin-p">${F.suite.ventilo ? '<div class="ligne"><span>Remplacer le ventilateur</span><span class="st st-b">devis à faire</span></div>' : ''}${F.suite.entretien ? '<div class="ligne"><span>Entretien annuel</span><span class="st st-o">à planifier</span></div>' : ''}${!F.suite.ventilo && !F.suite.entretien ? '<span class="gris">Rien de prévu après ce passage.</span>' : ''}</div>
       <div class="fin-a">${(F.suite.ventilo || F.suite.entretien) && rlPermis('planning') ? `<button type="button" class="btn gris" data-fichepl="${i.id}">Voir la suite au planning</button>` : ''}</div></section>
@@ -5304,18 +5305,20 @@ const restant = f => ttcDe(f) - (f.recu || 0);
 function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
   const F = fiche(i.id); if (FACTURES.find(f => f.int === i.id)) return;
   if (i.fact && i.fact.mode === 'garantie') return;
+  if (ctrCompris(i)) return;   // visite d'un contrat facturé à l'année ou au mois : rien à préparer
   const dv = dvInit().find(x => x.int === i.id && x.e === 'accepte');   // devis accepté lié à l’intervention : la fiche du devis promet ses lignes et l’acompte déduit
   if (dv && !i.fact) { const L3 = dv.lignes.map(l => ({ d:l[0], q:String(l[1]), pu:l[2] }));
     if (dv.acompte && dv.facAcompte) L3.push({ d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-Math.round(dvHT(dv) * dv.acompte) / 100 });
     FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:dv.objet, lignes:L3, ht:0, tva:dv.tva, st:'avalider', emise:'—', ech:'—' }); dv.facSolde = 'f-' + i.id; return; }
-  if (i.fact) { const m = Math.max(1, hmin(F.fin) - hmin(F.debut)), fm = i.fact.mode, L2 = [];
-    if (fm === 'forfait') L2.push({ d:'Forfait ' + i.type.toLowerCase(), q:'1', pu:i.fact.forfait });
+  const kc = ctrDeVisite(i), fi = i.fact || (kc ? { mode:'contrat', tva:CLIENTS[i.cli].type === 'part' ? 10 : 20 } : null);   // une visite de contrat facturée « à chaque visite » se prépare au prix du contrat, jamais au tarif de dépannage
+  if (fi) { const m = Math.max(1, hmin(F.fin) - hmin(F.debut)), fm = fi.mode, L2 = [];
+    if (fm === 'forfait') L2.push({ d:'Forfait ' + i.type.toLowerCase(), q:'1', pu:fi.forfait });
     if (fm === 'temps') { const f = Math.max(TARIFS.minimum, Math.ceil(m / 60) * 60); L2.push({ d:'Main-d’œuvre ' + i.type.toLowerCase(), note:`sur place ${F.debut} – ${F.fin} (${duree(m)}) · facturé ${duree(f)}, à l’heure entamée`, q:duree(f), pu:f / 60 * TARIFS.horaire }); }
     if (fm === 'devis' && DEVIS[i.cli]) DEVIS[i.cli].lignes.forEach(l => L2.push({ d:l[0] + ' (devis ' + DEVIS[i.cli].num + ')', q:String(l[1]), pu:l[2] }));
-    if (fm === 'contrat') { const c = CONTRATS.find(x => x.cli === i.cli && x.st === 'signe'); if (c) L2.push({ d:`Visite ${c.faites + 1} sur ${c.freq} · contrat ${c.num}`, q:'1', pu:c.prix / c.freq }); }
-    if (['forfait','temps'].includes(fm)) L2.push({ d:'Déplacement zone ' + (i.fact.zone || 1), q:'1', pu:TARIFS.zone[i.fact.zone || 1] });
+    if (fm === 'contrat') { const c = kc || CONTRATS.find(x => x.cli === i.cli && x.st === 'signe'), v = ctrVisiteNum(i); if (c) L2.push({ d:`Visite ${v ? v.n : ctrFaites(c) + 1} sur ${c.freq} · contrat ${c.num}`, q:'1', pu:c.prix / c.freq }); }
+    if (['forfait','temps'].includes(fm)) L2.push({ d:'Déplacement zone ' + (fi.zone || 1), q:'1', pu:TARIFS.zone[fi.zone || 1] });
     if (fm !== 'devis') F.pieces.forEach(p => L2.push({ d:p.nom, q:p.q, pu: p.pu != null ? p.pu : null, piece:true }));
-    FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`${i.type} · ${jcourt(i.d)} · ${F.debut} – ${F.fin}`, lignes:L2, ht:0, tva:i.fact.tva, st:'avalider', emise:'—', ech:'—' }); return; }
+    FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`${i.type} · ${jcourt(i.d)} · ${F.debut} – ${F.fin}`, lignes:L2, ht:0, tva:fi.tva, st:'avalider', emise:'—', ech:'—' }); return; }
   const L = [{ d:'Main-d’œuvre ' + i.type.toLowerCase(), note:`sur place ${F.debut} – ${F.fin} · heure entamée due, comme prévu au devis`, q:'1', pu:54.17 }, { d:'Déplacement La Rochelle', q:'1', pu:29.17 },
     ...F.pieces.map(p => ({ d:p.nom, q:p.q, pu:p.pu, piece:true }))];
   FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`${i.type} · ${jcourt(i.d)} · ${F.debut} – ${F.fin}`, lignes:L, ht:0, tva:CLIENTS[i.cli].type === 'part' ? 10 : 20, st:'avalider', emise:'—', ech:'—' });
@@ -5457,16 +5460,27 @@ const FACT_LIB = { visite:'à chaque visite', an:'une fois par an, à la signatu
    plantaient sur un contrat que le gérant venait d'envoyer à signer (campagne, défaut taches-absences-01). */
 function ctrFinDe(debut){ const [j, m, a] = String(debut || '').split('/').map(Number); if (!j || !m || !a) return '';
   const d = new Date(Date.UTC(a + 1, m - 1, j - 1)); return String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear(); }
-function visitesDe(k){ const n = k.freq, deb = k.debut.split('/').reverse().join('-'); const finC = k.fin ? k.fin.split('/').reverse().join('-') : ajoute(deb, 364), aVenir = Math.max(3, Math.round((dObj(finC) - dObj(AUJ)) / 864e5));
-  return Array.from({length:n}, (_,j) => { const fait = j < k.faites, reel = INTS.find(o => o.cli === k.cli && o.st !== 'annulee' && o.titre === `Contrat — visite ${j+1} sur ${n}`); let d = ajoute(deb, Math.round(j * 365 / n) + 14);
-    if (reel) d = reel.d; else if (!fait && d < AUJ) d = ouvres(1, ajoute(AUJ, Math.max(3, Math.round((j - k.faites + 1) * aVenir / (n - k.faites + 1)))))[0]; else d = ouvres(1, d)[0];
+/* Les visites d'un contrat : « faite » se LIT, elle ne se déclare plus. Le chiffre posé dans le contrat est le point de départ (les visites d'avant
+   OP GESTION), auquel s'ajoutent les visites « Contrat — visite n sur N » TERMINÉES au planning : la liste, la fiche, Statistiques, le courriel de
+   renouvellement et la facture lisent donc le même nombre (campagne contrats-03 : « 0 sur 2 faites » à côté d'une visite terminée). */
+function ctrVisiteNum(i){ const m = /^Contrat — visite (\d+) sur (\d+)$/.exec((i && i.titre) || ''); return m ? { n:+m[1], sur:+m[2] } : null; }
+function ctrDeVisite(i){ if (!i || i.type !== 'Contrat') return null; if (i.ctr) return CONTRATS.find(k => k.id === i.ctr) || null;
+  const v = ctrVisiteNum(i); return CONTRATS.find(k => k.cli === i.cli && k.st === 'signe' && (!v || v.sur === k.freq)) || null; }
+function ctrFaitesSet(k){ const faits = new Set(); for (let j = 1; j <= Math.min(k.freq, +k.faites || 0); j++) faits.add(j);
+  INTS.forEach(o => { if (o.st !== 'fait' || o.type !== 'Contrat') return; const v = ctrVisiteNum(o); if (v && v.n <= k.freq && ctrDeVisite(o) === k) faits.add(v.n); }); return faits; }
+function ctrFaites(k){ return ctrFaitesSet(k).size; }
+/* Une visite d'un contrat facturé « par an » ou « par mois » ne se facture pas à part : elle est comprise dans le prix du contrat (sinon le client paie deux fois). */
+function ctrCompris(i){ const k = ctrDeVisite(i); return k && k.fact !== 'visite' && (!i.fact || i.fact.mode === 'contrat') ? k : null; }
+function visitesDe(k){ const fa = ctrFaites(k), faits = ctrFaitesSet(k), n = k.freq, deb = k.debut.split('/').reverse().join('-'); const finC = k.fin ? k.fin.split('/').reverse().join('-') : ajoute(deb, 364), aVenir = Math.max(3, Math.round((dObj(finC) - dObj(AUJ)) / 864e5));
+  return Array.from({length:n}, (_,j) => { const reel = INTS.find(o => o.cli === k.cli && o.st !== 'annulee' && o.titre === `Contrat — visite ${j+1} sur ${n}`); const fait = faits.has(j + 1); let d = ajoute(deb, Math.round(j * 365 / n) + 14);
+    if (reel) d = reel.d; else if (!fait && d < AUJ) d = ouvres(1, ajoute(AUJ, Math.max(3, Math.round((j - fa + 1) * aVenir / (n - fa + 1)))))[0]; else d = ouvres(1, d)[0];
     return { d, fait, num:j+1, plan:!!reel, i:reel }; }); }
 function vueContrats(){
   const ATs = opdDocsDe('contrat', ['signe']), ATe = opdDocsDe('contrat', ['envoye', 'attente']);   // les contrats COMPOSÉS dans l'atelier comptent dans les quatre chiffres du haut
   const actifs = CONTRATS.filter(k => k.st === 'signe'), recurrent = actifs.reduce((s,k)=>s+k.prix,0) + ATs.reduce((s,x)=>s+x.prix/100,0), avenir = actifs.flatMap(k => visitesDe(k).filter(v => !v.fait)).length;
   return `<div class="tete"><div><span class="surtitre">Clients et ventes</span><h1>Contrats</h1><span class="gris">Tes contrats d’entretien avec tes clients : OP GESTION prépare le PDF, l’envoie à signer, range la copie signée et pose les visites au planning.</span></div><div class="actions"><button type="button" class="btn gris" data-go="contrat-nouveau">Contrat rapide</button>${rlPermis('contrats') ? '<button type="button" class="btn" data-opd="contrat">Composer un contrat</button>' : ''}</div></div>
   <div class="kpis"><div class="kpi"><b>${actifs.length + ATs.length}</b><span>contrats signés</span></div><div class="kpi"><b>${eur(recurrent)}</b><span>HT par an, qui revient</span></div><div class="kpi"><b>${avenir}</b><span>visites à venir</span></div>${cfCtrAttente() ? '<button type="button" class="kpi" data-go="contrat-x-' + cfCtrAttente().id + '">' : '<div class="kpi">'}<b style="color:var(--orange)">${CONTRATS.filter(k=>k.st==='envoye').length + ATe.length}</b><span>en attente de signature</span>${cfCtrAttente() ? '</button>' : '</div>'}</div>
-  <div class="carte tableau" style="padding:6px 8px"><table class="l ctr-tab"><thead><tr><th>N°</th><th>Client</th><th>Contrat</th><th>Visites</th><th class="n">Prix / an HT</th><th>État</th></tr></thead><tbody>${CONTRATS.map(k=>`<tr class="clic" data-go="contrat-x-${k.id}"><td class="mono">${k.num}</td><td><b>${esc(CLIENTS[k.cli].nom)}</b><span class="ctr-m"><span class="faible mini">${esc(k.titre)} · ${eur(k.prix)} HT par an</span><br><span class="st ${k.st==='signe'?'st-v':'st-b'}">${k.st==='signe'?'Signé le '+k.signe:'Envoyé · en attente'}</span></span></td><td>${esc(k.titre)}<br><span class="faible mini">${METIERS[k.modele]} · facturé ${FACT_LIB[k.fact]}</span></td><td>${k.faites} / ${k.freq} faites</td><td class="n">${eur(k.prix)}</td><td><span class="st ${k.st==='signe'?'st-v':'st-b'}">${k.st==='signe'?'Signé le '+k.signe:'Envoyé · en attente'}</span></td></tr>`).join('')}</tbody></table></div>
+  <div class="carte tableau" style="padding:6px 8px"><table class="l ctr-tab"><thead><tr><th>N°</th><th>Client</th><th>Contrat</th><th>Visites</th><th class="n">Prix / an HT</th><th>État</th></tr></thead><tbody>${CONTRATS.map(k=>`<tr class="clic" data-go="contrat-x-${k.id}"><td class="mono">${k.num}</td><td><b>${esc(CLIENTS[k.cli].nom)}</b><span class="ctr-m"><span class="faible mini">${esc(k.titre)} · ${eur(k.prix)} HT par an</span><br><span class="st ${k.st==='signe'?'st-v':'st-b'}">${k.st==='signe'?'Signé le '+k.signe:'Envoyé · en attente'}</span></span></td><td>${esc(k.titre)}<br><span class="faible mini">${METIERS[k.modele]} · facturé ${FACT_LIB[k.fact]}</span></td><td>${ctrFaites(k)} / ${k.freq} faites</td><td class="n">${eur(k.prix)}</td><td><span class="st ${k.st==='signe'?'st-v':'st-b'}">${k.st==='signe'?'Signé le '+k.signe:'Envoyé · en attente'}</span></td></tr>`).join('')}</tbody></table></div>
   ${opdCarte('contrat')}
   <div class="carte"><h3>Un modèle par métier</h3><span class="gris petit">${metiersModelesPhrase()}</span><div class="grille-modeles">${metiersModeles().map(([k,m])=>`<button type="button" class="ligne-clic" data-modele="${k}"><span><b>${m.nom}</b><br><span class="gris petit">${m.presta.length} prestations · prix conseillé ${m.prix[0]} à ${m.prix[1]} € HT par an</span></span><span>›</span></button>`).join('')}</div><div class="faible mini" style="margin-top:10px">Les modèles seront relus par le juriste avant d’être proposés aux entreprises.</div></div>`;
 }
@@ -5505,11 +5519,11 @@ function vueContrat(id){
   const V = visitesDe(k), c = CLIENTS[k.cli];
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
   <div class="tete"><div><span class="st ${k.st==='signe'?'st-v':'st-b'}" style="align-self:flex-start">${k.st==='signe'?'Signé le '+k.signe:'Envoyé le '+k.envoye+' · en attente de signature'}</span><h1>${k.num}</h1><button type="button" class="lien" data-go="client-x-${k.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button></div>
-    <div class="actions">${k.st==='envoye'?`<button type="button" class="btn gris" data-action="relanceContrat" data-id="${id}">Renvoyer le lien</button><button type="button" class="btn" data-go="signer-x-${id}">Voir ce que le client voit</button>`:`<button type="button" class="btn gris" data-action="info" data-txt="Dans la vraie version : le PDF signé se télécharge, avec le certificat de signature.">Télécharger le PDF signé</button>`}</div></div>
-  <div class="grille2">${pdfContrat({ cli:k.cli, modele:k.modele, freq:k.freq, prix:k.prix, fact:k.fact, debut:k.debut.split('/').reverse().join('-'), lieu:cfLieuContrat(k), revision:true, delai:true }, k)}
+    <div class="actions">${k.st==='envoye'?`<button type="button" class="btn gris" data-action="relanceContrat" data-id="${id}">Renvoyer le lien</button><button type="button" class="btn" data-go="signer-x-${id}">Voir ce que le client voit</button>`:''}</div></div>
+  <div class="grille2"><div class="ctr-doc">${pdfContrat({ cli:k.cli, modele:k.modele, freq:k.freq, prix:k.prix, fact:k.fact, debut:k.debut.split('/').reverse().join('-'), lieu:cfLieuContrat(k), revision:true, delai:true }, k)}</div>
     <div class="col"><div class="carte"><h3>Le chemin du contrat</h3><div class="etapes">${[['Préparé',true,''],['Envoyé au client',true,k.envoye||'02/01/2026'],['Signé',k.st==='signe',k.signe||''],['Visites posées au planning',k.st==='signe','']].map(e=>`<div class="etape ${e[1]?'ok':''}"><span class="pt"></span><span><b>${e[0]}</b>${e[2]&&e[1]?'<br><span class="faible mini">le '+e[2]+'</span>':''}</span></div>`).join('')}</div></div>
-      <div class="carte"><h3>Les visites · ${k.faites} sur ${k.freq} faites</h3>${k.st==='signe'?V.map(v=>`<div class="ligne"><span>${v.i ? '<button type="button" class="lien" data-go="inter-x-' + v.i.id + '">Visite ' + v.num + ' · ' + jlong(v.d) + '</button>' : 'Visite ' + v.num + ' · ' + jlong(v.d)}</span><span class="st ${v.fait?'st-v':'st-b'}">${v.fait ? 'Faite' : v.i ? ST[v.i.st][0] : 'À planifier'}</span></div>`).join(''):'<span class="gris">Elles se posent au planning dès la signature.</span>'}</div>
-      <div class="carte"><h3>Facturation</h3><div class="ligne"><span>${eur(k.prix/k.freq)} HT ${FACT_LIB[k.fact]==='à chaque visite'?'à chaque visite':'· '+FACT_LIB[k.fact]}</span><b>${eur(k.prix)} / an</b></div><div class="faible mini">La facture de chaque visite se prépare toute seule, avec son compte rendu joint.</div></div></div></div>`;
+      <div class="carte"><h3>Les visites · ${ctrFaites(k)} sur ${k.freq} faites</h3>${k.st==='signe'?V.map(v=>`<div class="ligne"><span>${v.i ? '<button type="button" class="lien" data-go="inter-x-' + v.i.id + '">Visite ' + v.num + ' · ' + jlong(v.d) + '</button>' : 'Visite ' + v.num + ' · ' + jlong(v.d)}</span><span class="st ${v.fait?'st-v':'st-b'}">${v.fait ? 'Faite' : v.i ? ST[v.i.st][0] : 'À planifier'}</span></div>`).join(''):'<span class="gris">Elles se posent au planning dès la signature.</span>'}</div>
+      <div class="carte"><h3>Facturation</h3><div class="ligne"><span>${k.fact === 'mois' ? eur(k.prix / 12) + ' HT chaque mois' : k.fact === 'an' ? eur(k.prix) + ' HT une fois par an, à la signature' : eur(k.prix / k.freq) + ' HT à chaque visite'}</span><b>${eur(k.prix)} / an</b></div><div class="faible mini">${k.fact === 'visite' ? 'La facture de chaque visite se prépare toute seule, avec son compte rendu joint.' : k.fact === 'an' ? 'La facture de l’année est préparée à la signature. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.' : 'Le contrat se facture au mois. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.'}</div></div></div></div>`;
 }
 function vueSigner(id){
   const k = CONTRATS.find(x => x.id === id); if (!k) return RL_ACTIF && ROLE === 'client' ? vueEspaceClient() : vueContrats();   // une adresse sans contrat retombe sur la liste, comme les autres fiches
@@ -5599,7 +5613,7 @@ function apercuElement(type, id){
       <div class="carte">${etapes(f)}</div>${f.num !== '—' ? pdfFacture(f) : ''}`; }
   if (type === 'contrat') { const k = CONTRATS.find(x => x.id === id); if (!k) return;
     h = `<span class="st ${k.st==='signe'?'st-v':'st-b'}" style="align-self:flex-start">${k.st==='signe'?'Signé le '+k.signe:'En attente de signature'}</span><h2>Contrat ${k.num}</h2><span class="gris">${esc(k.titre)} · ${k.freq} visite${k.freq>1?'s':''} par an · ${eur(k.prix)} HT / an</span>
-      ${k.st==='signe'?`<div class="carte"><h3>Les visites · ${k.faites} sur ${k.freq} faites</h3>${visitesDe(k).map(v=>`<div class="ligne"><span>Visite ${v.num} · ${jlong(v.d)}</span><span class="st ${v.fait?'st-v':'st-b'}">${v.fait ? 'Faite' : v.i ? ST[v.i.st][0] : 'À planifier'}</span></div>`).join('')}</div>`:''}
+      ${k.st==='signe'?`<div class="carte"><h3>Les visites · ${ctrFaites(k)} sur ${k.freq} faites</h3>${visitesDe(k).map(v=>`<div class="ligne"><span>Visite ${v.num} · ${jlong(v.d)}</span><span class="st ${v.fait?'st-v':'st-b'}">${v.fait ? 'Faite' : v.i ? ST[v.i.st][0] : 'À planifier'}</span></div>`).join('')}</div>`:''}
       ${pdfContrat({ cli:k.cli, modele:k.modele, freq:k.freq, prix:k.prix, fact:k.fact, debut:k.debut.split('/').reverse().join('-'), lieu:cfLieuContrat(k), revision:true, delai:true }, k)}`; }
   if (type === 'inter' || type === 'cr') { const i = INTS.find(o => o.id === id); if (!i) return; const F = fiche(id), fini = F.etat === 'bureau' || i.st === 'fait'; go = 'inter-x-' + id;
     h = `<div class="apercu-dans" style="font-size:15px">${infoCarte(i)}</div>${fini ? `<h3 class="surtitre" style="margin-top:6px">Le compte rendu envoyé au client</h3>${compteRenduPdf(id)}` : '<div class="info petit">Pas encore terminée : le compte rendu apparaîtra ici une fois l’intervention terminée.</div>'}`; }
@@ -6006,7 +6020,7 @@ function vueStatistiques(){
   const retards = FACTURES.filter(f => f.st === 'retard'), mRetard = retards.reduce((s, f) => s + restant(f), 0);
   const signes = CONTRATS.filter(c => c.st === 'signe'), recurrent = signes.reduce((s, c) => s + c.prix, 0), attente = CONTRATS.filter(c => c.st !== 'signe');
   const aRenouv = signes.filter(c => c.fin).map(c => { const [d, m, y] = c.fin.split('/').map(Number); return { c, j: Math.round((new Date(y, m - 1, d) - new Date(AUJ + 'T12:00:00')) / 864e5) }; }).filter(x => x.j <= 180).sort((a, b) => a.j - b.j);
-  const visites = signes.reduce((s, c) => s + c.freq, 0), faites = signes.reduce((s, c) => s + c.faites, 0);
+  const visites = signes.reduce((s, c) => s + c.freq, 0), faites = signes.reduce((s, c) => s + ctrFaites(c), 0);
 
   return `<div class="tete tete-p"><div><span class="surtitre">Accueil</span><h1>Statistiques</h1><span class="gris">Comment va l’entreprise, sur la période que tu choisis.</span></div>
     <button type="button" class="btn gris" data-stbilan="1">Bilan ${stPer === 'mois' ? 'du mois' : 'de la période'} en PDF</button></div>
@@ -6168,7 +6182,7 @@ function stRelanceContrat(c){
   const cl = CLIENTS[c.cli], signe = c.st === 'signe';
   panneauEnvoi({ titre:signe ? 'Proposer le renouvellement' : 'Relancer la signature', a:cl.mail, pj:c.num + '.pdf',
     objet:signe ? `Votre contrat d’entretien ${c.num} arrive à échéance le ${c.fin}` : `Votre contrat d’entretien ${c.num} attend votre signature`,
-    corps:signe ? `Bonjour ${cl.contact.split(',')[0]},\n\nVotre contrat d’entretien ${c.num} (${c.titre.toLowerCase()}) arrive à échéance le ${c.fin}.\n\nCette année, nous sommes passés ${c.faites} fois sur les ${c.freq} visites prévues. Souhaitez-vous le renouveler pour une nouvelle année, aux mêmes conditions (${eur(c.prix)} HT par an, ${c.freq} visite${c.freq > 1 ? 's' : ''}) ? Nous pouvons aussi l’adapter si vos besoins ont changé.\n\nIl vous suffit de répondre à ce message ou de nous appeler au ${ENTREPRISE.tel}. Le contrat actuel est joint pour mémoire.\n\nBien cordialement,\n${ENTREPRISE.nom}`
+    corps:signe ? `Bonjour ${cl.contact.split(',')[0]},\n\nVotre contrat d’entretien ${c.num} (${c.titre.toLowerCase()}) arrive à échéance le ${c.fin}.\n\nCette année, nous sommes passés ${ctrFaites(c)} fois sur les ${c.freq} visites prévues. Souhaitez-vous le renouveler pour une nouvelle année, aux mêmes conditions (${eur(c.prix)} HT par an, ${c.freq} visite${c.freq > 1 ? 's' : ''}) ? Nous pouvons aussi l’adapter si vos besoins ont changé.\n\nIl vous suffit de répondre à ce message ou de nous appeler au ${ENTREPRISE.tel}. Le contrat actuel est joint pour mémoire.\n\nBien cordialement,\n${ENTREPRISE.nom}`
       : `Bonjour ${cl.contact.split(',')[0]},\n\nNous vous avons envoyé le ${c.envoye} le contrat d’entretien ${c.num} (${c.titre.toLowerCase()}, ${eur(c.prix)} HT par an). Il n’est pas encore signé.\n\nVous pouvez le signer en ligne depuis le lien reçu, en deux minutes. Il est joint à ce message.\n\nUne question ? Répondez simplement à ce message ou appelez-nous au ${ENTREPRISE.tel}.\n\nBien cordialement,\n${ENTREPRISE.nom}`,
     apres:() => { c.relance = '31 octobre'; rendre(); } });
 }
@@ -8621,13 +8635,16 @@ const ACTIONS = {
     INTS.push(i); journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:i.tech ? tech(i.tech).nom + ' · ' + jlib(i.d) + ' à ' + i.h : 'à planifier' }); fermerPanneau(); if (route !== 'planning') { plRef = q.d; aller('planning'); } else { plRef = q.d; rendre(); } flash(i.id); toast(`Créée : <b>${esc(titre)}</b> · ${q.tid ? tech(q.tid).nom : 'à planifier'} · ${jlib(q.d)} ${q.h}`, ANNULER); },
   noteOk(b){ memo(); const t = document.getElementById('note-t').value.trim(); if (t) NOTES[b.dataset.d] = t; else delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); toast('Note enregistrée, visible par toute l’équipe.', ANNULER); },
   noteSuppr(b){ memo(); delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); },
-  creerContrat(){ const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Number(B.prix) > 0)) { toast('Indique le prix du contrat (par an, HT).'); if (pf) pf.focus(); return; }
+  creerContrat(){ const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Math.round(Number(B.prix) * 100) >= 100)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
     if (Number(B.prix) > CTR_PRIX_MAX) { toast('Ce prix est trop grand pour un contrat d’entretien (maximum ' + eur(CTR_PRIX_MAX) + ' par an).'); if (pf) pf.focus(); return; }
     if (!cfMailOk(CLIENTS[B.cli].mail)) { toast(esc(CLIENTS[B.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour lui envoyer le contrat à signer.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + B.cli) }); return; }
     if (Date.now() - cfCtrT < 1200) return; cfCtrT = Date.now();   // le double-clic d'avant a déjà créé le contrat : la page ne s'est pas encore redessinée
     const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:Number(B.prix) || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
     k.fin = ctrFinDe(k.debut);
-    CONTRATS.push(k); oublierEcran('contrat-nouveau'); aller('contrat-x-' + k.id); toast(`Contrat envoyé à ${esc(CLIENTS[B.cli].mail)} pour signature.`); },
+    const mailK = CLIENTS[B.cli].mail;
+    CONTRATS.push(k); journalAjout('marc', 'contrat', 'a envoyé le contrat à signer', { t:'contrat', id:k.id, lib:k.num, cli:k.cli }, { det:k.titre + ' · ' + eur(k.prix) + ' HT / an' });
+    Object.assign(B, { cli:'vp', freq:1, prix:MODELES[B.modele].prix[1], fact:'visite', revision:true, delai:true, pieces:false, lieu:cfLieuDe('vp') }); metiersCtrDefauts();   // le prochain contrat repart des valeurs du modèle : le prix et le client du précédent ne le suivent pas
+    oublierEcran('contrat-nouveau'); aller('contrat-x-' + k.id); toast(`Contrat envoyé à ${esc(mailK)} pour signature.`); },
   contratPour(b){ BROUILLON.cli = b.dataset.cli; BROUILLON.lieu = cfLieuDe(b.dataset.cli); aller('contrat-nouveau'); },
   relanceContrat(b){ const kr = CONTRATS.find(x => x.id === (b && b.dataset.id)); if (kr && !cfMailOk(CLIENTS[kr.cli].mail)) { toast(esc(CLIENTS[kr.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour renvoyer le lien.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + kr.cli) }); return; } toast('Lien de signature renvoyé au client.'); },
   lireContrat(b){ const k = CONTRATS.find(x => x.id === b.dataset.id); ouvrirPanneau(pdfContrat({ cli:k.cli, modele:k.modele, freq:k.freq, prix:k.prix, fact:k.fact, debut:k.debut.split('/').reverse().join('-'), lieu:cfLieuContrat(k), revision:true, delai:true }, k), true); },
@@ -8636,7 +8653,8 @@ const ACTIONS = {
     const cv = document.getElementById('signe-ctr'), lu = document.getElementById('lu');
     if (!lu.checked || !cv.dataset.signe) { toast(!lu.checked ? 'Cochez « J’ai lu le contrat et je l’accepte ».' : 'Signez dans le cadre avec le doigt ou la souris.'); return; }
     const k = CONTRATS.find(x => x.id === b.dataset.id); k.st = 'signe'; k.signe = '31/10/2026'; k.sigImg = cv.dataset.signe; if (!k.fin) k.fin = ctrFinDe(k.debut);
-    visitesDe(k).forEach(v => INTS.push({ id:'n-ctr-' + k.id + v.num, d:v.d, h:'09:00', dur:60, tech:'', cli:k.cli, titre:`Contrat — visite ${v.num} sur ${k.freq}`, type:'Contrat', st:'aplanifier' }));
+    visitesDe(k).forEach(v => INTS.push({ id:'n-ctr-' + k.id + v.num, d:v.d, h:'09:00', dur:60, tech:'', cli:k.cli, titre:`Contrat — visite ${v.num} sur ${k.freq}`, type:'Contrat', st:'aplanifier', ctr:k.id }));
+    journalAjout('client', 'contrat', 'a signé le contrat', { t:'contrat', id:k.id, lib:k.num, cli:k.cli }, { det:k.titre + ' · ' + k.freq + ' visite' + (k.freq > 1 ? 's' : '') + ' posée' + (k.freq > 1 ? 's' : '') + ' au planning' });
     if (k.fact === 'an' && !FACTURES.some(f => f.id === 'fc-' + k.id)) FACTURES.unshift({ id:'fc-' + k.id, num:'—', cli:k.cli, objet:'Contrat d’entretien ' + k.num, lignes:[{ d:'Contrat d’entretien ' + k.num + ' — ' + k.titre, q:'1', pu:k.prix }], ht:0, tva:CLIENTS[k.cli].type === 'part' ? 10 : 20, st:'avalider', emise:'—', ech:'—' });
     aller('contrat-x-' + k.id); toast(RL_ACTIF && ROLE === 'client' ? 'Contrat signé. La copie signée vous est envoyée par e-mail.' : `Contrat signé. ${k.freq} visite${k.freq>1?'s':''} posée${k.freq>1?'s':''} au planning « à planifier ».${k.fact === 'an' ? ' La facture de l’année est préparée dans Factures.' : ''}`); },
   modifInt(b){ const i = INTS.find(o => o.id === b.dataset.id); if (!i) return;
@@ -10911,7 +10929,7 @@ function cxDossier(i, fSeule){
       st:!emise ? 'avalider' : f.st === 'retard' ? 'retard' : ['envoyee', 'partielle'].includes(f.st) ? 'aencaisser' : 'payee' }; }
   const F = fiche(i.id), facs = FACTURES.filter(f => f.int === i.id), emises = facs.filter(f => f.num !== '—'), nums = new Set(emises.map(f => f.num));
   const devis = cxDevisDe(i), devisNe = dvInit().filter(d => (d.int0 === i.id || d.suite === i.id) && !devis.includes(d));
-  const contrat = i.type === 'Contrat' ? CONTRATS.find(k => k.cli === i.cli && k.st === 'signe') || null : null;
+  const contrat = i.type === 'Contrat' ? ctrDeVisite(i) || CONTRATS.find(k => k.cli === i.cli && k.st === 'signe') || null : null;
   const enc = ENCAISSEMENTS.filter(e => nums.has(e.fac)), terrain = cpPaieTerrain().filter(e => e.int === i.id);
   const factureTTC = cpR(emises.reduce((s, f) => s + ttcDe(f), 0)), encaisse = cpR([...enc, ...terrain].reduce((s, e) => s + e.ttc, 0)), prepa = facs.find(f => f.num === '—') || null;
   const htFac = cpR(emises.reduce((s, f) => s + (f.st === 'avoir' ? -f.ht : htDe(f)), 0));
@@ -10922,7 +10940,7 @@ function cxDossier(i, fSeule){
   let st;
   if (i.st !== 'fait') st = 'arealiser';
   else if (i.fact && i.fact.mode === 'garantie') st = 'garantie';
-  else if (contrat && contrat.fact === 'an') st = 'contrat';
+  else if (contrat && contrat.fact !== 'visite') st = 'contrat';
   else if (!emises.length) st = prepa ? 'avalider' : 'afacturer';
   else st = emises.some(f => f.st === 'retard') ? 'retard' : emises.some(f => ['envoyee', 'partielle'].includes(f.st)) ? 'aencaisser' : 'payee';
   return { id:i.id, i, c:CLIENTS[i.cli], cli:i.cli, d:i.d, titre:i.titre, F, facs, emises, prepa, devis, devisNe, contrat, enc, terrain, factureTTC, encaisse, reste:cpR(Math.max(0, factureTTC - encaisse)), htFac, prevuHT, pieces, achats, cout, marge:base ? cpR(base - cout) : null, st };
@@ -11035,14 +11053,14 @@ function cxVueClients(D){
 /* chaque contrat : ce qui est prévu, fait, facturé, et ce qui reste */
 function cxContrat(o){
   const visites = INTS.filter(i => i.type === 'Contrat' && i.cli === o.cli && i.st !== 'annulee').sort((a, b) => a.d.localeCompare(b.d)), parVisite = cpR(o.prix / o.freq);
-  const facture = o.st !== 'signe' ? 0 : o.fact === 'an' ? o.prix : o.fact === 'mois' ? cpR(o.prix / 12 * 10) : cpR(o.faites * parVisite), prochaine = visites.find(i => i.st !== 'fait');
+  const facture = o.st !== 'signe' ? 0 : o.fact === 'an' ? o.prix : o.fact === 'mois' ? cpR(o.prix / 12 * 10) : cpR(ctrFaites(o) * parVisite), prochaine = visites.find(i => i.st !== 'fait');
   return { visites, parVisite, facture:cpR(facture), reste:cpR(o.st === 'signe' ? o.prix - facture : o.prix), prochaine };
 }
 function cxVueContrats(){
   return `<div class="carte cx-liste"><div class="cx-ktete" aria-hidden="true"><span>Contrat</span><span>Visites</span><span class="n">Par an (HT)</span><span class="n">Facturé</span><span class="n">Reste à facturer</span><span>Prochaine visite</span></div>
-    ${CONTRATS.map(o => { const k = cxContrat(o), pc = Math.round(o.faites / o.freq * 100);
+    ${CONTRATS.map(o => { const k = cxContrat(o), pc = Math.round(ctrFaites(o) / o.freq * 100);
       return `<button type="button" class="cx-krow" data-cx="ctr|${o.id}"><span class="cx-doc"><b>${esc(CLIENTS[o.cli].nom)}</b><span class="gris petit">${esc(o.num)} · ${esc(o.titre)} · ${o.st === 'signe' ? 'signé' : 'pas encore signé'}</span></span>
-        <span class="cx-paye"><span class="cx-barre" aria-hidden="true"><i style="width:${pc}%"></i></span><span class="gris mini">${o.faites} sur ${o.freq} faite${o.faites > 1 ? 's' : ''}</span></span>
+        <span class="cx-paye"><span class="cx-barre" aria-hidden="true"><i style="width:${pc}%"></i></span><span class="gris mini">${ctrFaites(o)} sur ${o.freq} faite${ctrFaites(o) > 1 ? 's' : ''}</span></span>
         <span class="n">${eur(o.prix)}</span><span class="n">${eur(k.facture)}</span><span class="n"><b>${eur(k.reste)}</b></span>
         <span class="cx-ech">${k.prochaine ? jCourt(k.prochaine.d) : o.st === 'signe' ? '<span class="gris mini">à planifier</span>' : '<span class="st st-o">à faire signer</span>'}</span></button>`; }).join('')}</div>
     <span class="gris petit">Facturé : ${esc(FACT_LIB.visite)} pour la plupart ; un contrat payé à la signature est facturé en entier d’un coup.</span>`;
@@ -11050,9 +11068,9 @@ function cxVueContrats(){
 function cxOuvrirContrat(id){
   const o = CONTRATS.find(z => z.id === id); if (!o) return; const k = cxContrat(o);
   ouvrirPanneau(`<span class="surtitre">Contrat · ${esc(o.num)}</span><h2>${esc(CLIENTS[o.cli].nom)} · ${esc(o.titre)}</h2>
-    <div class="cx-argent"><div><span>Par an</span><b>${eur(o.prix)}</b><small>HT · ${o.freq} visite${o.freq > 1 ? 's' : ''}</small></div><div><span>Facturé</span><b>${eur(k.facture)}</b><small>HT · ${esc(FACT_LIB[o.fact] || o.fact)}</small></div><div><span>Reste à facturer</span><b>${eur(k.reste)}</b><small>HT</small></div><div><span>Visites faites</span><b>${o.faites} / ${o.freq}</b><small>${o.st === 'signe' ? 'signé le ' + esc(o.signe) : 'pas encore signé'}</small></div></div>
+    <div class="cx-argent"><div><span>Par an</span><b>${eur(o.prix)}</b><small>HT · ${o.freq} visite${o.freq > 1 ? 's' : ''}</small></div><div><span>Facturé</span><b>${eur(k.facture)}</b><small>HT · ${esc(FACT_LIB[o.fact] || o.fact)}</small></div><div><span>Reste à facturer</span><b>${eur(k.reste)}</b><small>HT</small></div><div><span>Visites faites</span><b>${ctrFaites(o)} / ${o.freq}</b><small>${o.st === 'signe' ? 'signé le ' + esc(o.signe) : 'pas encore signé'}</small></div></div>
     <div class="cx-bloc"><h3>Les visites dans l’application</h3>${k.visites.length ? k.visites.map(i => { const x = cxDossier(i), s = CX_DST[x.st]; return `<div class="ligne"><button type="button" class="lien" data-cx="dossier|${i.id}">${jCourt(i.d)} · ${esc(i.titre)}</button><span class="st ${s[1]}">${s[0]}</span></div>`; }).join('') : '<span class="gris petit">Aucune visite planifiée pour l’instant.</span>'}
-      ${o.faites > k.visites.filter(i => i.st === 'fait').length ? `<span class="gris petit">${o.faites - k.visites.filter(i => i.st === 'fait').length} visite${o.faites - k.visites.filter(i => i.st === 'fait').length > 1 ? 's' : ''} faite${o.faites - k.visites.filter(i => i.st === 'fait').length > 1 ? 's' : ''} avant octobre.</span>` : ''}</div>
+      ${ctrFaites(o) > k.visites.filter(i => i.st === 'fait').length ? `<span class="gris petit">${ctrFaites(o) - k.visites.filter(i => i.st === 'fait').length} visite${ctrFaites(o) - k.visites.filter(i => i.st === 'fait').length > 1 ? 's' : ''} faite${ctrFaites(o) - k.visites.filter(i => i.st === 'fait').length > 1 ? 's' : ''} avant octobre.</span>` : ''}</div>
     <div class="cx-bloc"><div class="actions"><button type="button" class="btn gris" data-cp="go|contrat-x-${o.id}">📑 Ouvrir le contrat</button><button type="button" class="btn gris" data-cx="releve|${o.cli}">Relevé de compte du client</button></div></div>`, true);
 }
 
@@ -12142,7 +12160,7 @@ function vueEspaceClient(){
   const corps = EC.tab === 'factures' ? `<div class="carte">${facs.map(fac).join('') || '<span class="gris">Aucune facture.</span>'}</div>${du ? `<div class="carte"><h3>Payer par virement</h3><div class="ligne"><span>IBAN</span><b class="mono">${esc(ENTREPRISE.iban)}</b></div>${ENTREPRISE.bic ? `<div class="ligne"><span>BIC</span><b class="mono">${esc(ENTREPRISE.bic)}</b></div>` : ''}<span class="gris petit">Indiquez le numéro de la facture dans le libellé du virement : elle passera payée dès que ${esc(ENTREPRISE.nom)} le reçoit.</span></div>` : ''}`
     : EC.tab === 'interventions' ? `<div class="carte"><h3>À venir</h3>${avenir.map(intL).join('') || '<span class="gris petit">Rien de prévu.</span>'}</div><div class="carte"><h3>Déjà faites</h3>${passees.map(intL).join('') || '<span class="gris petit">Aucune.</span>'}</div>`
     : EC.tab === 'devis' ? `<div class="carte">${devis.map(dvL).join('') || '<span class="gris">Aucun devis.</span>'}</div>`
-    : EC.tab === 'contrats' ? (ctr.length ? ctr.map(o => `<div class="carte"><h3>${esc(o.titre)}</h3><div class="ligne"><span>Contrat ${esc(o.num)}</span><span class="st ${o.st === 'signe' ? 'st-v' : 'st-o'}">${o.st === 'signe' ? 'Signé le ' + esc(o.signe) : 'À signer'}</span></div><div class="ligne"><span>Visites</span><b>${o.faites} sur ${o.freq} cette année</b></div><div class="ligne"><span>Prix par an</span><b>${eur(o.prix)} HT</b></div>${o.st !== 'signe' ? `<div class="actions"><button type="button" class="btn" data-go="signer-x-${o.id}">Lire et signer</button></div>` : ''}</div>`).join('') : '<div class="carte gris">Pas de contrat d’entretien. Demandez-en un : une visite par an, et vous êtes prioritaire en cas de panne.<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-ecctr="1">Demander un contrat</button></div></div>')
+    : EC.tab === 'contrats' ? (ctr.length ? ctr.map(o => `<div class="carte"><h3>${esc(o.titre)}</h3><div class="ligne"><span>Contrat ${esc(o.num)}</span><span class="st ${o.st === 'signe' ? 'st-v' : 'st-o'}">${o.st === 'signe' ? 'Signé le ' + esc(o.signe) : 'À signer'}</span></div><div class="ligne"><span>Visites</span><b>${ctrFaites(o)} sur ${o.freq} cette année</b></div><div class="ligne"><span>Prix par an</span><b>${eur(o.prix)} HT</b></div>${o.st !== 'signe' ? `<div class="actions"><button type="button" class="btn" data-go="signer-x-${o.id}">Lire et signer</button></div>` : ''}</div>`).join('') : '<div class="carte gris">Pas de contrat d’entretien. Demandez-en un : une visite par an, et vous êtes prioritaire en cas de panne.<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-ecctr="1">Demander un contrat</button></div></div>')
     : `<div class="ec-tuiles">
         <div class="ec-tuile ${du ? 'att' : ''}"><span>À régler</span><b>${eur(du)}</b>${dues.length ? `<button type="button" class="btn petit" data-ec="tab|factures">Voir et payer</button>` : '<span class="gris petit">Tout est réglé, merci !</span>'}</div>
         <div class="ec-tuile ${aSigner.length ? 'att' : ''}"><span>Devis à signer</span><b>${aSigner.length}</b>${aSigner.length ? `<button type="button" class="btn petit" data-ec="signer|${esc(aSigner[0].num)}">Lire et signer</button>` : '<span class="gris petit">Aucun.</span>'}</div>
@@ -13195,7 +13213,7 @@ function lignesCrea(minutes, pieces){
   if (f === 'forfait') L.push([`Forfait ${CREA.type.toLowerCase()}`, +CREA.forfait]);
   if (f === 'temps') { const m = Math.max(TARIFS.minimum, Math.ceil(minutes / 60) * 60); L.push([`Main-d’œuvre (${duree(minutes)} prévues, facturé ${duree(m)})`, m / 60 * TARIFS.horaire]); }
   if (f === 'devis' && devisOk(k)) devisOk(k).lignes.forEach(l => L.push([l[0], l[2]]));
-  if (f === 'contrat') { const c = CONTRATS.find(x => x.cli === k && x.st === 'signe'); if (c) L.push([`Visite ${c.faites + 1} sur ${c.freq} · contrat ${c.num}`, c.prix / c.freq]); }
+  if (f === 'contrat') { const c = CONTRATS.find(x => x.cli === k && x.st === 'signe'); if (c) L.push([`Visite ${ctrFaites(c) + 1} sur ${c.freq} · contrat ${c.num}`, c.prix / c.freq]); }
   if (['forfait','temps'].includes(f)) L.push([`Déplacement zone ${z}`, TARIFS.zone[z]]);
   if (f !== 'garantie' && f !== 'devis') Object.entries(pieces).filter(e => e[1] > 0).forEach(([n, q]) => { const p = prixCatalogue(n); L.push([`${n} × ${q}`, p == null ? null : p * q]); });
   return L;
@@ -13205,7 +13223,7 @@ function infoMode(m){
   if (m === 'temps') return `${eur(TARIFS.horaire)} HT de l’heure, à l’heure entamée, minimum ${duree(TARIFS.minimum)}, + déplacement selon la zone (${eur(TARIFS.zone[zoneCrea()])} ici). Les pièces posées au prix du catalogue.`;
   if (m === 'forfait') return `Un prix fixé maintenant, quel que soit le temps passé. Les pièces imprévues s’ajoutent au prix du catalogue.`;
   if (m === 'devis') return d ? `<b>Devis ${d.num} accepté</b> · ${esc(d.objet)}<br>${d.lignes.map(l => esc(l[0]) + ' : ' + eur(l[2])).join('<br>')}` : 'Ce client n’a aucun devis accepté.';
-  if (m === 'contrat') return c ? `<b>Contrat ${c.num}</b> · ${esc(c.titre)}<br>${c.freq} visite${c.freq>1?'s':''} par an · ${eur(c.prix / c.freq)} HT la visite · visite ${c.faites + 1} sur ${c.freq}<br>Facturé ${FACT_LIB[c.fact]}.` : 'Ce client n’a pas de contrat signé.';
+  if (m === 'contrat') return c ? `<b>Contrat ${c.num}</b> · ${esc(c.titre)}<br>${c.freq} visite${c.freq>1?'s':''} par an · ${eur(c.prix / c.freq)} HT la visite · visite ${ctrFaites(c) + 1} sur ${c.freq}<br>Facturé ${FACT_LIB[c.fact]}.` : 'Ce client n’a pas de contrat signé.';
   return 'Aucune facture : le client reçoit seulement le compte rendu (garantie du fabricant, reprise d’un travail, geste commercial).';
 }
 /* les pièces à prévoir d'une nouvelle intervention : ce qui est déjà choisi (avec « − » et « ＋ »), puis quelques articles courants, puis la recherche dans tout le catalogue */
