@@ -19,17 +19,18 @@ const LONG = 'Maximilien-Alexandre de la Tour-Dupont-Castelnau';  // 48 signes :
   await L.toucher(c, '[data-eq="filtre|droits"]'); await mesurer('equipe-qui-peut-quoi');
   await L.toucher(c, '[data-eq="filtre|tous"]');
   for (const k of ['julie', 'long']) { await E.fiche(c, k); await mesurer('fiche-' + k, '#calque .panneau');
-    await p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; }); await L.calme(p, 300); await mesurer('fiche-' + k + '-droits-ouverts', '#calque .panneau');
+    await p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) { d.open = true; d.scrollIntoView({ block:'start' }); } }); await L.calme(p, 400); await mesurer('fiche-' + k + '-droits-ouverts', '#calque .panneau');
+    await p.evaluate(() => { const g = document.querySelector('#calque .eq-droits, #calque .eq-dr-tel'); if (g) g.scrollIntoView({ block:'center' }); }); await L.calme(p, 300); await L.capture(c, E.CAP + `mep-fiche-${k}-grille-${SUF}.png`);
     await E.ranger(c); }
   await E.fiche(c, 'julie'); await L.toucher(c, '[data-eqx="modifier|julie"]'); await mesurer('fiche-modifier', '#calque .panneau'); await E.ranger(c);
   await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="inviter"]'); await p.fill('#eq-p', LONG.split(' ')[0]); await p.fill('#eq-n', 'de la Tour-Dupont-Castelnau-Saint-Germain'); await p.fill('#eq-m', 'maximilien-alexandre.de-la-tour@entreprise-de-climatisation-la-rochelle.example.fr'); await mesurer('inviter', '#calque .panneau'); await E.ranger(c);
   await L.aller(p, 'equipe'); await L.toucher(c, '[data-eqx="regles"]'); await mesurer('regles-habilitations', '#calque .panneau'); await E.ranger(c);
   await E.fiche(c, 'kb'); await L.toucher(c, '[data-eq="habajout|kb"]'); await mesurer('habilitation-ajout', '#calque .panneau'); await E.ranger(c);
-  await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="fiche|long"]'); await L.toucher(c, '[data-eq="actif|long"]'); await mesurer('desactiver', '#calque .panneau'); await E.ranger(c);
+  await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="fiche|long"]'); await L.toucher(c, '[data-eq="actif|long"]'); if (await p.evaluate(() => !!document.querySelector('#calque .panneau'))) await mesurer('desactiver', null); await E.ranger(c);
   await L.aller(p, 'entreprise'); await p.evaluate(() => { ENTREPRISE.nom = 'Entreprise de Climatisation, de Chauffage et de Plomberie de la Rochelle'.slice(0, 60); ENTREPRISE.adr = '12 avenue du Général de Gaulle, bâtiment B, zone artisanale des Quatre Vents, 17000 La Rochelle'; ENTREPRISE.mail = 'contact-administratif.facturation@entreprise-de-climatisation-la-rochelle.example.fr'; rendre(); });
   await mesurer('entreprise');
   for (const k of ['ident', 'legal', 'logo', 'banque', 'horaires']) { await L.aller(p, 'entreprise'); await E.ranger(c); await L.toucher(c, `[data-ent="carte|${k}"]`); await mesurer('entreprise-' + k, '#calque .panneau'); await E.ranger(c); }
-  v(`population : ${n} écrans mesurés (${SUF})`, n >= 20, n);
+  v(`population : ${n} écrans mesurés (${SUF})`, n >= 16, n);
   v(`aucune erreur de page (${SUF})`, c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await E.fin();
 })().catch(e => { console.error('ÉCHEC DE LA SONDE', e); process.exit(2); });

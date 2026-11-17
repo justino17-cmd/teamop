@@ -6,7 +6,10 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await X.fiche(c, 'f128'); await L.toucher(c, '[data-action="partiel"]'); await X.saisir(c, '#pp-m', '500'); await L.toucher(c, '#calque [data-action="partielOk"]'); await L.calme(p, 400);
   await X.fiche(c, 'f128'); await L.toucher(c, '[data-action="avoir"]'); await L.toucher(c, '#calque [data-action="avoirOk"]'); await L.calme(p, 500);
   await X.fiche(c, 'f128'); const fiche = await X.texte(p, '#contenu');
-  L.v('R2b-1 · la fiche de la facture annulée ne garde AUCUNE tâche ouverte « pour cette facture » (plus rien à relancer)', !/tâche ouverte/.test(fiche), fiche.match(/\d+ tâche[^|\n]*/)?.[0]);
+  /* décision du chef (17/11, 9 h 50) : la facture annulée FERME ses tâches de relance ; les 500 € déjà reçus créent UNE tâche « Rembourser 500,00 € à <client> » et une ligne à l'Historique */
+  const tc = await p.evaluate(() => ({ ouv: TACHES.filter(x => !x.fait && x.lien && x.lien.id === 'f128').map(x => x.t), relFermee: TACHES.filter(x => x.lien && x.lien.id === 'f128' && /^Relancer le paiement/.test(x.t)).map(x => !!x.fait), histo: JOURNAL.filter(j => /remboursement/.test(j.action)).map(j => j.action + ' · ' + (j.det || '')) }));
+  L.v('R2b-1 · la tâche de relance de la facture annulée est TERMINÉE, et la seule tâche ouverte est « Rembourser 500,00 € à M. et Mme Durand »', tc.relFermee.length === 1 && tc.relFermee[0] === true && tc.ouv.length === 1 && /^Rembourser 500,00\s€ à M\. et Mme Durand$/.test(tc.ouv[0].replace(/[  ]/g, ' ')), JSON.stringify(tc));
+  L.v('R2b-1b · une ligne à l’Historique dit le remboursement à faire', tc.histo.length === 1, tc.histo);
   L.v('R2b-2 · la fiche de la facture annulée dit ce que devient l’argent déjà reçu (500 €) : à rembourser, ou déduit', /500,00/.test(fiche.replace(/Prix HT[\s\S]*?Total HT/, '')) , fiche.slice(fiche.indexOf('Annulée par un avoir'), fiche.indexOf('Annulée par un avoir') + 400).replace(/\n/g, ' | '));
   await L.capture(c, X.CAP + `r2b-${profil}-fiche-annulee-500.png`);
   await p.evaluate(() => aller('taches')); await L.calme(p, 700); const t = await X.texte(p, '#contenu');
