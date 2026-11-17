@@ -329,6 +329,10 @@ fermée), fail2ban, copie nocturne GitHub → forge à 3 h 17. ⚠️ À FAIRE �
 `main` (à régler par l'API, compte administrateur) ; tant que GitHub reste la source, la copie de 3 h 17 ÉCRASE dans la forge ce
 qui n'est pas sur GitHub — donc on pousse encore sur GitHub d'abord ; les robots de vérification de la forge (Forgejo Actions)
 ne sont pas installés ; les 835 suites lancées sur l'atelier semblaient arrêtées sur une suite (`~/bancs.out` à relire).
+Justin, 17 novembre, vers 21 h, une SECONDE fois : « il faut aussi passer OP MESSAGES sur le serveur atelier ». Répondu : la
+version d'ESSAI d'OP MESSAGES (données fictives), oui, sur l'atelier ; la version aux VRAIS comptes, non tant qu'il ne l'a pas
+décidé en connaissance de cause (porte d'exécution sur ce serveur, Allemagne, pages légales à mettre à jour) — à lui faire
+TRANCHER à la reprise, sans le redire une troisième fois : s'il confirme, c'est sa décision.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
