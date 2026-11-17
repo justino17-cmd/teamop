@@ -9711,7 +9711,7 @@ const DR_CATS = [['planif', 'Planning et absences'], ['inter', 'Interventions'],
 /* les sept droits à part : leurs valeurs restent TOUTES dans les données de la personne ; seuls ceux qui AGISSENT s'affichent (règle 5 : « ce qu'on ne peut pas prouver ne s'affiche pas ») — DR_SP_BRANCHES grandit au fil des gestes branchés */
 const DR_SP_TOUS = [['tout', 'Voir les interventions de toute l’équipe', 'sinon, seulement les siennes'], ['prix', 'Voir les prix d’achat et les marges', ''], ['atelier', 'Se servir à l’atelier sans validation', 'sinon, ses sorties attendent le responsable'],
   ['valstock', 'Valider les gestes de stock des autres', ''], ['commander', 'Envoyer des commandes aux fournisseurs', ''], ['corrpt', 'Corriger les pointages', 'les siens comme ceux des autres'], ['comptes', 'Créer des comptes', 'dans la limite des places']];
-const DR_SP_BRANCHES = ['comptes'];   /* + corrpt, atelier, valstock, commander, prix quand leurs gestes sont branchés (lot D6) */
+const DR_SP_BRANCHES = ['comptes', 'corrpt', 'atelier', 'valstock', 'commander'];   /* « Voir les prix d'achat » n'est PAS branché (25 écrans, repli décidé d'avance, spec § 2.7) : sa case n'est pas dessinée */
 const DR_SP = DR_SP_TOUS.filter(([k]) => DR_SP_BRANCHES.includes(k));
 const tousOui = () => Object.fromEntries(DR_CATS.map(([k]) => [k, { v:1, c:1, m:1, s:1 }]));
 /* v c m s : voir, créer, modifier, supprimer. Les valeurs de départ donnent les menus que Justin a validés (étape 5, spec § 2.12) : le Responsable voit tout et ne règle pas l'entreprise ;
@@ -11472,7 +11472,7 @@ const GESTES = {
   sk:{ k:'stock', m:'transfert inv invok fok reassok val ref br', l:'onglet lx lieu' }, skadd:{ k:'stock', d:'m' }, skf:{ k:'stock', m:'vers pourQui motif', l:'de inter' }, skmvq:{ k:'stock', d:'l' }, skq:{ k:'stock', d:'l' },
   sx:{ k:'stock', m:'toutval refok expok eok dotok', s:'annuler', l:'stkintertout dx fprel frec fluides rouvrir' }, sxauto:{ k:'stock', d:'m' }, sxdadd:{ k:'stock', d:'m' }, sxdcop:{ k:'stock', d:'m' },
   /* temps de travail et véhicules */
-  champ:{ k:'temps', m:'debut fin', l:'trouve compte signeNom' },
+  champ:{ k:'inter', d:'m' },   /* les champs de la fiche d'intervention (ce que j'ai trouvé, le compte rendu, l'arrivée, le départ) */
   pt:{ k:'temps', c:'ajout', m:'closok', s:'clore', l:'export pers' },
   ptx:{ k:'temps', m:'debut reprendre termineok sigok plustotok finhierok corrige validertous termine termineprop finhier finhierautre plustot plustard', l:'pause' },
   tt:{ k:'temps', c:'ajout ajoutok', m:'valider validerok validertout validerun confirmer termineok rappelsok terminer fin jourok mhconfok accepter erreur areg mhconf mhtout rappeler rappeler1', l:'abs filtre rappels jour sem nav regle paie mois releve onglet demander mhonglet mhfin' },
@@ -11534,7 +11534,10 @@ const DROIT_CASES = (() => { const o = {}; const marque = (cat, x) => { if (cat)
   return o; })();
 const droitCaseActive = (cat, x) => x === 'v' || !!(DROIT_CASES[cat] && DROIT_CASES[cat].has(x));
 /* les gestes qui demandent en plus un droit à part (« Créer des comptes », « Envoyer des commandes »…) : famille → verbe → droit */
-const GESTES_SP = { eq:{ inviter:'comptes', inviterok:'comptes', relancer:'comptes' }, eqx:{ placeok:'comptes' } };
+const GESTES_SP = { eq:{ inviter:'comptes', inviterok:'comptes', relancer:'comptes' }, eqx:{ placeok:'comptes' },
+  ptx:{ corrige:'corrpt' }, pt:{ ajout:'corrpt', closok:'corrpt', clore:'corrpt' },   /* corriger un pointage DÉJÀ enregistré (les déclarations du salarié sur sa propre journée, « plus tôt » et « fin d'hier », restent les siennes) */
+  sx:{ toutval:'valstock', refok:'valstock', expok:'valstock', eok:'valstock', dotok:'valstock' }, ms:{ toutacc:'valstock', acc:'valstock', ref:'valstock' },
+  ce:{ envoi:'commander' }, cm:{ conf:'commander', confok:'commander' }, ac:{ commande:'commander' } };
 const DROIT_SP_PHRASE = { comptes:'créer des comptes, dans la limite des places', corrpt:'corriger un pointage', atelier:'se servir à l’atelier sans validation', valstock:'valider les gestes de stock des autres', commander:'envoyer une commande à un fournisseur', prix:'voir les prix d’achat et les marges' };
 const DROITS_REFUS = [];
 let droitsRefusVu = 0;
@@ -11589,10 +11592,11 @@ function droitsCss(p){
   p = p || eqDe(acteur()); if (!p || droitAdmin(p) || (typeof ROLE !== 'undefined' && ROLE === 'client')) return '';
   const R = [];
   Object.entries(GESTES).forEach(([fam, E]) => { const T = GESTES_TJ[fam];
-    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const cat = c || E.k; if (cat && !peut(cat, x, p)) R.push(`[data-${fam}="${v}"],[data-${fam}^="${v}|"]`); }));
+    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const cat = c || E.k; if (cat && !peut(cat, x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
     if (E.d && E.d !== 'l' && E.k && !peut(E.k, E.d, p)) R.push(`[data-${fam}]`); });
-  Object.entries(GESTES_SP).forEach(([fam, V]) => Object.entries(V).forEach(([v, sp]) => { if (!droitSp(p, sp)) R.push(`[data-${fam}="${v}"],[data-${fam}^="${v}|"]`); }));
-  return R.length ? R.join(',') + '{display:none!important}' : '';
+  Object.entries(GESTES_SP).forEach(([fam, V]) => Object.entries(V).forEach(([v, sp]) => { if (!droitSp(p, sp)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
+  /* un bouton, un lien, une ligne : on ne le dessine pas. Un champ de saisie ou une case : on le FIGE (sa valeur reste lisible, rien ne s'écrit : la garde rend la valeur d'avant) */
+  return R.length ? R.map(b => b + ':not(input):not(textarea):not(select)').join(',') + '{display:none!important}' + R.map(b => 'input' + b + ',textarea' + b + ',select' + b).join(',') + '{pointer-events:none;opacity:.7}' : '';
 }
 function droitsMaj(){
   const t = droitsCss(); if (t === droitsCssTexte) return; droitsCssTexte = t;
@@ -14685,7 +14689,7 @@ function sxToast(msg, actions, photo, lib){
 const sxMvt = o => ({ id:sxId('m'), d:AUJ, h:hNow(), qui:sxQui(), ...o });
 const sxAuto = m => m.type === 'sortie' && m.motif === 'Utilisé chez le client' && m.inter && lieu(m.de).tech === m.qui;
 function sxDepose(m){
-  if (STK_VALID && !(SX.autoUsage && sxAuto(m))) { if (matDejaEnvoye(m)) return 'doublon'; MVTS_ATT.unshift(m); return 'attente'; }   // un envoi identique qui attend déjà ne se double pas
+  if (STK_VALID && !(SX.autoUsage && sxAuto(m)) && !droitsAtelier(m.qui || sxQui())) { if (matDejaEnvoye(m)) return 'doublon'; MVTS_ATT.unshift(m); return 'attente'; }   // un envoi identique qui attend déjà ne se double pas
   if (STK_VALID) m.valPar = 'auto';
   if (stkAppliquer(m) > 0) { MVTS.unshift(m); return 'applique'; }
   return 'rien';
@@ -15485,7 +15489,8 @@ function matGVue(){
     <div class="fo-pied mat-pied">${pb ? `<span class="mat-pourquoi" role="status">${pb}</span>` : ''}<button type="button" class="btn" data-ms="genvoyer" ${pb ? 'disabled' : ''}>${bouton}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`}`);
 }
 /* un geste de plus : le gérant applique tout de suite, les autres passent par son accord (la même règle que le technicien) */
-const msPoser = m => msGerant() || sxQui() === 'marc' ? (stkAppliquer(m) !== 0 ? (MVTS.unshift(m), 'applique') : 'rien') : sxDepose(m);   // un comptage rend un écart NÉGATIF quand il en manque : « !== 0 », jamais « > 0 »
+const droitsAtelier = k => { const p = eqDe(k); return droitSp(p, 'atelier') || droitSp(p, 'valstock'); };   /* « Se servir à l'atelier sans validation » (ou valider celles des autres) */
+const msPoser = m => msGerant() || droitsAtelier(sxQui()) ? (stkAppliquer(m) !== 0 ? (MVTS.unshift(m), 'applique') : 'rien') : sxDepose(m);   // un comptage rend un écart NÉGATIF quand il en manque : « !== 0 », jamais « > 0 »
 function matGEnvoyer(){
   const G = MAT.G; if (!G) return; const pb = matGPourquoi(G); if (pb) return toast(pb);
   const snap = sxPhoto(), moi = sxQui(), br = G.mode === 'sortir' && G.pour === 'collegue' && G.br && G.collegue !== moi ? 'BR-2026-0' + (++brNum) : null, n = { attente:0, applique:0, rien:0, doublon:0 }, fait = [];
