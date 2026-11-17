@@ -213,7 +213,8 @@ div.ligne-clic:hover{border-color:var(--trait)}
 #toast{overflow-wrap:anywhere;position:fixed;left:50%;bottom:26px;translate:-50% 16px;opacity:0;pointer-events:none;z-index:90;display:flex;gap:14px;align-items:center;max-width:min(600px,calc(100vw - 32px));padding:12px 14px 12px 18px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;transition:opacity .2s,translate .3s var(--ressort)}
 #toast.on{opacity:1;translate:-50% 0;pointer-events:none}#toast.on button{pointer-events:auto} /* un toast est du texte : il n'avale pas le toucher de ce qu'il couvre (une signature), seul son bouton répond */
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
-@media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}}
+@media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
+  body:has(.fen-voile) #toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}   /* une fenêtre est ouverte : sa barre « Annuler / Créer » est en bas, la bulle passe en haut au lieu de la couvrir */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* ── barre du bas d'OP GESTION ── */
 .opg-barre{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:6px;border-radius:34px;background:var(--tab-fond);border:1px solid var(--tab-lise);box-shadow:0 24px 56px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.32);-webkit-backdrop-filter:blur(40px) saturate(2.2) brightness(1.06);backdrop-filter:blur(40px) saturate(2.2) brightness(1.06)}
@@ -676,9 +677,15 @@ html .btn[data-vx],html label.vx-ajout,html .vx-seg button{min-height:44px}
 #courrier-hote{position:absolute;z-index:3;overflow:hidden;border-radius:16px;box-shadow:0 0 0 1px var(--trait2),var(--ombre);background:var(--surf2)}
 #courrier-hote[hidden]{display:none}
 .courrier-place{min-height:360px;border-radius:16px}
+@media (max-height:500px){.courrier-place{min-height:240px}.mbx-tete{display:none}}   /* paysage : la liste des messages doit se voir sans faire défiler la page — le module a son propre titre */
+.mbx-ecrire{display:none;min-height:44px;flex:none}
 .courrier-msg{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px 18px;margin-bottom:12px}
 @media (max-width:760px){
-  .mbx-tete{display:none}   /* le module a son propre grand titre : deux titres l'un sous l'autre mangeaient 100 px du téléphone */
+  /* comme Clients et Devis : le surtitre, le titre de la rubrique et le grand bouton foncé (relecture du 17 novembre 2026 : « Boîte mail » ne se lisait nulle part au téléphone, le grand titre étant le nom d'un dossier).
+     Une seule ligne de 56 px : la phrase « n messages à traiter » reste à l'ordinateur, le module dit déjà « 7 non lus » en bas de la liste. */
+  .mbx-tete .gris{display:none}
+  #contenu:has(.courrier-place){padding-bottom:0}   /* le module remplit déjà tout le haut de la barre d'onglets : les 128 px de marge de la page ajoutaient 7 px de défilement inutile sous une liste qui défile elle-même */
+  .mbx-tete .mbx-ecrire{display:inline-flex}
   #courrier-hote{border-radius:0;box-shadow:none}
   .courrier-place{border-radius:0}
 }
@@ -1125,6 +1132,8 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 /* mise en page · divers */
 @media (max-width:760px){
   #contenu .tete.tete-p,#contenu .tete.mbx-tete{flex-wrap:wrap;gap:10px 14px;align-items:flex-start}
+  #contenu .tete.mbx-tete{flex-wrap:nowrap;align-items:center}
+  #contenu .tete.mbx-tete>div:first-child{flex:1 1 0;min-width:0}   /* surtitre + titre à gauche, « ＋ Écrire » à droite, sur UNE ligne (le module prend tout le reste de l'écran) */
   #contenu .tete.tete-p>div:first-child,#contenu .tete.mbx-tete>div:first-child{flex:1 1 220px;min-width:min(100%,220px);overflow-wrap:anywhere}
   #contenu .tete.tete-p>.actions,#contenu .tete.tete-p>.btn,#contenu .tete.mbx-tete>.actions{flex:0 1 auto;max-width:100%}
   #contenu .tete.tete-p>.actions .btn{max-width:100%}
@@ -12648,7 +12657,7 @@ function ouvrirCreation(pre){
     vue:'jour', jour: pre.d && dObj(pre.d).getDay() % 6 ? pre.d : ouvres(1)[0], techSem: pre.tid || 'sm', secteurSeul:false, fact: devisOk(cli0) ? 'devis' : CONTRATS.find(x => x.cli === cli0 && x.st === 'signe') ? 'contrat' : 'temps', forfait:120, tva:null, plusTard:false };
   INTS = INTS.filter(i => i.id !== 'brouillon'); delete CLIENTS.__nv;
   if (pre.tid != null && pre.d) placerBrouillon(pre.tid, pre.d, pre.h != null ? pre.h : PARAMS.debut);
-  rendreCreation(); setTimeout(() => document.querySelector('.fen [data-cherchecli]')?.focus({ preventScroll:true }), 60);
+  rendreCreation(); if (!cli0) setTimeout(() => document.querySelector('.fen [data-cherchecli]')?.focus({ preventScroll:true }), 60);   /* le curseur va dans « Chercher un client » seulement quand il n'y en a pas : un client déjà choisi (depuis un courriel) n'ouvre pas le clavier d'un téléphone sur le formulaire */
 }
 function cliCrea(){ if (!CREA.nouveau) return CLIENTS[CREA.cli] || { nom:'Client à choisir', type:'pro', contact:'', tel:'', mail:'', adr:'', acces:'', appareils:[{ nom:'Appareil', det:'à compléter' }], depuis:'2026' }; const r = reconnaitre(CREA.nv.adr); return { nom:cfNomClient(CREA.nv) || 'Nouveau client', type:CREA.nv.type, contact:cfContactClient(CREA.nv), tel:CREA.nv.tel, mail:CREA.nv.mail, adr:CREA.nv.adr, acces:'', appareils:[], depuis:'2026' }; }
 function secteurCrea(){ return CREA.nouveau ? (reconnaitre(CREA.nv.adr) || {}).secteur : SECT_CLI[CREA.cli]; }
@@ -17587,7 +17596,7 @@ function courrierMsg(m){
   const R = mlLire(m), b = mbxBoite(m);
   return { id:m.id, dossier:m.arch ? 'archive' : m.dossier === 'envoye' ? 'sent' : 'inbox', de:{ nom:m.de.nom, email:m.de.mail }, a:m.dossier === 'envoye' ? (m.a || '') : b.adr,
     objet:m.objet, apercu:m.txt.replace(/\s+/g, ' ').slice(0, 140), corps:m.txt, date:courrierDate(m), lu:!!m.lu, drapeau:!!m.drapeau,
-    pj:(m.pj || []).map(([n, t], k) => ({ nom:n, taille:courrierImg(n) ? t : courrierKo(courrierPdfTaille(m, n)), type:courrierImg(n) ? 'img' : 'pdf', id:String(k) })),
+    pj:(m.pj || []).map(([n, t], k) => ({ nom:n, taille:courrierImg(n) ? courrierKo(courrierImageOctets(m, n).length) : courrierKo(courrierPdfTaille(m, n)), type:courrierImg(n) ? 'img' : 'pdf', id:String(k) })),
     // un client ou un fournisseur connu écrit comme une PERSONNE : le tri automatique ne le range pas en notification (la facture d'un fournisseur n'est plus « Reçus »)
     automatique:m.info ? true : (R.qui === 'client' || R.qui === 'four' || R.qui === 'nouveau') ? false : undefined,
     categorie:!m.info && (R.qui === 'client' || R.qui === 'four') ? 'principal' : undefined, categorieRaison:R.qui === 'client' ? 'l’expéditeur est un de vos clients' : R.qui === 'four' ? 'l’expéditeur est un de vos fournisseurs' : undefined,
@@ -17635,17 +17644,20 @@ function courrierPieceLignes(m, nom){
 const COURRIER_TAILLES = {};
 const courrierPdfTaille = (m, nom) => COURRIER_TAILLES[m.id + '|' + nom] || (COURRIER_TAILLES[m.id + '|' + nom] = pdfUnePage(nom.replace(/\.pdf$/i, ''), courrierPieceLignes(m, nom)).length);
 const courrierKo = o => o < 1024 ? '1 Ko' : o < 1048576 ? Math.round(o / 1024) + ' Ko' : (o / 1048576).toFixed(1).replace('.', ',') + ' Mo';
-function courrierImageBlob(m, nom){
-  return new Promise(ok => { const c = document.createElement('canvas'); c.width = 1200; c.height = 900; const g = c.getContext('2d');
-    const d = g.createLinearGradient(0, 0, 1200, 900); d.addColorStop(0, '#dbe7f5'); d.addColorStop(1, '#f6efe3'); g.fillStyle = d; g.fillRect(0, 0, 1200, 900);
-    g.fillStyle = '#1f3358'; g.font = '600 46px Helvetica, Arial, sans-serif'; g.fillText(nom.replace(/\.[a-z]+$/i, ''), 70, 150);
-    g.fillStyle = '#445'; g.font = '30px Helvetica, Arial, sans-serif'; g.fillText(m.objet.slice(0, 60), 70, 220); g.fillText('Photo d’exemple de la démonstration d’OP GESTION', 70, 800);
-    c.toBlob(b => ok(b), /\.png$/i.test(nom) ? 'image/png' : 'image/jpeg', .8); });
+const COURRIER_IMAGES = {};
+function courrierImageOctets(m, nom){   // synchrone (toDataURL) : la taille annoncée dans la liste est celle de CE fichier, connue avant le premier affichage
+  const cle = m.id + '|' + nom; if (COURRIER_IMAGES[cle]) return COURRIER_IMAGES[cle];
+  const c = document.createElement('canvas'); c.width = 1200; c.height = 900; const g = c.getContext('2d');
+  const d = g.createLinearGradient(0, 0, 1200, 900); d.addColorStop(0, '#dbe7f5'); d.addColorStop(1, '#f6efe3'); g.fillStyle = d; g.fillRect(0, 0, 1200, 900);
+  g.fillStyle = '#1f3358'; g.font = '600 46px Helvetica, Arial, sans-serif'; g.fillText(nom.replace(/\.[a-z]+$/i, ''), 70, 150);
+  g.fillStyle = '#445'; g.font = '30px Helvetica, Arial, sans-serif'; g.fillText(m.objet.slice(0, 60), 70, 220); g.fillText('Photo d’exemple de la démonstration d’OP GESTION', 70, 800);
+  const bin = atob(c.toDataURL(/\.png$/i.test(nom) ? 'image/png' : 'image/jpeg', .8).split(',')[1]), o = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) o[i] = bin.charCodeAt(i);
+  return COURRIER_IMAGES[cle] = o;
 }
 function courrierSource(){
   const boite = id => ML_BOITES.find(o => o.id === id);
   return {
-    capacites:() => Promise.resolve({ marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
+    capacites:() => Promise.resolve({ marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), equipe:COLLEGUES.filter(q => q !== MOI && eqDe(q) && eqDe(q).actif).map(prenomDe), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
       dossiers:['inbox', 'sent', 'archive'], destinataires:5, pj:{ nombre:5, octets:8 * 1048576 }, signature:false, signatureMaintenance:false, journalEnvois:false, traduire:false }),
     boites:() => Promise.resolve(ML_BOITES.map(o => ({ id:o.id, email:o.adr, nom:o.id === 'b1' ? 'Clim Services 17' : 'Marc Leblanc', cote:'pro', fournisseur:o.fourni }))),
     messages:({ boite:id, dossier }) => {
@@ -17662,7 +17674,7 @@ function courrierSource(){
       if (orig) (orig.reponses = orig.reponses || []).push({ h:hm(MAINT_MIN), txt:mail.texte });
       return Promise.resolve(); },
     piece:(id, k) => { const m = mlDe(id), p = m && m.pj[+k]; if (!p) return Promise.reject(new Error('Pièce introuvable'));
-      return courrierImg(p[0]) ? courrierImageBlob(m, p[0]) : Promise.resolve(new Blob([pdfUnePage(p[0].replace(/\.pdf$/i, ''), courrierPieceLignes(m, p[0]))], { type:'application/pdf' })); },
+      return courrierImg(p[0]) ? Promise.resolve(new Blob([courrierImageOctets(m, p[0])], { type:/\.png$/i.test(p[0]) ? 'image/png' : 'image/jpeg' })) : Promise.resolve(new Blob([pdfUnePage(p[0].replace(/\.pdf$/i, ''), courrierPieceLignes(m, p[0]))], { type:'application/pdf' })); },
     suivi:(id, p) => { const m = mlDe(id); if (!m) return Promise.reject(new Error('Message introuvable'));
       if (p.statut === 'resolu') { if (!m.fait) mlTraite(m, 'Marqué comme traité'); m.suiviEnCours = false; }
       else if (p.statut === 'aTraiter') { m.fait = ''; m.faitLien = ''; m.attente = null; m.suiviEnCours = false; }
@@ -17670,7 +17682,8 @@ function courrierSource(){
       if (p.assigne !== undefined) { const nom = String(p.assigne || '').trim().toLowerCase(), k = nom && COLLEGUES.find(q => q !== MOI && eqDe(q) && eqDe(q).actif && (prenomDe(q).toLowerCase() === nom || H_NOM(q).toLowerCase() === nom));
         if (k && !(m.confie && !m.confie.fini && m.confie.qui === k)) mbxConfier(m, k);   // un prénom d'équipier = « Confier à quelqu'un » (tâche + notification)
         else if (!nom) { m.assigneTexte = ''; if (m.confie && !m.confie.fini) m.confie = null; }
-        else if (!k) { m.assigneTexte = String(p.assigne).trim(); m.suiviEnCours = true; } }
+        else if (!k && (nom === prenomDe(MOI).toLowerCase() || nom === H_NOM(MOI).toLowerCase())) { m.assigneTexte = String(p.assigne).trim(); m.suiviEnCours = true; }   // soi-même : « Assignés à moi »
+        else if (!k) return Promise.reject(new Error('Personne ne s’appelle « ' + String(p.assigne).trim().slice(0, 40) + ' » dans l’équipe : choisissez un nom dans la liste.')); }   /* un nom inconnu se refuse en le disant (il revenait en silence au nom d'avant) */
       courrierEnteteMaj(); return Promise.resolve(courrierSuivi(m) || { statut:'aTraiter', assigne:'', par:'' }); },
     gererBoites:() => { mbxPanBoites(); return Promise.resolve(); },
     ajouterBoite:p => { const id = 'b' + Date.now().toString(36); ML_BOITES.push({ id, adr:p.email, fourni:p.fournisseur || 'Autre', etat:'ok', vu:'à l’instant' }); return Promise.resolve({ id, email:p.email, nom:p.nom || p.email, cote:'pro' }); },
@@ -17781,7 +17794,7 @@ function courrierCaler(){
   if (!COURRIER.inst) { if (COURRIER.etat === 'rien') courrierCharger(); if (h) h.hidden = true; return; }
   const hote = courrierHoteEl(), barre = document.getElementById('barre-bas'), cs = barre ? getComputedStyle(barre) : null;
   const r0 = place.getBoundingClientRect(), bas = barre && cs.display !== 'none' && cs.position === 'fixed' ? barre.getBoundingClientRect().top : innerHeight;
-  const haut = Math.max(360, Math.round(bas - r0.top - (innerWidth <= 760 ? 6 : 16)));
+  const haut = Math.max(innerHeight < 500 ? 240 : 360, Math.round(bas - r0.top - (innerWidth <= 760 ? 6 : 16)));   /* un téléphone tenu en paysage (390 px de haut) : plancher de 240 px, la tête de page se range (voir @media max-height) */
   place.style.height = haut + 'px';
   const r = place.getBoundingClientRect();
   hote.hidden = false; Object.assign(hote.style, { left:Math.round(r.left + scrollX) + 'px', top:Math.round(r.top + scrollY) + 'px', width:Math.round(r.width) + 'px', height:haut + 'px' });
@@ -17800,7 +17813,7 @@ function courrierQuand(f){
 }
 const courrierOuvrir = id => courrierQuand(c => c.ouvrir(id));
 const courrierRechercher = t => courrierQuand(c => c.rechercher(t, { partout:true }));   /* « Voir tous » d'une fiche client : reçus ET envoyés, pas la seule boîte de réception */
-document.addEventListener('click', ev => { const b = ev.target.closest('[data-courrier]'); if (!b) return;
+document.addEventListener('click', ev => { if (ev.target.closest('[data-mbx-ecrire]')) return courrierQuand(c => c.ecrire()); const b = ev.target.closest('[data-courrier]'); if (!b) return;
   if (b.dataset.courrier === 'reessayer') { COURRIER.etat = 'rien'; courrierCharger(); rendre(); } });
 function vueBoiteMail(){
   mbxPurge();
@@ -17808,7 +17821,7 @@ function vueBoiteMail(){
   const msg = e === 'pret' ? '' : e === 'echec'
     ? `<div class="carte courrier-msg" role="alert"><b>La boîte mail n’a pas pu s’ouvrir.</b><span class="gris petit">Le fichier qui la fait marcher est introuvable ou n’est pas arrivé. Vérifie ta connexion, puis réessaie.</span><button type="button" class="btn" data-courrier="reessayer">Réessayer</button></div>`
     : `<div class="carte courrier-msg" role="status"><b>Ouverture de la boîte mail…</b>${COURRIER.tard ? '<span class="gris petit">Ça prend plus de temps que d’habitude.</span><button type="button" class="btn" data-courrier="reessayer">Réessayer</button>' : ''}</div>`;
-  return `<div class="tete mbx-tete"><div><span class="surtitre">Clients et ventes</span><h1>Boîte mail</h1><span class="gris">${nT ? mbxNb(nT, 'message') + ' à traiter.' : 'Tout est traité.'}</span></div></div>${msg}<div id="courrier-place" class="courrier-place"></div>`;
+  return `<div class="tete mbx-tete"><div><span class="surtitre">Clients et ventes</span><h1>Boîte mail</h1><span class="gris">${nT ? mbxNb(nT, 'message') + ' à traiter.' : 'Tout est traité.'}</span></div><button type="button" class="btn mbx-ecrire" data-mbx-ecrire="1">＋ Écrire</button></div>${msg}<div id="courrier-place" class="courrier-place"></div>`;
 }
 
 /* ── les modèles de réponse suivent le sujet du message ── */
@@ -17919,8 +17932,8 @@ const MBX_ROLE_DE = { julie:'gestion', sm:'tech', kb:'tech', lr:'tech', tl:'tech
 const mbxAcces = k => k === MOI || (eqDe(k) && eqDe(k).droits ? !!(eqDe(k).droits.cats.com && eqDe(k).droits.cats.com.v) && (sessionRole(eqDe(k)) === 'patron' || ROLES[sessionRole(eqDe(k))].routes.includes('boiteMail'))   /* la case seule promettait un accès que le menu du rôle n'ouvre pas : le bouton « Ouvrir dans Boîte mail » de sa tâche répondait « pas dans ton espace » · 13 novembre 2026 */ : !!(ROLES[MBX_ROLE_DE[k]] && ROLES[MBX_ROLE_DE[k]].routes.includes('boiteMail')));
 function mbxPanConfier(m){
   const L = COLLEGUES.filter(k => k !== MOI && eqDe(k) && eqDe(k).actif);
-  ouvrirPanneau(`<span class="surtitre">Confier ce courriel</span><h2>${esc(m.objet)}</h2><span class="gris petit">La personne reçoit une tâche et une notification. Si elle n’a pas accès à la Boîte mail, elle reçoit ce courriel seul, en lecture, avec le geste proposé : rien d’autre de ta boîte.</span>
-    <div class="fo-bloc">${L.map(k => { const d = dispoDe(k), ok = mbxAcces(k); return `<button type="button" class="ve-u" data-mbx="confok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span><span class="mbx-acces${ok ? ' ok' : ''}">${ok ? 'A accès à la Boîte mail' : 'Pas d’accès à la Boîte mail : ce courriel seul, en lecture'}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`);
+  ouvrirPanneau(`<span class="surtitre">Confier ce courriel</span><h2>${esc(m.objet)}</h2><span class="gris petit">La personne reçoit une tâche et une notification, avec ce courriel seul, en lecture : rien d’autre de ta boîte. Celles qui ont déjà la Boîte mail le retrouvent dedans.</span>
+    <div class="fo-bloc">${L.map(k => { const d = dispoDe(k), ok = mbxAcces(k); return `<button type="button" class="ve-u" data-mbx="confok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span>${ok ? '<span class="mbx-acces ok">A déjà la Boîte mail</span>' : ''}</span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`);
 }
 function mbxConfier(m, y){
   const R = mlLire(m), quoi = ({ panne:'Organiser l’intervention', devis:'Préparer le devis', accord:'Planifier l’installation', facfour:'Rapprocher la facture', paiement:'Pointer le paiement', expedition:'Suivre la livraison', choixcren:'Confirmer le rendez-vous' })[R.sujet] || 'Répondre', acces = mbxAcces(y);
@@ -22822,7 +22835,7 @@ document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing |
     return; }
   if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(rcCible(ev))) return;
   /* la Boîte mail a SES raccourcis (c écrire, / chercher, r répondre, j k e f…) : le prototype ne prend aucune touche qui vient d'elle */
-  if (ev.target && ev.target.id === 'courrier-hote') return;
+  if (ev.target && ev.target.closest && ev.target.closest('#courrier-hote')) return;   /* l'événement est reciblé sur la racine du module (un div DANS #courrier-hote) */
   const ouvert = document.querySelector('#calque .voile, .fen-voile, .ctx, #cpsys:not([hidden]), #opdz:not([hidden]), #gd-bulle');
   if (k === '?') { ev.preventDefault(); opgRaccourci('aide'); return; }
   if (ouvert) return;

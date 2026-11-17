@@ -89,6 +89,8 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   v('D16 le pied de la colonne (« Ajouter une boîte mail », « Réglages ») est dans l\'écran à 1440×900', pied.bas <= pied.h, pied);
   await fin(c);
   c = await entrer({ profil:'mac720' }); p = c.p;
+  // à 1280 px le module prend la mise en page « tablette » : la colonne des boîtes est un tiroir, qu'on ouvre ; son pied (« Ajouter une boîte mail ») est au bout du défilement, il ne recouvre plus les dossiers (telephone-06)
+  await S(c, () => R().querySelector('#btnNav').click()); await p.waitForTimeout(700); await S(c, () => { const s = R().querySelector('#sideScroll'); s.scrollTop = s.scrollHeight; }); await p.waitForTimeout(300);
   const pied2 = await S(c, () => { const f = R().querySelector('.side-foot').getBoundingClientRect(), s = R().querySelector('#sideScroll'); return { bas:Math.round(f.bottom), h:innerHeight, defile:s.scrollHeight > s.clientHeight }; });
   v('D16 à 1280×720, le pied de colonne est dans l\'écran (ou la colonne défile et le dit)', pied2.bas <= pied2.h, pied2);
   const titre = await S(c, () => { const t = R().querySelector('#ltTitle'); return t ? { tronque:t.scrollWidth > t.clientWidth + 1, txt:t.textContent } : null; });
