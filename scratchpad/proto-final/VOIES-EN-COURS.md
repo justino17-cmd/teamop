@@ -7,13 +7,12 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 12 h 22 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 12 h 41 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
 | Voie | Arguments | Arbre | Dernier lancement (run) | Étape au dernier relevé (8 h 10) |
 |---|---|---|---|---|
-| securite | `{voie:"securite", depuis:7}` | /home/user/wt-securite | wf_ddbf05bc-b79 (tâche wkrvtuozl) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée ; les 18 failles sont corrigées (`securite/corrections.json`) ; les polices du compositeur sont REMISES par décision du chef |
 | campagne compta-reste | `{voie:"campagne", cles:["compta-reste"], arbre:"/home/user/wt-t-compta-reste"}` | /home/user/wt-t-compta-reste | wf_6613e191-cd1 (tâche w3hlifa27) | 1 sur 3 |
 
 ## Les sessions SŒURS (d'autres machines) — mode d'emploi : `workflows/SESSION-SOEUR.md`
@@ -23,7 +22,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 
 | Sœur | Session | Voie et args (toujours `arbre:"/home/user/wt-soeur"`) | Lancée | État |
 |---|---|---|---|---|
-| 1 | session_01PfEEAFnTAeSbLdaDRiaDkW | `{voie:"final-rejeu", familles:["atelier","compositeur","mail","menu","taches"], jusqua:0}` | 11 h 31 | RENDUE à 12 h 23 (51 min) : scripts de rejeu écrits (compositeur 483 ✓ · 0 ✗ ; menu 2 rouges ; tâches 3 rouges — `final/rejeu-atelier.json`). Décisions du chef sur les trois rouges (21 lignes au menu du gérant avec « Sécurité », « Mon compte » permis au pied et en titre de sa page, cases du calendrier sous 44 px écartées en les nommant) envoyées avec la VOIE SUIVANTE à 12 h 26 : mêmes familles, `depuis:1` (rejouer et réparer, premier passage) |
+| 1 | session_01PfEEAFnTAeSbLdaDRiaDkW | `{voie:"final-rejeu", familles:["atelier","compositeur","mail","menu","taches"], jusqua:0}` | 11 h 31 | RENDUE à 12 h 23 (51 min) : scripts de rejeu écrits (compositeur 483 ✓ · 0 ✗ ; menu 2 rouges ; tâches 3 rouges — `final/rejeu-atelier.json`). Décisions du chef sur les trois rouges (21 lignes au menu du gérant avec « Sécurité », « Mon compte » permis au pied et en titre de sa page, cases du calendrier sous 44 px écartées en les nommant) envoyées avec la VOIE SUIVANTE à 12 h 24 : mêmes familles, `depuis:1` (rejouer et réparer, premier passage) |
 | 2 | session_01PfEEAFqwm1iizSCQmKY7RG | `{voie:"final-rejeu", familles:["materiel","droits","entreprise"], jusqua:0}` | 11 h 34 | |
 | 3 | session_01PfEEAF4SpPFViGgXxJDrwQ | `{voie:"final-rejeu", familles:["vehtemps","secu","securite","artefact","retour","double"], jusqua:0}` | 11 h 34 | |
 | 4 | session_01PfEEAGMXkbXjCC8u8EMYk6 | `{voie:"final-rejeu", familles:["compta","contrats"], jusqua:0}` | 11 h 34 | |
@@ -34,13 +33,13 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 9 | session_01PfEEAGNDftENMMCD3hfq1L | `{voie:"retour", depuis:1}` (recontrôle) — même cas, 7 h sur l'étape 1 | 11 h 39 | |
 | 10 | session_01PfEEAJBAE18M1gy4Csbx7E | `{voie:"campagne", cles:["metier-3d"], depuis:1}` (corriger, recontrôler) | 11 h 39 | |
 | 11 | session_01PfEEAGgTY1ef9915HaRiut | `{voie:"restes", noms:["technicien"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 11 h 40 | |
-| 12 | session_01PfEEAGeqoAKF68uYCmdAAC | `{voie:"restes", noms:["accueil"], depuis:1}` | 11 h 40 | |
-| 13 | session_01PfEEAGxPVYiib7J7pBKqd8 | `{voie:"restes", noms:["compositeur"], depuis:3}` (recontrôle du tour 2) | 11 h 40 | RENDUE à 12 h 12 (31 min) : restes du compositeur, tour 2 recontrôlé — tout tient, 43 ✓, 5 mutations sur 5, rien de bloquant ni de gênant ; trois doutes pour Justin (`final/restes-compositeur-tour2-recontrole.json`). VOIE SUIVANTE envoyée à 12 h 24 : `{voie:"final-rejeu", familles:["metier","hote"], jusqua:0}` |
+| 12 | session_01PfEEAGeqoAKF68uYCmdAAC | `{voie:"restes", noms:["accueil"], depuis:1}` | 11 h 40 | RENDUE à 12 h 29 (47 min) : restes de l’Accueil, tours 1 et 2 corrigés et recontrôlés — tout tient (182,61 € identique partout), rien de bloquant. VOIE SUIVANTE envoyée à 12 h 29 : `tours:3, depuis:4` (tour 3) avec les décisions du chef : l’argent reçu compte le jour où il est reçu, une seule règle quel que soit le moyen de paiement, deux détails de mise en page |
+| 13 | session_01PfEEAGxPVYiib7J7pBKqd8 | `{voie:"restes", noms:["compositeur"], depuis:3}` (recontrôle du tour 2) | 11 h 40 | RENDUE à 12 h 12 : restes du compositeur recontrôlés, tout tient. En cours depuis 12 h 24 : `{voie:"final-rejeu", familles:["metier","hote"], jusqua:0}` |
 | 14 | session_01PfEEAH6EH5oLXx7AdRLqBb | `{voie:"final-parcours"}` (une semaine de l'entreprise, d'un rôle à l'autre) | 11 h 41 | |
 | 15 | session_01PfEEAJPeoZsFLqAkxREWRW | `{voie:"final-mots"}` | 11 h 41 | |
 | 16 | session_01PfEEAGPpBDD97WG3Y3r7PB | `{voie:"final-regard", role:"gerant", rubriques:["Accueil","Statistiques","Historique","Planning","Interventions","Tâches","Absences et congés"], suffixe:"a"}` | 11 h 42 | |
 | 17 | session_01PfEEAH7jKCdAdGejGjNbZ9 | `{voie:"final-regard", role:"gerant", rubriques:["Clients","Devis","Contrats","Boîte mail","Comptabilité","Achats et frais"], suffixe:"b"}` | 11 h 42 | |
-| 18 | session_01PfEEAJSZRMkBCbs92BLL1i | `{voie:"restes", noms:["planning"], depuis:3}` (recontrôle du tour 2) | 11 h 42 | |
+| 18 | session_01PfEEAJSZRMkBCbs92BLL1i | `{voie:"restes", noms:["planning"], depuis:3}` (recontrôle du tour 2) | 11 h 42 | RENDUE à 12 h 39 (56 min) : Planning, tour 2 recontrôlé — les 4 corrections tiennent, 6 mutations sur 6 ; 4 points ouverts (2 phrases du bandeau, sélecteur de vue sur iPad portrait, en-tête de 320 à 420 px). VOIE SUIVANTE envoyée à 12 h 39 : `tours:3, depuis:4` (tour 3) avec les décisions du chef |
 | 19 | session_01PfEEADuTZ1RBxsQwRSgovp | `{voie:"restes", noms:["artefact"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 11 h 52 | |
 | 20 | session_01PfEEAF7HxjHJwxpUrQxwkF | `{voie:"restes", noms:["coque"], depuis:2}` (second tour : corriger, recontrôler) | 11 h 53 | |
 | 21 | session_01PfEEAFCKLvTVZTQZERUt9t | `{voie:"campagne", cles:["equipe"], depuis:1}` (corriger, recontrôler ; 20 défauts dont 1 bloquant ; deux décisions du chef données dans sa consigne : equipe-11, equipe-13) | 11 h 54 | |
@@ -59,6 +58,8 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 34 | session_01PfEEAFPpeU7baS6TDXPPpZ | `{voie:"restes", noms:["interventions"], tours:1, depuis:1}` (recontrôle du tour 1 : les corrections sont poussées, 14 entrées) | 12 h 18 | |
 | 35 | session_01PfEEAE6Dx8R8cDTAgEhREX | `{voie:"final-regard", role:"gerant", rubriques:["Registre sanitaire","Carte des box","Devis xylophage"], suffixe:"f"}` (les trois écrans 3D, et le Registre vu par la technicienne) | 12 h 22 | |
 | 36 | session_01PfEEAGt4nyu6bqwDCac1di | `{voie:"final-regard", role:"technicien", rubriques:["Mon camion"], suffixe:"b"}` (reste pour le technicien : Mes frais, Mes heures, après les sœurs 23 et 26) | 12 h 22 | |
+| 37 | session_01PfEEAGKe9aa56NXBMnLkg5 | `{voie:"restes", noms:["nuit"], tours:1}` (décision du chef de 12 h 30 : de nuit le bouton principal devient clair, le miroir du jour ; tous les écrans de nuit recapturés et regardés — ligne « (nuit) » de `final/vus-par-le-chef.md`) | 12 h 28 | |
+| 38 | session_01PfEEAEjQacyMHRDkuz6SZH | `{voie:"restes", noms:["securite"], tours:2}` (recontrôle de la sécurité rendu à 12 h 41 : 14 failles fermées sur 18, 5 variantes ouvertes dont S01 haute, 4 casses dont une Boîte mail qui jette sur un e-mail sans adresse ; décisions du chef dans sa consigne : nettoyer à l’entrée, échapper à la sortie, jamais les deux) | 12 h 41 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.

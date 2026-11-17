@@ -24,19 +24,22 @@ const FERMER = c => S(c, () => { const b = document.querySelector('#calque [data
     const k0 = await kpis(c), t0 = await compta(c), d0 = await dvKpi(c);
     v('0 population : des devis, des factures, des interventions, un solde de trésorerie, les deux chiffres de l’Accueil et des Devis', e0.dv >= 8 && e0.facs === 8 && k0.arecevoir > 0 && k0.recu > 0 && t0 > 0 && d0.attente > 0 && d0.acceptes > 0, { e0, k0, t0, d0 });
 
-    /* ── A. le devis composé en grand ── */
+    /* ── A. le devis composé en grand (ordinateur et tablette ; au téléphone l'éditeur de l'atelier a sa propre barre, jouée par ses sondes) ── */
+    let num = 'D-(composé, non joué au téléphone)', dk1 = d0;
+    if (c.largeur > 760) {
     const f = await A.ouvrirAtelier(c, 'devis', 'devis');
     v('A1 « Composer un devis » ouvre l’atelier (cadre « Nouveau devis »)', !!f && /Nouveau devis/.test(await f.evaluate(() => (document.querySelector('.fenetre') || {}).textContent || '')));
     await A.composerDevis(c, f, { client:'md', objet:'Remplacement du circulateur (devis composé)', articles:[{ ref:'CIRC-A', qte:1 }, { ref:'MO-H', qte:3 }, { ref:'DEP-Z1', qte:1 }] });
-    await f.locator('[data-vv="ac"][data-v="30"]').first().click().catch(() => {}); await p.waitForTimeout(300);
+    await P.cl(c, f, '[data-vv="ac"][data-v="30"]').catch(() => {}); await p.waitForTimeout(300);
     const doc = net(await f.evaluate(() => document.body.innerText));
     v('A2 (écran, atelier) le document : HT 413,17 €, TVA 10 % sur 195,00 € = 19,50 €, TVA 20 % sur 218,17 € = 43,63 €, TTC 476,30 € (recalculé : 41317 + 1950 + 4363)', /Total HT 413,17 €/.test(doc) && /TVA 10 % \(sur 195,00 €\) 19,50 €/.test(doc) && /TVA 20 % \(sur 218,17 €\) 43,63 €/.test(doc) && /Total TTC 476,30 €/.test(doc), doc.slice(doc.indexOf('Désignation'), doc.indexOf('Désignation') + 500));
     v('A3 (écran, atelier) acompte 30 % = 142,89 € (30 % de 476,30 = 142,89), reste à payer 333,41 € : 142,89 + 333,41 = 476,30', /Acompte à la commande \(30 %\) 142,89 €/.test(doc) && /Reste à payer 333,41 €/.test(doc) && 14289 + 33341 === 47630, doc.slice(doc.indexOf('Acompte à la commande') - 30, doc.indexOf('Acompte à la commande') + 120));
-    const num = (/DEVIS N° (D-2026-\d+)/.exec(doc) || [])[1];
-    await f.locator('[data-act="envoyer"]').first().click(); await p.waitForTimeout(500); await f.locator('[data-act="env-go"]').first().click(); await p.waitForTimeout(1000);
-    await f.locator('[data-act="retour"]').first().click(); await p.waitForTimeout(900);
+    num = (/DEVIS N° (D-2026-\d+)/.exec(doc) || [])[1];
+    await P.cl(c, f, '[data-act="envoyer"]'); await P.cl(c, f, '[data-act="env-go"]'); await p.waitForTimeout(1000);
+    await P.cl(c, f, '[data-act="retour"]'); await p.waitForTimeout(900);
     await L.aller(c.p, 'devis'); await clic(c, '.seg [data-dvf="attente"]'); await p.waitForTimeout(400);
-    const lig = await S(c, () => [...document.querySelectorAll('#contenu .opd-l')].map(e => e.innerText.replace(/\s+/g, ' ').trim())), dk1 = await dvKpi(c);
+    const lig = await S(c, () => [...document.querySelectorAll('#contenu .opd-l')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
+    dk1 = await dvKpi(c);
     v('A4 (écran) la liste « Devis composés » montre ' + num + ', M. et Mme Durand, 476,30 €, « En attente » ; « en attente de réponse » monte de 476,30 € (' + d0.attente + ' → ' + dk1.attente + ')', lig.some(t => t.includes(num) && /Durand/.test(t) && /476,30/.test(t)) && dk1.attente - d0.attente === 47630 && dk1.acceptes === d0.acceptes, { lig, d0, dk1 });
     await cap(c, '2-A4-devis-composes-' + P.PROFIL);
     await S(c, () => { rlChanger('client', { cli:'md', muet:true, ec:'devis' }); }); await L.calme(p, 700);
@@ -44,6 +47,8 @@ const FERMER = c => S(c, () => { const b = document.querySelector('#calque [data
     /* ⚠ limite connue : un devis composé reste dans l'atelier. On le DIT par un contrôle qui tombe tant que ce n'est pas branché : il est reporté (parcours.json, défaut 1) */
     v('A5 (constat · défaut 1 « à soumettre ») le client ne voit PAS le devis composé ' + num + ' dans son espace : il n’a ni « Lire et signer », ni suite (acompte, intervention). Le jour où c’est branché, ce contrôle doit passer à « présent »', !ecA.includes(num), ecA.slice(0, 300));
     await S(c, () => { sessionOuvrir('marc'); }); await L.calme(p, 600);
+
+    }
 
     /* ── B. le devis rapide, avec acompte : le circuit complet ── */
     await L.aller(p, 'devis'); await clic(c, '[data-dv="nouveau"]'); await p.waitForTimeout(900);
