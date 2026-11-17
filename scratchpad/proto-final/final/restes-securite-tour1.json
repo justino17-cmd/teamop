@@ -1,0 +1,107 @@
+[
+ {
+  "nom": "S01 (variante 1) — « Préparer le devis » / « Créer le client et son devis » depuis un e-mail recopiaient le nom d'expéditeur brut",
+  "defaut": "mbxDevisFait écrivait m.de.nom dans CLIENTS[].nom, .contact et dans la trace du devis (cinquième création oubliée) ; le message « Sophie est déjà chez <client> » exécutait ensuite la balise (window.__hits = [n310]).",
+  "etat": "corrigé",
+  "changement": "Une règle, deux portes : À L'ENTRÉE, mlDeNet() nettoie l'expéditeur de tout courriel qui entre (mlM() et MAILS.push() y passent : nom sans < > \" ` ni contrôle ni inversion de sens, 80 signes ; adresse sans les mêmes signes, 120 signes ; champ d'adresse absent = chaîne vide) ; mailNom(m)/mailAdr(m) à la création du client dans mbxDevisFait (nom, contact, adresse, trace du devis) ET dans les deux autres créations depuis un e-mail. À LA SORTIE, esc() dans les bulles qui écrivent un nom de client, d'entreprise ou de plateforme (« est déjà chez », « Tu es maintenant », « Parti chez », « Premier créneau libre », « Annulé : », « Appareil relié à », « Devis refusé… ») et un FILET dans toast() : toastSur() ne laisse que du texte et b/br/span/strong/em/i/small, retire tout gestionnaire et tout lien (une bulle qui oublierait esc ne crée plus ni balise ni exécution, et le puits de la sonde la nomme).",
+  "preuve": "recontrole-nomclient.js : 11 ✓ · 0 ✗ (avant : 7 ✓ · 4 ✗ ; clients créés « img src=x onerror=… » sans chevron, « Martin & Fils » rangé tel quel, message « est déjà chez » lu : 0 sortie, 0 exécution, 128 écrans). restes-garde.js (33 ✓ · 0 ✗) : mbxDevisFait joué avec un expéditeur piégé ; bulle jouée avec un nom piégé (0 balise, 0 exécution, 0 puits) ; filet joué avec img/script/a/svg/onclick (0 reste). Mutations M1, M7 et M9 (ni mlDeNet, ni cliNet, ni mailNom) font tomber la garde. Captures lues : bulle-mac-jour, bulle-iphone-nuit, stock-android-nuit, historique-mac-jour (« Sophie est déjà chez Martin & Fils — L'Hôtel bx/b de 09:00 à 11:00 », un seul « & »)."
+ },
+ {
+  "nom": "S01 (variante 2) — le nom d'un client TAPÉ n'était nettoyé par aucun des cinq formulaires qui créent un client",
+  "defaut": "Nouveau devis › Nouveau client, créer une intervention, fiche rapide, devis xylophage, atelier (et, découvert à la fusion, « Créer le client » de la fiche seule) rangeaient le nom tapé tel quel ; le message de conflit exécutait la charge (hits = [n500]).",
+  "etat": "corrigé",
+  "changement": "cliNet() (nom, contact, adresse, accès, e-mail, téléphone) est la SEULE porte de création d'un client : les NEUF créations (devis, e-mail ×3, XY « creer », créer une intervention, devis xylophage, atelier, « Créer le client » de la fiche seule) et « Modifier le client » (clientEnreg) y passent. Règle : on garde « & », l'apostrophe, les accents ; on retire < > \" ` et les contrôles ; rangé SANS entité ; chaque écran échappe à la sortie. Un nom qui devient vide après nettoyage est refusé par le formulaire (« Indique le nom du client »).",
+  "preuve": "recontrole-clientsaisi.js (sonde corrigée : trois clients DIFFÉRENTS, la même adresse faisait refuser le 2e et le 3e) : 8 ✓ · 0 ✗ (avant : 3 ✓ · 5 ✗), 124 écrans, 0 exécution. restes-garde.js : « TOUTES les créations de client passent par cliNet (10 sur 10) et Modifier aussi » — un dixième chemin ajouté par un autre agent pendant la séance a fait tomber ce contrôle, puis a été corrigé : la garde fait son travail ; mutation M1 (cliNet ne nettoie plus) tombe."
+ },
+ {
+  "nom": "S05 — un fournisseur connu qui cite la commande d'un AUTRE fournisseur se la voyait rattachée",
+  "defaut": "mlLire : COMMANDES.find(c => c.num === bc) sans comparer le fournisseur : « Clim Pièces Atlantique » citant BC-2026-035 (celle de « Daikin Pro Ouest ») offrait « Mettre à jour la livraison ».",
+  "etat": "corrigé",
+  "changement": "COMMANDES.find(c => c.num === bc && c.four === f.nom) ; et mlLire ne jette plus sur un courriel sans champ d'adresse (casse du recontrôle) : l'adresse absente se lit chaîne vide, le courriel est un inconnu, jamais un client ni un fournisseur.",
+  "preuve": "recontrole-confiance.js : 11 ✓ · 0 ✗ (avant : 9 ✓ · 2 ✗ ; sa vérification « sans champ mail » ignore désormais le bruit ResizeObserver, comme les autres sondes). restes-garde.js : la commande d'un autre fournisseur n'est PAS rattachée, la sienne l'est (témoin) ; mutations M2 (mlLire jette) et M3 (retour de l'ancienne recherche) tombent. Au passage : l'adresse « x@y.fr␣ » n'est toujours PAS l'adresse du client (pas d'usurpation par variante) : le premier jet de mlDeNet retirait les espaces et rattachait l'expéditeur, la sonde l'a vu et le correctif les garde."
+ },
+ {
+  "nom": "S06 — FEC (Comptabilité) et exports : une cellule de texte commençant par une tabulation puis = + - @ n'était pas neutralisée",
+  "defaut": "prototype-comptabilite.html : net() ne retire que | CR LF ; /^[=+\\-@]/ ne voit que le premier signe. Les CSV d'OP GESTION (frais d'un véhicule, coût des véhicules) ne regardaient pas non plus « espaces puis signe ».",
+  "etat": "corrigé",
+  "changement": "Une seule règle écrite trois fois au même motif /^[\\s\\u0000-\\u001f]*[=+\\-@]/ : fecTexteSur() dans le FEC de la Comptabilité (toutes les colonnes de TEXTE : tout sauf Debit, Credit, Montantdevise — un nombre négatif commence par « - » et reste un nombre), fecTexteSur() dans cpFec d'OP GESTION (mêmes colonnes ; avant : seulement 4 colonnes sur 18), et la fonction q() des deux CSV. Le format du fichier (séparateurs, colonnes) n'a pas bougé.",
+  "preuve": "restes-garde.js : FEC d'OP GESTION joué avec sept formes (« =1+1 », « ␣␣=cmd|x », « ⇥=HYPERLINK », « ␣+SUM », « -2+3 », « @SUM », « ⏎=1 ») → apostrophe de tête partout, montants jamais préfixés ; FEC de la Comptabilité joué sur une écriture d'essai (libellé, pièce) + « Dupont & Fils » inchangé. Mutations M4 et M5 (neutralisation retirée) tombent. Note : la variante « première lettre seule » d'OP GESTION est équivalente (net() rogne avant) : elle ne mord pas, et la mutation retenue est le retrait complet."
+ },
+ {
+  "nom": "S10 — la politique de contenu ne gouverne pas la NAVIGATION (location, window.open, lien cliqué, meta refresh)",
+  "defaut": "Un code déjà exécuté peut envoyer une adresse chargée de données par cinq canaux ; l'audit disait « ne peut RIEN envoyer ».",
+  "etat": "à soumettre à Justin",
+  "changement": "Pas corrigeable par une balise (navigate-to n'existe plus, frame-ancestors est ignoré en meta) : décidé le 17/11, c'est une LIMITE du prototype, à dire pour la vraie application (en-têtes HTTP du serveur : frame-ancestors, form-action, Cross-Origin-Opener-Policy, et la politique par nonce/hash au lieu de 'unsafe-inline'). Ce qui SE corrigeait l'est : lienSur() — tout lien fabriqué depuis une donnée (site d'un fournisseur, lien d'un document de véhicule, justificatif d'une note de frais en <img>/<iframe>) n'accepte que http, https, mailto, tel (et, pour un fichier que la page vient de fabriquer, blob: ou une image/un PDF en data:), sinon pas de lien ; tous les liens target=_blank s'ouvrent en rel=\"noopener noreferrer\" (5 corrigés, 1 réapparu par une fusion — la garde les compte). La phrase « ne peut RIEN envoyer » est retirée de la sonde : la phrase juste est « la politique ferme les canaux de CHARGEMENT, pas la navigation ». À ne PAS répéter : « la page ne fait rien sortir ».",
+  "preuve": "recontrole-sortie.js mise à jour : 12 ✓ · 0 ✗ — les six canaux de chargement tiennent (0 requête reçue : fetch, image, balise d'envoi, WebSocket, script, préchargement, cadre, cadre data:, préconnexion, WebRTC) ; les CINQ canaux de navigation sont mesurés et imprimés « LIMITE » (sortent : ils ne font plus échouer la sonde, mais si l'un cesse de sortir la sonde le dit). restes-garde.js : 11 liens refusables (javascript:, ␠JaVaScRiPt:, java⏎script:, java⇥script:, invisible+javascript:, data:text/html, vbscript:, //hôte, blob: hors page, file:) et 4 acceptables ; M6 (tout schéma passe) et M10 (un rel=\"noopener\" seul revient) tombent."
+ },
+ {
+  "nom": "Casse — Historique : « a répondu à Café « Chez Léa » &amp; Cie »",
+  "defaut": "Le nom était échappé à la source (journalAjout) ET à la sortie (esc(j.action)) : « & » s'affichait « &amp; ».",
+  "etat": "corrigé",
+  "changement": "Retiré à la source, aux deux endroits : « a répondu à » et « a écrit à » (le texte brut est rangé, l'Historique échappe UNE fois). Recensé : aucun autre journalAjout n'échappe à la source.",
+  "preuve": "recontrole-casse.js : 11 ✓ · 0 ✗ (avant : 8 ✓ · 3 ✗). Capture lue (historique-mac-jour) : « Marc Leblanc a répondu à Martin & Fils »."
+ },
+ {
+  "nom": "Casse — Stock › Unité d'un article refusait des unités de bonne foi",
+  "defaut": "uniteSure refusait « pièce(s) », « paquet de 100 », « €/h », « boîte d'1 » (12 signes, liste de signes permis).",
+  "etat": "corrigé",
+  "changement": "uniteSure : 20 signes, on refuse seulement < > \" ` et les caractères de contrôle ou d'inversion de sens ; rangée telle quelle. Même règle pour l'import de prix (propre() retire désormais aussi \" et `). Le message d'erreur dit ce qui est permis (« pièce(s), paquet de 100… sans < > ni guillemet droit »).",
+  "preuve": "recontrole-casse.js : les unités usuelles passent (0 refusée). restes-garde.js : 13 unités de bonne foi passent, 7 mauvaises (< > \" ` contrôle, inversion, vide, 21 signes) sont refusées ; M8 (ancienne règle) tombe."
+ },
+ {
+  "nom": "Casse — Stock › Voir : « Dupont &amp; » après une unité (double échappement)",
+  "defaut": "Deux endroits : matEnvoisAAccepter() rangeait dans « apres » une phrase construite avec sxQte() (déjà échappée) que l'écran échappait encore (esc(o.apres)) — « Il y en a 8 Dupont &amp; Fils d&#39;Arcs à l'atelier » dans « 2 envois à accepter » ; et la palette de recherche (d:sxQte(…)).",
+  "etat": "corrigé",
+  "changement": "« apres » et la palette rangent du TEXTE brut (prNum + prU), les écrans échappent UNE fois. Cause racine du recensement : un TEXTE brut est rangé, jamais une chaîne déjà échappée.",
+  "preuve": "recontrole-casse2.js (13 912 champs mutés, 88 écrans, 699 champs retrouvés) : 5 ✓ · 0 ✗, « champs à entité visible : 0 » (avant : 1, PRODUITS[].u). restes-unite-entite.js (nouvelle : une unité « Dupont & Fils d'Arc » sur tous les articles, tous les écrans de Stock, 30 fiches, leurs gestes) : 3 ✓ · 0 ✗ (avant : 2 entités visibles, reproduites)."
+ },
+ {
+  "nom": "Casse — Boîte mail : un e-mail sans champ d'adresse faisait jeter mlLire",
+  "defaut": "mlLire : m.de.mail.toLowerCase() sur undefined : la Boîte mail ne s'ouvrait plus tant que ce courriel y était.",
+  "etat": "corrigé",
+  "changement": "mlDeNet() à l'entrée (champ d'adresse toujours une chaîne), String((m.de && m.de.mail) || '') dans mlLire, mailAdr() à la place des 7 lectures directes de m.de.mail.toLowerCase(), mailNom() sans expéditeur → « Expéditeur inconnu ».",
+  "preuve": "recontrole-confiance.js n° 5 : lecture et affichage sans exception (0 erreur de page). restes-garde.js : un courriel sans champ « mail », et un objet sans expéditeur, ne jettent pas ; M2 tombe."
+ },
+ {
+  "nom": "Doute — le titre d'une intervention tapé dans « Modifier l'intervention » est rangé brut ; trois fiches (i2, i7, i14) signalées par la sonde « toute donnée mutée »",
+  "defaut": "INTS[].titre : entrée non gardée ; quatre sorties (onerror, onload, onfocus, onmouseover) signalées sur inter-x-i2, i7, i14 avec des charges de forme mXSS.",
+  "etat": "ne se reproduit pas",
+  "changement": "SORTIE : rejouée jusqu'à savoir — aucun sink ne reçoit le titre brut (voir preuve), donc le signalement de la sonde « toute donnée mutée » n'est pas une faille de gabarit reproductible ; l'hypothèse la plus probable est la charge d'un AUTRE champ copié dans le titre pendant les 389 clics du balayage (le champ numéroté disait INTS[].titre parce que le titre de la fiche est recopié dans les tâches et le journal). ENTRÉE : corrigée quand même (c'est la règle) : libelleSur(titre, 120) dans « Modifier l'intervention », « Bloquer un créneau », la création d'une intervention (cCreer : titre et motif), et les deux créations depuis un e-mail (l'objet du courriel est un texte du dehors) ; texteNet() à la frappe pour ne pas manger les espaces sous le doigt.",
+  "preuve": "restes-champs.js (nouvelle, générique) : 26 titres (INTS + BUREAU) chargés de six formes dont l'iframe srcdoc + mXSS (math/mtext/table/mglyph/style), 75 écrans × le patron, 531 gestes : 0 exécution, 0 balise née, 0 puits (aucun innerHTML ne reçoit la charge brute), 25 charges retrouvées à l'écran (échappées), contre-épreuve vue. recontrole-titre.js : 6 ✓ · 0 ✗ (avant : 5 ✓ · 1 ✗, sur l'entrée). Contre-épreuve de l'entrée : voir mutation-titre."
+ },
+ {
+  "nom": "Doute — le balayage de la saisie est trop mince (36 champs, une seule validation utile)",
+  "defaut": "recontrole-saisie.js remplissait chaque champ d'une charge, l'e-mail et le téléphone aussi : la validation refusait presque tout (12 sur 36).",
+  "etat": "corrigé",
+  "changement": "Nouvelle sonde restes-saisie-totale.js : champ de TEXTE = charge numérotée (six formes) ; champ à FORMAT (e-mail, téléphone, nombre, date, heure, liste) = valeur juste ; le bouton principal est celui du plus petit conteneur qui porte un champ rempli ; lecture après chaque validation puis sur tous les écrans et toutes les fiches ; trois détecteurs (exécution, balise née, puits innerHTML avec pile). Elle compte sa population (formulaires, champs, validations qui ont CHANGÉ les données) et dit ce que le budget de temps l'a empêchée de lire. Trois défauts de la sonde trouvés en route et corrigés : « --roles=tech » rejouait le patron (mêmes chiffres : le signe qui ne trompe pas) ; la liste des rubriques d'un rôle n'était pas refaite après le changement de rôle ; une exécution partielle meurt sans rien rendre sous le délai de 580 s (budget de temps ajouté).",
+  "preuve": "Patron, deux passes (la première a épuisé son budget avant 18 rubriques, la seconde les a faites) : 96 formulaires distincts, 153 champs de texte remplis, 38 validations, 22 charges retrouvées à l'écran, 0 exécution, 0 balise, 0 puits, 0 erreur de page. Technicien : 65 formulaires, 128 champs, 41 validations, 12 charges, 0/0/0. Gestion : voir chiffres de la dernière passe dans le rapport. Les trois autres pages (Comptabilité, Paiement, Documents) : leurs champs de texte s'ouvrent par les mêmes gestes depuis OP GESTION (cadres) ; une passe directe de chacune reste À FAIRE (voir « non vérifié »)."
+ },
+ {
+  "nom": "Doute — S11 : bornes de l'import de prix non rejouées avec un fichier hostile",
+  "defaut": "Relues dans le code seulement.",
+  "etat": "corrigé",
+  "changement": "Rejouées : foLignes() sur un fichier de 20 007 lignes (nom de 100 000 signes, référence de 500, prix 1e999, 1e7, NaN, négatif, unité « <b> », référence « =cmd|x ») ; propre() retire maintenant aussi \" et ` (alignement sur la règle d'entrée).",
+  "preuve": "restes-garde.js, 5 contrôles : lignes lues en 1,6 s ; nom/référence/code-barres bornés à 200/40/20 ; prix infini, énorme, NaN, négatif ignorés ; unité « <b> » refusée ; « Bonne ligne & fils » (7,25 €, « le kg ») lue telle quelle."
+ },
+ {
+  "nom": "Doute — opcourrier.js garde l'ancien corpsLu (lettres cyrilliques et adresses à identifiants cliquables)",
+  "defaut": "Fichier de la vraie application (racine, apercu/, server-msg/public/).",
+  "etat": "déjà décidé",
+  "changement": "Décision du chef du 17/11 : on ne touche PAS opcourrier.js ; à NOTER pour Justin, à reporter par la voie qui le tient. Le module du prototype (prototype-courrier.js) est protégé : recontrole-liens-fuzz.js (60 000 chaînes) 9 ✓ · 0 ✗ au dernier recontrôle.",
+  "preuve": "non modifié"
+ },
+ {
+  "nom": "À noter — authenticité de l'expéditeur d'un e-mail (S05), frame-ancestors (S10), script-src large (S10)",
+  "defaut": "Le rattachement se fait sur l'adresse AFFICHÉE : un en-tête From usurpé (sans SPF/DKIM) reste crédible ; la page peut être mise en cadre par un site tiers ; script-src autorise cdnjs et unpkg en entier avec 'unsafe-inline'.",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien de corrigible dans l'écran, décidé le 17/11 : à traiter dans la VRAIE application — vérification SPF/DKIM/DMARC à la réception du courrier, en-têtes du serveur (frame-ancestors 'none' ou sandbox, form-action, Referrer-Policy), politique par nonce ou hash et empreintes sur chaque bibliothèque. Les treize polices du compositeur restent (polices Google dans le prototype, à héberger chez nous dans la vraie application).",
+  "preuve": "non modifié"
+ },
+ {
+  "nom": "Entrée à tout texte libre : seuls certains champs sont nettoyés à l'entrée",
+  "defaut": "Nettoyés à l'entrée : noms de personnes, noms et coordonnées de clients (10 chemins), expéditeur de courriel, titres d'intervention et de créneau, motif d'une intervention, unité, libellés (rôle, plateforme, fournisseur), import de prix, objet d'un devis venu d'un courriel. Les AUTRES textes libres (notes, désignations de lignes, commentaires…) ne le sont pas.",
+  "etat": "à soumettre à Justin",
+  "changement": "Ils sont tous protégés à la SORTIE (esc, filet de toast) et le balayage de la saisie n'a trouvé AUCUN puits sur 280 champs de texte et 150 formulaires ; mais « nettoyé une fois à l'entrée » n'est pas fait partout. Choix à trancher : (a) en rester là (la sortie est la vraie défense, mesurée), (b) un filtre central unique sur tous les champs à la validation (risque : retirer des signes voulus dans une note). Je recommande (a) + la garde existante (restes-garde.js refuse une création de client qui ne passe pas par cliNet).",
+  "preuve": "restes-saisie-totale.js, restes-champs.js, recontrole-casse2.js (13 912 champs mutés)"
+ }
+]
