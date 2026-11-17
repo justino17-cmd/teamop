@@ -210,11 +210,11 @@ plan d'une page et l'installeur éprouvé sur un jumeau ; le transfert réel dé
 ses gestes (il lance l'installeur, il règle les adresses) ; (6) ⛔ aucun geste sur ses serveurs ni en production sans sa phrase
 pour CE geste — inchangé. Ensuite seulement : chantier A (prototype : tout retester, « tout ce que je t'ai demandé par rapport à
 l'application ») et chantier B (sécurité, OP Security, clés d'accès), joués sur NOS machines.
-**Vu sur sa capture de 17 h 20 (page « Trouvez votre produit » d'IONOS, rubrique « Serveurs et Cloud »)** : trois familles — « vServer
+**Vu sur sa capture de 17 h 10 (page « Trouvez votre produit » d'IONOS, rubrique « Serveurs et Cloud »)** : trois familles — « vServer
 (VPS) » (annoncé : 1 Gbit/s de bande passante, trafic illimité, disponibilité 99,99 %), « Serveur Dédié », « Backup Cloud ». Dit à
 Justin : ouvrir « VPS Linux », envoyer la capture de la LISTE des offres (cœurs, mémoire, disque, prix après la promotion, durée
 d'engagement), ne rien commander avant qu'on lui dise la ligne ; pas de serveur dédié ni de Backup Cloud pour l'instant.
-**Les offres de sa capture de 17 h 30 (IONOS, « Packs VPS », prix hors taxes ; promotion : trois mois, mise en service offerte ; « essai
+**Les offres de sa capture de 17 h 12 (IONOS, « Packs VPS », prix hors taxes ; promotion : trois mois, mise en service offerte ; « essai
 gratuit de 30 jours » ; trafic illimité jusqu'à 1 Gbit/s ; durée d'engagement NON affichée — à lire à l'étape suivante)** : S+ 1 cœur,
 2 Go, 60 Go, 2 € puis 5 € ; M+ 2 cœurs, 4 Go, 120 Go, 4 € puis 12 € ; L+ 4 cœurs, 8 Go, 240 Go, 7 € puis 22 € ; **XL+ 8 cœurs, 16 Go,
 480 Go, 12 € puis 41 €** ; XXL+ 12 cœurs, 24 Go, 720 Go, 17 € puis 59 €. CONSEILLÉ : **XL+** pour le serveur d'atelier (le double de
@@ -224,7 +224,7 @@ données pour la commande : Ubuntu 24.04 sans application préinstallée, centre
 courte, aucune option, capture du récapitulatif AVANT de payer, et ⛔ le mot de passe du nouveau serveur ne se colle jamais ici.
 Dit aussi, sans promettre : les vérifications automatiques ne seront pas forcément plus rapides que sur GitHub, qui prête
 aujourd'hui plusieurs machines en parallèle parce que le dépôt est public (en privé : 2 000 minutes par mois) — à mesurer.
-**Le serveur ACTUEL, vu sur sa capture de 17 h 40 (« Contrats et abonnements » d'IONOS)** : un seul serveur, « IONOS VPS Linux M+ »
+**Le serveur ACTUEL, vu sur sa capture de 17 h 15 (« Contrats et abonnements » d'IONOS)** : un seul serveur, « IONOS VPS Linux M+ »
 (d'après la liste des offres : 2 cœurs, 4 Go, 120 Go), actif depuis le 06/07/2026, renouvelé le 05/07/2027 ; les deux autres
 contrats (outils de marketing) sont résiliés pour octobre 2027. Il n'y a donc PAS de second serveur (celui prévu en octobre pour
 la signature n'a jamais été commandé). Justin : « on peut garder le IONOS VPS Linux M+, pour tout ce qui est serveur test ou ce
@@ -234,10 +234,10 @@ devient l'atelier (forge, vérifications, copie d'essai) : ce sont les essais qu
 seraient plus lents qu'aujourd'hui. Si le serveur des clients manque un jour de marge, c'est lui qu'on agrandira, après avoir
 répété le déménagement sur l'atelier. Mesure lancée le 17 pour chiffrer : durée de toutes les suites sur la machine d'essai
 (`scripts/bancs-ci.sh`, l'une après l'autre) — résultat à lui donner en minutes pour 2 cœurs et pour 8.
-**Son choix (17 h 50)** : « et si je prends lui [le XXL+ : 12 cœurs, 24 Go, 720 Go, 17 € puis 59 € hors taxes par mois] car je pense
+**Son choix (17 h 17)** : « et si je prends lui [le XXL+ : 12 cœurs, 24 Go, 720 Go, 17 € puis 59 € hors taxes par mois] car je pense
 que pour le futur ça sera mieux ». Répondu OUI : c'est le serveur d'ATELIER (forge, vérifications, copie d'essai, essais en
 parallèle), le M+ reste le serveur des clients ; mêmes consignes de commande (Ubuntu 24.04, France, engagement le plus court,
-aucune option, récapitulatif avant de payer, mot de passe jamais collé ici). ⏳ Panier VÉRIFIÉ sur sa capture de 18 h 25 : « IONOS VPS Linux XXL+ », 12 mois d'engagement (582 € hors taxes la première année),
+aucune option, récapitulatif avant de payer, mot de passe jamais collé ici). ⏳ Panier VÉRIFIÉ sur sa capture de 17 h 20 : « IONOS VPS Linux XXL+ », 12 mois d'engagement (582 € hors taxes la première année),
 « garantie 30 jours satisfait ou remboursé », centre de données UE (pas de choix « France »), Ubuntu 24.04 (le panier avait gardé
 « Alma 9 » d'une première tentative : corrigé), aucune option ; il lui a été dit qu'il pouvait payer. Commande NON confirmée ici.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
