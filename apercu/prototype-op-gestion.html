@@ -2532,9 +2532,11 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
    · sous 400 px chaque liste prend sa ligne (« Tout le mo… » ne nomme rien) ;
    · sur iPad en portrait le graphique des 12 mois défile comme au téléphone au lieu d'écraser ses mois à 35 px. */
 @media (pointer:coarse){.h-puces .puce-c{min-height:44px}.st-nav button{width:44px;height:44px}}
+@media (max-width:480px){#contenu .tete.tete-h{flex-wrap:wrap;align-items:flex-start;gap:10px 14px}#contenu .tete.tete-h>div:first-child{flex:1 1 220px;min-width:min(100%,220px);overflow-wrap:anywhere}#contenu .tete.tete-h>.btn{flex:0 1 auto;max-width:100%}}   /* à 320 px le bouton prenait la place du titre : « Historiq / ue » */
 @media (max-width:400px){.h-sel{grid-template-columns:minmax(0,1fr)}}
 @media (pointer:coarse) and (min-width:761px) and (max-width:900px){
-  .st-graph{overflow-x:auto;direction:rtl;-webkit-overflow-scrolling:touch}
+  .st-graph{overflow-x:auto;direction:rtl;-webkit-overflow-scrolling:touch;padding-left:0}
+  .st-grad span{display:none}   /* comme au téléphone : l'échelle de gauche se lirait à l'envers dans un défilement de droite à gauche */
   .st-glisse{display:inline}
   .st-graph .st-cols{direction:ltr;min-width:528px}
   .st-graph .st-bulle{display:none}
@@ -6387,7 +6389,7 @@ function vueHistorique(){
   const gensVus = Object.keys(H_GENS).filter(k => JOURNAL.some(j => j.qui === k) && (hVoirComme === 'marc' || k === hVoirComme));
   const clis = Object.keys(CLIENTS).filter(k => JOURNAL.some(j => j.el && j.el.cli === k));
   const filtres = hQui !== 'tous' || hType !== 'tous' || hCli !== 'tous' || hJourSel !== 'tous' || hCherche, ouvert = d => filtres || hOuverts.has(d);
-  return `<div class="tete tete-p"><div><span class="surtitre">Accueil</span><h1>Historique</h1><span class="gris">Qui a fait quoi, et quand. Rien ne s’y efface ni ne s’y modifie.</span></div>
+  return `<div class="tete tete-h"><div><span class="surtitre">Accueil</span><h1>Historique</h1><span class="gris">Qui a fait quoi, et quand. Rien ne s’y efface ni ne s’y modifie.</span></div>
     <button type="button" class="btn gris" data-hexport="1">Exporter en PDF</button></div>
   ${enApp() ? '' : `<div class="h-comme"><span class="gris petit">Pour l’essai, voir comme :</span><div class="seg" role="group" aria-label="Voir comme">${[['marc', 'Marc · gérant'], ['sm', 'Sophie · technicienne']].map(([k, l]) => `<button type="button" data-hcomme="${k}" aria-pressed="${hVoirComme === k}">${l}</button>`).join('')}</div>
     ${hVoirComme !== 'marc' ? '<span class="h-note">Sans le droit « Tout voir », Sophie ne voit que ses propres actions.</span>' : ''}</div>`}
