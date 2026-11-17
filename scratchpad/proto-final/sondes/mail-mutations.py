@@ -26,7 +26,13 @@ M = [
  ('D12 : on peut répondre à un indésirable', COURRIER, 'disRep=(!m||m.folder==="junk")?" disabled":""', 'disRep=""', 'mail-defauts.js'),
  ('D07 : un refus avec la coche verte', COURRIER, 'var refus=!!(action&&action.refus)||REFUS_RE.test(String(msg));', 'var refus=false;', 'mail-defauts.js'),
  ('bandeau : le geste « Créer l\'intervention » disparaît', PAGE, "if (R.sujet === 'panne') { act('ml:creerint|' + id, 'Créer l’intervention', !R.relance);", "if (R.sujet === 'panne') { ", 'mail-reconnaissance.js'),
- ('rôles : la Boîte mail s\'ouvre sans permission', PAGE, "if (route !== 'boiteMail' || !place || (typeof rlPermis === 'function' && !rlPermis('boiteMail')))", "if (route !== 'boiteMail' || !place)", 'mail-roles.js'),
+ ('rôles : la Boîte mail est ouverte à tous les rôles (la vraie garde, celle de go(), pas la condition de montage que cette garde double)', PAGE, "const rlPermis = r => ROLE === 'patron' ?", "const rlPermis = r => r === 'boiteMail' || ROLE === 'patron' ?", 'mail-roles.js'),
+ ('A7 : « Annuler » ne retire pas la tâche confiée', PAGE, "const i = TACHES.indexOf(t); if (i >= 0) TACHES.splice(i, 1); m.confie = null; rendre(); } });", "m.confie = null; rendre(); } });", 'mail-gestes.js'),
+ ('A9 : la pièce jointe n\'est pas rangée dans la fiche', PAGE, "(CLIENTS[cli].docsMail = CLIENTS[cli].docsMail || []).push({ nom:pj[0]", "(CLIENTS[cli].docsMail = CLIENTS[cli].docsMail || []).concat({ nom:pj[0]", 'mail-gestes.js'),
+ ('A6 : la relance envoyée n\'est pas comptée', PAGE, "if (mo === 'relance') m.relances = (m.relances || 0) + 1; }", " }", 'mail-gestes.js'),
+ ('A8 : « En faire une tâche » crée un doublon à chaque clic', PAGE, "if (TACHES.some(o => !o.fait && o.t === 'Répondre : ' + m.objet && o.origine === 'depuis le courriel de ' + m.de.nom)) return toast(", "if (false) return toast(", 'mail-gestes.js'),
+ ('D16 : la colonne de liste redevient trop étroite sur Windows', COURRIER, 'clamp(304px,27cqw,392px)', 'clamp(280px,27cqw,392px)', 'mail-defauts.js'),
+ ('téléphone : tous les gestes du bandeau redeviennent de gros boutons (le texte repoussé sous le pli)', COURRIER, 'var plus=isPhone()&&bts.length>3,', 'var plus=false,', 'mail-telephone.js'),
 ]
 de = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 a = int(sys.argv[2]) if len(sys.argv) > 2 else len(M)

@@ -18,3 +18,22 @@ exports.neuf = async (c, hash) => { await c.p.evaluate(h => { location.hash = h 
 exports.lire = p => p.evaluate(() => { const t = s => { const e = document.querySelector(s); return e && (e.offsetParent !== null || getComputedStyle(e).position === 'fixed') ? (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 100) : ''; };
   return { hash: location.hash, h1: t('#contenu h1'), panneau: t('#calque .panneau h2') || t('#calque .panneau') , toast: t('#toast'), calque: !!document.querySelector('#calque .panneau'), atelier: (() => { const z = document.getElementById('opdz'); return !!z && !z.hidden; })(), compta: !!document.querySelector('#cmpt') && document.querySelector('#cmpt').offsetParent !== null, long: (document.getElementById('contenu') || {}).innerHTML ? document.getElementById('contenu').innerHTML.length : 0, longCalque: (document.getElementById('calque') || {}).innerHTML ? document.getElementById('calque').innerHTML.length : 0, url: location.href.replace(/^.*\//, '') }; });
 exports.diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]);
+// Cibles au doigt MESURÉES À CE QUI RÉPOND : un doigt touche un point, pas un rectangle. Chaque candidat est amené au milieu de la
+// fenêtre (la barre fixe ne le recouvre pas), puis on balaie sa ligne et sa colonne avec elementFromPoint : la zone qui répond est celle
+// où l'on retombe sur lui, son label ou son conteneur cliquable (les pseudo-éléments qui agrandissent la zone — `.t-sel::before{inset:-12px}` —
+// comptent, ce que getBoundingClientRect ne voit pas). Rend les cibles dont la zone qui répond est sous 44 px dans un sens ou l'autre.
+exports.doigtsReel = (p, zone) => p.evaluate(z => {
+  const R = document.querySelector(z || '#contenu') || document.body, out = [], vus = new Set();
+  const cand = [...R.querySelectorAll('button, a, [role=button], summary, input[type=checkbox], input[type=radio]')].filter(e => e.offsetParent && !e.disabled && e.getBoundingClientRect().width >= 2 && !(e.tagName !== 'SUMMARY' && e.closest('details:not([open])')));   // le contenu d'un <details> fermé n'est pas touchable
+  for (const e of cand) {
+    const nom = (e.getAttribute('aria-label') || e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    e.scrollIntoView({ block: 'center', inline: 'center' });
+    const r = e.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, zc = e.closest('label, .ligne-clic, [data-go]') || e;
+    if (cy < 0 || cy > innerHeight) continue;
+    const ok = (x, y) => { const t = document.elementFromPoint(x, y); return !!t && (t === e || e.contains(t) || zc.contains(t)); };
+    if (!ok(cx, cy)) { out.push(nom + ' (recouvert au centre)'); continue; }
+    let g = 0, d = 0, h = 0, b = 0; while (g < 40 && ok(cx - g - 1, cy)) g++; while (d < 40 && ok(cx + d + 1, cy)) d++; while (h < 40 && ok(cx, cy - h - 1)) h++; while (b < 40 && ok(cx, cy + b + 1)) b++;
+    const w = g + d + 1, ht = h + b + 1;
+    if (w < 43.5 || ht < 43.5) { const k = nom + ' ' + w + '×' + ht; if (!vus.has(k)) { vus.add(k); out.push(k); } }
+  }
+  return out.slice(0, 30); }, zone);

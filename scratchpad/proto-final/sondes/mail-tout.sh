@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/../../.." || exit 9
 export CAP="${1:-${CAP:-/tmp/mail-captures}}"
 ko=0; total_ok=0; total_ko=0
-for s in defauts montage persistance reconnaissance telephone theme liens roles perf absent visite kit; do
+for s in defauts montage persistance reconnaissance gestes telephone theme liens roles perf absent visite kit; do
   sortie=$(timeout 290 node scratchpad/proto-final/sondes/mail-$s.js 2>&1); code=$?
   bilan=$(echo "$sortie" | grep -oE '[0-9]+ ✓ · [0-9]+ ✗' | tail -1)
   printf '%-16s %s (code %d)\n' "mail-$s" "${bilan:-sans bilan}" "$code"
