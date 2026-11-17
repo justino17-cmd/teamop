@@ -24,7 +24,7 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   await p.fill('[data-mm="q"]', '0'); await L.calme(p, 200);
   const dq = await p.evaluate(() => document.querySelector('[data-mat="menvoyer"]').disabled);
   if (!dq) { await L.toucher(c, '[data-mat="menvoyer"]'); }
-  v('K1c quantité 0 : l’envoi est grisé avec la raison écrite, ou le clic dit « Mets une quantité » (rien ne part)', (dq && /Mets une quantité/.test(await panneau())) || /Mets une quantité/.test(await toast()), { dq, toast: await toast(), pied: (await panneau()).slice(-140) });
+  v('K1c quantité 0 : l’envoi est grisé avec la raison écrite, ou le clic dit « Mets une quantité » (technicien-06)', (dq && /Mets une quantité/.test(await panneau())) || /Mets une quantité/.test(await toast()), { dq, toast: await toast(), pied: (await panneau()).slice(-140) });
   await p.fill('[data-mm="q"]', '2'); await L.toucher(c, '[data-mat="mquand|auj"]'); await L.calme(p, 200);
   const dp = await L.deborde(c); v('K1d nom de pièce de 100 signes : pas de glissement latéral', dp.bouge === 0, dp);
   await L.capture(c, CAP + `camion-manque-rempli-${profil}-${J}.png`);
@@ -83,7 +83,10 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   v('S1 « Signaler un souci » ouvre la fenêtre « Un souci avec le camion »', /souci/i.test(so), so.slice(0, 100));
   await L.capture(c, CAP + `souci-${profil}-${J}.png`);
   const ds = await L.doigts(p, '#calque'); v('S2 fenêtre du souci : cibles ≥ 44 px, champs ≥ 16 px', !c.doigt || (ds.petits.length === 0 && ds.champs.length === 0), { petits: ds.petits.slice(0, 6), champs: ds.champs.slice(0, 6) });
-  const envoi = await p.$('[data-vx^="soucisok"]'); if (envoi) { await L.toucher(c, '[data-vx^="soucisok"]'); await L.calme(p, 400); console.log('   envoi à vide, toast :', await toast()); v('S3 envoyer un souci sans le décrire : la page dit quoi faire (rien ne part en silence)', (await toast()).length > 5 || !!(await panneau()), await toast()); }
+  const envoi = await p.$('[data-vx^="soucisok"]');
+  if (envoi) { await p.evaluate(() => document.querySelector('[data-vx^="soucisok"]').click()); await L.calme(p, 400);
+    v('S3 envoyer un souci sans le décrire : la fenêtre dit quoi faire (« Dis ce qui ne va pas : touche l’un des quatre choix »), rien ne part en silence', /Dis ce qui ne va pas/.test(await panneau()) , (await panneau()).slice(-160)); }
+  else v('S3 le bouton d’envoi du souci existe', false);
   v('Z aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
