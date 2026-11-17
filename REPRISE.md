@@ -263,6 +263,13 @@ dépendances ? vrai défaut ?). Ordre de grandeur pour l'atelier (12 cœurs, sui
 place. Serveur d'atelier vérifié par Justin à 17 h 33 : Ubuntu 24.04.5, 12 cœurs, 23 Go, 697 Go ; son adresse est dans la
 conversation, pas ici (dépôt public, serveur pas encore durci). Sa clé SSH existante a un mot de passe qu'il ne retrouve plus :
 on lui en fait créer une neuve pour l'atelier (`~/.ssh/atelier`) — et il faudra voir comment il entre sur le serveur actuel.
+✅ **SERVEUR D'ATELIER SÉCURISÉ PAR JUSTIN LE 17 NOVEMBRE (fini à 17 h 42, lui aux commandes, sorties recollées)** : clé neuve sur son PC
+Windows (`C:\Users\<lui>\.ssh\atelier`, protégée par un mot de passe à lui) posée dans `authorized_keys` de root ; système à
+jour, `unattended-upgrades` actif ; `ufw` actif, seules 22, 80 et 443 ouvertes (v4 et v6) ; `/etc/ssh/sshd_config.d/00-cle-seule.conf`
+(mot de passe refusé, root par clé seulement) — VÉRIFIÉ des deux côtés : la clé entre (`cle-ok`), le mot de passe est refusé
+(`Permission denied (publickey)`). Rien d'autre n'est installé dessus. Reste pour ce serveur : un nom d'hôte, une adresse en
+`…teamop.fr`, un compte non-root pour les services, fail2ban ou équivalent — dans le plan. ⚠️ Il se trompe facilement de fenêtre
+(PC ou serveur) : toujours écrire OÙ taper, et le repère (`PS C:\Users\…>` = son PC, `root@…#` = le serveur).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
