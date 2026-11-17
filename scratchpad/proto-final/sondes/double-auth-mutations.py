@@ -53,6 +53,41 @@ M = [
  (71, 'un téléphone révoqué ne s’efface plus à la lecture suivante', 'telephone', [("function opsSynchro(k){ const c = secuCompte(k), u = secuUi(k); if (u.tel === (c.tel || null)) return u;", "function opsSynchro(k){ const c = secuCompte(k), u = secuUi(k); return u;")]),
  (72, 'une seconde porte pose SESSION sans passer par sessionOuvrir', 'auto', [("cnxCharger(() => { sessionOuvrir(p.k); toast(texte ||", "cnxCharger(() => { SESSION = p.k; sessionOuvrir(p.k); toast(texte ||")]),
  (66, 'le téléphone n’est plus ouvert d’office aux grands écrans', 'structure', [("SECU.ouvert = innerWidth >= 1100; opsDemo(); opsDessiner(); secuTicDemarrer(); }", "SECU.ouvert = false; opsDemo(); opsDessiner(); secuTicDemarrer(); }")]),
+ # ── étape 3 : le pirate, le verrouillage, la page Sécurité, Équipe, Mon compte, les actions sensibles (sondes « da-… » = double-auth-….js) ──
+ (61, 'Ce n’est pas moi ne verrouille pas le compte', 'da-pirate', [("  c.verrou = { le:now, par:'telephone', jusqua:null, n:1 };\n  const fermees", '  const fermees')]),
+ (62, 'Ce n’est pas moi ne ferme pas la session', 'da-pirate', [("  secuFermerSessions(k, 'bloquee'); opsDemo();\n  if (d) secuPcSuite(d); }", '  opsDemo();\n  if (d) secuPcSuite(d); }')]),
+ (63, 'Ce n’est pas moi ne retire pas les autres demandes', 'da-pirate', [("  SECU.demandes.forEach(x => { if (x.k === k && x.etat === 'attente') x.etat = 'annulee'; });\n  c.verrou", '  c.verrou')]),
+ (64, 'Déverrouiller garde l’ancien mot de passe', 'da-equipe', [("  secuProvisoireNeuf(k); secuJ('account.unlocked', k, '');\n  eqxJ('a déverrouillé", "  secuJ('account.unlocked', k, '');\n  eqxJ('a déverrouillé")]),
+ (65, 'Déverrouiller garde les appareils reconnus', 'da-equipe', [("c.verrou = null; c.echecs = 0; c.nVerrous = 0; c.appareils = [];\n  secuProvisoireNeuf(k); secuJ('account.unlocked', k, '');\n  eqxJ", "c.verrou = null; c.echecs = 0; c.nVerrous = 0;\n  secuProvisoireNeuf(k); secuJ('account.unlocked', k, '');\n  eqxJ")]),
+ (66, 'Nouveau téléphone ne révoque pas l’ancien', 'da-equipe', [('const c = secuCompte(k); c.tel = null; c.codeActivation = null;', 'const c = secuCompte(k); c.codeActivation = null;')]),
+ (67, 'Nouveau téléphone laisse valable l’ancien code d’activation', 'da-equipe', [('c.tel = null; c.codeActivation = null; c.appareils = [];', 'c.tel = null; c.appareils = [];')]),
+ (68, 'la fenêtre de 5 minutes ne s’éteint jamais', 'da-sensibles', [('return !!t && secuMaint() - t < SECU_REGLES.confirmationMs; };', 'return !!t; };')]),
+ (69, 'la fenêtre se PROLONGE à chaque geste', 'da-sensibles', [('  const qui = secuQui(); if (secuFenetreValide(qui)) return true;', '  const qui = secuQui(); if (secuFenetreValide(qui)) { SECU.confirmeA[qui] = secuMaint(); return true; }')]),
+ (70, 'un mauvais nombre accorde la confirmation', 'da-sensibles', [("  if (res === 'ok') { SECU.confirmeA[s.qui] = secuMaint(); const r = s.rejouer;", "  if (res === 'ok' || res === 'mauvais') { SECU.confirmeA[s.qui] = secuMaint(); const r = s.rejouer;")]),
+ (71, 'S1 : la garde de « voir l’IBAN » est retirée', 'da-sensibles', [("  if (!secuGarde('banque-ouvrir', () => entPanBanque())) return;\n", '')]),
+ (72, 'S2 : la garde d’« enregistrer l’IBAN » est retirée', 'da-sensibles', [("  if (!secuGarde('banque-enregistrer', () => entEnregistrerBanque())) return;\n", '')]),
+ (73, 'S3 : la garde du virement groupé est retirée', 'da-sensibles', [("  if (!secuGarde('virement-ouvrir', () => acVirement())) return;\n", '')]),
+ (74, 'S4 : la garde du fichier de virement est retirée', 'da-sensibles', [("  if (!secuGarde('virement-fichier', () => acVirok())) return;\n", '')]),
+ (75, 'S7 : la garde des fiches de paie est retirée', 'da-sensibles', [("if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; ", '')]),
+ (76, 'S8 : la garde de l’envoi au cabinet est retirée', 'da-sensibles', [("  if (!secuGarde('paie-envoi', () => paieEnvoyer())) return;\n", '')]),
+ (77, 'S9 : la garde de l’écriture de paie est retirée', 'da-sensibles', [("  if (!secuGarde('paie-compta', () => paieComptabiliser())) return;\n", '')]),
+ (78, 'S10 : la garde des cases de droits est retirée', 'da-sensibles', [("  if (t.matches('[data-eqt],[data-eqd],[data-eqs]') && !secuGardeCase(t)) { ev.stopImmediatePropagation(); return; }\n", '')]),
+ (79, 'S11 : la garde de « reposer un mot de passe » est retirée', 'da-sensibles', [("  if (!secuGarde('equipe-inviter', () => secuReposer(k), { k, v:'repose' })) return false;\n", '')]),
+ (80, 'S12 : la garde de « désactiver » est retirée', 'da-sensibles', [("  if (!secuGarde('equipe-retirer', () => eqxDepart(k), { k })) return;\n", '')]),
+ (81, 'S13 : la garde de « Nouveau téléphone » est retirée', 'da-sensibles', [("  if (!secuGarde('equipe-telephone', () => secuNouveauTelephone(k, par), { k, v:'tel' })) return false;\n", '')]),
+ (82, 'S14 : la garde de « Ouvrir l’application comme » est retirée', 'da-sensibles', [("  if (!secuGarde('voir-comme', () => secuVoirComme(k), {", "  if (false) secuGarde('voir-comme', () => secuVoirComme(k), {")]),
+ (83, 'S5/S6 : le cadre de la Comptabilité n’attend plus la confirmation de la banque', 'da-sensibles', [('    if (OPC_SENS.visite) return r3.apply(this, arguments);\n    rendreMenu();', '    if (true) return r3.apply(this, arguments);\n    rendreMenu();', 'apercu/prototype-comptabilite.html')]),
+ (84, 'l’IBAN est toujours en clair (le masque est retiré)', 'da-sensibles', [("if (!s) return ''; if (!secuMasqueActif()) return i; return s.slice(0, 2)", "if (!s) return ''; return i; return s.slice(0, 2)")]),
+ (85, 'l’IBAN ne se re-masque pas à l’expiration', 'da-sensibles', [("function secuIbanSurveille(){ const f = document.getElementById('en-iban'); if (!f || !secuMasqueActif()) return;", "function secuIbanSurveille(){ return; const f = document.getElementById('en-iban'); if (!f || !secuMasqueActif()) return;")]),
+ (86, 'le cadre accepte un message qui ne vient pas de lui (la source n’est plus vérifiée)', 'da-sensibles', [("addEventListener('message', ev => { const w = secuCadre(); if (!w || ev.source !== w) return; const d = ev.data, m = d && typeof d === 'object' ? d.opc_sensible : null;", "addEventListener('message', ev => { const w = secuCadre() || ev.source; if (!w) return; const d = ev.data, m = d && typeof d === 'object' ? d.opc_sensible : null;")]),
+ (87, 'la Sécurité est visible sans la case (la route ne demande plus rien)', 'da-securite', [("securite:{ equipe:['@securite'] },", 'securite:{ equipe:[] },')]),
+ (88, '« Oublier » laisse l’appareil reconnu', 'da-compte', [("if (a === 'oublier-ok') { const c = SECU.comptes[SESSION]; if (c) c.appareils = c.appareils.filter(o => o.id !== x);", "if (a === 'oublier-ok') { const c = SECU.comptes[SESSION];")]),
+ (89, 'le vol de session n’est pas détecté (la session reste ouverte)', 'da-pirate', [("  secuFermerSessions(k, 'vol'); return true; }", '  return true; }')]),
+ (90, 'un administrateur peut se déverrouiller lui-même', 'da-equipe', [("  if (k === (par || acteur())) { toast('Pour ton propre compte, demande à un autre administrateur.'); return false; }\n  if (!secuVerifCoche()) return false;\n  if (!secuGarde('equipe-telephone', () => secuDeverrouiller(k, par)", "  if (!secuVerifCoche()) return false;\n  if (!secuGarde('equipe-telephone', () => secuDeverrouiller(k, par)")]),
+ (91, 'la case « J’ai vérifié l’identité en personne » est ignorée', 'da-equipe', [("  if (!secuVerifCoche()) return false;\n  if (!secuGarde('equipe-telephone', () => secuNouveauTelephone(k, par)", "  if (!secuGarde('equipe-telephone', () => secuNouveauTelephone(k, par)")]),
+ (92, '« Annuler » l’invitation laisse le compte de sécurité', 'da-equipe', [('  Object.keys(SECU.comptes).forEach(k => { if (!EQUIPE.some(p => p.k === k)) { delete SECU.comptes[k]; delete SECU.ui[k]; } });', '')]),
+ (93, 'un secret (le provisoire) est écrit dans une data-', 'da-equipe', [('<p class="sec-provmdp" data-sec="provisoire">', '<p class="sec-provmdp" data-sec="provisoire" data-x="${esc(c.prov || \'\')}">')]),
+ (94, 'le texte à copier contient le mot de passe provisoire', 'da-equipe', [("'3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe", "'3. Ton mot de passe provisoire : ' + (SECU.comptes[k].prov || SECU.comptes[k].demoClair || ''), '4. Installe")]),
 ]
 
 def copier(n):
@@ -62,17 +97,22 @@ def copier(n):
     return racine
 
 def muter(racine, edits):
-    p = os.path.join(racine, PAGE); s = open(p, encoding='utf-8').read(); avant = s
-    for ancien, nouveau in edits:
-        n = s.count(ancien)
-        if n != 1: return None, 'le motif existe %d fois (il en faut exactement 1) : %s' % (n, ancien[:70])
-        s = s.replace(ancien, nouveau, 1)
-    if s == avant: return None, 'rien n’a changé'
-    open(p, 'w', encoding='utf-8').write(s); return s, None
+    # chaque édition : (ancienne, nouvelle) sur la page principale, ou (ancienne, nouvelle, 'apercu/autre-page.html')
+    fichiers = {}; touche = False
+    for e in edits:
+        ancien, nouveau = e[0], e[1]; rel = e[2] if len(e) > 2 else PAGE
+        if rel not in fichiers: fichiers[rel] = open(os.path.join(racine, rel), encoding='utf-8').read()
+        n = fichiers[rel].count(ancien)
+        if n != 1: return None, 'le motif existe %d fois (il en faut exactement 1) dans %s : %s' % (n, rel, ancien[:70])
+        fichiers[rel] = fichiers[rel].replace(ancien, nouveau, 1); touche = True
+    if not touche: return None, 'rien n’a changé'
+    for rel, s in fichiers.items(): open(os.path.join(racine, rel), 'w', encoding='utf-8').write(s)
+    return True, None
 
 def jouer(racine, sonde, delai=560):
     env = dict(os.environ, RACINE=racine)
-    proc = subprocess.Popen(['node', os.path.join(SONDES, 'secu-%s.js' % sonde)], cwd=DEPOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    fichier = ('double-auth-%s.js' % sonde[3:]) if sonde.startswith('da-') else ('secu-%s.js' % sonde)
+    proc = subprocess.Popen(['node', os.path.join(SONDES, fichier)], cwd=DEPOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
     t0 = time.time(); tombe = None; ok = 0
     try:
         for ligne in proc.stdout:
@@ -103,8 +143,8 @@ if __name__ == '__main__':
         racine = copier(n); s, err = muter(racine, edits)
         if err: print('ERREUR  M%d %s → %s' % (n, nom, err)); manque.append(n); sys.stdout.flush(); continue
         tombe, ok, d = jouer(racine, sonde)
-        if tombe: tombees += 1; print('TOMBE   M%-3d %s → secu-%s après %d ✓ (%d s) : %s' % (n, nom, sonde, ok, d, tombe))
-        else: manque.append(n); print('RESTE VERT  M%-3d %s → secu-%s ne voit rien (%d ✓, %d s)' % (n, nom, sonde, ok, d))
+        if tombe: tombees += 1; print('TOMBE   M%-3d %s → %s après %d ✓ (%d s) : %s' % (n, nom, sonde, ok, d, tombe))
+        else: manque.append(n); print('RESTE VERT  M%-3d %s → %s ne voit rien (%d ✓, %d s)' % (n, nom, sonde, ok, d))
         sys.stdout.flush(); shutil.rmtree(racine, ignore_errors=True)
     print('\n== %d mutations jouées · %d tombent · %d à examiner %s' % (len(choix), tombees, len(manque), manque))
     sys.exit(1 if manque else 0)

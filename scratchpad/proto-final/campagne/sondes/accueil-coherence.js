@@ -35,7 +35,7 @@ const montants = t => [...t.matchAll(/(\d[\d\s  ]*,\d{2})\s?€/g)].map(m => 
   const lignesAuj = await p.evaluate(() => [...document.querySelectorAll('#contenu .carte')].find(e => /Aujourd.hui, toute/.test(e.textContent)).querySelectorAll('.ligne-clic').length);
   v('Accueil : « interventions aujourd’hui » = lignes de la liste = données', nAuj === lignesAuj && nAuj === D.auj, { tuile: nAuj, lignes: lignesAuj, donnees: D.auj });
   v('Accueil : « à recevoir » = factures envoyées / en retard recalculées', montants(T('rec'))[0] === D.aRecevoir, { tuile: montants(T('rec')), vrai: D.aRecevoir });
-  v('Accueil : « encaissé en octobre » = encaissements d’octobre recalculés', montants(T('enc'))[0] === D.encOct, { tuile: montants(T('enc')), vrai: D.encOct });
+  v('Accueil : « reçu en octobre » = encaissements d’octobre + reçus sur place, recalculés (accueil-01 corrigé : même nombre que Comptabilité)', montants(T('enc'))[0] === D.encOct + D.terrain, { tuile: montants(T('enc')), vrai: D.encOct + D.terrain });
   v('Accueil : « contrats par an » = contrats signés', montants(T('contrats'))[0] === D.contrats, { tuile: montants(T('contrats')), vrai: D.contrats });
 
   // ── là où mène chaque tuile : le même nombre
@@ -45,7 +45,7 @@ const montants = t => [...t.matchAll(/(\d[\d\s  ]*,\d{2})\s?€/g)].map(m => 
   const cRec = await mene('rec');
   v('Comptabilité (tuile « à recevoir ») : « encore à recevoir » = même montant', cRec.includes((D.aRecevoir / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 }).replace(/[  ]/g, ' ') + ' €'), cRec.slice(300, 700));
   const cEnc = await mene('enc'), recuCompta = (cEnc.match(/(\d[\d ]*,\d{2}) € reçu en octobre/) || [])[1];
-  v('accueil-01 · Comptabilité (tuile « encaissé ») : « reçu en octobre » = le montant de la tuile', recuCompta && nb(recuCompta + '€') === montants(T('enc'))[0], { compta: recuCompta, tuile: montants(T('enc'))[0] / 100, note: 'la tuile dit 3 045 + 40 à part, la page dit 3 085 « dont 40 »' });
+  v('accueil-01 · Comptabilité (tuile « encaissé ») : « reçu en octobre » = le montant de la tuile', recuCompta && nb(recuCompta + '€') === montants(T('enc'))[0], { compta: recuCompta, tuile: montants(T('enc'))[0] / 100, note: 'la tuile et la page disent 3 085 « dont 40 reçus sur place »' });
   const cCtr = await mene('contrats'), mC = cCtr.match(/(\d+) contrats? signés? ([\d ]+,\d{2}) € HT par an/);
   v('Contrats (tuile) : même total par an et même nombre', mC && nb(mC[2] + '€') === D.contrats && +mC[1] === D.nbSignes, { page: mC && mC.slice(1), vrai: [D.nbSignes, D.contrats] });
 
@@ -65,9 +65,9 @@ const montants = t => [...t.matchAll(/(\d[\d\s  ]*,\d{2})\s?€/g)].map(m => 
   const st = await corps();
   const fac = nb((st.match(/Facturé HT (\d[\d ]*) €/) || [])[1] + ',00€'), enc = nb((st.match(/Encaissé TTC (\d[\d ]*) €/) || [])[1] + ',00€'), faites = +(st.match(/Interventions faites (\d+)/) || [])[1];
   v('Statistiques : « facturé HT » (arrondi) = factures d’octobre recalculées', Math.abs(fac - D.facOct) <= 100, { ecran: fac / 100, vrai: D.facOct / 100 });
-  v('Statistiques : « encaissé TTC » (arrondi) = Accueil (3 045)', Math.abs(enc - D.encOct) <= 100, { ecran: enc / 100, accueil: D.encOct / 100 });
+  v('Statistiques : « encaissé TTC » (arrondi) = encaissements d’octobre, « hors 40 reçus sur place » (dit à l’écran)', Math.abs(enc - D.encOct) <= 100, { ecran: enc / 100, accueil: D.encOct / 100 });
   // la page le dit elle-même : « dont 1 facture sans fiche d'intervention » (l'installation des Durand, facturée sans fiche) compte parmi les 9
-  const sansFiche = +((st.match(/dont (\d+) factures? sans fiche/) || [])[1] || 0);
+  const sansFiche = +((st.match(/dont (\d+) facturées? sans intervention enregistrée/) || [])[1] || 0);
   v('Statistiques : « interventions faites » = terminées en octobre + factures sans fiche annoncées à l’écran', faites === D.faitesOct + sansFiche, { ecran: faites, terminees: D.faitesOct, sansFiche });
   const parTech = await p.evaluate(() => [...document.querySelectorAll('[data-stdet^="tech-"]')].map(e => ({ n: e.innerText.replace(/\s+/g, ' ').trim() })));
   const parCli = await p.evaluate(() => [...document.querySelectorAll('[data-stdet^="cli-"]')].map(e => e.innerText.replace(/\s+/g, ' ').replace(/[  ]/g, ' ')));

@@ -126,13 +126,10 @@
    "data": "data-pdfdl=1",
    "touche": true,
    "change": [
-    "panneau",
-    "toast",
-    "calque",
-    "longCalque"
+    "toast"
    ],
    "h1": "CTR-2026-011",
-   "panneau": "Fichier",
+   "panneau": "",
    "hash": "#contrat-x-c3",
    "toast": "« Contrat CTR-2026-011.pdf » : téléchargement demandé. S’il ne démarre pas, ton navigateur le bloque",
    "atelier": false,

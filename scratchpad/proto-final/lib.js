@@ -13,8 +13,11 @@ let SRV = null, PORT = 0, NAV = null;
    46 processus de navigateur, charge 7 sur 4 cœurs, puis la session est tombée). Chaque sonde prend une PLACE avant de lancer
    son navigateur (un dossier créé de façon atomique dans VERROUS) et la rend en fermant. Une place dont le processus est mort
    se reprend. Après ATTENTE_MAX sans place, la sonde part quand même et le DIT : mieux vaut une machine lente qu'une sonde
-   qui ne rend jamais. Réglages : OPG_NAVIGATEURS (4 par défaut), OPG_ATTENTE_S (150). */
-const VERROUS = '/tmp/opg-navigateurs', PLACES = parseInt(process.env.OPG_NAVIGATEURS || '4', 10), ATTENTE_MAX = parseInt(process.env.OPG_ATTENTE_S || '150', 10) * 1000;
+   qui ne rend jamais. Réglages : OPG_NAVIGATEURS (4 par défaut), OPG_ATTENTE_S (330).
+   17 novembre, 7 h 20 : avec vingt voies, l'attente de 150 s était dépassée sans cesse (21 départs « quand même » relevés) et
+   six à huit navigateurs tournaient ensemble, charge 10 sur 4 cœurs. À 330 s une sonde fait la queue au lieu de s'empiler ;
+   les commandes des agents ont un délai de 580 s : une sonde de moins de quatre minutes passe encore. */
+const VERROUS = '/tmp/opg-navigateurs', PLACES = parseInt(process.env.OPG_NAVIGATEURS || '4', 10), ATTENTE_MAX = parseInt(process.env.OPG_ATTENTE_S || '330', 10) * 1000;
 let MA_PLACE = null;
 const vivant = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
 const rendrePlace = () => { if (MA_PLACE) { try { fs.rmSync(MA_PLACE, { recursive: true, force: true }); } catch (e) {} MA_PLACE = null; } };

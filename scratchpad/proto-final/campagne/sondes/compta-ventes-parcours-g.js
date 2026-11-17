@@ -10,7 +10,9 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
       try {
         const cli = Object.keys(CLIENTS).find(k => /@/.test(CLIENTS[k].mail || '') && !CONTRATS.some(x => x.cli === k));
         Object.assign(BROUILLON, { cli, modele: Object.keys(MODELES)[0], freq: 2, prix: '600', fact: mode, debut: '2026-11-05', lieu: '' });
+        const avant = CONTRATS.length; try { cfCtrT = 0; } catch (e) { /* le garde-fou du double clic de l'application : on le lève, chaque création est un geste voulu */ }
         ACTIONS.creerContrat();
+        if (CONTRATS.length === avant) return { ok: false, err: 'le contrat n’a pas été créé (refus de l’application : ' + ((document.getElementById('toast') || {}).textContent || '').slice(0, 80) + ')' };
         const k = CONTRATS[CONTRATS.length - 1];
         // la signature, comme la page du contrat la fournit au geste
         const cv = document.createElement('canvas'); cv.id = 'signe-ctr'; cv.dataset.signe = 'data:image/png;base64,AAAA'; const lu = document.createElement('input'); lu.type = 'checkbox'; lu.id = 'lu'; lu.checked = true; document.body.append(cv, lu);

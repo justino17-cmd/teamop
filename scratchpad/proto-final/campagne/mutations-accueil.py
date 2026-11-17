@@ -26,7 +26,9 @@ def jouer(cle):
     open(f, 'w', encoding='utf-8').write(s.replace(avant, apres, 1))
     if open(f, encoding='utf-8').read() == open(os.path.join(RACINE, PAGE), encoding='utf-8').read(): print(f'{cle} : ✗ le fichier n’a pas changé'); return False
     r = subprocess.run(['timeout', '560', 'node', os.path.join(SONDES, sonde), 'mac'], env={**os.environ, 'RACINE': tmp}, capture_output=True, text=True, timeout=600)
-    tombe = r.returncode == 1; bilan = [l for l in r.stdout.splitlines() if l.startswith('== ')][-1:] or ['(pas de bilan)']
+    # une sonde déjà rouge sur un défaut CONNU (« accueil-NN · … ») ne prouve rien : il faut un contrôle rouge qui n'en porte pas le numéro
+    nouveaux = [l for l in r.stdout.splitlines() if l.startswith(' ✗') and 'accueil-0' not in l]
+    tombe = r.returncode == 1 and bool(nouveaux); bilan = [l for l in r.stdout.splitlines() if l.startswith('== ')][-1:] or ['(pas de bilan)']
     print(f'{cle} : {"✓ la sonde TOMBE" if tombe else "✗ la sonde reste verte (code " + str(r.returncode) + ")"} — {titre} — {sonde} {bilan[0]}')
     for l in r.stdout.splitlines():
         if l.startswith(' ✗'): print('      ', l[:200])

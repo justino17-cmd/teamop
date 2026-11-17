@@ -19,7 +19,7 @@
     "profils": ["mac", "windows", "ipad", "iphone", "android", "petit"],
     "jourEtNuit": "mise en page jour ET nuit sur mac, iphone, petit, ipad, android (nuit long) ; windows en jour seulement ; valeurs longues (nom de 66 signes, 12 580,67 €, titre de 70 signes) sur iphone et android",
     "sondes": "accueil-coherence (21 contrôles, mac) · accueil-parcours (27 ✓ · 0 ✗) · accueil-parcours2 (11 ✓ · 1 ✗) · accueil-vides (9 ✓ · 1 ✗) · accueil-mots (36 contrôles, 1 faux positif de la sonde corrigé) · accueil-mise-en-page (mac 10/10 jour et nuit, windows 10/10, ipad 20/2 et 26/2, iphone 20/2, android 25/3, petit 24/4 jour et nuit) · accueil-roles (4 personnes)",
-    "mutations": "voir mutations-accueil.py (4 défauts remis dans une copie de la page, chacun doit faire tomber la sonde qui le garde)"
+    "mutations": "mutations-accueil.py : 4 défauts remis dans une COPIE de la page, 4 sondes qui tombent sur un contrôle qui ne porte pas le numéro d'un défaut connu — M1 « à recevoir » sans les factures en retard (accueil-coherence : 23 500 au lieu de 147 500), M2 recherche de l'Historique sensible à la casse (accueil-coherence), M3 filtre « Personne » inerte (accueil-parcours P5), M4 « période précédente » qui ne recule plus (accueil-parcours P4). M4 est resté VERT au premier passage : la sonde lisait « Septembre 2026 » dans tout le corps de la page, où les bulles du graphique citent chaque mois ; elle lit désormais le libellé entre les flèches, et tombe."
   },
   "nonCouvert": [
     "Windows en nuit, et mac720 : seulement mac, windows (jour), ipad, iphone, android, petit (le Windows réel n'est émulé que par son agent utilisateur et sa taille).",
@@ -64,10 +64,10 @@
       "preuve": "accueil-mise-en-page.js « accueil-05 » : [\"Tout 61×42\",\"Interventions 123×42\",…], [\"Période précédente 40×40\"], [\"novembre 2025 … 35×206\"…].",
       "ou": "CSS .puce-c dans .h-puces ; .st-nav (bouton de période) ; .st-col (grille du graphique)",
       "correction": "min-height:44px sur .puce-c et le bouton de période (@media (pointer:coarse)) ; colonnes du graphique : min-width:44px (le graphe défile déjà au téléphone : le même défilement sur iPad)." },
-    { "n": "accueil-06", "gravite": "gênant", "decision": "corriger", "ecran": "Historique, en-tête et filtres", "role": "patron", "profils": ["petit", "android"],
+    { "n": "accueil-06", "gravite": "gênant", "decision": "corriger", "ecran": "Historique, en-tête et filtres", "role": "patron", "profils": ["petit", "android", "iphone"],
       "etapes": "Ouvrir l'Historique sur un téléphone de 320 ou 360 px.",
       "attendu": "Le titre « Historique » d'une pièce ; les trois listes lisibles (« Tout le monde », « Tous les jours », « Tous les clients »).",
-      "constate": "À 320 px le titre se coupe en deux mots — « Historiq » puis « ue » —, le bouton « Exporter en PDF » lui prenant la place ; les trois listes déroulantes affichent « Tout le mo… », « Tous les jo… », « Tous les clien… » (le texte choisi mesure 105 à 116 px pour 69 à 89 px de place, à 360 comme à 320). Le champ de recherche coupe aussi son indication (« Chercher un client, une factu… »).",
+      "constate": "À 320 px le titre se coupe en deux mots — « Historiq » puis « ue » —, le bouton « Exporter en PDF » lui prenant la place ; les trois listes déroulantes affichent « Tout le mo… », « Tous les jo… », « Tous les clien… » (le texte choisi mesure 105 à 116 px pour 69 à 89 px de place, à 360 comme à 320 ; à 390 il touche juste le chevron : 116 px pour 104). Le champ de recherche coupe aussi son indication (« Chercher un client, une factu… »).",
       "preuve": "accueil-mise-en-page.js « accueil-06 » : titre h=64 pour une ligne de 32,2 (petit) ; listes {w:108, place:69} et {w:116, place:89} ; captures mep-historique-petit-jour-haut.png et mep-historique-android-jour-haut.png.",
       "ou": ".tete (en-tête avec data-hexport) et .h-sel (grille des trois listes)",
       "correction": "Sous 400 px : le bouton « Exporter en PDF » passe sous le titre (flex-wrap) et chaque liste prend toute la largeur, une par ligne (grid-template-columns:1fr) ; indication courte « Chercher… »." },

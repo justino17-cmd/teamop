@@ -1,0 +1,24 @@
+[
+ {
+  "n": "longues-fiche-tech",
+  "dep": {
+   "largeur": 390,
+   "premiere": 528,
+   "seconde": 528,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 1029,
+   "dernierBas": 1015,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ }
+]
