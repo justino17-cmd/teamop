@@ -7622,8 +7622,14 @@ async function pdfEnregistrer(blob,nom){
     const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nom; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000);
     toast('Essai local : le PDF « '+nom+' » est préparé ('+pdfTaille(blob.size)+').'); return 'blob';
   }
+  if(!dansArtefact()){      // hors artefact (la coque, un onglet), un lien marche : on le demande, et on dit la vérité si le navigateur le bloque
+    try{ const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nom; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000);
+      toast('« '+nom+' » : téléchargement demandé. S’il ne démarre pas, ton navigateur le bloque ici.'); return 'lien' }catch(e){}
+  }
   toast('Le téléchargement n’est pas disponible dans cette vue.'); return 'indisponible';
 }
+/* « dans un artefact » = la page principale (celle qui nous contient) est elle-même dans un cadre : window.top n'est ni nous ni notre parent */
+function dansArtefact(){ try{ return window.parent!==window&&window.parent!==window.top }catch(e){ return true } }
 async function pdfTelecharger(){
   if(PDF.enCours) return; const d=D(); if(!d) return;
   PDF.enCours=true; PDF.annule=false; pdfMajBoutons(); pdfBandeau('Préparation du PDF…','',0);
