@@ -90,6 +90,8 @@ const M = [
   ["73 · « Cette dépense » n'enregistre plus le montant corrigé", [["if (c.l) v.frais[c.i] = [d, lib, Math.round(ht * 100) / 100];", "if (c.l) v.frais[c.i] = [d, lib, c.ht];"]], [G4], { PROFILS:'mac', SEULS:'F' }],
   ["74 · la feuille du plein perd le choix « Péage ou parking »", [[", ['Péage, parking', 'Péage ou parking']], elec ?", "], elec ?"]], [F4,T4], { PROFILS:'mac', SEULES:'plein' }],
   ["75 · le technicien voit la liste des véhicules de l'entreprise dans son plein (il peut noter sur le camion d'un autre)", [["un = !!v && (ROLE === 'tech' || liste.length === 1);", "un = false;"]], [G4], { PROFILS:'mac', SEULS:'C' }],
+ ["76 · la feuille qui monte dépasse 90 % de l'écran (la règle de hauteur saute)", [["@media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}", "@media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:99vh}}"]], [F4], { PROFILS:'petit', NUIT:'0', SEULES:'rdv,plein' }],
+ ["77 · la paire de champs d'un détail replié reste ouverte (hidden perd contre display:grid)", [[".deux-champs[hidden]{display:none}", ""]], [G4], { PROFILS:'mac', SEULS:'A' }],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });

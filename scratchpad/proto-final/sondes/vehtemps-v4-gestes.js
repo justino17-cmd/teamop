@@ -27,6 +27,9 @@ const annuler = async c => { const ok = await ev(c, () => { const b = [...docume
       v(nom + ' · nouveau : la feuille « Nouveau véhicule » s\'ouvre (1 toucher)', !!p && p.h2 === 'Nouveau véhicule' && touches === 1, p && p.h2);
       const opts = await ev(c, () => [...document.querySelectorAll('#vn-c option')].map(o => o.textContent));
       v(nom + ' · nouveau : « Qui le conduit ? » vient de l\'ÉQUIPE réelle (Julie Petit y est, plus le tableau figé) et propose « Personne pour l\'instant »', opts.length === 7 && opts.includes('Julie Petit') && opts[0] === 'Personne pour l’instant', opts);
+      await ev(c, () => { document.querySelector('#calque details summary').click(); });
+      v(nom + ' · nouveau : « Ajouter plus tard » ouvert, l\'intervalle de révision reste REPLIÉ (hidden ne perd pas contre display:grid) jusqu\'à « Changer »', await ev(c, () => getComputedStyle(document.getElementById('vn-iv')).display === 'none' && document.getElementById('vn-ik').value === '15000'), null);
+      await toucher(c, '[data-vh="montrer|vn-iv"]'); v(nom + ' · nouveau : « Changer » montre l\'intervalle (km, mois)', await ev(c, () => getComputedStyle(document.getElementById('vn-iv')).display !== 'none'), null); touches--;
       await ev(c, () => { document.getElementById('vn-p').value = 'GH-482-KL'; document.getElementById('vn-mq').value = 'Renault'; });
       await toucher(c, '#calque [data-vx="creerok"]'); await L.calme(c.p, 300); const dbl = await toast(c);
       v(nom + ' · nouveau : une plaque déjà dans la liste est refusée (rien n\'est ajouté)', /déjà dans la liste/.test(dbl) && await ev(c, n => VEHICULES.length === n, n0.v), dbl);

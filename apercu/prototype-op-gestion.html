@@ -3689,6 +3689,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .vh-pied{margin-top:2px}.vh-pied .btn.large{flex:1 1 100%}
 #calque .panneau>.vh-pied{position:sticky;bottom:-1px;z-index:2;background:var(--feuille);padding:10px 0 4px;margin-bottom:-4px;box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
 .vh-ret{align-self:flex-start;min-height:44px}
+.deux-champs[hidden]{display:none}   /* « hidden » perdait contre display:grid : la paire de champs d'un détail replié restait ouverte */
+@media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}   /* la feuille qui monte ne dépasse pas 90 % de l'écran (le reste du voile reste visible : on sait où l'on est) */
 .vh-prochain{margin:0;font-size:14.5px;line-height:1.45;overflow-wrap:anywhere}
 .vh-plus{border:1px solid var(--trait);border-radius:14px;padding:0 14px;background:var(--surf2)}.vh-plus>summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600;color:var(--lien)}.vh-plus[open]{padding-bottom:14px}.vh-plus-c{display:flex;flex-direction:column;gap:12px}
 .vh-fin{display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--trait);padding-top:12px}
@@ -17985,7 +17987,7 @@ function vxNouveauPanel(){
       <label class="champ">Prochain contrôle technique<input id="vn-ct" type="date"></label>
       <div class="deux-champs"><label class="champ">Dernière révision, le<input id="vn-rd" type="date" max="${AUJ}"></label><label class="champ">à (km)<input id="vn-rk" inputmode="numeric" autocomplete="off"></label></div>
       <label class="champ">Énergie exacte<select id="vn-en2"><option value="">Comme choisi plus haut</option>${VX_ENERGIES.map(o => `<option>${o}</option>`).join('')}</select></label>
-      <span class="gris petit">Révision proposée tous les 15 000 km ou 12 mois · <button type="button" class="lien" data-vh="montrer|vn-iv">Changer</button></span>
+      <span class="gris petit">Révision proposée tous les 15 000 km ou 12 mois.</span><button type="button" class="lien vh-ret" data-vh="montrer|vn-iv">Changer</button>
       <div class="deux-champs" id="vn-iv" hidden><label class="champ">Tous les (km)<input id="vn-ik" inputmode="numeric" value="15000" autocomplete="off"></label><label class="champ">ou tous les (mois)<input id="vn-im" inputmode="numeric" value="12" autocomplete="off"></label></div>
     </div></details>
     <div id="vx-al"></div>
@@ -18303,7 +18305,7 @@ function vxRdv(vid, k, from){
     <span class="gris">${esc(vhSujet(e))} est ${esc(vhQuand(e))}. Le rendez-vous devient une tâche, au jour que tu écris.</span>
     <label class="champ">Quel jour ?<input type="date" id="vh-rd" value="${prop}" min="${AUJ}"></label>
     <label class="champ"><span>Quel garage ? <span class="faible">(facultatif)</span></span><input id="vh-rg" list="vh-gl" placeholder="ex. ${esc(garages[0] || 'Renault Pro')}" value="${esc(garages[0] || '')}" autocomplete="off"><datalist id="vh-gl">${garages.map(g => `<option value="${esc(g)}">`).join('')}</datalist></label>
-    <div class="actions"><button type="button" class="btn large" data-vh="rdvok|${v.id}|${e.k}|${from || 'liste'}">Noter le rendez-vous</button></div>
+    <div class="actions vh-pied"><button type="button" class="btn large" data-vh="rdvok|${v.id}|${e.k}|${from || 'liste'}">Noter le rendez-vous</button></div>
     <button type="button" class="lien" data-vh="fait|${v.id}|${e.k}|${from || 'liste'}">C’est déjà fait ? ${esc(VH_FAIT[e.k])}</button>`);
 }
 function vxRdvOk(vid, k, from){
@@ -18320,7 +18322,7 @@ function vhDocPanel(vid){
   ouvrirPanneau(`<span class="surtitre">${esc(vhNom(v))} · ${esc(v.plaque)}</span><h2>Ajouter un document</h2>
     <label class="champ">Lequel ?<select id="vh-dk">${[['carte', 'Carte grise'], ['assur', 'Attestation d’assurance'], ['ct', 'Rapport du contrôle technique']].map(([k, l]) => `<option value="${k}" ${v.docs[k] ? '' : 'selected'}>${l}${v.docs[k] ? ' (à remplacer)' : ''}</option>`).join('')}</select></label>
     <label class="btn gris vx-ajout vh-fichier">Photo ou fichier <span class="faible" id="vh-dn">(aucun pour l’instant)</span><input type="file" id="vh-df" accept="image/*,application/pdf" capture="environment" hidden></label>
-    <div class="actions"><button type="button" class="btn large" data-vh="docok|${v.id}">Ajouter le document</button></div>
+    <div class="actions vh-pied"><button type="button" class="btn large" data-vh="docok|${v.id}">Ajouter le document</button></div>
     <button type="button" class="lien" data-vh="fiche|${v.id}|papiers">‹ Retour à la fiche</button>`);
 }
 const VH_MAT_PAN = { id:null, from:'liste' };
