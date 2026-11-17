@@ -561,7 +561,7 @@ html .md-t .st{flex:none;max-width:100%;white-space:normal;line-height:1.25;text
 html .md-l2,html .md-l3{overflow-wrap:anywhere}
 html .md-c .client-chiffres{margin-top:auto}html .md-c .client-chiffres>span{min-width:0}html .md-c .client-chiffres b{overflow-wrap:anywhere}
 html .md-o{color:var(--orange);font-weight:650}html .md-rg{color:var(--rouge);font-weight:650}
-html .md-sous{margin-top:2px}html .md-kpis{margin:12px 0 4px}html .md-kpis .kpi{min-width:0;cursor:default}html .md-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
+html .md-nb{white-space:nowrap}html .md-sous{margin-top:2px}html .md-kpis{margin:12px 0 4px}html .md-kpis .kpi{min-width:0;cursor:default}html .md-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
 html .md-btns{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 6px}html .md-btns .btn{min-height:48px}
 html .md-chq{margin:8px 0 2px;min-height:48px}
 html .md-liste{padding:6px 8px;display:flex;flex-direction:column;margin-top:6px}html .md-liste .groupe{padding:14px 12px 4px}
@@ -15540,7 +15540,7 @@ function mdRouvrir(id){
 function mdLigne(id, o, atl){
   const x = o.x, m = o.cible != null ? stkR(o.cible - o.a) : 0, ate = stkAt(x, 'atelier'), l = lieu(id), e = atl ? matEtat(x) : null;
   const sub = o.cible != null ? (m > 0 ? `<b class="${o.a <= 0 ? 'md-rg' : 'md-o'}">${prNum(o.a)} sur ${prNum(o.cible)} · il manque ${prNum(m)}</b>` : `${prNum(o.a)} sur ${prNum(o.cible)}`) : esc(x.ref);
-  return `<div class="md-lg${BX.hl === x.id ? ' bxl-hl' : ''}"><span class="fo-n"><button type="button" class="lien md-nom" data-pr="fiche|${x.id}">${esc(x.nom)}</button><span class="gris petit">${sub}${m > 0 && !atl ? ` · à l’atelier : ${prNum(ate)}` : ''}</span></span>
+  return `<div class="md-lg${BX.hl === x.id ? ' bxl-hl' : ''}"><span class="fo-n"><button type="button" class="lien md-nom" data-pr="fiche|${x.id}">${esc(x.nom)}</button><span class="gris petit">${sub}${m > 0 && !atl ? ` · <span class="md-nb">à l’atelier : ${prNum(ate)}</span>` : ''}</span></span>
     <span class="fo-dr"><b>${sxQte(o.a, x)}</b>${e ? `<span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}${m > 0 && !l.ferme ? `<button type="button" class="lien md-aj" data-md="aj|${id}|${x.id}" aria-label="Ajouter ${esc(x.nom)} à ${esc(l.nom)}">＋ Ajouter</button>` : ''}</span></div>`;
 }
 function bxFiche(id, hl){
