@@ -7,7 +7,7 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 11 h 54 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 12 h 01 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
@@ -17,15 +17,12 @@ sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 
 | vehtemps, relecture gérant | `{voie:"vehtemps", depuis:5, jusqua:5}` | /home/user/wt-c-vehicules-temps | wf_9f5e34e3-a03 (tâche wnzrthpgv) | étape 6 sur 9, SEULE (lancée à 10 h 55). DÈS QU'ELLE A RENDU : lancer `{voie:"vehtemps", depuis:7}` (corriger puis recontrôler) dans /home/user/wt-c-vehicules-temps — le correcteur prend la seconde relecture en route |
 | vehtemps, relecture salarié | `{voie:"vehtemps", depuis:6, jusqua:6, arbre:"/home/user/wt-menu"}` | /home/user/wt-menu | wf_80477770-68b (tâche wi8wd4hu9) | étape 7 sur 9, SEULE, côte à côte (lancée à 10 h 55). Rien à lancer à sa fin |
 | guide | `{voie:"guide"}` | /home/user/wt-guide | wf_289bd7da-b70 (tâche w0u4m2s3r) | 1 sur 4 (lancée à 9 h 45, sans attendre la fin de l'étape 5 de vehtemps, en recette : le chemin le plus long) |
-| entreprise | `{voie:"entreprise", depuis:7}` | /home/user/wt-entreprise | wf_78db34a7-62b (tâche wbfz3zapz) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée (ne rejoue plus les sondes de tous les lots) |
 | securite | `{voie:"securite", depuis:7}` | /home/user/wt-securite | wf_ddbf05bc-b79 (tâche wkrvtuozl) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée ; les 18 failles sont corrigées (`securite/corrections.json`) ; les polices du compositeur sont REMISES par décision du chef |
 | restes (interventions) | `{voie:"restes", noms:["interventions"], arbre:"/home/user/wt-t-interventions", tours:1}` | /home/user/wt-t-interventions | wf_a3784188-c7f (tâche wj94wa354) | 1 sur 2 (lancée à 10 h 31, UN tour) |
 | campagne clients | `{voie:"campagne", cles:["clients"], arbre:"/home/user/wt-t-clients"}` | /home/user/wt-t-clients | wf_9eac0989-473 (tâche wunwkw7f8) | 2 sur 3 |
-| restes (contrats) | `{voie:"restes", noms:["contrats"], arbre:"/home/user/wt-t-contrats"}` | /home/user/wt-t-contrats | wf_52f09861-809 (tâche wux16bxgi) | 1 sur 4 (lancée à 9 h 05 ; applique aussi les décisions du chef sur les sept points « à soumettre », dans `final/vus-par-le-chef.md`) |
 | restes (compta-ventes) | `{voie:"restes", noms:["compta-ventes"], arbre:"/home/user/wt-t-compta-ventes"}` | /home/user/wt-t-compta-ventes | wf_3718062f-7bd (tâche wwf12gpep) | 1 sur 4 (lancée à 9 h 52) |
 | campagne compta-reste | `{voie:"campagne", cles:["compta-reste"], arbre:"/home/user/wt-t-compta-reste"}` | /home/user/wt-t-compta-reste | wf_6613e191-cd1 (tâche w3hlifa27) | 1 sur 3 |
 | campagne client | `{voie:"campagne", cles:["client"], arbre:"/home/user/wt-t-client"}` | /home/user/wt-t-client | wf_161f5d3d-d34 (tâche w2w2augv0) | 2 sur 3 |
-| campagne achats | `{voie:"campagne", cles:["achats"], arbre:"/home/user/wt-t-achats"}` | /home/user/wt-t-achats | wf_360ed1f4-c72 (tâche wungi95kj) | 1 sur 3 (RELANCÉE à 9 h 05 : la première attendait ses sondes par une boucle qui occupait un cœur entier ; règle ajoutée aux consignes) |
 
 ## Les sessions SŒURS (d'autres machines) — mode d'emploi : `workflows/SESSION-SOEUR.md`
 
@@ -55,6 +52,9 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 19 | session_01PfEEADuTZ1RBxsQwRSgovp | `{voie:"restes", noms:["artefact"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 11 h 52 | |
 | 20 | session_01PfEEAF7HxjHJwxpUrQxwkF | `{voie:"restes", noms:["coque"], depuis:2}` (second tour : corriger, recontrôler) | 11 h 53 | |
 | 21 | session_01PfEEAFCKLvTVZTQZERUt9t | `{voie:"campagne", cles:["equipe"], depuis:1}` (corriger, recontrôler ; 20 défauts dont 1 bloquant ; deux décisions du chef données dans sa consigne : equipe-11, equipe-13) | 11 h 54 | |
+| 22 | session_01PfEEAJ7n54BFrkGM8DYCLn | `{voie:"restes", noms:["contrats"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 11 h 57 | |
+| 23 | session_01PfEEAEbusuhCyEHjC2Kj8A | `{voie:"campagne", cles:["achats"], depuis:1}` (corriger, recontrôler ; 13 défauts dont 1 bloquant : la virgule avalée ; cinq décisions du chef données dans sa consigne) | 11 h 58 | |
+| 24 | session_01PfEEAGGKUWWuaWr9RUDWGg | `{voie:"restes", noms:["entreprise"], tours:1}` (le recontrôle du lot a rendu à 12 h : 11 réglés sur 13, une casse gênante ; décision du chef : « Voir » seul sur la Boîte mail = lecture seule) | 12 h 01 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.

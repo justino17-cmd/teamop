@@ -182,3 +182,14 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       et la phrase sous chaque case dit exactement ce qu'elle ouvre. · **equipe-13** : les deux boutons qui changent un mot de
       passe ont deux noms qu'on ne confond pas, avec des mots de tous les jours (plus de « Reposer… ») : « Lui donner un mot de
       passe provisoire » et « Lui envoyer un lien pour choisir le sien » — une seule phrase d'explication sous chacun.
+
+- [ ] **Achats et frais — décisions du chef du 17/11, 12 h (achats)** : · **achats-01 (bloquant)** : la virgule décimale d'une quantité
+      ou d'un montant ne s'avale JAMAIS (« 1,5 » vaut 1,5 partout dans l'application, pas seulement ici : chercher les autres champs
+      du même genre) ; une valeur illisible est refusée avec une phrase, jamais devinée. · **achats-03** : « La paie du mois »
+      (Temps de travail › Mois) porte UNE ligne « Frais à rembourser avec cette paie : Tom 16,50 € · Karim 14,90 € — hors salaire »,
+      avec le lien « Voir les notes › » ; les chiffres viennent de la fonction qui fait déjà le relevé de chaque personne.
+      · **achats-05** : au téléphone seulement, la première chose à décider se voit sans défiler : plus de tuiles qui répètent les
+      chiffres des onglets, la liste d'abord, « Ça se règle dans la Comptabilité » sous la liste, les réglages des notes derrière
+      « Réglages › ». · **achats-08** : « Kilomètres : 0,60 € le km (à régler avec ton expert-comptable : le barème dépend de la
+      puissance du véhicule) » — plus de « exemple de démonstration ». · **achats-10** : UN mot, « sans justificatif », pour le lien,
+      la puce et les lignes ; une note de frais encore à valider ne se compte pas parmi les achats sans justificatif.
