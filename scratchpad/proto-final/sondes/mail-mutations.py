@@ -26,7 +26,7 @@ M = [
  ('D12 : on peut répondre à un indésirable', COURRIER, 'disRep=(!m||m.folder==="junk")?" disabled":""', 'disRep=""', 'mail-defauts.js'),
  ('D07 : un refus avec la coche verte', COURRIER, 'var refus=!!(action&&action.refus)||REFUS_RE.test(String(msg));', 'var refus=false;', 'mail-defauts.js'),
  ('bandeau : le geste « Créer l\'intervention » disparaît', PAGE, "if (R.sujet === 'panne') { act('ml:creerint|' + id, 'Créer l’intervention', !R.relance);", "if (R.sujet === 'panne') { ", 'mail-reconnaissance.js'),
- ('rôles : la Boîte mail est ouverte à tous les rôles (la vraie garde, celle de go(), pas la condition de montage que cette garde double)', PAGE, "const rlPermis = r => ROLE === 'patron' ?", "const rlPermis = r => r === 'boiteMail' || ROLE === 'patron' ?", 'mail-roles.js'),
+ ('rôles : la Boîte mail est ouverte à tous les rôles (la vraie garde, celle de go(), pas la condition de montage que cette garde double) — réécrite après le lot Droits : rlPermis finit sur droitVoit(r)', PAGE, "ROLES.compta.routes.includes(r) : droitVoit(r);", "ROLES.compta.routes.includes(r) : (r === 'boiteMail' || droitVoit(r));", 'mail-roles.js'),
  ('A7 : « Annuler » ne retire pas la tâche confiée', PAGE, "const i = TACHES.indexOf(t); if (i >= 0) TACHES.splice(i, 1); m.confie = null; rendre(); } });", "m.confie = null; rendre(); } });", 'mail-gestes.js'),
  ('A9 : la pièce jointe n\'est pas rangée dans la fiche', PAGE, "(CLIENTS[cli].docsMail = CLIENTS[cli].docsMail || []).push({ nom:pj[0]", "(CLIENTS[cli].docsMail = CLIENTS[cli].docsMail || []).concat({ nom:pj[0]", 'mail-gestes.js'),
  ('A6 : la relance envoyée n\'est pas comptée', PAGE, "if (mo === 'relance') m.relances = (m.relances || 0) + 1; }", " }", 'mail-gestes.js'),

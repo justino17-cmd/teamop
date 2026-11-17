@@ -86,8 +86,8 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('PARCOURS ' + n
     v('C1 l\'inconnue est reconnue (« Nouveau contact ») et on lui propose « Créer le client et son devis »', /devis/i.test(lu.band || '') && lu.boutons.some(b => /Créer le client/.test(b)), lu);
     await cap(c, 'rc-C1-devis-windows-nuit');
     const nb = await bouton(c, 'Créer le client');
-    const tir = await S(c, () => { const pn = document.querySelector('#calque .panneau, .fen'); return pn ? { t:pn.innerText.replace(/\s+/g, ' ').slice(0, 220), champs:[...pn.querySelectorAll('input,textarea,select')].map(i => i.placeholder || i.name || i.id).slice(0, 8), boutons:[...pn.querySelectorAll('button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()).slice(0, 6) } : null; });
-    v('C2 le tiroir « Que demande-t-il ? » s\'ouvre, nomme la cliente, lit « 35 m² » dans son message et propose six choix', nb === 1 && !!tir && /Fontaine/.test(tir.t) && /35 m²/.test(tir.t) && tir.boutons.length >= 6, tir);
+    const tir = await S(c, () => { const pn = document.querySelector('#calque .panneau, .fen'); return pn ? { t:pn.innerText.replace(/\s+/g, ' ').slice(0, 220), champs:[...pn.querySelectorAll('input,textarea,select')].map(i => i.placeholder || i.name || i.id).slice(0, 8), boutons:[...pn.querySelectorAll('button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()) } : null; });
+    v('C2 le tiroir « Que demande-t-il ? » s\'ouvre, nomme la cliente, lit « 35 m² » dans son message et propose six choix', nb === 1 && !!tir && /fontaine/i.test(tir.t) && /35 m²/.test(tir.t) && tir.boutons.length >= 6, tir);
     await cap(c, 'rc-C2-tiroir-windows-nuit');
     const ok = p.locator('#calque .panneau button', { hasText:'Préparer le devis' }).first(); const nok = await ok.count();
     if (nok) { await ok.click(); await p.waitForTimeout(1400); }
