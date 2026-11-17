@@ -31,7 +31,7 @@ const ADR120 = '12 bis rue du Docteur Jean-Baptiste de la Fontaine-Mortagne, Ré
   const fermer = () => p.evaluate(() => { try { fermerCreation(); } catch (e) {} });
   let r = await essai({ nom: 'Essai un' }); await fermer();
   console.log('  · nom seul → ' + JSON.stringify(r));
-  v('clients-04 : un client sans téléphone, sans e-mail ni adresse ne se crée pas (le formulaire du devis, lui, l’exige) — décision « facultatifs » à confirmer', r.cree === 0, r);
+  v('clients-04 : un client sans adresse ne se crée pas, et le refus nomme le champ (« ' + r.toast + ' ») — décision du 17 novembre', r.cree === 0 && /adresse/i.test(r.toast), r);
   await ouvrirNv('int'); r = await essai({ nom: 'Essai deux', tel: '12' }); v('téléphone « 12 » refusé (« à vérifier »)', r.cree === 0 && /téléphone|numéro/i.test(r.toast), r); await fermer();
   await ouvrirNv('int'); r = await essai({ nom: 'Essai trois', tel: '06 00 00 00 03', mail: 'pas-un-mail' }); v('e-mail « pas-un-mail » refusé', r.cree === 0 && /mail/i.test(r.toast), r); await fermer();
   const nBase = await nb(); console.log('  · ' + (nBase - n0) + ' client(s) de plus après les trois essais refusables : ces refus n’existent pas dans ce formulaire');
@@ -66,14 +66,14 @@ const ADR120 = '12 bis rue du Docteur Jean-Baptiste de la Fontaine-Mortagne, Ré
   v('devis sans nom : « Indique le nom du client. »', /Indique le nom/.test(await p.evaluate(() => (document.querySelector('#calque .alerte') || {}).textContent || '')), null);
   await remplir({ nom: NOM60 }, 'devis'); await L.toucher(c, '[data-dvn="type|pro"]'); await L.toucher(c, '[data-dvn="creer|1"]');
   v('devis sans téléphone ni e-mail : refusé avec une phrase qui dit pourquoi', /téléphone ou un e-mail/.test(await p.evaluate(() => (document.querySelector('#calque .alerte') || {}).textContent || '')), null);
-  await remplir({ nom: NOM60, prenom: 'Anne Ledoux', tel: '+33 6 12 34 56 78', mail: 'anne@ledoux-sarl.fr', adr: '12 rue de la République, 17300 Rochefort' }, 'devis'); await L.toucher(c, '[data-dvn="creer|1"]');
+  await remplir({ nom: NOM60, prenom: 'Anne Ledoux', tel: '+33 6 12 34 56 99', mail: 'anne@ledoux-sarl.fr'   /* pas le numéro du Vieux Port : « +33 » est désormais compris comme « 0 », le refus de doublon le verrait */, adr: '12 rue de la République, 17300 Rochefort' }, 'devis'); await L.toucher(c, '[data-dvn="creer|1"]');
   v('devis sans objet : « Indique l’objet du devis. »', /objet du devis/.test(await p.evaluate(() => (document.querySelector('#calque .alerte') || {}).textContent || '')), null);
   await remplir({ objet: 'Remplacement de la pompe de relevage' }, 'devis'); await L.capture(c, CAP + `creer-devis-rempli-${PROFIL}${NUIT ? '-nuit' : ''}.png`);
   await L.toucher(c, '[data-dvn="creer|1"]'); await L.calme(p, 700); const n2 = await nb();
   v('avec tout renseigné (nom de 63 signes, téléphone +33) : le client pro est créé (' + n2 + ')', n2 === n1 + 1, { n2, h: await p.evaluate(() => location.hash), toast: await t() });
   const k2 = await p.evaluate(() => Object.keys(CLIENTS).filter(k => k !== '__nv').pop());
   const cd = await p.evaluate(k => ({ c: CLIENTS[k], geo: CR_GEO[k] || null, sect: SECT_CLI[k] || null, dv: DV.filter(d => d.cli === k).map(d => d.objet) }), k2);
-  v('client créé avec un devis : pro, raison sociale gardée, contact « Anne Ledoux », téléphone formaté (« ' + cd.c.tel + ' »)', cd.c.type === 'pro' && cd.c.nom === NOM60 && cd.c.contact === 'Anne Ledoux' && cd.c.tel.replace(/\D/g, '').endsWith('612345678'), cd.c);
+  v('client créé avec un devis : pro, raison sociale gardée, contact « Anne Ledoux », téléphone formaté (« ' + cd.c.tel + ' »)', cd.c.type === 'pro' && cd.c.nom === NOM60 && cd.c.contact === 'Anne Ledoux' && cd.c.tel === '06 12 34 56 99', cd.c);
   v('client créé avec un devis : le devis est à son nom', cd.dv.length === 1, cd.dv);
   v('clients-05 : client créé avec un devis : il a lui aussi sa position (Rochefort) pour la carte des tournées — comme celui créé avec une intervention', !!cd.geo, { geo: cd.geo, sect: cd.sect });
   await p.evaluate(() => { chercheClient = ''; }); await L.aller(p, 'clients'); const ln = await p.evaluate(() => { const e = [...document.querySelectorAll('#contenu .client-carte')].find(x => x.textContent.includes('Établissements')); window.__cartes = [...document.querySelectorAll('#contenu .client-carte')].map(x => x.textContent.slice(0, 30)); const r = e && e.getBoundingClientRect(); return e ? { w: Math.round(r.width), h: Math.round(r.height), t: e.querySelector('b').scrollWidth > e.querySelector('b').clientWidth } : null; });
