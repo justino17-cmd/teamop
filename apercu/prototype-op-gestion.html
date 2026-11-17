@@ -216,6 +216,15 @@ div.ligne-clic:hover{border-color:var(--trait)}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
   body:has(.fen-voile) #toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}   /* une fenêtre est ouverte : sa barre « Annuler / Créer » est en bas, la bulle passe en haut au lieu de la couvrir */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
+/* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
+#sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
+#sortie-carte .sc-t{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#sortie-carte .sc-x{flex:none;min-width:44px;min-height:44px;margin:-10px -10px -10px 0;border:0;background:none;color:inherit;font-size:24px;line-height:1;border-radius:999px}
+#sortie-carte .sc-v{-webkit-user-select:text;user-select:text;font-weight:700;font-size:18px;padding:10px 12px;border-radius:12px;background:var(--surf);border:1px solid var(--trait2);white-space:pre-wrap;max-height:30vh;overflow:auto}
+#sortie-carte .sc-a{display:flex;gap:10px;flex-wrap:wrap}
+@media (max-width:760px){#sortie-carte{bottom:124px}body:has(.fen-voile) #sortie-carte{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}
+body.dp-ouvert #sortie-carte{z-index:300}
+.vfl-img{display:block;max-width:100%;max-height:60vh;margin:0 auto 12px;object-fit:contain;border-radius:12px}
 /* ── barre du bas d'OP GESTION ── */
 .opg-barre{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:6px;border-radius:34px;background:var(--tab-fond);border:1px solid var(--tab-lise);box-shadow:0 24px 56px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.32);-webkit-backdrop-filter:blur(40px) saturate(2.2) brightness(1.06);backdrop-filter:blur(40px) saturate(2.2) brightness(1.06)}
 .opg-tab{min-height:48px;border:0;background:none;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--tab-ink);font-size:11px;font-weight:600}
@@ -4512,6 +4521,85 @@ function toast(msg, action){ // action : { lib, fn }
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
+
+/* ══ LES SORTIES DE LA PAGE, DANS L'ARTEFACT (17 novembre 2026) ══
+   Ce prototype s'ouvre aussi dans un « artefact » de claude.ai : la page y vit dans un cadre verrouillé, où un lien « download », une adresse blob:,
+   window.open, alert/confirm/print ne font RIEN, sans un mot. Un fichier ne sort que par le pont « downloads » (window.claude.use), que le visiteur
+   confirme ET PEUT REFUSER ; un lien tel:/mailto:/sms: peut ne rien faire et la page ne peut pas le savoir. D'où UNE fonction par besoin :
+   · telechargerFichier : le pont d'abord (celui de la page du haut quand on est dans un cadre), jamais d'annonce « téléchargé » sans réponse du pont,
+     le refus et l'échec se DISENT ; sans pont : le lien, avec une phrase qui ne promet rien ; dans un cadre sans pont : le texte à copier (si c'est du texte) ;
+   · copierTexte : le presse-papiers (dans le geste), sinon une copie par sélection, sinon le texte SÉLECTIONNÉ à copier à la main ;
+   · sortieCarte : après un lien tel:/mailto:/sms:, le numéro ou l'adresse se LIT, se sélectionne, se copie — et rien n'annonce un appel ou un envoi. */
+let _pontFichiers = null;
+async function pontFichiers(){
+  if (_pontFichiers) return _pontFichiers;
+  let cl = null; try { cl = window.claude || (window.parent !== window ? window.parent.claude : null); } catch (e) { cl = null; }
+  let p = null; try { p = cl && typeof cl.use === 'function' ? await cl.use('downloads') : null; } catch (e) { p = null; }
+  return (_pontFichiers = p && typeof p.save === 'function' ? p : null);   // un « rien » n'est pas retenu : on le redemandera
+}
+const nomAvecExt = (nom, type) => /\.[a-z0-9]{2,5}$/i.test(nom) ? nom : nom + '.' + (({ 'image/jpeg':'jpg', 'image/png':'png', 'image/webp':'webp', 'application/pdf':'pdf', 'text/plain':'txt', 'text/csv':'csv' })[type] || 'pdf');
+async function telechargerFichier(nom, data, o){
+  o = o || {};
+  const vide = data == null || (typeof data === 'string' ? !data.length : !(data.size || data.byteLength));
+  if (vide) { toast('Ce fichier est vide : rien à enregistrer.'); return 'vide'; }
+  const texte = typeof o.texte === 'string' ? o.texte : (typeof data === 'string' ? data : null);
+  const pont = await pontFichiers();
+  if (pont) {
+    try { await pont.save({ filename:nom, data }); toast(o.ok || 'Fichier enregistré : ' + esc(nom)); return 'enregistre'; }
+    catch (e) { const c = e && e.code;
+      if (c === 'declined') { toast('Rien n’a été enregistré : tu as refusé le téléchargement. Tu peux recommencer.'); return 'refuse'; }
+      if (c === 'rate_limited') { toast('Une demande d’enregistrement est déjà ouverte : réponds-y, puis recommence.'); return 'attente'; }
+      if (c === 'too_large') { toast('Ce fichier est trop lourd pour être enregistré d’ici.'); return 'trop-lourd'; }
+      if (c === 'rejected_extension' || c === 'extension_not_enabled') { toast('Ce type de fichier ne peut pas être enregistré d’ici.'); return 'type'; }
+      toast('L’enregistrement n’a pas abouti.'); return 'echec'; }
+  }
+  let cadre = false; try { cadre = window.top !== window; } catch (e) { cadre = true; }
+  if (cadre) {   // un cadre verrouillé sans pont : un lien ne ferait rien. Du texte se copie ; un PDF, on le dit.
+    if (texte) sortieCarte('Le téléchargement n’est pas disponible ici', texte.length > 600 ? texte.slice(0, 600) + '…' : texte, { copie:texte, aide:'Copie ce texte et colle-le dans un fichier « ' + nom + ' ».', duree:30000 });
+    else toast('Le téléchargement n’est pas disponible ici : ouvre OP GESTION dans son propre onglet pour enregistrer « ' + esc(nom) + ' ».');
+    return 'indisponible';
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data])); a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('« ' + esc(nom) + ' » : téléchargement demandé. S’il ne démarre pas, ton navigateur le bloque ici.'); return 'lien';
+}
+function sortieCarte(titre, valeur, o){
+  o = o || {}; const ancien = document.getElementById('sortie-carte'); if (ancien) ancien.remove();
+  const z = document.createElement('div'); z.id = 'sortie-carte'; z.setAttribute('role', 'status');
+  z.innerHTML = `<div class="sc-t"><b>${esc(titre)}</b><button type="button" class="sc-x" data-sortie="fermer" aria-label="Fermer">×</button></div><div class="sc-v" tabindex="0">${esc(valeur)}</div>${o.aide ? `<span class="gris petit">${esc(o.aide)}</span>` : ''}<div class="sc-a"><button type="button" class="btn petit" data-sortie="copier" data-t="${esc(o.copie != null ? o.copie : valeur)}">Copier</button></div>`;
+  document.body.appendChild(z); clearTimeout(sortieCarte.t); sortieCarte.t = setTimeout(() => z.remove(), o.duree || 14000);
+  try { const r = document.createRange(); r.selectNodeContents(z.querySelector('.sc-v')); const g = getSelection(); g.removeAllRanges(); g.addRange(r); } catch (e) {}   // sélectionné d'avance : un appui long ou Ctrl + C suffit
+}
+function copieSecours(t, o){
+  o = o || {};
+  try { const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(a); a.select(); const ok = document.execCommand && document.execCommand('copy'); a.remove(); if (ok) { toast(o.ok || 'Copié.'); return true; } } catch (e) {}
+  sortieCarte(o.titre || 'Copie ce texte à la main', t.length > 600 ? t.slice(0, 600) + '…' : t, { copie:t, aide:'Appuie longtemps sur le texte (ou Ctrl + C) pour le copier.', duree:25000 });
+  return false;
+}
+function copierTexte(t, o){
+  o = o || {}; t = String(t);
+  try { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).then(() => { toast(o.ok || 'Copié.'); return true; }, () => copieSecours(t, o)); } catch (e) {}
+  return Promise.resolve(copieSecours(t, o));
+}
+const fmtTel = n => { const d = String(n).replace(/[^\d+]/g, ''); return /^0\d{9}$/.test(d) ? d.replace(/(\d\d)(?=\d)/g, '$1 ').trim() : String(n).trim(); };
+document.addEventListener('click', ev => {
+  const t = ev.target.closest ? ev.target : ev.target.parentElement; if (!t) return;
+  const a = t.closest('a[href^="tel:"],a[href^="mailto:"],a[href^="sms:"]');
+  if (a) { const h = a.getAttribute('href'), k = h.split(':')[0], v = decodeURIComponent(h.slice(k.length + 1).split('?')[0]).trim();
+    // un geste qui parle lui-même (« 📞 Appel de… » du planning, data-kappel) a déjà dit ce qu'il fait : la carte viendrait en double
+    if (!a.hasAttribute('data-kappel') && v) sortieCarte(k === 'tel' ? 'Pour appeler' : k === 'sms' ? 'Pour envoyer un SMS au' : 'Pour écrire à', k === 'mailto' ? v : fmtTel(v), { aide:k === 'mailto' ? 'Si ton appareil n’ouvre pas ta messagerie, copie l’adresse.' : 'Si ton appareil ne lance rien, copie le numéro.' }); return; }
+  const b = t.closest('[data-sortie]'); if (!b) return; const q = b.dataset.sortie;
+  if (q === 'fermer') { const z = document.getElementById('sortie-carte'); if (z) z.remove(); }
+  else if (q === 'copier') copierTexte(b.dataset.t || '', { ok:'Copié.' });
+  else if (q === 'enregistrer') { const bl = BLOBS_LOCAUX.get(b.dataset.u); if (bl) telechargerFichier(nomAvecExt(b.dataset.n || bl.name || 'fichier', bl.type), bl); else toast('Ce fichier n’est plus disponible sur cet appareil.'); }
+});
+/* un fichier choisi par la personne (photo, PDF) : sa copie en mémoire (BLOBS_LOCAUX) permet de le montrer dans la page et de l'enregistrer — window.open sur une adresse blob: ne fait rien dans l'artefact */
+const BLOBS_LOCAUX = new Map(); { const cou = URL.createObjectURL.bind(URL); URL.createObjectURL = b => { const u = cou(b); try { BLOBS_LOCAUX.set(u, b); } catch (e) {} return u; }; }
+function voirFichierLocal(url, nom){
+  const b = BLOBS_LOCAUX.get(url), type = (b && b.type) || '', n = nom || (b && b.name) || 'Fichier';
+  ouvrirPanneau(`<h2>${esc(n)}</h2>${/^image\//.test(type) ? `<img class="vfl-img" src="${esc(url)}" alt="${esc(n)}">` : '<p class="gris">Ce fichier ne s’affiche pas dans cette page : enregistre-le sur ton appareil pour l’ouvrir.</p>'}<div class="actions"><button type="button" class="btn" data-sortie="enregistrer" data-u="${esc(url)}" data-n="${esc(n)}">Enregistrer sur cet appareil</button><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
+}
+document.addEventListener('click', ev => { const a = ev.target.closest && ev.target.closest('a[href^="blob:"]'); if (!a) return; ev.preventDefault(); voirFichierLocal(a.getAttribute('href')); });
 const trouve = id => INTS.find(o => o.id === id) || BUREAU.find(o => o.id === id);
 const estBloc = i => BUREAU.includes(i);
 function poser(i, tid, d, h, dur){
@@ -5549,15 +5637,9 @@ function docEnPdf(el, titre){
   const octets = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) octets[i] = out.charCodeAt(i) & 255;
   return { octets, pages: pages.length };
 }
-let _telechargement;
 async function pdfTelecharger(el, nom){
   const { octets, pages } = docEnPdf(el, nom.replace(/\.pdf$/, ''));
-  try {
-    if (_telechargement === undefined) _telechargement = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-    if (_telechargement) { const r = await _telechargement.save({ filename:nom, data:new Blob([octets], { type:'application/pdf' }) }); if (r !== 'declined') toast(`PDF prêt · ${pages} page${pages > 1 ? 's' : ''}`); return; }
-  } catch (e) { if (e && e.code === 'declined') return; }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([octets], { type:'application/pdf' })); a.download = nom; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast(`PDF téléchargé · ${pages} page${pages > 1 ? 's' : ''}`);
+  await telechargerFichier(nom, new Blob([octets], { type:'application/pdf' }), { ok:`PDF enregistré : ${esc(nom)} · ${pages} page${pages > 1 ? 's' : ''}` });
 }
 /* l'envoi par e-mail, depuis l'application : à qui, l'objet, le message (modifiable), le PDF joint */
 const ENVOIS = [];
@@ -8116,9 +8198,7 @@ function cpFec(){
 const cpFecNom = () => ENTREPRISE.siret.replace(/\s/g, '').slice(0, 9) + '_ecritures_2026-10_format-FEC.txt';
 async function cpFecTelecharger(){
   const nom = cpFecNom(), data = new Blob([CP.fecEnvoye || cpFec()], { type:'text/plain' });
-  try { if (_telechargement === undefined) _telechargement = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-    if (_telechargement) { const r = await _telechargement.save({ filename:nom, data }); if (r !== 'declined') toast('Fichier des écritures prêt'); return; } } catch (e) { if (e && e.code === 'declined') return; }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(data); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Fichier des écritures téléchargé');
+  await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom) });
 }
 async function cpSceller(){
   CP.fecEnvoye = cpFec(); CP.empreinte = null;
@@ -8436,7 +8516,7 @@ const ACTIONS = {
   envoiMail(b){ panneauMail(b.dataset.id); },
   envoiMailOk(b){ { const i0 = INTS.find(o => o.id === b.dataset.id); if (i0 && i0.st !== 'fait' && !b.force) return toast('Cette intervention n’est pas terminée, et le message dit « terminée ». Tu l’envoies quand même ?', { lib:'Envoyer quand même', fn:() => ACTIONS.envoiMailOk({ dataset:{ id:i0.id }, force:true }) }); } fiche(b.dataset.id).envoye = true; (i => journalAjout('marc', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail }))(INTS.find(o => o.id === b.dataset.id)); fermerPanneau(); rendre(); toast(`E-mail envoyé à ${esc(CLIENTS[INTS.find(o=>o.id===b.dataset.id).cli].mail)}, compte rendu joint.`); },
   envoiSms(b){ panneauSms(b.dataset.id); },
-  copierSms(b){ const t = texteSms(b.dataset.id); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Texte copié : colle-le dans un message.'), () => toast('Copie impossible ici : sélectionne le texte à la main.')); },
+  copierSms(b){ const t = texteSms(b.dataset.id); copierTexte(t, { ok:'Texte copié : colle-le dans un message.', titre:'Sélectionne le texte du SMS' }); },
   modifierOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = document.getElementById('m-titre').value.trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
 };
 let numSuiv = 146;
@@ -10160,7 +10240,7 @@ document.addEventListener('click', ev => {
     const p = d3P(d3Cli, AUJ, H_NOM(rlQui()) || 'Marc Leblanc', et, q ? [[document.getElementById('d3-prod').value, document.getElementById('d3-lot').value || '—', q]] : [], document.getElementById('d3-obs').value.trim() || 'Passage effectué.', reco ? [['r' + Date.now(), reco, null]] : []);
     const deja = D3_PASSAGES.filter(o => o.cli === p.cli && o.d === p.d).length; if (deja) p.id += '-' + (deja + 1); D3_PASSAGES = D3_PASSAGES.concat(p); /* [5] un 2e passage du jour s'ajoute, il n'écrase pas le 1er */ fermerPanneau(); rendre(); return toast(`Passage enregistré : la carte des box et le registre sont à jour.`, { lib:route === 'registre' ? 'Voir la carte' : 'Voir le registre', fn:() => aller(route === 'registre' ? 'carteBox' : 'registre') }); }
   if (a === 'pdf') return toast('Dans l’application, le registre part en PDF au nom de l’entreprise (passages, produits avec lot et AMM, recommandations, plan des box). Ici, c’est un aperçu : aucun fichier n’est fabriqué.');
-  if (a === 'lien') { const u = 'https://teamop.fr/registre/' + d3Cli + '-demo'; return (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('Lien copié (exemple) : il montrera le registre à jour, en lecture seule.'), () => toast('Copie impossible ici : le lien serait ' + esc(u) + '.')); }
+  if (a === 'lien') { const u = 'https://teamop.fr/registre/' + d3Cli + '-demo'; return copierTexte(u, { ok:'Lien copié (exemple) : il montrera le registre à jour, en lecture seule.', titre:'Le lien du registre (exemple)' }); }
 });
 document.addEventListener('change', ev => { const t = ev.target; if (!t.matches('[data-d3reco]')) return; const r = D3_PASSAGES.flatMap(p => p.recos).find(o => o[0] === t.dataset.d3reco); r[2] = t.checked ? AUJ : null; rendre(); toast(t.checked ? 'Notée comme faite par le client.' : 'Remise en attente.'); });
 
@@ -11152,7 +11232,7 @@ function cxFactureFictive(a){
     <div class="ff-l"><span>Total HT</span><span>${eur(a.ht)}</span></div><div class="ff-l"><span>${a.autoliq ? 'TVA : autoliquidation' : a.tva ? 'TVA ' + String(a.tva).replace('.', ',') + ' %' : 'Pas de TVA'}</span><span>${eur(tva)}</span></div>
     <div class="ff-l ff-tot"><span>Total TTC</span><b>${eur(ttc)}</b></div>${a.ech ? `<div class="ff-p">À payer avant le ${esc(a.ech)}/2026</div>` : ''}</div>`;
 }
-const cxPhotoHtml = (url, type) => /pdf/.test(type || '') ? `<iframe class="cx-jpdf" src="${url}" title="Justificatif"></iframe>` : `<img class="cx-jphoto" src="${url}" alt="Photo du justificatif">`;
+const cxPhotoHtml = (url, type) => /pdf/.test(type || '') ? `<iframe class="cx-jpdf" src="${url}" title="Justificatif"></iframe><p class="gris petit">Si le PDF ne s’affiche pas ici : <button type="button" class="lien" data-sortie="enregistrer" data-u="${esc(url)}" data-n="justificatif.pdf">enregistrer le PDF</button>.</p>` : `<img class="cx-jphoto" src="${url}" alt="Photo du justificatif">`;
 function cxJustifDoc(type, id){   // { titre, html, vraie }
   if (type === 'ndf') { const n = NDF.find(x => x.id === id); if (!n) return null;
     return { titre:'Ticket · ' + n.objet, vraie:!!n.photo, html:n.photo ? cxPhotoHtml(n.photo, n.photoType) : cxTicketFictif({ lieu:cxLieuTicket(n.objet), objet:n.objet.split(',')[0], d:jlong(n.d), h:cxHeure(n.id), ttc:n.ttc, tva:n.tva }) }; }
@@ -11404,7 +11484,7 @@ const GESTES = {
   tt:{ k:'temps', c:'ajout ajoutok', m:'valider validerok validertout validerun confirmer termineok rappelsok terminer fin jourok mhconfok accepter erreur areg mhconf mhtout rappeler rappeler1', l:'abs filtre rappels jour sem nav regle paie mois releve onglet demander mhonglet mhfin' },
   ve:{ k:'temps', c:'nouveau creer', m:'pleinok kmok', l:'fiche' },
   vh:{ k:'temps', c:'nouveau plein rdvok', m:'plan cond modif km incclos docadd docok amende sinistre fait matfait mattout hs', s:'docdel suppr supprok', l:'fiche onglet statut fonglet frais per csv csvflotte rdv cout groupe choix montrer' },
-  vx:{ k:'temps', c:'creerok plein', m:'faitok groupeok pleinok kmok garageok retourok condok modifok frmodok soucisok amendeok sinistreok commander km', s:'frdel docdel', l:'kmnon souci ouvrir achat' },
+  vx:{ k:'temps', c:'creerok plein', m:'faitok groupeok pleinok kmok garageok retourok condok modifok frmodok soucisok amendeok sinistreok commander km', s:'frdel docdel', l:'kmnon souci ouvrir achat ndf' },
   /* devis, contrats, relevés */
   dv:{ k:'ventes', c:'nouveau creerInt ligneAj', m:'envoyer relancer signer clientRefus reponse planifier version repOui repNon acompte client', s:'supprimer ligneSup', l:'dicter focusFin pdf' },
   dvn:{ k:'ventes', c:'nv creer', l:'type modele' }, dvd:{ k:'ventes', d:'l' }, dvf:{ k:'ventes', d:'l' },
@@ -12346,7 +12426,7 @@ document.addEventListener('change', ev => {
 });
 function paieBulletinVoir(k, mois){
   const b = mois ? null : PAIE.bulletins[k];
-  if (b && b.url) return window.open(b.url, '_blank', 'noopener');
+  if (b && b.url) return voirFichierLocal(b.url, b.nom);   // window.open ne fait rien dans l'artefact : le fichier se montre dans la page et s'enregistre
   if (PAIE.mode === 'op' && (!b || b.calc)) { const ym = mois ? '2026-' + String(['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre'].indexOf(mois.split(' ')[0]) + 1).padStart(2, '0') : null; return paieDocPlein(paieBulletinDoc(k, ym)); }
   ouvrirPanneau(`<span class="surtitre">Fiche de paie · ${esc(mois || PAIE_NOM_MOIS)}</span><h2>${esc(paieNomPers(k))}</h2>
     <div class="paie-bul"><span aria-hidden="true">📄</span><b>${esc(b ? b.nom : 'Bulletin ' + mois + ' - ' + paieNomPers(k) + '.pdf')}</b><span class="gris petit">Dans la vraie version, c’est le PDF envoyé par ${esc(PAIE_CAB.nom)} qui s’ouvre ici, tel quel. Le prototype n’invente pas de fiche de paie : ses montants viennent du cabinet.</span></div>
@@ -17336,7 +17416,7 @@ const vxCleGroupe = g => 'veh-flotte-assur-' + g.fin;
 /* les suggestions de Tâches : remplace la source d'origine (une ligne par échéance) par la même, groupée, et qui connaît le matériel */
 function vxLiens(){
   const G = vxGroupes(), L = [];
-  G.forEach(g => L.push({ cle:vxCleGroupe(g), t:`Assurance flotte : ${g.vs.length} véhicules, échéance ${vxDm(g.fin)}`, pourquoi:`${g.cie ? g.cie + ' · ' : ''}${g.n < 0 ? 'dépassée depuis ' + -g.n + ' j' : g.n === 0 ? 'aujourd’hui' : 'dans ' + g.n + ' j'}`, urgent:g.urg === 'r', cat:'Véhicules', aller:'vehicules' }));
+  G.forEach(g => L.push({ cle:vxCleGroupe(g), t:`Assurance des ${g.vs.length} véhicules, échéance ${vxDm(g.fin)}`, pourquoi:`${g.cie ? g.cie + ' · ' : ''}${g.n < 0 ? 'dépassée depuis ' + -g.n + ' j' : g.n === 0 ? 'aujourd’hui' : 'dans ' + g.n + ' j'}`, urgent:g.urg === 'r', cat:'Véhicules', aller:'vehicules' }));
   VEHICULES.forEach(v => vehEcheances(v).filter(e => e.urg !== 'v' && !(e.k === 'assur' && G.some(g => g.vs.includes(v)))).forEach(e =>
     L.push({ cle:`veh-${v.id}-${e.k}`, t:`${e.k === 'ct' ? 'Prendre rendez-vous pour le contrôle technique' : e.k === 'assur' ? 'Renouveler l’assurance' : e.k === 'mat' ? 'Contrôler le matériel de sécurité' : 'Prendre rendez-vous pour l’entretien'} · ${v.marque} ${v.modele} ${v.plaque}`, pourquoi:vehEchTxt(e), urgent:e.urg === 'r', cat:'Véhicules', aller:`vehicules|${v.id}` })));
   return L;
@@ -17444,7 +17524,7 @@ function vhChoisir(id, val){ const h = vxG(id); if (!h) return; h.value = val;
 /* un détail qu'on ne montre que si on le demande (« Un autre jour », « Changer ») */
 function vhMontrer(id){ const e = vxG(id); if (!e) return; e.hidden = false; document.querySelectorAll(`#calque [data-vh="montrer|${id}"]`).forEach(b => { b.hidden = true; }); const f = e.querySelector('input:not([type=hidden]),select'); if (f) f.focus({ preventScroll:true }); }
 /* la dotation du camion d'un véhicule neuf suit le MÉTIER de l'entreprise (plus de « clim » écrit en dur) ; rien si l'entreprise n'a pas de dotation pour ce métier */
-const vhDotMetier = () => { const k = typeof metiersCleModele === 'function' && PACKS_ENT[0] ? metiersCleModele(PACKS_ENT[0]) : ''; return DOTATION[k] ? k : undefined; };
+const vhDotMetier = () => { const k = typeof MET_FAMILLE !== 'undefined' && PACKS_ENT[0] ? MET_FAMILLE[PACKS_ENT[0]] : ''; return k && DOTATION[k] ? k : undefined; };
 
 /* ─── 1. clore une échéance ─── */
 function vxFaitPanel(vid, k, from){
@@ -17545,7 +17625,8 @@ function vxCommander(vid){
 /* ─── 3. le plein ─── */
 function vxPleinPanel(vid){
   const moi = rlQui(), mes = VEHICULES.filter(o => o.conducteur === moi), liste = ROLE === 'tech' ? mes : VEHICULES;
-  const v = vehDe(vid) || mes[0] || vehDe(VX.dernier) || (liste.length === 1 ? liste[0] : null), elec = v && v.energie === 'Électrique', un = !!v && (ROLE === 'tech' || liste.length === 1);
+  const dernierPlein = () => liste.filter(o => o.pleins.length).sort((a, b) => b.pleins.map(p => p.d).sort().pop().localeCompare(a.pleins.map(p => p.d).sort().pop()))[0] || liste.find(o => o.statut === 'service') || liste[0] || null;   /* le gérant note souvent « le même » : le dernier utilisé, sinon le dernier plein noté */
+  const v = vehDe(vid) || mes[0] || vehDe(VX.dernier) || (liste.length === 1 ? liste[0] : dernierPlein()), elec = v && v.energie === 'Électrique', un = !!v && (ROLE === 'tech' || liste.length === 1);
   ouvrirPanneau(`<span class="surtitre">${un ? esc(vhNom(v)) + ' · ' + esc(v.plaque) : 'Véhicules'}</span><h2>Noter un plein</h2>
     ${un ? `<input type="hidden" id="vx-v" value="${v.id}">` : `<label class="champ">Quel véhicule ?<select id="vx-v">${v ? '' : '<option value="">Choisis le véhicule…</option>'}${liste.map(o => `<option value="${o.id}" ${v === o ? 'selected' : ''}>${esc(o.marque + ' ' + o.modele)} · ${esc(o.plaque)}</option>`).join('')}</select></label>`}
     <div class="vh-q"><b>Qu’est-ce que c’est ?</b>${vhChoix('vx-t', [['Carburant', 'Carburant'], ['Recharge électrique', 'Recharge'], ['Garage, entretien', 'Garage ou entretien'], ['Péage, parking', 'Péage ou parking']], elec ? 'Recharge électrique' : 'Carburant', 'Ce que c’est', true)}</div>
@@ -17670,8 +17751,8 @@ function vxRetourOk(vid, force){
 /* ─── 6. un rendez-vous au garage : une seule tâche, la même clé que la suggestion ─── */
 function vxRdvGroupe(fin, cie){
   const g = vxGroupes().find(o => o.fin === fin && o.cie === cie); if (!g) return; const cle = vxCleGroupe(g), ex = vxTacheOuverte(cle);
-  if (ex) return toast(`Une tâche existe déjà pour l’assurance de la flotte (échéance ${vxDm(g.fin)}).`, { lib:'Voir la tâche', fn:() => tDetail(ex.id) });
-  const x = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Assurance flotte : ${g.vs.length} véhicules, échéance ${vxDm(g.fin)}`, d:jour(3), qui:'marc', creePar:'marc', creeLe:'31/10', cle, urgent:g.urg === 'r', note:g.vs.map(v => v.plaque).join(', '), lien:{ t:'aller', id:'vehicules', lib:'Véhicules', cat:'Véhicules' } };
+  if (ex) return toast(`Une tâche existe déjà pour l’assurance des véhicules (échéance ${vxDm(g.fin)}).`, { lib:'Voir la tâche', fn:() => tDetail(ex.id) });
+  const x = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Assurance des ${g.vs.length} véhicules, échéance ${vxDm(g.fin)}`, d:jour(3), qui:'marc', creePar:'marc', creeLe:'31/10', cle, urgent:g.urg === 'r', note:g.vs.map(v => v.plaque).join(', '), lien:{ t:'aller', id:'vehicules', lib:'Véhicules', cat:'Véhicules' } };
   TACHES.push(x); journalAjout('marc', 'equipe', 'a créé une tâche', { lib:x.t }, { det:'pour Marc Leblanc · depuis Véhicules' }); rendre();
   toast(`Tâche créée pour les ${g.vs.length} véhicules : renouveler l’assurance ${esc(g.cie)}.`, { lib:'Voir la tâche', fn:() => tDetail(x.id) });
 }
@@ -17803,8 +17884,7 @@ function vxFraisSuppr(vid, cle){
 function vxCsv(vid){
   const v = vehDe(vid); if (!v) return; const F = vehFrais(v).slice().reverse(), q = s => '"' + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
   const csv = '﻿' + ['Date;Libellé;Montant HT;Origine', ...F.map(f => `${dFr(f.d)};${q(f.lib)};${n(f.ht.toFixed(2))};${f.achat ? 'Achats' : f.ndf ? 'Note de frais' : 'Véhicule'}`)].join('\r\n') + '\r\n';
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); a.download = `frais-${v.plaque}.csv`; document.body.appendChild(a); a.click(); a.remove();
-  vxJ('a exporté les frais du véhicule', v, { det:vxN(F.length, 'ligne') }); toast(`Frais de ${esc(v.plaque)} exportés (${vxN(F.length, 'ligne')}) pour ton expert-comptable.`);
+  telechargerFichier(`frais-${v.plaque}.csv`, csv, { ok:`Frais de ${esc(v.plaque)} enregistrés (${vxN(F.length, 'ligne')}) pour ton expert-comptable.` }).then(r => { if (r === 'enregistre' || r === 'lien') vxJ('a exporté les frais du véhicule', v, { det:vxN(F.length, 'ligne') }); });
 }
 
 /* ─── 4. le technicien : son camion, son plein, son compteur, ses soucis ─── */
@@ -17880,14 +17960,14 @@ function vxSinistreOk(vid){
   const v = vehDe(vid); if (!v) return; const d = vxG('vx-sd').value, q = vxG('vx-sq').value, lieuTxt = vxG('vx-sl').value.trim(), tiers = vxG('vx-st2').value.trim(), f = foNum(vxG('vx-sf').value) || 0;
   if (!d || d > AUJ) return toast('Donne le jour de l’accident (pas dans le futur).'); if (!lieuTxt) { vxG('vx-sl').focus(); return toast('Dis où ça s’est passé.'); } if (f < 0) return toast('Donne une franchise positive.');
   const x = { id:vxId('i'), k:'sinistre', d, qui:q, lieu:lieuTxt, tiers, franchise:f }, t = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Déclarer l’accident à l’assurance · ${v.plaque} (${dFr(d)})`, d:ajoute(AUJ, 2), qui:'marc', urgent:true, note:`${lieuTxt}${tiers ? ' · tiers : ' + tiers : ''} · vérifie le délai de déclaration dans le contrat`, creePar:rlQui(), creeLe:'31/10', cle:'vsinistre-' + x.id, lien:{ t:'aller', id:'vehicules|' + v.id, lib:'Véhicules', cat:'Véhicules' } };
-  x.tache = t.id; v.incidents.unshift(x); TACHES.push(t); if (f) v.frais.push([d, 'Franchise du sinistre', f]);
+  x.tache = t.id; v.incidents.unshift(x); TACHES.push(t); if (f) v.frais.push([d, 'Franchise de l’accident', f]);
   const j = vxJ('a noté un accident', v, { det:`${dFr(d)} · ${lieuTxt}${f ? ' · franchise ' + eur(f) : ''}` });
   fermerPanneau(); rendre(); vxFiche(v.id);
-  toast(`Accident noté pour ${esc(v.plaque)} : tâche « Déclarer l’accident à l’assurance » créée.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); if (f) { const i = v.frais.findIndex(l => l[1] === 'Franchise du sinistre' && l[0] === d); if (i >= 0) v.frais.splice(i, 1); } vxJRetirer(j); rendre(); vxFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
+  toast(`Accident noté pour ${esc(v.plaque)} : tâche « Déclarer l’accident à l’assurance » créée.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); if (f) { const i = v.frais.findIndex(l => l[1] === 'Franchise de l’accident' && l[0] === d); if (i >= 0) v.frais.splice(i, 1); } vxJRetirer(j); rendre(); vxFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
 }
 function vxIncClos(vid, id){
   const v = vehDe(vid), x = v && v.incidents.find(o => o.id === id); if (!x || x.clos) return; const t = TACHES.find(o => o.id === x.tache), ouvert = t && !t.fait;
-  x.clos = true; if (ouvert) tFaire(t, x.k === 'amende' ? 'conducteur désigné' : 'dossier clos'); vxJ(x.k === 'amende' ? 'a désigné le conducteur de l’amende' : 'a clos un sinistre', v, { det:dFr(x.d) });
+  x.clos = true; if (ouvert) tFaire(t, x.k === 'amende' ? 'conducteur désigné' : 'dossier clos'); vxJ(x.k === 'amende' ? 'a désigné le conducteur de l’amende' : 'a clos un accident', v, { det:dFr(x.d) });
   rendre(); vxFiche(v.id); toast(x.k === 'amende' ? 'Désignation notée.' : 'Dossier clos.', { lib:'Annuler', fn:() => { x.clos = false; if (ouvert) t.fait = null; rendre(); vxFiche(v.id); } });
 }
 
@@ -18211,8 +18291,7 @@ function vhCoutPanel(){
 function vhCsvFlotte(){
   const q = s => '"' + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
   const csv = '﻿' + ['Véhicule;Plaque;Dépensé sur 12 mois (hors taxes);Kilomètres relevés;Coût au kilomètre', ...VEHICULES.map(v => { const c = vxCalcCout(v, '12m'); return `${q(vhNom(v))};${q(v.plaque)};${n(c.total.toFixed(2))};${c.km != null ? c.km : ''};${c.auKm != null ? n(c.auKm.toFixed(2)) : ''}`; })].join('\r\n') + '\r\n';
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); a.download = 'cout-des-vehicules.csv'; document.body.appendChild(a); a.click(); a.remove();
-  journalAjout(rlQui(), 'vehicule', 'a exporté le coût des véhicules', { lib:'Les véhicules', id:'' }, { det:vxN(VEHICULES.length, 'véhicule') }); toast(`Coût des ${VEHICULES.length} véhicules exporté, pour ton expert-comptable.`);
+  telechargerFichier('cout-des-vehicules.csv', csv, { ok:`Coût des ${VEHICULES.length} véhicules enregistré, pour ton expert-comptable.` }).then(r => { if (r === 'enregistre' || r === 'lien') journalAjout(rlQui(), 'vehicule', 'a exporté le coût des véhicules', { lib:'Les véhicules', id:'' }, { det:vxN(VEHICULES.length, 'véhicule') }); });
 }
 
 /* ── les trois feuilles que la fiche réclame (la suite de la refonte les reprendra une à une) : le rendez-vous, un document, le matériel ── */
@@ -18600,6 +18679,7 @@ function courrierAgir(id, x){
   courrierRafraichir();
 }
 const courrierHoteApi = {
+  telecharger:(nom, blob) => telechargerFichier(nom, blob),   /* H9 : un lien « download » ne fait rien dans l'artefact — le fichier part par le pont, qui dit lui-même ce qui s'est passé */
   lecture:x => { if (x.local) return null; const m = mlDe(x.id); return m ? courrierBandeau(m) : null; },
   agir:(id, x) => courrierAgir(id, x),
   pastille:x => { if (x.local) return null; const m = mlDe(x.id); if (!m || m.dossier !== 'recu' || m.info) return null; const R = mlLire(m);   // une notification ou une promotion n'est pas un « nouveau contact »
@@ -20681,7 +20761,7 @@ function rgPlanifier(k){
 function rgProdMaj(){ const z = rgGet('rg-prod-zone'); if (z) z.innerHTML = rgProdZone(d3Cli); }
 function rgLien(a, x){
   const k = d3Cli, L = RG_LIEN[k], u = 'https://teamop.fr/registre/' + k + '-demo';
-  if (a === 'copier') return (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('Lien copié (exemple) : il montrera le registre à jour, en lecture seule.'), () => toast('Copie impossible ici : le lien serait ' + esc(u) + '.'));
+  if (a === 'copier') return copierTexte(u, { ok:'Lien copié (exemple) : il montrera le registre à jour, en lecture seule.', titre:'Le lien du registre (exemple)' });
   if (a === 'qr') { const b = rgGet('rg-qrb'); if (!b) return; b.classList.toggle('rg-cache'); const t = document.querySelector('[data-rg="lien|qr"]'); if (t) { const ouvert = !b.classList.contains('rg-cache'); t.setAttribute('aria-expanded', ouvert); t.textContent = ouvert ? 'Masquer le QR code' : 'Afficher le QR code'; } return; }
   if (a === 'duree') { const av = { duree:L.duree, fin:L.fin }; L.duree = x; L.fin = x === '1 jour' ? ajoute(AUJ, 1) : x === '7 jours' ? ajoute(AUJ, 7) : x === '1 an' ? ajoute(AUJ, 365) : null; rendre(); return toast(`Lien valable ${x === 'sans limite' ? 'sans limite de durée' : x}${L.fin ? ' : jusqu’au ' + rgJA(L.fin) : ''}.`, { lib:'Annuler', fn:() => { Object.assign(L, av); rendre(); } }); }
   if (a === 'fermer') { const av = { ...L }; L.actif = false; journalAjout(rlQui(), 'registre', 'a fermé le lien de contrôle', { lib:'Registre · ' + D3_CLI[k].nom, cli:RG_SITES[k] }); const jr = JOURNAL.at(-1); rendre(); return toast('Lien fermé : il n’ouvre plus rien.', { lib:'Annuler', fn:() => { Object.assign(L, av); const j = JOURNAL.indexOf(jr); if (j >= 0) JOURNAL.splice(j, 1); rendre(); } }); }
@@ -23770,7 +23850,7 @@ function rcLigneBouger(sens, cible){ if (cible && cible.closest && cible.closest
 /* une ligne qui n'est pas un bouton s'ouvre aussi avec Entrée, une fois choisie au clavier */
 document.addEventListener('keydown', ev => { if (ev.key !== 'Enter' || !rcBureau()) return; const el = ev.target.closest && ev.target.closest('#contenu [data-go][tabindex]'); if (el && !/^(BUTTON|A)$/.test(el.tagName)) { ev.preventDefault(); el.click(); } });
 const RC_TYPES = { client:'le client', inter:'l’intervention', devis:'le devis', facture:'la facture', contrat:'le contrat' };
-function rcCopier(t){ try { navigator.clipboard.writeText(t).then(() => toast('Copié : ' + t), () => toast('La copie n’a pas pu se faire')); } catch (e) { toast('La copie n’a pas pu se faire'); } }
+function rcCopier(t){ copierTexte(t, { ok:'Copié : ' + t }); }
 document.addEventListener('contextmenu', ev => { if (ev.defaultPrevented || !rcBureau()) return;
   const el = ev.target.closest && ev.target.closest('#contenu [data-go]'); if (!el || el.closest('.pl-defile')) return;
   const m = /^(client|inter|devis|facture|contrat)-x-(.+)$/.exec(el.dataset.go); if (!m) return; ev.preventDefault();
@@ -24765,7 +24845,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest && ev.tar
   else if (a === 'recommencer') { const p = eqDe(SECU.pc.k); SECU.pc = { ecran:null, k:null, demandeId:null }; cnxGlisser(() => cnxMontrer('', p ? cnxLogin(p) : '')); }
   else if (a === 'code6') cnxCode6();
   else if (a === 'repose') { ev.stopPropagation(); const p = eqDe(x); secuProvisoireNeuf(x); secuFermerSessions(x, 'admin'); eqFiche(x); opsDemo(); toast('Mot de passe provisoire reposé. À sa prochaine connexion, ' + p.prenom + ' choisira le sien.'); }
-  else if (a === 'copier') { ev.stopPropagation(); const t = b.dataset.t; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copié.'), () => toast('Sélectionne le texte pour le copier.')); }
+  else if (a === 'copier') { ev.stopPropagation(); copierTexte(b.dataset.t, { ok:'Copié.' }); }
   else if (a === 'sortir') { ev.stopPropagation(); sessionFermer(); }
   else if (a === 'comme') { ev.stopPropagation(); fermerPanneau(); sessionOuvrir(x); toast('Tu vois l’application comme ' + eqDe(x).prenom + '.' + (MODE_APP ? '' : ' Pour revenir : « Tester en tant que » › Patron.')); }
 });

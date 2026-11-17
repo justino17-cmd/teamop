@@ -65,7 +65,7 @@ const panneau = c => ev(c, () => { const p = document.querySelector('#calque .pa
       const a1 = await ev(c, () => ({ achats:ACHATS.length, km:vehDe('veh2').km, compte:(ACHATS[ACHATS.length - 1] || {}).compte }));
       v(nom + ' · plein : 2 touchers (« Noter un plein », « Enregistrer »), l\'achat est écrit (compte 6061) et le kilométrage suit', touches === 2 && a1.achats === a0.achats + 1 && a1.compte === '6061' && a1.km === 121890 && a1.km > a0.km, { touches, a0, a1 });
       /* 5 · mettre au garage, puis le remettre en service (depuis la rangée) */
-      await ev(c, () => { rendre(); }); await toucher(c, '.vh-liste [data-vh="fiche|veh1"]'); await L.calme(c.p, 450); await toucher(c, '#calque .panneau [data-vh="statut|veh1"]'); await L.calme(c.p, 450);
+      await ev(c, () => { rendre(); }); await toucher(c, '.vh-liste [data-vh="fiche|veh1"]'); await L.calme(c.p, 450); await toucher(c, '#calque .panneau [data-vh="statut|veh1|fiche"]'); await L.calme(c.p, 450);
       const pg = await panneau(c); v(nom + ' · garage : « Mettre au garage » ouvre la feuille (pourquoi, quel garage, retour prévu, remplaçant, interventions touchées)', !!pg && /Pourquoi|Motif/i.test(pg.txt) && /garage/i.test(pg.txt), pg && pg.txt.slice(0, 200));
       await toucher(c, '#calque .panneau [data-vx^="garageok|"]'); await L.calme(c.p, 500);
       const g1 = await ev(c, () => ({ st:vehDe('veh1').statut, kpi:document.querySelector('.vh-k .kpi').innerText.replace(/\s+/g, ' ').trim() }));

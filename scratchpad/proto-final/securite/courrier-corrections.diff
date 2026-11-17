@@ -16,9 +16,25 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
  }
  const fecNom = () => DOSSIER.siren + 'FEC' + EXO.fin.replace(/-/g, '') + '.txt';
  VUES.fec = () => {
+--- a/apercu/prototype-courrier.js
++++ b/apercu/prototype-courrier.js
+@@ -1698,9 +1698,11 @@
+     return s.replace(/&#x([0-9a-f]{1,6});/gi,function(t,h){ var n=parseInt(h,16); return n>0&&n<0x110000?String.fromCodePoint(n):t; })
+       .replace(/&#([0-9]{1,7});/g,function(t,d){ var n=+d; return n>0&&n<0x110000?String.fromCodePoint(n):t; })
+       .replace(/&[a-zA-Z][a-zA-Z0-9]{1,31};/g,function(t){ try{ _deco=_deco||document.createElement("textarea"); _deco.innerHTML=t; return _deco.value; }catch(e){ return t; } }); }
++  /* un lien se lit tel qu'il s'ouvre : « аррӏе.com » en lettres cyrilliques ressemble à « apple.com », on écrit donc sa forme réelle (xn--…) quand l'adresse n'est pas en lettres latines */
++  function adresseVue(u){ var m=/^(https?:\/\/)([^\/?#]*)/i.exec(u); if(!m||!/[^\x00-\x7f]/.test(m[2])) return u; try{ return m[1]+new URL(m[1]+m[2]).host+u.slice(m[0].length); }catch(e){ return u; } }
+   function corpsLu(s,liens){ var h=H(entitesLues(s)).replace(/\u00a0/g," ");
+-    if(liens) h=h.replace(/\bhttps?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)[^\s<>"'])+/g,function(u){ var fin=""; var m=/(?:[.,;:!?)\]]|&gt;|&#39;|&quot;)+$/.exec(u); if(m){ fin=u.slice(m.index); u=u.slice(0,m.index); } if(!/^https?:\/\/./.test(u)) return u+fin;
+-      return '<a class="rlien" href="'+u+'" target="_blank" rel="noopener noreferrer nofollow">'+u+'</a>'+fin; });
++    if(liens) h=h.replace(/\bhttps?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)[^\s<>"'])+/g,function(u){ var fin=""; var m=/(?:[.,;:!?)\]]|&gt;|&#39;|&quot;)+$/.exec(u); if(m){ fin=u.slice(m.index); u=u.slice(0,m.index); } if(!/^https?:\/\/./.test(u)||/^https?:\/\/[^\/?#]*@/i.test(u)) return u+fin;
++      return '<a class="rlien" href="'+u+'" target="_blank" rel="noopener noreferrer nofollow">'+adresseVue(u)+'</a>'+fin; });
+     return h.replace(/\n/g,"<br>"); }
+   var app=$("#app"), cadre=$(".opc"), layerEl=$(".opc-layer");
+   var actif=function(){ return sr.activeElement; };
 --- a/apercu/prototype-op-gestion.html
 +++ b/apercu/prototype-op-gestion.html
-@@ -5436,7 +5436,7 @@
+@@ -5540,7 +5540,7 @@
    return `<div class="tete tete-p"><div><span class="surtitre" style="color:var(--lien)">Samedi 31 octobre</span><h1>Bonjour ${esc(prenomDe(acteur()))}</h1><span class="gris">${ENTREPRISE.nom}</span></div><div class="actions"><button type="button" class="btn btn-planning" data-go="planning">${svg('planning')}Planning de l’équipe</button><button type="button" class="btn gris" data-creer="1">＋ Nouvelle intervention</button></div></div>
    <div class="kpis"><button type="button" class="kpi" data-kdash="jour"><b>${auj.length}</b><span>interventions aujourd’hui</span></button><button type="button" class="kpi" data-kdash="rec"><b style="color:var(--orange)">${eur(FACTURES.filter(f=>['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0))}</b><span>à recevoir</span></button><button type="button" class="kpi" data-kdash="enc"><b style="color:var(--vert)">${eur(ENCAISSEMENTS.reduce((s,e)=>s+e.ttc,0))}</b><span>encaissé en octobre${(T => T.length ? ` <i class="cp-k">+ ${eur(T.reduce((s, e) => s + e.ttc, 0))} reçus sur place, pas encore sur une facture</i>` : '')(cpPaieTerrain())}</span></button><button type="button" class="kpi" data-go="contrats"><b>${eur(CONTRATS.filter(k=>k.st==='signe').reduce((s,k)=>s+k.prix,0))}</b><span>de contrats par an</span></button></div>
    <div class="grille2"><div class="carte"><h3>Aujourd’hui, toute l’équipe</h3>${auj.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span><b class="jl-h">${i.h}</b></span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span>${i.st==='fait'?'<br>'+paiementPastille(fiche(i.id).paiement):''}</span></span><span>›</span></button>`).join('')}</div>
@@ -27,7 +43,7 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
  }
  
  /* ══ L'APERÇU PAR-DESSUS : ouvrir une facture, un contrat, une intervention ou un client sans quitter sa catégorie ══ */
-@@ -8084,7 +8084,7 @@
+@@ -8193,7 +8193,7 @@
    const JL = { AN:'A-nouveaux', VT:'Ventes', AC:'Achats', BQ:'Banque', CA:'Caisse', OD:'Operations diverses', PA:'Paie' }, dt = d => '2026' + d.split('/').reverse().join(''), m = n => n ? n.toFixed(2).replace('.', ',') : '0,00';
    const net = s => String(s).replace(/[\t\r\n]+/g, ' ').replace(/·/g, '-').replace(/[’‘]/g, "'").replace(/[«»]/g, '"').trim();
    const aux = c => CLIENTS[c] ? ['C' + c.toUpperCase(), CLIENTS[c].nom] : ['F' + c.toUpperCase(), (ACHATS.find(a => a.fid === c) || {}).four || c];
@@ -36,15 +52,16 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
  }
  const cpFecNom = () => ENTREPRISE.siret.replace(/\s/g, '').slice(0, 9) + '_ecritures_2026-10_format-FEC.txt';
  async function cpFecTelecharger(){
-@@ -8843,11 +8843,12 @@
+@@ -8954,11 +8954,13 @@
    return m; }
  function foLignes(){
    const { f, rows, m } = FO_IMP, out = [];
 -  rows.forEach((r, i) => { const nom = m.nom != null ? String(r[m.nom] || '').trim() : ''; if (!nom) return;
 -    const ref = m.ref != null ? String(r[m.ref] || '').trim() : '', ean = m.ean != null ? String(r[m.ean] || '').trim() : '', u = m.u != null ? String(r[m.u] || '').trim() : '';
-+  const propre = (t, n) => String(t || '').replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, ' ').trim().replace(/^[=+\-@]+/, '').slice(0, n);   /* un fichier venu d'un tiers : bornée, sans formule de tableur en tête */
++  const propre = (t, n) => String(t || '').replace(/[<>\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, ' ').trim().replace(/^[=+\-@]+/, '').slice(0, n);   /* un fichier venu d'un tiers : bornée, sans balise, sans formule de tableur en tête */
++  const unite = t => { const x = String(t || '').trim(); return /^[\p{L}\p{N}\/².³°µ%. -]{1,12}$/u.test(x) ? x : ''; };   /* l'unité : une liste de ce qui est permis, jamais de ce qui est interdit */
 +  rows.forEach((r, i) => { const nom = m.nom != null ? propre(r[m.nom], 200) : ''; if (!nom) return;
-+    const ref = m.ref != null ? propre(r[m.ref], 40) : '', ean = m.ean != null ? propre(r[m.ean], 20) : '', u = m.u != null ? propre(r[m.u], 12) : '';
++    const ref = m.ref != null ? propre(r[m.ref], 40) : '', ean = m.ean != null ? propre(r[m.ean], 20) : '', u = m.u != null ? unite(r[m.u]) : '';
      let pa = m.net != null ? foNum(r[m.net]) : null;
      if (pa == null && m.pub != null) { const pub = foNum(r[m.pub]), rem = m.rem != null ? foNum(r[m.rem]) : f.remise; if (pub != null) pa = Math.round(pub * (1 - (rem || 0) / 100) * 100) / 100; }
 -    if (pa == null || pa <= 0) return;
@@ -52,7 +69,7 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
      const vivants = PRODUITS.filter(o => !o.retire), x = vivants.find(o => (ref && ref !== '—' && o.ref === ref) || (ean && o.ean === ean)) || vivants.find(o => prNorm(o.nom) === prNorm(nom));
      let sorte = 'neuf';
      if (x) sorte = x.ac && (x.four === f.nom || x.four === '—') ? 'remplir' : x.four === f.nom ? (Math.abs(pa - (x.pa || 0)) >= .01 ? 'maj' : 'pareil') : 'ailleurs';
-@@ -9772,11 +9773,13 @@
+@@ -9883,11 +9885,13 @@
  let mlSel = null, mlFiltre = 'traiter', mlRep = null;
  const mlDe = id => MAILS.find(m => m.id === id);
  /* QUI et QUOI : la reconnaissance. Elle ne devine pas : une adresse connue, un numéro de document écrit dans le message. */
@@ -67,7 +84,7 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
    if (m.info) R.sujet = 'info';
    else if (R.four && /factur/i.test(m.objet) && R.cmd) R.sujet = 'facfour';
    else if (R.four && R.cmd) R.sujet = 'expedition';
-@@ -9833,11 +9836,11 @@
+@@ -9944,11 +9948,11 @@
    if (a === 'creerint') { const R = mlLire(m); fermerPanneau(); ouvrirCreation({ cli:R.cli }); CREA.type = 'Dépannage'; CREA.titre = m.objet; CREA.titreTouche = true; CREA.motif = m.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); rendreCreation();
      CREA.mail = m.id; return toast('Intervention préremplie : client, titre et motif viennent du courriel. Choisis le créneau.'); }
    if (a === 'nvdevis' || a === 'dvcli') { const R = mlLire(m); let k = R.cli;
@@ -82,25 +99,25 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
    if (a === 'planifdv') { const R = mlLire(m); if (R.devis.e !== 'accepte') return toast('Note d’abord l’accord du devis.');   // sans accord, pas d’intervention : son motif dirait « accepté le undefined »
      dvCreerInt(R.devis); mlTraite(m, 'Installation à planifier', `data-tvoir="inter|${R.devis.int}"`); rendre(); return apercuElement('inter', R.devis.int); }
    if (a === 'livraison') { const c = mlLire(m).cmd, av = c.prevue; c.prevue = jour(2); c.journal.push([AUJ, `Expédiée par ${c.four} (suivi FD-77812), livraison prévue le ${jCourt(c.prevue)} — lu dans leur courriel`]); mlTraite(m, `Livraison du ${c.num} mise au ${jCourt(c.prevue)}`, `data-ml="cmd|${c.id}"`); rendre(); return toast(`Commande ${esc(c.num)} : livraison prévue le ${jCourt(c.prevue)}${av && av !== c.prevue ? ' (au lieu du ' + jCourt(av) + ')' : ''}.`); }
-@@ -17707,7 +17710,7 @@
+@@ -17882,7 +17886,7 @@
    toast('Frais supprimé' + (c.a ? ' : il part aussi des achats.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais.splice(c.i, 0, c.l); else { ACHATS.splice(ia, 0, c.a); v.pleins.push(...pl); } vxJRetirer(j); rendre(); vxFiche(v.id); } });
  }
  function vxCsv(vid){
 -  const v = vehDe(vid); if (!v) return; const F = vehFrais(v).slice().reverse(), q = s => '"' + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
 +  const v = vehDe(vid); if (!v) return; const F = vehFrais(v).slice().reverse(), q = s => '"' + (/^[=+\-@\t\r]/.test(String(s)) ? "'" : '') + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
    const csv = '﻿' + ['Date;Libellé;Montant HT;Origine', ...F.map(f => `${dFr(f.d)};${q(f.lib)};${n(f.ht.toFixed(2))};${f.achat ? 'Achats' : f.ndf ? 'Note de frais' : 'Véhicule'}`)].join('\r\n') + '\r\n';
-   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); a.download = `frais-${v.plaque}.csv`; document.body.appendChild(a); a.click(); a.remove();
-   vxJ('a exporté les frais du véhicule', v, { det:vxN(F.length, 'ligne') }); toast(`Frais de ${esc(v.plaque)} exportés (${vxN(F.length, 'ligne')}) pour ton expert-comptable.`);
-@@ -18100,7 +18103,7 @@
+   telechargerFichier(`frais-${v.plaque}.csv`, csv, { ok:`Frais de ${esc(v.plaque)} enregistrés (${vxN(F.length, 'ligne')}) pour ton expert-comptable.` }).then(r => { if (r === 'enregistre' || r === 'lien') vxJ('a exporté les frais du véhicule', v, { det:vxN(F.length, 'ligne') }); });
+ }
+@@ -18289,7 +18293,7 @@
      <div class="actions"><button type="button" class="btn gris petit" data-vh="csvflotte">Exporter en tableau</button></div>`, true);
  }
  function vhCsvFlotte(){
 -  const q = s => '"' + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
 +  const q = s => '"' + (/^[=+\-@\t\r]/.test(String(s)) ? "'" : '') + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
    const csv = '﻿' + ['Véhicule;Plaque;Dépensé sur 12 mois (hors taxes);Kilomètres relevés;Coût au kilomètre', ...VEHICULES.map(v => { const c = vxCalcCout(v, '12m'); return `${q(vhNom(v))};${q(v.plaque)};${n(c.total.toFixed(2))};${c.km != null ? c.km : ''};${c.auKm != null ? n(c.auKm.toFixed(2)) : ''}`; })].join('\r\n') + '\r\n';
-   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); a.download = 'cout-des-vehicules.csv'; document.body.appendChild(a); a.click(); a.remove();
-   journalAjout(rlQui(), 'vehicule', 'a exporté le coût des véhicules', { lib:'Les véhicules', id:'' }, { det:vxN(VEHICULES.length, 'véhicule') }); toast(`Coût des ${VEHICULES.length} véhicules exporté, pour ton expert-comptable.`);
-@@ -18273,7 +18276,7 @@
+   telechargerFichier('cout-des-vehicules.csv', csv, { ok:`Coût des ${VEHICULES.length} véhicules enregistré, pour ton expert-comptable.` }).then(r => { if (r === 'enregistre' || r === 'lien') journalAjout(rlQui(), 'vehicule', 'a exporté le coût des véhicules', { lib:'Les véhicules', id:'' }, { det:vxN(VEHICULES.length, 'véhicule') }); });
+ }
+@@ -18462,7 +18466,7 @@
    if (mo === 'creneau') { mbxOptions(m, MBX.crProp); setTimeout(() => mbxReponseClient(m.id), 4000); }
    if (mo === 'confirm') m.prevenu = h;
    if (!m.fait && ['msgcli', 'msgfour', 'trier'].includes(R.sujet) && !m.attente) mlTraite(m, 'Répondu à ' + h.replace(':', ' h '));
@@ -109,7 +126,7 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
  }
  
  mlActions = function(m, R){
-@@ -18500,7 +18503,7 @@
+@@ -18690,7 +18694,7 @@
    apresEnvoi:mail => { const orig = mail.enReponseA ? mlDe(mail.enReponseA) : null;
      if (orig) { mlRep = { id:orig.id, modele:courrierModeleDe(orig, mail.texte) }; mbxApresEnvoi(orig, mail.texte); return; }
      const cli = Object.keys(CLIENTS).find(k => (CLIENTS[k].mail || '').toLowerCase() === String(mail.a).trim().toLowerCase());
@@ -118,7 +135,7 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
  };
  const courrierHoteEl = () => { let h = document.getElementById('courrier-hote'); if (!h) { h = document.createElement('div'); h.id = 'courrier-hote'; h.hidden = true; document.body.appendChild(h); } return h; };
  function courrierMonter(){
-@@ -18619,7 +18622,7 @@
+@@ -18809,7 +18813,7 @@
    if (a === 'encaisser') { const f = R.facture, t = document.createElement('button'); t.dataset.action = 'ajoutEnc'; document.body.appendChild(t); t.click(); t.remove();
      const s = document.getElementById('e-f'); if (s) { s.value = f.id; s.dispatchEvent(new Event('change', { bubbles:true })); const v = document.getElementById('e-v'), mo = document.getElementById('e-m'); if (v) v.value = String(((R.montant != null && R.montant <= R.reste) ? R.montant : R.reste).toFixed(2)).replace('.', ','); if (mo) { mo.value = 'Virement'; mo.dispatchEvent(new Event('change', { bubbles:true })); } }
      return toast('Paiement prérempli (facture, montant lu dans le courriel, Virement) : vérifie et enregistre.'); }
@@ -127,7 +144,7 @@ Pas dans ce fichier : l'authenticité de l'expéditeur (SPF / DKIM / DMARC) — 
      journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:m.de.nom, cli:k }, { det:'depuis un courriel' }); mlFiltre = mlFiltre;
      rafraichir(); return toast(esc(m.de.nom) + ' est maintenant dans tes clients : ses prochains courriels sont reconnus.', { lib:'Voir la fiche', fn:() => aller('client-x-' + k) }); }
    if (a === 'cestfour') { fermerPanneau(); const t = document.createElement('button'); t.dataset.fo = 'local'; document.body.appendChild(t); t.click(); t.remove(); setTimeout(() => { const n = document.getElementById('fo-l-nom'), ml = document.getElementById('fo-l-mail'); if (n) n.value = m.de.nom; if (ml) ml.value = m.de.mail; }, 30);
-@@ -18627,7 +18630,7 @@
+@@ -18817,7 +18821,7 @@
    if (a === 'pasimp') { m.info = true; rafraichir(); return toast('Rangé en Information : il ne revient plus dans « À traiter ».', { lib:'Annuler', fn:() => { m.info = false; rendre(); } }); }
    if (a === 'regle') { if (!MBX.regles.some(r => r.mail === m.de.mail.toLowerCase())) MBX.regles.push({ mail:m.de.mail.toLowerCase(), nom:m.de.nom }); let n = 0; MAILS.forEach(o => { if (o.dossier === 'recu' && o.de.mail.toLowerCase() === m.de.mail.toLowerCase() && !o.arch) { o.info = true; o.arch = true; o.regleAuto = true; n++; } }); mlSel = null; rafraichir();
      return toast(`Règle créée : les courriels de ${esc(m.de.nom)} arrivent archivés, en Information. ${mbxNb(n, 'message rangé', 'messages rangés')} tout de suite.`, { lib:'Annuler', fn:() => { MBX.regles = MBX.regles.filter(r => r.mail !== m.de.mail.toLowerCase()); MAILS.forEach(o => { if (o.regleAuto && o.de.mail.toLowerCase() === m.de.mail.toLowerCase()) { o.arch = false; o.regleAuto = false; } }); rendre(); } }); }
