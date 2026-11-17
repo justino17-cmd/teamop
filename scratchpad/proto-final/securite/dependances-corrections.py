@@ -19,6 +19,9 @@ TETE = '<meta charset="utf-8">'
 
 # (page, libellé, ancien, nouveau, nombre d'occurrences attendu) — les remplacements « de contenu » ; la politique, elle, se calcule (empreintes) ci-dessous
 CORRECTIFS = [
+ # dependances-03 : l'interrupteur de test de la garde des droits (window.DROITS_GARDE === false) n'existe plus dans le code livré
+ ('prototype-op-gestion.html', 'dependances-03 : droitsGeste n\'a plus d\'interrupteur « window.DROITS_GARDE === false »',
+  "if (!ev.target || !ev.target.closest || window.DROITS_GARDE === false) return;", "if (!ev.target || !ev.target.closest) return;", 1),
  # dependances-02 : l'atelier de documents ne demande plus ses 13 familles de polices à Google (adresse IP et navigateur de chaque personne qui l'ouvre)
  ('prototype-documents.html', 'dependances-02 : plus de feuille de polices Google dans l\'atelier (les polices se servent depuis le site ; à défaut, la police du système)',
   None, '', 1),
@@ -77,6 +80,7 @@ def main():
     tete = ("CORRECTIFS PROPOSÉS — angle « dépendances » (17 novembre 2026). Rien n'est appliqué : le chef de chantier décide. Se rejoue : git apply --check <ce fichier>, puis git apply.\n"
             "Ce que contient chaque morceau (les mêmes sondes, rejouées contre une copie corrigée par dependances-corrections.py, passent : voir dependances.json › contreEpreuve) :\n"
             " · les QUATRE pages : dependances-01 (politique de contenu en balise, avec l'empreinte de chaque script en ligne ; politique de référent « same-origin ») ;\n"
+            " · prototype-op-gestion.html : dependances-03 (plus d'interrupteur de test sur la garde des droits) ;\n"
             " · prototype-documents.html : dependances-02 (plus de feuille de polices Google).\n"
             "⛔ L'empreinte d'un script se CALCULE sur le texte final de la page : à chaque retouche d'un script, relancer le calcul (voir la règle de fabrication dans dependances.json).\n"
             "⛔ prototype-documents.html est FABRIQUÉ : le vrai correctif s'écrit dans scratchpad/proto-final/atelier/page.source et dans l'en-tête de fabriquer.sh, puis on relance la fabrication.\n"

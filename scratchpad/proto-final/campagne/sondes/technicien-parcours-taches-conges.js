@@ -94,7 +94,7 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   // C6 : le gérant la voit-il, la valide ?
   await devenir(p, 'marc', 'absences');
   let pgm = await txt(p);
-  v('C4a le gérant voit une demande de Sophie à valider', /Sophie/.test(pgm) && /(16|18)/.test(pgm) && /valider|Valider|demande/.test(pgm), pgm.slice(0, 400));
+  v('C4a le gérant voit une demande de Sophie à valider', /Sophie/.test(pgm) && /16 nov|16 novembre|lundi 16/i.test(pgm) && /Congé payé/.test(pgm), pgm.slice(0, 400));
   await L.capture(c, CAP + `conges-gerant-${profil}-${J}.png`);
   // C7 : le technicien retire sa demande
   await devenir(p, 'sm', 'absences');
