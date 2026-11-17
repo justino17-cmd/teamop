@@ -32,6 +32,12 @@ M = [
    .replace("if (btn) btn.disabled = !!(autre || attente || !aJours(a));", "if (btn) btn.disabled = !!(autre || !aJours(a));").replace("(attente && !autre ?", "(false ?")),
  ('J', 'la demande de congé du technicien classée « planning »', 'taches-absences-recontrole-saisie.js', 'iphone',
   lambda s: sub(s, "  atdem:{ d:'l' }, atenvoi:{ d:'l' },", "  atdem:{ k:'planif', d:'c' }, atenvoi:{ k:'planif', d:'m' },")),
+ ('K', 'le bouton « Menu » de la fenêtre Comptabilité retiré', 'restes-taches-absences-1-bureau-tel.js', '',
+  lambda s: sub(s, "if (!seul && ret && !z.querySelector('.cpsys-menu')) ret.insertAdjacentHTML(", "if (false) ret.insertAdjacentHTML(")),
+ ('L', 'la feuille « Menu » reste sous la Comptabilité', 'restes-taches-absences-1-bureau-tel.js', '',
+  lambda s: sub(s, "if (z && !z.hidden && v) v.style.zIndex = '9100';", "")),
+ ('M', 'boutons de la barre à 40 px', 'restes-taches-absences-1-bureau-tel.js', '',
+  lambda s: sub(s, "  .cpsys-barre button{min-height:44px!important;padding:0 10px!important;", "  .cpsys-barre button{min-height:40px!important;padding:0 10px!important;")),
 ]
 choix = sys.argv[1:]
 ko = 0
