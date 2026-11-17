@@ -4338,6 +4338,8 @@ var MARKUP = `
     if(!vivant||HIST.off) return;
     if(HIST.ignorer>0){ HIST.ignorer=0; return; }
     if(HIST.niv<=0||!isPhone()) return;
+    // l'entrée atteinte n'est pas AU-DESSOUS de la nôtre : c'est l'hôte qui vient de fermer une fenêtre posée par-dessus la Boîte mail (ses entrées {cal}), pas un recul d'un de nos niveaux
+    if(((history.state&&history.state.opcourrier)||0)>=HIST.niv) return;
     HIST.niv--;
     if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
     else if(app.getAttribute("data-view")!=="list") go("list");
