@@ -26220,7 +26220,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="nv-style">
 </style>`);
 if (MODE_APP) {
   /* la proposer : dès que la session est ouverte par l'écran de connexion (pas pour une fenêtre de plus, pas pour les sondes en ?auto=) */
-  { const s1 = sessionOuvrir; sessionOuvrir = function(){ const v = s1.apply(this, arguments); if (v && !sessionOuvrir.muet && !/[?&]auto=/.test(location.search)) setTimeout(nvProposer, 900); return v; }; }
+  { const s1 = sessionOuvrir; sessionOuvrir = function(){ const v = s1.apply(this, arguments); if (v && !sessionOuvrir.muet && (!/[?&]auto=/.test(location.search) || /[?&]guide=1\b/.test(location.search))) setTimeout(nvProposer, 900); return v; }; }   /* « &guide=1 » : une sonde qui entre par ?auto= veut voir le guide paraître comme à une vraie première connexion (lib.ouvrir({ guide:true })) */
   if (/[?&]nv=1\b/.test(location.search)) setTimeout(() => { try { localStorage.removeItem(NV_CLE + SESSION); } catch (e) {} NV_MEM.delete(SESSION); nvOuvrir(); }, 700);
 }
 /* ── l'application sur iPhone : la barre et les gestes · 12 novembre 2026 ──
