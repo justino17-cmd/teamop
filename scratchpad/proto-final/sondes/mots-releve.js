@@ -90,6 +90,8 @@ const DESSUS = () => { const t = document.getElementById('toast'), q = document.
         // on descend dans ce que le geste a ouvert : une fenêtre (zone #calque .panneau) — jamais dans un autre écran
         const cle = e.panneau ? 'P' + e.panneau.slice(0, 120) : '';
         if (cle && !vus.has(cle) && niveau < PROF && !e.hash) { vus.add(cle); await explorer(route, chemin.concat([[zone, s, i, nom || '']]), niveau + 1, rec, '#calque .panneau', '', vus, t); }
+        // un ONGLET (la page change sans fenêtre ni adresse neuve) : on descend dans ce qu'il a montré, une fois par contenu
+        if (!e.panneau && !e.hash && !cadreNeuf && e.nouveau && e.nouveau.length >= 5 && niveau < PROF) { const kt = 'T' + e.nouveau.slice(0, 3).join('|').slice(0, 120); if (!vus.has(kt)) { vus.add(kt); await explorer(route, chemin.concat([[zone, s, i, nom || '']]), niveau + 1, rec, zone, nom, vus, t); } }
         if (cadreNeuf && niveau < PROF && !e.hash && !vus.has('C' + cadreNeuf + chemin.length + lib)) { vus.add('C' + cadreNeuf + chemin.length + lib); await explorer(route, chemin.concat([[zone, s, i, nom || '']]), niveau + 1, rec, 'body', cadreNeuf, vus, t); }
       }
     }

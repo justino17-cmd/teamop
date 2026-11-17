@@ -28,10 +28,11 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   L.v('A5 · la tâche est faite', fait);
   await X.fiche(c, 'f128'); fiche = await X.texte(p, '#contenu'); await cap('fiche-apres-remboursement');
   L.v('A6 · une fois le remboursement fait, la fiche ne dit plus « À rembourser au client 500,00 € » comme s’il restait à faire', !/À rembourser au client\s*\n?\s*500,00/.test(fiche), fiche.slice(fiche.indexOf('Déjà reçu') - 40, fiche.indexOf('Déjà reçu') + 160).replace(/\n/g, ' | '));
+  L.v('A6b · la fiche dit « Remboursé au client » (le fait est écrit, pas seulement le doute retiré)', /Remboursé au client\s*\n?\s*500,00/.test(fiche) && /500,00\s€ déjà reçus\s:\sremboursés/.test(fiche), fiche.slice(fiche.indexOf('ANNULÉE') - 20, fiche.indexOf('ANNULÉE') + 400).replace(/\n/g, ' | '));
   const f = await X.cadreOuvert(c); await f.evaluate(() => aller('ventes')); await p.waitForTimeout(800);
   await f.evaluate(() => document.querySelector('#contenu tr[data-fac="FAC-2026-0128"]').click()); await p.waitForTimeout(600);
   const pan = await f.evaluate(() => { const e = document.querySelector('#calque .panneau'); return e ? e.innerText.replace(/\s+/g, ' ').trim() : ''; });
-  L.v('A7 · le panneau du cadre ne dit pas « à rembourser » après le remboursement fait', !/à rembourser/i.test(pan), pan.slice(0, 300)); await cap('cadre-panneau-apres');
+  L.v('A7 · le panneau du cadre ne dit pas « à rembourser » après le remboursement fait', !/à rembourser/i.test(pan), pan.slice(0, 300)); L.v('A7b · le panneau du cadre dit « remboursés au client »', /remboursés au client/.test(pan), pan.slice(0, 300)); await cap('cadre-panneau-apres');
   // ── B ──
   await X.compta(c, 'fventes', { cat: 'ventes' }); await L.toucher(c, '[data-cx="nouveau"]'); await L.toucher(c, '#calque [data-cx="facture"]');
   const opts = await p.evaluate(() => [...document.querySelectorAll('#nf-c option')].map(o => [o.value, o.textContent]).filter(o => o[0]));
