@@ -15531,7 +15531,10 @@ document.addEventListener('input', ev => {
   if (t.id === 'mc-q') { const r = document.getElementById('mc-res'), q = t.value.trim(); if (r) r.innerHTML = q ? `<div class="carte mc-liste">${matResultats(q, sxMonLieu())}</div>` : ''; return; }
   if (t.id === 'mat-q' && MAT.F) { MAT.F.q = t.value; const r = document.getElementById('mat-res'); if (r) r.innerHTML = matResultatsFeuille(MAT.F); return; }
   if (t.matches('[data-mm]') && MAT.M) { MAT.M[t.dataset.mm] = t.value; if (t.dataset.mm === 'rech') { const r = document.getElementById('mm-res'); if (r) r.innerHTML = PRODUITS.filter(p => !p.retire && t.value.trim() && pdxChercheOk(p, t.value)).slice(0, 6).map(p => `<button type="button" class="ligne-clic mat-res" data-mat="mpiece|${p.id}"><span class="fo-n"><b>${esc(p.nom)}</b></span><span class="mat-plus" aria-hidden="true">＋</span></button>`).join(''); }
-    const bt = document.querySelector('#calque [data-mat="menvoyer"]'), pb = matManquePourquoi(MAT.M); if (bt) { bt.disabled = !!pb; const s = document.querySelector('#calque .mat-pourquoi'); if (s) s.textContent = pb; if (!pb && s) s.remove(); } }
+    const bt = document.querySelector('#calque [data-mat="menvoyer"]'), pb = matManquePourquoi(MAT.M); if (bt) { bt.disabled = !!pb; let s = document.querySelector('#calque .mat-pourquoi');
+      /* le bouton qui se grise dit POURQUOI (technicien-06) : la raison n'existait que si elle était déjà là à l'ouverture — « Combien ? » vidé ou à 0 grisait « Prévenir le bureau » sans un mot */
+      if (pb && !s) { s = document.createElement('span'); s.className = 'mat-pourquoi'; s.setAttribute('role', 'status'); bt.parentNode.insertBefore(s, bt); }
+      if (s) { if (pb) s.textContent = pb; else s.remove(); } } }
 });
 document.addEventListener('change', ev => {
   const t = ev.target; if (!t.matches) return; const F = MAT.F;
