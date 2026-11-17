@@ -1,0 +1,128 @@
+{
+ "role": "gerant",
+ "voie": "final-regard",
+ "suffixe": "b-recontrole",
+ "date": "2026-11-17",
+ "population": {
+  "captures": "~520 captures regardees en planches (6 profils : mac, windows, ipad, iphone, android, petit ; jour ET nuit) : 15 ecrans corriges ou voisins + 10 ecrans declares sans defaut, tires au hasard (graine 1711) ; autres roles (julie, sm, kb) joues par sonde sur iphone et petit ; voisins du composant .client-chiffres (Depots et camions) et des liens (.lien) joues par sonde",
+  "sonde_rejouee": "scratchpad/proto-final/sondes/regard-gerant-b.js : 46 ✓ · 0 ✗",
+  "sondes_nouvelles": [
+   "scratchpad/proto-final/sondes/regard-gerant-b-recontrole-captures.js",
+   "scratchpad/proto-final/sondes/regard-gerant-b-recontrole-captures2.js"
+  ]
+ },
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  9
+ ],
+ "pasRegles": [
+  {
+   "n": 8,
+   "constat": "Corrige sur iphone et android seulement : sur petit (320 px) « prochain passage » passe encore sur deux lignes dans les 8 cartes clients (mesure : colonnes 72 / 72 / 94 px, 1 etiquette sur 3 a deux lignes) ; le segmente « Tous les clients / Par semaine / Par mois » y depasse de 2 px (bouton a 306, groupe a 304)."
+  },
+  {
+   "n": 7,
+   "constat": "La puce n'est plus en tete de ligne, mais sur petit elle reste seule en bout de ligne : « Climatisation · » puis « entretien » (Nouveau contrat, jour et nuit). Mieux, pas encore net."
+  }
+ ],
+ "casses": [
+  {
+   "ecran": "Devis › filtres (correction n°2) sur iPad portrait",
+   "profils": "ipad",
+   "constat": "Le passage a la ligne remplace le defilement lateral, mais a 820 px les cinq filtres font 528 px pour 507 disponibles : « Tous » tombe seul sur une deuxieme ligne, orphelin, sous un groupe de quatre (mesure : 2 rangees, bouton de 67 px a la ligne 2). Sur mac et windows tout tient sur une ligne. Les filtres ne sortent plus de l'ecran, mais l'ecran est moins net qu'a mi-chemin : reduire le rembourrage des boutons sous ~900 px de contenu, ou equilibrer 3 + 2.",
+   "gravite": "moyenne"
+  }
+ ],
+ "nouveaux": [
+  {
+   "ecran": "Comptabilité › fiche d'une facture, tableau des lignes (CONFIRME le n°10 « a soumettre » et le montre SANS valeur longue)",
+   "profils": "iphone, android, petit",
+   "constat": "Sur la facture FAC-2026-0145 telle que livree : « Prix unitaire HT » passe sur trois lignes en en-tete, la designation « Entretien climatisation — main-d'œuvre et deplacement × 1 » sur quatre lignes dans une colonne d'environ 95 px, les deux prix de 155,00 € a cote. Ce n'est pas un cas de valeurs longues : c'est l'ecran normal d'une facture au telephone.",
+   "gravite": "moyenne"
+  },
+  {
+   "ecran": "Contrats › liste (telephone)",
+   "profils": "iphone, android, petit",
+   "constat": "Le tableau N° | Client garde le numero « CTR-2026-004 » en colonne (≈120 px) : le texte du contrat tient dans ≈190 px, quatre lignes, et sur petit « par an » reste seul sur sa ligne. Une carte par contrat (comme Clients et Devis) serait plus lisible.",
+   "gravite": "moyenne"
+  },
+  {
+   "ecran": "Devis › filtres (telephone)",
+   "profils": "iphone, android, petit",
+   "constat": "Cinq filtres en 3 + 2 : la premiere rangee fait trois tiers egaux, la seconde deux boutons de largeurs inegales (213 / 135 px sur iphone, 178 / 100 sur petit) : la grille ne s'aligne pas.",
+   "gravite": "mineure"
+  },
+  {
+   "ecran": "Comptabilité › Fiscal et Trésorerie, sous-onglets (telephone)",
+   "profils": "iphone, android, petit",
+   "constat": "« TVA, Journal, Balance, Grand livre » sur quatre colonnes puis « Résultat » et « Envoi au comptable » centres sur deux colonnes differentes, sous un trait qui ne couvre que la premiere rangee : l'alignement est casse.",
+   "gravite": "mineure"
+  },
+  {
+   "ecran": "Facture › groupe d'actions",
+   "profils": "iphone",
+   "constat": "« Tout le dossier de l'intervention » et « Voir dans la Comptabilité » sont en 14 px, « Voir le PDF » en 16 px, dans le meme groupe de boutons gris : trois corps de texte pour une meme rangee.",
+   "gravite": "mineure"
+  },
+  {
+   "ecran": "Fiche client, ligne de contact",
+   "profils": "petit, android",
+   "constat": "La ligne « Marc Durand, gérant · 06 12 34 56 78 · 12 quai Valin, 17000 La Rochelle » commence parfois la ligne suivante par « · » (petit : « · 12 quai Valin »), la meme famille que le n°7, non couverte.",
+   "gravite": "mineure"
+  },
+  {
+   "ecran": "Contrats › introduction (telephone)",
+   "profils": "iphone, android, petit",
+   "constat": "« OP GESTION » est coupe en fin de ligne (« … avec tes clients : OP / GESTION prépare le PDF »). Un nom de marque ne se coupe pas : espace insecable entre OP et GESTION (peut-etre dans d'autres textes).",
+   "gravite": "mineure"
+  },
+  {
+   "ecran": "Clients vide et recherche sans resultat (telephone)",
+   "profils": "iphone, android",
+   "constat": "Le texte se coupe entre « + » et « Nouveau client » (ligne qui finit par « « + »). Et un carnet vide garde ses filtres « Par semaine / Par mois », qui ne servent a rien tant qu'il n'y a aucun client.",
+   "gravite": "mineure"
+  },
+  {
+   "ecran": "Barre laterale (bureau)",
+   "profils": "windows (1366×768), mac",
+   "constat": "Quand la barre est defilee sur la rubrique active, « Accueil » reste coupe a moitie sous le bord haut (mac : Accueil disparu, « Statistiques » delave). Un element a moitie visible se lit comme un defaut.",
+   "gravite": "mineure"
+  },
+  {
+   "ecran": "Fiche contrat envoye (petit)",
+   "profils": "petit",
+   "constat": "La carte « 1 tâche ouverte · pour ce contrat » est comprimee en deux colonnes etroites (« 1 tâche / ouverte » a gauche, « pour ce / contrat » a droite).",
+   "gravite": "mineure"
+  }
+ ],
+ "doutes": [
+  "Pictogrammes emoji en couleur (📊 🧾 📦 💶 🏦 📒 ✅ dans les tuiles de la Comptabilite, 📊 / ✅ / 📄 dans les fiches client, facture et contrat) a cote d'icones en traits ailleurs : sur Apple ils sont coherents, sur Windows et Android ils prennent le dessin du systeme. A trancher par Justin (garder, ou remplacer par des icones de la meme famille que le menu).",
+  "Achats et frais, pastilles de personnes : sur iphone elles passent a la ligne (Sophie sur une 2e rangee), sur android et petit elles defilent et « Karim » / « KB » sont coupes sans indice : meme composant, deux comportements selon la largeur.",
+  "n°11 (Achats et frais : la premiere demande a decider est sous deux ecrans de tuiles et de liens, mesure confirmee sur iphone) et n°12 (la secretaire ne voit pas la Boite mail : julie est redirigee vers la Comptabilite) : toujours ouverts, decisions de Justin, non touches.",
+  "Contrats vide : le compteur « en attente de signature » s'affiche en orange avec un 0 ; une alerte de couleur sur zero.",
+  "Boite mail : module en arbre d'ombre, relu sur 6 profils (liste, message ouvert) sans defaut visible ; non retouche."
+ ],
+ "dixEcransSansDefautJugesSeverement": {
+  "tirage": [
+   "Devis › fiche d'un devis envoye (D-2026-038)",
+   "Contrats › fiche envoye (CTR-2026-011)",
+   "Contrats › fiche signe (CTR-2026-004)",
+   "Contrats › nouveau a partir d'un modele",
+   "Comptabilite › Fiscal (TVA)",
+   "Comptabilite › Tresorerie › Paiements",
+   "Comptabilite › Cloture du mois",
+   "Clients › fiche, onglet Appareils",
+   "Boite mail › message ouvert",
+   "Contrats › Contrat rapide (Nouveau contrat)"
+  ],
+  "verdict": "Aucun defaut grave ni coupure ; les ecrans de bureau (mac, windows) et tablette sont propres, jour et nuit. Restent les mineurs ci-dessus (sous-onglets de la Comptabilite en deux rangees, puce en bout de ligne, carte « tache ouverte » comprimee sur petit, emoji couleur)."
+ },
+ "autresRoles": "julie (secretariat) : clients, devis, contrats, achats, contrat-nouveau, fiche client s'ouvrent, 0 px de defilement lateral, 0 erreur sur iphone et petit ; sm et kb (techniciens) sont ramenes a « Ma journée » pour toutes ces rubriques, comme prevu.",
+ "voisinsDesCorrections": "« .lien { text-align:left } » : le seul lien dans un parent centre ou a droite (Historique : Tout deplier / Tout replier, inline-flex de 81 px) ne bouge pas, rien d'abime ; « .client-chiffres » : Depots et camions (boxes) tient sur une ligne par etiquette sur iphone, android, petit, 0 debordement ; Retour du Nouveau contrat : pastille presente sur 6 profils.",
+ "nonVerifie": "Compta valeurs longues non rejouees ; mac720 non recapture ; les etats « contrat signe » et « fiche facture » en valeurs longues non rejoues ; aucune de ces observations n'a ete corrigee (consigne : aucune page modifiee)."
+}
