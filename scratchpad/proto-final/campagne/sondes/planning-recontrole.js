@@ -67,12 +67,14 @@ parcours('R1 · planning-01 : le point d’une adresse écrite à la main', asyn
 
 parcours('R3 · planning-03 : Échap sur « Quels jours ? », « Personnes », « Mes vues »', async c => {
   await vue(c, 'multi');
+  /* Une fenêtre FERMÉE mais présente (l'atelier de devis #opdz, [hidden] + visibility:hidden) garde role=dialog : on ne compte que les fenêtres VISIBLES. */
+  await c.p.evaluate(() => { window.dialogueVisible = () => [...document.querySelectorAll('[role=dialog], .mpop, .mp-pop')].some(e => !e.closest('[hidden]') && getComputedStyle(e).visibility !== 'hidden' && e.getBoundingClientRect().width > 0); });
   for (const k of ['dates', 'qui', 'vues']) {
     await L.toucher(c, '[data-mpop="' + k + '"]'); await L.calme(c.p, 300);
-    const ouv = await c.p.evaluate(() => !!document.querySelector('[role=dialog], .mpop, .mp-pop'));
+    const ouv = await c.p.evaluate(() => dialogueVisible());
     L.v('R3 · « ' + k + ' » : la fenêtre est ouverte avant Échap', ouv, ouv);
     await c.p.keyboard.press('Escape'); await L.calme(c.p, 300);
-    const ap = await c.p.evaluate(() => ({ ouv: !!document.querySelector('[role=dialog], .mpop, .mp-pop'), foc: document.activeElement && document.activeElement.getAttribute('data-mpop'), hash: location.hash, v: plVue }));
+    const ap = await c.p.evaluate(() => ({ ouv: dialogueVisible(), foc: document.activeElement && document.activeElement.getAttribute('data-mpop'), hash: location.hash, v: plVue }));
     L.v('R3 · « ' + k + ' » : Échap la ferme, rend le focus à son bouton, reste dans le planning', !ap.ouv && ap.foc === k && ap.hash === '#planning' && ap.v === 'multi', ap);
   }
   // Échap n'ouvre rien tout seul et ne casse pas la fenêtre de création (qui garde SON Échap)
@@ -82,11 +84,11 @@ parcours('R3 · planning-03 : Échap sur « Quels jours ? », « Personnes », �
   // une fenêtre « Quels jours ? » ouverte puis une fenêtre de création : Échap ferme la création d'abord, la fenêtre « Quels jours ? » ensuite
   await L.toucher(c, '[data-mpop="dates"]'); await L.calme(c.p, 300);
   await c.p.evaluate(() => { const b = document.querySelector('[data-creer]'); b && b.click(); }); await L.calme(c.p, 400);
-  const deux = await c.p.evaluate(() => ({ fen: !!document.querySelector('#fenetre .fen'), pop: !!document.querySelector('[role=dialog]') }));
+  const deux = await c.p.evaluate(() => ({ fen: !!document.querySelector('#fenetre .fen'), pop: dialogueVisible() }));
   await c.p.keyboard.press('Escape'); await L.calme(c.p, 400);
-  const un = await c.p.evaluate(() => ({ fen: !!document.querySelector('#fenetre .fen'), pop: !!document.querySelector('[role=dialog]'), v: plVue }));
+  const un = await c.p.evaluate(() => ({ fen: !!document.querySelector('#fenetre .fen'), pop: dialogueVisible(), v: plVue }));
   await c.p.keyboard.press('Escape'); await L.calme(c.p, 400);
-  const zero = await c.p.evaluate(() => ({ fen: !!document.querySelector('#fenetre .fen'), pop: !!document.querySelector('[role=dialog]'), v: plVue }));
+  const zero = await c.p.evaluate(() => ({ fen: !!document.querySelector('#fenetre .fen'), pop: dialogueVisible(), v: plVue }));
   console.log('   empilé :', JSON.stringify({ deux, un, zero }));
   L.v('R3 · deux fenêtres l’une sur l’autre : Échap ne ferme jamais les deux d’un coup, et le planning reste', !(deux.fen && deux.pop) || (!(un.fen && !un.pop) && zero.v === 'multi'), { deux, un, zero });
   L.v('R3 · après deux Échap, plus rien d’ouvert', !zero.fen && !zero.pop, zero);

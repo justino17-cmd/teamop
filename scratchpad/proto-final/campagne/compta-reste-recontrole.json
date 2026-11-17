@@ -1,0 +1,27 @@
+{
+ "partie": "compta-reste",
+ "date": "2026-11-17",
+ "etat": "PROVISOIRE (en cours de recontrôle)",
+ "regles": [
+  "compta-reste-04",
+  "compta-reste-05",
+  "compta-reste-10",
+  "compta-reste-11",
+  "compta-reste-13",
+  "compta-reste-14",
+  "compta-reste-20"
+ ],
+ "pasRegles": [
+  {
+   "n": "compta-reste-03",
+   "constat": "Réglé seulement dans l'ancien formulaire de note de frais (rlNdfForm, code mort) et dans la dépense du bureau. Le formulaire que la technicienne ouvre vraiment (axNdfForm → axNdfEnvoyer) lit encore par axNum→cxNum SANS cxMontantRefus : « 1.234 » est enregistré 1,23 €, « 9.999 » 10,00 €, « 0,001 » 0,00 € (note envoyée au bureau, toast « Note envoyée »). Rejoué par les vrais gestes (compta-reste-recontrole-ndf.js mac : 12 ✓ · 4 ✗, dont 3 vrais). Reste aussi, en direct dans la dépense du bureau, un total TTC faux avant le refus (« 1.234 » affiche 1,48 € TTC, « 9.999 » 12,00 €)."
+  },
+  {
+   "n": "compta-reste-07",
+   "constat": "« (exemple) » est encore lisible dans Conformité › Archives & exports (lignes Septembre et Août 2026 : « Envoyé le 03/10, gardé tel quel (exemple) »), et « non simulées » dans la fiche de paie d'un salarié en maladie (indemnités journalières). Le module Paiement en ligne garde SIMULATION, « Tests 1 / 25 », « essais guidés » (cadre jamais lu par la sonde du correcteur)."
+  }
+ ],
+ "casses": [],
+ "sondes": [],
+ "doutes": []
+}

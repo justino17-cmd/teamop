@@ -14,7 +14,7 @@ const L = require('../lib.js');
   v('matEtat : « Acheté au besoin » gris (jamais en stock, pas de seuil)', JSON.stringify(E.besoin) === JSON.stringify(['Acheté au besoin', 'st-g']), E.besoin);
   v('matEtat : le normal est SILENCIEUX (stock suffisant, ou du stock sans seuil)', E.normal === null && E.sansSeuil === null, [E.normal, E.sansSeuil]);
   v('matEtat : population — un article réellement en commande existe (' + E.cmd + ', ' + E.enc + ' attendus)', !!E.cmd && E.enc > 0);
-  v('matEtat : « Commandé · arrive le j/m » bleu, la commande passe avant tout', !!E.ec && /^Commandé · arrive le \d{1,2}\/\d{1,2}$/.test(E.ec[0]) && E.ec[1] === 'st-b', E.ec);
+  v('matEtat : « Commandé · arrive le j/m » bleu (ou « en retard » orange si la date est passée), la commande passe avant tout', !!E.ec && ((/^Commandé · arrive le \d{1,2}\/\d{1,2}$/.test(E.ec[0]) && E.ec[1] === 'st-b') || (E.ec[0] === 'Commandé · en retard' && E.ec[1] === 'st-o')), E.ec);
   v('matEtat : « Sur commande » et « Épuisé » n’existent plus comme états', await R(() => ![matEtat({ id:'a', q:0, seuil:2, u:'u' }), matEtat({ id:'b', q:0, seuil:0, u:'u' })].some(e => /Sur commande|Épuisé/.test(e.mot))));
   // ── camionsARemplir : le camion au garage n'est NI orange NI compté ──
   const K = await R(() => { const r = camionsARemplir(), tout = LIEUX.filter(l => l.type === 'vehicule').map(l => ({ id:l.id, garage:!!bxGarage(l.id), nb:bxManques(l.id).length }));

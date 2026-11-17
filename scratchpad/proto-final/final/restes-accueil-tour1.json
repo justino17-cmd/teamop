@@ -1,0 +1,72 @@
+[
+ {
+  "nom": "accueil-03 (reste) — l'argent reçu sur place par le technicien n'avait aucune ligne dans l'Historique",
+  "defaut": "Rejoué au recontrôle : une intervention terminée avec « total en espèces » encaissait (tuile de l'Accueil, Comptabilité) sans une ligne de « Qui a fait quoi » ; le filtre « Factures et paiements » ne montrait pas les 40 € reçus par Tom.",
+  "etat": "corrigé",
+  "changement": "Une fonction journalPaieTerrain(i, P, v) écrit « Tom Leroy a noté un paiement reçu sur place — 40,00 € · Espèces », au nom du technicien, UNE fois par intervention (drapeau P.journale) : au chargement pour l'argent déjà compté par l'Accueil (PAIE_DEMO, pas fiche(), qui lit des déclarations posées plus bas), et à « Terminer » (ligne APRÈS « a terminé l'intervention » ; le montant d'un « payé en totalité » laissé vide est celui de la facture préparée, envoi automatique compris). « Pas encore payé » ne fait pas de ligne ; « Recommencer » de la démo remet le drapeau.",
+  "preuve": "accueil-restes-1.js partie A : mac 21 ✓ · 0 ✗, iphone 23/0, ipad 23/0, petit 23/0, android nuit 23/0, mac nuit 21/0 (population comptée : 1 reçu sur place au chargement ; A1 ligne au nom de Tom, filtre, volet, page de l'intervention ; A2 acompte 40,50 € Chèque par la technicienne, ordre, second appel sans doublon, contre-épreuve « rien » ; A3 envoi automatique + total sans montant : une seule ligne, montant de la facture). Capture regardée : restes1-historique-mac-jour.png et -nuit.png. Historique : 52 lignes touchées une à une (accueil-historique-lignes), 1 « numéro absent » = le paiement par carte au terminal déjà connu et dit à l'écran. Mutations M1 (Terminer n'écrit plus la ligne : 6 ✗), M2 (journal de départ sans la ligne : 4 ✗), M3 (plus de garde « déjà écrite » : 1 ✗) tombent."
+ },
+ {
+  "nom": "Le bilan du mois (PDF) dit 3 045 € « encaissé » quand l'Accueil et la Comptabilité disent 3 085 € « reçu »",
+  "defaut": "Casse 1 du recontrôle : le document qui part chez le comptable ne disait pas pourquoi il montre 40 € de moins que l'écran.",
+  "etat": "corrigé",
+  "changement": "Le bilan garde 3 045 € (l'encaissé facturé) et le DIT : sous « Encaissé sur la période », « Non compris : 40,00 € reçus sur place, pas encore sur une facture » ; la tuile « Encaissé » de la synthèse et celle de la page d'octobre portent « hors 40 € reçus sur place ». Rien n'est ajouté quand la période ne contient pas octobre ou qu'il n'y a pas de reçu sur place.",
+  "preuve": "accueil-restes-1.js partie B (4 contrôles dont le chiffre du bilan toujours à 3 045,00 €) vert sur mac, iphone, ipad, petit, android nuit, mac nuit ; accueil-recontrole-divers.js mac 8 ✓ · 0 ✗ (son ✗ d'avant, laissé rouge exprès, est vert ; son expression régulière sait maintenant lire la note entre le libellé et le chiffre). Capture regardée : restes1-bilan-mac-jour.png (tuile et tableau). Mutations M5 (tableau sans la note : 1 ✗) et M6 (tuile sans « hors X € » : 1 ✗, après avoir resserré le contrôle à deux occurrences, synthèse ET page du mois : il restait vert une première fois) tombent."
+ },
+ {
+  "nom": "Statistiques, iPhone et iPad : le graphique des 12 mois coupe son premier mois visible (« éc » au lieu de « déc »)",
+  "defaut": "Casse 2 du recontrôle (détail) : barre et libellé coupés net contre le bord de la carte, ce qui se lit comme un défaut.",
+  "etat": "corrigé",
+  "changement": "Quand le graphique défile (≤ 760 px, et iPad portrait au doigt), un fondu de 30 px à gauche (mask-image) dit « ça continue », et la même marge de 30 px au bout du défilement laisse le premier mois ENTIER ; l'ordinateur n'est pas touché. La marge est en !important : une règle de téléphone écrite plus haut la remettait à 0 (mesuré 0 avant). 22 px laissaient encore lire « éc » sur iPad : 30 px.",
+  "preuve": "accueil-restes-1.js partie C : au bout du défilement le bord du premier mois est à 30 px (iphone, ipad, petit, android nuit), le dernier mois (octobre) reste entier calé à droite ; mac : ni masque ni marge. Captures REGARDÉES : restes1-graphique-iphone-jour, ipad-jour, android-nuit (fondu net, rien de coupé net). Mutation M4 (plus de fondu ni de marge : 2 ✗) tombe."
+ },
+ {
+  "nom": "accueil-07 — « À faire maintenant » : 17 lignes de même poids, un débutant voit tout d'un coup",
+  "defaut": "Pas corrigé exprès par le correcteur : la proposition du testeur (6 premières lignes triées « En retard » d'abord, puis « Voir les autres ») touche au dessin de l'Accueil validé par Justin.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun. Proposition prête : 6 premières lignes, « En retard » d'abord, « Voir les 11 autres » repliées.",
+  "preuve": "—"
+ },
+ {
+  "nom": "Doute : Julie (secrétariat) s'ouvre sur la Comptabilité, #accueil la ramène sur sa page sans un mot",
+  "defaut": "Le recontrôle demandait si c'était voulu.",
+  "etat": "déjà décidé",
+  "changement": "Aucun. MENU-FINAL.md : le menu du bureau n'a ni Accueil, ni Statistiques, ni Historique (le tableau de bord est celui du gérant) et « le logo ramène à l'écran d'ouverture du rôle, pour tous les rôles ».",
+  "preuve": "accueil-roles.js (recontrôle) : 0 erreur JavaScript, retour sur la Comptabilité."
+ },
+ {
+  "nom": "Doute : le pied du menu prend ~220 px sur un Mac de 900 px, Argent / Matériel / Personnel sous le pli",
+  "defaut": "Constat du recontrôle, hors de la partie accueil.",
+  "etat": "déjà décidé",
+  "changement": "Aucun : c'est la coque (menu), une voie à part (ligne « Menu de l'ordinateur » de vus-par-le-chef.md, non cochée, traitée par la voie coque). Vu à nouveau sur mes captures de l'iPad et du Mac (menu qui défile, entrée du bas coupée) : même cause.",
+  "preuve": "—"
+ },
+ {
+  "nom": "accueil-10 (reporté) — « 2 gestes de technicien attendent ta validation » et pastille « Stock »",
+  "defaut": "Texte venant de l'enveloppe des gestes de stock, laissé à l'agent du Stock.",
+  "etat": "ne se reproduit pas",
+  "changement": "Aucun. Le texte n'existe plus dans la page (0 occurrence de « gestes de technicien » ni de sxAFaire) : la refonte du Stock l'a remplacé ; l'Accueil montre sa carte « Matériel » à part.",
+  "preuve": "grep sur apercu/prototype-op-gestion.html : 0 occurrence."
+ },
+ {
+  "nom": "Doute : les chiffres des Statistiques d'un mois d'avant octobre sont fabriqués par le prototype",
+  "defaut": "Seule leur cohérence interne est vérifiée (le prototype n'a pas d'historique réel avant octobre).",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : à confirmer que des mois d'exemple suffisent pour la démonstration.",
+  "preuve": "—"
+ },
+ {
+  "nom": "Non vérifié au recontrôle : Windows en nuit, parcours enchaînés sur iPad et Android",
+  "defaut": "Trous de couverture déclarés par le recontrôleur.",
+  "etat": "ne se reproduit pas",
+  "changement": "Rejoués : aucun défaut.",
+  "preuve": "accueil-mise-en-page.js windows nuit 16 ✓ · 0 ✗, ipad 28/0, iphone nuit valeurs longues 28/0 ; accueil-recontrole-parcours.js ipad 25 ✓ · 0 ✗, android 25 ✓ · 0 ✗ ; rappel des gardes : accueil-corrections mac 27/0, accueil-coherence mac 22/0, accueil-recontrole mac 15/0. Reste non rejoué : le téléchargement réel des PDF (aperçu seulement)."
+ },
+ {
+  "nom": "vus-par-le-chef.md — lignes touchant l'Accueil",
+  "defaut": "Relu : aucune ligne non cochée ne parle de l'Accueil, des Statistiques ou de l'Historique (les lignes ouvertes sont Stock, bandeaux teintés, Mon camion, menu, contrats, planning, artefact : voies à part).",
+  "etat": "déjà décidé",
+  "changement": "Aucun.",
+  "preuve": "—"
+ }
+]

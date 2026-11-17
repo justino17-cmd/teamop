@@ -29,7 +29,7 @@ Ce fichier est la SOURCE des textes : `guide-mots.js` exige que chaque titre et 
 | 2 | Comptabilité : tout au même endroit | Factures, paiements, achats, paie et TVA se suivent au même endroit, rangés comme chez ton comptable. | Comptabilité |
 | 3 | Stock : où est chaque article | Tape le nom d’un article : tu vois où il est et combien il en reste. | Stock |
 | 4 | Tâches : elles arrivent seules | Un devis à relancer, une facture en retard : OP GESTION te propose la tâche, qui se termine seule. | Tâches |
-| 5 | Équipe : qui peut faire quoi | Pour chaque personne, tu choisis ce qu’elle voit et peut faire. Son menu s’adapte tout seul. | Équipe |
+| 5 | Équipe : qui peut faire quoi | Pour chaque personne, tu choisis ce qu’elle voit et peut faire, et son menu s’adapte tout seul. | Équipe |
 | 6 | Mon entreprise : réglée une fois | Tes mentions légales, ton logo, ta banque et tes horaires s’écrivent ici une fois, puis servent partout. | Mon entreprise |
 
 ### Le bureau (Julie, secrétariat ; le responsable a les mêmes cartes selon ses cases)
@@ -41,7 +41,7 @@ Ce fichier est la SOURCE des textes : `guide-mots.js` exige que chaque titre et 
 | 3 | Devis : composer en grand | « Composer un devis » ouvre une grande page claire : tu remplis, tu vérifies le prix, tu envoies. | Devis (si la case « Créer » des ventes est cochée) |
 | 4 | Achats et frais : les demandes | Les demandes de matériel et les notes de frais de l’équipe sont réunies ici. | Achats et frais |
 | 5 | Fournisseurs, matériel & produits | Les commandes, les articles et les fournisseurs sont réunis ici, en trois parties. | Fournisseurs, matériel & produits |
-| 6 | Mes tâches : elles arrivent seules | Un devis à relancer, une facture en retard : OP GESTION te propose la tâche, qui se termine seule. | Mes tâches |
+| 6 | Mes tâches : elles arrivent seules | Ce qu’on t’a confié arrive ici, et chaque tâche se termine seule quand le travail est fait. | Mes tâches |
 
 ### Le technicien (Sophie ; le chef d'équipe a les mêmes cartes selon ses cases)
 
