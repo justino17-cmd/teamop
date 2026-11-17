@@ -4,7 +4,7 @@ const X = require('./compta-reste-outils.js'), L = X.L;
 (async () => {
   const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit';
   const c = await L.ouvrir({ profil, qui: 'marc', nuit }), p = c.p;
-  const f = await X.cadreOuvert(c); if (!f) { console.log('cadre absent'); await L.fermer(); return; }
+  const f = await X.cadreCompta(c); if (!f) { console.log('cadre absent'); await L.fermer(); return; }
   await p.waitForTimeout(1200);
   await L.capture(c, X.CAP + `cadre-${profil}-${nuit ? 'nuit' : 'jour'}-ouverture.png`);
   const ouv = await f.evaluate(() => ({ mode: UI.mode, route: UI.route, pilote: UI.pilote, expert: UI.expert, texte: document.body.innerText.replace(/\n{2,}/g, '\n').slice(0, 1200) }));
