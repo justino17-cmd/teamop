@@ -59,7 +59,7 @@ const pr=process.env.PROFIL||'mac', nuit=process.env.NUIT==='1', qui=process.env
   await L.calme(p,500);
   const rows=await p.evaluate(()=>[...document.querySelectorAll('#contenu .opd-l')].map(e=>e.innerText.replace(/\s+/g,' ').trim()));
   const k1=await kp();
-  v(tag+' · « Composés dans l\'atelier » : une ligne avec numéro, client, titre, prix par an, état',rows.length>=1&&/CTR-2026-\d{3}/.test(rows[0])&&/Les Mimosas/.test(rows[0])&&/280,50/.test(rows[0])&&/par an/.test(rows[0]),rows);
+  v(tag+' · « Contrats composés » : une ligne avec numéro, client, titre, prix par an, état',rows.length>=1&&/CTR-2026-\d{3}/.test(rows[0])&&/Les Mimosas/.test(rows[0])&&/280,50/.test(rows[0])&&/par an/.test(rows[0]),rows);
   v(tag+' · chiffre « en attente de signature » +1',parseInt(k1[3].replace(/\s/g,''),10)===parseInt(k0[3].replace(/\s/g,''),10)+1,[k0,k1]);
   await L.capture(c,CAP+`contrat-${tag}-3-liste.png`);
   // rouvrir
