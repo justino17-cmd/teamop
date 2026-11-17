@@ -104,6 +104,14 @@ vehtemps ont fini leur étape 5) · puis le dernier passage : `final-rejeu` (par
 
 ## ARRÊT DU 17 NOVEMBRE, 13 H 50 (heure française) — À REPRENDRE LE 18 À 22 H 10
 
+**Mise à jour de 17 h 15 (heure française).** (1) ORDRE DE JUSTIN, 15 h 45 : à la reprise du 18, on ne relance AUCUNE de ces voies —
+d'abord le chantier « tout servir depuis notre serveur » (`REPRISE.md`, en tête) ; elles reprennent après. (2) Les 38 sessions
+sœurs sont fermées. Fiches arrivées après la table ci-dessous : 21, 26, 33, 38 (à lire dans `arret/`) ; la sœur 6 n'a pas de fiche
+(`{voie:"final-rejeu", familles:["coque","planning","restes","recontrole","relire"], jusqua:0}`, étape des scripts non finie).
+(3) Un enregistrement « à l'arrêt » avait capturé une mutation d'essai (`fceb108`, écran de connexion figé) : réparé dans `89b6089`,
+gardé par `sondes/fumee-connexion.js`. À la relance d'une voie interrompue en pleine correction, RELIRE le `git diff` de son
+dernier enregistrement avant de la laisser repartir. (4) Version 66 de l'artefact publiée depuis `89b6089` (1 366 contrôles verts).
+
 Justin : « coupe et tu reprends tout demain à 22 h, plus sûr pour que ça bug pas », puis « et là tu fais le plus important »
 (son forfait de la semaine était à 81 %). Toutes les sessions sœurs ont reçu l'ordre d'arrêt : 31 tout de suite, 7 après la fin de
 leur étape de CORRECTION (Véhicules et Temps de travail, Équipe, Achats, Clients, espace client, sécurité, bouton de nuit). Chacune

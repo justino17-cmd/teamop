@@ -186,6 +186,55 @@ Trois défauts de MES consignes trouvés et corrigés ce matin, qui ralentissaie
 rejouait les sondes de TOUS les lots (des heures de navigateur : une voie a tourné en rond 3 h 30) ; un agent attendait par une
 boucle sans pause (un cœur entier) ; un autre tuait les sondes des autres par motif (`pkill -f`). Les trois sont dans `REGLES`.
 
+⛔⛔ **FIN DE JOURNÉE DU 17 NOVEMBRE, 17 H 15 (heure française) — VERSION 66 PUBLIÉE, PLUS RIEN NE TOURNE. LIRE CECI EN PREMIER.**
+Reprise programmée le 18 à 22 h 10 (`trig_01ARF4xswzMN4Z5rmX7c9NfF`) : CHANTIER 0 SEULEMENT (« tout servir depuis notre serveur »,
+bloc « NOUVEL ORDRE DE PRIORITÉ » plus bas) ; le prototype (chantier A) et OP Security ↔ OP GESTION (chantier B) restent en pause
+jusqu'à sa fin. Aucune session sœur, aucun workflow, aucune tâche de fond ne tourne.
+**Version 66 de l'artefact** (https://claude.ai/artifact/8K6fXjo4jRwTs4pFRUUhux), publiée vers 16 h 55 depuis le commit `89b6089` :
+toutes les corrections du 17 (Véhicules et Temps de travail, Équipe, Achats, Clients, espace client, bouton principal de nuit,
+sécurité du prototype tour 1) et l'écran de connexion réparé. Vérifiée juste avant : connexion 14 ✓, fumée de jour 396 ✓, client
+et chef d'équipe 126 ✓, nuit 396 ✓, artefact 434 ✓ (63 + 26 + 14 + 144 + 10 + 16 + 24 + 5 + 132) — 1 366 contrôles, 0 ✗ ; planches
+regardées (nuit au téléphone, espace client, parties refaites sur Mac, connexion jour et nuit). ⚠️ Ce que la version 66 NE dit PAS :
+les recontrôles adverses des corrections du 17 n'ont pas été joués (arrêt) — fiches `scratchpad/proto-final/arret/soeur-*.md`.
+⛔ **L'INCIDENT DE L'ARRÊT, ET SA LEÇON.** Ma consigne d'arrêt disait aux sessions sœurs « enregistre le travail en cours si les
+contrôles passent » : la sœur 19 a enregistré (`fceb108`) une MUTATION D'ESSAI restée dans la page — « Revenir au mode test » posé
+dans `<body>` au lieu de `#cnx`, donc la garde `c.querySelector('#cnx-test')` ne le voyait plus et l'observateur le reposait sans
+fin : la page FIGEAIT à l'ouverture de l'écran de connexion (par l'adresse `#lien-…` et par « Voir comme l'application »). Ma fumée
+(918 contrôles) est restée verte : elle entre toujours avec un compte (`?app=1&auto=…`) et ne passe JAMAIS par la connexion. C'est
+la sonde « voir comme l'application » de l'artefact qui l'a montré, en ne rendant rien (code 124). Trouvé par `git bisect` (bon :
+`8ec9130`), réparé dans `89b6089`, gardé par `sondes/fumee-connexion.js` (14 ✓ ; mutation remise : 1 ✓ · 2 ✗), qui fait désormais
+partie de la porte du chef. Les sept autres enregistrements « à l'arrêt » qui touchent les pages ont été relus : aucune autre
+mutation. **Trois règles** : (1) on n'enregistre JAMAIS à l'aveugle le travail d'un agent interrompu — il peut être en train de
+muter ; à l'arrêt il RESTAURE d'abord (`git diff` relu), ou il dépose son travail en correctif à part ; (2) une fumée qui entre
+toujours connectée ne voit pas l'écran de connexion ; (3) une sonde qui ne rend rien est un constat, pas un contretemps.
+**La porte du chef avant toute publication de l'artefact** (depuis `scratchpad/proto-final/sondes`) : `node fumee-connexion.js` ;
+`CAP=<dossier> node fumee-routes.js` ; `QUI=client,kb CAP=… node fumee-routes.js` ; `NUIT=1 QUI=marc,julie,sm CAP=… node
+fumee-routes.js` ; `RECENSEMENT=0 CAP=… bash scratchpad/proto-final/sondes/artefact-tout.sh` ; puis les planches
+(`node scratchpad/proto-final/planches.js <dossier>`), REGARDÉES ; publication : recette en tête de `preparer-publication.sh`.
+**Les 38 sessions sœurs sont arrêtées ET fermées.** Fiches d'arrêt : `scratchpad/proto-final/arret/soeur-<n>.md` — toutes sauf la 6
+(`{voie:"final-rejeu", familles:["coque","planning","restes","recontrole","relire"], jusqua:0}`, étape des scripts non finie,
+dernière poussée à 12 h 23) ; les fiches 21, 26, 33 et 38 sont arrivées APRÈS la table de `VOIES-EN-COURS.md` : les lire.
+**Les essais de sécurité du 17 sont à l'abri HORS de ce dépôt (il est public)** : document privé de Justin
+https://claude.ai/artifact/7Bnkm4hvvHPBdac4EJuDTt, onglet « Essais du 17 novembre » (les deux rapports : 13 constats sur OP Security,
+20 sur OP GESTION, ce qui n'a pas été joué), et un paquet de 163 fichiers (étude, propositions, critiques, plan, scripts des
+testeurs, preuves) — pièce `09ed447e8efeca8e9a785c86cb546570` du document, relue après dépôt (même empreinte). Sur une machine
+neuve : outil Artifact, `action: read`, `url` du document, `path` = cet identifiant, puis la commande du champ `restaurer` du
+paquet (vers `/home/user/op-security`). Le kit de Justin se relit par son artefact (noté dans le `LISEZMOI.md` du paquet).
+⛔ Aucun détail de faille n'est écrit dans ce fichier : il se lit depuis Internet.
+**Ce qu'on sait de l'hébergement (relu dans ce fichier le 17)** : le serveur (`api.teamop.fr`) est un serveur privé virtuel chez
+IONOS, environ 2 cœurs d'après la mesure de la transcription du 11 octobre (mémoire et disque non notés) ; les DNS et la messagerie
+de teamop.fr étaient chez OVH le 9 octobre (`dns200.anycast.me`), avec un passage à Cloudflare proposé et jamais confirmé — À LUI
+FAIRE CONFIRMER avant de préparer la bascule. Justin, 17 h : « ce qu'il faudrait faire, c'est sur IONOS trouver un plus gros
+serveur pour faire tout ce qu'on fait, non ? Ou le serveur que j'ai suffit. » Répondu : le serveur actuel suffit très probablement
+pour servir le site (des pages, c'est peu à côté de l'API, d'OP MESSAGES et de la transcription) ; on le MESURE avant de décider —
+commande à lui faire lancer sur le serveur, sans secret : `nproc && free -h && df -h / && uptime` ; l'offre IONOS « Hébergement Web
+Premium » (0 € trois mois puis 16 € HT par mois, douze mois) n'est PAS la bonne (hébergement mutualisé : ne fait pas tourner notre
+serveur) — s'il veut profiter des promotions, c'est un serveur privé virtuel, utile seulement comme serveur d'ESSAI à part ; GitHub
+Pro n'est plus nécessaire.
+**Ce qui attend Justin** : (1) le résultat de cette commande et la confirmation de l'endroit où se règle l'adresse teamop.fr ;
+(2) ses deux essais de la version 64 (Véhicules › coût › « Exporter en tableau » ; Comptabilité › « Télécharger le FEC ») ;
+(3) reporté par lui : changer l'identifiant GitHub.
+
 ⛔⛔ **ARRÊT DU 17 NOVEMBRE, 13 H 50 (heure française) — LE CHANTIER REPREND LE 18 À 22 H 10. LIRE CECI D'ABORD.**
 Justin, à 13 h 45 : « on est à 81 % hebdomadaire de consommation, ça peut le faire ? » ; puis « fais comme tu le sens, sinon demain à
 22 h mise à jour de la consommation » ; puis « sinon coupe et tu reprends tout demain à 22 h, plus sûr pour que ça bug pas » ; puis
@@ -230,8 +279,8 @@ l'étude de la connexion réelle et le kit restent HORS du dépôt (il est publi
 posée le 17 à 14 h 40 : dépôt `teamop`, public comme tout le reste, ou dépôt privé à part). FAIT LE 17 : premier passage RÉEL
 (jusqu'ici tout n'avait été que lu) par un workflow de quatre agents sur la machine du chef — lancer OP Security et jouer ses
 parcours (ordinateur et téléphone simulé), jouer quinze attaques contre elle, jouer la sécurité d'OP GESTION (copie de la branche
-de production) sur un jumeau local, puis vérifier et résumer. Tout est dans `/home/user/op-security/essais-17nov/` (hors dépôt :
-PERDU si la machine est rendue — le résumé donné à Justin est dans la conversation ; le kit se relit par l'artefact noté dans
+de production) sur un jumeau local, puis vérifier et résumer. Tout est dans `/home/user/op-security/essais-17nov/` (hors dépôt ;
+depuis 17 h les rapports et le paquet des scripts sont dans le document privé — bloc « FIN DE JOURNÉE » en tête ; le kit se relit par l'artefact noté dans
 `/home/user/op-security/LISEZMOI.md`, le plan par https://claude.ai/artifact/7Bnkm4hvvHPBdac4EJuDTt). À LA REPRISE du 18 :
 le chantier « relier OP Security à OP GESTION » démarre sur une COPIE D'ESSAI (jumeau local : vrai serveur isolé, page bêta,
 application de téléphone du kit), marche par marche selon le plan, chaque marche testée et attaquée ; aucune mise en ligne.
