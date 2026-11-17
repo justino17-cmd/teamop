@@ -7,7 +7,7 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 9 h 05 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 9 h 16 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
@@ -18,7 +18,7 @@ sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 
 | entreprise | `{voie:"entreprise"}` | /home/user/wt-entreprise | wf_d48d52bb-f55 (tâche woax1c3di) | 7 sur 8 (corriger) |
 | securite | `{voie:"securite"}` | /home/user/wt-securite | wf_c59af0fe-bf3 (tâche wx9juj4s7) | 7 sur 8 (corriger : 17 failles confirmées) |
 | double-auth | `{voie:"double-auth"}` | /home/user/wt-double-auth | wf_f90564b0-275 (tâche w4dugueuh) | 3 sur 6 |
-| artefact | `{voie:"artefact"}` | /home/user/wt-artefact | wf_0f3ab435-044 (tâche wne6iwk8k) | 2 sur 2 (recontrôle) |
+| restes (artefact) | `{voie:"restes", noms:["artefact"], arbre:"/home/user/wt-artefact"}` | /home/user/wt-artefact | wf_23f6a788-f10 (tâche w4gmon24x) | 1 sur 4 (lancée à 9 h 15 : bouton « Voir comme l'application », fichiers nés dans un cadre, deux casses du recontrôle) |
 | retour | `{voie:"retour"}` | /home/user/wt-retour | wf_a81c7b71-04c (tâche wbja7hic2) | 1 sur 2 |
 | restes (mail) | `{voie:"restes", noms:["mail"], arbre:"/home/user/wt-c-mail"}` | /home/user/wt-c-mail | wf_a21861bd-55e (tâche wmc503kyq) | 3 sur 4 (tour 2, corriger) |
 | restes (compositeur) | `{voie:"restes", noms:["compositeur"], arbre:"/home/user/wt-atelier"}` | /home/user/wt-atelier | wf_6c0f850c-5cd (tâche wvbc2b9g3) | 2 sur 4 (tour 1, recontrôler) |
@@ -48,7 +48,7 @@ Arbres LIBRES et propres : /home/user/wt-restes, /home/user/wt-menu, /home/user/
 /home/user/wt-guide (créés à 8 h 16 pour la suite) (à remettre sur la branche avant
 usage : la consigne de chaque étape le fait). /home/user/wt-t-coque porte un dossier non suivi d'un agent arrêté le 16 : ne pas s'en servir.
 
-Finies : campagne `contrats` le 17/11 à 8 h 56 (16 défauts : 9 corrigés, 7 tranchés par le chef ; recontrôle : 7 tenus, 5 casses, reprises par « restes ») · `restes` (taches-absences, menu) le 17/11 à 8 h 05, deux tours : 0 pas réglé, 0 cassé, 2 mineurs nouveaux (glisser qui ne prévient pas avant le lâcher ; « fin avant début » ne grise pas le bouton) · la voie « campagne 1 » ARRÊTÉE à 8 h 12 à son étape 7 (taches-absences et coque testées, corrigées, recontrôlées ; ses autres parties ont chacune leur voie) · la voie « campagne 2 » ARRÊTÉE à 6 h 44 après le recontrôle du planning (ses autres parties ont chacune leur voie) · `compositeur` (17/11, 5 h 05 : 14 défauts sur 14 réglés et recontrôlés, 1 casse gênante à 320 px reprise par « restes ») · `menu` (17/11, 1 h 57) · `mail` (17/11, 4 h 45 : 34 défauts réglés, 1 partiel, 5 casses reprises par « restes ») ·
+Finies : `artefact` le 17/11 à 9 h 10 (8 sondes, 302 ✓ · 0 ✗ au recontrôle ; 2 casses et 12 gestes « non vérifiables d'ici » pour Justin dans `artefact/recontrole.json`) · campagne `contrats` le 17/11 à 8 h 56 (16 défauts : 9 corrigés, 7 tranchés par le chef ; recontrôle : 7 tenus, 5 casses, reprises par « restes ») · `restes` (taches-absences, menu) le 17/11 à 8 h 05, deux tours : 0 pas réglé, 0 cassé, 2 mineurs nouveaux (glisser qui ne prévient pas avant le lâcher ; « fin avant début » ne grise pas le bouton) · la voie « campagne 1 » ARRÊTÉE à 8 h 12 à son étape 7 (taches-absences et coque testées, corrigées, recontrôlées ; ses autres parties ont chacune leur voie) · la voie « campagne 2 » ARRÊTÉE à 6 h 44 après le recontrôle du planning (ses autres parties ont chacune leur voie) · `compositeur` (17/11, 5 h 05 : 14 défauts sur 14 réglés et recontrôlés, 1 casse gênante à 320 px reprise par « restes ») · `menu` (17/11, 1 h 57) · `mail` (17/11, 4 h 45 : 34 défauts réglés, 1 partiel, 5 casses reprises par « restes ») ·
 l'étude OP Security (`/home/user/op-security/PLAN.md`).
 
 À lancer ensuite, dans l'ordre, à mesure qu'une place se libère (vingt voies au plus, rien au-dessus d'une charge de 7) :
