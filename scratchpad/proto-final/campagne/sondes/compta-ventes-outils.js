@@ -11,7 +11,7 @@ exports.texte = (p, zone) => p.evaluate(z => { const e = document.querySelector(
 exports.panneau = p => p.evaluate(() => { const e = document.querySelector('#calque .panneau'); return e ? e.innerText.replace(/\n{2,}/g, '\n').trim() : ''; });
 // range la Comptabilité sur un onglet SANS passer par le cadre plein écran (le quotidien « Factures et paiements »)
 exports.compta = async (c, onglet, o) => { o = o || {};
-  await c.p.evaluate(([on, cat, st]) => { cpSysteme = false; try { fermerPanneau(); } catch (e) {} CP.onglet = on; if (cat) CX.cat = cat; CX.st = st || 'tous'; CX.psens = 'tous'; CX.pmode = 'tous'; if (route !== 'comptabilite') aller('comptabilite'); else rendre(); }, [onglet, o.cat, o.st]);
+  await c.p.evaluate(([on, cat, st]) => { cpSysteme = false; try { fermerPanneau(); } catch (e) {} CP.onglet = on; if (cat) CX.cat = cat; CX.st = st || 'tous'; CX.psens = 'tous'; CX.pmode = 'tous'; try { CX_DOS.f = 'tous'; CX_DOS.q = ''; CX_DOS.vue = 'inter'; } catch (e) {} if (route !== 'comptabilite') aller('comptabilite'); else rendre(); }, [onglet, o.cat, o.st]);
   await L.calme(c.p, 450); };
 // l'état des factures et des paiements tels que le prototype les porte (pour recalculer au centime)
 exports.donnees = p => p.evaluate(() => ({ F: FACTURES.map(f => ({ id: f.id, num: f.num, cli: f.cli, st: f.st, ht: f.st === 'avoir' ? f.ht : htDe(f), tva: f.tva, recu: f.recu || 0, relances: f.relances || 0, paye: f.paye || '', mode: f.mode || '', reste: f.st === 'avoir' ? 0 : restant(f) })),

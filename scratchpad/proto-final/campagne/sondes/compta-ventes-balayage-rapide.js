@@ -15,7 +15,10 @@ const signature = p => p.evaluate(() => { const s = JSON.stringify([FACTURES, EN
   const prep = async e => { await X.compta(c, e.onglet, { cat: e.cat }); };
   for (const nom of noms) {
     const e = ECRANS[nom]; if (!e) { console.log('écran inconnu', nom); continue; }
-    await neuf(); await prep(e); const liste = await X.marquer(p, '#contenu'); console.log(`\n== ${qui}-${profil}-${nom} : ${liste.length} gestes recensés`); const lignes = []; let sale = false;
+    await neuf(); await prep(e); let liste = await X.marquer(p, '#contenu');
+    /* la barre d'espaces, les onglets, « Comment ça marche ? » et « ＋ Ajouter » sont les MÊMES sur tous les écrans : touchés une fois (premier écran), pas huit
+       (le recensement complet de la barre est dans le rapport de l'écran « ensemble »). Les touches qui changent d'écran sont gardées si elles sortent de la barre. */
+    if (noms.indexOf(nom) > 0 && !process.env.TOUT) liste = liste.filter(g => !/data-cx=grp\||data-cp=aide|data-cx=nouveau|data-cx=sec\|(ensemble|cloture|dossiers|fventes|clients|contrats|fachats|ndf|fournisseurs|paiements|banque|caisse|enligne|tva|ecritures|balance|grandlivre|resultat|envoi|normes|archives)$/.test(g.data)); console.log(`\n== ${qui}-${profil}-${nom} : ${liste.length} gestes recensés`); const lignes = []; let sale = false;
     const sig0 = await signature(p);
     for (const g of liste) {
       if (sale) { await neuf(); sale = false; }

@@ -11,7 +11,7 @@ const cts = n => Math.round(n * 100);
   await X.fiche(c, 'f128');
   const carte = await X.texte(p, '#contenu'); L.v('la fiche dit « Déjà relancée 2 fois »', /relancée 2 fois/.test(carte), carte.match(/[^.]*relancée[^.]*/)?.[0]);
   await L.toucher(c, '[data-action="relance"]'); let pan = await X.panneau(p);
-  L.v('l’aperçu de la relance dit à qui, l’objet et le message', /À :/.test(pan) && /Objet/.test(pan) && /1 240,00/.test(pan), pan.slice(0, 100));
+  L.v('l’aperçu de la relance dit à qui, l’objet et le message', /À\s*:/.test(pan) && /Objet/.test(pan) && /1\s240,00/.test(pan), pan.slice(0, 100));
   L.v('compta-ventes-05 · le message promet « le lien ci-dessous » : le lien de paiement est bien dans l’aperçu', !/lien ci-dessous/.test(pan) || /(https?:\/\/|payer par carte :|pay\.)/i.test(pan) || await p.evaluate(() => !!document.querySelector('#calque .panneau a, #calque .panneau [data-lien]')), pan.slice(pan.indexOf('ci-dessous') - 60, pan.indexOf('ci-dessous') + 40));
   await L.capture(c, X.CAP + `c-${profil}-relance.png`);
   await L.toucher(c, '#calque [data-action="relanceOk"]'); const t = await X.toasts(p);
