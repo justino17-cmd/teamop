@@ -136,6 +136,30 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
     const r = await p.evaluate(() => ({ qui:acteur(), hash:location.hash, bande:!!document.querySelector('.sec-bande') })); v('P10 « Revenir à mon compte » : on est Marc, sur Équipe, la bande a disparu', r.qui === 'marc' && r.hash === '#equipe' && !r.bande, r);
     await E.fiche(c, 'julie'); await p.selectOption('#calque select[data-eqprof="julie"]', 'secr'); await L.calme(p, 500); await L.toucher(c, '#calque [data-eqx^="profok|julie|secr"]'); await L.calme(p, 400);
   });
+  // ── P9b · « Travaille sur le terrain » : la forme de l'application change vraiment
+  await jouer(c, 'P9b terrain', async () => {
+    await L.aller(p, 'equipe'); const k0 = await kpi(c, 'terrain');
+    await E.fiche(c, 'julie'); await L.toucher(c, '#calque input[data-eqt="julie"]'); await L.calme(p, 600);
+    v('P9b cocher « Travaille sur le terrain » pour Julie : la donnée change', await p.evaluate(() => eqxTerrain(eqDe('julie'))) === true, null);
+    await L.aller(p, 'equipe'); const k1 = await kpi(c, 'terrain'); v('P9b le compteur « sur le terrain » monte de 1', Number(k1) === Number(k0) + 1, { k0, k1 });
+    await L.toucher(c, '[data-eq="filtre|terrain"]'); v('P9b le filtre « Terrain » la montre', (await nomsListe(c)).includes('Julie Petit') || (await nomsListe(c)).some(x => /^Julie/.test(x)), await nomsListe(c)); await L.toucher(c, '[data-eq="filtre|tous"]');
+    await E.fiche(c, 'julie'); await L.toucher(c, '[data-cnx="comme|julie"]'); await L.calme(p, 900);
+    const e = await p.evaluate(() => ({ lignes:rlLignes().map(x => x.k), ouv:location.hash })); v('P9b ouverte comme Julie : l’application a la forme TERRAIN (Ma journée, Mes frais, Mes heures…) et plus les écrans du bureau', e.lignes.includes('majournee') && !e.lignes.includes('devis'), e);
+    await p.evaluate(() => secuRevenir()); await L.calme(p, 700);
+    await E.fiche(c, 'julie'); await L.toucher(c, '#calque input[data-eqt="julie"]'); await L.calme(p, 500);
+    v('P9b décochée : retour au bureau', await p.evaluate(() => eqxTerrain(eqDe('julie'))) === false, null);
+  });
+  // ── P8 · une règle d'habilitation se VOIT quand on confie une intervention à quelqu'un qui ne l'a pas
+  await jouer(c, 'P8 habilitation exigée', async () => {
+    await L.aller(p, 'planning'); await L.calme(p, 500);
+    const cible = await p.evaluate(() => { const r = eqxRegles.find(o => o.type); const i = INTS.find(x => x.type === (r && r.type) && x.st !== 'fait' && x.st !== 'annulee' && x.d >= AUJ && x.tech !== 'tl'); const tl = eqDe('tl'); const manque = i ? eqxManque(i, 'tl', i.d).length : 0; return i ? { id:i.id, tech:i.tech, d:i.d, h:i.h, regle:r.hab, manque } : null; });
+    v('P8 population : une intervention exigeant une habilitation que Tom n’a pas existe', !!cible && cible.manque >= 1, cible);
+    if (cible && cible.manque) {
+      await p.evaluate(({ id }) => { const i = INTS.find(x => x.id === id); poser(i, 'tl', i.d, i.h); }, cible); await L.calme(p, 600);
+      const t = await E.texte(p, '#calque') + ' ' + await E.texte(p, '#contenu') + ' ' + await E.toast(p); const tech = await p.evaluate(({ id }) => INTS.find(x => x.id === id).tech, cible);
+      v('P8 confier l’intervention à Tom : l’application prévient AVANT que Tom n’a pas l’habilitation, et dit qui l’a', /n’a pas l’habilitation|habilitation/i.test(t) && (tech !== 'tl' || /(l’a|l’ont)\b/.test(t)), { tech, extrait:(t.match(/[^.]{0,80}habilitation[^.]{0,100}/) || [''])[0] });
+      await E.ranger(c); }
+  });
   // ── P11 · règles d'habilitations
   await jouer(c, 'P11 règles', async () => {
     await L.aller(p, 'equipe'); await L.toucher(c, '[data-eqx="regles"]'); const av = await p.evaluate(() => eqxRegles.length);
