@@ -9,7 +9,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       lignes et tasse le nom de l'article sur deux lignes (« Anode / magnésium »). Sous ~430 px, la pastille prend sa propre
       ligne sous le nom.
 - [x] **Mes heures** — « Absences : 1 jour (rtt) » : écrire « RTT ». *(restes-1 : `paieAbsTxt` passe par `aTypeBas` ; sonde restes-taches-absences-1.js partie F, mutation F)*
-- [ ] **Les heures** — « 8h05 », « 170h46 », « 40h50 » : la typographie française écrit « 8 h 05 » ; à trancher UNE fois pour
+- [x] (TRANCHÉ par le chef le 17/11 à 8 h 20, décision g de `voies.js` : une durée s'écrit collée « 8h05 », comme dans la vraie application et sur une fiche de paie ; « 10 h » dans une phrase ; « 16:47 » pour une heure de la journée — rien à changer) **Les heures** — « 8h05 », « 170h46 », « 40h50 » : la typographie française écrit « 8 h 05 » ; à trancher UNE fois pour
       toute l'application (voie « mots ») et à tenir partout (Temps de travail, Mes heures, Planning, paie).
 - [ ] **Boîte mail, bureau** — décision à soumettre à Justin (défaut ordinateur-06) : la secrétaire voit-elle la Boîte mail ?
       Recommandation du chef de chantier : oui, la boîte de l'entreprise seulement, pas la boîte personnelle du gérant.
