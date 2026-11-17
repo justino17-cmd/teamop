@@ -175,3 +175,10 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         au téléphone « Date à fixer » en gras à la place du tiret ; un relevé n'accepte qu'un nombre (avec virgule) ; un
         téléphone accepte « poste 12 » et refuse plus de 20 chiffres ; une ligne de facture a le même plafond de prix que le
         forfait de création.
+
+- [ ] **Équipe — décisions du chef du 17/11, 12 h (equipe)** : · **equipe-11** : la case « Voir » décide SEULE si la personne voit
+      une rubrique ; retirer « Supprimer » à quelqu'un ne lui cache jamais une rubrique qu'il a le droit de voir (aujourd'hui
+      « Temps de travail » disparaît sans « Temps de travail › Supprimer », et « Dépôts et camions » sans « Stock › Supprimer ») ;
+      et la phrase sous chaque case dit exactement ce qu'elle ouvre. · **equipe-13** : les deux boutons qui changent un mot de
+      passe ont deux noms qu'on ne confond pas, avec des mots de tous les jours (plus de « Reposer… ») : « Lui donner un mot de
+      passe provisoire » et « Lui envoyer un lien pour choisir le sien » — une seule phrase d'explication sous chacun.
