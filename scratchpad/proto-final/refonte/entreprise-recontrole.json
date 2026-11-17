@@ -1,0 +1,78 @@
+{
+ "lot": "entreprise",
+ "recontrole": "17 novembre 2026, 10 h 30 à 12 h, arbre /home/user/wt-entreprise, page fusionnée jusqu'à d05c9a3+ ; sonde adverse scratchpad/proto-final/sondes/entreprise-recontrole.js (sections r01-r13, casse1-5, p1-p3)",
+ "regles": [
+  "tout-01",
+  "tout-02",
+  "tout-03",
+  "tout-04",
+  "tout-05",
+  "tout-06",
+  "tout-07",
+  "tout-09",
+  "tout-10",
+  "tout-12",
+  "tout-13"
+ ],
+ "pasRegles": [
+  {
+   "n": "tout-08",
+   "constat": "Non réglé, et le correcteur le dit lui-même (« à soumettre à Justin »). Rejoué : la note mensongère n'est plus posée sur la Boîte mail, mais une personne avec la seule case Voir (com = 1000) peut encore ouvrir « Nouveau message », répondre, archiver et supprimer (le module de courrier en shadow DOM ne lit pas capacites().droits). Mesuré par r08 (boutons du module listés)."
+  },
+  {
+   "n": "tout-11",
+   "constat": "Réglé pour la barre (les cinq liens posent « ‹ Retour · Mon entreprise », et un toucher sur la barre ramène bien à Mon entreprise : casse4, 10 essais sur iphone et android, et p3 sur mac) mais PAS pour sa visibilité sur deux liens : après « Facture envoyée toute seule » (y = −1209 sur iphone, −1407 sur android, −473 sur mac) et « Notes de frais » (y = −377, −423, −221) la page défile jusqu'au réglage et la barre, non collée, reste hors de l'écran : il faut remonter la page pour la voir. Gravité : détail ; piste : coller la barre quand elle vient d'une rubrique (position:sticky) ou ne pas centrer le défilement."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "La rangée « Enregistrer / Annuler » collée en bas (correction tout-03) cache le champ refusé sur téléphone",
+   "gravite": "gênant",
+   "etapes": "iPhone 390x844 (puis android 360x740 nuit, petit 320x568) : Mon entreprise > Ton entreprise > saisir « pas un site » dans Site (dernier champ) > Enregistrer. Idem Ta banque (e-mail du comptable), Tes horaires (Zone 3 = « abc »), Tes mentions légales (médiateur de 130 signes).",
+   "constat": "Sur les 12 essais, le champ refusé prend bien le focus mais le navigateur le range au bord bas de la feuille, SOUS la rangée collée (champ y 798-844 pour une rangée qui commence à 738 ; message d'erreur à 876-894, hors de l'écran) : la personne voit le toast (« Un déplacement coûte entre 0 et 500 € ») mais pas quel champ est rouge ; sur la capture casse1-horaires-iphone.png la Zone 3 est cachée derrière le toast et les boutons. 24 contrôles ✗ sur 36 (casse1). Avant la correction la rangée était dans le flux et ne cachait rien. Piste vérifiée sans toucher la page (feuille injectée dans la sonde) : #calque .panneau.ent-pan{scroll-padding-bottom:200px} sur ≤ 760 px → champ ET message visibles dans 6 cas sur 6 ; 140 px ne suffit pas (le message reste coupé de 9 px)."
+  },
+  {
+   "titre": "Feuille « Droits » d'une personne : elle glisse de côté à 360 px (3 px) et 320 px (43 px) à cause du bloc « Mot de passe provisoire »",
+   "gravite": "détail",
+   "etapes": "android 360 jour, petit 320 nuit : Équipe > Julie > bloc Droits (détail ouvert) > descendre jusqu'à « Mot de passe : Provisoire : à lui remettre en main propre. » et « Reposer un mot de passe provisoire ».",
+   "constat": "scrollWidth 363 pour clientWidth 360 (et 320) : le <b> « Provisoire : à lui remettre… » dépasse de 3 et 43 px et le bouton « Reposer un mot de passe provisoire » de 28 px (320). Ce n'est PAS la correction tout-13 (le bloc « Travaille sur le terrain » est juste, vu sur capture à 320 et 360) : le bloc date du commit dab2d84 (double authentification, étape 2). À corriger par la voie qui a écrit ce bloc (retour à la ligne + min-width:0, boutons en colonne)."
+  },
+  {
+   "titre": "Deux sondes du lot sont périmées par d'autres lots (pas des casses du lot)",
+   "gravite": "détail",
+   "etapes": "entreprise-structure.js attend « Personnel = Équipe, Temps de travail, Véhicules, Mon entreprise » ; entreprise-corrections.js §05 attend 6 champs dans l'onglet Infos d'un client.",
+   "constat": "Le menu du gérant porte maintenant « Sécurité » dans Personnel (lot OP Security) et l'onglet Infos du client a 7 champs (un « Type » s'y est ajouté). Les comportements sont justes (Voir seul : 7 champs sur 7 figés et aucun Enregistrer ; Voir + Modifier : 0 figé et Enregistrer présent, vu par r05 et p2) : seules les attentes chiffrées de ces deux sondes sont à mettre à jour (structure : 200 ✓ · 1 ✗ ; corrections : 153 ✓ · 4 ✗)."
+  },
+  {
+   "titre": "Arrondi du centime : les demi-centimes décimaux tombent du mauvais côté (1,005 → 1 ; 8,575 → 8,57 ; 10,075 → 10,07 ; 1,255 → 1,25)",
+   "gravite": "détail",
+   "etapes": "Mon entreprise > Tes horaires et tes tarifs > Tarif horaire « 1,005 » ou « 8,575 » > Enregistrer.",
+   "constat": "Math.round(x*100)/100 subit l'erreur de la virgule flottante (1,005*100 = 100,49999…). Aucun effet sur un vrai tarif (qui n'a pas trois décimales) ; correction possible par Math.round((x+Number.EPSILON)*100)/100. 65,555 → 65,56 et le refus des valeurs hors 1-500 € sont, eux, justes."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "entreprise-recontrole.js (la mienne)",
+   "resultat": "13 défauts rejoués (r01-r13), 5 sections de casse, 3 parcours : r01-r05 117 ✓ · 9 ✗ (dont 2 du filtre de population de la sonde, corrigé ; 6 = casse n°1 ; 1 = arrondi) ; r06-r10 52 ✓ · 0 ✗ ; r11-r13 42 ✓ · 6 ✗ (4 = Retour hors écran, 2 = bloc mot de passe) ; casse1 12 ✓ · 24 ✗ (casse n°1) ; casse1b (piste) 6 ✓ · 0 ✗ avec 200 px ; casse2 lecture seule, logo, banque, iPad, mac 720 : tout ✓ ; casse3 (fiche réduite au SIRET : 8 factures, 8 devis, 3 contrats sans « undefined » ni mention creuse) ✓ ; casse4 10 retours ✓ ; casse5 ✗ (autre lot) ; p1 14 ✓ · 0 ✗ ; p2 ✓ ; p3 6 ✓ · 0 ✗ ; r01 rejoué 28 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "entreprise-tout.sh (11 sondes du lot, un navigateur à la fois)",
+   "resultat": "structure 200 ✓ · 1 ✗ (menu : « Sécurité » ajouté par un autre lot) ; champs 116 ✓ · 0 ✗ ; destinations 46 ✓ · 0 ✗ ; garde-facture 51 ✓ · 0 ✗ ; liens 19 ✓ · 0 ✗ ; lecture-seule 56 ✓ · 0 ✗ ; phrases 29 ✓ · 0 ✗ ; logo 16 ✓ · 0 ✗ ; achats-lisible 142 ✓ · 0 ✗ ; rapide 21 ✓ · 0 ✗ ; corrections 153 ✓ · 4 ✗ (attente de 6 champs, il y en a 7 ; comportement juste)"
+  },
+  {
+   "fichier": "fumee-routes.js",
+   "resultat": "376 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "contrôles de l'arbre",
+   "resultat": "compiler-pages.js 41 pages 0 en erreur ; verifier-syntaxe ; test-835 844 ✓ ; test-836 307 ✓ ; test-837 122 ✓ ; test-1008 54 ✓ ; test-2994 15 ✓ ; verif-secrets code 0 ; prototype-documents.html identique octet pour octet à la fabrication de page.source"
+  }
+ ],
+ "doutes": [
+  "Boîte mail avec la seule case « Voir » : la personne peut encore écrire, répondre, archiver et supprimer (le module de courrier ne lit pas les droits). Faut-il que « Voir seul » interdise d'écrire ? Si oui, la voie courrier doit lire droits.com dans le module et ses touches de clavier.",
+  "Une facture peut maintenant partir avec le SEUL SIRET (décision de la spécification, § 1.4) : sans forme juridique, capital, immatriculation ni assurance. Le débutant voit « Facture envoyée au client » puis, sur la fiche, « Il manque sur cette facture : la forme juridique, l'immatriculation… ». À faire valider côté droit français : ces mentions sont obligatoires sur une facture de société.",
+  "Une personne « Voir + Créer » (sans Modifier) peut composer un devis ou un contrat mais ne peut pas le rouvrir ensuite pour le continuer (rouvrir = Modifier). Logique des cases, mais surprenant pour un débutant : à confirmer.",
+  "Téléphone de Mon entreprise : « +33 (0)5 46 11 22 33 » (écriture courante avec le zéro entre parenthèses) est REFUSÉ ; « +33 5 46… » et « 05 46… » passent. À accepter ou à laisser ?",
+  "Rien n'a été vu sur de vrais Safari, Edge ni sur un vrai iPhone : tout est émulé dans Chromium (profils mac, mac720, windows, ipad, iphone, android, petit ; jour et nuit)."
+ ]
+}

@@ -124,7 +124,7 @@ const S = {
     await p.evaluate(() => { window.__t = []; const t0 = toast; toast = function (m) { window.__t.push(String(m)); return t0.apply(this, arguments); }; window.__rel0 = DX_REL.length; window.__err = []; window.addEventListener('error', e => window.__err.push(e.message)); });
     // envoyer à vide : refusé avec un mot clair
     const h0 = await p.evaluate(() => location.hash); await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"], #contenu [data-dxrb="envoyer"]').locator('visible=true').first()); await L.calme(p, 600); const tv = await toast(p), tr = await txt(p);
-    { const tt0 = await p.evaluate(() => window.__t.join(' / ')); v('F : « Envoyer au bureau » sans client ni mesure ne part pas et dit pourquoi (message vu : « Choisis le client. »)', !/Relevé envoyé/.test(tr) && /Choisis le client/.test(tt0), 'messages=« ' + tt0 + ' »'); }
+    { const tt0 = await p.evaluate(() => window.__t.join(' / ')); v('F : « Envoyer au bureau » sans client ni mesure ne part pas et dit pourquoi (le client est déjà celui de la prochaine intervention : le message dit la surface qui manque)', !/Relevé envoyé/.test(tr) && /Choisis le client|Indique au moins une surface/.test(tt0), 'messages=« ' + tt0 + ' »'); }
     // un vrai relevé : client, une zone de 18,5 m²
     const opt = await p.evaluate(() => [...document.querySelector('[data-dxr="cli"]').options].filter(o => o.value)[0].value); await p.selectOption('[data-dxr="cli"]', opt); await L.calme(p, 400);
     await L.toucher(c, p.locator('[data-dxrb^="zadd|"]').first()); await L.calme(p, 300); const zm = p.locator('[data-dxr^="zm|"]').first(); await zm.fill('18,5'); await zm.blur(); await L.calme(p, 500);
@@ -134,17 +134,23 @@ const S = {
     const refus = await p.evaluate(() => DROITS_REFUS.slice(-2));
     v('F [metier-3d-11] : le relevé part au bureau (« Relevé envoyé ») — la technicienne a le droit de relever', /Relevé envoyé/.test(t2) && /Envoyé au bureau/.test(t2), 'refus de droits : ' + JSON.stringify(refus) + ' ¦ ' + t2.slice(0, 120));
     if (!/Relevé envoyé/.test(t2)) { dit('F : suite du parcours (le gérant chiffre le relevé) NON JOUÉE : le relevé n\'est pas parti [metier-3d-11] ; à rejouer après correction'); v('F : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); return; }
+    // [metier-3d-11] le reste de la famille « relevé » est aussi à la technicienne : photo et remarque (jouées par la sonde de gestes), puis « Faire un autre relevé »
+    { const ap = await p.evaluate(() => DROITS_REFUS.length), r1 = await L.toucher(c, p.locator('#contenu [data-dxrb="nouveau"]').first()); await L.calme(p, 500);
+      v('F [metier-3d-11] : « Faire un autre relevé » (fin de l\'envoi) est touchable et ouvre un formulaire neuf', r1 && /Relever les mesures/.test(await txt(p)) && (await p.evaluate(() => DROITS_REFUS.length)) === ap, 'refus ' + JSON.stringify(await p.evaluate(() => DROITS_REFUS.slice(-2)))); }
     // le gérant le retrouve, le chiffre, en fait un devis
-    await p.evaluate(() => rlChanger('patron', { h: 'devisXylo', muet: true })); await L.calme(p, 900); const t3 = await txt(p);
-    v('F : le gérant voit « 1 relevé à chiffrer » sur le Devis xylophage', /1 relevé à chiffrer/.test(t3), t3.slice(0, 260));
-    await p.evaluate(() => aller('taches')); await L.calme(p, 600); const tt = await txt(p); v('F : une tâche « Chiffrer le relevé » attend le gérant', /Chiffrer le relevé/.test(tt), tt.slice(0, 160));
-    await p.evaluate(() => aller('devisXylo')); await L.calme(p, 600);
-    await L.toucher(c, p.locator('#contenu [data-dxrel]').first()); await L.calme(p, 800); const t4 = await txt(p);
-    v('F : « Chiffrer le relevé » ouvre le devis avec les mesures du technicien (18,5)', /18,5/.test(await p.evaluate(() => [...document.querySelectorAll('[data-dx^="zm|"]')].map(e => e.value).join(' '))), t4.slice(0, 200));
-    const cr = await L.toucher(c, p.locator('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]').locator('visible=true').first()); await L.calme(p, 900); const h = await p.evaluate(() => location.hash);
-    v('F : le devis créé depuis le relevé s\'ouvre', cr && /devis/i.test(h) && !/devisXylo/.test(h), h);
-    await p.evaluate(() => aller('devisXylo')); await L.calme(p, 600); const t5 = await txt(p); v('F : plus aucun relevé « à chiffrer » ensuite', !/relevés? à chiffrer/.test(t5), t5.slice(0, 160));
-    v('F : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
+    // ⚠️ on ne bascule pas la même page en gérant (rlChanger) : les règles de droits qui cachent les gestes de la technicienne restent posées (le bouton « Créer le devis » y reste caché).
+    //    On emporte le relevé et sa tâche dans une session neuve du gérant, comme le serveur les lui rendrait.
+    const snap = await p.evaluate(() => JSON.stringify({ rel: DX_REL, taches: TACHES.filter(t => /^xyrel-/.test(t.cle || '')), seq: DX_SEQ })); const err1 = c.err.slice(); await L.fin(c);
+    const c2 = await ouvrir({ qui: 'marc' }), p2 = c2.p; await p2.evaluate(s => { const o = JSON.parse(s); DX_REL.length = 0; o.rel.forEach(r => DX_REL.push(r)); o.taches.forEach(t => TACHES.push(t)); DX_SEQ = o.seq; }, snap); await L.aller(p2, 'devisXylo'); await L.calme(p2, 900); const t3 = await txt(p2);
+    v('F : le gérant voit « 1 relevé à chiffrer » sur le Devis xylophage', /1 relevé à chiffrer/i.test(t3), t3.slice(0, 260));
+    await p2.evaluate(() => aller('taches')); await L.calme(p2, 600); const tt = await txt(p2); v('F : une tâche « Chiffrer le relevé » attend le gérant', /Chiffrer le relevé/.test(tt), tt.slice(0, 160));
+    await p2.evaluate(() => aller('devisXylo')); await L.calme(p2, 600);
+    await L.toucher(c2, p2.locator('#contenu [data-dxb^="rel|"]').first()); await L.calme(p2, 800); const t4 = await txt(p2);
+    v('F : « Chiffrer le relevé » ouvre le devis avec les mesures du technicien (18,5)', /18,5/.test(await p2.evaluate(() => [...document.querySelectorAll('[data-dx^="zm|"]')].map(e => e.value).join(' '))), t4.slice(0, 200));
+    const cr = await L.toucher(c2, p2.locator('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]').locator('visible=true').first()); await L.calme(p2, 900); const h = await p2.evaluate(() => location.hash);
+    v('F : le devis créé depuis le relevé s\'ouvre', cr && /devis/i.test(h) && !/devisXylo/.test(h), 'cr=' + cr + ' ' + h + ' ¦ messages : ' + await p2.evaluate(() => (window.__t || []).slice(-3).join(' / ')) + ' ¦ ' + (await pan(p2)).slice(0, 160));
+    await p2.evaluate(() => aller('devisXylo')); await L.calme(p2, 600); const t5 = await txt(p2); v('F : plus aucun relevé « à chiffrer » ensuite', !/relevés? à chiffrer/.test(t5), t5.slice(0, 160));
+    v('F : aucune erreur de page (technicienne puis gérant)', c2.err.length === 0 && err1.length === 0, err1.concat(c2.err).join(' // ')); await L.fin(c2); },
   async G() { const c = await ouvrir({ qui: 'julie' }), p = c.p;
     for (const r of ['registre', 'carteBox', 'devisXylo']) { await L.aller(p, r); const t = await txt(p), e = await O.lire(p); v(`G : le bureau ouvre « ${r} »`, e.route === r, 'route=' + e.route); dit(`Bureau · ${r} : ` + t.slice(0, 220)); const g = await L.gestes(p, '#contenu'); dit(`Bureau · ${r} : ${g.length} gestes dont ${g.filter(x => /Saisir|Créer|Relever|Ajouter|Modifier/.test(x.lib)).map(x => x.lib).join(', ')}`); }
     v('G : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },

@@ -1,7 +1,7 @@
 {
  "partie": "compta-reste",
  "date": "2026-11-17",
- "etat": "PROVISOIRE (en cours de recontrôle)",
+ "etat": "PROVISOIRE : sondes de regression (parcours, roles, pilote) et balayage des boutons encore en cours",
  "regles": [
   "compta-reste-04",
   "compta-reste-05",
@@ -14,11 +14,39 @@
  "pasRegles": [
   {
    "n": "compta-reste-03",
-   "constat": "Réglé seulement dans l'ancien formulaire de note de frais (rlNdfForm, code mort) et dans la dépense du bureau. Le formulaire que la technicienne ouvre vraiment (axNdfForm → axNdfEnvoyer) lit encore par axNum→cxNum SANS cxMontantRefus : « 1.234 » est enregistré 1,23 €, « 9.999 » 10,00 €, « 0,001 » 0,00 € (note envoyée au bureau, toast « Note envoyée »). Rejoué par les vrais gestes (compta-reste-recontrole-ndf.js mac : 12 ✓ · 4 ✗, dont 3 vrais). Reste aussi, en direct dans la dépense du bureau, un total TTC faux avant le refus (« 1.234 » affiche 1,48 € TTC, « 9.999 » 12,00 €)."
+   "constat": "Réglé seulement dans la dépense du bureau (28 saisies jouées, toutes justes) et dans l'ancien formulaire de note de frais (rlNdfForm, code mort : axNdfForm le remplace). Le formulaire que la technicienne ouvre vraiment (Mes frais › Note de frais → axNdfForm → axNdfEnvoyer) lit par axNum→cxNum SANS cxMontantRefus : « 1.234 » est enregistré 1,23 €, « 9.999 » 10,00 €, « 0,001 » 0,00 €, avec le toast « Note envoyée ». Rejoué par les vrais gestes sur Mac et iPhone (compta-reste-recontrole-ndf.js : 12 ✓ · 4 ✗, dont 3 vrais, le 4e est le garde-fou de doublon). Même lecture silencieuse dans le montant du ticket d'une demande d'achat (ax-m) et le tarif au kilomètre. Reste aussi, dans la dépense du bureau, un total TTC en direct faux avant le refus (« 1.234 » affiche 1,48 €, « 9.999 » 12,00 €)."
   },
   {
    "n": "compta-reste-07",
-   "constat": "« (exemple) » est encore lisible dans Conformité › Archives & exports (lignes Septembre et Août 2026 : « Envoyé le 03/10, gardé tel quel (exemple) »), et « non simulées » dans la fiche de paie d'un salarié en maladie (indemnités journalières). Le module Paiement en ligne garde SIMULATION, « Tests 1 / 25 », « essais guidés » (cadre jamais lu par la sonde du correcteur)."
+   "constat": "Mots d'échafaudage encore lisibles : (1) Conformité › Archives & exports, lignes Septembre et Août 2026 : « Envoyé le 03/10, gardé tel quel (exemple) » ; (2) la ligne d'absence maladie de la fiche de paie (Tom Leroy) : « …indemnités journalières en subrogation : non simulées » ; (3) tout le module Paiement en ligne (cadre prototype-paiement.html, jamais lu par la sonde du correcteur) : « PROTOTYPE · OP GESTION », « Tout est simulé : aucun argent ne bouge, aucune donnée n'est réelle », « Pour la démonstration », « COULISSES · SIMULATION », « Tests 0 / 25 », boutons « + 1 jour » et « Jusqu'au prochain événement », « Nous sommes le … » ; (4) cadre OP COMPTABLE › Paie : « Dans cet exemple, tous les salariés sont supposés affiliés… ». Le menu du cadre ne propose plus « La démo » ni « Tests guidés » (réglé)."
+  },
+  {
+   "n": "compta-reste-10",
+   "constat": "Chiffres justes (3 085,00 €, TVA 445,17 + 37,64 = 482,81 €, 40,00 € sur place) sur Mac, iPad, iPhone, jour et nuit. Mais « cellules sans retour à la ligne sur téléphone » n'est vrai que pour la synthèse : dans le tableau Détail, le numéro de facture passe sur trois lignes (« FAC- / 2026- / 0145 ») et chaque ligne fait 3 lignes de haut à 390, 360 et 320 px. Lisible, pas fini."
+  },
+  {
+   "n": "compta-reste-01",
+   "constat": "Non touché, décision : le cadre OP COMPTABLE calcule banque, fournisseurs, TVA et paie de son côté."
+  },
+  {
+   "n": "compta-reste-02",
+   "constat": "Non touché, décision. Rejoué : la facture 0143 payée par carte dans le module passe « Payée » dans le module et reste « Envoyée » dans OP GESTION (à recevoir et encaissements inchangés : 11 → 11). La barre du module le dit maintenant."
+  },
+  {
+   "n": "compta-reste-06",
+   "constat": "Non touché, décision : pied « Prototype : taux d'exemple… données fictives » sur chaque bulletin (6 bulletins sur 6)."
+  },
+  {
+   "n": "compta-reste-09",
+   "constat": "Non touché, décision (bandeau de renvoi des neuf onglets)."
+  },
+  {
+   "n": "compta-reste-12",
+   "constat": "Non touché, décision (482,81 € / 482,80 €)."
+  },
+  {
+   "n": "compta-reste-15",
+   "constat": "Non touché, décision (« Valider quand même » sans confirmation)."
   }
  ],
  "casses": [],
