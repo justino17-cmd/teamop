@@ -1,0 +1,80 @@
+[
+ {
+  "n": "tout-01",
+  "etat": "corrigé",
+  "changement": "entEnregistrerLegal ne refuse plus ce qui est VIDE : forme juridique, capital et immatriculation deviennent facultatifs à l'enregistrement (seul le SIRET, et la TVA mal formée, bloquent) ; un capital qui n'est pas un montant est refusé ; le toast nomme ce qui reste à compléter (cxMentionsManquantes).",
+  "preuve": "entreprise-corrections.js sections 01 (mac, iphone : SIRET seul, bandeau, « Compléter », facture débloquée, SIRET faux toujours refusé) ; entreprise-champs.js (3 refus remplacés par « capital faux refusé » + « SIRET seul accepté ») ; mutation 01 tombe"
+ },
+ {
+  "n": "tout-02",
+  "etat": "corrigé",
+  "changement": "téléphone de Mon entreprise : au moins six CHIFFRES (« ...... », « ++++++ », « ------ », « 12345 » refusés).",
+  "preuve": "entreprise-corrections.js section 02 (10 cas × mac et iphone, dont 4 numéros valides acceptés) ; mutation 02 tombe"
+ },
+ {
+  "n": "tout-03",
+  "etat": "corrigé",
+  "changement": "sous 760 px, la rangée de boutons des feuilles de Mon entreprise (classe ent-pan posée par entPanneau) est collée en bas de la feuille avec son fond et l'encoche ; sur ordinateur elle reste dans le flux. Premier essai faux (marge négative qui remontait le point de collage) vu sur capture et refait.",
+  "preuve": "entreprise-corrections.js section 03 (iphone jour/nuit, android, petit nuit, mac × 5 feuilles : bouton visible sans défiler) ; captures corr-feuille-collee-iphone-*.png regardées ; mutation 03 tombe"
+ },
+ {
+  "n": "tout-04",
+  "etat": "corrigé",
+  "changement": "tarif horaire et trois zones arrondis au centime à l'écriture (65,555 → 65,56).",
+  "preuve": "entreprise-corrections.js section 04 ; mutation 04 tombe"
+ },
+ {
+  "n": "tout-05",
+  "etat": "corrigé",
+  "changement": "l'Enregistrer de la fiche d'un client existant passe de « Créer » à « Modifier » (clientEnreg@crm déplacé de c vers m dans GESTES.action ; la création passe par « Nouveau client ») ; sans la case Modifier, les six champs de l'onglet Infos sont figés et la phrase dit « Tu peux regarder cette fiche ; pour la changer, demande à Marc. ».",
+  "preuve": "entreprise-corrections.js section 05 : 4 profils de case (1100, 1010, 1110, 1000), clic forcé avalé sans Modifier, enregistrement passe avec ; mutation 05 tombe"
+ },
+ {
+  "n": "tout-06",
+  "etat": "corrigé",
+  "changement": "Achats et frais en lecture seule : une seule phrase (la note de la garde, posée juste SOUS le titre ; droitsNote et droitsVide cherchaient « .tete, .tete-tel » et prenaient la barre du téléphone, première dans le document, donc posaient la note AU-DESSUS du titre sur tous les écrans) ; sous-titre sans répétition ; bandeau « C'est le patron qui les décide » retiré ; le refus parle du gérant.",
+  "preuve": "entreprise-achats-lisible.js (3 contrôles de plus, 142 ✓ · 0 ✗) ; mutation 06 (sonde achats-lisible)"
+ },
+ {
+  "n": "tout-07",
+  "etat": "corrigé",
+  "changement": "la fenêtre « Mon entreprise » de l'atelier porte un bouton « Ouvrir Mon entreprise » pour qui voit cette rubrique (opd_role.entreprise, message opd_fermer {motif:'entreprise'}, le parent ferme l'atelier puis aller('entreprise')) ; « Compris » reste. page.source modifiée, prototype-documents.html refabriquée par fabriquer.sh.",
+  "preuve": "entreprise-corrections.js section 07 : Marc voit le bouton, le clique, arrive sur Mon entreprise atelier fermé ; une personne sans admin.v ne le voit pas ; mutation 07 tombe"
+ },
+ {
+  "n": "tout-08",
+  "etat": "à soumettre à Justin",
+  "changement": "correction partielle et honnête : la note « tu peux regarder, pas le modifier » n'est plus posée sur la Boîte mail (elle mentait) et les phrases des cases Boîte mail ne promettent que ce que la page garde vraiment (connecter, reconnecter, déconnecter une boîte, ajouter/retirer une règle), plus « écrire, répondre, classer ». Le module de courrier (shadow DOM, voie mail) ne lit toujours pas capacites().droits : une personne qui n'a que « Voir » peut encore écrire, répondre, archiver et supprimer un courriel.",
+  "preuve": "entreprise-corrections.js section 08 ; mutation 08 tombe. À décider : faut-il que « Voir seul » interdise d'écrire dans la Boîte mail ? Si oui, la voie mail doit lire droits.com dans le module (et ses touches de clavier) : la page ne peut pas le garder de l'extérieur (événements dans un shadow DOM)."
+ },
+ {
+  "n": "tout-09",
+  "etat": "corrigé",
+  "changement": "une seconde ligne « opd:{d:'l'} » dans GESTES effaçait en silence la première : data-opd (composer un devis/contrat, rouvrir un document) n'était pas gardé. La table classe désormais composer (devis, contrat) en « Créer » et rouvrir (doc) en « Modifier » ; la liste des documents composés se LIT sans s'ouvrir quand on n'a pas « Modifier » (l'atelier n'a pas de mode lecture) ; l'atelier reçoit les droits (opd_role.droits) et refuse lui-même de composer sans Créer ou de rouvrir sans Modifier.",
+  "preuve": "entreprise-corrections.js section 09 (ventes 1000, 1100, 1010 : bouton Composer, lignes, clic forcé avalé, atelier qui refuse hors clic) ; mutation 09 tombe"
+ },
+ {
+  "n": "tout-10",
+  "etat": "corrigé",
+  "changement": "bloc de marque du menu : la tuile « OP » ne se laisse plus écraser (flex:none), le nom de l'entreprise passe sur deux lignes au plus (line-clamp) et le nom entier est dans l'infobulle (title).",
+  "preuve": "entreprise-corrections.js section 10 (mac, windows nuit, mac720, ipad avec un nom de 60 signes : tuile ≥ 36 px carrée, ≤ 2 lignes, ne recouvre pas la ligne suivante) ; captures corr-marque-longue-*.png regardées ; mutation 10 tombe"
+ },
+ {
+  "n": "tout-11",
+  "etat": "corrigé",
+  "changement": "les cinq liens de « Ce qui se règle ailleurs » posent le chemin du retour (RETOUR, « ‹ Retour · Mon entreprise ») avant d'aller ailleurs.",
+  "preuve": "entreprise-corrections.js section 11 (iphone et mac × 5 liens : la barre est là et ramène à Mon entreprise) ; mutation 11 tombe"
+ },
+ {
+  "n": "tout-12",
+  "etat": "corrigé",
+  "changement": "le bandeau de Mon entreprise ne dit « complète » (vert) que si RIEN ne manque ; sinon il est orange, dit « Tes factures peuvent partir. Il reste à compléter, dans tes mentions légales : … » avec un bouton « Compléter » — le même verdict que la fiche d'une facture (« Il manque sur cette facture… »).",
+  "preuve": "entreprise-corrections.js sections 01/12 (mac, iphone) ; entreprise-structure.js mis à jour ; mutation 12 tombe"
+ },
+ {
+  "n": "tout-13",
+  "etat": "corrigé",
+  "changement": "bloc Droits de la fiche d'une personne : la case « Travaille sur le terrain » respire sous « Appliquer un profil » (14 px), s'aligne sur son titre, et ne se rétrécit plus (flex:none : sa phrase de quatre lignes débordait sur le sélecteur et sur le cadre du dessous) ; une case sans geste dans la grille détaillée porte un tiret grisé au lieu d'un vide.",
+  "preuve": "entreprise-corrections.js section 13 (iphone nuit, mac, android : espace ≥ 12 px, alignement, phrase contenue, tirets : population comptée) ; captures corr-droits-bloc-*.png regardées ; mutation 13 tombe"
+ }
+]
