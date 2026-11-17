@@ -5,6 +5,8 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   const profil = process.argv[2] || 'mac'; const c = await L.ouvrir({ profil, qui: 'marc' }), p = c.p;
   const corps = () => p.evaluate(() => document.querySelector('#contenu').innerText.replace(/\s+/g, ' ').replace(/[  ]/g, ' '));
   const hash = () => p.evaluate(() => location.hash);
+  // le libellé de la période ENTRE les flèches (« Octobre 2026 ») : le corps de la page cite aussi chaque mois dans les bulles du graphique, un motif lu dans tout le corps ne prouve rien (mutation M4)
+  const periode = () => p.evaluate(() => { const b = document.querySelector('[data-stnav="-1"]'); return b ? b.parentElement.innerText.replace(/\s+/g, ' ').trim() : ''; });
   const retour = async () => { const ok = await L.toucher(c, p.locator('#contenu button, #contenu a').filter({ hasText: /^‹\s*Retour/ }).first(), { delai: 3000 }); await p.waitForTimeout(500); return ok; };
   const panneau = () => p.evaluate(() => { const e = document.querySelector('#calque .panneau'); return e ? e.innerText.replace(/\s+/g, ' ').slice(0, 300) : null; });
 
@@ -33,18 +35,18 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
 
   // P4 — Statistiques : périodes, navigation, mois du graphique, détail
   await L.aller(p, 'statistiques'); await p.evaluate("stPer='mois'; stK=ST_FIN; stFiltreTech='tout';"); await L.aller(p, 'statistiques');
-  const s0 = await corps(); v('P4 : par défaut « Octobre 2026 », mois', /Octobre 2026/.test(s0), s0.slice(0, 160));
-  await L.toucher(c, '[data-stper="trimestre"]'); const s3 = await corps(); v('P4 : « 3 mois » change la période affichée', /août 2026 – octobre 2026|Août 2026 – Octobre 2026|août.*octobre/i.test(s3), s3.slice(60, 220));
-  await L.toucher(c, '[data-stper="annee"]'); const s12 = await corps(); v('P4 : « 12 mois » change la période affichée', /novembre 2025.*octobre 2026/i.test(s12), s12.slice(60, 240));
-  await L.toucher(c, '[data-stper="mois"]'); await L.toucher(c, '[data-stnav="-1"]'); const sp = await corps(); v('P4 : « période précédente » donne septembre 2026', /Septembre 2026/.test(sp), sp.slice(60, 200));
+  const s0 = await periode(); v('P4 : par défaut « Octobre 2026 », mois', /Octobre 2026/.test(s0) && !/–/.test(s0), s0);
+  await L.toucher(c, '[data-stper="trimestre"]'); const s3 = await periode(); v('P4 : « 3 mois » change la période affichée', /août 2026\s*–\s*oct/i.test(s3), s3);
+  await L.toucher(c, '[data-stper="annee"]'); const s12 = await periode(); v('P4 : « 12 mois » change la période affichée', /nov\S* 2025\s*–\s*oct\S* 2026/i.test(s12), s12);
+  await L.toucher(c, '[data-stper="mois"]'); await L.toucher(c, '[data-stnav="-1"]'); const sp = await periode(); v('P4 : « période précédente » donne septembre 2026', /Septembre 2026/.test(sp), sp);
   const suivDesact = await p.evaluate(() => { const b = document.querySelector('[data-stnav="1"]'); return b ? { dis: b.disabled || b.getAttribute('aria-disabled') } : null; });
-  await L.toucher(c, '[data-stnav="1"]'); const sn = await corps(); v('P4 : « période suivante » revient à octobre 2026', /Octobre 2026/.test(sn), sn.slice(60, 200));
+  await L.toucher(c, '[data-stnav="1"]'); const sn = await periode(); v('P4 : « période suivante » revient à octobre 2026', /Octobre 2026/.test(sn), sn);
   const suiv2 = await p.evaluate(() => { const b = document.querySelector('[data-stnav="1"]'); return b ? { dis: b.disabled, aria: b.getAttribute('aria-disabled') } : 'absent'; }); console.log('  P4 bouton suivant à la fin :', JSON.stringify(suiv2));
   for (let i = 0; i < 14; i++) { const ok = await L.toucher(c, '[data-stnav="-1"]', { delai: 1500 }); if (!ok) break; }
   const sfin = await corps(); const pasDeVide = !/NaN|undefined|Infinity/.test(sfin); v('P4 : reculer jusqu’au bout ne casse rien (pas de NaN / undefined)', pasDeVide, sfin.slice(0, 200)); console.log('  P4 plus ancien mois :', sfin.slice(80, 160));
   await p.evaluate("stPer='mois'; stK=ST_FIN;"); await L.aller(p, 'statistiques');
   // un mois du graphique
-  await L.toucher(c, '[data-stmois="2026-07"]'); const sj = await corps(); v('P4 : toucher « juillet » dans le graphique affiche juillet 2026', /Juillet 2026/.test(sj), sj.slice(60, 200));
+  await L.toucher(c, '[data-stmois="2026-07"]'); const sj = await periode(); v('P4 : toucher « juillet » dans le graphique affiche juillet 2026', /Juillet 2026/.test(sj), sj);
   await p.evaluate("stPer='mois'; stK=ST_FIN;"); await L.aller(p, 'statistiques');
   // détail « encaissé » : le total du volet = la tuile
   await L.toucher(c, '[data-stdet="enc"]'); const pe = await panneau(); console.log('  P4 volet encaissé :', pe);
