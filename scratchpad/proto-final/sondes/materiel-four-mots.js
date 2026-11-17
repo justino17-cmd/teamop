@@ -5,14 +5,18 @@
 const L = require('../lib.js');
 (async () => {
   const v = L.v, profil = process.argv[2] || 'mac', c = await L.ouvrir({ profil, qui:'marc' }), p = c.p, R = (f, a) => p.evaluate(f, a), attendre = ms => p.waitForTimeout(ms || 250);
-  const BANNI = /dotation|r[ée]assort|franco|reliquat|rapproch|seuil|inventaire|mouvement|fournisseur local|\bCSV\b|FAB-DIS|\bIA\b|sur commande|[ée]puis[ée]|r[ée]ceptionn|\bBC-\d|\bBR-\d|undefined|null|NaN|\[object/i;
+  const BANNI = /dotation|r[ée]assort|franco|reliquat|rapproch|seuil|inventaire|mouvement|fournisseur local|\bCSV\b|FAB-DIS|\bIA\b|sur commande|[ée]puis[ée]|r[ée]ceptionn|\bBC-\d|\bBR-\d|undefined|\bnull\b|\bNaN\b|\[object/i;
+  const DOC = /\bBC-\d|\bBR-\d/;
   const EMOJI = /\p{Extended_Pictographic}/u;
   const vus = []; let ecrans = 0, signes = 0;
-  const lire = async nom => { const t = await R(() => { const o = []; const z = e => e && e.innerText ? e.innerText : ''; o.push(z(document.getElementById('contenu'))); const pn = document.querySelector('#calque .panneau'); if (pn) o.push(z(pn)); const m = document.querySelector('.ctx'); if (m) o.push(z(m)); const t = document.getElementById('toast'); if (t && t.classList.contains('on')) o.push(z(t));
+  const lire = async nom => { let t = await R(() => { const o = []; const z = e => e && e.innerText ? e.innerText : ''; o.push(z(document.getElementById('contenu'))); const pn = document.querySelector('#calque .panneau'); if (pn) o.push(z(pn)); const m = document.querySelector('.ctx'); if (m) o.push(z(m)); const t = document.getElementById('toast'); if (t && t.classList.contains('on')) o.push(z(t));
       // les attributs lus à voix haute comptent aussi : un bouton à icône seule se lit par son aria-label et son title
-      document.querySelectorAll('#contenu [aria-label], #calque [aria-label], #contenu [title], #calque [title]').forEach(e => o.push(e.getAttribute('aria-label') || '', e.getAttribute('title') || '')); return o.join('\n'); }); ecrans++; signes += t.length;
-    const bad = (t.match(new RegExp(BANNI.source, 'gi')) || []), em = t.match(EMOJI);
-    v(nom + ' : aucun mot banni' + (bad.length ? ' (' + [...new Set(bad)].join(', ') + ')' : ''), !bad.length, [...new Set(bad)]);
+      document.querySelectorAll('#contenu [aria-label], #calque [aria-label], #contenu [title], #calque [title]').forEach(e => o.push(e.getAttribute('aria-label') || '', e.getAttribute('title') || '')); o.push('\u0001'); document.querySelectorAll('.bc-doc, .bc-portail, .cmd-pre').forEach(e => o.push(e.innerText || '')); return o.join('\n'); }); ecrans++; signes += t.length;
+    // un DOCUMENT (le bon en PDF, le courriel préparé, la page du fournisseur) garde son numéro « BC-2026-039 » : c'est ce que le fournisseur lit. Seul l'ÉCRAN le perd.
+    let [ecran, docs] = t.split('\u0001'); for (const d of (docs || '').split('\n').map(x => x.trim()).filter(x => x.length > 12)) ecran = ecran.split(d).join(' '); t = ecran;
+    const bad = (t.match(new RegExp(BANNI.source, 'gi')) || []).concat((docs || '').match(new RegExp(BANNI.source.replace(DOC.source + '|', ''), 'gi')) || []), em = t.match(EMOJI);
+    const ctx = [...t.matchAll(new RegExp('.{0,45}(' + BANNI.source + ').{0,35}', 'gi'))].slice(0, 3).map(m => m[0].replace(/\s+/g, ' '));   // le contexte du mot : sans lui, on cherche une aiguille
+    v(nom + ' : aucun mot banni' + (bad.length ? ' (' + [...new Set(bad)].join(', ') + ')' : ''), !bad.length, bad.length ? ctx : []);
     if (em) v(nom + ' : aucun émoji (' + em[0] + ')', false, em[0]);
     vus.push(t); return t; };
   const sansNom = nom => R(() => { const o = []; for (const e of document.querySelectorAll('#contenu button, #calque button, #contenu a[href], #calque a[href], #contenu summary, #calque summary')) { if (!e.offsetParent) continue; const txt = (e.textContent || '').replace(/\s/g, ''); if (!txt && !(e.getAttribute('aria-label') || e.getAttribute('title'))) o.push(e.className || e.tagName); } return o; }).then(o => v(nom + ' : chaque bouton à icône seule a un nom (' + o.length + ' sans nom)', o.length === 0, o));
@@ -53,8 +57,11 @@ const L = require('../lib.js');
   await R(() => { cmdRelance('c39'); document.querySelector('#calque [data-cm="relok|c39"]').click(); }); await attendre(300); toasts.push(await R(() => (document.getElementById('toast') || { innerText:'' }).innerText));
   const tt = toasts.join('\n'); const badT = tt.match(new RegExp(BANNI.source, 'gi')) || [];
   v('les messages (' + toasts.filter(Boolean).length + ') : aucun mot banni', !badT.length, badT); v('population : des messages lus (' + toasts.filter(Boolean).length + ')', toasts.filter(Boolean).length >= 6);
-  const jr = await R(() => COMMANDES.map(c => [c.journal.map(j => j[1]).join('\n'), cmdMail(c)].join('\n')).join('\n')); const badJ = jr.match(new RegExp(BANNI.source.replace('|undefined|null|NaN|\\[object', ''), 'gi')) || [];
-  v('le journal des commandes et les courriels préparés : aucun mot banni', !badJ.length, [...new Set(badJ)]);
+  // le journal d'une commande se LIT à l'écran (donc sans préfixe de document : matSansPrefixe), le courriel préparé est un DOCUMENT (il garde « BC- »)
+  const jr = await R(() => COMMANDES.map(c => c.journal.map(j => matSansPrefixe(j[1])).join('\n')).join('\n')), mails = await R(() => COMMANDES.map(c => cmdMail(c)).join('\n'));
+  const horsInconnu = BANNI.source.replace('|undefined|\\bnull\\b|\\bNaN\\b|\\[object', ''), badJ = jr.match(new RegExp(horsInconnu, 'gi')) || [], badM = mails.match(new RegExp(horsInconnu.replace('|' + DOC.source, ''), 'gi')) || [];
+  v('le journal des commandes (' + jr.split('\n').length + ' lignes) et les courriels préparés (' + mails.split('Objet :').length + ' lus) : aucun mot banni', !badJ.length && !badM.length && jr.length > 200 && mails.length > 500, [...new Set(badJ.concat(badM))]);
+  for (const id of await R(() => COMMANDES.map(c => c.id))) { await R(i => { cmdFiche(i); }, id); await attendre(150); await lire('Fiche de la commande ' + id); await R(() => fermerPanneau()); }
   v('population : ' + ecrans + ' écrans et feuilles lus, ' + signes + ' signes', ecrans >= 40 && signes > 15000, { ecrans, signes });
   v('aucune erreur de page', c.err.length === 0, c.err);
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
