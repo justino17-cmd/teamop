@@ -11693,7 +11693,8 @@ const GESTES = {
   axid:{ k:'achats', d:'l' }, ndfregle:{ k:'achats', d:'m' },
   rl:{ k:'achats', m:'ndfmodok ndfok', s:'ndfsuppr', l:'retour ndf role parcours go remis ndfmod etape placer auplanning visitefin' },
   /* administration : l'entreprise et l'équipe */
-  cnx:{ d:'l' }, eqprof:{ k:'admin', d:'m' },
+  cnx:{ d:'l' }, sec2:{ d:'l' }, sec3:{ d:'l' },   /* la sécurité : « Mon compte » est ouvert à tous, et chaque geste d'un administrateur lit SA case (secuPeut) dans la fonction qui écrit */
+  eqprof:{ k:'admin', d:'m' },
   eq:{ k:'admin', c:'inviter inviterok renouv habajout habok', m:'relancer mdp actif', l:'fiche filtre planning heures conges' },
   eqx:{ k:'admin', c:'renouvok regajout', m:'modifok modifx modifier placeok garder fgarder profok cgarder placeplus', s:'annulinv desact desactok regsuppr', l:'kpi formation regles histo revenir choisir fchoisir mesbureau mesfiche cchoisir' },
   eqd:{ k:'admin', d:'m' }, eqs:{ k:'admin', d:'m' }, eqt:{ k:'admin', d:'m' },
@@ -25294,7 +25295,10 @@ function secuVoirComme(k){ const p = eqDe(k); if (!p || !p.actif || !secuPeut())
 function secuBande(){ let z = document.querySelector('.sec-bande'); const k = SESSION;
   if (!SECU.vraie || !k || k === SECU.vraie) { if (z) z.remove(); document.documentElement.classList.remove('sec-voir'); return; }
   const p = eqDe(k), h = `<span class="sec-bande-t">Tu vois l’application comme <b>${esc(p.prenom)}</b>.</span><button type="button" class="sec-bande-b" data-sec2="revenir">Revenir à mon compte</button>`;
-  if (!z) { document.body.insertAdjacentHTML('afterbegin', `<div class="sec-bande" role="status">${h}</div>`); } else z.innerHTML = h; document.documentElement.classList.add('sec-voir'); }
+  if (!z) { document.body.insertAdjacentHTML('afterbegin', `<div class="sec-bande" role="status">${h}</div>`); z = document.querySelector('.sec-bande'); } else z.innerHTML = h; document.documentElement.classList.add('sec-voir'); secuBandeMesure(); }
+/* la bande peut tenir sur deux lignes (téléphone, encoche) : la page part SOUS elle, de sa hauteur réelle */
+function secuBandeMesure(){ const z = document.querySelector('.sec-bande'); if (z) document.documentElement.style.setProperty('--sec-bande-h', Math.ceil(z.getBoundingClientRect().height) + 'px'); }
+addEventListener('resize', () => secuBandeMesure());
 function secuRevenir(){ const v = SECU.vraie; SECU.vraie = null; const s = v && SECU.sessions[v]; secuBande();
   if (s && secuSessionVive(s)) { sessionOuvrir(v); aller('equipe'); } else sessionFermer('inactif'); }
 const secuSessionVive = s => secuMaint() - s.derniereActivite < SECU_REGLES.inactiviteMs;
@@ -25363,20 +25367,20 @@ document.addEventListener('change', ev => { if (ev.target.id !== 'sec-verif') re
    Ce qui n'est PAS gardé, et pourquoi : l'IBAN que l'entreprise imprime sur ses propres factures et devis (une consigne de paiement faite pour être lue par ses clients), l'IBAN de « Mon espace client »,
    les virements de l'atelier de documents (il n'y fait que lire), et toute lecture sans effet (le planning, une intervention). */
 const SECU_GESTES = {
-  'banque-ouvrir':{ phrase:'voir ton IBAN et ta banque', portes:['entPanBanque', 'data-ent="carte|banque"'] },
-  'banque-enregistrer':{ phrase:'enregistrer ton IBAN', portes:['entEnregistrerBanque', 'data-ent="banqueok"'] },
-  'virement-ouvrir':{ phrase:'préparer un virement groupé', portes:['acVirement', 'data-ac="virement"'] },
-  'virement-fichier':{ phrase:'télécharger le fichier de virement', portes:['acVirok', 'data-ac="virok"'] },
+  'banque-ouvrir':{ phrase:'voir ton IBAN et ta banque', portes:['entPanBanque', 'ent=carte|banque'] },
+  'banque-enregistrer':{ phrase:'enregistrer ton IBAN', portes:['entEnregistrerBanque', 'ent=banqueok'] },
+  'virement-ouvrir':{ phrase:'préparer un virement groupé', portes:['acVirement', 'ac=virement'] },
+  'virement-fichier':{ phrase:'télécharger le fichier de virement', portes:['acVirok', 'ac=virok'] },
   'compta-banque':{ phrase:'voir la banque de la comptabilité', portes:['opc_sensible'] },
   'compta-export':{ phrase:'exporter la comptabilité', portes:['opc_sensible'] },
-  'paie-fiches':{ phrase:'voir les fiches de paie', portes:['paieAller', 'data-paie="voirfiches"'] },
-  'paie-envoi':{ phrase:'envoyer la paie au cabinet', portes:['paieEnvoyer', 'data-paie="envoyer"', 'data-pt="export"'] },
-  'paie-compta':{ phrase:'passer l’écriture de paie', portes:['paieComptabiliser', 'data-paie="comptabiliser"'] },
-  'equipe-droits':{ phrase:'changer les droits de {prenom}', portes:['data-eqd', 'data-eqs', 'data-eqt', 'data-eqprof', 'data-eqx="profok'] },
-  'equipe-inviter':{ phrase:'inviter ou réactiver quelqu’un', alt:{ repose:'reposer un mot de passe' }, portes:['data-eq="inviterok"', 'data-eq="actif"', 'secuReposer'] },
-  'equipe-retirer':{ phrase:'désactiver le compte de {prenom}', portes:['eqxDepart', 'data-eq="actif"'] },
+  'paie-fiches':{ phrase:'voir les fiches de paie', portes:['paieAller', 'paie=voirfiches'] },
+  'paie-envoi':{ phrase:'envoyer la paie au cabinet', portes:['paieEnvoyer', 'paie=envoyer', 'pt=export'] },
+  'paie-compta':{ phrase:'passer l’écriture de paie', portes:['paieComptabiliser', 'paie=comptabiliser'] },
+  'equipe-droits':{ phrase:'changer les droits de {prenom}', portes:['data-eqd', 'data-eqs', 'data-eqt', 'data-eqprof', 'eqx=profok'] },
+  'equipe-inviter':{ phrase:'inviter ou réactiver quelqu’un', alt:{ repose:'reposer un mot de passe' }, portes:['eq=inviterok', 'eq=actif', 'secuReposer'] },
+  'equipe-retirer':{ phrase:'désactiver le compte de {prenom}', portes:['eqxDepart', 'eq=actif'] },
   'equipe-telephone':{ phrase:'donner un nouveau téléphone à {prenom}', alt:{ dev:'déverrouiller le compte de {prenom}', deco:'déconnecter {prenom} partout' }, portes:['secuNouveauTelephone', 'secuDeverrouiller', 'secuDeconnecter'] },
-  'voir-comme':{ phrase:'voir l’application comme {prenom}', portes:['secuVoirComme', 'data-cnx="comme'] } };
+  'voir-comme':{ phrase:'voir l’application comme {prenom}', portes:['secuVoirComme', 'cnx=comme'] } };
 const secuPhrase = (cle, o) => { const G = SECU_GESTES[cle] || {}; o = o || {}; let t = (o.v && G.alt && G.alt[o.v]) || G.phrase || 'faire cette action'; const p = o.k && eqDe(o.k); return t.replace('{prenom}', p ? p.prenom : 'cette personne'); };
 /* la confirmation (ou la connexion approuvée, qui compte déjà pour une) ouvre une fenêtre de 5 minutes pour TOUS les gestes sensibles de CETTE personne : elle ne se prolonge PAS quand on s'en sert */
 const secuFenetreValide = k => { const t = SECU.confirmeA[k]; return !!t && secuMaint() - t < SECU_REGLES.confirmationMs; };
@@ -25432,7 +25436,7 @@ window.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || !SECU.conf
 const hintIban = i => { const s = String(i || '').replace(/\s/g, ''); if (!s) return ''; if (!secuMasqueActif()) return i; return s.slice(0, 2) + '•• •••• •••• ' + s.slice(-4); };
 function secuIbanSurveille(){ const f = document.getElementById('en-iban'); if (!f || !secuMasqueActif()) return; const k = secuQui(); if (!k || secuFenetreValide(k) || f.dataset.masque) return;
   const stock = String(ENTREPRISE.iban || '').replace(/\s/g, ''), P = f.closest('.panneau');
-  if (stock && f.value.replace(/\s/g, '') === stock) { f.value = hintIban(ENTREPRISE.iban); f.dataset.masque = '1'; toast('Cinq minutes ont passé : ton IBAN est de nouveau masqué.'); }
+  if (stock && f.value.replace(/\s/g, '') === stock) { f.value = hintIban(ENTREPRISE.iban); f.defaultValue = f.value; f.dataset.masque = '1';   /* defaultValue : l'attribut value porte aussi l'IBAN entier, il ne doit plus rester dans le DOM */ toast('Cinq minutes ont passé : ton IBAN est de nouveau masqué.'); }
   f.dataset.masque = f.dataset.masque || '0';
   if (P && !P.querySelector('.sec-expire-pan')) P.querySelector('.surtitre').insertAdjacentHTML('afterend', '<div class="info sec-expire-pan" role="status">La confirmation a expiré : elle sera redemandée à l’enregistrement.</div>'); }
 /* ── la fenêtre de 5 minutes se surveille à la seconde (l'horloge de démonstration l'avance) ── */
@@ -25496,10 +25500,11 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec3-css">
 .sec-conf-c{width:min(420px,100%);max-height:100%;overflow:auto;background:var(--feuille,var(--surf));color:var(--encre);border:1px solid var(--trait);border-radius:22px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
 .sec-conf-c h2{margin:0}.sec-conf-c p{margin:0}.sec-conf-act{display:flex;gap:8px;flex-wrap:wrap}.sec-conf-act .btn{min-height:48px}
 @media (max-width:760px){#sec-conf{place-items:end center;padding:0}.sec-conf-c{width:100%;border-radius:26px 26px 0 0;padding-bottom:max(20px,env(safe-area-inset-bottom))}}
-.sec-bande{position:fixed;top:0;left:0;right:0;height:44px;z-index:100001;display:flex;align-items:center;justify-content:center;gap:10px 14px;padding:0 12px;box-sizing:border-box;background:#8f1d2e;color:#fff;font-size:14px;overflow:hidden}
-.sec-bande-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sec-bande{position:fixed;top:0;left:0;right:0;min-height:44px;z-index:100001;display:flex;align-items:center;justify-content:center;gap:4px 12px;padding:env(safe-area-inset-top,0) 12px 0;box-sizing:border-box;background:#8f1d2e;color:#fff;font-size:14px}   /* la phrase se lit en entier : elle passe à la ligne, la bande grandit (la page descend d'autant : --sec-bande-h) */
+.sec-bande-t{min-width:0;white-space:normal;line-height:1.25;padding:6px 0}
 .sec-bande-b{flex:none;min-height:44px;padding:0 12px;border:0;background:none;color:#fff;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
-html.sec-voir body{padding-top:44px}
+html.sec-voir body{padding-top:var(--sec-bande-h,44px)}
+@media (max-width:420px){.sec-provmdp{font-size:19px;padding:12px}}
 .cn-compte,.cn-tel,.cn-quit{min-height:44px}.cn-tel{justify-content:center}.cn-quit{justify-content:center;margin-bottom:0}.sec-adr{overflow-wrap:anywhere}.sec-tab td.sec-adr{min-width:9.5em}
 @media (min-width:1100px){.cn-tel{display:none}}
 </style>`);

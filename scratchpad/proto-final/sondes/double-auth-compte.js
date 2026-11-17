@@ -36,7 +36,7 @@ const ouvrirCompte = async c => { await c.p.evaluate(() => { const b = document.
       console.log('\n── « Changer mon mot de passe » : mêmes règles, mêmes messages qu’au premier choix ──');
       const actuel = await c.p.evaluate(() => SECU.comptes.kb.demoClair);
       const essai = async (a0, a, b) => { await c.p.evaluate(() => { fermerPanneau(); }); await ouvrirCompte(c); await c.p.evaluate(() => document.querySelector('[data-sec2="mdp"]').click()); await c.p.waitForTimeout(400);
-        await c.p.fill('#sec-m0', a0); await c.p.fill('#sec-m1', a); await c.p.fill('#sec-m2', b); await c.p.evaluate(() => document.querySelector('[data-sec2="mdp-ok"]').click()); await c.p.waitForTimeout(400); return c.p.evaluate(() => (document.getElementById('sec-merr') || {}).textContent || '(panneau fermé)'); };
+        await c.p.fill('#sec-m0', a0); await c.p.fill('#sec-m1', a); await c.p.fill('#sec-m2', b); await c.p.evaluate(() => document.querySelector('[data-sec2="mdp-ok"]').click()); await c.p.waitForTimeout(400); return c.p.evaluate(() => ((document.getElementById('sec-merr') || {}).textContent || '(panneau fermé)').replace(/[\u00a0\u202f]/g, ' ')); };
       const nouveau = 'Hirondelle-bleue-matinale-2026';
       v('mot de passe actuel faux : « Mot de passe actuel incorrect. »', await essai('mauvais-mot-de-passe-actuel', nouveau, nouveau) === 'Mot de passe actuel incorrect.');
       v('trop court : « Trop court : 12 caractères au minimum, sans compter les espaces. »', await essai(actuel, 'court', 'court') === 'Trop court : 12 caractères au minimum, sans compter les espaces.');
