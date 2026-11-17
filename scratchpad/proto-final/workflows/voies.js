@@ -184,7 +184,7 @@ const etapesPartie = cle => [
       arguments : final-rejeu { familles, arbre } · final-regard { role, rubriques?, arbre } · final-parcours { arbre } ·
       final-mots { arbre } · final-rapport { arbre }. Plusieurs « final-rejeu » et « final-regard » tournent côte à côte, chacune
       dans son arbre, sur des familles et des rôles différents. ── */
-const DECISIONS = `écarte d'abord ce qui est DÉJÀ DÉCIDÉ par le chef de chantier (REPRISE.md, « Décisions prises par le chef de chantier ») et note-le « déjà décidé » : (a) le bouton Retour qui ferme la fenêtre ET quitte l'écran se règle pour tout le prototype par une voie à part (${R}/sondes/retour-*.js quand elle a tourné) : n'y touche pas ; (b) les cases d'un jour du calendrier des absences et les barres « mois par mois » des soldes restent sous 44 px (cases d'information, douze par rangée) ; (c) la Boîte mail s'ouvre sur deux boîtes connectées, sans bandeau de panne.`
+const DECISIONS = `écarte d'abord ce qui est DÉJÀ DÉCIDÉ par le chef de chantier (REPRISE.md, « Décisions prises par le chef de chantier ») et note-le « déjà décidé » : (a) le bouton Retour qui ferme la fenêtre ET quitte l'écran se règle pour tout le prototype par une voie à part (${R}/sondes/retour-*.js quand elle a tourné) : n'y touche pas ; (b) les cases d'un jour du calendrier des absences et les barres « mois par mois » des soldes restent sous 44 px (cases d'information, douze par rangée) ; (c) la Boîte mail s'ouvre sur deux boîtes connectées, sans bandeau de panne. Sont aussi DÉCIDÉS, et à appliquer s'ils ne le sont pas : (d) le bureau (rôle gestion) a le groupe « Matériel » avec Stock et Fournisseurs, matériel & produits, sans « Dépôts et camions » (${R}/MENU-FINAL.md, « Menu du bureau ») : une sonde du menu qui le refuse est PÉRIMÉE, on la met à jour ; (e) au téléphone, dans la fenêtre Comptabilité en plein écran, le bouton « Menu » (trois traits et le mot) reste visible à côté de « ‹ OP GESTION », pour tous les rôles ; (f) le texte des réglages « Rendez-vous en ligne » dit « ouvre une intervention TERMINÉE, puis touche Voir le lien client » (le bouton n'existe que là).`
 const QUI = { gerant: `le gérant (lib.ouvrir({ qui:'marc' }))`, bureau: `le bureau (lib.ouvrir({ qui:'julie' }))`, technicien: `la technicienne (qui:'sm'), puis le chef d'équipe (qui:'kb')`, client: `le client (prototype nu, app:false, bande « Tester en tant que » → Client ; ou comme le fait le code : ROLES.client, rlChanger)` }
 const VOIES_ARGS = {
   'final-rejeu': a => { const F = (a.familles || []).join(', ') || 'toutes'; const cle = (a.familles || ['tout'])[0]; return { arbre: a.arbre, etapes: [
@@ -219,7 +219,11 @@ const VOIES_ARGS = {
 }
 
 const nom = args.voie
-const V = nom === 'campagne' ? { arbre: args.arbre, etapes: (args.cles || []).flatMap(etapesPartie) } : VOIES_ARGS[nom] ? VOIES_ARGS[nom](args) : VOIES[nom]
+const V0 = nom === 'campagne' ? { arbre: args.arbre, etapes: (args.cles || []).flatMap(etapesPartie) } : VOIES_ARGS[nom] ? VOIES_ARGS[nom](args) : VOIES[nom]
+/* « arbre » en argument remplace l'arbre de la voie : c'est ce qui permet de jouer DEUX tranches d'une même voie côte à côte
+   (par exemple les angles de l'audit de sécurité, qui prenaient 1 h 40 chacun l'un derrière l'autre) sans que deux agents
+   partagent un arbre git. */
+const V = V0 && { arbre: args.arbre || V0.arbre, etapes: V0.etapes }
 if (!V || !V.arbre || !V.etapes.length) throw new Error('voie inconnue ou vide : ' + nom)
 const debut = args.depuis || 0, finI = args.jusqua === undefined ? V.etapes.length - 1 : args.jusqua
 const rendus = []

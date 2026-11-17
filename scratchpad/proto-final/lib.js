@@ -120,7 +120,14 @@ exports.doigts = (f, zone) => f.evaluate(z => { const R = document.querySelector
   return { petits: [...new Set(petits)].slice(0, 30), champs: [...new Set(champs)].slice(0, 30), ecrases: ecrases.slice(0, 20) }; }, zone);
 // capture à REGARDER (outil Read) ; pleine:true pour la page entière. Les captures vont dans un dossier temporaire, jamais dans le dépôt.
 // ⛔ une capture « page entière » d'un écran de 30 000 px coûte des centaines de Mo de mémoire : au-delà de 6 000 px on coupe, et on le dit.
+/* ⛔ Une capture « page entière » fait perdre au navigateur piloté son émulation tactile : après elle, `(pointer:coarse)` et
+   `(hover:none)` valent FAUX et toute règle écrite pour le doigt disparaît — une sonde de cibles tactiles mesurée après une
+   capture pleine accusait donc à tort le code (campagne planning, 17 novembre 2026). On la rétablit. */
+const retoucher = async c => { if (!c.doigt) return; try { /* la session reste ouverte : un réglage d'émulation CDP tombe avec elle */ c._cdTactile = c._cdTactile || await c.p.context().newCDPSession(c.p); await c._cdTactile.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }); } catch (e) { console.log('  · émulation tactile non rétablie : ' + e.message); } };
 exports.capture = async (c, fichier, pleine) => { fs.mkdirSync(path.dirname(fichier), { recursive: true });
+  if (pleine) { try { return await captureBrute(c, fichier, pleine); } finally { await retoucher(c); } }
+  return captureBrute(c, fichier, pleine); };
+const captureBrute = async (c, fichier, pleine) => {
   if (pleine) { const h = await c.p.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0));
     if (h > 6000) { console.log('  · capture coupée à 6 000 px (la page en fait ' + h + ') : fais défiler pour voir la suite'); await c.p.screenshot({ path: fichier, clip: { x: 0, y: 0, width: c.largeur, height: 6000 }, fullPage: true }); return fichier; } }
   await c.p.screenshot({ path: fichier, fullPage: !!pleine }); return fichier; };

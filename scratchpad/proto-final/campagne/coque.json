@@ -1,0 +1,192 @@
+{
+ "partie": "coque",
+ "date": "2026-11-17",
+ "ecrans": [
+  {
+   "nom": "Écran de chargement du lancement",
+   "fonction": "cnxCharger",
+   "acces": "ouverture de l'application, lien ouvert du dehors, connexion"
+  },
+  {
+   "nom": "Connexion — lien de l'entreprise",
+   "fonction": "cnxMontrer (sans ESPACE), cnxRelier",
+   "acces": "appareil neuf, « Changer d'entreprise »"
+  },
+  {
+   "nom": "Connexion — identifiant et mot de passe",
+   "fonction": "cnxMontrer, cnxValider",
+   "acces": "après le lien, après « Se déconnecter »"
+  },
+  {
+   "nom": "Première connexion — choisir son mot de passe",
+   "fonction": "cnxPremier, cnxPremierValider",
+   "acces": "mot de passe provisoire"
+  },
+  {
+   "nom": "Mot de passe oublié, compte désactivé, Revenir à la connexion",
+   "fonction": "data-cnx=oubli|retour|quitter",
+   "acces": "liens sous la carte de connexion"
+  },
+  {
+   "nom": "Menu de l'ordinateur (colonne) et son pied",
+   "fonction": "rlMenu, rlPied",
+   "acces": "toujours à gauche au-dessus de 760 px"
+  },
+  {
+   "nom": "Bouton « Menu » et feuille « Menu » (téléphone)",
+   "fonction": "menuBouton, feuilleMenu",
+   "acces": "bouton en haut à gauche de chaque écran"
+  },
+  {
+   "nom": "Barre du bas et « Ma barre » (personnalisation)",
+   "fonction": "rlBarre, mbPanneau, mbBasculer",
+   "acces": "barre du bas ; feuille Menu › Personnaliser la barre du bas (gérant)"
+  },
+  {
+   "nom": "Recherche Ctrl/Cmd+K",
+   "fonction": "palOuvrir, palEntrees",
+   "acces": "Ctrl/Cmd+K, ordinateur"
+  },
+  {
+   "nom": "Raccourcis clavier et leur panneau",
+   "fonction": "RC_LISTE, rcAide, keydown",
+   "acces": "? ou recherche › Raccourcis clavier"
+  },
+  {
+   "nom": "Touches de création N, D, C, A",
+   "fonction": "opgRaccourci, rcCreer",
+   "acces": "clavier, ordinateur, gérant"
+  },
+  {
+   "nom": "Jour / Nuit / Auto",
+   "fonction": "appliquerMode, segMode",
+   "acces": "pied du menu, feuille Menu, recherche"
+  },
+  {
+   "nom": "Adresse inconnue / refusée",
+   "fonction": "routeConnue, rlRefus, rendre",
+   "acces": "adresse tapée à la main"
+  },
+  {
+   "nom": "Retour du navigateur, « ‹ Retour » d'une fiche",
+   "fonction": "lireHash, rlRetourBouton",
+   "acces": "bouton Retour, geste, Ctrl/Cmd+[ ]"
+  },
+  {
+   "nom": "Comptabilité plein écran (porte d'entrée)",
+   "fonction": "cpsys, data-cpsys=retour",
+   "acces": "ligne Comptabilité du menu, ouverture de la secrétaire"
+  }
+ ],
+ "couverture": {},
+ "nonCouvert": [],
+ "defauts": [
+  {
+   "n": "coque-01",
+   "gravite": "gênant",
+   "ecran": "Connexion (lien, identifiant, première connexion) et après « Se déconnecter »",
+   "role": "tous",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Ouvrir l'application sans session (qui:null) ou se déconnecter. Sur l'écran de connexion, appuyer sur Tab dix fois (ou lire la page au lecteur d'écran).",
+   "attendu": "Le clavier reste dans l'écran de connexion ; la page de la personne précédente n'est ni atteignable ni lisible derrière.",
+   "constate": "9 tabulations sur 14 sortent de #cnx et tombent sur le menu et les liens de l'application cachée derrière (Accueil, Statistiques, Planning…) : le focus disparaît sous l'écran de connexion. Après « Se déconnecter », #contenu garde le texte de l'écran de Marc (Bonjour Marc, montants) dans la page. Au lancement à froid, l'application de Marc est déjà dessinée derrière l'écran de connexion.",
+   "preuve": "coque-connexion.js, deux contrôles [coque-01] ; mesuré aussi par un test à la main (focus sur « OP GESTION, Clim Services 17 », puis Accueil, Statistiques…).",
+   "ou": "apercu/prototype-op-gestion.html:23177 cnxMontrer, 23182 (aria-modal sans inert), 22998 sessionFermer",
+   "correction": "Poser `inert` (et aria-hidden) sur .app, #barre-bas, #fenetre tant que #cnx existe ; vider #menu et #contenu dans sessionFermer(). Ne rien dessiner pour une personne avant qu'elle soit connectée.",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-02",
+   "gravite": "détail",
+   "ecran": "Connexion — lien de l'entreprise",
+   "role": "tous",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Écran « Bienvenue » : taper teamop.fr/e/une-autre-entreprise, appuyer sur Continuer.",
+   "attendu": "Le message dit que le lien est invalide ET le texte tapé reste dans le champ pour être corrigé (une faute de frappe se rattrape sans tout retaper).",
+   "constate": "Le champ est vidé : cnxMontrer() redessine l'écran sans le texte. Une personne qui a collé un lien long le recolle entièrement.",
+   "preuve": "coque-connexion.js [coque-02]",
+   "ou": "apercu/prototype-op-gestion.html:23182 (champ #cn-lien sans value), 23243 cnxRelier",
+   "correction": "cnxMontrer(err, ident, lien) : poser value=\"${esc(lien)}\" sur #cn-lien et le sélectionner.",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-03",
+   "gravite": "gênant",
+   "ecran": "Recherche Ctrl/Cmd+K",
+   "role": "patron",
+   "profils": [
+    "mac",
+    "windows"
+   ],
+   "etapes": "Ctrl+K, taper un mot que dit un artisan : heures, courrier, banque, technicien, utilisateur, commande, rendez-vous, mot de passe, déconnexion.",
+   "attendu": "Une réponse (Temps de travail, Boîte mail, Comptabilité, Équipe, Fournisseurs…, Planning, Se déconnecter).",
+   "constate": "« Rien ne correspond à « heures » » (9 mots sur 47 testés sans réponse). Seules deux rubriques portent des mots cachés (PAL_MOTS : entreprise, achats).",
+   "preuve": "coque-clavier.js [coque-03], mots sans réponse listés par la sonde",
+   "ou": "apercu/prototype-op-gestion.html:22751 PAL_MOTS",
+   "correction": "Étendre PAL_MOTS (mots cachés, jamais affichés) : pointage « heures pointage horaires » ; boiteMail « courrier mail email message » ; comptabilite « banque trésorerie tva paie » ; equipe « utilisateur technicien salarié mot de passe droits » ; achats/produits « commande commandes » ; planning « rendez-vous » ; et « déconnexion » sur Se déconnecter.",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-04",
+   "gravite": "détail",
+   "ecran": "Connexion — identifiant et mot de passe",
+   "role": "tous",
+   "profils": [
+    "iphone",
+    "mac"
+   ],
+   "etapes": "Ouvrir l'écran de connexion et le regarder comme une personne qui n'a jamais vu l'application.",
+   "attendu": "On sait ce qu'on doit taper : le champ Identifiant dit d'où il vient ; le champ Mot de passe est visiblement vide.",
+   "constate": "Placeholder « Ton identifiant » sans dire que c'est le prénom (ou prénom.nom) donné par l'entreprise ; le champ Mot de passe porte huit points gris « •••••••• » en placeholder, qui ressemblent à un mot de passe déjà saisi (capture connexion-id-iphone).",
+   "preuve": "capture connexion-id-iphone.png (regardée)",
+   "ou": "apercu/prototype-op-gestion.html:23196-23197",
+   "correction": "Placeholder « Ton prénom, comme dans le message de ton entreprise » et « Ton mot de passe » ; la ligne d'aide existe déjà sous « Mot de passe oublié ? ».",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-05",
+   "gravite": "détail",
+   "ecran": "Panneau « Raccourcis clavier et gestes »",
+   "role": "julie",
+   "profils": [
+    "windows",
+    "mac"
+   ],
+   "etapes": "Se connecter comme Julie (secrétariat), appuyer sur ?.",
+   "attendu": "Le panneau ne promet que ce que la personne peut faire.",
+   "constate": "Il annonce « Nouvelle intervention N », « Nouveau devis D », « Nouveau client C », « Nouvelle tâche A », or ces quatre touches ne font rien pour tout rôle autre que le gérant (opgRaccourci : ROLE !== 'patron' → false).",
+   "preuve": "coque-clavier.js [coque-05] ; ligne 22797 et rcCreer",
+   "ou": "apercu/prototype-op-gestion.html:22783-22784 RC_LISTE, 22861 rcCreer",
+   "correction": "Ne lister le bloc « Créer » (et les lignes de la recherche) que si ROLE === 'patron'.",
+   "decision": "corriger",
+   "zone": "coque"
+  },
+  {
+   "n": "coque-06",
+   "gravite": "détail",
+   "ecran": "Panneau « Raccourcis clavier et gestes »",
+   "role": "tous",
+   "profils": [
+    "windows"
+   ],
+   "etapes": "Sur Windows, appuyer sur ?.",
+   "attendu": "Pas de rubrique « Trackpad » (deux doigts, pincer) pour un PC.",
+   "constate": "La rubrique TRACKPAD (Écran précédent ou suivant · 2 doigts ← →, Déplacer la carte, Zoomer la carte · Pincer) s'affiche partout ; l'application ne tient ces gestes que sur Mac (`if (MAC)`).",
+   "preuve": "coque-clavier.js [coque-06]",
+   "ou": "apercu/prototype-op-gestion.html:22787 RC_LISTE, 22831 `if (MAC) document.addEventListener('wheel'`",
+   "correction": "N'ajouter la rubrique Trackpad que si MAC.",
+   "decision": "corriger",
+   "zone": "coque"
+  }
+ ]
+}
