@@ -94,8 +94,11 @@ const L = require('../lib.js');
   // ───────── la technicienne : la pastille oui, le bouton « Commander » et tout prix non
   const ct = await L.ouvrir({ profil, qui:'sm' }), q = ct.p;
   await L.aller(q, 'inter-x-i2'); await L.calme(q, 500);
+  // une pièce À COMMANDER sur sa fiche : elle voit la pastille, jamais le bouton « Commander »
+  await q.evaluate(() => { const x = PRODUITS.find(o => !o.retire && !(o.seuil > 0) && enCommande(o) === 0); x.q = 0; x.loc = {}; INTS.find(o => o.id === 'i2').prevues.push({ nom:x.nom, q:2, pid:x.id }); rendre(); }); await L.calme(q, 400);
   const T1 = await q.evaluate(() => { const car = (document.querySelector('[data-vis="inter-pieces"]') || {}).closest ? document.querySelector('[data-vis="inter-pieces"]').closest('.carte') : null; return car ? { pastilles:[...car.querySelectorAll('.pp-e .st')].map(e => e.textContent), boutons:car.querySelectorAll('.pp-e .btn, .pp-e .lien').length, euros:/€/.test(car.innerText) } : null; });
   v('population : la technicienne voit la carte des pièces prévues avec ' + (T1 && T1.pastilles.length) + ' pastille(s)', !!T1 && T1.pastilles.length >= 1, T1);
+  v('population : sa fiche porte une pièce « À commander » (' + (T1 && T1.pastilles.join(' · ')) + ')', !!T1 && T1.pastilles.includes('À commander'), T1);
   v('…elle n\'a ni « Commander » ni « Voir » (elle demande une pièce, elle n\'en commande pas), ni aucun prix', !!T1 && T1.boutons === 0 && !T1.euros, T1);
   v('aucune erreur de page (technicienne)', ct.err.length === 0, ct.err.slice(0, 3));
   await L.fin(ct);

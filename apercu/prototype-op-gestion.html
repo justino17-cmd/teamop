@@ -413,7 +413,6 @@ body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouv
 /* ── stock ── */
 html .sx-bas{color:var(--orange);font-weight:600}html .sx-bon{color:var(--vert);font-weight:600}
 html .sx-motif{font-size:13.5px;color:var(--rouge);font-style:italic}
-html .sx-afaire{display:flex;flex-direction:column;gap:2px}
 html .sx-af{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--trait);flex-wrap:wrap}html .sx-af:last-of-type{border-bottom:0}
 html .sx-af>.fo-n{flex:1 1 220px;min-width:0}html .sx-af .st{flex:none}html .sx-af .btn{min-height:44px;flex:none}
 html .sx-ok{padding:6px 0;font-weight:600;color:var(--vert)}
@@ -437,7 +436,6 @@ html .sx-coche{display:grid;place-items:center;width:44px;height:44px;flex:none}
 html .sx-fluide .deux-champs{margin-top:8px}
 html .sx-voir{display:block;margin-top:4px;font-weight:600;color:var(--lien)}
 html .sx-raccourci{margin-bottom:8px}
-html .pr-vues button[data-sk="onglet|valider"] .pr-nb{display:inline-grid}
 /* Achats (Demandes · Notes de frais) : le chiffre orange du travail qui attend reste visible sur téléphone, comme « À valider » du Stock · 13 novembre 2026 */
 html .pr-vues button[data-ac] .pr-nb{display:inline-grid}
 /* Sortie / Transfert : deux colonnes de 174 px coupaient « Marc Leblanc (moi) » ; sur téléphone, une colonne chacun · 13 novembre 2026 */
@@ -448,7 +446,6 @@ html .pr-vues button[data-ac] .pr-nb{display:inline-grid}
   html .sx-freq{margin-left:0;width:100%;justify-content:space-between}
   html .sx-pied-b{width:100%}html .sx-pied-b .btn{flex:1}
   html .sx-dates{flex:1 1 40%}
-  html .pr-vues button[data-sk="onglet|valider"]{gap:4px}
   html #toast{flex-wrap:wrap}html #toast span{flex:1 1 100%}
 }
 @media (max-width:760px){
@@ -1378,7 +1375,6 @@ table.l tr.cp-ko td{background:color-mix(in srgb,var(--orange) 7%,transparent)}
 /* Matériel & produits (6 novembre 2026) */
 .pr-outils{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.pr-cherche{flex:1 1 260px;display:flex}.pr-cherche .saisie{width:100%}
 .pr-cats{margin:2px 0 4px}.pr-info{margin:0}
-.pr-pack{display:flex;flex-direction:column;gap:2px}.pr-pt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.pr-pt h2{margin:0;font-size:20px}
 .pr-cat .groupe{padding-top:14px}
 .pr-l{display:grid;grid-template-columns:minmax(0,1fr) auto 128px;gap:6px 16px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);padding:11px 4px;color:var(--encre);font:inherit;cursor:pointer;border-radius:10px}
 @media (hover:hover){.pr-l:hover{background:var(--survol)}}.pr-cat .pr-l:last-child{border-bottom:0}
@@ -1479,7 +1475,6 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 @media (hover:hover){.sk-l:hover,.bx-c:hover{background:var(--survol)}}
 .sk-li{font-size:20px;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--surf2);border:1px solid var(--trait);flex:none}
 .sk-m{font-size:12.5px;font-weight:650;color:var(--orange)}.sk-ok{font-size:12.5px;font-weight:600;color:var(--vert)}
-.sk-liste{padding:6px 14px}.sk-liste .groupe{display:flex;align-items:center;gap:6px}
 .sk-l{display:flex;justify-content:space-between;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);padding:10px 4px;color:var(--encre);font:inherit;cursor:pointer;min-height:56px;border-radius:10px}
 .sk-rep{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:13px;color:var(--doux)}.sk-rep b{color:var(--encre)}.sk-ec{color:var(--lien);font-weight:600}
 .mv-l{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--trait);padding:10px 2px;flex-wrap:wrap}.mv-l>.fo-n{flex:1 1 220px}
@@ -1488,7 +1483,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .mv-gestes{display:flex;gap:8px;margin-left:auto}
 .sk-sel{flex:0 1 280px;min-width:0}.sk-e{width:56px;text-align:right;font-weight:700;flex:none}.sk-pied{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px}
 .bx-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.bx-c{display:flex;flex-direction:column;gap:10px;text-align:left;color:var(--encre);font:inherit;cursor:pointer}.bx-t{display:flex;gap:10px;align-items:flex-start}
-@media (max-width:760px){.sk-li{width:32px;height:32px;font-size:17px}.mv-gestes{width:100%}.mv-gestes .btn{flex:1}.bx-grille{grid-template-columns:1fr}.sk-liste{padding:4px 10px}}
+@media (max-width:760px){.sk-li{width:32px;height:32px;font-size:17px}.mv-gestes{width:100%}.mv-gestes .btn{flex:1}.bx-grille{grid-template-columns:1fr}}
 .ve-urg{display:flex;flex-direction:column;padding:14px 16px}.ve-u{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--trait);padding:10px 2px;color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
 @media (hover:hover){.ve-u:hover{background:var(--survol)}}
 .ve-l2{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ve-plaque{display:inline-block;white-space:nowrap;align-self:flex-start;font:600 12.5px/1 var(--mono);letter-spacing:.04em;padding:3px 7px;border-radius:6px;border:1px solid var(--trait2);background:var(--surf2)}
@@ -3672,6 +3667,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .vh-cam{display:flex;flex-direction:column;gap:10px;padding:14px 16px}.vh-cam h3{margin:0}
 .vh-cam-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.vh-cam-g .btn{min-height:48px;white-space:normal;line-height:1.2;padding:8px 10px;text-align:center}.vh-cam-l{grid-column:1/-1}
 @media (min-width:900px){.vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr))}.vh-cam-l{grid-column:auto}}
+/* Mon camion sur téléphone : la carte du véhicule tient sur UNE rangée de trois boutons, pour que « Il manque à bord » reste sur le premier écran AU-DESSUS de la barre d'onglets (spec Matériel § 8.1 : voir ce qui manque, c'est UN toucher et aucun défilement ; un plein se note toujours sans défiler). Le titre reste lu par les lecteurs d'écran. */
+@media (max-width:520px){html .mc-page .vh-cam{padding:10px 12px;gap:6px}html .mc-page .vh-cam h3{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}html .mc-page .vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}html .mc-page .vh-cam-g .btn{min-height:44px;font-size:13px;padding:6px 4px}html .mc-page .vh-cam-l{grid-column:auto}}
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
 html #mc-vehicule:empty{display:none}
 .vh-fcorps{container:vhf/inline-size;display:flex;flex-direction:column;gap:2px}
@@ -16126,7 +16123,7 @@ function vueBoxes(){
   const T = [['vehicule', 'Les camions'], ['atelier', 'L’atelier'], ['depot', 'Les réserves chez les clients']];
   const noir = n ? `<button type="button" class="btn" data-md="remplir"${matVis('depots-remplir')}>Remplir les camions · ${n}</button>` : mdReservesOk() ? `<button type="button" class="btn" data-md="nou"${matVis('depots-remplir')}>＋ Nouvelle réserve</button>` : '';
   return `<div class="tete md-tete"><div><span class="surtitre">Matériel</span><h1>Dépôts et camions</h1><span class="gris">Ce qu’il y a dans chaque camion et chaque dépôt. Pour chercher un article, va dans <button type="button" class="lien md-lien" data-md="stock">Stock</button>.</span></div>
-      <div class="actions">${noir}<button type="button" class="btn gris md-plusb" data-md="plus" aria-haspopup="menu" aria-label="Plus d’actions">Plus ▾</button></div></div>
+      <div class="actions">${noir}<button type="button" class="btn gris md-plusb" data-md="plus"${matVis('depots-plus')} aria-haspopup="menu" aria-label="Plus d’actions">Plus ▾</button></div></div>
     ${mdBandeau()}
     ${actifs.length ? T.map(([k, lib]) => { const L = actifs.filter(l => l.type === k); return L.length ? `<div class="groupe md-gr">${lib}</div><div class="cartes-clients md-grille"${k === 'vehicule' ? matVis('depots-cartes') : ''}>${L.map(l => mdCarte(l, bas.find(o => o.l.id === l.id))).join('')}</div>` : ''; }).join('')
       : `<div class="carte ms-vide"><span class="ms-vic">${svg('camion')}</span><b>Ajoute ton premier camion</b><span class="gris">Un camion se crée dans Véhicules : son stock apparaît ensuite ici.</span><span class="ms-vb"><button type="button" class="btn" data-go="vehicules">Aller dans Véhicules</button></span></div>`}
@@ -23502,7 +23499,7 @@ immChap('produits', 'produits', 'Fournisseurs, matériel & produits', 'Les produ
     jouer:() => { immEcrire('#pr-nom', 'Siphon de condensats'); immStockPlus(() => { immEcrire('#pr-pa', '4'); immStockPlus(() => immClic('[data-pdx^="prop|"]'), 250); }, 250); } },
   { c:'[data-pr="garder|"]', t:'Les protections de l’application', p:'Avant d’enregistrer, l’application te protège : elle prévient d’un doublon, refuse un prix négatif, et te demande confirmation si tu vends à perte. Je touche Ajouter.',
     jouer:() => { immClic('[data-pr="garder|"]'); immStockToast(900); immStockPlus(() => immEcrire('[data-prq]', 'siphon'), 250); } },
-  { c:'#contenu .fx-arts .fx-a', t:'L’article est dans la liste', p:'Le voilà, rangé dans sa catégorie. Son prix de vente est de 8 euros, et il est déjà proposé dans les devis. Je passe aux fournisseurs.',
+  { c:'[data-vis="four-articles"]', t:'L’article est dans la liste', p:'Le voilà, rangé dans sa catégorie. Son prix de vente est de 8 euros, et il est déjà proposé dans les devis. Je passe aux fournisseurs.',
     jouer:() => { immEcrire('[data-prq]', ''); immStockPlus(() => immClic('[data-pr="vue|fournisseurs"]'), 250); } },
   { c:'[data-vis="four-fournisseurs"]', t:'Un fournisseur, une carte', p:'Chaque fournisseur a sa carte : comment il livre, ce que tu lui as commandé ce mois-ci, et la part de ses livraisons à l’heure. Un toucher ouvre sa fiche : son contact, ses conditions, ton compte chez lui. Je reviens aux commandes.',
     jouer:() => immClic('[data-pr="vue|commandes"]') },
@@ -23556,7 +23553,7 @@ immChap('boxes', 'boxes', 'Dépôts et camions', 'Dépôts et camions : tes cami
     jouer:() => immClic('#calque [data-md^="compter|"]') },
   { c:'#calque .panneau', t:'Compter, c’est la même fenêtre que dans Stock', p:'Je dis combien il y en a, ou « Tout est juste » si c’est le compte. Le lieu garde la date de son comptage.',
     jouer:() => { immClic('#calque [data-ms="ctout"]'); immStockPlus(() => { immClic('#calque [data-ms="cok"]'); immStockToast(); }, 300); } },
-  { c:'.md-plusb', t:'Une réserve chez un client', p:'Pour laisser une réserve de pièces chez un client, je touche « Plus », puis « Nouvelle réserve chez un client ». Dans cette démonstration, je ne la crée pas.',
+  { c:'[data-vis="depots-plus"]', t:'Une réserve chez un client', p:'Pour laisser une réserve de pièces chez un client, je touche « Plus », puis « Nouvelle réserve chez un client ». Dans cette démonstration, je ne la crée pas.',
     jouer:() => immStockFin() }], {});
 ['produits', 'stock', 'boxes'].forEach(immStockEntrer);
 
@@ -25693,9 +25690,9 @@ const NV_PLACE = [
   ['Assistant devis', 'Devis › « Dicter un devis »', 'devis'],
   ['Factures', 'Comptabilité › Ventes › Factures', 'comptabilite'],
   ['Télécollecte et enveloppes', 'Comptabilité › Trésorerie (paiements, caisse et chèques)', 'comptabilite'],
-  ['Produits, Fournisseurs, Bons de commande, Commandes en cours', 'Fournisseurs, matériel & produits (un onglet chacun)', 'produits'],
-  ['Mouvements de stock et Validation des mouvements', 'Stock › onglets « Mouvements » et « À valider »', 'stock'],
-  ['Consommation produits et Produits donnés', 'Stock › « Sortie » (utilisé chez le client, donné à quelqu’un)', 'stock'],
+  ['Produits, Fournisseurs, Bons de commande, Commandes en cours', 'Fournisseurs, matériel & produits › onglets Commandes, Articles et Fournisseurs', 'produits'],
+  ['Mouvements de stock et Validation des mouvements', 'Stock › onglet « Ce qui a bougé » et « Envois à accepter »', 'stock'],
+  ['Consommation produits et Produits donnés', 'Stock › « Mettre à jour le stock » › « Sortir du stock » (utilisé chez le client, donné à quelqu’un)', 'stock'],
   ['Mes demandes et Brouillon', 'Achats et frais › « Demandes de matériel »', 'achats'],
   ['Conducteurs', 'Véhicules › la fiche du véhicule › Conducteur', 'vehicules'],
   ['Utilisateurs et Permissions', 'Équipe › la fiche de la personne et « Qui peut quoi »', 'equipe'],
