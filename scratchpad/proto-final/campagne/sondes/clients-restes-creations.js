@@ -37,6 +37,19 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await L.capture(c, CAP + 'mail-devis-' + ETQ + '.png');
   await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} });
 
+  // ── la Boîte mail : « Confirmer le créneau » sur la réponse d'un inconnu qui choisit l'un des trois créneaux tenus en option (le quatrième chemin) ──
+  const cr = await p.evaluate(() => mlCreneaux(1)[0]); v('population : un créneau libre existe (' + JSON.stringify(cr) + ')', !!cr, cr);
+  const av6 = await cles();
+  await p.evaluate(c => { MAILS.push(mlM('zB', AUJ, '11:30', { nom: 'Julie Garnier', mail: 'julie.garnier@exemple.fr' }, 'Re: Dépannage', 'Bonjour,\n\nLe premier créneau me va. J’habite à Aytré, mon numéro est le 06 45 67 89 02.\n\nMerci', { cren: { choix: c, orig: 'zA' } })); }, cr);
+  await p.evaluate(() => { aller('boiteMail'); }); await p.waitForTimeout(700); await p.evaluate(() => { COURRIER.inst.rafraichir(); }); await p.waitForTimeout(700); await p.evaluate(() => COURRIER.inst.ouvrir('zB')); await p.waitForTimeout(700);
+  const b6 = await p.evaluate(`(() => [...${SR}.querySelectorAll('.hband [data-hote]')].map(b => b.dataset.hote))()`); console.log('  · gestes sur le choix de créneau : ' + b6.join(', '));
+  v('population : le choix d’un créneau par un inconnu propose « Confirmer … »', b6.includes('mbx:confcren|zB'), b6);
+  await p.evaluate(`${SR}.querySelector('.hband [data-hote="mbx:confcren|zB"]').click()`); await p.waitForTimeout(900);
+  nv = (await cles()).filter(k => !av6.includes(k)); v('« Confirmer le créneau » crée UN client (' + nv.length + ')', nv.length === 1, nv);
+  if (nv[0]) { const e = await etat(nv[0]); console.log('  · ' + JSON.stringify(e));
+    v('… « ' + e.adr + ' » : point à Aytré (' + JSON.stringify(e.g) + '), pas au dépôt, secteur posé (« ' + e.s + ' »), téléphone à la française (« ' + e.tel + ' »)', !!e.g && Math.abs(e.g[0] - 46.1331) < 0.05 && JSON.stringify(e.pos) !== JSON.stringify(e.depot) && !!e.s && e.tel === '06 45 67 89 02', e); }
+  await p.evaluate(() => { try { fermerCreation(); } catch (e) {} try { fermerPanneau(); } catch (e) {} });
+
   // ── Composer un devis : le client naît dans la fenêtre de l'atelier, par ses propres champs ──
   await L.aller(p, 'client-x-vp'); const nbAvant = (await cles()).length;
   const ouv = await L.toucher(c, '#contenu [data-opd="devis"]'); await p.waitForTimeout(2500);

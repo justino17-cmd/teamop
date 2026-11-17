@@ -54,6 +54,15 @@ const PROFILS = (process.env.PROFILS || 'mac,iphone').split(',');
     const T = await ev(c, async () => { const x = VEHICULES.find(o => o.frais && o.frais.length); const [d, lib, ht] = x.frais[0], cle = vhCleFrais({ own:null, achat:null, ndf:null, d, lib, ht }); const n0 = x.frais.length;
       vxFraisSuppr(x.id, 'o0'); const t1 = document.getElementById('toast').textContent, n1 = x.frais.length; document.querySelector('#toast button').click(); const t2 = document.getElementById('toast').textContent, n2 = x.frais.length; return { t1, t2, n0, n1, n2 }; });
     v(nom + ' · 13 : « Dépense supprimée » puis, après Annuler, une phrase qui dit que la dépense est revenue', /^Dépense supprimée/.test(T.t1) && /Annulé : la dépense est revenue/.test(T.t2) && T.n1 === T.n0 - 1 && T.n2 === T.n0, T);
+    /* ── rejeu : le pied collant d'une feuille est le DERNIER élément — il ne recouvre ni « ‹ Retour à la fiche » ni ce qui le suivait (« Supprimer cette dépense », « Passer hors service ») ── */
+    const Q = await ev(c, () => { const R = []; const test = (nomP, ouvre, sels) => { fermerPanneau(); ouvre(); const z = document.querySelector('#calque .panneau'); const pn = z && z.getBoundingClientRect(); const o = { panneau:nomP, vu:!!z, elements:[] }; for (const sel of sels) { const b = document.querySelector('#calque ' + sel); if (!b) { o.elements.push({ sel, absent:true }); continue; } z.scrollTop = z.scrollHeight; const r = b.getBoundingClientRect(), at = document.elementFromPoint(r.left + Math.min(20, r.width / 2), r.top + r.height / 2); o.elements.push({ sel, libre:!!at && (at === b || b.contains(at)), h:Math.round(r.height) }); } R.push(o); };
+        const v0 = VEHICULES[0], cle = 'o0';
+        test('Cette dépense', () => vxFraisPanel(v0.id, cle), ['[data-vh^="retour|"]', '[data-vx^="frdel|"]', '[data-vx^="frmodok|"]']);
+        test('Modifier la fiche', () => vxModifPanel(v0.id), ['[data-vh^="retour|"]', '[data-vh^="suppr|"]', '[data-vx^="modifok|"]']);
+        test('Noter le compteur', () => vxKmPanel(v0.id, 'fiche'), ['[data-vh^="retour|"]', '[data-vx^="kmok|"]']);
+        return R; });
+    v(nom + ' · rejeu : population — trois feuilles ouvertes avec tous leurs éléments', Q.length === 3 && Q.every(o => o.vu && o.elements.length >= 2 && o.elements.every(e => !e.absent)), Q);
+    v(nom + ' · rejeu : dans « Cette dépense », « Modifier la fiche » et le compteur, retour, suppression et bouton ne se recouvrent pas (touchables, au point touché)', Q.every(o => o.elements.every(e => e.libre)), Q.map(o => [o.panneau, o.elements.filter(e => !e.libre)]));
     await L.fin(c);
   }
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);

@@ -108,6 +108,12 @@
   "preuve": "vehtemps-corr-temps.js (mac, windows, mac720, iphone ; gérant mac et iphone) : avant 12 ✓ · 10 ✗ (relevé AVANT correction), après 34 ✓ · 0 ✗."
  },
  {
+  "n": "rejeu-01",
+  "etat": "corrigé",
+  "changement": "(trouvé au rejeu, pas par un relecteur) vhGros pose le lien « ‹ Retour à la fiche » DANS le pied collant, et « Supprimer cette dépense » / « Passer hors service » passent AVANT le pied : le pied, depuis la règle « regard technicien » qui l'enfonce dans le rembourrage de la feuille (--pan-bas), recouvrait ce qui le suivait (le lien « Retour » ne se voyait plus et ne se touchait plus sur iPhone, le bouton « Supprimer cette dépense » non plus).",
+  "preuve": "vehtemps-v2-fiche.js iphone : 4 ✗ (Retour ramène à la fiche, onglet qu'on touche) après la fusion, 92 ✓ · 0 ✗ après ; vehtemps-corr-vehicules.js : contrôle « rejeu » (3 feuilles, au point touché, tout en bas de la feuille), mutation 123 qui le fait tomber. Captures p-frais-iphone-n et p-modif-iphone-j regardées."
+ },
+ {
   "n": "salarie-01",
   "etat": "corrigé",
   "changement": "Le champ « Pourquoi changes-tu cette heure ? » est DANS le pied collant (au-dessus du bouton) au lieu d'être au-dessus de lui, et dès qu'il paraît la feuille défile jusqu'à lui (au clavier physique le champ prend le curseur ; au doigt on ne fait pas surgir le clavier).",
