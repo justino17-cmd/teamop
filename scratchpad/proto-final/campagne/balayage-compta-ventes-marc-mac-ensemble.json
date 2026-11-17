@@ -1,0 +1,622 @@
+{
+ "profil": "mac",
+ "qui": "marc",
+ "sorties": {
+  "marc-mac-ensemble": {
+   "recenses": 35,
+   "touches": 35,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Vue d’ensemble",
+     "data": "data-cx=sec|ensemble",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 146,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Clôture du mois",
+     "data": "data-cx=sec|cloture",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 142,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|accueil|",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    },
+    {
+     "i": 12,
+     "lib": "2 071,44 €facturé en octobre (HT) · 7 factures",
+     "data": "data-cx=sec|fventes|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 13,
+     "lib": "3 045,00 €encaissé en octobre (TTC) + 40,00 € reçus sur plac",
+     "data": "data-cx=sec|paiements",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 14,
+     "lib": "2 106,30 €dépenses d’octobre (TVA récupérable exclue), payée",
+     "data": "data-cx=sec|fachats|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 15,
+     "lib": "−34,86 €résultat provisoire d’octobre : facturé moins dépens",
+     "data": "data-cx=sec|resultat",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 16,
+     "lib": "10 252,95 €trésorerie · banque 9 792,95 € + en main 460,00 €",
+     "data": "data-cx=sec|banque",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 17,
+     "lib": "0 / 13points de conformité vérifiés en règle · 6 à régler",
+     "data": "data-cx=sec|normes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 18,
+     "lib": "Relancer",
+     "data": "data-cx=sec|fventes|ventes|retard data-cxaf=relancer",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Relancer M. et Mme Durand",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 88,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Régler",
+     "data": "data-cx=sec|normes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 72,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "Facturer",
+     "data": "data-cx=dosf|afacturer data-cxaf=facturer",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Facturer 2 interventions terminées",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 86,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "Expliquer",
+     "data": "data-cx=sec|banque data-cxaf=expliquer",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Expliquer 3 lignes de la banque",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 93,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "Payer",
+     "data": "data-cx=sec|fachats|achats|retard data-cxaf=payer",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Quelle facture as-tu payée ?",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 67,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "Ajouter",
+     "data": "data-cx=sec|fachats|achats|sanspiece",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 81,
+     "h": 40
+    },
+    {
+     "i": 24,
+     "lib": "Voir la caisse",
+     "data": "data-cx=sec|caisse",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 121,
+     "h": 40
+    },
+    {
+     "i": 25,
+     "lib": "Valider",
+     "data": "data-cx=sec|ndf data-cxaf=valider",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Valider 3 notes de frais",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 78,
+     "h": 40
+    },
+    {
+     "i": 26,
+     "lib": "Voir la TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 105,
+     "h": 40
+    },
+    {
+     "i": 27,
+     "lib": "Clôturer",
+     "data": "data-cx=sec|cloture data-cxaf=cloturer",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 86,
+     "h": 40
+    },
+    {
+     "i": 28,
+     "lib": "Factures et avoirs ›",
+     "data": "data-cx=sec|fventes|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 148,
+     "h": 44
+    },
+    {
+     "i": 29,
+     "lib": "Tous les achats ›",
+     "data": "data-cx=sec|fachats|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 131,
+     "h": 44
+    },
+    {
+     "i": 30,
+     "lib": "🧾Factures clients8 pièces · 2 548,00 € TTC 3 à traiter · 1 ",
+     "data": "data-cx=cat|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 264,
+     "h": 125
+    },
+    {
+     "i": 31,
+     "lib": "📦Matériel & produits7 pièces · 2 197,36 € TTC 3 à traiter ·",
+     "data": "data-cx=cat|materiel",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 264,
+     "h": 125
+    },
+    {
+     "i": 32,
+     "lib": "🚐Véhicules & carburant1 pièce · 95,00 € TTC À jour›",
+     "data": "data-cx=cat|vehicules",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 264,
+     "h": 125
+    },
+    {
+     "i": 33,
+     "lib": "🏢Frais généraux2 pièces · 133,99 € TTC À jour›",
+     "data": "data-cx=cat|frais",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 264,
+     "h": 125
+    },
+    {
+     "i": 34,
+     "lib": "🧑‍🔧Notes de frais3 pièces · 30,70 € TTC 3 à traiter›",
+     "data": "data-cx=cat|ndf",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "ecrit": false,
+     "sansNom": false,
+     "l": 264,
+     "h": 102
+    }
+   ]
+  }
+ },
+ "err": []
+}

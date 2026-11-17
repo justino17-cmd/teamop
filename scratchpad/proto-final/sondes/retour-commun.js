@@ -40,9 +40,9 @@ exports.GENRES = [
     croix: async c => { await c.p.keyboard.press('Escape'); await L.calme(c.p, 250); return true; } },
   { k: 'pdf', nom: 'document en grand (PDF)', ecran: 'inter-x-i6',
     ouvrir: c => L.toucher(c, '[data-pdfplein]'), croix: c => L.toucher(c, '#docplein [data-dpfermer]') },
-  { k: 'visionneuse', nom: 'justificatif en grand (Comptabilité)', ecran: 'comptabilite',
-    prepare: async c => { await L.toucher(c, '[data-cx="grp|achats"]'); for (const s of ['fachats', 'ndf', 'fournisseurs']) { if (await c.p.locator('[data-cx^="justif|"]').count()) break; await c.p.evaluate(x => { const b = document.querySelector('[data-cx="sec|' + x + '"]'); if (b) b.click(); }, s); await L.calme(c.p, 250); } },
-    ouvrir: c => L.toucher(c, '[data-cx^="justif|"]'), croix: c => L.toucher(c, '#cx-vis .cx-vis-x') },
+  { k: 'visionneuse', nom: 'justificatif en grand (fiche d\'un achat)', ecran: 'comptabilite', dans: 'panneau',
+    ouvrirParent: async c => { await L.toucher(c, '[data-cx="grp|achats"]'); await c.p.evaluate(() => { const b = document.querySelector('[data-cx="sec|fachats"]'); if (b) b.click(); }); await L.calme(c.p, 300); return L.toucher(c, '[data-cx^="doc|ach"]'); },
+    ouvrir: c => L.toucher(c, '#calque [data-cx^="justif|"]'), croix: c => L.toucher(c, '#cx-vis .cx-vis-x') },
   { k: 'paiement', nom: 'paiement en ligne en plein écran', ecran: 'comptabilite',
     prepare: async c => { await L.toucher(c, '[data-cx="grp|tresorerie"]'); await c.p.evaluate(() => { const b = document.querySelector('[data-cx="sec|enligne"]'); if (b) b.click(); }); await L.calme(c.p, 350); },
     ouvrir: c => L.toucher(c, '[data-cx="enlignePlein"]'), croix: c => L.toucher(c, '[data-cx="enlignePlein"]') },
@@ -53,7 +53,7 @@ exports.GENRES = [
     ouvrir: async c => { const f = await A.ouvrirAtelier(c, 'devis', null); return !!f; },
     croix: async c => { const f = L.cadre(c.p, /prototype-documents/); if (!f) return false; await f.locator('[data-fen-x]').first().click().catch(() => {}); await c.p.waitForTimeout(900); return true; } },
   { k: 'nouveautes', nom: 'guide des nouveautés', ecran: 'accueil',
-    ouvrir: async c => { if (tel(c)) { if (!await L.toucher(c, '.tt-menu[data-menu="ouvrir"]')) return false; } return L.toucher(c, '.nv-menu[data-nv="ouvrir"]'); },
+    ouvrir: async c => { if (tel(c)) { if (!await L.toucher(c, '.tt-menu[data-menu="ouvrir"]')) return false; return L.toucher(c, '#calque .nv-menu[data-nv="ouvrir"]'); } return L.toucher(c, '#menu .nv-menu[data-nv="ouvrir"]'); },
     croix: c => L.toucher(c, '#nv [data-nv="fermer"]') },
 ];
 exports.AILLEURS = ['visite'];
