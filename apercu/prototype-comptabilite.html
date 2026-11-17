@@ -1297,7 +1297,7 @@ addEventListener('keydown', ev => {
 });
 let toastMin = 0;
 /* typographie française : jamais de « : », « ; », « ? », « ! » ni de guillemet fermant en début de ligne, jamais de guillemet ouvrant en fin de ligne — l'espace qui les touche devient insécable. Sur un téléphone, où tout passe à la ligne, un « : » se retrouvait seul au début de la suivante. */
-const typoTxt = s => String(s).replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u00a0');
+const typoTxt = s => String(s).replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u00a0').replace(/(\d) ([%€])/g, '$1\u00a0$2');
 function typo(racine){
   if (!racine) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
   while ((n = tw.nextNode())) { const t = n.nodeValue; if (t.indexOf(' ') < 0) continue; const p = n.parentElement; if (!p || p.closest('svg, pre, code, .mono, textarea, script, style')) continue;
