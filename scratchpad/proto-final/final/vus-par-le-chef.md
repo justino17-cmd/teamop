@@ -37,7 +37,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       contredisent pour quelqu'un qui lit vite : « en règle » parle des PAPIERS et de l'entretien du véhicule, pas des pièces.
       Dire ce qui est en règle (« Papiers et entretien : en règle ») ou, s'il manque des pièces, commencer par elles
       (« 3 articles à remettre à bord · papiers en règle »). Une seule fonction pour les deux endroits.
-- [ ] **Décisions du chef du 17/11, 8 h 55, à APPLIQUER (compositeur, devis-atelier, contrats, mots)** — (h) le mot « atelier »
+- [ ] (restes contrats, tour 1 : (h) fait sur la page principale et (i) fait pour les contrats, rapides et composés ; (j) numéro de devis et les autres voies : à finir par elles) **Décisions du chef du 17/11, 8 h 55, à APPLIQUER (compositeur, devis-atelier, contrats, mots)** — (h) le mot « atelier »
       ne désigne que le LIEU (le dépôt, dans Matériel). À l'écran, l'endroit où l'on compose un devis ou un contrat ne s'appelle
       plus « l'atelier » : « Composés dans l'atelier » → « Devis composés » ; « Ouverture de l'atelier… » → « Ouverture du
       devis… » (ou « du contrat… ») ; « Composer un devis ouvre l'atelier : … » → « Composer un devis ouvre ton devis en
@@ -48,7 +48,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
 - [ ] **Décision du chef du 17/11, 8 h 55, à APPLIQUER (planning)** — (k) les chiffres du bandeau du Planning suivent les
       personnes affichées (Sophie masquée : plus « 9 interventions · 11 h » pour 6 cartes) et le disent quand un filtre est
       posé. Rien d'autre ne bouge sur cet écran validé.
-- [ ] **Contrats — décisions du chef du 17/11, 9 h, à APPLIQUER (contrats)** : les points que la campagne voulait « soumettre à
+- [x] (restes contrats, tour 1 : tout appliqué et joué au navigateur — `final/restes-contrats-tour1.json`, sonde `campagne/sondes/restes-contrats-1.js`) **Contrats — décisions du chef du 17/11, 9 h, à APPLIQUER (contrats)** : les points que la campagne voulait « soumettre à
       Justin » sont TRANCHÉS (son mandat : « fais tout ce qu'il y a à faire, il faut que tout fonctionne »), sauf mention :
       · **contrats-06** : le PDF que le client lit et signe ne porte plus « Modèle de démonstration, à faire relire avant tout
         usage » : son pied = les coordonnées de l'entreprise. L'avertissement reste, mais côté ENTREPRISE seulement : sous la
@@ -151,3 +151,12 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         « Rembourser 500,00 € à <client> » (une ligne à l'Historique) ; une facture payée puis annulée se lit « Payée · avoir
         AV-… » dans la fenêtre ; une facture faite à la main prend la TVA par la MÊME fonction que le devis (un particulier
         n'est jamais étiqueté « client professionnel ») ; « Plus bas » et le menu de la fenêtre à 44 px au doigt, iPad compris.
+- [x] (chef de chantier, 17/11 à 10 h 30, corrigé par lui-même) **Les treize polices du compositeur avaient disparu (securite, compositeur)**
+      — la correction S18 de l'audit de sécurité avait retiré la feuille de polices Google de `atelier/page.source` : les treize
+      polices proposées retombaient sur deux polices de l'appareil, donc choisir une police ne changeait plus rien, sur un écran
+      validé par Justin. DÉCISION : dans le prototype la feuille RESTE (remise dans `page.source`, page refabriquée), et la
+      politique de contenu de CETTE page admet ses deux hôtes (`fabriquer.sh` : fonts.googleapis.com pour la feuille,
+      fonts.gstatic.com pour les fichiers). La règle de S18 vaut pour la VRAIE application : les polices s'y serviront depuis
+      notre serveur (à redire à Justin dans la liste des doutes). La garde `sondes/securite-statique.js` tient l'état décidé
+      (49 ✓ · 0 ✗ ; trois mutations tombent : un troisième hôte, les polices dans une autre page, deux feuilles).
+      ⛔ Ne pas la re-retirer : le recontrôle de la sécurité doit lire cette ligne.

@@ -102,12 +102,41 @@ def jouer(m):
     bil = re.findall(r'(\d+) ✓ +· +(\d+) ✗|== (\d+) ✓ · (\d+) ✗', sortie)
     tombe = r.returncode == 1 and (libelle is None or any(libelle in l for l in echecs))
     return {'id': mid, 'faille': faille, 'sonde': sonde, 'sortie': r.returncode, 'echecs': len(echecs), 'attendu': libelle, 'tombe': bool(tombe), 'extraits': [e[:150] for e in echecs[:4]]}
+def jouer_lot(ms):
+    """toutes les mutations d'une MÊME sonde dans UNE copie, une seule exécution : chaque mutation doit faire tomber SON contrôle (libellé visé).
+    Moins fin qu'une mutation par copie (un contrôle peut tomber pour la mutation d'à côté) : les libellés visés sont donc précis, et --seul rejoue une mutation isolée."""
+    preparer(); par_fichier = {}
+    for m in ms:
+        mid, faille, rel, ancien, nouveau, n, sonde, libelle = m
+        base = par_fichier.get(rel) or open(os.path.join(DEPOT, rel), encoding='utf8').read()
+        # muter() lit le fichier du dépôt : on applique la mutation sur le texte déjà muté
+        tmp = base
+        if mid == 'M17':
+            a = "'+adresseVue(u)+'</a>'+fin; });"; b = "'+u+'</a>'+fin; });"
+            assert tmp.count(a) == 1; tmp = tmp.replace(a, b)
+        elif isinstance(ancien, list):
+            for x, y in ancien:
+                assert tmp.count(x) == 1, (mid, x[:60]); tmp = tmp.replace(x, y)
+        else:
+            assert tmp.count(ancien) == n, (mid, ancien[:60], tmp.count(ancien)); tmp = tmp.replace(ancien, nouveau)
+        par_fichier[rel] = tmp
+    for rel, texte in par_fichier.items(): poser(rel, texte)
+    sonde = ms[0][6]; env = dict(os.environ, RACINE=COPIE)
+    try: r = subprocess.run(['node', os.path.join(ICI, sonde)], capture_output=True, text=True, timeout=590, env=env, cwd=DEPOT)
+    except subprocess.TimeoutExpired: return [{'id': m[0], 'faille': m[1], 'sonde': sonde, 'resultat': 'délai dépassé (à REJOUER : la machine est partagée)'} for m in ms]
+    sortie = r.stdout + r.stderr; echecs = [l.strip() for l in sortie.split('\n') if l.strip().startswith('✗')]
+    return [{'id': m[0], 'faille': m[1], 'sonde': sonde, 'sortie': r.returncode, 'echecs': len(echecs), 'attendu': m[7], 'tombe': bool(r.returncode == 1 and (m[7] is None or any(m[7] in l for l in echecs))), 'extraits': [e[:150] for e in echecs[:3]]} for m in ms]
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     if '--liste' in sys.argv:
         for m in M: print(m[0], m[1], '→', m[6], '·', m[7] or '(n\'importe quel ✗)')
         return
     choix = [m for m in M if not args or m[0] in args]; res = []
+    if '--lots' in sys.argv:
+        for s in dict.fromkeys(m[6] for m in choix):
+            for r in jouer_lot([m for m in choix if m[6] == s]):
+                res.append(r); print(('✓ tombe  ' if r.get('tombe') else '✗ RÉSISTE') if 'tombe' in r else '? ', r['id'], r['faille'], '·', r['sonde'], '·', ('%d ✗ : %s' % (r['echecs'], ' | '.join(r['extraits'][:2])) if 'echecs' in r else r['resultat']), flush=True)
+        choix = []
     for m in choix:
         r = jouer(m); res.append(r)
         print(('✓ tombe  ' if r.get('tombe') else '✗ RÉSISTE') if 'tombe' in r else '? ', r['id'], r['faille'], '·', r['sonde'], '·', ('%d ✗ : %s' % (r['echecs'], ' | '.join(r['extraits'][:2])) if 'echecs' in r else r['resultat']), flush=True)
