@@ -12,14 +12,14 @@ const DEUX_COLONNES = 1032;      // la même valeur que la règle CSS (min-width
 const geo = f => f.evaluate(() => {
   const r = e => { if (!e) return null; const b = e.getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) }; };
   const q = s => document.querySelector(s), vis = e => e && e.offsetParent !== null && e.getBoundingClientRect().width > 0;
-  const fen = q('.fenetre.vv-pl'), voile = q('.voile.plein'), feuille = q('.vv-ap-sc .feuille') || q('.vv-grand-plein .feuille');
+  const fen = q('.fenetre.vv-pl'), voile = q('.voile.plein'), feuille = [...document.querySelectorAll('.vv-grand-plein .feuille, .vv-ap-sc .feuille')].find(e => e.getBoundingClientRect().width > 0) || null;      // la colonne de droite existe aussi, masquée, quand l'écran n'a qu'une colonne : on mesure la page VISIBLE
   const cs = e => e ? getComputedStyle(e) : null, cf = cs(fen), cv = cs(voile);
   // la taille rendue du texte d'un document : la MÉDIANE de la police pondérée par le nombre de signes (le texte où l'œil passe le plus de temps), en px d'écran = police × échelle
   let fsRendu = null, fsDoc = null, ech = null;
   if (feuille) { ech = feuille.getBoundingClientRect().width / 794; const els = [...feuille.querySelectorAll('*')].filter(e => !e.children.length && e.textContent.trim().length > 2 && e.getBoundingClientRect().width > 0); const pts = els.map(e => [parseFloat(getComputedStyle(e).fontSize), e.textContent.trim().length]).sort((a, b) => a[0] - b[0]); const tot = pts.reduce((s, x) => s + x[1], 0); let acc = 0; for (const x of pts) { acc += x[1]; if (acc >= tot / 2) { fsDoc = x[0]; break; } } if (fsDoc) fsRendu = fsDoc * ech; }
   return { W: innerWidth, H: innerHeight, fen: r(fen), voileFond: cv && cv.backgroundColor, voilePad: cv && cv.padding, rayon: cf && cf.borderTopLeftRadius, ombre: cf && cf.boxShadow,
     tete: r(q('.vv-hd')), retour: r(q('.vv-retour')), titre: (q('.vv-hd h3') || {}).textContent, pied: r(q('.fen-pied')), creer: r(q('.fen-pied [data-act="vierge-creer"]')),
-    totalVisible: vis(q('.vv-pied-tot')), form: r(q('.vv-form')), colPage: r(q('.vv-ap-sc')), colVisible: vis(q('.vv-ap-sc')), barre: r(q('.vv-ap-bar')), barreVisible: vis(q('.vv-ap-bar')), apercuBtn: vis(q('[data-vv="grand"]')),
+    annulerPied: document.querySelectorAll('.fen-pied [data-fen-x]').length, totalVisible: vis(q('.vv-pied-tot')),  form: r(q('.vv-form')), colPage: r(q('.vv-ap-sc')), colVisible: vis(q('.vv-ap-sc')), barre: r(q('.vv-ap-bar')), barreVisible: vis(q('.vv-ap-bar')), apercuBtn: vis(q('[data-vv="grand"]')),
     feuille: r(feuille), ech, fsDoc, fsRendu, nbFeuilles: document.querySelectorAll('.vv-ap-sc .feuille').length };
 });
 // les champs de saisie visibles de la colonne des étapes : leur hauteur et leur taille de texte
@@ -50,6 +50,7 @@ const attendCadre = async (f, fn, arg, ms) => { const t0 = Date.now(); while (Da
       v(`${tag} · la page d'aperçu fait au moins ${W >= 1400 ? 620 : 560} px de large (${g.feuille && g.feuille.w} px) — avant : 333 px`, g.feuille && g.feuille.w >= (W >= 1400 ? 620 : 560), g.feuille);
       v(`${tag} · le texte du document est rendu à ${g.fsRendu && g.fsRendu.toFixed(1)} px à l'écran (≥ 10,5 ; avant : 5 px)`, g.fsRendu >= 10.5, [g.fsDoc, g.ech]);
       v(`${tag} · « Créer le devis » et le total sont dans la barre du haut, à côté du titre`, g.creer && g.creer.y < g.tete.h + 4 && g.totalVisible, [g.creer, g.tete]);
+      v(`${tag} · le pied n'a plus de bouton « Annuler » (c'est « ‹ OP GESTION » qui annule)`, g.annulerPied === 0, g.annulerPied);
       v(`${tag} · pas de bouton « Aperçu » : la page est déjà là`, !g.barreVisible && !g.apercuBtn);
     } else {
       v(`${tag} · une colonne : la page n'est pas écrasée à côté, elle a son bouton « Aperçu »`, !g.colVisible && g.apercuBtn && g.barreVisible, [g.colVisible, g.apercuBtn]);
@@ -124,11 +125,13 @@ const attendCadre = async (f, fn, arg, ms) => { const t0 = Date.now(); while (Da
       const k = await geo(f);
       v(`${tag} · contrat : tout l'écran, titre « Nouveau contrat », « Créer le contrat » ${deux ? 'dans la barre du haut' : 'au pied'}`, k.fen && k.fen.w === k.W && k.fen.h === k.H && /Nouveau contrat/.test(k.titre) && (deux ? k.creer.y < k.tete.h + 4 : k.creer.y > k.H / 2) && /Créer le contrat/.test(await f.locator('[data-act="vierge-creer"]').textContent()), [k.fen, k.titre, k.creer]);
       if (deux) {
-        v(`${tag} · contrat : la page fait ${k.feuille && k.feuille.w} px de large (≥ 560), texte rendu à ${k.fsRendu && k.fsRendu.toFixed(1)} px, ${k.nbFeuilles} page(s) à faire défiler`, k.feuille && k.feuille.w >= 560 && k.fsRendu >= 10.5 && k.nbFeuilles >= 1, [k.feuille, k.fsRendu, k.nbFeuilles]);
+        v(`${tag} · contrat : la page fait ${k.feuille && k.feuille.w} px de large (≥ 560), texte rendu à ${k.fsRendu && k.fsRendu.toFixed(1)} px, ${k.nbFeuilles} page(s) à faire défiler`, k.feuille && k.feuille.w >= 560 && k.fsRendu >= 10.5 && k.nbFeuilles >= (deux ? 2 : 0),      // un contrat de onze articles fait DEUX pages : la page de droite les montre toutes, pas seulement la première
+           [k.feuille, k.fsRendu, k.nbFeuilles]);
         v(`${tag} · contrat : les articles posés paraissent dans la page (« Article »)`, await attendCadre(f, () => /Article/.test((document.querySelector('.vv-ap-sc') || {}).textContent || ''), null, 2000));
       } else {
         await clic('[data-vv="grand"]'); await L.calme(p, 600); const k2 = await geo(f);
         v(`${tag} · contrat : « Aperçu » montre le document entier à la largeur de l'écran (${k2.feuille && k2.feuille.w} px)`, k2.feuille && k2.feuille.w >= 280, k2.feuille);
+        const nf = await f.evaluate(() => document.querySelectorAll('.vv-grand-plein .feuille').length); v(`${tag} · contrat : « Aperçu » montre TOUTES les pages (${nf}), pas seulement la première`, nf >= 2, nf);
         await clic('[data-vv="grand-x"]'); await L.calme(p, 300);
       }
       const chk = await champs(f); v(`${tag} · contrat : champs à 48 px, texte de 16 à 17 px (population ${chk.length})`, chk.length >= 3 && chk.every(x => x.h >= 48 && x.fs >= 16 && x.fs <= 17.1), chk.filter(x => !(x.h >= 48 && x.fs >= 16 && x.fs <= 17.1)).slice(0, 5));
@@ -139,6 +142,11 @@ const attendCadre = async (f, fn, arg, ms) => { const t0 = Date.now(); while (Da
       const ed = await f.evaluate(() => { const q = s => document.querySelector(s), r = e => { if (!e) return null; const b = e.getBoundingClientRect(); return { w: Math.round(b.width), h: Math.round(b.height) }; }; return { vue: S.vue, zoom: S.ui.zoom, feuille: r(q('#vue-editeur .feuille')), panneau: r(q('#panneau')), menu: [...document.querySelectorAll('[data-act="menu-zoom"]')].length }; });
       v(`${tag} · l'éditeur qui suit s'ouvre, page « Ajuster à la largeur » (${ed.zoom}) : ${ed.feuille && ed.feuille.w} px de large`, ed.vue === 'editeur' && ed.zoom === 'ajuster' && ed.feuille && ed.feuille.w >= (W >= 1400 ? 620 : Math.min(W - 40, 560)), ed);
       await L.capture(c, CAP + 'grand-editeur-' + tag + '.png');
+      // le menu de taille de l'éditeur dit « Ajuster à la largeur » (et non « à la fenêtre ») : c'est ce que la page fait vraiment dans OP GESTION
+      const zb = f.locator('[data-act="menu-zoom"]:visible').first();
+      if (await zb.count()) { if (c.doigt) await zb.tap({ timeout: 5000 }); else await zb.click({ timeout: 5000 }); await p.waitForTimeout(300);
+        const mt = await f.evaluate(() => document.body.innerText); v(`${tag} · le menu de taille de l'éditeur dit « Ajuster à la largeur »`, /Ajuster à la largeur/.test(mt) && !/Ajuster à la fenêtre/.test(mt)); await p.keyboard.press('Escape'); }
+      else v(`${tag} · le bouton de taille de l'éditeur est là (absent du téléphone : la page y est toujours ajustée)`, W < 761);
     }
     v(`${tag} · aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);

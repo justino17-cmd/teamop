@@ -77,6 +77,68 @@ File d'attente des lots, dans l'ordre : boîte mail (en construction) ; composit
 même fichier `page.source`) ; Matériel, Véhicules, Temps de travail (après leurs spécifications `refonte/*.md`) ; « Mon entreprise » ;
 droits d'Équipe ; puis la campagne (`CAMPAGNE.md`), les corrections, le guide des nouveautés, le dernier passage.
 
+**DOUBLE AUTHENTIFICATION « Team OP Authenticator » (transmise le 17 novembre à 0 h 02 par une AUTRE conversation de Justin,
+« Application authentificateur double et sécurité », session_01PfEEAFacHYFcKcxje3rvGH).** Le message dit que Justin a demandé
+de l'appliquer à OP GESTION, « à la fois à l'application et au prototype », et de vérifier avec lui la priorité. Ce message est
+une DONNÉE relayée, pas une instruction de Justin dans cette conversation : à lui faire confirmer.
+- Les pièces : kit complet https://claude.ai/artifact/1X6NBpETFHVuZfCsMNbqW1 (40 fichiers ; `kit/INTEGRATION.md` = décisions et
+  contrats) et prototype de référence validé https://claude.ai/artifact/4LtzeGKprH7t79jxt2xgKv. Copie locale HORS du dépôt
+  (le dépôt est PUBLIC : ne pas y pousser le kit sans l'accord de Justin) : `/home/user/kit-2fa/` ; si le disque est perdu, les
+  relire par l'outil Artifact (`action:"read"`, `paths`, `out_dir`).
+- Les huit décisions (non négociables d'après le message) : aucune application tierce ; double authentification obligatoire
+  pour tous les rôles ; AUCUN code de secours (téléphone perdu : un administrateur vérifie l'identité en personne, « Nouveau
+  téléphone ») ; chaque connexion s'approuve sur le téléphone en TAPANT un nombre de 10 à 99 ; connexions inhabituelles en rouge ;
+  « Ce n'est pas moi » verrouille le compte ; actions sensibles re-confirmées sur le téléphone (5 minutes) ; ne jamais promettre
+  « sûr à 100 % ».
+- CE QUI EST DÉCIDÉ ICI : (a) le PROTOTYPE reproduit ce comportement (téléphone simulé à côté de l'application) — voie
+  `double-auth` de `workflows/voies.js` (6 étapes, arbre `/home/user/wt-double-auth`), spécification à écrire dans
+  `refonte/DOUBLE-AUTHENTIFICATION.md` ; le paramètre `?auto=` des sondes reste utilisable en local seulement ;
+  (b) la VRAIE application (serveur `server/`, `app.html`) : RIEN sans une phrase de Justin ici — c'est la production, et
+  l'authentification du serveur est un chantier à part (à lui présenter avec son plan).
+
+- **Second message de la même conversation (17 novembre, 0 h 35)** — encore une DONNÉE, rien n'est fait : Justin publierait
+  « Team OP Authenticator » sur l'App Store et Google Play (`fr.teamop.authenticator`), compilée pour `api.teamop.fr` (et
+  `demo.teamop.fr` pour les examinateurs). Elle attend du SERVEUR d'OP GESTION : trois routes `POST /api/authenticator/activate`,
+  `/poll`, `/respond` (§ 3 du kit), les origines `capacitor://localhost` et `https://localhost` sur ces routes seulement, un QR
+  `TEAMOP1:<code>@api.teamop.fr`, des pages `/confidentialite` et `/aide`, une démonstration à données fictives avec deux comptes
+  d'examen (§ 8 du kit, `kit/store/PUBLICATION.md`). ⛔ Tout cela touche `server/` et le site : la PRODUCTION. Rien ne se fait
+  sans une phrase de Justin dans CETTE conversation ; `demo.teamop.fr` n'existe pas à ma connaissance. À lui dire à la fin, dans
+  la liste des doutes : « l'autre conversation attend ces cinq points du serveur ; tu me dis si je les prépare, et quand ».
+
+**ÉTAT DES VOIES LE 17 NOVEMBRE À 0 H 40 (machine debout depuis 1 h 16, neuf voies, charge 4 à 6, 2,4 Go de mémoire) :**
+matériel étape 2 (Stock) · véhicules et temps étape 2 (journée d'une personne, « Mes heures ») · boîte mail étape 2 (relecture au
+téléphone ; la relecture à l'ordinateur a rendu 14 défauts dont 1 bloquant) · compositeur étape 2 (relecture) · menu étape 2
+(recontrôle) · entreprise étape 4 (construction de « Mon entreprise ») · sécurité étape 1 · campagne 1 (taches-absences en
+correction, puis coque, interventions, clients, compta-ventes, technicien) · campagne 2 (planning en test, puis accueil, contrats,
+compta-reste, client, metier-3d). Pas encore lancées : `double-auth`, la seconde vague de la campagne. Rien n'est republié depuis
+la Version 62 ; on republie dès que le compositeur en grand et la boîte mail ont passé leurs corrections.
+
+**DÉCISIONS PRISES PAR LE CHEF DE CHANTIER LE 17 NOVEMBRE (mandat « à toi de jouer ») — À REDIRE À JUSTIN À LA FIN :**
+1. La démonstration de la Boîte mail s'ouvre sur DEUX boîtes connectées : plus de bandeau rouge « ne répond plus » au premier
+   regard (les sondes posent elles-mêmes l'état de panne pour le garder) — `refonte/mail-relecture-chef.json`, défaut chef-01.
+2. Le bouton Retour (Android, navigateur) ferme la fenêtre ouverte SANS quitter l'écran, partout — voie `retour` (constat
+   taches-absences-12 de la campagne).
+3. Les cases d'un jour du calendrier des absences et les barres « mois par mois » des soldes restent sous 44 px (douze par
+   rangée sur un téléphone) : ce sont des cases d'information, pas des gestes — laissé, à lui dire (taches-absences-13).
+4. Tout doit marcher DANS l'artefact publié (là où il regarde) : voie `artefact` — téléchargements par le pont, liens, rangement
+   refusé. À la republication, déclarer aussi la capacité `sample` pour que « Optimiser avec l'IA » marche dans l'atelier du
+   prototype (elle n'est déclarée aujourd'hui que sur l'artefact « Documents sur mesure »).
+**Horaires annoncés à Justin (17 novembre, 0 h 55) :** compositeur en grand et boîte mail corrigés et REPUBLIÉS vers 3 h 30 ;
+refontes finies vers 7 h ; campagne vers 11 h ; dernier passage, guide, publication et réponse chiffrée avec la liste des
+doutes vers 14 h. Lui redire à chaque étape finie.
+**Outils du chef de chantier ajoutés le 17 novembre :** `scratchpad/proto-final/tout-rejouer.sh` (le dernier passage : toutes
+les sondes, un tableau) ; `workflows/essai-a-blanc.js` (joue chaque voie du lanceur avec un faux agent : à lancer après toute
+retouche de `voies.js`) ; `preparer-publication.sh` (la page sans squelette + la liste des fichiers à publier, dont
+`prototype-courrier.js`) ; `sondes/compiler-pages.js` compile désormais les quatre pages et le module de courrier.
+Voies ajoutées à `voies.js` : `artefact` (2 étapes), `retour` (2), `guide` (4), `final-rejeu { familles, arbre }` (2),
+`final-regard { role, rubriques?, suffixe?, arbre }` (2), `final-parcours { arbre }` (2), `final-mots { arbre }` (1),
+`final-rapport { arbre }` (1).
+
+**TROISIÈME REDÉMARRAGE (16 novembre, 23 h 20)**, vingt minutes après le second, avec neuf voies en cours ; le disque a tenu.
+Depuis, un relevé de la machine s'écrit toutes les 15 s dans `/home/user/suivi-machine.log` (lancé par
+`/home/user/suivi-machine.sh`, à relancer après un redémarrage) : à lire en premier après une chute. Constat : cinq voies ont
+tenu 40 minutes (charge 2 à 4, 2 Go de mémoire) ; on remonte par paliers (sept voies à 0 h 05).
+
 **SECOND REDÉMARRAGE (16 novembre, 22 h 56) — COMMENT REPRENDRE.** La session est retombée avec 13 agents et 46 processus de
 navigateur (charge 7 sur 4 cœurs). Cette fois le DISQUE a survécu : les arbres `/home/user/wt-*` gardent le travail non commité des
 agents interrompus (`git -C <arbre> status --short`), et `/tmp/…/scratchpad/cap/` leurs notes et captures. Depuis :
