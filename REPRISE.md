@@ -214,6 +214,16 @@ l'application ») et chantier B (sécurité, OP Security, clés d'accès), joué
 (VPS) » (annoncé : 1 Gbit/s de bande passante, trafic illimité, disponibilité 99,99 %), « Serveur Dédié », « Backup Cloud ». Dit à
 Justin : ouvrir « VPS Linux », envoyer la capture de la LISTE des offres (cœurs, mémoire, disque, prix après la promotion, durée
 d'engagement), ne rien commander avant qu'on lui dise la ligne ; pas de serveur dédié ni de Backup Cloud pour l'instant.
+**Les offres de sa capture de 17 h 30 (IONOS, « Packs VPS », prix hors taxes ; promotion : trois mois, mise en service offerte ; « essai
+gratuit de 30 jours » ; trafic illimité jusqu'à 1 Gbit/s ; durée d'engagement NON affichée — à lire à l'étape suivante)** : S+ 1 cœur,
+2 Go, 60 Go, 2 € puis 5 € ; M+ 2 cœurs, 4 Go, 120 Go, 4 € puis 12 € ; L+ 4 cœurs, 8 Go, 240 Go, 7 € puis 22 € ; **XL+ 8 cœurs, 16 Go,
+480 Go, 12 € puis 41 €** ; XXL+ 12 cœurs, 24 Go, 720 Go, 17 € puis 59 €. CONSEILLÉ : **XL+** pour le serveur d'atelier (le double de
+la machine sur laquelle les essais tournent depuis des jours : 4 cœurs, 15 Go, mesuré le 17) ; XXL+ seulement s'il veut de la marge
+tout de suite (18 € de plus par mois) ; les trente jours d'essai servent à MESURER (835 suites dans `tests/` ce jour-là). Consignes
+données pour la commande : Ubuntu 24.04 sans application préinstallée, centre de données en France, durée d'engagement la plus
+courte, aucune option, capture du récapitulatif AVANT de payer, et ⛔ le mot de passe du nouveau serveur ne se colle jamais ici.
+Dit aussi, sans promettre : les vérifications automatiques ne seront pas forcément plus rapides que sur GitHub, qui prête
+aujourd'hui plusieurs machines en parallèle parce que le dépôt est public (en privé : 2 000 minutes par mois) — à mesurer.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
