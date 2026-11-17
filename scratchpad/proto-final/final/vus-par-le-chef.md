@@ -106,3 +106,22 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       chaîne ; un fichier binaire (PDF, image) se REFAIT avec le constructeur du parent avant l'appel —
       `new window.parent.Blob([await blob.arrayBuffer()], { type })`. Sonde : dans le bac, un pont qui REFUSE tout ce qui
       n'est pas `instanceof` de sa propre fenêtre ; les trois téléchargements des cadres passent quand même.
+- [ ] **Technicien — décisions du chef du 17/11, 9 h 30, à APPLIQUER (technicien)** : les deux points « à soumettre » de la
+      campagne sont tranchés, parce qu'ils ne touchent pas un dessin validé : ce sont les cartes AJOUTÉES par les refontes
+      (pointage, Mon camion) qui ont poussé les interventions sous le pli.
+      · **technicien-02** : sur « Ma journée », la première intervention du jour doit se voir SANS défiler sur un iPhone
+        (aujourd'hui elle commence à y = 832 sur 844 px). Ordre : le bonjour → la carte de pointage, COMPACTE (une phrase et
+        son bouton, « J'ai commencé plus tôt » à côté ou dessous en petit) → s'il y en a, une puce d'une ligne « 1 message du
+        bureau › » → LES INTERVENTIONS DU JOUR → puis, dessous, les messages du bureau en entier, Mon camion, les habilitations.
+        Preuve : sur iphone, android et petit (320 × 568), le haut de la première intervention est au-dessus de la barre du
+        bas, pointage commencé ou non, avec ou sans message ; rien d'autre ne change (mêmes gestes, mêmes textes).
+        ⚠️ Deux autres voies touchent ces cartes (materiel, vehtemps) : ne change que l'ORDRE et la hauteur de la carte de
+        pointage ; fusionne souvent.
+      · **technicien-05** : le rappel du matin (« tu n'as pas encore commencé ta journée ») ne se répète pas sur Mes frais ni
+        sur Mon camion : il vit sur « Ma journée » (et la pastille de « Heures » le signale ailleurs).
+      · Les quatre casses du recontrôle (`campagne/technicien-recontrole.json`) se corrigent : le liseré VERT d'une demande de
+        congé REFUSÉE (la couleur suit l'état : refusée = rouge, autres dates = ambre) ; au doigt, le pied du menu (Jour ·
+        Nuit · Auto, Nouveautés) à 44 px au moins, tous les rôles ; « C'est quoi ? » n'est plus pré-rempli « Carburant » pour
+        un péage ou des gants (le titre du message reprend ce qui est tapé, la plaque seulement pour un plein) ; la fenêtre
+        « Il manque encore des choses » sans grands vides. technicien-06 (« Prévenir le bureau » grisé sans raison, Mon
+        camion) : à corriger aussi s'il se reproduit encore sur la tête.
