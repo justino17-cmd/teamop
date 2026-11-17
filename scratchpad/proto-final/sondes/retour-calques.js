@@ -14,6 +14,8 @@ const C = require('./retour-commun.js'), L = C.L, v = C.v;
   for (const g of C.GENRES) {
     if (filtre.length && !filtre.some(f => g.k === f)) continue;
     if (!C.applicable(g, c)) { console.log('  · ' + g.nom + ' : n\'existe pas sur ce profil (' + c.profil + ')'); continue; }
+    let nom0 = g.nom + ' · ' + c.profil;
+    try {
     joues++; const nom = g.nom + ' · ' + c.profil, avant = g.ecran === 'accueil' ? 'devis' : 'accueil';   // l'écran d'AVANT : toujours un autre que celui du calque
     // on se place : l'écran d'avant, puis l'écran du calque, défilé, marqué
     const prepare = async () => { await L.aller(p, avant); await L.aller(p, g.ecran); if (g.prepare) await g.prepare(c); await C.defiler(p); await C.marquer(p); };
@@ -59,8 +61,9 @@ const C = require('./retour-commun.js'), L = C.L, v = C.v;
     const n1 = await C.hist(p);
     v(nom + ' : ' + pas + ' ouvertures-fermetures : l\'historique n\'a pas grandi de plus de ' + (g.dans ? 2 : 1) + ' (' + n0 + ' → ' + n1.n + ')', pas >= 5 && n1.n <= n0 + (g.dans ? 2 : 1) && n1.pousse === 0 && n1.ouverts === '', [pas, n0, n1]);
     await L.ranger(p);
+    } catch (e) { v(nom0 + ' : le parcours va jusqu\'au bout (la page n\'a pas été quittée)', false, String(e.message).split('\n')[0].slice(0, 200)); break; }
   }
   v('population : ' + joues + ' calques joués sur ce profil', joues >= (filtre.length ? 1 : 8), joues);
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
-})().catch(e => { console.error(e); process.exit(2); });
+})().catch(e => { v('la sonde va jusqu\'au bout (une exception l\'a arrêtée)', false, String(e.message).split('\n')[0].slice(0, 200)); L.bilan(); L.fermer().then(() => process.exit(1), () => process.exit(1)); });

@@ -8534,7 +8534,7 @@ const CAL_GENRES = [
   { k:'nouveautes',  ouvert:() => !!document.querySelector('#nv:not(.part)'),           ferme:() => nvFermer() },         // le guide des nouveautés
   { k:'visite',      ouvert:() => !!document.getElementById('gd-bulle'),                ferme:() => gdQuitter() },        // la visite guidée
 ];
-const CAL = { pile:[], pousse:0, ignore:0, suite:null, minuteur:0, echecs:0, off:false, sale:false, prevu:false };
+const CAL = { pile:[], pousse:0, ignore:0, suite:null, minuteur:0, echecs:0, off:false, sale:false, prevu:false, hash:'' };
 const calOuverts = () => CAL_GENRES.filter(g => { try { return g.ouvert(); } catch (e) { return false; } }).map(g => g.k);
 /* un recul demandé à l'historique est ASYNCHRONE : tant qu'il n'est pas arrivé (popstate), rien d'autre ne touche à l'historique — sinon l'entrée poussée entre-temps
    serait la mauvaise cible. S'il n'arrive jamais (historique muet), on s'éteint après deux essais plutôt que de rester muet à l'infini. */
@@ -8553,7 +8553,7 @@ function calSync(){
   CAL.pile = CAL.pile.filter(k => ouv.includes(k)).concat(ouv.filter(k => !CAL.pile.includes(k)));
   const d = CAL.pile.length;
   try {
-    while (CAL.pousse < d) { history.pushState({ cal:CAL.pousse + 1 }, '', location.href); CAL.pousse++; }
+    while (CAL.pousse < d) { history.pushState({ cal:CAL.pousse + 1 }, '', location.href); CAL.pousse++; CAL.hash = location.hash; }
     if (CAL.pousse > d) { const n = CAL.pousse - d; CAL.pousse = d; calReculer(n); }
   } catch (e) { CAL.off = true; CAL.pousse = 0; }
 }
@@ -8576,6 +8576,8 @@ function calApresNavigation(){ if (CAL.ignore === 0) { CAL.pousse = 0; CAL.pile 
 addEventListener('popstate', ev => {
   if (CAL.off) return;
   if (CAL.ignore > 0) { CAL.ignore = 0; clearTimeout(CAL.minuteur); CAL.echecs = 0; calFinRecul(); return; }
+  /* un changement d'adresse (lien, saisie) fait aussi un popstate, d'état nul : ce n'est PAS un Retour — l'écran change, les fenêtres se ferment avec lui (lireHash → calApresNavigation) */
+  if (CAL.pousse > 0 && location.hash !== CAL.hash) return;
   const n = ev.state && typeof ev.state.cal === 'number' ? ev.state.cal : 0;
   if (n < CAL.pousse) {   // RETOUR : le navigateur a retiré des entrées, on ferme autant de calques, le dernier ouvert d'abord
     let k = CAL.pousse - n; CAL.pousse = n;
