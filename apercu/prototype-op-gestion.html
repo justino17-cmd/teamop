@@ -562,7 +562,7 @@ html .md-t .st{flex:none;max-width:100%;white-space:normal;line-height:1.25;text
 html .md-l2,html .md-l3{overflow-wrap:anywhere}
 html .md-c .client-chiffres{margin-top:auto}html .md-c .client-chiffres>span{min-width:0}html .md-c .client-chiffres b{overflow-wrap:anywhere}
 html .md-o{color:var(--orange);font-weight:650}html .md-rg{color:var(--rouge);font-weight:650}
-html .md-sous{margin-top:2px}html .md-kpis{margin:12px 0 4px}html .md-kpis .kpi{min-width:0;cursor:default}html .md-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
+html .md-nb{white-space:nowrap}html .md-sous{margin-top:2px}html .md-kpis{margin:12px 0 4px}html .md-kpis .kpi{min-width:0;cursor:default}html .md-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
 html .md-btns{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 6px}html .md-btns .btn{min-height:48px}
 html .md-chq{margin:8px 0 2px;min-height:48px}
 html .md-liste{padding:6px 8px;display:flex;flex-direction:column;margin-top:6px}html .md-liste .groupe{padding:14px 12px 4px}
@@ -1150,7 +1150,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 @media (pointer:coarse){.mch-b{min-height:44px}}
 /* [4] la demande d'achat visée depuis le tableau de bord */
 .ax-d.a-placer{animation:aPlacer 1s ease-in-out 4;outline:2px solid var(--orange);outline-offset:2px}
-@media (max-width:760px),(pointer:coarse){.pl-mj .plus{display:flex;align-items:center;min-height:40px;padding:2px 6px}.pl-mj .pl-mp{min-height:40px;align-content:center}}
+@media (max-width:760px),(pointer:coarse){.pl-mj .plus{display:flex;align-items:center;min-height:44px;padding:2px 6px}.pl-mj .pl-mp{min-height:44px;align-content:center}}
 /* [10] espace client au téléphone : les cinq onglets passent à la ligne au lieu de sortir de l'écran */
 @media (max-width:760px){ .ec-seg{flex-wrap:wrap;overflow-x:visible} .ec-seg button{padding:0 12px} }
 
@@ -1206,6 +1206,9 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .pl-equipe button{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font-size:14px;font-weight:550}
 .pl-equipe button[aria-pressed="false"]{opacity:.45}
 .pl-equipe .av{width:26px;height:26px;font-size:10.5px}
+/* Au doigt, chaque commande de la barre du planning répond sur 44 px au moins (onglets de vue, flèches de date, puces de personnes) :
+   40 et 38 px mesurés sur iPhone, iPad, Android et petit téléphone, jour et nuit (planning-05). Sur ordinateur, la hauteur dessinée reste. */
+@media (pointer:coarse){.pl-barre .seg button,.pl-nav button,.pl-equipe button{min-height:44px}.pl-nav button{min-width:44px}}
 .pl-aide{font-size:14px;color:var(--doux)}
 .pl-aide b{color:var(--encre)}
 .pl-boite{background:var(--surf);border:1px solid var(--trait);border-radius:var(--r);box-shadow:var(--ombre);overflow:hidden}
@@ -2005,7 +2008,10 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 .pc .tire{position:absolute;left:0;right:0;bottom:0;height:12px;cursor:ns-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
 .pc .tire::after{content:"";width:28px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--encre) 30%,transparent);opacity:0;transition:opacity .15s}
 .pc:hover .tire::after,.pc:focus-visible .tire::after{opacity:1}
-@media (pointer:coarse){.pc .tire{height:18px}.pc .tire::after{opacity:.8}}
+@media (pointer:coarse){.pc .tire{height:18px}.pc .tire::after{opacity:.8}
+  /* la poignée de durée répondait sur 18 px : facile à rater au doigt (planning-06). Une zone invisible de 10 px de plus, vers le HAUT (le bas
+     de la carte est rogné par sa bordure), la porte à 28 px sans déplacer la barre dessinée ; une carte courte garde de quoi être saisie ailleurs. */
+  .pc .tire::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0}}
 .fantome{position:fixed!important;margin:0;z-index:70;pointer-events:none;box-shadow:0 20px 44px rgba(0,0,0,.35)!important;transform:none!important;rotate:-1.2deg;opacity:.97}
 /* les deux barres qui suivent l'heure : début et fin, l'heure écrite à gauche ET à droite */
 .regle{position:fixed;z-index:65;height:0;border-top:2px solid var(--rc);pointer-events:none}
@@ -2023,6 +2029,7 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 .pl-mj.hors{opacity:.45}
 .pl-mj .pc{position:relative;left:0;right:0;min-height:0;padding:3px 7px 3px 9px;border-radius:8px}
 .pl-mj .pc .h{font-size:12.5px}.pl-mj .pc .t{font-size:12.5px;-webkit-line-clamp:1}
+@media (pointer:coarse){.pl-mj .pc{min-height:44px;display:flex;flex-direction:column;justify-content:center}}   /* une intervention du mois se touche sur 44 px : 43 mesurés */
 .pl-mj .plus{font-size:12.5px;color:var(--lien);font-weight:600;background:none;border:0;text-align:left;padding:2px 4px}
 @media (max-width:760px){.kpis-rang{display:flex;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.kpis-rang::-webkit-scrollbar{display:none}.kpis-rang .kpi{flex:0 0 132px;min-height:62px;padding:10px 12px}.kpis-rang .kpi b{font-size:20px}.kpis-rang .kpi span{font-size:13px}.pl-equipe{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.pl-equipe button{flex:none}.pl-nav{width:100%;justify-content:space-between}.pl-nav b{min-width:0}}
 .pg-g .pl-jh{position:sticky;top:0}
@@ -2904,7 +2911,7 @@ body.dp-ouvert{overflow:hidden}
 .cr-mk.estompe:not(.on){opacity:.3}
 .cr-mk.dep{border-radius:9px;background:var(--fill);color:var(--on-fill);font-size:14px}
 .cr-mk .cr-mk-r{position:absolute;right:-5px;top:-5px;width:11px;height:11px;border-radius:50%;background:var(--rouge);border:2px solid #fff}
-.cr-mk.urg::before{content:'';position:absolute;inset:-6px;border-radius:inherit;background:var(--rouge);opacity:.35;animation:crPouls 1.6s ease-out infinite;z-index:-1}
+.cr-mk.urg::before{content:'';position:absolute;inset:-6px;pointer-events:none;border-radius:inherit;background:var(--rouge);opacity:.35;animation:crPouls 1.6s ease-out infinite;z-index:-1}
 @media (prefers-reduced-motion:reduce){.cr-mk.urg::before{animation:none}}
 .cr-lbl-tr{display:inline-block;white-space:nowrap;padding:3px 8px;border-radius:11px;background:var(--feuille);border:1px solid var(--trait2);color:var(--encre);font-size:11.5px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .cr-lbl-tr.r{background:var(--rouge);color:var(--on-etat);border-color:transparent}
@@ -2949,12 +2956,16 @@ body.dp-ouvert{overflow:hidden}
 .cr-etq rect{fill:var(--feuille);stroke:var(--trait2)}
 .cr-etq text{fill:var(--encre);font-size:11.5px;font-weight:700;text-anchor:middle;dominant-baseline:central}
 .cr-etq.retard rect{fill:var(--rouge);stroke:none}.cr-etq.retard text{fill:#fff}
-.cr-urg{animation:crPouls 1.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.cr-urg{pointer-events:none;animation:crPouls 1.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes crPouls{0%{transform:scale(.6);opacity:.7}100%{transform:scale(1.9);opacity:0}}
 @media (prefers-reduced-motion:reduce){.cr-urg{animation:none;opacity:.35}}
 .cr-outils{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px;z-index:2}
 .cr-outils button{width:40px;height:40px;border-radius:12px;border:1px solid var(--trait2);background:color-mix(in srgb,var(--feuille) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--encre);font:inherit;font-size:19px;font-weight:700;cursor:pointer;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .cr-outils button:hover{background:var(--feuille)}
+/* Au doigt, un repère de carte et les boutons de zoom répondent sur 44 px (30 et 38-40 px mesurés, planning-05) : la zone est invisible, elle
+   n'agrandit pas le dessin. Sur ordinateur rien ne change. */
+.cr-zone{fill:transparent;stroke:none;pointer-events:none}
+@media (pointer:coarse){.cr-zone{pointer-events:all}.cr-mk[data-crpin]::after{content:'';position:absolute;inset:-9.5px;border-radius:50%}.cr-outils button{width:44px;height:44px}}
 .cr-echelle{position:absolute;left:12px;bottom:12px;z-index:2;font-size:11.5px;font-weight:700;color:var(--cr-txt-fort);display:flex;flex-direction:column;gap:3px;pointer-events:none}
 .cr-echelle i{display:block;height:5px;border:2px solid var(--cr-txt-fort);border-top:0}
 .cr-chips{position:absolute;left:12px;top:12px;right:64px;z-index:2;display:flex;gap:6px;flex-wrap:wrap}
@@ -3139,7 +3150,7 @@ body.ac-glisse .ac-x{pointer-events:none}
 .fo-ac .lien,.cmd-mc .lien,.cmd-franco .lien,.cx-fil .lien,.cx-doc .lien,.adr-rep .lien,.t-ctx .lien{min-height:44px}
 .mini-btn,.btn.petit,.seg button,.ml-filtres button,.cr-chip,.ms-fta .btn{min-height:44px}
 .pm-btn,.pm-boite{height:auto;min-height:78px;padding-block:8px}
-.pm-mini{height:44px}.pm-mini button,.pm-mini b{line-height:38px!important}.pm-pas2 .pm-mini button{width:44px}
+.pm-mini{height:48px}.pm-mini button,.pm-mini b{line-height:44px!important;min-height:44px}.pm-pas2 .pm-mini button{width:44px}.pm-pas.pm-boite button{width:44px;height:44px}
 }
 /* ══ AUDIT SUR NEUF APPAREILS (10 novembre 2026) — ordinateur, tablette, téléphones ; jour et nuit ; les quatre rôles ══ */
 
@@ -4021,7 +4032,7 @@ function vueCarte(){
       <div class="cr-conf">${p && p.ok && dansTournee ? `<span class="cr-pr"><b>À lui confier ?</b> ${p.km < .3 ? aMaj(p.ou) : crKmTxt(p.km) + ' ' + p.ou} · libre à ${crH(i.h)}</span>` : p && p.ok ? `<span class="cr-pr">Le plus proche : <b>${p.t.nom}</b>, ${p.km < .3 ? p.ou : crKmTxt(p.km) + ' ' + p.ou}, libre à ${crH(i.h)}</span>` : '<span class="cr-pr">Personne n’est libre à cette heure : change l’heure ou choisis quand même.</span>'}
         <div class="cr-g">${p && p.ok ? `<button type="button" class="btn" data-crconf="${i.id}|${p.t.id}">Confier à ${p.t.nom.split(' ')[0]}</button>` : ''}<button type="button" class="btn gris" data-crchoix="${i.id}">Choisir quelqu’un…</button></div></div>`; };
   const confier = i => `<div class="carte cr-t" style="--tc:${i.urgent ? 'var(--rouge)' : 'var(--orange)'}">${confierCorps(i)}</div>`;
-  const liste = `<div class="cr-l ${crSel && crDansPanneau() ? 'cr-l-det' : ''}" id="cr-l"><button type="button" class="cr-poignee" data-crfeuille="1" aria-label="Agrandir ou réduire la liste"></button>
+  const liste = `<div class="cr-l ${crSel && crDansPanneau() ? 'cr-l-det' : ''}" id="cr-l"><button type="button" class="cr-poignee" data-crfeuille="1" aria-label="Voir toute la liste des étapes" title="Voir toute la liste des étapes"></button>
       <div class="cr-det" id="cr-det"></div><div class="cr-lc" id="cr-lc">
       ${F ? (() => { const np = F.S.filter(s => !s.bureau).length, nr = F.S.filter(s => s.retard).length;
         const ch = F.ab ? [] : [[np, np > 1 ? 'passages' : 'passage'], ...(Cv.length ? [[Cv.length, 'à lui confier', 'o']] : []), ...(nr ? [[nr, nr > 1 ? 'retards' : 'retard', 'r']] : []), ...(np ? [[crKmTxt(F.km) + ' · ' + crMinTxt(F.min), 'de route'], [crHTxt(F.finJour), 'retour au dépôt']] : [])];
@@ -4094,6 +4105,7 @@ function crDessiner(){
     if (p.dep) { o += `<g class="cr-pin" aria-label="Dépôt"><rect x="${f(p.X - 13)}" y="${f(p.Y - 13)}" width="26" height="26" rx="8" fill="var(--fill)" stroke="var(--feuille)" stroke-width="2.5"/><text x="${X}" y="${Y}" style="fill:var(--on-fill)">⌂</text></g>`; return; }
     const on = p.id === crSel, r = on ? 17 : 13.5;
     o += `<g class="cr-pin ${on ? 'on' : ''} ${p.loin && !on ? 'estompe' : ''} ${p.conf ? 'conf' : ''}" data-crpin="${p.id}" role="button" tabindex="0">
+      <circle class="cr-zone" cx="${X}" cy="${Y}" r="22"/>
       ${p.urgent ? `<circle class="cr-urg" cx="${X}" cy="${Y}" r="16" fill="var(--rouge)"/>` : ''}
       <circle class="halo" cx="${X}" cy="${Y}" r="${r + 7}" fill="${p.c}" opacity=".25"/>
       ${p.conf ? `<rect x="${f(p.X - r)}" y="${f(p.Y - r)}" width="${f(2 * r)}" height="${f(2 * r)}" rx="${f(r * .45)}" transform="rotate(45 ${X} ${Y})" fill="${p.c}" stroke="var(--feuille)" stroke-width="2.5"/>` : `<circle cx="${X}" cy="${Y}" r="${r}" fill="${p.c}" stroke="var(--feuille)" stroke-width="2.5"/>`}
@@ -4109,14 +4121,18 @@ function crFiche(){
   if (l) l.classList.toggle('cr-l-det', !!i && crDansPanneau());
   if (!i) return;
   const T = crTournees(i.d), s = T.flatMap(x => x.S).find(x => x.i === i), c = CLIENTS[i.cli], t = tech(i.tech);
-  const ll = CR_GEO[i.cli] || CR_DEPOT, dst = ll[0].toFixed(5) + ',' + ll[1].toFixed(5);
-  const gps = [['waze', 'Waze', `https://waze.com/ul?ll=${dst}&navigate=yes`], ['gmaps', 'Google Maps', `https://www.google.com/maps/dir/?api=1&destination=${dst}`], ['apple', 'Apple Plans', `https://maps.apple.com/?daddr=${dst}`]];
+  /* Sans point connu pour ce client (adresse pas encore reconnue), on n'envoie JAMAIS le technicien au dépôt : les liens visent
+     l'adresse écrite, et la fiche le dit (planning-01). */
+  const geo = CR_GEO[i.cli], ll = geo || CR_DEPOT, dst = geo ? ll[0].toFixed(5) + ',' + ll[1].toFixed(5) : encodeURIComponent(c.adr || ''), sansPos = !geo && !!c.adr;
+  const gps = geo ? [['waze', 'Waze', `https://waze.com/ul?ll=${dst}&navigate=yes`], ['gmaps', 'Google Maps', `https://www.google.com/maps/dir/?api=1&destination=${dst}`], ['apple', 'Apple Plans', `https://maps.apple.com/?daddr=${dst}`]]
+    : [['waze', 'Waze', `https://waze.com/ul?q=${dst}&navigate=yes`], ['gmaps', 'Google Maps', `https://www.google.com/maps/dir/?api=1&destination=${dst}`], ['apple', 'Apple Plans', `https://maps.apple.com/?daddr=${dst}`]];
   if (crApple()) gps.unshift(gps.pop());   // sur iPhone et iPad, Apple Plans d'abord
   const aller = `<div class="cr-aller"><b class="petit">Y aller avec</b><div class="cr-aller-l">${gps.map(([k, l, u]) => `<a class="${k}" href="${u}" target="_blank" rel="noopener" data-craller="${k}">${l}</a>`).join('')}</div></div>`;
   const html = `<div class="cr-fiche" role="${crDansPanneau() ? 'region' : 'dialog'}" aria-label="${esc(c.nom)}"><button type="button" class="x" data-crsel="" aria-label="Fermer">✕</button>
     <span class="gris petit">${i.h} – ${fin(i.h, i.dur)} · ${i.tech ? (s && s.n ? 'passage n° ' + s.n + ' de ' + t.nom : t.nom) : '<b style="color:var(--orange)">personne pour l’instant</b>'}</span>
     <h4>${esc(c.nom)}</h4><span class="petit">${esc(i.titre)} · <span class="gris">${esc(c.adr)}</span></span>
     ${s && s.retard ? `<span class="petit" style="color:var(--rouge);font-weight:700">Arrivée estimée ${crHTxt(s.arrivee)} : ${s.retard} min après le rendez-vous</span>` : s && s.tr.km ? `<span class="petit gris">${crMinTxt(s.tr.min)} · ${crKmTxt(s.tr.km)} depuis le passage d’avant</span>` : ''}
+    ${sansPos ? '<span class="petit" style="color:var(--orange);font-weight:700">Position inconnue : la carte la place au dépôt. Les liens ci-dessous visent l’adresse écrite.</span>' : ''}
     ${aller}
     <div class="cr-g"><button type="button" class="btn" data-crchoix="${i.id}">${i.tech ? 'Confier à quelqu’un d’autre' : 'Confier…'}</button><button type="button" class="btn gris" data-crplan="${i.id}">Voir au planning</button><button type="button" class="btn gris" data-go="inter-x-${i.id}">Fiche</button></div></div>`;
   if (crDansPanneau() && zp) { zp.innerHTML = '<button type="button" class="cr-ret" data-crsel="">‹ Retour à la liste</button>' + html; if (l) l.scrollTop = 0; }
@@ -4238,7 +4254,7 @@ function crStyle(){ const sat = crFondType === 'sat', P = CR_PAL[sat ? 'sat' : c
 function crStyleAppliquer(){ if (!crLf || !crLf.gl) return; const g = crLf.gl.getMaplibreMap(); if (g) g.setStyle(crStyle());
   const a = crLf.map.attributionControl; if (a) { ['Photo aérienne © Esri, Maxar · noms © OpenStreetMap', '© OpenStreetMap · OpenFreeMap'].forEach(t => a.removeAttribution(t)); a.addAttribution(crCredit()); } }
 function crChargerLeaflet(){
-  if (window.L && L.map) return Promise.resolve();
+  if (window.L && L.map && L.maplibreGL) return Promise.resolve();   // le dernier morceau, pas Leaflet seul : sans le plugin, « Réessayer » repartait pour rien
   if (crLeaflet) return crLeaflet;
   crLeaflet = new Promise((ok, ko) => {
     const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(c);
@@ -4252,7 +4268,9 @@ function crChargerLeaflet(){
 }
 function crRepli(raison){ if (crReelEtat === 'ok') return; crReelEtat = 'ko'; crReelRaison = raison || ''; if (route === 'planning' && plVue === 'carte') rendre(); }
 function crReel(){ if (crReelEtat === 'ko') return; const el = document.getElementById('cr-lf'); if (!el) return;
-  crChargerLeaflet().then(() => crMonter(el), e => crRepli(e && e.message)); }
+  /* un échec DANS le montage (plugin absent, appareil sans WebGL…) se dit aussi : sans ce rattrapage l'erreur restait muette et la carte
+     ne montrait ni message ni bouton « Réessayer » (planning-08) */
+  crChargerLeaflet().then(() => { try { crMonter(el); } catch (e) { try { if (el._m) el._m.remove(); } catch (x) {} el._m = null; crLf = null; crRepli(e && e.message || 'la carte n’a pas pu s’afficher'); } }, e => crRepli(e && e.message)); }
 function crMonter(el){
   if (!el.isConnected || el._m) return;
   if (crLf && crLf.map) { try { crLf.map.remove(); } catch (e) {} }
@@ -4276,7 +4294,7 @@ function crMonter(el){
   crTracerReel();
 }
 function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
-  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 60] : [70, 60], maxZoom:15, animate:!!anim }); }
+  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
 /* tournées, arrêts numérotés, trajets et « à confier », posés sur la vraie carte (mêmes règles que le dessin) */
 function crTracerReel(){
   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
@@ -4293,10 +4311,23 @@ function crTracerReel(){
   const pins = [{ dep:1, ll:CR_DEPOT }];
   T.forEach(({ t, S }) => S.forEach(x => { if (!x.bureau) pins.push({ id:x.i.id, ll:crPos(x), c:t.c, n:x.n, loin:crFocus && crFocus !== t.id, retard:x.retard, nom:CLIENTS[x.i.cli].nom, h:x.i.h, qui:t.nom }); }));
   C.forEach(i => pins.push({ id:i.id, ll:CR_GEO[i.cli] || CR_DEPOT, c:i.urgent ? 'var(--rouge)' : 'var(--orange)', n:'!', urgent:i.urgent, conf:1, loin:!!crFocus, nom:CLIENTS[i.cli].nom, h:i.h, qui:'à confier' }));
-  const vus = {};
-  pins.forEach(p => { const k = p.ll.join(','), n = vus[k] = (vus[k] || 0) + 1, dx = (n - 1) * 17;   // deux passages chez le même client : côte à côte
+  /* Deux repères trop proches ne se recouvrent plus (planning-07) : l'ancien décalage de 17 px ne valait que pour des
+     coordonnées IDENTIQUES, or à un cran de zoom éloigné deux clients voisins se superposent aussi — quatre repères sur neuf
+     ne s'ouvraient pas au clic. On mesure en pixels sur la carte telle qu'elle est (le tracé est refait à chaque zoom), on
+     écarte en spirale comme le dessin de secours, et un fil relie chaque repère déplacé à sa vraie place. */
+  const places = [], sz = map.getSize(), ecart = matchMedia('(pointer:coarse)').matches ? 45 : 31;   // au doigt, deux zones de 44 px ne se touchent pas
+  pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
+    /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
+       sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
+    const lib = (x, y) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < ecart), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= 64 && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+    if (!lib(X, Y)) { let trouve = false; for (k = 1; k <= 60 && !trouve; k++) { const a = k * 2.4, r = ecart * .6 + k * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny)) { X = nx; Y = ny; trouve = true; } } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+    p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
+    if (k) { const v = map.containerPointToLatLng([X, Y]);
+      L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
+      L.circleMarker(p.ll, { radius:2.5, color:'#1d1d1f', weight:0, fillColor:'#1d1d1f', fillOpacity:.8, interactive:false }).addTo(g); } });
+  pins.forEach(p => { const dx = p.dx, dy = p.dy;
     const html = p.dep ? '<div class="cr-mk dep">⌂</div>' : `<div class="cr-mk ${p.conf ? 'conf' : ''} ${p.urgent ? 'urg' : ''} ${p.id === crSel ? 'on' : ''} ${p.loin ? 'estompe' : ''}" style="--c:${p.c}" data-crpin="${p.id}"><i>${p.n}</i>${p.retard ? '<b class="cr-mk-r"></b>' : ''}</div>`;
-    const m = L.marker(p.ll, { icon:L.divIcon({ className:'', html, iconSize:[30, 30], iconAnchor:[15 - dx, 15] }), keyboard:!p.dep, title:p.dep ? 'Dépôt' : `${p.h} · ${p.nom} · ${p.qui}`, zIndexOffset:p.id === crSel ? 1000 : p.dep ? -100 : 0, riseOnHover:true }).addTo(g);
+    const m = L.marker(p.ll, { icon:L.divIcon({ className:'', html, iconSize:[30, 30], iconAnchor:[15 - dx, 15 - dy] }), keyboard:!p.dep, title:p.dep ? 'Dépôt' : `${p.h} · ${p.nom} · ${p.qui}`, zIndexOffset:p.id === crSel ? 1000 : p.dep ? -100 : 0, riseOnHover:true }).addTo(g);
     if (!p.dep) m.on('click', () => crChoisir(p.id, true)); });
 }
 document.addEventListener('click', ev => {
@@ -4317,7 +4348,11 @@ document.addEventListener('click', ev => {
   if ((b = q('[data-crchoix]'))) { crChoix(b.dataset.crchoix); return; }
   if ((b = q('[data-crconf]'))) { if (b.disabled) return; const [id, tid] = b.dataset.crconf.split('|'); crConfier(id, tid); return; }
   if ((b = q('[data-crplan]'))) { const i = INTS.find(x => x.id === b.dataset.crplan); if (i) { plVue = 'jour'; plRef = i.d; rendre(); flash(i.id); requestAnimationFrame(() => document.querySelector(`.pc[data-int="${i.id}"]`)?.scrollIntoView({ block:'center', behavior:'smooth' })); } return; }
-  if ((b = q('[data-crfeuille]'))) { const l = document.getElementById('cr-l'); if (l) l.scrollIntoView({ block:'start', behavior:'smooth' }); return; }
+  if ((b = q('[data-crfeuille]'))) { const l = document.getElementById('cr-l'), k = document.getElementById('cr-carte');
+    /* la poignée fait ce que son nom dit, dans les deux sens : un premier toucher amène la liste en haut de l'écran, le second ramène la carte
+       (avant, le second ne faisait rien et le nom promettait « agrandir ou réduire » — planning-10) */
+    if (l) { const haut = l.getBoundingClientRect().top < innerHeight * .3 && k; const cible = haut ? k : l; cible.scrollIntoView({ block:'start', behavior:'smooth' });
+      const n = haut ? 'Voir toute la liste des étapes' : 'Revenir à la carte'; b.setAttribute('aria-label', n); b.title = n; } return; }
 });
 document.addEventListener('panneau-ferme', () => {});
 // glisser une intervention de la liste sur la tournée de quelqu'un d'autre (ordinateur)
@@ -4549,7 +4584,10 @@ document.addEventListener('contextmenu', ev => {
 document.addEventListener('dblclick', ev => { if (ev.target.closest('.pc')) return; const col = ev.target.closest('.pl-col'), cel = ev.target.closest('.pl-cel'), mj = ev.target.closest('.pl-mj'); if (ev.target.closest('.fen')) return; if (col) ouvrirCreation({ tid:col.dataset.tech, d:col.dataset.d, h:heureSous(col, ev.clientY) }); else if (cel) ouvrirCreation({ tid:cel.dataset.tech, d:cel.dataset.d, h:9*60 }); else if (mj && !ev.target.closest('button')) ouvrirCreation({ tid:'', d:mj.dataset.mj, h:9*60 }); });
 document.addEventListener('mousedown', ev => { cacherApercu(); const mc = document.querySelector('.ctx'); if (mc && ev.isTrusted && planTouchFin && Date.now() - planTouchFin < 700 && +mc.dataset.ouvertA >= planTouchDebut) return; if (!ev.target.closest('.ctx')) fermerMenu(); }, true);
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') { fermerMenu(); fermerPanneau(); }
+  if (ev.key === 'Escape') { fermerMenu(); fermerPanneau();
+    /* Les fenêtres « Quels jours ? », « Personnes » et « Mes vues » se refermaient seulement au clic dehors : Échap les laisse
+       maintenant, comme toute fenêtre de l'application, et rend le focus au bouton qui l'avait ouverte (planning-03). */
+    if (multiPop && route === 'planning' && !document.querySelector('.fen,.voile,#dtpop')) { const k = multiPop; multiPop = null; rendre(); const b = document.querySelector('[data-mpop="' + k + '"]'); if (b) b.focus({ preventScroll:true }); } }
   if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'z' && !ev.target.closest('input,textarea,select')) { ev.preventDefault(); annuler(); }
   const c = ev.target.closest && ev.target.closest('.pc[data-int]');
   if (c && !c.closest('.fen') && (ev.key === 'ContextMenu' || (ev.shiftKey && ev.key === 'F10'))) { ev.preventDefault(); const r = c.getBoundingClientRect(); menuCarte(c.dataset.int, r.left + 20, r.bottom); }
@@ -5271,7 +5309,7 @@ function vueAccueil(){
     ...FACTURES.filter(f => f.st === 'retard' && !tachesUrgentes().some(x => x.lien && x.lien.t === 'facture' && x.lien.id === f.id)).map(f => ({ c:'var(--rouge)', t:'Facture en retard de paiement', s:CLIENTS[f.cli].nom + (f.relances ? ' · relancée ' + f.relances + ' fois' : ''), go:'facture-x-' + f.id })),
     ...CONTRATS.filter(k => k.st === 'envoye').map(k => ({ c:'var(--bleu)', t:'Contrat en attente de signature', s:CLIENTS[k.cli].nom, go:'contrat-x-' + k.id }))
   ].filter(Boolean);
-  return `<div class="tete tete-p"><div><span class="surtitre" style="color:var(--lien)">Samedi 31 octobre</span><h1>Bonjour Marc</h1><span class="gris">${ENTREPRISE.nom}</span></div><div class="actions"><button type="button" class="btn btn-planning" data-go="planning">${svg('planning')}Planning de l’équipe</button><button type="button" class="btn gris" data-creer="1">＋ Nouvelle intervention</button></div></div>
+  return `<div class="tete tete-p"><div><span class="surtitre" style="color:var(--lien)">Samedi 31 octobre</span><h1>Bonjour ${esc(prenomDe(acteur()))}</h1><span class="gris">${ENTREPRISE.nom}</span></div><div class="actions"><button type="button" class="btn btn-planning" data-go="planning">${svg('planning')}Planning de l’équipe</button><button type="button" class="btn gris" data-creer="1">＋ Nouvelle intervention</button></div></div>
   <div class="kpis"><button type="button" class="kpi" data-kdash="jour"><b>${auj.length}</b><span>interventions aujourd’hui</span></button><button type="button" class="kpi" data-kdash="rec"><b style="color:var(--orange)">${eur(FACTURES.filter(f=>['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0))}</b><span>à recevoir</span></button><button type="button" class="kpi" data-kdash="enc"><b style="color:var(--vert)">${eur(ENCAISSEMENTS.reduce((s,e)=>s+e.ttc,0))}</b><span>encaissé en octobre${(T => T.length ? ` <i class="cp-k">+ ${eur(T.reduce((s, e) => s + e.ttc, 0))} reçus sur place, pas encore sur une facture</i>` : '')(cpPaieTerrain())}</span></button><button type="button" class="kpi" data-go="contrats"><b>${eur(CONTRATS.filter(k=>k.st==='signe').reduce((s,k)=>s+k.prix,0))}</b><span>de contrats par an</span></button></div>
   <div class="grille2"><div class="carte"><h3>Aujourd’hui, toute l’équipe</h3>${auj.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span><b class="jl-h">${i.h}</b></span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span>${i.st==='fait'?'<br>'+paiementPastille(fiche(i.id).paiement):''}</span></span><span>›</span></button>`).join('')}</div>
     <div class="carte"><h3>À faire maintenant</h3>${afaire.map(a=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" ${a.devisLien ? `data-devislien="${a.devisLien}"` : a.kd ? `data-kdash="${a.kd}"` : a.voirRdv ? `data-voirrdv="${a.voirRdv}"` : a.tache ? `data-tache="${a.tache}"` : a.dem ? `data-dem="${a.dem}"` : `data-go="${a.go}"`} ${a.ff?`data-ff2="${a.ff}"`:''}><span class="af-l" style="display:flex;gap:12px;align-items:center">${(([lib, cl]) => `<span class="st ${cl} etiq-af">${lib}</span>`)(a.c.includes('rouge') ? ['En retard','st-r'] : a.c.includes('orange') ? ['À faire','st-o'] : ['À traiter','st-b'])}<span><b>${a.t}</b><br><span class="gris petit">${a.s}</span></span></span><span>›</span></button>`).join('')}</div></div>`;
@@ -6027,7 +6065,7 @@ let JOURNAL = (() => {
 })();
 let hQui = 'tous', hType = 'tous', hCli = 'tous', hCherche = '', hVoirComme = 'marc', hMax = 14;   // hMax : nombre de JOURS montrés
 /* ce que fait le prototype s'inscrit aussi : un geste, une ligne */
-function journalAjout(qui, type, action, el, extra){ hOuverts.add(AUJ); JOURNAL.push({ id:'j' + JOURNAL.length, d:AUJ, h:hm(MAINT_MIN), qui, type:type === 'equipe' && /tâche|les pièces|prévenu le client|suite d’une relance/.test(action) ? 'tache' : type, action, el, ...extra, neuf:true }); }
+function journalAjout(qui, type, action, el, extra){ if (qui === 'marc') qui = acteur(); hOuverts.add(AUJ);   /* « qui a fait quoi » : les 90 appels écrivaient 'marc' en dur, donc le journal disait « Marc » pour ce que Julie venait de faire (étape des droits, 17 novembre 2026) */ JOURNAL.push({ id:'j' + JOURNAL.length, d:AUJ, h:hm(MAINT_MIN), qui, type:type === 'equipe' && /tâche|les pièces|prévenu le client|suite d’une relance/.test(action) ? 'tache' : type, action, el, ...extra, neuf:true }); }
 (() => { const avant = poser; poser = function(i, tid, d, h, dur, forcer){
   const a = { tech:i.tech, d:i.d, h:i.h, dur:i.dur }, r = avant.apply(this, arguments);
   if (a.tech !== i.tech || a.d !== i.d || a.h !== i.h || a.dur !== i.dur) journalAjout('marc', 'planning', a.dur !== i.dur && a.d === i.d && a.h === i.h ? 'a changé la durée' : !a.tech && i.tech ? 'a planifié l’intervention' : 'a déplacé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli },
@@ -9664,25 +9702,28 @@ document.addEventListener('click', ev => {
    · les places viennent de l'abonnement.
    Et ce qui manquait : la fiche d'une personne réunit ce que les autres catégories savent d'elle — sa semaine au planning, ses heures
    pointées, son véhicule et le stock de son camion, ses congés, ses habilitations avec leur date de fin. Données fictives. */
-const DR_CATS = [['planif', 'Planning, tâches et absences'], ['inter', 'Interventions'], ['crm', 'Clients'], ['ventes', 'Devis, factures, contrats, paiements'], ['compta', 'Comptabilité'],
-  ['stock', 'Fournisseurs, matériel, stock et dépôts'], ['temps', 'Temps de travail et véhicules'], ['com', 'Boîte mail'], ['achats', 'Achats et frais'], ['admin', 'Équipe']];
+const DR_CATS = [['planif', 'Planning et absences'], ['inter', 'Interventions'], ['crm', 'Clients'], ['ventes', 'Devis, factures, contrats, paiements'], ['compta', 'Comptabilité'],
+  ['stock', 'Fournisseurs, matériel, stock et dépôts'], ['temps', 'Temps de travail et véhicules'], ['com', 'Boîte mail'], ['achats', 'Achats et frais'], ['admin', 'L’entreprise et l’équipe']];
 const DR_SP = [['tout', 'Voir les interventions de toute l’équipe', 'sinon, seulement les siennes'], ['prix', 'Voir les prix d’achat et les marges', ''], ['atelier', 'Se servir à l’atelier sans validation', 'sinon, ses sorties attendent le responsable'],
   ['valstock', 'Valider les gestes de stock des autres', ''], ['commander', 'Envoyer des commandes aux fournisseurs', ''], ['corrpt', 'Corriger les pointages', 'les siens comme ceux des autres'], ['comptes', 'Créer des comptes', 'dans la limite des places']];
 const tousOui = () => Object.fromEntries(DR_CATS.map(([k]) => [k, { v:1, c:1, m:1, s:1 }]));
+/* v c m s : voir, créer, modifier, supprimer. Les valeurs de départ donnent les menus que Justin a validés (étape 5, spec § 2.12) : le Responsable voit tout et ne règle pas l'entreprise ;
+   le Secrétariat a le bureau (sans Planning, Boîte mail, Temps de travail) ; le Technicien a ses cinq écrans personnels. Une case qui n'ouvre aucun geste n'est pas affichée dans la fiche. */
+const caseV = (...L) => Object.fromEntries(DR_CATS.map(([c], i) => { const [v, a, m, x] = String(L[i]).padStart(4, '0').split('').map(Number); return [c, { v, c:a, m, s:x }]; }));
 const PROFILS = {
   admin:{ nom:'Administrateur', cats:tousOui(), sp:Object.fromEntries(DR_SP.map(([k]) => [k, 1])) },
-  resp:{ nom:'Responsable', cats:{ ...tousOui(), admin:{ v:1, c:0, m:0, s:0 }, compta:{ v:1, c:0, m:0, s:0 } }, sp:{ tout:1, prix:1, atelier:1, valstock:1, commander:1, corrpt:1, comptes:0 } },
-  secr:{ nom:'Secrétariat', cats:{ planif:{ v:1, c:1, m:1, s:0 }, inter:{ v:1, c:1, m:1, s:0 }, crm:{ v:1, c:1, m:1, s:0 }, ventes:{ v:1, c:1, m:1, s:0 }, compta:{ v:1, c:0, m:0, s:0 }, stock:{ v:1, c:1, m:1, s:0 }, temps:{ v:1, c:0, m:0, s:0 }, com:{ v:1, c:1, m:1, s:0 }, achats:{ v:1, c:1, m:1, s:0 }, admin:{ v:0, c:0, m:0, s:0 } }, sp:{ tout:1, prix:1, atelier:1, valstock:0, commander:1, corrpt:0, comptes:0 } },
-  tech:{ nom:'Technicien', cats:{ planif:{ v:1, c:0, m:0, s:0 }, inter:{ v:1, c:0, m:1, s:0 }, crm:{ v:1, c:0, m:0, s:0 }, ventes:{ v:0, c:0, m:0, s:0 }, compta:{ v:0, c:0, m:0, s:0 }, stock:{ v:1, c:0, m:0, s:0 }, temps:{ v:1, c:1, m:0, s:0 }, com:{ v:1, c:1, m:0, s:0 }, achats:{ v:1, c:1, m:0, s:0 }, admin:{ v:0, c:0, m:0, s:0 } }, sp:{ tout:0, prix:0, atelier:0, valstock:0, commander:0, corrpt:0, comptes:0 } }
+  resp:{ nom:'Responsable', cats:caseV(1111, 1111, 1111, 1111, 1000, 1111, 1111, 1111, 1111, 1000), sp:{ tout:1, prix:1, atelier:1, valstock:1, commander:1, corrpt:1, comptes:0 } },
+  secr:{ nom:'Secrétariat', cats:caseV(0, 1110, 1110, 1110, 1110, 1110, 1110, 0, 1000, 0), sp:{ tout:1, prix:1, atelier:1, valstock:0, commander:1, corrpt:0, comptes:0 } },
+  tech:{ nom:'Technicien', cats:caseV(1101, 1011, 1000, 0, 0, 1010, 1110, 0, 1111, 0), sp:{ tout:0, prix:0, atelier:0, valstock:0, commander:0, corrpt:0, comptes:0 } }
 };
 const copieProfil = k => JSON.parse(JSON.stringify({ profil:k, cats:PROFILS[k].cats, sp:PROFILS[k].sp }));
 let EQUIPE = [
-  { k:'marc', prenom:'Marc', nom:'Leblanc', role:'Gérant', mail:'marc@climservices17.fr', tel:'06 11 22 33 44', actif:true, droits:copieProfil('admin'), habil:[['Attestation de capacité de l’entreprise (fluides)', jour(820)]] },
-  { k:'julie', prenom:'Julie', nom:'Petit', role:'Secrétariat', mail:'julie@climservices17.fr', tel:'06 55 66 77 88', actif:true, droits:copieProfil('secr'), habil:[] },
-  { k:'sm', prenom:'Sophie', nom:'Martin', role:'Technicienne', mail:'sophie@climservices17.fr', tel:'06 12 12 12 12', actif:true, droits:copieProfil('tech'), habil:[['Aptitude fluides frigorigènes, catégorie I', null], ['Habilitation électrique BR', jour(210)]] },
-  { k:'kb', prenom:'Karim', nom:'Benali', role:'Chef d’équipe', mail:'karim@climservices17.fr', tel:'06 34 34 34 34', actif:true, droits:{ ...copieProfil('tech'), profil:'tech*', sp:{ ...PROFILS.tech.sp, atelier:1, valstock:1 } }, habil:[['Aptitude fluides frigorigènes, catégorie I', null], ['Habilitation électrique BR', jour(24)]] },
-  { k:'lr', prenom:'Léa', nom:'Roux', role:'Technicienne', mail:'lea@climservices17.fr', tel:'06 56 56 56 56', actif:true, droits:copieProfil('tech'), habil:[['Habilitation électrique B1V', jour(410)], ['Prévention du risque amiante, sous-section 4', jour(-9)]] },
-  { k:'tl', prenom:'Tom', nom:'Leroy', role:'Technicien', mail:'tom@climservices17.fr', tel:'06 78 78 78 78', actif:true, droits:copieProfil('tech'), habil:[['Habilitation électrique BR', jour(95)]] }
+  { k:'marc', terrain:false, prenom:'Marc', nom:'Leblanc', role:'Gérant', mail:'marc@climservices17.fr', tel:'06 11 22 33 44', actif:true, droits:copieProfil('admin'), habil:[['Attestation de capacité de l’entreprise (fluides)', jour(820)]] },
+  { k:'julie', terrain:false, prenom:'Julie', nom:'Petit', role:'Secrétariat', mail:'julie@climservices17.fr', tel:'06 55 66 77 88', actif:true, droits:copieProfil('secr'), habil:[] },
+  { k:'sm', terrain:true, prenom:'Sophie', nom:'Martin', role:'Technicienne', mail:'sophie@climservices17.fr', tel:'06 12 12 12 12', actif:true, droits:copieProfil('tech'), habil:[['Aptitude fluides frigorigènes, catégorie I', null], ['Habilitation électrique BR', jour(210)]] },
+  { k:'kb', terrain:true, prenom:'Karim', nom:'Benali', role:'Chef d’équipe', mail:'karim@climservices17.fr', tel:'06 34 34 34 34', actif:true, droits:{ ...copieProfil('tech'), profil:'tech*', sp:{ ...PROFILS.tech.sp, atelier:1 } }, habil:[['Aptitude fluides frigorigènes, catégorie I', null], ['Habilitation électrique BR', jour(24)]] },
+  { k:'lr', terrain:true, prenom:'Léa', nom:'Roux', role:'Technicienne', mail:'lea@climservices17.fr', tel:'06 56 56 56 56', actif:true, droits:copieProfil('tech'), habil:[['Habilitation électrique B1V', jour(410)], ['Prévention du risque amiante, sous-section 4', jour(-9)]] },
+  { k:'tl', terrain:true, prenom:'Tom', nom:'Leroy', role:'Technicien', mail:'tom@climservices17.fr', tel:'06 78 78 78 78', actif:true, droits:copieProfil('tech'), habil:[['Habilitation électrique BR', jour(95)]] }
 ];
 let EQ_PLACES = 8;
 let eqSel = null, eqFiltre = 'tous';
@@ -9703,11 +9744,11 @@ const habFormation = (k, d) => d && ABSENCES.find(a => a.tech === k && a.type ==
 const absTexte = a => a.du <= AUJ ? `${a.type} jusqu’au ${jCourt(a.au)}` : a.du === a.au ? `${a.type} le ${jCourt(a.du)}` : `${a.type} du ${a.du.slice(0, 7) === a.au.slice(0, 7) ? jCourt(a.du).split(' ')[0] : jCourt(a.du)} au ${jCourt(a.au)}`;
 function vueEquipe(){
   const actifs = EQUIPE.filter(p => p.actif), hab = EQUIPE.filter(p => p.actif).flatMap(p => p.habil.filter(([, d]) => habEtat(d) !== 'v').map(h => ({ p, h }))), inv = EQUIPE.filter(p => p.invite);
-  const L = EQUIPE.filter(p => eqFiltre === 'tous' || (eqFiltre === 'terrain' ? p.actif && (['sm', 'kb', 'lr', 'tl'].includes(p.k) || p.terrain) : eqFiltre === 'bureau' ? p.actif && !(['sm', 'kb', 'lr', 'tl'].includes(p.k) || p.terrain) : !p.actif));
+  const L = EQUIPE.filter(p => eqFiltre === 'tous' || (eqFiltre === 'terrain' ? p.actif && eqxTerrain(p) : eqFiltre === 'bureau' ? p.actif && !eqxTerrain(p) : !p.actif));
   return `<div class="tete"><div><span class="surtitre">Personnel</span><h1>Équipe</h1><span class="gris">Les personnes de l’entreprise, ce que chacune peut faire, et tout ce que l’application sait d’elle : sa semaine, ses heures, son véhicule, ses congés, ses habilitations.</span></div>
       <div class="actions"><button type="button" class="btn" data-eq="inviter">＋ Inviter une personne</button></div></div>
     <div class="kpis"><div class="kpi"><b>${actifs.length} / ${EQ_PLACES}</b><span>places utilisées</span></div>
-      <div class="kpi"><b>${EQUIPE.filter(p => p.actif && (['sm', 'kb', 'lr', 'tl'].includes(p.k) || p.terrain)).length}</b><span>sur le terrain</span></div>
+      <div class="kpi"><b>${EQUIPE.filter(p => p.actif && eqxTerrain(p)).length}</b><span>sur le terrain</span></div>
       <div class="kpi"><b style="color:${hab.length ? 'var(--orange)' : 'inherit'}">${hab.length}</b><span>habilitation${hab.length > 1 ? 's' : ''} à renouveler</span></div>
       <div class="kpi"><b>${inv.length}</b><span>invitation${inv.length > 1 ? 's' : ''} en attente</span></div></div>
     ${hab.length ? `<div class="carte ve-urg"><h2 class="cmd-titre" style="margin:0 0 6px">À renouveler</h2>${hab.map(({ p, h }) => `<button type="button" class="ve-u" data-eq="fiche|${p.k}"><span class="st st-${habEtat(h[1]) === 'r' ? 'r' : 'o'}">${tJours(h[1]) < 0 ? 'Expirée' : tJours(h[1]) + ' j'}</span><span class="fo-n"><b>${esc(h[0])}</b><span class="gris petit">${esc(eqNom(p))} · ${tJours(h[1]) < 0 ? 'expirée le' : 'fin le'} ${dFr(h[1])}${habFormation(p.k, h[1]) ? ` · <b class="ve-vt">formation prévue le ${jCourt(habFormation(p.k, h[1]).du)}</b>` : ''}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}
@@ -9792,12 +9833,14 @@ document.addEventListener('input', ev => {
    La Messagerie a été retirée le 7 novembre 2026 (Justin : « je n'en vois pas l'utilité ») : OP MESSAGES existe pour ça. Ce qu'elle
    portait et qui sert ailleurs vit ici : la disponibilité d'une personne (en intervention chez qui, absente, libre), lue avant de lui
    confier un courriel ; et la notification qui prévient quelqu'un d'une décision (demande d'achat, note de frais). */
-const MOI = 'marc';
+/* QUI AGIT. Une seule définition : la personne connectée (SESSION, mode application), sinon celle que la bande « Tester en tant que » représente, sinon Marc.
+   Déclarée en `function` (remontée) : le journal l'appelle dès le premier geste, avant que `let ROLE` ne soit lu ; un `try` rend Marc pendant ce tout premier instant. */
+function acteur(){ try { return (typeof SESSION !== 'undefined' && SESSION) || (RL_ACTIF && ROLES[ROLE] && ROLES[ROLE].qui) || 'marc'; } catch (e) { return 'marc'; } }
 const COLLEGUES = ['marc', 'julie', 'sm', 'kb', 'lr', 'tl'];
 const prenomDe = k => (H_GENS[k] || {}).nom ? H_GENS[k].nom.split(' ')[0] : k;
 function dispoDe(k){
   const a = ABSENCES.find(o => o.tech === k && o.du <= AUJ && AUJ <= o.au); if (a) return { c:'violet', t:a.type + ' jusqu’au ' + jCourt(a.au) };
-  if (!['sm', 'kb', 'lr', 'tl'].includes(k)) return { c:'vert', t:'Au bureau' };
+  if (!(eqDe(k) && eqxTerrain(eqDe(k)))) return { c:'vert', t:'Au bureau' };
   const L = INTS.filter(i => i.tech === k && i.d === AUJ && i.st !== 'annulee').sort((x, y) => x.h.localeCompare(y.h));
   const en = L.find(i => hmin(i.h) <= MAINT_MIN && MAINT_MIN < hmin(i.h) + i.dur) || L.find(i => i.st === 'encours' || i.st === 'retard');
   if (en) return { c:'orange', t:`En intervention chez ${CLIENTS[en.cli].nom}${en.st === 'retard' ? ', en retard' : ' jusqu’à ' + hm(hmin(en.h) + en.dur)}` };
@@ -9905,12 +9948,12 @@ document.addEventListener('click', ev => {
   if (a === 'livraison') { const c = mlLire(m).cmd, av = c.prevue; c.prevue = jour(2); c.journal.push([AUJ, `Expédiée par ${c.four} (suivi FD-77812), livraison prévue le ${jCourt(c.prevue)} — lu dans leur courriel`]); mlTraite(m, `Livraison du ${c.num} mise au ${jCourt(c.prevue)}`, `data-ml="cmd|${c.id}"`); rendre(); return toast(`Commande ${esc(c.num)} : livraison prévue le ${jCourt(c.prevue)}${av && av !== c.prevue ? ' (au lieu du ' + jCourt(av) + ')' : ''}.`); }
   if (a === 'rappro') return cmdRappro(mlLire(m).cmd.id);   // la facture se valide avec ses écarts ; le courriel est rangé à la validation (cmdFacturer)
   if (a === 'annonce') { const f = mlLire(m).facture; f.annonce = 'virement annoncé le ' + jCourt(m.d); mlTraite(m, 'Paiement annoncé noté sur la facture : elle sera marquée payée quand le virement arrivera', `data-tvoir="facture|${f.id}"`); rendre(); return toast(`Noté sur ${esc(f.num)}. On la marque payée à l’arrivée du virement, pas avant.`); }
-  if (a === 'confier') return ouvrirPanneau(`<span class="surtitre">Confier ce courriel</span><h2>${esc(m.objet)}</h2><span class="gris petit">La personne le retrouve dans ses tâches, avec le courriel attaché, et reçoit une notification.</span><div class="fo-bloc">${COLLEGUES.filter(k => k !== MOI && eqDe(k) && eqDe(k).actif).map(k => { const d = dispoDe(k); return `<button type="button" class="ve-u" data-ml="confok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`);
+  if (a === 'confier') return ouvrirPanneau(`<span class="surtitre">Confier ce courriel</span><h2>${esc(m.objet)}</h2><span class="gris petit">La personne le retrouve dans ses tâches, avec le courriel attaché, et reçoit une notification.</span><div class="fo-bloc">${COLLEGUES.filter(k => k !== acteur() && eqDe(k) && eqDe(k).actif).map(k => { const d = dispoDe(k); return `<button type="button" class="ve-u" data-ml="confok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`);
   if (a === 'confok') { const R = mlLire(m), quoi = ({ panne:'Organiser l’intervention', devis:'Préparer le devis', accord:'Planifier l’installation', facfour:'Rapprocher la facture', paiement:'Pointer le paiement', expedition:'Suivre la livraison' })[R.sujet] || 'Répondre';
-    TACHES.push({ id:'t' + Date.now(), t:`${quoi} : ${m.objet}`, qui:y, d:AUJ, h:null, urgent:!!R.urgent, cat:'mail', lien:{ t:'aller', id:'boiteMail|' + m.id, lib:'Boîte mail', cat:'Boîte mail' }, creePar:MOI, creeLe:'31/10', origine:'confiée depuis la Boîte mail' });
-    notifier(y, `${H_NOM(MOI)} te confie un courriel : ${m.objet}`); mlTraite(m, `Confié à ${prenomDe(y)} (dans ses tâches)`); fermerPanneau(); rendre();
+    TACHES.push({ id:'t' + Date.now(), t:`${quoi} : ${m.objet}`, qui:y, d:AUJ, h:null, urgent:!!R.urgent, cat:'mail', lien:{ t:'aller', id:'boiteMail|' + m.id, lib:'Boîte mail', cat:'Boîte mail' }, creePar:acteur(), creeLe:'31/10', origine:'confiée depuis la Boîte mail' });
+    notifier(y, `${H_NOM(acteur())} te confie un courriel : ${m.objet}`); mlTraite(m, `Confié à ${prenomDe(y)} (dans ses tâches)`); fermerPanneau(); rendre();
     return toast(`Confié à ${esc(prenomDe(y))} : c’est dans ses tâches, avec une notification.`, { lib:'Voir les tâches', fn:() => aller('taches') }); }
-  if (a === 'tache') { if (TACHES.some(o => !o.fait && o.t === 'Répondre : ' + m.objet && o.origine === 'depuis le courriel de ' + m.de.nom)) return toast('Cette tâche existe déjà dans tes tâches.', { lib:'Voir les tâches', fn:() => aller('taches') }); TACHES.push({ id:'t' + Date.now(), t:'Répondre : ' + m.objet, qui:MOI, d:AUJ, h:null, creePar:MOI, creeLe:'31/10', cat:'mail', lien:{ t:'aller', id:'boiteMail|' + m.id, lib:'Boîte mail', cat:'Boîte mail' }, origine:'depuis le courriel de ' + m.de.nom });   /* rangée sous « Boîte mail » avec son lien, comme « Confier » (elle tombait dans « Autres », sans retour au courriel) · 13 novembre 2026 */ return toast('Tâche ajoutée pour aujourd’hui.'); }
+  if (a === 'tache') { if (TACHES.some(o => !o.fait && o.t === 'Répondre : ' + m.objet && o.origine === 'depuis le courriel de ' + m.de.nom)) return toast('Cette tâche existe déjà dans tes tâches.', { lib:'Voir les tâches', fn:() => aller('taches') }); TACHES.push({ id:'t' + Date.now(), t:'Répondre : ' + m.objet, qui:acteur(), d:AUJ, h:null, creePar:acteur(), creeLe:'31/10', cat:'mail', lien:{ t:'aller', id:'boiteMail|' + m.id, lib:'Boîte mail', cat:'Boîte mail' }, origine:'depuis le courriel de ' + m.de.nom });   /* rangée sous « Boîte mail » avec son lien, comme « Confier » (elle tombait dans « Autres », sans retour au courriel) · 13 novembre 2026 */ return toast('Tâche ajoutée pour aujourd’hui.'); }
 });
 
 /* ⟦module achats⟧ */
@@ -11263,10 +11306,8 @@ const RL_CLI = { cli:'vp' };
 const RL_VU = {};   // ce que le parcours a vu faire (pour cocher ses étapes)
 const ROLES = {
   patron:{ ic:'👔', l:'Patron', qui:'marc', d:'Tout voir et tout décider : planning, équipe, devis, factures, comptabilité.' },
-  gestion:{ ic:'🧾', l:'Gestion des factures', court:'Gestion', qui:'julie', accueil:'comptabilite', d:'Factures, paiements, achats, banque, TVA, envoi à l’expert-comptable. Voit les interventions, ne les planifie pas.',
-    routes:['comptabilite', 'facture', 'factures', 'encaissements', 'devis', 'contrats', 'contrat', 'contrat-nouveau', 'signer', 'clients', 'client', 'interventions', 'inter', 'contrat-nouveau', 'signer', 'clientvoit'] },
-  tech:{ ic:'🧰', l:'Technicien', lq:'technicienne', court:'Technicien', qui:'sm', accueil:'majournee', d:'Sa journée sur le téléphone : y aller, faire l’intervention, faire signer, encaisser sur place, ses notes de frais.',
-    routes:['majournee', 'techfrais', 'inter', 'clientvoit', 'registre'] },
+  gestion:{ ic:'🧾', l:'Gestion des factures', court:'Gestion', qui:'julie', accueil:'comptabilite', d:'Factures, paiements, achats, banque, TVA, envoi à l’expert-comptable. Voit les interventions, ne les planifie pas.' },   /* ses écrans viennent des cases de sa fiche (droitVoit), plus d'une liste de routes */
+  tech:{ ic:'🧰', l:'Technicien', lq:'technicienne', court:'Technicien', qui:'sm', accueil:'majournee', d:'Sa journée sur le téléphone : y aller, faire l’intervention, faire signer, encaisser sur place, ses notes de frais.' },
   client:{ ic:'🙋', l:'Client', court:'Client', accueil:'espaceclient', d:'Son espace en ligne : ses factures à payer, ses devis à signer, ses comptes rendus, demander une intervention.',
     routes:['espaceclient', 'signer'] }
 };
@@ -11303,7 +11344,69 @@ function rlRetourBouton(c){
 }
 const RL_PASSE = { lib:'', h:'', fn:null, parti:false, rl:true, get route(){ return route; } };
 const rlQui = () => ROLES[ROLE].qui;
-const rlPermis = r => ROLE === 'patron' ? !['majournee', 'techfrais', 'espaceclient', 'mesheures' /* « Mes heures » est l'écran d'une salariée : le patron qui collait #mesheures lisait celles de Sophie sous son propre nom · 13 novembre 2026 */].includes(r) : ROLES[ROLE].routes.includes(r) && !drRefuse(r);   /* + la case « Voir » réglée dans Équipe pour la personne qui tient ce rôle · 13 novembre 2026 */
+const rlPermis = r => ROLE === 'client' ? ROLES.client.routes.includes(r) : ROLE === 'compta' ? ROLES.compta.routes.includes(r) : droitVoit(r);   /* la case « Voir » de la catégorie ET la forme de la personne (terrain ou équipe) : droitVoit, une seule porte · 17 novembre 2026 */
+/* ⟦module droits⟧ */
+/* ══ LES DROITS QUI AGISSENT · étape 5 de la voie « entreprise », 17 novembre 2026 ══
+   Spécification : scratchpad/proto-final/refonte/MON-ENTREPRISE-ET-DROITS.md § 2. Justin : « ce qu'il voit, ce qu'il ne voit pas, ce qu'il peut faire ».
+   Avant : seul le « Voir » de sept catégories fermait un menu, par `drRefuse`, et le NOM du rôle de revue décidait du reste. Maintenant :
+   · UNE table de routes (ROUTE_DROIT) et UNE fonction (droitVoit) décident du menu, de la barre du bas, de la recherche, des raccourcis, de l'ouverture
+     et de l'adresse tapée à la main — jamais une seconde liste ;
+   · UNE seconde table (ACTE_DROIT) pour les noms qui ne sont pas des écrans mais des cases de geste (accepter un envoi, régler le stock, changer un prix) ;
+   · la FORME de l'écran suit la case « Travaille sur le terrain » (eqxTerrain), jamais le nom du profil : un terrain a ses cinq écrans personnels, les autres ceux de l'équipe. */
+const ROUTE_DROIT = {
+  accueil:{ equipe:['admin'] }, statistiques:{ equipe:['admin'] }, historique:{ equipe:['admin'] }, equipe:{ equipe:['admin'] }, entreprise:{ equipe:['admin'] },
+  planning:{ equipe:['planif'] }, absences:{ equipe:['planif'], terrain:['planif'] },
+  interventions:{ equipe:['inter'] }, inter:{ equipe:['inter'], terrain:['inter'] }, majournee:{ terrain:['inter'] }, registre:{ equipe:['inter'], terrain:['inter'] },
+  clientvoit:{ equipe:['crm'], terrain:['crm'] }, clients:{ equipe:['crm'] }, client:{ equipe:['crm'] },
+  devis:{ equipe:['ventes'] }, contrats:{ equipe:['ventes'] }, contrat:{ equipe:['ventes'] }, 'contrat-nouveau':{ equipe:['ventes'] }, signer:{ equipe:['ventes'], terrain:['ventes'] },
+  devisXylo:{ equipe:['ventes'], terrain:['inter'] },
+  comptabilite:{ equipe:['compta'] }, factures:{ equipe:['compta', 'ventes'] }, facture:{ equipe:['ventes'] }, encaissements:{ equipe:['compta', 'ventes'] },
+  boiteMail:{ equipe:['com'] },
+  achats:{ equipe:['achats'] }, techfrais:{ terrain:['achats'] },
+  stock:{ equipe:['stock'] }, produits:{ equipe:['stock'] }, boxes:{ equipe:['stock', 'stock.s'], terrain:['stock'] }, carteBox:{ equipe:['stock'], terrain:['stock'] }, moncamion:{ terrain:['stock'] },
+  pointage:{ equipe:['temps', 'temps.s'] }, vehicules:{ equipe:['temps'] }   /* les heures de toute l'équipe sont des données de salaire : elles demandent « Supprimer » en plus (comme Dépôts et camions) ; les Véhicules, que le bureau lit et complète (VEHTEMPS § 11), non */, mesheures:{ terrain:['temps'] },
+  taches:{ equipe:[], terrain:[] }   /* « Mes tâches » : un outil personnel, toujours ouvert */
+};
+/* les noms qui ne sont pas des écrans : le geste lui-même (Stock : accepter un envoi du terrain, régler, changer un prix de vente) */
+const ACTE_DROIT = {
+  stockAccepter:p => droitForme(p) === 'equipe' && droitSp(p, 'valstock'),
+  stockReglages:p => droitForme(p) === 'equipe' && droitCase(p, 'stock.s'),
+  produitsPrixVente:p => droitForme(p) === 'equipe' && droitCase(p, 'stock.s')
+};
+/* un administrateur a tout : ses cases sont désactivées dans la fiche, on ne les relit pas (une donnée abîmée ne le couperait pas de lui-même) */
+const droitAdmin = p => !!(p && p.droits && p.droits.profil === 'admin');
+function droitCase(p, c){ if (!p || !p.droits) return false; if (droitAdmin(p)) return true;
+  const [cat, x] = c.split('.'), d = p.droits.cats[cat]; return !!(d && d.v && (!x || d[x])); }
+const droitSp = (p, k) => !!p && (droitAdmin(p) || !!(p.droits && p.droits.sp && p.droits.sp[k]));
+/* la forme d'écran de la personne : « terrain » (ses cinq écrans personnels) ou « equipe » (les écrans du bureau) — la case « Travaille sur le terrain », rien d'autre */
+const droitForme = p => !p || droitAdmin(p) ? 'equipe' : eqxTerrain(p) ? 'terrain' : 'equipe';
+/* pourquoi une adresse est fermée : null (elle s'ouvre), 'inconnue', 'forme' (écran d'une autre forme de personne) ou 'case' (une case décochée) */
+function droitRaison(r, p){ p = p || eqDe(acteur());
+  if (Object.hasOwn(ACTE_DROIT, r)) return p && ACTE_DROIT[r](p) ? null : 'case';
+  if (!routeConnue(r)) return 'inconnue';
+  if (!p || !Object.hasOwn(ROUTE_DROIT, r)) return 'forme';
+  const besoin = ROUTE_DROIT[r][droitForme(p)]; if (!besoin) return 'forme';
+  return besoin.every(c => droitCase(p, c)) ? null : 'case'; }
+const droitVoit = (r, p) => droitRaison(r, p) === null;
+/* Créer / Modifier / Supprimer : la case de la catégorie, pour la personne qui agit (ou pour une autre, quand on prépare sa fiche) */
+function peut(cat, x, p){ p = p || eqDe(acteur()); if (ROLE === 'client' && !p) return true; if (!p || !p.droits) return false; if (droitAdmin(p)) return true;
+  const d = p.droits.cats[cat]; return !!(d && d.v && d[x]); }
+/* la première rubrique qu'une personne a le droit d'ouvrir : là où le logo, une adresse refusée et la fin de session ramènent */
+const OUVERTURE_ORDRE = ['accueil', 'majournee', 'comptabilite', 'devis', 'clients', 'contrats', 'interventions', 'planning', 'taches'];
+const ouvertureDe = p => OUVERTURE_ORDRE.find(k => droitVoit(k, p)) || 'taches';
+/* le premier administrateur actif : c'est lui qu'on nomme quand une porte est fermée (« demande à Marc ») */
+const droitPremierAdmin = () => { const a = EQUIPE.find(p => p.actif && p.droits.profil === 'admin') || eqDe('marc'); return a ? a.prenom : 'le gérant'; };
+/* les lignes de menu d'une personne : la même fonction pour son propre menu et pour la phrase « Ce que Julie voit » de sa fiche */
+const LIGNES_TERRAIN = [['', ['majournee', 'taches', 'techfrais', 'mesheures', 'moncamion', 'absences']], [GROUPE_3D, ['registre']]];
+function rlLignesDe(p, coque){
+  coque = coque || sessionRole(p); if (coque === 'compta') return [];
+  const lib = LIB_ROLE[coque] || {}, pack3d = typeof PACKS_ENT !== 'undefined' && PACKS_ENT.includes('3d');
+  let groupes = coque === 'tech' ? LIGNES_TERRAIN.filter(([g]) => g !== GROUPE_3D || pack3d) : CATS.map(([g, L]) => [g, L.map(r => r[0])]);
+  /* Mes tâches ouvre le menu du bureau (c'est l'ordre que Justin a validé pour la secrétaire) ; le gérant garde l'ordre de CATS */
+  if (coque === 'gestion') groupes = groupes.map(([g, ks]) => [g, ks.includes('taches') ? ['taches', ...ks.filter(k => k !== 'taches')] : ks]);
+  return groupes.flatMap(([g, ks]) => ks.filter(k => LIG[k] && droitVoit(k, p)).map(k => ({ g, k, ic:LIG[k].ic, l:lib[k] || LIG[k].l, sous:LIG[k].sous, fait:LIG[k].fait, ec:false })));
+}
+
 Object.assign(IC, {
   majournee:'<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16M9 14.5l2 2 4-4"/>',
   techfrais:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
@@ -11331,13 +11434,9 @@ function rlBande(){
 const LIG = Object.fromEntries(CATS.flatMap(([g, L]) => L.map(([k, ic, l, fait, sous]) => [k, { k, ic, l, fait:!!fait, sous:sous || '' }])));
 Object.assign(LIG, { majournee:{ k:'majournee', ic:'🗓️', l:'Ma journée', fait:false, sous:'' }, techfrais:{ k:'techfrais', ic:'🧾', l:'Mes frais', fait:false, sous:'' }, mesheures:{ k:'mesheures', ic:'⏱️', l:'Mes heures', fait:false, sous:'' }, moncamion:{ k:'moncamion', ic:'🚐', l:'Mon camion', fait:false, sous:'' } });
 /* ce que chaque rôle trouve, dans l'ordre : [groupe sans titre = '', [routes]]. Le gérant (patron) lit CATS en entier. */
-const LIGNES_ROLE = {
-  gestion:[['Travail', ['taches', 'interventions']], ['Clients et ventes', ['clients', 'devis', 'contrats']], ['Argent', ['comptabilite', 'achats']]],
-  tech:[['', ['majournee', 'taches', 'techfrais', 'mesheures', 'moncamion', 'absences']], [GROUPE_3D, ['registre']]]
-};
 /* un rôle voit MOINS de lignes, jamais d'autres mots — sauf là où c'est SA ligne : « ses » tâches, « ses » frais, « ses » congés */
 const LIB_ROLE = {
-  gestion:{ taches:'Mes tâches' },
+  patron:{}, gestion:{ taches:'Mes tâches' },
   tech:{ taches:'Mes tâches', absences:'Mes congés' }
 };
 const LIGNES_CLIENT = [['accueil', 'Accueil', '🏠'], ['factures', 'Mes factures', '🧾'], ['interventions', 'Mes interventions', '🧰'], ['devis', 'Mes devis', '💰'], ['contrats', 'Mon contrat', '📑']];
@@ -11346,13 +11445,11 @@ const enApp = () => typeof MODE_APP !== 'undefined' && !!MODE_APP;
 const nvLu = () => { try { return !!nvVu(); } catch (e) { return true; } };
 const rlQuiMenu = () => ROLE === 'patron' ? 'marc' : (ROLES[ROLE] || {}).qui;
 /* l'écran d'ouverture du rôle : là où le logo ramène, là où une adresse inconnue renvoie */
-const rlOuverture = () => ROLE === 'patron' ? 'accueil' : ((ROLES[ROLE] || {}).accueil || 'accueil');
+const rlOuverture = () => ROLE === 'compta' || ROLE === 'client' ? ROLES[ROLE].accueil : ouvertureDe(eqDe(acteur()));   /* la première rubrique que la personne a le droit d'ouvrir */
 function rlLignes(){
   if (ROLE === 'compta') return [];
   if (ROLE === 'client') return LIGNES_CLIENT.map(([k, l, ic]) => ({ g:'', k, ic, l, sous:'', fait:false, ec:true }));
-  const lib = LIB_ROLE[ROLE] || {};
-  const groupes = ROLE === 'patron' ? CATS.map(([g, L]) => [g, L.map(r => r[0])]) : (LIGNES_ROLE[ROLE] || []).filter(([g]) => g !== GROUPE_3D || (typeof PACKS_ENT !== 'undefined' && PACKS_ENT.includes('3d')));
-  return groupes.flatMap(([g, ks]) => ks.filter(k => LIG[k] && rlPermis(k)).map(k => ({ g, k, ic:LIG[k].ic, l:lib[k] || LIG[k].l, sous:LIG[k].sous, fait:LIG[k].fait, ec:false })));
+  return rlLignesDe(eqDe(acteur()), ROLE);   /* le menu de la personne connectée : les mêmes lignes que la phrase « Ce que {prénom} voit » de sa fiche */
 }
 /* ce que la rubrique a « à traiter » : une pastille, jamais un autre chemin pour la lire */
 function rlPastille(k){
@@ -11390,7 +11487,7 @@ function rlLogo(tel){
 function rlPied(feuille){
   const p = eqDe(SESSION) || eqDe('marc'), nom = p ? eqNom(p) : '';
   const nv = enApp() ? `<button type="button" class="nv-menu" data-nv="ouvrir">${nvLu() ? '' : '<i aria-hidden="true"></i>'}Nouveautés</button>` : '';
-  const barre = feuille && ROLE === 'patron' ? '<button type="button" class="btn gris" data-mabarre="~ouvrir" style="width:100%">Personnaliser la barre du bas</button>' : '';
+  const barre = feuille && ROLE !== 'client' && ROLE !== 'compta' && droitVoit('accueil') ? '<button type="button" class="btn gris" data-mabarre="~ouvrir" style="width:100%">Personnaliser la barre du bas</button>' : '';
   const sortir = enApp() ? `<button type="button" class="cn-out" data-cnx="sortir" aria-label="Se déconnecter du compte de ${esc(nom)}"><b>${esc(nom)}</b><span>Se déconnecter</span></button>` : '';
   const echafaudage = enApp() || feuille ? '' : '<div class="bandeau-proto mini" style="padding:8px 10px">Prototype : rien n’est enregistré. Recharge pour repartir de zéro.</div>';
   return `<div class="pied${feuille ? ' fm-pied' : ''}">${feuille ? '<span class="surtitre">Apparence</span>' : ''}${segMode()}${nv}${barre}${sortir}${echafaudage}</div>`;
@@ -11422,9 +11519,10 @@ addEventListener('resize', () => menuRepere());
 const MB_CLE = 'opg_proto_barre', MB_MAX = 5, MB_DEFAUT = ['accueil', 'planning', 'interventions', 'clients', 'comptabilite'];
 /* le mot de la barre : le nom ENTIER de la rubrique quand il tient ; les noms longs ont leur mot (jamais d'abréviation à point) */
 const MB_COURT = { entreprise:'Entreprise', produits:'Produits', absences:'Congés', devisXylo:'Xylophage', registre:'Registre', achats:'Achats', boxes:'Dépôts', pointage:'Heures', stock:'Stock' };
+/* la barre d'une personne qui n'a pas l'écran d'ouverture du gérant : les cinq premières rubriques qu'elle a, dans cet ordre de préférence (ce qu'on voit le plus souvent) ; le client garde la sienne */
 const BARRE_ROLE = {
-  gestion:['comptabilite', 'devis', 'clients', 'taches', 'achats'],
-  tech:['majournee', 'techfrais', 'mesheures', 'taches', 'moncamion'],
+  equipe:['comptabilite', 'devis', 'clients', 'taches', 'achats', 'interventions', 'planning', 'boiteMail', 'stock', 'pointage'],
+  terrain:['majournee', 'techfrais', 'mesheures', 'taches', 'moncamion', 'absences'],
   client:['accueil', 'factures', 'devis', 'interventions', 'contrats']
 };
 const BARRE_MOT = {
@@ -11445,7 +11543,7 @@ function mbRetenue(){
 function rlOnglets(){
   if (ROLE === 'compta') return [];
   const ok = new Set(rlLignes().map(c => c.k)), noms = Object.fromEntries(rlLignes().map(c => [c.k, c.l]));
-  const cles = ROLE === 'patron' ? mbRetenue() : (BARRE_ROLE[ROLE] || []).filter(k => ROLE === 'client' || ok.has(k));
+  const cles = ROLE === 'client' ? BARRE_ROLE.client : droitVoit('accueil') ? mbRetenue() : BARRE_ROLE[ROLE === 'tech' ? 'terrain' : 'equipe'].filter(k => ok.has(k)).slice(0, MB_MAX);   /* qui a l'Accueil (gérant, Responsable) règle sa barre ; les autres ont celle que leurs cases composent */
   return cles.map(k => { const mot = (BARRE_MOT[ROLE] || {})[k] || (MB_COURT[k] || noms[k]);
     const nom = ROLE === 'client' ? (LIGNES_CLIENT.find(c => c[0] === k) || [k, mot])[1] : noms[k] || mot; return { k, mot, nom }; });
 }
@@ -12070,8 +12168,8 @@ document.addEventListener('click', ev => {
 }, true);
 /* ══ le salarié a sa rubrique « Mes heures » (menu, barre du bas), avec une pastille quand il a quelque chose à faire ou à lire ══ */
 if (typeof IC !== 'undefined') IC.mesheures = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
-if (typeof ROLES !== 'undefined' && ROLES.tech && !ROLES.tech.routes.includes('mesheures')) ROLES.tech.routes.push('mesheures');
-if (!ROLES.tech.routes.includes('absences')) ROLES.tech.routes.push('absences');   /* « Mes congés » : son écran, sur la personne connectée (aTech) */
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 const paieATraiter = k => (!PAIE.confirmes[k] && !PAIE.signales[k] && !paieVerrouille() ? 1 : 0) + (PAIE.distribue && PAIE.bulletins[k] && !PAIE.vus[k] ? 1 : 0);
 /* ouvrir « Mes heures » après la distribution : la fiche nouvelle est vue */
 (() => { const r0 = rendre; rendre = function(){ if (route === 'mesheures' && typeof ROLE !== 'undefined' && ROLE === 'tech' && PAIE.distribue && PAIE.bulletins[ROLES.tech.qui]) PAIE.vus[ROLES.tech.qui] = true; return r0.apply(this, arguments); }; })();
@@ -12566,6 +12664,12 @@ const SECT_TECH = { sm:['La Rochelle','Nord'], kb:['La Rochelle','Sud'], lr:['No
 const SECT_CLI = { vp:'La Rochelle', hp:'Sud', md:'Nord', mi:'La Rochelle', cm:'La Rochelle', cp:'Sud', mr:'Sud' };
 const COMMUNES = [['la rochelle','La Rochelle',1,0,'La Rochelle'],['lagord','Lagord',1,4,'Nord'],['puilboreau','Puilboreau',1,6,'Nord'],['nieul sur mer','Nieul-sur-Mer',2,9,'Nord'],['perigny','Périgny',1,6,'Sud'],['aytre','Aytré',1,6,'Sud'],
   ['angoulins','Angoulins',2,10,'Sud'],['chatelaillon','Châtelaillon-Plage',2,14,'Sud'],['salles sur mer','Salles-sur-Mer',2,17,'Sud'],['rochefort','Rochefort',3,38,'Sud'],['marans','Marans',3,24,'Nord']];
+/* Le point d'une commune sert à poser sur la carte un client créé à la main (planning-01, campagne du 17 novembre 2026) :
+   le formulaire « Repérée : Rochefort · 38 km » le savait déjà, mais la carte et les liens « Y aller avec » ne l'apprenaient
+   jamais — l'étape tombait au dépôt (0 km) et le technicien partait au mauvais endroit. Centres de commune, à quelques centaines de mètres. */
+const COMMUNES_GEO = { 'la rochelle':[46.1603,-1.1511], 'lagord':[46.1853,-1.1507], 'puilboreau':[46.1795,-1.1133], 'nieul sur mer':[46.1736,-1.1853], 'perigny':[46.1456,-1.1066],
+  'aytre':[46.1331,-1.1228], 'angoulins':[46.0967,-1.0953], 'chatelaillon':[46.0712,-1.0912], 'salles sur mer':[46.0836,-1.0402], 'rochefort':[45.9378,-0.9617], 'marans':[46.3114,-0.9970] };
+function geoDeAdresse(adr){ const a = sansAccent(adr || ''), c = COMMUNES.find(x => a.includes(x[0])); return c && COMMUNES_GEO[c[0]] ? COMMUNES_GEO[c[0]].slice() : null; }
 const ADRESSES = ['10 Rue de la Gravière, 17220 Salles-sur-Mer','2 Rue de la Gare, 17220 Salles-sur-Mer','15 Avenue Jean Jaurès, 17000 La Rochelle','8 Rue des Lilas, 17140 Lagord','21 Boulevard Joffre, 17000 La Rochelle','4 Rue du Port, 17000 La Rochelle',
   '3 Avenue de la Plage, 17340 Châtelaillon-Plage','14 Rue Gambetta, 17440 Aytré','6 Rue des Marais, 17180 Périgny','12 Rue de la République, 17300 Rochefort'];
 const sansAccent = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[-']/g,' ');
@@ -12760,7 +12864,7 @@ const ACTIONS_CREA = {
   cPlusTard(){ placerBrouillon('', CREA.jour, PARAMS.debut); CREA.vue = 'jour'; rendre(); },
   cCreer(){ const b = brouillon(); if (!b) return; if (CREA.fact === 'forfait' && Date.now() - (CREA.forfaitRefus || 0) < 1500) { toast('Prix du forfait invalide : un montant en euros, positif et inférieur à 1 000 000 €. Corrige-le, puis crée.'); return; }   /* 13 novembre 2026 */ if (b.tech && refusAbsent(b.tech, b.d, b.h)) return; let k = CREA.cli;
     if (CREA.nouveau && !CREA.doublonOk) { const dj = cfDoublonDe({ ...CREA.nv, nom:cfNomClient(CREA.nv) }); if (dj) { CREA.doublonOk = true; toast('Ce client existe peut-être déjà : « ' + esc(CLIENTS[dj].nom) + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer l’intervention » pour le créer quand même, ou choisis-le dans la liste.'); return; } }
-    if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = { ...cliCrea() }; SECT_CLI[k] = secteurCrea(); }
+    if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = { ...cliCrea() }; SECT_CLI[k] = secteurCrea(); const g = geoDeAdresse(CLIENTS[k].adr); if (g) CR_GEO[k] = g; }
     const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
     Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', motif: CREA.motif.trim() || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => ({ nom, q })),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
@@ -13071,7 +13175,7 @@ function avertEnCours(i){ return i && i.st !== 'fait' ? '<div class="alerte"><b>
 /* [14] le mot qui accompagne le retour sur « Ma journée » */
 function rlRefus(r, p){ if (!r || r === 'accueil') return; let m;
   if (!routeConnue(r)) m = 'Cette page n’existe pas.';
-  else if (drRefuse(r)) m = 'Cette rubrique est fermée à ton compte : demande à l’administrateur de la rouvrir (Équipe, tes droits).';   /* d'abord : pour la gestion, « tu ne vois que les tiennes » était faux (c'est la case qui ferme) · 13 novembre 2026 */
+  else if (droitRaison(r) === 'case') m = 'Cette rubrique est fermée à ton compte : demande à l’administrateur de la rouvrir (Équipe, tes droits).';   /* d'abord : pour la gestion, « tu ne vois que les tiennes » était faux (c'est la case qui ferme) · 13 novembre 2026 */
   else if (r === 'inter') { const n = INTS.find(o => o.id === p); m = n && n.tech ? 'Cette intervention est à ' + esc(prenomDe(n.tech)) + ' : tu ne vois que les tiennes.' : 'Cette intervention n’est pas encore attribuée : tu ne vois que les tiennes.'; }
   else if (r === 'clientvoit') m = 'Cet aperçu est celui d’une intervention d’un collègue : tu ne vois que les tiennes.';
   else m = 'Cette page n’est pas dans ton espace.';
@@ -13207,7 +13311,7 @@ IC.tkxtaches = '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>';
 function tkxPerso(){ return typeof RL_ACTIF !== 'undefined' && RL_ACTIF && (ROLE === 'gestion' || ROLE === 'tech'); }
 function tkxMoi(){ return tkxPerso() ? ROLES[ROLE].qui : 'marc'; }
 const tkxPrenom = k => tNom(k).split(' ')[0];
-ROLES.gestion.routes.push('taches'); ROLES.tech.routes.push('taches');   // leurs tâches s'ouvrent : la garde des rôles les laissait sur l'accueil
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 T_ROUTES.commande = ['produits', 'Fournisseurs', '📦'];   // la barre « tâches choisies » proposait « Ouvrir dans … » pour tous les sujets sauf les commandes
 /* « Commander au fournisseur » lit les VRAIS fournisseurs (Fournisseurs) : la liste écrite en dur dans Tâches disparaît */
 function tkxFourn(k){ const f = MES_FOURN.find(o => o.id === k) || MES_FOURN[0]; return Object.assign({ contact:f.compte ? 'compte ' + f.compte : 'service commandes' }, f); }
@@ -14411,7 +14515,7 @@ Object.assign(IC, {
 
 /* ── le technicien : « Mon camion » ── */
 CAT_LIGNES.push({ g:'Matériel', k:'moncamion', ic:'🚐', l:'Mon camion', fait:true, tard:false });   // pour que la route soit connue ; le menu, lui, vient de CATS
-if (typeof ROLES !== 'undefined' && ROLES.tech && !ROLES.tech.routes.includes('moncamion')) ROLES.tech.routes.push('moncamion');
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 IC.moncamion = IC.camion;
 const sxMoi = () => sxEstTech() ? rlQui() : 'sm';
 const sxMonLieu = () => LIEUX.find(l => l.type === 'vehicule' && l.tech === sxMoi()) || LIEUX.find(l => l.type === 'vehicule');
@@ -14875,10 +14979,8 @@ function sxFluideRecupere(id){
    une seule fiche décrit un article, une seule porte compte un lieu. Le bureau (Julie) voit Stock et « Fournisseurs, matériel & produits » ; elle n’accepte rien.
    ⚠️ Ce bloc REMPLACE vueStock (trois définitions en chaîne), stkVueMouvements, stkVueValider, sxBandeau, sxEntree*, sxRegistre et les trois prFiche : une seule
    définition par fonction (`grep "function nom("` avant d’en écrire une ; sonde materiel-fonctions.js). Les écritures restent celles du lot 0 : stkAppliquer, sxDepose, sxToast. */
-if (!ROLES.gestion.routes.includes('vehicules')) ROLES.gestion.routes.push('vehicules');   // le bureau voit les véhicules (VEHTEMPS § 11) : il lit, note un plein, un rendez-vous, un contrôle, met au garage — vhPeut()
-if (!ROLES.gestion.routes.includes('stock')) ROLES.gestion.routes.push('stock', 'produits');   // le bureau voit Stock et Fournisseurs (§ 4) ; ni Dépôts, ni « accepter »
-if (!LIGNES_ROLE.gestion.some(g => g[0] === 'Matériel')) LIGNES_ROLE.gestion.push(['Matériel', ['stock', 'produits']]);
-if (!LIGNES_ROLE.gestion.some(g => g[0] === 'Personnel')) LIGNES_ROLE.gestion.push(['Personnel', ['vehicules']]);   // « Personnel » ne porte que Véhicules chez le bureau : la seule exception à « aucun groupe d'une seule ligne » (VEHICULES-TEMPS § 11)
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 /* ce qu’un rôle peut faire : tant que les cases d’Équipe « n’agissent pas » (MENU-FINAL, constat 7), le gérant a tout et le bureau n’a pas ces trois droits */
 const msAccepte = () => rlPermis('stockAccepter'), msReglages = () => rlPermis('stockReglages'), msPrixVente = () => rlPermis('produitsPrixVente');
 const msGerant = () => ROLE === 'patron';
@@ -15522,7 +15624,7 @@ function mdRouvrir(id){
 function mdLigne(id, o, atl){
   const x = o.x, m = o.cible != null ? stkR(o.cible - o.a) : 0, ate = stkAt(x, 'atelier'), l = lieu(id), e = atl ? matEtat(x) : null;
   const sub = o.cible != null ? (m > 0 ? `<b class="${o.a <= 0 ? 'md-rg' : 'md-o'}">${prNum(o.a)} sur ${prNum(o.cible)} · il manque ${prNum(m)}</b>` : `${prNum(o.a)} sur ${prNum(o.cible)}`) : esc(x.ref);
-  return `<div class="md-lg${BX.hl === x.id ? ' bxl-hl' : ''}"><span class="fo-n"><button type="button" class="lien md-nom" data-pr="fiche|${x.id}">${esc(x.nom)}</button><span class="gris petit">${sub}${m > 0 && !atl ? ` · à l’atelier : ${prNum(ate)}` : ''}</span></span>
+  return `<div class="md-lg${BX.hl === x.id ? ' bxl-hl' : ''}"><span class="fo-n"><button type="button" class="lien md-nom" data-pr="fiche|${x.id}">${esc(x.nom)}</button><span class="gris petit">${sub}${m > 0 && !atl ? ` · <span class="md-nb">à l’atelier : ${prNum(ate)}</span>` : ''}</span></span>
     <span class="fo-dr"><b>${sxQte(o.a, x)}</b>${e ? `<span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}${m > 0 && !l.ferme ? `<button type="button" class="lien md-aj" data-md="aj|${id}|${x.id}" aria-label="Ajouter ${esc(x.nom)} à ${esc(l.nom)}">＋ Ajouter</button>` : ''}</span></div>`;
 }
 function bxFiche(id, hl){
@@ -15792,7 +15894,7 @@ const bxReserveDe = cli => bxActifs().filter(l => l.type === 'depot' && l.cli ==
 (() => { const j0 = vueMaJournee; vueMaJournee = function(){ const h = j0.apply(this, arguments), L = bxMonLieu(rlQui()); if (!L || /sx-raccourci/.test(h)) return h;
   const M = bxManques(L.id), c = `<button type="button" class="carte bxl-jour" data-go="moncamion"><span class="sk-li">🚐</span><span class="fo-n"><b>Mon camion</b><span class="${M.length ? 'fo-up' : 'bxl-vert'} petit">${M.length ? M.length + ' article' + bxS(M.length) + ' à compléter' : 'Complet'}</span></span><span class="fo-chev">›</span></button>`;
   return h.replace('<div class="grille2">', c + '<div class="grille2">'); }; })();
-if (typeof ROLES !== 'undefined' && ROLES.tech && !ROLES.tech.routes.includes('boxes')) ROLES.tech.routes.push('boxes');
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 
 /* un camion revenu du garage : on propose de le compléter (la surveillance se fait à chaque affichage, quel que soit le geste qui change le statut) */
 function bxSurveillerVehicules(){
@@ -17573,7 +17675,7 @@ const mbxRelanceDue = m => !!(m.attente && mbxOuvres(m.attente.d, AUJ) >= MBX.de
 const mbxInt = m => { const t = /inter\|([^'"\s]+)/.exec(m.faitLien || ''); return t ? INTS.find(i => i.id === t[1]) : null; };
 const mbxBoite = m => ML_BOITES.find(o => o.id === m.boite) || ML_BOITES[0];
 const mbxCliDe = m => { const a = ((m.dossier === 'envoye' ? m.a : m.de.mail) || '').toLowerCase(); return Object.keys(CLIENTS).find(k => (CLIENTS[k].mail || '').toLowerCase() === a); };
-const mbxPar = () => ROLES[ROLE] && ROLES[ROLE].qui || MOI;
+const mbxPar = () => ROLES[ROLE] && ROLES[ROLE].qui || acteur();
 function mbxFin(){ return '\n\nBien cordialement' + (MBX.sig ? ',\n' + MBX.sigTxt.trim() : ''); }
 
 /* ── ce que dit un courriel : on relit le montant et la surface, on ne devine rien d'autre ── */
@@ -17760,7 +17862,7 @@ function courrierImageOctets(m, nom){   // synchrone (toDataURL) : la taille ann
 function courrierSource(){
   const boite = id => ML_BOITES.find(o => o.id === id);
   return {
-    capacites:() => Promise.resolve({ marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), equipe:COLLEGUES.filter(q => q !== MOI && eqDe(q) && eqDe(q).actif).map(prenomDe), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
+    capacites:() => Promise.resolve({ marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), equipe:COLLEGUES.filter(q => q !== acteur() && eqDe(q) && eqDe(q).actif).map(prenomDe), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
       dossiers:['inbox', 'sent', 'archive'], destinataires:5, pj:{ nombre:5, octets:8 * 1048576 }, signature:false, signatureMaintenance:false, journalEnvois:false, traduire:false }),
     boites:() => Promise.resolve(ML_BOITES.map(o => ({ id:o.id, email:o.adr, nom:o.id === 'b1' ? 'Clim Services 17' : 'Marc Leblanc', cote:'pro', fournisseur:o.fourni }))),
     messages:({ boite:id, dossier }) => {
@@ -17782,10 +17884,10 @@ function courrierSource(){
       if (p.statut === 'resolu') { if (!m.fait) mlTraite(m, 'Marqué comme traité'); m.suiviEnCours = false; }
       else if (p.statut === 'aTraiter') { m.fait = ''; m.faitLien = ''; m.attente = null; m.suiviEnCours = false; }
       else if (p.statut === 'enCours') { if (!m.confie && !m.attente) m.suiviEnCours = true; }
-      if (p.assigne !== undefined) { const nom = String(p.assigne || '').trim().toLowerCase(), k = nom && COLLEGUES.find(q => q !== MOI && eqDe(q) && eqDe(q).actif && (prenomDe(q).toLowerCase() === nom || H_NOM(q).toLowerCase() === nom));
+      if (p.assigne !== undefined) { const nom = String(p.assigne || '').trim().toLowerCase(), k = nom && COLLEGUES.find(q => q !== acteur() && eqDe(q) && eqDe(q).actif && (prenomDe(q).toLowerCase() === nom || H_NOM(q).toLowerCase() === nom));
         if (k && !(m.confie && !m.confie.fini && m.confie.qui === k)) mbxConfier(m, k);   // un prénom d'équipier = « Confier à quelqu'un » (tâche + notification)
         else if (!nom) { m.assigneTexte = ''; if (m.confie && !m.confie.fini) m.confie = null; }
-        else if (!k && (nom === prenomDe(MOI).toLowerCase() || nom === H_NOM(MOI).toLowerCase())) { m.assigneTexte = String(p.assigne).trim(); m.suiviEnCours = true; }   // soi-même : « Assignés à moi »
+        else if (!k && (nom === prenomDe(acteur()).toLowerCase() || nom === H_NOM(acteur()).toLowerCase())) { m.assigneTexte = String(p.assigne).trim(); m.suiviEnCours = true; }   // soi-même : « Assignés à moi »
         else if (!k) return Promise.reject(new Error('Personne ne s’appelle « ' + String(p.assigne).trim().slice(0, 40) + ' » dans l’équipe : choisissez un nom dans la liste.')); }   /* un nom inconnu se refuse en le disant (il revenait en silence au nom d'avant) */
       courrierEnteteMaj(); return Promise.resolve(courrierSuivi(m) || { statut:'aTraiter', assigne:'', par:'' }); },
     gererBoites:() => { mbxPanBoites(); return Promise.resolve(); },
@@ -18000,7 +18102,7 @@ document.addEventListener('click', ev => {
     mbxLiberer(m.cren.orig); fermerPanneau(); ouvrirCreation({ cli:cl, tid:c.t, d:c.d, h:hmin(c.h) }); if (!CREA) return;
     const o = mlDe(m.cren.orig) || m; CREA.type = 'Dépannage'; CREA.titre = o.objet.replace(/^re\s*:\s*/i, ''); CREA.titreTouche = true; CREA.motif = o.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); CREA.dur = 120; const bb = brouillon(); if (bb) { bb.dur = 120; bb.titre = CREA.titre; } rendreCreation(); CREA.mail = m.id;
     return toast('Intervention préremplie au créneau choisi (' + esc(jlong(c.d)) + ' à ' + mlH(c.h) + ') : les deux autres options sont libérées. Vérifie et crée.'); }
-  if (a === 'lire') { ouvrirPanneau(`<span class="surtitre">Courriel confié</span><h2>${esc(m.objet)}</h2>` + mbxBlocConfie(m, MOI)); return; }
+  if (a === 'lire') { ouvrirPanneau(`<span class="surtitre">Courriel confié</span><h2>${esc(m.objet)}</h2>` + mbxBlocConfie(m, acteur())); return; }
   if (a === 'confier') return mbxPanConfier(m);
   if (a === 'confok') return mbxConfier(m, y);
   if (a === 'boites') return mbxPanBoites();
@@ -18032,16 +18134,16 @@ document.addEventListener('change', ev => { const t = ev.target; if (!t.matches)
 
 /* ── Confier : seules les personnes qui ont la Boîte mail la lisent ; les autres reçoivent CE courriel, seul, en lecture ── */
 const MBX_ROLE_DE = { julie:'gestion', sm:'tech', kb:'tech', lr:'tech', tl:'tech' };
-const mbxAcces = k => k === MOI || (eqDe(k) && eqDe(k).droits ? !!(eqDe(k).droits.cats.com && eqDe(k).droits.cats.com.v) && (sessionRole(eqDe(k)) === 'patron' || ROLES[sessionRole(eqDe(k))].routes.includes('boiteMail'))   /* la case seule promettait un accès que le menu du rôle n'ouvre pas : le bouton « Ouvrir dans Boîte mail » de sa tâche répondait « pas dans ton espace » · 13 novembre 2026 */ : !!(ROLES[MBX_ROLE_DE[k]] && ROLES[MBX_ROLE_DE[k]].routes.includes('boiteMail')));
+const mbxAcces = k => eqDe(k) ? droitVoit('boiteMail', eqDe(k)) : !!(MBX_ROLE_DE[k] && MBX_ROLE_DE[k] !== 'tech');   /* la même porte que le menu : la case « Boîte mail » ET la forme de la personne · étape 5 */
 function mbxPanConfier(m){
-  const L = COLLEGUES.filter(k => k !== MOI && eqDe(k) && eqDe(k).actif);
+  const L = COLLEGUES.filter(k => k !== acteur() && eqDe(k) && eqDe(k).actif);
   ouvrirPanneau(`<span class="surtitre">Confier ce courriel</span><h2>${esc(m.objet)}</h2><span class="gris petit">La personne reçoit une tâche et une notification, avec ce courriel seul, en lecture : rien d’autre de ta boîte. Celles qui ont déjà la Boîte mail le retrouvent dedans.</span>
     <div class="fo-bloc">${L.map(k => { const d = dispoDe(k), ok = mbxAcces(k); return `<button type="button" class="ve-u" data-mbx="confok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span>${ok ? '<span class="mbx-acces ok">A déjà la Boîte mail</span>' : ''}</span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`);
 }
 function mbxConfier(m, y){
   const R = mlLire(m), quoi = ({ panne:'Organiser l’intervention', devis:'Préparer le devis', accord:'Planifier l’installation', facfour:'Rapprocher la facture', paiement:'Pointer le paiement', expedition:'Suivre la livraison', choixcren:'Confirmer le rendez-vous' })[R.sujet] || 'Répondre', acces = mbxAcces(y);
-  const t = { id:'t' + Date.now(), t:`${quoi} : ${m.objet}`, qui:y, d:AUJ, h:null, urgent:!!R.urgent, cat:'mail', lien:acces ? { t:'aller', id:'boiteMail|' + m.id, lib:'Boîte mail', cat:'Boîte mail' } : null, creePar:MOI, creeLe:'31/10', origine:'confiée depuis la Boîte mail', mailConfie:m.id };
-  TACHES.push(t); notifier(y, `${H_NOM(MOI)} te confie un courriel : ${m.objet}`); m.confie = { qui:y, tid:t.id, fini:false };
+  const t = { id:'t' + Date.now(), t:`${quoi} : ${m.objet}`, qui:y, d:AUJ, h:null, urgent:!!R.urgent, cat:'mail', lien:acces ? { t:'aller', id:'boiteMail|' + m.id, lib:'Boîte mail', cat:'Boîte mail' } : null, creePar:acteur(), creeLe:'31/10', origine:'confiée depuis la Boîte mail', mailConfie:m.id };
+  TACHES.push(t); notifier(y, `${H_NOM(acteur())} te confie un courriel : ${m.objet}`); m.confie = { qui:y, tid:t.id, fini:false };
   journalAjout('marc', 'equipe', 'a confié un courriel', { lib:m.objet }, { det:'à ' + H_NOM(y) });
   fermerPanneau(); rendre();
   return toast(`Confié à ${esc(prenomDe(y))} : c’est dans ses tâches, avec une notification${acces ? '' : ' et le courriel en lecture seule'}.`, { lib:'Annuler', fn:() => { const i = TACHES.indexOf(t); if (i >= 0) TACHES.splice(i, 1); m.confie = null; rendre(); } });
@@ -18049,7 +18151,7 @@ function mbxConfier(m, y){
 /* la tâche confiée montre le courriel : expéditeur, texte, pièces, et le geste proposé ; la personne le voit aussi dans une bande, quel que soit son rôle */
 function mbxBlocConfie(m, par){
   const R = mlLire(m), fait = m.fait; if (m.confie && !m.confie.fini) m.fait = ''; const gestes = m.confie && !m.confie.fini ? mlActions(m, R) : ''; m.fait = fait;
-  return `<div class="carte mbx-conf"><span class="ms-ct">Courriel confié par ${esc(H_NOM(par || MOI))} · en lecture seule</span><b>${esc(m.objet)}</b><span class="gris petit">${esc(m.de.nom)} · ${esc(m.de.mail)} · ${esc(jlong(m.d))}, ${m.h.replace(':', ' h ')}</span><div class="ml-txt">${esc(m.txt)}</div>${m.pj.map(([n, t]) => `<span class="ml-pjc">📄 ${esc(n)} <span class="gris petit">${t}</span></span>`).join('')}${gestes}${m.confie && m.confie.fini ? `<div class="ml-fait">✓ ${esc(m.fait)}</div>` : ''}</div>`;
+  return `<div class="carte mbx-conf"><span class="ms-ct">Courriel confié par ${esc(H_NOM(par || acteur()))} · en lecture seule</span><b>${esc(m.objet)}</b><span class="gris petit">${esc(m.de.nom)} · ${esc(m.de.mail)} · ${esc(jlong(m.d))}, ${m.h.replace(':', ' h ')}</span><div class="ml-txt">${esc(m.txt)}</div>${m.pj.map(([n, t]) => `<span class="ml-pjc">📄 ${esc(n)} <span class="gris petit">${t}</span></span>`).join('')}${gestes}${m.confie && m.confie.fini ? `<div class="ml-fait">✓ ${esc(m.fait)}</div>` : ''}</div>`;
 }
 (() => { const d0 = tDetail; tDetail = function(id){ const v = d0.apply(this, arguments), x = TACHES.find(o => o.id === id);
   if (x && x.mailConfie) { const m = mlDe(x.mailConfie), h = document.querySelector('.panneau h2');
@@ -18059,7 +18161,7 @@ const mbxMesConfies = () => MAILS.filter(m => m.confie && !m.confie.fini && m.co
 function mbxBande(){
   const c = document.getElementById('contenu'); if (!c) return; c.querySelectorAll('.mbx-bande').forEach(e => e.remove());
   if (!RL_ACTIF || ROLE === 'patron' || ROLE === 'client') return; const L = mbxMesConfies(); if (!L.length) return;
-  const html = `<div class="carte mbx-bande" role="status"><span class="ms-ct">Courriel confié</span>${L.map(m => `<div class="mbx-bl"><span><b>${esc(H_NOM(MOI))}</b> te confie : ${esc(m.objet)}</span><button type="button" class="btn petit" data-mbx="lire|${m.id}">Lire</button></div>`).join('')}</div>`, bd = c.querySelector('.rl-bande');
+  const html = `<div class="carte mbx-bande" role="status"><span class="ms-ct">Courriel confié</span>${L.map(m => `<div class="mbx-bl"><span><b>${esc(H_NOM(acteur()))}</b> te confie : ${esc(m.objet)}</span><button type="button" class="btn petit" data-mbx="lire|${m.id}">Lire</button></div>`).join('')}</div>`, bd = c.querySelector('.rl-bande');
   bd ? bd.insertAdjacentHTML('afterend', html) : c.insertAdjacentHTML('afterbegin', html);
 }
 (() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); mbxBande(); return v; }; })();
@@ -18709,7 +18811,7 @@ function axPastilles() {
   const cle = '<div class="carte"><h3>À faire maintenant</h3>';
   return h.includes(cle) ? h.replace(cle, cle + html) : h; }; })();
 /* Gestion voit les demandes en lecture seule (pour préparer les commandes) : la route lui est ouverte ; son menu vient de rlLignes */
-if (!ROLES.gestion.routes.includes('achats')) ROLES.gestion.routes.push('achats');
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 /* et la Comptabilité renvoie vers Achats : les demandes se décident là-bas */
 (() => { if (typeof vueComptabilite !== 'function') return; const c0 = vueComptabilite; vueComptabilite = function () { const h = c0.apply(this, arguments);
   if (CP.onglet !== 'ndf') return h; const n = axEnAttente().length;
@@ -19103,7 +19205,7 @@ var eqxAnciens = [];                       // les personnes désactivées : sort
 var eqxForce = false, eqxEdition = null, eqxDetOuvert = false, eqxPrevenus = {}, eqxAbsN = -1;
 const EQX_BASE = ['sm', 'kb', 'lr', 'tl'];
 const EQX_PALETTE = ['#0e9aa7', '#c026d3', '#65a30d', '#e11d48', '#0891b2', '#b45309', '#7c3aed', '#4d7c0f'];
-const EQX_CATS = { planif:'Planning', inter:'Interventions', crm:'Clients', ventes:'Devis et factures', compta:'Comptabilité', stock:'Stock', temps:'Temps de travail', com:'Boîte mail', achats:'Achats et frais', admin:'Équipe' };
+const EQX_CATS = { planif:'Planning', inter:'Interventions', crm:'Clients', ventes:'Devis et factures', compta:'Comptabilité', stock:'Stock', temps:'Temps de travail', com:'Boîte mail', achats:'Achats et frais', admin:'L’entreprise et l’équipe' };
 const EQX_SPC = { tout:'Voir toute l’équipe', prix:'Prix d’achat et marges', atelier:'Atelier sans validation', valstock:'Valider le stock', commander:'Commander', corrpt:'Corriger les pointages', comptes:'Créer des comptes' };
 const EQX_X = { v:'voir', c:'créer', m:'modifier', s:'supprimer' };
 const EQX_FLU = 'Aptitude fluides frigorigènes, catégorie I', EQX_BR = 'Habilitation électrique BR', EQX_AMI = 'Prévention du risque amiante, sous-section 4';
@@ -19112,7 +19214,8 @@ const EQX_NOMS_HAB = ['Habilitation électrique BR', 'Habilitation électrique B
 const EQX_DUREES = [[/fluides/i, null], [/caces/i, 60], [/certibiocide/i, 60], [/lectrique|amiante|hauteur/i, 36]];
 var eqxRegles = [{ type:'Installation', hab:EQX_FLU }, { type:'Mise en service', hab:EQX_FLU }, { mot:'coffret', hab:EQX_BR }, { mot:'amiante', hab:EQX_AMI }];
 
-const eqxTerrain = p => EQX_BASE.includes(p.k) || !!p.terrain;
+/* LA seule lecture de « Travaille sur le terrain » : la case de la fiche, posée sur chaque personne (les quatre de la démonstration comprises). Elle décide de la forme d'écran (droitForme) */
+const eqxTerrain = p => !!p.terrain;
 const eqxPl = (n, a, b) => n + ' ' + (n > 1 ? (b || a + 's') : a);
 const eqxActifs = () => EQUIPE.filter(p => p.actif);
 const eqxPlein = () => eqxActifs().length >= EQ_PLACES;
@@ -19137,7 +19240,7 @@ function eqxSynchro() {
     return { p, t };
   });
   TECHS.splice(0, TECHS.length, ...neuf.filter(o => o.p.actif).map(o => o.t), na);
-  eqxAnciens = neuf.filter(o => !o.p.actif).map(o => o.t);
+  eqxAnciens = neuf.filter(o => !o.p.actif).map(o => o.t).concat(vieux.filter(t => EQUIPE.some(p => p.k === t.id) && !neuf.some(o => o.p.k === t.id)));   /* décochée de « Travaille sur le terrain » : plus de colonne au planning, mais ce qu'elle a fait reste lisible */
   T_GENS.splice(0, T_GENS.length, ...T_GENS.filter(k => { const q = eqDe(k); return q ? q.actif : ['marc', 'julie', 'sm', 'kb', 'lr', 'tl'].includes(k); }), ...EQUIPE.filter(q => q.actif && !T_GENS.includes(q.k)).map(q => q.k));
 }
 
@@ -19230,7 +19333,7 @@ function eqxFormModif(p) {
     <div id="eqx-mhomo" class="gris petit" aria-live="polite"></div>
     <div class="deux-champs"><label class="champ">E-mail<input id="eqx-mm" type="email" value="${esc(p.mail)}" autocomplete="off"></label><label class="champ">Téléphone<input id="eqx-mt" type="tel" value="${esc(p.tel || '')}" autocomplete="off"></label></div>
     <label class="champ">Rôle (un simple nom)<input id="eqx-mr" list="eqx-roles" value="${esc(p.role)}" autocomplete="off"><datalist id="eqx-roles">${['Technicien', 'Technicienne', 'Chef d’équipe', 'Secrétariat', 'Apprenti', 'Responsable'].map(o => `<option value="${o}">`).join('')}</datalist></label>
-    <label class="fo-garder"><input type="checkbox" id="eqx-mter" ${eqxTerrain(p) ? 'checked' : ''} ${EQX_BASE.includes(p.k) ? 'disabled' : ''}> Travaille sur le terrain (se planifie, apparaît aux interventions)</label>
+    <label class="fo-garder"><input type="checkbox" id="eqx-mter" ${eqxTerrain(p) ? 'checked' : ''} ${droitAdmin(p) || p.k === acteur() ? 'disabled' : ''}> Travaille sur le terrain<span class="gris petit"> · coché : l’application s’ouvre sur sa journée, ses frais, ses heures, son camion et ses congés ; décoché : sur les écrans du bureau</span></label>
     <div class="actions"><button type="button" class="btn" data-eqx="modifok|${p.k}">Enregistrer</button><button type="button" class="btn gris" data-eqx="modifx|${p.k}">Annuler</button></div></div>`;
 }
 eqFiche = function (k) {
@@ -19477,9 +19580,9 @@ document.addEventListener('click', ev => {
     { const dup = EQUIPE.find(o => o.k !== x && String(o.mail || '').trim().toLowerCase() === m.toLowerCase()); if (dup) return toast(`Cette adresse est déjà celle de ${esc(eqNom(dup))} : chaque personne se connecte avec la sienne.`); }
     const avant = eqxPrise(), nomAv = eqNom(p), ch = [];
     if (nomAv !== pr + ' ' + no) ch.push(['son nom', nomAv, pr + ' ' + no]); if (p.mail !== m) ch.push(['son e-mail', p.mail, m]); if ((p.tel || '') !== t) ch.push(['son téléphone', p.tel || '—', t || '—']);
-    if (p.role !== ro) ch.push(['son rôle', p.role, ro]); if (!EQX_BASE.includes(p.k) && eqxTerrain(p) !== ter) ch.push(['« Travaille sur le terrain »', eqxTerrain(p) ? 'oui' : 'non', ter ? 'oui' : 'non']);
+    if (p.role !== ro) ch.push(['son rôle', p.role, ro]); if (!(droitAdmin(p) || p.k === acteur()) && eqxTerrain(p) !== ter) ch.push(['« Travaille sur le terrain »', eqxTerrain(p) ? 'oui' : 'non', ter ? 'oui' : 'non']);
     eqxEdition = null; if (!ch.length) { foGarder(() => eqFiche(x)); return toast('Rien n’a changé.'); }
-    p.prenom = pr; p.nom = no; p.mail = m; p.tel = t; p.role = ro; if (!EQX_BASE.includes(p.k)) p.terrain = ter; if (H_GENS[p.k]) H_GENS[p.k].role = ro; eqxSynchro();
+    p.prenom = pr; p.nom = no; p.mail = m; p.tel = t; p.role = ro; if (!(droitAdmin(p) || p.k === acteur())) p.terrain = ter; if (H_GENS[p.k]) H_GENS[p.k].role = ro; eqxSynchro();
     ch.forEach(([l, av, ap]) => journalAjout('marc', 'equipe', 'a modifié ' + l.replace(/^son (?=[aeiouyéèh])/i, 'l’').replace(/^son /, 'le ') + (l.charAt(0) === '«' ? ' pour' : ' de'), { lib:eqNom(p) }, { avant:av, apres:ap }));
     const renvoi = p.invite && ch.some(o => o[0] === 'son e-mail');
     rendre(); foGarder(() => eqFiche(x));
@@ -20492,7 +20595,7 @@ function cbApresRendu(){
 }
 (() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); try { cbApresRendu(); } catch (e) { console.error('carteBox', e); } return v; }; })();
 /* le technicien relève sur place, la gestion regarde : la carte et le registre rejoignent leurs écrans */
-['tech', 'gestion'].forEach(k => ['carteBox', 'registre'].forEach(r => { if (!ROLES[k].routes.includes(r)) ROLES[k].routes.push(r); }));
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 
 /* ── devisXylo ── */
 /* DEVIS XYLOPHAGE, REFAIT (11 novembre 2026) : le calcul suit l'insecte, se mesure par zones, prend les tarifs de l'entreprise,
@@ -20877,7 +20980,7 @@ if (!LIENS_CAT['Interventions']) LIENS_CAT['Interventions'] = 'inter';
 if (!TYPES.includes('Traitement du bois')) TYPES.push('Traitement du bois');
 TITRES['Traitement du bois'] = 'Traitement du bois'; MOTIFS['Traitement du bois'] = 'Ex. : capricorne dans la charpente, 40 m² à traiter, accès par la trappe';
 /* ── les entrées : Devis, fiche client, rôles ── */
-ROLES.gestion.routes.push('devisXylo'); ROLES.tech.routes.push('devisXylo');
+/* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 (() => { const n0 = dvNouveau; dvNouveau = function(){ const r = n0.apply(this, arguments); const z = document.querySelector('#calque .dv-modeles'); if (z && metiersA3d() && !z.querySelector('[data-dxb="puce"]')) z.insertAdjacentHTML('beforeend', '<button type="button" class="puce-c" data-dxb="puce">🪵 Traitement du bois (xylophage)</button>'); return r; }; })();
 function dxCarteMesures(x){
   const xy = x.xy, z = xy.zones.filter(o => o.m > 0), ed = dxDevisEtat(x) === 'brouillon';
@@ -22891,11 +22994,12 @@ const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaire
 function palEntrees(){ const R = rcRubriques(), E = [];
   R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
-  if (rlPermis('comptabilite')) E.push({ g:'Aller à', l:'Factures', ic:svg('factures'), d:'Comptabilité', fn:() => aller('factures') }, { g:'Aller à', l:'Paiements', ic:svg('encaissements'), d:'Comptabilité', fn:() => aller('encaissements') });
-  if (ROLE !== 'patron' && rlPermis('comptabilite')) E.push({ g:'Faire', l:'Nouvelle facture', ic:'＋', fn:() => cpSysFacture() });   /* la gestion des factures est celle qui en fait : « facture » doit lui répondre aussi, pas au seul patron */
-  if (ROLE === 'patron') { E.push({ g:'Faire', l:'Nouvelle intervention', ic:'＋', d:'N', fn:() => ouvrirCreation({}) });
-    RC_CREER.forEach(c => { if (rlPermis(c.k)) E.push({ g:'Faire', l:c.l, ic:'＋', d:c.t, fn:() => rcCreer(c.nom) }); });
-    if (rlPermis('comptabilite')) E.push({ g:'Faire', l:'Nouvelle facture', ic:'＋', fn:() => cpSysFacture() });
+  if (rlPermis('comptabilite') && rlPermis('factures')) E.push({ g:'Aller à', l:'Factures', ic:svg('factures'), d:'Comptabilité', fn:() => aller('factures') }, { g:'Aller à', l:'Paiements', ic:svg('encaissements'), d:'Comptabilité', fn:() => aller('encaissements') });
+  /* « Faire » : chaque geste demande sa case « Créer » (devis, client, facture, intervention) — une personne en lecture seule ne se voit pas proposer de créer */
+  if (rcInterOk()) E.push({ g:'Faire', l:'Nouvelle intervention', ic:'＋', d:'N', fn:() => ouvrirCreation({}) });
+  RC_CREER.forEach(c => { if (rcCreerOk(c)) E.push({ g:'Faire', l:c.l, ic:'＋', d:c.t, fn:() => rcCreer(c.nom) }); });
+  if (rlPermis('comptabilite') && peut('ventes', 'c')) E.push({ g:'Faire', l:'Nouvelle facture', ic:'＋', fn:() => cpSysFacture() });
+  if (rlPermis('clients')) {
     Object.entries(CLIENTS).forEach(([id, c]) => E.push({ g:'Clients', l:c.nom, ic:'🏢', d:(c.adr || '').split(',').pop().trim(), m:[c.contact, c.tel, c.mail, c.adr].join(' '), fn:() => aller('client-x-' + id) })); }
   E.push({ g:'Affichage', l:'Mode jour', ic:'☀️', fn:() => rcMode('jour') }, { g:'Affichage', l:'Mode nuit', ic:'🌙', fn:() => rcMode('nuit') }, { g:'Affichage', l:'Mode automatique (suit l’appareil)', ic:'🌗', fn:() => rcMode('auto') },
     ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Se déconnecter', ic:'🚪', fn:() => sessionFermer() }] : []),   /* hors du mode application il n'y a pas de compte : « Se déconnecter » menait à un écran de lien sans issue */
@@ -22933,7 +23037,7 @@ function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) r
   if (nom === 'precedent') { history.back(); return true; }
   if (nom === 'suivant') { history.forward(); return true; }
   if (nom === 'chercher') { const c = rcChampRecherche(); if (c) { c.focus(); c.select && c.select(); } else palOuvrir(); return true; }
-  if (nom === 'intervention') { if (ROLE !== 'patron') return false; palFermer(false); ouvrirCreation({}); return true; }
+  if (nom === 'intervention') { if (!rcInterOk()) return false; palFermer(false); ouvrirCreation({}); return true; }
   if (RC_CREER.some(c => c.nom === nom)) { palFermer(false); return rcCreer(nom); }
   const m = /^rubrique(\d)$/.exec(nom); if (m && R[+m[1] - 1]) { palFermer(false); cpSysAllerRubrique(R[+m[1] - 1].k); return true; }
   return false; }
@@ -22991,13 +23095,17 @@ if (MAC) document.addEventListener('wheel', ev => { const svgc = ev.target.close
 /* ── ordinateur · listes et créations d'une touche · 12 novembre 2026 ──
    Justin : « vas-y, fais tout ce qu'il faut ». Trois gestes de plus : D, C, A créent un devis, un client, une tâche d'où que l'on soit ;
    ↓ et ↑ parcourent les lignes d'un écran (Entrée ouvre) ; le clic droit sur une ligne ouvre son menu. */
+/* ce que chaque création d'une touche demande : la rubrique ET la case « Créer » de sa catégorie (la tâche est un outil personnel : toujours) */
 var RC_CREER = [
-  { nom:'devis', t:'D', k:'devis', l:'Devis rapide', sel:'#contenu [data-dv="nouveau"]' },
-  { nom:'client', t:'C', k:'clients', l:'Nouveau client', sel:'#contenu [data-action="clientNouveau"]' },
+  { nom:'devis', t:'D', k:'devis', cat:'ventes', l:'Devis rapide', sel:'#contenu [data-dv="nouveau"]' },
+  { nom:'client', t:'C', k:'clients', cat:'crm', l:'Nouveau client', sel:'#contenu [data-action="clientNouveau"]' },
   { nom:'tache', t:'A', k:'taches', l:'Nouvelle tâche', sel:'#contenu input[data-tkxajout], #contenu input[data-tajout]', saisie:true },
 ];
+const rcCreerOk = c => !!c && rlPermis(c.k) && (!c.cat || peut(c.cat, 'c'));
+/* N : une intervention se crée depuis les écrans du bureau, avec la case « Créer » des Interventions */
+const rcInterOk = () => droitForme(eqDe(acteur())) === 'equipe' && rlPermis('interventions') && peut('inter', 'c');
 /* on va sur l'écran, puis on fait le geste de SON bouton : la création passe par le chemin que l'écran connaît déjà */
-function rcCreer(nom){ const c = RC_CREER.find(x => x.nom === nom); if (!c || ROLE !== 'patron' || !rlPermis(c.k)) return false;
+function rcCreer(nom){ const c = RC_CREER.find(x => x.nom === nom); if (!c || !rcCreerOk(c) ) return false;
   let essais = 0; const faire = () => { const el = [...document.querySelectorAll(c.sel)].find(e => e.offsetParent !== null);
     if (el && (BASE[route] || route) === c.k) { if (c.saisie) { el.scrollIntoView({ block:'center' }); el.focus(); } else el.click(); return; }
     if (++essais < 25) setTimeout(faire, 40); };
@@ -23095,24 +23203,17 @@ const SESSION_CLE = 'opg_proto_session';
    n'ouvrait ni ne fermait rien, les menus restant ceux du rôle. Ici seulement ce qui est simple et sûr : RETIRER une rubrique (menu, barre du bas,
    adresse, liens des fiches). Créer / modifier / supprimer et les droits « à part » ne sont pas encore branchés ; une case ne peut pas non plus AJOUTER
    une rubrique que le menu du rôle n'a pas. Fonction déclarée (remontée) : rlPermis l'appelle dès le premier affichage. ══ */
-function drRefuse(r){ try {
-  if (ROLE !== 'gestion' && ROLE !== 'tech') return false;
-  const T = ROLE === 'tech' ? { boxes:'stock', carteBox:'stock', moncamion:'temps', mesheures:'temps', clientvoit:'crm' }
-    : { comptabilite:'compta', facture:'ventes', factures:'ventes', encaissements:'ventes', devis:'ventes', devisXylo:'ventes', contrats:'ventes', contrat:'ventes', 'contrat-nouveau':'ventes', clients:'crm', client:'crm', clientvoit:'crm', interventions:'inter', inter:'inter', achats:'achats', stock:'stock', produits:'achats', vehicules:'temps' };
-  const c = T[r], q = ROLES[ROLE].qui, e = c && q ? eqDe(q) : null, ferme = k => !!(e && e.droits && e.droits.cats[k] && !e.droits.cats[k].v);
-  /* « factures » et « encaissements » réécrivent leur adresse en #comptabilite (vueFactures, vueEncaissements) : Comptabilité fermée, elle l'est aussi par ces deux adresses */
-  return ferme(c) || (ROLE === 'gestion' && (r === 'factures' || r === 'encaissements') && ferme('compta'));
-} catch (err) { return false; } }
-/* la première rubrique que la gestion a le droit d'ouvrir : sans Comptabilité, elle n'atterrit plus dessus */
-Object.defineProperty(ROLES.gestion, 'accueil', { configurable:true, enumerable:true,
-  get(){ return ['comptabilite', 'devis', 'contrats', 'clients', 'interventions'].find(k => !drRefuse(k)) || 'taches'; },
-  set(v){ Object.defineProperty(this, 'accueil', { value:v, writable:true, configurable:true, enumerable:true }); } });
-const sessionRole = p => { const pr = (p.droits.profil || '').replace('*', ''); return pr === 'admin' ? 'patron' : pr === 'compta' ? 'compta' : pr === 'tech' ? 'tech' : 'gestion'; };
+/* l'écran d'ouverture d'un rôle interne : la première rubrique que SA personne a le droit d'ouvrir (sans Comptabilité, la gestion n'atterrit plus dessus) */
+['gestion', 'tech'].forEach(k => Object.defineProperty(ROLES[k], 'accueil', { configurable:true, enumerable:true,
+  get(){ return ouvertureDe(eqDe(ROLES[k].qui)); },
+  set(v){ Object.defineProperty(this, 'accueil', { value:v, writable:true, configurable:true, enumerable:true }); } }));
+/* la coque d'écran d'une personne : sa FORME, décidée par la case « Travaille sur le terrain » (jamais par le nom de son profil) ; l'administrateur et le comptable gardent la leur */
+const sessionRole = p => { const pr = (p.droits.profil || '').replace('*', ''); return pr === 'admin' ? 'patron' : pr === 'compta' ? 'compta' : eqxTerrain(p) ? 'tech' : 'gestion'; };
 var SESSION_VUE = null;   /* l'écran que l'adresse demandait à l'ouverture (jamais posé par une connexion neuve) · 13 novembre 2026 */
 function sessionVue(role, h){
   const [r, p] = String(h || '').split('-x-');
   if (!/^[A-Za-z0-9-]{1,40}$/.test(r) || (p && !/^[A-Za-z0-9_-]{1,40}$/.test(p)) || r === 'accueil' || role === 'compta' || role === 'client') return null;
-  if (!(role === 'patron' ? !['majournee', 'techfrais', 'espaceclient'].includes(r) : ROLES[role].routes.includes(r))) return null;
+  if (!droitVoit(r)) return null;   /* la personne vient d'être posée (SESSION) : droitVoit lit SES cases et SA forme */
   if (!routeConnue(r)) return null;   /* une adresse d'avant (#boxes, #clientvoit, #factures) reste une adresse : les routes ne changent pas */
   const AVEC = { inter:INTS, facture:FACTURES, contrat:CONTRATS };
   if (Object.hasOwn(AVEC, r)) { const o = p && AVEC[r].find(x => x.id === p); if (!o || (role === 'tech' && r === 'inter' && o.tech !== ROLES.tech.qui)) return null; }
@@ -23528,7 +23629,7 @@ const NV_PLACE = [
   ['Messagerie', 'Retirée d’OP GESTION : les discussions de l’équipe se font dans OP MESSAGES', null],
   ['Apparence (jour, nuit)', 'Au pied du menu : Jour · Nuit · Auto', null]
 ];
-const nvVoit = k => !k || ROLE === 'patron' || ((ROLES[ROLE] || {}).routes || []).includes(k) && !drRefuse(k);
+const nvVoit = k => !k || rlPermis(k);   /* le guide ne parle que de ce que la personne a le droit d'ouvrir */
 let NV = null;
 function nvPages(){ const neuf = NV_NEUF.filter(x => x[4] ? ROLE === x[4] : nvVoit(x[0])), place = NV_PLACE.filter(x => !x[2] || nvVoit(x[2]));
   const p = eqDe(SESSION) || {}, P = [];

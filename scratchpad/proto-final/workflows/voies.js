@@ -219,7 +219,11 @@ const VOIES_ARGS = {
 }
 
 const nom = args.voie
-const V = nom === 'campagne' ? { arbre: args.arbre, etapes: (args.cles || []).flatMap(etapesPartie) } : VOIES_ARGS[nom] ? VOIES_ARGS[nom](args) : VOIES[nom]
+const V0 = nom === 'campagne' ? { arbre: args.arbre, etapes: (args.cles || []).flatMap(etapesPartie) } : VOIES_ARGS[nom] ? VOIES_ARGS[nom](args) : VOIES[nom]
+/* « arbre » en argument remplace l'arbre de la voie : c'est ce qui permet de jouer DEUX tranches d'une même voie côte à côte
+   (par exemple les angles de l'audit de sécurité, qui prenaient 1 h 40 chacun l'un derrière l'autre) sans que deux agents
+   partagent un arbre git. */
+const V = V0 && { arbre: args.arbre || V0.arbre, etapes: V0.etapes }
 if (!V || !V.arbre || !V.etapes.length) throw new Error('voie inconnue ou vide : ' + nom)
 const debut = args.depuis || 0, finI = args.jusqua === undefined ? V.etapes.length - 1 : args.jusqua
 const rendus = []

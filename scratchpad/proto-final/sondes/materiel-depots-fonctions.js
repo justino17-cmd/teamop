@@ -2,7 +2,7 @@
 // Lit le TEXTE de la page : commentaires de bloc en début de ligne et lignes « // » retirés AVANT de chercher (un motif vise du code, jamais une phrase).
 // Usage : node materiel-depots-fonctions.js [fichier]   → « N ✓ · M ✗ », sort en 1 si un contrôle tombe.
 const fs = require('fs'), path = require('path');
-const f = process.argv[2] || path.join(__dirname, '..', '..', '..', 'apercu', 'prototype-op-gestion.html');
+const f = process.argv[2] || path.join(process.env.RACINE || path.join(__dirname, '..', '..', '..'), 'apercu', 'prototype-op-gestion.html');   // RACINE : la copie mutée que le script de contre-épreuve fait servir
 const code = fs.readFileSync(f, 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 let ok = 0, ko = 0; const v = (n, c, d) => { if (c) { ok++; console.log('  ✓', n); } else { ko++; console.log('  ✗', n, d !== undefined ? '→ ' + d : ''); } };
 const defs = nom => { const e = nom.replace(/\$/g, '\\$');
