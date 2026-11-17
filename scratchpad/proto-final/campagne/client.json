@@ -132,7 +132,7 @@
   {
    "n": "client-03",
    "gravite": "gênant",
-   "ecran": "Contrat › signer le contrat : retour après la signature",
+   "ecran": "Contrat › « Signer le contrat » : second toucher ou retour du navigateur",
    "role": "client",
    "profils": [
     "mac",
@@ -142,12 +142,12 @@
     "android",
     "petit"
    ],
-   "etapes": "Client « Cabinet dentaire Martin » › Contrat › « Lire et signer » › cocher, signer › « Signer le contrat ».",
-   "attendu": "Le contrat est signé et le client lit « Contrat signé. La copie signée vous est envoyée par e-mail. » puis voit son contrat « Signé le … ».",
-   "constate": "Le contrat est bien signé (état, visites, facture), mais le message affiché est « Cette page n’est pas dans ton espace. » : la signature appelle aller('contrat-x-…') (page du bureau), la garde du rôle client la refuse et son message REMPLACE la confirmation. Le client croit à une erreur, et tutoyé de surcroît. Il atterrit sur l’accueil de son espace, pas sur son contrat.",
-   "preuve": "client-parcours.js P3 « le message du client est pour le client » (toast mesuré : « Cette page n’est pas dans ton espace. »).",
-   "ou": "apercu/prototype-op-gestion.html · signerContrat (l. 8709) → aller('contrat-x-'+id) puis rlRefus (l. 13772)",
-   "correction": "Quand le rôle est « client » : EC.tab = 'contrats'; aller('espaceclient') puis le toast « Contrat signé. La copie signée vous est envoyée par e-mail. » (le message existe déjà dans la fonction, il est juste écrasé).",
+   "etapes": "Client « Cabinet dentaire Martin » › Contrat › « Lire et signer » › cocher, signer › « Signer le contrat » ; puis un second toucher sur le bouton (double toucher un peu tardif, ou retour du navigateur sur la page).",
+   "attendu": "Le client lit que le contrat est déjà signé et que la copie est partie par e-mail ; il retrouve son contrat.",
+   "constate": "Au premier toucher tout va bien (« Contrat signé. La copie signée vous est envoyée par e-mail. », UNE seule série de visites, UNE facture). Au second, la branche « déjà signé » envoie le client vers la page du bureau (aller('contrat-x-…')) : la garde du rôle client la refuse et affiche « Cette page n’est pas dans ton espace. » — une phrase d’erreur, tutoyée, juste après une signature qui s’est bien passée. Il reste sur l’accueil de son espace, pas sur son contrat.",
+   "preuve": "client-parcours.js P3 « client-03 » (message du second toucher mesuré : « Cette page n’est pas dans ton espace. »). Contre-épreuve : sur une copie corrigée la phrase devient « Ce contrat est déjà signé… » et le contrôle passe.",
+   "ou": "apercu/prototype-op-gestion.html · signerContrat, branche « déjà signé » (l. 8703) → aller('contrat-x-'+id) puis rlRefus (l. 13772)",
+   "correction": "Pour le rôle client : EC.tab = 'contrats'; aller('espaceclient'); toast('Ce contrat est déjà signé : la copie signée vous a été envoyée par e-mail.'). Même chose pour la branche « première signature », qui ne dépend aujourd’hui que de l’ordre aller() puis toast().",
    "decision": "corriger",
    "sonde": "client-parcours.js"
   },
@@ -166,10 +166,10 @@
    ],
    "etapes": "Client › taper une adresse du bureau (#clients, #comptabilite, #inter-x-i1…).",
    "attendu": "Le client reste dans son espace, avec une phrase qui s’adresse à lui (vouvoiement).",
-   "constate": "Il reste bien dans son espace (14 adresses essayées, 0 fuite), mais la phrase est « Cette page n’est pas dans ton espace. » — écrite pour un collègue de l’entreprise (tutoiement).",
+   "constate": "Il reste bien dans son espace (14 adresses essayées, 0 fuite), mais la phrase est « Cette page n’est pas dans ton espace. » — écrite pour un collègue de l’entreprise (tutoiement) ; pour #inter-x-i1 elle devient « Cette intervention est à Sophie : tu ne vois que les tiennes. » (donne le prénom du technicien et parle d’« interventions à toi »).",
    "preuve": "client-parcours.js P6 : 14 adresses du bureau refusées ; texte lu au toast.",
    "ou": "apercu/prototype-op-gestion.html · rlRefus (l. 13772)",
-   "correction": "Pour le rôle « client » : « Cette page n’est pas dans votre espace. ».",
+   "correction": "Pour le rôle « client », avant toute autre branche de rlRefus : « Cette page n’est pas dans votre espace. ». Contre-épreuve : sur la copie corrigée, les 14 adresses passent au vert.",
    "decision": "corriger",
    "sonde": "client-parcours.js"
   },
@@ -361,7 +361,7 @@
    "constate": "La page s’ouvre et montre le contrat (titre, nombre de visites, prix) d’un AUTRE client : vueSigner cherche le contrat par son identifiant sans comparer k.cli à RL_CLI.cli. Aucune fuite par l’interface (aucun bouton n’y mène) ; seule une adresse tapée l’atteint. Dans la vraie version le lien porte un jeton propre au contrat.",
    "preuve": "client-parcours.js P6 « la page de signature d’un contrat d’un autre client n’est pas montrée ».",
    "ou": "apercu/prototype-op-gestion.html · vueSigner (l. 5532)",
-   "correction": "if (ROLE === 'client' && k.cli !== RL_CLI.cli) return vueEspaceClient();",
+   "correction": "if (ROLE === 'client' && k.cli !== RL_CLI.cli) return vueEspaceClient(); (copie corrigée rejouée : le contrôle passe).",
    "decision": "corriger",
    "sonde": "client-parcours.js"
   },
@@ -502,6 +502,28 @@
    "decision": "corriger",
    "zone": "coque",
    "sonde": "client-mise-en-page.js"
+  },
+  {
+   "n": "client-21",
+   "gravite": "gênant",
+   "ecran": "Facture / devis en grand › « Télécharger »",
+   "role": "client",
+   "profils": [
+    "mac",
+    "windows",
+    "ipad",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "etapes": "Client › Factures › « Voir » › « ⤓ Télécharger ».",
+   "attendu": "Un message qui s’adresse au client (vouvoiement) et ne cache pas le document.",
+   "constate": "La bulle dit « « Facture FAC-2026-0144.pdf » : téléchargement demandé. S’il ne démarre pas, ton navigateur le bloque ici. » — tutoiement, jargon (« le bloque ici »), et elle se pose sur le bas du document (téléphone). Le fichier, lui, est bien un vrai PDF de la bonne facture (téléchargé et relu : %PDF, > 1 Ko).",
+   "preuve": "client-document.js « client-21 » ; capture doc-iphone-facture.png.",
+   "ou": "apercu/prototype-op-gestion.html · fonction de téléchargement du document (l. 4604)",
+   "correction": "« Votre téléchargement démarre. S’il ne démarre pas, autorisez les téléchargements dans votre navigateur. » (vouvoiement pour le client).",
+   "decision": "corriger",
+   "sonde": "client-document.js"
   }
  ]
 }

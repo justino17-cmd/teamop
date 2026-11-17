@@ -63,7 +63,8 @@ const lisible = k => { const comp = (f, b) => { const a = f.length > 3 ? f[3] : 
         const ordre = [{ t:Math.round(tb.top), b:Math.round(tb.bottom), l:Math.round(tb.left), r:Math.round(tb.right), h:Math.round(tb.height) }, ...['.search, .searchbar, input[type=search]', '.catbar', '.rangeail'].map(s => r(s))];
         return { w:innerWidth, sw:document.documentElement.scrollWidth, titre:Math.round(parseFloat(getComputedStyle(R2.querySelector('.list .large-title')).fontSize)), ordre, liste:{ t:Math.round(ls.top), b:Math.round(ls.bottom) }, entieres, total:lignes.length, sous:getComputedStyle(R2.querySelector('.list .lt-sub')).display }; });
       v('population ' + etiq + ' : la liste a des messages (' + m.total + ') et le titre existe', m.total >= 3 && !!m.ordre[0], m);
-      const rangs = m.ordre.filter(Boolean); let chev = 0; for (let i = 1; i < rangs.length; i++) if (rangs[i].t < rangs[i - 1].b - 1) chev++;
+      const rangs = m.ordre.filter(x => x && x.h > 0);   // tour 2 : sous 380 px de haut le grand titre est retiré (il passe dans la barre) et la liste s'ouvre pliée sur ses messages — un titre sans hauteur n'est pas un rang
+      let chev = 0; for (let i = 1; i < rangs.length; i++) if (rangs[i].t < rangs[i - 1].b - 1) chev++;
       v(etiq + ' : titre, recherche, catégories, encart se suivent sans se couvrir (' + chev + ' chevauchement)', chev === 0, m.ordre);
       v(etiq + ' : la page ne glisse pas de côté (' + m.sw + ' pour ' + w + ')', m.sw <= w + 1);
       v(etiq + ' : titre à 20 px au plus, phrase du dessous retirée (' + m.titre + ' px, ' + m.sous + ')', m.titre <= 22 && m.sous === 'none', m);

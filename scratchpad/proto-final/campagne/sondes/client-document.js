@@ -14,7 +14,8 @@ const profil = process.argv[2] || 'iphone';
   v('« Lire en grand » change le zoom et le libellé du bouton', c.doigt ? (z1.z !== z0 && /entière/.test(z1.t)) : true, JSON.stringify({ z0, z1 }));
   await L.toucher(c, '#docplein .dp-zoom');
   let tel = null; p.once('download', dl => { tel = dl; }); await L.toucher(c, '#docplein [data-pdfdl]'); await p.waitForTimeout(900);
-  const nom = tel ? tel.suggestedFilename() : '';
+  const nom = tel ? tel.suggestedFilename() : ''; const tt = (await O.dessus(p)).toast;
+  v('client-21 · le message du téléchargement vouvoie le client (pas « ton navigateur »)', tt !== '' && !/\b(ton|ta|tes|tu)\b/.test(tt), tt || 'aucun message');
   v('« Télécharger » produit un fichier PDF nommé d’après la facture', !!tel && /\.pdf$/i.test(nom) && /FAC-2026-0144/.test(nom), nom || 'aucun téléchargement');
   if (tel) { const f = O.CAP + 'tel-' + nom; await tel.saveAs(f); const o = fs.readFileSync(f); v('le PDF téléchargé est un vrai PDF (%PDF, > 1 Ko)', o.slice(0, 4).toString() === '%PDF' && o.length > 1000, o.length + ' octets'); }
   await L.capture(c, O.CAP + `doc-${profil}-facture.png`);
