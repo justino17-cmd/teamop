@@ -1,0 +1,130 @@
+[
+ {
+  "nom": "demandes",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-demandes-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-demande",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-demande-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-precision",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-precision-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-refus-demande",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-refus-demande-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-budget",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-budget-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-aide",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-aide-iphone-jour.png"
+ },
+ {
+  "nom": "notes",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-notes-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-fiche-note",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-fiche-note-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-sans-ticket",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-sans-ticket-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-refus-note",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-refus-note-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-tout-valider",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tout-valider-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-tarif-km",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tarif-km-iphone-jour.png"
+ },
+ {
+  "nom": "mes-frais",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-mes-frais-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-note-de-frais",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-note-de-frais-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-ma-demande",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-ma-demande-iphone-jour.png"
+ },
+ {
+  "nom": "fenetre-modifier-demande",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-modifier-demande-iphone-jour.png"
+ }
+]

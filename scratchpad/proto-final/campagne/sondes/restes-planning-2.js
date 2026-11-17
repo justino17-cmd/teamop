@@ -112,6 +112,10 @@ parcours('S2 · décision (k) : les chiffres du bandeau suivent les personnes af
   await vue(c, 'jour'); await L.toucher(c, '[data-masque="sm"]');
   const geo = await c.p.evaluate(() => { const n = document.querySelector('.pl-kpis-note'), b = n && n.querySelector('.lien'), r = n && n.getBoundingClientRect(), rb = b && b.getBoundingClientRect(); return n ? { x: Math.round(r.left), droite: Math.round(r.right), larg: innerWidth, bouton: Math.round(rb.height) } : null; });
   L.v('S2 · la note tient dans l’écran et son bouton fait au moins 44 px au doigt', !!geo && geo.droite <= geo.larg + 1 && geo.x >= 0 && (!c.doigt || geo.bouton >= 44), geo);
+  // le titre de la période (« Aujourd'hui · samedi 31 octobre ») tient entre ses deux flèches : ni coupé, ni posé sous une flèche (à 320 px il passait sous la flèche de droite)
+  const nav = await c.p.evaluate(() => { const b = document.querySelector('.pl-nav b'), bs = [...document.querySelectorAll('.pl-nav button')].slice(0, 2).map(x => x.getBoundingClientRect()), r = b.getBoundingClientRect(), t = document.createRange(); t.selectNodeContents(b); const rt = t.getBoundingClientRect();
+    return { texte: b.textContent, gauche: Math.round(rt.left), droite: Math.round(rt.right), flecheG: Math.round(bs[0].right), flecheD: Math.round(bs[1].left), haut: Math.round(r.height) }; });
+  L.v('S2 · le titre de la période tient entre les deux flèches (texte ' + nav.gauche + '→' + nav.droite + ', flèches ' + nav.flecheG + '/' + nav.flecheD + ')', nav.gauche >= nav.flecheG - 1 && nav.droite <= nav.flecheD + 1, nav);
   const deb = await L.deborde(c); L.v('S2 · la page ne déborde pas de côté avec la note (mesuré contre la largeur du profil)', deb.bouge === 0, deb);
   await L.capture(c, CAP + `S2-note-${profil}${nuit ? '-nuit' : ''}.png`);
 });
@@ -131,9 +135,12 @@ parcours('S3 · carte des tournées, toute première ouverture, sans recadrage :
     const r = await c.p.evaluate(() => { const rr = e => e.getBoundingClientRect(), I = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
       const pins = [...document.querySelectorAll('.cr-mk[data-crpin]')], obst = [...document.querySelectorAll('#cr-carte .cr-fonds, #cr-carte .cr-outils, #cr-carte .cr-chips, #cr-carte .cr-note')].filter(e => rr(e).width > 0);
       const cont = rr(document.querySelector('#cr-carte'));
-      return { n: pins.length, nObst: obst.length, fonds: obst.some(o => o.classList.contains('cr-fonds')), sous: pins.filter(p => obst.some(o => I(rr(p), rr(o)) > 0)).map(p => p.dataset.crpin + ' sous ' + obst.find(o => I(rr(p), rr(o)) > 0).className),
-        // ce que le doigt toucherait : le centre de chaque repère rend-il le repère (ou son contenu) ?
-        pris: pins.map(p => { const b = rr(p), x = b.left + b.width / 2, y = b.top + b.height / 2; if (x < cont.left || x > cont.right || y < cont.top || y > cont.bottom) return null; const t = document.elementFromPoint(x, y); return t && t.closest('.cr-mk') === p ? null : p.dataset.crpin + ' couvert par ' + (t ? t.tagName + '.' + String(t.className).slice(0, 24) : '?'); }).filter(Boolean) }; });
+      return { n: pins.length, nObst: obst.length, fonds: obst.some(o => o.classList.contains('cr-fonds')), sous: pins.filter(p => obst.some(o => I(rr(p), rr(o)) > 0)).map(p => p.dataset.crpin + ' sous ' + obst.find(o => I(rr(p), rr(o)) > 0).className), ids: pins.map(p => p.dataset.crpin) }; });
+    // ce que le doigt toucherait : chaque repère est amené AU MILIEU de l'écran (sinon c'est la barre fixe du bas qu'on mesure), puis son centre doit rendre le repère
+    r.pris = []; for (const id of r.ids) { await c.p.evaluate(id => document.querySelector('.cr-mk[data-crpin="' + id + '"]').scrollIntoView({ block: 'center', behavior: 'instant' }), id); await c.p.waitForTimeout(250);
+      const q = await c.p.evaluate(id => { const p = document.querySelector('.cr-mk[data-crpin="' + id + '"]'), cont = document.querySelector('#cr-carte').getBoundingClientRect(), b = p.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + b.height / 2;
+        if (x < cont.left || x > cont.right || y < cont.top || y > cont.bottom) return null;   // à moitié hors cadre : la carte le panoramique au toucher, on ne le compte pas
+        const t = document.elementFromPoint(x, y); return t && t.closest('.cr-mk') === p ? null : id + ' couvert par ' + (t ? t.tagName + '.' + String(t.className).slice(0, 24) : '?'); }, id); if (q) r.pris.push(q); }
     console.log('   ', d, JSON.stringify(r));
     L.v('S3 · ' + d + ' : la carte a ses repères et ses boutons de fond (population)', r.n >= 2 && r.fonds, r);
     L.v('S3 · ' + d + ' : aucun repère sous un bouton de la carte à la première ouverture', r.sous.length === 0, r.sous);

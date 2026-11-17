@@ -14,6 +14,7 @@ jouer() {   # jouer <nom> <env...> -- <script>
 }
 jouer "mots · mac · les quatre personnes"            PROFIL=mac QUI=marc,julie,sm,kb -- guide-mots.js
 jouer "mots · iphone · gérant, bureau, technicienne" PROFIL=iphone QUI=marc,julie,sm -- guide-mots.js
+jouer "lib · guide:true le laisse paraître"          PROFIL=mac -- guide-lib.js
 jouer "voir · mac · les quatre personnes"            PROFIL=mac QUI=marc,julie,sm,kb -- guide-voir.js
 jouer "voir · iphone · les quatre personnes"         PROFIL=iphone QUI=marc,julie,sm,kb -- guide-voir.js
 jouer "fermer · mac · gérant et technicienne"        PROFIL=mac QUI=marc,sm -- guide-fermer.js

@@ -73,7 +73,7 @@ exports.ouvrir = async function (o) {
   if (pr.encoches) { try { const cdp = await ctx.newCDPSession(p); const e = pr.encoches; await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: e.top, bottom: e.bottom, left: e.left, right: e.right, topMax: e.top, bottomMax: e.bottom, leftMax: e.left, rightMax: e.right } }); encochesPosees = true; } catch (x) { /* Chromium qui ne sait pas : encoches à zéro, à DIRE dans le rapport */ } }
   if (o.init) await p.addInitScript(o.init);
   const app = o.app !== false, qui = o.qui === undefined ? 'marc' : o.qui;
-  const q = o.requete !== undefined ? o.requete : (app && !o.page ? ('?app=1' + (qui ? '&auto=' + qui : '')) : '');
+  const q = o.requete !== undefined ? o.requete : (app && !o.page ? ('?app=1' + (qui ? '&auto=' + qui : '') + (o.guide ? '&guide=1' : '')) : '');   // guide:true : le guide des nouveautés paraît seul (900 ms après l'ouverture), comme à la première connexion
   await p.goto('http://127.0.0.1:' + port + '/apercu/' + (o.page || 'prototype-op-gestion.html') + q + (o.hash ? '#' + o.hash : ''), { waitUntil: 'load', timeout: 60000 });
   await p.waitForTimeout(o.attente || 1200);
   if (o.nuit !== undefined && !o.page) await p.evaluate(n => { try { mode = n ? 'nuit' : 'jour'; appliquerMode(); } catch (e) {} }, !!o.nuit);
