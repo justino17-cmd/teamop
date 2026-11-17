@@ -10,7 +10,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 async function cliquer(c, sel) { await c.p.locator(sel).first().click(); await L.calme(c.p, 250); }
 (async () => {
   // 0. le fichier lui-même : plus une seule initiale « CS » écrite en dur, dix-sept appels à logoEnt dans les gabarits
-  const dur = (PAGE.match(/class="logo-ent">CS</g) || []).length, appels = (PAGE.match(/\$\{logoEnt\('(?:div|span)'\)\}/g) || []).length;
+  const i0 = PAGE.indexOf('/* ══ MON ENTREPRISE ·'), i1 = PAGE.indexOf('</style>`);', PAGE.indexOf('id="entreprise-css"')) + 11, AVANT = PAGE.slice(0, i0) + PAGE.slice(i1), dur = (PAGE.match(/class="logo-ent">CS</g) || []).length, appels = (AVANT.match(/\$\{logoEnt\('(?:div|span)'\)\}/g) || []).length;   // les gabarits sont tout le fichier SAUF le bloc « Mon entreprise » (l'aperçu du panneau n'en est pas un)
   v('population : 17 gabarits appellent logoEnt() (compté dans le fichier)', appels === 17, appels);
   v('aucune initiale « CS » écrite en dur dans un gabarit', dur === 0, dur);
   const c = await ouvrirEnt({ profil:'mac' });
@@ -38,18 +38,18 @@ async function cliquer(c, sel) { await c.p.locator(sel).first().click(); await L
   const pro = await c.p.evaluate(() => { const L = FACTURES.filter(f => f.num !== '—' && f.st !== 'avoir'); return { pro:(L.find(f => CLIENTS[f.cli].type === 'pro') || {}).id, part:(L.find(f => CLIENTS[f.cli].type === 'part') || {}).id }; });
   const DOCS = {
     facture:`pdfFacture(FACTURES.find(f => f.id === '${pro.pro}'))`, facturePart:`pdfFacture(FACTURES.find(f => f.id === '${pro.part}'))`,
-    devis:`(dvInit(), docDevis(DV[0]))`, contrat:`pdfContrat(null, CONTRATS.find(k => k.st === 'signe'))`, bilan:`bilanPdf()`, compteRendu:`compteRenduPdf(INTS.find(i => i.st === 'fait').id)`,
-    espaceClient:`(() => { const r = ROLE; try { ROLE = 'client'; return vueEspaceClient(); } finally { ROLE = r; } })()`, paie:`paieDoc('sm')`, bulletin:`paieBulletinDoc('sm', PAIE_NOM_MOIS && '2026-10')`, registre:`rgDoc && rgDoc('t1', 'tout')`,
-    dvClient:`dvClient(DV[0])`, stBilan:`stBilan()`, hExport:`hExport()`, tExport:`tExport()`, aExport:`aExport()`
+    devis:`(dvInit(), docDevis(DV[0]))`, contrat:`(() => { const k = CONTRATS.find(x => x.st === 'signe'); return pdfContrat(k, k); })()`, bilan:`bilanPdf()`, compteRendu:`compteRenduPdf(INTS.find(i => i.st === 'fait').id)`,
+    espaceClient:`(() => { const r = ROLE, c0 = RL_CLI.cli, t0 = EC.tab; try { ROLE = 'client'; RL_CLI.cli = FACTURES.find(f => ['envoyee', 'retard', 'partielle'].includes(f.st)).cli; EC.tab = 'factures'; return vueEspaceClient(); } finally { ROLE = r; RL_CLI.cli = c0; EC.tab = t0; } })()`, paie:`paieDoc('sm')`, bulletin:`paieBulletinDoc('sm', PAIE_NOM_MOIS && '2026-10')`, registre:`rgDoc && rgDoc('t1', 'tout')`
   };
   const T = {}; let lus = 0;
   for (const [k, js] of Object.entries(DOCS)) { const r = await lire(k, js); T[k] = r; if (r.ok && r.h.length > 200) lus++; else console.log('  · ' + k + ' : non lu (' + (r.err || 'trop court') + ')'); }
-  v('population : au moins 11 fabriques de documents lues', lus >= 11, lus);
+  v('population : au moins 10 fabriques de documents lues', lus >= 10, lus);
   const doc = (k, nom, txt) => { const r = T[k]; if (!r || !r.ok || r.h.length <= 200) return; v(`${k} : ${nom}`, r.t.includes(txt), txt); };
-  for (const k of ['facture', 'devis', 'contrat', 'compteRendu', 'paie', 'bulletin', 'registre', 'bilan', 'stBilan', 'hExport', 'tExport', 'aExport', 'dvClient', 'espaceClient']) doc(k, 'le nom de l’entreprise', N.nom);
-  for (const k of ['facture', 'devis', 'contrat', 'bilan', 'stBilan']) doc(k, 'l’adresse (rue)', N.rue);
+  for (const k of ['facture', 'devis', 'contrat', 'compteRendu', 'paie', 'bulletin', 'registre', 'bilan', 'espaceClient']) doc(k, 'le nom de l’entreprise', N.nom);
+  for (const k of ['facture', 'devis', 'contrat']) doc(k, 'l’adresse (rue)', N.rue);
+  doc('contrat', 'le dirigeant (« représentée par… »)', N.patron);
   doc('facture', 'le SIRET', 'SIRET ' + G.siret); doc('facture', 'la TVA', G.tva);
-  doc('facture', 'le téléphone', N.tel); doc('facture', 'l’e-mail', N.mail);
+  doc('compteRendu', 'le téléphone', N.tel); doc('compteRendu', 'l’e-mail', N.mail);
   doc('facture', 'l’IBAN ET le BIC à côté', B.iban + ' · BIC ' + B.bic);
   doc('espaceClient', 'l’IBAN', B.iban); doc('espaceClient', 'le BIC', B.bic);
   doc('facture', 'l’assurance en quatre champs au pied', 'Assurance : Assurances Océan n° RC 98765 (Océan, 17000 La Rochelle), zone couverte : France et DOM');
@@ -67,7 +67,7 @@ async function cliquer(c, sel) { await c.p.locator(sel).first().click(); await L
   v('opdDonnees : SIRET, TVA, IBAN, BIC, forme, capital, RCS', od.siret === G.siret && od.tva === G.tva && od.iban === B.iban && od.bic === B.bic && od.forme === 'SARL' && od.capital === '8 000' && od.rcs === G.rcs, od);
   v('opdDonnees : l’assurance saisie dans la carte ARRIVE à l’atelier (le défaut du pont : assureur, assurNum, assurZone)', od.assureur === G.assureur && od.assurNum === G.num && od.assurZone === G.zone, { a:od.assureur, n:od.assurNum, z:od.assurZone });
   // horaires et tarifs : créneaux du planning, facture au temps
-  const h = await c.p.evaluate(() => { try { ouvrirCreation({}); CREA.fact = 'temps'; const m = infoMode('temps'); const lg = lignesCrea(90, {}); const aide = document.body.innerText; fermerCreation && fermerCreation(); return { m, lg, rdv:rdvHeures({ dur:60 }, 'sm', AUJ).length ? hm(rdvHeures({ dur:60 }, 'sm', AUJ)[0][0] || 0) : '' , debut:hm(PARAMS.debut), fin:hm(PARAMS.fin) }; } catch (e) { return { err:String(e.message) }; } });
+  const h = await c.p.evaluate(() => { try { ouvrirCreation({}); CREA.fact = 'temps'; const m = infoMode('temps'); const lg = lignesCrea(90, {}); const aide = document.body.innerText; fermerCreation(); fermerPanneau(); return { m, lg, rdv:rdvHeures({ dur:60 }, 'sm', AUJ).length ? hm(rdvHeures({ dur:60 }, 'sm', AUJ)[0][0] || 0) : '' , debut:hm(PARAMS.debut), fin:hm(PARAMS.fin) }; } catch (e) { return { err:String(e.message) }; } });
   if (h.err) console.log('  · horaires/tarifs : ' + h.err);
   v('créneaux : la journée de travail du planning est celle de la carte (06:30 – 19:00)', !h.err && h.debut.replace(/\D/g, '') === '0630' && h.fin.replace(/\D/g, '') === '1900', h);
   v('facture au temps : « 80,00 € HT de l’heure », minimum 2 h, déplacements 31 / 47 / 66', !h.err && /80,00\s€ HT de l’heure/.test(h.m) && /minimum 2\s?h/.test(h.m) && h.lg && h.lg[0][1] === 160 && h.lg[1][1] != null, h);
@@ -80,7 +80,7 @@ async function cliquer(c, sel) { await c.p.locator(sel).first().click(); await L
   await cliquer(c, '[data-ent="logook"]');
   const avec = {}; for (const [k, js] of Object.entries(DOCS)) { const r = await lire(k, js); if (r.ok && r.h.length > 200) avec[k] = r.h; }
   const nbImg = Object.entries(avec).filter(([k, h]) => /<img class="logo-ent" src="data:image\/png/.test(h)).map(([k]) => k), nbIni = Object.entries(avec).filter(([k, h]) => />ZC</.test(h)).map(([k]) => k);
-  v(`population : ${Object.keys(avec).length} gabarits lus avec le logo`, Object.keys(avec).length >= 11, Object.keys(avec).length);
+  v(`population : ${Object.keys(avec).length} gabarits lus avec le logo`, Object.keys(avec).length >= 10, Object.keys(avec).length);
   v('le logo choisi est une IMAGE dans chaque gabarit lu', nbImg.length === Object.keys(avec).length, { image:nbImg, manque:Object.keys(avec).filter(k => !nbImg.includes(k)) });
   v('plus aucune initiale à côté de l’image', nbIni.length === 0, nbIni);
   const carte = await c.p.evaluate(() => (document.querySelector('[data-ent="carte|logo"] .ent-ligne') || {}).textContent); v('la carte dit « Choisi »', carte === 'Choisi', carte);

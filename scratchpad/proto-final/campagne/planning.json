@@ -1,0 +1,269 @@
+{
+ "partie": "planning",
+ "ecrans": [
+  {
+   "nom": "Planning · Jour",
+   "fonction": "vuePlanning (plVue=jour)",
+   "acces": "menu Travail › Planning"
+  },
+  {
+   "nom": "Planning · Semaine",
+   "fonction": "vuePlanning (plVue=semaine)",
+   "acces": "onglet Semaine"
+  },
+  {
+   "nom": "Planning · Mois",
+   "fonction": "vuePlanning (plVue=mois)",
+   "acces": "onglet Mois"
+  },
+  {
+   "nom": "Planning · Vue d’ensemble",
+   "fonction": "vuePlanning (plVue=general)",
+   "acces": "onglet Vue d’ensemble"
+  },
+  {
+   "nom": "Planning · Sur mesure",
+   "fonction": "vuePlanning (plVue=multi), fenêtres .pm-pop dates / personnes / vues",
+   "acces": "onglet Sur mesure"
+  },
+  {
+   "nom": "Carte des tournées",
+   "fonction": "vuePlanning (plVue=carte), crMonter/crTracerReel, crDessiner (repli), fiche .cr-fiche",
+   "acces": "onglet Carte"
+  },
+  {
+   "nom": "Nouvelle intervention (fenêtre)",
+   "fonction": "planningCrea / ACTIONS_CREA.cCreer",
+   "acces": "« ＋ Nouvelle intervention », double-clic sur une case libre"
+  },
+  {
+   "nom": "Rendez-vous en ligne (panneau)",
+   "fonction": "panneau [data-rrouvrir], réglages data-rr",
+   "acces": "« Rendez-vous en ligne »"
+  },
+  {
+   "nom": "Panneaux des chiffres du bandeau",
+   "fonction": "[data-kpi] int/plan/retard/abs/temps",
+   "acces": "toucher un chiffre"
+  }
+ ],
+ "couverture": {
+  "ecrans": 9,
+  "gestesRecenses": 365,
+  "gestesTouches": 357,
+  "detailGestes": "ordinateur (mac, jour) : jour 31/31, semaine 46/46, mois 51/51, vue d’ensemble 45/45, sur mesure 46/46, carte 52/55 (les 3 manquants sont des marqueurs de la vraie carte, recréés à chaque tracé : la sonde les vise par un index qui disparaît ; rejoués à la main par planning-marqueurs.js, voir planning-07) ; 1 geste sans effet visible : « Recentrer sur la journée » à l’état initial (déjà centré, non un défaut) ; iPhone : jour 33/33, carte 53/58 (les 5 manquants : marqueurs de la vraie carte, voir planning-07, et « Agrandir ou réduire la liste » = planning-10)",
+  "parcours": 12,
+  "parcoursListe": [
+   "P1 créer depuis le bouton",
+   "P2 créer par double-clic puis annuler",
+   "P3 déplacer par glisser + Annuler",
+   "P4 changer la durée en tirant",
+   "P5 affecter « Non assigné » (menu, carte)",
+   "P6 poser chez une personne absente",
+   "P7 réglages des rendez-vous en ligne",
+   "P8 naviguer (jour, mois, aujourd’hui, retour navigateur)",
+   "P9 vue Sur mesure (dates, personnes, regroupement, colonnes, vues enregistrées)",
+   "P10 chiffres du bandeau",
+   "P11 carte des tournées",
+   "P12 client créé à la main"
+  ],
+  "resultats": "mac : P1-P8 51 ✓ · 0 ✗ (après la correction du texte d’aide faite par un autre lot) ; P9-P12 : 41 ✓ + ✗ = défauts planning-01, -03, -04 ; iPhone : P1-P8 45 ✓ · 2 ✗ (planning-06 ; P6 au doigt non joué)",
+  "mep": "mise en page sur 6 profils : mac jour+nuit 19 ✓ · 0 ✗ ; iPhone jour+nuit, Android nuit, iPad, petit : 25 ✓ · 6 ✗ chacun, tous les ✗ = planning-05 (cibles) ; windows jour 19 ✓ · 0 ✗",
+  "profils": [
+   "mac",
+   "iphone",
+   "ipad",
+   "android",
+   "petit",
+   "windows (mise en page seulement)"
+  ],
+  "profilsNonJoues": [
+   "mac720 (gestes et parcours)",
+   "windows (gestes et parcours)"
+  ]
+ },
+ "nonCouvert": [
+  "Parcours P1-P12 sur iPad, Android et petit téléphone : seuls mac et iPhone ont été joués de bout en bout ; la mise en page et les cibles de ces profils l’ont été",
+  "P6 au doigt (poser chez une personne absente) : la colonne de l’absent est hors écran sur téléphone, la sonde ne la joue pas ; le défilement automatique au bord pendant un glisser est, lui, vérifié (scrollLeft 61 → 600 en 1,8 s)",
+  "Gestes touchés un à un sur iPhone, iPad, Android : seul l’ordinateur a eu son balayage complet",
+  "Fond de carte : la vraie carte (MapLibre via cdnjs/unpkg/openfreemap) se charge depuis la machine de test, mais dépend du réseau ; la bibliothèque injoignable est jouée par blocage de unpkg (planning-08)",
+  "Rôles autres que le gérant : la partie « droits des personnes sur le planning » n’est pas dans cette campagne",
+  "Windows : mise en page jouée (19 ✓ · 0 ✗) ; mac720 et les parcours sur Windows non joués"
+ ],
+ "defauts": [
+  {
+   "n": "planning-01",
+   "gravite": "bloquant",
+   "ecran": "Carte des tournées · Nouvelle intervention (client créé à la main)",
+   "role": "marc (gérant)",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "1) Planning › « ＋ Nouvelle intervention » › « Nouveau client » : nom « Boulangerie Test Rochefort », contact, téléphone neuf, adresse « 12 Rue de la République, 17300 Rochefort » (le formulaire dit « Repérée : Rochefort · 38 km du dépôt »). 2) Choisir Entretien, lundi 2 novembre, une case libre de Sophie, « Créer l’intervention ». 3) Carte › lundi 2 novembre, toucher la nouvelle étape.",
+   "attendu": "La carte place l’étape à Rochefort, le trajet fait environ 38 km, et Waze / Google Maps / Apple Plans envoient le technicien à l’adresse du client.",
+   "constate": "Aucune position n’est gardée pour le client créé à la main (CR_GEO sans entrée) : l’étape est posée AU DÉPÔT de La Rochelle, trajet « 0 km / 0 min », et les trois liens « Y aller avec » visent les coordonnées du dépôt (46.15850,-1.15170) : le technicien est envoyé au mauvais endroit.",
+   "preuve": "planning-parcours2.js P12, mac : 3 contrôles ✗ (« posé au dépôt », « liens visent le dépôt », « 0 km ») ; sorties : {\"km\":0,\"min\":0,\"aDepot\":true,\"liens\":[\"https://waze.com/ul?ll=46.15850,-1.15170…\"]} ; le formulaire a pourtant calculé « Repérée : Rochefort · 38 km » (.adr-rep).",
+   "ou": "crPos(s) / CR_GEO[i.cli] (crTracerReel : `CR_GEO[i.cli] || CR_DEPOT`) ; liens : `gps` ligne ~3998 ; création du client : ACTIONS_CREA.cCreer / cfNomClient",
+   "correction": "À la création du client, ranger dans CR_GEO[id] le point que le formulaire a déjà repéré. Sans point : ne pas poser l’étape au dépôt en silence — l’écrire « position inconnue » sur la fiche et faire viser aux liens l’adresse écrite (destination=<adresse>), jamais le dépôt.",
+   "decision": "corriger"
+  },
+  {
+   "n": "planning-02",
+   "gravite": "gênant",
+   "ecran": "Rendez-vous en ligne (panneau)",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Planning › « Rendez-vous en ligne » › lire la dernière ligne grise.",
+   "attendu": "Le texte d’aide mène à un endroit qui existe.",
+   "constate": "Il renvoyait vers « Ce que voit le client », ligne de menu retirée (MENU-FINAL ligne 80). DÉJÀ CORRIGÉ par un autre lot (commit 20b2cde) : le texte dit maintenant « ouvre une intervention, touche « Voir le lien client » » ; le bouton existe (ligne 4685). Rejoué après fusion : le contrôle passe.",
+   "preuve": "planning-parcours.js P7 (contrôle planning-02) : ✗ avant la fusion, ✓ après",
+   "ou": "prototype-op-gestion.html ~4903",
+   "correction": "aucune (fait)",
+   "decision": "corriger",
+   "statut": "corrigé"
+  },
+  {
+   "n": "planning-03",
+   "gravite": "gênant",
+   "ecran": "Planning · Sur mesure (fenêtres « Quels jours ? », « Personnes », « Mes vues »)",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Sur mesure › « Quels jours ? » (fenêtre ouverte) › touche Échap.",
+   "attendu": "Échap referme la fenêtre, comme pour les autres fenêtres de l’application.",
+   "constate": "La fenêtre (role=\"dialog\") reste ouverte : seul un clic en dehors la ferme.",
+   "preuve": "planning-parcours2.js P9 (planning-03) ✗ ; code : le seul écouteur Échap du Planning (ligne ~4435) ne ferme que menu et panneau, `multiPop` n’est pas touché ; clic extérieur : ligne ~8167.",
+   "ou": "prototype-op-gestion.html ~4435 (keydown Escape) et ~8164 (data-mpop)",
+   "correction": "Dans l’écouteur Échap : `if (multiPop) { multiPop = null; rendre(); }` et rendre le focus au bouton qui l’avait ouverte.",
+   "decision": "corriger"
+  },
+  {
+   "n": "planning-04",
+   "gravite": "gênant",
+   "ecran": "Planning · bandeau de chiffres (Jour, Semaine, Sur mesure)",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Jour › masquer « Sophie » (puces au-dessus) ; ou Sur mesure › ne garder que Sophie.",
+   "attendu": "Les chiffres (interventions, temps de travail prévu) suivent ce qui est affiché, ou disent clairement « toute l’équipe ».",
+   "constate": "Sophie masquée : « 9 interventions » et « 11 h » pour 6 cartes affichées. Sur mesure, Sophie seule : « 12 interventions » pour 4 cartes. Seul le cas « personne n’est affiché » dit « Les chiffres comptent toute l’équipe ». « À planifier » et « en retard » comptent tout le planning (voulu, sans date).",
+   "preuve": "planning-parcours2.js P10 (planning-04) : {\"kpi\":\"9\",\"cartes\":6}, {\"kpi\":\"11 h\",\"attendu\":450 min}, {\"kpi\":\"12\",\"cartes\":4}",
+   "ou": "vuePlanning, calcul des 5 chiffres (plMasques non lu) ; phrase ligne ~3790",
+   "correction": "Recommandation : les chiffres « interventions » et « travail prévu » suivent les personnes affichées, avec la phrase « Chiffres des personnes affichées ». À trancher par Justin (le bandeau est un écran validé).",
+   "decision": "soumettre"
+  },
+  {
+   "n": "planning-05",
+   "gravite": "gênant",
+   "ecran": "Planning · onglets de vue, flèches Précédent/Suivant, puces de personnes",
+   "role": "marc",
+   "profils": [
+    "iphone",
+    "ipad",
+    "android",
+    "petit"
+   ],
+   "etapes": "Ouvrir le Planning au doigt (toute vue), mesurer la zone qui répond au toucher (jour ET nuit).",
+   "attendu": "Chaque cible fait au moins 44 px.",
+   "constate": "Onglets Jour / Semaine / Mois / Vue d’ensemble / Sur mesure / Carte : 40 px de haut ; flèches Précédent / Suivant : 40×40 ; puces de personnes (Sophie, Karim, Léa, Tom, Non assigné) : 38 px.",
+   "preuve": "planning-mise-en-page.js (doigtsReel), 6 ✗ sur 6 vues, sur iPhone, iPad, Android, petit, jour et nuit ; exemple : [\"Jour 81×40\",\"Précédent 40×40\",\"SMSophie 81×38\"]",
+   "ou": ".pl-vues / .pl-nav / .pl-equipe (feuille de style de la refonte du planning)",
+   "correction": "min-height:44px sous (pointer:coarse) pour ces trois familles ; garder la hauteur d’ordinateur.",
+   "decision": "corriger"
+  },
+  {
+   "n": "planning-06",
+   "gravite": "détail",
+   "ecran": "Planning · Jour · poignée de durée",
+   "role": "marc",
+   "profils": [
+    "iphone"
+   ],
+   "etapes": "Jour › carte d’une intervention modifiable › poignée en bas pour changer la durée, au doigt.",
+   "attendu": "Zone de saisie d’au moins 24 px de haut.",
+   "constate": "La poignée répond sur 18 px de haut (169×18) ; le geste marche (60 → 90 min, le total suit), mais elle est facile à rater ; l’appui long sur la barre existe aussi.",
+   "preuve": "planning-parcours.js P4 (planning-06) ✗ iPhone ; durée de 60 à 90 min ✓",
+   "ou": ".pc .pc-poignee (zone de saisie)",
+   "correction": "Zone invisible de 44 px de haut (pseudo-élément) sous la barre.",
+   "decision": "corriger"
+  },
+  {
+   "n": "planning-07",
+   "gravite": "gênant",
+   "ecran": "Carte des tournées · marqueurs",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Carte › jour d’aujourd’hui (vraie carte chargée) › toucher, un par un, les 9 marqueurs.",
+   "attendu": "Chaque marqueur ouvre la fiche de SON étape.",
+   "constate": "4 marqueurs sur 9 ne s’ouvrent pas : i3 et i4 sont recouverts par i1 ; i6 et i7 par i17 (urgent). Un clic ouvre une autre étape. On y arrive par la liste à droite.",
+   "preuve": "planning-marqueurs.js : « 5/9 marqueurs ouvrent leur fiche au clic » (✗ i3, i4, i6, i7, avec « couvert par »)",
+   "ou": "crTracerReel : le décalage `dx = (n-1)*17` ne vaut que pour des coordonnées IDENTIQUES",
+   "correction": "Décaler les marqueurs à moins de 30 px les uns des autres (rayon en pixels au niveau de zoom courant) ou donner la main au plus petit ; en dernier recours ouvrir la liste des étapes proches.",
+   "decision": "corriger"
+  },
+  {
+   "n": "planning-08",
+   "gravite": "gênant",
+   "ecran": "Carte des tournées · « Réessayer »",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Bloquer unpkg.com (plugin de carte injoignable) › Carte › attendre le message « Carte réelle indisponible » › « Réessayer ».",
+   "attendu": "Un nouveau message d’erreur, ou la carte réelle.",
+   "constate": "Le message et le bouton disparaissent, l’état reste « inconnu » à jamais (15 s plus tard identique), seule la légende « Leaflet » paraît ; erreur JS « L.maplibreGL is not a function » non rattrapée. Intermittent chez un vrai client dès que le plugin tarde (> 12 s). Constaté aussi SANS blocage : les deux passages de planning-parcours2.js (P9-P12, mac) sortent avec cette erreur JavaScript quand la page est rechargée plusieurs fois, la carte réelle ayant échoué une fois (réseau lent).",
+   "preuve": "planning-carte-reessayer.js ; capture dbg-plugin-reessayer.png",
+   "ou": "crChargerLeaflet (`if (window.L && L.map) return Promise.resolve()` ne teste pas L.maplibreGL) et crReel (`.then(() => crMonter(el), …)` sans capter une exception de crMonter)",
+   "correction": "Tester `L.maplibreGL` dans la garde ; entourer crMonter d’un try/catch qui appelle crRepli(e.message).",
+   "decision": "corriger"
+  },
+  {
+   "n": "planning-09",
+   "gravite": "gênant",
+   "ecran": "Planning · première page au téléphone",
+   "role": "marc",
+   "profils": [
+    "iphone",
+    "petit"
+   ],
+   "etapes": "Ouvrir le Planning sur iPhone (390 × 844) en vue Jour.",
+   "attendu": "On voit l’emploi du temps du jour dès la première page.",
+   "constate": "La grille ne commence qu’à environ 830 px : avant elle, la carte « tâches pour toi », deux rangées d’onglets, la date, les puces, les chiffres et un paragraphe d’aide. Au premier regard, aucune intervention n’est visible.",
+   "preuve": "capture dbg-rows-iphone.png ; mep-iphone-jour-jour-pleine.png",
+   "ou": "vuePlanning (en-tête)",
+   "correction": "Recommandation : sur téléphone, replier la carte des tâches et le paragraphe d’aide (bouton « Aide »), ramener les chiffres à une rangée défilante courte. À trancher par Justin (dessin validé).",
+   "decision": "soumettre"
+  },
+  {
+   "n": "planning-10",
+   "gravite": "détail",
+   "ecran": "Carte des tournées · bouton de la liste (téléphone)",
+   "role": "marc",
+   "profils": [
+    "iphone"
+   ],
+   "etapes": "Carte, iPhone : toucher le bouton « Agrandir ou réduire la liste » (icône seule), puis le toucher une seconde fois.",
+   "attendu": "La liste grandit puis se réduit, comme son nom le dit.",
+   "constate": "Le premier toucher fait défiler la page jusqu’à la liste (scrollY 621 → 1014, liste calée en haut) ; le second ne fait rien. Il ne grandit ni ne réduit rien : le nom promet autre chose que le geste.",
+   "preuve": "planning-gestes.js iphone carte : « RIEN » pour data-crfeuille ; sonde /tmp probe-feuille : scrollY 1014 puis 1014 au second toucher",
+   "ou": "prototype-op-gestion.html ~4210 : `[data-crfeuille]` → `scrollIntoView({block:\"start\"})` ; libellé aria-label",
+   "correction": "Renommer « Aller à la liste des étapes » (et un second toucher qui remonte à la carte), ou faire réellement grandir / réduire la liste.",
+   "decision": "corriger"
+  }
+ ],
+ "sondes": [
+  "scratchpad/proto-final/campagne/sondes/planning-gestes.js",
+  "scratchpad/proto-final/campagne/sondes/planning-parcours.js",
+  "scratchpad/proto-final/campagne/sondes/planning-parcours2.js",
+  "scratchpad/proto-final/campagne/sondes/planning-mise-en-page.js",
+  "scratchpad/proto-final/campagne/sondes/planning-marqueurs.js",
+  "scratchpad/proto-final/campagne/sondes/planning-carte-reessayer.js"
+ ],
+ "vuSurCapture": "Captures relues (mac jour, nuit, iPhone jour/nuit : jour, semaine, mois, carte, sur mesure) : mise en page propre, aucun texte coupé, contraste de nuit lisible ; seul constat visuel = planning-09. Les rangées de puces et de chiffres défilent de côté au téléphone (voulu)."
+}

@@ -483,7 +483,7 @@ html .mat-pied .btn{flex:1 1 auto}
 html .ms-tete .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 html .ms-bandeau{padding:12px 16px}html .ms-bandeau .dv-tache{border-bottom:0;padding:2px 0;flex-wrap:wrap}html .ms-bandeau .dv-c b{font-size:16px}
 html .ms-bd{display:flex;gap:8px;flex:none}html .ms-bd .btn{min-height:44px}
-html .ms-kpis .kpi{cursor:pointer;min-width:0}html .ms-kpis .kpi span{overflow-wrap:anywhere;line-height:1.25}
+html .ms-kpis .kpi{cursor:pointer;min-width:0}html .ms-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
 html .ms-seg{align-self:flex-start;max-width:100%}
 html .ms-cherche{display:flex;gap:10px;align-items:center}html .ms-cherche .saisie{flex:1 1 0;min-width:0;width:auto;margin:0;min-height:48px}html .ms-cherche .btn{flex:none;min-height:48px}
 html .ms-liste{padding:6px 8px;display:flex;flex-direction:column}html .ms-liste .groupe{padding:14px 12px 4px}html .ms-cat>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center}
@@ -517,6 +517,7 @@ html .ms-evb{display:flex;align-items:center;gap:10px;flex:none}html .ms-evb .bt
 html .ms-rouge{color:var(--rouge)}
 html .ms-de-vers{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);gap:8px;align-items:end}html .ms-echange{width:48px;height:48px;border-radius:50%;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);display:grid;place-items:center;margin-bottom:2px}html .ms-echange svg{width:22px;height:22px}
 html .ms-reg{display:flex;gap:12px;align-items:flex-start;padding:12px 0}html .ms-reg input{margin-top:4px}
+html .fo-garder>span:not(.gris){display:flex;flex-direction:column;gap:2px;min-width:0}   /* le titre d'une case et sa phrase sur deux lignes, jamais collés */
 html .ms-cbar{display:flex;gap:8px;flex-wrap:wrap}html .ms-cbar .btn{min-height:44px}
 html .ms-cliste{padding:4px 14px}html .ms-csom{flex:1 1 100%}
 html .ms-rep{display:flex;flex-direction:column;gap:8px}html .ms-big{font-size:30px;font-weight:750;line-height:1.15;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}html .ms-big .st{font-size:14px}
@@ -547,6 +548,7 @@ html .ms-pied-f{align-items:center;justify-content:space-between}html .ms-pied-f
   html .ms-l .fo-dr{max-width:44%}
 }
 @media (max-width:340px){html .ms-ic{display:none}html .ms-l{gap:10px}}
+@media (max-width:520px){html .ms-de-vers{grid-template-columns:minmax(0,1fr)}html .ms-echange{justify-self:center;margin:0}}   /* « De » et « Vers » en colonne : le nom du camion s'écrit en entier */
 /* ── boxes ── */
 .bxl-c{gap:8px}
 .bxl-main{display:flex;flex-direction:column;gap:10px;text-align:left;background:none;border:0;padding:0;margin:0;color:var(--encre);font:inherit;cursor:pointer;width:100%;min-width:0;border-radius:12px}
@@ -18326,7 +18328,7 @@ vueAchats = function () {
   const O = [['demandes', 'Demandes de matériel', 'Matériel', nd], ['notes', 'Notes de frais', 'Frais', nn]], lect = axLect();
   if (!O.some(o => o[0] === acOnglet)) acOnglet = 'demandes';
   const compta = rlPermis('comptabilite'), apTot = ap.reduce((t, a) => t + acTTC(a), 0);
-  return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
+  return `<div class="tete ach-tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
       ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Demande</button></div>'}</div>
     <div class="kpis ach-k2"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} de matériel ${lect ? 'en attente' : 'à décider'}${na ? ' · ' + na + ' à acheter' : ''}</span></button>
       <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
@@ -18925,7 +18927,7 @@ img.logo-ent{background:#fff;object-fit:contain;overflow:hidden;padding:0;width:
 .ach-compta .ligne-clic b{font-weight:600;overflow-wrap:anywhere}
 .kpis.ach-k2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .ach-aide{align-self:flex-start;min-height:44px;display:inline-flex;align-items:center}
-@media (max-width:760px){.tete .actions.ach-act{width:100%}.tete .actions.ach-act .btn{width:100%;min-height:46px;justify-content:center}}
+@media (max-width:760px){#contenu .tete.ach-tete{flex-wrap:wrap}#contenu .tete.ach-tete > div:first-child{flex:1 1 100%}#contenu .tete.ach-tete .actions.ach-act{flex:1 1 100%;width:100%}#contenu .tete.ach-tete .actions.ach-act .btn{width:100%;min-height:46px;justify-content:center}}
 </style>`);
 
 
@@ -22713,8 +22715,10 @@ const rcSansAccent = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '
 function rcRubriques(){ return rlLignes().filter(c => !c.ec).map(c => ({ k:c.k, l:c.l, ic:emoLigne(c) })); }
 function rcChampRecherche(){ return [...document.querySelectorAll('#contenu input[type="search"],#contenu input[placeholder^="Recherch"],#contenu input[placeholder^="Cherch"],#contenu input[placeholder^="Trouver"]')].find(i => i.offsetParent !== null && !i.disabled) || null; }
 let PAL = null;
+/* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
+const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais' };
 function palEntrees(){ const R = rcRubriques(), E = [];
-  R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', fn:() => cpSysAllerRubrique(r.k) }));
+  R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
   if (rlPermis('comptabilite')) E.push({ g:'Aller à', l:'Factures', ic:svg('factures'), d:'Comptabilité', fn:() => aller('factures') }, { g:'Aller à', l:'Paiements', ic:svg('encaissements'), d:'Comptabilité', fn:() => aller('encaissements') });
   if (ROLE !== 'patron' && rlPermis('comptabilite')) E.push({ g:'Faire', l:'Nouvelle facture', ic:'＋', fn:() => cpSysFacture() });   /* la gestion des factures est celle qui en fait : « facture » doit lui répondre aussi, pas au seul patron */
