@@ -552,12 +552,12 @@ html .ms-pied-f{align-items:center;justify-content:space-between}html .ms-pied-f
 /* ══ MATÉRIEL — lot 3 : Dépôts et camions (spec § 6) — les cartes de « Clients », sans bouton ; la fiche et « Remplir » dans la même grammaire ══ */
 html .md-tete{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 20px}
 html .md-tete .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-html .md-lien{display:inline!important;min-height:0!important;padding:0!important;line-height:inherit;font:inherit;color:var(--lien);font-weight:600;background:none;border:0;cursor:pointer;text-align:left}html .md-lien:hover{text-decoration:underline}
+html .md-lien{display:inline!important;min-height:0!important;padding:11px 8px!important;margin:-11px -8px;line-height:inherit;font:inherit;color:var(--lien);font-weight:600;background:none;border:0;cursor:pointer;text-align:left}   /* 44 px de zone qui répond SANS grossir la ligne de la phrase */html .md-lien:hover{text-decoration:underline}
 html .md-gr{margin:6px 2px -2px}
 html .md-grille{align-items:stretch}
 html .md-c{min-height:0;gap:6px;justify-content:flex-start}
-html .md-t{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}html .md-t>b{font-size:17px;min-width:0;overflow-wrap:anywhere}
-html .md-t .st{flex:none;max-width:58%;white-space:normal;line-height:1.25;text-align:right}
+html .md-t{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:6px 10px}html .md-t>b{font-size:17px;flex:1 1 150px;min-width:0;overflow-wrap:anywhere}   /* un nom long garde sa largeur : c'est la pastille qui passe dessous */
+html .md-t .st{flex:none;max-width:100%;white-space:normal;line-height:1.25;text-align:right;margin-left:auto}
 html .md-l2,html .md-l3{overflow-wrap:anywhere}
 html .md-c .client-chiffres{margin-top:auto}html .md-c .client-chiffres>span{min-width:0}html .md-c .client-chiffres b{overflow-wrap:anywhere}
 html .md-o{color:var(--orange);font-weight:650}html .md-rg{color:var(--rouge);font-weight:650}
@@ -589,40 +589,14 @@ html .md-dot{margin-top:8px}
   html .md-lg .fo-dr{max-width:44%}html .md-btns .btn{flex:1 1 130px}
   html .md-off .lien{max-width:50%}
 }
-/* ── boxes ── */
-.bxl-c{gap:8px}
-.bxl-main{display:flex;flex-direction:column;gap:10px;text-align:left;background:none;border:0;padding:0;margin:0;color:var(--encre);font:inherit;cursor:pointer;width:100%;min-width:0;border-radius:12px}
-.bxl-main:focus-visible{outline:2px solid var(--lien);outline-offset:4px}
-.bxl-estompe{opacity:.45}
-.bxl-trouve{display:flex;flex-direction:column;align-items:flex-start;gap:0;border-top:1px solid var(--trait);padding-top:4px}
-.bxl-trouve .lien{min-height:44px;text-align:left}
-.bxl-gestes{display:flex;gap:8px;flex-wrap:wrap}
-.bxl-gestes .btn{min-height:44px;white-space:normal;text-align:center}
-.pr-cherche.bxl-ou{flex:none;display:block;margin:2px 0 4px}.pr-cherche.bxl-ou .saisie{width:100%;height:auto}
-.bxl-af .ligne-clic{margin:0 0 8px}.bxl-af .ligne-clic:last-child{margin-bottom:0}
+/* ── ce que d'autres écrans empruntent encore à Dépôts (carte « Réserve sur place » d'une intervention et d'un client, raccourci de « Ma journée », ligne repérée) ── */
 .bxl-vert{color:var(--vert);font-weight:650}
-.bxl-rouge{color:var(--rouge);font-weight:650}
 .bxl-vert.info{background:color-mix(in srgb,var(--vert) 10%,transparent);border-color:color-mix(in srgb,var(--vert) 32%,transparent);color:var(--encre);font-weight:400}
 .bxl-vert.info b{color:var(--vert)}
-.bxl-r.bxl-off{opacity:.55;cursor:default}
-.bxl-r input[type=checkbox]{width:22px;height:22px}
-.bxl-l{flex-wrap:wrap}
-.bxl-l.bxl-0{box-shadow:inset 3px 0 0 var(--rouge);padding-left:12px}
-.bxl-l.bxl-m{box-shadow:inset 3px 0 0 var(--orange);padding-left:12px}
-.bxl-hl{background:color-mix(in srgb,var(--bleu) 12%,transparent);border-radius:12px;padding-left:10px}
-.bxl-plus{min-height:44px;flex:none}
-.bxl-l .lien{min-height:44px}
-.bxl-fermes{margin-top:6px}.bxl-fermes summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--doux);font-weight:600}
-.bxl-pied .petit{flex:1 1 100%}
+.bxl-hl{background:color-mix(in srgb,var(--bleu) 12%,transparent);border-radius:12px}
 .bxl-jour{display:flex;align-items:center;gap:12px;text-align:left;width:100%;color:var(--encre);font:inherit;cursor:pointer;min-height:56px}
 .bxl-sur,.bxl-cli{margin-top:0}
 .bxl-cli.info{margin:2px 0}
-@media (max-width:760px){
-  .bxl-af .af-l{flex:1 1 auto;min-width:0;flex-wrap:wrap!important;gap:6px 10px!important}.bxl-af .af-l>span:last-child{flex:1 1 100%;min-width:0}
-  .bxl-l .fo-dr{max-width:45%}
-  .bxl-af .ligne-clic{min-height:58px}
-  .bxl-l .btn{flex:1 1 100%}
-}
 .puces .puce-c{min-height:44px}
 /* ── pointage ── */
 /* la semaine compte 7 jours (le samedi et le dimanche sont dans la paie) ; le tableau garde sa largeur propre et défile s'il le faut */
@@ -15636,7 +15610,7 @@ function bxTransferts(cfg, surPlace){
   const gar = cfg.garages || [];
   const html = `<div data-md-p="remplir"></div><span class="surtitre">Matériel</span><h2>${esc(cfg.titre)}</h2><span class="gris">${cfg.intro}</span>
     ${cfg.groupes.map(g => `<h3 class="mat-h md-gt">${mdIc(g.l.type)}<span>${esc(g.l.nom)}</span>${g.garage ? ` <span class="st st-b">${esc(bxGarageTxt(g.garage))}</span>` : ''}</h3>
-      <div class="carte md-liste md-rem">${g.L.map(m => m.q > 0 ? `<label class="md-r"><input type="checkbox" data-md-ck="${esc(m.cle)}" ${BX.sel.has(m.cle) ? 'checked' : ''}><span class="fo-n"><b>${esc(m.x.nom)}</b><span class="gris petit">${m.resa ? 'dans la réserve' : 'à bord'} ${prNum(m.a)} sur ${prNum(m.cible)}${m.q < m.manque ? ` · l’atelier n’en a que ${prNum(m.q)}` : ''}${m.motif ? ' · ' + esc(m.motif.replace(/^Préparé pour/, 'Pour')) : ''}</span></span><b class="md-plus">+${prNum(m.q)}</b></label>`
+      <div class="carte md-liste md-rem">${g.L.map(m => m.q > 0 ? `<label class="md-r"><input type="checkbox" data-md-ck="${esc(m.cle)}" aria-label="Mettre ${esc(m.x.nom)} dans ${esc(mdDe(g.l))}" ${BX.sel.has(m.cle) ? 'checked' : ''}><span class="fo-n"><b>${esc(m.x.nom)}</b><span class="gris petit">${m.resa ? 'dans la réserve' : 'à bord'} ${prNum(m.a)} sur ${prNum(m.cible)}${m.q < m.manque ? ` · l’atelier n’en a que ${prNum(m.q)}` : ''}${m.motif ? ' · ' + esc(m.motif.replace(/^Préparé pour/, 'Pour')) : ''}</span></span><b class="md-plus">+${prNum(m.q)}</b></label>`
         : `<div class="md-r md-off"><span class="fo-n"><b>${esc(m.x.nom)}</b><span class="gris petit">Plus à l’atelier</span></span><button type="button" class="lien" data-md="cmdadd|${m.x.id}|${prNum(m.manque).replace(',', '.')}">Ajouter aux commandes</button></div>`).join('')}</div>`).join('') || '<div class="carte ms-vide"><span class="ms-vic">' + svg('coche') + '</span><b>Rien à remplir</b><span class="gris">Tout est à sa place : les camions sont prêts.</span></div>'}
     ${gar.map(p => `<div class="info petit md-gar">${esc(p.l.nom)} est au garage : on le remplira à son retour. <button type="button" class="lien" data-md="remplir|${p.l.id}">Le remplir quand même</button></div>`).join('')}
     ${cfg.groupes.length ? `<div class="fo-pied"><button type="button" class="btn" id="md-rok" data-md="rok">${esc(cfg.okLib)}</button><button type="button" class="btn gris" data-ferme="1">Plus tard</button></div>` : ''}`;
