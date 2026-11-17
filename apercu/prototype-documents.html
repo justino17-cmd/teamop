@@ -1957,7 +1957,7 @@ const VARS=[
   {k:'prix',n:'prix annuel',l:'Prix annuel (€ HT)',type:'montant',ex:'280'},
   {k:'paiement',n:'mode de paiement',l:'Mode de paiement',ex:'par prélèvement',sug:['par prélèvement','par virement','par carte bancaire','par chèque','après chaque visite, sur facture']}];
 const VARS_AUTO={entreprise:1,email:1,tel:1,prixttc:1,tva:1};          // toujours connues : l'entreprise, et le prix TTC / la TVA que le CLIENT paie (calculés du prix HT et du client : un contrat affiche HT ET TTC)
-const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA'};
+const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA',tel:'téléphone',email:'e-mail'};
 const defVar=k=>VARS.find(v=>v.k===k)||null;
 const cap=s=>String(s||'').charAt(0).toUpperCase()+String(s||'').slice(1);
 
@@ -5149,7 +5149,7 @@ function vvBib(){
   return VV_BIB=o;
 }
 function vvResume(t){
-  let s=String(t||'').split('\n')[0].replace(/\{\{art:[a-z0-9-]+\}\}/g,'l’article').replace(/\{\{([a-z]+)\}\}/g,(x,k)=>{ const v=defVar(k); return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+k+']') });      // entre crochets, comme dans le document : « …le prestataire effectue [fréquence des visites] » se lit comme un blanc à remplir, pas comme une phrase fautive
+  let s=String(t||'').split('\n')[0].replace(/\{\{art:[a-z0-9-]+\}\}/g,'l’article').replace(/\{\{([a-z]+)\}\}/g,(x,k)=>{ const v=defVar(k); return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+(NOMS_AUTO[k]||k)+']') });      // entre crochets, comme dans le document : « …le prestataire effectue [fréquence des visites] » se lit comme un blanc à remplir, pas comme une phrase fautive
   return abrege(s,110);
 }
 const vvArtDe=(e)=>({uid:vvId('a'),cle:e.cle,modele:e.modele,titre:e.titre,texte:e.texte,court:e.court||'',perso:false,edite:false,bib:e.id});
@@ -5204,7 +5204,7 @@ function vvCorpsDevis(V){
     <p class="vv-cnt" id="vv-cnt" role="status"></p>
     <button type="button" class="bt contour vv-libre-b" data-vv="libre-ouvrir" aria-expanded="${V.libre.ouvert}" aria-controls="vv-libre">${ic('plus')}Ligne libre</button>
     <div class="vv-libre" id="vv-libre"${V.libre.ouvert?'':' hidden'}>
-      <label class="champ">Désignation<input id="vv-l-des" value="${esc(V.libre.des)}" maxlength="200" autocomplete="off" placeholder="Ex. : pose d’une prise dédiée"></label>
+      <label class="champ">Désignation<input id="vv-l-des" value="${esc(V.libre.des)}" maxlength="200" autocomplete="off" placeholder="ex. pose d’une prise dédiée"></label>
       <div class="deux"><label class="champ">Quantité<input id="vv-l-qte" inputmode="decimal" value="${esc(V.libre.qte)}" autocomplete="off"></label>
         <label class="champ">Unité<select id="vv-l-unite">${VV_UNITES.map(u=>`<option${u===V.libre.unite?' selected':''}>${esc(u)}</option>`).join('')}</select></label></div>
       <div class="deux"><label class="champ">Prix unitaire HT (€)<input id="vv-l-pu" inputmode="decimal" value="${esc(V.libre.pu)}" autocomplete="off" placeholder="0,00"></label>
@@ -5914,7 +5914,7 @@ function htPanDocBase(d){
   <section class="pg"><h4>En-tête de l’entreprise</h4>${pCase('Téléphone','rg-case','entete.tel',en.tel)}${pCase('E-mail','rg-case','entete.mail',en.mail)}${pCase('Site web','rg-case','entete.site',en.site)}${pCase('SIRET','rg-case','entete.siret',en.siret)}${pCase('N° de TVA','rg-case','entete.tva',en.tva)}<p class="note">Si tu retires le SIRET ou la TVA de l’en-tête, ils passent dans le pied de page : la mention reste sur le document.</p>${pBtn('ident-ouvrir','building','Modifier les coordonnées de cet en-tête…')}</section>
   <section class="pg"><h4>Pied de page</h4>${pCase('Nom et mentions de l’entreprise','rg-case','pied.mentions',pi.mentions)}${pCase('Numéro de page','rg-case','pied.numero',pi.numero)}
     ${pi.numero?`<p class="sous">Position du numéro</p>${pSeg('Position du numéro','rg','pied.numeroPos',[['gauche','Gauche'],['centre','Centre'],['droite','Droite']],pi.numeroPos)}`:''}
-    <label class="champ" style="margin-top:10px">Ligne libre 1<input data-pin="pied1" value="${esc(pi.ligne1)}" maxlength="160" autocomplete="off" placeholder="Par exemple : Merci de votre confiance"></label>
+    <label class="champ" style="margin-top:10px">Ligne libre 1<input data-pin="pied1" value="${esc(pi.ligne1)}" maxlength="160" autocomplete="off" placeholder="ex. Merci de votre confiance"></label>
     <label class="champ">Ligne libre 2<input data-pin="pied2" value="${esc(pi.ligne2)}" maxlength="160" autocomplete="off" placeholder="Une mention, un IBAN…"></label>
     <p class="sous">Reprendre depuis Mon entreprise</p><div class="puces-pied">${puce('legal','Mentions légales',!!(E.forme||E.rcs))}${puce('iban','IBAN et BIC',!!E.iban)}${puce('assur','Assurance',!!E.assureur)}${puce('merci','Merci de votre confiance',true)}</div>
     <p class="note">Une puce remplit la première ligne libre vide. Le pied peut porter jusqu’à trois lignes sur chaque page.</p></section>
@@ -7616,11 +7616,19 @@ function pdfBandeau(titre,sous,fraction,annulable){
   $('#pdf-t').textContent=titre; $('#pdf-s').textContent=sous||''; $('#pdf-b').style.width=Math.round(100*Math.max(0,Math.min(1,fraction||0)))+'%'; $('#pdf-x').hidden=annulable===false;
 }
 const pdfTaille=o=>o>=1048576?(o/1048576).toFixed(1).replace('.',',')+' Mo':Math.max(1,Math.round(o/1024))+' Ko';
+/* Un Blob né dans CE cadre n'est pas un « instanceof Blob » de la fenêtre qui porte le pont (celle du parent) : un pont qui teste le type répondrait bad_request et rien ne
+   s'enregistrerait. Le fichier se REFAIT avec le constructeur de la fenêtre du pont avant l'appel ; si elle est fermée à la lecture, on garde le nôtre. */
+async function blobPourPont(blob){
+  try{ const H=(window.claude&&typeof window.claude.use==='function')?window:(window.parent!==window?window.parent:window);
+    if(H===window||typeof H.Blob!=='function') return blob;
+    return new H.Blob([await blob.arrayBuffer()],{type:blob.type||'application/pdf'});
+  }catch(e){ return blob }
+}
 /* l'enregistrement : « status:saved » ou rien — on n'annonce JAMAIS un PDF téléchargé sans cette réponse */
 async function pdfEnregistrer(blob,nom){
   let dl=null; try{ const cl=claudeHote(); dl=cl?await cl.use('downloads'):null }catch(e){ dl=null }
   if(dl&&typeof dl.save==='function'){
-    try{ const r=await dl.save({filename:nom,data:blob});
+    try{ const r=await dl.save({filename:nom,data:await blobPourPont(blob)});
       if(r&&r.status==='saved'){ toast('PDF enregistré : '+nom+' ('+pdfTaille(blob.size)+')'); return 'saved' }
       toast('Le PDF n’a pas été enregistré : le téléchargement n’a pas abouti.'); return 'nonconfirme';
     }catch(e){ const c=e&&e.code;

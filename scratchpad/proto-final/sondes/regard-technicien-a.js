@@ -36,6 +36,8 @@ const profils = process.argv.slice(2).length ? process.argv.slice(2) : ['petit',
       if (pil.length === 3) {
         const l1 = pil.every(q => Math.abs(q.y - pil[0].y) < 3);
         L.v(`${tag} · pastilles de filtre : sur une seule ligne`, l1, pil);
+        const bord = await p.evaluate(() => { const ct = document.getElementById('contenu'), cs = getComputedStyle(ct); return ct.getBoundingClientRect().right - parseFloat(cs.paddingRight); });
+        L.v(`${tag} · pastilles de filtre : la dernière ne dépasse pas le bord du contenu (${Math.round(bord)})`, pil[2].x + pil[2].w <= bord + 0.5, pil[2]);
         L.v(`${tag} · pastilles de filtre : aucune coupée`, pil.every(q => !q.d), pil);
         L.v(`${tag} · pastilles de filtre : dans l’écran (largeur du profil ${c.largeur})`, pil.every(q => q.x >= 0 && q.x + q.w <= c.largeur + 1), pil);
       }
@@ -71,6 +73,11 @@ const profils = process.argv.slice(2).length ? process.argv.slice(2) : ['petit',
         L.v(`${tag} · calendrier ${per} : aucun en-tête de jour coupé ni hors de la carte`, g.trop === 0 && g.hors === 0, g);
         L.v(`${tag} · calendrier ${per} : aucun nom de jour férié coupé en plein mot`, g.coupes === 0, g);
       }
+      // ── 7 bis. Mes congés : le texte d'une bande d'absence (surtout la demi-journée en attente) tient dans sa bande, jamais « ½ j Au… » coupé
+      await clic('[data-aper="3"]');
+      const bd = await p.evaluate(() => [...document.querySelectorAll('#contenu .acm-x')].map(b => { const sp = b.querySelector('span'); return { t: (b.textContent || '').trim(), coupe: !!sp && sp.scrollWidth > sp.clientWidth + 1, demi: b.classList.contains('demi') }; }));
+      L.v(`${tag} · bandes d'absence : population (dont une demi-journée)`, bd.length >= 3 && bd.some(x => x.demi), bd);
+      L.v(`${tag} · bandes d'absence : aucun texte coupé`, bd.every(x => !x.coupe), bd.filter(x => x.coupe));
       // ── 8. Ma journée : l'alerte d'habilitation ne répète pas le mot (« Ton habilitation « Habilitation électrique BR » »)
       const hab = await p.evaluate(() => { const h = eqxCarteMoi({ k: 'kb', habil: [['Habilitation électrique BR', jour(24)], ['CACES R489', jour(-3)]] }); const d = document.createElement('div'); d.innerHTML = h; return [...d.querySelectorAll('.eqx-moi-l b')].map(b => b.textContent.trim()); });
       L.v(`${tag} · alerte d'habilitation : population = 2 lignes`, hab.length === 2, hab);

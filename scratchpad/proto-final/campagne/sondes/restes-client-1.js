@@ -56,7 +56,7 @@ const clic = (p, s) => p.evaluate(x => { const e = document.querySelector(x); if
   const sal = await p.evaluate(() => ({ synd: saluer('Syndic Foncia'), vide: saluer(''), role: saluer('Marc Durand, gérant'), compta: saluer('Comptabilité'), perso: saluer('Jean Dupont'), accent: saluer('Comptabilité, Mme X') }));
   v('F · saluer : un service ou un organisme ne se salue pas par son nom, une personne oui', sal.synd === 'Bonjour' && sal.vide === 'Bonjour' && sal.role === 'Bonjour Marc Durand' && sal.compta === 'Bonjour' && sal.perso === 'Bonjour Jean Dupont' && sal.accent === 'Bonjour', JSON.stringify(sal));
   const brouillons = await p.evaluate(() => { const o = []; for (const k in CLIENTS) { const x = CLIENTS[k]; if (/^Bonjour/.test(saluer(x.contact))) o.push(saluer(x.contact)); } return o.join(' | '); });
-  v('F · aucun courriel du bureau ne commence par « Bonjour Syndic »', !/Syndic/.test(brouillons), brouillons);
+  v('F · aucun e-mail du bureau ne commence par « Bonjour Syndic »', !/Syndic/.test(brouillons), brouillons);
   // ── F · paiement (client-11)
   await vue('md', 'factures'); await L.toucher(c, '[data-ec^="payer|"]'); let d = await O.dessus(p);
   v('F · la fenêtre de paiement dit « Démonstration : aucun paiement réel. » et vouvoie', /Démonstration : aucun paiement réel\. Dans l’application, le paiement se fait sur la page sécurisée de la banque\./.test(d.panneau) && !/Carte d’essai/.test(d.panneau), d.panneau.slice(0, 300)); await O.nettoyer(p);

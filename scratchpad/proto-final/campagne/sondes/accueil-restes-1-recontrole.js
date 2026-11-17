@@ -35,9 +35,9 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
     for (const [nom, pa, auto, attendu] of [
       ['A1 · Chèque, acompte 40,50 €, facture à valider', { etat: 'acompte', mode: 'Chèque', montant: '40,50', ticket: false }, false, true],
       ['A2 · Espèces, « payé en totalité » SANS montant (« si tu le connais »), facture à valider', { etat: 'total', mode: 'Espèces', montant: '', ticket: false }, false, true],
-      ['A3 · Carte, « payé en totalité » sans montant, facture à valider (la carte passe par le terminal, pas de « reçu sur place » : aucune ligne, rien compté — comme au chargement)', { etat: 'total', mode: 'Carte', montant: '', ticket: false }, false, false],
+      ['A3 · Carte, « payé en totalité » sans montant, facture à valider (décision du chef, 17/11 : le moyen ne change pas la règle — une ligne, comptée, comme pour les espèces)', { etat: 'total', mode: 'Carte', montant: '', ticket: false }, false, true],
       ['A4 · Virement, « payé en totalité » sans montant, envoi automatique', { etat: 'total', mode: 'Virement', montant: '', ticket: false }, true, true],
-      ['A6 · Carte, acompte 30 € (terminal), facture à valider : aucune ligne, rien compté', { etat: 'acompte', mode: 'Carte', montant: '30', ticket: true }, false, false],
+      ['A6 · Carte, acompte 30 € (terminal), facture à valider : une ligne, comptée (même règle que les espèces)', { etat: 'acompte', mode: 'Carte', montant: '30', ticket: true }, false, true],
       ['A7 · Chèque, « payé en totalité » SANS montant, facture à valider', { etat: 'total', mode: 'Chèque', montant: '', ticket: false }, false, true],
       ['A8 · Espèces, « payé en totalité » avec un montant retapé (150), facture à valider', { etat: 'total', mode: 'Espèces', montant: '150', ticket: false }, false, true],
       ['A5 · contre-épreuve : « pas encore payé » ne fait AUCUNE ligne', { etat: 'rien', mode: 'Carte', montant: '', ticket: false }, false, false]]) {
@@ -88,7 +88,7 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
       v(`C · ${w} px · rien ne sort de la carte et la page ne glisse pas de côté`, g.sortDeLaCarte <= 1 && g.page <= w + 1, g);
       v(`C · ${w} px · les 12 libellés de mois tiennent dans leur colonne (colonne la plus étroite : ${g.colMin} px)`, g.libCoupes.length === 0, g);
       if (g.defile) v(`C · ${w} px · il défile : au bout, le premier mois est entier (bord à ${g.debut} px), fondu posé et « Glisse vers la droite » dit`, g.debut >= 29 && g.mask && g.glisse, g);
-      else v(`C · ${w} px · il ne défile pas : ni marge, ni fondu, ni « Glisse vers la droite » (restes accueil, tour 2 : un graphique immobile ne s'annonce pas glissant)`, !g.mask && !g.glisse && (w <= 760 ? g.pad === 0 && g.debut <= 2 : g.pad === 44), g);   // au bureau, 44 px = la gouttière des graduations « 1 k€ » (voulue)
+      else v(`C · ${w} px · il ne défile pas : ni marge, ni fondu, ni « Glisse vers la droite » (restes accueil, tour 2 : un graphique immobile ne s'annonce pas glissant)`, !g.mask && !g.glisse && (w <= 760 || (w <= 900 && ['ipad', 'iphone', 'android'].includes(profil)) ? g.pad === 0 && g.debut <= 2 : g.pad === 44), g);   // au bureau (souris), 44 px = la gouttière des graduations « 1 k€ » (voulue) ; sur tablette au doigt (761-900 px) les graduations sont masquées, marge 0 (restes accueil, tour 3 : le seuil à 527 px a rendu ce cas atteignable à 890-900 px)
       if (w === 900 || w === 1000 || w === 820) { await p.evaluate(() => { const e = document.querySelector('.st-graph'); e.scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(250); await cap('graphique-' + w); }
     }
   }

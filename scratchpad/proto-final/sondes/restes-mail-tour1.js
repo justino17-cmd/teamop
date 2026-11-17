@@ -56,7 +56,7 @@ const MESURE_TITRE = () => { const e = document.querySelector('#courrier-hote [d
     const m = await lignes().catch(() => null); v('bureau 1440×900 : le grand titre de la liste n\'est pas touché par la règle du paysage (pas de grand titre : ' + (m && m.titre) + ')', true);
     await fin(c0);
   });
-  // ═══ 3. un numéro de commande s'écrit sans « BC- » à l'écran (décision du lot Matériel), du courriel du fournisseur au bandeau « terminée » ═══
+  // ═══ 3. un numéro de commande s'écrit sans « BC- » à l'écran (décision du lot Matériel), de l’e-mail du fournisseur au bandeau « terminée » ═══
   if (veut(3)) await sec('numéro de commande', async () => {
     const c = await entrer({ profil:'iphone', nuit:true }), p = c.p;
     await c.p.evaluate(i => courrierOuvrir(i), 'm3'); await lib.attendre(p, () => !!window.R().querySelector('.rsubj'), 5000); await p.waitForTimeout(500);

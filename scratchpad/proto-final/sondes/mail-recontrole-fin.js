@@ -21,13 +21,13 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('SECTION ' + no
     await fin(c);
 
     const d = await entrer({ profil:'mac' }), q = d.p;
-    // ordinateur-17 : la photo jointe du courriel de Mme Bernard est une vraie image
+    // ordinateur-17 : la photo jointe de l’e-mail de Mme Bernard est une vraie image
     await S(d, () => courrierOuvrir('m1')); await q.waitForTimeout(900);
     const dest = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'rc-img-')), 'photo.jpg');
     const [dl] = await Promise.all([q.waitForEvent('download', { timeout:9000 }), S(d, () => R().querySelector('[data-dl]').click())]); await dl.saveAs(dest);
     const b = fs.readFileSync(dest), taille = await S(d, () => R().querySelector('.att .fs').textContent);
     v('ordinateur-17 la photo téléchargée est une vraie image JPEG (' + b.length + ' octets, annoncée « ' + taille + ' »)', b[0] === 0xff && b[1] === 0xd8 && b.length > 2000, { tete:b.subarray(0, 3).toString('hex'), n:b.length });
-    // ordinateur-11 : « Pourquoi ce rangement ? » et « Ranger ailleurs » (un courriel rangé automatiquement)
+    // ordinateur-11 : « Pourquoi ce rangement ? » et « Ranger ailleurs » (un e-mail rangé automatiquement)
     await S(d, () => courrierOuvrir('m2')); await q.waitForTimeout(900);
     const pourquoi = await S(d, () => { const w = R().querySelector('#whyBtn'); if (!w) return null; w.click(); return new Promise(r => setTimeout(() => r((R().querySelector('#whyPanel') || {}).textContent || ''), 350)); });
     v('ordinateur-11 « Pourquoi ce rangement ? » : population (le bouton existe) ; ni « appareil » ni « vérifié » ni sigle', pourquoi !== null && pourquoi.length > 20 && !/appareil|vérifi|IMAP|SMTP/i.test(pourquoi), pourquoi && pourquoi.replace(/\s+/g, ' ').slice(0, 220));

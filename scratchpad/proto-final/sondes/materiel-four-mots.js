@@ -1,5 +1,5 @@
 // Matériel, étape 4 (Fournisseurs, matériel & produits) — LES MOTS (spec § 3.4) : le textContent (jamais le innerHTML, qui porte le script) des trois onglets, de chaque fiche, de chaque feuille, de chaque menu,
-// des messages (toasts), du journal des commandes et des courriels préparés, jouant les gestes pour de vrai.
+// des messages (toasts), du journal des commandes et des e-mails préparés, jouant les gestes pour de vrai.
 // Exige : AUCUN mot du lexique banni ; aucun « BC-… » ni « BR-… » à l'écran ; aucun émoji ; chaque bouton à icône seule porte un nom.
 // Usage : node materiel-four-mots.js [profil] → « N ✓ · M ✗ »
 const L = require('../lib.js');
@@ -12,7 +12,7 @@ const L = require('../lib.js');
   const lire = async nom => { let t = await R(() => { const o = []; const z = e => e && e.innerText ? e.innerText : ''; o.push(z(document.getElementById('contenu'))); const pn = document.querySelector('#calque .panneau'); if (pn) o.push(z(pn)); const m = document.querySelector('.ctx'); if (m) o.push(z(m)); const t = document.getElementById('toast'); if (t && t.classList.contains('on')) o.push(z(t));
       // les attributs lus à voix haute comptent aussi : un bouton à icône seule se lit par son aria-label et son title
       document.querySelectorAll('#contenu [aria-label], #calque [aria-label], #contenu [title], #calque [title]').forEach(e => o.push(e.getAttribute('aria-label') || '', e.getAttribute('title') || '')); o.push('\u0001'); document.querySelectorAll('.bc-doc, .bc-portail, .cmd-pre').forEach(e => o.push(e.innerText || '')); return o.join('\n'); }); ecrans++; signes += t.length;
-    // un DOCUMENT (le bon en PDF, le courriel préparé, la page du fournisseur) garde son numéro « BC-2026-039 » : c'est ce que le fournisseur lit. Seul l'ÉCRAN le perd.
+    // un DOCUMENT (le bon en PDF, l’e-mail préparé, la page du fournisseur) garde son numéro « BC-2026-039 » : c'est ce que le fournisseur lit. Seul l'ÉCRAN le perd.
     let [ecran, docs] = t.split('\u0001'); for (const d of (docs || '').split('\n').map(x => x.trim()).filter(x => x.length > 12)) ecran = ecran.split(d).join(' '); t = ecran;
     const bad = (t.match(new RegExp(BANNI.source, 'gi')) || []).concat((docs || '').match(new RegExp(BANNI.source.replace(DOC.source + '|', ''), 'gi')) || []), em = t.match(EMOJI);
     const ctx = [...t.matchAll(new RegExp('.{0,45}(' + BANNI.source + ').{0,35}', 'gi'))].slice(0, 3).map(m => m[0].replace(/\s+/g, ' '));   // le contexte du mot : sans lui, on cherche une aiguille
@@ -44,7 +44,7 @@ const L = require('../lib.js');
   // les menus des fiches
   await R(() => cmdFiche('c39')); await attendre(300); await menu('#calque [data-fx^="cplus|"]', 'Menu Plus d’une commande confirmée'); await R(() => fermerPanneau());
   await R(() => fournFiche('cpa')); await attendre(300); await menu('#calque [data-fx^="fplus|"]', 'Menu Plus d’une fiche fournisseur'); await R(() => fermerPanneau());
-  // les gestes : les messages, le journal, les courriels
+  // les gestes : les messages, le journal, les e-mails
   const toasts = [];
   const geste = async (nom, fn) => { await R(fn); await attendre(400); toasts.push(await R(() => (document.getElementById('toast') || { innerText:'' }).innerText)); };
   await R(() => { prVue = 'commandes'; rendre(); });
@@ -57,10 +57,10 @@ const L = require('../lib.js');
   await R(() => { cmdRelance('c39'); document.querySelector('#calque [data-cm="relok|c39"]').click(); }); await attendre(300); toasts.push(await R(() => (document.getElementById('toast') || { innerText:'' }).innerText));
   const tt = toasts.join('\n'); const badT = tt.match(new RegExp(BANNI.source, 'gi')) || [];
   v('les messages (' + toasts.filter(Boolean).length + ') : aucun mot banni', !badT.length, badT); v('population : des messages lus (' + toasts.filter(Boolean).length + ')', toasts.filter(Boolean).length >= 6);
-  // le journal d'une commande se LIT à l'écran (donc sans préfixe de document : matSansPrefixe), le courriel préparé est un DOCUMENT (il garde « BC- »)
+  // le journal d'une commande se LIT à l'écran (donc sans préfixe de document : matSansPrefixe), l’e-mail préparé est un DOCUMENT (il garde « BC- »)
   const jr = await R(() => COMMANDES.map(c => c.journal.map(j => matSansPrefixe(j[1])).join('\n')).join('\n')), mails = await R(() => COMMANDES.map(c => cmdMail(c)).join('\n'));
   const horsInconnu = BANNI.source.replace('|undefined|\\bnull\\b|\\bNaN\\b|\\[object', ''), badJ = jr.match(new RegExp(horsInconnu, 'gi')) || [], badM = mails.match(new RegExp(horsInconnu.replace('|' + DOC.source, ''), 'gi')) || [];
-  v('le journal des commandes (' + jr.split('\n').length + ' lignes) et les courriels préparés (' + mails.split('Objet :').length + ' lus) : aucun mot banni', !badJ.length && !badM.length && jr.length > 200 && mails.length > 500, [...new Set(badJ.concat(badM))]);
+  v('le journal des commandes (' + jr.split('\n').length + ' lignes) et les e-mails préparés (' + mails.split('Objet :').length + ' lus) : aucun mot banni', !badJ.length && !badM.length && jr.length > 200 && mails.length > 500, [...new Set(badJ.concat(badM))]);
   for (const id of await R(() => COMMANDES.map(c => c.id))) { await R(i => { cmdFiche(i); }, id); await attendre(150); await lire('Fiche de la commande ' + id); await R(() => fermerPanneau()); }
   v('population : ' + ecrans + ' écrans et feuilles lus, ' + signes + ' signes', ecrans >= 40 && signes > 15000, { ecrans, signes });
   v('aucune erreur de page', c.err.length === 0, c.err);
