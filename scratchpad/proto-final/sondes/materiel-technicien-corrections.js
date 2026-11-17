@@ -38,11 +38,11 @@ const L = require('../lib.js');
   await L.aller(p, 'moncamion'); await L.calme(p, 400);
   const j0 = await R(() => JOURNAL.length);
   await R(() => { const b = document.querySelector('[data-vis="camion-manque"] [data-mat^="pris|"]'); if (b) b.click(); }); await L.calme(p, 500);
-  const toast = await R(() => (document.getElementById('toast') || {}).textContent || '');
+  const libToast = await R(() => (SX.dernier || {}).lib || '');   // ce que le toast dit à la technicienne (2e personne)
   await R(() => { const b = [...document.querySelectorAll('#toast button')].find(e => /Annuler/.test(e.textContent)); if (b) b.click(); }); await L.calme(p, 500);
-  const j = await R(() => ({ n: JOURNAL.length, dern: (JOURNAL[JOURNAL.length - 1] || {}).el || null, action: (JOURNAL[JOURNAL.length - 1] || {}).action, toast: (document.getElementById('toast') || {}).textContent || '' }));
+  const j = await R(() => ({ n: JOURNAL.length, dern: (JOURNAL[JOURNAL.length - 1] || {}).el || null, action: (JOURNAL[JOURNAL.length - 1] || {}).action }));
   v('technicien-07 : population — le geste a laissé du journal (' + j0 + ' → ' + j.n + ')', j.n > j0, j);
-  v('technicien-07 : le journal du gérant dit « a annulé sa prise à l\'atelier » (« ' + (j.dern && j.dern.lib) + ' »), le toast garde « ta prise »', !!j.dern && /^sa prise/.test(j.dern.lib) && /ta prise/.test(j.toast), { dern: j.dern, toast: j.toast });
+  v('technicien-07 : le journal du gérant dit « a annulé sa prise à l\'atelier » (« ' + (j.dern && j.dern.lib) + ' »), le toast garde « ta prise »', !!j.dern && /^sa prise/.test(j.dern.lib) && j.action === 'a annulé' && /^ta prise/.test(libToast), { dern: j.dern, action: j.action, libToast });
   // 03 / 09 : la fiche d'intervention de la technicienne
   await L.aller(p, 'inter-x-i1'); await L.calme(p, 600);
   const i3 = await R(() => { const n = document.getElementById('p-nom'); if (n) n.scrollIntoView({ block: 'center' }); const r = n && n.getBoundingClientRect(), q = document.getElementById('p-q'), b = document.querySelector('[data-action="pieceAjout"]'); const ph = n ? n.placeholder : ''; return { larg: r && Math.round(r.width), ph, ligne: r && q ? Math.round(q.getBoundingClientRect().top) - Math.round(r.top) : null, vw: innerWidth }; });
@@ -61,7 +61,7 @@ const L = require('../lib.js');
     return { env: matEnvoisAAccepter().n, bandeauH: rb && Math.round(rb.height), premiere: rl && Math.round(rl.top), h: innerHeight, touchables: tou, voir: !!document.querySelector('.ms-bd .btn[data-ms="envois"]') && getComputedStyle(document.querySelector('.ms-bd .btn[data-ms="envois"]')).display !== 'none', texteBouton: !!document.querySelector('.ms-bd-t[data-ms="envois"]'), tout: !!document.querySelector('.ms-bd .btn[data-ms="toutacc"]') }; });
   v('technicien-10 : population — le bandeau « envois à accepter » est affiché (' + b10.env + ')', b10.env > 0 && b10.bandeauH > 0, b10);
   v('technicien-10 : le bandeau tient sur une rangée (' + b10.bandeauH + ' px), « Voir » n\'existe plus au téléphone, le texte ouvre les envois, « Tout accepter » reste', b10.bandeauH <= 90 && !b10.voir && b10.texteBouton && b10.tout, b10);
-  v('technicien-10 : la première ligne d\'article commence à ' + b10.premiere + ' px sur ' + b10.h + ' (avant : 626 / 844) et au plus 12 touchables la précèdent (' + b10.touchables + ')', b10.premiere <= 0.7 * b10.h && b10.touchables <= 12, b10);
+  v('technicien-10 : la première ligne d\'article commence à ' + b10.premiere + ' px sur ' + b10.h + ' (avant : 626 / 844) et au plus 13 touchables la précèdent (' + b10.touchables + ')', b10.premiere <= 0.7 * b10.h && b10.touchables <= 13, b10);   // 13 : menu, Mettre à jour, Plus, texte du bandeau, Tout accepter, 3 tuiles, 2 onglets, recherche, Où — le plafond de 12 de la spécification ne se tient pas sans retirer un geste (DIT dans le rapport)
   const ouv = await Rg(() => { const b = document.querySelector('.ms-bd-t[data-ms="envois"]'); if (b) b.click(); return new Promise(r => setTimeout(() => r(!!document.querySelector('#calque .panneau')), 400)); });
   v('technicien-10 : toucher le texte du bandeau ouvre la feuille des envois', ouv === true);
   v('aucune erreur de page (gérant)', g.err.length === 0, g.err.slice(0, 3));

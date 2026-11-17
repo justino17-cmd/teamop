@@ -17,7 +17,7 @@ const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ 
     liste.filter(g => g.sansNom).forEach(g => { defauts.push({ r, type: 'sans nom', g }); });
     for (const g of liste) {
       // remise à zéro de l'état de la carte entre deux touchers (relevé commencé, plan en édition, box choisie, filtre) : sinon un toucher change l'état du suivant
-      await p.evaluate(() => { try { cbReleve = null; cbEdit = null; d3Sel = null; d3Mode = null; cbFiltre = 'tout'; cbZone = ''; } catch (e) {} });
+      await p.evaluate(() => { try { cbReleve = null; cbEdit = null; d3Sel = null; d3Mode = null; cbFiltre = 'tout'; cbZone = ''; d3Cli = Object.keys(D3_CLI)[0]; rgTous = true; } catch (e) {} });
       await p.evaluate(x => aller(x), r); await L.calme(p, 450);
       const avant = await L.etat(p), n0 = await p.evaluate(() => document.querySelectorAll('input:checked').length);
       const res = await p.evaluate(({ lib, data, balise }) => { const R = document.getElementById('contenu'); const cand = [...R.querySelectorAll(balise)].filter(e => e.offsetParent !== null || getComputedStyle(e).position === 'fixed');
