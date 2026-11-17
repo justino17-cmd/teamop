@@ -20,7 +20,7 @@ const etat = p => p.evaluate(() => ({ h1: (document.querySelector('#contenu h1')
         kpi: [...document.querySelectorAll('#contenu .kpis .kpi')].map(e => e.textContent.replace(/\s+/g, ' ').trim()), onglets: [...document.querySelectorAll('#contenu [role=tab]')].map(e => e.textContent.trim()) }; }, k);
     const nom = a.c.nom; bilan.fiches++;
     v(`[${nom}] titre = nom du client, surtitre dit « ${a.sur} »`, a.h1 === nom && (a.c.type === 'pro' ? /professionnel/i : /particulier/i).test(a.sur) && /depuis \d{4}/.test(a.sur), { h1: a.h1, sur: a.sur });
-    v(`[${nom}] la ligne sous le titre donne le téléphone et l’adresse`, (!a.c.tel || a.sous.includes(a.c.tel)) && (!a.c.adr || a.sous.includes(a.c.adr)), a.sous);
+    v(`[${nom}] la ligne sous le titre donne le téléphone et l’adresse`, (!a.c.tel || a.sous.replace(/\u00a0/g, ' ').includes(a.c.tel)) && (!a.c.adr || a.sous.includes(a.c.adr)), a.sous);
     if (a.c.tel) v(`[${nom}] « Appeler » compose le bon numéro`, !!a.tel && a.tel.replace(/\D/g, '').endsWith(a.c.tel.replace(/\D/g, '').slice(-9)), a.tel); else v(`[${nom}] sans numéro, pas de bouton « Appeler »`, !a.tel);
     if (a.c.mail) v(`[${nom}] « E-mail » écrit à la bonne adresse`, !!a.mail && a.mail.toLowerCase().includes(a.c.mail.toLowerCase()), a.mail); else v(`[${nom}] sans adresse, pas de bouton « E-mail »`, !a.mail);
     v(`[${nom}] six onglets, « Factures · ${a.nF} » et « Contrats · ${a.nC} » disent le bon nombre`, a.onglets.length === 6 && a.onglets[1] === 'Factures · ' + a.nF && a.onglets[3] === 'Contrats · ' + a.nC, a.onglets);
