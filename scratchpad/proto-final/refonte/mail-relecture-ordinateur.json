@@ -156,6 +156,45 @@
    "preuve": "texte relevé par j1.js, h2.js, i1.js, i2.js ; captures j1-programmer-mac.png, h2-pourquoi-mac.png",
    "ou": "apercu/prototype-courrier.js (menu d’envoi programmé, feuille de rangement) ; menu du prototype (rlPastille ne connaît que Tâches, Mes heures, Mon camion)",
    "correction": "Retirer « Fuseau » ; « Aujourd’hui », « 18 h » ; « Factures et reçus » partout ; pastille de menu « 7 » sur Boîte mail si c’est voulu."
+  },
+  {
+   "n": "ordinateur-12",
+   "gravite": "gênant",
+   "ecran": "Boîte mail › « Prévenir le client » après « Créer l’intervention » sur une panne",
+   "role": "patron",
+   "profils": "mac, jour",
+   "etapes": "Boîte mail › « Mme Bernard — Climatisation chambre 214 en panne » › Créer l’intervention › Plus tard › Créer l’intervention › « Prévenir le client » (bouton du bandeau ou de la bulle).",
+   "attendu": "Un message qui confirme une réparation à venir.",
+   "constate": "Le message préparé dit « Nous avons bien noté votre accord. L’installation est prévue autour du 2 nov. » : il n’y a pas d’accord ni d’installation, c’est un dépannage. Le client recevrait une phrase fausse, à relire avant d’envoyer.",
+   "preuve": "sonde m1.js (corps du composeur relevé) ; code : prototype-op-gestion.html l. 17695, branche « else if (I) conf = nous avons bien noté votre accord… L’installation… » prise dès qu’une intervention existe sans technicien, quel que soit le sujet du courriel.",
+   "ou": "apercu/prototype-op-gestion.html l. 17695 (mbxModeles, modèle « confirm »)",
+   "correction": "Cette phrase n’est vraie que pour un accord de devis ; pour une panne : « Nous avons bien enregistré votre demande d’intervention… nous vous confirmons l’heure très vite »."
+  },
+  {
+   "n": "ordinateur-13",
+   "gravite": "gênant",
+   "ecran": "Boîte mail › toute la page (taille des commandes comparée à Clients, Devis, Équipe)",
+   "role": "patron",
+   "profils": "mac 1440×900 et windows 1366×768, jour",
+   "etapes": "Comparer Clients (ou Devis) et Boîte mail, mêmes profils, mêmes jours.",
+   "attendu": "Des commandes de la même taille que les écrans validés : texte 16 px, boutons et champs de 46 px.",
+   "constate": "Dans Clients : boutons 16 px / 46 px de haut, champ 16 px / 46 px. Dans la Boîte mail : recherche 13 px / 28 px, « Tous / Non lus / Avec drapeau » 13 px, dossiers 13 px, pastilles 11 px, sous-titre de liste 11 px, bandeau rouge « ne répond plus » 12 px en gras rouge, boutons du bandeau 14 px / 32 px, réponses rapides 14 px. L’écran est dense et paraît écrit pour un autre logiciel (capture a1-mac-marc.png contre q1-clients-mac.png). D15 du plan est corrigé à moitié (expéditeur 15, objet 14,5, aperçu 13,5).",
+   "preuve": "getComputedStyle relevés par a5.js et q1.js ; captures regardées",
+   "ou": "apercu/prototype-courrier.js (feuille du format « mac »)",
+   "correction": "Monter à 14-15 px au minimum les libellés de dossier, filtres et catégories ; 36 px au moins de haut pour les champs et segments ; le bandeau d’erreur à 14 px."
+  },
+  {
+   "n": "ordinateur-14",
+   "gravite": "détail",
+   "ecran": "Boîte mail › barre de sélection (Sélectionner plusieurs)",
+   "role": "patron",
+   "profils": "mac, windows (pas à 1280)",
+   "etapes": "Sélectionner › cocher deux courriels.",
+   "attendu": "« 2 sélectionnés » en entier.",
+   "constate": "Le texte est coupé : « 2 sélection… » (89 px de large pour 96 px de texte, sur mac et windows).",
+   "preuve": "sonde r1.js : scrollWidth 96 > clientWidth 89 / 88, text-overflow ellipsis ; mac720 passe (173 px)",
+   "ou": "apercu/prototype-courrier.js, #selBar",
+   "correction": "Donner au compteur sa largeur naturelle (min-width) ou écrire « 2 choisis »."
   }
  ]
 }
