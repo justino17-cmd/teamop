@@ -16,13 +16,14 @@ de ligne du tout.
 # 17 NOVEMBRE 2026 — test-981 (LES APPELS À DEUX D'OP MESSAGES) NE PARIE PLUS SUR LE TEMPS RÉEL — BRANCHE `claude/pensive-lovelace-0t26rl`
 
 Le banc est mort en CI le 5 novembre puis le 16 (demande de fusion 327, commit `3bcb1fb`, job « suites 6/6 » : « Cannot read properties of undefined (reading 'lie') », 39 ✓ 1 ✗) sur du
-code que personne n'avait touché, et tombait une fois sur trente en local à six de front. **Aucun défaut du service** : des défauts du banc et de ses OUTILS, chacun REJOUÉ à volonté
+code que personne n'avait touché, et tombait en local (relevé le 16 novembre : 29 sur 30 à six de front). **Aucun défaut du service** : des défauts du banc et de ses OUTILS, chacun REJOUÉ à volonté
 avant d'être corrigé. Rien n'est désactivé ni mis en quarantaine ; `server-msg/` n'est pas touché. Pas de demande de fusion ouverte (non demandée) : la CI de la 327 ne sera à l'abri
 que lorsque cette branche aura rejoint `main`.
 
-**Ce qui tombait, et pourquoi** (reproduit sous charge : 30 verts sur 30 à six de front, puis 1 chute sur 60 et 2 sur 120 à douze de front avec quatre processus qui occupent les cœurs) :
+**Ce qui tombait, et pourquoi** (rejoué ici : 30 verts sur 30 à six de front — il a fallu charger plus —, puis 1 chute sur 60 et 2 sur 120 à douze de front avec quatre processus qui
+occupent les cœurs : trois chutes sur 180, deux par l'horloge, une par le port) :
 - ⛔ **L'horloge du service lue VIDE pendant qu'on l'avançait** — la mort de la CI. `svc.avancer` réécrivait le fichier de décalage par `fs.writeFileSync` (qui TRONQUE puis écrit) et
-  le greffon (`lib-horloge-msg.js`) lisait `parseInt(lu) || 0` : vide valait « aucun décalage », l'heure RÉELLE, vingt-huit jours après celle du banc. Le balayeur d'appels (toutes les
+  le greffon (`lib-horloge-msg.js`) lisait `parseInt(lu) || 0` : vide valait « aucun décalage », l'heure RÉELLE, des semaines après celle du banc (vingt-huit jours le 16). Le balayeur d'appels (toutes les
   secondes) finissait alors la sonnerie (« manquée ») ou l'appel (« perdu »). Un espion l'a relevé (120 passages : neuf ont lu le fichier vide, un en est tombé, la pile menait de
   `balayer` à `appelFinir`) ; le fichier laissé vide 1,3 s pendant une avance choisie donne, au contrôle près : avant « Ben répond » → la mort de la CI (39 ✓ 1 ✗) ; avant le débit →
   81 ✓ 6 ✗ ; l'avance de 61 s → les cinq contrôles relevés en local le 16 novembre (82 ✓ 5 ✗). Corrigé dans l'OUTIL, deux gardes qui tiennent chacune seule : `svc.avancer` écrit à
@@ -46,20 +47,36 @@ passages sous charge), et les cinq services du banc ont vécu jusqu'à ce qu'il 
 **Les preuves** (17 novembre, machine de la session, 4 cœurs) :
 - sous charge, sur le code corrigé : **60 sur 60** à douze de front et quatre brûleurs, **60 sur 60** deux de front et huit brûleurs, **72 sur 72** à dix-huit de front et six brûleurs
   (charge 22) — et 0 lecture illisible de l'horloge sur 243 807 (`scratchpad/charge-banc-opmessages.sh`, `scratchpad/espion-horloge-opmessages.js`) ;
-- **34 mutations sur 34 tombent**, une équivalente déclarée survit (`tests/mutations-appels.js`) : les vingt du catalogue qui visaient déjà test-981, neuf neuves du SERVICE (A41 à A49 :
-  l'échéance du relais, les signaux retenus et périmés, le débit, la fin dite aux deux, l'appareil lié à la réponse, « fini » au raccrochage) et cinq des OUTILS (O01 à O05, par
-  `test-947`). A42 (« les identifiants vivent deux secondes de trop ») SURVIVAIT à l'ancien contrôle (87 ✓ trois fois sur trois), elle tombe maintenant ;
-- `tests/test-947.js` (neuf, 20 contrôles) garde l'outil : le greffon, l'écriture d'un geste, la course entière (un lecteur qui ne s'arrête pas pendant deux mille avances), le port
-  déjà pris ; `test-900` déclare son numéro ;
+- **52 mutations sur 52 tombent**, une équivalente déclarée survit (`tests/mutations-appels.js`) : les 34 du catalogue qui visaient déjà test-981 (20 de la série A, 14 de la série E),
+  neuf neuves du SERVICE (A41 à A49 : l'échéance du relais, les signaux retenus et périmés, le débit, la fin dite aux deux, l'appareil lié à la réponse, « fini » au raccrochage) et
+  neuf des OUTILS (O01 à O09, par `test-947`). A42 (« les identifiants vivent deux secondes de trop ») SURVIVAIT à l'ancien contrôle (87 ✓ trois fois sur trois), elle tombe maintenant ;
+- `tests/test-947.js` (neuf, 26 contrôles) garde l'outil : le greffon (un contenu illisible garde le dernier décalage, et le DIT une fois), l'écriture d'un geste et en entier (une
+  avance qui n'est pas un nombre lève), la course entière (un lecteur qui ne s'arrête pas pendant deux mille avances), un banc sorti sans arrêter son service, le port pris, imposé ou
+  tenu par un processus muet ; `test-900` déclare son numéro ;
 - la liste complète d'OP MESSAGES par la commande de la porte : **211 suites, 13 170 vérifications, verte** (les 13 148 de la CI du 5 novembre plus ces 22) — plancher relevé à 13156.
   ⚠️ Mesuré en local : si la CI compte autrement au prochain déploiement d'OP MESSAGES, c'est elle qui fait foi.
 - Les sondes rangées (`scratchpad/sonde-opmessages-horloge-saut.js`, `-flux-ferme.js`, `-collision-port.js`) ont été rejouées telles quelles ; la première porte aussi de quoi rejouer
   l'ANCIEN défaut contre le commit `a415080` (les chiffres ci-dessus, relus dans un arbre à part).
 
+**La relecture** (les agents `relecteur` et `echecs-silencieux`, sur les trois premiers commits) : aucun bloquant, et cinq défauts d'outil corrigés avant de clore, chacun gardé par `test-947` et sa mutation :
+- **une avance qui n'est pas un nombre était IGNORÉE en silence** (`svc.avancer(undefined)` écrivait « NaN », que le greffon ne suit pas — elle et toutes les suivantes) : elle LÈVE dans
+  le banc, un nombre à virgule s'écrit arrondi ; et **le greffon DIT, une fois, qu'il garde le dernier décalage** devant un contenu illisible (sur la sortie d'erreur du service, que le
+  banc recueille) — un repli muet aurait caché ce qu'il réparait ;
+- **`lancerService` restait pendu sur un port tenu par un processus muet** (il accepte la connexion et ne répond jamais : `fetch` sans coupure, le plafond n'était regardé qu'entre deux
+  sondages — rejoué : toujours pendu après 25 s) : le sondage est coupé à la MORT du service, 0,6 s et un autre port ;
+- **un banc qui sort sans arrêter son service laissait un processus fantôme** (son délai global, une exception : `process.exit` ne tue pas les enfants — pris sur le fait : un service
+  vivant 158 s après son banc) : à la sortie du banc, ses services encore vivants sont tués. ⚠️ La première version du contrôle laissait survivre la mutation : un service dont le banc
+  sort dans sa première seconde meurt TOUT SEUL (il écrit « planificateur actif » dans un tube fermé) — le banc attend maintenant que le service soit calme avant de sortir ;
+- `arreter` attend la fin du processus même après l'avoir tué de force ; test-981 ferme tout service monté, même si le suivant ne démarre pas ;
+- `scratchpad/charge-banc-opmessages.sh` **exige sa propre population** : le nombre de passages attendu (un passage tué ne laissait rien, et n'était compté nulle part), au moins un
+  contrôle joué par passage (un banc qui se saute rendait « 0 ✓ 0 ✗ », code 0 : vert), et des lectures vues par l'espion. Vérifié après coup sur les trois séries : 60, 60 et 72
+  passages, tous à 89 ✓.
+
 **Ce qui reste ouvert :**
-- **au moins huit autres bancs calent encore leur service APRÈS son démarrage** (recensés au motif `svc.avancer(ZERO - Date.now())` : test-924, 925, 973, 974, 975, 987, 988, 2590) : le défaut « né à l'heure
-  réelle », pas vu tomber chez eux. La correction tient en une ligne par banc (`decalageInitial`, comme test-981, 983 et 989) ;
-- **trois mutations du catalogue des appels étaient déjà mal visées avant ce chantier** (C40, D10, D15 : leur motif ne se trouve plus dans la page ; `--verifier` : 175 sur 178) ;
+- **au moins dix autres bancs calent encore leur service APRÈS son démarrage** (recensés au motif `ZERO - Date.now()` : test-924, 925, 973, 974, 975, 983, 987, 988, 989, 2590) : le défaut
+  « né à l'heure réelle », pas vu tomber chez eux. ⚠️ test-983 et test-989 en sont : ils ne passent `decalageInitial` qu'à leur REDÉMARRAGE, leur premier lancement se cale après coup
+  (la première version de cette ligne les donnait pour sains — relevé par la relecture). La correction tient en une ligne par banc (`decalageInitial` dès le premier lancement, comme test-981) ;
+- **trois mutations du catalogue des appels étaient déjà mal visées avant ce chantier** (C40, D10, D15 : leur motif ne se trouve plus dans la page ; `--verifier` : 179 sur 182) ;
 - un témoin essayé puis retiré, pour mémoire : envoyer un signal « frais » après l'avance de 31 s faisait passer le balai des périmés avant la réouverture — la mutation « le périmé
   est livré » (A44) y survivait. Une population ne doit pas déclencher l'AUTRE garde de ce qu'on éprouve.
 

@@ -8,8 +8,8 @@
  * Ici on FORCE la collision : un service A, puis un second lancé sur le port de A.
  *   node scratchpad/sonde-opmessages-collision-port.js
  * Avant la correction : « lancerService a RENDU un service sur le port déjà pris : son processus est MORT (code 1) … et pourtant /health répond ».
- * Depuis : « lancerService a REFUSÉ : … le port … est tenu par un AUTRE service » pour un port imposé ; et pour un port TIRÉ qui se révèle pris, un second essai sur un autre port
- * (c'est `tests/test-947.js` § 4 qui le garde). */
+ * Depuis : « lancerService a REFUSÉ : … le port … est déjà pris — un AUTRE service y répond » pour un port imposé ; et pour un port TIRÉ qui se révèle pris, un second essai sur un
+ * autre port (c'est `tests/test-947.js` § 4 qui le garde, avec le cas d'un port tenu par un processus MUET). */
 'use strict';
 const path = require('path');
 const T = require(path.join(__dirname, '..', 'tests', 'outils-msg'));

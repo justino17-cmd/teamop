@@ -17,7 +17,7 @@
 
    ⛔ CE BANC NE PARIE PLUS SUR LE TEMPS RÉEL (17 novembre 2026). Il est mort en CI le 5 et le 16 novembre (« Cannot read properties of undefined (reading 'lie') », 39 ✓) et tombait sous charge, sur du code que
    personne n'avait touché. Quatre causes, chacune REJOUÉE à volonté avant d'être corrigée (`scratchpad/sonde-opmessages-horloge-saut.js`, `…-flux-ferme.js`, `charge-banc-opmessages.sh` et son espion) :
-     · L'HORLOGE DU SERVICE LUE VIDE pendant qu'on l'avançait (l'outil tronquait le fichier puis l'écrivait) : le service retombait sur l'heure RÉELLE, vingt-huit jours après celle du banc, et son balayeur
+     · L'HORLOGE DU SERVICE LUE VIDE pendant qu'on l'avançait (l'outil tronquait le fichier puis l'écrivait) : le service retombait sur l'heure RÉELLE, des semaines après celle du banc, et son balayeur
        finissait la sonnerie (« manquée ») ou l'appel (« perdu »). C'est la mort de la CI, au contrôle près. Corrigé dans l'outil (`outils-msg.js`, `lib-horloge-msg.js` ; gardé par `test-947`) ;
      · LE SERVICE NAISSAIT À L'HEURE RÉELLE, et le banc le reculait après coup : calé une seconde trop tard, il avait déjà balayé « dans le futur ». Il naît maintenant à l'heure du banc (`monter`) ;
      · UN FLUX FERMÉ PAR LE BANC N'EST PAS UN FLUX QUE LE SERVICE SAIT FERMÉ : un signal parti entre les deux est écrit dans le flux mort au lieu d'être retenu. Le banc attend que le SERVICE tienne un flux
@@ -69,7 +69,7 @@ const suivre = (c, ou, qui) => {
 };
 
 /* Un service (horloge décalable, calée sur ZERO), sa base ouverte à côté (WAL : deux processus, une base) avec la MÊME horloge, des personnes et leurs clients. `nom` : ce que ce service joue (vide : le principal).
-   ⛔ LE SERVICE NAÎT À L'HEURE DU BANC (`decalageInitial`), IL N'Y EST PLUS RECALÉ APRÈS COUP. Avant, il démarrait à l'heure réelle et le banc le reculait de quatre semaines une fois `/health` servi : sur une
+   ⛔ LE SERVICE NAÎT À L'HEURE DU BANC (`decalageInitial`), IL N'Y EST PLUS RECALÉ APRÈS COUP. Avant, il démarrait à l'heure réelle et le banc le reculait de plusieurs semaines une fois `/health` servi : sur une
    machine chargée, le calage arrivait après le premier passage du balayeur (une seconde après le démarrage), daté « dans le futur » — `ageS` restait alors à zéro et la population de la section 3 bis tombait
    (rejoué : le calage du service de la sonnerie échue retardé de 1,6 s → 86 ✓ 1 ✗). */
 async function monter(config, nom) {
@@ -77,7 +77,8 @@ async function monter(config, nom) {
   const svc = await T.lancerService({ horloge: true, decalageInitial: decal, config });
   const maintenant = () => Date.now() + decal;
   const chemin = path.join(svc.data, 'msg.db');
-  const S = ouvrir({ chemin, scelleur: creerScelleur(Buffer.from(svc.cle, 'hex')), horloge: maintenant });
+  let S;
+  try { S = ouvrir({ chemin, scelleur: creerScelleur(Buffer.from(svc.cle, 'hex')), horloge: maintenant }); } catch (e) { await svc.arreter(); throw e; }   // un service lancé ne reste pas derrière une base qui ne s'ouvre pas
   let k = 0;
   const appareils = {};
   const pers = (prenom, origine) => S.personneCreer({ identifiant: 'beta:' + prenom + (++k) + crypto.randomBytes(2).toString('hex'), prenom, nom: 'Banc', origine: origine || 'beta', verifie: true });
@@ -90,7 +91,7 @@ async function monter(config, nom) {
   const M = { nom: nom || 'principal', svc, S, chemin, pers, cl, anonyme, sql, avancer, maintenant, fluxOuverts, mortEnRoute: null };
   /* ⛔ un service MORT EN ROUTE se dit (à sa fermeture, et dans chaque chute). Un port pris par un autre banc lancé en même temps faisait répondre le service de l'AUTRE (401 partout : vu une fois sur 120 passages
      à douze de front) — l'outil s'en garde maintenant (`lancerService` : l'identité du service) ; ceci reste pour un service qui mourrait d'autre chose. */
-  M.fermer = async () => { if (M.mortEnRoute === null) M.mortEnRoute = svc.sorti() !== null ? 'code ' + svc.sorti() + ' — ' + svc.sortie.texte().split('\n').filter(l => /"evt":"(exception|rejet|demarrage_refuse)"/.test(l)).slice(-1).join('').slice(0, 160) : false; try { S.fermer(); } catch (x) { /* déjà fermé */ } await svc.arreter(); };
+  M.fermer = async () => { if (M.ferme) return; M.ferme = true; if (M.mortEnRoute === null) M.mortEnRoute = svc.sorti() !== null ? 'code ' + svc.sorti() + ' — ' + svc.sortie.texte().split('\n').filter(l => /"evt":"(exception|rejet|demarrage_refuse)"/.test(l)).slice(-1).join('').slice(0, 160) : false; try { S.fermer(); } catch (x) { /* déjà fermé */ } await svc.arreter(); };
   MONTES.push(M);
   return M;
 }
@@ -251,7 +252,8 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     }
     {
       const r = await a1.post('/api/appels', { conv: directe, type: 'video' });
-      /* ⛔ une réponse sans appel ne tue plus le banc (la CI est morte ici le 5 novembre 2026, 39 ✓, sans dire ce que le service avait rendu) : le contrôle tombe, et la chute redit la réponse */
+      /* ⛔ une réponse sans appel ne tue plus le banc : le contrôle tombe, et la chute redit la réponse. (Un diagnostic avait été posé ICI le 5 novembre 2026, après la première mort de la CI — au mauvais
+         endroit : à 39 ✓, la lecture qui tuait était celle de « Ben répond », section 3, `rep.j.appel.lie`.) */
       appel1 = champ(r, 'j', 'appel') || { autre: {} };
       v('lancer par la conversation directe : 201 et la vue de l\'appelante (sortante, vidéo, Ben en face, appareil lié)', [r.code, appel1.etat, appel1.sens, appel1.type, champ(appel1, 'autre', 'id'), appel1.lie, /^a_[0-9a-f]{32}$/.test(appel1.id)], [201, 'sonne', 'sortant', 'video', ben.id, true, true]);
       const eB = await fB1.attendre(e => e.event === 'appel'), eB2 = await fB2.attendre(e => e.event === 'appel');
@@ -485,7 +487,8 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     process.exitCode = 1;
   }
   for (const f of flux) { try { f.fermer(); } catch (e) { /* fermé */ } }
-  await M.fermer();
+  /* tout service monté est fermé, le principal comme ceux qu'une mort du banc aurait laissés en route (un second service qui ne démarre pas laissait le premier sans personne pour l'arrêter) */
+  for (const m of MONTES) await m.fermer();
   /* ⛔ les services du banc ont VÉCU jusqu'à ce qu'il les ferme. Un service mort en route ne se voit pas tout seul : si son port a été pris par un autre banc lancé au même moment sur la machine, c'est le service de
      l'AUTRE qui répond à sa place (des 401 `session_requise` partout, sur une base qui n'est pas la sienne) — vu une fois sur 120 passages à douze de front, jamais en CI (elle joue une suite à la fois par machine). */
   vrai('population : les cinq services montés par le banc ont vécu jusqu\'à ce qu\'il les ferme (aucun n\'est mort en route, aucun n\'a laissé un autre répondre à sa place)', MONTES.every(m => m.mortEnRoute === false) && (!!process.exitCode || MONTES.length === 5));

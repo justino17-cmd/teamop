@@ -14,13 +14,15 @@
  * « décalage nul », c'est-à-dire l'heure réelle — des semaines APRÈS l'horloge que le banc avait posée. Et
  * le fichier se lisait vide : `svc.avancer` le réécrivait par `fs.writeFileSync`, qui TRONQUE puis écrit ;
  * une minuterie du service (le balayeur d'appels passe toutes les secondes) qui demandait l'heure entre les
- * deux croyait que vingt-huit jours venaient de passer — toute sonnerie devenait « manquée », tout appel en
+ * deux croyait que plusieurs semaines venaient de passer (vingt-huit jours le 16 novembre : les bancs se
+ * calent sur une date fixe) — toute sonnerie devenait « manquée », tout appel en
  * cours « perdu ». Relevé par un espion sur 120 passages de test-981 sous charge : 9 passages ont lu le
  * fichier vide, 1 en est tombé (la pile menait de `balayer` à `appelFinir`) ; rejoué à volonté en laissant
  * le fichier vide 1,3 s à chaque avance — c'est, au contrôle près, la mort de la CI du 16 novembre
  * (« Cannot read properties of undefined (reading 'lie') », 39 ✓), la même que celle du 5.
  * Deux gardes, et chacune tient seule : `svc.avancer` (`outils-msg.js`) remplace le fichier d'UN geste
- * (renommage : jamais vide), et ICI un contenu qui n'est pas un entier ne décide de rien.
+ * (renommage : jamais vide) et n'y écrit qu'un entier, et ICI un contenu qui n'est pas un entier ne décide
+ * de rien — mais il se DIT, une fois, sur la sortie d'erreur du service.
  * `tests/test-947.js` joue les deux, et la course entière (un lecteur qui ne s'arrête pas, deux mille avances).
  * Ce fichier n'est chargé QUE par les bancs ; le service n'y fait référence nulle part. */
 const fs = require('fs');
@@ -28,8 +30,18 @@ const f = process.env.OPMSG_HORLOGE_DECALAGE;
 if (f) {
   const vrai = Date.now.bind(Date);
   let dernier = 0;   // avant toute lecture réussie : aucun décalage (le banc écrit le fichier AVANT de lancer le service)
+  let dit = false;
   Date.now = () => {
-    try { const lu = fs.readFileSync(f, 'utf8'); if (/^-?\d+\s*$/.test(lu)) dernier = parseInt(lu, 10); } catch (e) { /* illisible à cet instant : le dernier décalage lu vaut toujours */ }
+    let lu = null;
+    try { lu = fs.readFileSync(f, 'utf8'); } catch (e) { lu = null; }
+    if (lu !== null && /^-?\d+\s*$/.test(lu)) dernier = parseInt(lu, 10);
+    else if (!dit) {
+      /* ⛔ GARDER LE DERNIER DÉCALAGE NE DOIT PAS CACHER UNE PANNE : depuis que le fichier se remplace d'un geste, le lire illisible n'arrive plus par hasard — c'est un fichier absent, ou un
+         contenu que quelqu'un y a mis. On le DIT donc, une fois, sur la sortie d'erreur du service (le banc la recueille et la montre quand il tombe) : sans ça, un banc dont les avances
+         ne seraient plus lues tomberait plus loin sans que rien ne nomme la cause. Le drapeau est levé AVANT d'écrire : écrire ne redemande pas l'heure en boucle. */
+      dit = true;
+      try { process.stderr.write('horloge de banc : le fichier de décalage ' + (lu === null ? 'est illisible' : 'porte « ' + lu.slice(0, 24).replace(/\s+/g, ' ') + ' », pas un entier') + ' — le dernier décalage lu (' + dernier + ' ms) est gardé\n'); } catch (e) { /* une sortie fermée ne casse pas l'horloge */ }
+    }
     return vrai() + dernier;
   };
 }

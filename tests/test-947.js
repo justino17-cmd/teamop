@@ -8,13 +8,15 @@
    `appelFinir`), puis rejoué à volonté : le fichier laissé vide 1,3 s pendant l'avance qui précède « Ben répond » donne la mort de la CI, au contrôle près.
 
    Deux gardes de l'horloge, et CHACUNE TIENT SEULE — on les éprouve donc séparément, puis ensemble :
-     1. LE GREFFON : un contenu qui n'est pas un entier (vide, du texte, un fichier absent) ne décide de rien — l'horloge garde le dernier décalage lu ;
-     2. L'ÉCRITURE : `svc.avancer` écrit à côté puis RENOMME — le fichier est remplacé d'un geste (son numéro de fichier change, un lecteur qui le tenait ouvert relit l'ancien contenu ENTIER) ;
+     1. LE GREFFON : un contenu qui n'est pas un entier (vide, du texte, un fichier absent) ne décide de rien — l'horloge garde le dernier décalage lu, et le DIT une fois (sinon ce repli
+        cacherait une vraie panne : des avances que le service ne lit plus) ;
+     2. L'ÉCRITURE : `svc.avancer` écrit à côté puis RENOMME — le fichier est remplacé d'un geste (son numéro de fichier change, un lecteur qui le tenait ouvert relit l'ancien contenu ENTIER) —
+        et n'écrit qu'un entier : une avance qui n'est pas un nombre LÈVE dans le banc au lieu d'écrire ce que le greffon ignorerait ;
      3. LA COURSE ENTIÈRE : un lecteur qui ne s'arrête pas (il lit le fichier brut ET demande l'heure par le greffon) pendant deux mille avances — aucune lecture illisible, jamais l'heure réelle.
    Et l'autre défaut de l'outil que la même charge a montré :
      4. UN PORT DÉJÀ PRIS : `portLibre()` rend un port libre à l'instant où on le demande, deux bancs lancés ensemble peuvent recevoir le même. Le second service meurt (`EADDRINUSE`), `/health`
         répond quand même — c'est le service de l'AUTRE banc, et l'outil le rendait comme « vivant » (des 401 partout, sur la base d'un autre). Chaque lancement porte donc une identité que
-        `/health` redit (`svc.sha`) : un port pris se retente ailleurs, un port imposé qui est pris se DIT.
+        `/health` redit (`svc.sha`) : un port pris se retente ailleurs, un port imposé qui est pris se DIT — et un port tenu par un processus MUET ne laisse plus le lancement pendu.
 
    ⛔ AU GESTE, JAMAIS AU CHRONOMÈTRE : le lecteur est un processus à part qui RÉPOND (un message par question) ; le banc n'avance le paquet suivant qu'après un tour ENTIER du lecteur, commencé
    après le paquet d'avant (un jalon). La partie 3 est la seule qui dépende de l'ordonnancement, et dans UN sens seulement : sur une machine à un seul cœur elle peut laisser passer une écriture en place (les deux
@@ -71,7 +73,9 @@ process.send({ quoi: 'pret' });
     let decalage = DEPART;                                                // ce que le banc a posé : le départ, plus chaque avance
     const avancer = (ms) => { decalage += ms; svc.avancer(ms); };
 
-    lecteur = spawn(process.execPath, ['--require', path.join(__dirname, 'lib-horloge-msg.js'), '-e', LECTEUR], { env: Object.assign({}, process.env, { OPMSG_HORLOGE_DECALAGE: fichier }), stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
+    lecteur = spawn(process.execPath, ['--require', path.join(__dirname, 'lib-horloge-msg.js'), '-e', LECTEUR], { env: Object.assign({}, process.env, { OPMSG_HORLOGE_DECALAGE: fichier }), stdio: ['ignore', 'inherit', 'pipe', 'ipc'] });
+    let ditLecteur = ''; lecteur.stderr.on('data', (d) => { ditLecteur += d; });
+    const avis = (texte) => (String(texte).match(/horloge de banc : /g) || []).length;       // combien de fois le greffon a DIT qu'il gardait le dernier décalage
     const recus = [];
     lecteur.on('message', (m) => { recus.push(m); });
     const reponse = async (quoi, p) => T.attendre(() => { const i = recus.findIndex(m => m.quoi === quoi && (p === undefined || m.p === p)); return i < 0 ? null : recus.splice(i, 1)[0]; }, 10000, 1);
@@ -85,6 +89,7 @@ process.send({ quoi: 'pret' });
       avancer(5000);
       v('une avance se lit aussitôt', [fs.readFileSync(fichier, 'utf8'), pres(await heure(), DEPART + 5000)], [String(DEPART + 5000), true]);
       const pose = DEPART + 5000, lus = [];
+      const avant = [avis(ditLecteur), avis(svc.sortie.texte())];
       /* ce que l'ancienne écriture laissait voir, et pire : chaque fois, l'horloge doit rester où le banc l'a posée — à trente jours de l'heure réelle */
       for (const [nom, geste] of [
         ['VIDE (une écriture qui a tronqué et n\'a pas encore écrit)', () => fs.truncateSync(fichier, 0)],
@@ -92,9 +97,13 @@ process.send({ quoi: 'pret' });
         ['un nombre suivi d\'autre chose', () => fs.writeFileSync(fichier, '12 heures')],
         ['un décimal', () => fs.writeFileSync(fichier, '1e3')],
         ['ABSENT', () => fs.unlinkSync(fichier)],
-      ]) { geste(); lus.push([nom, pres(await heure(), pose)]); }
+      ]) { geste(); lus.push([nom, pres(await heure(), pose)]); await T.client(svc.base).get('/health'); }          // et le VRAI service demande l'heure pendant que le fichier est illisible
       v('⛔ un fichier VIDE, du texte, un nombre suivi d\'autre chose, un décimal, un fichier ABSENT : l\'horloge garde le dernier décalage lu (population : cinq contenus illisibles, l\'heure demandée après chacun)', lus.filter(([, ok]) => !ok).map(([nom]) => nom), []);
       vrai('   et aucun ne ramène à l\'heure réelle (elle est à trente jours : un retour vaudrait un écart nul)', !pres(await heure(), 0));
+      /* ⛔ garder le dernier décalage ne cache pas une panne : le greffon le DIT, une fois (pas à chaque lecture : un service demande l'heure des milliers de fois), sur la sortie d'erreur —
+         celle du lecteur ici, et celle du vrai service, que tout banc recueille (`svc.sortie`) et montre quand il tombe */
+      await T.attendre(() => avis(ditLecteur) > 0 && avis(svc.sortie.texte()) > 0, 5000, 5);
+      v('⛔ une lecture illisible se DIT, une seule fois pour cinq contenus illisibles : par le lecteur, et par le vrai service sur sa sortie d\'erreur (population : aucun des deux n\'avait rien dit avant)', [avant, avis(ditLecteur), avis(svc.sortie.texte()), /pas un entier|est illisible/.test(ditLecteur), /le dernier décalage lu \(-?\d+ ms\) est gardé/.test(ditLecteur)], [[0, 0], 1, 1, true, true]);
       fs.writeFileSync(fichier, '-7000\n');
       v('un entier négatif, même suivi d\'une fin de ligne, est un décalage : il est suivi', pres(await heure(), -7000), true);
       avancer(1000);
@@ -114,6 +123,18 @@ process.send({ quoi: 'pret' });
       }
       v('⛔ un lecteur qui tenait le fichier ouvert relit l\'ANCIEN décalage, entier (jamais un fichier vide ni un fichier à moitié écrit) — et le fichier porte le nouveau (trois avances)', tenu, [[true, true], [true, true], [true, true]]);
       v('⛔ le fichier est REMPLACÉ à chaque avance, pas réécrit en place : son numéro de fichier change trois fois sur trois', [numeros[1] !== numeros[0], numeros[2] !== numeros[1], numeros[3] !== numeros[2]], [true, true, true]);
+      /* ⛔ ce que le greffon ignorerait ne s'écrit pas : une avance sans durée LÈVE dans le banc (avant : « NaN » dans le fichier, et toutes les avances suivantes ignorées en silence) */
+      const refus = [];
+      for (const mauvaise of [undefined, NaN, Infinity, '5000']) {
+        const lu = fs.readFileSync(fichier, 'utf8');
+        let leve = null; try { svc.avancer(mauvaise); } catch (e) { leve = String(e && e.message); }
+        refus.push([/le décalage n'est pas un nombre/.test(leve || ''), fs.readFileSync(fichier, 'utf8') === lu]);
+      }
+      v('⛔ une avance qui n\'est pas un nombre (rien, NaN, l\'infini, un texte) LÈVE en le disant, et le fichier ne bouge pas', refus, [[true, true], [true, true], [true, true], [true, true]]);
+      avancer(1000);
+      v('   et l\'horloge du banc n\'en garde aucune trace : l\'avance suivante repart du dernier décalage juste', [fs.readFileSync(fichier, 'utf8'), pres(await heure(), decalage)], [String(decalage), true]);
+      avancer(0.6); const virgule = fs.readFileSync(fichier, 'utf8'); avancer(0.4);
+      v('   un nombre à virgule s\'écrit arrondi à la milliseconde (le greffon ne suit qu\'un entier), sans dérive : 0,6 ms puis 0,4 ms font une milliseconde', [/^-?\d+$/.test(virgule), virgule === String(Math.round(decalage - 0.4)), fs.readFileSync(fichier, 'utf8')], [true, true, String(Math.round(decalage))]);
       v('   rien ne traîne à côté : le fichier d\'horloge est seul de son nom dans le dossier du service', fs.readdirSync(path.dirname(fichier)).filter(n => n.startsWith(path.basename(fichier))), [path.basename(fichier)]);
     }
 
@@ -138,6 +159,26 @@ process.send({ quoi: 'pret' });
     }
     vrai('le service a vécu tout le banc à côté du lecteur (il relit le même fichier)', svc.sorti() === null && (await T.client(svc.base).get('/health')).code === 200);
 
+    /* ═══════ 3 bis. UN BANC QUI SORT SANS ARRÊTER SON SERVICE NE LE LAISSE PAS VIVRE ═══════ */
+    console.log('\nUn banc qui sort sans arrêter son service (son délai global, une exception) ne laisse pas un processus fantôme');
+    {
+      /* un « banc » d'une ligne : il lance le vrai service, attend qu'il soit CALME, dit son numéro de processus, et SORT sans l'arrêter.
+         ⛔ CALME, et c'est la population du contrôle : une seconde après son démarrage, le service écrit encore une ligne (« planificateur actif ») — si son banc est déjà sorti, cette écriture
+         tombe dans un tube fermé et le service en MEURT, tout seul. Un banc qui sort dans la première seconde ne laisse donc jamais de fantôme, filet ou pas : la première version de ce
+         contrôle sortait à ce moment-là, et la mutation « plus de filet » y survivait. Un service qui n'a plus rien à écrire, lui, survit à son banc (relevé : vivant six secondes après,
+         et 158 s après dans le cas qui a fait trouver le défaut). */
+      const etourdi = spawn(process.execPath, ['-e', 'const T = require(' + JSON.stringify(path.join(__dirname, 'outils-msg.js')) + '); T.lancerService().then(async (x) => { const calme = !!(await T.attendre(() => /"evt":"planificateur"/.test(x.sortie.texte()), 8000, 10)); console.log("PID " + x.enfant.pid + " " + x.racine + " " + calme); process.exit(0); });'], { stdio: ['ignore', 'pipe', 'inherit'] });
+      let dit = ''; etourdi.stdout.on('data', (d) => { dit += d; });
+      const sortie = await new Promise((r) => etourdi.on('close', (code) => r(code)));
+      const m = /PID (\d+) (\S+) (true|false)/.exec(dit), pid = m ? parseInt(m[1], 10) : 0;
+      /* vivant : le processus existe ET n'est pas un zombie (tué, il reste dans la table jusqu'à ce qu'on le récolte — ce n'est plus un service) */
+      const vit = () => { try { process.kill(pid, 0); } catch (e) { return false; } try { return !/^\d+ \(.*\) Z /.test(fs.readFileSync('/proc/' + pid + '/stat', 'utf8')); } catch (e) { return true; } };
+      const parti = !!pid && !!(await T.attendre(() => (vit() ? null : true), 5000, 10));
+      v('⛔ le service d\'un banc sorti sans l\'arrêter est mort avec lui (population : le banc a lancé un vrai service, a attendu qu\'il n\'ait plus rien à écrire, a dit son numéro de processus, puis il est sorti en 0)', [sortie, pid > 0, !!m && m[3] === 'true', parti], [0, true, true, true]);
+      if (pid && !parti) { try { process.kill(pid, 'SIGKILL'); } catch (e) { /* parti entre-temps */ } }
+      if (m) { try { fs.rmSync(m[2], { recursive: true, force: true }); } catch (e) { /* rien */ } }
+    }
+
     /* ═══════ 4. UN PORT DÉJÀ PRIS : LE SERVICE D'UN AUTRE N'EST PAS LE NÔTRE ═══════ */
     console.log('\nUn port déjà pris par un autre service de banc : `lancerService` ne prend pas l\'autre pour le sien');
     {
@@ -156,6 +197,20 @@ process.send({ quoi: 'pret' });
         vrai('   ses données sont les siennes : sa base existe dans SON dossier, à part de celle du premier service', fs.existsSync(path.join(autre.data, 'msg.db')) && autre.data !== svc.data);
         vrai('   et le premier service n\'a rien vu : il vit toujours, avec son identité', svc.sorti() === null && (await sante(svc)).sha === svc.sha);
       } finally { await autre.arreter(); }
+      /* ⛔ un port tenu par un processus MUET (il accepte la connexion et ne répond jamais — un autre programme, pas un service d'OP MESSAGES) : le sondage de `/health` ne répond pas, le service meurt
+         (`EADDRINUSE`) — c'est SA mort qui coupe le sondage. Avant : `fetch` restait pendu pour toujours, et le banc avec lui (la relecture l'a mesuré : toujours pendu après 40 s). Le plafond de
+         vingt secondes ici n'est pas une durée pariée : il dit « ce n'est jamais revenu ». */
+      const prises = [], muet = require('net').createServer((sk) => { prises.push(sk); });          // il accepte, garde la connexion, ne lit ni ne répond
+      await new Promise((r) => muet.listen(0, '127.0.0.1', r));
+      const portMuet = muet.address().port;
+      let garde = null;
+      const rendu = await Promise.race([T.lancerService({ portsDabord: [portMuet] }).then((x) => x, (e) => 'refus : ' + String(e && e.message).split('\n')[0]), new Promise((r) => { garde = setTimeout(() => r('pendu'), 20000); })]);
+      clearTimeout(garde);
+      const vivantAilleurs = !!rendu && typeof rendu === 'object';
+      v('⛔ un port tiré que tient un processus MUET : `lancerService` ne reste pas pendu — le service est relancé sur un autre port, et c\'est lui qui répond', [vivantAilleurs ? 'vivant' : rendu, vivantAilleurs && rendu.port !== portMuet, vivantAilleurs && (await sante(rendu)).sha === rendu.sha], ['vivant', true, true]);
+      if (vivantAilleurs) await rendu.arreter();
+      for (const sk of prises) sk.destroy();                                                        // ses connexions ne se ferment pas seules (il ne lit rien) : sans ça, sa fermeture attendrait pour toujours
+      await new Promise((r) => muet.close(r));
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));

@@ -41,21 +41,33 @@ done
 fin=$(date +%s)
 arreter_bruleurs
 
-verts=0; chutes=0
-for c in "$SORTIE"/passage-*.code; do
-  f="${c%.code}.txt"; rc=$(cat "$c")
+# ⛔ UN VERT DOIT PROUVER QU'IL A REGARDÉ QUELQUE CHOSE (relecture du 17 novembre 2026). Un passage ne compte vert que s'il a rendu le code 0, zéro ✗ ET au moins un ✓ : un banc qui se
+# saute (sans `server-msg/node_modules` il écrit « 0 ✓  0 ✗ » et sort en 0) n'a rien joué. Et la série doit être ENTIÈRE : un passage tué avant d'écrire son code de sortie ne laisse
+# rien — on compte donc ce qu'on ATTENDAIT (vagues × parallèle), pas ce qu'on trouve.
+attendus=$((VAGUES * PARALLELE)); verts=0; chutes=0; min=''; max=''
+for v in $(seq 1 "$VAGUES"); do for i in $(seq 1 "$PARALLELE"); do
+  f="$SORTIE/passage-$v-$i.txt"; c="$SORTIE/passage-$v-$i.code"
+  if [ ! -s "$c" ]; then chutes=$((chutes+1)); echo "──── CHUTE : passage-$v-$i n'a laissé AUCUN code de sortie (tué avant sa fin ?)"; tail -3 "$f" 2>/dev/null | cut -c1-300; continue; fi
+  rc=$(cat "$c")
   total=$(grep -oE '[0-9]+ ✓ +[0-9]+ ✗' "$f" | tail -1)
-  ko=$(printf '%s' "$total" | grep -oE '[0-9]+ ✗' | grep -oE '^[0-9]+')
-  if [ "$rc" = "0" ] && [ "${ko:-x}" = "0" ]; then verts=$((verts+1)); continue; fi
+  ok=$(printf '%s' "$total" | grep -oE '^[0-9]+'); ko=$(printf '%s' "$total" | grep -oE '[0-9]+ ✗' | grep -oE '^[0-9]+')
+  if [ "$rc" = "0" ] && [ "${ko:-x}" = "0" ] && [ "${ok:-0}" -gt 0 ]; then
+    verts=$((verts+1))
+    if [ -z "$min" ] || [ "$ok" -lt "$min" ]; then min=$ok; fi
+    if [ -z "$max" ] || [ "$ok" -gt "$max" ]; then max=$ok; fi
+    continue
+  fi
   chutes=$((chutes+1))
-  echo "──── CHUTE : $(basename "$f") — code $rc — ${total:-aucun total}"
+  echo "──── CHUTE : $(basename "$f") — code $rc — ${total:-aucun total}$([ "${ok:-0}" = "0" ] && [ "${ko:-x}" = "0" ] && echo ' — AUCUN contrôle joué (le banc s est-il sauté ?)')"
   grep -n -A2 -E '✗|PREMIÈRE CHUTE' "$f" | cut -c1-900 | head -60
-done
-echo "════ $((verts+chutes)) passages en $((fin-debut)) s (parallèle $PARALLELE, brûleurs $BRULEURS) : $verts verts, $chutes chutes"
+done; done
+echo "════ $attendus passages attendus, en $((fin-debut)) s (parallèle $PARALLELE, brûleurs $BRULEURS) : $verts verts (de ${min:-0} à ${max:-0} contrôles joués chacun), $chutes chutes"
 if [ -n "${ESPION:-}" ]; then
   vides=$(cat "$SORTIE"/espion-*.jsonl 2>/dev/null | grep -c '"lu"')
   lectures=$(cat "$SORTIE"/espion-*.jsonl 2>/dev/null | grep -o '"lectures":[0-9]*}' | grep -o '[0-9]*' | awk '{s+=$1} END{print s+0}')
   services=$(cat "$SORTIE"/espion-*.jsonl 2>/dev/null | grep -c '"fin"')
   echo "════ l'espion : $vides lecture(s) illisible(s) du fichier d'horloge, sur $lectures lectures comptées par $services services arrêtés proprement"
+  # un zéro sur une population vide ne prouve rien : un espion qui n'a rien vu (journal impossible à écrire, greffon pas chargé) rendrait « 0 lecture illisible » lui aussi
+  if [ "$services" = "0" ] || [ "$lectures" = "0" ]; then echo "════ ⛔ l'espion n'a RIEN vu (aucun service, aucune lecture) : son zéro ne prouve rien"; chutes=$((chutes+1)); fi
 fi
-[ "$chutes" = "0" ]
+[ "$chutes" = "0" ] && [ "$verts" = "$attendus" ]

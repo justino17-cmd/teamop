@@ -45,16 +45,24 @@ async function attendre(cond, plafondMs = 8000, pasMs = 15) {
 
 /* ⛔ L'HORLOGE D'UN SERVICE SE REMPLACE D'UN SEUL GESTE — JAMAIS « TRONQUER PUIS ÉCRIRE » (17 novembre 2026).
    `fs.writeFileSync` ouvre le fichier en le VIDANT, puis écrit : entre les deux, le service qui demande l'heure (il relit ce fichier
-   à chaque `Date.now()`, et ses minuteries n'attendent pas le banc) le lisait vide et retombait sur l'heure RÉELLE — vingt-huit jours
-   après l'horloge du banc. Son balayeur d'appels finissait alors l'appel en cours (« perdu ») ou la sonnerie (« manquée ») : test-981
+   à chaque `Date.now()`, et ses minuteries n'attendent pas le banc) le lisait vide et retombait sur l'heure RÉELLE — des semaines
+   après l'horloge du banc (vingt-huit jours le 16 novembre). Son balayeur d'appels finissait alors l'appel en cours (« perdu ») ou la sonnerie (« manquée ») : test-981
    tombait deux fois sur 180 passages à douze de front, et il est mort en CI le 5 et le 16 novembre (« undefined.lie », 39 ✓). On écrit donc À CÔTÉ, puis on
    RENOMME : un renommage remplace le fichier d'un coup, un lecteur voit l'ancien contenu ou le nouveau, jamais un fichier vide.
    Le greffon (`lib-horloge-msg.js`) garde l'autre moitié : un contenu qui n'est pas un entier ne remet plus l'horloge à l'heure réelle.
    `tests/test-947.js` tient les deux — et une cinquantaine de bancs avancent une horloge par ici. */
 function ecrireDecalage(fichier, decalage) {
+  const texte = texteDecalage(decalage);
   const neuf = fichier + '.neuf';
-  fs.writeFileSync(neuf, String(decalage));
+  fs.writeFileSync(neuf, texte);
   fs.renameSync(neuf, fichier);
+}
+/* ⛔ CE QU'ON ÉCRIT EST UN ENTIER, OU L'AVANCE LÈVE. Le greffon ne suit qu'un entier (le reste garde le dernier décalage lu) : une avance sans durée (`svc.avancer(undefined)` → « NaN ») ou
+   d'une durée qui n'en est pas une serait donc IGNORÉE par le service, elle et toutes les suivantes, pendant que le banc croirait son horloge avancée — et le banc tomberait plus loin, sur un
+   contrôle d'échéance, sans nommer la cause (relecture du 17 novembre 2026). Un nombre à virgule est arrondi à la milliseconde ; ce qui n'est pas un nombre fini se dit ICI, dans le banc. */
+function texteDecalage(decalage) {
+  if (typeof decalage !== 'number' || !Number.isFinite(decalage)) throw new Error('horloge du banc : le décalage n\'est pas un nombre (' + String(decalage) + ') — une avance sans durée ? Le service garderait l\'ancienne heure sans rien dire.');
+  return String(Math.round(decalage));
 }
 
 /* ── Le service ────────────────────────────────────────────────────────────────────────── */
@@ -64,9 +72,15 @@ function ecrireDecalage(fichier, decalage) {
    une base qui n'est pas celle du banc (vu une fois sur 120 passages de test-981 à douze de front ; rejoué en imposant le port : `scratchpad/sonde-opmessages-collision-port.js`). La CI n'y
    est pas exposée (une suite à la fois par machine), mais les lots de mutations jouent deux copies de front, et on charge une machine en lançant plusieurs passages.
    Chaque lancement porte donc une IDENTITÉ (`OPMSG_SHA`, que `/health` redit dans `sha` — `svc.sha`) : tant que `/health` ne la rend pas, ce n'est pas notre service. Port pris
-   (un autre service y répond, ou le nôtre est mort sur `EADDRINUSE`) : on recommence sur un port neuf et des données neuves, cinq fois au plus — sauf si le banc a IMPOSÉ le port
-   ou le dossier (un redémarrage) : là, on le DIT au lieu de deviner. `tests/test-947.js` joue les deux. */
+   (le nôtre est mort sur `EADDRINUSE`) : on recommence sur un port neuf et des données neuves, cinq fois au plus — sauf si le banc a IMPOSÉ le port ou le dossier (un redémarrage) :
+   là, on le DIT au lieu de deviner. `tests/test-947.js` joue les deux. */
 const ESSAIS_PORT = 5;
+/* ⛔ AUCUN SERVICE NE SURVIT AU BANC QUI L'A LANCÉ (17 novembre 2026). Un banc qui sort sans arrêter ses services — son délai global, une exception hors de son `try`, un `process.exit` —
+   les laissait tourner : `process.exit` ne tue pas les processus enfants. Ce sont des processus fantômes, qui chargent la machine et font tomber les bancs de temps qui suivent (CLAUDE.md) ;
+   pris sur le fait ici même : un passage de test-947 arrêté par son délai global avait laissé son service vivant 158 s plus tard. À la sortie du processus du banc, ceux qui vivent encore
+   sont tués, sans attendre (on sort). */
+const ENFANTS = new Set();
+process.on('exit', () => { for (const e of ENFANTS) { try { e.kill('SIGKILL'); } catch (x) { /* déjà mort */ } } });
 async function lancerService(opts = {}) {
   const o = Object.assign({ instance: 'beta', config: {}, env: {}, cle: crypto.randomBytes(32).toString('hex'), dossier: null, attendreSante: true }, opts);
   const racine = o.dossier || fs.mkdtempSync(path.join(os.tmpdir(), 'banc-msg-'));
@@ -101,41 +115,59 @@ async function lancerService(opts = {}) {
     }, o.instance === 'beta' ? { OPMSG_TEST_TRAJET: '127.0.0.1:10' } : {}, o.env);
     const sha = String(env.OPMSG_SHA || '').replace(/[^0-9a-zA-Z._-]/g, '').slice(0, 64) || 'inconnu';   // ce que le service en redira (`config.js` l'assainit ainsi)
     if (o.horloge) {
-      fs.writeFileSync(fichierDecalage, String(decalage));   // avant le lancement : personne ne le lit encore (ensuite : `ecrireDecalage`)
+      fs.writeFileSync(fichierDecalage, texteDecalage(decalage));   // avant le lancement : personne ne le lit encore (ensuite : `ecrireDecalage`)
       env.OPMSG_HORLOGE_DECALAGE = fichierDecalage;
       env.NODE_OPTIONS = ((env.NODE_OPTIONS || '') + ' --require=' + path.join(__dirname, 'lib-horloge-msg.js')).trim();
     }
     const sortie = new Sortie();
     const enfant = spawn(process.execPath, [path.join(SERVICE, 'index.js')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
     enfant.stdout.on('data', d => sortie.ajouter(d)); enfant.stderr.on('data', d => sortie.ajouter(d));
-    let sorti = null; enfant.on('exit', (code) => { sorti = code; });
+    let sorti = null; enfant.on('exit', (code) => { sorti = code; ENFANTS.delete(enfant); });
+    ENFANTS.add(enfant);
+    let clos = false; enfant.on('close', () => { clos = true; });   // ses tubes de sortie sont vidés : ce qu'il a écrit avant de mourir est ENTIER (à « exit », la dernière ligne peut manquer)
     const svc = {
       base, port, racine, data, cred, cfgPath, cle: o.cle, config: cfg, sortie, enfant, sha,
       fichierHorloge: o.horloge ? fichierDecalage : null,   // le fichier que le service relit à chaque `Date.now()` (pour le banc de l'outil lui-même, `test-947`)
       sorti: () => sorti,
-      avancer(ms) { decalage += ms; ecrireDecalage(fichierDecalage, decalage); },
+      avancer(ms) { const suivant = decalage + ms; ecrireDecalage(fichierDecalage, suivant); decalage = suivant; },   // dans cet ordre : une avance refusée (pas un nombre) laisse l'horloge où elle était
       async arreter(nettoyer = true) {
-        try { if (sorti === null) { enfant.kill('SIGTERM'); await attendre(() => sorti !== null, 4000); if (sorti === null) enfant.kill('SIGKILL'); } } catch (e) {}
+        /* ⛔ on attend SA FIN, même après l'avoir tué de force : un processus qui meurt encore écrit dans son dossier — qu'on efface juste après, ou qu'on rend au service suivant (un port pris) */
+        try { if (sorti === null) { enfant.kill('SIGTERM'); await attendre(() => sorti !== null, 4000); if (sorti === null) { enfant.kill('SIGKILL'); await attendre(() => sorti !== null, 2000, 5); } } } catch (e) {}
         if (nettoyer && !o.dossier) { try { fs.rmSync(racine, { recursive: true, force: true }); } catch (e) {} }
       },
     };
     if (!o.attendreSante) return svc;
-    /* « vivant » : NOTRE service répond (son identité) ; « autre » : `/health` répond, mais ce n'est pas lui ; « mort » : il est sorti avant de répondre */
-    const vivant = await attendre(async () => {
+    /* « vivant » : NOTRE service répond (son identité). `/health` qui répond sous une AUTRE identité ne conclut rien tant que le nôtre vit : si le port est tenu par un autre, le nôtre MEURT
+       (`EADDRINUSE`) — c'est sa mort qu'on attend, et sa dernière ligne qu'on lit, pas une durée. (Et si l'autre s'en va et que le nôtre prend le port, le sondage suivant le reconnaît.) */
+    /* ⛔ UN SONDAGE NE RESTE JAMAIS PENDU : il est coupé à la MORT du service (un geste) et, à défaut, au plafond des dix secondes. Sans ça, un port tenu par un processus qui accepte la
+       connexion sans jamais répondre retenait `fetch` pour toujours — le plafond n'est regardé qu'entre deux sondages, et la mort du service (`EADDRINUSE`) n'était jamais vue (relecture du
+       17 novembre 2026 : toujours pendu après 40 s). */
+    let autre = false;
+    const plafond = Date.now() + 10000;
+    const sonder = async () => {
       if (sorti !== null) return 'mort';
-      try { const r = await FETCH(base + '/health'); if (!r.ok) return false; const j = await r.json().catch(() => null); return j && j.sha === sha ? true : 'autre'; } catch (e) { return false; }
-    }, 10000, 50);
+      const ctrl = new AbortController(), couper = () => ctrl.abort();
+      const minuteur = setTimeout(couper, Math.max(200, plafond - Date.now()));
+      enfant.once('exit', couper);
+      try { const r = await FETCH(base + '/health', { signal: ctrl.signal }); if (!r.ok) return false; const j = await r.json().catch(() => null); if (j && j.sha === sha) return true; autre = true; return false; }
+      catch (e) { return sorti !== null ? 'mort' : false; }
+      finally { clearTimeout(minuteur); enfant.removeListener('exit', couper); }
+    };
+    const vivant = (await attendre(sonder, 10000, 50)) || (sorti !== null ? 'mort' : null);
     if (vivant === true) return svc;
-    if (vivant === 'autre') await attendre(() => sorti !== null, 8000, 10);   // le nôtre meurt de lui-même sur un port pris : on attend SA fin (un geste, pas une durée) avant de lire ce qu'il a écrit
-    const s = sortie.texte(), pris = vivant === 'autre' || (vivant === 'mort' && /EADDRINUSE/.test(s));
+    if (vivant === 'mort') await attendre(() => clos, 2000, 5);
+    const s = sortie.texte(), pris = vivant === 'mort' && /EADDRINUSE/.test(s);
     if (pris && !o.port && !o.dossier && essai < ESSAIS_PORT) {
       await svc.arreter(false);
       try { fs.rmSync(data, { recursive: true, force: true }); } catch (e) { /* rien n'y était */ }   // ce que le service mort a pu y poser (sa base, un bail) ne doit pas attendre le suivant
       continue;
     }
     await svc.arreter();
-    throw new Error('le service n\'a pas démarré : ' + (vivant === 'autre' ? 'le port ' + port + ' est tenu par un AUTRE service (un banc lancé en même temps ?) — `/health` y répond, mais pas le nôtre'
-      : vivant === 'mort' ? 'sorti avant /health' + (pris ? ' (port ' + port + ' déjà pris)' : '') : 'délai') + (pris && !o.port && !o.dossier ? ' — ' + ESSAIS_PORT + ' ports essayés' : '') + '\n' + s.slice(0, 800));
+    throw new Error('le service n\'a pas démarré : ' + (
+      pris ? 'le port ' + port + ' est déjà pris' + (autre ? ' — un AUTRE service y répond (un banc lancé en même temps ?)' : '') + (!o.port && !o.dossier ? ' — ' + ESSAIS_PORT + ' ports essayés' : '')
+        : vivant === 'mort' ? 'sorti avant /health'
+          : autre ? '`/health` répond sur le port ' + port + ' sous une AUTRE identité que la sienne (`sha` attendu : ' + sha + ') alors que le service vit encore — `/health` ne rend-il plus `sha` ?'
+            : 'délai') + '\n' + s.slice(0, 800));
   }
 }
 

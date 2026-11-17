@@ -3,7 +3,7 @@
  *
  * C'est lui qui a établi la cause de l'instabilité de test-981 (17 novembre 2026). `svc.avancer` réécrivait le fichier par `fs.writeFileSync` (qui tronque PUIS écrit) et le
  * greffon faisait `parseInt(lu) || 0` : un fichier lu vide valait l'heure RÉELLE. Sur 120 passages à douze de front, neuf ont lu le fichier vide, et pour celui qui est tombé la
- * pile disait tout : `balayer` (appels.js) → `appelFinir` — le balayeur croyait que vingt-huit jours venaient de passer et finissait l'appel « perdu ».
+ * pile disait tout : `balayer` (appels.js) → `appelFinir` — le balayeur croyait que des semaines venaient de passer (vingt-huit jours ce jour-là) et finissait l'appel « perdu ».
  * Depuis la correction (le fichier est remplacé d'un geste, un contenu illisible garde le dernier décalage) : 0 lecture illisible sur 78 089, en 60 passages sous la même charge.
  *
  * Il ne change RIEN à ce que le service lit : il enveloppe `fs.readFileSync` (le greffon l'appelle par `fs.readFileSync(...)`, donc il voit l'enveloppe), rend la valeur du vrai,
