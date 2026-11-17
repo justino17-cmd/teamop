@@ -9,7 +9,7 @@ exports.texte = (p, zone) => p.evaluate(z => { const e = document.querySelector(
 // rend les erreurs de page accumulées depuis le dernier appel
 exports.erreurs = c => { const e = c.err.splice(0); return e; };
 // change de personne DANS la page (la session de l'application, sans recharger : les données du prototype vivent en mémoire)
-exports.devenir = async (c, qui, hash) => { await c.p.evaluate(([q, h]) => { try { sessionFermer('essai'); } catch (e) {} sessionOuvrir(q); aller(h || 'accueil'); }, [qui, hash]); await L.calme(c.p, 500); };
+exports.devenir = async (c, qui, hash) => { await c.p.evaluate(([q, h]) => { try { sessionFermer('essai'); } catch (e) {} route = 'accueil'; param = null; sessionOuvrir(q);   /* la page d'avant (« Ma journée ») n'existe pas pour la personne suivante : sans ça, un message « pas dans ton espace » reste collé */ aller(h || 'accueil'); }, [qui, hash]); await L.calme(c.p, 500); };
 // un petit PNG valide (1×1) pour les champs « photo »
 exports.PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 // trace un trait sur un canevas (signature) à la souris ou au doigt

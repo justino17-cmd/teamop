@@ -49,7 +49,7 @@ const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{FE0F}]/u
         const tailles = champs.filter(x => x.matches('input,select,textarea')).map(x => parseFloat(getComputedStyle(x).fontSize));
         const sorti = [...p.querySelectorAll('*')].filter(vis).filter(x => { const r = x.getBoundingClientRect(); return r.right > pr.right + 1 || r.left < pr.left - 1; }).map(x => (x.className || x.tagName).toString().slice(0, 30));
         const x = p.querySelector('.x'); const txt = p.innerText.replace((x && x.innerText) || '\u0000', '');
-        return { h2:(p.querySelector('h2') || {}).textContent, txt, lab, nChamps:champs.length, cibles, gros, choix, rouges, tailles, sorti, sw:p.scrollWidth, cw:p.clientWidth, pw:Math.round(pr.width), retour:!!p.querySelector('.vh-ret'), repli:[...p.querySelectorAll('details > summary')].map(s => s.textContent.trim()), interrupteurs:p.querySelectorAll('.vh-sw').length, lignes:[...p.querySelectorAll('.vh-mat-l')].map(l => Math.round(l.getBoundingClientRect().height)), fenetre:innerHeight }; });
+        return { h2:(p.querySelector('h2') || {}).textContent, txt, lab, nChamps:champs.length, cibles, gros, choix, rouges, tailles, sorti, sw:p.scrollWidth, cw:p.clientWidth, pw:Math.round(pr.width), retour:!!p.querySelector('.vh-ret'), repli:[...p.querySelectorAll('details > summary')].map(s => s.textContent.trim()), interrupteurs:p.querySelectorAll('.vh-sw').length, lignes:[...p.querySelectorAll('.vh-mat-l')].map(l => Math.round(l.getBoundingClientRect().height)), fenetre:innerHeight, vis:p.clientHeight }; });
       const t = (s) => nom + ' · ' + k + ' : ' + s;
       if (e || !m) { v(t('la feuille s\'ouvre' + (e ? ' (' + e + ')' : '')), false, e); continue; }
       n++;
@@ -64,6 +64,7 @@ const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{FE0F}]/u
       if (S.repli) v(t('« ' + S.repli + ' » est un repli fermé (pas de champ de plus à l\'ouverture)'), m.repli.includes(S.repli), m.repli);
       if (S.rouge) v(t('le bouton rouge est ' + S.rouge.join(', ')), JSON.stringify(m.rouges) === JSON.stringify(S.rouge), m.rouges);
       if (S.interrupteurs) v(t('huit interrupteurs, chacun sur une ligne de 44 px et plus (' + m.lignes + ' lignes mesurées)'), m.interrupteurs === S.interrupteurs && m.lignes.length === S.lignes && m.lignes.every(h => h >= 44), m.lignes);
+      if (pr.w <= 760 && S.gros.length) v(t('sur téléphone, la feuille qui monte ne dépasse pas 90 % de l\'écran (' + m.vis + ' sur ' + m.fenetre + ')'), m.vis <= m.fenetre * 0.9 + 1, { vis:m.vis, fenetre:m.fenetre });
       v(t('aucun émoji dans la feuille'), !EMOJI.test(m.txt), m.txt.match(EMOJI));
       const seuil = pr.doigt ? 44 : 40, petites = m.cibles.filter(x => x.h < seuil - 0.5);
       v(t('cibles : ' + m.cibles.length + ' contrôles, aucun sous ' + seuil + ' px de haut'), m.cibles.length > 0 ? petites.length === 0 : S.gros.length === 0 && /cout|suppr/.test(k) ? true : false, petites.slice(0, 5));

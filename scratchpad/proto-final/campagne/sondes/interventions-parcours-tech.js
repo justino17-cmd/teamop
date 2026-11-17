@@ -15,7 +15,8 @@ const I = require('./interventions-outils.js'), L = I.L;
   v('T2 « Continuer » ouvre la fiche', await tap('[data-rl="go|inter-x-i1"]') && (await L.etat(p)).h1 === 'Dépannage climatisation', JSON.stringify(await L.etat(p)));
   t = await txt(); v('T2 la fiche d’une technicienne ne propose ni facture ni prix', !/€/.test(t.replace(/\(€, si tu le connais\)|\(€\)/g, '')), (t.match(/.{20}€.{10}/) || [''])[0]);
   const gestesFiche = await L.gestes(p, '#contenu'); console.log('  · gestes de la fiche technicienne :', gestesFiche.length);
-  v('T2 aucun bouton sans nom sur la fiche', gestesFiche.filter(g => g.sansNom).length === 0, gestesFiche.filter(g => g.sansNom).map(g => g.data));
+  const nu = await p.evaluate(() => [...document.querySelectorAll('#contenu button, #contenu a[href], #contenu input:not([type=hidden]):not([type=file]), #contenu select, #contenu textarea')].filter(e => e.offsetParent).filter(e => { const lab = e.closest('label'); return !((e.getAttribute('aria-label') || e.title || e.placeholder || (lab && lab.textContent) || (e.tagName === 'BUTTON' || e.tagName === 'A' ? e.textContent : '') || '').trim()); }).map(e => e.tagName + ' ' + [...e.attributes].filter(a => a.name.startsWith('data-')).map(a => a.name + '=' + a.value.slice(0, 20)).join(' ')));
+  v('T2 aucun bouton ni champ sans nom sur la fiche', nu.length === 0, nu.slice(0, 6));
   await L.capture(c, I.CAP + `tech-${profil}${nuit ? '-nuit' : ''}-2-fiche.png`);
   // ── T3 « Terminer » alors qu'il manque des choses
   let F = await I.F(p, 'i1'); console.log('  · manque au départ :', F.manque.join(' / '));
@@ -62,6 +63,13 @@ const I = require('./interventions-outils.js'), L = I.L;
   const apres = await p.evaluate(() => ({ ints: INTS.length, fact: FACTURES.length, factI1: !!FACTURES.find(f => f.int === 'i1'), nouveaux: INTS.filter(i => /^n-/.test(i.id)).map(i => i.id + ':' + i.st + ':' + i.titre) }));
   v('T10 la facture se prépare toute seule', apres.factI1 && apres.fact === avant.fact + 1, apres);
   v('T10 les suites cochées créent leurs interventions « à planifier »', apres.ints > avant.ints, apres.nouveaux);
+  // la clôture ouvre la feuille « Noter les pièces utilisées ? » du Stock : on la regarde, puis « C'est bon »
+  const feuille = await p.evaluate(() => (document.querySelector('#calque .panneau') || {}).textContent || '');
+  console.log('  · feuille ouverte après Terminer :', JSON.stringify(feuille.replace(/\s+/g, ' ').slice(0, 160)));
+  v('T10 la clôture propose de confirmer les pièces utilisées', /Noter les pièces utilisées/.test(feuille), feuille.slice(0, 120));
+  await L.capture(c, I.CAP + `tech-${profil}${nuit ? '-nuit' : ''}-4a-feuille-pieces.png`);
+  if (/Noter les pièces utilisées/.test(feuille)) { v('T10 « C’est bon » ferme la feuille', await L.toucher(c, p.getByRole('button', { name: /C’est bon/ }).first(), { delai: 4000 }) && !(await L.etat(p)).panneau, (await L.etat(p)).panneau); }
+  F = await I.F(p, 'i1'); v('T10 la fiche reste terminée après la feuille des pièces', F.st === 'fait' && F.etat === 'bureau', [F.st, F.etat]);
   await L.capture(c, I.CAP + `tech-${profil}${nuit ? '-nuit' : ''}-4-terminee.png`);
   // ── T11 Ma journée après coup
   await L.aller(p, 'majournee'); t = await txt('#contenu .rl-jour'); v('T11 Ma journée : la carte du Vieux Port est « Terminée »', /Terminée/.test(t) && /Vieux Port/.test(t), t.slice(0, 200));
@@ -71,9 +79,15 @@ const I = require('./interventions-outils.js'), L = I.L;
   v('T12 le gérant voit la fiche terminée', /Intervention terminée/.test(t), t.slice(0, 100));
   v('T12 la facture préparée est proposée', /Ouvrir la facture/.test(t) && /À valider|À préparer/.test(t), (t.match(/Facturation[\s\S]{0,200}/) || [''])[0]);
   await L.capture(c, I.CAP + `tech-${profil}${nuit ? '-nuit' : ''}-5-bureau.png`);
-  await tap('[data-go="facture-x-f-i1"]'); await L.calme(p, 600); t = await txt(); e = await L.etat(p);
-  v('T12 « Ouvrir la facture » mène à la facture', /facture-x-f-i1/.test(e.hash), e.hash);
-  v('T12 la facture porte l’acompte noté sur place (40,50 €)', /40,50/.test(t), (t.match(/.{60}acompte.{60}/i) || [t.slice(0, 200)])[0]);
+  console.log('  · identité après le changement de personne :', JSON.stringify(await p.evaluate(() => ({ ROLE, RL_ACTIF, SESSION, facturePermis: rlPermis('facture') }))));
+  await tap('[data-go="facture-x-f-i1"]'); await L.calme(p, 600); t = await txt('#calque .panneau'); e = await L.etat(p);
+  console.log('  · « Ouvrir la facture » :', JSON.stringify({ hash: e.hash, panneau: e.panneau, toast: e.toast }));
+  v('T12 « Ouvrir la facture » montre la facture préparée (aperçu)', /Facture préparée/.test(e.panneau), e);
+  v('T12 la facture porte l’acompte noté sur place (40,50 €)', /40,50/.test(t + await txt('#contenu')), t.slice(0, 300));
+  await p.keyboard.press('Escape'); await L.calme(p, 300); await L.aller(p, 'facture-x-f-i1'); t = await txt(); e = await L.etat(p);
+  v('T12 la page de la facture préparée s’ouvre', /facture-x-f-i1/.test(e.hash) && /Facture préparée/.test(e.h1), e);
+  console.log('  · facture :', JSON.stringify(t.replace(/\n/g, ' | ').slice(0, 900)));
+  v('T12 la facture propose le montant déjà payé sur place', /acompte|Noté sur place/i.test(t), t.slice(0, 200));
   console.log('  · erreurs de page :', c.err.length, c.err.slice(0, 3));
   v('aucune erreur JavaScript pendant tout le parcours', c.err.length === 0, c.err.slice(0, 3));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
