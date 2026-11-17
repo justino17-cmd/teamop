@@ -19,7 +19,7 @@
      ],
      "donnees": false,
      "h1": "Achats et frais",
-     "panneau": "Noter une demande reçue",
+     "panneau": "Nouvelle demande d’achat",
      "toast": "",
      "hash": "#achats",
      "l": 263,
@@ -77,7 +77,7 @@
     },
     {
      "i": 4,
-     "lib": "4 achats sans facture›",
+     "lib": "3 achats sans justificatif›",
      "data": "data-cx=sec|factures|achats|sanspiece",
      "touche": true,
      "change": [
@@ -106,7 +106,7 @@
      "panneau": "",
      "toast": "",
      "hash": "#achats",
-     "l": 217,
+     "l": 219,
      "h": 40
     },
     {
@@ -232,15 +232,13 @@
      "touche": true,
      "change": [
       "panneau",
-      "toast",
-      "contenu",
       "calque",
       "focus"
      ],
-     "donnees": true,
+     "donnees": false,
      "h1": "Achats et frais",
-     "panneau": "Modifier la commande",
-     "toast": "6 kg transférés vers le camion de Tom. Les 4 kg restants sont dans un nouveau brouillon de commande Frigo Distribution 17 : vérifie-le, puis envoie-le.",
+     "panneau": "Transférer vers le camion de Tom",
+     "toast": "",
      "hash": "#achats",
      "l": 267,
      "h": 40
@@ -266,7 +264,7 @@
     },
     {
      "i": 15,
-     "lib": "Achat en magasin",
+     "lib": "Accepter : Tom l’achète en magasin",
      "data": "data-ac=magasin|da1",
      "touche": true,
      "change": [
@@ -278,7 +276,7 @@
      "panneau": "",
      "toast": "Accepté. Tom Leroy achète, puis ajoute le ticket et le montant payé : rien n’est écrit en comptabilité avant.Annuler",
      "hash": "#achats",
-     "l": 152,
+     "l": 273,
      "h": 40
     },
     {
@@ -337,7 +335,7 @@
     },
     {
      "i": 19,
-     "lib": "Achat en magasin",
+     "lib": "Accepter : Sophie l’achète en magasin",
      "data": "data-ac=magasin|da3",
      "touche": true,
      "change": [
@@ -349,7 +347,7 @@
      "panneau": "",
      "toast": "Accepté. Sophie Martin achète, puis ajoute le ticket et le montant payé : rien n’est écrit en comptabilité avant.Annuler",
      "hash": "#achats",
-     "l": 150,
+     "l": 289,
      "h": 40
     },
     {
@@ -408,7 +406,7 @@
     },
     {
      "i": 23,
-     "lib": "Achat en magasin",
+     "lib": "Accepter : Karim l’achète en magasin",
      "data": "data-ac=magasin|da2",
      "touche": true,
      "change": [
@@ -420,7 +418,7 @@
      "panneau": "",
      "toast": "Accepté. Karim Benali achète, puis ajoute le ticket et le montant payé : rien n’est écrit en comptabilité avant.Annuler",
      "hash": "#achats",
-     "l": 150,
+     "l": 282,
      "h": 40
     },
     {
@@ -462,8 +460,8 @@
    ]
   },
   "notes": {
-   "recenses": 28,
-   "touches": 28,
+   "recenses": 29,
+   "touches": 29,
    "lignes": [
     {
      "i": 0,
@@ -477,7 +475,7 @@
      ],
      "donnees": false,
      "h1": "Achats et frais",
-     "panneau": "Noter une demande reçue",
+     "panneau": "Nouvelle demande d’achat",
      "toast": "",
      "hash": "#achats",
      "l": 263,
@@ -535,7 +533,7 @@
     },
     {
      "i": 4,
-     "lib": "4 achats sans facture›",
+     "lib": "3 achats sans justificatif›",
      "data": "data-cx=sec|factures|achats|sanspiece",
      "touche": true,
      "change": [
@@ -580,7 +578,7 @@
      "panneau": "",
      "toast": "",
      "hash": "#achats",
-     "l": 156,
+     "l": 157,
      "h": 40
     },
     {
@@ -639,6 +637,24 @@
     },
     {
      "i": 10,
+     "lib": "Réglages ›",
+     "data": "data-axa=reglages",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Réglages",
+     "toast": "",
+     "hash": "#achats",
+     "l": 1128,
+     "h": 44
+    },
+    {
+     "i": 11,
      "lib": "Tout le monde",
      "data": "data-axa=fn|tous",
      "touche": true,
@@ -654,7 +670,7 @@
      "h": 44
     },
     {
-     "i": 11,
+     "i": 12,
      "lib": "TLTom",
      "data": "data-axa=fn|tl",
      "touche": true,
@@ -670,7 +686,7 @@
      "h": 44
     },
     {
-     "i": 12,
+     "i": 13,
      "lib": "KBKarim",
      "data": "data-axa=fn|kb",
      "touche": true,
@@ -686,7 +702,7 @@
      "h": 44
     },
     {
-     "i": 13,
+     "i": 14,
      "lib": "SMSophie",
      "data": "data-axa=fn|sm",
      "touche": true,
@@ -702,7 +718,7 @@
      "h": 44
     },
     {
-     "i": 14,
+     "i": 15,
      "lib": "Valider les 2 notes avec ticket · 24,70 €",
      "data": "data-axa=toutval",
      "touche": true,
@@ -720,7 +736,7 @@
      "h": 40
     },
     {
-     "i": 15,
+     "i": 16,
      "lib": "Voir le ticket en grand : Repas, chantier de Rochefort",
      "data": "data-cx=justif|ndf|n1",
      "touche": true,
@@ -736,7 +752,7 @@
      "h": 56
     },
     {
-     "i": 16,
+     "i": 17,
      "lib": "Repas, chantier de Rochefort · 16,50 €",
      "data": "data-axa=fiche|n1",
      "touche": true,
@@ -754,7 +770,7 @@
      "h": 44
     },
     {
-     "i": 17,
+     "i": 18,
      "lib": "Valider",
      "data": "data-ac=ndfok|n1",
      "touche": true,
@@ -771,7 +787,7 @@
      "h": 40
     },
     {
-     "i": 18,
+     "i": 19,
      "lib": "Refuser",
      "data": "data-ac=ndfnon|n1",
      "touche": true,
@@ -789,7 +805,7 @@
      "h": 40
     },
     {
-     "i": 19,
+     "i": 20,
      "lib": "Voir le ticket en grand : Péage A10, Saintes",
      "data": "data-cx=justif|ndf|n2",
      "touche": true,
@@ -805,7 +821,7 @@
      "h": 56
     },
     {
-     "i": 20,
+     "i": 21,
      "lib": "Péage A10, Saintes · 8,20 €",
      "data": "data-axa=fiche|n2",
      "touche": true,
@@ -823,7 +839,7 @@
      "h": 44
     },
     {
-     "i": 21,
+     "i": 22,
      "lib": "Valider",
      "data": "data-ac=ndfok|n2",
      "touche": true,
@@ -840,7 +856,7 @@
      "h": 40
     },
     {
-     "i": 22,
+     "i": 23,
      "lib": "Refuser",
      "data": "data-ac=ndfnon|n2",
      "touche": true,
@@ -858,7 +874,7 @@
      "h": 40
     },
     {
-     "i": 23,
+     "i": 24,
      "lib": "Parking, centre-ville de La Rochelle · 6,00 €",
      "data": "data-axa=fiche|n3",
      "touche": true,
@@ -876,7 +892,7 @@
      "h": 44
     },
     {
-     "i": 24,
+     "i": 25,
      "lib": "Valider sans ticket…",
      "data": "data-ac=ndfsans|n3",
      "touche": true,
@@ -894,7 +910,7 @@
      "h": 40
     },
     {
-     "i": 25,
+     "i": 26,
      "lib": "Redemander le ticket",
      "data": "data-ac=ndfticket|n3",
      "touche": true,
@@ -911,7 +927,7 @@
      "h": 40
     },
     {
-     "i": 26,
+     "i": 27,
      "lib": "Refuser",
      "data": "data-ac=ndfnon|n3",
      "touche": true,
@@ -929,8 +945,8 @@
      "h": 40
     },
     {
-     "i": 27,
-     "lib": "Voir dans l’export de paie ›",
+     "i": 28,
+     "lib": "Voir la paie du mois ›",
      "data": "data-axa=paie",
      "touche": true,
      "change": [
@@ -943,7 +959,7 @@
      "panneau": "",
      "toast": "",
      "hash": "#pointage",
-     "l": 180,
+     "l": 141,
      "h": 44
     }
    ]
