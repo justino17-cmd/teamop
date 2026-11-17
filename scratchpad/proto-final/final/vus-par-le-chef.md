@@ -250,3 +250,10 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       chiffres juste dessous affichent : la phrase et les chiffres disent la même chose.
       · **Sécurité** : « Comptes verrouillés » est dans une carte, « Connexions inhabituelles ou refusées » a son titre posé hors carte au-dessus
       d'un tableau nu : même habillage pour les deux blocs.
+
+- [ ] **Retouches décidées par le chef, hors des voies en cours (retouches)** — à traiter par la voie `restes` de nom « retouches », lancée
+      en fin de chantier ; chaque point se reproduit, se corrige au plus petit, se rejoue et se regarde (ordinateur et téléphone, jour et nuit) :
+      · **Compositeur de devis et de contrats** : « Brouillon supprimé » offre « Annuler » pendant quelques secondes (la bulle porte le geste,
+      comme les autres suppressions de l'application) ; l'annulation rend le brouillon tel quel, avec son numéro (décision j : un numéro ne se
+      réutilise jamais, donc rien ne peut l'avoir pris entre-temps). Correction dans `scratchpad/proto-final/atelier/page.source`, page refabriquée
+      par `fabriquer.sh` (jamais `apercu/prototype-documents.html` à la main).

@@ -1,6 +1,9 @@
 // Parcours « Mes frais » du technicien (campagne du 17 novembre 2026) : note sans ticket, avec ticket, valeur longue, erreurs, double envoi,
 // retrouver sa note, puis le gérant la voit-il dans Achats et frais. Usage : node technicien-parcours-frais.js [profil] [nuit=0|1]
 const L = require('../../lib.js'), v = L.v;
+// Copie du parcours (restes du technicien, tour 1, recontrôle) : « C'est quoi ? » n'est plus pré-rempli, donc le geste qui ENVOIE choisit d'abord une nature (comme le ferait la personne) — sinon
+// l'ancien parcours bute sur « Choisis d'abord ce que c'est » et ne joue plus rien de ce qu'il voulait garder (montants refusés, confirmation au-delà de 2 000 €, note sans ticket, double envoi).
+const T0 = L.toucher; L.toucher = async (c, sel, o) => { if (/ndfok/.test(sel)) await c.p.evaluate(() => { const e = document.getElementById('rn-o'); if (e && e.value === '') e.selectedIndex = 1; }); return T0(c, sel, o); };
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-technicien/';
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const devenir = async (p, k, h) => { await p.evaluate(([k, h]) => { if (SESSION) sessionFermer('deconnexion'); sessionOuvrir(k); aller(h); }, [k, h]); await L.calme(p, 800); };   // changer de personne comme le fait l'application : se déconnecter, puis ouvrir la session de l'autre (les données restent en mémoire)
@@ -42,7 +45,7 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   // F4 : double toucher sur « Envoyer »
   await L.toucher(c, '[data-rl="ndf"]'); await p.fill('#rn-m', '18,90');
   const avant = await nb();
-  await p.evaluate(() => { const b = document.querySelector('[data-rl="ndfok"]'); b.click(); b.click(); }); await L.calme(p, 400);
+  await p.evaluate(() => { const b = document.querySelector('[data-rl="ndfok"]'); const e = document.getElementById('rn-o'); if (e && e.value === '') e.selectedIndex = 1; b.click(); b.click(); }); await L.calme(p, 400);
   v('F4 double toucher sur « Envoyer au bureau » : une seule note (ou la seconde est signalée)', (await nb()) - avant <= 1, { delta: (await nb()) - avant });
   // F5 : avec ticket (photo), carburant, rattachée à une intervention, montant long
   await L.toucher(c, '[data-rl="ndf"]');
