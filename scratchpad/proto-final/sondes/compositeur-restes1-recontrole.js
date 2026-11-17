@@ -79,7 +79,32 @@ const logoBon = r => r && !r.absent && r.n >= Math.max(5, .02 * r.w * r.w) && r.
     await p.waitForTimeout(900);
     const t = await f.evaluate(() => { const w = document.getElementById('toasts'); const x = [...w.children].map(k => k.textContent.trim()); const r = w.getBoundingClientRect(); return { msgs: x, vis: getComputedStyle(w).visibility, classe: document.body.classList.contains('menu-ouvert'), enHaut: Math.round(r.top), H: innerHeight }; });
     v(`${tag} · A4 « Brouillon supprimé » se voit après le geste du menu (${JSON.stringify(t.msgs)}, visibilité ${t.vis})`, t.msgs.some(m => /supprimé/i.test(m)) && t.vis !== 'hidden' && !t.classe, t);
+    // l'infobulle est dans le cadre de l'atelier : si le cadre est rangé après la suppression, la personne ne la voit PAS (la liste du parent montre seulement que la ligne a disparu)
+    const cadre = await p.evaluate(() => { const e = document.querySelector('iframe'); if (!e) return null; const b = e.getBoundingClientRect(), cs = getComputedStyle(e); return { w: Math.round(b.width), h: Math.round(b.height), vis: cs.visibility, disp: cs.display, op: cs.opacity }; });
+    console.log('  · ' + tag + ' · A4b cadre de l\'atelier après la suppression : ' + JSON.stringify(cadre) + ' (si rangé, l\'infobulle « Brouillon supprimé » n\'est pas visible)');
     await L.capture(c, CAP + tag + '-brouillon-supprime.png');
+  }
+  // ── B5. ce qu'on a tapé dans la feuille « Format » survit à « ⋯ » (la feuille se range, rien ne se perd) ─────────────────────────────────────────────────────────────────
+  {
+    await L.aller(p, 'contrats'); const f = await A.ouvrirAtelier(c, 'contrat', null); await L.calme(p, 900);
+    await clic(c, f, '[data-vv="client"][data-id="mi"]'); await clic(c, f, '[data-vv="tpl"][data-v="part"]'); await p.waitForTimeout(300);
+    await clic(c, f, '[data-act="vierge-creer"]:visible'); await p.waitForTimeout(1800);
+    const tel = await f.evaluate(() => S.tactile && matchMedia('(max-width:760px)').matches);
+    if (tel) {
+      const ch = f.locator('#fen-fmt input[type="text"], #fen-fmt textarea').first(); const n = await ch.count();
+      v(`${tag} · B5 population : un champ de la feuille « Format » est là (${n})`, n >= 1, n);
+      if (n) {
+        await ch.evaluate(e => e.scrollIntoView({ block: 'center' })); await ch.fill('12 rue des Essais'); await p.waitForTimeout(500);
+        const avant = await f.evaluate(() => JSON.stringify(D().vars || {}));
+        await clic(c, f, '#b-plus'); await p.waitForTimeout(350); await p.keyboard.press('Escape'); await p.waitForTimeout(350);
+        await clic(c, f, '[data-act="format"]:visible'); await p.waitForTimeout(600);
+        const apres = await f.evaluate(() => JSON.stringify(D().vars || {})), champ = await f.locator('#fen-fmt input[type="text"], #fen-fmt textarea').first().inputValue().catch(() => null);
+        v(`${tag} · B5 la valeur tapée survit à « ⋯ » puis « Format » : ${apres.slice(0, 80)} (champ « ${champ} »)`, /12 rue des Essais/.test(apres) && avant === apres, { avant, apres, champ });
+      }
+    }
+    await f.evaluate(() => { try { fermerPop(false) } catch (e) {} });
+    { const rt = f.locator('[data-act="retour"]:visible'); if (await rt.count()) { await clic(c, f, '[data-act="retour"]:visible'); await p.waitForTimeout(800); } }
+    await fermerTout(c, f);
   }
   // ── B4. les menus du DOCUMENT d'un devis (Ajouter une ligne, Zoom) avec la feuille « Format » ouverte, au téléphone — même règle de couches que « ⋯ » ──────────────────────
   {
@@ -128,6 +153,10 @@ const logoBon = r => r && !r.absent && r.n >= Math.max(5, .02 * r.w * r.w) && r.
     const apres = (await lire()).v; await p.keyboard.press('Control+z'); await p.waitForTimeout(250); const ann = await lire();
     console.log('  · ' + tag + ' · C5 Ctrl+Z après collage multiligne : « ' + apres + ' » → « ' + ann.v + ' » (page « ' + ann.page + ' »)');
     v(`${tag} · C5 le champ et la page restent d'accord après Ctrl+Z : « ${ann.v} »`, ann.v === ann.page, ann);
+    // C5b. témoin : le même geste avec UNE seule ligne — si Ctrl+Z l'annule, c'est l'aplatissement qui prive de l'annulation (doute à soumettre, pas un défaut du lot)
+    await z.fill('avant'); await z.evaluate(e => { e.focus(); e.setSelectionRange(5, 5); }); await p.keyboard.insertText(' l1 l2'); await p.waitForTimeout(200);
+    const apres1 = (await lire()).v; await p.keyboard.press('Control+z'); await p.waitForTimeout(250); const ann1 = await lire();
+    console.log('  · ' + tag + ' · C5b Ctrl+Z après collage d\'UNE ligne : « ' + apres1 + ' » → « ' + ann1.v + ' »  (témoin : l\'annulation native ' + (ann1.v !== apres1 ? 'marche' : 'ne marche pas ici non plus') + ')');
     // C6. un texte tapé à la main (touche Entrée) ne change pas ; Entrée ne coupe pas la phrase
     await z.fill('abc'); await z.evaluate(e => { e.focus(); e.setSelectionRange(3, 3); }); await p.keyboard.press('Enter'); await p.waitForTimeout(150); r = await lire();
     v(`${tag} · C6 Entrée dans « Délai » : rien n'est inséré (« ${r.v} »)`, r.v === 'abc' && r.page === 'abc', r);

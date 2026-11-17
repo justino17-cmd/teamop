@@ -135,6 +135,26 @@ const ESPACE = { ok: 0 };
       const apresG = await p.evaluate(() => ({ fen: !!document.querySelector('.fen-voile'), panneau: !!document.querySelector('#calque .panneau') }));
       v('C … et en fermant le guide, aucune fenêtre jamais demandée n’apparaît', !apresG.fen && !apresG.panneau, apresG);
     }
+    // le document en grand (#docplein, z-index 200, au-dessus des fenêtres à 38) et la pièce jointe du client (#cx-vis, 100000, au-dessus de la recherche à 9200) :
+    // mêmes touches, même exigence — rien ne s'ouvre derrière eux (recontrôle coque, casse 1 : corrigé par rcDevant)
+    for (const [nom, ouvrir, sel] of [
+      ['document en grand', () => { const f = (typeof FACTURES !== 'undefined') && FACTURES[0]; if (!f) return false; docPlein(Object.assign(document.createElement('div'), { innerHTML: pdfFacture(f) }).firstElementChild); return !!document.getElementById('docplein'); }, '#docplein'],
+      ['pièce jointe du client', () => { const a = (typeof ACHATS !== 'undefined') && ACHATS.find(x => x.piece && x.piece !== 'aucune'); if (!a) return false; cxVoir('ach', a.id); return !!document.getElementById('cx-vis'); }, '#cx-vis']]) {
+      await p.evaluate(() => { aller('accueil'); }).catch(() => {}); await p.waitForTimeout(900);
+      // départ propre : la fenêtre ouverte par « N » juste avant (fermeture animée) ne doit pas passer pour un effet de la visionneuse
+      v('C départ propre : aucune fenêtre ni panneau ouvert avant ' + nom, await L.attendre(p, () => !document.querySelector('.fen-voile') && !document.querySelector('#calque .panneau'), 4000));
+      const ok = await p.evaluate(ouvrir); await p.waitForTimeout(400);
+      v('C population : ' + nom + ' ouvert', ok === true, ok);
+      if (!ok) continue;
+      await p.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
+      for (const k of ['n', 'c', 'd', 'a', 'Shift+?', CMD + '+k']) { await p.keyboard.press(k); await p.waitForTimeout(250); }
+      const der2 = await p.evaluate(s => ({ devant: !!document.querySelector(s), fen: !!document.querySelector('.fen-voile'), panneau: !!document.querySelector('#calque .panneau'), pal: !!document.getElementById('pal'), foc: (document.activeElement && document.activeElement.closest && !!document.activeElement.closest('.fen-voile,#pal,#calque')) }), sel);
+      v('C ' + nom + ' : N, C, D, A, ? et Ctrl+K n’ouvrent rien derrière lui et le focus ne part pas dans une fenêtre cachée', der2.devant && !der2.fen && !der2.panneau && !der2.pal && !der2.foc, der2);
+      await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+      v('C ' + nom + ' : Échap le ferme, et rend les raccourcis (N ouvre « Nouvelle intervention »)', await p.evaluate(s => !document.querySelector(s), sel) && (await p.keyboard.press('n'), await p.waitForTimeout(500), await p.evaluate(() => !!document.querySelector('.fen-voile'))));
+      // on ferme PAR LE GESTE (Échap) : retirer la fenêtre du DOM laissait l'état de création en route, et aller() la redessinait
+      await p.keyboard.press('Escape'); await p.waitForTimeout(500);
+    }
     // visionneuse de justificatif : ouverte par cxVoir (compta) — on cherche une pièce
     const vis = await p.evaluate(() => { try { aller('comptabilite'); } catch (e) {} return typeof cxVoir === 'function'; });
     await p.waitForTimeout(1200);
