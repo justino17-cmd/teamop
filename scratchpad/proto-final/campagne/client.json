@@ -68,6 +68,14 @@
   "gestesRecenses": 506,
   "gestesTouches": 506,
   "parcours": 7,
+  "sondes": [
+   "client-parcours.js",
+   "client-gestes.js",
+   "client-mise-en-page.js",
+   "client-mots-documents.js",
+   "client-document.js",
+   "client-constats.js"
+  ],
   "profils": [
    "mac (jour, nuit, mode application)",
    "windows (nuit)",
@@ -76,7 +84,7 @@
    "android (nuit)",
    "petit 320 px (jour avec valeurs longues, nuit)"
   ],
-  "detail": "Gestes : 506 recensés dans le DOM et touchés (mac : 388 sur 5 clients × 5 onglets ; iPhone : 118 sur 2 clients), 0 geste sans effet, Échap ferme tout ce qui s’ouvre. Parcours : payer (double toucher, saisies fausses, cohérence au centime accueil / liste / encaissements / bureau), devis (refus en deux temps, signature, double toucher), contrat, compte rendu, demande, garde des adresses du bureau, retour et rechargement. Mots et documents : 7 clients × 5 écrans lus, factures et devis recalculés au centime."
+  "detail": "Gestes : 506 recensés dans le DOM et touchés (mac : 388 sur 5 clients × 5 onglets ; iPhone : 118 sur 2 clients), 0 geste sans effet, Échap ferme tout ce qui s’ouvre. Parcours : payer (double toucher, saisies fausses, cohérence au centime accueil / liste / encaissements / bureau), devis (refus en deux temps, signature, double toucher), contrat, compte rendu, demande, garde des adresses du bureau, retour et rechargement. Mots et documents : 7 clients × 5 écrans lus, factures et devis recalculés au centime. Chiffres au dernier passage : parcours 69 ✓ · 24 ✗ (14 de ces ✗ sont le même défaut client-04, une adresse du bureau à la fois) ; gestes mac 262 ✓ · 0 ✗ (cm, vp, mi) et md/hp 160 touchés (les ✗ de ce premier lot étaient la sonde, corrigée) ; gestes iPhone 145 ✓ · 0 ✗ ; mots 210 ✓ · 3 ✗ (client-07) ; documents 9 ✓ · 1 ✗ (client-21), vrai PDF téléchargé ; mise en page iPhone 33 ✓ jour et nuit hors échafaudage, Android nuit 43 ✓ · 0 ✗, petit 320 px avec valeurs longues 38 ✓ · 0 ✗, petit nuit 43 ✓ · 0 ✗, windows et mac 23 ✓ · 0 ✗, iPad rouge seulement sur client-20 ; constats rejouables (client-constats.js) : iPhone et Android 9 ✓ · 9 ✗, mac 4 ✓ · 8 ✗, iPad 4 ✓ · 9 ✗. CONTRE-ÉPREUVE : une copie de la page (hors dépôt) avec six corrections (client-01, 02, 03, 04, 10, 13) rejoue le même parcours à 89 ✓ · 4 ✗ — les 4 défauts restants non corrigés (12, 05, 16, 06) — contre 69 ✓ · 24 ✗ sur la page réelle : les contrôles ne sont pas aveugles et ne crient pas faux. Rejouer : node sondes/client-parcours.js mac ; client-gestes.js <profil> jour <clients> ; client-mise-en-page.js <profil> jour|nuit [longs] [app] ; client-mots-documents.js <profil> [app] ; client-document.js <profil> ; client-constats.js <profil>."
  },
  "nonCouvert": [
   "Le rôle client n’a AUCUNE entrée en mode application (pas de lien, pas de connexion pour un client) : ses écrans ne s’ouvrent que par la bande « Tester en tant que » du prototype nu. Je l’ai donc joué aussi en mode application par rlChanger('client') pour voir ce qu’un vrai client verrait sans l’échafaudage. À décider : comment un client arrive-t-il dans son espace (lien reçu par e-mail ?) — aujourd’hui rien ne le montre.",
@@ -132,7 +140,7 @@
   {
    "n": "client-03",
    "gravite": "gênant",
-   "ecran": "Contrat › « Signer le contrat » : second toucher ou retour du navigateur",
+   "ecran": "Contrat › « Signer le contrat » : message après la signature",
    "role": "client",
    "profils": [
     "mac",
@@ -142,12 +150,12 @@
     "android",
     "petit"
    ],
-   "etapes": "Client « Cabinet dentaire Martin » › Contrat › « Lire et signer » › cocher, signer › « Signer le contrat » ; puis un second toucher sur le bouton (double toucher un peu tardif, ou retour du navigateur sur la page).",
-   "attendu": "Le client lit que le contrat est déjà signé et que la copie est partie par e-mail ; il retrouve son contrat.",
-   "constate": "Au premier toucher tout va bien (« Contrat signé. La copie signée vous est envoyée par e-mail. », UNE seule série de visites, UNE facture). Au second, la branche « déjà signé » envoie le client vers la page du bureau (aller('contrat-x-…')) : la garde du rôle client la refuse et affiche « Cette page n’est pas dans ton espace. » — une phrase d’erreur, tutoyée, juste après une signature qui s’est bien passée. Il reste sur l’accueil de son espace, pas sur son contrat.",
-   "preuve": "client-parcours.js P3 « client-03 » (message du second toucher mesuré : « Cette page n’est pas dans ton espace. »). Contre-épreuve : sur une copie corrigée la phrase devient « Ce contrat est déjà signé… » et le contrôle passe.",
-   "ou": "apercu/prototype-op-gestion.html · signerContrat, branche « déjà signé » (l. 8703) → aller('contrat-x-'+id) puis rlRefus (l. 13772)",
-   "correction": "Pour le rôle client : EC.tab = 'contrats'; aller('espaceclient'); toast('Ce contrat est déjà signé : la copie signée vous a été envoyée par e-mail.'). Même chose pour la branche « première signature », qui ne dépend aujourd’hui que de l’ordre aller() puis toast().",
+   "etapes": "Client « Cabinet dentaire Martin » › Contrat › « Lire et signer » › cocher, signer › « Signer le contrat » (un seul toucher).",
+   "attendu": "Le client lit « Contrat signé. La copie signée vous est envoyée par e-mail. » et retrouve son contrat « Signé le … ».",
+   "constate": "Le contrat est bien signé (état, une série de visites, une facture) mais le message lu est « Cette page n’est pas dans ton espace. » : signerContrat appelle aller('contrat-x-…') (page du bureau) ; l’écran se redessine après coup, la garde du rôle client refuse la page et son message écrase la confirmation. Le client croit à une erreur, tutoyé de surcroît, et atterrit sur l’accueil de son espace. Même résultat pour un second toucher ou un retour du navigateur (branche « déjà signé »).",
+   "preuve": "client-parcours.js P3 « un toucher sur « Signer le contrat » : le message confirme la signature » (message mesuré : « Cette page n’est pas dans ton espace. ») et « client-03 ». Contre-épreuve : sur une copie corrigée les deux contrôles passent au vert.",
+   "ou": "apercu/prototype-op-gestion.html · signerContrat (l. 8703 et 8709) → aller('contrat-x-'+id) puis rlRefus (l. 13772)",
+   "correction": "Pour le rôle client, dans les deux branches : EC.tab = 'contrats'; aller('espaceclient'); puis le toast (« Contrat signé. La copie signée vous est envoyée par e-mail. » ou « Ce contrat est déjà signé : la copie signée vous a été envoyée par e-mail. »).",
    "decision": "corriger",
    "sonde": "client-parcours.js"
   },
