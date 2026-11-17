@@ -48,7 +48,8 @@ const onglet = async (c, o) => { await ev(c, x => { ptOnglet = x; rendre(); }, o
     await L.fin(c); }
 
   /* ── les rôles : la rubrique n'existe que pour le gérant ── */
-  for (const qui of ['julie', 'sm', 'kb']) { const c = await L.ouvrir({ profil:'mac', qui, calme:true }); await L.aller(c.p, 'pointage');
+  /* julie (Secrétariat) voit Temps de travail depuis la décision du chef du 17 novembre (equipe-11 : la case « Voir » décide seule) : elle a le cadre du gérant ; la technicienne et le chef d'équipe ne l'ont pas */
+  for (const qui of ['sm', 'kb']) { const c = await L.ouvrir({ profil:'mac', qui, calme:true }); await L.aller(c.p, 'pointage');
     const r = await ev(c, () => ({ h1:(document.querySelector('#contenu h1') || {}).textContent || '', tt:document.querySelectorAll('#contenu .tt-k, #contenu [data-tt]').length, menu:[...document.querySelectorAll('#menu a, #menu button, nav a, nav button, .menu *')].some(e => e.offsetParent && /^Temps de travail$/.test(e.textContent.trim())) }));
     v('rôle ' + qui + ' : pas le cadre du gérant (« Temps de travail » reste fermé à ce compte)', r.h1 !== 'Temps de travail' && r.tt === 0 && !r.menu, r); await L.fin(c); }
 

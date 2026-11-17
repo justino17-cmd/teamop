@@ -19146,7 +19146,7 @@ function vhEtat(v, from){
   if (e) { const retard = e.n < 0 || (e.km != null && e.km < 0), rdv = vhRdvNote(v, e);
     return { k:retard ? 'retard' : 'afaire', rang:retard ? 2 : 3, n:e.n, e, pastille:[e.urg === 'r' ? 'st-r' : 'st-o', retard ? 'En retard' : 'À faire'], couleur:e.urg === 'r' ? 've-rt' : 've-ot',
       prec:vhLib(e) + ' ' + vhQuand(e) + (rdv ? ' · Rendez-vous au garage le ' + jlong(rdv.d) : ''), bouton:vhBoutonEch(v, e, from) }; }
-  const suite = E.filter(x => !(x.k === 'assur' && gr)).sort((a, b) => a.n - b.n)[0];   /* l'assurance d'un groupe est dite UNE fois, sur sa rangée : la rangée du véhicule annonce la suivante */
+  const suite = (from === 'liste' ? E.filter(x => !(x.k === 'assur' && gr)) : E).sort((a, b) => a.n - b.n)[0];   /* dans la LISTE, l'assurance d'un groupe est dite UNE fois, sur sa rangée : la rangée du véhicule annonce la suivante ; sur la fiche du véhicule, c'est bien l'assurance qui vient la première */
   return { k:'regle', rang:4, n:prochaine ? prochaine.n : 9999, pastille:['st-v', 'En règle'], couleur:'', prec:suite ? 'La prochaine échéance est ' + vhComp(suite) + ', ' + vhQuand(suite) : 'Aucune autre échéance à venir', bouton:null };
 }
 /* ce que la liste montre : les lignes d'assurance de groupe, les véhicules rangés du plus grave au moins grave, et les décomptes qui en découlent */

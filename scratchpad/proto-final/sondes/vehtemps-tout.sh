@@ -7,7 +7,7 @@ ICI="$(cd "$(dirname "$0")" && pwd)"; cd "$ICI/../../.." || exit 1
 CAP="${CAP:-/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap}"; mkdir -p "$CAP"; J="$CAP/vehtemps-tout.log"; : > "$J"; MAL=0
 P="${PROFILS:-mac windows ipad iphone android petit}"; P="${P// /,}"; N="${NUIT:-0,1}"
 veut(){ [ -z "$SEULS" ] && return 0; for s in $SEULS; do [ "$s" = "$1" ] && return 0; done; return 1; }
-lance(){ local nom="$1"; shift; local t0=$(date +%s); local s; s=$(timeout 1500 env "$@" 2>&1); local code=$?; local b=$(echo "$s" | grep -oE '[0-9]+ ✓ +· +[0-9]+ ✗|[0-9]+ ✓ +[0-9]+ ✗' | tail -1)
+lance(){ local nom="$1"; shift; local t0=$(date +%s); local s; s=$(timeout 1500 env -u SEULS "$@" 2>&1); local code=$?; local b=$(echo "$s" | grep -oE '[0-9]+ ✓ +· +[0-9]+ ✗|[0-9]+ ✓ +[0-9]+ ✗' | tail -1)
   echo "$(( $(date +%s)-t0 ))s code=$code $nom :: $b" | tee -a "$J"; if [ $code -ne 0 ]; then MAL=1; echo "$s" | grep "✗" | head -4 | cut -c1-260 | tee -a "$J"; fi; }
 S=scratchpad/proto-final/sondes
 if veut camion;   then lance "Mon camion (structure, états, Ma journée, gestes, mise en page)" PROFILS=$P NUIT=$N node $S/vehtemps-v5-camion.js; fi
@@ -23,5 +23,6 @@ if veut table;    then lance "Véhicules : la table « rien d'utile ne se perd �
 if veut t1;       then lance "Temps de travail : la structure" PROFILS=$P NUIT=$N node $S/vehtemps-t1-structure.js; lance "Temps de travail : les gestes du gérant" PROFILS=mac,iphone node $S/vehtemps-t1-gestes.js; fi
 if veut t5;       then lance "Temps de travail : la journée d'une personne" PROFILS=$P NUIT=$N node $S/vehtemps-t5-journee.js; fi
 if veut t6;       then lance "Temps de travail : le salarié (Mes heures)" PROFILS=$P NUIT=$N node $S/vehtemps-t6-salarie.js; lance "Temps de travail : gestes du salarié, comptés (§ 5.3)" PROFILS=$P node $S/vehtemps-t56-gestes.js; fi
+if veut corr;     then lance "correcteur : les droits (Ses heures, Corriger les pointages, mois fermé)" PROFILS=mac,iphone node $S/vehtemps-corr-droits.js; lance "correcteur : Véhicules" PROFILS=mac,iphone node $S/vehtemps-corr-vehicules.js; lance "correcteur : Temps de travail (gérant)" PROFILS=mac,windows,mac720,iphone PROFILS_G=mac,iphone node $S/vehtemps-corr-temps.js; lance "correcteur : le téléphone" PROFILS=iphone,android,petit node $S/vehtemps-corr-telephone.js; fi
 if [ -n "$MUTATIONS" ]; then lance "mutations (chacune doit faire tomber une sonde)" MIN=${MIN:-1} node $S/vehtemps-mutations.js; fi
 echo FINI | tee -a "$J"; exit $MAL
