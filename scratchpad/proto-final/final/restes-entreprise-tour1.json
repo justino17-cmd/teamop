@@ -4,7 +4,7 @@
   "defaut": "Le module de courrier (apercu/prototype-courrier.js, arbre d'ombre) ne lisait pas capacites().droits : les gestes d'écriture restaient proposés et agissaient. Reproduit avant correction (recontrôle r08).",
   "etat": "corrigé",
   "changement": "Le module lit capacites().droits = { ecrire (Créer), ranger (Modifier : répondre, marquer, archiver, ranger), supprimer (Supprimer) } et capacites().refus(geste). Un geste refusé n'est PAS proposé (data-ecrire / data-ranger / data-supprimer sur le cadre + règles CSS, entrées de menus filtrées, « Sélectionner » retiré quand rien n'est permis) et il est REFUSÉ s'il est tenté autrement (clavier c f e Suppr, sélection multiple, hôte « Écrire à… » / « Répondre », « Ajouter une boîte », « Supprimer la boîte ») par la phrase des autres rubriques : « Ce geste n’est pas ouvert à ton compte : … Demande à Marc. ». Lire un courriel le marque toujours lu (c'est lire). L'hôte passe les cases de com, masque son « ＋ Écrire » sans la case Créer, et pose la note du pied « Tu peux regarder cet écran, pas le modifier » sur la Boîte mail (elle dit vrai maintenant). Les phrases DROIT_PHRASES.com disent ce que la page garde vraiment. Pas de glisser pour archiver dans le module : rien à garder (décision (l) inchangée).",
-  "preuve": "scratchpad/proto-final/sondes/entreprise-restes1.js section m : cinq jeux de cases (1000, 1010, 1100, 1001, 1111) sur Mac, 54 ✓ · 0 ✗ avec mt (iPhone nuit/jour, Android) ; section mt : rien ne dépasse de côté. Captures lues : cap/entreprise-restes1/m-1000-mac.png, mt-1000-iphone-nuit.png. Mutations : voir le rapport."
+  "preuve": "scratchpad/proto-final/sondes/entreprise-restes1.js section m : cinq jeux de cases (1000, 1010, 1100, 1001, 1111) sur Mac, 54 ✓ · 0 ✗ avec mt (iPhone nuit/jour, Android) ; section mt : rien ne dépasse de côté. Captures lues : cap/entreprise-restes1/m-1000-mac.png, mt-1000-iphone-nuit.png. Mutations (trois, restaurées par git checkout après commit) : garde de doAct retirée = 9 ✗ ; droits non transmis par l'hôte = 24 ✗ ; scroll-padding et rl-colle retirés = 2 ✗ (c) + 4 ✗ (r). Rejeu : entreprise-tout.sh RAPIDE rapide 21, structure 201, champs 116, destinations 46, garde-facture 51, liens 19, lecture-seule 56, phrases 29, logo 16, tous à 0 ✗ ; achats-lisible 31 ✓ · 3 ✗ (attente de la voie achats, « Ça se règle dans la Comptabilité » sous la liste : pas de mon périmètre) ; recontrôle r08 2 ✓, r11 20 ✓, r13 20 ✓, casse1 36 ✓, casse1b 6 ✓ · 0 ✗."
  },
  {
   "nom": "casse 1 — la rangée « Enregistrer / Annuler » collée cache le champ refusé sur téléphone",
@@ -32,7 +32,7 @@
   "defaut": "Attentes chiffrées dépassées : structure 200 ✓ · 1 ✗, corrections 153 ✓ · 4 ✗.",
   "etat": "corrigé",
   "changement": "entreprise-corrections.js §05 attend 7 champs (le contrôle garde sa force : 7 figés sans Modifier, 0 figé avec). entreprise-structure.js attendait déjà « Équipe|Temps de travail|Véhicules|Mon entreprise|Sécurité » (mis à jour par un autre lot). entreprise-recontrole.js r08 : « reste connu » remplacé par le contrôle du nouveau comportement.",
-  "preuve": "voir le rapport (entreprise-tout.sh)."
+  "preuve": "entreprise-tout.sh RAPIDE : structure 201 ✓ · 0 ✗ ; corrections §05 jouée avec 7 champs (la sonde complète corrections n'est pas rejouée en entier ici)."
  },
  {
   "nom": "arrondi du centime : 1,005 → 1 ; 8,575 → 8,57 ; 10,075 → 10,07 ; 1,255 → 1,25",

@@ -19,7 +19,7 @@ const { L, ouvrirAchats, toast, panneau, txt, CAP } = require('./achats-outils.j
     v('01-1 « ' + txtq + ' » devient ' + attendu + ' (et non ' + txtq.replace(/[,. ]/g, '') + ')', ap === av + 1 && d.q === attendu, { av, ap, q: d.q });
     await E(() => { try { fermerPanneau(); } catch (e) {} });
   }
-  for (const [mauvais, motif] of [['douze', /chiffres/], ['1.500', /pas clair/], ['0', /plus grande que zéro/], ['', /Indique combien/], ['-3', /chiffres/], ['1,2,3', /chiffres/]]) {
+  for (const [mauvais, motif] of [['douze', /chiffres/], ['1.500', /pas clair/], ['0', /plus grand que zéro/], ['', /Indique combien/], ['-3', /chiffres/], ['1,2,3', /chiffres/]]) {
     await ouvrir(); await taper('Gants', mauvais, 'kg'); const av = await n0(); await envoyer(); const ap = await n0(), t = await toast(p), ouvert = /Demande d’achat|Nouvelle demande/.test(await panneau(p));
     v('01-2 « ' + mauvais + ' » est refusé avec une phrase, rien n’est envoyé', ap === av && ouvert && motif.test(t), { av, ap, t });
   }
@@ -54,7 +54,7 @@ const { L, ouvrirAchats, toast, panneau, txt, CAP } = require('./achats-outils.j
   if (tel) {
     const r = await E(() => { const z = document.querySelector('.ach-regl'), b = document.querySelector('.ach-regl-b'); return { zone: z && z.offsetParent !== null, bouton: b && b.offsetParent !== null }; });
     v('05-3 (téléphone) les réglages des notes sont derrière « Réglages › »', !r.zone && r.bouton, r);
-    await L.toucher(c, '[data-axa="reglages"]'); await L.calme(p, 300);
+    await cap('05-notes'); await L.toucher(c, '[data-axa="reglages"]'); await L.calme(p, 300); await cap('05-reglages');
   }
   const reg = tel ? await panneau(p) : await txt(p);
   v('08 « 0,60 € le km (à régler avec ton expert-comptable : le barème dépend de la puissance du véhicule) », plus de « démonstration »', /à régler avec ton expert-comptable : le barème dépend de la puissance du véhicule/.test(reg) && !/démonstration/i.test(reg), reg.slice(reg.indexOf('Kilomètres'), reg.indexOf('Kilomètres') + 140));

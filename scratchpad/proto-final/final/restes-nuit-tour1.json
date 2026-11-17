@@ -1,0 +1,16 @@
+[
+ {
+  "nom": "nuit — le bouton principal ressort à peine du secondaire",
+  "defaut": "De nuit, bouton principal et secondaire étaient deux pilules bleu nuit presque pareilles (--fill #2c3d63 contre --surf2 + filet) : « Noter un plein » / « ＋ Nouveau véhicule » ne se distinguaient plus.",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html et prototype-comptabilite.html : de nuit --fill:#e9eef8 et --on-fill:#0b1426 (le miroir exact du jour) ; nouveau jeton --fill-doux (#2c3d63) / --on-doux (#f0f3f8), égal à --fill / --on-fill de jour, lu par les 21 emplois qui ne sont pas un bouton d'action (puces choisies, cases à cocher, onglets, repères d'étape, avatar de commentaire, marqueurs de dépôt, avatar de repli). Gardent --fill : .btn, bouton du toast, .rl-az, .btnc, .btn-planning, .retour-barre, .dv-mic, .choix.premier. Retirés : le filet et le reflet blancs de .btn de nuit (comptabilité et prototype), le filet de .choix.premier ; survol de nuit = blanc franc ; voile de l'icône de .choix.premier et croix de .retour-barre posés en sombre de nuit (jour inchangé). Les pages paiement et documents lisent --accent (bleu, jour comme nuit) et le courrier un --fill à lui : non touchés.",
+  "preuve": "sondes/nuit-bouton-principal.js : rubriques de marc/julie/sm/kb/client sur mac, iphone, android de nuit, 438 ✓ · 0 ✗ (texte ≥ 4,5:1, aplat contre sa carte ≥ 3:1, aucune puce choisie à l'aplat principal, aucun secondaire plus clair, population comptée) ; sondes/nuit-fenetres.js (nouvelle intervention, devis rapide, fiche client, compositeur, création au planning, feuille Menu, comptabilité plein écran, connexion, guide ; mac, iphone, android) 63 ✓ · 0 ✗ ; sondes/nuit-jour-intact.js : 22 captures de jour identiques octet pour octet à celles de la page sans la décision (contre-épreuve : un --fill-doux de jour rouge fait tomber 2 captures) ; sondes/nuit-mutations.py : 5 mutations sur 5 tombent. Captures de nuit REGARDÉES : accueil, véhicules, planning, comptabilité, mon entreprise, boîte mail, sécurité, Ma journée (technicienne), espace client, fenêtres ci-dessus, connexion remplie, barre « Revenir à » (mac et iphone)."
+ },
+ {
+  "nom": "nuit — pages paiement et documents : même bouton principal",
+  "defaut": "La consigne demande « le même bouton principal dans les quatre pages » ; or paiement et documents (atelier) ne lisent pas --fill : leur bouton principal est --accent, bleu clair #6aabff de nuit et bleu #0a5fc2 de jour.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien changé : de nuit le bouton principal de ces pages ressort déjà nettement (bleu vif contre des secondaires sombres, vérifié sur captures), et le passer au blanc de nuit seul le ferait différer de leur jour (bleu), qui est un écran validé. Si Justin veut le même blanc/noir partout, c'est le jeton --accent / --on-accent de chaque page à régler, jour ET nuit.",
+  "preuve": "captures fen-mac-compositeur.png (« Créer le devis » bleu) et fen-iphone-paiement.png (« Prochain › » bleu) de nuit, relues."
+ }
+]

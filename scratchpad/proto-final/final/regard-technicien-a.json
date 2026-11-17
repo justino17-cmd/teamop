@@ -1,17 +1,136 @@
 {
-  "role": "technicien (sm) puis chef d'équipe (kb)",
-  "etat": "en cours : technicienne vue sur six profils jour et nuit ; chef d'équipe à faire",
-  "rubriques": [
-    { "nom": "Ma journée", "ecrans": "journée, pointage commencé, « J'ai commencé plus tôt », messages du bureau, tâche du jour, fiches d'intervention (en cours, planifiée, terminée), vide, plein long", "captures": 0, "regardees": 0 },
-    { "nom": "Mes tâches", "ecrans": "Aujourd'hui, À venir, Faites, Nouvelle tâche, fiche, Plus d'options, filtre En retard, vide, plein long", "captures": 0, "regardees": 0 },
-    { "nom": "Mes congés", "ecrans": "page, demande, périodes, mois suivant, retirer, vide, plein long", "captures": 0, "regardees": 0 }
-  ],
-  "defauts": [
-    { "n": 1, "ecran": "Ma journée sans intervention", "profils": "tous", "jourNuit": "jour et nuit", "constat": "le sous-titre disait « 0 intervention aujourd'hui »", "etat": "corrigé", "changement": "« Aucune intervention aujourd'hui »" },
-    { "n": 2, "ecran": "Mes tâches › Faites vide", "profils": "tous", "jourNuit": "jour et nuit", "constat": "titre seul, sans phrase d'aide (les deux autres onglets en ont une)", "etat": "corrigé", "changement": "phrase « Ce que tu coches comme fait se range ici. »" },
-    { "n": 3, "ecran": "Mes tâches › pastilles de filtre", "profils": "petit (320)", "jourNuit": "jour et nuit", "constat": "deux pastilles sur la première ligne, la troisième seule et étirée en pleine largeur", "etat": "corrigé", "changement": "à 350 px et moins : trois colonnes égales à 13 px" },
-    { "n": 4, "ecran": "Nouvelle tâche › champ Quoi", "profils": "petit (320)", "jourNuit": "jour et nuit", "constat": "l'exemple « Ex. rappeler M. Durand pour son devis » était coupé à « pour son de »", "etat": "corrigé", "changement": "exemple raccourci : « Ex. rappeler M. Durand »" },
-    { "n": 5, "ecran": "Mes congés › Mes demandes", "profils": "tous", "jourNuit": "jour et nuit", "constat": "la pastille « En attente de la décision de Marc » s'étirait sur toute la largeur de la carte (1 000 px au Mac)", "etat": "corrigé", "changement": "elle garde sa largeur, rangée à droite de l'étiquette du type" },
-    { "n": 6, "ecran": "Mes congés › Mon calendrier", "profils": "tous", "jourNuit": "jour et nuit", "constat": "le mois (« Octobre 2026 ») ou la période était écrit deux fois de suite, sous le sélecteur puis en titre de la carte", "etat": "corrigé", "changement": "le titre du bloc unique reste pour le lecteur d'écran, il n'est plus peint ; à plusieurs mois chaque titre reste visible" }
+ "role": "technicien (sm) puis chef d'équipe (kb)",
+ "etat": "terminé pour la technicienne (six profils, jour et nuit) et le chef d'équipe (six profils, jour et nuit) ; compte : voir comptes",
+ "rubriques": [
+  {
+   "nom": "Ma journée",
+   "ecrans": "journée, pointage commencé, « J'ai commencé plus tôt », messages du bureau, tâche du jour, fiches d'intervention (en cours, planifiée, terminée), vide, plein long",
+   "captures": 0,
+   "regardees": 0
+  },
+  {
+   "nom": "Mes tâches",
+   "ecrans": "Aujourd'hui, À venir, Faites, Nouvelle tâche, fiche, Plus d'options, filtre En retard, vide, plein long",
+   "captures": 0,
+   "regardees": 0
+  },
+  {
+   "nom": "Mes congés",
+   "ecrans": "page, demande, périodes, mois suivant, retirer, vide, plein long",
+   "captures": 0,
+   "regardees": 0
+  }
+ ],
+ "defauts": [
+  {
+   "n": 1,
+   "ecran": "Ma journée sans intervention",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "le sous-titre disait « 0 intervention aujourd'hui »",
+   "etat": "corrigé",
+   "changement": "« Aucune intervention aujourd'hui »"
+  },
+  {
+   "n": 2,
+   "ecran": "Mes tâches › Faites vide",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "titre seul, sans phrase d'aide (les deux autres onglets en ont une)",
+   "etat": "corrigé",
+   "changement": "phrase « Ce que tu coches comme fait se range ici. »"
+  },
+  {
+   "n": 3,
+   "ecran": "Mes tâches › pastilles de filtre",
+   "profils": "petit (320)",
+   "jourNuit": "jour et nuit",
+   "constat": "deux pastilles sur la première ligne, la troisième seule et étirée en pleine largeur",
+   "etat": "corrigé",
+   "changement": "à 350 px et moins : trois colonnes égales à 13 px"
+  },
+  {
+   "n": 4,
+   "ecran": "Nouvelle tâche › champ Quoi",
+   "profils": "petit (320)",
+   "jourNuit": "jour et nuit",
+   "constat": "l'exemple « Ex. rappeler M. Durand pour son devis » était coupé à « pour son de »",
+   "etat": "corrigé",
+   "changement": "exemple raccourci : « Ex. rappeler M. Durand »"
+  },
+  {
+   "n": 5,
+   "ecran": "Mes congés › Mes demandes",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "la pastille « En attente de la décision de Marc » s'étirait sur toute la largeur de la carte (1 000 px au Mac)",
+   "etat": "corrigé",
+   "changement": "elle garde sa largeur, rangée à droite de l'étiquette du type"
+  },
+  {
+   "n": 6,
+   "ecran": "Mes congés › Mon calendrier",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "le mois (« Octobre 2026 ») ou la période était écrit deux fois de suite, sous le sélecteur puis en titre de la carte",
+   "etat": "corrigé",
+   "changement": "le titre du bloc unique reste pour le lecteur d'écran, il n'est plus peint ; à plusieurs mois chaque titre reste visible"
+  },
+  {
+   "n": 7,
+   "ecran": "Mes congés › calendrier",
+   "profils": "ipad (820)",
+   "jourNuit": "jour et nuit",
+   "constat": "colonnes de 66 px : « VENDREDI SAMEDI DIMANCHE » se touchaient et DIMANCHE sortait de la carte ; « TOUSSAINT » se coupait en « TOUSSA / INT »",
+   "etat": "corrigé",
+   "changement": "en-têtes à trois lettres sous 84 px de colonne, noms de jours fériés à 9 px et cases resserrées"
+  },
+  {
+   "n": 8,
+   "ecran": "Mes congés › calendrier",
+   "profils": "iphone, android, petit",
+   "jourNuit": "jour et nuit",
+   "constat": "« Toussaint », « Armistice »… ne tenaient pas dans une case de 38 à 48 px (coupés en plein mot)",
+   "etat": "corrigé",
+   "changement": "« Férié » dans la case (le nom reste dans l'infobulle) ; légende : « Non travaillé (week-end, jour férié) »"
+  },
+  {
+   "n": 9,
+   "ecran": "Ma journée (chef d'équipe)",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "« Ton habilitation « Habilitation électrique BR » se termine dans 24 jours » : le mot répété",
+   "etat": "corrigé",
+   "changement": "« Ton habilitation électrique BR se termine dans 24 jours »"
+  },
+  {
+   "n": 10,
+   "ecran": "Mes congés › calendrier, demande en attente d'une demi-journée",
+   "profils": "ipad, iphone, android",
+   "jourNuit": "jour et nuit",
+   "constat": "« ½ j Autre » mesuré 47 px pour 29 de place : texte coupé en « ½ j Au »",
+   "etat": "corrigé",
+   "changement": "la mesure de l'étiquette compte les 9 px de marge d'une demi-journée (18 px au moins) : « ½ Autre » à l'iPad, « ½ » au téléphone"
+  },
+  {
+   "n": 11,
+   "ecran": "Mes tâches › pastilles de filtre",
+   "profils": "petit (320)",
+   "jourNuit": "jour et nuit",
+   "constat": "après le premier correctif la rangée dépassait de 3 px le bord du champ de recherche",
+   "etat": "corrigé",
+   "changement": "écart et marge des pastilles resserrés (4 px, 3 px)"
+  }
+ ],
+ "comptes": {
+  "captures_prises": 1480,
+  "captures_regardees": "une trentaine de planches (une planche = 3 à 8 captures côte à côte, jour et nuit), soit environ 120 captures lues à l'œil ; les 1 360 autres sont les défilements, états et profils que les planches regroupent",
+  "defauts_vus": 11,
+  "corriges": 11,
+  "laisses": [
+   "« M. et / Mme Durand » se coupe entre « et » et « Mme » dans une ligne de tâche étroite (donnée du client, pas une mise en page)",
+   "« 3 articles à remettre à bord » : le mot décidé par le chef est « manque à bord » ; il vit dans les fichiers de Matériel et Véhicules, repris par leurs voies",
+   "à 320 px la première intervention de Ma journée ne montre que son en-tête au-dessus de la barre (décision du chef, 17/11, technicien-02 : le haut de la carte est au-dessus de la barre) : à soumettre si Justin veut plus"
   ]
+ }
 }
