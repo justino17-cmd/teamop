@@ -29,6 +29,16 @@ const { L, CAP, PNG, devenir, txt, toast, panneau } = require('./achats-outils.j
   const br = await E(() => COMMANDES.filter(o => o.st === 'brouillon' && /Demande de/.test(o.note || '')).map(o => JSON.parse(JSON.stringify(o))));
   if (reste) v('B3 le reste (' + reste + ') part dans UN brouillon de commande, pour l’atelier, au bon fournisseur', br.length === 1 && br[0].lignes.length === 1 && br[0].lignes[0].q === reste && br[0].liv === 'atelier', br);
   else v('B3 stock suffisant : aucune commande créée', s1.cmds === (await E(() => COMMANDES.length)));
+  // ── I. « Ajouter à la commande » : une nouvelle demande du même article rejoint le brouillon du même fournisseur (pas un second brouillon) ──
+  await devenir(p, 'sm', 'techfrais'); await clic('[data-axa="dem"]'); await p.fill('#ax-q', 'Fluide R32 (le kg)'); await p.fill('#ax-n', '3'); await p.selectOption('#ax-u', 'kg'); await clic('[data-axa^="demok"]'); await L.calme(p, 400);
+  const idN = await E(() => DEM_ACHAT[0].id);
+  await devenir(p, 'marc', 'achats'); await E(() => { acOnglet = 'demandes'; rendre(); }); await L.calme(p, 300);
+  const carte = await txt(p, `.ax-d[data-axid="${idN}"]`);
+  v('I1 la carte de la nouvelle demande propose « Ajouter à la commande Frigo Distribution 17 »', /Ajouter à la commande Frigo/.test(carte), carte.slice(0, 300));
+  await clic(`[data-ac="commande|${idN}"]`); await L.calme(p, 500); await L.ranger(p);
+  const br2 = await E(() => COMMANDES.filter(o => o.st === 'brouillon').map(o => ({ num: o.num, four: o.four, lignes: o.lignes.map(l => [l.ref, l.q]) })));
+  v('I2 la ligne rejoint LE brouillon existant : un seul brouillon, R32 = 7 kg (4 + 3)', br2.length === 1 && br2[0].lignes.length === 1 && br2[0].lignes[0][1] === 7, br2);
+  v('I3 la demande est décidée (acceptée) avec sa suite écrite', await E(i => { const d = DEM_ACHAT.find(o => o.id === i); return d.etat !== 'attente' && !!d.suite; }, idN), await E(i => { const d = DEM_ACHAT.find(o => o.id === i); return [d.etat, d.suite]; }, idN));
   // ── C. Achat en magasin → Comptabilité ───────────────────────────────────────────────────────────────────────
   await ouvrirDemandes(); await clic('[data-ac="magasin|da3"]'); await L.calme(p, 400);
   await devenir(p, 'sm', 'techfrais'); await clic('[data-axa="tick|da3"]'); await p.fill('#ax-m', '294'); await p.selectOption('#ax-t', '20');
