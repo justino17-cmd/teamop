@@ -4885,7 +4885,7 @@ function detailKpi(k){
   else if (k === 'plan') { aide = '<div class="info petit">« Placer au planning » ouvre le jour prévu : la carte clignote dans la colonne « Non assigné », ' + (tactile() ? 'appui long dessus, puis glisse-la' : 'glisse-la') + ' sur un technicien. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, i.demande ? `<button type="button" class="btn petit" data-dem="${i.id}">Valider la demande</button>` : `<button type="button" class="btn petit" data-kplacer="${i.id}">Placer au planning</button>`)).join('') || '<p class="gris">Rien à planifier.</p>'; }
   else if (k === 'retard') { aide = '<div class="info petit">Replanifier ouvre le planning sur la carte pour la déplacer ; appeler le technicien pour savoir où il en est. Le titre ouvre la fiche.</div>';
-    corps = L.map(i => ligne(i, `<button type="button" class="btn petit" data-kplacer="${i.id}">Replanifier</button>${i.tech ? `<a class="btn gris petit" href="tel:0600000000" data-kappel="${i.tech}">Appeler ${tech(i.tech).nom.split(' ')[0]}</a>` : ''}`)).join('') || '<p class="gris">Rien en retard.</p>'; }
+    corps = L.map(i => ligne(i, `<button type="button" class="btn petit" data-kplacer="${i.id}">Replanifier</button>${i.tech ? `<a class="btn gris petit" href="${lienTel(((typeof EQUIPE !== 'undefined' ? EQUIPE : []).find(e => e.k === i.tech) || {}).tel || '')}" data-kappel="${i.tech}">Appeler ${tech(i.tech).nom.split(' ')[0]}</a>` : ''}`)).join('') || '<p class="gris">Rien en retard.</p>'; }
   else corps = L.map(i => `<${i.hist ? 'div' : 'button type="button"'} class="ligne-clic"${i.hist ? ' style="cursor:default"' : ` data-go="inter-x-${i.id}"`}><span><b>${jlib(i.d)} · ${i.h} · ${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span></span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></${i.hist ? 'div' : 'button'}>`).join('') || '<p class="gris">Rien ici.</p>';
   ouvrirPanneau(`<h2>${titre}</h2>${aide}${corps}`);
 }
@@ -8583,7 +8583,8 @@ document.addEventListener('click', ev => {
   if ((b = q('[data-kabs]'))) { kpiAbsence(+b.dataset.kabs); return; }
   if ((b = q('[data-kabsnouv]'))) { kpiAbsenceNouvelle(); return; }
   if ((b = q('[data-kseul]'))) { const id = b.dataset.kseul; plMasques = new Set(TECHS.map(t => t.id).filter(x => x !== id)); multiExclu = new Set(); fermerPanneau(); rendre(); toast(`Planning de ${tech(id).nom} sur la période.`); return; }
-  if ((b = q('[data-kappel]'))) { ev.preventDefault(); toast(`📞 Appel de ${tech(b.dataset.kappel).nom}… (dans la vraie version, le téléphone compose son numéro)`); return; }
+  if ((b = q('[data-kappel]'))) { ev.preventDefault(); const k = b.dataset.kappel, e = (typeof EQUIPE !== 'undefined' ? EQUIPE : []).find(x => x.k === k);   /* le numéro se LIT (la carte des sorties) : aucune annonce d'appel — le lien du prototype n'a qu'un numéro fictif */
+    sortieCarte('Pour appeler ' + tech(k).nom, e && e.tel ? e.tel : 'Numéro non renseigné', { aide:'Si ton appareil ne lance rien, copie le numéro.' }); return; }
   if ((b = q('[data-filtreint]'))) { filtreInt = b.dataset.filtreint; rendre(); return; }
   if ((b = q('[data-metier]'))) { const F = fiche(param); (F.cochesM = F.cochesM || {})[F.metier] = F.coches; F.metier = b.dataset.metier; F.coches = F.cochesM[F.metier] || {}; rendre(); return; }
   if ((b = q('[data-rdv]'))) { RDV = { int:voirInt, etape:2 }; rendre(); return; }
