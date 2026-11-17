@@ -172,7 +172,7 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
   await jouer(c, 'P15 qui peut quoi', async () => {
     await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="filtre|droits"]'); const n = await p.evaluate(() => ({ lignes:document.querySelectorAll('#contenu .eqx-table tbody tr').length, cols:document.querySelectorAll('#contenu .eqx-table thead th').length, actifs:EQUIPE.filter(q => q.actif).length }));
     v('P15 le tableau a une ligne par personne active et une colonne par catégorie et droit à part', n.lignes === n.actifs && n.cols >= 15, n);
-    await L.toucher(c, '#contenu .eqx-cel'); v('P15 toucher une case du tableau ouvre la fiche', (await E.obs(p)).pan !== '', await E.obs(p));
+    await L.toucher(c, c.doigt ? '#contenu .eqx-dr-liste [data-eq^="fiche|"]' : '#contenu .eqx-cel'); v('P15 toucher une case du tableau (au téléphone : un prénom de la liste) ouvre la fiche', (await E.obs(p)).pan !== '', await E.obs(p));
     await E.ranger(c);
   });
   // ── P12 · rechargement : l'application reste saine

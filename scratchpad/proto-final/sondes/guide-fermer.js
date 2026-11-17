@@ -22,7 +22,8 @@ const cle = (p) => p.evaluate(() => { try { return localStorage.getItem(NV_CLE +
     const autre = await p.evaluate(() => { const k = SESSION; return NV_CLE + k; }); v(`${tag} : la marque est rangée sous l'identifiant du compte (${autre})`, /opg_proto_nv_vu_\w+/.test(autre));
     // ── les quatre fermetures, chacune suivie d'une réouverture par « Nouveautés »
     const rouvrir = async () => {
-      if (TEL) { await L.toucher(c, '#contenu .tt-menu'); await L.calme(p, 300); const ok = await L.toucher(c, '#calque .nv-menu'); await L.calme(p, 500); return ok; }
+      if (TEL) { await L.ranger(p); const bm = p.locator('#contenu .tt-menu:visible, .cpsys-menu:visible').first(); await bm.waitFor({ state:'visible', timeout:10000 }).catch(() => {});   /* la Comptabilité du bureau pose son bouton « Menu » un peu après l'ouverture */
+        await L.toucher(c, bm); await L.calme(p, 400); const ok = await L.toucher(c, '#calque .nv-menu'); await L.calme(p, 500); return ok; }
       const ok = await L.toucher(c, '#menu .nv-menu'); await L.calme(p, 500); return ok; };
     const GESTES = [
       ['✕', async () => L.toucher(c, '#nv .nv-x')],
