@@ -24,8 +24,9 @@ const L = require('../lib.js');
   await autre.close().catch(() => {}); await L.fin(c);
   // témoin : dans son cadre (OP GESTION), la Comptabilité reçoit toujours son rôle
   c = await L.ouvrir({ qui: 'marc', app: true, attente: 1100 });
-  await c.p.evaluate(() => aller('comptabilite')); await c.p.waitForTimeout(3500);
-  const cad = L.cadre(c.p, /prototype-comptabilite\.html/);
+  await c.p.evaluate(() => { try { fermerPanneau(); } catch (e) {} cpSysAllerRubrique('comptabilite'); }); await L.calme(c.p, 1500);   /* la porte du menu : un simple aller() ouvre la Comptabilité native, pas sa fenêtre */
+  let cad = null; for (let i = 0; i < 40 && !cad; i++) { cad = L.cadre(c.p, /prototype-comptabilite\.html/); if (!cad) await c.p.waitForTimeout(500); }
+  for (let i = 0; i < 20 && cad; i++) { if (await cad.evaluate(() => CMPT.role === 'patron').catch(() => false)) break; await c.p.waitForTimeout(300); }
   const role = cad ? await cad.evaluate(() => ({ role: CMPT.role, paie: CMPT.paie === true, hote: window.parent !== window })).catch(e => ({ erreur: e.message.slice(0, 80) })) : null;
   L.v('S13 témoin : dans son cadre, la Comptabilité d\'un gérant reçoit le rôle « patron » (population : le cadre est là)', !!cad && !!role && role.role === 'patron' && role.hote, role);
   await L.fin(c);
@@ -34,11 +35,14 @@ const L = require('../lib.js');
   c = await L.ouvrir({ qui: null, app: false, attente: 1000 }); const p = c.p;
   p.on('dialog', d => d.accept().catch(() => {}));
   const att = ms => p.waitForTimeout(ms);
-  const D = await p.evaluate(async () => { rlChanger('client', { cli: 'vp', muet: true }); await new Promise(r => setTimeout(r, 500));
-    const autre = CONTRATS.find(x => x.cli !== 'vp'), mien = CONTRATS.find(x => x.cli === 'vp'), fa = FACTURES.find(f => f.cli !== 'vp' && ['envoyee', 'retard', 'partielle'].includes(f.st)), fm = FACTURES.find(f => f.cli === 'vp' && ['envoyee', 'retard', 'partielle'].includes(f.st)),
-      dv = (dvInit(), DV.find(d => d.cli !== 'vp')), dm = DV.find(d => d.cli === 'vp'), it = INTS.find(i => i.cli !== 'vp'), im = INTS.find(i => i.cli === 'vp');
-    return { moi: RL_CLI.cli, autre: autre && { id: autre.id, titre: autre.titre, cli: autre.cli }, mien: mien && { id: mien.id }, fa: fa && fa.id, fm: fm && fm.id, dv: dv && dv.num, dm: dm && dm.num, it: it && it.id, im: im && im.id }; });
-  L.v('S14 (population) on est le client « vp » et les documents des deux côtés existent (contrat, facture, devis, intervention)', D.moi === 'vp' && !!(D.autre && D.fa && D.dv && D.it && D.fm), D);
+  const D = await p.evaluate(async () => { dvInit();
+    /* le client « moi » : celui qui a une facture à régler ET un devis ET une intervention (les gestes légitimes se jouent sur SES documents) */
+    const du = f => ['envoyee', 'retard', 'partielle'].includes(f.st) && f.num !== '—', K = Object.keys(CLIENTS).find(k => FACTURES.some(f => f.cli === k && du(f)) && DV.some(d => d.cli === k && d.num) && INTS.some(i => i.cli === k)) || Object.keys(CLIENTS).find(k => FACTURES.some(f => f.cli === k && du(f)));
+    rlChanger('client', { cli: K, muet: true }); await new Promise(r => setTimeout(r, 500));
+    const autre = CONTRATS.find(x => x.cli !== K), mien = CONTRATS.find(x => x.cli === K), fa = FACTURES.find(f => f.cli !== K && du(f)), fm = FACTURES.find(f => f.cli === K && du(f)),
+      dv = DV.find(d => d.cli !== K && d.num), dm = DV.find(d => d.cli === K && d.num), it = INTS.find(i => i.cli !== K), im = INTS.find(i => i.cli === K);
+    return { moi: RL_CLI.cli, voulu: K, autre: autre && { id: autre.id, titre: autre.titre, cli: autre.cli }, mien: mien && { id: mien.id }, fa: fa && fa.id, fm: fm && fm.id, dv: dv && dv.num, dm: dm && dm.num, it: it && it.id, im: im && im.id }; });
+  L.v('S14 (population) on est le client « ' + D.voulu + ' » et les documents des deux côtés existent (contrat, facture, devis, intervention)', D.moi === D.voulu && !!(D.autre && D.fa && D.dv && D.it && D.fm), D);
   // les adresses
   const lit = async h => { await p.evaluate(h => { location.hash = h; }, h); await att(700); return p.evaluate(() => ({ route, texte: document.getElementById('contenu').innerText.replace(/\s+/g, ' ') })); };
   const rc = await lit('signer-x-' + D.autre.id);

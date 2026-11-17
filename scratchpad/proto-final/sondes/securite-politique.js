@@ -14,7 +14,7 @@ const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db1
 const INIT_VIOL = "(() => { try { const t = window.top; t.__viol = t.__viol || []; document.addEventListener('securitypolicyviolation', e => { try { t.__viol.push(e.violatedDirective + ' ' + String(e.blockedURI).slice(0, 80)); } catch (x) {} }); } catch (x) {} })()";
 const MARQUE = 'ZXQ-DEP-5530';
 const ATTENDU = process.env.OPG_ATTENDU || 'inline';   // 'hash' : ni exécution ni envoi · 'inline' : exécution possible, aucun envoi
-const AVEC_POLITIQUE = !!process.env.RACINE;          // sans RACINE : les pages d'origine
+const AVEC_POLITIQUE = !process.env.OPG_SANS_POLITIQUE;   // les pages du dépôt portent désormais leur politique : la garde les joue AVEC (OPG_SANS_POLITIQUE=1 : le témoin, sur des pages qu'on aurait dépouillées)
 const LOCALES = { 'leaflet.min.js': 'application/javascript', 'leaflet.min.css': 'text/css', 'maplibre-gl.min.js': 'application/javascript', 'maplibre-gl.min.css': 'text/css', 'leaflet-maplibre-gl.js': 'application/javascript', 'html2canvas.min.js': 'application/javascript' };
 const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.openfreemap.org/planet/x/{z}/{x}/{y}.pbf'], vector_layers: [], minzoom: 0, maxzoom: 14 });
 (async () => {
