@@ -234,6 +234,10 @@ devient l'atelier (forge, vérifications, copie d'essai) : ce sont les essais qu
 seraient plus lents qu'aujourd'hui. Si le serveur des clients manque un jour de marge, c'est lui qu'on agrandira, après avoir
 répété le déménagement sur l'atelier. Mesure lancée le 17 pour chiffrer : durée de toutes les suites sur la machine d'essai
 (`scripts/bancs-ci.sh`, l'une après l'autre) — résultat à lui donner en minutes pour 2 cœurs et pour 8.
+**Son choix (17 h 50)** : « et si je prends lui [le XXL+ : 12 cœurs, 24 Go, 720 Go, 17 € puis 59 € hors taxes par mois] car je pense
+que pour le futur ça sera mieux ». Répondu OUI : c'est le serveur d'ATELIER (forge, vérifications, copie d'essai, essais en
+parallèle), le M+ reste le serveur des clients ; mêmes consignes de commande (Ubuntu 24.04, France, engagement le plus court,
+aucune option, récapitulatif avant de payer, mot de passe jamais collé ici). ⏳ Pas encore commandé à l'heure où ceci est écrit.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
