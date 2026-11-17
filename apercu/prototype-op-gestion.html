@@ -1501,7 +1501,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .ve-mat{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0 12px}
 .ve-c .fo-stats i{font-style:normal}
 @media (max-width:760px){.ve-mat{grid-template-columns:1fr 1fr}}
-.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);text-transform:capitalize;padding:6px 0}
+.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);padding:6px 0}   /* plus de capitales à chaque mot : « Entré Le », « Impôt (Taux) » (compta-reste-14) ; les libellés sont déjà écrits comme il faut */
 .pt-paie{padding:6px 14px}.pt-p{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:8px;padding:11px 2px;border-bottom:1px solid var(--trait);align-items:center;font-variant-numeric:tabular-nums}.pt-paie .pt-p:last-child{border-bottom:0}
 @media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}}
 .pt-frais{display:flex;gap:12px;align-items:center;padding:12px 16px}.pt-frais .fo-n{flex:1}
@@ -2035,6 +2035,11 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 @media (max-width:1100px){.cx-nav1 button:last-child:nth-child(3n+1){grid-column:1 / -1}}
 /* tablette en portrait : le menu garde sa place, les colonnes de montants n’ont plus assez de largeur, donc le tableau défile */
 @media (min-width:761px) and (max-width:1000px){.cx-bal,.cx-gl-l,.cx-crow,.cx-centete,.cx-krow,.cx-ktete,.paie-r{min-width:640px}.cx-liste,.paie-liste{overflow-x:auto}}
+/* un tableau qui défile le DIT : un fondu du côté où il reste de la place (« DÉBIT CRÉDIT SOLDE DÉBITEUR CR… » se lisait comme une page cassée, compta-reste-11) ;
+   les classes sont posées par defileRepere(), seulement quand le tableau déborde vraiment */
+.cx-liste.d-plus-droite,.paie-liste.d-plus-droite{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent)}
+.cx-liste.d-plus-gauche,.paie-liste.d-plus-gauche{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px);mask-image:linear-gradient(to right,transparent,#000 44px)}
+.cx-liste.d-plus-droite.d-plus-gauche,.paie-liste.d-plus-droite.d-plus-gauche{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
 /* ══ Le test guidé (8 novembre 2026) : l'ombre, la lumière sur la cible, la bulle ══ */
 .gd-spot{position:fixed;z-index:100001;border-radius:14px;pointer-events:none;box-shadow:0 0 0 9999px rgba(6,10,18,.58),0 0 0 3px #4f8cff,0 0 22px 4px rgba(79,140,255,.65);transition:left .25s ease,top .25s ease,width .25s ease,height .25s ease;animation:gd-pouls 1.6s ease-in-out infinite}
 @keyframes gd-pouls{50%{box-shadow:0 0 0 9999px rgba(6,10,18,.58),0 0 0 5px #4f8cff,0 0 30px 8px rgba(79,140,255,.75)}}
@@ -5654,12 +5659,14 @@ function vueEncaissements(){
   </div>`;
 }
 function bilanPdf(){
-  const tot = ENCAISSEMENTS.reduce((s,e)=>s+e.ttc,0), parTaux = t => ENCAISSEMENTS.filter(e => e.tva === t).reduce((s,e)=>s+e.ttc,0), ht20 = parTaux(20)/1.2, ht10 = parTaux(10)/1.1, ht55 = parTaux(5.5)/1.055;
+  /* le bilan lit les MÊMES encaissements et la même TVA que « Paiements » et « TVA » (cpEncOct, cpTva) : il laissait les espèces reçues sur place, pas encore sur une facture,
+     et disait 3 045,00 € là où les deux autres écrans disaient 3 085,00 € (compta-reste-10) */
+  const E = cpEncOct(), tot = cpR(E.reduce((s,e)=>s+e.ttc,0)), tv = cpTva(), terrain = cpPaieTerrain(), htTot = cpR(tv.taux.reduce((s,x)=>s+x.ht,0));
   return `<div class="pdf" data-nom="Bilan des encaissements octobre 2026.pdf" data-a="${esc(CP_EXPERT.mail)}" data-objet="Bilan des encaissements d’octobre 2026 — ${esc(ENTREPRISE.nom)}" data-corps="${esc(`Bonjour,\n\nVoici le bilan des encaissements d’octobre 2026.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}"><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Bilan des encaissements</h4>Octobre 2026<br>édité le 31/10/2026</div></div>
-    <h6>Synthèse</h6><table><tbody><tr><td>Chiffre d’affaires encaissé HT</td><td style="text-align:right">${eur(ht20+ht10+ht55)}</td></tr><tr><td>TVA collectée à 20 % (base ${eur(ht20)})</td><td style="text-align:right">${eur(ht20*.2)}</td></tr><tr><td>TVA collectée à 10 % (base ${eur(ht10)})</td><td style="text-align:right">${eur(ht10*.1)}</td></tr>${ht55 ? '<tr><td>TVA collectée à 5,5 % (base ' + eur(ht55) + ')</td><td style="text-align:right">' + eur(ht55*.055) + '</td></tr>' : ''}<tr><td><b>Total encaissé TTC</b></td><td style="text-align:right"><b>${eur(tot)}</b></td></tr></tbody></table>
-    <h6>Par moyen de paiement</h6><table><tbody>${['Carte','Virement','Chèque','Espèces'].map(m=>`<tr><td>${m}</td><td style="text-align:right">${eur(ENCAISSEMENTS.filter(e=>e.mode===m).reduce((s,e)=>s+e.ttc,0))}</td></tr>`).join('')}</tbody></table>
-    <h6>Détail · ${ENCAISSEMENTS.length} paiements</h6><table><thead><tr><th>Date</th><th>Client</th><th>Facture</th><th>Moyen</th><th style="text-align:right">TTC</th></tr></thead><tbody>${ENCAISSEMENTS.map(e=>`<tr><td>${e.d}</td><td>${esc(CLIENTS[e.cli].nom)}</td><td>${e.fac}</td><td>${e.mode}</td><td style="text-align:right">${eur(e.ttc)}</td></tr>`).join('')}</tbody></table>
-    <div class="pdf-pied">Document de suivi, à transmettre à l’expert-comptable.</div></div>`;
+    <h6>Synthèse</h6><table><tbody><tr><td>Chiffre d’affaires encaissé HT</td><td style="text-align:right">${eur(htTot)}</td></tr>${tv.taux.map(x => `<tr><td>TVA collectée à ${String(x.t).replace('.', ',')} % (base ${eur(x.ht)})</td><td style="text-align:right">${eur(x.tva)}</td></tr>`).join('')}<tr><td><b>Total encaissé TTC</b></td><td style="text-align:right"><b>${eur(tot)}</b></td></tr>${terrain.length ? `<tr><td class="gris">dont reçus sur place, pas encore sur une facture</td><td style="text-align:right">${eur(cpR(terrain.reduce((s,e)=>s+e.ttc,0)))}</td></tr>` : ''}</tbody></table>
+    <h6>Par moyen de paiement</h6><table><tbody>${['Carte','Virement','Chèque','Espèces'].map(m=>`<tr><td>${m}</td><td style="text-align:right">${eur(E.filter(e=>e.mode===m).reduce((s,e)=>s+e.ttc,0))}</td></tr>`).join('')}</tbody></table>
+    <h6>Détail · ${E.length} paiements</h6><table><thead><tr><th>Date</th><th>Client</th><th>Facture</th><th>Moyen</th><th style="text-align:right">TTC</th></tr></thead><tbody>${E.map(e=>`<tr><td>${e.d}</td><td>${esc(CLIENTS[e.cli].nom)}</td><td>${e.virtuel ? 'reçu sur place' : e.fac}</td><td>${e.mode}</td><td style="text-align:right">${eur(e.ttc)}</td></tr>`).join('')}</tbody></table>
+    <div class="pdf-pied">Document de suivi, à transmettre à l’expert-comptable.${terrain.length ? ' Les sommes reçues sur place seront rattachées à leur facture quand elle sera émise.' : ''}</div></div>`;
 }
 
 /* ══ TABLEAU DE BORD ══ */
@@ -10868,7 +10875,7 @@ function cxListe(D){
       <span class="cx-st"><span class="st ${s[1]}">${s[0]}</span>${x.piece && !x.sf ? '' : `<span class="cx-sans">${x.piece ? 'sans facture' : 'sans justificatif'}</span>`}</span></button>`; };
   return `${prets.length && (CX.cat === 'tous' || CX.cat === 'ventes' || CX.cat === 'clients') ? `<div class="cx-bandeau"><span><b>${prets.length} facture${prets.length > 1 ? 's' : ''} prête${prets.length > 1 ? 's' : ''} à partir</b> · préparée${prets.length > 1 ? 's' : ''} à la fin des interventions, toutes les lignes ont un prix.</span><button type="button" class="btn petit" data-action="toutValider">Valider et envoyer</button></div>` : ''}
   <div class="carte cx-liste">${L.length ? `<div class="cx-entete" aria-hidden="true"><span>Date</span><span>Pièce</span><span>Catégorie</span><span>Échéance</span><span class="n">Montant TTC</span><span>Où elle en est</span></div>${L.map(ligne).join('')}` : '<p class="gris" style="margin:6px 0">Rien ici avec ces filtres.</p>'}</div>
-  ${L.length ? `<div class="cx-total"><span>${L.length} pièce${L.length > 1 ? 's' : ''}</span>${v.length ? `<span>Ventes <b>${eur(som(v, 'ttc'))}</b>${som(v, 'reste') ? ` · à encaisser <b>${eur(som(v, 'reste'))}</b>` : ''}</span>` : ''}${a.length ? `<span>Achats <b>${eur(som(a, 'ttc'))}</b>${som(a, 'reste') ? ` · à payer <b>${eur(som(a, 'reste'))}</b>` : ''}</span>` : ''}</div>` : ''}`;
+  ${L.length ? `<div class="cx-total"><span>${L.length} pièce${L.length > 1 ? 's' : ''}</span>${v.length ? `<span>Ventes <b>${eur(som(v, 'ttc'))}</b>${som(v, 'reste') ? ` · à encaisser <b>${eur(som(v, 'reste'))}</b>` : ''}</span>` : ''}${a.length ? `<span>Achats <b>${eur(som(a, 'ttc'))}</b>${som(a.filter(x => x.src !== 'ndf'), 'reste') ? ` · à payer <b>${eur(som(a.filter(x => x.src !== 'ndf'), 'reste'))}</b>` : ''}${som(a.filter(x => x.src === 'ndf'), 'reste') ? ` · notes de frais à valider <b>${eur(som(a.filter(x => x.src === 'ndf'), 'reste'))}</b>` : ''}</span>` : ''}</div>` : ''}`;   /* « à payer » = ce qu'on doit aux fournisseurs, comme dans Comptes fournisseurs : une note de frais pas encore validée ne se paie pas (compta-reste-20) */
 }
 
 /* la fiche d'une facture fournisseur : ce qu'elle est, où elle est rangée, sa TVA, son paiement, ses écritures */
@@ -11016,7 +11023,33 @@ function cxDepense(){
 }
 
 /* ─── les gestes ─── */
-const cxNum = v => parseFloat(String(v || '').replace(/\s/g, '').replace(',', '.'));
+/* Un montant s'écrit de plusieurs façons (« 1 234,56 », « 1234.56 », « 1.234,56 », « 1,234.56 ») : on lit le DERNIER séparateur comme la virgule
+   des centimes et les autres comme des milliers. Ce qui n'est pas un nombre (« 1e9 », « 12abc », « -5 ») rend NaN, et un « 1.234 » qui peut se
+   lire 1 234 ou 1,234 se refuse avec une phrase (cxMontantRefus) : lire 1,23 en silence faisait entrer une dépense de 1,23 € en comptabilité (compta-reste-03). */
+const cxNum = v => {
+  let s = String(v == null ? '' : v).replace(/[\s  ']/g, '');
+  if (!s) return NaN;
+  const seps = s.match(/[.,]/g) || [];
+  if (seps.length === 1) s = s.replace(',', '.');
+  else if (seps.length > 1) {
+    const dec = Math.max(s.lastIndexOf(','), s.lastIndexOf('.')), ent = s.slice(0, dec), fr = s.slice(dec + 1);
+    if (/^\d{1,3}([.,]\d{3}){2,}$/.test(s) && new Set(seps).size === 1) s = s.replace(/[.,]/g, '');   // « 1.234.567 » : que des milliers
+    else if (/^\d{1,3}([.,]\d{3})+$/.test(ent) && new Set(ent.match(/[.,]/g)).size === 1 && ent.indexOf(s[dec]) < 0) s = ent.replace(/[.,]/g, '') + '.' + fr;   // « 1.234,56 », « 1,234.56 »
+    else return NaN;
+  }
+  return /^\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN;
+};
+/* la phrase à dire quand un montant saisi ne se lit pas ou ne peut pas être juste ; '' quand il est bon. `max` : au-delà, on demande de vérifier */
+function cxMontantRefus(txt, max){
+  const t = String(txt == null ? '' : txt).replace(/[\s\u00a0\u202f']/g, '');
+  if (!t) return 'Indique le montant.';
+  if (/^[1-9]\d{0,2}[.,]\d{3}$/.test(t)) return `« ${t} » n’est pas clair : écris ${t.replace(/[.,]/, '')} (sans point) ou ${(+t.replace(',', '.')).toFixed(2).replace('.', ',')} (avec la virgule).`;
+  const n = cxNum(t);
+  if (!isFinite(n)) return 'Ce montant ne se lit pas : écris-le avec des chiffres, par exemple 1 234,56.';
+  if (/^[^.,]*[.,]\d{3,}$/.test(t)) return 'Un montant a au plus deux chiffres après la virgule (1 234,56).';
+  if (max && n > max) return 'Vérifie le montant : ce chiffre est très élevé.';
+  return '';
+}
 function cxAller(sec, o){ o = o || {}; cpSysteme = false; CP.onglet = sec; if (o.cat) CX.cat = o.cat; if (o.st) CX.st = o.st; if (route !== 'comptabilite') aller('comptabilite'); else { rendre(); scrollTo({ top:0, behavior:'smooth' }); } }
 document.addEventListener('click', ev => {
   /* les anciennes portes (étapes de clôture, tableaux de bord) mènent aux rubriques d'ici, sans quitter la Comptabilité */
@@ -11051,6 +11084,7 @@ document.addEventListener('click', ev => {
     if (!d) return toast('Écris ce que tu factures (la désignation).');
     /* une quantité négative, nulle ou illisible ne devient plus « 1 » en silence : le PDF aurait dit « × -3 » pour un total d'une seule ligne (compta-ventes-01) */
     if (!/^\d+([.,]\d+)?$/.test(qTxt.replace(/\s/g, '')) || !(q > 0)) { document.getElementById('nf-q').focus(); return toast('Indique une quantité supérieure à zéro (1, 2, 0,5…).'); }
+    { const refus = document.getElementById('nf-p').value.trim() ? cxMontantRefus(document.getElementById('nf-p').value, 1e6) : ''; if (refus) { document.getElementById('nf-p').focus(); return toast(refus); } }
     if (!(p > 0)) return toast('Indique le prix unitaire HT.');
     const id = 'fm' + Date.now().toString(36);
     FACTURES.unshift({ id, num:'—', cli, objet:o || d, lignes:[{ d, q:String(q).replace('.', ','), pu:p }], ht:0, tva:t, st:'avalider', emise:'—', ech:'—' });
@@ -11060,9 +11094,10 @@ document.addEventListener('click', ev => {
     const ht = cxNum(document.getElementById('dp-h').value), tv = document.getElementById('dp-t').value, autoliq = tv === 'auto', tva = autoliq ? 0 : +tv, ref = document.getElementById('dp-r').value.trim(), just = (document.querySelector('input[name="dp-j"]:checked') || {}).value || '', pay = (document.querySelector('input[name="dp-pay"]:checked') || {}).value || '', ph = document.getElementById('dp-p').files[0];
     if (!four) return toast('Indique le fournisseur.');
     if (!obj) return toast('Écris ce que c’est.');
+    { const refus = document.getElementById('dp-h').value.trim() ? cxMontantRefus(document.getElementById('dp-h').value, 1e6) : ''; if (refus) { document.getElementById('dp-h').focus(); return toast(refus); } }
     if (!(ht > 0)) return toast('Indique le montant HT.');
     if (CP.envoye) return toast('Octobre est déjà envoyé à ton expert-comptable : cette dépense ne s’ajoute plus à octobre. S’il y a une erreur, il fera la correction.');
-    if (iso.slice(0, 7) !== '2026-10') return toast('Le prototype tient le mois d’octobre : choisis une date d’octobre. Une autre date ne serait comptée nulle part.');
+    if (iso.slice(0, 7) !== '2026-10') return toast('Octobre est le seul mois ouvert : choisis une date d’octobre pour que cette dépense soit comptée.');
     if (just === 'facture' && !ph && !ref) return toast('Pour récupérer la TVA, il faut la facture : ajoute sa photo ou son numéro, sinon choisis « Pas encore ».');
     if (ref && ACHATS.some(o => o.four.toLowerCase() === four.toLowerCase() && o.ref === ref)) return toast(`Déjà saisie : ${four} a une facture ${ref}. Une facture ne s’enregistre qu’une fois.`);
     if (!pay && (!echIso || echIso < iso)) return toast('L’échéance ne peut pas être avant la date de la facture.');
@@ -11367,7 +11402,7 @@ function cxConformite(K, D){
     { g:'efacture', k:'chorus', s:'info', t:'Un client public ?', ref:'Chorus Pro, obligatoire pour les factures au secteur public',
       d:'Une mairie, une école, un hôpital : la facture se dépose sur Chorus Pro, le portail de l’État. Aucun de tes clients n’est public aujourd’hui.' },
     { g:'argent', k:'inalterable', s:'att', t:'Des paiements qu’on ne peut ni modifier ni effacer', ref:'CGI, art. 286, I-3° bis' + aVoir,
-      d:'Un logiciel qui enregistre les paiements de clients particuliers doit les rendre inaltérables, les sécuriser, les conserver et les archiver, et l’éditeur doit en fournir la preuve (certificat ou attestation). Sans cette preuve, c’est l’entreprise qui l’utilise qui risque l’amende. TeamOP la fournira avant la vraie version.' },
+      d:'Un logiciel qui enregistre les paiements de clients particuliers doit les rendre inaltérables, les sécuriser, les conserver et les archiver, et l’éditeur doit en fournir la preuve (certificat ou attestation). Sans cette preuve, c’est l’entreprise qui l’utilise qui risque l’amende. TeamOP la fournira ici, dès qu’elle est délivrée.' },
     { g:'argent', k:'banque', v:1, s:rap.aExpliquer.length ? 'non' : 'ok', t:'La banque rapprochée', ref:'Le solde du compte en comptabilité doit être celui de la banque',
       d:rap.aExpliquer.length ? `${pl(rap.aExpliquer.length, 'ligne')} du relevé sans explication : tant qu’elles restent, la comptabilité et la banque ne disent pas la même chose.` : `Les ${CP_RELEVE.length} lignes du relevé d’octobre ont chacune leur pièce.`,
       act:rap.aExpliquer.length ? ['Expliquer', 'data-cx="sec|banque"'] : null },
@@ -11554,7 +11589,7 @@ function cxPlateforme(){
     <label class="champ">Le nom de ta plateforme<input class="saisie" id="pa-n" value="${esc(CX_CONF.pa)}" placeholder="celle que tu as choisie"></label>
     <label class="champ">Inscrite depuis le<input class="saisie" type="date" id="pa-d" value="${CX_CONF.paDate || AUJ}" max="${AUJ}"></label>
     <label class="case"><input type="checkbox" id="pa-v" ${CX_CONF.paVerif ? 'checked' : ''}><span>J’ai vérifié : elle est sur la liste officielle des plateformes agréées, et je suis inscrit dans l’annuaire comme la recevant.</span></label>
-    <span class="gris petit">Dans la vraie version, OP GESTION est prévu pour s’y brancher : les factures reçues entreront toutes seules dans les Achats, et tes factures aux professionnels partiront par elle à partir de septembre 2027 (pour une PME ou une micro-entreprise).</span>
+    <span class="gris petit">OP GESTION est prévu pour s’y brancher : les factures reçues entreront toutes seules dans les Achats, et tes factures aux professionnels partiront par elle à partir de septembre 2027 (pour une PME ou une micro-entreprise).</span>
     <div class="actions"><button type="button" class="btn" data-cx="plateformeok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
 
@@ -11663,7 +11698,7 @@ document.addEventListener('change', ev => { const i = ev.target.closest('[data-c
    croire que ce sont celles de la Comptabilité. Le cadre peut passer en plein écran sans recharger (son état est gardé). */
 function cxVueEnLigne(){
   return `<div class="cx-explique"><span aria-hidden="true">💳</span><span><b>Paiement en ligne</b> · le module qui fait payer tes clients : par carte depuis un lien, par virement, par prélèvement, en trois fois. Le prestataire de paiement garde l’argent quelques jours, puis le verse sur ta banque moins ses frais ; chaque étape s’écrit en comptabilité. Ses 25 essais guidés sont dans « Tous les tests », le panneau du guide du module.</span></div>
-  <div class="cx-enligne" id="cx-enligne"><div class="cx-enligne-barre"><b>Module de paiement en ligne</b><span class="gris petit">Pour l’instant, il a ses propres factures d’exemple ; dans la vraie version, ce sont celles de ta Comptabilité.</span><button type="button" class="btn gris petit" data-cx="enlignePlein">⤢ Plein écran</button></div>
+  <div class="cx-enligne" id="cx-enligne"><div class="cx-enligne-barre"><b>Module de paiement en ligne</b><span class="gris petit">Pour l’instant, il garde ses propres factures : elles ne se retrouvent pas encore dans ta Comptabilité.</span><button type="button" class="btn gris petit" data-cx="enlignePlein">⤢ Plein écran</button></div>
     <iframe src="prototype-paiement.html" title="Module de paiement en ligne"></iframe></div>`;
 }
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-cx="enlignePlein"]'); if (!b) return; const z = document.getElementById('cx-enligne'); if (!z) return; const on = z.classList.toggle('plein'); b.textContent = on ? '✕ Quitter le plein écran' : '⤢ Plein écran'; document.body.style.overflow = on ? 'hidden' : ''; document.body.classList.toggle('cx-plein', on); });
@@ -12200,6 +12235,14 @@ function menuGarderPlace(haut){ const l = document.querySelector('#menu .m-liste
   menuRepere(l); }
 document.addEventListener('scroll', e => { const t = e.target; if (t && t.classList && t.classList.contains('m-liste')) menuRepere(t); }, true);
 addEventListener('resize', () => menuRepere());
+/* les tableaux qui défilent de côté (Balance, Grand livre, Journal, Fiches de paie, Salariés sur tablette en portrait) disent de quel côté il reste à voir */
+function defileRepere(l){ const reste = l.scrollWidth - l.clientWidth;
+  l.classList.toggle('d-plus-droite', reste > 4 && l.scrollLeft < reste - 4); l.classList.toggle('d-plus-gauche', reste > 4 && l.scrollLeft > 4); }
+let defileAttente = 0;
+function defileRepereTout(){ if (defileAttente) return; defileAttente = requestAnimationFrame(() => { defileAttente = 0; document.querySelectorAll('.cx-liste, .paie-liste').forEach(defileRepere); }); }
+document.addEventListener('scroll', e => { const t = e.target; if (t && t.classList && (t.classList.contains('cx-liste') || t.classList.contains('paie-liste'))) defileRepere(t); }, true);
+addEventListener('resize', defileRepereTout);
+{ const c = document.getElementById('contenu'); if (c && window.MutationObserver) new MutationObserver(defileRepereTout).observe(c, { childList:true, subtree:true }); defileRepereTout(); }
 /* ── la barre du bas ── */
 const MB_CLE = 'opg_proto_barre', MB_MAX = 5, MB_DEFAUT = ['accueil', 'planning', 'interventions', 'clients', 'comptabilite'];
 /* le mot de la barre : le nom ENTIER de la rubrique quand il tient ; les noms longs ont leur mot (jamais d'abréviation à point) */
@@ -12390,7 +12433,7 @@ function ecPayer(f){
     <div class="cx-montants deux"><div><span>Montant</span><b>${eur(m)}</b></div><div><span>Facture</span><b>${esc(f.num)}</b></div></div>
     <label class="champ">Numéro de carte<input class="saisie mono" id="ec-cb" inputmode="numeric" value="4242 4242 4242 4242"></label>
     <div class="cx-2"><label class="champ" style="flex:1 1 120px">Expire fin<input class="saisie" id="ec-ex" value="12/28"></label><label class="champ" style="flex:1 1 120px">Code au dos<input class="saisie" id="ec-cvc" inputmode="numeric" value="123"></label></div>
-    <span class="gris petit">Carte d’essai : aucun argent ne bouge. Dans la vraie version, la page de paiement est celle de la banque (paiement sécurisé, validation par l’application de la banque).</span>
+    <span class="gris petit">Carte d’essai : aucun argent ne bouge. Sur un vrai paiement, la page est celle de la banque (paiement sécurisé, validation par l’application de la banque).</span>
     <div class="actions"><button type="button" class="btn" data-ec="payok|${f.id}">Payer ${eur(m)}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
 /* ecDemande(true) : la demande d'un CONTRAT d'entretien. Elle a sa fenêtre et son effet — une tâche « proposer un contrat » pour le bureau —, pas ceux d'une demande d'intervention : le client demandait une chose, la fenêtre en annonçait une autre (client-06) */
@@ -12446,6 +12489,7 @@ document.addEventListener('click', ev => {
   if (a === 'ndf') return rlNdfForm();
   if (a === 'ndfok') {
     const m = cxNum((document.getElementById('rn-m') || {}).value), ph = (document.getElementById('rn-p') || {}).files[0], o = document.getElementById('rn-o').value, iid = document.getElementById('rn-i').value, t = +document.getElementById('rn-t').value;
+    { const refus = (document.getElementById('rn-m').value || '').trim() ? cxMontantRefus(document.getElementById('rn-m').value, 1e5) : ''; if (refus) { document.getElementById('rn-m').focus(); return toast(refus); } }
     if (!(m > 0)) return toast('Indique le montant payé.');
     const i = iid && INTS.find(z => z.id === iid);
     NDF.unshift({ id:'n' + Date.now().toString(36), qui:rlQui(), d:AUJ, objet:o + (i ? ', ' + CLIENTS[i.cli].nom : ''), ttc:cpR(m), tva:t, recu:!!ph, photo:ph ? URL.createObjectURL(ph) : null, photoType:ph ? ph.type : null, etat:'attente', rl:true });
@@ -12453,7 +12497,9 @@ document.addEventListener('click', ev => {
   if (a === 'ndfmod') return rlNdfModifier(x);
   if (a === 'ndfmodok') { const n = NDF.find(o => o.id === x); if (!n || (n.etat !== 'attente' && n.etat !== 'refusee')) return fermerPanneau();
     const o = document.getElementById('rm-o').value.trim(), m = cxNum(document.getElementById('rm-m').value), t = +document.getElementById('rm-t').value, ph = (document.getElementById('rm-p') || {}).files[0];
-    if (!o) return toast('Dis ce que c’est.'); if (!(m > 0)) return toast('Indique le montant payé.');
+    if (!o) return toast('Dis ce que c’est.');
+    { const refus = (document.getElementById('rm-m').value || '').trim() ? cxMontantRefus(document.getElementById('rm-m').value, 1e5) : ''; if (refus) { document.getElementById('rm-m').focus(); return toast(refus); } }
+    if (!(m > 0)) return toast('Indique le montant payé.');
     const ajout = ph && !n.recu, renv = n.etat === 'refusee', av0 = renv ? { ...n } : null; if (renv) axRenvoiNettoye(n); Object.assign(n, { objet:o, ttc:cpR(m), tva:t }); if (ph) Object.assign(n, { recu:true, photo:URL.createObjectURL(ph), photoType:ph.type });
     fermerPanneau(); rendre(); if (renv) { n.etat = 'attente'; n.renvoye = true; n.motif = null; axNotif('marc', `${prenomDe(n.qui)} renvoie sa note « ${n.objet} » après correction.`); axJ(n.qui, 'a renvoyé la note de frais', n.objet); rendre();
       return toast('Note corrigée et renvoyée au bureau.', { lib:'Annuler', fn:() => { Object.assign(n, av0); n.renvoye = false; rendre(); } }); }
@@ -12748,7 +12794,7 @@ function paieImportDoc(){
   const dec = m => (m / 60).toFixed(2).replace('.', ',');
   return `<div class="pdf" data-nom="Variables de paie ${esc(PAIE_NOM_MOIS)}.pdf" data-a="${esc(PAIE_CAB.mail)}" data-objet="Variables de paie ${esc(PAIE_NOM_MOIS)}"><div class="pdf-tete"><div><b style="font-size:15px">Variables de paie · ${esc(PAIE_NOM_MOIS)}</b><br>${esc(ENTREPRISE.nom)} → ${esc(PAIE_CAB.nom)}</div><div style="text-align:right;margin-left:auto">Fichier d’import<br>${PAIE.format === 'standard' ? 'colonnes standard' : 'format du cabinet'}</div></div>
     <table class="paie-csv"><thead><tr>${col.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${V.map(v => `<tr><td>${esc(paieNomPers(v.k))}</td><td>${dec(v.tot)}</td><td>${dec(v.s25)}</td><td>${dec(v.s50)}</td><td>${dec(v.nuit)}</td><td>${dec(v.weFerie)}</td><td>${esc(paieAbsTxt(v.abs))}</td><td>${v.jours6}</td><td>${v.primesM.toFixed(2).replace('.', ',')}</td><td>${v.frais.toFixed(2).replace('.', ',')}</td></tr>`).join('')}</tbody></table>
-    <div class="pdf-pied">Heures en décimal (7,50 = 7 h 30). Une ligne par salarié ; dans la vraie version, un fichier tableur (CSV, séparateur point-virgule). Le format exact (ordre et nom des colonnes) se règle une fois avec le cabinet : son logiciel de paie a le sien.</div></div>`;
+    <div class="pdf-pied">Heures en décimal (7,50 = 7 h 30). Une ligne par salarié, dans un fichier tableur (CSV, séparateur point-virgule). Le format exact (ordre et nom des colonnes) se règle une fois avec le cabinet : son logiciel de paie a le sien.</div></div>`;
 }
 const paieDocPlein = html => docPlein(Object.assign(document.createElement('div'), { innerHTML:html }).firstElementChild);
 const paieEmpreinte = () => { const s = JSON.stringify(PT_GENS.map(paieVariables).map(v => [v.k, v.tot, v.s25, v.s50, v.nuit, v.abs, v.primesM, v.frais])); let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return h.toString(16).toUpperCase().padStart(8, '0').slice(0, 8); };
@@ -12760,7 +12806,7 @@ function paieEnvoyer(){
     <div class="carte" style="font-size:15px"><b>À :</b> ${esc(PAIE_CAB.qui)} · ${esc(PAIE_CAB.nom)} &lt;${esc(PAIE_CAB.mail)}&gt;<br><b>Objet :</b> Éléments de paie ${esc(paieDe(PAIE_NOM_MOIS))} · ${esc(ENTREPRISE.nom)}<br><br>Bonjour,<br><br>Vous trouverez ci-joint les éléments variables de paie ${esc(paieDe(PAIE_NOM_MOIS))} pour nos ${V.length} salariés : un relevé par personne et le fichier d’import. Le mois est verrouillé de notre côté.<br><br>Bien à vous,<br>${esc(ENTREPRISE.nom)}</div>
     <h3>Pièces jointes</h3><div class="fo-bloc">${V.map(v => `<button type="button" class="fo-l" data-paie="pdf|${v.k}"><span class="fo-n"><b>📄 Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(v.k))}.pdf</b><span class="gris petit">${ptH(v.tot)}${v.s25 + v.s50 ? ' · ' + ptH(v.s25 + v.s50) + ' sup.' : ''}${v.confirme ? ' · confirmé' : ' · non confirmé'}</span></span><span class="fo-chev">›</span></button>`).join('')}
       <button type="button" class="fo-l" data-paie="import"><span class="fo-n"><b>📊 Variables de paie ${esc(PAIE_NOM_MOIS)}.pdf</b><span class="gris petit">le fichier d’import, une ligne par salarié</span></span><span class="fo-chev">›</span></button></div>
-    <label class="champ">Format du fichier d’import<select id="pa-format"><option value="standard" ${PAIE.format === 'standard' ? 'selected' : ''}>Colonnes standard (dans la vraie version, un fichier tableur)</option><option value="cabinet" ${PAIE.format === 'cabinet' ? 'selected' : ''}>Format demandé par le cabinet (réglé une fois avec lui)</option></select></label>
+    <label class="champ">Format du fichier d’import<select id="pa-format"><option value="standard" ${PAIE.format === 'standard' ? 'selected' : ''}>Colonnes standard (fichier tableur CSV)</option><option value="cabinet" ${PAIE.format === 'cabinet' ? 'selected' : ''}>Format demandé par le cabinet (réglé une fois avec lui)</option></select></label>
     <div class="actions"><button type="button" class="btn large" data-paie="envoiok">Envoyer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
 }
 function paieRecevoir(){
@@ -12768,7 +12814,7 @@ function paieRecevoir(){
   ouvrirPanneau(`<span class="surtitre">Paie ${esc(paieDe(PAIE_NOM_MOIS))}</span><h2>Les fiches de paie du cabinet</h2>
     <span class="gris">Dépose les PDF reçus de ${esc(PAIE_CAB.nom)} : chacun est rangé chez son salarié d’après son nom. Rien n’est visible des autres salariés : chacun ne voit que la sienne.</span>
     <label class="paie-depot"><input type="file" accept="application/pdf" multiple data-paiefichiers="1"><span><b>📥 Déposer les fiches de paie (PDF)</b><span class="gris petit">ou touche ici pour choisir les fichiers</span></span></label>
-    <button type="button" class="lien" data-paie="simuler">Pas de fichier sous la main ? Simuler la réception</button>
+    <button type="button" class="lien" data-paie="simuler">Pas de fichier sous la main ? Recevoir un fichier du cabinet pour essayer</button>
     <div class="fo-bloc">${PT_GENS.map(k => { const b = PAIE.bulletins[k]; return `<div class="fo-l"><span class="fo-n"><b>${esc(paieNomPers(k))}</b><span class="gris petit">${b ? '📄 ' + esc(b.nom) : 'en attente'}</span></span>${b ? '<span class="st st-v">Reçue</span>' : '<span class="st">—</span>'}</div>`; }).join('')}</div>
     <div class="actions"><button type="button" class="btn large" data-paie="distribuer" ${n === PT_GENS.length ? '' : 'disabled'}>Distribuer à chacun${n ? ' (' + n + ' sur ' + PT_GENS.length + ')' : ''}</button><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`, true);
 }
@@ -12815,7 +12861,7 @@ document.addEventListener('click', ev => {
   if (a === 'validerfiches') { if (!PAIE.calc) return toast('D’abord calculer les fiches.'); PAIE.valide = { le:'31/10 · ' + hNow(), par:paieQui() }; rendre(); return toast('Fiches validées : elles ne bougent plus.'); }
   if (a === 'sal') return paieSalarie(x);
   if (a === 'salok') { const bse = parseFloat(String(document.getElementById('ps-base').value).replace(/\s/g, '').replace(',', '.')), tx = parseFloat(String(document.getElementById('ps-pas').value).replace(',', '.'));
-    if (!(bse >= PAIE_TX.smic)) return toast(`Le salaire de base ne peut pas être sous le SMIC (${nbFr(PAIE_TX.smic)} € pour 151,67 h, exemple).`); if (!(tx >= 0 && tx <= 43)) return toast('Le taux d’impôt est entre 0 et 43 %.');
+    if (!(bse >= PAIE_TX.smic)) return toast(`Le salaire de base ne peut pas être sous le SMIC (${nbFr(PAIE_TX.smic)} € pour 151,67 h).`); if (!(tx >= 0 && tx <= 43)) return toast('Le taux d’impôt est entre 0 et 43 %.');
     PAIE_SAL[x].base = cpRp(bse); PAIE_SAL[x].pas = cpRp(tx); if (PAIE.calc && !PAIE.valide) PAIE.fiches[x] = paieBulletin(x); fermerPanneau(); rendre();
     return toast(PAIE.valide ? 'Enregistré : les fiches d’octobre sont validées, le changement vaudra pour novembre.' : `Enregistré${PAIE.calc ? ' : sa fiche est recalculée' : ''}.`); }
   if (a === 'comptabiliser') return paieComptabiliser();
@@ -12845,7 +12891,7 @@ function paieBulletinVoir(k, mois){
   if (b && b.url) return voirFichierLocal(b.url, b.nom);   // window.open ne fait rien dans l'artefact : le fichier se montre dans la page et s'enregistre
   if (PAIE.mode === 'op' && (!b || b.calc)) { const ym = mois ? '2026-' + String(['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre'].indexOf(mois.split(' ')[0]) + 1).padStart(2, '0') : null; return paieDocPlein(paieBulletinDoc(k, ym)); }
   ouvrirPanneau(`<span class="surtitre">Fiche de paie · ${esc(mois || PAIE_NOM_MOIS)}</span><h2>${esc(paieNomPers(k))}</h2>
-    <div class="paie-bul"><span aria-hidden="true">📄</span><b>${esc(b ? b.nom : 'Bulletin ' + mois + ' - ' + paieNomPers(k) + '.pdf')}</b><span class="gris petit">Dans la vraie version, c’est le PDF envoyé par ${esc(PAIE_CAB.nom)} qui s’ouvre ici, tel quel. Le prototype n’invente pas de fiche de paie : ses montants viennent du cabinet.</span></div>
+    <div class="paie-bul"><span aria-hidden="true">📄</span><b>${esc(b ? b.nom : 'Bulletin ' + mois + ' - ' + paieNomPers(k) + '.pdf')}</b><span class="gris petit">C’est le PDF envoyé par ${esc(PAIE_CAB.nom)} qui s’ouvre ici, tel quel : OP GESTION n’invente pas la fiche de paie, ses montants viennent du cabinet.</span></div>
     <div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
 }
 
@@ -12987,7 +13033,7 @@ function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
   const cab = PAIE.mode === 'cabinet';
-  return `<div class="cx-explique"><span aria-hidden="true">🧾</span><span><b>Fiches de paie ${esc(paieDe(PAIE_NOM_MOIS))}.</b> ${cab ? `C’est ${esc(PAIE_CAB.nom)} qui les fait : elles arrivent en PDF et se rangent chez chaque salarié.` : 'OP GESTION les calcule à partir des heures validées, des heures supplémentaires, des primes, des paniers et des absences. Taux d’exemple dans ce prototype : un vrai calcul suit les barèmes en vigueur et la convention collective.'}</span></div>
+  return `<div class="cx-explique"><span aria-hidden="true">🧾</span><span><b>Fiches de paie ${esc(paieDe(PAIE_NOM_MOIS))}.</b> ${cab ? `C’est ${esc(PAIE_CAB.nom)} qui les fait : elles arrivent en PDF et se rangent chez chaque salarié.` : 'OP GESTION les calcule à partir des heures validées, des heures supplémentaires, des primes, des paniers et des absences. Calcul indicatif, avec des taux simplifiés : à faire valider par ton expert-comptable (barèmes en vigueur et convention collective).'}</span></div>
     ${cab ? '' : `<div class="actions">${!PAIE.calc ? `<button type="button" class="btn" data-paie="calculer" ${paieVerrouille() ? '' : 'aria-disabled="true"'}>Calculer les fiches</button><span class="gris petit">${paieVerrouille() ? 'Le mois est verrouillé : les heures ne bougeront plus.' : 'D’abord verrouiller le mois, dans « Le mois ».'}</span>` : !PAIE.valide ? `<button type="button" class="btn" data-paie="validerfiches">Valider les ${F.length} fiches</button><button type="button" class="btn gris" data-paie="recalculer">Recalculer</button>` : !PAIE.distribue ? `<button type="button" class="btn" data-paie="distribuer">Distribuer aux salariés</button>` : ''}</div>`}
     <div class="carte pt-paie paie-liste"><div class="paie-r paie-f pt-entete" aria-hidden="true"><span>Salarié</span><span>Brut</span><span>Cotisations salarié</span><span>Net payé</span><span>Coût employeur</span><span>Fiche</span></div>
       ${F.map(b => `<button type="button" class="paie-r paie-f" data-paie="fiche|${b.k}"><span class="paie-qui"><b>${esc(paieNomPers(b.k))}</b><span class="gris petit">${esc(b.S.emploi)}</span></span><span data-l="Brut">${eur(b.brut)}</span><span data-l="Cotisations salarié">${eur(b.totS)}</span><span data-l="Net payé"><b>${eur(b.netPaye)}</b></span><span data-l="Coût employeur">${eur(b.cout)}</span><span class="paie-st">${cab ? (PAIE.bulletins[b.k] ? '<span class="st st-v">Reçue</span>' : '<span class="st">Attendue</span>') : etat}<span class="fo-chev" aria-hidden="true">›</span></span></button>`).join('')}
@@ -12998,7 +13044,7 @@ function paieVueSalaries(){
   return `<div class="cx-explique"><span aria-hidden="true">👥</span><span><b>Les salariés.</b> Ce qui sert à faire leur fiche de paie : emploi, convention collective, salaire de base, taux d’impôt transmis par l’administration. Touche une ligne pour la modifier.</span></div>
     <div class="carte pt-paie paie-liste"><div class="paie-r paie-s pt-entete" aria-hidden="true"><span>Salarié</span><span>Statut</span><span>Entré le</span><span>Salaire de base</span><span>Taux horaire</span><span>Impôt (taux)</span></div>
       ${PT_GENS.map(k => { const S = PAIE_SAL[k]; return `<button type="button" class="paie-r paie-s" data-paie="sal|${k}"><span class="paie-qui"><b>${esc(paieNomPers(k))}</b><span class="gris petit">${esc(S.emploi)}</span></span><span data-l="Statut">${esc(S.statut)}</span><span data-l="Entré le">${esc(S.entree.split('-').reverse().join('/'))}</span><span data-l="Salaire de base">${eur(S.base)}</span><span data-l="Taux horaire">${nbFr(cpRp(S.base / 151.67))} €</span><span data-l="Impôt (taux)" class="paie-st">${nbFr(S.pas)} %<span class="fo-chev" aria-hidden="true">›</span></span></button>`; }).join('')}</div>
-    <div class="info petit">Dans le bâtiment, les congés payés passent par la caisse des congés payés (CIBTP) : elle verse l’indemnité au salarié, l’entreprise y cotise chaque mois (non détaillé dans ce prototype). Conventions et niveaux à vérifier avec l’expert-comptable.</div>`;
+    <div class="info petit">Dans le bâtiment, les congés payés passent par la caisse des congés payés (CIBTP) : elle verse l’indemnité au salarié, l’entreprise y cotise chaque mois (cette cotisation n’est pas détaillée ici). Conventions et niveaux à vérifier avec l’expert-comptable.</div>`;
 }
 function paieSalarie(k, remplace){
   const S = PAIE_SAL[k];
@@ -13025,12 +13071,12 @@ function paieVueCharges(){
     <div class="grille2"><div class="carte"><h3>À verser aux organismes</h3>${O.map(o => `<div class="paie-sem paie-org"><span>${o[1]}<small class="gris" style="display:block">${o[2]}</small></span><b>${eur(o[3])}</b><span class="gris petit" style="min-width:90px;text-align:right">${o[4] === 'trimestriel' ? 'au trimestre' : 'le ' + o[4]}</span></div>`).join('')}
         <div class="paie-sem"><b>Total</b><b>${eur(cpRp(O.reduce((s, o) => s + o[3], 0)))}</b><span style="min-width:90px"></span></div></div>
       <div class="carte"><h3>La déclaration sociale (DSN)</h3><span class="gris petit">Chaque mois, une seule déclaration envoie les salaires et les cotisations à l’URSSAF, aux caisses de retraite, à la mutuelle et à l’administration fiscale (pour l’impôt prélevé). Moins de 50 salariés : avant le 15 du mois suivant.</span>
-        ${PAIE.dsn ? paieOk('', `DSN d’octobre préparée le ${esc(PAIE.dsn.le)} · ${PT_GENS.length} salariés · ${eur(cpRp(O.reduce((s, o) => s + o[3], 0)))} de cotisations et d’impôt. Dans la vraie version, elle part sur net-entreprises.fr.`) : `<div class="actions"><button type="button" class="btn" data-paie="dsn" ${PAIE.valide || PAIE.mode === 'cabinet' ? '' : 'aria-disabled="true"'}>Préparer la DSN d’octobre</button></div>${PAIE.valide || PAIE.mode === 'cabinet' ? '' : '<span class="gris petit">Une fois les fiches validées.</span>'}`}</div></div>
+        ${PAIE.dsn ? paieOk('', `DSN d’octobre préparée le ${esc(PAIE.dsn.le)} · ${PT_GENS.length} salariés · ${eur(cpRp(O.reduce((s, o) => s + o[3], 0)))} de cotisations et d’impôt. Elle se dépose ensuite sur net-entreprises.fr.`) : `<div class="actions"><button type="button" class="btn" data-paie="dsn" ${PAIE.valide || PAIE.mode === 'cabinet' ? '' : 'aria-disabled="true"'}>Préparer la DSN d’octobre</button></div>${PAIE.valide || PAIE.mode === 'cabinet' ? '' : '<span class="gris petit">Une fois les fiches validées.</span>'}`}</div></div>
     <div class="carte"><h3>L’écriture de paie · journal Paie</h3><div class="cx-ecr"><table class="cx-tab"><thead><tr><th>Compte</th><th>Libellé</th><th style="text-align:right">Débit</th><th style="text-align:right">Crédit</th></tr></thead><tbody>
       ${L.filter(l => Math.abs(l.de || l.cr || 0) > .004).map(l => `<tr><td class="mono">${l.c}</td><td>${esc(l.lib || CP_COMPTES[l.c] || '')}</td><td style="text-align:right">${l.de ? nbFr(l.de) : ''}</td><td style="text-align:right">${l.cr ? nbFr(l.cr) : ''}</td></tr>`).join('')}
       <tr><td></td><td><b>Total</b></td><td style="text-align:right"><b>${nbFr(td)}</b></td><td style="text-align:right"><b>${nbFr(td)}</b></td></tr></tbody></table></div>
       ${PAIE.compta ? paieOk('', `Passée le ${esc(PAIE.compta.le)} : elle est dans le journal, la balance et le résultat d’octobre.`) + `<button type="button" class="lien" data-cx="sec|ecritures">Voir le journal</button>` : `<div class="actions"><button type="button" class="btn" data-paie="comptabiliser" ${PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue) ? '' : 'aria-disabled="true"'}>Passer l’écriture de paie</button></div>${PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue) ? '' : '<span class="gris petit">Une fois les fiches validées.</span>'}`}</div>
-    <span class="gris petit">Les salaires nets se virent en fin de mois ; URSSAF, retraite et impôt prélevé partent avec la DSN. Montants calculés avec des taux d’exemple.</span>`;
+    <span class="gris petit">Les salaires nets se virent en fin de mois ; URSSAF, retraite et impôt prélevé partent avec la DSN. Montants indicatifs, à faire valider par ton expert-comptable.</span>`;
 }
 
 /* ⟦module guide⟧ */
@@ -13325,7 +13371,7 @@ const TOUR_PAIE = [
     { c:'#contenu [data-paie="verrouiller"]', t:'Touche « Verrouiller octobre »', p:'OP GESTION te dit qui n’a pas encore confirmé : son relevé portera « non confirmé ».', ok:() => gdPanneau() || paieVerrouille() },
     { c:'#calque [data-paie="verrouok"]', t:'Touche « Verrouiller »', p:'Une empreinte est calculée : elle prouve que les heures n’ont pas bougé depuis. Une erreur trouvée après se régularise sur le mois suivant.', ok:() => paieVerrouille() } ] },
   { r:'patron', cat:'Fiches de paie', t:'Calculer et vérifier les fiches de paie', d:'OP GESTION calcule chaque fiche : salaire, heures supplémentaires, primes, paniers, cotisations par rubrique, impôt prélevé à la source.', go:gdPaie('paiemois'), gestes:[
-    { c:'#contenu [data-paie="calculer"]', t:'Touche « Calculer les fiches »', p:'Six fiches, à partir des heures verrouillées. Les taux sont des exemples dans ce prototype.', ok:() => !!PAIE.calc },
+    { c:'#contenu [data-paie="calculer"]', t:'Touche « Calculer les fiches »', p:'Six fiches, à partir des heures verrouillées. Les taux sont simplifiés : à faire valider par ton expert-comptable.', ok:() => !!PAIE.calc },
     { c:'#contenu [data-paie="voirfiches"]', t:'Touche « Voir et valider les fiches »', p:'L’onglet « Fiches de paie » montre chaque salarié : brut, cotisations, net payé, coût pour l’entreprise.', ok:() => CP.onglet === 'fiches' },
     { c:'#contenu [data-paie="fiche|sm"]', t:'Ouvre la fiche de Sophie', p:'Elle s’ouvre comme un document, prête à télécharger ou à envoyer.', ok:() => gdDoc() },
     { c:'#docplein .pdf', t:'Le bulletin, rubrique par rubrique', p:'Santé, accidents du travail, retraite, famille, chômage, CSG : la part du salarié et celle de l’employeur. Puis le net avant impôt, l’impôt prélevé, le net payé et le montant net social.', suivant:1, si:() => gdDoc() },
@@ -19475,7 +19521,7 @@ const AX_EQUIPE = ['sm', 'kb', 'lr', 'tl'];
 const AX_UNITES = ['u', 'kg', 'lot', 'L', 'm', 'boîte', 'paire', 'rouleau', 'aérosol', 'flacon'];
 const AX_MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const axR2 = v => Math.round(v * 100) / 100;
-const axNum = v => { const x = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.')); return isNaN(x) ? NaN : x; };
+const axNum = v => cxNum(v);   /* la même lecture d'un nombre que la Comptabilité : « 1.234,56 » se lisait 1,23 (compta-reste-03) */
 const axPl = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 /* « 2 rouleaux », « 10 kg », « 3 lots » : on n'ajoute un s qu'à un mot simple, et rouleau prend un x */
 const axU = (q, u) => q > 1 && u && /^[a-zéèêîôû]{3,}$/i.test(u) && !/[sxz]$/i.test(u) ? (/e?au$/i.test(u) ? u + 'x' : u + 's') : u;
