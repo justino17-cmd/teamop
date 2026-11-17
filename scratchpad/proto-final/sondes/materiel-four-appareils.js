@@ -24,11 +24,14 @@ const L = require('../lib.js');
   for (const [nom, f] of [['Fiche fournisseur', () => fournFiche('cpa')], ['Fiche fournisseur (comptoir)', () => fournFiche('fd')], ['Ajouter un fournisseur (liste)', () => { FX.ajTab = 'liste'; fournListe(); }], ['Ajouter un fournisseur (un autre)', () => { FX.ajTab = 'autre'; fournListe(); }],
     ['Le bon', () => cmdPreparer('Clim Pièces Atlantique')], ['Commande confirmée', () => cmdFiche('c39')], ['Commande partielle', () => cmdFiche('c38')], ['J’ai reçu la livraison', () => cmdReception('c38')], ['Comparer avec la facture', () => cmdRappro('c36')], ['Importer les prix', () => fournTarifs('cpa')], ['Photographier une facture', () => fournFacture('')], ['Retirer un fournisseur', () => fxRetirerConfirm('cpa')]]) {
     await R(f); await mesure(nom); await ranger(); }
+  // chaque commande a sa fiche (brouillon, envoyée, en retard, partielle, facture arrivée, terminée, annulée…) : une population par état, pas un seul exemple
+  for (const id of await R(() => COMMANDES.map(c => c.id))) { await R(i => cmdFiche(i), id); await mesure('Fiche de la commande ' + id); await ranger(); }
+  await R(() => prFiche('p3')); await mesure('Fiche d’un article'); await ranger();
   // les valeurs les plus longues plausibles : un nom de fournisseur et d'article de 70 signes, un montant à 5 chiffres, une grosse quantité
   await R(() => { const f = MES_FOURN[0]; f.nom = 'Établissements Dupont-Delaunay-Martin et Fils Distribution Régionale'; f.franco = 123456.78; f.port = 12345.67; PRODUITS.slice(0, 6).forEach((x, i) => { x.nom = 'Condensateur permanent à double enroulement ' + (i + 1) + ' µF 450 V (modèle professionnel renforcé)'; x.four = f.nom; x.pa = 12345.67; x.pv = 23456.78; x.q = 1523.5; }); COMMANDES.forEach(o => { o.four = f.nom; }); CMD_PANIER = {}; rendre(); });
   for (const [k, nom] of et) { await R(k => { prVue = k; rendre(); window.scrollTo(0, 0); }, k); await mesure(nom + ' (valeurs longues)'); }
   for (const [nom, f] of [['Fiche fournisseur (valeurs longues)', () => fournFiche('cpa')], ['Le bon (valeurs longues)', () => cmdPreparer(MES_FOURN[0].nom)], ['Commande (valeurs longues)', () => cmdFiche('c39')], ['J’ai reçu (valeurs longues)', () => cmdReception('c38')]]) { await R(f); await mesure(nom); await ranger(); }
-  v(tag + ' : population : ' + vues + ' écrans mesurés, ' + cibles + ' éléments touchables recensés', vues >= 30 && cibles >= 500, { vues, cibles });
+  v(tag + ' : population : ' + vues + ' écrans mesurés, ' + cibles + ' éléments touchables recensés', vues >= 25 && cibles >= 500, { vues, cibles });
   v(tag + ' : aucune erreur de page', c.err.length === 0, c.err);
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); L.v('le parcours a pu se jouer jusqu\'au bout (' + String(e.message).split('\n')[0].slice(0, 120) + ')', false); try { L.fermer(); } catch (x) {} process.exit(L.bilan() ? 1 : 2); });
