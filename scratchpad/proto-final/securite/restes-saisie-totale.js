@@ -11,7 +11,7 @@
 // ⛔ 127.0.0.1 seulement. « N ✓ · M ✗ », sortie 1 si un contrôle tombe. Un ✗ nomme le formulaire (écran ▸ bouton ▸ champ).
 const L = require('../lib.js'), O = require('./injection-outils.js'), fs = require('fs');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.split('=').slice(1).join('=') : d; };
-const PAGE = arg('page', 'prototype-op-gestion.html'), ROLES = arg('roles', 'marc').split(','), MAXB = +arg('boutons', 14), SEUL = arg('routes', ''), NOMSORTIE = arg('nom-sortie', 'saisie-totale'), PROFIL = arg('profil', 'mac');
+const PAGE = arg('page', 'prototype-op-gestion.html'), ROLES_ARG = arg('roles', 'tous').split(','), MAXB = +arg('boutons', 14), SEUL = arg('routes', ''), NOMSORTIE = arg('nom-sortie', 'saisie-totale'), PROFIL = arg('profil', 'mac');
 const PRINCIPALE = PAGE === 'prototype-op-gestion.html';
 const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/restes-securite/'; fs.mkdirSync(SORTIE, { recursive: true });
 const FORMES = [
@@ -23,8 +23,11 @@ const FORMES = [
   id => `¤${id}¤&lt;i data-xss=${id}&gt;&lt;img src=x onerror=__xss('${id}')&gt;`,
 ];
 (async () => {
-  const c = await L.ouvrir({ profil: PROFIL, qui: PRINCIPALE ? ROLES[0] : null, app: PRINCIPALE, page: PRINCIPALE ? undefined : PAGE, requete: PRINCIPALE ? undefined : '?app=1', init: O.INIT, guide: false, attente: 1500 }), p = c.p;
+  const c = await L.ouvrir({ profil: PROFIL, qui: PRINCIPALE ? 'marc' : null, app: PRINCIPALE, page: PRINCIPALE ? undefined : PAGE, requete: PRINCIPALE ? undefined : '?app=1', init: O.INIT, guide: false, attente: 1500 }), p = c.p;
   p.on('dialog', d => d.accept().catch(() => {}));
+  /* les rôles sont les CLÉS de ROLES de l'application (pas les identifiants de personnes : « marc » n'est pas un rôle — rlChanger('marc') jetait dans rlMenu, 377 erreurs de page au premier essai) ; « tous » = chacun sauf « client » */
+  const toutRole = await p.evaluate(() => (typeof ROLES === 'object' ? Object.keys(ROLES).filter(k => k !== 'client') : []));
+  const ROLES = !PRINCIPALE ? ['(page)'] : ROLES_ARG[0] === 'tous' ? toutRole : ROLES_ARG;
   const att = ms => p.waitForTimeout(ms);
   const legende = {}; let n = 7000; const formulaires = new Map(); let champsRemplis = 0, valides = 0, changes = 0, refusees = 0, ouvertures = 0;
   const trouves = new Map(), vus = new Set();

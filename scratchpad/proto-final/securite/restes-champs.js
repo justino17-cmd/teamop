@@ -11,7 +11,7 @@
 // ⛔ 127.0.0.1 seulement. « N ✓ · M ✗ », sortie 1 si un contrôle tombe.
 const L = require('../lib.js'), O = require('./injection-outils.js'), fs = require('fs');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.split('=').slice(1).join('=') : d; };
-const NOMS = arg('noms', 'INTS,BUREAU').split(','), CLES = arg('cles', 'titre'), ROLES = arg('roles', 'marc').split(','), PROFIL = arg('profil', 'mac'), NOMSORTIE = arg('nom-sortie', 'champs');
+const NOMS = arg('noms', 'INTS,BUREAU').split(','), CLES = arg('cles', 'titre'), ROLES_ARG = arg('roles', 'tous').split(','), PROFIL = arg('profil', 'mac'), NOMSORTIE = arg('nom-sortie', 'champs');
 const FICHES = arg('fiches', '1') !== '0', GESTES = +arg('gestes', 4), MAXFICHES = +arg('max-fiches', 40);
 const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/restes-securite/'; fs.mkdirSync(SORTIE, { recursive: true });
 const FORMES = [
@@ -23,8 +23,11 @@ const FORMES = [
   id => `¤${id}¤&lt;i data-xss=${id}&gt;&lt;img src=x onerror=__xss('${id}')&gt;`,
 ];
 (async () => {
-  const c = await L.ouvrir({ profil: PROFIL, qui: ROLES[0], init: O.INIT, guide: false, attente: 1500 }), p = c.p;
+  const c = await L.ouvrir({ profil: PROFIL, qui: 'marc', init: O.INIT, guide: false, attente: 1500 }), p = c.p;
   p.on('dialog', d => d.accept().catch(() => {}));
+  /* les rôles sont les CLÉS de ROLES de l'application (pas les identifiants de personnes : « marc » n'est pas un rôle — rlChanger('marc') jetait dans rlMenu, 377 erreurs de page au premier essai) ; « tous » = chacun sauf « client » */
+  const toutRole = await p.evaluate(() => (typeof ROLES === 'object' ? Object.keys(ROLES).filter(k => k !== 'client') : []));
+  const ROLES = ROLES_ARG[0] === 'tous' ? toutRole : ROLES_ARG;
   const att = ms => p.waitForTimeout(ms);
   // 1. charger les champs : par recensement du DOM de données (jamais une liste de chemins écrite à la main), filtré par nom de clé
   const charge = await p.evaluate(({ noms, cles, formes }) => { const F = formes.map(s => eval(s)); const legende = {}; let n = 5000, nb = 0; const vus = new WeakSet();
