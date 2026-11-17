@@ -1,0 +1,166 @@
+[
+ {
+  "nom": "demandes",
+  "population": 38,
+  "deborde": 0,
+  "petits": [
+   "Demandes de matérielMatériel 4 217×40",
+   "Notes de fraisFrais 4 156×40",
+   "Transférer 6 kg et commander 1517,5 kg 301×40",
+   "Tout commander 146×40",
+   "Achat en magasin 152×40",
+   "Demander une précision 197×40",
+   "Refuser 84×40",
+   "Transférer 6 kg et commander 4 kg 269×40"
+  ],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-demandes-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-demande",
+  "population": 16,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-demande-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-precision",
+  "population": 7,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-precision-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-refus-demande",
+  "population": 8,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-refus-demande-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-budget",
+  "population": 4,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-budget-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-aide",
+  "population": 2,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-aide-mac-nuit.png"
+ },
+ {
+  "nom": "notes",
+  "population": 34,
+  "deborde": 0,
+  "petits": [
+   "Demandes de matérielMatériel 4 217×40",
+   "Notes de fraisFrais 4 156×40",
+   "Valider les 3 notes avec ticket · 12 370 322×40",
+   "Valider 78×40",
+   "Refuser 84×40",
+   "Valider sans ticket… 170×40",
+   "Redemander le ticket 174×40"
+  ],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-notes-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-fiche-note",
+  "population": 4,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-fiche-note-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-sans-ticket",
+  "population": 4,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-sans-ticket-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-refus-note",
+  "population": 8,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-refus-note-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-tout-valider",
+  "population": 3,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tout-valider-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-tarif-km",
+  "population": 4,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tarif-km-mac-nuit.png"
+ },
+ {
+  "nom": "mes-frais",
+  "population": 10,
+  "deborde": 0,
+  "petits": [
+   "Modifier 88×40",
+   "📷 Ajouter le ticket 159×40"
+  ],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-mes-frais-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-note-de-frais",
+  "population": 15,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-note-de-frais-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-ma-demande",
+  "population": 14,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-ma-demande-mac-nuit.png"
+ },
+ {
+  "nom": "fenetre-modifier-demande",
+  "population": 14,
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-modifier-demande-mac-nuit.png"
+ }
+]
