@@ -1521,8 +1521,10 @@ var CSS = `
   @media (max-height:500px){
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:22px;line-height:28px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lt{padding-bottom:0}
-    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .catbar{flex-wrap:nowrap}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lt-sub{display:none}   /* le pied de la liste dit déjà « N non lus » */
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .catbar{flex-wrap:nowrap;padding-bottom:6px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .cat{height:36px}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .rangeail{padding-top:4px;padding-bottom:4px}   /* « N messages rangés ailleurs » : le lien « Voir tout » garde sa zone de 44 px */
   }
   .opc:where([data-fmt="mac"]) .cat[aria-pressed="true"] .cl{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:nowrap}
   /* ordinateur-13 : l'écran était écrit en 11–13 px, alors que Clients et Devis sont à 16 px : on monte les libellés de dossiers, de filtres, de catégories, les pastilles,
@@ -1580,12 +1582,9 @@ var CSS = `
   .opc:where([data-fmt="phone"]) #btnCompose .tl{display:block;font-size:10.5px;line-height:12px;font-weight:500;color:var(--label-2);white-space:nowrap}
   /* sur une ligne choisie (bleu plein), la pastille s'ASSOMBRIT au lieu de s'éclaircir : un voile blanc sous du texte blanc tombait à 3,4:1 de nuit (bleu éclairci, 11,5 px) */
   .opc .msg.sel .hpast{background:rgba(0,0,0,.3);color:#fff}
-  /* un téléphone tenu EN PAYSAGE (390 px de haut) : grand titre, recherche, six catégories et l'encart « rangés ailleurs » prenaient tout, il ne restait aucune ligne de message entière.
-     Le grand titre rétrécit, sa phrase du dessous part (le pied de la liste dit déjà « N non lus »), les marges se serrent. Ne touche NI un ordinateur (plus de 520 px de haut) NI un téléphone debout. */
-  @media (orientation:landscape) and (max-height:520px) {
-    .opc:where([data-fmt="phone"]) .list .large-title{font-size:20px;line-height:24px}
-    .opc:where([data-fmt="phone"]) .list .lt-sub{display:none}
-    .opc:where([data-fmt="phone"]) .list .lt{padding-bottom:0}
+  /* le grand titre d'un téléphone en paysage : la règle « paysage » plus haut (22 px) PERDAIT contre la règle « clamp(21px,7.2vw,31px) » écrite plus loin, de même force — le titre restait à 31 px (mesuré). Écrite ici, en dernier, elle gagne. */
+  @media (max-height:500px){
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:20px;line-height:24px}
   }
 `;
 var FEUILLE = null;
@@ -4356,6 +4355,8 @@ var MARKUP = `
     if(!vivant||HIST.off) return;
     if(HIST.ignorer>0){ HIST.ignorer=0; return; }
     if(HIST.niv<=0||!isPhone()) return;
+    // l'entrée atteinte n'est pas AU-DESSOUS de la nôtre : c'est l'hôte qui vient de fermer une fenêtre posée par-dessus la Boîte mail (ses entrées {cal}), pas un recul d'un de nos niveaux
+    if(((history.state&&history.state.opcourrier)||0)>=HIST.niv) return;
     HIST.niv--;
     if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
     else if(app.getAttribute("data-view")!=="list") go("list");

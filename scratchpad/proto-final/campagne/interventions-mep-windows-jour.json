@@ -1,0 +1,721 @@
+[
+ {
+  "n": "liste",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Voir dans Tâches › 1040×41",
+    "Aujourd’hui · 9 140×40",
+    "À venir · 8 104×40",
+    "À planifier · 3 127×40",
+    "Terminées · 8 129×40",
+    "Toutes · 24 112×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "liste-tout",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Voir dans Tâches › 1040×41",
+    "Aujourd’hui · 9 136×40",
+    "À venir · 8 104×40",
+    "À planifier · 3 127×40",
+    "Terminées · 8 129×40",
+    "Toutes · 24 114×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-encours",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Restaurant Le Vieux Port › 409×32",
+    "＋ Nouvelle tâche 141×34",
+    "Retirer la photo Avant 30×30",
+    "Retirer la photo Roulement usé 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-planifiee",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "M. et Mme Durand › 535×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-aplanifier",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Hôtel de la Plage › 469×32",
+    "＋ Nouvelle tâche 141×34",
+    "Prendre dans la réserve 192×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-retard",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Copropriété Les Mimosas › 642×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-fait",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Mme Roux › 390×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-fait-facturee",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "M. et Mme Durand › 411×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "creation",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Client existant 137×40",
+    "＋ Nouveau client 158×40",
+    "Un jour · toute l’équipe 196×40",
+    "Une personne · sa semaine 226×40",
+    "Le premier créneau libre 195×40",
+    "Plus tard · « à planifier » 195×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 2543,
+   "fixes": []
+  }
+ },
+ {
+  "n": "creation-nouveau-client",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Client existant 134×40",
+    "＋ Nouveau client 161×40",
+    "Particulier 108×40",
+    "Professionnel 130×40",
+    "Un jour · toute l’équipe 196×40",
+    "Une personne · sa semaine 226×40",
+    "Le premier créneau libre 195×40",
+    "Plus tard · « à planifier » 195×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 2496,
+   "fixes": []
+  }
+ },
+ {
+  "n": "creation-forfait",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Client existant 137×40",
+    "＋ Nouveau client 158×40",
+    "Un jour · toute l’équipe 196×40",
+    "Une personne · sa semaine 226×40",
+    " 867×40",
+    "Le premier créneau libre 195×40",
+    "Plus tard · « à planifier » 195×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 2655,
+   "fixes": []
+  }
+ },
+ {
+  "n": "modifier",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 680,
+   "fixes": []
+  }
+ },
+ {
+  "n": "mail",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 607,
+   "fixes": []
+  }
+ },
+ {
+  "n": "sms",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 517,
+   "fixes": []
+  }
+ },
+ {
+  "n": "client-voit-pdf",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Le PDF (ce qu’il reçoit) 196×40",
+    "Le lien sur téléphone 181×40",
+    "Le lien sur ordinateur 183×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 716,
+   "fixes": []
+  }
+ },
+ {
+  "n": "client-voit-plein",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "⤓ Télécharger 147×40",
+    "✉ Envoyer 119×40",
+    "Fermer 42×42"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 1197,
+   "fixes": []
+  }
+ },
+ {
+  "n": "client-voit-tel",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Le PDF (ce qu’il reçoit) 194×40",
+    "Le lien sur téléphone 184×40",
+    "Le lien sur ordinateur 183×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "client-voit-ordi",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Le PDF (ce qu’il reçoit) 194×40",
+    "Le lien sur téléphone 181×40",
+    "Le lien sur ordinateur 187×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-journee",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Continuer 96×40",
+    "Y aller 73×40",
+    "Appeler 84×40",
+    "Commencer 112×40",
+    "Toutes mes tâches 150×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-fiche",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Restaurant Le Vieux Port › 409×32",
+    "Retirer la photo Avant 30×30",
+    "Retirer la photo Roulement usé 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-fiche-planifiee",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "M. et Mme Durand › 535×32"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-pas-fini",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 659,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-manque",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 355,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-fait",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Hôtel de la Plage › 601×32"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-fiche-tech",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Restaurant Le Vieux Port › 409×32",
+    "Retirer la photo Avant 30×30",
+    "Retirer la photo Roulement usé 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-fiche-bureau",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Société d’exploitation des établissement 1054×32",
+    "＋ Nouvelle tâche 141×34",
+    "Retirer la photo Avant 30×30",
+    "Retirer la photo Roulement usé 30×30",
+    "Retirer la photo Photo de l’unité extéri 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-liste",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Voir dans Tâches › 1040×41",
+    "Aujourd’hui · 9 136×40",
+    "À venir · 8 104×40",
+    "À planifier · 3 127×40",
+    "Terminées · 8 129×40",
+    "Toutes · 24 114×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-journee",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Continuer 96×40",
+    "Y aller 73×40",
+    "Appeler 84×40",
+    "Commencer 112×40",
+    "Toutes mes tâches 150×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-fiche-fait",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Madame Marie-Hélène de Montmorency-Laval 528×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-client-voit",
+  "dep": {
+   "largeur": 1366,
+   "premiere": 1366,
+   "seconde": 1366,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Le PDF (ce qu’il reçoit) 194×40",
+    "Le lien sur téléphone 184×40",
+    "Le lien sur ordinateur 183×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 768,
+   "dernierBas": 720,
+   "fixes": []
+  }
+ }
+]

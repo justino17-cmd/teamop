@@ -39,6 +39,7 @@ MUT = [
  M("R3a « Délai » garde ses lignes dans le champ", 'A', "V.delai=uneLigne(t);", "V.delai=t.value.replace(/\\s*\\n\\s*/g,' ');", "compositeur-restes1.js", {'PROFIL':'iphone'}),
  M("R3b « Paiement » garde ses lignes dans le champ", 'A', "V.paiement=uneLigne(t);", "V.paiement=t.value.replace(/\\s*\\n\\s*/g,' ');", "compositeur-restes1.js", {'PROFIL':'iphone'}),
  M("R3c le curseur ne reste plus à sa place après un collage", 'A', "try{ t.setSelectionRange(c,c) }catch(e){}", "", "compositeur-restes1.js", {'PROFIL':'iphone'}),
+ M("R5 les initiales du logo ne sont plus protégées contre la mise en page d'avant l'échelle", 'A', 'svg[role="img"] text{text-rendering:geometricPrecision}', "", "compositeur-restes1.js", {'PROFIL':'iphone'}),
  M("R4 un blanc du modèle ne se met plus entre crochets (résumé de bibliothèque)", 'A', "const v=defVar(k); return v?'['+v.n+']':(k==='entreprise'?'le prestataire':'['+k+']') });", "const v=defVar(k); return v?v.n:(k==='entreprise'?'le prestataire':k) });", "compositeur-restes1.js", {'PROFIL':'iphone'}),
 ]
 filtre = sys.argv[1] if len(sys.argv) > 1 else ''
