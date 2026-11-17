@@ -7,7 +7,7 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 11 h 42 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 11 h 52 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
@@ -19,7 +19,6 @@ sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 
 | guide | `{voie:"guide"}` | /home/user/wt-guide | wf_289bd7da-b70 (tâche w0u4m2s3r) | 1 sur 4 (lancée à 9 h 45, sans attendre la fin de l'étape 5 de vehtemps, en recette : le chemin le plus long) |
 | entreprise | `{voie:"entreprise", depuis:7}` | /home/user/wt-entreprise | wf_78db34a7-62b (tâche wbfz3zapz) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée (ne rejoue plus les sondes de tous les lots) |
 | securite | `{voie:"securite", depuis:7}` | /home/user/wt-securite | wf_ddbf05bc-b79 (tâche wkrvtuozl) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée ; les 18 failles sont corrigées (`securite/corrections.json`) ; les polices du compositeur sont REMISES par décision du chef |
-| restes (artefact) | `{voie:"restes", noms:["artefact"], arbre:"/home/user/wt-artefact"}` | /home/user/wt-artefact | wf_23f6a788-f10 (tâche w4gmon24x) | 1 sur 4 (lancée à 9 h 15 : bouton « Voir comme l'application », fichiers nés dans un cadre, deux casses du recontrôle) |
 | restes (coque) | `{voie:"restes", noms:["coque"], arbre:"/home/user/wt-t-taches-absences"}` | /home/user/wt-t-taches-absences | wf_e863236e-f53 (tâche w5lp74p1n) | 1 sur 4 (lancée à 8 h 13) |
 | restes (interventions) | `{voie:"restes", noms:["interventions"], arbre:"/home/user/wt-t-interventions", tours:1}` | /home/user/wt-t-interventions | wf_a3784188-c7f (tâche wj94wa354) | 1 sur 2 (lancée à 10 h 31, UN tour) |
 | campagne clients | `{voie:"campagne", cles:["clients"], arbre:"/home/user/wt-t-clients"}` | /home/user/wt-t-clients | wf_9eac0989-473 (tâche wunwkw7f8) | 2 sur 3 |
@@ -55,6 +54,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 16 | session_01PfEEAGPpBDD97WG3Y3r7PB | `{voie:"final-regard", role:"gerant", rubriques:["Accueil","Statistiques","Historique","Planning","Interventions","Tâches","Absences et congés"], suffixe:"a"}` | 11 h 42 | |
 | 17 | session_01PfEEAH7jKCdAdGejGjNbZ9 | `{voie:"final-regard", role:"gerant", rubriques:["Clients","Devis","Contrats","Boîte mail","Comptabilité","Achats et frais"], suffixe:"b"}` | 11 h 42 | |
 | 18 | session_01PfEEAJSZRMkBCbs92BLL1i | `{voie:"restes", noms:["planning"], depuis:3}` (recontrôle du tour 2) | 11 h 42 | |
+| 19 | session_01PfEEADuTZ1RBxsQwRSgovp | `{voie:"restes", noms:["artefact"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 11 h 52 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
