@@ -273,6 +273,19 @@ jour, `unattended-upgrades` actif ; `ufw` actif, seules 22, 80 et 443 ouvertes (
 Deux ordinateurs chez Justin : il entre sur le serveur ACTUEL (clients) depuis son MAC, et sur l'ATELIER depuis son PC Windows
 (raccourci `ssh atelier` posé le 17, en double dans `~/.ssh/config`, sans conséquence). À la reprise : dire à chaque commande sur
 QUEL ordinateur et QUEL serveur ; poser plus tard la clé du Mac sur l'atelier s'il veut tout faire du même endroit.
+**Justin, 17 novembre, 19 h 06 — LE PÉRIMÈTRE S'ÉLARGIT** : « il faut faire pareil pour OP MESSAGES, le passer sur ce serveur, et aussi
+quitter Firebase ». Répondu : oui aux deux BUTS (OP MESSAGES sur nos serveurs, plus de Firebase), à mettre dans le plan du
+chantier 0 — mais PAS sur l'atelier : il porte la porte d'exécution et les essais, il est en Allemagne, et il ne doit recevoir
+aucune donnée réelle ; OP MESSAGES (comptes de personnes, messages) va sur un serveur de PRODUCTION — celui des clients s'il a la
+marge, sinon un troisième : à trancher sur la mesure. Rappels de ce fichier : OP MESSAGES et OP GESTION ont des serveurs séparés
+(décision du 22 septembre), `server-msg/` existe déjà, la sortie de Firebase d'OP GESTION est écrite (25 septembre), et « éteindre
+Firebase » ne peut être total qu'une fois OP MESSAGES sorti. ✅ **LA PORTE DE L'ATELIER est écrite et éprouvée** (`scripts/atelier/
+porte.js`, `installer-porte.sh`, `tests/test-3298.js` : 30 ✓ ; huit défauts remis un par un, le banc tombe huit fois) : c'est par
+elle que CETTE conversation lancera ses commandes sur l'atelier (Justin : « le but, c'est que je fasse pas une autre conversation
+pour travailler »). Reste : l'enregistrement DNS `atelier` (type A) chez OVH — teamop.fr s'y règle bien, vu sur sa capture —,
+l'installation par lui, la clé posée par `request_credential` (hôte `atelier.teamop.fr`), puis un premier appel réel. À FAIRE
+RELIRE par `gardien` avant de s'en servir pour de bon ; le compte « atelier » n'a pas de droits d'administrateur (les gestes en
+root restent à Justin tant qu'il n'a pas dit autre chose).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
