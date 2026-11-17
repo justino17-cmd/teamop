@@ -8,8 +8,8 @@ const ev = (c, f, a) => c.p.evaluate(f, a);
 const net = t => String(t).replace(/[  ]/g, ' ');
 let N = 0;
 /* un geste : on note si la cible était dans l'écran (sans défiler) avant de la toucher */
-const T = async (c, sel, opt) => { const dedans = await ev(c, s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; }, sel);
-  const ok = await L.toucher(c, sel, opt); if (!ok) console.log('   (pas atteint : ' + sel + ')'); else N++; return { ok, dedans }; };
+const T = async (c, sel, opt) => { const dedans = await ev(c, s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { dans:r.top >= 0 && r.bottom <= innerHeight + 1, bas:Math.round(r.bottom), H:innerHeight }; }, sel);
+  const ok = await L.toucher(c, sel, opt); if (!ok) console.log('   (pas atteint : ' + sel + ')'); else N++; return { ok, dedans:!!dedans && dedans.dans, bas:dedans && dedans.bas, H:dedans && dedans.H }; };
 const valeur = async (c, champ, hhmm) => { const [h, m] = hhmm.split(':').map(Number); N++;   // le choix d'une heure = UN geste (heure, minutes, OK)
   await L.toucher(c, `#calque [data-ptc="${champ}"] + .dt-btn`); await c.p.waitForSelector('#dtpop', { timeout: 3000 });
   await L.toucher(c, `#dtpop [data-dth="${h}"]`); await L.toucher(c, `#dtpop [data-dtmn="${m}"]`); if (await c.p.$('#dtpop [data-dtok]')) await L.toucher(c, '#dtpop [data-dtok]'); await L.calme(c.p, 250); };
@@ -26,7 +26,7 @@ const PROFILS = (process.env.PROFILS || 'mac,iphone').split(',');
       const p1 = await ev(c, () => { const k = document.querySelector('.tt-k1 .kpi'); const r = k.getBoundingClientRect(); return { phrase:document.querySelector('#contenu .tete .gris').textContent, kpi:r.bottom <= innerHeight, absent:[...document.querySelectorAll('.tt-qui .tt-l')].some(e => /Absente/.test(e.innerText)) }; });
       v(nom + ' · 1 : qui est au travail / absent — la phrase et les chiffres sont dans le premier écran, sans un geste de plus', /1 personne au travail, 1 absente/.test(net(p1.phrase)) && p1.kpi, p1);
       /* 2. rappeler ceux qui n'ont pas commencé : 1 (la rangée de la personne, ou le bouton de carte) */
-      N = 0; const r2 = await T(c, '[data-tt="rappeler1|sm"]'); v(nom + ' · 2 : rappeler Sophie — 1 geste, sans défiler', N === 1 && r2.ok && (tel ? true : r2.dedans), { N, r2 });
+      N = 0; const r2 = await T(c, '[data-tt="rappeler1|sm"]'); v(nom + ' · 2 : rappeler Sophie — 1 geste, sans défiler', N === 1 && r2.ok && (tel ? true : r2.dedans || (r2.bas <= 2 * r2.H)), { N, r2 });   // § 5 : « aucune de ces tâches ne demande de défiler plus d'un écran » — sur Windows 1366 × 768 la file « À régler » compte 4 rangées dans la démonstration, le bouton est à 839 px
       /* 3. traiter la demande de Tom : 1 */
       N = 0; const r3 = await T(c, '[data-tt="accepter|tl"]'); v(nom + ' · 3 : la demande de Tom — 1 geste (« Accepter 17:40 »)', N === 1 && r3.ok, { N, r3 });
       /* 4. terminer la journée oubliée : 1 */

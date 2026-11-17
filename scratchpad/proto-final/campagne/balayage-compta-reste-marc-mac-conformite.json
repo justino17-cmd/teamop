@@ -1,0 +1,764 @@
+{
+ "profil": "mac",
+ "sorties": {
+  "marc-mac-conformite-normes": {
+   "recenses": 29,
+   "touches": 29,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Aux normes6",
+     "data": "data-cx=sec|normes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 144,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Archives & exports",
+     "data": "data-cx=sec|archives",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 165,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|controles|1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    },
+    {
+     "i": 12,
+     "lib": "Compléter ma fiche légale",
+     "data": "data-cx=fiche",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Ce que tes factures et tes devis disent de toi",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 207,
+     "h": 40
+    },
+    {
+     "i": 13,
+     "lib": "Ajouter mon assurance",
+     "data": "data-cx=fiche",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Ce que tes factures et tes devis disent de toi",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 187,
+     "h": 40
+    },
+    {
+     "i": 14,
+     "lib": "Voir les factures",
+     "data": "data-cx=sec|fventes|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 141,
+     "h": 40
+    },
+    {
+     "i": 15,
+     "lib": "Choisir ma plateforme",
+     "data": "data-cx=plateforme",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Ta plateforme agréée",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 179,
+     "h": 40
+    },
+    {
+     "i": 16,
+     "lib": "Renseigner les SIREN",
+     "data": "data-cx=siren",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Le SIREN de chaque client professionnel",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 176,
+     "h": 40
+    },
+    {
+     "i": 17,
+     "lib": "Expliquer",
+     "data": "data-cx=sec|banque",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 93,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "Voir la caisse",
+     "data": "data-cx=sec|caisse",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 121,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Payer",
+     "data": "data-cx=sec|fachats|achats|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 69,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "Ajouter les factures",
+     "data": "data-cx=sec|fachats|achats|sanspiece",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 162,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "Valider",
+     "data": "data-cx=sec|ndf",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 78,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "Voir la TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 105,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "Les régimes",
+     "data": "data-cp=regimes",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Les régimes de TVA",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 113,
+     "h": 40
+    },
+    {
+     "i": 24,
+     "lib": "Les archives",
+     "data": "data-cx=sec|archives",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 116,
+     "h": 40
+    },
+    {
+     "i": 25,
+     "lib": "Voir le fichier",
+     "data": "data-cp=fec",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Les écritures d’octobre, au format FEC",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 121,
+     "h": 40
+    },
+    {
+     "i": 26,
+     "lib": "Par intervention",
+     "data": "data-cx=sec|dossiers",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 139,
+     "h": 40
+    },
+    {
+     "i": 27,
+     "lib": "Clôturer octobre",
+     "data": "data-cx=sec|cloture",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 142,
+     "h": 40
+    },
+    {
+     "i": 28,
+     "lib": "Ajouter mon médiateur",
+     "data": "data-cx=fiche",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Ce que tes factures et tes devis disent de toi",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 185,
+     "h": 40
+    }
+   ]
+  },
+  "marc-mac-conformite-archives": {
+   "recenses": 16,
+   "touches": 16,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Aux normes6",
+     "data": "data-cx=sec|normes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 142,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Archives & exports",
+     "data": "data-cx=sec|archives",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 167,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|fec|1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    },
+    {
+     "i": 12,
+     "lib": "Voir",
+     "data": "data-cp=fec",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Les écritures d’octobre, au format FEC",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 58,
+     "h": 40
+    },
+    {
+     "i": 13,
+     "lib": "Ouvrir",
+     "data": "data-action=bilanPdf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Bilan d’octobre",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 73,
+     "h": 40
+    },
+    {
+     "i": 14,
+     "lib": "Ouvrir",
+     "data": "data-cx=sec|balance",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 73,
+     "h": 40
+    },
+    {
+     "i": 15,
+     "lib": "Ouvrir",
+     "data": "data-cx=sec|envoi",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 73,
+     "h": 40
+    }
+   ]
+  }
+ },
+ "err": []
+}

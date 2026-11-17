@@ -14,11 +14,11 @@ Pas dans ce fichier : les empreintes d'intégrité (SRI) des bibliothèques tier
  <html lang="fr">
  <head>
 -<meta charset="utf-8">
-+<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com https://unpkg.com 'sha256-Hr7pgmTF+dWcKnU54VbFCpFflSGAU1ccMSJuwj+C9bs=' 'sha256-cU0En0D0r7YS72fJIRYiLE9ETjim2YxAI4vxQteJvpg='; script-src-attr 'unsafe-hashes' 'sha256-jHF5hTIlMDyGZRAsNK0HO/WFYrwPvI2I1q0o1xKKB6I='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; font-src 'self' data:; connect-src 'self' blob: https://tiles.openfreemap.org https://server.arcgisonline.com; frame-src 'self' blob: data:; worker-src blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="same-origin">
++<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com https://unpkg.com 'sha256-Hr7pgmTF+dWcKnU54VbFCpFflSGAU1ccMSJuwj+C9bs=' 'sha256-ISMvritoA/QXLblENAi+VHVadCgdYrGX3fUD4wSWXO4='; script-src-attr 'unsafe-hashes' 'sha256-jHF5hTIlMDyGZRAsNK0HO/WFYrwPvI2I1q0o1xKKB6I='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; font-src 'self' data:; connect-src 'self' blob: https://tiles.openfreemap.org https://server.arcgisonline.com; frame-src 'self' blob: data:; worker-src blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="same-origin">
  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
  <meta name="robots" content="noindex,nofollow">
  <!-- Aperçu de travail (5 novembre 2026) : le PROTOTYPE d'OP GESTION que Justin teste, copié tel quel depuis l'artefact claude.ai.
-@@ -11720,7 +11720,7 @@
+@@ -11741,7 +11741,7 @@
  /* UNE garde, en capture, avant tout autre écouteur : elle remonte de la cible jusqu'au premier élément qui porte un geste connu, demande à la table, et avale ce que la personne n'a pas le droit de faire */
  function droitsGeste(ev){
    try {

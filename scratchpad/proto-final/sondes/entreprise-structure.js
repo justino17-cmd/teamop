@@ -29,7 +29,7 @@ const { L, v, CAP, PROFILS, ouvrirEnt, fin } = require('./entreprise-commun.js')
     v(`${tag} : six liens « Ce qui se règle ailleurs »`, r.liens.join('|') === 'rdv|auto|ndf|stock|boites|metiers', r.liens);
     v(`${tag} : une phrase d’aide par carte (5)`, r.aide === 5, r.aide);
     v(`${tag} : états Complète / À compléter / initiales / Complète / Complète`, r.etats.join('|') === 'Complète|À compléter|Les initiales CS sont utilisées|Complète|Complète', r.etats);
-    v(`${tag} : le bandeau dit que les factures peuvent partir (nom, adresse, SIRET présents) et ce qui reste à compléter — jamais « complète » tant qu'une mention manque`, /^Tes factures peuvent partir\. Il reste à compléter, dans tes mentions légales : la forme juridique/.test(r.bandeau || '') && !/Ta fiche est complète/.test(r.bandeau || ''), r.bandeau);
+    v(`${tag} : le bandeau dit que les factures peuvent partir (nom, adresse, SIRET présents) et ce qui reste à compléter — jamais « complète » tant qu'une mention manque`, /^Tes factures peuvent partir\. Il reste à compléter, dans tes mentions légales\s:\sla forme juridique/.test(r.bandeau || '') && !/Ta fiche est complète/.test(r.bandeau || ''), r.bandeau);
     const d = await L.deborde(c); v(`${tag} : la page ne glisse pas de côté (largeur posée ${d.largeur})`, d.bouge === 0 && d.seconde <= d.largeur, d);
     if (c.doigt) { const t = await L.doigts(c.p, '#contenu'); v(`${tag} : cibles ≥ 44 px`, t.petits.length === 0, t.petits); v(`${tag} : aucun texte écrasé`, t.ecrases.length === 0, t.ecrases); }
     if (nuit || profil === 'mac' || profil === 'iphone' || profil === 'petit') await L.capture(c, `${CAP}structure-${profil}-${nuit ? 'nuit' : 'jour'}.png`, false);
