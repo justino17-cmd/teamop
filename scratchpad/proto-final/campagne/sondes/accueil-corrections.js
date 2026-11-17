@@ -74,6 +74,8 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
     await p.evaluate("stPer='annee'"); await L.aller(p, 'statistiques'); await L.calme(p, 700);
     const col12 = await p.evaluate(() => [...document.querySelectorAll('.st-col')].map(e => Math.round(e.getBoundingClientRect().width)));
     v('accueil-05 · iPad : les mois du graphique (12 mois) font 44 px au moins', col12.length === 12 && col12.every(x => x >= 44), col12);
+    const echelle = await p.evaluate(() => [...document.querySelectorAll('.st-grad span')].map(e => getComputedStyle(e).display === 'none' || getComputedStyle(e).direction === 'ltr'));
+    v('accueil-05 · iPad : l’échelle du graphique n’est pas lue à l’envers par le défilement de droite à gauche', echelle.length > 0 && echelle.every(Boolean), echelle);
     await p.evaluate("stPer='mois'");
   }
   const bruit = c.err.filter(e => !/hl-ecran|Failed to load/.test(e)); v('aucune erreur JavaScript', bruit.length === 0, bruit.slice(0, 4));

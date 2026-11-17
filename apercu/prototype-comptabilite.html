@@ -505,7 +505,7 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
   .btn{white-space:normal;line-height:1.2;padding-block:9px;text-align:center}
   h1{font-size:25px}
 }
-@media (pointer:coarse){.t input.saisie,.t select.saisie{font-size:16px;min-height:44px}button.chip{min-height:44px}.btn.petit{min-height:44px}.seg button{min-height:42px}.mode-seg button{min-height:40px}.lien{min-height:44px}.guide .fermer{width:44px;height:44px}}
+@media (pointer:coarse){.t input.saisie,.t select.saisie{font-size:16px;min-height:44px}button.chip{min-height:44px}.btn.petit{min-height:44px}.seg button{min-height:44px}.mode-seg button{min-height:40px}.lien{min-height:44px}.guide .fermer{width:44px;height:44px}.fen-tete a{min-height:44px;min-width:44px}.cmpt-plus{min-height:44px}}   /* « Revenir au tableau de bord » et « Fermer la fenêtre » : 44 px au doigt (compta-ventes-21) */
 /* ── comptabilite ── (lot Comptabilité : le pont avec OP GESTION, les gestes rapides, les listes qui se filtrent) */
 .cmpt-liens{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .cmpt-liens .btn{min-height:44px}
@@ -652,7 +652,7 @@ const nomTiers = k => (tiers(k) || {}).nom || k;
    vente : celles de l'application, leurs paiements et leurs relances SONT les siens. L'application les donne à l'ouverture (paramètre
    « liaison » de l'adresse du cadre) puis à chaque changement (message opc_ventes). Ouverte seule, sans ce paramètre : le jeu
    d'exemple d'avant, rien ne change. */
-let LIA = null, OPL_NUMS = new Set(), OPL_EN_COURS = false;
+let LIA = null, OPL_NUMS = new Set(), OPL_ANNULEES = new Set(), OPL_EN_COURS = false;   /* OPL_ANNULEES : les factures que l'application a annulées par un avoir (jamais « payées », jamais « à encaisser ») */
 try { const m = /[?&]liaison=([^&#]+)/.exec(location.search); if (m && window.parent !== window && /[?&]app=1\b/.test(location.search)) LIA = JSON.parse(decodeURIComponent(m[1])); } catch (e) { LIA = null; }
 if (LIA && !Array.isArray(LIA.factures)) LIA = null;
 const oplNorm = x => String(x == null ? '' : x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -672,7 +672,7 @@ function oplSpecs(P){
     if (!f || !f.num || f.num === '—' || !oplISO(f.emise)) return; vus.add(f.num);
     const der = enc.filter(e => e.fac === f.num)[0];   // l'application range le plus récent en tête
     const s = { num:f.num, cli:oplClient(f.nom, f.type, f.cli), lib:String(f.objet || 'Prestation').replace(/\s·\s\d{2}\/\d{2}$/, ''), ht:dec(f.ht), taux:+f.taux || 0, date:f.emise,
-      ech:oplISO(f.ech) ? f.ech : ajoute(f.emise, 30), relances:+f.relances || 0, avoir:f.st === 'avoir', recu:dec(f.recu), pay:null, paye:false };
+      ech:oplISO(f.ech) ? f.ech : ajoute(f.emise, 30), relances:+f.relances || 0, avoir:f.st === 'avoir', annulee:f.st === 'annulee', recu:dec(f.recu), pay:null, paye:false };
     if (s.avoir) { F.push(s); return; }
     if (f.st === 'payee') { let d = oplISO(f.paye) ? f.paye : (der && oplISO(der.d) ? der.d : AUJ); if (d < s.date) d = s.date; if (d > AUJ) d = AUJ; s.pay = { d, mode:oplMode(f.mode || (der && der.mode)) }; s.paye = true; }
     else if (der && s.recu > 0 && oplISO(der.d)) s.pay = { d:der.d > AUJ ? AUJ : der.d < s.date ? s.date : der.d, mode:oplMode(der.mode) };
@@ -3346,6 +3346,9 @@ function cmptFactureBloc(num){
   const S = cmptEtatFacture(num); if (!S) return '';
   const { f, F, p, late, jr } = S, rel = f.relances || 0, due = r2(F.ttc - oplRecu(num));
   const li = (cl, ic, t) => `<li class="${cl}"><i aria-hidden="true">${ic}</i><span>${t}</span></li>`;
+  if (OPL_ANNULEES.has(num)) return `<div class="carte cmpt-fac" data-fac-etat="${esc(num)}"><h3>Où en est cette facture</h3><ul class="cmpt-etat">
+      ${li('ok', '✓', `Envoyée par OP GESTION le ${dCourt(F.e.date)} · ${eur(F.ttc)} TTC`)}${li('ok', '✓', 'Annulée par un avoir : plus rien à payer, aucune relance ne part')}</ul>
+    <div class="cmpt-outils"><button type="button" class="btn gris petit" data-cmpt="pdf" data-cle="${esc(num)}">Voir le PDF</button></div></div>`;
   return `<div class="carte cmpt-fac" data-fac-etat="${esc(num)}"><h3>Où en est cette facture</h3><ul class="cmpt-etat">
       ${li('ok', '✓', `Envoyée par OP GESTION le ${dCourt(F.e.date)} · ${eur(due)} TTC`)}
       ${p ? li('ok', '✓', `Payée le ${dCourt(p.date)} (${p.mode})`) : late ? li('mal', '!', `En retard : échue le ${dCourt(F.e.ech)}, il y a ${cmptPluriel(jr, 'jour')}`) : li('att', '…', `À encaisser${F.e.ech ? ' avant le ' + dCourt(F.e.ech) : ''}`)}
@@ -3378,6 +3381,9 @@ function cmptRelancerOk(num){
   rendre(); toast(`Relance ${f.relances} envoyée à ${nomTiers(f.cli)} · ${num}. Elle est notée dans « Ce qui s’est fait tout seul ».`, 5200);
 }
 function cmptPdf(num){
+  /* dans OP GESTION, la facture n'a QU'UN document : c'est l'application qui le montre (désignation complète, mentions, coordonnées de paiement).
+     L'aperçu d'une ligne, ci-dessous, ne sert que lorsque la comptabilité est ouverte seule (compta-ventes-13) */
+  if (cmptParent({ opc_ouvrir:{ sorte:'pdf', cle:num } })) return;
   const S = cmptEtatFacture(num); if (!S) return; const { f, F } = S, tx = F.taux ? String(F.taux).replace('.', ',') : '0';
   ouvrir(haut('Facture ' + esc(num), `${esc(nomTiers(f.cli))} · ${dCourt(F.e.date)}`, 'Aperçu du PDF') + `<div class="cmpt-pdf"><h3>${esc(DOSSIER.nom)}</h3><span>${esc(DOSSIER.adr)} · SIRET ${esc(DOSSIER.siret)}</span>
     <p style="margin:12px 0 0"><b>Facture ${esc(num)}</b> du ${dCourt(F.e.date)}<br>Client : ${esc(nomTiers(f.cli))}<br>Échéance : ${F.e.ech ? dCourt(F.e.ech) : '—'}</p>
@@ -3444,7 +3450,7 @@ VUES.ventes = () => {
   const L0 = E.filter(e => e.j === 'VE' && e.etat !== 'supprimee' && !e.essai).map(e => factureDe(e.piece)).filter(f => f && (f.e.date >= '2026-10-01' || !f.lettree || (LIA && OPL_NUMS.has(f.e.piece)) ) && !(LIA && /^AV-/.test(f.e.piece))).sort((a, b) => b.e.date.localeCompare(a.e.date) || b.e.piece.localeCompare(a.e.piece));
   /* un avoir est du crédit sur le compte du client, pas de l'argent encaissé : « Encaissé en octobre » le comptait (+95 € après un avoir de 95 €, alors que l'application dit 3 045 €) · 13 novembre 2026 */
   const o = { du:'2026-10-01', au:AUJ }, facture = -solde('70', o), encaisse = lignesDe(l => l.c === '411000' && l.cr > 0, o).filter(x => !(LIA && /^AV-/.test(x.e.piece))).reduce((s, x) => s + cts(x.l.cr), 0) / 100;
-  const late = f => !f.lettree && f.e.ech && f.e.ech < AUJ, retard = L0.filter(late), dues = L0.filter(f => !f.lettree), payees = L0.filter(f => f.lettree);
+  const late = f => !f.lettree && f.e.ech && f.e.ech < AUJ, retard = L0.filter(late), dues = L0.filter(f => !f.lettree), payees = L0.filter(f => f.lettree && !OPL_ANNULEES.has(f.e.piece));
   const cliDe = f => f.e.lignes.find(l => l.aux).aux, q = cmptNorm(UI.vq).trim();
   const base = UI.vf === 'retard' ? retard : UI.vf === 'encaisser' ? dues : UI.vf === 'payees' ? payees : L0;
   const L = q ? base.filter(f => cmptNorm([f.e.piece, nomTiers(cliDe(f)), f.e.lib].join(' ')).includes(q)) : base;
@@ -3456,7 +3462,7 @@ VUES.ventes = () => {
     <div class="defile"><table class="t liste-tel" role="table"><thead role="rowgroup"><tr role="row"><th class="masque-tel" role="columnheader">Facture</th><th role="columnheader">Client</th><th class="masque-tel" role="columnheader">Date</th><th class="n" role="columnheader">TTC</th><th role="columnheader">État</th></tr></thead><tbody role="rowgroup">
       ${L.map(f => { const p = paiementDe(f), F = FACTURES.find(x => x.num === f.e.piece) || {}, cli = cliDe(f), pp = LIA ? oplRecu(f.e.piece) : 0, en = late(f) && !pp;
         return `<tr class="clic" role="row" data-fac="${esc(f.e.piece)}" data-a="expliquer" data-id="${f.e.id}" data-tag="fac"><td class="mono masque-tel" role="cell">${esc(f.e.piece)}</td><td class="lt-t" role="cell">${esc(nomTiers(cli))}<span class="sec">${esc(f.e.lib.split(' · ')[0])}</span><span class="sec seul-tel mono">${esc(f.e.piece)}</span></td><td class="c masque-tel" role="cell">${dCourt(f.e.date)}</td><td class="n lt-m" role="cell">${nb(f.ttc)}</td>
-          <td class="lt-e" role="cell">${p ? `<span class="st ok">Payée · ${p.mode}</span><span class="sec">le ${dCourt(p.date)}</span>` : en ? `<span class="st bad">En retard</span><span class="sec">due le ${dCourt(f.e.ech)}${F.relances ? ' · ' + plur(F.relances, 'relance') : ''}</span>` : pp > 0 ? `<span class="st warn">Payée en partie</span><span class="sec">reste ${eur(r2(f.ttc - pp))}${late(f) ? ' · en retard' : ''}</span>` : `<span class="st warn">À encaisser</span><span class="sec">${f.e.ech ? 'due le ' + dCourt(f.e.ech) : ''}</span>`}</td></tr>`; }).join('') || `<tr role="row"><td role="cell" colspan="5" class="vide">${q ? 'Aucune facture ne correspond à « ' + esc(UI.vq.trim()) + ' ».' : 'Aucune facture dans ce filtre.'}</td></tr>`}</tbody></table></div>
+          <td class="lt-e" role="cell">${OPL_ANNULEES.has(f.e.piece) ? `<span class="st">Annulée par un avoir</span><span class="sec">plus rien à encaisser</span>` : p ? `<span class="st ok">Payée · ${p.mode}</span><span class="sec">le ${dCourt(p.date)}</span>` : en ? `<span class="st bad">En retard</span><span class="sec">due le ${dCourt(f.e.ech)}${F.relances ? ' · ' + plur(F.relances, 'relance') : ''}</span>` : pp > 0 ? `<span class="st warn">Payée en partie</span><span class="sec">reste ${eur(r2(f.ttc - pp))}${late(f) ? ' · en retard' : ''}</span>` : `<span class="st warn">À encaisser</span><span class="sec">${f.e.ech ? 'due le ' + dCourt(f.e.ech) : ''}</span>`}</td></tr>`; }).join('') || `<tr role="row"><td role="cell" colspan="5" class="vide">${q ? 'Aucune facture ne correspond à « ' + esc(UI.vq.trim()) + ' ».' : 'Aucune facture dans ce filtre.'}</td></tr>`}</tbody></table></div>
     <p class="mute petit">${L.length === L0.length ? '' : cmptPluriel(L.length, 'facture affichée', 'factures affichées') + ' sur ' + L0.length + '. '}Touche une facture pour voir où elle en est : relancer, voir le PDF, l’ouvrir dans OP GESTION. ${UI.expert ? 'Le compte de chaque client est dans « Clients et fournisseurs ».' : ''}</p>`;
 };
 
@@ -3676,16 +3682,25 @@ function oplDejaRegle(x){ return LIA && x.l.c === '411000' && x.l.d > 0 ? Math.m
 function oplSync(P, init){
   if (!LIA || !P || !Array.isArray(P.factures)) return;
   if (P.prochain) LIA.prochain = P.prochain;
-  const S = oplSpecs(P); OPL_NUMS = new Set(S.F.map(x => x.num)); let n = 0; OPL_EN_COURS = true;
+  const S = oplSpecs(P); OPL_NUMS = new Set(S.F.map(x => x.num)); OPL_ANNULEES = new Set(S.F.filter(x => x.annulee).map(x => x.num)); let n = 0; OPL_EN_COURS = true;
   try { S.F.forEach(s => {
     let F = factureDe(s.num), rec = FACTURES.find(x => x.num === s.num);
     if (!F) { oplCreer(s); n++; F = factureDe(s.num); rec = FACTURES.find(x => x.num === s.num); }
     if (s.avoir || !F) return;
+    if (s.annulee) { n += oplAnnuler(s, S, F) ? 1 : 0; return; }   // un avoir a annulé cette facture : elle se solde avec lui, sans paiement
     if (rec && s.relances > (rec.relances || 0)) { rec.relances = s.relances; rec.relanceLe = dCourt(AUJ).slice(0, 5); n++; }
     { const cible = s.paye ? F.ttc : s.recu; if (oplTotalPaye(s.num) > cible + .004 && oplDefaire(s.num, cible)) { n++; F = factureDe(s.num); } }   // l'application a annulé un paiement : on le défait avant de comparer
     if (!F.lettree && s.pay) { const vise = s.paye ? F.ttc : s.recu, deja = oplRecu(s.num); if (vise > deja + .004 && oplEncaisser(s.num, vise - deja, s.pay.mode, s.pay.d)) n++; }
   }); } finally { OPL_EN_COURS = false; }
   if (n && !init) { try { rendre(); } catch (e) {} }
+}
+/* une facture ENVOYÉE puis annulée par un avoir (OP GESTION) : la facture et l'avoir se rapprochent sur le compte du client (lettrage), le client ne doit plus rien et aucun paiement
+   n'a eu lieu. Sans ça, la facture restait « à encaisser » ici pendant que l'application disait « plus rien à recevoir » (compta-ventes-06). */
+function oplAnnuler(s, S, F){
+  if (F.lettree) return false;
+  const av = S.F.find(a => a.avoir && a.lib.indexOf(s.num) >= 0), ea = av && E.find(x => x.j === 'VE' && x.piece === av.num && x.etat !== 'supprimee'); if (!ea) return false;
+  const i = ea.lignes.findIndex(l => l.c === '411000' && l.aux); if (i < 0) return false;
+  return !lettrer([F.ref, ref(ea, i)], ea.date > AUJ ? AUJ : ea.date).err;
 }
 /* sens cadre → application : un paiement que la banque de la comptabilité range sur une facture est dit à l'application (sans boucle : ce que l'application dit ne se redit pas) */
 function oplDireHote(num, mode, date){ const F = factureDe(num); if (F) cmptParent({ opc_paiement:{ num, mode, date, montant:F.ttc } }); }
@@ -3716,6 +3731,32 @@ function opcMarque(){
 { let enCours = false; const obs = new MutationObserver(() => { if (enCours) return; enCours = true; try { opcMarque(); } finally { enCours = false; } });
   ['menu', 'barre', 'contenu'].forEach(id => { const e = document.getElementById(id); if (e) obs.observe(e, { childList:true, subtree:true }); });
   opcMarque(); if (OPC_APP && typeof rendre === 'function') rendre(); }
+
+/* ── OP Security : la banque et les exports se confirment sur le téléphone (double-auth, étape 3, 17 novembre 2026) ──
+   OP GESTION tient le téléphone et la fenêtre de 5 minutes : ce cadre ne fait que DEMANDER. Contrat :
+     cadre → page : { opc_sensible:{ id, cle } }  avec cle = 'compta-banque' (l'onglet Banque) ou 'compta-export' (le FEC, l'envoi au cabinet) ;
+     page → cadre : { opc_confirme:{ id, ok } }   (ok:false = annulée, expirée, refusée) ; { opc_confirme:{ expire:true } } quand les 5 minutes sont passées.
+   Ouverte SEULE (pas de page autour) : aucune garde, comme avant. Tout message reçu est contrôlé (source, forme) et ne sert que de clé de table. */
+const OPC_SENS = { attente:{}, visite:false, avant:'accueil', enCours:false, libre:false };
+const opcHote = () => { try { return window.parent !== window; } catch (e) { return false; } };
+function opcSensible(cle, suite, annule){ if (!opcHote()) return suite();
+  const id = 'c' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  OPC_SENS.attente[id] = { suite, annule, t:setTimeout(() => { const p = OPC_SENS.attente[id]; if (!p) return; delete OPC_SENS.attente[id]; toast('Confirmation annulée.'); p.annule(); }, 180000) };
+  try { parent.postMessage({ opc_sensible:{ id, cle } }, '*'); } catch (e) { const p = OPC_SENS.attente[id]; delete OPC_SENS.attente[id]; clearTimeout(p.t); p.annule(); } }
+addEventListener('message', ev => { if (!opcHote() || ev.source !== parent) return; const d = ev.data, m = d && typeof d === 'object' ? d.opc_confirme : null; if (!m || typeof m !== 'object') return;
+  if (m.expire === true) { if (OPC_SENS.visite && UI.route === 'banque') { OPC_SENS.visite = false; toast('Cinq minutes ont passé : la banque est de nouveau masquée.'); aller(OPC_SENS.avant || 'accueil'); } else OPC_SENS.visite = false; return; }
+  const p = typeof m.id === 'string' ? OPC_SENS.attente[m.id] : null; if (!p) return; clearTimeout(p.t); delete OPC_SENS.attente[m.id]; if (m.ok === true) p.suite(); else p.annule(); });
+/* l'onglet Banque : une carte « Confirmation en attente… » tant que la page n'a pas répondu — la banque ne s'écrit pas avant */
+{ const r3 = rendre; rendre = function(){ if (!opcHote()) return r3.apply(this, arguments);
+    if (UI.route !== 'banque') { OPC_SENS.avant = UI.route; OPC_SENS.visite = false; return r3.apply(this, arguments); }
+    if (OPC_SENS.visite) return r3.apply(this, arguments);
+    rendreMenu(); rendreBarre(); const c = $('#contenu');
+    c.innerHTML = '<div class="carte" data-opc="attente"><h2>Confirmation en attente…</h2><p>Confirme sur ton téléphone pour voir la banque.</p><div class="outils"><button type="button" class="btn gris" data-a="aller" data-r="accueil">Annuler</button></div></div>';
+    if (!OPC_SENS.enCours) { OPC_SENS.enCours = true; opcSensible('compta-banque', () => { OPC_SENS.enCours = false; OPC_SENS.visite = true; rendre(); }, () => { OPC_SENS.enCours = false; aller(OPC_SENS.avant || 'accueil'); }); } }; }
+/* le FEC et l'envoi au cabinet : le geste est avalé tant que la page n'a pas confirmé, puis rejoué une fois */
+addEventListener('click', ev => { if (!opcHote() || OPC_SENS.libre) return; const b = ev.target.closest && ev.target.closest('[data-a="fec-dl"],[data-a="cloturer-envoyer"],[data-a="cloturer-oct"]'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+  ev.stopImmediatePropagation(); ev.preventDefault(); const sel = '[data-a="' + b.dataset.a + '"]';
+  opcSensible('compta-export', () => { OPC_SENS.libre = true; try { (b.isConnected ? b : document.querySelector(sel)).click(); } finally { OPC_SENS.libre = false; } }, () => {}); }, true);
 </script>
 
 </body>
