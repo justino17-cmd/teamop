@@ -27,7 +27,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
 - [ ] **Bandeaux « 2 envois à accepter » (Stock) et « Avant les visites » (Dépôts et camions)** — le rond vide à gauche
       (`.t-etat`, le rond « à faire » des tâches) ressemble à une case à cocher : si on ne peut pas le cocher ici, il trompe.
       À vérifier au doigt et à la souris ; s'il n'agit pas, le remplacer par une icône d'information ou le retirer.
-- [ ] **Bandeaux d'alerte teintés** — « Tes factures peuvent partir. Il reste à compléter… » (Mon entreprise, ambre) et
+- [ ] (REGARD gérant A, 17/11 : le fond est devenu un jeton, `--alerte-fond` — crème d'ambre claire de jour, inchangé de nuit — posé sur les bandeaux des TÂCHES « Retards d'équipe » et des ABSENCES « À régler avant de valider » ; reste à le poser sur les deux de cette ligne, qui ne sont pas des rubriques du gérant A : `background:var(--alerte-fond)`) **Bandeaux d'alerte teintés** — « Tes factures peuvent partir. Il reste à compléter… » (Mon entreprise, ambre) et
       « 1 compte verrouillé : Léa Roux. » (Équipe, rouge) : de jour sur Mac, la teinte posée sur le verre donne un dégradé
       gris-brun / gris-rose qui paraît terne à côté des cartes blanches. À regarder au pixel (jour et nuit, Mac et iPhone) et à
       éclaircir si le fond réel est bien grisâtre ; ne pas toucher au texte ni au bouton.
@@ -160,7 +160,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       notre serveur (à redire à Justin dans la liste des doutes). La garde `sondes/securite-statique.js` tient l'état décidé
       (49 ✓ · 0 ✗ ; trois mutations tombent : un troisième hôte, les polices dans une autre page, deux feuilles).
       ⛔ Ne pas la re-retirer : le recontrôle de la sécurité doit lire cette ligne.
-- [ ] **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
+- [x] (faite par 23c61df2 « Interventions, restes tour 1 » ; REGARD gérant A, 17/11 : rejouée par campagne/sondes/interventions-restes-1.js, 63 ✓ · 0 ✗, et vue sur capture — filtre « Toutes » visible sur iPad, « Date à fixer » en gras ; `final/regard-gerant-a.json`) **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
       · **16** : à la fin d'une intervention, une case générique pour TOUS les clients : « Un autre passage est nécessaire
         (le bureau prépare le devis) » ; « Entretien annuel » n'est cochée d'office que pour un Entretien, une Mise en service
         ou une Installation — jamais après un dépannage ni une garantie (sinon chaque dépannage crée un entretien dans un an).
