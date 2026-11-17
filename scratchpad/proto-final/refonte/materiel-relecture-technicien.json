@@ -1,7 +1,7 @@
 {
   "lot": "materiel",
   "angle": "technicien-telephone : iphone (encoches), android, petit (320 px), au doigt, jour et nuit — Mon camion de bout en bout (sm), ce que la technicienne ne voit jamais, le gérant (marc) au téléphone sur Stock, Fournisseurs, matériel & produits, Dépôts et camions, relecture du diff",
-  "etat": "en cours (1re sauvegarde)",
+  "etat": "terminé (relecture adverse jouée ; 14 constats)",
   "couvert": [
     "Mon camion (sm) iphone/android/petit jour+nuit : premier écran, cibles ≥ 44 px, champs ≥ 16 px, glissement latéral : 0 défaut mesuré",
     "Je l'ai pris (un appui, double appui, Annuler du toast), J'ai tout pris (+3 puis Annuler), Retirer : états recalculés (envois, stock, mouvements) — tout juste",
@@ -25,7 +25,9 @@
       "gravite": "gênant",
       "ecran": "Stock › tuile « à commander »",
       "role": "marc",
-      "profils": ["petit (320 px) jour et nuit"],
+      "profils": [
+        "petit (320 px) jour et nuit"
+      ],
       "etapes": "ouvrir Stock au profil 320 × 568 ; lire la première tuile",
       "attendu": "un mot entier par ligne : « à / commander »",
       "constate": "« commande » puis « r » seul sur la ligne suivante : le mot « commander » mesure 73 px, la tuile n'en laisse que 69 (overflow-wrap:break-word, hyphens:manual) ; reproduit deux fois (capture nuit et mesure jour)",
@@ -38,10 +40,14 @@
       "gravite": "gênant",
       "ecran": "Mon camion › feuilles « J'ai utilisé chez un client » et « J'ai pris à l'atelier » (même fabrique que « Noter les pièces utilisées ? »)",
       "role": "sm",
-      "profils": ["iphone (mesuré)"],
+      "profils": [
+        "iphone",
+        "android jour et nuit",
+        "petit nuit"
+      ],
       "etapes": "Mon camion › J'ai utilisé › chercher « filtre à charbon » › toucher l'article ; regarder au-dessus du bouton noir",
       "attendu": "MATERIEL § 5.3 : « Au-dessus [du bouton noir], une phrase de contrôle » visible : « Tu notes : 1 Filtre à charbon utilisé chez Restaurant Le Vieux Port. »",
-      "constate": "la phrase est au bas du défilement de la feuille, après la liste « Dans ton camion » : top = 993 px dans un écran de 844 ; au-dessus du bouton on ne voit que la ligne rouge « Choisis un article. » avant le choix, puis rien. La technicienne envoie sans relire ce qu'elle envoie",
+      "constate": "la phrase est au bas du défilement de la feuille, après la liste « Dans ton camion » : top = 993 px dans un écran de 844 ; au-dessus du bouton on ne voit que la ligne rouge « Choisis un article. » avant le choix, puis rien. La technicienne envoie sans relire ce qu'elle envoie ; reproduit sur trois profils : phrase à 836 px (petit, écran 568), 985 px (android, 740), 993 px (iphone, 844) pour « J'ai utilisé » et 1 317 à 1 331 px pour « J'ai pris à l'atelier » (trois lignes préremplies). Un toast (« Il n'y en a que 2,5 kg dans ton camion ») se pose au même endroit et couvre la zone",
       "preuve": "ligne 15449 d'apercu/prototype-op-gestion.html : le <div class=\"mat-phrase\"> est dans le corps, avant le <div class=\"fo-pied mat-pied\"> (ligne 15452) mais pas dedans ; mesure top 993 ; capture usage-pret-iphone-jour.png",
       "ou": "matFeuilleVue (ligne 15439) ; même disposition dans matGOuvrir (ligne 15986, Stock) à vérifier",
       "correction": "déplacer .mat-phrase dans .fo-pied (au-dessus des boutons), une ligne ou deux au plus, comme la phrase « Choisis un article. »"
@@ -51,7 +57,11 @@
       "gravite": "détail",
       "ecran": "Fiche d'intervention › « Pièces et produits utilisés »",
       "role": "sm",
-      "profils": ["iphone", "android", "petit"],
+      "profils": [
+        "iphone",
+        "android",
+        "petit"
+      ],
       "etapes": "Ma journée › Continuer (Dépannage climatisation) › défiler jusqu'à « Pièces et produits utilisés »",
       "attendu": "un champ dont on lit l'invite : « Chercher dans le stock… »",
       "constate": "l'invite est coupée : « Chercher c », le champ ne fait que ~128 px (grille minmax(0,1fr) 84px auto) ; la quantité « Qté » et « Ajouter » mangent la ligne",
@@ -64,7 +74,9 @@
       "gravite": "détail",
       "ecran": "code (lot Matériel)",
       "role": "-",
-      "profils": ["-"],
+      "profils": [
+        "-"
+      ],
       "etapes": "recensement des fonctions sans appelant dans le script de la page",
       "attendu": "MATERIEL § 12.4 SUPPRIMER : plus de code mort derrière le lot",
       "constate": "six fonctions n'ont plus aucun appelant : prUsage (9134), cmdDansFiltre (9627), prOuEst (14006), pdxPlu (14594), pdxAchatsArticle (14785), pdxCourbe (14789) — chacune avait 1 à 5 appelants avant le lot ; plus la règle CSS « html .mc-garage{margin:0} » (ligne 470) dont la classe n'est écrite nulle part",
@@ -77,7 +89,9 @@
       "gravite": "détail",
       "ecran": "Ma journée › ligne « Mon camion » ; Véhicules › fiche",
       "role": "sm, marc",
-      "profils": ["iphone"],
+      "profils": [
+        "iphone"
+      ],
       "etapes": "Ma journée : lire « 3 articles à remettre à bord » ; ouvrir Mon camion : « Il manque à bord · 3 »",
       "attendu": "MATERIEL § 3.4 et § 9.5 : « À remettre à bord » devient « il manque », « mêmes mots que la carte »",
       "constate": "deux mots pour la même chose sur deux écrans de la même technicienne ; le sondes vehtemps-v5-camion verrouille « à remettre à bord » (VEHICULES-TEMPS § 3.4 l'a écrit ainsi) : les deux spécifications se contredisent",
@@ -90,7 +104,9 @@
       "gravite": "détail",
       "ecran": "Mon camion › feuille « Il me manque une pièce »",
       "role": "sm",
-      "profils": ["iphone"],
+      "profils": [
+        "iphone"
+      ],
       "etapes": "Mon camion › Il me manque une pièce ; lire le surtitre",
       "attendu": "surtitre « Mon camion » comme les deux autres feuilles de la même porte",
       "constate": "le surtitre est le nom du client (« RESTAURANT LE VIEUX PORT ») dès qu'une intervention est préchoisie : la feuille du même écran dit « MON CAMION » pour « J'ai utilisé » et « J'ai pris »",
@@ -103,7 +119,9 @@
       "gravite": "détail",
       "ecran": "Historique (lu par le gérant) après un Annuler de la technicienne",
       "role": "sm puis marc",
-      "profils": ["tous"],
+      "profils": [
+        "tous"
+      ],
       "etapes": "sm : Mon camion › Je l'ai pris › Annuler ; marc : Historique",
       "attendu": "une phrase lisible par le gérant : « Sophie a annulé sa prise à l'atelier »",
       "constate": "la ligne enregistrée est { action:'a annulé', el:{lib:'ta prise à l'atelier'} } : le journal dirait « Sophie a annulé ta prise à l'atelier » (ou « ton envoi »), à la deuxième personne, devant quelqu'un d'autre. Mesuré : la ligne j52 est écrite ainsi (et l'Annuler laisse bien un journal à +2 lignes, voulu)",
@@ -116,7 +134,9 @@
       "gravite": "détail",
       "ecran": "Stock (lignes, fiche), Commandes (lignes)",
       "role": "marc",
-      "profils": ["iphone"],
+      "profils": [
+        "iphone"
+      ],
       "etapes": "Stock › À surveiller : « 1 u », « 0 u » ; fiche : « Il en reste 1 u » ; Commandes : « u · 50,40 € »",
       "attendu": "un mot qu'un débutant comprend (« 1 pièce », « 1 unité »)",
       "constate": "l'unité « u » toute seule s'affiche en gras à côté d'un chiffre dans la première ligne de Stock, dans la fiche (34 px : « Il en reste 1 u ») et dans la ligne de commande (« u · 50,40 € ») ; non expliquée",
@@ -129,7 +149,9 @@
       "gravite": "détail",
       "ecran": "Fiche d'intervention de la technicienne : « Pièces prévues par le bureau » et « Pièces et produits utilisés »",
       "role": "sm",
-      "profils": ["iphone"],
+      "profils": [
+        "iphone"
+      ],
       "etapes": "Ma journée › Commencer (Mise en service pompe à chaleur)",
       "attendu": "un seul message sur les prix",
       "constate": "« ça part sur la facture au prix du catalogue » dans une carte et « Aucun prix ici : le bureau chiffre au moment de la facture » dans la suivante : deux phrases de prix sur le même écran, l'une promet le prix du catalogue",
@@ -142,13 +164,79 @@
       "gravite": "détail",
       "ecran": "Stock › Articles (téléphone)",
       "role": "marc",
-      "profils": ["iphone", "android", "petit"],
+      "profils": [
+        "iphone",
+        "android",
+        "petit"
+      ],
       "etapes": "ouvrir Stock avec le bandeau « 2 envois à accepter »",
       "attendu": "MATERIEL § 5.2 : première ligne d'article vers 0,5 écran, au plus 12 éléments touchables avant elle",
       "constate": "première ligne à 626 px sur 844 (0,74) à l'iPhone, 659 sur 740 (0,89) à l'android, 635 sur 568 à 320 px (sous le pli, la barre du bas la cache) ; 13 touchables avant elle, un de plus que le plafond. Le bandeau seul pèse 110 px sur trois rangées",
       "preuve": "mesure au navigateur (g1.js) ; captures g-stock-iphone-jour.png, g-stock-petit-nuit.png",
       "ou": "bandeau .dv-focus et tuiles de Stock",
       "correction": "DOUTE : bandeau sur une rangée au téléphone (texte à gauche, « Tout accepter » à droite, « Voir » = le toucher du texte) ; gagne ~55 px et un touchable"
+    },
+    {
+      "n": "technicien-11",
+      "gravite": "gênant",
+      "ecran": "Mon camion › « Je l'ai pris » et « J'ai tout pris » (un toucher)",
+      "role": "sm",
+      "profils": [
+        "iphone (mesuré, hors ligne simulé)"
+      ],
+      "etapes": "couper le réseau (navigator.onLine = false) ; Mon camion › Je l'ai pris sur « Filtre à charbon »",
+      "attendu": "MATERIEL § 8.2 : « Pas de réseau : ton envoi partira dès que ça revient », l'envoi attend dans la file (comme la feuille « J'ai utilisé » / « J'ai pris »)",
+      "constate": "le toast dit « Envoyé au bureau : Filtre à charbon × 1 » alors que le réseau est coupé ; l'envoi entre tout de suite dans les envois à accepter (MVTS_ATT : 2 → 3), la file hors ligne reste vide (MAT.file = 0). Même geste par la feuille « J'ai pris à l'atelier » : il attend bien dans la file. Deux chemins, deux comportements pour le même envoi",
+      "preuve": "matPrendre (début à la ligne 15600 environ) n'a aucun test de navigator.onLine, contrairement à matEnvoyer (lignes 15575-15577) ; mesure : toast, att 3, file 0",
+      "ou": "matPrendre (appelée par data-mat=\"pris\" et data-mat=\"toutpris\")",
+      "correction": "reprendre la garde de matEnvoyer dans matPrendre (file MAT.file, toast « Pas de réseau : ton envoi partira dès que ça revient », ligne grise « Part dès que le réseau revient » avec Retirer) ou faire passer « Je l'ai pris » par la même fabrique"
+    },
+    {
+      "n": "technicien-12",
+      "gravite": "détail",
+      "ecran": "Mon camion › « Il manque à bord »",
+      "role": "sm",
+      "profils": [
+        "iphone"
+      ],
+      "etapes": "Mon camion avec un message du bureau (le bouton du haut pousse la liste) ; lire « Nettoyant échangeur (0,5 L) »",
+      "attendu": "« (0,5 L) » reste ensemble : un chiffre ne se sépare pas de son unité",
+      "constate": "le nom se coupe après « (0,5 » : « L) » passe seul sur la ligne suivante (capture refuse-iphone-jour.png)",
+      "preuve": "le nom de l'article porte une espace ordinaire entre le nombre et l'unité (donnée PRODUITS : « Nettoyant échangeur (0,5 L) ») ; mêmes noms dans toutes les listes",
+      "ou": "esc(x.nom) dans les listes de Mon camion, de Stock et des feuilles",
+      "correction": "une fonction d'affichage qui remplace l'espace avant une unité entre parenthèses par une espace insécable (ou white-space:nowrap sur « (… L) »)"
+    },
+    {
+      "n": "technicien-13",
+      "gravite": "détail",
+      "ecran": "Mon camion (premier écran à 320 × 568)",
+      "role": "sm",
+      "profils": [
+        "petit"
+      ],
+      "etapes": "ouvrir Mon camion sur un écran de 320 × 568",
+      "attendu": "MATERIEL § 8.1 : « tout l'essentiel sans défiler » : au moins la première ligne de « Il manque à bord »",
+      "constate": "la carte « Il manque à bord · 3 » a son titre à 459 px mais sa première ligne à 539 px, sous la barre du bas (qui commence à 488) : à 320 px on voit le bouton « J'ai tout pris » mais aucune pièce ; à 360 (android) et 390 (iphone) la première ligne est entière au-dessus de la barre. La carte « Le camion » (Noter un plein, Relever le compteur, Un souci) du lot Véhicules prend 130 px au-dessus",
+      "preuve": "mesure au navigateur (m1.js) : ligne1Haut 539 / barreTop 488 ; capture mc-petit-jour.png",
+      "ou": "vhCamionBloc posé avant la liste (vueMonCamion)",
+      "correction": "DOUTE : sous 360 px de large ou 600 px de haut, poser la carte « Il manque à bord » avant « Le camion » (le plein se note sans défiler seulement si l'écran est assez haut)"
+    },
+    {
+      "n": "technicien-14",
+      "gravite": "gênant",
+      "ecran": "Fournisseurs, matériel & produits › Articles (champ de recherche) ; Stock à 320 px",
+      "role": "marc",
+      "profils": [
+        "iphone",
+        "android",
+        "petit"
+      ],
+      "etapes": "ouvrir Fournisseurs, matériel & produits › Articles ; lire l'invite du champ de recherche",
+      "attendu": "une invite qu'on lit en entier (MATERIEL § 7.3 : « Chercher un article, une référence, un fournisseur »)",
+      "constate": "l'invite est coupée en pleine phrase, il reste « … une référence, un » : texte 378 px dans un champ qui en offre 332 (iphone), 302 (android), 262 (petit) ; à 320 px l'invite de Stock « Chercher un article… » est coupée aussi (159 px sur 153) ; reproduit sur les trois profils, mesure par largeur du texte avec la police du champ",
+      "preuve": "mesure au navigateur (g7.js) ; ligne 16987 (placeholder du champ fx-q) ; capture g-articles-android-nuit.png",
+      "ou": "champ #fx-q (onglet Articles) et le champ de Stock",
+      "correction": "invite courte : « Chercher un article » (le champ cherche déjà la référence et le fournisseur : le dire dans l'aide du pied)"
     }
   ]
 }
