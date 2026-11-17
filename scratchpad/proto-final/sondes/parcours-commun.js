@@ -42,4 +42,6 @@ exports.signer = async (c, sel) => { await c.p.evaluate(s => document.querySelec
 // une petite image PNG pour les « photos » du terrain
 exports.PNG = path.join(CAP, 'photo-test.png');
 if (!fs.existsSync(exports.PNG)) fs.writeFileSync(exports.PNG, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9Qz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC', 'base64'));
+// toucher dans un CADRE (l'atelier) : au doigt sur téléphone et tablette, à la souris sur ordinateur
+exports.cl = async (c, f, sel) => { const l = f.locator(sel).first(); try { if (c.doigt) await l.tap({ timeout:8000 }); else await l.click({ timeout:8000 }); } catch (e) { console.log('   (cadre : geste non atteint : ' + sel + ')'); throw e; } await c.p.waitForTimeout(250); };
 exports.fermer = async () => { await L.fermer(); const ko = L.bilan(); return ko; };
