@@ -237,6 +237,23 @@
    "preuve": "parcours B (texte de la fenêtre de saisie) ; vueRegistre (en-têtes .d3-th)",
    "ou": "apercu/prototype-op-gestion.html:20996 rgBoxHtml ([0, 'RAS', 'v']) · :10445 en-tête « N° d'AMM »",
    "correction": "« Rien à signaler » en toutes lettres (ou infobulle), « N° d'AMM (autorisation du produit) »."
+  },
+  {
+   "n": "metier-3d-10",
+   "gravite": "détail",
+   "ecran": "Nouvelle intervention (types proposés)",
+   "role": "gérant, bureau",
+   "profils": [
+    "mac"
+   ],
+   "zone": "metier-3d",
+   "decision": "soumettre",
+   "etapes": "Entreprise de nettoyage (ou de 3D) : Interventions › ＋ Nouvelle intervention › « Type ».",
+   "attendu": "Des types à son métier (un nettoyeur ne « fait » pas d'« Installation », un dératiseur de « Mise en service »).",
+   "constate": "Les types gardent les noms génériques de la climatisation pour tous les métiers : nettoyage = Dépannage / Entretien / Installation / Visite de contrôle / 2ᵉ passage ; 3D = les mêmes plus « Mise en service » et « Traitement du bois ». Seul le titre proposé change (« Installation » devient « Remise en état », « Pose de postes d'appâtage »), après le choix.",
+   "preuve": "metier-3d-creation.js (types lus dans la fenêtre pour 7 jeux de métiers) ; MET_JEUX.nett.types / .nuis.types ne renomment que les titres",
+   "ou": "apercu/prototype-op-gestion.html:22759 MET_JEUX (types:TYPES.filter…) et :13577 (puces .data-ctype)",
+   "correction": "RECOMMANDATION : afficher le libellé du métier sur la puce (TITRES[type]) tout en gardant la valeur ; À SOUMETTRE : la valeur « Installation » sert aux statistiques et à la facturation, donc c'est une décision de produit."
   }
  ]
 }

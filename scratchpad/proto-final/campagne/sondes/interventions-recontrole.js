@@ -99,6 +99,36 @@ const I = require('./interventions-outils.js'), L = I.L;
     await L.capture(c, CAPN('08-hors-secteur-choisi')); await fermer();
   });
 
+  // ── 12 liste : « Date à fixer » (tableau et cartes du téléphone) — la ligne visible selon l'appareil
+  await sec('R12 date à fixer dans la liste', async () => {
+    await I.devenir(c, 'marc', 'interventions'); await tap('[data-filtreint="plan"]');
+    const lignes = await ev(() => { const vis = e => e && e.offsetParent !== null; const tab = [...document.querySelectorAll('#contenu table.l tbody tr.clic')].filter(vis).map(r => r.innerText.replace(/\s+/g, ' ').trim()); const tel = [...document.querySelectorAll('#contenu .liste-tel button.ligne-clic')].filter(vis).map(r => r.innerText.replace(/\s+/g, ' ').trim()); return { tab, tel }; });
+    const vue = lignes.tab.length ? lignes.tab : lignes.tel; console.log('  · lignes visibles (' + (lignes.tab.length ? 'tableau' : 'cartes') + ') :', JSON.stringify(vue.slice(0, 3)));
+    v('R12 population : des interventions à planifier', vue.length >= 2, vue.length);
+    v('R12 chaque ligne dit « à fixer » (jamais une heure inventée)', vue.every(x => /à fixer/i.test(x)), vue);
+    const quand = await ev(() => [...document.querySelectorAll('#contenu table.l tbody tr.clic td:first-child, #contenu .liste-tel .jl-g')].filter(e => e.offsetParent).map(e => e.innerText.replace(/\s+/g, ' ').trim())); console.log('  · cellules « quand » :', JSON.stringify(quand.slice(0, 4)));
+    v('R12 chaque cellule « quand » dit « à fixer » en mots', quand.length >= 2 && quand.every(x => /à fixer/i.test(x)), quand);
+    await L.capture(c, CAPN('12-a-planifier'));
+    await tap('[data-filtreint="tout"]'); const toutes = await ev(() => [...document.querySelectorAll('#contenu ' + (document.querySelector('#contenu .liste-tel button.ligne-clic') && document.querySelector('#contenu .liste-tel').offsetParent ? '.liste-tel button.ligne-clic' : 'table.l tbody tr.clic'))].filter(e => e.offsetParent).map(r => r.innerText.replace(/\s+/g, ' ').trim()));
+    v('R12 « Toutes » : les à planifier y disent aussi « à fixer »', toutes.filter(x => /Entretien chaudière granulés|Dépannage climatisation.*Mme Roux/.test(x)).every(x => /à fixer/i.test(x)), toutes.filter(x => /granulés/.test(x)));
+  });
+
+  // ── 06 + 13 la création : la ligne client et la croix (la mesure tient sur tous les profils)
+  await sec('R06 R13 fenêtre de création : ligne client et croix', async () => {
+    await I.devenir(c, 'marc', 'interventions'); await tap('[data-creer="1"]');
+    const m = await ev(() => { const b = document.querySelector('#fenetre [data-ccli="vp"]'); if (!b) return null; const r = b.getBoundingClientRect(); const bl = [...b.querySelectorAll('*')].filter(e => !e.children.length && e.textContent.trim().length > 15).map(e => { const q = e.getBoundingClientRect(), lh = parseFloat(getComputedStyle(e).lineHeight) || 18; return { t: e.textContent.trim().slice(0, 40), l: Math.round(q.width), lignes: Math.round(q.height / lh) }; });
+      const x = document.querySelector('#fenetre button.x-fen'); const rx = x && x.getBoundingClientRect(); return { ligne: Math.round(r.width), blocs: bl, croix: rx && [Math.round(rx.width), Math.round(rx.height)] }; });
+    v('R06 population : la ligne du Vieux Port existe', !!m, m); if (!m) return;
+    console.log('  · ligne Vieux Port :', JSON.stringify(m));
+    v('R06 aucun texte de la ligne n’est écrasé (≥ 150 px de large ou ≤ 3 lignes)', m.blocs.every(b => b.l >= 150 || b.lignes <= 3), m.blocs);
+    v('R13 la croix de la fenêtre est un rond d’au moins 44 × 44 px', !!m.croix && m.croix[0] >= 43.5 && m.croix[1] >= 43.5, m.croix);
+    await L.capture(c, CAPN('06-creation-clients'));
+    await tap('#fenetre [data-cnouveau="1"]'); const m2 = await ev(() => { const x = document.querySelector('#fenetre button.x-fen'); const r = x.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); v('R13 croix toujours 44 × 44 sur « nouveau client »', m2[0] >= 43.5 && m2[1] >= 43.5, m2);
+    const d = await L.doigts(p, '#fenetre'); if (tel) { v('R06 aucun champ de la fenêtre sous 16 px (zoom iOS)', d.champs.length === 0, d.champs); v('R06 aucun texte écrasé', d.ecrases.length === 0, d.ecrases); }
+    const dep = await L.deborde(c); v('R06 la page ne glisse pas de côté', dep.bouge === 0, dep);
+    await fermer();
+  });
+
   // ── 09 pièces : une quantité longue reste d'un bloc (UI : on tape vraiment la pièce)
   await sec('R09 pièce et quantité longues', async () => {
     await I.devenir(c, 'sm', 'inter-x-i1');
