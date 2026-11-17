@@ -71,13 +71,14 @@ async function bilanFeuille(c, tag, qui, groupes) {
   for (const profil of process.env.RAPIDE ? ['petit'] : ['iphone', 'petit']) {
     const c = await L.ouvrir({ profil, app:false, qui:null }), tag = `${profil}/client`;
     await c.p.evaluate(() => rlChanger('client', { muet:true })); await L.calme(c.p, 600);
-    await bilanBarre(c, tag, [['Accueil', 'Accueil'], ['Factures', 'Mes factures'], ['Devis', 'Mes devis'], ['Interventions', 'Mes interventions'], ['Contrat', 'Mon contrat']]);
+    await bilanBarre(c, tag, [['Accueil', 'Accueil'], ['Factures', 'Factures'], ['Interventions', 'Interventions'], ['Devis', 'Devis'], ['Contrat', 'Contrat']]);   // mêmes mots, même ordre que les onglets de la page (client-14)
     await bilanMenu(c, tag, 'client');
     const ok = await L.toucher(c, '#contenu .tt-menu');
-    const f = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? [...P.querySelectorAll('.fm-liste b')].map(e => e.textContent.trim()).join('|') : null; });
-    v(`${tag} : la feuille liste Accueil · Mes factures · Mes interventions · Mes devis · Mon contrat`, ok && f === 'Accueil|Mes factures|Mes interventions|Mes devis|Mon contrat', f);
-    await L.toucher(c, '#calque .panneau [data-ec="tab|factures"]'); const t = await c.p.evaluate(() => ({ tab:EC.tab, feuille:!!document.querySelector('#calque .panneau') }));
-    v(`${tag} : « Mes factures » dans la feuille ouvre l'onglet et la referme`, t.tab === 'factures' && !t.feuille, t);
+    const f = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { lignes:[...P.querySelectorAll('.fm-liste b')].map(e => e.textContent.trim()).join('|'), apparence:/Apparence/i.test(P.innerText) } : null; });
+    v(`${tag} : la feuille du client ne répète pas les cinq destinations (la barre du bas est sa seule navigation), elle garde l'apparence`, ok && !!f && f.lignes === '' && f.apparence, f);
+    await c.p.evaluate(() => fermerPanneau()); await L.calme(c.p, 300);
+    await L.toucher(c, '#barre-bas [data-ec="tab|factures"]'); const t = await c.p.evaluate(() => ({ tab:EC.tab, feuille:!!document.querySelector('#calque .panneau') }));
+    v(`${tag} : « Factures » de la barre ouvre l'onglet`, t.tab === 'factures' && !t.feuille, t);
     await L.toucher(c, '#barre-bas [data-ec="tab|devis"]'); v(`${tag} : l'onglet « Devis » de la barre change d'onglet`, (await c.p.evaluate(() => EC.tab)) === 'devis');
     v(`${tag} : aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 2));
     await L.fin(c);

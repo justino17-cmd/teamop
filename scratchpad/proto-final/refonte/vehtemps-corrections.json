@@ -1,0 +1,182 @@
+[
+ {
+  "n": "gerant-01",
+  "etat": "corrigé",
+  "changement": "« Ses heures › » n'est dessiné que pour qui voit Temps de travail (fiche Équipe, panneau de désactivation) ; le geste « heures » et ttMoisPers refusent en première instruction (toast, rien ne s'ouvre).",
+  "preuve": "vehtemps-corr-droits.js : avant 5 ✓ · 16 ✗ (julie voyait le bouton, le panneau 170h46 s'ouvrait), après 36 ✓ · 0 ✗ (mac, iphone) ; contre-épreuve : marc garde le bouton et le mois de Sophie s'ouvre."
+ },
+ {
+  "n": "gerant-02",
+  "etat": "corrigé",
+  "changement": "GESTES_SP porte la famille tt (terminer, fin, termineok, jourok, ajout, ajoutok, accepter → « Corriger les pointages ») ; ttTerminer, ttAjouterOk, ttJourEnregistrer et ptxCorriger lisent la case en première instruction (ttCorrOk).",
+  "preuve": "vehtemps-corr-droits.js : avant, 4 fonctions et 4 boutons forgés écrivaient (trace 2→4, notifications 6→8) et 4 boutons dessinés ; après rien n'est écrit, aucun bouton dessiné, et avec la case la même fonction écrit."
+ },
+ {
+  "n": "gerant-03",
+  "etat": "corrigé",
+  "changement": "Au garage, vhBoutonEch ne propose plus « Noter le rendez-vous » (ct, entretien) et la ligne de l'onglet À faire dit « Au garage jusqu'au lundi 2 novembre » (point orange) au lieu de « en retard de 3 jours ».",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Capture c-garage-afaire-iphone-n.png regardée ; contre-épreuve : hors garage, « Noter le rendez-vous » reste proposé."
+ },
+ {
+  "n": "gerant-04",
+  "etat": "corrigé",
+  "changement": "La fiche de la journée (ttFicheJour) affiche un encadré « Tom demande une correction : il a fini à 17:40 et non à 16:42. “J'ai oublié de pointer…” » avec le bouton « Accepter 17:40 » ; la phrase de la demande est UNE fonction (ttDemandeDits) lue par À régler et par la fiche.",
+  "preuve": "vehtemps-corr-temps.js (mac, windows, mac720, iphone ; gérant mac et iphone) : avant 12 ✓ · 10 ✗ (relevé AVANT correction), après 34 ✓ · 0 ✗. Capture t-demande-iphone et c-demande-iphone-n regardées (texte, raison et bouton sur trois lignes)."
+ },
+ {
+  "n": "gerant-05",
+  "etat": "corrigé",
+  "changement": "ttCase : une journée ouverte AUJOURD'HUI dit « en cours · depuis 08:05 » en vert (aria-label « journée en cours, commencée à 08:05 ») au lieu de « 0h00 ».",
+  "preuve": "vehtemps-corr-temps.js (mac, windows, mac720, iphone ; gérant mac et iphone) : avant 12 ✓ · 10 ✗ (relevé AVANT correction), après 34 ✓ · 0 ✗. Capture c-semaine-mac-j regardée."
+ },
+ {
+  "n": "gerant-06",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun changement : l'étape 1 de Comptabilité › Paie (« Les heures sont justes ») est un écran validé hors du lot.",
+  "preuve": "Constaté : Temps de travail › Mois dit « 1 journée à terminer, 1 demande de correction à traiter, 6 personnes à valider, 4 personnes à faire confirmer » ; la Paie dit « 1 journée restée ouverte · 6 personnes ont encore des heures à valider · 1 erreur signalée par Tom Leroy » et « Demander aux salariés de confirmer ». Question à Justin : aligner la Paie sur les mots du Mois (une phrase partagée) ?"
+ },
+ {
+  "n": "gerant-07",
+  "etat": "corrigé",
+  "changement": "ttAReglerLignes ne liste plus une demande dont le mois est fermé (comme les journées ouvertes d'un mois fermé) : plus de « Accepter » qui ne peut que refuser, plus comptée dans « à régler » ; la demande se lit sur la fiche de la journée : « Le mois est fermé : elle sera régularisée avec le mois suivant. », sans bouton.",
+  "preuve": "vehtemps-corr-temps.js (mac, windows, mac720, iphone ; gérant mac et iphone) : avant 12 ✓ · 10 ✗ (relevé AVANT correction), après 34 ✓ · 0 ✗. Contre-épreuve : mois ouvert, la ligne et son bouton existent."
+ },
+ {
+  "n": "gerant-08",
+  "etat": "corrigé",
+  "changement": "L'onglet Dépenses écrit la ligne « Assurance · 1 080 € par an, comptés 4 mois · déjà dans le total » (360,00 €) quand l'assurance est répartie : la somme des lignes est le total de la phrase.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Somme des lignes = total pour les 4 véhicules (avant : 1 999,50 € contre 2 359,50 €). Capture c-depenses-bas-iphone-n.png regardée."
+ },
+ {
+  "n": "gerant-09",
+  "etat": "corrigé",
+  "changement": "Légende « Montants hors taxes : un ticket de 120 € toutes taxes comprises compte pour 100 € » sous la liste des dépenses de chaque véhicule.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Contrôle « hors taxes » présent pour les 4 véhicules. La phrase du haut n'a pas été modifiée (la légende est dessous)."
+ },
+ {
+  "n": "gerant-10",
+  "etat": "corrigé",
+  "changement": "vxCalcCout : « par mois » = total ÷ vrais mois (jours arrondis ÷ 30,4), l'arrondi en mois ne sert plus qu'à l'assurance répartie.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Trafic : 590 € → 552 € par mois ; sur 45 jours : total ÷ 1,48 au lieu de ÷ 1."
+ },
+ {
+  "n": "gerant-11",
+  "etat": "corrigé",
+  "changement": "Grille de la semaine : colonnes d'heures minmax(64px,1fr), colonnes nom/total/état 124/122/128 px, et le texte horaire d'une case peut passer sur deux lignes (« 07:37– » puis « 16:42 ») au lieu de toucher le bord.",
+  "preuve": "vehtemps-corr-temps.js (mac, windows, mac720, iphone ; gérant mac et iphone) : avant 12 ✓ · 10 ✗ (relevé AVANT correction), après 34 ✓ · 0 ✗. Windows 1366 : marge au bord ≥ 4 px sur 30 cases horaires (avant : −3,7 px). Captures c-semaine-windows-n et mac720-j regardées."
+ },
+ {
+  "n": "gerant-12",
+  "etat": "corrigé",
+  "changement": "La grille de sept jours paraît dès 900 px de conteneur (un portable de 13 pouces à 1280 px en donne 968) ; la liste reste en dessous (iPad portrait).",
+  "preuve": "vehtemps-corr-temps.js (mac, windows, mac720, iphone ; gérant mac et iphone) : avant 12 ✓ · 10 ✗ (relevé AVANT correction), après 34 ✓ · 0 ✗. mac720 (1280 × 720) : grille dessinée, liste cachée, conteneur 968 px (avant : liste du téléphone). La mutation « seuil de conteneur » de vehtemps-mutations.js est à jour (900 px)."
+ },
+ {
+  "n": "gerant-13",
+  "etat": "corrigé",
+  "changement": "Toasts « Dépense supprimée / modifiée » (le mot « Frais » retiré, et « cette dépense se corrige en novembre ») ; Annuler rend « Annulé : la dépense est revenue. »",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Contrôle : t1 « Dépense supprimée », Annuler → « Annulé : la dépense est revenue », 6 lignes → 5 → 6."
+ },
+ {
+  "n": "gerant-14",
+  "etat": "corrigé",
+  "changement": "Sur la fiche d'un véhicule au garage (sans souci), la rangée de gestes n'a plus « Le remettre en service » : il est dans l'encadré du haut, une seule fois.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Contre-épreuve : un véhicule en service garde « Mettre au garage »."
+ },
+ {
+  "n": "gerant-15",
+  "etat": "corrigé",
+  "changement": "vhEtat « En règle » : la prochaine échéance exclut l'assurance d'un groupe (dite une fois, sur sa rangée) ; « Aucune autre échéance à venir » s'il n'y en a pas.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Liste : l'assurance n'est plus écrite que sur la rangée du groupe, les rangées disent « la révision, dans 62 jours »."
+ },
+ {
+  "n": "gerant-16",
+  "etat": "corrigé",
+  "changement": "L'encadré « Il manque : … » du Matériel prend la classe vh-alerte (colonne) : le lien « Les commander » passe sous la phrase.",
+  "preuve": "vehtemps-corr-vehicules.js (mac, iphone) : avant 3 ✓ · 12 ✗ ; après 30 ✓ · 0 ✗. Capture c-materiel-mac-j.png regardée."
+ },
+ {
+  "n": "gerant-17",
+  "etat": "corrigé",
+  "changement": "ttCase : pas de « Congé payé » le samedi et le dimanche (« — », comme la rangée de Julie et la Paie).",
+  "preuve": "vehtemps-corr-temps.js (mac, windows, mac720, iphone ; gérant mac et iphone) : avant 12 ✓ · 10 ✗ (relevé AVANT correction), après 34 ✓ · 0 ✗. Léa : Congé payé en semaine, « — » les 31/10 et 01/11 (population : absente en semaine ET le week-end)."
+ },
+ {
+  "n": "gerant-18",
+  "etat": "corrigé",
+  "changement": "Toast « Rappel envoyé à Sophie et Tom. » (ttNoms).",
+  "preuve": "vehtemps-corr-temps.js (mac, windows, mac720, iphone ; gérant mac et iphone) : avant 12 ✓ · 10 ✗ (relevé AVANT correction), après 34 ✓ · 0 ✗."
+ },
+ {
+  "n": "salarie-01",
+  "etat": "corrigé",
+  "changement": "Le champ « Pourquoi changes-tu cette heure ? » est DANS le pied collant (au-dessus du bouton) au lieu d'être au-dessus de lui, et dès qu'il paraît la feuille défile jusqu'à lui (au clavier physique le champ prend le curseur ; au doigt on ne fait pas surgir le clavier).",
+  "preuve": "vehtemps-corr-telephone.js (iphone, android, petit) : avant, sur iPhone, le champ (661–707 px) était RECOUVERT par le pied collant et le bouton (672–716) ; après, entier à l'écran, au-dessus du bouton, rien ne le recouvre (3 profils). Capture tel-motif-iphone/petit regardée. Constat : le pied « collant » est sans effet réel (il est seul dans son conteneur), donc le correctif ne dépend pas de lui."
+ },
+ {
+  "n": "salarie-02",
+  "etat": "corrigé",
+  "changement": "Cases d'heure et de minute du sélecteur à 44 px sous (pointer:coarse), règle posée APRÈS celle de base (la première tentative, posée avant, perdait à égalité de force).",
+  "preuve": "vehtemps-corr-telephone.js (iphone, android, petit) : avant 40 px, après 44 px sur toutes les cases (3 profils). Le sélecteur est un composant partagé : seul le toucher est touché, le bureau garde 40 px."
+ },
+ {
+  "n": "salarie-03",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun changement (essai puis retour arrière).",
+  "preuve": "Réel : à 320 px, trois pastilles de 13 px sans titre, « Un souci avec le camion » sur trois lignes. Mais la règle est celle du lot Matériel (§ 8.1 : « Il manque à bord » au-dessus de la barre d'onglets, commentaire de la feuille de style) et s'oppose à la spécification de ce lot (D7, trois boutons empilés de 48 px). Essayé : deux boutons côte à côte + « Un souci » pleine largeur, 15 px, titre « Le camion » visible : sur Android 360 × 740 le titre « Il manque à bord » passe de 483 à 558 px et sa première ligne d'article disparaît sous la barre d'onglets (iPhone : 554 → 647, tout reste visible). Question à Justin : la lisibilité de la carte (grandes pastilles) ou la première ligne de « Il manque à bord » sans défiler sur Android ?"
+ },
+ {
+  "n": "salarie-04",
+  "etat": "corrigé",
+  "changement": "vxSouciOk garde la LISTE des tâches du souci (souci.taches) quand il est signalé deux fois ; vxSouciRegle les ferme toutes et « Annuler » les rouvre ; l'Accueil lit la liste.",
+  "preuve": "vehtemps-corr-telephone.js (iphone, android, petit) : avant (rejoué à la main, deux signalements puis « C'est réglé ») 2 tâches ouvertes → 1 restait pour toujours ; après 2 → 0, et « Annuler » en rouvre 2."
+ },
+ {
+  "n": "salarie-05",
+  "etat": "corrigé",
+  "changement": "Au téléphone (≤ 760 px), « À régler » passe AVANT la carte de la journée du gérant quand il a des lignes ; ailleurs la carte reste en tête (D12).",
+  "preuve": "vehtemps-corr-telephone.js (iphone, android, petit) : première ligne à 740 px (iPhone, à moitié sous la barre) → 537 px ; Android 714 → 511. NON tenu : 320 × 568 (la ligne commence à 487 px, la barre d'onglets est à ~470) et la hauteur de page (2 084 px sur iPhone, cible 2 000) — l'en-tête et la liste « Qui est où » ne sont pas touchés. Décision à confirmer : la carte « Je commence ma journée » du gérant est maintenant sous la liste à régler (1 155 px sur iPhone)."
+ },
+ {
+  "n": "salarie-06",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun changement.",
+  "preuve": "Mesuré : Véhicules, gérant sur iPhone 1 515 px pour une cible de 1 200 (§ 3.2) ; le premier écran montre la rangée d'assurance de groupe, « Noter un plein » pleine largeur et une seule rangée de véhicule. Les sondes de l'étape 2 ont été alignées sur la hauteur réelle : la cible est à réviser ou la rangée de groupe à replier. Question à Justin."
+ },
+ {
+  "n": "salarie-07",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun changement.",
+  "preuve": "Décision déjà demandée par le relecteur : la pastille « messages du bureau » (lien, pas du texte) au-dessus de la recherche de pièce de Mon camion est un rappel que la spécification § 3.4 voulait retirer ; la garder ou la retirer ?"
+ },
+ {
+  "n": "salarie-08",
+  "etat": "ne se reproduit pas",
+  "changement": "Aucun changement.",
+  "preuve": "Voir l'entrée précédente : la ligne « Voir » ouvre #docplein pour sm, kb et tl avant toute correction (la famille paie classe « bulletin » en lecture, que la garde laisse passer). Le relecteur cherchait la fiche dans #calque. L'éventuel faux positif : un geste forgé « bulletin|<autre personne> » est lui aussi laissé passer par la garde (toutes les lectures le sont), sans écran qui y mène."
+ },
+ {
+  "n": "salarie-09",
+  "etat": "corrigé",
+  "changement": "Retrait de ptxSemaine, de l'écouteur data-pt^=\"ptsem|\" et des branches sem / releve / sig du gestionnaire data-ptx (aucun émetteur : recensement des data-ptx émis).",
+  "preuve": "vehtemps-corr-telephone.js (iphone, android, petit) : contrôle 09 par lecture du source (plus aucune occurrence) ; la page compile ; ptxSigPanneau reste (appelé par « erreur »)."
+ },
+ {
+  "n": "salarie-10",
+  "etat": "corrigé",
+  "changement": "ptxCommencer et ptxTerminer refusent en première instruction si le mois est verrouillé (comme ptxFinHier).",
+  "preuve": "vehtemps-corr-droits.js : avant, la journée se commençait dans le mois fermé (commence=true) ; après, rien n'est écrit (mac, iphone)."
+ },
+ {
+  "n": "salarie-11",
+  "etat": "corrigé",
+  "changement": "Les deux enveloppes de ce lot sur vueMaJournee (ligne du camion, carte de la journée) passent par majPoser : si le marqueur change, le bloc se pose à la fin au lieu de DISPARAÎTRE sans erreur. Les cinq autres enveloppes (autres lots : tkx, bx, accueil) ne sont pas réécrites : réécrire vueMaJournee en une fonction toucherait leurs écrans.",
+  "preuve": "vehtemps-corr-telephone.js (iphone, android, petit) : majPoser testée (marqueur absent → fin, présent → avant/après, bloc vide → rien) ; « Ma journée » de sm et kb porte la carte et la ligne du camion. Pas de défaut visible avant correction : c'est une garde de robustesse, la réécriture en une fonction n'est PAS faite."
+ },
+ {
+  "n": "salarie-12",
+  "etat": "corrigé",
+  "changement": "Au téléphone (≤ 520 px), les quatre chiffres du jour ne sont pas répétés au-dessus de la Semaine et du Mois (classe tt-k1-autre).",
+  "preuve": "vehtemps-corr-telephone.js (iphone, android, petit) : Semaine : la phrase et la première personne se lisent sans défiler sur iPhone et Android (avant : la première personne à 739 px, sous la barre) ; Aujourd'hui garde ses chiffres. 320 × 568 : le début de la phrase seulement."
+ }
+]
