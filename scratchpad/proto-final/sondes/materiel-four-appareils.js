@@ -17,13 +17,16 @@ const L = require('../lib.js');
     const E = [...doigts.ecrases, ...doigtsP.ecrases]; v(tag + ' · ' + nom + ' : aucun texte écrasé', E.length === 0, E); };
   const ranger = () => L.ranger(p);
   await L.aller(p, 'produits');
+  const tops = [];   // la barre d'onglets ne doit pas SAUTER d'un onglet à l'autre (l'en-tête a la même forme partout)
   const et = [['commandes', 'Commandes'], ['articles', 'Articles'], ['fournisseurs', 'Fournisseurs']];
   for (const [k, nom] of et) { await R(k => { prVue = k; rendre(); window.scrollTo(0, 0); }, k); await mesure(nom);
     const tab = await R(() => { const s = document.querySelector('.fx-seg'), B = [...s.querySelectorAll('button')]; return { sw:s.scrollWidth, cw:s.clientWidth, parent:s.parentElement.clientWidth, lignes:B.map(b => Math.round(b.getBoundingClientRect().height)), droite:Math.round(s.getBoundingClientRect().right) }; });
+    tops.push(await R(() => Math.round(document.querySelector('.fx-seg').getBoundingClientRect().top + scrollY)));
     if (k === 'commandes') v(tag + ' · les trois onglets tiennent dans leur colonne, sur une ligne (' + tab.sw + ' dans ' + tab.parent + ')', tab.sw <= tab.cw + 1 && tab.cw <= tab.parent + 1 && tab.lignes.every(h => h <= 52) && tab.droite <= c.largeur, tab); }
   for (const [nom, f] of [['Fiche fournisseur', () => fournFiche('cpa')], ['Fiche fournisseur (comptoir)', () => fournFiche('fd')], ['Ajouter un fournisseur (liste)', () => { FX.ajTab = 'liste'; fournListe(); }], ['Ajouter un fournisseur (un autre)', () => { FX.ajTab = 'autre'; fournListe(); }],
     ['Le bon', () => cmdPreparer('Clim Pièces Atlantique')], ['Commande confirmée', () => cmdFiche('c39')], ['Commande partielle', () => cmdFiche('c38')], ['J’ai reçu la livraison', () => cmdReception('c38')], ['Comparer avec la facture', () => cmdRappro('c36')], ['Importer les prix', () => fournTarifs('cpa')], ['Photographier une facture', () => fournFacture('')], ['Retirer un fournisseur', () => fxRetirerConfirm('cpa')]]) {
     await R(f); await mesure(nom); await ranger(); }
+  v(tag + ' : la barre d’onglets reste à la même hauteur sur les trois onglets (' + tops.join(' / ') + ' px)', tops.length === 3 && new Set(tops).size === 1, tops);
   // chaque commande a sa fiche (brouillon, envoyée, en retard, partielle, facture arrivée, terminée, annulée…) : une population par état, pas un seul exemple
   for (const id of await R(() => COMMANDES.map(c => c.id))) { await R(i => cmdFiche(i), id); await mesure('Fiche de la commande ' + id); await ranger(); }
   await R(() => prFiche('p3')); await mesure('Fiche d’un article'); await ranger();
