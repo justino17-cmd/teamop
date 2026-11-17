@@ -544,8 +544,8 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 .cmpt-bascule{display:inline-flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
 .cmpt-bascule input{width:22px;height:22px}
 .cmpt-seuil{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 12px}
-.cmpt-seuil input[type=number],.cmpt-sim input,.cmpt-sim select{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:16px;max-width:100%}
-.cmpt-seuil input[type=number]{width:9em}
+.cmpt-seuil input[type=number],.cmpt-seuil input.cmpt-nb,.cmpt-sim input,.cmpt-sim select{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:16px;max-width:100%}
+.cmpt-seuil input[type=number],.cmpt-seuil input.cmpt-nb{width:9em}
 .cmpt-sim{display:flex;flex-direction:column;gap:12px}
 .cmpt-sim label{display:flex;flex-direction:column;gap:6px;font-weight:600}
 .cmpt-sim .cmpt-champs{display:flex;flex-wrap:wrap;gap:10px}
@@ -3584,7 +3584,7 @@ const cmptPrevVue0 = VUES.previsions;
 VUES.previsions = () => {
   CMPT.dansPrev = true; let h; try { h = cmptPrevVue0(); } finally { CMPT.dansPrev = false; }
   const P = UI._prev, cr = CMPT.seuilOn && P ? P.J.find(j => j.s < CMPT.seuil) : null, S = CMPT.sim;
-  const ligneSeuil = `<div class="cmpt-seuil"><label class="cmpt-bascule"><input type="checkbox" data-cmpt="seuil" ${CMPT.seuilOn ? 'checked' : ''}> <span>Me prévenir si le compte passe sous</span></label><label class="cmpt-bascule"><input type="number" id="cmpt-seuil-val" value="${CMPT.seuil}" min="0" step="1000" inputmode="numeric" aria-label="Seuil en euros"> €</label><button type="button" class="btn gris" data-cmpt="sim">Et si…</button></div>`;
+  const ligneSeuil = `<div class="cmpt-seuil"><label class="cmpt-bascule"><input type="checkbox" data-cmpt="seuil" ${CMPT.seuilOn ? 'checked' : ''}> <span>Me prévenir si le compte passe sous</span></label><label class="cmpt-bascule"><input class="cmpt-nb" id="cmpt-seuil-val" value="${cmptFr(CMPT.seuil)}" inputmode="decimal" autocomplete="off" aria-label="Seuil en euros"> €</label><button type="button" class="btn gris" data-cmpt="sim">Et si…</button></div>`;
   const alerte = cr ? `<div class="alerte cmpt-ecart" role="status">${cr.d === AUJ ? `<b>Le compte est déjà sous ton seuil : ${eur(cr.s)} aujourd’hui</b>, pour un seuil de ${eur(CMPT.seuil)}.` : `<b>Le ${dCourt(cr.d)}, le compte descendrait à ${eur(cr.s)}</b>, sous ton seuil de ${eur(CMPT.seuil)}.`} Relancer les factures en retard ou décaler une dépense suffit souvent.</div>` : '';
   const sim = S ? `<div class="info cmpt-simbande" role="status"><span><b>Simulation :</b> ${esc(S.desc)}. Rien n’est écrit dans la comptabilité ; le trait pointillé est la courbe sans cette simulation.</span><button type="button" class="btn gris petit" data-cmpt="sim-fin">Annuler la simulation</button></div>` : '';
   h = apresTete(h, ligneSeuil + alerte + sim);
@@ -3595,20 +3595,39 @@ function cmptSimFenetre(){
   const P = cmptPrev0(UI.prevHab), cl = P.F.filter(f => f.cat === 'client' && /^FAC-/.test(f.lib));
   ouvrir(haut('Et si…', 'Un essai : rien n’est écrit dans la comptabilité', 'Trésorerie') + `<div class="cmpt-sim"><label>Que veux-tu tester ?<select id="cmpt-sim-t"><option value="retard">Un client paie 15 jours plus tard</option><option value="depense">J’ajoute une dépense</option></select></label>
     <label id="cmpt-sim-a">Quelle facture ?<select id="cmpt-sim-f">${cl.map(f => `<option value="${esc(f.lib.split(' · ')[0])}">${esc(f.lib)} · ${nb(f.m)} €</option>`).join('') || '<option value="">Aucune facture en attente</option>'}</select></label>
-    <div id="cmpt-sim-b" class="cmpt-champs" hidden><label>Montant (€)<input type="number" id="cmpt-sim-m" value="25000" min="0" step="100" inputmode="decimal"></label><label>Le<input type="date" id="cmpt-sim-d" value="2026-11-12" min="${ajoute(AUJ, 1)}" max="${ajoute(AUJ, 56)}"></label></div>
+    <div id="cmpt-sim-b" class="cmpt-champs" hidden><label>Montant (€)<input class="cmpt-nb" id="cmpt-sim-m" value="25 000" inputmode="decimal" autocomplete="off"></label><label>Le<input type="date" id="cmpt-sim-d" value="2026-11-12" min="${ajoute(AUJ, 1)}" max="${ajoute(AUJ, 56)}"></label></div>
     <div class="outils"><button type="button" class="btn" data-cmpt="sim-ok">Voir la courbe</button><button type="button" class="btn gris" data-a="fermer">Annuler</button></div></div>`);
 }
 document.addEventListener('change', ev => { const t = ev.target; if (!t) return;
   if (t.id === 'cmpt-sim-t') { const a = document.getElementById('cmpt-sim-a'), b = document.getElementById('cmpt-sim-b'); if (a) a.hidden = t.value !== 'retard'; if (b) b.hidden = t.value !== 'depense'; }
-  if (t.id === 'cmpt-seuil-val') { if (+t.value < 0) toast('Un seuil ne peut pas être négatif : je l’ai remis à 0 €.'); CMPT.seuil = Math.max(0, +t.value || 0); if (!CMPT.seuilOn && +t.value >= 0 && t.value !== '') { CMPT.seuilOn = true; toast('C’est noté : je te préviens si le compte passe sous ' + eur(CMPT.seuil) + '.'); } rendre(); } });
+  if (t.id === 'cmpt-seuil-val') { const v = cmptNum(t.value);
+    /* un champ « number » avalait la virgule (« 2 500,50 » devenait 250050) : le champ est du texte, et ce qu'on ne sait pas lire est refusé avec une phrase, jamais deviné */
+    if (t.value.trim() && !isFinite(v)) { t.value = cmptFr(CMPT.seuil); return toast('Écris le seuil en chiffres, par exemple 5 000.'); }
+    if (v < 0) toast('Un seuil ne peut pas être négatif : je l’ai remis à 0 €.'); CMPT.seuil = Math.max(0, v || 0); if (!CMPT.seuilOn && v >= 0 && t.value !== '') { CMPT.seuilOn = true; toast('C’est noté : je te préviens si le compte passe sous ' + eur(CMPT.seuil) + '.'); } rendre(); } });
 function cmptSimOk(){
   const t = (document.getElementById('cmpt-sim-t') || {}).value;
   if (t === 'retard') { const sel = document.getElementById('cmpt-sim-f'), cle = sel && sel.value; if (!cle) return toast('Aucune facture en attente à tester.'); CMPT.sim = { type:'retard', cle, desc:`${sel.options[sel.selectedIndex].text.split(' · ').slice(0, 2).join(' · ')} paie 15 jours plus tard` }; }
-  else { const m = Math.max(0, +(document.getElementById('cmpt-sim-m') || {}).value || 0), d = (document.getElementById('cmpt-sim-d') || {}).value;
+  else { const mt = (document.getElementById('cmpt-sim-m') || {}).value || '', m = Math.max(0, cmptNum(mt) || 0), d = (document.getElementById('cmpt-sim-d') || {}).value;
+    if (mt.trim() && !isFinite(cmptNum(mt))) return toast('Écris le montant en chiffres, par exemple 2 500,50.');
     if (!(m >= .01)) return toast('Indique le montant de la dépense.');   /* le plus petit montant est un centime : « une dépense de 0,00 € » · 13 novembre 2026 */ if (!d || d <= AUJ || d > ajoute(AUJ, 56)) return toast('Choisis une date dans les huit prochaines semaines.'); CMPT.sim = { type:'depense', m, d, desc:`une dépense de ${eur(m)} le ${dCourt(d)}` }; }
   fermer(); rendre();
 }
 
+/* un montant saisi se lit comme un Français l'écrit : « 2 500,50 », « 2500.5 », « 1.234,56 » ; ce qu'on ne sait pas lire rend NaN (même règle que cxNum de l'application) */
+function cmptNum(v){
+  let s = String(v == null ? '' : v).replace(/[\s\u00a0\u202f']/g, '').replace(/(€|euros?)$/i, '');
+  if (!s) return NaN;
+  const seps = s.match(/[.,]/g) || [];
+  if (seps.length === 1) s = s.replace(',', '.');
+  else if (seps.length > 1) {
+    const dec = Math.max(s.lastIndexOf(','), s.lastIndexOf('.')), ent = s.slice(0, dec), fr = s.slice(dec + 1);
+    if (/^\d{1,3}([.,]\d{3}){2,}$/.test(s) && new Set(seps).size === 1) s = s.replace(/[.,]/g, '');
+    else if (/^\d{1,3}([.,]\d{3})+$/.test(ent) && new Set(ent.match(/[.,]/g)).size === 1 && ent.indexOf(s[dec]) < 0) s = ent.replace(/[.,]/g, '') + '.' + fr;
+    else return NaN;
+  }
+  return /^\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN;
+}
+function cmptFr(n){ return Number(n).toLocaleString('fr-FR', { maximumFractionDigits:2 }).replace(/\u202f/g, '\u00a0'); }
 /* ─── le menu : une ombre en bas et une flèche tant qu'il reste des rubriques cachées ─── */
 function cmptMenuMaj(){
   const m = document.getElementById('menu'), l = m && m.querySelector('.menu-liste'); if (!l) return;
