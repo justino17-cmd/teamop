@@ -204,3 +204,10 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       large). · **tout-11** : après « Facture envoyée toute seule » et « Notes de frais », la barre « Retour · Mon entreprise » reste
       visible. · La fiche « Droits » ne glisse plus de côté à 360 et 320 px (bloc « Mot de passe provisoire »). · Les deux sondes
       périmées (menu avec « Sécurité », sept champs) se mettent à jour sans affaiblir leur contrôle.
+- [ ] **Matériel — décisions du chef du 17/11, 12 h 05 (materiel, vehtemps, technicien)** : · **technicien-05** : UN seul mot pour
+      les pièces qui ne sont pas dans le camion : « manque à bord » (« Il manque à bord · 3 » sur Mon camion, « 3 articles manquent
+      à bord » sur Ma journée et dans Véhicules) ; « à remettre à bord » disparaît partout, sondes et spécification de Véhicules
+      comprises (la sonde vehtemps-v5-camion se met à jour, elle ne décide pas du mot). · **technicien-08** : l'unité « u » RESTE
+      (c'est celle de la vraie application et d'une facture) : rien à changer, à dire à Justin dans la liste des doutes.
+      · Les défauts technicien-11 à 14 de la relecture (dont « Je l'ai pris » qui dit « Envoyé au bureau » sans réseau) n'étaient
+      pas dans la liste lue par le correcteur (il en a lu 10 sur 14) : à corriger au tour « restes » s'ils sont encore là.
