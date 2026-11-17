@@ -1,9 +1,12 @@
 // ANALYSE DES MOTS relevés par mots-releve.js : corpus dédoublonné par rôle + drapeaux. Ne juge pas : elle LISTE ce qu'un humain relit.
 // usage : node mots-analyse.js [--liste] ; lit /tmp/…/cap/final-mots/<rôle>-<profil>*.json, écrit corpus-<rôle>.txt et drapeaux-<rôle>.txt à côté.
 const fs = require('fs'); const D = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/final-mots/';
-const ROLES = ['marc', 'julie', 'sm', 'kb', 'client'];
+const ROLES = ['marc', 'julie', 'sm', 'kb', 'client', 'connexion', 'guide-marc', 'guide-julie', 'guide-sm', 'guide-kb', 'visite'];
 exports.corpus = function (qui) {
-  const fichiers = fs.readdirSync(D).filter(f => f.startsWith(qui + '-') && f.endsWith('.json')); const C = new Map();   // texte → { ou:Set, type }
+  const fichiers = fs.readdirSync(D).filter(f => f.startsWith(qui + '-') && f.endsWith('.json')); const C = new Map();
+  if (qui === 'visite') { for (const f of fichiers) { const r = JSON.parse(fs.readFileSync(D + f)); (r.pas || []).forEach((x, i) => { const m = (x.cle || '').split('|')[1] || i; const t = x.texte; const ou = 'visite ' + m;
+      // la bulle d'un pas : « Chapitre N sur M · rôle · catégorie · titre · phrase » — on garde le tout et chaque phrase
+      if (!C.has(t)) C.set(t, { ou: new Set(), type: 'visite' }); C.get(t).ou.add(ou); (x.attrs || []).forEach(a => { if (!C.has(a)) C.set(a, { ou: new Set(), type: 'attribut' }); C.get(a).ou.add(ou); }); }); } return C; }   // texte → { ou:Set, type }
   const ajoute = (t, ou, type) => { t = String(t || '').trim(); if (!t) return; if (!C.has(t)) C.set(t, { ou: new Set(), type }); C.get(t).ou.add(ou); };
   for (const f of fichiers) { const r = JSON.parse(fs.readFileSync(D + f));
     for (const [nom, e] of Object.entries(r.ecrans || {})) {
@@ -36,7 +39,7 @@ if (require.main === module) {
 // ── LECTURE : le corpus de TOUS les rôles réuni, dédoublonné par FORME (les chiffres deviennent #), écrit en fichiers courts à relire.
 //    Étiquettes (≤ 4 mots) groupées par écran, phrases (≥ 5 mots) une par ligne avec les rôles qui les lisent. node mots-analyse.js --lecture
 exports.lecture = function () {
-  const TAG = { marc: 'M', julie: 'J', sm: 'S', kb: 'K', client: 'C' }; const forme = t => t.replace(/\d+/g, '#').replace(/\s+/g, ' ');
+  const TAG = { marc: 'M', julie: 'J', sm: 'S', kb: 'K', client: 'C', connexion: 'X', 'guide-marc': 'G', 'guide-julie': 'G', 'guide-sm': 'G', 'guide-kb': 'G', visite: 'V' }; const forme = t => t.replace(/\d+/g, '#').replace(/\s+/g, ' ');
   const U = new Map();
   for (const q of ROLES) { let C; try { C = exports.corpus(q); } catch (e) { continue; }
     for (const [t, o] of C) { if (/^[\d\s#.,:%€h\-–/·+×]+$/.test(t) || t.length < 2) continue; const f = forme(t); if (!U.has(f)) U.set(f, { t, type: o.type, ou: [...o.ou][0], r: new Set() }); U.get(f).r.add(TAG[q]); } }
