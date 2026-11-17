@@ -19989,7 +19989,7 @@ function axNoteLigne(n) {
 }
 /* les deux réglages des notes de frais : écrits ici une seule fois, sur la page (ordinateur) et dans la fenêtre « Réglages » (téléphone) */
 function axReglesLignes() {
-  return `<span>${NDF_REGLE.sansTicket ? 'Les notes sans ticket se valident avec une confirmation.' : 'Les notes sans ticket ne se valident pas : il faut le ticket.'} ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="regle">Changer ›</button>' : 'C’est le patron qui décide de ce réglage.'}</span><span>Kilomètres : ${eur(AX.kmTarif)} le km (à régler avec ton expert-comptable : le barème dépend de la puissance du véhicule) ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="kmtarif">Changer ›</button>' : ''}</span>`;
+  return `<span>${NDF_REGLE.sansTicket ? 'Les notes sans ticket se valident avec une confirmation.' : 'Les notes sans ticket ne se valident pas : il faut le ticket.'} ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="regle">Changer ›</button>' : 'C’est le gérant qui décide de ce réglage.'}</span><span>Kilomètres : ${eur(AX.kmTarif)} le km (à régler avec ton expert-comptable : le barème dépend de la puissance du véhicule) ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="kmtarif">Changer ›</button>' : ''}</span>`;
 }
 acNotes = function () {
   const att = NDF.filter(n => n.etat === 'attente'), val = NDF.filter(n => n.etat === 'validee'), ref = NDF.filter(n => n.etat === 'refusee'), rem = NDF.filter(n => n.etat === 'remboursee'), parQui = {};
