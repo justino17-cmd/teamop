@@ -42,7 +42,7 @@ const RAPIDE = !!process.env.RAPIDE;
   { const c = await ouvrirEnt({ profil:'mac' }); await L.aller(c.p, 'achats');
     let n = 0;
     for (const [i, dest] of [[0, 'factures à payer'], [1, 'achats sans facture']]) { await L.aller(c.p, 'achats'); await L.toucher(c, `#contenu .ach-compta .ligne-clic >> nth=${i}`); await L.calme(c.p, 600); n++;
-      const r = await c.p.evaluate(() => ({ hash:location.hash, onglet:CP.onglet, cat:CX.cat, st:CX.st })); v(`la ligne « ${dest} » mène à la Comptabilité › Factures (adresse et filtre)`, r.hash === '#comptabilite' && r.onglet === 'factures' && r.cat === 'achats', r); }
+      const r = await c.p.evaluate(() => ({ hash:location.hash, onglet:CP.onglet, cat:CX.cat, st:CX.st })); v(`la ligne « ${dest} » mène à la Comptabilité › Factures (adresse et filtre)`, r.hash === '#comptabilite' && r.onglet === 'fachats' && r.cat === 'achats' && r.st === (i ? 'sanspiece' : 'traiter'), r); }
     v('population : deux lignes touchées', n === 2, n);
     await L.aller(c.p, 'achats'); await L.toucher(c, '#contenu .ach-aide');
     const a = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? P.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ') : ''; });

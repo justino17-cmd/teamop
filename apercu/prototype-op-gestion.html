@@ -18328,7 +18328,7 @@ vueAchats = function () {
   const O = [['demandes', 'Demandes de matériel', 'Matériel', nd], ['notes', 'Notes de frais', 'Frais', nn]], lect = axLect();
   if (!O.some(o => o[0] === acOnglet)) acOnglet = 'demandes';
   const compta = rlPermis('comptabilite'), apTot = ap.reduce((t, a) => t + acTTC(a), 0);
-  return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
+  return `<div class="tete ach-tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
       ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Demande</button></div>'}</div>
     <div class="kpis ach-k2"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} de matériel ${lect ? 'en attente' : 'à décider'}${na ? ' · ' + na + ' à acheter' : ''}</span></button>
       <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
@@ -18927,7 +18927,7 @@ img.logo-ent{background:#fff;object-fit:contain;overflow:hidden;padding:0;width:
 .ach-compta .ligne-clic b{font-weight:600;overflow-wrap:anywhere}
 .kpis.ach-k2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .ach-aide{align-self:flex-start;min-height:44px;display:inline-flex;align-items:center}
-@media (max-width:760px){.tete .actions.ach-act{width:100%}.tete .actions.ach-act .btn{width:100%;min-height:46px;justify-content:center}}
+@media (max-width:760px){#contenu .tete.ach-tete{flex-wrap:wrap}#contenu .tete.ach-tete > div:first-child{flex:1 1 100%}#contenu .tete.ach-tete .actions.ach-act{flex:1 1 100%;width:100%}#contenu .tete.ach-tete .actions.ach-act .btn{width:100%;min-height:46px;justify-content:center}}
 </style>`);
 
 
@@ -22715,8 +22715,10 @@ const rcSansAccent = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '
 function rcRubriques(){ return rlLignes().filter(c => !c.ec).map(c => ({ k:c.k, l:c.l, ic:emoLigne(c) })); }
 function rcChampRecherche(){ return [...document.querySelectorAll('#contenu input[type="search"],#contenu input[placeholder^="Recherch"],#contenu input[placeholder^="Cherch"],#contenu input[placeholder^="Trouver"]')].find(i => i.offsetParent !== null && !i.disabled) || null; }
 let PAL = null;
+/* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
+const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais' };
 function palEntrees(){ const R = rcRubriques(), E = [];
-  R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', fn:() => cpSysAllerRubrique(r.k) }));
+  R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
   if (rlPermis('comptabilite')) E.push({ g:'Aller à', l:'Factures', ic:svg('factures'), d:'Comptabilité', fn:() => aller('factures') }, { g:'Aller à', l:'Paiements', ic:svg('encaissements'), d:'Comptabilité', fn:() => aller('encaissements') });
   if (ROLE !== 'patron' && rlPermis('comptabilite')) E.push({ g:'Faire', l:'Nouvelle facture', ic:'＋', fn:() => cpSysFacture() });   /* la gestion des factures est celle qui en fait : « facture » doit lui répondre aussi, pas au seul patron */
