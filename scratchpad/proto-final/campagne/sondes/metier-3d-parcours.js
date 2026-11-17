@@ -6,7 +6,7 @@
 //   I  le métier 3D retiré alors que des passages existent : Historique et adresses
 // Usage : node metier-3d-parcours.js [lettres, ex. ABE]. Rend « N ✓ · M ✗ » ; chaque ✗ dit ce qui a été vu. Les textes lus sont rendus pour la relecture « artisan ».
 const O = require('./metier-3d-outils.js'), L = O.L;
-const LETTRES = (process.argv[2] || 'ABCDEFGHIJ').split('');
+const LETTRES = (process.argv[2] || 'ABCDEFGHIJK').split('');
 let ok = 0, ko = 0; const notes = [];
 const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ ' + nom + (det ? ' — ' + det : '')); } };
 const dit = (t) => { notes.push(t); console.log('  · ' + t); };
@@ -86,7 +86,7 @@ const S = {
       // les autres sites
       for (const nom of ['Boulangerie Lemoine', 'Entrepôt Logistique Atlantique']) { const ok2 = await bouton(c, new RegExp(nom)); await L.calme(p, 500); const t2 = await txt(p); v(`D ${profil} : le site « ${nom} » s'affiche`, ok2 && t2.includes(nom) && t2 !== t, t2.slice(0, 120)); }
       // les filtres de la carte : chacun doit changer ce qui est montré (nombre de pastilles), « Tout » les montre toutes
-      await L.aller(p, 'carteBox'); const comptes = {}; for (const f of ['tout', 'regarder', 'r', 'i', 'v']) { const b = p.locator(`#contenu [data-cbx="filtre|${f}"]`).first(); if (!(await b.count())) { comptes[f] = 'absent'; continue; } await L.toucher(c, b); await L.calme(p, 400); comptes[f] = await p.evaluate(() => document.querySelectorAll('#contenu [data-d3^="box|"]').length); }
+      await L.aller(p, 'carteBox'); const comptes = {}; for (const f of ['tout', 'regarder', 'r', 'i', 'v']) { const b = p.locator(`#contenu [data-cbx="filtre|${f}"]`).first(); if (!(await b.count())) { comptes[f] = 'absent'; continue; } await L.toucher(c, b); await L.calme(p, 400); comptes[f] = await p.evaluate(() => document.querySelectorAll('#contenu .cb-planc [data-d3^="box|"]').length); }
       dit(`${profil} · pastilles montrées par filtre : ` + JSON.stringify(comptes)); v(`${profil} : « Tout » montre toutes les box, chaque filtre en montre au plus autant`, comptes.tout > 0 && ['regarder', 'r', 'i', 'v'].every(f => comptes[f] === 'absent' || comptes[f] <= comptes.tout), JSON.stringify(comptes));
       v(`${profil} : les filtres Rongeurs, Insectes et UV ne montrent pas tous la même chose`, new Set([comptes.r, comptes.i, comptes.v]).size > 1, JSON.stringify(comptes));
       // relever les box
@@ -114,7 +114,7 @@ const S = {
       const tt = eurN((t1.match(/(\d[\d\s]*[,.]\d{2})\s*€\s*TTC|TTC\s*:?\s*(\d[\d\s]*[,.]\d{2})/) || [0, '0'])[1] || 0); dit(`${profil} · fiche du devis créé : ` + t1.slice(0, 380));
       await L.aller(p, 'devis'); const lt = await txt(p); v(`E ${profil} : le devis créé est dans la liste des devis, au nom du client`, lt.includes(opt[1].slice(0, 12)), lt.slice(0, 200));
       v(`E ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
-  async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); await L.calme(p, 900); const t = await txt(p); dit('F : ' + JSON.stringify(await p.evaluate(() => ({ rlJour: !!document.querySelector('#contenu .rl-jour'), dxCarte: !!document.querySelector('.dx-rel-carte'), cbMj: !!document.querySelector('.cb-mj'), a3d: metiersA3d(), role: ROLE, route, hauteur: document.getElementById('contenu').scrollHeight }))));
+  async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); await L.calme(p, 900); const t = await txt(p); dit('F : ' + JSON.stringify(await p.evaluate(() => ({ rlJour: !!document.querySelector('#contenu .rl-jour'), dxCarte: !!document.querySelector('.dx-rel-carte'), dxTexte: (document.querySelector('.dx-rel-carte') || {}).innerText, dxAff: document.querySelector('.dx-rel-carte') ? [getComputedStyle(document.querySelector('.dx-rel-carte')).display, document.querySelector('.dx-rel-carte').getBoundingClientRect().height, document.querySelector('.dx-rel-carte').offsetParent !== null] : null, dansContenu: !!document.querySelector('#contenu .dx-rel-carte'), cbMj: !!document.querySelector('.cb-mj'), a3d: metiersA3d(), role: ROLE, route, hauteur: document.getElementById('contenu').scrollHeight }))));
     v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/.test(t), t.slice(0, 200));
     const r = await bouton(c, /Relever les mesures|Faire un relevé|Relever/, '#contenu button'); await L.calme(p, 700); const t1 = await txt(p); dit('Relevé du technicien (début) : ' + t1.slice(0, 420)); v('F : le relevé s\'ouvre', r && /relev|mesure/i.test(t1), t1.slice(0, 120));
     v('F : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
@@ -137,7 +137,15 @@ const S = {
       const lib = (await b.innerText()).replace(/\s+/g, ' ').trim(); const h0 = await p.evaluate(() => location.hash); await L.toucher(c, b); await L.calme(p, 600);
       const t = await toast(p), pa = await pan(p), h1 = await p.evaluate(() => location.hash); dit(`J · « ${lib} » → toast « ${t.slice(0, 260)} » ¦ fenêtre « ${pa.slice(0, 260)} » ¦ adresse ${h0} → ${h1}`);
       v(`J : « ${lib} » fait quelque chose de visible`, !!(t || pa) || h0 !== h1); await O.nettoyer(p); }
-    v('J : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); }
+    v('J : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
+  async K() { for (const pack of ['plomberie', 'nettoyage']) { const c = await ouvrir({ packs: [pack] }), p = c.p;
+      await L.aller(p, 'taches'); await p.evaluate(() => tPanneau()); await L.calme(p, 600);   // la fenêtre « Nouvelle tâche » (le champ de saisie rapide de l'écran est une autre porte)
+      const ph = await p.evaluate(() => { const e = document.getElementById('tk-t'); return e ? e.getAttribute('placeholder') : null; });
+      dit(`${pack} · « Quoi » d'une nouvelle tâche : ${ph}`); v(`K ${pack} : l'exemple du champ « Quoi » d'une tâche ne parle pas de PAC (pompe à chaleur)`, ph !== null && !/PAC|clim|fluide/i.test(ph), String(ph));
+      await L.aller(p, 'interventions'); await L.toucher(c, p.locator('#contenu button').filter({ hasText: /Nouvelle intervention/ }).locator('visible=true').first()); await L.calme(p, 700);
+      const ph2 = await p.evaluate(() => [...document.querySelectorAll('#calque [placeholder], #contenu [placeholder]')].map(e => e.getAttribute('placeholder')).filter(x => /condensateur|fluide|clim|R32|PAC/i.test(x)));
+      v(`K ${pack} : aucune indication de champ de « Nouvelle intervention » ne parle de condensateur, de fluide ou de clim`, ph2.length === 0, ph2.join(' | '));
+      v(`K ${pack} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } }
 };
 (async () => {
   for (const l of LETTRES) { try { console.log('— parcours ' + l); await S[l](); } catch (e) { ko++; console.log('  ✗ parcours ' + l + ' interrompu : ' + String(e.message || e).split('\n')[0]); } }

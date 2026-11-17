@@ -13,7 +13,7 @@ exports.poser = async (p, packs) => { await p.evaluate(l => { mchPoser(l); }, pa
 // les lignes de menu que la personne voit, par groupe (CATS est la table qui nourrit menu, feuille « Menu », recherche et barre)
 exports.menu = p => p.evaluate(() => CATS.map(([g, l]) => [g, l.map(x => x[0] + ':' + x[2])]));
 // lit l'écran : titre, texte visible, champs (placeholder, valeur), options des listes
-exports.lire = p => p.evaluate(() => { const c = document.getElementById('contenu'); const q = document.querySelector('#calque .panneau');
+exports.lire = p => p.evaluate(() => { const c = document.getElementById('contenu'); const q = document.querySelector('#calque .panneau') || [...document.querySelectorAll('.fen')].find(x => x.offsetParent !== null || getComputedStyle(x).position === 'fixed');   // la fenêtre de création (.fen) est une autre pièce que le panneau
   const zone = q || c; const champs = [...zone.querySelectorAll('input,textarea,select')].map(e => ({ t: e.tagName, ph: e.getAttribute('placeholder') || '', v: (e.tagName === 'SELECT' ? [...e.options].map(o => o.textContent.trim()).join(' | ') : (e.value || '')).slice(0, 300) }));
   return { route: typeof route !== 'undefined' ? route : '', h1: ((c.querySelector('h1') || {}).textContent || '').trim(), texte: (zone.innerText || '').replace(/\s+/g, ' ').trim(), champs, panneau: !!q }; });
 exports.nettoyer = async p => { await p.evaluate(() => { try { docPleinFermer(); } catch (e) {} try { fermerPanneau(); } catch (e) {} }); await L.calme(p, 150); };
@@ -22,11 +22,12 @@ exports.MOTS_CLIM = /clim(?:atisation|atiseur)?\b|\bsplit\b|frigorig|\bR-?32\b|R
 exports.MOTS_3D = /rongeur|\brats?\b|nuisible|biocide|xylophage|dératis|deratis|appât|appat|cafard|punaise|capricorne|vrillette|termite|désinsect|desinsect|\b3D\b|hygiène anti/i;
 exports.bilan = (nom, ok, ko, notes) => { console.log('\n' + nom + ' : ' + ok + ' ✓ · ' + ko + ' ✗'); (notes || []).forEach(n => console.log('  · ' + n)); return ko ? 1 : 0; };
 // le corpus des DONNÉES d'exemple (tables de démonstration) : un relevé est une donnée si le mot, avec son voisin de gauche ou de droite, s'y lit tel quel
+// « Clim Services 17 » est le NOM de l'entreprise de démonstration : jamais un mot de climatisation à relever
 exports.donnees = async p => { const corpus = await p.evaluate(() => { const bruts = []; const marcher = (o, d) => { if (d > 5 || o == null) return; if (typeof o === 'string') { if (o.length > 4) bruts.push(o); return; } if (typeof o !== 'object') return; for (const k of Object.keys(o).slice(0, 400)) marcher(o[k], d + 1); };
     ['INTS', 'CLIENTS', 'TACHES', 'PRODUITS', 'MES_FOURN', 'FOURN_DIR', 'JOURNAL', 'DEVIS_REG', 'CONTRATS', 'COMMANDES', 'EQUIPE', 'ABSENCES', 'ACHATS', 'DEMANDES_ACHAT', 'BOXES', 'STOCK', 'VEHICULES', 'MESSAGES', 'NOTES', 'FICHES'].forEach(n => { try { marcher(eval(n), 0); } catch (e) {} });
     return bruts.map(x => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ')); });
   const joint = corpus.join(' ¦ '), norm = x => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
   const dansPh = (txt, i) => { const a = txt.lastIndexOf('CHAMP[', i); if (a < 0) return false; const seg = txt.slice(a + 6, i); return !seg.includes('|') && !seg.includes(']'); };
   const estDonnee = (txt, i, mot) => { if (dansPh(txt, i)) return false; const g = txt.slice(0, i).match(/(\S+)\s*$/), d = txt.slice(i + mot.length).match(/^\s*(\S+)/); return [g && norm(g[1] + ' ' + mot), d && norm(mot + ' ' + d[1])].filter(Boolean).some(x => joint.includes(x)); };
-  const trouver = (txt, re) => { const r = [], g = new RegExp(re.source, 'gi'); let m; while ((m = g.exec(txt))) { r.push({ mot: m[0], ctx: txt.slice(Math.max(0, m.index - 45), m.index + m[0].length + 45), donnee: estDonnee(txt, m.index, m[0]) }); if (r.length > 40) break; } return r; };
+  const trouver = (txt, re) => { const r = [], g = new RegExp(re.source, 'gi'); let m; while ((m = g.exec(txt))) { r.push({ mot: m[0], ctx: txt.slice(Math.max(0, m.index - 45), m.index + m[0].length + 45), donnee: estDonnee(txt, m.index, m[0]) || /^clim(\s+services|services17)/i.test(txt.slice(m.index)) }); if (r.length > 40) break; } return r; };
   return { estDonnee, trouver, taille: corpus.length }; };

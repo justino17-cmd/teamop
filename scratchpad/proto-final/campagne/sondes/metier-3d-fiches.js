@@ -10,9 +10,9 @@ const JEUX = { plomberie: 'plomb', chauffage: 'chauf', nettoyage: 'nett', electr
     const c = await O.ouvrir({ packs: [pack] }), p = c.p, D = await O.donnees(p), clim = ['climatisation'].includes(pack), d3 = pack === '3d';
     const ids = await p.evaluate(() => { const L = INTS.filter(i => i.st !== 'fait' && i.st !== 'annule').slice(0, 2).map(i => i.id), F = INTS.filter(i => i.st === 'fait').slice(0, 1).map(i => i.id); return { L, F }; });
     for (const [lib, id] of [...ids.L.map(i => ['en cours/à venir', i]), ...ids.F.map(i => ['terminée', i])]) {
-      await p.evaluate(i => aller('inter', i), id); await L.calme(p, 700); const e = await O.lire(p); const t = e.texte;
+      await p.evaluate(i => aller('inter-x-' + i), id); await L.calme(p, 700); const e = await O.lire(p); const t = e.texte;
       const hits = [...(clim ? [] : D.trouver(t, O.MOTS_CLIM).map(h => ({ ...h, f: 'clim' }))), ...(d3 ? [] : D.trouver(t, O.MOTS_3D).map(h => ({ ...h, f: '3d' })))].filter(h => !h.donnee);
-      v(`${pack} · fiche ${lib} (${id}) : l'écran est une fiche d'intervention`, e.route === 'inter' && t.length > 200, 'route=' + e.route + ' h1=' + e.h1);
+      v(`${pack} · fiche ${lib} (${id}) : l'écran est une fiche d'intervention`, e.route === 'inter' && t.length > 200 && !/Nouvelle intervention/.test(t.slice(0, 200)), 'route=' + e.route + ' h1=' + e.h1);
       v(`${pack} · fiche ${lib} (${id}) : aucun mot d'un autre métier hors données d'exemple`, hits.length === 0, hits.slice(0, 3).map(h => `[${h.f}] …${h.ctx}…`).join(' ¦ '));
       const att = await p.evaluate(m => { const R = (RELEVES[m] || []).map(x => x[0]); const C = (CONTROLES[m] || []).flatMap(g => g[1]); return { R, C }; }, await p.evaluate(() => metiersFicheMetier(INTS.find(i => i.id === location.hash.replace('#inter-x-', '')) || {})).catch(() => cle));
       if (lib !== 'terminée') { const manque = [...att.R, ...att.C].filter(x => x && !t.includes(x)); v(`${pack} · fiche ${lib} (${id}) : ses contrôles et ses relevés sont ceux du métier (${att.R.length + att.C.length} attendus)`, att.R.length + att.C.length > 0 && manque.length < (att.R.length + att.C.length), 'absents : ' + manque.slice(0, 6).join(', ')); }
