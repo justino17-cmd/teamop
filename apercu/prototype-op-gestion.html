@@ -1454,7 +1454,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .panneau .champ{min-width:0}.panneau .champ select{min-width:0;max-width:100%}
 .fo-garder{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;cursor:pointer}
 /* une case qui porte une phrase de quatre lignes (téléphone) s'aligne sur son TITRE, pas sur le milieu du paragraphe ; sous le sélecteur « Appliquer un profil », elle respire (relecture « tout-13 ») */
-.fo-garder.fo-terrain,.fo-garder.eq-sp{align-items:flex-start;padding-block:6px}.fo-garder.fo-terrain>input,.fo-garder.eq-sp>input{margin-top:1px}
+.fo-garder.fo-terrain,.fo-garder.eq-sp{align-items:flex-start;padding-block:6px;flex:none}   /* flex:none : dans la feuille (colonne flex), la case se RÉTRÉCISSAIT à 44 px et sa phrase de quatre lignes débordait sur le sélecteur du dessus et sur le cadre du dessous */.fo-garder.fo-terrain>input,.fo-garder.eq-sp>input{margin-top:1px}
 .champ + .fo-garder.fo-terrain{margin-top:14px}
 .eq-dr-non{color:var(--faible);cursor:default;user-select:none}   /* une case sans geste derrière elle : un tiret, pas un vide qu'on prendrait pour une case oubliée */
 .fo-r{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--trait);min-height:52px}label.fo-r{cursor:pointer}
@@ -11634,7 +11634,7 @@ const GESTES = {
   dvn:{ k:'ventes', c:'nv creer', l:'type modele' }, dvd:{ k:'ventes', d:'l' }, dvf:{ k:'ventes', d:'l' },
   dx:{ k:'ventes', d:'m' }, dxb:{ k:'ventes', c:'creer nvtype zadd', m:'garder attok reprendre att', s:'annulerMaj', l:'detail rel insecte mode techs tva revenir attpdf suivi puce mesures version relever client' },
   dxr:{ k:'ventes', m:'photo note', l:'cli zm' }, dxrb:{ k:'ventes', c:'nouveau', m:'envoyer', l:'insecte mode' },
-  b:{ k:'ventes', m:'debut modele cli lieu freq prix fact' }, opd:{ k:'ventes', d:'l' }, opdz:{ k:'ventes', d:'l' }, reglage:{ k:'ventes', d:'m' }, tvoir:{ d:'l' },
+  b:{ k:'ventes', m:'debut modele cli lieu freq prix fact' }, opdz:{ k:'ventes', d:'l' },   /* « opd » (composer, rouvrir) a sa ligne plus haut, avec ses verbes : une seconde ligne de même nom l'effaçait en silence, c'est pourquoi « Composer un devis » restait dessiné sans « Créer » (« tout-09 ») */ reglage:{ k:'ventes', d:'m' }, tvoir:{ d:'l' },
   xy:{ k:'ventes', c:'nouveau', l:'cli tva' }, xyb:{ k:'ventes', c:'creer', l:'insecte mode' }, brouillon:{ k:'ventes', d:'l' }, ecctr:{ k:'ventes', d:'l' }, cforfait:{ k:'ventes', d:'m' }, ctype:{ k:'ventes', d:'l' },
   /* l'espace du client : ses gestes sont les siens, pas ceux d'une personne de l'entreprise */
   ec:{ d:'l' },
@@ -20019,8 +20019,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
 .ent-ban > span{flex:1 1 240px;min-width:0;line-height:1.4;overflow-wrap:anywhere}
 .ent-ban .btn{flex:none}
 /* sur téléphone, les huit champs de « Ton entreprise » repoussent « Enregistrer » à 989 px sur un écran de 844 : la rangée de boutons reste collée en bas de la feuille,
-   avec son propre fond (relecture « tout-03 » ; la spécification § 1.2 le demandait). Elle couvre le rembourrage du bas de la feuille et l'encoche. */
-@media (max-width:760px){#calque .panneau.ent-pan > .actions:last-child{position:sticky;bottom:0;z-index:2;background:var(--feuille);margin:0 -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(22px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 12px -8px var(--feuille)}}
+   avec son propre fond (relecture « tout-03 » ; la spécification § 1.2 le demandait). La feuille n'a plus de rembourrage en bas : c'est la rangée qui porte l'encoche (une marge basse négative sur un élément collant remonte aussi le point où il se colle). */
+@media (max-width:760px){#calque .panneau.ent-pan{padding-bottom:0}#calque .panneau.ent-pan > .actions:last-child{position:sticky;bottom:0;z-index:2;background:var(--feuille);margin:0 -16px;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 12px -8px var(--feuille)}}
 .ent-ban.attention{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
 .bx-grille.ent-grille{grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))}
 .ent-c{min-width:0}
