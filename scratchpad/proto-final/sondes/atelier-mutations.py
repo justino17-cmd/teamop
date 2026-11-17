@@ -12,7 +12,7 @@ for f in ['prototype-op-gestion.html', 'prototype-documents.html', 'prototype-co
     shutil.copy(os.path.join(DEPOT, 'apercu', f), os.path.join(COPIE, 'apercu', f))
 ORIGINE = {k: open(os.path.join(DEPOT, v), encoding='utf-8').read() for k, v in FICHIERS.items()}
 def M(nom, f, old, new, sonde, env=None): return dict(nom=nom, f=f, old=old, new=new, sonde=sonde, env=env or {})
-R = "atelier-roles.js"; N = "atelier-numeros.js"; T = "atelier-retour.js"; E = "atelier-echecs.js"; D = "atelier-devis.js"; C = "atelier-contrat.js"; G = "atelier-miseenpage.js"; S = "atelier-seule.js"
+R = "atelier-roles.js"; N = "atelier-numeros.js"; T = "atelier-retour.js"; E = "atelier-echecs.js"; D = "atelier-devis.js"; C = "atelier-contrat.js"; G = "atelier-miseenpage.js"; S = "atelier-seule.js"; GR = "atelier-grand.js"
 MUT = [
  M("P1 la liste accepte un état inconnu", 'P', " || typeof etat !== 'string' || !OPD_ETATS.includes(etat)) continue;", " || typeof etat !== 'string') continue;", R),
  M("P2 le prototype n'écoute plus que le cadre → écoute tout le monde", 'P', "if (!f || ev.source !== f.contentWindow || !ev.data", "if (!f || !ev.data", R),
@@ -53,6 +53,21 @@ MUT = [
  M("A18 « __proto__ » accepté comme identifiant de client ou référence d'article dans l'atelier", 'A', ["||RE_PROTO.test(id)||vus.has(id)", "if(!ref||!des||RE_PROTO.test(ref)||refs.has(ref)"], ["||vus.has(id)", "if(!ref||!des||refs.has(ref)"], R),
  M("A15 la page SEULE devient « dans OP GESTION »", 'A', "const APP=/[?&]app=1\\b/.test(location.search);", "const APP=true;", S, {"SEULE_UNE": "1"}),
  M("A16 la page SEULE range sous les clés opg", 'A', "const PFX='documents-sur-mesure-'+(APP?'opg-':'');", "const PFX='documents-sur-mesure-opg-';", S, {"SEULE_UNE": "1"}),
+ # — le compositeur en grand (sonde atelier-grand.js, un profil par mutation : celui où le défaut se voit) —
+ M("G1 le voile ne devient plus plein écran (la classe .plein n'est plus posée)", 'A', "f.el.classList.add('plein');", "", GR, {"PROFIL": "mac", "NUIT": "0"}),
+ M("G2 la colonne de la page redevient étroite (340 px)", 'A', "grid-template-columns:clamp(480px,40%,620px) minmax(0,1fr);grid-template-areas:\"form ap\"", "grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:\"form ap\"", GR, {"PROFIL": "mac", "NUIT": "0"}),
+ M("G3 « Ajuster » plafonne la page à 50 % (texte illisible)", 'A', "Math.max(.3,Math.min(1.25,w/794))", "Math.max(.3,Math.min(.5,w/794))", GR, {"PROFIL": "mac", "NUIT": "0"}),
+ M("G4 les champs du compositeur redeviennent petits (36 px, 13 px)", 'A', ".vv-pl .champ input,.vv-pl .champ select{min-height:48px;padding:0 12px;font-size:17px}", ".vv-pl .champ input,.vv-pl .champ select{min-height:36px;padding:0 8px;font-size:13px}", GR, {"PROFIL": "windows", "NUIT": "1"}),
+ M("G5 la page n'affiche plus que la première page du document", 'A', "ap.innerHTML=miniature(viergeDoc(V),APP);", "ap.innerHTML=miniature(viergeDoc(V));", GR, {"PROFIL": "mac720", "NUIT": "0"}),
+ M("G6 la colonne des étapes ne défile plus seule (la fenêtre entière défile)", 'A', ".vv-pl .vv-form{flex:1;min-height:0;overflow:auto;", ".vv-pl .vv-form{flex:1;min-height:0;overflow:visible;", GR, {"PROFIL": "mac", "NUIT": "0"}),
+ M("G7 le réglage de taille ne change plus la page", 'A', "VV_ZOOMS.some(z=>String(z[0])===b.dataset.v)?+b.dataset.v:'ajuster'); vvEchelle(f) }", "VV_ZOOMS.some(z=>String(z[0])===b.dataset.v)?+b.dataset.v:'ajuster'); }", GR, {"PROFIL": "windows", "NUIT": "0"}),
+ M("G8 le seuil des deux colonnes passe de 1 032 à 1 400 px", 'A', "@media (min-width:1032px){\n  .voile.plein", "@media (min-width:1400px){\n  .voile.plein", GR, {"PROFIL": "windows", "NUIT": "0"}),
+ M("G9 la page ne suit plus le redimensionnement de la fenêtre", 'A', "const ro=new ResizeObserver(()=>vvEchelle(f)); ro.observe(f.fen); const fin=f.onFerme; f.onFerme=()=>{ ro.disconnect(); if(fin) fin() }", "", GR, {"PROFIL": "mac", "NUIT": "0"}),
+ M("G10 « Créer » reste en bas sur ordinateur", 'A', ".vv-pl .fen-pied{grid-column:2;grid-row:1;", ".vv-pl .fen-pied{grid-column:1;grid-row:3;", GR, {"PROFIL": "mac", "NUIT": "0"}),
+ M("G11 les titres d'étape redescendent à 14 px", 'A', ".vv-pl .vv-et b{font-size:18px}", ".vv-pl .vv-et b{font-size:14px}", GR, {"PROFIL": "ipad", "NUIT": "0"}),
+ M("G12 le pied de l'ancienne fenêtre (Annuler + Créer) revient", 'A', "if(APP) return `<span class=\"vv-pied-tot\">", "if(false) return `<span class=\"vv-pied-tot\">", GR, {"PROFIL": "mac", "NUIT": "0"}),
+ M("G13 l'aperçu du téléphone n'est plus que la première page", 'A', "miniature(viergeDoc(V),true)}</div></div>`;", "miniature(viergeDoc(V))}</div></div>`;", GR, {"PROFIL": "iphone", "NUIT": "0"}),
+ M("G14 l'éditeur qui suit n'est plus « Ajuster à la largeur » d'office", 'A', "{lib:APP?'Ajuster à la largeur':'Ajuster à la fenêtre',coche:z==='ajuster'", "{lib:'Ajuster à la fenêtre',coche:z==='ajuster'", GR, {"PROFIL": "mac", "NUIT": "0"}),
 ]
 filtre = sys.argv[1] if len(sys.argv) > 1 else ''
 journal = open(os.path.join(CAP, 'mutations.log'), 'a', encoding='utf-8')
