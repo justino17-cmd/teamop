@@ -16,7 +16,7 @@
    ne prouve pas qu'on ne lui a rien envoyé.
 
    ⛔ CE BANC NE PARIE PLUS SUR LE TEMPS RÉEL (17 novembre 2026). Il est mort en CI le 5 et le 16 novembre (« Cannot read properties of undefined (reading 'lie') », 39 ✓) et tombait sous charge, sur du code que
-   personne n'avait touché. Quatre causes, chacune REJOUÉE à volonté avant d'être corrigée (les sondes sont nommées dans `REPRISE.md`) :
+   personne n'avait touché. Quatre causes, chacune REJOUÉE à volonté avant d'être corrigée (`scratchpad/sonde-opmessages-horloge-saut.js`, `…-flux-ferme.js`, `charge-banc-opmessages.sh` et son espion) :
      · L'HORLOGE DU SERVICE LUE VIDE pendant qu'on l'avançait (l'outil tronquait le fichier puis l'écrivait) : le service retombait sur l'heure RÉELLE, vingt-huit jours après celle du banc, et son balayeur
        finissait la sonnerie (« manquée ») ou l'appel (« perdu »). C'est la mort de la CI, au contrôle près. Corrigé dans l'outil (`outils-msg.js`, `lib-horloge-msg.js` ; gardé par `test-947`) ;
      · LE SERVICE NAISSAIT À L'HEURE RÉELLE, et le banc le reculait après coup : calé une seconde trop tard, il avait déjà balayé « dans le futur ». Il naît maintenant à l'heure du banc (`monter`) ;
@@ -366,7 +366,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     {
       const id = appel1.id, sig = (c, a, type, donnees) => c.post('/api/appels/' + id + '/signal', { a, type, donnees });
       /* ⛔ FERMÉ POUR LE BANC N'EST PAS FERMÉ POUR LE SERVICE. `attendreFerme` dit que le lecteur DU BANC est fermé ; le service, lui, ne retient un signal que s'il SAIT qu'aucun flux de cette session n'est
-         ouvert — sinon il l'écrit dans le flux mort, et le signal est perdu. Rejoué (`scratchpad/sonde-flux-ferme.js`) : le service gelé le temps de la fermeture, le signal parti sur une connexion déjà
+         ouvert — sinon il l'écrit dans le flux mort, et le signal est perdu. Rejoué (`scratchpad/sonde-opmessages-flux-ferme.js`) : le service gelé le temps de la fermeture, le signal parti sur une connexion déjà
          ouverte — perdu 10 fois sur 10 ; le même geste après avoir attendu que `/health` compte un flux de moins — retenu 10 fois sur 10. On attend donc CE constat, au geste (jamais une durée), et il entre
          dans le contrôle : sans lui, « le périmé n'est pas livré » passerait aussi sur un signal qui n'a jamais été retenu. */
       const fermerPourLeService = async (f) => {
@@ -382,13 +382,13 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       const constat2 = await fermerPourLeService(f1);
       const perime = await sig(a1, ben.id, 'candidats', { c: ['périmé'] });
       avancer(31 * SEC);
-      /* le témoin : un signal FRAIS, retenu lui aussi, envoyé après l'avance — il arrive à la réouverture. Celui de 31 s qui le précède dans la même file n'arrive pas : c'est son ÂGE qui l'écarte, pas une file vide */
-      const frais = await sig(a1, ben.id, 'candidats', { c: ['frais'] });
+      /* ⛔ AUCUN autre signal ne part vers Ben entre l'avance et la réouverture : c'est le tri À LA LIVRAISON qu'on éprouve (`livrerRetenus`). Un signal de plus ferait passer le balai des périmés
+         (`purgerPerimes`, à chaque signal retenu) avant l'ouverture : le périmé serait déjà parti, et le contrôle passerait même si la livraison ne triait plus rien. */
       const f2 = await ouvrirFlux(b1);
       await b1.post('/api/conversations/' + directe + '/messages', { cid: 'cid-marqueur-0004', texte: 'marqueur après réouverture' });
       const marque2 = !!(await f2.attendre(e => e.event === 'message' && champ(e, 'data', 'texte') === 'marqueur après réouverture'));
-      v('⛔ un signal de plus de 30 s n\'est PAS livré (un candidat périmé ne sert à rien, et rien ne s\'accumule) — population : il avait bien été retenu (le service avait constaté la fermeture, il l\'a accepté), le signal FRAIS retenu après lui arrive, et le marqueur aussi',
-        [constat2, perime.code, frais.code, f2.evenements.filter(e => e.event === 'signal').map(e => champ(e, 'data', 'donnees', 'c', 0)), marque2], [true, 200, 200, ['frais'], true]);
+      v('⛔ un signal de plus de 30 s n\'est PAS livré (un candidat périmé ne sert à rien, et rien ne s\'accumule) — population : il avait été retenu comme les deux d\'avant (le service avait constaté la fermeture du flux, il a accepté le signal), et le marqueur envoyé après la réouverture arrive',
+        [constat2, perime.code, f2.evenements.filter(e => e.event === 'signal').length, marque2], [true, 200, 0, true]);
       f2.fermer();
       await ouvrirFlux(b1);
     }

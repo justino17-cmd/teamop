@@ -1,5 +1,5 @@
 /* ══ LES MUTATIONS DES APPELS À DEUX — « un banc qui passe ne prouve rien tant qu'on ne l'a pas vu ÉCHOUER » (CLAUDE.md) ═══════════════════════════════════════
-   Ce fichier n'est PAS une suite (il ne s'appelle pas `test-*.js` : le compteur ne le lance pas). Il remet, UN PAR UN, les défauts que `tests/test-980` à `984`, `859` (les épingles de la page), `901` à `909`, `911`, `934`,
+   Ce fichier n'est PAS une suite (il ne s'appelle pas `test-*.js` : le compteur ne le lance pas). Il remet, UN PAR UN, les défauts que `tests/test-980` à `984`, `859` (les épingles de la page), `901` à `909`, `911`, `934`, `947` (les outils des bancs),
    `982` et la sonde navigateur `sonde-opmessages-appels.js` gardent :
      A. le SERVICE — des identifiants du relais qui se calculent mal ou se mettent en cache, un STUN d'un tiers en repli, un signal relayé à la mauvaise session ou sans contrôle de l'appareil lié, d'un
         destinataire quelconque, trop gros, en liste ; un appel lancé dans un groupe, vers quelqu'un qu'on ne peut pas écrire, sans plafond par paire ; deux appels pour une personne, un second appareil qui
@@ -11,6 +11,7 @@
         liaison qui tombe ou ne s'établit pas, le pouls, le raccrochage et l'offre perdus, la page qui se ferme, l'événement qui devance la réponse ou qui se perd, les serveurs, candidats et signaux qu'on ne
         croit pas, le renouvellement des identifiants du relais, l'historique et ses séries, la caméra de l'autre ;
      D. la PAGE — la sonnerie qui ne s'arrête pas, la voix non branchée, les pistes non remises, un appel à plusieurs contacts, la caméra d'un groupe, les avis de fin, la mention d'aperçu qui reparaît, le retournement de la caméra (l'ancienne piste qui reste allumée, toujours la même caméra, le bouton avec une seule caméra)…
+     O. les OUTILS des bancs (`outils-msg.js`, `lib-horloge-msg.js`, gardés par `test-947`) — l'horloge d'un service réécrite en place ou lue vide comme « heure réelle », le service d'un autre banc pris pour le sien ;
    dans une COPIE de l'arbre (jamais dans l'arbre lui-même : le `git checkout` d'après-mutation de CLAUDE.md efface aussi les correctifs non commités), joue les bancs visés, et exige qu'AU MOINS UN tombe
    (code de sortie non nul ou un « ✗ »).
 
@@ -35,7 +36,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn, s
 const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 420000;
 const F = { page: 'apercu/opmessages/index.html' };
-const BANCS = ['859', '901', '903', '905', '906', '908', '909', '911', '934', '980', '981', '982', '983', '984', '985', 'sonde', 'sondeComplete'];
+const BANCS = ['859', '901', '903', '905', '906', '908', '909', '911', '934', '947', '980', '981', '982', '983', '984', '985', 'sonde', 'sondeComplete'];
 const SONDE_FICHIER = 'sonde-opmessages-appels.js';
 const MUTATIONS = [];
 /* [id, nom, [[fichier, ancien, nouveau], …], suites, option] — `ancien` : une chaîne (une seule occurrence). Fabriqué depuis le texte réel des fichiers (chaque motif a été trouvé UNE fois). */
@@ -80,6 +81,15 @@ const CATALOGUE = [
   ["A38", "répondre à un appel n'exige plus d'être participant de l'appel (garde S au lieu de AP)", [["server-msg/manifeste.js", "{ id: 'appels.repondre',   m: 'POST', p: '/api/appels/:id/repondre',               garde: 'AP' },", "{ id: 'appels.repondre',   m: 'POST', p: '/api/appels/:id/repondre',               garde: 'S' },"]], ["905"]],
   ["A39", "lancer un appel n'exige plus un compte VÉRIFIÉ (garde S au lieu de V)", [["server-msg/manifeste.js", "{ id: 'appels.creer',      m: 'POST', p: '/api/appels',                            garde: 'V' },", "{ id: 'appels.creer',      m: 'POST', p: '/api/appels',                            garde: 'S' },"]], ["905"]],
   ["A40", "la politique de permissions du navigateur interdit la caméra et le micro à la page", [["server-msg/app.js", "'Permissions-Policy': 'camera=(self), microphone=(self)',", "'Permissions-Policy': 'camera=(), microphone=()',"]], ["901", "905", "903", "908", "909"]],
+  /* 17 novembre 2026 — test-981 ne parie plus sur le temps réel : les contrôles que sa correction a touchés (l'échéance du relais encadrée par l'horloge du banc, les signaux retenus, le débit, la fin dite aux deux)
+     tombent toujours quand le SERVICE est faux. A42 est la preuve du gain : l'ancien contrôle (« à trois secondes près ») la laissait passer. */
+  ["A41", "l'échéance des identifiants du relais part de l'heure RÉELLE de la machine au lieu de l'horloge du service", [["server-msg/appels.js", "const id = identifiantsRelais(r, uid, horloge());", "const id = identifiantsRelais(r, uid, new Date().getTime());"]], ["981"]],
+  ["A42", "les identifiants du relais vivent deux secondes de plus que le réglage (l'ancien contrôle, « à trois secondes près », ne le voyait pas)", [["server-msg/appels.js", "const expire = Math.floor(maintenantMs / 1000) + relais.ttlS;", "const expire = Math.floor(maintenantMs / 1000) + relais.ttlS + 2;"]], ["981"]],
+  ["A43", "un signal adressé à un appareil dont le flux est fermé n'est plus RETENU : une coupure de quelques secondes en pleine négociation perd l'offre", [["server-msg/flux.js", "    if (livre) return true;\n    const t = horloge();\n", "    if (livre) return true;\n    return false;\n    const t = horloge();\n"]], ["981"]],
+  ["A44", "un signal retenu de plus de 30 s est livré quand même à la réouverture du flux (un candidat périmé)", [["server-msg/flux.js", "for (const x of e.l) if (t - x.t <= RETENU_MS) { if (!ecrire(f, trame(null, x.event, x.data))) return; }", "for (const x of e.l) { if (!ecrire(f, trame(null, x.event, x.data))) return; }"]], ["981"]],
+  ["A45", "le débit des signaux d'un appel n'est plus plafonné", [["server-msg/routes-appels.js", "    if (!plafond(res, 'signal:' + acces.id + ':' + moi.id, salle ? cfg.groupeSignalMax : cfg.signalMax, cfg.signalFenetreMs)) return;\n", ""]], ["981"]],
+  ["A46", "le plafond de débit d'un appel ne se lève qu'au bout d'une heure (la fenêtre réglée est ignorée)", [["server-msg/routes-appels.js", "salle ? cfg.groupeSignalMax : cfg.signalMax, cfg.signalFenetreMs)) return;", "salle ? cfg.groupeSignalMax : cfg.signalMax, 3600000)) return;"]], ["981"]],
+  ["A47", "la fin d'un appel n'est dite qu'à celui qui raccroche : l'autre ne l'apprend pas (son écran d'appel reste ouvert)", [["server-msg/stockage.js", "return { deja: false, gids: appelEvenements(id), vue: vuPar ? appelVue(vuPar, id) : null, etat, notif };", "return { deja: false, gids: vuPar ? { [vuPar]: journalAjouter('appel', null, vuPar, id) } : appelEvenements(id), vue: vuPar ? appelVue(vuPar, id) : null, etat, notif };"]], ["981"]],
   ["B01", "le relais TCP (RFC 6062) est permis : un client peut ouvrir des connexions TCP depuis notre machine", [["server-msg/install-turn.sh", "  echo \"no-tcp-relay\"\n", "  echo \"# no-tcp-relay\"\n"]], ["982"]],
   ["B02", "les plages refusées ne sont plus écrites : le relais atteint la machine elle-même", [["server-msg/install-turn.sh", "  for plage in \"${REFUSES[@]}\"; do echo \"denied-peer-ip=$plage\"; done\n", ""]], ["982"]],
   ["B03", "le quota par identifiant disparaît : un identifiant ouvre autant d'allocations qu'il veut", [["server-msg/install-turn.sh", "  echo \"user-quota=$USER_QUOTA\"\n", ""]], ["982"]],
@@ -205,6 +215,14 @@ const CATALOGUE = [
   ["E44", "⛔ I2 — le script n'installe plus iptables sur une machine qui n'en a pas (le pare-feu du relais ne peut pas se poser, l'installation s'arrête plus loin sans dire pourquoi)", [["server-msg/install-turn.sh", "  apt-get install -y -qq iptables >/dev/null || true\n", ""]], ["982"]],
   ["E45", "⛔ I2 — le script ne vérifie plus qu'iptables est là après apt-get (il écrit le secret, la configuration et le drop-in, puis coturn ne démarre pas)", [["server-msg/install-turn.sh", "command -v iptables >/dev/null 2>&1 || { echo \"✗ iptables n'est pas installé après apt-get : le pare-feu du relais ne peut pas se poser, on s'arrête avant de rien écrire\"; exit 1; }\n", ""]], ["982"]],
   ["E46", "⛔ coturn redémarre en plein appel et l'appelante ne relance plus la liaison (aucune nouvelle allocation, la voix ne revient jamais ; la veille raccroche à 30 s)", [["server-msg/public/source-serveur.js", "    async function relancer(c) {\n      if (c.fini || c.role !== 'appelant'", "    async function relancer(c) {\n      return;\n      if (c.fini || c.role !== 'appelant'"]], ["984", "sondeComplete"]],
+  /* O. LES OUTILS DES BANCS (17 novembre 2026) — `tests/outils-msg.js` et `tests/lib-horloge-msg.js`, gardés par `test-947`. Ce ne sont pas des défauts du service : ce sont ceux qui faisaient MENTIR ses bancs
+     (test-981 mort en CI le 5 et le 16 novembre sur une horloge lue vide ; le service d'un autre banc pris pour le sien quand deux bancs tirent le même port). O01 et O02 se neutralisent l'une l'autre face au
+     vrai service (chaque garde tient seule : c'est voulu) — test-947 les éprouve donc séparément. */
+  ["O01", "l'horloge d'un service se réécrit EN PLACE (tronquer puis écrire) : qui la relit pendant l'avance peut la voir vide", [["tests/outils-msg.js", "  fs.writeFileSync(neuf, String(decalage));\n  fs.renameSync(neuf, fichier);\n", "  fs.writeFileSync(fichier, String(decalage));\n"]], ["947"]],
+  ["O02", "un fichier d'horloge illisible (vide, du texte) remet l'horloge du service à l'heure RÉELLE", [["tests/lib-horloge-msg.js", "if (/^-?\\d+\\s*$/.test(lu)) dernier = parseInt(lu, 10);", "dernier = parseInt(lu, 10) || 0;"]], ["947"]],
+  ["O03", "l'outil d'AVANT en entier : l'horloge réécrite en place ET lue vide comme « aucun décalage » (ce qui a tué test-981 en CI)", [["tests/outils-msg.js", "  fs.writeFileSync(neuf, String(decalage));\n  fs.renameSync(neuf, fichier);\n", "  fs.writeFileSync(fichier, String(decalage));\n"], ["tests/lib-horloge-msg.js", "if (/^-?\\d+\\s*$/.test(lu)) dernier = parseInt(lu, 10);", "dernier = parseInt(lu, 10) || 0;"]], ["947"]],
+  ["O04", "le service qui répond sur le port n'est plus reconnu : n'importe quel `/health` fait l'affaire (le service d'un autre banc passe pour le nôtre)", [["tests/outils-msg.js", "return j && j.sha === sha ? true : 'autre';", "return true;"]], ["947"]],
+  ["O05", "un port tiré qui se révèle pris n'est plus retenté ailleurs", [["tests/outils-msg.js", "if (pris && !o.port && !o.dossier && essai < ESSAIS_PORT) {", "if (false) {"]], ["947"]],
 ];
 for (const [id, nom, edits, suites, o] of CATALOGUE) MUTATIONS.push(Object.assign({ id, nom, edits, suites, sonde: suites.some((s) => s === 'sonde' || s === 'sondeComplete') }, o || {}));
 

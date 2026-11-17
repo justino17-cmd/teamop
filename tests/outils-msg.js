@@ -61,7 +61,7 @@ function ecrireDecalage(fichier, decalage) {
 /* ⛔ LE SERVICE QUI RÉPOND SUR LE PORT EST-IL CELUI QU'ON VIENT DE LANCER ? (17 novembre 2026). `portLibre()` rend un port libre À L'INSTANT où on le demande ; le service ne
    l'écoute qu'un dixième de seconde plus tard. Deux bancs lancés en même temps sur une machine peuvent donc recevoir le MÊME port : le second service meurt (`EADDRINUSE`), mais
    `/health` répond quand même — c'est le service de l'AUTRE banc. L'outil rendait alors un service « vivant » qui était celui d'un autre : des 401 `session_requise` partout, sur
-   une base qui n'est pas celle du banc (vu une fois sur 120 passages de test-981 à douze de front ; rejoué en imposant le port : `scratchpad/sonde-collision-port.js`). La CI n'y
+   une base qui n'est pas celle du banc (vu une fois sur 120 passages de test-981 à douze de front ; rejoué en imposant le port : `scratchpad/sonde-opmessages-collision-port.js`). La CI n'y
    est pas exposée (une suite à la fois par machine), mais les lots de mutations jouent deux copies de front, et on charge une machine en lançant plusieurs passages.
    Chaque lancement porte donc une IDENTITÉ (`OPMSG_SHA`, que `/health` redit dans `sha` — `svc.sha`) : tant que `/health` ne la rend pas, ce n'est pas notre service. Port pris
    (un autre service y répond, ou le nôtre est mort sur `EADDRINUSE`) : on recommence sur un port neuf et des données neuves, cinq fois au plus — sauf si le banc a IMPOSÉ le port
