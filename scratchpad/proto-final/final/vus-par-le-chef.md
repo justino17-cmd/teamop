@@ -80,7 +80,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       blanc ; de nuit les deux sont deux pilules bleu nuit presque pareilles (`--fill:#2c3d63` contre `--surf2` + filet).
       Recommandation : de nuit, le principal en clair (`--fill:#e9eef8; --on-fill:#0b1426`), le miroir exact du jour — une
       ligne de jetons, à essayer sur tous les écrans avant d'adopter (`--fill` sert aussi ailleurs : le recenser).
-- [ ] **Dans l'artefact, le mode application n'est pas atteignable — À CONSTRUIRE (artefact)** — décision du chef du 17/11,
+- [x] (artefact, restes tour 1 : commits efb2eed et 1e42f89 ; sonde artefact-voir-app.js 125 ✓ · 0 ✗, 17 mutations sur 17 ; les deux casses du recontrôle corrigées aussi ; voir `final/restes-artefact-tour1.json`) **Dans l'artefact, le mode application n'est pas atteignable — À CONSTRUIRE (artefact)** — décision du chef du 17/11,
       9 h 15. L'artefact s'ouvre en mode REVUE (la bande « Tester en tant que ») : c'est voulu, Justin y passe d'un rôle à
       l'autre d'un toucher. Mais tout ce qui n'existe qu'en mode APPLICATION (écran de connexion, OP Security, guide à la
       première connexion, aucun échafaudage) lui est invisible : `?app=1` ne passe pas dans un artefact, seul un `#nom` passe.
@@ -125,7 +125,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         un péage ou des gants (le titre du message reprend ce qui est tapé, la plaque seulement pour un plein) ; la fenêtre
         « Il manque encore des choses » sans grands vides. technicien-06 (« Prévenir le bureau » grisé sans raison, Mon
         camion) : à corriger aussi s'il se reproduit encore sur la tête.
-- [ ] **Comptabilité, ventes — décisions du chef du 17/11, 9 h 50, à APPLIQUER (compta-ventes)** : Justin a dit « Comptabilité,
+- [x] (compta-ventes, restes tour 1 : commits acf640d, 2b473e0 et le suivant, rapport `final/restes-compta-ventes-tour1.json` ; 11, 15, 16, 17, 22 et les cinq casses du recontrôle réglés ; 20 : harnais caché et onglet « exemples », le branchement aux factures d'OP GESTION reste À SOUMETTRE ; 19 : rien changé) **Comptabilité, ventes — décisions du chef du 17/11, 9 h 50, à APPLIQUER (compta-ventes)** : Justin a dit « Comptabilité,
       ça c'est bon » : on ne redessine pas l'écran. Mais ce qui est FAUX, trompeur ou d'échafaudage se corrige :
       · **11** : sur la fiche d'une facture ET sur son PDF, trois colonnes « Prix unitaire HT · Qté · Total HT » (une seule
         fonction pour le total de ligne, celle du total de la facture). « Prix HT » qui veut dire tantôt l'unité, tantôt la
@@ -175,3 +175,39 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         au téléphone « Date à fixer » en gras à la place du tiret ; un relevé n'accepte qu'un nombre (avec virgule) ; un
         téléphone accepte « poste 12 » et refuse plus de 20 chiffres ; une ligne de facture a le même plafond de prix que le
         forfait de création.
+
+- [ ] **Équipe — décisions du chef du 17/11, 12 h (equipe)** : · **equipe-11** : la case « Voir » décide SEULE si la personne voit
+      une rubrique ; retirer « Supprimer » à quelqu'un ne lui cache jamais une rubrique qu'il a le droit de voir (aujourd'hui
+      « Temps de travail » disparaît sans « Temps de travail › Supprimer », et « Dépôts et camions » sans « Stock › Supprimer ») ;
+      et la phrase sous chaque case dit exactement ce qu'elle ouvre. · **equipe-13** : les deux boutons qui changent un mot de
+      passe ont deux noms qu'on ne confond pas, avec des mots de tous les jours (plus de « Reposer… ») : « Lui donner un mot de
+      passe provisoire » et « Lui envoyer un lien pour choisir le sien » — une seule phrase d'explication sous chacun.
+
+- [ ] **Achats et frais — décisions du chef du 17/11, 12 h (achats)** : · **achats-01 (bloquant)** : la virgule décimale d'une quantité
+      ou d'un montant ne s'avale JAMAIS (« 1,5 » vaut 1,5 partout dans l'application, pas seulement ici : chercher les autres champs
+      du même genre) ; une valeur illisible est refusée avec une phrase, jamais devinée. · **achats-03** : « La paie du mois »
+      (Temps de travail › Mois) porte UNE ligne « Frais à rembourser avec cette paie : Tom 16,50 € · Karim 14,90 € — hors salaire »,
+      avec le lien « Voir les notes › » ; les chiffres viennent de la fonction qui fait déjà le relevé de chaque personne.
+      · **achats-05** : au téléphone seulement, la première chose à décider se voit sans défiler : plus de tuiles qui répètent les
+      chiffres des onglets, la liste d'abord, « Ça se règle dans la Comptabilité » sous la liste, les réglages des notes derrière
+      « Réglages › ». · **achats-08** : « Kilomètres : 0,60 € le km (à régler avec ton expert-comptable : le barème dépend de la
+      puissance du véhicule) » — plus de « exemple de démonstration ». · **achats-10** : UN mot, « sans justificatif », pour le lien,
+      la puce et les lignes ; une note de frais encore à valider ne se compte pas parmi les achats sans justificatif.
+
+- [ ] **Mon entreprise et droits — décisions du chef du 17/11, 12 h 05 (entreprise)** : · **tout-08** : À CORRIGER, ce n'est pas « à soumettre ».
+      Une personne qui n'a que « Voir » sur la Boîte mail LIT ses courriels et rien d'autre : écrire, répondre, transférer, archiver,
+      supprimer, déplacer, marquer exigent la case qui va avec (un droit qui ne fait rien est un défaut qu'un client signalerait). La
+      correction se fait dans l'hôte et dans apercu/prototype-courrier.js (le module du prototype ; opcourrier.js ne se touche pas) :
+      les gestes d'écriture ne sont pas proposés, et un geste refusé le dit par la phrase des autres rubriques. · **La casse du
+      recontrôle** : au téléphone, le champ refusé d'une feuille se voit toujours, avec son message, au-dessus de la rangée
+      « Enregistrer / Annuler » collée en bas (la piste mesurée par le recontrôleur : scroll-padding-bottom de 200 px sous 760 px de
+      large). · **tout-11** : après « Facture envoyée toute seule » et « Notes de frais », la barre « Retour · Mon entreprise » reste
+      visible. · La fiche « Droits » ne glisse plus de côté à 360 et 320 px (bloc « Mot de passe provisoire »). · Les deux sondes
+      périmées (menu avec « Sécurité », sept champs) se mettent à jour sans affaiblir leur contrôle.
+- [ ] **Matériel — décisions du chef du 17/11, 12 h 05 (materiel, vehtemps, technicien)** : · **technicien-05** : UN seul mot pour
+      les pièces qui ne sont pas dans le camion : « manque à bord » (« Il manque à bord · 3 » sur Mon camion, « 3 articles manquent
+      à bord » sur Ma journée et dans Véhicules) ; « à remettre à bord » disparaît partout, sondes et spécification de Véhicules
+      comprises (la sonde vehtemps-v5-camion se met à jour, elle ne décide pas du mot). · **technicien-08** : l'unité « u » RESTE
+      (c'est celle de la vraie application et d'une facture) : rien à changer, à dire à Justin dans la liste des doutes.
+      · Les défauts technicien-11 à 14 de la relecture (dont « Je l'ai pris » qui dit « Envoyé au bureau » sans réseau) n'étaient
+      pas dans la liste lue par le correcteur (il en a lu 10 sur 14) : à corriger au tour « restes » s'ils sont encore là.

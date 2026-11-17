@@ -15,7 +15,7 @@ const { L, ouvrirAchats, devenir, toast, panneau } = require('./achats-outils.js
     const n0 = await E(() => NDF.length); await clic('[data-rl="ndfok"]'); await L.calme(p, 350);
     const n1 = await E(() => NDF.length), ttc = n1 > n0 ? await E(() => NDF[0].ttc) : null, msg = (await toast(p)).slice(0, 80), dbl = await E(() => { const z = document.getElementById('rn-dbl'); return z && !z.hidden ? z.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : ''; });
     const nom = `« ${saisie} » ${attendu === null ? 'est refusé avec une phrase, rien n’est créé' : 'est lu ' + String(attendu).replace('.', ',') + ' €'}`;
-    v(`S${++n} ${nom}`, attendu === null ? (n1 === n0 && (!!msg || !!dbl)) : (n1 === n0 + 1 && ttc === attendu), { saisie, attendu, ttc, cree: n1 - n0, msg, dbl });
+    v(`S${++n} ${attendu !== null && /€|,$/.test(saisie) ? '(achats-11) ' : ''}${nom}`, attendu === null ? (n1 === n0 && (!!msg || !!dbl)) : (n1 === n0 + 1 && ttc === attendu), { saisie, attendu, ttc, cree: n1 - n0, msg, dbl });
     if (n1 > n0) await E(() => { NDF.shift(); }); await L.ranger(p); await E(() => { rendre(); });
   }
   const err = c.err.filter(x => !/ERR_/.test(x)); v('aucune erreur JavaScript', err.length === 0, err.slice(0, 3));

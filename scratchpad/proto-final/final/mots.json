@@ -1,0 +1,95 @@
+{
+ "corrections": [
+  {
+   "ecran": "Temps de travail › Envoyer au cabinet de paie",
+   "avant": "Prototype : le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois.",
+   "apres": "Le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois. Ici, rien n’est envoyé.",
+   "raison": "reste d’échafaudage « Prototype : »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Registre sanitaire › PDF",
+   "avant": "Dans l’application, le registre part en PDF au nom de l’entreprise (passages, produits avec lot et AMM, recommandations, plan des box). Ici, c’est un aperçu : aucun fichier n’est fabriqué.",
+   "apres": "Le registre part en PDF au nom de l’entreprise (passages, produits avec lot et AMM, recommandations, plan des box). Ici, aucun fichier n’est créé.",
+   "raison": "« Dans l’application » alors qu’on y est ; « aperçu » et « fabriqué » sont des mots de développeur",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Registre sanitaire › PDF du site",
+   "avant": "prêt (exemple : aucun fichier n’est fabriqué ici).",
+   "apres": "préparé. Ici, aucun fichier n’est créé.",
+   "raison": "« exemple » et « fabriqué »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Registre sanitaire › Prévenir les clients",
+   "avant": "par e-mail (exemple).`",
+   "apres": "par e-mail. Ici, aucun message ne part vraiment.`",
+   "raison": "« (exemple) » ne dit pas ce qui se passe",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Carte des box › Plan en PDF",
+   "avant": "Aperçu : dans l’application, le plan en PDF est enregistré et joint au registre.",
+   "apres": "Le plan en PDF est joint au registre. Ici, aucun fichier n’est créé.",
+   "raison": "« Aperçu : dans l’application »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Carte des box › Envoyer le plan",
+   "avant": "envoyés à ${esc(CB_MAIL[c])} (simulation : rien n’est parti).`",
+   "apres": "envoyés à ${esc(CB_MAIL[c])}. Ici, aucun message ne part vraiment.`",
+   "raison": "« simulation »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Carte des box › Étiquettes",
+   "avant": "Aperçu : la planche d’étiquettes part à l’impression dans l’application.",
+   "apres": "La planche d’étiquettes part à l’impression. Ici, rien n’est imprimé.",
+   "raison": "« Aperçu : … dans l’application »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis xylophage › Attestation PDF",
+   "avant": "Dans l’application, l’attestation part en PDF au nom de l’entreprise. Ici, c’est un aperçu : aucun fichier n’est fabriqué.",
+   "apres": "L’attestation part en PDF au nom de l’entreprise. Ici, aucun fichier n’est créé.",
+   "raison": "« aperçu », « fabriqué »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › ouvrir une facture absente",
+   "avant": "Cette facture n’est pas dans la démonstration d’OP GESTION (elle a moins de factures que la comptabilité).",
+   "apres": "Cette facture n’a pas de page à ouvrir ici.",
+   "raison": "« démonstration d’OP GESTION » (échafaudage)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › ouvrir un client absent",
+   "avant": "Ce client n’est pas dans la démonstration d’OP GESTION.",
+   "apres": "Ce client n’a pas de fiche à ouvrir ici.",
+   "raison": "« démonstration d’OP GESTION » (échafaudage)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis et contrats › droit refusé",
+   "avant": "Ton rôle n’a pas accès à ' + (droit === 'contrats' ? 'la composition des contrats.' : 'la composition des devis.')",
+   "apres": "Ce geste n’est pas ouvert à ton compte : ' + (droit === 'contrats' ? 'composer un contrat.' : 'composer un devis.')",
+   "raison": "une seule formule de refus (« Ce geste n’est pas ouvert à ton compte »), et « rôle » est un mot interne",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Planning › Rendez-vous en ligne",
+   "avant": "Enregistré tout de suite. Pour les voir : ouvre une intervention TERMINÉE (le bouton n’existe que sur celles-là), puis touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.",
+   "apres": "Enregistré tout de suite : les moments proposés à tes clients changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.",
+   "raison": "mode d’emploi de test (« ouvre une intervention TERMINÉE… ») écrit dans l’écran d’un vrai utilisateur",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Planning › Retards",
+   "avant": "Replanifier ouvre le planning sur la carte pour la déplacer ; appeler le technicien pour savoir où il en est. Le titre ouvre la fiche.",
+   "apres": "Replanifier ouvre le planning sur la carte, pour la déplacer. Appelle le technicien pour savoir où il en est. Le titre ouvre la fiche.",
+   "raison": "deux verbes de formes différentes dans une même phrase, tutoiement tenu",
+   "fichier": "apercu/prototype-op-gestion.html"
+  }
+ ]
+}
