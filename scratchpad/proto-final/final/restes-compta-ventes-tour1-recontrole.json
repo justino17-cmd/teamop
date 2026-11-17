@@ -1,0 +1,105 @@
+{
+ "noms": [
+  "compta-ventes"
+ ],
+ "regles": [
+  "compta-ventes-06 · tâche de relance d'une facture annulée (rejoué : relance terminée, une seule tâche ouverte « Rembourser 500,00 € à M. et Mme Durand », mutation de la fermeture : 2 ✗)",
+  "compta-ventes-06 · facture encaissée en partie puis annulée : l'avoir est offert, la fenêtre dit « 500,00 € ont déjà été reçus », la fiche dit « À rembourser au client 500,00 € », le cadre dit « 500,00 € déjà reçus : à rembourser » (mac, petit, iPhone jour et nuit ; le reste à recevoir se recalcule juste : 1 475 → 975 → 235 €) — SAUF ce qui devient de cette phrase une fois le remboursement fait (voir casses)",
+  "compta-ventes-06 · facture payée puis avoirée : « Payée · virement · avoir AV-… » (r5 3 ✓)",
+  "Casse 3 · TVA d'une facture à la main : les 7 clients du menu règlent le taux (particulier 10, professionnel 20), le texte d'aide suit, revenir sur « Choisir le client… » ne jette rien, 320 px sans débordement (mutation « 20 % pour tous » : 1 ✗)",
+  "compta-ventes-21 · « Plus bas » et menu au doigt à 44 px (corrections-mep : iphone jour+nuit, ipad, petit 28 ✓ · 0 ✗ ; android nuit 14 ✓ · 0 ✗)",
+  "Point 11 · colonnes de la fiche d'une facture : Désignation · Prix unitaire HT · Qté · Total HT (lecture) ; 3 × 1 234,50 = 3 703,50 et 1,5 × 29,17 = 43,76 ; total HT 3 747,26 ; restes-2 13 ✓ sur petit, iphone nuit, ipad, mac ; mutation « total sans quantité » : 5 ✗ — SAUF l'aperçu PDF (voir casses)",
+  "Point 15 · onglets d'un espace au téléphone : 30 ✓ · 0 ✗ (petit, iPhone jour et nuit), 24 ✓ (iPad), 17 ✓ (mac)",
+  "Points 16 et 17 · tête et fiche facture au téléphone : phrase de la tête sur une ligne, titre FAC-… à 292 px (iPhone), 269 px (Android), « Il manque 3 mentions » sur une ligne (captures iPhone et petit lues)",
+  "Point 20 · « Paiement en ligne » en mode application : harnais absent, ruban « Exemples · paiement en ligne » (restes-3 12 ✓ mac et iPhone nuit ; mutation sans ?app=1 : 6 ✗ ; capture mac et iPhone nuit lues)",
+  "Point 22 · un seul bouton de menu au téléphone dans la fenêtre : ≡ effacé, « Menu » d'OP GESTION gardé, « Relevé à 05:55 » (iPhone, Android, petit, iPad)",
+  "Sonde parcours-a (prix négatif refusé) : 36 ✓ · 0 ✗"
+ ],
+ "pasRegles": [
+  {
+   "nom": "compta-ventes-06 · facture encaissée en partie puis annulée",
+   "defaut": "Le remboursement fait n'est écrit nulle part : une fois la tâche « Rembourser 500,00 € » cochée (c'est son seul cycle de vie), la fiche de la facture annulée dit toujours « À rembourser au client 500,00 € » et le panneau du cadre « 500,00 € déjà reçus : à rembourser ».",
+   "constat": "compta-ventes-restes1-rc1.js A6 et A7 tombent sur mac, petit, iPhone nuit (10 ✓ · 2 ✗). Cause : la ligne de la fiche (prototype-op-gestion.html, « À rembourser au client », f.st==='annulee' && f.recu) ne lit ni la tâche (clé « remb-<id> », fait ou non) ni aucune trace d'un remboursement ; le cadre reçoit f.recu sans cet état. Même en ayant coché la tâche, l'écran continue d'affirmer qu'il reste 500 € à rendre. À corriger : la fiche et le cadre lisent l'état de la tâche « remb-… » (« Remboursé le JJ/MM · 500,00 € » une fois faite), ou une ligne de sortie d'argent à l'Historique."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Aperçu « La facture » (PDF) : les montants et « Qté » se coupent en deux lignes",
+   "gravite": "élevée (c'est le document que le client reçoit ; cas ordinaire, 186 € sur téléphone)",
+   "etapes": [
+    "Ouvrir la facture FAC-2026-0145 (Hôtel de la Plage, 186,00 € TTC) sur iPhone, Android ou 320 px, toucher « Voir le PDF »",
+    "Lire le tableau : « Qt / é », « 155,0 / 0 € », « 31,00 / € », « 186,0 / 0 »",
+    "Sur mac et iPad, avec une facture à des montants à quatre chiffres (3 × 1 234,50 €) : « 3 703,50 / € », « 3 747,26 / € », « 4 121,98 / € » (qui passaient d'une ligne avant le passage à quatre colonnes), et « Qt / é » dans l'en-tête"
+   ],
+   "constat": "compta-ventes-restes1-rc2.js : iphone, android, petit 5 ✓ · 2 ✗ ; ipad, mac 6 ✓ · 1 ✗. Contre-épreuve sur le code d'avant la correction (acf640d2^) : mac 7 ✓ · 0 ✗ (la coupure sur ordinateur et tablette est NEUVE : la colonne « Qté » s'ajoute à « Prix unitaire HT » et « Total HT » dans 580 px) ; iPhone 5 ✓ · 2 ✗ (déjà coupé avant : la correction du point 11 a mesuré le débordement de la page, pas la coupure d'un montant). Le PDF en grand (« Voir en grand ») et le devis plein écran ne coupent rien. Captures : rc2-iphone-pdf-f145.png, rc2-mac-pdf-fx-env.png. Piste : white-space:nowrap sur les cellules numériques et « Qté » du .pdf de facture, et sous 600 px la quantité derrière la désignation (« × 3 », comme à la fiche) avec la colonne fermée."
+  }
+ ],
+ "nouveaux": [
+  "Quantité avec unité ou espace : « 2 h » et « 1 000 » sont acceptés dans la colonne Qté d'une facture à valider et comptés pour 1 (la ligne « 2 h × 100 € » totalise 100,00 €, « 1 000 » × 100 € aussi) ; « 0 », « -2 », « abc » et vide sont refusés (qté gardée). Défaut d'avant (qteDe ignore tout ce qui contient une lettre), mais la nouvelle colonne « Total HT » le rend visible : montant faux sans un mot. Fiche + PDF de facture à valeurs « 2 h ».",
+  "Une facture annulée garde sa frise « Ouverte par le client ○ · Payée ○ » (étapes à venir) alors qu'elle est annulée et que 500 € ont été reçus (captures rc1-iphone-nuit-fiche-avant.png). Mineur.",
+  "Le mot « Prix HT » reste dans l'éditeur de devis (« Désignation · Qté · Prix HT · Total ») alors que la facture et le PDF du devis disent « Prix unitaire HT » : la même ambiguïté que celle corrigée au point 11, côté devis. Mineur (prototype-op-gestion.html, ligne ~8065).",
+  "Fenêtre OP COMPTABLE, accueil : « Avec le pilote, tout cela se traite sans toi. Ici, tu le déclenches à la main pour voir chaque étape. » et le bouton « Tout traiter » restent visibles en mode application (restes1-iphone-fenetre.png) : un mot de démonstration dans l'application, contraire à la ligne « cadre sans mots de démonstration ». À trancher par le chef (prototype-comptabilite.html ligne 2457).",
+  "sondes/droits-compta.js est rouge (1 ✓ · 5 ✗, « Cannot read properties of null (reading 'click') » dans Object.suite du cadre, gestes « cloturer-envoyer » et « fec-dl » sans effet) : verte à b1baf054, rouge à e411402f^, donc AVANT ce tour (non causé par les corrections) ; à rattacher à la voie droits ou à la voie compta-reste.",
+  "Sonde parcours-g (12b, contrat « à l'an ») reste à 7 ✓ · 1 ✗ : l'attente est périmée par la décision contrats-15 (« une pièce hors contrat posée sur une visite comprise se facture SEULE » ; la facture de 10,33 € « Nettoyant échangeur » en est la preuve), à adapter par la voie contrats."
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes-1.js",
+   "resultat": "petit 30 ✓ · 0 ✗ ; iphone 30 ✓ ; iphone nuit 30 ✓ ; android 30 ✓ ; ipad 24 ✓ ; mac 17 ✓"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes-2.js",
+   "resultat": "petit, iphone nuit, ipad, mac : 13 ✓ · 0 ✗ chacun"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes-3.js",
+   "resultat": "mac 12 ✓ ; iphone nuit 12 ✓"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-recontrole-r2b.js",
+   "resultat": "mac et iphone 7 ✓ · 0 ✗ (le rapport du correcteur cite 26 ✓ : c'est 7 ✓ sur ce fichier)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-recontrole-r4.js",
+   "resultat": "mac 3 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-recontrole-r5.js",
+   "resultat": "mac 3 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-corrections-mep.js",
+   "resultat": "iphone jour+nuit 28 ✓ ; ipad 28 ✓ ; petit 28 ✓ ; android nuit 14 ✓ — 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-a à j.js (mac)",
+   "resultat": "a 36 ✓, b 28 ✓, c 24 ✓, d 27 ✓, e 13 ✓, f 26 ✓, h 11 ✓, i 7 ✓, j 23 ✓ ; g 7 ✓ · 1 ✗ (12b périmée, voir nouveaux)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-balayage-tout.sh (iphone, marc)",
+   "resultat": "terminé, « err 0 », tous les gestes des écrans Comptabilité répondent"
+  },
+  {
+   "fichier": "sondes/droits-compta.js (mac)",
+   "resultat": "1 ✓ · 5 ✗ (rouge avant ce tour aussi, voir nouveaux)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes1-rc1.js (NOUVELLE)",
+   "resultat": "mac 10 ✓ · 2 ✗, petit 10 ✓ · 2 ✗, iphone nuit 10 ✓ · 2 ✗ : A6 et A7 (remboursement fait, la fiche et le cadre disent encore « à rembourser ») tombent — attendent la correction"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes1-rc2.js (NOUVELLE)",
+   "resultat": "iphone, android, petit 5 ✓ · 2 ✗ ; ipad, mac 6 ✓ · 1 ✗ : montant ou « Qté » coupé dans l'aperçu PDF — attend la correction"
+  },
+  {
+   "fichier": "mutations jouées sur une copie (hors dépôt)",
+   "resultat": "fermeture des relances retirée : r2b 2 ✗ ; remboursement retiré : r2b 2 ✗ ; total de ligne sans quantité : restes-2 5 ✗ ; TVA 20 % pour tous : r4 1 ✗ ; ?app=1 retiré : restes-3 6 ✗ — les cinq mordent"
+  }
+ ],
+ "doutes": [
+  "Remboursement d'une facture PAYÉE puis avoirée (entrée 13 du correcteur) : à soumettre à Justin. Asymétrie visible : une facture payée à moitié annulée reçoit la tâche « Rembourser 500,00 € », une facture payée en entier (1 240,00 €) annulée n'en reçoit aucune, seulement « le remboursement se note à part ».",
+  "« Paiement en ligne » montre toujours des factures d'exemple (téléphone simulé, « Nous sommes le samedi 31 octobre ») dans l'application : l'onglet le dit désormais (« exemples »), mais le brancher aux vraies factures reste le chantier non fait de l'entrée 10, à soumettre à Justin.",
+  "Nom « OP COMPTABLE » de la fenêtre contre le mot « Comptabilité » du menu : à soumettre à Justin (entrée 8).",
+  "Sur 320 px, le menu déroulant de la TVA d'une facture à la main tronque son libellé (« 10 % · particulier, logement de p ») : la phrase d'aide dessous le dit en entier ; je n'y vois pas de défaut, à confirmer par l'œil du chef."
+ ]
+}
