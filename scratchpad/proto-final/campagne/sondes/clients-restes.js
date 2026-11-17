@@ -47,7 +47,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   let pan = await p.evaluate(() => ({ h2: (document.querySelector('#calque .panneau h2') || {}).textContent, boutons: [...document.querySelectorAll('#calque .panneau button')].map(b => b.textContent.trim()).filter(x => x !== '✕'), onglet: ongletClient }));
   console.log('  · fenêtre : ' + JSON.stringify(pan)); await L.capture(c, CAP + 'quitter-infos-' + ETQ + '.png');
   v('clients-15 : une saisie non enregistrée + un autre onglet : la fenêtre de l’application demande, avec les trois choix', /sans l’enregistrer/.test(pan.h2 || '') && pan.boutons.join('|') === 'Enregistrer|Abandonner mes changements|Continuer la saisie' && pan.onglet === 'infos', pan);
-  await L.toucher(c, '#calque [data-ferme]:not(.x)'); await L.calme(p, 200);
+  await L.toucher(c, '#calque .panneau button[data-ferme]:not(.x)'); await L.calme(p, 200);
   v('« Continuer la saisie » : on reste sur Infos, la saisie est intacte', await p.evaluate(() => ongletClient === 'infos' && document.querySelector('[data-ci="acces"]').value === 'Code du portail : 9876 (changé)' && !document.querySelector('#calque .panneau')));
   await L.toucher(c, '#contenu [role=tab][data-oc="factures"]'); await L.toucher(c, '#calque [data-v="abandon"]'); await L.calme(p, 300);
   v('« Abandonner mes changements » : on change d’onglet, rien n’est gardé', await p.evaluate(() => ongletClient === 'factures' && CLIENTS.mr.acces !== 'Code du portail : 9876 (changé)'));
@@ -114,6 +114,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   // ── clients-17 : archiver ──
   await L.aller(p, 'client-x-cm'); await L.toucher(c, '#contenu [role=tab][data-oc="infos"]');
   v('clients-17 : « Archiver ce client » est dans l’onglet Infos', await p.evaluate(() => !!document.querySelector('#contenu [data-action="clientArchiverDemande"]')));
+  await p.evaluate(() => { document.querySelector('[data-action="clientArchiverDemande"]').scrollIntoView({ block: 'center' }); }); await L.calme(p, 500);   /* le geste est au bas de la fiche : on le regarde */
   await L.capture(c, CAP + 'infos-archiver-' + ETQ + '.png');
   const nom = await p.evaluate(() => CLIENTS.cm.nom);
   await L.toucher(c, '[data-action="clientArchiverDemande"]'); await L.capture(c, CAP + 'archiver-confirme-' + ETQ + '.png');
