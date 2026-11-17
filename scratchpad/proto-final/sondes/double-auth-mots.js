@@ -10,7 +10,7 @@ const ABSOLUS = /100 ?%|inviolable|impénétrable|infaillible|garanti|totalement
 const AUTRES = [/\bvous\b/i, /\bvotre\b/i, /\bvos\b/i, /Team OP/, /Authenticator/, /Espace sécurisé/, /Oups/, /!/];
 const SECOURS = /code[s]? de (secours|récupération|dépannage)|recovery|se connecter sans téléphone/i;
 (async () => {
-  const c = await S.ouvrir({ qui:'marc', profil:'mac' });
+  const c = await L.ouvrir({ qui:'marc', profil:'mac', requete:'?app=1&auto=marc&tel=1' });
   await c.p.evaluate(() => { secuTelCreer('marc', 'iPhone de Marc', '246802'); SECU.telCourant = 'kb'; SECU.sessions.kb = { debut:secuMaint(), appareilId:'ici', auto:false, derniereActivite:secuMaint() }; });
   const ecrans = {};
   const lire = async (nom, f) => { await c.p.evaluate(f); await c.p.waitForTimeout(550); ecrans[nom] = norm(await c.p.evaluate(() => { const z = [document.querySelector('#sec-conf'), document.querySelector('#calque .panneau'), document.querySelector('.sec-bande')].find(x => x); return (z ? z.textContent : document.querySelector('#contenu').textContent); })); await c.p.evaluate(() => { secuConfFermer(true); fermerPanneau(); }); };
