@@ -739,9 +739,6 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 /* ── pointage ── */
 /* la semaine compte 7 jours (le samedi et le dimanche sont dans la paie) ; le tableau garde sa largeur propre et défile s'il le faut */
 /* ce style est inséré avant la feuille de l'écran : on gagne par la spécificité, pas par l'ordre */
-.pt-grille .pt-r{grid-template-columns:150px repeat(7,minmax(72px,1fr)) 104px 84px;min-width:1010px}
-.pt-grille .pt-j{position:relative}
-.pt-grille .pt-r>.pt-j:nth-child(n+7):nth-child(-n+8):not(.pt-abs):not(.pt-ouv){background:color-mix(in srgb,var(--surf2) 55%,transparent)}
 .pt-entete span:nth-child(7),.pt-entete span:nth-child(8){opacity:.7}
 .ptx-carte .btn,.ptx-prop .btn,.ptx-oubli .btn,#calque .panneau .btn{min-height:44px!important}
 /* la carte du salarié */
@@ -762,7 +759,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 .vx-seg{align-self:flex-start}
 .vx-ajout{cursor:pointer;min-height:44px}
 .vx-mini{display:block;width:44px;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--trait2);flex:none}.vx-mini img{width:100%;height:100%;object-fit:cover;display:block}
-.vx-souci,.vx-immo{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.vx-immo{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .vx-alerte{display:flex;flex-direction:column;gap:8px}
 .vx-pl{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding-bottom:10px}.vx-pl small{font-size:14px;color:var(--doux);font-weight:550}.vx-pl b{font-size:20px;min-height:36px;display:flex;align-items:center}
 .vx-gar{font-weight:700}.vx-gar-b{align-self:flex-start;margin-bottom:6px}
@@ -1499,20 +1496,9 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .ve-mat{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0 12px}
 .ve-c .fo-stats i{font-style:normal}
 @media (max-width:760px){.ve-mat{grid-template-columns:1fr 1fr}}
-.pt-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pt-nav b{font-size:16px}
-.pt-grille{padding:6px 10px;overflow-x:auto}
-.pt-r{display:grid;grid-template-columns:170px repeat(5,minmax(86px,1fr)) 112px 92px;gap:6px;align-items:stretch;border-bottom:1px solid var(--trait);padding:8px 0;min-width:840px}
-.pt-grille .pt-r:last-child{border-bottom:0}.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);text-transform:capitalize;padding:6px 0}
-.pt-qui{display:flex;flex-direction:column;justify-content:center;text-align:left;background:none;border:0;color:var(--encre);font:inherit;cursor:pointer;padding:4px;border-radius:10px}
-.pt-j{display:flex;flex-direction:column;gap:1px;align-items:flex-start;justify-content:center;text-align:left;border:1px solid var(--trait);background:var(--surf2);border-radius:10px;padding:6px 8px;color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
-@media (hover:hover){.pt-j:hover,.pt-qui:hover{background:var(--survol)}}
-.pt-j span{font-size:12px;color:var(--doux)}.pt-j b{font-size:14.5px;font-variant-numeric:tabular-nums}
-.pt-abs{background:color-mix(in srgb,var(--violet) 12%,transparent)}.pt-ouv{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 10%,transparent)}.pt-manque{border-style:dashed;border-color:var(--rouge)}
-.pt-tot{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;font-variant-numeric:tabular-nums}.pt-val{display:flex;align-items:center;justify-content:flex-end}
-.pt-al{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;padding:0 4px}
+.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);text-transform:capitalize;padding:6px 0}
 .pt-paie{padding:6px 14px}.pt-p{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:8px;padding:11px 2px;border-bottom:1px solid var(--trait);align-items:center;font-variant-numeric:tabular-nums}.pt-paie .pt-p:last-child{border-bottom:0}
-@media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}.pt-r{grid-template-columns:118px repeat(5,minmax(80px,1fr)) 100px 86px;min-width:780px}}
-.pt-alertes{display:flex;flex-direction:column;padding:14px 16px}
+@media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}}
 .pt-frais{display:flex;gap:12px;align-items:center;padding:12px 16px}.pt-frais .fo-n{flex:1}
 .eq-av{width:40px;height:40px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:800;color:#fff;background:color-mix(in srgb,var(--c) 82%,#000);text-shadow:0 1px 1px rgba(0,0,0,.25)}.eq-av.grand{width:52px;height:52px;font-size:17px}
 .eq-tete{display:flex;align-items:center;gap:12px;margin:2px 0 6px}.eq-tete h2{margin:0}
@@ -12831,8 +12817,8 @@ function paieBulletinDoc(k, ym){
 /* ─── l'espace « Paie » de la Comptabilité ─── */
 CX_NAV.splice(3, 0, ['paie', 'Paie', '💶', [['paiemois', 'Le mois'], ['fiches', 'Fiches de paie'], ['salaries', 'Salariés'], ['charges', 'Charges et déclarations']]]);
 const paieOk = (o, m) => `<div class="ok-bloc petit">✓ ${m}</div>`;
-/* confirmer SES heures : un geste du salarié sur SES heures, jamais celui d'un écran de comptabilité. « Mes heures » l'appelle directement : passer par un bouton data-paie
-   le ferait lire comme un geste de Comptabilité › Paie, que la garde des droits refuse à un compte de terrain (relevé à la recette de l'étape 5 : « Je confirme mes heures » refusé à Sophie). */
+/* confirmer SES heures : UNE définition, appelée par le bouton de la comptabilité (data-paie « confirme ») ET par « Mes heures » (« Je confirme mes heures », « Confirmer quand même »). « Mes heures » ne passe PAS par un bouton data-paie caché : la garde des droits lit
+   ce bouton comme un geste de Comptabilité › Paie et le refusait à un compte de terrain (relevé à la recette de l'étape 5, avant que GESTES_SOI ne laisse le salarié confirmer SA ligne) — un écran de salarié ne dépend pas de la case d'un écran du bureau. */
 function paieConfirmer(k){ PAIE.confirmes[k] = { le:'31/10 · ' + hNow() }; delete PAIE.signales[k]; rendre(); return toast('Merci : tes heures sont confirmées, le bureau le voit.'); }
 function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
