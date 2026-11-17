@@ -17,7 +17,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   console.log('  · lignes préparées :', JSON.stringify(f0 && f0.lignes), '· TVA', f0 && f0.tva);
   await I.devenir(c, 'marc', 'facture-x-f-i1'); t = await txt();
   const dis = await ev(() => { const b = document.querySelector('[data-action="apercuEnvoi"]'); return b && b.disabled; });
-  v('interventions-14 : une ligne sans prix : « Aperçu et envoi » est grisé, et la page dit pourquoi (le bandeau existe mais le mode application le cache)', dis === true && await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu .bandeau-proto')].find(e => /sans prix/.test(e.textContent)); return !!b && getComputedStyle(b).display !== 'none'; }), [dis, (t.match(/.{0,20}sans prix.{0,60}/) || [''])[0]]);
+  v('interventions-14 : une ligne sans prix : « Aperçu et envoi » est grisé, et la page dit pourquoi (le bandeau existe mais le mode application le cache)', dis === true && await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu .bandeau-info, #contenu .bandeau-proto')].find(e => /sans prix/.test(e.textContent)); return !!b && getComputedStyle(b).display !== 'none'; }), [dis, (t.match(/.{0,20}sans prix.{0,60}/) || [''])[0]]);
   await L.capture(c, CAPN('1-a-chiffrer'));
   // F3 chiffrer
   await p.fill('input[data-prix][placeholder="prix HT"]', '35,5'); await p.evaluate(() => document.querySelector('input[data-prix]:not([placeholder=""])') && 0); await p.keyboard.press('Tab'); await L.calme(p, 500);
