@@ -1,7 +1,7 @@
 // Recense tous les gestes DATA de la page : { famille: { verbe: [lignes] } } pour chaque data-<famille>="verbe|…" (hors data-id, data-* de valeur libre listés
 // dans IGNORE), plus les clés de ACTIONS / ACTIONS_CREA. Sert de source à la table GESTES (page) ET à la sonde droits-table.js (complétude).
 const fs = require('fs'), path = require('path');
-const PAGE = path.join(__dirname, '..', '..', '..', 'apercu', 'prototype-op-gestion.html');
+const PAGE = path.join(process.env.RACINE || path.join(__dirname, '..', '..', '..'), 'apercu', 'prototype-op-gestion.html');   // RACINE : la copie mutée d'une contre-épreuve
 function recenser(src) {
   src = src || fs.readFileSync(PAGE, 'utf8');
   const fam = {}, dyn = new Set(); const lignes = src.split('\n');

@@ -11398,6 +11398,8 @@ const droitVoit = (r, p) => droitRaison(r, p) === null;
 /* Créer / Modifier / Supprimer : la case de la catégorie, pour la personne qui agit (ou pour une autre, quand on prépare sa fiche) */
 function peut(cat, x, p){ p = p || eqDe(acteur()); if (ROLE === 'client' && !p) return true; if (!p || !p.droits) return false; if (droitAdmin(p)) return true;
   const d = p.droits.cats[cat]; return !!(d && d.v && d[x]); }
+/* ce que la personne peut FAIRE dans une catégorie : envoyé aux fenêtres qui ne partagent pas le code de la page (l'atelier, la fenêtre OP COMPTABLE, la Boîte mail) */
+const droitsDe = cat => ({ c:!!peut(cat, 'c'), m:!!peut(cat, 'm'), s:!!peut(cat, 's') });
 /* la première rubrique qu'une personne a le droit d'ouvrir : là où le logo, une adresse refusée et la fin de session ramènent */
 const OUVERTURE_ORDRE = ['accueil', 'majournee', 'comptabilite', 'devis', 'clients', 'contrats', 'interventions', 'planning', 'taches'];
 const ouvertureDe = p => OUVERTURE_ORDRE.find(k => droitVoit(k, p)) || 'taches';
@@ -13551,9 +13553,9 @@ addEventListener('message', e => { const z = document.getElementById('cpsys'), f
   return r; }; })();
 /* [7] la gestion ne planifie pas (sa fiche le dit) : la carte « La placer » est remplacée par une phrase, et « Voir au planning » ne mène plus à un écran refusé */
 (() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments);
-  if (typeof RL_ACTIF !== 'undefined' && RL_ACTIF && ROLE === 'gestion') document.querySelectorAll('#contenu .rl-placer').forEach(c => { c.innerHTML = '<h3>La planifier</h3><span class="gris">Le planning est tenu par le patron : c’est lui qui place cette intervention chez un technicien.</span>'; });
+  if (typeof RL_ACTIF !== 'undefined' && RL_ACTIF && ROLE === 'gestion' && !peut('planif', 'm')) document.querySelectorAll('#contenu .rl-placer').forEach(c => { c.innerHTML = '<h3>La planifier</h3><span class="gris">Le planning est tenu par le patron : c’est lui qui place cette intervention chez un technicien.</span>'; });
   return v; }; })();
-document.addEventListener('click', ev => { if (typeof RL_ACTIF === 'undefined' || !RL_ACTIF || ROLE !== 'gestion') return; const b = ev.target.closest('[data-rl^="placer|"], [data-rl^="auplanning|"]'); if (!b) return;
+document.addEventListener('click', ev => { if (typeof RL_ACTIF === 'undefined' || !RL_ACTIF || ROLE !== 'gestion' || peut('planif', 'm')) return; const b = ev.target.closest('[data-rl^="placer|"], [data-rl^="auplanning|"]'); if (!b) return;
   ev.stopImmediatePropagation(); ev.preventDefault(); toast('Le planning est tenu par le patron.'); }, true);
 /* ── taches ── */
 /* ══ TÂCHES — le lot du 10 novembre 2026 ══
@@ -15246,7 +15248,7 @@ function sxFluideRecupere(id){
 /* (les routes ne s'ajoutent plus à un rôle : ROUTE_DROIT et les cases de la fiche décident, étape 5) */
 /* ce qu’un rôle peut faire : tant que les cases d’Équipe « n’agissent pas » (MENU-FINAL, constat 7), le gérant a tout et le bureau n’a pas ces trois droits */
 const msAccepte = () => rlPermis('stockAccepter'), msReglages = () => rlPermis('stockReglages'), msPrixVente = () => rlPermis('produitsPrixVente');
-const msGerant = () => ROLE === 'patron';
+const msGerant = () => ROLE !== 'tech' && ROLE !== 'client' && peut('stock', 'c');   /* ajouter un article, et appliquer sa propre sortie : la case « Stock › Créer », plus le nom du rôle */
 const msPersonne = k => ({ id:k, nom:H_NOM(k), c:(H_GENS[k] || {}).c || '#8a8a8a' });
 const msIcCat = x => sxEstFluide(x) ? 'fluide' : 'article';
 const msD = d => d === AUJ ? 'Aujourd’hui' : d === jour(-1) ? 'Hier' : jlong(d).replace(/^./, c => c.toUpperCase());
@@ -15485,7 +15487,7 @@ function matGVue(){
     ${m === 'deplacer' ? `<div class="ms-de-vers"><label class="champ">De<select data-msg="de">${msLieuxOpt(G.de)}</select></label><button type="button" class="ms-echange" data-ms="gechange" aria-label="Échanger les deux lieux" title="Échanger les deux lieux">${svg('deplacer')}</button><label class="champ">Vers<select data-msg="vers">${msLieuxOpt(G.vers)}</select></label></div>
       ${garage ? `<div class="info petit fo-alerte">Ce camion est au garage. Tu les mets quand même ?</div>` : ''}` : ''}
     <div class="mat-phrase gris petit" aria-live="polite">${esc(matGPhrase(G))}</div>
-    <div class="info petit">${STK_VALID && !msGerant() ? 'Ça part au gérant : le stock bougera quand il aura accepté.' : 'Le stock bouge tout de suite. Tu peux le défaire avec « Annuler ».'}</div>
+    <div class="info petit">${STK_VALID && !msGerant() && !droitsAtelier(sxQui()) ? 'Ça part au gérant : le stock bougera quand il aura accepté.' : 'Le stock bouge tout de suite. Tu peux le défaire avec « Annuler ».'}</div>
     <div class="fo-pied mat-pied">${pb ? `<span class="mat-pourquoi" role="status">${pb}</span>` : ''}<button type="button" class="btn" data-ms="genvoyer" ${pb ? 'disabled' : ''}>${bouton}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`}`);
 }
 /* un geste de plus : le gérant applique tout de suite, les autres passent par son accord (la même règle que le technicien) */
@@ -18126,7 +18128,7 @@ function courrierImageOctets(m, nom){   // synchrone (toDataURL) : la taille ann
 function courrierSource(){
   const boite = id => ML_BOITES.find(o => o.id === id);
   return {
-    capacites:() => Promise.resolve({ marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), equipe:COLLEGUES.filter(q => q !== acteur() && eqDe(q) && eqDe(q).actif).map(prenomDe), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
+    capacites:() => Promise.resolve({ droits:{ com:droitsDe('com'), clients:droitsDe('crm'), interventions:droitsDe('inter'), devis:droitsDe('ventes') }, marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), equipe:COLLEGUES.filter(q => q !== acteur() && eqDe(q) && eqDe(q).actif).map(prenomDe), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
       dossiers:['inbox', 'sent', 'archive'], destinataires:5, pj:{ nombre:5, octets:8 * 1048576 }, signature:false, signatureMaintenance:false, journalEnvois:false, traduire:false }),
     boites:() => Promise.resolve(ML_BOITES.map(o => ({ id:o.id, email:o.adr, nom:o.id === 'b1' ? 'Clim Services 17' : 'Marc Leblanc', cote:'pro', fournisseur:o.fourni }))),
     messages:({ boite:id, dossier }) => {
@@ -21349,7 +21351,7 @@ document.addEventListener('click', ev => {   // une ligne réglée dans la liste
 let CMPT_PRET = false, CMPT_FILE = [];
 const cmptCadre = () => { const z = document.getElementById('cpsys'); return z && z.querySelector('iframe'); };
 function cmptEnvoyer(m){ const f = cmptCadre(); if (f && CMPT_PRET) { try { f.contentWindow.postMessage(m, '*'); return; } catch (e) {} } if (!m.opc_role) CMPT_FILE.push(m); }   /* le rôle courant est envoyé de toute façon quand la fenêtre dit qu'elle est prête */
-const cmptRole = () => { const q = ROLE !== 'patron' && ROLES[ROLE] && typeof eqDe === 'function' && eqDe(ROLES[ROLE].qui); return { role:ROLE === 'patron' ? 'patron' : 'gestion', paie:ROLE === 'patron' || ROLE === 'compta'   /* la Paie de la fenêtre : le patron, et le comptable du cabinet qui fait les fiches — pas la gestion des factures · 13 novembre 2026 */, prenom:ROLE === 'patron' ? 'Marc' : q ? q.prenom : 'Julie' }; };
+const cmptRole = () => { const q = ROLE !== 'patron' && ROLES[ROLE] && typeof eqDe === 'function' && eqDe(ROLES[ROLE].qui); return { droits:droitsDe('compta'), role:ROLE === 'patron' ? 'patron' : 'gestion', paie:ROLE === 'patron' || ROLE === 'compta'   /* la Paie de la fenêtre : le patron, et le comptable du cabinet qui fait les fiches — pas la gestion des factures · 13 novembre 2026 */, prenom:ROLE === 'patron' ? 'Marc' : q ? q.prenom : 'Julie' }; };
 const cmptNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 function cmptVersFenetre(o){
   cpSysDe = route + (param ? '-x-' + param : ''); cpSysteme = true; cmptEnvoyer({ opc_aller:o });
@@ -21490,7 +21492,7 @@ function opdEnvoyer(m){ const f = opdCadre(); if (f && OPDZ.pret) { try { f.cont
 function opdSync(force){
   if (!OPDZ.pret) return; let P; try { P = opdDonnees(); } catch (e) { return; } const sig = JSON.stringify(P); if (!force && sig === OPDZ.sigDon) return; OPDZ.sigDon = sig; opdEnvoyer({ opd_donnees:P });
 }
-const opdRoleMsg = () => ({ opd_role:{ role:ROLE, devis:!!rlPermis('devis'), contrats:!!rlPermis('contrats') } });
+const opdRoleMsg = () => ({ opd_role:{ role:ROLE, devis:!!rlPermis('devis'), contrats:!!rlPermis('contrats'), droits:droitsDe('ventes'), client:{ c:!!peut('crm', 'c') } } });
 const opdModeMsg = () => ({ opd_mode:document.documentElement.dataset.mode === 'nuit' ? 'nuit' : 'jour' });
 function opdSrc(){ return 'prototype-documents.html?app=1&mode=' + (document.documentElement.dataset.mode === 'nuit' ? 'nuit' : 'jour'); }
 function opdAttente(echec){
@@ -23206,7 +23208,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-ma
 /* l'appui long sur la barre ouvre « Ma barre ». La feuille monte SOUS le doigt : le clic du relâcher est avalé, où qu'il tombe, et lui seul. */
 { let t = null, x0 = 0, y0 = 0;
   const fin = () => { if (t) { clearTimeout(t); t = null; } };
-  const debut = (x, y) => { fin(); x0 = x; y0 = y; t = setTimeout(() => { t = null; if (ROLE !== 'patron') return; mbAvale = Date.now(); if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } mbPanneau(); }, 550); };
+  const debut = (x, y) => { fin(); x0 = x; y0 = y; t = setTimeout(() => { t = null; if (!droitVoit('accueil')) return; mbAvale = Date.now(); if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } mbPanneau(); }, 550); };
   document.addEventListener('touchstart', ev => { if (ev.target.closest && ev.target.closest('.opg-barre') && ev.touches.length === 1) debut(ev.touches[0].clientX, ev.touches[0].clientY); }, { passive:true });
   document.addEventListener('touchmove', ev => { if (t && ev.touches[0] && Math.hypot(ev.touches[0].clientX - x0, ev.touches[0].clientY - y0) > 10) fin(); }, { passive:true });
   document.addEventListener('touchend', () => { fin(); if (mbAvale) mbAvale = Date.now(); }, { passive:true });
@@ -23296,7 +23298,9 @@ const RC_LISTE = [
   ['Planning', [['Période précédente', ['←']], ['Période suivante', ['→']], ['Revenir à aujourd’hui', ['T']]]],
   ['Trackpad', [['Écran précédent ou suivant', ['2 doigts ← →']], ['Déplacer la carte', ['2 doigts']], ['Zoomer la carte', ['Pincer']], ['Menu d’une intervention, d’une case du planning', ['Clic droit']]]],
 ];
-function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
+/* seuls les raccourcis de création que la personne a le droit de faire sont listés (une touche qui ne ferait rien n'est pas promise) */
+const RC_CREER_OK = { 'Nouvelle intervention':() => rcInterOk(), 'Nouveau devis':() => rcCreerOk(RC_CREER.find(c => c.nom === 'devis')), 'Nouveau client':() => rcCreerOk(RC_CREER.find(c => c.nom === 'client')), 'Nouvelle tâche':() => rcCreerOk(RC_CREER.find(c => c.nom === 'tache')) };
+function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => [t, t === 'Créer' ? L.filter(([l]) => !RC_CREER_OK[l] || RC_CREER_OK[l]()) : L]).filter(([t, L]) => L.length).map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
 /* ce que la barre de menus du Mac (ou un raccourci) déclenche par son nom */
 function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; const R = rcRubriques();
   if (nom === 'palette') { PAL ? palFermer(true) : palOuvrir(); return true; }
@@ -23518,7 +23522,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest && ev.tar
 /* ── la fiche d'une personne : « ouvrir l'application comme elle » (c'est ce que fait sa connexion) ── */
 { const f0 = eqFiche; eqFiche = function(k){ const v = f0.apply(this, arguments), p = eqDe(k), P = document.querySelector('#calque .panneau'), A = P && [...P.querySelectorAll('.actions')].pop();
   if (p && p.actif && k !== 'marc' && A && !P.querySelector('[data-cnx^="comme"]')) A.insertAdjacentHTML('afterbegin', `<button type="button" class="btn" data-cnx="comme|${k}">Ouvrir l’application comme ${esc(p.prenom)}</button>`);
-  if (p && A && ROLE === 'patron' && !P.querySelector('.cn-acces')) { const perso = !!MDP[k], id = cnxLogin(p);
+  if (p && A && peut('admin', 'm') && !P.querySelector('.cn-acces')) { const perso = !!MDP[k], id = cnxLogin(p);
     const texte = 'OP GESTION — ' + ENTREPRISE.nom + '\n1. Ouvre ce lien : ' + ESPACE_LIEN + '\n2. Identifiant : ' + id + (perso ? '' : '\n3. Mot de passe provisoire : ' + MDP_PROVISOIRE + ' (tu choisiras le tien à la première connexion)');
     A.insertAdjacentHTML('beforebegin', `<div class="cn-acces"><span class="surtitre">Accès à l’application</span>
       <div class="ligne"><span>Lien de l’entreprise</span><b class="mono">${esc(ESPACE_LIEN)}</b></div>
