@@ -7,7 +7,7 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 12 h 22 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 12 h 28 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
@@ -59,6 +59,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 34 | session_01PfEEAFPpeU7baS6TDXPPpZ | `{voie:"restes", noms:["interventions"], tours:1, depuis:1}` (recontrôle du tour 1 : les corrections sont poussées, 14 entrées) | 12 h 18 | |
 | 35 | session_01PfEEAE6Dx8R8cDTAgEhREX | `{voie:"final-regard", role:"gerant", rubriques:["Registre sanitaire","Carte des box","Devis xylophage"], suffixe:"f"}` (les trois écrans 3D, et le Registre vu par la technicienne) | 12 h 22 | |
 | 36 | session_01PfEEAGt4nyu6bqwDCac1di | `{voie:"final-regard", role:"technicien", rubriques:["Mon camion"], suffixe:"b"}` (reste pour le technicien : Mes frais, Mes heures, après les sœurs 23 et 26) | 12 h 22 | |
+| 37 | session_01PfEEAGKe9aa56NXBMnLkg5 | `{voie:"restes", noms:["nuit"], tours:1}` (décision du chef de 12 h 30 : de nuit le bouton principal devient clair, le miroir du jour ; tous les écrans de nuit recapturés et regardés — ligne « (nuit) » de `final/vus-par-le-chef.md`) | 12 h 28 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
