@@ -4,7 +4,7 @@ const O = require('./taches-absences-outils.js');
 exports.L = O.L; exports.marquer = O.marquer; exports.neuf = O.neuf; exports.lire = O.lire; exports.diff = O.diff; exports.doigtsReel = O.doigtsReel;
 exports.CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-contrats/';
 // ce que les écrans de la partie « Contrats » montrent, lu dans les données ET dans la page (pour comparer les deux)
-exports.donnees = p => p.evaluate(() => ({ contrats: CONTRATS.map(k => ({ id: k.id, num: k.num, cli: k.cli, st: k.st, freq: k.freq, prix: k.prix, fact: k.fact, fin: k.fin || '', debut: k.debut, faites: k.faites })), nInts: INTS.length, nFact: FACTURES.length, nTaches: TACHES.length, nJournal: JOURNAL.length, auj: AUJ }));
+exports.donnees = p => p.evaluate(() => ({ contrats: CONTRATS.map(k => ({ id: k.id, num: k.num, cli: k.cli, st: k.st, freq: k.freq, prix: k.prix, fact: k.fact, fin: k.fin || '', debut: k.debut, faites: ctrFaites(k) })   /* ce que la page AFFICHE (le chiffre de départ + les visites terminées), pas le champ brut */), nInts: INTS.length, nFact: FACTURES.length, nTaches: TACHES.length, nJournal: JOURNAL.length, auj: AUJ }));
 exports.kpis = p => p.evaluate(() => [...document.querySelectorAll('#contenu .kpis .kpi')].map(k => ({ n: (k.querySelector('b') || {}).textContent, l: ((k.querySelector('span') || {}).textContent || '').trim() })));
 // Crée un contrat par le formulaire « Contrat rapide » (les VRAIS champs), l'envoie à signer, puis le signe en client (VRAIE page de
 // signature, VRAI tracé à la souris). Rend { id, num }. o : { modele, cli, freq, prix, fact, lieu, signer:true }
