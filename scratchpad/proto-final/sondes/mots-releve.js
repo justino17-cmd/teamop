@@ -35,7 +35,10 @@ const CLIQUER = ({ zone, s, i }) => { const R = document.querySelector(zone) || 
     e.scrollIntoView({ block: 'center' }); e.click(); return 'ok'; }
   return 'absent'; };
 // ── lecture du texte d'une zone : lignes visibles + attributs lisibles + options de listes + textes des feuilles du bas
-const LIRE = (zone) => { const R = document.querySelector(zone) || document.body; R.querySelectorAll('details').forEach(d => { d.open = true; });
+const LIRE = (zone) => { const R = document.querySelector(zone) || document.body;
+  /* un cadre caché (display:none) n'est pas rendu : son innerText rend alors TOUT le texte du document, scripts et feuilles de style compris — on ne le lit pas */
+  if (!R.getClientRects().length && R !== document.body) return { lignes: [], attrs: [] }; if (R === document.body && !document.documentElement.getClientRects().length) return { lignes: [], attrs: [] };
+  R.querySelectorAll('details').forEach(d => { d.open = true; });
   const lignes = (R.innerText || '').split('\n').map(x => x.replace(/[ \t\r\n\f\v]+/g, ' ').trim()).filter(Boolean), attrs = [];
   const vis = e => !!(e.offsetParent || getComputedStyle(e).position === 'fixed') && getComputedStyle(e).visibility !== 'hidden';
   for (const e of R.querySelectorAll('[aria-label],[title],[placeholder],[alt]')) { if (!vis(e)) continue; for (const a of ['aria-label', 'title', 'placeholder', 'alt']) { const v = (e.getAttribute(a) || '').replace(/[ \t\r\n\f\v]+/g, ' ').trim(); if (v) attrs.push(a + ' : ' + v); } }
@@ -87,6 +90,8 @@ const DESSUS = () => { const t = document.getElementById('toast'), q = document.
         // on descend dans ce que le geste a ouvert : une fenêtre (zone #calque .panneau) — jamais dans un autre écran
         const cle = e.panneau ? 'P' + e.panneau.slice(0, 120) : '';
         if (cle && !vus.has(cle) && niveau < PROF && !e.hash) { vus.add(cle); await explorer(route, chemin.concat([[zone, s, i, nom || '']]), niveau + 1, rec, '#calque .panneau', '', vus, t); }
+        // un ONGLET (la page change sans fenêtre ni adresse neuve) : on descend dans ce qu'il a montré, une fois par contenu
+        if (!e.panneau && !e.hash && !cadreNeuf && e.nouveau && e.nouveau.length >= 5 && niveau < PROF) { const kt = 'T' + e.nouveau.slice(0, 3).join('|').slice(0, 120); if (!vus.has(kt)) { vus.add(kt); await explorer(route, chemin.concat([[zone, s, i, nom || '']]), niveau + 1, rec, zone, nom, vus, t); } }
         if (cadreNeuf && niveau < PROF && !e.hash && !vus.has('C' + cadreNeuf + chemin.length + lib)) { vus.add('C' + cadreNeuf + chemin.length + lib); await explorer(route, chemin.concat([[zone, s, i, nom || '']]), niveau + 1, rec, 'body', cadreNeuf, vus, t); }
       }
     }

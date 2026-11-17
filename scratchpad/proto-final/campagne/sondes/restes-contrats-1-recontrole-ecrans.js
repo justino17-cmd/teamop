@@ -27,6 +27,13 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   await mesure('panneau Mettre fin', 'panneau-fin');
   await p.evaluate(() => document.querySelector('#calque .panneau [data-action="finContratOk"]').click()); await L.calme(p, 600);
   await mesure('fiche d’un contrat terminé', 'fiche-termine');
+  // la carte « Les visites » : le nom d'une visite et son étiquette « Non faite · sortie du planning » se lisent tous les deux (capture à REGARDER)
+  await p.evaluate(() => { const h = [...document.querySelectorAll('#contenu h3')].find(x => /^Les visites/.test(x.textContent)); h && h.scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); }); await L.calme(p, 400);
+  const vis = await p.evaluate(() => [...document.querySelectorAll('.ctr-vl')].map(l => { const a = l.children[0].getBoundingClientRect(), b = l.children[1].getBoundingClientRect(); return { larg: Math.round(a.width), h: Math.round(a.height), dessous: b.top >= a.bottom - 1 }; }));
+  v('la carte des visites : ' + vis.length + ' lignes, le nom d’une visite garde au moins 120 px ou son étiquette passe dessous', vis.length >= 2 && vis.every(x => x.larg >= 120 || x.dessous), vis.slice(0, 3));
+  const sansDate = await p.evaluate(() => [...document.querySelectorAll('.ctr-vl')].filter(l => /Non faite/.test(l.textContent)).map(l => l.children[0].textContent.trim()));
+  v('les visites sorties du planning n’ont plus de date (elles portaient toutes la même)', sansDate.length >= 2 && sansDate.every(t => /^Visite \d+$/.test(t)), sansDate.slice(0, 4));
+  await L.capture(c, CAP + 'visites-termine-' + tag + '.png');
   await L.aller(p, 'contrats'); await mesure('liste des contrats', 'liste');
   await L.aller(p, 'signer-x-' + k.id); await mesure('page de signature d’un contrat terminé', 'signature-termine');
   v('aucune erreur de la page', c.err.length === 0, c.err.slice(0, 3));

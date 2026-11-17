@@ -7,11 +7,12 @@ exports.corpus = function (qui) {
   if (qui === 'visite') { for (const f of fichiers) { const r = JSON.parse(fs.readFileSync(D + f)); (r.pas || []).forEach((x, i) => { const m = (x.cle || '').split('|')[1] || i; const t = x.texte; const ou = 'visite ' + m;
       // la bulle d'un pas : « Chapitre N sur M · rôle · catégorie · titre · phrase » — on garde le tout et chaque phrase
       if (!C.has(t)) C.set(t, { ou: new Set(), type: 'visite' }); C.get(t).ou.add(ou); (x.attrs || []).forEach(a => { if (!C.has(a)) C.set(a, { ou: new Set(), type: 'attribut' }); C.get(a).ou.add(ou); }); }); } return C; }   // texte → { ou:Set, type }
-  const ajoute = (t, ou, type) => { t = String(t || '').trim(); if (!t) return; if (!C.has(t)) C.set(t, { ou: new Set(), type }); C.get(t).ou.add(ou); };
+  const CODE = /^(window\.|try \{|\}\)\(\);?|:root|\*\{|[.#\[a-z][^ ]*\{[^}]*\}?;?$|--[a-z0-9-]+\s*:|color-scheme:|[a-z-]+:[^ ]+;$|\}$|\{$)/i;
+  const ajoute = (t, ou, type) => { t = String(t || '').trim(); if (!t || CODE.test(t)) return; if (!C.has(t)) C.set(t, { ou: new Set(), type }); C.get(t).ou.add(ou); };
   for (const f of fichiers) { const r = JSON.parse(fs.readFileSync(D + f));
     for (const [nom, e] of Object.entries(r.ecrans || {})) {
       const lire = (o, ou) => { (o.lignes || []).forEach(l => ajoute(l, ou, 'écran')); (o.attrs || []).forEach(a => ajoute(a, ou, 'attribut')); };
-      lire(e, nom); for (const [k, cd] of Object.entries(e.cadres || {})) { lire(cd, nom + '>' + k); (Array.isArray(cd.gestes) ? cd.gestes : []).forEach(g => gest(g, nom + '>' + k)); }
+      lire(e, nom); for (const [k, cd] of Object.entries(e.cadres || {})) { if ((cd.lignes || []).some(l => /opcAppliquer|:root\{|box-sizing:border-box/.test(l))) continue; /* cadre caché lu avant le correctif : son texte était celui du code */ lire(cd, nom + '>' + k); (Array.isArray(cd.gestes) ? cd.gestes : []).forEach(g => gest(g, nom + '>' + k)); }
       (Array.isArray(e.gestes) ? e.gestes : []).forEach(g => gest(g, nom));
       function gest(g, ou) { const o = ou + ' › ' + g.geste; if (g.toast) ajoute(g.toast, o, 'toast'); (g.dialogue || []).forEach(d => ajoute(d, o, 'boîte')); (g.lignes || []).forEach(l => ajoute(l, o, 'fenêtre')); (g.attrs || []).forEach(a => ajoute(a, o, 'attribut')); (g.nouveau || []).forEach(l => ajoute(l, o, 'écran')); (g.nouveauCadre || []).forEach(l => ajoute(l, o, 'cadre')); } } }
   return C; };
