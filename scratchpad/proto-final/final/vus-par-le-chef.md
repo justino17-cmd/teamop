@@ -27,7 +27,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
 - [ ] **Bandeaux « 2 envois à accepter » (Stock) et « Avant les visites » (Dépôts et camions)** — le rond vide à gauche
       (`.t-etat`, le rond « à faire » des tâches) ressemble à une case à cocher : si on ne peut pas le cocher ici, il trompe.
       À vérifier au doigt et à la souris ; s'il n'agit pas, le remplacer par une icône d'information ou le retirer.
-- [ ] **Bandeaux d'alerte teintés** — « Tes factures peuvent partir. Il reste à compléter… » (Mon entreprise, ambre) et
+- [x] (restes entreprise 1, 04ebcc63 : de jour, `.alerte` et `.ent-ban.attention` mêlent leur teinte à du BLANC au lieu du verre — rose clair et crème franc, mesuré et regardé sur Mac et iPhone ; la nuit garde le voile d'avant) **Bandeaux d'alerte teintés** — « Tes factures peuvent partir. Il reste à compléter… » (Mon entreprise, ambre) et
       « 1 compte verrouillé : Léa Roux. » (Équipe, rouge) : de jour sur Mac, la teinte posée sur le verre donne un dégradé
       gris-brun / gris-rose qui paraît terne à côté des cartes blanches. À regarder au pixel (jour et nuit, Mac et iPhone) et à
       éclaircir si le fond réel est bien grisâtre ; ne pas toucher au texte ni au bouton.
@@ -194,7 +194,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       puissance du véhicule) » — plus de « exemple de démonstration ». · **achats-10** : UN mot, « sans justificatif », pour le lien,
       la puce et les lignes ; une note de frais encore à valider ne se compte pas parmi les achats sans justificatif.
 
-- [ ] **Mon entreprise et droits — décisions du chef du 17/11, 12 h 05 (entreprise)** : · **tout-08** : À CORRIGER, ce n'est pas « à soumettre ».
+- [x] (restes entreprise 1, 04ebcc63 : `capacites().droits` lu par le module de courrier — Voir seul = lire, entreprise-restes1 `m` 54 ✓ · 0 ✗ ; `scroll-padding-bottom:200px` ; barre Retour collée `rl-colle` ; bloc Connexion à 320 px ; sondes mises à jour) **Mon entreprise et droits — décisions du chef du 17/11, 12 h 05 (entreprise)** : · **tout-08** : À CORRIGER, ce n'est pas « à soumettre ».
       Une personne qui n'a que « Voir » sur la Boîte mail LIT ses courriels et rien d'autre : écrire, répondre, transférer, archiver,
       supprimer, déplacer, marquer exigent la case qui va avec (un droit qui ne fait rien est un défaut qu'un client signalerait). La
       correction se fait dans l'hôte et dans apercu/prototype-courrier.js (le module du prototype ; opcourrier.js ne se touche pas) :
