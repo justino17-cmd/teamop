@@ -1,7 +1,7 @@
 // CAPTURES de l'audit de sécurité (étape 7) : les trois écrans que les correctifs ont changés, À REGARDER (outil Read), ordinateur et téléphone, jour ET nuit :
 //   1. « Inviter une personne » : le refus d'un prénom piégé (message qui dit pourquoi, formulaire encore ouvert) ;
 //   2. Véhicules › Papiers : le refus d'un SVG ;
-//   3. l'atelier de documents sans feuille Google (les familles retombent sur la police de l'appareil) : le devis s'ouvre et se lit.
+//   3. l'atelier de documents : le devis s'ouvre et se lit (ses treize polices sont revenues le 17 novembre, décision du chef ; ici, sans réseau, elles retombent sur la police de l'appareil).
 // Sortie : …/scratchpad/cap/securite/<ecran>-<profil>-<jour|nuit>.png (hors dépôt). Un contrôle de population par écran (le message est là, l'écran a du texte).
 // ⛔ 127.0.0.1 seulement. Jamais de capture « page entière » : la fenêtre visible.
 const L = require('../lib.js'), fs = require('fs');
@@ -29,7 +29,7 @@ const CH = '<img src=x onerror="window.__xss=1">Marie';
     await p.screenshot({ path: CAP + 'papier-refus-' + tag + '.png' });
     await L.fin(c);
   }
-  // l'atelier sans polices Google : ordinateur jour et téléphone nuit (l'atelier OUVERT, un devis composé : le texte s'y lit avec la police de l'appareil)
+  // l'atelier quand ses polices ne chargent pas (sans réseau, comme ici) : ordinateur jour et téléphone nuit (l'atelier OUVERT, un devis composé : le texte s'y lit avec la police de l'appareil)
   const A = require('./atelier-outils.js');
   for (const [profil, nuit] of [['mac', false], ['iphone', true]]) {
     const c = await L.ouvrir({ profil, nuit, qui: 'marc', attente: 1200 }), p = c.p;
