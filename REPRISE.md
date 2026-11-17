@@ -258,6 +258,22 @@ un chemin de secours pour un téléphone trop ancien (mot de passe + confirmatio
 le point faible (c'est lui qu'un pirate vise) : mot de passe du compte ET code d'un administrateur, comme déjà décidé. Côté code :
 la vérification au serveur se fait à la main avec `node:crypto` ou par une bibliothèque relue — à trancher dans le plan (règle du
 dépôt : pas de dépendance de plus sans raison, mais c'est une pièce de sécurité).
+**Sa question suivante, à traiter AUSSI dans le plan du chantier 0** — Justin, 17 h 50 : « pourquoi on quitte pas totalement GitHub
+pour tout faire, nous, sur nos propres serveurs avec tous nos hébergements ? Ça me paraît beaucoup plus logique, non ? ». Répondu,
+faits relus le 17 : après le chantier 0, plus rien de ce qu'un CLIENT touche ne passe par GitHub ; il n'y reste que l'ATELIER — le
+code et son historique, les vérifications avant chaque mise en ligne (`ci.yml`, `verification.yml`, les bancs de `deploiement*.yml`),
+la surveillance horaire (`surveillance.yml`, qui tourne sur les machines de GitHub, donc DEHORS de ce qu'elle surveille), la
+publication du blog, et le robot de mise en ligne — et c'est par GitHub que les sessions Claude du cloud reçoivent le code (sans
+dépôt GitHub, plus de sessions en parallèle : il ne resterait que le travail par son ordinateur). Tout quitter est POSSIBLE mais
+demande : un second serveur (jamais de vérifications sur le serveur de production ; un surveillant doit vivre ailleurs que ce
+qu'il surveille), une forge à installer, mettre à jour et protéger (une surface de plus sur Internet), et une copie du code chez
+un AUTRE hébergeur (tout au même endroit = un seul incident emporte code, site et données). Recommandé à Justin, dans cet ordre :
+(1) chantier 0, dépôt en privé (0 €) ; (2) deux gestes qui donnent l'indépendance sans rien installer de lourd — RETIRER à GitHub
+la clé qui ouvre le serveur (`VPS_SSH_KEY`, citée par `deploiement.yml` : aujourd'hui GitHub entre sur le serveur pour poser les
+mises à jour ; à inverser, c'est le serveur qui va les chercher, puis n'accepter qu'une version signée) et une COPIE automatique
+du dépôt chez nous chaque nuit (si GitHub ferme ou tombe, rien n'est perdu et l'on peut partir en une heure) ; (3) plus tard, s'il
+le veut toujours : quitter GitHub pour de bon, avec un second serveur, en gardant GitHub en miroir le temps de vérifier. Les deux
+gestes de (2) sont à étudier et à faire relire par `gardien` avant d'être proposés ; aucun n'est commencé.
 **Ce qui attend Justin** : (1) le résultat de cette commande et la confirmation de l'endroit où se règle l'adresse teamop.fr ;
 (2) ses deux essais de la version 64 (Véhicules › coût › « Exporter en tableau » ; Comptabilité › « Télécharger le FEC ») ;
 (3) reporté par lui : changer l'identifiant GitHub.
