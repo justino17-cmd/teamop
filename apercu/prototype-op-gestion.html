@@ -608,6 +608,8 @@ html .fx-acmd{padding:18px 20px}
 html .fx-ch{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;margin-bottom:6px}html .fx-ch h3{margin:0 0 2px;font-size:20px}
 html .fx-pan{padding:14px 0 6px;border-top:1px solid var(--trait)}html .fx-pan:first-of-type{border-top:0}
 html .fx-pt{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}html .fx-pt>b{font-size:17px;overflow-wrap:anywhere}
+/* l'en-tête a la MÊME forme sur les trois onglets (titre, puis boutons dessous) : « ＋ Ajouter un article » est plus court que « ＋ Ajouter un fournisseur » et tenait à côté du titre, ce qui faisait SAUTER la barre d'onglets de 58 px en changeant d'onglet */
+html #contenu .tete.fx-tete{flex-wrap:wrap;row-gap:12px}html .fx-tete>div:first-child{flex:1 1 100%;min-width:0}html .fx-tete .actions{flex:1 1 100%}
 @media (min-width:761px){html .fx-pt{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px}}   /* sur ordinateur le nom du fournisseur et sa phrase tiennent sur une ligne : la première ligne à commander remonte de 24 px */
 html .fx-pl{display:flex;align-items:flex-start;gap:14px;padding:10px 0}
 html .fx-pl>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:3px}html .fx-pl>.fo-n>b{font-size:16px;overflow-wrap:anywhere}html .fx-pl .gris{overflow-wrap:anywhere}
@@ -650,6 +652,7 @@ html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html
 /* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
 html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
 html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}   /* « Envoyer à Établissements Dupont-Delaunay… » : le nom d'un fournisseur ne fait plus sortir le bouton de la feuille (678 px dans 390) */
+html .fo-depot{flex:none}   /* la feuille est une colonne flex : la zone « Choisir le fichier » (min-height 64) se laissait écraser à 64 px sous son propre texte, et le trait pointillé coupait le titre */
 html select[data-pdxlieu]{font-size:16px}   /* « Où ranger ? » de la réception : un champ à 15 px fait zoomer la page sur un iPhone */
 html .fx-lg .pdx-tel{display:flex;gap:8px;align-items:center;flex:none;width:min(62%,300px)}html .fx-lg .pdx-tel .saisie{flex:1 1 0;width:auto;min-width:0}
 html .fx-jours{display:inline-flex;align-items:center;gap:8px;flex:none}html .fx-jours .saisie{width:112px}
@@ -668,7 +671,7 @@ html .fx-dir{align-items:center}
 html .fx-voir .cmd-pre{white-space:pre-wrap;overflow-wrap:anywhere}
 html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html .fx-etape>b{font-size:16px}
 @media (max-width:760px){
-  html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:8px}html .fx-tete>div:first-child{flex:1 1 100%}
+  html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:12px 8px}html .fx-tete>div:first-child{flex:1 1 100%}
   html .fx-tete .actions{flex:1 1 100%;display:flex;flex-wrap:nowrap;gap:8px}
   html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){flex:1 1 0;min-width:0;min-height:48px;white-space:normal;line-height:1.2}
   html #contenu .tete.fx-tete .actions>.fx-photo,html #contenu .tete.fx-tete .actions>.fx-plusb{flex:none!important;width:46px!important;min-width:46px!important;min-height:48px;padding:0;font-size:0}   /* !important : la règle générale des en-têtes (ligne ~1208) donne à tout .btn « flex:1 1 auto; min-width:0 » et rétrécissait ces deux boutons à 38 px sur un écran de 320 */
@@ -688,6 +691,9 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html .fx-grille{grid-template-columns:minmax(0,1fr)}
   html .fx-el>.fo-n{flex:1 1 100%}
 }
+@media (min-width:761px) and (max-width:980px){   /* iPad portrait : le menu latéral laisse ~490 px, le tableau des commandes terminées (518 px de colonnes fixes) y écrasait le fournisseur à 0 px — même forme qu'au téléphone */
+  html .fx-te{display:none}html .fx-tr{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}html .fx-tr>b{grid-column:1;grid-row:1}html .fx-tf{grid-column:1;grid-row:2}html .fx-tm{grid-column:1;grid-row:3}html .fx-td{grid-column:1;grid-row:4}html .fx-tr .st{grid-column:2;grid-row:1;justify-self:end;text-align:right}
+}
 @media (max-width:520px){
   /* le bon de commande à l'écran (le fac-similé du PDF) : quatre colonnes de 60 px ne tiennent pas, la désignation passait sur huit lignes ; chaque ligne devient un petit bloc (désignation, puis quantité · prix · total) */
   html .bc-t thead{display:none}html .bc-t,html .bc-t tbody{display:block}html .bc-t tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--trait)}
@@ -695,6 +701,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 }
 @media (max-width:400px){
   /* un écran de 320 : le nom de la commande ne peut pas partager sa ligne avec la pastille (4 lignes de 127 px) ; la pastille passe dessous */
+  html .fx-a .ms-ic{display:none}   /* l'icône de catégorie (décorative) ne vaut pas 52 px sur 360 : le nom et la référence passaient de 140 à 192 px */
   html .fx-lm{flex-wrap:wrap;gap:6px 10px}html .fx-lm>.fo-n{flex:1 1 100%}html .fx-lm .fo-dr{max-width:100%;flex:none;align-items:flex-start;text-align:left}
   /* trois onglets dans 286 px : police et marges resserrées, la pastille de compte aussi */
   html .fx-seg button{padding:0 4px;gap:4px;font-size:13.5px}html .fx-seg .pr-nb{min-width:20px;height:20px;font-size:12px;padding:0 5px}
@@ -23153,11 +23160,11 @@ immChap('produits', 'produits', 'Fournisseurs, matériel & produits', 'Les produ
   'Cette catégorie réunit ce que ton équipe commande : les commandes aux fournisseurs, les articles avec leur prix, et les fournisseurs eux-mêmes. Je te montre comment passer une commande et la recevoir.', [
   { c:'[data-vis="four-onglets"]', t:'Trois onglets, une seule catégorie', p:'En haut, trois onglets. Commandes, pour acheter et suivre. Articles, avec tes 29 articles et leurs prix. Et Fournisseurs, avec les 5 chez qui tu achètes. Le gros bouton noir change avec l’onglet.' },
   { c:'[data-vis="four-commander"]', t:'Ce qu’il faut commander', p:'La carte « À commander » range ce qui est bientôt fini par fournisseur, avec la quantité déjà calculée sur ce que tu utilises. Chaque ligne se règle d’un toucher : plus, moins, ou retirer.' },
-  { c:'[data-vis="four-photo"]', t:'Photographier une facture', p:'Le bouton appareil photo lit une facture de fournisseur : les quantités entrent en stock, les prix d’achat se mettent à jour, et une hausse se voit tout de suite.' },
-  { c:'[data-vis="four-articles"]', t:'Les articles', p:'Je passe sur l’onglet Articles. Une recherche, un filtre, et la liste rangée par catégorie : chaque ligne montre le prix de vente et la marge.',
-    jouer:() => { immStockRegler(); immClic('[data-pr="vue|articles"]'); } },
+  { c:'[data-vis="four-photo"]', t:'Photographier une facture', p:'Le bouton appareil photo lit une facture de fournisseur : les quantités entrent en stock, les prix d’achat se mettent à jour, et une hausse se voit tout de suite. Je passe maintenant sur l’onglet Articles.',
+    jouer:() => { immStockRegler(); immClic('[data-pr="vue|articles"]'); } },   /* la cible de l'étape suivante n'existe qu'une fois l'onglet ouvert : c'est le geste de l'étape d'AVANT qui l'ouvre */
+  { c:'[data-vis="four-articles"]', t:'Les articles', p:'Voici l’onglet Articles. Une recherche, un filtre, et la liste rangée par catégorie : chaque ligne montre le prix de vente et la marge.' },
   { c:'[data-pr^="nouveau|"]', t:'Ajouter un article', p:'Pour ajouter un article, je touche « Ajouter un article ». Un formulaire s’ouvre, et l’application va remplir presque tout toute seule.',
-    jouer:() => { immStockRegler(); immClic('[data-pr^="nouveau|"]'); } },
+    jouer:() => immClic('[data-pr^="nouveau|"]') },   /* pas de immStockRegler ici : il remet l'onglet sur Commandes, et la liste où l'article doit apparaître n'existerait plus */
   { c:'#calque .panneau', t:'Il se range tout seul', p:'Je tape le nom : siphon de condensats. L’application le range toute seule dans la bonne catégorie, avec le fournisseur habituel. Je mets 4 euros à l’achat : elle propose 8 euros à la vente, avec la marge de la catégorie.',
     jouer:() => { immEcrire('#pr-nom', 'Siphon de condensats'); immStockPlus(() => { immEcrire('#pr-pa', '4'); immStockPlus(() => immClic('[data-pdx^="prop|"]'), 250); }, 250); } },
   { c:'[data-pr="garder|"]', t:'Les protections de l’application', p:'Avant d’enregistrer, l’application te protège : elle prévient d’un doublon, refuse un prix négatif, et te demande confirmation si tu vends à perte. Je touche Ajouter.',

@@ -1,0 +1,159 @@
+{
+ "lot": "compositeur",
+ "regles": [
+  "tout-01",
+  "tout-02",
+  "tout-03",
+  "tout-04",
+  "tout-05",
+  "tout-06",
+  "tout-07",
+  "tout-08",
+  "tout-09",
+  "tout-10",
+  "tout-11",
+  "tout-12",
+  "tout-13",
+  "tout-14"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Petit téléphone (320 × 568) : « Supprimer ce brouillon » est sous la feuille « Contrat » après la création d'un contrat",
+   "gravite": "gênant",
+   "etapes": [
+    "Profil « petit » (320 × 568), gérant",
+    "Contrats > Composer un contrat > un client, un modèle > « Créer le contrat » (la feuille « Contrat » s'ouvre, des infobulles s'empilent)",
+    "Toucher « ⋯ » en haut à droite : seuls « Annuler », « Rétablir » se voient, « Supprimer ce brouillon » est à y=274–320 sous la feuille (haut de la feuille ≈ 170)"
+   ],
+   "constat": "compositeur-gestes.js PROFIL=petit sort en 2 (clic intercepté par #fen-fmt) ; capture cap/compositeur-recontrole/petit-menu.png. Sur iPhone 390 × 844 et Android 360 la ligne est atteignable (pile d'éléments : le menu). La personne s'en sort en fermant la feuille (« Terminé »), mais le menu s'ouvre sans le dire. Piste : ouvrir « ⋯ » ferme la feuille, ou monter le menu au-dessus de la feuille. Non corrigé (je ne touche à aucune page)."
+  },
+  {
+   "titre": "Collage sur plusieurs lignes dans « Délai » ou « Paiement » : le champ garde ses deux lignes, la page n'en montre qu'une",
+   "gravite": "détail",
+   "etapes": [
+    "Composer un devis",
+    "Coller « Ligne 1⏎Ligne 2 » dans « Paiement » (ou « Délai »)"
+   ],
+   "constat": "VV.paiement = « Ligne 1 Ligne 2 » (aplati) mais la zone de saisie affiche toujours deux lignes, aussi après avoir quitté le champ ; collage.js, capture atelier/cmep-iphone-jour-conditions.png. La phrase de tout-04 (« un collage multiligne est aplati ») est vraie pour le document, pas pour le champ : l'écran dit une chose, la page une autre."
+  },
+  {
+   "titre": "Aperçu de la bibliothèque de clauses : les trous du modèle se lisent comme des mots (« Le prestataire effectue fréquence des visites »)",
+   "gravite": "détail",
+   "etapes": [
+    "Composer un contrat",
+    "Regarder « Bibliothèque » : « …entretient la pompe à chaleur de client installée à l'adresse suivante : adresse du site »"
+   ],
+   "constat": "captures atelier/cmep-ipad-jour-articles.png et cmep-mac-jour-articles.png : un débutant lit une phrase fautive. Je n'ai pas pu établir si c'est antérieur au lot ; à confirmer avant d'y toucher (afficher [fréquence des visites] ?)."
+  },
+  {
+   "titre": "Sondes devenues rouges APRÈS les corrections, remises d'aplomb par le recontrôle",
+   "gravite": "détail",
+   "etapes": [
+    "compositeur-mise-en-page.js sur mac, mac720, windows : « tiennent sur UNE ligne » tombait (faux : des boutons de hauteurs différentes ont des hauts différents, la rangée était bien d'une ligne) ; atelier-grand.js sur iphone, android, petit : 4 ✗ chacun (attendaient « Ajuster » à l'ouverture, or tout-01 ouvre sur 100 %) ; atelier-devis.js : une correction non commitée (catalogue + 6 prestations, mots des listes) restée dans l'arbre"
+   ],
+   "constat": "Corrigées et poussées (245be4e) : mep mac/windows 9 ✓ · 0 ✗, grand iphone/android/petit 76 ✓ · 0 ✗, devis 41 ✓ · 0 ✗. Le correcteur n'avait joué ses sondes neuves que sur les téléphones."
+  },
+  {
+   "titre": "atelier-seule.js : 44 ✓ · 12 ✗ — la sonde « la page seule n'a pas changé » compare à une copie d'AVANT le lot",
+   "gravite": "détail",
+   "etapes": [
+    "node scratchpad/proto-final/sondes/atelier-seule.js"
+   ],
+   "constat": "Les 12 ✗ sont tous sur compoDevis, compoDevis2, compoContrat (mac et iphone, jour et nuit) ; accueil, éditeur, envoi restent identiques au pixel. Écarts VOULUS : champs « Délai/Paiement » sur deux lignes (+56 px), titre d'article pleine largeur, aides raccourcies. Il faut décider d'avancer le point de référence (ORIGINE_CAP, aujourd'hui le commit 629da64) ; je ne l'ai pas fait seul : cela fige l'état actuel."
+  },
+  {
+   "titre": "Deux correctifs n'avaient aucune sonde qui les mordait",
+   "gravite": "détail",
+   "etapes": [
+    "compositeur-mutations.py (nouveau, 16 mutations) : T09 (la mise en service au catalogue) survivait à compositeur-gestes ; T07b (« Supprimer » proposé pour un devis envoyé) survivait à tout"
+   ],
+   "constat": "T09 est gardée par atelier-devis (catalogue exact MO-H…DEP-Z3) ; T07b par un contrôle ajouté à compositeur-gestes (devis réellement envoyé, menu sur téléphone, population 4 gestes). 16 mordent sur 16."
+  },
+  {
+   "titre": "Infobulles empilées sur le menu « ⋯ » au téléphone (« Modèle posé · Annuler » + « Contrat créé » par-dessus les gestes)",
+   "gravite": "détail",
+   "etapes": [
+    "iPhone, nuit : créer un contrat, poser un modèle, ouvrir « ⋯ »"
+   ],
+   "constat": "capture atelier/cgest-iphone-nuit-menu-contrat.png : deux infobulles couvrent « Modèles » et la suite. Transitoire (quelques secondes)."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "compositeur-gestes.js",
+   "resultat": "mac 44 ✓·0 ✗ (jour), mac nuit 42 ✓, mac720 42 ✓, windows 42 ✓, ipad 36 ✓, iphone 38 ✓ (jour) et 36 ✓ (nuit), android 36 ✓ ; petit : plante (casse n°1)"
+  },
+  {
+   "fichier": "compositeur-liste.js",
+   "resultat": "16 ✓·0 ✗ sur mac, mac nuit, iphone, android, petit, ipad, windows"
+  },
+  {
+   "fichier": "compositeur-mise-en-page.js",
+   "resultat": "mac 9 ✓, windows 9 ✓, mac720 (à la sonde corrigée) idem, ipad 18 ✓, iphone 15 ✓ (jour et nuit), android 15 ✓, petit 14 ✓ — 0 ✗ après correction de la sonde"
+  },
+  {
+   "fichier": "compositeur-mutations.py (nouveau)",
+   "resultat": "16 mutations des correctifs, 16 mordent (14 d'emblée, 2 après garde-fous ajoutés)"
+  },
+  {
+   "fichier": "atelier-devis.js",
+   "resultat": "mac, iphone, ipad : 41 ✓·0 ✗"
+  },
+  {
+   "fichier": "atelier-contrat.js",
+   "resultat": "mac, iphone, android : 23 ✓·0 ✗"
+  },
+  {
+   "fichier": "atelier-roles.js",
+   "resultat": "33 ✓·0 ✗"
+  },
+  {
+   "fichier": "atelier-retour.js",
+   "resultat": "android, iphone, mac : 19 ✓·0 ✗"
+  },
+  {
+   "fichier": "atelier-numeros.js",
+   "resultat": "mac, android : 13 ✓·0 ✗"
+  },
+  {
+   "fichier": "atelier-echecs.js",
+   "resultat": "28 ✓·0 ✗"
+  },
+  {
+   "fichier": "atelier-miseenpage.js",
+   "resultat": "mac, mac720, windows 18 ✓ ; ipad, iphone, android 40 ✓ ; petit 36 ✓ — 0 ✗"
+  },
+  {
+   "fichier": "atelier-grand.js",
+   "resultat": "mac 82 ✓, mac720 76, windows 76, ipad 74 ; iphone, android, petit 76 ✓ (après mise à jour de la sonde) — 0 ✗"
+  },
+  {
+   "fichier": "atelier-seule.js",
+   "resultat": "44 ✓·12 ✗ : écarts voulus du lot (casse n°5)"
+  },
+  {
+   "fichier": "contrôles d'étape",
+   "resultat": "compiler-pages, verifier-syntaxe, tests 835 (844 ✓), 836 (307 ✓), 837 (122 ✓), 1008 (54 ✓), 2994 (15 ✓), verif-secrets : tous sortie 0"
+  },
+  {
+   "fichier": "recontrôle adverse (cap/compositeur-recontrole/*.js, hors dépôt)",
+   "resultat": "prix tordus (1 234,5 · 12,345 · -5 · abc · 1e3 · vide · 99999999 : bons messages, rien de faux gardé) ; totaux à TVA mêlées 10 % et 20 % : HT 115,67 · TVA 16,88 · TTC 132,55 = recalcul ; 2 brouillons, suppression du premier : le second garde son numéro, le prochain est D-2026-044 (jamais deux fois le même) ; client sans e-mail ni téléphone : aucun faux doublon ; même nom (casse, accents) : proposé ; Tab piégé dans « Nouveau client » ; rôles : seuls Marc et Julie voient les boutons, kb, lr, tl, sm sont renvoyés sur leur journée ; 3 parcours 8 ✓ · 3 ✓ · 8 ✓, 0 erreur JavaScript"
+  }
+ ],
+ "parcours": [
+  "1. mac jour, gérant : Devis > Composer > doublon « Utiliser » > MO-H + déplacement zone 2 + électrode > prix 199,9 relu 199,90 > Créer > Envoyer > En attente : « envoyé aujourd'hui · Envoyé · sans réponse », KPI « 2 à relancer » > fiche client",
+  "2. iPhone nuit, gérant : Contrats > Composer > modèle > toutes les variables (1 280,50) > Créer > feuille « Contrat » fermée > Envoyer > liste « envoyé aujourd'hui · 1 280,50 € HT par an · Envoyé · en attente » ; le contrat dit « 1 280,50 € HT par an (hors taxes : la TVA s'ajoute) »",
+  "3. Android jour, secrétariat (Julie) : même parcours que 1 : 8 ✓ · 0 ✗"
+ ],
+ "doutes": [
+  "Aperçu au téléphone : il s'ouvre maintenant sur 100 % (texte lisible, la page glisse de côté, « Ajuster » à un toucher). C'est un choix de produit réversible en une ligne : Justin préfère-t-il la page entière (45 %, texte de 5 px) ?",
+  "Les documents composés restent dans une carte à part sous la liste (« Composés dans l'atelier »), avec les mêmes mots et les mêmes chiffres que les autres lignes : les garder à part ou les mêler ?",
+  "Le mot « atelier » (cartes et aides) est un mot de l'équipe de développement : à remplacer par « Documents composés » ?",
+  "Contrat : prix annuel dit HT (convention d'OP GESTION) : texte à faire relire par l'agent juriste avant tout usage réel.",
+  "Prestations ajoutées au catalogue du compositeur : TVA 10 % main-d'œuvre et entretien, 20 % déplacement ; « Déplacement zone 1 » vaut 29,17 € HT (TARIFS du prototype, soit 35 € TTC) : un prix HT peu rond, à confirmer.",
+  "Un brouillon supprimé rend son numéro (D-2026-043 redevient libre s'il était le dernier) : si le PDF du brouillon était déjà sorti (aperçu, téléchargement), un autre devis portera le même numéro. Voulu ?",
+  "« Nouveau client » : Échap ferme la fenêtre et perd ce qui était tapé, sans demander (avant le lot, inchangé). À confirmer.",
+  "Non vérifié : vrai iPhone / Android / Windows / iPad (profils émulés, encoches simulées), clavier virtuel, signature au doigt, l'artefact publié ; la machine était chargée (charge 8) : des sondes ont dépassé leur délai et ont été REJOUÉES (gestes petit/mac720, liste petit/ipad)."
+ ]
+}
