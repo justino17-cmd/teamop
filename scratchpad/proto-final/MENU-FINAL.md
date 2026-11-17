@@ -41,8 +41,13 @@ Le gérant garde « Personnaliser la barre du bas » (appui long ou pied de la f
 - **Travail** : Mes tâches · Interventions
 - **Clients et ventes** : Clients · Devis · Contrats
 - **Argent** : Comptabilité (même petit gris) · Achats et frais
+- **Matériel** : Stock · Fournisseurs, matériel & produits — DÉCIDÉ le 16 novembre (mandat de Justin, `refonte/MATERIEL.md` § 4) et
+  appliqué par le lot Matériel : le bureau prépare les commandes, il voit donc le stock et les fournisseurs ; il n'a PAS
+  « Dépôts et camions ». Les sondes du menu attendent ce groupe chez le bureau.
 - Pied : Jour / Nuit / Auto · Nouveautés · Se déconnecter
 - Barre : Comptabilité · Devis · Clients · Tâches · Achats (5 onglets, pas 6 ; pas d'émoji dans un libellé)
+- Au téléphone, le bureau ouvre sur la Comptabilité en plein écran : le bouton « Menu » (trois traits et le mot) y reste
+  visible à côté de « ‹ OP GESTION », comme sur tous les écrans — DÉCIDÉ le 17 novembre (le menu était à deux gestes).
 - Le logo « OP GESTION » ramène à l'écran d'ouverture du rôle, pour tous les rôles.
 
 ## Menu du technicien
