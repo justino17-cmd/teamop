@@ -27,7 +27,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
 - [ ] **Bandeaux « 2 envois à accepter » (Stock) et « Avant les visites » (Dépôts et camions)** — le rond vide à gauche
       (`.t-etat`, le rond « à faire » des tâches) ressemble à une case à cocher : si on ne peut pas le cocher ici, il trompe.
       À vérifier au doigt et à la souris ; s'il n'agit pas, le remplacer par une icône d'information ou le retirer.
-- [ ] **Bandeaux d'alerte teintés** — « Tes factures peuvent partir. Il reste à compléter… » (Mon entreprise, ambre) et
+- [x] (restes entreprise 1 : Mon entreprise pose `background:var(--alerte-fond)` (le jeton du gérant A) ; Équipe, rouge : `:root:not([data-mode="nuit"]) .alerte` mêle le rouge au blanc, regardé sur Mac et iPhone ; REGARD gérant A, 17/11 : le fond est devenu un jeton, `--alerte-fond` — crème d'ambre claire de jour, inchangé de nuit — posé sur les bandeaux des TÂCHES « Retards d'équipe » et des ABSENCES « À régler avant de valider » ; reste à le poser sur les deux de cette ligne, qui ne sont pas des rubriques du gérant A : `background:var(--alerte-fond)`) **Bandeaux d'alerte teintés** — « Tes factures peuvent partir. Il reste à compléter… » (Mon entreprise, ambre) et
       « 1 compte verrouillé : Léa Roux. » (Équipe, rouge) : de jour sur Mac, la teinte posée sur le verre donne un dégradé
       gris-brun / gris-rose qui paraît terne à côté des cartes blanches. À regarder au pixel (jour et nuit, Mac et iPhone) et à
       éclaircir si le fond réel est bien grisâtre ; ne pas toucher au texte ni au bouton.
@@ -75,11 +75,24 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       · Doutes du recontrôle, tranchés : une pièce hors contrat posée sur une visite comprise se facture SEULE (casse 2) ;
         le reste d'arrondi du prix d'une visite (1 000 € ÷ 6) est porté par la DERNIÈRE visite, pour que la somme fasse le prix
         du contrat au centime (casse 1) ; les casses 3, 4, 5 du recontrôle se corrigent.
-- [ ] **De nuit, le bouton principal ressort à peine (dessin, À SOUMETTRE À JUSTIN — ne rien changer sans lui)** — toute
-      l'application, captures du 17/11 (Véhicules, Fournisseurs, Dépôts) : de jour le bouton principal est noir et le secondaire
-      blanc ; de nuit les deux sont deux pilules bleu nuit presque pareilles (`--fill:#2c3d63` contre `--surf2` + filet).
-      Recommandation : de nuit, le principal en clair (`--fill:#e9eef8; --on-fill:#0b1426`), le miroir exact du jour — une
-      ligne de jetons, à essayer sur tous les écrans avant d'adopter (`--fill` sert aussi ailleurs : le recenser).
+- [ ] **De nuit, le bouton principal ressort à peine — DÉCIDÉ par le chef le 17/11 à 12 h 30, à APPLIQUER (nuit)** — ce n'est plus
+      « à soumettre » (mandat de Justin : « à toi de jouer » ; ce sera dit dans la liste finale, et c'est une ligne de jetons à défaire s'il
+      préfère l'ancien). Constat, captures du chef de 12 h 25 (Accueil, Véhicules, Mon entreprise, Dépôts et camions, de nuit) : de jour le
+      bouton principal est presque noir et le secondaire blanc ; de nuit les deux sont deux pilules bleu nuit presque pareilles
+      (`--fill:#2c3d63` contre `--surf2` + filet) : « Noter un plein » et « ＋ Nouveau véhicule » ne se distinguent plus, on ne trouve pas le
+      geste principal du premier regard. LA RÈGLE : le bouton principal porte la couleur de l'ENCRE du thème — presque noir le jour, presque
+      blanc la nuit (`--fill:#e9eef8; --on-fill:#0b1426`), le miroir exact du jour. MODE D'EMPLOI : (1) recenser TOUS les emplois de `--fill`
+      et `--on-fill` dans les quatre pages (30 dans le prototype, 2 dans la comptabilité ; la page des documents par `atelier/page.source`) et
+      des classes qui les lisent : ce qui n'est PAS un bouton d'action principal (pastille, onglet choisi, bulle, avatar, barre de progression,
+      compteur) garde sa couleur de nuit d'aujourd'hui, au besoin par un jeton à part (`--fill-doux`) ; seul le bouton principal et ses états
+      changent (survol, enfoncé ; le désactivé reste éteint ; le bouton rouge de danger ne change pas). (2) Le même bouton principal dans les
+      quatre pages et dans les fenêtres (feuilles, confirmations, connexion, OP Security, guide). (3) Captures de NUIT de toutes les rubriques
+      des quatre rôles sur mac, iphone et android (`cd scratchpad/proto-final/sondes && NUIT=1 QUI=marc,julie,sm PROFILS=mac,iphone,android
+      CAP=<dossier> node fumee-routes.js`, puis `QUI=client,kb`), plus les fenêtres principales (nouvelle intervention, devis rapide, fiche
+      client, feuille Menu, compositeur de devis, comptabilité), REGARDÉES une à une : aucun texte illisible, un seul bouton principal par
+      écran qui ressort, aucun secondaire devenu plus fort que lui, barre du bas et menu inchangés. (4) Contraste mesuré : texte du bouton
+      ≥ 4,5 ; bouton contre le fond de sa carte ≥ 3. (5) Le JOUR ne bouge pas d'un pixel : dix captures de jour comparées avant et après.
+      Si le résultat est moins beau que l'actuel sur une famille d'écrans, le dire avec les deux captures plutôt que de forcer.
 - [x] (artefact, restes tour 1 : commits efb2eed et 1e42f89 ; sonde artefact-voir-app.js 125 ✓ · 0 ✗, 17 mutations sur 17 ; les deux casses du recontrôle corrigées aussi ; voir `final/restes-artefact-tour1.json`) **Dans l'artefact, le mode application n'est pas atteignable — À CONSTRUIRE (artefact)** — décision du chef du 17/11,
       9 h 15. L'artefact s'ouvre en mode REVUE (la bande « Tester en tant que ») : c'est voulu, Justin y passe d'un rôle à
       l'autre d'un toucher. Mais tout ce qui n'existe qu'en mode APPLICATION (écran de connexion, OP Security, guide à la
@@ -160,7 +173,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       notre serveur (à redire à Justin dans la liste des doutes). La garde `sondes/securite-statique.js` tient l'état décidé
       (49 ✓ · 0 ✗ ; trois mutations tombent : un troisième hôte, les polices dans une autre page, deux feuilles).
       ⛔ Ne pas la re-retirer : le recontrôle de la sécurité doit lire cette ligne.
-- [ ] **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
+- [x] (REGARD gérant A, 17/11 : vue aussi sur capture — filtre « Toutes » visible sur iPad, « Date à fixer » en gras — et la sonde rejouée, 63 ✓ · 0 ✗ ; `final/regard-gerant-a.json` ; restes interventions, tour 1 : commits 23c61df et c4a97c1 ; `final/restes-interventions-tour1.json` ; sonde `campagne/sondes/interventions-restes-1.js` 63 ✓ · 0 ✗ sur sept profils, douze mutations qui tombent ; à remarquer : « Terminer » d'une garantie, la case « Un autre passage », « Date à fixer » en gras, les relevés en nombre, le téléphone avec poste, le plafond du prix d'une ligne, tous joués et regardés) **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
       · **16** : à la fin d'une intervention, une case générique pour TOUS les clients : « Un autre passage est nécessaire
         (le bureau prépare le devis) » ; « Entretien annuel » n'est cochée d'office que pour un Entretien, une Mise en service
         ou une Installation — jamais après un dépannage ni une garantie (sinon chaque dépannage crée un entretien dans un an).
@@ -194,7 +207,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       puissance du véhicule) » — plus de « exemple de démonstration ». · **achats-10** : UN mot, « sans justificatif », pour le lien,
       la puce et les lignes ; une note de frais encore à valider ne se compte pas parmi les achats sans justificatif.
 
-- [ ] **Mon entreprise et droits — décisions du chef du 17/11, 12 h 05 (entreprise)** : · **tout-08** : À CORRIGER, ce n'est pas « à soumettre ».
+- [x] (restes entreprise 1, 04ebcc63 : `capacites().droits` lu par le module de courrier — Voir seul = lire, entreprise-restes1 `m` 54 ✓ · 0 ✗ ; `scroll-padding-bottom:200px` ; barre Retour collée `rl-colle` ; bloc Connexion à 320 px ; sondes mises à jour) **Mon entreprise et droits — décisions du chef du 17/11, 12 h 05 (entreprise)** : · **tout-08** : À CORRIGER, ce n'est pas « à soumettre ».
       Une personne qui n'a que « Voir » sur la Boîte mail LIT ses courriels et rien d'autre : écrire, répondre, transférer, archiver,
       supprimer, déplacer, marquer exigent la case qui va avec (un droit qui ne fait rien est un défaut qu'un client signalerait). La
       correction se fait dans l'hôte et dans apercu/prototype-courrier.js (le module du prototype ; opcourrier.js ne se touche pas) :
@@ -204,3 +217,57 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       large). · **tout-11** : après « Facture envoyée toute seule » et « Notes de frais », la barre « Retour · Mon entreprise » reste
       visible. · La fiche « Droits » ne glisse plus de côté à 360 et 320 px (bloc « Mot de passe provisoire »). · Les deux sondes
       périmées (menu avec « Sécurité », sept champs) se mettent à jour sans affaiblir leur contrôle.
+- [ ] **Matériel — décisions du chef du 17/11, 12 h 05 (materiel, vehtemps, technicien)** : · **technicien-05** : UN seul mot pour
+      les pièces qui ne sont pas dans le camion : « manque à bord » (« Il manque à bord · 3 » sur Mon camion, « 3 articles manquent
+      à bord » sur Ma journée et dans Véhicules) ; « à remettre à bord » disparaît partout, sondes et spécification de Véhicules
+      comprises (la sonde vehtemps-v5-camion se met à jour, elle ne décide pas du mot). · **technicien-08** : l'unité « u » RESTE
+      (c'est celle de la vraie application et d'une facture) : rien à changer, à dire à Justin dans la liste des doutes.
+      · Les défauts technicien-11 à 14 de la relecture (dont « Je l'ai pris » qui dit « Envoyé au bureau » sans réseau) n'étaient
+      pas dans la liste lue par le correcteur (il en a lu 10 sur 14) : à corriger au tour « restes » s'ils sont encore là.
+
+- [ ] **Espace client — décisions du chef du 17/11, 12 h 10 (client)** : · **client-14** : UNE seule navigation par appareil pour les cinq
+      destinations du client (Accueil, Factures, Interventions, Devis, Contrat). Au téléphone : la barre du bas, et plus d'onglets répétés
+      dans la page. À l'ordinateur : les onglets de la page, et le menu de gauche ne répète pas les cinq entrées. Les mêmes mots et le même
+      ordre partout. · **client-15** : le client voit l'entreprise, pas le logiciel : en haut, le logo ou les initiales de l'entreprise et son
+      nom UNE fois (plus de carré « OP », plus de nom répété juste dessous). · **client-11** : la phrase du paiement reste (c'est un
+      prototype : aucun argent ne bouge) mais elle vouvoie et se lit simplement : « Démonstration : aucun paiement réel. Dans l'application,
+      le paiement se fait sur la page sécurisée de la banque. » · **client-19** : les deux devis presque pareils du client de démonstration
+      n'en font plus qu'un. · Les casses du recontrôle se corrigent : plus AUCUN message tutoyé ni de bureau pour le client (les trois écrans
+      du métier 3D compris : la garde du rôle passe avant) ; « Demander un contrat » laisse une trace visible côté client (« Demande envoyée
+      le … ») et ne crée pas une seconde tâche si on redemande ; un mot très long ne sort pas de sa carte ; « CTR-2026-011 » ne se coupe pas ;
+      pour une entreprise cliente, on salue la personne (« Bonjour Mme … ») ou « Bonjour, » — jamais « Bonjour Syndic Foncia ».
+
+- [ ] **Véhicules et Temps de travail — décisions du chef du 17/11, 12 h 25 (vehtemps)** : les cinq « doutes » de la relecture du gérant
+      (`refonte/vehtemps-relecture-gerant.json`) ne restent pas « à soumettre », ils s'APPLIQUENT : · **Pas pointé alors qu'une intervention
+      tourne** : dans Temps de travail, la ligne d'une personne « Pas encore commencé » qui a une intervention en cours ou terminée aujourd'hui
+      le dit (« Une intervention est en cours depuis 08:30, rien n'est pointé »), pour que le gérant sache quoi faire du rappel. · **La semaine
+      EN COURS ne se valide pas** : « Valider les N personnes en règle » et « Valider ce qui est en règle » ne prennent que les semaines FINIES ;
+      la semaine en cours le dit (« Semaine en cours : elle se valide une fois finie ») et son bouton de validation n'est pas proposé. · **Mois** :
+      quand une semaine est à cheval sur deux mois, la feuille de la personne porte une ligne « dont X en octobre », pour que la somme des lignes
+      retombe sur le chiffre du haut. · **Assurance payée à l'année** : le chiffre du haut de Véhicules reste ce qui a été PAYÉ dans le mois, et il
+      le dit (« payés en octobre (hors taxes) »), avec dessous « dont l'assurance de l'année : 4 200 € » quand une prime annuelle y est ; le coût
+      au kilomètre continue de la lisser sur douze mois. · **Deux mots pour un fait** : partout, relevé de la Paie compris, « en plus » (jamais
+      « sup. ») et « payée avec novembre » (jamais « se termine en novembre · sur novembre ») — ce sont deux mots à aligner dans un écran validé,
+      pas un écran à redessiner.
+- [ ] **Clients — décisions du chef du 17/11, 12 h 30 (clients)** : les cinq points « à soumettre » et les questions du recontrôle sont TRANCHÉS, ils s'appliquent. · **clients-04** : créer un client « avec une intervention » exige une adresse (le technicien doit savoir où aller) ET un téléphone ou un e-mail, comme le formulaire du devis ; le refus nomme le champ qui manque. · **clients-11** : l'onglet Appareils de la fiche a « ＋ Ajouter un appareil » (nom, détail) et, par ligne, modifier et retirer, sous la case « changer un client » ; « 0 appareil · à renseigner » mène à ce geste. · **clients-12** : vider le téléphone ET l'e-mail est refusé, avec la phrase du devis (« Garde au moins un téléphone ou un e-mail »). · **clients-15** : quitter l'onglet Infos avec une saisie non enregistrée demande avant de la perdre (Enregistrer / Abandonner / Continuer la saisie), avec la fenêtre de confirmation que l'application emploie déjà ailleurs — jamais confirm() du navigateur. · **clients-17** : la case devient un geste : « Archiver ce client » dans la fiche (confirmation dans la page ; l'historique, les factures et les contrats restent), le client quitte la liste, un filtre « Archivés » le montre avec « Remettre dans la liste » ; on n'efface jamais un client (ses factures doivent garder leur client) ; le libellé de la case dit « archiver un client ». · **Le téléphone** : à l'enregistrement, un numéro français s'écrit « 06 12 34 56 78 » (« +33 » et « 0033 » ramenés à « 0 »), un numéro étranger garde son « + » ; la recherche et le refus de doublon comparent les chiffres (casse 1, clients-18). · **Annuler** (Ctrl ou Cmd + Z) après « nouveau client + intervention » retire aussi le client : le message dit « retour à l'état d'avant », il doit être vrai (casse 8). · **Créer un client sans créer ni intervention ni devis** : le panneau « Nouveau client » offre toujours « Le client seul » (sa fiche, rien d'autre) à qui a la case « créer un client » (casse 4) ; « aucun résultat » ne renvoie vers « ＋ Nouveau client » que si la personne a ce bouton (casse 9). · Les autres casses se corrigent : renommer un particulier renomme aussi son contact, sa carte et les titres de ses tâches (2, 7) ; TOUTES les créations de client posent le point de la carte et le secteur — composer un devis, le devis xylophage, les quatre chemins « C'est un client » de la Boîte mail (3) ; un seul rangement enfoncé à la fois pendant une recherche (5) ; deux espaces ne contournent pas le refus de doublon de nom (6) ; les suggestions d'adresse font 44 px au doigt (10). · Ce que le recontrôle n'a pas pu jouer se JOUE par l'interface : la création d'un client depuis un vrai courriel de la boîte de démonstration, et depuis la fenêtre « Composer un devis » (dans son cadre).
+
+- [ ] **Vu sur les captures de la fumée de 12 h 15 (tête fusionnée, 396 ✓ · 0 ✗) — pour les regards (gerant c, e ; coque)** :
+      · **La bande d'onglets a trois dessins à l'ordinateur** : colonnes égales sur toute la largeur (Devis : validé, on n'y touche pas) ;
+      une bande à la largeur de ses onglets (Équipe, Stock, Fournisseurs : bien) ; et, sur Véhicules (« Tous · À faire · Au garage ») et
+      Temps de travail (« Aujourd'hui · Semaine · Mois »), une bande grise étirée sur toute la largeur avec trois onglets tassés à gauche et
+      800 px de vide. Ces deux-là prennent la largeur de leurs onglets, comme Équipe et Stock ; au téléphone rien ne change (colonnes égales).
+      · **La ligne « Fournisseurs, matériel & produits » du menu change de hauteur quand on la choisit** : deux lignes au repos, trois une
+      fois active (le gras élargit le texte, « produits » passe à la ligne) — le menu saute de 22 px sous le doigt. Même nombre de lignes
+      dans les deux états (réserver la largeur du gras, ou resserrer la pastille), mesuré sur Mac, Windows 1366 et iPad.
+      · **Temps de travail, phrase sous le titre** : « 1 personne au travail, 1 absente » oublie les « 2 pas encore commencé » que les
+      chiffres juste dessous affichent : la phrase et les chiffres disent la même chose.
+      · **Sécurité** : « Comptes verrouillés » est dans une carte, « Connexions inhabituelles ou refusées » a son titre posé hors carte au-dessus
+      d'un tableau nu : même habillage pour les deux blocs.
+
+- [ ] **Retouches décidées par le chef, hors des voies en cours (retouches)** — à traiter par la voie `restes` de nom « retouches », lancée
+      en fin de chantier ; chaque point se reproduit, se corrige au plus petit, se rejoue et se regarde (ordinateur et téléphone, jour et nuit) :
+      · **Compositeur de devis et de contrats** : « Brouillon supprimé » offre « Annuler » pendant quelques secondes (la bulle porte le geste,
+      comme les autres suppressions de l'application) ; l'annulation rend le brouillon tel quel, avec son numéro (décision j : un numéro ne se
+      réutilise jamais, donc rien ne peut l'avoir pris entre-temps). Correction dans `scratchpad/proto-final/atelier/page.source`, page refabriquée
+      par `fabriquer.sh` (jamais `apercu/prototype-documents.html` à la main).
+- [ ] **Rejeu, familles menu et tâches — décisions du chef du 17/11, 12 h 30 (menu, taches, taches-absences)** : · **menu-defilement** : la colonne du gérant a bien VINGT ET UNE lignes : « Sécurité » (groupe Personnel) y est entrée avec la double authentification, c'est voulu. La sonde est PÉRIMÉE : elle compte les lignes que scratchpad/proto-final/MENU-FINAL.md annonce (à mettre à jour : « Sécurité » après « Mon entreprise », le gérant seul), sans chiffre écrit en dur, et garde son contrôle de défilement. · **menu-renommages** : « Mon compte » est désormais le NOM de la page personnelle (mot de passe, téléphone de confiance, appareils connectés), qu'on ouvre par la ligne du PIED du menu (« Marc Leblanc · Mon compte ») : permis au pied du menu, au pied de la feuille « Menu » du téléphone et en titre de cette page ; toujours INTERDIT comme ligne du menu, comme onglet de la barre du bas ou comme bouton d'en-tête. La sonde se met à jour dans ce sens (elle refuse toujours l'ancien bouton) et MENU-FINAL.md le dit. · **taches-absences-mise-en-page** : les cases d'un jour du calendrier des absences et les barres « mois par mois » des Soldes restent sous 44 px (décision b : cases d'information, douze par rangée) : la sonde les écarte EN LES NOMMANT ; en revanche « Sophie Martin · RTT » dans Mes congés à 320 px est une vraie cible : elle passe à 44 px au doigt. · **mail-tout.sh** reprend aussi les cinq mail-recontrole-*.js (couverture complète).
