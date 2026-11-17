@@ -88,14 +88,28 @@ const L = require('../lib.js');
   const N = await R(() => { const i = INTS[INTS.length - 1]; return { n:INTS.length, prevues:i.prevues, art:i.prevues && i.prevues[0] ? (PRODUITS.find(x => x.id === i.prevues[0].pid) || {}).nom : null }; });
   v('« Créer l\'intervention » enregistre la pièce AVEC son article (pid) : ' + JSON.stringify(N.prevues) + ' (' + n0 + ' → ' + N.n + ' interventions)', N.n === n0 + 1 && N.prevues && N.prevues.length === 1 && N.prevues[0].nom === choisi && !!N.prevues[0].pid && N.art === choisi, N);
   await R(() => { INTS.pop(); rendre(); });
+  // ───────── la recherche du menu (⌘K) propose aussi les ARTICLES : « R32 » → « Fluide R32 · 7,5 kg · atelier 5, Sophie 2,5 » → sa fiche
+  await L.aller(p, 'accueil'); await R(() => palOuvrir()); await L.calme(p, 300); await p.fill('#pal-q', 'r32'); await L.calme(p, 300);
+  const P1 = await R(() => ({ groupes:[...document.querySelectorAll('#pal .pal-g')].map(e => e.textContent), lignes:[...document.querySelectorAll('#pal .pal-i')].map(e => ({ nom:e.querySelector('b').textContent, d:(e.querySelector('small') || {}).textContent || '' })) }));
+  v('population : taper « r32 » dans la recherche du menu trouve un groupe « Articles » (' + P1.lignes.length + ' lignes)', P1.groupes.includes('Articles') && P1.lignes.some(l => /R32/.test(l.nom)), P1);
+  const art32 = P1.lignes.find(l => /R32/.test(l.nom));
+  v('la ligne dit combien et où, sans aucun prix : « ' + (art32 && art32.nom) + ' · ' + (art32 && art32.d) + ' »', !!art32 && /\d.*kg/.test(art32.d) && /atelier \d/i.test(art32.d) && !/€/.test(art32.d), art32);
+  await R(() => { const b = [...document.querySelectorAll('#pal .pal-i')].find(e => /R32/.test(e.textContent)); b.click(); }); await L.calme(p, 500);
+  v('la choisir ouvre la fiche de l\'article', /R32/.test(await R(() => (document.querySelector('#calque .panneau h2') || {}).textContent || '')), await R(() => (document.querySelector('#calque .panneau') || {}).innerText));
+  await L.ranger(p); await R(() => palOuvrir()); await L.calme(p, 250);
+  v('sans frappe, la recherche ne noie pas les rubriques sous 29 articles (le groupe « Articles » attend une frappe)', !(await R(() => [...document.querySelectorAll('#pal .pal-g')].some(e => e.textContent === 'Articles'))));
+  await R(() => palFermer(true));
   v('aucune erreur de page (gérant)', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
 
   // ───────── la technicienne : la pastille oui, le bouton « Commander » et tout prix non
   const ct = await L.ouvrir({ profil, qui:'sm' }), q = ct.p;
   await L.aller(q, 'inter-x-i2'); await L.calme(q, 500);
+  // une pièce À COMMANDER sur sa fiche : elle voit la pastille, jamais le bouton « Commander »
+  await q.evaluate(() => { const x = PRODUITS.find(o => !o.retire && !(o.seuil > 0) && enCommande(o) === 0); x.q = 0; x.loc = {}; INTS.find(o => o.id === 'i2').prevues.push({ nom:x.nom, q:2, pid:x.id }); rendre(); }); await L.calme(q, 400);
   const T1 = await q.evaluate(() => { const car = (document.querySelector('[data-vis="inter-pieces"]') || {}).closest ? document.querySelector('[data-vis="inter-pieces"]').closest('.carte') : null; return car ? { pastilles:[...car.querySelectorAll('.pp-e .st')].map(e => e.textContent), boutons:car.querySelectorAll('.pp-e .btn, .pp-e .lien').length, euros:/€/.test(car.innerText) } : null; });
   v('population : la technicienne voit la carte des pièces prévues avec ' + (T1 && T1.pastilles.length) + ' pastille(s)', !!T1 && T1.pastilles.length >= 1, T1);
+  v('population : sa fiche porte une pièce « À commander » (' + (T1 && T1.pastilles.join(' · ')) + ')', !!T1 && T1.pastilles.includes('À commander'), T1);
   v('…elle n\'a ni « Commander » ni « Voir » (elle demande une pièce, elle n\'en commande pas), ni aucun prix', !!T1 && T1.boutons === 0 && !T1.euros, T1);
   v('aucune erreur de page (technicienne)', ct.err.length === 0, ct.err.slice(0, 3));
   await L.fin(ct);

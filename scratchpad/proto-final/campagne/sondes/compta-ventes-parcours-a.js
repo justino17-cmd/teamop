@@ -48,8 +48,9 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await L.toucher(c, '[data-action="ligneAjout"]');
   const lig = await p.evaluate(id => { const f = FACTURES.find(x => x.id === id); return f.lignes.map(l => l.d + '|' + l.pu); }, nf.id);
   L.v('« ＋ Ajouter une ligne » ajoute une ligne', lig.length === 2, lig);
-  const champsLigne = await p.evaluate(() => [...document.querySelectorAll('#contenu .fac-lgs .dv-lg:not(.dv-lg-t)')].map(tr => ({ champs: tr.querySelectorAll('input').length, suppr: !!tr.querySelector('[data-action="ligneSup"]'), foc: document.activeElement === tr.querySelector('[data-fdes]') })));
+  const champsLigne = await p.evaluate(() => [...document.querySelectorAll('#contenu .fac-lgs .dv-lg:not(.dv-lg-t)')].map(tr => ({ champs: tr.querySelectorAll('input').length, suppr: !!tr.querySelector('[data-action="ligneSup"]'), foc: document.activeElement === tr.querySelector('[data-fdes]'), nom: tr.querySelector('[data-fdes]').value })));
   L.v('compta-ventes-02 · la ligne ajoutée peut être NOMMÉE (un champ texte pour la désignation, déjà actif) ET changée de quantité', champsLigne.length === 2 && champsLigne[1].champs === 3 && champsLigne[1].foc, champsLigne);
+  L.v('compta-ventes-02 · la ligne ajoutée naît SANS nom (le champ est vide, on ne lui invente pas « Ligne libre »)', champsLigne.length === 2 && champsLigne[1].nom === '', champsLigne);
   L.v('compta-ventes-02b · la ligne ajoutée peut être SUPPRIMÉE (et la première aussi)', champsLigne.length === 2 && champsLigne.every(x => x.suppr), champsLigne);
   await L.capture(c, X.CAP + `a-${profil}-ligne-libre.png`);
   // la croix retire VRAIMENT la ligne (et la dernière ligne ne se retire pas)

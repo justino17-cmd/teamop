@@ -20,7 +20,8 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
       basManque:manque ? Math.round(manque.querySelector('.mc-l').getBoundingClientRect().bottom) : 9999, H:innerHeight,
       avant:manque ? sig.filter(e => e.getBoundingClientRect().top < manque.querySelector('.mc-l').getBoundingClientRect().top).length : 99,
       bordPlie:q('.mc-bord') && q('.mc-bord').getAttribute('aria-expanded'), envois:[...document.querySelectorAll('#contenu .mc-liste')].filter(e => /Mes envois/.test(e.textContent)).length, etats:[...document.querySelectorAll('.mc-l .st')].map(e => e.textContent.trim()) }; });
-  v('titre « Mon camion », une seule ligne grise « plaque · N articles à bord »', S.h1 === 'Mon camion' && /^GH-482-KL · 6 articles à bord$/.test(S.sous), S);
+  // 17 novembre : le chantier Véhicules dit l'ÉTAT du camion sous le titre (« Tout est en règle. », « Ton camion est au garage… ») et le véhicule au-dessus (« RENAULT TRAFIC · plaque »)
+  v('titre « Mon camion », une seule phrase d\'état du véhicule dessous (« Tout est en règle. »)', S.h1 === 'Mon camion' && /^(Tout est en règle\.|Ton camion|Ce camion|Ton souci|.* est .*Le bureau s’en occupe\.)/.test(S.sous), S);
   v('la longue phrase d’avant a disparu', !S.ancienne);
   v('la carte « Messages du bureau » n’est plus un bloc : une pastille « 1 message du bureau › »', !S.carteMsg && /^1 message du bureau ›$/.test(S.msg || ''), [S.carteMsg, S.msg]);
   v('champ « Chercher une pièce » présent (data-vis camion-cherche)', S.cherche);
@@ -193,13 +194,13 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
   v('« Retirer » un refus : la ligne et la pastille s’en vont', (await R(() => rlPastille('moncamion'))) === 0);
   // ── 9 bis. camion au garage : une phrase, ni carte « Il manque », ni « J'ai tout pris » (un camion au garage n'est pas à remplir) ──
   await R(() => { VEHICULES.find(o => o.lieu === sxMonLieu().id).statut = 'atelier'; rendre(); }); await L.calme(p, 300);
-  const GA = await R(() => ({ phrase:(document.querySelector('.mc-garage') || {}).textContent, tout:!!document.querySelector('[data-mat="toutpris"]'), pastille:rlPastille('moncamion'), trois:document.querySelectorAll('.mc-gros button').length }));
-  v('camion au garage : la phrase « Ton camion est au garage. », aucun « J’ai tout pris », les trois gros boutons restent', GA.phrase === 'Ton camion est au garage.' && !GA.tout && GA.trois === 3, GA);
+  const GA = await R(() => ({ phrase:(document.querySelector('.mc-etat') || {}).textContent, tout:!!document.querySelector('[data-mat="toutpris"]'), pastille:rlPastille('moncamion'), trois:document.querySelectorAll('.mc-gros button').length }));
+  v('camion au garage : la phrase « Ton camion est au garage. », aucun « J’ai tout pris », les trois gros boutons restent', /^Ton camion est au garage/.test(GA.phrase || '') && !GA.tout && GA.trois === 3, GA);
   await R(() => { VEHICULES.find(o => o.lieu === sxMonLieu().id).statut = 'service'; rendre(); }); await L.calme(p, 300);
-  v('… et de retour en service : la phrase disparaît', (await R(() => !document.querySelector('.mc-garage'))));
+  v('… et de retour en service : la phrase du garage disparaît', (await R(() => !/au garage/.test((document.querySelector('.mc-etat') || {}).textContent || ''))));
   // ── 9 ter. l'emplacement réservé à la partie Véhicule (chantier voisin) : un conteneur vide, à l'identifiant stable, dernier de la page ──
-  const VH = await R(() => { const e = document.getElementById('mc-vehicule'), page = document.querySelector('.mc-page'); return { existe:!!e, vide:e && e.children.length === 0 && !e.textContent.trim(), vis:e && e.getAttribute('data-vis'), dernier:!!e && !!page && page.lastElementChild === e }; });
-  v('« mc-vehicule » : conteneur vide, data-vis « camion-vehicule », dernier élément de la page (le chantier Véhicules s’y branche)', VH.existe && VH.vide && VH.vis === 'camion-vehicule' && VH.dernier, VH);
+  const VH = await R(() => { const e = document.getElementById('mc-vehicule'), liste = document.querySelector('[data-vis="camion-manque"]'); return { existe:!!e, rempli:!!e && !!e.querySelector('.vh-cam'), vis:e && e.getAttribute('data-vis'), avant:!!e && !!liste && !!(e.compareDocumentPosition(liste) & Node.DOCUMENT_POSITION_FOLLOWING) }; });
+  v('« mc-vehicule » : le conteneur à l\'identifiant stable, data-vis « camion-vehicule », rempli par la carte « Le camion » du chantier Véhicules, posée AVANT « Il manque à bord »', VH.existe && VH.rempli && VH.vis === 'camion-vehicule' && VH.avant, VH);
   // ── 10. un technicien n'a ni prix ni valeur dans Mon camion ──
   await T('[data-mat="bord"]');   // la liste « À bord » dépliée : elle aussi est lue (elle écrit « plus que la liste », jamais un prix)
   const EU = await R(() => (document.getElementById('contenu').textContent.match(/\d[\d\s  ]*(?:,\d+)?\s?€/g) || []).length);
