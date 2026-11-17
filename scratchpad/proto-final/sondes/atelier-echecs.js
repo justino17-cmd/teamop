@@ -34,11 +34,11 @@ const att = p => p.evaluate(() => { const z = document.getElementById('opdz'); i
   v('… et l\'attente a disparu', (await att(p)).att === false);
   await L.fin(c);
   // ═════ 2. L'ATELIER LENT (9,5 s) ═════
-  c = await L.ouvrir({ profil: 'mac', qui: 'marc' }); p = c.p; await p.route(/prototype-documents\.html/, async r => { await new Promise(x => setTimeout(x, 9500)); await r.continue(); });
+  c = await L.ouvrir({ profil: 'mac', qui: 'marc' }); p = c.p; await p.route(/prototype-documents\.html/, async r => { await new Promise(x => setTimeout(x, 13500 /* la demande part au premier rendu, ~1 s avant l'ouverture : elle doit encore être en vol 8,6 s APRÈS */)); await r.continue(); });
   await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(900);   // le cadre de l'atelier est créé au premier rendu : on recharge pour que SA demande subisse le délai
   await L.aller(p, 'devis'); await L.toucher(c, '[data-opd="devis"]'); await p.waitForTimeout(8600); a = await att(p);
   v('lent : à 8 s le message d\'échec et « Réessayer » sont là', a && /ne s’ouvre pas/.test(a.titre) && a.re, a);
-  const f2 = await A.attendreAtelier(c, 6000);
+  const f2 = await A.attendreAtelier(c, 9000);
   v('lent : l\'atelier finit par répondre ; la fenêtre s\'ouvre toute seule (pas d\'impasse)', !!f2 && (await att(p)).att === false, await att(p));
   await L.fin(c);
   // ═════ 3. L'ATELIER RECHARGÉ EN COURS DE ROUTE (second « prêt ») ═════
